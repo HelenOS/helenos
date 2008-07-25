@@ -281,10 +281,15 @@ sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root)
 	return ret;
 }
 
+#define SYSINFO_MAX_LEN	1024
+
 unative_t sys_sysinfo_valid(unative_t ptr, unative_t len)
 {
 	char *str;
 	sysinfo_rettype_t ret = {0, 0};
+
+	if (len > SYSINFO_MAX_LEN)
+		return ret.valid;
 	str = malloc(len + 1, 0);
 	
 	ASSERT(str);
@@ -299,6 +304,9 @@ unative_t sys_sysinfo_value(unative_t ptr, unative_t len)
 {
 	char *str;
 	sysinfo_rettype_t ret = {0, 0};
+	
+	if (len > SYSINFO_MAX_LEN)
+		return ret.val;
 	str = malloc(len + 1, 0);
 	
 	ASSERT(str);
