@@ -74,7 +74,7 @@ ifeq ($(MACHINE),pentium3)
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),core)
-	FPU_NO_CFLAGS = -mno-mmmx -mno-sse -mno-sse2 -mno-sse3
+	FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3
 	CMN2 = -march=prescott
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)
