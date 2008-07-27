@@ -52,8 +52,6 @@
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
-#define PAGE_COLOR_BITS	0			/* dummy */
-
 #ifdef KERNEL
 
 #ifndef __ASM__

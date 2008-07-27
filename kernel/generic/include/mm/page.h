@@ -39,11 +39,6 @@
 #include <mm/as.h>
 #include <memstr.h>
 
-/**
- * Macro for computing page color.
- */
-#define PAGE_COLOR(va)	(((va) >> PAGE_WIDTH) & ((1 << PAGE_COLOR_BITS) - 1))
-
 /** Operations to manipulate page mappings. */
 typedef struct {
 	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame,

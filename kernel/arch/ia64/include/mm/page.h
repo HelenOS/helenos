@@ -41,8 +41,6 @@
 #define PAGE_SIZE	FRAME_SIZE
 #define PAGE_WIDTH	FRAME_WIDTH
 
-#define PAGE_COLOR_BITS	0			/* dummy */
-
 #ifdef KERNEL
 
 /** Bit width of the TLB-locked portion of kernel address space. */

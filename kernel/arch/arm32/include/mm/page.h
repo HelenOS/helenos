@@ -43,8 +43,6 @@
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
 
-#define PAGE_COLOR_BITS	0			/* dummy */
-
 #ifndef __ASM__
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)

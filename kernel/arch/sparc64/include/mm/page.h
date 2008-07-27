@@ -53,11 +53,6 @@
 
 #define MMU_PAGES_PER_PAGE	(1 << (PAGE_WIDTH - MMU_PAGE_WIDTH))
 
-/*
- * With 16K pages, there is only one page color.
- */
-#define PAGE_COLOR_BITS	0	/**< 14 - 14; 2^14 == 16K == alias boundary. */
-
 #ifdef KERNEL
 
 #ifndef __ASM__
