@@ -53,9 +53,6 @@ static void tlb_modified_fail(istate_t *istate);
 
 static pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, int *pfrc);
 
-static void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn);
-static void prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr);
-
 /** Initialize TLB
  *
  * Initialize TLB.
@@ -76,7 +73,6 @@ void tlb_arch_init(void)
 		cp0_index_write(i);
 		tlbwi();
 	}
-
 		
 	/*
 	 * The kernel is going to make use of some wired
@@ -131,8 +127,8 @@ void tlb_refill(istate_t *istate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_hi(&hi, asid, badvaddr);
-	prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_hi(&hi, asid, badvaddr);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
@@ -178,7 +174,7 @@ void tlb_invalid(istate_t *istate)
 	 * Locate the faulting entry in TLB.
 	 */
 	hi.value = cp0_entry_hi_read();
-	prepare_entry_hi(&hi, hi.asid, badvaddr);
+	tlb_prepare_entry_hi(&hi, hi.asid, badvaddr);
 	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
@@ -221,7 +217,7 @@ void tlb_invalid(istate_t *istate)
 	 */
 	pte->a = 1;
 
-	prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -262,7 +258,7 @@ void tlb_modified(istate_t *istate)
 	 * Locate the faulting entry in TLB.
 	 */
 	hi.value = cp0_entry_hi_read();
-	prepare_entry_hi(&hi, hi.asid, badvaddr);
+	tlb_prepare_entry_hi(&hi, hi.asid, badvaddr);
 	cp0_entry_hi_write(hi.value);
 	tlbp();
 	index.value = cp0_index_read();
@@ -312,7 +308,7 @@ void tlb_modified(istate_t *istate)
 	pte->a = 1;
 	pte->d = 1;
 
-	prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->cacheable, pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
@@ -445,7 +441,7 @@ pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, 
 	}
 }
 
-void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn)
+void tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn)
 {
 	lo->value = 0;
 	lo->g = g;
@@ -455,7 +451,7 @@ void prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, ui
 	lo->pfn = pfn;
 }
 
-void prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr)
+void tlb_prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr)
 {
 	hi->value = ALIGN_DOWN(addr, PAGE_SIZE * 2);
 	hi->asid = asid;
@@ -585,7 +581,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 
 	for (i = 0; i < cnt + 1; i += 2) {
 		hi.value = 0;
-		prepare_entry_hi(&hi, asid, page + i * PAGE_SIZE);
+		tlb_prepare_entry_hi(&hi, asid, page + i * PAGE_SIZE);
 		cp0_entry_hi_write(hi.value);
 
 		tlbp();

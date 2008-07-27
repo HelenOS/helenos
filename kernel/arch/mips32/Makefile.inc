@@ -56,20 +56,6 @@ CONFIG_ASID_FIFO = y
 ## Accepted MACHINEs
 #
 
-ifeq ($(MACHINE),indy)
-	# GCC 4.0.1 compiled for mipsEL has problems compiling in 
-	# BigEndian mode with the swl/swr/lwl/lwr instructions.
-	# We have to compile it with mips-sgi-irix5 to get it right.
-	
-	BFD_NAME = elf32-bigmips
-	BFD = ecoff-bigmips --impure
-	TARGET = mips-sgi-irix5
-	TOOLCHAIN_DIR = /usr/local/mips/bin
-	KERNEL_LOAD_ADDRESS = 0x88002000
-	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -march=r4600
-	INIT_ADDRESS = 0
-	INIT_SIZE = 0
-endif
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
@@ -123,7 +109,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/as.c \
 	arch/$(ARCH)/src/fpu_context.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/arc.c \
 	arch/$(ARCH)/src/drivers/msim.c \
 	arch/$(ARCH)/src/drivers/serial.c \
 	arch/$(ARCH)/src/smp/order.c

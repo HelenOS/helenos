@@ -38,7 +38,6 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <time/clock.h>
-#include <arch/drivers/arc.h>
 #include <ipc/sysipc.h>
 #include <ddi/device.h>
 

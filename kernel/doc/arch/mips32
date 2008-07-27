@@ -3,11 +3,9 @@ mips32 port
 
 mips32 is the second port of SPARTAN kernel originally written by Jakub Jermar.
 It was first developed to run on MIPS R4000 32-bit simulator.
-Now it can run on real hardware as well.
 It can be compiled and run either as little- or big-endian.
 
 HARDWARE REQUIREMENTS
-        o SGI Indy R4600
         o emulated MIPS 4K CPU
 
 CPU

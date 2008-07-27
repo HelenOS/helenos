@@ -35,6 +35,9 @@
 #ifndef KERN_mips32_TLB_H_
 #define KERN_mips32_TLB_H_
 
+#include <arch/types.h>
+#include <typedefs.h>
+#include <arch/mm/asid.h>
 #include <arch/exception.h>
 
 #ifdef TLBCNT
@@ -46,7 +49,7 @@
 #define TLB_WIRED		1
 #define TLB_KSTACK_WIRED_INDEX	0
 
-#define TLB_PAGE_MASK_16K	(0x3<<13)
+#define TLB_PAGE_MASK_16K	(0x3 << 13)
 
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
@@ -159,6 +162,8 @@ static inline void tlbwr(void)
 extern void tlb_invalid(istate_t *istate);
 extern void tlb_refill(istate_t *istate);
 extern void tlb_modified(istate_t *istate);
+extern void tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn);
+extern void tlb_prepare_entry_hi(entry_hi_t *hi, asid_t asid, uintptr_t addr);
 
 #endif
 

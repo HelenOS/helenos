@@ -48,7 +48,6 @@
 #include <sysinfo/sysinfo.h>
 
 #include <arch/interrupt.h>
-#include <arch/drivers/arc.h>
 #include <console/chardev.h>
 #include <arch/barrier.h>
 #include <arch/debugger.h>
@@ -97,7 +96,6 @@ void arch_pre_mm_init(void)
 	
 	/* Initialize dispatch table */
 	exception_init();
-	arc_init();
 
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *) tlb_refill_entry, EXCEPTION_JUMP_SIZE);
@@ -187,8 +185,7 @@ unative_t sys_tls_set(unative_t addr)
 
 void arch_reboot(void)
 {
-	if (!arc_reboot())
-		___halt();
+	___halt();
 	
 	while (1)
 		;

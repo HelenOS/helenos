@@ -40,11 +40,6 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 
-/** Address of devices. */
-#define MSIM_VIDEORAM		0xB0000000
-#define MSIM_KBD_ADDRESS	0xB0000000
-#define MSIM_KBD_IRQ 		2
-
 static chardev_t console;
 static irq_t msim_irq;
 

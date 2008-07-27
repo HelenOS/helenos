@@ -35,6 +35,11 @@
 #ifndef KERN_mips32_MSIM_H_
 #define KERN_mips32_MSIM_H_
 
+/** Address of devices. */
+#define MSIM_VIDEORAM		0xB0000000
+#define MSIM_KBD_ADDRESS	0xB0000000
+#define MSIM_KBD_IRQ 		2
+
 #include <console/chardev.h>
 
 void msim_console(devno_t devno);

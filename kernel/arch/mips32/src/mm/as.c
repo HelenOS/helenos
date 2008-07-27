@@ -44,7 +44,7 @@
 /** Architecture dependent address space init. */
 void as_arch_init(void)
 {
-        as_operations = &as_pt_operations;
+	as_operations = &as_pt_operations;
 	asid_fifo_init();
 }
 

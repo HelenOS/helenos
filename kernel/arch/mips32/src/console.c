@@ -34,18 +34,15 @@
 
 #include <console/console.h>
 #include <arch/console.h>
-#include <arch/drivers/arc.h>
 #include <arch/drivers/serial.h>
 #include <arch/drivers/msim.h>
 
 void console_init(devno_t devno)
 {
-	if (!arc_console()) {
-		if (serial_init())
-			serial_console(devno);
-		else
-			msim_console(devno);
-	}
+	if (serial_init())
+		serial_console(devno);
+	else
+		msim_console(devno);
 }
 
 /** Acquire console back for kernel

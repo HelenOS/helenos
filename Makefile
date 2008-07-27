@@ -82,11 +82,6 @@ ifeq ($(PLATFORM),mips32)
 		UARCH = mips32
 		IMAGE = ecoff
 	endif
-	
-	ifeq ($(MACHINE),indy)
-		UARCH = mips32eb
-		IMAGE = ecoff
-	endif
 endif
 
 ifeq ($(PLATFORM),ppc32)

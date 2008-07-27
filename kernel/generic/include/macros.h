@@ -48,7 +48,7 @@
 #define min(a,b)	((a) < (b) ? (a) : (b))
 #define max(a,b)	((a) > (b) ? (a) : (b))
 
-/** Return true if the interlvals overlap.
+/** Return true if the intervals overlap.
  *
  * @param s1 Start address of the first interval.
  * @param sz1 Size of the first interval.
@@ -68,6 +68,9 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 
 #define SIZE2KB(size) (size >> 10)
 #define SIZE2MB(size) (size >> 20)
+
+#define KB2SIZE(size) (size << 10)
+#define MB2SIZE(size) (size << 20)
 
 #define STRING(arg) STRING_ARG(arg)
 #define STRING_ARG(arg) #arg
