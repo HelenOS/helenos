@@ -37,7 +37,7 @@
 
 #include <console/chardev.h>
 
-#define SERIAL_ADDRESS    0xB8000000
+#define SERIAL_ADDRESS    0x98000000
 
 #define SERIAL_MAX        4
 #define SERIAL_COM1       0x3f8

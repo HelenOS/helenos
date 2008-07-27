@@ -50,7 +50,6 @@ ifneq ($(ARCH), ia64)
 		font-8x16.c
 	CFLAGS += -DFB_ENABLED
 endif
-
 ifeq ($(ARCH), ia32)
 	SOURCES += ega.c
 	CFLAGS += -DEGA_ENABLED
@@ -60,7 +59,8 @@ ifeq ($(ARCH), amd64)
 	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), mips32)
-	CFLAGS += -DFB_INVERT_ENDIAN
+	SOURCES += msim.c
+	CFLAGS += -DMSIM_ENABLED -DFB_INVERT_ENDIAN
 endif
 
 CFLAGS += -D$(ARCH)

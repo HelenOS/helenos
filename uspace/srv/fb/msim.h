@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +27,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup msimfb
+ * @brief	HelenOS MSIM text console.
+ * @ingroup fbs
  * @{
- */
+ */ 
 /** @file
  */
 
-#ifndef KERN_mips32_MSIM_H_
-#define KERN_mips32_MSIM_H_
+#ifndef FB_MSIM_H_
+#define FB_MSIM_H_
 
-/** Address of devices. */
-#define MSIM_VIDEORAM		0x90000000
-#define MSIM_KBD_ADDRESS	0x90000000
-#define MSIM_KBD_IRQ 		2
-
-#include <console/chardev.h>
-
-void msim_console(devno_t devno);
-void msim_kbd_release(void);
-void msim_kbd_grab(void);
+extern int msim_init(void);
 
 #endif
 
 /** @}
  */
+

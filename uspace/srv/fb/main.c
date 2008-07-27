@@ -37,6 +37,7 @@
 
 #include "fb.h"
 #include "ega.h"
+#include "msim.h"
 #include "main.h"
 
 #define NAME "fb"
@@ -58,18 +59,24 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS Framebuffer service\n");
 	
 	ipcarg_t phonead;
-	int initialized = 0;
+	bool initialized = false;
 
 #ifdef FB_ENABLED
 	if (sysinfo_value("fb.kind") == 1) {
 		if (fb_init() == 0)
-			initialized = 1;
+			initialized = true;
 	} 
 #endif
 #ifdef EGA_ENABLED
-	if (!initialized && sysinfo_value("fb.kind") == 2) {
+	if ((!initialized) && (sysinfo_value("fb.kind") == 2)) {
 		if (ega_init() == 0)
-			initialized = 1;
+			initialized = true;
+	}
+#endif
+#ifdef MSIM_ENABLED
+	if ((!initialized) && (sysinfo_value("fb.kind") == 3)) {
+		if (msim_init() == 0)
+			initialized = true;
 	}
 #endif
 

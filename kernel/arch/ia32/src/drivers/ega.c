@@ -93,8 +93,6 @@ void ega_init(void)
 	sysinfo_set_item_val("fb.width", NULL, ROW);
 	sysinfo_set_item_val("fb.height", NULL, ROWS);
 	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM);
-	sysinfo_set_item_val("fb.address.color", NULL, PAGE_COLOR((uintptr_t)
-		videoram));
 }
 
 static void ega_display_char(char ch)
