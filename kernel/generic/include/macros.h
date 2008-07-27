@@ -40,20 +40,20 @@
 #define isdigit(d)	(((d) >= '0') && ((d) <= '9'))
 #define islower(c)	(((c) >= 'a') && ((c) <= 'z'))
 #define isupper(c)	(((c) >= 'A') && ((c) <= 'Z'))
-#define isalpha(c)	(is_lower(c) || is_upper(c))
-#define isalphanum(c)	(is_alpha(c) || is_digit(c))
+#define isalpha(c)	(is_lower((c)) || is_upper((c)))
+#define isalphanum(c)	(is_alpha((c)) || is_digit((c)))
 #define isspace(c)	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || \
-				((c) == '\r'))
+			    ((c) == '\r'))
 
 #define min(a,b)	((a) < (b) ? (a) : (b))
 #define max(a,b)	((a) > (b) ? (a) : (b))
 
 /** Return true if the intervals overlap.
  *
- * @param s1 Start address of the first interval.
- * @param sz1 Size of the first interval.
- * @param s2 Start address of the second interval.
- * @param sz2 Size of the second interval.
+ * @param s1		Start address of the first interval.
+ * @param sz1		Size of the first interval.
+ * @param s2		Start address of the second interval.
+ * @param sz2		Size of the second interval.
  */
 static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 {
@@ -64,13 +64,14 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 }
 
 /* Compute overlapping of physical addresses */
-#define PA_overlaps(x, szx, y, szy)	overlaps(KA2PA(x), szx, KA2PA(y), szy)
+#define PA_overlaps(x, szx, y, szy)	\
+	overlaps(KA2PA((x)), (szx), KA2PA((y)), (szy))
 
-#define SIZE2KB(size) (size >> 10)
-#define SIZE2MB(size) (size >> 20)
+#define SIZE2KB(size) ((size) >> 10)
+#define SIZE2MB(size) ((size) >> 20)
 
-#define KB2SIZE(size) (size << 10)
-#define MB2SIZE(size) (size << 20)
+#define KB2SIZE(kb) ((kb) << 10)
+#define MB2SIZE(mb) ((mb) << 20)
 
 #define STRING(arg) STRING_ARG(arg)
 #define STRING_ARG(arg) #arg
