@@ -137,7 +137,13 @@ static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	client_connected = 1;
-	ipc_answer_0(iid, EOK); 
+	ipc_answer_0(iid, EOK);
+	
+	/* Clear the terminal, set scrolling region
+	   to 0 - 25 lines */
+	msim_clrscr();
+	msim_goto(0, 0);
+	msim_puts("\033[0;25r");
 	
 	while (true) {
 		callid = async_get_call(&call);
@@ -213,13 +219,6 @@ int msim_init(void)
 	physmem_map(phys_addr, virt_addr, 1, AS_AREA_READ | AS_AREA_WRITE);
 	
 	async_set_client_connection(msim_client_connection);
-
-	/* Clear the terminal, set scrolling region
-	   to 0 - 25 lines */
-	msim_clrscr();
-	msim_goto(0, 0);
-	msim_puts("\033[0;25r");
-
 	return 0;
 }
 
