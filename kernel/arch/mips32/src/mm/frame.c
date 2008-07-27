@@ -133,7 +133,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
 		
 		/* Interrupt vector frame is blacklisted */
 		pfn_t conf_frame;
-		if (start_frame == 0)
+		if (first == 0)
 			conf_frame = 1;
 		else
 			conf_frame = first;
@@ -151,7 +151,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
 
 /** Create memory zones
  *
- * Walk through available 1 MB chunks of physical
+ * Walk through available 256 KB chunks of physical
  * memory and create zones.
  *
  * Note: It is assumed that the TLB is not yet being
