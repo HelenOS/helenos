@@ -35,16 +35,15 @@
 #include <macros.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/tlb.h>
+#include <interrupt.h>
 #include <mm/frame.h>
 #include <mm/asid.h>
 #include <config.h>
 #include <arch/drivers/msim.h>
 #include <arch/drivers/serial.h>
 #include <print.h>
-#include <debug.h>
 
-#define TLB_PAGE_MASK_1M	(0xff << 13)
-
+#define ZERO_PAGE_MASK		TLB_PAGE_MASK_1M
 #define ZERO_FRAMES			4096
 #define ZERO_PAGE_WIDTH		20  /* 1M */
 #define ZERO_PAGE_SIZE		(1 << ZERO_PAGE_WIDTH)
@@ -52,7 +51,7 @@
 #define ZERO_PAGE_TLBI		0
 #define ZERO_PAGE_ADDR		0
 #define ZERO_PAGE_OFFSET	(ZERO_PAGE_SIZE / sizeof(uint32_t) - 1)
-#define ZERO_PAGE_VALUE		(*((volatile uint32_t *) ZERO_PAGE_ADDR + ZERO_PAGE_OFFSET))
+#define ZERO_PAGE_VALUE		(((volatile uint32_t *) ZERO_PAGE_ADDR)[ZERO_PAGE_OFFSET])
 
 #define MAX_REGIONS			32
 
@@ -131,7 +130,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
 	if (end_frame > start_frame) {
 		/* Convert 1M frames to 16K frames */
 		pfn_t first = ADDR2PFN(start_frame << ZERO_PAGE_WIDTH);
-		pfn_t count = ADDR2PFN((end_frame - start_frame - 1) << ZERO_PAGE_WIDTH);
+		pfn_t count = ADDR2PFN((end_frame - start_frame) << ZERO_PAGE_WIDTH);
 		
 		/* Interrupt vector frame is blacklisted */
 		pfn_t conf_frame;
@@ -156,16 +155,25 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
  * Walk through available 1 MB chunks of physical
  * memory and create zones.
  *
+ * Note: It is assumed that the TLB is not yet being
+ * used in any way, thus there is no interference.
+ *
  */
 void frame_arch_init(void)
 {
-	cp0_index_write(ZERO_PAGE_TLBI);
-	tlbr();
+	ipl_t ipl = interrupts_disable();
 	
-	uint32_t orig_pagemask = cp0_pagemask_read();
-	uint32_t orig_lo0 = cp0_entry_lo0_read();
-	uint32_t orig_lo1 = cp0_entry_lo1_read();
-	uint32_t orig_hi = cp0_entry_hi_read();
+	/* Clear and initialize TLB */
+	cp0_pagemask_write(ZERO_PAGE_MASK);
+	cp0_entry_lo0_write(0);
+	cp0_entry_lo1_write(0);
+	cp0_entry_hi_write(0);
+
+	count_t i;
+	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
+		cp0_index_write(i);
+		tlbwi();
+	}
 		
 	pfn_t start_frame = 0;
 	pfn_t frame;
@@ -184,11 +192,11 @@ void frame_arch_init(void)
 				tlb_prepare_entry_lo(&lo1, false, false, false, false, 0);
 				tlb_prepare_entry_hi(&hi, ZERO_PAGE_ASID, ZERO_PAGE_ADDR);
 				
-				cp0_index_write(ZERO_PAGE_TLBI);
-				cp0_pagemask_write(TLB_PAGE_MASK_1M);
+				cp0_pagemask_write(ZERO_PAGE_MASK);
 				cp0_entry_lo0_write(lo0.value);
 				cp0_entry_lo1_write(lo1.value);
 				cp0_entry_hi_write(hi.value);
+				cp0_index_write(ZERO_PAGE_TLBI);
 				tlbwi();
 				
 				ZERO_PAGE_VALUE = 0;
@@ -211,16 +219,18 @@ void frame_arch_init(void)
 	
 	frame_add_region(start_frame, frame);
 	
-	/* Cleanup TLB */
-	cp0_index_write(ZERO_PAGE_TLBI);
-	cp0_pagemask_write(orig_pagemask);
-	cp0_entry_lo0_write(orig_lo0);
-	cp0_entry_lo1_write(orig_lo1);
-	cp0_entry_hi_write(orig_hi);
-	tlbwi();
-	
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);
+	
+	/* Cleanup */
+	cp0_pagemask_write(ZERO_PAGE_MASK);
+	cp0_entry_lo0_write(0);
+	cp0_entry_lo1_write(0);
+	cp0_entry_hi_write(0);
+	cp0_index_write(ZERO_PAGE_TLBI);
+	tlbwi();
+	
+	interrupts_restore(ipl);
 }
 
 

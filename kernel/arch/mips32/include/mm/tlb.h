@@ -49,7 +49,13 @@
 #define TLB_WIRED		1
 #define TLB_KSTACK_WIRED_INDEX	0
 
-#define TLB_PAGE_MASK_16K	(0x3 << 13)
+#define TLB_PAGE_MASK_4K	(0x000 << 13)
+#define TLB_PAGE_MASK_16K	(0x003 << 13)
+#define TLB_PAGE_MASK_64K	(0x00f << 13)
+#define TLB_PAGE_MASK_256K	(0x03f << 13)
+#define TLB_PAGE_MASK_1M	(0x0ff << 13)
+#define TLB_PAGE_MASK_4M	(0x3ff << 13)
+#define TLB_PAGE_MASK_16M	(0xfff << 13)
 
 #define PAGE_UNCACHED			2
 #define PAGE_CACHEABLE_EXC_WRITE	5
