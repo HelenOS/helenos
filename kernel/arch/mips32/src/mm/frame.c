@@ -44,7 +44,7 @@
 #include <print.h>
 
 #define ZERO_PAGE_MASK		TLB_PAGE_MASK_256K
-#define ZERO_FRAMES			16384
+#define ZERO_FRAMES			2048
 #define ZERO_PAGE_WIDTH		18  /* 256K */
 #define ZERO_PAGE_SIZE		(1 << ZERO_PAGE_WIDTH)
 #define ZERO_PAGE_ASID		ASID_INVALID
@@ -52,6 +52,8 @@
 #define ZERO_PAGE_ADDR		0
 #define ZERO_PAGE_OFFSET	(ZERO_PAGE_SIZE / sizeof(uint32_t) - 1)
 #define ZERO_PAGE_VALUE		(((volatile uint32_t *) ZERO_PAGE_ADDR)[ZERO_PAGE_OFFSET])
+
+#define ZERO_PAGE_VALUE_KSEG1(frame) (((volatile uint32_t *) (0xa0000000 + (frame << ZERO_PAGE_WIDTH)))[ZERO_PAGE_OFFSET])
 
 #define MAX_REGIONS			32
 
@@ -73,6 +75,7 @@ static phys_region_t phys_regions[MAX_REGIONS];
  */
 static bool frame_available(pfn_t frame)
 {
+#if MACHINE == msim
 	/* MSIM device (dprinter) */
 	if (frame == (KA2PA(MSIM_VIDEORAM) >> ZERO_PAGE_WIDTH))
 		return false;
@@ -80,10 +83,20 @@ static bool frame_available(pfn_t frame)
 	/* MSIM device (dkeyboard) */
 	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
-	
+#endif
+
+#if MACHINE == simics
 	/* Simics device (serial line) */
 	if (frame == (KA2PA(SERIAL_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
+#endif
+
+#if (MACHINE == lgxemul) || (MACHINE == bgxemul)
+	/* gxemul devices */
+	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
+	    0x10000000, MB2SIZE(256)))
+		return false;
+#endif
 	
 	return true;
 }
@@ -205,6 +218,13 @@ void frame_arch_init(void)
 					ZERO_PAGE_VALUE = 0xdeadbeef;
 					if (ZERO_PAGE_VALUE != 0xdeadbeef)
 						avail = false;
+#if (MACHINE == lgxemul) || (MACHINE == bgxemul)
+					else {
+						ZERO_PAGE_VALUE_KSEG1(frame) = 0xaabbccdd;
+						if (ZERO_PAGE_VALUE_KSEG1(frame) != 0xaabbccdd)
+							avail = false;
+					}
+#endif
 				}
 			}
 		}
