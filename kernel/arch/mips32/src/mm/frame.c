@@ -43,9 +43,9 @@
 #include <arch/drivers/serial.h>
 #include <print.h>
 
-#define ZERO_PAGE_MASK		TLB_PAGE_MASK_1M
-#define ZERO_FRAMES			4096
-#define ZERO_PAGE_WIDTH		20  /* 1M */
+#define ZERO_PAGE_MASK		TLB_PAGE_MASK_256K
+#define ZERO_FRAMES			16384
+#define ZERO_PAGE_WIDTH		18  /* 256K */
 #define ZERO_PAGE_SIZE		(1 << ZERO_PAGE_WIDTH)
 #define ZERO_PAGE_ASID		ASID_INVALID
 #define ZERO_PAGE_TLBI		0
@@ -95,7 +95,6 @@ static bool frame_available(pfn_t frame)
  * Returns false if given frame should not be touched.
  *
  */
-static bool frame_safe(pfn_t frame) __attribute__((unused));
 static bool frame_safe(pfn_t frame)
 {
 	/* Kernel structures */
@@ -241,7 +240,7 @@ void physmem_print(void)
 	
 	count_t i;
 	for (i = 0; i < phys_regions_count; i++) {
-		printf("%#10x %10u\n",
+		printf("%#010x %10u\n",
 			PFN2ADDR(phys_regions[i].start), PFN2ADDR(phys_regions[i].count));
 	}	
 }
