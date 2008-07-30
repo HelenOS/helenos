@@ -38,7 +38,7 @@
 #include <limits.h>
 #include <align.h>
 #include <sys/types.h>
-
+#include <malloc.h>
 
 /* Dummy implementation of mem/ functions */
 
@@ -351,6 +351,17 @@ char *strcat(char *dest, const char *src)
 	while ((*dest++ = *src++))
 		;
 	return orig;
+}
+
+char * strdup(const char *s1)
+{
+	size_t len = strlen(s1) + 1;
+	void *ret = malloc(len);
+
+	if (ret == NULL)
+		return (char *) NULL;
+
+	return (char *) memcpy(ret, s1, len);
 }
 
 /** @}

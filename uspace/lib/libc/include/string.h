@@ -55,6 +55,8 @@ extern char *strcat(char *, const char *);
 
 extern size_t strlen(const char *);
 
+extern char *strdup(const char *);
+
 extern char *strchr(const char *, int);
 extern char *strrchr(const char *, int);
 
