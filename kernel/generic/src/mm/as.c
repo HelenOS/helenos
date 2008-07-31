@@ -82,7 +82,6 @@
 #include <arch/mm/cache.h>
 #endif /* CONFIG_VIRT_IDX_DCACHE */
 
-#ifndef __OBJC__
 /**
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
@@ -93,7 +92,6 @@ as_operations_t *as_operations = NULL;
  * Slab for as_t objects.
  */
 static slab_cache_t *as_slab;
-#endif
 
 /**
  * This lock serializes access to the ASID subsystem.
@@ -119,7 +117,6 @@ static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
     as_area_t *avoid_area);
 static void sh_info_remove_reference(share_info_t *sh_info);
 
-#ifndef __OBJC__
 static int as_constructor(void *obj, int flags)
 {
 	as_t *as = (as_t *) obj;
@@ -139,17 +136,14 @@ static int as_destructor(void *obj)
 
 	return as_destructor_arch(as);
 }
-#endif
 
 /** Initialize address space subsystem. */
 void as_init(void)
 {
 	as_arch_init();
 
-#ifndef __OBJC__
 	as_slab = slab_cache_create("as_slab", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
-#endif
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
@@ -165,14 +159,7 @@ as_t *as_create(int flags)
 {
 	as_t *as;
 
-#ifdef __OBJC__
-	as = [as_t new];
-	link_initialize(&as->inactive_as_with_asid_link);
-	mutex_initialize(&as->lock, MUTEX_PASSIVE);	
-	(void) as_constructor_arch(as, flags);
-#else
 	as = (as_t *) slab_alloc(as_slab, 0);
-#endif
 	(void) as_create_arch(as, 0);
 	
 	btree_create(&as->as_area_btree);
@@ -263,11 +250,7 @@ retry:
 
 	interrupts_restore(ipl);
 
-#ifdef __OBJC__
-	[as free];
-#else
 	slab_free(as_slab, as);
-#endif
 }
 
 /** Create address space area of common attributes.
@@ -1163,14 +1146,10 @@ int as_area_get_flags(as_area_t *a)
  */
 pte_t *page_table_create(int flags)
 {
-#ifdef __OBJC__
-	return [as_t page_table_create: flags];
-#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_create);
 	
 	return as_operations->page_table_create(flags);
-#endif
 }
 
 /** Destroy page table.
@@ -1181,14 +1160,10 @@ pte_t *page_table_create(int flags)
  */
 void page_table_destroy(pte_t *page_table)
 {
-#ifdef __OBJC__
-	return [as_t page_table_destroy: page_table];
-#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_destroy);
 	
 	as_operations->page_table_destroy(page_table);
-#endif
 }
 
 /** Lock page table.
@@ -1205,14 +1180,10 @@ void page_table_destroy(pte_t *page_table)
  */
 void page_table_lock(as_t *as, bool lock)
 {
-#ifdef __OBJC__
-	[as page_table_lock: lock];
-#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_lock);
 	
 	as_operations->page_table_lock(as, lock);
-#endif
 }
 
 /** Unlock page table.
@@ -1222,14 +1193,10 @@ void page_table_lock(as_t *as, bool lock)
  */
 void page_table_unlock(as_t *as, bool unlock)
 {
-#ifdef __OBJC__
-	[as page_table_unlock: unlock];
-#else
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_unlock);
 	
 	as_operations->page_table_unlock(as, unlock);
-#endif
 }
 
 

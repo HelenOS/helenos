@@ -116,9 +116,7 @@
 #define PTE_WRITABLE(p)		PTE_WRITABLE_ARCH((p))
 #define PTE_EXECUTABLE(p)	PTE_EXECUTABLE_ARCH((p))
 
-#ifndef __OBJC__
 extern as_operations_t as_pt_operations;
-#endif
 extern page_mapping_operations_t pt_mapping_operations;
 
 extern void page_mapping_insert_pt(as_t *as, uintptr_t page, uintptr_t frame,

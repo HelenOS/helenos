@@ -53,10 +53,6 @@
 #include <adt/btree.h>
 #include <lib/elf.h>
 
-#ifdef __OBJC__
-#include <lib/objc.h>
-#endif
-
 /**
  * Defined to be true if user address space and kernel address space shadow each
  * other.
@@ -83,47 +79,6 @@
 #define AS_PF_OK		1
 /** The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
 #define AS_PF_DEFER		2
-
-#ifdef __OBJC__
-@interface as_t : base_t {
-	@public
-		/** Protected by asidlock. */
-		link_t inactive_as_with_asid_link;
-		/**
-		 * Number of processors on wich is this address space active.
-		 * Protected by asidlock.
-		 */
-		count_t cpu_refcount;
-		/**
-		 * Address space identifier.
-		 * Constant on architectures that do not support ASIDs.
-		 * Protected by asidlock.  
-		 */
-		asid_t asid;
-		
-		/** Number of references (i.e tasks that reference this as). */
-		atomic_t refcount;
-
-		mutex_t lock;
-		
-		/** B+tree of address space areas. */
-		btree_t as_area_btree;
-		
-		/** Non-generic content. */
-		as_genarch_t genarch;
-		
-		/** Architecture specific content. */
-		as_arch_t arch;
-}
-
-+ (pte_t *) page_table_create: (int) flags;
-+ (void) page_table_destroy: (pte_t *) page_table;
-- (void) page_table_lock: (bool) _lock;
-- (void) page_table_unlock: (bool) unlock;
-
-@end
-
-#else
 
 /** Address space structure.
  *
@@ -168,7 +123,6 @@ typedef struct {
 	void (* page_table_lock)(as_t *as, bool lock);
 	void (* page_table_unlock)(as_t *as, bool unlock);
 } as_operations_t;
-#endif
 
 /**
  * This structure contains information associated with the shared address space
@@ -249,10 +203,7 @@ typedef struct mem_backend {
 
 extern as_t *AS_KERNEL;
 
-#ifndef __OBJC__
 extern as_operations_t *as_operations;
-#endif
-
 extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
