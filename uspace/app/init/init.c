@@ -51,12 +51,12 @@ static void console_wait(void)
 		usleep(50000);	// FIXME
 }
 
-static bool mount_tmpfs(void)
+static bool mount_fs(const char *fstype)
 {
 	int rc = -1;
 	
 	while (rc < 0) {
-		rc = mount("tmpfs", "/", "initrd");
+		rc = mount(fstype, "/", "initrd");
 		
 		switch (rc) {
 		case EOK:
@@ -95,8 +95,10 @@ int main(int argc, char *argv[])
 {
 	info_print();
 	sleep(5);	// FIXME
+	bool has_tmpfs = false;
+	bool has_fat = false;
 	
-	if (!mount_tmpfs()) {
+	if (!(has_tmpfs = mount_fs("tmpfs")) && !(has_fat = mount_fs("fat"))) {
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
@@ -109,7 +111,14 @@ int main(int argc, char *argv[])
 	console_wait();
 	version_print();
 	
-	spawn("/sbin/fat");
+	/*
+	 * Spawn file system servers that were not loaded as init tasks.
+	 */
+	if (!has_fat)
+		spawn("/sbin/fat");
+	if (!has_tmpfs)
+		spawn("/sbin/tmpfs");
+		
 	spawn("/sbin/tetris");
 	spawn("/sbin/cli");
 	// FIXME: spawn("/sbin/tester");

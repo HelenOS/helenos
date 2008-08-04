@@ -32,26 +32,41 @@ INIT_TASKS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/vfs/vfs
+ifeq ($(RDFMT),tmpfs)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
+endif
 
 RD_TASKS = \
 	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/cli/cli
+ifneq ($(RDFMT),tmpfs)
+	RD_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifneq ($(RDFMT),fat)
+	RD_TASKS += $(USPACEDIR)/srv/fs/fat/fat
+endif
 
 build: $(BASE)/image.iso
 
 $(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_TASKS)
 	mkdir -p arch/$(ARCH)/iso/boot/grub
 	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
-	cp arch/$(ARCH)/grub/menu.lst arch/$(ARCH)/iso/boot/grub/
+ifneq ($(RDFMT),tmpfs)
+	cat arch/$(ARCH)/grub/menu.lst | grep -v "tmpfs" >arch/$(ARCH)/iso/boot/grub/menu.lst
+endif
+ifneq ($(RDFMT),fat)
+	cat arch/$(ARCH)/grub/menu.lst | grep -v "fat" >arch/$(ARCH)/iso/boot/grub/menu.lst
+endif
 	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
 	for task in $(INIT_TASKS) ; do \
 		cp $$task arch/$(ARCH)/iso/boot/ ; \
@@ -59,7 +74,12 @@ $(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst 
 	for task in $(RD_TASKS) ; do \
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
+ifeq ($(RDFMT),tmpfs)
 	$(BASE)/tools/mktmpfs.py 4096 $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
+endif
+ifeq ($(RDFMT),fat)
+	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
+endif
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:
