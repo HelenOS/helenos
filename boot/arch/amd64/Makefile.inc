@@ -48,13 +48,9 @@ RD_TASKS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/cli/cli
-ifneq ($(RDFMT),tmpfs)
-	RD_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifneq ($(RDFMT),fat)
-	RD_TASKS += $(USPACEDIR)/srv/fs/fat/fat
-endif
+	$(USPACEDIR)/app/cli/cli \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/fs/fat/fat
 
 build: $(BASE)/image.iso
 
@@ -75,11 +71,13 @@ endif
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py 4096 $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs.img
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
+	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs.img
 endif
+	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs.img arch/$(ARCH)/iso/boot/initrd.img
+	rm arch/$(ARCH)/iso/boot/initrd.fs.img
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:

@@ -27,67 +27,55 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-TMPFS creator
+HORD encapsulator
 """
 
 import sys
 import os
 import struct
 
+def align_up(size, alignment):
+	"Align upwards to a given alignment"
+	return (((size) + ((alignment) - 1)) & ~((alignment) - 1))
+
+
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ALIGNMENT> <PATH> <IMAGE>"
-
-def recursion(root, outf):
-	"Recursive directory walk"
-	
-	payload_size = 0
-	
-	for name in os.listdir(root):
-		canon = os.path.join(root, name)
-		
-		if (os.path.isfile(canon)):
-			outf.write(struct.pack("<BL" + ("%d" % len(name)) + "s", 1, len(name), name))
-			payload_size += 5 + len(name)
-			size = os.path.getsize(canon)
-			rd = 0;
-			outf.write(struct.pack("<L", size))
-			payload_size += 4
-			
-			inf = file(canon, "r")
-			while (rd < size):
-				data = inf.read(4096);
-				outf.write(data)
-				payload_size += len(data)
-				rd += len(data)
-			inf.close()
-		
-		if (os.path.isdir(canon)):
-			outf.write(struct.pack("<BL" + ("%d" % len(name)) + "s", 2, len(name), name))
-			payload_size += 5 + len(name)
-			payload_size += recursion(canon, outf)
-			outf.write(struct.pack("<BL", 0, 0))
-			payload_size += 5
-	
-	return payload_size
+	print prname + " <ALIGNMENT> <FS_IMAGE> <HORD_IMAGE>" 
 
 def main():
-	if (len(sys.argv) < 3):
+	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1])
-	if (not os.path.isdir(path)):
-		print "<PATH> must be a directory"
+	if (not sys.argv[1].isdigit()):
+		print "<ALIGNMENT> must be a number"
 		return
 	
-	outf = file(sys.argv[2], "w")
+	align = int(sys.argv[1], 0)
+	fs_image = os.path.abspath(sys.argv[2])
+	if (not os.path.isfile(fs_image)):
+		print "<FS_IMAGE> must be a directory"
+		return
 	
-	outf.write(struct.pack("<5s", "TMPFS"))
-	recursion(path, outf)
-	outf.write(struct.pack("<BL", 0, 0))
+	inf = file(fs_image, "rb")
+	outf = file(sys.argv[3], "wb")
 
+	header_size = align_up(18, align)
+	aligned_size = align_up(os.path.getsize(fs_image), align)
+
+	
+	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, aligned_size))
+	outf.write(struct.pack("<" + ("%d" % (header_size - 18)) + "x"))
+	
+	outf.write(inf.read())
+	
+	padding = aligned_size - os.path.getsize(fs_image)
+	if (padding > 0):
+		outf.write(struct.pack("<" + ("%d" % padding) + "x"))
+	
+	inf.close()
 	outf.close()
-		
+
 if __name__ == '__main__':
 	main()

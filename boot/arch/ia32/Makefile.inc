@@ -59,7 +59,9 @@ $(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst 
 	for task in $(RD_TASKS) ; do \
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
-	$(BASE)/tools/mktmpfs.py 4096 $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.img
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs.img
+	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs.img arch/$(ARCH)/iso/boot/initrd.img
+	rm arch/$(ARCH)/iso/boot/initrd.fs.img
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:
