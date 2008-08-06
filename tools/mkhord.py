@@ -55,7 +55,7 @@ def main():
 	align = int(sys.argv[1], 0)
 	fs_image = os.path.abspath(sys.argv[2])
 	if (not os.path.isfile(fs_image)):
-		print "<FS_IMAGE> must be a directory"
+		print "<FS_IMAGE> must be a file"
 		return
 	
 	inf = file(fs_image, "rb")
