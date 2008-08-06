@@ -44,17 +44,19 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
+typedef enum {
+	TMPFS_NONE,
+	TMPFS_FILE,
+	TMPFS_DIRECTORY
+} tmpfs_dentry_type_t;
+
 typedef struct tmpfs_dentry {
 	fs_index_t index;	/**< TMPFS node index. */
 	link_t dh_link;		/**< Dentries hash table link. */
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
 	hash_table_t names;	/**< All names linking to this TMPFS node. */ 
-	enum {
-		TMPFS_NONE,
-		TMPFS_FILE,
-		TMPFS_DIRECTORY
-	} type;
+	tmpfs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
 	size_t size;		/**< File size if type is TMPFS_FILE. */
 	void *data;		/**< File content's if type is TMPFS_FILE. */

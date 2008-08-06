@@ -117,9 +117,9 @@ tmpfs_restore_recursion(int phone, void *block, size_t *bufpos, size_t *buflen,
 		entry.len = uint32_t_le2host(entry.len);
 		
 		switch (entry.type) {
-		case 0:
+		case TMPFS_NONE:
 			break;
-		case 1:
+		case TMPFS_FILE:
 			fname = malloc(entry.len + 1);
 			if (fname == NULL)
 				return false;
@@ -161,7 +161,7 @@ tmpfs_restore_recursion(int phone, void *block, size_t *bufpos, size_t *buflen,
 				return false;
 			
 			break;
-		case 2:
+		case TMPFS_DIRECTORY:
 			fname = malloc(entry.len + 1);
 			if (fname == NULL)
 				return false;
@@ -195,7 +195,7 @@ tmpfs_restore_recursion(int phone, void *block, size_t *bufpos, size_t *buflen,
 		default:
 			return false;
 		}
-	} while (entry.type != 0);
+	} while (entry.type != TMPFS_NONE);
 	
 	return true;
 }
