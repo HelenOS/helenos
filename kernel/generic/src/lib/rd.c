@@ -48,14 +48,14 @@ static parea_t rd_parea;		/**< Physical memory area for rd. */
 
 /**
  * RAM disk initialization routine. At this point, the RAM disk memory is shared
- * and information about the share is provided as sysinfo values to the userspace
- * tasks.
+ * and information about the share is provided as sysinfo values to the
+ * userspace tasks.
  */  
 int init_rd(rd_header_t *header, size_t size)
 {
 	/* Identify RAM disk */
 	if ((header->magic[0] != RD_MAG0) || (header->magic[1] != RD_MAG1) ||
-		(header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
+	    (header->magic[2] != RD_MAG2) || (header->magic[3] != RD_MAG3))
 		return RE_INVALID;
 	
 	/* Identify version */	
@@ -86,7 +86,8 @@ int init_rd(rd_header_t *header, size_t size)
 	if ((uint64_t) hsize + dsize > size)
 		dsize = size - hsize;
 	
-	rd_parea.pbase = ALIGN_DOWN((uintptr_t) KA2PA((void *) header + hsize), FRAME_SIZE);
+	rd_parea.pbase = ALIGN_DOWN((uintptr_t) KA2PA((void *) header + hsize),
+	    FRAME_SIZE);
 	rd_parea.vbase = (uintptr_t) ((void *) header + hsize);
 	rd_parea.frames = SIZE2FRAMES(dsize);
 	rd_parea.cacheable = true;
@@ -95,8 +96,8 @@ int init_rd(rd_header_t *header, size_t size)
 	sysinfo_set_item_val("rd", NULL, true);
 	sysinfo_set_item_val("rd.header_size", NULL, hsize);	
 	sysinfo_set_item_val("rd.size", NULL, dsize);
-	sysinfo_set_item_val("rd.address.physical", NULL, (unative_t)
-		KA2PA((void *) header + hsize));
+	sysinfo_set_item_val("rd.address.physical", NULL,
+	    (unative_t)	KA2PA((void *) header + hsize));
 
 	return RE_OK;
 }

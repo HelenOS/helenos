@@ -105,7 +105,8 @@ static int vfs_connect(void)
 
 static int device_get_handle(char *name, dev_handle_t *handle)
 {
-	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT,
+	    0);
 	if (phone < 0)
 		return phone;
 	
@@ -223,7 +224,8 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	futex_up(&vfs_phone_futex);
 	free(pa);
 
-	if (rc != EOK) return (int) rc;
+	if (rc != EOK)
+	    return (int) rc;
 	return (int) IPC_GET_ARG1(answer);
 }
 
