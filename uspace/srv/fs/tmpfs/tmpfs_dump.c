@@ -39,6 +39,7 @@
 #include "tmpfs.h"
 #include "../../vfs/vfs.h"
 #include <ipc/ipc.h>
+#include <async.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,9 +85,8 @@ tmpfs_blockread(int phone, void *buffer, size_t *bufpos, size_t *buflen,
 		
 		if (*bufpos == *buflen) {
 			ipcarg_t retval;
-			int rc = ipc_call_sync_2_1(phone, RD_READ_BLOCK,
-			    *pos / BLOCK_SIZE, BLOCK_SIZE,
-			    &retval);
+			int rc = async_req_2_1(phone, RD_READ_BLOCK,
+			    *pos / BLOCK_SIZE, BLOCK_SIZE, &retval);
 			if ((rc != EOK) || (retval != EOK))
 				return false;
 			
