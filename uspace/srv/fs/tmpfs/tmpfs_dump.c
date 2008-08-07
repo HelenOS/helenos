@@ -59,8 +59,8 @@ struct rdentry {
 } __attribute__((packed));
 
 static bool
-tmpfs_restore_recursion(int phone, void *block, size_t *bufpos, size_t *buflen,
-    size_t *pos, tmpfs_dentry_t *parent)
+tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
+    off_t *pos, tmpfs_dentry_t *parent)
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
@@ -182,9 +182,9 @@ bool tmpfs_restore(dev_handle_t dev)
 	    EOK)
 		goto error;
 	
-	size_t bufpos = 0;
+	off_t bufpos = 0;
 	size_t buflen = 0;
-	size_t pos = 0;
+	off_t pos = 0;
 	
 	char tag[6];
 	if (!libfs_blockread(phone, block, &bufpos, &buflen, &pos, tag, 5,
