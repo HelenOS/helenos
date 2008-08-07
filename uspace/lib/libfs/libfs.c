@@ -330,5 +330,45 @@ out:
 		ops->node_put(tmp);
 }
 
+#define RD_BASE		1024	// FIXME
+#define RD_READ_BLOCK	(RD_BASE + 1)
+
+bool libfs_blockread(int phone, void *buffer, size_t *bufpos, size_t *buflen,
+    size_t *pos, void *dst, size_t size, size_t block_size)
+{
+	size_t offset = 0;
+	size_t left = size;
+	
+	while (left > 0) {
+		size_t rd;
+		
+		if (*bufpos + left < *buflen)
+			rd = left;
+		else
+			rd = *buflen - *bufpos;
+		
+		if (rd > 0) {
+			memcpy(dst + offset, buffer + *bufpos, rd);
+			offset += rd;
+			*bufpos += rd;
+			*pos += rd;
+			left -= rd;
+		}
+		
+		if (*bufpos == *buflen) {
+			ipcarg_t retval;
+			int rc = async_req_2_1(phone, RD_READ_BLOCK,
+			    *pos / block_size, block_size, &retval);
+			if ((rc != EOK) || (retval != EOK))
+				return false;
+			
+			*bufpos = 0;
+			*buflen = block_size;
+		}
+	}
+	
+	return true;
+}
+
 /** @}
  */
