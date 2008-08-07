@@ -49,6 +49,7 @@
 #include <futex.h>
 
 #define BS_BLOCK		0
+#define BS_SIZE			512
 
 /** Futex protecting the list of cached free FAT nodes. */
 static futex_t ffn_futex = FUTEX_INITIALIZER;
@@ -99,7 +100,7 @@ typedef struct {
 	void *data;
 } block_t;
 
-static block_t *block_get(dev_handle_t dev_handle, off_t offset)
+static block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 {
 	return NULL;	/* TODO */
 }
@@ -143,7 +144,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 	fat_cluster_t clst = firstc;
 	unsigned i;
 
-	bb = block_get(dev_handle, BS_BLOCK);
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	spc = FAT_BS(bb)->spc;
 	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
@@ -159,7 +160,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(offset < rds);
-		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
+		b = block_get(dev_handle, rscnt + fatcnt * sf + offset, bps);
 		return b;
 	}
 
@@ -172,7 +173,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec);
+		b = block_get(dev_handle, rscnt + fsec, bps);
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		assert(clst < FAT_CLST_LAST1);
@@ -180,7 +181,7 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 	}
 
 	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
-	    offset % spc);
+	    offset % spc, bps);
 
 	return b;
 }
@@ -202,7 +203,7 @@ static uint16_t fat_bps_get(dev_handle_t dev_handle)
 	block_t *bb;
 	uint16_t bps;
 	
-	bb = block_get(dev_handle, BS_BLOCK);
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
 	assert(bb != NULL);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	block_put(bb);
@@ -571,7 +572,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 
 	/* Read the number of root directory entries. */
-	bb = block_get(dev_handle, BS_BLOCK);
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
 	rde = uint16_t_le2host(FAT_BS(bb)->root_ent_max);
 	block_put(bb);
 
