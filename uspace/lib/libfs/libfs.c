@@ -36,6 +36,7 @@
 
 #include "libfs.h" 
 #include "../../srv/vfs/vfs.h"
+#include "../../srv/rd/rd.h"
 #include <errno.h>
 #include <async.h>
 #include <ipc/ipc.h>
@@ -329,9 +330,6 @@ out:
 	if (tmp)
 		ops->node_put(tmp);
 }
-
-#define RD_BASE		1024	// FIXME
-#define RD_READ_BLOCK	(RD_BASE + 1)
 
 /** Read data from a block device.
  *

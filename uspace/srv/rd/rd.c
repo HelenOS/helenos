@@ -81,46 +81,24 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 	void *fs_va = NULL;
-	ipcarg_t offset;
+	off_t offset;
+	size_t block_size;
+	size_t maxblock_size;
 
 	/*
-	 * We allocate VA for communication per connection.
-	 * This allows us to potentionally have more clients and work
-	 * concurrently.
+	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	fs_va = as_get_mappable_page(ALIGN_UP(BLOCK_SIZE, PAGE_SIZE));
-	if (!fs_va) {
-		/*
-		 * Hang up the phone if we cannot proceed any further.
-		 * This is the answer to the call that opened the connection.
-		 */
-		ipc_answer_0(iid, EHANGUP);
-		return;
-	} else {
-		/*
-		 * Answer the first IPC_M_CONNECT_ME_TO call.
-		 * Return supported block size as ARG1.
-		 */
-		ipc_answer_1(iid, EOK, BLOCK_SIZE);
-	}
+	ipc_answer_0(iid, EOK);
 
 	/*
 	 * Now we wait for the client to send us its communication as_area.
 	 */
-	size_t size;
 	int flags;
-	if (ipc_share_out_receive(&callid, &size, &flags)) {
-		if (size >= BLOCK_SIZE) {
-			/*
-			 * The client sends an as_area that can absorb the whole
-			 * block.
-			 */
+	if (ipc_share_out_receive(&callid, &maxblock_size, &flags)) {
+		fs_va = as_get_mappable_page(maxblock_size);
+		if (fs_va) {
 			(void) ipc_share_out_finalize(callid, fs_va);
 		} else {
-			/*
-			 * The client offered as_area too small.
-			 * Close the connection.
-			 */
 			ipc_answer_0(callid, EHANGUP);
 			return;		
 		}
@@ -146,7 +124,15 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		case RD_READ_BLOCK:
 			offset = IPC_GET_ARG1(call);
-			if (offset * BLOCK_SIZE > rd_size - BLOCK_SIZE) {
+			block_size = IPC_GET_ARG2(call);
+			if (block_size > maxblock_size) {
+				/*
+				 * Maximum block size exceeded.
+				 */
+				retval = ELIMIT;
+				break;
+			}
+			if (offset * block_size > rd_size - block_size) {
 				/*
 				 * Reading past the end of the device.
 				 */
@@ -154,13 +140,21 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			futex_down(&rd_futex);
-			memcpy(fs_va, rd_addr + offset * BLOCK_SIZE, BLOCK_SIZE);
+			memcpy(fs_va, rd_addr + offset * block_size, block_size);
 			futex_up(&rd_futex);
 			retval = EOK;
 			break;
 		case RD_WRITE_BLOCK:
 			offset = IPC_GET_ARG1(call);
-			if (offset * BLOCK_SIZE > rd_size - BLOCK_SIZE) {
+			block_size = IPC_GET_ARG2(call);
+			if (block_size > maxblock_size) {
+				/*
+				 * Maximum block size exceeded.
+				 */
+				retval = ELIMIT;
+				break;
+			}
+			if (offset * block_size > rd_size - block_size) {
 				/*
 				 * Writing past the end of the device.
 				 */
@@ -168,7 +162,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			futex_up(&rd_futex);
-			memcpy(rd_addr + offset * BLOCK_SIZE, fs_va, BLOCK_SIZE);
+			memcpy(rd_addr + offset * block_size, fs_va, block_size);
 			futex_down(&rd_futex);
 			retval = EOK;
 			break;

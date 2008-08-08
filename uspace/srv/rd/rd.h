@@ -43,8 +43,6 @@
 #ifndef RD_RD_H_
 #define RD_RD_H_
 
-#define BLOCK_SIZE	1024	/**< Working block size */
-
 #define RD_BASE		1024
 #define	RD_READ_BLOCK	(RD_BASE + 1)	/**< Method for reading block. */
 #define RD_WRITE_BLOCK	(RD_BASE + 2)	/**< Method for writing block. */
