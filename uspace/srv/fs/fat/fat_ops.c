@@ -39,6 +39,8 @@
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <ipc/devmap.h>
 #include <async.h>
 #include <errno.h>
 #include <string.h>
@@ -47,6 +49,7 @@
 #include <libadt/list.h>
 #include <assert.h>
 #include <futex.h>
+#include <sys/mman.h>
 
 #define BS_BLOCK		0
 #define BS_SIZE			512
@@ -95,19 +98,51 @@ static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 	}
 }
 
+static int dev_phone = -1;		/* FIXME */
+static void *dev_buffer = NULL;		/* FIXME */
+
 /* TODO move somewhere else */
 typedef struct {
 	void *data;
+	size_t size;
 } block_t;
 
 static block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 {
-	return NULL;	/* TODO */
+	/* FIXME */
+	block_t *b;
+	off_t bufpos = 0;
+	size_t buflen = 0;
+
+	assert(dev_phone != -1);
+	assert(dev_buffer);
+
+	b = malloc(sizeof(block_t));
+	if (!b)
+		return NULL;
+	
+	b->data = malloc(bs);
+	if (!b->data) {
+		free(b);
+		return NULL;
+	}
+	b->size = bs;
+
+	if (!libfs_blockread(dev_phone, dev_buffer, &bufpos, &buflen, &offset,
+	    b->data, bs, bs)) {
+		free(b->data);
+		free(b);
+		return NULL;
+	}
+
+	return b;
 }
 
 static void block_put(block_t *block)
 {
-	/* TODO */
+	/* FIXME */
+	free(block->data);
+	free(block);
 }
 
 #define FAT_BS(b)		((fat_bs_t *)((b)->data))
@@ -568,16 +603,56 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 	block_t *bb;
+	uint16_t bps;
 	uint16_t rde;
 	int rc;
 
+	/*
+	 * For now, we don't bother to remember dev_handle, dev_phone or
+	 * dev_buffer in some data structure. We use global variables because we
+	 * know there will be at most one mount on this file system.
+	 * Of course, this is a huge TODO item.
+	 */
+	dev_buffer = mmap(NULL, BS_SIZE, PROTO_READ | PROTO_WRITE,
+	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+	
+	if (!dev_buffer) {
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	dev_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
+
+	if (dev_phone < 0) {
+		munmap(dev_buffer, BS_SIZE);
+		ipc_answer_0(rid, dev_phone);
+		return;
+	}
+
+	rc = ipc_share_out_start(dev_phone, dev_buffer,
+	    AS_AREA_READ | AS_AREA_WRITE);
+	if (rc != EOK) {
+	    	munmap(dev_buffer, BS_SIZE);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
 	/* Read the number of root directory entries. */
 	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	rde = uint16_t_le2host(FAT_BS(bb)->root_ent_max);
 	block_put(bb);
 
+	if (bps != BS_SIZE) {
+		munmap(dev_buffer, BS_SIZE);
+		ipc_answer_0(rid, ENOTSUP);
+		return;
+	}
+
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
+	    	munmap(dev_buffer, BS_SIZE);
 		ipc_answer_0(rid, rc);
 		return;
 	}
@@ -585,6 +660,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Initialize the root node. */
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
+	    	munmap(dev_buffer, BS_SIZE);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
 		return;
@@ -593,6 +669,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	fat_idx_t *ridxp = fat_idx_get_by_pos(dev_handle, FAT_CLST_ROOTPAR, 0);
 	if (!ridxp) {
+	    	munmap(dev_buffer, BS_SIZE);
 		free(rootp);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
