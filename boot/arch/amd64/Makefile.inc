@@ -71,13 +71,13 @@ endif
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs.img
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs.img
+	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
 endif
-	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs.img arch/$(ARCH)/iso/boot/initrd.img
-	rm arch/$(ARCH)/iso/boot/initrd.fs.img
+	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs arch/$(ARCH)/iso/boot/initrd.img
+	rm arch/$(ARCH)/iso/boot/initrd.fs
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:

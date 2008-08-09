@@ -122,9 +122,9 @@ _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS
 	for task in $(RD_TASKS) ; do \
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
-	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs.img
-	../../../../tools/mkhord.py 4096 initrd.fs.img initrd.img
-	rm initrd.fs.img
+	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
+	../../../../tools/mkhord.py 4096 initrd.fs initrd.img
+	rm initrd.fs
 	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 4096 "unsigned int" $(COMPONENTS) ./initrd.img
 
 %.o: %.S
