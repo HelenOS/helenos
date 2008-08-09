@@ -26,39 +26,62 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Convert descriptive structure definitions to struct formats
+Convert descriptive structure definitions to structure object
 """
 
 import struct
 
-def convert(definition):
-	"Convert structure defition to struct format"
+class Struct:
+	def size(self):
+		return struct.calcsize(self._format_)
+	
+	def pack(self):
+		list = []
+		for variable in self._list_:
+			list.append(self.__dict__[variable])
+		
+		return struct.pack(self._format_, *list)
+
+def create(definition):
+	"Create structure object"
 	
 	tokens = definition.split(None)
 	
 	# Initial byte order tag
-	struct = {
+	format = {
 		"little:":  lambda: "<",
 		"big:":     lambda: ">",
 		"network:": lambda: "!"
 	}[tokens[0]]()
+	inst = Struct()
+	list = []
 	
 	# Member tags
-	
 	comment = False
+	variable = False
 	for token in tokens[1:]:
 		if (comment):
 			if (token == "*/"):
 				comment = False
 			continue
 		
+		if (variable):
+			inst.__dict__[token] = None
+			list.append(token)
+			variable = False
+			continue
+		
 		if (token == "/*"):
 			comment = True
+		elif (token[0:8] == "padding["):
+			size = token[8:].split("]")[0]
+			format += "%dx" % int(size)
 		elif (token[0:5] == "char["):
 			size = token[5:].split("]")[0]
-			struct += ("%d" % int(size)) + "s"
+			format += "%ds" % int(size)
+			variable = True
 		else:
-			struct += {
+			format += {
 				"uint8_t":  lambda: "B",
 				"uint16_t": lambda: "H",
 				"uint32_t": lambda: "L",
@@ -69,11 +92,8 @@ def convert(definition):
 				"int32_t":  lambda: "l",
 				"int64_t":  lambda: "q"
 			}[token]()
+			variable = True
 	
-	return struct
-
-def little_string(string):
-	return struct.pack("<" + ("%d" % len(string)) + "s", string)
-
-def little_padding(length):
-	return struct.pack("<" + ("%d" % length) + "x")
+	inst.__dict__['_format_'] = format
+	inst.__dict__['_list_'] = list
+	return inst

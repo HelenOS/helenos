@@ -32,18 +32,16 @@ HORD encapsulator
 
 import sys
 import os
-import struct
 import xstruct
 
-HEADER = xstruct.convert("little: "
-	"char[4]   /* 'HORD' */ "
-	"uint8_t   /* version */ "
-	"uint8_t   /* encoding */ "
-	"uint32_t  /* header size */ "
-	"uint64_t  /* payload size */ "
-)
+HEADER = """little:
+	char[4] tag            /* 'HORD' */
+	uint8_t version        /* version */
+	uint8_t encoding       /* encoding */
+	uint32_t header_size   /* header size */
+	uint64_t payload_size  /* payload size */
+"""
 
-HORD_VERSION = 1
 HORD_LSB = 1
 
 def align_up(size, alignment):
@@ -76,20 +74,28 @@ def main():
 	inf = file(fs_image, "rb")
 	outf = file(sys.argv[3], "wb")
 	
-	header_size = struct.calcsize(HEADER)
+	header = xstruct.create(HEADER)
+	
+	header_size = header.size()
 	payload_size = os.path.getsize(fs_image)
 	
 	header_size_aligned = align_up(header_size, align)
 	payload_size_aligned = align_up(payload_size, align)
 	
-	outf.write(struct.pack(HEADER, "HORD", HORD_VERSION, HORD_LSB, header_size_aligned, payload_size_aligned))
-	outf.write(xstruct.little_padding(header_size_aligned - header_size))
+	header.tag = "HORD"
+	header.version = 1
+	header.encoding = HORD_LSB
+	header.header_size = header_size_aligned
+	header.payload_size = payload_size_aligned
+	
+	outf.write(header.pack())
+	outf.write(xstruct.create("little: padding[%d]" % (header_size_aligned - header_size)).pack())
 	
 	outf.write(inf.read())
 	
 	padding = payload_size_aligned - payload_size
 	if (padding > 0):
-		outf.write(xstruct.little_padding(padding))
+		outf.write(xstruct.create("little: padding[%d]" % padding).pack())
 	
 	inf.close()
 	outf.close()

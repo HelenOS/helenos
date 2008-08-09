@@ -32,25 +32,33 @@ TMPFS creator
 
 import sys
 import os
-import struct
 import xstruct
 
-HEADER = xstruct.convert("little: "
-	"char[5]  /* 'TMPFS' */ "
-)
+HEADER = """little:
+	char[5] tag  /* 'TMPFS' */
+"""
 
-DENTRY = xstruct.convert("little: "
-	"uint8_t   /* NONE, FILE or DIRECTORY */ "
-	"uint32_t  /* filename length */ "
-)
+DENTRY_NONE = """little:
+	uint8_t kind        /* NONE */
+	uint32_t fname_len  /* 0 */
+"""
 
-SIZE = xstruct.convert("little: "
-	"uint32_t  /* file size */ "
-)
+DENTRY_FILE = """little:
+	uint8_t kind        /* FILE */
+	uint32_t fname_len  /* filename length */
+	char[%d] fname      /* filename */
+	uint32_t flen       /* file length */
+"""
 
-DENTRY_NONE = 0
-DENTRY_FILE = 1
-DENTRY_DIRECTORY = 2
+DENTRY_DIRECTORY = """little:
+	uint8_t kind        /* DIRECTORY */
+	uint32_t fname_len  /* filename length */
+	char[%d] fname      /* filename */
+"""
+
+TMPFS_NONE = 0
+TMPFS_FILE = 1
+TMPFS_DIRECTORY = 2
 
 def usage(prname):
 	"Print usage syntax"
@@ -63,13 +71,18 @@ def recursion(root, outf):
 		canon = os.path.join(root, name)
 		
 		if (os.path.isfile(canon)):
-			outf.write(struct.pack(DENTRY, DENTRY_FILE, len(name)))
-			outf.write(xstruct.little_string(name))
 			size = os.path.getsize(canon)
-			rd = 0;
-			outf.write(struct.pack(SIZE, size))
+			
+			dentry = xstruct.create(DENTRY_FILE % len(name))
+			dentry.kind = TMPFS_FILE
+			dentry.fname_len = len(name)
+			dentry.fname = name
+			dentry.flen = size
+			
+			outf.write(dentry.pack())
 			
 			inf = file(canon, "r")
+			rd = 0;
 			while (rd < size):
 				data = inf.read(4096);
 				outf.write(data)
@@ -77,10 +90,20 @@ def recursion(root, outf):
 			inf.close()
 		
 		if (os.path.isdir(canon)):
-			outf.write(struct.pack(DENTRY, DENTRY_DIRECTORY, len(name)))
-			outf.write(xstruct.little_string(name))
+			dentry = xstruct.create(DENTRY_DIRECTORY % len(name))
+			dentry.kind = TMPFS_DIRECTORY
+			dentry.fname_len = len(name)
+			dentry.fname = name
+			
+			outf.write(dentry.pack())
+			
 			recursion(canon, outf)
-			outf.write(struct.pack(DENTRY, DENTRY_NONE, 0))
+			
+			dentry = xstruct.create(DENTRY_NONE)
+			dentry.kind = TMPFS_NONE
+			dentry.fname_len = 0
+			
+			outf.write(dentry.pack())
 
 def main():
 	if (len(sys.argv) < 3):
@@ -94,11 +117,20 @@ def main():
 	
 	outf = file(sys.argv[2], "w")
 	
-	outf.write(struct.pack(HEADER, "TMPFS"))
+	header = xstruct.create(HEADER)
+	header.tag = "TMPFS"
+	
+	outf.write(header.pack())
+	
 	recursion(path, outf)
-	outf.write(struct.pack(DENTRY, DENTRY_NONE, 0))
-
+	
+	dentry = xstruct.create(DENTRY_NONE)
+	dentry.kind = TMPFS_NONE
+	dentry.fname_len = 0
+	
+	outf.write(dentry.pack())
+	
 	outf.close()
-		
+	
 if __name__ == '__main__':
 	main()
