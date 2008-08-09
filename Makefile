@@ -134,7 +134,7 @@ distclean:
 	-$(MAKE) -C kernel distclean
 	-$(MAKE) -C uspace distclean
 	-$(MAKE) -C boot distclean
-	-rm Makefile.config
+	rm -f Makefile.config tools/*.pyc
 
 clean:
 	-$(MAKE) -C kernel clean
@@ -142,6 +142,6 @@ clean:
 	-$(MAKE) -C boot clean
 
 cscope:
-	-rm cscope.out
-	-find kernel boot uspace -regex '^.*\.[chsS]$$' -print >srclist
-	-cscope -bi srclist
+	find kernel boot uspace -regex '^.*\.[chsS]$$' -print > srclist
+	rm -f cscope.out
+	cscope -bi srclist

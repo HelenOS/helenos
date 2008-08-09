@@ -38,7 +38,6 @@ def align_up(size, alignment):
 	"Align upwards to a given alignment"
 	return (((size) + ((alignment) - 1)) & ~((alignment) - 1))
 
-
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <ALIGNMENT> <FS_IMAGE> <HORD_IMAGE>" 
@@ -60,10 +59,9 @@ def main():
 	
 	inf = file(fs_image, "rb")
 	outf = file(sys.argv[3], "wb")
-
+	
 	header_size = align_up(18, align)
 	aligned_size = align_up(os.path.getsize(fs_image), align)
-
 	
 	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, aligned_size))
 	outf.write(struct.pack("<" + ("%d" % (header_size - 18)) + "x"))

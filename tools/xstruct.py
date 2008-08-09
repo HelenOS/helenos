@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (c) 2008 Martin Decky
 # All rights reserved.
@@ -27,69 +26,43 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-TMPFS creator
+Convert descriptive structure definitions to struct formats
 """
 
-import sys
-import os
 import struct
-import xstruct
 
-HEADER = xstruct.convert("little: char[5]")
-DENTRY = xstruct.convert("little: uint8_t uint32_t")
-SIZE = xstruct.convert("little: uint32_t")
-
-DENTRY_NONE = 0
-DENTRY_FILE = 1
-DENTRY_DIRECTORY = 2
-
-def usage(prname):
-	"Print usage syntax"
-	print prname + " <PATH> <IMAGE>"
-
-def recursion(root, outf):
-	"Recursive directory walk"
+def convert(definition):
+	"Convert structure defition to struct format"
 	
-	for name in os.listdir(root):
-		canon = os.path.join(root, name)
+	tokens = definition.split(None)
+	
+	# Initial byte order tag
+	struct = {
+		"little:":  lambda: "<",
+		"big:":     lambda: ">",
+		"network:": lambda: "!"
+	}[tokens[0]]()
 		
-		if (os.path.isfile(canon)):
-			outf.write(struct.pack(DENTRY, DENTRY_FILE, len(name)))
-			outf.write(xstruct.little_string(name))
-			size = os.path.getsize(canon)
-			rd = 0;
-			outf.write(struct.pack(SIZE, size))
-			
-			inf = file(canon, "r")
-			while (rd < size):
-				data = inf.read(4096);
-				outf.write(data)
-				rd += len(data)
-			inf.close()
-		
-		if (os.path.isdir(canon)):
-			outf.write(struct.pack(DENTRY, DENTRY_DIRECTORY, len(name)))
-			outf.write(xstruct.little_string(name))
-			recursion(canon, outf)
-			outf.write(struct.pack(DENTRY, DENTRY_NONE, 0))
+	# Member tags
+	
+	for token in tokens[1:]:
+		if (token[0:5] == "char["):
+			size = token[5:].split("]")[0]
+			struct += ("%d" % int(size)) + "s"
+		else:
+			struct += {
+				"uint8_t":  lambda: "B",
+				"uint16_t": lambda: "H",
+				"uint32_t": lambda: "L",
+				"uint64_t": lambda: "Q",
+				
+				"int8_t":   lambda: "b",
+				"int16_t":  lambda: "h",
+				"int32_t":  lambda: "l",
+				"int64_t":  lambda: "q"
+			}[token]()
+	
+	return struct
 
-def main():
-	if (len(sys.argv) < 3):
-		usage(sys.argv[0])
-		return
-	
-	path = os.path.abspath(sys.argv[1])
-	if (not os.path.isdir(path)):
-		print "<PATH> must be a directory"
-		return
-	
-	outf = file(sys.argv[2], "w")
-	
-	outf.write(struct.pack(HEADER, "TMPFS"))
-	recursion(path, outf)
-	outf.write(struct.pack(DENTRY, DENTRY_NONE, 0))
-
-	outf.close()
-		
-if __name__ == '__main__':
-	main()
+def little_string(string):
+	return struct.pack("<" + ("%d" % len(string)) + "s", string)
