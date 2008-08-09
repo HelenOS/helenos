@@ -57,7 +57,7 @@ static bool mount_fs(const char *fstype)
 	
 	while (rc < 0) {
 		rc = mount(fstype, "/", "initrd");
-		
+
 		switch (rc) {
 		case EOK:
 			printf(NAME ": Root filesystem mounted\n");
@@ -67,6 +67,9 @@ static bool mount_fs(const char *fstype)
 			break;
 		case ELIMIT:
 			printf(NAME ": Unable to mount root filesystem\n");
+			return false;
+		case ENOENT:
+			printf(NAME ": Unknown filesystem type (%s)\n", fstype);
 			return false;
 		default:
 			sleep(5);	// FIXME
