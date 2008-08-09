@@ -66,7 +66,8 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 		adst[i].n = asrc[i].n;
 		
 	for (j = 0; j < n % sizeof(unsigned long); j++)
-		((unsigned char *) (((unsigned long *) dst) + i))[j] = ((unsigned char *) (((unsigned long *) src) + i))[j];
+		((unsigned char *) (((unsigned long *) dst) + i))[j] =
+		    ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
 	return (char *) src;
 }
@@ -75,14 +76,16 @@ void *memcpy(void *dst, const void *src, size_t n)
 {
 	int i, j;
 
-	if (((long) dst & (sizeof(long) - 1)) || ((long) src & (sizeof(long) - 1)))
+	if (((long) dst & (sizeof(long) - 1)) ||
+	    ((long) src & (sizeof(long) - 1)))
  		return unaligned_memcpy(dst, src, n);
 
 	for (i = 0; i < n / sizeof(unsigned long); i++)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
 		
 	for (j = 0; j < n % sizeof(unsigned long); j++)
-		((unsigned char *) (((unsigned long *) dst) + i))[j] = ((unsigned char *) (((unsigned long *) src) + i))[j];
+		((unsigned char *) (((unsigned long *) dst) + i))[j] =
+		    ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
 	return (char *) src;
 }
@@ -95,7 +98,8 @@ void *memmove(void *dst, const void *src, size_t n)
 		return memcpy(dst, src, n);
 
 	for (j = (n % sizeof(unsigned long)) - 1; j >= 0; j--)
-		((unsigned char *) ((unsigned long *) dst))[j] = ((unsigned char *) ((unsigned long *) src))[j];
+		((unsigned char *) ((unsigned long *) dst))[j] =
+		    ((unsigned char *) ((unsigned long *) src))[j];
 
 	for (i = n / sizeof(unsigned long) - 1; i >=0 ; i--)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
@@ -105,12 +109,12 @@ void *memmove(void *dst, const void *src, size_t n)
 
 /** Compare two memory areas.
  *
- * @param s1	Pointer to the first area to compare.
- * @param s2	Pointer to the second area to compare.
- * @param len	Size of the first area in bytes. Both areas must have the same
- *		length.
- * @return	If len is 0, return zero. If the areas match, return zero.
- *		Otherwise return non-zero.
+ * @param s1		Pointer to the first area to compare.
+ * @param s2		Pointer to the second area to compare.
+ * @param len		Size of the first area in bytes. Both areas must have
+ * 			the same length.
+ * @return		If len is 0, return zero. If the areas match, return
+ * 			zero. Otherwise return non-zero.
  */
 int bcmp(const char *s1, const char *s2, size_t len)
 {
@@ -120,8 +124,9 @@ int bcmp(const char *s1, const char *s2, size_t len)
 }
 
 /** Count the number of characters in the string, not including terminating 0.
- * @param str string
- * @return number of characters in string.
+ *
+ * @param str		String.
+ * @return		Number of characters in string.
  */
 size_t strlen(const char *str) 
 {
@@ -155,10 +160,12 @@ int strncmp(const char *a, const char *b, size_t n)
 	
 }
 
-/** Return pointer to the first occurence of character c in string
- * @param str scanned string 
- * @param c searched character (taken as one byte)
- * @return pointer to the matched character or NULL if it is not found in given string.
+/** Return pointer to the first occurence of character c in string.
+ *
+ * @param str		Scanned string.
+ * @param c		Searched character (taken as one byte).
+ * @return		Pointer to the matched character or NULL if it is not
+ * 			found in given string.
  */
 char *strchr(const char *str, int c)
 {
@@ -171,10 +178,12 @@ char *strchr(const char *str, int c)
 	return NULL;
 }
 
-/** Return pointer to the last occurence of character c in string
- * @param str scanned string 
- * @param c searched character (taken as one byte)
- * @return pointer to the matched character or NULL if it is not found in given string.
+/** Return pointer to the last occurence of character c in string.
+ *
+ * @param str		Scanned string.
+ * @param c		Searched character (taken as one byte).
+ * @return		Pointer to the matched character or NULL if it is not
+ * 			found in given string.
  */
 char *strrchr(const char *str, int c)
 {
@@ -191,13 +200,16 @@ char *strrchr(const char *str, int c)
 
 /** Convert string to a number. 
  * Core of strtol and strtoul functions.
- * @param nptr pointer to string
- * @param endptr if not NULL, function stores here pointer to the first invalid character
- * @param base zero or number between 2 and 36 inclusive
- * @param sgn its set to 1 if minus found
- * @return result of conversion.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character.
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @param sgn		It's set to 1 if minus found.
+ * @return		Result of conversion.
  */
-static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *sgn)
+static unsigned long
+_strtoul(const char *nptr, char **endptr, int base, char *sgn)
 {
 	unsigned char c;
 	unsigned long result = 0;
@@ -219,7 +231,8 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 			/* FIXME: set errno to EINVAL */
 			return 0;
 		}
-		if ((base == 16) && (*str == '0') && ((str[1] == 'x') || (str[1] == 'X'))) {
+		if ((base == 16) && (*str == '0') && ((str[1] == 'x') ||
+		    (str[1] == 'X'))) {
 			str += 2;
 		}
 	} else {
@@ -238,7 +251,8 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 
 	while (*str) {
 		c = *str;
-		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 : (c <= '9' ? c - '0' : 0xff)));
+		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 :
+		    (c <= '9' ? c - '0' : 0xff)));
 		if (c > base) {
 			break;
 		}
@@ -257,7 +271,10 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 	}
 	
 	if (str == tmpptr) {
-		/* no number was found => first invalid character is the first character of the string */
+		/*
+		 * No number was found => first invalid character is the first
+		 * character of the string.
+		 */
 		/* FIXME: set errno to EINVAL */
 		str = nptr;
 		result = 0;
@@ -275,14 +292,17 @@ static unsigned long _strtoul(const char *nptr, char **endptr, int base, char *s
 }
 
 /** Convert initial part of string to long int according to given base.
- * The number may begin with an arbitrary number of whitespaces followed by optional sign (`+' or `-').
- * If the base is 0 or 16, the prefix `0x' may be inserted and the number will be taken as hexadecimal one.
- * If the base is 0 and the number begin with a zero, number will be taken as octal one (as with base 8).
- * Otherwise the base 0 is taken as decimal.
- * @param nptr pointer to string
- * @param endptr if not NULL, function stores here pointer to the first invalid character
- * @param base zero or number between 2 and 36 inclusive
- * @return result of conversion.
+ * The number may begin with an arbitrary number of whitespaces followed by
+ * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be
+ * inserted and the number will be taken as hexadecimal one. If the base is 0
+ * and the number begin with a zero, number will be taken as octal one (as with
+ * base 8). Otherwise the base 0 is taken as decimal.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character.
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @return		Result of conversion.
  */
 long int strtol(const char *nptr, char **endptr, int base)
 {
@@ -305,14 +325,17 @@ long int strtol(const char *nptr, char **endptr, int base)
 
 
 /** Convert initial part of string to unsigned long according to given base.
- * The number may begin with an arbitrary number of whitespaces followed by optional sign (`+' or `-').
- * If the base is 0 or 16, the prefix `0x' may be inserted and the number will be taken as hexadecimal one.
- * If the base is 0 and the number begin with a zero, number will be taken as octal one (as with base 8).
- * Otherwise the base 0 is taken as decimal.
- * @param nptr pointer to string
- * @param endptr if not NULL, function stores here pointer to the first invalid character
- * @param base zero or number between 2 and 36 inclusive
- * @return result of conversion.
+ * The number may begin with an arbitrary number of whitespaces followed by
+ * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be
+ * inserted and the number will be taken as hexadecimal one. If the base is 0
+ * and the number begin with a zero, number will be taken as octal one (as with
+ * base 8). Otherwise the base 0 is taken as decimal.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @return		Result of conversion.
  */
 unsigned long strtoul(const char *nptr, char **endptr, int base)
 {
