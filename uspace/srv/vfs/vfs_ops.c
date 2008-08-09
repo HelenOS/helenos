@@ -71,8 +71,11 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle;
 	vfs_node_t *mp_node = NULL;
+	ipc_callid_t callid;
+	ipc_call_t data;
 	int rc;
 	int phone;
+	size_t size;
 
 	/*
 	 * We expect the library to do the device-name to device-handle
@@ -85,9 +88,6 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * For now, don't make use of ARG2 and ARG3, but they can be used to
 	 * carry mount options in the future.
 	 */
-
-	ipc_callid_t callid;
-	size_t size;
 
 	/*
 	 * Now, we expect the client to send us data with the name of the file
@@ -115,14 +115,29 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	fs_name[size] = '\0';
 	
 	/*
+	 * Wait for IPC_M_PING so that we can return an error if we don't know
+	 * fs_name.
+	 */
+	callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_PING) {
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(rid, ENOTSUP);
+		return;
+	}
+
+	/*
 	 * Check if we know a file system with the same name as is in fs_name.
 	 * This will also give us its file system handle.
 	 */
 	fs_handle_t fs_handle = fs_name_to_handle(fs_name, true);
 	if (!fs_handle) {
+		ipc_answer_0(callid, ENOENT);
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
+
+	/* Acknowledge that we know fs_name. */
+	ipc_answer_0(callid, EOK);
 
 	/* Now, we want the client to send us the mount point. */
 	if (!ipc_data_write_receive(&callid, &size)) {
