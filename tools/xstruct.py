@@ -42,11 +42,19 @@ def convert(definition):
 		"big:":     lambda: ">",
 		"network:": lambda: "!"
 	}[tokens[0]]()
-		
+	
 	# Member tags
 	
+	comment = False
 	for token in tokens[1:]:
-		if (token[0:5] == "char["):
+		if (comment):
+			if (token == "*/"):
+				comment = False
+			continue
+		
+		if (token == "/*"):
+			comment = True
+		elif (token[0:5] == "char["):
 			size = token[5:].split("]")[0]
 			struct += ("%d" % int(size)) + "s"
 		else:
@@ -66,3 +74,6 @@ def convert(definition):
 
 def little_string(string):
 	return struct.pack("<" + ("%d" % len(string)) + "s", string)
+
+def little_padding(length):
+	return struct.pack("<" + ("%d" % length) + "x")

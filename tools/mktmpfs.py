@@ -35,9 +35,18 @@ import os
 import struct
 import xstruct
 
-HEADER = xstruct.convert("little: char[5]")
-DENTRY = xstruct.convert("little: uint8_t uint32_t")
-SIZE = xstruct.convert("little: uint32_t")
+HEADER = xstruct.convert("little: "
+	"char[5]  /* 'TMPFS' */ "
+)
+
+DENTRY = xstruct.convert("little: "
+	"uint8_t   /* NONE, FILE or DIRECTORY */ "
+	"uint32_t  /* filename length */ "
+)
+
+SIZE = xstruct.convert("little: "
+	"uint32_t  /* file size */ "
+)
 
 DENTRY_NONE = 0
 DENTRY_FILE = 1

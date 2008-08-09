@@ -33,6 +33,18 @@ HORD encapsulator
 import sys
 import os
 import struct
+import xstruct
+
+HEADER = xstruct.convert("little: "
+	"char[4]   /* 'HORD' */ "
+	"uint8_t   /* version */ "
+	"uint8_t   /* encoding */ "
+	"uint32_t  /* header size */ "
+	"uint64_t  /* payload size */ "
+)
+
+HORD_VERSION = 1
+HORD_LSB = 1
 
 def align_up(size, alignment):
 	"Align upwards to a given alignment"
@@ -52,6 +64,10 @@ def main():
 		return
 	
 	align = int(sys.argv[1], 0)
+	if (align <= 0):
+		print "<ALIGNMENT> must be positive"
+		return
+	
 	fs_image = os.path.abspath(sys.argv[2])
 	if (not os.path.isfile(fs_image)):
 		print "<FS_IMAGE> must be a file"
@@ -60,17 +76,20 @@ def main():
 	inf = file(fs_image, "rb")
 	outf = file(sys.argv[3], "wb")
 	
-	header_size = align_up(18, align)
-	aligned_size = align_up(os.path.getsize(fs_image), align)
+	header_size = struct.calcsize(HEADER)
+	payload_size = os.path.getsize(fs_image)
 	
-	outf.write(struct.pack("<4sBBLQ", "HORD", 1, 1, header_size, aligned_size))
-	outf.write(struct.pack("<" + ("%d" % (header_size - 18)) + "x"))
+	header_size_aligned = align_up(header_size, align)
+	payload_size_aligned = align_up(payload_size, align)
+	
+	outf.write(struct.pack(HEADER, "HORD", HORD_VERSION, HORD_LSB, header_size_aligned, payload_size_aligned))
+	outf.write(xstruct.little_padding(header_size_aligned - header_size))
 	
 	outf.write(inf.read())
 	
-	padding = aligned_size - os.path.getsize(fs_image)
+	padding = payload_size_aligned - payload_size
 	if (padding > 0):
-		outf.write(struct.pack("<" + ("%d" % padding) + "x"))
+		outf.write(xstruct.little_padding(padding))
 	
 	inf.close()
 	outf.close()
