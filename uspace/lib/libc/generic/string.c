@@ -146,7 +146,6 @@ int strcmp(const char *a, const char *b)
 		c++;
 	
 	return (a[c] - b[c]);
-	
 }
 
 int strncmp(const char *a, const char *b, size_t n)
@@ -158,6 +157,16 @@ int strncmp(const char *a, const char *b, size_t n)
 	
 	return ( c < n ? a[c] - b[c] : 0);
 	
+}
+
+int stricmp(const char *a, const char *b)
+{
+	int c = 0;
+	
+	while (a[c] && b[c] && (!(tolower(a[c]) - tolower(b[c]))))
+		c++;
+	
+	return (tolower(a[c]) - tolower(b[c]));
 }
 
 /** Return pointer to the first occurence of character c in string.

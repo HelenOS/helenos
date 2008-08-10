@@ -76,6 +76,14 @@ static inline int isspace(int c)
 	}
 }
 
+static inline int tolower(int c)
+{
+	if (isupper(c))
+		return (c + ('a' - 'A' > 0 ? 'a' - 'A' : 'A' - 'a'));
+	else
+		return c;
+}
+
 #endif
 
 /** @}
