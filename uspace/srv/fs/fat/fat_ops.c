@@ -356,11 +356,17 @@ skip_cache:
 		 * and initialized elsewhere.
 		 */
 		nodep->type = FAT_DIRECTORY;
+		/*
+		 * TODO: determine the size by walking FAT. Surprisingly, the
+		 * 'size' filed of the FAT dentry is not defined for the
+		 * directory entry type.
+		 */
+		nodep->size = 64 * sizeof(fat_dentry_t);
 	} else {
 		nodep->type = FAT_FILE;
+		nodep->size = uint32_t_le2host(d->size);
 	}
 	nodep->firstc = uint16_t_le2host(d->firstc);
-	nodep->size = uint32_t_le2host(d->size);
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
