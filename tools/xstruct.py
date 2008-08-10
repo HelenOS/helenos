@@ -36,11 +36,15 @@ class Struct:
 		return struct.calcsize(self._format_)
 	
 	def pack(self):
-		list = []
-		for variable in self._list_:
-			list.append(self.__dict__[variable])
+		args = []
+		for variable in self._args_:
+			if (isinstance(self.__dict__[variable], list)):
+				for item in self.__dict__[variable]:
+					args.append(item)
+			else:
+				args.append(self.__dict__[variable])
 		
-		return struct.pack(self._format_, *list)
+		return struct.pack(self._format_, *args)
 
 def create(definition):
 	"Create structure object"
@@ -54,7 +58,7 @@ def create(definition):
 		"network:": lambda: "!"
 	}[tokens[0]]()
 	inst = Struct()
-	list = []
+	args = []
 	
 	# Member tags
 	comment = False
@@ -78,7 +82,7 @@ def create(definition):
 			format += variable
 			
 			inst.__dict__[subtokens[0]] = None
-			list.append(subtokens[0])
+			args.append(subtokens[0])
 			
 			variable = None
 			continue
@@ -102,5 +106,5 @@ def create(definition):
 		}[token]()
 	
 	inst.__dict__['_format_'] = format
-	inst.__dict__['_list_'] = list
+	inst.__dict__['_args_'] = args
 	return inst
