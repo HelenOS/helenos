@@ -51,7 +51,7 @@ memcpy_to_uspace:
 
 	adds r14 = 7, in1
 	mov r2 = ar.lc
-	mov r8 = in0 ;;
+	mov r8 = in0
 	and r14 = -8, r14 ;;
 	cmp.ne p6, p7 = r14, in1
 (p7)	br.cond.dpnt 3f	;;
@@ -63,7 +63,7 @@ memcpy_to_uspace:
 (p6)	mov r17 = r0 ;;
 (p6)	mov ar.lc = r14
 1:
-	add r14 = r16, r8
+	add r14 = r16, in1 
 	add r15 = r16, in0
 	adds r17 = 1, r17 ;;
 	ld1 r14 = [r14]
@@ -72,7 +72,6 @@ memcpy_to_uspace:
 	br.cloop.sptk.few 1b ;;
 2:
 	mov ar.lc = r2
-
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
 3:
@@ -90,7 +89,7 @@ memcpy_to_uspace:
 4:
 	shladd r14 = r16, 3, r0
 	adds r16 = 1, r17 ;;
-	add r15 = r8, r14
+	add r15 = in1, r14
 	add r14 = in0, r14
 	mov r17 = r16 ;;
 	ld8 r15 = [r15] ;;
@@ -104,7 +103,7 @@ memcpy_to_uspace:
 	cmp.eq p6, p7 = 0, r15
 	add in0 = r14, in0
 	adds r15 = -1, r15
-	add r17 = r14, r8
+	add r17 = r14, in1 
 (p6)	br.cond.dpnt 2b	;;
 	mov ar.lc = r15
 6:
@@ -116,7 +115,6 @@ memcpy_to_uspace:
 	st1 [r15] = r14
 	br.cloop.sptk.few 6b ;;
 	mov ar.lc = r2
-
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
 	
