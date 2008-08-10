@@ -75,10 +75,8 @@ static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 	int i;
 
 	for (i = 0; i < FAT_NAME_LEN; i++) {
-		if (d->name[i] == FAT_PAD) {
-			buf++;
+		if (d->name[i] == FAT_PAD)
 			break;
-		}
 		if (d->name[i] == FAT_DENTRY_E5_ESC)
 			*buf++ = 0xe5;
 		else
@@ -96,6 +94,7 @@ static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 		else
 			*buf++ = d->ext[i];
 	}
+	*buf = '\0';
 }
 
 static int dev_phone = -1;		/* FIXME */
@@ -113,6 +112,7 @@ static block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 	block_t *b;
 	off_t bufpos = 0;
 	size_t buflen = 0;
+	off_t pos = offset * bs;
 
 	assert(dev_phone != -1);
 	assert(dev_buffer);
@@ -128,7 +128,7 @@ static block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 	}
 	b->size = bs;
 
-	if (!libfs_blockread(dev_phone, dev_buffer, &bufpos, &buflen, &offset,
+	if (!libfs_blockread(dev_phone, dev_buffer, &bufpos, &buflen, &pos,
 	    b->data, bs, bs)) {
 		free(b->data);
 		free(b);
@@ -457,7 +457,7 @@ static void *fat_match(void *prnt, const char *component)
 				dentry_name_canonify(d, name);
 				break;
 			}
-			if (strcmp(name, component) == 0) {
+			if (stricmp(name, component) == 0) {
 				/* hit */
 				void *node;
 				/*
