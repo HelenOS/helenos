@@ -35,7 +35,7 @@ import os
 import xstruct
 
 HEADER = """little:
-	char[5] tag  /* 'TMPFS' */
+	char tag[5]  /* 'TMPFS' */
 """
 
 DENTRY_NONE = """little:
@@ -46,14 +46,14 @@ DENTRY_NONE = """little:
 DENTRY_FILE = """little:
 	uint8_t kind        /* FILE */
 	uint32_t fname_len  /* filename length */
-	char[%d] fname      /* filename */
+	char fname[%d]      /* filename */
 	uint32_t flen       /* file length */
 """
 
 DENTRY_DIRECTORY = """little:
 	uint8_t kind        /* DIRECTORY */
 	uint32_t fname_len  /* filename length */
-	char[%d] fname      /* filename */
+	char fname[%d]      /* filename */
 """
 
 TMPFS_NONE = 0

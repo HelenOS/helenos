@@ -58,41 +58,48 @@ def create(definition):
 	
 	# Member tags
 	comment = False
-	variable = False
+	variable = None
 	for token in tokens[1:]:
 		if (comment):
 			if (token == "*/"):
 				comment = False
 			continue
 		
-		if (variable):
-			inst.__dict__[token] = None
-			list.append(token)
-			variable = False
-			continue
-		
 		if (token == "/*"):
 			comment = True
-		elif (token[0:8] == "padding["):
+			continue
+		
+		if (variable != None):
+			subtokens = token.split("[")
+			
+			if (len(subtokens) > 1):
+				format += "%d" % int(subtokens[1].split("]")[0])
+			
+			format += variable
+			
+			inst.__dict__[subtokens[0]] = None
+			list.append(subtokens[0])
+			
+			variable = None
+			continue
+		
+		if (token[0:8] == "padding["):
 			size = token[8:].split("]")[0]
 			format += "%dx" % int(size)
-		elif (token[0:5] == "char["):
-			size = token[5:].split("]")[0]
-			format += "%ds" % int(size)
-			variable = True
-		else:
-			format += {
-				"uint8_t":  lambda: "B",
-				"uint16_t": lambda: "H",
-				"uint32_t": lambda: "L",
-				"uint64_t": lambda: "Q",
-				
-				"int8_t":   lambda: "b",
-				"int16_t":  lambda: "h",
-				"int32_t":  lambda: "l",
-				"int64_t":  lambda: "q"
-			}[token]()
-			variable = True
+			continue
+		
+		variable = {
+			"char":     lambda: "s",
+			"uint8_t":  lambda: "B",
+			"uint16_t": lambda: "H",
+			"uint32_t": lambda: "L",
+			"uint64_t": lambda: "Q",
+			
+			"int8_t":   lambda: "b",
+			"int16_t":  lambda: "h",
+			"int32_t":  lambda: "l",
+			"int64_t":  lambda: "q"
+		}[token]()
 	
 	inst.__dict__['_format_'] = format
 	inst.__dict__['_list_'] = list

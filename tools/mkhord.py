@@ -35,7 +35,7 @@ import os
 import xstruct
 
 HEADER = """little:
-	char[4] tag            /* 'HORD' */
+	char tag[4]            /* 'HORD' */
 	uint8_t version        /* version */
 	uint8_t encoding       /* encoding */
 	uint32_t header_size   /* header size */
