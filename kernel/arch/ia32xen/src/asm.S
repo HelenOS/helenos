@@ -67,7 +67,7 @@ xen_failsafe_callback:
  * @param MEMCPY_SRC(%esp)	Source address.
  * @param MEMCPY_SIZE(%esp)	Size.
  *
- * @return MEMCPY_SRC(%esp) on success and 0 on failure.
+ * @return MEMCPY_DST(%esp) on success and 0 on failure.
  */
 memcpy:
 memcpy_from_uspace:
@@ -92,7 +92,7 @@ memcpy_to_uspace:
 0:
 	movl %edx, %edi
 	movl %eax, %esi
-	movl MEMCPY_SRC(%esp), %eax		/* MEMCPY_SRC(%esp), success */
+	movl MEMCPY_DST(%esp), %eax		/* MEMCPY_DST(%esp), success */
 	ret
 	
 /*

@@ -71,6 +71,7 @@ memcpy_to_uspace:
 	and	$v0,$v0,$v1
 	beq	$a1,$v0,3f
 	move	$t0,$a0
+	move	$t2,$a0			# save dst
 
 0:
 	beq	$a2,$zero,2f
@@ -86,7 +87,7 @@ memcpy_to_uspace:
 
 2:
 	jr	$ra
-	move	$v0,$a1
+	move	$v0,$t2
 
 3:
 	addiu	$v0,$a0,3
@@ -126,7 +127,7 @@ memcpy_to_uspace:
 	sb	$a0,0($v1)
 
 	jr	$ra
-	move	$v0,$a1
+	move	$v0,$t2
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:

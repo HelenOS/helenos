@@ -41,6 +41,7 @@
  */
 .global memcpy
 memcpy:
+	mov	%o0, %o3		! save dst
 	add	%o1, 7, %g1
 	and	%g1, -8, %g1
 	cmp	%o1, %g1
@@ -59,7 +60,7 @@ memcpy:
 	mov	%g2, %g3
 2:
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 3:
 	and	%g1, -8, %g1
 	cmp	%o0, %g1
@@ -93,13 +94,14 @@ memcpy:
 	mov	%g2, %g3
 
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 
 /*
  * Almost the same as memcpy() except the loads are from userspace.
  */
 .global memcpy_from_uspace
 memcpy_from_uspace:
+	mov	%o0, %o3		! save dst
 	add	%o1, 7, %g1
 	and	%g1, -8, %g1
 	cmp	%o1, %g1
@@ -118,7 +120,7 @@ memcpy_from_uspace:
 	mov	%g2, %g3
 2:
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 3:
 	and	%g1, -8, %g1
 	cmp	%o0, %g1
@@ -152,13 +154,14 @@ memcpy_from_uspace:
 	mov	%g2, %g3
 
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 
 /*
  * Almost the same as memcpy() except the stores are to userspace.
  */
 .global memcpy_to_uspace
 memcpy_to_uspace:
+	mov	%o0, %o3		! save dst
 	add	%o1, 7, %g1
 	and	%g1, -8, %g1
 	cmp	%o1, %g1
@@ -177,7 +180,7 @@ memcpy_to_uspace:
 	mov	%g2, %g3
 2:
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 3:
 	and	%g1, -8, %g1
 	cmp	%o0, %g1
@@ -211,7 +214,7 @@ memcpy_to_uspace:
 	mov	%g2, %g3
 
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address

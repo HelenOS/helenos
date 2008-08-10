@@ -74,7 +74,7 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 			((uint8_t *)(((unative_t *) dst) + i))[j] = ((uint8_t *)(((unative_t *) src) + i))[j];
 	}
 		
-	return (char *) src;
+	return (char *) dst;
 }
 
 /** Fill block of memory

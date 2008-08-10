@@ -98,12 +98,12 @@ memsetw:
  * @param MEMCPY_SRC	Source address.
  * @param MEMCPY_SIZE	Number of bytes to copy.
  *
- * @retrun MEMCPY_SRC on success, 0 on failure.
+ * @retrun MEMCPY_DST on success, 0 on failure.
  */
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-	movq MEMCPY_SRC, %rax
+	movq MEMCPY_DST, %rax
 
 	movq MEMCPY_SIZE, %rcx
 	shrq $3, %rcx			/* size / 8 */

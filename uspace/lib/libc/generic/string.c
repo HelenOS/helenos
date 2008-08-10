@@ -69,7 +69,7 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 		((unsigned char *) (((unsigned long *) dst) + i))[j] =
 		    ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
-	return (char *) src;
+	return (char *) dst;
 }
 
 void *memcpy(void *dst, const void *src, size_t n)
@@ -87,7 +87,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 		((unsigned char *) (((unsigned long *) dst) + i))[j] =
 		    ((unsigned char *) (((unsigned long *) src) + i))[j];
 		
-	return (char *) src;
+	return (char *) dst;
 }
 
 void *memmove(void *dst, const void *src, size_t n)
@@ -104,7 +104,7 @@ void *memmove(void *dst, const void *src, size_t n)
 	for (i = n / sizeof(unsigned long) - 1; i >=0 ; i--)
 		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
 		
-	return (char *) src;
+	return (char *) dst;
 }
 
 /** Compare two memory areas.

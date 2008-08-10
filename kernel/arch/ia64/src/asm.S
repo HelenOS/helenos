@@ -51,7 +51,7 @@ memcpy_to_uspace:
 
 	adds r14 = 7, in1
 	mov r2 = ar.lc
-	mov r8 = in1 ;;
+	mov r8 = in0 ;;
 	and r14 = -8, r14 ;;
 	cmp.ne p6, p7 = r14, in1
 (p7)	br.cond.dpnt 3f	;;

@@ -30,6 +30,9 @@
 #include <stack.h>
 #include <register.h>
 
+.register       %g2, #scratch
+.register       %g3, #scratch
+
 .text
 
 .global halt
@@ -41,8 +44,7 @@ halt:
 	nop
 	
 memcpy:
-	.register       %g2, #scratch
-        .register       %g3, #scratch
+	mov	%o0, %o3		! save dst
 	add	%o1, 7, %g1
 	and	%g1, -8, %g1
 	cmp	%o1, %g1
@@ -61,7 +63,7 @@ memcpy:
 	mov	%g2, %g3
 2:
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 3:
 	and	%g1, -8, %g1
 	cmp	%o0, %g1
@@ -95,7 +97,7 @@ memcpy:
 	mov	%g2, %g3
 
 	jmp	%o7 + 8			! exit point
-	mov	%o1, %o0
+	mov	%o3, %o0
 
 jump_to_kernel:
 	/*

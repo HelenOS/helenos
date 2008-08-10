@@ -35,7 +35,8 @@ memcpy:
 	add     r3, r1, #3
 	bic     r3, r3, #3
 	cmp     r1, r3
-	stmdb   sp!, {r4, lr}
+	stmdb   sp!, {r4, r5, lr}
+	mov	r5, r0
 	beq     4f
 1:
 	cmp     r2, #0
@@ -48,8 +49,8 @@ memcpy:
 	cmp     ip, r2
 	bne     2b
 3:
-	mov     r0, r1
-	ldmia   sp!, {r4, pc}
+	mov     r0, r5
+	ldmia   sp!, {r4, r5, pc}
 4:
 	add     r3, r0, #3
 	bic     r3, r3, #3

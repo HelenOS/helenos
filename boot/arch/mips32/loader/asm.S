@@ -48,6 +48,7 @@ memcpy:
 	and	$v0,$v0,$v1
 	beq	$a1,$v0,3f
 	move	$t0,$a0
+	move	$t2,$a0			# save dst
 
 0:
 	beq	$a2,$zero,2f
@@ -63,7 +64,7 @@ memcpy:
 
 2:
 	jr	$ra
-	move	$v0,$a1
+	move	$v0,$t2
 
 3:
 	addiu	$v0,$a0,3
@@ -103,7 +104,7 @@ memcpy:
 	sb	$a0,0($v1)
 
 	jr	$ra
-	move	$v0,$a1
+	move	$v0,$t2
 
 jump_to_kernel:
 	#
