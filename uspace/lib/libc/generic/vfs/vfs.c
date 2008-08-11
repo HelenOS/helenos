@@ -62,6 +62,7 @@ size_t cwd_len = 0;
 static char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
+	char *ncwd_path_nc;
 
 	futex_down(&cwd_futex);
 	size_t len = strlen(path);
@@ -70,26 +71,38 @@ static char *absolutize(const char *path, size_t *retlen)
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		ncwd_path = malloc(len + cwd_len + 1);
-		if (!ncwd_path) {
+		ncwd_path_nc = malloc(len + cwd_len + 1);
+		if (!ncwd_path_nc) {
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		strcpy(ncwd_path, cwd_path);
-		ncwd_path[cwd_len] = '/';
-		ncwd_path[cwd_len + 1] = '\0';
+		strcpy(ncwd_path_nc, cwd_path);
+		ncwd_path_nc[cwd_len] = '/';
+		ncwd_path_nc[cwd_len + 1] = '\0';
 	} else {
-		ncwd_path = malloc(len + 1);
-		if (!ncwd_path) {
+		ncwd_path_nc = malloc(len + 1);
+		if (!ncwd_path_nc) {
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		ncwd_path[0] = '\0';
+		ncwd_path_nc[0] = '\0';
 	}
-	strcat(ncwd_path, path);
-	if (!canonify(ncwd_path, retlen)) {
+	strcat(ncwd_path_nc, path);
+	ncwd_path = canonify(ncwd_path_nc, retlen);
+	if (!ncwd_path) {
 		futex_up(&cwd_futex);
-		free(ncwd_path);
+		free(ncwd_path_nc);
+		return NULL;
+	}
+	/*
+	 * We need to clone ncwd_path because canonify() works in-place and thus
+	 * the address in ncwd_path need not be the same as ncwd_path_nc, even
+	 * though they both point into the same dynamically allocated buffer.
+	 */
+	ncwd_path = strdup(ncwd_path);
+	free(ncwd_path_nc);
+	if (!ncwd_path) {
+		futex_up(&cwd_futex);
 		return NULL;
 	}
 	futex_up(&cwd_futex);
