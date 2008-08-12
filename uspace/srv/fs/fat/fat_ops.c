@@ -70,6 +70,8 @@ static LIST_INITIALIZE(ffn_head);
 #define FAT_DENTRY_DOT		0x2e
 #define FAT_DENTRY_ERASED	0xe5
 
+#define min(a, b)		((a) < (b) ? (a) : (b))
+
 static void dentry_name_canonify(fat_dentry_t *d, char *buf)
 {
 	int i;
@@ -712,6 +714,9 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	off_t pos = (off_t)IPC_GET_ARG3(*request);
 	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	uint16_t bps = fat_bps_get(dev_handle);
+	size_t bytes;
+
 	if (!nodep) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -727,11 +732,13 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	if (nodep->type == FAT_FILE) {
-		/* TODO */
-		fat_node_put(nodep);
-		ipc_answer_0(callid, ENOTSUP);
-		ipc_answer_0(rid, ENOTSUP);
-		return;
+		block_t *b;
+
+		bytes = min(len, bps - pos % bps);
+		b = fat_block_get(nodep, pos / bps);
+		(void) ipc_data_read_finalize(callid, b->data + pos % bps,
+		    bytes);
+		block_put(b);
 	} else {
 		assert(nodep->type == FAT_DIRECTORY);
 		/* TODO */
@@ -742,6 +749,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	fat_node_put(nodep);
+	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
 }
 
 /**
