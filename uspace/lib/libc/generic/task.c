@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <async.h>
 #include <errno.h>
+#include <vfs/vfs.h>
 
 task_id_t task_get_id(void)
 {
@@ -130,35 +131,47 @@ task_id_t task_spawn(const char *path, const char *argv[])
 	int rc;
 	ipcarg_t retval;
 
+	char *pa;
+	size_t pa_len;
+
+	pa = absolutize(path, &pa_len);
+	if (!pa)
+		return 0;
+
 	/* Spawn a program loader */	
 	phone_id = task_spawn_loader();
-	if (phone_id < 0) return 0;
+	if (phone_id < 0)
+		return 0;
 
 	/*
 	 * Say hello so that the loader knows the incoming connection's
 	 * phone hash.
 	 */
 	rc = async_req_0_0(phone_id, LOADER_HELLO);
-	if (rc != EOK) return 0;
+	if (rc != EOK)
+		return 0;
 
 	/* Send program pathname */
 	req = async_send_0(phone_id, LOADER_SET_PATHNAME, &answer);
-	rc = ipc_data_write_start(phone_id, (void *)path, strlen(path));
+	rc = ipc_data_write_start(phone_id, (void *)pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return 1;
 	}
 
 	async_wait_for(req, &retval);
-	if (retval != EOK) goto error;
+	if (retval != EOK)
+		goto error;
 
 	/* Send arguments */
 	rc = loader_set_args(phone_id, argv);
-	if (rc != EOK) goto error;
+	if (rc != EOK)
+		goto error;
 
 	/* Request loader to start the program */	
 	rc = async_req_0_0(phone_id, LOADER_RUN);
-	if (rc != EOK) goto error;
+	if (rc != EOK)
+		goto error;
 
 	/* Success */
 	ipc_hangup(phone_id);

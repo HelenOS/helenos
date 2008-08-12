@@ -59,7 +59,7 @@ DIR *cwd_dir = NULL;
 char *cwd_path = NULL;
 size_t cwd_len = 0; 
 
-static char *absolutize(const char *path, size_t *retlen)
+char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 	char *ncwd_path_nc;

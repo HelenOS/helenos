@@ -35,6 +35,10 @@
 #ifndef LIBC_VFS_H_
 #define LIBC_VFS_H_
 
+#include <sys/types.h>
+
+extern char *absolutize(const char *, size_t *);
+
 extern int mount(const char *, const char *, const char *);
 
 #endif
