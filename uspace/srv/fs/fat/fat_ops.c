@@ -706,6 +706,44 @@ void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
 	libfs_lookup(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
 }
 
+void fat_read(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	off_t pos = (off_t)IPC_GET_ARG3(*request);
+	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	if (!nodep) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	ipc_callid_t callid;
+	size_t len;
+	if (!ipc_data_write_receive(&callid, &len)) {
+		fat_node_put(nodep);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (nodep->type == FAT_FILE) {
+		/* TODO */
+		fat_node_put(nodep);
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(rid, ENOTSUP);
+		return;
+	} else {
+		assert(nodep->type == FAT_DIRECTORY);
+		/* TODO */
+		fat_node_put(nodep);
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(rid, ENOTSUP);
+		return;
+	}
+
+	fat_node_put(nodep);
+}
+
 /**
  * @}
  */ 
