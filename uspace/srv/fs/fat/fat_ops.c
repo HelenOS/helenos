@@ -291,7 +291,7 @@ static void *fat_node_get_core(fat_idx_t *idxp)
 {
 	block_t *b;
 	fat_dentry_t *d;
-	fat_node_t *nodep;
+	fat_node_t *nodep = NULL;
 	unsigned bps;
 	unsigned dps;
 
@@ -302,7 +302,7 @@ static void *fat_node_get_core(fat_idx_t *idxp)
 		 */
 		futex_down(&idxp->nodep->lock);
 		if (!idxp->nodep->refcnt++)
-			list_remove(&nodep->ffn_link);
+			list_remove(&idxp->nodep->ffn_link);
 		futex_up(&idxp->nodep->lock);
 		return idxp->nodep;
 	}
