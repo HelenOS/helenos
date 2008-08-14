@@ -724,7 +724,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 
 	ipc_callid_t callid;
 	size_t len;
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!ipc_data_read_receive(&callid, &len)) {
 		fat_node_put(nodep);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
