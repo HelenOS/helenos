@@ -71,6 +71,19 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
 static int section_header(elf_ld_t *elf, elf_section_header_t *entry);
 static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
+/** Read until the buffer is read in its entirety. */
+static int my_read(int fd, char *buf, size_t len)
+{
+	int cnt = 0;
+	do {
+		buf += cnt;
+		len -= cnt;
+		cnt = read(fd, buf, len);
+	} while ((cnt > 0) && ((len - cnt) > 0));
+
+	return cnt;
+}
+
 /** Load ELF binary from a file.
  *
  * Load an ELF binary from the specified file. If the file is
@@ -156,7 +169,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	elf_header_t *header = &header_buf;
 	int i, rc;
 
-	rc = read(elf->fd, header, sizeof(elf_header_t));
+	rc = my_read(elf->fd, header, sizeof(elf_header_t));
 	if (rc < 0) {
 		printf("read error\n"); 
 		return EE_INVALID;
@@ -223,7 +236,8 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_phoff
 		        + i * sizeof(elf_segment_header_t), SEEK_SET);
 
-		rc = read(elf->fd, &segment_hdr, sizeof(elf_segment_header_t));
+		rc = my_read(elf->fd, &segment_hdr,
+		    sizeof(elf_segment_header_t));
 		if (rc < 0) {
 			printf("read error\n");
 			return EE_INVALID;
@@ -244,7 +258,8 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		lseek(elf->fd, header->e_shoff
 		    + i * sizeof(elf_section_header_t), SEEK_SET);
 
-		rc = read(elf->fd, &section_hdr, sizeof(elf_section_header_t));
+		rc = my_read(elf->fd, &section_hdr,
+		    sizeof(elf_section_header_t));
 		if (rc < 0) {
 			printf("read error\n");
 			return EE_INVALID;
@@ -361,8 +376,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * For the course of loading, the area needs to be readable
 	 * and writeable.
 	 */
-	a = as_area_create((uint8_t *)base + bias,
-		mem_sz, AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	a = as_area_create((uint8_t *)base + bias, mem_sz,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (a == (void *)(-1)) {
 		printf("memory mapping failed\n");
 		return EE_MEMORY;
@@ -398,7 +413,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		if (now > left) now = left;
 
 //		printf("read %d...", now);
-		rc = read(elf->fd, dp, now);
+		rc = my_read(elf->fd, dp, now);
 //		printf("->%d\n", rc);
 
 		if (rc < 0) { 
