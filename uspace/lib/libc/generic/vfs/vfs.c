@@ -311,7 +311,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	if (rc == EOK)
 		return (ssize_t) IPC_GET_ARG1(answer);
 	else
-		return -1;
+		return rc;
 }
 
 ssize_t write(int fildes, const void *buf, size_t nbyte) 
