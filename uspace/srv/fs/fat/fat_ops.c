@@ -223,6 +223,53 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
 	return b;
 }
 
+/** Return number of blocks allocated to a file.
+ *
+ * @param dev_handle	Device handle of the device with the file.
+ * @param firstc	First cluster of the file.
+ *
+ * @return		Number of blocks allocated to the file.
+ */
+static uint16_t 
+_fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc)
+{
+	block_t *bb;
+	block_t *b;
+	unsigned bps;
+	unsigned spc;
+	unsigned rscnt;		/* block address of the first FAT */
+	unsigned clusters = 0;
+	fat_cluster_t clst = firstc;
+
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	spc = FAT_BS(bb)->spc;
+	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
+	block_put(bb);
+
+	if (firstc == FAT_CLST_RES0) {
+		/* No space allocated to the file. */
+		return 0;
+	}
+
+	while (clst < FAT_CLST_LAST1) {
+		unsigned fsec;	/* sector offset relative to FAT1 */
+		unsigned fidx;	/* FAT1 entry index */
+
+		assert(clst >= FAT_CLST_FIRST);
+		fsec = (clst * sizeof(fat_cluster_t)) / bps;
+		fidx = clst % (bps / sizeof(fat_cluster_t));
+		/* read FAT1 */
+		b = block_get(dev_handle, rscnt + fsec, bps);
+		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
+		assert(clst != FAT_CLST_BAD);
+		block_put(b);
+		clusters++;
+	}
+
+	return clusters * spc;
+}
+
 static void fat_node_initialize(fat_node_t *node)
 {
 	futex_initialize(&node->lock, 1);
@@ -359,11 +406,12 @@ skip_cache:
 		 */
 		nodep->type = FAT_DIRECTORY;
 		/*
-		 * TODO: determine the size by walking FAT. Surprisingly, the
-		 * 'size' filed of the FAT dentry is not defined for the
-		 * directory entry type.
+		 * Unfortunately, the 'size' field of the FAT dentry is not
+		 * defined for the directory entry type. We must determine the
+		 * size of the directory by walking the FAT.
 		 */
-		nodep->size = 64 * sizeof(fat_dentry_t);
+		nodep->size = bps * _fat_blcks_get(idxp->dev_handle,
+		    uint16_t_le2host(d->firstc));
 	} else {
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);
