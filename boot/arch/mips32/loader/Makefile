@@ -84,13 +84,19 @@ COMPONENTS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs
+	$(USPACEDIR)/srv/vfs/vfs 
+ifeq ($(RDFMT),tmpfs)
+	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
+endif
 
 RD_TASKS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
@@ -123,7 +129,12 @@ _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS
 	for task in $(RD_TASKS) ; do \
 		cp $$task $(USPACEDIR)/dist/sbin/ ; \
 	done
+ifeq ($(RDFMT),tmpfs)
 	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
+endif
+ifeq ($(RDFMT),fat)
+	../../../../tools/mkfat.sh $(USPACEDIR)/dist/ initrd.fs
+endif
 	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
 	rm initrd.fs
 	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned int" $(COMPONENTS) ./initrd.img
