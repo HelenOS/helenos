@@ -71,7 +71,7 @@ char *absolutize(const char *path, size_t *retlen)
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		ncwd_path_nc = malloc(len + cwd_len + 1);
+		ncwd_path_nc = malloc(cwd_len + 1 + len + 1);
 		if (!ncwd_path_nc) {
 			futex_up(&cwd_futex);
 			return NULL;
