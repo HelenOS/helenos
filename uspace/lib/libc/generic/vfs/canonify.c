@@ -125,6 +125,7 @@ typedef struct {
 static void set_first_slash(token_t *t, token_t *tfsl, token_t *tlcomp)
 {
 	*tfsl = *t;
+	*tlcomp = *t;
 }
 static void save_component(token_t *t, token_t *tfsl, token_t *tlcomp)
 {
