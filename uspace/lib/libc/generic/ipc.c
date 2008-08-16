@@ -803,7 +803,7 @@ int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
  */
 int ipc_data_read_start(int phoneid, void *dst, size_t size)
 {
-	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
+	return async_req_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
 	    (ipcarg_t) size);
 }
 
@@ -862,7 +862,7 @@ int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size)
  */
 int ipc_data_write_start(int phoneid, void *src, size_t size)
 {
-	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
+	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
 	    (ipcarg_t) size);
 }
 
