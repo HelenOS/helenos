@@ -270,12 +270,12 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			/* The recipient agreed to receive data. */
 			int rc;
 			uintptr_t dst;
-			uintptr_t size;
-			uintptr_t max_size;
+			size_t size;
+			size_t max_size;
 
-			dst = IPC_GET_ARG1(answer->data);
-			size = IPC_GET_ARG2(answer->data);
-			max_size = IPC_GET_ARG2(*olddata);
+			dst = (uintptr_t)IPC_GET_ARG1(answer->data);
+			size = (size_t)IPC_GET_ARG2(answer->data);
+			max_size = (size_t)IPC_GET_ARG2(*olddata);
 
 			if (size <= max_size) {
 				rc = copy_to_uspace((void *) dst,
