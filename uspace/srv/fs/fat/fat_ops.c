@@ -764,6 +764,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
 	uint16_t bps = fat_bps_get(dev_handle);
 	size_t bytes;
+	block_t *b;
 
 	if (!nodep) {
 		ipc_answer_0(rid, ENOENT);
@@ -780,20 +781,65 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	if (nodep->type == FAT_FILE) {
-		block_t *b;
-
+		/*
+		 * Our strategy for regular file reads is to read one block at
+		 * most and make use of the possibility to return less data than
+		 * requested. This keeps the code very simple.
+		 */
 		bytes = min(len, bps - pos % bps);
 		b = fat_block_get(nodep, pos / bps);
 		(void) ipc_data_read_finalize(callid, b->data + pos % bps,
 		    bytes);
 		block_put(b);
 	} else {
+		unsigned bnum;
+		off_t spos = pos;
+		char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
+		fat_dentry_t *d;
+
 		assert(nodep->type == FAT_DIRECTORY);
-		/* TODO */
+		assert(nodep->size % bps == 0);
+		assert(bps % sizeof(fat_dentry_t) == 0);
+
+		/*
+		 * Our strategy for readdir() is to use the position pointer as
+		 * an index into the array of all dentries. On entry, it points
+		 * to the first unread dentry. If we skip any dentries, we bump
+		 * the position pointer accordingly.
+		 */
+		bnum = (pos * sizeof(fat_dentry_t)) / bps;
+		while (bnum < nodep->size / bps) {
+			off_t o;
+
+			b = fat_block_get(nodep, bnum);
+			for (o = pos % (bps / sizeof(fat_dentry_t));
+			    o < bps / sizeof(fat_dentry_t);
+			    o++, pos++) {
+				d = ((fat_dentry_t *)b->data) + o;
+				switch (fat_classify_dentry(d)) {
+				case FAT_DENTRY_SKIP:
+					continue;
+				case FAT_DENTRY_LAST:
+					block_put(b);
+					goto miss;
+				default:
+				case FAT_DENTRY_VALID:
+					dentry_name_canonify(d, name);
+					block_put(b);
+					goto hit;
+				}
+			}
+			block_put(b);
+			bnum++;
+		}
+miss:
 		fat_node_put(nodep);
-		ipc_answer_0(callid, ENOTSUP);
-		ipc_answer_0(rid, ENOTSUP);
+		ipc_answer_0(callid, ENOENT);
+		ipc_answer_1(rid, ENOENT, 0);
 		return;
+hit:
+		(void) ipc_data_read_finalize(callid, name, strlen(name) + 1);
+		bytes = (pos - spos) + 1;
 	}
 
 	fat_node_put(nodep);
