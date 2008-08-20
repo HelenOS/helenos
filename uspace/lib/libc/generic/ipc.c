@@ -682,7 +682,7 @@ int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
 {
 	int res;
 	sysarg_t tmp_flags;
-	res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
 	    (ipcarg_t) size, arg, NULL, &tmp_flags);
 	if (flags)
 		*flags = tmp_flags;
@@ -742,7 +742,7 @@ int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags)
  */
 int ipc_share_out_start(int phoneid, void *src, int flags)
 {
-	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
+	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
 	    (ipcarg_t) flags);
 }
 
