@@ -48,7 +48,6 @@ RD_TASKS = \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/cli/cli \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/bdsh/bdsh
 

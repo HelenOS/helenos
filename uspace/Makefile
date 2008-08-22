@@ -48,7 +48,6 @@ DIRS = \
 	srv/devmap \
 	app/tetris \
 	app/tester \
-	app/cli \
 	app/klog \
 	app/init \
 	app/bdsh

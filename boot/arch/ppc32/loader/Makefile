@@ -96,7 +96,7 @@ RD_TASKS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/cli/cli
+	$(USPACEDIR)/app/bdsh/bdsh
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
