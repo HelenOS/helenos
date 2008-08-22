@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,21 +35,34 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <io/printf_core.h>
 
-/** Print formatted to the given buffer.
- * @param str	buffer
- * @param fmt	format string
- * \see For more details about format string see printf_core.
- */
-int sprintf(char *str, const char *fmt, ...)
+static int asprintf_prewrite(const char *str, size_t count, void *unused)
 {
+	return count;
+}
+
+int asprintf(char **strp, const char *fmt, ...)
+{
+	struct printf_spec ps = {
+		 asprintf_prewrite,
+		 NULL
+	};
 	int ret;
 	va_list args;
-	
+
 	va_start(args, fmt);
-	ret = vsprintf(str, fmt, args);
+	ret = printf_core(fmt, &ps, args);
 	va_end(args);
+	if (ret > 0) {
+		*strp = malloc(ret + 20);
+		if (!*strp)
+			return -1;
+		va_start(args, fmt);
+		vsprintf(*strp, fmt, args);
+		va_end(args);		
+	}
 
 	return ret;
 }

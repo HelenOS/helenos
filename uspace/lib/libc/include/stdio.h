@@ -54,16 +54,17 @@
 
 extern int getchar(void);
 
-extern int puts(const char * str);
-extern int putchar(int c);
+extern int puts(const char *);
+extern int putchar(int);
 
-extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
+extern int printf(const char *, ...);
+extern int asprintf(char **, const char *, ...);
+extern int sprintf(char *, const char *fmt, ...);
+extern int snprintf(char *, size_t , const char *, ...);
 
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
+extern int vprintf(const char *, va_list);
+extern int vsprintf(char *, const char *, va_list);
+extern int vsnprintf(char *, size_t, const char *, va_list);
 
 #define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
