@@ -43,6 +43,14 @@ static int asprintf_prewrite(const char *str, size_t count, void *unused)
 	return count;
 }
 
+/** Allocate and print to string.
+ *
+ * @param strp		Address of the pointer where to store the address of
+ * 			the newly allocated string.
+ * @fmt			Format strin.
+ *
+ * @return		Number of characters printed or a negative error code.
+ */
 int asprintf(char **strp, const char *fmt, ...)
 {
 	struct printf_spec ps = {

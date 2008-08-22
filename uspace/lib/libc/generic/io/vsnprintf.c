@@ -38,22 +38,27 @@
 #include <io/printf_core.h>
 
 struct vsnprintf_data {
-	size_t size; /* total space for string */
-	size_t len; /* count of currently used characters */
-	char *string; /* destination string */
+	size_t size;	/* total space for string */
+	size_t len;	/* count of currently used characters */
+	char *string;	/* destination string */
 };
 
 /** Write string to given buffer.
- * Write at most data->size characters including trailing zero. According to C99 has snprintf to return number
- * of characters that would have been written if enough space had been available. Hence the return value is not
- * number of really printed characters but size of input string. Number of really used characters 
- * is stored in data->len.
- * @param str source string to print
- * @param count size of source string
- * @param data structure with destination string, counter of used space and total string size.
- * @return number of characters to print (not characters really printed!)
+ * Write at most data->size characters including trailing zero. According to C99
+ * has snprintf to return number of characters that would have been written if
+ * enough space had been available. Hence the return value is not number of
+ * really printed characters but size of input string. Number of really used
+ * characters is stored in data->len.
+ *
+ * @param str		Source string to print.
+ * @param count		Size of the source string.
+ * @param data		Structure with destination string, counter of used space
+ * 			and total string size.
+ * @return		Number of characters to print (not characters really
+ * 			printed!)
  */
-static int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
+static int
+vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
 {
 	size_t i;
 	i = data->size - data->len;
@@ -63,41 +68,55 @@ static int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data 
 	}
 	
 	if (i == 1) {
-		/* We have only one free byte left in buffer => write there trailing zero */
+		/*
+		 * We have only one free byte left in buffer => write there
+		 * trailing zero.
+		 */
 		data->string[data->size - 1] = 0;
 		data->len = data->size;
 		return count;
 	}
 	
 	if (i <= count) {
-		/* We have not enought space for whole string with the trailing zero => print only a part of string */
-			memcpy((void *)(data->string + data->len), (void *)str, i - 1);
-			data->string[data->size - 1] = 0;
-			data->len = data->size;
-			return count;
+		/*
+		 * We have not enought space for whole string with the trailing
+		 * zero => print only a part of string.
+		 */
+		memcpy((void *)(data->string + data->len), (void *)str, i - 1);
+		data->string[data->size - 1] = 0;
+		data->len = data->size;
+		return count;
 	}
 	
 	/* Buffer is big enought to print whole string */
 	memcpy((void *)(data->string + data->len), (void *)str, count);
 	data->len += count;
-	/* Put trailing zero at end, but not count it into data->len so it could be rewritten next time */
+	/*
+	 * Put trailing zero at end, but not count it into data->len so it could
+	 * be rewritten next time.
+	 */
 	data->string[data->len] = 0;
 
 	return count;	
 }
 
 /** Print formatted to the given buffer with limited size.
- * @param str	buffer
- * @param size	buffer size
- * @param fmt	format string
+ * @param str		Buffer.
+ * @param size		Bffer size.
+ * @param fmt		Format string.
  * \see For more details about format string see printf_core.
  */
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
 	struct vsnprintf_data data = {size, 0, str};
-	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vsnprintf_write, &data};
+	struct printf_spec ps = {
+		(int(*)(void *, size_t, void *)) vsnprintf_write,
+		&data
+	};
 
-	/* Print 0 at end of string - fix the case that nothing will be printed */
+	/*
+	 * Print 0 at end of string - fix the case that nothing will be printed.
+	 */
 	if (size > 0)
 		str[0] = 0;
 	
