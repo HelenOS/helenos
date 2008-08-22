@@ -205,6 +205,12 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		/* We still don't have the root file system mounted. */
 		if ((size == 1) && (buf[0] == '/')) {
+			vfs_lookup_res_t mr_res;
+			vfs_node_t *mr_node;
+			ipcarg_t rindex;
+			ipcarg_t rsize;
+			ipcarg_t rlnkcnt;
+		
 			/*
 			 * For this simple, but important case,
 			 * we are almost done.
@@ -213,16 +219,30 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			
 			/* Tell the mountee that it is being mounted. */
 			phone = vfs_grab_phone(fs_handle);
-			rc = async_req_1_0(phone, VFS_MOUNTED,
-			    (ipcarg_t) dev_handle);
+			rc = async_req_1_3(phone, VFS_MOUNTED,
+			    (ipcarg_t) dev_handle, &rindex, &rsize, &rlnkcnt);
 			vfs_release_phone(phone);
-
-			if (rc == EOK) {
-				rootfs.fs_handle = fs_handle;
-				rootfs.dev_handle = dev_handle;
+			
+			if (rc != EOK) {
+				futex_up(&rootfs_futex);
+				ipc_answer_0(rid, rc);
+				return;
 			}
 
+			mr_res.triplet.fs_handle = fs_handle;
+			mr_res.triplet.dev_handle = dev_handle;
+			mr_res.triplet.index = (fs_index_t) rindex;
+			mr_res.size = (size_t) rsize;
+			mr_res.lnkcnt = (unsigned) rlnkcnt;
+
+			rootfs.fs_handle = fs_handle;
+			rootfs.dev_handle = dev_handle;
 			futex_up(&rootfs_futex);
+
+			/* Add reference to the mounted root. */
+			mr_node = vfs_node_get(&mr_res); 
+			assert(mr_node);
+
 			ipc_answer_0(rid, rc);
 			return;
 		} else {

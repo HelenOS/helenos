@@ -737,13 +737,14 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rootp->type = FAT_DIRECTORY;
 	rootp->firstc = FAT_CLST_ROOT;
 	rootp->refcnt = 1;
+	rootp->lnkcnt = 0;	/* FS root is not linked */
 	rootp->size = rde * sizeof(fat_dentry_t);
 	rootp->idx = ridxp;
 	ridxp->nodep = rootp;
 	
 	futex_up(&ridxp->lock);
 
-	ipc_answer_0(rid, EOK);
+	ipc_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
 }
 
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)

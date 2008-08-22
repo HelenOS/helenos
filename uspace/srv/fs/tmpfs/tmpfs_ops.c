@@ -233,7 +233,7 @@ static bool tmpfs_init(void)
 		hash_table_destroy(&dentries);
 		return false;
 	}
-	root->lnkcnt = 1;
+	root->lnkcnt = 0;	/* FS root is not linked */
 	return true;
 }
 
@@ -405,11 +405,12 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	if (dev_handle >= 0) {
 		if (tmpfs_restore(dev_handle))
-			ipc_answer_0(rid, EOK);
+			ipc_answer_3(rid, EOK, root->index, root->size,
+			    root->lnkcnt);
 		else
 			ipc_answer_0(rid, ELIMIT);
 	} else {
-			ipc_answer_0(rid, EOK);
+		ipc_answer_3(rid, EOK, root->index, root->size, root->lnkcnt);
 	}
 }
 
