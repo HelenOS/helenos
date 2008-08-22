@@ -50,7 +50,8 @@ DIRS = \
 	app/tester \
 	app/cli \
 	app/klog \
-	app/init
+	app/init \
+	app/bdsh
 
 ifeq ($(ARCH), amd64)
 	DIRS += srv/pci

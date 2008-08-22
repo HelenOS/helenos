@@ -1,0 +1,8 @@
+{
+	"cat",
+	"The cat command",
+	&cmd_cat,
+	&help_cmd_cat,
+	0
+},
+

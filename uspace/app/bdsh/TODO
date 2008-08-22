@@ -1,0 +1,66 @@
+This is a very brain dead shell. It needs some love, coffee or perhaps beer.
+Currently, you can't even really call it a shell, its more of a CLI that
+offers some shell like creature comforts.
+
+This was written in a hurry to provide some means of testing persistent file
+systems in HelenOS. It does its job, its nowhere near complete but it is
+actively developed. If your reading this, its likely that you're looking for
+some functionality that is not yet present. Prior to filing a bug report,
+please make sure that what you want is not on the list below.
+
+A list of things to do:
+-----------------------
+
+* cmds/modules : ls_scope and rm_scope are basically carbon copies of each
+  other, put this in util.c and make it a shared function.
+
+* rm: add support for recursively removing directories and files therein
+
+* Better sanity checking in modules that take multiple arguments
+
+* Port an editor (vim?)
+
+* Finish cat
+
+* Feed task_spawn absolute paths if path doesn't begin with /
+
+* Some getopt / getopt_long implementation
+
+* Support basic redirection (i.e ls > foo.txt)
+
+* Expand wildcards (i.e. *.txt), don't worry about variables for now
+
+* Basic scripting
+
+* Hash previously found commands
+
+* Improve input, add history / etc (port libedit?)
+
+* Add wrappers for signal, sigaction to make ports to modules easier
+
+* Add 'echo' and 'printf' modules.
+
+Regarding POSIX:
+----------------
+POSIX is a standard for Unix-like operating systems. HelenOS is (mostly) just
+a kernel at this point with a few userspace programs that facilitate testing
+of the kernel and file systems.
+
+HelenOS is not a Unix-like operating system. HelenOS is its own thing, a modern
+microkernel OS and many directions are not yet set.
+
+Please do not e-mail me to point out that modular implementations that resemble
+typical core utilities do not conform to some POSIX standard, these are temporary
+and serve the useful purpose of testing persistent file systems.
+
+Contributing:
+-------------
+If you feel like doing any of the above to-do items, I am echo@echoreply.us. Please
+e-mail me and let me know your working on something so that I do not unwittingly
+duplicate your efforts. You can also e-mail the HelenOS list directly:
+
+HelenOS development mailing list <helenos-devel@lists.modry.cz>
+Subscribe here if you like: http://lists.modry.cz/cgi-bin/listinfo/helenos-devel
+
+Cheers and happy hacking!
+--Tim

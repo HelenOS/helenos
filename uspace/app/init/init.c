@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
 	spawn("/sbin/cli");
 	// FIXME: spawn("/sbin/tester");
 	spawn("/sbin/klog");
+	spawn("/sbin/bdsh");
 	
 	return 0;
 }

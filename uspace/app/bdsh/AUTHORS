@@ -1,0 +1,17 @@
+
+Written by Tim Post <echo@echoreply.us> to serve as a primitive shell
+for HelenOS, or as a template to make a command line interface that
+offers shell like creature comforts.
+
+This program was mostly written from scratch, some existing code was
+used from other various free software projects:
+
+* Based on the HelenOS testing sub-system written by Martin Decky
+
+* cli_strtok() and cli_strtok_r() (util.c) were adapted from the FreeBSD
+  strtok() and strtok_r() functions written by Wes Peters.
+
+* read_line() (input.c) was written by Jiri Svoboda
+
+Individual author copyrights are listed in the headers of each file.
+

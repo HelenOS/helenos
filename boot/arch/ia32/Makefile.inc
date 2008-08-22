@@ -49,7 +49,8 @@ RD_TASKS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/cli/cli \
-	$(USPACEDIR)/app/klog/klog
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/bdsh/bdsh
 
 build: $(BASE)/image.iso
 

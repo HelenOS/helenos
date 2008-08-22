@@ -1,0 +1,8 @@
+{
+	"touch",
+	"The touch command",
+	&cmd_touch,
+	&help_cmd_touch,
+	0
+},
+

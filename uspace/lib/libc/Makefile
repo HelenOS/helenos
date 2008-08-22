@@ -70,6 +70,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
+	generic/getopt.c \
 	generic/libadt/list.o \
 	generic/libadt/hash_table.o \
 	generic/time.c \

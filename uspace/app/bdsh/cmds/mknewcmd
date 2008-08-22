@@ -1,0 +1,347 @@
+#!/bin/sh
+# Copyright (C) 2008 Tim Post - All Rights Reserved
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.
+#
+# Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# Neither the name of the original program's authors nor the names of its
+# contributors may be used to endorse or promote products derived from this
+# software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# Script to generate skeletal files for a new command
+# Uses `getopt', not quite a bash-ism but might be
+# lacking on some legacy systems.
+
+# If your shell does not support eval, shift (x) or
+# here-now documents, sorry :) 
+
+usage()
+{
+	def="$DEFAULT_COMMAND"
+	cat << EOF
+\`$PROGNAME' generates skeletal command files to simplify adding commands
+Usage: $PROGNAME [options] <location>
+Options:
+  -n, --name         Name of the command (default: ${def})
+  -d, --desc         Short (20 30 chars) description of the command
+                     (def: "The $def command")
+  -e, --entry        Entry function of the command (def: cmd_${def})
+  -h, --help-entry   Entry function for command help (def: help_cmd_${def})
+  -a, --alias        Alias (nickname) for this command (def: none)
+  -r, --restrict     Restriction level (interactive, non-interactive, both)
+                     (def: module is both, builtin is interactive only)
+  -t, --type         Type of command (module or builtin) (def: module)
+  -H, --help         This help summary
+  -V, --version      Print $PROGNAME version and exit normally
+
+Notes:
+  You must supply at least the name of the command.
+
+  If you do not specify a location (i.e. modules/foo), the command will be
+  created in modules/command_name or builtins/command_name depending on your
+  selection.
+
+  This script will only create skeletal files and inform you what headers
+  need to be modified to incorporate the command. You will also have to
+  manually update the main Makefile.
+
+  This script is intended only to be a convenience for developers. Example use:
+    $PROGNAME -n foo -d "Foo power" -a bar -r both -t module modules/foo
+
+  The example would generate a modular command named 'foo', which is also
+  reached by typing 'bar' and available in either interactive or noninteractive
+  mode.
+
+  Skeletal files do *not* depend on the autoconf generated "config.h" unless you
+  include it. This may or may not be desirable depending on your use.
+
+Report bugs to $PROGMAINT
+
+EOF
+}
+
+# Convert a string to all uppercase
+toupper()
+{
+	local str="$1"
+
+	echo "${str}" | tr 'a-z' 'A-Z'
+}
+
+# Template stored `here-now' style, this generates all files needed
+# for a new command according to arguments passed.
+generate_code()
+{
+	echo "Creating ${OUTDIR}/${CMDNAME}.def ..."
+	cat << EOF > ${OUTDIR}/${CMDNAME}.def
+{
+	"${CMDNAME}",
+	"${CMDDESC}",
+	&${CMDENTRY},
+	&${HELPENTRY},
+	${CMDRESTRICT}
+},
+
+EOF
+	[ -n "${CMDALIAS}" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}.def
+{
+	"${CMDALIAS}",
+	NULL,
+	&${CMDENTRY},
+	&${HELPENTRY},
+	${CMDRESTRICT}
+},
+
+EOF
+	local defname=$(toupper "${CMDNAME}")
+	echo "Creating ${OUTDIR}/entry.h ..."
+	cat << EOF > ${OUTDIR}/entry.h
+#ifndef ${defname}_ENTRY_H
+#define ${defname}_ENTRY_H
+
+EOF
+	[ "${CMDTYPE}" = "module" ] && cat << EOF >> ${OUTDIR}/entry.h
+/* Entry points for the ${CMDNAME} command */
+extern int * ${CMDENTRY}(char **);
+extern void * ${HELPENTRY}(unsigned int);
+
+#endif /* ${defname}_ENTRY_H */
+
+EOF
+	[ "${CMDTYPE}" = "builtin" ] && cat << EOF >> ${OUTDIR}/entry.h
+/* Pick up cliuser_t */
+#include "scli.h"
+
+/* Entry points for the ${CMDNAME} command */
+extern int * ${CMDENTRY}(char **, cliuser_t *);
+extern void * ${HELPENTRY}(unsigned int);
+
+#endif /* ${defname}_ENTRY_H */
+
+EOF
+	echo "Creating ${OUTDIR}/${CMDNAME}.h ..."
+	cat << EOF > ${OUTDIR}/${CMDNAME}.h
+#ifndef ${defname}_H
+#define ${defname}_H
+
+/* Prototypes for the ${CMDNAME} command, excluding entry points */
+
+
+#endif /* ${defname}_H */
+
+EOF
+	echo "Creating ${OUTDIR}/${CMDNAME}.c ..."
+	cat << EOF > ${OUTDIR}/${CMDNAME}.c
+/* Automatically generated by ${PROGNAME} on ${TIMESTAMP}
+ * This is machine generated output. The author of ${PROGNAME} claims no
+ * copyright over the contents of this file. Where legally permitted, the
+ * contents herein are donated to the public domain.
+ *
+ * You should apply any license and copyright that you wish to this file,
+ * replacing this header in its entirety. */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "config.h"
+#include "util.h"
+#include "errors.h"
+#include "entry.h"
+#include "${CMDNAME}.h"
+#include "cmds.h"
+
+static char *cmdname = "${CMDNAME}";
+
+/* Dispays help for ${CMDNAME} in various levels */
+void * ${HELPENTRY}(unsigned int level)
+{
+	printf("This is the %s help for '%s'.\n",
+		level ? EXT_HELP : SHORT_HELP, cmdname);
+	return CMD_VOID;
+}
+
+EOF
+	[ "${CMDTYPE}" = "module" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}.c
+/* Main entry point for ${CMDNAME}, accepts an array of arguments */
+int * ${CMDENTRY}(char **argv)
+EOF
+	[ "${CMDTYPE}" = "builtin" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}.c
+/* Main entry point for ${CMDNAME}, accepts an array of arguments and a
+ * pointer to the cliuser_t structure */
+int * ${CMDENTRY}(char **argv, cliuser_t *usr)
+EOF
+	cat << EOF >> ${OUTDIR}/${CMDNAME}.c
+{
+	unsigned int argc;
+	unsigned int i;
+
+	/* Count the arguments */
+	for (argc = 0; argv[argc] != NULL; argc ++);
+
+	printf("%s %s\n", TEST_ANNOUNCE, cmdname);
+	printf("%d arguments passed to %s", argc - 1, cmdname);
+
+	if (argc < 2) {
+		printf("\n");
+		return CMD_SUCCESS;
+	}
+
+	printf(":\n");
+	for (i = 1; i < argc; i++)
+		printf("[%d] -> %s\n", i, argv[i]);
+
+	return CMD_SUCCESS;
+}
+
+EOF
+	printf "Done.\n\nYou should now modify %ss/%ss.h and ../Makefile" \
+		"${CMDTYPE}" "${CMDTYPE}"
+	printf " to include your new command.\n"
+	[ -n "$CMDALIAS" ] &&  {
+		printf "\nYou should also modify %ss/%s_aliases.h and " \
+			"${CMDTYPE}" "${CMDTYPE}"
+		printf "add %s as an alias for %s\n" \
+			"${CMDALIAS}" "${CMDNAME}"
+	}
+	printf "\nOnce completed, re-run make\n\n"
+}
+
+# Main program
+
+TIMESTAMP="$(date)"
+PROGNAME=$(basename $0)
+PROGVER="0.0.1"
+PROGMAINT="Tim Post <echo@echoreply.us>"
+DEFAULT_COMMAND="cmdname"
+
+# We need at least one
+[ $# = 0 ] && usage && exit 1;
+
+TEMP=$(getopt -o n:d:e:h:a:r:t:HV \
+--long name:,desc:,entry:,help-entry:,alias:,restrict:,type:,help,version \
+-- "$@") || {
+	echo "Try $PROGNAME --help for help"
+}
+
+eval set -- "$TEMP"
+
+while true; do
+	case "$1" in
+	-n | --name)
+		CMDNAME="$2"
+		shift 2
+		continue
+	;;
+	-d | --desc)
+		CMDDESC="$2"
+		shift 2
+		continue
+	;;
+	-e | --entry)
+		CMDENTRY="$2"
+		shift 2
+		continue
+	;;
+	-h | --help-entry)
+		HELPENTRY="$2"
+		shift 2
+		continue
+	;;
+	-a | --alias)
+		CMDALIAS="$2"
+		shift 2
+		continue
+	;;
+	-r | --restrict)
+		CMDRESTRICT="$2"
+		shift 2
+		continue
+	;;
+	-t | --type)
+		CMDTYPE="$2"
+		shift 2
+		continue
+	;;
+	-H | --help)
+		usage
+		exit 0
+	;;
+	-V | --version)
+		echo "$PROGVER"
+		exit 0
+	;;
+	--)
+		break
+	;;
+	esac
+done
+
+# Pick up a location if one was specified
+eval set -- "$*"
+[ -n "$2" ] && OUTDIR="$2"
+
+# Fill in defaults for whatever was not specified
+[ -n "$CMDNAME" ] || CMDNAME="$DEFAULT_COMMAND"
+[ -n "$CMDDESC" ] || CMDDESC="The $CMDNAME command"
+[ -n "$CMDENTRY" ] || CMDENTRY="cmd_${CMDNAME}"
+[ -n "$HELPENTRY" ] || HELPENTRY="help_cmd_${CMDNAME}"
+[ -n "$CMDTYPE" ] || CMDTYPE="module"
+[ -n "$OUTDIR" ] || OUTDIR="${CMDTYPE}s/${CMDNAME}"
+
+# Builtins typically only need to be available in interactive mode,
+# set the default accordingly.
+[ -n "$CMDRESTRICT" ] || {
+	[ "$CMDTYPE" = "module" ] && CMDRESTRICT="both"
+	[ "$CMDTYPE" = "builtin" ] && CMDRESTRICT="interactive"
+}
+
+# Set the restriction level as the structure expects to see it
+case "$CMDRESTRICT" in
+	0 | both)
+		CMDRESTRICT="0"
+	;;
+	1 | non-interactive)
+		CMDRESTRICT="1"
+	;;
+	-1 | interactive)
+		CMDRESTRICT="-1"
+	;;
+	*)
+		usage
+		exit 1
+	;;
+esac
+
+# Do a little sanity
+[ -d $OUTDIR ] && {
+	echo "$OUTDIR already exists, remove it to proceed."
+	exit 1
+}
+
+mkdir -p ${OUTDIR} >/dev/null 2>&1 || {
+	echo "Could not create ${OUTDIR}, aborting!"
+	exit 1
+}
+
+# Generate the files and inform on how to include them based on options
+generate_code
+
+exit 0
+
