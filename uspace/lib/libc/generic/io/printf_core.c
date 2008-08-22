@@ -94,12 +94,9 @@ static int printf_putstr(const char * str, struct printf_spec *ps)
 	if (str == NULL)
 		return printf_putnchars("(NULL)", 6, ps);
 
-	for (count = 0; str[count] != 0; count++);
+	count = strlen(str);
 
-	if (ps->write((void *) str, count, ps->data) == count)
-		return 0;
-	
-	return EOF;
+	return ps->write((void *) str, count, ps->data);
 }
 
 /** Print one character to output
