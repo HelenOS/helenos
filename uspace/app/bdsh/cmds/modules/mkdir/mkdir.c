@@ -28,8 +28,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* TODO:
- * Implement -p option when some type of getopt is ported */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,55 +35,222 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <getopt.h>
+#include <stdarg.h>
 
 #include "config.h"
 #include "errors.h"
+#include "util.h"
 #include "entry.h"
 #include "mkdir.h"
 #include "cmds.h"
 
+#define MKDIR_VERSION "0.0.1"
+
 static char *cmdname = "mkdir";
 
-/* Dispays help for mkdir in various levels */
+static struct option long_options[] = {
+	{"parents", no_argument, 0, 'p'},
+	{"verbose", no_argument, 0, 'v'},
+	{"mode", required_argument, 0, 'm'},
+	{"help", no_argument, 0, 'h'},
+	{"version", no_argument, 0, 'V'},
+	{"follow", no_argument, 0, 'f'},
+	{0, 0, 0, 0}
+};
+
+
 void * help_cmd_mkdir(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' creates a new directory\n", cmdname);
 	} else {
 		help_cmd_mkdir(HELP_SHORT);
-		printf("  `%s' <directory>\n", cmdname);
+		printf(
+		"Usage:  %s [options] <path>\n"
+		"Options:\n"
+		"  -h, --help       A short option summary\n"
+		"  -V, --version    Print version information and exit\n"
+		"  -p, --parents    Create needed parents for <path>\n"
+		"  -m, --mode       Set permissions to [mode] (UNUSED)\n"
+		"  -v, --verbose    Be extremely noisy about what is happening\n"
+		"  -f, --follow     Go to the new directory once created\n"
+		"Currently, %s is under development, some options don't work.\n",
+		cmdname, cmdname);
 	}
 
 	return CMD_VOID;
 }
 
-/* Main entry point for mkdir, accepts an array of arguments */
+/* This is kind of clunky, but effective for now */
+unsigned int
+create_directory(const char *path, unsigned int p)
+{
+	DIR *dirp;
+	char *tmp = NULL, *buff = NULL, *wdp = NULL;
+	char *dirs[255];
+	unsigned int absolute = 0, i = 0, ret = 0;
+
+	/* Its a good idea to allocate path, plus we (may) need a copy of
+	 * path to tokenize if parents are specified */
+	if (NULL == (tmp = cli_strdup(path))) {
+		cli_error(CL_ENOMEM, "%s: path too big?", cmdname);
+		return 1;
+	}
+
+	if (NULL == (wdp = (char *) malloc(PATH_MAX))) {
+		cli_error(CL_ENOMEM, "%s: could not alloc cwd", cmdname);
+		free(tmp);
+		return 1;
+	}
+
+	/* The only reason for wdp is to be (optionally) verbose */
+	getcwd(wdp, PATH_MAX);
+
+	/* Typical use without specifying the creation of parents */
+	if (p == 0) {
+		dirp = opendir(tmp);
+		if (dirp) {
+			cli_error(CL_EEXISTS, "%s: can not create %s, try -p", cmdname, path);
+			closedir(dirp);
+			goto finit;
+		}
+		if (-1 == (mkdir(tmp, 0))) {
+			cli_error(CL_EFAIL, "%s: could not create %s", cmdname, path);
+			goto finit;
+		}
+	}
+
+	/* Parents need to be created, path has to be broken up */
+
+	/* See if path[0] is a slash, if so we have to remember to append it */
+	if (tmp[0] == '/')
+		absolute = 1;
+
+	/* TODO: Canonify the path prior to tokenizing it, see below */
+	dirs[i] = cli_strtok(tmp, "/");
+	while (dirs[i] && i < 255)
+		dirs[++i] = cli_strtok(NULL, "/");
+
+	if (NULL == dirs[0])
+		return 1;
+
+	if (absolute == 1) {
+		asprintf(&buff, "/%s", dirs[0]);
+		mkdir(buff, 0);
+		chdir(buff);
+		free(buff);
+		getcwd(wdp, PATH_MAX);
+		i = 1;
+	} else {
+		i = 0;
+	}
+
+	while (dirs[i] != NULL) {
+		/* Rewind to start of relative path */
+		while (!strcmp(dirs[i], "..")) {
+			if (0 != (chdir(dirs[i]))) {
+				cli_error(CL_EFAIL, "%s: impossible path: %s",
+					cmdname, path);
+				ret ++;
+				goto finit;
+			}
+			i++;
+		}
+		getcwd(wdp, PATH_MAX);
+		/* Sometimes make or scripts conjoin odd paths. Account for something
+		 * like this: ../../foo/bar/../foo/foofoo/./bar */
+		if (!strcmp(dirs[i], "..") || !strcmp(dirs[i], ".")) {
+			chdir(dirs[i]);
+			getcwd(wdp, PATH_MAX);
+		} else {
+			if (-1 == (mkdir(dirs[i], 0))) {
+				cli_error(CL_EFAIL,
+					"%s: failed at %s/%s", wdp, dirs[i]);
+				goto finit;
+			}
+			if (0 != (chdir(dirs[i]))) {
+				cli_error(CL_EFAIL, "%s: failed creating %s\n",
+					cmdname, dirs[i]);
+				ret ++;
+				break;
+			}
+		}
+		i++;
+	}
+	goto finit;
+
+finit:
+	free(wdp);
+	free(tmp);
+	return ret;
+}
+
 int * cmd_mkdir(char **argv)
 {
-	unsigned int argc;
-	DIR *dirp;
+	unsigned int argc, create_parents = 0, i, ret = 0, follow = 0;
+	unsigned int verbose = 0;
+	int c, opt_ind;
+	char *cwd;
 
-	/* Count the arguments */
 	for (argc = 0; argv[argc] != NULL; argc ++);
 
-	if (argc != 2) {
-		printf("%s - incorrect number of arguments. Try `help %s extended'\n",
+	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);
+		switch (c) {
+		case 'p':
+			create_parents = 1;
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		case 'h':
+			help_cmd_mkdir(HELP_LONG);
+			return CMD_SUCCESS;
+		case 'V':
+			printf("%s\n", MKDIR_VERSION);
+			return CMD_SUCCESS;
+		case 'f':
+			follow = 1;
+			break;
+		case 'm':
+			printf("%s: [W] Ignoring mode %s\n", cmdname, optarg);
+			break;
+		}
+	}
+
+	argc -= optind;
+
+	if (argc < 1) {
+		printf("%s - incorrect number of arguments. Try `%s --help'\n",
 			cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 
-	dirp = opendir(argv[1]);
-	if (dirp) {
-		closedir(dirp);
-		cli_error(CL_EEXISTS, "Can not create directory %s", argv[1]);
+	if (NULL == (cwd = (char *) malloc(PATH_MAX))) {
+		cli_error(CL_ENOMEM, "%s: could not allocate cwd", cmdname);
 		return CMD_FAILURE;
 	}
 
-	if (mkdir(argv[1], 0) != 0) {
-		cli_error(CL_EFAIL, "Could not create %s", argv[1]);
-		return CMD_FAILURE;
+	memset(cwd, 0, sizeof(cwd));
+	getcwd(cwd, PATH_MAX);
+
+	for (i = optind; argv[i] != NULL; i++) {
+		if (verbose == 1)
+			printf("%s: creating %s%s\n",
+				cmdname, argv[i],
+				create_parents ? " (and all parents)" : "");
+		ret += create_directory(argv[i], create_parents);
 	}
 
-	return CMD_SUCCESS;
+	if (follow == 0)
+		chdir(cwd);
+
+	free(cwd);
+
+	if (ret)
+		return CMD_FAILURE;
+	else
+		return CMD_SUCCESS;
 }
 
