@@ -147,21 +147,15 @@ create_directory(const char *path, unsigned int p)
 	}
 
 	while (dirs[i] != NULL) {
-		/* Rewind to start of relative path */
-		while (!strcmp(dirs[i], "..")) {
+		/* Sometimes make or scripts conjoin odd paths. Account for something
+		 * like this: ../../foo/bar/../foo/foofoo/./bar */
+		if (!strcmp(dirs[i], "..") || !strcmp(dirs[i], ".")) {
 			if (0 != (chdir(dirs[i]))) {
 				cli_error(CL_EFAIL, "%s: impossible path: %s",
 					cmdname, path);
 				ret ++;
 				goto finit;
 			}
-			i++;
-		}
-		getcwd(wdp, PATH_MAX);
-		/* Sometimes make or scripts conjoin odd paths. Account for something
-		 * like this: ../../foo/bar/../foo/foofoo/./bar */
-		if (!strcmp(dirs[i], "..") || !strcmp(dirs[i], ".")) {
-			chdir(dirs[i]);
 			getcwd(wdp, PATH_MAX);
 		} else {
 			if (-1 == (mkdir(dirs[i], 0))) {
