@@ -167,6 +167,7 @@ create_directory(const char *path, unsigned int p)
 			if (-1 == (mkdir(dirs[i], 0))) {
 				cli_error(CL_EFAIL,
 					"%s: failed at %s/%s", wdp, dirs[i]);
+				ret ++;
 				goto finit;
 			}
 			if (0 != (chdir(dirs[i]))) {
