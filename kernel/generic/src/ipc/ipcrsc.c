@@ -170,7 +170,6 @@ int phone_alloc(void)
 	int i;
 
 	spinlock_lock(&TASK->lock);
-	
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
 		    atomic_get(&TASK->phones[i].active_calls) == 0)
@@ -183,8 +182,9 @@ int phone_alloc(void)
 	}
 	spinlock_unlock(&TASK->lock);
 
-	if (i >= IPC_MAX_PHONES)
+	if (i == IPC_MAX_PHONES)
 		return -1;
+
 	return i;
 }
 

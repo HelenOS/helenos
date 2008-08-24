@@ -347,8 +347,11 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 	list_remove(&call->link);
 	spinlock_unlock(&oldbox->lock);
 
-	if (mode & IPC_FF_ROUTE_FROM_ME)
+	if (mode & IPC_FF_ROUTE_FROM_ME) {
+		if (!call->data.caller_phone)
+			call->data.caller_phone = call->data.phone;
 		call->data.phone = newphone;
+	}
 
 	return ipc_call(newphone, call);
 }
@@ -392,7 +395,10 @@ restart:
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
 		list_remove(&request->link);
-		atomic_dec(&request->data.phone->active_calls);
+		if (request->data.caller_phone)
+			atomic_dec(&request->data.caller_phone->active_calls);
+		else
+			atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);

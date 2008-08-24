@@ -177,7 +177,6 @@ void kinit(void *arg)
 			 */
 			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
 			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
-
 			
 			if (!ipc_phone_0)
 				ipc_phone_0 = &programs[i].task->answerbox;

@@ -260,6 +260,12 @@ typedef struct answerbox {
 typedef struct {
 	unative_t args[IPC_CALL_LEN];
 	phone_t *phone;
+	/*
+	 * The forward operation can masquerade the caller phone. For those
+	 * cases, we must keep it aside so that the answer is processed
+	 * correctly.
+	 */
+	phone_t *caller_phone;
 } ipc_data_t;
 
 typedef struct {
