@@ -11,20 +11,11 @@ please make sure that what you want is not on the list below.
 A list of things to do:
 -----------------------
 
-* cmds/modules : ls_scope and rm_scope are basically carbon copies of each
-  other, put this in util.c and make it a shared function.
-
 * rm: add support for recursively removing directories and files therein
-
-* Better sanity checking in modules that take multiple arguments
 
 * Port an editor (vim?)
 
-* Finish cat
-
-* Feed task_spawn absolute paths if path doesn't begin with /
-
-* Some getopt / getopt_long implementation
+* Finish cat / cp
 
 * Support basic redirection (i.e ls > foo.txt)
 
