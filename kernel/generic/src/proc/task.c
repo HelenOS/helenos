@@ -71,11 +71,7 @@ avltree_t tasks_tree;
 
 static task_id_t task_counter = 0;
 
-/** Initialize tasks
- *
- * Initialize kernel tasks support.
- *
- */
+/** Initialize kernel tasks support. */
 void task_init(void)
 {
 	TASK = NULL;
@@ -83,7 +79,8 @@ void task_init(void)
 }
 
 /*
- * The idea behind this walker is to remember a single task different from TASK.
+ * The idea behind this walker is to remember a single task different from
+ * TASK.
  */
 static bool task_done_walker(avltree_node_t *node, void *arg)
 {
@@ -98,9 +95,7 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 	return true;	/* continue the walk */
 }
 
-/** Kill all tasks except the current task.
- *
- */
+/** Kill all tasks except the current task. */
 void task_done(void)
 {
 	task_t *t;
@@ -132,14 +127,12 @@ void task_done(void)
 	} while (t != NULL);
 }
 
-/** Create new task
+/** Create new task with no threads.
  *
- * Create new task with no threads.
+ * @param as		Task's address space.
+ * @param name		Symbolic name.
  *
- * @param as Task's address space.
- * @param name Symbolic name.
- *
- * @return New task's structure
+ * @return		New task's structure.
  *
  */
 task_t *task_create(as_t *as, char *name)
@@ -194,7 +187,7 @@ task_t *task_create(as_t *as, char *name)
 
 /** Destroy task.
  *
- * @param t Task to be destroyed.
+ * @param t		Task to be destroyed.
  */
 void task_destroy(task_t *t)
 {
@@ -227,16 +220,16 @@ void task_destroy(task_t *t)
 
 /** Syscall for reading task ID from userspace.
  *
- * @param uspace_task_id Userspace address of 8-byte buffer where to store
- * current task ID.
+ * @param		uspace_task_id userspace address of 8-byte buffer
+ * 			where to store current task ID.
  *
- * @return 0 on success or an error code from @ref errno.h.
+ * @return		Zero on success or an error code from @ref errno.h.
  */
 unative_t sys_task_get_id(task_id_t *uspace_task_id)
 {
 	/*
-	 * No need to acquire lock on TASK because taskid
-	 * remains constant for the lifespan of the task.
+	 * No need to acquire lock on TASK because taskid remains constant for
+	 * the lifespan of the task.
 	 */
 	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid,
 	    sizeof(TASK->taskid));
@@ -244,16 +237,15 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
 
 /** Find task structure corresponding to task ID.
  *
- * The tasks_lock must be already held by the caller of this function
- * and interrupts must be disabled.
+ * The tasks_lock must be already held by the caller of this function and
+ * interrupts must be disabled.
  *
- * @param id Task ID.
+ * @param id		Task ID.
  *
- * @return Task structure address or NULL if there is no such task ID.
+ * @return		Task structure address or NULL if there is no such task
+ * 			ID.
  */
-task_t *task_find_by_id(task_id_t id)
-{
-	avltree_node_t *node;
+task_t *task_find_by_id(task_id_t id) { avltree_node_t *node;
 	
 	node = avltree_search(&tasks_tree, (avltree_key_t) id);
 
@@ -264,11 +256,13 @@ task_t *task_find_by_id(task_id_t id)
 
 /** Get accounting data of given task.
  *
- * Note that task lock of 't' must be already held and
- * interrupts must be already disabled.
+ * Note that task lock of 't' must be already held and interrupts must be
+ * already disabled.
  *
- * @param t Pointer to thread.
+ * @param t		Pointer to thread.
  *
+ * @return		Number of cycles used by the task and all its threads
+ * 			so far.
  */
 uint64_t task_get_accounting(task_t *t)
 {
@@ -300,9 +294,9 @@ uint64_t task_get_accounting(task_t *t)
  * This function is idempotent.
  * It signals all the task's threads to bail it out.
  *
- * @param id ID of the task to be killed.
+ * @param id		ID of the task to be killed.
  *
- * @return 0 on success or an error code from errno.h
+ * @return		Zero on success or an error code from errno.h.
  */
 int task_kill(task_id_t id)
 {
@@ -323,7 +317,7 @@ int task_kill(task_id_t id)
 	spinlock_unlock(&tasks_lock);
 	
 	/*
-	 * Interrupt all threads except ktaskclnp.
+	 * Interrupt all threads.
 	 */
 	spinlock_lock(&ta->lock);
 	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
