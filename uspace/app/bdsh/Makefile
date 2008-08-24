@@ -63,7 +63,6 @@ SUBDIRS = \
 	cmds/modules/cat/ \
 	cmds/modules/touch/ \
 	cmds/modules/ls/ \
-	cmds/modules/mount/ \
 	cmds/builtins/ \
 	cmds/builtins/pwd/ \
 	cmds/builtins/cd/ \
@@ -77,7 +76,6 @@ SOURCES = \
 	cmds/modules/cat/cat.c \
 	cmds/modules/touch/touch.c \
 	cmds/modules/ls/ls.c \
-	cmds/modules/mount/mount.c \
 	cmds/builtins/pwd/pwd.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
