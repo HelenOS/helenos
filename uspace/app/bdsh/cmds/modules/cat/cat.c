@@ -94,6 +94,7 @@ unsigned int cat_file(const char *fname, size_t blen)
 
 	total = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
+
 	if (NULL == (buff = (char *) malloc(blen + 1))) {
 		close(fd);
 		printf("Unable to allocate enough memory to read %s\n",
@@ -170,8 +171,6 @@ int * cmd_cat(char **argv)
 			cmdname, cmdname);
 		return CMD_FAILURE;
 	}
-
-	i = optind;
 
 	if (buffer <= 0)
 		buffer = CAT_DEFAULT_BUFLEN;
