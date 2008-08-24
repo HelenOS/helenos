@@ -195,6 +195,13 @@ static void _ipc_answer_free_call(call_t *call)
 
 	call->flags |= IPC_CALL_ANSWERED;
 
+	if (call->flags & IPC_CALL_FORWARDED) {
+		if (call->data.caller_phone) {
+			/* Demasquerade the caller phone. */
+			call->data.phone = call->data.caller_phone;
+		}
+	}
+
 	spinlock_lock(&callerbox->lock);
 	list_append(&call->link, &callerbox->answers);
 	spinlock_unlock(&callerbox->lock);
@@ -395,10 +402,7 @@ restart:
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
 		list_remove(&request->link);
-		if (request->data.caller_phone)
-			atomic_dec(&request->data.caller_phone->active_calls);
-		else
-			atomic_dec(&request->data.phone->active_calls);
+		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);
