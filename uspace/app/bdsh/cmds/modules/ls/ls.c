@@ -50,7 +50,7 @@
 
 static char *cmdname = "ls";
 
-unsigned int ls_scope(const char *path)
+static unsigned int ls_scope(const char *path)
 {
 	int fd;
 	DIR *dirp;
@@ -70,7 +70,7 @@ unsigned int ls_scope(const char *path)
 	return LS_BOGUS;
 }
 
-void ls_scan_dir(const char *d, DIR *dirp)
+static void ls_scan_dir(const char *d, DIR *dirp)
 {
 	struct dirent *dp;
 	unsigned int scope;
@@ -118,14 +118,14 @@ void ls_scan_dir(const char *d, DIR *dirp)
  *
  * Now we just print basic DOS style lists */
 
-void ls_print_dir(const char *d)
+static void ls_print_dir(const char *d)
 {
 	printf("%-40s\t<DIR>\n", d);
 
 	return;
 }
 
-void ls_print_file(const char *f)
+static void ls_print_file(const char *f)
 {
 	printf("%-40s\n", f);
 

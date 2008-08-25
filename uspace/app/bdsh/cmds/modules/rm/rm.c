@@ -57,7 +57,7 @@ static struct option long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
-unsigned int rm_start(rm_job_t *rm)
+static unsigned int rm_start(rm_job_t *rm)
 {
 	rm->recursive = 0;
 	rm->force = 0;
@@ -85,7 +85,7 @@ unsigned int rm_start(rm_job_t *rm)
 	return 1;
 }
 
-void rm_end(rm_job_t *rm)
+static void rm_end(rm_job_t *rm)
 {
 	if (NULL != rm->nwd)
 		free(rm->nwd);
@@ -99,7 +99,7 @@ void rm_end(rm_job_t *rm)
 	return;
 }
 
-unsigned int rm_recursive(const char *path)
+static unsigned int rm_recursive(const char *path)
 {
 	int rc;
 
@@ -114,7 +114,7 @@ unsigned int rm_recursive(const char *path)
 	return 1;
 }
 
-unsigned int rm_single(const char *path)
+static unsigned int rm_single(const char *path)
 {
 	if (unlink(path)) {
 		cli_error(CL_EFAIL, "rm: could not remove file %s", path);
@@ -123,7 +123,7 @@ unsigned int rm_single(const char *path)
 	return 0;
 }
 
-unsigned int rm_scope(const char *path)
+static unsigned int rm_scope(const char *path)
 {
 	int fd;
 	DIR *dirp;

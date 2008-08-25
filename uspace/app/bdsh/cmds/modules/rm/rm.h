@@ -33,11 +33,11 @@ typedef struct {
 
 
 /* Prototypes for the rm command, excluding entry points */
-extern unsigned int rm_start(rm_job_t *);
-extern void rm_end(rm_job_t *rm);
-extern unsigned int rm_recursive(const char *);
-extern unsigned int rm_single(const char *);
-extern unsigned int rm_scope(const char *);
+static unsigned int rm_start(rm_job_t *);
+static void rm_end(rm_job_t *rm);
+static unsigned int rm_recursive(const char *);
+static unsigned int rm_single(const char *);
+static unsigned int rm_scope(const char *);
 
 #endif /* RM_H */
 

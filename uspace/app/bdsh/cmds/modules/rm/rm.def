@@ -1,6 +1,6 @@
 {
 	"rm",
-	"The rm command",
+	"Remove files and directories",
 	&cmd_rm,
 	&help_cmd_rm,
 	0

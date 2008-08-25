@@ -1,6 +1,6 @@
 {
 	"mkdir",
-	"The mkdir command",
+	"Create new directories",
 	&cmd_mkdir,
 	&help_cmd_mkdir,
 	0

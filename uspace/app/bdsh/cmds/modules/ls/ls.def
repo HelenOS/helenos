@@ -1,6 +1,6 @@
 {
 	"ls",
-	"The ls command",
+	"List files and directories",
 	&cmd_ls,
 	&help_cmd_ls,
 	0

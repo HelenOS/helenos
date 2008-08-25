@@ -49,7 +49,7 @@ extern unsigned int cli_interactive;
 volatile int mod_switch = -1;
 
 /* Just use a pointer here, no need for mod_switch */
-int is_mod_or_builtin(char *cmd)
+static int is_mod_or_builtin(char *cmd)
 {
 	int rc = HELP_IS_RUBBISH;
 

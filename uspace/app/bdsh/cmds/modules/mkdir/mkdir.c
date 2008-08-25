@@ -83,7 +83,7 @@ void * help_cmd_mkdir(unsigned int level)
 }
 
 /* This is kind of clunky, but effective for now */
-unsigned int
+static unsigned int
 create_directory(const char *path, unsigned int p)
 {
 	DIR *dirp;

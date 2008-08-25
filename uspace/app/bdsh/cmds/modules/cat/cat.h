@@ -3,7 +3,7 @@
 
 /* Prototypes for the cat command, excluding entry points */
 
-extern unsigned int cat_file(const char *, size_t);
+static unsigned int cat_file(const char *, size_t);
 
 #endif /* CAT_H */
 

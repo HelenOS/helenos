@@ -81,7 +81,7 @@ void * help_cmd_cat(unsigned int level)
 	return CMD_VOID;
 }
 
-unsigned int cat_file(const char *fname, size_t blen)
+static unsigned int cat_file(const char *fname, size_t blen)
 {
 	int fd, bytes = 0, count = 0, reads = 0;
 	off_t total = 0;
