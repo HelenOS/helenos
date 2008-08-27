@@ -1,0 +1,268 @@
+BDSH - The Brain Dead Shell | Design Documentation
+--------------------------------------------------
+
+Overview:
+=========
+
+BDSH was written as a drop in command line interface for HelenOS to permit
+interactive access to persistent file systems in development. BDSH was
+written from scratch with a very limited userspace standard C library in
+mind. Much like the popular Busybox program, BDSH provides a very limited
+shell with limited common UNIX creature comforts built in.
+
+Porting Busybox (and by extension ASH) would have taken much longer to
+complete, much less make stable due to stark differences between Linux and
+Spartan with regards to IPC, term I/O and process creation. BDSH was written
+and made stable within the space of less than 30 days.
+
+BDSH will eventually evolve and be refined into the HelenOS equivalent
+of Busybox. While BDSH is now very intrinsic to HelenOS, its structure and
+use of strictly lower level functions makes it extremely easy to port.
+
+Design:
+=======
+
+BDSH is made up of three basic components:
+
+ 1. Main i/o, error handling and task management
+ 2. The builtin sub system
+ 3. The module sub system
+
+The main part handles user input, reports errors, spawns external tasks and
+provides a convenient entry point for built-in and modular commands. A simple
+structure, cliuser_t keeps track of the user's vitals, such as their current
+working directory (and eventually uid, home directory, etc if they apply).
+
+This part defines and exposes all functions that are not intrinsic to a
+certain built in or modular command. For instance: string handlers,
+module/builtin search and launch functions, error handlers and other things
+can be found here.
+
+Builtin commands are commands that must have access to cliuser_t, which is
+not exposed to modular commands. For instance, the 'cd' command must update
+the current working directory, which is stored in cliuser_t. As such, the
+entry types for builtin commands are slightly different.
+
+Modular commands do not need anything more than the basic functions that are
+exposed by default. They do not need to modify cliuser_t, they are just self
+contained. A modular command could very easily be made into a stand alone
+program, likewise any stand alone program could easily become a modular
+command.
+
+Both modular and builtin commands share two things in common. Both must have
+two entry points, one to invoke the command and one to invoke a help display
+for the command. Exec (main()) entry points are int * and are expected to
+return a value. Help entry points are void *, no return value is expected.
+
+They are typed as such (from cmds.h):
+
+/* Types for module command entry and help */
+typedef int * (* mod_entry_t)(char **);
+typedef void * (* mod_help_t)(unsigned int);
+
+/* Built-in commands need to be able to modify cliuser_t */
+typedef int * (* builtin_entry_t)(char **, cliuser_t *);
+typedef void * (* builtin_help_t)(unsigned int);
+
+As you can see, both modular and builtin commands expect an array of
+arguments, however bulitins also expect to be pointed to cliuser_t.
+
+Both are defined with the same simple structure:
+
+/* Module structure */
+typedef struct {
+	char *name;         /* Name of the command */
+	char *desc;         /* Description of the command */
+	mod_entry_t entry;  /* Command (exec) entry function */
+	mod_help_t help;    /* Command (help) entry function */
+	int restricted;     /* Restricts to interactive/non-interactive only */
+} module_t;
+
+NOTE: Builtin commands may grow in this respect, that is why they are
+defined separately.
+
+Builtins, of course, would use the builtin_entry_t type. The name of the
+command is used to associate user input to a possible entry point. The
+description is a short (40 - 60 chars) summary of what the command does. Both
+entry points are then defined, and the restrict value is used to determine a
+commands availability.
+
+Restriction levels are easy, a command is either available exclusively within
+interactive mode, exclusively within non-interactive mode or both. If you are
+looking at a prompt, you are in interactive mode. If you issue a command like
+this:
+
+/sbin/bdsh command [arg1] [arg2]
+
+... you are in non interactive mode. This is done when you need to force the
+parent shell to be the one who actually handles the command, or ensure that
+/sbin/ls was used in lieu of the built in 'ls' when in non-interactive mode.
+
+The values are:
+  0 : Unrestricted
+ -1 : Interactive only
+  1 : Non-interactive only
+
+A script to generate skeletal files for a new command is included, it can be
+found in cmds/mknewcmd. To generate a new modular command named 'foo', which
+should also be reachable by typing 'f00', you would issue this command:
+
+./mknewcmd -n foo -a f00 -t module
+
+This generates all needed files and instructs you on how to include your new
+command in the build and make it accessible. By default, the command will be
+unrestricted. Builtin commands can be created by changing 'module' to
+'builtin'
+
+There are more options to mknewcmd, which allow you to specify the
+description, entry point, help entry point, or restriction. By default, names
+just follow the command such as cmd_foo(), help_cmd_foo(), 'The foo command',
+etc. If you want to see the options and explanations in detail, use
+./mknewcmd --help.
+
+When working with commands, keep in mind that only the main and help entry
+points need to be exposed. If commands share the same functions, put them
+where they are exposed to all commands, without the potential oops of those
+functions going away if the command is eliminated in favor of a stand alone
+external program.
+
+The util.c file is a great place to put those types of functions.
+
+Also, be careful with globals, option structures, etc. The compiler will
+generally tell you if you've made a mistake, however declaring:
+
+volatile int foo
+
+... in a command will allow for anything else to pick it up. Sometimes
+this could be desirable .. other times not. When communicating between
+builtins and the main system, try to use cliuser_t. The one exception
+for this is the cli_quit global, since everything may at some point
+need to check it. Modules should only communicate their return value.
+
+Symbolic constants that everything needs should go in the config.h file,
+however this is not the place to define shared macros.
+
+Making a program into a module
+==============================
+
+If you have some neat program that would be useful as a modular command,
+converting it is not very hard. The following steps should get you through
+the process easily (assuming your program is named 'foo'):
+
+1: Use mknewcmd to generate the skeletal files.
+
+2: Change your "usage()" command as shown:
+     -- void usage(...)
+     ++ void * help_cmd_foo(unsigned int level)
+     -- return;
+     ++ retrn CMD_VOID;
+
+     'level' is either 0 or 1, indicating the level of help requested.
+     If the help / usage function currently exits based on how it is
+     called, you'll need to change it.
+
+3: Change the programs "main()" as shown:
+     -- int main(int argc, char **argv)
+     ++ int * cmd_foo(char **argv)
+     -- return 1;
+     ++ return CMD_FAILURE;
+     -- return 0;
+     ++ return CMD_SUCCESS;
+
+     If main() returns an int that is not 1 or 0 (e.g. 127), cast it as
+     such:
+
+     -- return 127;
+     ++ return (int *) 127;
+
+     NOTE: _ONLY_ the main and help entry points need to return int * or
+     void *, respectively. Also take note that argc has changed. The type
+     for entry points may soon change.
+
+     NOTE: If main is void, you'll need to change it and ensure that its
+     expecting an array of arguments, even if they'll never be read or
+     used. I.e.:
+
+     -- void main(void)
+     ++ int * cmd_foo(char **argv)
+
+     Similararly, do not try to return CMD_VOID within the modules main
+     entry point. If somehow you escape the compiler yelling at you, you
+     will surely see pretty blue and yellow fireworks once its reached.
+
+4: Don't expose more than the entry and help points:
+     -- void my_function(int n)
+     ++ static void my_function(int n)
+
+5: Copy/paste to the stub generated by mknewcmd then add your files to the
+   Makefile. Be sure to add any directories that you made to the SUBDIRS so
+   that a 'make clean' will clean them.
+
+Provided that all functions that your calling are available in the
+userspace C library, your program should compile just fine and appear
+as a modular command.
+
+Overcoming userspace libc obstacles
+===================================
+
+A quick glance through the util.c file will reveal functions like
+cli_strdup(), cli_strtok(), cli_strtok_r() and more. Those are functions
+that were missing from userspace libc when BDSH was born. Later, after
+porting what was needed from FBSD/NBSD, the real functions appeared in
+the userspace libc after being tested in their cli_* implementations.
+
+Those functions remain because they guarantee that bdsh will work even
+on systems that lack them. Additionally, more BDSH specific stuff can
+go into them, such as error handling and reporting when malloc() fails.
+
+You will also notice that FILE, fopen() (and all friends), ato*() and
+other common things might be missing. The HelenOS userspace C library is
+still very young, you are sure to run into something that you want/need
+which is missing.
+
+When that happens, you have three options:
+
+1 - Implement it internally in util.c , when its tested and stable send a
+patch to HelenOS asking for your function to be included in libc. This is
+the best option, as you not only improve BDSH .. but HelenOS as a whole.
+
+2 - Work around it. Not everyone can implement / port fopen() and all of
+its friends. Make open(), read(), write() (etc) work if at all possible.
+
+3 - Send an e-mail to the HelenOS development mailing list. Explain why you
+need the function and what its absence is holding up.
+
+If what you need is part of a library that is typically a shared object, try
+to implement a 'mini' version of it. Currently, all userspace applications
+are statically linked. Giving up creature comforts for size while avoiding
+temporary 'band aids' is never frowned upon.
+
+Most of all, don't get discouraged .. ask for some help prior to giving up
+if you just can't accomplish something with the limited means provided.
+
+Contributing
+============
+
+I will take any well written patch that sanely improves or expands BDSH. Send
+me a patch against the trunk revision, or, if you like a Mercurial repository
+is also maintained at http://echoreply.us/hg/bdsh.hg and kept in sync with
+the trunk.
+
+Please be sure to follow the simple coding standards outlined at
+http://www.helenos.eu/cstyle (mostly just regarding formatting), test your
+changes and make sure your patch applies cleanly against the latest revision.
+
+All patches submitted must be your original code, or a derivative work of
+something licensed under the same 3 clause BSD license as BDSH. See LICENSE
+for more information.
+
+When sending patches, you agree that your work will be published under the
+same 3 clause BSD license as BDSH itself. Failure to ensure that anything
+you used is not under the same or less restrictive license could cause major
+issues for BDSH in the future .. please be sure. Also, please don't forget
+to add yourself in the AUTHORS file, as I am horrible about keeping such
+things up to date.
+
+
+
+
