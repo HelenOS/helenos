@@ -29,11 +29,15 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
 TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/sparc64
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64
 
 GCC_CFLAGS += -m64 -mcpu=ultrasparc 
 SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float

@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/sparc64/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/fibril.S \
 		arch/$(ARCH)/src/tls.c
