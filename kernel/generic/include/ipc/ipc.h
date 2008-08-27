@@ -293,7 +293,7 @@ extern void ipc_init(void);
 extern call_t * ipc_wait_for_call(answerbox_t *, uint32_t, int);
 extern void ipc_answer(answerbox_t *, call_t *);
 extern int ipc_call(phone_t *, call_t *);
-extern void ipc_call_sync(phone_t *, call_t *);
+extern int ipc_call_sync(phone_t *, call_t *);
 extern void ipc_phone_init(phone_t *);
 extern void ipc_phone_connect(phone_t *, answerbox_t *);
 extern void ipc_call_free(call_t *);

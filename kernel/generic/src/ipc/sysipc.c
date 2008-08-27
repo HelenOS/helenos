@@ -442,7 +442,9 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	IPC_SET_ARG5(call.data, 0);
 
 	if (!(res = request_preprocess(&call))) {
-		ipc_call_sync(phone, &call);
+		rc = ipc_call_sync(phone, &call);
+		if (rc != EOK)
+			return rc;
 		process_answer(&call);
 	} else {
 		IPC_SET_RETVAL(call.data, res);
@@ -480,7 +482,9 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
 	if (!(res = request_preprocess(&call))) {
-		ipc_call_sync(phone, &call);
+		rc = ipc_call_sync(phone, &call);
+		if (rc != EOK)
+			return rc;
 		process_answer(&call);
 	} else 
 		IPC_SET_RETVAL(call.data, res);

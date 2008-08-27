@@ -171,8 +171,10 @@ void ipc_phone_init(phone_t *phone)
  *
  * @param phone		Destination kernel phone structure.
  * @param request	Call structure with request.
+ *
+ * @return		EOK on success or EINTR if the sleep was interrupted.
  */
-void ipc_call_sync(phone_t *phone, call_t *request)
+int ipc_call_sync(phone_t *phone, call_t *request)
 {
 	answerbox_t sync_box; 
 
@@ -182,7 +184,10 @@ void ipc_call_sync(phone_t *phone, call_t *request)
 	request->callerbox = &sync_box;
 
 	ipc_call(phone, request);
-	ipc_wait_for_call(&sync_box, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+	if (!ipc_wait_for_call(&sync_box, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_INTERRUPTIBLE))
+		return EINTR;
+	return EOK;
 }
 
 /** Answer a message which was not dispatched and is not listed in any queue.
