@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = amd64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/amd64/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/fibril.S \

@@ -32,10 +32,14 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = /usr/local/arm/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc

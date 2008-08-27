@@ -32,10 +32,14 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc

@@ -29,11 +29,15 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = elf32-i386
 TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/i686
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686
 
 DEFS += -DMACHINE=$(MACHINE) -D__32_BITS__
 

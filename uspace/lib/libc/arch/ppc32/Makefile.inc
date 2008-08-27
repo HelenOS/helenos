@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
 		arch/$(ARCH)/src/fibril.S \

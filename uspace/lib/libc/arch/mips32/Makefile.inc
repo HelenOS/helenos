@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = /usr/local/mipsel/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
 CFLAGS += -mips3
 
 -include ../../Makefile.config

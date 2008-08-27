@@ -15,6 +15,10 @@ check_error() {
     fi
 }
 
+if [ -z "${CROSS_PREFIX}" ] ; then
+    CROSS_PREFIX="/usr/local"
+fi
+
 BINUTILS_VERSION="2.18"
 GCC_VERSION="4.3.1"
 
@@ -29,7 +33,7 @@ GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 PLATFORM="mips"
 WORKDIR=`pwd`
 TARGET="${PLATFORM}-sgi-irix5"
-PREFIX="/usr/local/${PLATFORM}"
+PREFIX="${CROSS_PREFIX}/${PLATFORM}"
 BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 OBJDIR="${WORKDIR}/gcc-obj"

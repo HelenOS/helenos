@@ -32,6 +32,10 @@ include ../../../Makefile.config
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 ifeq ($(IMAGE),binary)
 	LD_IN = binary
 endif
@@ -41,7 +45,7 @@ endif
 BFD_NAME = elf32-tradlittlemips
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = /usr/local/mipsel/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc

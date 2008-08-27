@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = mips-sgi-irix5
-TOOLCHAIN_DIR = /usr/local/mips/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
 CFLAGS += -mips3 
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \

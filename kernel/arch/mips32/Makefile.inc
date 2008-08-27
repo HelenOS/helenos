@@ -29,9 +29,13 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = /usr/local/mipsel
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
 
 KERNEL_LOAD_ADDRESS = 0x80100000
 INIT_ADDRESS = 0x81000000
@@ -65,7 +69,7 @@ ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-bigmips
 	BFD = ecoff-bigmips
 	TARGET = mips-sgi-irix5
-	TOOLCHAIN_DIR = /usr/local/mips/bin
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
 	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
 	INIT_ADDRESS = 0x81800000
 endif

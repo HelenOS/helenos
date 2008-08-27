@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/i686/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686/bin
 
 ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
 		arch/$(ARCH)/src/fibril.S \

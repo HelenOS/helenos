@@ -29,11 +29,15 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
 TARGET = amd64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/amd64
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables

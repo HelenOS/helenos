@@ -29,11 +29,15 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 BFD = binary
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = /usr/local/arm
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm
 
 KERNEL_LOAD_ADDRESS = 0x80200000
 

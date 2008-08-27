@@ -29,11 +29,15 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf64-powerpc
 BFD_ARCH = powerpc:common64
 BFD = binary
 TARGET = ppc64-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ppc64
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc64
 
 GCC_CFLAGS += -mcpu=powerpc64 -msoft-float -m64
 AFLAGS += -a64

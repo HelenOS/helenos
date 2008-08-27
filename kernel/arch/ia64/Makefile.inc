@@ -29,10 +29,14 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
 TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ia64
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64
 
 INIT0_ADDRESS = 0xe000000004404000
 INIT0_SIZE = 0x100000

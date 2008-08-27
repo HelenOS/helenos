@@ -29,8 +29,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = /usr/local/ia64/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
 CFLAGS += -fno-unwind-tables -DMALLOC_ALIGNMENT_16
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS += 

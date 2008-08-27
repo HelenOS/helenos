@@ -30,8 +30,12 @@
 ## Toolchain configuration
 #
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = /usr/local/arm/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
 CFLAGS += -ffixed-r9 -mtp=soft 
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS += 
