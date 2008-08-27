@@ -46,7 +46,7 @@ extern volatile unsigned int cli_interactive;
 /* More than a macro than anything */
 void cli_restricted(char *cmd)
 {
-	cli_verbose("%s is not available in %s mode\n", cmd,
+	printf("%s is not available in %s mode\n", cmd,
 		cli_interactive ? "interactive" : "non-interactive");
 
 	return;

@@ -42,11 +42,9 @@
 /* See scli.h */
 static cliuser_t usr;
 
-/* Modified by the 'quit' module, which is compiled before this */
-extern unsigned int cli_quit;
-
-/* Globals that are modified during start-up that modules/builtins should
- * be aware of. */
+/* Globals that are modified during start-up that modules/builtins
+ * should be aware of. */
+volatile unsigned int cli_quit = 0;
 volatile unsigned int cli_interactive = 1;
 volatile unsigned int cli_verbocity = 1;
 
@@ -54,8 +52,13 @@ volatile unsigned int cli_verbocity = 1;
  * (change to your liking in configure.ac and re-run autoconf) */
 const char *progname = PACKAGE_NAME;
 
+/* These are not exposed, even to builtins */
+static int cli_init(cliuser_t *usr);
+static void cli_finit(cliuser_t *usr);
+
 /* (re)allocates memory to store the current working directory, gets
- * and updates the current working directory, formats the prompt string */
+ * and updates the current working directory, formats the prompt
+ * string */
 unsigned int cli_set_prompt(cliuser_t *usr)
 {
 	usr->prompt = (char *) realloc(usr->prompt, PATH_MAX);
@@ -77,15 +80,16 @@ unsigned int cli_set_prompt(cliuser_t *usr)
 	if (NULL == usr->cwd)
 		snprintf(usr->cwd, PATH_MAX, "(unknown)");
 
-	snprintf(usr->prompt,
-			PATH_MAX,
-			"%s # ",
-			usr->cwd);
+	if (1 < cli_psprintf(&usr->prompt, "%s # ", usr->cwd)) {
+		cli_error(cli_errno, "Failed to set prompt");
+		return 1;
+	}
 
 	return 0;
 }
 
-int cli_init(cliuser_t *usr)
+/* Constructor */
+static int cli_init(cliuser_t *usr)
 {
 	usr->line = (char *) NULL;
 	usr->name = "root";
@@ -98,7 +102,7 @@ int cli_init(cliuser_t *usr)
 }
 
 /* Destructor */
-void cli_finit(cliuser_t *usr)
+static void cli_finit(cliuser_t *usr)
 {
 	if (NULL != usr->line)
 		free(usr->line);

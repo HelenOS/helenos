@@ -13,8 +13,11 @@ static char *cl_errors[] = {
 	"Method Not Supported",
 	"Bad command or file name",
 	"Entry already exists",
+	"Object too large",
 	NULL
 };
+
+static char *err2str(int);
 
 #endif
 

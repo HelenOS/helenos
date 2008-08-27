@@ -38,18 +38,19 @@
 #include "errors.h"
 #include "errstr.h"
 
+volatile int cli_errno = CL_EOK;
+extern volatile unsigned int cli_quit;
+
 /* Error printing, translation and handling functions */
 
-volatile int cli_lasterr = 0;
-extern volatile unsigned int cli_verbocity;
 
 /* Look up errno in cl_errors and return the corresponding string.
  * Return NULL if not found */
-char *err2str(int errno)
+static char *err2str(int err)
 {
 
-	if (NULL != cl_errors[errno])
-		return cl_errors[errno];
+	if (NULL != cl_errors[err])
+		return cl_errors[err];
 
 	return (char *)NULL;
 }
@@ -58,37 +59,28 @@ char *err2str(int errno)
  * its corresponding human readable string. If errno > 0, raise the
  * cli_quit int that tells the main program loop to exit immediately */
 
-void cli_error(int errno, const char *fmt, ...)
+void cli_error(int err, const char *fmt, ...)
 {
 	va_list vargs;
 	va_start(vargs, fmt);
 	vprintf(fmt, vargs);
 	va_end(vargs);
 
-	if (NULL != err2str(errno))
-		printf(" (%s)\n", err2str(errno));
+	if (NULL != err2str(err))
+		printf(" (%s)\n", err2str(err));
 	else
-		printf(" (Unknown Error %d)\n", errno);
+		printf(" (Unknown Error %d)\n", err);
 
-	if (errno < 0)
-		exit(EXIT_FAILURE);
+	/* If fatal, raise cli_quit so that we try to exit
+	 * gracefully. This will break the main loop and
+	 * invoke the destructor */
+	if (err == CL_EFATAL)
+		cli_quit = 1;
 
-}
-
-/* Just a smart printf(), print the string only if cli_verbocity is high */
-void cli_verbose(const char *fmt, ...)
-{
-	if (cli_verbocity) {
-		va_list vargs;
-
-		printf("[*] ");
-		va_start(vargs, fmt);
-		vprintf(fmt, vargs);
-		va_end(vargs);
-		printf("\n");
-	}
 	return;
+
 }
+
 
 
 

@@ -4,13 +4,18 @@ allows passing the user structure to them for ease of modifications.
 
 Examples of what should be a built-in and not a module would be:
 
-cd     (the cwd needs to be updated)
-prompt (the prompt needs to be updated)
-enable (the euid needs to be updated)
+cd     (cliuser_t->cwd needs to be updated)
+
+In the future, more user preferences will be set via built-in commands,
+such as the formatting of the prompt string (HelenOS doesn't yet have
+an environment, much less PS*, even if it did we'd likely do it a little
+differently).
 
 .... etc.
 
-Anything that does _not_ need to write to this structure should be included
-as a module, not a built in.
+Anything that does _not_ need to use this structure should be included
+as a module, not a built in. If you want to include a new command, there
+is a 99% chance that you want it to be a module.
 
-For now, a skeleton directory of stuff that will exist lives here.
+
+

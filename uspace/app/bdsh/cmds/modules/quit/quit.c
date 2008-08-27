@@ -35,9 +35,8 @@
 #include "cmds.h"
 
 static char *cmdname = "quit";
-unsigned int cli_quit = 0;
 
-extern volatile int cli_lasterror;
+extern volatile unsigned int cli_quit;
 extern const char *progname;
 
 void * help_cmd_quit(unsigned int level)

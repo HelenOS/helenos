@@ -14,7 +14,5 @@ typedef struct {
 } cliuser_t;
 
 extern unsigned int cli_set_prompt(cliuser_t *usr);
-extern int cli_init(cliuser_t *usr);
-extern void cli_finit(cliuser_t *usr);
 
 #endif

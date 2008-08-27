@@ -52,6 +52,8 @@
 #include "errors.h"
 #include "util.h"
 
+extern volatile int cli_errno;
+
 /* some platforms do not have strdup, implement it here.
  * Returns a pointer to an allocated string or NULL on failure */
 char * cli_strdup(const char *s1)
@@ -59,9 +61,12 @@ char * cli_strdup(const char *s1)
 	size_t len = strlen(s1) + 1;
 	void *ret = malloc(len);
 
-	if (ret == NULL)
+	if (ret == NULL) {
+		cli_errno = CL_ENOMEM;
 		return (char *) NULL;
+	}
 
+	cli_errno = CL_EOK;
 	return (char *) memcpy(ret, s1, len);
 }
 
@@ -79,54 +84,108 @@ int cli_redup(char **s1, const char *s2)
 
 	*s1 = realloc(*s1, len);
 
-	if (*s1 == NULL)
+	if (*s1 == NULL) {
+		cli_errno = CL_ENOMEM;
 		return -1;
+	}
 
 	memset(*s1, 0, sizeof(*s1));
 	memcpy(*s1, s2, len);
+	cli_errno = CL_EOK;
 	return (int) len;
 }
 
-/* An asprintf() for concantenating paths. Allocates the system PATH_MAX value,
- * expands the formatted string and re-sizes the block s1 points to accordingly.
+/* An asprintf() for formatting paths, similar to asprintf() but ensures
+ * the returned allocated string is <= PATH_MAX. On failure, an attempt
+ * is made to return the original string (if not null) unmodified.
  *
- * Returns the length of the new s1 on success, -1 on failure. On failure, an
- * attempt is made to return s1 unmodified for sanity, in this case 0 is returned.
- * to indicate that s1 was not modified.
+ * Returns: Length of the new string on success, 0 if the string was handed
+ * back unmodified, -1 on failure. On failure, cli_errno is set.
  *
- * FIXME: ugly hack to get around asprintf(), if you use this, CHECK ITS VALUE! */
+ * We do not use POSIX_PATH_MAX, as it is typically much smaller than the
+ * PATH_MAX defined by the kernel.
+ *
+ * Use this like:
+ * if (1 > cli_psprintf(&char, "%s/%s", foo, bar)) {
+ *   cli_error(cli_errno, "Failed to format path");
+ *   stop_what_your_doing_as_your_out_of_memory();
+ * }
+ */
+
 int cli_psprintf(char **s1, const char *fmt, ...)
 {
 	va_list ap;
 	size_t needed, base = PATH_MAX + 1;
+	int skipped = 0;
+	char *orig = NULL;
 	char *tmp = (char *) malloc(base);
 
-	if (NULL == tmp)
+	/* Don't even touch s1, not enough memory */
+	if (NULL == tmp) {
+		cli_errno = CL_ENOMEM;
 		return -1;
+	}
 
-	char *orig = *s1;
+	/* If re-allocating s1, save a copy in case we fail */
+	if (NULL != *s1)
+		orig = cli_strdup(*s1);
 
+	/* Print the string to tmp so we can determine the size that
+	 * we actually need */
 	memset(tmp, 0, sizeof(tmp));
 	va_start(ap, fmt);
-	vsnprintf(tmp, base, fmt, ap);
+	/* vsnprintf will return the # of bytes not written */
+	skipped = vsnprintf(tmp, base, fmt, ap);
 	va_end(ap);
+
+	/* realloc/alloc s1 to be just the size that we need */
 	needed = strlen(tmp) + 1;
 	*s1 = realloc(*s1, needed);
+
 	if (NULL == *s1) {
+		/* No string lived here previously, or we failed to
+		 * make a copy of it, either way there's nothing we
+		 * can do. */
+		if (NULL == *orig) {
+			cli_errno = CL_ENOMEM;
+			return -1;
+		}
+		/* We can't even allocate enough size to restore the
+		 * saved copy, just give up */
 		*s1 = realloc(*s1, strlen(orig) + 1);
 		if (NULL == *s1) {
 			free(tmp);
+			free(orig);
+			cli_errno = CL_ENOMEM;
 			return -1;
 		}
+		/* Give the string back as we found it */
 		memset(*s1, 0, sizeof(*s1));
 		memcpy(*s1, orig, strlen(orig) + 1);
 		free(tmp);
+		free(orig);
+		cli_errno = CL_ENOMEM;
 		return 0;
 	}
+
+	/* Ok, great, we have enough room */
 	memset(*s1, 0, sizeof(*s1));
 	memcpy(*s1, tmp, needed);
 	free(tmp);
 
+	/* Free tmp only if s1 was reallocated instead of allocated */
+	if (NULL != orig)
+		free(orig);
+
+	if (skipped) {
+		/* s1 was bigger than PATH_MAX when expanded, however part
+		 * of the string was printed. Tell the caller not to use it */
+		cli_errno = CL_ETOOBIG;
+		return -1;
+	}
+
+	/* Success! */
+	cli_errno = CL_EOK;
 	return (int) needed;
 }
 	
@@ -136,8 +195,10 @@ char * cli_strtok_r(char *s, const char *delim, char **last)
 	char *spanp, *tok;
 	int c, sc;
 
-	if (s == NULL && (s = *last) == NULL)
+	if (s == NULL && (s = *last) == NULL) {
+		cli_errno = CL_EFAIL;
 		return (NULL);
+	}
 
 cont:
 	c = *s++;

@@ -65,7 +65,7 @@ unsigned int try_access(const char *f)
  * cmd as it was presented */
 char *find_command(char *cmd)
 {
-	char *path_orig, *path_tok;
+	char *path_tok;
 	char *path[PATH_MAX];
 	int n = 0, i = 0;
 	size_t x = strlen(cmd) + 2;
@@ -76,8 +76,8 @@ char *find_command(char *cmd)
 	if (-1 != try_access(cmd)) {
 		return (char *) cmd;
 	}
-	path_orig = PATH;
-	path_tok = cli_strdup(path_orig);
+
+	path_tok = cli_strdup(PATH);
 
 	/* Extract the PATH env to a path[] array */
 	path[n] = cli_strtok(path_tok, PATH_DELIM);

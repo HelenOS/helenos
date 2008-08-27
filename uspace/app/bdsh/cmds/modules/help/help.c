@@ -40,7 +40,6 @@
 
 static char *cmdname = "help";
 extern const char *progname;
-extern unsigned int cli_interactive;
 
 #define HELP_IS_MODULE   1
 #define HELP_IS_BUILTIN  0
@@ -126,10 +125,8 @@ int *cmd_help(char *argv[])
 		}
 	}
 
-	printf("%sAvailable commands are:\n", cli_interactive ? "\n  " : "");
-	if (cli_interactive)
-		printf(
-			"  ------------------------------------------------------------\n");
+	printf("\n  Available commands are:\n");
+	printf("  ------------------------------------------------------------\n");
 
 	/* First, show a list of built in commands that are available in this mode */
 	for (cmd = builtins; cmd->name != NULL; cmd++, i++) {
@@ -155,11 +152,8 @@ int *cmd_help(char *argv[])
 		}
 	}
 
-	/* Provide  a little more information and inform them of history / line
-	 * editing features if they are present */
-	if (cli_interactive)
-		printf("\n  Try %s %s for more information on how `%s' works.\n\n",
-			cmdname, cmdname, cmdname);
+	printf("\n  Try %s %s for more information on how `%s' works.\n\n",
+		cmdname, cmdname, cmdname);
 
 	return CMD_SUCCESS;
 }

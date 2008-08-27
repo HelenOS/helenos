@@ -1,8 +1,15 @@
-Modules are commands or full programs (anything can be made into a module that can return
-int type) should go here. Note, modules do not update the structures containing user info
-such as the working directory, euid, etc.
+Modules are commands or full programs (anything can be made into a module
+that can return int type) should go here. Note, modules do not (can not)
+update or read cliuser_t.
 
-Stuff that needs to write to the user structures contained in scli.h should be made as
-built-in commands, not modules.
+Stuff that needs to write to the user structures contained in scli.h should 
+be made as built-in commands, not modules, but there are very few times when
+you would want to do that.
+
+See the README file in the bdsh root directory for a quick overview of how to
+write a new command, or convert an existig stand-alone program into a module
+for BDSH.
+
+
 
 
