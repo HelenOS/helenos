@@ -48,7 +48,7 @@ static char *cmdname = "cat";
 
 static char *cat_oops = "That option is not yet supported\n";
 
-static struct option long_options[] = {
+static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
 	{ "head", required_argument, 0, 'H' },

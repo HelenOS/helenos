@@ -49,7 +49,7 @@
 
 static char *cmdname = "mkdir";
 
-static struct option long_options[] = {
+static struct option const long_options[] = {
 	{"parents", no_argument, 0, 'p'},
 	{"verbose", no_argument, 0, 'v'},
 	{"mode", required_argument, 0, 'm'},

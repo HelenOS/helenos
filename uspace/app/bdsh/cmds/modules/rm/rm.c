@@ -48,7 +48,7 @@ static char *cmdname = "rm";
 
 static rm_job_t rm;
 
-static struct option long_options[] = {
+static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
 	{ "recursive", no_argument, 0, 'r' },
