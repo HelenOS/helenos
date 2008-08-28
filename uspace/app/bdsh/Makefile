@@ -65,8 +65,7 @@ SUBDIRS = \
 	cmds/modules/ls/ \
 	cmds/modules/pwd/ \
 	cmds/builtins/ \
-	cmds/builtins/cd/ \
-	lib/
+	cmds/builtins/cd/
 
 SOURCES = \
 	cmds/modules/help/help.c \
@@ -86,7 +85,7 @@ SOURCES = \
 	exec.c \
 	scli.c
 
-CFLAGS += -I. -Icmds/ -Icmds/builtins -Icmds/modules -Ilib -Ilib/ustr
+CFLAGS += -I. -Icmds/ -Icmds/builtins -Icmds/modules
 
 OBJECTS = $(SOURCES:.c=.o)
 
