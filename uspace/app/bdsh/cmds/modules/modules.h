@@ -31,14 +31,14 @@
  * are loaded based on what libraries exist on the system. */
 
 module_t modules[] = {
-#include "help/help.def"
-#include "quit/quit.def"
-#include "mkdir/mkdir.def"
-#include "rm/rm.def"
-#include "cat/cat.def"
-#include "touch/touch.def"
-#include "ls/ls.def"
-#include "pwd/pwd.def"
+#include "help/help_def.h"
+#include "quit/quit_def.h"
+#include "mkdir/mkdir_def.h"
+#include "rm/rm_def.h"
+#include "cat/cat_def.h"
+#include "touch/touch_def.h"
+#include "ls/ls_def.h"
+#include "pwd/pwd_def.h"
 	{NULL, NULL, NULL, NULL}
 };
 

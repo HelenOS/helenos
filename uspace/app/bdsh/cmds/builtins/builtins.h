@@ -6,7 +6,7 @@
 #include "cd/entry.h"
 
 builtin_t builtins[] = {
-#include "cd/cd.def"
+#include "cd/cd_def.h"
 	{NULL, NULL, NULL, NULL}
 };
 
