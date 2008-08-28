@@ -48,8 +48,11 @@
 /* FIXME: Just have find_command() return an allocated string */
 char *found;
 
+static char *find_command(char *);
+static unsigned int try_access(const char *);
+
 /* work-around for access() */
-unsigned int try_access(const char *f)
+static unsigned int try_access(const char *f)
 {
 	int fd;
 
@@ -63,7 +66,7 @@ unsigned int try_access(const char *f)
 
 /* Returns the full path of "cmd" if cmd is found, else just hand back
  * cmd as it was presented */
-char *find_command(char *cmd)
+static char *find_command(char *cmd)
 {
 	char *path_tok;
 	char *path[PATH_MAX];

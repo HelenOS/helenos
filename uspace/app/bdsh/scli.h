@@ -10,7 +10,7 @@ typedef struct {
 	char *line;
 	char *cwd;
 	char *prompt;
-	uint64_t lasterr;
+	int lasterr;
 } cliuser_t;
 
 extern unsigned int cli_set_prompt(cliuser_t *usr);

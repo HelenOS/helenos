@@ -43,8 +43,12 @@
 
 extern volatile unsigned int cli_interactive;
 
+/* Not exposed in input.h */
+static void cli_restricted(char *);
+static void read_line(char *, int);
+
 /* More than a macro than anything */
-void cli_restricted(char *cmd)
+static void cli_restricted(char *cmd)
 {
 	printf("%s is not available in %s mode\n", cmd,
 		cli_interactive ? "interactive" : "non-interactive");
@@ -81,17 +85,22 @@ int tok_input(cliuser_t *usr)
 		goto finit;
 	}
 
-	/* Check what kind of command argv[0] might be, TODO: move this to
-	 * a function */
+	/* Its a builtin command */
 	if ((i = (is_builtin(cmd[0]))) > -1) {
+		/* Its not available in this mode, see what try_exec() thinks */
 		if (builtin_is_restricted(i)) {
 				rc = try_exec(cmd[0], cmd);
 				if (rc)
+					/* No external matching it could be found, tell the
+					 * user that the command does exist, but is not
+					 * available in this mode. */
 					cli_restricted(cmd[0]);
 				goto finit;
 		}
+		/* Its a builtin, its available, run it */
 		rc = run_builtin(i, cmd, usr);
 		goto finit;
+	/* We repeat the same dance for modules */
 	} else if ((i = (is_module(cmd[0]))) > -1) {
 		if (module_is_restricted(i)) {
 			rc = try_exec(cmd[0], cmd);
@@ -102,6 +111,9 @@ int tok_input(cliuser_t *usr)
 		rc = run_module(i, cmd);
 		goto finit;
 	} else {
+		/* Its not a module or builtin, restricted or otherwise.
+		 * See what try_exec() thinks of it and just pass its return
+		 * value back to the caller */
 		rc = try_exec(cmd[0], cmd);
 		goto finit;
 	}
@@ -118,7 +130,7 @@ finit:
 }
 
 /* Borrowed from Jiri Svoboda's 'cli' uspace app */
-void read_line(char *buffer, int n)
+static void read_line(char *buffer, int n)
 {
 	char c;
 	int chars;
@@ -144,6 +156,9 @@ void read_line(char *buffer, int n)
 	buffer[chars] = '\0';
 }
 
+/* TODO:
+ * Implement something like editline() / readline(), if even
+ * just for command history and making arrows work. */
 void get_input(cliuser_t *usr)
 {
 	char line[INPUT_MAX];
