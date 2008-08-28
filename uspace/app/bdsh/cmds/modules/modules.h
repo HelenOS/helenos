@@ -24,6 +24,7 @@
 #include "cat/entry.h"
 #include "touch/entry.h"
 #include "ls/entry.h"
+#include "pwd/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
  * point, help entry point, etc. You can use config.h to control what modules
@@ -37,6 +38,7 @@ module_t modules[] = {
 #include "cat/cat.def"
 #include "touch/touch.def"
 #include "ls/ls.def"
+#include "pwd/pwd.def"
 	{NULL, NULL, NULL, NULL}
 };
 

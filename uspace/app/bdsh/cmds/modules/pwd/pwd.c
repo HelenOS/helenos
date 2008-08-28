@@ -44,8 +44,8 @@ void * help_cmd_pwd(unsigned int level)
 	printf("`%s' prints your current working directory.\n", cmdname);
 	return CMD_VOID;
 }
-	
-int * cmd_pwd(char *argv[], cliuser_t *usr)
+
+int * cmd_pwd(char *argv[])
 {
 	char *buff;
 
