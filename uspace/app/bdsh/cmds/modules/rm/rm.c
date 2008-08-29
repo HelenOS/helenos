@@ -173,7 +173,8 @@ int * cmd_rm(char **argv)
 	size_t len;
 	char *buff = NULL;
 
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
+
 	if (argc < 2) {
 		cli_error(CL_EFAIL,
 			"%s: insufficient arguments. Try %s --help", cmdname, cmdname);

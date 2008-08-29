@@ -62,7 +62,7 @@ int * cmd_cd(char **argv, cliuser_t *usr)
 {
 	int argc, rc = 0;
 
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
 	/* We don't yet play nice with whitespace, a getopt implementation should
 	 * protect "quoted\ destination" as a single argument. Its not our job to

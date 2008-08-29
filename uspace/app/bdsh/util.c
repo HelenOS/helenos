@@ -237,3 +237,13 @@ char * cli_strtok(char *s, const char *delim)
 
 	return (cli_strtok_r(s, delim, &last));
 }
+
+/* Count and return the # of elements in an array */
+unsigned int cli_count_args(char **args)
+{
+	unsigned int i;
+
+	for (i=0; args[i] != NULL; i++);
+	return i;
+}
+

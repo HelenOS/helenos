@@ -188,7 +188,7 @@ int * cmd_mkdir(char **argv)
 	int c, opt_ind;
 	char *cwd;
 
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
 		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);

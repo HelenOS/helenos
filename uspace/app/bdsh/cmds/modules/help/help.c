@@ -31,12 +31,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "config.h"
 #include "entry.h"
 #include "help.h"
 #include "cmds.h"
 #include "modules.h"
 #include "builtins.h"
 #include "errors.h"
+#include "util.h"
 
 static char *cmdname = "help";
 extern const char *progname;
@@ -95,7 +98,7 @@ int *cmd_help(char *argv[])
 	int argc;
 	int level = HELP_SHORT;
 
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
 	if (argc > 3) {
 		printf("\nToo many arguments to `%s', try:\n", cmdname);

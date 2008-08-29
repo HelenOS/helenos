@@ -70,8 +70,7 @@ int * cmd_touch(char **argv)
 
 	DIR *dirp;
 
-	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
 	if (argc == 1) {
 		printf("%s - incorrect number of arguments. Try `help %s extended'\n",

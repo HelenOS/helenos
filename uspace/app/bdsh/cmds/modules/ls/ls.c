@@ -152,8 +152,7 @@ int * cmd_ls(char **argv)
 	char *buff;
 	DIR *dirp;
 
-	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
 	buff = (char *) malloc(PATH_MAX);
 	if (NULL == buff) {
