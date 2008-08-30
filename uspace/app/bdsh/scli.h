@@ -13,6 +13,4 @@ typedef struct {
 	int lasterr;
 } cliuser_t;
 
-extern unsigned int cli_set_prompt(cliuser_t *usr);
-
 #endif

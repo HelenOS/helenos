@@ -247,3 +247,38 @@ unsigned int cli_count_args(char **args)
 	return i;
 }
 
+/* (re)allocates memory to store the current working directory, gets
+ * and updates the current working directory, formats the prompt
+ * string */
+unsigned int cli_set_prompt(cliuser_t *usr)
+{
+	usr->prompt = (char *) realloc(usr->prompt, PATH_MAX);
+	if (NULL == usr->prompt) {
+		cli_error(CL_ENOMEM, "Can not allocate prompt");
+		cli_errno = CL_ENOMEM;
+		return 1;
+	}
+	memset(usr->prompt, 0, sizeof(usr->prompt));
+
+	usr->cwd = (char *) realloc(usr->cwd, PATH_MAX);
+	if (NULL == usr->cwd) {
+		cli_error(CL_ENOMEM, "Can not allocate cwd");
+		cli_errno = CL_ENOMEM;
+		return 1;
+	}
+	memset(usr->cwd, 0, sizeof(usr->cwd));
+
+	usr->cwd = getcwd(usr->cwd, PATH_MAX - 1);
+
+	if (NULL == usr->cwd)
+		snprintf(usr->cwd, PATH_MAX, "(unknown)");
+
+	if (1 < cli_psprintf(&usr->prompt, "%s # ", usr->cwd)) {
+		cli_error(cli_errno, "Failed to set prompt");
+		return 1;
+	}
+
+	return 0;
+}
+
+

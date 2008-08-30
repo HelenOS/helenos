@@ -86,6 +86,7 @@ int * cmd_cd(char **argv, cliuser_t *usr)
 	rc = chdir(argv[1]);
 
 	if (rc == 0) {
+		cli_set_prompt(usr);
 		return CMD_SUCCESS;
 	} else {
 		switch (rc) {
