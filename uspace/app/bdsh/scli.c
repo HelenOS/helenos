@@ -83,7 +83,6 @@ static void cli_finit(cliuser_t *usr)
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	int i = 0;
 
 	if (cli_init(&usr))
 		exit(EXIT_FAILURE);
@@ -97,7 +96,6 @@ int main(int argc, char *argv[])
 			ret = tok_input(&usr);
 			usr.lasterr = ret;
 		}
-		i++;
 	}
 	goto finit;
 
