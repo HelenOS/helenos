@@ -108,13 +108,13 @@ static inline void atomic_lock_arch(atomic_t *val)
 #endif
 		"mov %0, %1\n"
 		"testq %1, %1\n"
-		"jnz 0b\n"       /* Lightweight looping on locked spinlock */
+		"jnz 0b\n"       /* lightweight looping on locked spinlock */
 		
 		"incq %1\n"      /* now use the atomic operation */
 		"xchgq %0, %1\n"
 		"testq %1, %1\n"
 		"jnz 0b\n"
-                : "+m" (val->count), "=r"(tmp)
+                : "+m" (val->count), "=&r" (tmp)
 	);
 	/*
 	 * Prevent critical section code from bleeding out this way up.
