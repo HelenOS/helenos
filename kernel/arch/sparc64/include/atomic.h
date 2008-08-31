@@ -37,6 +37,7 @@
 
 #include <arch/barrier.h>
 #include <arch/types.h>
+#include <preemption.h>
 
 /** Atomic add operation.
  *
@@ -56,7 +57,8 @@ static inline long atomic_add(atomic_t *val, int i)
 
 		a = *((uint64_t *) x);
 		b = a + i;
-		asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *)x)), "+r" (b) : "r" (a));
+		asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *)x)),
+		    "+r" (b) : "r" (a));
 	} while (a != b);
 
 	return a;
@@ -97,7 +99,8 @@ static inline long test_and_set(atomic_t *val)
 	uint64_t v = 1;
 	volatile uintptr_t x = (uint64_t) &val->count;
 
-	asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *) x)), "+r" (v) : "r" (0));
+	asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *) x)),
+	    "+r" (v) : "r" (0));
 
 	return v;
 }
@@ -108,6 +111,8 @@ static inline void atomic_lock_arch(atomic_t *val)
 	uint64_t tmp2 = 0;
 
 	volatile uintptr_t x = (uint64_t) &val->count;
+
+	preemption_disable();
 
 	asm volatile (
 	"0:\n"
