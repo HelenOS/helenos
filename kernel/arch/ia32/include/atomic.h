@@ -113,7 +113,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 		"xchgl %0, %1\n"	
 		"testl %1, %1\n"
 		"jnz 0b\n"
-                : "+m" (val->count), "=r"(tmp)
+                : "+m" (val->count), "=&r"(tmp)
 	);
 	/*
 	 * Prevent critical section code from bleeding out this way up.
