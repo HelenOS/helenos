@@ -78,7 +78,6 @@ mem_backend_t anon_backend = {
 int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	uintptr_t frame;
-	bool dirty = false;
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -106,7 +105,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			 */
 			for (i = 0; i < leaf->keys; i++) {
 				if (leaf->key[i] ==
-				    ALIGN_DOWN(addr, PAGE_SIZE)) {
+				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base) {
 					allocate = false;
 					break;
 				}
@@ -114,7 +113,6 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			if (allocate) {
 				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
-				dirty = true;
 				
 				/*
 				 * Insert the address of the newly allocated
@@ -145,7 +143,6 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 */
 		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
 		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
-		dirty = true;
 	}
 	
 	/*

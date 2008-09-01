@@ -118,7 +118,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			 */
 
 			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == page) {
+				if (leaf->key[i] == page - area->base) {
 					found = true;
 					break;
 				}
