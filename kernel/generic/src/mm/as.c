@@ -870,6 +870,11 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	tlb_shootdown_finalize();
 
 	/*
+	 * Set the new flags.
+	 */
+	area->flags = flags;
+
+	/*
 	 * Map pages back in with new flags. This step is kept separate
 	 * so that there's no instant when the memory area could be
 	 * accesed with both the old and the new flags at once.
