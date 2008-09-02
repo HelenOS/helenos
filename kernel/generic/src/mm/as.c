@@ -111,11 +111,10 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
-static int area_flags_to_page_flags(int aflags);
-static as_area_t *find_area_and_lock(as_t *as, uintptr_t va);
-static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
-    as_area_t *avoid_area);
-static void sh_info_remove_reference(share_info_t *sh_info);
+static int area_flags_to_page_flags(int);
+static as_area_t *find_area_and_lock(as_t *, uintptr_t);
+static bool check_area_conflicts(as_t *, uintptr_t, size_t, as_area_t *);
+static void sh_info_remove_reference(share_info_t *);
 
 static int as_constructor(void *obj, int flags)
 {
@@ -153,7 +152,8 @@ void as_init(void)
 
 /** Create address space.
  *
- * @param flags Flags that influence way in wich the address space is created.
+ * @param flags		Flags that influence the way in wich the address space
+ * 			is created.
  */
 as_t *as_create(int flags)
 {
@@ -186,6 +186,8 @@ as_t *as_create(int flags)
  * zero), the address space can be destroyed.
  *
  * We know that we don't hold any spinlock.
+ *
+ * @param as		Address space to be destroyed.
  */
 void as_destroy(as_t *as)
 {
@@ -257,19 +259,19 @@ retry:
  *
  * The created address space area is added to the target address space.
  *
- * @param as Target address space.
- * @param flags Flags of the area memory.
- * @param size Size of area.
- * @param base Base address of area.
- * @param attrs Attributes of the area.
- * @param backend Address space area backend. NULL if no backend is used.
- * @param backend_data NULL or a pointer to an array holding two void *.
+ * @param as		Target address space.
+ * @param flags		Flags of the area memory.
+ * @param size		Size of area.
+ * @param base		Base address of area.
+ * @param attrs		Attributes of the area.
+ * @param backend	Address space area backend. NULL if no backend is used.
+ * @param backend_data	NULL or a pointer to an array holding two void *.
  *
- * @return Address space area on success or NULL on failure.
+ * @return		Address space area on success or NULL on failure.
  */
 as_area_t *
 as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
-	       mem_backend_t *backend, mem_backend_data_t *backend_data)
+    mem_backend_t *backend, mem_backend_data_t *backend_data)
 {
 	ipl_t ipl;
 	as_area_t *a;
@@ -321,13 +323,14 @@ as_area_create(as_t *as, int flags, size_t size, uintptr_t base, int attrs,
 
 /** Find address space area and change it.
  *
- * @param as Address space.
- * @param address Virtual address belonging to the area to be changed. Must be
- *     page-aligned.
- * @param size New size of the virtual memory block starting at address. 
- * @param flags Flags influencing the remap operation. Currently unused.
+ * @param as		Address space.
+ * @param address	Virtual address belonging to the area to be changed.
+ * 			Must be page-aligned.
+ * @param size		New size of the virtual memory block starting at
+ * 			address. 
+ * @param flags		Flags influencing the remap operation. Currently unused.
  *
- * @return Zero on success or a value from @ref errno.h otherwise.
+ * @return		Zero on success or a value from @ref errno.h otherwise.
  */ 
 int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 {
@@ -435,15 +438,18 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		
 					cond = false;	/* we are almost done */
 					i = (start_free - b) >> PAGE_WIDTH;
-					if (!used_space_remove(area, start_free, c - i))
-						panic("Could not remove used space.\n");
+					if (!used_space_remove(area, start_free,
+					    c - i))
+						panic("Could not remove used "
+						    "space.\n");
 				} else {
 					/*
 					 * The interval of used space can be
 					 * completely removed.
 					 */
 					if (!used_space_remove(area, b, c))
-						panic("Could not remove used space.\n");
+						panic("Could not remove used "
+						    "space.\n");
 				}
 			
 				for (; i < c; i++) {
@@ -505,10 +511,10 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 
 /** Destroy address space area.
  *
- * @param as Address space.
- * @param address Address withing the area to be deleted.
+ * @param as		Address space.
+ * @param address	Address within the area to be deleted.
  *
- * @return Zero on success or a value from @ref errno.h on failure. 
+ * @return		Zero on success or a value from @ref errno.h on failure.
  */
 int as_area_destroy(as_t *as, uintptr_t address)
 {
@@ -605,18 +611,19 @@ int as_area_destroy(as_t *as, uintptr_t address)
  * sh_info of the source area. The process of duplicating the
  * mapping is done through the backend share function.
  * 
- * @param src_as Pointer to source address space.
- * @param src_base Base address of the source address space area.
- * @param acc_size Expected size of the source area.
- * @param dst_as Pointer to destination address space.
- * @param dst_base Target base address.
+ * @param src_as	Pointer to source address space.
+ * @param src_base	Base address of the source address space area.
+ * @param acc_size	Expected size of the source area.
+ * @param dst_as	Pointer to destination address space.
+ * @param dst_base	Target base address.
  * @param dst_flags_mask Destination address space area flags mask.
  *
- * @return Zero on success or ENOENT if there is no such task or if there is no
- * such address space area, EPERM if there was a problem in accepting the area
- * or ENOMEM if there was a problem in allocating destination address space
- * area. ENOTSUP is returned if the address space area backend does not support
- * sharing.
+ * @return		Zero on success or ENOENT if there is no such task or if
+ * 			there is no such address space area, EPERM if there was
+ * 			a problem in accepting the area or ENOMEM if there was a
+ * 			problem in allocating destination address space area.
+ * 			ENOTSUP is returned if the address space area backend
+ * 			does not support sharing.
  */
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
     as_t *dst_as, uintptr_t dst_base, int dst_flags_mask)
@@ -735,10 +742,11 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
  *
  * The address space area must be locked prior to this call.
  *
- * @param area Address space area.
- * @param access Access mode.
+ * @param area		Address space area.
+ * @param access	Access mode.
  *
- * @return False if access violates area's permissions, true otherwise.
+ * @return		False if access violates area's permissions, true
+ * 			otherwise.
  */
 bool as_area_check_access(as_area_t *area, pf_access_t access)
 {
@@ -754,18 +762,18 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 	return true;
 }
 
-/** Change adress area flags.
+/** Change adress space area flags.
  *
  * The idea is to have the same data, but with a different access mode.
  * This is needed e.g. for writing code into memory and then executing it.
  * In order for this to work properly, this may copy the data
  * into private anonymous memory (unless it's already there).
  *
- * @param as Address space.
- * @param flags Flags of the area memory.
- * @param address Address withing the area to be changed.
+ * @param as		Address space.
+ * @param flags		Flags of the area memory.
+ * @param address	Address withing the area to be changed.
  *
- * @return Zero on success or a value from @ref errno.h on failure. 
+ * @return		Zero on success or a value from @ref errno.h on failure.
  */
 int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 {
@@ -876,8 +884,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 
 	/*
 	 * Map pages back in with new flags. This step is kept separate
-	 * so that there's no instant when the memory area could be
-	 * accesed with both the old and the new flags at once.
+	 * so that the memory area could not be accesed with both the old and
+	 * the new flags at once.
 	 */
 	frame_idx = 0;
 
@@ -915,19 +923,20 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 
 /** Handle page fault within the current address space.
  *
- * This is the high-level page fault handler. It decides
- * whether the page fault can be resolved by any backend
- * and if so, it invokes the backend to resolve the page
- * fault.
+ * This is the high-level page fault handler. It decides whether the page fault
+ * can be resolved by any backend and if so, it invokes the backend to resolve
+ * the page fault.
  *
  * Interrupts are assumed disabled.
  *
- * @param page Faulting page.
- * @param access Access mode that caused the fault (i.e. read/write/exec).
- * @param istate Pointer to interrupted state.
+ * @param page		Faulting page.
+ * @param access	Access mode that caused the page fault (i.e.
+ * 			read/write/exec).
+ * @param istate	Pointer to the interrupted state.
  *
- * @return AS_PF_FAULT on page fault, AS_PF_OK on success or AS_PF_DEFER if the
- * 	   fault was caused by copy_to_uspace() or copy_from_uspace().
+ * @return		AS_PF_FAULT on page fault, AS_PF_OK on success or
+ * 			AS_PF_DEFER if the fault was caused by copy_to_uspace()
+ * 			or copy_from_uspace().
  */
 int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 {
@@ -973,9 +982,8 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	page_table_lock(AS, false);
 	
 	/*
-	 * To avoid race condition between two page faults
-	 * on the same address, we need to make sure
-	 * the mapping has not been already inserted.
+	 * To avoid race condition between two page faults on the same address,
+	 * we need to make sure the mapping has not been already inserted.
 	 */
 	if ((pte = page_mapping_find(AS, page))) {
 		if (PTE_PRESENT(pte)) {
@@ -1029,8 +1037,8 @@ page_fault:
  *
  * When this function is enetered, no spinlocks may be held.
  *
- * @param old Old address space or NULL.
- * @param new New address space.
+ * @param old		Old address space or NULL.
+ * @param new		New address space.
  */
 void as_switch(as_t *old_as, as_t *new_as)
 {
@@ -1101,9 +1109,9 @@ retry:
 
 /** Convert address space area flags to page flags.
  *
- * @param aflags Flags of some address space area.
+ * @param aflags	Flags of some address space area.
  *
- * @return Flags to be passed to page_mapping_insert().
+ * @return		Flags to be passed to page_mapping_insert().
  */
 int area_flags_to_page_flags(int aflags)
 {
@@ -1131,9 +1139,9 @@ int area_flags_to_page_flags(int aflags)
  * The address space area must be locked.
  * Interrupts must be disabled.
  *
- * @param a Address space area.
+ * @param a		Address space area.
  *
- * @return Flags to be used in page_mapping_insert().
+ * @return		Flags to be used in page_mapping_insert().
  */
 int as_area_get_flags(as_area_t *a)
 {
@@ -1142,12 +1150,13 @@ int as_area_get_flags(as_area_t *a)
 
 /** Create page table.
  *
- * Depending on architecture, create either address space
- * private or global page table.
+ * Depending on architecture, create either address space private or global page
+ * table.
  *
- * @param flags Flags saying whether the page table is for kernel address space.
+ * @param flags		Flags saying whether the page table is for the kernel
+ * 			address space.
  *
- * @return First entry of the page table.
+ * @return		First entry of the page table.
  */
 pte_t *page_table_create(int flags)
 {
@@ -1161,7 +1170,7 @@ pte_t *page_table_create(int flags)
  *
  * Destroy page table in architecture specific way.
  *
- * @param page_table Physical address of PTL0.
+ * @param page_table	Physical address of PTL0.
  */
 void page_table_destroy(pte_t *page_table)
 {
@@ -1180,8 +1189,8 @@ void page_table_destroy(pte_t *page_table)
  * prior to this call. Address space can be locked prior to this
  * call in which case the lock argument is false.
  *
- * @param as Address space.
- * @param lock If false, do not attempt to lock as->lock.
+ * @param as		Address space.
+ * @param lock		If false, do not attempt to lock as->lock.
  */
 void page_table_lock(as_t *as, bool lock)
 {
@@ -1193,8 +1202,8 @@ void page_table_lock(as_t *as, bool lock)
 
 /** Unlock page table.
  *
- * @param as Address space.
- * @param unlock If false, do not attempt to unlock as->lock.
+ * @param as		Address space.
+ * @param unlock	If false, do not attempt to unlock as->lock.
  */
 void page_table_unlock(as_t *as, bool unlock)
 {
@@ -1209,11 +1218,11 @@ void page_table_unlock(as_t *as, bool unlock)
  *
  * The address space must be locked and interrupts must be disabled.
  *
- * @param as Address space.
- * @param va Virtual address.
+ * @param as		Address space.
+ * @param va		Virtual address.
  *
- * @return Locked address space area containing va on success or NULL on
- *     failure.
+ * @return		Locked address space area containing va on success or
+ * 			NULL on failure.
  */
 as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
@@ -1265,15 +1274,15 @@ as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
  *
  * The address space must be locked and interrupts must be disabled.
  *
- * @param as Address space.
- * @param va Starting virtual address of the area being tested.
- * @param size Size of the area being tested.
- * @param avoid_area Do not touch this area. 
+ * @param as		Address space.
+ * @param va		Starting virtual address of the area being tested.
+ * @param size		Size of the area being tested.
+ * @param avoid_area	Do not touch this area. 
  *
- * @return True if there is no conflict, false otherwise.
+ * @return		True if there is no conflict, false otherwise.
  */
-bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
-			  as_area_t *avoid_area)
+bool
+check_area_conflicts(as_t *as, uintptr_t va, size_t size, as_area_t *avoid_area)
 {
 	as_area_t *a;
 	btree_node_t *leaf, *node;
@@ -1362,7 +1371,7 @@ size_t as_area_get_size(uintptr_t base)
 
 	ipl = interrupts_disable();
 	src_area = find_area_and_lock(AS, base);
-	if (src_area){
+	if (src_area) {
 		size = src_area->pages * PAGE_SIZE;
 		mutex_unlock(&src_area->lock);
 	} else {
@@ -1376,11 +1385,11 @@ size_t as_area_get_size(uintptr_t base)
  *
  * The address space area must be already locked.
  *
- * @param a Address space area.
- * @param page First page to be marked.
- * @param count Number of page to be marked.
+ * @param a		Address space area.
+ * @param page		First page to be marked.
+ * @param count		Number of page to be marked.
  *
- * @return 0 on failure and 1 on success.
+ * @return		Zero on failure and non-zero on success.
  */
 int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 {
@@ -1650,19 +1659,19 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		}
 	}
 
-	panic("Inconsistency detected while adding %" PRIc " pages of used space at "
-	    "%p.\n", count, page);
+	panic("Inconsistency detected while adding %" PRIc " pages of used "
+	    "space at %p.\n", count, page);
 }
 
 /** Mark portion of address space area as unused.
  *
  * The address space area must be already locked.
  *
- * @param a Address space area.
- * @param page First page to be marked.
- * @param count Number of page to be marked.
+ * @param a		Address space area.
+ * @param page		First page to be marked.
+ * @param count		Number of page to be marked.
  *
- * @return 0 on failure and 1 on success.
+ * @return		Zero on failure and non-zero on success.
  */
 int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 {
@@ -1829,15 +1838,15 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	}
 
 error:
-	panic("Inconsistency detected while removing %" PRIc " pages of used space "
-	    "from %p.\n", count, page);
+	panic("Inconsistency detected while removing %" PRIc " pages of used "
+	    "space from %p.\n", count, page);
 }
 
 /** Remove reference to address space area share info.
  *
  * If the reference count drops to 0, the sh_info is deallocated.
  *
- * @param sh_info Pointer to address space area share info.
+ * @param sh_info	Pointer to address space area share info.
  */
 void sh_info_remove_reference(share_info_t *sh_info)
 {
@@ -1906,7 +1915,7 @@ unative_t sys_as_area_destroy(uintptr_t address)
 
 /** Print out information about address space.
  *
- * @param as Address space.
+ * @param as		Address space.
  */
 void as_print(as_t *as)
 {
@@ -1928,9 +1937,9 @@ void as_print(as_t *as)
 			as_area_t *area = node->value[i];
 		
 			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%" PRIc " (%p - %p)\n",
-			    area, area->base, area->pages, area->base,
-			    area->base + FRAMES2SIZE(area->pages));
+			printf("as_area: %p, base=%p, pages=%" PRIc
+			    " (%p - %p)\n", area, area->base, area->pages,
+			    area->base, area->base + FRAMES2SIZE(area->pages));
 			mutex_unlock(&area->lock);
 		}
 	}
