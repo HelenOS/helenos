@@ -116,15 +116,11 @@ void bootstrap(void)
 		halt();
 	}
 	
-	if (!ofw_screen(&bootinfo.screen)) {
-		printf("Error: unable to get screen properties, halting.\n");
-		halt();
-	}
+	if (!ofw_screen(&bootinfo.screen))
+		printf("Warning: unable to get screen properties.\n");
 	
-	if (!ofw_keyboard(&bootinfo.keyboard)) {
-		printf("Error: unable to get keyboard properties, halting.\n");
-		halt();
-	}
+	if (!ofw_keyboard(&bootinfo.keyboard))
+		printf("Warning: unable to get keyboard properties.\n");
 	
 	printf("\nDevice statistics\n");
 	printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
