@@ -59,6 +59,9 @@ typedef struct {
 	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
 
+extern uint32_t silo_ramdisk_image;
+extern uint32_t silo_ramdisk_size;
+
 extern bootinfo_t bootinfo;
 
 extern void start(void);

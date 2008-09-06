@@ -57,7 +57,9 @@ char *release = RELEASE;
 /** Print version information. */
 static void version_print(void)
 {
-	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
+	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\n"
+	    "Copyright (c) 2006 HelenOS project\n",
+	    release, revision, timestamp);
 }
 
 void bootstrap(void)
@@ -80,10 +82,20 @@ void bootstrap(void)
 		printf("Error: no memory detected, halting.\n");
 		halt();
 	}
+
+	/*
+	 * SILO for some reason adds 0x400000 and subtracts
+	 * bootinfo.physmem_start to/from silo_ramdisk_image.
+	 * We just need plain physical address so we fix it up.
+	 */
+	if (silo_ramdisk_image) {
+		silo_ramdisk_image += bootinfo.physmem_start;
+		silo_ramdisk_image -= 0x400000;
+	}
 	
 	printf("\nSystem info\n");
 	printf(" memory: %dM starting at %P\n",
-		bootinfo.memmap.total >> 20, bootinfo.physmem_start);
+	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
 
 	printf("\nMemory statistics\n");
 	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);

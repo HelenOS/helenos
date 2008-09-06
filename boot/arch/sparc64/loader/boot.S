@@ -53,6 +53,15 @@ start:
 	.ascii "HdrS"
 	.word 0
 	.half 0
+	.half 0
+	.half 0
+	.half 0
+.global silo_ramdisk_image
+silo_ramdisk_image:
+	.word 0
+.global silo_ramdisk_size
+silo_ramdisk_size:
+	.word 0
 
 .align 8
 1:	
