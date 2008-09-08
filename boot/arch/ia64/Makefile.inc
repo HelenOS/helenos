@@ -28,23 +28,6 @@
 
 #ifeq ($(MACHINE),ski)
 
-
-
-#VMAXLMA_SRC = tools/ia64/vmaxlma.c
-#build: $(BASE)/kernel.bin
-#echo Building SKI
-#$(BASE)/kernel.bin: $(KERNELDIR)/kernel.bin vmaxlma
-#	cp $(KERNELDIR)/kernel.bin $(BASE)/kernel.bin
-#	./vmaxlma $(BASE)/kernel.bin
-#vmaxlma: $(VMAXLMA_SRC)
-#	$(CC) $(VMAXLMA_SRC) -o $@
-#clean:
-#	-rm -f $(BASE)/kernel.bin vmaxlma
-
-
-#else
-
-
 build: $(BASE)/image.boot
 
 $(BASE)/image.boot: depend arch/$(ARCH)/loader/image.boot
@@ -60,5 +43,5 @@ clean: generic_clean
 	make -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
 	-rm -f $(BASE)/image.boot
 
-
 #endif
+

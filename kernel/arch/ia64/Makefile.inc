@@ -38,9 +38,6 @@ BFD_ARCH = ia64-elf64
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64
 
-INIT0_ADDRESS = 0xe000000004404000
-INIT0_SIZE = 0x100000
-
 CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
@@ -48,8 +45,7 @@ ICC_CFLAGS += $(CMN1)
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
-DEFS += -D__64_BITS__ -DINIT0_ADDRESS=$(INIT0_ADDRESS) -DINIT0_SIZE=$(INIT0_SIZE) -D$(MACHINE)
-
+DEFS += -D__64_BITS__ -D$(MACHINE)
 
 ## Compile with page hash table support.
 #
@@ -100,6 +96,5 @@ ifeq ($(MACHINE),i460GX)
 	CONFIG_I8042 = y
 	DEFS += -DI460GX -DCONFIG_I8042
 	BFD = binary
-
 endif
 
