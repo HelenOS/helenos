@@ -592,8 +592,9 @@ void ipc_print_task(task_id_t taskid)
 	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun 
-			" A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
-		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call, call->sender->taskid,
+		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
+		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
+		    call->sender->taskid,
 		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
@@ -606,8 +607,9 @@ void ipc_print_task(task_id_t taskid)
 	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun
-			" A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
-		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call, call->sender->taskid,
+		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
+		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
+		    call->sender->taskid,
 		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
@@ -615,11 +617,12 @@ void ipc_print_task(task_id_t taskid)
 	}
 	/* Print answerbox - calls */
 	printf("ABOX - ANSWERS:\n");
-	for (tmp = task->answerbox.answers.next; tmp != &task->answerbox.answers;
+	for (tmp = task->answerbox.answers.next;
+	    tmp != &task->answerbox.answers;
 	    tmp = tmp->next) {
 		call = list_get_instance(tmp, call_t, link);
 		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
-			" A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", 
+		    " A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n",
 		    call, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
