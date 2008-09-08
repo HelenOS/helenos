@@ -38,12 +38,10 @@ TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
 
 KERNEL_LOAD_ADDRESS = 0x80100000
-INIT_ADDRESS = 0x81000000
-INIT_SIZE = 262144
 
 GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
-DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE) -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} -DINIT_ADDRESS=${INIT_ADDRESS} -DINIT_SIZE=${INIT_SIZE}
+DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE) -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} 
 
 ## Compile with hierarchical page tables support.
 #
@@ -71,7 +69,6 @@ ifeq ($(MACHINE),bgxemul)
 	TARGET = mips-sgi-irix5
 	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
 	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
-	INIT_ADDRESS = 0x81800000
 endif
 ifeq ($(MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions
