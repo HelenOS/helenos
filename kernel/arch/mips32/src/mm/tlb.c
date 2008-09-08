@@ -47,15 +47,14 @@
 #include <align.h>
 #include <interrupt.h>
 
-static void tlb_refill_fail(istate_t *istate);
-static void tlb_invalid_fail(istate_t *istate);
-static void tlb_modified_fail(istate_t *istate);
+static void tlb_refill_fail(istate_t *);
+static void tlb_invalid_fail(istate_t *);
+static void tlb_modified_fail(istate_t *);
 
-static pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, int *pfrc);
+static pte_t *find_mapping_and_check(uintptr_t, int, istate_t *, int *);
 
-/** Initialize TLB
+/** Initialize TLB.
  *
- * Initialize TLB.
  * Invalidate all entries and mark wired entries.
  */
 void tlb_arch_init(void)
@@ -81,11 +80,9 @@ void tlb_arch_init(void)
 	cp0_wired_write(TLB_WIRED);
 }
 
-/** Process TLB Refill Exception
+/** Process TLB Refill Exception.
  *
- * Process TLB Refill Exception.
- *
- * @param istate Interrupted register context.
+ * @param istate	Interrupted register context.
  */
 void tlb_refill(istate_t *istate)
 {
@@ -128,13 +125,14 @@ void tlb_refill(istate_t *istate)
 	pte->a = 1;
 
 	tlb_prepare_entry_hi(&hi, asid, badvaddr);
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable,
+	    pte->pfn);
 
 	/*
 	 * New entry is to be inserted into TLB
 	 */
 	cp0_entry_hi_write(hi.value);
-	if ((badvaddr/PAGE_SIZE) % 2 == 0) {
+	if ((badvaddr / PAGE_SIZE) % 2 == 0) {
 		cp0_entry_lo0_write(lo.value);
 		cp0_entry_lo1_write(0);
 	}
@@ -153,11 +151,9 @@ fail:
 	tlb_refill_fail(istate);
 }
 
-/** Process TLB Invalid Exception
+/** Process TLB Invalid Exception.
  *
- * Process TLB Invalid Exception.
- *
- * @param istate Interrupted register context.
+ * @param istate	Interrupted register context.
  */
 void tlb_invalid(istate_t *istate)
 {
@@ -217,12 +213,13 @@ void tlb_invalid(istate_t *istate)
 	 */
 	pte->a = 1;
 
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->d, pte->cacheable,
+	    pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
 	 */
-	if ((badvaddr/PAGE_SIZE) % 2 == 0)
+	if ((badvaddr / PAGE_SIZE) % 2 == 0)
 		cp0_entry_lo0_write(lo.value);
 	else
 		cp0_entry_lo1_write(lo.value);
@@ -237,11 +234,9 @@ fail:
 	tlb_invalid_fail(istate);
 }
 
-/** Process TLB Modified Exception
+/** Process TLB Modified Exception.
  *
- * Process TLB Modified Exception.
- *
- * @param istate Interrupted register context.
+ * @param istate	Interrupted register context.
  */
 void tlb_modified(istate_t *istate)
 {
@@ -308,12 +303,13 @@ void tlb_modified(istate_t *istate)
 	pte->a = 1;
 	pte->d = 1;
 
-	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->cacheable, pte->pfn);
+	tlb_prepare_entry_lo(&lo, pte->g, pte->p, pte->w, pte->cacheable,
+	    pte->pfn);
 
 	/*
 	 * The entry is to be updated in TLB.
 	 */
-	if ((badvaddr/PAGE_SIZE) % 2 == 0)
+	if ((badvaddr / PAGE_SIZE) % 2 == 0)
 		cp0_entry_lo0_write(lo.value);
 	else
 		cp0_entry_lo1_write(lo.value);
@@ -340,8 +336,10 @@ void tlb_refill_fail(istate_t *istate)
 	if (s)
 		sym2 = s;
 
-	fault_if_from_uspace(istate, "TLB Refill Exception on %p", cp0_badvaddr_read());
-	panic("%x: TLB Refill Exception at %x(%s<-%s)\n", cp0_badvaddr_read(), istate->epc, symbol, sym2);
+	fault_if_from_uspace(istate, "TLB Refill Exception on %p",
+	    cp0_badvaddr_read());
+	panic("%x: TLB Refill Exception at %x(%s<-%s)\n", cp0_badvaddr_read(),
+	    istate->epc, symbol, sym2);
 }
 
 
@@ -352,8 +350,10 @@ void tlb_invalid_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	fault_if_from_uspace(istate, "TLB Invalid Exception on %p", cp0_badvaddr_read());
-	panic("%x: TLB Invalid Exception at %x(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
+	fault_if_from_uspace(istate, "TLB Invalid Exception on %p",
+	    cp0_badvaddr_read());
+	panic("%x: TLB Invalid Exception at %x(%s)\n", cp0_badvaddr_read(),
+	    istate->epc, symbol);
 }
 
 void tlb_modified_fail(istate_t *istate)
@@ -363,23 +363,27 @@ void tlb_modified_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	fault_if_from_uspace(istate, "TLB Modified Exception on %p", cp0_badvaddr_read());
-	panic("%x: TLB Modified Exception at %x(%s)\n", cp0_badvaddr_read(), istate->epc, symbol);
+	fault_if_from_uspace(istate, "TLB Modified Exception on %p",
+	    cp0_badvaddr_read());
+	panic("%x: TLB Modified Exception at %x(%s)\n", cp0_badvaddr_read(),
+	    istate->epc, symbol);
 }
 
-/** Try to find PTE for faulting address
+/** Try to find PTE for faulting address.
  *
- * Try to find PTE for faulting address.
  * The AS->lock must be held on entry to this function.
  *
- * @param badvaddr Faulting virtual address.
- * @param access Access mode that caused the fault.
- * @param istate Pointer to interrupted state.
- * @param pfrc Pointer to variable where as_page_fault() return code will be stored.
+ * @param badvaddr	Faulting virtual address.
+ * @param access	Access mode that caused the fault.
+ * @param istate	Pointer to interrupted state.
+ * @param pfrc		Pointer to variable where as_page_fault() return code
+ * 			will be stored.
  *
- * @return PTE on success, NULL otherwise.
+ * @return		PTE on success, NULL otherwise.
  */
-pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, int *pfrc)
+pte_t *
+find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
+    int *pfrc)
 {
 	entry_hi_t hi;
 	pte_t *pte;
@@ -441,7 +445,9 @@ pte_t *find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate, 
 	}
 }
 
-void tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable, uintptr_t pfn)
+void
+tlb_prepare_entry_lo(entry_lo_t *lo, bool g, bool v, bool d, bool cacheable,
+    uintptr_t pfn)
 {
 	lo->value = 0;
 	lo->g = g;
@@ -480,10 +486,10 @@ void tlb_print(void)
 		lo1.value = cp0_entry_lo1_read();
 		
 		printf("%-2u %-4u %#6x %#4x %1u %1u %1u %1u %#6x\n",
-			i, hi.asid, hi.vpn2, mask.mask,
-			lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn);
+		    i, hi.asid, hi.vpn2, mask.mask,
+		    lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn);
 		printf("                    %1u %1u %1u %1u %#6x\n",
-			lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
+		    lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
 	
 	cp0_entry_hi_write(hi_save.value);
@@ -560,11 +566,12 @@ void tlb_invalidate_asid(asid_t asid)
 	cp0_entry_hi_write(hi_save.value);
 }
 
-/** Invalidate TLB entries for specified page range belonging to specified address space.
+/** Invalidate TLB entries for specified page range belonging to specified
+ * address space.
  *
- * @param asid Address space identifier.
- * @param page First page whose TLB entry is to be invalidated.
- * @param cnt Number of entries to invalidate.
+ * @param asid		Address space identifier.
+ * @param page		First page whose TLB entry is to be invalidated.
+ * @param cnt		Number of entries to invalidate.
  */
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {
@@ -588,7 +595,10 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 		index.value = cp0_index_read();
 
 		if (!index.p) {
-			/* Entry was found, index register contains valid index. */
+			/*
+			 * Entry was found, index register contains valid
+			 * index.
+			 */
 			tlbr();
 
 			lo0.value = cp0_entry_lo0_read();
