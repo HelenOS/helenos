@@ -287,12 +287,6 @@ void tlb_modified(istate_t *istate)
 	}
 
 	/*
-	 * Fail if the page is not writable.
-	 */
-	if (!pte->w)
-		goto fail;
-
-	/*
 	 * Read the faulting TLB entry.
 	 */
 	tlbr();
@@ -402,7 +396,7 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 	 * Check if the mapping exists in page tables.
 	 */	
 	pte = page_mapping_find(AS, badvaddr);
-	if (pte && pte->p) {
+	if (pte && pte->p && (pte->w || access != PF_ACCESS_WRITE)) {
 		/*
 		 * Mapping found in page tables.
 		 * Immediately succeed.
@@ -425,6 +419,7 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 			page_table_lock(AS, true);
 			pte = page_mapping_find(AS, badvaddr);
 			ASSERT(pte && pte->p);
+			ASSERT(pte->w || access != PF_ACCESS_WRITE);
 			return pte;
 			break;
 		case AS_PF_DEFER:
