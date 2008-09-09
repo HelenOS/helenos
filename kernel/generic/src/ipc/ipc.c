@@ -201,9 +201,9 @@ static void _ipc_answer_free_call(call_t *call)
 	call->flags |= IPC_CALL_ANSWERED;
 
 	if (call->flags & IPC_CALL_FORWARDED) {
-		if (call->data.caller_phone) {
+		if (call->caller_phone) {
 			/* Demasquerade the caller phone. */
-			call->data.phone = call->data.caller_phone;
+			call->data.phone = call->caller_phone;
 		}
 	}
 
@@ -360,8 +360,8 @@ int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 	spinlock_unlock(&oldbox->lock);
 
 	if (mode & IPC_FF_ROUTE_FROM_ME) {
-		if (!call->data.caller_phone)
-			call->data.caller_phone = call->data.phone;
+		if (!call->caller_phone)
+			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
 	}
 
