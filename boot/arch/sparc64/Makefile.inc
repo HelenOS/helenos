@@ -37,6 +37,7 @@ $(BASE)/image.iso: depend arch/$(ARCH)/loader/image.boot
 	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
 	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
 	gzip -f $(TMP)/HelenOS/image.boot
+	cp arch/$(ARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $(BASE)/image.iso $(TMP)/
 
 depend:

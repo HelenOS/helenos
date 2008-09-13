@@ -114,8 +114,8 @@ all: image.boot disasm
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) -o $@
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
+	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
@@ -124,7 +124,7 @@ clean:
 	-for task in $(RD_TASKS) ; do \
 		rm -f $(USPACEDIR)/dist/sbin/`basename $$task` ; \
 	done
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
 
 _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_TASKS) _link.ld.in
 	for task in $(RD_TASKS) ; do \
@@ -138,7 +138,7 @@ ifeq ($(RDFMT),fat)
 endif
 	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
 	rm initrd.fs
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS) ./initrd.img
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

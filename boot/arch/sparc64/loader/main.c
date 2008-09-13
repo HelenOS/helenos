@@ -64,6 +64,11 @@ static void version_print(void)
 
 void bootstrap(void)
 {
+	void *base = (void *) KERNEL_VIRTUAL_ADDRESS;
+	void *balloc_base;
+	unsigned int top = 0;
+	int i, j;
+
 	version_print();
 	
 	init_components(components);
@@ -91,6 +96,13 @@ void bootstrap(void)
 	if (silo_ramdisk_image) {
 		silo_ramdisk_image += bootinfo.physmem_start;
 		silo_ramdisk_image -= 0x400000;
+		/* Install 1:1 mapping for the ramdisk. */
+		if (ofw_map((void *)((uintptr_t)silo_ramdisk_image),
+		    (void *)((uintptr_t)silo_ramdisk_image),
+		    silo_ramdisk_size, -1) != 0) {
+			printf("Failed to map ramdisk.\n");
+			halt();
+		}
 	}
 	
 	printf("\nSystem info\n");
@@ -101,19 +113,72 @@ void bootstrap(void)
 	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);
 	printf(" %P: boot info structure\n", &bootinfo);
 	
-	unsigned int i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %P: %s image (size %d bytes)\n", components[i].start,
-		    components[i].name, components[i].size);
-
-	void * base = (void *) KERNEL_VIRTUAL_ADDRESS;
-	unsigned int top = 0;
-
-	printf("\nCopying components\n");
+	/*
+	 * Figure out destination address for each component.
+	 * In this phase, we don't copy the components yet because we want to
+	 * to be careful not to overwrite anything, especially the components
+	 * which haven't been copied yet.
+	 */
 	bootinfo.taskmap.count = 0;
 	for (i = 0; i < COMPONENTS; i++) {
-		printf(" %s...", components[i].name);
+		printf(" %P: %s image (size %d bytes)\n", components[i].start,
+		    components[i].name, components[i].size);
 		top = ALIGN_UP(top, PAGE_SIZE);
+		if (i > 0) {
+			if (bootinfo.taskmap.count == TASKMAP_MAX_RECORDS) {
+				printf("Skipping superfluous components.\n");
+				break;
+			}
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr =
+			    base + top;
+			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
+			    components[i].size;
+			bootinfo.taskmap.count++;
+		}
+		top += components[i].size;
+	}
+
+	j = bootinfo.taskmap.count - 1;	/* do not consider ramdisk */
+
+	if (silo_ramdisk_image) {
+		/* Treat the ramdisk as the last bootinfo task. */
+		if (bootinfo.taskmap.count == TASKMAP_MAX_RECORDS) {
+			printf("Skipping ramdisk.\n");
+			goto skip_ramdisk;
+		}
+		top = ALIGN_UP(top, PAGE_SIZE);
+		bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = 
+		    base + top;
+		bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
+		    silo_ramdisk_size;
+		bootinfo.taskmap.count++;
+		printf("\nCopying ramdisk...");
+		/*
+		 * Claim and map the whole ramdisk as it may exceed the area
+		 * given to us by SILO.
+		 */
+		(void) ofw_claim_phys(base + top, silo_ramdisk_size);
+		(void) ofw_map(base + top, base + top, silo_ramdisk_size, -1);
+		/*
+		 * FIXME If the source and destination overlap, it may be
+		 * desirable to copy in reverse order, depending on how the two
+		 * regions overlap.
+		 */
+		memcpy(base + top, (void *)((uintptr_t)silo_ramdisk_image),
+		    silo_ramdisk_size);
+		printf("done.\n");
+		top += silo_ramdisk_size;
+	}
+skip_ramdisk:
+
+	/*
+	 * Now we can proceed to copy the components. We do it in reverse order
+	 * so that we don't overwrite anything even if the components overlap
+	 * with base.
+	 */
+	printf("\nCopying bootinfo tasks\n");
+	for (i = COMPONENTS - 1; i > 0; i--, j--) {
+		printf(" %s...", components[i].name);
 
 		/*
 		 * At this point, we claim the physical memory that we are
@@ -122,30 +187,34 @@ void bootstrap(void)
 		 * SPARC binding, should restrict its use of virtual memory
 		 * to addresses from [0xffd00000; 0xffefffff] and
 		 * [0xfe000000; 0xfeffffff].
+		 *
+		 * XXX We don't map this piece of memory. We simply rely on
+		 *     SILO to have it done for us already in this case.
 		 */
-		(void) ofw_claim_phys(bootinfo.physmem_start + base + top,
+		(void) ofw_claim_phys(bootinfo.physmem_start +
+		    bootinfo.taskmap.tasks[j].addr,
 		    ALIGN_UP(components[i].size, PAGE_SIZE));
 		    
-		memcpy(base + top, components[i].start, components[i].size);
-		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr =
-			    base + top;
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
-			    components[i].size;
-			bootinfo.taskmap.count++;
-		}
-		top += components[i].size;
+		memcpy((void *)bootinfo.taskmap.tasks[j].addr,
+		    components[i].start, components[i].size);
 		printf("done.\n");
 	}
 
+	printf("\nCopying kernel...");
+	(void) ofw_claim_phys(bootinfo.physmem_start + base,
+	    ALIGN_UP(components[0].size, PAGE_SIZE));
+	memcpy(base, components[0].start, components[0].size);
+	printf("done.\n");
+
 	/*
-	 * Claim the physical memory for the boot allocator.
+	 * Claim and map the physical memory for the boot allocator.
 	 * Initialize the boot allocator.
 	 */
-	(void) ofw_claim_phys(bootinfo.physmem_start +
-	    base + ALIGN_UP(top, PAGE_SIZE), BALLOC_MAX_SIZE);
-	balloc_init(&bootinfo.ballocs, ALIGN_UP(((uintptr_t) base) + top,
-	    PAGE_SIZE));
+	balloc_base = base + ALIGN_UP(top, PAGE_SIZE);
+	(void) ofw_claim_phys(bootinfo.physmem_start + balloc_base,
+	    BALLOC_MAX_SIZE);
+	(void) ofw_map(balloc_base, balloc_base, BALLOC_MAX_SIZE, -1);
+	balloc_init(&bootinfo.ballocs, (uintptr_t)balloc_base);
 
 	printf("\nCanonizing OpenFirmware device tree...");
 	bootinfo.ofw_root = ofw_tree_build();
