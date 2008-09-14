@@ -57,7 +57,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64 -mno-fpu
 
 ifdef REVISION
 	CFLAGS += "-DREVISION=\"$(REVISION)\""
