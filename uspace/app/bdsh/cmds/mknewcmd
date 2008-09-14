@@ -170,22 +170,22 @@ EOF
 static char *cmdname = "${CMDNAME}";
 
 /* Dispays help for ${CMDNAME} in various levels */
-void * ${HELPENTRY}(unsigned int level)
+void ${HELPENTRY}(unsigned int level)
 {
 	printf("This is the %s help for '%s'.\n",
 		level ? EXT_HELP : SHORT_HELP, cmdname);
-	return CMD_VOID;
+	return;
 }
 
 EOF
 	[ "${CMDTYPE}" = "module" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}.c
 /* Main entry point for ${CMDNAME}, accepts an array of arguments */
-int * ${CMDENTRY}(char **argv)
+int ${CMDENTRY}(char **argv)
 EOF
 	[ "${CMDTYPE}" = "builtin" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}.c
 /* Main entry point for ${CMDNAME}, accepts an array of arguments and a
  * pointer to the cliuser_t structure */
-int * ${CMDENTRY}(char **argv, cliuser_t *usr)
+int ${CMDENTRY}(char **argv, cliuser_t *usr)
 EOF
 	cat << EOF >> ${OUTDIR}/${CMDNAME}.c
 {

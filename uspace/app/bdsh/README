@@ -57,12 +57,12 @@ return a value. Help entry points are void *, no return value is expected.
 They are typed as such (from cmds.h):
 
 /* Types for module command entry and help */
-typedef int * (* mod_entry_t)(char **);
-typedef void * (* mod_help_t)(unsigned int);
+typedef int (* mod_entry_t)(char **);
+typedef void (* mod_help_t)(unsigned int);
 
 /* Built-in commands need to be able to modify cliuser_t */
-typedef int * (* builtin_entry_t)(char **, cliuser_t *);
-typedef void * (* builtin_help_t)(unsigned int);
+typedef int (* builtin_entry_t)(char **, cliuser_t *);
+typedef void (* builtin_help_t)(unsigned int);
 
 As you can see, both modular and builtin commands expect an array of
 arguments, however bulitins also expect to be pointed to cliuser_t.
@@ -153,9 +153,7 @@ the process easily (assuming your program is named 'foo'):
 
 2: Change your "usage()" command as shown:
      -- void usage(...)
-     ++ void * help_cmd_foo(unsigned int level)
-     -- return;
-     ++ retrn CMD_VOID;
+     ++ void help_cmd_foo(unsigned int level)
 
      'level' is either 0 or 1, indicating the level of help requested.
      If the help / usage function currently exits based on how it is
@@ -163,32 +161,18 @@ the process easily (assuming your program is named 'foo'):
 
 3: Change the programs "main()" as shown:
      -- int main(int argc, char **argv)
-     ++ int * cmd_foo(char **argv)
+     ++ int cmd_foo(char **argv)
      -- return 1;
      ++ return CMD_FAILURE;
      -- return 0;
      ++ return CMD_SUCCESS;
-
-     If main() returns an int that is not 1 or 0 (e.g. 127), cast it as
-     such:
-
-     -- return 127;
-     ++ return (int *) 127;
-
-     NOTE: _ONLY_ the main and help entry points need to return int * or
-     void *, respectively. Also take note that argc has changed. The type
-     for entry points may soon change.
 
      NOTE: If main is void, you'll need to change it and ensure that its
      expecting an array of arguments, even if they'll never be read or
      used. I.e.:
 
      -- void main(void)
-     ++ int * cmd_foo(char **argv)
-
-     Similararly, do not try to return CMD_VOID within the modules main
-     entry point. If somehow you escape the compiler yelling at you, you
-     will surely see pretty blue and yellow fireworks once its reached.
+     ++ int cmd_foo(char **argv)
 
 4: Don't expose more than the entry and help points:
      -- void my_function(int n)
