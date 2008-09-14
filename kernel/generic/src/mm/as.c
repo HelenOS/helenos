@@ -385,7 +385,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 	
 	if (pages < area->pages) {
 		bool cond;
-		uintptr_t start_free = area->base + pages*PAGE_SIZE;
+		uintptr_t start_free = area->base + pages * PAGE_SIZE;
 
 		/*
 		 * Shrinking the area.
@@ -395,7 +395,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		/*
 		 * Start TLB shootdown sequence.
 		 */
-		tlb_shootdown_start(TLB_INVL_PAGES, AS->asid, area->base +
+		tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base +
 		    pages * PAGE_SIZE, area->pages - pages);
 
 		/*
