@@ -121,12 +121,6 @@ static unsigned int cat_file(const char *fname, size_t blen)
 		return 1;
 	}
 
-	/* Debug stuff, newline not added purposefully */
-	printf("** %s is a file with the size of %ld bytes\n",
-		fname, total);
-	printf(	"** %d bytes were read in a buffer of %d bytes in %d reads\n",
-		count, blen, reads);
-	printf("** Read %s\n", count == total ? "Succeeded" : "Failed");
 	free(buff);
 
 	return 0;
