@@ -64,6 +64,8 @@ SUBDIRS = \
 	cmds/modules/touch/ \
 	cmds/modules/ls/ \
 	cmds/modules/pwd/ \
+	cmds/modules/sleep/ \
+	cmds/modules/cp/ \
 	cmds/builtins/ \
 	cmds/builtins/cd/
 
@@ -76,6 +78,8 @@ SOURCES = \
 	cmds/modules/touch/touch.c \
 	cmds/modules/ls/ls.c \
 	cmds/modules/pwd/pwd.c \
+	cmds/modules/sleep/sleep.c \
+	cmds/modules/cp/cp.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
 	cmds/builtin_cmds.c \
