@@ -4,9 +4,14 @@
  * ports */
 
 /* Specific port work-arounds : */
+#ifndef PATH_MAX
 #define PATH_MAX 255
+#endif
+
+#ifndef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
-#define EXIT_FAILURE 0
+#define EXIT_FAILURE 1
+#endif
 
 /* Work around for getenv() */
 #define PATH "/srv:/app"
@@ -26,7 +31,7 @@
 #define PACKAGE_BUGREPORT "echo@echoreply.us"
 #define PACKAGE_NAME "bdsh"
 #define PACKAGE_STRING "The brain dead shell"
-#define PACKAGE_TARNAME "scli"
+#define PACKAGE_TARNAME "bdsh"
 #define PACKAGE_VERSION "0.0.1"
 
 
