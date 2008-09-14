@@ -34,44 +34,43 @@
  * @file
  * @brief	Memory string operations.
  *
- * This file provides architecture independent functions
- * to manipulate blocks of memory. These functions
- * are optimized as much as generic functions of
- * this type can be. However, architectures are
- * free to provide even more optimized versions of these
- * functions.
+ * This file provides architecture independent functions to manipulate blocks of
+ * memory. These functions are optimized as much as generic functions of this
+ * type can be. However, architectures are free to provide even more optimized
+ * versions of these functions.
  */
 
 #include <memstr.h>
 #include <arch/types.h>
 #include <align.h>
 
-/** Copy block of memory
+/** Copy block of memory.
  *
- * Copy cnt bytes from src address to dst address.
- * The copying is done word-by-word and then byte-by-byte.
- * The source and destination memory areas cannot overlap.
+ * Copy cnt bytes from src address to dst address.  The copying is done
+ * word-by-word and then byte-by-byte.  The source and destination memory areas
+ * cannot overlap.
  *
- * @param src Origin address to copy from.
- * @param dst Origin address to copy to.
- * @param cnt Number of bytes to copy.
+ * @param src		Source address to copy from.
+ * @param dst		Destination address to copy to.
+ * @param cnt		Number of bytes to copy.
  *
+ * @return		Destination address.
  */
-void *_memcpy(void * dst, const void *src, size_t cnt)
+void *_memcpy(void *dst, const void *src, size_t cnt)
 {
 	unsigned int i, j;
 	
 	if (ALIGN_UP((uintptr_t) src, sizeof(unative_t)) != (uintptr_t) src ||
-		ALIGN_UP((uintptr_t) dst, sizeof(unative_t)) != (uintptr_t) dst) {
+	    ALIGN_UP((uintptr_t) dst, sizeof(unative_t)) != (uintptr_t) dst) {
 		for (i = 0; i < cnt; i++)
 			((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
 	} else { 
-	
 		for (i = 0; i < cnt / sizeof(unative_t); i++)
 			((unative_t *) dst)[i] = ((unative_t *) src)[i];
 		
 		for (j = 0; j < cnt % sizeof(unative_t); j++)
-			((uint8_t *)(((unative_t *) dst) + i))[j] = ((uint8_t *)(((unative_t *) src) + i))[j];
+			((uint8_t *)(((unative_t *) dst) + i))[j] =
+			    ((uint8_t *)(((unative_t *) src) + i))[j];
 	}
 		
 	return (char *) dst;
@@ -79,12 +78,12 @@ void *_memcpy(void * dst, const void *src, size_t cnt)
 
 /** Fill block of memory
  *
- * Fill cnt bytes at dst address with the value x.
- * The filling is done byte-by-byte.
+ * Fill cnt bytes at dst address with the value x.  The filling is done
+ * byte-by-byte.
  *
- * @param dst Origin address to fill.
- * @param cnt Number of bytes to fill.
- * @param x   Value to fill.
+ * @param dst		Destination address to fill.
+ * @param cnt		Number of bytes to fill.
+ * @param x		Value to fill.
  *
  */
 void _memsetb(void *dst, size_t cnt, uint8_t x)
@@ -96,14 +95,14 @@ void _memsetb(void *dst, size_t cnt, uint8_t x)
 		p[i] = x;
 }
 
-/** Fill block of memory
+/** Fill block of memory.
  *
- * Fill cnt words at dst address with the value x.
- * The filling is done word-by-word.
+ * Fill cnt words at dst address with the value x.  The filling is done
+ * word-by-word.
  *
- * @param dst Origin address to fill.
- * @param cnt Number of words to fill.
- * @param x   Value to fill.
+ * @param dst		Destination address to fill.
+ * @param cnt		Number of words to fill.
+ * @param x		Value to fill.
  *
  */
 void _memsetw(void *dst, size_t cnt, uint16_t x)
@@ -115,16 +114,16 @@ void _memsetw(void *dst, size_t cnt, uint16_t x)
 		p[i] = x;	
 }
 
-/** Copy string
+/** Copy string.
  *
- * Copy string from src address to dst address.
- * The copying is done char-by-char until the null
- * character. The source and destination memory areas
- * cannot overlap.
+ * Copy string from src address to dst address.  The copying is done
+ * char-by-char until the null character. The source and destination memory
+ * areas cannot overlap.
  *
- * @param src Origin string to copy from.
- * @param dst Origin string to copy to.
+ * @param src		Source string to copy from.
+ * @param dst		Destination string to copy to.
  *
+ * @return		Address of the destination string.
  */
 char *strcpy(char *dest, const char *src)
 {
