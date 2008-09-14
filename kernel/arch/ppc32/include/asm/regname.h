@@ -214,8 +214,8 @@
 #define hid0	1008
 
 /* MSR bits */
-#define msr_ir	(1 << 4)
-#define msr_dr	(1 << 5)
+#define msr_dr	(1 << 4)
+#define msr_ir	(1 << 5)
 #define msr_pr	(1 << 14)
 #define msr_ee	(1 << 15)
 

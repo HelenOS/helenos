@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,75 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
-/** @file
+/** 
+ * @file
+ * @brief Utilities for convenient manipulation with ppc32 registers.
  */
 
-#ifndef KERN_ppc32_EXCEPTION_H_
-#define KERN_ppc32_EXCEPTION_H_
+#ifndef KERN_ppc32_REGUTILS_H_
+#define KERN_ppc32_REGUTILS_H_
 
-#include <arch/types.h>
-#include <arch/regutils.h>
-
-typedef struct {
-	uint32_t r0;
-	uint32_t r2;
-	uint32_t r3;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t r11;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	uint32_t cr;
-	uint32_t pc;
-	uint32_t srr1;
-	uint32_t lr;
-	uint32_t ctr;
-	uint32_t xer;
-	uint32_t r12;
-	uint32_t sp;
-} istate_t;
-
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
-{
-	istate->pc = retaddr;
-}
-
-/** Return true if exception happened while in userspace */
-static inline int istate_from_uspace(istate_t *istate)
-{
-	/* true if privilege level PR (copied from MSR) == 1 */
-	return (istate->srr1 & MSR_PR) != 0;
-}
-
-static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->pc;
-}
+#define MSR_PR (1 << 14)
 
 #endif
 
