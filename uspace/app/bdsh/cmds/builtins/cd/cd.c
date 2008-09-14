@@ -42,7 +42,7 @@
 
 static char * cmdname = "cd";
 
-void * help_cmd_cd(unsigned int level)
+void help_cmd_cd(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' changes the current working directory.\n", cmdname);
@@ -53,12 +53,12 @@ void * help_cmd_cd(unsigned int level)
 			cmdname, cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
 /* This is a very rudamentary 'cd' command. It is not 'link smart' (yet) */
 
-int * cmd_cd(char **argv, cliuser_t *usr)
+int cmd_cd(char **argv, cliuser_t *usr)
 {
 	int argc, rc = 0;
 

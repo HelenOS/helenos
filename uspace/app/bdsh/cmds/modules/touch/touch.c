@@ -48,7 +48,7 @@
 static char *cmdname = "touch";
 
 /* Dispays help for touch in various levels */
-void * help_cmd_touch(unsigned int level)
+void help_cmd_touch(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' updates access times for files\n", cmdname);
@@ -58,11 +58,11 @@ void * help_cmd_touch(unsigned int level)
 				"created\n", cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
 /* Main entry point for touch, accepts an array of arguments */
-int * cmd_touch(char **argv)
+int cmd_touch(char **argv)
 {
 	unsigned int argc, i = 0, ret = 0;
 	int fd;

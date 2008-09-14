@@ -39,15 +39,15 @@ static char *cmdname = "quit";
 extern volatile unsigned int cli_quit;
 extern const char *progname;
 
-void * help_cmd_quit(unsigned int level)
+void help_cmd_quit(unsigned int level)
 {
 	printf("Type `%s' to exit %s\n", cmdname, progname);
-	return CMD_VOID;
+	return;
 }
 
 /* Quits the program and returns the status of whatever command
  * came before invoking 'quit' */
-int * cmd_quit(char *argv[])
+int cmd_quit(char *argv[])
 {
 	/* Inform that we're outta here */
 	cli_quit = 1;

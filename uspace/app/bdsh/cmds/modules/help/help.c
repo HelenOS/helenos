@@ -69,7 +69,7 @@ static int is_mod_or_builtin(char *cmd)
 	return HELP_IS_RUBBISH;
 }
 
-void *help_cmd_help(unsigned int level)
+void help_cmd_help(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf(
@@ -86,10 +86,10 @@ void *help_cmd_help(unsigned int level)
 		cmdname, cmdname, cmdname, cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
-int *cmd_help(char *argv[])
+int cmd_help(char *argv[])
 {
 	module_t *mod;
 	builtin_t *cmd;

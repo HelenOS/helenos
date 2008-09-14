@@ -19,17 +19,16 @@
 #define BUFF_SMALL  255
 
 /* Return macros for int type entry points */
-#define CMD_FAILURE (int*)1
+#define CMD_FAILURE 1
 #define CMD_SUCCESS 0
-#define CMD_VOID (void *)NULL
 
 /* Types for module command entry and help */
-typedef int * (* mod_entry_t)(char **);
-typedef void * (* mod_help_t)(unsigned int);
+typedef int (* mod_entry_t)(char **);
+typedef void (* mod_help_t)(unsigned int);
 
 /* Built-in commands need to be able to modify cliuser_t */
-typedef int * (* builtin_entry_t)(char **, cliuser_t *);
-typedef void * (* builtin_help_t)(unsigned int);
+typedef int (* builtin_entry_t)(char **, cliuser_t *);
+typedef void (* builtin_help_t)(unsigned int);
 
 /* Module structure */
 typedef struct {

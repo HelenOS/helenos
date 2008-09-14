@@ -39,13 +39,13 @@
 
 static char * cmdname = "pwd";
 
-void * help_cmd_pwd(unsigned int level)
+void help_cmd_pwd(unsigned int level)
 {
 	printf("`%s' prints your current working directory.\n", cmdname);
-	return CMD_VOID;
+	return;
 }
 
-int * cmd_pwd(char *argv[])
+int cmd_pwd(char *argv[])
 {
 	char *buff;
 

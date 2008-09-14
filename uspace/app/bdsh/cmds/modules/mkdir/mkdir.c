@@ -60,7 +60,7 @@ static struct option const long_options[] = {
 };
 
 
-void * help_cmd_mkdir(unsigned int level)
+void help_cmd_mkdir(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' creates a new directory\n", cmdname);
@@ -79,7 +79,7 @@ void * help_cmd_mkdir(unsigned int level)
 		cmdname, cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
 /* This is kind of clunky, but effective for now */
@@ -181,7 +181,7 @@ finit:
 	return ret;
 }
 
-int * cmd_mkdir(char **argv)
+int cmd_mkdir(char **argv)
 {
 	unsigned int argc, create_parents = 0, i, ret = 0, follow = 0;
 	unsigned int verbose = 0;

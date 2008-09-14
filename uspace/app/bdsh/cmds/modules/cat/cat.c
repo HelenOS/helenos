@@ -59,7 +59,7 @@ static struct option const long_options[] = {
 };
 
 /* Dispays help for cat in various levels */
-void * help_cmd_cat(unsigned int level)
+void help_cmd_cat(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' shows the contents of files\n", cmdname);
@@ -78,7 +78,7 @@ void * help_cmd_cat(unsigned int level)
 		cmdname, cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
 static unsigned int cat_file(const char *fname, size_t blen)
@@ -127,7 +127,7 @@ static unsigned int cat_file(const char *fname, size_t blen)
 }
 
 /* Main entry point for cat, accepts an array of arguments */
-int * cmd_cat(char **argv)
+int cmd_cat(char **argv)
 {
 	unsigned int argc, i, ret = 0, buffer = 0;
 	int c, opt_ind;

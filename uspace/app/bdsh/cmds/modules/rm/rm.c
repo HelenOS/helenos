@@ -144,7 +144,7 @@ static unsigned int rm_scope(const char *path)
 }
 
 /* Dispays help for rm in various levels */
-void * help_cmd_rm(unsigned int level)
+void help_cmd_rm(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' removes files and directories.\n", cmdname);
@@ -161,11 +161,11 @@ void * help_cmd_rm(unsigned int level)
 		"Currently, %s is under development, some options don't work.\n",
 		cmdname, cmdname);
 	}
-	return CMD_VOID;
+	return;
 }
 
 /* Main entry point for rm, accepts an array of arguments */
-int * cmd_rm(char **argv)
+int cmd_rm(char **argv)
 {
 	unsigned int argc;
 	unsigned int i, scope, ret = 0;

@@ -132,7 +132,7 @@ static void ls_print_file(const char *f)
 	return;
 }
 
-void * help_cmd_ls(unsigned int level)
+void help_cmd_ls(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf("`%s' lists files and directories.\n", cmdname);
@@ -142,10 +142,10 @@ void * help_cmd_ls(unsigned int level)
 				"working directory is used.\n", cmdname);
 	}
 
-	return CMD_VOID;
+	return;
 }
 
-int * cmd_ls(char **argv)
+int cmd_ls(char **argv)
 {
 	unsigned int argc;
 	unsigned int scope;
