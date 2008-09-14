@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 				if (c == 'a')
 					break;
 			
-			if (c > 'a')
+			if (test->name == NULL)
 				printf("Unknown test\n\n");
 			else
 				run_test(test);
