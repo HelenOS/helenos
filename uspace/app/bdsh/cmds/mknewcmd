@@ -120,8 +120,8 @@ EOF
 EOF
 	[ "${CMDTYPE}" = "module" ] && cat << EOF >> ${OUTDIR}/entry.h
 /* Entry points for the ${CMDNAME} command */
-extern int * ${CMDENTRY}(char **);
-extern void * ${HELPENTRY}(unsigned int);
+extern int ${CMDENTRY}(char **);
+extern void ${HELPENTRY}(unsigned int);
 
 #endif /* ${defname}_ENTRY_H */
 
