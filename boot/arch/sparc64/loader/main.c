@@ -36,6 +36,7 @@
 #include <ofw_tree.h>
 #include "ofwarch.h"
 #include <align.h>
+#include <string.h>
 
 bootinfo_t bootinfo;
 component_t components[COMPONENTS];
@@ -159,12 +160,7 @@ void bootstrap(void)
 		 */
 		(void) ofw_claim_phys(base + top, silo_ramdisk_size);
 		(void) ofw_map(base + top, base + top, silo_ramdisk_size, -1);
-		/*
-		 * FIXME If the source and destination overlap, it may be
-		 * desirable to copy in reverse order, depending on how the two
-		 * regions overlap.
-		 */
-		memcpy(base + top, (void *)((uintptr_t)silo_ramdisk_image),
+		memmove(base + top, (void *)((uintptr_t)silo_ramdisk_image),
 		    silo_ramdisk_size);
 		printf("done.\n");
 		top += silo_ramdisk_size;
