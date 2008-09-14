@@ -42,6 +42,7 @@ extern int strcmp(const char *src, const char *dst);
 extern int strncmp(const char *src, const char *dst, size_t len);
 extern void strncpy(char *dest, const char *src, size_t len);
 extern unative_t atoi(const char *text);
+extern void *memmove(void *dst, const void *src, size_t len);
 
 #endif
 

@@ -39,9 +39,9 @@
 
 /** Return number of characters in a string.
  *
- * @param str NULL terminated string.
+ * @param str		NULL terminated string.
  *
- * @return Number of characters in str.
+ * @return		Number of characters in str.
  */
 size_t strlen(const char *str)
 {
@@ -53,16 +53,17 @@ size_t strlen(const char *str)
 	return i;
 }
 
-/** Compare two NULL terminated strings
+/** Compare two NULL terminated strings.
  *
  * Do a char-by-char comparison of two NULL terminated strings.
  * The strings are considered equal iff they consist of the same
  * characters on the minimum of their lengths.
  *
- * @param src First string to compare.
- * @param dst Second string to compare.
+ * @param src		First string to compare.
+ * @param dst		Second string to compare.
  *
- * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
+ * @return		0 if the strings are equal, -1 if first is smaller,
+ * 			1 if second smaller.
  *
  */
 int strcmp(const char *src, const char *dst)
@@ -81,18 +82,19 @@ int strcmp(const char *src, const char *dst)
 }
 
 
-/** Compare two NULL terminated strings
+/** Compare two NULL terminated strings.
  *
  * Do a char-by-char comparison of two NULL terminated strings.
  * The strings are considered equal iff they consist of the same
  * characters on the minimum of their lengths and specified maximal
  * length.
  *
- * @param src First string to compare.
- * @param dst Second string to compare.
- * @param len Maximal length for comparison.
+ * @param src		First string to compare.
+ * @param dst		Second string to compare.
+ * @param len		Maximal length for comparison.
  *
- * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
+ * @return		0 if the strings are equal, -1 if first is smaller,
+ * 			1 if second smaller.
  *
  */
 int strncmp(const char *src, const char *dst, size_t len)
@@ -118,9 +120,9 @@ int strncmp(const char *src, const char *dst, size_t len)
  * If 'src' is shorter than 'len', '\0' is inserted behind the
  * last copied character.
  *
- * @param src Source string.
- * @param dest Destination buffer.
- * @param len Size of destination buffer.
+ * @param src		Source string.
+ * @param dest		Destination buffer.
+ * @param len		Size of destination buffer.
  */
 void strncpy(char *dest, const char *src, size_t len)
 {
@@ -132,13 +134,13 @@ void strncpy(char *dest, const char *src, size_t len)
 	dest[i-1] = '\0';
 }
 
-/** Convert ascii representation to unative_t
+/** Convert ascii representation to unative_t.
  *
  * Supports 0x for hexa & 0 for octal notation.
  * Does not check for overflows, does not support negative numbers
  *
- * @param text Textual representation of number
- * @return Converted number or 0 if no valid number ofund 
+ * @param text		Textual representation of number.
+ * @return		Converted number or 0 if no valid number found.
  */
 unative_t atoi(const char *text)
 {
@@ -152,9 +154,9 @@ unative_t atoi(const char *text)
 		base = 8;
 
 	while (*text) {
-		if (base != 16 && \
-		    ((*text >= 'A' && *text <= 'F' )
-		     || (*text >='a' && *text <='f')))
+		if (base != 16 &&
+		    ((*text >= 'A' && *text <= 'F') ||
+		    (*text >='a' && *text <='f')))
 			break;
 		if (base == 8 && *text >='8')
 			break;
@@ -174,6 +176,29 @@ unative_t atoi(const char *text)
 	}
 
 	return result;
+}
+
+/** Move piece of memory to another, possibly overlapping, location.
+ *
+ * @param dst		Destination address.
+ * @param src		Source address.
+ * @param len		Number of bytes to move.
+ *
+ * @return		Destination address.
+ */
+void *memmove(void *dst, const void *src, size_t len)
+{
+	char *d = dst;
+	const char *s = src;
+	if (s < d) {
+		while (len--)
+			*(d + len) = *(s + len);
+	} else {
+		while (len--)
+			*d++ = *s++;
+	}
+	
+	return dst;
 }
 
 /** @}
