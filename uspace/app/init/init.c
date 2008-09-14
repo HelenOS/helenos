@@ -104,15 +104,15 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	// FIXME: spawn("/sbin/pci");
-	spawn("/sbin/fb");
-	spawn("/sbin/kbd");
-	spawn("/sbin/console");
+	// FIXME: spawn("/srv/pci");
+	spawn("/srv/fb");
+	spawn("/srv/kbd");
+	spawn("/srv/console");
 	
 	console_wait();
 	version_print();
 	
-	spawn("/sbin/bdsh");
+	spawn("/app/bdsh");
 	
 	return 0;
 }

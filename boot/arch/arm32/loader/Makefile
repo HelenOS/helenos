@@ -96,12 +96,14 @@ ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
 endif
 
-RD_TASKS = \
+RD_SRVS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/fs/fat/fat
+
+RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/klog/klog \
@@ -123,14 +125,20 @@ depend:
 	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-for task in $(RD_TASKS) ; do \
-		rm -f $(USPACEDIR)/dist/sbin/`basename $$task` ; \
+	-for file in $(RD_SRVS) ; do \
+		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	-for file in $(RD_APPS) ; do \
+		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
 	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.boot Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) _link.ld.in
-	for task in $(RD_TASKS) ; do \
-		cp $$task $(USPACEDIR)/dist/sbin/ ; \
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
+	for file in $(RD_SRVS) ; do \
+		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for file in $(RD_APPS) ; do \
+		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
 	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs

@@ -9,7 +9,7 @@
 #define EXIT_FAILURE 0
 
 /* Work around for getenv() */
-#define PATH "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+#define PATH "/srv:/app"
 #define PATH_DELIM ":"
 
 /* Used in many places */

@@ -40,21 +40,23 @@ ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
 endif
 
-RD_TASKS = \
+RD_SRVS = \
 	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat
 
+RD_APPS = \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/bdsh/bdsh
+
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_TASKS)
+$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
 	mkdir -p arch/$(ARCH)/iso/boot/grub
 	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
 ifneq ($(RDFMT),tmpfs)
@@ -67,8 +69,11 @@ endif
 	for task in $(INIT_TASKS) ; do \
 		cp $$task arch/$(ARCH)/iso/boot/ ; \
 	done
-	for task in $(RD_TASKS) ; do \
-		cp $$task $(USPACEDIR)/dist/sbin/ ; \
+	for file in $(RD_SRVS) ; do \
+		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for file in $(RD_APPS) ; do \
+		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
 	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
@@ -81,8 +86,11 @@ endif
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
 
 clean:
-	-for task in $(RD_TASKS) ; do \
-		rm -f $(USPACEDIR)/dist/sbin/`basename $$task` ; \
+	-for file in $(RD_SRVS) ; do \
+		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	-for file in $(RD_APPS) ; do \
+		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
 	-rm -fr arch/$(ARCH)/iso
 	-rm -f $(BASE)/image.iso
