@@ -37,6 +37,7 @@
 #define KERN_arm32_INTERRUPT_H_
 
 #include <arch/types.h>
+#include <arch/exception.h>
 
 /** Initial size of exception dispatch table. */
 #define IVT_ITEMS 	6
