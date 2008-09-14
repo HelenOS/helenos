@@ -53,8 +53,8 @@ volatile unsigned int cli_verbocity = 1;
 const char *progname = PACKAGE_NAME;
 
 /* These are not exposed, even to builtins */
-static int cli_init(cliuser_t *usr);
-static void cli_finit(cliuser_t *usr);
+static int cli_init(cliuser_t *);
+static void cli_finit(cliuser_t *);
 
 /* Constructor */
 static int cli_init(cliuser_t *usr)
