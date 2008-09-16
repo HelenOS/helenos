@@ -64,6 +64,9 @@ extern char *strrchr(const char *, int);
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
 
+extern char * strtok_r(char *, const char *, char **);
+extern char * strtok(char *, const char *);
+
 #endif
 
 /** @}

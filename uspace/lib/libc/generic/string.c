@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2005 Martin Decky
+ * Copyright (C) 1998 by Wes Peters <wes@softweyr.com>
+ * Copyright (c) 1988, 1993 The Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -394,6 +396,53 @@ char * strdup(const char *s1)
 		return (char *) NULL;
 
 	return (char *) memcpy(ret, s1, len);
+}
+
+/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
+char * strtok_r(char *s, const char *delim, char **last)
+{
+	char *spanp, *tok;
+	int c, sc;
+
+	if (s == NULL && (s = *last) == NULL)
+		return (NULL);
+
+cont:
+	c = *s++;
+	for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
+		if (c == sc)
+			goto cont;
+	}
+
+	if (c == 0) {		/* no non-delimiter characters */
+		*last = NULL;
+		return (NULL);
+	}
+
+	tok = s - 1;
+
+	for (;;) {
+		c = *s++;
+		spanp = (char *)delim;
+		do {
+			if ((sc = *spanp++) == c) {
+				if (c == 0)
+					s = NULL;
+				else
+					s[-1] = '\0';
+				*last = s;
+				return (tok);
+			}
+		} while (sc != 0);
+	}
+}
+
+/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
+char * strtok(char *s, const char *delim)
+{
+	static char *last;
+
+	return (strtok_r(s, delim, &last));
 }
 
 /** @}
