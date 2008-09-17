@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <udebug/udebug_ipc.h>
-#include <ipc/ipc_kbox.h>
+#include <ipc/kbox.h>
 
 void ipc_kbox_cleanup(void)
 {

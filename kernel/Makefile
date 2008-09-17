@@ -292,7 +292,7 @@ GENERIC_SOURCES = \
 
 ifeq ($(CONFIG_UDEBUG),y)
 GENERIC_SOURCES += \
-	generic/src/ipc/ipc_kbox.c \
+	generic/src/ipc/kbox.c \
 	generic/src/udebug/udebug.c \
 	generic/src/udebug/udebug_ops.c \
 	generic/src/udebug/udebug_ipc.c

@@ -43,7 +43,7 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <ipc/ipc.h>
-#include <ipc/ipc_kbox.h>
+#include <ipc/kbox.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>

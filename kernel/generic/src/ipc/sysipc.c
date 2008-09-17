@@ -42,7 +42,7 @@
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
-#include <ipc/ipc_kbox.h>
+#include <ipc/kbox.h>
 #include <udebug/udebug_ipc.h>
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
