@@ -1,7 +1,5 @@
-/* Various things that are used in many files
- * Various temporary port work-arounds are addressed in __HELENOS__ , this
- * serves as a convenience and later as a guide to make "phony.h" for future
- * ports */
+/* Various things that are used in many places including a few
+ * tidbits left over from autoconf prior to the HelenOS port */
 
 /* Specific port work-arounds : */
 #ifndef PATH_MAX
