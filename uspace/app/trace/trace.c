@@ -72,29 +72,35 @@ static int task_connect(task_id_t task_id)
 {
 	int rc;
 
-	printf("ipc_connect_task(%lld)... ", task_id);
 	rc = ipc_connect_kbox(task_id);
-	printf("-> %d\n", rc);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
 		    "compiled in the kernel.\n");
 		printf("Compile kernel with 'Support for userspace debuggers' "
 		    "(CONFIG_UDEBUG) enabled.\n");
+		return rc;
+	}
+
+	if (rc < 0) {
+		printf("Error connecting\n");
+		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		return rc;
 	}
 
 	phoneid = rc;
-	if (rc < 0) return rc;
 
-	printf("udebug_begin()... ");
 	rc = udebug_begin(phoneid);
-	printf("-> %d\n", rc);
-	if (rc < 0) return rc;
+	if (rc < 0) {
+		printf("udebug_begin() -> %d\n", rc);
+		return rc;
+	}
 
-	printf("udebug_set_evmask(0x%x)... ", UDEBUG_EM_ALL);
 	rc = udebug_set_evmask(phoneid, UDEBUG_EM_ALL);
-	printf("-> %d\n", rc);
-	if (rc < 0) return rc;
+	if (rc < 0) {
+		printf("udebug_set_evmask(0x%x) -> %d\n ", UDEBUG_EM_ALL, rc);
+		return rc;
+	}
 
 	return 0;
 }
@@ -106,17 +112,18 @@ static int get_thread_list(void)
 	size_t tb_needed;
 	int i;
 
-	printf("send IPC_M_DEBUG_THREAD_READ message\n");
 	rc = udebug_thread_read(phoneid, thread_hash_buf,
 		THBUF_SIZE*sizeof(unsigned), &tb_copied, &tb_needed);
-	printf("-> %d\n", rc);
-	if (rc < 0) return rc;
+	if (rc < 0) {
+		printf("udebug_thread_read() -> %d\n", rc);
+		return rc;
+	}
 
 	n_threads = tb_copied / sizeof(unsigned);
 
-	printf("thread IDs:");
-	for (i=0; i<n_threads; i++) {
-		printf(" %u", thread_hash_buf[i]);
+	printf("Threads:");
+	for (i = 0; i < n_threads; i++) {
+		printf(" [%d] (hash 0x%u)", 1+i, thread_hash_buf[i]);
 	}
 	printf("\ntotal of %u threads\n", tb_needed/sizeof(unsigned));
 
@@ -334,7 +341,7 @@ static void event_syscall_e(unsigned thread_id, unsigned thread_hash,  unsigned 
 static void event_thread_b(unsigned hash)
 {
 	async_serialize_start();
-	printf("new thread, hash 0x%x\n", hash);
+	printf("New thread, hash 0x%x\n", hash);
 	async_serialize_end();
 
 	thread_trace_start(hash);
@@ -351,7 +358,7 @@ static int trace_loop(void *thread_hash_arg)
 	thread_hash = (unsigned)thread_hash_arg;
 	thread_id = next_thread_id++;
 
-	printf("trace_loop(%d)\n", thread_id);	
+	printf("Start tracing thread [%d] (hash 0x%x)\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
@@ -361,7 +368,7 @@ static int trace_loop(void *thread_hash_arg)
 
 //		printf("rc = %d, ev_type=%d\n", rc, ev_type);
 		if (ev_type == UDEBUG_EVENT_FINISHED) {
-			printf("thread %u debugging finished\n", thread_id);
+			/* Done tracing this thread */
 			break;
 		}
 
@@ -374,31 +381,31 @@ static int trace_loop(void *thread_hash_arg)
 				event_syscall_e(thread_id, thread_hash, val0, (int)val1);
 				break;
 			case UDEBUG_EVENT_STOP:
-				printf("stop event\n");
-				printf("waiting for resume\n");
+				printf("Stop event\n");
+				printf("Waiting for resume\n");
 				while (paused) {
 					usleep(1000000);
 					fibril_yield();
 					printf(".");
 				}
-				printf("resumed\n");
+				printf("Resumed\n");
 				break;
 			case UDEBUG_EVENT_THREAD_B:
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("thread 0x%x exited\n", val0);
+				printf("Thread 0x%x exited\n", val0);
 				abort_trace = 1;
 				break;
 			default:
-				printf("unknown event type %d\n", ev_type);
+				printf("Unknown event type %d\n", ev_type);
 				break;
 			}
 		}
 
 	}
 
-	printf("trace_loop(%d) exiting\n", thread_id);
+	printf("Finished tracing thread [%d]\n", thread_id);
 	return 0;
 }
 
@@ -432,7 +439,12 @@ static void trace_active_task(task_id_t task_id)
 	printf("Connected to task %lld\n", task_id);
 
 	ipcp_init();
-	ipcp_connection_set(1, 0, proto_console);
+
+	/* 
+	 * User apps now typically have console on phone 3.
+	 * (Phones 1 and 2 are used by the loader).
+	 */
+	ipcp_connection_set(3, 0, proto_console);
 
 	rc = get_thread_list();
 	if (rc < 0) {
@@ -459,14 +471,14 @@ static void trace_active_task(task_id_t task_id)
 		}
 	}
 
-	printf("terminate debugging session...\n");
+	printf("\nTerminate debugging session...\n");
 	abort_trace = 1;
 	udebug_end(phoneid);
 	ipc_hangup(phoneid);
 
 	ipcp_cleanup();
 
-	printf("done\n");
+	printf("Done\n");
 	return;
 }
 
@@ -520,7 +532,7 @@ static void main_init(void)
 
 static void print_syntax()
 {
-	printf("syntax: trace <task_id>\n");
+	printf("Syntax: trace <task_id>\n");
 }
 
 int main(int argc, char *argv[])
