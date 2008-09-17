@@ -51,6 +51,7 @@
 #include "syscalls.h"
 #include "ipcp.h"
 #include "errors.h"
+#include "trace.h"
 
 #define THBUF_SIZE 64
 unsigned thread_hash_buf[THBUF_SIZE];
@@ -67,6 +68,10 @@ volatile int paused;
 void thread_trace_start(unsigned thread_hash);
 
 static proto_t *proto_console;
+static task_id_t task_id;
+
+/** Combination of events/data to print. */
+display_mask_t display_mask;
 
 static int task_connect(task_id_t task_id)
 {
@@ -286,9 +291,11 @@ static void event_syscall_b(unsigned thread_id, unsigned thread_hash,  unsigned 
 		return;
 	}
 
-	/* Print syscall name, id and arguments */
-	printf("%s", syscall_desc[sc_id].name);
-	print_sc_args(sc_args, syscall_desc[sc_id].n_args);
+	if ((display_mask & DM_SYSCALL) != 0) {
+		/* Print syscall name and arguments */
+		printf("%s", syscall_desc[sc_id].name);
+		print_sc_args(sc_args, syscall_desc[sc_id].n_args);
+	}
 
 	async_serialize_end();
 }
@@ -312,8 +319,11 @@ static void event_syscall_e(unsigned thread_id, unsigned thread_hash,  unsigned 
 		return;
 	}
 
-	rv_type = syscall_desc[sc_id].rv_type;
-	print_sc_retval(sc_rc, rv_type);
+	if ((display_mask & DM_SYSCALL) != 0) {
+		/* Print syscall return value */
+		rv_type = syscall_desc[sc_id].rv_type;
+		print_sc_retval(sc_rc, rv_type);
+	}
 
 	switch (sc_id) {
 	case SYS_IPC_CALL_ASYNC_FAST:
@@ -428,8 +438,6 @@ static void trace_active_task(task_id_t task_id)
 	int rc;
 	int c;
 
-	printf("Syscall Tracer\n");
-
 	rc = task_connect(task_id);
 	if (rc < 0) {
 		printf("Failed to connect to task %lld\n", task_id);
@@ -532,30 +540,91 @@ static void main_init(void)
 
 static void print_syntax()
 {
-	printf("Syntax: trace <task_id>\n");
+	printf("Syntax: trace [+<events>] <task_id>\n");
+	printf("Events: (default is +tp)\n");
+	printf("\n");
+	printf("\tt ... Thread creation and termination\n");
+	printf("\ts ... System calls\n");
+	printf("\ti ... Low-level IPC\n");
+	printf("\tp ... Protocol level\n");
+	printf("\n");
+	printf("Example: trace +tsip 12\n");
 }
 
-int main(int argc, char *argv[])
+static display_mask_t parse_display_mask(char *text)
 {
-	task_id_t task_id;
+	display_mask_t dm;
+	char *c;
+
+	c = text;
+
+	while (*c) {
+		switch (*c) {
+		case 't': dm = dm | DM_THREAD; break;
+		case 's': dm = dm | DM_SYSCALL; break;
+		case 'i': dm = dm | DM_IPC; break;
+		case 'p': dm = dm | DM_SYSTEM | DM_USER; break;
+		default:
+			printf("Unexpected event type '%c'\n", *c);
+			exit(1);
+		}
+
+		++c;
+	}
+
+	return dm;
+}
+
+static int parse_args(int argc, char *argv[])
+{
+	char *arg;
 	char *err_p;
 
-	if (argc != 2) {
-		printf("Mising argument\n");
+	--argc; ++argv;
+
+	while (argc > 1) {
+		arg = *argv;
+		if (arg[0] == '+') {
+			display_mask = parse_display_mask(&arg[1]);
+		} else {
+			printf("Unexpected argument '%s'\n", arg);
+			print_syntax();
+			return -1;
+		}
+
+		--argc; ++argv;
+	}
+
+	if (argc != 1) {
+		printf("Missing argument\n");
 		print_syntax();
 		return 1;
 	}
 
-	task_id = strtol(argv[1], &err_p, 10);
+	task_id = strtol(*argv, &err_p, 10);
 
 	if (*err_p) {
 		printf("Task ID syntax error\n");
 		print_syntax();
-		return 1;
+		return -1;
 	}
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	printf("System Call / IPC Tracer\n");
+
+	display_mask = DM_THREAD | DM_SYSTEM | DM_USER;
+
+	if (parse_args(argc, argv) < 0)
+		return 1;
 
 	main_init();
 	trace_active_task(task_id);
+
+	return 0;
 }
 
 /** @}

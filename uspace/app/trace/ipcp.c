@@ -38,6 +38,7 @@
 
 #include "ipc_desc.h"
 #include "proto.h"
+#include "trace.h"
 #include "ipcp.h"
 
 #define IPCP_CALLID_SYNC 0
@@ -177,21 +178,47 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	pending_call_t *pcall;
 	proto_t *proto;
 	unsigned long key[1];
+	oper_t *oper;
 
 	if (have_conn[phone]) proto = connections[phone].proto;
 	else proto = NULL;
 
-//	printf("ipcp_call_out()\n");
-	printf("call id: 0x%x, phone: %d, proto: %s, method: ", hash, phone,
-		(proto ? proto->name : "n/a"));
-	ipc_m_print(proto, IPC_GET_METHOD(*call));
-	printf(" args: (%u, %u, %u, %u, %u)\n",
-	    IPC_GET_ARG1(*call),
-	    IPC_GET_ARG2(*call),
-	    IPC_GET_ARG3(*call),
-	    IPC_GET_ARG4(*call),
-	    IPC_GET_ARG5(*call)
-	);
+	if ((display_mask & DM_IPC) != 0) {
+		printf("Call ID: 0x%x, phone: %d, proto: %s, method: ", hash,
+			phone, (proto ? proto->name : "n/a"));
+		ipc_m_print(proto, IPC_GET_METHOD(*call));
+		printf(" args: (%u, %u, %u, %u, %u)\n",
+		    IPC_GET_ARG1(*call),
+		    IPC_GET_ARG2(*call),
+		    IPC_GET_ARG3(*call),
+		    IPC_GET_ARG4(*call),
+		    IPC_GET_ARG5(*call)
+		);
+	}
+
+
+	if ((display_mask & DM_USER) != 0) {
+
+		if (proto != NULL) {
+			oper = proto_get_oper(proto, IPC_GET_METHOD(*call));
+		} else {
+			oper = NULL;
+		}
+
+		if (oper != NULL) {
+
+			printf("%s(%d).%s", (proto ? proto->name : "n/a"),
+			    phone, (oper ? oper->name : "unknown"));
+
+			printf("(%u, %u, %u, %u, %u)\n",
+			    IPC_GET_ARG1(*call),
+			    IPC_GET_ARG2(*call),
+			    IPC_GET_ARG3(*call),
+			    IPC_GET_ARG4(*call),
+			    IPC_GET_ARG5(*call)
+			);
+		}
+	}
 
 	/* Store call in hash table for response matching */
 
@@ -205,7 +232,8 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	hash_table_insert(&pending_calls, key, &pcall->link);
 }
 
-static void parse_answer(pending_call_t *pcall, ipc_call_t *answer)
+static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
+    ipc_call_t *answer)
 {
 	int phone;
 	ipcarg_t method;
@@ -219,8 +247,17 @@ static void parse_answer(pending_call_t *pcall, ipc_call_t *answer)
 	phone = pcall->phone_hash;
 	method = IPC_GET_METHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
-	printf("phone=%d, method=%d, retval=%d\n",
-		phone, method, retval);
+
+	if ((display_mask & DM_IPC) != 0) {
+		printf("Response to 0x%x: retval=%d, args = (%u, %u, %u, %u, %u)\n",
+			hash, retval, IPC_GET_ARG1(*answer),
+			IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
+			IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
+	}
+
+	if ((display_mask & DM_USER) != 0) {
+		printf("-> %d\n", retval);
+	}
 
 	if (phone == 0 && method == IPC_M_CONNECT_ME_TO && retval == 0) {
 		/* Connected to a service (through NS) */
@@ -229,8 +266,10 @@ static void parse_answer(pending_call_t *pcall, ipc_call_t *answer)
 		if (proto == NULL) proto = proto_unknown;
 
 		cphone = IPC_GET_ARG5(*answer);
-		printf("registering connection (phone %d, protocol: %s)\n", cphone,
-			proto->name);
+		if ((display_mask & DM_SYSTEM) != 0) {
+			printf("Registering connection (phone %d, protocol: %s)\n", cphone,
+		    		proto->name);
+		}
 		ipcp_connection_set(cphone, 0, proto);
 	}
 }
@@ -254,7 +293,9 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
-		printf("Not a response (hash %d)\n", hash);
+		if ((display_mask & DM_IPC) != 0) {
+			printf("Not a response (hash %d)\n", hash);
+		}
 		return;
 	}
 
@@ -263,13 +304,15 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 
 	item = hash_table_find(&pending_calls, key);
 	if (item == NULL) return; // No matching question found
+
+	/*
+	 * Response matched to question.
+	 */
 	
 	pcall = hash_table_get_instance(item, pending_call_t, link);
-
-	printf("response matched to question\n");
 	hash_table_remove(&pending_calls, key, 1);
 
-	parse_answer(pcall, call);
+	parse_answer(hash, pcall, call);
 	free(pcall);
 }
 
@@ -281,8 +324,10 @@ void ipcp_call_sync(int phone, ipc_call_t *call, ipc_call_t *answer)
 
 void ipcp_hangup(int phone, int rc)
 {
-	printf("hangup phone %d -> %d\n", phone, rc);
-	ipcp_connection_clear(phone);
+	if ((display_mask & DM_SYSTEM) != 0) {
+		printf("Hang phone %d up -> %d\n", phone, rc);
+		ipcp_connection_clear(phone);
+	}
 }
 
 /** @}
