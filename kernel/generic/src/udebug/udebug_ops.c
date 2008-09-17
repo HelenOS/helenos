@@ -35,7 +35,7 @@
  * @brief	Udebug operations.
  */
  
-#include <print.h>
+#include <debug.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
@@ -162,14 +162,14 @@ int udebug_begin(call_t *call)
 	thread_t *t;
 	link_t *cur;
 
-	printf("udebug_begin()\n");
+	LOG("udebug_begin()\n");
 
 	mutex_lock(&TASK->udebug.lock);
-	printf("debugging task %llu\n", TASK->taskid);
+	LOG("debugging task %llu\n", TASK->taskid);
 
 	if (TASK->udebug.dt_state != UDEBUG_TS_INACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
-		printf("udebug_begin(): busy error\n");
+		LOG("udebug_begin(): busy error\n");
 
 		return EBUSY;
 	}
@@ -199,7 +199,7 @@ int udebug_begin(call_t *call)
 
 	mutex_unlock(&TASK->udebug.lock);
 
-	printf("udebug_begin() done (%s)\n", 
+	LOG("udebug_begin() done (%s)\n", 
 	    reply ? "reply" : "stoppability wait");
 
 	return reply;
@@ -209,10 +209,10 @@ int udebug_end(void)
 {
 	int rc;
 
-	printf("udebug_end()\n");
+	LOG("udebug_end()\n");
 
 	mutex_lock(&TASK->udebug.lock);
-	printf("task %llu\n", TASK->taskid);
+	LOG("task %" PRIu64 "\n", TASK->taskid);
 
 	rc = udebug_task_cleanup(TASK);
 
@@ -223,15 +223,13 @@ int udebug_end(void)
 
 int udebug_set_evmask(udebug_evmask_t mask)
 {
-	printf("udebug_set_mask()\n");
-
-	printf("debugging task %llu\n", TASK->taskid);
+	LOG("udebug_set_mask()\n");
 
 	mutex_lock(&TASK->udebug.lock);
 
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
-		printf("udebug_set_mask(): not active debuging session\n");
+		LOG("udebug_set_mask(): not active debuging session\n");
 
 		return EINVAL;
 	}
@@ -247,8 +245,6 @@ int udebug_set_evmask(udebug_evmask_t mask)
 int udebug_go(thread_t *t, call_t *call)
 {
 	int rc;
-
-//	printf("udebug_go()\n");
 
 	/* On success, this will lock t->udebug.lock */
 	rc = _thread_op_begin(t, false);
@@ -274,7 +270,7 @@ int udebug_stop(thread_t *t, call_t *call)
 {
 	int rc;
 
-	printf("udebug_stop()\n");
+	LOG("udebug_stop()\n");
 	mutex_lock(&TASK->udebug.lock);
 
 	/*
@@ -298,7 +294,7 @@ int udebug_stop(thread_t *t, call_t *call)
 	/*
 	 * Answer GO call
 	 */
-	printf("udebug_stop - answering go call\n");
+	LOG("udebug_stop - answering go call\n");
 
 	/* Make sure nobody takes this call away from us */
 	call = t->udebug.go_call;
@@ -306,7 +302,7 @@ int udebug_stop(thread_t *t, call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_STOP);
-	printf("udebug_stop/ipc_answer\n");
+	LOG("udebug_stop/ipc_answer\n");
 
 	THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
 
@@ -315,7 +311,7 @@ int udebug_stop(thread_t *t, call_t *call)
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
 
-	printf("udebog_stop/done\n");
+	LOG("udebog_stop/done\n");
 	return 0;
 }
 
@@ -330,7 +326,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	int flags;
 	size_t max_ids;
 
-	printf("udebug_thread_read()\n");
+	LOG("udebug_thread_read()\n");
 
 	/* Allocate a buffer to hold thread IDs */
 	id_buffer = malloc(buf_size, 0);
@@ -385,8 +381,6 @@ int udebug_args_read(thread_t *t, void **buffer)
 	int rc;
 	unative_t *arg_buffer;
 
-//	printf("udebug_args_read()\n");
-
 	/* Prepare a buffer to hold the arguments */
 	arg_buffer = malloc(6 * sizeof(unative_t), 0);
 
@@ -426,8 +420,6 @@ int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer)
 	}
 
 	data_buffer = malloc(n, 0);
-
-//	printf("udebug_mem_read: src=%u, size=%u\n", uspace_addr, n);
 
 	/* NOTE: this is not strictly from a syscall... but that shouldn't
 	 * be a problem */

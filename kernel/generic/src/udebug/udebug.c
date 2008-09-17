@@ -48,7 +48,7 @@
  */
  
 #include <synch/waitq.h>
-#include <print.h>
+#include <debug.h>
 #include <udebug/udebug.h>
 #include <errno.h>
 #include <arch.h>
@@ -331,12 +331,12 @@ void udebug_thread_b_event(struct thread *t)
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
 
-	printf("udebug_thread_b_event\n");
-	printf("- check state\n");
+	LOG("udebug_thread_b_event\n");
+	LOG("- check state\n");
 
 	/* Must only generate events when in debugging session */
 	if (THREAD->udebug.debug_active != true) {
-		printf("- debug_active: %s, udebug.stop: %s\n",
+		LOG("- debug_active: %s, udebug.stop: %s\n",
 			THREAD->udebug.debug_active ? "yes(+)" : "no(-)",
 			THREAD->udebug.stop ? "yes(-)" : "no(+)");
 		mutex_unlock(&THREAD->udebug.lock);
@@ -344,7 +344,7 @@ void udebug_thread_b_event(struct thread *t)
 		return;
 	}
 
-	printf("- trigger event\n");
+	LOG("- trigger event\n");
 
 	call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
@@ -365,7 +365,7 @@ void udebug_thread_b_event(struct thread *t)
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
 
-	printf("- sleep\n");
+	LOG("- sleep\n");
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
 
 	udebug_int_unlock();
@@ -380,8 +380,8 @@ void udebug_thread_e_event(void)
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
 
-//	printf("udebug_thread_e_event\n");
-//	printf("- check state\n");
+	LOG("udebug_thread_e_event\n");
+	LOG("- check state\n");
 
 	/* Must only generate events when in debugging session */
 	if (THREAD->udebug.debug_active != true) {
@@ -393,7 +393,7 @@ void udebug_thread_e_event(void)
 		return;
 	}
 
-//	printf("- trigger event\n");
+	LOG("- trigger event\n");
 
 	call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
@@ -427,14 +427,14 @@ int udebug_task_cleanup(struct task *ta)
 	int flags;
 	ipl_t ipl;
 
-	printf("udebug_task_cleanup()\n");
-	printf("task %llu\n", ta->taskid);
+	LOG("udebug_task_cleanup()\n");
+	LOG("task %" PRIu64 "\n", ta->taskid);
 
 	udebug_int_lock();
 
 	if (ta->udebug.dt_state != UDEBUG_TS_BEGINNING &&
 	    ta->udebug.dt_state != UDEBUG_TS_ACTIVE) {
-		printf("udebug_task_cleanup(): task not being debugged\n");
+		LOG("udebug_task_cleanup(): task not being debugged\n");
 		return EINVAL;
 	}
 
@@ -467,7 +467,7 @@ int udebug_task_cleanup(struct task *ta)
 				t->udebug.stop = true;	
 
 				/* Answer GO call */
-				printf("answer GO call with EVENT_FINISHED\n");
+				LOG("answer GO call with EVENT_FINISHED\n");
 				IPC_SET_RETVAL(t->udebug.go_call->data, 0);
 				IPC_SET_ARG1(t->udebug.go_call->data, UDEBUG_EVENT_FINISHED);
 

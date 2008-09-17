@@ -35,7 +35,6 @@
  * @brief	Udebug IPC message handling.
  */
  
-#include <print.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
@@ -102,8 +101,6 @@ static void udebug_receive_go(call_t *call)
 	thread_t *t;
 	int rc;
 
-	//printf("debug_go()\n");
-
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 
 	rc = udebug_go(t, call);
@@ -118,8 +115,6 @@ static void udebug_receive_stop(call_t *call)
 {
 	thread_t *t;
 	int rc;
-
-	printf("debug_stop()\n");
 
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 

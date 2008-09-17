@@ -39,7 +39,7 @@
 #include <ipc/ipcrsc.h>
 #include <arch.h>
 #include <errno.h>
-#include <print.h>
+#include <debug.h>
 #include <udebug/udebug_ipc.h>
 #include <ipc/ipc_kbox.h>
 
@@ -65,10 +65,10 @@ void ipc_kbox_cleanup(void)
 	ipc_answerbox_slam_phones(&TASK->kernel_box, have_kb_thread);
 	
 	if (have_kb_thread) {
-		printf("join kb_thread..\n");
+		LOG("join kb_thread..\n");
 		thread_join(TASK->kb_thread);
 		thread_detach(TASK->kb_thread);
-		printf("join done\n");
+		LOG("join done\n");
 		TASK->kb_thread = NULL;
 	}
 
@@ -88,11 +88,10 @@ static void kbox_thread_proc(void *arg)
 	ipl_t ipl;
 
 	(void)arg;
-	printf("kbox_thread_proc()\n");
+	LOG("kbox_thread_proc()\n");
 	done = false;
 
 	while (!done) {
-		//printf("kbox: wait for call\n");
 		call = ipc_wait_for_call(&TASK->kernel_box, SYNCH_NO_TIMEOUT,
 			SYNCH_FLAGS_NONE);
 
@@ -104,22 +103,22 @@ static void kbox_thread_proc(void *arg)
 			}
 
 			if (method == IPC_M_PHONE_HUNGUP) {
-				printf("kbox: handle hangup message\n");
+				LOG("kbox: handle hangup message\n");
 
 				/* Was it our debugger, who hung up? */
 				if (call->sender == TASK->udebug.debugger) {
 					/* Terminate debugging session (if any) */
-					printf("kbox: terminate debug session\n");
+					LOG("kbox: terminate debug session\n");
 					ipl = interrupts_disable();
 					spinlock_lock(&TASK->lock);
 					udebug_task_cleanup(TASK);
 					spinlock_unlock(&TASK->lock);
 					interrupts_restore(ipl);
 				} else {
-					printf("kbox: was not debugger\n");
+					LOG("kbox: was not debugger\n");
 				}
 
-				printf("kbox: continue with hangup message\n");
+				LOG("kbox: continue with hangup message\n");
 				IPC_SET_RETVAL(call->data, 0);
 				ipc_answer(&TASK->kernel_box, call);
 
@@ -130,7 +129,7 @@ static void kbox_thread_proc(void *arg)
 					/* Last phone has been disconnected */
 					TASK->kb_thread = NULL;
 					done = true;
-					printf("phone list is empty\n");
+					LOG("phone list is empty\n");
 				}
 				spinlock_unlock(&TASK->answerbox.lock);
 				spinlock_unlock(&TASK->lock);
@@ -139,7 +138,7 @@ static void kbox_thread_proc(void *arg)
 		}
 	}
 
-	printf("kbox: finished\n");
+	LOG("kbox: finished\n");
 }
 
 

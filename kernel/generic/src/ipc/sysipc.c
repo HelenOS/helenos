@@ -45,7 +45,6 @@
 #include <ipc/ipc_kbox.h>
 #include <udebug/udebug_ipc.h>
 #include <arch/interrupt.h>
-#include <print.h>
 #include <syscall/copy.h>
 #include <security/cap.h>
 #include <mm/as.h>
@@ -899,7 +898,7 @@ unative_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg)
 	if (rc != 0)
 		return (unative_t) rc;
 
-	printf("sys_ipc_connect_kbox(%lld, %d)\n", taskid_arg.value);
+	LOG("sys_ipc_connect_kbox(%" PRIu64 ")\n", taskid_arg.value);
 
 	return ipc_connect_kbox(taskid_arg.value);
 #else
