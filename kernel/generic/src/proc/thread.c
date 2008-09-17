@@ -180,6 +180,10 @@ static int thr_constructor(void *obj, int kmflags)
 		return -1;
 	}
 
+#ifdef CONFIG_UDEBUG
+	mutex_initialize(&t->udebug.lock, MUTEX_PASSIVE);
+#endif
+
 	return 0;
 }
 
@@ -347,6 +351,11 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	avltree_node_initialize(&t->threads_tree_node);
 	t->threads_tree_node.key = (uintptr_t) t;
 
+#ifdef CONFIG_UDEBUG
+	/* Init debugging stuff */
+	udebug_thread_initialize(&t->udebug);
+#endif
+
 	/* might depend on previous initialization */
 	thread_create_arch(t);	
 
@@ -409,12 +418,17 @@ void thread_attach(thread_t *t, task_t *task)
 	ipl_t ipl;
 
 	/*
-	 * Attach to the current task.
+	 * Attach to the specified task.
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&task->lock);
+
 	atomic_inc(&task->refcount);
-	atomic_inc(&task->lifecount);
+
+	/* Must not count kbox thread into lifecount */
+	if (t->flags & THREAD_FLAG_USPACE)
+		atomic_inc(&task->lifecount);
+
 	list_append(&t->th_link, &task->th_head);
 	spinlock_unlock(&task->lock);
 
@@ -437,14 +451,19 @@ void thread_exit(void)
 {
 	ipl_t ipl;
 
-	if (atomic_predec(&TASK->lifecount) == 0) {
-		/*
-		 * We are the last thread in the task that still has not exited.
-		 * With the exception of the moment the task was created, new
-		 * threads can only be created by threads of the same task.
-		 * We are safe to perform cleanup.
-		 */
-		if (THREAD->flags & THREAD_FLAG_USPACE) {
+	if (THREAD->flags & THREAD_FLAG_USPACE) {
+#ifdef CONFIG_UDEBUG
+		/* Generate udebug THREAD_E event */
+		udebug_thread_e_event();
+#endif
+		if (atomic_predec(&TASK->lifecount) == 0) {
+			/*
+			 * We are the last userspace thread in the task that
+			 * still has not exited. With the exception of the
+			 * moment the task was created, new userspace threads
+			 * can only be created by threads of the same task.
+			 * We are safe to perform cleanup.
+			 */
 			ipc_cleanup();
 			futex_cleanup();
 			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
@@ -740,6 +759,11 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		}
 		thread_attach(t, TASK);
 		thread_ready(t);
+
+#ifdef CONFIG_UDEBUG
+		/* Generate udebug THREAD_B event */
+		udebug_thread_b_event(t);
+#endif
 
 		return 0;
 	} else

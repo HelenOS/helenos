@@ -42,6 +42,8 @@
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
+#include <ipc/ipc_kbox.h>
+#include <udebug/udebug_ipc.h>
 #include <arch/interrupt.h>
 #include <print.h>
 #include <syscall/copy.h>
@@ -295,10 +297,11 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 /** Called before the request is sent.
  *
  * @param call		Call structure with the request.
+ * @param phone		Phone that the call will be sent through.
  *
  * @return 		Return 0 on success, ELIMIT or EPERM on error.
  */
-static int request_preprocess(call_t *call)
+static int request_preprocess(call_t *call, phone_t *phone)
 {
 	int newphid;
 	size_t size;
@@ -340,6 +343,10 @@ static int request_preprocess(call_t *call)
 			return rc;
 		}
 		break;
+#ifdef CONFIG_UDEBUG
+	case IPC_M_DEBUG_ALL:
+		return udebug_request_preprocess(call, phone);
+#endif
 	default:
 		break;
 	}
@@ -369,6 +376,7 @@ static void process_answer(call_t *call)
 
 	if (call->buffer) {
 		/* This must be an affirmative answer to IPC_M_DATA_READ. */
+		/* or IPC_M_DEBUG_ALL/UDEBUG_M_MEM_READ... */
 		uintptr_t dst = IPC_GET_ARG1(call->data);
 		size_t size = IPC_GET_ARG2(call->data);
 		int rc = copy_to_uspace((void *) dst, call->buffer, size);
@@ -399,7 +407,13 @@ static int process_request(answerbox_t *box, call_t *call)
 			return -1;
 		}
 		IPC_SET_ARG5(call->data, phoneid);
-	} 
+	}
+	switch (IPC_GET_METHOD(call->data)) {
+	case IPC_M_DEBUG_ALL:
+		return -1;
+	default:
+		break;
+	}
 	return 0;
 }
 
@@ -441,7 +455,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	IPC_SET_ARG4(call.data, 0);
 	IPC_SET_ARG5(call.data, 0);
 
-	if (!(res = request_preprocess(&call))) {
+	if (!(res = request_preprocess(&call, phone))) {
 		rc = ipc_call_sync(phone, &call);
 		if (rc != EOK)
 			return rc;
@@ -481,7 +495,7 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	if (!(res = request_preprocess(&call))) {
+	if (!(res = request_preprocess(&call, phone))) {
 		rc = ipc_call_sync(phone, &call);
 		if (rc != EOK)
 			return rc;
@@ -550,7 +564,7 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	 */
 	IPC_SET_ARG5(call->data, 0);
 
-	if (!(res = request_preprocess(call)))
+	if (!(res = request_preprocess(call, phone)))
 		ipc_call(phone, call);
 	else
 		ipc_backsend_err(phone, call, res);
@@ -584,7 +598,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 		ipc_call_free(call);
 		return (unative_t) rc;
 	}
-	if (!(res = request_preprocess(call)))
+	if (!(res = request_preprocess(call, phone)))
 		ipc_call(phone, call);
 	else
 		ipc_backsend_err(phone, call, res);
@@ -866,6 +880,31 @@ unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
 	ipc_irq_unregister(&TASK->answerbox, inr, devno);
 
 	return 0;
+}
+
+#include <console/console.h>
+
+/**
+ * Syscall connect to a task by id.
+ *
+ * @return 		Phone id on success, or negative error code.
+ */
+unative_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg)
+{
+#ifdef CONFIG_UDEBUG
+	sysarg64_t taskid_arg;
+	int rc;
+	
+	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	if (rc != 0)
+		return (unative_t) rc;
+
+	printf("sys_ipc_connect_kbox(%lld, %d)\n", taskid_arg.value);
+
+	return ipc_connect_kbox(taskid_arg.value);
+#else
+	return (unative_t) ENOTSUP;
+#endif
 }
 
 /** @}

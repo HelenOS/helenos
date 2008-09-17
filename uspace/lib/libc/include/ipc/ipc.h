@@ -288,6 +288,10 @@ extern int ipc_data_write_start(int phoneid, void *src, size_t size);
 extern int ipc_data_write_receive(ipc_callid_t *callid, size_t *size);
 extern int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size);
 
+#include <task.h>
+
+extern int ipc_connect_kbox(task_id_t id);
+
 #endif
 
 /** @}

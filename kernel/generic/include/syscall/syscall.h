@@ -78,6 +78,7 @@ typedef enum {
 	SYS_SYSINFO_VALUE,
 	
 	SYS_DEBUG_ENABLE_CONSOLE,
+	SYS_IPC_CONNECT_KBOX,
 	SYSCALL_END
 } syscall_t;
 

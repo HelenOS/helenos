@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup trace
  * @{
  */
-
-/**
- * @file
- * @brief	Userspace bootstrap thread.
- *
- * This file contains uinit kernel thread wich is used to start every
- * userspace thread including threads created by SYS_THREAD_CREATE syscall.
- *
- * @see SYS_THREAD_CREATE
+/** @file
  */
- 
-#include <main/uinit.h>
-#include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <arch.h>
-#include <udebug/udebug.h>
 
+#include <errno.h>
+#include "errors.h"
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack
- *     addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
+const err_desc_t err_desc[] = {
+	[-EOK]		= { "EOK",		"No error" },
+	[-ENOENT]	= { "ENOENT",		"No such entry" },
+	[-ENOMEM]	= { "ENOMEM",		"Not enough memory" },
+	[-ELIMIT]	= { "ELIMIT",		"Limit exceeded" },
+	[-EREFUSED]	= { "EREFUSED",		"Connection refused" },
 
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
+	[-EFORWARD]	= { "EFORWARD",		"Forward error" },
+	[-EPERM]	= { "EPERM",		"Permission denied" },
+	[-EHANGUP]	= { "EHANGUP",		"Answerbox closed connection" },
+	[-EEXISTS]	= { "EEXISTS",		"Entry already exists" },
+	[-EBADMEM]	= { "EBADMEM",		"Bad memory pointer" },
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
-#endif
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
+	[-ENOTSUP]	= { "ENOTSUP",		"Not supported" },
+	[-EADDRNOTAVAIL] = { "EADDRNOTAVAIL", 	"Address not available." },
+	[-ETIMEOUT]	= { "ETIMEOUT",		"Timeout expired" },
+	[-EINVAL]	= { "EINVAL",		"Invalid value" },
+	[-EBUSY]	= { "EBUSY",		"Resource is busy" },
 
-	free((uspace_arg_t *) arg);
-	userspace(&uarg);
-}
+	[-EOVERFLOW]	= { "EOVERFLOW",	"The result does not fit its size." }
+};
 
 /** @}
  */

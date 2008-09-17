@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup genericipc
  * @{
  */
-
-/**
- * @file
- * @brief	Userspace bootstrap thread.
- *
- * This file contains uinit kernel thread wich is used to start every
- * userspace thread including threads created by SYS_THREAD_CREATE syscall.
- *
- * @see SYS_THREAD_CREATE
+/** @file
  */
- 
-#include <main/uinit.h>
-#include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <arch.h>
-#include <udebug/udebug.h>
 
+#ifndef KERN_IPC_KBOX_H_
+#define KERN_IPC_KBOX_H_
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack
- *     addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
+#include <typedefs.h>
 
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
+extern int ipc_connect_kbox(task_id_t);
+extern void ipc_kbox_cleanup(void);
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
 #endif
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
-
-	free((uspace_arg_t *) arg);
-	userspace(&uarg);
-}
 
 /** @}
  */

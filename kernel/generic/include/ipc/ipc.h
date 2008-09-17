@@ -195,6 +195,12 @@
  */
 #define IPC_M_DATA_READ		7
 
+/** Debug the recipient.
+ * - ARG1 - specifies the debug method (from udebug_method_t)
+ * - other arguments are specific to the debug method
+ */
+#define IPC_M_DEBUG_ALL		8
+
 /* Well-known methods */
 #define IPC_M_LAST_SYSTEM	511
 #define IPC_M_PING		512
@@ -307,6 +313,8 @@ extern void ipc_cleanup(void);
 extern int ipc_phone_hangup(phone_t *);
 extern void ipc_backsend_err(phone_t *, call_t *, unative_t);
 extern void ipc_print_task(task_id_t);
+extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
+extern void ipc_cleanup_call_list(link_t *);
 
 extern answerbox_t *ipc_phone_0;
 

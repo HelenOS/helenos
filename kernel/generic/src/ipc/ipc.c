@@ -43,6 +43,7 @@
 #include <synch/waitq.h>
 #include <synch/synch.h>
 #include <ipc/ipc.h>
+#include <ipc/ipc_kbox.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>
@@ -51,6 +52,7 @@
 #include <debug.h>
 
 #include <print.h>
+#include <console/console.h>
 #include <proc/thread.h>
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
@@ -427,7 +429,7 @@ restart:
  *
  * @param lst		Head of the list to be cleaned up.
  */
-static void ipc_cleanup_call_list(link_t *lst)
+void ipc_cleanup_call_list(link_t *lst)
 {
 	call_t *call;
 
@@ -442,6 +444,73 @@ static void ipc_cleanup_call_list(link_t *lst)
 	}
 }
 
+/** Disconnects all phones connected to an answerbox.
+ *
+ * @param box		Answerbox to disconnect phones from.
+ * @param notify_box	If true, the answerbox will get a hangup message for
+ *			each disconnected phone.
+ */
+void ipc_answerbox_slam_phones(answerbox_t *box, bool notify_box)
+{
+	phone_t *phone;
+	DEADLOCK_PROBE_INIT(p_phonelck);
+	ipl_t ipl;
+	call_t *call;
+
+	call = notify_box ? ipc_call_alloc(0) : NULL;
+
+	/* Disconnect all phones connected to our answerbox */
+restart_phones:
+	ipl = interrupts_disable();
+	spinlock_lock(&box->lock);
+	while (!list_empty(&box->connected_phones)) {
+		phone = list_get_instance(box->connected_phones.next,
+		    phone_t, link);
+		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
+			spinlock_unlock(&box->lock);
+			interrupts_restore(ipl);
+			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
+			goto restart_phones;
+		}
+		
+		/* Disconnect phone */
+		ASSERT(phone->state == IPC_PHONE_CONNECTED);
+
+		list_remove(&phone->link);
+		phone->state = IPC_PHONE_SLAMMED;
+
+		if (notify_box) {
+			mutex_unlock(&phone->lock);
+			spinlock_unlock(&box->lock);
+			interrupts_restore(ipl);
+
+			/*
+			 * Send one message to the answerbox for each
+			 * phone. Used to make sure the kbox thread
+			 * wakes up after the last phone has been
+			 * disconnected.
+			 */
+			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+			call->flags |= IPC_CALL_DISCARD_ANSWER;
+			_ipc_call(phone, box, call);
+
+			/* Allocate another call in advance */
+			call = ipc_call_alloc(0);
+
+			/* Must start again */
+			goto restart_phones;
+		}
+
+		mutex_unlock(&phone->lock);
+	}
+
+	spinlock_unlock(&box->lock);
+	interrupts_restore(ipl);
+
+	/* Free unused call */
+	if (call) ipc_call_free(call);
+}
+
 /** Cleans up all IPC communication of the current task.
  *
  * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
@@ -451,8 +520,6 @@ void ipc_cleanup(void)
 {
 	int i;
 	call_t *call;
-	phone_t *phone;
-	DEADLOCK_PROBE_INIT(p_phonelck);
 
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i = 0; i < IPC_MAX_PHONES; i++)
@@ -461,27 +528,16 @@ void ipc_cleanup(void)
 	/* Disconnect all connected irqs */
 	ipc_irq_cleanup(&TASK->answerbox);
 
-	/* Disconnect all phones connected to our answerbox */
-restart_phones:
-	spinlock_lock(&TASK->answerbox.lock);
-	while (!list_empty(&TASK->answerbox.connected_phones)) {
-		phone = list_get_instance(TASK->answerbox.connected_phones.next,
-		    phone_t, link);
-		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			spinlock_unlock(&TASK->answerbox.lock);
-			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
-			goto restart_phones;
-		}
-		
-		/* Disconnect phone */
-		ASSERT(phone->state == IPC_PHONE_CONNECTED);
-		phone->state = IPC_PHONE_SLAMMED;
-		list_remove(&phone->link);
+	/* Disconnect all phones connected to our regular answerbox */
+	ipc_answerbox_slam_phones(&TASK->answerbox, false);
 
-		mutex_unlock(&phone->lock);
-	}
+#ifdef CONFIG_UDEBUG
+	/* Clean up kbox thread and communications */
+	ipc_kbox_cleanup();
+#endif
 
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
+	spinlock_lock(&TASK->answerbox.lock);
 	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
 	ipc_cleanup_call_list(&TASK->answerbox.calls);
 	spinlock_unlock(&TASK->answerbox.lock);

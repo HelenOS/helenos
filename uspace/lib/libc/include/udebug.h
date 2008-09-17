@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup libc
  * @{
  */
-
-/**
- * @file
- * @brief	Userspace bootstrap thread.
- *
- * This file contains uinit kernel thread wich is used to start every
- * userspace thread including threads created by SYS_THREAD_CREATE syscall.
- *
- * @see SYS_THREAD_CREATE
+/** @file
  */
- 
-#include <main/uinit.h>
-#include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <arch.h>
-#include <udebug/udebug.h>
 
+#ifndef LIBC_UDEBUG_H_
+#define LIBC_UDEBUG_H_
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack
- *     addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
+#include <kernel/udebug/udebug.h>
+#include <sys/types.h>
+#include <libarch/types.h>
 
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
+typedef sysarg_t thash_t;
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
+int udebug_begin(int phoneid);
+int udebug_end(int phoneid);
+int udebug_set_evmask(int phoneid, udebug_evmask_t mask);
+int udebug_thread_read(int phoneid, void *buffer, size_t n,
+	size_t *copied, size_t *needed);
+int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n);
+int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer);
+int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
+	sysarg_t *val0, sysarg_t *val1);
+int udebug_stop(int phoneid, thash_t tid);
+
 #endif
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
-
-	free((uspace_arg_t *) arg);
-	userspace(&uarg);
-}
 
 /** @}
  */

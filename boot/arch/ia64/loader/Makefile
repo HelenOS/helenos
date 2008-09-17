@@ -101,6 +101,7 @@ COMPONENTS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

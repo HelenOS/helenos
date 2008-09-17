@@ -150,6 +150,10 @@ ifeq ($(CONFIG_FB),y)
 	endif
 endif
 
+ifeq ($(CONFIG_UDEBUG),y)
+	DEFS += -DCONFIG_UDEBUG
+endif
+
 ## Simple detection for the type of the host system
 #
 HOST = $(shell uname)
@@ -282,6 +286,17 @@ GENERIC_SOURCES = \
 	generic/src/ipc/irq.c \
 	generic/src/security/cap.c \
 	generic/src/sysinfo/sysinfo.c
+
+## Udebug interface sources
+#
+
+ifeq ($(CONFIG_UDEBUG),y)
+GENERIC_SOURCES += \
+	generic/src/ipc/ipc_kbox.c \
+	generic/src/udebug/udebug.c \
+	generic/src/udebug/udebug_ops.c \
+	generic/src/udebug/udebug_ipc.c
+endif
 
 ## Test sources
 #

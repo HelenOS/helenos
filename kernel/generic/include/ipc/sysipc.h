@@ -57,6 +57,7 @@ unative_t sys_ipc_hangup(int phoneid);
 unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
     irq_code_t *ucode);
 unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno);
+unative_t sys_ipc_connect_kbox(sysarg64_t *task_id);
 
 #endif
 

@@ -46,6 +46,7 @@
 #include <arch/cpu.h>
 #include <mm/tlb.h>
 #include <proc/uarg.h>
+#include <udebug/udebug.h>
 
 #define THREAD_STACK_SIZE	STACK_SIZE
 #define THREAD_NAME_BUFLEN	20
@@ -203,6 +204,12 @@ typedef struct thread {
 
 	/** Thread's kernel stack. */
 	uint8_t *kstack;
+
+#ifdef CONFIG_UDEBUG
+	/** Debugging stuff */
+	udebug_thread_t udebug;
+#endif
+
 } thread_t;
 
 /** Thread list lock.

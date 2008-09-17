@@ -26,72 +26,53 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include Makefile.config
+LIBC_PREFIX = ../../lib/libc
+SOFTINT_PREFIX = ../../lib/softint
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/softint \
-	lib/softfloat \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/rd \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/bdsh
+CFLAGS += -I../../srv/kbd/include
 
-ifeq ($(ARCH), amd64)
-	DIRS += srv/pci
-endif
+LIBS = $(LIBC_PREFIX)/libc.a
 
-ifeq ($(ARCH), ia32)
-	DIRS += srv/pci
-endif
+## Sources
+#
 
-ifeq ($(ARCH), mips32)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+OUTPUT = trace
+SOURCES = trace.c \
+	syscalls.c \
+	ipcp.c \
+	ipc_desc.c \
+	proto.c \
+	errors.c
 
-ifeq ($(ARCH), mips32eb)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+.PHONY: all clean depend disasm
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+all: $(OUTPUT) disasm
 
-all:
-	../tools/config.py uspace.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG)
-	$(MAKE) -C . build
+-include Makefile.depend
 
-config:
-	../tools/config.py uspace.config
+clean:
+	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
 
-build: $(BUILDS)
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-clean: $(CLEANS)
-	find $(DIRS) -name '*.o' -follow -exec rm \{\} \;
-	find lib/libc -name "_link.ld" -exec rm \{\} \;
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-distclean: clean
-	-rm Makefile.config
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
 
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean ARCH=$(ARCH)
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all ARCH=$(ARCH) COMPILER=$(COMPILER)
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

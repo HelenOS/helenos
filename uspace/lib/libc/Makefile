@@ -78,6 +78,7 @@ GENERIC_SOURCES = \
 	generic/err.c \
 	generic/stdlib.c \
 	generic/mman.c \
+	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c
 

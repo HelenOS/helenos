@@ -155,7 +155,18 @@ task_t *task_create(as_t *as, char *name)
 
 	ta->capabilities = 0;
 	ta->cycles = 0;
-	
+
+#ifdef CONFIG_UDEBUG
+	/* Init debugging stuff */
+	udebug_task_init(&ta->udebug);
+
+	/* Init kbox stuff */
+	ipc_answerbox_init(&ta->kernel_box, ta);
+	ta->kb_thread = NULL;
+	mutex_initialize(&ta->kb_cleanup_lock, MUTEX_PASSIVE);
+	ta->kb_finished = false;
+#endif
+
 	ipc_answerbox_init(&ta->answerbox, ta);
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_init(&ta->phones[i]);

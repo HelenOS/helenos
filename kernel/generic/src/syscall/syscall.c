@@ -53,6 +53,7 @@
 #include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
+#include <udebug/udebug.h>
 
 /** Print using kernel facility
  *
@@ -101,9 +102,16 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 {
 	unative_t rc;
 
-	if (id < SYSCALL_END)
+#ifdef CONFIG_UDEBUG
+	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
+#endif
+
+	if (id < SYSCALL_END) {	
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_begin();
+#endif
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
-	else {
+	} else {
 		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
 		task_kill(TASK->taskid);
 		thread_exit();
@@ -111,6 +119,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		
 	if (THREAD->interrupted)
 		thread_exit();
+
+#ifdef CONFIG_UDEBUG
+	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
+	udebug_stoppable_end();
+#endif
 	
 	return rc;
 }
@@ -165,7 +178,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_sysinfo_value,
 	
 	/* Debug calls */
-	(syshandler_t) sys_debug_enable_console
+	(syshandler_t) sys_debug_enable_console,
+
+	(syshandler_t) sys_ipc_connect_kbox
 };
 
 /** @}

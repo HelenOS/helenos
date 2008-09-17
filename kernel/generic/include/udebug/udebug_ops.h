@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup generic	
  * @{
  */
-
-/**
- * @file
- * @brief	Userspace bootstrap thread.
- *
- * This file contains uinit kernel thread wich is used to start every
- * userspace thread including threads created by SYS_THREAD_CREATE syscall.
- *
- * @see SYS_THREAD_CREATE
+/** @file
  */
- 
-#include <main/uinit.h>
-#include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <arch.h>
-#include <udebug/udebug.h>
 
+#ifndef KERN_UDEBUG_OPS_H_
+#define KERN_UDEBUG_OPS_H_
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack
- *     addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
+#include <ipc/ipc.h>
 
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
+int udebug_begin(call_t *call);
+int udebug_end(void);
+int udebug_set_evmask(udebug_evmask_t mask);
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
+int udebug_go(thread_t *t, call_t *call);
+int udebug_stop(thread_t *t, call_t *call);
+
+int udebug_thread_read(void **buffer, size_t buf_size, size_t *n);
+int udebug_args_read(thread_t *t, void **buffer);
+
+int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer);
+
 #endif
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
-
-	free((uspace_arg_t *) arg);
-	userspace(&uarg);
-}
 
 /** @}
  */
