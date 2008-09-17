@@ -75,6 +75,14 @@ static int task_connect(task_id_t task_id)
 	printf("ipc_connect_task(%lld)... ", task_id);
 	rc = ipc_connect_kbox(task_id);
 	printf("-> %d\n", rc);
+
+	if (rc == ENOTSUP) {
+		printf("You do not have userspace debugging support "
+		    "compiled in the kernel.\n");
+		printf("Compile kernel with 'Support for userspace debuggers' "
+		    "(CONFIG_UDEBUG) enabled.\n");
+	}
+
 	phoneid = rc;
 	if (rc < 0) return rc;
 
