@@ -58,6 +58,7 @@ void proto_cleanup(void);
 void proto_register(int srv, proto_t *proto);
 proto_t *proto_get_by_srv(int srv);
 proto_t *proto_new(char *name);
+void proto_delete(proto_t *proto);
 void proto_add_oper(proto_t *proto, int method, oper_t *oper);
 oper_t *proto_get_oper(proto_t *proto, int method);
 

@@ -63,6 +63,12 @@ int have_conn[MAX_PHONE];
 #define PCALL_TABLE_CHAINS 32
 hash_table_t pending_calls;
 
+/*
+ * Pseudo-protocols
+ */
+proto_t *proto_system;		/**< Protocol describing system IPC methods. */
+proto_t	*proto_unknown;		/**< Protocol with no known methods. */
+
 static hash_index_t pending_call_hash(unsigned long key[]);
 static int pending_call_compare(unsigned long key[], hash_count_t keys,
     link_t *item);
@@ -115,26 +121,19 @@ void ipcp_connection_clear(int phone)
 
 static void ipc_m_print(proto_t *proto, ipcarg_t method)
 {
-	ipc_m_desc_t *desc;
 	oper_t *oper;
 
-	/* FIXME: too slow */
-	desc = ipc_methods;
-	while (desc->number != 0) {
-		if (desc->number == method) {
-			printf("%s (%d)", desc->name, method);
-			return;
-		}
+	/* Try system methods first */
+	oper = proto_get_oper(proto_system, method);
 
-		++desc;
+	if (oper == NULL && proto != NULL) {
+		/* Not a system method, try the user protocol. */
+		oper = proto_get_oper(proto, method);
 	}
 
-	if (proto != NULL) {
-		oper = proto_get_oper(proto, method);
-		if (oper != NULL) {
-			printf("%s (%d)", oper->name, method);
-			return;
-		}
+	if (oper != NULL) {
+		printf("%s (%d)", oper->name, method);
+		return;
 	}
 
 	printf("%d", method);
@@ -142,11 +141,34 @@ static void ipc_m_print(proto_t *proto, ipcarg_t method)
 
 void ipcp_init(void)
 {
+	ipc_m_desc_t *desc;
+	oper_t *oper;
+
+	/*
+	 * Create a pseudo-protocol 'unknown' that has no known methods.
+	 */
+	proto_unknown = proto_new("unknown");
+
+	/*
+	 * Create a pseudo-protocol 'system' defining names of system IPC
+	 * methods.
+	 */
+	proto_system = proto_new("system");
+
+	desc = ipc_methods;
+	while (desc->number != 0) {
+		oper = oper_new(desc->name);
+		proto_add_oper(proto_system, desc->number, oper);
+
+		++desc;
+	}
+
 	hash_table_create(&pending_calls, PCALL_TABLE_CHAINS, 1, &pending_call_ops);
 }
 
 void ipcp_cleanup(void)
 {
+	proto_delete(proto_system);
 	hash_table_destroy(&pending_calls);
 }
 
@@ -189,7 +211,6 @@ static void parse_answer(pending_call_t *pcall, ipc_call_t *answer)
 	ipcarg_t method;
 	ipcarg_t service;
 	int retval;
-	static proto_t proto_unknown = { .name = "unknown" };
 	proto_t *proto;
 	int cphone;
 
@@ -205,7 +226,7 @@ static void parse_answer(pending_call_t *pcall, ipc_call_t *answer)
 		/* Connected to a service (through NS) */
 		service = IPC_GET_ARG1(pcall->question);
 		proto = proto_get_by_srv(service);
-		if (proto == NULL) proto = &proto_unknown;
+		if (proto == NULL) proto = proto_unknown;
 
 		cphone = IPC_GET_ARG5(*answer);
 		printf("registering connection (phone %d, protocol: %s)\n", cphone,

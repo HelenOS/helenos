@@ -172,6 +172,11 @@ proto_t *proto_new(char *name)
 	return p;
 }
 
+void proto_delete(proto_t *proto)
+{
+	free(proto);
+}
+
 void proto_add_oper(proto_t *proto, int method, oper_t *oper)
 {
 	method_oper_t *mo;
