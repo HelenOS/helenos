@@ -77,6 +77,27 @@ static char **argv = NULL;
 /** Buffer holding all arguments */
 static char *arg_buf = NULL;
 
+static int loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	task_id_t task_id;
+	size_t len;
+
+	task_id = task_get_id();
+
+	if (!ipc_data_read_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (len > sizeof(task_id)) len = sizeof(task_id);
+
+	ipc_data_write_finalize(callid, &task_id, len);
+	ipc_answer_0(rid, EOK);
+}
+
+
 /** Receive a call setting pathname of the program to execute.
  *
  * @param rid
@@ -274,6 +295,9 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 //		printf("received call from phone %d, method=%d\n",
 //			call.in_phone_hash, IPC_GET_METHOD(call));
 		switch (IPC_GET_METHOD(call)) {
+		case LOADER_GET_TASKID:
+			loader_get_taskid(callid, &call);
+			continue;
 		case LOADER_SET_PATHNAME:
 			loader_set_pathname(callid, &call);
 			continue;

@@ -133,6 +133,7 @@ task_id_t task_spawn(const char *path, const char *argv[])
 
 	char *pa;
 	size_t pa_len;
+	task_id_t task_id;
 
 	pa = absolutize(path, &pa_len);
 	if (!pa)
@@ -150,6 +151,18 @@ task_id_t task_spawn(const char *path, const char *argv[])
 	rc = async_req_0_0(phone_id, LOADER_HELLO);
 	if (rc != EOK)
 		return 0;
+
+	/* Get task ID. */
+	req = async_send_0(phone_id, LOADER_GET_TASKID, &answer);
+	rc = ipc_data_read_start(phone_id, &task_id, sizeof(task_id));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		goto error;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		goto error;
 
 	/* Send program pathname */
 	req = async_send_0(phone_id, LOADER_SET_PATHNAME, &answer);
@@ -175,7 +188,7 @@ task_id_t task_spawn(const char *path, const char *argv[])
 
 	/* Success */
 	ipc_hangup(phone_id);
-	return 1;
+	return task_id;
 
 	/* Error exit */
 error:

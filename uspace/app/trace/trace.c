@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <udebug.h>
 #include <async.h>
+#include <task.h>
 
 // Temporary: service and method names
 #include "proto.h"
@@ -128,7 +129,7 @@ static int get_thread_list(void)
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%u)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash 0x%x)", 1+i, thread_hash_buf[i]);
 	}
 	printf("\ntotal of %u threads\n", tb_needed/sizeof(unsigned));
 
@@ -540,7 +541,9 @@ static void main_init(void)
 
 static void print_syntax()
 {
-	printf("Syntax: trace [+<events>] <task_id>\n");
+	printf("Syntax:\n");
+	printf("\ttrace [+<events>] <executable> [<arg1> [...]]\n");
+	printf("or\ttrace [+<events>] -t <task_id>\n");
 	printf("Events: (default is +tp)\n");
 	printf("\n");
 	printf("\tt ... Thread creation and termination\n");
@@ -548,7 +551,9 @@ static void print_syntax()
 	printf("\ti ... Low-level IPC\n");
 	printf("\tp ... Protocol level\n");
 	printf("\n");
-	printf("Example: trace +tsip 12\n");
+	printf("Examples:\n");
+	printf("\ttrace +s /app/tetris\n");
+	printf("\ttrace +tsip -t 12\n");
 }
 
 static display_mask_t parse_display_mask(char *text)
@@ -580,34 +585,56 @@ static int parse_args(int argc, char *argv[])
 	char *arg;
 	char *err_p;
 
+	task_id = 0;
+
 	--argc; ++argv;
 
-	while (argc > 1) {
+	while (argc > 0) {
 		arg = *argv;
 		if (arg[0] == '+') {
 			display_mask = parse_display_mask(&arg[1]);
+		} else if (arg[0] == '-') {
+			if (arg[1] == 't') {
+				/* Trace an already running task */
+				--argc; ++argv;
+				task_id = strtol(*argv, &err_p, 10);
+				if (*err_p) {
+					printf("Task ID syntax error\n");
+					print_syntax();
+					return -1;
+				}
+			} else {
+				printf("Uknown option '%s'\n", arg[0]);
+				print_syntax();
+				return -1;
+			}
 		} else {
-			printf("Unexpected argument '%s'\n", arg);
-			print_syntax();
-			return -1;
+			break;
 		}
 
 		--argc; ++argv;
 	}
 
-	if (argc != 1) {
-		printf("Missing argument\n");
-		print_syntax();
-		return 1;
-	}
-
-	task_id = strtol(*argv, &err_p, 10);
-
-	if (*err_p) {
-		printf("Task ID syntax error\n");
+	if (task_id != 0) {
+		if (argc == 0) return;
+		printf("Extra arguments\n");
 		print_syntax();
 		return -1;
 	}
+
+	if (argc < 1) {
+		printf("Missing argument\n");
+		print_syntax();
+		return -1;
+	}
+
+	/* Execute the specified command and trace the new task. */
+	printf("Spawning '%s' with arguments:\n", *argv);
+	{
+		char **cp = argv;
+		while (*cp) printf("'%s'\n", *cp++);
+	}
+	task_id = task_spawn(*argv, argv);
 
 	return 0;
 }
