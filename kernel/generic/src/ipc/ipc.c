@@ -573,7 +573,8 @@ void ipc_cleanup(void)
 		    (call->flags & IPC_CALL_NOTIF));
 		ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 		
-		atomic_dec(&TASK->active_calls);
+		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
+			atomic_dec(&TASK->active_calls);
 		ipc_call_free(call);
 	}
 }

@@ -822,7 +822,8 @@ restart:
 
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
-		atomic_dec(&TASK->active_calls);
+		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
+			atomic_dec(&TASK->active_calls);
 
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);
