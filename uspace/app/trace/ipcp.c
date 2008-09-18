@@ -46,6 +46,7 @@
 typedef struct {
 	int phone_hash;
 	ipc_call_t question;
+	oper_t *oper;
 
 	int call_hash;
 
@@ -145,6 +146,14 @@ void ipcp_init(void)
 	ipc_m_desc_t *desc;
 	oper_t *oper;
 
+	val_type_t arg_def[OPER_MAX_ARGS] = {
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER		
+	};
+
 	/*
 	 * Create a pseudo-protocol 'unknown' that has no known methods.
 	 */
@@ -158,7 +167,8 @@ void ipcp_init(void)
 
 	desc = ipc_methods;
 	while (desc->number != 0) {
-		oper = oper_new(desc->name);
+		oper = oper_new(desc->name, OPER_MAX_ARGS, arg_def, V_INTEGER,
+			OPER_MAX_ARGS, arg_def);
 		proto_add_oper(proto_system, desc->number, oper);
 
 		++desc;
@@ -179,21 +189,20 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	proto_t *proto;
 	unsigned long key[1];
 	oper_t *oper;
+	ipcarg_t *args;
+	int i;
 
 	if (have_conn[phone]) proto = connections[phone].proto;
 	else proto = NULL;
+
+	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Call ID: 0x%x, phone: %d, proto: %s, method: ", hash,
 			phone, (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_METHOD(*call));
-		printf(" args: (%u, %u, %u, %u, %u)\n",
-		    IPC_GET_ARG1(*call),
-		    IPC_GET_ARG2(*call),
-		    IPC_GET_ARG3(*call),
-		    IPC_GET_ARG4(*call),
-		    IPC_GET_ARG5(*call)
-		);
+		printf(" args: (%u, %u, %u, %u, %u)\n", args[1], args[2],
+		    args[3], args[4], args[5]);
 	}
 
 
@@ -210,14 +219,26 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 			printf("%s(%d).%s", (proto ? proto->name : "n/a"),
 			    phone, (oper ? oper->name : "unknown"));
 
-			printf("(%u, %u, %u, %u, %u)\n",
-			    IPC_GET_ARG1(*call),
-			    IPC_GET_ARG2(*call),
-			    IPC_GET_ARG3(*call),
-			    IPC_GET_ARG4(*call),
-			    IPC_GET_ARG5(*call)
-			);
+			putchar('(');
+			for (i = 1; i <= oper->argc; ++i) {
+				if (i > 1) printf(", ");
+				val_print(args[i], oper->arg_type[i - 1]);
+			}
+			putchar(')');
+
+			if (oper->rv_type == V_VOID && oper->respc == 0) {
+				/*
+				 * No response data (typically the task will
+				 * not be interested in the response).
+				 * We will not display response.
+				 */
+				putchar('.');
+			}
+
+			putchar('\n');
 		}
+	} else {
+		oper = NULL;
 	}
 
 	/* Store call in hash table for response matching */
@@ -226,6 +247,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	pcall->phone_hash = phone;
 	pcall->question = *call;
 	pcall->call_hash = hash;
+	pcall->oper = oper;
 
 	key[0] = hash;
 
@@ -242,11 +264,17 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	proto_t *proto;
 	int cphone;
 
+	ipcarg_t *resp;
+	oper_t *oper;
+	int i;
+
 //	printf("parse_answer\n");
 
 	phone = pcall->phone_hash;
 	method = IPC_GET_METHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
+
+	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Response to 0x%x: retval=%d, args = (%u, %u, %u, %u, %u)\n",
@@ -256,7 +284,28 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	}
 
 	if ((display_mask & DM_USER) != 0) {
-		printf("-> %d\n", retval);
+		oper = pcall->oper;
+
+		if (oper->rv_type != V_VOID || oper->respc > 0) {
+			printf("->");
+
+			if (oper->rv_type != V_VOID) {
+				putchar(' ');
+				val_print(retval, oper->rv_type);
+			}
+			
+			if (oper->respc > 0) {
+				putchar(' ');
+				putchar('(');
+				for (i = 1; i <= oper->respc; ++i) {
+					if (i > 1) printf(", ");
+					val_print(resp[i], oper->resp_type[i - 1]);
+				}
+				putchar(')');
+			}
+
+			putchar('\n');
+		}
 	}
 
 	if (phone == 0 && method == IPC_M_CONNECT_ME_TO && retval == 0) {

@@ -136,30 +136,63 @@ static int get_thread_list(void)
 	return 0;
 }
 
-static void print_sc_retval(int retval, rv_type_t rv_type)
+void val_print(int val, val_type_t v_type)
 {
-	printf (" -> ");
-	if (rv_type == RV_INTEGER) {
-		printf("%d", retval);
-	} else if (rv_type == RV_HASH) {
-		printf("0x%08x", retval);
-	} else if (rv_type == RV_ERRNO) {
-		if (retval >= -15 && retval <= 0) {
-			printf("%d %s (%s)", retval,
-			    err_desc[retval].name,
-			    err_desc[retval].desc);
+	switch (v_type) {
+	case V_VOID:
+		printf("<void>");
+		break;
+
+	case V_INTEGER:
+		printf("%d", val);
+		break;
+
+	case V_HASH:
+		printf("0x%08x", val);
+		break;
+
+	case V_ERRNO:
+		if (val >= -15 && val <= 0) {
+			printf("%d %s (%s)", val,
+			    err_desc[-val].name,
+			    err_desc[-val].desc);
 		} else {
-			printf("%d", retval);
+			printf("%d", val);
 		}
-	} else if (rv_type == RV_INT_ERRNO) {
-		if (retval >= -15 && retval < 0) {
-			printf("%d %s (%s)", retval,
-			    err_desc[retval].name,
-			    err_desc[retval].desc);
+		break;
+	case V_INT_ERRNO:
+		if (val >= -15 && val < 0) {
+			printf("%d %s (%s)", val,
+			    err_desc[-val].name,
+			    err_desc[-val].desc);
 		} else {
-			printf("%d", retval);
+			printf("%d", val);
 		}
+		break;
+
+	case V_CHAR:
+		if (val >= 0x20 && val < 0x7f) {
+			printf("'%c'", val);
+		} else {
+			switch (val) {
+			case '\a': printf("'\\a'"); break;
+			case '\b': printf("'\\b'"); break;
+			case '\n': printf("'\\n'"); break;
+			case '\r': printf("'\\r'"); break;
+			case '\t': printf("'\\t'"); break;
+			case '\\': printf("'\\\\'"); break;
+			default: printf("'\\x%X'"); break;
+			}
+		}
+		break;
 	}
+}
+
+
+static void print_sc_retval(int retval, val_type_t val_type)
+{
+	printf(" -> ");
+	val_print(retval, val_type);
 	putchar('\n');
 }
 
@@ -169,7 +202,7 @@ static void print_sc_args(unsigned *sc_args, int n)
 
 	putchar('(');
 	if (n > 0) printf("%d", sc_args[0]);
-	for (i=1; i<n; i++) {
+	for (i = 1; i < n; i++) {
 		printf(", %d", sc_args[i]);
 	}
 	putchar(')');
@@ -496,44 +529,67 @@ static void main_init(void)
 	proto_t *p;
 	oper_t *o;
 
+	val_type_t arg_def[OPER_MAX_ARGS] = {
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER		
+	};
+
+	val_type_t resp_def[OPER_MAX_ARGS] = {
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER,
+		V_INTEGER		
+	};
+
 	next_thread_id = 1;
 	paused = 0;
 
 	proto_init();
 
 	p = proto_new("vfs");
-	o = oper_new("read");
+	o = oper_new("read", 1, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_READ, o);
-	o = oper_new("write");
+	o = oper_new("write", 1, arg_def, V_ERRNO, 1, resp_def);
 	proto_add_oper(p, VFS_WRITE, o);
-	o = oper_new("truncate");
+	o = oper_new("truncate", 5, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_TRUNCATE, o);
-	o = oper_new("mount");
+	o = oper_new("mount", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_MOUNT, o);
-	o = oper_new("unmount");
-	proto_add_oper(p, VFS_UNMOUNT, o);
+/*	o = oper_new("unmount", 0, arg_def);
+	proto_add_oper(p, VFS_UNMOUNT, o);*/
 
 	proto_register(SERVICE_VFS, p);
 
 	p = proto_new("console");
-	o = oper_new("getchar");
+	resp_def[0] = V_CHAR;
+	o = oper_new("getchar", 0, arg_def, V_INTEGER, 2, resp_def);
 	proto_add_oper(p, CONSOLE_GETCHAR, o);
-	o = oper_new("putchar");
+
+	arg_def[0] = V_CHAR;
+	o = oper_new("putchar", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_PUTCHAR, o);
-	o = oper_new("clear");
+	o = oper_new("clear", 0, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CLEAR, o);
-	o = oper_new("goto");
+
+	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
+	o = oper_new("goto", 2, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_GOTO, o);
-	o = oper_new("getsize");
+
+	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
+	o = oper_new("getsize", 0, arg_def, V_INTEGER, 2, resp_def);
 	proto_add_oper(p, CONSOLE_GETSIZE, o);
-	o = oper_new("flush");
+	o = oper_new("flush", 0, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_FLUSH, o);
-	o = oper_new("set_style");
+
+	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
+	o = oper_new("set_style", 2, arg_def, V_INTEGER, 0, resp_def);
 	proto_add_oper(p, CONSOLE_SET_STYLE, o);
-	o = oper_new("cursor_visibility");
+	o = oper_new("cursor_visibility", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CURSOR_VISIBILITY, o);
-	o = oper_new("flush");
-	proto_add_oper(p, CONSOLE_FLUSH, o);
 
 	proto_console = p;
 	proto_register(SERVICE_CONSOLE, p);

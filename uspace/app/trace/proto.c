@@ -37,6 +37,7 @@
 #include <ipc/ipc.h>
 #include <libadt/hash_table.h>
 
+#include "trace.h"
 #include "proto.h"
 
 #define SRV_PROTO_TABLE_CHAINS 32
@@ -209,12 +210,24 @@ static void oper_struct_init(oper_t *oper, char *name)
 	oper->name = name;
 }
 
-oper_t *oper_new(char *name)
+oper_t *oper_new(char *name, int argc, val_type_t *arg_types,
+    val_type_t rv_type, int respc, val_type_t *resp_types)
 {
 	oper_t *o;
+	int i;
 
 	o = malloc(sizeof(oper_t));
 	oper_struct_init(o, name);
+
+	o->argc = argc;
+	for (i = 0; i < argc; i++)
+		o->arg_type[i] = arg_types[i];
+
+	o->rv_type = rv_type;
+
+	o->respc = respc;
+	for (i = 0; i < respc; i++)
+		o->resp_type[i] = resp_types[i];
 
 	return o;
 }

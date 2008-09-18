@@ -48,8 +48,20 @@ typedef enum {
 
 } display_mask_t;
 
+typedef enum {
+	V_VOID,
+	V_INTEGER,
+	V_PTR,
+	V_HASH,
+	V_ERRNO,
+	V_INT_ERRNO,
+	V_CHAR
+} val_type_t;
+
 /** Combination of events to print. */
 extern display_mask_t display_mask;
+
+void val_print(int val, val_type_t v_type);
 
 #endif
 

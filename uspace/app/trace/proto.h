@@ -36,9 +36,21 @@
 #define PROTO_H_
 
 #include <libadt/hash_table.h>
+#include <ipc/ipc.h>
+#include "trace.h"
+
+#define OPER_MAX_ARGS (IPC_CALL_LEN - 1)
 
 typedef struct {
 	char *name;
+
+	int argc;
+	val_type_t arg_type[OPER_MAX_ARGS];
+
+	val_type_t rv_type;
+
+	int respc;
+	val_type_t resp_type[OPER_MAX_ARGS];
 } oper_t;
 
 typedef struct {
@@ -62,7 +74,9 @@ void proto_delete(proto_t *proto);
 void proto_add_oper(proto_t *proto, int method, oper_t *oper);
 oper_t *proto_get_oper(proto_t *proto, int method);
 
-oper_t *oper_new(char *name);
+oper_t *oper_new(char *name, int argc, val_type_t *arg_types,
+    val_type_t rv_type, int respc, val_type_t *resp_types);
+
 
 
 #endif

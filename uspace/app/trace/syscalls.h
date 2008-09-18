@@ -35,17 +35,10 @@
 #ifndef SYSCALLS_H_
 #define SYSCALLS_H_
 
-typedef enum {
-	RV_INTEGER,
-	RV_HASH,
-	RV_ERRNO,
-	RV_INT_ERRNO
-} rv_type_t;
-
 typedef struct {
 	char *name;
 	int n_args;
-	rv_type_t rv_type;
+	val_type_t rv_type;
 } sc_desc_t;
 
 extern const sc_desc_t syscall_desc[];
