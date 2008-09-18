@@ -398,17 +398,17 @@ static cmd_info_t zones_info = {
 	.argc = 0
 };
 
-/* Data and methods for 'ipc_task' command */
-static int cmd_ipc_task(cmd_arg_t *argv);
-static cmd_arg_t ipc_task_argv = {
+/* Data and methods for 'ipc' command */
+static int cmd_ipc(cmd_arg_t *argv);
+static cmd_arg_t ipc_argv = {
 	.type = ARG_TYPE_INT,
 };
-static cmd_info_t ipc_task_info = {
-	.name = "ipc_task",
-	.description = "ipc_task <taskid> Show IPC information of given task.",
-	.func = cmd_ipc_task,
+static cmd_info_t ipc_info = {
+	.name = "ipc",
+	.description = "ipc <taskid> Show IPC information of given task.",
+	.func = cmd_ipc,
 	.argc = 1,
-	.argv = &ipc_task_argv
+	.argv = &ipc_argv
 };
 
 /* Data and methods for 'zone' command */
@@ -461,7 +461,7 @@ static cmd_info_t *basic_commands[] = {
 	&uptime_info,
 	&halt_info,
 	&help_info,
-	&ipc_task_info,
+	&ipc_info,
 	&set4_info,
 	&slabs_info,
 	&symaddr_info,
@@ -937,7 +937,7 @@ int cmd_zone(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_ipc_task(cmd_arg_t * argv) {
+int cmd_ipc(cmd_arg_t * argv) {
 	ipc_print_task(argv[0].intval);
 	return 1;
 }
