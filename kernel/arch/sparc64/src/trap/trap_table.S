@@ -521,6 +521,60 @@ trap_instruction_30_tl0:
 trap_instruction_31_tl0:
 	TRAP_INSTRUCTION 31
 
+/* TT = 0x120, TL = 0, trap_instruction_32 */
+.org trap_table + TT_TRAP_INSTRUCTION(32)*ENTRY_SIZE
+.global trap_instruction_32_tl0
+trap_instruction_32_tl0:
+	TRAP_INSTRUCTION 32
+
+/* TT = 0x121, TL = 0, trap_instruction_33 */
+.org trap_table + TT_TRAP_INSTRUCTION(33)*ENTRY_SIZE
+.global trap_instruction_33_tl0
+trap_instruction_33_tl0:
+	TRAP_INSTRUCTION 33
+
+/* TT = 0x122, TL = 0, trap_instruction_34 */
+.org trap_table + TT_TRAP_INSTRUCTION(34)*ENTRY_SIZE
+.global trap_instruction_34_tl0
+trap_instruction_34_tl0:
+	TRAP_INSTRUCTION 34
+
+/* TT = 0x123, TL = 0, trap_instruction_35 */
+.org trap_table + TT_TRAP_INSTRUCTION(35)*ENTRY_SIZE
+.global trap_instruction_35_tl0
+trap_instruction_35_tl0:
+	TRAP_INSTRUCTION 35
+
+/* TT = 0x124, TL = 0, trap_instruction_36 */
+.org trap_table + TT_TRAP_INSTRUCTION(36)*ENTRY_SIZE
+.global trap_instruction_36_tl0
+trap_instruction_36_tl0:
+	TRAP_INSTRUCTION 36
+
+/* TT = 0x125, TL = 0, trap_instruction_37 */
+.org trap_table + TT_TRAP_INSTRUCTION(37)*ENTRY_SIZE
+.global trap_instruction_37_tl0
+trap_instruction_37_tl0:
+	TRAP_INSTRUCTION 37
+
+/* TT = 0x126, TL = 0, trap_instruction_38 */
+.org trap_table + TT_TRAP_INSTRUCTION(38)*ENTRY_SIZE
+.global trap_instruction_38_tl0
+trap_instruction_38_tl0:
+	TRAP_INSTRUCTION 38
+
+/* TT = 0x127, TL = 0, trap_instruction_39 */
+.org trap_table + TT_TRAP_INSTRUCTION(39)*ENTRY_SIZE
+.global trap_instruction_39_tl0
+trap_instruction_39_tl0:
+	TRAP_INSTRUCTION 39
+
+/* TT = 0x128, TL = 0, trap_instruction_40 */
+.org trap_table + TT_TRAP_INSTRUCTION(40)*ENTRY_SIZE
+.global trap_instruction_40_tl0
+trap_instruction_40_tl0:
+	TRAP_INSTRUCTION 40
+
 /*
  * Handlers for TL>0.
  */
