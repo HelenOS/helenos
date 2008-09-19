@@ -136,7 +136,7 @@ static int get_thread_list(void)
 	return 0;
 }
 
-void val_print(int val, val_type_t v_type)
+void val_print(sysarg_t val, val_type_t v_type)
 {
 	switch (v_type) {
 	case V_VOID:
@@ -144,29 +144,29 @@ void val_print(int val, val_type_t v_type)
 		break;
 
 	case V_INTEGER:
-		printf("%d", val);
+		printf("%ld", val);
 		break;
 
 	case V_HASH:
-		printf("0x%08x", val);
+		printf("0x%08lx", val);
 		break;
 
 	case V_ERRNO:
 		if (val >= -15 && val <= 0) {
-			printf("%d %s (%s)", val,
+			printf("%ld %s (%s)", val,
 			    err_desc[-val].name,
 			    err_desc[-val].desc);
 		} else {
-			printf("%d", val);
+			printf("%ld", val);
 		}
 		break;
 	case V_INT_ERRNO:
 		if (val >= -15 && val < 0) {
-			printf("%d %s (%s)", val,
+			printf("%ld %s (%s)", val,
 			    err_desc[-val].name,
 			    err_desc[-val].desc);
 		} else {
-			printf("%d", val);
+			printf("%ld", val);
 		}
 		break;
 
@@ -181,7 +181,7 @@ void val_print(int val, val_type_t v_type)
 			case '\r': printf("'\\r'"); break;
 			case '\t': printf("'\\t'"); break;
 			case '\\': printf("'\\\\'"); break;
-			default: printf("'\\x%X'"); break;
+			default: printf("'\\x%02lX'", val); break;
 			}
 		}
 		break;
@@ -189,7 +189,7 @@ void val_print(int val, val_type_t v_type)
 }
 
 
-static void print_sc_retval(int retval, val_type_t val_type)
+static void print_sc_retval(sysarg_t retval, val_type_t val_type)
 {
 	printf(" -> ");
 	val_print(retval, val_type);

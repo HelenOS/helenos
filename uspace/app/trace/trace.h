@@ -35,6 +35,8 @@
 #ifndef TRACE_H_
 #define TRACE_H_
 
+#include <sys/types.h>
+
 /**
  * Classes of events that can be displayed. Can be or-ed together.
  */
@@ -61,7 +63,7 @@ typedef enum {
 /** Combination of events to print. */
 extern display_mask_t display_mask;
 
-void val_print(int val, val_type_t v_type);
+void val_print(sysarg_t val, val_type_t v_type);
 
 #endif
 
