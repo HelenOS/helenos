@@ -32,7 +32,9 @@
 
 /**
  * @file
- * @brief	Udebug.
+ * @brief	Udebug hooks and data structure management.
+ *
+ * Udebug is an interface that makes userspace debuggers possible.
  *
  * Functions in this file are executed directly in each thread, which
  * may or may not be the subject of debugging. The udebug_stoppable_begin/end()
@@ -63,6 +65,11 @@ static inline void udebug_int_unlock(void)
 	atomic_dec(&THREAD->udebug.int_lock);
 }
 
+/** Initialize udebug part of task structure.
+ *
+ * Called as part of task structure initialization.
+ * @param ut	Pointer to the structure to initialize.
+ */
 void udebug_task_init(udebug_task_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
@@ -72,6 +79,11 @@ void udebug_task_init(udebug_task_t *ut)
 	ut->evmask = 0;
 }
 
+/** Initialize udebug part of thread structure.
+ *
+ * Called as part of thread structure initialization.
+ * @param ut	Pointer to the structure to initialize.
+ */
 void udebug_thread_initialize(udebug_thread_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
@@ -89,6 +101,14 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 	ut->cur_event = 0; /* none */
 }
 
+/** Wait for a GO message.
+ *
+ * When a debugging event occurs in a thread or the thread is stopped,
+ * this function is called to block the thread until a GO message
+ * is received.
+ *
+ * @param wq	The wait queue used by the thread to wait for GO messages.
+ */
 static void udebug_wait_for_go(waitq_t *wq)
 {
 	int rc;
@@ -104,10 +124,13 @@ static void udebug_wait_for_go(waitq_t *wq)
 
 /** Do a preliminary check that a debugging session is in progress.
  * 
- * This only requires the THREAD->udebug.lock mutex (and not
- * TASK->udebug.lock mutex). For an undebugged task, this will
- * never block (while there could be collisions by different threads
- * on the TASK mutex), thus improving SMP perormance for undebugged tasks.
+ * This only requires the THREAD->udebug.lock mutex (and not TASK->udebug.lock
+ * mutex). For an undebugged task, this will never block (while there could be
+ * collisions by different threads on the TASK mutex), thus improving SMP
+ * perormance for undebugged tasks.
+ *
+ * @return	True if the thread was in a debugging session when the function
+ *		checked, false otherwise.
  */
 static bool udebug_thread_precheck(void)
 {
@@ -120,6 +143,16 @@ static bool udebug_thread_precheck(void)
 	return res;
 }
 
+/** Start of stoppable section.
+ *
+ * A stoppable section is a section of code where if the thread can be stoped. In other words,
+ * if a STOP operation is issued, the thread is guaranteed not to execute
+ * any userspace instructions until the thread is resumed.
+ *
+ * Having stoppable sections is better than having stopping points, since
+ * a thread can be stopped even when it is blocked indefinitely in a system
+ * call (whereas it would not reach any stopping point).
+ */
 void udebug_stoppable_begin(void)
 {
 	int nsc;
@@ -188,6 +221,11 @@ void udebug_stoppable_begin(void)
         mutex_unlock(&TASK->udebug.lock);
 }
 
+/** End of a stoppable section.
+ *
+ * This is the point where the thread will block if it is stopped.
+ * (As, by definition, a stopped thread must not leave its stoppable section).
+ */
 void udebug_stoppable_end(void)
 {
 	/* Early check for undebugged tasks */
@@ -258,6 +296,11 @@ void udebug_before_thread_runs(void)
 	udebug_int_unlock();
 }
 
+/** Syscall event hook.
+ *
+ * Must be called before and after servicing a system call. This generates
+ * a SYSCALL_B or SYSCALL_E event, depending on the value of @a end_variant.
+ */
 void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
     bool end_variant)
@@ -322,6 +365,14 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	udebug_int_unlock();
 }
 
+/** Thread-creation event hook.
+ *
+ * Must be called when a new userspace thread is created in the debugged
+ * task. Generates a THREAD_B event.
+ *
+ * @param t	Structure of the thread being created. Not locked, as the
+ *		thread is not executing yet.
+ */
 void udebug_thread_b_event(struct thread *t)
 {
 	call_t *call;
@@ -371,6 +422,11 @@ void udebug_thread_b_event(struct thread *t)
 	udebug_int_unlock();
 }
 
+/** Thread-termination event hook.
+ *
+ * Must be called when the current thread is terminating.
+ * Generates a THREAD_E event.
+ */
 void udebug_thread_e_event(void)
 {
 	call_t *call;
@@ -417,8 +473,12 @@ void udebug_thread_e_event(void)
 /**
  * Terminate task debugging session.
  *
- * \param ta->udebug.lock must be already locked.
- * \return Zero on success or negative error code.
+ * Gracefully terminates the debugging session for a task. If the debugger
+ * is still waiting for events on some threads, it will receive a
+ * FINISHED event for each of them.
+ *
+ * @param ta	Task structure. ta->udebug.lock must be already locked.
+ * @return	Zero on success or negative error code.
  */
 int udebug_task_cleanup(struct task *ta)
 {

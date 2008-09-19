@@ -33,6 +33,9 @@
 /**
  * @file
  * @brief	Udebug IPC message handling.
+ *
+ * This module handles udebug IPC messages and calls the appropriate
+ * functions from the udebug_ops module which implement them.
  */
  
 #include <proc/task.h>

@@ -33,6 +33,10 @@
 /**
  * @file
  * @brief	Udebug operations.
+ *
+ * Udebug operations on tasks and threads are implemented here. The
+ * functions defined here are called from the udebug_ipc module
+ * when servicing udebug IPC messages.
  */
  
 #include <debug.h>
@@ -64,6 +68,9 @@
  * In this function, holding the TASK->udebug.lock mutex prevents the
  * thread from leaving the debugging session, while relaxing from
  * the t->lock spinlock to the t->udebug.lock mutex.
+ *
+ * @param t		Pointer, need not at all be valid.
+ * @param having_go	Required thread state.
  *
  * Returns EOK if all went well, or an error code otherwise.
  */
@@ -146,14 +153,25 @@ static int _thread_op_begin(thread_t *t, bool having_go)
 	return EOK;	/* All went well */
 }
 
-
+/** End debugging operation on a thread. */
 static void _thread_op_end(thread_t *t)
 {
 	mutex_unlock(&t->udebug.lock);
 }
 
-/**
- * \return 0 (ok, but not done yet), 1 (done) or negative error code.
+/** Begin debugging the current task.
+ *
+ * Initiates a debugging session for the current task (and its threads).
+ * When the debugging session has started a reply will be sent to the
+ * UDEBUG_BEGIN call. This may happen immediately in this function if
+ * all the threads in this task are stoppable at the moment and in this
+ * case the function returns 1.
+ *
+ * Otherwise the function returns 0 and the reply will be sent as soon as
+ * all the threads become stoppable (i.e. they can be considered stopped).
+ *
+ * @param call	The BEGIN call we are servicing.
+ * @return 	0 (OK, but not done yet), 1 (done) or negative error code.
  */
 int udebug_begin(call_t *call)
 {
@@ -205,6 +223,11 @@ int udebug_begin(call_t *call)
 	return reply;
 }
 
+/** Finish debugging the current task.
+ *
+ * Closes the debugging session for the current task.
+ * @return Zero on success or negative error code.
+ */
 int udebug_end(void)
 {
 	int rc;
@@ -221,6 +244,13 @@ int udebug_end(void)
 	return rc;
 }
 
+/** Set the event mask.
+ *
+ * Sets the event mask that determines which events are enabled.
+ *
+ * @param mask	Or combination of events that should be enabled.
+ * @return	Zero on success or negative error code.
+ */
 int udebug_set_evmask(udebug_evmask_t mask)
 {
 	LOG("udebug_set_mask()\n");
@@ -241,7 +271,15 @@ int udebug_set_evmask(udebug_evmask_t mask)
 	return 0;
 }
 
-
+/** Give thread GO.
+ *
+ * Upon recieving a go message, the thread is given GO. Having GO
+ * means the thread is allowed to execute userspace code (until
+ * a debugging event or STOP occurs, at which point the thread loses GO.
+ *
+ * @param t	The thread to operate on (unlocked and need not be valid).
+ * @param call	The GO call that we are servicing.
+ */
 int udebug_go(thread_t *t, call_t *call)
 {
 	int rc;
@@ -266,6 +304,14 @@ int udebug_go(thread_t *t, call_t *call)
 	return 0;
 }
 
+/** Stop a thread (i.e. take its GO away)
+ *
+ * Generates a STOP event as soon as the thread becomes stoppable (i.e.
+ * can be considered stopped).
+ *
+ * @param t	The thread to operate on (unlocked and need not be valid).
+ * @param call	The GO call that we are servicing.
+ */
 int udebug_stop(thread_t *t, call_t *call)
 {
 	int rc;
@@ -315,6 +361,25 @@ int udebug_stop(thread_t *t, call_t *call)
 	return 0;
 }
 
+/** Read the list of userspace threads in the current task.
+ *
+ * The list takes the form of a sequence of thread hashes (i.e. the pointers
+ * to thread structures). A buffer of size @a buf_size is allocated and
+ * a pointer to it written to @a buffer. The sequence of hashes is written
+ * into this buffer.
+ *
+ * If the sequence is longer than @a buf_size bytes, only as much hashes
+ * as can fit are copied. The number of thread hashes copied is stored
+ * in @a n.
+ *
+ * The rationale for having @a buf_size is that this function is only
+ * used for servicing the THREAD_READ message, which always specifies
+ * a maximum size for the userspace buffer.
+ *
+ * @param buffer	The buffer for storing thread hashes.
+ * @param buf_size	Buffer size in bytes.
+ * @param n		The actual number of hashes copied will be stored here.
+ */
 int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 {
 	thread_t *t;
@@ -376,6 +441,18 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	return 0;
 }
 
+/** Read the arguments of a system call.
+ *
+ * The arguments of the system call being being executed are copied
+ * to an allocated buffer and a pointer to it is written to @a buffer.
+ * The size of the buffer is exactly such that it can hold the maximum number
+ * of system-call arguments.
+ *
+ * Unless the thread is currently blocked in a SYSCALL_B or SYSCALL_E event,
+ * this function will fail with an EINVAL error code.
+ *
+ * @param buffer	The buffer for storing thread hashes.
+ */
 int udebug_args_read(thread_t *t, void **buffer)
 {
 	int rc;
@@ -406,6 +483,16 @@ int udebug_args_read(thread_t *t, void **buffer)
 	return 0;
 }
 
+/** Read the memory of the debugged task.
+ *
+ * Reads @a n bytes from the address space of the debugged task, starting
+ * from @a uspace_addr. The bytes are copied into an allocated buffer
+ * and a pointer to it is written into @a buffer.
+ *
+ * @param uspace_addr	Address from where to start reading.
+ * @param n		Number of bytes to read.
+ * @param buffer	For storing a pointer to the allocated buffer.
+ */
 int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer)
 {
 	void *data_buffer;
