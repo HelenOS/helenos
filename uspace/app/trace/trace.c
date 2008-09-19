@@ -55,18 +55,18 @@
 #include "trace.h"
 
 #define THBUF_SIZE 64
-unsigned thread_hash_buf[THBUF_SIZE];
-unsigned n_threads;
+uintptr_t thread_hash_buf[THBUF_SIZE];
+int n_threads;
 
 int next_thread_id;
 
 int phoneid;
 int abort_trace;
 
-unsigned thash;
+uintptr_t thash;
 volatile int paused;
 
-void thread_trace_start(unsigned thread_hash);
+void thread_trace_start(uintptr_t thread_hash);
 
 static proto_t *proto_console;
 static task_id_t task_id;
@@ -125,13 +125,13 @@ static int get_thread_list(void)
 		return rc;
 	}
 
-	n_threads = tb_copied / sizeof(unsigned);
+	n_threads = tb_copied / sizeof(uintptr_t);
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%x)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash 0x%lx)", 1+i, thread_hash_buf[i]);
 	}
-	printf("\ntotal of %u threads\n", tb_needed/sizeof(unsigned));
+	printf("\ntotal of %u threads\n", tb_needed / sizeof(uintptr_t));
 
 	return 0;
 }
@@ -196,22 +196,22 @@ static void print_sc_retval(int retval, val_type_t val_type)
 	putchar('\n');
 }
 
-static void print_sc_args(unsigned *sc_args, int n)
+static void print_sc_args(sysarg_t *sc_args, int n)
 {
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%d", sc_args[0]);
+	if (n > 0) printf("%ld", sc_args[0]);
 	for (i = 1; i < n; i++) {
-		printf(", %d", sc_args[i]);
+		printf(", %ld", sc_args[i]);
 	}
 	putchar(')');
 }
 
-static void sc_ipc_call_async_fast(unsigned *sc_args, int sc_rc)
+static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 {
 	ipc_call_t call;
-	int phoneid;
+	ipcarg_t phoneid;
 	
 	if (sc_rc == IPC_CALLRET_FATAL || sc_rc == IPC_CALLRET_TEMPORARY)
 		return;
@@ -228,7 +228,7 @@ static void sc_ipc_call_async_fast(unsigned *sc_args, int sc_rc)
 	ipcp_call_out(phoneid, &call, sc_rc);
 }
 
-static void sc_ipc_call_async_slow(unsigned *sc_args, int sc_rc)
+static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 {
 	ipc_call_t call;
 	int rc;
@@ -244,7 +244,7 @@ static void sc_ipc_call_async_slow(unsigned *sc_args, int sc_rc)
 	}
 }
 
-static void sc_ipc_call_sync_fast(unsigned *sc_args)
+static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 {
 	ipc_call_t question, reply;
 	int rc;
@@ -272,7 +272,7 @@ static void sc_ipc_call_sync_fast(unsigned *sc_args)
 	ipcp_call_sync(phoneidx, &question, &reply);
 }
 
-static void sc_ipc_call_sync_slow(unsigned *sc_args)
+static void sc_ipc_call_sync_slow(sysarg_t *sc_args)
 {
 	ipc_call_t question, reply;
 	int rc;
@@ -290,7 +290,7 @@ static void sc_ipc_call_sync_slow(unsigned *sc_args)
 	ipcp_call_sync(sc_args[0], &question, &reply);
 }
 
-static void sc_ipc_wait(unsigned *sc_args, int sc_rc)
+static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
 	int rc;
@@ -307,9 +307,10 @@ static void sc_ipc_wait(unsigned *sc_args, int sc_rc)
 	}
 }
 
-static void event_syscall_b(unsigned thread_id, unsigned thread_hash,  unsigned sc_id, int sc_rc)
+static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
+    unsigned sc_id, sysarg_t sc_rc)
 {
-	unsigned sc_args[6];
+	sysarg_t sc_args[6];
 	int rc;
 
 	/* Read syscall arguments */
@@ -334,9 +335,10 @@ static void event_syscall_b(unsigned thread_id, unsigned thread_hash,  unsigned 
 	async_serialize_end();
 }
 
-static void event_syscall_e(unsigned thread_id, unsigned thread_hash,  unsigned sc_id, int sc_rc)
+static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
+    unsigned sc_id, sysarg_t sc_rc)
 {
-	unsigned sc_args[6];
+	sysarg_t sc_args[6];
 	int rv_type;
 	int rc;
 
@@ -382,10 +384,10 @@ static void event_syscall_e(unsigned thread_id, unsigned thread_hash,  unsigned 
 	async_serialize_end();
 }
 
-static void event_thread_b(unsigned hash)
+static void event_thread_b(uintptr_t hash)
 {
 	async_serialize_start();
-	printf("New thread, hash 0x%x\n", hash);
+	printf("New thread, hash 0x%lx\n", hash);
 	async_serialize_end();
 
 	thread_trace_start(hash);
@@ -395,14 +397,14 @@ static int trace_loop(void *thread_hash_arg)
 {
 	int rc;
 	unsigned ev_type;
-	unsigned thread_hash;
+	uintptr_t thread_hash;
 	unsigned thread_id;
-	unsigned val0, val1;
+	sysarg_t val0, val1;
 
-	thread_hash = (unsigned)thread_hash_arg;
+	thread_hash = (uintptr_t)thread_hash_arg;
 	thread_id = next_thread_id++;
 
-	printf("Start tracing thread [%d] (hash 0x%x)\n", thread_id, thread_hash);
+	printf("Start tracing thread [%d] (hash 0x%lx)\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
@@ -438,7 +440,7 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread 0x%x exited\n", val0);
+				printf("Thread 0x%lx exited\n", val0);
 				abort_trace = 1;
 				break;
 			default:
@@ -453,7 +455,7 @@ static int trace_loop(void *thread_hash_arg)
 	return 0;
 }
 
-void thread_trace_start(unsigned thread_hash)
+void thread_trace_start(uintptr_t thread_hash)
 {
 	fid_t fid;
 
@@ -672,7 +674,7 @@ static int parse_args(int argc, char *argv[])
 	}
 
 	if (task_id != 0) {
-		if (argc == 0) return;
+		if (argc == 0) return 0;
 		printf("Extra arguments\n");
 		print_syntax();
 		return -1;

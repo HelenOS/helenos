@@ -44,11 +44,11 @@
 #define IPCP_CALLID_SYNC 0
 
 typedef struct {
-	int phone_hash;
+	ipcarg_t phone_hash;
 	ipc_call_t question;
 	oper_t *oper;
 
-	int call_hash;
+	ipc_callid_t call_hash;
 
 	link_t link;
 } pending_call_t;
@@ -97,6 +97,7 @@ static int pending_call_compare(unsigned long key[], hash_count_t keys,
 //	printf("pending_call_compare\n");
 	hs = hash_table_get_instance(item, pending_call_t, link);
 
+	// FIXME: this will fail if sizeof(long) < sizeof(void *).
 	return key[0] == hs->call_hash;
 }
 
@@ -134,11 +135,11 @@ static void ipc_m_print(proto_t *proto, ipcarg_t method)
 	}
 
 	if (oper != NULL) {
-		printf("%s (%d)", oper->name, method);
+		printf("%s (%ld)", oper->name, method);
 		return;
 	}
 
-	printf("%d", method);
+	printf("%ld", method);
 }
 
 void ipcp_init(void)
@@ -198,10 +199,10 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: 0x%x, phone: %d, proto: %s, method: ", hash,
+		printf("Call ID: 0x%lx, phone: %d, proto: %s, method: ", hash,
 			phone, (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_METHOD(*call));
-		printf(" args: (%u, %u, %u, %u, %u)\n", args[1], args[2],
+		printf(" args: (%lu, %lu, %lu, %lu, %lu)\n", args[1], args[2],
 		    args[3], args[4], args[5]);
 	}
 
@@ -257,10 +258,10 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
     ipc_call_t *answer)
 {
-	int phone;
+	ipcarg_t phone;
 	ipcarg_t method;
 	ipcarg_t service;
-	int retval;
+	ipcarg_t retval;
 	proto_t *proto;
 	int cphone;
 
@@ -277,7 +278,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to 0x%x: retval=%d, args = (%u, %u, %u, %u, %u)\n",
+		printf("Response to 0x%lx: retval=%ld, args = (%lu, %lu, %lu, %lu, %lu)\n",
 			hash, retval, IPC_GET_ARG1(*answer),
 			IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 			IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
@@ -332,7 +333,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 //	printf("ipcp_call_in()\n");
 /*	printf("phone: %d, method: ", call->in_phone_hash);
 	ipc_m_print(IPC_GET_METHOD(*call));
-	printf(" args: (%u, %u, %u, %u, %u)\n",
+	printf(" args: (%lu, %lu, %lu, %lu, %lu)\n",
 	    IPC_GET_ARG1(*call),
 	    IPC_GET_ARG2(*call),
 	    IPC_GET_ARG3(*call),
@@ -343,7 +344,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash %d)\n", hash);
+			printf("Not a response (hash 0x%lx)\n", hash);
 		}
 		return;
 	}
