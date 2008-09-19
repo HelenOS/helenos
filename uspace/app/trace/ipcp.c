@@ -287,7 +287,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	if ((display_mask & DM_USER) != 0) {
 		oper = pcall->oper;
 
-		if (oper->rv_type != V_VOID || oper->respc > 0) {
+		if (oper != NULL && oper->rv_type != V_VOID || oper->respc > 0) {
 			printf("->");
 
 			if (oper->rv_type != V_VOID) {
@@ -331,15 +331,6 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	unsigned long key[1];
 
 //	printf("ipcp_call_in()\n");
-/*	printf("phone: %d, method: ", call->in_phone_hash);
-	ipc_m_print(IPC_GET_METHOD(*call));
-	printf(" args: (%lu, %lu, %lu, %lu, %lu)\n",
-	    IPC_GET_ARG1(*call),
-	    IPC_GET_ARG2(*call),
-	    IPC_GET_ARG3(*call),
-	    IPC_GET_ARG4(*call),
-	    IPC_GET_ARG5(*call)
-	);*/
 
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
