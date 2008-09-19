@@ -109,8 +109,6 @@ static void list_tests(void)
 
 int main(int argc, char **argv)
 {
-	printf("x"); while(1);
-
 	printf("Number of arguments: %d\n", argc);
 	if (argv) {
 		printf("Arguments:");

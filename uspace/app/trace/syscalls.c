@@ -34,45 +34,46 @@
 
 #include <kernel/syscall/syscall.h>
 #include "syscalls.h"
+#include "trace.h"
 
 const sc_desc_t syscall_desc[] = {
-    [SYS_KLOG] ={ "klog",				3,	RV_INT_ERRNO },
-    [SYS_TLS_SET] = { "tls_set",			1,	RV_ERRNO },
-    [SYS_THREAD_CREATE] = { "thread_create",		3,	RV_ERRNO },
-    [SYS_THREAD_EXIT] = { "thread_exit",		1,	RV_ERRNO },
-    [SYS_THREAD_GET_ID] = { "thread_get_id",		1,	RV_ERRNO },
+    [SYS_KLOG] ={ "klog",				3,	V_INT_ERRNO },
+    [SYS_TLS_SET] = { "tls_set",			1,	V_ERRNO },
+    [SYS_THREAD_CREATE] = { "thread_create",		3,	V_ERRNO },
+    [SYS_THREAD_EXIT] = { "thread_exit",		1,	V_ERRNO },
+    [SYS_THREAD_GET_ID] = { "thread_get_id",		1,	V_ERRNO },
 
-    [SYS_TASK_GET_ID] = { "task_get_id",		1,	RV_ERRNO },
-    [SYS_FUTEX_SLEEP] = { "futex_sleep_timeout",	3,	RV_ERRNO },
-    [SYS_FUTEX_WAKEUP] = { "futex_wakeup",		1,	RV_ERRNO },
+    [SYS_TASK_GET_ID] = { "task_get_id",		1,	V_ERRNO },
+    [SYS_FUTEX_SLEEP] = { "futex_sleep_timeout",	3,	V_ERRNO },
+    [SYS_FUTEX_WAKEUP] = { "futex_wakeup",		1,	V_ERRNO },
 
-    [SYS_AS_AREA_CREATE] = { "as_area_create",		3,	RV_ERRNO },
-    [SYS_AS_AREA_RESIZE] = { "as_area_resize",		3,	RV_ERRNO },
-    [SYS_AS_AREA_DESTROY] = { "as_area_destroy",	1,	RV_ERRNO },
+    [SYS_AS_AREA_CREATE] = { "as_area_create",		3,	V_ERRNO },
+    [SYS_AS_AREA_RESIZE] = { "as_area_resize",		3,	V_ERRNO },
+    [SYS_AS_AREA_DESTROY] = { "as_area_destroy",	1,	V_ERRNO },
 
-    [SYS_IPC_CALL_SYNC_FAST] = { "ipc_call_sync_fast",	6,	RV_ERRNO },
-    [SYS_IPC_CALL_SYNC_SLOW] = { "ipc_call_sync_slow",	3,	RV_ERRNO },
-    [SYS_IPC_CALL_ASYNC_FAST] = { "ipc_call_async_fast", 6,	RV_HASH },
-    [SYS_IPC_CALL_ASYNC_SLOW] = { "ipc_call_async_slow", 2,	RV_HASH },
+    [SYS_IPC_CALL_SYNC_FAST] = { "ipc_call_sync_fast",	6,	V_ERRNO },
+    [SYS_IPC_CALL_SYNC_SLOW] = { "ipc_call_sync_slow",	3,	V_ERRNO },
+    [SYS_IPC_CALL_ASYNC_FAST] = { "ipc_call_async_fast", 6,	V_HASH },
+    [SYS_IPC_CALL_ASYNC_SLOW] = { "ipc_call_async_slow", 2,	V_HASH },
 
-    [SYS_IPC_ANSWER_FAST] = { "ipc_answer_fast",	6,	RV_ERRNO },
-    [SYS_IPC_ANSWER_SLOW] = { "ipc_answer_slow",	2,	RV_ERRNO },
-    [SYS_IPC_FORWARD_FAST] = { "ipc_forward_fast",	6,	RV_ERRNO },
-    [SYS_IPC_WAIT] = { "ipc_wait_for_call",		3,	RV_HASH },
-    [SYS_IPC_HANGUP] = { "ipc_hangup",			1,	RV_ERRNO },
-    [SYS_IPC_REGISTER_IRQ] = { "ipc_register_irq",	4,	RV_ERRNO },
-    [SYS_IPC_UNREGISTER_IRQ] = { "ipc_unregister_irq",	2,	RV_ERRNO },
+    [SYS_IPC_ANSWER_FAST] = { "ipc_answer_fast",	6,	V_ERRNO },
+    [SYS_IPC_ANSWER_SLOW] = { "ipc_answer_slow",	2,	V_ERRNO },
+    [SYS_IPC_FORWARD_FAST] = { "ipc_forward_fast",	6,	V_ERRNO },
+    [SYS_IPC_WAIT] = { "ipc_wait_for_call",		3,	V_HASH },
+    [SYS_IPC_HANGUP] = { "ipc_hangup",			1,	V_ERRNO },
+    [SYS_IPC_REGISTER_IRQ] = { "ipc_register_irq",	4,	V_ERRNO },
+    [SYS_IPC_UNREGISTER_IRQ] = { "ipc_unregister_irq",	2,	V_ERRNO },
 
-    [SYS_CAP_GRANT] = { "cap_grant",			2,	RV_ERRNO },
-    [SYS_CAP_REVOKE] = { "cap_revoke",			2,	RV_ERRNO },
-    [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	RV_ERRNO },
-    [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	RV_ERRNO },
-    [SYS_PREEMPT_CONTROL] = { "preempt_control",	1,	RV_ERRNO },
+    [SYS_CAP_GRANT] = { "cap_grant",			2,	V_ERRNO },
+    [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
+    [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },
+    [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	V_ERRNO },
+    [SYS_PREEMPT_CONTROL] = { "preempt_control",	1,	V_ERRNO },
 
-    [SYS_SYSINFO_VALID] = { "sysinfo_valid",		2,	RV_HASH },
-    [SYS_SYSINFO_VALUE] = { "sysinfo_value",		2,	RV_HASH },
-    [SYS_DEBUG_ENABLE_CONSOLE] = { "debug_enable_console", 0,	RV_ERRNO },
-    [SYS_IPC_CONNECT_KBOX] = { "ipc_connect_kbox",	1,	RV_ERRNO }
+    [SYS_SYSINFO_VALID] = { "sysinfo_valid",		2,	V_HASH },
+    [SYS_SYSINFO_VALUE] = { "sysinfo_value",		2,	V_HASH },
+    [SYS_DEBUG_ENABLE_CONSOLE] = { "debug_enable_console", 0,	V_ERRNO },
+    [SYS_IPC_CONNECT_KBOX] = { "ipc_connect_kbox",	1,	V_ERRNO }
 };
 
 /** @}
