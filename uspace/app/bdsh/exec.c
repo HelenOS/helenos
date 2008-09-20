@@ -46,13 +46,13 @@
 #include "errors.h"
 
 /* FIXME: Just have find_command() return an allocated string */
-char *found;
+static char *found;
 
 static char *find_command(char *);
-static unsigned int try_access(const char *);
+static int try_access(const char *);
 
 /* work-around for access() */
-static unsigned int try_access(const char *f)
+static int try_access(const char *f)
 {
 	int fd;
 
