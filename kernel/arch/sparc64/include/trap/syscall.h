@@ -31,25 +31,13 @@
  */
 /**
  * @file
- * @brief This file contains the trap_instruction handler.
- *
- * The trap_instruction trap is used to implement syscalls.
+ * @brief
  */
 
 #ifndef KERN_sparc64_SYSCALL_TRAP_H_
 #define KERN_sparc64_SYSCALL_TRAP_H_
 
-#define TT_TRAP_INSTRUCTION(n)		(0x100 + (n))
-#define TT_TRAP_INSTRUCTION_LAST	TT_TRAP_INSTRUCTION(127)
-
-#ifdef __ASM__
-
-.macro TRAP_INSTRUCTION n
-	ba trap_instruction_handler
-	mov TT_TRAP_INSTRUCTION(\n) - TT_TRAP_INSTRUCTION(0), %g2
-.endm
-
-#endif /* __ASM__ */
+#define TT_TRAP_INSTRUCTION_0		0x100
 
 #endif
 
