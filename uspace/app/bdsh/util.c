@@ -273,7 +273,7 @@ unsigned int cli_set_prompt(cliuser_t *usr)
 	if (NULL == usr->cwd)
 		snprintf(usr->cwd, PATH_MAX, "(unknown)");
 
-	if (1 < cli_psprintf(&usr->prompt, "%s #", usr->cwd)) {
+	if (1 < cli_psprintf(&usr->prompt, "%s # ", usr->cwd)) {
 		cli_error(cli_errno, "Failed to set prompt");
 		return 1;
 	}
