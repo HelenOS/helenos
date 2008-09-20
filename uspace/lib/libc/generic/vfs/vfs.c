@@ -599,6 +599,7 @@ int chdir(const char *path)
 	cwd_path = pa;
 	cwd_len = pa_len;
 	futex_up(&cwd_futex);
+	return EOK;
 }
 
 char *getcwd(char *buf, size_t size)
