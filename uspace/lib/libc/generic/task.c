@@ -123,7 +123,7 @@ static int loader_set_args(int phone_id, const char *argv[])
  * @param argv	command-line arguments
  * @return	ID of the newly created task or zero on error.
  */
-task_id_t task_spawn(const char *path, const char *argv[])
+task_id_t task_spawn(const char *path, char *const argv[])
 {
 	int phone_id;
 	ipc_call_t answer;

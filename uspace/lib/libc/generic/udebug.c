@@ -57,8 +57,16 @@ int udebug_set_evmask(int phoneid, udebug_evmask_t mask)
 int udebug_thread_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed)
 {
-	return async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_THREAD_READ,
-		(sysarg_t)buffer, n, NULL, copied, needed);
+	ipcarg_t a_copied, a_needed;
+	int rc;
+
+	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_THREAD_READ,
+		(sysarg_t)buffer, n, NULL, &a_copied, &a_needed);
+
+	*copied = (size_t)a_copied;
+	*needed = (size_t)a_needed;
+
+	return rc;
 }
 
 int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n)
@@ -76,8 +84,14 @@ int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer)
 int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
     sysarg_t *val0, sysarg_t *val1)
 {
-	return async_req_2_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_GO,
-	    tid, (sysarg_t)ev_type, (sysarg_t)val0, (sysarg_t)val1);
+	ipcarg_t a_ev_type;
+	int rc;
+
+	rc =  async_req_2_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_GO,
+	    tid, &a_ev_type, val0, val1);
+
+	*ev_type = a_ev_type;
+	return rc;
 }
 
 int udebug_stop(int phoneid, thash_t tid)

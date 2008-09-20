@@ -287,7 +287,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	if ((display_mask & DM_USER) != 0) {
 		oper = pcall->oper;
 
-		if (oper != NULL && oper->rv_type != V_VOID || oper->respc > 0) {
+		if (oper != NULL && (oper->rv_type != V_VOID || oper->respc > 0)) {
 			printf("->");
 
 			if (oper->rv_type != V_VOID) {

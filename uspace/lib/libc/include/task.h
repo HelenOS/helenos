@@ -40,7 +40,7 @@
 typedef uint64_t task_id_t;
 
 extern task_id_t task_get_id(void);
-extern task_id_t task_spawn(const char *path, const char *argv[]);
+extern task_id_t task_spawn(const char *path, char *const argv[]);
 
 #endif
 
