@@ -205,7 +205,30 @@ int loader_set_args(loader_t *ldr, char *const argv[])
 	return EOK;
 }
 
+/** Instruct loader to load the program.
+ *
+ * If this function succeeds, the program has been successfully loaded
+ * and is ready to be executed.
+ *
+ * @param ldr		Loader connection structure.
+ * @return		Zero on success or negative error code.
+ */
+int loader_load_program(loader_t *ldr)
+{
+	int rc;
+
+	rc = async_req_0_0(ldr->phone_id, LOADER_LOAD);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Instruct loader to execute the program.
+ *
+ * Note that this function blocks until the loader actually replies
+ * so you cannot expect this function to return if you are debugging
+ * the task and its thread is stopped.
  *
  * After using this function, no further operations must be performed
  * on the loader structure. It should be de-allocated using free().
@@ -213,7 +236,7 @@ int loader_set_args(loader_t *ldr, char *const argv[])
  * @param ldr		Loader connection structure.
  * @return		Zero on success or negative error code.
  */
-int loader_start_program(loader_t *ldr)
+int loader_run(loader_t *ldr)
 {
 	int rc;
 
@@ -221,7 +244,6 @@ int loader_start_program(loader_t *ldr)
 	if (rc != EOK)
 		return rc;
 
-	ipc_hangup(ldr->phone_id);
 	return EOK;
 }
 

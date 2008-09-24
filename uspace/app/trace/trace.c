@@ -42,6 +42,7 @@
 #include <udebug.h>
 #include <async.h>
 #include <task.h>
+#include <loader/loader.h>
 
 // Temporary: service and method names
 #include "proto.h"
@@ -70,11 +71,49 @@ void thread_trace_start(uintptr_t thread_hash);
 
 static proto_t *proto_console;
 static task_id_t task_id;
+static loader_t *task_ldr;
 
 /** Combination of events/data to print. */
 display_mask_t display_mask;
 
-static int task_connect(task_id_t task_id)
+static int program_run_fibril(void *arg);
+
+static void program_run(void)
+{
+	fid_t fid;
+
+	fid = fibril_create(program_run_fibril, NULL);
+	if (fid == 0) {
+		printf("Error creating fibril\n");
+		exit(1);
+	}
+
+	fibril_add_ready(fid);
+}
+
+static int program_run_fibril(void *arg)
+{
+	int rc;
+
+	/*
+	 * This must be done in background as it will block until
+	 * we let the task reply to this call.
+	 */
+	rc = loader_run(task_ldr);
+	if (rc != 0) {
+		printf("Error running program\n");
+		exit(1);
+	}
+
+	free(task_ldr);
+	task_ldr = NULL;
+
+	printf("program_run_fibril exiting\n");
+	return 0;
+}
+
+
+static int connect_task(task_id_t task_id)
 {
 	int rc;
 
@@ -148,6 +187,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 		break;
 
 	case V_HASH:
+	case V_PTR:
 		printf("0x%08lx", val);
 		break;
 
@@ -468,19 +508,52 @@ void thread_trace_start(uintptr_t thread_hash)
 	fibril_add_ready(fid);
 }
 
-static void trace_active_task(task_id_t task_id)
+static loader_t *preload_task(const char *path, char *const argv[],
+    task_id_t *task_id)
+{
+	loader_t *ldr;
+	int rc;
+
+	/* Spawn a program loader */	
+	ldr = loader_spawn();
+	if (ldr == NULL)
+		return 0;
+
+	/* Get task ID. */
+	rc = loader_get_task_id(ldr, task_id);
+	if (rc != EOK)
+		goto error;
+
+	/* Send program pathname */
+	rc = loader_set_pathname(ldr, path);
+	if (rc != EOK)
+		goto error;
+
+	/* Send arguments */
+	rc = loader_set_args(ldr, argv);
+	if (rc != EOK)
+		goto error;
+
+	/* Load the program. */
+	rc = loader_load_program(ldr);
+	if (rc != EOK)
+		goto error;
+
+	/* Success */
+	return ldr;
+
+	/* Error exit */
+error:
+	loader_abort(ldr);
+	free(ldr);
+	return NULL;
+}
+
+static void trace_task(task_id_t task_id)
 {
 	int i;
 	int rc;
 	int c;
-
-	rc = task_connect(task_id);
-	if (rc < 0) {
-		printf("Failed to connect to task %lld\n", task_id);
-		return;
-	}
-
-	printf("Connected to task %lld\n", task_id);
 
 	ipcp_init();
 
@@ -656,6 +729,7 @@ static int parse_args(int argc, char *argv[])
 				/* Trace an already running task */
 				--argc; ++argv;
 				task_id = strtol(*argv, &err_p, 10);
+				task_ldr = NULL;
 				if (*err_p) {
 					printf("Task ID syntax error\n");
 					print_syntax();
@@ -686,19 +760,21 @@ static int parse_args(int argc, char *argv[])
 		return -1;
 	}
 
-	/* Execute the specified command and trace the new task. */
+	/* Preload the specified program file. */
 	printf("Spawning '%s' with arguments:\n", *argv);
 	{
 		char **cp = argv;
 		while (*cp) printf("'%s'\n", *cp++);
 	}
-	task_id = task_spawn(*argv, argv);
+	task_ldr = preload_task(*argv, argv, &task_id);
 
 	return 0;
 }
 
 int main(int argc, char *argv[])
 {
+	int rc;
+
 	printf("System Call / IPC Tracer\n");
 
 	display_mask = DM_THREAD | DM_SYSTEM | DM_USER;
@@ -707,7 +783,20 @@ int main(int argc, char *argv[])
 		return 1;
 
 	main_init();
-	trace_active_task(task_id);
+
+	rc = connect_task(task_id);
+	if (rc < 0) {
+		printf("Failed connecting to task %lld\n", task_id);
+		return 1;
+	}
+
+	printf("Connected to task %lld\n", task_id);
+
+	if (task_ldr != NULL) {
+		program_run();
+	}
+
+	trace_task(task_id);
 
 	return 0;
 }

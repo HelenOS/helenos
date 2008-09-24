@@ -63,7 +63,7 @@ task_id_t task_spawn(const char *path, char *const argv[])
 	task_id_t task_id;
 	int rc;
 
-	/* Spawn a program loader */	
+	/* Spawn a program loader. */	
 	ldr = loader_spawn();
 	if (ldr == NULL)
 		return 0;
@@ -73,27 +73,37 @@ task_id_t task_spawn(const char *path, char *const argv[])
 	if (rc != EOK)
 		goto error;
 
-	/* Send program pathname */
+	/* Send program pathname. */
 	rc = loader_set_pathname(ldr, path);
 	if (rc != EOK)
 		goto error;
 
-	/* Send arguments */
+	/* Send arguments. */
 	rc = loader_set_args(ldr, argv);
 	if (rc != EOK)
 		goto error;
 
-	/* Request loader to start the program */	
-	rc = loader_start_program(ldr);
+	/* Load the program. */
+	rc = loader_load_program(ldr);
+	if (rc != EOK)
+		goto error;
+
+	/* Run it. */
+	/* Load the program. */
+	rc = loader_run(ldr);
 	if (rc != EOK)
 		goto error;
 
 	/* Success */
+
+	free(ldr);
 	return task_id;
 
 	/* Error exit */
 error:
 	loader_abort(ldr);
+	free(ldr);
+
 	return 0;
 }
 

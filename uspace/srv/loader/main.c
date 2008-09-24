@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <bool.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <ipc/ipc.h>
@@ -77,7 +78,13 @@ static char **argv = NULL;
 /** Buffer holding all arguments */
 static char *arg_buf = NULL;
 
-static int loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
+static elf_info_t prog_info;
+static elf_info_t interp_info;
+
+static bool is_dyn_linked;
+
+
+static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	task_id_t task_id;
@@ -212,19 +219,15 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	argv[n] = NULL;
 }
 
-
-/** Load and run the previously selected program.
+/** Load the previously selected program.
  *
  * @param rid
  * @param request
  * @return 0 on success, !0 on error.
  */
-static int loader_run(ipc_callid_t rid, ipc_call_t *request)
+static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
-
-	elf_info_t prog_info;
-	elf_info_t interp_info;
 
 //	printf("Load program '%s'\n", pathname);
 
@@ -245,9 +248,8 @@ static int loader_run(ipc_callid_t rid, ipc_call_t *request)
 		/* Statically linked program */
 //		printf("Run statically linked program\n");
 //		printf("entry point: 0x%llx\n", prog_info.entry);
+		is_dyn_linked = false;
 		ipc_answer_0(rid, EOK);
-		close_console();
-		elf_run(&prog_info, &pcb);
 		return 0;
 	}
 
@@ -265,15 +267,38 @@ static int loader_run(ipc_callid_t rid, ipc_call_t *request)
 	pcb.rtld_dynamic = interp_info.dynamic;
 	pcb.rtld_bias = RTLD_BIAS;
 
-	printf("run dynamic linker\n");
-	printf("entry point: 0x%llx\n", interp_info.entry);
-	close_console();
-
+	is_dyn_linked = true;
 	ipc_answer_0(rid, EOK);
-	elf_run(&interp_info, &pcb);
+
+	return 0;
+}
+
+
+/** Run the previously loaded program.
+ *
+ * @param rid
+ * @param request
+ * @return 0 on success, !0 on error.
+ */
+static void loader_run(ipc_callid_t rid, ipc_call_t *request)
+{
+	if (is_dyn_linked == true) {
+		/* Dynamically linked program */
+		printf("run dynamic linker\n");
+		printf("entry point: 0x%llx\n", interp_info.entry);
+		close_console();
+
+		ipc_answer_0(rid, EOK);
+		elf_run(&interp_info, &pcb);
+
+	} else {
+		/* Statically linked program */
+		close_console();
+		ipc_answer_0(rid, EOK);
+		elf_run(&prog_info, &pcb);
+	} 
 
 	/* Not reached */
-	return 0;
 }
 
 /** Handle loader connection.
@@ -292,8 +317,7 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-//		printf("received call from phone %d, method=%d\n",
-//			call.in_phone_hash, IPC_GET_METHOD(call));
+
 		switch (IPC_GET_METHOD(call)) {
 		case LOADER_GET_TASKID:
 			loader_get_taskid(callid, &call);
@@ -303,10 +327,13 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case LOADER_SET_ARGS:
 			loader_set_args(callid, &call);
+			continue;
+		case LOADER_LOAD:
+			loader_load(callid, &call);
+			continue;
 		case LOADER_RUN:
 			loader_run(callid, &call);
-			exit(0);
-			continue;
+			/* Not reached */
 		default:
 			retval = ENOENT;
 			break;

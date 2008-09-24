@@ -42,6 +42,7 @@ typedef enum {
 	LOADER_GET_TASKID,
 	LOADER_SET_PATHNAME,
 	LOADER_SET_ARGS,
+	LOADER_LOAD,
 	LOADER_RUN
 } fb_request_t;
 

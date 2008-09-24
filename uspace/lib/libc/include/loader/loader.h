@@ -46,7 +46,8 @@ extern loader_t *loader_spawn(void);
 extern int loader_get_task_id(loader_t *, task_id_t *);
 extern int loader_set_pathname(loader_t *, const char *);
 extern int loader_set_args(loader_t *, char *const []);
-extern int loader_start_program(loader_t *);
+extern int loader_load_program(loader_t *);
+extern int loader_run(loader_t *);
 extern void loader_abort(loader_t *);
 
 #endif
