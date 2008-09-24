@@ -59,6 +59,13 @@ int udebug_request_preprocess(call_t *call, phone_t *phone)
 	return 0;
 }
 
+/** Process a BEGIN call.
+ *
+ * Initiates a debugging session for the current task. The reply
+ * to this call may or may not be sent before this function returns.
+ *
+ * @param call	The call structure.
+ */
 static void udebug_receive_begin(call_t *call)
 {
 	int rc;
@@ -70,12 +77,21 @@ static void udebug_receive_begin(call_t *call)
 		return;
 	}
 
+	/*
+	 * If the initialization of the debugging session has finished,
+	 * send a reply.
+	 */
 	if (rc != 0) {
 		IPC_SET_RETVAL(call->data, 0);
 		ipc_answer(&TASK->kernel_box, call);
 	}
 }
 
+/** Process an END call.
+ *
+ * Terminates the debugging session for the current task.
+ * @param call	The call structure.
+ */
 static void udebug_receive_end(call_t *call)
 {
 	int rc;
@@ -86,6 +102,11 @@ static void udebug_receive_end(call_t *call)
 	ipc_answer(&TASK->kernel_box, call);
 }
 
+/** Process a SET_EVMASK call.
+ *
+ * Sets an event mask for the current debugging session.
+ * @param call	The call structure.
+ */
 static void udebug_receive_set_evmask(call_t *call)
 {
 	int rc;
@@ -99,6 +120,11 @@ static void udebug_receive_set_evmask(call_t *call)
 }
 
 
+/** Process a GO call.
+ *
+ * Resumes execution of the specified thread.
+ * @param call	The call structure.
+ */
 static void udebug_receive_go(call_t *call)
 {
 	thread_t *t;
@@ -114,6 +140,11 @@ static void udebug_receive_go(call_t *call)
 	}
 }
 
+/** Process a STOP call.
+ *
+ * Suspends execution of the specified thread.
+ * @param call	The call structure.
+ */
 static void udebug_receive_stop(call_t *call)
 {
 	thread_t *t;
@@ -126,6 +157,11 @@ static void udebug_receive_stop(call_t *call)
 	ipc_answer(&TASK->kernel_box, call);
 }
 
+/** Process a THREAD_READ call.
+ *
+ * Reads the list of hashes of the (userspace) threads in the current task.
+ * @param call	The call structure.
+ */
 static void udebug_receive_thread_read(call_t *call)
 {
 	unative_t uspace_addr;
@@ -176,6 +212,11 @@ static void udebug_receive_thread_read(call_t *call)
 	ipc_answer(&TASK->kernel_box, call);
 }
 
+/** Process an ARGS_READ call.
+ *
+ * Reads the argument of a current syscall event (SYSCALL_B or SYSCALL_E).
+ * @param call	The call structure.
+ */
 static void udebug_receive_args_read(call_t *call)
 {
 	thread_t *t;
@@ -209,6 +250,11 @@ static void udebug_receive_args_read(call_t *call)
 	ipc_answer(&TASK->kernel_box, call);
 }
 
+/** Process an MEM_READ call.
+ *
+ * Reads memory of the current (debugged) task.
+ * @param call	The call structure.
+ */
 static void udebug_receive_mem_read(call_t *call)
 {
 	unative_t uspace_dst;
@@ -239,10 +285,10 @@ static void udebug_receive_mem_read(call_t *call)
 	ipc_answer(&TASK->kernel_box, call);
 }
 
-/**
- * Handle a debug call received on the kernel answerbox.
+/** Handle a debug call received on the kernel answerbox.
  *
- * This is called by the kbox servicing thread.
+ * This is called by the kbox servicing thread. Verifies that the sender
+ * is indeed the debugger and calls the appropriate processing function.
  */
 void udebug_call_receive(call_t *call)
 {

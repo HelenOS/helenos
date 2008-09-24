@@ -529,7 +529,8 @@ int udebug_task_cleanup(struct task *ta)
 				/* Answer GO call */
 				LOG("answer GO call with EVENT_FINISHED\n");
 				IPC_SET_RETVAL(t->udebug.go_call->data, 0);
-				IPC_SET_ARG1(t->udebug.go_call->data, UDEBUG_EVENT_FINISHED);
+				IPC_SET_ARG1(t->udebug.go_call->data,
+				    UDEBUG_EVENT_FINISHED);
 
 				ipc_answer(&ta->answerbox, t->udebug.go_call);
 				t->udebug.go_call = NULL;
