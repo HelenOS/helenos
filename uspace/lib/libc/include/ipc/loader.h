@@ -32,8 +32,8 @@
 /** @file
  */ 
 
-#ifndef LIBC_LOADER_H_
-#define LIBC_LOADER_H_
+#ifndef LIBC_IPC_LOADER_H_
+#define LIBC_IPC_LOADER_H_
 
 #include <ipc/ipc.h>
 

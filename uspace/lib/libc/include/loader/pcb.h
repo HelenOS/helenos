@@ -40,7 +40,8 @@
 
 typedef void (*entry_point_t)(void);
 
-/**
+/** Program Control Block.
+ *
  * Holds pointers to data passed from the program loader to the program
  * and/or to the dynamic linker. This includes the program entry point,
  * arguments, environment variables etc.

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
  * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,75 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup fs
  * @{
  */
 /** @file
- */ 
-
-#include <task.h>
-#include <libc.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <loader/loader.h>
-
-task_id_t task_get_id(void)
-{
-	task_id_t task_id;
-
-	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
-
-	return task_id;
-}
-
-/** Create a new task by running an executable from the filesystem.
- *
- * This is really just a convenience wrapper over the more complicated
- * loader API.
- *
- * @param path	pathname of the binary to execute
- * @param argv	command-line arguments
- * @return	ID of the newly created task or zero on error.
+ * @brief Program loader interface.
  */
-task_id_t task_spawn(const char *path, char *const argv[])
-{
-	loader_t *ldr;
-	task_id_t task_id;
-	int rc;
 
-	/* Spawn a program loader */	
-	ldr = loader_spawn();
-	if (ldr == NULL)
-		return 0;
+#ifndef LIBC_LOADER_H_
+#define LIBC_LOADER_H_
 
-	/* Get task ID. */
-	rc = loader_get_task_id(ldr, &task_id);
-	if (rc != EOK)
-		goto error;
+/** Abstraction of a loader connection */
+typedef struct {
+	/** ID of the phone connected to the loader. */
+	int phone_id;
+} loader_t;
 
-	/* Send program pathname */
-	rc = loader_set_pathname(ldr, path);
-	if (rc != EOK)
-		goto error;
+extern loader_t *loader_spawn(void);
+extern int loader_get_task_id(loader_t *, task_id_t *);
+extern int loader_set_pathname(loader_t *, const char *);
+extern int loader_set_args(loader_t *, char *const []);
+extern int loader_start_program(loader_t *);
+extern void loader_abort(loader_t *);
 
-	/* Send arguments */
-	rc = loader_set_args(ldr, argv);
-	if (rc != EOK)
-		goto error;
+#endif
 
-	/* Request loader to start the program */	
-	rc = loader_start_program(ldr);
-	if (rc != EOK)
-		goto error;
-
-	/* Success */
-	return task_id;
-
-	/* Error exit */
-error:
-	loader_abort(ldr);
-	return 0;
-}
-
-/** @}
+/**
+ * @}
  */

@@ -71,6 +71,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
+	generic/loader.c \
 	generic/getopt.c \
 	generic/libadt/list.o \
 	generic/libadt/hash_table.o \
