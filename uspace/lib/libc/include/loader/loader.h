@@ -36,6 +36,8 @@
 #ifndef LIBC_LOADER_H_
 #define LIBC_LOADER_H_
 
+#include <task.h>
+
 /** Abstraction of a loader connection */
 typedef struct {
 	/** ID of the phone connected to the loader. */

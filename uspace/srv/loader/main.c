@@ -100,7 +100,7 @@ static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 
 	if (len > sizeof(task_id)) len = sizeof(task_id);
 
-	ipc_data_write_finalize(callid, &task_id, len);
+	ipc_data_read_finalize(callid, &task_id, len);
 	ipc_answer_0(rid, EOK);
 }
 

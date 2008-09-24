@@ -35,6 +35,7 @@
 #include <ipc/ipc.h>
 #include <ipc/loader.h>
 #include <libc.h>
+#include <task.h>
 #include <string.h>
 #include <stdlib.h>
 #include <async.h>
@@ -93,7 +94,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 
 	/* Get task ID. */
 	req = async_send_0(ldr->phone_id, LOADER_GET_TASKID, &answer);
-	rc = ipc_data_read_start(ldr->phone_id, task_id, sizeof(task_id));
+	rc = ipc_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
