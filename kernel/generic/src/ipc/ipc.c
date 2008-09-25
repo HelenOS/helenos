@@ -508,7 +508,8 @@ restart_phones:
 	interrupts_restore(ipl);
 
 	/* Free unused call */
-	if (call) ipc_call_free(call);
+	if (call)
+		ipc_call_free(call);
 }
 
 /** Cleans up all IPC communication of the current task.
@@ -573,6 +574,11 @@ void ipc_cleanup(void)
 		    (call->flags & IPC_CALL_NOTIF));
 		ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 		
+		/*
+		 * Record the receipt of this call in the current task's counter
+		 * of active calls. IPC_M_PHONE_HUNGUP calls do not contribute
+		 * to this counter so do not record answers to them either.
+		 */
 		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
 			atomic_dec(&TASK->active_calls);
 		ipc_call_free(call);

@@ -822,12 +822,16 @@ restart:
 
 		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
-		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
-			atomic_dec(&TASK->active_calls);
-
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);
 			goto restart;
+		} else {
+			/*
+			 * Decrement the counter of active calls only if the
+			 * call is not an answer to IPC_M_PHONE_HUNGUP,
+			 * which doesn't contribute to the counter.
+			 */
+			atomic_dec(&TASK->active_calls);
 		}
 
 		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
