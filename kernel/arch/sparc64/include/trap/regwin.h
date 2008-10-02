@@ -39,6 +39,7 @@
 
 #include <arch/stack.h>
 #include <arch/arch.h>
+#include <align.h>
 
 #define TT_CLEAN_WINDOW			0x24
 #define TT_SPILL_0_NORMAL		0x80	/* kernel spills */
@@ -71,6 +72,11 @@
 #define I5_OFFSET	104
 #define I6_OFFSET	112
 #define I7_OFFSET	120
+
+/* Uspace Window Buffer constants. */
+#define UWB_SIZE	((NWINDOWS - 1) * STACK_WINDOW_SAVE_AREA_SIZE)
+#define UWB_ALIGNMENT	1024
+#define UWB_ASIZE	ALIGN_UP(UWB_SIZE, UWB_ALIGNMENT)
 
 #ifdef __ASM__
 

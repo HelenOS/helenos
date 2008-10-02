@@ -748,9 +748,8 @@ fill_0_normal_tl1:
 	 * Fill all windows stored in the buffer.
 	 */
 	clr %g4
-	set PAGE_SIZE - 1, %g5
-0:	andcc %g7, %g5, %g0			! PAGE_SIZE alignment check
-	bz 0f					! %g7 is page-aligned, no more windows to refill
+0:	andcc %g7, UWB_ALIGNMENT - 1, %g0	! alignment check
+	bz 0f					! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
 	nop
 
 	add %g7, -STACK_WINDOW_SAVE_AREA_SIZE, %g7

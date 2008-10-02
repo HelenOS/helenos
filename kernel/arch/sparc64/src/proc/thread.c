@@ -34,9 +34,8 @@
 
 #include <proc/thread.h>
 #include <arch/proc/thread.h>
-#include <mm/frame.h>
-#include <mm/page.h>
-#include <arch/mm/page.h>
+#include <mm/slab.h>
+#include <arch/trap/regwin.h>
 #include <align.h>
 
 void thr_constructor_arch(thread_t *t)
@@ -50,12 +49,12 @@ void thr_constructor_arch(thread_t *t)
 void thr_destructor_arch(thread_t *t)
 {
 	if (t->arch.uspace_window_buffer) {
+		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
 		/*
 		 * Mind the possible alignment of the userspace window buffer
 		 * belonging to a killed thread.
 		 */
-		frame_free(KA2PA(ALIGN_DOWN((uintptr_t)
-		    t->arch.uspace_window_buffer, PAGE_SIZE)));
+		free((uint8_t *) ALIGN_DOWN(uw_buf, UWB_ALIGNMENT));
 	}
 }
 
@@ -67,7 +66,7 @@ void thread_create_arch(thread_t *t)
 		 * The thread needs userspace window buffer and the object
 		 * returned from the slab allocator doesn't have any.
 		 */
-		t->arch.uspace_window_buffer = frame_alloc(ONE_FRAME, FRAME_KA);
+		t->arch.uspace_window_buffer = malloc(UWB_ASIZE, 0);
 	} else {
 		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
 
@@ -76,7 +75,7 @@ void thread_create_arch(thread_t *t)
 		 * belonging to a killed thread.
 		 */
 		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
-		    PAGE_SIZE);
+		    UWB_ASIZE);
 	}
 }
 
