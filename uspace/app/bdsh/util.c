@@ -75,7 +75,7 @@ char * cli_strdup(const char *s1)
  * the contents of s2 into s1.
  * Return -1 on failure, or the length of the copied string on success.
  */
-int cli_redup(char **s1, const char *s2)
+size_t cli_redup(char **s1, const char *s2)
 {
 	size_t len = strlen(s2) + 1;
 
@@ -92,7 +92,7 @@ int cli_redup(char **s1, const char *s2)
 	memset(*s1, 0, sizeof(*s1));
 	memcpy(*s1, s2, len);
 	cli_errno = CL_EOK;
-	return (int) len;
+	return len;
 }
 
 /* An asprintf() for formatting paths, similar to asprintf() but ensures
