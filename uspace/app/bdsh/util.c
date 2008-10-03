@@ -70,35 +70,6 @@ char * cli_strdup(const char *s1)
 	return (char *) memcpy(ret, s1, len);
 }
 
-/*
- * Take a previously allocated string (s1), re-size it to accept s2 and copy
- * the contents of s2 into s1.
- * Return -1 on failure, or the length of the copied string on success.
- */
-size_t cli_redup(char **s1, const char *s2)
-{
-	size_t len;
-
-	if (s2 == NULL)
-		return -1;
-
-	len = strlen(s2) + 1;
-
-	*s1 = realloc(*s1, len);
-
-	if (*s1 == NULL) {
-		cli_errno = CL_ENOMEM;
-		return -1;
-	}
-
-	*s1[len] = '\0';
-
-	memcpy(*s1, s2, len);
-	cli_errno = CL_EOK;
-
-	return len;
-}
-
 /* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
 char * cli_strtok_r(char *s, const char *delim, char **last)
 {
