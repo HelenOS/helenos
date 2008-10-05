@@ -42,6 +42,7 @@
 #include <fpu_context.h>
 
 #include <arch/smp/apic.h>
+#include <arch/syscall.h>
 
 /*
  * Identification of CPUs.
@@ -123,6 +124,9 @@ void cpu_arch_init(void)
 			: "i" (CR4_OSFXSR_MASK|(1<<10)) 
 		);
 	}
+	
+	/* Setup fast SYSENTER/SYSEXIT syscalls */
+	syscall_setup_cpu();
 }
 
 void cpu_identify(void)

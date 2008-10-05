@@ -36,6 +36,8 @@
 #ifndef LIBC_ppc32_SYSCALL_H_
 #define LIBC_ppc32_SYSCALL_H_
 
+#define LIBARCH_SYSCALL_GENERIC
+
 #include <syscall.h>
 
 #endif

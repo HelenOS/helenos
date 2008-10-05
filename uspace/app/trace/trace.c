@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <syscall.h>
 #include <ipc/ipc.h>
 #include <fibril.h>
 #include <errno.h>
@@ -43,6 +42,8 @@
 #include <async.h>
 #include <task.h>
 #include <loader/loader.h>
+
+#include <libc.h>
 
 // Temporary: service and method names
 #include "proto.h"

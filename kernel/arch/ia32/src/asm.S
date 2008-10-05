@@ -147,6 +147,45 @@ enable_l_apic_in_msr:
 	popfl
 .endm	
 
+/*
+ * The SYSENTER syscall mechanism can be used for syscalls with
+ * four or fewer arguments. To pass these four arguments, we
+ * use four registers: EDX, ECX, EBX, ESI. The syscall number
+ * is passed in EAX. We use EDI to remember the return address
+ * and EBP to remember the stack. The INT-based syscall mechanism
+ * can actually handle six arguments plus the syscall number
+ * entirely in registers.
+ */
+.global sysenter_handler
+sysenter_handler:
+	pushl %ebp	# remember user stack
+	pushl %edi	# remember return user address
+
+	pushl %gs	# remember TLS
+
+	pushl %eax	# syscall number
+	subl $8, %esp	# unused sixth and fifth argument
+	pushl %esi	# fourth argument
+	pushl %ebx	# third argument
+	pushl %ecx	# second argument
+	pushl %edx	# first argument
+
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %es
+
+	cld
+	call syscall_handler
+	addl $28, %esp	# remove arguments from stack
+
+	pop %gs		# restore TLS
+
+	pop %edx	# prepare return EIP for SYSEXIT
+	pop %ecx	# prepare userspace ESP for SYSEXIT
+
+	sysexit		# return to userspace
+
+
 ## Declare interrupt handlers
 #
 # Declare interrupt handlers for n interrupt

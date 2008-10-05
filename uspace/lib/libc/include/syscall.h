@@ -32,14 +32,27 @@
 /**
  * @file
  * @brief	Syscall function declaration for architectures that don't
- *		inline syscalls.
+ *		inline syscalls or architectures that handle syscalls
+ *		according to the number of arguments.
  */
 
 #ifndef LIBC_SYSCALL_H_
 #define LIBC_SYSCALL_H_
 
+#ifndef	LIBARCH_SYSCALL_GENERIC
+#error "You can't include this file directly."
+#endif
+
 #include <sys/types.h>
 #include <kernel/syscall/syscall.h>
+
+#define __syscall0	__syscall
+#define __syscall1	__syscall
+#define __syscall2	__syscall
+#define __syscall3	__syscall
+#define __syscall4	__syscall
+#define __syscall5	__syscall
+#define __syscall6	__syscall
 
 extern sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2,
     const sysarg_t p3, const sysarg_t p4, const sysarg_t p5, const sysarg_t p6,

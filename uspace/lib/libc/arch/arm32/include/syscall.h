@@ -30,11 +30,13 @@
  * @{
  */
 /** @file
- *  @brief Empty.
+ *  @brief
  */
 
 #ifndef LIBC_arm32_SYSCALL_H_
 #define LIBC_arm32_SYSCALL_H_
+
+#define LIBARCH_SYSCALL_GENERIC
 
 #include <syscall.h>
 

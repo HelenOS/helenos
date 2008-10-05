@@ -247,6 +247,22 @@ static inline ipl_t interrupts_read(void)
 	return v;
 }
 
+/** Write to MSR */
+static inline void write_msr(uint32_t msr, uint64_t value)
+{
+	asm volatile ("wrmsr" : : "c" (msr), "a" ((uint32_t)(value)),
+	    "d" ((uint32_t)(value >> 32)));
+}
+
+static inline uint64_t read_msr(uint32_t msr)
+{
+	uint32_t ax, dx;
+
+	asm volatile ("rdmsr" : "=a"(ax), "=d"(dx) : "c" (msr));
+	return ((uint64_t)dx << 32) | ax;
+}
+
+
 /** Return base address of current stack
  *
  * Return the base address of the current stack.

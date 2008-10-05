@@ -160,4 +160,5 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/boot/memmap.c \
 	arch/$(ARCH)/src/fpu_context.c \
-	arch/$(ARCH)/src/debugger.c
+	arch/$(ARCH)/src/debugger.c \
+	arch/$(ARCH)/src/syscall.c

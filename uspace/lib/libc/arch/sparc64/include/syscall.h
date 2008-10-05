@@ -38,6 +38,14 @@
 #include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 
+#define __syscall0	__syscall
+#define __syscall1	__syscall
+#define __syscall2	__syscall
+#define __syscall3	__syscall
+#define __syscall4	__syscall
+#define __syscall5	__syscall
+#define __syscall6	__syscall
+
 static inline sysarg_t
 __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
     const sysarg_t p4, const sysarg_t p5, const sysarg_t p6, const syscall_t id)

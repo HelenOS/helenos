@@ -34,7 +34,6 @@
 
 #include <udebug.h>
 #include <sys/types.h>
-#include <syscall.h>
 #include <ipc/ipc.h>
 #include <async.h>
 

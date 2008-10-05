@@ -35,8 +35,6 @@
 #ifndef KERN_amd64_SYSCALL_H_
 #define KERN_amd64_SYSCALL_H_
 
-#include <arch/types.h>
-
 extern void syscall_setup_cpu(void);
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup ia32	
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef LIBC_mips32_SYSCALL_H_
-#define LIBC_mips32_SYSCALL_H_
+#include <arch/syscall.h>
+#include <arch/cpu.h>
+#include <arch/asm.h>
+#include <arch/types.h>
+#include <arch/pm.h>
 
-#define LIBARCH_SYSCALL_GENERIC
+/** Enable & setup support for SYSENTER/SYSEXIT */
+void syscall_setup_cpu(void)
+{
+	extern void sysenter_handler(void);
 
-#include <syscall.h>
-
-#endif
+	/* set kernel mode CS selector */
+	write_msr(IA32_MSR_SYSENTER_CS, selector(KTEXT_DES));
+	/* set kernel mode entry point */
+	write_msr(IA32_MSR_SYSENTER_EIP, (uint32_t) sysenter_handler);
+}
 
 /** @}
  */

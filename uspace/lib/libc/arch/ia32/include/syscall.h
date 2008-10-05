@@ -36,7 +36,24 @@
 #ifndef LIBC_ia32_SYSCALL_H_
 #define LIBC_ia32_SYSCALL_H_
 
-#include <syscall.h>
+#include <sys/types.h>
+#include <kernel/syscall/syscall.h>
+
+#define __syscall0	__syscall_sysenter
+#define __syscall1	__syscall_sysenter
+#define __syscall2	__syscall_sysenter
+#define __syscall3	__syscall_sysenter
+#define __syscall4	__syscall_sysenter
+#define __syscall5	__syscall_int
+#define __syscall6	__syscall_int
+
+extern sysarg_t
+__syscall_sysenter(const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
+     const sysarg_t, const sysarg_t, const syscall_t);
+
+extern sysarg_t
+__syscall_int(const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
+     const sysarg_t, const sysarg_t, const syscall_t);
 
 #endif
 

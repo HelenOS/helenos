@@ -35,11 +35,20 @@
 #ifndef KERN_ia32_CPU_H_
 #define KERN_ia32_CPU_H_
 
-#include <arch/pm.h>
-#include <arch/asm.h>
-
 #define EFLAGS_IF       (1 << 9)
 #define EFLAGS_RF       (1 << 16)
+
+#define CR4_OSFXSR_MASK (1<<9)
+
+/* Support for SYSENTER and SYSEXIT */
+#define IA32_MSR_SYSENTER_CS	0x174
+#define IA32_MSR_SYSENTER_ESP	0x175
+#define IA32_MSR_SYSENTER_EIP	0x176
+
+#ifndef __ASM__
+
+#include <arch/pm.h>
+#include <arch/asm.h>
 
 typedef struct {
 	int vendor;
@@ -51,8 +60,7 @@ typedef struct {
 	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
 } cpu_arch_t;
 
-
-#define CR4_OSFXSR_MASK (1<<9)
+#endif
 
 #endif
 
