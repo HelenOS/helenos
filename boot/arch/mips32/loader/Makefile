@@ -63,7 +63,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3 -pipe
 
 ifdef REVISION
 	CFLAGS += "-DREVISION=\"$(REVISION)\""
@@ -123,7 +123,7 @@ image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECT
 	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) -o $@
 
 depend:
-	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
 	-for file in $(RD_SRVS) ; do \

@@ -68,7 +68,7 @@ ifeq ($(COMPILER),gcc_cross)
 endif
 
 #-mno-pic means do not use gp + imm22 to address data
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic
+CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -pipe
 
 ifdef REVISION
 	CFLAGS += "-DREVISION=\"$(REVISION)\""
@@ -123,7 +123,7 @@ image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
 	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
-	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
 	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend ../../../../image.bin ../../../../hello.efi

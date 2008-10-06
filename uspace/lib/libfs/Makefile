@@ -57,7 +57,7 @@ clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	-makedepend $(DEFS) $(CFLAGS) -f - $(SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
 libfs.a: depend $(OBJECTS)
 	$(AR) rc libfs.a $(OBJECTS)

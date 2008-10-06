@@ -44,7 +44,7 @@ DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
 	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
-	-nostdlib -nostdinc
+	-nostdlib -nostdinc -pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
 	-fno-builtin -Wall -Wmissing-prototypes -Werror \
@@ -365,7 +365,7 @@ archlinks:
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
 depend: archlinks
-	-makedepend $(DEFS) $(CFLAGS) -f - $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
