@@ -117,7 +117,7 @@ unsigned int try_exec(char *cmd, char **argv)
 	tmp = cli_strdup(find_command(cmd));
 	free(found);
 
-	tid = task_spawn((const char *)tmp, (const char **)argv);
+	tid = task_spawn((const char *)tmp, argv);
 	free(tmp);
 
 	if (tid == 0) {
