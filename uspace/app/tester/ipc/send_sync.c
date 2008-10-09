@@ -35,7 +35,6 @@ char * test_send_sync(bool quiet)
 {
 	int phoneid;
 	int res;
-	static int msgid = 1;
 	char c;
 
 	printf("Select phoneid to send msg: 2-9 (q to skip)\n");

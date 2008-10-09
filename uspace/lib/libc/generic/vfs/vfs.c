@@ -116,7 +116,7 @@ static int vfs_connect(void)
 	return vfs_phone;
 }
 
-static int device_get_handle(char *name, dev_handle_t *handle)
+static int device_get_handle(const char *name, dev_handle_t *handle)
 {
 	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT,
 	    0);
@@ -364,9 +364,9 @@ off_t lseek(int fildes, off_t offset, int whence)
 		}
 	}
 		
-	off_t newoffs;
+	ipcarg_t newoffs;
 	rc = async_req_3_1(vfs_phone, VFS_SEEK, fildes, offset, whence,
-	    (ipcarg_t)&newoffs);
+	    &newoffs);
 
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
@@ -374,7 +374,7 @@ off_t lseek(int fildes, off_t offset, int whence)
 	if (rc != EOK)
 		return (off_t) -1;
 	
-	return newoffs;
+	return (off_t) newoffs;
 }
 
 int ftruncate(int fildes, off_t length)

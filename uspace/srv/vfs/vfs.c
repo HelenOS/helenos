@@ -49,8 +49,6 @@
 
 #define NAME "vfs"
 
-#define dprintf(...)	printf(__VA_ARGS__)
-
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	bool keep_on_going = 1;

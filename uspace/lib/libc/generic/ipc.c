@@ -847,7 +847,7 @@ int ipc_data_read_receive(ipc_callid_t *callid, size_t *size)
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size)
+int ipc_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 {
 	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) size);
 }
@@ -860,7 +860,7 @@ int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size)
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_data_write_start(int phoneid, void *src, size_t size)
+int ipc_data_write_start(int phoneid, const void *src, size_t size)
 {
 	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
 	    (ipcarg_t) size);

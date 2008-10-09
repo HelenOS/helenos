@@ -47,6 +47,8 @@
 #include <as.h>
 #include <ddi.h>
 
+#include <time.h>
+
 /* Pointers to public variables with time */
 struct {
 	volatile sysarg_t seconds1;

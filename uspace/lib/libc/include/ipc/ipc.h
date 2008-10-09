@@ -283,8 +283,9 @@ extern int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
 extern int ipc_share_out_finalize(ipc_callid_t callid, void *dst);
 extern int ipc_data_read_start(int phoneid, void *dst, size_t size);
 extern int ipc_data_read_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_data_read_finalize(ipc_callid_t callid, void *src, size_t size);
-extern int ipc_data_write_start(int phoneid, void *src, size_t size);
+extern int ipc_data_read_finalize(ipc_callid_t callid, const void *src,
+    size_t size);
+extern int ipc_data_write_start(int phoneid, const void *src, size_t size);
 extern int ipc_data_write_receive(ipc_callid_t *callid, size_t *size);
 extern int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size);
 

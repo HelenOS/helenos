@@ -116,7 +116,7 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 	tcb_t *tcb;
 	
 	size = ALIGN_UP(size, &_tls_alignment);
-	*data = memalign(&_tls_alignment, sizeof(tcb_t) + size);
+	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
 
 	tcb = (tcb_t *) (*data + size);
 	tcb->self = tcb;

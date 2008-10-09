@@ -34,6 +34,7 @@
 
 #include <libc.h>
 #include <sys/types.h>
+#include <smc.h>
 
 int smc_coherence(void *address, size_t size)
 {

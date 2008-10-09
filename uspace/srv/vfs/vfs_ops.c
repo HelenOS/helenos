@@ -153,7 +153,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	/* Allocate buffer for the mount point data being received. */
-	uint8_t *buf;
+	char *buf;
 	buf = malloc(size + 1);
 	if (!buf) {
 		ipc_answer_0(callid, ENOMEM);
