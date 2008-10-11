@@ -44,17 +44,46 @@
 
 static inline void  outb(uint64_t port,uint8_t v)
 {
-	*((char *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
+	*((uint8_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
+
+static inline void  outw(uint64_t port,uint16_t v)
+{
+	*((uint16_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
+
+	asm volatile ("mf\n" ::: "memory");
+}
+
+static inline void  outl(uint64_t port,uint32_t v)
+{
+	*((uint32_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
+
+	asm volatile ("mf\n" ::: "memory");
+}
+
 
 
 static inline uint8_t inb(uint64_t port)
 {
 	asm volatile ("mf\n" ::: "memory");
 
-	return *((char *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 ))));
+	return *((uint8_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 ))));
+}
+
+static inline uint16_t inw(uint64_t port)
+{
+	asm volatile ("mf\n" ::: "memory");
+
+	return *((uint16_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xffE) | ( (port >> 2) << 12 ))));
+}
+
+static inline uint32_t inl(uint64_t port)
+{
+	asm volatile ("mf\n" ::: "memory");
+
+	return *((uint32_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 ))));
 }
 
 
