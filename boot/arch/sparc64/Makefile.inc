@@ -26,18 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP=distroot
+TMP = distroot
 
 build: $(BASE)/image.iso
+
+ifeq ($(CONFIG_RD_EXTERNAL),y)
+SILO_CONF_FILTER = cat
+else
+SILO_CONF_FILTER = grep -v initrd
+endif
 
 $(BASE)/image.iso: depend arch/$(ARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/HelenOS
 	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
-	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING arch/$(ARCH)/silo/silo.conf $(TMP)/boot
+	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING $(TMP)/boot
+	cat arch/$(ARCH)/silo/silo.conf | $(SILO_CONF_FILTER) >$(TMP)/boot/silo.conf
 	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
 	gzip -f $(TMP)/HelenOS/image.boot
+ifeq ($(CONFIG_RD_EXTERNAL),y)
 	cp arch/$(ARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
+endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $(BASE)/image.iso $(TMP)/
 
 depend:

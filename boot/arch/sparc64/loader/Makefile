@@ -79,6 +79,9 @@ SOURCES = \
 	asm.S \
 	boot.S
 
+#
+# All components that go to image.boot without the ramdisk.
+#
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
@@ -92,6 +95,14 @@ ifeq ($(RDFMT),tmpfs)
 endif
 ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
+endif
+
+#
+# Final list of all components that go to image.boot.
+#
+ALL_COMPONENTS = $(COMPONENTS)
+ifeq ($(CONFIG_RD_EXTERNAL),n)
+	ALL_COMPONENTS += ./initrd.img
 endif
 
 RD_SRVS = \
@@ -109,7 +120,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
+ALL_COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(ALL_COMPONENTS))))
 
 .PHONY: all clean depend
 
@@ -117,8 +128,8 @@ all: image.boot disasm
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+image.boot: depend _components.h _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS)
+	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 depend:
 	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
@@ -130,9 +141,9 @@ clean:
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
+_components.h _components.c _link.ld $(ALL_COMPONENT_OBJECTS): $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
 	done
@@ -147,7 +158,7 @@ ifeq ($(RDFMT),fat)
 endif
 	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
 	rm initrd.fs
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(COMPONENTS)
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(ALL_COMPONENTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
