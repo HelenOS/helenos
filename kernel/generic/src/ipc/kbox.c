@@ -45,6 +45,7 @@
 
 void ipc_kbox_cleanup(void)
 {
+	ipl_t ipl;
 	bool have_kb_thread;
 
 	/* Only hold kb_cleanup_lock while setting kb_finished - this is enough */
@@ -63,6 +64,17 @@ void ipc_kbox_cleanup(void)
 	 * wake up and terminate.
 	 */
 	ipc_answerbox_slam_phones(&TASK->kernel_box, have_kb_thread);
+
+	/* 
+	 * If the task was being debugged, clean up debugging session.
+	 * This is necessarry as slamming the phones won't force
+	 * kbox thread to clean it up since sender != debugger.
+	 */
+	ipl = interrupts_disable();
+	spinlock_lock(&TASK->lock);
+	udebug_task_cleanup(TASK);
+	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 	
 	if (have_kb_thread) {
 		LOG("join kb_thread..\n");
@@ -126,7 +138,12 @@ static void kbox_thread_proc(void *arg)
 				spinlock_lock(&TASK->lock);
 				spinlock_lock(&TASK->answerbox.lock);
 				if (list_empty(&TASK->answerbox.connected_phones)) {
-					/* Last phone has been disconnected */
+					/*
+					 * Last phone has been disconnected.
+					 */
+
+					/* Detach thread so it gets freed. */
+					thread_detach(TASK->kb_thread);
 					TASK->kb_thread = NULL;
 					done = true;
 					LOG("phone list is empty\n");
