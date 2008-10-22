@@ -91,13 +91,75 @@ void ipc_kbox_cleanup(void)
 	spinlock_unlock(&TASK->kernel_box.lock);
 }
 
+/** Handle hangup message in kbox.
+ *
+ * @param call	The IPC_M_PHONE_HUNGUP call structure.
+ * @param last	Output, the function stores @c true here if
+ *		this was the last phone, @c false otherwise.
+ **/
+static void kbox_proc_phone_hungup(call_t *call, bool *last)
+{
+	ipl_t ipl;
 
+	LOG("kbox_proc_phone_hungup()\n");
+
+	/* Was it our debugger, who hung up? */
+	if (call->sender == TASK->udebug.debugger) {
+		/* Terminate debugging session (if any) */
+		LOG("kbox: terminate debug session\n");
+		ipl = interrupts_disable();
+		spinlock_lock(&TASK->lock);
+		udebug_task_cleanup(TASK);
+		spinlock_unlock(&TASK->lock);
+		interrupts_restore(ipl);
+	} else {
+		LOG("kbox: was not debugger\n");
+	}
+
+	LOG("kbox: continue with hangup message\n");
+	IPC_SET_RETVAL(call->data, 0);
+	ipc_answer(&TASK->kernel_box, call);
+
+	ipl = interrupts_disable();
+	spinlock_lock(&TASK->lock);
+	spinlock_lock(&TASK->answerbox.lock);
+	if (list_empty(&TASK->answerbox.connected_phones)) {
+		/*
+		 * Last phone has been disconnected. Detach this thread so it
+		 * gets freed and signal to the caller.
+		 */
+
+		/* Only detach kbox thread unless already terminating. */
+		mutex_lock(&TASK->kb_cleanup_lock);
+		if (&TASK->kb_finished == false) {
+			/* Detach kbox thread so it gets freed from memory. */
+			thread_detach(TASK->kb_thread);
+			TASK->kb_thread = NULL;
+		}
+		mutex_unlock(&TASK->kb_cleanup_lock);
+
+		LOG("phone list is empty\n");
+		*last = true;
+	} else {
+		*last = false;
+	}
+
+	spinlock_unlock(&TASK->answerbox.lock);
+	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
+}
+
+/** Implementing function for the kbox thread.
+ *
+ * This function listens for debug requests. It terminates
+ * when all phones are disconnected from the kbox.
+ *
+ * @param arg	Ignored.
+ */
 static void kbox_thread_proc(void *arg)
 {
 	call_t *call;
-	int method;
 	bool done;
-	ipl_t ipl;
 
 	(void)arg;
 	LOG("kbox_thread_proc()\n");
@@ -107,58 +169,28 @@ static void kbox_thread_proc(void *arg)
 		call = ipc_wait_for_call(&TASK->kernel_box, SYNCH_NO_TIMEOUT,
 			SYNCH_FLAGS_NONE);
 
-		if (call != NULL) {
-			method = IPC_GET_METHOD(call->data);
+		if (call == NULL)
+			continue;	/* Try again. */
 
-			if (method == IPC_M_DEBUG_ALL) {
-				udebug_call_receive(call);
-			}
+		switch (IPC_GET_METHOD(call->data)) {
 
-			if (method == IPC_M_PHONE_HUNGUP) {
-				LOG("kbox: handle hangup message\n");
+		case IPC_M_DEBUG_ALL:
+			/* Handle debug call. */
+			udebug_call_receive(call);
+			break;
 
-				/* Was it our debugger, who hung up? */
-				if (call->sender == TASK->udebug.debugger) {
-					/* Terminate debugging session (if any) */
-					LOG("kbox: terminate debug session\n");
-					ipl = interrupts_disable();
-					spinlock_lock(&TASK->lock);
-					udebug_task_cleanup(TASK);
-					spinlock_unlock(&TASK->lock);
-					interrupts_restore(ipl);
-				} else {
-					LOG("kbox: was not debugger\n");
-				}
+		case IPC_M_PHONE_HUNGUP:
+			/*
+			 * Process the hangup call. If this was the last
+			 * phone, done will be set to true and the
+			 * while loop will terminate.
+			 */
+			kbox_proc_phone_hungup(call, &done);
+			break;
 
-				LOG("kbox: continue with hangup message\n");
-				IPC_SET_RETVAL(call->data, 0);
-				ipc_answer(&TASK->kernel_box, call);
-
-				ipl = interrupts_disable();
-				spinlock_lock(&TASK->lock);
-				spinlock_lock(&TASK->answerbox.lock);
-				if (list_empty(&TASK->answerbox.connected_phones)) {
-					/*
-					 * Last phone has been disconnected.
-					 * Detach this thread so it gets
-					 * freed and terminate.
-					 */
-
-					/* Only need to detach thread unless already terminating. */
-					mutex_lock(&TASK->kb_cleanup_lock);
-					if (&TASK->kb_finished == false) {
-						/* Detach thread so it gets freed. */
-						thread_detach(TASK->kb_thread);
-						TASK->kb_thread = NULL;
-					}
-					mutex_unlock(&TASK->kb_cleanup_lock);
-					done = true;
-					LOG("phone list is empty\n");
-				}
-				spinlock_unlock(&TASK->answerbox.lock);
-				spinlock_unlock(&TASK->lock);
-				interrupts_restore(ipl);
-			}
+		default:
+			/* Ignore */
+			break;
 		}
 	}
 
