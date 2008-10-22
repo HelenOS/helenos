@@ -140,11 +140,18 @@ static void kbox_thread_proc(void *arg)
 				if (list_empty(&TASK->answerbox.connected_phones)) {
 					/*
 					 * Last phone has been disconnected.
+					 * Detach this thread so it gets
+					 * freed and terminate.
 					 */
 
-					/* Detach thread so it gets freed. */
-					thread_detach(TASK->kb_thread);
-					TASK->kb_thread = NULL;
+					/* Only need to detach thread unless already terminating. */
+					mutex_lock(&TASK->kb_cleanup_lock);
+					if (&TASK->kb_finished == false) {
+						/* Detach thread so it gets freed. */
+						thread_detach(TASK->kb_thread);
+						TASK->kb_thread = NULL;
+					}
+					mutex_unlock(&TASK->kb_cleanup_lock);
 					done = true;
 					LOG("phone list is empty\n");
 				}
