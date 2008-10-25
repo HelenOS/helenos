@@ -50,6 +50,7 @@
 #include <assert.h>
 #include <futex.h>
 #include <sys/mman.h>
+#include <align.h>
 
 #define BS_BLOCK		0
 #define BS_SIZE			512
@@ -106,6 +107,7 @@ static void *dev_buffer = NULL;		/* FIXME */
 typedef struct {
 	void *data;
 	size_t size;
+	bool dirty;
 } block_t;
 
 static block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
@@ -847,9 +849,92 @@ hit:
 	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
 }
 
+static void fat_fill_gap(fat_node_t *nodep, off_t start, off_t stop)
+{
+	/* TODO */
+}
+
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	off_t pos = (off_t)IPC_GET_ARG3(*request);
+	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	size_t bytes;
+	block_t *b, *bb;
+	uint16_t bps;
+	unsigned spc;
+	off_t clst_boundary;
+	
+	if (!nodep) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	/* XXX remove me when you are ready */
+	{
+		ipc_answer_0(rid, ENOTSUP);
+		fat_node_put(nodep);
+		return;
+	}
+
+	ipc_callid_t callid;
+	size_t len;
+	if (!ipc_data_write_receive(&callid, &len)) {
+		fat_node_put(nodep);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * In all scenarios, we will attempt to write out only one block worth
+	 * of data at maximum. There might be some more efficient approaches,
+	 * but this one greatly simplifies fat_write(). Note that we can afford
+	 * to do this because the client must be ready to handle the return
+	 * value signalizing a smaller number of bytes written. 
+	 */ 
+	bytes = min(len, bps - pos % bps);
+
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	spc = FAT_BS(bb)->spc;
+	block_put(bb);
+	
+	clst_boundary = ROUND_UP(nodep->size, bps * spc);
+	if (pos < clst_boundary) {
+		/*
+		 * This is the easier case - we are either overwriting already
+		 * existing contents or writing behind the EOF, but still within
+		 * the limits of the last cluster. The node size may grow to the
+		 * next block size boundary.
+		 */
+		if (pos > nodep->size) 
+			fat_fill_gap(nodep, nodep->size, pos);
+		b = fat_block_get(nodep, pos / bps);
+		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
+		    bytes);
+		b->dirty = true;		/* need to sync block */
+		if (pos + bytes > nodep->size) {
+			nodep->size = pos + bytes;
+			nodep->dirty = true;	/* need to sync node */
+		}
+		block_put(b);
+		fat_node_put(nodep);
+		ipc_answer_1(rid, EOK, bytes);	
+		return;
+	} else {
+		/*
+		 * This is the more difficult case. We must allocate new
+		 * clusters for the node and zero them out.
+		 */
+		unsigned nclsts;
+		
+		nclsts = (ROUND_UP(pos + bytes, bps * spc) - clst_boundary) /
+		    bps * spc; 
+
+	}
+	
 }
 
 /**
