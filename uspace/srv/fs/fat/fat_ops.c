@@ -849,9 +849,21 @@ hit:
 	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
 }
 
-static void fat_fill_gap(fat_node_t *nodep, off_t start, off_t stop)
+static void
+fat_fill_gap(fat_node_t *nodep, fat_cluster_t mclst, off_t pos)
 {
 	/* TODO */
+}
+
+static int
+fat_alloc_clusters(unsigned nclsts, fat_cluster_t *mcl, fat_cluster_t *lcl)
+{
+	return ENOTSUP;	/* TODO */
+}
+
+static void
+fat_append_clusters(fat_node_t *nodep, fat_cluster_t mcl)
+{
 }
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
@@ -909,17 +921,16 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * the limits of the last cluster. The node size may grow to the
 		 * next block size boundary.
 		 */
-		if (pos > nodep->size) 
-			fat_fill_gap(nodep, nodep->size, pos);
+		fat_fill_gap(nodep, FAT_CLST_RES0, pos);
 		b = fat_block_get(nodep, pos / bps);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
+		block_put(b);
 		if (pos + bytes > nodep->size) {
 			nodep->size = pos + bytes;
 			nodep->dirty = true;	/* need to sync node */
 		}
-		block_put(b);
 		fat_node_put(nodep);
 		ipc_answer_1(rid, EOK, bytes);	
 		return;
@@ -928,13 +939,39 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * This is the more difficult case. We must allocate new
 		 * clusters for the node and zero them out.
 		 */
+		int status;
 		unsigned nclsts;
-		
-		nclsts = (ROUND_UP(pos + bytes, bps * spc) - clst_boundary) /
-		    bps * spc; 
-
-	}
+		fat_cluster_t mcl, lcl;
 	
+		nclsts = (ROUND_UP(pos + bytes, bps * spc) - clst_boundary) /
+		    bps * spc;
+		/* create an independent chain of nclsts clusters in all FATs */
+		status = fat_alloc_clusters(nclsts, &mcl, &lcl);
+		if (status != EOK) {
+			/* could not allocate a chain of nclsts clusters */
+			fat_node_put(nodep);
+			ipc_answer_0(callid, status);
+			ipc_answer_0(rid, status);
+			return;
+		}
+		/* zero fill any gaps */
+		fat_fill_gap(nodep, mcl, pos);
+		b = _fat_block_get(dev_handle, lcl, (pos / bps) % spc);
+		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
+		    bytes);
+		b->dirty = true;
+		block_put(b);
+		/*
+		 * Append the cluster chain starting in mcl to the end of the
+		 * node's cluster chain.
+		 */
+		fat_append_clusters(nodep, mcl);
+		nodep->size = pos + bytes;
+		nodep->dirty = true;
+		fat_node_put(nodep);
+		ipc_answer_1(rid, EOK, bytes);
+		return;
+	}
 }
 
 /**
