@@ -849,10 +849,50 @@ hit:
 	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
 }
 
+/** Fill the gap between EOF and a new file position.
+ *
+ * @param nodep		FAT node with the gap.
+ * @param mcl		First cluster in an independent cluster chain that will
+ *			be later appended to the end of the node's own cluster
+ *			chain. If pos is still in the last allocated cluster,
+ *			this argument is ignored.
+ * @param pos		Position in the last node block.
+ */
 static void
-fat_fill_gap(fat_node_t *nodep, fat_cluster_t mclst, off_t pos)
+fat_fill_gap(fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 {
-	/* TODO */
+	uint16_t bps;
+	unsigned spc;
+	block_t *bb, *b;
+	off_t o, boundary;
+
+	bb = block_get(nodep->idx->dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	spc = FAT_BS(bb)->spc;
+	block_put(bb);
+	
+	boundary = ROUND_UP(nodep->size, bps * spc);
+
+	/* zero out already allocated space */
+	for (o = nodep->size - 1; o < pos && o < boundary;
+	    o = ALIGN_DOWN(o + bps, bps)) {
+		b = fat_block_get(nodep, o / bps);
+		memset(b->data + o % bps, 0, bps - o % bps);
+		b->dirty = true;		/* need to sync node */
+		block_put(b);
+	}
+	
+	if (o >= pos)
+		return;
+	
+	/* zero out the initial part of the new cluster chain */
+	for (o = boundary; o < pos; o += bps) {
+		b = _fat_block_get(nodep->idx->dev_handle, mcl,
+		    (o - boundary) / bps);
+		memset(b->data, 0, min(bps, pos - o));
+		b->dirty = true;
+		block_put(b);
+	}
 }
 
 static int
@@ -876,7 +916,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	block_t *b, *bb;
 	uint16_t bps;
 	unsigned spc;
-	off_t clst_boundary;
+	off_t boundary;
 	
 	if (!nodep) {
 		ipc_answer_0(rid, ENOENT);
@@ -913,8 +953,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	spc = FAT_BS(bb)->spc;
 	block_put(bb);
 	
-	clst_boundary = ROUND_UP(nodep->size, bps * spc);
-	if (pos < clst_boundary) {
+	boundary = ROUND_UP(nodep->size, bps * spc);
+	if (pos < boundary) {
 		/*
 		 * This is the easier case - we are either overwriting already
 		 * existing contents or writing behind the EOF, but still within
@@ -943,7 +983,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		unsigned nclsts;
 		fat_cluster_t mcl, lcl;
 	
-		nclsts = (ROUND_UP(pos + bytes, bps * spc) - clst_boundary) /
+		nclsts = (ROUND_UP(pos + bytes, bps * spc) - boundary) /
 		    bps * spc;
 		/* create an independent chain of nclsts clusters in all FATs */
 		status = fat_alloc_clusters(nclsts, &mcl, &lcl);
@@ -959,7 +999,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		b = _fat_block_get(dev_handle, lcl, (pos / bps) % spc);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
-		b->dirty = true;
+		b->dirty = true;		/* need to sync block */
 		block_put(b);
 		/*
 		 * Append the cluster chain starting in mcl to the end of the
@@ -967,7 +1007,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		fat_append_clusters(nodep, mcl);
 		nodep->size = pos + bytes;
-		nodep->dirty = true;
+		nodep->dirty = true;		/* need to sync node */
 		fat_node_put(nodep);
 		ipc_answer_1(rid, EOK, bytes);
 		return;
