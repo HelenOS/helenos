@@ -149,6 +149,8 @@ static void block_put(block_t *block)
 	free(block);
 }
 
+#define FAT1		0
+
 #define FAT_BS(b)		((fat_bs_t *)((b)->data))
 
 #define FAT_CLST_RES0	0x0000
@@ -890,15 +892,90 @@ fat_fill_gap(fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 		b = _fat_block_get(nodep->idx->dev_handle, mcl,
 		    (o - boundary) / bps);
 		memset(b->data, 0, min(bps, pos - o));
-		b->dirty = true;
+		b->dirty = true;		/* need to sync node */
 		block_put(b);
 	}
 }
 
-static int
-fat_alloc_clusters(unsigned nclsts, fat_cluster_t *mcl, fat_cluster_t *lcl)
+static void
+fat_mark_cluster(dev_handle_t dev_handle, unsigned fatno, fat_cluster_t clst,
+    fat_cluster_t value)
 {
-	return ENOTSUP;	/* TODO */
+	/* TODO */
+}
+
+static void
+fat_alloc_shadow_clusters(dev_handle_t dev_handle, fat_cluster_t *lifo,
+    unsigned nclsts)
+{
+	/* TODO */
+}
+
+static int
+fat_alloc_clusters(dev_handle_t dev_handle, unsigned nclsts, fat_cluster_t *mcl,
+    fat_cluster_t *lcl)
+{
+	uint16_t bps;
+	uint16_t rscnt;
+	uint16_t sf;
+	block_t *bb, *blk;
+	fat_cluster_t *lifo;	/* stack for storing free cluster numbers */ 
+	unsigned found = 0;	/* top of the free cluster number stack */
+	unsigned b, c, cl; 
+
+	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
+	if (lifo)
+		return ENOMEM;
+	
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
+	sf = uint16_t_le2host(FAT_BS(bb)->sec_per_fat);
+	block_put(bb);
+	
+	/*
+	 * Search FAT1 for unused clusters.
+	 */
+	for (b = 0, cl = 0; b < sf; blk++) {
+		blk = block_get(dev_handle, rscnt + b, bps);
+		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
+			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
+			if (*clst == FAT_CLST_RES0) {
+				/*
+				 * The cluster is free. Put it into our stack
+				 * of found clusters and mark it as non-free.
+				 */
+				lifo[found] = cl;
+				if (found == 0)
+					*clst = FAT_CLST_LAST1;
+				else
+					*clst = lifo[found - 1];
+				blk->dirty = true;	/* need to sync block */
+				if (++found == nclsts) {
+					/* we are almost done */
+					block_put(blk);
+					/* update the shadow copies of FAT */
+					fat_alloc_shadow_clusters(dev_handle,
+					    lifo, nclsts);
+					*mcl = lifo[found - 1];
+					*lcl = lifo[0];
+					free(lifo);
+					return EOK;
+				}
+			}
+		}
+		block_put(blk);
+	}
+
+	/*
+	 * We could not find enough clusters. Now we need to free the clusters
+	 * we have allocated so far.
+	 */
+	while (found--)
+		fat_mark_cluster(dev_handle, FAT1, lifo[found], FAT_CLST_RES0);
+	
+	free(lifo);
+	return ENOSPC;
 }
 
 static void
@@ -986,7 +1063,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		nclsts = (ROUND_UP(pos + bytes, bps * spc) - boundary) /
 		    bps * spc;
 		/* create an independent chain of nclsts clusters in all FATs */
-		status = fat_alloc_clusters(nclsts, &mcl, &lcl);
+		status = fat_alloc_clusters(dev_handle, nclsts, &mcl, &lcl);
 		if (status != EOK) {
 			/* could not allocate a chain of nclsts clusters */
 			fat_node_put(nodep);
