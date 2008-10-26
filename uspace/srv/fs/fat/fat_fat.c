@@ -216,11 +216,24 @@ fat_mark_cluster(dev_handle_t dev_handle, unsigned fatno, fat_cluster_t clst,
 	/* TODO */
 }
 
-void
-fat_alloc_shadow_clusters(dev_handle_t dev_handle, fat_cluster_t *lifo,
+void fat_alloc_shadow_clusters(dev_handle_t dev_handle, fat_cluster_t *lifo,
     unsigned nclsts)
 {
-	/* TODO */
+	uint8_t fatcnt;
+	uint8_t fatno;
+	unsigned c;
+	block_t *bb;
+
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	fatcnt = FAT_BS(bb)->fatcnt;
+	block_put(bb);
+	
+	for (fatno = FAT1 + 1; fatno < fatcnt; fatno++) {
+		for (c = 0; c < nclsts; c++) {
+			fat_mark_cluster(dev_handle, fatno, lifo[c],
+			    c == 0 ? FAT_CLST_LAST1 : lifo[c - 1]);
+		}
+	}
 }
 
 int
