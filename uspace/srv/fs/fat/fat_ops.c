@@ -36,6 +36,8 @@
  */
 
 #include "fat.h"
+#include "fat_dentry.h"
+#include "fat_fat.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <ipc/ipc.h>
@@ -61,44 +63,7 @@ static futex_t ffn_futex = FUTEX_INITIALIZER;
 /** List of cached free FAT nodes. */
 static LIST_INITIALIZE(ffn_head);
 
-#define FAT_NAME_LEN		8
-#define FAT_EXT_LEN		3
-
-#define FAT_PAD			' ' 
-
-#define FAT_DENTRY_UNUSED	0x00
-#define FAT_DENTRY_E5_ESC	0x05
-#define FAT_DENTRY_DOT		0x2e
-#define FAT_DENTRY_ERASED	0xe5
-
 #define min(a, b)		((a) < (b) ? (a) : (b))
-
-static void dentry_name_canonify(fat_dentry_t *d, char *buf)
-{
-	int i;
-
-	for (i = 0; i < FAT_NAME_LEN; i++) {
-		if (d->name[i] == FAT_PAD)
-			break;
-		if (d->name[i] == FAT_DENTRY_E5_ESC)
-			*buf++ = 0xe5;
-		else
-			*buf++ = d->name[i];
-	}
-	if (d->ext[0] != FAT_PAD)
-		*buf++ = '.';
-	for (i = 0; i < FAT_EXT_LEN; i++) {
-		if (d->ext[i] == FAT_PAD) {
-			*buf = '\0';
-			return;
-		}
-		if (d->ext[i] == FAT_DENTRY_E5_ESC)
-			*buf++ = 0xe5;
-		else
-			*buf++ = d->ext[i];
-	}
-	*buf = '\0';
-}
 
 static int dev_phone = -1;		/* FIXME */
 static void *dev_buffer = NULL;		/* FIXME */
@@ -297,36 +262,6 @@ static uint16_t fat_bps_get(dev_handle_t dev_handle)
 	block_put(bb);
 
 	return bps;
-}
-
-typedef enum {
-	FAT_DENTRY_SKIP,
-	FAT_DENTRY_LAST,
-	FAT_DENTRY_VALID
-} fat_dentry_clsf_t;
-
-static fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *d)
-{
-	if (d->attr & FAT_ATTR_VOLLABEL) {
-		/* volume label entry */
-		return FAT_DENTRY_SKIP;
-	}
-	if (d->name[0] == FAT_DENTRY_ERASED) {
-		/* not-currently-used entry */
-		return FAT_DENTRY_SKIP;
-	}
-	if (d->name[0] == FAT_DENTRY_UNUSED) {
-		/* never used entry */
-		return FAT_DENTRY_LAST;
-	}
-	if (d->name[0] == FAT_DENTRY_DOT) {
-		/*
-		 * Most likely '.' or '..'.
-		 * It cannot occur in a regular file name.
-		 */
-		return FAT_DENTRY_SKIP;
-	}
-	return FAT_DENTRY_VALID;
 }
 
 static void fat_node_sync(fat_node_t *node)

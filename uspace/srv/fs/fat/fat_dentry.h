@@ -33,6 +33,46 @@
 #ifndef FAT_FAT_DENTRY_H_
 #define FAT_FAT_DENTRY_H_
 
+#include <stdint.h>
+
+#define FAT_NAME_LEN		8
+#define FAT_EXT_LEN		3
+
+#define FAT_ATTR_RDONLY		(1 << 0)
+#define FAT_ATTR_VOLLABEL	(1 << 3)
+#define FAT_ATTR_SUBDIR		(1 << 4)
+
+typedef enum {
+	FAT_DENTRY_SKIP,
+	FAT_DENTRY_LAST,
+	FAT_DENTRY_VALID
+} fat_dentry_clsf_t;
+
+typedef struct {
+	uint8_t		name[8];
+	uint8_t		ext[3];
+	uint8_t		attr;
+	uint8_t		reserved;
+	uint8_t		ctime_fine;
+	uint16_t	ctime;
+	uint16_t	cdate;
+	uint16_t	adate;
+	union {
+		uint16_t	eaidx;		/* FAT12/FAT16 */
+		uint16_t	firstc_hi;	/* FAT32 */
+	};
+	uint16_t	mtime;
+	uint16_t	mdate;
+	union {
+		uint16_t	firstc;		/* FAT12/FAT16 */
+		uint16_t	firstc_lo;	/* FAT32 */
+	};
+	uint32_t	size;
+} __attribute__ ((packed)) fat_dentry_t;
+
+extern void dentry_name_canonify(fat_dentry_t *, char *);
+extern fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *);
+
 #endif
 
 /**
