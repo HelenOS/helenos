@@ -285,16 +285,15 @@ fat_alloc_clusters(dev_handle_t dev_handle, unsigned nclsts, fat_cluster_t *mcl,
 		blk = block_get(dev_handle, rscnt + b, bps);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
-			if (*clst == FAT_CLST_RES0) {
+			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
 				/*
 				 * The cluster is free. Put it into our stack
 				 * of found clusters and mark it as non-free.
 				 */
 				lifo[found] = cl;
-				if (found == 0)
-					*clst = FAT_CLST_LAST1;
-				else
-					*clst = lifo[found - 1];
+				*clst = (found == 0) ?
+				    host2uint16_t_le(FAT_CLST_LAST1) :
+				    host2uint16_t_le(lifo[found - 1]);
 				blk->dirty = true;	/* need to sync block */
 				if (++found == nclsts) {
 					/* we are almost done */
