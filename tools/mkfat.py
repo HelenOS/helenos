@@ -94,6 +94,10 @@ BOOT_SECTOR = """little:
 	uint8_t boot_signature[2]  /* boot signature */
 """
 
+EMPTY_SECTOR = """little:
+	padding[512]
+"""
+
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <PATH> <IMAGE>"
@@ -143,6 +147,25 @@ def main():
 	boot_sector.boot_signature = [0x55, 0xAA]
 	
 	outf.write(boot_sector.pack())
+	
+	empty_sector = xstruct.create(EMPTY_SECTOR)
+	
+	# Reserved sectors (boot_sector.reserved - boot_sector)
+	for i in range(1, boot_sector.reserved):
+		outf.write(empty_sector.pack())
+	
+	# FAT tables
+	for i in range(0, boot_sector.fats):
+		for j in range(0, boot_sector.fat_sectors):
+			outf.write(empty_sector.pack())
+	
+	# Root directory
+	for i in range(0, root_size / sector_size):
+		outf.write(empty_sector.pack())
+	
+	# Data
+	for i in range(0, size / sector_size):
+		outf.write(empty_sector.pack())
 	
 	outf.close()
 	
