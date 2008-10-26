@@ -213,7 +213,27 @@ void
 fat_mark_cluster(dev_handle_t dev_handle, unsigned fatno, fat_cluster_t clst,
     fat_cluster_t value)
 {
-	/* TODO */
+	block_t *bb, *blk;
+	uint16_t bps;
+	uint16_t rscnt;
+	uint16_t sf;
+	uint8_t fatcnt;
+	fat_cluster_t *cp;
+
+	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	rscnt = uint16_t_le2host(FAT_BS(bb)->rscnt);
+	sf = uint16_t_le2host(FAT_BS(bb)->sec_per_fat);
+	fatcnt = FAT_BS(bb)->fatcnt;
+	block_put(bb);
+
+	assert(fatno < fatcnt);
+	blk = block_get(dev_handle, rscnt + sf * fatno +
+	    (clst * sizeof(fat_cluster_t)) / bps, bps);
+	cp = (fat_cluster_t *)blk->data + clst % (bps / sizeof(fat_cluster_t));
+	*cp = host2uint16_t_le(value);
+	blk->dirty = true;		/* need to sync block */
+	block_put(blk);
 }
 
 void fat_alloc_shadow_clusters(dev_handle_t dev_handle, fat_cluster_t *lifo,
