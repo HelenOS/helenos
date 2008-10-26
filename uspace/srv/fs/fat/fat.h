@@ -33,6 +33,7 @@
 #ifndef FAT_FAT_H_
 #define FAT_FAT_H_
 
+#include "fat_fat.h"
 #include <ipc/ipc.h>
 #include <libfs.h>
 #include <atomic.h>
@@ -43,6 +44,11 @@
 #ifndef dprintf
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
+
+#define min(a, b)		((a) < (b) ? (a) : (b))
+
+#define BS_BLOCK		0
+#define BS_SIZE			512
 
 typedef struct {
 	uint8_t		ji[3];		/**< Jump instruction. */
@@ -115,7 +121,7 @@ typedef struct {
 	}; 
 } __attribute__ ((packed)) fat_bs_t;
 
-typedef uint16_t fat_cluster_t;
+#define FAT_BS(b)		((fat_bs_t *)((b)->data))
 
 typedef enum {
 	FAT_INVALID,
@@ -190,6 +196,16 @@ typedef struct fat_node {
 	unsigned		refcnt;
 	bool			dirty;
 } fat_node_t;
+
+/* TODO move somewhere else */
+typedef struct block {
+	void *data;
+	size_t size;
+	bool dirty;
+} block_t;
+
+extern block_t *block_get(dev_handle_t, off_t, size_t);
+extern void block_put(block_t *);
 
 extern fs_reg_t fat_reg;
 
