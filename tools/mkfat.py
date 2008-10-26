@@ -35,6 +35,38 @@ import os
 import random
 import xstruct
 
+def align_up(size, alignment):
+	"Return size aligned up to alignment"
+	
+	if (size % alignment == 0):
+		return size
+	
+	return (((size / alignment) + 1) * alignment)
+
+def subtree_size(root, cluster_size):
+	"Recursive directory walk and calculate size"
+	
+	size = 0
+	files = 0
+	
+	for name in os.listdir(root):
+		canon = os.path.join(root, name)
+		
+		if (os.path.isfile(canon)):
+			size += align_up(os.path.getsize(canon), cluster_size)
+			files += 1
+		
+		if (os.path.isdir(canon)):
+			size += subtree_size(canon, cluster_size)
+			files += 1
+	
+	return size + align_up(files * 32, cluster_size)
+
+def root_entries(root):
+	"Return number of root directory entries"
+	
+	return len(os.listdir(root))
+
 BOOT_SECTOR = """little:
 	uint8_t jmp[3]             /* jump instruction */
 	char oem[8]                /* OEM string */
@@ -76,25 +108,34 @@ def main():
 		print "<PATH> must be a directory"
 		return
 	
+	sector_size = 512
+	cluster_size = 4096
+	
+	root_size = align_up(root_entries(sys.argv[1]) * 32, sector_size)
+	size = subtree_size(sys.argv[1], cluster_size)
+	fat_size = align_up(size / cluster_size * 2, sector_size)
+	
+	sectors = (cluster_size + 2 * fat_size + root_size + size) / sector_size
+	
 	outf = file(sys.argv[2], "w")
 	
 	boot_sector = xstruct.create(BOOT_SECTOR)
 	boot_sector.jmp = [0xEB, 0x3C, 0x90]
 	boot_sector.oem = "MSDOS5.0"
-	boot_sector.sector = 512
-	boot_sector.cluster = 8 # 4096 bytes per cluster
-	boot_sector.reserved = 1
+	boot_sector.sector = sector_size
+	boot_sector.cluster = cluster_size / sector_size
+	boot_sector.reserved = cluster_size / sector_size
 	boot_sector.fats = 2
-	boot_sector.rootdir = 224 # FIXME: root directory should be sector aligned
-	boot_sector.sectors = 0 # FIXME
+	boot_sector.rootdir = root_size / 32
+	boot_sector.sectors = (sectors if (sectors <= 65535) else 0)
 	boot_sector.descriptor = 0xF8
-	boot_sector.fat_sectors = 0 # FIXME
-	boot_sector.track_sectors = 0 # FIXME
-	boot_sector.heads = 0 # FIXME
+	boot_sector.fat_sectors = fat_size / sector_size
+	boot_sector.track_sectors = 63
+	boot_sector.heads = 6
 	boot_sector.hidden = 0
-	boot_sector.sectors_big = 0 # FIXME
+	boot_sector.sectors_big = (sectors if (sectors > 65535) else 0)
 	
-	boot_sector.drive = 0
+	boot_sector.drive = 0x80
 	boot_sector.extboot_signature = 0x29
 	boot_sector.serial = random.randint(0, 0xFFFFFFFF)
 	boot_sector.label = "HELENOS"
