@@ -200,7 +200,7 @@ skip_cache:
 		 * size of the directory by walking the FAT.
 		 */
 		nodep->size = bps * _fat_blcks_get(idxp->dev_handle,
-		    uint16_t_le2host(d->firstc));
+		    uint16_t_le2host(d->firstc), NULL);
 	} else {
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);

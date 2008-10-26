@@ -108,11 +108,14 @@ _fat_block_get(dev_handle_t dev_handle, fat_cluster_t firstc, off_t offset)
  *
  * @param dev_handle	Device handle of the device with the file.
  * @param firstc	First cluster of the file.
+ * @param lastc		If non-NULL, output argument holding the
+ *			last cluster.
  *
  * @return		Number of blocks allocated to the file.
  */
 uint16_t 
-_fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc)
+_fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc,
+    fat_cluster_t *lastc)
 {
 	block_t *bb;
 	block_t *b;
@@ -130,6 +133,8 @@ _fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc)
 
 	if (firstc == FAT_CLST_RES0) {
 		/* No space allocated to the file. */
+		if (lastc)
+			*lastc = firstc;
 		return 0;
 	}
 
@@ -138,6 +143,8 @@ _fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc)
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST);
+		if (lastc)
+			*lastc = clst;		/* remember the last cluster */
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
@@ -148,6 +155,8 @@ _fat_blcks_get(dev_handle_t dev_handle, fat_cluster_t firstc)
 		clusters++;
 	}
 
+	if (lastc)
+		*lastc = clst;
 	return clusters * spc;
 }
 
@@ -324,6 +333,22 @@ fat_alloc_clusters(dev_handle_t dev_handle, unsigned nclsts, fat_cluster_t *mcl,
 
 void fat_append_clusters(fat_node_t *nodep, fat_cluster_t mcl)
 {
+	block_t *bb;
+	fat_cluster_t lcl;
+	uint8_t fatcnt, fatno;
+
+	if (_fat_blcks_get(nodep->idx->dev_handle, nodep->firstc, &lcl) == 0) {
+		nodep->firstc = host2uint16_t_le(mcl);
+		nodep->dirty = true;		/* need to sync node */
+		return;
+	}
+
+	bb = block_get(nodep->idx->dev_handle, BS_BLOCK, BS_SIZE);
+	fatcnt = FAT_BS(bb)->fatcnt;
+	block_put(bb);
+
+	for (fatno = FAT1; fatno < fatcnt; fatno++)
+		fat_mark_cluster(nodep->idx->dev_handle, fatno, lcl, mcl);
 }
 
 /**

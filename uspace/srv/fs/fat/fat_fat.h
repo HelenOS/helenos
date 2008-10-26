@@ -61,7 +61,7 @@ typedef uint16_t fat_cluster_t;
     _fat_block_get((np)->idx->dev_handle, (np)->firstc, (off))
     
 extern struct block *_fat_block_get(dev_handle_t, fat_cluster_t, off_t);
-extern uint16_t _fat_blcks_get(dev_handle_t, fat_cluster_t);
+extern uint16_t _fat_blcks_get(dev_handle_t, fat_cluster_t, fat_cluster_t *);
 extern uint16_t fat_bps_get(dev_handle_t);
   
 extern void fat_append_clusters(struct fat_node *, fat_cluster_t);
