@@ -45,7 +45,9 @@ OUTPUT = fat
 SOURCES = \
 	fat.c \
 	fat_ops.c \
-	fat_idx.c
+	fat_idx.c \
+	fat_dentry.c \
+	fat_fat.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
