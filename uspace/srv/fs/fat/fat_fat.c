@@ -32,7 +32,7 @@
 
 /**
  * @file	fat_fat.c
- * @brief	Functions that manipulate the file allocation tables.
+ * @brief	Functions that manipulate the File Allocation Tables.
  */
 
 #include "fat_fat.h"
@@ -44,6 +44,14 @@
 #include <byteorder.h>
 #include <align.h>
 #include <assert.h>
+#include <futex.h>
+
+/**
+ * The fat_alloc_lock futex protects all copies of the File Allocation Table
+ * during allocation of clusters. The lock does not have to be held durring
+ * deallocation of clusters.
+ */  
+static futex_t fat_alloc_lock = FUTEX_INITIALIZER;
 
 block_t *
 _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
@@ -260,6 +268,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	/*
 	 * Search FAT1 for unused clusters.
 	 */
+	futex_down(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < sf; blk++) {
 		blk = block_get(dev_handle, rscnt + b, bps);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
@@ -283,12 +292,14 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 					*mcl = lifo[found - 1];
 					*lcl = lifo[0];
 					free(lifo);
+					futex_up(&fat_alloc_lock);
 					return EOK;
 				}
 			}
 		}
 		block_put(blk);
 	}
+	futex_up(&fat_alloc_lock);
 
 	/*
 	 * We could not find enough clusters. Now we need to free the clusters
