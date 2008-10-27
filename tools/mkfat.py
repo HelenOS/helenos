@@ -403,7 +403,7 @@ def main():
 	
 	boot_sector.drive = 0x80
 	boot_sector.extboot_signature = 0x29
-	boot_sector.serial = random.randint(0, 0xFFFFFFFF)
+	boot_sector.serial = random.randint(0, 0x7fffffff)
 	boot_sector.label = "HELENOS"
 	boot_sector.fstype = "FAT16   "
 	boot_sector.boot_signature = [0x55, 0xAA]
