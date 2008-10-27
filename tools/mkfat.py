@@ -387,13 +387,19 @@ def main():
 	boot_sector.reserved = cluster_size / sector_size
 	boot_sector.fats = fat_count
 	boot_sector.rootdir = root_size / dirent_size
-	boot_sector.sectors = (sectors if (sectors <= 65535) else 0)
+	if (sectors <= 65535):
+		boot_sector.sectors = sectors
+	else:
+		boot_sector.sectors = 0
 	boot_sector.descriptor = 0xF8
 	boot_sector.fat_sectors = fat_size / sector_size
 	boot_sector.track_sectors = 63
 	boot_sector.heads = 6
 	boot_sector.hidden = 0
-	boot_sector.sectors_big = (sectors if (sectors > 65535) else 0)
+	if (sectors > 65535):
+		boot_sector.sectors_big = sectors
+	else:
+		boot_sector.sectors_big = 0
 	
 	boot_sector.drive = 0x80
 	boot_sector.extboot_signature = 0x29
