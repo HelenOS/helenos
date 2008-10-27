@@ -116,7 +116,31 @@ static void fat_node_initialize(fat_node_t *node)
 
 static void fat_node_sync(fat_node_t *node)
 {
-	/* TODO */
+	block_t *bb, *b;
+	fat_dentry_t *d;
+	uint16_t bps;
+	unsigned dps;
+	
+	assert(node->dirty);
+
+	bb = block_get(node->idx->dev_handle, BS_BLOCK, BS_SIZE);
+	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	dps = bps / sizeof(fat_dentry_t);
+	
+	/* Read the block that contains the dentry of interest. */
+	b = _fat_block_get(bb->data, node->idx->dev_handle, node->idx->pfc,
+	    (node->idx->pdi * sizeof(fat_dentry_t)) / bps);
+
+	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
+
+	d->firstc = host2uint16_t_le(node->firstc);
+	if (node->type == FAT_FILE)
+		d->size = host2uint32_t_le(node->size);
+	/* TODO: update other fields? (e.g time fields, attr field) */
+	
+	b->dirty = true;		/* need to sync block */
+	block_put(b);
+	block_put(bb);
 }
 
 /** Internal version of fat_node_get().
