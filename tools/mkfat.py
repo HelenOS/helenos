@@ -34,6 +34,7 @@ import sys
 import os
 import random
 import xstruct
+import array
 
 def align_up(size, alignment):
 	"Return size aligned up to alignment"
@@ -43,7 +44,7 @@ def align_up(size, alignment):
 	
 	return (((size / alignment) + 1) * alignment)
 
-def subtree_size(root, cluster_size):
+def subtree_size(root, cluster_size, dirent_size):
 	"Recursive directory walk and calculate size"
 	
 	size = 0
@@ -57,15 +58,108 @@ def subtree_size(root, cluster_size):
 			files += 1
 		
 		if (os.path.isdir(canon)):
-			size += subtree_size(canon, cluster_size)
+			size += subtree_size(canon, cluster_size, dirent_size)
 			files += 1
 	
-	return size + align_up(files * 32, cluster_size)
+	return size + align_up(files * dirent_size, cluster_size)
 
 def root_entries(root):
 	"Return number of root directory entries"
 	
 	return len(os.listdir(root))
+
+def write_file(path, outf, cluster_size, data_start, fat):
+	"Store the contents of a file"
+	
+	size = os.path.getsize(path)
+	prev = -1
+	first = -1
+	
+	inf = file(path, "r")
+	rd = 0;
+	while (rd < size):
+		data = inf.read(cluster_size);
+		
+		empty_cluster = fat.index(0)
+		
+		fat[empty_cluster] = 0xffff
+		if (prev != -1):
+			fat[prev] = empty_cluster
+		else:
+			first = empty_cluster
+		
+		prev = empty_cluster
+		
+		outf.seek(data_start + empty_cluster * cluster_size)
+		outf.write(data)
+		rd += len(data)
+	inf.close()
+	
+	return first, size
+
+DIR_ENTRY = """little:
+	char name[8]               /* file name */
+	char ext[3]                /* file extension */
+	uint8_t attr               /* file attributes */
+	padding[1]                 /* reserved for NT */
+	uint8_t ctime_fine         /* create time (fine resolution) */
+	uint16_t ctime             /* create time */
+	uint16_t cdate             /* create date */
+	uint16_t adate             /* access date */
+	padding[2]                 /* EA-index */
+	uint16_t mtime             /* modification time */
+	uint16_t mdate             /* modification date */
+	uint16_t cluster           /* first cluster */
+	uint32_t size              /* file size */
+"""
+
+def mangle_fname(name):
+	# FIXME: filter illegal characters
+	fname = (name.split('.')[0] + '          ').upper()[0:8]
+	return fname
+
+def mangle_ext(name):
+	# FIXME: filter illegal characters
+	ext = (name.split('.')[1] + '  ').upper()[0:3]
+	return ext
+
+def create_dirent(name, directory, cluster, size):
+	dir_entry = xstruct.create(DIR_ENTRY)
+	
+	dir_entry.name = mangle_fname(name)
+	dir_entry.ext = mangle_ext(name)
+	
+	if (directory):
+		dir_entry.attr = 0x30
+	else:
+		dir_entry.attr = 0x20
+	
+	dir_entry.ctime_fine = 0 # FIXME
+	dir_entry.ctime = 0 # FIXME
+	dir_entry.cdate = 0 # FIXME
+	dir_entry.adate = 0 # FIXME
+	dir_entry.mtime = 0 # FIXME
+	dir_entry.mdate = 0 # FIXME
+	dir_entry.cluster = cluster
+	dir_entry.size = size
+	
+	return dir_entry
+
+def recursion(head, root, outf, cluster_size, root_start, data_start, fat):
+	"Recursive directory walk"
+	
+	directory = []
+	for name in os.listdir(root):
+		canon = os.path.join(root, name)
+		
+		if (os.path.isfile(canon)):
+			rv = write_file(canon, outf, cluster_size, data_start, fat)
+			directory.append(create_dirent(name, False, rv[0], rv[1]))
+	
+	if (head):
+		outf.seek(root_start)
+		for dir_entry in directory:
+			outf.write(dir_entry.pack())
 
 BOOT_SECTOR = """little:
 	uint8_t jmp[3]             /* jump instruction */
@@ -95,7 +189,11 @@ BOOT_SECTOR = """little:
 """
 
 EMPTY_SECTOR = """little:
-	padding[512]
+	padding[512]               /* empty sector data */
+"""
+
+FAT_ENTRY = """little:
+	uint16_t next              /* FAT16 entry */
 """
 
 def usage(prname):
@@ -112,14 +210,31 @@ def main():
 		print "<PATH> must be a directory"
 		return
 	
+	fat16_clusters = 4096
+	
 	sector_size = 512
 	cluster_size = 4096
+	dirent_size = 32
+	fatent_size = 2
+	fat_count = 2
+	reserved_clusters = 2
 	
-	root_size = align_up(root_entries(sys.argv[1]) * 32, sector_size)
-	size = subtree_size(sys.argv[1], cluster_size)
-	fat_size = align_up(size / cluster_size * 2, sector_size)
+	# Make sure the filesystem is large enought for FAT16
+	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
+	while (size / cluster_size < fat16_clusters):
+		if (cluster_size > sector_size):
+			cluster_size /= 2
+			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
+		else:
+			size = fat16_clusters * cluster_size + reserved_clusters * cluster_size
 	
-	sectors = (cluster_size + 2 * fat_size + root_size + size) / sector_size
+	root_size = align_up(root_entries(path) * dirent_size, cluster_size)
+	
+	fat_size = align_up(align_up(size, cluster_size) / cluster_size * fatent_size, sector_size)
+	
+	sectors = (cluster_size + fat_count * fat_size + root_size + size) / sector_size
+	root_start = cluster_size + fat_count * fat_size
+	data_start = root_start + root_size
 	
 	outf = file(sys.argv[2], "w")
 	
@@ -129,8 +244,8 @@ def main():
 	boot_sector.sector = sector_size
 	boot_sector.cluster = cluster_size / sector_size
 	boot_sector.reserved = cluster_size / sector_size
-	boot_sector.fats = 2
-	boot_sector.rootdir = root_size / 32
+	boot_sector.fats = fat_count
+	boot_sector.rootdir = root_size / dirent_size
 	boot_sector.sectors = (sectors if (sectors <= 65535) else 0)
 	boot_sector.descriptor = 0xF8
 	boot_sector.fat_sectors = fat_size / sector_size
@@ -150,12 +265,12 @@ def main():
 	
 	empty_sector = xstruct.create(EMPTY_SECTOR)
 	
-	# Reserved sectors (boot_sector.reserved - boot_sector)
-	for i in range(1, boot_sector.reserved):
+	# Reserved sectors
+	for i in range(1, cluster_size / sector_size):
 		outf.write(empty_sector.pack())
 	
 	# FAT tables
-	for i in range(0, boot_sector.fats):
+	for i in range(0, fat_count):
 		for j in range(0, boot_sector.fat_sectors):
 			outf.write(empty_sector.pack())
 	
@@ -166,6 +281,20 @@ def main():
 	# Data
 	for i in range(0, size / sector_size):
 		outf.write(empty_sector.pack())
+	
+	fat = array.array('L', [0] * (fat_size / fatent_size))
+	fat[0] = 0xfff8
+	fat[1] = 0xffff
+	
+	recursion(True, path, outf, cluster_size, root_start, data_start, fat)
+	
+	# Store FAT
+	fat_entry = xstruct.create(FAT_ENTRY)
+	for i in range(0, fat_count):
+		outf.seek(cluster_size + i * fat_size)
+		for j in range(0, fat_size / fatent_size):
+			fat_entry.next = fat[j]
+			outf.write(fat_entry.pack())
 	
 	outf.close()
 	
