@@ -50,7 +50,7 @@
 #define BS_BLOCK		0
 #define BS_SIZE			512
 
-typedef struct {
+typedef struct fat_bs {
 	uint8_t		ji[3];		/**< Jump instruction. */
 	uint8_t		oem_name[8];
 	/* BIOS Parameter Block */
