@@ -48,7 +48,7 @@ def subtree_size(root, cluster_size, dirent_size):
 	"Recursive directory walk and calculate size"
 	
 	size = 0
-	files = 0
+	files = 2
 	
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
@@ -68,21 +68,19 @@ def root_entries(root):
 	
 	return len(os.listdir(root))
 
-def write_file(path, outf, cluster_size, data_start, fat):
+def write_file(path, outf, cluster_size, data_start, fat, reserved_clusters):
 	"Store the contents of a file"
 	
 	size = os.path.getsize(path)
 	prev = -1
-	first = -1
+	first = 0
 	
 	inf = file(path, "r")
 	rd = 0;
 	while (rd < size):
-		data = inf.read(cluster_size);
-		
 		empty_cluster = fat.index(0)
-		
 		fat[empty_cluster] = 0xffff
+		
 		if (prev != -1):
 			fat[prev] = empty_cluster
 		else:
@@ -90,10 +88,47 @@ def write_file(path, outf, cluster_size, data_start, fat):
 		
 		prev = empty_cluster
 		
-		outf.seek(data_start + empty_cluster * cluster_size)
+		data = inf.read(cluster_size);
+		outf.seek(data_start + (empty_cluster - reserved_clusters) * cluster_size)
 		outf.write(data)
 		rd += len(data)
 	inf.close()
+	
+	return first, size
+
+def write_directory(directory, outf, cluster_size, data_start, fat, reserved_clusters, dirent_size, empty_cluster):
+	"Store the contents of a directory"
+	
+	length = len(directory)
+	size = length * dirent_size
+	prev = -1
+	first = 0
+	
+	i = 0
+	rd = 0;
+	while (rd < size):
+		if (prev != -1):
+			empty_cluster = fat.index(0)
+			fat[empty_cluster] = 0xffff
+			fat[prev] = empty_cluster
+		else:
+			first = empty_cluster
+		
+		prev = empty_cluster
+		
+		data = ''
+		data_len = 0
+		while ((i < length) and (data_len < cluster_size)):
+			if (i == 0):
+				directory[i].cluster = empty_cluster
+			
+			data += directory[i].pack()
+			data_len += dirent_size
+			i += 1
+		
+		outf.seek(data_start + (empty_cluster - reserved_clusters) * cluster_size)
+		outf.write(data)
+		rd += len(data)
 	
 	return first, size
 
@@ -113,15 +148,61 @@ DIR_ENTRY = """little:
 	uint32_t size              /* file size */
 """
 
+DOT_DIR_ENTRY = """little:
+	uint8_t signature          /* 0x2e signature */
+	char name[7]               /* empty */
+	char ext[3]                /* empty */
+	uint8_t attr               /* file attributes */
+	padding[1]                 /* reserved for NT */
+	uint8_t ctime_fine         /* create time (fine resolution) */
+	uint16_t ctime             /* create time */
+	uint16_t cdate             /* create date */
+	uint16_t adate             /* access date */
+	padding[2]                 /* EA-index */
+	uint16_t mtime             /* modification time */
+	uint16_t mdate             /* modification date */
+	uint16_t cluster           /* first cluster */
+	uint32_t size              /* file size */
+"""
+
+DOTDOT_DIR_ENTRY = """little:
+	uint8_t signature[2]       /* 0x2e signature */
+	char name[6]               /* empty */
+	char ext[3]                /* empty */
+	uint8_t attr               /* file attributes */
+	padding[1]                 /* reserved for NT */
+	uint8_t ctime_fine         /* create time (fine resolution) */
+	uint16_t ctime             /* create time */
+	uint16_t cdate             /* create date */
+	uint16_t adate             /* access date */
+	padding[2]                 /* EA-index */
+	uint16_t mtime             /* modification time */
+	uint16_t mdate             /* modification date */
+	uint16_t cluster           /* first cluster */
+	uint32_t size              /* file size */
+"""
+
 def mangle_fname(name):
 	# FIXME: filter illegal characters
-	fname = (name.split('.')[0] + '          ').upper()[0:8]
-	return fname
+	parts = name.split('.')
+	
+	if (len(parts) > 0):
+		fname = parts[0]
+	else:
+		fname = ''
+		
+	return (fname + '          ').upper()[0:8]
 
 def mangle_ext(name):
 	# FIXME: filter illegal characters
-	ext = (name.split('.')[1] + '  ').upper()[0:3]
-	return ext
+	parts = name.split('.')
+	
+	if (len(parts) > 1):
+		ext = parts[1]
+	else:
+		ext = ''
+	
+	return (ext + '   ').upper()[0:3]
 
 def create_dirent(name, directory, cluster, size):
 	dir_entry = xstruct.create(DIR_ENTRY)
@@ -141,25 +222,84 @@ def create_dirent(name, directory, cluster, size):
 	dir_entry.mtime = 0 # FIXME
 	dir_entry.mdate = 0 # FIXME
 	dir_entry.cluster = cluster
-	dir_entry.size = size
+	
+	if (directory):
+		dir_entry.size = 0
+	else:
+		dir_entry.size = size
 	
 	return dir_entry
 
-def recursion(head, root, outf, cluster_size, root_start, data_start, fat):
+def create_dot_dirent(empty_cluster):
+	dir_entry = xstruct.create(DOT_DIR_ENTRY)
+	
+	dir_entry.signature = 0x2e
+	dir_entry.name = '       '
+	dir_entry.ext = '   '
+	dir_entry.attr = 0x10
+	
+	dir_entry.ctime_fine = 0 # FIXME
+	dir_entry.ctime = 0 # FIXME
+	dir_entry.cdate = 0 # FIXME
+	dir_entry.adate = 0 # FIXME
+	dir_entry.mtime = 0 # FIXME
+	dir_entry.mdate = 0 # FIXME
+	dir_entry.cluster = empty_cluster
+	dir_entry.size = 0
+	
+	return dir_entry
+
+def create_dotdot_dirent(parent_cluster):
+	dir_entry = xstruct.create(DOTDOT_DIR_ENTRY)
+	
+	dir_entry.signature = [0x2e, 0x2e]
+	dir_entry.name = '      '
+	dir_entry.ext = '   '
+	dir_entry.attr = 0x10
+	
+	dir_entry.ctime_fine = 0 # FIXME
+	dir_entry.ctime = 0 # FIXME
+	dir_entry.cdate = 0 # FIXME
+	dir_entry.adate = 0 # FIXME
+	dir_entry.mtime = 0 # FIXME
+	dir_entry.mdate = 0 # FIXME
+	dir_entry.cluster = parent_cluster
+	dir_entry.size = 0
+	
+	return dir_entry
+
+def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, parent_cluster):
 	"Recursive directory walk"
 	
 	directory = []
+	
+	if (not head):
+		# Directory cluster preallocation
+		empty_cluster = fat.index(0)
+		fat[empty_cluster] = 0xffff
+		
+		directory.append(create_dot_dirent(empty_cluster))
+		directory.append(create_dotdot_dirent(parent_cluster))
+	else:
+		empty_cluster = 0
+	
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
 		
 		if (os.path.isfile(canon)):
-			rv = write_file(canon, outf, cluster_size, data_start, fat)
+			rv = write_file(canon, outf, cluster_size, data_start, fat, reserved_clusters)
 			directory.append(create_dirent(name, False, rv[0], rv[1]))
+		
+		if (os.path.isdir(canon)):
+			rv = recursion(False, canon, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
+			directory.append(create_dirent(name, True, rv[0], rv[1]))
 	
 	if (head):
 		outf.seek(root_start)
 		for dir_entry in directory:
 			outf.write(dir_entry.pack())
+	else:
+		return write_directory(directory, outf, cluster_size, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
 
 BOOT_SECTOR = """little:
 	uint8_t jmp[3]             /* jump instruction */
@@ -211,6 +351,7 @@ def main():
 		return
 	
 	fat16_clusters = 4096
+	min_cluster_size = 1024
 	
 	sector_size = 512
 	cluster_size = 4096
@@ -222,7 +363,7 @@ def main():
 	# Make sure the filesystem is large enought for FAT16
 	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
 	while (size / cluster_size < fat16_clusters):
-		if (cluster_size > sector_size):
+		if (cluster_size > min_cluster_size):
 			cluster_size /= 2
 			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
 		else:
@@ -271,7 +412,7 @@ def main():
 	
 	# FAT tables
 	for i in range(0, fat_count):
-		for j in range(0, boot_sector.fat_sectors):
+		for j in range(0, fat_size / sector_size):
 			outf.write(empty_sector.pack())
 	
 	# Root directory
@@ -286,7 +427,7 @@ def main():
 	fat[0] = 0xfff8
 	fat[1] = 0xffff
 	
-	recursion(True, path, outf, cluster_size, root_start, data_start, fat)
+	recursion(True, path, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, 0)
 	
 	# Store FAT
 	fat_entry = xstruct.create(FAT_ENTRY)

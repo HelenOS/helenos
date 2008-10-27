@@ -140,7 +140,7 @@ ifeq ($(RDFMT),tmpfs)
 	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
 endif
 ifeq ($(RDFMT),fat)
-	../../../../tools/mkfat.sh $(USPACEDIR)/dist/ initrd.fs
+	../../../../tools/mkfat.py $(USPACEDIR)/dist/ initrd.fs
 endif
 	../../../../tools/mkhord.py 4096 initrd.fs initrd.img
 	rm initrd.fs

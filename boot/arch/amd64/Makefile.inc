@@ -80,7 +80,7 @@ ifeq ($(RDFMT),tmpfs)
 	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.sh $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
+	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
 endif
 	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs arch/$(ARCH)/iso/boot/initrd.img
 	rm arch/$(ARCH)/iso/boot/initrd.fs
