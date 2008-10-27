@@ -197,16 +197,6 @@ typedef struct fat_node {
 	bool			dirty;
 } fat_node_t;
 
-/* TODO move somewhere else */
-typedef struct block {
-	void *data;
-	size_t size;
-	bool dirty;
-} block_t;
-
-extern block_t *block_get(dev_handle_t, off_t, size_t);
-extern void block_put(block_t *);
-
 extern fs_reg_t fat_reg;
 
 extern void fat_mounted(ipc_callid_t, ipc_call_t *);

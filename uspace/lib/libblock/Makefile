@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,60 +27,40 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+## Common compiler flags
+#
+
+LIBC_PREFIX = ../libc
 ## Setup toolchain
 #
 
-LIBC_PREFIX = ../../../lib/libc
-LIBFS_PREFIX = ../../../lib/libfs
-LIBBLOCK_PREFIX = ../../../lib/libblock
-SOFTINT_PREFIX = ../../../lib/softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I $(LIBFS_PREFIX) -I $(LIBBLOCK_PREFIX)
-
-LIBS = \
-	$(LIBC_PREFIX)/libc.a \
-	$(LIBFS_PREFIX)/libfs.a \
-	$(LIBBLOCK_PREFIX)/libblock.a
+CFLAGS += -Iinclude
 
 ## Sources
 #
 
-OUTPUT = fat
 SOURCES = \
-	fat.c \
-	fat_ops.c \
-	fat_idx.c \
-	fat_dentry.c \
-	fat_fat.c
+	libblock.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend disasm
+.PHONY: all clean depend
 
-all: $(OUTPUT) $(OUTPUT).disasm
+all: libblock.a
 
 -include Makefile.depend
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
+	-rm -f libblock.a Makefile.depend
+	find . -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
-$(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm: $(OUTPUT).disasm
-
-$(OUTPUT).disasm: $(OUTPUT)
-	$(OBJDUMP) -d $< >$@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
+libblock.a: depend $(OBJECTS)
+	$(AR) rc libblock.a $(OBJECTS)
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

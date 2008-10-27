@@ -36,7 +36,6 @@
 
 #include "libfs.h" 
 #include "../../srv/vfs/vfs.h"
-#include "../../srv/rd/rd.h"
 #include <errno.h>
 #include <async.h>
 #include <ipc/ipc.h>
@@ -329,63 +328,6 @@ out:
 		ops->node_put(cur);
 	if (tmp)
 		ops->node_put(tmp);
-}
-
-/** Read data from a block device.
- *
- * @param phone		Phone to be used to communicate with the device.
- * @param buffer	Communication buffer shared with the device.
- * @param bufpos	Pointer to the first unread valid offset within the
- * 			communication buffer.
- * @param buflen	Pointer to the number of unread bytes that are ready in
- * 			the communication buffer.
- * @param pos		Device position to be read.
- * @param dst		Destination buffer.
- * @param size		Size of the destination buffer.
- * @param block_size	Block size to be used for the transfer.
- *
- * @return		True on success, false on failure.
- */
-bool libfs_blockread(int phone, void *buffer, off_t *bufpos, size_t *buflen,
-    off_t *pos, void *dst, size_t size, size_t block_size)
-{
-	off_t offset = 0;
-	size_t left = size;
-	
-	while (left > 0) {
-		size_t rd;
-		
-		if (*bufpos + left < *buflen)
-			rd = left;
-		else
-			rd = *buflen - *bufpos;
-		
-		if (rd > 0) {
-			/*
-			 * Copy the contents of the communication buffer to the
-			 * destination buffer.
-			 */
-			memcpy(dst + offset, buffer + *bufpos, rd);
-			offset += rd;
-			*bufpos += rd;
-			*pos += rd;
-			left -= rd;
-		}
-		
-		if (*bufpos == *buflen) {
-			/* Refill the communication buffer with a new block. */
-			ipcarg_t retval;
-			int rc = async_req_2_1(phone, RD_READ_BLOCK,
-			    *pos / block_size, block_size, &retval);
-			if ((rc != EOK) || (retval != EOK))
-				return false;
-			
-			*bufpos = 0;
-			*buflen = block_size;
-		}
-	}
-	
-	return true;
 }
 
 /** @}

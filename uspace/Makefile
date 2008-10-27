@@ -34,6 +34,7 @@
 DIRS = \
 	lib/libc \
 	lib/libfs \
+	lib/libblock \
 	lib/softint \
 	lib/softfloat \
 	srv/ns \

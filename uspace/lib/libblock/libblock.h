@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2008 Martin Decky 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +27,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libfs 
+/** @addtogroup libblock 
  * @{
  */ 
 /**
  * @file
  */
 
-#ifndef LIBFS_LIBFS_H_
-#define	LIBFS_LIBFS_H_ 
+#ifndef LIBBLOCK_LIBBLOCK_H_
+#define	LIBBLOCK_LIBBLOCK_H_ 
 
-#include "../../srv/vfs/vfs.h"
 #include <stdint.h>
-#include <ipc/ipc.h>
-#include <async.h>
+#include "../../srv/vfs/vfs.h"
 
-typedef struct {
-	void * (* match)(void *, const char *);
-	void * (* node_get)(dev_handle_t, fs_index_t);
-	void (* node_put)(void *);
-	void * (* create)(int);
-	int (* destroy)(void *);
-	bool (* link)(void *, void *, const char *);
-	int (* unlink)(void *, void *);
-	fs_index_t (* index_get)(void *);
-	size_t (* size_get)(void *);
-	unsigned (* lnkcnt_get)(void *);
-	bool (* has_children)(void *);
-	void *(* root_get)(dev_handle_t);
-	char (* plb_get_char)(unsigned pos);	
-	bool (* is_directory)(void *);
-	bool (* is_file)(void *);
-} libfs_ops_t;
+typedef struct block {
+	void *data;
+	size_t size;
+	bool dirty;
+} block_t;
 
-typedef struct {
-	int fs_handle;		/**< File system handle. */
-	ipcarg_t vfs_phonehash;	/**< Initial VFS phonehash. */
-	uint8_t *plb_ro;	/**< Read-only PLB view. */
-} fs_reg_t;
+extern int dev_phone;		/* FIXME */
+extern void *dev_buffer;	/* FIXME */
 
-extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
+extern block_t *block_get(dev_handle_t, off_t, size_t);
+extern void block_put(block_t *);
 
-extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+extern bool blockread(int, void *, off_t *, size_t *, off_t *, void *, size_t,
+    size_t);
 
 #endif
 

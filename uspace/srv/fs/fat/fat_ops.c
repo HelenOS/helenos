@@ -40,6 +40,7 @@
 #include "fat_fat.h"
 #include "../../vfs/vfs.h"
 #include <libfs.h>
+#include <libblock.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>
@@ -59,48 +60,6 @@ static futex_t ffn_futex = FUTEX_INITIALIZER;
 
 /** List of cached free FAT nodes. */
 static LIST_INITIALIZE(ffn_head);
-
-static int dev_phone = -1;		/* FIXME */
-static void *dev_buffer = NULL;		/* FIXME */
-
-block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
-{
-	/* FIXME */
-	block_t *b;
-	off_t bufpos = 0;
-	size_t buflen = 0;
-	off_t pos = offset * bs;
-
-	assert(dev_phone != -1);
-	assert(dev_buffer);
-
-	b = malloc(sizeof(block_t));
-	if (!b)
-		return NULL;
-	
-	b->data = malloc(bs);
-	if (!b->data) {
-		free(b);
-		return NULL;
-	}
-	b->size = bs;
-
-	if (!libfs_blockread(dev_phone, dev_buffer, &bufpos, &buflen, &pos,
-	    b->data, bs, bs)) {
-		free(b->data);
-		free(b);
-		return NULL;
-	}
-
-	return b;
-}
-
-void block_put(block_t *block)
-{
-	/* FIXME */
-	free(block->data);
-	free(block);
-}
 
 static void fat_node_initialize(fat_node_t *node)
 {

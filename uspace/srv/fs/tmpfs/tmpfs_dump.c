@@ -45,7 +45,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <as.h>
-#include <libfs.h>
+#include <libblock.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>
 #include <sys/mman.h>
@@ -70,7 +70,7 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 		tmpfs_dentry_t *node;
 		uint32_t size;
 		
-		if (!libfs_blockread(phone, block, bufpos, buflen, pos, &entry,
+		if (!blockread(phone, block, bufpos, buflen, pos, &entry,
 		    sizeof(entry), TMPFS_BLOCK_SIZE))
 			return false;
 		
@@ -90,8 +90,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (!libfs_blockread(phone, block, bufpos, buflen, pos,
-			    fname, entry.len, TMPFS_BLOCK_SIZE)) {
+			if (!blockread(phone, block, bufpos, buflen, pos, fname,
+			    entry.len, TMPFS_BLOCK_SIZE)) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -105,8 +105,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 			}
 			free(fname);
 			
-			if (!libfs_blockread(phone, block, bufpos, buflen, pos,
-			    &size, sizeof(size), TMPFS_BLOCK_SIZE))
+			if (!blockread(phone, block, bufpos, buflen, pos, &size,
+			    sizeof(size), TMPFS_BLOCK_SIZE))
 				return false;
 			
 			size = uint32_t_le2host(size);
@@ -116,7 +116,7 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			
 			node->size = size;
-			if (!libfs_blockread(phone, block, bufpos, buflen, pos,
+			if (!blockread(phone, block, bufpos, buflen, pos,
 			    node->data, size, TMPFS_BLOCK_SIZE))
 				return false;
 			
@@ -132,8 +132,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (!libfs_blockread(phone, block, bufpos, buflen, pos,
-			    fname, entry.len, TMPFS_BLOCK_SIZE)) {
+			if (!blockread(phone, block, bufpos, buflen, pos, fname,
+			    entry.len, TMPFS_BLOCK_SIZE)) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -187,7 +187,7 @@ bool tmpfs_restore(dev_handle_t dev)
 	off_t pos = 0;
 	
 	char tag[6];
-	if (!libfs_blockread(phone, block, &bufpos, &buflen, &pos, tag, 5,
+	if (!blockread(phone, block, &bufpos, &buflen, &pos, tag, 5,
 	    TMPFS_BLOCK_SIZE))
 		goto error;
 	
