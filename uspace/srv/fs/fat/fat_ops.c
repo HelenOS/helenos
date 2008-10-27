@@ -266,15 +266,10 @@ static void *fat_match(void *prnt, const char *component)
 	bb = block_get(parentp->idx->dev_handle, BS_BLOCK, BS_SIZE);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	dps = bps / sizeof(fat_dentry_t);
-	blocks = parentp->size / bps + (parentp->size % bps != 0);
+	blocks = parentp->size / bps;
 	for (i = 0; i < blocks; i++) {
-		unsigned dentries;
-		
 		b = fat_block_get(bb->data, parentp, i);
-		dentries = (i == blocks - 1) ?
-		    parentp->size % sizeof(fat_dentry_t) :
-		    dps;
-		for (j = 0; j < dentries; j++) { 
+		for (j = 0; j < dps; j++) { 
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
@@ -355,23 +350,19 @@ static bool fat_has_children(void *node)
 
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
-
+	
 	futex_down(&nodep->idx->lock);
 	bb = block_get(nodep->idx->dev_handle, BS_BLOCK, BS_SIZE);
 	bps = uint16_t_le2host(FAT_BS(bb)->bps);
 	dps = bps / sizeof(fat_dentry_t);
 
-	blocks = nodep->size / bps + (nodep->size % bps != 0);
+	blocks = nodep->size / bps;
 
 	for (i = 0; i < blocks; i++) {
-		unsigned dentries;
 		fat_dentry_t *d;
 	
 		b = fat_block_get(bb->data, nodep, i);
-		dentries = (i == blocks - 1) ?
-		    nodep->size % sizeof(fat_dentry_t) :
-		    dps;
-		for (j = 0; j < dentries; j++) {
+		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
