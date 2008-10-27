@@ -53,6 +53,16 @@
  */  
 static futex_t fat_alloc_lock = FUTEX_INITIALIZER;
 
+/** Read block from file located on a FAT file system.
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param dev_handle	Device handle of the file system.
+ * @param firstc	First cluster used by the file. Can be zero if the file
+ *			is empty.
+ * @param offset	Offset in blocks.
+ *
+ * @return		Block structure holding the requested block.
+ */
 block_t *
 _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
     off_t offset)
@@ -208,6 +218,14 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 	}
 }
 
+/** Mark cluster in one instance of FAT.
+ *
+ * @param bs		Buffer holding the boot sector for the file system.
+ * @param dev_handle	Device handle for the file system.
+ * @param fatno		Number of the FAT instance where to make the change.
+ * @param clst		Cluster which is to be marked.
+ * @param value		Value mark the cluster with.
+ */
 void
 fat_mark_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
@@ -231,6 +249,13 @@ fat_mark_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
 	block_put(b);
 }
 
+/** Replay the allocatoin of clusters in all shadow instances of FAT.
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param dev_handle	Device handle of the file system.
+ * @param lifo		Chain of allocated clusters.
+ * @param nclsts	Number of clusters in the lifo chain.
+ */
 void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
     fat_cluster_t *lifo, unsigned nclsts)
 {
@@ -245,6 +270,23 @@ void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
 	}
 }
 
+/** Allocate clusters in FAT1.
+ *
+ * This function will attempt to allocate the requested number of clusters in
+ * the first FAT instance.  The FAT will be altered so that the allocated
+ * clusters form an independent chain (i.e. a chain which does not belong to any
+ * file yet).
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param dev_handle	Device handle of the file system.
+ * @param nclsts	Number of clusters to allocate.
+ * @param mcl		Output parameter where the first cluster in the chain
+ *			will be returned.
+ * @param lcl		Output parameter where the last cluster in the chain
+ *			will be returned.
+ *
+ * @return		EOK on success, a negative error code otherwise.
+ */
 int
 fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
     fat_cluster_t *mcl, fat_cluster_t *lcl)
@@ -314,6 +356,12 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	return ENOSPC;
 }
 
+/** Append a cluster chain to the last file cluster in all FATs.
+ *
+ * @param bs		Buffer holding boot sector of the file system.
+ * @param nodep		Node representing the file.
+ * @param mcl		First cluster of the cluster chain to append.
+ */
 void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 {
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
