@@ -39,11 +39,32 @@
 
 #include <stdint.h>
 #include "../../srv/vfs/vfs.h"
+#include <futex.h>
+#include <rwlock.h>
+#include <libadt/hash_table.h>
+#include <libadt/list.h>
 
 typedef struct block {
-	void *data;
-	size_t size;
+	/** Futex protecting the reference count. */
+	futex_t lock;
+	/** Number of references to the block_t structure. */
+	unsigned refcnt;
+	/** If true, the block needs to be written back to the block device. */
 	bool dirty;
+	/** Readers / Writer lock protecting the contents of the block. */
+	rwlock_t contents_lock;
+	/** Handle of the device where the block resides. */
+	dev_handle_t dev_handle;
+	/** Block offset on the block device. Counted in 'size'-byte blocks. */
+	off_t boff;
+	/** Size of the block. */
+	size_t size;
+	/** Link for placing the block into the free block list. */
+	link_t free_link;
+	/** Link for placing the block into the block hash table. */ 
+	link_t hash_link;
+	/** Buffer with the block data. */
+	void *data;
 } block_t;
 
 extern int dev_phone;		/* FIXME */
