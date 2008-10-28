@@ -121,8 +121,6 @@ typedef struct fat_bs {
 	}; 
 } __attribute__ ((packed)) fat_bs_t;
 
-#define FAT_BS(b)		((fat_bs_t *)((b)->data))
-
 typedef enum {
 	FAT_INVALID,
 	FAT_DIRECTORY,

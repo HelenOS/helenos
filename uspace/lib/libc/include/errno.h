@@ -46,6 +46,7 @@
 #define EBADF		(-262)
 #define ERANGE		(-263)
 #define EXDEV		(-264)
+#define EIO		(-265)
 
 #endif
 

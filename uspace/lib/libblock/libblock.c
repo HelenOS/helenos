@@ -38,16 +38,82 @@
 #include "libblock.h" 
 #include "../../srv/vfs/vfs.h"
 #include "../../srv/rd/rd.h"
+#include <ipc/devmap.h>
+#include <ipc/services.h>
 #include <errno.h>
+#include <sys/mman.h>
 #include <async.h>
 #include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 
+static int dev_phone = -1;		/* FIXME */
+static void *dev_buffer = NULL;		/* FIXME */
+static size_t dev_buffer_len = 0;	/* FIXME */
+static void *bblock = NULL;		/* FIXME */
+
+int
+block_init(dev_handle_t dev_handle, size_t com_size, off_t bb_off,
+    size_t bb_size)
+{
+	int rc;
+
+	bblock = malloc(bb_size);
+	if (!bblock)
+		return ENOMEM;
+	dev_buffer_len = com_size;
+	dev_buffer = mmap(NULL, com_size, PROTO_READ | PROTO_WRITE,
+	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+	if (!dev_buffer) {
+		free(bblock);
+		return ENOMEM;
+	}
+	dev_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
+
+	if (dev_phone < 0) {
+		free(bblock);
+		munmap(dev_buffer, com_size);
+		return dev_phone;
+	}
+
+	rc = ipc_share_out_start(dev_phone, dev_buffer,
+	    AS_AREA_READ | AS_AREA_WRITE);
+	if (rc != EOK) {
+		ipc_hangup(dev_phone);
+		free(bblock);
+	    	munmap(dev_buffer, com_size);
+		return rc;
+	}
+	off_t bufpos = 0;
+	size_t buflen = 0;
+	if (!block_read(dev_handle, &bufpos, &buflen, &bb_off,
+	    bblock, bb_size, bb_size)) {
+	    	ipc_hangup(dev_phone);
+	    	free(bblock);
+		munmap(dev_buffer, com_size);
+		return EIO;	/* XXX real error code */
+	}
+	return EOK;
+}
+
+void block_fini(dev_handle_t dev_handle)
+{
+	/* XXX */
+	free(bblock);
+	munmap(dev_buffer, dev_buffer_len);
+	ipc_hangup(dev_phone);
+}
+
+void *block_bb_get(dev_handle_t dev_handle)
+{
+	/* XXX */
+	return bblock;
+}
+
 /** Read data from a block device.
  *
- * @param phone		Phone to be used to communicate with the device.
- * @param buffer	Communication buffer shared with the device.
+ * @param dev_handle	Device handle of the block device.
  * @param bufpos	Pointer to the first unread valid offset within the
  * 			communication buffer.
  * @param buflen	Pointer to the number of unread bytes that are ready in
@@ -59,8 +125,9 @@
  *
  * @return		True on success, false on failure.
  */
-bool blockread(int phone, void *buffer, off_t *bufpos, size_t *buflen,
-    off_t *pos, void *dst, size_t size, size_t block_size)
+bool
+block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
+    size_t size, size_t block_size)
 {
 	off_t offset = 0;
 	size_t left = size;
@@ -78,7 +145,7 @@ bool blockread(int phone, void *buffer, off_t *bufpos, size_t *buflen,
 			 * Copy the contents of the communication buffer to the
 			 * destination buffer.
 			 */
-			memcpy(dst + offset, buffer + *bufpos, rd);
+			memcpy(dst + offset, dev_buffer + *bufpos, rd);
 			offset += rd;
 			*bufpos += rd;
 			*pos += rd;
@@ -88,7 +155,7 @@ bool blockread(int phone, void *buffer, off_t *bufpos, size_t *buflen,
 		if (*bufpos == *buflen) {
 			/* Refill the communication buffer with a new block. */
 			ipcarg_t retval;
-			int rc = async_req_2_1(phone, RD_READ_BLOCK,
+			int rc = async_req_2_1(dev_phone, RD_READ_BLOCK,
 			    *pos / block_size, block_size, &retval);
 			if ((rc != EOK) || (retval != EOK))
 				return false;
@@ -100,9 +167,6 @@ bool blockread(int phone, void *buffer, off_t *bufpos, size_t *buflen,
 	
 	return true;
 }
-
-int dev_phone = -1;		/* FIXME */
-void *dev_buffer = NULL;	/* FIXME */
 
 block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 {
@@ -126,7 +190,7 @@ block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 	}
 	b->size = bs;
 
-	if (!blockread(dev_phone, dev_buffer, &bufpos, &buflen, &pos, b->data,
+	if (!block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
 	    bs, bs)) {
 		free(b->data);
 		free(b);

@@ -38,9 +38,9 @@ include $(LIBC_PREFIX)/Makefile.toolchain
 CFLAGS += -I $(LIBFS_PREFIX) -I $(LIBBLOCK_PREFIX)
 
 LIBS = \
-	$(LIBC_PREFIX)/libc.a \
 	$(LIBFS_PREFIX)/libfs.a \
-	$(LIBBLOCK_PREFIX)/libblock.a
+	$(LIBBLOCK_PREFIX)/libblock.a \
+	$(LIBC_PREFIX)/libc.a
 
 ## Sources
 #

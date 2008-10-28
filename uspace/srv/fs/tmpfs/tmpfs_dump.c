@@ -38,17 +38,12 @@
 
 #include "tmpfs.h"
 #include "../../vfs/vfs.h"
-#include <ipc/ipc.h>
-#include <async.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <as.h>
 #include <libblock.h>
-#include <ipc/services.h>
-#include <ipc/devmap.h>
-#include <sys/mman.h>
 #include <byteorder.h>
 
 #define TMPFS_BLOCK_SIZE	1024
@@ -59,8 +54,8 @@ struct rdentry {
 } __attribute__((packed));
 
 static bool
-tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
-    off_t *pos, tmpfs_dentry_t *parent)
+tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
+    tmpfs_dentry_t *parent)
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
@@ -70,8 +65,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 		tmpfs_dentry_t *node;
 		uint32_t size;
 		
-		if (!blockread(phone, block, bufpos, buflen, pos, &entry,
-		    sizeof(entry), TMPFS_BLOCK_SIZE))
+		if (!block_read(dev, bufpos, buflen, pos, &entry, sizeof(entry),
+		    TMPFS_BLOCK_SIZE))
 			return false;
 		
 		entry.len = uint32_t_le2host(entry.len);
@@ -90,7 +85,7 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (!blockread(phone, block, bufpos, buflen, pos, fname,
+			if (!block_read(dev, bufpos, buflen, pos, fname,
 			    entry.len, TMPFS_BLOCK_SIZE)) {
 				ops->destroy((void *) node);
 				free(fname);
@@ -105,7 +100,7 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 			}
 			free(fname);
 			
-			if (!blockread(phone, block, bufpos, buflen, pos, &size,
+			if (!block_read(dev, bufpos, buflen, pos, &size,
 			    sizeof(size), TMPFS_BLOCK_SIZE))
 				return false;
 			
@@ -116,8 +111,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			
 			node->size = size;
-			if (!blockread(phone, block, bufpos, buflen, pos,
-			    node->data, size, TMPFS_BLOCK_SIZE))
+			if (!block_read(dev, bufpos, buflen, pos, node->data,
+			    size, TMPFS_BLOCK_SIZE))
 				return false;
 			
 			break;
@@ -132,8 +127,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 				return false;
 			}
 			
-			if (!blockread(phone, block, bufpos, buflen, pos, fname,
-			    entry.len, TMPFS_BLOCK_SIZE)) {
+			if (!block_read(dev, bufpos, buflen, pos,
+			    fname, entry.len, TMPFS_BLOCK_SIZE)) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -147,8 +142,8 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 			}
 			free(fname);
 			
-			if (!tmpfs_restore_recursion(phone, block, bufpos,
-			    buflen, pos, node))
+			if (!tmpfs_restore_recursion(dev, bufpos, buflen, pos,
+			    node))
 				return false;
 			
 			break;
@@ -163,31 +158,18 @@ tmpfs_restore_recursion(int phone, void *block, off_t *bufpos, size_t *buflen,
 bool tmpfs_restore(dev_handle_t dev)
 {
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
+	int rc;
 
-	void *block = mmap(NULL, TMPFS_BLOCK_SIZE,
-	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	
-	if (block == NULL)
-		return false;
-	
-	int phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-	    DEVMAP_CONNECT_TO_DEVICE, dev);
-
-	if (phone < 0) {
-		munmap(block, TMPFS_BLOCK_SIZE);
-		return false;
-	}
-	
-	if (ipc_share_out_start(phone, block, AS_AREA_READ | AS_AREA_WRITE) !=
-	    EOK)
-		goto error;
+	rc = block_init(dev, TMPFS_BLOCK_SIZE, 0, 0);
+	if (rc != EOK)
+		return false; 
 	
 	off_t bufpos = 0;
 	size_t buflen = 0;
 	off_t pos = 0;
 	
 	char tag[6];
-	if (!blockread(phone, block, &bufpos, &buflen, &pos, tag, 5,
+	if (!block_read(dev, &bufpos, &buflen, &pos, tag, 5,
 	    TMPFS_BLOCK_SIZE))
 		goto error;
 	
@@ -195,17 +177,15 @@ bool tmpfs_restore(dev_handle_t dev)
 	if (strcmp(tag, "TMPFS") != 0)
 		goto error;
 	
-	if (!tmpfs_restore_recursion(phone, block, &bufpos, &buflen, &pos,
+	if (!tmpfs_restore_recursion(dev, &bufpos, &buflen, &pos,
 	    ops->root_get(dev)))
 		goto error;
 		
-	ipc_hangup(phone);
-	munmap(block, TMPFS_BLOCK_SIZE);
+	block_fini(dev);
 	return true;
 	
 error:
-	ipc_hangup(phone);
-	munmap(block, TMPFS_BLOCK_SIZE);
+	block_fini(dev);
 	return false;
 }
 

@@ -75,19 +75,20 @@ static void fat_node_initialize(fat_node_t *node)
 
 static void fat_node_sync(fat_node_t *node)
 {
-	block_t *bb, *b;
+	block_t *b;
+	fat_bs_t *bs;
 	fat_dentry_t *d;
 	uint16_t bps;
 	unsigned dps;
 	
 	assert(node->dirty);
 
-	bb = block_get(node->idx->dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	bs = block_bb_get(node->idx->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
 	
 	/* Read the block that contains the dentry of interest. */
-	b = _fat_block_get(bb->data, node->idx->dev_handle, node->idx->pfc,
+	b = _fat_block_get(bs, node->idx->dev_handle, node->idx->pfc,
 	    (node->idx->pdi * sizeof(fat_dentry_t)) / bps);
 
 	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
@@ -99,7 +100,6 @@ static void fat_node_sync(fat_node_t *node)
 	
 	b->dirty = true;		/* need to sync block */
 	block_put(b);
-	block_put(bb);
 }
 
 /** Internal version of fat_node_get().
@@ -108,7 +108,8 @@ static void fat_node_sync(fat_node_t *node)
  */
 static void *fat_node_get_core(fat_idx_t *idxp)
 {
-	block_t *bb, *b;
+	block_t *b;
+	fat_bs_t *bs;
 	fat_dentry_t *d;
 	fat_node_t *nodep = NULL;
 	unsigned bps;
@@ -161,12 +162,12 @@ skip_cache:
 	}
 	fat_node_initialize(nodep);
 
-	bb = block_get(idxp->dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	bs = block_bb_get(idxp->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
 
 	/* Read the block that contains the dentry of interest. */
-	b = _fat_block_get(bb->data, idxp->dev_handle, idxp->pfc,
+	b = _fat_block_get(bs, idxp->dev_handle, idxp->pfc,
 	    (idxp->pdi * sizeof(fat_dentry_t)) / bps);
 	assert(b);
 
@@ -183,7 +184,7 @@ skip_cache:
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
-		nodep->size = bps * _fat_blcks_get(bb->data, idxp->dev_handle,
+		nodep->size = bps * _fat_blcks_get(bs, idxp->dev_handle,
 		    uint16_t_le2host(d->firstc), NULL);
 	} else {
 		nodep->type = FAT_FILE;
@@ -194,7 +195,6 @@ skip_cache:
 	nodep->refcnt = 1;
 
 	block_put(b);
-	block_put(bb);
 
 	/* Link the idx structure with the node structure. */
 	nodep->idx = idxp;
@@ -253,6 +253,7 @@ static int fat_unlink(void *prnt, void *chld)
 
 static void *fat_match(void *prnt, const char *component)
 {
+	fat_bs_t *bs;
 	fat_node_t *parentp = (fat_node_t *)prnt;
 	char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
 	unsigned i, j;
@@ -260,15 +261,15 @@ static void *fat_match(void *prnt, const char *component)
 	unsigned dps;		/* dentries per sector */
 	unsigned blocks;
 	fat_dentry_t *d;
-	block_t *bb, *b;
+	block_t *b;
 
 	futex_down(&parentp->idx->lock);
-	bb = block_get(parentp->idx->dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	bs = block_bb_get(parentp->idx->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
 	blocks = parentp->size / bps;
 	for (i = 0; i < blocks; i++) {
-		b = fat_block_get(bb->data, parentp, i);
+		b = fat_block_get(bs, parentp, i);
 		for (j = 0; j < dps; j++) { 
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -276,7 +277,6 @@ static void *fat_match(void *prnt, const char *component)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
-				block_put(bb);
 				futex_up(&parentp->idx->lock);
 				return NULL;
 			default:
@@ -303,19 +303,16 @@ static void *fat_match(void *prnt, const char *component)
 					 * run out of 32-bit indices.
 					 */
 					block_put(b);
-					block_put(bb);
 					return NULL;
 				}
 				node = fat_node_get_core(idx);
 				futex_up(&idx->lock);
 				block_put(b);
-				block_put(bb);
 				return node;
 			}
 		}
 		block_put(b);
 	}
-	block_put(bb);
 
 	futex_up(&parentp->idx->lock);
 	return NULL;
@@ -341,19 +338,20 @@ static unsigned fat_lnkcnt_get(void *node)
 
 static bool fat_has_children(void *node)
 {
+	fat_bs_t *bs;
 	fat_node_t *nodep = (fat_node_t *)node;
 	unsigned bps;
 	unsigned dps;
 	unsigned blocks;
-	block_t *bb, *b;
+	block_t *b;
 	unsigned i, j;
 
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
 	
 	futex_down(&nodep->idx->lock);
-	bb = block_get(nodep->idx->dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	bs = block_bb_get(nodep->idx->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
 
 	blocks = nodep->size / bps;
@@ -361,7 +359,7 @@ static bool fat_has_children(void *node)
 	for (i = 0; i < blocks; i++) {
 		fat_dentry_t *d;
 	
-		b = fat_block_get(bb->data, nodep, i);
+		b = fat_block_get(bs, nodep, i);
 		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -369,24 +367,20 @@ static bool fat_has_children(void *node)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
-				block_put(bb);
 				futex_up(&nodep->idx->lock);
 				return false;
 			default:
 			case FAT_DENTRY_VALID:
 				block_put(b);
-				block_put(bb);
 				futex_up(&nodep->idx->lock);
 				return true;
 			}
 			block_put(b);
-			block_put(bb);
 			futex_up(&nodep->idx->lock);
 			return true;
 		}
 		block_put(b);
 	}
-	block_put(bb);
 
 	futex_up(&nodep->idx->lock);
 	return false;
@@ -434,57 +428,34 @@ libfs_ops_t fat_libfs_ops = {
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
-	block_t *bb;
+	fat_bs_t *bs;
 	uint16_t bps;
 	uint16_t rde;
 	int rc;
 
-	/*
-	 * For now, we don't bother to remember dev_handle, dev_phone or
-	 * dev_buffer in some data structure. We use global variables because we
-	 * know there will be at most one mount on this file system.
-	 * Of course, this is a huge TODO item.
-	 */
-	dev_buffer = mmap(NULL, BS_SIZE, PROTO_READ | PROTO_WRITE,
-	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	
-	if (!dev_buffer) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-
-	dev_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
-
-	if (dev_phone < 0) {
-		munmap(dev_buffer, BS_SIZE);
-		ipc_answer_0(rid, dev_phone);
-		return;
-	}
-
-	rc = ipc_share_out_start(dev_phone, dev_buffer,
-	    AS_AREA_READ | AS_AREA_WRITE);
+	/* initialize libblock */
+	rc = block_init(dev_handle, BS_SIZE, BS_BLOCK * BS_SIZE, BS_SIZE);
 	if (rc != EOK) {
-	    	munmap(dev_buffer, BS_SIZE);
-		ipc_answer_0(rid, rc);
+		ipc_answer_0(rid, 0);
 		return;
 	}
 
+	/* get the buffer with the boot sector */
+	bs = block_bb_get(dev_handle);
+	
 	/* Read the number of root directory entries. */
-	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
-	rde = uint16_t_le2host(FAT_BS(bb)->root_ent_max);
-	block_put(bb);
+	bps = uint16_t_le2host(bs->bps);
+	rde = uint16_t_le2host(bs->root_ent_max);
 
 	if (bps != BS_SIZE) {
-		munmap(dev_buffer, BS_SIZE);
+		block_fini(dev_handle);
 		ipc_answer_0(rid, ENOTSUP);
 		return;
 	}
 
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
-	    	munmap(dev_buffer, BS_SIZE);
+		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
 	}
@@ -492,7 +463,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Initialize the root node. */
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
-	    	munmap(dev_buffer, BS_SIZE);
+		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
 		return;
@@ -501,7 +472,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	fat_idx_t *ridxp = fat_idx_get_by_pos(dev_handle, FAT_CLST_ROOTPAR, 0);
 	if (!ridxp) {
-	    	munmap(dev_buffer, BS_SIZE);
+		block_fini(dev_handle);
 		free(rootp);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -539,9 +510,10 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	off_t pos = (off_t)IPC_GET_ARG3(*request);
 	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	fat_bs_t *bs;
 	uint16_t bps;
 	size_t bytes;
-	block_t *bb, *b;
+	block_t *b;
 
 	if (!nodep) {
 		ipc_answer_0(rid, ENOENT);
@@ -557,8 +529,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
+	bs = block_bb_get(dev_handle);
+	bps = uint16_t_le2host(bs->bps);
 
 	if (nodep->type == FAT_FILE) {
 		/*
@@ -567,7 +539,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		 * requested. This keeps the code very simple.
 		 */
 		bytes = min(len, bps - pos % bps);
-		b = fat_block_get(bb->data, nodep, pos / bps);
+		b = fat_block_get(bs, nodep, pos / bps);
 		(void) ipc_data_read_finalize(callid, b->data + pos % bps,
 		    bytes);
 		block_put(b);
@@ -591,7 +563,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		while (bnum < nodep->size / bps) {
 			off_t o;
 
-			b = fat_block_get(bb->data, nodep, bnum);
+			b = fat_block_get(bs, nodep, bnum);
 			for (o = pos % (bps / sizeof(fat_dentry_t));
 			    o < bps / sizeof(fat_dentry_t);
 			    o++, pos++) {
@@ -614,7 +586,6 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		}
 miss:
 		fat_node_put(nodep);
-		block_put(bb);
 		ipc_answer_0(callid, ENOENT);
 		ipc_answer_1(rid, ENOENT, 0);
 		return;
@@ -624,7 +595,6 @@ hit:
 	}
 
 	fat_node_put(nodep);
-	block_put(bb);
 	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
 }
 
@@ -634,8 +604,9 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	off_t pos = (off_t)IPC_GET_ARG3(*request);
 	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	fat_bs_t *bs;
 	size_t bytes;
-	block_t *b, *bb;
+	block_t *b;
 	uint16_t bps;
 	unsigned spc;
 	off_t boundary;
@@ -670,9 +641,9 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	 */ 
 	bytes = min(len, bps - pos % bps);
 
-	bb = block_get(dev_handle, BS_BLOCK, BS_SIZE);
-	bps = uint16_t_le2host(FAT_BS(bb)->bps);
-	spc = FAT_BS(bb)->spc;
+	bs = block_bb_get(dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+	spc = bs->spc;
 	
 	boundary = ROUND_UP(nodep->size, bps * spc);
 	if (pos < boundary) {
@@ -682,8 +653,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * the limits of the last cluster. The node size may grow to the
 		 * next block size boundary.
 		 */
-		fat_fill_gap(bb->data, nodep, FAT_CLST_RES0, pos);
-		b = fat_block_get(bb->data, nodep, pos / bps);
+		fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
+		b = fat_block_get(bs, nodep, pos / bps);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
@@ -693,7 +664,6 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			nodep->dirty = true;	/* need to sync node */
 		}
 		fat_node_put(nodep);
-		block_put(bb);
 		ipc_answer_1(rid, EOK, bytes);	
 		return;
 	} else {
@@ -708,19 +678,18 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		nclsts = (ROUND_UP(pos + bytes, bps * spc) - boundary) /
 		    bps * spc;
 		/* create an independent chain of nclsts clusters in all FATs */
-		status = fat_alloc_clusters(bb->data, dev_handle, nclsts, &mcl,
+		status = fat_alloc_clusters(bs, dev_handle, nclsts, &mcl,
 		    &lcl);
 		if (status != EOK) {
 			/* could not allocate a chain of nclsts clusters */
 			fat_node_put(nodep);
-			block_put(bb);
 			ipc_answer_0(callid, status);
 			ipc_answer_0(rid, status);
 			return;
 		}
 		/* zero fill any gaps */
-		fat_fill_gap(bb->data, nodep, mcl, pos);
-		b = _fat_block_get(bb->data, dev_handle, lcl,
+		fat_fill_gap(bs, nodep, mcl, pos);
+		b = _fat_block_get(bs, dev_handle, lcl,
 		    (pos / bps) % spc);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
@@ -730,11 +699,10 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * Append the cluster chain starting in mcl to the end of the
 		 * node's cluster chain.
 		 */
-		fat_append_clusters(bb->data, nodep, mcl);
+		fat_append_clusters(bs, nodep, mcl);
 		nodep->size = pos + bytes;
 		nodep->dirty = true;		/* need to sync node */
 		fat_node_put(nodep);
-		block_put(bb);
 		ipc_answer_1(rid, EOK, bytes);
 		return;
 	}

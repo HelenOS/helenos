@@ -67,14 +67,14 @@ typedef struct block {
 	void *data;
 } block_t;
 
-extern int dev_phone;		/* FIXME */
-extern void *dev_buffer;	/* FIXME */
+extern int block_init(dev_handle_t, size_t, off_t, size_t);
+extern void block_fini(dev_handle_t);
+extern void *block_bb_get(dev_handle_t);
 
 extern block_t *block_get(dev_handle_t, off_t, size_t);
 extern void block_put(block_t *);
 
-extern bool blockread(int, void *, off_t *, size_t *, off_t *, void *, size_t,
-    size_t);
+extern bool block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);
 
 #endif
 
