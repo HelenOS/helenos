@@ -539,7 +539,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		 * requested. This keeps the code very simple.
 		 */
 		if (pos >= nodep->size) {
-			bytes = 0;		/* reading beyond the EOF */
+			/* reading beyond the EOF */
+			bytes = 0;
 			(void) ipc_data_read_finalize(callid, NULL, 0);
 		} else {
 			bytes = min(len, bps - pos % bps);
