@@ -538,11 +538,17 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		 * most and make use of the possibility to return less data than
 		 * requested. This keeps the code very simple.
 		 */
-		bytes = min(len, bps - pos % bps);
-		b = fat_block_get(bs, nodep, pos / bps);
-		(void) ipc_data_read_finalize(callid, b->data + pos % bps,
-		    bytes);
-		block_put(b);
+		if (pos >= nodep->size) {
+			bytes = 0;		/* reading beyond the EOF */
+			(void) ipc_data_read_finalize(callid, NULL, 0);
+		} else {
+			bytes = min(len, bps - pos % bps);
+			bytes = min(bytes, nodep->size - pos);
+			b = fat_block_get(bs, nodep, pos / bps);
+			(void) ipc_data_read_finalize(callid, b->data + pos % bps,
+			    bytes);
+			block_put(b);
+		}
 	} else {
 		unsigned bnum;
 		off_t spos = pos;
