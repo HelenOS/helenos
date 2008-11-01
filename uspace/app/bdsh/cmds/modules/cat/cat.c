@@ -103,13 +103,11 @@ static unsigned int cat_file(const char *fname, size_t blen)
 	}
 
 	do {
-		memset(buff, 0, sizeof(buff));
 		bytes = read(fd, buff, blen);
 		if (bytes > 0) {
 			count += bytes;
-			if (bytes < blen)
-				buff[bytes] = '\0';
-			printf(buff);
+			buff[bytes] = '\0';
+			printf("%s", buff);
 			reads++;
 		}
 	} while (bytes > 0);
