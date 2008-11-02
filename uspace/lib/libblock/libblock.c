@@ -262,7 +262,7 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
 	if (!cache)
 		return ENOMEM;
 	
-	futex_initialize(&cache->lock, 0);
+	futex_initialize(&cache->lock, 1);
 	list_initialize(&cache->free_head);
 	cache->block_size = size;
 	cache->block_count = blocks;
@@ -336,40 +336,109 @@ block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
 	return EOK;
 }
 
-block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
+static bool cache_can_grow(cache_t *cache)
 {
-	/* FIXME */
+	return true;
+}
+
+static void block_initialize(block_t *b)
+{
+	futex_initialize(&b->lock, 1);
+	b->refcnt = 1;
+	b->dirty = false;
+	rwlock_initialize(&b->contents_lock);
+	link_initialize(&b->free_link);
+	link_initialize(&b->hash_link);
+}
+
+/** Instantiate a block in memory and get a reference to it.
+ *
+ * @param dev_handle		Device handle of the block device.
+ * @param boff			Block offset.
+ *
+ * @return			Block structure.
+ */
+block_t *block_get(dev_handle_t dev_handle, off_t boff, size_t bs)
+{
+	devcon_t *devcon;
+	cache_t *cache;
 	block_t *b;
-	off_t bufpos = 0;
-	size_t buflen = 0;
-	off_t pos = offset * bs;
-
-	b = malloc(sizeof(block_t));
-	if (!b)
-		return NULL;
+	link_t *l;
+	unsigned long key = boff;
 	
-	b->data = malloc(bs);
-	if (!b->data) {
-		free(b);
-		return NULL;
-	}
-	b->size = bs;
+	devcon = devcon_search(dev_handle);
 
-	if (block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
-	    bs, bs) != EOK) {
-		free(b->data);
-		free(b);
-		return NULL;
+	assert(devcon);
+	assert(devcon->cache);
+	
+	cache = devcon->cache;
+	futex_down(&cache->lock);
+	l = hash_table_find(&cache->block_hash, &key);
+	if (l) {
+		/*
+		 * We found the block in the cache.
+		 */
+		b = hash_table_get_instance(l, block_t, hash_link);
+		futex_down(&b->lock);
+		if (b->refcnt++ == 0)
+			list_remove(&b->free_link);
+		futex_up(&b->lock);
+	} else {
+		/*
+		 * The block was not found in the cache.
+		 */
+		int rc;
+		off_t bufpos = 0;
+		size_t buflen = 0;
+		off_t pos = boff * cache->block_size;
+
+		if (cache_can_grow(cache)) {
+			/*
+			 * We can grow the cache by allocating new blocks.
+			 * Should the allocation fail, we fail over and try to
+			 * recycle a block from the cache.
+			 */
+			b = malloc(sizeof(block_t));
+			if (!b)
+				goto recycle;
+			b->data = malloc(cache->block_size);
+			if (!b->data) {
+				free(b);
+				goto recycle;
+			}
+		} else {
+			/*
+			 * Try to recycle a block from the free list.
+			 */
+			unsigned long temp_key;
+recycle:
+			assert(!list_empty(&cache->free_head));
+			l = cache->free_head.next;
+			list_remove(l);
+			b = hash_table_get_instance(l, block_t, hash_link);
+			assert(!b->dirty);
+			temp_key = b->boff;
+			hash_table_remove(&cache->block_hash, &temp_key, 1);
+		}
+
+		block_initialize(b);
+		b->dev_handle = dev_handle;
+		b->size = cache->block_size;
+		b->boff = boff;
+		/* read block from the device */
+		rc = block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
+		    cache->block_size, cache->block_size);
+		assert(rc == EOK);
+		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
 	}
 
+	futex_up(&cache->lock);
 	return b;
 }
 
 void block_put(block_t *block)
 {
-	/* FIXME */
-	free(block->data);
-	free(block);
+	
 }
 
 /** @}
