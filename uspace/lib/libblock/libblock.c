@@ -324,6 +324,7 @@ block_t *block_get(dev_handle_t dev_handle, off_t boff)
 		if (b->refcnt++ == 0)
 			list_remove(&b->free_link);
 		futex_up(&b->lock);
+		futex_up(&cache->lock);
 	} else {
 		/*
 		 * The block was not found in the cache.
@@ -332,6 +333,7 @@ block_t *block_get(dev_handle_t dev_handle, off_t boff)
 		off_t bufpos = 0;
 		size_t buflen = 0;
 		off_t pos = boff * cache->block_size;
+		bool sync = false;
 
 		if (cache_can_grow(cache)) {
 			/*
@@ -357,7 +359,7 @@ recycle:
 			l = cache->free_head.next;
 			list_remove(l);
 			b = hash_table_get_instance(l, block_t, hash_link);
-			assert(!b->dirty);
+			sync = b->dirty;
 			temp_key = b->boff;
 			hash_table_remove(&cache->block_hash, &temp_key, 1);
 		}
@@ -366,22 +368,39 @@ recycle:
 		b->dev_handle = dev_handle;
 		b->size = cache->block_size;
 		b->boff = boff;
-		/* read block from the device */
+		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
+
+		/*
+		 * Lock the block before releasing the cache lock. Thus we don't
+		 * kill concurent operations on the cache while doing I/O on the
+		 * block.
+		 */
+		futex_down(&b->lock);
+		futex_up(&cache->lock);
+
+		if (sync) {
+			/*
+			 * The block is dirty and needs to be written back to
+			 * the device before we can read in the new contents.
+			 */
+			abort();	/* TODO: block_write() */
+		}
+		/*
+		 * The block contains old or no data. We need to read the new
+		 * contents from the device.
+		 */
 		rc = block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
 		    cache->block_size, cache->block_size);
 		assert(rc == EOK);
-		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
-	}
 
-	futex_up(&cache->lock);
+		futex_up(&b->lock);
+	}
 	return b;
 }
 
 /** Release a reference to a block.
  *
- * If the last reference is dropped, the block is put on the free list.  If the
- * last reference is dropped and the block is dirty, it is first synced with the
- * block device.
+ * If the last reference is dropped, the block is put on the free list.
  *
  * @param block		Block of which a reference is to be released.
  */
@@ -402,21 +421,9 @@ void block_put(block_t *block)
 		 * free list.
 		 */
 		list_append(&block->free_link, &cache->free_head);
-		/* Unlock the cache, but not the block. */
-		futex_up(&cache->lock);
-		if (block->dirty) {
-			/*
-			 * The block is dirty and there is no one using it
-			 * at the moment, write it back to the device.
-			 */
-
-			/* TODO: block_write() */
-			block->dirty = false;
-		}
-	} else {
-		futex_up(&cache->lock);	
 	}
 	futex_up(&block->lock);
+	futex_up(&cache->lock);	
 }
 
 /** Read data from a block device.
