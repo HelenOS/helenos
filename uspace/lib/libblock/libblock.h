@@ -76,7 +76,7 @@ extern void *block_bb_get(dev_handle_t);
 extern block_t *block_get(dev_handle_t, off_t, size_t);
 extern void block_put(block_t *);
 
-extern bool block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);
+extern int block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);
 
 #endif
 

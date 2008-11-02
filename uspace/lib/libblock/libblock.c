@@ -176,6 +176,7 @@ void block_fini(dev_handle_t dev_handle)
 int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
 {
 	void *bb_buf;
+	int rc;
 
 	devcon_t *devcon = devcon_search(dev_handle);
 	if (!devcon)
@@ -188,10 +189,11 @@ int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
 	
 	off_t bufpos = 0;
 	size_t buflen = 0;
-	if (!block_read(dev_handle, &bufpos, &buflen, &off,
-	    bb_buf, size, size)) {
+	rc = block_read(dev_handle, &bufpos, &buflen, &off,
+	    bb_buf, size, size);
+	if (rc != EOK) {
 	    	free(bb_buf);
-		return EIO;	/* XXX real error code */
+		return rc;
 	}
 	devcon->bb_buf = bb_buf;
 	devcon->bb_off = off;
@@ -219,9 +221,9 @@ void *block_bb_get(dev_handle_t dev_handle)
  * @param size		Size of the destination buffer.
  * @param block_size	Block size to be used for the transfer.
  *
- * @return		True on success, false on failure.
+ * @return		EOK on success or a negative return code on failure.
  */
-bool
+int
 block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
     size_t size, size_t block_size)
 {
@@ -256,14 +258,14 @@ block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
 			int rc = async_req_2_1(devcon->dev_phone, RD_READ_BLOCK,
 			    *pos / block_size, block_size, &retval);
 			if ((rc != EOK) || (retval != EOK))
-				return false;
+				return (rc != EOK ? rc : retval);
 			
 			*bufpos = 0;
 			*buflen = block_size;
 		}
 	}
 	
-	return true;
+	return EOK;
 }
 
 block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
@@ -285,8 +287,8 @@ block_t *block_get(dev_handle_t dev_handle, off_t offset, size_t bs)
 	}
 	b->size = bs;
 
-	if (!block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
-	    bs, bs)) {
+	if (block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
+	    bs, bs) != EOK) {
 		free(b->data);
 		free(b);
 		return NULL;

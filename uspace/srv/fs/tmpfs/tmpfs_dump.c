@@ -65,8 +65,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 		tmpfs_dentry_t *node;
 		uint32_t size;
 		
-		if (!block_read(dev, bufpos, buflen, pos, &entry, sizeof(entry),
-		    TMPFS_BLOCK_SIZE))
+		if (block_read(dev, bufpos, buflen, pos, &entry, sizeof(entry),
+		    TMPFS_BLOCK_SIZE) != EOK)
 			return false;
 		
 		entry.len = uint32_t_le2host(entry.len);
@@ -85,8 +85,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 				return false;
 			}
 			
-			if (!block_read(dev, bufpos, buflen, pos, fname,
-			    entry.len, TMPFS_BLOCK_SIZE)) {
+			if (block_read(dev, bufpos, buflen, pos, fname,
+			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -100,8 +100,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			}
 			free(fname);
 			
-			if (!block_read(dev, bufpos, buflen, pos, &size,
-			    sizeof(size), TMPFS_BLOCK_SIZE))
+			if (block_read(dev, bufpos, buflen, pos, &size,
+			    sizeof(size), TMPFS_BLOCK_SIZE) != EOK)
 				return false;
 			
 			size = uint32_t_le2host(size);
@@ -111,8 +111,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 				return false;
 			
 			node->size = size;
-			if (!block_read(dev, bufpos, buflen, pos, node->data,
-			    size, TMPFS_BLOCK_SIZE))
+			if (block_read(dev, bufpos, buflen, pos, node->data,
+			    size, TMPFS_BLOCK_SIZE) != EOK)
 				return false;
 			
 			break;
@@ -127,8 +127,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 				return false;
 			}
 			
-			if (!block_read(dev, bufpos, buflen, pos,
-			    fname, entry.len, TMPFS_BLOCK_SIZE)) {
+			if (block_read(dev, bufpos, buflen, pos, fname,
+			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -169,8 +169,8 @@ bool tmpfs_restore(dev_handle_t dev)
 	off_t pos = 0;
 	
 	char tag[6];
-	if (!block_read(dev, &bufpos, &buflen, &pos, tag, 5,
-	    TMPFS_BLOCK_SIZE))
+	if (block_read(dev, &bufpos, &buflen, &pos, tag, 5,
+	    TMPFS_BLOCK_SIZE) != EOK)
 		goto error;
 	
 	tag[5] = 0;
