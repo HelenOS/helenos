@@ -48,11 +48,23 @@
 #include <assert.h>
 #include <futex.h>
 #include <libadt/list.h>
+#include <libadt/hash_table.h>
 
 /** Lock protecting the device connection list */
 static futex_t dcl_lock = FUTEX_INITIALIZER;
 /** Device connection list head. */
 static LIST_INITIALIZE(dcl_head);
+
+#define CACHE_BUCKETS_LOG2		10
+#define CACHE_BUCKETS			(1 << CACHE_BUCKETS_LOG2)
+
+typedef struct {
+	futex_t lock;
+	size_t block_size;		/**< Block size. */
+	unsigned block_count;		/**< Total number of blocks. */
+	hash_table_t block_hash;
+	link_t free_head;
+} cache_t;
 
 typedef struct {
 	link_t link;
@@ -63,6 +75,7 @@ typedef struct {
 	void *bb_buf;
 	off_t bb_off;
 	size_t bb_size;
+	cache_t *cache;
 } devcon_t;
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
@@ -99,6 +112,7 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
 	devcon->bb_buf = NULL;
 	devcon->bb_off = 0;
 	devcon->bb_size = 0;
+	devcon->cache = NULL;
 
 	futex_down(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
@@ -167,6 +181,12 @@ void block_fini(dev_handle_t dev_handle)
 
 	if (devcon->bb_buf)
 		free(devcon->bb_buf);
+
+	if (devcon->cache) {
+		hash_table_destroy(&devcon->cache->block_hash);
+		free(devcon->cache);
+	}
+
 	munmap(devcon->com_area, devcon->com_size);
 	ipc_hangup(devcon->dev_phone);
 
@@ -207,6 +227,54 @@ void *block_bb_get(dev_handle_t dev_handle)
 	devcon_t *devcon = devcon_search(dev_handle);
 	assert(devcon);
 	return devcon->bb_buf;
+}
+
+static hash_index_t cache_hash(unsigned long *key)
+{
+	return *key & (CACHE_BUCKETS - 1);
+}
+
+static int cache_compare(unsigned long *key, hash_count_t keys, link_t *item)
+{
+	block_t *b = hash_table_get_instance(item, block_t, hash_link);
+	return b->boff == *key;
+}
+
+static void cache_remove_callback(link_t *item)
+{
+}
+
+static hash_table_operations_t cache_ops = {
+	.hash = cache_hash,
+	.compare = cache_compare,
+	.remove_callback = cache_remove_callback
+};
+
+int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
+{
+	devcon_t *devcon = devcon_search(dev_handle);
+	cache_t *cache;
+	if (!devcon)
+		return ENOENT;
+	if (devcon->cache)
+		return EEXIST;
+	cache = malloc(sizeof(cache_t));
+	if (!cache)
+		return ENOMEM;
+	
+	futex_initialize(&cache->lock, 0);
+	list_initialize(&cache->free_head);
+	cache->block_size = size;
+	cache->block_count = blocks;
+
+	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
+	    &cache_ops)) {
+		free(cache);
+		return ENOMEM;
+	}
+
+	devcon->cache = cache;
+	return EOK;
 }
 
 /** Read data from a block device.

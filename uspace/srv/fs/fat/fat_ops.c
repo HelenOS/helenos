@@ -461,6 +461,14 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	/* Initialize the block cache */
+	rc = block_cache_init(dev_handle, bps, 0 /* XXX */);
+	if (rc != EOK) {
+		block_fini(dev_handle);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
 		block_fini(dev_handle);
