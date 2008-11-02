@@ -67,8 +67,10 @@ typedef struct block {
 	void *data;
 } block_t;
 
-extern int block_init(dev_handle_t, size_t, off_t, size_t);
+extern int block_init(dev_handle_t, size_t);
 extern void block_fini(dev_handle_t);
+
+extern int block_bb_read(dev_handle_t, off_t, size_t);
 extern void *block_bb_get(dev_handle_t);
 
 extern block_t *block_get(dev_handle_t, off_t, size_t);

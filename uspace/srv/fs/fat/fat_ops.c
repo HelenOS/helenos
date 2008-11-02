@@ -434,9 +434,17 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 
 	/* initialize libblock */
-	rc = block_init(dev_handle, BS_SIZE, BS_BLOCK * BS_SIZE, BS_SIZE);
+	rc = block_init(dev_handle, BS_SIZE);
 	if (rc != EOK) {
-		ipc_answer_0(rid, 0);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
+	/* prepare the boot block */
+	rc = block_bb_read(dev_handle, BS_BLOCK * BS_SIZE, BS_SIZE);
+	if (rc != EOK) {
+		block_fini(dev_handle);
+		ipc_answer_0(rid, rc);
 		return;
 	}
 

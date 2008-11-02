@@ -82,7 +82,7 @@ static devcon_t *devcon_search(dev_handle_t dev_handle)
 }
 
 static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
-   size_t com_size, void *bb_buf, off_t bb_off, size_t bb_size)
+   size_t com_size)
 {
 	link_t *cur;
 	devcon_t *devcon;
@@ -96,9 +96,9 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
 	devcon->dev_phone = dev_phone;
 	devcon->com_area = com_area;
 	devcon->com_size = com_size;
-	devcon->bb_buf = bb_buf;
-	devcon->bb_off = bb_off;
-	devcon->bb_size = bb_size;
+	devcon->bb_buf = NULL;
+	devcon->bb_off = 0;
+	devcon->bb_size = 0;
 
 	futex_down(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
@@ -121,30 +121,21 @@ static void devcon_remove(devcon_t *devcon)
 	futex_up(&dcl_lock);
 }
 
-int
-block_init(dev_handle_t dev_handle, size_t com_size, off_t bb_off,
-    size_t bb_size)
+int block_init(dev_handle_t dev_handle, size_t com_size)
 {
 	int rc;
 	int dev_phone;
 	void *com_area;
-	void *bb_buf;
-	
-	bb_buf = malloc(bb_size);
-	if (!bb_buf)
-		return ENOMEM;
 	
 	com_area = mmap(NULL, com_size, PROTO_READ | PROTO_WRITE,
 	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 	if (!com_area) {
-		free(bb_buf);
 		return ENOMEM;
 	}
 	dev_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
 	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
 
 	if (dev_phone < 0) {
-		free(bb_buf);
 		munmap(com_area, com_size);
 		return dev_phone;
 	}
@@ -152,29 +143,18 @@ block_init(dev_handle_t dev_handle, size_t com_size, off_t bb_off,
 	rc = ipc_share_out_start(dev_phone, com_area,
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
-		free(bb_buf);
 	    	munmap(com_area, com_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
 	
-	rc = devcon_add(dev_handle, dev_phone, com_area, com_size, bb_buf,
-	    bb_off, bb_size);
+	rc = devcon_add(dev_handle, dev_phone, com_area, com_size);
 	if (rc != EOK) {
-		free(bb_buf);
 		munmap(com_area, com_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
 
-	off_t bufpos = 0;
-	size_t buflen = 0;
-	if (!block_read(dev_handle, &bufpos, &buflen, &bb_off,
-	    bb_buf, bb_size, bb_size)) {
-		block_fini(dev_handle);
-		return EIO;	/* XXX real error code */
-	}
-	
 	return EOK;
 }
 
@@ -185,11 +165,39 @@ void block_fini(dev_handle_t dev_handle)
 	
 	devcon_remove(devcon);
 
-	free(devcon->bb_buf);
+	if (devcon->bb_buf)
+		free(devcon->bb_buf);
 	munmap(devcon->com_area, devcon->com_size);
 	ipc_hangup(devcon->dev_phone);
 
 	free(devcon);	
+}
+
+int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
+{
+	void *bb_buf;
+
+	devcon_t *devcon = devcon_search(dev_handle);
+	if (!devcon)
+		return ENOENT;
+	if (devcon->bb_buf)
+		return EEXIST;
+	bb_buf = malloc(size);
+	if (!bb_buf)
+		return ENOMEM;
+	
+	off_t bufpos = 0;
+	size_t buflen = 0;
+	if (!block_read(dev_handle, &bufpos, &buflen, &off,
+	    bb_buf, size, size)) {
+	    	free(bb_buf);
+		return EIO;	/* XXX real error code */
+	}
+	devcon->bb_buf = bb_buf;
+	devcon->bb_off = off;
+	devcon->bb_size = size;
+
+	return EOK;
 }
 
 void *block_bb_get(dev_handle_t dev_handle)

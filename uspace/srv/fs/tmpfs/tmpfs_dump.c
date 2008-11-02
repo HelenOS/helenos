@@ -160,7 +160,7 @@ bool tmpfs_restore(dev_handle_t dev)
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
 	int rc;
 
-	rc = block_init(dev, TMPFS_BLOCK_SIZE, 0, 0);
+	rc = block_init(dev, TMPFS_BLOCK_SIZE);
 	if (rc != EOK)
 		return false; 
 	
