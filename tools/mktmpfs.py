@@ -34,6 +34,8 @@ import sys
 import os
 import xstruct
 
+exclude_names = set(['.svn'])
+
 HEADER = """little:
 	char tag[5]  /* 'TMPFS' */
 """
@@ -70,7 +72,7 @@ def recursion(root, outf):
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
 		
-		if (os.path.isfile(canon)):
+		if (os.path.isfile(canon) and (not name in exclude_names)):
 			size = os.path.getsize(canon)
 			
 			dentry = xstruct.create(DENTRY_FILE % len(name))
@@ -89,7 +91,7 @@ def recursion(root, outf):
 				rd += len(data)
 			inf.close()
 		
-		if (os.path.isdir(canon)):
+		if (os.path.isdir(canon) and (not name in exclude_names)):
 			dentry = xstruct.create(DENTRY_DIRECTORY % len(name))
 			dentry.kind = TMPFS_DIRECTORY
 			dentry.fname_len = len(name)

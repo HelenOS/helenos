@@ -36,6 +36,8 @@ import random
 import xstruct
 import array
 
+exclude_names = set(['.svn'])
+
 def align_up(size, alignment):
 	"Return size aligned up to alignment"
 	
@@ -286,11 +288,11 @@ def recursion(head, root, outf, cluster_size, root_start, data_start, fat, reser
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
 		
-		if (os.path.isfile(canon)):
+		if (os.path.isfile(canon) and (not name in exclude_names)):
 			rv = write_file(canon, outf, cluster_size, data_start, fat, reserved_clusters)
 			directory.append(create_dirent(name, False, rv[0], rv[1]))
 		
-		if (os.path.isdir(canon)):
+		if (os.path.isdir(canon) and (not name in exclude_names)):
 			rv = recursion(False, canon, outf, cluster_size, root_start, data_start, fat, reserved_clusters, dirent_size, empty_cluster)
 			directory.append(create_dirent(name, True, rv[0], rv[1]))
 	
