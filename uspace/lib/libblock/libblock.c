@@ -358,7 +358,7 @@ static void block_initialize(block_t *b)
  *
  * @return			Block structure.
  */
-block_t *block_get(dev_handle_t dev_handle, off_t boff, size_t bs)
+block_t *block_get(dev_handle_t dev_handle, off_t boff)
 {
 	devcon_t *devcon;
 	cache_t *cache;

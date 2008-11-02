@@ -95,7 +95,7 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(offset < rds);
-		b = block_get(dev_handle, rscnt + fatcnt * sf + offset, bps);
+		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
 		return b;
 	}
 
@@ -108,7 +108,7 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec, bps);
+		b = block_get(dev_handle, rscnt + fsec);
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		assert(clst < FAT_CLST_LAST1);
@@ -116,7 +116,7 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	}
 
 	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
-	    offset % spc, bps);
+	    offset % spc);
 
 	return b;
 }
@@ -163,7 +163,7 @@ _fat_blcks_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec, bps);
+		b = block_get(dev_handle, rscnt + fsec);
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		block_put(b);
@@ -243,7 +243,7 @@ fat_mark_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
 
 	assert(fatno < bs->fatcnt);
 	b = block_get(dev_handle, rscnt + sf * fatno +
-	    (clst * sizeof(fat_cluster_t)) / bps, bps);
+	    (clst * sizeof(fat_cluster_t)) / bps);
 	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
 	*cp = host2uint16_t_le(value);
 	b->dirty = true;		/* need to sync block */
@@ -313,7 +313,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 */
 	futex_down(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < sf; blk++) {
-		blk = block_get(dev_handle, rscnt + b, bps);
+		blk = block_get(dev_handle, rscnt + b);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
