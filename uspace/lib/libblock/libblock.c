@@ -277,65 +277,6 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
 	return EOK;
 }
 
-/** Read data from a block device.
- *
- * @param dev_handle	Device handle of the block device.
- * @param bufpos	Pointer to the first unread valid offset within the
- * 			communication buffer.
- * @param buflen	Pointer to the number of unread bytes that are ready in
- * 			the communication buffer.
- * @param pos		Device position to be read.
- * @param dst		Destination buffer.
- * @param size		Size of the destination buffer.
- * @param block_size	Block size to be used for the transfer.
- *
- * @return		EOK on success or a negative return code on failure.
- */
-int
-block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
-    size_t size, size_t block_size)
-{
-	off_t offset = 0;
-	size_t left = size;
-	devcon_t *devcon = devcon_search(dev_handle);
-	assert(devcon);
-	
-	while (left > 0) {
-		size_t rd;
-		
-		if (*bufpos + left < *buflen)
-			rd = left;
-		else
-			rd = *buflen - *bufpos;
-		
-		if (rd > 0) {
-			/*
-			 * Copy the contents of the communication buffer to the
-			 * destination buffer.
-			 */
-			memcpy(dst + offset, devcon->com_area + *bufpos, rd);
-			offset += rd;
-			*bufpos += rd;
-			*pos += rd;
-			left -= rd;
-		}
-		
-		if (*bufpos == *buflen) {
-			/* Refill the communication buffer with a new block. */
-			ipcarg_t retval;
-			int rc = async_req_2_1(devcon->dev_phone, RD_READ_BLOCK,
-			    *pos / block_size, block_size, &retval);
-			if ((rc != EOK) || (retval != EOK))
-				return (rc != EOK ? rc : retval);
-			
-			*bufpos = 0;
-			*buflen = block_size;
-		}
-	}
-	
-	return EOK;
-}
-
 static bool cache_can_grow(cache_t *cache)
 {
 	return true;
@@ -436,9 +377,105 @@ recycle:
 	return b;
 }
 
+/** Release a reference to a block.
+ *
+ * If the last reference is dropped, the block is put on the free list.  If the
+ * last reference is dropped and the block is dirty, it is first synced with the
+ * block device.
+ *
+ * @param block		Block of which a reference is to be released.
+ */
 void block_put(block_t *block)
 {
+	devcon_t *devcon = devcon_search(block->dev_handle);
+	cache_t *cache;
+
+	assert(devcon);
+	assert(devcon->cache);
+
+	cache = devcon->cache;
+	futex_down(&cache->lock);
+	futex_down(&block->lock);
+	if (!--block->refcnt) {
+		/*
+		 * Last reference to the block was dropped, put the block on the
+		 * free list.
+		 */
+		list_append(&block->free_link, &cache->free_head);
+		/* Unlock the cache, but not the block. */
+		futex_up(&cache->lock);
+		if (block->dirty) {
+			/*
+			 * The block is dirty and there is no one using it
+			 * at the moment, write it back to the device.
+			 */
+
+			/* TODO: block_write() */
+			block->dirty = false;
+		}
+	} else {
+		futex_up(&cache->lock);	
+	}
+	futex_up(&block->lock);
+}
+
+/** Read data from a block device.
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param bufpos	Pointer to the first unread valid offset within the
+ * 			communication buffer.
+ * @param buflen	Pointer to the number of unread bytes that are ready in
+ * 			the communication buffer.
+ * @param pos		Device position to be read.
+ * @param dst		Destination buffer.
+ * @param size		Size of the destination buffer.
+ * @param block_size	Block size to be used for the transfer.
+ *
+ * @return		EOK on success or a negative return code on failure.
+ */
+int
+block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
+    size_t size, size_t block_size)
+{
+	off_t offset = 0;
+	size_t left = size;
+	devcon_t *devcon = devcon_search(dev_handle);
+	assert(devcon);
 	
+	while (left > 0) {
+		size_t rd;
+		
+		if (*bufpos + left < *buflen)
+			rd = left;
+		else
+			rd = *buflen - *bufpos;
+		
+		if (rd > 0) {
+			/*
+			 * Copy the contents of the communication buffer to the
+			 * destination buffer.
+			 */
+			memcpy(dst + offset, devcon->com_area + *bufpos, rd);
+			offset += rd;
+			*bufpos += rd;
+			*pos += rd;
+			left -= rd;
+		}
+		
+		if (*bufpos == *buflen) {
+			/* Refill the communication buffer with a new block. */
+			ipcarg_t retval;
+			int rc = async_req_2_1(devcon->dev_phone, RD_READ_BLOCK,
+			    *pos / block_size, block_size, &retval);
+			if ((rc != EOK) || (retval != EOK))
+				return (rc != EOK ? rc : retval);
+			
+			*bufpos = 0;
+			*buflen = block_size;
+		}
+	}
+	
+	return EOK;
 }
 
 /** @}
