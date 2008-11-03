@@ -55,11 +55,11 @@ def subtree_size(root, cluster_size, dirent_size):
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
 		
-		if (os.path.isfile(canon)):
+		if (os.path.isfile(canon) and (not name in exclude_names)):
 			size += align_up(os.path.getsize(canon), cluster_size)
 			files += 1
 		
-		if (os.path.isdir(canon)):
+		if (os.path.isdir(canon) and (not name in exclude_names)):
 			size += subtree_size(canon, cluster_size, dirent_size)
 			files += 1
 	
@@ -353,7 +353,6 @@ def main():
 		return
 	
 	fat16_clusters = 4096
-	min_cluster_size = 1024
 	
 	sector_size = 512
 	cluster_size = 4096
@@ -365,7 +364,7 @@ def main():
 	# Make sure the filesystem is large enought for FAT16
 	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
 	while (size / cluster_size < fat16_clusters):
-		if (cluster_size > min_cluster_size):
+		if (cluster_size > sector_size):
 			cluster_size /= 2
 			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
 		else:
