@@ -731,6 +731,11 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 }
 
+void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
 /**
  * @}
  */ 
