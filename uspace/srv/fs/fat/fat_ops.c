@@ -689,8 +689,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		int status;
 		unsigned nclsts;
-		fat_cluster_t mcl, lcl;
-	
+		fat_cluster_t mcl, lcl; 
+ 
 		nclsts = (ROUND_UP(pos + bytes, bps * spc) - boundary) /
 		    bps * spc;
 		/* create an independent chain of nclsts clusters in all FATs */
@@ -705,8 +705,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		}
 		/* zero fill any gaps */
 		fat_fill_gap(bs, nodep, mcl, pos);
-		b = _fat_block_get(bs, dev_handle, lcl,
-		    (pos / bps) % spc);
+		b = _fat_block_get(bs, dev_handle, lcl, (pos / bps) % spc);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
@@ -726,7 +725,35 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	size_t size = (off_t)IPC_GET_ARG3(*request);
+	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	int rc;
+
+	if (!nodep) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	if (nodep->size == size) {
+		rc = EOK;
+	} else if (nodep->size < size) {
+		/*
+		 * TODO: the standard says we have the freedom to grow the file.
+		 * For now, we simply return an error.
+		 */
+		rc = EINVAL;
+	} else {
+		/*
+		 * The file is to be shrunk.
+		 */
+		rc = ENOTSUP;	/* XXX */
+	}
+	fat_node_put(nodep);
+	ipc_answer_0(rid, rc);
+	return;
+
 }
 
 /**
