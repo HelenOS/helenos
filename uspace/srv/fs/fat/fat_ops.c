@@ -639,13 +639,6 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/* XXX remove me when you are ready */
-	{
-		ipc_answer_0(rid, ENOTSUP);
-		fat_node_put(nodep);
-		return;
-	}
-
 	ipc_callid_t callid;
 	size_t len;
 	if (!ipc_data_write_receive(&callid, &len)) {
