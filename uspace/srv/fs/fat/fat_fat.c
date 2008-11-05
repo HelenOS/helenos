@@ -360,7 +360,8 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	fat_cluster_t lcl;
 	uint8_t fatno;
 
-	if (fat_clusters_get(bs, nodep->idx->dev_handle, nodep->firstc) == 0) {
+	if (fat_cluster_walk(bs, nodep->idx->dev_handle, nodep->firstc, &lcl,
+	    NULL, (uint16_t) -1) == 0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = host2uint16_t_le(mcl);
 		nodep->dirty = true;		/* need to sync node */
