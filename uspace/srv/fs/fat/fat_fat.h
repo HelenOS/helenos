@@ -57,13 +57,15 @@ struct fat_bs;
 
 typedef uint16_t fat_cluster_t;
 
+#define fat_clusters_get(bs, dh, fc) \
+    fat_cluster_walk((bs), (dh), (fc), NULL, NULL, (uint16_t) -1)
 #define fat_block_get(bs, np, off) \
     _fat_block_get((bs), (np)->idx->dev_handle, (np)->firstc, (off))
-    
+
 extern struct block *_fat_block_get(struct fat_bs *, dev_handle_t,
     fat_cluster_t, off_t);
-extern uint16_t _fat_blcks_get(struct fat_bs *, dev_handle_t, fat_cluster_t,
-    fat_cluster_t *);
+extern uint16_t fat_cluster_walk(struct fat_bs *, dev_handle_t, fat_cluster_t,
+    fat_cluster_t *, fat_cluster_t *, uint16_t);
   
 extern void fat_append_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);

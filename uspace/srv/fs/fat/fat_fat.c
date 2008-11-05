@@ -54,6 +54,66 @@
  */  
 static futex_t fat_alloc_lock = FUTEX_INITIALIZER;
 
+/** Walk the cluster chain.
+ *
+ * @param bs		Buffer holding the boot sector for the file.
+ * @param dev_handle	Device handle of the device with the file.
+ * @param firstc	First cluster to start the walk with.
+ * @param penult	If non-NULL, output argument hodling the
+ * 			the penultimate cluster visited.
+ * @param ult		If non-NULL, output argument holding the
+ *			ultimate cluster visited.
+ * @param max_clusters	Maximum number of clusters to visit.	
+ *
+ * @return		Number of clusters seen during the walk.
+ */
+uint16_t 
+fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
+    fat_cluster_t *penult, fat_cluster_t *ult, uint16_t max_clusters)
+{
+	block_t *b;
+	unsigned bps;
+	unsigned rscnt;		/* block address of the first FAT */
+	uint16_t clusters = 0;
+	fat_cluster_t clst = firstc;
+
+	bps = uint16_t_le2host(bs->bps);
+	rscnt = uint16_t_le2host(bs->rscnt);
+
+	if (firstc == FAT_CLST_RES0) {
+		/* No space allocated to the file. */
+		if (ult)
+			*ult = firstc;
+		return 0;
+	}
+
+	/* At this point, the meaning of penult is not well-defined. */
+	if (penult)
+		*penult = FAT_CLST_RES0;
+
+	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
+		unsigned fsec;	/* sector offset relative to FAT1 */
+		unsigned fidx;	/* FAT1 entry index */
+
+		assert(clst >= FAT_CLST_FIRST);
+		if (penult)
+			*penult = clst;	/* remember the penultimate cluster */
+		fsec = (clst * sizeof(fat_cluster_t)) / bps;
+		fidx = clst % (bps / sizeof(fat_cluster_t));
+		/* read FAT1 */
+		b = block_get(dev_handle, rscnt + fsec);
+		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
+		assert(clst != FAT_CLST_BAD);
+		block_put(b);
+		clusters++;
+	}
+
+	if (ult)
+		*ult = clst;
+
+	return clusters;
+}
+
 /** Read block from file located on a FAT file system.
  *
  * @param bs		Buffer holding the boot sector of the file system.
@@ -70,110 +130,41 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 {
 	block_t *b;
 	unsigned bps;
-	unsigned spc;
 	unsigned rscnt;		/* block address of the first FAT */
-	unsigned fatcnt;
 	unsigned rde;
 	unsigned rds;		/* root directory size */
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
-	unsigned clusters;
-	fat_cluster_t clst = firstc;
-	unsigned i;
+	unsigned clusters, max_clusters;
+	fat_cluster_t lastc, clst = firstc;
 
 	bps = uint16_t_le2host(bs->bps);
-	spc = bs->spc;
 	rscnt = uint16_t_le2host(bs->rscnt);
-	fatcnt = bs->fatcnt;
 	rde = uint16_t_le2host(bs->root_ent_max);
 	sf = uint16_t_le2host(bs->sec_per_fat);
 
 	rds = (sizeof(fat_dentry_t) * rde) / bps;
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
-	ssa = rscnt + fatcnt * sf + rds;
+	ssa = rscnt + bs->fatcnt * sf + rds;
 
 	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(offset < rds);
-		b = block_get(dev_handle, rscnt + fatcnt * sf + offset);
+		b = block_get(dev_handle, rscnt + bs->fatcnt * sf + offset);
 		return b;
 	}
 
-	clusters = offset / spc; 
-	for (i = 0; i < clusters; i++) {
-		unsigned fsec;	/* sector offset relative to FAT1 */
-		unsigned fidx;	/* FAT1 entry index */
+	max_clusters = offset / bs->spc;
+	clusters = fat_cluster_walk(bs, dev_handle, firstc, NULL, &lastc,
+	    max_clusters);
+	assert(clusters == max_clusters);
 
-		assert(clst >= FAT_CLST_FIRST && clst < FAT_CLST_BAD);
-		fsec = (clst * sizeof(fat_cluster_t)) / bps;
-		fidx = clst % (bps / sizeof(fat_cluster_t));
-		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec);
-		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
-		assert(clst != FAT_CLST_BAD);
-		assert(clst < FAT_CLST_LAST1);
-		block_put(b);
-	}
-
-	b = block_get(dev_handle, ssa + (clst - FAT_CLST_FIRST) * spc +
-	    offset % spc);
+	b = block_get(dev_handle, ssa + (lastc - FAT_CLST_FIRST) * bs->spc +
+	    offset % bs->spc);
 
 	return b;
 }
 
-/** Return number of blocks allocated to a file.
- *
- * @param bs		Buffer holding the boot sector for the file.
- * @param dev_handle	Device handle of the device with the file.
- * @param firstc	First cluster of the file.
- * @param lastc		If non-NULL, output argument holding the
- *			last cluster.
- *
- * @return		Number of blocks allocated to the file.
- */
-uint16_t 
-_fat_blcks_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    fat_cluster_t *lastc)
-{
-	block_t *b;
-	unsigned bps;
-	unsigned spc;
-	unsigned rscnt;		/* block address of the first FAT */
-	unsigned clusters = 0;
-	fat_cluster_t clst = firstc;
-
-	bps = uint16_t_le2host(bs->bps);
-	spc = bs->spc;
-	rscnt = uint16_t_le2host(bs->rscnt);
-
-	if (firstc == FAT_CLST_RES0) {
-		/* No space allocated to the file. */
-		if (lastc)
-			*lastc = firstc;
-		return 0;
-	}
-
-	while (clst < FAT_CLST_LAST1) {
-		unsigned fsec;	/* sector offset relative to FAT1 */
-		unsigned fidx;	/* FAT1 entry index */
-
-		assert(clst >= FAT_CLST_FIRST);
-		if (lastc)
-			*lastc = clst;		/* remember the last cluster */
-		fsec = (clst * sizeof(fat_cluster_t)) / bps;
-		fidx = clst % (bps / sizeof(fat_cluster_t));
-		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec);
-		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
-		assert(clst != FAT_CLST_BAD);
-		block_put(b);
-		clusters++;
-	}
-
-	if (lastc)
-		*lastc = clst;
-	return clusters * spc;
-}
 
 /** Fill the gap between EOF and a new file position.
  *
@@ -369,7 +360,8 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	fat_cluster_t lcl;
 	uint8_t fatno;
 
-	if (_fat_blcks_get(bs, dev_handle, nodep->firstc, &lcl) == 0) {
+	if (fat_clusters_get(bs, nodep->idx->dev_handle, nodep->firstc) == 0) {
+		/* No clusters allocated to the node yet. */
 		nodep->firstc = host2uint16_t_le(mcl);
 		nodep->dirty = true;		/* need to sync node */
 		return;

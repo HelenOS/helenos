@@ -113,6 +113,7 @@ static void *fat_node_get_core(fat_idx_t *idxp)
 	fat_dentry_t *d;
 	fat_node_t *nodep = NULL;
 	unsigned bps;
+	unsigned spc;
 	unsigned dps;
 
 	if (idxp->nodep) {
@@ -164,6 +165,7 @@ skip_cache:
 
 	bs = block_bb_get(idxp->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
+	spc = bs->spc;
 	dps = bps / sizeof(fat_dentry_t);
 
 	/* Read the block that contains the dentry of interest. */
@@ -184,8 +186,8 @@ skip_cache:
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
-		nodep->size = bps * _fat_blcks_get(bs, idxp->dev_handle,
-		    uint16_t_le2host(d->firstc), NULL);
+		nodep->size = bps * spc * fat_clusters_get(bs, idxp->dev_handle,
+		    uint16_t_le2host(d->firstc));
 	} else {
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);
