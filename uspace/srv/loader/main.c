@@ -247,7 +247,7 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
 //		printf("Run statically linked program\n");
-//		printf("entry point: 0x%llx\n", prog_info.entry);
+//		printf("entry point: 0x%lx\n", prog_info.entry);
 		is_dyn_linked = false;
 		ipc_answer_0(rid, EOK);
 		return 0;
@@ -285,7 +285,7 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */
 		printf("run dynamic linker\n");
-		printf("entry point: 0x%llx\n", interp_info.entry);
+		printf("entry point: 0x%lx\n", interp_info.entry);
 		close_console();
 
 		ipc_answer_0(rid, EOK);
@@ -319,6 +319,8 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 
 		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			exit(0);
 		case LOADER_GET_TASKID:
 			loader_get_taskid(callid, &call);
 			continue;
