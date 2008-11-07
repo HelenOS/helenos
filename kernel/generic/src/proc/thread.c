@@ -708,16 +708,21 @@ void thread_update_accounting(void)
  *
  */
 unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
-    thread_id_t *uspace_thread_id)
+    size_t name_len, thread_id_t *uspace_thread_id)
 {
 	thread_t *t;
 	char namebuf[THREAD_NAME_BUFLEN];
 	uspace_arg_t *kernel_uarg;
 	int rc;
 
-	rc = copy_from_uspace(namebuf, uspace_name, THREAD_NAME_BUFLEN);
+	if (name_len >= THREAD_NAME_BUFLEN)
+		name_len = THREAD_NAME_BUFLEN - 1;
+
+	rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
 		return (unative_t) rc;
+
+	namebuf[name_len] = '\0';
 
 	/*
 	 * In case of failure, kernel_uarg will be deallocated in this function.

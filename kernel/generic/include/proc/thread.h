@@ -259,7 +259,8 @@ extern bool thread_exists(thread_t *t);
 extern slab_cache_t *fpu_context_slab;
 
 /* Thread syscall prototypes. */
-extern unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, thread_id_t *uspace_thread_id);
+extern unative_t sys_thread_create(uspace_arg_t *uspace_uarg,
+    char *uspace_name, size_t name_len, thread_id_t *uspace_thread_id);
 extern unative_t sys_thread_exit(int uspace_status);
 extern unative_t sys_thread_get_id(thread_id_t *uspace_thread_id);
 
