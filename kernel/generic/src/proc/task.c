@@ -130,7 +130,7 @@ void task_done(void)
 /** Create new task with no threads.
  *
  * @param as		Task's address space.
- * @param name		Symbolic name.
+ * @param name		Symbolic name (a copy is made).
  *
  * @return		New task's structure.
  *
@@ -148,7 +148,10 @@ task_t *task_create(as_t *as, char *name)
 	spinlock_initialize(&ta->lock, "task_ta_lock");
 	list_initialize(&ta->th_head);
 	ta->as = as;
-	ta->name = name;
+
+	memcpy(ta->name, name, TASK_NAME_BUFLEN);
+	ta->name[TASK_NAME_BUFLEN - 1] = '\0';
+
 	atomic_set(&ta->refcount, 0);
 	atomic_set(&ta->lifecount, 0);
 	ta->context = CONTEXT;

@@ -54,6 +54,8 @@
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
 
+#define TASK_NAME_BUFLEN	20
+
 struct thread;
 
 /** Task structure. */
@@ -67,8 +69,8 @@ typedef struct task {
 	 * threads.
 	 */
 	SPINLOCK_DECLARE(lock);
-	
-	char *name;
+
+	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
 	link_t th_head;
 	/** Address space. */

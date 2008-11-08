@@ -44,7 +44,7 @@ typedef struct {
 	int phone_id;
 } loader_t;
 
-extern loader_t *loader_spawn(void);
+extern loader_t *loader_spawn(char *name);
 extern int loader_get_task_id(loader_t *, task_id_t *);
 extern int loader_set_pathname(loader_t *, const char *);
 extern int loader_set_args(loader_t *, char *const []);

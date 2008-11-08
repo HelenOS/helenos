@@ -169,7 +169,7 @@ void kinit(void *arg)
 		}
 
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
-		    &programs[i]);
+		    "init-bin", &programs[i]);
 
 		if (rc == 0 && programs[i].task != NULL) {
 			/*

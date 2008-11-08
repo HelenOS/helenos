@@ -279,7 +279,7 @@ void thread_ready(thread_t *t)
  * 			guarantee that the task won't cease to exist during the
  * 			call. The task's lock may not be held.
  * @param flags		Thread flags.
- * @param name		Symbolic name.
+ * @param name		Symbolic name (a copy is made).
  * @param uncounted	Thread's accounting doesn't affect accumulated task
  * 			accounting.
  *
@@ -316,6 +316,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	interrupts_restore(ipl);
 	
 	memcpy(t->name, name, THREAD_NAME_BUFLEN);
+	t->name[THREAD_NAME_BUFLEN - 1] = '\0';
 	
 	t->thread_code = func;
 	t->thread_arg = arg;
@@ -715,7 +716,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	uspace_arg_t *kernel_uarg;
 	int rc;
 
-	if (name_len >= THREAD_NAME_BUFLEN)
+	if (name_len > THREAD_NAME_BUFLEN - 1)
 		name_len = THREAD_NAME_BUFLEN - 1;
 
 	rc = copy_from_uspace(namebuf, uspace_name, name_len);

@@ -52,12 +52,15 @@ typedef struct program {
 
 extern void *program_loader;
 
-extern void program_create(as_t *as, uintptr_t entry_addr, program_t *p);
-extern int program_create_from_image(void *image_addr, program_t *p);
-extern int program_create_loader(program_t *p);
+extern void program_create(as_t *as, uintptr_t entry_addr, char *name,
+    program_t *p);
+extern int program_create_from_image(void *image_addr, char *name,
+    program_t *p);
+extern int program_create_loader(program_t *p, char *name);
 extern void program_ready(program_t *p);
 
-extern unative_t sys_program_spawn_loader(int *uspace_phone_id);
+extern unative_t sys_program_spawn_loader(int *uspace_phone_id,
+    char *uspace_name, size_t name_len);
 
 #endif
 

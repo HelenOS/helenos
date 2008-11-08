@@ -64,7 +64,7 @@ task_id_t task_spawn(const char *path, char *const argv[])
 	int rc;
 
 	/* Spawn a program loader. */	
-	ldr = loader_spawn();
+	ldr = loader_spawn(path);
 	if (ldr == NULL)
 		return 0;
 

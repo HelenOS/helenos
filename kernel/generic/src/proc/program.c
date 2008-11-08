@@ -67,9 +67,10 @@ void *program_loader = NULL;
  *
  * @param as		Address space containing a binary program image.
  * @param entry_addr	Program entry-point address in program address space.
+ * @param name		Name to set for the program's task.
  * @param p		Buffer for storing program information.
  */
-void program_create(as_t *as, uintptr_t entry_addr, program_t *p)
+void program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *p)
 {
 	as_area_t *a;
 	uspace_arg_t *kernel_uarg;
@@ -81,7 +82,7 @@ void program_create(as_t *as, uintptr_t entry_addr, program_t *p)
 	kernel_uarg->uspace_thread_arg = NULL;
 	kernel_uarg->uspace_uarg = NULL;
 	
-	p->task = task_create(as, "app");
+	p->task = task_create(as, name);
 	ASSERT(p->task);
 
 	/*
@@ -106,13 +107,14 @@ void program_create(as_t *as, uintptr_t entry_addr, program_t *p)
  * executable image. The task is returned in *task.
  *
  * @param image_addr	Address of an executable program image.
+ * @param name		Name to set for the program's task.
  * @param p		Buffer for storing program info. If image_addr
  *			points to a loader image, p->task will be set to
  *			NULL and EOK will be returned.
  *
  * @return EOK on success or negative error code.
  */
-int program_create_from_image(void *image_addr, program_t *p)
+int program_create_from_image(void *image_addr, char *name, program_t *p)
 {
 	as_t *as;
 	unsigned int rc;
@@ -136,17 +138,19 @@ int program_create_from_image(void *image_addr, program_t *p)
 		return EOK;
 	}
 
-	program_create(as, ((elf_header_t *) image_addr)->e_entry, p);
+	program_create(as, ((elf_header_t *) image_addr)->e_entry, name, p);
 
 	return EOK;
 }
 
 /** Create a task from the program loader image.
  *
- * @param p Buffer for storing program info.
+ * @param p	Buffer for storing program info.
+ * @param name	Name to set for the program's task.
+ *
  * @return EOK on success or negative error code.
  */
-int program_create_loader(program_t *p)
+int program_create_loader(program_t *p, char *name)
 {
 	as_t *as;
 	unsigned int rc;
@@ -167,7 +171,8 @@ int program_create_loader(program_t *p)
 		return ENOENT;
 	}
 
-	program_create(as, ((elf_header_t *) program_loader)->e_entry, p);
+	program_create(as, ((elf_header_t *) program_loader)->e_entry,
+	    name, p);
 
 	return EOK;
 }
@@ -188,16 +193,20 @@ void program_ready(program_t *p)
  * Creates a new task from the program loader image, connects a phone
  * to it and stores the phone id into the provided buffer.
  *
- * @param uspace_phone_id Userspace address where to store the phone id.
+ * @param uspace_phone_id	Userspace address where to store the phone id.
+ * @param name			Name to set on the new task (typically the same
+ *				as the command used to execute it).
  *
  * @return 0 on success or an error code from @ref errno.h.
  */
-unative_t sys_program_spawn_loader(int *uspace_phone_id)
+unative_t sys_program_spawn_loader(int *uspace_phone_id, char *uspace_name,
+    size_t name_len)
 {
 	program_t p;
 	int fake_id;
 	int rc;
 	int phone_id;
+	char namebuf[TASK_NAME_BUFLEN];
 
 	fake_id = 0;
 
@@ -207,11 +216,26 @@ unative_t sys_program_spawn_loader(int *uspace_phone_id)
 	if (rc != 0)
 		return rc;
 
+	/* Cap length of name and copy it from userspace. */
+
+	if (name_len > THREAD_NAME_BUFLEN - 1)
+		name_len = THREAD_NAME_BUFLEN - 1;
+
+	rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	if (rc != 0)
+		return (unative_t) rc;
+
+	namebuf[name_len] = '\0';
+
+	/* Allocate the phone for communicating with the new task. */
+
 	phone_id = phone_alloc();
 	if (phone_id < 0)
 		return ELIMIT;
 
-	rc = program_create_loader(&p);
+	/* Spawn the new task. */
+
+	rc = program_create_loader(&p, namebuf);
 	if (rc != 0)
 		return rc;
 

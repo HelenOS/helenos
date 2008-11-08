@@ -46,10 +46,11 @@
 /** Connect to a new program loader.
  *
  * Spawns a new program loader task and returns the connection structure.
+ * @param name	Symbolic name to set on the newly created task.
  * @return	Pointer to the loader connection structure (should be
  *		de-allocated using free() after use).
  */
-loader_t *loader_spawn(void)
+loader_t *loader_spawn(char *name)
 {
 	int phone_id, rc;
 	loader_t *ldr;
@@ -57,7 +58,8 @@ loader_t *loader_spawn(void)
 	/*
 	 * Ask kernel to spawn a new loader task.
 	 */
-	rc = __SYSCALL1(SYS_PROGRAM_SPAWN_LOADER, (sysarg_t) &phone_id);
+	rc = __SYSCALL3(SYS_PROGRAM_SPAWN_LOADER, (sysarg_t) &phone_id,
+		(sysarg_t) name, strlen(name));
 	if (rc != 0)
 		return NULL;
 
