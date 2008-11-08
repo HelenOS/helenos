@@ -30,6 +30,8 @@
 ## Common compiler flags
 #
 
+include ../../Makefile.config
+
 LIBC_PREFIX = ../libc
 ## Setup toolchain
 #

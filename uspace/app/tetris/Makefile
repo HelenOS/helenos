@@ -1,3 +1,5 @@
+include ../../Makefile.config
+
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
 include $(LIBC_PREFIX)/Makefile.toolchain

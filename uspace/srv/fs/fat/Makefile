@@ -29,6 +29,8 @@
 ## Setup toolchain
 #
 
+include ../../../Makefile.config
+
 LIBC_PREFIX = ../../../lib/libc
 LIBFS_PREFIX = ../../../lib/libfs
 LIBBLOCK_PREFIX = ../../../lib/libblock
