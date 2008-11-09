@@ -338,6 +338,52 @@ static void fat_idx_free(dev_handle_t dev_handle, fs_index_t index)
 	futex_up(&unused_futex);
 }
 
+static fat_idx_t *fat_idx_get_new_core(dev_handle_t dev_handle)
+{
+	fat_idx_t *fidx;
+
+	fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
+	if (!fidx) 
+		return NULL;
+	if (!fat_idx_alloc(dev_handle, &fidx->index)) {
+		free(fidx);
+		return NULL;
+	}
+		
+	link_initialize(&fidx->uph_link);
+	link_initialize(&fidx->uih_link);
+	futex_initialize(&fidx->lock, 1);
+	fidx->dev_handle = dev_handle;
+	fidx->pfc = FAT_CLST_RES0;	/* no parent yet */
+	fidx->pdi = 0;
+	fidx->nodep = NULL;
+
+	return fidx;
+}
+
+fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
+{
+	fat_idx_t *fidx;
+
+	futex_down(&used_futex);
+	fidx = fat_idx_get_new_core(dev_handle);
+	if (!fidx) {
+		futex_up(&used_futex);
+		return NULL;
+	}
+		
+	unsigned long ikey[] = {
+		[UIH_DH_KEY] = dev_handle,
+		[UIH_INDEX_KEY] = fidx->index,
+	};
+	
+	hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
+	futex_down(&fidx->lock);
+	futex_up(&used_futex);
+
+	return fidx;
+}
+
 fat_idx_t *
 fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 {
@@ -354,13 +400,8 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
 	} else {
-		fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
+		fidx = fat_idx_get_new_core(dev_handle);
 		if (!fidx) {
-			futex_up(&used_futex);
-			return NULL;
-		}
-		if (!fat_idx_alloc(dev_handle, &fidx->index)) {
-			free(fidx);
 			futex_up(&used_futex);
 			return NULL;
 		}
@@ -370,13 +411,8 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 			[UIH_INDEX_KEY] = fidx->index,
 		};
 	
-		link_initialize(&fidx->uph_link);
-		link_initialize(&fidx->uih_link);
-		futex_initialize(&fidx->lock, 1);
-		fidx->dev_handle = dev_handle;
 		fidx->pfc = pfc;
 		fidx->pdi = pdi;
-		fidx->nodep = NULL;
 
 		hash_table_insert(&up_hash, pkey, &fidx->uph_link);
 		hash_table_insert(&ui_hash, ikey, &fidx->uih_link);

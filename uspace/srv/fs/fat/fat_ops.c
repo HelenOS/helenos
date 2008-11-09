@@ -102,6 +102,42 @@ static void fat_node_sync(fat_node_t *node)
 	block_put(b);
 }
 
+static fat_node_t *fat_node_get_new(void)
+{
+	fat_node_t *nodep;
+
+	futex_down(&ffn_futex);
+	if (!list_empty(&ffn_head)) {
+		/* Try to use a cached free node structure. */
+		fat_idx_t *idxp_tmp;
+		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
+		if (futex_trydown(&nodep->lock) == ESYNCH_WOULD_BLOCK)
+			goto skip_cache;
+		idxp_tmp = nodep->idx;
+		if (futex_trydown(&idxp_tmp->lock) == ESYNCH_WOULD_BLOCK) {
+			futex_up(&nodep->lock);
+			goto skip_cache;
+		}
+		list_remove(&nodep->ffn_link);
+		futex_up(&ffn_futex);
+		if (nodep->dirty)
+			fat_node_sync(nodep);
+		idxp_tmp->nodep = NULL;
+		futex_up(&nodep->lock);
+		futex_up(&idxp_tmp->lock);
+	} else {
+skip_cache:
+		/* Try to allocate a new node structure. */
+		futex_up(&ffn_futex);
+		nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
+		if (!nodep)
+			return NULL;
+	}
+	fat_node_initialize(nodep);
+	
+	return nodep;
+}
+
 /** Internal version of fat_node_get().
  *
  * @param idxp		Locked index structure.
@@ -134,34 +170,9 @@ static void *fat_node_get_core(fat_idx_t *idxp)
 	
 	assert(idxp->pfc);
 
-	futex_down(&ffn_futex);
-	if (!list_empty(&ffn_head)) {
-		/* Try to use a cached free node structure. */
-		fat_idx_t *idxp_tmp;
-		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
-		if (futex_trydown(&nodep->lock) == ESYNCH_WOULD_BLOCK)
-			goto skip_cache;
-		idxp_tmp = nodep->idx;
-		if (futex_trydown(&idxp_tmp->lock) == ESYNCH_WOULD_BLOCK) {
-			futex_up(&nodep->lock);
-			goto skip_cache;
-		}
-		list_remove(&nodep->ffn_link);
-		futex_up(&ffn_futex);
-		if (nodep->dirty)
-			fat_node_sync(nodep);
-		idxp_tmp->nodep = NULL;
-		futex_up(&nodep->lock);
-		futex_up(&idxp_tmp->lock);
-	} else {
-skip_cache:
-		/* Try to allocate a new node structure. */
-		futex_up(&ffn_futex);
-		nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
-		if (!nodep)
-			return NULL;
-	}
-	fat_node_initialize(nodep);
+	nodep = fat_node_get_new();
+	if (!nodep)
+		return NULL;
 
 	bs = block_bb_get(idxp->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
