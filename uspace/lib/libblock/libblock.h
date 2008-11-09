@@ -44,6 +44,8 @@
 #include <libadt/hash_table.h>
 #include <libadt/list.h>
 
+typedef unsigned bn_t;	/**< Block number type. */
+
 typedef struct block {
 	/** Futex protecting the reference count. */
 	futex_t lock;
@@ -56,7 +58,7 @@ typedef struct block {
 	/** Handle of the device where the block resides. */
 	dev_handle_t dev_handle;
 	/** Block offset on the block device. Counted in 'size'-byte blocks. */
-	off_t boff;
+	bn_t boff;
 	/** Size of the block. */
 	size_t size;
 	/** Link for placing the block into the free block list. */
@@ -75,7 +77,7 @@ extern void *block_bb_get(dev_handle_t);
 
 extern int block_cache_init(dev_handle_t, size_t, unsigned);
 
-extern block_t *block_get(dev_handle_t, off_t);
+extern block_t *block_get(dev_handle_t, bn_t);
 extern void block_put(block_t *);
 
 extern int block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);

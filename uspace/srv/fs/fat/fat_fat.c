@@ -59,17 +59,14 @@ static futex_t fat_alloc_lock = FUTEX_INITIALIZER;
  * @param bs		Buffer holding the boot sector for the file.
  * @param dev_handle	Device handle of the device with the file.
  * @param firstc	First cluster to start the walk with.
- * @param penult	If non-NULL, output argument hodling the
- * 			the penultimate cluster visited.
- * @param ult		If non-NULL, output argument holding the
- *			ultimate cluster visited.
+ * @param lastc		If non-NULL, output argument hodling the last cluster number visited.
  * @param max_clusters	Maximum number of clusters to visit.	
  *
  * @return		Number of clusters seen during the walk.
  */
 uint16_t 
 fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    fat_cluster_t *penult, fat_cluster_t *ult, uint16_t max_clusters)
+    fat_cluster_t *lastc, uint16_t max_clusters)
 {
 	block_t *b;
 	unsigned bps;
@@ -82,22 +79,18 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 
 	if (firstc == FAT_CLST_RES0) {
 		/* No space allocated to the file. */
-		if (ult)
-			*ult = firstc;
+		if (lastc)
+			*lastc = firstc;
 		return 0;
 	}
 
-	/* At this point, the meaning of penult is not well-defined. */
-	if (penult)
-		*penult = FAT_CLST_RES0;
-
 	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
-		unsigned fsec;	/* sector offset relative to FAT1 */
+		bn_t fsec;	/* sector offset relative to FAT1 */
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST);
-		if (penult)
-			*penult = clst;	/* remember the penultimate cluster */
+		if (lastc)
+			*lastc = clst;	/* remember the last cluster number */
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
@@ -108,8 +101,8 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		clusters++;
 	}
 
-	if (ult)
-		*ult = clst;
+	if (lastc && clst < FAT_CLST_LAST1)
+		*lastc = clst;
 
 	return clusters;
 }
@@ -120,13 +113,13 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
  * @param dev_handle	Device handle of the file system.
  * @param firstc	First cluster used by the file. Can be zero if the file
  *			is empty.
- * @param offset	Offset in blocks.
+ * @param bn		Block number.
  *
  * @return		Block structure holding the requested block.
  */
 block_t *
 _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    off_t offset)
+    bn_t bn)
 {
 	block_t *b;
 	unsigned bps;
@@ -149,18 +142,18 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 
 	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
-		assert(offset < rds);
-		b = block_get(dev_handle, rscnt + bs->fatcnt * sf + offset);
+		assert(bn < rds);
+		b = block_get(dev_handle, rscnt + bs->fatcnt * sf + bn);
 		return b;
 	}
 
-	max_clusters = offset / bs->spc;
-	clusters = fat_cluster_walk(bs, dev_handle, firstc, NULL, &lastc,
+	max_clusters = bn / bs->spc;
+	clusters = fat_cluster_walk(bs, dev_handle, firstc, &lastc,
 	    max_clusters);
 	assert(clusters == max_clusters);
 
 	b = block_get(dev_handle, ssa + (lastc - FAT_CLST_FIRST) * bs->spc +
-	    offset % bs->spc);
+	    bn % bs->spc);
 
 	return b;
 }
@@ -361,7 +354,7 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	uint8_t fatno;
 
 	if (fat_cluster_walk(bs, nodep->idx->dev_handle, nodep->firstc, &lcl,
-	    NULL, (uint16_t) -1) == 0) {
+	    (uint16_t) -1) == 0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = host2uint16_t_le(mcl);
 		nodep->dirty = true;		/* need to sync node */
