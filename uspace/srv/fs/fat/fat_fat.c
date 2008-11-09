@@ -420,7 +420,7 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
  * @param nodep		FAT node where the chopping will take place.
  * @param lastc		Last cluster which will remain in the node. If this
  *			argument is FAT_CLST_RES0, then all clusters will
- *			be choped off.
+ *			be chopped off.
  */
 void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 {

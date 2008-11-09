@@ -683,8 +683,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			nodep->size = pos + bytes;
 			nodep->dirty = true;	/* need to sync node */
 		}
+		ipc_answer_2(rid, EOK, bytes, nodep->size);	
 		fat_node_put(nodep);
-		ipc_answer_1(rid, EOK, bytes);	
 		return;
 	} else {
 		/*
@@ -719,8 +719,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		fat_append_clusters(bs, nodep, mcl);
 		nodep->size = pos + bytes;
 		nodep->dirty = true;		/* need to sync node */
+		ipc_answer_2(rid, EOK, bytes, nodep->size);
 		fat_node_put(nodep);
-		ipc_answer_1(rid, EOK, bytes);
 		return;
 	}
 }
