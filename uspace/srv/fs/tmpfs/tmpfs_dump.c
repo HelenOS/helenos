@@ -79,7 +79,7 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			if (fname == NULL)
 				return false;
 			
-			node = (tmpfs_dentry_t *) ops->create(L_FILE);
+			node = (tmpfs_dentry_t *) ops->create(dev, L_FILE);
 			if (node == NULL) {
 				free(fname);
 				return false;
@@ -121,7 +121,7 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			if (fname == NULL)
 				return false;
 			
-			node = (tmpfs_dentry_t *) ops->create(L_DIRECTORY);
+			node = (tmpfs_dentry_t *) ops->create(dev, L_DIRECTORY);
 			if (node == NULL) {
 				free(fname);
 				return false;

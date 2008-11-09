@@ -191,7 +191,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				}
 				void *nodep;
 				if (lflag & L_CREATE)
-					nodep = ops->create(lflag);
+					nodep = ops->create(dev_handle, lflag);
 				else
 					nodep = ops->node_get(dev_handle,
 					    index);
@@ -262,7 +262,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				
 			void *nodep;
 			if (lflag & L_CREATE)
-				nodep = ops->create(lflag);
+				nodep = ops->create(dev_handle, lflag);
 			else
 				nodep = ops->node_get(dev_handle, index);
 			if (nodep) {

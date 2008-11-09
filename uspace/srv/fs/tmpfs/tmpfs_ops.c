@@ -64,6 +64,8 @@
  */
 static tmpfs_dentry_t *root;
 
+#define TMPFS_DEV		0	/**< Dummy device handle for TMPFS */
+
 /*
  * Implementation of the libfs interface.
  */
@@ -72,7 +74,7 @@ static tmpfs_dentry_t *root;
 static void *tmpfs_match(void *, const char *);
 static void *tmpfs_node_get(dev_handle_t, fs_index_t);
 static void tmpfs_node_put(void *);
-static void *tmpfs_create_node(int);
+static void *tmpfs_create_node(dev_handle_t, int);
 static bool tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
 static int tmpfs_destroy_node(void *);
@@ -228,7 +230,7 @@ static bool tmpfs_init(void)
 {
 	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 1, &dentries_ops))
 		return false;
-	root = (tmpfs_dentry_t *) tmpfs_create_node(L_DIRECTORY);
+	root = (tmpfs_dentry_t *) tmpfs_create_node(TMPFS_DEV, L_DIRECTORY);
 	if (!root) {
 		hash_table_destroy(&dentries);
 		return false;
@@ -282,7 +284,7 @@ void tmpfs_node_put(void *node)
 	/* nothing to do */
 }
 
-void *tmpfs_create_node(int lflag)
+void *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 

@@ -244,7 +244,7 @@ static void fat_node_put(void *node)
 	futex_up(&nodep->lock);
 }
 
-static void *fat_create(int flags)
+static void *fat_create(dev_handle_t dev_handle, int flags)
 {
 	return NULL;	/* not supported at the moment */
 }

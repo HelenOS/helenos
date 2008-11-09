@@ -45,7 +45,7 @@ typedef struct {
 	void * (* match)(void *, const char *);
 	void * (* node_get)(dev_handle_t, fs_index_t);
 	void (* node_put)(void *);
-	void * (* create)(int);
+	void * (* create)(dev_handle_t, int);
 	int (* destroy)(void *);
 	bool (* link)(void *, void *, const char *);
 	int (* unlink)(void *, void *);
