@@ -634,6 +634,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	block_t *b;
 	uint16_t bps;
 	unsigned spc;
+	unsigned bpc;		/* bytes per cluster */
 	off_t boundary;
 	
 	if (!nodep) {
@@ -650,6 +651,11 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	bs = block_bb_get(dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+	spc = bs->spc;
+	bpc = bps * spc;
+
 	/*
 	 * In all scenarios, we will attempt to write out only one block worth
 	 * of data at maximum. There might be some more efficient approaches,
@@ -658,12 +664,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	 * value signalizing a smaller number of bytes written. 
 	 */ 
 	bytes = min(len, bps - pos % bps);
-
-	bs = block_bb_get(dev_handle);
-	bps = uint16_t_le2host(bs->bps);
-	spc = bs->spc;
 	
-	boundary = ROUND_UP(nodep->size, bps * spc);
+	boundary = ROUND_UP(nodep->size, bpc);
 	if (pos < boundary) {
 		/*
 		 * This is the easier case - we are either overwriting already
@@ -693,11 +695,9 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		unsigned nclsts;
 		fat_cluster_t mcl, lcl; 
  
-		nclsts = (ROUND_UP(pos + bytes, bps * spc) - boundary) /
-		    bps * spc;
+		nclsts = (ROUND_UP(pos + bytes, bpc) - boundary) / bpc;
 		/* create an independent chain of nclsts clusters in all FATs */
-		status = fat_alloc_clusters(bs, dev_handle, nclsts, &mcl,
-		    &lcl);
+		status = fat_alloc_clusters(bs, dev_handle, nclsts, &mcl, &lcl);
 		if (status != EOK) {
 			/* could not allocate a chain of nclsts clusters */
 			fat_node_put(nodep);
@@ -731,6 +731,10 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	size_t size = (off_t)IPC_GET_ARG3(*request);
 	fat_node_t *nodep = (fat_node_t *)fat_node_get(dev_handle, index);
+	fat_bs_t *bs;
+	uint16_t bps;
+	uint8_t spc;
+	unsigned bpc;	/* bytes per cluster */
 	int rc;
 
 	if (!nodep) {
@@ -738,24 +742,45 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	bs = block_bb_get(dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+	spc = bs->spc;
+	bpc = bps * spc;
+
 	if (nodep->size == size) {
 		rc = EOK;
 	} else if (nodep->size < size) {
 		/*
-		 * TODO: the standard says we have the freedom to grow the file.
+		 * The standard says we have the freedom to grow the node.
 		 * For now, we simply return an error.
 		 */
 		rc = EINVAL;
+	} else if (ROUND_UP(nodep->size, bpc) == ROUND_UP(size, bpc)) {
+		/*
+		 * The node will be shrunk, but no clusters will be deallocated.
+		 */
+		nodep->size = size;
+		nodep->dirty = true;		/* need to sync node */
+		rc = EOK;	
 	} else {
 		/*
-		 * The file is to be shrunk.
+		 * The node will be shrunk, clusters will be deallocated.
 		 */
-		rc = ENOTSUP;	/* XXX */
+		if (size == 0) {
+			fat_chop_clusters(bs, nodep, FAT_CLST_RES0);
+		} else {
+			fat_cluster_t lastc;
+			(void) fat_cluster_walk(bs, dev_handle, nodep->firstc,
+			    &lastc, (size - 1) / bpc);
+			fat_chop_clusters(bs, nodep, lastc);
+		}
+		nodep->size = size;
+		nodep->dirty = true;		/* need to sync node */
+		rc = EOK;	
 	}
 	fat_node_put(nodep);
 	ipc_answer_0(rid, rc);
 	return;
-
 }
 
 /**

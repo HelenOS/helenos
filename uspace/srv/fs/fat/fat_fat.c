@@ -129,7 +129,7 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
 	unsigned clusters, max_clusters;
-	fat_cluster_t lastc, clst = firstc;
+	fat_cluster_t lastc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
@@ -157,7 +157,6 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 
 	return b;
 }
-
 
 /** Fill the gap between EOF and a new file position.
  *
@@ -203,16 +202,43 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 	}
 }
 
-/** Mark cluster in one instance of FAT.
+/** Get cluster from the first FAT.
+ *
+ * @param bs		Buffer holding the boot sector for the file system.
+ * @param dev_handle	Device handle for the file system.
+ * @param clst		Cluster which to get.
+ *
+ * @return		Value found in the cluster.
+ */
+fat_cluster_t
+fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst)
+{
+	block_t *b;
+	uint16_t bps;
+	uint16_t rscnt;
+	fat_cluster_t *cp, value;
+
+	bps = uint16_t_le2host(bs->bps);
+	rscnt = uint16_t_le2host(bs->rscnt);
+
+	b = block_get(dev_handle, rscnt + (clst * sizeof(fat_cluster_t)) / bps);
+	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
+	value = uint16_t_le2host(*cp);
+	block_put(b);
+	
+	return value;
+}
+
+/** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
  * @param dev_handle	Device handle for the file system.
  * @param fatno		Number of the FAT instance where to make the change.
- * @param clst		Cluster which is to be marked.
- * @param value		Value mark the cluster with.
+ * @param clst		Cluster which is to be set.
+ * @param value		Value to set the cluster with.
  */
 void
-fat_mark_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
+fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b;
@@ -249,7 +275,7 @@ void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
 
 	for (fatno = FAT1 + 1; fatno < bs->fatcnt; fatno++) {
 		for (c = 0; c < nclsts; c++) {
-			fat_mark_cluster(bs, dev_handle, fatno, lifo[c],
+			fat_set_cluster(bs, dev_handle, fatno, lifo[c],
 			    c == 0 ? FAT_CLST_LAST1 : lifo[c - 1]);
 		}
 	}
@@ -333,7 +359,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 * we have allocated so far.
 	 */
 	while (found--) {
-		fat_mark_cluster(bs, dev_handle, FAT1, lifo[found],
+		fat_set_cluster(bs, dev_handle, FAT1, lifo[found],
 		    FAT_CLST_RES0);
 	}
 	
@@ -341,9 +367,32 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	return ENOSPC;
 }
 
+/** Free clusters forming a cluster chain in all copies of FAT.
+ *
+ * @param bs		Buffer hodling the boot sector of the file system.
+ * @param dev_handle	Device handle of the file system.
+ * @param firstc	First cluster in the chain which is to be freed.
+ */
+void
+fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
+{
+	unsigned fatno;
+	fat_cluster_t nextc;
+
+	/* Mark all clusters in the chain as free in all copies of FAT. */
+	while (firstc < FAT_CLST_LAST1) {
+		nextc = fat_get_cluster(bs, dev_handle, firstc);
+		assert(nextc >= FAT_CLST_FIRST && nextc < FAT_CLST_BAD);
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
+			fat_set_cluster(bs, dev_handle, fatno, firstc,
+			    FAT_CLST_RES0);
+		firstc = nextc;
+	}
+}
+
 /** Append a cluster chain to the last file cluster in all FATs.
  *
- * @param bs		Buffer holding boot sector of the file system.
+ * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		Node representing the file.
  * @param mcl		First cluster of the cluster chain to append.
  */
@@ -353,7 +402,7 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	fat_cluster_t lcl;
 	uint8_t fatno;
 
-	if (fat_cluster_walk(bs, nodep->idx->dev_handle, nodep->firstc, &lcl,
+	if (fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl,
 	    (uint16_t) -1) == 0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = host2uint16_t_le(mcl);
@@ -362,7 +411,38 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	}
 
 	for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-		fat_mark_cluster(bs, nodep->idx->dev_handle, fatno, lcl, mcl);
+		fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lcl, mcl);
+}
+
+/** Chop off node clusters in all copies of FAT.
+ *
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param nodep		FAT node where the chopping will take place.
+ * @param lastc		Last cluster which will remain in the node. If this
+ *			argument is FAT_CLST_RES0, then all clusters will
+ *			be choped off.
+ */
+void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
+{
+	dev_handle_t dev_handle = nodep->idx->dev_handle;
+	if (lastc == FAT_CLST_RES0) {
+		/* The node will have zero size and no clusters allocated. */
+		fat_free_clusters(bs, dev_handle, nodep->firstc);
+		nodep->firstc = FAT_CLST_RES0;
+		nodep->dirty = true;		/* need to sync node */
+	} else {
+		fat_cluster_t nextc;
+		unsigned fatno;
+
+		nextc = fat_get_cluster(bs, dev_handle, lastc);
+
+		/* Terminate the cluster chain in all copies of FAT. */
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
+			fat_set_cluster(bs, dev_handle, fatno, lastc, FAT_CLST_LAST1);
+
+		/* Free all following clusters. */
+		fat_free_clusters(bs, dev_handle, nextc);
+	}
 }
 
 /**
