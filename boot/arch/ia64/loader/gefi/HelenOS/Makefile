@@ -47,12 +47,17 @@ hello.efi: hello.so
 
 #When selected first lines or second lines, select if image is linked into hello or not - usefull for network boot
 #hello.so: hello.o image.o 
-hello.so: hello.o
+hello.so: hello.o image.bin
 #	$(LD) $(LDFLAGS) -Map hello.map hello.o image.o -o hello.so $(LOADLIBES) #link image inside hello
 	$(LD) $(LDFLAGS) -Map hello.map hello.o -o hello.so $(LOADLIBES) #dont link image inside hello
 
 hello.o: hello.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c hello.c -o hello.o
+
+
+image.bin: ../../image.boot 
+	$(OBJCOPY) -O binary ../../image.boot image.bin
+
 
 image.o: ../../image.boot mkimage
 	$(OBJCOPY) -O binary ../../image.boot image.bin
