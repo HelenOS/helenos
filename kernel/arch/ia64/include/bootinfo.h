@@ -29,7 +29,7 @@
 #ifndef KERN_ia64_BOOTINFO_H_
 #define KERN_ia64_BOOTINFO_H_
 
-
+#define BOOTINFO_ADDRESS 0x4401000
 
 #define CONFIG_INIT_TASKS	32
 
@@ -46,6 +46,10 @@ typedef struct {
 
 typedef struct {
 	binit_t taskmap;
+
+	unsigned long * sapic;
+	unsigned int wakeup_intno;
+
 } bootinfo_t;
 
 extern bootinfo_t *bootinfo;

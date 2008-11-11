@@ -54,6 +54,16 @@
 #include <arch/drivers/ega.h>
 #include <arch/bootinfo.h>
 #include <genarch/kbd/i8042.h>
+#include <genarch/kbd/ns16550.h>
+#include <smp/smp.h>
+#include <smp/ipi.h>
+#include <arch/atomic.h>
+#include <panic.h>
+#include <print.h>
+
+/*NS16550 as a COM 1*/
+#define NS16550_IRQ 4
+#define NS16550_PORT 0x3f8
 
 bootinfo_t *bootinfo;
 
@@ -102,12 +112,15 @@ void arch_pre_mm_init(void)
 
 void arch_post_mm_init(void)
 {
-	irq_init(INR_COUNT, INR_COUNT);
+	if(config.cpu_active==1)
+	{
+		irq_init(INR_COUNT, INR_COUNT);
 #ifdef SKI
-	ski_init_console();
+		ski_init_console();
 #else	
-	ega_init();
+		ega_init();
 #endif	
+	}
 	it_init();	
 }
 
@@ -127,6 +140,9 @@ static void i8042_kkbdpoll(void *arg)
 {
 	while (1) {
 		i8042_poll();
+#ifdef CONFIG_NS16550
+		ns16550_poll();
+#endif
 		thread_usleep(POLL_INTERVAL);
 	}
 }
@@ -135,7 +151,7 @@ static void i8042_kkbdpoll(void *arg)
 void arch_post_smp_init(void)
 {
 
-	if (config.cpu_active == 1) {
+	{
 		/*
 		 * Create thread that polls keyboard.
 		 */
@@ -153,6 +169,10 @@ void arch_post_smp_init(void)
 		/* keyboard controller */
 		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 
+#ifdef CONFIG_NS16550
+		ns16550_init(kbd, NS16550_IRQ, NS16550_PORT); // as a COM 1
+#else
+#endif
 		thread_t *t;
 		t = thread_create(i8042_kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 		if (!t)
@@ -163,6 +183,7 @@ void arch_post_smp_init(void)
 
 	}
 }
+
 
 /** Enter userspace and never return. */
 void userspace(uspace_arg_t *kernel_uarg)
@@ -224,7 +245,7 @@ void arch_release_console(void)
 
 void arch_reboot(void)
 {
-	// TODO
+	outb(0x64,0xfe);
 	while (1);
 }
 

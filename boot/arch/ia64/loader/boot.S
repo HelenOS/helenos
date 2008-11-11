@@ -34,6 +34,7 @@
 .global start
 start:
 
+
 	mov ar.rsc = r0
 #	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
 	movl r1 = 0x4400000
@@ -56,6 +57,22 @@ start:
 	movl r18 = bootstrap ;;
 	mov b1 = r18 ;;
 	br.call.sptk.many b0 = b1
+
+.align 512
+ap_start:
+
+
+ap_loop:
+	movl r18=0x4405000;;
+	mov b1 = r18 ;;
+	br.call.sptk.many b0 = b1;;
+
+.align 1024
+
+.align 4096
+.global binfo
+binfo:
+
 
 .bss #on this line is ".bss", it cannot be seen in my mcedit :-(
 

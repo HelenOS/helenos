@@ -39,9 +39,7 @@
 #define KERNEL_TRANSLATION_D  0x0010000000000661
 #define KERNEL_TRANSLATION_VIO 0x0010000000000671
 #define KERNEL_TRANSLATION_IO 0x00100FFFFC000671 
-#define VIO_OFFSET            0x0002000000000000
-
-#define IO_OFFSET             0x0001000000000000
+#define KERNEL_TRANSLATION_FW 0x00100000F0000671 
 
 
 
@@ -52,6 +50,18 @@
 stack0:
 kernel_image_start:
 	.auto
+
+#identifi self(CPU) in OS structures by ID / EID
+	mov r9=cr64
+	mov r10=1
+	movl r12=0xffffffff
+	movl r8=cpu_by_id_eid_list
+	and r8=r8,r12
+	shr r9=r9,16
+	add r8=r8,r9
+	st1 [r8]=r10
+
+
 
 	mov psr.l = r0
 	srlz.i
@@ -114,6 +124,23 @@ kernel_image_start:
 	itr.d dtr[r7] = r10
 
 
+#setup mapping for fimware arrea (also SAPIC)
+	mov r11 = cr.itir ;;
+	movl r10 = ~0xfc;;
+	and r10 =r10 , r11  ;;
+	movl r11 = (FW_PAGE_WIDTH << PS_SHIFT);;
+	or r10 =r10 , r11  ;;
+	mov cr.itir = r10;;
+
+
+	movl r7 = 3
+	movl r8 = (VRN_KERNEL << VRN_SHIFT) | FW_OFFSET
+	mov cr.ifa = r8
+	movl r10 = (KERNEL_TRANSLATION_FW)
+	itr.d dtr[r7] = r10
+
+
+
 
 
 	# initialize PSR
@@ -142,6 +169,12 @@ paging_start:
 
 	# switch to register bank 1
 	bsw.1
+
+#Am'I BSP or AP
+	movl r20=bsp_started;;
+	ld8 r20=[r20];;
+	cmp.eq p3,p2=r20,r0;;
+
 	
 	# initialize register stack
 	mov ar.rsc = r0
@@ -160,24 +193,34 @@ paging_start:
 	movl r1 = _hardcoded_load_address
 	
 	/*
-	 * Initialize hardcoded_* variables.
+	 * Initialize hardcoded_* variables. Do only BSP
 	 */
-	movl r14 = _hardcoded_ktext_size
-	movl r15 = _hardcoded_kdata_size
-	movl r16 = _hardcoded_load_address ;;
-	addl r17 = @gprel(hardcoded_ktext_size), gp
-	addl r18 = @gprel(hardcoded_kdata_size), gp
-	addl r19 = @gprel(hardcoded_load_address), gp
-	addl r21 = @gprel(bootinfo), gp
+(p3)	movl r14 = _hardcoded_ktext_size
+(p3)	movl r15 = _hardcoded_kdata_size
+(p3)	movl r16 = _hardcoded_load_address ;;
+(p3)	addl r17 = @gprel(hardcoded_ktext_size), gp
+(p3)	addl r18 = @gprel(hardcoded_kdata_size), gp
+(p3)	addl r19 = @gprel(hardcoded_load_address), gp
+(p3)	addl r21 = @gprel(bootinfo), gp
 	;;
-	st8 [r17] = r14
-	st8 [r18] = r15
-	st8 [r19] = r16
-	st8 [r21] = r20
+(p3)	st8 [r17] = r14
+(p3)	st8 [r18] = r15
+(p3)	st8 [r19] = r16
+(p3)	st8 [r21] = r20
 
 	ssm (1 << 19) ;; /* Disable f32 - f127 */
 	srlz.i
 	srlz.d ;;
+
+(p2)	movl r18 = main_ap ;;
+(p2)   	mov b1 = r18 ;;
+(p2)	br.call.sptk.many b0 = b1
+
+#Mark that BSP is on
+	mov r20=1;;
+	movl r21=bsp_started;;
+	st8 [r21]=r20;;
+
 
 	br.call.sptk.many b0 = arch_pre_main
 
@@ -188,3 +231,46 @@ paging_start:
 
 0:
 	br 0b
+.align 4096
+
+kernel_image_ap_start:
+	.auto
+#identifi self(CPU) in OS structures by ID / EID
+	mov r9=cr64
+	mov r10=1
+	movl r12=0xffffffff
+	movl r8=cpu_by_id_eid_list
+	and r8=r8,r12
+	shr r9=r9,16
+	add r8=r8,r9
+	st1 [r8]=r10
+	
+#wait for wakeup sychro signal (#3 in cpu_by_id_eid_list)
+kernel_image_ap_start_loop:
+	movl r11=kernel_image_ap_start_loop
+	and r11=r11,r12
+   	mov b1 = r11 
+
+	ld1 r20=[r8];;
+	movl r21=3;;
+	cmp.eq p2,p3=r20,r21;;
+(p3)br.call.sptk.many b0 = b1
+
+	movl r11=kernel_image_start
+	and r11=r11,r12
+    mov b1 = r11 
+	br.call.sptk.many b0 = b1
+
+
+.align 16
+.global bsp_started
+bsp_started:
+.space 8
+
+
+.align 4096
+.global cpu_by_id_eid_list
+cpu_by_id_eid_list:
+.space 65536
+
+

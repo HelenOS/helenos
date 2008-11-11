@@ -38,6 +38,7 @@
 #include <arch/types.h>
 #include <arch/register.h>
 #include <arch/asm.h>
+#include <arch/bootinfo.h>
 
 #define FAMILY_ITANIUM	0x7
 #define FAMILY_ITANIUM2	0x1f
@@ -62,6 +63,33 @@ static inline uint64_t cpuid_read(int n)
 	
 	return v;
 }
+
+
+#define CR64_ID_SHIFT 24
+#define CR64_ID_MASK 0xff000000
+#define CR64_EID_SHIFT 16
+#define CR64_EID_MASK 0xff0000
+
+static inline int ia64_get_cpu_id(void)
+{
+	uint64_t cr64=cr64_read();
+	return ((CR64_ID_MASK)&cr64)>>CR64_ID_SHIFT;
+}
+
+static inline int ia64_get_cpu_eid(void)
+{
+	uint64_t cr64=cr64_read();
+	return ((CR64_EID_MASK)&cr64)>>CR64_EID_SHIFT;
+}
+
+
+
+static inline void ipi_send_ipi(int id,int eid,int intno)
+{
+	(bootinfo->sapic)[2*(id*256+eid)]=intno;
+}
+
+
 
 #endif
 

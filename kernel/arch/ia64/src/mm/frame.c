@@ -42,20 +42,31 @@
  * for real ia64 systems that provide memory map.
  */
 #define MEMORY_SIZE	(64 * 1024 * 1024)
-#define MEMORY_BASE	(64 * 1024 * 1024)
+#define MEMORY_BASE	(0 * 64 * 1024 * 1024)
+
+#define ONE_TO_ONE_MAPPING_SIZE (256*1048576) // Mapped at start
 
 #define ROM_BASE	0xa0000               //For ski
 #define ROM_SIZE	(384 * 1024)          //For ski
 void poke_char(int x,int y,char ch, char c);
+
+uintptr_t last_frame;
+
 void frame_arch_init(void)
 {
-	zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
+
+	if(config.cpu_active==1)
+	{
+		zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
 	
-	/*
-	 * Blacklist ROM regions.
-	 */
-	frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
-	
+		/*
+		* Blacklist ROM regions.
+		*/
+		//frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
+
+		frame_mark_unavailable(ADDR2PFN(0), SIZE2FRAMES(1048576));
+		last_frame=SIZE2FRAMES((VRN_KERNEL<<VRN_SHIFT)+ONE_TO_ONE_MAPPING_SIZE);	
+	}	
 }
 
 /** @}

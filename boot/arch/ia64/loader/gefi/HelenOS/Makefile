@@ -28,7 +28,7 @@ CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
 CRTOBJS		= ../gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT	= ../gnuefi/elf_$(ARCH)_efi.lds
 LDFLAGS		+= -T $(LDSCRIPT) -shared -Bsymbolic -L../lib -L../gnuefi $(CRTOBJS)
-LOADLIBES	= -lefi -lgnuefi
+LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 FORMAT		= efi-app-$(ARCH)
 
 
@@ -45,15 +45,23 @@ hello.efi: hello.so
 		   -j .rela -j .reloc --target=$(FORMAT) hello.so hello.efi
 	$(OBJDUMP) -d hello.efi > hello.disass  
 
-hello.so: hello.o image.o
-	$(LD) $(LDFLAGS) -Map hello.map hello.o -o hello.so $(LOADLIBES)
+#When selected first lines or second lines, select if image is linked into hello or not - usefull for network boot
+#hello.so: hello.o image.o 
+hello.so: hello.o
+#	$(LD) $(LDFLAGS) -Map hello.map hello.o image.o -o hello.so $(LOADLIBES) #link image inside hello
+	$(LD) $(LDFLAGS) -Map hello.map hello.o -o hello.so $(LOADLIBES) #dont link image inside hello
 
 hello.o: hello.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c hello.c -o hello.o
 
-image.o: ../../image.boot
+image.o: ../../image.boot mkimage
 	$(OBJCOPY) -O binary ../../image.boot image.bin
-	$(OBJCOPY) -I binary -O elf64-ia64-little -B ia64 image.bin image.o
+	./mkimage
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c image.c -o image.o
+#	$(OBJCOPY) -I binary -O elf64-ia64-little -B ia64  image.bin image.o
+
+mkimage: mkimage.c
+	gcc -o mkimage mkimage.c
 
 
 gefi:

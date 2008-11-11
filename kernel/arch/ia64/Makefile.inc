@@ -82,6 +82,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/mm/vhpt.c \
 	arch/$(ARCH)/src/proc/scheduler.c \
 	arch/$(ARCH)/src/ddi/ddi.c \
+	arch/$(ARCH)/src/smp/smp.c \
 	arch/$(ARCH)/src/drivers/it.c
 
 ifeq ($(MACHINE),ski)
@@ -96,5 +97,9 @@ ifeq ($(MACHINE),i460GX)
 	CONFIG_I8042 = y
 	DEFS += -DI460GX -DCONFIG_I8042
 	BFD = binary
+endif
+
+ifeq ($(CONFIG_SMP),y)
+	DEFS += -DCONFIG_SMP
 endif
 

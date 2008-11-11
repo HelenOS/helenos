@@ -51,6 +51,20 @@ static inline long atomic_add(atomic_t *val, int imm)
 	return v;
 }
 
+
+static inline uint64_t test_and_set(atomic_t *val) {
+	uint64_t v;
+		
+	asm volatile (
+		"movl %0=0x01;;\n"
+		"xchg8 %0=%1,%0;;\n"
+		: "=r" (v),"+m" (val->count)
+	);
+	
+	return v;
+}
+
+
 static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
 static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
 

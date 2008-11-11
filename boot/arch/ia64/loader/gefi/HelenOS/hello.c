@@ -1,7 +1,21 @@
 #include <efi.h>
 #include <efilib.h>
 
+#include <../../../../../../kernel/arch/ia64/include/bootinfo.h>
+
 #define KERNEL_LOAD_ADDRESS 0x4400000
+
+//Link image as a data array into hello - usefull with network boot
+//#define IMAGE_LINKED
+
+bootinfo_t *bootinfo=(bootinfo_t *)BOOTINFO_ADDRESS;
+
+
+#ifdef IMAGE_LINKED
+extern char HOSimage[];
+extern int HOSimagesize;
+#endif
+
 
 
 static CHAR16 *
@@ -15,23 +29,6 @@ a2u (char *str)
 	mem[i] = 0;
 	return mem;
 }
-char HEX[256];
-
-char hexs[]="0123456789ABCDEF";
-/*
-void to_hex(unsigned long long num)
-{
-    int a;
-    for(a=15;a>=0;a--)    
-    {
-	char c=num - (num & 0xfffffffffffffff0LL);
-	num/=16;
-	c=hexs[c];
-	HEX[a]=c;
-    }
-
-}
-*/
 
 EFI_STATUS
 efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
@@ -72,11 +69,12 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	EFI_FILE *FileHandle;
 
 	BS->HandleProtocol(LoadedImage->DeviceHandle, &FileSystemProtocol, &Vol);
-	Vol->OpenVolume (Vol, &CurDir);
 
 	char FileName[1024];
 	char *OsKernelBuffer;
 	int i;
+	int defaultLoad;
+	int imageLoad;
 	UINTN Size;
 
 	StrCpy(FileName,DevicePathToStr(LoadedImage->FilePath));
@@ -97,8 +95,10 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	}
 	while(LoadOptions[i]==L' ') if(LoadOptions[i++]==0) break;
 	
-	if(LoadOptions[i++]==0)
+	if(LoadOptions[i++]==0){
 		StrCat(FileName,L"\\image.bin");
+		defaultLoad=1;
+	}	
 	else{
 		CHAR16 buf[1024];
 		buf[0]='\\';
@@ -108,26 +108,69 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 			buf[j+1]=LoadOptions[i+j];
 		buf[j+1]=0;
 		StrCat(FileName,buf);
+		defaultLoad=0;
 	}
-	
-	//Print(L"%s\n",FileName);
 
-	EFI_STATUS stat;
-	stat=CurDir->Open(CurDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
-	if(EFI_ERROR(stat)){
-		Print(L"Error Opening Image %s\n",FileName);
-		return 0;
+	imageLoad=1;
+#ifdef IMAGE_LINKED
+	if(defaultLoad) {
+	    Print(L"Using Linked Image\n");
+	    imageLoad=0;
 	}    
-	Size = 0x00400000;
-	BS->AllocatePool(EfiLoaderData, Size, &OsKernelBuffer);
-	FileHandle->Read(FileHandle, &Size, OsKernelBuffer);
-	FileHandle->Close(FileHandle);
+#endif	
+	
 
-	if(Size<1) return 0;
+	char *  HOS;
+	if(imageLoad)
+	{
+		Size = 0x00400000;
 
+    		Vol->OpenVolume (Vol, &CurDir);
 
-	char *  HOS = OsKernelBuffer;  
+		EFI_STATUS stat;
+		stat=CurDir->Open(CurDir, &FileHandle, FileName, EFI_FILE_MODE_READ, 0);
+		if(EFI_ERROR(stat)){
+			Print(L"Error Opening Image %s\n",FileName);
+			return 0;
+		}
+	        BS->AllocatePool(EfiLoaderData, Size, &OsKernelBuffer);
+		FileHandle->Read(FileHandle, &Size, OsKernelBuffer);
+		FileHandle->Close(FileHandle);
+		HOS = OsKernelBuffer;  
+	    	if(Size<1) return 0;
+
+	}	    
+#ifdef IMAGE_LINKED
+	else {
+	    HOS = HOSimage;  
+	    Size = HOSimagesize;
+	    Print(L"Image start %llX\n",(long long)HOS);
+	    Print(L"Image size %llX\n",(long long)Size);
+	    Print(L"Image &size %llX\n",(long long)&Size);
+	}
+#endif	
 	int HOSSize = Size;  
+
+
+	rArg rSAL;
+	//Setup AP's wake up address
+
+	LibSalProc(0x01000000,2,0x4400200,0,0,0,0,0,&rSAL);
+
+
+        UINT64 sapic;
+        LibGetSalIpiBlock(&sapic);
+        Print (L"SAPIC:%X\n", sapic);
+	bootinfo->sapic=sapic;
+
+
+        int wakeup_intno;
+        wakeup_intno=0xf0;
+        Print (L"WAKEUP INTNO:%X\n", wakeup_intno);
+	bootinfo->wakeup_intno=wakeup_intno;
+
+
+
 
 
 	{
@@ -167,6 +210,8 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	for(a=0;a<HOSSize;a++){
 	    ((char *)(0x4400000))[a]=HOS[a];
 	}
+	bootinfo->sapic=(unsigned long *)sapic;
+	bootinfo->wakeup_intno=wakeup_intno;
 	
 	//Run Kernel
 	asm volatile(	
@@ -177,8 +222,6 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	);
 	   
 	
-	while(1){
-	    ((volatile int *)(0x80000000000b8000))[0]++;
-	}
+	//Not reached	   
 	return EFI_SUCCESS;
 }

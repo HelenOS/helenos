@@ -55,14 +55,17 @@ static void it_interrupt(irq_t *irq, void *arg, ...);
 void it_init(void)
 {
 	cr_itv_t itv;
-
-	irq_initialize(&it_irq);
-	it_irq.inr = INTERRUPT_TIMER;
-	it_irq.devno = device_assign_devno();
-	it_irq.claim = it_claim;
-	it_irq.handler = it_interrupt;
-	irq_register(&it_irq);
-
+	
+	if(config.cpu_active==1)
+	{
+		irq_initialize(&it_irq);
+		it_irq.inr = INTERRUPT_TIMER;
+		it_irq.devno = device_assign_devno();
+		it_irq.claim = it_claim;
+		it_irq.handler = it_interrupt;
+		irq_register(&it_irq);
+	}
+	
 	/* initialize Interval Timer external interrupt vector */
 	itv.value = itv_read();
 	itv.vector = INTERRUPT_TIMER;

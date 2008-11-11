@@ -46,6 +46,18 @@
 /** Bit width of the TLB-locked portion of kernel address space. */
 #define KERNEL_PAGE_WIDTH		28	/* 256M */
 #define IO_PAGE_WIDTH			26	/* 64M */
+#define FW_PAGE_WIDTH			28	/* 256M */
+
+/** Staticly mapped IO spaces */
+
+/* Firmware area (bellow 4GB in phys mem) */
+#define FW_OFFSET             0x00000000F0000000
+/* Legacy IO space */
+#define IO_OFFSET             0x0001000000000000
+/* Videoram - now mapped to 0 as VGA text mode vram on 0xb8000*/
+#define VIO_OFFSET            0x0002000000000000
+
+
 
 
 #define PPN_SHIFT			12

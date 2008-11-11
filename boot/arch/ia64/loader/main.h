@@ -29,28 +29,13 @@
 #ifndef BOOT_ia64_MAIN_H_
 #define BOOT_ia64_MAIN_H_
 
-#include <ofw.h>
-#include <ofw_tree.h>
 #include <types.h>
+#include <../../../../kernel/arch/ia64/include/bootinfo.h> 
 
 
 #define CONFIG_INIT_TASKS	32
 
-typedef struct {
-	void *addr; 
-	size_t size;
-} init_task_t;
-	
-typedef struct {
-	count_t count;
-	init_task_t tasks[CONFIG_INIT_TASKS];
-} init_t;
 
-typedef struct {
-	init_t taskmap;
-} bootinfo_t;
-
-extern bootinfo_t bootinfo;
 
 extern void start(void);
 extern void bootstrap(void);

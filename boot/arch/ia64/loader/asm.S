@@ -37,7 +37,5 @@ jump_to_kernel:
     alloc loc0 = ar.pfs, 1, 1, 0, 0
     movl r8 = 0x4404000;;
     mov b1 = r8 ;;
-    mov r1 = in0;
+    mov r1 = in0;               #Save bootinfo prt
     br.call.sptk.many b0 = b1;;
-.global ofw
-ofw:

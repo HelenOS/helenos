@@ -34,7 +34,7 @@
 #include <align.h>
 #include <balloc.h>
 
-bootinfo_t bootinfo;
+extern bootinfo_t binfo;
 component_t components[COMPONENTS];
 
 char *release = RELEASE;
@@ -69,6 +69,8 @@ void bootstrap(void)
 	int ii;
 	
 	
+	bootinfo_t *bootinfo=&binfo;
+	
 	//for(ii=0;ii<KERNEL_SIZE;ii++) ((char *)(0x100000))[ii] = ((char *)KERNEL_START)[ii+1];
 	
 	
@@ -92,18 +94,17 @@ void bootstrap(void)
 		    components[i].name, components[i].size);
 
 
-	bootinfo.taskmap.count = 0;
+	bootinfo->taskmap.count = 0;
 	for (i = 0; i < COMPONENTS; i++) {
 
 		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = components[i].start;
-			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
-			bootinfo.taskmap.count++;
+			bootinfo->taskmap.tasks[bootinfo->taskmap.count].addr = components[i].start;
+			bootinfo->taskmap.tasks[bootinfo->taskmap.count].size = components[i].size;
+			bootinfo->taskmap.count++;
 		}
 	}
 
-
-	jump_to_kernel(&bootinfo);
+	jump_to_kernel(bootinfo);
 
 
 }
