@@ -295,6 +295,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	t = (thread_t *) slab_alloc(thread_slab, 0);
 	if (!t)
 		return NULL;
+	
 	/* Not needed, but good for debugging */
 	memsetb(t->kstack, THREAD_STACK_SIZE * 1 << STACK_FRAMES, 0);
 	

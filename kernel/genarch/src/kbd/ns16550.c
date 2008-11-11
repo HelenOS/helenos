@@ -136,11 +136,11 @@ void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
 
 #ifdef ia64
     	uint8_t c;
-    	c=ns16550_lcr_read(&ns16550);
-    	ns16550_lcr_write(&ns16550,0x80|c);
-    	ns16550_rbr_write(&ns16550,0x0c);
-    	ns16550_ier_write(&ns16550,0x00);
-    	ns16550_lcr_write(&ns16550,c);
+    	c = ns16550_lcr_read(&ns16550);
+    	ns16550_lcr_write(&ns16550, 0x80 | c);
+    	ns16550_rbr_write(&ns16550, 0x0c);
+    	ns16550_ier_write(&ns16550, 0x00);
+    	ns16550_lcr_write(&ns16550, c);
 #endif
 	
 	ns16550_grab();
@@ -183,12 +183,12 @@ char ns16550_key_read(chardev_t *d)
 				active_read_key_pressed(x);
 		}
 #else
-	extern chardev_t kbrd;
-	if(x!=0x0d)
-	{
-	    if(x==0x7f) x='\b';
-	    chardev_push_character(&kbrd,x);
-	}    
+		extern chardev_t kbrd;
+		if(x != 0x0d) {
+			if(x == 0x7f)
+				x = '\b';
+			 chardev_push_character(&kbrd, x);
+		}    
 #endif		
 
 	}
@@ -233,12 +233,12 @@ void ns16550_poll(void)
 				key_pressed(x);
 		}
 #else
-	extern chardev_t kbrd;
-	if(x!=0x0d)
-	{
-	    if(x==0x7f) x='\b';
-	    chardev_push_character(&kbrd,x);
-	}    
+		extern chardev_t kbrd;
+		if(x != 0x0d) {
+			if (x == 0x7f)
+				x = '\b';
+			chardev_push_character(&kbrd, x);
+		}    
 #endif		
 
 	}
