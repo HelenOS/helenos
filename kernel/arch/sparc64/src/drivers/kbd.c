@@ -147,7 +147,7 @@ void kbd_init(ofw_tree_node_t *node)
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550_init(devno, inr, vaddr);
+		ns16550_init(devno, inr, (ioport_t)vaddr);
 		break;
 #endif
 	default:

@@ -39,24 +39,25 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
+typedef uint64_t ioport_t;
 
 #define IA64_IOSPACE_ADDRESS 0xE001000000000000ULL
 
-static inline void  outb(uint64_t port,uint8_t v)
+static inline void  outb(ioport_t port,uint8_t v)
 {
 	*((uint8_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void  outw(uint64_t port,uint16_t v)
+static inline void  outw(ioport_t port,uint16_t v)
 {
 	*((uint16_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void  outl(uint64_t port,uint32_t v)
+static inline void  outl(ioport_t port,uint32_t v)
 {
 	*((uint32_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 )))) = v;
 
@@ -65,21 +66,21 @@ static inline void  outl(uint64_t port,uint32_t v)
 
 
 
-static inline uint8_t inb(uint64_t port)
+static inline uint8_t inb(ioport_t port)
 {
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint8_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xfff) | ( (port >> 2) << 12 ))));
 }
 
-static inline uint16_t inw(uint64_t port)
+static inline uint16_t inw(ioport_t port)
 {
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint16_t *)(IA64_IOSPACE_ADDRESS + ( (port & 0xffE) | ( (port >> 2) << 12 ))));
 }
 
-static inline uint32_t inl(uint64_t port)
+static inline uint32_t inl(ioport_t port)
 {
 	asm volatile ("mf\n" ::: "memory");
 
@@ -98,9 +99,14 @@ static inline uintptr_t get_stack_base(void)
 {
 	uint64_t v;
 
-	asm volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	//I'm not sure why but this code bad inlines in scheduler, 
+	//so THE shifts about 16B and causes kernel panic
+	//asm volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
+	//return v;
 	
-	return v;
+	//this code have the same meaning but inlines well
+	asm volatile ("mov %0 = r12" : "=r" (v)  );
+	return v & (~(STACK_SIZE-1));
 }
 
 /** Return Processor State Register.
@@ -151,6 +157,16 @@ static inline uint64_t ivr_read(void)
 	
 	return v;
 }
+
+static inline uint64_t cr64_read(void)
+{
+	uint64_t v;
+	
+	asm volatile ("mov %0 = cr64\n" : "=r" (v));
+	
+	return v;
+}
+
 
 /** Write ITC (Interval Timer Counter) register.
  *

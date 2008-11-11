@@ -43,6 +43,45 @@
 #include <config.h>
 #include <arch/stack.h>
 
+typedef uint64_t ioport_t;
+
+
+static inline void  outb(ioport_t port,uint8_t v)
+{
+	*((uint8_t *)(port)) = v;
+}
+
+static inline void  outw(ioport_t port,uint16_t v)
+{
+	*((uint16_t *)(port)) = v;
+}
+
+static inline void  outl(ioport_t port,uint32_t v)
+{
+	*((uint32_t *)(port)) = v;
+}
+
+
+
+static inline uint8_t inb(ioport_t port)
+{
+	return *((uint8_t *)(port));
+}
+
+static inline uint16_t inw(ioport_t port)
+{
+	return *((uint16_t *)(port));
+}
+
+static inline uint32_t inl(ioport_t port)
+{
+	return *((uint32_t *)(port));
+}
+
+
+
+
+
 /** Read Processor State register.
  *
  * @return Value of PSTATE register.

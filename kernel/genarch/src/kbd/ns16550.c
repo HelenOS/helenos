@@ -38,8 +38,10 @@
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
+#ifndef ia64
 #include <arch/drivers/kbd.h>
 #include <arch/drivers/ns16550.h>
+#endif
 #include <ddi/irq.h>
 #include <ipc/irq.h>
 #include <cpu.h>
@@ -109,13 +111,13 @@ void ns16550_release(void)
  * @param inr Interrupt number.
  * @param vaddr Virtual address of device's registers.
  */
-void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr)
+void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
 {
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
 	ns16550.devno = devno;
-	ns16550.reg = (uint8_t *) vaddr;
+	ns16550.io_port = port;
 	
 	irq_initialize(&ns16550_irq);
 	ns16550_irq.devno = devno;
@@ -125,10 +127,21 @@ void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 	irq_register(&ns16550_irq);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
+#ifndef ia64
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
+#endif
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
+
+#ifdef ia64
+    	uint8_t c;
+    	c=ns16550_lcr_read(&ns16550);
+    	ns16550_lcr_write(&ns16550,0x80|c);
+    	ns16550_rbr_write(&ns16550,0x0c);
+    	ns16550_ier_write(&ns16550,0x00);
+    	ns16550_lcr_write(&ns16550,c);
+#endif
 	
 	ns16550_grab();
 }
@@ -152,6 +165,7 @@ void ns16550_suspend(chardev_t *d)
 {
 }
 
+
 char ns16550_key_read(chardev_t *d)
 {
 	char ch;	
@@ -161,12 +175,22 @@ char ns16550_key_read(chardev_t *d)
 		while (!(ns16550_lsr_read(&ns16550) & LSR_DATA_READY))
 			;
 		x = ns16550_rbr_read(&ns16550);
+#ifndef ia64
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
 			else
 				active_read_key_pressed(x);
 		}
+#else
+	extern chardev_t kbrd;
+	if(x!=0x0d)
+	{
+	    if(x==0x7f) x='\b';
+	    chardev_push_character(&kbrd,x);
+	}    
+#endif		
+
 	}
 	return ch;
 }
@@ -201,12 +225,22 @@ void ns16550_poll(void)
 		uint8_t x;
 		
 		x = ns16550_rbr_read(&ns16550);
+#ifndef ia64
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
 			else
 				key_pressed(x);
 		}
+#else
+	extern chardev_t kbrd;
+	if(x!=0x0d)
+	{
+	    if(x==0x7f) x='\b';
+	    chardev_push_character(&kbrd,x);
+	}    
+#endif		
+
 	}
 }
 
