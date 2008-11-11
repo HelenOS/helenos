@@ -328,6 +328,7 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
+	context_save(&CPU->saved_context);
 	context_set(&CPU->saved_context, FADDR(main_ap_separated_stack),
 	    (uintptr_t) CPU->stack, CPU_STACK_SIZE);
 	context_restore(&CPU->saved_context);
