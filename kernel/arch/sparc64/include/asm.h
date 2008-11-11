@@ -42,45 +42,55 @@
 #include <arch/register.h>
 #include <config.h>
 #include <arch/stack.h>
+#include <arch/barrier.h>
 
-typedef uint64_t ioport_t;
-
-
-static inline void  outb(ioport_t port,uint8_t v)
+static inline void outb(ioport_t port, uint8_t v)
 {
-	*((uint8_t *)(port)) = v;
+	*((volatile uint8_t *)(port)) = v;
+	memory_barrier();
 }
 
-static inline void  outw(ioport_t port,uint16_t v)
+static inline void outw(ioport_t port, uint16_t v)
 {
-	*((uint16_t *)(port)) = v;
+	*((volatile uint16_t *)(port)) = v;
+	memory_barrier();
 }
 
-static inline void  outl(ioport_t port,uint32_t v)
+static inline void outl(ioport_t port, uint32_t v)
 {
-	*((uint32_t *)(port)) = v;
+	*((volatile uint32_t *)(port)) = v;
+	memory_barrier();
 }
-
-
 
 static inline uint8_t inb(ioport_t port)
 {
-	return *((uint8_t *)(port));
+	uint8_t rv;
+
+	rv = *((volatile uint8_t *)(port));
+	memory_barrier();
+
+	return rv;
 }
 
 static inline uint16_t inw(ioport_t port)
 {
-	return *((uint16_t *)(port));
+	uint16_t rv;
+
+	rv = *((volatile uint16_t *)(port));
+	memory_barrier();
+
+	return rv;
 }
 
 static inline uint32_t inl(ioport_t port)
 {
-	return *((uint32_t *)(port));
+	uint32_t rv;
+
+	rv = *((volatile uint32_t *)(port));
+	memory_barrier();
+
+	return rv;
 }
-
-
-
-
 
 /** Read Processor State register.
  *

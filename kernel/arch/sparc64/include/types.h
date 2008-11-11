@@ -54,6 +54,8 @@ typedef uint64_t pfn_t;
 
 typedef uint64_t ipl_t;
 
+typedef uint64_t ioport_t;
+
 typedef uint64_t unative_t;
 typedef int64_t native_t;
 
