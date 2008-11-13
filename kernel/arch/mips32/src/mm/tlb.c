@@ -429,7 +429,6 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 			break;
 		case AS_PF_FAULT:
 			page_table_lock(AS, true);
-			printf("Page fault.\n");
 			*pfrc = AS_PF_FAULT;
 			return NULL;
 			break;
