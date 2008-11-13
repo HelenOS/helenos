@@ -103,7 +103,6 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, in
 				return NULL;
 			case AS_PF_FAULT:
 				page_table_lock(as, lock);
-				printf("Page fault.\n");
 				*pfrc = rc;
 				return NULL;
 			default:
