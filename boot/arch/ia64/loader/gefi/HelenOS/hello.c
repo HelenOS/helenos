@@ -153,21 +153,34 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 
 
 	rArg rSAL;
-	//Setup AP's wake up address
+	rArg rPAL;
 
+	//Setup AP's wake up address
 	LibSalProc(0x01000000,2,0x4400200,0,0,0,0,0,&rSAL);
+
+
+	//Get System Frequency
+	UINT64 sys_freq;
+	LibSalProc(0x01000012,0,0,0,0,0,0,0,&rSAL);
+	sys_freq=rSAL.p1;
+	
+
+	UINT64 freq_scale;
+	//Get CPU Frequency to System Frequency ratio
+	LibPalProc(14,0,0,0,&rPAL);
+	freq_scale=rPAL.p1;
 
 
         UINT64 sapic;
         LibGetSalIpiBlock(&sapic);
         Print (L"SAPIC:%X\n", sapic);
-	bootinfo->sapic=sapic;
+	//bootinfo->sapic=sapic;
 
 
         int wakeup_intno;
         wakeup_intno=0xf0;
         Print (L"WAKEUP INTNO:%X\n", wakeup_intno);
-	bootinfo->wakeup_intno=wakeup_intno;
+	//bootinfo->wakeup_intno=wakeup_intno;
 
 
 
@@ -212,6 +225,8 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	}
 	bootinfo->sapic=(unsigned long *)sapic;
 	bootinfo->wakeup_intno=wakeup_intno;
+	bootinfo->sys_freq=sys_freq;
+	bootinfo->freq_scale=freq_scale;
 	
 	//Run Kernel
 	asm volatile(	

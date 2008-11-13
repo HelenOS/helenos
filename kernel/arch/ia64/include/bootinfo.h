@@ -48,6 +48,8 @@ typedef struct {
 	binit_t taskmap;
 
 	unsigned long * sapic;
+	unsigned long sys_freq;
+	unsigned long freq_scale;
 	unsigned int wakeup_intno;
 
 } bootinfo_t;
