@@ -36,5 +36,5 @@
 # Jump to a program entry point
 program_run:
 	mtctr %r3
-	mr %r3, %r4	# Pass pcb to the entry point in %r3
+	mr %r6, %r4	# Pass pcb to the entry point in %r6
 	bctr

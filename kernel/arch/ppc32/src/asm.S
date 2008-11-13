@@ -66,9 +66,9 @@ userspace_asm:
 	
 	mr sp, r4
 
-	# %r3 is defined to hold pcb_ptr - set it to 0
+	# %r6 is defined to hold pcb_ptr - set it to 0
 
-	xor r3, r3, r3
+	xor r6, r6, r6
 	
 	# jump to userspace
 	

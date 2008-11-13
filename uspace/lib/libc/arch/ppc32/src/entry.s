@@ -34,11 +34,12 @@
 
 ## User-space task entry point
 #
-# r3 contains the PCB pointer
+# r6 contains the PCB pointer
 #
 __entry:
 	# Pass the PCB pointer to __main() as the first argument.
-	# Since the first argument is passed in r3, no operation is needed.
+	# The first argument is passed in r3.
+	mr %r3, %r6
 	bl __main
 
 	bl __exit
