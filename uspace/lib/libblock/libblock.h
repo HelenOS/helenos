@@ -44,6 +44,22 @@
 #include <libadt/hash_table.h>
 #include <libadt/list.h>
 
+/*
+ * Flags that can be used with block_get().
+ */
+
+/** 
+ * This macro is a symbolic value for situations where no special flags are
+ * needed.
+ */
+#define BLOCK_FLAGS_NONE	0
+
+/**
+ * When the client of block_get() intends to overwrite the current contents of
+ * the block, this flag is used to avoid the unnecessary read.
+ */
+#define BLOCK_FLAGS_NOREAD	1
+
 typedef unsigned bn_t;	/**< Block number type. */
 
 typedef struct block {
@@ -77,7 +93,7 @@ extern void *block_bb_get(dev_handle_t);
 
 extern int block_cache_init(dev_handle_t, size_t, unsigned);
 
-extern block_t *block_get(dev_handle_t, bn_t);
+extern block_t *block_get(dev_handle_t, bn_t, int flags);
 extern void block_put(block_t *);
 
 extern int block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);

@@ -296,10 +296,13 @@ static void block_initialize(block_t *b)
  *
  * @param dev_handle		Device handle of the block device.
  * @param boff			Block offset.
+ * @param flags			If BLOCK_FLAGS_NOREAD is specified, block_get()
+ * 				will not read the contents of the block from the
+ *				device.
  *
  * @return			Block structure.
  */
-block_t *block_get(dev_handle_t dev_handle, bn_t boff)
+block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
@@ -385,13 +388,15 @@ recycle:
 			 */
 			abort();	/* TODO: block_write() */
 		}
-		/*
-		 * The block contains old or no data. We need to read the new
-		 * contents from the device.
-		 */
-		rc = block_read(dev_handle, &bufpos, &buflen, &pos, b->data,
-		    cache->block_size, cache->block_size);
-		assert(rc == EOK);
+		if (!(flags & BLOCK_FLAGS_NOREAD)) {
+			/*
+			 * The block contains old or no data. We need to read
+			 * the new contents from the device.
+			 */
+			rc = block_read(dev_handle, &bufpos, &buflen, &pos,
+			    b->data, cache->block_size, cache->block_size);
+			assert(rc == EOK);
+		}
 
 		futex_up(&b->lock);
 	}
