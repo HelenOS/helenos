@@ -35,6 +35,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <arch.h>
 #include <print.h>
@@ -116,6 +117,10 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	s = get_symtab_entry(istate->lr);
 	if (s)
 		sym2 = s;
+
+	fault_if_from_uspace(istate,
+	    "%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr,
+	    istate->pc, symbol, sym2);
 	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr,
 	    istate->pc, symbol, sym2);
 }
