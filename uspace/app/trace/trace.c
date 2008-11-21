@@ -445,12 +445,12 @@ static int trace_loop(void *thread_hash_arg)
 	thread_hash = (uintptr_t)thread_hash_arg;
 	thread_id = next_thread_id++;
 
-	printf("Start tracing thread [%d] (hash 0x%lx)\n", thread_id, thread_hash);
+	printf("Start tracing thread [%d] (hash 0x%lx).\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
 		if (paused) {
-			printf("Waiting for resume\n");
+			printf("Press R to resume (and be patient).\n");
 			while (paused) {
 				usleep(1000000);
 				fibril_yield();
@@ -484,18 +484,18 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread 0x%lx exited\n", val0);
+				printf("Thread 0x%lx exited.\n", val0);
 				abort_trace = 1;
 				break;
 			default:
-				printf("Unknown event type %d\n", ev_type);
+				printf("Unknown event type %d.\n", ev_type);
 				break;
 			}
 		}
 
 	}
 
-	printf("Finished tracing thread [%d]\n", thread_id);
+	printf("Finished tracing thread [%d].\n", thread_id);
 	return 0;
 }
 
@@ -707,7 +707,7 @@ static display_mask_t parse_display_mask(char *text)
 		case 'i': dm = dm | DM_IPC; break;
 		case 'p': dm = dm | DM_SYSTEM | DM_USER; break;
 		default:
-			printf("Unexpected event type '%c'\n", *c);
+			printf("Unexpected event type '%c'.\n", *c);
 			exit(1);
 		}
 
@@ -782,6 +782,7 @@ int main(int argc, char *argv[])
 	int rc;
 
 	printf("System Call / IPC Tracer\n");
+	printf("Controls: Q - Quit, P - Pause, R - Resume\n");
 
 	display_mask = DM_THREAD | DM_SYSTEM | DM_USER;
 
@@ -792,11 +793,11 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld\n", task_id);
+		printf("Failed connecting to task %lld.\n", task_id);
 		return 1;
 	}
 
-	printf("Connected to task %lld\n", task_id);
+	printf("Connected to task %lld.\n", task_id);
 
 	if (task_ldr != NULL) {
 		program_run();
