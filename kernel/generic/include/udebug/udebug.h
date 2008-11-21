@@ -184,10 +184,10 @@ typedef struct {
 	unative_t syscall_args[6];
 
 	/** What type of event are we stopped in or 0 if none. */
-	udebug_event_t cur_event;	
-	bool stop;
-	bool stoppable;
-	bool debug_active; /**< in a debugging session */
+	udebug_event_t cur_event;
+	bool go;	   /**< thread is GO */
+	bool stoppable;	   /**< thread is stoppable */
+	bool debug_active; /**< thread is in a debugging session */
 } udebug_thread_t;
 
 struct task;

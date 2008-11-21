@@ -95,7 +95,7 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 	atomic_set(&ut->int_lock, 1);
 
 	ut->go_call = NULL;
-	ut->stop = true;
+	ut->go = false;
 	ut->stoppable = true;
 	ut->debug_active = false;
 	ut->cur_event = 0; /* none */
@@ -198,7 +198,8 @@ void udebug_stoppable_begin(void)
 		 * Active debugging session
 		 */
 
-		if (THREAD->udebug.debug_active && THREAD->udebug.stop) {
+		if (THREAD->udebug.debug_active == true &&
+		    THREAD->udebug.go == false) {
 			/*
 			 * Thread was requested to stop - answer go call
 			 */
@@ -239,7 +240,7 @@ restart:
 	mutex_lock(&THREAD->udebug.lock);
 
 	if (THREAD->udebug.debug_active &&
-	    THREAD->udebug.stop == true) {
+	    THREAD->udebug.go == false) {
 		TASK->udebug.begin_call = NULL;
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
@@ -323,7 +324,7 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 
 	/* Must only generate events when in debugging session and is go. */
 	if (THREAD->udebug.debug_active != true ||
-	    THREAD->udebug.stop == true ||
+	    THREAD->udebug.go == false ||
 	    (TASK->udebug.evmask & UDEBUG_EVMASK(etype)) == 0) {
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
@@ -348,11 +349,11 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	THREAD->udebug.syscall_args[5] = a6;
 
 	/*
-	 * Make sure udebug.stop is true when going to sleep
+	 * Make sure udebug.go is false when going to sleep
 	 * in case we get woken up by DEBUG_END. (At which
 	 * point it must be back to the initial true value).
 	 */
-	THREAD->udebug.stop = true;
+	THREAD->udebug.go = false;
 	THREAD->udebug.cur_event = etype;
 
 	ipc_answer(&TASK->answerbox, call);
@@ -387,9 +388,9 @@ void udebug_thread_b_event(struct thread *t)
 
 	/* Must only generate events when in debugging session */
 	if (THREAD->udebug.debug_active != true) {
-		LOG("- debug_active: %s, udebug.stop: %s\n",
+		LOG("- debug_active: %s, udebug.go: %s\n",
 			THREAD->udebug.debug_active ? "yes(+)" : "no(-)",
-			THREAD->udebug.stop ? "yes(-)" : "no(+)");
+			THREAD->udebug.go ? "yes(-)" : "no(+)");
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
@@ -404,11 +405,11 @@ void udebug_thread_b_event(struct thread *t)
 	IPC_SET_ARG2(call->data, (unative_t)t);
 
 	/*
-	 * Make sure udebug.stop is true when going to sleep
+	 * Make sure udebug.go is false when going to sleep
 	 * in case we get woken up by DEBUG_END. (At which
 	 * point it must be back to the initial true value).
 	 */
-	THREAD->udebug.stop = true;
+	THREAD->udebug.go = false;
 	THREAD->udebug.cur_event = UDEBUG_EVENT_THREAD_B;
 
 	ipc_answer(&TASK->answerbox, call);
@@ -441,9 +442,9 @@ void udebug_thread_e_event(void)
 
 	/* Must only generate events when in debugging session. */
 	if (THREAD->udebug.debug_active != true) {
-/*		printf("- debug_active: %s, udebug.stop: %s\n",
+/*		printf("- debug_active: %s, udebug.go: %s\n",
 			THREAD->udebug.debug_active ? "yes(+)" : "no(-)",
-			THREAD->udebug.stop ? "yes(-)" : "no(+)");*/
+			THREAD->udebug.go ? "yes(-)" : "no(+)");*/
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
@@ -459,7 +460,7 @@ void udebug_thread_e_event(void)
 	/* Prevent any further debug activity in thread. */
 	THREAD->udebug.debug_active = false;
 	THREAD->udebug.cur_event = 0;		/* none */
-	THREAD->udebug.stop = true;	/* set to initial value */
+	THREAD->udebug.go = false;	/* set to initial value */
 
 	ipc_answer(&TASK->answerbox, call);
 
@@ -519,12 +520,12 @@ int udebug_task_cleanup(struct task *ta)
 			t->udebug.cur_event = 0;	/* none */
 
 			/* Is the thread still go? */
-			if (t->udebug.stop == false) {
+			if (t->udebug.go == true) {
 				/*
 				* Yes, so clear go. As debug_active == false,
 				 * this doesn't affect anything.
 				 */
-				t->udebug.stop = true;	
+				t->udebug.go = false;	
 
 				/* Answer GO call */
 				LOG("answer GO call with EVENT_FINISHED\n");

@@ -142,7 +142,7 @@ static int _thread_op_begin(thread_t *t, bool being_go)
 	/* The big task mutex is no longer needed. */
 	mutex_unlock(&TASK->udebug.lock);
 
-	if (!t->udebug.stop != being_go) {
+	if (t->udebug.go != being_go) {
 		/* Not in debugging session or undesired GO state. */
 		mutex_unlock(&t->udebug.lock);
 		return EINVAL;
@@ -291,7 +291,7 @@ int udebug_go(thread_t *t, call_t *call)
 	}
 
 	t->udebug.go_call = call;
-	t->udebug.stop = false;
+	t->udebug.go = true;
 	t->udebug.cur_event = 0;	/* none */
 
 	/*
@@ -329,9 +329,9 @@ int udebug_stop(thread_t *t, call_t *call)
 	}
 
 	/* Take GO away from the thread. */
-	t->udebug.stop = true;
+	t->udebug.go = false;
 
-	if (!t->udebug.stoppable) {
+	if (t->udebug.stoppable != true) {
 		/* Answer will be sent when the thread becomes stoppable. */
 		_thread_op_end(t);
 		return 0;
