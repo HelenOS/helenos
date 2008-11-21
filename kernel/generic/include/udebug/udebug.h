@@ -169,13 +169,6 @@ typedef struct {
 /** Debugging part of thread_t structure.
  */
 typedef struct {
-	/** 
-	 * Prevent deadlock with udebug_before_thread_runs() in interrupt
-	 * handler, without actually disabling interrupts.
-	 * ==0 means "unlocked", >0 means "locked"
-	 */
-	atomic_t int_lock;
-
 	/** Synchronize debug ops on this thread / access to this structure. */
 	mutex_t lock;
 

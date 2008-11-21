@@ -35,18 +35,6 @@
  * @brief	Udebug hooks and data structure management.
  *
  * Udebug is an interface that makes userspace debuggers possible.
- *
- * Functions in this file are executed directly in each thread, which
- * may or may not be the subject of debugging. The udebug_stoppable_begin/end()
- * functions are also executed in the clock interrupt handler. To avoid
- * deadlock, functions in this file are protected from the interrupt
- * by locking the recursive lock THREAD->udebug.int_lock (just an atomic
- * variable). This prevents udebug_stoppable_begin/end() from being
- * executed in the interrupt handler (they are skipped).
- *
- * Functions in udebug_ops.c and udebug_ipc.c execute in different threads,
- * so they needn't be protected from the (preemptible) interrupt-initiated
- * code.
  */
  
 #include <synch/waitq.h>
@@ -55,15 +43,6 @@
 #include <errno.h>
 #include <arch.h>
 
-static inline void udebug_int_lock(void)
-{
-	atomic_inc(&THREAD->udebug.int_lock);
-}
-
-static inline void udebug_int_unlock(void)
-{
-	atomic_dec(&THREAD->udebug.int_lock);
-}
 
 /** Initialize udebug part of task structure.
  *
@@ -88,11 +67,6 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
 	waitq_initialize(&ut->go_wq);
-
-	/*
-	 * At the beginning the thread is stoppable, so int_lock be set, too.
-	 */
-	atomic_set(&ut->int_lock, 1);
 
 	ut->go_call = NULL;
 	ut->go = false;
@@ -161,11 +135,8 @@ void udebug_stoppable_begin(void)
 	ASSERT(THREAD);
 	ASSERT(TASK);
 
-	udebug_int_lock();
-
 	/* Early check for undebugged tasks */
 	if (!udebug_thread_precheck()) {
-		udebug_int_unlock();
 		return;
 	}
 
@@ -231,7 +202,6 @@ void udebug_stoppable_end(void)
 {
 	/* Early check for undebugged tasks */
 	if (!udebug_thread_precheck()) {
-		udebug_int_unlock();
 		return;
 	}
 
@@ -257,8 +227,6 @@ restart:
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 	}
-
-	udebug_int_unlock();
 }
 
 /** Upon being scheduled to run, check if the current thread should stop.
@@ -273,16 +241,6 @@ void udebug_before_thread_runs(void)
 	ipl_t ipl;
 
 	return;
-	ASSERT(!PREEMPTION_DISABLED);
-
-	/* 
-	 * Prevent agains re-entering, such as when preempted inside this
-	 * function.
-	 */
-	if (atomic_get(&THREAD->udebug.int_lock) != 0)
-		return;
-
-	udebug_int_lock();
 
 	ipl = interrupts_enable();
 
@@ -293,8 +251,6 @@ void udebug_before_thread_runs(void)
 	udebug_stoppable_end();
 
 	interrupts_restore(ipl);
-
-	udebug_int_unlock();
 }
 
 /** Syscall event hook.
@@ -311,11 +267,8 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 
 	etype = end_variant ? UDEBUG_EVENT_SYSCALL_E : UDEBUG_EVENT_SYSCALL_B;
 
-	udebug_int_lock();
-
 	/* Early check for undebugged tasks */
 	if (!udebug_thread_precheck()) {
-		udebug_int_unlock();
 		return;
 	}
 
@@ -362,8 +315,6 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	mutex_unlock(&TASK->udebug.lock);
 
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
-
-	udebug_int_unlock();
 }
 
 /** Thread-creation event hook.
@@ -377,8 +328,6 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 void udebug_thread_b_event(struct thread *t)
 {
 	call_t *call;
-
-	udebug_int_lock();
 
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
@@ -419,8 +368,6 @@ void udebug_thread_b_event(struct thread *t)
 
 	LOG("- sleep\n");
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
-
-	udebug_int_unlock();
 }
 
 /** Thread-termination event hook.
@@ -431,8 +378,6 @@ void udebug_thread_b_event(struct thread *t)
 void udebug_thread_e_event(void)
 {
 	call_t *call;
-
-	udebug_int_lock();
 
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
@@ -467,8 +412,10 @@ void udebug_thread_e_event(void)
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
 
-	/* Leave int_lock enabled. */
-	/* This event does not sleep - debugging has finished in this thread. */
+	/* 
+	 * This event does not sleep - debugging has finished
+	 * in this thread.
+	 */
 }
 
 /**
@@ -490,8 +437,6 @@ int udebug_task_cleanup(struct task *ta)
 
 	LOG("udebug_task_cleanup()\n");
 	LOG("task %" PRIu64 "\n", ta->taskid);
-
-	udebug_int_lock();
 
 	if (ta->udebug.dt_state != UDEBUG_TS_BEGINNING &&
 	    ta->udebug.dt_state != UDEBUG_TS_ACTIVE) {
@@ -553,8 +498,6 @@ int udebug_task_cleanup(struct task *ta)
 
 	ta->udebug.dt_state = UDEBUG_TS_INACTIVE;
 	ta->udebug.debugger = NULL;
-
-	udebug_int_unlock();
 
 	return 0;
 }
