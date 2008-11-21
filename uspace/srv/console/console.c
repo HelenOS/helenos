@@ -466,7 +466,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				}
 				continue;
 			}
-			keybuffer_pop(&conn->keybuffer, (int *) &arg1);
+			int ch;
+			keybuffer_pop(&conn->keybuffer, &ch);
+			arg1 = ch;
 			break;
 		}
 		ipc_answer_2(callid, EOK, arg1, arg2);
