@@ -317,7 +317,6 @@ int udebug_stop(thread_t *t, call_t *call)
 	int rc;
 
 	LOG("udebug_stop()\n");
-	mutex_lock(&TASK->udebug.lock);
 
 	/*
 	 * On success, this will lock t->udebug.lock. Note that this makes sure
@@ -354,6 +353,7 @@ int udebug_stop(thread_t *t, call_t *call)
 
 	_thread_op_end(t);
 
+	mutex_lock(&TASK->udebug.lock);
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
 

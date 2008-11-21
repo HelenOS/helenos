@@ -115,6 +115,7 @@ unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 	uintptr_t paddr;
 	pte_t *t;
 	ipl_t ipl;
+	int rc;
 	
 	ipl = interrupts_disable();
 
@@ -134,9 +135,17 @@ unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 	interrupts_restore(ipl);	
 
 	futex = futex_find(paddr);
-	
-	return (unative_t) waitq_sleep_timeout(&futex->wq, usec, flags |
+
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_begin();
+#endif
+	rc = waitq_sleep_timeout(&futex->wq, usec, flags |
 	    SYNCH_FLAGS_INTERRUPTIBLE);
+
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_end();
+#endif
+	return (unative_t) rc;
 }
 
 /** Wakeup one thread waiting in futex wait queue.

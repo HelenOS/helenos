@@ -449,6 +449,16 @@ static int trace_loop(void *thread_hash_arg)
 
 	while (!abort_trace) {
 
+		if (paused) {
+			printf("Waiting for resume\n");
+			while (paused) {
+				usleep(1000000);
+				fibril_yield();
+				printf(".");
+			}
+			printf("Resumed\n");
+		}
+
 		/* Run thread until an event occurs */
 		rc = udebug_go(phoneid, thread_hash,
 		    &ev_type, &val0, &val1);
@@ -469,13 +479,6 @@ static int trace_loop(void *thread_hash_arg)
 				break;
 			case UDEBUG_EVENT_STOP:
 				printf("Stop event\n");
-				printf("Waiting for resume\n");
-				while (paused) {
-					usleep(1000000);
-					fibril_yield();
-					printf(".");
-				}
-				printf("Resumed\n");
 				break;
 			case UDEBUG_EVENT_THREAD_B:
 				event_thread_b(val0);
@@ -580,12 +583,14 @@ static void trace_task(task_id_t task_id)
 		c = getchar();
 		if (c == 'q') break;
 		if (c == 'p') {
+			printf("Pause...\n");
 			paused = 1;
 			rc = udebug_stop(phoneid, thash);
 			printf("stop -> %d\n", rc);
 		}
 		if (c == 'r') {
 			paused = 0;
+			printf("Resume...\n");
 		}
 	}
 

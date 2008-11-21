@@ -455,10 +455,17 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	IPC_SET_ARG5(call.data, 0);
 
 	if (!(res = request_preprocess(&call, phone))) {
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_begin();
+#endif
 		rc = ipc_call_sync(phone, &call);
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_end();
+#endif
 		if (rc != EOK)
 			return rc;
 		process_answer(&call);
+
 	} else {
 		IPC_SET_RETVAL(call.data, res);
 	}
@@ -495,7 +502,13 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
 	if (!(res = request_preprocess(&call, phone))) {
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_begin();
+#endif
 		rc = ipc_call_sync(phone, &call);
+#ifdef CONFIG_UDEBUG
+		udebug_stoppable_end();
+#endif
 		if (rc != EOK)
 			return rc;
 		process_answer(&call);
@@ -798,9 +811,17 @@ unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int flags)
 {
 	call_t *call;
 
-restart:	
+restart:
+
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_begin();
+#endif	
 	call = ipc_wait_for_call(&TASK->answerbox, usec,
 	    flags | SYNCH_FLAGS_INTERRUPTIBLE);
+
+#ifdef CONFIG_UDEBUG
+	udebug_stoppable_end();
+#endif
 	if (!call)
 		return 0;
 
