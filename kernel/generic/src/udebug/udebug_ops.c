@@ -57,7 +57,7 @@
  *
  * Specifically, verifies that thread t exists, is a userspace thread,
  * and belongs to the current task (TASK). Verifies, that the thread
- * has (or hasn't) go according to having_go (typically false).
+ * is (or is not) go according to being_go (typically false).
  * It also locks t->udebug.lock, making sure that t->udebug.debug_active
  * is true - that the thread is in a valid debugging session.
  *
@@ -70,11 +70,11 @@
  * the t->lock spinlock to the t->udebug.lock mutex.
  *
  * @param t		Pointer, need not at all be valid.
- * @param having_go	Required thread state.
+ * @param being_go	Required thread state.
  *
  * Returns EOK if all went well, or an error code otherwise.
  */
-static int _thread_op_begin(thread_t *t, bool having_go)
+static int _thread_op_begin(thread_t *t, bool being_go)
 {
 	task_id_t taskid;
 	ipl_t ipl;
@@ -98,7 +98,7 @@ static int _thread_op_begin(thread_t *t, bool having_go)
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&threads_lock);
 
-	/* Verify that 't' is a userspace thread */
+	/* Verify that 't' is a userspace thread. */
 	if ((t->flags & THREAD_FLAG_USPACE) == 0) {
 		/* It's not, deny its existence */
 		spinlock_unlock(&t->lock);
@@ -107,7 +107,7 @@ static int _thread_op_begin(thread_t *t, bool having_go)
 		return ENOENT;
 	}
 
-	/* Verify debugging state */
+	/* Verify debugging state. */
 	if (t->udebug.debug_active != true) {
 		/* Not in debugging session or undesired GO state */
 		spinlock_unlock(&t->lock);
@@ -124,9 +124,9 @@ static int _thread_op_begin(thread_t *t, bool having_go)
 	spinlock_unlock(&t->lock);
 	interrupts_restore(ipl);
 
-	/* Only mutex TASK->udebug.lock left */
+	/* Only mutex TASK->udebug.lock left. */
 	
-	/* Now verify that the thread belongs to the current task */
+	/* Now verify that the thread belongs to the current task. */
 	if (t->task != TASK) {
 		/* No such thread belonging this task*/
 		mutex_unlock(&TASK->udebug.lock);
@@ -139,18 +139,18 @@ static int _thread_op_begin(thread_t *t, bool having_go)
 	 */
 	mutex_lock(&t->udebug.lock);
 
-	/* The big task mutex is no longer needed */
+	/* The big task mutex is no longer needed. */
 	mutex_unlock(&TASK->udebug.lock);
 
-	if (!t->udebug.stop != having_go) {
-		/* Not in debugging session or undesired GO state */
+	if (!t->udebug.stop != being_go) {
+		/* Not in debugging session or undesired GO state. */
 		mutex_unlock(&t->udebug.lock);
 		return EINVAL;
 	}
 
-	/* Only t->udebug.lock left */
+	/* Only t->udebug.lock left. */
 
-	return EOK;	/* All went well */
+	return EOK;	/* All went well. */
 }
 
 /** End debugging operation on a thread. */
@@ -204,7 +204,7 @@ int udebug_begin(call_t *call)
 		reply = 0; /* no reply */
 	}
 	
-	/* Set udebug.debug_active on all of the task's userspace threads */
+	/* Set udebug.debug_active on all of the task's userspace threads. */
 
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
 		t = list_get_instance(cur, thread_t, th_link);
@@ -273,7 +273,7 @@ int udebug_set_evmask(udebug_evmask_t mask)
 
 /** Give thread GO.
  *
- * Upon recieving a go message, the thread is given GO. Having GO
+ * Upon recieving a go message, the thread is given GO. Being GO
  * means the thread is allowed to execute userspace code (until
  * a debugging event or STOP occurs, at which point the thread loses GO.
  *
@@ -284,7 +284,7 @@ int udebug_go(thread_t *t, call_t *call)
 {
 	int rc;
 
-	/* On success, this will lock t->udebug.lock */
+	/* On success, this will lock t->udebug.lock. */
 	rc = _thread_op_begin(t, false);
 	if (rc != EOK) {
 		return rc;
@@ -295,7 +295,7 @@ int udebug_go(thread_t *t, call_t *call)
 	t->udebug.cur_event = 0;	/* none */
 
 	/*
-	 * Neither t's lock nor threads_lock may be held during wakeup
+	 * Neither t's lock nor threads_lock may be held during wakeup.
 	 */
 	waitq_wakeup(&t->udebug.go_wq, WAKEUP_FIRST);
 
@@ -328,21 +328,21 @@ int udebug_stop(thread_t *t, call_t *call)
 		return rc;
 	}
 
-	/* Take GO away from the thread */
+	/* Take GO away from the thread. */
 	t->udebug.stop = true;
 
 	if (!t->udebug.stoppable) {
-		/* Answer will be sent when the thread becomes stoppable */
+		/* Answer will be sent when the thread becomes stoppable. */
 		_thread_op_end(t);
 		return 0;
 	}
 
 	/*
-	 * Answer GO call
+	 * Answer GO call.
 	 */
 	LOG("udebug_stop - answering go call\n");
 
-	/* Make sure nobody takes this call away from us */
+	/* Make sure nobody takes this call away from us. */
 	call = t->udebug.go_call;
 	t->udebug.go_call = NULL;
 
@@ -422,7 +422,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 		flags = t->flags;
 		spinlock_unlock(&t->lock);
 
-		/* Not interested in kernel threads */
+		/* Not interested in kernel threads. */
 		if ((flags & THREAD_FLAG_USPACE) != 0) {
 			/* Using thread struct pointer as identification hash */
 			tid = (unative_t) t;
@@ -458,23 +458,23 @@ int udebug_args_read(thread_t *t, void **buffer)
 	int rc;
 	unative_t *arg_buffer;
 
-	/* Prepare a buffer to hold the arguments */
+	/* Prepare a buffer to hold the arguments. */
 	arg_buffer = malloc(6 * sizeof(unative_t), 0);
 
-	/* On success, this will lock t->udebug.lock */
+	/* On success, this will lock t->udebug.lock. */
 	rc = _thread_op_begin(t, false);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	/* Additionally we need to verify that we are inside a syscall */
+	/* Additionally we need to verify that we are inside a syscall. */
 	if (t->udebug.cur_event != UDEBUG_EVENT_SYSCALL_B &&
 	    t->udebug.cur_event != UDEBUG_EVENT_SYSCALL_E) {
 		_thread_op_end(t);
 		return EINVAL;
 	}
 
-	/* Copy to a local buffer before releasing the lock */
+	/* Copy to a local buffer before releasing the lock. */
 	memcpy(arg_buffer, t->udebug.syscall_args, 6 * sizeof(unative_t));
 
 	_thread_op_end(t);

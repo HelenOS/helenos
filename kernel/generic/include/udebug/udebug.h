@@ -176,18 +176,18 @@ typedef struct {
 	 */
 	atomic_t int_lock;
 
-	/** Synchronize debug ops on this thread / access to this structure */
+	/** Synchronize debug ops on this thread / access to this structure. */
 	mutex_t lock;
 
 	waitq_t go_wq;
 	call_t *go_call;
 	unative_t syscall_args[6];
 
-	/** What type of event are we stopped in or 0 if none */
+	/** What type of event are we stopped in or 0 if none. */
 	udebug_event_t cur_event;	
 	bool stop;
 	bool stoppable;
-	bool debug_active; /**< In a debugging session */
+	bool debug_active; /**< in a debugging session */
 } udebug_thread_t;
 
 struct task;

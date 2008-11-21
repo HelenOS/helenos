@@ -247,7 +247,7 @@ restart:
 		udebug_wait_for_go(&THREAD->udebug.go_wq);
 
 		goto restart;
-		/* must try again - have to lose stoppability atomically */
+		/* Must try again - have to lose stoppability atomically. */
 	} else {
 		++TASK->udebug.not_stoppable_count;
 		ASSERT(THREAD->udebug.stoppable == true);
@@ -321,7 +321,7 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
 
-	/* Must only generate events when in debugging session and have go */
+	/* Must only generate events when in debugging session and is go. */
 	if (THREAD->udebug.debug_active != true ||
 	    THREAD->udebug.stop == true ||
 	    (TASK->udebug.evmask & UDEBUG_EVMASK(etype)) == 0) {
@@ -439,7 +439,7 @@ void udebug_thread_e_event(void)
 	LOG("udebug_thread_e_event\n");
 	LOG("- check state\n");
 
-	/* Must only generate events when in debugging session */
+	/* Must only generate events when in debugging session. */
 	if (THREAD->udebug.debug_active != true) {
 /*		printf("- debug_active: %s, udebug.stop: %s\n",
 			THREAD->udebug.debug_active ? "yes(+)" : "no(-)",
@@ -456,7 +456,7 @@ void udebug_thread_e_event(void)
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_E);
 
-	/* Prevent any further debug activity in thread */
+	/* Prevent any further debug activity in thread. */
 	THREAD->udebug.debug_active = false;
 	THREAD->udebug.cur_event = 0;		/* none */
 	THREAD->udebug.stop = true;	/* set to initial value */
@@ -466,8 +466,8 @@ void udebug_thread_e_event(void)
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
 
-	/* Leave int_lock enabled */
-	/* This event does not sleep - debugging has finished in this thread */
+	/* Leave int_lock enabled. */
+	/* This event does not sleep - debugging has finished in this thread. */
 }
 
 /**
@@ -512,13 +512,13 @@ int udebug_task_cleanup(struct task *ta)
 		spinlock_unlock(&t->lock);
 		interrupts_restore(ipl);
 
-		/* Only process userspace threads */
+		/* Only process userspace threads. */
 		if ((flags & THREAD_FLAG_USPACE) != 0) {
-			/* Prevent any further debug activity in thread */
+			/* Prevent any further debug activity in thread. */
 			t->udebug.debug_active = false;
 			t->udebug.cur_event = 0;	/* none */
 
-			/* Still has go? */
+			/* Is the thread still go? */
 			if (t->udebug.stop == false) {
 				/*
 				* Yes, so clear go. As debug_active == false,
