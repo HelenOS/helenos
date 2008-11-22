@@ -175,6 +175,7 @@ typedef struct {
 	waitq_t go_wq;
 	call_t *go_call;
 	unative_t syscall_args[6];
+	istate_t *uspace_state;
 
 	/** What type of event are we stopped in or 0 if none. */
 	udebug_event_t cur_event;

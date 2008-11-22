@@ -190,6 +190,14 @@ void clock(void)
 		
 		if (!ticks && !PREEMPTION_DISABLED) {
 			scheduler();
+#ifdef CONFIG_UDEBUG
+			/*
+			 * Give udebug chance to stop the thread
+			 * before it begins executing.
+			 */
+			if (istate_from_uspace(THREAD->udebug.uspace_state))
+				udebug_before_thread_runs();
+#endif
 		}
 	}
 

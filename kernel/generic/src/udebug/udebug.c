@@ -69,6 +69,7 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 	waitq_initialize(&ut->go_wq);
 
 	ut->go_call = NULL;
+	ut->uspace_state = NULL;
 	ut->go = false;
 	ut->stoppable = true;
 	ut->debug_active = false;
@@ -231,26 +232,13 @@ restart:
 
 /** Upon being scheduled to run, check if the current thread should stop.
  *
- * This function is called from clock(). Preemption is enabled.
- * interrupts are disabled, but since this is called after
- * being scheduled-in, we can enable them, if we're careful enough
- * not to allow arbitrary recursion or deadlock with the thread context.
+ * This function is called from clock().
  */
 void udebug_before_thread_runs(void)
 {
-	ipl_t ipl;
-
-	return;
-
-	ipl = interrupts_enable();
-
-	/* Now we're free to do whatever we need (lock mutexes, sleep, etc.) */
-
 	/* Check if we're supposed to stop */
 	udebug_stoppable_begin();
 	udebug_stoppable_end();
-
-	interrupts_restore(ipl);
 }
 
 /** Syscall event hook.

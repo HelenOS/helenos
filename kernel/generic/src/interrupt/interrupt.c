@@ -86,8 +86,17 @@ iroutine exc_register(int n, const char *name, iroutine f)
 void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
+
+#ifdef CONFIG_UDEBUG
+	if (THREAD) THREAD->udebug.uspace_state = istate;
+#endif
 	
 	exc_table[n].f(n + IVT_FIRST, istate);
+
+#ifdef CONFIG_UDEBUG
+	if (THREAD) THREAD->udebug.uspace_state = NULL;
+#endif
+
 	/* This is a safe place to exit exiting thread */
 	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
 		thread_exit();
