@@ -118,6 +118,13 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 
 #ifdef CONFIG_UDEBUG
 	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
+
+	/*
+	 * Stopping point needed for tasks that only invoke non-blocking
+	 * system calls.
+	 */
+	udebug_stoppable_begin();
+	udebug_stoppable_end();
 #endif	
 	return rc;
 }
