@@ -204,6 +204,7 @@ extern void fat_read(ipc_callid_t, ipc_call_t *);
 extern void fat_write(ipc_callid_t, ipc_call_t *);
 extern void fat_truncate(ipc_callid_t, ipc_call_t *);
 
+extern fat_idx_t *fat_idx_get_new(dev_handle_t);
 extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
 extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
 

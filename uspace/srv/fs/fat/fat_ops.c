@@ -234,22 +234,61 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 static void fat_node_put(void *node)
 {
 	fat_node_t *nodep = (fat_node_t *)node;
+	bool destroy = false;
 
 	futex_down(&nodep->lock);
 	if (!--nodep->refcnt) {
-		futex_down(&ffn_futex);
-		list_append(&nodep->ffn_link, &ffn_head);
-		futex_up(&ffn_futex);
+		if (nodep->idx) {
+			futex_down(&ffn_futex);
+			list_append(&nodep->ffn_link, &ffn_head);
+			futex_up(&ffn_futex);
+		} else {
+			/*
+			 * The node does not have any index structure associated
+			 * with itself. This can only mean that we are releasing
+			 * the node after a failed attempt to allocate the index
+			 * structure for it.
+			 */
+			destroy = true;
+		}
 	}
 	futex_up(&nodep->lock);
+	if (destroy)
+		free(node);
 }
 
-static void *fat_create(dev_handle_t dev_handle, int flags)
+static void *fat_create_node(dev_handle_t dev_handle, int flags)
 {
-	return NULL;	/* not supported at the moment */
+	fat_idx_t *idxp;
+	fat_node_t *nodep;
+
+	nodep = fat_node_get_new();
+	if (!nodep) 
+		return NULL;
+	idxp = fat_idx_get_new(dev_handle);
+	if (!idxp) {
+		fat_node_put(nodep);
+		return NULL;
+	}
+	/* idxp->lock held */
+	if (flags & L_DIRECTORY) {
+		nodep->type = FAT_DIRECTORY;
+	} else {
+		nodep->type = FAT_FILE;
+	}
+	nodep->size = 0;
+	nodep->firstc = FAT_CLST_RES0;
+	nodep->lnkcnt = 0;	/* not linked anywhere */
+	nodep->refcnt = 1;
+
+	nodep->idx = idxp;
+	idxp->nodep = nodep;
+
+	futex_up(&idxp->lock);
+	return nodep;
 }
 
-static int fat_destroy(void *node)
+static int fat_destroy_node(void *node)
 {
 	return ENOTSUP;	/* not supported at the moment */
 }
@@ -424,8 +463,8 @@ libfs_ops_t fat_libfs_ops = {
 	.match = fat_match,
 	.node_get = fat_node_get,
 	.node_put = fat_node_put,
-	.create = fat_create,
-	.destroy = fat_destroy,
+	.create = fat_create_node,
+	.destroy = fat_destroy_node,
 	.link = fat_link,
 	.unlink = fat_unlink,
 	.index_get = fat_index_get,
