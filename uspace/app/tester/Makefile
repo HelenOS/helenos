@@ -54,6 +54,7 @@ SOURCES = tester.c \
 	ipc/send_sync.c \
 	ipc/answer.c \
 	ipc/hangup.c \
+	loop/loop1.c \
 	devmap/devmap1.c \
 	vfs/vfs1.c
 
