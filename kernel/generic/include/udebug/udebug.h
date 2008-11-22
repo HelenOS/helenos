@@ -194,7 +194,7 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
     bool end_variant);
 
-void udebug_thread_b_event(struct thread *t);
+void udebug_thread_b_event_attach(struct thread *t, struct task *ta);
 void udebug_thread_e_event(void);
 
 void udebug_stoppable_begin(void);

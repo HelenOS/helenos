@@ -305,20 +305,30 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
 }
 
-/** Thread-creation event hook.
+/** Thread-creation event hook combined with attaching the thread.
  *
  * Must be called when a new userspace thread is created in the debugged
- * task. Generates a THREAD_B event.
+ * task. Generates a THREAD_B event. Also attaches the thread @a t
+ * to the task @a ta.
+ *
+ * This is necessary to avoid a race condition where the BEGIN and THREAD_READ
+ * requests would be handled inbetween attaching the thread and checking it
+ * for being in a debugging session to send the THREAD_B event. We could then
+ * either miss threads or get some threads both in the thread list
+ * and get a THREAD_B event for them.
  *
  * @param t	Structure of the thread being created. Not locked, as the
  *		thread is not executing yet.
+ * @param ta	Task to which the thread should be attached.
  */
-void udebug_thread_b_event(struct thread *t)
+void udebug_thread_b_event_attach(struct thread *t, struct task *ta)
 {
 	call_t *call;
 
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
+
+	thread_attach(t, ta);
 
 	LOG("udebug_thread_b_event\n");
 	LOG("- check state\n");

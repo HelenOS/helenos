@@ -763,13 +763,19 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				return (unative_t) rc;
 			 }
 		}
-		thread_attach(t, TASK);
-		thread_ready(t);
-
 #ifdef CONFIG_UDEBUG
-		/* Generate udebug THREAD_B event */
-		udebug_thread_b_event(t);
+		/*
+		 * Generate udebug THREAD_B event and attach the thread.
+		 * This must be done atomically (with the debug locks held),
+		 * otherwise we would either miss some thread or receive
+		 * THREAD_B events for threads that already existed
+		 * and could be detected with THREAD_READ before.
+		 */
+		udebug_thread_b_event_attach(t, TASK);
+#else
+		thread_attach(t, TASK);
 #endif
+		thread_ready(t);
 
 		return 0;
 	} else
