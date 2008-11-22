@@ -214,7 +214,7 @@ static hash_table_operations_t uih_ops = {
 };
 
 /** Allocate a VFS index which is not currently in use. */
-static bool fat_idx_alloc(dev_handle_t dev_handle, fs_index_t *index)
+static bool fat_index_alloc(dev_handle_t dev_handle, fs_index_t *index)
 {
 	unused_t *u;
 	
@@ -276,7 +276,7 @@ static void try_coalesce_intervals(link_t *l, link_t *r, link_t *cur)
 }
 
 /** Free a VFS index, which is no longer in use. */
-static void fat_idx_free(dev_handle_t dev_handle, fs_index_t index)
+static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 {
 	unused_t *u;
 
@@ -338,14 +338,14 @@ static void fat_idx_free(dev_handle_t dev_handle, fs_index_t index)
 	futex_up(&unused_futex);
 }
 
-static fat_idx_t *fat_idx_get_new_core(dev_handle_t dev_handle)
+static fat_idx_t *fat_idx_create(dev_handle_t dev_handle)
 {
 	fat_idx_t *fidx;
 
 	fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
 	if (!fidx) 
 		return NULL;
-	if (!fat_idx_alloc(dev_handle, &fidx->index)) {
+	if (!fat_index_alloc(dev_handle, &fidx->index)) {
 		free(fidx);
 		return NULL;
 	}
@@ -366,7 +366,7 @@ fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
 	fat_idx_t *fidx;
 
 	futex_down(&used_futex);
-	fidx = fat_idx_get_new_core(dev_handle);
+	fidx = fat_idx_create(dev_handle);
 	if (!fidx) {
 		futex_up(&used_futex);
 		return NULL;
@@ -400,7 +400,7 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
 	} else {
-		fidx = fat_idx_get_new_core(dev_handle);
+		fidx = fat_idx_create(dev_handle);
 		if (!fidx) {
 			futex_up(&used_futex);
 			return NULL;
@@ -442,6 +442,33 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 	futex_up(&used_futex);
 
 	return fidx;
+}
+
+/** Destroy the index structure.
+ *
+ * @param idx		The index structure to be destroyed.
+ */
+void fat_idx_destroy(fat_idx_t *idx)
+{
+	unsigned long ikey[] = {
+		[UIH_DH_KEY] = idx->dev_handle,
+		[UIH_INDEX_KEY] = idx->index,
+	};
+
+	assert(idx->pfc == FAT_CLST_RES0);
+
+	futex_down(&used_futex);
+	/*
+	 * Since we can only free unlinked nodes, the index structure is not
+	 * present in the position hash (uph). We therefore hash it out from
+	 * the index hash only.
+	 */
+	hash_table_remove(&ui_hash, ikey, 2);
+	futex_up(&used_futex);
+	/* Release the VFS index. */
+	fat_index_free(idx->dev_handle, idx->index);
+	/* Deallocate the structure. */
+	free(idx);
 }
 
 int fat_idx_init(void)
