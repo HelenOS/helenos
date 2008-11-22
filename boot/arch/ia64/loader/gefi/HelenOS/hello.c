@@ -5,8 +5,14 @@
 
 #define KERNEL_LOAD_ADDRESS 0x4400000
 
+#define MEM_MAP_DESCRIPTOR_OFFSET_TYPE 0	    
+#define MEM_MAP_DESCRIPTOR_OFFSET_BASE 8    
+#define MEM_MAP_DESCRIPTOR_OFFSET_PAGES	24    
+
+
+
 //Link image as a data array into hello - usefull with network boot
-//#define IMAGE_LINKED
+#define IMAGE_LINKED
 
 bootinfo_t *bootinfo=(bootinfo_t *)BOOTINFO_ADDRESS;
 
@@ -177,25 +183,21 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	//bootinfo->sapic=sapic;
 
 
-        int wakeup_intno;
-        wakeup_intno=0xf0;
+        UINT64 wakeup_intno;
+		LibGetSalWakeupVector(&wakeup_intno);
         Print (L"WAKEUP INTNO:%X\n", wakeup_intno);
-	//bootinfo->wakeup_intno=wakeup_intno;
 
 
 
 
 
-	{
 	    UINTN cookie;
 	    void *p=(void *)KERNEL_LOAD_ADDRESS;
 	    UINTN mapsize,descsize;
 	    UINT32 desver;
 	    EFI_STATUS status;
-	    EFI_MEMORY_DESCRIPTOR emd[1024];
 	    
 	        	    
-	    mapsize=1024*sizeof(emd);
 	    
 	    status=BS->AllocatePages(AllocateAnyPages,EfiLoaderData,/*(HOSSize>>12)+1*/ 1,p);
 	    if(EFI_ERROR(status)){
@@ -206,10 +208,18 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 		return EFI_SUCCESS;
 	    }
 	    
-	    status=BS->GetMemoryMap(&mapsize,emd,&cookie,&descsize,&desver);
-	    if(EFI_ERROR(status)){
-		Print(L"Error 1\n");
-		return EFI_SUCCESS;
+	    UINTN no_entryes;
+	    void * mds;
+	    mds=LibMemoryMap(&no_entryes,&cookie,&descsize,&desver);
+	    
+	    for(i=0;i<no_entryes;i++)
+	    {
+	    
+	    	unsigned int type=*((unsigned int *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_TYPE));
+	    	unsigned long long base=*((unsigned long long *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_BASE));
+	    	unsigned long long pages=*((unsigned long long *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_PAGES));
+	    	Print(L"T:%02d %016llX %016llX\n",type,base,pages*EFI_PAGE_SIZE);
+		
 	    }
 	    status=BS->ExitBootServices(image,cookie);	
 	    if(EFI_ERROR(status)){
@@ -217,7 +227,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 		return EFI_SUCCESS;
 	    }
 	    
-	}
+	
 	int a;
 	
 	for(a=0;a<HOSSize;a++){
@@ -227,6 +237,51 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	bootinfo->wakeup_intno=wakeup_intno;
 	bootinfo->sys_freq=sys_freq;
 	bootinfo->freq_scale=freq_scale;
+
+
+	    bootinfo->memmap_items=0;
+	    
+	    for(i=0;i<no_entryes;i++)
+	    {
+	    
+	    	unsigned int type=*((unsigned int *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_TYPE));
+	    	unsigned long long base=*((unsigned long long *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_BASE));
+	    	unsigned long long pages=*((unsigned long long *)(mds+i*descsize+MEM_MAP_DESCRIPTOR_OFFSET_PAGES));
+	    	
+	    	
+	    	
+	    	switch (type)
+	    	{
+	    		case EfiConventionalMemory:
+				bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_FREE_MEM;   	
+				bootinfo->memmap[bootinfo->memmap_items].base=base;   	
+				bootinfo->memmap[bootinfo->memmap_items].size=pages*EFI_PAGE_SIZE;   	
+	    			bootinfo->memmap_items++;
+	    			break;
+	    		case EfiMemoryMappedIO:
+				bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_IO;   	
+				bootinfo->memmap[bootinfo->memmap_items].base=base;   	
+				bootinfo->memmap[bootinfo->memmap_items].size=pages*EFI_PAGE_SIZE;   	
+	    			bootinfo->memmap_items++;
+	    			break;
+	    		case EfiMemoryMappedIOPortSpace:
+				bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_IO_PORTS;   	
+				bootinfo->memmap[bootinfo->memmap_items].base=base;   	
+				bootinfo->memmap[bootinfo->memmap_items].size=pages*EFI_PAGE_SIZE;   	
+	    			bootinfo->memmap_items++;
+	    			break;
+	    			
+	    		default :
+	    			break;
+	    	}
+	    	
+	    	
+	    	
+	    	
+
+	    }
+
+
 	
 	//Run Kernel
 	asm volatile(	

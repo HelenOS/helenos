@@ -36,13 +36,19 @@
 #include <mm/frame.h>
 #include <config.h>
 #include <panic.h>
+#include <arch/bootinfo.h>
+#include <align.h>
+#include <macros.h>
 
 /*
  * This is Ski-specific and certainly not sufficient
  * for real ia64 systems that provide memory map.
  */
-#define MEMORY_SIZE	(64 * 1024 * 1024)
+#define MEMORY_SIZE	(256 * 1024 * 1024)
 #define MEMORY_BASE	(0 * 64 * 1024 * 1024)
+
+#define KERNEL_RESERVED_AREA_BASE (0x4400000)
+#define KERNEL_RESERVED_AREA_SIZE (16*1024*1024)
 
 #define ONE_TO_ONE_MAPPING_SIZE (256*1048576) // Mapped at start
 
@@ -50,22 +56,41 @@
 #define ROM_SIZE	(384 * 1024)          //For ski
 void poke_char(int x,int y,char ch, char c);
 
+#define MIN_ZONE_SIZE (64*1024)
+
 uintptr_t last_frame;
+#define MINCONF 1
 
 void frame_arch_init(void)
 {
 
-	if(config.cpu_active==1)
-	{
-		zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
+	if(config.cpu_active==1){
+		
+		
+		
+		unsigned int i;
+		for(i=0;i<bootinfo->memmap_items;i++){
+			if (bootinfo->memmap[i].type==EFI_MEMMAP_FREE_MEM){
+				uint64_t base=bootinfo->memmap[i].base;
+				uint64_t size=bootinfo->memmap[i].size;
+				uint64_t abase=ALIGN_UP(base,FRAME_SIZE);
+				if(size>FRAME_SIZE) size -=abase-base;
+				
+
+				if(size>MIN_ZONE_SIZE) 	{
+					zone_create(abase >> FRAME_WIDTH, (size) >> FRAME_WIDTH, max(MINCONF,((abase) >> FRAME_WIDTH)), 0);
+				}	
+			}
+		}
+		
+		//zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
 	
 		/*
 		* Blacklist ROM regions.
 		*/
-		//frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
+		frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
 
-		frame_mark_unavailable(ADDR2PFN(0), SIZE2FRAMES(1048576));
-		last_frame=SIZE2FRAMES((VRN_KERNEL<<VRN_SHIFT)+ONE_TO_ONE_MAPPING_SIZE);	
+		frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE), SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
 	}	
 }
 

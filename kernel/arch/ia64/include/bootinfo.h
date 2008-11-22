@@ -33,6 +33,13 @@
 
 #define CONFIG_INIT_TASKS	32
 
+#define MEMMAP_ITEMS 128
+
+#define EFI_MEMMAP_FREE_MEM 0
+#define EFI_MEMMAP_IO 1
+#define EFI_MEMMAP_IO_PORTS 2
+
+
 typedef struct {
 	void *addr; 
 	unsigned long size;
@@ -43,9 +50,18 @@ typedef struct {
 	binit_task_t tasks[CONFIG_INIT_TASKS];
 } binit_t;
 
+typedef struct {
+	unsigned int type;
+	unsigned long base;
+	unsigned long size;
+}efi_memmap_item_t;
+
 
 typedef struct {
 	binit_t taskmap;
+
+	efi_memmap_item_t memmap[MEMMAP_ITEMS];
+	unsigned int memmap_items;
 
 	unsigned long * sapic;
 	unsigned long sys_freq;
