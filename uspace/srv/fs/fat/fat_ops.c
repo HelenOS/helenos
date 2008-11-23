@@ -94,9 +94,13 @@ static void fat_node_sync(fat_node_t *node)
 	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
 
 	d->firstc = host2uint16_t_le(node->firstc);
-	if (node->type == FAT_FILE)
+	if (node->type == FAT_FILE) {
 		d->size = host2uint32_t_le(node->size);
-	/* TODO: update other fields? (e.g time fields, attr field) */
+	} else if (node->type == FAT_DIRECTORY) {
+		d->attr = FAT_ATTR_SUBDIR;
+	}
+	
+	/* TODO: update other fields? (e.g time fields) */
 	
 	b->dirty = true;		/* need to sync block */
 	block_put(b);
