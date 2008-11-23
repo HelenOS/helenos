@@ -36,6 +36,7 @@
  */
 
 #include "fat_dentry.h"
+#include <ctype.h>
 
 #define FAT_PAD			' ' 
 
@@ -44,7 +45,48 @@
 #define FAT_DENTRY_DOT		0x2e
 #define FAT_DENTRY_ERASED	0xe5
 
-void dentry_name_canonify(fat_dentry_t *d, char *buf)
+static bool is_d_char(const char ch)
+{
+	if (isalnum(ch) || ch == '_')
+		return true;
+	else
+		return false;
+}
+
+bool fat_dentry_name_verify(const char *name)
+{
+	unsigned i, dot;
+	bool dot_found = false;
+	
+
+	for (i = 0; name[i]; i++) {
+		if (name[i] == '.') {
+			if (dot_found) {
+				return false;
+			} else {
+				dot_found = true;
+				dot = i;
+			}
+		} else {
+			if (!is_d_char(name[i]))
+				return false;
+		}
+	}
+
+	if (dot_found) {
+		if (dot > FAT_NAME_LEN)
+			return false;
+		if (i - dot > FAT_EXT_LEN + 1)
+			return false;
+	} else {
+		if (i > FAT_NAME_LEN)
+			return false;
+	}
+
+	return true;
+}
+
+void fat_dentry_name_get(const fat_dentry_t *d, char *buf)
 {
 	int i;
 
@@ -71,7 +113,46 @@ void dentry_name_canonify(fat_dentry_t *d, char *buf)
 	*buf = '\0';
 }
 
-fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *d)
+void fat_dentry_name_set(fat_dentry_t *d, const char *name)
+{
+	int i;
+	const char fake_ext[] = "   ";
+
+
+	for (i = 0; i < FAT_NAME_LEN; i++) {
+		switch ((uint8_t) *name) {
+		case 0xe5:
+			d->name[i] = FAT_DENTRY_E5_ESC;
+			name++;
+			break;
+		case '\0':
+		case '.':
+			d->name[i] = FAT_PAD;
+			break;
+		default:
+			d->name[i] = toupper(*name++);
+			break;
+		}
+	}
+	if (*name++ != '.')
+		name = fake_ext;
+	for (i = 0; i < FAT_EXT_LEN; i++) {
+		switch ((uint8_t) *name) {
+		case 0xe5:
+			d->ext[i] = FAT_DENTRY_E5_ESC;
+			name++;
+			break;
+		case '\0':
+			d->ext[i] = FAT_PAD;
+			break;
+		default:
+			d->ext[i] = toupper(*name++);
+			break;
+		}
+	}
+}
+
+fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
 {
 	if (d->attr & FAT_ATTR_VOLLABEL) {
 		/* volume label entry */
@@ -79,7 +160,7 @@ fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *d)
 	}
 	if (d->name[0] == FAT_DENTRY_ERASED) {
 		/* not-currently-used entry */
-		return FAT_DENTRY_SKIP;
+		return FAT_DENTRY_FREE;
 	}
 	if (d->name[0] == FAT_DENTRY_UNUSED) {
 		/* never used entry */

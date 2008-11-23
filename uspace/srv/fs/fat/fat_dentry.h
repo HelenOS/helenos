@@ -34,6 +34,7 @@
 #define FAT_FAT_DENTRY_H_
 
 #include <stdint.h>
+#include <bool.h>
 
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
@@ -45,6 +46,7 @@
 typedef enum {
 	FAT_DENTRY_SKIP,
 	FAT_DENTRY_LAST,
+	FAT_DENTRY_FREE,
 	FAT_DENTRY_VALID
 } fat_dentry_clsf_t;
 
@@ -70,8 +72,10 @@ typedef struct {
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
 
-extern void dentry_name_canonify(fat_dentry_t *, char *);
-extern fat_dentry_clsf_t fat_classify_dentry(fat_dentry_t *);
+extern bool fat_dentry_name_verify(const char *);
+extern void fat_dentry_name_get(const fat_dentry_t *, char *);
+extern void fat_dentry_name_set(fat_dentry_t *, const char *);
+extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
 
 #endif
 

@@ -343,7 +343,99 @@ int fat_destroy_node(void *node)
 
 int fat_link(void *prnt, void *chld, const char *name)
 {
-	return ENOTSUP;	/* not supported at the moment */
+	fat_node_t *parentp = (fat_node_t *)prnt;
+	fat_node_t *childp = (fat_node_t *)chld;
+	fat_dentry_t *d;
+	fat_bs_t *bs;
+	block_t *b;
+	int i, j;
+	uint16_t bps;
+	unsigned dps;
+	unsigned blocks;
+
+	futex_down(&childp->lock);
+	if (childp->lnkcnt == 1) {
+		/*
+		 * On FAT, we don't support multiple hard links.
+		 */
+		futex_up(&childp->lock);
+		return EMLINK;
+	}
+	assert(childp->lnkcnt == 0);
+	futex_up(&childp->lock);
+
+	if (!fat_dentry_name_verify(name)) {
+		/*
+		 * Attempt to create unsupported name.
+		 */
+		return ENOTSUP;
+	}
+
+	/*
+	 * Get us an unused parent node's dentry or grow the parent and allocate
+	 * a new one.
+	 */
+	
+	futex_down(&parentp->idx->lock);
+	bs = block_bb_get(parentp->idx->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+	dps = bps / sizeof(fat_dentry_t);
+
+	blocks = parentp->size / bps;
+
+	for (i = 0; i < blocks; i++) {
+		b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
+		for (j = 0; j < dps; j++) {
+			d = ((fat_dentry_t *)b->data) + j;
+			switch (fat_classify_dentry(d)) {
+			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_VALID:
+				/* skipping used and meta entries */
+				continue;
+			case FAT_DENTRY_FREE:
+			case FAT_DENTRY_LAST:
+				/* found an empty slot */
+				goto hit;
+			}
+		}
+		block_put(b);
+	}
+	
+	/*
+	 * We need to grow the parent in order to create a new unused dentry.
+	 */
+	futex_up(&parentp->idx->lock);
+	return ENOTSUP;	/* XXX */
+
+hit:
+	/*
+	 * At this point we only establish the link between the parent and the
+	 * child.  The dentry, except of the name and the extension, will remain
+	 * uninitialized until the the corresponding node is synced. Thus the
+	 * valid dentry data is kept in the child node structure.
+	 */
+	memset(d, 0, sizeof(fat_dentry_t));
+	fat_dentry_name_set(d, name);
+	b->dirty = true;		/* need to sync block */
+	block_put(b);
+	futex_up(&parentp->idx->lock);
+
+	futex_down(&childp->idx->lock);
+	childp->idx->pfc = parentp->firstc;
+	childp->idx->pdi = i * dps + j;
+	futex_up(&childp->idx->lock);
+
+	futex_down(&childp->lock);
+	childp->lnkcnt = 1;
+	childp->dirty = true;		/* need to sync node */
+	futex_up(&childp->lock);
+
+	/*
+	 * Hash in the index structure into the position hash.
+	 */
+	fat_idx_hashin(childp->idx);
+
+	return EOK;
 }
 
 int fat_unlink(void *prnt, void *chld)
@@ -374,6 +466,7 @@ void *fat_match(void *prnt, const char *component)
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_FREE:
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
@@ -381,7 +474,7 @@ void *fat_match(void *prnt, const char *component)
 				return NULL;
 			default:
 			case FAT_DENTRY_VALID:
-				dentry_name_canonify(d, name);
+				fat_dentry_name_get(d, name);
 				break;
 			}
 			if (stricmp(name, component) == 0) {
@@ -464,6 +557,7 @@ bool fat_has_children(void *node)
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
+			case FAT_DENTRY_FREE:
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
@@ -698,13 +792,14 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 				d = ((fat_dentry_t *)b->data) + o;
 				switch (fat_classify_dentry(d)) {
 				case FAT_DENTRY_SKIP:
+				case FAT_DENTRY_FREE:
 					continue;
 				case FAT_DENTRY_LAST:
 					block_put(b);
 					goto miss;
 				default:
 				case FAT_DENTRY_VALID:
-					dentry_name_canonify(d, name);
+					fat_dentry_name_get(d, name);
 					block_put(b);
 					goto hit;
 				}

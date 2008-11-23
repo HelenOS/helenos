@@ -47,6 +47,7 @@
 #define ERANGE		(-263)
 #define EXDEV		(-264)
 #define EIO		(-265)
+#define EMLINK		(-266)
 
 #endif
 

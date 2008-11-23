@@ -209,6 +209,7 @@ extern fat_idx_t *fat_idx_get_new(dev_handle_t);
 extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
 extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);
+extern void fat_idx_hashin(fat_idx_t *);
 
 extern int fat_idx_init(void);
 extern void fat_idx_fini(void);
