@@ -216,8 +216,31 @@ static void *fat_node_get_core(fat_idx_t *idxp)
 	return nodep;
 }
 
+/*
+ * Forward declarations of FAT libfs operations.
+ */
+static void *fat_node_get(dev_handle_t, fs_index_t);
+static void fat_node_put(void *);
+static void *fat_create_node(dev_handle_t, int);
+static int fat_destroy_node(void *);
+static bool fat_link(void *, void *, const char *);
+static int fat_unlink(void *, void *);
+static void *fat_match(void *, const char *);
+static fs_index_t fat_index_get(void *);
+static size_t fat_size_get(void *);
+static unsigned fat_lnkcnt_get(void *);
+static bool fat_has_children(void *);
+static void *fat_root_get(dev_handle_t);
+static char fat_plb_get_char(unsigned);
+static bool fat_is_directory(void *);
+static bool fat_is_file(void *node);
+
+/*
+ * FAT libfs operations.
+ */
+
 /** Instantiate a FAT in-core node. */
-static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
+void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
 	void *node;
 	fat_idx_t *idxp;
@@ -231,7 +254,7 @@ static void *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 	return node;
 }
 
-static void fat_node_put(void *node)
+void fat_node_put(void *node)
 {
 	fat_node_t *nodep = (fat_node_t *)node;
 	bool destroy = false;
@@ -257,7 +280,7 @@ static void fat_node_put(void *node)
 		free(node);
 }
 
-static void *fat_create_node(dev_handle_t dev_handle, int flags)
+void *fat_create_node(dev_handle_t dev_handle, int flags)
 {
 	fat_idx_t *idxp;
 	fat_node_t *nodep;
@@ -288,22 +311,47 @@ static void *fat_create_node(dev_handle_t dev_handle, int flags)
 	return nodep;
 }
 
-static int fat_destroy_node(void *node)
+int fat_destroy_node(void *node)
 {
-	return ENOTSUP;	/* not supported at the moment */
+	fat_node_t *nodep = (fat_node_t *)node;
+	fat_bs_t *bs;
+
+	/*
+	 * The node is not reachable from the file system. This means that the
+	 * link count should be zero and that the index structure cannot be
+	 * found in the position hash. Obviously, we don't need to lock the node
+	 * nor its index structure.
+	 */
+	assert(nodep->lnkcnt == 0);
+
+	/*
+	 * The node may not have any children.
+	 */
+	assert(fat_has_children(node) == false);
+
+	bs = block_bb_get(nodep->idx->dev_handle);
+	if (nodep->firstc != FAT_CLST_RES0) {
+		assert(nodep->size);
+		/* Free all clusters allocated to the node. */
+		fat_free_clusters(bs, nodep->idx->dev_handle, nodep->firstc);
+	}
+
+	fat_idx_destroy(nodep->idx);
+	free(nodep);
+	return EOK;
 }
 
-static bool fat_link(void *prnt, void *chld, const char *name)
+bool fat_link(void *prnt, void *chld, const char *name)
 {
 	return false;	/* not supported at the moment */
 }
 
-static int fat_unlink(void *prnt, void *chld)
+int fat_unlink(void *prnt, void *chld)
 {
 	return ENOTSUP;	/* not supported at the moment */
 }
 
-static void *fat_match(void *prnt, const char *component)
+void *fat_match(void *prnt, const char *component)
 {
 	fat_bs_t *bs;
 	fat_node_t *parentp = (fat_node_t *)prnt;
@@ -370,7 +418,7 @@ static void *fat_match(void *prnt, const char *component)
 	return NULL;
 }
 
-static fs_index_t fat_index_get(void *node)
+fs_index_t fat_index_get(void *node)
 {
 	fat_node_t *fnodep = (fat_node_t *)node;
 	if (!fnodep)
@@ -378,17 +426,17 @@ static fs_index_t fat_index_get(void *node)
 	return fnodep->idx->index;
 }
 
-static size_t fat_size_get(void *node)
+size_t fat_size_get(void *node)
 {
 	return ((fat_node_t *)node)->size;
 }
 
-static unsigned fat_lnkcnt_get(void *node)
+unsigned fat_lnkcnt_get(void *node)
 {
 	return ((fat_node_t *)node)->lnkcnt;
 }
 
-static bool fat_has_children(void *node)
+bool fat_has_children(void *node)
 {
 	fat_bs_t *bs;
 	fat_node_t *nodep = (fat_node_t *)node;
@@ -438,22 +486,22 @@ static bool fat_has_children(void *node)
 	return false;
 }
 
-static void *fat_root_get(dev_handle_t dev_handle)
+void *fat_root_get(dev_handle_t dev_handle)
 {
 	return fat_node_get(dev_handle, 0);
 }
 
-static char fat_plb_get_char(unsigned pos)
+char fat_plb_get_char(unsigned pos)
 {
 	return fat_reg.plb_ro[pos % PLB_SIZE];
 }
 
-static bool fat_is_directory(void *node)
+bool fat_is_directory(void *node)
 {
 	return ((fat_node_t *)node)->type == FAT_DIRECTORY;
 }
 
-static bool fat_is_file(void *node)
+bool fat_is_file(void *node)
 {
 	return ((fat_node_t *)node)->type == FAT_FILE;
 }
@@ -836,6 +884,22 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 	fat_node_put(nodep);
 	ipc_answer_0(rid, rc);
 	return;
+}
+
+void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
+	int rc;
+
+	fat_node_t *nodep = fat_node_get(dev_handle, index);
+	if (!nodep) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	rc = fat_destroy_node(nodep);
+	ipc_answer_0(rid, rc);
 }
 
 /**
