@@ -134,9 +134,7 @@ void tlb_shootdown_finalize(void)
 
 void tlb_shootdown_ipi_send(void)
 {
-#ifndef ia64
 	ipi_broadcast(VECTOR_TLB_SHOOTDOWN_IPI);
-#endif	
 }
 
 /** Receive TLB shootdown message. */

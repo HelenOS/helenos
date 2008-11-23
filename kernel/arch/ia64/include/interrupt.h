@@ -50,6 +50,8 @@
 #define IVT_FIRST       0
 
 /** External Interrupt vectors. */
+
+#define VECTOR_TLB_SHOOTDOWN_IPI 0xf0
 #define INTERRUPT_TIMER		255
 #define IRQ_KBD			241
 #define IRQ_MOUSE		252

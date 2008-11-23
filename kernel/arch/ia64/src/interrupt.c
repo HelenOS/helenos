@@ -53,6 +53,7 @@
 #include <ipc/irq.h>
 #include <ipc/ipc.h>
 #include <synch/spinlock.h>
+#include <mm/tlb.h>
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -234,6 +235,12 @@ void universal_handler(uint64_t vector, istate_t *istate)
 	    vector_to_string(vector));
 }
 
+static void end_of_local_irq()
+{
+	asm volatile ("mov cr.eoi=r0;;");
+}
+
+
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
 	irq_t *irq;
@@ -253,6 +260,14 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 	 		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
 			break;
+
+#ifdef CONFIG_SMP
+		case VECTOR_TLB_SHOOTDOWN_IPI:
+			tlb_shootdown_ipi_recv();
+			end_of_local_irq();
+			break;
+#endif
+
 
 		default:
 			panic("\nUnhandled External Interrupt Vector %d\n",

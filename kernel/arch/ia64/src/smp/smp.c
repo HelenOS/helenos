@@ -96,7 +96,19 @@ static void ipi_broadcast_arch_all(int ipi )
 
 void ipi_broadcast_arch(int ipi )
 {
-	ipi_broadcast_arch_all(ipi);
+	int id,eid;
+	int myid,myeid;
+	
+	myid=ia64_get_cpu_id();
+	myeid=ia64_get_cpu_eid();
+
+	//printf("Sending ipi %d on %d\n",ipi,CPU->id);
+	for(id=0;id<256;id++)
+		for(eid=0;eid<256;eid++)
+			if((id!=myid) || (eid!=myeid))
+				if(cpu_by_id_eid_list[id][eid])
+					ipi_send_ipi(id,eid,ipi);
+
 }
 
 
