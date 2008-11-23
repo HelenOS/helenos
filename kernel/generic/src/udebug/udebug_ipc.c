@@ -73,7 +73,7 @@ static void udebug_receive_begin(call_t *call)
 	rc = udebug_begin(call);
 	if (rc < 0) {
 		IPC_SET_RETVAL(call->data, rc);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
@@ -83,7 +83,7 @@ static void udebug_receive_begin(call_t *call)
 	 */
 	if (rc != 0) {
 		IPC_SET_RETVAL(call->data, 0);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 	}
 }
 
@@ -99,7 +99,7 @@ static void udebug_receive_end(call_t *call)
 	rc = udebug_end();
 
 	IPC_SET_RETVAL(call->data, rc);
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 /** Process a SET_EVMASK call.
@@ -116,7 +116,7 @@ static void udebug_receive_set_evmask(call_t *call)
 	rc = udebug_set_evmask(mask);
 
 	IPC_SET_RETVAL(call->data, rc);
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 
@@ -135,7 +135,7 @@ static void udebug_receive_go(call_t *call)
 	rc = udebug_go(t, call);
 	if (rc < 0) {
 		IPC_SET_RETVAL(call->data, rc);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 }
@@ -154,7 +154,7 @@ static void udebug_receive_stop(call_t *call)
 
 	rc = udebug_stop(t, call);
 	IPC_SET_RETVAL(call->data, rc);
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 /** Process a THREAD_READ call.
@@ -182,7 +182,7 @@ static void udebug_receive_thread_read(call_t *call)
 	rc = udebug_thread_read(&buffer, buf_size, &n);
 	if (rc < 0) {
 		IPC_SET_RETVAL(call->data, rc);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
@@ -209,7 +209,7 @@ static void udebug_receive_thread_read(call_t *call)
 	IPC_SET_ARG3(call->data, total_bytes);
 	call->buffer = buffer;
 
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 /** Process an ARGS_READ call.
@@ -229,7 +229,7 @@ static void udebug_receive_args_read(call_t *call)
 	rc = udebug_args_read(t, &buffer);
 	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
@@ -247,7 +247,7 @@ static void udebug_receive_args_read(call_t *call)
 	IPC_SET_ARG2(call->data, 6 * sizeof(unative_t));
 	call->buffer = buffer;
 
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 /** Process an MEM_READ call.
@@ -270,7 +270,7 @@ static void udebug_receive_mem_read(call_t *call)
 	rc = udebug_mem_read(uspace_src, size, &buffer);
 	if (rc < 0) {
 		IPC_SET_RETVAL(call->data, rc);
-		ipc_answer(&TASK->kernel_box, call);
+		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
@@ -282,7 +282,7 @@ static void udebug_receive_mem_read(call_t *call)
 	IPC_SET_ARG2(call->data, size);
 	call->buffer = buffer;
 
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 }
 
 /** Handle a debug call received on the kernel answerbox.
@@ -306,7 +306,7 @@ void udebug_call_receive(call_t *call)
 		 */
 		if (TASK->udebug.debugger != call->sender) {
 			IPC_SET_RETVAL(call->data, EINVAL);
-			ipc_answer(&TASK->kernel_box, call);
+			ipc_answer(&TASK->kb.box, call);
 			return;	
 		}
 	}

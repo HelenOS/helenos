@@ -48,14 +48,20 @@ void ipc_kbox_cleanup(void)
 	ipl_t ipl;
 	bool have_kb_thread;
 
-	/* Only hold kb_cleanup_lock while setting kb_finished - this is enough */
-	mutex_lock(&TASK->kb_cleanup_lock);
-	TASK->kb_finished = true;
-	mutex_unlock(&TASK->kb_cleanup_lock);
+	/* 
+	 * Only hold kb.cleanup_lock while setting kb.finished -
+	 * this is enough.
+	 */
+	mutex_lock(&TASK->kb.cleanup_lock);
+	TASK->kb.finished = true;
+	mutex_unlock(&TASK->kb.cleanup_lock);
 
-	have_kb_thread = (TASK->kb_thread != NULL);
+	have_kb_thread = (TASK->kb.thread != NULL);
 
-	/* From now on nobody will try to connect phones or attach kbox threads */
+	/*
+	 * From now on nobody will try to connect phones or attach
+	 * kbox threads
+	 */
 
 	/*
 	 * Disconnect all phones connected to our kbox. Passing true for
@@ -63,7 +69,7 @@ void ipc_kbox_cleanup(void)
 	 * disconnected phone. This ensures the kbox thread is going to
 	 * wake up and terminate.
 	 */
-	ipc_answerbox_slam_phones(&TASK->kernel_box, have_kb_thread);
+	ipc_answerbox_slam_phones(&TASK->kb.box, have_kb_thread);
 
 	/* 
 	 * If the task was being debugged, clean up debugging session.
@@ -77,18 +83,18 @@ void ipc_kbox_cleanup(void)
 	interrupts_restore(ipl);
 	
 	if (have_kb_thread) {
-		LOG("join kb_thread..\n");
-		thread_join(TASK->kb_thread);
-		thread_detach(TASK->kb_thread);
+		LOG("join kb.thread..\n");
+		thread_join(TASK->kb.thread);
+		thread_detach(TASK->kb.thread);
 		LOG("join done\n");
-		TASK->kb_thread = NULL;
+		TASK->kb.thread = NULL;
 	}
 
-	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
-	spinlock_lock(&TASK->kernel_box.lock);
-	ipc_cleanup_call_list(&TASK->kernel_box.dispatched_calls);
-	ipc_cleanup_call_list(&TASK->kernel_box.calls);
-	spinlock_unlock(&TASK->kernel_box.lock);
+	/* Answer all messages in 'calls' and 'dispatched_calls' queues. */
+	spinlock_lock(&TASK->kb.box.lock);
+	ipc_cleanup_call_list(&TASK->kb.box.dispatched_calls);
+	ipc_cleanup_call_list(&TASK->kb.box.calls);
+	spinlock_unlock(&TASK->kb.box.lock);
 }
 
 /** Handle hangup message in kbox.
@@ -105,7 +111,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 
 	/* Was it our debugger, who hung up? */
 	if (call->sender == TASK->udebug.debugger) {
-		/* Terminate debugging session (if any) */
+		/* Terminate debugging session (if any). */
 		LOG("kbox: terminate debug session\n");
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
@@ -118,7 +124,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 
 	LOG("kbox: continue with hangup message\n");
 	IPC_SET_RETVAL(call->data, 0);
-	ipc_answer(&TASK->kernel_box, call);
+	ipc_answer(&TASK->kb.box, call);
 
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
@@ -130,13 +136,13 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 		 */
 
 		/* Only detach kbox thread unless already terminating. */
-		mutex_lock(&TASK->kb_cleanup_lock);
-		if (&TASK->kb_finished == false) {
+		mutex_lock(&TASK->kb.cleanup_lock);
+		if (&TASK->kb.finished == false) {
 			/* Detach kbox thread so it gets freed from memory. */
-			thread_detach(TASK->kb_thread);
-			TASK->kb_thread = NULL;
+			thread_detach(TASK->kb.thread);
+			TASK->kb.thread = NULL;
 		}
-		mutex_unlock(&TASK->kb_cleanup_lock);
+		mutex_unlock(&TASK->kb.cleanup_lock);
 
 		LOG("phone list is empty\n");
 		*last = true;
@@ -166,7 +172,7 @@ static void kbox_thread_proc(void *arg)
 	done = false;
 
 	while (!done) {
-		call = ipc_wait_for_call(&TASK->kernel_box, SYNCH_NO_TIMEOUT,
+		call = ipc_wait_for_call(&TASK->kb.box, SYNCH_NO_TIMEOUT,
 			SYNCH_FLAGS_NONE);
 
 		if (call == NULL)
@@ -201,10 +207,10 @@ static void kbox_thread_proc(void *arg)
 /**
  * Connect phone to a task kernel-box specified by id.
  *
- * Note that this is not completely atomic. For optimisation reasons,
- * The task might start cleaning up kbox after the phone has been connected
- * and before a kbox thread has been created. This must be taken into account
- * in the cleanup code.
+ * Note that this is not completely atomic. For optimisation reasons, the task
+ * might start cleaning up kbox after the phone has been connected and before
+ * a kbox thread has been created. This must be taken into account in the
+ * cleanup code.
  *
  * @return 		Phone id on success, or negative error code.
  */
@@ -230,44 +236,45 @@ int ipc_connect_kbox(task_id_t taskid)
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 
-	mutex_lock(&ta->kb_cleanup_lock);
+	mutex_lock(&ta->kb.cleanup_lock);
 
 	if (atomic_predec(&ta->refcount) == 0) {
-		mutex_unlock(&ta->kb_cleanup_lock);
+		mutex_unlock(&ta->kb.cleanup_lock);
 		task_destroy(ta);
 		return ENOENT;
 	}
 
-	if (ta->kb_finished != false) {
-		mutex_unlock(&ta->kb_cleanup_lock);
+	if (ta->kb.finished != false) {
+		mutex_unlock(&ta->kb.cleanup_lock);
 		return EINVAL;
 	}
 
 	newphid = phone_alloc();
 	if (newphid < 0) {
-		mutex_unlock(&ta->kb_cleanup_lock);
+		mutex_unlock(&ta->kb.cleanup_lock);
 		return ELIMIT;
 	}
 
 	/* Connect the newly allocated phone to the kbox */
-	ipc_phone_connect(&TASK->phones[newphid], &ta->kernel_box);
+	ipc_phone_connect(&TASK->phones[newphid], &ta->kb.box);
 
-	if (ta->kb_thread != NULL) {
-		mutex_unlock(&ta->kb_cleanup_lock);
+	if (ta->kb.thread != NULL) {
+		mutex_unlock(&ta->kb.cleanup_lock);
 		return newphid;
 	}
 
 	/* Create a kbox thread */
-	kb_thread = thread_create(kbox_thread_proc, NULL, ta, 0, "kbox", false);
+	kb_thread = thread_create(kbox_thread_proc, NULL, ta, 0,
+	    "kbox", false);
 	if (!kb_thread) {
-		mutex_unlock(&ta->kb_cleanup_lock);
+		mutex_unlock(&ta->kb.cleanup_lock);
 		return ENOMEM;
 	}
 
-	ta->kb_thread = kb_thread;
+	ta->kb.thread = kb_thread;
 	thread_ready(kb_thread);
 
-	mutex_unlock(&ta->kb_cleanup_lock);
+	mutex_unlock(&ta->kb.cleanup_lock);
 
 	return newphid;
 }

@@ -164,10 +164,10 @@ task_t *task_create(as_t *as, char *name)
 	udebug_task_init(&ta->udebug);
 
 	/* Init kbox stuff */
-	ipc_answerbox_init(&ta->kernel_box, ta);
-	ta->kb_thread = NULL;
-	mutex_initialize(&ta->kb_cleanup_lock, MUTEX_PASSIVE);
-	ta->kb_finished = false;
+	ipc_answerbox_init(&ta->kb.box, ta);
+	ta->kb.thread = NULL;
+	mutex_initialize(&ta->kb.cleanup_lock, MUTEX_PASSIVE);
+	ta->kb.finished = false;
 #endif
 
 	ipc_answerbox_init(&ta->answerbox, ta);

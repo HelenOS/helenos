@@ -53,6 +53,7 @@
 #include <mm/tlb.h>
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
+#include <ipc/kbox.h>
 
 #define TASK_NAME_BUFLEN	20
 
@@ -98,19 +99,13 @@ typedef struct task {
 	atomic_t active_calls;
 
 #ifdef CONFIG_UDEBUG
-	/** Debugging stuff */
+	/** Debugging stuff. */
 	udebug_task_t udebug;
 
-	/** Kernel answerbox */
-	answerbox_t kernel_box;
-	/** Thread used to service kernel answerbox */
-	struct thread *kb_thread;
-	/** Kbox thread creation vs. begin of cleanup mutual exclusion */
-	mutex_t kb_cleanup_lock;
-	/** True if cleanup of kbox has already started */
-	bool kb_finished;
+	/** Kernel answerbox. */
+	kbox_t kb;
 #endif
-	
+
 	/** Architecture specific task data. */
 	task_arch_t arch;
 	
