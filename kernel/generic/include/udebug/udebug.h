@@ -147,9 +147,7 @@ typedef enum {
 	/** BEGIN operation in progress (waiting for threads to stop) */
 	UDEBUG_TS_BEGINNING,
 	/** Debugger fully connected */
-	UDEBUG_TS_ACTIVE,
-	/** Task is shutting down, no more debug activities allowed */
-	UDEBUG_TS_SHUTDOWN
+	UDEBUG_TS_ACTIVE
 } udebug_task_state_t;
 
 /** Debugging part of task_t structure.
