@@ -87,7 +87,6 @@ static void ipi_broadcast_arch_all(int ipi )
 	myid=ia64_get_cpu_id();
 	myeid=ia64_get_cpu_eid();
 
-	printf("Not sending to ID:%d,EID:%d",myid,myeid);
 	
 	for(id=0;id<256;id++)
 		for(eid=0;eid<256;eid++)
@@ -115,7 +114,6 @@ void smp_init(void)
 		for(eid=0;eid<256;eid++)
 		        if(cpu_by_id_eid_list[id][eid]==1){
 		    		config.cpu_count++;
-		    		printf("Found CPU ID:%d EDI:%d\n",id,eid);
 		    		cpu_by_id_eid_list[id][eid]=2;
 
 			}
