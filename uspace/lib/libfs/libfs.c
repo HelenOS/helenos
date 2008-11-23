@@ -196,12 +196,15 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					nodep = ops->node_get(dev_handle,
 					    index);
 				if (nodep) {
-					if (!ops->link(cur, nodep, component)) {
+					int rc;
+
+					rc = ops->link(cur, nodep, component);
+					if (rc != EOK) {
 						if (lflag & L_CREATE) {
 							(void)ops->destroy(
 							    nodep);
 						}
-						ipc_answer_0(rid, ENOSPC);
+						ipc_answer_0(rid, rc);
 					} else {
 						ipc_answer_5(rid, EOK,
 						    fs_handle, dev_handle,
@@ -266,10 +269,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			else
 				nodep = ops->node_get(dev_handle, index);
 			if (nodep) {
-				if (!ops->link(cur, nodep, component)) {
+				int rc;
+
+				rc = ops->link(cur, nodep, component);
+				if (rc != EOK) {
 					if (lflag & L_CREATE)
 						(void)ops->destroy(nodep);
-					ipc_answer_0(rid, ENOSPC);
+					ipc_answer_0(rid, rc);
 				} else {
 					ipc_answer_5(rid, EOK,
 					    fs_handle, dev_handle,

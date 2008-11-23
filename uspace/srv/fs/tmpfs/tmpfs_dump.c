@@ -59,6 +59,7 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
+	int rc;
 	
 	do {
 		char *fname;
@@ -93,7 +94,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			}
 			fname[entry.len] = 0;
 			
-			if (!ops->link((void *) parent, (void *) node, fname)) {
+			rc = ops->link((void *) parent, (void *) node, fname);
+			if (rc != EOK) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;
@@ -134,8 +136,9 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 				return false;
 			}
 			fname[entry.len] = 0;
-			
-			if (!ops->link((void *) parent, (void *) node, fname)) {
+
+			rc = ops->link((void *) parent, (void *) node, fname);
+			if (rc != EOK) {
 				ops->destroy((void *) node);
 				free(fname);
 				return false;

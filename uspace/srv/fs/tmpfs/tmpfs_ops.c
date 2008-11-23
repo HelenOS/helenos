@@ -75,7 +75,7 @@ static void *tmpfs_match(void *, const char *);
 static void *tmpfs_node_get(dev_handle_t, fs_index_t);
 static void tmpfs_node_put(void *);
 static void *tmpfs_create_node(dev_handle_t, int);
-static bool tmpfs_link_node(void *, void *, const char *);
+static int tmpfs_link_node(void *, void *, const char *);
 static int tmpfs_unlink_node(void *, void *);
 static int tmpfs_destroy_node(void *);
 
@@ -308,7 +308,7 @@ void *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 	return (void *) node;
 }
 
-bool tmpfs_link_node(void *prnt, void *chld, const char *nm)
+int tmpfs_link_node(void *prnt, void *chld, const char *nm)
 {
 	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
 	tmpfs_dentry_t *childp = (tmpfs_dentry_t *) chld;
@@ -317,13 +317,13 @@ bool tmpfs_link_node(void *prnt, void *chld, const char *nm)
 
 	tmpfs_name_t *namep = malloc(sizeof(tmpfs_name_t));
 	if (!namep)
-		return false;
+		return ENOMEM;
 	tmpfs_name_initialize(namep);
 	size_t len = strlen(nm);
 	namep->name = malloc(len + 1);
 	if (!namep->name) {
 		free(namep);
-		return false;
+		return ENOMEM;
 	}
 	strcpy(namep->name, nm);
 	namep->parent = parentp;
@@ -343,7 +343,7 @@ bool tmpfs_link_node(void *prnt, void *chld, const char *nm)
 		parentp->child = childp;
 	}
 
-	return true;
+	return EOK;
 }
 
 int tmpfs_unlink_node(void *prnt, void *chld)

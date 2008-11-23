@@ -223,7 +223,7 @@ static void *fat_node_get(dev_handle_t, fs_index_t);
 static void fat_node_put(void *);
 static void *fat_create_node(dev_handle_t, int);
 static int fat_destroy_node(void *);
-static bool fat_link(void *, void *, const char *);
+static int fat_link(void *, void *, const char *);
 static int fat_unlink(void *, void *);
 static void *fat_match(void *, const char *);
 static fs_index_t fat_index_get(void *);
@@ -341,9 +341,9 @@ int fat_destroy_node(void *node)
 	return EOK;
 }
 
-bool fat_link(void *prnt, void *chld, const char *name)
+int fat_link(void *prnt, void *chld, const char *name)
 {
-	return false;	/* not supported at the moment */
+	return ENOTSUP;	/* not supported at the moment */
 }
 
 int fat_unlink(void *prnt, void *chld)
@@ -524,6 +524,10 @@ libfs_ops_t fat_libfs_ops = {
 	.is_directory = fat_is_directory,
 	.is_file = fat_is_file
 };
+
+/*
+ * VFS operations.
+ */
 
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
