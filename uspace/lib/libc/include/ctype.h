@@ -84,6 +84,14 @@ static inline int tolower(int c)
 		return c;
 }
 
+static inline int toupper(int c)
+{
+	if (islower(c))
+		return (c - ('a' - 'A' > 0 ? 'a' - 'A' : 'A' - 'a'));
+	else
+		return c;
+}
+
 #endif
 
 /** @}
