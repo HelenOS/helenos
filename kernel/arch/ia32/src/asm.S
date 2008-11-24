@@ -158,6 +158,7 @@ enable_l_apic_in_msr:
  */
 .global sysenter_handler
 sysenter_handler:
+	sti
 	pushl %ebp	# remember user stack
 	pushl %edi	# remember return user address
 
