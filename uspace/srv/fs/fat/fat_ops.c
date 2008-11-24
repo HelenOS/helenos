@@ -288,25 +288,60 @@ void *fat_create_node(dev_handle_t dev_handle, int flags)
 {
 	fat_idx_t *idxp;
 	fat_node_t *nodep;
+	fat_bs_t *bs;
+	fat_cluster_t mcl, lcl;
+	uint16_t bps;
+	int rc;
+
+	bs = block_bb_get(dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+	if (flags & L_DIRECTORY) {
+		/* allocate a cluster */
+		rc = fat_alloc_clusters(bs, dev_handle, 1, &mcl, &lcl);
+		if (rc != EOK) 
+			return NULL;
+	}
 
 	nodep = fat_node_get_new();
-	if (!nodep) 
+	if (!nodep) {
+		fat_free_clusters(bs, dev_handle, mcl);	
 		return NULL;
+	}
 	idxp = fat_idx_get_new(dev_handle);
 	if (!idxp) {
+		fat_free_clusters(bs, dev_handle, mcl);	
 		fat_node_put(nodep);
 		return NULL;
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
+		int i;
+		block_t *b;
+
+		/*
+		 * Populate the new cluster with unused dentries.
+		 * We don't create the '.' and '..' entries, since they are
+		 * optional and HelenOS VFS does not need them.
+		 */
+		for (i = 0; i < bs->spc; i++) {
+			b = _fat_block_get(bs, dev_handle, mcl, i,
+			    BLOCK_FLAGS_NOREAD);
+			/* mark all dentries as never-used */
+			memset(b->data, 0, bps);
+			b->dirty = false;
+			block_put(b);
+		}
 		nodep->type = FAT_DIRECTORY;
+		nodep->firstc = mcl;
+		nodep->size = bps * bs->spc;
 	} else {
 		nodep->type = FAT_FILE;
+		nodep->firstc = FAT_CLST_RES0;
+		nodep->size = 0;
 	}
-	nodep->size = 0;
-	nodep->firstc = FAT_CLST_RES0;
 	nodep->lnkcnt = 0;	/* not linked anywhere */
 	nodep->refcnt = 1;
+	nodep->dirty = true;
 
 	nodep->idx = idxp;
 	idxp->nodep = nodep;
