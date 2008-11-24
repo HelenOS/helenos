@@ -285,10 +285,10 @@ void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
 	}
 }
 
-/** Allocate clusters in FAT1.
+/** Allocate clusters in all copies of FAT.
  *
  * This function will attempt to allocate the requested number of clusters in
- * the first FAT instance.  The FAT will be altered so that the allocated
+ * all instances of the FAT.  The FAT will be altered so that the allocated
  * clusters form an independent chain (i.e. a chain which does not belong to any
  * file yet).
  *
@@ -315,7 +315,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	unsigned b, c, cl; 
 
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
-	if (lifo)
+	if (!lifo)
 		return ENOMEM;
 	
 	bps = uint16_t_le2host(bs->bps);
@@ -326,8 +326,8 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 * Search FAT1 for unused clusters.
 	 */
 	futex_down(&fat_alloc_lock);
-	for (b = 0, cl = 0; b < sf; blk++) {
-		blk = block_get(dev_handle, rscnt + b, BLOCK_FLAGS_NOREAD);
+	for (b = 0, cl = 0; b < sf; b++) {
+		blk = block_get(dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
