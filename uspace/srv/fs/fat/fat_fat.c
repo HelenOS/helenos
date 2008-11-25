@@ -385,8 +385,8 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
 
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1) {
+		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
 		nextc = fat_get_cluster(bs, dev_handle, firstc);
-		assert(nextc >= FAT_CLST_FIRST && nextc < FAT_CLST_BAD);
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
 			fat_set_cluster(bs, dev_handle, fatno, firstc,
 			    FAT_CLST_RES0);
