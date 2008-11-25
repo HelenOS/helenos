@@ -39,13 +39,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#define FAT_PAD			' ' 
-
-#define FAT_DENTRY_UNUSED	0x00
-#define FAT_DENTRY_E5_ESC	0x05
-#define FAT_DENTRY_DOT		0x2e
-#define FAT_DENTRY_ERASED	0xe5
-
 static bool is_d_char(const char ch)
 {
 	if (isalnum(ch) || ch == '_')

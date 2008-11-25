@@ -436,6 +436,19 @@ void fat_idx_hashin(fat_idx_t *idx)
 	futex_up(&used_futex);
 }
 
+void fat_idx_hashout(fat_idx_t *idx)
+{
+	unsigned long pkey[] = {
+		[UPH_DH_KEY] = idx->dev_handle,
+		[UPH_PFC_KEY] = idx->pfc,
+		[UPH_PDI_KEY] = idx->pdi,
+	};
+
+	futex_down(&used_futex);
+	hash_table_remove(&up_hash, pkey, 3);
+	futex_up(&used_futex);
+}
+
 fat_idx_t *
 fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 {

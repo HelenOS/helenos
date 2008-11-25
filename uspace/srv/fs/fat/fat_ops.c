@@ -479,7 +479,42 @@ hit:
 
 int fat_unlink(void *prnt, void *chld)
 {
-	return ENOTSUP;	/* not supported at the moment */
+	fat_node_t *parentp = (fat_node_t *)prnt;
+	fat_node_t *childp = (fat_node_t *)chld;
+	fat_bs_t *bs;
+	fat_dentry_t *d;
+	uint16_t bps;
+	block_t *b;
+
+	futex_down(&parentp->lock);
+	futex_down(&childp->lock);
+	assert(childp->lnkcnt == 1);
+	futex_down(&childp->idx->lock);
+	bs = block_bb_get(childp->idx->dev_handle);
+	bps = uint16_t_le2host(bs->bps);
+
+	b = _fat_block_get(bs, childp->idx->dev_handle, childp->idx->pfc,
+	    (childp->idx->pdi * sizeof(fat_dentry_t)) / bps,
+	    BLOCK_FLAGS_NONE);
+	d = (fat_dentry_t *)b->data +
+	    (childp->idx->pdi % (bps / sizeof(fat_dentry_t)));
+	/* mark the dentry as not-currently-used */
+	d->name[0] = FAT_DENTRY_ERASED;
+	b->dirty = true;		/* need to sync block */
+	block_put(b);
+
+	/* remove the index structure from the position hash */
+	fat_idx_hashout(childp->idx);
+	/* clear position information */
+	childp->idx->pfc = FAT_CLST_RES0;
+	childp->idx->pdi = 0;
+	futex_up(&childp->idx->lock);
+	childp->lnkcnt = 0;
+	childp->dirty = true;
+	futex_up(&childp->lock);
+	futex_up(&parentp->lock);
+
+	return EOK;
 }
 
 void *fat_match(void *prnt, const char *component)

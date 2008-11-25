@@ -43,6 +43,13 @@
 #define FAT_ATTR_VOLLABEL	(1 << 3)
 #define FAT_ATTR_SUBDIR		(1 << 4)
 
+#define FAT_PAD			' ' 
+
+#define FAT_DENTRY_UNUSED	0x00
+#define FAT_DENTRY_E5_ESC	0x05
+#define FAT_DENTRY_DOT		0x2e
+#define FAT_DENTRY_ERASED	0xe5
+
 typedef enum {
 	FAT_DENTRY_SKIP,
 	FAT_DENTRY_LAST,
