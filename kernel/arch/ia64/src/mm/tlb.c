@@ -475,6 +475,73 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 	}
 }
 
+
+
+static int is_io_page_accessible(int page)
+{
+	if(TASK->arch.iomap) return bitmap_get(TASK->arch.iomap,page);
+	else return 0;
+}
+
+#define IO_FRAME_BASE 0xFFFFC000000
+
+/** There is special handling of memmaped lagacy io, because
+ * of 4KB sized access
+ * only for userspace
+ *
+ * @param va virtual address of page fault
+ * @param istate Structure with saved interruption state.
+ *
+ *
+ * @return 1 on success, 0 on fail
+ */
+static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
+{
+	if((va >= IO_OFFSET ) && (va < IO_OFFSET + (1<<IO_PAGE_WIDTH)))
+		if(TASK){
+			
+			uint64_t io_page=(va &  ((1<<IO_PAGE_WIDTH)-1)) >> (USPACE_IO_PAGE_WIDTH);
+			if(is_io_page_accessible(io_page)){
+				//printf("Insert %llX\n",va);
+
+				uint64_t page,frame;
+
+				page = IO_OFFSET + (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+				frame = IO_FRAME_BASE + (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+
+
+				tlb_entry_t entry;
+	
+				entry.word[0] = 0;
+				entry.word[1] = 0;
+	
+				entry.p = true;			/* present */
+				entry.ma = MA_UNCACHEABLE;		
+				entry.a = true;			/* already accessed */
+				entry.d = true;			/* already dirty */
+				entry.pl = PL_USER;
+				entry.ar = AR_READ | AR_WRITE;
+				entry.ppn = frame >> PPN_SHIFT;    //MUSIM spocitat frame
+				entry.ps = USPACE_IO_PAGE_WIDTH;
+	
+				dtc_mapping_insert(page, TASK->as->asid, entry); //Musim zjistit ASID
+				return 1;
+			}else {
+				fault_if_from_uspace(istate,"IO access fault at %p",va);
+				return 0;
+			}		
+		} else 
+			return 0;
+	else 
+		return 0;
+		
+	return 0;
+
+}
+
+
+
+
 /** Data TLB fault handler for faults with VHPT turned off.
  *
  * @param vector Interruption vector.
@@ -511,10 +578,11 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 		dtc_pte_copy(t);
 		page_table_unlock(AS, true);
 	} else {
+		page_table_unlock(AS, true);
+		if (try_memmap_io_insertion(va,istate)) return;
 		/*
 		 * Forward the page fault to the address space page fault handler.
 		 */
-		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate,"Page fault at %p",va);
 			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);

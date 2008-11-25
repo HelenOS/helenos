@@ -49,6 +49,14 @@ extern void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits);
 extern void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits);
 extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits);
 
+static inline int bitmap_get(bitmap_t *bitmap,index_t bit)
+{
+	if(bit >= bitmap->bits)
+		return 0;
+	return !! ((bitmap->map)[bit/8] & (1 << (bit & 7)));
+}
+
+
 #endif
 
 /** @}

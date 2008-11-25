@@ -48,7 +48,14 @@
 #define IO_PAGE_WIDTH			26	/* 64M */
 #define FW_PAGE_WIDTH			28	/* 256M */
 
-/** Staticly mapped IO spaces */
+#define USPACE_IO_PAGE_WIDTH		12	/* 4K */
+
+
+
+/** Staticly mapped IO spaces - offsets to 0xe...00 of virtual adresses 
+becauce of "minimal virtual bits implemented is 51"
+it is possible to have here values up to 0x0007000000000000
+*/
 
 /* Firmware area (bellow 4GB in phys mem) */
 #define FW_OFFSET             0x00000000F0000000

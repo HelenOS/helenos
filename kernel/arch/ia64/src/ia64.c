@@ -60,6 +60,7 @@
 #include <arch/atomic.h>
 #include <panic.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
 
 /*NS16550 as a COM 1*/
 #define NS16550_IRQ 4
@@ -182,6 +183,11 @@ void arch_post_smp_init(void)
 #endif
 
 	}
+	
+	sysinfo_set_item_val("ia64_iospace", NULL, true);
+	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
+	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
+
 }
 
 
