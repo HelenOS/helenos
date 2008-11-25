@@ -116,6 +116,9 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_TRUNCATE:
 			fat_truncate(callid, &call);
 			break;
+		case VFS_DESTROY:
+			fat_destroy(callid, &call);
+			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;
