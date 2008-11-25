@@ -72,6 +72,7 @@ typedef struct {
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
 
+extern int fat_dentry_namecmp(char *, const char *);
 extern bool fat_dentry_name_verify(const char *);
 extern void fat_dentry_name_get(const fat_dentry_t *, char *);
 extern void fat_dentry_name_set(fat_dentry_t *, const char *);

@@ -516,7 +516,7 @@ void *fat_match(void *prnt, const char *component)
 				fat_dentry_name_get(d, name);
 				break;
 			}
-			if (stricmp(name, component) == 0) {
+			if (fat_dentry_namecmp(name, component) == 0) {
 				/* hit */
 				void *node;
 				/*

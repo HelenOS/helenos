@@ -37,6 +37,7 @@
 
 #include "fat_dentry.h"
 #include <ctype.h>
+#include <string.h>
 
 #define FAT_PAD			' ' 
 
@@ -51,6 +52,35 @@ static bool is_d_char(const char ch)
 		return true;
 	else
 		return false;
+}
+
+/** Compare path component with the name read from the dentry.
+ *
+ * This function compares the path component with the name read from the dentry.
+ * The comparison is case insensitive and tolerates a mismatch on the trailing
+ * dot character at the end of the name (i.e. when there is a dot, but no
+ * extension).
+ *
+ * @param name		Node name read from the dentry.
+ * @param component	Path component.
+ *
+ * @return		Zero on match, non-zero otherwise.
+ */
+int fat_dentry_namecmp(char *name, const char *component)
+{
+	int rc;
+	if (!(rc = stricmp(name, component)))
+		return rc;
+	if (!strchr(name, '.')) {
+		/*
+		 * There is no '.' in the name, so we know that there is enough
+		 * space for appending an extra '.' to name.
+		 */
+		name[strlen(name)] = '.';
+		name[strlen(name) + 1] = '\0';
+		rc = stricmp(name, component);
+	}
+	return rc;
 }
 
 bool fat_dentry_name_verify(const char *name)
