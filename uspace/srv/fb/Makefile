@@ -47,11 +47,11 @@ SOURCES = \
 	main.c \
 	ppm.c
 
-#ifneq ($(ARCH), ia64)
-#	SOURCES += fb.c \
-#		font-8x16.c
-#	CFLAGS += -DFB_ENABLED
-#endif
+ifneq ($(ARCH), ia64)
+	SOURCES += fb.c \
+		font-8x16.c
+	CFLAGS += -DFB_ENABLED
+endif
 ifeq ($(ARCH), ia32)
 	SOURCES += ega.c
 	CFLAGS += -DEGA_ENABLED
