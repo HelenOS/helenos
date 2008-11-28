@@ -51,6 +51,14 @@
 #define uint32_t_be2host(n)		(n)
 #define uint64_t_be2host(n)		(n)
 
+#define host2uint16_t_le(n)		uint16_t_byteorder_swap(n)
+#define host2uint32_t_le(n)		uint32_t_byteorder_swap(n)
+#define host2uint64_t_le(n)		uint64_t_byteorder_swap(n)
+
+#define host2uint16_t_be(n)		(n)
+#define host2uint32_t_be(n)		(n)
+#define host2uint64_t_be(n)		(n)
+
 #else
 
 #define uint16_t_le2host(n)		(n)
@@ -60,6 +68,14 @@
 #define uint16_t_be2host(n)		uint16_t_byteorder_swap(n)
 #define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
 #define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
+
+#define host2uint16_t_le(n)		(n)
+#define host2uint32_t_le(n)		(n)
+#define host2uint64_t_le(n)		(n)
+
+#define host2uint16_t_be(n)		uint16_t_byteorder_swap(n)
+#define host2uint32_t_be(n)		uint32_t_byteorder_swap(n)
+#define host2uint64_t_be(n)		uint64_t_byteorder_swap(n)
 
 #endif
 
