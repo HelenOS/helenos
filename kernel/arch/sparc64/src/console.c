@@ -112,10 +112,22 @@ void kkbdpoll(void *arg)
 	}
 #endif
 
+#ifdef CONFIG_NS16550
+#ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
+	if (kbd_type == KBD_NS16550) {
+		/*
+		 * The ns16550 driver is interrupt-driven.
+		 */
+		return;
+	}
+#endif
+#endif
 	while (1) {
 #ifdef CONFIG_NS16550
+#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
 		if (kbd_type == KBD_NS16550)
 			ns16550_poll();
+#endif
 #endif
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}

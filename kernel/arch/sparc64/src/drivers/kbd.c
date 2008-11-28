@@ -103,11 +103,13 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 	case KBD_Z8530:
 		size = ((ofw_fhc_reg_t *) prop->value)->size;
-		if (!ofw_fhc_apply_ranges(node->parent, ((ofw_fhc_reg_t *) prop->value) , &pa)) {
+		if (!ofw_fhc_apply_ranges(node->parent,
+		    ((ofw_fhc_reg_t *) prop->value), &pa)) {
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_fhc_map_interrupt(node->parent, ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
+		if (!ofw_fhc_map_interrupt(node->parent,
+		    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
@@ -115,11 +117,13 @@ void kbd_init(ofw_tree_node_t *node)
 		
 	case KBD_NS16550:
 		size = ((ofw_ebus_reg_t *) prop->value)->size;
-		if (!ofw_ebus_apply_ranges(node->parent, ((ofw_ebus_reg_t *) prop->value) , &pa)) {
+		if (!ofw_ebus_apply_ranges(node->parent,
+		    ((ofw_ebus_reg_t *) prop->value), &pa)) {
 			printf("Failed to determine keyboard address.\n");
 			return;
 		}
-		if (!ofw_ebus_map_interrupt(node->parent, ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
+		if (!ofw_ebus_map_interrupt(node->parent,
+		    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		};
@@ -151,7 +155,8 @@ void kbd_init(ofw_tree_node_t *node)
 		break;
 #endif
 	default:
-		printf("Kernel is not compiled with the necessary keyboard driver this machine requires.\n");
+		printf("Kernel is not compiled with the necessary keyboard "
+		    "driver this machine requires.\n");
 	}
 }
 

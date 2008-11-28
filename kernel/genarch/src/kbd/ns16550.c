@@ -134,6 +134,12 @@ void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
 
+#ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
+	/* Enable interrupts */
+    	ns16550_ier_write(&ns16550, IER_ERBFI);
+	ns16550_mcr_write(&ns16550, MCR_OUT2);
+#endif
+
 #ifdef ia64
     	uint8_t c;
     	c = ns16550_lcr_read(&ns16550);
@@ -149,10 +155,7 @@ void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
 /** Process ns16550 interrupt. */
 void ns16550_interrupt(void)
 {
-	/* TODO
-	 *
-	 * ns16550 works in the polled mode so far.
-	 */
+	ns16550_poll();
 }
 
 /* Called from getc(). */
@@ -201,6 +204,7 @@ char ns16550_key_read(chardev_t *d)
  */
 void ns16550_poll(void)
 {
+#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN 
 	ipl_t ipl;
 
 	ipl = interrupts_disable();
@@ -220,6 +224,7 @@ void ns16550_poll(void)
 
 	spinlock_unlock(&ns16550_irq.lock);
 	interrupts_restore(ipl);
+#endif
 
 	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
 		uint8_t x;
@@ -251,7 +256,10 @@ irq_ownership_t ns16550_claim(void)
 
 void ns16550_irq_handler(irq_t *irq, void *arg, ...)
 {
-	panic("Not yet implemented, ns16550 works in polled mode.\n");
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
+		ipc_irq_send_notif(irq);
+	else
+		ns16550_interrupt();
 }
 
 /** @}

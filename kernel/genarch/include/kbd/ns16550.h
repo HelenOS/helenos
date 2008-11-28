@@ -58,63 +58,75 @@ extern void ns16550_irq_handler(irq_t *irq, void *arg, ...);
 #define IIR_REG		2	/** Interrupt Ident Register (read). */
 #define FCR_REG		2	/** FIFO control register (write). */
 #define LCR_REG		3	/** Line Control register. */
+#define MCR_REG		4	/** Modem Control Register. */
 #define LSR_REG		5	/** Line Status Register. */
 
 #define IER_ERBFI	0x01	/** Enable Receive Buffer Full Interrupt. */
 
 #define LCR_DLAB	0x80	/** Divisor Latch Access bit. */
 
+#define MCR_OUT2	0x08	/** OUT2. */
+
 /** Structure representing the ns16550 device. */
 typedef struct {
 	devno_t devno;
-	volatile ioport_t io_port;	/** Memory mapped registers of the ns16550. */
+	/** Memory mapped registers of the ns16550. */
+	volatile ioport_t io_port;
 } ns16550_t;
 
 static inline uint8_t ns16550_rbr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port+RBR_REG);
+	return inb(dev->io_port + RBR_REG);
 }
 static inline void ns16550_rbr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port+RBR_REG,v);
+	outb(dev->io_port + RBR_REG, v);
 }
 
 static inline uint8_t ns16550_ier_read(ns16550_t *dev)
 {
-	return inb(dev->io_port+IER_REG);
+	return inb(dev->io_port + IER_REG);
 }
 
 static inline void ns16550_ier_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port+IER_REG,v);
+	outb(dev->io_port + IER_REG, v);
 }
 
 static inline uint8_t ns16550_iir_read(ns16550_t *dev)
 {
-	return inb(dev->io_port+IIR_REG);
+	return inb(dev->io_port + IIR_REG);
 }
 
 static inline void ns16550_fcr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port+FCR_REG,v);
+	outb(dev->io_port + FCR_REG, v);
 }
 
 static inline uint8_t ns16550_lcr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port+LCR_REG);
+	return inb(dev->io_port + LCR_REG);
 }
 
 static inline void ns16550_lcr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port+LCR_REG,v);
+	outb(dev->io_port + LCR_REG, v);
 }
 
 static inline uint8_t ns16550_lsr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port+LSR_REG);
+	return inb(dev->io_port + LSR_REG);
 }
 
+static inline uint8_t ns16550_mcr_read(ns16550_t *dev)
+{
+	return inb(dev->io_port + MCR_REG);
+}
 
+static inline void ns16550_mcr_write(ns16550_t *dev, uint8_t v)
+{
+	outb(dev->io_port + MCR_REG, v);
+}
 
 #endif
 
