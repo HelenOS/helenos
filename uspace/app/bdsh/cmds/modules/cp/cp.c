@@ -73,7 +73,7 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 {
 	int fd1, fd2, bytes = 0;
 	off_t total = 0;
-	int copied = -1;
+	int64_t copied = -1;
 	char *buff = NULL;
 
 	if (vb)
