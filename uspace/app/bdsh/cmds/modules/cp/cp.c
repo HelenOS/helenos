@@ -105,6 +105,11 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 	do {
 		if (-1 == (bytes = read(fd1, buff, blen)))
 			break;
+		/* We read a terminating NULL */
+		if (0 == bytes) {
+			copied ++;
+			break;
+		}
 		copied += bytes;
 		write(fd2, buff, blen);
 	} while (bytes > 0);
@@ -147,7 +152,7 @@ void help_cmd_cp(unsigned int level)
 
 int cmd_cp(char **argv)
 {
-	unsigned int argc, buffer = CP_DEFAULT_BUFLEN, verbose = 0;
+	unsigned int argc, buffer = 0, verbose = 0;
 	int c, opt_ind;
 	int64_t ret;
 
@@ -176,9 +181,14 @@ int cmd_cp(char **argv)
 					cmdname);
 				return CMD_FAILURE;
 			}
+			if (verbose)
+				printf("Buffer = %d\n", buffer);
 			break;
 		}
 	}
+
+	if (buffer == 0)
+		buffer = CP_DEFAULT_BUFLEN;
 
 	argc -= optind;
 
@@ -191,7 +201,7 @@ int cmd_cp(char **argv)
 	ret = copy_file(argv[optind], argv[optind + 1], buffer, verbose);
 
 	if (verbose)
-		printf("%d bytes copied (buffer = %d)\n", ret, buffer);
+		printf("%d bytes copied\n", ret);
 
 	if (ret <= 0)
 		return CMD_SUCCESS;
