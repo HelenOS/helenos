@@ -40,9 +40,15 @@
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <byteorder.h>
 
-#define PSYCHO_IGN		0x7c0
-#define PSYCHO_KEYBOARD_INR	0x29
+#define PSYCHO_INTERNAL_REG	2
+
+#define PSYCHO_OBIO_IMR_BASE	(0x1000 / sizeof(uint64_t))
+#define PSYCHO_OBIO_IMR(ino)	(PSYCHO_OBIO_IMR_BASE + ((ino) & INO_MASK))
+
+#define PSYCHO_OBIO_CIR_BASE	(0x1800 / sizeof(uint64_t))
+#define PSYCHO_OBIO_CIR(ino)	(PSYCHO_OBIO_CIR_BASE + ((ino) & INO_MASK))
 
 psycho_t *psycho_a = NULL;
 psycho_t *psycho_b = NULL;
@@ -56,8 +62,13 @@ psycho_t *psycho_init(ofw_tree_node_t *node)
 	
 	if (!prop || !prop->value)
 		return NULL;
+	
+	count_t regs = prop->size / sizeof(ofw_upa_reg_t);
+	if (regs < PSYCHO_INTERNAL_REG + 1)
+		return NULL;
 		
-	ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[0]; /* XXX */
+	ofw_upa_reg_t *reg =
+	    &((ofw_upa_reg_t *) prop->value)[PSYCHO_INTERNAL_REG];
 
 	uintptr_t paddr;
 	if (!ofw_upa_apply_ranges(node->parent, reg, &paddr))
@@ -74,28 +85,17 @@ psycho_t *psycho_init(ofw_tree_node_t *node)
 
 void psycho_enable_interrupt(psycho_t *psycho, int inr)
 {
-	inr -= PSYCHO_IGN;
-	switch (inr) {
-	case PSYCHO_KEYBOARD_INR:
-		psycho->regs[0] = 1;	/* XXX */
-		break;
-	default:
-		panic("Unexpected INR (%d)\n", inr);
-		break;
-	}
+	int ino = inr & ~IGN_MASK;
+	uint64_t imr = psycho->regs[PSYCHO_OBIO_IMR(ino)];
+	imr |= host2uint64_t_le(IMAP_V_MASK);
+	psycho->regs[PSYCHO_OBIO_IMR(ino)] = imr;
 }
 
 void psycho_clear_interrupt(psycho_t *psycho, int inr)
 {
-	inr -= PSYCHO_IGN;
-	switch (inr) {
-	case PSYCHO_KEYBOARD_INR:
-		psycho->regs[0] = 0;	/* XXX */
-		break;
-	default:
-		panic("Unexpected INR (%d)\n", inr);
-		break;
-	}
+	int ino = inr & ~IGN_MASK;
+	uint64_t idle = host2uint64_t_le(0);
+	psycho->regs[PSYCHO_OBIO_CIR(ino)] = idle;
 }
 
 /** @}
