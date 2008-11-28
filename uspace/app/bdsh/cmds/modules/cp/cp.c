@@ -69,11 +69,11 @@ static int strtoint(const char *s1)
 	return (int) t1;
 }
 
-static size_t copy_file(const char *src, const char *dest, size_t blen, int vb)
+static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 {
 	int fd1, fd2, bytes = 0;
 	off_t total = 0;
-	size_t copied = 0;
+	int copied = -1;
 	char *buff = NULL;
 
 	if (vb)
@@ -81,12 +81,12 @@ static size_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 
 	if (-1 == (fd1 = open(src, O_RDONLY))) {
 		printf("Unable to open source file %s\n", src);
-		return 0;
+		return copied;
 	}
 
 	if (-1 == (fd2 = open(dest, O_CREAT))) {
 		printf("Unable to open destination file %s\n", dest);
-		return 0;
+		return copied;
 	}
 
 	total = lseek(fd1, 0, SEEK_END);
@@ -111,7 +111,7 @@ static size_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 
 	if (bytes == -1) {
 		printf("Error copying %s\n", src);
-		copied = 0;
+		copied = bytes;
 		goto out;
 	}
 
@@ -148,7 +148,8 @@ void help_cmd_cp(unsigned int level)
 int cmd_cp(char **argv)
 {
 	unsigned int argc, buffer = CP_DEFAULT_BUFLEN, verbose = 0;
-	int c, opt_ind, ret = 0;
+	int c, opt_ind;
+	int64_t ret;
 
 	argc = cli_count_args(argv);
 
