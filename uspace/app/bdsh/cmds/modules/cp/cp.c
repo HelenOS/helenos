@@ -30,6 +30,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <string.h>
+#include <fcntl.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -37,37 +41,160 @@
 #include "cp.h"
 #include "cmds.h"
 
-static char *cmdname = "cp";
+#define CP_VERSION "0.0.1"
+#define CP_DEFAULT_BUFLEN  1024
 
-/* Dispays help for cp in various levels */
+static const char *cmdname = "cp";
+
+static struct option const long_options[] = {
+	{ "buffer", required_argument, 0, 'b' },
+	{ "force", no_argument, 0, 'f' },
+	{ "recursive", no_argument, 0, 'r' },
+	{ "help", no_argument, 0, 'h' },
+	{ "version", no_argument, 0, 'v' },
+	{ "verbose", no_argument, 0, 'V' },
+	{ 0, 0, 0, 0 }
+};
+
+static int strtoint(const char *s1)
+{
+	long t1;
+
+	if (-1 == (t1 = strtol(s1, (char **) NULL, 10)))
+		return -1;
+
+	if (t1 <= 0)
+		return -1;
+
+	return (int) t1;
+}
+
+static size_t copy_file(const char *src, const char *dest, size_t blen, int vb)
+{
+	int fd1, fd2, bytes = 0;
+	off_t total = 0;
+	size_t copied = 0;
+	char *buff = NULL;
+
+	if (vb)
+		printf("Copying %s to %s\n", src, dest);
+
+	if (-1 == (fd1 = open(src, O_RDONLY))) {
+		printf("Unable to open source file %s\n", src);
+		return 0;
+	}
+
+	if (-1 == (fd2 = open(dest, O_CREAT))) {
+		printf("Unable to open destination file %s\n", dest);
+		return 0;
+	}
+
+	total = lseek(fd1, 0, SEEK_END);
+
+	if (vb)
+		printf("%d bytes to copy\n", total);
+
+	lseek(fd1, 0, SEEK_SET);
+
+	if (NULL == (buff = (char *) malloc(blen + 1))) {
+		printf("Unable to allocate enough memory to read %s\n",
+			src);
+		goto out;
+	}
+
+	do {
+		if (-1 == (bytes = read(fd1, buff, blen)))
+			break;
+		copied += bytes;
+		write(fd2, buff, blen);
+	} while (bytes > 0);
+
+	if (bytes == -1) {
+		printf("Error copying %s\n", src);
+		copied = 0;
+		goto out;
+	}
+
+out:
+	close(fd1);
+	close(fd2);
+	if (buff)
+		free(buff);
+	return copied;
+}
+
 void help_cmd_cp(unsigned int level)
 {
-	printf("This is the %s help for '%s'.\n",
-		level ? EXT_HELP : SHORT_HELP, cmdname);
+	if (level == HELP_SHORT) {
+		printf("`%s' copies files and directories\n", cmdname);
+	} else {
+		help_cmd_cp(HELP_SHORT);
+		printf(
+		"Usage:  %s [options] <source> <dest>\n"
+		"Options: (* indicates not yet implemented)\n"
+		"  -h, --help       A short option summary\n"
+		"  -v, --version    Print version information and exit\n"
+		"* -V, --verbose    Be annoyingly noisy about what's being done\n"
+		"* -f, --force      Do not complain when <dest> exists\n"
+		"* -r, --recursive  Copy entire directories\n"
+		"  -b, --buffer ## Set the read buffer size to ##\n"
+		"Currently, %s is under development, some options might not work.\n",
+		cmdname, cmdname);
+	}
+
 	return;
 }
 
-/* Main entry point for cp, accepts an array of arguments */
 int cmd_cp(char **argv)
 {
-	unsigned int argc;
-	unsigned int i;
+	unsigned int argc, buffer = CP_DEFAULT_BUFLEN, verbose = 0;
+	int c, opt_ind, ret = 0;
 
-	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = cli_count_args(argv);
 
-	printf("%s %s\n", TEST_ANNOUNCE, cmdname);
-	printf("%d arguments passed to %s", argc - 1, cmdname);
-
-	if (argc < 2) {
-		printf("\n");
-		return CMD_SUCCESS;
+	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+		c = getopt_long(argc, argv, "hvVfrb:", long_options, &opt_ind);
+		switch (c) { 
+		case 'h':
+			help_cmd_cp(1);
+			return CMD_SUCCESS;
+		case 'v':
+			printf("%d\n", CP_VERSION);
+			return CMD_SUCCESS;
+		case 'V':
+			verbose = 1;
+			break;
+		case 'f':
+			break;
+		case 'r':
+			break;
+		case 'b':
+			if (-1 == (buffer = strtoint(optarg))) {
+				printf("%s: Invalid buffer specification, "
+					"(should be a number greater than zero)\n",
+					cmdname);
+				return CMD_FAILURE;
+			}
+			break;
+		}
 	}
 
-	printf(":\n");
-	for (i = 1; i < argc; i++)
-		printf("[%d] -> %s\n", i, argv[i]);
+	argc -= optind;
 
-	return CMD_SUCCESS;
+	if (argc != 2) {
+		printf("%s: invalid number of arguments. Try %s --help\n",
+			cmdname, cmdname);
+		return CMD_FAILURE;
+	}
+
+	ret = copy_file(argv[optind], argv[optind + 1], buffer, verbose);
+
+	if (verbose)
+		printf("%d bytes copied (buffer = %d)\n", ret, buffer);
+
+	if (ret)
+		return CMD_SUCCESS;
+	else
+		return CMD_FAILURE;
 }
 
