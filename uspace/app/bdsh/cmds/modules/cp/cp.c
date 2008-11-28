@@ -192,7 +192,7 @@ int cmd_cp(char **argv)
 	if (verbose)
 		printf("%d bytes copied (buffer = %d)\n", ret, buffer);
 
-	if (ret)
+	if (ret <= 0)
 		return CMD_SUCCESS;
 	else
 		return CMD_FAILURE;
