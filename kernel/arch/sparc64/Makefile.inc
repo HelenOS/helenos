@@ -106,8 +106,7 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c \
 	arch/$(ARCH)/src/drivers/scr.c \
-	arch/$(ARCH)/src/drivers/pci.c \
-	arch/$(ARCH)/src/drivers/psycho.c
+	arch/$(ARCH)/src/drivers/pci.c 
 
 ifeq ($(CONFIG_SMP),y)
 ARCH_SOURCES += \

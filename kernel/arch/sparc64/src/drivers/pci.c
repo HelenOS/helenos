@@ -45,40 +45,37 @@
 #include <func.h>
 #include <arch/asm.h>
 
-#define PCI_SABRE_REGS_REG	0
+#define SABRE_INTERNAL_REG	0
+#define PSYCHO_INTERNAL_REG	2	
 
-#define PCI_SABRE_IMAP_BASE	0x200
-#define PCI_SABRE_ICLR_BASE	0x300
+#define OBIO_IMR_BASE	0x200
+#define OBIO_IMR(ino)	(OBIO_IMR_BASE + ((ino) & INO_MASK))
 
-#define PCI_PSYCHO_REGS_REG	2	
+#define OBIO_CIR_BASE	0x300
+#define OBIO_CIR(ino)	(OBIO_CIR_BASE + ((ino) & INO_MASK))
 
-#define PCI_PSYCHO_IMAP_BASE	0x200
-#define PCI_PSYCHO_ICLR_BASE	0x300	
+static void obio_enable_interrupt(pci_t *pci, int inr);
+static void obio_clear_interrupt(pci_t *pci, int inr);
 
 static pci_t *pci_sabre_init(ofw_tree_node_t *node);
-static void pci_sabre_enable_interrupt(pci_t *pci, int inr);
-static void pci_sabre_clear_interrupt(pci_t *pci, int inr);
-
 static pci_t *pci_psycho_init(ofw_tree_node_t *node);
-static void pci_psycho_enable_interrupt(pci_t *pci, int inr);
-static void pci_psycho_clear_interrupt(pci_t *pci, int inr);
 
 /** PCI operations for Sabre model. */
 static pci_operations_t pci_sabre_ops = {
-	.enable_interrupt = pci_sabre_enable_interrupt,
-	.clear_interrupt = pci_sabre_clear_interrupt
+	.enable_interrupt = obio_enable_interrupt,
+	.clear_interrupt = obio_clear_interrupt
 };
 /** PCI operations for Psycho model. */
 static pci_operations_t pci_psycho_ops = {
-	.enable_interrupt = pci_psycho_enable_interrupt,
-	.clear_interrupt = pci_psycho_clear_interrupt
+	.enable_interrupt = obio_enable_interrupt,
+	.clear_interrupt = obio_clear_interrupt
 };
 
 /** Initialize PCI controller (model Sabre).
  *
- * @param node OpenFirmware device tree node of the Sabre.
+ * @param node		OpenFirmware device tree node of the Sabre.
  *
- * @return Address of the initialized PCI structure.
+ * @return		Address of the initialized PCI structure.
  */ 
 pci_t *pci_sabre_init(ofw_tree_node_t *node)
 {
@@ -95,11 +92,12 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	ofw_upa_reg_t *reg = prop->value;
 	count_t regs = prop->size / sizeof(ofw_upa_reg_t);
 
-	if (regs < PCI_SABRE_REGS_REG + 1)
+	if (regs < SABRE_INTERNAL_REG + 1)
 		return NULL;
 
 	uintptr_t paddr;
-	if (!ofw_upa_apply_ranges(node->parent, &reg[PCI_SABRE_REGS_REG], &paddr))
+	if (!ofw_upa_apply_ranges(node->parent, &reg[SABRE_INTERNAL_REG],
+	    &paddr))
 		return NULL;
 
 	pci = (pci_t *) malloc(sizeof(pci_t), FRAME_ATOMIC);
@@ -108,7 +106,7 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 
 	pci->model = PCI_SABRE;
 	pci->op = &pci_sabre_ops;
-	pci->reg = (uint64_t *) hw_map(paddr, reg[PCI_SABRE_REGS_REG].size);
+	pci->reg = (uint64_t *) hw_map(paddr, reg[SABRE_INTERNAL_REG].size);
 
 	return pci;
 }
@@ -116,9 +114,9 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 
 /** Initialize the Psycho PCI controller.
  *
- * @param node OpenFirmware device tree node of the Psycho.
+ * @param node		OpenFirmware device tree node of the Psycho.
  *
- * @return Address of the initialized PCI structure.
+ * @return		Address of the initialized PCI structure.
  */ 
 pci_t *pci_psycho_init(ofw_tree_node_t *node)
 {
@@ -135,11 +133,12 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 	ofw_upa_reg_t *reg = prop->value;
 	count_t regs = prop->size / sizeof(ofw_upa_reg_t);
 
-	if (regs < PCI_PSYCHO_REGS_REG + 1)
+	if (regs < PSYCHO_INTERNAL_REG + 1)
 		return NULL;
 
 	uintptr_t paddr;
-	if (!ofw_upa_apply_ranges(node->parent, &reg[PCI_PSYCHO_REGS_REG], &paddr))
+	if (!ofw_upa_apply_ranges(node->parent, &reg[PSYCHO_INTERNAL_REG],
+	    &paddr))
 		return NULL;
 
 	pci = (pci_t *) malloc(sizeof(pci_t), FRAME_ATOMIC);
@@ -148,29 +147,19 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 
 	pci->model = PCI_PSYCHO;
 	pci->op = &pci_psycho_ops;
-	pci->reg = (uint64_t *) hw_map(paddr, reg[PCI_PSYCHO_REGS_REG].size);
+	pci->reg = (uint64_t *) hw_map(paddr, reg[PSYCHO_INTERNAL_REG].size);
 
 	return pci;
 }
 
-void pci_sabre_enable_interrupt(pci_t *pci, int inr)
+void obio_enable_interrupt(pci_t *pci, int inr)
 {
-	pci->reg[PCI_SABRE_IMAP_BASE + (inr & INO_MASK)] |= IMAP_V_MASK;
+	pci->reg[OBIO_IMR(inr & INO_MASK)] |= IMAP_V_MASK;
 }
 
-void pci_sabre_clear_interrupt(pci_t *pci, int inr)
+void obio_clear_interrupt(pci_t *pci, int inr)
 {
-	pci->reg[PCI_SABRE_ICLR_BASE + (inr & INO_MASK)] = 0;
-}
-
-void pci_psycho_enable_interrupt(pci_t *pci, int inr)
-{
-	pci->reg[PCI_PSYCHO_IMAP_BASE + (inr & INO_MASK)] |= IMAP_V_MASK;
-}
-
-void pci_psycho_clear_interrupt(pci_t *pci, int inr)
-{
-	pci->reg[PCI_PSYCHO_ICLR_BASE + (inr & INO_MASK)] = 0;
+	pci->reg[OBIO_CIR(inr & INO_MASK)] = 0;	/* set IDLE */
 }
 
 /** Initialize PCI controller. */
@@ -215,14 +204,12 @@ pci_t *pci_init(ofw_tree_node_t *node)
 
 void pci_enable_interrupt(pci_t *pci, int inr)
 {
-	ASSERT(pci->model);
 	ASSERT(pci->op && pci->op->enable_interrupt);
 	pci->op->enable_interrupt(pci, inr);
 }
 
 void pci_clear_interrupt(pci_t *pci, int inr)
 {
-	ASSERT(pci->model);
 	ASSERT(pci->op && pci->op->clear_interrupt);
 	pci->op->clear_interrupt(pci, inr);
 }
