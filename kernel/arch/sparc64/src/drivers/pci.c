@@ -54,11 +54,11 @@
 #define OBIO_CIR_BASE	0x300
 #define OBIO_CIR(ino)	(OBIO_CIR_BASE + ((ino) & INO_MASK))
 
-static void obio_enable_interrupt(pci_t *pci, int inr);
-static void obio_clear_interrupt(pci_t *pci, int inr);
+static void obio_enable_interrupt(pci_t *, int);
+static void obio_clear_interrupt(pci_t *, int);
 
-static pci_t *pci_sabre_init(ofw_tree_node_t *node);
-static pci_t *pci_psycho_init(ofw_tree_node_t *node);
+static pci_t *pci_sabre_init(ofw_tree_node_t *);
+static pci_t *pci_psycho_init(ofw_tree_node_t *);
 
 /** PCI operations for Sabre model. */
 static pci_operations_t pci_sabre_ops = {
@@ -208,8 +208,10 @@ void pci_enable_interrupt(pci_t *pci, int inr)
 	pci->op->enable_interrupt(pci, inr);
 }
 
-void pci_clear_interrupt(pci_t *pci, int inr)
+void pci_clear_interrupt(void *pcip, int inr)
 {
+	pci_t *pci = (pci_t *)pcip;
+
 	ASSERT(pci->op && pci->op->clear_interrupt);
 	pci->op->clear_interrupt(pci, inr);
 }

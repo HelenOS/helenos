@@ -38,15 +38,16 @@
 #define KERN_NS16550_H_
 
 #include <console/chardev.h> 
+#include <ddi/irq.h>
 #include <ipc/irq.h>
 
-extern void ns16550_init(devno_t devno, inr_t inr, uintptr_t vaddr);
+extern void ns16550_init(devno_t, uintptr_t, inr_t, cir_t, void *);
 extern void ns16550_poll(void);
 extern void ns16550_grab(void);
 extern void ns16550_release(void);
-extern char ns16550_key_read(chardev_t *d);
+extern char ns16550_key_read(chardev_t *);
 extern irq_ownership_t ns16550_claim(void);
-extern void ns16550_irq_handler(irq_t *irq, void *arg, ...);
+extern void ns16550_irq_handler(irq_t *, void *, ...);
 
 #include <arch/types.h>
 #ifndef ia64

@@ -44,7 +44,8 @@
 #include <macros.h>
 
 /** Apply EBUS ranges to EBUS register. */
-bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
+bool
+ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
 {
 	ofw_tree_property_t *prop;
 	ofw_ebus_range_t *range;
@@ -62,11 +63,13 @@ bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t
 	for (i = 0; i < ranges; i++) {
 		if (reg->space != range[i].child_space)
 			continue;
-		if (overlaps(reg->addr, reg->size, range[i].child_base, range[i].size)) {
+		if (overlaps(reg->addr, reg->size, range[i].child_base,
+		    range[i].size)) {
 			ofw_pci_reg_t pci_reg;
 			
 			pci_reg.space = range[i].parent_space;
-			pci_reg.addr = range[i].parent_base + (reg->addr - range[i].child_base);
+			pci_reg.addr = range[i].parent_base +
+			    (reg->addr - range[i].child_base);
 			pci_reg.size = reg->size;
 			
 			return ofw_pci_apply_ranges(node->parent, &pci_reg, pa);
@@ -76,7 +79,9 @@ bool ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t
 	return false;
 }
 
-bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t interrupt, int *inr)
+bool
+ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg,
+    uint32_t interrupt, int *inr, cir_t *cir, void **cir_arg)
 {
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *controller;
@@ -104,8 +109,8 @@ bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t
 	
 	unsigned int i;
 	for (i = 0; i < count; i++) {
-		if ((intr_map[i].space == space) && (intr_map[i].addr == addr)
-			&& (intr_map[i].intr == intr))
+		if ((intr_map[i].space == space) &&
+		    (intr_map[i].addr == addr) && (intr_map[i].intr == intr))
 			goto found;
 	}
 	return false;
@@ -113,10 +118,12 @@ bool ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uint32_t
 found:
 	/*
 	 * We found the device that functions as an interrupt controller
-	 * for the interrupt. We also found partial mapping from interrupt to INO.
+	 * for the interrupt. We also found partial mapping from interrupt to
+	 * INO.
 	 */
 
-	controller = ofw_tree_find_node_by_handle(ofw_tree_lookup("/"), intr_map[i].controller_handle);
+	controller = ofw_tree_find_node_by_handle(ofw_tree_lookup("/"),
+	    intr_map[i].controller_handle);
 	if (!controller)
 		return false;
 		
@@ -130,7 +137,8 @@ found:
 	/*
 	 * Let the PCI do the next step in mapping the interrupt.
 	 */
-	if (!ofw_pci_map_interrupt(controller, NULL, intr_map[i].controller_ino, inr))
+	if (!ofw_pci_map_interrupt(controller, NULL, intr_map[i].controller_ino,
+	    inr, cir, cir_arg))
 		return false;
 
 	return true;

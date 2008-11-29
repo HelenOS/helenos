@@ -43,7 +43,6 @@
 #include <ipc/irq.h>
 #include <arch/interrupt.h>
 #include <arch/drivers/kbd.h>
-#include <arch/drivers/fhc.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -83,12 +82,14 @@ void z8530_grab(void)
 	 */
 	z8530_write_a(&z8530, WR0, WR0_TX_IP_RST);
 
-	z8530_write_a(&z8530, WR1, WR1_IARCSC);		/* interrupt on all characters */
+	/* interrupt on all characters */
+	z8530_write_a(&z8530, WR1, WR1_IARCSC);
 
 	/* 8 bits per character and enable receiver */
 	z8530_write_a(&z8530, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
-	z8530_write_a(&z8530, WR9, WR9_MIE);		/* Master Interrupt Enable. */
+	/* Master Interrupt Enable. */
+	z8530_write_a(&z8530, WR9, WR9_MIE);
 	
 	spinlock_lock(&z8530_irq.lock);
 	z8530_irq.notif_cfg.notify = false;
@@ -108,7 +109,8 @@ void z8530_release(void)
 }
 
 /** Initialize z8530. */
-void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
+void
+z8530_init(devno_t devno, uintptr_t vaddr, inr_t inr, cir_t cir, void *cir_arg)
 {
 	chardev_initialize("z8530_kbd", &kbrd, &ops);
 	stdin = &kbrd;
@@ -121,6 +123,8 @@ void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr)
 	z8530_irq.inr = inr;
 	z8530_irq.claim = z8530_claim;
 	z8530_irq.handler = z8530_irq_handler;
+	z8530_irq.cir = cir;
+	z8530_irq.cir_arg = cir_arg;
 	irq_register(&z8530_irq);
 
 	sysinfo_set_item_val("kbd", NULL, true);
@@ -197,18 +201,10 @@ irq_ownership_t z8530_claim(void)
 
 void z8530_irq_handler(irq_t *irq, void *arg, ...)
 {
-	/*
-	 * So far, we know we got this interrupt through the FHC.
-	 * Since we don't have enough documentation about the FHC
-	 * and because the interrupt looks like level sensitive,
-	 * we cannot handle it by scheduling one of the level
-	 * interrupt traps. Process the interrupt directly.
-	 */
 	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);
 	else
 		z8530_interrupt();
-	fhc_clear_interrupt(central_fhc, irq->inr);
 }
 
 /** @}

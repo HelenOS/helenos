@@ -107,11 +107,14 @@ void ns16550_release(void)
 
 /** Initialize ns16550.
  *
- * @param devno Device number.
- * @param inr Interrupt number.
- * @param vaddr Virtual address of device's registers.
+ * @param devno		Device number.
+ * @param port		Virtual/IO address of device's registers.
+ * @param inr		Interrupt number.
+ * @param cir		Clear interrupt function.
+ * @param cir_arg	First argument to cir.
  */
-void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
+void
+ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 {
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
@@ -124,6 +127,8 @@ void ns16550_init(devno_t devno, inr_t inr, ioport_t port)
 	ns16550_irq.inr = inr;
 	ns16550_irq.claim = ns16550_claim;
 	ns16550_irq.handler = ns16550_irq_handler;
+	ns16550_irq.cir = cir;
+	ns16550_irq.cir_arg = cir_arg;
 	irq_register(&ns16550_irq);
 	
 	sysinfo_set_item_val("kbd", NULL, true);

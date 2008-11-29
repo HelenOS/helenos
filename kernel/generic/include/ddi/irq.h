@@ -83,6 +83,9 @@ typedef enum {
 struct irq;
 typedef void (* irq_handler_t)(struct irq *irq, void *arg, ...);
 
+/** Type for function used to clear the interrupt. */
+typedef void (* cir_t)(void *arg, inr_t inr);
+
 /** IPC notification config structure.
  *
  * Primarily, this structure is encapsulated in the irq_t structure.
@@ -143,6 +146,11 @@ typedef struct irq {
 	irq_handler_t handler;
 	/** Argument for the handler. */
 	void *arg;
+
+	/** Clear interrupt routine. */
+	cir_t cir;
+	/** First argument to the clear interrupt routine. */
+	void *cir_arg;
 
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg; 

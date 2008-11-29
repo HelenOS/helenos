@@ -101,8 +101,9 @@ void fhc_enable_interrupt(fhc_t *fhc, int inr)
 	}
 }
 
-void fhc_clear_interrupt(fhc_t *fhc, int inr)
+void fhc_clear_interrupt(void *fhcp, int inr)
 {
+	fhc_t *fhc = (fhc_t *)fhcp;
 	ASSERT(fhc->uart_imap);
 
 	switch (inr) {

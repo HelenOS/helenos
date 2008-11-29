@@ -39,17 +39,18 @@
 
 #include <console/chardev.h>
 #include <ipc/irq.h>
+#include <ddi/irq.h>
 
 extern bool z8530_belongs_to_kernel;
 
-extern void z8530_init(devno_t devno, inr_t inr, uintptr_t vaddr);
+extern void z8530_init(devno_t, uintptr_t, inr_t, cir_t, void *);
 extern void z8530_poll(void);
 extern void z8530_grab(void);
 extern void z8530_release(void);
 extern void z8530_interrupt(void);
-extern char z8530_key_read(chardev_t *d);
+extern char z8530_key_read(chardev_t *);
 extern irq_ownership_t z8530_claim(void);
-extern void z8530_irq_handler(irq_t *irq, void *arg, ...);
+extern void z8530_irq_handler(irq_t *, void *, ...);
 
 #endif
 

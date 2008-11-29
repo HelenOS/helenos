@@ -63,6 +63,8 @@ void kbd_init(ofw_tree_node_t *node)
 	uintptr_t aligned_addr;
 	ofw_tree_property_t *prop;
 	const char *name;
+	cir_t cir;
+	void *cir_arg;
 	
 	name = ofw_tree_node_name(node);
 	
@@ -109,7 +111,8 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		}
 		if (!ofw_fhc_map_interrupt(node->parent,
-		    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr)) {
+		    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr, &cir,
+		    &cir_arg)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
@@ -123,7 +126,8 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		}
 		if (!ofw_ebus_map_interrupt(node->parent,
-		    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr)) {
+		    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr, &cir,
+		    &cir_arg)) {
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		};
@@ -146,12 +150,12 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		z8530_init(devno, inr, vaddr);
+		z8530_init(devno, vaddr, inr, cir, cir_arg);
 		break;
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550_init(devno, inr, (ioport_t)vaddr);
+		ns16550_init(devno, (ioport_t)vaddr, inr, cir, cir_arg);
 		break;
 #endif
 	default:

@@ -79,6 +79,12 @@ void interrupt(int n, istate_t *istate)
 		 * The IRQ handler was found.
 		 */
 		irq->handler(irq, irq->arg);
+		/*
+		 * See if there is a clear-interrupt-routine and call it.
+		 */
+		if (irq->cir) {
+			irq->cir(irq->cir_arg, irq->inr);
+		}
 		spinlock_unlock(&irq->lock);
 	} else if (data0 > config.base) {
 		/*
@@ -98,7 +104,7 @@ void interrupt(int n, istate_t *istate)
 		 */
 #ifdef CONFIG_DEBUG
 		printf("cpu%u: spurious interrupt (intrcv=%#" PRIx64
-			", data0=%#" PRIx64 ")\n", CPU->id, intrcv, data0);
+		    ", data0=%#" PRIx64 ")\n", CPU->id, intrcv, data0);
 #endif
 	}
 

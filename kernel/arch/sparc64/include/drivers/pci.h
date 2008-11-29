@@ -51,8 +51,8 @@ enum pci_model {
 };
 
 struct pci_operations {
-	void (* enable_interrupt)(pci_t *pci, int inr);
-	void (* clear_interrupt)(pci_t *pci, int inr);
+	void (* enable_interrupt)(pci_t *, int);
+	void (* clear_interrupt)(pci_t *, int);
 };
 
 struct pci {
@@ -61,9 +61,9 @@ struct pci {
 	volatile uint64_t *reg;		/**< Registers including interrupt registers. */
 };
 
-extern pci_t *pci_init(ofw_tree_node_t *node);
-extern void pci_enable_interrupt(pci_t *pci, int inr);
-extern void pci_clear_interrupt(pci_t *pci, int inr);
+extern pci_t *pci_init(ofw_tree_node_t *);
+extern void pci_enable_interrupt(pci_t *, int);
+extern void pci_clear_interrupt(void *, int);
 
 #endif
 

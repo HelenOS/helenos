@@ -145,6 +145,8 @@ void irq_initialize(irq_t *irq)
 	irq->claim = NULL;
 	irq->handler = NULL;
 	irq->arg = NULL;
+	irq->cir = NULL;
+	irq->cir_arg = NULL;
 	irq->notif_cfg.notify = false;
 	irq->notif_cfg.answerbox = NULL;
 	irq->notif_cfg.code = NULL;

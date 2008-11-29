@@ -49,7 +49,8 @@
 
 #define PCI_IGN			0x1f
 
-bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
+bool
+ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 {
 	ofw_tree_property_t *prop;
 	ofw_pci_range_t *range;
@@ -68,10 +69,13 @@ bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *
 	unsigned int i;
 	
 	for (i = 0; i < ranges; i++) {
-		if ((reg->space & PCI_SPACE_MASK) != (range[i].space & PCI_SPACE_MASK))
+		if ((reg->space & PCI_SPACE_MASK) !=
+		    (range[i].space & PCI_SPACE_MASK))
 			continue;
-		if (overlaps(reg->addr, reg->size, range[i].child_base, range[i].size)) {
-			*pa = range[i].parent_base + (reg->addr - range[i].child_base);
+		if (overlaps(reg->addr, reg->size, range[i].child_base,
+		    range[i].size)) {
+			*pa = range[i].parent_base +
+			    (reg->addr - range[i].child_base);
 			return true;
 		}
 	}
@@ -79,7 +83,9 @@ bool ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *
 	return false;
 }
 
-bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_reg_t *out)
+bool
+ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg,
+    ofw_pci_reg_t *out)
 {
 	if (reg->space & PCI_ABS_MASK) {
 		/* already absolute */
@@ -103,7 +109,8 @@ bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_r
 	unsigned int i;
 	
 	for (i = 0; i < assigned_addresses; i++) {
-		if ((assigned_address[i].space & PCI_REG_MASK) == (reg->space & PCI_REG_MASK)) {
+		if ((assigned_address[i].space & PCI_REG_MASK) ==
+		    (reg->space & PCI_REG_MASK)) {
 			out->space = assigned_address[i].space;
 			out->addr = reg->addr + assigned_address[i].addr;
 			out->size = reg->size;
@@ -119,7 +126,9 @@ bool ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg, ofw_pci_r
  * So far, we only know how to map interrupts of non-PCI devices connected
  * to a PCI bridge.
  */
-bool ofw_pci_map_interrupt(ofw_tree_node_t *node, ofw_pci_reg_t *reg, int ino, int *inr)
+bool
+ofw_pci_map_interrupt(ofw_tree_node_t *node, ofw_pci_reg_t *reg, int ino,
+    int *inr, cir_t *cir, void **cir_arg)
 {
 	pci_t *pci = node->device;
 	if (!pci) {
@@ -132,6 +141,8 @@ bool ofw_pci_map_interrupt(ofw_tree_node_t *node, ofw_pci_reg_t *reg, int ino, i
 	pci_enable_interrupt(pci, ino);
 
 	*inr = (PCI_IGN << IGN_SHIFT) | ino;
+	*cir = pci_clear_interrupt;
+	*cir_arg = pci;
 
 	return true;
 }
