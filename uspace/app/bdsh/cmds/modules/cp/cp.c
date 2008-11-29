@@ -34,6 +34,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <fcntl.h>
+#include <assert.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -73,7 +74,7 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 {
 	int fd1, fd2, bytes = 0;
 	off_t total = 0;
-	int64_t copied = -1;
+	int64_t copied = 0;
 	char *buff = NULL;
 
 	if (vb)
@@ -86,6 +87,7 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 
 	if (-1 == (fd2 = open(dest, O_CREAT))) {
 		printf("Unable to open destination file %s\n", dest);
+		close(fd1);
 		return copied;
 	}
 
@@ -96,28 +98,39 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 
 	lseek(fd1, 0, SEEK_SET);
 
-	if (NULL == (buff = (char *) malloc(blen + 1))) {
+	if (NULL == (buff = (char *) malloc(blen))) {
 		printf("Unable to allocate enough memory to read %s\n",
-			src);
+		    src);
+		copied = -1;
 		goto out;
 	}
 
-	do {
-		if (-1 == (bytes = read(fd1, buff, blen)))
-			break;
-		/* We read a terminating NULL */
-		if (0 == bytes) {
-			copied ++;
-			break;
-		}
-		copied += bytes;
-		write(fd2, buff, blen);
-	} while (bytes > 0);
+	for (;;) {
+		ssize_t res;
 
-	if (bytes == -1) {
-		printf("Error copying %s\n", src);
+		bytes = read(fd1, buff, blen);
+		if (bytes <= 0)
+			break;
+		copied += bytes;
+		res = bytes;
+		do {
+			/*
+			 * Theoretically, it may not be enough to call write()
+			 * only once. Also the previous read() may have
+			 * returned less data than requested.
+			 */
+			bytes = write(fd2, buff, res);
+			if (bytes < 0)
+				goto err;
+			res -= bytes;
+		} while (res > 0);
+		assert(res == 0);
+	}
+
+	if (bytes < 0) {
+err:
+		printf("Error copying %s, (%d)\n", src, bytes);
 		copied = bytes;
-		goto out;
 	}
 
 out:
@@ -130,21 +143,21 @@ out:
 
 void help_cmd_cp(unsigned int level)
 {
+	static char helpfmt[] =
+	    "Usage:  %s [options] <source> <dest>\n"
+	    "Options: (* indicates not yet implemented)\n"
+	    "  -h, --help       A short option summary\n"
+	    "  -v, --version    Print version information and exit\n"
+	    "* -V, --verbose    Be annoyingly noisy about what's being done\n"
+	    "* -f, --force      Do not complain when <dest> exists\n"
+	    "* -r, --recursive  Copy entire directories\n"
+	    "  -b, --buffer ## Set the read buffer size to ##\n"
+	    "Currently, %s is under development, some options may not work.\n";
 	if (level == HELP_SHORT) {
 		printf("`%s' copies files and directories\n", cmdname);
 	} else {
 		help_cmd_cp(HELP_SHORT);
-		printf(
-		"Usage:  %s [options] <source> <dest>\n"
-		"Options: (* indicates not yet implemented)\n"
-		"  -h, --help       A short option summary\n"
-		"  -v, --version    Print version information and exit\n"
-		"* -V, --verbose    Be annoyingly noisy about what's being done\n"
-		"* -f, --force      Do not complain when <dest> exists\n"
-		"* -r, --recursive  Copy entire directories\n"
-		"  -b, --buffer ## Set the read buffer size to ##\n"
-		"Currently, %s is under development, some options might not work.\n",
-		cmdname, cmdname);
+		printf(helpfmt, cmdname, cmdname);
 	}
 
 	return;
@@ -177,8 +190,8 @@ int cmd_cp(char **argv)
 		case 'b':
 			if (-1 == (buffer = strtoint(optarg))) {
 				printf("%s: Invalid buffer specification, "
-					"(should be a number greater than zero)\n",
-					cmdname);
+				    "(should be a number greater than zero)\n",
+				    cmdname);
 				return CMD_FAILURE;
 			}
 			if (verbose)
@@ -194,7 +207,7 @@ int cmd_cp(char **argv)
 
 	if (argc != 2) {
 		printf("%s: invalid number of arguments. Try %s --help\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 
@@ -203,7 +216,7 @@ int cmd_cp(char **argv)
 	if (verbose)
 		printf("%d bytes copied\n", ret);
 
-	if (ret <= 0)
+	if (ret >= 0)
 		return CMD_SUCCESS;
 	else
 		return CMD_FAILURE;
