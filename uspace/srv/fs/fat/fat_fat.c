@@ -182,7 +182,7 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 	boundary = ROUND_UP(nodep->size, bps * spc);
 
 	/* zero out already allocated space */
-	for (o = nodep->size - 1; o < pos && o < boundary;
+	for (o = nodep->size; o < pos && o < boundary;
 	    o = ALIGN_DOWN(o + bps, bps)) {
 	    	int flags = (o % bps == 0) ?
 		    BLOCK_FLAGS_NOREAD : BLOCK_FLAGS_NONE;
