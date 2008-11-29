@@ -82,13 +82,13 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 
 	if (-1 == (fd1 = open(src, O_RDONLY))) {
 		printf("Unable to open source file %s\n", src);
-		return copied;
+		return -1;
 	}
 
 	if (-1 == (fd2 = open(dest, O_CREAT))) {
 		printf("Unable to open destination file %s\n", dest);
 		close(fd1);
-		return copied;
+		return -1;
 	}
 
 	total = lseek(fd1, 0, SEEK_END);
