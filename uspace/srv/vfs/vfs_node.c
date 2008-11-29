@@ -175,15 +175,22 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->index = result->triplet.index;
 		node->size = result->size;
 		node->lnkcnt = result->lnkcnt;
+		node->type = result->type;
 		link_initialize(&node->nh_link);
 		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	
+		if (node->type == VFS_NODE_UNKNOWN &&
+		    result->type != VFS_NODE_UNKNOWN) {
+			/* Upgrade the node type. */
+			node->type = result->type;
+		}
 	}
 
 	assert(node->size == result->size);
 	assert(node->lnkcnt == result->lnkcnt);
+	assert(node->type == result->type || result->type == VFS_NODE_UNKNOWN);
 
 	_vfs_node_addref(node);
 	futex_up(&nodes_futex);

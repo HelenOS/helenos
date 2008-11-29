@@ -182,6 +182,12 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 		result->triplet.index = (fs_index_t) IPC_GET_ARG3(answer);
 		result->size = (size_t) IPC_GET_ARG4(answer);
 		result->lnkcnt = (unsigned) IPC_GET_ARG5(answer);
+		if (lflag & L_FILE)
+			result->type = VFS_NODE_FILE;
+		else if (lflag & L_DIRECTORY)
+			result->type = VFS_NODE_DIRECTORY;
+		else
+			result->type = VFS_NODE_UNKNOWN;
 	}
 
 	return rc;

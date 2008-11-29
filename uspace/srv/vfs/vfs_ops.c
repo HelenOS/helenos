@@ -234,6 +234,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			mr_res.triplet.index = (fs_index_t) rindex;
 			mr_res.size = (size_t) rsize;
 			mr_res.lnkcnt = (unsigned) rlnkcnt;
+			mr_res.type = VFS_NODE_DIRECTORY;
 
 			rootfs.fs_handle = fs_handle;
 			rootfs.dev_handle = dev_handle;
@@ -301,6 +302,16 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int oflag = IPC_GET_ARG2(*request);
 	int mode = IPC_GET_ARG3(*request);
 	size_t len;
+
+	/*
+	 * Make sure that we are called with exactly one of L_FILE and
+	 * L_DIRECTORY.
+	 */
+	if ((lflag & (L_FILE | L_DIRECTORY)) == 0 ||
+	    (lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) {
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
 
 	if (oflag & O_CREAT)
 		lflag |= L_CREATE;
@@ -456,7 +467,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * the same open file at a time.
 	 */
 	futex_down(&file->lock);
-	
+
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time.
@@ -465,6 +476,15 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		rwlock_read_lock(&file->node->contents_rwlock);
 	else
 		rwlock_write_lock(&file->node->contents_rwlock);
+
+	if (file->node->type == VFS_NODE_DIRECTORY) {
+		/*
+		 * Make sure that no one is modifying the namespace
+		 * while we are in readdir().
+		 */
+		assert(read);
+		rwlock_read_lock(&namespace_rwlock);
+	}
 	
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
 	
@@ -490,6 +510,9 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	size_t bytes = IPC_GET_ARG1(answer);
+
+	if (file->node->type == VFS_NODE_DIRECTORY)
+		rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Unlock the VFS node. */
 	if (read)

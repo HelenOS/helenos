@@ -190,8 +190,15 @@ typedef struct {
  */
 #define L_PARENT	64	
 
+typedef enum vfs_node_type {
+	VFS_NODE_UNKNOWN,
+	VFS_NODE_FILE,
+	VFS_NODE_DIRECTORY,
+} vfs_node_type_t;
+
 typedef struct {
 	vfs_triplet_t triplet;
+	vfs_node_type_t type;
 	size_t size;
 	unsigned lnkcnt;
 } vfs_lookup_res_t;
@@ -213,6 +220,9 @@ typedef struct {
 	unsigned lnkcnt;
 
 	link_t nh_link;		/**< Node hash-table link. */
+
+	vfs_node_type_t type;	/**< Partial info about the node type. */
+
 	size_t size;		/**< Cached size if the node is a file. */
 
 	/**
