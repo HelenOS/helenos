@@ -409,7 +409,7 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 	if (fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl,
 	    (uint16_t) -1) == 0) {
 		/* No clusters allocated to the node yet. */
-		nodep->firstc = host2uint16_t_le(mcl);
+		nodep->firstc = mcl;
 		nodep->dirty = true;		/* need to sync node */
 		return;
 	}
