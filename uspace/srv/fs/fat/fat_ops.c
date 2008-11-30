@@ -320,8 +320,6 @@ void *fat_create_node(dev_handle_t dev_handle, int flags)
 
 		/*
 		 * Populate the new cluster with unused dentries.
-		 * We don't create the '.' and '..' entries, since they are
-		 * optional and HelenOS VFS does not need them.
 		 */
 		for (i = 0; i < bs->spc; i++) {
 			b = _fat_block_get(bs, dev_handle, mcl, i,
@@ -460,6 +458,39 @@ hit:
 	futex_up(&parentp->idx->lock);
 
 	futex_down(&childp->idx->lock);
+	
+	/*
+	 * If possible, create the Sub-directory Identifier Entry and the
+	 * Sub-directory Parent Pointer Entry (i.e. "." and ".."). These entries
+	 * are not mandatory according to Standard ECMA-107 and HelenOS VFS does
+	 * not use them anyway, so this is rather a sign of our good will.
+	 */
+	b = fat_block_get(bs, childp, 0, BLOCK_FLAGS_NONE);
+	d = (fat_dentry_t *)b->data;
+	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
+	    strcmp(d->name, FAT_NAME_DOT) == 0) {
+	   	memset(d, 0, sizeof(fat_dentry_t));
+	   	strcpy(d->name, FAT_NAME_DOT);
+		strcpy(d->ext, FAT_EXT_PAD);
+		d->attr = FAT_ATTR_SUBDIR;
+		d->firstc = host2uint16_t_le(childp->firstc);
+		/* TODO: initialize also the date/time members. */
+	}
+	d++;
+	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
+	    strcmp(d->name, FAT_NAME_DOT_DOT) == 0) {
+		memset(d, 0, sizeof(fat_dentry_t));
+		strcpy(d->name, FAT_NAME_DOT_DOT);
+		strcpy(d->ext, FAT_EXT_PAD);
+		d->attr = FAT_ATTR_SUBDIR;
+		d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
+		    host2uint16_t_le(FAT_CLST_RES0) :
+		    host2uint16_t_le(parentp->firstc);
+		/* TODO: initialize also the date/time members. */
+	}
+	b->dirty = true;		/* need to sync block */
+	block_put(b);
+
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->pdi = i * dps + j;
 	futex_up(&childp->idx->lock);

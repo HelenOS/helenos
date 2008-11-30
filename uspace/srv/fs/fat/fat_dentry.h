@@ -39,6 +39,10 @@
 #define FAT_NAME_LEN		8
 #define FAT_EXT_LEN		3
 
+#define FAT_NAME_DOT		".       "
+#define FAT_NAME_DOT_DOT	"..      "
+#define FAT_EXT_PAD		"   "
+
 #define FAT_ATTR_RDONLY		(1 << 0)
 #define FAT_ATTR_VOLLABEL	(1 << 3)
 #define FAT_ATTR_SUBDIR		(1 << 4)
