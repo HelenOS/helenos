@@ -209,7 +209,7 @@ void arch_post_smp_init(void)
 		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 
 #ifdef CONFIG_NS16550
-		ns16550_init(kbd, NS16550_IRQ, NS16550_PORT,end_of_irq_void,NULL); // as a COM 1
+		ns16550_init(kbd, NS16550_PORT, NS16550_IRQ,end_of_irq_void,NULL); // as a COM 1
 #else
 #endif
 		thread_t *t;
