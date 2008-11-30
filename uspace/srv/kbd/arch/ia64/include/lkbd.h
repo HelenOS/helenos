@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar, Jakub Vana
+ * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia6464	
+/** @addtogroup kbdamd64 amd64
+ * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard and mouse handler.
+ * @ingroup  kbd
  * @{
  */
+
 /** @file
+ * @ingroup kbdia32
  */
 
-#ifndef KERN_ia64_KBD_H_
-#define KERN_ia64_KBD_H_
+#ifndef KBD_ia32_KBD_H_
+#define KBD_ia32_KBD_H_
+
+#include <ddi.h>
+#include <libarch/ddi.h>
+
+#define i8042_DATA      0x60
+#define i8042_STATUS    0X64
 
 
-#define KBD_UNKNOWN 0
-#define	KBD_SKI 1
-#define	KBD_LEGACY 2
-#define	KBD_NS16550 3
+typedef unsigned char u8;
+typedef short u16;
 
+static inline void i8042_data_write(u8 data)
+{
+	outb(i8042_DATA, data);
+}
+
+static inline u8 i8042_data_read(void)
+{
+	return inb(i8042_DATA);
+}
+
+static inline u8 i8042_status_read(void)
+{
+	return inb(i8042_STATUS);
+}
+
+static inline void i8042_command_write(u8 command)
+{
+	outb(i8042_STATUS, command);
+}
 
 #endif
 
-/** @}
- */
+/**
+ * @}
+ */ 

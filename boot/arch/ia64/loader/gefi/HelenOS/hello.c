@@ -237,6 +237,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	bootinfo->wakeup_intno=wakeup_intno;
 	bootinfo->sys_freq=sys_freq;
 	bootinfo->freq_scale=freq_scale;
+	bootinfo->hello_configured=1;
 
 
 	    bootinfo->memmap_items=0;

@@ -119,7 +119,11 @@ static void iosapic_init(void)
 	uint64_t IOSAPIC = PA2KA((unative_t)(iosapic_base))|FW_OFFSET;
 	int i;
 	
+	int myid,myeid;
 	
+	myid=ia64_get_cpu_id();
+	myeid=ia64_get_cpu_eid();
+
 	for(i=0;i<16;i++)
 	{
 	
@@ -130,7 +134,7 @@ static void iosapic_init(void)
 		srlz_d();
 		((uint32_t*)(IOSAPIC+0x00))[0]=0x10+2*i+1;
 		srlz_d();
-		((uint32_t*)(IOSAPIC+0x10))[0]=1<<(56-32);
+		((uint32_t*)(IOSAPIC+0x10))[0]=myid<<(56-32) | myeid<<(48-32);
 		srlz_d();
 	}
 
@@ -169,10 +173,13 @@ void arch_pre_smp_init(void)
 static void i8042_kkbdpoll(void *arg)
 {
 	while (1) {
-		i8042_poll();
 #ifdef CONFIG_NS16550
 	#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
 		ns16550_poll();
+	#endif	
+#else
+	#ifndef CONFIG_I8042_INTERRUPT_DRIVEN
+		i8042_poll();
 	#endif	
 #endif
 		thread_usleep(POLL_INTERVAL);
@@ -181,7 +188,8 @@ static void i8042_kkbdpoll(void *arg)
 #endif
 
 
-static void end_of_irq_void(void *cir_arg __attribute__((unused)),inr_t inr __attribute__((unused)))
+void end_of_irq_void(void *cir_arg __attribute__((unused)),inr_t inr __attribute__((unused)));
+void end_of_irq_void(void *cir_arg __attribute__((unused)),inr_t inr __attribute__((unused)))
 {
 	return;
 }
@@ -204,13 +212,13 @@ void arch_post_smp_init(void)
 
 #ifdef I460GX
 		devno_t kbd = device_assign_devno();
-		devno_t mouse = device_assign_devno();
 		/* keyboard controller */
-		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 
 #ifdef CONFIG_NS16550
 		ns16550_init(kbd, NS16550_PORT, NS16550_IRQ,end_of_irq_void,NULL); // as a COM 1
 #else
+		devno_t mouse = device_assign_devno();
+		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 #endif
 		thread_t *t;
 		t = thread_create(i8042_kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
@@ -280,11 +288,11 @@ void arch_grab_console(void)
 #ifdef SKI
 	ski_kbd_grab();
 #else
-	i8042_grab();
 	#ifdef CONFIG_NS16550
 		ns16550_grab();
+	#else
+		i8042_grab();
 	#endif	
-		
 #endif	
 }
 /** Return console to userspace
@@ -294,10 +302,11 @@ void arch_release_console(void)
 {
 #ifdef SKI
 	ski_kbd_release();
-	i8042_release();
 #else	
 	#ifdef CONFIG_NS16550
 		ns16550_release();
+	#else	
+		i8042_release();
 	#endif	
 
 #endif

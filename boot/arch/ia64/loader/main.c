@@ -44,6 +44,14 @@ void write(const char *str, const int len)
     return;
 }
 
+#define DEFAULT_MEMORY_BASE 0x4000000
+#define DEFAULT_MEMORY_SIZE 0x4000000
+#define DEFAULT_LEGACY_IO_BASE 0x00000FFFFC000000 
+#define DEFAULT_LEGACY_IO_SIZE 0x4000000 
+
+#define DEFAULT_FREQ_SCALE 0x0000000100000001 // 1/1
+#define DEFAULT_SYS_FREQ 100000000 //100MHz
+
 
 #ifdef REVISION
 	char *revision = ", revision " REVISION;
@@ -78,7 +86,6 @@ void bootstrap(void)
 	
 
 
-
 	version_print();
 
 	
@@ -92,6 +99,29 @@ void bootstrap(void)
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %P: %s image (size %d bytes)\n", components[i].start,
 		    components[i].name, components[i].size);
+
+	if(!bootinfo->hello_configured)
+	{
+		/*
+		 * Load configuration defaults for simulators
+		 */
+		 bootinfo->memmap_items=0;
+		 
+		 bootinfo->memmap[bootinfo->memmap_items].base=DEFAULT_MEMORY_BASE;
+		 bootinfo->memmap[bootinfo->memmap_items].size=DEFAULT_MEMORY_SIZE;
+		 bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_FREE_MEM;
+		 bootinfo->memmap_items++;
+
+		 bootinfo->memmap[bootinfo->memmap_items].base=DEFAULT_LEGACY_IO_BASE;
+		 bootinfo->memmap[bootinfo->memmap_items].size=DEFAULT_LEGACY_IO_SIZE;
+		 bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_IO_PORTS;
+		 bootinfo->memmap_items++;
+		 
+		 bootinfo->freq_scale = DEFAULT_FREQ_SCALE;
+		 bootinfo->sys_freq = DEFAULT_SYS_FREQ;
+		 
+	}
+
 
 
 	bootinfo->taskmap.count = 0;

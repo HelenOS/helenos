@@ -262,7 +262,19 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 			break;
 #endif
 
+		case INTERRUPT_TIMER:
+			{
 
+				irq_t *irq = irq_dispatch_and_lock(ivr.vector);
+				if (irq) {
+					irq->handler(irq, irq->arg);
+					spinlock_unlock(&irq->lock);
+				} else {
+					panic("\nUnhandled Internal Timer Interrupt (%d)\n",ivr.vector);
+				}
+			}	
+			break;
+				
 		default:
 			{
 

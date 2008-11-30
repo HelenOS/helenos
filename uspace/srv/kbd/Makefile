@@ -59,6 +59,15 @@ ifeq ($(ARCH), ia32)
 		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
+ifeq ($(ARCH), ia64)
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/mouse.c \
+		arch/$(ARCH)/src/scanc.c \
+		arch/$(ARCH)/src/lkbd.c
+	GENARCH_SOURCES = \
+		genarch/src/kbd.c
+	CFLAGS += -DMOUSE_ENABLED
+endif
 ifeq ($(ARCH), amd64)
 	ARCH_SOURCES += \
 		arch/$(ARCH)/src/mouse.c \

@@ -58,6 +58,11 @@
 #include <libarch/ddi.h>
 
 
+extern int lkbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call);
+extern int lkbd_arch_init(void);
+
+
+
 #define KEY_F1 0x504f1b
 #define KEY_F2 0x514f1b
 #define KEY_F3 0x524f1b
@@ -140,6 +145,7 @@ int kbd_arch_init(void)
 	if (sysinfo_value("kbd")) {
 		kbd_type=sysinfo_value("kbd.type");
 		if(kbd_type==KBD_SKI) ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ski_kbd);
+		if(kbd_type==KBD_LEGACY) return lkbd_arch_init();
 		if(kbd_type==KBD_NS16550) {
 			ns16550_kbd.cmds[0].addr= (void *)  (sysinfo_value("kbd.port")+RBR_REG);
 			ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ns16550_kbd);
@@ -322,7 +328,6 @@ int kbd_ski_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	//keybuffer_push(keybuffer, ' ');
 	//keybuffer_push(keybuffer, ' ');
 	//*/
-
 	
 	if (scan_code) {
 		buf |= (unsigned long long) scan_code<<(8*(count++));
@@ -389,6 +394,7 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	printf("KBD Key pressed: %x(%c)\n",IPC_GET_ARG2(*call),IPC_GET_ARG2(*call));
 	if(kbd_type==KBD_SKI) return kbd_ski_process(keybuffer,call);
 	if(kbd_type==KBD_NS16550) return kbd_ns16550_process(keybuffer,call);
+	if(kbd_type==KBD_LEGACY) return lkbd_arch_process(keybuffer,call);
 
 	
 }

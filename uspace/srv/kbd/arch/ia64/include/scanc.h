@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar, Jakub Vana
+ * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +27,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia6464	
+/** @addtogroup kbdia32
  * @{
- */
+ */ 
 /** @file
+ * @ingroup kbdamd64
  */
 
-#ifndef KERN_ia64_KBD_H_
-#define KERN_ia64_KBD_H_
+#ifndef KBD_ia32_SCANC_H_
+#define KBD_ia32_SCANC_H_
 
-
-#define KBD_UNKNOWN 0
-#define	KBD_SKI 1
-#define	KBD_LEGACY 2
-#define	KBD_NS16550 3
-
+/** Scancodes. */
+#define SC_ESC		0x01
+#define SC_BACKSPACE	0x0e
+#define SC_LSHIFT	0x2a
+#define SC_RSHIFT	0x36
+#define SC_CAPSLOCK	0x3a
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x4b
+#define SC_RIGHTARR     0x4d
+#define SC_UPARR        0x48
+#define SC_DOWNARR      0x50
+#define SC_DELETE       0x53
+#define SC_HOME         0x47
+#define SC_END          0x4f
 
 #endif
 
-/** @}
- */
+/**
+ * @}
+ */ 

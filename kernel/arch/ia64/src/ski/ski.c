@@ -44,7 +44,7 @@
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
-#include <drivers/kbd.h>
+#include <arch/drivers/kbd.h>
 
 #define SKI_KBD_INR	0
 

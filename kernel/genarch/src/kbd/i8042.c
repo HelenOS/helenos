@@ -37,6 +37,9 @@
  */
 
 #include <genarch/kbd/i8042.h>
+#ifdef ia64
+#include <arch/drivers/kbd.h>
+#endif
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
@@ -184,7 +187,9 @@ void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mou
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.devno", NULL, kbd_devno);
 	sysinfo_set_item_val("kbd.inr", NULL, kbd_inr);
-	
+#ifdef KBD_LEGACY
+	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
+#endif	
 	sysinfo_set_item_val("mouse", NULL, true);
 	sysinfo_set_item_val("mouse.devno", NULL, mouse_devno);
 	sysinfo_set_item_val("mouse.inr", NULL, mouse_inr);

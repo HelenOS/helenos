@@ -114,6 +114,10 @@ void ipi_broadcast_arch(int ipi )
 
 void smp_init(void)
 {
+	if(!bootinfo->hello_configured) return; 
+	//If we have not system prepared by hello, we are not able to start AP's
+	//this means we are running on simulator
+	
 	sapic_init();
 	ipi_broadcast_arch_all(bootinfo->wakeup_intno);	
 	volatile long long brk;
