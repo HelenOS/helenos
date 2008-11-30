@@ -63,10 +63,12 @@
 #include <sysinfo/sysinfo.h>
 
 /*NS16550 as a COM 1*/
-#define NS16550_IRQ 4
+#define NS16550_IRQ (4+LAGACY_INTERRUPT_BASE)
 #define NS16550_PORT 0x3f8
 
 bootinfo_t *bootinfo;
+
+static uint64_t iosapic_base=0xfec00000;
 
 void arch_pre_main(void)
 {
@@ -111,10 +113,36 @@ void arch_pre_mm_init(void)
 	
 }
 
+static void iosapic_init(void)
+{
+
+	uint64_t IOSAPIC = PA2KA((unative_t)(iosapic_base))|FW_OFFSET;
+	int i;
+	
+	
+	for(i=0;i<16;i++)
+	{
+	
+		if(i==2) continue;	 //Disable Cascade interrupt
+		((uint32_t*)(IOSAPIC+0x00))[0]=0x10+2*i;
+		srlz_d();
+		((uint32_t*)(IOSAPIC+0x10))[0]=LAGACY_INTERRUPT_BASE+i;
+		srlz_d();
+		((uint32_t*)(IOSAPIC+0x00))[0]=0x10+2*i+1;
+		srlz_d();
+		((uint32_t*)(IOSAPIC+0x10))[0]=1<<(56-32);
+		srlz_d();
+	}
+
+}
+
+
 void arch_post_mm_init(void)
 {
 	if(config.cpu_active==1)
 	{
+		iosapic_init();
+	
 		irq_init(INR_COUNT, INR_COUNT);
 #ifdef SKI
 		ski_init_console();
@@ -122,7 +150,8 @@ void arch_post_mm_init(void)
 		ega_init();
 #endif	
 	}
-	it_init();	
+	it_init();
+		
 }
 
 void arch_post_cpu_init(void)
@@ -142,12 +171,21 @@ static void i8042_kkbdpoll(void *arg)
 	while (1) {
 		i8042_poll();
 #ifdef CONFIG_NS16550
+	#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
 		ns16550_poll();
+	#endif	
 #endif
 		thread_usleep(POLL_INTERVAL);
 	}
 }
 #endif
+
+
+static void end_of_irq_void(void *cir_arg __attribute__((unused)),inr_t inr __attribute__((unused)))
+{
+	return;
+}
+
 
 void arch_post_smp_init(void)
 {
@@ -171,7 +209,7 @@ void arch_post_smp_init(void)
 		i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 
 #ifdef CONFIG_NS16550
-		ns16550_init(kbd, NS16550_IRQ, NS16550_PORT); // as a COM 1
+		ns16550_init(kbd, NS16550_IRQ, NS16550_PORT,end_of_irq_void,NULL); // as a COM 1
 #else
 #endif
 		thread_t *t;
@@ -187,6 +225,10 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
+
+
+
+
 
 }
 
@@ -237,6 +279,12 @@ void arch_grab_console(void)
 {
 #ifdef SKI
 	ski_kbd_grab();
+#else
+	i8042_grab();
+	#ifdef CONFIG_NS16550
+		ns16550_grab();
+	#endif	
+		
 #endif	
 }
 /** Return console to userspace
@@ -246,6 +294,12 @@ void arch_release_console(void)
 {
 #ifdef SKI
 	ski_kbd_release();
+	i8042_release();
+#else	
+	#ifdef CONFIG_NS16550
+		ns16550_release();
+	#endif	
+
 #endif
 }
 

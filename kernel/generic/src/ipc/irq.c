@@ -100,7 +100,7 @@ static void code_execute(call_t *call, irq_code_t *code)
 			*((uint64_t *) code->cmds[i].addr) =
 			    code->cmds[i].value;
 			break;
-#if defined(ia32) || defined(amd64)
+#if defined(ia32) || defined(amd64) || defined(ia64)
 		case CMD_PORT_READ_1:
 			dstval = inb((long) code->cmds[i].addr);
 			break;

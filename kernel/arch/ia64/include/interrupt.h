@@ -56,6 +56,7 @@
 #define IRQ_KBD			241
 #define IRQ_MOUSE		252
 #define INTERRUPT_SPURIOUS	15
+#define LAGACY_INTERRUPT_BASE	0x20
 
 /** General Exception codes. */
 #define GE_ILLEGALOP		0
@@ -151,6 +152,7 @@ extern void universal_handler(uint64_t vector, istate_t *istate);
 extern void nop_handler(uint64_t vector, istate_t *istate);
 extern void external_interrupt(uint64_t vector, istate_t *istate);
 extern void disabled_fp_register(uint64_t vector, istate_t *istate);
+
 
 #endif
 

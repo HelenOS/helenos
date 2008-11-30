@@ -44,6 +44,7 @@
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
+#include <drivers/kbd.h>
 
 #define SKI_KBD_INR	0
 
@@ -227,6 +228,7 @@ void ski_init_console(void)
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, SKI_KBD_INR);
 	sysinfo_set_item_val("kbd.devno", NULL, ski_kbd_devno);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
 }
 
 void ski_kbd_grab(void)

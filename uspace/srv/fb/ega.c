@@ -64,8 +64,11 @@ saved_screen saved_screens[MAX_SAVED_SCREENS];
 #define EGA_IO_ADDRESS 0x3d4
 #define EGA_IO_SIZE 2
 
-#define NORMAL_COLOR       0x0f
-#define INVERTED_COLOR     0xf0
+int ega_normal_color=0x0f;
+int ega_inverted_color=0xf0;
+
+#define NORMAL_COLOR		ega_normal_color       
+#define INVERTED_COLOR		ega_inverted_color
 
 #define EGA_STYLE(fg,bg) ((fg) > (bg) ? NORMAL_COLOR : INVERTED_COLOR)
 
@@ -76,7 +79,7 @@ static unsigned int scr_width;
 static unsigned int scr_height;
 static char *scr_addr;
 
-static unsigned int style = NORMAL_COLOR;
+static unsigned int style;
 
 static void clrscr(void)
 {
@@ -312,6 +315,13 @@ int ega_init(void)
 	ega_ph_addr = (void *) sysinfo_value("fb.address.physical");
 	scr_width = sysinfo_value("fb.width");
 	scr_height = sysinfo_value("fb.height");
+	if(sysinfo_value("fb.blinking"))
+	{
+			ega_normal_color&=0x77;
+			ega_inverted_color&=0x77;
+	}
+	style = NORMAL_COLOR;
+
 	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
 
 	sz = scr_width * scr_height * 2;

@@ -38,8 +38,8 @@
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
-#ifndef ia64
 #include <arch/drivers/kbd.h>
+#ifndef ia64
 #include <arch/drivers/ns16550.h>
 #endif
 #include <ddi/irq.h>
@@ -130,14 +130,18 @@ ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 	ns16550_irq.cir = cir;
 	ns16550_irq.cir_arg = cir_arg;
 	irq_register(&ns16550_irq);
+
+
+	while ((ns16550_lsr_read(&ns16550) & LSR_DATA_READY)) 
+		ns16550_rbr_read(&ns16550);
+
 	
 	sysinfo_set_item_val("kbd", NULL, true);
-#ifndef ia64
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
-#endif
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
+	sysinfo_set_item_val("kbd.port", NULL, port);
 
 #ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
 	/* Enable interrupts */
@@ -147,6 +151,7 @@ ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 
 #ifdef ia64
     	uint8_t c;
+    	// This switches rbr & ier to mode when accept baudrate constant
     	c = ns16550_lcr_read(&ns16550);
     	ns16550_lcr_write(&ns16550, 0x80 | c);
     	ns16550_rbr_write(&ns16550, 0x0c);

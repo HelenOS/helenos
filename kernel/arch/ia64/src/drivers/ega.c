@@ -94,6 +94,7 @@ void ega_init(void)
 	sysinfo_set_item_val("fb.kind", NULL, 2);
 	sysinfo_set_item_val("fb.width", NULL, ROW);
 	sysinfo_set_item_val("fb.height", NULL, ROWS);
+	sysinfo_set_item_val("fb.blinking", NULL, true);
 	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM & 0xffffffff);
 	
 #ifndef CONFIG_FB

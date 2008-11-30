@@ -235,7 +235,7 @@ void universal_handler(uint64_t vector, istate_t *istate)
 	    vector_to_string(vector));
 }
 
-static void end_of_local_irq()
+static void end_of_local_irq(void)
 {
 	asm volatile ("mov cr.eoi=r0;;");
 }
@@ -243,17 +243,11 @@ static void end_of_local_irq()
 
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
-	irq_t *irq;
 	cr_ivr_t ivr;
 	
 	ivr.value = ivr_read();
 	srlz_d();
 
-	irq = irq_dispatch_and_lock(ivr.vector);
-	if (irq) {
-		irq->handler(irq, irq->arg);
-		spinlock_unlock(&irq->lock);
-	} else {
 		switch (ivr.vector) {
 		case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
@@ -270,11 +264,39 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 
 
 		default:
-			panic("\nUnhandled External Interrupt Vector %d\n",
-			    ivr.vector);
+			{
+
+				int ack=false;
+				irq_t *irq = irq_dispatch_and_lock(ivr.vector);
+				if (irq) {
+					/*
+					 * The IRQ handler was found.
+					 */
+		 
+					if (irq->preack) {
+						/* Send EOI before processing the interrupt */
+						end_of_local_irq();
+						ack=true;
+					}
+					irq->handler(irq, irq->arg);
+					spinlock_unlock(&irq->lock);
+				} else {
+					/*
+					 * Unhandled interrupt.
+					 */
+					end_of_local_irq();
+					ack=true;
+#ifdef CONFIG_DEBUG
+					printf("\nUnhandled External Interrupt Vector %d\n",ivr.vector);
+#endif
+				}
+				if(!ack) end_of_local_irq();
+
+			}	
+
+
 			break;
 		}
-	}
 }
 
 /** @}
