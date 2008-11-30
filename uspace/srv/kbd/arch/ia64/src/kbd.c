@@ -183,6 +183,7 @@ int kbd_ns16550_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	}
 
 	if(scan_code==0x0d) return 1;	//Delete CR
+	if(scan_code==0x7f) scan_code='\b';	//Convert backspace
 
 	if(scan_code == 0x7e) {
 		switch (buf) {
