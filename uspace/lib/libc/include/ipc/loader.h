@@ -44,7 +44,7 @@ typedef enum {
 	LOADER_SET_ARGS,
 	LOADER_LOAD,
 	LOADER_RUN
-} fb_request_t;
+} loader_request_t;
 
 #endif
 
