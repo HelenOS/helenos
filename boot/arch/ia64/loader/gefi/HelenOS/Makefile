@@ -28,7 +28,8 @@ CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
 CRTOBJS		= ../gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT	= ../gnuefi/elf_$(ARCH)_efi.lds
 LDFLAGS		+= -T $(LDSCRIPT) -shared -Bsymbolic -L../lib -L../gnuefi $(CRTOBJS)
-LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
+#LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
+LOADLIBES	= -lefi -lgnuefi
 FORMAT		= efi-app-$(ARCH)
 
 
@@ -46,13 +47,16 @@ hello.efi: hello.so
 	$(OBJDUMP) -d hello.efi > hello.disass  
 
 #When selected first lines or second lines, select if image is linked into hello or not - usefull for network boot
-#hello.so: hello.o image.o 
+#hello.so: hello.o image.o division.o
 hello.so: hello.o image.bin
-#	$(LD) $(LDFLAGS) -Map hello.map hello.o image.o -o hello.so $(LOADLIBES) #link image inside hello
-	$(LD) $(LDFLAGS) -Map hello.map hello.o -o hello.so $(LOADLIBES) #dont link image inside hello
+#	$(LD) $(LDFLAGS) -Map hello.map hello.o division.o image.o -o hello.so $(LOADLIBES) #link image inside hello
+	$(LD) $(LDFLAGS) -Map hello.map hello.o division.o -o hello.so $(LOADLIBES) #dont link image inside hello
 
 hello.o: hello.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c hello.c -o hello.o
+
+division.o: division.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c division.c -o division.o
 
 
 image.bin: ../../image.boot 
