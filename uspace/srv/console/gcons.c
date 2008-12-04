@@ -250,15 +250,15 @@ int btn_pressed, btn_x, btn_y;
  */
 void gcons_mouse_move(int dx, int dy)
 {
-	mouse_x = limit(mouse_x+dx, 0, xres);
-	mouse_y = limit(mouse_y+dy, 0, yres);
+	mouse_x = limit(mouse_x + dx, 0, xres);
+	mouse_y = limit(mouse_y + dy, 0, yres);
 
 	async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
 static int gcons_find_conbut(int x, int y)
 {
-	int status_start = STATUS_START + (xres - 800) / 2;;
+	int status_start = STATUS_START + (xres - 800) / 2;
 
 	if (y < STATUS_TOP || y >= STATUS_TOP + STATUS_HEIGHT)
 		return -1;
@@ -268,10 +268,10 @@ static int gcons_find_conbut(int x, int y)
 	
 	if (x >= status_start + (STATUS_WIDTH + STATUS_SPACE) * CONSOLE_COUNT)
 		return -1;
-	if (((x - status_start) % (STATUS_WIDTH+STATUS_SPACE)) < STATUS_SPACE)
+	if (((x - status_start) % (STATUS_WIDTH + STATUS_SPACE)) < STATUS_SPACE)
 		return -1;
 	
-	return (x - status_start) / (STATUS_WIDTH+STATUS_SPACE);
+	return (x - status_start) / (STATUS_WIDTH + STATUS_SPACE);
 }
 
 /** Handle mouse click

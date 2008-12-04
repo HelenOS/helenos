@@ -39,12 +39,18 @@
 #include <kernel/syscall/syscall.h>
 #include <libarch/syscall.h>
 
-#define __SYSCALL0(id) __syscall0(0, 0, 0, 0, 0, 0, id)
-#define __SYSCALL1(id, p1) __syscall1(p1, 0, 0, 0, 0, 0, id)
-#define __SYSCALL2(id, p1, p2) __syscall2(p1, p2, 0, 0, 0, 0, id)
-#define __SYSCALL3(id, p1, p2, p3) __syscall3(p1, p2, p3, 0, 0, 0, id)
-#define __SYSCALL4(id, p1, p2, p3, p4) __syscall4(p1, p2, p3, p4, 0, 0, id)
-#define __SYSCALL5(id, p1, p2, p3, p4, p5) __syscall5(p1, p2, p3, p4, p5, 0, id)
+#define __SYSCALL0(id) \
+	__syscall0(0, 0, 0, 0, 0, 0, id)
+#define __SYSCALL1(id, p1) \
+	__syscall1(p1, 0, 0, 0, 0, 0, id)
+#define __SYSCALL2(id, p1, p2) \
+	__syscall2(p1, p2, 0, 0, 0, 0, id)
+#define __SYSCALL3(id, p1, p2, p3) \
+	__syscall3(p1, p2, p3, 0, 0, 0, id)
+#define __SYSCALL4(id, p1, p2, p3, p4) \
+	__syscall4(p1, p2, p3, p4, 0, 0, id)
+#define __SYSCALL5(id, p1, p2, p3, p4, p5) \
+	__syscall5(p1, p2, p3, p4, p5, 0, id)
 #define __SYSCALL6(id, p1, p2, p3, p4, p5, p6) \
     __syscall6(p1, p2, p3, p4, p5, p6, id)
 
