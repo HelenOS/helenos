@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
 	console_wait();
 	version_print();
 	
+	spawn("/app/klog");
 	spawn("/app/bdsh");
 	
 	return 0;
