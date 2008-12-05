@@ -47,25 +47,25 @@ typedef void (*entry_point_t)(void);
  * arguments, environment variables etc.
  */
 typedef struct {
-	/** Program entry point */
+	/** Program entry point. */
 	entry_point_t entry;
 
-	/** Number of command-line arguments */
+	/** Number of command-line arguments. */
 	int argc;
-	/** Command-line arguments */
+	/** Command-line arguments. */
 	char **argv;
 
 	/*
-	 * ELF-specific data
+	 * ELF-specific data.
 	 */
-	/** Pointer to ELF dynamic section of the program */
+	/** Pointer to ELF dynamic section of the program. */
 	void *dynamic;
-	/** Pointer to dynamic section of the runtime linker */
-	void *rtld_dynamic;
-	/** Runtime-linker load bias */
-	uintptr_t rtld_bias;
 } pcb_t;
 
+/**
+ * A pointer to the program control block. Having received the PCB pointer,
+ * the C library startup code stores it here for later use.
+ */
 extern pcb_t *__pcb;
 
 #endif

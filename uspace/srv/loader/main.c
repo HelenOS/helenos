@@ -59,12 +59,6 @@
 #include <elf.h>
 #include <elf_load.h>
 
-/** 
- * Bias used for loading the dynamic linker. This will be soon replaced
- * by automatic placement.
- */
-#define RTLD_BIAS 0x80000
-
 /** Pathname of the file that will be loaded */
 static char *pathname = NULL;
 
@@ -229,16 +223,13 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 
-//	printf("Load program '%s'\n", pathname);
-
 	rc = elf_load_file(pathname, 0, &prog_info);
 	if (rc < 0) {
-		printf("failed to load program\n");
+		printf("Failed to load executable '%s'.\n", pathname);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
 
-//	printf("Create PCB\n");
 	elf_create_pcb(&prog_info, &pcb);
 
 	pcb.argc = argc;
@@ -246,26 +237,17 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
-//		printf("Run statically linked program\n");
-//		printf("entry point: 0x%lx\n", prog_info.entry);
 		is_dyn_linked = false;
 		ipc_answer_0(rid, EOK);
 		return 0;
 	}
 
-	printf("Load dynamic linker '%s'\n", prog_info.interp);
-	rc = elf_load_file("/rtld.so", RTLD_BIAS, &interp_info);
+	rc = elf_load_file(prog_info.interp, 0, &interp_info);
 	if (rc < 0) {
-		printf("failed to load dynamic linker\n");
+		printf("Failed to load interpreter '%s.'\n", prog_info.interp);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
-
-	/*
-	 * Provide dynamic linker with some useful data
-	 */
-	pcb.rtld_dynamic = interp_info.dynamic;
-	pcb.rtld_bias = RTLD_BIAS;
 
 	is_dyn_linked = true;
 	ipc_answer_0(rid, EOK);
