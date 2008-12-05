@@ -59,8 +59,13 @@
 union frame_address {
 	uintptr_t address;
 	struct {
+#if defined (US)
 		unsigned : 23;
 		uint64_t pfn : 28;		/**< Physical Frame Number. */
+#elif defined (US3)
+		unsigned : 21;
+		uint64_t pfn : 30;		/**< Physical Frame Number. */
+#endif
 		unsigned offset : 13;		/**< Offset. */
 	} __attribute__ ((packed));
 };

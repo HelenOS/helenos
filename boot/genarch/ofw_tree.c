@@ -121,7 +121,6 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		memcpy(current_node->da_name, &path[i], len);
 		current_node->da_name[len] = '\0';
 	
-	
 		/*
 		 * Recursively process the potential child node.
 		 */
@@ -219,10 +218,28 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 ofw_tree_node_t *ofw_tree_build(void)
 {
 	ofw_tree_node_t *root;
+	phandle ssm_node;
+	ofw_tree_node_t *ssm;
 	
 	root = ofw_tree_node_alloc();
 	if (root)
 		ofw_tree_node_process(root, NULL, ofw_root);
+
+	/*
+	 * The firmware client interface does not automatically include the
+	 * "ssm" node in the list of children of "/". A nasty yet working
+	 * solution is to explicitly stick "ssm" to the OFW tree.
+	 */
+	ssm_node = ofw_find_device("/ssm@0,0");
+	if (ssm_node != -1) {
+		ssm = ofw_tree_node_alloc();
+		if (ssm) {
+			ofw_tree_node_process(
+				ssm, root, ofw_find_device("/ssm@0,0"));
+			ssm->peer = root->child;
+			root->child = ssm;
+		}
+	}
 	
 	return root;
 }

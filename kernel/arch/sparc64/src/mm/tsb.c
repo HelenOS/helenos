@@ -112,9 +112,9 @@ void itsb_pte_copy(pte_t *t, index_t index)
 	tsb->data.value = 0;
 	tsb->data.size = PAGESIZE_8K;
 	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
-	tsb->data.cp = t->c;
-	tsb->data.p = t->k;		/* p as privileged */
-	tsb->data.v = t->p;
+	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
+	tsb->data.p = t->k;	/* p as privileged, k as kernel */
+	tsb->data.v = t->p;	/* v as valid, p as present */
 	
 	write_barrier();
 	
@@ -173,3 +173,4 @@ void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
 
 /** @}
  */
+

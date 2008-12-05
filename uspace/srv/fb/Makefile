@@ -65,8 +65,14 @@ ifeq ($(ARCH), amd64)
 	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), mips32)
-	SOURCES += msim.c
+	SOURCES += msim.c \
+                   serial_console.c
 	CFLAGS += -DMSIM_ENABLED -DFB_INVERT_ENDIAN
+endif
+ifeq ($(ARCH), sparc64)
+	SOURCES += sgcn.c \
+	           serial_console.c
+	CFLAGS += -DSGCN_ENABLED
 endif
 
 CFLAGS += -D$(ARCH)

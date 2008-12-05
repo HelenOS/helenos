@@ -28,6 +28,14 @@
 
 TMP = distroot
 
+ifeq ($(CONFIG_AOUT_ISOFS_B),n)
+	SILO_PACKAGE=silo.patched.tar.gz
+endif
+
+ifeq ($(CONFIG_AOUT_ISOFS_B),y)
+	SILO_PACKAGE=silo.tar.gz
+endif
+
 build: $(BASE)/image.iso
 
 ifeq ($(CONFIG_RD_EXTERNAL),y)
@@ -39,7 +47,7 @@ endif
 $(BASE)/image.iso: depend arch/$(ARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/HelenOS
-	cat arch/$(ARCH)/silo/silo.tar.gz | (cd $(TMP)/boot; tar xvfz -)
+	cat arch/$(ARCH)/silo/$(SILO_PACKAGE) | (cd $(TMP)/boot; tar xvfz -)
 	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING $(TMP)/boot
 	cat arch/$(ARCH)/silo/silo.conf | $(SILO_CONF_FILTER) >$(TMP)/boot/silo.conf
 	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot

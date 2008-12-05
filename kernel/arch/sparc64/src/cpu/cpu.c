@@ -32,11 +32,45 @@
 /** @file
  */
 
+#include <arch/cpu_family.h>
 #include <cpu.h>
 #include <arch.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/drivers/tick.h>
 #include <print.h>
+#include <arch/cpu_node.h>
+
+/**
+ * Finds out the clock frequency of the current CPU.
+ *
+ * @param node	node representing the current CPU in the OFW tree
+ * @return 	clock frequency if "node" is the current CPU and no error
+ *		occurs,	-1 if "node" is not the current CPU or on error
+ */
+static int find_cpu_frequency(ofw_tree_node_t *node)
+{
+	ofw_tree_property_t *prop;
+	uint32_t mid;
+
+	/* 'upa-portid' for US, 'portid' for US-III, 'cpuid' for US-IV */
+	prop = ofw_tree_getprop(node, "upa-portid");
+	if ((!prop) || (!prop->value))
+		prop = ofw_tree_getprop(node, "portid");
+	if ((!prop) || (!prop->value))
+		prop = ofw_tree_getprop(node, "cpuid");
+	
+	if (prop && prop->value) {
+		mid = *((uint32_t *) prop->value);
+		if (mid == CPU->arch.mid) {
+			prop = ofw_tree_getprop(node, "clock-frequency");
+			if (prop && prop->value) {
+				return *((uint32_t *) prop->value);
+			}
+		}
+	}
+	
+	return -1;
+}
 
 /** Perform sparc64 specific initialization of the processor structure for the
  * current processor.
@@ -44,34 +78,37 @@
 void cpu_arch_init(void)
 {
 	ofw_tree_node_t *node;
-	uint32_t mid;
 	uint32_t clock_frequency = 0;
-	upa_config_t upa_config;
 	
-	upa_config.value = upa_config_read();
-	CPU->arch.mid = upa_config.mid;
+	CPU->arch.mid = read_mid();
 	
 	/*
 	 * Detect processor frequency.
 	 */
-	node = ofw_tree_find_child_by_device_type(ofw_tree_lookup("/"), "cpu");
-	while (node) {
-		ofw_tree_property_t *prop;
-		
-		prop = ofw_tree_getprop(node, "upa-portid");
-		if (prop && prop->value) {
-			mid = *((uint32_t *) prop->value);
-			if (mid == CPU->arch.mid) {
-				prop = ofw_tree_getprop(node,
-				    "clock-frequency");
-				if (prop && prop->value)
-					clock_frequency = *((uint32_t *)
-					    prop->value);
-			}
+	if (is_us() || is_us_iii()) { 
+		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");
+		while (node) {
+			int f = find_cpu_frequency(node);
+			if (f != -1) 
+				clock_frequency = (uint32_t) f;
+			node = ofw_tree_find_peer_by_device_type(node, "cpu");
 		}
-		node = ofw_tree_find_peer_by_device_type(node, "cpu");
+	} else if (is_us_iv()) {
+		node = ofw_tree_find_child(cpus_parent(), "cmp");
+		while (node) {
+			int f;
+			f = find_cpu_frequency(
+				ofw_tree_find_child(node, "cpu@0"));
+			if (f != -1) 
+				clock_frequency = (uint32_t) f;
+			f = find_cpu_frequency(
+				ofw_tree_find_child(node, "cpu@1"));
+			if (f != -1) 
+				clock_frequency = (uint32_t) f;
+			node = ofw_tree_find_peer_by_name(node, "cmp");
+		}
 	}
-
+		
 	CPU->arch.clock_frequency = clock_frequency;
 	tick_init();
 }
@@ -123,6 +160,15 @@ void cpu_print_report(cpu_t *m)
 		break;
 	case IMPL_ULTRASPARCIII:
 		impl = "UltraSPARC III";
+		break;
+	case IMPL_ULTRASPARCIII_PLUS:
+		impl = "UltraSPARC III+";
+		break;
+	case IMPL_ULTRASPARCIII_I:
+		impl = "UltraSPARC IIIi";
+		break;
+	case IMPL_ULTRASPARCIV:
+		impl = "UltraSPARC IV";
 		break;
 	case IMPL_ULTRASPARCIV_PLUS:
 		impl = "UltraSPARC IV+";

@@ -86,7 +86,15 @@ void arch_post_mm_init(void)
 	console_init(device_assign_devno());
 
 #ifdef CONFIG_FB
-	fb_init(machine_get_fb_address(), 640, 480, 1920, VISUAL_RGB_8_8_8);
+	fb_properties_t prop = {
+		.addr = machine_get_fb_address(),
+		.offset = 0,
+		.x = 640,
+		.y = 480,
+		.scan = 1920,
+		.visual = VISUAL_RGB_8_8_8,
+	};
+	fb_init(&prop);
 #endif
 }
 

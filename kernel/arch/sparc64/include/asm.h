@@ -136,6 +136,28 @@ static inline void tick_compare_write(uint64_t v)
 	asm volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
 }
 
+/** Read STICK_compare Register.
+ *
+ * @return Value of STICK_compare register.
+ */
+static inline uint64_t stick_compare_read(void)
+{
+	uint64_t v;
+	
+	asm volatile ("rd %%asr25, %0\n" : "=r" (v));
+	
+	return v;
+}
+
+/** Write STICK_compare Register.
+ *
+ * @param v New value of STICK_comapre register.
+ */
+static inline void stick_compare_write(uint64_t v)
+{
+	asm volatile ("wr %0, %1, %%asr25\n" : : "r" (v), "i" (0));
+}
+
 /** Read TICK Register.
  *
  * @return Value of TICK register.
@@ -405,15 +427,6 @@ static inline void nucleus_enter(void)
 static inline void nucleus_leave(void)
 {
 	asm volatile ("wrpr %g0, %g0, %tl\n");
-}
-
-/** Read UPA_CONFIG register.
- *
- * @return Value of the UPA_CONFIG register.
- */
-static inline uint64_t upa_config_read(void)
-{
-	return asi_u64_read(ASI_UPA_CONFIG, 0);
 }
 
 extern void cpu_halt(void);

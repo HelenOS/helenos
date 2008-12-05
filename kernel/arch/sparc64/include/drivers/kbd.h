@@ -41,7 +41,8 @@
 typedef enum {
 	KBD_UNKNOWN,
 	KBD_Z8530,
-	KBD_NS16550
+	KBD_NS16550,
+	KBD_SGCN
 } kbd_type_t;
 
 extern kbd_type_t kbd_type;

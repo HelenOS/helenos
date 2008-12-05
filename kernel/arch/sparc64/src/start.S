@@ -27,6 +27,7 @@
 #
 
 #include <arch/arch.h>
+#include <arch/cpu.h>
 #include <arch/regdef.h>
 #include <arch/boot/boot.h>
 #include <arch/stack.h>
@@ -45,6 +46,16 @@
 .section K_TEXT_START, "ax"
 
 #define BSP_FLAG	1
+
+/*
+ * 2^PHYSMEM_ADDR_SIZE is the size of the physical address space on
+ * a given processor.
+ */
+#if defined (US)
+    #define PHYSMEM_ADDR_SIZE	41
+#elif defined (US3)
+    #define PHYSMEM_ADDR_SIZE	43
+#endif
 
 /*
  * Here is where the kernel is passed control from the boot loader.
@@ -67,10 +78,12 @@ kernel_image_start:
 	and %o0, %l0, %l7			! l7 <= bootstrap processor?
 	andn %o0, %l0, %l6			! l6 <= start of physical memory
 
-	! Get bits 40:13 of physmem_base.
+	! Get bits (PHYSMEM_ADDR_SIZE - 1):13 of physmem_base.
 	srlx %l6, 13, %l5
-	sllx %l5, 13 + (63 - 40), %l5
-	srlx %l5, 63 - 40, %l5			! l5 <= physmem_base[40:13]
+	
+	! l5 <= physmem_base[(PHYSMEM_ADDR_SIZE - 1):13]
+	sllx %l5, 13 + (63 - (PHYSMEM_ADDR_SIZE - 1)), %l5
+	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5	
 	
 	/*
 	 * Setup basic runtime environment.
@@ -83,6 +96,8 @@ kernel_image_start:
 						! consistent
 	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window
 						! traps for kernel
+						
+	wrpr %g0, 0, %wstate			! use default spill/fill trap
 
 	wrpr %g0, 0, %tl			! TL = 0, primary context
 						! register is used
@@ -244,7 +259,8 @@ kernel_image_start:
 
 	/*
 	 * Precompute kernel 8K TLB data template.
-	 * %l5 contains starting physical address bits [40:13]
+	 * %l5 contains starting physical address
+	 * bits [(PHYSMEM_ADDR_SIZE - 1):13]
 	 */
 	sethi %hi(kernel_8k_tlb_data_template), %l4
 	ldx [%l4 + %lo(kernel_8k_tlb_data_template)], %l3
@@ -282,15 +298,32 @@ kernel_image_start:
 	nop
 
 
+1:
+#ifdef CONFIG_SMP
+	/*
+	 * Determine the width of the MID and save its mask to %g3. The width
+	 * is
+	 * 	* 5 for US and US-IIIi,
+	 * 	* 10 for US3 except US-IIIi.
+	 */
+#if defined(US)
+	mov 0x1f, %g3
+#elif defined(US3)
+	mov 0x3ff, %g3
+	rdpr %ver, %g2
+	sllx %g2, 16, %g2
+	srlx %g2, 48, %g2
+	cmp %g2, IMPL_ULTRASPARCIII_I
+	move %xcc, 0x1f, %g3
+#endif
+
 	/*
 	 * Read MID from the processor.
 	 */
-1:
-	ldxa [%g0] ASI_UPA_CONFIG, %g1
-	srlx %g1, UPA_CONFIG_MID_SHIFT, %g1
-	and %g1, UPA_CONFIG_MID_MASK, %g1
+	ldxa [%g0] ASI_ICBUS_CONFIG, %g1
+	srlx %g1, ICBUS_CONFIG_MID_SHIFT, %g1
+	and %g1, %g3, %g1
 
-#ifdef CONFIG_SMP
 	/*
 	 * Active loop for APs until the BSP picks them up. A processor cannot
 	 * leave the loop until the global variable 'waking_up_mid' equals its

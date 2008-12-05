@@ -54,12 +54,14 @@ void ofw_tree_init(ofw_tree_node_t *root)
 
 /** Get OpenFirmware node property.
  *
- * @param node Node in which to lookup the property.
- * @param name Name of the property.
+ * @param node		Node in which to lookup the property.
+ * @param name		Name of the property.
  *
- * @return Pointer to the property structure or NULL if no such property.
+ * @return		Pointer to the property structure or NULL if no such
+ * 			property.
  */
-ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *name)
+ofw_tree_property_t *
+ofw_tree_getprop(const ofw_tree_node_t *node, const char *name)
 {
 	unsigned int i;
 	
@@ -73,9 +75,9 @@ ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node, const char *n
 
 /** Return value of the 'name' property.
  *
- * @param node Node of interest.
+ * @param node		Node of interest.
  *
- * @return Value of the 'name' property belonging to the node.
+ * @return		Value of the 'name' property belonging to the node.
  */
 const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 {
@@ -93,10 +95,11 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 
 /** Lookup child of given name.
  *
- * @param node Node whose child is being looked up.
- * @param name Name of the child being looked up.
+ * @param node		Node whose child is being looked up.
+ * @param name		Name of the child being looked up.
  *
- * @return NULL if there is no such child or pointer to the matching child node.
+ * @return		NULL if there is no such child or pointer to the
+ * 			matching child node.
  */
 ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 {
@@ -127,12 +130,14 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 
 /** Lookup first child of given device type.
  *
- * @param node Node whose child is being looked up.
- * @param name Device type of the child being looked up.
+ * @param node		Node whose child is being looked up.
+ * @param name		Device type of the child being looked up.
  *
- * @return NULL if there is no such child or pointer to the matching child node.
+ * @return		NULL if there is no such child or pointer to the
+ * 			matching child node.
  */
-ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const char *name)
+ofw_tree_node_t *
+ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const char *name)
 {
 	ofw_tree_node_t *cur;
 	ofw_tree_property_t *prop;
@@ -153,12 +158,14 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const
  * Child nodes are looked up recursively contrary to peer nodes that
  * are looked up iteratively to avoid stack overflow.
  *
- * @param root Root of the searched subtree.
- * @param handle OpenFirmware handle.
+ * @param root		Root of the searched subtree.
+ * @param handle	OpenFirmware handle.
  *
- * @return NULL if there is no such node or pointer to the matching node.
+ * @return		NULL if there is no such node or pointer to the matching
+ * 			node.
  */
-ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root, uint32_t handle)
+ofw_tree_node_t *
+ofw_tree_find_node_by_handle(ofw_tree_node_t *root, uint32_t handle)
 {
 	ofw_tree_node_t *cur;
 
@@ -180,12 +187,14 @@ ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root, uint32_t ha
 
 /** Lookup first peer of given device type.
  *
- * @param node Node whose peer is being looked up.
- * @param name Device type of the child being looked up.
+ * @param node		Node whose peer is being looked up.
+ * @param name		Device type of the child being looked up.
  *
- * @return NULL if there is no such child or pointer to the matching child node.
+ * @return		NULL if there is no such child or pointer to the
+ * 			matching child node.
  */
-ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const char *name)
+ofw_tree_node_t *
+ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const char *name)
 {
 	ofw_tree_node_t *cur;
 	ofw_tree_property_t *prop;
@@ -202,15 +211,41 @@ ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const 
 }
 
 
+/** Lookup first peer of given name.
+ *
+ * @param node		Node whose peer is being looked up.
+ * @param name		Name of the child being looked up.
+ *
+ * @return		NULL if there is no such peer or pointer to the matching
+ * 			peer node.
+ */
+ofw_tree_node_t *
+ofw_tree_find_peer_by_name(ofw_tree_node_t *node, const char *name)
+{
+	ofw_tree_node_t *cur;
+	ofw_tree_property_t *prop;
+	
+	for (cur = node->peer; cur; cur = cur->peer) {
+		prop = ofw_tree_getprop(cur, "name");
+		if (!prop || !prop->value)
+			continue;
+		if (strcmp(prop->value, name) == 0)
+			return cur;
+	}
+			
+	return NULL;
+}
+
 /** Lookup OpenFirmware node by its path.
  *
- * @param path Path to the node.
+ * @param path		Path to the node.
  *
- * @return NULL if there is no such node or pointer to the leaf node.
+ * @return		NULL if there is no such node or pointer to the leaf
+ * 			node.
  */
 ofw_tree_node_t *ofw_tree_lookup(const char *path)
 {
-	char buf[NAME_BUF_LEN+1];
+	char buf[NAME_BUF_LEN + 1];
 	ofw_tree_node_t *node = ofw_root;
 	index_t i, j;
 	
@@ -236,8 +271,8 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
  * Child nodes are processed recursively and peer nodes are processed
  * iteratively in order to avoid stack overflow.
  *
- * @param node Root of the subtree.
- * @param path Current path, NULL for the very root of the entire tree.
+ * @param node		Root of the subtree.
+ * @param path		Current path, NULL for the very root of the entire tree.
  */
 static void ofw_tree_node_print(const ofw_tree_node_t *node, const char *path)
 {

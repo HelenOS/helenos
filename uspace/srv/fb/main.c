@@ -38,6 +38,7 @@
 #include "fb.h"
 #include "ega.h"
 #include "msim.h"
+#include "sgcn.h"
 #include "main.h"
 
 #define NAME "fb"
@@ -76,6 +77,12 @@ int main(int argc, char *argv[])
 #ifdef MSIM_ENABLED
 	if ((!initialized) && (sysinfo_value("fb.kind") == 3)) {
 		if (msim_init() == 0)
+			initialized = true;
+	}
+#endif
+#ifdef SGCN_ENABLED
+	if ((!initialized) && (sysinfo_value("fb.kind") == 4)) {
+		if (sgcn_init() == 0)
 			initialized = true;
 	}
 #endif

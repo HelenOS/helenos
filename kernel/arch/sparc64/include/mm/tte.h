@@ -50,6 +50,7 @@
 
 #include <arch/types.h>
 
+/* TTE tag's VA_tag field contains bits <63:VA_TAG_PAGE_SHIFT> of the VA */
 #define VA_TAG_PAGE_SHIFT	22
 
 /** Translation Table Entry - Tag. */
@@ -75,8 +76,13 @@ union tte_data {
 		unsigned nfo : 1;	/**< No-Fault-Only. */
 		unsigned ie : 1;	/**< Invert Endianness. */
 		unsigned soft2 : 9;	/**< Software defined field. */
+#if defined (US)
 		unsigned diag : 9;	/**< Diagnostic data. */
 		unsigned pfn : 28;	/**< Physical Address bits, bits 40:13. */
+#elif defined (US3)
+		unsigned : 7;		/**< Reserved. */
+		unsigned pfn : 30;	/**< Physical Address bits, bits 42:13 */
+#endif
 		unsigned soft : 6;	/**< Software defined field. */
 		unsigned l : 1;		/**< Lock. */
 		unsigned cp : 1;	/**< Cacheable in physically indexed cache. */

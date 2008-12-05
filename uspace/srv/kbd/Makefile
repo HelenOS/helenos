@@ -78,15 +78,20 @@ ifeq ($(ARCH), amd64)
 endif
 ifeq ($(ARCH), sparc64)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/scanc.c
+		arch/$(ARCH)/src/scanc.c \
+		arch/$(ARCH)/src/sgcn.c
 	GENARCH_SOURCES = \
-		genarch/src/kbd.c
+		genarch/src/kbd.c \
+		genarch/src/nofb.c
 endif
 ifeq ($(ARCH), arm32)
 	ARCH_SOURCES += \
 		arch/$(ARCH)/src/kbd_gxemul.c
 endif
-
+ifeq ($(ARCH), mips32)
+	GENARCH_SOURCES += \
+	    genarch/src/nofb.c
+endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))

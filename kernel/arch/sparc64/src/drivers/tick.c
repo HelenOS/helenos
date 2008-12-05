@@ -45,17 +45,33 @@
 
 #define TICK_RESTART_TIME	50	/* Worst case estimate. */
 
-/** Initialize tick interrupt. */
+/** Initialize tick and stick interrupt. */
 void tick_init(void)
 {
+	/* initialize TICK interrupt */
 	tick_compare_reg_t compare;
-	
+
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
 	compare.tick_cmpr = CPU->arch.clock_frequency / HZ;
 	CPU->arch.next_tick_cmpr = compare.tick_cmpr;
 	tick_compare_write(compare.value);
 	tick_write(0);
+
+#if defined (US3)
+	/* disable STICK interrupts and clear any pending ones */
+	tick_compare_reg_t stick_compare;
+	softint_reg_t clear;
+
+	stick_compare.value = stick_compare_read();
+	stick_compare.int_dis = true;
+	stick_compare.tick_cmpr = 0;
+	stick_compare_write(stick_compare.value);
+
+	clear.value = 0;
+	clear.stick_int = 1;
+	clear_softint_write(clear.value);
+#endif
 }
 
 /** Process tick interrupt.
@@ -67,7 +83,7 @@ void tick_interrupt(int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
 	uint64_t drift;
-	
+
 	softint.value = softint_read();
 	
 	/*

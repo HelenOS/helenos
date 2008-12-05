@@ -35,8 +35,10 @@
 #ifndef KERN_sparc64_MMU_H_
 #define KERN_sparc64_MMU_H_
 
+#if defined(US)
 /* LSU Control Register ASI. */
 #define ASI_LSU_CONTROL_REG		0x45	/**< Load/Store Unit Control Register. */
+#endif
 
 /* I-MMU ASIs. */
 #define ASI_IMMU			0x50
@@ -52,6 +54,11 @@
 #define VA_IMMU_SFSR			0x18	/**< IMMU sync fault status register. */
 #define VA_IMMU_TSB_BASE		0x28	/**< IMMU TSB base register. */
 #define VA_IMMU_TAG_ACCESS		0x30	/**< IMMU TLB tag access register. */
+#if defined (US3)
+#define VA_IMMU_PRIMARY_EXTENSION	0x48	/**< IMMU TSB primary extension register */
+#define VA_IMMU_NUCLEUS_EXTENSION	0x58	/**< IMMU TSB nucleus extension register */
+#endif
+
 
 /* D-MMU ASIs. */
 #define ASI_DMMU			0x58
@@ -73,6 +80,11 @@
 #define VA_DMMU_TAG_ACCESS		0x30	/**< DMMU TLB tag access register. */
 #define VA_DMMU_VA_WATCHPOINT_REG	0x38	/**< DMMU VA data watchpoint register. */
 #define VA_DMMU_PA_WATCHPOINT_REG	0x40	/**< DMMU PA data watchpoint register. */
+#if defined (US3)
+#define VA_DMMU_PRIMARY_EXTENSION	0x48	/**< DMMU TSB primary extension register */
+#define VA_DMMU_SECONDARY_EXTENSION	0x50	/**< DMMU TSB secondary extension register */
+#define VA_DMMU_NUCLEUS_EXTENSION	0x58	/**< DMMU TSB nucleus extension register */
+#endif
 
 #ifndef __ASM__
 
@@ -80,6 +92,7 @@
 #include <arch/barrier.h>
 #include <arch/types.h>
 
+#if defined(US)
 /** LSU Control Register. */
 typedef union {
 	uint64_t value;
@@ -100,6 +113,7 @@ typedef union {
 		
 	} __attribute__ ((packed));
 } lsu_cr_reg_t;
+#endif /* US */
 
 #endif /* !def __ASM__ */
 

@@ -55,19 +55,25 @@ scr_type_t scr_type = SCR_UNKNOWN;
 void scr_init(ofw_tree_node_t *node)
 {
 	ofw_tree_property_t *prop;
+	ofw_pci_reg_t *pci_reg;
+	ofw_pci_reg_t pci_abs_reg;
+	ofw_upa_reg_t *upa_reg;
+	ofw_sbus_reg_t *sbus_reg;
 	const char *name;
 	
 	name = ofw_tree_node_name(node);
 	
 	if (strcmp(name, "SUNW,m64B") == 0)
 		scr_type = SCR_ATYFB;
+	else if (strcmp(name, "SUNW,XVR-100") == 0)
+		scr_type = SCR_XVR;
 	else if (strcmp(name, "SUNW,ffb") == 0)
 		scr_type = SCR_FFB;
 	else if (strcmp(name, "cgsix") == 0)
 		scr_type = SCR_CGSIX;
 	
 	if (scr_type == SCR_UNKNOWN) {
-		printf("Unknown keyboard device.\n");
+		printf("Unknown screen device.\n");
 		return;
 	}
 	
@@ -106,15 +112,15 @@ void scr_init(ofw_tree_node_t *node)
 			return;
 		}
 	
-		ofw_pci_reg_t *fb_reg = &((ofw_pci_reg_t *) prop->value)[1];
-		ofw_pci_reg_t abs_reg;
+		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
 		
-		if (!ofw_pci_reg_absolutize(node, fb_reg, &abs_reg)) {
+		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
 			printf("Failed to absolutize fb register.\n");
 			return;
 		}
 	
-		if (!ofw_pci_apply_ranges(node->parent, &abs_reg , &fb_addr)) {
+		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
+		    &fb_addr)) {
 			printf("Failed to determine screen address.\n");
 			return;
 		}
@@ -142,12 +148,54 @@ void scr_init(ofw_tree_node_t *node)
 		}
 		
 		break;
+	case SCR_XVR:
+		if (prop->size / sizeof(ofw_pci_reg_t) < 2) {
+			printf("Too few screen registers.\n");
+			return;
+		}
+	
+		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
+		
+		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
+			printf("Failed to absolutize fb register.\n");
+			return;
+		}
+	
+		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
+		    &fb_addr)) {
+			printf("Failed to determine screen address.\n");
+			return;
+		}
+
+		switch (fb_depth) {
+		case 8:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_SB1500_PALETTE;
+			break;
+		case 16:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_5_6_5;
+			break;
+		case 24:
+			fb_scanline = fb_linebytes * 4;
+			visual = VISUAL_RGB_8_8_8_0;
+			break;
+		case 32:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_0_8_8_8;
+			break;
+		default:
+			printf("Unsupported bits per pixel.\n");
+			return;
+		}
+		
+		break;
 	case SCR_FFB:	
 		fb_scanline = 8192;
 		visual = VISUAL_BGR_0_8_8_8;
 
-		ofw_upa_reg_t *reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
-		if (!ofw_upa_apply_ranges(node->parent, reg, &fb_addr)) {
+		upa_reg = &((ofw_upa_reg_t *) prop->value)[FFB_REG_24BPP];
+		if (!ofw_upa_apply_ranges(node->parent, upa_reg, &fb_addr)) {
 			printf("Failed to determine screen address.\n");
 			return;
 		}
@@ -164,8 +212,8 @@ void scr_init(ofw_tree_node_t *node)
 			return;
 		}
 		
-		ofw_sbus_reg_t *cg6_reg = &((ofw_sbus_reg_t *) prop->value)[0];
-		if (!ofw_sbus_apply_ranges(node->parent, cg6_reg, &fb_addr)) {
+		sbus_reg = &((ofw_sbus_reg_t *) prop->value)[0];
+		if (!ofw_sbus_apply_ranges(node->parent, sbus_reg, &fb_addr)) {
 			printf("Failed to determine screen address.\n");
 			return;
 		}
@@ -175,7 +223,15 @@ void scr_init(ofw_tree_node_t *node)
 		panic("Unexpected type.\n");
 	}
 
-	fb_init(fb_addr, fb_width, fb_height, fb_scanline, visual);
+	fb_properties_t props = {
+		.addr = fb_addr,
+		.offset = 0,
+		.x = fb_width,
+		.y = fb_height,
+		.scan = fb_scanline,
+		.visual = visual,
+	};
+	fb_init(&props);
 }
 
 /** @}

@@ -38,8 +38,34 @@
 #include <arch/types.h>
 #include <synch/spinlock.h>
 
+/**
+ * Properties of the framebuffer device.
+ */
+typedef struct fb_properties {
+	/** Physical address of the framebuffer device. */
+	uintptr_t addr;
+
+	/**
+	 * Address where the first (top left) pixel is mapped,
+	 * relative to "addr".
+	 */
+	unsigned int offset;	
+
+	/** Screen width in pixels. */
+	unsigned int x;
+
+	/** Screen height in pixels. */
+	unsigned int y;
+
+	/** Bytes per one scanline. */
+	unsigned int scan;
+
+	/** Color model. */
+	unsigned int visual;
+} fb_properties_t;
+
 SPINLOCK_EXTERN(fb_lock);
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan, unsigned int visual);
+void fb_init(fb_properties_t *props);
 
 #endif
 

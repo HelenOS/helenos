@@ -327,7 +327,6 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case KBD_PUSHCHAR:
 			/* got key from keyboard driver */
-			
 			retval = 0;
 			c = IPC_GET_ARG1(call);
 			/* switch to another virtual console */

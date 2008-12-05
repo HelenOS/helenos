@@ -55,8 +55,11 @@
 #define WSTATE_NORMAL(n)	(n)
 #define WSTATE_OTHER(n)		((n) << 3)
 
-#define UPA_CONFIG_MID_SHIFT    17
-#define UPA_CONFIG_MID_MASK     0x1f
+/*
+ * The following definitions concern the UPA_CONFIG register on US and the
+ * FIREPLANE_CONFIG register on US3. 
+ */
+#define ICBUS_CONFIG_MID_SHIFT    17
 
 #endif
 

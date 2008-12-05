@@ -191,6 +191,26 @@ static void rgb_byte8(void *dst, int rgb)
 	    BLUE(rgb, 3);
 }
 
+static void sb1500rgb_byte8(void *dst, int rgb)
+{
+	if (RED(rgb, 1) && GREEN(rgb, 1) && BLUE(rgb, 1))
+		*((uint8_t *) dst) = 255;
+	else if (RED(rgb, 1) && GREEN(rgb, 1))
+		*((uint8_t *) dst) = 150;
+	else if (GREEN(rgb, 1) && BLUE(rgb, 1))
+		*((uint8_t *) dst) = 47;
+	else if (RED(rgb, 1) && BLUE(rgb, 1))
+		*((uint8_t *) dst) = 48;
+	else if (RED(rgb, 1))
+		*((uint8_t *) dst) = 32;
+	else if (GREEN(rgb, 1))
+		*((uint8_t *) dst) = 47;
+	else if (BLUE(rgb, 1))
+		*((uint8_t *) dst) = 2;
+	else 
+		*((uint8_t *) dst) = 1;
+}
+
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
  *
  * See the comment for rgb_byte().
@@ -436,19 +456,18 @@ static chardev_operations_t fb_ops = {
 
 /** Initialize framebuffer as a chardev output device
  *
- * @param addr   Physical address of the framebuffer
- * @param x      Screen width in pixels
- * @param y      Screen height in pixels
- * @param scan   Bytes per one scanline
- * @param visual Color model
- *
+ * @param props  	Properties of the framebuffer device.
  */
-void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
-    unsigned int visual)
+void fb_init(fb_properties_t *props)
 {
-	switch (visual) {
+	switch (props->visual) {
 	case VISUAL_INDIRECT_8:
 		rgb2scr = rgb_byte8;
+		scr2rgb = byte8_rgb;
+		pixelbytes = 1;
+		break;
+	case VISUAL_SB1500_PALETTE:
+		rgb2scr = sb1500rgb_byte8;
 		scr2rgb = byte8_rgb;
 		pixelbytes = 1;
 		break;
@@ -486,19 +505,20 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
 		panic("Unsupported visual.\n");
 	}
 	
-	unsigned int fbsize = scan * y;
+	unsigned int fbsize = props->scan * props->y + props->offset;
 	
 	/* Map the framebuffer */
-	fbaddress = (uint8_t *) hw_map((uintptr_t) addr, fbsize);
+	fbaddress = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	fbaddress += props->offset;
 	
-	xres = x;
-	yres = y;
-	scanline = scan;
+	xres = props->x;
+	yres = props->y;
+	scanline = props->scan;
 	
-	rows = y / FONT_SCANLINES;
-	columns = x / COL_WIDTH;
+	rows = props->y / FONT_SCANLINES;
+	columns = props->x / COL_WIDTH;
 
-	fb_parea.pbase = (uintptr_t) addr;
+	fb_parea.pbase = (uintptr_t) props->addr;
 	fb_parea.vbase = (uintptr_t) fbaddress;
 	fb_parea.frames = SIZE2FRAMES(fbsize);
 	fb_parea.cacheable = false;
@@ -508,9 +528,9 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
 	sysinfo_set_item_val("fb.kind", NULL, 1);
 	sysinfo_set_item_val("fb.width", NULL, xres);
 	sysinfo_set_item_val("fb.height", NULL, yres);
-	sysinfo_set_item_val("fb.scanline", NULL, scan);
-	sysinfo_set_item_val("fb.visual", NULL, visual);
-	sysinfo_set_item_val("fb.address.physical", NULL, addr);
+	sysinfo_set_item_val("fb.scanline", NULL, props->scan);
+	sysinfo_set_item_val("fb.visual", NULL, props->visual);
+	sysinfo_set_item_val("fb.address.physical", NULL, props->addr);
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */
@@ -524,6 +544,7 @@ void fb_init(uintptr_t addr, unsigned int x, unsigned int y, unsigned int scan,
 	blankline = (uint8_t *) malloc(ROW_BYTES, FRAME_ATOMIC);
 	if (!blankline)
 		panic("Failed to allocate blank line for framebuffer.");
+	unsigned int x, y;
 	for (y = 0; y < FONT_SCANLINES; y++)
 		for (x = 0; x < xres; x++)
 			(*rgb2scr)(&blankline[POINTPOS(x, y)], COLOR(BGCOLOR));

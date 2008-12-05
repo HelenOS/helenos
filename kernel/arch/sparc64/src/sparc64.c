@@ -86,7 +86,7 @@ void arch_post_mm_init(void)
 		 * But we only create 128 buckets.
 		 */
 		irq_init(1 << 11, 128);
-		
+
 		standalone_sparc64_console_init();
 	}
 }

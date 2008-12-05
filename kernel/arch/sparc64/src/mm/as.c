@@ -164,6 +164,24 @@ void as_install_arch(as_t *as)
 	itsb_base_write(tsb_base.value);
 	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
 	dtsb_base_write(tsb_base.value);
+	
+#if defined (US3)
+	/*
+	 * Clear the extension registers.
+	 * In HelenOS, primary and secondary context registers contain
+	 * equal values and kernel misses (context 0, ie. the nucleus context)
+	 * are excluded from the TSB miss handler, so it makes no sense
+	 * to have separate TSBs for primary, secondary and nucleus contexts.
+	 * Clearing the extension registers will ensure that the value of the
+	 * TSB Base register will be used as an address of TSB, making the code
+	 * compatible with the US port. 
+	 */
+	itsb_primary_extension_write(0);
+	itsb_nucleus_extension_write(0);
+	dtsb_primary_extension_write(0);
+	dtsb_secondary_extension_write(0);
+	dtsb_nucleus_extension_write(0);
+#endif
 #endif
 }
 

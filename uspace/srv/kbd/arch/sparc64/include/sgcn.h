@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_MAIN_H_
-#define BOOT_sparc64_MAIN_H_
+/** @addtogroup kbdsparc64 sparc64
+ * @brief	Serengeti-specific parts of uspace keyboard handler.
+ * @ingroup  kbd
+ * @{
+ */ 
+/** @file
+ */
 
-#include <ofw.h>
-#include <ofw_tree.h>
-#include <balloc.h>
-#include <types.h>
+#ifndef KBD_sparc64_SGCN_H_
+#define KBD_sparc64_SGCN_H_
 
-#define KERNEL_VIRTUAL_ADDRESS 0x400000
-
-#define TASKMAP_MAX_RECORDS 32
-
-#define BSP_PROCESSOR	1
-#define AP_PROCESSOR	0
-
-#define SUBARCH_US	1
-#define SUBARCH_US3	3
-
-typedef struct {
-	void *addr;
-	uint32_t size;
-} task_t;
-
-typedef struct {
-	uint32_t count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	uintptr_t physmem_start;
-	taskmap_t taskmap;
-	memmap_t memmap;
-	ballocs_t ballocs;
-	ofw_tree_node_t *ofw_root;
-} bootinfo_t;
-
-extern uint32_t silo_ramdisk_image;
-extern uint32_t silo_ramdisk_size;
-
-extern bootinfo_t bootinfo;
-
-extern void start(void);
-extern void bootstrap(void);
+void sgcn_init(void);
+void sgcn_key_pressed(void);
 
 #endif
+
+/** @}
+ */

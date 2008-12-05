@@ -46,6 +46,33 @@
 #include <time/delay.h>
 #include <panic.h>
 
+/** Set the contents of the outgoing interrupt vector data.
+ *
+ * The first data item (data 0) will be set to the value of func, the
+ * rest of the vector will contain zeros.
+ *
+ * This is a helper function used from within the cross_call function.
+ *
+ * @param func value the first data item of the vector will be set to
+ */
+static inline void set_intr_w_data(void (* func)(void))
+{
+#if defined (US)
+	asi_u64_write(ASI_INTR_W, ASI_UDB_INTR_W_DATA_0, (uintptr_t) func);
+	asi_u64_write(ASI_INTR_W, ASI_UDB_INTR_W_DATA_1, 0);
+	asi_u64_write(ASI_INTR_W, ASI_UDB_INTR_W_DATA_2, 0);
+#elif defined (US3)
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_0, (uintptr_t)	func);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_1, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_2, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_3, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_4, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_5, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_6, 0);
+	asi_u64_write(ASI_INTR_W, VA_INTR_W_DATA_7, 0);
+#endif
+}
+
 /** Invoke function on another processor.
  *
  * Currently, only functions without arguments are supported.
@@ -73,14 +100,13 @@ static void cross_call(int mid, void (* func)(void))
 	if (status & INTR_DISPATCH_STATUS_BUSY)
 		panic("Interrupt Dispatch Status busy bit set\n");
 	
+	ASSERT(!(pstate_read() & PSTATE_IE_BIT));
+	
 	do {
-		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_0,
-		    (uintptr_t)	func);
-		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_1, 0);
-		asi_u64_write(ASI_UDB_INTR_W, ASI_UDB_INTR_W_DATA_2, 0);
-		asi_u64_write(ASI_UDB_INTR_W,
+		set_intr_w_data(func);
+		asi_u64_write(ASI_INTR_W,
 		    (mid << INTR_VEC_DISPATCH_MID_SHIFT) |
-		    ASI_UDB_INTR_W_DISPATCH, 0);
+		    VA_INTR_W_DISPATCH, 0);
 	
 		membar();
 		

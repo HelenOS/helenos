@@ -126,7 +126,15 @@ void arch_post_mm_init(void)
 	console_init(device_assign_devno());
 #ifdef CONFIG_FB
 	/* GXemul framebuffer */
-	fb_init(0x12000000, 640, 480, 1920, VISUAL_RGB_8_8_8);
+	fb_properties_t gxemul_prop = {
+		.addr = 0x12000000,
+		.offset = 0,
+		.x = 640,
+		.y = 480,
+		.scan = 1920,
+		.visual = VISUAL_RGB_8_8_8,
+	};
+	fb_init(&gxemul_prop);
 #endif
 	sysinfo_set_item_val("machine." STRING(MACHINE), NULL, 1);
 }

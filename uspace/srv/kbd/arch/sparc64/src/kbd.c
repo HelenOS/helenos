@@ -35,6 +35,7 @@
  */
 
 #include <arch/kbd.h>
+#include <arch/sgcn.h>
 #include <ipc/ipc.h>
 #include <sysinfo.h>
 #include <kbd.h>
@@ -78,6 +79,7 @@ irq_code_t ns16550_kbd = {
 
 #define KBD_Z8530	1
 #define KBD_NS16550	2
+#define KBD_SGCN	3
 
 int kbd_arch_init(void)
 {
@@ -91,6 +93,9 @@ int kbd_arch_init(void)
 		ns16550_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
 		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ns16550_kbd);
 		break;
+	case KBD_SGCN:
+		sgcn_init();
+		break;
 	default:
 		break;
 	}
@@ -100,6 +105,11 @@ int kbd_arch_init(void)
 /** Process keyboard events */
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
+	if (sysinfo_value("kbd.type") == KBD_SGCN) {
+		sgcn_key_pressed();
+		return 1;
+	}
+	
 	int scan_code = IPC_GET_ARG1(*call);
 
 	if (scan_code == KBD_ALL_KEYS_UP)

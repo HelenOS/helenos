@@ -80,6 +80,18 @@ ifeq ($(CONFIG_SMP),y)
 	DEFS += -DCONFIG_SMP
 endif
 
+ifeq ($(CONFIG_SGCN),y)
+        DEFS += -DCONFIG_SGCN
+endif
+
+ifeq ($(MACHINE),us)
+    DEFS += -DUS
+endif
+
+ifeq ($(MACHINE),us3)
+	DEFS += -DUS3
+endif
+
 ARCH_SOURCES = \
 	arch/$(ARCH)/src/cpu/cpu.c \
 	arch/$(ARCH)/src/asm.S \
@@ -106,7 +118,9 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c \
 	arch/$(ARCH)/src/drivers/scr.c \
-	arch/$(ARCH)/src/drivers/pci.c 
+	arch/$(ARCH)/src/drivers/sgcn.c \
+	arch/$(ARCH)/src/drivers/pci.c
+
 
 ifeq ($(CONFIG_SMP),y)
 ARCH_SOURCES += \

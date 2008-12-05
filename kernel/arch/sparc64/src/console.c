@@ -38,6 +38,8 @@
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
 
+#include <arch/drivers/sgcn.h>
+
 #ifdef CONFIG_Z8530
 #include <genarch/kbd/z8530.h>
 #endif
@@ -54,23 +56,24 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch.h>
 #include <panic.h>
+#include <func.h>
 #include <print.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 
-/** Initialize kernel console to use framebuffer and keyboard directly. */
-void standalone_sparc64_console_init(void)
+/**
+ * Initialize kernel console to use framebuffer and keyboard directly.
+ * Called on UltraSPARC machines with standard keyboard and framebuffer.
+ *
+ * @param aliases	the "/aliases" OBP node 
+ */
+static void standard_console_init(ofw_tree_node_t *aliases)
 {
 	stdin = NULL;
 
-	ofw_tree_node_t *aliases;
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *screen;
 	ofw_tree_node_t *keyboard;
-	
-	aliases = ofw_tree_lookup("/aliases");
-	if (!aliases)
-		panic("Can't find /aliases.\n");
 	
 	prop = ofw_tree_getprop(aliases, "screen");
 	if (!prop)
@@ -94,6 +97,36 @@ void standalone_sparc64_console_init(void)
 
 	kbd_init(keyboard);
 }
+
+/** Initilize I/O on the Serengeti machine. */
+static void serengeti_init(void)
+{
+	sgcn_init();
+}
+
+/**
+ * Initialize input/output. Auto-detects the type of machine
+ * and calls the appropriate I/O init routine. 
+ */
+void standalone_sparc64_console_init(void)
+{
+	ofw_tree_node_t *aliases;
+	ofw_tree_property_t *prop;
+	
+	aliases = ofw_tree_lookup("/aliases");
+	if (!aliases)
+		panic("Can't find /aliases.\n");
+	
+	/* "def-cn" = "default console" */
+	prop = ofw_tree_getprop(aliases, "def-cn");
+	
+	if ((!prop) || (!prop->value) || (strcmp(prop->value, "/sgcn") != 0)) {
+		standard_console_init(aliases);
+	} else {
+		serengeti_init();
+	}
+}
+
 
 /** Kernel thread for polling keyboard.
  *
@@ -129,6 +162,10 @@ void kkbdpoll(void *arg)
 			ns16550_poll();
 #endif
 #endif
+#ifdef CONFIG_SGCN
+		if (kbd_type == KBD_SGCN)
+			sgcn_poll();
+#endif
 		thread_usleep(KEYBOARD_POLL_PAUSE);
 	}
 }
@@ -147,6 +184,11 @@ void arch_grab_console(void)
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
 		ns16550_grab();
+		break;
+#endif
+#ifdef CONFIG_SGCN
+	case KBD_SGCN:
+		sgcn_grab();
 		break;
 #endif
 	default:
@@ -168,6 +210,11 @@ void arch_release_console(void)
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
 		ns16550_release();
+		break;
+#endif
+#ifdef CONFIG_SGCN
+	case KBD_SGCN:
+		sgcn_release();
 		break;
 #endif
 	default:

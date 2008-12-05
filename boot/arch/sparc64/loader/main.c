@@ -39,6 +39,7 @@
 #include <string.h>
 
 bootinfo_t bootinfo;
+
 component_t components[COMPONENTS];
 
 char *release = RELEASE;
@@ -55,12 +56,54 @@ char *release = RELEASE;
 	char *timestamp = "";
 #endif
 
+/** UltraSPARC subarchitecture - 1 for US, 3 for US3 */
+uint8_t subarchitecture;
+
+/**
+ * mask of the MID field inside the ICBUS_CONFIG register shifted by
+ * MID_SHIFT bits to the right
+ */
+uint16_t mid_mask;
+
 /** Print version information. */
 static void version_print(void)
 {
 	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\n"
 	    "Copyright (c) 2006 HelenOS project\n",
 	    release, revision, timestamp);
+}
+
+/* the lowest ID (read from the VER register) of some US3 CPU model */
+#define FIRST_US3_CPU 	0x14
+
+/* the greatest ID (read from the VER register) of some US3 CPU model */
+#define LAST_US3_CPU 	0x19
+
+/* UltraSPARC IIIi processor implementation code */
+#define US_IIIi_CODE	0x15
+
+/**
+ * Sets the global variables "subarchitecture" and "mid_mask" to
+ * correct values.
+ */
+static void detect_subarchitecture(void)
+{
+	uint64_t v;
+	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	
+	v = (v << 16) >> 48;
+	if ((v >= FIRST_US3_CPU) && (v <= LAST_US3_CPU)) {
+		subarchitecture = SUBARCH_US3;
+		if (v == US_IIIi_CODE)
+			mid_mask = (1 << 5) - 1;
+		else
+			mid_mask = (1 << 10) - 1;
+	} else if (v < FIRST_US3_CPU) {
+		subarchitecture = SUBARCH_US;
+		mid_mask = (1 << 5) - 1;
+	} else {
+		printf("\nThis CPU is not supported by HelenOS.");
+	}
 }
 
 void bootstrap(void)
@@ -72,6 +115,7 @@ void bootstrap(void)
 
 	version_print();
 	
+	detect_subarchitecture();
 	init_components(components);
 
 	if (!ofw_get_physmem_start(&bootinfo.physmem_start)) {
@@ -83,7 +127,7 @@ void bootstrap(void)
 		printf("Error: unable to get memory map, halting.\n");
 		halt();
 	}
-	
+
 	if (bootinfo.memmap.total == 0) {
 		printf("Error: no memory detected, halting.\n");
 		halt();

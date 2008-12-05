@@ -33,8 +33,7 @@
 #define PSTATE_PRIV_BIT	4
 #define PSTATE_AM_BIT   8
 
-#define ASI_UPA_CONFIG          0x4a
-#define UPA_CONFIG_MID_SHIFT    17
-#define UPA_CONFIG_MID_MASK     0x1f
+#define ASI_ICBUS_CONFIG		0x4a
+#define ICBUS_CONFIG_MID_SHIFT		17
 
 #endif

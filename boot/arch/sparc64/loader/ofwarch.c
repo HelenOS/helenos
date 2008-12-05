@@ -40,6 +40,10 @@
 #include "main.h"
 #include "asm.h"
 
+/* these tho variables will be set by the detect_subarchitecture function */
+extern uint8_t subarchitecture;
+extern uint16_t mid_mask;
+
 void write(const char *str, const int len)
 {
 	int i;
@@ -56,36 +60,40 @@ int ofw_translate_failed(ofw_arg_t flag)
 	return flag != -1;
 }
 
-int ofw_cpu(void)
+/**
+ * Starts all CPUs represented by following siblings of the given node,
+ * except for the current CPU.
+ *
+ * @param child		The first child of the OFW tree node whose children
+ * 			represent CPUs to be woken up.
+ * @param current_mid	MID of the current CPU, the current CPU will
+ *			(of course) not be woken up.
+ * @return		Number of CPUs which have the same parent node as
+ * 			"child".
+ */
+static int wake_cpus_in_node(phandle child, uint64_t current_mid)
 {
-	char type_name[BUF_SIZE];
-
-	phandle node;
-	node = ofw_get_child_node(ofw_root);
-	if (node == 0 || node == -1) {
-		printf("Could not find any child nodes of the root node.\n");
-		return 0;
-	}
-	
-	uint64_t current_mid;
-	
-	asm volatile ("ldxa [%1] %2, %0\n"
-	    : "=r" (current_mid)
-	    : "r" (0), "i" (ASI_UPA_CONFIG));
-	current_mid >>= UPA_CONFIG_MID_SHIFT;
-	current_mid &= UPA_CONFIG_MID_MASK;
-
 	int cpus;
+	char type_name[BUF_SIZE];
 	
-	for (cpus = 0; node != 0 && node != -1; node = ofw_get_peer_node(node),
-	    cpus++) {
-		if (ofw_get_property(node, "device_type", type_name,
+	for (cpus = 0; child != 0 && child != -1;
+	    child = ofw_get_peer_node(child), cpus++) {
+		if (ofw_get_property(child, "device_type", type_name,
 		    sizeof(type_name)) > 0) {
 			if (strcmp(type_name, "cpu") == 0) {
 				uint32_t mid;
 				
-				if (ofw_get_property(node, "upa-portid", &mid,
-				    sizeof(mid)) <= 0)
+				/*
+				 * "upa-portid" for US, "portid" for US-III,
+				 * "cpuid" for US-IV
+				 */
+				if (ofw_get_property(
+				    child, "upa-portid",
+				    &mid, sizeof(mid)) <= 0
+				    && ofw_get_property(child, "portid",
+				    &mid, sizeof(mid)) <= 0
+				    && ofw_get_property(child, "cpuid",
+				    &mid, sizeof(mid)) <= 0)
 					continue;
 					
 				if (current_mid != mid) {
@@ -93,7 +101,7 @@ int ofw_cpu(void)
 					 * Start secondary processor.
 					 */
 					(void) ofw_call("SUNW,start-cpu", 3, 1,
-					    NULL, node, KERNEL_VIRTUAL_ADDRESS,
+					    NULL, child, KERNEL_VIRTUAL_ADDRESS,
 					    bootinfo.physmem_start |
 					    AP_PROCESSOR);
 				}
@@ -104,12 +112,59 @@ int ofw_cpu(void)
 	return cpus;
 }
 
+/**
+ * Finds out the current CPU's MID and wakes up all AP processors.
+ */
+int ofw_cpu(void)
+{
+	int cpus;
+	phandle node;
+	phandle subnode;
+	phandle cpus_parent;
+	phandle cmp;
+	char name[BUF_SIZE];
+
+	/* get the current CPU MID */
+	uint64_t current_mid;
+	
+	asm volatile ("ldxa [%1] %2, %0\n"
+	    : "=r" (current_mid)
+	    : "r" (0), "i" (ASI_ICBUS_CONFIG));
+	current_mid >>= ICBUS_CONFIG_MID_SHIFT;
+
+	current_mid &= mid_mask;
+
+	/* wake up CPUs */
+	
+	cpus_parent = ofw_find_device("/ssm@0,0");
+	if (cpus_parent == 0 || cpus_parent == -1) {
+		cpus_parent = ofw_find_device("/");
+	}
+
+	node = ofw_get_child_node(cpus_parent);
+	cpus = wake_cpus_in_node(node, current_mid);
+	while (node != 0 && node != -1) {
+		if (ofw_get_property(node, "name", name,
+			sizeof(name)) > 0) {
+			if (strcmp(name, "cmp") == 0) {
+				subnode = ofw_get_child_node(node);
+				cpus += wake_cpus_in_node(subnode,
+					current_mid);
+			}
+		}
+		node = ofw_get_peer_node(node);
+	}
+	
+	return cpus;
+	
+}
+
 /** Get physical memory starting address.
  *
- * @param start Pointer to variable where the physical memory starting
- * 		address will be stored.
+ * @param start		Pointer to variable where the physical memory starting
+ *			address will be stored.
  *
- * @return Non-zero on succes, zero on failure.
+ * @return		Non-zero on succes, zero on failure.
  */
 int ofw_get_physmem_start(uintptr_t *start)
 {

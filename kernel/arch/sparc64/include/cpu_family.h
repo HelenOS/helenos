@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_MAIN_H_
-#define BOOT_sparc64_MAIN_H_
+/** @addtogroup sparc64
+ * @{
+ */
+/** @file
+ */
 
-#include <ofw.h>
-#include <ofw_tree.h>
-#include <balloc.h>
-#include <types.h>
+#ifndef KERN_sparc64_CPU_FAMILY_H_
+#define KERN_sparc64_CPU_FAMILY_H_
 
-#define KERNEL_VIRTUAL_ADDRESS 0x400000
+#include <arch.h>
+#include <cpu.h>
+#include <arch/register.h>
+#include <arch/asm.h>
 
-#define TASKMAP_MAX_RECORDS 32
+/**
+ * Find the processor (sub)family.
+ * 
+ * @return 	true iff the CPU belongs to the US family
+ */
+static inline bool is_us(void)
+{
+	int impl = ((ver_reg_t) ver_read()).impl;
+	return (impl == IMPL_ULTRASPARCI) || (impl == IMPL_ULTRASPARCII) ||
+	       (impl == IMPL_ULTRASPARCII_I) ||  (impl == IMPL_ULTRASPARCII_E);
+}
 
-#define BSP_PROCESSOR	1
-#define AP_PROCESSOR	0
+/**
+ * Find the processor (sub)family.
+ * 
+ * @return 	true iff the CPU belongs to the US-III subfamily
+ */
+static inline bool is_us_iii(void)
+{
+	int impl = ((ver_reg_t) ver_read()).impl;
+	return (impl == IMPL_ULTRASPARCIII) ||
+	       (impl == IMPL_ULTRASPARCIII_PLUS) ||
+	       (impl == IMPL_ULTRASPARCIII_I);
+}
 
-#define SUBARCH_US	1
-#define SUBARCH_US3	3
-
-typedef struct {
-	void *addr;
-	uint32_t size;
-} task_t;
-
-typedef struct {
-	uint32_t count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	uintptr_t physmem_start;
-	taskmap_t taskmap;
-	memmap_t memmap;
-	ballocs_t ballocs;
-	ofw_tree_node_t *ofw_root;
-} bootinfo_t;
-
-extern uint32_t silo_ramdisk_image;
-extern uint32_t silo_ramdisk_size;
-
-extern bootinfo_t bootinfo;
-
-extern void start(void);
-extern void bootstrap(void);
-
+/**
+ * Find the processor (sub)family.
+ * 
+ * @return 	true iff the CPU belongs to the US-IV subfamily
+ */
+static inline bool is_us_iv(void)
+{
+	int impl = ((ver_reg_t) ver_read()).impl;
+	return (impl == IMPL_ULTRASPARCIV) || (impl == IMPL_ULTRASPARCIV_PLUS);
+}
+	
 #endif
+
+/** @}
+ */

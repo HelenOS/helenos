@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +28,83 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_MAIN_H_
-#define BOOT_sparc64_MAIN_H_
+/**
+ * @defgroup serial Serial console
+ * @brief    Serial console services (putc, puts, clear screen, cursor goto,...)
+ * @{
+ */ 
 
-#include <ofw.h>
-#include <ofw_tree.h>
-#include <balloc.h>
-#include <types.h>
+/** @file
+ */
 
-#define KERNEL_VIRTUAL_ADDRESS 0x400000
+#include <stdio.h>
 
-#define TASKMAP_MAX_RECORDS 32
+#include "serial_console.h"
 
-#define BSP_PROCESSOR	1
-#define AP_PROCESSOR	0
+#define MAX_CONTROL 20
 
-#define SUBARCH_US	1
-#define SUBARCH_US3	3
+static uint32_t width;
+static uint32_t height;
+static putc_function_t putc_function;
 
-typedef struct {
-	void *addr;
-	uint32_t size;
-} task_t;
+void serial_puts(char *str)
+{
+	while (*str)
+		putc_function(*(str++));
+}
 
-typedef struct {
-	uint32_t count;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
+void serial_goto(const unsigned int row, const unsigned int col)
+{
+	if ((row > height) || (col > width))
+		return;
+	
+	char control[20];
+	snprintf(control, 20, "\033[%u;%uf", row + 1, col + 1);
+	serial_puts(control);
+}
 
-typedef struct {
-	uintptr_t physmem_start;
-	taskmap_t taskmap;
-	memmap_t memmap;
-	ballocs_t ballocs;
-	ofw_tree_node_t *ofw_root;
-} bootinfo_t;
+void serial_clrscr(void)
+{
+	serial_puts("\033[2J");
+}
 
-extern uint32_t silo_ramdisk_image;
-extern uint32_t silo_ramdisk_size;
+void serial_scroll(int i)
+{
+	if (i > 0) {
+		serial_goto(height - 1, 0);
+		while (i--)
+			serial_puts("\033D");
+	} else if (i < 0) {
+		serial_goto(0, 0);
+		while (i++)
+			serial_puts("\033M");
+	}
+}
 
-extern bootinfo_t bootinfo;
+void serial_set_style(const unsigned int mode)
+{
+	char control[MAX_CONTROL];
+	snprintf(control, MAX_CONTROL, "\033[%um", mode);
+	serial_puts(control);
+}
 
-extern void start(void);
-extern void bootstrap(void);
+void serial_cursor_disable(void)
+{
+	serial_puts("\033[?25l");
+}
 
-#endif
+void serial_cursor_enable(void)
+{
+	serial_puts("\033[?25h");
+}
+
+void serial_console_init(putc_function_t putc_fn, uint32_t w, uint32_t h)
+{
+	width = w;
+	height = h;
+	putc_function = putc_fn;
+}
+
+/** 
+ * @}
+ */

@@ -86,7 +86,15 @@ void vesa_init(void)
 		panic("Unsupported bits per pixel");
 	}
 	
-	fb_init(vesa_ph_addr, vesa_width, vesa_height, vesa_scanline, visual);
+	fb_properties_t vesa_props = {
+		.addr = vesa_ph_addr,
+		.offset = 0,
+		.x = vesa_width,
+		.y = vesa_height,
+		.scan = vesa_scanline,
+		.visual = visual,
+	};
+	fb_init(&vesa_props);
 }
 
 #endif

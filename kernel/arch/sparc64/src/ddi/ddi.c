@@ -41,7 +41,7 @@
  * Interrupts are disabled and task is locked.
  *
  * @param task Task.
- * @param ioaddr Startign I/O space address.
+ * @param ioaddr Starting I/O space address.
  * @param size Size of the enabled I/O range.
  *
  * @return 0 on success or an error code from errno.h.

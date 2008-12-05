@@ -172,6 +172,8 @@ extern ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *,
     const char *);
 extern ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *,
     const char *);
+extern ofw_tree_node_t *ofw_tree_find_peer_by_name(ofw_tree_node_t *node,
+    const char *name);
 extern ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *,
     uint32_t);
 

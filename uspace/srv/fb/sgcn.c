@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +28,103 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @defgroup msimfb MSIM text console
- * @brief	HelenOS MSIM text console.
- * @ingroup fbs
+/** @defgroup sgcnfb SGCN
+ * @brief	userland driver of the Serengeti console output
  * @{
  */ 
 /** @file
  */
 
 #include <async.h>
-#include <ipc/fb.h>
 #include <ipc/ipc.h>
-#include <libc.h>
-#include <errno.h>
-#include <string.h>
-#include <libc.h>
-#include <stdio.h>
 #include <ipc/fb.h>
 #include <sysinfo.h>
 #include <as.h>
-#include <align.h>
+#include <errno.h>
+#include <stdio.h>
 #include <ddi.h>
 
 #include "serial_console.h"
-#include "msim.h"
+#include "sgcn.h"
 
 #define WIDTH 80
-#define HEIGHT 25
+#define HEIGHT 24
 
-#define MAX_CONTROL 20
+/**
+ * Virtual address mapped to SRAM.
+ */
+static uintptr_t sram_virt_addr;
+
+/**
+ * SGCN buffer offset within SGCN.
+ */
+static uintptr_t sram_buffer_offset;
 
 /* Allow only 1 connection */
 static int client_connected = 0;
 
-static char *virt_addr;
+/**
+ * SGCN buffer header. It is placed at the very beginning of the SGCN
+ * buffer. 
+ */
+typedef struct {
+	/** hard-wired to "CON" */
+	char magic[4];
+	
+	/** we don't need this */
+	char unused[24];
 
-static void msim_putc(const char c)
+	/** offset within the SGCN buffer of the output buffer start */
+	uint32_t out_begin;
+	
+	/** offset within the SGCN buffer of the output buffer end */
+	uint32_t out_end;
+	
+	/** offset within the SGCN buffer of the output buffer read pointer */
+	uint32_t out_rdptr;
+	
+	/** offset within the SGCN buffer of the output buffer write pointer */
+	uint32_t out_wrptr;
+} __attribute__ ((packed)) sgcn_buffer_header_t;
+
+
+/*
+ * Returns a pointer to the object of a given type which is placed at the given
+ * offset from the console buffer beginning.
+ */
+#define SGCN_BUFFER(type, offset) \
+		((type *) (sram_virt_addr + sram_buffer_offset + (offset)))
+
+/** Returns a pointer to the console buffer header. */
+#define SGCN_BUFFER_HEADER	(SGCN_BUFFER(sgcn_buffer_header_t, 0))
+
+/**
+ * Pushes the character to the SGCN serial.
+ * @param c	character to be pushed
+ */
+static void sgcn_putc(char c)
 {
-	*virt_addr = c;
+	uint32_t begin = SGCN_BUFFER_HEADER->out_begin;
+	uint32_t end = SGCN_BUFFER_HEADER->out_end;
+	uint32_t size = end - begin;
+	
+	/* we need pointers to volatile variables */
+	volatile char *buf_ptr = (volatile char *)
+		SGCN_BUFFER(char, SGCN_BUFFER_HEADER->out_wrptr);
+	volatile uint32_t *out_wrptr_ptr = &(SGCN_BUFFER_HEADER->out_wrptr);
+	volatile uint32_t *out_rdptr_ptr = &(SGCN_BUFFER_HEADER->out_rdptr);
+
+	uint32_t new_wrptr = (((*out_wrptr_ptr) - begin + 1) % size) + begin;
+	while (*out_rdptr_ptr == new_wrptr)
+		;
+	*buf_ptr = c;
+	*out_wrptr_ptr = new_wrptr;
 }
 
-static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+/**
+ * Main function of the thread serving client connections.
+ */
+static void sgcn_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int retval;
 	ipc_callid_t callid;
@@ -80,7 +137,7 @@ static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int fgcolor;
 	int bgcolor;
 	int i;
-
+	
 	if (client_connected) {
 		ipc_answer_0(iid, ELIMIT);
 		return;
@@ -90,10 +147,10 @@ static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_0(iid, EOK);
 	
 	/* Clear the terminal, set scrolling region
-	   to 0 - 25 lines */
+	   to 0 - 24 lines */
 	serial_clrscr();
 	serial_goto(0, 0);
-	serial_puts("\033[0;25r");
+	serial_puts("\033[0;24r");
 	
 	while (true) {
 		callid = async_get_call(&call);
@@ -110,7 +167,7 @@ static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				serial_goto(newrow, newcol);
 			lastcol = newcol + 1;
 			lastrow = newrow;
-			msim_putc(c);
+			sgcn_putc(c);
 			retval = 0;
 			break;
 		case FB_CURSOR_GOTO:
@@ -161,19 +218,33 @@ static void msim_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-int msim_init(void)
+/**
+ * Initializes the SGCN serial driver.
+ */
+int sgcn_init(void)
 {
-	void *phys_addr = (void *) sysinfo_value("fb.address.physical");
-	virt_addr = (char *) as_get_mappable_page(1);
+	sram_virt_addr = (uintptr_t) as_get_mappable_page(
+		sysinfo_value("sram.area.size"));
+	int result = physmem_map(
+		(void *) sysinfo_value("sram.address.physical"),
+		(void *) sram_virt_addr,
+		sysinfo_value("sram.area.size") / PAGE_SIZE,
+		AS_AREA_READ | AS_AREA_WRITE
+		);
+	if (result != 0) {
+		printf("SGCN: uspace driver couldn't map physical memory: %d\n",
+			result);
+	}
 	
-	physmem_map(phys_addr, virt_addr, 1, AS_AREA_READ | AS_AREA_WRITE);
+	serial_console_init(sgcn_putc, WIDTH, HEIGHT);
 	
-	serial_console_init(msim_putc, WIDTH, HEIGHT);
+	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
 	
-	async_set_client_connection(msim_client_connection);
+	async_set_client_connection(sgcn_client_connection);
 	return 0;
 }
 
 /** 
  * @}
  */
+ 

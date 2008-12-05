@@ -67,11 +67,19 @@ void interrupt_register(int n, const char *name, iroutine f)
  */
 void interrupt(int n, istate_t *istate)
 {
+	uint64_t status;
 	uint64_t intrcv;
 	uint64_t data0;
+	status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
+	if (status & (!INTR_DISPATCH_STATUS_BUSY))
+		panic("Interrupt Dispatch Status busy bit not set\n");
 
 	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
-	data0 = asi_u64_read(ASI_UDB_INTR_R, ASI_UDB_INTR_R_DATA_0);
+#if defined (US)
+	data0 = asi_u64_read(ASI_INTR_R, ASI_UDB_INTR_R_DATA_0);
+#elif defined (US3)
+	data0 = asi_u64_read(ASI_INTR_R, VA_INTR_R_DATA_0);
+#endif
 
 	irq_t *irq = irq_dispatch_and_lock(data0);
 	if (irq) {

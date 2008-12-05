@@ -107,6 +107,55 @@ static inline void dtsb_base_write(uint64_t v)
 	asi_u64_write(ASI_DMMU, VA_DMMU_TSB_BASE, v);
 }
 
+#if defined (US3)
+
+/** Write DTSB Primary Extension register.
+ *
+ * @param v New content of the DTSB Primary Extension register.
+ */
+static inline void dtsb_primary_extension_write(uint64_t v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_PRIMARY_EXTENSION, v);
+}
+
+/** Write DTSB Secondary Extension register.
+ *
+ * @param v New content of the DTSB Secondary Extension register.
+ */
+static inline void dtsb_secondary_extension_write(uint64_t v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_SECONDARY_EXTENSION, v);
+}
+
+/** Write DTSB Nucleus Extension register.
+ *
+ * @param v New content of the DTSB Nucleus Extension register.
+ */
+static inline void dtsb_nucleus_extension_write(uint64_t v)
+{
+	asi_u64_write(ASI_DMMU, VA_DMMU_NUCLEUS_EXTENSION, v);
+}
+
+/** Write ITSB Primary Extension register.
+ *
+ * @param v New content of the ITSB Primary Extension register.
+ */
+static inline void itsb_primary_extension_write(uint64_t v)
+{
+	asi_u64_write(ASI_IMMU, VA_IMMU_PRIMARY_EXTENSION, v);
+}
+
+/** Write ITSB Nucleus Extension register.
+ *
+ * @param v New content of the ITSB Nucleus Extension register.
+ */
+static inline void itsb_nucleus_extension_write(uint64_t v)
+{
+	asi_u64_write(ASI_IMMU, VA_IMMU_NUCLEUS_EXTENSION, v);
+}
+
+#endif
+
 /* Forward declarations. */
 struct as;
 struct pte;

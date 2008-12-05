@@ -54,14 +54,13 @@
 #include <arch/mm/tsb.h>
 #endif
 
-static void dtlb_pte_copy(pte_t *t, index_t index, bool ro);
-static void itlb_pte_copy(pte_t *t, index_t index);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
-    const char *str);
-static void do_fast_data_access_mmu_miss_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str);
-static void do_fast_data_access_protection_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str);
+static void dtlb_pte_copy(pte_t *, index_t, bool);
+static void itlb_pte_copy(pte_t *, index_t);
+static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
+static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
+    const char *);
+static void do_fast_data_access_protection_fault(istate_t *,
+    tlb_tag_access_reg_t, const char *);
 
 char *context_encoding[] = {
 	"Primary",
@@ -86,11 +85,11 @@ void tlb_arch_init(void)
 
 /** Insert privileged mapping into DMMU TLB.
  *
- * @param page Virtual page address.
- * @param frame Physical frame address.
- * @param pagesize Page size.
- * @param locked True for permanent mappings, false otherwise.
- * @param cacheable True if the mapping is cacheable, false otherwise.
+ * @param page		Virtual page address.
+ * @param frame		Physical frame address.
+ * @param pagesize	Page size.
+ * @param locked	True for permanent mappings, false otherwise.
+ * @param cacheable	True if the mapping is cacheable, false otherwise.
  */
 void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
     bool locked, bool cacheable)
@@ -103,7 +102,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 	pg.address = page;
 	fr.address = frame;
 
-	tag.value = ASID_KERNEL;
+	tag.context = ASID_KERNEL;
 	tag.vpn = pg.vpn;
 
 	dtlb_tag_access_write(tag.value);
@@ -126,10 +125,10 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 
 /** Copy PTE to TLB.
  *
- * @param t 	Page Table Entry to be copied.
- * @param index	Zero if lower 8K-subpage, one if higher 8K-subpage.
- * @param ro 	If true, the entry will be created read-only, regardless of its
- * 		w field.
+ * @param t 		Page Table Entry to be copied.
+ * @param index		Zero if lower 8K-subpage, one if higher 8K-subpage.
+ * @param ro		If true, the entry will be created read-only, regardless
+ * 			of its w field.
  */
 void dtlb_pte_copy(pte_t *t, index_t index, bool ro)
 {
@@ -165,8 +164,8 @@ void dtlb_pte_copy(pte_t *t, index_t index, bool ro)
 
 /** Copy PTE to ITLB.
  *
- * @param t 	Page Table Entry to be copied.
- * @param index	Zero if lower 8K-subpage, one if higher 8K-subpage.
+ * @param t		Page Table Entry to be copied.
+ * @param index		Zero if lower 8K-subpage, one if higher 8K-subpage.
  */
 void itlb_pte_copy(pte_t *t, index_t index)
 {
@@ -235,10 +234,11 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
  * Note that some faults (e.g. kernel faults) were already resolved by the
  * low-level, assembly language part of the fast_data_access_mmu_miss handler.
  *
- * @param tag Content of the TLB Tag Access register as it existed when the
- *    trap happened. This is to prevent confusion created by clobbered
- *    Tag Access register during a nested DTLB miss.
- * @param istate Interrupted state saved on the stack.
+ * @param tag		Content of the TLB Tag Access register as it existed
+ * 			when the trap happened. This is to prevent confusion
+ * 			created by clobbered Tag Access register during a nested
+ * 			DTLB miss.
+ * @param istate	Interrupted state saved on the stack.
  */
 void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 {
@@ -287,10 +287,11 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 
 /** DTLB protection fault handler.
  *
- * @param tag Content of the TLB Tag Access register as it existed when the
- *    trap happened. This is to prevent confusion created by clobbered
- *    Tag Access register during a nested DTLB miss.
- * @param istate Interrupted state saved on the stack.
+ * @param tag		Content of the TLB Tag Access register as it existed
+ * 			when the trap happened. This is to prevent confusion
+ * 			created by clobbered Tag Access register during a nested
+ * 			DTLB miss.
+ * @param istate	Interrupted state saved on the stack.
  */
 void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 {
@@ -331,6 +332,26 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 	}
 }
 
+/** Print TLB entry (for debugging purposes).
+ *
+ * The diag field has been left out in order to make this function more generic
+ * (there is no diag field in US3 architeture). 
+ *
+ * @param i		TLB entry number 
+ * @param t		TLB entry tag
+ * @param d		TLB entry data 
+ */
+static void print_tlb_entry(int i, tlb_tag_read_reg_t t, tlb_data_t d)
+{
+	printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
+	    "ie=%d, soft2=%#x, pfn=%#x, soft=%#x, l=%d, "
+	    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
+	    t.context, d.v, d.size, d.nfo, d.ie, d.soft2,
+	    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+}
+
+#if defined (US)
+
 /** Print contents of both TLBs. */
 void tlb_print(void)
 {
@@ -342,27 +363,63 @@ void tlb_print(void)
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
 		t.value = itlb_tag_read_read(i);
-
-		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
-		    "ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, "
-		    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
-		    t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag,
-		    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		print_tlb_entry(i, t, d);
 	}
 
 	printf("D-TLB contents:\n");
 	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
 		d.value = dtlb_data_access_read(i);
 		t.value = dtlb_tag_read_read(i);
-		
-		printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
-		    "ie=%d, soft2=%#x, diag=%#x, pfn=%#x, soft=%#x, l=%d, "
-		    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
-		    t.context, d.v, d.size, d.nfo, d.ie, d.soft2, d.diag,
-		    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+		print_tlb_entry(i, t, d);
 	}
-
 }
+
+#elif defined (US3)
+
+/** Print contents of all TLBs. */
+void tlb_print(void)
+{
+	int i;
+	tlb_data_t d;
+	tlb_tag_read_reg_t t;
+	
+	printf("TLB_ISMALL contents:\n");
+	for (i = 0; i < tlb_ismall_size(); i++) {
+		d.value = dtlb_data_access_read(TLB_ISMALL, i);
+		t.value = dtlb_tag_read_read(TLB_ISMALL, i);
+		print_tlb_entry(i, t, d);
+	}
+	
+	printf("TLB_IBIG contents:\n");
+	for (i = 0; i < tlb_ibig_size(); i++) {
+		d.value = dtlb_data_access_read(TLB_IBIG, i);
+		t.value = dtlb_tag_read_read(TLB_IBIG, i);
+		print_tlb_entry(i, t, d);
+	}
+	
+	printf("TLB_DSMALL contents:\n");
+	for (i = 0; i < tlb_dsmall_size(); i++) {
+		d.value = dtlb_data_access_read(TLB_DSMALL, i);
+		t.value = dtlb_tag_read_read(TLB_DSMALL, i);
+		print_tlb_entry(i, t, d);
+	}
+	
+	printf("TLB_DBIG_1 contents:\n");
+	for (i = 0; i < tlb_dbig_size(); i++) {
+		d.value = dtlb_data_access_read(TLB_DBIG_0, i);
+		t.value = dtlb_tag_read_read(TLB_DBIG_0, i);
+		print_tlb_entry(i, t, d);
+	}
+	
+	printf("TLB_DBIG_2 contents:\n");
+	for (i = 0; i < tlb_dbig_size(); i++) {
+		d.value = dtlb_data_access_read(TLB_DBIG_1, i);
+		t.value = dtlb_tag_read_read(TLB_DBIG_1, i);
+		print_tlb_entry(i, t, d);
+	}
+}
+
+#endif
 
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
     const char *str)
@@ -411,29 +468,70 @@ void dump_sfsr_and_sfar(void)
 	sfsr.value = dtlb_sfsr_read();
 	sfar = dtlb_sfar_read();
 	
+#if defined (US)
 	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
 	    "fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
 	    sfsr.ow, sfsr.fv);
+#elif defined (US3)
+	printf("DTLB SFSR: nf=%d, asi=%#x, tm=%d, ft=%#x, e=%d, ct=%d, pr=%d, "
+	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
+	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
+#endif
+	    
 	printf("DTLB SFAR: address=%p\n", sfar);
 	
 	dtlb_sfsr_write(0);
 }
 
+#if defined (US3)
+/** Invalidates given TLB entry if and only if it is non-locked or global.
+ * 
+ * @param tlb		TLB number (one of TLB_DSMALL, TLB_DBIG_0, TLB_DBIG_1,
+ *			TLB_ISMALL, TLB_IBIG).
+ * @param entry		Entry index within the given TLB.
+ */
+static void tlb_invalidate_entry(int tlb, index_t entry)
+{
+	tlb_data_t d;
+	tlb_tag_read_reg_t t;
+	
+	if (tlb == TLB_DSMALL || tlb == TLB_DBIG_0 || tlb == TLB_DBIG_1) {
+		d.value = dtlb_data_access_read(tlb, entry);
+		if (!d.l || d.g) {
+			t.value = dtlb_tag_read_read(tlb, entry);
+			d.v = false;
+			dtlb_tag_access_write(t.value);
+			dtlb_data_access_write(tlb, entry, d.value);
+		}
+	} else if (tlb == TLB_ISMALL || tlb == TLB_IBIG) {
+		d.value = itlb_data_access_read(tlb, entry);
+		if (!d.l || d.g) {
+			t.value = itlb_tag_read_read(tlb, entry);
+			d.v = false;
+			itlb_tag_access_write(t.value);
+			itlb_data_access_write(tlb, entry, d.value);
+		}
+	}
+}
+#endif
+
 /** Invalidate all unlocked ITLB and DTLB entries. */
 void tlb_invalidate_all(void)
 {
 	int i;
-	tlb_data_t d;
-	tlb_tag_read_reg_t t;
-
+	
 	/*
 	 * Walk all ITLB and DTLB entries and remove all unlocked mappings.
 	 *
 	 * The kernel doesn't use global mappings so any locked global mappings
-	 * found  must have been created by someone else. Their only purpose now
+	 * found must have been created by someone else. Their only purpose now
 	 * is to collide with proper mappings. Invalidate immediately. It should
 	 * be safe to invalidate them as late as now.
 	 */
+
+#if defined (US)
+	tlb_data_t d;
+	tlb_tag_read_reg_t t;
 
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
@@ -444,7 +542,7 @@ void tlb_invalidate_all(void)
 			itlb_data_access_write(i, d.value);
 		}
 	}
-	
+
 	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
 		d.value = dtlb_data_access_read(i);
 		if (!d.l || d.g) {
@@ -454,7 +552,21 @@ void tlb_invalidate_all(void)
 			dtlb_data_access_write(i, d.value);
 		}
 	}
-	
+
+#elif defined (US3)
+
+	for (i = 0; i < tlb_ismall_size(); i++)
+		tlb_invalidate_entry(TLB_ISMALL, i);
+	for (i = 0; i < tlb_ibig_size(); i++)
+		tlb_invalidate_entry(TLB_IBIG, i);
+	for (i = 0; i < tlb_dsmall_size(); i++)
+		tlb_invalidate_entry(TLB_DSMALL, i);
+	for (i = 0; i < tlb_dbig_size(); i++)
+		tlb_invalidate_entry(TLB_DBIG_0, i);
+	for (i = 0; i < tlb_dbig_size(); i++)
+		tlb_invalidate_entry(TLB_DBIG_1, i);
+#endif
+
 }
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID
@@ -484,9 +596,9 @@ void tlb_invalidate_asid(asid_t asid)
 /** Invalidate all ITLB and DTLB entries for specified page range in specified
  * address space.
  *
- * @param asid Address Space ID.
- * @param page First page which to sweep out from ITLB and DTLB.
- * @param cnt Number of ITLB and DTLB entries to invalidate.
+ * @param asid		Address Space ID.
+ * @param page		First page which to sweep out from ITLB and DTLB.
+ * @param cnt		Number of ITLB and DTLB entries to invalidate.
  */
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 {

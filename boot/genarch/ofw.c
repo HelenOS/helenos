@@ -48,7 +48,8 @@ void ofw_init(void)
 	if (ofw_chosen == -1)
 		halt();
 	
-	if (ofw_get_property(ofw_chosen, "stdout", &ofw_stdout, sizeof(ofw_stdout)) <= 0)
+	if (ofw_get_property(ofw_chosen, "stdout", &ofw_stdout,
+	    sizeof(ofw_stdout)) <= 0)
 		ofw_stdout = 0;
 	
 	ofw_root = ofw_find_device("/");
@@ -57,11 +58,13 @@ void ofw_init(void)
 		halt();
 	}
 	
-	if (ofw_get_property(ofw_chosen, "mmu", &ofw_mmu, sizeof(ofw_mmu)) <= 0) {
+	if (ofw_get_property(ofw_chosen, "mmu", &ofw_mmu,
+	    sizeof(ofw_mmu)) <= 0) {
 		puts("\r\nError: Unable to get mmu property, halted.\r\n");
 		halt();
 	}
-	if (ofw_get_property(ofw_chosen, "memory", &ofw_memory_prop, sizeof(ofw_memory_prop)) <= 0) {
+	if (ofw_get_property(ofw_chosen, "memory", &ofw_memory_prop,
+	    sizeof(ofw_memory_prop)) <= 0) {
 		puts("\r\nError: Unable to get memory property, halted.\r\n");
 		halt();
 	}
@@ -81,14 +84,18 @@ void ofw_init(void)
 
 /** Perform a call to OpenFirmware client interface.
  *
- * @param service String identifying the service requested.
- * @param nargs Number of input arguments.
- * @param nret Number of output arguments. This includes the return value.
- * @param rets Buffer for output arguments or NULL. The buffer must accommodate nret - 1 items.
+ * @param service	String identifying the service requested.
+ * @param nargs		Number of input arguments.
+ * @param nret		Number of output arguments. This includes the return
+ * 			value.
+ * @param rets		Buffer for output arguments or NULL. The buffer must
+ * 			accommodate nret - 1 items.
  *
- * @return Return value returned by the client interface.
+ * @return		Return value returned by the client interface.
  */
-unsigned long ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets, ...)
+unsigned long
+ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets,
+    ...)
 {
 	va_list list;
 	ofw_args_t args;
@@ -119,7 +126,9 @@ phandle ofw_find_device(const char *name)
 	return ofw_call("finddevice", 1, 1, NULL, name);
 }
 
-int ofw_get_property(const phandle device, const char *name, void *buf, const int buflen)
+int
+ofw_get_property(const phandle device, const char *name, void *buf,
+    const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
 }
@@ -144,7 +153,8 @@ unsigned int ofw_get_address_cells(const phandle device)
 	unsigned int ret = 1;
 	
 	if (ofw_get_property(device, "#address-cells", &ret, sizeof(ret)) <= 0)
-		if (ofw_get_property(ofw_root, "#address-cells", &ret, sizeof(ret)) <= 0)
+		if (ofw_get_property(ofw_root, "#address-cells", &ret,
+		    sizeof(ret)) <= 0)
 			ret = OFW_ADDRESS_CELLS;
 	
 	return ret;
@@ -156,7 +166,8 @@ unsigned int ofw_get_size_cells(const phandle device)
 	unsigned int ret;
 	
 	if (ofw_get_property(device, "#size-cells", &ret, sizeof(ret)) <= 0)
-		if (ofw_get_property(ofw_root, "#size-cells", &ret, sizeof(ret)) <= 0)
+		if (ofw_get_property(ofw_root, "#size-cells", &ret,
+		    sizeof(ret)) <= 0)
 			ret = OFW_SIZE_CELLS;
 	
 	return ret;
@@ -192,7 +203,8 @@ void *ofw_translate(const void *virt)
 	ofw_arg_t result[4];
 	int shift;
 
-	if (ofw_call("call-method", 3, 5, result, "translate", ofw_mmu, virt) != 0) {
+	if (ofw_call("call-method", 3, 5, result, "translate", ofw_mmu,
+	    virt) != 0) {
 		puts("Error: MMU method translate() failed, halting.\n");
 		halt();
 	}
@@ -212,7 +224,8 @@ void *ofw_claim_virt(const void *virt, const int len)
 {
 	ofw_arg_t retaddr;
 
-	if (ofw_call("call-method", 5, 2, &retaddr, "claim", ofw_mmu, 0, len, virt) != 0) {
+	if (ofw_call("call-method", 5, 2, &retaddr, "claim", ofw_mmu, 0, len,
+	    virt) != 0) {
 		puts("Error: MMU method claim() failed, halting.\n");
 		halt();
 	}
@@ -269,8 +282,8 @@ int ofw_map(const void *phys, const void *virt, const int size, const int mode)
 		phys_lo = (uintptr_t) phys;
 	}
 
-	return ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode, size, virt,
-	    phys_hi, phys_lo);
+	return ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode, size,
+	    virt, phys_hi, phys_lo);
 }
 
 /** Save OpenFirmware physical memory map.
@@ -281,10 +294,13 @@ int ofw_map(const void *phys, const void *virt, const int size, const int mode)
  */
 int ofw_memmap(memmap_t *map)
 {
-	unsigned int ac = ofw_get_address_cells(ofw_memory);
-	unsigned int sc = ofw_get_size_cells(ofw_memory);
+	unsigned int ac = ofw_get_address_cells(ofw_memory) /
+	    (sizeof(uintptr_t) / sizeof(uint32_t));
+	unsigned int sc = ofw_get_size_cells(ofw_memory) /
+	    (sizeof(uintptr_t) / sizeof(uint32_t));
+	printf("address cells: %d, size cells: %d. ", ac, sc);
 
-	uint32_t buf[((ac + sc) * MEMMAP_MAX_RECORDS)];
+	uintptr_t buf[((ac + sc) * MEMMAP_MAX_RECORDS)];
 	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(buf));
 	if (ret <= 0)		/* ret is the number of written bytes */
 		return false;
@@ -292,11 +308,22 @@ int ofw_memmap(memmap_t *map)
 	int pos;
 	map->total = 0;
 	map->count = 0;
-	for (pos = 0; (pos < ret / sizeof(uint32_t)) &&
+	for (pos = 0; (pos < ret / sizeof(uintptr_t)) &&
 	    (map->count < MEMMAP_MAX_RECORDS); pos += ac + sc) {
-		void * start = (void *) ((uintptr_t) buf[pos + ac - 1]);
+		void *start = (void *) (buf[pos + ac - 1]);
 		unsigned int size = buf[pos + ac + sc - 1];
-		
+
+		/*
+ 		 * This is a hot fix of the issue which occurs on machines
+ 		 * where there are holes in the physical memory (such as
+ 		 * SunBlade 1500). Should we detect a hole in the physical
+ 		 * memory, we will ignore any memory detected behind
+ 		 * the hole and pretend the hole does not exist.
+		 */
+		if ((map->count > 0) && (map->zones[map->count - 1].start +
+		    map->zones[map->count - 1].size < start))
+			break;
+
 		if (size > 0) {
 			map->zones[map->count].start = start;
 			map->zones[map->count].size = size;
@@ -308,34 +335,39 @@ int ofw_memmap(memmap_t *map)
 	return true;
 }
 
-
 int ofw_screen(screen_t *screen)
 {
 	char device_name[BUF_SIZE];
 	uint32_t virtaddr;
 	
-	if (ofw_get_property(ofw_aliases, "screen", device_name, sizeof(device_name)) <= 0)
+	if (ofw_get_property(ofw_aliases, "screen", device_name,
+	    sizeof(device_name)) <= 0)
 		return false;
 	
 	phandle device = ofw_find_device(device_name);
 	if (device == -1)
 		return false;
 	
-	if (ofw_get_property(device, "address", &virtaddr, sizeof(virtaddr)) <= 0)
+	if (ofw_get_property(device, "address", &virtaddr,
+	    sizeof(virtaddr)) <= 0)
 		return false;
 
 	screen->addr = (void *) ((uintptr_t) virtaddr);
 
-	if (ofw_get_property(device, "width", &screen->width, sizeof(screen->width)) <= 0)
+	if (ofw_get_property(device, "width", &screen->width,
+	    sizeof(screen->width)) <= 0)
 		return false;
 	
-	if (ofw_get_property(device, "height", &screen->height, sizeof(screen->height)) <= 0)
+	if (ofw_get_property(device, "height", &screen->height,
+	    sizeof(screen->height)) <= 0)
 		return false;
 	
-	if (ofw_get_property(device, "depth", &screen->bpp, sizeof(screen->bpp)) <= 0)
+	if (ofw_get_property(device, "depth", &screen->bpp,
+	    sizeof(screen->bpp)) <= 0)
 		return false;
 	
-	if (ofw_get_property(device, "linebytes", &screen->scanline, sizeof(screen->scanline)) <= 0)
+	if (ofw_get_property(device, "linebytes", &screen->scanline,
+	    sizeof(screen->scanline)) <= 0)
 		return false;
 	
 	return true;

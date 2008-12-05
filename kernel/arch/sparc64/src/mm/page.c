@@ -52,7 +52,7 @@ static struct {
 	uintptr_t virt_page;
 	uintptr_t phys_page;
 	int pagesize_code;
-} bsp_locked_dtlb_entry[DTLB_ENTRY_COUNT];
+} bsp_locked_dtlb_entry[DTLB_MAX_LOCKED_ENTRIES];
 
 /** Number of entries in bsp_locked_dtlb_entry array. */
 static count_t bsp_locked_dtlb_entries = 0;
@@ -166,3 +166,4 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 
 /** @}
  */
+

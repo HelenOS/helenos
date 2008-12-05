@@ -105,9 +105,28 @@ jump_to_kernel:
 	 * 1. Make sure that the code we have moved has drained to main memory.
 	 * 2. Invalidate I-cache.
 	 * 3. Flush instruction pipeline.
-	 */ 
-	call	icache_flush
-	membar	#StoreStore
+	 */
+
+	/*
+	 * US3 processors have a write-invalidate cache, so explicitly
+	 * invalidating it is not required. Whether to invalidate I-cache
+	 * or not is decided according to the value of the global
+	 * "subarchitecture" variable (set in the bootstrap).
+	 */
+	set subarchitecture, %g2
+	ldub [%g2], %g2
+	cmp %g2, 3
+	be 1f
+	nop
+0:
+	call icache_flush
+	nop
+1:
+	membar #StoreStore
+	
+	/*
+	 * Flush the instruction pipeline.
+	 */
 	flush	%i7
 
 	mov %o0, %l1
@@ -134,7 +153,6 @@ icache_flush:
 	retl
 	! SF Erratum #51
 	nop
-
 .global ofw
 ofw:
 	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
