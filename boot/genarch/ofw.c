@@ -373,6 +373,48 @@ int ofw_screen(screen_t *screen)
 	return true;
 }
 
+/**
+ * Sets up the palette for the 8-bit color depth configuration so that the
+ * 3:2:3 color scheme can be used. Checks that setting the palette makes sense
+ * (appropriate nodes exist in the OBP tree and the color depth is not greater
+ * than 8). 
+ *
+ * @return	true if the palette has been set, false otherwise
+ */
+int setup_palette(void)
+{
+	char device_name[BUF_SIZE];
+	
+	/* resolve alias */
+	if (ofw_get_property(ofw_aliases, "screen", device_name,
+		sizeof(device_name)) <= 0)
+		return false;
+
+	/* for depth greater than 8 it makes no sense to set up the palette */
+	uint32_t depth;
+	phandle device = ofw_find_device(device_name);
+	if (device == -1)
+		return false;
+	if (ofw_get_property(device, "depth", &depth, sizeof(uint32_t)) <= 0)
+		return false;
+	if (depth != 8)
+		return false;
+	
+	/* required in order to be able to make a method call */
+	ihandle screen = ofw_open(device_name);
+	if (screen == -1)
+		return false;
+
+	/* setup the palette so that the 3:2:3 scheme is usable */
+	unsigned int i;
+	for (i = 0; i < 256; i++)
+		if (ofw_call("call-method", 6, 1, NULL, "color!", screen,
+			i,
+			i << 5,
+			(i >> 3) << 6,
+			(i >> 5) << 5) != 0); 
+	return true;
+}
 
 void ofw_quiesce(void)
 {
