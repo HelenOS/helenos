@@ -189,13 +189,17 @@ void clock(void)
 		spinlock_unlock(&THREAD->lock);
 		
 		if (!ticks && !PREEMPTION_DISABLED) {
+#ifdef CONFIG_UDEBUG
+			istate_t *istate;
+#endif
 			scheduler();
 #ifdef CONFIG_UDEBUG
 			/*
 			 * Give udebug chance to stop the thread
-			 * before it begins executing.
+			 * before it begins executing userspace code.
 			 */
-			if (istate_from_uspace(THREAD->udebug.uspace_state))
+			istate = THREAD->udebug.uspace_state;
+			if (istate && istate_from_uspace(istate))
 				udebug_before_thread_runs();
 #endif
 		}
