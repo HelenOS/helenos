@@ -521,8 +521,9 @@ viewport_create(unsigned int x, unsigned int y,unsigned int width,
  *
  */
 static bool
-screen_init(void *addr, unsigned int xres, unsigned int yres,
-	unsigned int scan, unsigned int visual, bool invert_colors)
+screen_init(void *addr, unsigned int offset, unsigned int xres,
+	unsigned int yres, unsigned int scan, unsigned int visual,
+	bool invert_colors)
 {
 	switch (visual) {
 	case VISUAL_INDIRECT_8:
@@ -564,7 +565,7 @@ screen_init(void *addr, unsigned int xres, unsigned int yres,
 		return false;
 	}
 
-	screen.fbaddress = (unsigned char *) addr;
+	screen.fbaddress = (unsigned char *) (((uintptr_t) addr) + offset);
 	screen.xres = xres;
 	screen.yres = yres;
 	screen.scanline = scan;
@@ -1353,6 +1354,7 @@ fb_init(void)
 	unsigned int fb_height;
 	unsigned int fb_scanline;
 	unsigned int fb_visual;
+	unsigned int fb_offset;
 	bool fb_invert_colors;
 	void *fb_addr;
 	size_t asz;
@@ -1360,6 +1362,7 @@ fb_init(void)
 	async_set_client_connection(fb_client_connection);
 
 	fb_ph_addr = (void *) sysinfo_value("fb.address.physical");
+	fb_offset = sysinfo_value("fb.offset");
 	fb_width = sysinfo_value("fb.width");
 	fb_height = sysinfo_value("fb.height");
 	fb_scanline = sysinfo_value("fb.scanline");
@@ -1369,10 +1372,10 @@ fb_init(void)
 	asz = fb_scanline * fb_height;
 	fb_addr = as_get_mappable_page(asz);
 	
-	physmem_map(fb_ph_addr, fb_addr, ALIGN_UP(asz, PAGE_SIZE) >>
+	physmem_map(fb_ph_addr + fb_offset, fb_addr, ALIGN_UP(asz, PAGE_SIZE) >>
 	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
 
-	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual,
+	if (screen_init(fb_addr, fb_offset, fb_width, fb_height, fb_scanline, fb_visual,
 	    fb_invert_colors))
 		return 0;
 	

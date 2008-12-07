@@ -78,6 +78,7 @@ void scr_init(ofw_tree_node_t *node)
 	}
 	
 	uintptr_t fb_addr;
+	unsigned int fb_offset = 0;
 	uint32_t fb_width = 0;
 	uint32_t fb_height = 0;
 	uint32_t fb_depth = 0;
@@ -167,10 +168,12 @@ void scr_init(ofw_tree_node_t *node)
 			return;
 		}
 
+		fb_offset = 4 * 0x2000;
+
 		switch (fb_depth) {
 		case 8:
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
-			visual = VISUAL_SB1500_PALETTE;
+			visual = VISUAL_INDIRECT_8;
 			break;
 		case 16:
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
@@ -225,7 +228,7 @@ void scr_init(ofw_tree_node_t *node)
 
 	fb_properties_t props = {
 		.addr = fb_addr,
-		.offset = 0,
+		.offset = fb_offset,
 		.x = fb_width,
 		.y = fb_height,
 		.scan = fb_scanline,

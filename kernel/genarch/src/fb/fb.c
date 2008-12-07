@@ -191,26 +191,6 @@ static void rgb_byte8(void *dst, int rgb)
 	    BLUE(rgb, 3);
 }
 
-static void sb1500rgb_byte8(void *dst, int rgb)
-{
-	if (RED(rgb, 1) && GREEN(rgb, 1) && BLUE(rgb, 1))
-		*((uint8_t *) dst) = 255;
-	else if (RED(rgb, 1) && GREEN(rgb, 1))
-		*((uint8_t *) dst) = 150;
-	else if (GREEN(rgb, 1) && BLUE(rgb, 1))
-		*((uint8_t *) dst) = 47;
-	else if (RED(rgb, 1) && BLUE(rgb, 1))
-		*((uint8_t *) dst) = 48;
-	else if (RED(rgb, 1))
-		*((uint8_t *) dst) = 32;
-	else if (GREEN(rgb, 1))
-		*((uint8_t *) dst) = 47;
-	else if (BLUE(rgb, 1))
-		*((uint8_t *) dst) = 2;
-	else 
-		*((uint8_t *) dst) = 1;
-}
-
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
  *
  * See the comment for rgb_byte().
@@ -466,11 +446,6 @@ void fb_init(fb_properties_t *props)
 		scr2rgb = byte8_rgb;
 		pixelbytes = 1;
 		break;
-	case VISUAL_SB1500_PALETTE:
-		rgb2scr = sb1500rgb_byte8;
-		scr2rgb = byte8_rgb;
-		pixelbytes = 1;
-		break;
 	case VISUAL_RGB_5_5_5:
 		rgb2scr = rgb_byte555;
 		scr2rgb = byte555_rgb;
@@ -505,10 +480,11 @@ void fb_init(fb_properties_t *props)
 		panic("Unsupported visual.\n");
 	}
 	
-	unsigned int fbsize = props->scan * props->y + props->offset;
+	unsigned int fbsize = props->scan * props->y;
 	
 	/* Map the framebuffer */
-	fbaddress = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	fbaddress = (uint8_t *) hw_map((uintptr_t) props->addr + props->offset,
+		fbsize);
 	fbaddress += props->offset;
 	
 	xres = props->x;
@@ -531,6 +507,7 @@ void fb_init(fb_properties_t *props)
 	sysinfo_set_item_val("fb.scanline", NULL, props->scan);
 	sysinfo_set_item_val("fb.visual", NULL, props->visual);
 	sysinfo_set_item_val("fb.address.physical", NULL, props->addr);
+	sysinfo_set_item_val("fb.offset", NULL, props->offset);
 	sysinfo_set_item_val("fb.invert-colors", NULL, invert_colors);
 
 	/* Allocate double buffer */
