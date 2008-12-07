@@ -58,7 +58,7 @@
  * Specifically, verifies that thread t exists, is a userspace thread,
  * and belongs to the current task (TASK). Verifies, that the thread
  * is (or is not) go according to being_go (typically false).
- * It also locks t->udebug.lock, making sure that t->udebug.debug_active
+ * It also locks t->udebug.lock, making sure that t->udebug.active
  * is true - that the thread is in a valid debugging session.
  *
  * With this verified and the t->udebug.lock mutex held, it is ensured
@@ -108,7 +108,7 @@ static int _thread_op_begin(thread_t *t, bool being_go)
 	}
 
 	/* Verify debugging state. */
-	if (t->udebug.debug_active != true) {
+	if (t->udebug.active != true) {
 		/* Not in debugging session or undesired GO state */
 		spinlock_unlock(&t->lock);
 		interrupts_restore(ipl);
@@ -117,8 +117,8 @@ static int _thread_op_begin(thread_t *t, bool being_go)
 	}
 
 	/*
-	 * Since the thread has debug_active == true, TASK->udebug.lock
-	 * is enough to ensure its existence and that debug_active remains
+	 * Since the thread has active == true, TASK->udebug.lock
+	 * is enough to ensure its existence and that active remains
 	 * true.
 	 */
 	spinlock_unlock(&t->lock);
@@ -204,14 +204,14 @@ int udebug_begin(call_t *call)
 		reply = 0; /* no reply */
 	}
 	
-	/* Set udebug.debug_active on all of the task's userspace threads. */
+	/* Set udebug.active on all of the task's userspace threads. */
 
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
 		t = list_get_instance(cur, thread_t, th_link);
 
 		mutex_lock(&t->udebug.lock);
 		if ((t->flags & THREAD_FLAG_USPACE) != 0)
-			t->udebug.debug_active = true;
+			t->udebug.active = true;
 		mutex_unlock(&t->udebug.lock);
 	}
 

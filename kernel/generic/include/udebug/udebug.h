@@ -177,9 +177,9 @@ typedef struct {
 
 	/** What type of event are we stopped in or 0 if none. */
 	udebug_event_t cur_event;
-	bool go;	   /**< thread is GO */
-	bool stoppable;	   /**< thread is stoppable */
-	bool debug_active; /**< thread is in a debugging session */
+	bool go;		/**< thread is GO */
+	bool stoppable;		/**< thread is stoppable */
+	bool active;		/**< thread is in a debugging session */
 } udebug_thread_t;
 
 struct task;
