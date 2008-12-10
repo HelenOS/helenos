@@ -242,14 +242,15 @@ byte565_rgb(void *src)
 static void
 rgb_byte8(void *dst, int rgb)
 {
-	*(uint8_t *)dst = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 | BLUE(rgb, 3);
+	*(uint8_t *)dst = 255 - (RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 |
+		BLUE(rgb, 3));
 }
 
 /** Return pixel color - 8-bit depth (3:2:3) */
 static int
 byte8_rgb(void *src)
 {
-	int color = *(uint8_t *)src;
+	int color = 255 - (*(uint8_t *)src);
 	return (((color >> 5) & 0x7) << (16 + 5)) |
 	    (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
@@ -565,7 +566,7 @@ screen_init(void *addr, unsigned int offset, unsigned int xres,
 		return false;
 	}
 
-	screen.fbaddress = (unsigned char *) (((uintptr_t) addr) + offset);
+	screen.fbaddress = (unsigned char *) (((uintptr_t) addr));
 	screen.xres = xres;
 	screen.yres = yres;
 	screen.scanline = scan;

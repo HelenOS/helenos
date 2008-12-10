@@ -298,7 +298,6 @@ int ofw_memmap(memmap_t *map)
 	    (sizeof(uintptr_t) / sizeof(uint32_t));
 	unsigned int sc = ofw_get_size_cells(ofw_memory) /
 	    (sizeof(uintptr_t) / sizeof(uint32_t));
-	printf("address cells: %d, size cells: %d. ", ac, sc);
 
 	uintptr_t buf[((ac + sc) * MEMMAP_MAX_RECORDS)];
 	int ret = ofw_get_property(ofw_memory, "reg", buf, sizeof(buf));
@@ -405,11 +404,11 @@ int setup_palette(void)
 	if (screen == -1)
 		return false;
 
-	/* setup the palette so that the 3:2:3 scheme is usable */
+	/* setup the palette so that the (inverted) 3:2:3 scheme is usable */
 	unsigned int i;
 	for (i = 0; i < 256; i++)
 		if (ofw_call("call-method", 6, 1, NULL, "color!", screen,
-			i,
+			255 - i,
 			i << 5,
 			(i >> 3) << 6,
 			(i >> 5) << 5) != 0); 

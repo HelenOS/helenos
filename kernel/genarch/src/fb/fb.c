@@ -177,18 +177,26 @@ static int byte565_rgb(void *src)
 	    (((color >> 5) & 0x3f) << (8 + 2)) | ((color & 0x1f) << 3);
 }
 
-/** Put pixel - 8-bit depth (color palette/3:2:3)
+/** Put pixel - 8-bit depth (color palette/3:2:3, inverted)
  *
  * Even though we try 3:2:3 color scheme here, an 8-bit framebuffer
  * will most likely use a color palette. The color appearance
  * will be pretty random and depend on the default installed
  * palette. This could be fixed by supporting custom palette
  * and setting it to simulate the 8-bit truecolor.
+ *
+ * Currently we set the palette on the sparc64 port.
+ *
+ * Note that the byte is being inverted by this function. The reason is
+ * that we would like to use a color palette where the white color code
+ * is 0 and the black color code is 255, as some machines (SunBlade 1500) 
+ * use these codes for black and white and prevent to set codes
+ * 0 and 255 to other colors.
  */
 static void rgb_byte8(void *dst, int rgb)
 {
-	*((uint8_t *) dst) = RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 |
-	    BLUE(rgb, 3);
+	*((uint8_t *) dst) = 255 - (RED(rgb, 3) << 5 | GREEN(rgb, 2) << 3 |
+	    BLUE(rgb, 3));
 }
 
 /** Return pixel color - 8-bit depth (color palette/3:2:3)
@@ -197,7 +205,7 @@ static void rgb_byte8(void *dst, int rgb)
  */
 static int byte8_rgb(void *src)
 {
-	int color = *(uint8_t *)src;
+	int color = 255 - (*(uint8_t *)src);
 	return (((color >> 5) & 0x7) << (16 + 5)) |
 	    (((color >> 3) & 0x3) << (8 + 6)) | ((color & 0x7) << 5);
 }
@@ -483,8 +491,8 @@ void fb_init(fb_properties_t *props)
 	unsigned int fbsize = props->scan * props->y;
 	
 	/* Map the framebuffer */
-	fbaddress = (uint8_t *) hw_map((uintptr_t) props->addr + props->offset,
-		fbsize);
+	fbaddress = (uint8_t *) hw_map((uintptr_t) props->addr,
+		fbsize + props->offset);
 	fbaddress += props->offset;
 	
 	xres = props->x;
@@ -494,7 +502,7 @@ void fb_init(fb_properties_t *props)
 	rows = props->y / FONT_SCANLINES;
 	columns = props->x / COL_WIDTH;
 
-	fb_parea.pbase = (uintptr_t) props->addr;
+	fb_parea.pbase = (uintptr_t) props->addr + props->offset;
 	fb_parea.vbase = (uintptr_t) fbaddress;
 	fb_parea.frames = SIZE2FRAMES(fbsize);
 	fb_parea.cacheable = false;
