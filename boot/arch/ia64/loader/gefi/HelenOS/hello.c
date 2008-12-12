@@ -106,13 +106,24 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 		StrCat(FileName,L"\\image.bin");
 		defaultLoad=1;
 	}	
-	else{
+/*	else{
 		CHAR16 buf[1024];
 		//buf[0]='\\';
 		i--;
 		int j;
 		for(j=0;LoadOptions[i+j]!=L' '&&LoadOptions[i+j]!=0;j++)
 			buf[j+1]=LoadOptions[i+j];
+		buf[j+1]=0;
+		StrCat(FileName,buf);
+		defaultLoad=0;
+	}*/
+	else{
+		CHAR16 buf[1024];
+		//buf[0]='\\';
+		i--;
+		int j;
+		for(j=0;LoadOptions[i+j]!=L' '&&LoadOptions[i+j]!=0;j++)
+			buf[j]=LoadOptions[i+j];
 		buf[j+1]=0;
 		StrCat(FileName,buf);
 		defaultLoad=0;

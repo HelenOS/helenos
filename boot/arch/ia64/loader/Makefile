@@ -87,9 +87,9 @@ SOURCES = \
 	asm.S \
 	boot.S
 
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin 
 NOCOMPONENTS = \
+	$(KERNELDIR)/kernel.bin 
+COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
 	$(USPACEDIR)/srv/loader/loader \
