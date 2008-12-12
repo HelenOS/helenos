@@ -12,7 +12,7 @@
 
 
 //Link image as a data array into hello - usefull with network boot
-#define IMAGE_LINKED
+//#define IMAGE_LINKED
 
 bootinfo_t *bootinfo=(bootinfo_t *)BOOTINFO_ADDRESS;
 
@@ -86,6 +86,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	StrCpy(FileName,DevicePathToStr(LoadedImage->FilePath));
 	for(i=StrLen(FileName);i>=0 && FileName[i]!='\\';i--);
 	FileName[i] = 0;
+	FileName[0] = 0;
 	
 	Print(L"%s\n",LoadedImage->LoadOptions);
 	
@@ -107,7 +108,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	}	
 	else{
 		CHAR16 buf[1024];
-		buf[0]='\\';
+		//buf[0]='\\';
 		i--;
 		int j;
 		for(j=0;LoadOptions[i+j]!=L' '&&LoadOptions[i+j]!=0;j++)
