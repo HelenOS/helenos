@@ -97,6 +97,8 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+OBJECTS := $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS)
+
 .PHONY: all clean depend disasm links
 
 all: links $(OUTPUT) $(OUTPUT).disasm
@@ -108,13 +110,13 @@ links:
 	ln -sfn ../genarch/include include/genarch
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch include/genarch
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch include/genarch $(OBJECTS)
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm: $(OUTPUT).disasm
 

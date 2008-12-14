@@ -59,6 +59,8 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES))) \
 			$(addsuffix .o,$(basename $(IMAGES)))	
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 
+OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
+
 .PHONY: all clean depend disasm
 
 all: $(OUTPUT) $(OUTPUT).disasm
@@ -66,13 +68,13 @@ all: $(OUTPUT) $(OUTPUT).disasm
 -include Makefile.depend
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(GENERIC_OBJECTS) $(ARCH_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm: $(OUTPUT).disasm
 

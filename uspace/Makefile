@@ -85,8 +85,6 @@ config:
 build: $(BUILDS)
 
 clean: $(CLEANS)
-	find $(DIRS) -name '*.o' -follow -exec rm \{\} \;
-	find lib/libc -name "_link.ld" -exec rm \{\} \;
 
 distclean: clean
 	-rm Makefile.config
