@@ -1,0 +1,115 @@
+#! /bin/sh
+
+#
+# Copyright (C) 2006 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+[ "$#" -lt 1 ] && exit 1
+
+OBJCOPY="$1"
+LINK="_link.ld"
+HEADER="_components.h"
+
+shift
+
+echo 'OUTPUT_FORMAT("elf32-powerpc")
+OUTPUT_ARCH(powerpc:common)
+ENTRY(start)
+
+SECTIONS {
+	.boot 0x10000000: AT (0) { 
+		*(BOOTSTRAP);
+		*(REALMODE);
+		*(.text);
+		
+		*(.rodata);
+		*(.rodata.*);
+		*(.data);		/* initialized data */
+		*(.sdata);
+		*(.sdata2);
+		*(.sbss);
+		*(.bss);		/* uninitialized static variables */	
+		*(COMMON); 		/* global variables */' > "$LINK"
+
+echo '#ifndef ___COMPONENTS_H__
+#define ___COMPONENTS_H__
+
+typedef struct {
+	char *name;
+	
+	void *start;
+	void *end;
+	unsigned int size;
+} component_t;' > "$HEADER"
+
+COUNT="0"
+DATA=""
+
+for TASK in "$@" ; do
+	BASENAME="`basename "$TASK" | sed 's/^\(.*\)\.[^.]*$/\1/'`"
+	OBJECT="${BASENAME}.o"
+	SYMBOL="`echo "_binary_$TASK" | tr "./" "__"`"
+	MACRO="`echo "$BASENAME" | tr [:lower:] [:upper:]`"
+	echo "$TASK -> $OBJECT"
+	
+	echo "
+		. = ALIGN(4096);
+		*(.${BASENAME}_image);" >> "$LINK"
+	
+	echo "
+extern int ${SYMBOL}_start;
+extern int ${SYMBOL}_end;
+
+#define ${MACRO}_START ((void *) &${SYMBOL}_start)
+#define ${MACRO}_END ((void *) &${SYMBOL}_end)
+#define ${MACRO}_SIZE ((unsigned int) ${MACRO}_END - (unsigned int) ${MACRO}_START)" >> "$HEADER"
+	
+	"$OBJCOPY" -I binary -O elf32-powerpc -B powerpc:common --rename-section ".data=.${BASENAME}_image" "$TASK" "$OBJECT"
+		
+	DATA="${DATA}
+	components[$COUNT].name = \"${BASENAME}\";
+	components[$COUNT].start = ${MACRO}_START;
+	components[$COUNT].end = ${MACRO}_END;
+	components[$COUNT].size = ${MACRO}_SIZE;";
+	COUNT="`expr "$COUNT" + 1`"
+done
+
+echo '	}
+}' >> "$LINK"
+
+echo "
+#define COMPONENTS $COUNT
+
+component_t components[COMPONENTS]; 
+
+static void init_components(void)
+{
+$DATA
+}
+
+#endif
+" >> "$HEADER"
