@@ -90,8 +90,12 @@ ifeq ($(CONFIG_DEBUG),y)
 	DEFS += -DCONFIG_DEBUG
 endif
 
-ifeq ($(CONFIG_EDEBUG),y)
-	DEFS += -DCONFIG_EDEBUG
+ifeq ($(CONFIG_LOG),y)
+	DEFS += -DCONFIG_LOG
+endif
+
+ifeq ($(CONFIG_KCONSOLE),y)
+	DEFS += -DCONFIG_KCONSOLE
 endif
 
 ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
@@ -236,8 +240,6 @@ GENERIC_SOURCES = \
 	generic/src/adt/list.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
-	generic/src/console/kconsole.c \
-	generic/src/console/cmd.c \
 	generic/src/cpu/cpu.c \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
@@ -298,6 +300,15 @@ GENERIC_SOURCES = \
 	generic/src/ipc/irq.c \
 	generic/src/security/cap.c \
 	generic/src/sysinfo/sysinfo.c
+
+## Kernel console support
+#
+
+ifeq ($(CONFIG_KCONSOLE),y)
+GENERIC_SOURCES += \
+	generic/src/console/kconsole.c \
+	generic/src/console/cmd.c
+endif
 
 ## Udebug interface sources
 #
