@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 
-#define bzero(ptr, len)	memset((ptr), 0, (len))
+#define bzero(ptr, len)  memset((ptr), 0, (len))
 
 extern void * memset(void *, int, size_t);
 extern void * memcpy(void *, const void *, size_t);

@@ -42,7 +42,7 @@
 #define USER_ADDRESS_SPACE_START_ARCH		((unsigned long) 0x00000000)
 #define USER_ADDRESS_SPACE_END_ARCH		((unsigned long) 0x7fffffff)
 
-#define USTACK_ADDRESS_ARCH	(USER_ADDRESS_SPACE_END_ARCH-(PAGE_SIZE-1))
+#define USTACK_ADDRESS_ARCH	(USER_ADDRESS_SPACE_END_ARCH - (PAGE_SIZE - 1))
 
 typedef struct {
 } as_arch_t;

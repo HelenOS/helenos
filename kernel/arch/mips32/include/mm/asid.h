@@ -37,7 +37,7 @@
 
 #include <arch/types.h>
 
-#define ASID_MAX_ARCH		255	/* 2^8 - 1 */
+#define ASID_MAX_ARCH  255    /* 2^8 - 1 */
 
 typedef uint8_t asid_t;
 

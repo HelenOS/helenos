@@ -51,10 +51,10 @@
 #include <arch/asm.h>
 
 typedef struct {
-	int vendor;
-	int family;
-	int model;
-	int stepping;
+	unsigned int vendor;
+	unsigned int family;
+	unsigned int model;
+	unsigned int stepping;
 	struct tss *tss;
 	
 	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */

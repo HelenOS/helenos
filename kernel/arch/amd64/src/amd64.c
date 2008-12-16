@@ -210,6 +210,7 @@ void arch_grab_console(void)
 {
 	i8042_grab();
 }
+
 /** Return console to userspace
  *
  */
