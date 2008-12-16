@@ -63,15 +63,15 @@
 #	define ASSERT(expr)
 #endif
 
-/** Extensive debugging output macro
+/** Extensive logging output macro
  *
- * If CONFIG_EDEBUG is set, the LOG() macro
+ * If CONFIG_LOG is set, the LOG() macro
  * will print whatever message is indicated plus
  * an information about the location.
  *
  */
 
-#ifdef CONFIG_EDEBUG
+#ifdef CONFIG_LOG
 #	define LOG(format, ...) \
 		printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
 			__LINE__, ##__VA_ARGS__);
@@ -79,15 +79,15 @@
 #	define LOG(format, ...)
 #endif
 
-/** Extensive debugging execute macro
+/** Extensive logging execute macro
  *
- * If CONFIG_EDEBUG is set, the LOG_EXEC() macro
+ * If CONFIG_LOG is set, the LOG_EXEC() macro
  * will print an information about calling a given
  * function and call it.
  *
  */
 
-#ifdef CONFIG_EDEBUG
+#ifdef CONFIG_LOG
 #	define LOG_EXEC(fnc) \
 		{ \
 			printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
