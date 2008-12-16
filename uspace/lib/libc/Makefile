@@ -91,6 +91,7 @@ ARCH_SOURCES += \
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
+OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
 
 .PHONY: all clean depend kerninc
 
@@ -105,7 +106,7 @@ kerninc:
 
 clean:
 	-rm -f include/kernel include/arch include/libarch libc.a arch/$(ARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(ARCH)/ -name '*.o' -follow -exec rm \{\} \;
+	find generic/ arch/$(ARCH)/ malloc -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc
 	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
