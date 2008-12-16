@@ -439,6 +439,7 @@ int fat_link(void *prnt, void *chld, const char *name)
 		}
 		block_put(b);
 	}
+	j = 0;
 	
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
