@@ -159,13 +159,14 @@ static void rgb_565(void *dst, uint32_t rgb)
  * palette. This could be fixed by supporting custom palette
  * and setting it to simulate the 8-bit truecolor.
  *
- * Currently we set the palette on the ia32 and sparc64 port.
+ * Currently we set the palette on the ia32, amd64 and sparc64 port.
  *
  * Note that the byte is being inverted by this function. The reason is
  * that we would like to use a color palette where the white color code
- * is 0 and the black color code is 255, as some machines (SunBlade 1500) 
+ * is 0 and the black color code is 255, as some machines (Sun Blade 1500)
  * use these codes for black and white and prevent to set codes
  * 0 and 255 to other colors.
+ *
  */
 static void rgb_323(void *dst, uint32_t rgb)
 {
