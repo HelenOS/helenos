@@ -60,6 +60,7 @@ endif
 ifeq ($(CONFIG_FB),y)
 	GENARCH_SOURCES += \
 		genarch/src/fb/font-8x16.c \
+		genarch/src/fb/logo-196x66.c \
 		genarch/src/fb/fb.c
 	DEFS += -DCONFIG_FB
 endif

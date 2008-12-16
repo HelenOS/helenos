@@ -34,6 +34,7 @@
  */
 
 #include <genarch/fb/font-8x16.h>
+#include <genarch/fb/logo-196x66.h>
 #include <genarch/fb/visuals.h>
 #include <genarch/fb/fb.h>
 #include <console/chardev.h>
@@ -57,17 +58,21 @@ static parea_t fb_parea;
 static uint8_t *fb_addr;
 static uint8_t *backbuf;
 static uint8_t *glyphs;
-
-static void *bgpixel;
+static uint8_t *bgscan;
 
 static unsigned int xres;
 static unsigned int yres;
+
+static unsigned int ylogo;
+static unsigned int ytrim;
+static unsigned int rowtrim;
 
 static unsigned int scanline;
 static unsigned int glyphscanline;
 
 static unsigned int pixelbytes;
 static unsigned int glyphbytes;
+static unsigned int bgscanbytes;
 
 static unsigned int cols;
 static unsigned int rows;
@@ -121,12 +126,13 @@ static void bgr_0888(void *dst, uint32_t rgb)
 static void rgb_888(void *dst, uint32_t rgb)
 {
 #if defined(FB_INVERT_ENDIAN)
-	*((uint32_t *) dst)
-	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8)
-	    | (*((uint32_t *) dst) & 0xff0000);
+	((uint8_t *) dst)[0] = RED(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = BLUE(rgb, 8);
 #else
-	*((uint32_t *) dst)
-	    = (rgb & 0xffffff) | (*((uint32_t *) dst) & 0xff0000);
+	((uint8_t *) dst)[0] = BLUE(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = RED(rgb, 8);
 #endif
 }
 
@@ -175,19 +181,34 @@ static void rgb_323(void *dst, uint32_t rgb)
 }
 
 
+/** Hide logo and refresh screen
+ *
+ */
+static void logo_hide(void)
+{
+	ylogo = 0;
+	ytrim = yres;
+	rowtrim = rows;
+	fb_redraw();
+}
+
+
 /** Draw character at given position
  *
  */
-static void draw_glyph(uint8_t glyph, unsigned int col, unsigned int row)
+static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
 	unsigned int yd;
 	
+	if (y >= ytrim)
+		logo_hide();
+	
 	backbuf[BB_POS(col, row)] = glyph;
 	
 	for (yd = 0; yd < FONT_SCANLINES; yd++)
-		memcpy(&fb_addr[FB_POS(x, y + yd)],
+		memcpy(&fb_addr[FB_POS(x, y + yd + ylogo)],
 		    &glyphs[GLYPH_POS(glyph, yd)], glyphscanline);
 }
 
@@ -196,8 +217,11 @@ static void draw_glyph(uint8_t glyph, unsigned int col, unsigned int row)
  *
  *
  */
-static void scroll_screen(void)
+static void screen_scroll(void)
 {
+	if (ylogo > 0)
+		logo_hide();
+	
 	unsigned int row;
 	
 	for (row = 0; row < rows; row++) {
@@ -232,13 +256,13 @@ static void scroll_screen(void)
 
 static void cursor_put(void)
 {
-	draw_glyph(CURSOR, position % cols, position / cols);
+	glyph_draw(CURSOR, position % cols, position / cols);
 }
 
 
 static void cursor_remove(void)
 {
-	draw_glyph(0, position % cols, position / cols);
+	glyph_draw(0, position % cols, position / cols);
 }
 
 
@@ -269,18 +293,18 @@ static void fb_putchar(chardev_t *dev, char ch)
 	case '\t':
 		cursor_remove();
 		do {
-			draw_glyph((uint8_t) ' ', position % cols, position / cols);
+			glyph_draw((uint8_t) ' ', position % cols, position / cols);
 			position++;
 		} while ((position % 8) && (position < cols * rows));
 		break;
 	default:
-		draw_glyph((uint8_t) ch, position % cols, position / cols);
+		glyph_draw((uint8_t) ch, position % cols, position / cols);
 		position++;
 	}
 	
 	if (position >= cols * rows) {
 		position -= cols;
-		scroll_screen();
+		screen_scroll();
 	}
 	
 	cursor_put();
@@ -300,8 +324,9 @@ static chardev_operations_t fb_ops = {
  * description to current visual representation.
  *
  */
-static void render_glyphs(void)
+static void glyphs_render(void)
 {
+	/* Prerender glyphs */
 	unsigned int glyph;
 	
 	for (glyph = 0; glyph < FONT_GLYPHS; glyph++) {
@@ -312,11 +337,15 @@ static void render_glyphs(void)
 			
 			for (x = 0; x < FONT_WIDTH; x++)
 				rgb_conv(&glyphs[GLYPH_POS(glyph, y) + x * pixelbytes],
-				    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x))) ? FG_COLOR : BG_COLOR);
+				    (fb_font[ROW2Y(glyph) + y] & (1 << (7 - x))) ? FG_COLOR : BG_COLOR);
 		}
 	}
 	
-	rgb_conv(bgpixel, BG_COLOR);
+	/* Prerender background scanline */
+	unsigned int x;
+	
+	for (x = 0; x < xres; x++)
+		rgb_conv(&bgscan[x * pixelbytes], BG_COLOR);
 }
 
 
@@ -325,10 +354,22 @@ static void render_glyphs(void)
  */
 void fb_redraw(void)
 {
+	if (ylogo > 0) {
+		unsigned int y;
+		
+		for (y = 0; y < LOGO_HEIGHT; y++) {
+			unsigned int x;
+			
+			for (x = 0; x < xres; x++)
+				rgb_conv(&fb_addr[FB_POS(x, y)],
+				    (x < LOGO_WIDTH) ? fb_logo[y * LOGO_WIDTH + x] : LOGO_COLOR);
+		}
+	}
+	
 	unsigned int row;
 	
-	for (row = 0; row < rows; row++) {
-		unsigned int y = ROW2Y(row);
+	for (row = 0; row < rowtrim; row++) {
+		unsigned int y = ylogo + ROW2Y(row);
 		unsigned int yd;
 		
 		for (yd = 0; yd < FONT_SCANLINES; yd++) {
@@ -344,24 +385,17 @@ void fb_redraw(void)
 	
 	if (COL2X(cols) < xres) {
 		unsigned int y;
+		unsigned int size = (xres - COL2X(cols)) * pixelbytes;
 		
-		for (y = 0; y < yres; y++) {
-			unsigned int x;
-			
-			for (x = COL2X(cols); x < xres; x++)
-				memcpy(&fb_addr[FB_POS(x, y)], bgpixel, pixelbytes);
-		}
+		for (y = ylogo; y < yres; y++)
+			memcpy(&fb_addr[FB_POS(COL2X(cols), y)], bgscan, size);
 	}
 	
-	if (ROW2Y(rows) < yres) {
+	if (ROW2Y(rowtrim) < yres) {
 		unsigned int y;
 		
-		for (y = ROW2Y(rows); y < yres; y++) {
-			unsigned int x;
-			
-			for (x = 0; x < xres; x++)
-				memcpy(&fb_addr[FB_POS(x, y)], bgpixel, pixelbytes);
-		}
+		for (y = ROW2Y(rowtrim); y < yres; y++)
+			memcpy(&fb_addr[FB_POS(0, y)], bgscan, bgscanbytes);
 	}
 }
 
@@ -414,11 +448,24 @@ void fb_init(fb_properties_t *props)
 	yres = props->y;
 	scanline = props->scan;
 	
-	cols = xres / FONT_WIDTH;
-	rows = yres / FONT_SCANLINES;
+	cols = X2COL(xres);
+	rows = Y2ROW(yres);
+	
+	if (yres > ylogo) {
+		ylogo = LOGO_HEIGHT;
+		rowtrim = rows - Y2ROW(ylogo);
+		if (ylogo % FONT_SCANLINES > 0)
+			rowtrim--;
+		ytrim = ROW2Y(rowtrim);
+	} else {
+		ylogo = 0;
+		ytrim = yres;
+		rowtrim = rows;
+	}
 	
 	glyphscanline = FONT_WIDTH * pixelbytes;
-	glyphbytes = glyphscanline * FONT_SCANLINES;
+	glyphbytes = ROW2Y(glyphscanline);
+	bgscanbytes = xres * pixelbytes;
 	
 	unsigned int fbsize = scanline * yres;
 	unsigned int bbsize = cols * rows;
@@ -432,15 +479,13 @@ void fb_init(fb_properties_t *props)
 	if (!glyphs)
 		panic("Unable to allocate glyphs.\n");
 	
-	bgpixel = malloc(pixelbytes, 0);
-	if (!bgpixel)
+	bgscan = malloc(bgscanbytes, 0);
+	if (!bgscan)
 		panic("Unable to allocate background pixel.\n");
 	
 	memsetb(backbuf, bbsize, 0);
-	memsetb(glyphs, glyphsize, 0);
-	memsetb(bgpixel, pixelbytes, 0);
 	
-	render_glyphs();
+	glyphs_render();
 	
 	fb_addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
 	

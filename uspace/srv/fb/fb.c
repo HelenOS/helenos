@@ -179,12 +179,13 @@ static void bgr_0888(void *dst, uint32_t rgb)
 static void rgb_888(void *dst, uint32_t rgb)
 {
 #if defined(FB_INVERT_ENDIAN)
-	*((uint32_t *) dst)
-	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8)
-	    | (*((uint32_t *) dst) & 0xff0000);
+	((uint8_t *) dst)[0] = RED(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = BLUE(rgb, 8);
 #else
-	*((uint32_t *) dst)
-	    = (rgb & 0xffffff) | (*((uint32_t *) dst) & 0xff0000);
+	((uint8_t *) dst)[0] = BLUE(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = RED(rgb, 8);
 #endif
 }
 
