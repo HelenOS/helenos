@@ -47,6 +47,8 @@
 bpinfo_t breakpoints[BKPOINTS_MAX];
 SPINLOCK_INITIALIZE(bkpoint_lock);
 
+#ifdef CONFIG_KCONSOLE
+
 static int cmd_print_breakpoints(cmd_arg_t *argv);
 static cmd_info_t bkpts_info = {
 	.name = "bkpts",
@@ -123,10 +125,12 @@ static struct {
 	{0, 0} /* EndOfTable */
 };
 
+
 /** Test, if the given instruction is a jump or branch instruction
  *
  * @param instr Instruction code
  * @return true - it is jump instruction, false otherwise
+ *
  */
 static bool is_jump(unative_t instr)
 {
@@ -267,6 +271,8 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	return 1;
 }
 
+#endif
+
 /** Initialize debugger */
 void debugger_init()
 {
@@ -274,22 +280,24 @@ void debugger_init()
 
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
-	
+
+#ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);
 	if (!cmd_register(&bkpts_info))
-		panic("could not register command %s\n", bkpts_info.name);
+		printf("Cannot register command %s\n", bkpts_info.name);
 
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
-		panic("could not register command %s\n", delbkpt_info.name);
+		printf("Cannot register command %s\n", delbkpt_info.name);
 
 	cmd_initialize(&addbkpt_info);
 	if (!cmd_register(&addbkpt_info))
-		panic("could not register command %s\n", addbkpt_info.name);
+		printf("Cannot register command %s\n", addbkpt_info.name);
 
 	cmd_initialize(&addbkpte_info);
 	if (!cmd_register(&addbkpte_info))
-		panic("could not register command %s\n", addbkpte_info.name);
+		printf("Cannot register command %s\n", addbkpte_info.name);
+#endif
 }
 
 /** Handle breakpoint
@@ -367,19 +375,20 @@ void debugger_bpoint(istate_t *istate)
 		if (cur->bkfunc)
 			cur->bkfunc(cur, istate);
 	} else {
-		printf("***Type 'exit' to exit kconsole.\n");
+#ifdef CONFIG_KCONSOLE
 		/* This disables all other processors - we are not SMP,
 		 * actually this gets us to cpu_halt, if scheduler() is run
 		 * - we generally do not want scheduler to be run from debug,
 		 *   so this is a good idea
 		 */	
-		atomic_set(&haltstate,1);
+		atomic_set(&haltstate, 1);
 		spinlock_unlock(&bkpoint_lock);
-
-		kconsole("debug");
-
+		
+		kconsole("debug", "Debug console ready (type 'exit' to continue)\n", false);
+		
 		spinlock_lock(&bkpoint_lock);
-		atomic_set(&haltstate,0);
+		atomic_set(&haltstate, 0);
+#endif
 	}
 	if (cur && cur->address == fireaddr && (cur->flags & BKPOINT_INPROG)) {
 		/* Remove one-shot breakpoint */

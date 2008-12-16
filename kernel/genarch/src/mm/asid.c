@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	ASID management.
+ * @brief ASID management.
  *
  * Modern processor architectures optimize TLB utilization
  * by using ASIDs (a.k.a. memory contexts on sparc64 and

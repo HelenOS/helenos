@@ -97,6 +97,11 @@ void vesa_init(void)
 	fb_init(&vesa_props);
 }
 
+void vesa_redraw(void)
+{
+	fb_redraw();
+}
+
 #endif
 
 /** @}

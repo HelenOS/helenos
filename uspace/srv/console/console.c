@@ -86,9 +86,6 @@ static keyfield_t *interbuffer = NULL;		/**< Pointer to memory shared
 						 * faster virtual console
 						 * switching */
 
-static int kernel_pixmap = -1;	/**< Number of fb pixmap, where kernel
-				 * console is stored */
-
 
 /** Find unused virtual console.
  *
@@ -187,114 +184,80 @@ static void write_char(int console, char key)
 	
 }
 
-/** Save current screen to pixmap, draw old pixmap
- *
- * @param oldpixmap Old pixmap
- * @return ID of pixmap of current screen
- */
-static int switch_screens(int oldpixmap)
-{
-	int newpmap;
-       
-	/* Save screen */
-	newpmap = async_req_0_0(fb_info.phone, FB_VP2PIXMAP);
-	if (newpmap < 0)
-		return -1;
-
-	if (oldpixmap != -1) {
-		/* Show old screen */
-		async_msg_2(fb_info.phone, FB_VP_DRAW_PIXMAP, 0, oldpixmap);
-		/* Drop old pixmap */
-		async_msg_1(fb_info.phone, FB_DROP_PIXMAP, oldpixmap);
-	}
-	
-	return newpmap;
-}
-
 /** Switch to new console */
 static void change_console(int newcons)
 {
 	connection_t *conn;
-	static int console_pixmap = -1;
 	int i, j, rc;
 	keyfield_t *field;
 	style_t *style;
-
+	
 	if (newcons == active_console)
 		return;
-
+	
 	if (newcons == KERNEL_CONSOLE) {
-		if (active_console == KERNEL_CONSOLE)
-			return;
-		active_console = KERNEL_CONSOLE;
-		curs_visibility(0);
-
 		async_serialize_start();
-		if (kernel_pixmap == -1) { 
-			/* store/restore unsupported */
-			set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
-			clrscr();
-		} else {
-			gcons_in_kernel();
-			console_pixmap = switch_screens(kernel_pixmap);
-			kernel_pixmap = -1;
-		}
+		curs_visibility(0);
+		gcons_in_kernel();
 		async_serialize_end();
-
-		__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
-		return;
-	} 
-	
-	async_serialize_start();
-
-	if (console_pixmap != -1) {
-		kernel_pixmap = switch_screens(console_pixmap);
-		console_pixmap = -1;
-	}
-	active_console = newcons;
-	gcons_change_console(newcons);
-	conn = &connections[active_console];
-
-	set_style(&conn->screenbuffer.style);
-	curs_visibility(0);
-	if (interbuffer) {
-		for (i = 0; i < conn->screenbuffer.size_x; i++)
-			for (j = 0; j < conn->screenbuffer.size_y; j++) {
-				unsigned int size_x;
-
-				size_x = conn->screenbuffer.size_x; 
-				interbuffer[i + j * size_x] =
-				    *get_field_at(&conn->screenbuffer, i, j);
-			}
-		/* This call can preempt, but we are already at the end */
-		rc = async_req_0_0(fb_info.phone, FB_DRAW_TEXT_DATA);		
+		
+		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE))
+			active_console = KERNEL_CONSOLE;
+		else
+			newcons == active_console;
 	}
 	
-	if ((!interbuffer) || (rc != 0)) {
+	if (newcons != KERNEL_CONSOLE) {
+		async_serialize_start();
+		
+		if (active_console == KERNEL_CONSOLE)
+			gcons_redraw_console();
+		
+		active_console = newcons;
+		gcons_change_console(newcons);
+		conn = &connections[active_console];
+		
 		set_style(&conn->screenbuffer.style);
-		clrscr();
-		style = &conn->screenbuffer.style;
-
-		for (j = 0; j < conn->screenbuffer.size_y; j++) 
-			for (i = 0; i < conn->screenbuffer.size_x; i++) {
-				field = get_field_at(&conn->screenbuffer, i, j);
-				if (!style_same(*style, field->style))
-					set_style(&field->style);
-				style = &field->style;
-				if ((field->character == ' ') &&
-				    (style_same(field->style,
-				    conn->screenbuffer.style)))
-					continue;
-
-				prtchr(field->character, j, i);
-			}
+		curs_visibility(0);
+		if (interbuffer) {
+			for (i = 0; i < conn->screenbuffer.size_x; i++)
+				for (j = 0; j < conn->screenbuffer.size_y; j++) {
+					unsigned int size_x;
+					
+					size_x = conn->screenbuffer.size_x; 
+					interbuffer[i + j * size_x] =
+					    *get_field_at(&conn->screenbuffer, i, j);
+				}
+			/* This call can preempt, but we are already at the end */
+			rc = async_req_0_0(fb_info.phone, FB_DRAW_TEXT_DATA);		
+		}
+		
+		if ((!interbuffer) || (rc != 0)) {
+			set_style(&conn->screenbuffer.style);
+			clrscr();
+			style = &conn->screenbuffer.style;
+			
+			for (j = 0; j < conn->screenbuffer.size_y; j++) 
+				for (i = 0; i < conn->screenbuffer.size_x; i++) {
+					field = get_field_at(&conn->screenbuffer, i, j);
+					if (!style_same(*style, field->style))
+						set_style(&field->style);
+					style = &field->style;
+					if ((field->character == ' ') &&
+					    (style_same(field->style,
+					    conn->screenbuffer.style)))
+						continue;
+					
+					prtchr(field->character, j, i);
+				}
+		}
+		
+		curs_goto(conn->screenbuffer.position_y,
+		    conn->screenbuffer.position_x);
+		curs_visibility(conn->screenbuffer.is_cursor_visible);
+		
+		async_serialize_end();
 	}
-	
-	curs_goto(conn->screenbuffer.position_y,
-	    conn->screenbuffer.position_x);
-	curs_visibility(conn->screenbuffer.is_cursor_visible);
-
-	async_serialize_end();
 }
 
 /** Handler for keyboard */
@@ -497,22 +460,16 @@ int main(int argc, char *argv[])
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	/* Connect to framebuffer driver */
-	
 	fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	while (fb_info.phone < 0) {
 		usleep(10000);
 		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	}
 	
-	/* Save old kernel screen */
-	kernel_pixmap = switch_screens(-1);
-
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
 	/* Synchronize, the gcons can have something in queue */
 	async_req_0_0(fb_info.phone, FB_FLUSH);
-	/* Enable double buffering */
-	async_msg_2(fb_info.phone, FB_VIEWPORT_DB, (sysarg_t) -1, 1);
 	
 	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.rows,
 	    &fb_info.cols); 

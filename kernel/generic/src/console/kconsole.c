@@ -401,34 +401,55 @@ static char *clever_readline(const char *prompt, chardev_t *input)
 	return current;
 }
 
-/** Kernel console managing thread.
+/** Kernel console prompt.
  *
  * @param prompt Kernel console prompt (e.g kconsole/panic).
+ * @param msg    Message to display in the beginning.
+ * @param kcon   Wait for keypress to show the prompt
+ *               and never exit.
+ *
  */
-void kconsole(void *prompt)
+void kconsole(char *prompt, char *msg, bool kcon)
 {
 	cmd_info_t *cmd_info;
 	count_t len;
 	char *cmdline;
 
 	if (!stdin) {
-		printf("%s: no stdin\n", __func__);
+		LOG("No stdin for kernel console");
 		return;
 	}
+	
+	if (msg)
+		printf("%s", msg);
+	
+	if (kcon)
+		_getc(stdin);
 	
 	while (true) {
 		cmdline = clever_readline((char *) prompt, stdin);
 		len = strlen(cmdline);
 		if (!len)
 			continue;
+		
 		cmd_info = parse_cmdline(cmdline, len);
 		if (!cmd_info)
 			continue;
-		if (strncmp(cmd_info->name, "exit",
-		    min(strlen(cmd_info->name), 5)) == 0)
+		
+		if ((!kcon)
+		    && (strncmp(cmd_info->name, "exit", min(strlen(cmd_info->name), 5)) == 0))
 			break;
+		
 		(void) cmd_info->func(cmd_info->argv);
 	}
+}
+
+/** Kernel console managing thread.
+ *
+ */
+void kconsole_thread(void *data)
+{
+	kconsole("kconsole", "Kernel console ready (press any key to activate)\n", true);
 }
 
 static int parse_int_arg(char *text, size_t len, unative_t *result)

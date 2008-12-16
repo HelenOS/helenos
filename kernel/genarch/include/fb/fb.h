@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /** @file
@@ -65,6 +65,8 @@ typedef struct fb_properties {
 } fb_properties_t;
 
 SPINLOCK_EXTERN(fb_lock);
+
+void fb_redraw(void);
 void fb_init(fb_properties_t *props);
 
 #endif

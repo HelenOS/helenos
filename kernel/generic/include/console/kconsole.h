@@ -87,7 +87,8 @@ SPINLOCK_EXTERN(cmd_lock);
 extern link_t cmd_head;
 
 extern void kconsole_init(void);
-extern void kconsole(void *prompt);
+extern void kconsole(char *prompt, char *msg, bool kcon);
+extern void kconsole_thread(void *data);
 
 extern int cmd_register(cmd_info_t *cmd);
 

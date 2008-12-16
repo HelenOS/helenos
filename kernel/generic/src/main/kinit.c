@@ -82,7 +82,10 @@
  */
 void kinit(void *arg)
 {
-	thread_t *t;
+
+#if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
+	thread_t *thread;
+#endif
 
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
@@ -100,23 +103,19 @@ void kinit(void *arg)
 		 * not mess together with kcpulb threads.
 		 * Just a beautification.
 		 */
-		if ((t = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED,
-		    "kmp", true))) {
-			spinlock_lock(&t->lock);
-			t->cpu = &cpus[0];
-			spinlock_unlock(&t->lock);
-			thread_ready(t);
+		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
+		if (thread != NULL) {
+			spinlock_lock(&thread->lock);
+			thread->cpu = &cpus[0];
+			spinlock_unlock(&thread->lock);
+			thread_ready(thread);
 		} else
-			panic("thread_create/kmp\n");
-		thread_join(t);
-		thread_detach(t);
+			panic("Unable to create kmp thread\n");
+		thread_join(thread);
+		thread_detach(thread);
 	}
 #endif /* CONFIG_SMP */
-	/*
-	 * Now that all CPUs are up, we can report what we've found.
-	 */
-	cpu_list();
-
+	
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		count_t i;
@@ -125,35 +124,37 @@ void kinit(void *arg)
 		 * For each CPU, create its load balancing thread.
 		 */
 		for (i = 0; i < config.cpu_count; i++) {
-
-			if ((t = thread_create(kcpulb, NULL, TASK,
-			    THREAD_FLAG_WIRED, "kcpulb", true))) {
-				spinlock_lock(&t->lock);			
-				t->cpu = &cpus[i];
-				spinlock_unlock(&t->lock);
-				thread_ready(t);
+			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
+			if (thread != NULL) {
+				spinlock_lock(&thread->lock);
+				thread->cpu = &cpus[i];
+				spinlock_unlock(&thread->lock);
+				thread_ready(thread);
 			} else
-				panic("thread_create/kcpulb\n");
+				printf("Unable to create kcpulb thread for cpu" PRIc "\n", i);
 
 		}
 	}
 #endif /* CONFIG_SMP */
-
+	
 	/*
 	 * At this point SMP, if present, is configured.
 	 */
 	arch_post_smp_init();
 
-	/*
-	 * Create kernel console.
-	 */
-	t = thread_create(kconsole, (void *) "kconsole", TASK, 0, "kconsole",
-	    false);
-	if (t)
-		thread_ready(t);
-	else
-		panic("thread_create/kconsole\n");
-
+#ifdef CONFIG_KCONSOLE
+	if (stdin) {
+		/*
+		 * Create kernel console.
+		 */
+		thread = thread_create(kconsole_thread, NULL, TASK, 0, "kconsole", false);
+		if (thread != NULL)
+			thread_ready(thread);
+		else
+			printf("Unable to create kconsole thread\n");
+	}
+#endif /* CONFIG_KCONSOLE */
+	
 	interrupts_enable();
 	
 	/*
@@ -164,14 +165,14 @@ void kinit(void *arg)
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%" PRIc "].addr is not frame aligned", i);
+			printf("init[%" PRIc "].addr is not frame aligned\n", i);
 			continue;
 		}
-
+		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    "init-bin", &programs[i]);
-
-		if (rc == 0 && programs[i].task != NULL) {
+		
+		if ((rc == 0) && (programs[i].task != NULL)) {
 			/*
 			 * Set capabilities to init userspace tasks.
 			 */
@@ -184,12 +185,10 @@ void kinit(void *arg)
 			/* It was the program loader and was registered */
 		} else {
 			/* RAM disk image */
-			int rd = init_rd((rd_header_t *) init.tasks[i].addr,
-			    init.tasks[i].size);
+			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %" PRIc " not used, error "
-				    "code %d.\n", i, rd);
+				printf("Init binary %" PRIc " not used (error %d)\n", i, rd);
 		}
 	}
 	
@@ -203,12 +202,18 @@ void kinit(void *arg)
 		}
 	}
 
+#ifdef CONFIG_KCONSOLE
 	if (!stdin) {
+		printf("kinit: No stdin\nKernel alive: ");
+		
+		uint64_t i = 0;
 		while (1) {
+			printf(PRIu64 " ", i);
 			thread_sleep(1);
-			printf("kinit... ");
+			i++;
 		}
 	}
+#endif /* CONFIG_KCONSOLE */
 }
 
 /** @}

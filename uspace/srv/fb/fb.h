@@ -29,14 +29,16 @@
 /** @addtogroup fb
  * @ingroup fbs
  * @{
- */ 
+ */
 /** @file
  */
 
 #ifndef FB_FB_H_
 #define FB_FB_H_
 
-typedef void (* putpixel_cb_t)(void *, unsigned int, unsigned int, int);
+#include <stdint.h>
+
+typedef void (* putpixel_cb_t)(void *, unsigned int, unsigned int, uint32_t);
 
 extern int fb_init(void);
 

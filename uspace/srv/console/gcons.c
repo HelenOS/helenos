@@ -81,7 +81,7 @@ static int active_console = 0;
 
 static void vp_switch(int vp)
 {
-	async_msg_1(fbphone,FB_VIEWPORT_SWITCH, vp);
+	async_msg_1(fbphone, FB_VIEWPORT_SWITCH, vp);
 }
 
 /** Create view port */
@@ -105,7 +105,7 @@ static void set_style(int fgcolor, int bgcolor)
 /** Transparent putchar */
 static void tran_putch(char c, int row, int col)
 {
-	async_msg_3(fbphone, FB_TRANS_PUTCHAR, c, row, col);
+	async_msg_3(fbphone, FB_PUTCHAR, c, row, col);
 }
 
 /** Redraw the button showing state of a given console */
@@ -189,10 +189,10 @@ void gcons_notify_disconnect(int consnum)
 		console_state[consnum] = CONS_DISCONNECTED_SEL;
 	else
 		console_state[consnum] = CONS_DISCONNECTED;
-
+	
 	if (active_console == KERNEL_CONSOLE)
 		return;
-
+	
 	redraw_state(consnum);
 	vp_switch(console_vp);
 }
@@ -217,16 +217,10 @@ void gcons_notify_connect(int consnum)
 /** Change to kernel console */
 void gcons_in_kernel(void)
 {
-	if (console_state[active_console] == CONS_DISCONNECTED_SEL)
-		console_state[active_console] = CONS_DISCONNECTED;
-	else
-		console_state[active_console] = CONS_IDLE;
-	redraw_state(active_console);
-
 	if (animation != -1)
 		async_msg_1(fbphone, FB_ANIM_STOP, animation);
-
-	active_console = KERNEL_CONSOLE; /* Set to kernel console */
+	
+	active_console = KERNEL_CONSOLE;
 	vp_switch(0);
 }
 
@@ -342,11 +336,12 @@ extern char _binary_helenos_ppm_start[0];
 extern int _binary_helenos_ppm_size;
 extern char _binary_nameic_ppm_start[0];
 extern int _binary_nameic_ppm_size;
-/** Redraws console graphics  */
-static void gcons_redraw_console(void)
+
+/** Redraws console graphics */
+void gcons_redraw_console(void)
 {
 	int i;
-
+	
 	if (!use_gcons)
 		return;
 	
@@ -357,7 +352,7 @@ static void gcons_redraw_console(void)
 	    (size_t) &_binary_helenos_ppm_size, xres - 66, 2);
 	draw_pixmap(_binary_nameic_ppm_start,
 	    (size_t) &_binary_nameic_ppm_size, 5, 17);
-
+	
 	for (i = 0; i < CONSOLE_COUNT; i++)
 		redraw_state(i);
 	vp_switch(console_vp);
@@ -459,16 +454,16 @@ void gcons_init(int phone)
 	int rc;
 	int i;
 	int status_start = STATUS_START;
-
+	
 	fbphone = phone;
-
+	
 	rc = async_req_0_2(phone, FB_GET_RESOLUTION, &xres, &yres);
 	if (rc)
 		return;
 	
-	if (xres < 800 || yres < 600)
+	if ((xres < 800) || (yres < 600))
 		return;
-
+	
 	/* create console viewport */
 	/* Align width & height to character size */
 	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP,
@@ -506,13 +501,12 @@ void gcons_init(int phone)
 	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
 	
 	make_anim();
-
+	
 	use_gcons = 1;
 	console_state[0] = CONS_DISCONNECTED_SEL;
 	console_state[KERNEL_CONSOLE] = CONS_KERNEL;
 	gcons_redraw_console();
 }
- 
+
 /** @}
  */
-

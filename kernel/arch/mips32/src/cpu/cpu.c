@@ -48,7 +48,7 @@ static struct data_t imp_data[] = {
 	{ "MIPS", "R2000" },		/* 0x01 */
 	{ "MIPS", "R3000" },		/* 0x02 */
 	{ "MIPS", "R6000" },		/* 0x03 */
-	{ "MIPS", " R4000/R4400" }, 	/* 0x04 */
+	{ "MIPS", "R4000/R4400" }, 	/* 0x04 */
 	{ "LSI Logic", "R3000" },	/* 0x05 */
 	{ "MIPS", "R6000A" },		/* 0x06 */
 	{ "IDT", "3051/3052" },		/* 0x07 */
@@ -123,9 +123,9 @@ void cpu_print_report(cpu_t *m)
 		data = &imp_data[m->arch.imp_num];
 	}
 
-	printf("cpu%d: %s %s (rev=%d.%d, imp=%d)\n",
+	printf("cpu%u: %s %s (rev=%d.%d, imp=%d)\n",
 		m->id, data->vendor, data->model, m->arch.rev_num >> 4, 
-		m->arch.rev_num & 0xf, m->arch.imp_num);
+		m->arch.rev_num & 0x0f, m->arch.imp_num);
 }
 
 /** @}

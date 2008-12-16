@@ -36,6 +36,7 @@
 #define KERN_ia32_VESA_H_
 
 extern int vesa_present(void);
+extern void vesa_redraw(void);
 extern void vesa_init(void);
 
 #endif

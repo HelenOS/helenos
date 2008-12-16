@@ -49,8 +49,12 @@ struct acpi_rsdp *acpi_rsdp = NULL;
 struct acpi_rsdt *acpi_rsdt = NULL;
 struct acpi_xsdt *acpi_xsdt = NULL;
 
-struct acpi_signature_map signature_map[] = { 
-	{ (uint8_t *)"APIC", (void *) &acpi_madt, "Multiple APIC Description Table" }
+struct acpi_signature_map signature_map[] = {
+	{
+		(uint8_t *) "APIC",
+		(void *) &acpi_madt,
+		"Multiple APIC Description Table"
+	}
 };
 
 static int rsdp_check(uint8_t *rsdp) {
@@ -105,7 +109,7 @@ static void configure_via_rsdt(void)
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				LOG("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -126,7 +130,7 @@ static void configure_via_xsdt(void)
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
-				printf("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
+				LOG("%p: ACPI %s\n", *signature_map[j].sdt_ptr, signature_map[j].description);
 			}
 		}
 next:
@@ -160,7 +164,7 @@ void acpi_init(void)
 	return;
 
 rsdp_found:
-	printf("%p: ACPI Root System Description Pointer\n", acpi_rsdp);
+	LOG("%p: ACPI Root System Description Pointer\n", acpi_rsdp);
 
 	acpi_rsdt = (struct acpi_rsdt *) (unative_t) acpi_rsdp->rsdt_address;
 	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);

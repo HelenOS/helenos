@@ -54,6 +54,8 @@ typedef struct  {
 static bpinfo_t breakpoints[BKPOINTS_MAX];
 SPINLOCK_INITIALIZE(bkpoint_lock);
 
+#ifdef CONFIG_KCONSOLE
+
 static int cmd_print_breakpoints(cmd_arg_t *argv);
 static cmd_info_t bkpts_info = {
 	.name = "bkpts",
@@ -99,43 +101,8 @@ static cmd_info_t addwatchp_info = {
 	.argv = &addw_argv
 };
 
-#endif
-
-/** Print table of active breakpoints */
-int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
-{
-	unsigned int i;
-	char *symbol;
-
-#ifdef __32_BITS__	
-	printf("#  Count Address    In symbol\n");
-	printf("-- ----- ---------- ---------\n");
-#endif
-
-#ifdef __64_BITS__
-	printf("#  Count Address            In symbol\n");
-	printf("-- ----- ------------------ ---------\n");
-#endif
-	
-	for (i = 0; i < BKPOINTS_MAX; i++)
-		if (breakpoints[i].address) {
-			symbol = get_symtab_entry(breakpoints[i].address);
-
-#ifdef __32_BITS__
-			printf("%-2u %-5d %#10zx %s\n", i,
-			    breakpoints[i].counter, breakpoints[i].address,
-			    symbol);
-#endif
-
-#ifdef __64_BITS__
-			printf("%-2u %-5d %#18zx %s\n", i,
-			    breakpoints[i].counter, breakpoints[i].address,
-			    symbol);
-#endif
-
-		}
-	return 1;
-}
+#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
+#endif /* CONFIG_KCONSOLE */
 
 /* Setup DR register according to table */
 static void setup_dr(int curidx)
@@ -267,10 +234,12 @@ static void handle_exception(int slot, istate_t *istate)
 	}
 	printf("Reached breakpoint %d:%lx(%s)\n", slot, getip(istate),
 	    get_symtab_entry(getip(istate)));
-	printf("***Type 'exit' to exit kconsole.\n");
-	atomic_set(&haltstate,1);
-	kconsole((void *) "debug");
-	atomic_set(&haltstate,0);
+
+#ifdef CONFIG_KCONSOLE
+	atomic_set(&haltstate, 1);
+	kconsole("debug", "Debug console ready (type 'exit' to continue)\n", false);
+	atomic_set(&haltstate, 0);
+#endif
 }
 
 void breakpoint_del(int slot)
@@ -299,41 +268,7 @@ void breakpoint_del(int slot)
 #endif
 }
 
-#ifndef CONFIG_DEBUG_AS_WATCHPOINT
 
-/** Remove breakpoint from table */
-int cmd_del_breakpoint(cmd_arg_t *argv)
-{
-	unative_t bpno = argv->intval;
-	if (bpno > BKPOINTS_MAX) {
-		printf("Invalid breakpoint number.\n");
-		return 0;
-	}
-	breakpoint_del(argv->intval);
-	return 1;
-}
-
-/** Add new breakpoint to table */
-static int cmd_add_breakpoint(cmd_arg_t *argv)
-{
-	int flags;
-	int id;
-
-	if (argv == &add_argv) {
-		flags = BKPOINT_INSTR;
-	} else { /* addwatchp */
-		flags = BKPOINT_WRITE;
-	}
-	printf("Adding breakpoint on address: %p\n", argv->intval);
-	id = breakpoint_add((void *)argv->intval, flags, -1);
-	if (id < 0)
-		printf("Add breakpoint failed.\n");
-	else
-		printf("Added breakpoint %d.\n", id);
-	
-	return 1;
-}
-#endif
 
 static void debug_exception(int n __attribute__((unused)), istate_t *istate)
 {
@@ -379,30 +314,106 @@ void debugger_init()
 
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		breakpoints[i].address = NULL;
-	
+
+#ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);
 	if (!cmd_register(&bkpts_info))
-		panic("could not register command %s\n", bkpts_info.name);
+		printf("Cannot register command %s\n", bkpts_info.name);
 
 #ifndef CONFIG_DEBUG_AS_WATCHPOINT
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
-		panic("could not register command %s\n", delbkpt_info.name);
+		printf("Cannot register command %s\n", delbkpt_info.name);
 
 	cmd_initialize(&addbkpt_info);
 	if (!cmd_register(&addbkpt_info))
-		panic("could not register command %s\n", addbkpt_info.name);
+		printf("Cannot register command %s\n", addbkpt_info.name);
 
 	cmd_initialize(&addwatchp_info);
 	if (!cmd_register(&addwatchp_info))
-		panic("could not register command %s\n", addwatchp_info.name);
-#endif
+		printf("Cannot register command %s\n", addwatchp_info.name);
+#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
+#endif /* CONFIG_KCONSOLE */
 	
 	exc_register(VECTOR_DEBUG, "debugger", debug_exception);
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_DEBUG_IPI, "debugger_smp", debug_ipi);
 #endif
 }
+
+#ifdef CONFIG_KCONSOLE
+/** Print table of active breakpoints */
+int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
+{
+	unsigned int i;
+	char *symbol;
+
+#ifdef __32_BITS__	
+	printf("#  Count Address    In symbol\n");
+	printf("-- ----- ---------- ---------\n");
+#endif
+
+#ifdef __64_BITS__
+	printf("#  Count Address            In symbol\n");
+	printf("-- ----- ------------------ ---------\n");
+#endif
+	
+	for (i = 0; i < BKPOINTS_MAX; i++)
+		if (breakpoints[i].address) {
+			symbol = get_symtab_entry(breakpoints[i].address);
+
+#ifdef __32_BITS__
+			printf("%-2u %-5d %#10zx %s\n", i,
+			    breakpoints[i].counter, breakpoints[i].address,
+			    symbol);
+#endif
+
+#ifdef __64_BITS__
+			printf("%-2u %-5d %#18zx %s\n", i,
+			    breakpoints[i].counter, breakpoints[i].address,
+			    symbol);
+#endif
+
+		}
+	return 1;
+}
+
+#ifndef CONFIG_DEBUG_AS_WATCHPOINT
+
+/** Remove breakpoint from table */
+int cmd_del_breakpoint(cmd_arg_t *argv)
+{
+	unative_t bpno = argv->intval;
+	if (bpno > BKPOINTS_MAX) {
+		printf("Invalid breakpoint number.\n");
+		return 0;
+	}
+	breakpoint_del(argv->intval);
+	return 1;
+}
+
+/** Add new breakpoint to table */
+static int cmd_add_breakpoint(cmd_arg_t *argv)
+{
+	int flags;
+	int id;
+
+	if (argv == &add_argv) {
+		flags = BKPOINT_INSTR;
+	} else { /* addwatchp */
+		flags = BKPOINT_WRITE;
+	}
+	printf("Adding breakpoint on address: %p\n", argv->intval);
+	id = breakpoint_add((void *)argv->intval, flags, -1);
+	if (id < 0)
+		printf("Add breakpoint failed.\n");
+	else
+		printf("Added breakpoint %d.\n", id);
+	
+	return 1;
+}
+#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
+#endif /* CONFIG_KCONSOLE */
 
 /** @}
  */

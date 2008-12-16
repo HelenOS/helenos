@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /** @file
@@ -35,10 +35,13 @@
 #ifndef KERN_FONT_8X16_H_
 #define KERN_FONT_8X16_H_
 
-#define FONT_GLIPHS		256
-#define FONT_SCANLINES	16
+#define FONT_GLYPHS      256
+#define FONT_WIDTH       8
+#define FONT_SCANLINES   16
 
-extern unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES];
+#include <arch/types.h>
+
+extern uint8_t fb_font[FONT_GLYPHS * FONT_SCANLINES];
 
 #endif
 

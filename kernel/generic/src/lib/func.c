@@ -55,8 +55,6 @@ void halt()
 #ifdef CONFIG_DEBUG
 	bool rundebugger = false;
 
-//      TODO test_and_set not defined on all arches
-//	if (!test_and_set(&haltstate))
 	if (!atomic_get(&haltstate)) {
 		atomic_set(&haltstate, 1);
 		rundebugger = true;
@@ -66,12 +64,12 @@ void halt()
 #endif
 
 	interrupts_disable();
-#ifdef CONFIG_DEBUG
-	if (rundebugger) {
-		printf("\n");
-		kconsole("panic"); /* Run kconsole as a last resort to user */
-	}
-#endif      
+	
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	if (rundebugger)
+		kconsole("panic", "\nLast resort kernel console ready\n", false);
+#endif
+	
 	if (CPU)
 		printf("cpu%u: halted\n", CPU->id);
 	else

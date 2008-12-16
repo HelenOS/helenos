@@ -146,8 +146,12 @@ void as_init(void)
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
-		panic("can't create kernel address space\n");
+		panic("Cannot create kernel address space\n");
 	
+	/* Make sure the kernel address space
+	 * reference count never drops to zero.
+	 */
+	atomic_set(&AS_KERNEL->refcount, 1);
 }
 
 /** Create address space.
@@ -176,7 +180,7 @@ as_t *as_create(int flags)
 #else
 	page_table_create(flags);
 #endif
-
+	
 	return as;
 }
 
@@ -769,11 +773,12 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
  * In order for this to work properly, this may copy the data
  * into private anonymous memory (unless it's already there).
  *
- * @param as		Address space.
- * @param flags		Flags of the area memory.
- * @param address	Address withing the area to be changed.
+ * @param as      Address space.
+ * @param flags   Flags of the area memory.
+ * @param address Address within the area to be changed.
  *
- * @return		Zero on success or a value from @ref errno.h on failure.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 {
@@ -785,7 +790,7 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	uintptr_t *old_frame;
 	index_t frame_idx;
 	count_t used_pages;
-
+	
 	/* Flags for the new memory mapping */
 	page_flags = area_flags_to_page_flags(flags);
 
@@ -799,7 +804,7 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		return ENOENT;
 	}
 
-	if (area->sh_info || area->backend != &anon_backend) {
+	if ((area->sh_info) || (area->backend != &anon_backend)) {
 		/* Copying shared areas not supported yet */
 		/* Copying non-anonymous memory not supported yet */
 		mutex_unlock(&area->lock);
@@ -870,6 +875,7 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	 */
 
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
+	
 	/*
 	 * Invalidate potential software translation caches (e.g. TSB on
 	 * sparc64).

@@ -92,23 +92,23 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 	int i;
 	unsigned int color;
 	unsigned int coef;
-
+	
 	/* Read magic */
-	if (data[0] != 'P' || data[1] != '6')
+	if ((data[0] != 'P') || (data[1] != '6'))
 		return EINVAL;
-
-	data+=2;
+	
+	data += 2;
 	skip_whitespace(&data);
 	read_num(&data, &width);
 	skip_whitespace(&data);
-	read_num(&data,&height);
+	read_num(&data, &height);
 	skip_whitespace(&data);
-	read_num(&data,&maxcolor);
+	read_num(&data, &maxcolor);
 	data++;
-
-	if (maxcolor == 0 || maxcolor > 255 || width * height > datasz) {
+	
+	if ((maxcolor == 0) || (maxcolor > 255) || (width * height > datasz))
 		return EINVAL;
-	}
+	
 	coef = 255 / maxcolor;
 	if (coef * maxcolor > 255)
 		coef -= 1;
@@ -125,6 +125,6 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 		(*putpixel)(vport, sx + (i % width), sy + (i / width), color);
 		data += 3;
 	}
-
+	
 	return 0;
 }

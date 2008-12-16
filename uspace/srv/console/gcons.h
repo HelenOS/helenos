@@ -36,6 +36,7 @@
 #define _GCONS_H_
 
 void gcons_init(int phone);
+void gcons_redraw_console(void);
 void gcons_change_console(int consnum);
 void gcons_notify_char(int consnum);
 void gcons_in_kernel(void);

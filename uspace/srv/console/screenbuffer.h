@@ -35,13 +35,14 @@
 #ifndef __SCREENBUFFER_H__
 #define __SCREENBUFFER_H__
 
+#include <stdint.h>
 
 #define DEFAULT_FOREGROUND 0x0	/**< default console foreground color */
 #define DEFAULT_BACKGROUND 0xf0f0f0	/**< default console background color */
 
 typedef struct {
-	unsigned int bg_color;		/**< background color */
-	unsigned int fg_color;		/**< foreground color */
+	uint32_t bg_color;      /**< background color */
+	uint32_t fg_color;      /**< foreground color */
 } style_t;
 
 /** One field on screen. It contain one character and its attributes. */

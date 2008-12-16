@@ -46,7 +46,7 @@
 void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 {
 	void *dest;
-
+	
 	dest = as_get_mappable_page(IPC_GET_ARG2(*call));
 	if (ipc_answer_1(callid, EOK, (sysarg_t) dest) == 0) {
 		if (*area)
@@ -61,12 +61,12 @@ int main(int argc, char *argv[])
 	
 	ipcarg_t phonead;
 	bool initialized = false;
-
+	
 #ifdef FB_ENABLED
 	if (sysinfo_value("fb.kind") == 1) {
 		if (fb_init() == 0)
 			initialized = true;
-	} 
+	}
 #endif
 #ifdef EGA_ENABLED
 	if ((!initialized) && (sysinfo_value("fb.kind") == 2)) {
@@ -89,12 +89,13 @@ int main(int argc, char *argv[])
 
 	if (!initialized)
 		return -1;
-
+	
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");
 	async_manager();
+	
 	/* Never reached */
 	return 0;
 }

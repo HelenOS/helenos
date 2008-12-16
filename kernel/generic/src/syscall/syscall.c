@@ -92,8 +92,12 @@ static unative_t sys_klog(int fd, const void * buf, size_t count)
 /** Tell kernel to get keyboard/console access again */
 static unative_t sys_debug_enable_console(void)
 {
+#ifdef CONFIG_KCONSOLE
 	arch_grab_console();
-	return 0;
+	return true;
+#else
+	return false;
+#endif
 }
 
 /** Dispatch system call */

@@ -65,8 +65,8 @@ enum vendor {
 
 static char *vendor_str[] = {
 	"Unknown Vendor",
-	"AuthenticAMD",
-	"GenuineIntel"
+	"AMD",
+	"Intel"
 };
 
 void fpu_disable(void)
@@ -77,7 +77,7 @@ void fpu_disable(void)
 		"mov %%eax,%%cr0;"
 		:
 		:
-		:"%eax"
+		: "%eax"
 	);
 }
 
@@ -89,7 +89,7 @@ void fpu_enable(void)
 		"mov %%eax,%%cr0;"
 		:
 		:
-		:"%eax"
+		: "%eax"
 	);	
 }
 
@@ -140,29 +140,31 @@ void cpu_identify(void)
 		/*
 		 * Check for AMD processor.
 		 */
-		if (info.cpuid_ebx==AMD_CPUID_EBX && info.cpuid_ecx==AMD_CPUID_ECX && info.cpuid_edx==AMD_CPUID_EDX) {
+		if ((info.cpuid_ebx == AMD_CPUID_EBX)
+		    && (info.cpuid_ecx == AMD_CPUID_ECX)
+			&& (info.cpuid_edx == AMD_CPUID_EDX))
 			CPU->arch.vendor = VendorAMD;
-		}
-
+		
 		/*
 		 * Check for Intel processor.
 		 */		
-		if (info.cpuid_ebx==INTEL_CPUID_EBX && info.cpuid_ecx==INTEL_CPUID_ECX && info.cpuid_edx==INTEL_CPUID_EDX) {
+		if ((info.cpuid_ebx == INTEL_CPUID_EBX)
+		    && (info.cpuid_ecx == INTEL_CPUID_ECX)
+			&& (info.cpuid_edx == INTEL_CPUID_EDX))
 			CPU->arch.vendor = VendorIntel;
-		}
-				
+		
 		cpuid(1, &info);
-		CPU->arch.family = (info.cpuid_eax>>8)&0xf;
-		CPU->arch.model = (info.cpuid_eax>>4)&0xf;
-		CPU->arch.stepping = (info.cpuid_eax>>0)&0xf;						
+		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0f;
+		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0f;
+		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0f;						
 	}
 }
 
-void cpu_print_report(cpu_t* m)
+void cpu_print_report(cpu_t* cpu)
 {
-	printf("cpu%d: (%s family=%d model=%d stepping=%d) %dMHz\n",
-		m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model, m->arch.stepping,
-		m->frequency_mhz);
+	printf("cpu%u: (%s family=%u model=%u stepping=%u) %" PRIu16 " MHz\n",
+		cpu->id, vendor_str[cpu->arch.vendor], cpu->arch.family,
+		cpu->arch.model, cpu->arch.stepping, cpu->frequency_mhz);
 }
 
 /** @}

@@ -93,7 +93,7 @@ void arch_post_mm_init(void)
 			vesa_init();
 		else
 #endif
-			ega_init();	/* video */
+			ega_init(); /* video */
 		
 		/* Enable debugger */
 		debugger_init();
@@ -159,8 +159,15 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
+	vesa_redraw();
+#else
+	ega_redraw();
+#endif
+	
 	i8042_grab();
 }
+
 /** Return console to userspace
  *
  */

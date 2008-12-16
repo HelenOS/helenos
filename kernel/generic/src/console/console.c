@@ -167,7 +167,7 @@ uint8_t _getc(chardev_t *chardev)
 			printf("cpu%u: ", CPU->id);
 		else
 			printf("cpu: ");
-		printf("halted - no kconsole\n");
+		printf("halted (no kconsole)\n");
 		cpu_halt();
 	}
 

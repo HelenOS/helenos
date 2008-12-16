@@ -40,6 +40,7 @@
 #define ROWS		25
 #define SCREEN		(ROW * ROWS)
 
+extern void ega_redraw(void);
 extern void ega_init(void);
 
 #endif

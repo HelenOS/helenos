@@ -28,7 +28,7 @@
 
 #include "font-8x16.h"
 
-unsigned char fb_font[FONT_GLIPHS * FONT_SCANLINES] = {
+unsigned char fb_font[FONT_GLYPHS * FONT_SCANLINES] = {
 
 	/* 0 0x00 '^@' */
 	0x00, /* 00000000 */

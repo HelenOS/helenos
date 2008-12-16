@@ -109,8 +109,10 @@ static void exc_undef(int n, istate_t *istate)
 	panic("Unhandled exception %d.", n);
 }
 
+#ifdef CONFIG_KCONSOLE
+
 /** kconsole cmd - print all exceptions */
-static int exc_print_cmd(cmd_arg_t *argv)
+static int cmd_exc_print(cmd_arg_t *argv)
 {
 #if (IVT_ITEMS > 0)
 	unsigned int i;
@@ -158,14 +160,17 @@ static int exc_print_cmd(cmd_arg_t *argv)
 	return 1;
 }
 
+
 static cmd_info_t exc_info = {
 	.name = "exc",
 	.description = "Print exception table.",
-	.func = exc_print_cmd,
+	.func = cmd_exc_print,
 	.help = NULL,
 	.argc = 0,
 	.argv = NULL
 };
+
+#endif
 
 /** Initialize generic exception handling support */
 void exc_init(void)
@@ -175,9 +180,11 @@ void exc_init(void)
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) exc_undef);
 
+#ifdef CONFIG_KCONSOLE
 	cmd_initialize(&exc_info);
 	if (!cmd_register(&exc_info))
-		panic("could not register command %s\n", exc_info.name);
+		printf("Cannot register command %s\n", exc_info.name);
+#endif
 }
 
 /** @}

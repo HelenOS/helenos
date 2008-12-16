@@ -86,7 +86,7 @@ void cpu_init(void) {
 	}
 #endif /* CONFIG_SMP */
 
-	CPU = &cpus[config.cpu_active-1];
+	CPU = &cpus[config.cpu_active - 1];
 	
 	CPU->active = 1;
 	CPU->tlb_active = 1;

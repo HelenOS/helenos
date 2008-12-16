@@ -191,8 +191,6 @@ void main_bsp_separated_stack(void)
 {
 	/* Keep this the first thing. */
 	the_initialize(THE);
-
-	LOG();
 	
 	version_print();
 	
@@ -200,14 +198,15 @@ void main_bsp_separated_stack(void)
 	    "\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
 	    config.base, config.kernel_size, config.stack_base,
 	    config.stack_size);
-	
 
+#ifdef CONFIG_KCONSOLE
 	/*
 	 * kconsole data structures must be initialized very early
 	 * because other subsystems will register their respective
 	 * commands.
 	 */
 	LOG_EXEC(kconsole_init());
+#endif
 	
 	/*
 	 * Exception handler initialization, before architecture
@@ -252,7 +251,7 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		count_t i;
 		for (i = 0; i < init.cnt; i++)
-			printf("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
+			LOG("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
 			    "].size=%#" PRIs "\n", i, init.tasks[i].addr, i,
 			    init.tasks[i].size);
 	} else
@@ -271,8 +270,8 @@ void main_bsp_separated_stack(void)
 	/*
 	 * Create the first thread.
 	 */
-	thread_t *kinit_thread = thread_create(kinit, NULL, kernel, 0, "kinit",
-	    true);
+	thread_t *kinit_thread
+		= thread_create(kinit, NULL, kernel, 0, "kinit", true);
 	if (!kinit_thread)
 		panic("Can't create kinit thread\n");
 	LOG_EXEC(thread_ready(kinit_thread));
