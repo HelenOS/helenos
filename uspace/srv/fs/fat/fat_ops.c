@@ -389,6 +389,8 @@ int fat_link(void *prnt, void *chld, const char *name)
 	uint16_t bps;
 	unsigned dps;
 	unsigned blocks;
+	fat_cluster_t mcl, lcl;
+	int rc;
 
 	futex_down(&childp->lock);
 	if (childp->lnkcnt == 1) {
@@ -441,15 +443,31 @@ int fat_link(void *prnt, void *chld, const char *name)
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
 	 */
-	futex_up(&parentp->idx->lock);
-	return ENOTSUP;	/* XXX */
+	if (parentp->idx->pfc == FAT_CLST_ROOT) {
+		/* Can't grow the root directory. */
+		futex_up(&parentp->idx->lock);
+		return ENOSPC;
+	}
+	rc = fat_alloc_clusters(bs, parentp->idx->dev_handle, 1, &mcl, &lcl);
+	if (rc != EOK) {
+		futex_up(&parentp->idx->lock);
+		return rc;
+	}
+	fat_append_clusters(bs, parentp, mcl);
+	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NOREAD);
+	d = (fat_dentry_t *)b->data;
+	/*
+	 * Clear all dentries in the block except for the first one (the first
+	 * dentry will be cleared in the next step).
+	 */
+	memset(d + 1, 0, bps - sizeof(fat_dentry_t));
 
 hit:
 	/*
 	 * At this point we only establish the link between the parent and the
 	 * child.  The dentry, except of the name and the extension, will remain
-	 * uninitialized until the the corresponding node is synced. Thus the
-	 * valid dentry data is kept in the child node structure.
+	 * uninitialized until the corresponding node is synced. Thus the valid
+	 * dentry data is kept in the child node structure.
 	 */
 	memset(d, 0, sizeof(fat_dentry_t));
 	fat_dentry_name_set(d, name);
