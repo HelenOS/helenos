@@ -19,8 +19,8 @@ if [ -z "${CROSS_PREFIX}" ] ; then
     CROSS_PREFIX="/usr/local"
 fi
 
-BINUTILS_VERSION="2.18"
-GCC_VERSION="4.3.1"
+BINUTILS_VERSION="2.19"
+GCC_VERSION="4.3.2"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
