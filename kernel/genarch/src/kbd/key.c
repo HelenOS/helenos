@@ -41,9 +41,7 @@
 #endif
 
 #if (defined(sparc64))
-#if (defined(CONFIG_Z8530) || defined(CONFIG_NS16550))
 #include <genarch/kbd/scanc_sun.h>
-#endif
 #endif
 
 #include <synch/spinlock.h>

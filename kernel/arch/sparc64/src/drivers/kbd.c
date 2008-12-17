@@ -86,21 +86,20 @@ void kbd_init(ofw_tree_node_t *node)
 	 */
 	uint32_t interrupts;
 	prop = ofw_tree_getprop(node, "interrupts");
-	if (!prop || !prop->value)
+	if ((!prop) || (!prop->value))
 		panic("Can't find \"interrupts\" property.\n");
 	interrupts = *((uint32_t *) prop->value);
-
+	
 	/*
 	 * Read 'reg' property.
 	 */
 	prop = ofw_tree_getprop(node, "reg");
-	if (!prop || !prop->value)
+	if ((!prop) || (!prop->value))
 		panic("Can't find \"reg\" property.\n");
 	
 	uintptr_t pa;
 	size_t size;
 	inr_t inr;
-	devno_t devno = device_assign_devno();
 	
 	switch (kbd_type) {
 	case KBD_Z8530:
@@ -132,9 +131,9 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		};
 		break;
-
+		
 	default:
-		panic("Unexpected type.\n");
+		panic("Unexpected keyboard type.\n");
 	}
 	
 	/*
@@ -145,17 +144,18 @@ void kbd_init(ofw_tree_node_t *node)
 	 */
 	aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
 	offset = pa - aligned_addr;
-	uintptr_t vaddr = hw_map(aligned_addr, offset + size) + offset;
-
+	
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		z8530_init(devno, vaddr, inr, cir, cir_arg);
+		z8530_init(device_assign_devno(),
+		    hw_map(aligned_addr, offset + size) + offset, inr, cir, cir_arg);
 		break;
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550_init(devno, (ioport_t)vaddr, inr, cir, cir_arg);
+		ns16550_init(device_assign_devno(),
+		    (ioport_t) (hw_map(aligned_addr, offset + size) + offset), inr, cir, cir_arg);
 		break;
 #endif
 	default:
