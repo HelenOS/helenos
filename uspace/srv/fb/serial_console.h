@@ -38,6 +38,8 @@
 #ifndef FB_SERIAL_CONSOLE_H_
 #define FB_SERIAL_CONSOLE_H_
 
+#include <ipc/ipc.h>
+
 typedef void (*putc_function_t)(char);
 
 void serial_puts(char *str);
@@ -47,6 +49,9 @@ void serial_scroll(int i);
 void serial_set_style(const unsigned int mode);
 void serial_cursor_disable(void);
 void serial_cursor_enable(void);
+void serial_set_scroll_region(unsigned height);
 void serial_console_init(putc_function_t putc_fn, uint32_t w, uint32_t h);
+void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall);
+
 
 #endif

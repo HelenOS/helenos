@@ -38,14 +38,22 @@
  */
 
 #include <stdio.h>
+#include <ipc/ipc.h>
+#include <async.h>
+#include <ipc/fb.h>
+#include <bool.h>
+#include <errno.h>
 
 #include "serial_console.h"
 
 #define MAX_CONTROL 20
 
-static uint32_t width;
-static uint32_t height;
+static int width;
+static int height;
 static putc_function_t putc_function;
+
+/* Allow only 1 connection */
+static int client_connected = 0;
 
 void serial_puts(char *str)
 {
@@ -88,6 +96,14 @@ void serial_set_style(const unsigned int mode)
 	serial_puts(control);
 }
 
+/** Set scrolling region. */
+void serial_set_scroll_region(unsigned last_row)
+{
+	char control[MAX_CONTROL];
+	snprintf(control, MAX_CONTROL, "\033[0;%ur", last_row);
+	serial_puts(control);
+}
+
 void serial_cursor_disable(void)
 {
 	serial_puts("\033[?25l");
@@ -103,6 +119,103 @@ void serial_console_init(putc_function_t putc_fn, uint32_t w, uint32_t h)
 	width = w;
 	height = h;
 	putc_function = putc_fn;
+}
+
+/**
+ * Main function of the thread serving client connections.
+ */
+void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	int retval;
+	ipc_callid_t callid;
+	ipc_call_t call;
+	char c;
+	int lastcol = 0;
+	int lastrow = 0;
+	int newcol;
+	int newrow;
+	int fgcolor;
+	int bgcolor;
+	int i;
+	
+	if (client_connected) {
+		ipc_answer_0(iid, ELIMIT);
+		return;
+	}
+	
+	client_connected = 1;
+	ipc_answer_0(iid, EOK);
+	
+	/* Clear the terminal, set scrolling region
+	   to 0 - height rows. */
+	serial_clrscr();
+	serial_goto(0, 0);
+	serial_set_scroll_region(height);
+	
+	while (true) {
+		callid = async_get_call(&call);
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			client_connected = 0;
+			ipc_answer_0(callid, EOK);
+			return;
+		case FB_PUTCHAR:
+			c = IPC_GET_ARG1(call);
+			newrow = IPC_GET_ARG2(call);
+			newcol = IPC_GET_ARG3(call);
+			if ((lastcol != newcol) || (lastrow != newrow))
+				serial_goto(newrow, newcol);
+			lastcol = newcol + 1;
+			lastrow = newrow;
+			(*putc_function)(c);
+			retval = 0;
+			break;
+		case FB_CURSOR_GOTO:
+			newrow = IPC_GET_ARG1(call);
+			newcol = IPC_GET_ARG2(call);
+			serial_goto(newrow, newcol);
+			lastrow = newrow;
+			lastcol = newcol;
+			retval = 0;
+			break;
+		case FB_GET_CSIZE:
+			ipc_answer_2(callid, EOK, height, width);
+			continue;
+		case FB_CLEAR:
+			serial_clrscr();
+			retval = 0;
+			break;
+		case FB_SET_STYLE:
+			fgcolor = IPC_GET_ARG1(call);
+			bgcolor = IPC_GET_ARG2(call);
+			if (fgcolor < bgcolor)
+				serial_set_style(0);
+			else
+				serial_set_style(7);
+			retval = 0;
+			break;
+		case FB_SCROLL:
+			i = IPC_GET_ARG1(call);
+			if ((i > height) || (i < -height)) {
+				retval = EINVAL;
+				break;
+			}
+			serial_scroll(i);
+			serial_goto(lastrow, lastcol);
+			retval = 0;
+			break;
+		case FB_CURSOR_VISIBILITY:
+			if(IPC_GET_ARG1(call))
+				serial_cursor_enable();
+			else
+				serial_cursor_disable();
+			retval = 0;
+			break;
+		default:
+			retval = ENOENT;
+		}
+		ipc_answer_0(callid, retval);
+	}
 }
 
 /** 
