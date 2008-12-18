@@ -578,12 +578,8 @@ static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned i
 	    ((vport->cur_col != col) || (vport->cur_row != row)))
 		cursor_hide(vport);
 	
-	uint8_t glyph = vport->backbuf[BB_POS(vport, col, row)];
-	
-	if (glyph != c) {
-		vport->backbuf[BB_POS(vport, col, row)] = c;
-		draw_glyph(vport, false, col, row);
-	}
+	vport->backbuf[BB_POS(vport, col, row)] = c;
+	draw_glyph(vport, false, col, row);
 	
 	vport->cur_col = col;
 	vport->cur_row = row;
