@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,83 +27,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-#include <sysinfo.h>
+/** @defgroup msimfb MSIM text console
+ * @brief	HelenOS MSIM text console.
+ * @ingroup fbs
+ * @{
+ */ 
+/** @file
+ */
+
 #include <async.h>
+#include <libc.h>
+#include <sysinfo.h>
 #include <as.h>
-#include <align.h>
-#include <errno.h>
-#include <stdio.h>
+#include <ddi.h>
 
-#include "fb.h"
-#include "ega.h"
-#include "msim.h"
+#include "serial_console.h"
 #include "ski.h"
-#include "sgcn.h"
-#include "main.h"
 
-#define NAME "fb"
+#define SKI_PUTCHAR		31
 
-void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
+#define WIDTH 80
+#define HEIGHT 25
+
+/** Display character on ski debug console
+ *
+ * Use SSC (Simulator System Call) to
+ * display character on debug console.
+ *
+ * @param ch Character to be printed.
+ */
+static void ski_putc(const char ch)
 {
-	void *dest;
+	asm volatile (
+		"mov r15 = %0\n"
+		"mov r32 = %1\n"	/* r32 is in0 */
+		"break 0x80000\n"	/* modifies r8 */
+		:
+		: "i" (SKI_PUTCHAR), "r" (ch)
+		: "r15", "in0", "r8"
+	);
 	
-	dest = as_get_mappable_page(IPC_GET_ARG2(*call));
-	if (ipc_answer_1(callid, EOK, (sysarg_t) dest) == 0) {
-		if (*area)
-			as_area_destroy(*area);
-		*area = dest;
-	}
+	if (ch == '\n')
+		ski_putc('\r');
 }
 
-int main(int argc, char *argv[])
+int ski_init(void)
 {
-	printf(NAME ": HelenOS Framebuffer service\n");
+	serial_console_init(ski_putc, WIDTH, HEIGHT);
 	
-	ipcarg_t phonead;
-	bool initialized = false;
-	
-#ifdef FB_ENABLED
-	if (sysinfo_value("fb.kind") == 1) {
-		if (fb_init() == 0)
-			initialized = true;
-	}
-#endif
-#ifdef EGA_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 2)) {
-		if (ega_init() == 0)
-			initialized = true;
-	}
-#endif
-#ifdef MSIM_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 3)) {
-		if (msim_init() == 0)
-			initialized = true;
-	}
-#endif
-#ifdef SGCN_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 4)) {
-		if (sgcn_init() == 0)
-			initialized = true;
-	}
-#endif
-#ifdef SKI_ENABLED
-	if ((!initialized) && (sysinfo_value("fb") != true)) {
-		if (ski_init() == 0)
-			initialized = true;
-	}
-#endif
-
-	if (!initialized)
-		return -1;
-	
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
-		return -1;
-	
-	printf(NAME ": Accepting connections\n");
-	async_manager();
-	
-	/* Never reached */
+	async_set_client_connection(serial_client_connection);
 	return 0;
 }
+
+/** 
+ * @}
+ */

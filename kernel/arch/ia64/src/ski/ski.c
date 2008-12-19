@@ -229,6 +229,8 @@ void ski_init_console(void)
 	sysinfo_set_item_val("kbd.inr", NULL, SKI_KBD_INR);
 	sysinfo_set_item_val("kbd.devno", NULL, ski_kbd_devno);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
+
+	sysinfo_set_item_val("fb", NULL, false);
 }
 
 void ski_kbd_grab(void)

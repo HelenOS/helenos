@@ -57,7 +57,10 @@ ifeq ($(ARCH), ia32)
 	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), ia64)
-	SOURCES += ega.c
+	SOURCES += ega.c \
+		   ski.c \
+		   serial_console.c
+	CFLAGS += -DSKI_ENABLED
 	CFLAGS += -DEGA_ENABLED
 endif
 ifeq ($(ARCH), amd64)
