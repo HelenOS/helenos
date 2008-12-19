@@ -23,7 +23,7 @@
 
 include Make.defaults
 
-SUBDIRS = lib gnuefi inc apps
+SUBDIRS = lib gnuefi inc
 
 all:	check_gcc $(SUBDIRS)
 
