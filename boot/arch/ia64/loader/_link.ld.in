@@ -12,11 +12,14 @@ SECTIONS {
 		*(.data);               /* initialized data */
 		_got = . ;
 		*(.got .got.*);               
+		*(.bss);                /* uninitialized static variables */
+		*(COMMON);
+	}
+
+	.sboot : {
 		*(.sdata);
 		*(.sdata2);
 		*(.sbss);
-		*(.bss);                /* uninitialized static variables */
-		*(COMMON);
 	}
 	
 	/DISCARD/ : {
