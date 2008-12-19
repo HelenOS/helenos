@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup msimfb
- * @brief	HelenOS MSIM text console.
+/** @addtogroup skifb
+ * @brief	HelenOS ski text console.
  * @ingroup fbs
  * @{
  */ 
