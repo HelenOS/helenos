@@ -93,18 +93,31 @@ COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
 	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd
+ifeq ($(RDFMT),tmpfs)
+	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
+endif
+COMPONENTS += \
+	$(USPACEDIR)/srv/console/console
+
+RD_SRVS = \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/fs/fat/fat
+
+RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/bdsh/bdsh
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
@@ -121,19 +134,39 @@ hello.efi: image.boot
 #	cp gefi/HelenOS/hello.efi /boot/efi/
 	cp gefi/HelenOS/image.bin ../../../../
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
+	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) -o $@
 
 depend:
 	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
 clean:
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) $(OBJECTS) image.boot image.map image.disasm Makefile.depend ../../../../image.bin ../../../../hello.efi
+	-for file in $(RD_SRVS) ; do \
+		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	-for file in $(RD_APPS) ; do \
+		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
+	done
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) image.boot image.map image.disasm initrd.img image.boot Makefile.depend ../../../../image.bin ../../../../hello.efi
 	make -C gefi clean
 	make -C gefi/HelenOS clean
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS): $(COMPONENTS) _link.ld.in
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned long" $(COMPONENTS)
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
+	for file in $(RD_SRVS) ; do \
+		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for file in $(RD_APPS) ; do \
+		cp $$file $(USPACEDIR)/dist/app/ ; \
+	done
+ifeq ($(RDFMT),tmpfs)
+	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
+endif
+ifeq ($(RDFMT),fat)
+	../../../../tools/mkfat.py $(USPACEDIR)/dist/ initrd.fs
+endif
+	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
+	rm initrd.fs
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned long" $(COMPONENTS) ./initrd.img
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
