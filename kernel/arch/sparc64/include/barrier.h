@@ -82,6 +82,8 @@ static inline void membar(void)
 	asm volatile ("membar #Sync\n");
 }
 
+#if defined (US)
+
 #define smc_coherence(a)	\
 {				\
 	write_barrier();	\
@@ -96,6 +98,22 @@ static inline void membar(void)
 	for (i = 0; i < (l); i += FLUSH_INVAL_MIN)	\
 		flush((void *)(a) + i);			\
 }
+
+#elif defined (US3)
+
+#define smc_coherence(a)	\
+{				\
+	write_barrier();	\
+	flush_pipeline();	\
+}
+
+#define smc_coherence_block(a, l)	\
+{					\
+	write_barrier();		\
+	flush_pipeline();		\
+}
+
+#endif	/* defined(US3) */
 
 #endif
 
