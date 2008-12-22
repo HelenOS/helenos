@@ -139,6 +139,10 @@ static viewport_t viewports[128];
 
 static bool client_connected = false;  /**< Allow only 1 connection */
 
+static void draw_glyph(viewport_t *vport, bool cursor, unsigned int col,
+    unsigned int row);
+
+
 #define RED(x, bits)                 ((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
 #define GREEN(x, bits)               ((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
 #define BLUE(x, bits)                ((x >> (8 - bits)) & ((1 << bits) - 1))
@@ -219,51 +223,50 @@ static void rgb_323(void *dst, uint32_t rgb)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
 }
 
+/** Draw a filled rectangle. */
+static void draw_filled_rect(unsigned int x0, unsigned int y0, unsigned int x1,
+    unsigned int y1, uint32_t color)
+{
+	unsigned int x, y;
+	uint8_t cbuf[4];
 
-/** Redraw viewport
+	screen.rgb_conv(cbuf, color);
+
+	for (y = y0; y < y1; y++) {
+		for (x = x0; x < x1; x++) {
+			memcpy(&screen.fb_addr[FB_POS(x, y)], cbuf,
+			    screen.pixelbytes);
+		}
+	}
+}
+
+/** Redraw viewport.
  *
  * @param vport Viewport to redraw
  *
  */
 static void vport_redraw(viewport_t *vport)
 {
-	unsigned int row;
-	
+	unsigned int row, col;
+
 	for (row = 0; row < vport->rows; row++) {
-		unsigned int y = vport->y + ROW2Y(row);
-		unsigned int yd;
-		
-		for (yd = 0; yd < FONT_SCANLINES; yd++) {
-			unsigned int x;
-			unsigned int col;
-			
-			for (col = 0, x = vport->x; col < vport->cols; col++, x += FONT_WIDTH)
-				memcpy(&screen.fb_addr[FB_POS(x, y + yd)],
-			    &vport->glyphs[GLYPH_POS(vport->backbuf[BB_POS(vport, col, row)], yd, false)],
-			    screen.glyphscanline);
+		for (col = 0; col < vport->cols; col++) {
+			draw_glyph(vport, false, col, row);
 		}
 	}
-	
+
 	if (COL2X(vport->cols) < vport->width) {
-		unsigned int y;
-		
-		for (y = 0; y < vport->height; y++) {
-			unsigned int x;
-			
-			for (x = COL2X(vport->cols); x < vport->width; x++)
-				memcpy(&screen.fb_addr[FB_POS(x, y)], vport->bgpixel, screen.pixelbytes);
-		}
+		draw_filled_rect(
+		    vport->x + COL2X(vport->cols), vport->y,
+		    vport->x + vport->width, vport->y + vport->height,
+		    vport->style.bg_color);
 	}
-	
+
 	if (ROW2Y(vport->rows) < vport->height) {
-		unsigned int y;
-		
-		for (y = ROW2Y(vport->rows); y < vport->height; y++) {
-			unsigned int x;
-			
-			for (x = 0; x < vport->width; x++)
-				memcpy(&screen.fb_addr[FB_POS(x, y)], vport->bgpixel, screen.pixelbytes);
-		}
+		draw_filled_rect(
+		    vport->x, vport->y + ROW2Y(vport->rows),
+		    vport->x + vport->width, vport->y + vport->height,
+		    vport->style.bg_color);
 	}
 }
 
@@ -279,7 +282,6 @@ static void vport_clear(viewport_t *vport)
 	vport_redraw(vport);
 }
 
-
 /** Scroll viewport by given number of lines
  *
  * @param vport Viewport to scroll
@@ -288,42 +290,25 @@ static void vport_clear(viewport_t *vport)
  */
 static void vport_scroll(viewport_t *vport, int lines)
 {
-	unsigned int row;
-	
-	for (row = 0; row < vport->rows; row++) {
-		unsigned int y = vport->y + ROW2Y(row);
-		unsigned int yd;
-		
-		for (yd = 0; yd < FONT_SCANLINES; yd++) {
-			unsigned int x;
-			unsigned int col;
-			
-			for (col = 0, x = vport->x; col < vport->cols; col++, x += FONT_WIDTH) {
-				uint8_t glyph;
-				
-				if ((row + lines >= 0) && (row + lines < vport->rows)) {
-					if (vport->backbuf[BB_POS(vport, col, row)] == vport->backbuf[BB_POS(vport, col, row + lines)])
-						continue;
-					
-					glyph = vport->backbuf[BB_POS(vport, col, row + lines)];
-				} else
-					glyph = 0;
-				
-				memcpy(&screen.fb_addr[FB_POS(x, y + yd)],
-				    &vport->glyphs[GLYPH_POS(glyph, yd, false)], screen.glyphscanline);
-			}
-		}
-	}
-	
+	unsigned int row, col;
+
 	if (lines > 0) {
-		memcpy(vport->backbuf, vport->backbuf + vport->cols * lines, vport->cols * (vport->rows - lines));
-		memset(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)], 0, vport->cols * lines);
+		memcpy(vport->backbuf, vport->backbuf + vport->cols * lines,
+		    vport->cols * (vport->rows - lines));
+		memset(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
+		    0, vport->cols * lines);
 	} else {
-		memcpy(vport->backbuf - vport->cols * lines, vport->backbuf, vport->cols * (vport->rows + lines));
+		memcpy(vport->backbuf - vport->cols * lines, vport->backbuf,
+		    vport->cols * (vport->rows + lines));
 		memset(vport->backbuf, 0, - vport->cols * lines);
 	}
-}
 
+	for (row = 0; row < vport->rows; row++) {
+		for (col = 0; col < vport->cols; col++) {
+			draw_glyph(vport, false, col, row);
+		}
+	}
+}
 
 /** Render glyphs
  *
@@ -930,7 +915,7 @@ static void mouse_show(void)
 	if ((pointer_shown) || (!pointer_enabled))
 		return;
 	
-	/* Save image under the cursor */
+	/* Save image under the pointer. */
 	if (pointer_vport == -1) {
 		pointer_vport = vport_create(pointer_x, pointer_y, pointer_width, pointer_height);
 		if (pointer_vport < 0)
@@ -945,7 +930,7 @@ static void mouse_show(void)
 	else
 		copy_vp_to_pixmap(&viewports[pointer_vport], &pixmaps[pointer_pixmap]);
 	
-	/* Draw cursor */
+	/* Draw mouse pointer. */
 	for (i = 0; i < pointer_height; i++)
 		for (j = 0; j < pointer_width; j++) {
 			bytepos = i * ((pointer_width - 1) / 8 + 1) + j / 8;
@@ -966,7 +951,7 @@ static void mouse_show(void)
 
 static void mouse_hide(void)
 {
-	/* Restore image under the cursor */
+	/* Restore image under the pointer. */
 	if (pointer_shown) {
 		draw_pixmap(pointer_vport, pointer_pixmap);
 		pointer_shown = 0;
