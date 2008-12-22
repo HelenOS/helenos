@@ -223,20 +223,38 @@ static void rgb_323(void *dst, uint32_t rgb)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
 }
 
-/** Draw a filled rectangle. */
+/** Draw a filled rectangle.
+ *
+ * @note Need real implementation that does not access VRAM twice.
+ */
 static void draw_filled_rect(unsigned int x0, unsigned int y0, unsigned int x1,
     unsigned int y1, uint32_t color)
 {
 	unsigned int x, y;
+	unsigned int copy_bytes;
+
+	uint8_t *sp, *dp;
 	uint8_t cbuf[4];
 
+	if (y0 >= y1 || x0 >= x1) return;
 	screen.rgb_conv(cbuf, color);
 
-	for (y = y0; y < y1; y++) {
-		for (x = x0; x < x1; x++) {
-			memcpy(&screen.fb_addr[FB_POS(x, y)], cbuf,
-			    screen.pixelbytes);
-		}
+	sp = &screen.fb_addr[FB_POS(x0, y0)];
+	dp = sp;
+
+	/* Draw the first line. */
+	for (x = x0; x < x1; x++) {
+		memcpy(dp, cbuf, screen.pixelbytes);
+		dp += screen.pixelbytes;
+	}
+
+	dp = sp + screen.scanline;
+	copy_bytes = (x1 - x0) * screen.pixelbytes;
+
+	/* Draw the remaining lines by copying. */
+	for (y = y0 + 1; y < y1; y++) {
+		memcpy(dp, sp, copy_bytes);
+		dp += screen.scanline;
 	}
 }
 
