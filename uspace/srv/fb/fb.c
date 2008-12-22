@@ -308,56 +308,32 @@ static void vport_clear(viewport_t *vport)
  */
 static void vport_scroll(viewport_t *vport, int lines)
 {
+	unsigned int row, col;
+
 	/*
 	 * Scroll backbuffer.
 	 */
 
 	if (lines > 0) {
-		memmove(vport->backbuf, vport->backbuf + vport->cols * lines,
+		memcpy(vport->backbuf, vport->backbuf + vport->cols * lines,
 		    vport->cols * (vport->rows - lines));
 		memset(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
 		    0, vport->cols * lines);
 	} else {
-		memmove(vport->backbuf - vport->cols * lines, vport->backbuf,
+		memcpy(vport->backbuf - vport->cols * lines, vport->backbuf,
 		    vport->cols * (vport->rows + lines));
 		memset(vport->backbuf, 0, - vport->cols * lines);
 	}
 
-	/* 
-	 * Scroll pixels.
+	/*
+	 * Redraw.
 	 */
 
-	unsigned int dist, height, alines;
-	unsigned int y, ry;
-	uint8_t *sp, *dp;
-
-	alines = lines > 0 ? lines : -lines;
-	dist = alines * FONT_SCANLINES;
-	height = (vport->rows - alines) * FONT_SCANLINES;
-
-	if (lines > 0) {
-		dp = &screen.fb_addr[FB_POS(vport->x, vport->y + 0)];
-		sp = &screen.fb_addr[FB_POS(vport->x, vport->y + dist)];
-		ry = height;
-	} else {
-		dp = &screen.fb_addr[FB_POS(vport->x, vport->y + dist)];
-		sp = &screen.fb_addr[FB_POS(vport->x, vport->y + 0)];
-		ry = 0;
+	for (row = 0; row < vport->rows; row++) {
+		for (col = 0; col < vport->cols; col++) {
+			draw_glyph(vport, false, col, row);
+		}
 	}
-
-	/* Move pixels line by line. */
-	for (y = 0; y < height; y++) {
-		memcpy(dp, sp, vport->cols * FONT_WIDTH
-		    * screen.pixelbytes);
-
-		sp += screen.scanline;
-		dp += screen.scanline;
-	}
-
-	/* Fill emptied area with background color. */
-	draw_filled_rect(vport->x, vport->y + ry,
-	    vport->x + COL2X(vport->cols), vport->y + ry + dist,
-	    vport->style.bg_color);
 }
 
 /** Render glyphs
