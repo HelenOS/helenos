@@ -1,7 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
- * Copyright (C) 1998 by Wes Peters <wes@softweyr.com>
- * Copyright (c) 1988, 1993 The Regents of the University of California.
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -512,51 +511,36 @@ char * strdup(const char *s1)
 	return (char *) memcpy(ret, s1, len);
 }
 
-/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
-char * strtok_r(char *s, const char *delim, char **last)
+char *strtok(char *s, const char *delim)
 {
-	char *spanp, *tok;
-	int c, sc;
+	static char *next;
 
-	if (s == NULL && (s = *last) == NULL)
-		return (NULL);
-
-cont:
-	c = *s++;
-	for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
-		if (c == sc)
-			goto cont;
-	}
-
-	if (c == 0) {		/* no non-delimiter characters */
-		*last = NULL;
-		return (NULL);
-	}
-
-	tok = s - 1;
-
-	for (;;) {
-		c = *s++;
-		spanp = (char *)delim;
-		do {
-			if ((sc = *spanp++) == c) {
-				if (c == 0)
-					s = NULL;
-				else
-					s[-1] = '\0';
-				*last = s;
-				return (tok);
-			}
-		} while (sc != 0);
-	}
+	return strtok_r(s, delim, &next);
 }
 
-/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
-char * strtok(char *s, const char *delim)
+char *strtok_r(char *s, const char *delim, char **next)
 {
-	static char *last;
+	char *start, *end;
 
-	return (strtok_r(s, delim, &last));
+	if (s == NULL)
+		s = *next;
+
+	/* Skip over leading delimiters. */
+	while (*s && (strchr(delim, *s) != NULL)) ++s;
+	start = s;
+
+	/* Skip over token characters. */
+	while (*s && (strchr(delim, *s) == NULL)) ++s;
+	end = s;
+	*next = (*s ? s + 1 : s);
+
+	if (start == end) {
+		return NULL;	/* No more tokens. */
+	}
+
+	/* Overwrite delimiter with NULL terminator. */
+	*end = '\0';
+	return start;
 }
 
 /** @}
