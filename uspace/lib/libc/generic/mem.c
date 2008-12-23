@@ -187,7 +187,8 @@ void *memcpy(void *dst, const void *src, size_t n)
 /** Move memory block with possible overlapping. */
 void *memmove(void *dst, const void *src, size_t n)
 {
-	uint8_t *dp, *sp;
+	const uint8_t *sp;
+	uint8_t *dp;
 
 	/* Nothing to do? */
 	if (src == dst)

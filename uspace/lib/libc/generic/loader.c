@@ -50,7 +50,7 @@
  * @return	Pointer to the loader connection structure (should be
  *		de-allocated using free() after use).
  */
-loader_t *loader_spawn(char *name)
+loader_t *loader_spawn(const char *name)
 {
 	int phone_id, rc;
 	loader_t *ldr;
