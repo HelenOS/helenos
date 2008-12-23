@@ -74,22 +74,79 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 	return (char *) dst;
 }
 
+/** Copy memory block. */
 void *memcpy(void *dst, const void *src, size_t n)
 {
-	int i, j;
+	size_t i;
+	size_t mod, fill;
+	size_t word_size;
+	size_t n_words;
 
-	if (((long) dst & (sizeof(long) - 1)) ||
-	    ((long) src & (sizeof(long) - 1)))
+	const unsigned long *srcw;
+	unsigned long *dstw;
+	const uint8_t *srcb;
+	uint8_t *dstb;
+
+	word_size = sizeof(unsigned long);
+
+	/*
+	 * Are source and destination addresses congruent modulo word_size?
+	 * If not, use unaligned_memcpy().
+	 */
+
+	if (((uintptr_t) dst & (word_size - 1)) !=
+	    ((uintptr_t) src & (word_size - 1)))
  		return unaligned_memcpy(dst, src, n);
 
-	for (i = 0; i < n / sizeof(unsigned long); i++)
-		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
-		
-	for (j = 0; j < n % sizeof(unsigned long); j++)
-		((unsigned char *) (((unsigned long *) dst) + i))[j] =
-		    ((unsigned char *) (((unsigned long *) src) + i))[j];
-		
-	return (char *) dst;
+	/*
+	 * mod is the address modulo word size. fill is the length of the
+	 * initial buffer segment before the first word boundary.
+	 * If the buffer is very short, use unaligned_memcpy(), too.
+	 */
+
+	mod = (uintptr_t) dst & (word_size - 1);
+	fill = word_size - mod;
+	if (fill > n) fill = n;
+
+	/* Copy the initial segment. */
+
+	srcb = src;
+	dstb = dst;
+
+	i = fill;
+	while (i-- > 0)
+		*dstb++ = *srcb++;
+
+	/* Compute remaining length. */
+
+	n -= fill;
+	if (n == 0) return dst;
+
+	/* Pointers to aligned segment. */
+
+	dstw = (unsigned long *) dstb;
+	srcw = (const unsigned long *) srcb;
+
+	n_words = n / word_size;	/* Number of whole words to copy. */
+	n -= n_words * word_size;	/* Remaining bytes at the end. */
+
+	/* "Fast" copy. */
+	i = n_words;
+	while (i-- > 0)
+		*dstw++ = *srcw++;
+
+	/*
+	 * Copy the rest.
+	 */
+
+	srcb = (const uint8_t *) srcw;
+	dstb = (uint8_t *) dstw;
+
+	i = n;
+	while (i-- > 0)
+		*dstb++ = *srcb++;
+
+	return dst;
 }
 
 void *memmove(void *dst, const void *src, size_t n)
