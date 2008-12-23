@@ -51,6 +51,7 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/mem.c \
 	generic/string.c \
 	generic/fibril.c \
 	generic/pcb.c \

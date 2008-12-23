@@ -32,33 +32,18 @@
 /** @file
  */
 
-#ifndef LIBC_STRING_H_
-#define LIBC_STRING_H_
+#ifndef LIBC_MEM_H_
+#define LIBC_MEM_H_
 
-#include <mem.h>
 #include <sys/types.h>
 
-extern int strcmp(const char *, const char *);
-extern int strncmp(const char *, const char *, size_t);
-extern int stricmp(const char *, const char *);
+#define bzero(ptr, len)  memset((ptr), 0, (len))
 
-extern char *strcpy(char *, const char *);
-extern char *strncpy(char *, const char *, size_t);
+extern void * memset(void *, int, size_t);
+extern void * memcpy(void *, const void *, size_t);
+extern void * memmove(void *, const void *, size_t);
 
-extern char *strcat(char *, const char *);
-
-extern size_t strlen(const char *);
-
-extern char *strdup(const char *);
-
-extern char *strchr(const char *, int);
-extern char *strrchr(const char *, int);
-
-extern long int strtol(const char *, char **, int);
-extern unsigned long strtoul(const char *, char **, int);
-
-extern char * strtok_r(char *, const char *, char **);
-extern char * strtok(char *, const char *);
+extern int bcmp(const char *, const char *, size_t);
 
 #endif
 
