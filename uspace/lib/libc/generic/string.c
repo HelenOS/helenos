@@ -189,21 +189,38 @@ void *memcpy(void *dst, const void *src, size_t n)
 	return dst;
 }
 
+/** Move memory block with possible overlapping. */
 void *memmove(void *dst, const void *src, size_t n)
 {
-	int i, j;
-	
-	if (src > dst)
+	uint8_t *dp, *sp;
+
+	/* Nothing to do? */
+	if (src == dst)
+		return dst;
+
+	/* Non-overlapping? */
+	if (dst >= src + n || src >= dst + n) {	
 		return memcpy(dst, src, n);
+	}
 
-	for (j = (n % sizeof(unsigned long)) - 1; j >= 0; j--)
-		((unsigned char *) ((unsigned long *) dst))[j] =
-		    ((unsigned char *) ((unsigned long *) src))[j];
+	/* Which direction? */
+	if (src > dst) {
+		/* Forwards. */
+		sp = src;
+		dp = dst;
 
-	for (i = n / sizeof(unsigned long) - 1; i >=0 ; i--)
-		((unsigned long *) dst)[i] = ((unsigned long *) src)[i];
-		
-	return (char *) dst;
+		while (n-- != 0)
+			*dp++ = *sp++;
+	} else {
+		/* Backwards. */
+		sp = src + (n - 1);
+		dp = dst + (n - 1);
+
+		while (n-- != 0)
+			*dp-- = *sp--;
+	}
+
+	return dst;
 }
 
 /** Compare two memory areas.
