@@ -42,16 +42,56 @@
 #include <sys/types.h>
 #include <malloc.h>
 
-/* Dummy implementation of mem/ functions */
-
-void *memset(void *s, int c, size_t n)
+/** Fill memory block with a constant value. */
+void *memset(void *dest, int b, size_t n)
 {
-	char *os = s;
-	
-	while (n--)
-		*(os++) = c;
-	
-	return s;
+	char *pb;
+	unsigned long *pw;
+	size_t word_size;
+	size_t n_words;
+
+	unsigned long pattern;
+	size_t i;
+	size_t fill;
+
+	/* Fill initial segment. */
+	word_size = sizeof(unsigned long);
+	fill = word_size - ((uintptr_t) dest & (word_size - 1));
+	if (fill > n) fill = n;
+
+	pb = dest;
+
+	i = fill;
+	while (i-- != 0)
+		*pb++ = b;
+
+	/* Compute remaining size. */
+	n -= fill;
+	if (n == 0) return dest;
+
+	n_words = n / word_size;
+	n = n % word_size;
+	pw = (unsigned long *) pb;
+
+	/* Create word-sized pattern for aligned segment. */
+	pattern = 0;
+	i = word_size;
+	while (i-- != 0)
+		pattern = (pattern << 8) | (uint8_t) b;
+
+	/* Fill aligned segment. */
+	i = n_words;
+	while (i-- != 0)
+		*pw++ = pattern;
+
+	pb = (char *) pw;
+
+	/* Fill final segment. */
+	i = n;
+	while (i-- != 0)
+		*pb++ = b;
+
+	return dest;
 }
 
 struct along {
@@ -114,7 +154,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 	dstb = dst;
 
 	i = fill;
-	while (i-- > 0)
+	while (i-- != 0)
 		*dstb++ = *srcb++;
 
 	/* Compute remaining length. */
@@ -132,7 +172,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 
 	/* "Fast" copy. */
 	i = n_words;
-	while (i-- > 0)
+	while (i-- != 0)
 		*dstw++ = *srcw++;
 
 	/*
@@ -143,7 +183,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 	dstb = (uint8_t *) dstw;
 
 	i = n;
-	while (i-- > 0)
+	while (i-- != 0)
 		*dstb++ = *srcb++;
 
 	return dst;
