@@ -152,6 +152,7 @@ void userspace(uspace_arg_t *kernel_uarg)
  */
 void arch_grab_console(void)
 {
+	fb_redraw();
 	cuda_grab();
 }
 
