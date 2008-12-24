@@ -139,7 +139,9 @@ static viewport_t viewports[128];
 
 static bool client_connected = false;  /**< Allow only 1 connection */
 
-static void draw_glyph(viewport_t *vport, bool cursor, unsigned int col,
+static void draw_glyph(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph);
+static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
     unsigned int row);
 
 
@@ -269,7 +271,7 @@ static void vport_redraw(viewport_t *vport)
 
 	for (row = 0; row < vport->rows; row++) {
 		for (col = 0; col < vport->cols; col++) {
-			draw_glyph(vport, false, col, row);
+			draw_vp_glyph(vport, false, col, row);
 		}
 	}
 
@@ -309,30 +311,47 @@ static void vport_clear(viewport_t *vport)
 static void vport_scroll(viewport_t *vport, int lines)
 {
 	unsigned int row, col;
+	unsigned int x, y;
+	uint8_t glyph;
+
+	/*
+	 * Redraw.
+	 */
+
+	y = vport->y;
+	for (row = 0; row < vport->rows; row++) {
+		x = vport->x;
+		for (col = 0; col < vport->cols; col++) {
+			if ((row + lines >= 0) && (row + lines < vport->rows)) {
+				glyph = vport->backbuf[BB_POS(vport, col, row + lines)];
+
+				if (vport->backbuf[BB_POS(vport, col, row)] == glyph) {
+					x += FONT_WIDTH;
+					continue;
+				}
+			} else {
+				glyph = 0;
+			}
+
+			draw_glyph(x, y, false, vport->glyphs, glyph);
+			x += FONT_WIDTH;
+		}
+		y += FONT_SCANLINES;
+	}
 
 	/*
 	 * Scroll backbuffer.
 	 */
 
 	if (lines > 0) {
-		memcpy(vport->backbuf, vport->backbuf + vport->cols * lines,
+		memmove(vport->backbuf, vport->backbuf + vport->cols * lines,
 		    vport->cols * (vport->rows - lines));
 		memset(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
 		    0, vport->cols * lines);
 	} else {
-		memcpy(vport->backbuf - vport->cols * lines, vport->backbuf,
+		memmove(vport->backbuf - vport->cols * lines, vport->backbuf,
 		    vport->cols * (vport->rows + lines));
 		memset(vport->backbuf, 0, - vport->cols * lines);
-	}
-
-	/*
-	 * Redraw.
-	 */
-
-	for (row = 0; row < vport->rows; row++) {
-		for (col = 0; col < vport->cols; col++) {
-			draw_glyph(vport, false, col, row);
-		}
 	}
 }
 
@@ -515,7 +534,26 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 }
 
 
-/** Draw glyph at given position relative to viewport 
+/** Draw a glyph.
+ *
+ * @param x	 x coordinate of top-left corner on screen.
+ * @param y	 y coordinate of top-left corner on screen.
+ * @param cursor Draw glyph with cursor
+ * @param glyphs Pointer to font bitmap.
+ * @param glyph  Code of the glyph to draw.
+ *
+ */
+static void draw_glyph(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph)
+{
+	unsigned int yd;
+	
+	for (yd = 0; yd < FONT_SCANLINES; yd++)
+		memcpy(&screen.fb_addr[FB_POS(x, y + yd)],
+		    &glyphs[GLYPH_POS(glyph, yd, cursor)], screen.glyphscanline);
+}
+
+/** Draw glyph at specified position in viewport. 
  *
  * @param vport  Viewport identification
  * @param cursor Draw glyph with cursor
@@ -523,17 +561,15 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
  * @param row    Screen position relative to viewport
  *
  */
-static void draw_glyph(viewport_t *vport, bool cursor, unsigned int col, unsigned int row)
+static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
+    unsigned int row)
 {
 	unsigned int x = vport->x + COL2X(col);
 	unsigned int y = vport->y + ROW2Y(row);
-	unsigned int yd;
+	uint8_t glyph;
 	
-	uint8_t glyph = vport->backbuf[BB_POS(vport, col, row)];
-	
-	for (yd = 0; yd < FONT_SCANLINES; yd++)
-		memcpy(&screen.fb_addr[FB_POS(x, y + yd)],
-		    &vport->glyphs[GLYPH_POS(glyph, yd, cursor)], screen.glyphscanline);
+	glyph = vport->backbuf[BB_POS(vport, col, row)];
+	draw_glyph(x, y, cursor, vport->glyphs, glyph);
 }
 
 
@@ -543,7 +579,7 @@ static void draw_glyph(viewport_t *vport, bool cursor, unsigned int col, unsigne
 static void cursor_hide(viewport_t *vport)
 {
 	if ((vport->cursor_active) && (vport->cursor_shown)) {
-		draw_glyph(vport, false, vport->cur_col, vport->cur_row);
+		draw_vp_glyph(vport, false, vport->cur_col, vport->cur_row);
 		vport->cursor_shown = false;
 	}
 }
@@ -556,7 +592,7 @@ static void cursor_show(viewport_t *vport)
 {
 	/* Do not check for cursor_shown */
 	if (vport->cursor_active) {
-		draw_glyph(vport, true, vport->cur_col, vport->cur_row);
+		draw_vp_glyph(vport, true, vport->cur_col, vport->cur_row);
 		vport->cursor_shown = true;
 	}
 }
@@ -590,7 +626,7 @@ static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned i
 		cursor_hide(vport);
 	
 	vport->backbuf[BB_POS(vport, col, row)] = c;
-	draw_glyph(vport, false, col, row);
+	draw_vp_glyph(vport, false, col, row);
 	
 	vport->cur_col = col;
 	vport->cur_row = row;
@@ -627,7 +663,7 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data)
 		
 		if (glyph != data[i].character) {
 			vport->backbuf[BB_POS(vport, col, row)] = data[i].character;
-			draw_glyph(vport, false, col, row);
+			draw_vp_glyph(vport, false, col, row);
 		}
 	}
 	cursor_show(vport);
