@@ -237,5 +237,10 @@ void scr_init(ofw_tree_node_t *node)
 	fb_init(&props);
 }
 
+void src_redraw(void)
+{
+	fb_redraw();
+}
+
 /** @}
  */
