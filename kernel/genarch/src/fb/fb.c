@@ -219,8 +219,10 @@ static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row)
  */
 static void screen_scroll(void)
 {
-	if (ylogo > 0)
+	if (ylogo > 0) {
 		logo_hide();
+		return;
+	}
 	
 	unsigned int row;
 	
@@ -391,10 +393,10 @@ void fb_redraw(void)
 			memcpy(&fb_addr[FB_POS(COL2X(cols), y)], bgscan, size);
 	}
 	
-	if (ROW2Y(rowtrim) < yres) {
+	if (ROW2Y(rowtrim) + ylogo < yres) {
 		unsigned int y;
 		
-		for (y = ROW2Y(rowtrim); y < yres; y++)
+		for (y = ROW2Y(rowtrim) + ylogo; y < yres; y++)
 			memcpy(&fb_addr[FB_POS(0, y)], bgscan, bgscanbytes);
 	}
 }
