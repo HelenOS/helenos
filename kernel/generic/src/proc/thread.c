@@ -211,7 +211,7 @@ static int thr_destructor(void *obj)
 void thread_init(void)
 {
 	THREAD = NULL;
-	atomic_set(&nrdy,0);
+	atomic_set(&nrdy, 0);
 	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 
