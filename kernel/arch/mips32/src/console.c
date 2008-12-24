@@ -36,6 +36,7 @@
 #include <arch/console.h>
 #include <arch/drivers/serial.h>
 #include <arch/drivers/msim.h>
+#include <genarch/fb/fb.h>
 
 void console_init(devno_t devno)
 {
@@ -50,6 +51,9 @@ void console_init(devno_t devno)
  */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
+	fb_redraw();
+#endif
 	msim_kbd_grab();
 }
 
