@@ -106,9 +106,14 @@ static void clrscr(void)
 	async_msg_0(fb_info.phone, FB_CLEAR);
 }
 
-static void curs_visibility(int v)
+static void curs_visibility(bool visible)
 {
-	async_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, v); 
+	async_msg_1(fb_info.phone, FB_CURSOR_VISIBILITY, visible); 
+}
+
+static void curs_hide_sync(void)
+{
+	ipc_call_sync_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
 static void curs_goto(int row, int col)
@@ -197,14 +202,14 @@ static void change_console(int newcons)
 	
 	if (newcons == KERNEL_CONSOLE) {
 		async_serialize_start();
-		curs_visibility(0);
+		curs_hide_sync();
 		gcons_in_kernel();
 		async_serialize_end();
 		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE))
 			active_console = KERNEL_CONSOLE;
 		else
-			newcons == active_console;
+			newcons = active_console;
 	}
 	
 	if (newcons != KERNEL_CONSOLE) {
@@ -218,7 +223,7 @@ static void change_console(int newcons)
 		conn = &connections[active_console];
 		
 		set_style(&conn->screenbuffer.style);
-		curs_visibility(0);
+		curs_visibility(false);
 		if (interbuffer) {
 			for (i = 0; i < conn->screenbuffer.size_x; i++)
 				for (j = 0; j < conn->screenbuffer.size_y; j++) {
