@@ -234,11 +234,13 @@ static void screen_scroll(void)
 			unsigned int x;
 			unsigned int col;
 			
-			for (col = 0, x = 0; col < cols; col++, x += FONT_WIDTH) {
+			for (col = 0, x = 0; col < cols; col++,
+			    x += FONT_WIDTH) {
 				uint8_t glyph;
 				
 				if (row < rows - 1) {
-					if (backbuf[BB_POS(col, row)] == backbuf[BB_POS(col, row + 1)])
+					if (backbuf[BB_POS(col, row)] ==
+					    backbuf[BB_POS(col, row + 1)])
 						continue;
 					
 					glyph = backbuf[BB_POS(col, row + 1)];
@@ -246,7 +248,8 @@ static void screen_scroll(void)
 					glyph = 0;
 				
 				memcpy(&fb_addr[FB_POS(x, y + yd)],
-				    &glyphs[GLYPH_POS(glyph, yd)], glyphscanline);
+				    &glyphs[GLYPH_POS(glyph, yd)],
+				    glyphscanline);
 			}
 		}
 	}
@@ -295,7 +298,8 @@ static void fb_putchar(chardev_t *dev, char ch)
 	case '\t':
 		cursor_remove();
 		do {
-			glyph_draw((uint8_t) ' ', position % cols, position / cols);
+			glyph_draw((uint8_t) ' ', position % cols,
+			    position / cols);
 			position++;
 		} while ((position % 8) && (position < cols * rows));
 		break;
@@ -337,9 +341,13 @@ static void glyphs_render(void)
 		for (y = 0; y < FONT_SCANLINES; y++) {
 			unsigned int x;
 			
-			for (x = 0; x < FONT_WIDTH; x++)
-				rgb_conv(&glyphs[GLYPH_POS(glyph, y) + x * pixelbytes],
-				    (fb_font[ROW2Y(glyph) + y] & (1 << (7 - x))) ? FG_COLOR : BG_COLOR);
+			for (x = 0; x < FONT_WIDTH; x++) {
+				void *dst = &glyphs[GLYPH_POS(glyph, y) +
+				    x * pixelbytes];
+				uint32_t rgb = (fb_font[ROW2Y(glyph) + y] &
+				    (1 << (7 - x))) ? FG_COLOR : BG_COLOR;
+				rgb_conv(dst, rgb);
+			}
 		}
 	}
 	
@@ -364,7 +372,9 @@ void fb_redraw(void)
 			
 			for (x = 0; x < xres; x++)
 				rgb_conv(&fb_addr[FB_POS(x, y)],
-				    (x < LOGO_WIDTH) ? fb_logo[y * LOGO_WIDTH + x] : LOGO_COLOR);
+				    (x < LOGO_WIDTH) ?
+				    fb_logo[y * LOGO_WIDTH + x] :
+				    LOGO_COLOR);
 		}
 	}
 	
@@ -378,10 +388,13 @@ void fb_redraw(void)
 			unsigned int x;
 			unsigned int col;
 			
-			for (col = 0, x = 0; col < cols; col++, x += FONT_WIDTH)
-				memcpy(&fb_addr[FB_POS(x, y + yd)],
-			    &glyphs[GLYPH_POS(backbuf[BB_POS(col, row)], yd)],
-			    glyphscanline);
+			for (col = 0, x = 0; col < cols;
+			    col++, x += FONT_WIDTH) {
+				void *d = &fb_addr[FB_POS(x, y + yd)];
+				void *s = &glyphs[GLYPH_POS(backbuf[BB_POS(col,
+				    row)], yd)];
+				memcpy(d, s, glyphscanline);
+			}
 		}
 	}
 	
