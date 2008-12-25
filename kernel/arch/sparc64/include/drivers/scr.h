@@ -49,7 +49,7 @@ typedef enum {
 extern scr_type_t scr_type;
 
 extern void scr_init(ofw_tree_node_t *node);
-extern void src_redraw(void);
+extern void scr_redraw(void);
 
 #endif
 

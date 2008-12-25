@@ -175,7 +175,7 @@ void kkbdpoll(void *arg)
  */
 void arch_grab_console(void)
 {
-	src_redraw();
+	scr_redraw();
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
