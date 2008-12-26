@@ -71,7 +71,12 @@
 #define MAX_PIXMAPS      256  /**< Maximum number of saved pixmaps */
 #define MAX_VIEWPORTS    128  /**< Viewport is a rectangular area on the screen */
 
+/** Function to render a pixel from a RGB value. */
 typedef void (*rgb_conv_t)(void *, uint32_t);
+
+/** Function to draw a glyph. */
+typedef void (*dg_t)(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
 
 struct {
 	uint8_t *fb_addr;
@@ -99,10 +104,22 @@ typedef struct {
 	unsigned int cols;
 	unsigned int rows;
 	
-	/* Style and glyphs for text printing */
+	/*
+	 * Style and glyphs for text printing
+	 */
+
+	/** Current style. */
 	style_t style;
+
+	/** Pre-rendered mask for rendering glyphs. Different viewports
+	 * might use different drawing functions depending on whether their
+	 * scanlines are aligned on a word boundary.*/
 	uint8_t *glyphs;
+
 	uint8_t *bgpixel;
+
+	/** Glyph drawing function for this viewport. */
+	dg_t dglyph;
 	
 	/* Auto-cursor position */
 	bool cursor_active;
@@ -139,8 +156,11 @@ static viewport_t viewports[128];
 
 static bool client_connected = false;  /**< Allow only 1 connection */
 
-static void draw_glyph(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph);
+static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
+static void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
+
 static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
     unsigned int row);
 
@@ -333,7 +353,8 @@ static void vport_scroll(viewport_t *vport, int lines)
 				glyph = 0;
 			}
 
-			draw_glyph(x, y, false, vport->glyphs, glyph);
+			(*vport->dglyph)(x, y, false, vport->glyphs, glyph,
+			    vport->style.fg_color, vport->style.bg_color);
 			x += FONT_WIDTH;
 		}
 		y += FONT_SCANLINES;
@@ -376,18 +397,11 @@ static void render_glyphs(viewport_t* vport)
 			for (x = 0; x < FONT_WIDTH; x++) {
 				screen.rgb_conv(&vport->glyphs[GLYPH_POS(glyph, y, false) + x * screen.pixelbytes],
 				    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x)))
-				    ? vport->style.fg_color : vport->style.bg_color);
+				    ? 0xffffff : 0x000000);
 				
-				uint32_t curcolor;
-				
-				if (y < FONT_SCANLINES - 2)
-					curcolor =
-					    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x)))
-					    ? vport->style.fg_color : vport->style.bg_color;
-				else
-					curcolor = vport->style.fg_color;
-				
-				screen.rgb_conv(&vport->glyphs[GLYPH_POS(glyph, y, true) + x * screen.pixelbytes], curcolor);
+				screen.rgb_conv(&vport->glyphs[GLYPH_POS(glyph, y, true) + x * screen.pixelbytes],
+				    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x)))
+				    ? 0x000000 : 0xffffff);
 			}
 		}
 	}
@@ -422,6 +436,7 @@ static int vport_create(unsigned int x, unsigned int y,
 	unsigned int rows = height / FONT_SCANLINES;
 	unsigned int bbsize = cols * rows;
 	unsigned int glyphsize = 2 * FONT_GLYPHS * screen.glyphbytes;
+	unsigned int word_size = sizeof(unsigned long);
 	
 	uint8_t *backbuf = (uint8_t *) malloc(bbsize);
 	if (!backbuf)
@@ -457,7 +472,24 @@ static int vport_create(unsigned int x, unsigned int y,
 	
 	viewports[i].glyphs = glyphs;
 	viewports[i].bgpixel = bgpixel;
-	
+
+	/*
+	 * Conditions necessary  to select aligned version:
+	 *
+	 *   - word size is divisible by pixelbytes
+	 *   - cell scanline size is divisible by word size
+	 *   - cell scanlines are word-aligned
+	 */
+	if ((word_size % screen.pixelbytes) == 0 &&
+	    (FONT_WIDTH * screen.pixelbytes) % word_size == 0 &&
+	    (x * screen.pixelbytes) % word_size == 0 &&
+	    screen.scanline % word_size == 0) {
+
+		viewports[i].dglyph = draw_glyph_aligned;
+	} else {
+		viewports[i].dglyph = draw_glyph_fallback;
+	}
+
 	viewports[i].cur_col = 0;
 	viewports[i].cur_row = 0;
 	viewports[i].cursor_active = false;
@@ -534,23 +566,132 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 }
 
 
-/** Draw a glyph.
+/** Draw a glyph, takes advantage of alignment.
  *
- * @param x	 x coordinate of top-left corner on screen.
- * @param y	 y coordinate of top-left corner on screen.
- * @param cursor Draw glyph with cursor
- * @param glyphs Pointer to font bitmap.
- * @param glyph  Code of the glyph to draw.
+ * This version can only be used if the following conditions are met:
  *
+ *   - word size is divisible by pixelbytes
+ *   - cell scanline size is divisible by word size
+ *   - cell scanlines are word-aligned
+ *
+ * It makes use of the pre-rendered mask to process (possibly) several
+ * pixels at once (word size / pixelbytes pixels at a time are processed)
+ * making it very fast. Most notably this version is not applicable at 24 bits
+ * per pixel.
+ *
+ * @param x		x coordinate of top-left corner on screen.
+ * @param y		y coordinate of top-left corner on screen.
+ * @param cursor	Draw glyph with cursor
+ * @param glyphs	Pointer to font bitmap.
+ * @param glyph		Code of the glyph to draw.
+ * @param fg_color	Foreground color.
+ * @param bg_color	Backgroudn color.
  */
-static void draw_glyph(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph)
+static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color)
 {
-	unsigned int yd;
-	
-	for (yd = 0; yd < FONT_SCANLINES; yd++)
-		memcpy(&screen.fb_addr[FB_POS(x, y + yd)],
-		    &glyphs[GLYPH_POS(glyph, yd, cursor)], screen.glyphscanline);
+	unsigned int i, yd;
+	unsigned long fg_buf, bg_buf;
+	unsigned long *maskp, *dp;
+	unsigned long mask;
+	unsigned int ww, d_add;
+
+	/*
+	 * Prepare a pair of words, one filled with foreground-color
+	 * pattern and the other filled with background-color pattern.
+	 */
+	for (i = 0; i < sizeof(unsigned long) / screen.pixelbytes; i++) {
+		screen.rgb_conv(&((uint8_t *)&fg_buf)[i * screen.pixelbytes],
+		    fg_color);
+		screen.rgb_conv(&((uint8_t *)&bg_buf)[i * screen.pixelbytes],
+		    bg_color);
+	}
+
+
+	/* Pointer to the current position in the mask. */
+	maskp = (unsigned long *) &glyphs[GLYPH_POS(glyph, 0, cursor)];
+
+	/* Pointer to the current position on the screen. */
+	dp = (unsigned long *) &screen.fb_addr[FB_POS(x, y)];
+
+	/* Width of the character cell in words. */
+	ww = FONT_WIDTH * screen.pixelbytes / sizeof(unsigned long);
+
+	/* Offset to add when moving to another screen scanline. */
+	d_add = screen.scanline - FONT_WIDTH * screen.pixelbytes;
+
+	for (yd = 0; yd < FONT_SCANLINES; yd++) {
+		/*
+		 * Now process the cell scanline, combining foreground
+		 * and background color patters using the pre-rendered mask.
+		 */
+		for (i = 0; i < ww; i++) {
+			mask = *maskp++;
+			*dp++ = (fg_buf & mask) | (bg_buf & ~mask);
+		}
+
+		/* Move to the beginning of the next scanline of the cell. */
+		dp = (unsigned long *) ((uint8_t *) dp + d_add);
+	}
+}
+
+/** Draw a glyph, fallback version.
+ *
+ * This version does not make use of the pre-rendered mask, it uses
+ * the font bitmap directly. It works always, but it is slower.
+ *
+ * @param x		x coordinate of top-left corner on screen.
+ * @param y		y coordinate of top-left corner on screen.
+ * @param cursor	Draw glyph with cursor
+ * @param glyphs	Pointer to font bitmap.
+ * @param glyph		Code of the glyph to draw.
+ * @param fg_color	Foreground color.
+ * @param bg_color	Backgroudn color.
+ */
+void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
+    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color)
+{
+	unsigned int i, j, yd;
+	uint8_t fg_buf[4], bg_buf[4];
+	uint8_t *dp, *sp;
+	unsigned int d_add;
+	uint8_t b;
+
+	/* Pre-render 1x the foreground and background color pixels. */
+	if (cursor) {
+		screen.rgb_conv(fg_buf, bg_color);
+		screen.rgb_conv(bg_buf, fg_color);
+	} else {
+		screen.rgb_conv(fg_buf, fg_color);
+		screen.rgb_conv(bg_buf, bg_color);
+	}
+
+	/* Pointer to the current position on the screen. */
+	dp = (uint8_t *) &screen.fb_addr[FB_POS(x, y)];
+
+	/* Offset to add when moving to another screen scanline. */
+	d_add = screen.scanline - FONT_WIDTH * screen.pixelbytes;
+
+	for (yd = 0; yd < FONT_SCANLINES; yd++) {
+		/* Byte containing bits of the glyph scanline. */
+		b = fb_font[glyph * FONT_SCANLINES + yd];
+
+		for (i = 0; i < FONT_WIDTH; i++) {
+			/* Choose color based on the current bit. */
+			sp = (b & 0x80) ? fg_buf : bg_buf;
+
+			/* Copy the pixel. */
+			for (j = 0; j < screen.pixelbytes; j++) {
+				*dp++ = *sp++;
+			}
+
+			/* Move to the next bit. */
+			b = b << 1;
+		}
+		
+		/* Move to the beginning of the next scanline of the cell. */
+		dp += d_add;
+	}
 }
 
 /** Draw glyph at specified position in viewport. 
@@ -569,9 +710,10 @@ static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
 	uint8_t glyph;
 	
 	glyph = vport->backbuf[BB_POS(vport, col, row)];
-	draw_glyph(x, y, cursor, vport->glyphs, glyph);
-}
 
+	(*vport->dglyph)(x, y, cursor, vport->glyphs, glyph,
+	    vport->style.fg_color, vport->style.bg_color);
+}
 
 /** Hide cursor if it is shown
  *
@@ -1338,7 +1480,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_SET_STYLE:
 			vport->style.fg_color = IPC_GET_ARG1(call);
 			vport->style.bg_color = IPC_GET_ARG2(call);
-			render_glyphs(vport);
 			retval = EOK;
 			break;
 		case FB_GET_RESOLUTION:
