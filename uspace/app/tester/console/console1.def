@@ -1,0 +1,6 @@
+{
+	"console1",
+	"Console color test",
+	&test_console1,
+	true
+},

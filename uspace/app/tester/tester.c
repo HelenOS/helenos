@@ -58,6 +58,7 @@ test_t tests[] = {
 #include "devmap/devmap1.def"
 #include "loop/loop1.def"
 #include "vfs/vfs1.def"
+#include "console/console1.def"
 	{NULL, NULL, NULL}
 };
 
