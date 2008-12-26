@@ -49,7 +49,7 @@
 #include <errno.h>
 #include <string.h>
 #include <ipc/devmap.h>
-#include "../../srv/vfs/vfs.h"
+#include "../../../srv/vfs/vfs.h"
 
 int vfs_phone = -1;
 futex_t vfs_phone_futex = FUTEX_INITIALIZER;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <io/stream.h>
-#include <async.h>
-#include "../tester.h"
+/** @addtogroup libcipc
+ * @{ 
+ */
+/** @file
+ */
 
-#include <ipc/console.h>
+#ifndef LIBC_CONSOLE_H_
+#define LIBC_CONSOLE_H_
 
-static void set_style(int fgcolor, int bgcolor)
-{
-	int con_phone = get_cons_phone();
-	async_msg_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
-}
+#define CONSOLE_GETCHAR		1026
+#define CONSOLE_PUTCHAR 	1027
+#define CONSOLE_CLEAR		1028
+#define CONSOLE_GOTO		1029
+#define CONSOLE_GETSIZE		1030
+#define CONSOLE_FLUSH		1031
+#define CONSOLE_SET_STYLE 	1032
+#define CONSOLE_CURSOR_VISIBILITY	1033
 
-char * test_console1(bool quiet)
-{
-	set_style(0xff0000, 0xf0f0f0);
-	printf("Red on white background.\n");
-	set_style(0x008080, 0x000080);
-	printf("Cyan on blue background.\n");
-	set_style(0x000000, 0xf0f0f0);
-	printf("Black on white background.\n");
-
-	printf("[press a key]\n");
-	getchar();
-
-	return NULL;
-}
+#endif
+ 
+/** @}
+ */

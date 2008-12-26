@@ -42,7 +42,7 @@
 #include <ipc/ns.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
-#include <console.h>
+#include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
 #include <sys/types.h>

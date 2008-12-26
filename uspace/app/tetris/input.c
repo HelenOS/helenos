@@ -57,7 +57,7 @@
 #include "tetris.h"
 
 #include <async.h>
-#include "../../srv/console/console.h"
+#include <ipc/console.h>
 
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \

@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <key_buffer.h>
 #include <console.h>
+#include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
 #include <libadt/fifo.h>

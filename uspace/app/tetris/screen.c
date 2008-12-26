@@ -56,7 +56,7 @@
 #include <async.h>
 #include "screen.h"
 #include "tetris.h"
-#include "../../srv/console/console.h"
+#include <ipc/console.h>
 
 static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
 static int curscore;

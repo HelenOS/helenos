@@ -33,14 +33,11 @@ include ../../Makefile.config
 
 LIBC_PREFIX = $(shell pwd)
 SOFTINT_PREFIX = ../softint
-CONSOLE_PREFIX = ../../srv/console
 
 ## Setup toolchain
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -I$(CONSOLE_PREFIX)
 
 ## Sources
 #
