@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +75,51 @@ void *_memcpy(void *dst, const void *src, size_t cnt)
 	}
 		
 	return (char *) dst;
+}
+
+/** Move memory block with possible overlapping.
+ *
+ * Copy cnt bytes from src address to dst address. The source and destination
+ * memory areas may overlap.
+ *
+ * @param src		Source address to copy from.
+ * @param dst		Destination address to copy to.
+ * @param cnt		Number of bytes to copy.
+ *
+ * @return		Destination address.
+ */
+void *memmove(void *dst, const void *src, size_t n)
+{
+	const uint8_t *sp;
+	uint8_t *dp;
+
+	/* Nothing to do? */
+	if (src == dst)
+		return dst;
+
+	/* Non-overlapping? */
+	if (dst >= src + n || src >= dst + n) {	
+		return memcpy(dst, src, n);
+	}
+
+	/* Which direction? */
+	if (src > dst) {
+		/* Forwards. */
+		sp = src;
+		dp = dst;
+
+		while (n-- != 0)
+			*dp++ = *sp++;
+	} else {
+		/* Backwards. */
+		sp = src + (n - 1);
+		dp = dst + (n - 1);
+
+		while (n-- != 0)
+			*dp-- = *sp--;
+	}
+
+	return dst;
 }
 
 /** Fill block of memory
