@@ -606,10 +606,10 @@ fill_0_normal_tl1:
 	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
 .else
 	/*
-	 * Call the higher-level syscall handler.
+	 * Call the higher-level syscall handler and enable interrupts.
 	 */
 	call syscall_handler
-	nop
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT | PSTATE_IE_BIT, %pstate
 	mov %o0, %i0				! copy the value returned by the syscall
 .endif
 
