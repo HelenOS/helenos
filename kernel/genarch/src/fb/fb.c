@@ -254,7 +254,7 @@ static void screen_scroll(void)
 		}
 	}
 	
-	memcpy(backbuf, backbuf + cols, cols * (rows - 1));
+	memmove(backbuf, backbuf + cols, cols * (rows - 1));
 	memsetb(&backbuf[BB_POS(0, rows - 1)], cols, 0);
 }
 
