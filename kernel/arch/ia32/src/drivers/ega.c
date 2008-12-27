@@ -38,6 +38,7 @@
 #include <putchar.h>
 #include <mm/page.h>
 #include <mm/as.h>
+#include <mm/slab.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
@@ -58,6 +59,7 @@ static parea_t ega_parea;	/**< Physical memory area for EGA video RAM. */
 SPINLOCK_INITIALIZE(egalock);
 static uint32_t ega_cursor;
 static uint8_t *videoram;
+static uint8_t *backbuf;
 
 static void ega_putchar(chardev_t *d, const char ch);
 
@@ -71,6 +73,10 @@ static void ega_move_cursor(void);
 void ega_init(void)
 {
 	uint8_t hi, lo;
+
+	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
+	if (!backbuf)
+		panic("Unable to allocate backbuffer.\n");
 	
 	videoram = (uint8_t *) hw_map(VIDEORAM, SCREEN * 2);
 	outb(0x3d4, 0xe);
@@ -98,6 +104,7 @@ void ega_init(void)
 static void ega_display_char(char ch)
 {
 	videoram[ega_cursor * 2] = ch;
+	backbuf[ega_cursor * 2] = ch;
 }
 
 /*
@@ -108,8 +115,10 @@ static void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 		return;
 
-	memcpy((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
+	memmove((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
+	memmove((void *) backbuf, (void *) (backbuf + ROW * 2), (SCREEN - ROW) * 2);
 	memsetw(videoram + (SCREEN - ROW) * 2, ROW, 0x0720);
+	memsetw(backbuf + (SCREEN - ROW) * 2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }
 
@@ -149,6 +158,12 @@ void ega_move_cursor(void)
 	outb(0x3d5, (uint8_t) ((ega_cursor >> 8) & 0xff));
 	outb(0x3d4, 0xf);
 	outb(0x3d5, (uint8_t) (ega_cursor & 0xff));	
+}
+
+void ega_redraw(void)
+{
+	memcpy(videoram, backbuf, SCREEN * 2);
+	ega_move_cursor();
 }
 
 /** @}
