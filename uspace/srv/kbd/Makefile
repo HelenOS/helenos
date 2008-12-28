@@ -92,6 +92,10 @@ ifeq ($(ARCH), mips32)
 	GENARCH_SOURCES += \
 	    genarch/src/nofb.c
 endif
+ifeq ($(ARCH), mips32eb)
+	GENARCH_SOURCES += \
+	    genarch/src/nofb.c
+endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))

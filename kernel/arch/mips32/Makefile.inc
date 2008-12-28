@@ -66,8 +66,8 @@ endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-bigmips
 	BFD = ecoff-bigmips
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips
 	TARGET = mips-sgi-irix5
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
 	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
 endif
 ifeq ($(MACHINE),simics)
