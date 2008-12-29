@@ -57,6 +57,7 @@ SOURCES = tester.c \
 	loop/loop1.c \
 	devmap/devmap1.c \
 	console/console1.c \
+	stdio/stdio1.c \
 	vfs/vfs1.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

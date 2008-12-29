@@ -59,6 +59,7 @@ test_t tests[] = {
 #include "loop/loop1.def"
 #include "vfs/vfs1.def"
 #include "console/console1.def"
+#include "stdio/stdio1.def"
 	{NULL, NULL, NULL}
 };
 

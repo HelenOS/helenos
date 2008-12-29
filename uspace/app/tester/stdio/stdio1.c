@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,72 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief	HelenOS C library
- * @{
- * @}
- */
-/** @addtogroup libc generic
- * @ingroup lc
- * @{
- */
-/** @file
- */ 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include "../tester.h"
 
-#include <libc.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
-#include <fibril.h>
-#include <io/stream.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
-#include <loader/pcb.h>
+#define BUF_SIZE 32
+static char buf[BUF_SIZE + 1];
 
-extern char _heap;
-extern int main(int argc, char *argv[]);
-
-int _errno;
-
-void _exit(int status)
+char * test_stdio1(bool quiet)
 {
-	thread_exit(status);
-}
+	FILE *f;
+	char *file_name = "/readme";
+	size_t n;
 
-void __main(void *pcb_ptr)
-{
-	fibril_t *f;
-	int argc;
-	char **argv;
+	printf("Open file '%s'\n", file_name);
+	errno = 0;
+	f = fopen(file_name, "rt");
 
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
-	
-	open_console();
+	if (f == NULL) printf("errno = %d\n", errno);
 
-	/* Save the PCB pointer */
-	__pcb = (pcb_t *)pcb_ptr;
+	if (f == NULL)
+		return "Failed opening file.";
 
-	if (__pcb == NULL) {
-		argc = 0;
-		argv = NULL;
-	} else {
-		argc = __pcb->argc;
-		argv = __pcb->argv;
+	n = fread(buf, 1, BUF_SIZE, f);
+	if (ferror(f)) {
+		fclose(f);
+		return "Failed reading file.";
 	}
 
-	main(argc, argv);
-}
+	printf("Read %d bytes.\n", n);
 
-void __exit(void)
-{
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+	buf[n] = '\0';
+	printf("Read string '%s'.\n", buf);
 
-/** @}
- */
+	fclose(f);
+
+	return NULL;
+}

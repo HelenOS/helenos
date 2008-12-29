@@ -72,6 +72,7 @@ extern char * test_devmap1(bool quiet);
 extern char * test_loop1(bool quiet);
 extern char * test_vfs1(bool quiet);
 extern char * test_console1(bool quiet);
+extern char * test_stdio1(bool quiet);
 
 extern test_t tests[];
 

@@ -60,6 +60,7 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \
+	generic/io/stdio.c \
 	generic/io/stream.c \
 	generic/io/sprintf.c \
 	generic/io/snprintf.c \

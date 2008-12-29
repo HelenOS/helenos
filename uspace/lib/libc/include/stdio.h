@@ -52,6 +52,17 @@
 		(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, strlen(buf)); \
 }
 
+typedef struct {
+	/** Underlying file descriptor. */
+	int fd;
+
+	/** Error indicator. */
+	int error;
+
+	/** End-of-file indicator. */
+	int eof;
+} FILE;
+
 extern int getchar(void);
 
 extern int puts(const char *);
@@ -69,6 +80,14 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 #define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 extern int rename(const char *, const char *);
+
+extern FILE *fopen(const char *, const char *);
+extern int fclose(FILE *);
+extern size_t fread(void *, size_t, size_t, FILE *);
+extern size_t fwrite(const void *, size_t, size_t, FILE *);
+extern int feof(FILE *);
+extern int ferror(FILE *);
+extern void clearerr(FILE *);
 
 #endif
 

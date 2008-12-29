@@ -35,6 +35,10 @@
 #ifndef LIBC_ERRNO_H_
 #define LIBC_ERRNO_H_
 
+/* TODO: support threads/fibrils */
+extern int _errno;
+#define errno _errno
+
 #include <kernel/errno.h>
 
 #define ENAMETOOLONG	(-256)
