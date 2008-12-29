@@ -44,9 +44,11 @@
 
 #define getpagesize()     (PAGE_SIZE)
 
-#define SEEK_SET	0
-#define SEEK_CUR	1
-#define SEEK_END	2
+#ifndef SEEK_SET
+	#define SEEK_SET	0
+	#define SEEK_CUR	1
+	#define SEEK_END	2
+#endif
 
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);

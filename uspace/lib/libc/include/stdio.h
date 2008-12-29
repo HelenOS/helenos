@@ -89,6 +89,21 @@ extern int feof(FILE *);
 extern int ferror(FILE *);
 extern void clearerr(FILE *);
 
+extern int fgetc(FILE *);;
+extern int fputc(int, FILE *);
+extern int fputs(const char *, FILE *);
+
+#define getc fgetc
+#define putc fputc
+
+extern int fseek(FILE *, long, int);
+
+#ifndef SEEK_SET
+	#define SEEK_SET	0
+	#define SEEK_CUR	1
+	#define SEEK_END	2
+#endif
+
 #endif
 
 /** @}

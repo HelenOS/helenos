@@ -215,5 +215,62 @@ void clearerr(FILE *f)
 	f->error = 0;
 }
 
+/** Read character from a stream. */
+int fgetc(FILE *f)
+{
+	unsigned char c;
+	size_t n;
+
+	n = fread(&c, sizeof(c), 1, f);
+	if (n < 1) return EOF;
+
+	return (int) c;
+}
+
+/** Write character to a stream. */
+int fputc(int c, FILE *f)
+{
+	unsigned char cc;
+	size_t n;
+
+	cc = (unsigned char) c;
+	n = fwrite(&cc, sizeof(cc), 1, f);
+	if (n < 1) return EOF;
+
+	return (int) cc;
+}
+
+/** Write string to a stream. */
+int fputs(const char *s, FILE *f)
+{
+	int rc;
+
+	rc = 0;
+
+	while (*s && rc >= 0) {
+		rc = fputc(*s++, f);
+	}
+
+	if (rc < 0) return EOF;
+
+	return 0;
+}
+
+/** Seek to position in stream. */
+int fseek(FILE *f, long offset, int origin)
+{
+	off_t rc;
+
+	rc = lseek(f->fd, offset, origin);
+	if (rc == (off_t) (-1)) {
+		/* errno has been set by lseek. */
+		return -1;
+	}
+
+	f->eof = 0;
+
+	return 0;
+}
+
 /** @}
  */

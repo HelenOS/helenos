@@ -39,6 +39,7 @@ char * test_stdio1(bool quiet)
 	FILE *f;
 	char *file_name = "/readme";
 	size_t n;
+	int c;
 
 	printf("Open file '%s'\n", file_name);
 	errno = 0;
@@ -60,7 +61,25 @@ char * test_stdio1(bool quiet)
 	buf[n] = '\0';
 	printf("Read string '%s'.\n", buf);
 
-	fclose(f);
+	printf("Seek to beginning.\n");
+	if (fseek(f, 0, SEEK_SET) != 0) {
+		fclose(f);
+		return "Failed seeking.";
+	}
+
+	printf("Read using fgetc().\n");
+	while (true) {
+		c = fgetc(f);
+		if (c == EOF) break;
+
+		printf("'%c'", c);
+	}
+
+	printf("[EOF]\n");
+	printf("Closing.\n");
+
+	if (fclose(f) != 0)
+		return "Failed closing.";
 
 	return NULL;
 }
