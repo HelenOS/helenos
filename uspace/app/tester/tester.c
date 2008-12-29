@@ -60,6 +60,7 @@ test_t tests[] = {
 #include "vfs/vfs1.def"
 #include "console/console1.def"
 #include "stdio/stdio1.def"
+#include "stdio/stdio2.def"
 	{NULL, NULL, NULL}
 };
 

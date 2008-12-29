@@ -63,6 +63,8 @@ typedef struct {
 	int eof;
 } FILE;
 
+extern FILE *stdin, *stdout, *stderr;
+
 extern int getchar(void);
 
 extern int puts(const char *);
@@ -70,14 +72,12 @@ extern int putchar(int);
 
 extern int printf(const char *, ...);
 extern int asprintf(char **, const char *, ...);
-extern int sprintf(char *, const char *fmt, ...);
+extern int sprintf(char *, const char *, ...);
 extern int snprintf(char *, size_t , const char *, ...);
 
 extern int vprintf(const char *, va_list);
 extern int vsprintf(char *, const char *, va_list);
 extern int vsnprintf(char *, size_t, const char *, va_list);
-
-#define fprintf(f, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 extern int rename(const char *, const char *);
 
@@ -89,9 +89,12 @@ extern int feof(FILE *);
 extern int ferror(FILE *);
 extern void clearerr(FILE *);
 
-extern int fgetc(FILE *);;
+extern int fgetc(FILE *);
 extern int fputc(int, FILE *);
 extern int fputs(const char *, FILE *);
+
+extern int fprintf(FILE *, const char *, ...);
+extern int vfprintf(FILE *, const char *, va_list);
 
 #define getc fgetc
 #define putc fputc

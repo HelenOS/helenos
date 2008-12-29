@@ -43,6 +43,8 @@
 #include <bool.h>
 #include <stdio.h>
 
+FILE *stdin, *stdout, *stderr;
+
 /**
  * Open a stream.
  *

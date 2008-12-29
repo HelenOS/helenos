@@ -1,6 +1,6 @@
 {
 	"stdio1",
-	"ANSI C streams test",
+	"ANSI C streams reading test",
 	&test_stdio1,
 	true
 },

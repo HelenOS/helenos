@@ -1,0 +1,6 @@
+{
+	"stdio2",
+	"ANSI C streams writing test",
+	&test_stdio2,
+	true
+},

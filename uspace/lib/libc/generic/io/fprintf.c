@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
+/** @addtogroup libc
  * @{
  */
-/** @file
- */
+/**
+ * @file
+ * @brief fprintf, vfprintf
+ */ 
 
-#ifndef TESTER_H_
-#define TESTER_H_
-
+#include <stdio.h>
 #include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
+#include <io/printf_core.h>
 
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-#define TEST_SKIPPED    "Test Skipped"
+static int vfprintf_write(const char *s, size_t count, void *f)
+{
+	return fwrite(s, 1, count, (FILE *) f);
+}
 
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
+int vfprintf(FILE *f, const char *fmt, va_list ap)
+{
+	struct printf_spec ps = {
+		(int (*)(void *, size_t, void *)) vfprintf_write,
+		(void *) f
+	};
 
-typedef char * (* test_entry_t)(bool);
+	return printf_core(fmt, &ps, ap);
+}
 
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+int fprintf(FILE *f, const char *fmt, ...)
+{
+	int rv;
+	va_list args;
 
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-extern char * test_devmap1(bool quiet);
-extern char * test_loop1(bool quiet);
-extern char * test_vfs1(bool quiet);
-extern char * test_console1(bool quiet);
-extern char * test_stdio1(bool quiet);
-extern char * test_stdio2(bool quiet);
+	va_start(args, fmt);
+	rv = vfprintf(f, fmt, args);
+	va_end(args);
 
-extern test_t tests[];
-
-#endif
+	return rv;
+}
 
 /** @}
  */
