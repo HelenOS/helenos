@@ -118,7 +118,7 @@ extern void async_set_interrupt_received(async_client_conn_t conn);
 /*
  * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
  * are in the form async_req_m_n(), where m is the number of payload arguments
- * and n is the number of return arguments. The macros decidce between the fast
+ * and n is the number of return arguments. The macros decide between the fast
  * and slow verion based on m.
  */
 #define async_req_0_0(phoneid, method) \

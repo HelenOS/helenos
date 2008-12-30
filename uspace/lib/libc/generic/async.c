@@ -483,7 +483,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 {
 	connection_t *conn;
 	unsigned long key;
-
+	
 	conn = malloc(sizeof(*conn));
 	if (!conn) {
 		if (callid)
@@ -498,7 +498,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 		conn->call = *call;
 	conn->wdata.active = 1;	/* We will activate the fibril ASAP */
 	conn->cfibril = cfibril;
-
+	
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
 	if (!conn->wdata.fid) {
 		free(conn);
@@ -506,14 +506,15 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 			ipc_answer_0(callid, ENOMEM);
 		return NULL;
 	}
+	
 	/* Add connection to the connection hash table */
 	key = conn->in_phone_hash;
 	futex_down(&async_futex);
 	hash_table_insert(&conn_hash_table, &key, &conn->link);
 	futex_up(&async_futex);
-
+	
 	fibril_add_ready(conn->wdata.fid);
-
+	
 	return conn->wdata.fid;
 }
 
@@ -524,6 +525,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
  *
  * @param callid	Hash of the incoming call.
  * @param call		Data of the incoming call.
+ *
  */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -533,8 +535,8 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		(*interrupt_received)(callid, call);
 		_in_interrupt_handler = 0;
 		return;
-	}		
-
+	}
+	
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril etc. */
@@ -542,11 +544,11 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		    client_connection);
 		return;
 	}
-
+	
 	/* Try to route the call through the connection hash table */
 	if (route_call(callid, call))
 		return;
-
+	
 	/* Unknown call from unknown phone - hang it up */
 	ipc_answer_0(callid, EHANGUP);
 }
@@ -739,23 +741,17 @@ aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
 {
 	amsg_t *msg;
-
-	if (_in_interrupt_handler) {
-		printf("Cannot send asynchronous request in interrupt "
-		    "handler.\n");
-		_exit(1);
-	}
-
+	
 	msg = malloc(sizeof(*msg));
 	msg->done = 0;
 	msg->dataptr = dataptr;
-
+	
 	/* We may sleep in the next method, but it will use its own mechanism */
 	msg->wdata.active = 1; 
 				
 	ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, msg,
-	    reply_received, 1);
-
+	    reply_received, !_in_interrupt_handler);
+	
 	return (aid_t) msg;
 }
 
@@ -781,23 +777,17 @@ aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipc_call_t *dataptr)
 {
 	amsg_t *msg;
-
-	if (_in_interrupt_handler) {
-		printf("Cannot send asynchronous request in interrupt "
-		    "handler.\n");
-		_exit(1);
-	}
-
+	
 	msg = malloc(sizeof(*msg));
 	msg->done = 0;
 	msg->dataptr = dataptr;
-
+	
 	/* We may sleep in next method, but it will use its own mechanism */
 	msg->wdata.active = 1; 
-
+	
 	ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, msg,
-	    reply_received, 1);
-
+	    reply_received, !_in_interrupt_handler);
+	
 	return (aid_t) msg;
 }
 
@@ -884,21 +874,16 @@ void async_usleep(suseconds_t timeout)
 {
 	amsg_t *msg;
 	
-	if (_in_interrupt_handler) {
-		printf("Cannot call async_usleep in interrupt handler.\n");
-		_exit(1);
-	}
-
 	msg = malloc(sizeof(*msg));
 	if (!msg)
 		return;
-
+	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = 0;
-
+	
 	gettimeofday(&msg->wdata.expires, NULL);
 	tv_add(&msg->wdata.expires, timeout);
-
+	
 	futex_down(&async_futex);
 	insert_timeout(&msg->wdata);
 	/* Leave the async_futex locked when entering this function */
