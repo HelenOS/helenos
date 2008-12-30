@@ -208,6 +208,12 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
+	vesa_redraw();
+#else
+	ega_redraw();
+#endif
+	
 	i8042_grab();
 }
 
