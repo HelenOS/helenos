@@ -53,6 +53,8 @@ extern void ipc_irq_cleanup(answerbox_t *box);
  * User friendly wrappers for ipc_irq_send_msg(). They are in the form
  * ipc_irq_send_msg_m(), where m is the number of payload arguments.
  */
+#define ipc_irq_send_msg_0(irq) \
+    ipc_irq_send_msg((irq), 0, 0, 0, 0, 0)
 #define ipc_irq_send_msg_1(irq, a1) \
     ipc_irq_send_msg((irq), (a1), 0, 0, 0, 0)
 #define ipc_irq_send_msg_2(irq, a1, a2) \

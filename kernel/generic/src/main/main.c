@@ -198,7 +198,7 @@ void main_bsp_separated_stack(void)
 	    "\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
 	    config.base, config.kernel_size, config.stack_base,
 	    config.stack_size);
-
+	
 #ifdef CONFIG_KCONSOLE
 	/*
 	 * kconsole data structures must be initialized very early
@@ -213,7 +213,7 @@ void main_bsp_separated_stack(void)
 	 * starts adding its own handlers
 	 */
 	LOG_EXEC(exc_init());
-
+	
 	/*
 	 * Memory management subsystems initialization.
 	 */
@@ -259,7 +259,11 @@ void main_bsp_separated_stack(void)
 	
 	LOG_EXEC(ipc_init());
 	LOG_EXEC(klog_init());
-
+	
+#ifdef CONFIG_KCONSOLE
+	LOG_EXEC(kconsole_notify_init());
+#endif
+	
 	/*
 	 * Create kernel task.
 	 */

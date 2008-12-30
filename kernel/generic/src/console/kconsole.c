@@ -51,6 +51,8 @@
 #include <func.h>
 #include <symtab.h>
 #include <macros.h>
+#include <sysinfo/sysinfo.h>
+#include <ddi/device.h>
 
 /** Simple kernel console.
  *
@@ -83,14 +85,66 @@ static bool parse_argument(char *cmdline, size_t len, index_t *start,
     index_t *end);
 static char history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
 
-/** Initialize kconsole data structures. */
+/*
+ * For now, we use 0 as INR.
+ * However, it is therefore desirable to have architecture specific
+ * definition of KCONSOLE_VIRT_INR in the future.
+ */
+#define KCONSOLE_VIRT_INR  0
+
+bool kconsole_notify = false;
+irq_t kconsole_irq;
+
+
+/** Allways refuse IRQ ownership.
+ *
+ * This is not a real IRQ, so we always decline.
+ *
+ * @return Always returns IRQ_DECLINE.
+ *
+ */
+static irq_ownership_t kconsole_claim(void)
+{
+	return IRQ_DECLINE;
+}
+
+
+/** Initialize kconsole data structures
+ *
+ * This is the most basic initialization, almost no
+ * other kernel subsystem is ready yet.
+ *
+ */
 void kconsole_init(void)
 {
-	int i;
+	unsigned int i;
 
 	cmd_init();
 	for (i = 0; i < KCONSOLE_HISTORY; i++)
 		history[i][0] = '\0';
+}
+
+
+/** Initialize kconsole notification mechanism
+ *
+ * Initialize the virtual IRQ notification mechanism.
+ *
+ */
+void kconsole_notify_init(void)
+{
+	devno_t devno = device_assign_devno();
+	
+	sysinfo_set_item_val("kconsole.present", NULL, true);
+	sysinfo_set_item_val("kconsole.devno", NULL, devno);
+	sysinfo_set_item_val("kconsole.inr", NULL, KCONSOLE_VIRT_INR);
+	
+	irq_initialize(&kconsole_irq);
+	kconsole_irq.devno = devno;
+	kconsole_irq.inr = KCONSOLE_VIRT_INR;
+	kconsole_irq.claim = kconsole_claim;
+	irq_register(&kconsole_irq);
+	
+	kconsole_notify = true;
 }
 
 

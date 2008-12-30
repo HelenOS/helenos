@@ -37,6 +37,7 @@
 
 #include <adt/list.h>
 #include <synch/spinlock.h>
+#include <ipc/irq.h>
 
 #define MAX_CMDLINE     256
 #define KCONSOLE_HISTORY 10
@@ -83,10 +84,14 @@ typedef struct {
 	void (* help)(void);
 } cmd_info_t;
 
+extern bool kconsole_notify;
+extern irq_t kconsole_irq;
+
 SPINLOCK_EXTERN(cmd_lock);
 extern link_t cmd_head;
 
 extern void kconsole_init(void);
+extern void kconsole_notify_init(void);
 extern void kconsole(char *prompt, char *msg, bool kcon);
 extern void kconsole_thread(void *data);
 

@@ -48,6 +48,7 @@
 #include <screenbuffer.h>
 #include <sys/mman.h>
 #include <stdio.h>
+#include <sysinfo.h>
 
 #include "gcons.h"
 
@@ -58,6 +59,7 @@
 /** Index of currently used virtual console.
  */
 int active_console = 0;
+int prev_console = 0;
 
 /** Information about framebuffer
  */
@@ -207,9 +209,10 @@ static void change_console(int newcons)
 		gcons_in_kernel();
 		async_serialize_end();
 		
-		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE))
+		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
+			prev_console = active_console;
 			active_console = KERNEL_CONSOLE;
-		else
+		} else
 			newcons = active_console;
 	}
 	
@@ -235,7 +238,7 @@ static void change_console(int newcons)
 					    *get_field_at(&conn->screenbuffer, i, j);
 				}
 			/* This call can preempt, but we are already at the end */
-			rc = async_req_0_0(fb_info.phone, FB_DRAW_TEXT_DATA);		
+			rc = async_req_0_0(fb_info.phone, FB_DRAW_TEXT_DATA);
 		}
 		
 		if ((!interbuffer) || (rc != 0)) {
@@ -243,7 +246,7 @@ static void change_console(int newcons)
 			clrscr();
 			style = &conn->screenbuffer.style;
 			
-			for (j = 0; j < conn->screenbuffer.size_y; j++) 
+			for (j = 0; j < conn->screenbuffer.size_y; j++)
 				for (i = 0; i < conn->screenbuffer.size_x; i++) {
 					field = get_field_at(&conn->screenbuffer, i, j);
 					if (!style_same(*style, field->style))
@@ -340,7 +343,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int consnum;
 	ipcarg_t arg1, arg2;
 	connection_t *conn;
-
+	
 	if ((consnum = find_free_connection()) == -1) {
 		ipc_answer_0(iid, ELIMIT);
 		return;
@@ -355,12 +358,12 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
-
+	
 	while (1) {
 		async_serialize_end();
 		callid = async_get_call(&call);
 		async_serialize_start();
-
+		
 		arg1 = 0;
 		arg2 = 0;
 		switch (IPC_GET_METHOD(call)) {
@@ -368,7 +371,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			gcons_notify_disconnect(consnum);
 			
 			/* Answer all pending requests */
-			while (conn->keyrequest_counter > 0) {		
+			while (conn->keyrequest_counter > 0) {
 				conn->keyrequest_counter--;
 				ipc_answer_0(fifo_pop(conn->keyrequests),
 				    ENOENT);
@@ -443,6 +446,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+{
+	change_console(prev_console);
+}
+
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Console service\n");
@@ -450,11 +458,11 @@ int main(int argc, char *argv[])
 	ipcarg_t phonehash;
 	int kbd_phone;
 	int i;
-
+	
 	async_set_client_connection(client_connection);
 	
 	/* Connect to keyboard driver */
-
+	
 	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	while (kbd_phone < 0) {
 		usleep(10000);
@@ -511,20 +519,30 @@ int main(int argc, char *argv[])
 			interbuffer = NULL;
 		}
 	}
-
+	
 	curs_goto(0, 0);
 	curs_visibility(
 	    connections[active_console].screenbuffer.is_cursor_visible);
-
+	
 	/* Register at NS */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, 0, &phonehash) != 0)
 		return -1;
 	
+	/* Receive kernel notifications */
+	if (sysinfo_value("kconsole.present")) {
+		int devno = sysinfo_value("kconsole.devno");
+		int inr = sysinfo_value("kconsole.inr");
+		if (ipc_register_irq(inr, devno, 0, NULL) != EOK)
+			printf(NAME ": Error registering kconsole notifications\n");
+		
+		async_set_interrupt_received(interrupt_received);
+	}
+	
 	// FIXME: avoid connectiong to itself, keep using klog
 	// printf(NAME ": Accepting connections\n");
 	async_manager();
-
-	return 0;	
+	
+	return 0;
 }
  
 /** @}

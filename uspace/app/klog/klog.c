@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
 		printf(NAME ": Error initializing memory area\n");
 		return -1;
 	}
-
-	int inr = sysinfo_value("klog.inr");
+	
 	int devno = sysinfo_value("klog.devno");
+	int inr = sysinfo_value("klog.inr");
 	if (ipc_register_irq(inr, devno, 0, NULL) != EOK) {
 		printf(NAME ": Error registering klog notifications\n");
 		return -1;
