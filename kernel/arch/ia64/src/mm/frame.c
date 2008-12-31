@@ -40,48 +40,48 @@
 #include <align.h>
 #include <macros.h>
 
-#define KERNEL_RESERVED_AREA_BASE (0x4400000)
-#define KERNEL_RESERVED_AREA_SIZE (16*1024*1024)
+#define KERNEL_RESERVED_AREA_BASE 	(0x4400000)
+#define KERNEL_RESERVED_AREA_SIZE 	(16 * 1024 * 1024)
 
-#define ONE_TO_ONE_MAPPING_SIZE (256*1048576) // Mapped at start
+#define ROM_BASE	0xa0000               /* for simulators */
+#define ROM_SIZE	(384 * 1024)          /* for simulators */
 
-#define ROM_BASE	0xa0000               //For ski
-#define ROM_SIZE	(384 * 1024)          //For ski
-void poke_char(int x,int y,char ch, char c);
+#define MIN_ZONE_SIZE	(64 * 1024)
 
-#define MIN_ZONE_SIZE (64*1024)
+#define MINCONF 1
 
 uintptr_t last_frame;
-#define MINCONF 1
 
 void frame_arch_init(void)
 {
-
-	if(config.cpu_active==1){
-		
-		
-		
+	if (config.cpu_active == 1) {
 		unsigned int i;
-		for(i=0;i<bootinfo->memmap_items;i++){
-			if (bootinfo->memmap[i].type==EFI_MEMMAP_FREE_MEM){
-				uint64_t base=bootinfo->memmap[i].base;
-				uint64_t size=bootinfo->memmap[i].size;
-				uint64_t abase=ALIGN_UP(base,FRAME_SIZE);
-				if(size>FRAME_SIZE) size -=abase-base;
-				
+		for (i = 0; i < bootinfo->memmap_items; i++) {
+			if (bootinfo->memmap[i].type == EFI_MEMMAP_FREE_MEM) {
+				uint64_t base = bootinfo->memmap[i].base;
+				uint64_t size = bootinfo->memmap[i].size;
+				uint64_t abase = ALIGN_UP(base, FRAME_SIZE);
 
-				if(size>MIN_ZONE_SIZE) 	{
-					zone_create(abase >> FRAME_WIDTH, (size) >> FRAME_WIDTH, max(MINCONF,((abase) >> FRAME_WIDTH)), 0);
+				if (size > FRAME_SIZE)
+					size -= abase - base;
+
+				if (size > MIN_ZONE_SIZE) {
+					zone_create(abase >> FRAME_WIDTH,
+					    size >> FRAME_WIDTH,
+					    max(MINCONF, abase >> FRAME_WIDTH),
+					    0);
 				}	
 			}
 		}
 		
 		/*
-		* Blacklist ROM regions.
-		*/
-		frame_mark_unavailable(ADDR2PFN(ROM_BASE), SIZE2FRAMES(ROM_SIZE));
+		 * Blacklist ROM regions.
+		 */
+		frame_mark_unavailable(ADDR2PFN(ROM_BASE),
+		    SIZE2FRAMES(ROM_SIZE));
 
-		frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE), SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
+		frame_mark_unavailable(ADDR2PFN(KERNEL_RESERVED_AREA_BASE),
+		    SIZE2FRAMES(KERNEL_RESERVED_AREA_SIZE));
 	}	
 }
 
