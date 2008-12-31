@@ -102,7 +102,6 @@ void ipi_broadcast_arch(int ipi )
 	myid=ia64_get_cpu_id();
 	myeid=ia64_get_cpu_eid();
 
-	//printf("Sending ipi %d on %d\n",ipi,CPU->id);
 	for(id=0;id<256;id++)
 		for(eid=0;eid<256;eid++)
 			if((id!=myid) || (eid!=myeid))
@@ -149,9 +148,6 @@ void kmp(void *arg __attribute__((unused)))
 		        if((id!=myid) || (eid!=myeid))
 		        	if(cpu_by_id_eid_list[id][eid]!=0){
 		    			if(cpu_by_id_eid_list[id][eid]==1){
-		    		
-			    			//config.cpu_count++;
-				    		//cpu_by_id_eid_list[id][eid]=2;
 				    		printf("Found Late CPU ID:%d EDI:%d Not added to system!!!\n",id,eid);
 				    		continue;
 			    			}

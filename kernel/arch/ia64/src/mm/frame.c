@@ -40,13 +40,6 @@
 #include <align.h>
 #include <macros.h>
 
-/*
- * This is Ski-specific and certainly not sufficient
- * for real ia64 systems that provide memory map.
- */
-#define MEMORY_SIZE	(256 * 1024 * 1024)
-#define MEMORY_BASE	(0 * 64 * 1024 * 1024)
-
 #define KERNEL_RESERVED_AREA_BASE (0x4400000)
 #define KERNEL_RESERVED_AREA_SIZE (16*1024*1024)
 
@@ -83,8 +76,6 @@ void frame_arch_init(void)
 			}
 		}
 		
-		//zone_create(MEMORY_BASE >> FRAME_WIDTH, SIZE2FRAMES(MEMORY_SIZE), (MEMORY_SIZE) >> FRAME_WIDTH, 0);
-	
 		/*
 		* Blacklist ROM regions.
 		*/

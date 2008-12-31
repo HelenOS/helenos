@@ -74,7 +74,6 @@ void arch_pre_main(void)
 {
 	/* Setup usermode init tasks. */
 
-//#ifdef I460GX
 	unsigned int i;
 	
 	init.cnt = bootinfo->taskmap.count;
@@ -83,26 +82,6 @@ void arch_pre_main(void)
 		init.tasks[i].addr = ((unsigned long) bootinfo->taskmap.tasks[i].addr) | VRN_MASK;
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 	}
-/*
-#else	
-	init.cnt = 8;
-	init.tasks[0].addr = INIT0_ADDRESS;
-	init.tasks[0].size = INIT0_SIZE;
-	init.tasks[1].addr = INIT0_ADDRESS + 0x400000;
-	init.tasks[1].size = INIT0_SIZE;
-	init.tasks[2].addr = INIT0_ADDRESS + 0x800000;
-	init.tasks[2].size = INIT0_SIZE;
-	init.tasks[3].addr = INIT0_ADDRESS + 0xc00000;
-	init.tasks[3].size = INIT0_SIZE;
-	init.tasks[4].addr = INIT0_ADDRESS + 0x1000000;
-	init.tasks[4].size = INIT0_SIZE;
-	init.tasks[5].addr = INIT0_ADDRESS + 0x1400000;
-	init.tasks[5].size = INIT0_SIZE;
-	init.tasks[6].addr = INIT0_ADDRESS + 0x1800000;
-	init.tasks[6].size = INIT0_SIZE;
-	init.tasks[7].addr = INIT0_ADDRESS + 0x1c00000;
-	init.tasks[7].size = INIT0_SIZE;
-#endif*/
 }
 
 void arch_pre_mm_init(void)

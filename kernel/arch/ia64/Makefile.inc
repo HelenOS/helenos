@@ -88,7 +88,6 @@ ARCH_SOURCES = \
 ifeq ($(MACHINE),ski)
 	ARCH_SOURCES += arch/$(ARCH)/src/ski/ski.c 
 	DEFS += -DSKI
-#	BFD = elf64-ia64-little
 	BFD = binary
 endif
 

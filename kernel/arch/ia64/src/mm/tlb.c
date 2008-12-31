@@ -135,48 +135,39 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 		ps = PAGE_WIDTH;
 		break;
 	case 1: /*cnt 4-15*/
-		/*cnt=((cnt-1)/4)+1;*/
 		ps = PAGE_WIDTH+2;
 		va &= ~((1<<ps)-1);
 		break;
 	case 2: /*cnt 16-63*/
-		/*cnt=((cnt-1)/16)+1;*/
 		ps = PAGE_WIDTH+4;
 		va &= ~((1<<ps)-1);
 		break;
 	case 3: /*cnt 64-255*/
-		/*cnt=((cnt-1)/64)+1;*/
 		ps = PAGE_WIDTH+6;
 		va &= ~((1<<ps)-1);
 		break;
 	case 4: /*cnt 256-1023*/
-		/*cnt=((cnt-1)/256)+1;*/
 		ps = PAGE_WIDTH+8;
 		va &= ~((1<<ps)-1);
 		break;
 	case 5: /*cnt 1024-4095*/
-		/*cnt=((cnt-1)/1024)+1;*/
 		ps = PAGE_WIDTH+10;
 		va &= ~((1<<ps)-1);
 		break;
 	case 6: /*cnt 4096-16383*/
-		/*cnt=((cnt-1)/4096)+1;*/
 		ps = PAGE_WIDTH+12;
 		va &= ~((1<<ps)-1);
 		break;
 	case 7: /*cnt 16384-65535*/
 	case 8: /*cnt 65536-(256K-1)*/
-		/*cnt=((cnt-1)/16384)+1;*/
 		ps = PAGE_WIDTH+14;
 		va &= ~((1<<ps)-1);
 		break;
 	default:
-		/*cnt=((cnt-1)/(16384*16))+1;*/
 		ps=PAGE_WIDTH+18;
 		va&=~((1<<ps)-1);
 		break;
 	}
-	/*cnt+=(page!=va);*/
 	for(; va<(page+cnt*(PAGE_SIZE)); va += (1<<ps))	{
 		asm volatile (
 			"ptc.l %0,%1;;"
@@ -502,8 +493,6 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 			
 			uint64_t io_page=(va &  ((1<<IO_PAGE_WIDTH)-1)) >> (USPACE_IO_PAGE_WIDTH);
 			if(is_io_page_accessible(io_page)){
-				//printf("Insert %llX\n",va);
-
 				uint64_t page,frame;
 
 				page = IO_OFFSET + (1 << USPACE_IO_PAGE_WIDTH) * io_page;
@@ -521,10 +510,10 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 				entry.d = true;			/* already dirty */
 				entry.pl = PL_USER;
 				entry.ar = AR_READ | AR_WRITE;
-				entry.ppn = frame >> PPN_SHIFT;    //MUSIM spocitat frame
+				entry.ppn = frame >> PPN_SHIFT;
 				entry.ps = USPACE_IO_PAGE_WIDTH;
 	
-				dtc_mapping_insert(page, TASK->as->asid, entry); //Musim zjistit ASID
+				dtc_mapping_insert(page, TASK->as->asid, entry);
 				return 1;
 			}else {
 				fault_if_from_uspace(istate,"IO access fault at %p",va);

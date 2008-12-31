@@ -79,10 +79,6 @@ void bootstrap(void)
 	
 	bootinfo_t *bootinfo=&binfo;
 	
-	//for(ii=0;ii<KERNEL_SIZE;ii++) ((char *)(0x100000))[ii] = ((char *)KERNEL_START)[ii+1];
-	
-	
-	//((int *)(0x100000))[0]++;
 	
 
 
