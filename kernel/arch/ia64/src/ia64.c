@@ -63,7 +63,7 @@
 #include <sysinfo/sysinfo.h>
 
 /*NS16550 as a COM 1*/
-#define NS16550_IRQ (4+LAGACY_INTERRUPT_BASE)
+#define NS16550_IRQ (4+LEGACY_INTERRUPT_BASE)
 #define NS16550_PORT 0x3f8
 
 bootinfo_t *bootinfo;
@@ -109,7 +109,7 @@ static void iosapic_init(void)
 		if(i==2) continue;	 //Disable Cascade interrupt
 		((uint32_t*)(IOSAPIC+0x00))[0]=0x10+2*i;
 		srlz_d();
-		((uint32_t*)(IOSAPIC+0x10))[0]=LAGACY_INTERRUPT_BASE+i;
+		((uint32_t*)(IOSAPIC+0x10))[0]=LEGACY_INTERRUPT_BASE+i;
 		srlz_d();
 		((uint32_t*)(IOSAPIC+0x00))[0]=0x10+2*i+1;
 		srlz_d();
