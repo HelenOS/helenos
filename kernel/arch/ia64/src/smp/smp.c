@@ -61,37 +61,28 @@
 #include <panic.h>
 #include <print.h>
 
-
-
-
-
-
 #ifdef CONFIG_SMP
-
 
 extern char cpu_by_id_eid_list[256][256];
 
-
 static void sapic_init(void)
 {
-	bootinfo->sapic=(unative_t *)(PA2KA((unative_t)(bootinfo->sapic))|FW_OFFSET);
+	bootinfo->sapic = (unative_t *)(PA2KA((unative_t)(bootinfo->sapic)) |
+	    FW_OFFSET);
 }
 
-
-
-static void ipi_broadcast_arch_all(int ipi )
+static void ipi_broadcast_arch_all(int ipi)
 {
 	int id,eid;
-	int myid,myeid;
+	int myid, myeid;
 	
-	myid=ia64_get_cpu_id();
-	myeid=ia64_get_cpu_eid();
-
+	myid = ia64_get_cpu_id();
+	myeid = ia64_get_cpu_eid();
 	
-	for(id=0;id<256;id++)
-		for(eid=0;eid<256;eid++)
-			if((id!=myid) || (eid!=myeid))
-				ipi_send_ipi(id,eid,ipi);
+	for (id = 0; id < 256; id++)
+		for (eid = 0; eid < 256; eid++)
+			if ((id != myid) || (eid != myeid))
+				ipi_send_ipi(id, eid, ipi);
 }
 
 void ipi_broadcast_arch(int ipi )
@@ -99,82 +90,90 @@ void ipi_broadcast_arch(int ipi )
 	int id,eid;
 	int myid,myeid;
 	
-	myid=ia64_get_cpu_id();
-	myeid=ia64_get_cpu_eid();
+	myid = ia64_get_cpu_id();
+	myeid = ia64_get_cpu_eid();
 
-	for(id=0;id<256;id++)
-		for(eid=0;eid<256;eid++)
-			if((id!=myid) || (eid!=myeid))
-				if(cpu_by_id_eid_list[id][eid])
-					ipi_send_ipi(id,eid,ipi);
-
+	for (id = 0; id < 256; id++)
+		for (eid = 0; eid < 256; eid++)
+			if ((id != myid) || (eid != myeid))
+				if (cpu_by_id_eid_list[id][eid])
+					ipi_send_ipi(id, eid, ipi);
 }
-
 
 void smp_init(void)
 {
-	if(!bootinfo->hello_configured) return; 
-	//If we have not system prepared by hello, we are not able to start AP's
-	//this means we are running on simulator
+	if (!bootinfo->hello_configured)
+		return; 
+	
+	/*
+	 * If we have not system prepared by hello, we are not able to start
+	 * AP's. This means we are running on a simulator.
+	 */
 	
 	sapic_init();
 	ipi_broadcast_arch_all(bootinfo->wakeup_intno);	
 	volatile long long brk;
-        for(brk=0;brk<100LL*1024LL*1024LL;brk++); //wait a while before CPUs starts
+        for (brk = 0; brk < 100LL * 1024LL * 1024LL; brk++)
+		;	/* wait a while before CPUs starts */
 
-	config.cpu_count=0;
-	int id,eid;
+	config.cpu_count = 0;
+	int id, eid;
 	
-	for(id=0;id<256;id++)
-		for(eid=0;eid<256;eid++)
-		        if(cpu_by_id_eid_list[id][eid]==1){
+	for (id = 0; id < 256; id++)
+		for (eid = 0; eid < 256; eid++)
+		        if (cpu_by_id_eid_list[id][eid] == 1) {
 		    		config.cpu_count++;
-		    		cpu_by_id_eid_list[id][eid]=2;
-
+		    		cpu_by_id_eid_list[id][eid] = 2;
 			}
 }
-
 
 void kmp(void *arg __attribute__((unused)))
 {
 	int id,eid;
-	int myid,myeid;
+	int myid, myeid;
 	
-	myid=ia64_get_cpu_id();
-	myeid=ia64_get_cpu_eid();
+	myid = ia64_get_cpu_id();
+	myeid = ia64_get_cpu_eid();
 
-	for(id=0;id<256;id++)
-		for(eid=0;eid<256;eid++)
-		        if((id!=myid) || (eid!=myeid))
-		        	if(cpu_by_id_eid_list[id][eid]!=0){
-		    			if(cpu_by_id_eid_list[id][eid]==1){
-				    		printf("Found Late CPU ID:%d EDI:%d Not added to system!!!\n",id,eid);
+	for (id = 0; id < 256; id++)
+		for (eid = 0; eid < 256; eid++)
+		        if ((id != myid) || (eid != myeid))
+		        	if (cpu_by_id_eid_list[id][eid] != 0) {
+		    			if (cpu_by_id_eid_list[id][eid] == 1) {
+				    		printf("Found Late CPU ID:%d "
+						    "EDI:%d Not added to "
+						    "system!!!\n", id, eid);
 				    		continue;
-			    			}
-					cpu_by_id_eid_list[id][eid]=3;
+					}
+					cpu_by_id_eid_list[id][eid] = 3;
 					/*
-					 * There may be just one AP being initialized at
-					 * the time. After it comes completely up, it is
+					 * There may be just one AP being
+					 * initialized at the time. After
+					 * it comes completely up, it is
 					 * supposed to wake us up.
 					 */
-					if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
-					    SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {
-						printf("%s: waiting for cpu ID:%d EID:%d"
-						    "timed out\n", __FUNCTION__, 
-						    id, eid);
-					    }    
-		
+					if (waitq_sleep_timeout(
+					    &ap_completion_wq, 1000000,
+					    SYNCH_FLAGS_NONE) ==
+					    ESYNCH_TIMEOUT) {
+						printf("%s: waiting for cpu "
+						    "ID:%d EID:%d timed out\n",
+						    __FUNCTION__, id, eid);
+					    }
 				}
 }
+
 #endif
 
 
-/*This is just a hack for linking with assembler - may be removed in future*/
 #ifndef CONFIG_SMP
+
+/* This is just a hack for linking with assembler - may be removed in future. */
 void main_ap(void);
 void main_ap(void)
 {
-	while(1);
+	while(1)
+		;
 }
 
 #endif

@@ -118,7 +118,7 @@ static char ski_getchar_blocking(chardev_t *d)
 
 	while(!(ch = ski_getchar()))
 		;
-	if(ch == '\r')
+	if (ch == '\r')
 		ch = '\n'; 
 	return (char) ch;
 }
@@ -143,7 +143,8 @@ static void poll_keyboard(void)
 	if(ch == '\r')
 		ch = '\n'; 
 	if (ch) {
-		if (ski_kbd_irq.notif_cfg.notify && ski_kbd_irq.notif_cfg.answerbox) {
+		if (ski_kbd_irq.notif_cfg.notify &&
+		    ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, ch);
 			ipc_irq_send_notif(&ski_kbd_irq);
 		} else {
@@ -156,7 +157,8 @@ static void poll_keyboard(void)
 	}
 
 	if (last) {
-		if (ski_kbd_irq.notif_cfg.notify && ski_kbd_irq.notif_cfg.answerbox) {
+		if (ski_kbd_irq.notif_cfg.notify &&
+		    ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, 0);
 			ipc_irq_send_notif(&ski_kbd_irq);
 		}

@@ -123,10 +123,10 @@ void set_environment(void)
  *
  * Interrupts must be disabled.
  *
- * @param page Address of virtual page including VRN bits.
- * @param asid Address space identifier.
+ * @param page		Address of virtual page including VRN bits.
+ * @param asid		Address space identifier.
  *
- * @return VHPT entry address.
+ * @return		VHPT entry address.
  */
 vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 {
@@ -167,10 +167,11 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
  *
  * Interrupts must be disabled.
  *
- * @param page Address of virtual page including VRN bits.
- * @param asid Address space identifier.
+ * @param page		Address of virtual page including VRN bits.
+ * @param asid		Address space identifier.
  *
- * @return True if page and asid match the page and asid of t, false otherwise.
+ * @return		True if page and asid match the page and asid of t,
+ * 			false otherwise.
  */
 bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 {
@@ -211,12 +212,15 @@ bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 /** Set up one VHPT entry.
  *
  * @param v VHPT entry to be set up.
- * @param page Virtual address of the page mapped by the entry.
- * @param asid Address space identifier of the address space to which page belongs.
- * @param frame Physical address of the frame to wich page is mapped.
- * @param flags Different flags for the mapping.
+ * @param page		Virtual address of the page mapped by the entry.
+ * @param asid		Address space identifier of the address space to which
+ * 			page belongs.
+ * @param frame		Physical address of the frame to wich page is mapped.
+ * @param flags		Different flags for the mapping.
  */
-void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame, int flags)
+void
+vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
+    int flags)
 {
 	region_register rr_save, rr;	
 	index_t vrn;
@@ -250,7 +254,8 @@ void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t fra
 	v->word[3] = 0;
 	
 	v->present.p = true;
-	v->present.ma = (flags & PAGE_CACHEABLE) ? MA_WRITEBACK : MA_UNCACHEABLE;
+	v->present.ma = (flags & PAGE_CACHEABLE) ?
+	    MA_WRITEBACK : MA_UNCACHEABLE;
 	v->present.a = false;	/* not accessed */
 	v->present.d = false;	/* not dirty */
 	v->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
@@ -265,25 +270,25 @@ void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t fra
 
 extern uintptr_t last_frame;
 
-
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
+	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
+	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
+		panic("Unable to map physical memory %p (%d bytes)", physaddr,
+		    size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
 		uintptr_t addr = PFN2ADDR(i);
-		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr, PAGE_NOT_CACHEABLE | PAGE_WRITE);
+		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
+		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	}
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
 	return virtaddr;
 }
-
-
 
 /** @}
  */

@@ -82,20 +82,19 @@ void ega_init(void)
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
 
-
 	ega_parea.pbase = VIDEORAM & 0xffffffff;
 	ega_parea.vbase = (uintptr_t) videoram;
 	ega_parea.frames = 1;
 	ega_parea.cacheable = false;
 	ddi_parea_register(&ega_parea);
 
-	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 2);
 	sysinfo_set_item_val("fb.width", NULL, ROW);
 	sysinfo_set_item_val("fb.height", NULL, ROWS);
 	sysinfo_set_item_val("fb.blinking", NULL, true);
-	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM & 0xffffffff);
+	sysinfo_set_item_val("fb.address.physical", NULL,
+	    VIDEORAM & 0xffffffff);
 	
 #ifndef CONFIG_FB
 	putchar('\n');
@@ -116,7 +115,8 @@ static void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 		return;
 
-	memmove((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
+	memmove((void *) videoram, (void *) (videoram + ROW * 2),
+	    (SCREEN - ROW) * 2);
 	_memsetw(videoram + (SCREEN - ROW) * 2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
 }

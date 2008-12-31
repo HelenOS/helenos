@@ -149,8 +149,10 @@ void fpu_context_save(fpu_context_t *fctx)
 		"stf.spill [%7] = f127, 0x80\n;;"
 
 		:
-		: "r" (&((fctx->fr)[0])), "r" (&((fctx->fr)[1])), "r" (&((fctx->fr)[2])), "r" (&((fctx->fr)[3])),
-		  "r" (&((fctx->fr)[4])), "r" (&((fctx->fr)[5])), "r" (&((fctx->fr)[6])), "r" (&((fctx->fr)[7]))
+		: "r" (&((fctx->fr)[0])), "r" (&((fctx->fr)[1])),
+		  "r" (&((fctx->fr)[2])), "r" (&((fctx->fr)[3])),
+		  "r" (&((fctx->fr)[4])), "r" (&((fctx->fr)[5])),
+		  "r" (&((fctx->fr)[6])), "r" (&((fctx->fr)[7]))
 	); 
 	
 }
@@ -267,14 +269,16 @@ void fpu_context_restore(fpu_context_t *fctx)
 		"ldf.fill f127 = [%7], 0x80\n;;"
 
 		:
-		: "r" (&((fctx->fr)[0])), "r" (&((fctx->fr)[1])), "r" (&((fctx->fr)[2])), "r" (&((fctx->fr)[3])),
-		  "r" (&((fctx->fr)[4])), "r" (&((fctx->fr)[5])), "r" (&((fctx->fr)[6])), "r" (&((fctx->fr)[7]))
+		: "r" (&((fctx->fr)[0])), "r" (&((fctx->fr)[1])),
+		  "r" (&((fctx->fr)[2])), "r" (&((fctx->fr)[3])),
+		  "r" (&((fctx->fr)[4])), "r" (&((fctx->fr)[5])),
+		  "r" (&((fctx->fr)[6])), "r" (&((fctx->fr)[7]))
 	); 
 }
 
 void fpu_enable(void)
 {
-	uint64_t a = 0 ;
+	uint64_t a = 0;
 
 	asm volatile (
 		"rsm %0 ;;"

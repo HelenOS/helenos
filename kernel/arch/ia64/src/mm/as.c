@@ -68,7 +68,7 @@ void as_install_arch(as_t *as)
 			continue;
 		
 		rr.word = rr_read(i);
-		rr.map.ve = false;			/* disable VHPT walker */
+		rr.map.ve = false;		/* disable VHPT walker */
 		rr.map.rid = ASID2RID(as->asid, i);
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);

@@ -244,71 +244,61 @@ static void end_of_local_irq(void)
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
 	cr_ivr_t ivr;
+	irq_t *irq;
 	
 	ivr.value = ivr_read();
 	srlz_d();
 
-		switch (ivr.vector) {
-		case INTERRUPT_SPURIOUS:
+	switch (ivr.vector) {
+	case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
-	 		printf("cpu%d: spurious interrupt\n", CPU->id);
+ 		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
-			break;
+		break;
 
 #ifdef CONFIG_SMP
-		case VECTOR_TLB_SHOOTDOWN_IPI:
-			tlb_shootdown_ipi_recv();
-			end_of_local_irq();
-			break;
+	case VECTOR_TLB_SHOOTDOWN_IPI:
+		tlb_shootdown_ipi_recv();
+		end_of_local_irq();
+		break;
 #endif
 
-		case INTERRUPT_TIMER:
-			{
-
-				irq_t *irq = irq_dispatch_and_lock(ivr.vector);
-				if (irq) {
-					irq->handler(irq, irq->arg);
-					spinlock_unlock(&irq->lock);
-				} else {
-					panic("\nUnhandled Internal Timer Interrupt (%d)\n",ivr.vector);
-				}
-			}	
-			break;
-				
-		default:
-			{
-
-				int ack=false;
-				irq_t *irq = irq_dispatch_and_lock(ivr.vector);
-				if (irq) {
-					/*
-					 * The IRQ handler was found.
-					 */
-		 
-					if (irq->preack) {
-						/* Send EOI before processing the interrupt */
-						end_of_local_irq();
-						ack=true;
-					}
-					irq->handler(irq, irq->arg);
-					spinlock_unlock(&irq->lock);
-				} else {
-					/*
-					 * Unhandled interrupt.
-					 */
-					end_of_local_irq();
-					ack=true;
-#ifdef CONFIG_DEBUG
-					printf("\nUnhandled External Interrupt Vector %d\n",ivr.vector);
-#endif
-				}
-				if(!ack) end_of_local_irq();
-
-			}	
-
-
-			break;
+	case INTERRUPT_TIMER:
+		irq = irq_dispatch_and_lock(ivr.vector);
+		if (irq) {
+			irq->handler(irq, irq->arg);
+			spinlock_unlock(&irq->lock);
+		} else {
+			panic("\nUnhandled Internal Timer Interrupt (%d)\n",
+			    ivr.vector);
 		}
+		break;
+	default:
+		irq = irq_dispatch_and_lock(ivr.vector);
+		if (irq) {
+			/*
+			 * The IRQ handler was found.
+			 */
+			if (irq->preack) {
+				/* Send EOI before processing the interrupt */
+				end_of_local_irq();
+			}
+			irq->handler(irq, irq->arg);
+			if (!irq->preack)
+				end_of_local_irq();
+			spinlock_unlock(&irq->lock);
+		} else {
+			/*
+			 * Unhandled interrupt.
+			 */
+			end_of_local_irq();
+#ifdef CONFIG_DEBUG
+			printf("\nUnhandled External Interrupt Vector %d\n",
+			    ivr.vector);
+#endif
+		}
+		break;
+	}
 }
 
 /** @}

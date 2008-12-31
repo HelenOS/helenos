@@ -92,7 +92,7 @@ void tlb_invalidate_all(void)
 
 /** Invalidate entries belonging to an address space.
  *
- * @param asid Address space identifier.
+ * @param asid		Address space identifier.
  */
 void tlb_invalidate_asid(asid_t asid)
 {
@@ -131,50 +131,45 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 	uint64_t ps;
 	
 	switch (b) {
-	case 0: /*cnt 1-3*/
+	case 0: /* cnt 1 - 3 */
 		ps = PAGE_WIDTH;
 		break;
-	case 1: /*cnt 4-15*/
-		ps = PAGE_WIDTH+2;
-		va &= ~((1<<ps)-1);
+	case 1: /* cnt 4 - 15 */
+		ps = PAGE_WIDTH + 2;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 2: /*cnt 16-63*/
-		ps = PAGE_WIDTH+4;
-		va &= ~((1<<ps)-1);
+	case 2: /* cnt 16 - 63 */
+		ps = PAGE_WIDTH + 4;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 3: /*cnt 64-255*/
-		ps = PAGE_WIDTH+6;
-		va &= ~((1<<ps)-1);
+	case 3: /* cnt 64 - 255 */
+		ps = PAGE_WIDTH + 6;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 4: /*cnt 256-1023*/
-		ps = PAGE_WIDTH+8;
-		va &= ~((1<<ps)-1);
+	case 4: /* cnt 256 - 1023 */
+		ps = PAGE_WIDTH + 8;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 5: /*cnt 1024-4095*/
-		ps = PAGE_WIDTH+10;
-		va &= ~((1<<ps)-1);
+	case 5: /* cnt 1024 - 4095 */
+		ps = PAGE_WIDTH + 10;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 6: /*cnt 4096-16383*/
-		ps = PAGE_WIDTH+12;
-		va &= ~((1<<ps)-1);
+	case 6: /* cnt 4096 - 16383 */
+		ps = PAGE_WIDTH + 12;
+		va &= ~((1 << ps) - 1);
 		break;
-	case 7: /*cnt 16384-65535*/
-	case 8: /*cnt 65536-(256K-1)*/
-		ps = PAGE_WIDTH+14;
-		va &= ~((1<<ps)-1);
+	case 7: /* cnt 16384 - 65535 */
+	case 8: /* cnt 65536 - (256K - 1) */
+		ps = PAGE_WIDTH + 14;
+		va &= ~((1 << ps) - 1);
 		break;
 	default:
-		ps=PAGE_WIDTH+18;
-		va&=~((1<<ps)-1);
+		ps = PAGE_WIDTH + 18;
+		va &= ~((1 << ps) - 1);
 		break;
 	}
-	for(; va<(page+cnt*(PAGE_SIZE)); va += (1<<ps))	{
-		asm volatile (
-			"ptc.l %0,%1;;"
-			:
-			: "r" (va), "r" (ps<<2)
-		);
-	}
+	for(; va < (page + cnt * PAGE_SIZE); va += (1 << ps))
+		asm volatile ("ptc.l %0, %1;;" :: "r" (va), "r" (ps << 2));
 	srlz_d();
 	srlz_i();
 	
@@ -187,9 +182,10 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
 
 /** Insert data into data translation cache.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
  */
 void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
@@ -198,9 +194,10 @@ void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 
 /** Insert data into instruction translation cache.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
  */
 void itc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
@@ -209,10 +206,12 @@ void itc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 
 /** Insert data into instruction or data translation cache.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
- * @param dtc If true, insert into data translation cache, use instruction translation cache otherwise.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
+ * @param dtc		If true, insert into data translation cache, use
+ * 			instruction translation cache otherwise.
  */
 void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 {
@@ -235,19 +234,20 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 	}
 	
 	asm volatile (
-		"mov r8=psr;;\n"
+		"mov r8 = psr;;\n"
 		"rsm %0;;\n"   			/* PSR_IC_MASK */
 		"srlz.d;;\n"
 		"srlz.i;;\n"
-		"mov cr.ifa=%1\n"		/* va */
-		"mov cr.itir=%2;;\n"		/* entry.word[1] */
-		"cmp.eq p6,p7 = %4,r0;;\n"	/* decide between itc and dtc */ 
+		"mov cr.ifa = %1\n"		/* va */
+		"mov cr.itir = %2;;\n"		/* entry.word[1] */
+		"cmp.eq p6,p7 = %4,r0;;\n"	/* decide between itc and dtc */
 		"(p6) itc.i %3;;\n"
 		"(p7) itc.d %3;;\n"
-		"mov psr.l=r8;;\n"
+		"mov psr.l = r8;;\n"
 		"srlz.d;;\n"
 		:
-		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (dtc)
+		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]),
+		    "r" (entry.word[0]), "r" (dtc)
 		: "p6", "p7", "r8"
 	);
 	
@@ -260,37 +260,45 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 
 /** Insert data into instruction translation register.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
- * @param tr Translation register.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
+ * @param tr		Translation register.
  */
-void itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
+void
+itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
 {
 	tr_mapping_insert(va, asid, entry, false, tr);
 }
 
 /** Insert data into data translation register.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
- * @param tr Translation register.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
+ * @param tr		Translation register.
  */
-void dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
+void
+dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
 {
 	tr_mapping_insert(va, asid, entry, true, tr);
 }
 
 /** Insert data into instruction or data translation register.
  *
- * @param va Virtual page address.
- * @param asid Address space identifier.
- * @param entry The rest of TLB entry as required by TLB insertion format.
- * @param dtr If true, insert into data translation register, use instruction translation register otherwise.
- * @param tr Translation register.
+ * @param va		Virtual page address.
+ * @param asid		Address space identifier.
+ * @param entry		The rest of TLB entry as required by TLB insertion
+ * 			format.
+ * @param dtr		If true, insert into data translation register, use
+ * 			instruction translation register otherwise.
+ * @param tr		Translation register.
  */
-void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr)
+void
+tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
+    index_t tr)
 {
 	region_register rr;
 	bool restore_rr = false;
@@ -311,19 +319,20 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, i
 	}
 
 	asm volatile (
-		"mov r8=psr;;\n"
+		"mov r8 = psr;;\n"
 		"rsm %0;;\n"			/* PSR_IC_MASK */
 		"srlz.d;;\n"
 		"srlz.i;;\n"
-		"mov cr.ifa=%1\n"        	/* va */		 
-		"mov cr.itir=%2;;\n"		/* entry.word[1] */ 
-		"cmp.eq p6,p7=%5,r0;;\n"	/* decide between itr and dtr */
-		"(p6) itr.i itr[%4]=%3;;\n"
-		"(p7) itr.d dtr[%4]=%3;;\n"
-		"mov psr.l=r8;;\n"
+		"mov cr.ifa = %1\n"        	/* va */		 
+		"mov cr.itir = %2;;\n"		/* entry.word[1] */ 
+		"cmp.eq p6,p7 = %5,r0;;\n"	/* decide between itr and dtr */
+		"(p6) itr.i itr[%4] = %3;;\n"
+		"(p7) itr.d dtr[%4] = %3;;\n"
+		"mov psr.l = r8;;\n"
 		"srlz.d;;\n"
 		:
-		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]), "r" (entry.word[0]), "r" (tr), "r" (dtr)
+		: "i" (PSR_IC_MASK), "r" (va), "r" (entry.word[1]),
+		    "r" (entry.word[0]), "r" (tr), "r" (dtr)
 		: "p6", "p7", "r8"
 	);
 	
@@ -336,12 +345,15 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, i
 
 /** Insert data into DTLB.
  *
- * @param page Virtual page address including VRN bits.
- * @param frame Physical frame address.
- * @param dtr If true, insert into data translation register, use data translation cache otherwise.
- * @param tr Translation register if dtr is true, ignored otherwise.
+ * @param page		Virtual page address including VRN bits.
+ * @param frame		Physical frame address.
+ * @param dtr		If true, insert into data translation register, use data
+ * 			translation cache otherwise.
+ * @param tr		Translation register if dtr is true, ignored otherwise.
  */
-void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index_t tr)
+void
+dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
+    index_t tr)
 {
 	tlb_entry_t entry;
 	
@@ -367,18 +379,18 @@ void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index
  *
  * Purge DTR entries used by the kernel.
  *
- * @param page Virtual page address including VRN bits.
- * @param width Width of the purge in bits.
+ * @param page		Virtual page address including VRN bits.
+ * @param width		Width of the purge in bits.
  */
 void dtr_purge(uintptr_t page, count_t width)
 {
-	asm volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width<<2));
+	asm volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width << 2));
 }
 
 
 /** Copy content of PTE into data translation cache.
  *
- * @param t PTE.
+ * @param t		PTE.
  */
 void dtc_pte_copy(pte_t *t)
 {
@@ -404,7 +416,7 @@ void dtc_pte_copy(pte_t *t)
 
 /** Copy content of PTE into instruction translation cache.
  *
- * @param t PTE.
+ * @param t		PTE.
  */
 void itc_pte_copy(pte_t *t)
 {
@@ -431,8 +443,8 @@ void itc_pte_copy(pte_t *t)
 
 /** Instruction TLB fault handler for faults with VHPT turned off.
  *
- * @param vector Interruption vector.
- * @param istate Structure with saved interruption state.
+ * @param vector		Interruption vector.
+ * @param istate		Structure with saved interruption state.
  */
 void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 {
@@ -461,53 +473,55 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);
+			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			    istate->cr_iip);
 		}
 	}
 }
 
-
-
 static int is_io_page_accessible(int page)
 {
-	if(TASK->arch.iomap) return bitmap_get(TASK->arch.iomap,page);
-	else return 0;
+	if (TASK->arch.iomap)
+		return bitmap_get(TASK->arch.iomap,page);
+	else
+		return 0;
 }
 
 #define IO_FRAME_BASE 0xFFFFC000000
 
-/** There is special handling of memmaped lagacy io, because
- * of 4KB sized access
- * only for userspace
+/**
+ * There is special handling of memory mapped legacy io, because of 4KB sized
+ * access for userspace.
  *
- * @param va virtual address of page fault
- * @param istate Structure with saved interruption state.
+ * @param va		Virtual address of page fault.
+ * @param istate	Structure with saved interruption state.
  *
- *
- * @return 1 on success, 0 on fail
+ * @return		One on success, zero on failure.
  */
 static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 {
-	if((va >= IO_OFFSET ) && (va < IO_OFFSET + (1<<IO_PAGE_WIDTH)))
-		if(TASK){
-			
-			uint64_t io_page=(va &  ((1<<IO_PAGE_WIDTH)-1)) >> (USPACE_IO_PAGE_WIDTH);
-			if(is_io_page_accessible(io_page)){
-				uint64_t page,frame;
+	if ((va >= IO_OFFSET ) && (va < IO_OFFSET + (1 << IO_PAGE_WIDTH))) {
+		if (TASK) {
+			uint64_t io_page = (va & ((1 << IO_PAGE_WIDTH) - 1)) >>
+			    USPACE_IO_PAGE_WIDTH;
 
-				page = IO_OFFSET + (1 << USPACE_IO_PAGE_WIDTH) * io_page;
-				frame = IO_FRAME_BASE + (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+			if (is_io_page_accessible(io_page)) {
+				uint64_t page, frame;
 
+				page = IO_OFFSET +
+				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
+				frame = IO_FRAME_BASE +
+				    (1 << USPACE_IO_PAGE_WIDTH) * io_page;
 
 				tlb_entry_t entry;
 	
 				entry.word[0] = 0;
 				entry.word[1] = 0;
 	
-				entry.p = true;			/* present */
+				entry.p = true;		/* present */
 				entry.ma = MA_UNCACHEABLE;		
-				entry.a = true;			/* already accessed */
-				entry.d = true;			/* already dirty */
+				entry.a = true;		/* already accessed */
+				entry.d = true;		/* already dirty */
 				entry.pl = PL_USER;
 				entry.ar = AR_READ | AR_WRITE;
 				entry.ppn = frame >> PPN_SHIFT;
@@ -515,26 +529,20 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 	
 				dtc_mapping_insert(page, TASK->as->asid, entry);
 				return 1;
-			}else {
-				fault_if_from_uspace(istate,"IO access fault at %p",va);
-				return 0;
-			}		
-		} else 
-			return 0;
-	else 
-		return 0;
+			} else {
+				fault_if_from_uspace(istate,
+				    "IO access fault at %p", va);
+			}
+		}
+	}
 		
 	return 0;
-
 }
-
-
-
 
 /** Data TLB fault handler for faults with VHPT turned off.
  *
- * @param vector Interruption vector.
- * @param istate Structure with saved interruption state.
+ * @param vector	Interruption vector.
+ * @param istate	Structure with saved interruption state.
  */
 void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 {
@@ -568,13 +576,16 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 		page_table_unlock(AS, true);
 	} else {
 		page_table_unlock(AS, true);
-		if (try_memmap_io_insertion(va,istate)) return;
+		if (try_memmap_io_insertion(va, istate))
+			return;
 		/*
-		 * Forward the page fault to the address space page fault handler.
+		 * Forward the page fault to the address space page fault 
+		 * handler.
 		 */
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);
+			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			    istate->cr_iip);
 		}
 	}
 }
@@ -583,8 +594,8 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
  *
  * This fault should not occur.
  *
- * @param vector Interruption vector.
- * @param istate Structure with saved interruption state.
+ * @param vector	Interruption vector.
+ * @param istate	Structure with saved interruption state.
  */
 void data_nested_tlb_fault(uint64_t vector, istate_t *istate)
 {
@@ -593,8 +604,8 @@ void data_nested_tlb_fault(uint64_t vector, istate_t *istate)
 
 /** Data Dirty bit fault handler.
  *
- * @param vector Interruption vector.
- * @param istate Structure with saved interruption state.
+ * @param vector	Interruption vector.
+ * @param istate	Structure with saved interruption state.
  */
 void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 {
@@ -620,9 +631,8 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 	} else {
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
 			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);
-			t->d = true;
-			dtc_pte_copy(t);
+			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			    istate->cr_iip);
 		}
 	}
 	page_table_unlock(AS, true);
@@ -630,8 +640,8 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 
 /** Instruction access bit fault handler.
  *
- * @param vector Interruption vector.
- * @param istate Structure with saved interruption state.
+ * @param vector	Interruption vector.
+ * @param istate	Structure with saved interruption state.
  */
 void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 {
@@ -656,10 +666,9 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 		itc_pte_copy(t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);
-			t->a = true;
-			itc_pte_copy(t);
+			fault_if_from_uspace(istate, "Page fault at %p", va);
+			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			    istate->cr_iip);
 		}
 	}
 	page_table_unlock(AS, true);
@@ -693,10 +702,9 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 		dtc_pte_copy(t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid, istate->cr_iip);
-			t->a = true;
-			itc_pte_copy(t);
+			fault_if_from_uspace(istate, "Page fault at %p", va);
+			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			    istate->cr_iip);
 		}
 	}
 	page_table_unlock(AS, true);
@@ -735,7 +743,7 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	} else {
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
+			fault_if_from_uspace(istate, "Page fault at %p", va);
 			panic("%s: va=%p, rid=%d\n", __func__, va, rid);
 		}
 	}

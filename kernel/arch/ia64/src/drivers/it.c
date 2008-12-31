@@ -44,17 +44,15 @@
 #include <ddi/device.h>
 #include <arch.h>
 
-#define IT_SERVICE_CLOCKS 64
+#define IT_SERVICE_CLOCKS	64
 
-#define FREQ_NUMERATOR_SHIFT 32
-#define FREQ_NUMERATOR_MASK 0xffffffff00000000LL
+#define FREQ_NUMERATOR_SHIFT	32
+#define FREQ_NUMERATOR_MASK	0xffffffff00000000ULL
 
-#define FREQ_DENOMINATOR_SHIFT 0
-#define FREQ_DENOMINATOR_MASK 0xffffffffLL
-
+#define FREQ_DENOMINATOR_SHIFT	0
+#define FREQ_DENOMINATOR_MASK	0xffffffffULL
 
 uint64_t it_delta;
-
 
 static irq_t it_irq;
 
@@ -66,8 +64,7 @@ void it_init(void)
 {
 	cr_itv_t itv;
 	
-	if(config.cpu_active==1)
-	{
+	if (config.cpu_active == 1) {
 		irq_initialize(&it_irq);
 		it_irq.inr = INTERRUPT_TIMER;
 		it_irq.devno = device_assign_devno();
@@ -76,12 +73,13 @@ void it_init(void)
 		irq_register(&it_irq);
 		
 		uint64_t base_freq;
-		base_freq  = ((bootinfo->freq_scale) & FREQ_NUMERATOR_MASK) >> FREQ_NUMERATOR_SHIFT;
+		base_freq  = ((bootinfo->freq_scale) & FREQ_NUMERATOR_MASK) >>
+		    FREQ_NUMERATOR_SHIFT;
 		base_freq *= bootinfo->sys_freq;
-		base_freq /= ((bootinfo->freq_scale) & FREQ_DENOMINATOR_MASK) >> FREQ_DENOMINATOR_SHIFT;
+		base_freq /= ((bootinfo->freq_scale) & FREQ_DENOMINATOR_MASK) >>
+		    FREQ_DENOMINATOR_SHIFT;
 		
-		it_delta = base_freq /HZ;
-		
+		it_delta = base_freq / HZ;
 	}
 	
 	/* initialize Interval Timer external interrupt vector */
