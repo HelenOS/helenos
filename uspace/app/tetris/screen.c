@@ -50,7 +50,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <io/stream.h>
 #include <console.h>
 
 #include <async.h>
@@ -73,9 +72,6 @@ static inline void putstr(char *s)
 		putchar(*(s++));
 }
 
-static int con_phone;
-
-
 static void start_standout(void)
 {
 	console_set_rgb_color(0xf0f0f0, 0);
@@ -88,7 +84,7 @@ static void resume_normal(void)
 
 void clear_screen(void)
 {
-	async_msg_0(con_phone, CONSOLE_CLEAR);
+	console_clear();
 	moveto(0, 0);
 }
 
@@ -100,7 +96,7 @@ scr_clear(void)
 {
 
 	resume_normal();
-	async_msg_0(con_phone, CONSOLE_CLEAR);
+	console_clear();
 	curscore = -1;
 	memset((char *)curscreen, 0, sizeof(curscreen));
 }
@@ -111,28 +107,26 @@ scr_clear(void)
 void
 scr_init(void)
 {
-	con_phone = get_cons_phone();
-	async_msg_1(con_phone, CONSOLE_CURSOR_VISIBILITY, 0);
+	console_cursor_visibility(0);
 	resume_normal();
 	scr_clear();
 }
 
 void moveto(int r, int c)
 {
-	async_msg_2(con_phone, CONSOLE_GOTO, r, c);
+	console_goto(r, c);
 }
 
 static void fflush(void)
 {
-	async_msg_0(con_phone, CONSOLE_FLUSH);
+	console_flush();
 }
 
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
 {
-	return async_req_0_2(con_phone, CONSOLE_GETSIZE, &ws->ws_row,
-	    &ws->ws_col);
+	return console_get_size(&ws->ws_row, &ws->ws_col);
 }
 
 /*

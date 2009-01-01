@@ -37,25 +37,60 @@
 #include <ipc/console.h>
 #include <console.h>
 
+void console_clear(void)
+{
+	int cons_phone = get_cons_phone();
+	async_msg_0(cons_phone, CONSOLE_CLEAR);
+}
+
+void console_goto(int row, int col)
+{
+	int cons_phone = get_cons_phone();
+	async_msg_2(cons_phone, CONSOLE_GOTO, row, col);
+}
+
+void console_flush(void)
+{
+	int cons_phone = get_cons_phone();
+	async_msg_0(cons_phone, CONSOLE_FLUSH);
+}
+
+int console_get_size(int *rows, int *cols)
+{
+	int cons_phone = get_cons_phone();
+	ipcarg_t r, c;
+	int rc;
+
+	rc = async_req_0_2(cons_phone, CONSOLE_GETSIZE, &r, &c);
+
+	*rows = (int) r;
+	*cols = (int) c;
+
+	return rc;
+}
+
 void console_set_style(int style)
 {
 	int cons_phone = get_cons_phone();
-
 	async_msg_1(cons_phone, CONSOLE_SET_STYLE, style);
 }
 
 void console_set_color(int fg_color, int bg_color, int flags)
 {
 	int cons_phone = get_cons_phone();
-
 	async_msg_3(cons_phone, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
 }
 
 void console_set_rgb_color(int fg_color, int bg_color)
 {
 	int cons_phone = get_cons_phone();
-
 	async_msg_2(cons_phone, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
+}
+
+void console_cursor_visibility(int show)
+{
+	int cons_phone = get_cons_phone();
+	async_msg_1(cons_phone, CONSOLE_CURSOR_VISIBILITY, show != 0);
 }
 
 /** @}

@@ -38,9 +38,14 @@
 #include <console/style.h>
 #include <console/color.h>
 
+extern void console_clear(void);
+extern void console_goto(int, int);
+extern void console_flush(void);
+extern int console_get_size(int *, int *);
 extern void console_set_style(int);
 extern void console_set_color(int, int, int);
 extern void console_set_rgb_color(int, int);
+extern void console_cursor_visibility(int);
 
 #endif
  
