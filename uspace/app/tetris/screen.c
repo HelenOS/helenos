@@ -51,7 +51,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <io/stream.h>
-
+#include <console.h>
 
 #include <async.h>
 #include "screen.h"
@@ -76,22 +76,15 @@ static inline void putstr(char *s)
 static int con_phone;
 
 
-
-static void set_style(int fgcolor, int bgcolor)
-{
-	async_msg_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
-}
-
 static void start_standout(void)
 {
-	set_style(0xf0f0f0, 0);
+	console_set_rgb_color(0xf0f0f0, 0);
 }
 
 static void resume_normal(void)
 {
-	set_style(0, 0xf0f0f0);
+	console_set_rgb_color(0, 0xf0f0f0);
 }
-
 
 void clear_screen(void)
 {

@@ -49,6 +49,8 @@
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <libarch/ddi.h>
+#include <console/style.h>
+#include <console/color.h>
 
 #include "ega.h"
 #include "../console/screenbuffer.h"
@@ -64,8 +66,8 @@ saved_screen saved_screens[MAX_SAVED_SCREENS];
 #define EGA_IO_ADDRESS 0x3d4
 #define EGA_IO_SIZE 2
 
-int ega_normal_color=0x0f;
-int ega_inverted_color=0xf0;
+int ega_normal_color = 0x0f;
+int ega_inverted_color = 0xf0;
 
 #define NORMAL_COLOR		ega_normal_color       
 #define INVERTED_COLOR		ega_inverted_color
@@ -154,8 +156,10 @@ static void draw_text_data(keyfield_t *data)
 
 	for (i = 0; i < scr_width * scr_height; i++) {
 		scr_addr[i * 2] = data[i].character;
+		/* FIXME
 		scr_addr[i * 2 + 1] = EGA_STYLE(data[i].style.fg_color,
 		    data[i].style.bg_color);
+		*/
 	}
 }
 
@@ -275,6 +279,22 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
+			retval = 0;
+			switch (IPC_GET_ARG1(call)) {
+			case STYLE_NORMAL: style = INVERTED_COLOR; break;
+			case STYLE_EMPHASIS: style = INVERTED_COLOR | 4; break;
+			default: retval = EINVAL;
+			}
+			break;
+		case FB_SET_COLOR:
+			fgcolor = IPC_GET_ARG1(call);
+			bgcolor = IPC_GET_ARG2(call);
+			style = (fgcolor & 7) | ((bgcolor & 7) << 4);
+			if (IPC_GET_ARG3(call) & CATTR_BRIGHT)
+				style = style | 0x08;
+			retval = 0;
+			break;
+		case FB_SET_RGB_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
 			style = EGA_STYLE(fgcolor, bgcolor);
@@ -317,8 +337,8 @@ int ega_init(void)
 	scr_height = sysinfo_value("fb.height");
 	if(sysinfo_value("fb.blinking"))
 	{
-			ega_normal_color&=0x77;
-			ega_inverted_color&=0x77;
+			ega_normal_color &= 0x77;
+			ega_inverted_color &= 0x77;
 	}
 	style = NORMAL_COLOR;
 

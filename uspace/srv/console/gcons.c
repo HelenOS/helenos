@@ -97,9 +97,9 @@ static void clear(void)
 	async_msg_0(fbphone, FB_CLEAR);
 }
 
-static void set_style(int fgcolor, int bgcolor)
+static void set_rgb_color(int fgcolor, int bgcolor)
 {
-	async_msg_2(fbphone, FB_SET_STYLE, fgcolor, bgcolor);
+	async_msg_2(fbphone, FB_SET_RGB_COLOR, fgcolor, bgcolor);
 }
 
 /** Transparent putchar */
@@ -346,7 +346,7 @@ void gcons_redraw_console(void)
 		return;
 	
 	vp_switch(0);
-	set_style(MAIN_COLOR, MAIN_COLOR);
+	set_rgb_color(MAIN_COLOR, MAIN_COLOR);
 	clear();
 	draw_pixmap(_binary_helenos_ppm_start,
 	    (size_t) &_binary_helenos_ppm_size, xres - 66, 2);
@@ -481,7 +481,7 @@ void gcons_init(int phone)
 		if (cstatus_vp[i] < 0)
 			return;
 		vp_switch(cstatus_vp[i]);
-		set_style(0x202020, 0xffffff);
+		set_rgb_color(0x202020, 0xffffff);
 	}
 	
 	/* Initialize icons */

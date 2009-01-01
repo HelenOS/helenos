@@ -33,6 +33,7 @@
  */
 
 #include <screenbuffer.h>
+#include <console/style.h>
 #include <malloc.h>
 #include <unistd.h>
 
@@ -49,7 +50,7 @@ void screenbuffer_putchar(screenbuffer_t *scr, char c)
 	field = get_field_at(scr, scr->position_x, scr->position_y);
 
 	field->character = c;
-	field->style = scr->style;
+	field->attrs = scr->attrs;
 }
 
 /** Initilize screenbuffer. Allocate space for screen content in accordance to given size.
@@ -67,8 +68,8 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	
 	scr->size_x = size_x;
 	scr->size_y = size_y;
-	scr->style.fg_color = DEFAULT_FOREGROUND;
-	scr->style.bg_color = DEFAULT_BACKGROUND;
+	scr->attrs.t = at_style;
+	scr->attrs.a.s.style = STYLE_NORMAL;
 	scr->is_cursor_visible = 1;
 	
 	screenbuffer_clear(scr);
@@ -85,7 +86,7 @@ void screenbuffer_clear(screenbuffer_t *scr)
 	
 	for (i = 0; i < (scr->size_x * scr->size_y); i++) {
 		scr->buffer[i].character = ' ';
-		scr->buffer[i].style = scr->style;
+		scr->buffer[i].attrs = scr->attrs;
 	}
 
 	scr->top_line = 0;
@@ -103,7 +104,7 @@ void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
 	
 	for (i = 0; i < scr->size_x; i++) {
 		scr->buffer[i + line * scr->size_x].character = ' ';
-		scr->buffer[i + line * scr->size_x].style = scr->style;
+		scr->buffer[i + line * scr->size_x].attrs = scr->attrs;
 	}
 }
 
@@ -136,10 +137,35 @@ void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
  * @param fg_color
  * @param bg_color
  */
-void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
+void screenbuffer_set_style(screenbuffer_t *scr, int style)
 {
-	scr->style.fg_color = fg_color;
-	scr->style.bg_color = bg_color;
+	scr->attrs.t = at_style;
+	scr->attrs.a.s.style = style;
+}
+
+/** Set new color.
+ * @param scr
+ * @param fg_color
+ * @param bg_color
+ */
+void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color, unsigned int flags)
+{
+	scr->attrs.t = at_idx;
+	scr->attrs.a.i.fg_color = fg_color;
+	scr->attrs.a.i.bg_color = bg_color;
+	scr->attrs.a.i.flags = flags;
+}
+
+/** Set new RGB color.
+ * @param scr
+ * @param fg_color
+ * @param bg_color
+ */
+void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
+{
+	scr->attrs.t = at_rgb;
+	scr->attrs.a.r.fg_color = fg_color;
+	scr->attrs.a.r.bg_color = bg_color;
 }
 
  

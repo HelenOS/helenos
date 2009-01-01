@@ -666,9 +666,15 @@ static void main_init(void)
 	o = oper_new("flush", 0, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_FLUSH, o);
 
-	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
-	o = oper_new("set_style", 2, arg_def, V_INTEGER, 0, resp_def);
+	arg_def[0] = V_INTEGER;
+	o = oper_new("set_style", 1, arg_def, V_INTEGER, 0, resp_def);
 	proto_add_oper(p, CONSOLE_SET_STYLE, o);
+	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER; arg_def[2] = V_INTEGER;
+	o = oper_new("set_color", 3, arg_def, V_INTEGER, 0, resp_def);
+	proto_add_oper(p, CONSOLE_SET_COLOR, o);
+	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
+	o = oper_new("set_rgb_color", 2, arg_def, V_INTEGER, 0, resp_def);
+	proto_add_oper(p, CONSOLE_SET_RGB_COLOR, o);
 	o = oper_new("cursor_visibility", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CURSOR_VISIBILITY, o);
 

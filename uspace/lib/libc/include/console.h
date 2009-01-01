@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
+/** @addtogroup libc
+ * @{ 
  */
 /** @file
- */ 
+ */
 
-#ifndef LIBC_FB_H_
-#define LIBC_FB_H_
+#ifndef LIBC_CONSOLE_H_
+#define LIBC_CONSOLE_H_
 
-#include <ipc/ipc.h>
+#include <console/style.h>
+#include <console/color.h>
 
-typedef enum {
-	FB_PUTCHAR = IPC_FIRST_USER_METHOD,
-	FB_CLEAR,
-	FB_GET_CSIZE,
-	FB_CURSOR_VISIBILITY,
-	FB_CURSOR_GOTO,
-	FB_SCROLL,
-	FB_VIEWPORT_SWITCH,
-	FB_VIEWPORT_CREATE,
-	FB_VIEWPORT_DELETE,
-	FB_SET_STYLE,
-	FB_SET_COLOR,
-	FB_SET_RGB_COLOR,
-	FB_GET_RESOLUTION,
-	FB_DRAW_TEXT_DATA,
-	FB_FLUSH,
-	FB_DRAW_PPM,
-	FB_PREPARE_SHM,
-	FB_DROP_SHM,
-	FB_SHM2PIXMAP,
-	FB_VP_DRAW_PIXMAP,
-	FB_VP2PIXMAP,
-	FB_DROP_PIXMAP,
-	FB_ANIM_CREATE,
-	FB_ANIM_DROP,
-	FB_ANIM_ADDPIXMAP,
-	FB_ANIM_CHGVP,
-	FB_ANIM_START,
-	FB_ANIM_STOP,
-	FB_POINTER_MOVE
-} fb_request_t;
+extern void console_set_style(int);
+extern void console_set_color(int, int, int);
+extern void console_set_rgb_color(int, int);
 
 #endif
-
+ 
 /** @}
  */

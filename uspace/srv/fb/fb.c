@@ -51,6 +51,8 @@
 #include <ipc/services.h>
 #include <kernel/errno.h>
 #include <kernel/genarch/fb/visuals.h>
+#include <console/color.h>
+#include <console/style.h>
 #include <async.h>
 #include <bool.h>
 
@@ -93,6 +95,13 @@ struct {
 	rgb_conv_t rgb_conv;
 } screen;
 
+/** Backbuffer character cell. */
+typedef struct {
+	uint8_t glyph;
+	uint32_t fg_color;
+	uint32_t bg_color;
+} bb_cell_t;
+
 typedef struct {
 	bool initialized;
 	unsigned int x;
@@ -108,8 +117,8 @@ typedef struct {
 	 * Style and glyphs for text printing
 	 */
 
-	/** Current style. */
-	style_t style;
+	/** Current attributes. */
+	attr_rgb_t attr;
 
 	/** Pre-rendered mask for rendering glyphs. Different viewports
 	 * might use different drawing functions depending on whether their
@@ -128,8 +137,8 @@ typedef struct {
 	bool cursor_shown;
 	
 	/* Back buffer */
+	bb_cell_t *backbuf;
 	unsigned int bbsize;
-	uint8_t *backbuf;
 } viewport_t;
 
 typedef struct {
@@ -155,6 +164,33 @@ static pixmap_t pixmaps[MAX_PIXMAPS];
 static viewport_t viewports[128];
 
 static bool client_connected = false;  /**< Allow only 1 connection */
+
+static uint32_t color_table[16] = {
+	[COLOR_BLACK]		= 0x000000,
+	[COLOR_BLUE]		= 0x0000f0,
+	[COLOR_GREEN]		= 0x00f000,
+	[COLOR_CYAN]		= 0x00f0f0,
+	[COLOR_RED]		= 0xf00000,
+	[COLOR_MAGENTA]		= 0xf000f0,
+	[COLOR_YELLOW]		= 0xf0f000,
+	[COLOR_WHITE]		= 0xf0f0f0,
+
+	[8 + COLOR_BLACK]	= 0x000000,
+	[8 + COLOR_BLUE]	= 0x0000ff,
+	[8 + COLOR_GREEN]	= 0x00ff00,
+	[8 + COLOR_CYAN]	= 0x00ffff,
+	[8 + COLOR_RED]		= 0xff0000,
+	[8 + COLOR_MAGENTA]	= 0xff00ff,
+	[8 + COLOR_YELLOW]	= 0xffff00,
+	[8 + COLOR_WHITE]	= 0xffffff,
+};
+
+static int rgb_from_style(attr_rgb_t *rgb, int style);
+static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
+    ipcarg_t bg_color, ipcarg_t flags);
+
+static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
+    ipcarg_t bg_color, ipcarg_t attr);
 
 static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
     uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
@@ -299,17 +335,28 @@ static void vport_redraw(viewport_t *vport)
 		draw_filled_rect(
 		    vport->x + COL2X(vport->cols), vport->y,
 		    vport->x + vport->width, vport->y + vport->height,
-		    vport->style.bg_color);
+		    vport->attr.bg_color);
 	}
 
 	if (ROW2Y(vport->rows) < vport->height) {
 		draw_filled_rect(
 		    vport->x, vport->y + ROW2Y(vport->rows),
 		    vport->x + vport->width, vport->y + vport->height,
-		    vport->style.bg_color);
+		    vport->attr.bg_color);
 	}
 }
 
+static void backbuf_clear(bb_cell_t *backbuf, size_t len, uint32_t fg_color,
+    uint32_t bg_color)
+{
+	unsigned i;
+
+	for (i = 0; i < len; i++) {
+		backbuf[i].glyph = 0;
+		backbuf[i].fg_color = fg_color;
+		backbuf[i].bg_color = bg_color;
+	}
+}
 
 /** Clear viewport.
  *
@@ -318,7 +365,8 @@ static void vport_redraw(viewport_t *vport)
  */
 static void vport_clear(viewport_t *vport)
 {
-	memset(vport->backbuf, 0, vport->bbsize);
+	backbuf_clear(vport->backbuf, vport->cols * vport->rows,
+	    vport->attr.fg_color, vport->attr.bg_color);
 	vport_redraw(vport);
 }
 
@@ -333,6 +381,9 @@ static void vport_scroll(viewport_t *vport, int lines)
 	unsigned int row, col;
 	unsigned int x, y;
 	uint8_t glyph;
+	uint32_t fg_color;
+	uint32_t bg_color;
+	bb_cell_t *bbp, *xbp;
 
 	/*
 	 * Redraw.
@@ -343,18 +394,27 @@ static void vport_scroll(viewport_t *vport, int lines)
 		x = vport->x;
 		for (col = 0; col < vport->cols; col++) {
 			if ((row + lines >= 0) && (row + lines < vport->rows)) {
-				glyph = vport->backbuf[BB_POS(vport, col, row + lines)];
+				xbp = &vport->backbuf[BB_POS(vport, col, row + lines)];
+				bbp = &vport->backbuf[BB_POS(vport, col, row)];
 
-				if (vport->backbuf[BB_POS(vport, col, row)] == glyph) {
+				glyph = xbp->glyph;
+				fg_color = xbp->fg_color;
+				bg_color = xbp->bg_color;
+
+				if (bbp->glyph == glyph &&
+				    bbp->fg_color == xbp->fg_color &&
+				    bbp->bg_color == xbp->bg_color) {
 					x += FONT_WIDTH;
 					continue;
 				}
 			} else {
 				glyph = 0;
+				fg_color = vport->attr.fg_color;
+				bg_color = vport->attr.bg_color;
 			}
 
 			(*vport->dglyph)(x, y, false, vport->glyphs, glyph,
-			    vport->style.fg_color, vport->style.bg_color);
+			    fg_color, bg_color);
 			x += FONT_WIDTH;
 		}
 		y += FONT_SCANLINES;
@@ -366,13 +426,14 @@ static void vport_scroll(viewport_t *vport, int lines)
 
 	if (lines > 0) {
 		memmove(vport->backbuf, vport->backbuf + vport->cols * lines,
-		    vport->cols * (vport->rows - lines));
-		memset(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
-		    0, vport->cols * lines);
+		    vport->cols * (vport->rows - lines) * sizeof(bb_cell_t));
+		backbuf_clear(&vport->backbuf[BB_POS(vport, 0, vport->rows - lines)],
+		    vport->cols * lines, vport->attr.fg_color, vport->attr.bg_color);
 	} else {
 		memmove(vport->backbuf - vport->cols * lines, vport->backbuf,
-		    vport->cols * (vport->rows + lines));
-		memset(vport->backbuf, 0, - vport->cols * lines);
+		    vport->cols * (vport->rows + lines) * sizeof(bb_cell_t));
+		backbuf_clear(vport->backbuf, - vport->cols * lines,
+		    vport->attr.fg_color, vport->attr.bg_color);
 	}
 }
 
@@ -406,7 +467,7 @@ static void render_glyphs(viewport_t* vport)
 		}
 	}
 	
-	screen.rgb_conv(vport->bgpixel, vport->style.bg_color);
+	screen.rgb_conv(vport->bgpixel, vport->attr.bg_color);
 }
 
 
@@ -434,11 +495,11 @@ static int vport_create(unsigned int x, unsigned int y,
 	
 	unsigned int cols = width / FONT_WIDTH;
 	unsigned int rows = height / FONT_SCANLINES;
-	unsigned int bbsize = cols * rows;
+	unsigned int bbsize = cols * rows * sizeof(bb_cell_t);
 	unsigned int glyphsize = 2 * FONT_GLYPHS * screen.glyphbytes;
 	unsigned int word_size = sizeof(unsigned long);
 	
-	uint8_t *backbuf = (uint8_t *) malloc(bbsize);
+	bb_cell_t *backbuf = (bb_cell_t *) malloc(bbsize);
 	if (!backbuf)
 		return ENOMEM;
 	
@@ -454,8 +515,8 @@ static int vport_create(unsigned int x, unsigned int y,
 		free(backbuf);
 		return ENOMEM;
 	}
-	
-	memset(backbuf, 0, bbsize);
+
+	backbuf_clear(backbuf, cols * rows, DEFAULT_FGCOLOR, DEFAULT_BGCOLOR);
 	memset(glyphs, 0, glyphsize);
 	memset(bgpixel, 0, screen.pixelbytes);
 	
@@ -467,8 +528,8 @@ static int vport_create(unsigned int x, unsigned int y,
 	viewports[i].cols = cols;
 	viewports[i].rows = rows;
 	
-	viewports[i].style.bg_color = DEFAULT_BGCOLOR;
-	viewports[i].style.fg_color = DEFAULT_FGCOLOR;
+	viewports[i].attr.bg_color = DEFAULT_BGCOLOR;
+	viewports[i].attr.fg_color = DEFAULT_FGCOLOR;
 	
 	viewports[i].glyphs = glyphs;
 	viewports[i].bgpixel = bgpixel;
@@ -707,12 +768,17 @@ static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
 {
 	unsigned int x = vport->x + COL2X(col);
 	unsigned int y = vport->y + ROW2Y(row);
+
 	uint8_t glyph;
+	uint32_t fg_color;
+	uint32_t bg_color;
 	
-	glyph = vport->backbuf[BB_POS(vport, col, row)];
+	glyph = vport->backbuf[BB_POS(vport, col, row)].glyph;
+	fg_color = vport->backbuf[BB_POS(vport, col, row)].fg_color;
+	bg_color = vport->backbuf[BB_POS(vport, col, row)].bg_color;
 
 	(*vport->dglyph)(x, y, cursor, vport->glyphs, glyph,
-	    vport->style.fg_color, vport->style.bg_color);
+	    fg_color, bg_color);
 }
 
 /** Hide cursor if it is shown
@@ -762,12 +828,18 @@ static void cursor_blink(viewport_t *vport)
  */
 static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned int row)
 {
+	bb_cell_t *bbp;
+
 	/* Do not hide cursor if we are going to overwrite it */
 	if ((vport->cursor_active) && (vport->cursor_shown) &&
 	    ((vport->cur_col != col) || (vport->cur_row != row)))
 		cursor_hide(vport);
-	
-	vport->backbuf[BB_POS(vport, col, row)] = c;
+
+	bbp = &vport->backbuf[BB_POS(vport, col, row)];
+	bbp->glyph = c;
+	bbp->fg_color = vport->attr.fg_color;
+	bbp->bg_color = vport->attr.bg_color;
+
 	draw_vp_glyph(vport, false, col, row);
 	
 	vport->cur_col = col;
@@ -794,17 +866,37 @@ static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned i
 static void draw_text_data(viewport_t *vport, keyfield_t *data)
 {
 	unsigned int i;
+	bb_cell_t *bbp;
+	attrs_t *a;
+	attr_rgb_t rgb;
 	
 	for (i = 0; i < vport->cols * vport->rows; i++) {
 		unsigned int col = i % vport->cols;
 		unsigned int row = i / vport->cols;
 		
-		uint8_t glyph = vport->backbuf[BB_POS(vport, col, row)];
-		
-		// TODO: use data[i].style
-		
+		bbp = &vport->backbuf[BB_POS(vport, col, row)];
+		uint8_t glyph = bbp->glyph;
+
 		if (glyph != data[i].character) {
-			vport->backbuf[BB_POS(vport, col, row)] = data[i].character;
+			bbp->glyph = data[i].character;
+			a = &data[i].attrs;
+
+			switch (a->t) {
+			case at_style:
+				rgb_from_style(&rgb, a->a.s.style);
+				break;
+			case at_idx:
+				rgb_from_idx(&rgb, a->a.i.fg_color,
+				    a->a.i.bg_color, a->a.i.flags);
+				break;
+			case at_rgb:
+				rgb = a->a.r;
+				break;
+			}
+
+			bbp->fg_color = rgb.fg_color;
+			bbp->bg_color = rgb.bg_color;
+
 			draw_vp_glyph(vport, false, col, row);
 		}
 	}
@@ -1322,6 +1414,47 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	
 }
 
+static int rgb_from_style(attr_rgb_t *rgb, int style)
+{
+	switch (style) {
+	case STYLE_NORMAL:
+		rgb->fg_color = color_table[COLOR_BLACK];
+		rgb->bg_color = color_table[COLOR_WHITE];
+		break;
+	case STYLE_EMPHASIS:
+		rgb->fg_color = color_table[COLOR_RED];
+		rgb->bg_color = color_table[COLOR_WHITE];
+		break;
+	default:
+		return EINVAL;
+	}
+
+	return EOK;
+}
+
+static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
+    ipcarg_t bg_color, ipcarg_t flags)
+{
+	fg_color = (fg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
+	bg_color = (bg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
+
+	rgb->fg_color = color_table[fg_color];
+	rgb->bg_color = color_table[bg_color];
+
+	return EOK;
+}
+
+static int fb_set_style(viewport_t *vport, ipcarg_t style)
+{
+	return rgb_from_style(&vport->attr, (int) style);
+}
+
+static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
+    ipcarg_t bg_color, ipcarg_t flags)
+{
+	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
+}
+
 /** Function for handling connections to FB
  *
  */
@@ -1478,8 +1611,15 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_SET_STYLE:
-			vport->style.fg_color = IPC_GET_ARG1(call);
-			vport->style.bg_color = IPC_GET_ARG2(call);
+			retval = fb_set_style(vport, IPC_GET_ARG1(call));
+			break;
+		case FB_SET_COLOR:
+			retval = fb_set_color(vport, IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call), IPC_GET_ARG3(call));
+			break;
+		case FB_SET_RGB_COLOR:
+			vport->attr.fg_color = IPC_GET_ARG1(call);
+			vport->attr.bg_color = IPC_GET_ARG2(call);
 			retval = EOK;
 			break;
 		case FB_GET_RESOLUTION:

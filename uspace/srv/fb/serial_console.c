@@ -43,6 +43,7 @@
 #include <ipc/fb.h>
 #include <bool.h>
 #include <errno.h>
+#include <console/style.h>
 
 #include "serial_console.h"
 
@@ -89,7 +90,8 @@ void serial_scroll(int i)
 	}
 }
 
-void serial_set_style(const unsigned int mode)
+/** ECMA-48 Set Graphics Rendition. */
+static void serial_sgr(const unsigned int mode)
 {
 	char control[MAX_CONTROL];
 	snprintf(control, MAX_CONTROL, "\033[%um", mode);
@@ -136,6 +138,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int newrow;
 	int fgcolor;
 	int bgcolor;
+	int style;
 	int i;
 	
 	if (client_connected) {
@@ -186,12 +189,29 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
+			style =  IPC_GET_ARG1(call);
+			if (style == STYLE_EMPHASIS)
+				serial_sgr(1);
+			else
+				serial_sgr(0);
+			retval = 0;
+			break;
+		case FB_SET_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
 			if (fgcolor < bgcolor)
-				serial_set_style(0);
+				serial_sgr(0);
 			else
-				serial_set_style(7);
+				serial_sgr(7);
+			retval = 0;
+			break;
+		case FB_SET_RGB_COLOR:
+			fgcolor = IPC_GET_ARG1(call);
+			bgcolor = IPC_GET_ARG2(call);
+			if (fgcolor < bgcolor)
+				serial_sgr(0);
+			else
+				serial_sgr(7);
 			retval = 0;
 			break;
 		case FB_SCROLL:

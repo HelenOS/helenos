@@ -41,23 +41,46 @@
 #define DEFAULT_BACKGROUND 0xf0f0f0	/**< default console background color */
 
 typedef struct {
+	uint8_t style;
+} attr_style_t;
+
+typedef struct {
+	uint8_t fg_color;
+	uint8_t bg_color;
+	uint8_t flags;
+} attr_idx_t;
+
+typedef struct {
 	uint32_t bg_color;      /**< background color */
 	uint32_t fg_color;      /**< foreground color */
-} style_t;
+} attr_rgb_t;
+
+typedef struct {
+	enum {
+		at_style,
+		at_idx,
+		at_rgb
+	} t;
+	union {
+		attr_style_t s;
+		attr_idx_t i;
+		attr_rgb_t r;
+	} a; 
+} attrs_t;
 
 /** One field on screen. It contain one character and its attributes. */
 typedef struct {
 	char character;			/**< Character itself */
-	style_t style;			/**< Character`s attributes */
+	attrs_t attrs;			/**< Character`s attributes */
 } keyfield_t;
 
 /** Structure for buffering state of one virtual console.
  */
 typedef struct {
-	keyfield_t *buffer;			/**< Screen content - characters and its style. Used as cyclyc buffer. */
+	keyfield_t *buffer;			/**< Screen content - characters and their attributes. Used as a circular buffer. */
 	unsigned int size_x, size_y;		/**< Number of columns and rows */
 	unsigned int position_x, position_y;	/**< Coordinates of last printed character for determining cursor position */
-	style_t style;				/**< Current style */
+	attrs_t attrs;				/**< Current attributes. */
 	unsigned int top_line;			/**< Points to buffer[][] line that will be printed at screen as the first line */
 	unsigned char is_cursor_visible;	/**< Cursor state - default is visible */
 } screenbuffer_t;
@@ -73,14 +96,23 @@ static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsi
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
 
-/** Compares two styles.
+/** Compares two sets of attributes.
  * @param s1 first style
  * @param s2 second style
  * @return nonzero on equality
  */
-static inline int style_same(style_t s1, style_t s2)
+static inline int attrs_same(attrs_t a1, attrs_t a2)
 {
-	return s1.fg_color == s2.fg_color && s1.bg_color == s2.bg_color;
+	if (a1.t != a2.t) return 0;
+
+	switch (a1.t) {
+	case at_style: return a1.a.s.style == a2.a.s.style;
+	case at_idx: return a1.a.i.fg_color == a2.a.i.fg_color &&
+	    a1.a.i.bg_color == a2.a.i.bg_color &&
+	    a1.a.i.flags == a2.a.i.flags;
+	case at_rgb: return a1.a.r.fg_color == a2.a.r.fg_color &&
+	    a1.a.r.bg_color == a2.a.r.bg_color;
+	}
 }
 
 
@@ -91,7 +123,11 @@ void screenbuffer_clear(screenbuffer_t *scr);
 void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line);
 void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest);
 void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y);
-void screenbuffer_set_style(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color);
+void screenbuffer_set_style(screenbuffer_t *scr, int style);
+void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color,
+    unsigned int bg_color, unsigned int attr);
+void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color,
+    unsigned int bg_color);
 
 #endif
 

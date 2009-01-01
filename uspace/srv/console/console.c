@@ -40,7 +40,6 @@
 #include <ipc/services.h>
 #include <errno.h>
 #include <key_buffer.h>
-#include <console.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
@@ -50,6 +49,7 @@
 #include <stdio.h>
 #include <sysinfo.h>
 
+#include "console.h"
 #include "gcons.h"
 
 #define MAX_KEYREQUESTS_BUFFERED 32
@@ -124,15 +124,37 @@ static void curs_goto(int row, int col)
 	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
 }
 
-static void set_style(style_t *style)
+static void set_style(int style)
 {
-	async_msg_2(fb_info.phone, FB_SET_STYLE, style->fg_color,
-	    style->bg_color); 
+	async_msg_1(fb_info.phone, FB_SET_STYLE, style); 
 }
 
-static void set_style_col(int fgcolor, int bgcolor)
+static void set_color(int fgcolor, int bgcolor, int flags)
 {
-	async_msg_2(fb_info.phone, FB_SET_STYLE, fgcolor, bgcolor); 
+	async_msg_3(fb_info.phone, FB_SET_COLOR, fgcolor, bgcolor, flags);
+}
+
+static void set_rgb_color(int fgcolor, int bgcolor)
+{
+	async_msg_2(fb_info.phone, FB_SET_RGB_COLOR, fgcolor, bgcolor); 
+}
+
+static void set_attrs(attrs_t *attrs)
+{
+	switch (attrs->t) {
+	case at_style:
+		set_style(attrs->a.s.style);
+		break;
+
+	case at_idx:
+		set_color(attrs->a.i.fg_color, attrs->a.i.bg_color,
+		    attrs->a.i.flags);
+		break;
+
+	case at_rgb:
+		set_rgb_color(attrs->a.r.fg_color, attrs->a.r.bg_color);
+		break;
+	}
 }
 
 static void prtchr(char c, int row, int col)
@@ -198,7 +220,7 @@ static void change_console(int newcons)
 	connection_t *conn;
 	int i, j, rc;
 	keyfield_t *field;
-	style_t *style;
+	attrs_t *attrs;
 	
 	if (newcons == active_console)
 		return;
@@ -226,7 +248,7 @@ static void change_console(int newcons)
 		gcons_change_console(newcons);
 		conn = &connections[active_console];
 		
-		set_style(&conn->screenbuffer.style);
+		set_attrs(&conn->screenbuffer.attrs);
 		curs_visibility(false);
 		if (interbuffer) {
 			for (i = 0; i < conn->screenbuffer.size_x; i++)
@@ -242,21 +264,21 @@ static void change_console(int newcons)
 		}
 		
 		if ((!interbuffer) || (rc != 0)) {
-			set_style(&conn->screenbuffer.style);
+			set_attrs(&conn->screenbuffer.attrs);
 			clrscr();
-			style = &conn->screenbuffer.style;
+			attrs = &conn->screenbuffer.attrs;
 			
 			for (j = 0; j < conn->screenbuffer.size_y; j++)
 				for (i = 0; i < conn->screenbuffer.size_x; i++) {
 					field = get_field_at(&conn->screenbuffer, i, j);
-					if (!style_same(*style, field->style))
-						set_style(&field->style);
-					style = &field->style;
+					if (!attrs_same(*attrs, field->attrs))
+						set_attrs(&field->attrs);
+					attrs = &field->attrs;
 					if ((field->character == ' ') &&
-					    (style_same(field->style,
-					    conn->screenbuffer.style)))
+					    (attrs_same(field->attrs,
+					    conn->screenbuffer.attrs)))
 						continue;
-					
+
 					prtchr(field->character, j, i);
 				}
 		}
@@ -341,7 +363,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int consnum;
-	ipcarg_t arg1, arg2;
+	ipcarg_t arg1, arg2, arg3;
 	connection_t *conn;
 	
 	if ((consnum = find_free_connection()) == -1) {
@@ -409,11 +431,26 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case CONSOLE_SET_STYLE:
 			arg1 = IPC_GET_ARG1(call);
+			screenbuffer_set_style(&conn->screenbuffer, arg1);
+			if (consnum == active_console)
+				set_style(arg1);
+			break;
+		case CONSOLE_SET_COLOR:
+			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_style(&conn->screenbuffer, arg1,
+			arg3 = IPC_GET_ARG3(call);
+			screenbuffer_set_color(&conn->screenbuffer, arg1,
+			    arg2, arg3);
+			if (consnum == active_console)
+				set_color(arg1, arg2, arg3);
+			break;
+		case CONSOLE_SET_RGB_COLOR:
+			arg1 = IPC_GET_ARG1(call);
+			arg2 = IPC_GET_ARG2(call);
+			screenbuffer_set_rgb_color(&conn->screenbuffer, arg1,
 			    arg2);
 			if (consnum == active_console)
-				set_style_col(arg1, arg2);
+				set_rgb_color(arg1, arg2);
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
 			arg1 = IPC_GET_ARG1(call);
@@ -487,7 +524,7 @@ int main(int argc, char *argv[])
 	
 	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.rows,
 	    &fb_info.cols); 
-	set_style_col(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	clrscr();
 	
 	/* Init virtual consoles */

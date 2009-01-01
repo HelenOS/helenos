@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <io/stream.h>
+#include <console.h>
 
 #include "config.h"
 #include "util.h"
@@ -164,7 +165,10 @@ void get_input(cliuser_t *usr)
 	char line[INPUT_MAX];
 	size_t len = 0;
 
+	console_set_style(STYLE_EMPHASIS);
 	printf("%s", usr->prompt);
+	console_set_style(STYLE_NORMAL);
+
 	read_line(line, INPUT_MAX);
 	len = strlen(line);
 	/* Make sure we don't have rubbish or a C/R happy user */

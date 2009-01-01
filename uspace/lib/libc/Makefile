@@ -48,6 +48,7 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/console.c \
 	generic/mem.c \
 	generic/string.c \
 	generic/fibril.c \

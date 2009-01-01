@@ -32,22 +32,75 @@
 #include <async.h>
 #include "../tester.h"
 
-#include <ipc/console.h>
+#include <console.h>
 
-static void set_style(int fgcolor, int bgcolor)
-{
-	int con_phone = get_cons_phone();
-	async_msg_2(con_phone, CONSOLE_SET_STYLE, fgcolor, bgcolor);
-}
+const char *color_name[] = {
+	[COLOR_BLACK] = "black",
+	[COLOR_BLUE] = "blue",
+	[COLOR_GREEN] = "green",
+	[COLOR_CYAN] = "cyan",
+	[COLOR_RED] = "red",
+	[COLOR_MAGENTA] = "magenta",
+	[COLOR_YELLOW] = "yellow",
+	[COLOR_WHITE] = "white"
+};
 
 char * test_console1(bool quiet)
 {
-	set_style(0xff0000, 0xf0f0f0);
-	printf("Red on white background.\n");
-	set_style(0x008080, 0x000080);
-	printf("Cyan on blue background.\n");
-	set_style(0x000000, 0xf0f0f0);
-	printf("Black on white background.\n");
+	int i, j;
+
+	printf("Style test: ");
+	console_set_style(STYLE_NORMAL);
+	printf("normal ");
+	console_set_style(STYLE_EMPHASIS);
+	printf("emphasized");
+	console_set_style(STYLE_NORMAL);
+	printf(".\n");
+
+	printf("Foreground color test:\n");
+	for (j = 0; j < 2; j++) {
+		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
+			console_set_color(i, COLOR_WHITE,
+			    j ? CATTR_BRIGHT : 0);
+			printf(" %s ", color_name[i]);
+		}
+		console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+		putchar('\n');
+	}
+
+	printf("Background color test:\n");
+	for (j = 0; j < 2; j++) {
+		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
+			console_set_color(COLOR_WHITE, i,
+			    j ? CATTR_BRIGHT : 0);
+			printf(" %s ", color_name[i]);
+		}
+		console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+		putchar('\n');
+	}
+
+	printf("Now let's test RGB colors:\n");
+
+	for (i = 0; i < 255; i += 16) {
+		console_set_rgb_color(0xffffff, i << 16);
+		putchar('X');
+	}
+	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	putchar('\n');
+
+	for (i = 0; i < 255; i += 16) {
+		console_set_rgb_color(0xffffff, i << 8);
+		putchar('X');
+	}
+	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	putchar('\n');
+
+	for (i = 0; i < 255; i += 16) {
+		console_set_rgb_color(0xffffff, i);
+		putchar('X');
+	}
+	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	putchar('\n');
 
 	printf("[press a key]\n");
 	getchar();
