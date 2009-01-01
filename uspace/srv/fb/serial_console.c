@@ -43,18 +43,56 @@
 #include <ipc/fb.h>
 #include <bool.h>
 #include <errno.h>
+#include <console/color.h>
 #include <console/style.h>
 
 #include "serial_console.h"
 
 #define MAX_CONTROL 20
 
+static void serial_sgr(const unsigned int mode);
+
 static int width;
 static int height;
+static bool color = true;	/** True if producing color output. */
 static putc_function_t putc_function;
 
 /* Allow only 1 connection */
 static int client_connected = 0;
+
+enum sgr_color_index {
+	CI_BLACK	= 0,
+	CI_RED		= 1,
+	CI_GREEN	= 2,
+	CI_BROWN	= 3,
+	CI_BLUE		= 4,
+	CI_MAGENTA	= 5,
+	CI_CYAN		= 6,
+	CI_WHITE	= 7,
+};
+
+enum sgr_command {
+	SGR_RESET	= 0,
+	SGR_BOLD	= 1,
+	SGR_BLINK	= 5,
+	SGR_REVERSE	= 7,
+	SGR_NORMAL_INT	= 22,
+	SGR_BLINK_OFF	= 25,
+	SGR_REVERSE_OFF = 27,
+	SGR_FGCOLOR	= 30,
+	SGR_BGCOLOR	= 40
+};
+
+static int color_map[] = {
+	[COLOR_BLACK]	= CI_BLACK,
+	[COLOR_BLUE]	= CI_RED,
+	[COLOR_GREEN]	= CI_GREEN,
+	[COLOR_CYAN]	= CI_CYAN,
+	[COLOR_RED]	= CI_RED,
+	[COLOR_MAGENTA] = CI_MAGENTA,
+	[COLOR_YELLOW]	= CI_BROWN,
+	[COLOR_WHITE]	= CI_WHITE
+};
 
 void serial_puts(char *str)
 {
@@ -67,13 +105,20 @@ void serial_goto(const unsigned int row, const unsigned int col)
 	if ((row > height) || (col > width))
 		return;
 	
-	char control[20];
-	snprintf(control, 20, "\033[%u;%uf", row + 1, col + 1);
+	char control[MAX_CONTROL];
+	snprintf(control, MAX_CONTROL, "\033[%u;%uf", row + 1, col + 1);
 	serial_puts(control);
 }
 
 void serial_clrscr(void)
 {
+	/* Initialize graphic rendition attributes. */
+	serial_sgr(SGR_RESET);
+	if (color) {
+		serial_sgr(SGR_FGCOLOR + CI_BLACK);
+		serial_sgr(SGR_BGCOLOR + CI_WHITE);
+	}
+
 	serial_puts("\033[2J");
 }
 
@@ -190,28 +235,46 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case FB_SET_STYLE:
 			style =  IPC_GET_ARG1(call);
-			if (style == STYLE_EMPHASIS)
-				serial_sgr(1);
-			else
-				serial_sgr(0);
+			if (style == STYLE_EMPHASIS) {
+				if (color) {
+					serial_sgr(SGR_RESET);
+					serial_sgr(SGR_FGCOLOR + CI_RED);
+					serial_sgr(SGR_BGCOLOR + CI_WHITE);
+				}
+				serial_sgr(SGR_BOLD);
+			} else {
+				if (color) {
+					serial_sgr(SGR_RESET);
+					serial_sgr(SGR_FGCOLOR + CI_BLACK);
+					serial_sgr(SGR_BGCOLOR + CI_WHITE);
+				}
+				serial_sgr(SGR_NORMAL_INT);
+			}
 			retval = 0;
 			break;
 		case FB_SET_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
-			if (fgcolor < bgcolor)
-				serial_sgr(0);
-			else
-				serial_sgr(7);
+
+			if (color) {
+				serial_sgr(SGR_RESET);
+				serial_sgr(SGR_FGCOLOR + color_map[fgcolor]);
+				serial_sgr(SGR_BGCOLOR + color_map[bgcolor]);
+			} else {
+				if (fgcolor < bgcolor)
+					serial_sgr(SGR_RESET);
+				else
+					serial_sgr(SGR_REVERSE);
+			}
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
 			if (fgcolor < bgcolor)
-				serial_sgr(0);
+				serial_sgr(SGR_REVERSE_OFF);
 			else
-				serial_sgr(7);
+				serial_sgr(SGR_REVERSE);
 			retval = 0;
 			break;
 		case FB_SCROLL:
