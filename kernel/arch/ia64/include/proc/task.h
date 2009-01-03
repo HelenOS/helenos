@@ -43,7 +43,7 @@ typedef struct {
 } task_arch_t;
 
 
-#define task_create_arch(t) {(t)->arch.iomap=NULL;}
+#define task_create_arch(t) { (t)->arch.iomap = NULL; }
 #define task_destroy_arch(t)
 
 #endif

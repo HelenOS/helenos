@@ -68,7 +68,6 @@ typedef struct {
 	unsigned long freq_scale;
 	unsigned int wakeup_intno;
 	int hello_configured;
-
 } bootinfo_t;
 
 extern bootinfo_t *bootinfo;

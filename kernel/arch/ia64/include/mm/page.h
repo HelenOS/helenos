@@ -51,20 +51,18 @@
 #define USPACE_IO_PAGE_WIDTH		12	/* 4K */
 
 
-
-/** Staticly mapped IO spaces - offsets to 0xe...00 of virtual adresses 
-becauce of "minimal virtual bits implemented is 51"
-it is possible to have here values up to 0x0007000000000000
-*/
+/*
+ * Statically mapped IO spaces - offsets to 0xe...00 of virtual addresses
+ * because of "minimal virtual bits implemented is 51" it is possible to
+ * have values up to 0x0007000000000000
+ */
 
 /* Firmware area (bellow 4GB in phys mem) */
 #define FW_OFFSET             0x00000000F0000000
 /* Legacy IO space */
 #define IO_OFFSET             0x0001000000000000
-/* Videoram - now mapped to 0 as VGA text mode vram on 0xb8000*/
+/* Videoram - now mapped to 0 as VGA text mode vram on 0xb8000 */
 #define VIO_OFFSET            0x0002000000000000
-
-
 
 
 #define PPN_SHIFT			12
@@ -81,8 +79,8 @@ it is possible to have here values up to 0x0007000000000000
 
 #define REGION_REGISTERS 		8
 
-#define KA2PA(x)	((uintptr_t) (x-(VRN_KERNEL<<VRN_SHIFT)))
-#define PA2KA(x)	((uintptr_t) (x+(VRN_KERNEL<<VRN_SHIFT)))
+#define KA2PA(x)	((uintptr_t) (x - (VRN_KERNEL << VRN_SHIFT)))
+#define PA2KA(x)	((uintptr_t) (x + (VRN_KERNEL << VRN_SHIFT)))
 
 #define VHPT_WIDTH 			20	/* 1M */
 #define VHPT_SIZE 			(1 << VHPT_WIDTH)

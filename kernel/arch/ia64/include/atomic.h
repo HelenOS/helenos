@@ -37,16 +37,17 @@
 
 /** Atomic addition.
  *
- * @param val Atomic value.
- * @param imm Value to add.
+ * @param val		Atomic value.
+ * @param imm		Value to add.
  *
- * @return Value before addition.
+ * @return		Value before addition.
  */
 static inline long atomic_add(atomic_t *val, int imm)
 {
 	long v;
 
- 	asm volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
+ 	asm volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v),
+	    "+m" (val->count) : "i" (imm));
  
 	return v;
 }
@@ -56,23 +57,44 @@ static inline uint64_t test_and_set(atomic_t *val) {
 	uint64_t v;
 		
 	asm volatile (
-		"movl %0=0x01;;\n"
-		"xchg8 %0=%1,%0;;\n"
-		: "=r" (v),"+m" (val->count)
+		"movl %0 = 0x01;;\n"
+		"xchg8 %0 = %1, %0;;\n"
+		: "=r" (v), "+m" (val->count)
 	);
 	
 	return v;
 }
 
 
-static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
-static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
+static inline void atomic_inc(atomic_t *val)
+{
+	atomic_add(val, 1);
+}
 
-static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
+static inline void atomic_dec(atomic_t *val)
+{
+	atomic_add(val, -1);
+}
 
-static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
-static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
+static inline long atomic_preinc(atomic_t *val)
+{
+	return atomic_add(val, 1) + 1;
+}
+
+static inline long atomic_predec(atomic_t *val)
+{
+	return atomic_add(val, -1) - 1;
+}
+
+static inline long atomic_postinc(atomic_t *val)
+{
+	return atomic_add(val, 1);
+}
+
+static inline long atomic_postdec(atomic_t *val)
+{
+	return atomic_add(val, -1);
+}
 
 #endif
 

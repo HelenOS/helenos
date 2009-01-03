@@ -83,15 +83,12 @@ static inline int ia64_get_cpu_eid(void)
 }
 
 
-
-static inline void ipi_send_ipi(int id,int eid,int intno)
+static inline void ipi_send_ipi(int id, int eid, int intno)
 {
-	(bootinfo->sapic)[2*(id*256+eid)]=intno;
+	(bootinfo->sapic)[2 * (id * 256 + eid)] = intno;
 	srlz_d();
 
 }
-
-
 
 #endif
 

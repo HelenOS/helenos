@@ -40,11 +40,11 @@
 #define PSR_I_MASK	0x4000
 #define PSR_PK_MASK	0x8000
 
-#define PSR_DT_MASK	(1<<17)
-#define PSR_RT_MASK	(1<<27)
+#define PSR_DT_MASK	(1 << 17)
+#define PSR_RT_MASK	(1 << 27)
 
-#define PSR_DFL_MASK	(1<<18)
-#define PSR_DFH_MASK	(1<<19)
+#define PSR_DFL_MASK	(1 << 18)
+#define PSR_DFH_MASK	(1 << 19)
 
 #define PSR_IT_MASK	0x0000001000000000
 

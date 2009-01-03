@@ -53,8 +53,8 @@
 
 #define VECTOR_TLB_SHOOTDOWN_IPI 0xf0
 #define INTERRUPT_TIMER		255
-#define IRQ_KBD			(0x01+LEGACY_INTERRUPT_BASE)
-#define IRQ_MOUSE		(0x0c+LEGACY_INTERRUPT_BASE)
+#define IRQ_KBD			(0x01 + LEGACY_INTERRUPT_BASE)
+#define IRQ_MOUSE		(0x0c + LEGACY_INTERRUPT_BASE)
 #define INTERRUPT_SPURIOUS	15
 #define LEGACY_INTERRUPT_BASE	0x20
 
@@ -117,7 +117,7 @@ typedef struct {
 	
 	/*
 	 * The following variables are defined only for break_instruction
-	 * handler. 
+	 * handler.
 	 */
 	uint64_t in0;
 	uint64_t in1;
@@ -152,7 +152,6 @@ extern void universal_handler(uint64_t vector, istate_t *istate);
 extern void nop_handler(uint64_t vector, istate_t *istate);
 extern void external_interrupt(uint64_t vector, istate_t *istate);
 extern void disabled_fp_register(uint64_t vector, istate_t *istate);
-
 
 #endif
 
