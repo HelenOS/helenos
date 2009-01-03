@@ -44,14 +44,13 @@ void write(const char *str, const int len)
     return;
 }
 
-#define DEFAULT_MEMORY_BASE 0x4000000
-#define DEFAULT_MEMORY_SIZE 0x4000000
-#define DEFAULT_LEGACY_IO_BASE 0x00000FFFFC000000 
-#define DEFAULT_LEGACY_IO_SIZE 0x4000000 
+#define DEFAULT_MEMORY_BASE		0x4000000
+#define DEFAULT_MEMORY_SIZE		0x4000000
+#define DEFAULT_LEGACY_IO_BASE		0x00000FFFFC000000 
+#define DEFAULT_LEGACY_IO_SIZE		0x4000000 
 
-#define DEFAULT_FREQ_SCALE 0x0000000100000001 // 1/1
-#define DEFAULT_SYS_FREQ 100000000 //100MHz
-
+#define DEFAULT_FREQ_SCALE		0x0000000100000001 /* 1/1 */
+#define DEFAULT_SYS_FREQ		100000000 /* 100MHz */
 
 #ifdef REVISION
 	char *revision = ", revision " REVISION;
@@ -68,23 +67,18 @@ void write(const char *str, const int len)
 /** Print version information. */
 static void version_print(void)
 {
-	printf("HelenOS IA64 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
+	printf("HelenOS IA64 Bootloader\nRelease %s%s%s\n"
+	    "Copyright (c) 2006 HelenOS project\n", release, revision,
+	    timestamp);
 }
 
 void bootstrap(void)
 {
-
 	int ii;
-	
-	
-	bootinfo_t *bootinfo=&binfo;
-	
-	
-
+	bootinfo_t *bootinfo = &binfo;
 
 	version_print();
 
-	
 	init_components(components);
 
 	printf("\nSystem info\n");
@@ -96,42 +90,43 @@ void bootstrap(void)
 		printf(" %P: %s image (size %d bytes)\n", components[i].start,
 		    components[i].name, components[i].size);
 
-	if(!bootinfo->hello_configured)
-	{
+	if (!bootinfo->hello_configured) {
 		/*
-		 * Load configuration defaults for simulators
+		 * Load configuration defaults for simulators.
 		 */
-		 bootinfo->memmap_items=0;
+		 bootinfo->memmap_items = 0;
 		 
-		 bootinfo->memmap[bootinfo->memmap_items].base=DEFAULT_MEMORY_BASE;
-		 bootinfo->memmap[bootinfo->memmap_items].size=DEFAULT_MEMORY_SIZE;
-		 bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_FREE_MEM;
+		 bootinfo->memmap[bootinfo->memmap_items].base =
+		     DEFAULT_MEMORY_BASE;
+		 bootinfo->memmap[bootinfo->memmap_items].size =
+		     DEFAULT_MEMORY_SIZE;
+		 bootinfo->memmap[bootinfo->memmap_items].type =
+		     EFI_MEMMAP_FREE_MEM;
 		 bootinfo->memmap_items++;
 
-		 bootinfo->memmap[bootinfo->memmap_items].base=DEFAULT_LEGACY_IO_BASE;
-		 bootinfo->memmap[bootinfo->memmap_items].size=DEFAULT_LEGACY_IO_SIZE;
-		 bootinfo->memmap[bootinfo->memmap_items].type=EFI_MEMMAP_IO_PORTS;
+		 bootinfo->memmap[bootinfo->memmap_items].base =
+		     DEFAULT_LEGACY_IO_BASE;
+		 bootinfo->memmap[bootinfo->memmap_items].size =
+		     DEFAULT_LEGACY_IO_SIZE;
+		 bootinfo->memmap[bootinfo->memmap_items].type =
+		     EFI_MEMMAP_IO_PORTS;
 		 bootinfo->memmap_items++;
 		 
 		 bootinfo->freq_scale = DEFAULT_FREQ_SCALE;
 		 bootinfo->sys_freq = DEFAULT_SYS_FREQ;
-		 
 	}
-
-
 
 	bootinfo->taskmap.count = 0;
 	for (i = 0; i < COMPONENTS; i++) {
-
 		if (i > 0) {
-			bootinfo->taskmap.tasks[bootinfo->taskmap.count].addr = components[i].start;
-			bootinfo->taskmap.tasks[bootinfo->taskmap.count].size = components[i].size;
+			bootinfo->taskmap.tasks[bootinfo->taskmap.count].addr =
+			    components[i].start;
+			bootinfo->taskmap.tasks[bootinfo->taskmap.count].size =
+			    components[i].size;
 			bootinfo->taskmap.count++;
 		}
 	}
 
 	jump_to_kernel(bootinfo);
-
-
 }
 

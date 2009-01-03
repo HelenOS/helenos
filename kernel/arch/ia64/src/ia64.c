@@ -99,11 +99,10 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-
 	uint64_t IOSAPIC = PA2KA((unative_t)(iosapic_base)) | FW_OFFSET;
 	int i;
 	
-	int myid,myeid;
+	int myid, myeid;
 	
 	myid = ia64_get_cpu_id();
 	myeid = ia64_get_cpu_eid();
