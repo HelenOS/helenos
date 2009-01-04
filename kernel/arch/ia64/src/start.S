@@ -139,7 +139,8 @@ kernel_image_start:
 	.explicit
 
 	/*
-	 * Return From Interupt is the only the way to fill upper half word of PSR.
+	 * Return From Interrupt is the only way to
+	 * fill the upper half word of PSR.
 	 */
 	rfi;;
 
