@@ -268,26 +268,10 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.tag.tag_word = tag;
 }
 
-extern uintptr_t last_frame;
-
-uintptr_t hw_map(uintptr_t physaddr, size_t size)
+uintptr_t hw_map(uintptr_t physaddr, size_t size __attribute__ ((unused)))
 {
-	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
-	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes)", physaddr,
-		    size)
-	
-	uintptr_t virtaddr = PA2KA(last_frame);
-	pfn_t i;
-	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
-		uintptr_t addr = PFN2ADDR(i);
-		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr,
-		    PAGE_NOT_CACHEABLE | PAGE_WRITE);
-	}
-	
-	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
-	
-	return virtaddr;
+	/* This is a dirty hack. */
+	return PA2KA(physaddr);
 }
 
 /** @}

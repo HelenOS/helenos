@@ -482,7 +482,7 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 static int is_io_page_accessible(int page)
 {
 	if (TASK->arch.iomap)
-		return bitmap_get(TASK->arch.iomap,page);
+		return bitmap_get(TASK->arch.iomap, page);
 	else
 		return 0;
 }
