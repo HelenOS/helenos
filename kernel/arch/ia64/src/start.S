@@ -49,6 +49,7 @@ stack0:
 kernel_image_start:
 	.auto
 
+#ifdef CONFIG_SMP
 	# Identify self(CPU) in OS structures by ID / EID
 
 	mov r9 = cr64
@@ -59,6 +60,7 @@ kernel_image_start:
 	shr r9 = r9, 16
 	add r8 = r8, r9
 	st1 [r8] = r10
+#endif
 
 	mov psr.l = r0
 	srlz.i
@@ -79,10 +81,10 @@ kernel_image_start:
 	movl r8 = (VRN_KERNEL << VRN_SHIFT)
 	mov cr.ifa = r8
 
-	mov r11 = cr.itir ;;
-	movl r10 = (KERNEL_PAGE_WIDTH << PS_SHIFT);;
-	or r10 = r10, r11 ;;
-	mov cr.itir = r10;;
+	mov r11 = cr.itir
+	movl r10 = (KERNEL_PAGE_WIDTH << PS_SHIFT)
+	or r10 = r10, r11
+	mov cr.itir = r10
 
 	movl r10 = (KERNEL_TRANSLATION_I)
 	itr.i itr[r0] = r10
@@ -95,12 +97,12 @@ kernel_image_start:
 	movl r10 = (KERNEL_TRANSLATION_VIO)
 	itr.d dtr[r7] = r10
 
-	mov r11 = cr.itir ;;
-	movl r10 = ~0xfc;;
-	and r10 = r10, r11 ;;
-	movl r11 = (IO_PAGE_WIDTH << PS_SHIFT);;
-	or r10 = r10, r11 ;;
-	mov cr.itir = r10;;
+	mov r11 = cr.itir
+	movl r10 = ~0xfc
+	and r10 = r10, r11
+	movl r11 = (IO_PAGE_WIDTH << PS_SHIFT)
+	or r10 = r10, r11
+	mov cr.itir = r10
 
 	movl r7 = 2
 	movl r8 = (VRN_KERNEL << VRN_SHIFT) | IO_OFFSET
@@ -110,12 +112,12 @@ kernel_image_start:
 
 	# Setup mapping for fimware arrea (also SAPIC)
 
-	mov r11 = cr.itir ;;
-	movl r10 = ~0xfc;;
-	and r10 = r10, r11 ;;
-	movl r11 = (FW_PAGE_WIDTH << PS_SHIFT);;
-	or r10 = r10, r11 ;;
-	mov cr.itir = r10;;
+	mov r11 = cr.itir
+	movl r10 = ~0xfc
+	and r10 = r10, r11
+	movl r11 = (FW_PAGE_WIDTH << PS_SHIFT)
+	or r10 = r10, r11
+	mov cr.itir = r10
 
 	movl r7 = 3
 	movl r8 = (VRN_KERNEL << VRN_SHIFT) | FW_OFFSET
@@ -142,7 +144,7 @@ kernel_image_start:
 	 * Return From Interrupt is the only way to
 	 * fill the upper half word of PSR.
 	 */
-	rfi;;
+	rfi ;;
 
 
 .global paging_start
@@ -155,10 +157,14 @@ paging_start:
 	# Switch to register bank 1
 	bsw.1
 
+#ifdef CONFIG_SMP
 	# Am I BSP or AP?
-	movl r20 = bsp_started;;
-	ld8 r20 = [r20];;
-	cmp.eq p3, p2 = r20, r0;;
+	movl r20 = bsp_started ;;
+	ld8 r20 = [r20] ;;
+	cmp.eq p3, p2 = r20, r0 ;;
+#else
+	cmp.eq p3, p2 = r0, r0 ;;	/* you are BSP */
+#endif	/* CONFIG_SMP */
 	
 	# Initialize register stack
 	mov ar.rsc = r0
@@ -195,14 +201,16 @@ paging_start:
 	srlz.i
 	srlz.d ;;
 
+#ifdef CONFIG_SMP
 (p2)	movl r18 = main_ap ;;
 (p2)   	mov b1 = r18 ;;
 (p2)	br.call.sptk.many b0 = b1
 
 	# Mark that BSP is on
-	mov r20=1;;
-	movl r21=bsp_started;;
-	st8 [r21]=r20;;
+	mov r20 = 1 ;;
+	movl r21 = bsp_started ;;
+	st8 [r21] = r20 ;;
+#endif
 
 	br.call.sptk.many b0 = arch_pre_main
 
@@ -212,8 +220,10 @@ paging_start:
 
 0:
 	br 0b
-.align 4096
 
+#ifdef CONFIG_SMP
+
+.align 4096
 kernel_image_ap_start:
 	.auto
 
@@ -229,21 +239,21 @@ kernel_image_ap_start:
 	st1 [r8] = r10
 	
 	# Wait for wakeup synchro signal (#3 in cpu_by_id_eid_list)
+	
 kernel_image_ap_start_loop:
 	movl r11 = kernel_image_ap_start_loop
 	and r11 = r11, r12
    	mov b1 = r11 
 
-	ld1 r20 = [r8];;
-	movl r21 = 3;;
-	cmp.eq p2, p3 = r20, r21;;
+	ld1 r20 = [r8] ;;
+	movl r21 = 3 ;;
+	cmp.eq p2, p3 = r20, r21 ;;
 (p3)	br.call.sptk.many b0 = b1
 
 	movl r11 = kernel_image_start
 	and r11 = r11, r12
 	mov b1 = r11 
 	br.call.sptk.many b0 = b1
-
 
 .align 16
 .global bsp_started
@@ -255,3 +265,4 @@ bsp_started:
 cpu_by_id_eid_list:
 .space 65536
 
+#endif	/* CONFIG_SMP */

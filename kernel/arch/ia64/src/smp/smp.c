@@ -73,7 +73,7 @@ static void sapic_init(void)
 
 static void ipi_broadcast_arch_all(int ipi)
 {
-	int id,eid;
+	int id, eid;
 	int myid, myeid;
 	
 	myid = ia64_get_cpu_id();
@@ -87,8 +87,8 @@ static void ipi_broadcast_arch_all(int ipi)
 
 void ipi_broadcast_arch(int ipi )
 {
-	int id,eid;
-	int myid,myeid;
+	int id, eid;
+	int myid, myeid;
 	
 	myid = ia64_get_cpu_id();
 	myeid = ia64_get_cpu_eid();
@@ -106,7 +106,7 @@ void smp_init(void)
 		return; 
 	
 	/*
-	 * If we have not system prepared by hello, we are not able to start
+	 * If we have not got system prepared by hello, we are not able to start
 	 * AP's. This means we are running on a simulator.
 	 */
 	
@@ -129,7 +129,7 @@ void smp_init(void)
 
 void kmp(void *arg __attribute__((unused)))
 {
-	int id,eid;
+	int id, eid;
 	int myid, myeid;
 	
 	myid = ia64_get_cpu_id();
@@ -161,19 +161,6 @@ void kmp(void *arg __attribute__((unused)))
 						    __FUNCTION__, id, eid);
 					    }
 				}
-}
-
-#endif
-
-
-#ifndef CONFIG_SMP
-
-/* This is just a hack for linking with assembler - may be removed in future. */
-void main_ap(void);
-void main_ap(void)
-{
-	while(1)
-		;
 }
 
 #endif
