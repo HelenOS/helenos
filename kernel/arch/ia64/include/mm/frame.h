@@ -41,6 +41,10 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
+#include <arch/types.h>
+
+extern uintptr_t last_frame;
+
 extern void frame_arch_init(void);
 #define physmem_print()
 
