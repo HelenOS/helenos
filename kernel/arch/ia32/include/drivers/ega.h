@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2008 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_EGA_H_
-#define KERN_ia32_EGA_H_
+#ifndef KERN_ia32_EGA_H
+#define KERN_ia32_EGA_H
 
-#define VIDEORAM	0xb8000
-#define ROW		80
-#define ROWS		25
-#define SCREEN		(ROW * ROWS)
-
-extern void ega_redraw(void);
-extern void ega_init(void);
+#define EGA_VIDEORAM 	0xb8000
+#define EGA_BASE	0x3d4
 
 #endif
 

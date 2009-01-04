@@ -51,8 +51,9 @@
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
 #include <ddi/device.h>
-#include <arch/drivers/ega.h>
 #include <arch/bootinfo.h>
+#include <arch/drivers/ega.h>
+#include <genarch/drivers/ega/ega.h>
 #include <genarch/kbd/i8042.h>
 #include <genarch/kbd/ns16550.h>
 #include <smp/smp.h>
@@ -132,7 +133,7 @@ void arch_post_mm_init(void)
 #ifdef SKI
 		ski_init_console();
 #else	
-		ega_init();
+		ega_init(EGA_BASE, EGA_VIDEORAM);
 #endif	
 	}
 	it_init();

@@ -39,8 +39,6 @@
 #include <arch/types.h>
 #include <arch/register.h>
 
-typedef uint64_t ioport_t;
-
 #define IA64_IOSPACE_ADDRESS 0xE001000000000000ULL
 
 static inline void  outb(ioport_t port, uint8_t v)

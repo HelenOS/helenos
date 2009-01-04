@@ -110,6 +110,12 @@ DEFS += -DCONFIG_PAGE_PT
 CONFIG_I8042 = y
 DEFS += -DCONFIG_I8042
 
+## Compile with EGA support
+#
+
+CONFIG_EGA = y
+DEFS += -DCONFIG_EGA
+
 ## Accepted configuration directives
 #
 
@@ -155,7 +161,6 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/i8254.c \
 	arch/$(ARCH)/src/drivers/i8259.c \
-	arch/$(ARCH)/src/drivers/ega.c \
 	arch/$(ARCH)/src/drivers/vesa.c \
 	arch/$(ARCH)/src/boot/boot.S \
 	arch/$(ARCH)/src/boot/memmap.c \

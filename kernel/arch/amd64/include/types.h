@@ -57,6 +57,8 @@ typedef uint64_t ipl_t;
 typedef uint64_t unative_t;
 typedef int64_t native_t;
 
+typedef uintptr_t ioport_t;
+
 /**< Formats for uintptr_t, size_t, count_t and index_t */
 #define PRIp "llx"
 #define PRIs "llu"

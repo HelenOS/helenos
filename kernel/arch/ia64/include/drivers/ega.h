@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
- * 2007 Jakub Vana 
+ * Copyright (c) 2008 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -36,13 +35,8 @@
 #ifndef KERN_ia64_EGA_H
 #define KERN_ia64_EGA_H
 
-#define VIDEORAM (0xe0020000000B8000LL)
-
-#define ROW		80
-#define ROWS		25
-#define SCREEN		(ROW * ROWS)
-
-extern void ega_init(void);
+#define EGA_VIDEORAM 	0xb8000
+#define EGA_BASE	0x3d4
 
 #endif
 

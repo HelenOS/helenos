@@ -39,6 +39,7 @@
 #include <arch/pm.h>
 
 #include <arch/drivers/ega.h>
+#include <genarch/drivers/ega/ega.h>
 #include <arch/drivers/vesa.h>
 #include <genarch/kbd/i8042.h>
 #include <arch/drivers/i8254.h>
@@ -93,7 +94,7 @@ void arch_post_mm_init(void)
 			vesa_init();
 		else
 #endif
-			ega_init(); /* video */
+			ega_init(EGA_BASE, EGA_VIDEORAM);	/* video */
 		
 		/* Enable debugger */
 		debugger_init();

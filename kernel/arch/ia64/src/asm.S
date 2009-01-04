@@ -128,6 +128,10 @@ memcpy_to_uspace_failover_address:
 memsetb:
 	br _memsetb
 
+.global memsetw
+memsetw:
+	br _memsetw
+
 .global cpu_halt
 cpu_halt:
 	br cpu_halt

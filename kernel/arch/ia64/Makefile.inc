@@ -59,7 +59,6 @@ DEFS += -DCONFIG_PAGE_HT
 CONFIG_ASID = y
 CONFIG_ASID_FIFO = y
 
-
 ## Compile with support for software integer division.
 #
 
@@ -92,9 +91,9 @@ ifeq ($(MACHINE),ski)
 endif
 
 ifeq ($(MACHINE),i460GX)
-	ARCH_SOURCES += arch/$(ARCH)/src/drivers/ega.c
 	CONFIG_I8042 = y
-	DEFS += -DI460GX -DCONFIG_I8042
+	CONFIG_EGA = y
+	DEFS += -DI460GX -DCONFIG_I8042 -DCONFIG_EGA
 	BFD = binary
 endif
 

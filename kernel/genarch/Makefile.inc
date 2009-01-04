@@ -103,3 +103,9 @@ ifeq ($(CONFIG_OFW_TREE), y)
 		genarch/src/ofw/sbus.c \
 		genarch/src/ofw/upa.c 
 endif
+
+## EGA
+ifeq ($(CONFIG_EGA), y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/ega/ega.c
+endif

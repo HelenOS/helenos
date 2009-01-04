@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup genarch_drivers	
  * @{
  */
 /**
@@ -34,7 +34,7 @@
  * @brief EGA driver.
  */
 
-#include <arch/drivers/ega.h>
+#include <genarch/drivers/ega/ega.h>
 #include <putchar.h>
 #include <mm/page.h>
 #include <mm/as.h>
@@ -60,6 +60,7 @@ SPINLOCK_INITIALIZE(egalock);
 static uint32_t ega_cursor;
 static uint8_t *videoram;
 static uint8_t *backbuf;
+static ioport_t ega_base;
 
 static void ega_putchar(chardev_t *d, const char ch);
 
@@ -70,25 +71,26 @@ static chardev_operations_t ega_ops = {
 
 static void ega_move_cursor(void);
 
-void ega_init(void)
+void ega_init(ioport_t base, uintptr_t videoram_phys)
 {
-	uint8_t hi, lo;
+	/* Initialize the software structure. */	
+	ega_base = base;
 
 	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
 	if (!backbuf)
 		panic("Unable to allocate backbuffer.\n");
 	
-	videoram = (uint8_t *) hw_map(VIDEORAM, SCREEN * 2);
-	outb(0x3d4, 0xe);
-	hi = inb(0x3d5);
-	outb(0x3d4, 0xf);
-	lo = inb(0x3d5);
-	ega_cursor = (hi << 8) | lo;
+	videoram = (uint8_t *) hw_map(videoram_phys, SCREEN * 2);
+	
+	/* Clear the screen and set the cursor position. */
+	memsetw(videoram, SCREEN, 0x0720);
+	memsetw(backbuf, SCREEN, 0x0720);
+	ega_move_cursor();
 
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
 	
-	ega_parea.pbase = VIDEORAM;
+	ega_parea.pbase = videoram_phys;
 	ega_parea.vbase = (uintptr_t) videoram;
 	ega_parea.frames = 1;
 	ega_parea.cacheable = false;
@@ -98,7 +100,8 @@ void ega_init(void)
 	sysinfo_set_item_val("fb.kind", NULL, 2);
 	sysinfo_set_item_val("fb.width", NULL, ROW);
 	sysinfo_set_item_val("fb.height", NULL, ROWS);
-	sysinfo_set_item_val("fb.address.physical", NULL, VIDEORAM);
+	sysinfo_set_item_val("fb.blinking", NULL, true);
+	sysinfo_set_item_val("fb.address.physical", NULL, videoram_phys);
 }
 
 static void ega_display_char(char ch)
@@ -115,8 +118,10 @@ static void ega_check_cursor(void)
 	if (ega_cursor < SCREEN)
 		return;
 
-	memmove((void *) videoram, (void *) (videoram + ROW * 2), (SCREEN - ROW) * 2);
-	memmove((void *) backbuf, (void *) (backbuf + ROW * 2), (SCREEN - ROW) * 2);
+	memmove((void *) videoram, (void *) (videoram + ROW * 2),
+	    (SCREEN - ROW) * 2);
+	memmove((void *) backbuf, (void *) (backbuf + ROW * 2),
+	    (SCREEN - ROW) * 2);
 	memsetw(videoram + (SCREEN - ROW) * 2, ROW, 0x0720);
 	memsetw(backbuf + (SCREEN - ROW) * 2, ROW, 0x0720);
 	ega_cursor = ega_cursor - ROW;
@@ -154,10 +159,10 @@ void ega_putchar(chardev_t *d __attribute__((unused)), const char ch)
 
 void ega_move_cursor(void)
 {
-	outb(0x3d4, 0xe);
-	outb(0x3d5, (uint8_t) ((ega_cursor >> 8) & 0xff));
-	outb(0x3d4, 0xf);
-	outb(0x3d5, (uint8_t) (ega_cursor & 0xff));	
+	outb(ega_base + EGA_INDEX_REG, 0xe);
+	outb(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
+	outb(ega_base + EGA_INDEX_REG, 0xf);
+	outb(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
 }
 
 void ega_redraw(void)
