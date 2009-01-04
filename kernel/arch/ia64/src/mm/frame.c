@@ -50,7 +50,7 @@
 
 #define MINCONF 1
 
-uintptr_t last_frame;
+uintptr_t last_frame = 0;
 
 void frame_arch_init(void)
 {
@@ -70,7 +70,9 @@ void frame_arch_init(void)
 					    size >> FRAME_WIDTH,
 					    max(MINCONF, abase >> FRAME_WIDTH),
 					    0);
-				}	
+				}
+				if (abase + size > last_frame)
+					last_frame = abase + size;
 			}
 		}
 		
