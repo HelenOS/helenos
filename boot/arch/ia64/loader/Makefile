@@ -96,19 +96,18 @@ COMPONENTS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd
+	$(USPACEDIR)/srv/vfs/vfs
 ifeq ($(RDFMT),tmpfs)
 	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif
 ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
 endif
-COMPONENTS += \
-	$(USPACEDIR)/srv/console/console
 
 RD_SRVS = \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat
 

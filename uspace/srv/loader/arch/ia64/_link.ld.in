@@ -12,15 +12,10 @@ SECTIONS {
 		*(.interp);
 	} :interp
 
-	. = 0x00084000 + SIZEOF_HEADERS;
+	/* On Itanium code sections must be aligned to 16 bytes. */
+	. = ALIGN(0x800000000 + SIZEOF_HEADERS, 16);
 
 	.init : {
-		LONG(0);
-		LONG(0);
-		LONG(0);
-		LONG(0);
-		LONG(0);
-		LONG(0);
 		*(.init);
 	} : text
 	.text : {
