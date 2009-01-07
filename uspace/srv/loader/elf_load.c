@@ -57,6 +57,8 @@
 #include "elf_load.h"
 #include "arch.h"
 
+#define DPRINTF(...)
+
 static char *error_codes[] = {
 	"no error",
 	"invalid image",
@@ -106,11 +108,9 @@ int elf_load_file(char *file_name, size_t so_bias, elf_info_t *info)
 	int fd;
 	int rc;
 
-//	printf("open and read '%s'...\n", file_name);
-
 	fd = open(file_name, O_RDONLY);
 	if (fd < 0) {
-		printf("failed opening file\n");
+		DPRINTF("failed opening file\n");
 		return -1;
 	}
 
@@ -171,19 +171,18 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 
 	rc = my_read(elf->fd, header, sizeof(elf_header_t));
 	if (rc < 0) {
-		printf("read error\n"); 
+		DPRINTF("Read error.\n"); 
 		return EE_INVALID;
 	}
 
 	elf->header = header;
 
-//	printf("ELF-load:");
 	/* Identify ELF */
 	if (header->e_ident[EI_MAG0] != ELFMAG0 ||
 	    header->e_ident[EI_MAG1] != ELFMAG1 || 
 	    header->e_ident[EI_MAG2] != ELFMAG2 ||
 	    header->e_ident[EI_MAG3] != ELFMAG3) {
-		printf("invalid header\n");
+		DPRINTF("Invalid header.\n");
 		return EE_INVALID;
 	}
 	
@@ -193,40 +192,36 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	    header->e_ident[EI_VERSION] != EV_CURRENT ||
 	    header->e_version != EV_CURRENT ||
 	    header->e_ident[EI_CLASS] != ELF_CLASS) {
-		printf("incompatible data/version/class\n");
+		DPRINTF("Incompatible data/version/class.\n");
 		return EE_INCOMPATIBLE;
 	}
 
 	if (header->e_phentsize != sizeof(elf_segment_header_t)) {
-		printf("e_phentsize:%d != %d\n", header->e_phentsize,
+		DPRINTF("e_phentsize:%d != %d\n", header->e_phentsize,
 		    sizeof(elf_segment_header_t));
 		return EE_INCOMPATIBLE;
 	}
 
 	if (header->e_shentsize != sizeof(elf_section_header_t)) {
-		printf("e_shentsize:%d != %d\n", header->e_shentsize,
+		DPRINTF("e_shentsize:%d != %d\n", header->e_shentsize,
 		    sizeof(elf_section_header_t));
 		return EE_INCOMPATIBLE;
 	}
 
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) {
-		printf("Object type %d is not supported\n", header->e_type);
+		DPRINTF("Object type %d is not supported\n", header->e_type);
 		return EE_UNSUPPORTED;
 	}
 
 	/* Shared objects can be loaded with a bias */
-//	printf("Object type: %d\n", header->e_type);
 	if (header->e_type == ET_DYN)
 		elf->bias = so_bias;
 	else
 		elf->bias = 0;
 
-//	printf("Bias set to 0x%x\n", elf->bias);
 	elf->info->interp = NULL;
 	elf->info->dynamic = NULL;
-
-//	printf("parse segments\n");
 
 	/* Walk through all segment headers and process them. */
 	for (i = 0; i < header->e_phnum; i++) {
@@ -239,7 +234,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		rc = my_read(elf->fd, &segment_hdr,
 		    sizeof(elf_segment_header_t));
 		if (rc < 0) {
-			printf("read error\n");
+			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
 
@@ -248,7 +243,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 			return rc;
 	}
 
-//	printf("parse sections\n");
+	DPRINTF("Parse sections.\n");
 
 	/* Inspect all section headers and proccess them. */
 	for (i = 0; i < header->e_shnum; i++) {
@@ -261,7 +256,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 		rc = my_read(elf->fd, &section_hdr,
 		    sizeof(elf_section_header_t));
 		if (rc < 0) {
-			printf("read error\n");
+			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
 
@@ -273,7 +268,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
 	elf->info->entry =
 	    (entry_point_t)((uint8_t *)header->e_entry + elf->bias);
 
-//	printf("done\n");
+	DPRINTF("Done.\n");
 
 	return EE_OK;
 }
@@ -316,7 +311,7 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 	case PT_LOPROC:
 	case PT_HIPROC:
 	default:
-		printf("segment p_type %d unknown\n", entry->p_type);
+		DPRINTF("Segment p_type %d unknown.\n", entry->p_type);
 		return EE_UNSUPPORTED;
 		break;
 	}
@@ -339,15 +334,15 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	size_t mem_sz;
 	int rc;
 
-//	printf("load segment at addr 0x%x, size 0x%x\n", entry->p_vaddr,
-//		entry->p_memsz);
+	DPRINTF("Load segment at addr 0x%x, size 0x%x\n", entry->p_vaddr,
+		entry->p_memsz);
 	
 	bias = elf->bias;
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
 		    (entry->p_vaddr % entry->p_align)) {
-			printf("align check 1 failed offset%%align=%d, "
+			DPRINTF("Align check 1 failed offset%%align=%d, "
 			    "vaddr%%align=%d\n",
 			    entry->p_offset % entry->p_align,
 			    entry->p_vaddr % entry->p_align
@@ -369,8 +364,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-//	printf("map to p_vaddr=0x%x-0x%x...\n", entry->p_vaddr + bias,
-//	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
+	DPRINTF("Map to p_vaddr=0x%x-0x%x.\n", entry->p_vaddr + bias,
+	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
 
 	/*
 	 * For the course of loading, the area needs to be readable
@@ -379,28 +374,26 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	a = as_area_create((uint8_t *)base + bias, mem_sz,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE);
 	if (a == (void *)(-1)) {
-		printf("memory mapping failed\n");
+		DPRINTF("Memory mapping failed.\n");
 		return EE_MEMORY;
 	}
 
-//	printf("as_area_create(0x%lx, 0x%x, %d) -> 0x%lx\n",
-//		entry->p_vaddr+bias, entry->p_memsz, flags, (uintptr_t)a);
+	DPRINTF("as_area_create(0x%lx, 0x%x, %d) -> 0x%lx\n",
+		entry->p_vaddr+bias, entry->p_memsz, flags, (uintptr_t)a);
 
 	/*
 	 * Load segment data
 	 */
-//	printf("seek to %d\n", entry->p_offset);
 	rc = lseek(elf->fd, entry->p_offset, SEEK_SET);
 	if (rc < 0) {
 		printf("seek error\n");
 		return EE_INVALID;
 	}
 
-//	printf("read 0x%x bytes to address 0x%x\n", entry->p_filesz, entry->p_vaddr+bias);
 /*	rc = read(fd, (void *)(entry->p_vaddr + bias), entry->p_filesz);
 	if (rc < 0) { printf("read error\n"); return EE_INVALID; }*/
 
-	/* Long reads are not possible yet. Load segment picewise */
+	/* Long reads are not possible yet. Load segment piecewise. */
 
 	unsigned left, now;
 	uint8_t *dp;
@@ -412,12 +405,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		now = 16384;
 		if (now > left) now = left;
 
-//		printf("read %d...", now);
 		rc = my_read(elf->fd, dp, now);
-//		printf("->%d\n", rc);
 
 		if (rc < 0) { 
-			printf("read error\n");
+			DPRINTF("Read error.\n");
 			return EE_INVALID;
 		}
 
@@ -425,10 +416,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		dp += now;
 	}
 
-//	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags((uint8_t *)entry->p_vaddr + bias, flags);
 	if (rc != 0) {
-		printf("failed to set memory area flags\n");
+		DPRINTF("Failed to set memory area flags.\n");
 		return EE_MEMORY;
 	}
 
@@ -465,7 +455,7 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
 		/* Record pointer to dynamic section into info structure */
 		elf->info->dynamic =
 		    (void *)((uint8_t *)entry->sh_addr + elf->bias);
-		printf("dynamic section found at 0x%x\n",
+		DPRINTF("Dynamic section found at 0x%x.\n",
 			(uintptr_t)elf->info->dynamic);
 		break;
 	default:

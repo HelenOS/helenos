@@ -59,6 +59,8 @@
 #include <elf.h>
 #include <elf_load.h>
 
+#define DPRINTF(...)
+
 /** Pathname of the file that will be loaded */
 static char *pathname = NULL;
 
@@ -225,7 +227,7 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = elf_load_file(pathname, 0, &prog_info);
 	if (rc < 0) {
-		printf("Failed to load executable '%s'.\n", pathname);
+		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
@@ -244,7 +246,8 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = elf_load_file(prog_info.interp, 0, &interp_info);
 	if (rc < 0) {
-		printf("Failed to load interpreter '%s.'\n", prog_info.interp);
+		DPRINTF("Failed to load interpreter '%s.'\n",
+		    prog_info.interp);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
@@ -266,8 +269,8 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 {
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */
-		printf("run dynamic linker\n");
-		printf("entry point: 0x%lx\n", interp_info.entry);
+		DPRINTF("Run ELF interpreter.\n");
+		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
 		close_console();
 
 		ipc_answer_0(rid, EOK);
@@ -324,7 +327,7 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 		}
 		if ((callid & IPC_CALLID_NOTIFICATION) == 0 &&
 		    IPC_GET_METHOD(call) != IPC_M_PHONE_HUNGUP) {
-			printf("responding EINVAL to method %d\n", 
+			DPRINTF("Responding EINVAL to method %d.\n",
 			    IPC_GET_METHOD(call));
 			ipc_answer_0(callid, EINVAL);
 		}
