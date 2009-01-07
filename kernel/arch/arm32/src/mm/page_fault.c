@@ -189,7 +189,7 @@ void data_abort(int exc_no, istate_t *istate)
 		    access);
 
 		fault_if_from_uspace(istate, "Page fault: %#x", badvaddr);
-		panic("page fault\n");
+		panic("Page fault\n");
 	}
 }
 

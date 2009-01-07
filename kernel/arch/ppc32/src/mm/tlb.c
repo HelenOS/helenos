@@ -119,7 +119,7 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 		sym2 = s;
 
 	fault_if_from_uspace(istate,
-	    "%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr,
+	    "%p: PHT Refill Exception at %p (%s<-%s)", badvaddr,
 	    istate->pc, symbol, sym2);
 	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr,
 	    istate->pc, symbol, sym2);

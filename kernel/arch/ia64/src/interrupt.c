@@ -228,7 +228,7 @@ int break_instruction(uint64_t vector, istate_t *istate)
 
 void universal_handler(uint64_t vector, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Interruption: %#hx (%s)\n",
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s)",
 	    (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
 	panic("Interruption: %#hx (%s)\n", (uint16_t) vector,

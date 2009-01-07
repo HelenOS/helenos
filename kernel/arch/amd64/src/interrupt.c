@@ -100,9 +100,9 @@ static void trap_virtual_eoi(void)
 
 static void null_interrupt(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "unserviced interrupt: %d", n);
+	fault_if_from_uspace(istate, "Unserviced interrupt: %d", n);
 	decode_istate(n, istate);
-	panic("unserviced interrupt\n");
+	panic("Unserviced interrupt\n");
 }
 
 /** General Protection Fault. */
@@ -126,18 +126,18 @@ static void gp_fault(int n, istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
-		fault_if_from_uspace(istate, "general protection fault");
+		fault_if_from_uspace(istate, "General protection fault");
 	}
 
 	decode_istate(n, istate);
-	panic("general protection fault\n");
+	panic("General protection fault\n");
 }
 
 static void ss_fault(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "stack fault");
+	fault_if_from_uspace(istate, "Stack fault");
 	decode_istate(n, istate);
-	panic("stack fault\n");
+	panic("Stack fault\n");
 }
 
 static void nm_fault(int n, istate_t *istate)
@@ -145,8 +145,8 @@ static void nm_fault(int n, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
-	fault_if_from_uspace(istate, "fpu fault");
-	panic("fpu fault");
+	fault_if_from_uspace(istate, "FPU fault");
+	panic("FPU fault");
 #endif
 }
 

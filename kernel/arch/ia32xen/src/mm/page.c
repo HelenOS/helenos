@@ -77,8 +77,8 @@ void page_fault(int n, istate_t *istate)
 		fault_if_from_uspace(istate, "Page fault: %#x", page);
 		
 		decode_istate(istate);
-		printf("page fault address: %#x\n", page);
-		panic("page fault\n");
+		printf("Page fault address: %#x\n", page);
+		panic("Page fault\n");
 	}
 }
 

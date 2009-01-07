@@ -424,7 +424,7 @@ void tlb_print(void)
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
     const char *str)
 {
-	fault_if_from_uspace(istate, "%s\n", str);
+	fault_if_from_uspace(istate, "%s", str);
 	dump_istate(istate);
 	panic("%s\n", str);
 }
@@ -436,7 +436,7 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
 	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)", str, va,
 		    tag.context);
 	}
 	dump_istate(istate);
@@ -452,7 +452,7 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	va = tag.vpn << MMU_PAGE_WIDTH;
 
 	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, va,
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)", str, va,
 		    tag.context);
 	}
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);

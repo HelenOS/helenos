@@ -194,7 +194,7 @@ void page_fault(int n, istate_t *istate)
 
 		decode_istate(n, istate);
 		printf("Page fault address: %llx\n", page);
-		panic("page fault\n");
+		panic("Page fault\n");
 	}
 }
 

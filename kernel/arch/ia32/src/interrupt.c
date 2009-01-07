@@ -95,10 +95,10 @@ static void trap_virtual_eoi(void)
 
 static void null_interrupt(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "unserviced interrupt: %d", n);
+	fault_if_from_uspace(istate, "Unserviced interrupt: %d", n);
 
 	decode_istate(istate);
-	panic("unserviced interrupt: %d\n", n);
+	panic("Unserviced interrupt: %d\n", n);
 }
 
 /** General Protection Fault. */
@@ -122,19 +122,19 @@ static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
-		fault_if_from_uspace(istate, "general protection fault");
+		fault_if_from_uspace(istate, "General protection fault");
 	}
 
 	decode_istate(istate);
-	panic("general protection fault\n");
+	panic("General protection fault\n");
 }
 
 static void ss_fault(int n __attribute__((unused)), istate_t *istate)
 {
-	fault_if_from_uspace(istate, "stack fault");
+	fault_if_from_uspace(istate, "Stack fault");
 
 	decode_istate(istate);
-	panic("stack fault\n");
+	panic("Stack fault\n");
 }
 
 static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
@@ -157,8 +157,8 @@ static void nm_fault(int n __attribute__((unused)), istate_t *istate __attribute
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
-	fault_if_from_uspace(istate, "fpu fault");
-	panic("fpu fault");
+	fault_if_from_uspace(istate, "FPU fault");
+	panic("FPU fault");
 #endif
 }
 
