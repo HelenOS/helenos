@@ -67,6 +67,9 @@ ifeq ($(ARCH), amd64)
 	SOURCES += ega.c
 	CFLAGS += -DEGA_ENABLED
 endif
+ifeq ($(ARCH), arm32)
+	CFLAGS += -DFB_INVERT_ENDIAN
+endif
 ifeq ($(ARCH), mips32)
 	SOURCES += msim.c \
                    serial_console.c
