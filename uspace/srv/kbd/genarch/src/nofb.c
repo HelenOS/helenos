@@ -59,8 +59,11 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 {
 	static unsigned long buf = 0;
 	static int count = 0;	
-	
-	if(scan_code == 0x7e) {
+
+	if (scan_code == '\r')
+		scan_code = '\n';
+
+	if (scan_code == 0x7e) {
 		switch (buf) {
 		case KEY_F5:
 			keybuffer_push(keybuffer,FUNCTION_KEYS | 5);
