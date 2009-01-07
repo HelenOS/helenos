@@ -37,6 +37,8 @@
 #include <arch/console.h>
 #include <arch/machine.h>
 
+#include <genarch/fb/fb.h>
+
 void console_init(devno_t devno)
 {
 	machine_console_init(devno);
@@ -45,6 +47,9 @@ void console_init(devno_t devno)
 /** Acquire console back for kernel. */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
+	fb_redraw();
+#endif
 	machine_grab_console();
 }
 
