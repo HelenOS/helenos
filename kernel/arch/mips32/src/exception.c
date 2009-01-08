@@ -88,10 +88,10 @@ static void print_regdump(istate_t *istate)
 
 static void unhandled_exception(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unhandled exception %s", exctable[n]);
+	fault_if_from_uspace(istate, "Unhandled exception %s.", exctable[n]);
 	
 	print_regdump(istate);
-	panic("Unhandled exception %s.\n", exctable[n]);
+	panic("Unhandled exception %s.", exctable[n]);
 }
 
 static void reserved_instr_exception(int n, istate_t *istate)
@@ -132,8 +132,8 @@ static void cpuns_exception(int n, istate_t *istate)
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
 	else {
-		fault_if_from_uspace(istate, "Unhandled Coprocessor Unusable Exception");
-		panic("Unhandled Coprocessor Unusable Exception.\n");
+		fault_if_from_uspace(istate, "Unhandled Coprocessor Unusable Exception.");
+		panic("Unhandled Coprocessor Unusable Exception.");
 	}
 }
 #endif
@@ -170,7 +170,7 @@ static void interrupt_exception(int n, istate_t *istate)
 /** Handle syscall userspace call */
 static void syscall_exception(int n, istate_t *istate)
 {
-	panic("Syscall is handled through shortcut");
+	panic("Syscall is handled through shortcut.");
 }
 
 void exception_init(void)

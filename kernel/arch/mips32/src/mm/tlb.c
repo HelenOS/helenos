@@ -115,7 +115,7 @@ void tlb_refill(istate_t *istate)
 			page_table_unlock(AS, true);
 			return;
 		default:
-			panic("unexpected pfrc (%d)\n", pfrc);
+			panic("Unexpected pfrc (%d).", pfrc);
 		}
 	}
 
@@ -199,7 +199,7 @@ void tlb_invalid(istate_t *istate)
 			page_table_unlock(AS, true);			 
 			return;
 		default:
-			panic("unexpected pfrc (%d)\n", pfrc);
+			panic("Unexpected pfrc (%d).", pfrc);
 		}
 	}
 
@@ -282,7 +282,7 @@ void tlb_modified(istate_t *istate)
 			page_table_unlock(AS, true);			 
 			return;
 		default:
-			panic("unexpected pfrc (%d)\n", pfrc);
+			panic("Unexpected pfrc (%d).", pfrc);
 		}
 	}
 
@@ -330,9 +330,9 @@ void tlb_refill_fail(istate_t *istate)
 	if (s)
 		sym2 = s;
 
-	fault_if_from_uspace(istate, "TLB Refill Exception on %p",
+	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Refill Exception at %x(%s<-%s).\n", cp0_badvaddr_read(),
+	panic("%x: TLB Refill Exception at %x(%s<-%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol, sym2);
 }
 
@@ -344,9 +344,9 @@ void tlb_invalid_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	fault_if_from_uspace(istate, "TLB Invalid Exception on %p",
+	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Invalid Exception at %x(%s).\n", cp0_badvaddr_read(),
+	panic("%x: TLB Invalid Exception at %x(%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol);
 }
 
@@ -357,9 +357,9 @@ void tlb_modified_fail(istate_t *istate)
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
-	fault_if_from_uspace(istate, "TLB Modified Exception on %p",
+	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Modified Exception at %x(%s).\n", cp0_badvaddr_read(),
+	panic("%x: TLB Modified Exception at %x(%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol);
 }
 
@@ -433,7 +433,7 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 			return NULL;
 			break;
 		default:
-			panic("unexpected rc (%d)\n", rc);
+			panic("Unexpected rc (%d).", rc);
 		}
 		
 	}

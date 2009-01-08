@@ -77,23 +77,23 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 	
 	prop = ofw_tree_getprop(aliases, "screen");
 	if (!prop)
-		panic("Can't find property \"screen\".\n");
+		panic("Cannot find property 'screen'.");
 	if (!prop->value)
-		panic("Can't find screen alias.\n");
+		panic("Cannot find screen alias.");
 	screen = ofw_tree_lookup(prop->value);
 	if (!screen)
-		panic("Can't find %s\n", prop->value);
+		panic("Cannot find %s.", prop->value);
 
 	scr_init(screen);
 
 	prop = ofw_tree_getprop(aliases, "keyboard");
 	if (!prop)
-		panic("Can't find property \"keyboard\".\n");
+		panic("Cannot find property 'keyboard'.");
 	if (!prop->value)
-		panic("Can't find keyboard alias.\n");
+		panic("Cannot find keyboard alias.");
 	keyboard = ofw_tree_lookup(prop->value);
 	if (!keyboard)
-		panic("Can't find %s\n", prop->value);
+		panic("Cannot find %s.", prop->value);
 
 	kbd_init(keyboard);
 }
@@ -115,7 +115,7 @@ void standalone_sparc64_console_init(void)
 	
 	aliases = ofw_tree_lookup("/aliases");
 	if (!aliases)
-		panic("Can't find /aliases.\n");
+		panic("Cannot find '/aliases'.");
 	
 	/* "def-cn" = "default console" */
 	prop = ofw_tree_getprop(aliases, "def-cn");

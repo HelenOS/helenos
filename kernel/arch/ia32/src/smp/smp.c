@@ -75,12 +75,12 @@ void smp_init(void)
 	l_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
 	    FRAME_ATOMIC | FRAME_KA);
 	if (!l_apic_address)
-		panic("cannot allocate address for l_apic\n");
+		panic("Cannot allocate address for l_apic.");
 
 	io_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
 	    FRAME_ATOMIC | FRAME_KA);
 	if (!io_apic_address)
-		panic("cannot allocate address for io_apic\n");
+		panic("Cannot allocate address for io_apic.");
 
 	if (config.cpu_count > 1) {		
 		page_mapping_insert(AS_KERNEL, l_apic_address,
@@ -157,7 +157,7 @@ void kmp(void *arg __attribute__((unused)))
 		gdt_new = (struct descriptor *) malloc(GDT_ITEMS *
 		    sizeof(struct descriptor), FRAME_ATOMIC | FRAME_LOW_4_GiB);
 		if (!gdt_new)
-			panic("couldn't allocate memory for GDT\n");
+			panic("Cannot allocate memory for GDT.");
 
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
 		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);

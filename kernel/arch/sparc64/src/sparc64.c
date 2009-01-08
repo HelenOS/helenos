@@ -110,7 +110,7 @@ void arch_post_smp_init(void)
 	         */
 		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 		if (!t)
-			panic("cannot create kkbdpoll\n");
+			panic("Cannot create kkbdpoll.");
 		thread_ready(t);
 	}
 }

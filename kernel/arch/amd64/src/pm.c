@@ -209,7 +209,7 @@ void pm_init(void)
 
 		tss_p = (struct tss *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
-			panic("could not allocate TSS\n");
+			panic("Cannot allocate TSS.");
 	}
 
 	tss_initialize(tss_p);

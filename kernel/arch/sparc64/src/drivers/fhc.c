@@ -96,7 +96,7 @@ void fhc_enable_interrupt(fhc_t *fhc, int inr)
 		fhc->uart_imap[FHC_UART_IMAP] |= IMAP_V_MASK;
 		break;
 	default:
-		panic("Unexpected INR (%d)\n", inr);
+		panic("Unexpected INR (%d).", inr);
 		break;
 	}
 }
@@ -111,7 +111,7 @@ void fhc_clear_interrupt(void *fhcp, int inr)
 		fhc->uart_imap[FHC_UART_ICLR] = 0;
 		break;
 	default:
-		panic("Unexpected INR (%d)\n", inr);
+		panic("Unexpected INR (%d).", inr);
 		break;
 	}
 }

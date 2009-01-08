@@ -106,7 +106,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, in
 				*pfrc = rc;
 				return NULL;
 			default:
-				panic("unexpected rc (%d)\n", rc);
+				panic("Unexpected rc (%d).", rc);
 		}	
 	}
 }
@@ -123,7 +123,7 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	s = get_symtab_entry(istate->lr);
 	if (s)
 		sym2 = s;
-	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr, istate->pc, symbol, sym2);
+	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr, istate->pc, symbol, sym2);
 }
 
 
@@ -233,7 +233,7 @@ void pht_refill(bool data, istate_t *istate)
 				page_table_unlock(as, lock);
 				return;
 			default:
-				panic("Unexpected pfrc (%d)\n", pfrc);
+				panic("Unexpected pfrc (%d).", pfrc);
 		}
 	}
 	
@@ -288,7 +288,7 @@ void page_arch_init(void)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%" PRIs " bytes)", physaddr, size)
+		panic("Unable to map physical memory %p (%" PRIs " bytes).", physaddr, size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;

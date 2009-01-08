@@ -129,7 +129,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 			page_mapping_insert(AS, addr, frame,
 			    as_area_get_flags(area));
 			if (!used_space_insert(area, page, 1))
-				panic("Could not insert used space.\n");
+				panic("Cannot insert used space.");
 			mutex_unlock(&area->sh_info->lock);
 			return AS_PF_OK;
 		}
@@ -214,7 +214,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 
 	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
 	if (!used_space_insert(area, page, 1))
-		panic("Could not insert used space.\n");
+		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
 }

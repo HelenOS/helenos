@@ -472,8 +472,8 @@ void alternate_instruction_tlb_fault(uint64_t vector, istate_t *istate)
 		 */
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			fault_if_from_uspace(istate,"Page fault at %p.",va);
+			panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
 			    istate->cr_iip);
 		}
 	}
@@ -531,7 +531,7 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 				return 1;
 			} else {
 				fault_if_from_uspace(istate,
-				    "IO access fault at %p", va);
+				    "IO access fault at %p.", va);
 			}
 		}
 	}
@@ -583,8 +583,8 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 		 * handler.
 		 */
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			fault_if_from_uspace(istate,"Page fault at %p.",va);
+			panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
 			    istate->cr_iip);
 		}
 	}
@@ -599,7 +599,7 @@ void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
  */
 void data_nested_tlb_fault(uint64_t vector, istate_t *istate)
 {
-	panic("%s\n", __func__);
+	panic("%s.", __func__);
 }
 
 /** Data Dirty bit fault handler.
@@ -630,8 +630,8 @@ void data_dirty_bit_fault(uint64_t vector, istate_t *istate)
 		dtc_pte_copy(t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate,"Page fault at %p",va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			fault_if_from_uspace(istate,"Page fault at %p.",va);
+			panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
 			    istate->cr_iip);
 		}
 	}
@@ -666,8 +666,8 @@ void instruction_access_bit_fault(uint64_t vector, istate_t *istate)
 		itc_pte_copy(t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p", va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			fault_if_from_uspace(istate, "Page fault at %p.", va);
+			panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
 			    istate->cr_iip);
 		}
 	}
@@ -702,8 +702,8 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 		dtc_pte_copy(t);
 	} else {
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p", va);
-			panic("%s: va=%p, rid=%d, iip=%p\n", __func__, va, rid,
+			fault_if_from_uspace(istate, "Page fault at %p.", va);
+			panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
 			    istate->cr_iip);
 		}
 	}
@@ -743,8 +743,8 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	} else {
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
-			fault_if_from_uspace(istate, "Page fault at %p", va);
-			panic("%s: va=%p, rid=%d\n", __func__, va, rid);
+			fault_if_from_uspace(istate, "Page fault at %p.", va);
+			panic("%s: va=%p, rid=%d.", __func__, va, rid);
 		}
 	}
 }

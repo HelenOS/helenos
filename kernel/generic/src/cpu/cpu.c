@@ -64,7 +64,7 @@ void cpu_init(void) {
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
 					FRAME_ATOMIC);
 		if (!cpus)
-			panic("malloc/cpus");
+			panic("Cannot allocate CPU structures.");
 
 		/* initialize everything */
 		memsetb(cpus, sizeof(cpu_t) * config.cpu_count, 0);

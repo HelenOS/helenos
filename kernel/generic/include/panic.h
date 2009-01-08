@@ -37,11 +37,11 @@
 
 #ifdef CONFIG_DEBUG
 #	define panic(format, ...) \
-		panic_printf("Kernel panic in %s() at %s:%u: " format, __func__, \
-		__FILE__, __LINE__, ##__VA_ARGS__);
+		panic_printf("Kernel panic in %s() at %s:%u: " format "\n", \
+		__func__, __FILE__, __LINE__, ##__VA_ARGS__);
 #else
 #	define panic(format, ...) \
-		panic_printf("Kernel panic: " format, ##__VA_ARGS__);
+		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__);
 #endif
 
 extern void panic_printf(char *fmt, ...) __attribute__((noreturn));

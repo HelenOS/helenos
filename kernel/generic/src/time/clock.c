@@ -79,7 +79,7 @@ void clock_counter_init(void)
 
 	faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC);
 	if (!faddr)
-		panic("Cannot allocate page for clock");
+		panic("Cannot allocate page for clock.");
 	
 	uptime = (uptime_t *) PA2KA(faddr);
 	

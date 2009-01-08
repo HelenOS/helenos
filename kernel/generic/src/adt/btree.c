@@ -124,7 +124,7 @@ void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_n
 	lnode = leaf_node;
 	if (!lnode) {
 		if (btree_search(t, key, &lnode)) {
-			panic("B-tree %p already contains key %" PRIu64 "\n", t, key);
+			panic("B-tree %p already contains key %" PRIu64 ".", t, key);
 		}
 	}
 	
@@ -224,7 +224,7 @@ void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 	lnode = leaf_node;
 	if (!lnode) {
 		if (!btree_search(t, key, &lnode)) {
-			panic("B-tree %p does not contain key %" PRIu64 "\n", t, key);
+			panic("B-tree %p does not contain key %" PRIu64 ".", t, key);
 		}
 	}
 	
@@ -524,7 +524,7 @@ void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
 			return;
 		}
 	}
-	panic("node %p does not contain key %" PRIu64 "\n", node, key);
+	panic("Node %p does not contain key %" PRIu64 ".", node, key);
 }
 
 /** Remove key and its right subtree pointer from B-tree node.
@@ -551,7 +551,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 			return;
 		}
 	}
-	panic("node %p does not contain key %" PRIu64 "\n", node, key);
+	panic("Node %p does not contain key %" PRIu64 ".", node, key);
 }
 
 /** Split full B-tree node and insert new key-value-right-subtree triplet.
@@ -693,7 +693,7 @@ index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool righ
 		if (subtree == node->subtree[i])
 			return i - (int) (right != false);
 	}
-	panic("node %p does not contain subtree %p\n", node, subtree);
+	panic("Node %p does not contain subtree %p.", node, subtree);
 }
 
 /** Rotate one key-value-rsubtree triplet from the left sibling to the right sibling.

@@ -72,7 +72,7 @@ void interrupt(int n, istate_t *istate)
 	uint64_t data0;
 	status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 	if (status & (!INTR_DISPATCH_STATUS_BUSY))
-		panic("Interrupt Dispatch Status busy bit not set\n");
+		panic("Interrupt Dispatch Status busy bit not set.");
 
 	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
 #if defined (US)

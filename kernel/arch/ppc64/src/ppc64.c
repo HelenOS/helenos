@@ -85,7 +85,7 @@ void arch_post_mm_init(void)
 			visual = VISUAL_RGB_0_8_8_8;
 			break;
 		default:
-			panic("Unsupported bits per pixel");
+			panic("Unsupported bits per pixel.");
 		}
 		fb_init(bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.scanline, visual);
 		

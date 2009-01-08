@@ -83,7 +83,7 @@ void vesa_init(void)
 		visual = VISUAL_RGB_0_8_8_8;
 		break;
 	default:
-		panic("Unsupported bits per pixel");
+		panic("Unsupported bits per pixel.");
 	}
 	
 	fb_properties_t vesa_props = {

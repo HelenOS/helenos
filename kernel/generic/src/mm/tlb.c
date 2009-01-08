@@ -173,7 +173,7 @@ void tlb_shootdown_ipi_recv(void)
 			tlb_invalidate_pages(asid, page, count);
 			break;
 		default:
-			panic("unknown type (%d)\n", type);
+			panic("Unknown type (%d).", type);
 			break;
 		}
 		if (type == TLB_INVL_ALL)

@@ -146,7 +146,7 @@ void as_init(void)
 	
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
-		panic("Cannot create kernel address space\n");
+		panic("Cannot create kernel address space.");
 	
 	/* Make sure the kernel address space
 	 * reference count never drops to zero.
@@ -444,16 +444,16 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 					i = (start_free - b) >> PAGE_WIDTH;
 					if (!used_space_remove(area, start_free,
 					    c - i))
-						panic("Could not remove used "
-						    "space.\n");
+						panic("Cannot remove used "
+						    "space.");
 				} else {
 					/*
 					 * The interval of used space can be
 					 * completely removed.
 					 */
 					if (!used_space_remove(area, b, c))
-						panic("Could not remove used "
-						    "space.\n");
+						panic("Cannot remove used "
+						    "space.");
 				}
 			
 				for (; i < c; i++) {
@@ -1666,7 +1666,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 	}
 
 	panic("Inconsistency detected while adding %" PRIc " pages of used "
-	    "space at %p.\n", count, page);
+	    "space at %p.", count, page);
 }
 
 /** Mark portion of address space area as unused.
@@ -1845,7 +1845,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 
 error:
 	panic("Inconsistency detected while removing %" PRIc " pages of used "
-	    "space from %p.\n", count, page);
+	    "space from %p.", count, page);
 }
 
 /** Remove reference to address space area share info.

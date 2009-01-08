@@ -110,7 +110,7 @@ void kinit(void *arg)
 			spinlock_unlock(&thread->lock);
 			thread_ready(thread);
 		} else
-			panic("Unable to create kmp thread\n");
+			panic("Unable to create kmp thread.");
 		thread_join(thread);
 		thread_detach(thread);
 	}

@@ -87,7 +87,7 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 #include <panic.h>
 static inline int istate_from_uspace(istate_t *istate)
 {
-	panic("istate_from_uspace not yet implemented");
+	panic("istate_from_uspace not yet implemented.");
 	return 0;
 }
 

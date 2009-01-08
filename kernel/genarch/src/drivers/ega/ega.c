@@ -78,7 +78,7 @@ void ega_init(ioport_t base, uintptr_t videoram_phys)
 
 	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
 	if (!backbuf)
-		panic("Unable to allocate backbuffer.\n");
+		panic("Unable to allocate backbuffer.");
 	
 	videoram = (uint8_t *) hw_map(videoram_phys, SCREEN * 2);
 	

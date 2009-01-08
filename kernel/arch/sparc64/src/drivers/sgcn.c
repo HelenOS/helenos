@@ -199,13 +199,13 @@ static void init_sram_begin(void)
 
 	chosen = ofw_tree_lookup("/chosen");
 	if (!chosen)
-		panic("Can't find /chosen.\n");
+		panic("Cannot find '/chosen'.");
 
 	iosram_toc = ofw_tree_getprop(chosen, "iosram-toc");
 	if (!iosram_toc)
-		panic("Can't find property \"iosram-toc\".\n");
+		panic("Cannot find property 'iosram-toc'.");
 	if (!iosram_toc->value)
-		panic("Can't find SRAM TOC.\n");
+		panic("Cannot find SRAM TOC.");
 
 	sram_begin_physical = SBBC_START + SBBC_SRAM_OFFSET
 		+ *((uint32_t *) iosram_toc->value);
@@ -328,7 +328,7 @@ static irq_ownership_t sgcn_claim(void)
  */
 static void sgcn_irq_handler(irq_t *irq, void *arg, ...)
 {
-	panic("Not yet implemented, SGCN works in polled mode.\n");
+	panic("Not yet implemented, SGCN works in polled mode.");
 }
 
 /**

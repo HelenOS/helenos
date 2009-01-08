@@ -88,16 +88,16 @@ static void trap_virtual_eoi(void)
 	if (eoi_function)
 		eoi_function();
 	else
-		panic("no eoi_function\n");
+		panic("No eoi_function.");
 
 }
 
 static void null_interrupt(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unserviced interrupt: %d", n);
+	fault_if_from_uspace(istate, "Unserviced interrupt: %d.", n);
 
 	decode_istate(istate);
-	panic("Unserviced interrupt: %d\n", n);
+	panic("Unserviced interrupt: %d.", n);
 }
 
 /** General Protection Fault. */
@@ -121,19 +121,19 @@ static void gp_fault(int n, istate_t *istate)
 			io_perm_bitmap_install();
 			return;
 		}
-		fault_if_from_uspace(istate, "General protection fault");
+		fault_if_from_uspace(istate, "General protection fault.");
 	}
 
 	decode_istate(istate);
-	panic("General protection fault\n");
+	panic("General protection fault.");
 }
 
 static void ss_fault(int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Stack fault");
+	fault_if_from_uspace(istate, "Stack fault.");
 
 	decode_istate(istate);
-	panic("Stack fault\n");
+	panic("Stack fault.");
 }
 
 static void simd_fp_exception(int n, istate_t *istate)
@@ -144,12 +144,12 @@ static void simd_fp_exception(int n, istate_t *istate)
 		"stmxcsr %0;\n"
 		:"=m"(mxcsr)
 	);
-	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx",
+	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx.",
 			     (unative_t)mxcsr);
 
 	decode_istate(istate);
 	printf("MXCSR: %#zx\n",(unative_t)(mxcsr));
-	panic("SIMD FP exception(19)\n");
+	panic("SIMD FP exception(19).");
 }
 
 static void nm_fault(int n, istate_t *istate)
@@ -157,8 +157,8 @@ static void nm_fault(int n, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY     
 	scheduler_fpu_lazy_request();
 #else
-	fault_if_from_uspace(istate, "FPU fault");
-	panic("FPU fault");
+	fault_if_from_uspace(istate, "FPU fault.");
+	panic("FPU fault.");
 #endif
 }
 
@@ -233,7 +233,7 @@ void trap_virtual_enable_irqs(uint16_t irqmask)
 	if (enable_irqs_function)
 		enable_irqs_function(irqmask);
 	else
-		panic("no enable_irqs_function\n");
+		panic("No enable_irqs_function.");
 }
 
 void trap_virtual_disable_irqs(uint16_t irqmask)
@@ -241,7 +241,7 @@ void trap_virtual_disable_irqs(uint16_t irqmask)
 	if (disable_irqs_function)
 		disable_irqs_function(irqmask);
 	else
-		panic("no disable_irqs_function\n");
+		panic("No disable_irqs_function.");
 }
 
 /** @}

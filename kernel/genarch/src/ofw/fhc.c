@@ -67,7 +67,7 @@ bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uintptr_t *
 				return true;
 			}
 			if (strcmp(ofw_tree_node_name(node->parent), "central") != 0)
-				panic("Unexpected parent node: %s.\n", ofw_tree_node_name(node->parent));
+				panic("Unexpected parent node: %s.", ofw_tree_node_name(node->parent));
 			
 			ofw_central_reg_t central_reg;
 			
@@ -84,7 +84,7 @@ bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uintptr_t *
 bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uintptr_t *pa)
 {
 	if (node->parent->parent)
-		panic("Unexpected parent node: %s.\n", ofw_tree_node_name(node->parent));
+		panic("Unexpected parent node: %s.", ofw_tree_node_name(node->parent));
 	
 	ofw_tree_property_t *prop;
 	ofw_central_range_t *range;

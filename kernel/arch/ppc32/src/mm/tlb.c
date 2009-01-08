@@ -100,7 +100,7 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 			*pfrc = rc;
 			return NULL;
 		default:
-			panic("unexpected rc (%d)\n", rc);
+			panic("Unexpected rc (%d).", rc);
 		}	
 	}
 }
@@ -119,9 +119,9 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 		sym2 = s;
 
 	fault_if_from_uspace(istate,
-	    "%p: PHT Refill Exception at %p (%s<-%s)", badvaddr,
+	    "%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
 	    istate->pc, symbol, sym2);
-	panic("%p: PHT Refill Exception at %p (%s<-%s)\n", badvaddr,
+	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
 	    istate->pc, symbol, sym2);
 }
 
@@ -314,7 +314,7 @@ void pht_refill(int n, istate_t *istate)
 			page_table_unlock(as, lock);
 			return;
 		default:
-			panic("Unexpected pfrc (%d)\n", pfrc);
+			panic("Unexpected pfrc (%d).", pfrc);
 		}
 	}
 	

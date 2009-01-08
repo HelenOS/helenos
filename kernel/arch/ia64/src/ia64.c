@@ -179,7 +179,7 @@ void arch_post_smp_init(void)
 #ifdef SKI
 	t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 	if (!t)
-		panic("cannot create kkbdpoll\n");
+		panic("Cannot create kkbdpoll.");
 	thread_ready(t);
 #endif		
 
@@ -194,7 +194,7 @@ void arch_post_smp_init(void)
 #endif
 	t = thread_create(i8042_kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 	if (!t)
-		panic("cannot create kkbdpoll\n");
+		panic("Cannot create kkbdpoll.");
 	thread_ready(t);
 #endif
 

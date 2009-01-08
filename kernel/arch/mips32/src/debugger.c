@@ -316,7 +316,7 @@ void debugger_bpoint(istate_t *istate)
 
 	/* test branch delay slot */
 	if (cp0_cause_read() & 0x80000000)
-		panic("Breakpoint in branch delay slot not supported.\n");
+		panic("Breakpoint in branch delay slot not supported.");
 
 	spinlock_lock(&bkpoint_lock);
 	for (i = 0; i < BKPOINTS_MAX; i++) {

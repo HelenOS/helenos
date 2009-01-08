@@ -77,7 +77,7 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	page_mapping_insert(AS, addr, base + (addr - area->base),
 	    as_area_get_flags(area));
         if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
-                panic("Could not insert used space.\n");
+                panic("Cannot insert used space.");
 
 	return AS_PF_OK;
 }

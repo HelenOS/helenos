@@ -85,10 +85,10 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 	
 	prop = ofw_tree_getprop(node, "name");
 	if (!prop)
-		panic("Node without name property.\n");
+		panic("Node without name property.");
 		
 	if (prop->size < 2)
-		panic("Invalid name property.\n");
+		panic("Invalid name property.");
 	
 	return prop->value;
 }

@@ -98,7 +98,7 @@ static void cross_call(int mid, void (* func)(void))
 	
 	status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 	if (status & INTR_DISPATCH_STATUS_BUSY)
-		panic("Interrupt Dispatch Status busy bit set\n");
+		panic("Interrupt Dispatch Status busy bit set.");
 	
 	ASSERT(!(pstate_read() & PSTATE_IE_BIT));
 	
@@ -151,7 +151,7 @@ void ipi_broadcast_arch(int ipi)
 		func = tlb_shootdown_ipi_recv;
 		break;
 	default:
-		panic("Unknown IPI (%d).\n", ipi);
+		panic("Unknown IPI (%d).", ipi);
 		break;
 	}
 	

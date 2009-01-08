@@ -186,10 +186,10 @@ void general_exception(uint64_t vector, istate_t *istate)
 		break;
 	}
 
-	fault_if_from_uspace(istate, "General Exception (%s)", desc);
+	fault_if_from_uspace(istate, "General Exception (%s).", desc);
 
 	dump_interrupted_context(istate);
-	panic("General Exception (%s)\n", desc);
+	panic("General Exception (%s).", desc);
 }
 
 void disabled_fp_register(uint64_t vector, istate_t *istate)
@@ -197,10 +197,10 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 #ifdef CONFIG_FPU_LAZY 
 	scheduler_fpu_lazy_request();	
 #else
-	fault_if_from_uspace(istate, "Interruption: %#hx (%s)",
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (uint16_t) vector,
+	panic("Interruption: %#hx (%s).", (uint16_t) vector,
 	    vector_to_string(vector));
 #endif
 }
@@ -228,10 +228,10 @@ int break_instruction(uint64_t vector, istate_t *istate)
 
 void universal_handler(uint64_t vector, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Interruption: %#hx (%s)",
+	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
 	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s)\n", (uint16_t) vector,
+	panic("Interruption: %#hx (%s).", (uint16_t) vector,
 	    vector_to_string(vector));
 }
 
@@ -269,7 +269,7 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 			irq->handler(irq, irq->arg);
 			spinlock_unlock(&irq->lock);
 		} else {
-			panic("\nUnhandled Internal Timer Interrupt (%d)\n",
+			panic("Unhandled Internal Timer Interrupt (%d).",
 			    ivr.vector);
 		}
 		break;

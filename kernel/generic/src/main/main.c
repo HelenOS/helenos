@@ -269,7 +269,7 @@ void main_bsp_separated_stack(void)
 	 */
 	task_t *kernel = task_create(AS_KERNEL, "kernel");
 	if (!kernel)
-		panic("Can't create kernel task\n");
+		panic("Cannot create kernel task.");
 	
 	/*
 	 * Create the first thread.
@@ -277,7 +277,7 @@ void main_bsp_separated_stack(void)
 	thread_t *kinit_thread
 		= thread_create(kinit, NULL, kernel, 0, "kinit", true);
 	if (!kinit_thread)
-		panic("Can't create kinit thread\n");
+		panic("Cannot create kinit thread.");
 	LOG_EXEC(thread_ready(kinit_thread));
 	
 	/*

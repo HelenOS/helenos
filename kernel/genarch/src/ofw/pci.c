@@ -101,7 +101,7 @@ ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg,
 	
 	prop = ofw_tree_getprop(node, "assigned-addresses");
 	if (!prop)
-		panic("Can't find \"assigned-addresses\" property.\n");
+		panic("Cannot find 'assigned-addresses' property.");
 	
 	assigned_addresses = prop->size / sizeof(ofw_pci_reg_t);
 	assigned_address = prop->value;

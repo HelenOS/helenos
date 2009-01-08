@@ -66,7 +66,7 @@ void page_fault(int n, istate_t *istate)
 	page = read_cr2();
 	
 	if (istate->error_word & PFERR_CODE_RSVD)
-		panic("Reserved bit set in page directory.\n");
+		panic("Reserved bit set in page directory.");
 	
 	if (istate->error_word & PFERR_CODE_RW)
 		access = PF_ACCESS_WRITE;
@@ -74,11 +74,11 @@ void page_fault(int n, istate_t *istate)
 		access = PF_ACCESS_READ;
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %#x", page);
+		fault_if_from_uspace(istate, "Page fault: %#x.", page);
 		
 		decode_istate(istate);
-		printf("Page fault address: %#x\n", page);
-		panic("Page fault\n");
+		printf("Page fault address: %#x.\n", page);
+		panic("Page fault.");
 	}
 }
 

@@ -180,7 +180,7 @@ void page_fault(int n, istate_t *istate)
 	page = read_cr2();
 	
 	if (istate->error_word & PFERR_CODE_RSVD)
-		panic("Reserved bit set in page table entry.\n");
+		panic("Reserved bit set in page table entry.");
 	
 	if (istate->error_word & PFERR_CODE_RW)
 		access = PF_ACCESS_WRITE;
@@ -190,11 +190,11 @@ void page_fault(int n, istate_t *istate)
 		access = PF_ACCESS_READ;
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %#x", page);
+		fault_if_from_uspace(istate, "Page fault: %#x.", page);
 
 		decode_istate(n, istate);
-		printf("Page fault address: %llx\n", page);
-		panic("Page fault\n");
+		printf("Page fault address: %llx.\n", page);
+		panic("Page fault.");
 	}
 }
 
@@ -202,7 +202,7 @@ void page_fault(int n, istate_t *istate)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes)", physaddr, size)
+		panic("Unable to map physical memory %p (%d bytes).", physaddr, size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;

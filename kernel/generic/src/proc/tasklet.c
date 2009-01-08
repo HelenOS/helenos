@@ -51,7 +51,7 @@ void tasklet_init(void)
 	
 	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
 	if (!tasklet_list)
-		panic("Error initializing tasklets");
+		panic("Error initializing tasklets.");
 	
 	for (i = 0; i < config.cpu_count; i++)
 		tasklet_list[i] = NULL;

@@ -57,7 +57,7 @@
 #ifdef CONFIG_DEBUG
 #	define ASSERT(expr) \
 		if (!(expr)) { \
-			panic("assertion failed (%s), caller=%p\n", #expr, CALLER); \
+			panic("Assertion failed (%s), caller=%p.", #expr, CALLER); \
 		}
 #else
 #	define ASSERT(expr)

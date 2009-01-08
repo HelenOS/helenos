@@ -451,7 +451,7 @@ repeat:
 			/*
 			 * Entering state is unexpected.
 			 */
-			panic("tid%" PRIu64 ": unexpected state %s\n",
+			panic("tid%" PRIu64 ": unexpected state %s.",
 			    THREAD->tid, thread_states[THREAD->state]);
 			break;
 		}

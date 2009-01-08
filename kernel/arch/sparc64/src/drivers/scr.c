@@ -104,7 +104,7 @@ void scr_init(ofw_tree_node_t *node)
 
 	prop = ofw_tree_getprop(node, "reg");
 	if (!prop)
-		panic("Can't find \"reg\" property.\n");
+		panic("Cannot find 'reg' property.");
 
 	switch (scr_type) {
 	case SCR_ATYFB:
@@ -223,7 +223,7 @@ void scr_init(ofw_tree_node_t *node)
 	
 		break;
 	default:
-		panic("Unexpected type.\n");
+		panic("Unexpected type.");
 	}
 
 	fb_properties_t props = {

@@ -456,7 +456,7 @@ void fb_init(fb_properties_t *props)
 		pixelbytes = 4;
 		break;
 	default:
-		panic("Unsupported visual.\n");
+		panic("Unsupported visual.");
 	}
 	
 	xres = props->x;
@@ -488,15 +488,15 @@ void fb_init(fb_properties_t *props)
 	
 	backbuf = (uint8_t *) malloc(bbsize, 0);
 	if (!backbuf)
-		panic("Unable to allocate backbuffer.\n");
+		panic("Unable to allocate backbuffer.");
 	
 	glyphs = (uint8_t *) malloc(glyphsize, 0);
 	if (!glyphs)
-		panic("Unable to allocate glyphs.\n");
+		panic("Unable to allocate glyphs.");
 	
 	bgscan = malloc(bgscanbytes, 0);
 	if (!bgscan)
-		panic("Unable to allocate background pixel.\n");
+		panic("Unable to allocate background pixel.");
 	
 	memsetb(backbuf, bbsize, 0);
 	

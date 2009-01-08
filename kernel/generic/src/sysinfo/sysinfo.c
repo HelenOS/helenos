@@ -163,7 +163,8 @@ static sysinfo_item_t *sysinfo_create_path(const char *name, sysinfo_item_t **ps
 			i = 0;
 		}	
 	}
-	panic("Not reached\n");
+
+	panic("Not reached.");
 	return NULL;
 }
 

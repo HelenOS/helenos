@@ -61,7 +61,7 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
 	
 	h->entry = (link_t *) malloc(m * sizeof(link_t), 0);
 	if (!h->entry) {
-		panic("cannot allocate memory for hash table\n");
+		panic("Cannot allocate memory for hash table.");
 	}
 	memsetb(h->entry, m * sizeof(link_t), 0);
 	

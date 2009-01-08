@@ -87,7 +87,7 @@ void kbd_init(ofw_tree_node_t *node)
 	uint32_t interrupts;
 	prop = ofw_tree_getprop(node, "interrupts");
 	if ((!prop) || (!prop->value))
-		panic("Can't find \"interrupts\" property.\n");
+		panic("Cannot find 'interrupt' property.");
 	interrupts = *((uint32_t *) prop->value);
 	
 	/*
@@ -95,7 +95,7 @@ void kbd_init(ofw_tree_node_t *node)
 	 */
 	prop = ofw_tree_getprop(node, "reg");
 	if ((!prop) || (!prop->value))
-		panic("Can't find \"reg\" property.\n");
+		panic("Cannot find 'reg' property.");
 	
 	uintptr_t pa;
 	size_t size;
@@ -133,7 +133,7 @@ void kbd_init(ofw_tree_node_t *node)
 		break;
 		
 	default:
-		panic("Unexpected keyboard type.\n");
+		panic("Unexpected keyboard type.");
 	}
 	
 	/*
