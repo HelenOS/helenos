@@ -494,6 +494,7 @@ int main(int argc, char *argv[])
 	
 	ipcarg_t phonehash;
 	int kbd_phone;
+	size_t ib_size;
 	int i;
 	
 	async_set_client_connection(client_connection);
@@ -544,15 +545,20 @@ int main(int argc, char *argv[])
 		}
 	}
 	connections[KERNEL_CONSOLE].used = 1;
-	
-	interbuffer = mmap(NULL,
-	    sizeof(keyfield_t) * fb_info.cols * fb_info.rows,
-	    PROTO_READ | PROTO_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	if (!interbuffer) {
+
+	/* Set up shared memory buffer. */
+	ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
+	interbuffer = as_get_mappable_page(ib_size);
+
+	if (as_area_create(interbuffer, ib_size, AS_AREA_READ |
+	    AS_AREA_WRITE | AS_AREA_CACHEABLE) != interbuffer) {
+		interbuffer = NULL;
+	}
+
+	if (interbuffer) {
 		if (ipc_share_out_start(fb_info.phone, interbuffer,
 		    AS_AREA_READ) != EOK) {
-			munmap(interbuffer,
-			    sizeof(keyfield_t) * fb_info.cols * fb_info.rows);
+			as_area_destroy(interbuffer);
 			interbuffer = NULL;
 		}
 	}
