@@ -185,6 +185,7 @@ static uint32_t color_table[16] = {
 	[8 + COLOR_WHITE]	= 0xffffff,
 };
 
+static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a);
 static int rgb_from_style(attr_rgb_t *rgb, int style);
 static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
     ipcarg_t bg_color, ipcarg_t flags);
@@ -877,22 +878,13 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data)
 		bbp = &vport->backbuf[BB_POS(vport, col, row)];
 		uint8_t glyph = bbp->glyph;
 
-		if (glyph != data[i].character) {
-			bbp->glyph = data[i].character;
-			a = &data[i].attrs;
+		a = &data[i].attrs;
+		rgb_from_attr(&rgb, a);
 
-			switch (a->t) {
-			case at_style:
-				rgb_from_style(&rgb, a->a.s.style);
-				break;
-			case at_idx:
-				rgb_from_idx(&rgb, a->a.i.fg_color,
-				    a->a.i.bg_color, a->a.i.flags);
-				break;
-			case at_rgb:
-				rgb = a->a.r;
-				break;
-			}
+		if (glyph != data[i].character ||
+		    rgb.fg_color != bbp->fg_color ||
+		    rgb.bg_color != bbp->bg_color) {
+			bbp->glyph = data[i].character;	
 
 			bbp->fg_color = rgb.fg_color;
 			bbp->bg_color = rgb.bg_color;
@@ -1442,6 +1434,27 @@ static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
 	rgb->bg_color = color_table[bg_color];
 
 	return EOK;
+}
+
+static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a)
+{
+	int rc;
+
+	switch (a->t) {
+	case at_style:
+		rc = rgb_from_style(rgb, a->a.s.style);
+		break;
+	case at_idx:
+		rc = rgb_from_idx(rgb, a->a.i.fg_color,
+		    a->a.i.bg_color, a->a.i.flags);
+		break;
+	case at_rgb:
+		*rgb = a->a.r;
+		rc = EOK;
+		break;
+	}
+
+	return rc;
 }
 
 static int fb_set_style(viewport_t *vport, ipcarg_t style)
