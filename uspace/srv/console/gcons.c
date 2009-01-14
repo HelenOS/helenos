@@ -84,12 +84,6 @@ static void vp_switch(int vp)
 	async_msg_1(fbphone, FB_VIEWPORT_SWITCH, vp);
 }
 
-static void vp_invalidate(int vp)
-{
-	async_msg_1(fbphone, FB_VIEWPORT_INVALIDATE, vp);
-}
-
-
 /** Create view port */
 static int vp_create(unsigned int x, unsigned int y, unsigned int width,
     unsigned int height)
@@ -163,7 +157,6 @@ void gcons_change_console(int consnum)
 		console_state[consnum] = CONS_SELECTED;
 	redraw_state(consnum);
 
-	vp_invalidate(console_vp);
 	vp_switch(console_vp);
 }
 
@@ -362,7 +355,6 @@ void gcons_redraw_console(void)
 	
 	for (i = 0; i < CONSOLE_COUNT; i++)
 		redraw_state(i);
-	vp_invalidate(console_vp);
 	vp_switch(console_vp);
 }
 

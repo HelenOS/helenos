@@ -139,7 +139,6 @@ typedef struct {
 	/* Back buffer */
 	bb_cell_t *backbuf;
 	unsigned int bbsize;
-	bool bb_invalid;
 } viewport_t;
 
 typedef struct {
@@ -560,7 +559,6 @@ static int vport_create(unsigned int x, unsigned int y,
 	
 	viewports[i].bbsize = bbsize;
 	viewports[i].backbuf = backbuf;
-	viewports[i].bb_invalid = false;
 	
 	viewports[i].initialized = true;
 	
@@ -883,17 +881,11 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data)
 		a = &data[i].attrs;
 		rgb_from_attr(&rgb, a);
 
-		if (glyph != data[i].character ||
-		    rgb.fg_color != bbp->fg_color ||
-		    rgb.bg_color != bbp->bg_color ||
-		    vport->bb_invalid) {
-			bbp->glyph = data[i].character;	
+		bbp->glyph = data[i].character;
+		bbp->fg_color = rgb.fg_color;
+		bbp->bg_color = rgb.bg_color;
 
-			bbp->fg_color = rgb.fg_color;
-			bbp->bg_color = rgb.bg_color;
-
-			draw_vp_glyph(vport, false, col, row);
-		}
+		draw_vp_glyph(vport, false, col, row);
 	}
 	cursor_show(vport);
 }
@@ -1626,16 +1618,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				free(viewports[i].backbuf);
 			retval = EOK;
 			break;
-		case FB_VIEWPORT_INVALIDATE:
-			i = IPC_GET_ARG1(call);
-			if (i >= MAX_VIEWPORTS) {
-				retval = EINVAL;
-				break;
-			}
-			viewports[i].bb_invalid = true;
-			retval = EOK;
-			break;
-		
 		case FB_SET_STYLE:
 			retval = fb_set_style(vport, IPC_GET_ARG1(call));
 			break;
