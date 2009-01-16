@@ -42,10 +42,11 @@ static ofw_tree_node_t *ofw_tree_node_alloc(void)
 
 static ofw_tree_property_t *ofw_tree_properties_alloc(unsigned count)
 {
-	return balloc(count * sizeof(ofw_tree_property_t), sizeof(ofw_tree_property_t));
+	return balloc(count * sizeof(ofw_tree_property_t),
+	    sizeof(ofw_tree_property_t));
 }
 
-static void * ofw_tree_space_alloc(size_t size)
+static void *ofw_tree_space_alloc(size_t size)
 {
 	char *addr;
 
@@ -65,22 +66,24 @@ static void * ofw_tree_space_alloc(size_t size)
 	return addr;
 }
 
-/** Transfer information from one OpenFirmware node into its memory representation.
+/** Transfer information from one OpenFirmware node into its memory
+ * representation.
  *
- * Transfer entire information from the OpenFirmware device tree 'current' node to
- * its memory representation in 'current_node'. This function recursively processes
- * all node's children. Node's peers are processed iteratively in order to prevent
- * stack from overflowing.
+ * Transfer entire information from the OpenFirmware device tree 'current' node
+ * to its memory representation in 'current_node'. This function recursively
+ * processes all node's children. Node's peers are processed iteratively in
+ * order to prevent stack from overflowing.
  *
- * @param current_node	Pointer to uninitialized ofw_tree_node structure that will
- * 			become the memory represenation of 'current'.
- * @param parent_node	Parent ofw_tree_node structure or NULL in case of root node.
+ * @param current_node	Pointer to uninitialized ofw_tree_node structure that
+ * 			will become the memory represenation of 'current'.
+ * @param parent_node	Parent ofw_tree_node structure or NULL in case of root
+ * 			node.
  * @param current	OpenFirmware phandle to the current device tree node.
  */
 static void ofw_tree_node_process(ofw_tree_node_t *current_node,
-	ofw_tree_node_t *parent_node, phandle current)
+    ofw_tree_node_t *parent_node, phandle current)
 {
-	static char path[MAX_PATH_LEN+1];
+	static char path[MAX_PATH_LEN + 1];
 	static char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	static char name2[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	phandle peer;
@@ -131,7 +134,8 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		
 			child_node = ofw_tree_node_alloc();
 			if (child_node) {
-				ofw_tree_node_process(child_node, current_node, child);
+				ofw_tree_node_process(child_node, current_node,
+				    child);
 				current_node->child = child_node;
 			}
 		}
@@ -151,7 +155,8 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		/*
 		 * Copy properties.
 		 */
-		current_node->property = ofw_tree_properties_alloc(current_node->properties);
+		current_node->property =
+		    ofw_tree_properties_alloc(current_node->properties);
 		if (!current_node->property)
 			return;
 		
@@ -164,8 +169,9 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		
 			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
 			memcpy(current_node->property[i].name, name,
-				OFW_TREE_PROPERTY_MAX_NAMELEN);
-			current_node->property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN] = '\0';
+			    OFW_TREE_PROPERTY_MAX_NAMELEN);
+			current_node->property[i].name[
+			    OFW_TREE_PROPERTY_MAX_NAMELEN] = '\0';
 
 			size = ofw_get_proplen(current, name);
 			current_node->property[i].size = size;
@@ -177,14 +183,16 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 					/*
 					 * Copy property value to memory node.
 					 */
-					(void) ofw_get_property(current, name, buf, size);
+					(void) ofw_get_property(current, name,
+					    buf, size);
 				}
 			} else {
 				current_node->property[i].value = NULL;
 			}
 		}
 
-		current_node->properties = i;	/* Just in case we ran out of memory. */
+		/* Just in case we ran out of memory. */
+		current_node->properties = i;
 
 		/*
 		 * Iteratively process the next peer node.
@@ -217,7 +225,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 
 /** Construct memory representation of OpenFirmware device tree.
  *
- * @return NULL on failure or pointer to the root node.
+ * @return		NULL on failure or pointer to the root node.
  */
 ofw_tree_node_t *ofw_tree_build(void)
 {
@@ -238,8 +246,8 @@ ofw_tree_node_t *ofw_tree_build(void)
 	if (ssm_node != -1) {
 		ssm = ofw_tree_node_alloc();
 		if (ssm) {
-			ofw_tree_node_process(
-				ssm, root, ofw_find_device("/ssm@0,0"));
+			ofw_tree_node_process(ssm, root,
+			    ofw_find_device("/ssm@0,0"));
 			ssm->peer = root->child;
 			root->child = ssm;
 		}
