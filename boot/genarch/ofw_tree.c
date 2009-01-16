@@ -82,6 +82,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 {
 	static char path[MAX_PATH_LEN+1];
 	static char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
+	static char name2[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	phandle peer;
 	phandle child;
 	size_t len;
@@ -139,9 +140,11 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		 * Count properties.
 		 */
 		name[0] = '\0';
-		while (ofw_next_property(current, name, name) == 1)
+		while (ofw_next_property(current, name, name2) == 1) {
 			current_node->properties++;
-	
+			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
+		}
+
 		if (!current_node->properties)
 			return;
 	
@@ -153,12 +156,13 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 			return;
 		
 		name[0] = '\0';
-		for (i = 0; ofw_next_property(current, name, name) == 1; i++) {
+		for (i = 0; ofw_next_property(current, name, name2) == 1; i++) {
 			size_t size;
 		
 			if (i == current_node->properties)
 				break;
 		
+			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
 			memcpy(current_node->property[i].name, name,
 				OFW_TREE_PROPERTY_MAX_NAMELEN);
 			current_node->property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN] = '\0';
