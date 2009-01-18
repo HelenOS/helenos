@@ -50,48 +50,38 @@ SUNCC_CFLAGS += $(CMN1)
 #
 
 ifeq ($(MACHINE),athlon-xp)
-	FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-3dnow
 	CMN2 = -march=athlon-xp
-	GCC_CFLAGS += $(CMN2)
-	ICC_CFLAGS += $(CMN2)
 	SUNCC_CFLAGS += -xarch=ssea
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_SMP = n
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),athlon-mp)
-	FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-3dnow
 	CMN2 = -march=athlon-mp
-	GCC_CFLAGS += $(CMN2)
-	ICC_CFLAGS += $(CMN2)
 	SUNCC_CFLAGS += xarch=ssea
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),pentium3)
-	FPU_NO_CFLAGS = -mno-mmx -mno-sse
 	CMN2 = -march=pentium3
-	GCC_CFLAGS += $(CMN2)
-	ICC_CFLAGS += $(CMN2)
 	SUNCC_CFLAGS += -xarch=sse
 	DEFS += -DCONFIG_FENCES_P3
 	CONFIG_HT = n
 endif
-ifeq ($(MACHINE),core)
-	FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3
-	CMN2 = -march=prescott
-	GCC_CFLAGS += $(CMN2)
-	ICC_CFLAGS += $(CMN2)
-	SUNCC_CFLAGS += -xarch=sse3
-	DEFS += -DCONFIG_FENCES_P4
-endif
 ifeq ($(MACHINE),pentium4)
-	FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2
-	GCC_CFLAGS += -march=pentium4
-	ICC_CFLAGS += -march=pentium4
+	CMN2 = -march=pentium4
 	SUNCC_CFLAGS += -xarch=sse2
 	DEFS += -DCONFIG_FENCES_P4
 endif
+ifeq ($(MACHINE),core)
+	CMN2 = -march=prescott
+	SUNCC_CFLAGS += -xarch=sse3
+	DEFS += -DCONFIG_FENCES_P4
+endif
+
+FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
+GCC_CFLAGS += $(CMN2)
+ICC_CFLAGS += $(CMN2)
 
 ## Own configuration directives
 #
