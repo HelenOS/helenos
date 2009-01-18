@@ -19,8 +19,8 @@ if [ -z "${CROSS_PREFIX}" ] ; then
     CROSS_PREFIX="/usr/local"
 fi
 
-BINUTILS_VERSION="2.18"
-GCC_VERSION="4.3.1"
+BINUTILS_VERSION="2.19"
+GCC_VERSION="4.3.2"
 
 BINUTILS="binutils-${BINUTILS_VERSION}.tar.gz"
 GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -84,6 +84,21 @@ check_error $? "Error unpacking GCC C++."
 echo ">>> Compiling and installing binutils"
 cd "${BINUTILSDIR}"
 check_error $? "Change directory failed."
+patch -p1 <<EOF
+diff -Naur binutils-2.19.orig/bfd/elfxx-mips.c binutils-2.19/bfd/elfxx-mips.c
+--- binutils-2.19.orig/bfd/elfxx-mips.c	2008-08-18 20:14:04.000000000 +0200
++++ binutils-2.19/bfd/elfxx-mips.c	2009-01-18 18:14:47.292011299 +0100
+@@ -1409,7 +1409,7 @@
+    function, or 0 if we can't decide which function that is.  */
+ 
+ static unsigned long
+-mips16_stub_symndx (asection *sec, const Elf_Internal_Rela *relocs,
++mips16_stub_symndx (asection *sec __attribute__((unused)), const Elf_Internal_Rela *relocs,
+ 		    const Elf_Internal_Rela *relend)
+ {
+   const Elf_Internal_Rela *rel;
+EOF
+check_error $? "Error patching binutils"
 ./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
 check_error $? "Error configuring binutils."
 make all install
