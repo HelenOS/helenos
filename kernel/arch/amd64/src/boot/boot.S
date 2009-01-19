@@ -427,7 +427,8 @@ vesa_init_real2:
 		xor %dx, %dx
 		int $0x10
 		
-		jmp vga_not_compat
+		cmp $0x00, %ah
+		je vga_not_compat
 	
 	vga_compat:
 		
