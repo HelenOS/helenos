@@ -29,7 +29,7 @@
 ## Common compiler flags
 #
 
-include ../../Makefile.config
+-include ../../../Makefile.config
 
 LIBC_PREFIX = $(shell pwd)
 SOFTINT_PREFIX = ../softint

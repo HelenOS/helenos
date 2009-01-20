@@ -37,7 +37,7 @@ TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
 CFLAGS += -mips3
 
--include ../../Makefile.config
+-include ../../../Makefile.config
 ifeq ($(CONFIG_MIPS_FPU),y)
 	CFLAGS += -DCONFIG_MIPS_FPU
 endif

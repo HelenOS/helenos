@@ -30,8 +30,8 @@
 ## Include configuration
 #
 
--include ../version
--include Makefile.config
+include ../version
+-include ../Makefile.config
 
 INCLUDES = generic/include
 OPTIMIZATION = 3
@@ -359,22 +359,15 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
-.PHONY: all build config distclean clean archlinks depend disasm
+.PHONY: all build clean archlinks depend disasm
 
-all:
-	../tools/config.py kernel.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG) $(MACHINE)
+all: ../Makefile.config
+	-rm Makefile.depend
 	$(MAKE) -C . build
 
 build: kernel.bin disasm
 
-config:
-	-rm Makefile.depend
-	../tools/config.py kernel.config
-
 -include Makefile.depend
-
-distclean: clean
-	-rm Makefile.config
 
 clean:
 	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld

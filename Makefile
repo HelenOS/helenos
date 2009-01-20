@@ -36,7 +36,6 @@
 
 ifeq ($(PLATFORM),amd64)
 	KARCH = amd64
-	MACHINE = opteron
 	UARCH = amd64
 	BARCH = amd64
 endif
@@ -111,35 +110,24 @@ endif
 .PHONY: all build config distclean clean cscope
 
 all:
-	tools/config.py HelenOS.config default $(PLATFORM) $(COMPILER) $(CONFIG_DEBUG)
+	tools/config.py HelenOS.config default
 	$(MAKE) -C . build
 
-build:
-ifneq ($(MACHINE),)
-	$(MAKE) -C kernel ARCH=$(KARCH) COMPILER=$(COMPILER) CONFIG_DEBUG=$(CONFIG_DEBUG) MACHINE=$(MACHINE)
-else
-	$(MAKE) -C kernel ARCH=$(KARCH) COMPILER=$(COMPILER) CONFIG_DEBUG=$(CONFIG_DEBUG)
-endif
-	$(MAKE) -C uspace ARCH=$(UARCH) COMPILER=$(COMPILER) CONFIG_DEBUG=$(CONFIG_DEBUG)
-ifneq ($(IMAGE),)
-	$(MAKE) -C boot ARCH=$(BARCH) COMPILER=$(COMPILER) CONFIG_DEBUG=$(CONFIG_DEBUG) IMAGE=$(IMAGE)
-else
-	$(MAKE) -C boot ARCH=$(BARCH) COMPILER=$(COMPILER) CONFIG_DEBUG=$(CONFIG_DEBUG)
-endif
+build: Makefile.config
+	$(MAKE) -C kernel ARCH=$(KARCH)
+	$(MAKE) -C uspace ARCH=$(UARCH)
+	$(MAKE) -C boot ARCH=$(BARCH) IMAGE=$(IMAGE)
 
-config:
+config: HelenOS.config
 	tools/config.py HelenOS.config
 
-distclean:
-	-$(MAKE) -C kernel distclean
-	-$(MAKE) -C uspace distclean
-	-$(MAKE) -C boot distclean
+distclean: clean
 	rm -f Makefile.config tools/*.pyc
 
 clean:
-	-$(MAKE) -C kernel clean
-	-$(MAKE) -C uspace clean
-	-$(MAKE) -C boot clean
+	-$(MAKE) -C kernel clean ARCH=$(KARCH)
+	-$(MAKE) -C uspace clean ARCH=$(UARCH)
+	-$(MAKE) -C boot clean ARCH=$(BARCH) IMAGE=$(IMAGE)
 
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' -print > srclist

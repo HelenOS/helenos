@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../Makefile.config
+-include ../../../Makefile.config
 
 ## Setup toolchain
 #

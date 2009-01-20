@@ -30,12 +30,11 @@ DEFS = -DARCH=$(ARCH)
 CFLAGS = -fno-builtin -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include -pipe -g
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
-#-Werror
 
 ## Setup platform configuration
 #
 
-include $(LIBC_PREFIX)/arch/$(ARCH)/Makefile.inc
+-include $(LIBC_PREFIX)/arch/$(ARCH)/Makefile.inc
 
 ## Simple detection of the host system
 #

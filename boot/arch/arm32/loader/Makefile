@@ -27,7 +27,7 @@
 #
 
 include ../../../../version
-include ../../../Makefile.config
+include ../../../../Makefile.config
 
 ## Toolchain configuration
 #

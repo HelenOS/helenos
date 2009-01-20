@@ -30,7 +30,7 @@
 ## Setup toolchain
 #
 
-include ../../Makefile.config
+-include ../../../Makefile.config
 
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint

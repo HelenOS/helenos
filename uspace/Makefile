@@ -29,7 +29,7 @@
 ## Include configuration
 #
 
--include Makefile.config
+-include ../Makefile.config
 
 DIRS = \
 	lib/libc \
@@ -73,21 +73,11 @@ endif
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))
 
-.PHONY: all config build $(BUILDS) $(CLEANS) clean distclean
+.PHONY: all $(BUILDS) $(CLEANS) clean
 
-all:
-	../tools/config.py uspace.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG)
-	$(MAKE) -C . build
-
-config:
-	../tools/config.py uspace.config
-
-build: $(BUILDS)
+all: ../Makefile.config $(BUILDS)
 
 clean: $(CLEANS)
-
-distclean: clean
-	-rm Makefile.config
 
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean

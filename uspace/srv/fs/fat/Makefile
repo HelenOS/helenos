@@ -29,7 +29,7 @@
 ## Setup toolchain
 #
 
-include ../../../Makefile.config
+-include ../../../../Makefile.config
 
 LIBC_PREFIX = ../../../lib/libc
 LIBFS_PREFIX = ../../../lib/libfs

@@ -29,7 +29,7 @@
 ## Include configuration
 #
 
--include Makefile.config
+-include ../Makefile.config
 
 ## Paths
 #
@@ -50,19 +50,11 @@ ifeq ($(CONFIG_SMP),y)
 	DEFS += -DCONFIG_SMP
 endif
 
-.PHONY: all build config distclean clean generic_clean
+.PHONY: all build clean generic_clean
 
-all:
-	../tools/config.py boot.config default $(ARCH) $(COMPILER) $(CONFIG_DEBUG) $(IMAGE)
-	$(MAKE) -C . build
+all: ../Makefile.config build
 
 -include arch/$(ARCH)/Makefile.inc
-
-config:
-	../tools/config.py boot.config
-
-distclean: clean
-	-rm Makefile.config
 
 generic_clean:
 	-rm generic/*.o genarch/*.o

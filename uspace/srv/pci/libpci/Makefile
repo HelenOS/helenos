@@ -3,7 +3,7 @@
 
 # Modified and ported to HelenOS by Jakub Jermar
 
-include ../../../Makefile.config
+-include ../../../../Makefile.config
 
 LIBC_PREFIX=$(shell cd ../../../lib/libc; pwd)
 
