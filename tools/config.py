@@ -34,7 +34,7 @@ import sys
 import os
 import re
 import commands
-import snack
+import xtui
 
 INPUT = sys.argv[1]
 OUTPUT = 'Makefile.config'
@@ -178,33 +178,36 @@ def yes_no(default):
 	
 	return ' '
 
-def subchoice(screen, name, choices):
+def subchoice(screen, name, choices, default):
 	"Return choice of choices"
 	
-	maxlen = 0
-	for choice in choices:
-		length = len(choice[0])
-		if (length > maxlen):
-			maxlen = length
+	maxkey = 0
+	for key, val in choices:
+		length = len(key)
+		if (length > maxkey):
+			maxkey = length
 	
 	options = []
-	for choice in choices:
-		options.append(" %-*s  %s " % (maxlen, choice[0], choice[1]))
+	position = None
+	cnt = 0
+	for key, val in choices:
+		if ((default) and (key == default)):
+			position = cnt
+		
+		options.append(" %-*s  %s " % (maxkey, key, val))
+		cnt += 1
 	
-	retval = snack.ListboxChoiceWindow(screen, name, 'Choose value', options)
+	(button, value) = xtui.choice_window(screen, name, 'Choose value', options, position)
 	
-	if (retval[0] == 'cancel'):
+	if (button == 'cancel'):
 		return None
 	
-	return choices[retval[1]][0]
+	return choices[value][0]
 
 def check_choices(defaults, ask_names):
 	"Check whether all accessible variables have a default"
 	
-	for row in ask_names:
-		varname = row[0]
-		cond = row[4]
-		
+	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
@@ -222,11 +225,7 @@ def create_output(fname, defaults, ask_names):
 	outf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
 	outf.write('#########################################\n\n')
 	
-	for row in ask_names:
-		varname = row[0]
-		name = row[2]
-		cond = row[4]
-		
+	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
@@ -258,7 +257,7 @@ def main():
 			create_output(OUTPUT, defaults, ask_names)
 			return 0
 	
-	screen = snack.SnackScreen()
+	screen = xtui.screen_init()
 	try:
 		selname = None
 		while True:
@@ -267,13 +266,7 @@ def main():
 			opt2row = {}
 			position = None
 			cnt = 0
-			for row in ask_names:
-				
-				varname = row[0]
-				vartype = row[1]
-				name = row[2]
-				choices = row[3]
-				cond = row[4]
+			for varname, vartype, name, choices, cond in ask_names:
 				
 				if ((cond) and (not check_condition(cond, defaults, ask_names))):
 					continue
@@ -311,40 +304,41 @@ def main():
 				else:
 					raise RuntimeError("Unknown variable type: %s" % vartype)
 				
-				opt2row[cnt] = row
+				opt2row[cnt] = (varname, vartype, name, choices)
 				
 				cnt += 1
 			
-			retval = snack.ListboxChoiceWindow(screen, 'HelenOS configuration', 'Choose configuration option', options, default = position)
+			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
 			
-			if (retval[0] == 'cancel'):
+			if (button == 'cancel'):
 				return 'Configuration canceled'
 			
-			row = opt2row[retval[1]]
-			if (row == None):
-				raise RuntimeError("Error selecting value: %s" % retval[1])
+			if (not opt2row.has_key(value)):
+				raise RuntimeError("Error selecting value: %s" % value)
 			
-			selname = row[0]
-			seltype = row[1]
-			name = row[2]
-			choices = row[3]
+			(selname, seltype, name, choices) = opt2row[value]
 			
-			if (retval[0] == 'ok'):
+			if (not defaults.has_key(selname)):
+					default = None
+			else:
+				default = defaults[selname]
+			
+			if (button == 'done'):
 				if (check_choices(defaults, ask_names)):
 					break
 				else:
-					snack.ButtonChoiceWindow(screen, 'Error', 'Some options have still undefined values.', ['Ok']);
+					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values.')
 					continue
 			
 			if (seltype == 'choice'):
-				defaults[selname] = subchoice(screen, name, choices)
+				defaults[selname] = subchoice(screen, name, choices, default)
 			elif ((seltype == 'y/n') or (seltype == 'n/y')):
 				if (defaults[selname] == 'y'):
 					defaults[selname] = 'n'
 				else:
 					defaults[selname] = 'y'
 	finally:
-		screen.finish()
+		xtui.screen_done(screen)
 	
 	create_output(OUTPUT, defaults, ask_names)
 	return 0
