@@ -141,9 +141,14 @@ def choice_window(screen, title, text, options, position):
 		width = width_fix(screen, width + width_extra)
 		height = height_fix(screen, height)
 		
+		if (height > 3):
+			large = True
+		else:
+			large = False
+		
 		buttonbar = snack.ButtonBar(screen, ('Done', 'Cancel'))
 		textbox = snack.TextboxReflowed(width, text)
-		listbox = snack.Listbox(height, scroll = True, returnExit = 1)
+		listbox = snack.Listbox(height, scroll = large, returnExit = 1)
 		
 		cnt = 0
 		for option in options:
