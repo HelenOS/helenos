@@ -257,6 +257,12 @@ def main():
 			create_output(OUTPUT, defaults, ask_names)
 			return 0
 	
+	# Check mode: only check defaults
+	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'check')):
+		if (check_choices(defaults, ask_names)):
+			return 0
+		return 1
+	
 	screen = xtui.screen_init()
 	try:
 		selname = None

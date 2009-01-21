@@ -260,7 +260,7 @@ skip_ramdisk:
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_AP
 	printf("\nChecking for secondary processors...");
 	if (!ofw_cpu())
 		printf("Error: unable to get CPU properties\n");

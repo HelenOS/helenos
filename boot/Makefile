@@ -46,8 +46,8 @@ ifeq ($(CONFIG_BAT),y)
 	DEFS += -DCONFIG_BAT
 endif
 
-ifeq ($(CONFIG_SMP),y)
-	DEFS += -DCONFIG_SMP
+ifeq ($(CONFIG_AP),y)
+	DEFS += -DCONFIG_AP
 endif
 
 .PHONY: all build clean generic_clean
