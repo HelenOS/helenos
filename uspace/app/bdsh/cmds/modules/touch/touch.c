@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/types.h>
+#include <string.h>
 
 #include "config.h"
 #include "errors.h"
@@ -79,7 +80,7 @@ int cmd_touch(char **argv)
 	}
 
 	for (i = 1; i < argc; i ++) {
-		buff = cli_strdup(argv[i]);
+		buff = strdup(argv[i]);
 		dirp = opendir(buff);
 		if (dirp) {
 			cli_error(CL_ENOTSUP, "%s is a directory", buff);

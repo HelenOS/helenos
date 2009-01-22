@@ -93,7 +93,7 @@ create_directory(const char *path, unsigned int p)
 
 	/* Its a good idea to allocate path, plus we (may) need a copy of
 	 * path to tokenize if parents are specified */
-	if (NULL == (tmp = cli_strdup(path))) {
+	if (NULL == (tmp = strdup(path))) {
 		cli_error(CL_ENOMEM, "%s: path too big?", cmdname);
 		return 1;
 	}
@@ -128,9 +128,9 @@ create_directory(const char *path, unsigned int p)
 		absolute = 1;
 
 	/* TODO: Canonify the path prior to tokenizing it, see below */
-	dirs[i] = cli_strtok(tmp, "/");
+	dirs[i] = strtok(tmp, "/");
 	while (dirs[i] && i < 255)
-		dirs[++i] = cli_strtok(NULL, "/");
+		dirs[++i] = strtok(NULL, "/");
 
 	if (NULL == dirs[0])
 		return 1;

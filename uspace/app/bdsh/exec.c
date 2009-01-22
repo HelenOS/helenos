@@ -80,10 +80,10 @@ static char *find_command(char *cmd)
 		return (char *) cmd;
 	}
 
-	path_tok = cli_strdup(PATH);
+	path_tok = strdup(PATH);
 
 	/* Extract the PATH env to a path[] array */
-	path[n] = cli_strtok(path_tok, PATH_DELIM);
+	path[n] = strtok(path_tok, PATH_DELIM);
 	while (NULL != path[n]) {
 		if ((strlen(path[n]) + x ) > PATH_MAX) {
 			cli_error(CL_ENOTSUP,
@@ -91,7 +91,7 @@ static char *find_command(char *cmd)
 				n, n-1);
 			break;
 		}
-		path[++n] = cli_strtok(NULL, PATH_DELIM);
+		path[++n] = strtok(NULL, PATH_DELIM);
 	}
 
 	/* We now have n places to look for the command */
@@ -114,7 +114,7 @@ unsigned int try_exec(char *cmd, char **argv)
 	task_id_t tid;
 	char *tmp;
 
-	tmp = cli_strdup(find_command(cmd));
+	tmp = strdup(find_command(cmd));
 	free(found);
 
 	tid = task_spawn((const char *)tmp, argv);

@@ -1,7 +1,4 @@
-/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
- * Copyright (C) 1998 by Wes Peters <wes@softweyr.com>
- * Copyright (c) 1988, 1993 The Regents of the University of California.
- * All rights reserved by all copyright holders.
+/* Copyright (c) 2008, Tim Post <tinkertim@gmail.com> - All rights reserved
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,18 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* NOTES:
- * 1 - Various functions were adapted from FreeBSD (copyright holders noted above)
- *     these functions are identified with comments.
- *
- * 2 - Some of these have since appeared in libc. They remain here for various
- *     reasons, such as the eventual integration of garbage collection for things
- *     that allocate memory and don't automatically free it.
- *
- * 3 - Things that expect a pointer to an allocated string do _no_ sanity checking
- *     if developing on a simulator with no debugger, take care :)
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -53,71 +38,6 @@
 #include "util.h"
 
 extern volatile int cli_errno;
-
-/* some platforms do not have strdup, implement it here.
- * Returns a pointer to an allocated string or NULL on failure */
-char * cli_strdup(const char *s1)
-{
-	size_t len = strlen(s1) + 1;
-	void *ret = malloc(len);
-
-	if (ret == NULL) {
-		cli_errno = CL_ENOMEM;
-		return (char *) NULL;
-	}
-
-	cli_errno = CL_EOK;
-	return (char *) memcpy(ret, s1, len);
-}
-
-/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
-char * cli_strtok_r(char *s, const char *delim, char **last)
-{
-	char *spanp, *tok;
-	int c, sc;
-
-	if (s == NULL && (s = *last) == NULL) {
-		cli_errno = CL_EFAIL;
-		return (NULL);
-	}
-
-cont:
-	c = *s++;
-	for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
-		if (c == sc)
-			goto cont;
-	}
-
-	if (c == 0) {		/* no non-delimiter characters */
-		*last = NULL;
-		return (NULL);
-	}
-
-	tok = s - 1;
-
-	for (;;) {
-		c = *s++;
-		spanp = (char *)delim;
-		do {
-			if ((sc = *spanp++) == c) {
-				if (c == 0)
-					s = NULL;
-				else
-					s[-1] = '\0';
-				*last = s;
-				return (tok);
-			}
-		} while (sc != 0);
-	}
-}
-
-/* Ported from FBSD strtok.c 8.1 (Berkeley) 6/4/93 */
-char * cli_strtok(char *s, const char *delim)
-{
-	static char *last;
-
-	return (cli_strtok_r(s, delim, &last));
-}
 
 /* Count and return the # of elements in an array */
 unsigned int cli_count_args(char **args)
