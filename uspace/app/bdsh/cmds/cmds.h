@@ -36,7 +36,6 @@ typedef struct {
 	char *desc;         /* Description of the command */
 	mod_entry_t entry;  /* Command (exec) entry function */
 	mod_help_t help;    /* Command (help) entry function */
-	int restricted;     /* Restricts to interactive/non-interactive only */
 } module_t;
 
 /* Builtin structure, same as modules except different types of entry points */

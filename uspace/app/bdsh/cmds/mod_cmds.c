@@ -53,26 +53,6 @@
 
 extern volatile unsigned int cli_interactive;
 
-int module_is_restricted(int pos)
-{
-	/* Restriction Levels:
-	 * -1 -> Available only in interactive mode
-	 *  0 -> Available in any mode
-	 *  1 -> Available only in non-interactive mode */
-
-	module_t *mod = modules;
-	mod += pos;
-	/* We're interactive, and the module is OK to run */
-	if (cli_interactive && mod->restricted <= 0)
-		return 0;
-	/* We're not interactive, and the module is OK to run */
-	if (!cli_interactive && mod->restricted >= 0)
-		return 0;
-
-	/* Anything else is just a big fat no :) */
-	return 1;
-}
-
 /* Checks if an entry function matching command exists in modules[], if so
  * its position in the array is returned */
 int is_module(const char *command)

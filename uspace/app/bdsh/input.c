@@ -72,9 +72,6 @@ int tok_input(cliuser_t *usr)
 
 	tmp = cli_strdup(usr->line);
 
-	/* Break up what the user typed, space delimited */
-
-	/* TODO: Protect things in quotes / ticks, expand wildcards */
 	cmd[n] = cli_strtok(tmp, " ");
 	while (cmd[n] && n < WORD_MAX) {
 		cmd[++n] = cli_strtok(NULL, " ");
@@ -86,38 +83,18 @@ int tok_input(cliuser_t *usr)
 		goto finit;
 	}
 
-	/* Its a builtin command */
+	/* Its a builtin command ? */
 	if ((i = (is_builtin(cmd[0]))) > -1) {
-		/* Its not available in this mode, see what try_exec() thinks */
-		if (builtin_is_restricted(i)) {
-				rc = try_exec(cmd[0], cmd);
-				if (rc)
-					/* No external matching it could be found, tell the
-					 * user that the command does exist, but is not
-					 * available in this mode. */
-					cli_restricted(cmd[0]);
-				goto finit;
-		}
-		/* Its a builtin, its available, run it */
 		rc = run_builtin(i, cmd, usr);
 		goto finit;
-	/* We repeat the same dance for modules */
+	/* Its a module ? */
 	} else if ((i = (is_module(cmd[0]))) > -1) {
-		if (module_is_restricted(i)) {
-			rc = try_exec(cmd[0], cmd);
-			if (rc)
-				cli_restricted(cmd[0]);
-			goto finit;
-		}
 		rc = run_module(i, cmd);
 		goto finit;
-	} else {
-		/* Its not a module or builtin, restricted or otherwise.
-		 * See what try_exec() thinks of it and just pass its return
-		 * value back to the caller */
-		rc = try_exec(cmd[0], cmd);
-		goto finit;
 	}
+
+	/* See what try_exec thinks of it */
+	rc = try_exec(cmd[0], cmd);
 
 finit:
 	if (NULL != usr->line) {

@@ -12,10 +12,6 @@
  * the entry point being reached. */
 
 char *mod_aliases[] = {
-	"exit", "quit",
-	"md", "mkdir",
-	"del", "rm",
-	"dir", "ls",
 	NULL, NULL
 };
 

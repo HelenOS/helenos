@@ -34,7 +34,7 @@
 #include "quit.h"
 #include "cmds.h"
 
-static char *cmdname = "quit";
+static char *cmdname = "exit";
 
 extern volatile unsigned int cli_quit;
 extern const char *progname;

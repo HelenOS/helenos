@@ -40,19 +40,6 @@
 
 extern volatile unsigned int cli_interactive;
 
-int builtin_is_restricted(int pos)
-{
-	builtin_t *cmd = builtins;
-	cmd += pos;
-
-	if (cli_interactive && cmd->restricted <= 0)
-		return 0;
-	if (!cli_interactive && cmd->restricted >= 0)
-		return 0;
-
-	return 1;
-}
-
 int is_builtin(const char *command)
 {
 	builtin_t *cmd;

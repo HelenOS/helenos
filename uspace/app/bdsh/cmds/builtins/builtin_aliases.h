@@ -4,7 +4,6 @@
 /* See modules/module_aliases.h for an explanation of this file */
 
 char *builtin_aliases[] = {
-	"chdir", "cd",
 	NULL, NULL
 };
 
