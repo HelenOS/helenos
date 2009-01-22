@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
-#include <assert.h>
 #include <getopt.h>
 
 #include "config.h"
@@ -219,7 +218,11 @@ int cmd_rm(char **argv)
 	while (NULL != argv[i]) {
 		len = strlen(argv[i]) + 2;
 		buff = (char *) realloc(buff, len);
-		assert(buff != NULL);
+		if (buff == NULL) {
+			printf("rm: out of memory\n");
+			ret = 1;
+			break;
+		}
 		memset(buff, 0, sizeof(buff));
 		snprintf(buff, len, argv[i]);
 

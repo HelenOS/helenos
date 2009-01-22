@@ -34,7 +34,6 @@
 #include <getopt.h>
 #include <string.h>
 #include <fcntl.h>
-#include <assert.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -124,12 +123,19 @@ static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
 				goto err;
 			res -= bytes;
 		} while (res > 0);
-		assert(res == 0);
+
+		/* TODO: re-insert assert() once this is stand alone,
+		 * removed as abort() exits the entire shell
+		 */
+		if (res != 0) {
+			printf("\n%d more bytes than actually exist were copied\n", res);
+			goto err;
+		}
 	}
 
 	if (bytes < 0) {
 err:
-		printf("Error copying %s, (%d)\n", src, bytes);
+		printf("\nError copying %s, (%d)\n", src, bytes);
 		copied = bytes;
 	}
 
