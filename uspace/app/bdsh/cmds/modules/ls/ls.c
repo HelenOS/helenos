@@ -50,6 +50,24 @@
 
 static char *cmdname = "ls";
 
+static inline uint64_t flen(const char *f)
+{
+	int fd;
+	uint64_t size;
+
+	fd = open(f, O_RDONLY);
+	if (fd == -1)
+		return 0;
+
+	size = lseek(fd, 0, SEEK_END);
+	close(fd);
+
+	if (size < 0)
+		size = 0;
+
+	return size;
+}
+
 static unsigned int ls_scope(const char *path)
 {
 	int fd;
@@ -120,14 +138,14 @@ static void ls_scan_dir(const char *d, DIR *dirp)
 
 static void ls_print_dir(const char *d)
 {
-	printf("%-40s\t<DIR>\n", d);
+	printf("%-40s\t<dir>\n", d);
 
 	return;
 }
 
 static void ls_print_file(const char *f)
 {
-	printf("%-40s\n", f);
+	printf("%-40s\t%u\n", f, flen(f));
 
 	return;
 }
