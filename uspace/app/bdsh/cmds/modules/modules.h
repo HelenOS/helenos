@@ -18,7 +18,6 @@
 /* Prototypes for each module's entry (help/exec) points */
 
 #include "help/entry.h"
-#include "quit/entry.h"
 #include "mkdir/entry.h"
 #include "rm/entry.h"
 #include "cat/entry.h"
@@ -34,7 +33,6 @@
 
 module_t modules[] = {
 #include "help/help_def.h"
-#include "quit/quit_def.h"
 #include "mkdir/mkdir_def.h"
 #include "rm/rm_def.h"
 #include "cat/cat_def.h"

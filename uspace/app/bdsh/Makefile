@@ -57,7 +57,6 @@ SUBDIRS = \
 	cmds/ \
 	cmds/modules/ \
 	cmds/modules/help/ \
-	cmds/modules/quit/ \
 	cmds/modules/mkdir/ \
 	cmds/modules/rm/ \
 	cmds/modules/cat/ \
@@ -67,11 +66,11 @@ SUBDIRS = \
 	cmds/modules/sleep/ \
 	cmds/modules/cp/ \
 	cmds/builtins/ \
+	cmds/builtins/exit/\
 	cmds/builtins/cd/
 
 SOURCES = \
 	cmds/modules/help/help.c \
-	cmds/modules/quit/quit.c \
 	cmds/modules/mkdir/mkdir.c \
 	cmds/modules/rm/rm.c \
 	cmds/modules/cat/cat.c \
@@ -80,6 +79,7 @@ SOURCES = \
 	cmds/modules/pwd/pwd.c \
 	cmds/modules/sleep/sleep.c \
 	cmds/modules/cp/cp.c \
+	cmds/builtins/exit/exit.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \
 	cmds/builtin_cmds.c \
