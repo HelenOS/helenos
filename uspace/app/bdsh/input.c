@@ -42,20 +42,7 @@
 #include "errors.h"
 #include "exec.h"
 
-extern volatile unsigned int cli_interactive;
-
-/* Not exposed in input.h */
-static void cli_restricted(char *);
 static void read_line(char *, int);
-
-/* More than a macro than anything */
-static void cli_restricted(char *cmd)
-{
-	printf("%s is not available in %s mode\n", cmd,
-		cli_interactive ? "interactive" : "non-interactive");
-
-	return;
-}
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to

@@ -45,7 +45,6 @@ static cliuser_t usr;
 /* Globals that are modified during start-up that modules/builtins
  * should be aware of. */
 volatile unsigned int cli_quit = 0;
-volatile unsigned int cli_interactive = 1;
 volatile unsigned int cli_verbocity = 1;
 
 /* The official name of this program
