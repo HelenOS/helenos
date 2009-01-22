@@ -69,7 +69,8 @@ static int strtoint(const char *s1)
 	return (int) t1;
 }
 
-static int64_t copy_file(const char *src, const char *dest, size_t blen, int vb)
+static int64_t copy_file(const char *src, const char *dest,
+	size_t blen, int vb)
 {
 	int fd1, fd2, bytes = 0;
 	off_t total = 0;
