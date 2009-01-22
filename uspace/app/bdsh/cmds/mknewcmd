@@ -46,8 +46,6 @@ Options:
   -e, --entry        Entry function of the command (def: cmd_${def})
   -h, --help-entry   Entry function for command help (def: help_cmd_${def})
   -a, --alias        Alias (nickname) for this command (def: none)
-  -r, --restrict     Restriction level (interactive, non-interactive, both)
-                     (def: module is both, builtin is interactive only)
   -t, --type         Type of command (module or builtin) (def: module)
   -H, --help         This help summary
   -V, --version      Print $PROGNAME version and exit normally
@@ -67,8 +65,7 @@ Notes:
     $PROGNAME -n foo -d "Foo power" -a bar -r both -t module modules/foo
 
   The example would generate a modular command named 'foo', which is also
-  reached by typing 'bar' and available in either interactive or noninteractive
-  mode.
+  reached by typing 'bar'.
 
   Skeletal files do *not* depend on the autoconf generated "config.h" unless you
   include it. This may or may not be desirable depending on your use.
@@ -97,7 +94,6 @@ generate_code()
 	"${CMDDESC}",
 	&${CMDENTRY},
 	&${HELPENTRY},
-	${CMDRESTRICT}
 },
 
 EOF
@@ -107,7 +103,6 @@ EOF
 	NULL,
 	&${CMDENTRY},
 	&${HELPENTRY},
-	${CMDRESTRICT}
 },
 
 EOF
@@ -167,7 +162,7 @@ EOF
 #include "${CMDNAME}.h"
 #include "cmds.h"
 
-static char *cmdname = "${CMDNAME}";
+static const char *cmdname = "${CMDNAME}";
 
 /* Dispays help for ${CMDNAME} in various levels */
 void ${HELPENTRY}(unsigned int level)
@@ -234,8 +229,8 @@ DEFAULT_COMMAND="cmdname"
 # We need at least one
 [ $# = 0 ] && usage && exit 1;
 
-TEMP=$(getopt -o n:d:e:h:a:r:t:HV \
---long name:,desc:,entry:,help-entry:,alias:,restrict:,type:,help,version \
+TEMP=$(getopt -o n:d:e:h:a:t:HV \
+--long name:,desc:,entry:,help-entry:,alias:,type:,help,version \
 -- "$@") || {
 	echo "Try $PROGNAME --help for help"
 }
@@ -266,11 +261,6 @@ while true; do
 	;;
 	-a | --alias)
 		CMDALIAS="$2"
-		shift 2
-		continue
-	;;
-	-r | --restrict)
-		CMDRESTRICT="$2"
 		shift 2
 		continue
 	;;
@@ -305,29 +295,6 @@ eval set -- "$*"
 [ -n "$CMDTYPE" ] || CMDTYPE="module"
 [ -n "$OUTDIR" ] || OUTDIR="${CMDTYPE}s/${CMDNAME}"
 
-# Builtins typically only need to be available in interactive mode,
-# set the default accordingly.
-[ -n "$CMDRESTRICT" ] || {
-	[ "$CMDTYPE" = "module" ] && CMDRESTRICT="both"
-	[ "$CMDTYPE" = "builtin" ] && CMDRESTRICT="interactive"
-}
-
-# Set the restriction level as the structure expects to see it
-case "$CMDRESTRICT" in
-	0 | both)
-		CMDRESTRICT="0"
-	;;
-	1 | non-interactive)
-		CMDRESTRICT="1"
-	;;
-	-1 | interactive)
-		CMDRESTRICT="-1"
-	;;
-	*)
-		usage
-		exit 1
-	;;
-esac
 
 # Do a little sanity
 [ -d $OUTDIR ] && {
