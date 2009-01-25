@@ -47,8 +47,7 @@ typedef struct {
 } ipc_call_t;
 typedef sysarg_t ipc_callid_t;
 
-typedef void (* ipc_async_callback_t)(void *private, int retval,
-    ipc_call_t *data);
+typedef void (* ipc_async_callback_t)(void *, int, ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_call_sync_fast() and ipc_call_sync_slow().
@@ -173,22 +172,20 @@ typedef void (* ipc_async_callback_t)(void *private, int retval,
 	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (res1), (res2), (res3), (res4), (res5))
 
-extern int ipc_call_sync_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2,
-    ipcarg_t *result3, ipcarg_t *result4, ipcarg_t *result5);
+extern int ipc_call_sync_fast(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *);
 
-extern int ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
-    ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3, ipcarg_t *result4,
-    ipcarg_t *result5);
+extern int ipc_call_sync_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *,
+    ipcarg_t *);
 
-extern ipc_callid_t ipc_wait_cycle(ipc_call_t *call, uint32_t usec, int flags);
-extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *data, uint32_t usec);
+extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, uint32_t, int);
+extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, uint32_t);
 static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 {
 	return ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
 }
-extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
+extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().
@@ -209,10 +206,10 @@ extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *data);
 #define ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5) \
     ipc_answer_slow((callid), (retval), (arg1), (arg2), (arg3), (arg4), (arg5))
 
-extern ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval,
-    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4);
-extern ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval,
-    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5);
+extern ipcarg_t ipc_answer_fast(ipc_callid_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t);
+extern ipcarg_t ipc_answer_slow(ipc_callid_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, ipcarg_t);
 
 /*
  * User-friendly wrappers for ipc_call_async_fast() and ipc_call_async_slow().
@@ -220,8 +217,7 @@ extern ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval,
  * arguments. The macros decide between the fast and the slow version according
  * to m.
  */
-#define ipc_call_async_0(phoneid, method, private, callback, \
-    can_preempt) \
+#define ipc_call_async_0(phoneid, method, private, callback, can_preempt) \
 	ipc_call_async_fast((phoneid), (method), 0, 0, 0, 0, (private), \
 	    (callback), (can_preempt))
 #define ipc_call_async_1(phoneid, method, arg1, private, callback, \
@@ -245,21 +241,17 @@ extern ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval,
 	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (private), (callback), (can_preempt))
 
-extern void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, void *private,
-    ipc_async_callback_t callback, int can_preempt);
-extern void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, void *private,
-    ipc_async_callback_t callback, int can_preempt);
+extern void ipc_call_async_fast(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, void *, ipc_async_callback_t, int);
+extern void ipc_call_async_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, void *, ipc_async_callback_t, int);
 
-extern int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3,
-    ipcarg_t *phone);
-extern int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3);
-extern int ipc_hangup(int phoneid);
-extern int ipc_register_irq(int inr, int devno, int method, irq_code_t *code);
-extern int ipc_unregister_irq(int inr, int devno);
-extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
-    ipcarg_t arg1, ipcarg_t arg2, int mode);
+extern int ipc_connect_to_me(int, int, int, int, ipcarg_t *);
+extern int ipc_connect_me_to(int, int, int, int);
+extern int ipc_hangup(int);
+extern int ipc_register_irq(int, int, int, irq_code_t *);
+extern int ipc_unregister_irq(int, int);
+extern int ipc_forward_fast(ipc_callid_t, int, int, ipcarg_t, ipcarg_t, int);
 
 
 /*
@@ -274,24 +266,22 @@ extern int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 #define ipc_share_in_start_1_1(phoneid, dst, size, arg, flags) \
     ipc_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
-    int *flags);
-extern int ipc_share_in_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags);
-extern int ipc_share_out_start(int phoneid, void *src, int flags);
-extern int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags);
-extern int ipc_share_out_finalize(ipc_callid_t callid, void *dst);
-extern int ipc_data_read_start(int phoneid, void *dst, size_t size);
-extern int ipc_data_read_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_data_read_finalize(ipc_callid_t callid, const void *src,
-    size_t size);
-extern int ipc_data_write_start(int phoneid, const void *src, size_t size);
-extern int ipc_data_write_receive(ipc_callid_t *callid, size_t *size);
-extern int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size);
+extern int ipc_share_in_start(int, void *, size_t, ipcarg_t, int *);
+extern int ipc_share_in_receive(ipc_callid_t *, size_t *);
+extern int ipc_share_in_finalize(ipc_callid_t, void *, int );
+extern int ipc_share_out_start(int, void *, int);
+extern int ipc_share_out_receive(ipc_callid_t *, size_t *, int *);
+extern int ipc_share_out_finalize(ipc_callid_t, void *);
+extern int ipc_data_read_start(int, void *, size_t);
+extern int ipc_data_read_receive(ipc_callid_t *, size_t *);
+extern int ipc_data_read_finalize(ipc_callid_t, const void *, size_t);
+extern int ipc_data_write_start(int, const void *, size_t);
+extern int ipc_data_write_receive(ipc_callid_t *, size_t *);
+extern int ipc_data_write_finalize(ipc_callid_t, void *, size_t);
 
 #include <task.h>
 
-extern int ipc_connect_kbox(task_id_t id);
+extern int ipc_connect_kbox(task_id_t);
 
 #endif
 
