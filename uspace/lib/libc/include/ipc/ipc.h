@@ -252,6 +252,8 @@ extern int ipc_hangup(int);
 extern int ipc_register_irq(int, int, int, irq_code_t *);
 extern int ipc_unregister_irq(int, int);
 extern int ipc_forward_fast(ipc_callid_t, int, int, ipcarg_t, ipcarg_t, int);
+extern int ipc_forward_slow(ipc_callid_t, int, int, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, ipcarg_t, int); 
 
 
 /*

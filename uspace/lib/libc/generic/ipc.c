@@ -666,6 +666,23 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 	    arg2, mode);
 }
 
+
+int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
+    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+    int mode)
+{
+	ipc_call_t data;
+
+	IPC_SET_METHOD(data, method);
+	IPC_SET_ARG1(data, arg1);
+	IPC_SET_ARG2(data, arg2);
+	IPC_SET_ARG3(data, arg3);
+	IPC_SET_ARG4(data, arg4);
+	IPC_SET_ARG5(data, arg5);
+
+	return __SYSCALL3(SYS_IPC_FORWARD_SLOW, callid, (sysarg_t) &data, mode);
+}
+
 /** Wrapper for making IPC_M_SHARE_IN calls.
  *
  * @param phoneid	Phone that will be used to contact the receiving side.

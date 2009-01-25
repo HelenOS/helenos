@@ -618,30 +618,29 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 	return (unative_t) call;
 }
 
-/** Forward a received call to another destination.
+/** Forward a received call to another destination - common code for both the
+ * fast and the slow version.
  *
  * @param callid	Hash of the call to forward.
  * @param phoneid	Phone handle to use for forwarding.
  * @param method	New method to use for the forwarded call.
  * @param arg1		New value of the first argument for the forwarded call.
  * @param arg2		New value of the second argument for the forwarded call.
+ * @param arg3		New value of the third argument for the forwarded call.
+ * @param arg4		New value of the fourth argument for the forwarded call.
+ * @param arg5		New value of the fifth argument for the forwarded call.
  * @param mode		Flags that specify mode of the forward operation.
+ * @param slow		If true, arg3, arg4 and arg5 are considered. Otherwise
+ *			the function considers only the fast version arguments:
+ *			i.e. arg1 and arg2.
  *
  * @return		Return 0 on succes, otherwise return an error code.
  *
- * In case the original method is a system method, ARG1, ARG2 and ARG3 are
- * overwritten in the forwarded message with the new method and the new arg1 and
- * arg2, respectively. Otherwise the METHOD, ARG1 and ARG2 are rewritten with
- * the new method, arg1 and arg2, respectively. Also note there is a set of
- * immutable methods, for which the new method and argument is not set and
- * these values are ignored.
- *
- * Warning:	When implementing support for changing additional payload
- *		arguments, make sure that ARG5 is not rewritten for certain
- *		system IPC
+ * Warning:	Make sure that ARG5 is not rewritten for certain system IPC
  */
-unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1, unative_t arg2, int mode)
+static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
+    unative_t method, unative_t arg1, unative_t arg2, unative_t arg3,
+    unative_t arg4, unative_t arg5, int mode, bool slow)
 {
 	call_t *call;
 	phone_t *phone;
@@ -649,7 +648,7 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 	call = get_call(callid);
 	if (!call)
 		return ENOENT;
-
+	
 	call->flags |= IPC_CALL_FORWARDED;
 
 	GET_CHECK_PHONE(phone, phoneid, { 
@@ -666,8 +665,8 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 
 	/*
 	 * Userspace is not allowed to change method of system methods on
-	 * forward, allow changing ARG1, ARG2 and ARG3 by means of method,
-	 * arg1 and arg2.
+	 * forward, allow changing ARG1, ARG2, ARG3 and ARG4 by means of method,
+	 * arg1, arg2 and arg3.
 	 * If the method is immutable, don't change anything.
 	 */
 	if (!method_is_immutable(IPC_GET_METHOD(call->data))) {
@@ -678,14 +677,84 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
 			IPC_SET_ARG1(call->data, method);
 			IPC_SET_ARG2(call->data, arg1);
 			IPC_SET_ARG3(call->data, arg2);
+			if (slow) {
+				IPC_SET_ARG4(call->data, arg3);
+				/*
+				 * For system methods we deliberately don't
+				 * overwrite ARG5.
+				 */
+			}
 		} else {
 			IPC_SET_METHOD(call->data, method);
 			IPC_SET_ARG1(call->data, arg1);
 			IPC_SET_ARG2(call->data, arg2);
+			if (slow) {
+				IPC_SET_ARG3(call->data, arg3);
+				IPC_SET_ARG4(call->data, arg4);
+				IPC_SET_ARG5(call->data, arg5);
+			}
 		}
 	}
 
 	return ipc_forward(call, phone, &TASK->answerbox, mode);
+}
+
+/** Forward a received call to another destination - fast version.
+ *
+ * @param callid	Hash of the call to forward.
+ * @param phoneid	Phone handle to use for forwarding.
+ * @param method	New method to use for the forwarded call.
+ * @param arg1		New value of the first argument for the forwarded call.
+ * @param arg2		New value of the second argument for the forwarded call.
+ * @param mode		Flags that specify mode of the forward operation.
+ *
+ * @return		Return 0 on succes, otherwise return an error code.
+ *
+ * In case the original method is a system method, ARG1, ARG2 and ARG3 are
+ * overwritten in the forwarded message with the new method and the new
+ * arg1 and arg2, respectively. Otherwise the METHOD, ARG1 and ARG2 are
+ * rewritten with the new method, arg1 and arg2, respectively. Also note there
+ * is a set of immutable methods, for which the new method and arguments are not
+ * set and these values are ignored.
+ */
+unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
+    unative_t method, unative_t arg1, unative_t arg2, int mode)
+{
+	return sys_ipc_forward_common(callid, phoneid, method, arg1, arg2, 0, 0,
+	    0, mode, false); 
+}
+
+/** Forward a received call to another destination - slow version.
+ *
+ * @param callid	Hash of the call to forward.
+ * @param phoneid	Phone handle to use for forwarding.
+ * @param data		Userspace address of the new IPC data. 
+ * @param mode		Flags that specify mode of the forward operation.
+ *
+ * @return		Return 0 on succes, otherwise return an error code.
+ *
+ * This function is the slow verision of the sys_ipc_forward_fast interface.
+ * It can copy all five new arguments and the new method from the userspace.
+ * It naturally extends the functionality of the fast version. For system
+ * methods, it additionally stores the new value of arg3 to ARG4. For non-system
+ * methods, it additionally stores the new value of arg3, arg4 and arg5,
+ * respectively, to ARG3, ARG4 and ARG5, respectively.
+ */
+unative_t sys_ipc_forward_slow(unative_t callid, unative_t phoneid,
+    ipc_data_t *data, int mode)
+{
+	ipc_data_t newdata;
+	int rc;
+
+	rc = copy_from_uspace(&newdata.args, &data->args,
+	    sizeof(newdata.args));
+	if (rc != 0) 
+		return (unative_t) rc;
+
+	return sys_ipc_forward_common(callid, phoneid,
+	    IPC_GET_METHOD(newdata), IPC_GET_ARG1(newdata),
+	    IPC_GET_ARG2(newdata), IPC_GET_ARG3(newdata),
+	    IPC_GET_ARG4(newdata), IPC_GET_ARG5(newdata), mode, true); 
 }
 
 /** Answer an IPC call - fast version.

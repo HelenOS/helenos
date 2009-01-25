@@ -53,6 +53,8 @@ unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     int nonblocking);
 unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
     unative_t method, unative_t arg1, unative_t arg2, int mode);
+unative_t sys_ipc_forward_slow(unative_t callid, unative_t phoneid,
+    ipc_data_t *data, int mode);
 unative_t sys_ipc_hangup(int phoneid);
 unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
     irq_code_t *ucode);

@@ -59,6 +59,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_IPC_ANSWER_FAST] = { "ipc_answer_fast",	6,	V_ERRNO },
     [SYS_IPC_ANSWER_SLOW] = { "ipc_answer_slow",	2,	V_ERRNO },
     [SYS_IPC_FORWARD_FAST] = { "ipc_forward_fast",	6,	V_ERRNO },
+    [SYS_IPC_FORWARD_SLOW] = { "ipc_forward_slow",	3,	V_ERRNO },
     [SYS_IPC_WAIT] = { "ipc_wait_for_call",		3,	V_HASH },
     [SYS_IPC_HANGUP] = { "ipc_hangup",			1,	V_ERRNO },
     [SYS_IPC_REGISTER_IRQ] = { "ipc_register_irq",	4,	V_ERRNO },
