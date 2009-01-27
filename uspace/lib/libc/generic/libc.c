@@ -71,8 +71,6 @@ void __main(void *pcb_ptr)
 	f = fibril_setup();
 	__tcb_set(f->tcb);
 	
-	open_console();
-
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *)pcb_ptr;
 
