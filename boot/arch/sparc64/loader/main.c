@@ -142,8 +142,8 @@ void bootstrap(void)
 		silo_ramdisk_image += bootinfo.physmem_start;
 		silo_ramdisk_image -= 0x400000;
 		/* Install 1:1 mapping for the ramdisk. */
-		if (ofw_map((void *)((uintptr_t)silo_ramdisk_image),
-		    (void *)((uintptr_t)silo_ramdisk_image),
+		if (ofw_map((void *)((uintptr_t) silo_ramdisk_image),
+		    (void *)((uintptr_t) silo_ramdisk_image),
 		    silo_ramdisk_size, -1) != 0) {
 			printf("Failed to map ramdisk.\n");
 			halt();
@@ -203,7 +203,8 @@ void bootstrap(void)
 		 * given to us by SILO.
 		 */
 		(void) ofw_claim_phys(base + top, silo_ramdisk_size);
-		(void) ofw_map(base + top, base + top, silo_ramdisk_size, -1);
+		(void) ofw_map(bootinfo.physmem_start + base + top, base + top,
+		    silo_ramdisk_size, -1);
 		memmove(base + top, (void *)((uintptr_t)silo_ramdisk_image),
 		    silo_ramdisk_size);
 		printf("done.\n");
@@ -253,7 +254,8 @@ skip_ramdisk:
 	balloc_base = base + ALIGN_UP(top, PAGE_SIZE);
 	(void) ofw_claim_phys(bootinfo.physmem_start + balloc_base,
 	    BALLOC_MAX_SIZE);
-	(void) ofw_map(balloc_base, balloc_base, BALLOC_MAX_SIZE, -1);
+	(void) ofw_map(bootinfo.physmem_start + balloc_base, balloc_base,
+	    BALLOC_MAX_SIZE, -1);
 	balloc_init(&bootinfo.ballocs, (uintptr_t)balloc_base);
 
 	printf("\nCanonizing OpenFirmware device tree...");
@@ -274,4 +276,3 @@ skip_ramdisk:
 	    bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo,
 	    sizeof(bootinfo));
 }
-
