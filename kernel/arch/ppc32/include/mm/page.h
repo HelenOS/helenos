@@ -120,7 +120,7 @@
 
 /* Macros for querying the last-level PTEs. */
 #define PTE_VALID_ARCH(pte)			(*((uint32_t *) (pte)) != 0)
-#define PTE_PRESENT_ARCH(pte)			((pte)->p != 0)
+#define PTE_PRESENT_ARCH(pte)			((pte)->present != 0)
 #define PTE_GET_FRAME_ARCH(pte)			((pte)->pfn << 12)
 #define PTE_WRITABLE_ARCH(pte)			1
 #define PTE_EXECUTABLE_ARCH(pte)		1
@@ -134,21 +134,22 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 {
 	pte_t *p = &pt[i];
 	
-	return ((1 << PAGE_CACHEABLE_SHIFT) |
-	    ((!p->p) << PAGE_PRESENT_SHIFT) |
+	return (((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
+	    ((!p->present) << PAGE_PRESENT_SHIFT) |
 	    (1 << PAGE_USER_SHIFT) |
 	    (1 << PAGE_READ_SHIFT) |
 	    (1 << PAGE_WRITE_SHIFT) |
 	    (1 << PAGE_EXEC_SHIFT) |
-	    (p->g << PAGE_GLOBAL_SHIFT));
+	    (p->global << PAGE_GLOBAL_SHIFT));
 }
 
 static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
-	p->p = !(flags & PAGE_NOT_PRESENT);
-	p->g = (flags & PAGE_GLOBAL) != 0;
+	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
+	p->present = !(flags & PAGE_NOT_PRESENT);
+	p->global = (flags & PAGE_GLOBAL) != 0;
 	p->valid = 1;
 }
 

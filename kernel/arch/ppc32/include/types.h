@@ -84,11 +84,13 @@ typedef int32_t native_t;
 
 /** Page Table Entry. */
 typedef struct {
-	unsigned p : 1;       /**< Present bit. */
-	unsigned a : 1;       /**< Accessed bit. */
-	unsigned g : 1;       /**< Global bit. */
-	unsigned valid : 1;   /**< Valid content even if not present. */
-	unsigned pfn : 20;    /**< Physical frame number. */
+	unsigned present : 1;             /**< Present bit. */
+	unsigned page_write_through : 1;  /**< Write thought caching. */
+	unsigned page_cache_disable : 1;  /**< No caching. */
+	unsigned accessed : 1;            /**< Accessed bit. */
+	unsigned global : 1;              /**< Global bit. */
+	unsigned valid : 1;               /**< Valid content even if not present. */
+	unsigned pfn : 20;                /**< Physical frame number. */
 } pte_t;
 
 #endif

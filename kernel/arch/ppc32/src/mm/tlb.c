@@ -66,7 +66,7 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 	 * Check if the mapping exists in page tables.
 	 */	
 	pte_t *pte = page_mapping_find(as, badvaddr);
-	if ((pte) && (pte->p)) {
+	if ((pte) && (pte->present)) {
 		/*
 		 * Mapping found in page tables.
 		 * Immediately succeed.
@@ -88,7 +88,7 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 			 */
 			page_table_lock(as, lock);
 			pte = page_mapping_find(as, badvaddr);
-			ASSERT((pte) && (pte->p));
+			ASSERT((pte) && (pte->present));
 			*pfrc = 0;
 			return pte;
 		case AS_PF_DEFER:
@@ -126,7 +126,7 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 }
 
 
-static void pht_insert(const uintptr_t vaddr, const pfn_t pfn)
+static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 {
 	uint32_t page = (vaddr >> 12) & 0xffff;
 	uint32_t api = (vaddr >> 22) & 0x3f;
@@ -189,9 +189,10 @@ static void pht_insert(const uintptr_t vaddr, const pfn_t pfn)
 	phte[base + i].vsid = vsid;
 	phte[base + i].h = h;
 	phte[base + i].api = api;
-	phte[base + i].rpn = pfn;
+	phte[base + i].rpn = pte->pfn;
 	phte[base + i].r = 0;
 	phte[base + i].c = 0;
+	phte[base + i].wimg = (pte->page_cache_disable ? WIMG_NO_CACHE : 0);
 	phte[base + i].pp = 2; // FIXME
 }
 
@@ -263,6 +264,7 @@ static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
 	phte_physical[base + i].rpn = pfn;
 	phte_physical[base + i].r = 0;
 	phte_physical[base + i].c = 0;
+	phte_physical[base + i].wimg = 0;
 	phte_physical[base + i].pp = 2; // FIXME
 }
 
@@ -318,8 +320,8 @@ void pht_refill(int n, istate_t *istate)
 		}
 	}
 	
-	pte->a = 1; /* Record access to PTE */
-	pht_insert(badvaddr, pte->pfn);
+	pte->accessed = 1; /* Record access to PTE */
+	pht_insert(badvaddr, pte);
 	
 	page_table_unlock(as, lock);
 	return;

@@ -39,6 +39,11 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+#define WIMG_GUARDED    0x01
+#define WIMG_COHERENT   0x02
+#define WIMG_NO_CACHE   0x04
+#define WIMG_WRITETHRU  0x08
+
 typedef struct {
 	unsigned v : 1;          /**< Valid */
 	unsigned vsid : 24;      /**< Virtual Segment ID */
