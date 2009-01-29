@@ -372,7 +372,6 @@ void tlb_arch_init(void)
 void tlb_invalidate_all(void)
 {
 	asm volatile (
-		"tlbia\n"
 		"tlbsync\n"
 	);
 }

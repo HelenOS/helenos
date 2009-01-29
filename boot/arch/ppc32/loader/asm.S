@@ -318,7 +318,6 @@ real_mode:
 	
 #endif
 	
-	tlbia
 	tlbsync
 	
 	# start the kernel
