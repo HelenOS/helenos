@@ -203,8 +203,8 @@ void *ofw_translate(const void *virt)
 	ofw_arg_t result[4];
 	int shift;
 
-	if (ofw_call("call-method", 3, 5, result, "translate", ofw_mmu,
-	    virt) != 0) {
+	if (ofw_call("call-method", 4, 5, result, "translate", ofw_mmu,
+	    virt, 0) != 0) {
 		puts("Error: MMU method translate() failed, halting.\n");
 		halt();
 	}
