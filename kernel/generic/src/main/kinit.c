@@ -208,7 +208,7 @@ void kinit(void *arg)
 		
 		uint64_t i = 0;
 		while (1) {
-			printf(PRIu64 " ", i);
+			printf("%" PRIu64 " ", i);
 			thread_sleep(1);
 			i++;
 		}
