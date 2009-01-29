@@ -28,7 +28,6 @@
 
 #include "asm.h"
 #include "regname.h"
-#include "debug.inc"
 
 .text
 
@@ -140,9 +139,6 @@ jump_to_kernel:
 
 real_mode:
 	
-	DEBUG_INIT
-	DEBUG_real_mode
-	
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
@@ -163,9 +159,6 @@ real_mode:
 		mtctr r31
 		lwz r29, 0(r5)
 		
-		DEBUG_INIT
-		DEBUG_copy_loop
-		
 		copy_loop:
 			
 			lwz r28, 0(r29)
@@ -180,14 +173,10 @@ real_mode:
 			
 			bdnz copy_loop
 			
-			DEBUG_end_copy_loop
-		
 		addi r5, r5, 4
 		b page_copy
 	
 	copy_end:
-	
-	DEBUG_segments
 	
 	# initially fill segment registers
 	
@@ -221,8 +210,6 @@ real_mode:
 	# create empty Page Hash Table
 	# on top of memory, size 64 KB
 	
-	DEBUG_pht
-	
 	lwz r31, 0(r3)                # r31 = memory size
 	
 	lis r30, 65536@h
@@ -252,17 +239,10 @@ real_mode:
 		beq clear_end
 		
 		bdnz pht_clear
-
-		DEBUG_end_pht_clear
 		
 	clear_end:
 	
-	DEBUG_tlb
-	
-	tlbia
 	tlbsync
-	
-	DEBUG_prepare
 	
 	# start the kernel
 	#
@@ -291,8 +271,6 @@ real_mode:
 	
 	sync
 	isync
-	
-	DEBUG_rfi
 	rfid
 
 .align PAGE_WIDTH
