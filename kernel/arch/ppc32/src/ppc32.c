@@ -76,43 +76,47 @@ void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		/* Initialize framebuffer */
-		unsigned int visual;
-		
-		switch (bootinfo.screen.bpp) {
-		case 8:
-			visual = VISUAL_INDIRECT_8;
-			break;
-		case 16:
-			visual = VISUAL_RGB_5_5_5;
-			break;
-		case 24:
-			visual = VISUAL_RGB_8_8_8;
-			break;
-		case 32:
-			visual = VISUAL_RGB_0_8_8_8;
-			break;
-		default:
-			panic("Unsupported bits per pixel.");
+		if (bootinfo.screen.addr) {
+			unsigned int visual;
+			
+			switch (bootinfo.screen.bpp) {
+			case 8:
+				visual = VISUAL_INDIRECT_8;
+				break;
+			case 16:
+				visual = VISUAL_RGB_5_5_5;
+				break;
+			case 24:
+				visual = VISUAL_RGB_8_8_8;
+				break;
+			case 32:
+				visual = VISUAL_RGB_0_8_8_8;
+				break;
+			default:
+				panic("Unsupported bits per pixel.");
+			}
+			fb_properties_t prop = {
+				.addr = bootinfo.screen.addr,
+				.offset = 0,
+				.x = bootinfo.screen.width,
+				.y = bootinfo.screen.height,
+				.scan = bootinfo.screen.scanline,
+				.visual = visual,
+			};
+			fb_init(&prop);
 		}
-		fb_properties_t prop = {
-			.addr = bootinfo.screen.addr,
-			.offset = 0,
-			.x = bootinfo.screen.width,
-			.y = bootinfo.screen.height,
-			.scan = bootinfo.screen.scanline,
-			.visual = visual,
-		};
-		fb_init(&prop);
 		
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
-	
-		/* Initialize PIC */
-		pic_init(bootinfo.keyboard.addr, PAGE_SIZE);
 		
-		/* Initialize I/O controller */
-		cuda_init(device_assign_devno(),
-		    bootinfo.keyboard.addr + 0x16000, 2 * PAGE_SIZE);
+		if (bootinfo.macio.addr) {
+			/* Initialize PIC */
+			pic_init(bootinfo.macio.addr, PAGE_SIZE);
+			
+			/* Initialize I/O controller */
+			cuda_init(device_assign_devno(),
+			    bootinfo.macio.addr + 0x16000, 2 * PAGE_SIZE);
+		}
 		
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();

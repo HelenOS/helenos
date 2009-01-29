@@ -236,13 +236,15 @@ static chardev_operations_t ops = {
 
 int cuda_get_scancode(void)
 {
-	uint8_t kind;
-	uint8_t data[4];
-	
-	receive_packet(&kind, 4, data);
-	
-	if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c))
-		return data[2];
+	if (cuda) {
+		uint8_t kind;
+		uint8_t data[4];
+		
+		receive_packet(&kind, 4, data);
+		
+		if ((kind == PACKET_ADB) && (data[0] == 0x40) && (data[1] == 0x2c))
+			return data[2];
+	}
 	
 	return -1;
 }
@@ -271,29 +273,33 @@ static irq_ownership_t cuda_claim(void)
 /** Initialize keyboard and service interrupts using kernel routine */
 void cuda_grab(void)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&cuda_irq.lock);
-	cuda_irq.notif_cfg.notify = false;
-	spinlock_unlock(&cuda_irq.lock);
-	interrupts_restore(ipl);
+	if (cuda) {
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&cuda_irq.lock);
+		cuda_irq.notif_cfg.notify = false;
+		spinlock_unlock(&cuda_irq.lock);
+		interrupts_restore(ipl);
+	}
 }
 
 
 /** Resume the former interrupt vector */
 void cuda_release(void)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&cuda_irq.lock);
-	if (cuda_irq.notif_cfg.answerbox)
-		cuda_irq.notif_cfg.notify = true;
-	spinlock_unlock(&cuda_irq.unlock);
-	interrupts_restore(ipl);
+	if (cuda) {
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&cuda_irq.lock);
+		if (cuda_irq.notif_cfg.answerbox)
+			cuda_irq.notif_cfg.notify = true;
+		spinlock_unlock(&cuda_irq.unlock);
+		interrupts_restore(ipl);
+	}
 }
 
 
 void cuda_init(devno_t devno, uintptr_t base, size_t size)
 {
-	cuda = (uint8_t *) hw_map(base, size);	
+	cuda = (uint8_t *) hw_map(base, size);
 	
 	chardev_initialize("cuda_kbd", &kbrd, &ops);
 	stdin = &kbrd;
@@ -306,7 +312,7 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 	irq_register(&cuda_irq);
 	
 	pic_enable_interrupt(CUDA_IRQ);
-
+	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, CUDA_IRQ);
@@ -345,7 +351,9 @@ void cpu_halt(void) {
 }
 
 void arch_reboot(void) {
-	send_packet(PACKET_CUDA, 1, CUDA_RESET);
+	if (cuda)
+		send_packet(PACKET_CUDA, 1, CUDA_RESET);
+	
 	asm volatile (
 		"b 0\n"
 	);

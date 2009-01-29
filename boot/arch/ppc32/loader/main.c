@@ -89,7 +89,7 @@ char *release = RELEASE;
 /** Print version information. */
 static void version_print(void)
 {
-	printf("HelenOS PPC32 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
+	printf("HelenOS PPC32 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n\n", release, revision, timestamp);
 }
 
 void bootstrap(void)
@@ -107,24 +107,28 @@ void bootstrap(void)
 	check_align(&trans, "translation table");
 	
 	if (!ofw_memmap(&bootinfo.memmap)) {
-		printf("Error: unable to get memory map, halting.\n");
+		printf("Error: Unable to get memory map, halting.\n");
 		halt();
 	}
 	
 	if (bootinfo.memmap.total == 0) {
-		printf("Error: no memory detected, halting.\n");
+		printf("Error: No memory detected, halting.\n");
 		halt();
 	}
 	
 	if (!ofw_screen(&bootinfo.screen))
-		printf("Warning: unable to get screen properties.\n");
+		printf("Warning: Unable to get screen properties.\n");
 	
-	if (!ofw_keyboard(&bootinfo.keyboard))
-		printf("Warning: unable to get keyboard properties.\n");
+	if (!ofw_macio(&bootinfo.macio))
+		printf("Warning: Unable to get macio properties.\n");
 	
-	printf("\nDevice statistics\n");
-	printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
-	printf(" keyboard at %L (size %d bytes)\n", bootinfo.keyboard.addr, bootinfo.keyboard.size);
+	printf("Device statistics\n");
+	
+	if (bootinfo.screen.addr)
+		printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
+	
+	if (bootinfo.macio.addr)
+		printf(" macio at %L (size %d bytes)\n", bootinfo.macio.addr, bootinfo.macio.size);
 	
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *trans_pa = ofw_translate(&trans);

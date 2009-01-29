@@ -48,22 +48,23 @@ void write(const char *str, const int len)
 	}
 }
 
-int ofw_keyboard(keyboard_t *keyboard)
+int ofw_macio(macio_t *macio)
 {
 	char device_name[BUF_SIZE];
 	
 	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
 		return false;
-				
+	
 	phandle device = ofw_find_device(device_name);
 	if (device == -1)
 		return false;
-								
-	pci_reg_t macio;
-	if (ofw_get_property(device, "assigned-addresses", &macio, sizeof(macio)) <= 0)
+	
+	pci_reg_t pci_reg;
+	if (ofw_get_property(device, "assigned-addresses", &pci_reg, sizeof(pci_reg)) <= 0)
 		return false;
-	keyboard->addr = (void *) macio.addr.addr_lo;
-	keyboard->size = macio.size_lo;
+	
+	macio->addr = (void *) pci_reg.addr.addr_lo;
+	macio->size = pci_reg.size_lo;
 
 	return true;
 }

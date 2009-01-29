@@ -47,7 +47,7 @@ typedef struct {
 	memmap_t memmap;
 	taskmap_t taskmap;
 	screen_t screen;
-	keyboard_t keyboard;
+	macio_t macio;
 } bootinfo_t;
 
 extern void start(void);

@@ -183,6 +183,9 @@ static int lchars[0x80] = {
 
 int kbd_arch_init(void)
 {
+	if (!sysinfo_value("kdb"))
+		return 0;
+	
 	return ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &cuda_kbd);
 }
 

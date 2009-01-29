@@ -79,13 +79,13 @@ typedef struct {
 typedef struct {
 	uintptr_t addr;
 	unsigned int size;
-} keyboard_t;
+} macio_t;
 
 typedef struct {
 	memmap_t memmap;
 	taskmap_t taskmap;
 	screen_t screen;
-	keyboard_t keyboard;
+	macio_t macio;
 } bootinfo_t;
 
 extern bootinfo_t bootinfo;
