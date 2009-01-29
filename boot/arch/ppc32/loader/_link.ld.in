@@ -3,7 +3,7 @@ OUTPUT_ARCH(powerpc:common)
 ENTRY(start) 
  
 SECTIONS {
-	.boot 0x10000000: AT (0) { 
+	.boot 0x01000000: AT (0) { 
 		*(BOOTSTRAP);
 		*(REALMODE);
 		*(.text);

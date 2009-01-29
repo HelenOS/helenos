@@ -28,7 +28,6 @@
 
 #include "asm.h"
 #include "regname.h"
-#include "debug.inc"
 
 .text
 
@@ -140,9 +139,6 @@ jump_to_kernel:
 
 real_mode:
 	
-	DEBUG_INIT
-	DEBUG_real_mode
-	
 	# copy kernel to proper location
 	#
 	# r5 = trans (pa)
@@ -163,9 +159,6 @@ real_mode:
 		mtctr r31
 		lwz r29, 0(r5)
 		
-		DEBUG_INIT
-		DEBUG_copy_loop
-		
 		copy_loop:
 			
 			lwz r28, 0(r29)
@@ -180,14 +173,10 @@ real_mode:
 			
 			bdnz copy_loop
 			
-			DEBUG_end_copy_loop
-		
 		addi r5, r5, 4
 		b page_copy
 	
 	copy_end:
-	
-	DEBUG_segments
 	
 	# initially fill segment registers
 	
@@ -220,8 +209,6 @@ real_mode:
 	
 	# invalidate block address translation registers
 	
-	DEBUG_bat
-	
 	li r30, 0
 	
 	mtspr ibat0u, r30
@@ -250,8 +237,6 @@ real_mode:
 	
 	# create empty Page Hash Table
 	# on top of memory, size 64 KB
-	
-	DEBUG_pht
 	
 	lwz r31, 0(r3)                # r31 = memory size
 	
@@ -282,16 +267,12 @@ real_mode:
 		beq clear_end
 		
 		bdnz pht_clear
-
-		DEBUG_end_pht_clear
 		
 	clear_end:
 	
 #ifdef CONFIG_BAT
 	
 	# create BAT identity mapping
-	
-	DEBUG_mapping
 	
 	lwz r31, 0(r3)                # r31 = memory size
 	
@@ -315,8 +296,6 @@ real_mode:
 		
 		bdnz bat_mask
 	
-	DEBUG_bat_mask
-	
 	andi. r31, r31, 0x07ff        # mask = mask & 0x07ff (BAT can map up to 256 MB)
 	
 	li r29, 2
@@ -336,15 +315,11 @@ real_mode:
 	mtspr dbat0l, r30
 	
 	no_bat:
-
-#endif
 	
-	DEBUG_tlb
+#endif
 	
 	tlbia
 	tlbsync
-	
-	DEBUG_prepare
 	
 	# start the kernel
 	#
@@ -373,8 +348,6 @@ real_mode:
 	
 	sync
 	isync
-	
-	DEBUG_rfi
 	rfi
 
 .align PAGE_WIDTH
