@@ -50,10 +50,10 @@
 
 static char *cmdname = "ls";
 
-static inline uint64_t flen(const char *f)
+static inline off_t flen(const char *f)
 {
 	int fd;
-	uint64_t size;
+	off_t size;
 
 	fd = open(f, O_RDONLY);
 	if (fd == -1)
@@ -145,7 +145,7 @@ static void ls_print_dir(const char *d)
 
 static void ls_print_file(const char *f)
 {
-	printf("%-40s\t%u\n", f, flen(f));
+	printf("%-40s\t%llu\n", f, (long long) flen(f));
 
 	return;
 }
