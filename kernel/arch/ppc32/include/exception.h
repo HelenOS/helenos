@@ -75,6 +75,7 @@ typedef struct {
 	uint32_t lr;
 	uint32_t ctr;
 	uint32_t xer;
+	uint32_t dar;
 	uint32_t r12;
 	uint32_t sp;
 } istate_t;

@@ -111,16 +111,15 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	char *symbol = "";
 	char *sym2 = "";
 
-	char *s = get_symtab_entry(istate->pc);
-	if (s)
-		symbol = s;
-	s = get_symtab_entry(istate->lr);
-	if (s)
-		sym2 = s;
+	char *str = get_symtab_entry(istate->pc);
+	if (str)
+		symbol = str;
+	str = get_symtab_entry(istate->lr);
+	if (str)
+		sym2 = str;
 
 	fault_if_from_uspace(istate,
-	    "%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
-	    istate->pc, symbol, sym2);
+	    "PHT Refill Exception on %p.", badvaddr);
 	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
 	    istate->pc, symbol, sym2);
 }
@@ -291,12 +290,9 @@ void pht_refill(int n, istate_t *istate)
 		lock = true;
 	}
 	
-	if (n == VECTOR_DATA_STORAGE) {
-		asm volatile (
-			"mfdar %0\n"
-			: "=r" (badvaddr)
-		);
-	} else
+	if (n == VECTOR_DATA_STORAGE)
+		badvaddr = istate->dar;
+	else
 		badvaddr = istate->pc;
 		
 	page_table_lock(as, lock);
@@ -342,12 +338,9 @@ bool pht_real_refill(int n, istate_t *istate)
 {
 	uintptr_t badvaddr;
 	
-	if (n == VECTOR_DATA_STORAGE) {
-		asm volatile (
-			"mfdar %0\n"
-			: "=r" (badvaddr)
-		);
-	} else
+	if (n == VECTOR_DATA_STORAGE)
+		badvaddr = istate->dar;
+	else
 		badvaddr = istate->pc;
 	
 	uint32_t physmem;

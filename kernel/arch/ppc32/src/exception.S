@@ -60,7 +60,7 @@
 	
 	2:
 	
-	subi sp, sp, 160
+	subi sp, sp, 164
 	stw r0, 8(sp)
 	stw r2, 12(sp)
 	stw r3, 16(sp)
@@ -109,11 +109,14 @@
 	mfxer r12
 	stw r12, 148(sp)
 	
-	mfsprg1 r12
+	mfdar r12
 	stw r12, 152(sp)
 	
-	mfsprg2 r12
+	mfsprg1 r12
 	stw r12, 156(sp)
+	
+	mfsprg2 r12
+	stw r12, 160(sp)
 .endm
 
 .org 0x100
@@ -137,32 +140,14 @@ exc_machine_check:
 exc_data_storage:
 	CONTEXT_STORE
 	
-	li r3, 2
-	mr r4, sp
-	addi r4, r4, 8
-	bl pht_real_refill
-	
-	cmpwi r3, 0
-	bne iret_real
-	
-	li r3, 2
-	b jump_to_kernel
+	b data_storage
 
 .org 0x400
 .global exc_instruction_storage
 exc_instruction_storage:
 	CONTEXT_STORE
 	
-	li r3, 3
-	mr r4, sp
-	addi r4, r4, 8
-	bl pht_real_refill
-	
-	cmpwi r3, 0
-	bne iret_real
-
-	li r3, 3
-	b jump_to_kernel
+	b instruction_storage
 
 .org 0x500
 .global exc_external
@@ -236,6 +221,30 @@ exc_trace:
 	b jump_to_kernel
 
 .org 0x4000
+data_storage:
+	li r3, 2
+	mr r4, sp
+	addi r4, r4, 8
+	bl pht_real_refill
+	
+	cmpwi r3, 0
+	bne iret_real
+	
+	li r3, 2
+	b jump_to_kernel
+
+instruction_storage:
+	li r3, 3
+	mr r4, sp
+	addi r4, r4, 8
+	bl pht_real_refill
+	
+	cmpwi r3, 0
+	bne iret_real
+	
+	li r3, 3
+	b jump_to_kernel
+
 jump_to_kernel:
 	lis r12, iret@ha
 	addi r12, r12, iret@l
@@ -322,7 +331,7 @@ iret_real:
 	lwz r12, 148(sp)
 	mtxer r12
 	
-	lwz r12, 152(sp)
-	lwz sp, 156(sp)
+	lwz r12, 156(sp)
+	lwz sp, 160(sp)
 	
 	rfi

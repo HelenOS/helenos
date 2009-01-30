@@ -83,7 +83,7 @@ COMPONENTS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs 
+	$(USPACEDIR)/srv/vfs/vfs
 ifeq ($(RDFMT),tmpfs)
 	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif

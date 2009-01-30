@@ -131,8 +131,8 @@ iret:
 	lwz r12, 148(sp)
 	mtxer r12
 	
-	lwz r12, 152(sp)
-	lwz sp, 156(sp)
+	lwz r12, 156(sp)
+	lwz sp, 160(sp)
 	
 	rfi
 
@@ -197,8 +197,8 @@ iret_syscall:
 	lwz r12, 148(sp)
 	mtxer r12
 	
-	lwz r12, 152(sp)
-	lwz sp, 156(sp)
+	lwz r12, 156(sp)
+	lwz sp, 160(sp)
 
 	rfi
 	
