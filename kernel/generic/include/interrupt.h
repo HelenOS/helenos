@@ -48,8 +48,8 @@ typedef void (* iroutine)(int n, istate_t *istate);
 { \
 	if (istate_from_uspace(istate)) { \
 		task_t *task = TASK; \
-		printf("Task %" PRIu64 " killed due to an exception at %p.", task->taskid, istate_get_pc(istate)); \
-		printf("  " fmt "\n", ##__VA_ARGS__); \
+		printf("Task %s (%" PRIu64 ") killed due to an exception at %p: ", task->name, task->taskid, istate_get_pc(istate)); \
+		printf(fmt "\n", ##__VA_ARGS__); \
 		task_kill(task->taskid); \
 		thread_exit(); \
 	} \
