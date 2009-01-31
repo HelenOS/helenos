@@ -62,13 +62,13 @@ int vprintf(const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vprintf_write, NULL};
 	
-	int irqpri = interrupts_disable();
+	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&printf_lock);
 	
 	int ret = printf_core(fmt, &ps, ap);
 	
 	spinlock_unlock(&printf_lock);
-	interrupts_restore(irqpri);
+	interrupts_restore(ipl);
 	
 	return ret;
 }

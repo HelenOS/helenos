@@ -62,7 +62,6 @@
  */
 static unative_t sys_klog(int fd, const void * buf, size_t count) 
 {
-	size_t i;
 	char *data;
 	int rc;
 
@@ -70,7 +69,7 @@ static unative_t sys_klog(int fd, const void * buf, size_t count)
 		return ELIMIT;
 	
 	if (count > 0) {
-		data = (char *) malloc(count, 0);
+		data = (char *) malloc(count + 1, 0);
 		if (!data)
 			return ENOMEM;
 		
@@ -79,9 +78,9 @@ static unative_t sys_klog(int fd, const void * buf, size_t count)
 			free(data);
 			return rc;
 		}
-	
-		for (i = 0; i < count; i++)
-			putchar(data[i]);
+		data[count] = 0;
+		
+		printf("%s", data);
 		free(data);
 	} else
 		klog_update();
