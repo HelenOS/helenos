@@ -225,7 +225,7 @@ data_storage:
 	li r3, 2
 	mr r4, sp
 	addi r4, r4, 8
-	bl pht_real_refill
+	bl pht_refill_real
 	
 	cmpwi r3, 0
 	bne iret_real
@@ -237,7 +237,7 @@ instruction_storage:
 	li r3, 3
 	mr r4, sp
 	addi r4, r4, 8
-	bl pht_real_refill
+	bl pht_refill_real
 	
 	cmpwi r3, 0
 	bne iret_real
@@ -281,7 +281,6 @@ jump_to_kernel_syscall:
 	rfi
 
 iret_real:
-	
 	lwz r0, 8(sp)
 	lwz r2, 12(sp)
 	lwz r3, 16(sp)

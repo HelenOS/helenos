@@ -59,7 +59,7 @@ typedef struct {
 } phte_t;
 
 extern void pht_refill(int n, istate_t *istate);
-extern bool pht_real_refill(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
+extern bool pht_refill_real(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
 extern void pht_init(void);
 
 #endif

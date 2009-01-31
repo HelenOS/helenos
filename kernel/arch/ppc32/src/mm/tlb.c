@@ -42,6 +42,10 @@
 #include <symtab.h>
 
 
+static unsigned int seed = 10;
+static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
+
+
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
@@ -125,6 +129,19 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 }
 
 
+/** Pseudorandom generator
+ *
+ * A pretty standard linear congruential pseudorandom
+ * number generator (m = 2^32).
+ *
+ */
+#define RANDI(seed) \
+	({ \
+		(seed) = 1103515245 * (seed) + 12345; \
+		(seed); \
+	})
+
+
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 {
 	uint32_t page = (vaddr >> 12) & 0xffff;
@@ -180,10 +197,8 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 		}
 		
 		if (!found)
-			i = page % 8;
+			i = RANDI(seed) % 8;
 	}
-	
-	
 	
 	phte[base + i].v = 1;
 	phte[base + i].vsid = vsid;
@@ -194,79 +209,6 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 	phte[base + i].c = 0;
 	phte[base + i].wimg = (pte->page_cache_disable ? WIMG_NO_CACHE : 0);
 	phte[base + i].pp = 2; // FIXME
-}
-
-
-static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
-{
-	uint32_t page = (vaddr >> 12) & 0xffff;
-	uint32_t api = (vaddr >> 22) & 0x3f;
-	
-	uint32_t vsid;
-	asm volatile (
-		"mfsrin %0, %1\n"
-		: "=r" (vsid)
-		: "r" (vaddr)
-	);
-	
-	uint32_t sdr1;
-	asm volatile (
-		"mfsdr1 %0\n"
-		: "=r" (sdr1)
-	);
-	phte_t *phte_physical = (phte_t *) (sdr1 & 0xffff0000);
-	
-	/* Primary hash (xor) */
-	uint32_t h = 0;
-	uint32_t hash = vsid ^ page;
-	uint32_t base = (hash & 0x3ff) << 3;
-	uint32_t i;
-	bool found = false;
-	
-	/* Find unused or colliding PTE in PTEG */
-	for (i = 0; i < 8; i++) {
-		if ((!phte_physical[base + i].v) ||
-		    ((phte_physical[base + i].vsid == vsid)
-		    && (phte_physical[base + i].api == api)
-		    && (phte_physical[base + i].h == 0))) {
-			found = true;
-			break;
-		}
-	}
-	
-	if (!found) {
-		/* Secondary hash (not) */
-		uint32_t base2 = (~hash & 0x3ff) << 3;
-		
-		/* Find unused or colliding PTE in PTEG */
-		for (i = 0; i < 8; i++) {
-			if ((!phte_physical[base2 + i].v) ||
-			    ((phte_physical[base2 + i].vsid == vsid)
-			    && (phte_physical[base2 + i].api == api)
-			    && (phte_physical[base2 + i].h == 1))) {
-				found = true;
-				base = base2;
-				h = 1;
-				break;
-			}
-		}
-		
-		if (!found) {
-			i = page % 8;
-			base = base2;
-			h = 1;
-		}
-	}
-	
-	phte_physical[base + i].v = 1;
-	phte_physical[base + i].vsid = vsid;
-	phte_physical[base + i].h = h;
-	phte_physical[base + i].api = api;
-	phte_physical[base + i].rpn = pfn;
-	phte_physical[base + i].r = 0;
-	phte_physical[base + i].c = 0;
-	phte_physical[base + i].wimg = 0;
-	phte_physical[base + i].pp = 2; // FIXME
 }
 
 
@@ -336,7 +278,7 @@ fail:
  * @param istate	Interrupted register context.
  *
  */
-bool pht_real_refill(int n, istate_t *istate)
+bool pht_refill_real(int n, istate_t *istate)
 {
 	uintptr_t badvaddr;
 	
@@ -351,12 +293,81 @@ bool pht_real_refill(int n, istate_t *istate)
 		: "=r" (physmem)
 	);
 	
-	if ((badvaddr >= PA2KA(0)) && (badvaddr < PA2KA(physmem))) {
-		pht_real_insert(badvaddr, KA2PA(badvaddr) >> 12);
-		return true;
+	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
+		return false;
+	
+	uint32_t page = (badvaddr >> 12) & 0xffff;
+	uint32_t api = (badvaddr >> 22) & 0x3f;
+	
+	uint32_t vsid;
+	asm volatile (
+		"mfsrin %0, %1\n"
+		: "=r" (vsid)
+		: "r" (badvaddr)
+	);
+	
+	uint32_t sdr1;
+	asm volatile (
+		"mfsdr1 %0\n"
+		: "=r" (sdr1)
+	);
+	phte_t *phte_real = (phte_t *) (sdr1 & 0xffff0000);
+	
+	/* Primary hash (xor) */
+	uint32_t h = 0;
+	uint32_t hash = vsid ^ page;
+	uint32_t base = (hash & 0x3ff) << 3;
+	uint32_t i;
+	bool found = false;
+	
+	/* Find unused or colliding PTE in PTEG */
+	for (i = 0; i < 8; i++) {
+		if ((!phte_real[base + i].v) ||
+		    ((phte_real[base + i].vsid == vsid)
+		    && (phte_real[base + i].api == api)
+		    && (phte_real[base + i].h == 0))) {
+			found = true;
+			break;
+		}
 	}
 	
-	return false;
+	if (!found) {
+		/* Secondary hash (not) */
+		uint32_t base2 = (~hash & 0x3ff) << 3;
+		
+		/* Find unused or colliding PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if ((!phte_real[base2 + i].v) ||
+			    ((phte_real[base2 + i].vsid == vsid)
+			    && (phte_real[base2 + i].api == api)
+			    && (phte_real[base2 + i].h == 1))) {
+				found = true;
+				base = base2;
+				h = 1;
+				break;
+			}
+		}
+		
+		if (!found) {
+			/* Use secondary hash to avoid collisions
+			   with usual PHT refill handler. */
+			i = RANDI(seed_real) % 8;
+			base = base2;
+			h = 1;
+		}
+	}
+	
+	phte_real[base + i].v = 1;
+	phte_real[base + i].vsid = vsid;
+	phte_real[base + i].h = h;
+	phte_real[base + i].api = api;
+	phte_real[base + i].rpn = KA2PA(badvaddr) >> 12;
+	phte_real[base + i].r = 0;
+	phte_real[base + i].c = 0;
+	phte_real[base + i].wimg = 0;
+	phte_real[base + i].pp = 2; // FIXME
+	
+	return true;
 }
 
 
@@ -438,7 +449,7 @@ void tlb_print(void)
 			: "=r" (vsid)
 			: "r" (sr << 28)
 		);
-		printf("vsid[%d]: VSID=%.*p (ASID=%d)%s%s\n", sr,
+		printf("sr[%02u]: vsid=%.*p (asid=%u)%s%s\n", sr,
 		    sizeof(vsid) * 2, vsid & 0xffffff, (vsid & 0xffffff) >> 4,
 		    ((vsid >> 30) & 1) ? " supervisor" : "",
 		    ((vsid >> 29) & 1) ? " user" : "");
