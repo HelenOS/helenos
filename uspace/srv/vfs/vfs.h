@@ -47,8 +47,6 @@
 
 #define VFS_FIRST	IPC_FIRST_USER_METHOD
 
-#define IPC_METHOD_TO_VFS_OP(m)	((m) - VFS_FIRST)	
-
 /* Basic types. */
 typedef int16_t fs_handle_t;
 typedef int16_t dev_handle_t;
@@ -81,32 +79,16 @@ typedef enum {
 	VFS_LAST_SRV,	/* keep this the last member of this enum */
 } vfs_request_srv_t;
 
-
-/**
- * An instance of this structure is associated with a particular FS operation.
- * It tells VFS if the FS supports the operation or maybe if a default one
- * should be used.
- */
-typedef enum {
-	VFS_OP_NULL = 0,
-	VFS_OP_DEFAULT,
-	VFS_OP_DEFINED
-} vfs_op_t;
-
 #define FS_NAME_MAXLEN	20
 
 /**
  * A structure like this is passed to VFS by each individual FS upon its
  * registration. It assosiates a human-readable identifier with each
- * registered FS. More importantly, through this structure, the FS announces
- * what operations it supports.
+ * registered FS.
  */
 typedef struct {
 	/** Unique identifier of the fs. */
 	char name[FS_NAME_MAXLEN + 1];
-	
-	/** Operations. */
-	vfs_op_t ops[VFS_LAST_CLNT - VFS_FIRST];
 } vfs_info_t;
 
 /**

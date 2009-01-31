@@ -98,30 +98,6 @@ static bool vfs_info_sane(vfs_info_t *info)
 		return false;
 	}
 	
-
-	/*
-	 * Check if the FS implements mandatory VFS operations.
-	 */
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_LOOKUP)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_LOOKUP not defined by the client.\n");
-		return false;
-	}
-	if (info->ops[IPC_METHOD_TO_VFS_OP(VFS_READ)] != VFS_OP_DEFINED) {
-		dprintf("Operation VFS_READ not defined by the client.\n");
-		return false;
-	}
-	
-	/*
-	 * Check if each operation is either not defined, defined or default.
-	 */
-	for (i = VFS_FIRST; i < VFS_LAST_CLNT; i++) {
-		if ((info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_NULL) && 
-		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFAULT) && 
-		    (info->ops[IPC_METHOD_TO_VFS_OP(i)] != VFS_OP_DEFINED)) {
-			dprintf("Operation info not understood.\n");
-			return false;
-		}
-	}
 	return true;
 }
 
