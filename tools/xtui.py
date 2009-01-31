@@ -167,6 +167,9 @@ def choice_window(screen, title, text, options, position):
 		
 		return (buttonbar.buttonPressed(retval), listbox.current())
 	elif (dialog):
+		if (width < 35):
+			width = 35
+		
 		args = []
 		cnt = 0
 		for option in options:
