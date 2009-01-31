@@ -156,14 +156,24 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 	uint32_t i;
 	bool found = false;
 	
-	/* Find unused or colliding PTE in PTEG */
+	/* Find colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if ((!phte[base + i].v) ||
-		    ((phte[base + i].vsid == vsid)
+		if ((phte[base + i].v)
+		    && (phte[base + i].vsid == vsid)
 		    && (phte[base + i].api == api)
-		    && (phte[base + i].h == 0))) {
+		    && (phte[base + i].h == 0)) {
 			found = true;
 			break;
+		}
+	}
+	
+	if (!found) {
+		/* Find unused PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if (!phte[base + i].v) {
+				found = true;
+				break;
+			}
 		}
 	}
 	
@@ -171,16 +181,28 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 		/* Secondary hash (not) */
 		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
-		/* Find unused or colliding PTE in PTEG */
+		/* Find colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
-			if ((!phte[base2 + i].v) ||
-			    ((phte[base2 + i].vsid == vsid)
+			if ((phte[base2 + i].v)
+			    && (phte[base2 + i].vsid == vsid)
 			    && (phte[base2 + i].api == api)
-			    && (phte[base2 + i].h == 1))) {
+			    && (phte[base2 + i].h == 1)) {
 				found = true;
 				base = base2;
 				h = 1;
 				break;
+			}
+		}
+		
+		if (!found) {
+			/* Find unused PTE in PTEG */
+			for (i = 0; i < 8; i++) {
+				if (!phte[base2 + i].v) {
+					found = true;
+					base = base2;
+					h = 1;
+					break;
+				}
 			}
 		}
 		
@@ -308,14 +330,24 @@ bool pht_refill_real(int n, istate_t *istate)
 	uint32_t i;
 	bool found = false;
 	
-	/* Find unused or colliding PTE in PTEG */
+	/* Find colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if ((!phte_real[base + i].v) ||
-		    ((phte_real[base + i].vsid == vsid)
+		if ((phte_real[base + i].v)
+		    && (phte_real[base + i].vsid == vsid)
 		    && (phte_real[base + i].api == api)
-		    && (phte_real[base + i].h == 0))) {
+		    && (phte_real[base + i].h == 0)) {
 			found = true;
 			break;
+		}
+	}
+	
+	if (!found) {
+		/* Find unused PTE in PTEG */
+		for (i = 0; i < 8; i++) {
+			if (!phte_real[base + i].v) {
+				found = true;
+				break;
+			}
 		}
 	}
 	
@@ -323,16 +355,28 @@ bool pht_refill_real(int n, istate_t *istate)
 		/* Secondary hash (not) */
 		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
-		/* Find unused or colliding PTE in PTEG */
+		/* Find colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
-			if ((!phte_real[base2 + i].v) ||
-			    ((phte_real[base2 + i].vsid == vsid)
+			if ((phte_real[base2 + i].v)
+			    && (phte_real[base2 + i].vsid == vsid)
 			    && (phte_real[base2 + i].api == api)
-			    && (phte_real[base2 + i].h == 1))) {
+			    && (phte_real[base2 + i].h == 1)) {
 				found = true;
 				base = base2;
 				h = 1;
 				break;
+			}
+		}
+		
+		if (!found) {
+			/* Find unused PTE in PTEG */
+			for (i = 0; i < 8; i++) {
+				if (!phte_real[base2 + i].v) {
+					found = true;
+					base = base2;
+					h = 1;
+					break;
+				}
 			}
 		}
 		
