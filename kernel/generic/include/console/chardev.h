@@ -50,7 +50,7 @@ typedef struct {
 	/** Resume pushing characters. */
 	void (* resume)(struct chardev *);
 	/** Write character to stream. */
-	void (* write)(struct chardev *, char c);
+	void (* write)(struct chardev *, char c, bool silent);
 	/** Read character directly from device, assume interrupts disabled. */
 	char (* read)(struct chardev *); 
 } chardev_operations_t;

@@ -500,7 +500,6 @@ int main(int argc, char *argv[])
 	async_set_client_connection(client_connection);
 	
 	/* Connect to keyboard driver */
-	
 	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	while (kbd_phone < 0) {
 		usleep(10000);
@@ -517,6 +516,9 @@ int main(int argc, char *argv[])
 		usleep(10000);
 		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	}
+	
+	/* Disable kernel output to the console */
+	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
 	
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
@@ -587,6 +589,6 @@ int main(int argc, char *argv[])
 	
 	return 0;
 }
- 
+
 /** @}
  */

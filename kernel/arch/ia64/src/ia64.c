@@ -254,8 +254,8 @@ void arch_grab_console(void)
 	ns16550_grab();
 #else
 	i8042_grab();
-#endif	
-#endif	
+#endif
+#endif
 }
 
 /** Return console to userspace

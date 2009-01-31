@@ -92,11 +92,18 @@ static unative_t sys_klog(int fd, const void * buf, size_t count)
 static unative_t sys_debug_enable_console(void)
 {
 #ifdef CONFIG_KCONSOLE
-	arch_grab_console();
+	grab_console();
 	return true;
 #else
 	return false;
 #endif
+}
+
+/** Tell kernel to relinquish keyboard/console access */
+static unative_t sys_debug_disable_console(void)
+{
+	release_console();
+	return true;
 }
 
 /** Dispatch system call */
@@ -184,7 +191,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,
-
+	(syshandler_t) sys_debug_disable_console,
+	
 	(syshandler_t) sys_ipc_connect_kbox
 };
 

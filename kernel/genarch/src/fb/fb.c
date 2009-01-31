@@ -184,32 +184,35 @@ static void rgb_323(void *dst, uint32_t rgb)
 /** Hide logo and refresh screen
  *
  */
-static void logo_hide(void)
+static void logo_hide(bool silent)
 {
 	ylogo = 0;
 	ytrim = yres;
 	rowtrim = rows;
-	fb_redraw();
+	if (!silent)
+		fb_redraw();
 }
 
 
 /** Draw character at given position
  *
  */
-static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row)
+static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row, bool silent)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
 	unsigned int yd;
 	
 	if (y >= ytrim)
-		logo_hide();
+		logo_hide(silent);
 	
 	backbuf[BB_POS(col, row)] = glyph;
 	
-	for (yd = 0; yd < FONT_SCANLINES; yd++)
-		memcpy(&fb_addr[FB_POS(x, y + yd + ylogo)],
-		    &glyphs[GLYPH_POS(glyph, yd)], glyphscanline);
+	if (!silent) {
+		for (yd = 0; yd < FONT_SCANLINES; yd++)
+			memcpy(&fb_addr[FB_POS(x, y + yd + ylogo)],
+			    &glyphs[GLYPH_POS(glyph, yd)], glyphscanline);
+	}
 }
 
 
@@ -217,39 +220,41 @@ static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row)
  *
  *
  */
-static void screen_scroll(void)
+static void screen_scroll(bool silent)
 {
 	if (ylogo > 0) {
-		logo_hide();
+		logo_hide(silent);
 		return;
 	}
 	
-	unsigned int row;
-	
-	for (row = 0; row < rows; row++) {
-		unsigned int y = ROW2Y(row);
-		unsigned int yd;
+	if (!silent) {
+		unsigned int row;
 		
-		for (yd = 0; yd < FONT_SCANLINES; yd++) {
-			unsigned int x;
-			unsigned int col;
+		for (row = 0; row < rows; row++) {
+			unsigned int y = ROW2Y(row);
+			unsigned int yd;
 			
-			for (col = 0, x = 0; col < cols; col++,
-			    x += FONT_WIDTH) {
-				uint8_t glyph;
+			for (yd = 0; yd < FONT_SCANLINES; yd++) {
+				unsigned int x;
+				unsigned int col;
 				
-				if (row < rows - 1) {
-					if (backbuf[BB_POS(col, row)] ==
-					    backbuf[BB_POS(col, row + 1)])
-						continue;
+				for (col = 0, x = 0; col < cols; col++,
+				    x += FONT_WIDTH) {
+					uint8_t glyph;
 					
-					glyph = backbuf[BB_POS(col, row + 1)];
-				} else
-					glyph = 0;
-				
-				memcpy(&fb_addr[FB_POS(x, y + yd)],
-				    &glyphs[GLYPH_POS(glyph, yd)],
-				    glyphscanline);
+					if (row < rows - 1) {
+						if (backbuf[BB_POS(col, row)] ==
+						    backbuf[BB_POS(col, row + 1)])
+							continue;
+						
+						glyph = backbuf[BB_POS(col, row + 1)];
+					} else
+						glyph = 0;
+					
+					memcpy(&fb_addr[FB_POS(x, y + yd)],
+					    &glyphs[GLYPH_POS(glyph, yd)],
+					    glyphscanline);
+				}
 			}
 		}
 	}
@@ -259,15 +264,15 @@ static void screen_scroll(void)
 }
 
 
-static void cursor_put(void)
+static void cursor_put(bool silent)
 {
-	glyph_draw(CURSOR, position % cols, position / cols);
+	glyph_draw(CURSOR, position % cols, position / cols, silent);
 }
 
 
-static void cursor_remove(void)
+static void cursor_remove(bool silent)
 {
-	glyph_draw(0, position % cols, position / cols);
+	glyph_draw(0, position % cols, position / cols, silent);
 }
 
 
@@ -276,44 +281,45 @@ static void cursor_remove(void)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putchar(chardev_t *dev, char ch)
+static void fb_putchar(chardev_t *dev, char ch, bool silent)
 {
 	spinlock_lock(&fb_lock);
 	
 	switch (ch) {
 	case '\n':
-		cursor_remove();
+		cursor_remove(silent);
 		position += cols;
 		position -= position % cols;
 		break;
 	case '\r':
-		cursor_remove();
+		cursor_remove(silent);
 		position -= position % cols;
 		break;
 	case '\b':
-		cursor_remove();
+		cursor_remove(silent);
 		if (position % cols)
 			position--;
 		break;
 	case '\t':
-		cursor_remove();
+		cursor_remove(silent);
 		do {
 			glyph_draw((uint8_t) ' ', position % cols,
-			    position / cols);
+			    position / cols, silent);
 			position++;
 		} while ((position % 8) && (position < cols * rows));
 		break;
 	default:
-		glyph_draw((uint8_t) ch, position % cols, position / cols);
+		glyph_draw((uint8_t) ch, position % cols,
+		    position / cols, silent);
 		position++;
 	}
 	
 	if (position >= cols * rows) {
 		position -= cols;
-		screen_scroll();
+		screen_scroll(silent);
 	}
 	
-	cursor_put();
+	cursor_put(silent);
 	
 	spinlock_unlock(&fb_lock);
 }

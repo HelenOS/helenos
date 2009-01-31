@@ -147,8 +147,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
 	/* Unreachable */
-	for (;;)
-		;
+	while (true);
 }
 
 /** Acquire console back for kernel

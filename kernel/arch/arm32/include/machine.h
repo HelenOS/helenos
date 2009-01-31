@@ -102,18 +102,17 @@ extern void machine_irq_exception(int exc_no, istate_t *istate);
 extern uintptr_t machine_get_fb_address(void);
 
 
-#ifdef MACHINE_GXEMUL_TESTARM 	
-#define machine_console_init(devno)           gxemul_console_init(devno)
-#define machine_grab_console                  gxemul_grab_console
-#define machine_release_console               gxemul_release_console 
-#define machine_hw_map_init                   gxemul_hw_map_init
-#define machine_timer_irq_start               gxemul_timer_irq_start
-#define machine_cpu_halt                      gxemul_cpu_halt
-#define machine_get_memory_size               gxemul_get_memory_size
-#define machine_debug_putc(ch)                gxemul_debug_putc(ch)
-#define machine_irq_exception(exc_no, istate) \
-        gxemul_irq_exception(exc_no, istate)
-#define machine_get_fb_address                gxemul_get_fb_address
+#ifdef MACHINE_GXEMUL_TESTARM
+	#define machine_console_init(devno)            gxemul_console_init(devno)
+	#define machine_grab_console                   gxemul_grab_console
+	#define machine_release_console                gxemul_release_console 
+	#define machine_hw_map_init                    gxemul_hw_map_init
+	#define machine_timer_irq_start                gxemul_timer_irq_start
+	#define machine_cpu_halt                       gxemul_cpu_halt
+	#define machine_get_memory_size                gxemul_get_memory_size
+	#define machine_debug_putc(ch)                 gxemul_debug_putc(ch)
+	#define machine_irq_exception(exc_no, istate)  gxemul_irq_exception(exc_no, istate)
+	#define machine_get_fb_address                 gxemul_get_fb_address
 #endif
 
 #endif

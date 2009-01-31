@@ -65,12 +65,15 @@ static size_t klog_stored = 0;
 /**< Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
+/**< Silent output */
+static bool silent = false;
+
 /**< Kernel log spinlock */
 SPINLOCK_INITIALIZE(klog_lock);
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
-	
+
 /*
  * For now, we use 0 as INR.
  * However, it is therefore desirable to have architecture specific
@@ -144,6 +147,18 @@ void klog_init(void)
 	spinlock_unlock(&klog_lock);
 }
 
+void grab_console(void)
+{
+	silent = false;
+	arch_grab_console();
+}
+
+void release_console(void)
+{
+	silent = true;
+	arch_release_console();
+}
+
 /** Get character from character device. Do not echo character.
  *
  * @param chardev Character device.
@@ -199,7 +214,7 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 {
 	index_t index = 0;
 	char ch;
-
+	
 	while (index < buflen) {
 		ch = _getc(chardev);
 		if (ch == '\b') {
@@ -213,7 +228,7 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 			continue;
 		} 
 		putchar(ch);
-
+		
 		if (ch == '\n') { /* end of string => write 0, return */
 			buf[index] = '\0';
 			return (count_t) index;
@@ -253,7 +268,7 @@ void putchar(char c)
 		/* Print charaters stored in kernel log */
 		index_t i;
 		for (i = klog_len - klog_stored; i < klog_len; i++)
-			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_SIZE]);
+			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_SIZE], silent);
 		klog_stored = 0;
 	}
 	
@@ -265,7 +280,7 @@ void putchar(char c)
 		klog_start = (klog_start + 1) % KLOG_SIZE;
 	
 	if (stdout->op->write)
-		stdout->op->write(stdout, c);
+		stdout->op->write(stdout, c, silent);
 	else {
 		/* The character is just in the kernel log */
 		if (klog_stored < klog_len)

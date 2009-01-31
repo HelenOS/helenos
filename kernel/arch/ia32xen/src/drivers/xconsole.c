@@ -55,28 +55,30 @@ void xen_console_init(void)
 	stdout = &xen_console;
 }
 
-void xen_putchar(chardev_t *d, const char ch)
+void xen_putchar(chardev_t *d, const char ch, bool silent)
 {
-	if (start_info.console.domU.evtchn != 0) {
-		uint32_t cons = console_page.out_cons;
-		uint32_t prod = console_page.out_prod;
-		
-		memory_barrier();
-		
-		if ((prod - cons) > sizeof(console_page.out))
-			return;
-		
-		if (ch == '\n')
-			console_page.out[MASK_INDEX(prod++, console_page.out)] = '\r';
-		console_page.out[MASK_INDEX(prod++, console_page.out)] = ch;
-		
-		write_barrier();
-		
-		console_page.out_prod = prod;
-		
-		xen_notify_remote(start_info.console.domU.evtchn);
-	} else
-		xen_console_io(CONSOLE_IO_WRITE, 1, &ch);
+	if (!silent) {
+		if (start_info.console.domU.evtchn != 0) {
+			uint32_t cons = console_page.out_cons;
+			uint32_t prod = console_page.out_prod;
+			
+			memory_barrier();
+			
+			if ((prod - cons) > sizeof(console_page.out))
+				return;
+			
+			if (ch == '\n')
+				console_page.out[MASK_INDEX(prod++, console_page.out)] = '\r';
+			console_page.out[MASK_INDEX(prod++, console_page.out)] = ch;
+			
+			write_barrier();
+			
+			console_page.out_prod = prod;
+			
+			xen_notify_remote(start_info.console.domU.evtchn);
+		} else
+			xen_console_io(CONSOLE_IO_WRITE, 1, &ch);
+	}
 }
 
 /** @}

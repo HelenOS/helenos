@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -46,16 +46,18 @@ static chardev_t console;
 static serial_t sconf[SERIAL_MAX];
 static bool kb_enabled;
 
-static void serial_write(chardev_t *d, const char ch)
+static void serial_write(chardev_t *d, const char ch, bool silent)
 {
-	serial_t *sd = (serial_t *)d->data;
-
-	if (ch == '\n')
-		serial_write(d, '\r');
-	/* Wait until transmit buffer empty */
-	while (! (SERIAL_READ_LSR(sd->port) & (1<<TRANSMIT_EMPTY_BIT)))
-		;
-	SERIAL_WRITE(sd->port, ch);
+	if (!silent) {
+		serial_t *sd = (serial_t *)d->data;
+		
+		if (ch == '\n')
+			serial_write(d, '\r');
+		
+		/* Wait until transmit buffer empty */
+		while (!(SERIAL_READ_LSR(sd->port) & (1 << TRANSMIT_EMPTY_BIT)));
+		SERIAL_WRITE(sd->port, ch);
+	}
 }
 
 static void serial_enable(chardev_t *d)
@@ -133,8 +135,7 @@ static chardev_operations_t serial_ops = {
 void serial_console(devno_t devno)
 {
 	serial_t *sd = &sconf[0];
-
-
+	
 	chardev_initialize("serial_console", &console, &serial_ops);
 	console.data = sd;
 	kb_enabled = true;
@@ -145,10 +146,9 @@ void serial_console(devno_t devno)
 	serial_irq.claim = serial_claim;
 	serial_irq.handler = serial_irq_handler;
 	irq_register(&serial_irq);
-
+	
 	/* I don't know why, but the serial interrupts simply
-	 * don't work on simics
-	 */
+	   don't work on simics */
 	virtual_timer_fnc = &serial_handler;
 	
 	stdin = &console;

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -58,9 +58,10 @@ static chardev_operations_t msim_ops = {
 };
 
 /** Putchar that works with MSIM & gxemul */
-void msim_write(chardev_t *dev, const char ch)
+void msim_write(chardev_t *dev, const char ch, bool silent)
 {
-	*((char *) MSIM_VIDEORAM) = ch;
+	if (!silent)
+		*((char *) MSIM_VIDEORAM) = ch;
 }
 
 /* Called from getc(). */
@@ -80,7 +81,7 @@ void msim_disable(chardev_t *dev)
 static char msim_do_read(chardev_t *dev)
 {
 	char ch;
-
+	
 	while (1) {
 		ch = *((volatile char *) MSIM_KBD_ADDRESS);
 		if (ch) {
@@ -101,12 +102,12 @@ static void msim_irq_handler(irq_t *irq, void *arg, ...)
 	else {
 		char ch = 0;
 		
-			ch = *((char *) MSIM_KBD_ADDRESS);
-			if (ch =='\r')
-				ch = '\n';
-			if (ch == 0x7f)
-				ch = '\b';
-			chardev_push_character(&console, ch);
+		ch = *((char *) MSIM_KBD_ADDRESS);
+		if (ch =='\r')
+			ch = '\n';
+		if (ch == 0x7f)
+			ch = '\b';
+		chardev_push_character(&console, ch);
 	}
 }
 

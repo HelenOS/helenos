@@ -62,53 +62,7 @@ static uint8_t *videoram;
 static uint8_t *backbuf;
 static ioport_t ega_base;
 
-static void ega_putchar(chardev_t *d, const char ch);
-
 chardev_t ega_console;
-static chardev_operations_t ega_ops = {
-	.write = ega_putchar
-};
-
-static void ega_move_cursor(void);
-
-void ega_init(ioport_t base, uintptr_t videoram_phys)
-{
-	/* Initialize the software structure. */	
-	ega_base = base;
-
-	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
-	if (!backbuf)
-		panic("Unable to allocate backbuffer.");
-	
-	videoram = (uint8_t *) hw_map(videoram_phys, SCREEN * 2);
-	
-	/* Clear the screen and set the cursor position. */
-	memsetw(videoram, SCREEN, 0x0720);
-	memsetw(backbuf, SCREEN, 0x0720);
-	ega_move_cursor();
-
-	chardev_initialize("ega_out", &ega_console, &ega_ops);
-	stdout = &ega_console;
-	
-	ega_parea.pbase = videoram_phys;
-	ega_parea.vbase = (uintptr_t) videoram;
-	ega_parea.frames = 1;
-	ega_parea.cacheable = false;
-	ddi_parea_register(&ega_parea);
-
-	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.kind", NULL, 2);
-	sysinfo_set_item_val("fb.width", NULL, ROW);
-	sysinfo_set_item_val("fb.height", NULL, ROWS);
-	sysinfo_set_item_val("fb.blinking", NULL, true);
-	sysinfo_set_item_val("fb.address.physical", NULL, videoram_phys);
-}
-
-static void ega_display_char(char ch)
-{
-	videoram[ega_cursor * 2] = ch;
-	backbuf[ega_cursor * 2] = ch;
-}
 
 /*
  * This function takes care of scrolling.
@@ -127,13 +81,29 @@ static void ega_check_cursor(void)
 	ega_cursor = ega_cursor - ROW;
 }
 
-void ega_putchar(chardev_t *d __attribute__((unused)), const char ch)
+static void ega_move_cursor(void)
+{
+	outb(ega_base + EGA_INDEX_REG, 0xe);
+	outb(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
+	outb(ega_base + EGA_INDEX_REG, 0xf);
+	outb(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
+}
+
+static void ega_display_char(char ch, bool silent)
+{
+	backbuf[ega_cursor * 2] = ch;
+	
+	if (!silent)
+		videoram[ega_cursor * 2] = ch;
+}
+
+static void ega_putchar(chardev_t *d __attribute__((unused)), const char ch, bool silent)
 {
 	ipl_t ipl;
-
+	
 	ipl = interrupts_disable();
 	spinlock_lock(&egalock);
-
+	
 	switch (ch) {
 	case '\n':
 		ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
@@ -146,23 +116,54 @@ void ega_putchar(chardev_t *d __attribute__((unused)), const char ch)
 			ega_cursor--;
 		break;
 	default:
-		ega_display_char(ch);
+		ega_display_char(ch, silent);
 		ega_cursor++;
 		break;
 	}
 	ega_check_cursor();
-	ega_move_cursor();
-
+	
+	if (!silent)
+		ega_move_cursor();
+	
 	spinlock_unlock(&egalock);
 	interrupts_restore(ipl);
 }
 
-void ega_move_cursor(void)
+static chardev_operations_t ega_ops = {
+	.write = ega_putchar
+};
+
+void ega_init(ioport_t base, uintptr_t videoram_phys)
 {
-	outb(ega_base + EGA_INDEX_REG, 0xe);
-	outb(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
-	outb(ega_base + EGA_INDEX_REG, 0xf);
-	outb(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
+	/* Initialize the software structure. */	
+	ega_base = base;
+	
+	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
+	if (!backbuf)
+		panic("Unable to allocate backbuffer.");
+	
+	videoram = (uint8_t *) hw_map(videoram_phys, SCREEN * 2);
+	
+	/* Clear the screen and set the cursor position. */
+	memsetw(videoram, SCREEN, 0x0720);
+	memsetw(backbuf, SCREEN, 0x0720);
+	ega_move_cursor();
+	
+	chardev_initialize("ega_out", &ega_console, &ega_ops);
+	stdout = &ega_console;
+	
+	ega_parea.pbase = videoram_phys;
+	ega_parea.vbase = (uintptr_t) videoram;
+	ega_parea.frames = 1;
+	ega_parea.cacheable = false;
+	ddi_parea_register(&ega_parea);
+	
+	sysinfo_set_item_val("fb", NULL, true);
+	sysinfo_set_item_val("fb.kind", NULL, 2);
+	sysinfo_set_item_val("fb.width", NULL, ROW);
+	sysinfo_set_item_val("fb.height", NULL, ROWS);
+	sysinfo_set_item_val("fb.blinking", NULL, true);
+	sysinfo_set_item_val("fb.address.physical", NULL, videoram_phys);
 }
 
 void ega_redraw(void)

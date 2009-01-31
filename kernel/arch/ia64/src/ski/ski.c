@@ -56,9 +56,6 @@ chardev_t ski_uconsole;
 
 static bool kbd_disabled;
 
-static void ski_putchar(chardev_t *d, const char ch);
-static int32_t ski_getchar(void);
-
 /** Display character on debug console
  *
  * Use SSC (Simulator System Call) to
@@ -67,19 +64,21 @@ static int32_t ski_getchar(void);
  * @param d Character device.
  * @param ch Character to be printed.
  */
-void ski_putchar(chardev_t *d, const char ch)
+static void ski_putchar(chardev_t *d, const char ch, bool silent)
 {
-	asm volatile (
-		"mov r15 = %0\n"
-		"mov r32 = %1\n"	/* r32 is in0 */
-		"break 0x80000\n"	/* modifies r8 */
-		:
-		: "i" (SKI_PUTCHAR), "r" (ch)
-		: "r15", "in0", "r8"
-	);
-	
-	if (ch == '\n')
-		ski_putchar(d, '\r');
+	if (!silent) {
+		asm volatile (
+			"mov r15 = %0\n"
+			"mov r32 = %1\n"   /* r32 is in0 */
+			"break 0x80000\n"  /* modifies r8 */
+			:
+			: "i" (SKI_PUTCHAR), "r" (ch)
+			: "r15", "in0", "r8"
+		);
+		
+		if (ch == '\n')
+			ski_putchar(d, '\r');
+	}
 }
 
 /** Ask debug console if a key was pressed.
@@ -91,7 +90,7 @@ void ski_putchar(chardev_t *d, const char ch)
  *
  * @return ASCII code of pressed key or 0 if no key pressed.
  */
-int32_t ski_getchar(void)
+static int32_t ski_getchar(void)
 {
 	uint64_t ch;
 	

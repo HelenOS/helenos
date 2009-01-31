@@ -295,16 +295,17 @@ static void sgcn_do_putchar(const char c)
  * feed character is written ('\n'), the carriage return character ('\r') is
  * written straight away. 
  */
-static void sgcn_putchar(struct chardev * cd, const char c)
+static void sgcn_putchar(struct chardev * cd, const char c, bool silent)
 {
-	spinlock_lock(&sgcn_output_lock);
-	
-	sgcn_do_putchar(c);
-	if (c == '\n') {
-		sgcn_do_putchar('\r');
+	if (!silent) {
+		spinlock_lock(&sgcn_output_lock);
+		
+		sgcn_do_putchar(c);
+		if (c == '\n')
+			sgcn_do_putchar('\r');
+		
+		spinlock_unlock(&sgcn_output_lock);
 	}
-	
-	spinlock_unlock(&sgcn_output_lock);
 }
 
 /**

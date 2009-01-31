@@ -976,7 +976,7 @@ int cmd_version(cmd_arg_t *argv)
 int cmd_continue(cmd_arg_t *argv)
 {
 	printf("The kernel will now relinquish the console.\n");
-	arch_release_console();
+	release_console();
 	
 	if ((kconsole_notify) && (kconsole_irq.notif_cfg.notify))
 		ipc_irq_send_msg_0(&kconsole_irq);

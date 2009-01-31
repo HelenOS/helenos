@@ -133,9 +133,10 @@ void gxemul_hw_map_init(void)
  * @param dev Not used.
  * @param ch Characted to be printed.
  */
-static void gxemul_write(chardev_t *dev, const char ch)
+static void gxemul_write(chardev_t *dev, const char ch, bool silent)
 {
-	*((char *) gxemul_hw_map.videoram) = ch;
+	if (!silent)
+		*((char *) gxemul_hw_map.videoram) = ch;
 }
 
 /** Enables gxemul keyboard (interrupt unmasked).
