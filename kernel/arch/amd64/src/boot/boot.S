@@ -1,4 +1,4 @@
-
+#
 # Copyright (c) 2005 Ondrej Palkovsky
 # Copyright (c) 2006 Martin Decky
 # Copyright (c) 2008 Jakub Jermar

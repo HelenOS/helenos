@@ -76,6 +76,18 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 #define STRING(arg) STRING_ARG(arg)
 #define STRING_ARG(arg) #arg
 
+/** Pseudorandom generator
+ *
+ * A pretty standard linear congruential pseudorandom
+ * number generator (m = 2^32 or 2^64 depending on architecture).
+ *
+ */
+#define RANDI(seed) \
+	({ \
+		(seed) = 1103515245 * (seed) + 12345; \
+		(seed); \
+	})
+
 #endif
 
 /** @}

@@ -53,7 +53,7 @@ static uint32_t random(uint32_t max)
 
 	spinlock_lock(&sem_lock);	
 	rc = seed % max;
-	seed = (((seed<<2) ^ (seed>>2)) * 487) + rc;
+	seed = (((seed << 2) ^ (seed >> 2)) * 487) + rc;
 	spinlock_unlock(&sem_lock);
 	return rc;
 }

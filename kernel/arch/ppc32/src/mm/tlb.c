@@ -40,6 +40,7 @@
 #include <arch.h>
 #include <print.h>
 #include <symtab.h>
+#include <macros.h>
 
 
 static unsigned int seed = 10;
@@ -127,19 +128,6 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
 	    istate->pc, symbol, sym2);
 }
-
-
-/** Pseudorandom generator
- *
- * A pretty standard linear congruential pseudorandom
- * number generator (m = 2^32).
- *
- */
-#define RANDI(seed) \
-	({ \
-		(seed) = 1103515245 * (seed) + 12345; \
-		(seed); \
-	})
 
 
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
