@@ -151,11 +151,12 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 	uint32_t i;
 	bool found = false;
 	
-	/* Find unused or colliding
-	   PTE in PTEG */
+	/* Find unused or colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if ((!phte[base + i].v) || ((phte[base + i].vsid == vsid) &&
-		    (phte[base + i].api == api))) {
+		if ((!phte[base + i].v) ||
+		    ((phte[base + i].vsid == vsid)
+		    && (phte[base + i].api == api)
+		    && (phte[base + i].h == 0))) {
 			found = true;
 			break;
 		}
@@ -165,12 +166,12 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 		/* Secondary hash (not) */
 		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
-		/* Find unused or colliding
-		   PTE in PTEG */
+		/* Find unused or colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
 			if ((!phte[base2 + i].v) ||
-			    ((phte[base2 + i].vsid == vsid) &&
-			    (phte[base2 + i].api == api))) {
+			    ((phte[base2 + i].vsid == vsid)
+			    && (phte[base2 + i].api == api)
+			    && (phte[base2 + i].h == 1))) {
 				found = true;
 				base = base2;
 				h = 1;
@@ -178,11 +179,11 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 			}
 		}
 		
-		if (!found) {
-			// TODO: A/C precedence groups
+		if (!found)
 			i = page % 8;
-		}
 	}
+	
+	
 	
 	phte[base + i].v = 1;
 	phte[base + i].vsid = vsid;
@@ -222,12 +223,12 @@ static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
 	uint32_t i;
 	bool found = false;
 	
-	/* Find unused or colliding
-	   PTE in PTEG */
+	/* Find unused or colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
 		if ((!phte_physical[base + i].v) ||
-		    ((phte_physical[base + i].vsid == vsid) &&
-		    (phte_physical[base + i].api == api))) {
+		    ((phte_physical[base + i].vsid == vsid)
+		    && (phte_physical[base + i].api == api)
+		    && (phte_physical[base + i].h == 0))) {
 			found = true;
 			break;
 		}
@@ -237,12 +238,12 @@ static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
 		/* Secondary hash (not) */
 		uint32_t base2 = (~hash & 0x3ff) << 3;
 		
-		/* Find unused or colliding
-		   PTE in PTEG */
+		/* Find unused or colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
 			if ((!phte_physical[base2 + i].v) ||
-			    ((phte_physical[base2 + i].vsid == vsid) &&
-			    (phte_physical[base2 + i].api == api))) {
+			    ((phte_physical[base2 + i].vsid == vsid)
+			    && (phte_physical[base2 + i].api == api)
+			    && (phte_physical[base2 + i].h == 1))) {
 				found = true;
 				base = base2;
 				h = 1;
@@ -251,8 +252,9 @@ static void pht_real_insert(const uintptr_t vaddr, const pfn_t pfn)
 		}
 		
 		if (!found) {
-			// TODO: A/C precedence groups
 			i = page % 8;
+			base = base2;
+			h = 1;
 		}
 	}
 	
