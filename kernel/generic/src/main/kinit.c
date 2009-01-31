@@ -72,6 +72,10 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
+#define ALIVE_CHARS  4
+
+static char alive[ALIVE_CHARS] = "-\\|/";
+
 /** Kernel initialization thread.
  *
  * kinit takes care of higher level kernel
@@ -204,11 +208,12 @@ void kinit(void *arg)
 
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
+		thread_sleep(10);
 		printf("kinit: No stdin\nKernel alive: ");
 		
-		uint64_t i = 0;
-		while (1) {
-			printf("%" PRIu64 " ", i);
+		unsigned int i = 0;
+		while (true) {
+			printf("\b%c", alive[i % ALIVE_CHARS]);
 			thread_sleep(1);
 			i++;
 		}
