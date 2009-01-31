@@ -92,8 +92,8 @@ static void exception_external(int n, istate_t *istate)
 
 static void exception_decrementer(int n, istate_t *istate)
 {
-	clock();
 	start_decrementer();
+	clock();
 }
 
 
