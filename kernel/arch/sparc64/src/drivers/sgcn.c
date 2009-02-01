@@ -146,7 +146,7 @@ SPINLOCK_INITIALIZE(sgcn_input_lock);
 
 /* functions referenced from definitions of I/O operations structures */
 static void sgcn_noop(chardev_t *);
-static void sgcn_putchar(chardev_t *, const char);
+static void sgcn_putchar(chardev_t *, const char, bool);
 static char sgcn_key_read(chardev_t *);
 
 /** character device operations */
