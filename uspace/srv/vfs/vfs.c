@@ -72,12 +72,29 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (keep_on_going) {
 		ipc_callid_t callid;
 		ipc_call_t call;
+		int phone;
+		fs_handle_t fs_handle;
 
 		callid = async_get_call(&call);
 
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
+			break;
+		case IPC_M_CONNECT_ME_TO:
+			/*
+			 * Connect the client file system to another one.
+			 */
+			/* FIXME:
+			 * Prevent ordinary clients from connecting to file
+			 * system servers directly. This should be solved by
+			 * applying some security mechanisms.
+			 */
+			fs_handle = IPC_GET_ARG1(call);
+			phone = vfs_grab_phone(fs_handle);
+			(void) ipc_forward_fast(callid, phone, 0, 0, 0,
+			    IPC_FF_NONE);
+			vfs_release_phone(phone);
 			break;
 		case VFS_REGISTER:
 			vfs_register(callid, &call);
