@@ -77,7 +77,7 @@ static void ski_putchar(chardev_t *d, const char ch, bool silent)
 		);
 		
 		if (ch == '\n')
-			ski_putchar(d, '\r');
+			ski_putchar(d, '\r', silent);
 	}
 }
 
