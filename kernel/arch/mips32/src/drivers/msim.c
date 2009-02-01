@@ -45,7 +45,7 @@ static parea_t msim_parea;
 static chardev_t console;
 static irq_t msim_irq;
 
-static void msim_write(chardev_t *dev, const char ch);
+static void msim_write(chardev_t *dev, const char ch, bool silent);
 static void msim_enable(chardev_t *dev);
 static void msim_disable(chardev_t *dev);
 static char msim_do_read(chardev_t *dev);

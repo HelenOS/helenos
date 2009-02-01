@@ -52,7 +52,7 @@ static void serial_write(chardev_t *d, const char ch, bool silent)
 		serial_t *sd = (serial_t *)d->data;
 		
 		if (ch == '\n')
-			serial_write(d, '\r');
+			serial_write(d, '\r', false);
 		
 		/* Wait until transmit buffer empty */
 		while (!(SERIAL_READ_LSR(sd->port) & (1 << TRANSMIT_EMPTY_BIT)));
