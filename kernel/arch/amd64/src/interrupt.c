@@ -150,11 +150,13 @@ static void nm_fault(int n, istate_t *istate)
 #endif
 }
 
+#ifdef CONFIG_SMP
 static void tlb_shootdown_ipi(int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
 }
+#endif
 
 /** Handler of IRQ exceptions */
 static void irq_interrupt(int n, istate_t *istate)
