@@ -642,6 +642,18 @@ static void main_init(void)
 	proto_add_oper(p, VFS_MOUNT, o);
 /*	o = oper_new("unmount", 0, arg_def);
 	proto_add_oper(p, VFS_UNMOUNT, o);*/
+	o = oper_new("open", 2, arg_def, V_INT_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_OPEN, o);
+	o = oper_new("close", 1, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_CLOSE, o);
+	o = oper_new("seek", 3, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_SEEK, o);
+	o = oper_new("mkdir", 1, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_MKDIR, o);
+	o = oper_new("unlink", 0, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_UNLINK, o);
+	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);
+	proto_add_oper(p, VFS_RENAME, o);
 
 	proto_register(SERVICE_VFS, p);
 
@@ -667,13 +679,13 @@ static void main_init(void)
 	proto_add_oper(p, CONSOLE_FLUSH, o);
 
 	arg_def[0] = V_INTEGER;
-	o = oper_new("set_style", 1, arg_def, V_INTEGER, 0, resp_def);
+	o = oper_new("set_style", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_SET_STYLE, o);
 	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER; arg_def[2] = V_INTEGER;
-	o = oper_new("set_color", 3, arg_def, V_INTEGER, 0, resp_def);
+	o = oper_new("set_color", 3, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_SET_COLOR, o);
 	arg_def[0] = V_INTEGER; arg_def[1] = V_INTEGER;
-	o = oper_new("set_rgb_color", 2, arg_def, V_INTEGER, 0, resp_def);
+	o = oper_new("set_rgb_color", 2, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_SET_RGB_COLOR, o);
 	o = oper_new("cursor_visibility", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CURSOR_VISIBILITY, o);
