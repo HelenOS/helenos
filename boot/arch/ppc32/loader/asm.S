@@ -29,6 +29,13 @@
 #include "asm.h"
 #include "regname.h"
 
+.macro FLUSH_CACHE addr
+	dcbst 0, \addr
+	sync
+	icbi 0, \addr
+	isync
+.endm
+
 .text
 
 .global halt
@@ -164,6 +171,8 @@ real_mode:
 			lwz r28, 0(r29)
 			stw r28, 0(r30)
 			
+			FLUSH_CACHE r30
+			
 			addi r29, r29, 4
 			addi r30, r30, 4
 			subi r6, r6, 4
@@ -185,7 +194,7 @@ real_mode:
 	li r29, 8
 	mtctr r29
 	li r30, 0                     # ASID 0 (VSIDs 0 .. 7)
-
+	
 	seg_fill_uspace:
 	
 		mtsrin r30, r31
@@ -259,6 +268,7 @@ real_mode:
 		# write zeroes
 		
 		stw r29, 0(r31)
+		FLUSH_CACHE r31
 		
 		addi r31, r31, 4
 		subi r30, r30, 4

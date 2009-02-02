@@ -1,11 +1,11 @@
 /** PPC32 linker script
  *
  * umapped section:
- * 	kernel text
- * 	kernel data
+ *  kernel text
+ *  kernel data
  * mapped section:
- *	kernel text
- *	kernel data 
+ *  kernel text
+ *  kernel data
  *
  */
 
@@ -27,7 +27,7 @@ SECTIONS {
 		unmapped_kdata_start = .;
 	}
 	
-	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) { 
+	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text);
@@ -37,22 +37,22 @@ SECTIONS {
 		*(K_DATA_START);
 		*(.rodata);
 		*(.rodata.*);
-		*(.data);		/* initialized data */
+		*(.data);       /* initialized data */
 		*(.sdata);
 		*(.sdata2);
 		*(.sbss);
 		hardcoded_ktext_size = .;
-		LONG(ktext_end - ktext_start);	
+		LONG(ktext_end - ktext_start);
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
 		LONG(PA2KA(BOOT_OFFSET));
-		*(.bss);		/* uninitialized static variables */	
-		*(COMMON); 		/* global variables */
-
+		*(.bss);        /* uninitialized static variables */
+		*(COMMON);      /* global variables */
+		
 		symbol_table = .;
-		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
-
+		*(symtab.*);    /* Symbol table, must be LAST symbol!*/
+		
 		kdata_end = .;
 	}
 }
