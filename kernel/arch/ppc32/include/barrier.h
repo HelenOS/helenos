@@ -55,6 +55,7 @@ static inline void smc_coherence(void *addr)
 		"dcbst 0, %0\n"
 		"sync\n"
 		"icbi 0, %0\n"
+		"sync\n"
 		"isync\n"
 		:: "r" (addr)
 	);
@@ -76,7 +77,10 @@ static inline void smc_coherence_block(void *addr, unsigned long len)
 		asm volatile ("icbi 0, %0\n" :: "r" (addr + i));
 	}
 
-	asm volatile ("isync");
+	asm volatile (
+		"sync\n"
+		"isync\n"
+	);
 }
 
 #endif

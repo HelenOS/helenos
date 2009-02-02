@@ -224,6 +224,7 @@
 #define hid0_dce	(1 << 14)
 #define hid0_icfi	(1 << 11)
 #define hid0_dci	(1 << 10)
+#define hid0_sten	(1 << 7)
 
 #endif
 

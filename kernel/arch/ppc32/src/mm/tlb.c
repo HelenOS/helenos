@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
@@ -45,6 +45,11 @@
 
 static unsigned int seed = 10;
 static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
+
+
+#define TLB_FLUSH \
+	"tlbie %0\n" \
+	"addi %0, %0, 0x1000\n"
 
 
 /** Try to find PTE for faulting address
@@ -411,8 +416,87 @@ void tlb_arch_init(void)
 
 void tlb_invalidate_all(void)
 {
+	uint32_t index;
 	asm volatile (
+		"li %0, 0\n"
+		"sync\n"
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		TLB_FLUSH
+		
+		"eieio\n"
 		"tlbsync\n"
+		"sync\n"
+		: "=r" (index)
 	);
 }
 

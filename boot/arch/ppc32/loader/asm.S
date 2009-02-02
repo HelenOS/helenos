@@ -29,11 +29,23 @@
 #include "asm.h"
 #include "regname.h"
 
-.macro FLUSH_CACHE addr
+.macro SMC_COHERENCY addr
 	dcbst 0, \addr
 	sync
 	icbi 0, \addr
+	sync
 	isync
+.endm
+
+.macro FLUSH_DCACHE addr
+	dcbst 0, \addr
+	sync
+	isync
+.endm
+
+.macro TLB_FLUSH reg
+	tlbie \reg
+	addi \reg, \reg, 0x1000
 .endm
 
 .text
@@ -171,7 +183,7 @@ real_mode:
 			lwz r28, 0(r29)
 			stw r28, 0(r30)
 			
-			FLUSH_CACHE r30
+			SMC_COHERENCY r30
 			
 			addi r29, r29, 4
 			addi r30, r30, 4
@@ -268,7 +280,7 @@ real_mode:
 		# write zeroes
 		
 		stw r29, 0(r31)
-		FLUSH_CACHE r31
+		FLUSH_DCACHE r31
 		
 		addi r31, r31, 4
 		subi r30, r30, 4
@@ -328,7 +340,86 @@ real_mode:
 	
 #endif
 	
+	# flush TLB
+	
+	li r31, 0
+	sync
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	TLB_FLUSH r31
+	
+	eieio
 	tlbsync
+	sync
 	
 	# start the kernel
 	#
