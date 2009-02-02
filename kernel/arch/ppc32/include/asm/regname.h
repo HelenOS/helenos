@@ -211,6 +211,9 @@
 #define dbat2l	541
 #define dbat3u	542
 #define dbat3l	543
+#define tlbmiss	980
+#define ptehi	981
+#define ptelo	982
 #define hid0	1008
 
 /* MSR bits */
@@ -220,11 +223,11 @@
 #define msr_ee	(1 << 15)
 
 /* HID0 bits */
+#define hid0_sten	(1 << 24)
 #define hid0_ice	(1 << 15)
 #define hid0_dce	(1 << 14)
 #define hid0_icfi	(1 << 11)
 #define hid0_dci	(1 << 10)
-#define hid0_sten	(1 << 7)
 
 #endif
 

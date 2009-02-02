@@ -227,10 +227,10 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 }
 
 
-/** Process Instruction/Data Storage Interrupt
+/** Process Instruction/Data Storage Exception
  *
- * @param n		Interrupt vector number.
- * @param istate	Interrupted register context.
+ * @param n      Exception vector number.
+ * @param istate Interrupted register context.
  *
  */
 void pht_refill(int n, istate_t *istate)
@@ -287,10 +287,10 @@ fail:
 }
 
 
-/** Process Instruction/Data Storage Interrupt in Real Mode
+/** Process Instruction/Data Storage Exception in Real Mode
  *
- * @param n		Interrupt vector number.
- * @param istate	Interrupted register context.
+ * @param n      Exception vector number.
+ * @param istate Interrupted register context.
  *
  */
 bool pht_refill_real(int n, istate_t *istate)
@@ -405,6 +405,40 @@ bool pht_refill_real(int n, istate_t *istate)
 	phte_real[base + i].pp = 2; // FIXME
 	
 	return true;
+}
+
+
+/** Process ITLB/DTLB Miss Exception in Real Mode
+ *
+ *
+ */
+void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate)
+{
+	uint32_t badvaddr = tlbmiss & 0xfffffffc;
+	
+	uint32_t physmem;
+	asm volatile (
+		"mfsprg3 %0\n"
+		: "=r" (physmem)
+	);
+	
+	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
+		return; // FIXME
+	
+	ptelo.rpn = KA2PA(badvaddr) >> 12;
+	ptelo.wimg = 0;
+	ptelo.pp = 2; // FIXME
+	
+	uint32_t index = 0;
+	asm volatile (
+		"mtspr 981, %0\n"
+		"mtspr 982, %1\n"
+		"tlbld %2\n"
+		"tlbli %2\n"
+		: "=r" (index)
+		: "r" (ptehi),
+		  "r" (ptelo)
+	);
 }
 
 

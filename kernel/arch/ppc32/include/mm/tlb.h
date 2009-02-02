@@ -58,9 +58,27 @@ typedef struct {
 	unsigned pp : 2;         /**< Page protection */
 } phte_t;
 
+typedef struct {
+	unsigned v : 1;
+	unsigned vsid : 24;
+	unsigned reserved0 : 1;
+	unsigned api : 6;
+} ptehi_t;
+
+typedef struct {
+	unsigned rpn : 20;
+	unsigned xpn : 3;
+	unsigned reserved0 : 1;
+	unsigned c : 1;
+	unsigned wimg : 4;
+	unsigned x : 1;
+	unsigned pp : 2;
+} ptelo_t;
+
+extern void pht_init(void);
 extern void pht_refill(int n, istate_t *istate);
 extern bool pht_refill_real(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
-extern void pht_init(void);
+extern void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
 
 #endif
 

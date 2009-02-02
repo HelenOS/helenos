@@ -208,7 +208,7 @@ exc_reserved1:
 .org 0xc00
 .global exc_syscall
 exc_syscall:
-	CONTEXT_STORE	
+	CONTEXT_STORE
 	
 	b jump_to_kernel_syscall
 
@@ -219,6 +219,27 @@ exc_trace:
 	
 	li r3, 12
 	b jump_to_kernel
+
+.org 0x1000
+.global exc_itlb_miss
+exc_itlb_miss:
+	CONTEXT_STORE
+	
+	b tlb_miss
+
+.org 0x1100
+.global exc_dtlb_miss_load
+exc_dtlb_miss_load:
+	CONTEXT_STORE
+	
+	b tlb_miss
+
+.org 0x1200
+.global exc_dtlb_miss_store
+exc_dtlb_miss_store:
+	CONTEXT_STORE
+	
+	b tlb_miss
 
 .org 0x4000
 data_storage:
@@ -244,6 +265,17 @@ instruction_storage:
 	
 	li r3, 3
 	b jump_to_kernel
+
+tlb_miss:
+	li r3, 16
+	mfspr r4, tlbmiss
+	mfspr r5, ptehi
+	mfspr r6, ptelo
+	mr r7, sp
+	addi r7, r7, 20
+	
+	bl tlb_refill_real
+	b iret_real
 
 jump_to_kernel:
 	lis r12, iret@ha
