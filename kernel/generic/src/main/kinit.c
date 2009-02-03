@@ -209,7 +209,7 @@ void kinit(void *arg)
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);
-		printf("kinit: No stdin\nKernel alive: ");
+		printf("kinit: No stdin\nKernel alive: .");
 		
 		unsigned int i = 0;
 		while (true) {
