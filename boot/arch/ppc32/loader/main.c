@@ -176,6 +176,8 @@ void bootstrap(void)
 	fix_overlap(&trans, &trans_pa, "translation table", &top);
 	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
 	
+	ofw_setup_palette();
+	
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa, (void *) bootinfo.screen.addr, bootinfo.screen.scanline);
 }

@@ -269,7 +269,7 @@ skip_ramdisk:
 	printf("done.\n");
 #endif
 
-	setup_palette();
+	ofw_setup_palette();
 
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,

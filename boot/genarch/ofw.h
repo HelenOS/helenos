@@ -123,7 +123,7 @@ extern int ofw_map(const void *phys, const void *virt, const int size, const int
 extern int ofw_memmap(memmap_t *map);
 extern int ofw_screen(screen_t *screen);
 extern int ofw_macio(macio_t *macio);
-extern int setup_palette(void);
+extern int ofw_setup_palette(void);
 extern void ofw_quiesce(void);
 
 #endif

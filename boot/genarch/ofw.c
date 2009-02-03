@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 #include <ofw.h>
 #include <ofwarch.h>
 #include <printf.h>
@@ -372,23 +372,30 @@ int ofw_screen(screen_t *screen)
 	return true;
 }
 
+#define RED(i)    (((i) >> 5) & ((1 << 3) - 1))
+#define GREEN(i)  (((i) >> 3) & ((1 << 2) - 1))
+#define BLUE(i)   ((i) & ((1 << 3) - 1))
+#define CLIP(i)   ((i) <= 255 ? (i) : 255)
+
+
 /**
  * Sets up the palette for the 8-bit color depth configuration so that the
  * 3:2:3 color scheme can be used. Checks that setting the palette makes sense
  * (appropriate nodes exist in the OBP tree and the color depth is not greater
- * than 8). 
+ * than 8).
  *
- * @return	true if the palette has been set, false otherwise
+ * @return true if the palette has been set, false otherwise
+ *
  */
-int setup_palette(void)
+int ofw_setup_palette(void)
 {
 	char device_name[BUF_SIZE];
 	
 	/* resolve alias */
 	if (ofw_get_property(ofw_aliases, "screen", device_name,
-		sizeof(device_name)) <= 0)
+	    sizeof(device_name)) <= 0)
 		return false;
-
+	
 	/* for depth greater than 8 it makes no sense to set up the palette */
 	uint32_t depth;
 	phandle device = ofw_find_device(device_name);
@@ -403,15 +410,12 @@ int setup_palette(void)
 	ihandle screen = ofw_open(device_name);
 	if (screen == -1)
 		return false;
-
+	
 	/* setup the palette so that the (inverted) 3:2:3 scheme is usable */
 	unsigned int i;
 	for (i = 0; i < 256; i++)
-		if (ofw_call("call-method", 6, 1, NULL, "color!", screen,
-			255 - i,
-			i << 5,
-			(i >> 3) << 6,
-			(i >> 5) << 5) != 0); 
+		ofw_call("call-method", 6, 1, NULL, "color!", screen,
+		    255 - i, CLIP(BLUE(i) * 37), GREEN(i) * 85, CLIP(RED(i) * 37));
 	return true;
 }
 
