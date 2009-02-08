@@ -64,7 +64,9 @@ CONFIG_ASID_FIFO = y
 ## Compile with support for framebuffer.
 #
 
-CONFIG_FB = y
+ifeq ($(MACHINE),us)
+	CONFIG_FB = y
+endif
 
 ## Compile with support for Sun keyboard.
 #
@@ -117,10 +119,13 @@ ARCH_SOURCES = \
 	arch/$(ARCH)/src/ddi/ddi.c \
 	arch/$(ARCH)/src/drivers/tick.c \
 	arch/$(ARCH)/src/drivers/kbd.c \
-	arch/$(ARCH)/src/drivers/scr.c \
 	arch/$(ARCH)/src/drivers/sgcn.c \
 	arch/$(ARCH)/src/drivers/pci.c
 
+ifeq ($(CONFIG_FB),y)
+	ARCH_SOURCES += \
+		arch/$(ARCH)/src/drivers/scr.c
+endif
 
 ifeq ($(CONFIG_SMP),y)
 ARCH_SOURCES += \

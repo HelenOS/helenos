@@ -69,6 +69,7 @@
  */
 static void standard_console_init(ofw_tree_node_t *aliases)
 {
+#ifdef CONFIG_FB
 	stdin = NULL;
 
 	ofw_tree_property_t *prop;
@@ -96,6 +97,10 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find %s.", prop->value);
 
 	kbd_init(keyboard);
+#else
+	panic("Standard console requires FB, "
+	      "but the kernel is not compiled with FB support.");
+#endif
 }
 
 /** Initilize I/O on the Serengeti machine. */
@@ -175,7 +180,9 @@ void kkbdpoll(void *arg)
  */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
 	scr_redraw();
+#endif
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:

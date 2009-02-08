@@ -74,7 +74,9 @@
 
 #define ALIVE_CHARS  4
 
+#ifdef CONFIG_KCONSOLE
 static char alive[ALIVE_CHARS] = "-\\|/";
+#endif
 
 /** Kernel initialization thread.
  *
