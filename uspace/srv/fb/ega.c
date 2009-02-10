@@ -72,8 +72,6 @@ int ega_inverted_color = 0xf0;
 #define NORMAL_COLOR		ega_normal_color       
 #define INVERTED_COLOR		ega_inverted_color
 
-#define EGA_STYLE(fg,bg) ((fg) > (bg) ? NORMAL_COLOR : INVERTED_COLOR)
-
 /* Allow only 1 connection */
 static int client_connected = 0;
 
@@ -82,6 +80,8 @@ static unsigned int scr_height;
 static char *scr_addr;
 
 static unsigned int style;
+
+static unsigned attr_to_ega_style(const attrs_t *a);
 
 static void clrscr(void)
 {
@@ -156,10 +156,7 @@ static void draw_text_data(keyfield_t *data)
 
 	for (i = 0; i < scr_width * scr_height; i++) {
 		scr_addr[i * 2] = data[i].character;
-		/* FIXME
-		scr_addr[i * 2 + 1] = EGA_STYLE(data[i].style.fg_color,
-		    data[i].style.bg_color);
-		*/
+		scr_addr[i * 2 + 1] = attr_to_ega_style(&data[i].attrs);
 	}
 }
 
@@ -188,6 +185,50 @@ static int print_screen(int i)
 	return i;
 }
 
+static int style_to_ega_style(int style)
+{
+	unsigned int ega_style;
+
+	switch (style) {
+	case STYLE_NORMAL:
+		ega_style = INVERTED_COLOR;
+		break;
+	case STYLE_EMPHASIS:
+		ega_style = INVERTED_COLOR | 4;
+		break;
+	default:
+		return INVERTED_COLOR;
+	}
+
+	return ega_style;
+}
+
+static unsigned int color_to_ega_style(int fg_color, int bg_color, int attr)
+{
+	unsigned int style;
+
+	style = (fg_color & 7) | ((bg_color & 7) << 4);
+	if (attr & CATTR_BRIGHT)
+		style = style | 0x08;
+
+	return style;
+}
+
+static unsigned int rgb_to_ega_style(uint32_t fg, uint32_t bg)
+{
+	return (fg > bg) ? NORMAL_COLOR : INVERTED_COLOR;
+}
+
+static unsigned attr_to_ega_style(const attrs_t *a)
+{
+	switch (a->t) {
+	case at_style: return style_to_ega_style(a->a.s.style);
+	case at_rgb: return rgb_to_ega_style(a->a.r.fg_color, a->a.r.bg_color);
+	case at_idx: return color_to_ega_style(a->a.i.fg_color,
+	    a->a.i.bg_color, a->a.i.flags);
+	default: return INVERTED_COLOR;
+	}
+}
 
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -196,7 +237,8 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	char c;
 	unsigned int row, col;
-	int bgcolor,fgcolor;
+	int bg_color, fg_color, attr;
+	uint32_t bg_rgb, fg_rgb;
 	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;
 	int i;
@@ -279,25 +321,20 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
+			style = style_to_ega_style(IPC_GET_ARG1(call));
 			retval = 0;
-			switch (IPC_GET_ARG1(call)) {
-			case STYLE_NORMAL: style = INVERTED_COLOR; break;
-			case STYLE_EMPHASIS: style = INVERTED_COLOR | 4; break;
-			default: retval = EINVAL;
-			}
 			break;
 		case FB_SET_COLOR:
-			fgcolor = IPC_GET_ARG1(call);
-			bgcolor = IPC_GET_ARG2(call);
-			style = (fgcolor & 7) | ((bgcolor & 7) << 4);
-			if (IPC_GET_ARG3(call) & CATTR_BRIGHT)
-				style = style | 0x08;
+			fg_color = IPC_GET_ARG1(call);
+			bg_color = IPC_GET_ARG2(call);
+			attr = IPC_GET_ARG3(call);
+			style = color_to_ega_style(fg_color, bg_color, attr);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
-			fgcolor = IPC_GET_ARG1(call);
-			bgcolor = IPC_GET_ARG2(call);
-			style = EGA_STYLE(fgcolor, bgcolor);
+			fg_rgb = IPC_GET_ARG1(call);
+			bg_rgb = IPC_GET_ARG2(call);
+			style = rgb_to_ega_style(fg_rgb, bg_rgb);
 			retval = 0;
 			break;
 		case FB_VP_DRAW_PIXMAP:
@@ -335,11 +372,12 @@ int ega_init(void)
 	ega_ph_addr = (void *) sysinfo_value("fb.address.physical");
 	scr_width = sysinfo_value("fb.width");
 	scr_height = sysinfo_value("fb.height");
-	if(sysinfo_value("fb.blinking"))
-	{
-			ega_normal_color &= 0x77;
-			ega_inverted_color &= 0x77;
+
+	if(sysinfo_value("fb.blinking")) {
+		ega_normal_color &= 0x77;
+		ega_inverted_color &= 0x77;
 	}
+
 	style = NORMAL_COLOR;
 
 	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
