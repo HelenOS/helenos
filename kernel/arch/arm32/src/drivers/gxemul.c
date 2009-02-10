@@ -72,7 +72,7 @@ static bool hw_map_init_called = false;
 
 static void gxemul_kbd_enable(chardev_t *dev);
 static void gxemul_kbd_disable(chardev_t *dev);
-static void gxemul_write(chardev_t *dev, const char ch);
+static void gxemul_write(chardev_t *dev, const char ch, bool silent);
 static char gxemul_do_read(chardev_t *dev);
 
 static chardev_operations_t gxemul_ops = {
