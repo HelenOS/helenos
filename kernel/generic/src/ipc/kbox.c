@@ -128,8 +128,8 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	spinlock_lock(&TASK->answerbox.lock);
-	if (list_empty(&TASK->answerbox.connected_phones)) {
+	spinlock_lock(&TASK->kb.box.lock);
+	if (list_empty(&TASK->kb.box.connected_phones)) {
 		/*
 		 * Last phone has been disconnected. Detach this thread so it
 		 * gets freed and signal to the caller.
@@ -150,7 +150,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 		*last = false;
 	}
 
-	spinlock_unlock(&TASK->answerbox.lock);
+	spinlock_unlock(&TASK->kb.box.lock);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 }
