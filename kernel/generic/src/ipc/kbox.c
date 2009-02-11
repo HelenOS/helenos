@@ -42,6 +42,7 @@
 #include <debug.h>
 #include <udebug/udebug_ipc.h>
 #include <ipc/kbox.h>
+#include <print.h>
 
 void ipc_kbox_cleanup(void)
 {

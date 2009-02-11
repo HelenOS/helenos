@@ -41,6 +41,7 @@
 #include <debug.h>
 #include <udebug/udebug.h>
 #include <errno.h>
+#include <print.h>
 #include <arch.h>
 
 
