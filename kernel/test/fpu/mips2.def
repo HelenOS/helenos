@@ -3,6 +3,6 @@
 	"mips2",
 	"MIPS FPU test",
 	&test_mips2,
-	true
+	false
 },
 #endif
