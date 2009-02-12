@@ -27,8 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if (defined(ia32) || defined(amd64) || defined(ia64) || defined(ia32xen))
-
 #include <print.h>
 #include <debug.h>
 
@@ -226,5 +224,3 @@ char * test_fpu1(bool quiet)
 	
 	return "Test failed";
 }
-
-#endif

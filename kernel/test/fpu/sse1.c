@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if (defined(ia32) || defined(amd64) || defined(ia32xen))
-
 #include <print.h>
 #include <debug.h>
 
@@ -38,9 +36,9 @@
 
 #include <arch.h>
 
-#define THREADS		25
-#define DELAY   	10000L
-#define ATTEMPTS        5
+#define THREADS   25
+#define DELAY     10000L
+#define ATTEMPTS  5
 
 static atomic_t threads_ok;
 static atomic_t threads_fault;
@@ -162,5 +160,3 @@ char * test_sse1(bool quiet)
 	
 	return "Test failed";
 }
-
-#endif

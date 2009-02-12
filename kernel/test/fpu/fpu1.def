@@ -1,8 +1,6 @@
-#if (defined(ia32) || defined(amd64) || defined(ia64) || defined(ia32xen))
 {
 	"fpu1",
 	"Intel FPU test",
 	&test_fpu1,
 	true
 },
-#endif

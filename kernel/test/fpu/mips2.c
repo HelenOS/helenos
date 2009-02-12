@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef mips32
-
 #include <print.h>
 #include <debug.h>
 
@@ -38,9 +36,9 @@
 
 #include <arch.h>
 
-#define THREADS		50
-#define DELAY   	10000L
-#define ATTEMPTS        5
+#define THREADS   50
+#define DELAY     10000L
+#define ATTEMPTS  5
 
 static atomic_t threads_ok;
 static atomic_t threads_fault;
@@ -56,7 +54,7 @@ static void testit1(void *data)
 	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
-
+	
 	for (i = 0; i < ATTEMPTS; i++) {
 		asm volatile (
 			"mtc1 %0,$1"
@@ -89,13 +87,13 @@ static void testit2(void *data)
 	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
-
+	
 	for (i = 0; i < ATTEMPTS; i++) {
 		asm volatile (
 			"mtc1 %0,$1"
 			: "=r" (arg)
 		);
-
+		
 		scheduler();
 		asm volatile (
 			"mfc1 %0,$1"
@@ -124,7 +122,7 @@ char * test_mips2(bool quiet)
 	
 	if (!quiet)
 		printf("Creating %u threads... ", 2 * THREADS);
-
+	
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
@@ -162,5 +160,3 @@ char * test_mips2(bool quiet)
 	
 	return "Test failed";
 }
-
-#endif
