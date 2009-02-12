@@ -37,12 +37,14 @@ import commands
 import xtui
 
 INPUT = sys.argv[1]
-OUTPUT = 'Makefile.config'
+MAKEFILE = 'Makefile.config'
+MACROS = 'config.h'
+DEFS = 'config.defs'
 
 def read_defaults(fname, defaults):
 	"Read saved values from last configuration run"
 	
-	inf = file(fname,'r')
+	inf = file(fname, 'r')
 	
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
@@ -216,14 +218,28 @@ def check_choices(defaults, ask_names):
 	
 	return True
 
-def create_output(fname, defaults, ask_names):
+def create_output(mkname, mcname, dfname, defaults, ask_names):
 	"Create output configuration"
 	
-	outf = file(fname, 'w')
+	revision = commands.getoutput('svnversion . 2> /dev/null')
+	timestamp = commands.getoutput('date "+%Y-%m-%d %H:%M:%S"')
 	
-	outf.write('#########################################\n')
-	outf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
-	outf.write('#########################################\n\n')
+	outmk = file(mkname, 'w')
+	outmc = file(mcname, 'w')
+	outdf = file(dfname, 'w')
+	
+	outmk.write('#########################################\n')
+	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
+	outmk.write('#########################################\n\n')
+	
+	outmc.write('/***************************************\n')
+	outmc.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
+	outmc.write(' ***************************************/\n\n')
+	
+	outdf.write('#########################################\n')
+	outdf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
+	outdf.write('#########################################\n\n')
+	outdf.write('CONFIG_DEFS =')
 	
 	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
@@ -234,11 +250,27 @@ def create_output(fname, defaults, ask_names):
 		else:
 			default = defaults[varname]
 		
-		outf.write('# %s\n%s = %s\n\n' % (name, varname, default))
+		outmk.write('# %s\n%s = %s\n\n' % (name, varname, default))
+		
+		if ((vartype == "y") or (vartype == "y/n") or (vartype == "n/y")):
+			if (default == "y"):
+				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
+				outdf.write(' -D%s' % varname)
+		else:
+			outmc.write('/* %s */\n#define %s %s\n\n' % (name, varname, default))
+			outdf.write(' -D%s=%s' % (varname, default))
 	
-	outf.write('REVISION = %s\n' % commands.getoutput('svnversion . 2> /dev/null'))
-	outf.write('TIMESTAMP = %s\n' % commands.getoutput('date "+%Y-%m-%d %H:%M:%S"'))
-	outf.close()
+	outmk.write('REVISION = %s\n' % revision)
+	outmk.write('TIMESTAMP = %s\n' % timestamp)
+	
+	outmc.write('#define REVISION %s\n' % revision)
+	outmc.write('#define TIMESTAMP %s\n' % timestamp)
+	
+	outdf.write(' "-DREVISION=%s" "-DTIMESTAMP=%s"\n' % (revision, timestamp))
+	
+	outmk.close()
+	outmc.close()
+	outdf.close()
 
 def main():
 	defaults = {}
@@ -248,13 +280,13 @@ def main():
 	parse_config(INPUT, ask_names)
 	
 	# Read defaults from previous run
-	if os.path.exists(OUTPUT):
-		read_defaults(OUTPUT, defaults)
+	if os.path.exists(MAKEFILE):
+		read_defaults(MAKEFILE, defaults)
 	
 	# Default mode: only check defaults and regenerate configuration
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
 		if (check_choices(defaults, ask_names)):
-			create_output(OUTPUT, defaults, ask_names)
+			create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
 			return 0
 	
 	# Check mode: only check defaults
@@ -293,10 +325,13 @@ def main():
 					
 					# If there is just one option, use it
 					if (len(choices) == 1):
-						default = choices[0][0]
-						defaults[varname] = default
+						defaults[varname] = choices[0][0]
+						continue
 					
 					options.append("     %s [%s] --> " % (name, default))
+				elif (vartype == 'y'):
+					defaults[varname] = 'y'
+					continue
 				elif (vartype == 'y/n'):
 					if (default == None):
 						default = 'y'
@@ -346,7 +381,7 @@ def main():
 	finally:
 		xtui.screen_done(screen)
 	
-	create_output(OUTPUT, defaults, ask_names)
+	create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
 	return 0
 
 if __name__ == '__main__':
