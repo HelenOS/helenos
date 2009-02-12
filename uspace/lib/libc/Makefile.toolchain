@@ -30,6 +30,13 @@ CFLAGS = -fno-builtin -Wall -Werror-implicit-function-declaration -Wmissing-prot
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 
+## Cross-toolchain prefix
+#
+
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 ## Setup platform configuration
 #
 

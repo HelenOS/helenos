@@ -32,11 +32,6 @@
 LIBC_PREFIX = $(shell pwd)
 SOFTINT_PREFIX = ../softint
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
-
 ## Setup toolchain
 #
 
