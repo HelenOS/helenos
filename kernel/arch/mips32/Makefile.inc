@@ -29,10 +29,6 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
@@ -41,19 +37,7 @@ KERNEL_LOAD_ADDRESS = 0x80100000
 
 GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
-DEFS += -D__32_BITS__ -DMACHINE=$(MACHINE) -DKERNEL_LOAD_ADDRESS=${KERNEL_LOAD_ADDRESS} 
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-## Compile with support for address space identifiers.
-#
-
-CONFIG_ASID = y
-CONFIG_ASID_FIFO = y
+DEFS += -D__32_BITS__ -D$(MACHINE) -DKERNEL_LOAD_ADDRESS=$(KERNEL_LOAD_ADDRESS)
 
 ## Accepted MACHINEs
 #
@@ -61,14 +45,14 @@ CONFIG_ASID_FIFO = y
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
-	GCC_CFLAGS += -DFB_INVERT_ENDIAN -DARCH_HAS_FPU -mips3
+	GCC_CFLAGS += -mips3
 endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-bigmips
 	BFD = ecoff-bigmips
 	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips
 	TARGET = mips-sgi-irix5
-	GCC_CFLAGS += -EB -DBIG_ENDIAN -DARCH_HAS_FPU -mips3
+	GCC_CFLAGS += -EB -DBIG_ENDIAN -mips3
 endif
 ifeq ($(MACHINE),simics)
 	# SIMICS 4kc emulation is broken, although for instructions
@@ -85,31 +69,25 @@ ifeq ($(MACHINE),msim)
 	GCC_CFLAGS += -mhard-float -mips3
 endif
 
-## Compile with support for software integer division.
-#
-
-CONFIG_SOFTINT = y
-
-
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/start.S \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/panic.S \
-	arch/$(ARCH)/src/mips32.c \
-	arch/$(ARCH)/src/dummy.S \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/exception.c \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/cache.c \
-	arch/$(ARCH)/src/debugger.c \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c \
-	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/fpu_context.c \
-	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/msim.c \
-	arch/$(ARCH)/src/drivers/serial.c \
-	arch/$(ARCH)/src/smp/order.c
+	arch/$(KARCH)/src/start.S \
+	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/panic.S \
+	arch/$(KARCH)/src/mips32.c \
+	arch/$(KARCH)/src/dummy.S \
+	arch/$(KARCH)/src/console.c \
+	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/exception.c \
+	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/cache.c \
+	arch/$(KARCH)/src/debugger.c \
+	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/fpu_context.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/drivers/msim.c \
+	arch/$(KARCH)/src/drivers/serial.c \
+	arch/$(KARCH)/src/smp/order.c

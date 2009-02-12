@@ -29,10 +29,6 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
@@ -46,48 +42,8 @@ LFLAGS += -no-check-sections -N
 
 DEFS += -D__64_BITS__
 
-## Own configuration directives
-#
-
-## Compile with page hash table support.
-#
-
-CONFIG_PAGE_HT = y
-DEFS += -DCONFIG_PAGE_HT
-
-## Compile with support for address space identifiers.
-#
-
-CONFIG_ASID = y
-CONFIG_ASID_FIFO = y
-
-## Compile with support for framebuffer.
-#
-
 ifeq ($(MACHINE),us)
-	CONFIG_FB = y
-endif
-
-## Compile with support for Sun keyboard.
-#
-
-CONFIG_SUN_KBD = y
-
-## Compile with support for OpenFirmware device tree.
-#
-
-CONFIG_OFW_TREE = y
-
-ifeq ($(CONFIG_SMP),y)
-	DEFS += -DCONFIG_SMP
-endif
-
-ifeq ($(CONFIG_SGCN),y)
-        DEFS += -DCONFIG_SGCN
-endif
-
-ifeq ($(MACHINE),us)
-    DEFS += -DUS
+	DEFS += -DUS
 endif
 
 ifeq ($(MACHINE),us3)
@@ -95,50 +51,50 @@ ifeq ($(MACHINE),us3)
 endif
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/panic.S \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/fpu_context.c \
-	arch/$(ARCH)/src/dummy.s \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/cache.S \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c \
-	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/sparc64.c \
-	arch/$(ARCH)/src/start.S \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/proc/thread.c \
-	arch/$(ARCH)/src/trap/mmu.S \
-	arch/$(ARCH)/src/trap/trap_table.S \
-	arch/$(ARCH)/src/trap/trap.c \
-	arch/$(ARCH)/src/trap/exception.c \
-	arch/$(ARCH)/src/trap/interrupt.c \
-	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/tick.c \
-	arch/$(ARCH)/src/drivers/kbd.c \
-	arch/$(ARCH)/src/drivers/sgcn.c \
-	arch/$(ARCH)/src/drivers/pci.c
+	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/panic.S \
+	arch/$(KARCH)/src/console.c \
+	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/fpu_context.c \
+	arch/$(KARCH)/src/dummy.s \
+	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/mm/cache.S \
+	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/sparc64.c \
+	arch/$(KARCH)/src/start.S \
+	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/proc/thread.c \
+	arch/$(KARCH)/src/trap/mmu.S \
+	arch/$(KARCH)/src/trap/trap_table.S \
+	arch/$(KARCH)/src/trap/trap.c \
+	arch/$(KARCH)/src/trap/exception.c \
+	arch/$(KARCH)/src/trap/interrupt.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/drivers/tick.c \
+	arch/$(KARCH)/src/drivers/kbd.c \
+	arch/$(KARCH)/src/drivers/sgcn.c \
+	arch/$(KARCH)/src/drivers/pci.c
 
 ifeq ($(CONFIG_FB),y)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/drivers/scr.c
+		arch/$(KARCH)/src/drivers/scr.c
 endif
 
 ifeq ($(CONFIG_SMP),y)
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/smp/ipi.c \
-	arch/$(ARCH)/src/smp/smp.c
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/smp/ipi.c \
+		arch/$(KARCH)/src/smp/smp.c
 endif
 
 ifeq ($(CONFIG_TSB),y)
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/mm/tsb.c
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/mm/tsb.c
 endif
 
 ifdef CONFIG_Z8530
-ARCH_SOURCES += \
-	arch/$(ARCH)/src/drivers/fhc.c
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/drivers/fhc.c
 endif

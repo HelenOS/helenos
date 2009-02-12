@@ -29,10 +29,6 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 BFD = binary
@@ -40,10 +36,7 @@ TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm
 
 KERNEL_LOAD_ADDRESS = 0x80200000
-
-# ifeq ($(MACHINE), gxemul_testarm)
-	DMACHINE = MACHINE_GXEMUL_TESTARM
-# endif
+DMACHINE = MACHINE_GXEMUL_TESTARM
 
 ATSIGN = %
 
@@ -51,50 +44,23 @@ GCC_CFLAGS += -fno-zero-initialized-in-bss
 
 DEFS += -D__32_BITS__ -DKERNEL_LOAD_ADDRESS=$(KERNEL_LOAD_ADDRESS) -D$(DMACHINE)
 
-# Compile with framebuffer support
-
-ifeq ($(CONFIG_FB), y)
-	DEFS += -DCONFIG_FB -DFB_INVERT_ENDIAN
-endif
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-## Compile with support for address space identifiers.
-#
-# no HW support for ASIDs
-#CONFIG_ASID = y
-#CONFIG_ASID_FIFO = y 
-
-## Compile with support with software division and multiplication.
-#
-
-CONFIG_SOFTINT = y
-
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/start.S \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/arm32.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/dummy.S \
-	arch/$(ARCH)/src/panic.S \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/debug/print.c \
-	arch/$(ARCH)/src/console.c \
-	arch/$(ARCH)/src/exception.c \
-	arch/$(ARCH)/src/userspace.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c \
-	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/mm/page_fault.c
-
-# ifeq ($(MACHINE), gxemul_testarm)
-	ARCH_SOURCES += arch/$(ARCH)/src/drivers/gxemul.c
-# endif
-
+	arch/$(KARCH)/src/start.S \
+	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/arm32.c \
+	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/dummy.S \
+	arch/$(KARCH)/src/panic.S \
+	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/debug/print.c \
+	arch/$(KARCH)/src/console.c \
+	arch/$(KARCH)/src/exception.c \
+	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/mm/page_fault.c \
+	arch/$(KARCH)/src/drivers/gxemul.c

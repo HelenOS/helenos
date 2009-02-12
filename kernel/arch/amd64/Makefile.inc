@@ -29,10 +29,6 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
@@ -45,7 +41,7 @@ GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel
 
-DEFS += -DMACHINE=$(MACHINE) -D__64_BITS__
+DEFS += -D__64_BITS__
 
 ## Accepted CPUs
 #
@@ -55,78 +51,40 @@ ifeq ($(MACHINE),opteron)
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)
 	SUNCC_CFLAGS += -xtarget=opteron
-	DEFS += -DFENCES=p4
-endif
-
-## Own configuration directives
-#
-
-CONFIG_ACPI = y
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-## Compile with i8042 support.
-#
-
-CONFIG_I8042 = y
-DEFS += -DCONFIG_I8042
-
-## Compile with EGA support
-#
-
-CONFIG_EGA = y
-DEFS += -DCONFIG_EGA
-
-## Accepted configuration directives
-#
-
-ifeq ($(CONFIG_SMP),y)
-	DEFS += -DCONFIG_SMP
-endif
-ifeq ($(CONFIG_HT),y)
-	DEFS += -DCONFIG_HT
-endif
-
-ifeq ($(CONFIG_SIMICS_FIX),y)
-	DEFS += -DCONFIG_SIMICS_FIX
 endif
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/fpu_context.c \
-	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/boot/memmap.c \
-	arch/$(ARCH)/src/pm.c \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/vesa.c \
-	arch/$(ARCH)/src/drivers/i8254.c \
-	arch/$(ARCH)/src/drivers/i8259.c \
-	arch/$(ARCH)/src/delay.S \
-	arch/$(ARCH)/src/amd64.c \
-	arch/$(ARCH)/src/bios/bios.c \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c \
-	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/asm_utils.S \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/proc/task.c \
-	arch/$(ARCH)/src/proc/thread.c \
-	arch/$(ARCH)/src/userspace.c \
-	arch/$(ARCH)/src/syscall.c \
-	arch/$(ARCH)/src/debugger.c
+	arch/$(KARCH)/src/fpu_context.c \
+	arch/$(KARCH)/src/boot/boot.S \
+	arch/$(KARCH)/src/boot/memmap.c \
+	arch/$(KARCH)/src/pm.c \
+	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/drivers/vesa.c \
+	arch/$(KARCH)/src/drivers/i8254.c \
+	arch/$(KARCH)/src/drivers/i8259.c \
+	arch/$(KARCH)/src/delay.S \
+	arch/$(KARCH)/src/amd64.c \
+	arch/$(KARCH)/src/bios/bios.c \
+	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/asm_utils.S \
+	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/proc/task.c \
+	arch/$(KARCH)/src/proc/thread.c \
+	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/syscall.c \
+	arch/$(KARCH)/src/debugger.c
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/smp/ap.S \
-		arch/$(ARCH)/src/smp/apic.c \
-		arch/$(ARCH)/src/smp/ipi.c \
-		arch/$(ARCH)/src/smp/mps.c \
-		arch/$(ARCH)/src/smp/smp.c
+		arch/$(KARCH)/src/smp/ap.S \
+		arch/$(KARCH)/src/smp/apic.c \
+		arch/$(KARCH)/src/smp/ipi.c \
+		arch/$(KARCH)/src/smp/mps.c \
+		arch/$(KARCH)/src/smp/smp.c
 endif

@@ -29,17 +29,13 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686
 
-DEFS += -DMACHINE=$(MACHINE) -D__32_BITS__
+DEFS += -D__32_BITS__
 
 CMN1 = -m32
 GCC_CFLAGS += $(CMN1)
@@ -52,108 +48,58 @@ SUNCC_CFLAGS += $(CMN1)
 ifeq ($(MACHINE),athlon-xp)
 	CMN2 = -march=athlon-xp
 	SUNCC_CFLAGS += -xarch=ssea
-	DEFS += -DCONFIG_FENCES_P3
-	CONFIG_SMP = n
-	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),athlon-mp)
 	CMN2 = -march=athlon-mp
 	SUNCC_CFLAGS += xarch=ssea
-	DEFS += -DCONFIG_FENCES_P3
-	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),pentium3)
 	CMN2 = -march=pentium3
 	SUNCC_CFLAGS += -xarch=sse
-	DEFS += -DCONFIG_FENCES_P3
-	CONFIG_HT = n
 endif
 ifeq ($(MACHINE),pentium4)
 	CMN2 = -march=pentium4
 	SUNCC_CFLAGS += -xarch=sse2
-	DEFS += -DCONFIG_FENCES_P4
 endif
 ifeq ($(MACHINE),core)
 	CMN2 = -march=prescott
 	SUNCC_CFLAGS += -xarch=sse3
-	DEFS += -DCONFIG_FENCES_P4
 endif
 
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 GCC_CFLAGS += $(CMN2)
 ICC_CFLAGS += $(CMN2)
 
-## Own configuration directives
-#
-
-CONFIG_ACPI = y
-
-## Compile with hierarchical page tables support.
-#
-
-CONFIG_PAGE_PT = y
-DEFS += -DCONFIG_PAGE_PT
-
-## Compile with i8042 controller support
-#
-
-CONFIG_I8042 = y
-DEFS += -DCONFIG_I8042
-
-## Compile with EGA support
-#
-
-CONFIG_EGA = y
-DEFS += -DCONFIG_EGA
-
-## Accepted configuration directives
-#
-
-ifeq ($(CONFIG_SMP),y)
-	DEFS += -DCONFIG_SMP
-endif
-ifeq ($(CONFIG_HT),y)
-	DEFS += -DCONFIG_HT
-endif
-ifeq ($(CONFIG_SIMICS_FIX),y)
-	DEFS += -DCONFIG_SIMICS_FIX
-endif
-
-## Compile with support for software integer division.
-#
-
-CONFIG_SOFTINT = y
-
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/context.S \
-	arch/$(ARCH)/src/debug/panic.s \
-	arch/$(ARCH)/src/delay.s \
-	arch/$(ARCH)/src/asm.S \
-	arch/$(ARCH)/src/proc/scheduler.c \
-	arch/$(ARCH)/src/proc/task.c \
-	arch/$(ARCH)/src/proc/thread.c \
-	arch/$(ARCH)/src/bios/bios.c \
-	arch/$(ARCH)/src/smp/ap.S \
-	arch/$(ARCH)/src/smp/apic.c \
-	arch/$(ARCH)/src/smp/mps.c \
-	arch/$(ARCH)/src/smp/smp.c \
-	arch/$(ARCH)/src/atomic.S \
-	arch/$(ARCH)/src/smp/ipi.c \
-	arch/$(ARCH)/src/ia32.c \
-	arch/$(ARCH)/src/interrupt.c \
-	arch/$(ARCH)/src/pm.c \
-	arch/$(ARCH)/src/userspace.c \
-	arch/$(ARCH)/src/cpu/cpu.c \
-	arch/$(ARCH)/src/mm/as.c \
-	arch/$(ARCH)/src/mm/frame.c \
-	arch/$(ARCH)/src/mm/page.c \
-	arch/$(ARCH)/src/mm/tlb.c \
-	arch/$(ARCH)/src/ddi/ddi.c \
-	arch/$(ARCH)/src/drivers/i8254.c \
-	arch/$(ARCH)/src/drivers/i8259.c \
-	arch/$(ARCH)/src/drivers/vesa.c \
-	arch/$(ARCH)/src/boot/boot.S \
-	arch/$(ARCH)/src/boot/memmap.c \
-	arch/$(ARCH)/src/fpu_context.c \
-	arch/$(ARCH)/src/debugger.c \
-	arch/$(ARCH)/src/syscall.c
+	arch/$(KARCH)/src/context.S \
+	arch/$(KARCH)/src/debug/panic.s \
+	arch/$(KARCH)/src/delay.s \
+	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/proc/task.c \
+	arch/$(KARCH)/src/proc/thread.c \
+	arch/$(KARCH)/src/bios/bios.c \
+	arch/$(KARCH)/src/smp/ap.S \
+	arch/$(KARCH)/src/smp/apic.c \
+	arch/$(KARCH)/src/smp/mps.c \
+	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/atomic.S \
+	arch/$(KARCH)/src/smp/ipi.c \
+	arch/$(KARCH)/src/ia32.c \
+	arch/$(KARCH)/src/interrupt.c \
+	arch/$(KARCH)/src/pm.c \
+	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/page.c \
+	arch/$(KARCH)/src/mm/tlb.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/drivers/i8254.c \
+	arch/$(KARCH)/src/drivers/i8259.c \
+	arch/$(KARCH)/src/drivers/vesa.c \
+	arch/$(KARCH)/src/boot/boot.S \
+	arch/$(KARCH)/src/boot/memmap.c \
+	arch/$(KARCH)/src/fpu_context.c \
+	arch/$(KARCH)/src/debugger.c \
+	arch/$(KARCH)/src/syscall.c
