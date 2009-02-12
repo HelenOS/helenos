@@ -120,20 +120,25 @@ static void bgr_0888(void *dst, uint32_t rgb)
 }
 
 
-/** BGR 8:8:8 conversion
+/** RGB 8:8:8 conversion
  *
  */
 static void rgb_888(void *dst, uint32_t rgb)
 {
-#if defined(FB_INVERT_ENDIAN)
-	((uint8_t *) dst)[0] = RED(rgb, 8);
-	((uint8_t *) dst)[1] = GREEN(rgb, 8);
-	((uint8_t *) dst)[2] = BLUE(rgb, 8);
-#else
 	((uint8_t *) dst)[0] = BLUE(rgb, 8);
 	((uint8_t *) dst)[1] = GREEN(rgb, 8);
 	((uint8_t *) dst)[2] = RED(rgb, 8);
-#endif
+}
+
+
+/** BGR 8:8:8 conversion
+ *
+ */
+static void bgr_888(void *dst, uint32_t rgb)
+{
+	((uint8_t *) dst)[0] = RED(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = BLUE(rgb, 8);
 }
 
 
@@ -447,6 +452,10 @@ void fb_init(fb_properties_t *props)
 		break;
 	case VISUAL_RGB_8_8_8:
 		rgb_conv = rgb_888;
+		pixelbytes = 3;
+		break;
+	case VISUAL_BGR_8_8_8:
+		rgb_conv = bgr_888;
 		pixelbytes = 3;
 		break;
 	case VISUAL_RGB_8_8_8_0:

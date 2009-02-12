@@ -44,6 +44,7 @@
 #define VISUAL_RGB_0_8_8_8  5
 
 #define VISUAL_BGR_0_8_8_8  6
+#define VISUAL_BGR_8_8_8    7
 
 #endif
 

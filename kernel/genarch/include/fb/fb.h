@@ -49,7 +49,7 @@ typedef struct fb_properties {
 	 * Address where the first (top left) pixel is mapped,
 	 * relative to "addr".
 	 */
-	unsigned int offset;	
+	unsigned int offset;
 
 	/** Screen width in pixels. */
 	unsigned int x;
