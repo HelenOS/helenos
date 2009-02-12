@@ -37,9 +37,7 @@
  */
 
 #include <genarch/kbd/i8042.h>
-#ifdef ia64
 #include <arch/drivers/kbd.h>
-#endif
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
@@ -171,10 +169,10 @@ void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mou
 	i8042_mouse_irq.claim = i8042_claim;
 	i8042_mouse_irq.handler = i8042_irq_handler;
 	irq_register(&i8042_mouse_irq);
-#ifndef ia64	
+	
 	trap_virtual_enable_irqs(1 << kbd_inr);
 	trap_virtual_enable_irqs(1 << mouse_inr);
-#endif	
+	
 	/*
 	 * Clear input buffer.
 	 * Number of iterations is limited to prevent infinite looping.
@@ -189,7 +187,7 @@ void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mou
 	sysinfo_set_item_val("kbd.inr", NULL, kbd_inr);
 #ifdef KBD_LEGACY
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
-#endif	
+#endif
 	sysinfo_set_item_val("mouse", NULL, true);
 	sysinfo_set_item_val("mouse.devno", NULL, mouse_devno);
 	sysinfo_set_item_val("mouse.inr", NULL, mouse_inr);
@@ -209,12 +207,13 @@ void i8042_suspend(chardev_t *d)
 
 char i8042_key_read(chardev_t *d)
 {
-	char ch;	
-
-	while(!(ch = active_read_buff_read())) {
+	char ch;
+	
+	while (!(ch = active_read_buff_read())) {
 		uint8_t x;
-		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK))
-			;
+		
+		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK));
+		
 		x = i8042_data_read();
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
@@ -231,7 +230,7 @@ char i8042_key_read(chardev_t *d)
 void i8042_poll(void)
 {
 	uint8_t x;
-
+	
 	while (((x = i8042_status_read() & i8042_BUFFER_FULL_MASK))) {
 		x = i8042_data_read();
 		if (x & KEY_RELEASE)

@@ -39,9 +39,6 @@
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/kbd.h>
-#ifndef ia64
-#include <arch/drivers/ns16550.h>
-#endif
 #include <ddi/irq.h>
 #include <ipc/irq.h>
 #include <cpu.h>
@@ -130,11 +127,9 @@ ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 	ns16550_irq.cir = cir;
 	ns16550_irq.cir_arg = cir_arg;
 	irq_register(&ns16550_irq);
-
-
+	
 	while ((ns16550_lsr_read(&ns16550) & LSR_DATA_READY)) 
 		ns16550_rbr_read(&ns16550);
-
 	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
@@ -142,22 +137,20 @@ ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
 	sysinfo_set_item_val("kbd.port", NULL, port);
-
+	
 #ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
 	/* Enable interrupts */
-    	ns16550_ier_write(&ns16550, IER_ERBFI);
+	ns16550_ier_write(&ns16550, IER_ERBFI);
 	ns16550_mcr_write(&ns16550, MCR_OUT2);
 #endif
-
-#ifdef ia64
-    	uint8_t c;
-    	// This switches rbr & ier to mode when accept baudrate constant
-    	c = ns16550_lcr_read(&ns16550);
-    	ns16550_lcr_write(&ns16550, 0x80 | c);
-    	ns16550_rbr_write(&ns16550, 0x0c);
-    	ns16550_ier_write(&ns16550, 0x00);
-    	ns16550_lcr_write(&ns16550, c);
-#endif
+	
+	uint8_t c;
+	// This switches rbr & ier to mode when accept baudrate constant
+	c = ns16550_lcr_read(&ns16550);
+	ns16550_lcr_write(&ns16550, 0x80 | c);
+	ns16550_rbr_write(&ns16550, 0x0c);
+	ns16550_ier_write(&ns16550, 0x00);
+	ns16550_lcr_write(&ns16550, c);
 	
 	ns16550_grab();
 }
@@ -185,25 +178,16 @@ char ns16550_key_read(chardev_t *d)
 
 	while(!(ch = active_read_buff_read())) {
 		uint8_t x;
-		while (!(ns16550_lsr_read(&ns16550) & LSR_DATA_READY))
-			;
+		while (!(ns16550_lsr_read(&ns16550) & LSR_DATA_READY));
+		
 		x = ns16550_rbr_read(&ns16550);
-#ifndef ia64
+		
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
 			else
 				active_read_key_pressed(x);
 		}
-#else
-		extern chardev_t kbrd;
-		if(x != 0x0d) {
-			if(x == 0x7f)
-				x = '\b';
-			 chardev_push_character(&kbrd, x);
-		}    
-#endif		
-
 	}
 	return ch;
 }
@@ -214,7 +198,7 @@ char ns16550_key_read(chardev_t *d)
  */
 void ns16550_poll(void)
 {
-#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN 
+#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
 	ipl_t ipl;
 
 	ipl = interrupts_disable();
@@ -240,22 +224,13 @@ void ns16550_poll(void)
 		uint8_t x;
 		
 		x = ns16550_rbr_read(&ns16550);
-#ifndef ia64
+		
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
 			else
 				key_pressed(x);
 		}
-#else
-		extern chardev_t kbrd;
-		if(x != 0x0d) {
-			if (x == 0x7f)
-				x = '\b';
-			chardev_push_character(&kbrd, x);
-		}    
-#endif		
-
 	}
 }
 

@@ -33,39 +33,41 @@ ifeq ($(CONFIG_ACPI),y)
 		genarch/src/acpi/acpi.c \
 		genarch/src/acpi/madt.c
 endif
+
 ifeq ($(CONFIG_PAGE_PT),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/page_pt.c \
 		genarch/src/mm/as_pt.c
 endif
+
 ifeq ($(CONFIG_PAGE_HT),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/page_ht.c \
 		genarch/src/mm/as_ht.c
 endif
+
 ifeq ($(CONFIG_ASID),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/asid.c
 endif
+
 ifeq ($(CONFIG_ASID_FIFO),y)
 	GENARCH_SOURCES += \
 		genarch/src/mm/asid_fifo.c
 endif
+
 ifeq ($(CONFIG_SOFTINT),y)
 	GENARCH_SOURCES += \
 		genarch/src/softint/division.c
 endif
 
-## Framebuffer
 ifeq ($(CONFIG_FB),y)
 	GENARCH_SOURCES += \
 		genarch/src/fb/font-8x16.c \
 		genarch/src/fb/logo-196x66.c \
 		genarch/src/fb/fb.c
-	DEFS += -DCONFIG_FB
 endif
 
-## i8042 controller
 ifeq ($(CONFIG_I8042),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbd/i8042.c \
@@ -73,27 +75,22 @@ ifeq ($(CONFIG_I8042),y)
 		genarch/src/kbd/scanc_pc.c
 endif
 
-## Sun keyboard
 ifeq ($(CONFIG_SUN_KBD),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbd/key.c \
 		genarch/src/kbd/scanc_sun.c
 endif
 
-## z8530 controller
 ifeq ($(CONFIG_Z8530),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbd/z8530.c
 endif
 
-## ns16550 controller
 ifeq ($(CONFIG_NS16550),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbd/ns16550.c
 endif
 
-
-## OpenFirmware Device Tree
 ifeq ($(CONFIG_OFW_TREE), y)
 	GENARCH_SOURCES += \
 		genarch/src/ofw/ofw_tree.c \
@@ -104,7 +101,6 @@ ifeq ($(CONFIG_OFW_TREE), y)
 		genarch/src/ofw/upa.c 
 endif
 
-## EGA
 ifeq ($(CONFIG_EGA), y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/ega/ega.c

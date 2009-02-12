@@ -40,7 +40,7 @@
 #include <genarch/kbd/scanc_pc.h>
 #endif
 
-#if (defined(sparc64))
+#if (defined(US)) || (defined(US3))
 #include <genarch/kbd/scanc_sun.h>
 #endif
 
