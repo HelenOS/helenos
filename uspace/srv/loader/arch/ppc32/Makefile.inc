@@ -27,4 +27,4 @@
 #
 
 CFLAGS += -D__32_BITS__
-ARCH_SOURCES := arch/$(ARCH)/ppc32.s
+ARCH_SOURCES := arch/$(UARCH)/ppc32.s

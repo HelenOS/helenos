@@ -54,20 +54,12 @@ DIRS = \
 	app/init \
 	app/bdsh
 
-ifeq ($(ARCH), amd64)
+ifeq ($(UARCH),amd64)
 	DIRS += srv/pci
 endif
 
-ifeq ($(ARCH), ia32)
+ifeq ($(UARCH),ia32)
 	DIRS += srv/pci
-endif
-
-ifeq ($(ARCH), mips32)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
-
-ifeq ($(ARCH), mips32eb)
-	CFLAGS += -DCONFIG_MIPS_FPU
 endif
 
 BUILDS := $(addsuffix .build,$(DIRS))
@@ -75,7 +67,7 @@ CLEANS := $(addsuffix .clean,$(DIRS))
 
 .PHONY: all $(BUILDS) $(CLEANS) clean
 
-all: ../Makefile.config $(BUILDS)
+all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
 
 clean: $(CLEANS)
 

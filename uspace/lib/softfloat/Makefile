@@ -29,28 +29,27 @@
 ## Common compiler flags
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../libc
+
 ## Setup toolchain
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS +=-Iinclude -Iarch/$(ARCH)/include/
+CFLAGS +=-Iinclude -Iarch/$(UARCH)/include/
 
 ## Sources
 #
 
-GENERIC_SOURCES =		\
-	generic/add.c		\
-	generic/common.c	\
-	generic/comparison.c	\
-	generic/conversion.c	\
-	generic/div.c		\
-	generic/mul.c		\
-	generic/other.c		\
-	generic/softfloat.c	\
+GENERIC_SOURCES = \
+	generic/add.c \
+	generic/common.c \
+	generic/comparison.c \
+	generic/conversion.c \
+	generic/div.c \
+	generic/mul.c \
+	generic/other.c \
+	generic/softfloat.c \
 	generic/sub.c
 
 ARCH_SOURCES =
@@ -68,7 +67,7 @@ clean:
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libsoftfloat.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libsoftfloat.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

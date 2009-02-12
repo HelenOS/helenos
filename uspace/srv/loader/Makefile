@@ -27,28 +27,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
--include ../../../Makefile.config
-
 ## Setup toolchain
 #
 
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
-include arch/$(ARCH)/Makefile.inc
+include arch/$(UARCH)/Makefile.inc
 
 CFLAGS += -Iinclude
 
 LIBS = $(LIBC_PREFIX)/libc.a $(SOFTINT_PREFIX)/libsoftint.a
-DEFS += -DRELEASE=\"$(RELEASE)\"
-
-ifdef REVISION
-	DEFS += "-DREVISION=\"$(REVISION)\""
-endif
-
-ifdef TIMESTAMP
-	DEFS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
-endif
 
 ## Sources
 #
@@ -69,18 +59,18 @@ all: $(OUTPUT) disasm
 -include Makefile.depend
 
 clean:
-	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm arch/$(ARCH)/_link.ld Makefile.depend
+	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm arch/$(UARCH)/_link.ld Makefile.depend
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
-$(OUTPUT): $(OBJECTS) $(LIBS) arch/$(ARCH)/_link.ld
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBS) -o $@ -Map $(OUTPUT).map
+$(OUTPUT): $(OBJECTS) $(LIBS) arch/$(UARCH)/_link.ld
+	$(LD) -T arch/$(UARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
 
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
+arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S

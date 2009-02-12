@@ -27,4 +27,4 @@
 #
 
 CFLAGS += -D__32_BITS__
-ARCH_SOURCES := arch/$(ARCH)/arm32.s
+ARCH_SOURCES := arch/$(UARCH)/arm32.s

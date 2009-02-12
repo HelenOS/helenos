@@ -27,4 +27,4 @@
 #
 
 CFLAGS += -D__64_BITS__
-ARCH_SOURCES := arch/$(ARCH)/sparc64.s
+ARCH_SOURCES := arch/$(UARCH)/sparc64.s

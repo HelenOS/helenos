@@ -29,19 +29,22 @@
 ## Common compiler flags
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = $(shell pwd)
 SOFTINT_PREFIX = ../softint
+
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 
 ## Setup toolchain
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
+
 ## Sources
 #
-
 
 GENERIC_SOURCES = \
 	generic/libc.c \
@@ -87,8 +90,8 @@ GENERIC_SOURCES = \
 	generic/vfs/canonify.c
 
 ARCH_SOURCES += \
-	arch/$(ARCH)/src/entry.s \
-	arch/$(ARCH)/src/thread_entry.s
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
@@ -96,26 +99,26 @@ OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
 
 .PHONY: all clean depend kerninc
 
-all: kerninc libc.a arch/$(ARCH)/_link.ld
+all: kerninc libc.a arch/$(UARCH)/_link.ld
 
 kerninc:
 	ln -sfn ../../../../kernel/generic/include include/kernel
 	ln -sfn kernel/arch include/arch
-	ln -sfn ../arch/$(ARCH)/include include/libarch
+	ln -sfn ../arch/$(UARCH)/include include/libarch
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch include/libarch libc.a arch/$(ARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(ARCH)/ malloc -name '*.o' -follow -exec rm \{\} \;
+	-rm -f include/kernel include/arch include/libarch libc.a arch/$(UARCH)/_link.ld Makefile.depend
+	find generic/ arch/$(UARCH)/ malloc -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(LIBS) $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
+arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S

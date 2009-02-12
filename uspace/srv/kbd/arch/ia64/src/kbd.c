@@ -114,18 +114,6 @@ extern int lkbd_arch_init(void);
 
 
 
-
-irq_cmd_t ski_cmds[1] = {
-	{ CMD_IA64_GETCHAR, 0, 0, 2 }
-};
-
-irq_code_t ski_kbd = {
-	1,
-	ski_cmds
-};
-
-
-
 irq_cmd_t ns16550_cmds[1] = {
 	{ CMD_PORT_READ_1, 0, 0, 2 },
 };
@@ -144,15 +132,15 @@ int kbd_arch_init(void)
 {
 	if (sysinfo_value("kbd")) {
 		kbd_type=sysinfo_value("kbd.type");
-		if(kbd_type==KBD_SKI) ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ski_kbd);
-		if(kbd_type==KBD_LEGACY) return lkbd_arch_init();
-		if(kbd_type==KBD_NS16550) {
-			ns16550_kbd.cmds[0].addr= (void *)  (sysinfo_value("kbd.port")+RBR_REG);
+		if (kbd_type == KBD_LEGACY)
+			return lkbd_arch_init();
+		if (kbd_type == KBD_NS16550) {
+			ns16550_kbd.cmds[0].addr = (void *) (sysinfo_value("kbd.port") + RBR_REG);
 			ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ns16550_kbd);
-			iospace_enable(task_get_id(),ns16550_port=sysinfo_value("kbd.port"),8);
-		}	
+			iospace_enable(task_get_id(), ns16550_port = sysinfo_value("kbd.port"), 8);
+		}
 		return 0;
-	}	
+	}
 	return 1;
 }
 
@@ -170,9 +158,9 @@ int kbd_ns16550_process(keybuffer_t *keybuffer, ipc_call_t *call)
 {
 	static unsigned long buf = 0;
 	static int count = 0, esc_count=0;	
-
+	
 	int scan_code = IPC_GET_ARG2(*call);
-
+	
 	if (scan_code == 0x1b) {
 		esc_count++;
 		if (esc_count == 3) {
@@ -181,10 +169,12 @@ int kbd_ns16550_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	} else {
 		esc_count = 0;
 	}
-
-	if(scan_code==0x0d) return 1;	//Delete CR
-	if(scan_code==0x7f) scan_code='\b';	//Convert backspace
-
+	
+	if (scan_code == 0x0d)
+		return 1;        /* Delete CR */
+	if (scan_code == 0x7f)
+		scan_code='\b';  /* Convert backspace */
+	
 	if(scan_code == 0x7e) {
 		switch (buf) {
 		case NSKEY_F6:
@@ -308,12 +298,6 @@ int kbd_ns16550_process(keybuffer_t *keybuffer, ipc_call_t *call)
 	return 1;
 }
 
-
-
-
-
-
-
 int kbd_ski_process(keybuffer_t *keybuffer, ipc_call_t *call) 
 {
 	static unsigned long long buf = 0;
@@ -393,15 +377,16 @@ int kbd_ski_process(keybuffer_t *keybuffer, ipc_call_t *call)
 int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call) 
 {
 	printf("KBD Key pressed: %x(%c)\n",IPC_GET_ARG2(*call),IPC_GET_ARG2(*call));
-	if(kbd_type==KBD_SKI) return kbd_ski_process(keybuffer,call);
-	if(kbd_type==KBD_NS16550) return kbd_ns16550_process(keybuffer,call);
-	if(kbd_type==KBD_LEGACY) return lkbd_arch_process(keybuffer,call);
-
-	
+	if (kbd_type == KBD_SKI)
+		return kbd_ski_process(keybuffer, call);
+	if (kbd_type == KBD_NS16550)
+		return kbd_ns16550_process(keybuffer,call);
+	if (kbd_type == KBD_LEGACY)
+		return lkbd_arch_process(keybuffer,call);
 }
 
 
 
 /**
  * @}
- */ 
+ */

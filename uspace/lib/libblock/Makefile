@@ -30,9 +30,8 @@
 ## Common compiler flags
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../libc
+
 ## Setup toolchain
 #
 
@@ -59,7 +58,7 @@ clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
 
 libblock.a: depend $(OBJECTS)
 	$(AR) rc libblock.a $(OBJECTS)

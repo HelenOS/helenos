@@ -29,10 +29,9 @@
 ## Setup toolchain
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I../libipc/include
@@ -47,41 +46,43 @@ SOURCES = \
 	main.c \
 	ppm.c
 
-ifneq ($(ARCH), ia64)
+ifneq ($(UARCH),ia64)
 	SOURCES += fb.c \
 		font-8x16.c
 	CFLAGS += -DFB_ENABLED
 endif
-ifeq ($(ARCH), ia32)
+
+ifeq ($(UARCH),ia32)
 	SOURCES += ega.c
 	CFLAGS += -DEGA_ENABLED
 endif
-ifeq ($(ARCH), ia64)
+
+ifeq ($(UARCH),ia64)
 	SOURCES += ega.c \
-		   ski.c \
-		   serial_console.c
+		ski.c \
+		serial_console.c
 	CFLAGS += -DSKI_ENABLED
 	CFLAGS += -DEGA_ENABLED
 endif
-ifeq ($(ARCH), amd64)
+
+ifeq ($(UARCH),amd64)
 	SOURCES += ega.c
 	CFLAGS += -DEGA_ENABLED
 endif
-ifeq ($(ARCH), arm32)
-	CFLAGS += -DFB_INVERT_ENDIAN
-endif
-ifeq ($(ARCH), mips32)
+
+ifeq ($(UARCH),mips32)
 	SOURCES += msim.c \
-                   serial_console.c
-	CFLAGS += -DMSIM_ENABLED -DFB_INVERT_ENDIAN
+		serial_console.c
+	CFLAGS += -DMSIM_ENABLED
 endif
-ifeq ($(ARCH), sparc64)
+
+ifeq ($(UARCH),sparc64)
 	SOURCES += sgcn.c \
-	           serial_console.c
+		serial_console.c
 	CFLAGS += -DSGCN_ENABLED
 endif
 
-CFLAGS += -D$(ARCH)
+CFLAGS += -D$(UARCH)
 
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
@@ -99,7 +100,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm: $(OUTPUT).disasm
 

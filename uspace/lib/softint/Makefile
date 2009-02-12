@@ -29,9 +29,8 @@
 ## Common compiler flags
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../libc
+
 ## Setup toolchain
 #
 
@@ -60,7 +59,7 @@ clean:
 	find generic/ -name '*.o' -follow -exec rm \{\} \;
 
 depend:
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEPEMD_DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libsoftint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libsoftint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)

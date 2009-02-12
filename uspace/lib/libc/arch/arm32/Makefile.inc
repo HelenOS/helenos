@@ -30,20 +30,16 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
 CFLAGS += -ffixed-r9 -mtp=soft 
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
-AFLAGS += 
+AFLAGS +=
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c \
-		arch/$(ARCH)/src/eabi.S
+ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/eabi.S
 
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm

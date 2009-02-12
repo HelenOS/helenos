@@ -26,15 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-DEFS = -DARCH=$(ARCH)
-CFLAGS = -fno-builtin -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -O3 -nostdlib -nostdinc -I$(LIBC_PREFIX)/include -pipe -g
+CFLAGS = -fno-builtin -Wall -Werror-implicit-function-declaration -Wmissing-prototypes -O3 -nostdlib -nostdinc -imacros $(LIBC_PREFIX)/../../../config.h -I$(LIBC_PREFIX)/include -pipe -g
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 
 ## Setup platform configuration
 #
 
--include $(LIBC_PREFIX)/arch/$(ARCH)/Makefile.inc
+-include $(LIBC_PREFIX)/../../../Makefile.config
+-include $(LIBC_PREFIX)/../../../config.defs
+-include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
 
 ## Simple detection of the host system
 #
@@ -58,6 +59,7 @@ ifeq ($(COMPILER),gcc_native)
 	AR = $(BINUTILS_PREFIX)ar
 	OBJCOPY = $(BINUTILS_PREFIX)objcopy
 	OBJDUMP = $(BINUTILS_PREFIX)objdump
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -67,6 +69,7 @@ ifeq ($(COMPILER),icc_native)
 	AR = ar
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
@@ -76,5 +79,5 @@ ifeq ($(COMPILER),gcc_cross)
 	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
 	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
-

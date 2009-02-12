@@ -29,16 +29,12 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 TARGET = ppc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c
+ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c
 
 CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32

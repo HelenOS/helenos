@@ -29,10 +29,9 @@
 ## Setup toolchain
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 
@@ -62,7 +61,7 @@ depend:
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
 	$(MAKE) -C libpci
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm:
 	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm

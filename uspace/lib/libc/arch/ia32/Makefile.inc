@@ -29,17 +29,13 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686/bin
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c \
-		arch/$(ARCH)/src/setjmp.S 
+ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/setjmp.S
 
 LFLAGS += -N
 

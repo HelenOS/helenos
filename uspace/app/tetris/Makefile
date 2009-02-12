@@ -1,7 +1,6 @@
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 LIBS = $(LIBC_PREFIX)/libc.a
@@ -20,7 +19,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend *.o

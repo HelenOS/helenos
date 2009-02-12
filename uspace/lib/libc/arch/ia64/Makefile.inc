@@ -29,20 +29,16 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
 CFLAGS += -fno-unwind-tables -DMALLOC_ALIGNMENT_16
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS += 
 
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.S \
-		arch/$(ARCH)/src/fibril.S \
-		arch/$(ARCH)/src/tls.c\
-		arch/$(ARCH)/src/ddi.c
+ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/ddi.c
 
 BFD_NAME = elf64-ia64-little
 BFD_ARCH = ia64-elf64

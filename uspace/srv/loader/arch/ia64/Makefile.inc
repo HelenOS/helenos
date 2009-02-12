@@ -27,5 +27,5 @@
 #
 
 CFLAGS += -D__64_BITS__
-ARCH_SOURCES := arch/$(ARCH)/ia64.s
+ARCH_SOURCES := arch/$(UARCH)/ia64.s
 AFLAGS += -xexplicit

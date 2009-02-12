@@ -29,23 +29,13 @@
 ## Toolchain configuration
 #
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
 CFLAGS += -mips3
 
--include ../../../Makefile.config
-ifeq ($(CONFIG_MIPS_FPU),y)
-	CFLAGS += -DCONFIG_MIPS_FPU
-endif
-
-ARCH_SOURCES += arch/$(ARCH)/src/syscall.c \
-	arch/$(ARCH)/src/fibril.S \
-	arch/$(ARCH)/src/tls.c
-
+ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c
 
 BFD_ARCH = mips
 BFD_NAME = elf32-tradlittlemips

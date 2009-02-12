@@ -29,12 +29,11 @@
 ## Setup toolchain
 #
 
--include ../../../../Makefile.config
-
 LIBC_PREFIX = ../../../lib/libc
 LIBFS_PREFIX = ../../../lib/libfs
 LIBBLOCK_PREFIX = ../../../lib/libblock
 SOFTINT_PREFIX = ../../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -I $(LIBFS_PREFIX) -I $(LIBBLOCK_PREFIX)
@@ -70,7 +69,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm: $(OUTPUT).disasm
 

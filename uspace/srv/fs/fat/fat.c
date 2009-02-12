@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 	int vfs_phone;
 	int rc;
 
-	printf("FAT: HelenOS FAT file system server.\n");
+	printf("fat: HelenOS FAT file system server.\n");
 
 	rc = fat_idx_init();
 	if (rc != EOK)

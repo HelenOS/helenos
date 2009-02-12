@@ -29,10 +29,9 @@
 ## Setup toolchain
 #
 
--include ../../../Makefile.config
-
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -Iinclude -I../libadt/include
@@ -48,50 +47,50 @@ GENERIC_SOURCES = \
 	generic/key_buffer.c
 
 ARCH_SOURCES = \
-	arch/$(ARCH)/src/kbd.c
+	arch/$(UARCH)/src/kbd.c
 
-ifeq ($(ARCH), ia32)
+ifeq ($(UARCH), ia32)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/mouse.c \
-		arch/$(ARCH)/src/scanc.c
+		arch/$(UARCH)/src/mouse.c \
+		arch/$(UARCH)/src/scanc.c
 	GENARCH_SOURCES = \
 		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
-ifeq ($(ARCH), ia64)
+ifeq ($(UARCH), ia64)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/mouse.c \
-		arch/$(ARCH)/src/scanc.c \
-		arch/$(ARCH)/src/lkbd.c
+		arch/$(UARCH)/src/mouse.c \
+		arch/$(UARCH)/src/scanc.c \
+		arch/$(UARCH)/src/lkbd.c
 	GENARCH_SOURCES = \
 		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
-ifeq ($(ARCH), amd64)
+ifeq ($(UARCH), amd64)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/mouse.c \
-		arch/$(ARCH)/src/scanc.c
+		arch/$(UARCH)/src/mouse.c \
+		arch/$(UARCH)/src/scanc.c
 	GENARCH_SOURCES = \
 		genarch/src/kbd.c
 	CFLAGS += -DMOUSE_ENABLED
 endif
-ifeq ($(ARCH), sparc64)
+ifeq ($(UARCH), sparc64)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/scanc.c \
-		arch/$(ARCH)/src/sgcn.c
+		arch/$(UARCH)/src/scanc.c \
+		arch/$(UARCH)/src/sgcn.c
 	GENARCH_SOURCES = \
 		genarch/src/kbd.c \
 		genarch/src/nofb.c
 endif
-ifeq ($(ARCH), arm32)
+ifeq ($(UARCH), arm32)
 	ARCH_SOURCES += \
-		arch/$(ARCH)/src/kbd_gxemul.c
+		arch/$(UARCH)/src/kbd_gxemul.c
 endif
-ifeq ($(ARCH), mips32)
+ifeq ($(UARCH), mips32)
 	GENARCH_SOURCES += \
 	    genarch/src/nofb.c
 endif
-ifeq ($(ARCH), mips32eb)
+ifeq ($(UARCH), mips32eb)
 	GENARCH_SOURCES += \
 	    genarch/src/nofb.c
 endif
@@ -109,7 +108,7 @@ all: links $(OUTPUT) $(OUTPUT).disasm
 -include Makefile.depend
 
 links:
-	ln -sfn ../arch/$(ARCH)/include include/arch
+	ln -sfn ../arch/$(UARCH)/include include/arch
 	ln -sfn ../genarch/include include/genarch
 
 clean:
@@ -119,7 +118,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(ARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 disasm: $(OUTPUT).disasm
 

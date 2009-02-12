@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup init
+/** @addtogroup libc
  * @{
- */ 
-/**
- * @file
+ */
+/** @file
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <macros.h>
-#include "init.h"
-#include "version.h"
+#ifndef LIBC_MACROS_H_
+#define LIBC_MACROS_H_
 
-char *release = STRING(RELEASE);
+#define SIZE2KB(size) ((size) >> 10)
+#define SIZE2MB(size) ((size) >> 20)
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+#define KB2SIZE(kb) ((kb) << 10)
+#define MB2SIZE(mb) ((mb) << 20)
+
+#define STRING(arg) STRING_ARG(arg)
+#define STRING_ARG(arg) #arg
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-void info_print(void)
-{
-	printf(NAME ": HelenOS init\n");
-}
-
-/** Print version information. */
-void version_print(void)
-{
-	printf("HelenOS init\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
-}
 
 /** @}
  */

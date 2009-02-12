@@ -1,8 +1,8 @@
-/* 
+/*
  * The only difference from _link.ld.in for regular statically-linked apps
  * is the base address.
  */
-STARTUP(LIBC_PREFIX/arch/ARCH/src/entry.o)
+STARTUP(LIBC_PREFIX/arch/UARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {

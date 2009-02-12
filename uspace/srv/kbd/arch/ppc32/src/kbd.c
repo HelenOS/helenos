@@ -40,15 +40,6 @@
 #include <kbd.h>
 #include <keys.h>
 
-irq_cmd_t cuda_cmds[1] = {
-	{ CMD_PPC32_GETCHAR, 0, 0, 2 }
-};
-
-irq_code_t cuda_kbd = {
-	1,
-	cuda_cmds
-};
-
 
 #define SPECIAL		255
 #define FUNCTION_KEYS 0x100
@@ -186,7 +177,7 @@ int kbd_arch_init(void)
 	if (!sysinfo_value("kbd"))
 		return 0;
 	
-	return ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &cuda_kbd);
+	return ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, 0);
 }
 
 
