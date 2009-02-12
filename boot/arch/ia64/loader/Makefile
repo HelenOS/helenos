@@ -27,7 +27,7 @@
 #
 
 include ../../../../version
-include ../../../../Makefile.config
+-include ../../../../Makefile.config
 
 ## Toolchain configuration
 #
@@ -47,7 +47,7 @@ ifeq ($(COMPILER),gcc_native)
 	LD = ld
 	OBJCOPY = objcopy
 	OBJDUMP = objdump
-	GEFI_PREXIX = 
+	GEFI_PREFIX =
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -68,15 +68,7 @@ ifeq ($(COMPILER),gcc_cross)
 endif
 
 #-mno-pic means do not use gp + imm22 to address data
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -pipe
-
-ifdef REVISION
-	CFLAGS += "-DREVISION=\"$(REVISION)\""
-endif
-
-ifdef TIMESTAMP
-	CFLAGS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
-endif
+CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -I../../../genarch -I../../../../kernel/generic/include -imacros ../../../../config.h -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -pipe
 
 SOURCES = \
 	main.c \
@@ -130,7 +122,6 @@ all: hello.efi disasm
 hello.efi: image.boot
 	make -C gefi/HelenOS PREFIX=$(GEFI_PREFIX)
 	cp gefi/HelenOS/hello.efi ../../../../
-#	cp gefi/HelenOS/hello.efi /boot/efi/
 	cp gefi/HelenOS/image.bin ../../../../
 
 image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)

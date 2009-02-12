@@ -32,6 +32,7 @@
 #include "_components.h"
 #include <ofw.h>
 #include <align.h>
+#include <macros.h>
 
 #define HEAP_GAP 1024000
 
@@ -72,16 +73,16 @@ static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top
 	}
 }
 
-char *release = RELEASE;
+char *release = STRING(RELEASE);
 
 #ifdef REVISION
-	char *revision = ", revision " REVISION;
+	char *revision = ", revision " STRING(REVISION);
 #else
 	char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " TIMESTAMP;
+	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
 	char *timestamp = "";
 #endif

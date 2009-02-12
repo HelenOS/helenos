@@ -27,30 +27,19 @@
 #
 INSTALLROOT=/usr/local
 
-TOPDIR    := $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
+TOPDIR    := $(shell pwd)
 
-ARCH	   = $(shell uname -m | sed s,i[3456789]86,ia32,)
-INCDIR	   = -I. -I$(CDIR)/inc -I$(CDIR)/inc/$(ARCH) -I$(CDIR)/inc/protocol 
+ARCH       = ia64
+INCDIR     = -I. -I$(CDIR)/inc -I$(CDIR)/inc/$(ARCH) -I$(CDIR)/inc/protocol 
 CPPFLAGS   = -DCONFIG_$(ARCH)
-CFLAGS	   = -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants
-LDFLAGS	   = -nostdlib
-INSTALL	   = install
+CFLAGS     = -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants -frename-registers -mfixed-range=f32-f127
+LDFLAGS    = -nostdlib
+INSTALL    = install
 
-GCC_VERSION=$(shell $(CROSS_COMPILE)$(CC) -v 2>&1 | fgrep 'gcc version' | cut -f3 -d' ' | cut -f1 -d'.')
-
-#  prefix	=
-CC		= $(prefix)gcc
-AS		= $(prefix)as
-LD		= $(prefix)ld
-AR		= $(prefix)ar
-RANLIB	= $(prefix)ranlib
-OBJCOPY	= $(prefix)objcopy
-OBJDUMP	= $(prefix)objdump
-
-
-ifneq ($(GCC_VERSION),2)
-        CFLAGS += -frename-registers
-endif
-
-CFLAGS += -mfixed-range=f32-f127
-
+CC         = $(prefix)gcc
+AS         = $(prefix)as
+LD         = $(prefix)ld
+AR         = $(prefix)ar
+RANLIB     = $(prefix)ranlib
+OBJCOPY    = $(prefix)objcopy
+OBJDUMP    = $(prefix)objdump

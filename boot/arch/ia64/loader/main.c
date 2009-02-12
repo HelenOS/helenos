@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2006 Jakub Jermar 
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,12 @@
 #include "_components.h"
 #include <align.h>
 #include <balloc.h>
+#include <macros.h>
 
 extern bootinfo_t binfo;
 component_t components[COMPONENTS];
 
-char *release = RELEASE;
+char *release = STRING(RELEASE);
 
 void write(const char *str, const int len)
 {
@@ -53,13 +54,13 @@ void write(const char *str, const int len)
 #define DEFAULT_SYS_FREQ		100000000 /* 100MHz */
 
 #ifdef REVISION
-	char *revision = ", revision " REVISION;
+	char *revision = ", revision " STRING(REVISION);
 #else
 	char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " TIMESTAMP;
+	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
 	char *timestamp = "";
 #endif

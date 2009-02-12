@@ -32,7 +32,7 @@
  * @brief	Architecture dependent parts of OpenFirmware interface.
  */
 
-#include <ofwarch.h>  
+#include <ofwarch.h>
 #include <ofw.h>
 #include <printf.h>
 #include <string.h>

@@ -35,10 +35,11 @@
  */ 
 
 
-#include "main.h" 
+#include "main.h"
 #include "asm.h"
 #include "_components.h"
 #include <printf.h>
+#include <macros.h>
 
 #include "mm.h"
 
@@ -46,16 +47,16 @@
 #define KERNEL_VIRTUAL_ADDRESS 0x80200000
 
 
-char *release = RELEASE;
+char *release = STRING(RELEASE);
 
 #ifdef REVISION
-	char *revision = ", revision " REVISION;
+	char *revision = ", revision " STRING(REVISION);
 #else
 	char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " TIMESTAMP;
+	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
 	char *timestamp = "";
 #endif

@@ -36,22 +36,23 @@
 #include <ofw_tree.h>
 #include "ofwarch.h"
 #include <align.h>
+#include <macros.h>
 #include <string.h>
 
 bootinfo_t bootinfo;
 
 component_t components[COMPONENTS];
 
-char *release = RELEASE;
+char *release = STRING(RELEASE);
 
 #ifdef REVISION
-	char *revision = ", revision " REVISION;
+	char *revision = ", revision " STRING(REVISION);
 #else
 	char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " TIMESTAMP;
+	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
 	char *timestamp = "";
 #endif

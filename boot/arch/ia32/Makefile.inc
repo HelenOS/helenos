@@ -56,18 +56,18 @@ RD_APPS = \
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
-	mkdir -p arch/$(ARCH)/iso/boot/grub
-	cp arch/$(ARCH)/grub/stage2_eltorito arch/$(ARCH)/iso/boot/grub/
+$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
+	mkdir -p arch/$(BARCH)/iso/boot/grub
+	cp arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/iso/boot/grub/
 ifneq ($(RDFMT),tmpfs)
-	cat arch/$(ARCH)/grub/menu.lst | grep -v "tmpfs" >arch/$(ARCH)/iso/boot/grub/menu.lst
+	cat arch/$(BARCH)/grub/menu.lst | grep -v "tmpfs" >arch/$(BARCH)/iso/boot/grub/menu.lst
 endif
 ifneq ($(RDFMT),fat)
-	cat arch/$(ARCH)/grub/menu.lst | grep -v "fat" >arch/$(ARCH)/iso/boot/grub/menu.lst
+	cat arch/$(BARCH)/grub/menu.lst | grep -v "fat" >arch/$(BARCH)/iso/boot/grub/menu.lst
 endif
-	cp $(KERNELDIR)/kernel.bin arch/$(ARCH)/iso/boot/
+	cp $(KERNELDIR)/kernel.bin arch/$(BARCH)/iso/boot/
 	for task in $(INIT_TASKS) ; do \
-		cp $$task arch/$(ARCH)/iso/boot/ ; \
+		cp $$task arch/$(BARCH)/iso/boot/ ; \
 	done
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
@@ -76,14 +76,14 @@ endif
 		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(BARCH)/iso/boot/initrd.fs
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ arch/$(ARCH)/iso/boot/initrd.fs
+	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ arch/$(BARCH)/iso/boot/initrd.fs
 endif
-	$(BASE)/tools/mkhord.py 4096 arch/$(ARCH)/iso/boot/initrd.fs arch/$(ARCH)/iso/boot/initrd.img
-	rm arch/$(ARCH)/iso/boot/initrd.fs
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(ARCH)/iso/
+	$(BASE)/tools/mkhord.py 4096 arch/$(BARCH)/iso/boot/initrd.fs arch/$(BARCH)/iso/boot/initrd.img
+	rm arch/$(BARCH)/iso/boot/initrd.fs
+	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(BARCH)/iso/
 
 clean:
 	-for file in $(RD_SRVS) ; do \
@@ -92,5 +92,5 @@ clean:
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -fr arch/$(ARCH)/iso
+	-rm -fr arch/$(BARCH)/iso
 	-rm -f $(BASE)/image.iso

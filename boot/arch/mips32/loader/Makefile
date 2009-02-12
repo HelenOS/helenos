@@ -27,7 +27,7 @@
 #
 
 include ../../../../version
-include ../../../../Makefile.config
+-include ../../../../Makefile.config
 
 ## Toolchain configuration
 #
@@ -39,9 +39,11 @@ endif
 ifeq ($(IMAGE),binary)
 	LD_IN = binary
 endif
+
 ifeq ($(IMAGE),ecoff)
 	LD_IN = ecoff
 endif
+
 BFD_NAME = elf32-tradlittlemips
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
@@ -63,15 +65,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3 -pipe
-
-ifdef REVISION
-	CFLAGS += "-DREVISION=\"$(REVISION)\""
-endif
-
-ifdef TIMESTAMP
-	CFLAGS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
-endif
+CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -imacros ../../../../config.h -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3 -pipe
 
 SOURCES = \
 	main.c \

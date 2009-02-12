@@ -27,7 +27,7 @@
 #
 
 include ../../../../version
-include ../../../../Makefile.config
+-include ../../../../Makefile.config
 
 ## Toolchain configuration
 #
@@ -57,19 +57,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
-CFLAGS = -DRELEASE=\"$(RELEASE)\" -I. -I../../../generic -I../../.. -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -pipe
-
-ifdef REVISION
-	CFLAGS += "-DREVISION=\"$(REVISION)\""
-endif
-
-ifdef TIMESTAMP
-	CFLAGS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
-endif
-
-ifdef MACHINE
-	CFLAGS += "-DMACHINE=$(MACHINE)"
-endif
+CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -I../../.. -imacros ../../../../config.h -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -pipe
 
 SOURCES = \
 	main.c \

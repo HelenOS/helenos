@@ -25,7 +25,7 @@ include Make.defaults
 
 SUBDIRS = lib gnuefi inc
 
-all:	check_gcc $(SUBDIRS)
+all: $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@
@@ -38,14 +38,5 @@ install:
 	@for d in $(SUBDIRS); do $(MAKE) -C $$d install; done
 
 .PHONY:	$(SUBDIRS) clean depend
-
-#
-# on both platforms you must use gcc 3.0 or higher 
-#
-check_gcc:
-ifeq ($(GCC_VERSION),2)
-	@echo "you need to use a version of gcc >= 3.0, you are using `$(CC) --version`"
-	@exit 1
-endif
 
 include Make.rules

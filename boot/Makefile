@@ -30,6 +30,7 @@
 #
 
 -include ../Makefile.config
+-include ../config.defs
 
 ## Paths
 #
@@ -38,23 +39,11 @@ BASE = ..
 KERNELDIR = $(BASE)/kernel
 USPACEDIR = $(BASE)/uspace
 
-ifeq ($(CONFIG_DEBUG),y)
-	DEFS += -DCONFIG_DEBUG
-endif
-
-ifeq ($(CONFIG_BAT),y)
-	DEFS += -DCONFIG_BAT
-endif
-
-ifeq ($(CONFIG_AP),y)
-	DEFS += -DCONFIG_AP
-endif
-
 .PHONY: all build clean generic_clean
 
-all: ../Makefile.config build
+all: ../Makefile.config ../config.h ../config.defs build
 
--include arch/$(ARCH)/Makefile.inc
+-include arch/$(BARCH)/Makefile.inc
 
 generic_clean:
 	-rm generic/*.o genarch/*.o

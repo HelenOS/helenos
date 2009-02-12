@@ -28,42 +28,38 @@
 
 TMP = distroot
 
-ifeq ($(CONFIG_AOUT_ISOFS_B),n)
-	SILO_PACKAGE=silo.patched.tar.gz
-endif
-
 ifeq ($(CONFIG_AOUT_ISOFS_B),y)
-	SILO_PACKAGE=silo.tar.gz
+	SILO_PACKAGE = silo.tar.gz
+else
+	SILO_PACKAGE = silo.patched.tar.gz
 endif
 
 build: $(BASE)/image.iso
 
-ifeq ($(CONFIG_RD_EXTERNAL),y)
-SILO_CONF_FILTER = cat
-else
-SILO_CONF_FILTER = grep -v initrd
-endif
-
-$(BASE)/image.iso: depend arch/$(ARCH)/loader/image.boot
+$(BASE)/image.iso: depend arch/$(BARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/HelenOS
-	cat arch/$(ARCH)/silo/$(SILO_PACKAGE) | (cd $(TMP)/boot; tar xvfz -)
-	cp arch/$(ARCH)/silo/README arch/$(ARCH)/silo/COPYING $(TMP)/boot
-	cat arch/$(ARCH)/silo/silo.conf | $(SILO_CONF_FILTER) >$(TMP)/boot/silo.conf
-	cp arch/$(ARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
+	cat arch/$(BARCH)/silo/$(SILO_PACKAGE) | (cd $(TMP)/boot; tar xvfz -)
+	cp arch/$(BARCH)/silo/README arch/$(BARCH)/silo/COPYING $(TMP)/boot
+ifeq ($(CONFIG_RD_EXTERNAL),y)
+	cp arch/$(BARCH)/silo/silo.conf $(TMP)/boot/silo.conf
+else
+	cat arch/$(BARCH)/silo/silo.conf | grep -v initrd > $(TMP)/boot/silo.conf
+endif
+	cp arch/$(BARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
 	gzip -f $(TMP)/HelenOS/image.boot
 ifeq ($(CONFIG_RD_EXTERNAL),y)
-	cp arch/$(ARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
+	cp arch/$(BARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
 endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $(BASE)/image.iso $(TMP)/
 
 depend:
-	-rm arch/$(ARCH)/loader/image.boot
+	-rm arch/$(BARCH)/loader/image.boot
 
-arch/$(ARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(ARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) "DEFS=$(DEFS)"
+arch/$(BARCH)/loader/image.boot:
+	$(MAKE) -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 
 clean: generic_clean
-	$(MAKE) -C arch/$(ARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	$(MAKE) -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 	-rm -fr $(TMP)
 	-rm -f $(BASE)/image.iso
