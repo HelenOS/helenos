@@ -57,6 +57,11 @@ typedef uint32_t ipl_t;
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
+typedef uintptr_t ioport_t;
+
+typedef struct {
+} fncptr_t;
+
 /**< Formats for uintptr_t, size_t, count_t and index_t */
 #define PRIp "x"
 #define PRIs "u"

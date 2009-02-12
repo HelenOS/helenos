@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -58,6 +58,9 @@ typedef uint64_t unative_t;
 typedef int64_t native_t;
 
 typedef uintptr_t ioport_t;
+
+typedef struct {
+} fncptr_t;
 
 /**< Formats for uintptr_t, size_t, count_t and index_t */
 #define PRIp "llx"
