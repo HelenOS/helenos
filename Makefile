@@ -31,103 +31,27 @@
 
 -include Makefile.config
 
-## Setup platform configuration
-#
-
-ifeq ($(PLATFORM),amd64)
-	KARCH = amd64
-	UARCH = amd64
-	BARCH = amd64
-endif
-
-ifeq ($(PLATFORM),arm32)
-	KARCH = arm32
-	UARCH = arm32
-	BARCH = arm32
-endif
-
-ifeq ($(PLATFORM),ia32)
-	KARCH = ia32
-	UARCH = ia32
-	BARCH = ia32
-endif
-
-ifeq ($(PLATFORM),ia64)
-	KARCH = ia64
-	UARCH = ia64
-	BARCH = ia64
-endif
-
-ifeq ($(PLATFORM),mips32)
-	KARCH = mips32
-	BARCH = mips32
-	
-	ifeq ($(MACHINE),msim)
-		UARCH = mips32
-		IMAGE = binary
-	endif
-	
-	ifeq ($(MACHINE),simics)
-		UARCH = mips32
-		IMAGE = ecoff
-	endif
-	
-	ifeq ($(MACHINE),bgxemul)
-		UARCH = mips32eb
-		IMAGE = ecoff
-	endif
-	
-	ifeq ($(MACHINE),lgxemul)
-		UARCH = mips32
-		IMAGE = ecoff
-	endif
-endif
-
-ifeq ($(PLATFORM),ppc32)
-	KARCH = ppc32
-	UARCH = ppc32
-	BARCH = ppc32
-endif
-
-ifeq ($(PLATFORM),ppc64)
-	KARCH = ppc64
-	UARCH = ppc64
-	BARCH = ppc64
-endif
-
-ifeq ($(PLATFORM),sparc64)
-	KARCH = sparc64
-	UARCH = sparc64
-	BARCH = sparc64
-endif
-
-ifeq ($(PLATFORM),ia32xen)
-	KARCH = ia32xen
-	UARCH = ia32
-	BARCH = ia32xen
-endif
-
 .PHONY: all build config distclean clean cscope
 
 all:
 	tools/config.py HelenOS.config default
 	$(MAKE) -C . build
 
-build: Makefile.config
-	$(MAKE) -C kernel ARCH=$(KARCH)
-	$(MAKE) -C uspace ARCH=$(UARCH)
-	$(MAKE) -C boot ARCH=$(BARCH) IMAGE=$(IMAGE)
+build: Makefile.config config.h config.defs
+	$(MAKE) -C kernel
+	$(MAKE) -C uspace
+	$(MAKE) -C boot
 
 config: HelenOS.config
 	tools/config.py HelenOS.config
 
 distclean: clean
-	rm -f Makefile.config tools/*.pyc
+	rm -f Makefile.config config.h config.defs tools/*.pyc
 
 clean:
-	-$(MAKE) -C kernel clean ARCH=$(KARCH)
-	-$(MAKE) -C uspace clean ARCH=$(UARCH)
-	-$(MAKE) -C boot clean ARCH=$(BARCH) IMAGE=$(IMAGE)
+	-$(MAKE) -C kernel clean
+	-$(MAKE) -C uspace clean
+	-$(MAKE) -C boot clean
 
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' -print > srclist

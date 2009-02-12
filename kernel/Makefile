@@ -32,21 +32,25 @@
 
 include ../version
 -include ../Makefile.config
+-include ../config.defs
 
 INCLUDES = generic/include
 OPTIMIZATION = 3
 
+ifndef CROSS_PREFIX
+	CROSS_PREFIX = /usr/local
+endif
+
 ## Common compiler flags
 #
 
-DEFS = -D$(ARCH) -DARCH=\"$(ARCH)\" -DRELEASE=\"$(RELEASE)\" "-DNAME=\"$(NAME)\"" \
-	-DKERNEL
+DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)"
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
+GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
 	-nostdlib -nostdinc -pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) \
+ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fno-builtin -Wall -Wmissing-prototypes -Werror \
 	-nostdlib -nostdinc \
 	-wd170
@@ -58,15 +62,7 @@ SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 LFLAGS = -M
 AFLAGS =
 
-ifdef REVISION
-	DEFS += "-DREVISION=\"$(REVISION)\""
-endif
-
-ifdef TIMESTAMP
-	DEFS += "-DTIMESTAMP=\"$(TIMESTAMP)\""
-endif
-
--include arch/$(ARCH)/Makefile.inc
+-include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
 
 ## The at-sign
@@ -83,92 +79,6 @@ ATSIGN ?= @
 ## Cross-platform assembly to start a symtab.data section
 #
 SYMTAB_SECTION=".section symtab.data, \"a\", $(ATSIGN)progbits;"
-
-## Setup kernel configuration
-#
-ifeq ($(CONFIG_DEBUG),y)
-	DEFS += -DCONFIG_DEBUG
-endif
-
-ifeq ($(CONFIG_LOG),y)
-	DEFS += -DCONFIG_LOG
-endif
-
-ifeq ($(CONFIG_KCONSOLE),y)
-	DEFS += -DCONFIG_KCONSOLE
-endif
-
-ifeq ($(CONFIG_DEBUG_SPINLOCK),y)
-	DEFS += -DCONFIG_DEBUG_SPINLOCK
-endif
-
-ifeq ($(CONFIG_DEBUG_AS_WATCHPOINT),y)
-	DEFS += -DCONFIG_DEBUG_AS_WATCHPOINT
-endif
-
-ifeq ($(CONFIG_FPU_LAZY),y)
-	DEFS += -DCONFIG_FPU_LAZY
-endif
-
-ifeq ($(CONFIG_DEBUG_ALLREGS),y)
-	DEFS += -DCONFIG_DEBUG_ALLREGS
-endif
-
-ifeq ($(CONFIG_VHPT),y)
-	DEFS += -DCONFIG_VHPT
-endif
-
-ifeq ($(CONFIG_TSB),y)
-	DEFS += -DCONFIG_TSB
-endif
-
-ifeq ($(CONFIG_Z8530),y)
-	DEFS += -DCONFIG_Z8530
-endif
-
-ifeq ($(CONFIG_NS16550),y)
-	DEFS += -DCONFIG_NS16550
-endif
-
-ifeq ($(CONFIG_I8042_INTERRUPT_DRIVEN),y)
-	DEFS += -DCONFIG_I8042_INTERRUPT_DRIVEN
-endif
-
-ifeq ($(CONFIG_NS16550_INTERRUPT_DRIVEN),y)
-	DEFS += -DCONFIG_NS16550_INTERRUPT_DRIVEN
-endif
-
-ifeq ($(CONFIG_IOSAPIC),y)
-	DEFS += -DCONFIG_IOSAPIC
-endif
-
-ifeq ($(CONFIG_VIRT_IDX_DCACHE),y)
-	DEFS += -DCONFIG_VIRT_IDX_DCACHE
-endif
-
-ifeq ($(CONFIG_FB),y)
-	ifeq ($(ARCH),ia32)
-		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-	endif
-	
-	ifeq ($(ARCH),amd64)
-		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-	endif
-	
-	ifeq ($(ARCH),ia32xen)
-		DEFS += -DCONFIG_VESA_WIDTH=$(CONFIG_VESA_WIDTH)
-		DEFS += -DCONFIG_VESA_HEIGHT=$(CONFIG_VESA_HEIGHT)
-		DEFS += -DCONFIG_VESA_BPP=$(CONFIG_VESA_BPP)
-	endif
-endif
-
-ifeq ($(CONFIG_UDEBUG),y)
-	DEFS += -DCONFIG_UDEBUG
-endif
 
 ## Simple detection for the type of the host system
 #
@@ -194,6 +104,7 @@ ifeq ($(COMPILER),gcc_native)
 	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	LIBDIR = /usr/lib
 	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc_native)
@@ -205,6 +116,7 @@ ifeq ($(COMPILER),icc_native)
 	OBJDUMP = objdump
 	LIBDIR = /usr/lib
 	CFLAGS = $(ICC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),suncc_native)
@@ -216,6 +128,8 @@ ifeq ($(COMPILER),suncc_native)
 	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	LIBDIR = /usr/lib
 	CFLAGS = $(SUNCC_CFLAGS)
+	DEFS += $(CONFIG_DEFS)
+	DEPEND_DEFS = $(DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
@@ -227,6 +141,7 @@ ifeq ($(COMPILER),gcc_cross)
 	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
 	LIBDIR = $(TOOLCHAIN_DIR)/lib
 	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ## Generic kernel sources
@@ -325,7 +240,6 @@ endif
 #
 
 ifeq ($(CONFIG_TEST),y)
-	DEFS += -DCONFIG_TEST
 	CFLAGS += -Itest/
 	GENERIC_SOURCES += \
 		test/test.c \
@@ -334,9 +248,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/avltree/avltree1.c \
 		test/debug/mips1.c \
 		test/fault/fault1.c \
-		test/fpu/fpu1.c \
-		test/fpu/sse1.c \
-		test/fpu/mips2.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \
 		test/mm/mapping1.c \
@@ -353,6 +264,45 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print1.c \
 		test/thread/thread1.c \
 		test/sysinfo/sysinfo1.c
+	
+	ifeq ($(CONFIG_FPU),y)
+		ifeq ($(KARCH),ia32)
+			TEST_FPU1 = y
+			TEST_SSE1 = y
+		endif
+		
+		ifeq ($(KARCH),amd64)
+			TEST_FPU1 = y
+			TEST_SSE1 = y
+		endif
+		
+		ifeq ($(KARCH),ia64)
+			TEST_FPU1 = y
+		endif
+		
+		ifeq ($(KARCH),mips32)
+			TEST_MIPS2 = y
+		endif
+	endif
+	
+	ifeq ($(TEST_FPU1),y)
+		GENERIC_SOURCES += test/fpu/fpu1.c
+	else
+		GENERIC_SOURCES += test/fpu/fpu1_skip.c
+	endif
+	
+	ifeq ($(TEST_SSE1),y)
+		GENERIC_SOURCES += test/fpu/sse1.c
+	else
+		GENERIC_SOURCES += test/fpu/sse1_skip.c
+	endif
+	
+	ifeq ($(TEST_MIPS2),y)
+		GENERIC_SOURCES += test/fpu/mips2.c
+	else
+		GENERIC_SOURCES += test/fpu/mips2_skip.c
+	endif
+	
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
@@ -361,7 +311,7 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
 .PHONY: all build clean archlinks depend disasm
 
-all: ../Makefile.config
+all: ../Makefile.config ../config.h ../config.defs
 	-rm Makefile.depend
 	$(MAKE) -C . build
 
@@ -370,39 +320,39 @@ build: kernel.bin disasm
 -include Makefile.depend
 
 clean:
-	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(ARCH)/_link.ld
+	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(KARCH)/_link.ld
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 	for arch in arch/* ; do \
 	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null ; \
 	done ; exit 0
 
 archlinks:
-	ln -sfn ../../arch/$(ARCH)/include/ generic/include/arch
+	ln -sfn ../../arch/$(KARCH)/include/ generic/include/arch
 	ln -sfn ../../genarch/include/ generic/include/genarch
 
 depend: archlinks
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
-arch/$(ARCH)/_link.ld: arch/$(ARCH)/_link.ld.in
+arch/$(KARCH)/_link.ld: arch/$(KARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
-generic/src/debug/real_map.bin: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
+generic/src/debug/real_map.bin: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o generic/src/debug/empty_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/empty_map.o  -o $@ -Map kernel.map.pre
+	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/empty_map.o  -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 	# Do it once again, this time to get correct even the symbols
 	# on architectures, that have bss after symtab
 	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o generic/src/debug/sizeok_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
+	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
 	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
 
 generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@ 
 
-kernel.raw: depend arch/$(ARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
-	$(LD) -T arch/$(ARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
+kernel.raw: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
+	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
 
 kernel.bin: kernel.raw
 	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin
