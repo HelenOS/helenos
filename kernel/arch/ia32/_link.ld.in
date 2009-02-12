@@ -1,11 +1,11 @@
 /** IA-32 linker script
- *  
+ *
  * umapped section:
- * 	kernel text
- * 	kernel data
+ *  kernel text
+ *  kernel data
  * mapped section:
- *	kernel text
- *	kernel data 
+ *  kernel text
+ *  kernel data
  */
 
 #include <arch/boot/boot.h>
@@ -28,9 +28,9 @@ SECTIONS {
 		ktext_end = .;
 		
 		kdata_start = .;
-		*(.data);			/* initialized data */
-		*(.rodata*);			/* string literals */
-		*(COMMON);			/* global variables */
+		*(.data);               /* initialized data */
+		*(.rodata*);            /* string literals */
+		*(COMMON);              /* global variables */
 		hardcoded_load_address = .;
 		LONG(PA2KA(BOOT_OFFSET));
 		hardcoded_ktext_size = .;
@@ -42,23 +42,23 @@ SECTIONS {
 		hardcoded_unmapped_kdata_size = .;
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
 		symbol_table = .;
-		*(symtab.*);            	/* Symbol table, must be LAST symbol! */
-		*(.bss);			/* uninitialized static variables */
+		*(symtab.*);            /* Symbol table, must be LAST symbol! */
+		*(.bss);                /* uninitialized static variables */
 		kdata_end = .;
 	}
-
+	
 	/DISCARD/ : {
-		*(.note.GNU-stack);		
+		*(.note.GNU-stack);
 		*(.comment);
 	}
 	
-#ifdef CONFIG_SMP	
+#ifdef CONFIG_SMP
 	
 	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	ap_boot = unmapped_ap_boot - BOOT_OFFSET + AP_BOOT_OFFSET;
 	ap_gdtr = unmapped_ap_gdtr - BOOT_OFFSET + AP_BOOT_OFFSET;
 	protected_ap_gdtr = PA2KA(ap_gdtr);
-
+	
 #endif /* CONFIG_SMP */
-
+	
 }

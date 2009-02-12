@@ -149,6 +149,17 @@ void asm_delay_loop(uint32_t t);
 
 extern void userspace_asm(uintptr_t uspace_uarg, uintptr_t stack, uintptr_t entry);
 
+/** No I/O port address space on PowerPC. */
+static inline void outb(ioport_t port, uint8_t v)
+{
+}
+
+/** No I/O port address space on PowerPC. */
+static inline uint8_t inb(ioport_t port)
+{
+	return 0;
+}
+
 #endif
 
 /** @}

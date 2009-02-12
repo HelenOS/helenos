@@ -114,10 +114,10 @@
 	sw $s8,OFFSET_S8(\ctx)
 	sw $gp,OFFSET_GP(\ctx)
 
-#ifndef KERNEL		
+#ifndef KERNEL
 	sw $k1,OFFSET_TLS(\ctx)
 
-# ifdef CONFIG_MIPS_FPU	
+#ifdef CONFIG_FPU
 	mfc1 $t0,$20
 	sw $t0, OFFSET_F20(\ctx)
 
@@ -150,7 +150,7 @@
 	
 	mfc1 $t0,$30
 	sw $t0, OFFSET_F30(\ctx)
-# endif /* CONFIG_MIPS_FPU */	
+#endif /* CONFIG_FPU */
 #endif /* KERNEL */
 
 	sw $ra,OFFSET_PC(\ctx)
@@ -172,7 +172,7 @@
 #ifndef KERNEL
 	lw $k1,OFFSET_TLS(\ctx)
 
-# ifdef CONFIG_MIPS_FPU	
+#ifdef CONFIG_FPU
 	lw $t0, OFFSET_F20(\ctx)
 	mtc1 $t0,$20
 
@@ -205,9 +205,9 @@
 
 	lw $t0, OFFSET_F30(\ctx)
 	mtc1 $t0,$30
-# endif	/* CONFIG_MIPS_FPU */
-	
+#endif /* CONFIG_FPU */
 #endif /* KERNEL */
+
 	lw $ra,OFFSET_PC(\ctx)
 	lw $sp,OFFSET_SP(\ctx)
 .endm

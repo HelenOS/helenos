@@ -75,7 +75,7 @@ static phys_region_t phys_regions[MAX_REGIONS];
  */
 static bool frame_available(pfn_t frame)
 {
-#if MACHINE == msim
+#ifdef msim
 	/* MSIM device (dprinter) */
 	if (frame == (KA2PA(MSIM_VIDEORAM) >> ZERO_PAGE_WIDTH))
 		return false;
@@ -85,13 +85,13 @@ static bool frame_available(pfn_t frame)
 		return false;
 #endif
 
-#if MACHINE == simics
+#ifdef simics
 	/* Simics device (serial line) */
 	if (frame == (KA2PA(SERIAL_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
 
-#if (MACHINE == lgxemul) || (MACHINE == bgxemul)
+#if defined(lgxemul) || defined(bgxemul)
 	/* gxemul devices */
 	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
 	    0x10000000, MB2SIZE(256)))
@@ -218,7 +218,7 @@ void frame_arch_init(void)
 					ZERO_PAGE_VALUE = 0xdeadbeef;
 					if (ZERO_PAGE_VALUE != 0xdeadbeef)
 						avail = false;
-#if (MACHINE == lgxemul) || (MACHINE == bgxemul)
+#if defined(lgxemul) || defined(bgxemul)
 					else {
 						ZERO_PAGE_VALUE_KSEG1(frame) = 0xaabbccdd;
 						if (ZERO_PAGE_VALUE_KSEG1(frame) != 0xaabbccdd)

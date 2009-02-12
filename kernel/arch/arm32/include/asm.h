@@ -46,6 +46,17 @@ static inline void cpu_sleep(void)
 {
 }
 
+/** No I/O port address space on ARM. */
+static inline void outb(ioport_t port, uint8_t v)
+{
+}
+
+/** No I/O port address space on ARM. */
+static inline uint8_t inb(ioport_t port)
+{
+	return 0;
+}
+
 /** Return base address of current stack.
  * 
  * Return the base address of the current stack.

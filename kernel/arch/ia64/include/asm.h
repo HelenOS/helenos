@@ -41,7 +41,7 @@
 
 #define IA64_IOSPACE_ADDRESS 0xE001000000000000ULL
 
-static inline void  outb(ioport_t port, uint8_t v)
+static inline void outb(ioport_t port, uint8_t v)
 {
 	*((uint8_t *)(IA64_IOSPACE_ADDRESS +
 	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;
@@ -49,7 +49,7 @@ static inline void  outb(ioport_t port, uint8_t v)
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void  outw(ioport_t port, uint16_t v)
+static inline void outw(ioport_t port, uint16_t v)
 {
 	*((uint16_t *)(IA64_IOSPACE_ADDRESS +
 	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;
@@ -57,7 +57,7 @@ static inline void  outw(ioport_t port, uint16_t v)
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void  outl(ioport_t port, uint32_t v)
+static inline void outl(ioport_t port, uint32_t v)
 {
 	*((uint32_t *)(IA64_IOSPACE_ADDRESS +
 	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;

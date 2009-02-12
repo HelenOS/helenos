@@ -132,9 +132,9 @@ void arch_post_mm_init(void)
 		irq_init(INR_COUNT, INR_COUNT);
 #ifdef SKI
 		ski_init_console();
-#else	
+#else
 		ega_init(EGA_BASE, EGA_VIDEORAM);
-#endif	
+#endif
 	}
 	it_init();
 		
@@ -265,12 +265,12 @@ void arch_release_console(void)
 {
 #ifdef SKI
 	ski_kbd_release();
-#else	
+#else
 #ifdef CONFIG_NS16550
 	ns16550_release();
-#else	
+#else
 	i8042_release();
-#endif	
+#endif
 #endif
 }
 
@@ -279,6 +279,23 @@ void arch_reboot(void)
 	outb(0x64, 0xfe);
 	while (1)
 		;
+}
+
+/** Construct function pointer
+ *
+ * @param fptr   function pointer structure
+ * @param addr   function address
+ * @param caller calling function address
+ *
+ * @return address of the function pointer
+ *
+ */
+void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
+{
+	fptr->fnc = (unative_t) addr;
+	fptr->gp = ((unative_t *) caller)[1];
+	
+	return (void *) fptr;
 }
 
 /** @}

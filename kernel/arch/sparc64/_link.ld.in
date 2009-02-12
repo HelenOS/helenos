@@ -1,8 +1,8 @@
 /** SPARC64 linker script
  *
  *  It is ELF format, but its only section looks like this:
- *  kernel text
- *  kernel data
+ *   kernel text
+ *   kernel data
  *
  */
 
@@ -11,7 +11,7 @@
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image VMA: AT (LMA) { 
+	.image VMA: AT (LMA) {
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text);
@@ -21,28 +21,28 @@ SECTIONS {
 		*(K_DATA_START)
 		*(.rodata);
 		*(.rodata.*);
-		*(.data);		/* initialized data */
+		*(.data);                   /* initialized data */
 		*(.sdata);
 		*(.sdata2);
 		*(.sbss);
 		. = ALIGN(8);
 		hardcoded_ktext_size = .;
-		QUAD(ktext_end - ktext_start);	
+		QUAD(ktext_end - ktext_start);
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start);
 		hardcoded_load_address = .;
 		QUAD(VMA);
-		*(.bss);		/* uninitialized static variables */	
-		*(COMMON); 		/* global variables */
-
+		*(.bss);                    /* uninitialized static variables */
+		*(COMMON);                  /* global variables */
+		
 		symbol_table = .;
-                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
-
+		*(symtab.*);                /* Symbol table, must be LAST symbol!*/
+		
 		kdata_end = .;
 	}
 	
 	/DISCARD/ : {
 		*(*);
 	}
-
+	
 }

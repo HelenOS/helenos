@@ -37,7 +37,6 @@
 
 #include <arch/types.h>
 
-#define ARCH_HAS_FPU
 #define FPU_CONTEXT_ALIGN	8
 
 typedef struct {

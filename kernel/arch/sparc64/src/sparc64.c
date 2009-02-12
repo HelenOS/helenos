@@ -161,5 +161,19 @@ void arch_reboot(void)
 	while (1);
 }
 
+/** Construct function pointer
+ *
+ * @param fptr   function pointer structure
+ * @param addr   function address
+ * @param caller calling function address
+ *
+ * @return address of the function pointer
+ *
+ */
+void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
+{
+	return addr;
+}
+
 /** @}
  */

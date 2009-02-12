@@ -70,6 +70,17 @@ extern ipl_t interrupts_enable(void);
 extern void interrupts_restore(ipl_t ipl);
 extern ipl_t interrupts_read(void);
 
+/** No I/O port address space on MIPS. */
+static inline void outb(ioport_t port, uint8_t v)
+{
+}
+
+/** No I/O port address space on MIPS. */
+static inline uint8_t inb(ioport_t port)
+{
+	return 0;
+}
+
 #endif
 
 /** @}

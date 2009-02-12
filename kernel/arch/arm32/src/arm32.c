@@ -92,7 +92,7 @@ void arch_post_mm_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 1920,
-		.visual = VISUAL_RGB_8_8_8,
+		.visual = VISUAL_BGR_8_8_8,
 	};
 	fb_init(&prop);
 #endif
@@ -164,8 +164,21 @@ void cpu_halt(void)
 void arch_reboot()
 {
 	/* not implemented */
-	for (;;)
-		;
+	while (1);
+}
+
+/** Construct function pointer
+ *
+ * @param fptr   function pointer structure
+ * @param addr   function address
+ * @param caller calling function address
+ *
+ * @return address of the function pointer
+ *
+ */
+void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
+{
+	return addr;
 }
 
 /** @}

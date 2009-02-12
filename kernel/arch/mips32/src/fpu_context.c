@@ -40,14 +40,14 @@
 
 void fpu_disable(void)
 {	
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 	cp0_status_write(cp0_status_read() & ~cp0_status_fpu_bit);
 #endif
 }
 
 void fpu_enable(void)
 {
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 	cp0_status_write(cp0_status_read() | cp0_status_fpu_bit);
 #endif
 }

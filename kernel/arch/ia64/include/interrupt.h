@@ -153,6 +153,8 @@ extern void nop_handler(uint64_t vector, istate_t *istate);
 extern void external_interrupt(uint64_t vector, istate_t *istate);
 extern void disabled_fp_register(uint64_t vector, istate_t *istate);
 
+extern void trap_virtual_enable_irqs(uint16_t irqmask);
+
 #endif
 
 /** @}

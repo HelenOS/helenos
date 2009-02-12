@@ -35,7 +35,6 @@
 #ifndef KERN_ia64_FPU_CONTEXT_H_
 #define KERN_ia64_FPU_CONTEXT_H_
 
-#define ARCH_HAS_FPU 1
 #define FPU_CONTEXT_ALIGN 16
 
 #include <arch/types.h>

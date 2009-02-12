@@ -142,7 +142,7 @@ static void ss_fault(int n, istate_t *istate)
 
 static void nm_fault(int n, istate_t *istate)
 {
-#ifdef CONFIG_FPU_LAZY     
+#ifdef CONFIG_FPU_LAZY
 	scheduler_fpu_lazy_request();
 #else
 	fault_if_from_uspace(istate, "FPU fault.");

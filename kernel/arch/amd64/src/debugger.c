@@ -204,16 +204,16 @@ int breakpoint_add(const void *where, const int flags, int curidx)
 
 	/* Send IPI */
 #ifdef CONFIG_SMP
-//	ipi_broadcast(VECTOR_DEBUG_IPI);	
+//	ipi_broadcast(VECTOR_DEBUG_IPI);
 #endif	
 
 	return curidx;
 }
 
-#ifdef amd64
-#	define getip(x)	((x)->rip)
+#ifdef __64_BITS__
+	#define getip(x)  ((x)->rip)
 #else
-#	define getip(x)	((x)->eip)
+	#define getip(x)  ((x)->eip)
 #endif
 
 static void handle_exception(int slot, istate_t *istate)
@@ -276,7 +276,7 @@ static void debug_exception(int n __attribute__((unused)), istate_t *istate)
 	int i;
 	
 	/* Set RF to restart the instruction  */
-#ifdef amd64       
+#ifdef __64_BITS__
 	istate->rflags |= RFLAGS_RF;
 #else
 	istate->eflags |= EFLAGS_RF;
@@ -348,7 +348,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 	unsigned int i;
 	char *symbol;
 
-#ifdef __32_BITS__	
+#ifdef __32_BITS__
 	printf("#  Count Address    In symbol\n");
 	printf("-- ----- ---------- ---------\n");
 #endif

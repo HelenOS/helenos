@@ -111,12 +111,12 @@ void arch_pre_mm_init(void)
 	 */
 	cp0_status_write(cp0_status_read() &
 	    ~(cp0_status_bev_bootstrap_bit | cp0_status_erl_error_bit));
-
-	/* 
-	 * Mask all interrupts 
+	
+	/*
+	 * Mask all interrupts
 	 */
 	cp0_mask_all_int();
-		
+	
 	debugger_init();
 }
 
@@ -132,11 +132,26 @@ void arch_post_mm_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 1920,
-		.visual = VISUAL_RGB_8_8_8,
+		.visual = VISUAL_BGR_8_8_8,
 	};
 	fb_init(&gxemul_prop);
 #endif
-	sysinfo_set_item_val("machine." STRING(MACHINE), NULL, 1);
+
+#ifdef msim
+	sysinfo_set_item_val("machine.msim", NULL, 1);
+#endif
+
+#ifdef simics
+	sysinfo_set_item_val("machine.simics", NULL, 1);
+#endif
+
+#ifdef bgxemul
+	sysinfo_set_item_val("machine.bgxemul", NULL, 1);
+#endif
+
+#ifdef lgxemul
+	sysinfo_set_item_val("machine.lgxemul", NULL, 1);
+#endif
 }
 
 void arch_post_cpu_init(void)
@@ -161,8 +176,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 	
-	while (1)
-		;
+	while (1);
 }
 
 /** Perform mips32 specific tasks needed before the new task is run. */
@@ -195,8 +209,21 @@ void arch_reboot(void)
 {
 	___halt();
 	
-	while (1)
-		;
+	while (1);
+}
+
+/** Construct function pointer
+ *
+ * @param fptr   function pointer structure
+ * @param addr   function address
+ * @param caller calling function address
+ *
+ * @return address of the function pointer
+ *
+ */
+void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
+{
+	return addr;
 }
 
 /** @}

@@ -46,7 +46,7 @@
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
 
-#define SKI_KBD_INR	0
+#define SKI_KBD_INR  0
 
 static irq_t ski_kbd_irq;
 static devno_t ski_kbd_devno;
@@ -114,9 +114,9 @@ static int32_t ski_getchar(void)
 static char ski_getchar_blocking(chardev_t *d)
 {
 	int ch;
-
-	while(!(ch = ski_getchar()))
-		;
+	
+	while(!(ch = ski_getchar()));
+	
 	if (ch == '\r')
 		ch = '\n'; 
 	return (char) ch;
@@ -128,16 +128,16 @@ static void poll_keyboard(void)
 	char ch;
 	static char last; 
 	ipl_t ipl;
-
+	
 	ipl = interrupts_disable();
-
+	
 	if (kbd_disabled) {
 		interrupts_restore(ipl);
 		return;
 	}
-		
+	
 	spinlock_lock(&ski_kbd_irq.lock);
-
+	
 	ch = ski_getchar();
 	if(ch == '\r')
 		ch = '\n'; 
@@ -177,7 +177,7 @@ static void ski_kbd_enable(chardev_t *d)
 /* Called from getc(). */
 static void ski_kbd_disable(chardev_t *d)
 {
-	kbd_disabled = true;	
+	kbd_disabled = true;
 }
 
 /** Decline to service hardware IRQ.

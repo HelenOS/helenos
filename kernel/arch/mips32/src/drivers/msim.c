@@ -76,7 +76,6 @@ void msim_disable(chardev_t *dev)
 	cp0_mask_int(MSIM_KBD_IRQ);
 }
 
-#include <print.h>
 /** Read character using polling, assume interrupts disabled */
 static char msim_do_read(chardev_t *dev)
 {

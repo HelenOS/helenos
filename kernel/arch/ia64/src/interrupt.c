@@ -194,8 +194,8 @@ void general_exception(uint64_t vector, istate_t *istate)
 
 void disabled_fp_register(uint64_t vector, istate_t *istate)
 {
-#ifdef CONFIG_FPU_LAZY 
-	scheduler_fpu_lazy_request();	
+#ifdef CONFIG_FPU_LAZY
+	scheduler_fpu_lazy_request();
 #else
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
@@ -299,6 +299,10 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 		}
 		break;
 	}
+}
+
+void trap_virtual_enable_irqs(uint16_t irqmask)
+{
 }
 
 /** @}
