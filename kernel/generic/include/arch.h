@@ -79,6 +79,7 @@ extern void calibrate_delay_loop(void);
 
 extern void reboot(void);
 extern void arch_reboot(void);
+extern void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller);
 
 #endif
 

@@ -100,24 +100,12 @@ static void code_execute(call_t *call, irq_code_t *code)
 			*((uint64_t *) code->cmds[i].addr) =
 			    code->cmds[i].value;
 			break;
-#if defined(ia32) || defined(amd64) || defined(ia64)
 		case CMD_PORT_READ_1:
 			dstval = inb((long) code->cmds[i].addr);
 			break;
 		case CMD_PORT_WRITE_1:
 			outb((long) code->cmds[i].addr, code->cmds[i].value);
 			break;
-#endif
-#if defined(ia64) && defined(SKI)
-		case CMD_IA64_GETCHAR:
-			dstval = _getc(&ski_uconsole);
-			break;
-#endif
-#if defined(ppc32)
-		case CMD_PPC32_GETCHAR:
-			dstval = cuda_get_scancode();
-			break;
-#endif
 		default:
 			break;
 		}

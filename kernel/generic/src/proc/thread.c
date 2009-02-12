@@ -102,7 +102,7 @@ SPINLOCK_INITIALIZE(tidlock);
 thread_id_t last_tid = 0;
 
 static slab_cache_t *thread_slab;
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 slab_cache_t *fpu_context_slab;
 #endif
 
@@ -161,7 +161,7 @@ static int thr_constructor(void *obj, int kmflags)
 	/* call the architecture-specific part of the constructor */
 	thr_constructor_arch(t);
 	
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 #ifdef CONFIG_FPU_LAZY
 	t->saved_fpu_context = NULL;
 #else
@@ -169,11 +169,11 @@ static int thr_constructor(void *obj, int kmflags)
 	if (!t->saved_fpu_context)
 		return -1;
 #endif
-#endif	
+#endif
 
 	t->kstack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | kmflags);
 	if (!t->kstack) {
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 		if (t->saved_fpu_context)
 			slab_free(fpu_context_slab, t->saved_fpu_context);
 #endif
@@ -196,7 +196,7 @@ static int thr_destructor(void *obj)
 	thr_destructor_arch(t);
 
 	frame_free(KA2PA(t->kstack));
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 	if (t->saved_fpu_context)
 		slab_free(fpu_context_slab, t->saved_fpu_context);
 #endif
@@ -215,7 +215,7 @@ void thread_init(void)
 	thread_slab = slab_cache_create("thread_slab", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 
-#ifdef ARCH_HAS_FPU
+#ifdef CONFIG_FPU
 	fpu_context_slab = slab_cache_create("fpu_slab", sizeof(fpu_context_t),
 	    FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif

@@ -34,21 +34,22 @@
 
 #include <main/version.h>
 #include <print.h>
+#include <macros.h>
 
 char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2008 HelenOS project";
-char *release = RELEASE;
-char *name = NAME;
-char *arch = ARCH;
+char *copyright = "Copyright (c) 2001-2009 HelenOS project";
+char *release = STRING(RELEASE);
+char *name = STRING(NAME);
+char *arch = STRING(KARCH);
 
 #ifdef REVISION
-	char *revision = ", revision " REVISION;
+	char *revision = ", revision " STRING(REVISION);
 #else
 	char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = " on " TIMESTAMP;
+	char *timestamp = " on " STRING(TIMESTAMP);
 #else
 	char *timestamp = "";
 #endif

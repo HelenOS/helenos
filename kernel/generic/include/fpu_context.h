@@ -37,10 +37,6 @@
 
 #include <arch/fpu_context.h>
 
-#if defined(CONFIG_FPU_LAZY) && !defined(ARCH_HAS_FPU)
-# error "CONFIG_FPU_LAZY defined, but no ARCH_HAS_FPU"
-#endif
-
 extern void fpu_context_save(fpu_context_t *);
 extern void fpu_context_restore(fpu_context_t *);
 extern void fpu_init(void);

@@ -616,14 +616,9 @@ int cmd_call0(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*f)(void);
-#ifdef ia64
-	struct {
-		unative_t f;
-		unative_t gp;
-	} fptr;
-#endif
-
+	unative_t (*fnc)(void);
+	fncptr_t fptr;
+	
 	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
@@ -632,15 +627,9 @@ int cmd_call0(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
+		fnc = (unative_t (*)(void)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call0);
 		printf("Calling %s() (%p)\n", symbol, symaddr);
-#ifdef ia64
-		fptr.f = symaddr;
-		fptr.gp = ((unative_t *)cmd_call2)[1];
-		f =  (unative_t (*)(void)) &fptr;
-#else
-		f =  (unative_t (*)(void)) symaddr;
-#endif
-		printf("Result: %#" PRIxn "\n", f());
+		printf("Result: %#" PRIxn "\n", fnc());
 	}
 	
 	return 1;
@@ -680,15 +669,10 @@ int cmd_call1(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*f)(unative_t,...);
+	unative_t (*fnc)(unative_t, ...);
 	unative_t arg1 = argv[1].intval;
-#ifdef ia64
-	struct {
-		unative_t f;
-		unative_t gp;
-	} fptr;
-#endif
-
+	fncptr_t fptr;
+	
 	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
@@ -697,16 +681,9 @@ int cmd_call1(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
-
+		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
-#ifdef ia64
-		fptr.f = symaddr;
-		fptr.gp = ((unative_t *)cmd_call2)[1];
-		f =  (unative_t (*)(unative_t,...)) &fptr;
-#else
-		f =  (unative_t (*)(unative_t,...)) symaddr;
-#endif
-		printf("Result: %#" PRIxn "\n", f(arg1));
+		printf("Result: %#" PRIxn "\n", fnc(arg1));
 	}
 	
 	return 1;
@@ -717,16 +694,11 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*f)(unative_t,unative_t,...);
+	unative_t (*fnc)(unative_t, unative_t, ...);
 	unative_t arg1 = argv[1].intval;
 	unative_t arg2 = argv[2].intval;
-#ifdef ia64
-	struct {
-		unative_t f;
-		unative_t gp;
-	}fptr;
-#endif
-
+	fncptr_t fptr;
+	
 	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
@@ -735,16 +707,10 @@ int cmd_call2(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
+		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
-#ifdef ia64
-		fptr.f = symaddr;
-		fptr.gp = ((unative_t *)cmd_call2)[1];
-		f =  (unative_t (*)(unative_t,unative_t,...)) &fptr;
-#else
-		f =  (unative_t (*)(unative_t,unative_t,...)) symaddr;
-#endif
-		printf("Result: %#" PRIxn "\n", f(arg1, arg2));
+		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
 	}
 	
 	return 1;
@@ -755,17 +721,12 @@ int cmd_call3(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*f)(unative_t,unative_t,unative_t,...);
+	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
 	unative_t arg1 = argv[1].intval;
 	unative_t arg2 = argv[2].intval;
 	unative_t arg3 = argv[3].intval;
-#ifdef ia64
-	struct {
-		unative_t f;
-		unative_t gp;
-	}fptr;
-#endif
-
+	fncptr_t fptr;
+	
 	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
@@ -774,16 +735,10 @@ int cmd_call3(cmd_arg_t *argv)
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		symbol = get_symtab_entry(symaddr);
+		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
-#ifdef ia64
-		fptr.f = symaddr;
-		fptr.gp = ((unative_t *)cmd_call2)[1];
-		f =  (unative_t (*)(unative_t,unative_t,unative_t,...)) &fptr;
-#else
-		f =  (unative_t (*)(unative_t,unative_t,unative_t,...)) symaddr;
-#endif
-		printf("Result: %#" PRIxn "\n", f(arg1, arg2, arg3));
+		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
 	}
 	
 	return 1;
@@ -996,9 +951,9 @@ int cmd_tests(cmd_arg_t *argv)
 	test_t *test;
 	
 	for (test = tests; test->name != NULL; test++)
-		printf("%s\t\t%s%s\n", test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+		printf("%-10s %s%s\n", test->name, test->desc, (test->safe ? "" : " (unsafe)"));
 	
-	printf("*\t\tRun all safe tests\n");
+	printf("%-10s Run all safe tests\n", "*");
 	return 1;
 }
 
