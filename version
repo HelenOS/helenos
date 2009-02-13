@@ -35,7 +35,7 @@
 #
 
 VERSION = 0
-PATCHLEVEL = 3
+PATCHLEVEL = 4
 SUBLEVEL = 0
 
 ifdef EXTRAVERSION
@@ -44,4 +44,4 @@ else
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
 endif
 
-NAME = Tartare
+NAME = Sinister Valentine
