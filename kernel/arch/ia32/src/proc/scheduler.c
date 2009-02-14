@@ -38,7 +38,6 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/context.h>	/* SP_DELTA */
-#include <arch/debugger.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <arch/ddi/ddi.h>
@@ -70,15 +69,6 @@ void before_thread_runs_arch(void)
 
 	/* Set up TLS in GS register */
 	set_tls_desc(THREAD->arch.tls);
-
-#ifdef CONFIG_DEBUG_AS_WATCHPOINT
-	/* Set watchpoint on AS to ensure that nobody sets it to zero */
-	if (CPU->id < BKPOINTS_MAX) {
-		the_t *the = THE;
-		breakpoint_add(&((the_t *) the->thread->kstack)->as, 
-		    BKPOINT_WRITE | BKPOINT_CHECK_ZERO, the->cpu->id);
-	}
-#endif
 }
 
 void after_thread_ran_arch(void)

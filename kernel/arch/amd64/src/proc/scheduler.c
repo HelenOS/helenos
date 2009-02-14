@@ -39,7 +39,6 @@
 #include <arch.h>
 #include <arch/context.h>	/* SP_DELTA */
 #include <arch/asm.h>
-#include <arch/debugger.h>
 #include <print.h>
 #include <arch/pm.h>
 #include <arch/ddi/ddi.h>
@@ -68,13 +67,6 @@ void before_thread_runs_arch(void)
 
 	/* TLS support - set FS to thread local storage */
 	write_msr(AMD_MSR_FS, THREAD->arch.tls);
-
-#ifdef CONFIG_DEBUG_AS_WATCHPOINT
-	/* Set watchpoint on AS to ensure that nobody sets it to zero */
-	if (CPU->id < BKPOINTS_MAX)
-		breakpoint_add(&((the_t *) THREAD->kstack)->as, 
-		    BKPOINT_WRITE | BKPOINT_CHECK_ZERO, CPU->id);
-#endif
 }
 
 void after_thread_ran_arch(void)

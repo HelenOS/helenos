@@ -64,8 +64,6 @@ static cmd_info_t bkpts_info = {
 	.argc = 0,
 };
 
-#ifndef CONFIG_DEBUG_AS_WATCHPOINT
-
 static int cmd_del_breakpoint(cmd_arg_t *argv);
 static cmd_arg_t del_argv = {
 	.type = ARG_TYPE_INT
@@ -101,7 +99,6 @@ static cmd_info_t addwatchp_info = {
 	.argv = &addw_argv
 };
 
-#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
 #endif /* CONFIG_KCONSOLE */
 
 /* Setup DR register according to table */
@@ -320,7 +317,6 @@ void debugger_init()
 	if (!cmd_register(&bkpts_info))
 		printf("Cannot register command %s\n", bkpts_info.name);
 
-#ifndef CONFIG_DEBUG_AS_WATCHPOINT
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
 		printf("Cannot register command %s\n", delbkpt_info.name);
@@ -332,7 +328,6 @@ void debugger_init()
 	cmd_initialize(&addwatchp_info);
 	if (!cmd_register(&addwatchp_info))
 		printf("Cannot register command %s\n", addwatchp_info.name);
-#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
 #endif /* CONFIG_KCONSOLE */
 	
 	exc_register(VECTOR_DEBUG, "debugger", debug_exception);
@@ -378,8 +373,6 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 	return 1;
 }
 
-#ifndef CONFIG_DEBUG_AS_WATCHPOINT
-
 /** Remove breakpoint from table */
 int cmd_del_breakpoint(cmd_arg_t *argv)
 {
@@ -412,7 +405,6 @@ static int cmd_add_breakpoint(cmd_arg_t *argv)
 	
 	return 1;
 }
-#endif /* CONFIG_DEBUG_AS_WATCHPOINT */
 #endif /* CONFIG_KCONSOLE */
 
 /** @}
