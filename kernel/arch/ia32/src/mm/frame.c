@@ -118,9 +118,6 @@ void frame_arch_init(void)
 			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
 			hardcoded_unmapped_kdata_size));
 #endif
-#ifdef CONFIG_SIMICS_FIX
-		minconf = max(minconf, ADDR2PFN(0x10000));
-#endif
 		init_e820_memory(minconf);
 
 		/* Reserve frame 0 (BIOS data) */
@@ -131,11 +128,6 @@ void frame_arch_init(void)
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
 			(hardcoded_unmapped_ktext_size +
 			hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
-		
-#ifdef CONFIG_SIMICS_FIX
-		/* Don't know why, but these addresses help */
-		frame_mark_unavailable(0xd000 >> FRAME_WIDTH, 3);
-#endif
 #endif
 	}
 }
