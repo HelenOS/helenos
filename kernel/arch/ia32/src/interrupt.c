@@ -77,9 +77,6 @@ void decode_istate(istate_t *istate)
 	printf("ERROR_WORD=%#lx\n", istate->error_word);
 	printf("%%cs=%#lx,flags=%#lx\n", istate->cs, istate->eflags);
 	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
-#ifdef CONFIG_DEBUG_ALLREGS
-	printf("%%esi=%#lx, %%edi=%#lx, %%ebp=%#lx, %%ebx=%#lx\n", istate->esi, istate->edi, istate->ebp, istate->ebx);
-#endif
 	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
 	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
 }

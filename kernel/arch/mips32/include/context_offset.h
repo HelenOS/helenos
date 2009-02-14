@@ -76,26 +76,17 @@
 #define EOFFSET_T5     0x30
 #define EOFFSET_T6     0x34
 #define EOFFSET_T7     0x38
-#define EOFFSET_S0     0x3c
-#define EOFFSET_S1     0x40
-#define EOFFSET_S2     0x44
-#define EOFFSET_S3     0x48
-#define EOFFSET_S4     0x4c
-#define EOFFSET_S5     0x50
-#define EOFFSET_S6     0x54
-#define EOFFSET_S7     0x58
-#define EOFFSET_T8     0x5c
-#define EOFFSET_T9     0x60
-#define EOFFSET_GP     0x64
-#define EOFFSET_SP     0x68
-#define EOFFSET_S8     0x6c
-#define EOFFSET_RA     0x70
-#define EOFFSET_LO     0x74
-#define EOFFSET_HI     0x78
-#define EOFFSET_STATUS 0x7c
-#define EOFFSET_EPC    0x80
-#define EOFFSET_K1     0x84
-#define REGISTER_SPACE 136
+#define EOFFSET_T8     0x3c
+#define EOFFSET_T9     0x40
+#define EOFFSET_GP     0x44
+#define EOFFSET_SP     0x48
+#define EOFFSET_RA     0x4c
+#define EOFFSET_LO     0x50
+#define EOFFSET_HI     0x54
+#define EOFFSET_STATUS 0x58
+#define EOFFSET_EPC    0x5c
+#define EOFFSET_K1     0x60
+#define REGISTER_SPACE 100
 
 #ifdef __ASM__
 

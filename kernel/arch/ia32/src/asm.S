@@ -268,14 +268,6 @@ sysenter_handler:
 	pushl %fs
 	pushl %gs
 
-#ifdef CONFIG_DEBUG_ALLREGS
-	pushl %ebx
-	pushl %ebp
-	pushl %edi
-	pushl %esi
-#else
-	subl $16, %esp
-#endif
 	pushl %edx
 	pushl %ecx
 	pushl %eax
@@ -297,14 +289,6 @@ sysenter_handler:
 	popl %eax
 	popl %ecx
 	popl %edx
-#ifdef CONFIG_DEBUG_ALLREGS
-	popl %esi
-	popl %edi
-	popl %ebp
-	popl %ebx
-#else
-	addl $16, %esp
-#endif	
 	
 	popl %gs
 	popl %fs

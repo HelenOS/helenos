@@ -80,12 +80,6 @@ void decode_istate(int n, istate_t *istate)
 	    istate->rdi, istate->r8);
 	printf("%%r9=%#llx, %%r10=%#llx, %%r11=%#llx\n", istate->r9,
 	    istate->r10, istate->r11);
-#ifdef CONFIG_DEBUG_ALLREGS	
-	printf("%%r12=%#llx, %%r13=%#llx, %%r14=%#llx\n", istate->r12,
-	    istate->r13, istate->r14);
-	printf("%%r15=%#llx, %%rbx=%#llx, %%rbp=%#llx\n", istate->r15,
-	    istate->rbx, &istate->rbp);
-#endif
 	printf("%%rsp=%#llx\n", &istate->stack[0]);
 }
 

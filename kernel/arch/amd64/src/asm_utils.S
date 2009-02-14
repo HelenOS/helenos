@@ -26,23 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define IREGISTER_SPACE 120
+#define IREGISTER_SPACE	72 
 
-#define IOFFSET_RAX 0x0
-#define IOFFSET_RBX 0x8
-#define IOFFSET_RCX 0x10
-#define IOFFSET_RDX 0x18
-#define IOFFSET_RSI 0x20
-#define IOFFSET_RDI 0x28
-#define IOFFSET_R8 0x30
-#define IOFFSET_R9 0x38
-#define IOFFSET_R10 0x40
-#define IOFFSET_R11 0x48
-#define IOFFSET_R12 0x50
-#define IOFFSET_R13 0x58
-#define IOFFSET_R14 0x60
-#define IOFFSET_R15 0x68
-#define IOFFSET_RBP 0x70
+#define IOFFSET_RAX	0x0
+#define IOFFSET_RCX	0x8
+#define IOFFSET_RDX	0x10
+#define IOFFSET_RSI	0x18
+#define IOFFSET_RDI	0x20
+#define IOFFSET_R8	0x28
+#define IOFFSET_R9	0x30
+#define IOFFSET_R10	0x38
+#define IOFFSET_R11	0x40
 
 #  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
 # and 1 means interrupt with error word
@@ -173,7 +167,7 @@ read_efer_flag:
 	rdmsr
 	ret 		
 
-# Push all general purpose registers on stack except %rbp, %rsp
+# Push all volatile general purpose registers on stack
 .macro save_all_gpr
 	movq %rax, IOFFSET_RAX(%rsp)
 	movq %rcx, IOFFSET_RCX(%rsp)
@@ -184,14 +178,6 @@ read_efer_flag:
 	movq %r9, IOFFSET_R9(%rsp)
 	movq %r10, IOFFSET_R10(%rsp)
 	movq %r11, IOFFSET_R11(%rsp)
-#ifdef CONFIG_DEBUG_ALLREGS	
-	movq %rbx, IOFFSET_RBX(%rsp)
-	movq %rbp, IOFFSET_RBP(%rsp)
-	movq %r12, IOFFSET_R12(%rsp)
-	movq %r13, IOFFSET_R13(%rsp)
-	movq %r14, IOFFSET_R14(%rsp)
-	movq %r15, IOFFSET_R15(%rsp)
-#endif
 .endm
 
 .macro restore_all_gpr
@@ -204,21 +190,9 @@ read_efer_flag:
 	movq IOFFSET_R9(%rsp), %r9
 	movq IOFFSET_R10(%rsp), %r10
 	movq IOFFSET_R11(%rsp), %r11
-#ifdef CONFIG_DEBUG_ALLREGS	
-	movq IOFFSET_RBX(%rsp), %rbx
-	movq IOFFSET_RBP(%rsp), %rbp
-	movq IOFFSET_R12(%rsp), %r12
-	movq IOFFSET_R13(%rsp), %r13
-	movq IOFFSET_R14(%rsp), %r14
-	movq IOFFSET_R15(%rsp), %r15
-#endif
 .endm
 
-#ifdef CONFIG_DEBUG_ALLREGS
-# define INTERRUPT_ALIGN 256
-#else
-# define INTERRUPT_ALIGN 128
-#endif
+#define INTERRUPT_ALIGN 128
 	
 ## Declare interrupt handlers
 #
