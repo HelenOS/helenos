@@ -43,6 +43,7 @@
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <ipc/console.h>
+#include <kbd/kbd.h>
 #include <unistd.h>
 #include <async.h>
 #include <sys/types.h>
@@ -58,13 +59,17 @@ ssize_t read_stdin(void *buf, size_t count)
 {
 	open_console();
 	if (console_phone >= 0) {
-		ipcarg_t r0, r1;
+		kbd_event_t ev;
+		int rc;
 		size_t i = 0;
 	
 		while (i < count) {
-			if (async_req_0_2(console_phone, CONSOLE_GETCHAR, &r0, &r1) < 0)
-				return -1;
-			((char *) buf)[i++] = r0;
+			do {
+				rc = kbd_get_event(&ev);
+				if (rc < 0) return -1;
+			} while (ev.c == 0);
+
+			((char *) buf)[i++] = ev.c;
 		}
 		return i;
 	} else {

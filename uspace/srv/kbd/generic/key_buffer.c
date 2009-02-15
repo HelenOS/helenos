@@ -40,7 +40,7 @@ atomic_t keybuffer_futex = FUTEX_INITIALIZER;
 
 /** Clear key buffer.
  */
-void keybuffer_free(keybuffer_t *keybuffer) 
+void keybuffer_free(keybuffer_t *keybuffer)
 {
 	futex_down(&keybuffer_futex);
 	keybuffer->head = 0;
@@ -75,31 +75,43 @@ int keybuffer_empty(keybuffer_t *keybuffer)
 	return (keybuffer->items == 0);
 }
 
-/** Push key to key buffer.
- * If buffer is full, character is ignored.
- * @param key code of stored key
+/** Push key event to key buffer.
+ *
+ * If the buffer is full, the event is ignored.
+ *
+ * @param keybuffer	The keybuffer.
+ * @param ev		The event to push.
  */
-void keybuffer_push(keybuffer_t *keybuffer, int key)
+void keybuffer_push(keybuffer_t *keybuffer, const kbd_event_t *ev)
 {
 	futex_down(&keybuffer_futex);
 	if (keybuffer->items < KEYBUFFER_SIZE) {
-		keybuffer->fifo[keybuffer->tail] = key;
+		keybuffer->fifo[keybuffer->tail] = *ev;
 		keybuffer->tail = (keybuffer->tail + 1) % KEYBUFFER_SIZE;
 		keybuffer->items++;
 	}
 	futex_up(&keybuffer_futex);
 }
 
-/** Pop character from buffer.
- * @param c pointer to space where to store character from buffer.
- * @return zero on empty buffer, nonzero else
+void keybuffer_push0(keybuffer_t *keybuffer, int c)
+{
+	kbd_event_t ev;
+
+	ev.key = c; ev.mods = 0; ev.c = c;
+	keybuffer_push(keybuffer, &ev);
+}
+
+/** Pop event from buffer.
+ *
+ * @param edst	Pointer to where the event should be saved.
+ * @return	Zero on empty buffer, nonzero otherwise.
  */
-int keybuffer_pop(keybuffer_t *keybuffer, int *c)
+int keybuffer_pop(keybuffer_t *keybuffer, kbd_event_t *edst)
 {
 	futex_down(&keybuffer_futex);
 	if (keybuffer->items > 0) {
 		keybuffer->items--;
-		*c = (keybuffer->fifo[keybuffer->head]) ;
+		*edst = (keybuffer->fifo[keybuffer->head]) ;
 		keybuffer->head = (keybuffer->head + 1) % KEYBUFFER_SIZE;
 		futex_up(&keybuffer_futex);
 		return 1;

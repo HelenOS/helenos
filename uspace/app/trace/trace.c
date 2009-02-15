@@ -623,7 +623,7 @@ static void main_init(void)
 		V_INTEGER,
 		V_INTEGER,
 		V_INTEGER,
-		V_INTEGER		
+		V_INTEGER
 	};
 
 	next_thread_id = 1;
@@ -658,9 +658,10 @@ static void main_init(void)
 	proto_register(SERVICE_VFS, p);
 
 	p = proto_new("console");
-	resp_def[0] = V_CHAR;
-	o = oper_new("getchar", 0, arg_def, V_INTEGER, 2, resp_def);
-	proto_add_oper(p, CONSOLE_GETCHAR, o);
+	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
+	resp_def[2] = V_INTEGER; resp_def[3] = V_CHAR;
+	o = oper_new("getkey", 0, arg_def, V_ERRNO, 4, resp_def);
+	proto_add_oper(p, CONSOLE_GETKEY, o);
 
 	arg_def[0] = V_CHAR;
 	o = oper_new("putchar", 1, arg_def, V_VOID, 0, resp_def);

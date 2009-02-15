@@ -37,11 +37,11 @@
 #ifndef _KBD_KEYS_H_
 #define _KBD_KEYS_H_
 
-#define KBD_PUSHCHAR    1024
-#define KBD_MS_LEFT     1025
-#define KBD_MS_RIGHT    1026
-#define KBD_MS_MIDDLE   1027
-#define KBD_MS_MOVE     1028
+#define KBD_EVENT	1024
+#define KBD_MS_LEFT	1025
+#define KBD_MS_RIGHT	1026
+#define KBD_MS_MIDDLE	1027
+#define KBD_MS_MOVE	1028
 
 #define KBD_KEY_F1	0x3b
 #define KBD_KEY_F2	0x3c

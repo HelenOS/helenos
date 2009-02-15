@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{ 
+/** @addtogroup libc
+ * @{
  */
 /** @file
- */
+ */ 
 
-#ifndef LIBC_IPC_CONSOLE_H_
-#define LIBC_IPC_CONSOLE_H_
-
+#include <stdio.h>
+#include <io/stream.h>
+#include <kbd/kbd.h>
 #include <ipc/ipc.h>
+#include <ipc/console.h>
+#include <async.h>
 
-typedef enum {
-	CONSOLE_GETKEY = IPC_FIRST_USER_METHOD,
-	CONSOLE_PUTCHAR,
-	CONSOLE_CLEAR,
-	CONSOLE_GOTO,
-	CONSOLE_GETSIZE,
-	CONSOLE_FLUSH,
-	CONSOLE_SET_STYLE,
-	CONSOLE_SET_COLOR,
-	CONSOLE_SET_RGB_COLOR,
-	CONSOLE_CURSOR_VISIBILITY
-} console_request_t;
+int kbd_get_event(kbd_event_t *ev)
+{
+	int console_phone = get_cons_phone();
+	ipcarg_t r0, r1, r2, r3;
+	int rc;
 
-#endif
- 
+	rc = async_req_0_4(console_phone, CONSOLE_GETKEY, &r0, &r1, &r2, &r3);
+	if (rc < 0)
+		return -1;
+
+	ev->type = r0;
+	ev->c = r1;
+	ev->key = r2;
+	ev->mods = r3;
+
+	return 0;
+}
+
 /** @}
  */

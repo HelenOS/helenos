@@ -297,7 +297,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-	int c;
+	kbd_event_t ev;
 	connection_t *conn;
 	int newcon;
 	
@@ -319,36 +319,38 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			    IPC_GET_ARG2(call));
 			retval = 0;
 			break;
-		case KBD_PUSHCHAR:
-			/* got key from keyboard driver */
+		case KBD_EVENT:
+			/* Got event from keyboard driver. */
 			retval = 0;
-			c = IPC_GET_ARG1(call);
+			ev.type = IPC_GET_ARG1(call);
+			ev.key = IPC_GET_ARG2(call);
+			ev.mods = IPC_GET_ARG3(call);
+			ev.c = IPC_GET_ARG4(call);
+			
 			/* switch to another virtual console */
 			
 			conn = &connections[active_console];
-/*
- *			if ((c >= KBD_KEY_F1) && (c < KBD_KEY_F1 +
- *				CONSOLE_COUNT)) {
- */
-			if ((c >= 0x101) && (c < 0x101 + CONSOLE_COUNT)) {
-				if (c == 0x112)
+
+			if ((ev.key >= 0x101) && (ev.key < 0x101 +
+			    CONSOLE_COUNT)) {
+				if (ev.key == 0x112)
 					change_console(KERNEL_CONSOLE);
 				else
-					change_console(c - 0x101);
+					change_console(ev.key - 0x101);
 				break;
 			}
 			
 			/* if client is awaiting key, send it */
 			if (conn->keyrequest_counter > 0) {		
 				conn->keyrequest_counter--;
-				ipc_answer_1(fifo_pop(conn->keyrequests), EOK,
-				    c);
+				ipc_answer_4(fifo_pop(conn->keyrequests), EOK,
+				    ev.type, ev.key, ev.mods, ev.c);
 				break;
 			}
-			
-			keybuffer_push(&conn->keybuffer, c);
+
+			keybuffer_push(&conn->keybuffer, &ev);
 			retval = 0;
-			
+
 			break;
 		default:
 			retval = ENOENT;
@@ -363,7 +365,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int consnum;
-	ipcarg_t arg1, arg2, arg3;
+	ipcarg_t arg1, arg2, arg3, arg4;
 	connection_t *conn;
 	
 	if ((consnum = find_free_connection()) == -1) {
@@ -388,6 +390,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		arg1 = 0;
 		arg2 = 0;
+		arg3 = 0;
+		arg4 = 0;
+
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			gcons_notify_disconnect(consnum);
@@ -458,7 +463,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			if (consnum == active_console)
 				curs_visibility(arg1);
 			break;
-		case CONSOLE_GETCHAR:
+		case CONSOLE_GETKEY:
 			if (keybuffer_empty(&conn->keybuffer)) {
 				/* buffer is empty -> store request */
 				if (conn->keyrequest_counter <
@@ -474,12 +479,15 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				}
 				continue;
 			}
-			int ch;
-			keybuffer_pop(&conn->keybuffer, &ch);
-			arg1 = ch;
+			kbd_event_t ev;
+			keybuffer_pop(&conn->keybuffer, &ev);
+			arg1 = ev.type;
+			arg2 = ev.key;
+			arg3 = ev.mods;
+			arg4 = ev.c;
 			break;
 		}
-		ipc_answer_2(callid, EOK, arg1, arg2);
+		ipc_answer_4(callid, EOK, arg1, arg2, arg3, arg4);
 	}
 }
 

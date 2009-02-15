@@ -73,6 +73,7 @@ void key_pressed(keybuffer_t *keybuffer, unsigned char key)
 	int ascii = sc_primary_map[key];
 	int shift, capslock;
 	int letter = 0;
+	kbd_event_t ev;
 
 	static int esc_count = 0;
 
@@ -102,8 +103,12 @@ void key_pressed(keybuffer_t *keybuffer, unsigned char key)
 			shift = !shift;
 		if (shift)
 			map = sc_secondary_map;
-		if (map[key] != SPECIAL)
-			keybuffer_push(keybuffer, map[key]);	
+		if (map[key] != SPECIAL) {
+			ev.key = map[key];
+			ev.mods = 0;
+			ev.c = map[key];
+			keybuffer_push(keybuffer, &ev);
+		}
 		break;
 	}
 }

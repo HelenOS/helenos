@@ -192,7 +192,7 @@ int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
 			int key = lchars[scancode & 0x7f];
 			
 			if (key != SPECIAL)
-				keybuffer_push(keybuffer, key);
+				keybuffer_push0(keybuffer, key);
 		}
 	}
 	

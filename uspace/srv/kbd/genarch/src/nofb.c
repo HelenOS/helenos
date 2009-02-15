@@ -66,43 +66,43 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if (scan_code == 0x7e) {
 		switch (buf) {
 		case KEY_F5:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 5);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 5);
 			buf = count = 0;
 			return 1;
 		case KEY_F6:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 6);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 6);
 			buf = count = 0;
 			return 1;
 		case KEY_F7:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 7);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 7);
 			buf = count = 0;
 			return 1;
 		case KEY_F8:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 8);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 8);
 			buf = count = 0;
 			return 1;
 		case KEY_F9:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 9);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 9);
 			buf = count = 0;
 			return 1;
 		case KEY_F10:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 10);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 10);
 			buf = count = 0;
 			return 1;
 		case KEY_F11:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 11);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 11);
 			buf = count = 0;
 			return 1;
 		case KEY_F12:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 12);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 12);
 			buf = count = 0;
 			return 1;
 		default:
-			keybuffer_push(keybuffer, buf & 0xff);
-			keybuffer_push(keybuffer, (buf >> 8) &0xff);
-			keybuffer_push(keybuffer, (buf >> 16) &0xff);
-			keybuffer_push(keybuffer, (buf >> 24) &0xff);
-			keybuffer_push(keybuffer, scan_code);
+			keybuffer_push0(keybuffer, buf & 0xff);
+			keybuffer_push0(keybuffer, (buf >> 8) &0xff);
+			keybuffer_push0(keybuffer, (buf >> 16) &0xff);
+			keybuffer_push0(keybuffer, (buf >> 24) &0xff);
+			keybuffer_push0(keybuffer, scan_code);
 			buf = count = 0;
 			return 1;
 		}
@@ -111,7 +111,7 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	buf |= ((unsigned long) scan_code)<<(8*(count++));
 	
 	if((buf & 0xff) != (KEY_F1 & 0xff)) {
-		keybuffer_push(keybuffer, buf);
+		keybuffer_push0(keybuffer, buf);
 		buf = count = 0;
 		return 1;
 	}
@@ -122,8 +122,8 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if ((buf & 0xffff) != (KEY_F1 & 0xffff) 
 		&& (buf & 0xffff) != (KEY_F5 & 0xffff) ) {
 
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) &0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) &0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -133,19 +133,19 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 
 	switch (buf) {
 	case KEY_F1:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 1);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 1);
 		buf = count = 0;
 		return 1;
 	case KEY_F2:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 2);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 2);
 		buf = count = 0;
 		return 1;
 	case KEY_F3:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 3);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 3);
 		buf = count = 0;
 		return 1;
 	case KEY_F4:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 4);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 4);
 		buf = count = 0;
 		return 1;
 	}
@@ -154,9 +154,9 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if((buf & 0xffffff) != (KEY_F5 & 0xffffff)
 		&& (buf & 0xffffff) != (KEY_F9 & 0xffffff)) {
 
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) & 0xff);
-		keybuffer_push(keybuffer, (buf >> 16) & 0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
 		buf=count=0;
 		return 1;
 	}
@@ -175,10 +175,10 @@ int kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	case KEY_F12:
 		return 1;
 	default:
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) &0xff);
-		keybuffer_push(keybuffer, (buf >> 16) &0xff);
-		keybuffer_push(keybuffer, (buf >> 24) &0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) &0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) &0xff);
+		keybuffer_push0(keybuffer, (buf >> 24) &0xff);
 		buf = count = 0;
 		return 1;
 	}

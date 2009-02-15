@@ -122,10 +122,10 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 
 	/*
 	// Preserve for detecting scan codes. 
-	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
-	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
-	keybuffer_push(keybuffer, 'X');
-	keybuffer_push(keybuffer, 'Y');
+	keybuffer_push0(keybuffer, to_hex((scan_code>>4)&0xf));
+	keybuffer_push0(keybuffer, to_hex(scan_code&0xf));
+	keybuffer_push0(keybuffer, 'X');
+	keybuffer_push0(keybuffer, 'Y');
 	return 1;
 	*/
 
@@ -136,43 +136,43 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if (scan_code == GXEMUL_KEY_F5_F12_START_CODE) {
 		switch (buf) {
 		case GXEMUL_KEY_F5:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 5);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 5);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F6:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 6);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 6);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F7:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 7);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 7);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F8:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 8);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 8);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F9:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 9);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 9);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F10:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 10);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 10);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F11:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 11);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 11);
 			buf = count = 0;
 			return 1;
 		case GXEMUL_KEY_F12:
-			keybuffer_push(keybuffer,FUNCTION_KEYS | 12);
+			keybuffer_push0(keybuffer,FUNCTION_KEYS | 12);
 			buf = count = 0;
 			return 1;
 		default:
-			keybuffer_push(keybuffer, buf & 0xff);
-			keybuffer_push(keybuffer, (buf >> 8)  & 0xff);
-			keybuffer_push(keybuffer, (buf >> 16) & 0xff);
-			keybuffer_push(keybuffer, (buf >> 24) & 0xff);
-			keybuffer_push(keybuffer, scan_code);
+			keybuffer_push0(keybuffer, buf & 0xff);
+			keybuffer_push0(keybuffer, (buf >> 8)  & 0xff);
+			keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
+			keybuffer_push0(keybuffer, (buf >> 24) & 0xff);
+			keybuffer_push0(keybuffer, scan_code);
 			buf = count = 0;
 			return 1;
 		}
@@ -182,7 +182,7 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	buf |= ((unsigned long) scan_code) << (8 * (count++));
 	
 	if ((buf & 0xff) != (GXEMUL_KEY_F1 & 0xff)) {
-		keybuffer_push(keybuffer, buf);
+		keybuffer_push0(keybuffer, buf);
 		buf = count = 0;
 		return 1;
 	}
@@ -194,8 +194,8 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if ((buf & 0xffff) != (GXEMUL_KEY_F1 & 0xffff) 
 		&& (buf & 0xffff) != (GXEMUL_KEY_F5 & 0xffff) ) {
 
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) &0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) &0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -206,19 +206,19 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 
 	switch (buf) {
 	case GXEMUL_KEY_F1:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 1);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 1);
 		buf = count = 0;
 		return 1;
 	case GXEMUL_KEY_F2:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 2);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 2);
 		buf = count = 0;
 		return 1;
 	case GXEMUL_KEY_F3:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 3);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 3);
 		buf = count = 0;
 		return 1;
 	case GXEMUL_KEY_F4:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 4);
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 4);
 		buf = count = 0;
 		return 1;
 	}
@@ -227,9 +227,9 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	if ((buf & 0xffffff) != (GXEMUL_KEY_F5 & 0xffffff)
 		&& (buf & 0xffffff) != (GXEMUL_KEY_F9 & 0xffffff)) {
 
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) & 0xff);
-		keybuffer_push(keybuffer, (buf >> 16) & 0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -249,10 +249,10 @@ static int gxemul_kbd_process_no_fb(keybuffer_t *keybuffer, int scan_code)
 	case GXEMUL_KEY_F12:
 		return 1;
 	default:
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8)  & 0xff);
-		keybuffer_push(keybuffer, (buf >> 16) & 0xff);
-		keybuffer_push(keybuffer, (buf >> 24) & 0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8)  & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 24) & 0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -278,10 +278,10 @@ static int gxemul_kbd_process_fb(keybuffer_t *keybuffer, int scan_code)
 
 	/*
 	// Please preserve this code (it can be used to determine scancodes)
-	keybuffer_push(keybuffer, to_hex((scan_code>>4)&0xf));
-	keybuffer_push(keybuffer, to_hex(scan_code&0xf));
-	keybuffer_push(keybuffer, ' ');
-	keybuffer_push(keybuffer, ' ');
+	keybuffer_push0(keybuffer, to_hex((scan_code>>4)&0xf));
+	keybuffer_push0(keybuffer, to_hex(scan_code&0xf));
+	keybuffer_push0(keybuffer, ' ');
+	keybuffer_push0(keybuffer, ' ');
 	return 1;
 	*/
 	
@@ -294,7 +294,7 @@ static int gxemul_kbd_process_fb(keybuffer_t *keybuffer, int scan_code)
 	
 	
 	if ((buf & 0xff) != (GXEMUL_FB_KEY_F1 & 0xff)) {
-		keybuffer_push(keybuffer, buf);
+		keybuffer_push0(keybuffer, buf);
 		buf = count = 0;
 		return 1;
 	}
@@ -304,8 +304,8 @@ static int gxemul_kbd_process_fb(keybuffer_t *keybuffer, int scan_code)
 	}
 
 	if ((buf & 0xffff) != (GXEMUL_FB_KEY_F1 & 0xffff)) {
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) &0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) &0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -318,9 +318,9 @@ static int gxemul_kbd_process_fb(keybuffer_t *keybuffer, int scan_code)
 		&& (buf & 0xffffff) != (GXEMUL_FB_KEY_F5 & 0xffffff)
 		&& (buf & 0xffffff) != (GXEMUL_FB_KEY_F9 & 0xffffff)) {
 
-		keybuffer_push(keybuffer, buf & 0xff);
-		keybuffer_push(keybuffer, (buf >> 8) & 0xff);
-		keybuffer_push(keybuffer, (buf >> 16) & 0xff);
+		keybuffer_push0(keybuffer, buf & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 8) & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
 		buf = count = 0;
 		return 1;
 	}
@@ -331,58 +331,58 @@ static int gxemul_kbd_process_fb(keybuffer_t *keybuffer, int scan_code)
 
 	switch (buf) {
 	case GXEMUL_FB_KEY_F1:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 1 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 1 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F2:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 2 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 2 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F3:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 3 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 3 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F4:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 4 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 4 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F5:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 5 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 5 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F6:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 6 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 6 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F7:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 7 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 7 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F8:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 8 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 8 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F9:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 9 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 9 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F10:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 10 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 10 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F11:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 11 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 11 );
 		buf = count = 0;
 		return 1;
 	case GXEMUL_FB_KEY_F12:
-		keybuffer_push(keybuffer,FUNCTION_KEYS | 12 );
+		keybuffer_push0(keybuffer,FUNCTION_KEYS | 12 );
 		buf = count = 0;
 		return 1;
 	default:
-		keybuffer_push(keybuffer, buf & 0xff );
-		keybuffer_push(keybuffer, (buf >> 8)  & 0xff);
-		keybuffer_push(keybuffer, (buf >> 16) & 0xff);
-		keybuffer_push(keybuffer, (buf >> 24) & 0xff);
+		keybuffer_push0(keybuffer, buf & 0xff );
+		keybuffer_push0(keybuffer, (buf >> 8)  & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 16) & 0xff);
+		keybuffer_push0(keybuffer, (buf >> 24) & 0xff);
 		buf = count = 0;
 		return 1;
 	}

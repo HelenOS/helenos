@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{ 
  */
 /** @file
  */
 
-#ifndef LIBC_IPC_CONSOLE_H_
-#define LIBC_IPC_CONSOLE_H_
+#ifndef LIBC_KBD_H_
+#define LIBC_KBD_H_
 
-#include <ipc/ipc.h>
+typedef enum kbd_ev_type {
+	KE_PRESS,
+	KE_RELEASE
+} kbd_ev_type_t;
 
-typedef enum {
-	CONSOLE_GETKEY = IPC_FIRST_USER_METHOD,
-	CONSOLE_PUTCHAR,
-	CONSOLE_CLEAR,
-	CONSOLE_GOTO,
-	CONSOLE_GETSIZE,
-	CONSOLE_FLUSH,
-	CONSOLE_SET_STYLE,
-	CONSOLE_SET_COLOR,
-	CONSOLE_SET_RGB_COLOR,
-	CONSOLE_CURSOR_VISIBILITY
-} console_request_t;
+/** Keyboard event structure. */
+typedef struct {
+	/** Press or release event. */
+	kbd_ev_type_t type;
+
+	/** Keycode of the key that was pressed or released. */
+	unsigned int key;
+
+	/** Bitmask of modifiers held. */
+	unsigned int mods;
+
+	/** The character that was generated or '\0' for none. */
+	char c;
+} kbd_event_t;
+
+extern int kbd_get_event(kbd_event_t *);
 
 #endif
  

@@ -38,23 +38,25 @@
 #define __KEY_BUFFER_H__
 
 #include <sys/types.h>
+#include <kbd/kbd.h>
 
 /** Size of buffer for pressed keys */
 #define KEYBUFFER_SIZE 128 
 
 typedef struct {
-	int fifo[KEYBUFFER_SIZE];
+	kbd_event_t fifo[KEYBUFFER_SIZE];
 	unsigned long head;
 	unsigned long tail;
 	unsigned long items;
 } keybuffer_t;
 
-void keybuffer_free(keybuffer_t *keybuffer);
-void keybuffer_init(keybuffer_t *keybuffer);
-int keybuffer_available(keybuffer_t *keybuffer);
-int keybuffer_empty(keybuffer_t *keybuffer);
-void keybuffer_push(keybuffer_t *keybuffer, int key);
-int keybuffer_pop(keybuffer_t *keybuffer, int *c);
+extern void keybuffer_free(keybuffer_t *);
+extern void keybuffer_init(keybuffer_t *);
+extern int keybuffer_available(keybuffer_t *);
+extern int keybuffer_empty(keybuffer_t *);
+extern void keybuffer_push(keybuffer_t *, const kbd_event_t *);
+extern void keybuffer_push0(keybuffer_t *, int c);
+extern int keybuffer_pop(keybuffer_t *, kbd_event_t *);
 
 #endif
 

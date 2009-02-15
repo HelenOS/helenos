@@ -79,6 +79,7 @@ GENERIC_SOURCES = \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \
+	generic/kbd.c \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \

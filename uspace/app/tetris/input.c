@@ -114,7 +114,7 @@ rwait(struct timeval *tvp)
 		if (!getchar_inprog) {
 			cons_phone = get_cons_phone();
 			getchar_inprog = async_send_2(cons_phone,
-			    CONSOLE_GETCHAR, 0, 0, &charcall);
+			    CONSOLE_GETKEY, 0, 0, &charcall);
 		}
 		if (!s) 
 			async_wait_for(getchar_inprog, &rc);
@@ -127,7 +127,7 @@ rwait(struct timeval *tvp)
 		if (rc) {
 			stop("end of file, help");
 		}
-		lastchar = IPC_GET_ARG1(charcall);
+		lastchar = IPC_GET_ARG4(charcall);
 	}
 	if (tvp) {
 		/* since there is input, we may not have timed out */

@@ -42,12 +42,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ipc/ns.h>
+#include <async.h>
 #include <errno.h>
+#include <libadt/fifo.h>
+#include <kbd/kbd.h>
+
 #include <arch/kbd.h>
 #include <kbd.h>
-#include <libadt/fifo.h>
 #include <key_buffer.h>
-#include <async.h>
 #include <keys.h>
 
 #define NAME "kbd"
@@ -58,7 +60,7 @@ keybuffer_t keybuffer;
 
 static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	int chr;
+	kbd_event_t ev;
 
 #ifdef MOUSE_ENABLED
 	if (mouse_arch_process(phone2cons, call))
@@ -69,14 +71,15 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 
 	if (cons_connected && phone2cons != -1) {
 		/*
-		 * recode to ASCII - one interrupt can produce more than one
-		 * code so result is stored in fifo
+		 * One interrupt can produce more than one event so the result
+		 * is stored in a FIFO.
 		 */
 		while (!keybuffer_empty(&keybuffer)) {
-			if (!keybuffer_pop(&keybuffer, (int *)&chr))
+			if (!keybuffer_pop(&keybuffer, &ev))
 				break;
 
-			async_msg_1(phone2cons, KBD_PUSHCHAR, chr);
+			async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key,
+			    ev.mods, ev.c);
 		}
 	}
 }
