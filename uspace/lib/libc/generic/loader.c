@@ -34,6 +34,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/loader.h>
+#include <ipc/services.h>
 #include <libc.h>
 #include <task.h>
 #include <string.h>
@@ -50,25 +51,19 @@
  * @return	Pointer to the loader connection structure (should be
  *		de-allocated using free() after use).
  */
-loader_t *loader_spawn(const char *name)
+int loader_spawn(const char *name)
 {
-	int phone_id, rc;
+	return __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
+	    (sysarg_t) name, strlen(name));
+}
+
+loader_t *loader_connect(void)
+{
 	loader_t *ldr;
+	int phone_id;
 
-	/*
-	 * Ask kernel to spawn a new loader task.
-	 */
-	rc = __SYSCALL3(SYS_PROGRAM_SPAWN_LOADER, (sysarg_t) &phone_id,
-		(sysarg_t) name, strlen(name));
-	if (rc != 0)
-		return NULL;
-
-	/*
-	 * Say hello so that the loader knows the incoming connection's
-	 * phone hash.
-	 */
-	rc = async_req_0_0(phone_id, LOADER_HELLO);
-	if (rc != EOK)
+	phone_id = ipc_connect_me_to(PHONE_NS, SERVICE_LOAD, 0, 0);
+	if (phone_id < 0)
 		return NULL;
 
 	ldr = malloc(sizeof(loader_t));
@@ -76,7 +71,7 @@ loader_t *loader_spawn(const char *name)
 		return NULL;
 
 	ldr->phone_id = phone_id;
-	return ldr;
+	return ldr;	
 }
 
 /** Get ID of the new task.

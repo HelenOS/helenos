@@ -40,6 +40,7 @@
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <stdio.h>
+#include <bool.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -47,6 +48,7 @@
 #include <libadt/list.h>
 #include <libadt/hash_table.h>
 #include <sysinfo.h>
+#include <loader/loader.h>
 #include <ddi.h>
 #include <as.h>
 
@@ -56,6 +58,11 @@
 
 static int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
 static int connect_to_service(ipcarg_t service, ipc_call_t *call,
+    ipc_callid_t callid);
+
+void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
+    ipc_callid_t callid);
+void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
     ipc_callid_t callid);
 
 /* Static functions implementing NS hash table operations. */
@@ -83,6 +90,23 @@ typedef struct {
 
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
+
+/** Request for connection to a clonable service. */
+typedef struct {
+	link_t link;
+	ipcarg_t service;
+	ipc_call_t *call;
+	ipc_callid_t callid;
+} cs_req_t;
+
+/** List of clonable-service connection requests. */
+static link_t cs_req;
+
+/** Return true if @a service is clonable. */
+static bool service_clonable(int service)
+{
+	return service == SERVICE_LOAD;
+}
 
 static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name,
     void **addr)
@@ -116,6 +140,8 @@ int main(int argc, char **argv)
 		printf(NAME ": No memory available\n");
 		return ENOMEM;
 	}
+
+	list_initialize(&cs_req);
 	
 	printf(NAME ": Accepting connections\n");
 	while (1) {
@@ -142,15 +168,27 @@ int main(int argc, char **argv)
 			/*
 			 * Server requests service registration.
 			 */
-			retval = register_service(IPC_GET_ARG1(call),
-			    IPC_GET_ARG5(call), &call);
+			if (service_clonable(IPC_GET_ARG1(call))) {
+				register_clonable(IPC_GET_ARG1(call),
+				    IPC_GET_ARG5(call), &call, callid);
+				continue;
+			} else {
+				retval = register_service(IPC_GET_ARG1(call),
+				    IPC_GET_ARG5(call), &call);
+			}
 			break;
 		case IPC_M_CONNECT_ME_TO:
 			/*
 			 * Client requests to be connected to a service.
 			 */
-			retval = connect_to_service(IPC_GET_ARG1(call), &call,
-			    callid);
+			if (service_clonable(IPC_GET_ARG1(call))) {
+				connect_to_clonable(IPC_GET_ARG1(call),
+				    &call, callid);
+				continue;
+			} else {
+				retval = connect_to_service(IPC_GET_ARG1(call),
+				    &call, callid);
+			}
 			break;
 		default:
 			retval = ENOENT;
@@ -167,11 +205,11 @@ int main(int argc, char **argv)
 
 /** Register service.
  *
- * @param service Service to be registered.
- * @param phone Phone to be used for connections to the service.
- * @param call Pointer to call structure.
+ * @param service	Service to be registered.
+ * @param phone		Phone to be used for connections to the service.
+ * @param call		Pointer to call structure.
  *
- * @return Zero on success or a value from @ref errno.h.
+ * @return		Zero on success or a value from @ref errno.h.
  */
 int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 {
@@ -181,7 +219,7 @@ int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 		0
 	};
 	hashed_service_t *hs;
-			
+
 	if (hash_table_find(&ns_hash_table, keys)) {
 		return EEXISTS;
 	}
@@ -202,9 +240,9 @@ int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 
 /** Connect client to service.
  *
- * @param service Service to be connected to.
- * @param call Pointer to call structure.
- * @param callid Call ID of the request.
+ * @param service	Service to be connected to.
+ * @param call		Pointer to call structure.
+ * @param callid	Call ID of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
  */
@@ -213,7 +251,7 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 	unsigned long keys[3] = { service, 0, 0 };
 	link_t *hlp;
 	hashed_service_t *hs;
-			
+
 	hlp = hash_table_find(&ns_hash_table, keys);
 	if (!hlp) {
 		return ENOENT;
@@ -221,6 +259,82 @@ int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 	hs = hash_table_get_instance(hlp, hashed_service_t, link);
 	return ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call), 
 		IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+}
+
+/** Register clonable service.
+ *
+ * @param service	Service to be registered.
+ * @param phone		Phone to be used for connections to the service.
+ * @param call		Pointer to call structure.
+ */
+void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
+    ipc_callid_t callid)
+{
+	int rc;
+	cs_req_t *csr;
+
+	if (list_empty(&cs_req)) {
+		/* There was no pending connection request. */
+		printf(NAME ": Unexpected clonable server.\n");
+		ipc_answer_0(callid, EBUSY);
+		return;
+	}
+
+	csr = list_get_instance(cs_req.next, cs_req_t, link);
+	list_remove(&csr->link);
+
+	/* Currently we can only handle a single type of clonable service. */
+	assert(csr->service == SERVICE_LOAD);
+
+	ipc_answer_0(callid, EOK);
+
+	rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(*csr->call),
+		IPC_GET_ARG3(*csr->call), 0, IPC_FF_NONE);
+
+	free(csr);
+}
+
+/** Connect client to clonable service.
+ *
+ * @param service	Service to be connected to.
+ * @param call		Pointer to call structure.
+ * @param callid	Call ID of the request.
+ *
+ * @return		Zero on success or a value from @ref errno.h.
+ */
+void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
+    ipc_callid_t callid)
+{
+	int rc;
+	cs_req_t *csr;
+
+	assert(service == SERVICE_LOAD);
+
+	csr = malloc(sizeof(cs_req_t));
+	if (csr == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		return;
+	}
+
+	/* Spawn a loader. */
+	rc = loader_spawn("loader");
+
+	if (rc < 0) {
+		free(csr);
+		ipc_answer_0(callid, rc);
+		return;
+	}
+
+	csr->service = service;
+	csr->call = call;
+	csr->callid = callid;
+
+	/*
+	 * We can forward the call only after the server we spawned connects
+	 * to us. Meanwhile we might need to service more connection requests.
+	 * Thus we store the call in a queue.
+	 */
+	list_append(&csr->link, &cs_req);
 }
 
 /** Compute hash index into NS hash table.

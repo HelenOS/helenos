@@ -190,31 +190,19 @@ void program_ready(program_t *p)
 
 /** Syscall for creating a new loader instance from userspace.
  *
- * Creates a new task from the program loader image, connects a phone
- * to it and stores the phone id into the provided buffer.
+ * Creates a new task from the program loader image and sets
+ * the task name.
  *
- * @param uspace_phone_id	Userspace address where to store the phone id.
  * @param name			Name to set on the new task (typically the same
  *				as the command used to execute it).
  *
  * @return 0 on success or an error code from @ref errno.h.
  */
-unative_t sys_program_spawn_loader(int *uspace_phone_id, char *uspace_name,
-    size_t name_len)
+unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 {
 	program_t p;
-	int fake_id;
 	int rc;
-	int phone_id;
 	char namebuf[TASK_NAME_BUFLEN];
-
-	fake_id = 0;
-
-	/* Before we even try creating the task, see if we can write the id */
-	rc = (unative_t) copy_to_uspace(uspace_phone_id, &fake_id,
-	    sizeof(fake_id));
-	if (rc != 0)
-		return rc;
 
 	/* Cap length of name and copy it from userspace. */
 
@@ -227,29 +215,11 @@ unative_t sys_program_spawn_loader(int *uspace_phone_id, char *uspace_name,
 
 	namebuf[name_len] = '\0';
 
-	/* Allocate the phone for communicating with the new task. */
-
-	phone_id = phone_alloc();
-	if (phone_id < 0)
-		return ELIMIT;
-
 	/* Spawn the new task. */
 
 	rc = program_create_loader(&p, namebuf);
 	if (rc != 0)
 		return rc;
-
-	phone_connect(phone_id, &p.task->answerbox);
-
-	/* No need to aquire lock before task_ready() */
-	rc = (unative_t) copy_to_uspace(uspace_phone_id, &phone_id,
-	    sizeof(phone_id));
-	if (rc != 0) {
-		/* Ooops */
-		ipc_phone_hangup(&TASK->phones[phone_id]);
-		task_kill(p.task->taskid);
-		return rc;
-	}
 
 	// FIXME: control the capabilities
 	cap_set(p.task, cap_get(TASK));

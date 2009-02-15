@@ -59,8 +59,7 @@ extern int program_create_from_image(void *image_addr, char *name,
 extern int program_create_loader(program_t *p, char *name);
 extern void program_ready(program_t *p);
 
-extern unative_t sys_program_spawn_loader(int *uspace_phone_id,
-    char *uspace_name, size_t name_len);
+extern unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len);
 
 #endif
 

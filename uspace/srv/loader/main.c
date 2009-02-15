@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <ipc/ipc.h>
+#include <ipc/services.h>
 #include <ipc/loader.h>
 #include <loader/pcb.h>
 #include <errno.h>
@@ -79,6 +80,8 @@ static elf_info_t interp_info;
 
 static bool is_dyn_linked;
 
+/** Used to limit number of connections to one. */
+static bool connected;
 
 static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -297,6 +300,17 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
+	/* Already have a connection? */
+	if (connected) {
+		ipc_answer_0(iid, ELIMIT);
+		return;
+	}
+
+	connected = true;
+	
+	/* Accept the connection */
+	ipc_answer_0(iid, EOK);
+
 	/* Ignore parameters, the connection is already open */
 	(void)iid; (void)icall;
 
@@ -338,31 +352,20 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	ipcarg_t phone_hash;
+	ipcarg_t phonead;
 
-	/* The first call only communicates the incoming phone hash */
-	callid = ipc_wait_for_call(&call);
+	connected = false;
+	
+	/* Set a handler of incomming connections. */
+	async_set_client_connection(loader_connection);
 
-	if (IPC_GET_METHOD(call) != LOADER_HELLO) {
-		if (IPC_GET_METHOD(call) != IPC_M_PHONE_HUNGUP)
-			ipc_answer_0(callid, EINVAL);
-		return 1;
-	}
-
-	ipc_answer_0(callid, EOK);
-	phone_hash = call.in_phone_hash;
-
-	/* 
-	 * Up until now async must not be used as it couldn't
-	 * handle incoming requests. (Which means e.g. printf() 
-	 * cannot be used)
-	 */
-	async_new_connection(phone_hash, 0, NULL, loader_connection);
+	/* Register at naming service. */
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, &phonead) != 0) 
+		return -1;
+	
 	async_manager();
 
-	/* not reached */
+	/* Never reached */
 	return 0;
 }
 
