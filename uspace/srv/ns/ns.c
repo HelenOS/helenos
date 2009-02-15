@@ -95,7 +95,7 @@ static void *klogaddr = NULL;
 typedef struct {
 	link_t link;
 	ipcarg_t service;
-	ipc_call_t *call;
+	ipc_call_t call;
 	ipc_callid_t callid;
 } cs_req_t;
 
@@ -288,8 +288,8 @@ void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
 
 	ipc_answer_0(callid, EOK);
 
-	rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(*csr->call),
-		IPC_GET_ARG3(*csr->call), 0, IPC_FF_NONE);
+	rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
+		IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
 
 	free(csr);
 }
@@ -326,7 +326,7 @@ void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
 	}
 
 	csr->service = service;
-	csr->call = call;
+	csr->call = *call;
 	csr->callid = callid;
 
 	/*
