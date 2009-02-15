@@ -123,12 +123,12 @@ void i8042_release(void)
 	interrupts_restore(ipl);
 }
 
-static irq_ownership_t i8042_claim(void)
+static irq_ownership_t i8042_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
 
-static void i8042_irq_handler(irq_t *irq, void *arg, ...)
+static void i8042_irq_handler(irq_t *irq)
 {
 	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);

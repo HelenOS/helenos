@@ -188,7 +188,7 @@ static void irq_interrupt(int n, istate_t *istate __attribute__((unused)))
 			trap_virtual_eoi();
 			ack = true;
 		}
-		irq->handler(irq, irq->arg);
+		irq->handler(irq);
 		spinlock_unlock(&irq->lock);
 	} else {
 		/*

@@ -186,7 +186,7 @@ static void ski_kbd_disable(chardev_t *d)
  *
  * @return Always IRQ_DECLINE.
  */
-static irq_ownership_t ski_kbd_claim(void)
+static irq_ownership_t ski_kbd_claim(void *instance)
 {
 	return IRQ_DECLINE;
 }

@@ -266,7 +266,7 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 	case INTERRUPT_TIMER:
 		irq = irq_dispatch_and_lock(ivr.vector);
 		if (irq) {
-			irq->handler(irq, irq->arg);
+			irq->handler(irq);
 			spinlock_unlock(&irq->lock);
 		} else {
 			panic("Unhandled Internal Timer Interrupt (%d).",
@@ -283,7 +283,7 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 				/* Send EOI before processing the interrupt */
 				end_of_local_irq();
 			}
-			irq->handler(irq, irq->arg);
+			irq->handler(irq);
 			if (!irq->preack)
 				end_of_local_irq();
 			spinlock_unlock(&irq->lock);

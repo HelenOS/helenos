@@ -80,3 +80,4 @@ static inline bool is_us_iv(void)
 
 /** @}
  */
+

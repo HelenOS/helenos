@@ -101,7 +101,7 @@ chardev_t null_stdout = {
  *
  * @return Always returns IRQ_DECLINE.
  */
-static irq_ownership_t klog_claim(void)
+static irq_ownership_t klog_claim(void *instance)
 {
 	return IRQ_DECLINE;
 }

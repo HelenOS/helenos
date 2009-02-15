@@ -94,7 +94,7 @@ static char msim_do_read(chardev_t *dev)
 }
 
 /** Process keyboard interrupt. */
-static void msim_irq_handler(irq_t *irq, void *arg, ...)
+static void msim_irq_handler(irq_t *irq)
 {
 	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
 		ipc_irq_send_notif(irq);
@@ -110,7 +110,7 @@ static void msim_irq_handler(irq_t *irq, void *arg, ...)
 	}
 }
 
-static irq_ownership_t msim_claim(void)
+static irq_ownership_t msim_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }

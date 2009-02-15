@@ -56,3 +56,4 @@ static inline ofw_tree_node_t *cpus_parent(void)
 
 /** @}
  */
+

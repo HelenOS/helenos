@@ -61,12 +61,12 @@
 
 static irq_t i8254_irq;
 
-static irq_ownership_t i8254_claim(void)
+static irq_ownership_t i8254_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
 
-static void i8254_irq_handler(irq_t *irq, void *arg __attribute__((unused)), ...)
+static void i8254_irq_handler(irq_t *irq)
 {
 	/*
 	 * This IRQ is responsible for kernel preemption.

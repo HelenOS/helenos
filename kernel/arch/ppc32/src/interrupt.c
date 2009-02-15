@@ -73,7 +73,7 @@ static void exception_external(int n, istate_t *istate)
 				ack = true;
 			}
 			
-			irq->handler(irq, irq->arg);
+			irq->handler(irq);
 			spinlock_unlock(&irq->lock);
 		} else {
 			/*

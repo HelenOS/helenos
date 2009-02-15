@@ -184,9 +184,8 @@ static char gxemul_do_read(chardev_t *dev)
 /** Process keyboard interrupt. 
  *  
  *  @param irq IRQ information.
- *  @param arg Not used.
  */
-static void gxemul_irq_handler(irq_t *irq, void *arg, ...)
+static void gxemul_irq_handler(irq_t *irq)
 {
 	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox)) {
 		ipc_irq_send_notif(irq);
@@ -204,7 +203,7 @@ static void gxemul_irq_handler(irq_t *irq, void *arg, ...)
 	}
 }
 
-static irq_ownership_t gxemul_claim(void)
+static irq_ownership_t gxemul_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
@@ -266,7 +265,7 @@ static void gxemul_timer_start(uint32_t frequency)
 	*((uint32_t*) gxemul_hw_map.rtc_freq) = frequency;
 }
 
-static irq_ownership_t gxemul_timer_claim(void)
+static irq_ownership_t gxemul_timer_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
@@ -276,7 +275,7 @@ static irq_ownership_t gxemul_timer_claim(void)
  * @param irq Interrupt information.
  * @param arg Not used.
  */
-static void gxemul_timer_irq_handler(irq_t *irq, void *arg, ...)
+static void gxemul_timer_irq_handler(irq_t *irq)
 {
 	/*
 	* We are holding a lock which prevents preemption.
@@ -370,7 +369,7 @@ void gxemul_irq_exception(int exc_no, istate_t *istate)
 			irq_t *irq = irq_dispatch_and_lock(i);
 			if (irq) {
 				/* The IRQ handler was found. */
-				irq->handler(irq, irq->arg);
+				irq->handler(irq);
 				spinlock_unlock(&irq->lock);
 			} else {
 				/* Spurious interrupt.*/

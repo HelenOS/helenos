@@ -132,12 +132,12 @@ static void apic_spurious(int n __attribute__((unused)), istate_t *istate __attr
 #endif
 }
 
-static irq_ownership_t l_apic_timer_claim(void)
+static irq_ownership_t l_apic_timer_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
 
-static void l_apic_timer_irq_handler(irq_t *irq, void *arg __attribute__((unused)), ...)
+static void l_apic_timer_irq_handler(irq_t *irq)
 {
 	/*
 	 * Holding a spinlock could prevent clock() from preempting

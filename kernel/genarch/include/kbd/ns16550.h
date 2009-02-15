@@ -46,8 +46,8 @@ extern void ns16550_poll(void);
 extern void ns16550_grab(void);
 extern void ns16550_release(void);
 extern char ns16550_key_read(chardev_t *);
-extern irq_ownership_t ns16550_claim(void);
-extern void ns16550_irq_handler(irq_t *, void *, ...);
+extern irq_ownership_t ns16550_claim(void *);
+extern void ns16550_irq_handler(irq_t *);
 
 #include <arch/types.h>
 #ifndef ia64

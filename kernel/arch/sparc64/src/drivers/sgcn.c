@@ -319,7 +319,7 @@ static char sgcn_key_read(chardev_t *d)
 /**
  * The driver works in polled mode, so no interrupt should be handled by it.
  */
-static irq_ownership_t sgcn_claim(void)
+static irq_ownership_t sgcn_claim(void *instance)
 {
 	return IRQ_DECLINE;
 }
@@ -327,7 +327,7 @@ static irq_ownership_t sgcn_claim(void)
 /**
  * The driver works in polled mode, so no interrupt should be handled by it.
  */
-static void sgcn_irq_handler(irq_t *irq, void *arg, ...)
+static void sgcn_irq_handler(irq_t *irq)
 {
 	panic("Not yet implemented, SGCN works in polled mode.");
 }

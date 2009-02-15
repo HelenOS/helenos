@@ -79,10 +79,10 @@ typedef enum {
 } irq_trigger_t;
 
 struct irq;
-typedef void (* irq_handler_t)(struct irq *irq, void *arg, ...);
+typedef void (* irq_handler_t)(struct irq *);
 
 /** Type for function used to clear the interrupt. */
-typedef void (* cir_t)(void *arg, inr_t inr);
+typedef void (* cir_t)(void *, inr_t);
 
 /** IPC notification config structure.
  *
@@ -139,11 +139,11 @@ typedef struct irq {
 	/** Trigger level of the IRQ. */
 	irq_trigger_t trigger;
 	/** Claim ownership of the IRQ. */
-	irq_ownership_t (* claim)(void);
+	irq_ownership_t (* claim)(void *);
 	/** Handler for this IRQ and device. */
 	irq_handler_t handler;
-	/** Argument for the handler. */
-	void *arg;
+	/** Instance argument for the handler and the claim function. */
+	void *instance;
 
 	/** Clear interrupt routine. */
 	cir_t cir;
@@ -154,11 +154,11 @@ typedef struct irq {
 	ipc_notif_cfg_t notif_cfg; 
 } irq_t;
 
-extern void irq_init(count_t inrs, count_t chains);
-extern void irq_initialize(irq_t *irq);
-extern void irq_register(irq_t *irq);
-extern irq_t *irq_dispatch_and_lock(inr_t inr);
-extern irq_t *irq_find_and_lock(inr_t inr, devno_t devno);
+extern void irq_init(count_t, count_t);
+extern void irq_initialize(irq_t *);
+extern void irq_register(irq_t *);
+extern irq_t *irq_dispatch_and_lock(inr_t);
+extern irq_t *irq_find_and_lock(inr_t, devno_t);
 
 #endif
 

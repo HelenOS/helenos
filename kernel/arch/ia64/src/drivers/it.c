@@ -56,8 +56,8 @@ uint64_t it_delta;
 
 static irq_t it_irq;
 
-static irq_ownership_t it_claim(void);
-static void it_interrupt(irq_t *irq, void *arg, ...);
+static irq_ownership_t it_claim(void *);
+static void it_interrupt(irq_t *irq);
 
 /** Initialize Interval Timer. */
 void it_init(void)
@@ -104,13 +104,13 @@ void it_init(void)
  *
  * @return Always IRQ_ACCEPT.
  */
-irq_ownership_t it_claim(void)
+irq_ownership_t it_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
 
 /** Process Interval Timer interrupt. */
-void it_interrupt(irq_t *irq, void *arg, ...)
+void it_interrupt(irq_t *irq)
 {
 	int64_t c;
 	int64_t m;

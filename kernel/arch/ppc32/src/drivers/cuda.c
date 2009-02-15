@@ -249,7 +249,7 @@ int cuda_get_scancode(void)
 	return -1;
 }
 
-static void cuda_irq_handler(irq_t *irq, void *arg, ...)
+static void cuda_irq_handler(irq_t *irq)
 {
 	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
 		ipc_irq_send_notif(irq);
@@ -264,7 +264,7 @@ static void cuda_irq_handler(irq_t *irq, void *arg, ...)
 	}
 }
 
-static irq_ownership_t cuda_claim(void)
+static irq_ownership_t cuda_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }

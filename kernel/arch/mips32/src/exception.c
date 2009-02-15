@@ -144,7 +144,7 @@ static void interrupt_exception(int n, istate_t *istate)
 	int i;
 	
 	/* decode interrupt number and process the interrupt */
-	cause = (cp0_cause_read() >> 8) &0xff;
+	cause = (cp0_cause_read() >> 8) & 0xff;
 	
 	for (i = 0; i < 8; i++) {
 		if (cause & (1 << i)) {
@@ -153,14 +153,15 @@ static void interrupt_exception(int n, istate_t *istate)
 				/*
 				 * The IRQ handler was found.
 				 */
-				irq->handler(irq, irq->arg);
+				irq->handler(irq);
 				spinlock_unlock(&irq->lock);
 			} else {
 				/*
 				 * Spurious interrupt.
 				 */
 #ifdef CONFIG_DEBUG
-				printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, i);
+				printf("cpu%u: spurious interrupt (inum=%d)\n",
+				    CPU->id, i);
 #endif
 			}
 		}

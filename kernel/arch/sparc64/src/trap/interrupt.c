@@ -86,7 +86,7 @@ void interrupt(int n, istate_t *istate)
 		/*
 		 * The IRQ handler was found.
 		 */
-		irq->handler(irq, irq->arg);
+		irq->handler(irq);
 		/*
 		 * See if there is a clear-interrupt-routine and call it.
 		 */

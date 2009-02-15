@@ -112,7 +112,7 @@ static void serial_handler(void)
 }
 
 /** Process keyboard interrupt. Does not work in simics? */
-static void serial_irq_handler(irq_t *irq, void *arg, ...)
+static void serial_irq_handler(irq_t *irq)
 {
 	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
 		ipc_irq_send_notif(irq);
@@ -120,7 +120,7 @@ static void serial_irq_handler(irq_t *irq, void *arg, ...)
 		serial_handler();
 }
 
-static irq_ownership_t serial_claim(void)
+static irq_ownership_t serial_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }

@@ -39,7 +39,8 @@
  *
  * This code is designed to support:
  * - multiple devices sharing single IRQ
- * - multiple IRQs per signle device
+ * - multiple IRQs per single device
+ * - multiple instances of the same device
  *
  *
  * Note about architectures.
@@ -144,7 +145,7 @@ void irq_initialize(irq_t *irq)
 	irq->trigger = (irq_trigger_t) 0;
 	irq->claim = NULL;
 	irq->handler = NULL;
-	irq->arg = NULL;
+	irq->instance = NULL;
 	irq->cir = NULL;
 	irq->cir_arg = NULL;
 	irq->notif_cfg.notify = false;
@@ -306,7 +307,8 @@ bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 	spinlock_lock(&irq->lock);
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock(). */
-		rv = ((irq->inr == inr) && (irq->claim() == IRQ_ACCEPT));
+		rv = ((irq->inr == inr) &&
+		    (irq->claim(irq->instance) == IRQ_ACCEPT));
 	} else {
 		/* Invoked by irq_find_and_lock(). */
 		rv = ((irq->inr == inr) && (irq->devno == devno));
@@ -365,7 +367,7 @@ bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
 	spinlock_lock(&irq->lock);
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock() */
-		rv = (irq->claim() == IRQ_ACCEPT);
+		rv = (irq->claim(irq->instance) == IRQ_ACCEPT);
 	} else {
 		/* Invoked by irq_find_and_lock() */
 		rv = (irq->devno == devno);

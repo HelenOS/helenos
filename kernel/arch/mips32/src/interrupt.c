@@ -100,12 +100,12 @@ static void timer_start(void)
 	cp0_compare_write(nextcount);
 }
 
-static irq_ownership_t timer_claim(void)
+static irq_ownership_t timer_claim(void *instance)
 {
 	return IRQ_ACCEPT;
 }
 
-static void timer_irq_handler(irq_t *irq, void *arg, ...)
+static void timer_irq_handler(irq_t *irq)
 {
 	unsigned long drift;
 	

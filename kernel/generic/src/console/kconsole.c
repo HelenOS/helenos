@@ -103,7 +103,7 @@ irq_t kconsole_irq;
  * @return Always returns IRQ_DECLINE.
  *
  */
-static irq_ownership_t kconsole_claim(void)
+static irq_ownership_t kconsole_claim(void *instance)
 {
 	return IRQ_DECLINE;
 }

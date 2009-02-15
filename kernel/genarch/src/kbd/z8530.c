@@ -194,12 +194,12 @@ void z8530_poll(void)
 	}
 }
 
-irq_ownership_t z8530_claim(void)
+irq_ownership_t z8530_claim(void *instance)
 {
 	return (z8530_read_a(&z8530, RR0) & RR0_RCA);
 }
 
-void z8530_irq_handler(irq_t *irq, void *arg, ...)
+void z8530_irq_handler(irq_t *irq)
 {
 	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);

@@ -210,12 +210,12 @@ void ns16550_poll(void)
 	}
 }
 
-irq_ownership_t ns16550_claim(void)
+irq_ownership_t ns16550_claim(void *instance)
 {
 	return (ns16550_lsr_read(&ns16550) & LSR_DATA_READY);
 }
 
-void ns16550_irq_handler(irq_t *irq, void *arg, ...)
+void ns16550_irq_handler(irq_t *irq)
 {
 	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
 		ipc_irq_send_notif(irq);
