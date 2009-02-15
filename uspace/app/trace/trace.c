@@ -519,7 +519,7 @@ static loader_t *preload_task(const char *path, char *const argv[],
 	int rc;
 
 	/* Spawn a program loader */	
-	ldr = loader_spawn(path);
+	ldr = loader_connect();
 	if (ldr == NULL)
 		return 0;
 
