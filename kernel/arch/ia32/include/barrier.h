@@ -58,7 +58,7 @@ static inline void cpuid_serialization(void)
 	);
 }
 
-#ifdef CONFIG_FENCES_P4
+#if defined(CONFIG_FENCES_P4)
 #	define memory_barrier()		asm volatile ("mfence\n" ::: "memory")
 #	define read_barrier()		asm volatile ("lfence\n" ::: "memory")
 #	ifdef CONFIG_WEAK_MEMORY
@@ -66,7 +66,7 @@ static inline void cpuid_serialization(void)
 #	else
 #		define write_barrier()  asm volatile( "" ::: "memory");
 #	endif
-#elif CONFIG_FENCES_P3
+#elif defined(CONFIG_FENCES_P3)
 #	define memory_barrier()		cpuid_serialization()
 #	define read_barrier()		cpuid_serialization()
 #	ifdef CONFIG_WEAK_MEMORY
