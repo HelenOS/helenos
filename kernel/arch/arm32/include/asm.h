@@ -46,15 +46,14 @@ static inline void cpu_sleep(void)
 {
 }
 
-/** No I/O port address space on ARM. */
-static inline void outb(ioport_t port, uint8_t v)
+static inline void pio_write_8(ioport_t port, uint8_t v)
 {
+	/* XXX */
 }
 
-/** No I/O port address space on ARM. */
-static inline uint8_t inb(ioport_t port)
+static inline uint8_t pio_read_8(ioport_t port)
 {
-	return 0;
+	return 0;	/* XXX */
 }
 
 /** Return base address of current stack.

@@ -47,22 +47,22 @@
 
 static inline void i8042_data_write(uint8_t data)
 {
-	outb(i8042_DATA, data);
+	pio_write_8(i8042_DATA, data);
 }
 
 static inline uint8_t i8042_data_read(void)
 {
-	return inb(i8042_DATA);
+	return pio_read_8(i8042_DATA);
 }
 
 static inline uint8_t i8042_status_read(void)
 {
-	return inb(i8042_STATUS);
+	return pio_read_8(i8042_STATUS);
 }
 
 static inline void i8042_command_write(uint8_t command)
 {
-	outb(i8042_STATUS, command);
+	pio_write_8(i8042_STATUS, command);
 }
 
 #endif

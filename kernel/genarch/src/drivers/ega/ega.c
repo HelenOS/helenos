@@ -83,10 +83,10 @@ static void ega_check_cursor(void)
 
 static void ega_move_cursor(void)
 {
-	outb(ega_base + EGA_INDEX_REG, 0xe);
-	outb(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
-	outb(ega_base + EGA_INDEX_REG, 0xf);
-	outb(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
+	pio_write_8(ega_base + EGA_INDEX_REG, 0xe);
+	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
+	pio_write_8(ega_base + EGA_INDEX_REG, 0xf);
+	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
 }
 
 static void ega_display_char(char ch, bool silent)

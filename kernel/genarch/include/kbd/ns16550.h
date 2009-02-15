@@ -77,56 +77,56 @@ typedef struct {
 
 static inline uint8_t ns16550_rbr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + RBR_REG);
+	return pio_read_8(dev->io_port + RBR_REG);
 }
 static inline void ns16550_rbr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port + RBR_REG, v);
+	pio_write_8(dev->io_port + RBR_REG, v);
 }
 
 static inline uint8_t ns16550_ier_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + IER_REG);
+	return pio_read_8(dev->io_port + IER_REG);
 }
 
 static inline void ns16550_ier_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port + IER_REG, v);
+	pio_write_8(dev->io_port + IER_REG, v);
 }
 
 static inline uint8_t ns16550_iir_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + IIR_REG);
+	return pio_read_8(dev->io_port + IIR_REG);
 }
 
 static inline void ns16550_fcr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port + FCR_REG, v);
+	pio_write_8(dev->io_port + FCR_REG, v);
 }
 
 static inline uint8_t ns16550_lcr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + LCR_REG);
+	return pio_read_8(dev->io_port + LCR_REG);
 }
 
 static inline void ns16550_lcr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port + LCR_REG, v);
+	pio_write_8(dev->io_port + LCR_REG, v);
 }
 
 static inline uint8_t ns16550_lsr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + LSR_REG);
+	return pio_read_8(dev->io_port + LSR_REG);
 }
 
 static inline uint8_t ns16550_mcr_read(ns16550_t *dev)
 {
-	return inb(dev->io_port + MCR_REG);
+	return pio_read_8(dev->io_port + MCR_REG);
 }
 
 static inline void ns16550_mcr_write(ns16550_t *dev, uint8_t v)
 {
-	outb(dev->io_port + MCR_REG, v);
+	pio_write_8(dev->io_port + MCR_REG, v);
 }
 
 #endif

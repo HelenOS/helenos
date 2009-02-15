@@ -49,28 +49,28 @@ static void pic_spurious(int n, istate_t *istate);
 void i8259_init(void)
 {
 	/* ICW1: this is ICW1, ICW4 to follow */
-	outb(PIC_PIC0PORT1, PIC_ICW1 | PIC_NEEDICW4);
+	pio_write_8(PIC_PIC0PORT1, PIC_ICW1 | PIC_NEEDICW4);
 
 	/* ICW2: IRQ 0 maps to INT IRQBASE */
-	outb(PIC_PIC0PORT2, IVT_IRQBASE);
+	pio_write_8(PIC_PIC0PORT2, IVT_IRQBASE);
 
 	/* ICW3: pic1 using IRQ IRQ_PIC1 */
-	outb(PIC_PIC0PORT2, 1 << IRQ_PIC1);
+	pio_write_8(PIC_PIC0PORT2, 1 << IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
-	outb(PIC_PIC0PORT2, 1);
+	pio_write_8(PIC_PIC0PORT2, 1);
 
 	/* ICW1: ICW1, ICW4 to follow */
-	outb(PIC_PIC1PORT1, PIC_ICW1 | PIC_NEEDICW4);
+	pio_write_8(PIC_PIC1PORT1, PIC_ICW1 | PIC_NEEDICW4);
 
 	/* ICW2: IRQ 8 maps to INT (IVT_IRQBASE + 8) */
-	outb(PIC_PIC1PORT2, IVT_IRQBASE + 8);
+	pio_write_8(PIC_PIC1PORT2, IVT_IRQBASE + 8);
 
 	/* ICW3: pic1 is known as IRQ_PIC1 */
-	outb(PIC_PIC1PORT2, IRQ_PIC1);
+	pio_write_8(PIC_PIC1PORT2, IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
-	outb(PIC_PIC1PORT2, 1);
+	pio_write_8(PIC_PIC1PORT2, 1);
 
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
@@ -94,12 +94,12 @@ void pic_enable_irqs(uint16_t irqmask)
 	uint8_t x;
 
 	if (irqmask & 0xff) {
-		x = inb(PIC_PIC0PORT2);
-		outb(PIC_PIC0PORT2, (uint8_t) (x & (~(irqmask & 0xff))));
+		x = pio_read_8(PIC_PIC0PORT2);
+		pio_write_8(PIC_PIC0PORT2, (uint8_t) (x & (~(irqmask & 0xff))));
 	}
 	if (irqmask >> 8) {
-		x = inb(PIC_PIC1PORT2);
-		outb(PIC_PIC1PORT2, (uint8_t) (x & (~(irqmask >> 8))));
+		x = pio_read_8(PIC_PIC1PORT2);
+		pio_write_8(PIC_PIC1PORT2, (uint8_t) (x & (~(irqmask >> 8))));
 	}
 }
 
@@ -108,19 +108,19 @@ void pic_disable_irqs(uint16_t irqmask)
 	uint8_t x;
 
 	if (irqmask & 0xff) {
-		x = inb(PIC_PIC0PORT2);
-		outb(PIC_PIC0PORT2, (uint8_t) (x | (irqmask & 0xff)));
+		x = pio_read_8(PIC_PIC0PORT2);
+		pio_write_8(PIC_PIC0PORT2, (uint8_t) (x | (irqmask & 0xff)));
 	}
 	if (irqmask >> 8) {
-		x = inb(PIC_PIC1PORT2);
-		outb(PIC_PIC1PORT2, (uint8_t) (x | (irqmask >> 8)));
+		x = pio_read_8(PIC_PIC1PORT2);
+		pio_write_8(PIC_PIC1PORT2, (uint8_t) (x | (irqmask >> 8)));
 	}
 }
 
 void pic_eoi(void)
 {
-	outb(0x20, 0x20);
-	outb(0xa0, 0x20);
+	pio_write_8(0x20, 0x20);
+	pio_write_8(0xa0, 0x20);
 }
 
 void pic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))

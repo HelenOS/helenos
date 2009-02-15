@@ -122,8 +122,8 @@ void kmp(void *arg __attribute__((unused)))
 	 * Save 0xa to address 0xf of the CMOS RAM.
 	 * BIOS will not do the POST after the INIT signal.
 	 */
-	outb(0x70, 0xf);
-	outb(0x71, 0xa);
+	pio_write_8(0x70, 0xf);
+	pio_write_8(0x71, 0xa);
 
 	pic_disable_irqs(0xffff);
 	apic_init();

@@ -44,25 +44,25 @@
 #include <arch/stack.h>
 #include <arch/barrier.h>
 
-static inline void outb(ioport_t port, uint8_t v)
+static inline void pio_write_8(ioport_t port, uint8_t v)
 {
 	*((volatile uint8_t *)(port)) = v;
 	memory_barrier();
 }
 
-static inline void outw(ioport_t port, uint16_t v)
+static inline void pio_write_16(ioport_t port, uint16_t v)
 {
 	*((volatile uint16_t *)(port)) = v;
 	memory_barrier();
 }
 
-static inline void outl(ioport_t port, uint32_t v)
+static inline void pio_write_32(ioport_t port, uint32_t v)
 {
 	*((volatile uint32_t *)(port)) = v;
 	memory_barrier();
 }
 
-static inline uint8_t inb(ioport_t port)
+static inline uint8_t pio_read_8(ioport_t port)
 {
 	uint8_t rv;
 
@@ -72,7 +72,7 @@ static inline uint8_t inb(ioport_t port)
 	return rv;
 }
 
-static inline uint16_t inw(ioport_t port)
+static inline uint16_t pio_read_16(ioport_t port)
 {
 	uint16_t rv;
 
@@ -82,7 +82,7 @@ static inline uint16_t inw(ioport_t port)
 	return rv;
 }
 
-static inline uint32_t inl(ioport_t port)
+static inline uint32_t pio_read_32(ioport_t port)
 {
 	uint32_t rv;
 

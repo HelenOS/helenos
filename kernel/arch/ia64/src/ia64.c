@@ -249,7 +249,7 @@ void arch_release_console(void)
 
 void arch_reboot(void)
 {
-	outb(0x64, 0xfe);
+	pio_write_8(0x64, 0xfe);
 	while (1)
 		;
 }

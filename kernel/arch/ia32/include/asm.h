@@ -105,7 +105,7 @@ GEN_WRITE_REG(dr7)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outb(uint16_t port, uint8_t val)
+static inline void pio_write_8(uint16_t port, uint8_t val)
 {
 	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) );
 }
@@ -117,7 +117,7 @@ static inline void outb(uint16_t port, uint8_t val)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outw(uint16_t port, uint16_t val)
+static inline void pio_write_16(uint16_t port, uint16_t val)
 {
 	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) );
 }
@@ -129,7 +129,7 @@ static inline void outw(uint16_t port, uint16_t val)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void outl(uint16_t port, uint32_t val)
+static inline void pio_write_32(uint16_t port, uint32_t val)
 {
 	asm volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) );
 }
@@ -141,7 +141,7 @@ static inline void outl(uint16_t port, uint32_t val)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint8_t inb(uint16_t port)
+static inline uint8_t pio_read_8(uint16_t port)
 {
 	uint8_t val;
 	
@@ -156,7 +156,7 @@ static inline uint8_t inb(uint16_t port)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint16_t inw(uint16_t port)
+static inline uint16_t pio_read_16(uint16_t port)
 {
 	uint16_t val;
 	
@@ -171,7 +171,7 @@ static inline uint16_t inw(uint16_t port)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint32_t inl(uint16_t port)
+static inline uint32_t pio_read_32(uint16_t port)
 {
 	uint32_t val;
 	

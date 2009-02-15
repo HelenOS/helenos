@@ -94,10 +94,10 @@ void i8254_init(void)
 
 void i8254_normal_operation(void)
 {
-	outb(CLK_PORT4, 0x36);
+	pio_write_8(CLK_PORT4, 0x36);
 	pic_disable_irqs(1 << IRQ_CLK);
-	outb(CLK_PORT1, (CLK_CONST / HZ) & 0xf);
-	outb(CLK_PORT1, (CLK_CONST / HZ) >> 8);
+	pio_write_8(CLK_PORT1, (CLK_CONST / HZ) & 0xf);
+	pio_write_8(CLK_PORT1, (CLK_CONST / HZ) >> 8);
 	pic_enable_irqs(1 << IRQ_CLK);
 }
 
@@ -114,36 +114,36 @@ void i8254_calibrate_delay_loop(void)
 	 * One-shot timer. Count-down from 0xffff at 1193180Hz
 	 * MAGIC_NUMBER is the magic value for 1ms.
 	 */
-	outb(CLK_PORT4, 0x30);
-	outb(CLK_PORT1, 0xff);
-	outb(CLK_PORT1, 0xff);
+	pio_write_8(CLK_PORT4, 0x30);
+	pio_write_8(CLK_PORT1, 0xff);
+	pio_write_8(CLK_PORT1, 0xff);
 
 	do {
 		/* will read both status and count */
-		outb(CLK_PORT4, 0xc2);
-		not_ok = (uint8_t) ((inb(CLK_PORT1) >> 6) & 1);
-		t1 = inb(CLK_PORT1);
-		t1 |= inb(CLK_PORT1) << 8;
+		pio_write_8(CLK_PORT4, 0xc2);
+		not_ok = (uint8_t) ((pio_read_8(CLK_PORT1) >> 6) & 1);
+		t1 = pio_read_8(CLK_PORT1);
+		t1 |= pio_read_8(CLK_PORT1) << 8;
 	} while (not_ok);
 
 	asm_delay_loop(LOOPS);
 
-	outb(CLK_PORT4, 0xd2);
-	t2 = inb(CLK_PORT1);
-	t2 |= inb(CLK_PORT1) << 8;
+	pio_write_8(CLK_PORT4, 0xd2);
+	t2 = pio_read_8(CLK_PORT1);
+	t2 |= pio_read_8(CLK_PORT1) << 8;
 
 	/*
 	 * We want to determine the overhead of the calibrating mechanism.
 	 */
-	outb(CLK_PORT4, 0xd2);
-	o1 = inb(CLK_PORT1);
-	o1 |= inb(CLK_PORT1) << 8;
+	pio_write_8(CLK_PORT4, 0xd2);
+	o1 = pio_read_8(CLK_PORT1);
+	o1 |= pio_read_8(CLK_PORT1) << 8;
 
 	asm_fake_loop(LOOPS);
 
-	outb(CLK_PORT4, 0xd2);
-	o2 = inb(CLK_PORT1);
-	o2 |= inb(CLK_PORT1) << 8;
+	pio_write_8(CLK_PORT4, 0xd2);
+	o2 = pio_read_8(CLK_PORT1);
+	o2 |= pio_read_8(CLK_PORT1) << 8;
 
 	CPU->delay_loop_const =
 	    ((MAGIC_NUMBER * LOOPS) / 1000) / ((t1 - t2) - (o1 - o2)) +
