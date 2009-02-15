@@ -138,11 +138,9 @@ ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
 	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
 	sysinfo_set_item_val("kbd.port", NULL, port);
 	
-#ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
 	/* Enable interrupts */
 	ns16550_ier_write(&ns16550, IER_ERBFI);
 	ns16550_mcr_write(&ns16550, MCR_OUT2);
-#endif
 	
 	uint8_t c;
 	// This switches rbr & ier to mode when accept baudrate constant
@@ -198,28 +196,6 @@ char ns16550_key_read(chardev_t *d)
  */
 void ns16550_poll(void)
 {
-#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&ns16550_irq.lock);
-
-	if (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
-		if (ns16550_irq.notif_cfg.notify && ns16550_irq.notif_cfg.answerbox) {
-			/*
-			 * Send IPC notification.
-			 */
-			ipc_irq_send_notif(&ns16550_irq);
-			spinlock_unlock(&ns16550_irq.lock);
-			interrupts_restore(ipl);
-			return;
-		}
-	}
-
-	spinlock_unlock(&ns16550_irq.lock);
-	interrupts_restore(ipl);
-#endif
-
 	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
 		uint8_t x;
 		

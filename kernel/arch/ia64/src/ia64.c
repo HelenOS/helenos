@@ -148,36 +148,13 @@ void arch_pre_smp_init(void)
 {
 }
 
-
-#ifdef I460GX
-#define POLL_INTERVAL		50000		/* 50 ms */
-/** Kernel thread for polling keyboard. */
-static void i8042_kkbdpoll(void *arg)
-{
-	while (1) {
-#ifdef CONFIG_NS16550
-	#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
-		ns16550_poll();
-	#endif	
-#else
-	#ifndef CONFIG_I8042_INTERRUPT_DRIVEN
-		i8042_poll();
-	#endif	
-#endif
-		thread_usleep(POLL_INTERVAL);
-	}
-}
-#endif
-
 void arch_post_smp_init(void)
 {
-	thread_t *t;
-
 	/*
 	 * Create thread that polls keyboard.
 	 */
 #ifdef SKI
-	t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
+	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 	if (!t)
 		panic("Cannot create kkbdpoll.");
 	thread_ready(t);
@@ -192,10 +169,6 @@ void arch_post_smp_init(void)
 	devno_t mouse = device_assign_devno();
 	i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
 #endif
-	t = thread_create(i8042_kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
-	if (!t)
-		panic("Cannot create kkbdpoll.");
-	thread_ready(t);
 #endif
 
 	sysinfo_set_item_val("ia64_iospace", NULL, true);

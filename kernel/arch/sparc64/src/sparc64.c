@@ -103,7 +103,6 @@ void arch_post_smp_init(void)
 {
 	static thread_t *t = NULL;
 
-
 	if (!t) {
 		/*
 	         * Create thread that polls keyboard.

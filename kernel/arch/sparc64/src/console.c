@@ -141,32 +141,10 @@ void kkbdpoll(void *arg)
 {
 	thread_detach(THREAD);
 
-#ifdef CONFIG_Z8530
-	if (kbd_type == KBD_Z8530) {
-		/*
-		 * The z8530 driver is interrupt-driven.
-		 */
+	if (kbd_type != KBD_SGCN)
 		return;
-	}
-#endif
 
-#ifdef CONFIG_NS16550
-#ifdef CONFIG_NS16550_INTERRUPT_DRIVEN
-	if (kbd_type == KBD_NS16550) {
-		/*
-		 * The ns16550 driver is interrupt-driven.
-		 */
-		return;
-	}
-#endif
-#endif
 	while (1) {
-#ifdef CONFIG_NS16550
-#ifndef CONFIG_NS16550_INTERRUPT_DRIVEN
-		if (kbd_type == KBD_NS16550)
-			ns16550_poll();
-#endif
-#endif
 #ifdef CONFIG_SGCN
 		if (kbd_type == KBD_SGCN)
 			sgcn_poll();
