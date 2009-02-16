@@ -37,7 +37,7 @@
 #ifndef KERN_NS16550_H_
 #define KERN_NS16550_H_
 
-#include <console/chardev.h> 
+#include <console/chardev.h>
 #include <ddi/irq.h>
 #include <ipc/irq.h>
 
@@ -50,9 +50,8 @@ extern irq_ownership_t ns16550_claim(void *);
 extern void ns16550_irq_handler(irq_t *);
 
 #include <arch/types.h>
-#ifndef ia64
 #include <arch/drivers/kbd.h>
-#endif
+
 /* NS16550 registers */
 #define RBR_REG		0	/** Receiver Buffer Register. */
 #define IER_REG		1	/** Interrupt Enable Register. */

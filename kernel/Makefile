@@ -246,14 +246,12 @@ ifeq ($(CONFIG_TEST),y)
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
 		test/avltree/avltree1.c \
-		test/debug/mips1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \
 		test/mm/mapping1.c \
 		test/mm/slab1.c \
 		test/mm/slab2.c \
-		test/mm/purge1.c \
 		test/synch/rwlock1.c \
 		test/synch/rwlock2.c \
 		test/synch/rwlock3.c \
@@ -264,6 +262,18 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print1.c \
 		test/thread/thread1.c \
 		test/sysinfo/sysinfo1.c
+	
+	ifeq ($(KARCH),mips32)
+		GENERIC_SOURCES += test/debug/mips1.c
+	else
+		GENERIC_SOURCES += test/debug/mips1_skip.c
+	endif
+	
+	ifeq ($(KARCH),ia64)
+		GENERIC_SOURCES += test/mm/purge1.c
+	else
+		GENERIC_SOURCES += test/mm/purge1_skip.c
+	endif
 	
 	ifeq ($(CONFIG_FPU),y)
 		ifeq ($(KARCH),ia32)
