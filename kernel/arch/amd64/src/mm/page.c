@@ -214,5 +214,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
+void hw_area(uintptr_t *physaddr, pfn_t *frames)
+{
+	*physaddr = end_frame;
+	*frames = ADDR2PFN(0xfffffffffffff - end_frame);
+}
+
 /** @}
  */

@@ -51,6 +51,7 @@
 #define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
 
 extern uintptr_t last_frame;
+extern uintptr_t end_frame;
 
 extern void frame_arch_init(void);
 extern void boot_page_table_free(void);

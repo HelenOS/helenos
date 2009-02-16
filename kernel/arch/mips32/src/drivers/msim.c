@@ -41,7 +41,6 @@
 #include <sysinfo/sysinfo.h>
 #include <ddi/ddi.h>
 
-static parea_t msim_parea;
 static chardev_t console;
 static irq_t msim_irq;
 
@@ -155,12 +154,6 @@ void msim_console(devno_t devno)
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, MSIM_KBD_ADDRESS);
-	
-	msim_parea.pbase = KA2PA(MSIM_VIDEORAM);
-	msim_parea.vbase = MSIM_VIDEORAM;
-	msim_parea.frames = 1;
-	msim_parea.cacheable = false;
-	ddi_parea_register(&msim_parea);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 3);

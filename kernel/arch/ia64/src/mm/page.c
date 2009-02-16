@@ -274,5 +274,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size __attribute__ ((unused)))
 	return PA2KA(physaddr);
 }
 
+void hw_area(uintptr_t *physaddr, pfn_t *frames)
+{
+	*physaddr = end_frame;
+	*frames = ADDR2PFN(0x7fffffffffffffffUL - end_frame);
+}
+
 /** @}
  */

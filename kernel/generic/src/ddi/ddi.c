@@ -47,7 +47,7 @@
 #include <mm/as.h>
 #include <synch/spinlock.h>
 #include <syscall/copy.h>
-#include <adt/btree.h>
+#include <adt/list.h>
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
@@ -55,13 +55,17 @@
 /** This lock protects the parea_btree. */
 SPINLOCK_INITIALIZE(parea_lock);
 
-/** B+tree with enabled physical memory areas. */
-static btree_t parea_btree;
+/** List with enabled physical memory areas. */
+static LIST_INITIALIZE(parea_head);
+
+/** Physical memory area for devices. */
+static parea_t dev_area;
 
 /** Initialize DDI. */
 void ddi_init(void)
 {
-	btree_create(&parea_btree);
+	hw_area(&dev_area.pbase, &dev_area.frames);
+	ddi_parea_register(&dev_area);
 }
 
 /** Enable piece of physical memory for mapping by physmem_map().
@@ -74,19 +78,19 @@ void ddi_init(void)
 void ddi_parea_register(parea_t *parea)
 {
 	ipl_t ipl;
-
+	
 	ipl = interrupts_disable();
 	spinlock_lock(&parea_lock);
 	
 	/*
 	 * TODO: we should really check for overlaps here.
-	 * However, we should be safe because the kernel is pretty sane and
-	 * memory of different devices doesn't overlap. 
+	 * However, we should be safe because the kernel is pretty sane.
 	 */
-	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
-
+	link_initialize(&parea->link);
+	list_append(&parea->link, &parea_head);
+	
 	spinlock_unlock(&parea_lock);
-	interrupts_restore(ipl);	
+	interrupts_restore(ipl);
 }
 
 /** Map piece of physical memory into virtual address space of current task.
@@ -97,16 +101,16 @@ void ddi_parea_register(parea_t *parea)
  * @param flags Address space area flags for the mapping.
  *
  * @return 0 on success, EPERM if the caller lacks capabilities to use this
- * 	syscall, ENOENT if there is no task matching the specified ID or the
- * 	physical address space is not enabled for mapping and ENOMEM if there
- * 	was a problem in creating address space area.
+ *  syscall, ENOENT if there is no task matching the specified ID or the
+ *  physical address space is not enabled for mapping and ENOMEM if there
+ *  was a problem in creating address space area.
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
+static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, pfn_t pages, int flags)
 {
 	ipl_t ipl;
 	cap_t caps;
 	mem_backend_data_t backend_data;
-
+	
 	backend_data.base = pf;
 	backend_data.frames = pages;
 	
@@ -116,30 +120,35 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 	caps = cap_get(TASK);
 	if (!(caps & CAP_MEM_MANAGER))
 		return EPERM;
-
+	
 	ipl = interrupts_disable();
-
+	
 	/*
 	 * Check if the physical memory area is enabled for mapping.
-	 * If the architecture supports virtually indexed caches, intercept
-	 * attempts to create an illegal address alias.
 	 */
 	spinlock_lock(&parea_lock);
-	parea_t *parea;
-	btree_node_t *nodep;
-	parea = (parea_t *) btree_search(&parea_btree, (btree_key_t) pf, &nodep);
-	if (!parea || parea->frames < pages || ((flags & AS_AREA_CACHEABLE) &&
-	    !parea->cacheable) || (!(flags & AS_AREA_CACHEABLE) &&
-	    parea->cacheable)) {
+	
+	bool fnd = false;
+	link_t *cur;
+	
+	for (cur = parea_head.next; cur != &parea_head; cur = cur->next) {
+		parea_t *parea = list_get_instance(cur, parea_t, link);
+		if ((parea->pbase <= pf) && (ADDR2PFN(pf - parea->pbase) + pages <= parea->frames)) {
+			fnd = true;
+			break;
+		}
+	}
+	
+	spinlock_unlock(&parea_lock);
+	
+	if (!fnd) {
 		/*
-		 * This physical memory area cannot be mapped.
+		 * Physical memory area cannot be mapped.
 		 */
-		spinlock_unlock(&parea_lock);
 		interrupts_restore(ipl);
 		return ENOENT;
 	}
-	spinlock_unlock(&parea_lock);
-
+	
 	spinlock_lock(&TASK->lock);
 	
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp, AS_AREA_ATTR_NONE,
@@ -226,7 +235,7 @@ unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
 {
 	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
 	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
-	    (count_t) pages, (int) flags);
+	    (pfn_t) pages, (int) flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.
@@ -258,13 +267,13 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  */ 
 unative_t sys_preempt_control(int enable)
 {
-        if (!cap_get(TASK) & CAP_PREEMPT_CONTROL)
-                return EPERM;
-        if (enable)
-                preemption_enable();
-        else
-                preemption_disable();
-        return 0;
+	if (!cap_get(TASK) & CAP_PREEMPT_CONTROL)
+		return EPERM;
+	if (enable)
+		preemption_enable();
+	else
+		preemption_disable();
+	return 0;
 }
 
 /** @}

@@ -42,7 +42,7 @@
 /** Operations to manipulate page mappings. */
 typedef struct {
 	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame,
-		int flags);
+	    int flags);
 	void (* mapping_remove)(as_t *as, uintptr_t page);
 	pte_t *(* mapping_find)(as_t *as, uintptr_t page);
 } page_mapping_operations_t;
@@ -59,7 +59,9 @@ extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
 extern pte_t *page_table_create(int flags);
 extern void page_table_destroy(pte_t *page_table);
 extern void map_structure(uintptr_t s, size_t size);
+
 extern uintptr_t hw_map(uintptr_t physaddr, size_t size);
+extern void hw_area(uintptr_t *physaddr, pfn_t *frames);
 
 #endif
 

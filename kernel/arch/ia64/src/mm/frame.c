@@ -51,6 +51,7 @@
 #define MINCONF 1
 
 uintptr_t last_frame = 0;
+uintptr_t end_frame = 0;
 
 void frame_arch_init(void)
 {

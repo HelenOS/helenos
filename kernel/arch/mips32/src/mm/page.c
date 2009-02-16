@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -35,6 +35,7 @@
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
 #include <mm/page.h>
+#include <mm/frame.h>
 
 void page_arch_init(void)
 {
@@ -48,6 +49,12 @@ void page_arch_init(void)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	return physaddr + 0xa0000000;
+}
+
+void hw_area(uintptr_t *physaddr, pfn_t *frames)
+{
+	*physaddr = end_frame;
+	*frames = ADDR2PFN(0xffffffff - end_frame);
 }
 
 /** @}

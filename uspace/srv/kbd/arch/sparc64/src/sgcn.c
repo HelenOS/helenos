@@ -97,17 +97,11 @@ static uintptr_t sram_buffer_offset;
  */
 void sgcn_init(void)
 {
-	sram_virt_addr = (uintptr_t) as_get_mappable_page(
-		sysinfo_value("sram.area.size"));
-	int result = physmem_map(
-		(void *) sysinfo_value("sram.address.physical"),
-		(void *) sram_virt_addr,
-		sysinfo_value("sram.area.size") / PAGE_SIZE,
-		AS_AREA_READ | AS_AREA_WRITE
-		);
-	if (result != 0) {
+	sram_virt_addr = (uintptr_t) as_get_mappable_page(sysinfo_value("sram.area.size"));
+	if (physmem_map((void *) sysinfo_value("sram.address.physical"),
+	    (void *) sram_virt_addr, sysinfo_value("sram.area.size") / PAGE_SIZE,
+	    AS_AREA_READ | AS_AREA_WRITE) != 0)
 		printf("SGCN: uspace driver could not map physical memory.");
-	}
 	
 	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),

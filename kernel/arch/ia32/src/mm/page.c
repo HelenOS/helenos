@@ -93,6 +93,12 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
+void hw_area(uintptr_t *physaddr, pfn_t *frames)
+{
+	*physaddr = end_frame;
+	*frames = ADDR2PFN(0xffffffff - end_frame);
+}
+
 void page_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	uintptr_t page;
@@ -102,7 +108,7 @@ void page_fault(int n __attribute__((unused)), istate_t *istate)
 		
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page directory.");
-
+	
 	if (istate->error_word & PFERR_CODE_RW)
 		access = PF_ACCESS_WRITE;
 	else

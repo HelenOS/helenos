@@ -41,6 +41,7 @@
 
 /** Address of the last frame in the memory. */
 uintptr_t last_frame = 0;
+uintptr_t end_frame = 0;
 
 /** Creates memory zones. */
 void frame_arch_init(void)
@@ -49,7 +50,8 @@ void frame_arch_init(void)
 	zone_create(0, ADDR2PFN(machine_get_memory_size()),
 	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
 	last_frame = machine_get_memory_size();
-
+	end_frame = last_frame;
+	
 	/* blacklist boot page table */
 	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,
 	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);

@@ -88,9 +88,7 @@ void clock_counter_init(void)
 	uptime->useconds = 0; 
 
 	clock_parea.pbase = (uintptr_t) faddr;
-	clock_parea.vbase = (uintptr_t) uptime;
 	clock_parea.frames = 1;
-	clock_parea.cacheable = true;
 	ddi_parea_register(&clock_parea);
 
 	/*

@@ -59,7 +59,8 @@ int msim_init(void)
 	void *phys_addr = (void *) sysinfo_value("fb.address.physical");
 	virt_addr = (char *) as_get_mappable_page(1);
 	
-	physmem_map(phys_addr, virt_addr, 1, AS_AREA_READ | AS_AREA_WRITE);
+	if (physmem_map(phys_addr, virt_addr, 1, AS_AREA_READ | AS_AREA_WRITE) != 0)
+		return -1;
 	
 	serial_console_init(msim_putc, WIDTH, HEIGHT);
 	

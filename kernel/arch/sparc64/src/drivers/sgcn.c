@@ -161,19 +161,10 @@ static chardev_operations_t sgcn_ops = {
 chardev_t sgcn_io;
 
 /**
- * Registers the physical area of the SRAM so that the userspace SGCN
- * driver can map it. Moreover, it sets some sysinfo values (SRAM address
- * and SRAM size).
+ * Set some sysinfo values (SRAM address and SRAM size).
  */
-static void register_sram_parea(uintptr_t sram_begin_physical)
+static void register_sram(uintptr_t sram_begin_physical)
 {
-	static parea_t sram_parea;
-	sram_parea.pbase = sram_begin_physical;
-	sram_parea.vbase = (uintptr_t) sram_begin;
-	sram_parea.frames = MAPPED_AREA_SIZE / FRAME_SIZE;
-	sram_parea.cacheable = false;
-	ddi_parea_register(&sram_parea);
-	
 	sysinfo_set_item_val("sram.area.size", NULL, MAPPED_AREA_SIZE);
 	sysinfo_set_item_val("sram.address.physical", NULL,
 		sram_begin_physical);
@@ -211,7 +202,7 @@ static void init_sram_begin(void)
 		+ *((uint32_t *) iosram_toc->value);
 	sram_begin = hw_map(sram_begin_physical, MAPPED_AREA_SIZE);
 	
-	register_sram_parea(sram_begin_physical);
+	register_sram(sram_begin_physical);
 }
 
 /**

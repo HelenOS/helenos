@@ -50,6 +50,7 @@ size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
 uintptr_t last_frame = 0;
+uintptr_t end_frame = 0;
 
 static void init_e820_memory(pfn_t minconf)
 {
@@ -73,8 +74,10 @@ static void init_e820_memory(pfn_t minconf)
 			    e820table[i].size, FRAME_SIZE))
 				last_frame =
 				    ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
-		}			
+		}
 	}
+	
+	end_frame = last_frame;
 }
 
 static char *e820names[] = {
@@ -113,13 +116,14 @@ void frame_arch_init(void)
 	
 	if (config.cpu_active == 1) {
 		minconf = 1;
+		
 #ifdef CONFIG_SMP
 		minconf = max(minconf,
 			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
 			hardcoded_unmapped_kdata_size));
 #endif
 		init_e820_memory(minconf);
-
+		
 		/* Reserve frame 0 (BIOS data) */
 		frame_mark_unavailable(0, 1);
 		

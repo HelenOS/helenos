@@ -54,8 +54,6 @@
  * Simple and short. Function for displaying characters and "scrolling".
  */
 
-static parea_t ega_parea;	/**< Physical memory area for EGA video RAM. */
-
 SPINLOCK_INITIALIZE(egalock);
 static uint32_t ega_cursor;
 static uint8_t *videoram;
@@ -151,12 +149,6 @@ void ega_init(ioport_t base, uintptr_t videoram_phys)
 	
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
 	stdout = &ega_console;
-	
-	ega_parea.pbase = videoram_phys;
-	ega_parea.vbase = (uintptr_t) videoram;
-	ega_parea.frames = 1;
-	ega_parea.cacheable = false;
-	ddi_parea_register(&ega_parea);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 2);

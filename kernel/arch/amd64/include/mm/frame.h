@@ -44,6 +44,7 @@
 
 #ifndef __ASM__
 extern uintptr_t last_frame;
+extern uintptr_t end_frame;
 extern void frame_arch_init(void);
 extern void physmem_print(void);
 #endif /* __ASM__ */

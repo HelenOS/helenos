@@ -339,7 +339,7 @@ int task_kill(task_id_t id)
 		bool sleeping = false;
 		
 		thr = list_get_instance(cur, thread_t, th_link);
-			
+		
 		spinlock_lock(&thr->lock);
 		thr->interrupted = true;
 		if (thr->state == Sleeping)

@@ -147,7 +147,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		    physaddr + i * sizemap[order].increment,
 		    sizemap[order].pagesize_code, true, false);
 	
-#ifdef CONFIG_SMP	
+#ifdef CONFIG_SMP
 		/*
 		 * Second, save the information about the mapping for APs.
 		 */
@@ -164,6 +164,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
+void hw_area(uintptr_t *physaddr, pfn_t *frames)
+{
+	*physaddr = end_frame;
+	*frames = ADDR2PFN(0x7ffffffffff - end_frame);
+}
+
 /** @}
  */
-

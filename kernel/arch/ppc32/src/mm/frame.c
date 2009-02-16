@@ -40,6 +40,7 @@
 #include <print.h>
 
 uintptr_t last_frame = 0;
+uintptr_t end_frame = 0;
 
 void physmem_print(void)
 {
@@ -74,7 +75,9 @@ void frame_arch_init(void)
 		if (last_frame < ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE))
 			last_frame = ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE);
 	}
-
+	
+	end_frame = last_frame;
+	
 	/* First is exception vector, second is 'implementation specific',
 	   third and fourth is reserved, other contain real mode code */
 	frame_mark_unavailable(0, 8);

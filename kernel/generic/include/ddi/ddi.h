@@ -38,13 +38,14 @@
 #include <ddi/ddi_arg.h>
 #include <arch/types.h>
 #include <proc/task.h>
+#include <adt/list.h>
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {
-	uintptr_t pbase;	/**< Physical base of the area. */
-	uintptr_t vbase;	/**< Virtual base of the area. */
-	count_t frames;		/**< Number of frames in the area. */
-	bool cacheable;		/**< Cacheability. */
+	uintptr_t pbase;    /**< Physical base of the area. */
+	pfn_t frames;       /**< Number of frames in the area. */
+	
+	link_t link;        /**< Linked list link */
 } parea_t;
 
 extern void ddi_init(void);

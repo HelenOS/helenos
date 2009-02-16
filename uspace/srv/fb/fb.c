@@ -1671,8 +1671,9 @@ int fb_init(void)
 	unsigned int fbsize = fb_scanline * fb_height;
 	void *fb_addr = as_get_mappable_page(fbsize);
 	
-	physmem_map(fb_ph_addr + fb_offset, fb_addr,
-	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	if (physmem_map(fb_ph_addr + fb_offset, fb_addr,
+	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
+		return -1;
 	
 	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual))
 		return 0;

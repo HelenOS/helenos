@@ -43,7 +43,7 @@
  *
  * Every node has a pointer to its parent which allows insertion of multiple
  * identical keys into the tree.
- * 
+ *
  * Be careful when using this tree because of the base atribute which is added
  * to every inserted node key. There is no rule in which order nodes with the
  * same key are visited.

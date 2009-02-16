@@ -41,6 +41,7 @@
 #include <macros.h>
 
 uintptr_t last_frame = NULL;
+uintptr_t end_frame = NULL;
 
 /** Create memory zones according to information stored in bootinfo.
  *
@@ -80,6 +81,7 @@ void frame_arch_init(void)
 		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 	}
 	
+	end_frame = last_frame;
 }
 
 /** @}

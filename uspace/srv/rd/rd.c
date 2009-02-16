@@ -257,7 +257,7 @@ static bool rd_init(void)
 	int flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
 	int retval = physmem_map(rd_ph_addr, rd_addr,
 	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
-
+	
 	if (retval < 0) {
 		printf(NAME ": Error mapping RAM disk\n");
 		return false;

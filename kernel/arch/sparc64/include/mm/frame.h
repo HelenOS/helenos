@@ -73,6 +73,7 @@ union frame_address {
 typedef union frame_address frame_address_t;
 
 extern uintptr_t last_frame;
+extern uintptr_t end_frame;
 extern void frame_arch_init(void);
 #define physmem_print()
 

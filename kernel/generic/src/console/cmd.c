@@ -529,7 +529,7 @@ int cmd_help(cmd_arg_t *argv)
 		spinlock_unlock(&hlp->lock);
 	}
 	
-	spinlock_unlock(&cmd_lock);	
+	spinlock_unlock(&cmd_lock);
 
 	return 1;
 }

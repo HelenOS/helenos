@@ -65,6 +65,8 @@ typedef struct {
 static count_t phys_regions_count = 0;
 static phys_region_t phys_regions[MAX_REGIONS];
 
+uintptr_t end_frame = 0;
+
 
 /** Check whether frame is available
  *
@@ -236,7 +238,9 @@ void frame_arch_init(void)
 		}
 	}
 	
-	frame_add_region(start_frame, frame);
+	end_frame = frame;
+	
+	frame_add_region(start_frame, end_frame);
 	
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);

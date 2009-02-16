@@ -126,9 +126,7 @@ void klog_init(void)
 	devno_t devno = device_assign_devno();
 	
 	klog_parea.pbase = (uintptr_t) faddr;
-	klog_parea.vbase = (uintptr_t) klog;
 	klog_parea.frames = SIZE2FRAMES(KLOG_SIZE);
-	klog_parea.cacheable = true;
 	ddi_parea_register(&klog_parea);
 
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);

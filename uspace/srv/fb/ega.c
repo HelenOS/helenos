@@ -373,7 +373,7 @@ int ega_init(void)
 	scr_width = sysinfo_value("fb.width");
 	scr_height = sysinfo_value("fb.height");
 
-	if(sysinfo_value("fb.blinking")) {
+	if (sysinfo_value("fb.blinking")) {
 		ega_normal_color &= 0x77;
 		ega_inverted_color &= 0x77;
 	}
@@ -385,8 +385,9 @@ int ega_init(void)
 	sz = scr_width * scr_height * 2;
 	scr_addr = as_get_mappable_page(sz);
 
-	physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
-	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE);
+	if (physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
+	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
+		return -1;
 
 	async_set_client_connection(ega_client_connection);
 

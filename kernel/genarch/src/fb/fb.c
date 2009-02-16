@@ -52,9 +52,6 @@
 
 SPINLOCK_INITIALIZE(fb_lock);
 
-/**< Physical memory area for fb. */
-static parea_t fb_parea;
-
 static uint8_t *fb_addr;
 static uint8_t *backbuf;
 static uint8_t *glyphs;
@@ -518,12 +515,6 @@ void fb_init(fb_properties_t *props)
 	glyphs_render();
 	
 	fb_addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
-	
-	fb_parea.pbase = (uintptr_t) props->addr + props->offset;
-	fb_parea.vbase = (uintptr_t) fb_addr;
-	fb_parea.frames = SIZE2FRAMES(fbsize);
-	fb_parea.cacheable = false;
-	ddi_parea_register(&fb_parea);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 1);
