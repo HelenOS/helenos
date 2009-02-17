@@ -38,65 +38,27 @@
 #include <arch/arch.h>
 
 
-#define THREADS		150
-#define ATTEMPTS	100
+#define THREADS   150
+#define ATTEMPTS  100
 
-#define E_10e8	271828182
-#define PI_10e8	314159265
+#define E_10e8   271828182
+#define PI_10e8  3141592
 
-
-#ifdef KERN_ia32_ARCH_H_
-static inline double sqrt(double x)
+static inline long double sqrt(long double a)
 {
-	double v;
-	
-	asm (
-		"fsqrt\n"
-		: "=t" (v)
-		: "0" (x)
-	);
-	
-	return v; 
-}
-#endif
-
-#ifdef KERN_amd64_ARCH_H_
-static inline double sqrt(double x)
-{
-	double v;
-	
-	asm (
-		"fsqrt\n"
-		: "=t" (v)
-		: "0" (x)
-	);
-	
-	return v;
-}
-#endif
-
-#ifdef KERN_ia64_ARCH_H_
-
-#undef PI_10e8	
-#define PI_10e8	3141592
-
-static inline long double sqrt(long double a) 
-{   
 	long double x =	1;
 	long double lx = 0;
-
+	
 	if (a < 0.00000000000000001)
 		return 0;
 		
-	while(x != lx) {
+	while (x != lx) {
 		lx = x;
 		x = (x + (a / x)) / 2;
 	}
 	
-	return x; 
+	return x;
 }
-#endif
-
 
 static atomic_t threads_ok;
 static atomic_t threads_fault;
@@ -107,21 +69,21 @@ static void e(void *data)
 {
 	int i;
 	double e, d, le, f;
-
+	
 	thread_detach(THREAD);
-
+	
 	waitq_sleep(&can_start);
-
+	
 	for (i = 0; i<ATTEMPTS; i++) {
 		le = -1;
 		e = 0;
 		f = 1;
-
+		
 		for (d = 1; e != le; d *= f, f += 1) {
 			le = e;
 			e = e + 1 / d;
 		}
-
+		
 		if ((int) (100000000 * e) != E_10e8) {
 			if (!sh_quiet)
 				printf("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
@@ -139,38 +101,29 @@ static void pi(void *data)
 	double n, ab, ad;
 	
 	thread_detach(THREAD);
-
+	
 	waitq_sleep(&can_start);
-
+	
 	for (i = 0; i < ATTEMPTS; i++) {
 		lpi = -1;
 		pi = 0;
-
+		
 		for (n = 2, ab = sqrt(2); lpi != pi; n *= 2, ab = ad) {
 			double sc, cd;
-
+			
 			sc = sqrt(1 - (ab * ab / 4));
 			cd = 1 - sc;
 			ad = sqrt(ab * ab / 4 + cd * cd);
 			lpi = pi;
 			pi = 2 * n * ad;
 		}
-
-#ifdef KERN_ia64_ARCH_H_
+		
 		if ((int) (1000000 * pi) != PI_10e8) {
 			if (!sh_quiet)
 				printf("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}
-#else
-		if ((int) (100000000 * pi) != PI_10e8) {
-			if (!sh_quiet)
-				printf("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * pi), (unative_t) PI_10e8);
-			atomic_inc(&threads_fault);
-			break;
-		}
-#endif
 	}
 	atomic_inc(&threads_ok);
 }
@@ -179,14 +132,14 @@ char * test_fpu1(bool quiet)
 {
 	unsigned int i, total = 0;
 	sh_quiet = quiet;
-
+	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
 	atomic_set(&threads_fault, 0);
 	
 	if (!quiet)
 		printf("Creating %u threads... ", 2 * THREADS);
-
+	
 	for (i = 0; i < THREADS; i++) {  
 		thread_t *t;
 		
