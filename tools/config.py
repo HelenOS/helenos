@@ -257,8 +257,8 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
 				outdf.write(' -D%s' % varname)
 		else:
-			outmc.write('/* %s */\n#define %s %s\n\n' % (name, varname, default))
-			outdf.write(' -D%s=%s' % (varname, default))
+			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, default, varname, default))
+			outdf.write(' -D%s=%s -D%s_%s' % (varname, default, varname, default))
 	
 	outmk.write('REVISION = %s\n' % revision)
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
