@@ -28,7 +28,8 @@
 
 #include "regname.h"
 
-#define INITIAL_STACK 0x80040000
+#define INITIAL_STACK        0x80040000
+#define MSIM_DORDER_ADDRESS  0x90000004
 
 .set noat
 .set noreorder
@@ -38,8 +39,27 @@
 
 .global start
 start:
-	lui $sp, INITIAL_STACK >> 16
-	ori $sp, $sp, INITIAL_STACK & 0xffff
 	
-	j bootstrap
+#ifdef MACHINE_msim
+	/* Read dorder value */
+	la $k0, MSIM_DORDER_ADDRESS
+	lw $k0, ($k0)
+	
+	/* If we are not running on BSP
+	   end in an infinite loop  */
+	beq $k0, $zero, bsp
 	nop
+	
+	loop:
+		j loop
+		nop
+	
+#endif
+	
+	bsp:
+		/* Setup initial stack */
+		lui $sp, INITIAL_STACK >> 16
+		ori $sp, $sp, INITIAL_STACK & 0xffff
+		
+		j bootstrap
+		nop
