@@ -102,7 +102,7 @@ extern void machine_irq_exception(int exc_no, istate_t *istate);
 extern uintptr_t machine_get_fb_address(void);
 
 
-#ifdef MACHINE_GXEMUL_TESTARM
+#ifdef MACHINE_gxemul
 	#define machine_console_init(devno)            gxemul_console_init(devno)
 	#define machine_grab_console                   gxemul_grab_console
 	#define machine_release_console                gxemul_release_console 
