@@ -166,6 +166,10 @@ void arch_post_smp_init(void)
 {
 }
 
+void calibrate_delay_loop(void)
+{
+}
+
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	/* EXL = 1, UM = 1, IE = 1 */

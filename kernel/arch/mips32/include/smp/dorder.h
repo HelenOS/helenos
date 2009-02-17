@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_mips32_ORDER_H_
-#define KERN_mips32_ORDER_H_
+#ifndef KERN_mips32_DORDER_H_
+#define KERN_mips32_DORDER_H_
 
 extern void ipi_broadcast_arch(int ipi);
 

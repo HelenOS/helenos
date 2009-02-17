@@ -38,8 +38,10 @@
 #include <typedefs.h>
 #include <arch/exception.h>
 
-#define IVT_ITEMS 32
-#define IVT_FIRST 0
+#define IVT_ITEMS  32
+#define IVT_FIRST  0
+
+#define VECTOR_TLB_SHOOTDOWN_IPI  EXC_Int
 
 extern function virtual_timer_fnc;
 extern uint32_t count_hi;

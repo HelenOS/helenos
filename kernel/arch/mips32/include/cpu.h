@@ -42,7 +42,7 @@ typedef struct {
 	uint32_t imp_num;
 	uint32_t rev_num;
 } cpu_arch_t;
-	
+
 #endif
 
 /** @}

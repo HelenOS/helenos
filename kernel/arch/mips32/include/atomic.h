@@ -35,14 +35,14 @@
 #ifndef KERN_mips32_ATOMIC_H_
 #define KERN_mips32_ATOMIC_H_
 
-#define atomic_inc(x)	((void) atomic_add(x, 1))
-#define atomic_dec(x)	((void) atomic_add(x, -1))
+#define atomic_inc(x)  ((void) atomic_add(x, 1))
+#define atomic_dec(x)  ((void) atomic_add(x, -1))
 
-#define atomic_postinc(x) (atomic_add(x, 1) - 1)
-#define atomic_postdec(x) (atomic_add(x, -1) + 1)
+#define atomic_postinc(x)  (atomic_add(x, 1) - 1)
+#define atomic_postdec(x)  (atomic_add(x, -1) + 1)
 
-#define atomic_preinc(x) atomic_add(x, 1)
-#define atomic_predec(x) atomic_add(x, -1)
+#define atomic_preinc(x)  atomic_add(x, 1)
+#define atomic_predec(x)  atomic_add(x, -1)
 
 /* Atomic addition of immediate value.
  *
@@ -54,19 +54,37 @@
 static inline long atomic_add(atomic_t *val, int i)
 {
 	long tmp, v;
-
+	
 	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
-		"	addu %0, %0, %3\n"	/* same as addi, but never traps on overflow */
-		"       move %2, %0\n"
+		"	addu %0, %0, %3\n"  /* same as addi, but never traps on overflow */
+		"	move %2, %0\n"
 		"	sc %0, %1\n"
-		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
+		"	beq %0, %4, 1b\n"   /* if the atomic operation failed, try again */
 		"	nop\n"
 		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
 		: "r" (i), "i" (0)
-		);
+	);
+	
+	return v;
+}
 
+static inline uint32_t test_and_set(atomic_t *val) {
+	uint32_t tmp, v;
+	
+	asm volatile (
+		"1:\n"
+		"	ll %2, %1\n"
+		"	bnez %2, 2f\n"
+		"	li %0, %3\n"
+		"	sc %0, %1\n"
+		"	beqz %0, 1b\n"
+		"2:\n"
+		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
+		: "i" (1)
+	);
+	
 	return v;
 }
 

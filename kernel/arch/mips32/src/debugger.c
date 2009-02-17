@@ -162,17 +162,17 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (breakpoints[i].address == (uintptr_t)argv->intval) {
 			printf("Duplicate breakpoint %d.\n", i);
-			spinlock_unlock(&bkpoints_lock);
+			spinlock_unlock(&bkpoint_lock);
 			return 0;
 		} else if (breakpoints[i].address == (uintptr_t)argv->intval +
 		    sizeof(unative_t) || breakpoints[i].address ==
 		    (uintptr_t)argv->intval - sizeof(unative_t)) {
 			printf("Adjacent breakpoints not supported, conflict "
 			    "with %d.\n", i);
-			spinlock_unlock(&bkpoints_lock);
+			spinlock_unlock(&bkpoint_lock);
 			return 0;
 		}
-			
+		
 	}
 
 	for (i = 0; i < BKPOINTS_MAX; i++)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
  */
 
-#include <arch/smp/order.h>
+#include <smp/smp.h>
 
-#define MSIM_ORDER_ADDRESS	0xB0000004
+#ifdef CONFIG_SMP
 
-void ipi_broadcast_arch(int ipi)
+void smp_init(void)
 {
-	*((volatile unsigned int *) MSIM_ORDER_ADDRESS) = 0x7FFFFFFF;
 }
+
+void kmp(void *arg __attribute__((unused)))
+{
+}
+
+#endif /* CONFIG_SMP */
 
 /** @}
  */

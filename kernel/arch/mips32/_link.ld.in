@@ -9,6 +9,8 @@
 #undef mips
 #define mips mips
 
+#define KERNEL_LOAD_ADDRESS 0x80100000
+
 OUTPUT_ARCH(mips)
 ENTRY(kernel_image_start)
 

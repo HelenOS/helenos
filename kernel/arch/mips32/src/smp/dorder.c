@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2004 Jakub Jermar
+ * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_mips32_ASM_H_
-#define KERN_mips32_ASM_H_
+#include <arch/smp/dorder.h>
 
-#include <arch/types.h>
-#include <config.h>
+#define MSIM_DORDER_ADDRESS  0xB0000004
 
-
-static inline void cpu_sleep(void)
+void ipi_broadcast_arch(int ipi)
 {
-	/* Most of the simulators do not support */
-/*	asm volatile ("wait"); */
-}
-
-/** Return base address of current stack
- * 
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- */
-static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t v;
-	
-	asm volatile (
-		"and %0, $29, %1\n"
-		: "=r" (v)
-		: "r" (~(STACK_SIZE-1))
-	);
-	
-	return v;
-}
-
-extern void cpu_halt(void);
-extern void asm_delay_loop(uint32_t t);
-extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
-    uintptr_t entry);
-
-extern ipl_t interrupts_disable(void);
-extern ipl_t interrupts_enable(void);
-extern void interrupts_restore(ipl_t ipl);
-extern ipl_t interrupts_read(void);
-extern void asm_delay_loop(uint32_t t);
-
-static inline void pio_write_8(ioport_t port, uint8_t v)
-{
-	/* XXX */
-}
-
-static inline uint8_t pio_read_8(ioport_t port)
-{
-	return 0;	/* XXX */
-}
-
+#ifdef CONFIG_SMP
+	*((volatile unsigned int *) MSIM_DORDER_ADDRESS) = 0x7FFFFFFF;
 #endif
+}
 
 /** @}
  */

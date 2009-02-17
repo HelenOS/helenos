@@ -122,7 +122,7 @@ static int as_constructor(void *obj, int flags)
 	int rc;
 
 	link_initialize(&as->inactive_as_with_asid_link);
-	mutex_initialize(&as->lock, MUTEX_PASSIVE);	
+	mutex_initialize(&as->lock, MUTEX_PASSIVE);
 	
 	rc = as_constructor_arch(as, flags);
 	

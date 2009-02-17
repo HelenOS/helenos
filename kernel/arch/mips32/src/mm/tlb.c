@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -41,7 +41,7 @@
 #include <panic.h>
 #include <arch.h>
 #include <symtab.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <print.h>
 #include <debug.h>
 #include <align.h>
@@ -92,15 +92,15 @@ void tlb_refill(istate_t *istate)
 	uintptr_t badvaddr;
 	pte_t *pte;
 	int pfrc;
-
+	
 	badvaddr = cp0_badvaddr_read();
-
-	spinlock_lock(&AS->lock);
+	
+	mutex_lock(&AS->lock);
 	asid = AS->asid;
-	spinlock_unlock(&AS->lock);
-
+	mutex_unlock(&AS->lock);
+	
 	page_table_lock(AS, true);
-
+	
 	pte = find_mapping_and_check(badvaddr, PF_ACCESS_READ, istate, &pfrc);
 	if (!pte) {
 		switch (pfrc) {

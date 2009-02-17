@@ -27,7 +27,7 @@
 #
 
 #include <arch/asm/regname.h>
-	
+
 .text
 
 .macro cp0_read reg
@@ -45,6 +45,11 @@
 .set noat
 .set noreorder
 .set nomacro
+
+.global asm_delay_loop
+asm_delay_loop:
+	j $31
+	nop
 
 .global cpu_halt
 cpu_halt:

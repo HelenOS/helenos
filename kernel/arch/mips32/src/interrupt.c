@@ -41,8 +41,9 @@
 #include <ipc/sysipc.h>
 #include <ddi/device.h>
 
-#define IRQ_COUNT 8
-#define TIMER_IRQ 7
+#define IRQ_COUNT   8
+#define TIMER_IRQ   7
+#define DORDER_IRQ  5
 
 function virtual_timer_fnc = NULL;
 static irq_t timer_irq;

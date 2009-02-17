@@ -33,11 +33,9 @@ BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
 
-KERNEL_LOAD_ADDRESS = 0x80100000
-
 GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
 
-DEFS += -D__32_BITS__ -DKERNEL_LOAD_ADDRESS=$(KERNEL_LOAD_ADDRESS)
+DEFS += -D__32_BITS__
 
 ## Accepted MACHINEs
 #
@@ -74,7 +72,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/mips32.c \
-	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/console.c \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/exception.c \
@@ -90,4 +87,5 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/msim.c \
 	arch/$(KARCH)/src/drivers/serial.c \
-	arch/$(KARCH)/src/smp/order.c
+	arch/$(KARCH)/src/smp/dorder.c \
+	arch/$(KARCH)/src/smp/smp.c
