@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,87 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbd
+ * @brief	US Dvorak Simplified Keyboard layout.
  * @{
  */ 
-/** @file
- */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#include <kbd.h>
+#include <kbd/kbd.h>
+#include <kbd/keycode.h>
+#include <layout.h>
 
-#include <key_buffer.h>
+static int map_normal[] = {
+	[KC_BACKTICK] = '`',
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
+	[KC_1] = '1',
+	[KC_2] = '2',
+	[KC_3] = '3',
+	[KC_4] = '4',
+	[KC_5] = '5',
+	[KC_6] = '6',
+	[KC_7] = '7',
+	[KC_8] = '8',
+	[KC_9] = '9',
+	[KC_0] = '0',
 
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
+	[KC_MINUS] = '[',
+	[KC_EQUALS] = ']',
+	[KC_BACKSPACE] = '\b',
 
-#endif
+	[KC_TAB] = '\t',
+
+	[KC_Q] = '\'',
+	[KC_W] = ',',
+	[KC_E] = '.',
+	[KC_R] = 'p',
+	[KC_T] = 'y',
+	[KC_Y] = 'f',
+	[KC_U] = 'g',
+	[KC_I] = 'c',
+	[KC_O] = 'r',
+	[KC_P] = 'l',
+
+	[KC_LBRACKET] = '/',
+	[KC_RBRACKET] = '=',
+
+	[KC_A] = 'a',
+	[KC_S] = 'o',
+	[KC_D] = 'e',
+	[KC_F] = 'u',
+	[KC_G] = 'i',
+	[KC_H] = 'd',
+	[KC_J] = 'h',
+	[KC_K] = 't',
+	[KC_L] = 'n',
+
+	[KC_SEMICOLON] = 's',
+	[KC_QUOTE] = '-',
+	[KC_BACKSLASH] = '\\',
+
+	[KC_Z] = ';',
+	[KC_X] = 'q',
+	[KC_C] = 'j',
+	[KC_V] = 'k',
+	[KC_B] = 'x',
+	[KC_N] = 'b',
+	[KC_M] = 'm',
+
+	[KC_COMMA] = 'w',
+	[KC_PERIOD] = 'v',
+	[KC_SLASH] = 'z',
+
+	[KC_ENTER] = '\n'
+};
+
+char layout_parse_ev(kbd_event_t *ev)
+{
+	if (ev->key >= sizeof(map_normal) / sizeof(int))
+		return 0;
+
+	return map_normal[ev->key];
+}
 
 /**
  * @}
  */ 
-

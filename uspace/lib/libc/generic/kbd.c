@@ -50,9 +50,9 @@ int kbd_get_event(kbd_event_t *ev)
 		return -1;
 
 	ev->type = r0;
-	ev->c = r1;
-	ev->key = r2;
-	ev->mods = r3;
+	ev->key = r1;
+	ev->mods = r2;
+	ev->c = r3;
 
 	return 0;
 }

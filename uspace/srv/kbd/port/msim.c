@@ -26,31 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbd
+ * @brief	Msim keyboard port driver.
  * @{
  */ 
 /** @file
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#include <ipc/ipc.h>
+#include <async.h>
+#include <sysinfo.h>
+#include <kbd_port.h>
+#include <kbd.h>
 
-#include <key_buffer.h>
+irq_cmd_t msim_cmds[1] = {
+	{ CMD_MEM_READ_1, (void *) 0, 0, 2 }
+};
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
+irq_code_t msim_kbd = {
+	1,
+	msim_cmds
+};
 
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
+static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-#endif
+int kbd_port_init(void)
+{
+	async_set_interrupt_received(msim_irq_handler);
+	msim_cmds[0].addr = sysinfo_value("kbd.address.virtual");
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
+	    0, &msim_kbd);
+	return 0;
+}
 
-/**
- * @}
- */ 
+static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+{
+	int scan_code = IPC_GET_ARG2(*call);
+//	static int esc_count=0;
 
+//	if (scan_code == 0x1b) {
+//		esc_count++;
+//		if (esc_count == 3)
+//			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+//	} else {
+//		esc_count=0;
+//	}
+
+//	if (fb_fb)
+//		return kbd_arch_process_fb(keybuffer, scan_code);
+
+	kbd_push_scancode(scan_code);
+}
+
+/** @}
+*/

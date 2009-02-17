@@ -26,31 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
+/** @addtogroup kbdamd64 amd64
+ * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard and mouse handler.
  * @ingroup  kbd
  * @{
- */ 
-/** @file
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+/** @file
+ * @ingroup kbdia32
+ */
 
-#include <key_buffer.h>
+#ifndef KBD_PORT_i8042_H_
+#define KBD_PORT_i8042_H_
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
+#include <ddi.h>
+#include <libarch/ddi.h>
 
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
+#define i8042_DATA      0x60
+#define i8042_STATUS    0X64
+
+
+typedef unsigned char u8;
+typedef short u16;
+
+static inline void i8042_data_write(u8 data)
+{
+	outb(i8042_DATA, data);
+}
+
+static inline u8 i8042_data_read(void)
+{
+	return inb(i8042_DATA);
+}
+
+static inline u8 i8042_status_read(void)
+{
+	return inb(i8042_STATUS);
+}
+
+static inline void i8042_command_write(u8 command)
+{
+	outb(i8042_STATUS, command);
+}
 
 #endif
 
 /**
  * @}
  */ 
-

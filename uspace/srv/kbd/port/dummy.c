@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbd
+ * @brief	Dummy keyboard port driver.
  * @{
  */ 
 /** @file
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#include <kbd_port.h>
+#include <kbd.h>
 
-#include <key_buffer.h>
+int kbd_port_init(void)
+{
+	return 0;
+}
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
-
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
-
-#endif
-
-/**
- * @}
- */ 
-
+/** @}
+*/

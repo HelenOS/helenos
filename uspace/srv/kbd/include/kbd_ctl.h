@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,19 +34,10 @@
 /** @file
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#ifndef KBD_CTL_H_
+#define KBD_CTL_H_
 
-#include <key_buffer.h>
-
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
-
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
+extern void kbd_ctl_parse_scancode(int);
 
 #endif
 

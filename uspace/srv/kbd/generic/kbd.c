@@ -47,10 +47,11 @@
 #include <libadt/fifo.h>
 #include <kbd/kbd.h>
 
-#include <arch/kbd.h>
 #include <kbd.h>
 #include <key_buffer.h>
-#include <keys.h>
+#include <kbd_port.h>
+#include <kbd_ctl.h>
+#include <layout.h>
 
 #define NAME "kbd"
 
@@ -58,31 +59,50 @@ int cons_connected = 0;
 int phone2cons = -1;
 keybuffer_t keybuffer;	
 
-static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
+void kbd_push_scancode(int scancode)
+{
+	printf("scancode: 0x%x\n", scancode);
+	kbd_ctl_parse_scancode(scancode);
+}
+
+#include <kbd/keycode.h>
+void kbd_push_ev(int type, unsigned int key, unsigned int mods)
 {
 	kbd_event_t ev;
 
-#ifdef MOUSE_ENABLED
-	if (mouse_arch_process(phone2cons, call))
-		return;
-#endif
-	
-	kbd_arch_process(&keybuffer, call);
+	printf("type: %d\n", type);
+	printf("mods: 0x%x\n", mods);
+	printf("keycode: %u\n", key);
 
-	if (cons_connected && phone2cons != -1) {
-		/*
-		 * One interrupt can produce more than one event so the result
-		 * is stored in a FIFO.
-		 */
-		while (!keybuffer_empty(&keybuffer)) {
-			if (!keybuffer_pop(&keybuffer, &ev))
-				break;
+	ev.type = type;
+	ev.key = key;
+	ev.mods = mods;
 
-			async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key,
-			    ev.mods, ev.c);
-		}
-	}
+	ev.c = layout_parse_ev(&ev);
+
+	async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
+
+//static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
+//{
+//	kbd_event_t ev;
+//
+//	kbd_arch_process(&keybuffer, call);
+//
+//	if (cons_connected && phone2cons != -1) {
+//		/*
+//		 * One interrupt can produce more than one event so the result
+//		 * is stored in a FIFO.
+//		 */
+//		while (!keybuffer_empty(&keybuffer)) {
+//			if (!keybuffer_pop(&keybuffer, &ev))
+//				break;
+//
+//			async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key,
+//			    ev.mods, ev.c);
+//		}
+//	}
+//}
 
 static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -122,29 +142,30 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
+
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS Keyboard service\n");
 	
 	ipcarg_t phonead;
 	
-	/* Initialize arch dependent parts */
-	if (kbd_arch_init())
+	/* Initialize port driver. */
+	if (kbd_port_init())
 		return -1;
 	
 	/* Initialize key buffer */
 	keybuffer_init(&keybuffer);
 	
 	async_set_client_connection(console_connection);
-	async_set_interrupt_received(irq_handler);
-	/* Register service at nameserver */
+
+	/* Register service at nameserver. */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, 0, &phonead) != 0)
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 
-	/* Never reached */
+	/* Not reached. */
 	return 0;
 }
 

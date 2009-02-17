@@ -54,7 +54,7 @@ enum keycode {
 
 	/* Main block row 1 */
 
-	KC_BACKTICK,
+	KC_BACKTICK = 1,
 
 	KC_1,
 	KC_2,

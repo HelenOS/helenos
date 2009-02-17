@@ -67,7 +67,7 @@ ssize_t read_stdin(void *buf, size_t count)
 			do {
 				rc = kbd_get_event(&ev);
 				if (rc < 0) return -1;
-			} while (ev.c == 0);
+			} while (ev.c == 0 || ev.type == KE_RELEASE);
 
 			((char *) buf)[i++] = ev.c;
 		}
