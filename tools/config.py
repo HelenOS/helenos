@@ -54,7 +54,7 @@ def read_defaults(fname, defaults):
 	inf.close()
 
 def check_condition(text, defaults, ask_names):
-	"Check for condition"
+	"Check that the condition specified on input line is True (only CNF and DNF is supported)"
 	
 	ctype = 'cnf'
 	
@@ -83,7 +83,7 @@ def check_condition(text, defaults, ask_names):
 	return False
 
 def check_inside(text, defaults, ctype):
-	"Check that the condition specified on input line is True (only CNF is supported)"
+	"Check for condition"
 	
 	if (ctype == 'cnf'):
 		conds = text.split('|')
@@ -299,6 +299,11 @@ def main():
 	try:
 		selname = None
 		while True:
+			
+			# Cancel out all defaults which have to be deduced
+			for varname, vartype, name, choices, cond in ask_names:
+				if (vartype == 'y'):
+					defaults[varname] = None
 			
 			options = []
 			opt2row = {}
