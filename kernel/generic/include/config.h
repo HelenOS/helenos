@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -38,9 +38,9 @@
 #include <arch/types.h>
 #include <arch/mm/page.h>
 
-#define STACK_SIZE		PAGE_SIZE
+#define STACK_SIZE  PAGE_SIZE
 
-#define CONFIG_INIT_TASKS	32
+#define CONFIG_INIT_TASKS  32
 
 typedef struct {
 	uintptr_t addr;
@@ -63,14 +63,14 @@ typedef struct {
 } ballocs_t;
 
 typedef struct {
-	count_t cpu_count;		/**< Number of processors detected. */
-	volatile count_t cpu_active;	/**< Number of processors that are up and running. */
-
-	uintptr_t base;
-	size_t kernel_size;		/**< Size of memory in bytes taken by kernel and stack */
+	count_t cpu_count;            /**< Number of processors detected. */
+	volatile count_t cpu_active;  /**< Number of processors that are up and running. */
 	
-	uintptr_t stack_base;		/**< Base adddress of initial stack */
-	size_t stack_size;		/**< Size of initial stack */
+	uintptr_t base;
+	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
+	
+	uintptr_t stack_base;         /**< Base adddress of initial stack */
+	size_t stack_size;            /**< Size of initial stack */
 } config_t;
 
 extern config_t config;
