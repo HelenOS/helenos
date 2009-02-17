@@ -32,7 +32,7 @@
  */
 /** @file
  *  @brief Functions implemented in assembly.
- */ 
+ */
 
 
 #ifndef BOOT_arm32_ASM_H
@@ -40,10 +40,10 @@
 
 
 /** Copies cnt bytes from dst to src.
- * 
+ *
  * @param dst Destination address.
  * @param src Source address.
- * @param cnt Count of bytes to be copied. 
+ * @param cnt Count of bytes to be copied.
  */
 #define memcpy(dst, src, cnt) __builtin_memcpy((dst), (src), (cnt))
 
@@ -58,12 +58,11 @@ extern void start(void);
 
 /** Jumps to the kernel entry point.
  *
- * @param entry          Kernel entry point address.
- * @param bootinfo       Structure holding information about loaded tasks.
- * @param bootinfo_size  Size of the bootinfo structure.
+ * @param entry    Kernel entry point address.
+ * @param bootinfo Structure holding information about loaded tasks.
+ *
  */
-extern void jump_to_kernel(void *entry, void *bootinfo,
-    unsigned int bootinfo_size) __attribute__((noreturn));
+extern void jump_to_kernel(void *entry, void *bootinfo) __attribute__((noreturn));
 
 
 #endif

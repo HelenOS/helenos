@@ -33,7 +33,6 @@
  */
 
 #include <arch.h>
-#include <arch/boot.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
 #include <mm/as.h>
@@ -58,34 +57,39 @@
 
 #include <arch/asm/regname.h>
 
-/* Size of the code jumping to the exception handler code 
- * - J+NOP 
+/* Size of the code jumping to the exception handler code
+ * - J+NOP
  */
-#define EXCEPTION_JUMP_SIZE    8
+#define EXCEPTION_JUMP_SIZE  8
 
-#define TLB_EXC ((char *) 0x80000000)
-#define NORM_EXC ((char *) 0x80000180)
-#define CACHE_EXC ((char *) 0x80000100)
+#define TLB_EXC    ((char *) 0x80000000)
+#define NORM_EXC   ((char *) 0x80000180)
+#define CACHE_EXC  ((char *) 0x80000100)
 
 
 /* Why the linker moves the variable 64K away in assembler
- * when not in .text section ????????
+ * when not in .text section?
  */
-uintptr_t supervisor_sp __attribute__ ((section (".text")));
-/* Stack pointer saved when entering user mode */
-/* TODO: How do we do it on SMP system???? */
-bootinfo_t bootinfo __attribute__ ((section (".text")));
 
-void arch_pre_main(void)
+/* Stack pointer saved when entering user mode */
+uintptr_t supervisor_sp __attribute__ ((section (".text")));
+
+count_t cpu_count = 0;
+
+void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	/* Setup usermode */
-	init.cnt = bootinfo.cnt;
+	init.cnt = bootinfo->cnt;
 	
-	uint32_t i;
+	count_t i;
+	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
+		init.tasks[i].addr = bootinfo->tasks[i].addr;
+		init.tasks[i].size = bootinfo->tasks[i].size;
+	}
 	
-	for (i = 0; i < bootinfo.cnt; i++) {
-		init.tasks[i].addr = bootinfo.tasks[i].addr;
-		init.tasks[i].size = bootinfo.tasks[i].size;
+	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {
+		if ((bootinfo->cpumap & (1 << i)) != 0)
+			cpu_count++;
 	}
 }
 

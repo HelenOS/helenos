@@ -29,11 +29,11 @@
 #ifndef BOOT_mips32_ASM_H_
 #define BOOT_mips32_ASM_H_
 
-#define PAGE_SIZE 16384
-#define PAGE_WIDTH 14
+#define PAGE_SIZE   16384
+#define PAGE_WIDTH  14
 
-#define memcpy(dst, src, cnt)	__builtin_memcpy((dst), (src), (cnt))
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
-void jump_to_kernel(void *entry, void *bootinfo, unsigned int bootinfo_size) __attribute__((noreturn));
+void jump_to_kernel(void *entry, void *bootinfo) __attribute__((noreturn));
 
 #endif

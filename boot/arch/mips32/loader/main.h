@@ -29,14 +29,14 @@
 #ifndef BOOT_mips32_MAIN_H_
 #define BOOT_mips32_MAIN_H_
 
-/** Align to the nearest higher address.
- *
- * @param addr  Address or size to be aligned.
- * @param align Size of alignment, must be power of 2.
- */
-#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+#define CPUMAP               0x80001000
+#define INITIAL_STACK        0x80002000
+#define MSIM_DORDER_ADDRESS  0xb0000004
 
-#define TASKMAP_MAX_RECORDS 32
+#define TASKMAP_MAX_RECORDS  32
+#define CPUMAP_MAX_RECORDS   32
+
+#ifndef __ASM__
 
 typedef struct {
 	void *addr;
@@ -44,11 +44,14 @@ typedef struct {
 } task_t;
 
 typedef struct {
+	unsigned int cpumap;
 	unsigned int cnt;
 	task_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 
 extern void start(void);
 extern void bootstrap(void);
+
+#endif
 
 #endif

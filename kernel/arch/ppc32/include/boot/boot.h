@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -35,13 +35,13 @@
 #ifndef KERN_ppc32_BOOT_H_
 #define KERN_ppc32_BOOT_H_
 
-#define BOOT_OFFSET		0x8000
+#define BOOT_OFFSET  0x8000
 
 /* Temporary stack size for boot process */
-#define TEMP_STACK_SIZE 0x1000
+#define TEMP_STACK_SIZE  0x1000
 
-#define TASKMAP_MAX_RECORDS 32
-#define MEMMAP_MAX_RECORDS 32
+#define TASKMAP_MAX_RECORDS  32
+#define MEMMAP_MAX_RECORDS   32
 
 #ifndef __ASM__
 

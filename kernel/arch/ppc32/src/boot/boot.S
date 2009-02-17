@@ -33,7 +33,7 @@
 
 .global kernel_image_start
 kernel_image_start:
-
+	
 	# load temporal kernel stack
 	
 	lis sp, kernel_stack@ha
@@ -52,7 +52,7 @@ kernel_image_start:
 	beq bootinfo_end
 	
 	addis r3, r3, 0x8000
-
+	
 	lis r31, bootinfo@ha
 	addi r31, r31, bootinfo@l  # r31 = bootinfo
 	

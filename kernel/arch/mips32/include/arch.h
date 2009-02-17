@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -34,6 +34,26 @@
 
 #ifndef KERN_mips32_ARCH_H_
 #define KERN_mips32_ARCH_H_
+
+#define TASKMAP_MAX_RECORDS  32
+#define CPUMAP_MAX_RECORDS   32
+
+#include <typedefs.h>
+
+extern count_t cpu_count;
+
+typedef struct {
+	uintptr_t addr;
+	uint32_t size;
+} utask_t;
+
+typedef struct {
+	uint32_t cpumap;
+	uint32_t cnt;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} bootinfo_t;
+
+extern void arch_pre_main(void *entry, bootinfo_t *bootinfo);
 
 #endif
 

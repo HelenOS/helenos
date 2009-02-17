@@ -28,6 +28,7 @@
 
 #include "main.h" 
 #include <printf.h>
+#include <align.h>
 #include <macros.h>
 #include "msim.h"
 #include "asm.h"
@@ -73,9 +74,10 @@ void bootstrap(void)
 		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 	
 	printf("\nCopying components\n");
+	
 	unsigned int top = 0;
 	bootinfo.cnt = 0;
-	for (i = 0; i < COMPONENTS; i++) {
+	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		printf(" %s...", components[i].name);
 		top = ALIGN_UP(top, PAGE_SIZE);
 		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
@@ -88,6 +90,13 @@ void bootstrap(void)
 		printf("done.\n");
 	}
 	
+	unsigned int *cpumap = (unsigned int *) CPUMAP;
+	bootinfo.cpumap = 0;
+	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {
+		if (cpumap[i] != 0)
+			bootinfo.cpumap |= (1 << i);
+	}
+	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo);
 }

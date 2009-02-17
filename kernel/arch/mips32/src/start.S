@@ -31,7 +31,7 @@
 #include <arch/asm/boot.h>
 #include <arch/context_offset.h>
 #include <arch/stack.h>
-	
+
 .text
 
 .set noat
@@ -152,39 +152,20 @@
 	ori $k0, $k0, %lo(supervisor_sp)
 	# Move $k0 (superveisor_sp)
 	lw $k0, 0($k0)
-1:		
+1:
 .endm
-		
+
 .org 0x0
 kernel_image_start:
 	/* Load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
 	
-	/* $a1 contains physical address of bootinfo_t */
-	/* $a2 contains size of bootinfo_t */
-	
-	beq $a2, $0, bootinfo_end
-	
-	/* Not sure about this, but might be needed for PIC code???? */
+	/* Not sure about this, but might
+	   be needed for PIC code */
 	lui $gp, 0x8000
 	
-	lui $a3, %hi(bootinfo)
-	ori $a3, $a3, %lo(bootinfo)
-	
-	bootinfo_loop:
-		
-		lw $v0, 0($a1)
-		sw $v0, 0($a3)
-		
-		addi $a1, $a1, 4
-		addi $a3, $a3, 4
-		addi $a2, $a2, -4
-		
-		bgtz $a2, bootinfo_loop
-		nop
-		
-	bootinfo_end:
+	/* $a1 contains physical address of bootinfo_t */
 	
 	jal arch_pre_main
 	nop
@@ -205,8 +186,8 @@ cache_error_entry:
 
 exception_entry:
 	j exception_handler
-	nop	
-	
+	nop
+
 exception_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, REGISTER_SPACE
@@ -215,17 +196,17 @@ exception_handler:
 	
 	mfc0 $k0, $cause
 	
-	sra $k0, $k0, 0x2		# cp0_exc_cause() part 1
-	andi $k0, $k0, 0x1f		# cp0_exc_cause() part 2
-	sub $k0, 8			# 8 = SYSCALL
+	sra $k0, $k0, 0x2    # cp0_exc_cause() part 1
+	andi $k0, $k0, 0x1f  # cp0_exc_cause() part 2
+	sub $k0, 8           # 8 = SYSCALL
 	
 	beqz $k0, syscall_shortcut
-	add $k0, 8			# Revert $k0 back to correct exc number
+	add $k0, 8           # Revert $k0 back to correct exc number
 	
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
-	jal exc_dispatch		# exc_dispatch(excno, register_space)
+	jal exc_dispatch     # exc_dispatch(excno, register_space)
 	move $a0, $k0
 
 	REGISTERS_LOAD $sp

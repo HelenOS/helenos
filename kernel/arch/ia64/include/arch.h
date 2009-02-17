@@ -39,6 +39,8 @@
 
 #include <arch/ski/ski.h>
 
+extern void arch_pre_main(void);
+
 #endif
 
 /** @}

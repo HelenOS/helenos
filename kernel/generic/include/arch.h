@@ -63,12 +63,11 @@ typedef struct {
 	as_t *as;			/**< Current address space. */
 } the_t;
 
-#define THE		((the_t *)(get_stack_base()))
+#define THE  ((the_t * )(get_stack_base()))
 
 extern void the_initialize(the_t *the);
 extern void the_copy(the_t *src, the_t *dst);
 
-extern void arch_pre_main(void);
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);
 extern void arch_post_cpu_init(void);

@@ -40,30 +40,12 @@ kernel_image_start:
 	mrs r3, cpsr
 	bic r3, r3, #0x1f
 	orr r3, r3, #0x13
-	msr cpsr_c, r3	
+	msr cpsr_c, r3
 	
 	ldr sp, =temp_stack
-
-	cmp r2, #0
-	beq bootinfo_end
-
-	ldr r3, =bootinfo
-
-	bootinfo_loop:
-		ldr r4, [r1]
-		str r4, [r3]
-
-		add r1, r1, #4
-		add r3, r3, #4
-		add r2, r2, #-4
-
-		cmp r2, #0
-		bne bootinfo_loop
 	
-	bootinfo_end:
-
 	bl arch_pre_main
-
+	
 	bl main_bsp
 
 	.space TEMP_STACK_SIZE
@@ -74,4 +56,3 @@ exc_stack:
 
 supervisor_sp:
 	.space 4
-

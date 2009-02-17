@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -38,23 +38,6 @@
 
 /** Size of a temporary stack used for initial kernel start. */
 #define TEMP_STACK_SIZE 0x100
-
-#ifndef __ASM__
-
-/** Kernel entry point.
- *
- * Implemented in assembly. Copies boot_bootinfo (declared as bootinfo in 
- * boot/arch/arm32/loader/main.c) to #bootinfo struct. Then jumps to
- * #arch_pre_main and #main_bsp.
- *
- * @param entry          Entry point address (not used).
- * @param boot_bootinfo  Struct holding information about loaded tasks.
- * @param bootinfo_size  Size of the bootinfo structure.
- */
-extern void kernel_image_start(void *entry, void *boot_bootinfo,
-    unsigned int bootinfo_size);
-
-#endif
 
 #endif
 

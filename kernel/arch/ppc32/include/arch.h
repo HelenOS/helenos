@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_ARCH_H_
 #define KERN_ppc32_ARCH_H_
 
-#include <arch/drivers/cuda.h>
+extern void arch_pre_main(void);
 
 #endif
 

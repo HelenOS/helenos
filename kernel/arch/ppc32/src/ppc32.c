@@ -45,19 +45,19 @@
 #include <ddi/device.h>
 #include <ddi/irq.h>
 #include <arch/drivers/pic.h>
+#include <macros.h>
 
-#define IRQ_COUNT	64
+#define IRQ_COUNT  64
 
 bootinfo_t bootinfo;
 
 void arch_pre_main(void)
 {
-	/* Setup usermode */
 	init.cnt = bootinfo.taskmap.count;
 	
 	uint32_t i;
 	
-	for (i = 0; i < bootinfo.taskmap.count; i++) {
+	for (i = 0; i < min3(bootinfo.taskmap.count, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
 		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
 	}

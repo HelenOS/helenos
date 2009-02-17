@@ -34,7 +34,6 @@
  */
 
 #include <arch.h>
-#include <arch/boot.h>
 #include <config.h>
 #include <arch/console.h>
 #include <ddi/device.h>
@@ -48,22 +47,19 @@
 #include <arch/regutils.h>
 #include <arch/machine.h>
 #include <userspace.h>
-
-/** Information about loaded tasks. */
-bootinfo_t bootinfo;
+#include <macros.h>
 
 /** Performs arm32 specific initialization before main_bsp() is called. */
-void arch_pre_main(void)
+void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	unsigned int i;
-
-	init.cnt = bootinfo.cnt;
-
-	for (i = 0; i < bootinfo.cnt; ++i) {
-		init.tasks[i].addr = bootinfo.tasks[i].addr;
-		init.tasks[i].size = bootinfo.tasks[i].size;
-	}
 	
+	init.cnt = bootinfo->cnt;
+	
+	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); ++i) {
+		init.tasks[i].addr = bootinfo->tasks[i].addr;
+		init.tasks[i].size = bootinfo->tasks[i].size;
+	}
 }
 
 /** Performs arm32 specific initialization before mm is initialized. */

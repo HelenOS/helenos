@@ -32,19 +32,12 @@
  */
 /** @file
  *  @brief Boot related declarations.
- */ 
+ */
 
 
 #ifndef BOOT_arm32_MAIN_H
 #define BOOT_arm32_MAIN_H
 
-
-/** Aligns to the nearest higher address.
- *
- * @param addr  Address or number to be aligned.
- * @param align Size of alignment, must be power of 2.
- */
-#define ALIGN_UP(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
 
 /** Maximum number of tasks in the #bootinfo_t struct. */
 #define TASKMAP_MAX_RECORDS 32
@@ -74,4 +67,3 @@ extern void bootstrap(void);
 
 /** @}
  */
-

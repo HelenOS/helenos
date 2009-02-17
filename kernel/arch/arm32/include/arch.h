@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -35,6 +35,23 @@
 
 #ifndef KERN_arm32_ARCH_H_
 #define KERN_arm32_ARCH_H_
+
+#define TASKMAP_MAX_RECORDS  32
+#define CPUMAP_MAX_RECORDS   32
+
+#include <typedefs.h>
+
+typedef struct {
+	uintptr_t addr;
+	uint32_t size;
+} utask_t;
+
+typedef struct {
+	uint32_t cnt;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} bootinfo_t;
+
+extern void arch_pre_main(void *entry, bootinfo_t *bootinfo);
 
 #endif
 

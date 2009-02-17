@@ -32,13 +32,14 @@
  */
 /** @file
  *  @brief Bootstrap.
- */ 
+ */
 
 
 #include "main.h"
 #include "asm.h"
 #include "_components.h"
 #include <printf.h>
+#include <align.h>
 #include <macros.h>
 
 #include "mm.h"
@@ -109,7 +110,7 @@ void bootstrap(void)
 	}
 	
 	printf("\nBooting the kernel...\n");
-	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo, sizeof(bootinfo));
+	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo);
 }
 
 /** @}

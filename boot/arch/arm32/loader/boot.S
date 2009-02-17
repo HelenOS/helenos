@@ -53,5 +53,3 @@ jump_to_kernel:
 # make place for PTL0 page table
 page_table:
 	.skip PTL0_ENTRIES * PTL0_ENTRY_SIZE
-
-

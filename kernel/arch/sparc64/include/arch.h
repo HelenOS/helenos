@@ -45,6 +45,12 @@
 
 #define NWINDOWS		8	/** Number of register window sets. */
 
+#ifndef __ASM__
+
+extern void arch_pre_main(void);
+
+#endif /* __ASM__ */
+
 #endif
 
 /** @}

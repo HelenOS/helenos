@@ -32,12 +32,15 @@
 /** @file
  */
 
+#include <config.h>
 #include <smp/smp.h>
+#include <arch/arch.h>
 
 #ifdef CONFIG_SMP
 
 void smp_init(void)
 {
+	config.cpu_count = cpu_count;
 }
 
 void kmp(void *arg __attribute__((unused)))
