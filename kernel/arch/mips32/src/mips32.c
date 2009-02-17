@@ -137,19 +137,19 @@ void arch_post_mm_init(void)
 	fb_init(&gxemul_prop);
 #endif
 
-#ifdef msim
+#ifdef MACHINE_msim
 	sysinfo_set_item_val("machine.msim", NULL, 1);
 #endif
 
-#ifdef simics
+#ifdef MACHINE_simics
 	sysinfo_set_item_val("machine.simics", NULL, 1);
 #endif
 
-#ifdef bgxemul
+#ifdef MACHINE_bgxemul
 	sysinfo_set_item_val("machine.bgxemul", NULL, 1);
 #endif
 
-#ifdef lgxemul
+#ifdef MACHINE_lgxemul
 	sysinfo_set_item_val("machine.lgxemul", NULL, 1);
 #endif
 }

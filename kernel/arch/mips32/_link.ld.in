@@ -1,15 +1,15 @@
 /*
- *  MIPS32 linker script
- *  
+ * MIPS32 linker script
+ *
  *  kernel text
  *  kernel data
- *  
+ *
  */
+
 #undef mips
 #define mips mips
 
 OUTPUT_ARCH(mips)
-
 ENTRY(kernel_image_start)
 
 SECTIONS {
@@ -21,9 +21,9 @@ SECTIONS {
 	}
 	.data : {
 		kdata_start = .;
-		*(.data);		/* initialized data */
+		*(.data);                       /* initialized data */
 		hardcoded_ktext_size = .;
-		LONG(ktext_end - ktext_start);	
+		LONG(ktext_end - ktext_start);
 		hardcoded_kdata_size = .;
 		LONG(kdata_end - kdata_start);
 		hardcoded_load_address = .;
@@ -33,21 +33,21 @@ SECTIONS {
 		*(.reginfo);
 		*(.sbss);
 		*(.scommon);
-		*(.bss);		/* uninitialized static variables */
-		*(COMMON); 		/* global variables */
+		*(.bss);                        /* uninitialized static variables */
+		*(COMMON);                      /* global variables */
 		symbol_table = .;
-		*(symtab.*);             
+		*(symtab.*);
 	}
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
 	.lit4 : { *(.lit4) }
-
+	
 	kdata_end = .;
-
+	
 	/DISCARD/ : {
-	  *(.mdebug*);
-	  *(.pdr);
-	  *(.comment);
-	  *(.note);
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note);
 	}
 }
