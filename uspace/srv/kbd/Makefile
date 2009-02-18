@@ -79,8 +79,8 @@ ifeq ($(UARCH), ia32)
 endif
 ifeq ($(UARCH), ia64)
 	GENARCH_SOURCES += \
-		port/dummy.c \
-		ctl/stty.c
+		port/i8042.c \
+		ctl/pc.c
 endif
 ifeq ($(MACHINE), msim)
 	GENARCH_SOURCES += \
