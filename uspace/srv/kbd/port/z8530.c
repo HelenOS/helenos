@@ -31,7 +31,7 @@
  * @{
  */ 
 /** @file
- * @brief	Z8350 keyboard port driver.
+ * @brief	Z8530 keyboard port driver.
  */
 
 #include <ipc/ipc.h>
@@ -61,7 +61,7 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int kbd_port_init(void)
 {
-	async_set_interrupt_received(z8350_irq_handler);
+	async_set_interrupt_received(z8530_irq_handler);
 	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 	    0, &z8530_kbd);

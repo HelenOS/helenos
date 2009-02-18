@@ -31,7 +31,6 @@
  * @{
  */ 
 /** @file
- * @brief	Z8350 keyboard port driver.
  * @brief	SGCN (Serengeti Console) keyboard port driver.
  */
 

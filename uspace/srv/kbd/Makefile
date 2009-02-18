@@ -110,55 +110,9 @@ ifeq ($(UARCH), ppc32)
 endif
 ifeq ($(UARCH), sparc64)
 	GENARCH_SOURCES += \
-		port/z8350.c \
+		port/z8530.c \
 		ctl/sun.c
 endif
-
-# ifeq ($(UARCH), ia32)
-# 	ARCH_SOURCES += \
-# 		arch/$(UARCH)/src/mouse.c \
-# 		arch/$(UARCH)/src/scanc.c
-# 	GENARCH_SOURCES = \
-# 		genarch/src/kbd.c
-# 	CFLAGS += -DMOUSE_ENABLED
-# endif
-# ifeq ($(UARCH), ia64)
-# 	ARCH_SOURCES += \
-# 		arch/$(UARCH)/src/mouse.c \
-# 		arch/$(UARCH)/src/scanc.c \
-# 		arch/$(UARCH)/src/lkbd.c
-# 	GENARCH_SOURCES = \
-# 		genarch/src/kbd.c
-# 	CFLAGS += -DMOUSE_ENABLED
-# endif
-# ifeq ($(UARCH), amd64)
-# 	ARCH_SOURCES += \
-# 		arch/$(UARCH)/src/mouse.c \
-# 		arch/$(UARCH)/src/scanc.c
-# 	GENARCH_SOURCES = \
-# 		genarch/src/kbd.c
-# 	CFLAGS += -DMOUSE_ENABLED
-# endif
-# ifeq ($(UARCH), sparc64)
-# 	ARCH_SOURCES += \
-# 		arch/$(UARCH)/src/scanc.c \
-# 		arch/$(UARCH)/src/sgcn.c
-# 	GENARCH_SOURCES = \
-# 		genarch/src/kbd.c \
-# 		genarch/src/nofb.c
-# endif
-# ifeq ($(UARCH), arm32)
-# 	ARCH_SOURCES += \
-# 		arch/$(UARCH)/src/kbd_gxemul.c
-# endif
-# ifeq ($(UARCH), mips32)
-# 	GENARCH_SOURCES += \
-# 	    genarch/src/nofb.c
-# endif
-# ifeq ($(UARCH), mips32eb)
-# 	GENARCH_SOURCES += \
-# 	    genarch/src/nofb.c
-# endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
