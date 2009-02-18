@@ -26,101 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdsparc64 sparc64
- * @brief	HelenOS sparc64 arch dependent parts of uspace keyboard handler.
+/** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
  */ 
 /** @file
+ * @brief	Z8350 keyboard port driver.
  */
 
-#include <arch/kbd.h>
-#include <arch/sgcn.h>
 #include <ipc/ipc.h>
+#include <async.h>
 #include <sysinfo.h>
 #include <kbd.h>
-#include <keys.h>
-#include <stdio.h>
+#include <kbd_port.h>
 #include <sys/types.h>
-#include <genarch/kbd.h>
-
-#define KBD_KEY_RELEASE		0x80
-#define KBD_ALL_KEYS_UP		0x7f
 
 /** Top-half pseudocode for z8530. */
 irq_cmd_t z8530_cmds[] = {
 	{
 		CMD_MEM_READ_1,
-		0,			/**< Address. Will be patched in run-time. */
-		0,			/**< Value. Not used. */
-		1			/**< Arg 1 will contain the result. */
+		0,		/**< Address. Will be patched in run-time. */
+		0,		/**< Value. Not used. */
+		1		/**< Arg 1 will contain the result. */
 	}
 };
+
 	
 irq_code_t z8530_kbd = {
 	1,
 	z8530_cmds
 };
 
-/** Top-half pseudocode for ns16550. */
-irq_cmd_t ns16550_cmds[] = {
-	{
-		CMD_MEM_READ_1,
-		0,			/**< Address. Will be patched in run-time. */
-		0,			/**< Value. Not used. */
-		1			/**< Arg 1 will contain the result. */
-	}
-};
-	
-irq_code_t ns16550_kbd = {
-	1,
-	ns16550_cmds
-};
+static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-#define KBD_Z8530	1
-#define KBD_NS16550	2
-#define KBD_SGCN	3
-
-int kbd_arch_init(void)
+int kbd_port_init(void)
 {
-	int type = sysinfo_value("kbd.type");
-	switch (type) {
-	case KBD_Z8530:
-		z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
-		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &z8530_kbd);
-		break;
-	case KBD_NS16550:
-		ns16550_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
-		ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &ns16550_kbd);
-		break;
-	case KBD_SGCN:
-		sgcn_init();
-		break;
-	default:
-		break;
-	}
+	async_set_interrupt_received(z8350_irq_handler);
+	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
+	    0, &z8530_kbd);
 	return 0;
 }
 
-/** Process keyboard events */
-int kbd_arch_process(keybuffer_t *keybuffer, ipc_call_t *call)
+static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	if (sysinfo_value("kbd.type") == KBD_SGCN) {
-		sgcn_key_pressed();
-		return 1;
-	}
-	
 	int scan_code = IPC_GET_ARG1(*call);
-
-	if (scan_code == KBD_ALL_KEYS_UP)
-		return 1;
-		
-	if (scan_code & KBD_KEY_RELEASE)
-		key_released(keybuffer, scan_code ^ KBD_KEY_RELEASE);
-	else
-		key_pressed(keybuffer, scan_code);
-
-	return 1;
+	kbd_push_scancode(scan_code);
 }
 
 /** @}

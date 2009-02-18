@@ -26,24 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdsparc64 sparc64
- * @brief	Serengeti-specific parts of uspace keyboard handler.
+/** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
  */ 
 /** @file
+ * @brief	Z8350 keyboard port driver.
+ * @brief	SGCN (Serengeti Console) keyboard port driver.
  */
 
-#include <arch/sgcn.h>
 #include <as.h>
 #include <ddi.h>
 #include <ipc/ipc.h>
+#include <async.h>
 #include <kbd.h>
-#include <genarch/nofb.h>
-#include <genarch/kbd.h>
+#include <kbd_port.h>
 #include <sysinfo.h>
 #include <stdio.h>
-#include <futex.h>
 
 /**
  * SGCN buffer header. It is placed at the very beginning of the SGCN
@@ -79,8 +78,6 @@ typedef struct {
 /** Returns a pointer to the console buffer header. */
 #define SGCN_BUFFER_HEADER	(SGCN_BUFFER(sgcn_buffer_header_t, 0))
 
-extern keybuffer_t keybuffer;
-
 /**
  * Virtual address mapped to SRAM.
  */
@@ -91,28 +88,35 @@ static uintptr_t sram_virt_addr;
  */
 static uintptr_t sram_buffer_offset;
 
+static void sgcn_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+
+
 /**
  * Initializes the SGCN driver.
  * Maps the physical memory (SRAM) and registers the interrupt. 
  */
-void sgcn_init(void)
+int kbd_port_init(void)
 {
+	async_set_interrupt_received(sgcn_irq_handler);
 	sram_virt_addr = (uintptr_t) as_get_mappable_page(sysinfo_value("sram.area.size"));
 	if (physmem_map((void *) sysinfo_value("sram.address.physical"),
 	    (void *) sram_virt_addr, sysinfo_value("sram.area.size") / PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE) != 0)
+	    AS_AREA_READ | AS_AREA_WRITE) != 0) {
 		printf("SGCN: uspace driver could not map physical memory.");
+		return -1;
+	}
 	
 	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 		0, (void *) 0);
+	return 0;
 }
 
 /**
  * Handler of the "key pressed" event. Reads codes of all the pressed keys from
  * the buffer. 
  */
-void sgcn_key_pressed(void)
+static void sgcn_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	char c;
 	
@@ -130,10 +134,7 @@ void sgcn_key_pressed(void)
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 		buf_ptr = (volatile char *)
 			SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-		if (c == '\r') {
-                        c = '\n';
-                }
-		kbd_process_no_fb(&keybuffer, c);
+		kbd_push_scancode(c);
 	}
 }
 

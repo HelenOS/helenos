@@ -26,14 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdamd64 amd64
- * @brief	HelenOS ia32 / amd64 arch dependent parts of uspace keyboard and mouse handler.
+/** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
  */
 
 /** @file
- * @ingroup kbdia32
+ * @brief i8042 port driver.
  */
 
 #ifndef KBD_PORT_i8042_H_

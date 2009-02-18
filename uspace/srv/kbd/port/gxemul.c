@@ -26,8 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd
+/** @addtogroup kbd_port
  * @{
+ * @ingroup  kbd
  */ 
 /** @file
  * @brief	GXEmul keyboard port driver.

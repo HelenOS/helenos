@@ -26,24 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd
- * @brief	PC keyboard controller driver.
+/** @addtogroup kbd_ctl
+ * @ingroup kbd
  * @{
- */ 
+ */
+/**
+ * @file
+ * @brief	PC keyboard controller driver.
+ */
 
 #include <kbd.h>
 #include <kbd/kbd.h>
 #include <kbd/keycode.h>
 #include <kbd_ctl.h>
 
-int scanmap_simple[];
+static int scanmap_simple[];
 
 void kbd_ctl_parse_scancode(int scancode)
 {
 	kbd_ev_type_t type;
 	unsigned int key;
 
-	if (scancode < 0 || scancode >= 0x100) return;
+	if (scancode < 0 || scancode >= 0x100)
+		return;
 
 	if (scancode & 0x80) {
 		scancode &= ~0x80;
@@ -57,7 +62,7 @@ void kbd_ctl_parse_scancode(int scancode)
 		kbd_push_ev(type, key, 0);
 }
 
-int scanmap_simple[128] = {
+static int scanmap_simple[128] = {
 
 	[0x29] = KC_BACKTICK,
 

@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd
- * @brief	GXEmul framebuffer-mode keyboard controller driver.
+/** @addtogroup kbd_ctl
+ * @ingroup kbd
  * @{
- */ 
+ */
+/**
+ * @file
+ * @brief	GXEmul framebuffer-mode keyboard controller driver.
+ */
 
 #include <kbd.h>
 #include <kbd/kbd.h>

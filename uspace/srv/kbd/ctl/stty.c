@@ -26,10 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd
- * @brief	Serial TTY-like keyboard controller driver.
+/** @addtogroup kbd_ctl
+ * @ingroup kbd
  * @{
- */ 
+ */
+/**
+ * @file
+ * @brief	Serial TTY-like keyboard controller driver.
+ */
 
 #include <kbd.h>
 #include <kbd/kbd.h>

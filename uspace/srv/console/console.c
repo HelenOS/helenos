@@ -35,7 +35,7 @@
 #include <libc.h>
 #include <fb.h>
 #include <ipc/ipc.h>
-#include <keys.h>
+#include <kbd.h>
 #include <kbd/keycode.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>

@@ -110,8 +110,8 @@ ifeq ($(UARCH), ppc32)
 endif
 ifeq ($(UARCH), sparc64)
 	GENARCH_SOURCES += \
-		port/dummy.c \
-		ctl/stty.c
+		port/z8350.c \
+		ctl/sun.c
 endif
 
 # ifeq ($(UARCH), ia32)

@@ -26,37 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @addtogroup kbdgen
+/** @addtogroup kbd_port
+ * @ingroup  kbd
  * @{
+ */ 
+/** @file
+ * @brief	NS16550 port driver.
  */
+
+#include <ipc/ipc.h>
+#include <async.h>
+#include <sysinfo.h>
+#include <kbd.h>
+#include <kbd_port.h>
+#include <ddi.h>
+
+/* NS16550 registers */
+#define RBR_REG		0	/** Receiver Buffer Register. */
+#define IER_REG		1	/** Interrupt Enable Register. */
+#define IIR_REG		2	/** Interrupt Ident Register (read). */
+#define FCR_REG		2	/** FIFO control register (write). */
+#define LCR_REG		3	/** Line Control register. */
+#define MCR_REG		4	/** Modem Control Register. */
+#define LSR_REG		5	/** Line Status Register. */
+
+irq_cmd_t ns16550_cmds[1] = {
+	{ CMD_PORT_READ_1, 0, 0, 2 },
+};
+
+irq_code_t ns16550_kbd = {
+	1,
+	ns16550_cmds
+};
+
+static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+
+uint16_t ns16550_port;
+
+int kbd_port_init(void)
+{
+	async_set_interrupt_received(ns16550_irq_handler);
+
+	ns16550_port = sysinfo_value("kbd.port");
+	ns16550_kbd.cmds[0].addr = (void *) (ns16550_port + RBR_REG);
+	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
+	    0, &ns16550_kbd);
+	iospace_enable(task_get_id(), ns16550_port, 8);
+
+	return 0;
+}
+
+#define LSR_DATA_READY	0x01
+
+static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+{
+	int scan_code = IPC_GET_ARG2(*call);
+	kbd_push_scancode(scan_code);
+}
+
 /**
- * @file
+ * @}
  */
-
-#ifndef _KBD_KEYS_H_
-#define _KBD_KEYS_H_
-
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
-
-#define KBD_KEY_F1	0x3b
-#define KBD_KEY_F2	0x3c
-#define KBD_KEY_F3	0x3d
-#define KBD_KEY_F4	0x3e
-#define KBD_KEY_F5	0x3f
-#define KBD_KEY_F6	0x40
-#define KBD_KEY_F7	0x41
-#define KBD_KEY_F8	0x42
-#define KBD_KEY_F9	0x43
-#define KBD_KEY_F10	0x44
-#define KBD_KEY_F11	0x45
-#define KBD_KEY_F12	0x46
-
-#endif
-
-/** @}
-*/
