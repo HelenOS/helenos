@@ -38,6 +38,17 @@
 #include <arch/types.h>
 #include <console/chardev.h>
 
+struct i8042 {
+	ioport8_t data;
+	uint8_t pad[3];
+	ioport8_t status;
+} __attribute__ ((packed));
+typedef struct i8042 i8042_t;
+
+typedef struct i8042_instance {
+	i8042_t *i8042;
+} i8042_instance_t;
+
 extern void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mouse_inr);
 extern void i8042_grab(void);
 extern void i8042_release(void);

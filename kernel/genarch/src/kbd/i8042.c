@@ -50,8 +50,9 @@
 #include <sysinfo/sysinfo.h>
 #include <ipc/irq.h>
 
-#define i8042_DATA	0x60
-#define i8042_STATUS	0x64
+i8042_instance_t lgcy_i8042_instance = {
+	.i8042 = (i8042_t *) 0x60,
+};
 
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -127,29 +128,40 @@ void i8042_release(void)
 
 static irq_ownership_t i8042_claim(void *instance)
 {
-	return IRQ_ACCEPT;
+	i8042_instance_t *i8042_instance = instance;
+	i8042_t *dev = i8042_instance->i8042;
+	if (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
+		return IRQ_ACCEPT;
+	else
+		return IRQ_DECLINE;
 }
 
 static void i8042_irq_handler(irq_t *irq)
 {
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox) {
+		/*
+		 * This will hopefully go to the IRQ dispatcher code soon.
+		 */ 
 		ipc_irq_send_notif(irq);
-	else {
-		uint8_t data;
-		uint8_t status;
-		
-		while (((status = pio_read_8(i8042_STATUS)) &
-		    i8042_BUFFER_FULL_MASK)) {
-			data = pio_read_8(i8042_DATA);
-			
-			if ((status & i8042_MOUSE_DATA))
-				continue;
+		return;
+	}
 
-			if (data & KEY_RELEASE)
-				key_released(data ^ KEY_RELEASE);
-			else
-				key_pressed(data);
-		}
+	i8042_instance_t *instance = irq->instance;
+	i8042_t *dev = instance->i8042;
+
+	uint8_t data;
+	uint8_t status;
+		
+	if (((status = pio_read_8(&dev->status)) & i8042_BUFFER_FULL_MASK)) {
+		data = pio_read_8(&dev->data);
+			
+		if ((status & i8042_MOUSE_DATA))
+			return;
+
+		if (data & KEY_RELEASE)
+			key_released(data ^ KEY_RELEASE);
+		else
+			key_pressed(data);
 	}
 }
 
@@ -158,6 +170,8 @@ void
 i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
     inr_t mouse_inr)
 {
+	i8042_t *dev = lgcy_i8042_instance.i8042;
+
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
@@ -166,6 +180,7 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	i8042_kbd_irq.inr = kbd_inr;
 	i8042_kbd_irq.claim = i8042_claim;
 	i8042_kbd_irq.handler = i8042_irq_handler;
+	i8042_kbd_irq.instance = &lgcy_i8042_instance;
 	irq_register(&i8042_kbd_irq);
 	
 	irq_initialize(&i8042_mouse_irq);
@@ -173,6 +188,7 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	i8042_mouse_irq.inr = mouse_inr;
 	i8042_mouse_irq.claim = i8042_claim;
 	i8042_mouse_irq.handler = i8042_irq_handler;
+	i8042_mouse_irq.instance = &lgcy_i8042_instance;
 	irq_register(&i8042_mouse_irq);
 	
 	trap_virtual_enable_irqs(1 << kbd_inr);
@@ -183,9 +199,9 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	 * Number of iterations is limited to prevent infinite looping.
 	 */
 	int i;
-	for (i = 0; (pio_read_8(i8042_STATUS) & i8042_BUFFER_FULL_MASK) &&
+	for (i = 0; (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK) &&
 	    i < 100; i++) {
-		(void) pio_read_8(i8042_DATA);
+		(void) pio_read_8(&dev->data);
 	}
 	
 	sysinfo_set_item_val("kbd", NULL, true);
@@ -213,15 +229,16 @@ void i8042_suspend(chardev_t *d)
 
 char i8042_key_read(chardev_t *d)
 {
+	i8042_t *dev = lgcy_i8042_instance.i8042;
 	char ch;
 	
 	while (!(ch = active_read_buff_read())) {
 		uint8_t x;
 		
-		while (!(pio_read_8(i8042_STATUS) & i8042_BUFFER_FULL_MASK))
+		while (!(pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK))
 			;
 		
-		x = pio_read_8(i8042_STATUS);
+		x = pio_read_8(&dev->data);
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
 		else
