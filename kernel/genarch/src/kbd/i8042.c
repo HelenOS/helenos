@@ -41,7 +41,6 @@
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
-#include <arch/drivers/i8042.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -50,6 +49,9 @@
 #include <interrupt.h>
 #include <sysinfo/sysinfo.h>
 #include <ipc/irq.h>
+
+#define i8042_DATA	0x60
+#define i8042_STATUS	0x64
 
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -136,8 +138,9 @@ static void i8042_irq_handler(irq_t *irq)
 		uint8_t data;
 		uint8_t status;
 		
-		while (((status = i8042_status_read()) & i8042_BUFFER_FULL_MASK)) {
-			data = i8042_data_read();
+		while (((status = pio_read_8(i8042_STATUS)) &
+		    i8042_BUFFER_FULL_MASK)) {
+			data = pio_read_8(i8042_DATA);
 			
 			if ((status & i8042_MOUSE_DATA))
 				continue;
@@ -151,7 +154,9 @@ static void i8042_irq_handler(irq_t *irq)
 }
 
 /** Initialize i8042. */
-void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mouse_inr)
+void
+i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
+    inr_t mouse_inr)
 {
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
@@ -178,8 +183,9 @@ void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mou
 	 * Number of iterations is limited to prevent infinite looping.
 	 */
 	int i;
-	for (i = 0; (i8042_status_read() & i8042_BUFFER_FULL_MASK) && i < 100; i++) {
-		i8042_data_read();
+	for (i = 0; (pio_read_8(i8042_STATUS) & i8042_BUFFER_FULL_MASK) &&
+	    i < 100; i++) {
+		(void) pio_read_8(i8042_DATA);
 	}
 	
 	sysinfo_set_item_val("kbd", NULL, true);
@@ -212,9 +218,10 @@ char i8042_key_read(chardev_t *d)
 	while (!(ch = active_read_buff_read())) {
 		uint8_t x;
 		
-		while (!(i8042_status_read() & i8042_BUFFER_FULL_MASK));
+		while (!(pio_read_8(i8042_STATUS) & i8042_BUFFER_FULL_MASK))
+			;
 		
-		x = i8042_data_read();
+		x = pio_read_8(i8042_STATUS);
 		if (x & KEY_RELEASE)
 			key_released(x ^ KEY_RELEASE);
 		else
