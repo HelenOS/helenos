@@ -212,7 +212,7 @@ static void parse_ds_e(int scancode)
 	default: ds = ds_start; return;
 	}
 
-	kbd_push_ev(KE_PRESS, KC_ESCAPE, 0);
+	kbd_push_ev(KE_PRESS, KC_ESCAPE);
 }
 
 static void parse_ds_e1(int scancode)
@@ -252,7 +252,7 @@ static void parse_leaf(int scancode, int *map, size_t map_length)
 
 	key = map[scancode];
 	if (key != 0)
-		kbd_push_ev(KE_PRESS, key, 0);
+		kbd_push_ev(KE_PRESS, key);
 }
 
 

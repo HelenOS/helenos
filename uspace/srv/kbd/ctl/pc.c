@@ -59,7 +59,7 @@ void kbd_ctl_parse_scancode(int scancode)
 
 	key = scanmap_simple[scancode];
 	if (key != 0)
-		kbd_push_ev(type, key, 0);
+		kbd_push_ev(type, key);
 }
 
 static int scanmap_simple[128] = {

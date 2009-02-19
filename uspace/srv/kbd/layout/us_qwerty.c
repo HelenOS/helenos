@@ -36,7 +36,69 @@
 #include <kbd/keycode.h>
 #include <layout.h>
 
-static int map_normal[] = {
+static char map_lcase[] = {
+	[KC_Q] = 'q',
+	[KC_W] = 'w',
+	[KC_E] = 'e',
+	[KC_R] = 'r',
+	[KC_T] = 't',
+	[KC_Y] = 'y',
+	[KC_U] = 'u',
+	[KC_I] = 'i',
+	[KC_O] = 'o',
+	[KC_P] = 'p',
+
+	[KC_A] = 'a',
+	[KC_S] = 's',
+	[KC_D] = 'd',
+	[KC_F] = 'f',
+	[KC_G] = 'g',
+	[KC_H] = 'h',
+	[KC_J] = 'j',
+	[KC_K] = 'k',
+	[KC_L] = 'l',
+
+	[KC_Z] = 'z',
+	[KC_X] = 'x',
+	[KC_C] = 'c',
+	[KC_V] = 'v',
+	[KC_B] = 'b',
+	[KC_N] = 'n',
+	[KC_M] = 'm',
+};
+
+static char map_ucase[] = {
+	[KC_Q] = 'Q',
+	[KC_W] = 'W',
+	[KC_E] = 'E',
+	[KC_R] = 'R',
+	[KC_T] = 'T',
+	[KC_Y] = 'Y',
+	[KC_U] = 'U',
+	[KC_I] = 'I',
+	[KC_O] = 'O',
+	[KC_P] = 'P',
+
+	[KC_A] = 'A',
+	[KC_S] = 'S',
+	[KC_D] = 'D',
+	[KC_F] = 'F',
+	[KC_G] = 'G',
+	[KC_H] = 'H',
+	[KC_J] = 'J',
+	[KC_K] = 'K',
+	[KC_L] = 'L',
+
+	[KC_Z] = 'Z',
+	[KC_X] = 'X',
+	[KC_C] = 'C',
+	[KC_V] = 'V',
+	[KC_B] = 'B',
+	[KC_N] = 'N',
+	[KC_M] = 'M',
+};
+
+static char map_not_shifted[] = {
 	[KC_BACKTICK] = '`',
 
 	[KC_1] = '1',
@@ -52,60 +114,86 @@ static int map_normal[] = {
 
 	[KC_MINUS] = '-',
 	[KC_EQUALS] = '=',
-	[KC_BACKSPACE] = '\b',
-
-	[KC_TAB] = '\t',
-
-	[KC_Q] = 'q',
-	[KC_W] = 'w',
-	[KC_E] = 'e',
-	[KC_R] = 'r',
-	[KC_T] = 't',
-	[KC_Y] = 'y',
-	[KC_U] = 'u',
-	[KC_I] = 'i',
-	[KC_O] = 'o',
-	[KC_P] = 'p',
 
 	[KC_LBRACKET] = '[',
 	[KC_RBRACKET] = ']',
 
-	[KC_A] = 'a',
-	[KC_S] = 's',
-	[KC_D] = 'd',
-	[KC_F] = 'f',
-	[KC_G] = 'g',
-	[KC_H] = 'h',
-	[KC_J] = 'j',
-	[KC_K] = 'k',
-	[KC_L] = 'l',
-
 	[KC_SEMICOLON] = ';',
 	[KC_QUOTE] = '\'',
 	[KC_BACKSLASH] = '\\',
-	[KC_ENTER] = '\n',
-
-	[KC_Z] = 'z',
-	[KC_X] = 'x',
-	[KC_C] = 'c',
-	[KC_V] = 'v',
-	[KC_B] = 'b',
-	[KC_N] = 'n',
-	[KC_M] = 'm',
 
 	[KC_COMMA] = ',',
 	[KC_PERIOD] = '.',
 	[KC_SLASH] = '/',
+};
 
+static char map_shifted[] = {
+	[KC_BACKTICK] = '~',
+
+	[KC_1] = '!',
+	[KC_2] = '@',
+	[KC_3] = '#',
+	[KC_4] = '$',
+	[KC_5] = '%',
+	[KC_6] = '^',
+	[KC_7] = '&',
+	[KC_8] = '*',
+	[KC_9] = '(',
+	[KC_0] = ')',
+
+	[KC_MINUS] = '_',
+	[KC_EQUALS] = '+',
+
+	[KC_LBRACKET] = '{',
+	[KC_RBRACKET] = '}',
+
+	[KC_SEMICOLON] = ':',
+	[KC_QUOTE] = '"',
+	[KC_BACKSLASH] = '|',
+
+	[KC_COMMA] = '<',
+	[KC_PERIOD] = '>',
+	[KC_SLASH] = '?',
+};
+
+static char map_neutral[] = {
+	[KC_BACKSPACE] = '\b',
+	[KC_TAB] = '\t',
+	[KC_ENTER] = '\n',
 	[KC_SPACE] = ' '
 };
 
+static int translate(unsigned int key, char *map, size_t map_length)
+{
+	if (key >= map_length) return 0;
+	return map[key];	
+}
+
 char layout_parse_ev(kbd_event_t *ev)
 {
-	if (ev->key >= sizeof(map_normal) / sizeof(int))
+	char c;
+
+	/* Produce no characters when Ctrl or Alt is pressed. */
+	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
 		return 0;
 
-	return map_normal[ev->key];
+	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(char));
+	if (c != 0) return c;
+
+	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
+		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(char));
+	else
+		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(char));
+
+	if (c != 0) return c;
+
+	if ((ev->mods & KM_SHIFT) != 0)
+		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(char));
+	else
+		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(char));
+
+	if (c != 0 ) return c;
+
 }
 
 /**

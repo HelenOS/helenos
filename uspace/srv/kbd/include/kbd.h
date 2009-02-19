@@ -46,7 +46,7 @@
 #define KBD_MS_MOVE	1028
 
 extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int, unsigned int);
+extern void kbd_push_ev(int, unsigned int);
 
 #endif
 

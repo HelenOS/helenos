@@ -57,7 +57,10 @@
 
 int cons_connected = 0;
 int phone2cons = -1;
-keybuffer_t keybuffer;	
+keybuffer_t keybuffer;
+
+/** Currently active modifiers. */
+static unsigned mods;
 
 void kbd_push_scancode(int scancode)
 {
@@ -66,9 +69,37 @@ void kbd_push_scancode(int scancode)
 }
 
 #include <kbd/keycode.h>
-void kbd_push_ev(int type, unsigned int key, unsigned int mods)
+void kbd_push_ev(int type, unsigned int key)
 {
 	kbd_event_t ev;
+	unsigned mod_mask;
+
+	switch (key) {
+	case KC_LCTRL: mod_mask = KM_LCTRL; break;
+	case KC_RCTRL: mod_mask = KM_RCTRL; break;
+	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
+	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
+	case KC_LALT: mod_mask = KM_LALT; break;
+	case KC_RALT: mod_mask = KM_RALT; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0) {
+		if (type == KE_PRESS)
+			mods = mods | mod_mask;
+		else
+			mods = mods & ~mod_mask;
+	}
+
+	switch (key) {
+	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
+	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
+	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0 && type == KE_PRESS)
+		mods = mods ^ mod_mask;
 
 	printf("type: %d\n", type);
 	printf("mods: 0x%x\n", mods);
@@ -82,27 +113,6 @@ void kbd_push_ev(int type, unsigned int key, unsigned int mods)
 
 	async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
-
-//static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
-//{
-//	kbd_event_t ev;
-//
-//	kbd_arch_process(&keybuffer, call);
-//
-//	if (cons_connected && phone2cons != -1) {
-//		/*
-//		 * One interrupt can produce more than one event so the result
-//		 * is stored in a FIFO.
-//		 */
-//		while (!keybuffer_empty(&keybuffer)) {
-//			if (!keybuffer_pop(&keybuffer, &ev))
-//				break;
-//
-//			async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key,
-//			    ev.mods, ev.c);
-//		}
-//	}
-//}
 
 static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -140,7 +150,6 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_0(callid, retval);
 	}	
 }
-
 
 
 int main(int argc, char **argv)
