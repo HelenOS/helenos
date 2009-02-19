@@ -65,7 +65,6 @@
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ	(4 + LEGACY_INTERRUPT_BASE)
-#define NS16550_PORT	0x3f8
 
 bootinfo_t *bootinfo;
 
@@ -164,7 +163,8 @@ void arch_post_smp_init(void)
 	devno_t kbd = device_assign_devno();
 
 #ifdef CONFIG_NS16550
-	ns16550_init(kbd, NS16550_PORT, NS16550_IRQ, NULL, NULL);
+	(void) ns16550_init((ns16550_t *)NS16550_BASE, kbd, NS16550_IRQ, NULL,
+	     NULL);
 #else
 	devno_t mouse = device_assign_devno();
 	i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
@@ -249,7 +249,7 @@ void arch_release_console(void)
 
 void arch_reboot(void)
 {
-	pio_write_8(0x64, 0xfe);
+	pio_write_8((ioport8_t *)0x64, 0xfe);
 	while (1)
 		;
 }

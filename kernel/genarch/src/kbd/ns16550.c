@@ -50,14 +50,11 @@
 #include <arch/interrupt.h>
 #include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>
+#include <mm/slab.h>
 
 #define LSR_DATA_READY	0x01
 
-/** Structure representing the ns16550. */
-static ns16550_t ns16550;
-
-/** Structure for ns16550's IRQ. */
-static irq_t ns16550_irq;
+static irq_t *ns16550_irq;
 
 /*
  * These codes read from ns16550 data register are silently ignored.
@@ -70,24 +67,15 @@ static void ns16550_resume(chardev_t *);
 static chardev_operations_t ops = {
 	.suspend = ns16550_suspend,
 	.resume = ns16550_resume,
-	.read = ns16550_key_read
 };
-
-void ns16550_interrupt(void);
 
 /** Initialize keyboard and service interrupts using kernel routine */
 void ns16550_grab(void)
 {
 	ipl_t ipl = interrupts_disable();
-
-	ns16550_ier_write(&ns16550, IER_ERBFI);		/* enable receiver interrupt */
-	
-	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY)
-		(void) ns16550_rbr_read(&ns16550);
-
-	spinlock_lock(&ns16550_irq.lock);
-	ns16550_irq.notif_cfg.notify = false;
-	spinlock_unlock(&ns16550_irq.lock);
+	spinlock_lock(&ns16550_irq->lock);
+	ns16550_irq->notif_cfg.notify = false;
+	spinlock_unlock(&ns16550_irq->lock);
 	interrupts_restore(ipl);
 }
 
@@ -95,68 +83,75 @@ void ns16550_grab(void)
 void ns16550_release(void)
 {
 	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&ns16550_irq.lock);
-	if (ns16550_irq.notif_cfg.answerbox)
-		ns16550_irq.notif_cfg.notify = true;
-	spinlock_unlock(&ns16550_irq.lock);
+	spinlock_lock(&ns16550_irq->lock);
+	if (ns16550_irq->notif_cfg.answerbox)
+		ns16550_irq->notif_cfg.notify = true;
+	spinlock_unlock(&ns16550_irq->lock);
 	interrupts_restore(ipl);
 }
 
 /** Initialize ns16550.
  *
+ * @param dev		Addrress of the beginning of the device in I/O space.
  * @param devno		Device number.
- * @param port		Virtual/IO address of device's registers.
  * @param inr		Interrupt number.
  * @param cir		Clear interrupt function.
  * @param cir_arg	First argument to cir.
+ *
+ * @return		True on success, false on failure.
  */
-void
-ns16550_init(devno_t devno, ioport_t port, inr_t inr, cir_t cir, void *cir_arg)
+bool
+ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 {
+	ns16550_instance_t *instance;
+	irq_t *irq;
+
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
-	ns16550.devno = devno;
-	ns16550.io_port = port;
+	instance = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
+	if (!instance)
+		return false;
+
+	irq = malloc(sizeof(irq_t), FRAME_ATOMIC);
+	if (!irq) {
+		free(instance);
+		return false;
+	}
+
+	instance->devno = devno;
+	instance->ns16550 = dev;
+	instance->irq = irq;
 	
-	irq_initialize(&ns16550_irq);
-	ns16550_irq.devno = devno;
-	ns16550_irq.inr = inr;
-	ns16550_irq.claim = ns16550_claim;
-	ns16550_irq.handler = ns16550_irq_handler;
-	ns16550_irq.cir = cir;
-	ns16550_irq.cir_arg = cir_arg;
-	irq_register(&ns16550_irq);
+	irq_initialize(irq);
+	irq->devno = devno;
+	irq->inr = inr;
+	irq->claim = ns16550_claim;
+	irq->handler = ns16550_irq_handler;
+	irq->instance = instance;
+	irq->cir = cir;
+	irq->cir_arg = cir_arg;
+	irq_register(irq);
+
+	ns16550_irq = irq;	/* TODO: remove me soon */
 	
-	while ((ns16550_lsr_read(&ns16550) & LSR_DATA_READY)) 
-		ns16550_rbr_read(&ns16550);
+	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY)) 
+		(void) pio_read_8(&dev->rbr);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, port);
-	sysinfo_set_item_val("kbd.port", NULL, port);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) dev);
+	sysinfo_set_item_val("kbd.port", NULL, (uintptr_t) dev);
 	
 	/* Enable interrupts */
-	ns16550_ier_write(&ns16550, IER_ERBFI);
-	ns16550_mcr_write(&ns16550, MCR_OUT2);
-	
-	uint8_t c;
-	// This switches rbr & ier to mode when accept baudrate constant
-	c = ns16550_lcr_read(&ns16550);
-	ns16550_lcr_write(&ns16550, 0x80 | c);
-	ns16550_rbr_write(&ns16550, 0x0c);
-	ns16550_ier_write(&ns16550, 0x00);
-	ns16550_lcr_write(&ns16550, c);
+	pio_write_8(&dev->ier, IER_ERBFI);
+	pio_write_8(&dev->mcr, MCR_OUT2);
 	
 	ns16550_grab();
-}
-
-/** Process ns16550 interrupt. */
-void ns16550_interrupt(void)
-{
-	ns16550_poll();
+	
+	return true;
 }
 
 /* Called from getc(). */
@@ -169,37 +164,34 @@ void ns16550_suspend(chardev_t *d)
 {
 }
 
-
-char ns16550_key_read(chardev_t *d)
+irq_ownership_t ns16550_claim(void *instance)
 {
-	char ch;	
+	ns16550_instance_t *ns16550_instance = instance;
+	ns16550_t *dev = ns16550_instance->ns16550;
 
-	while(!(ch = active_read_buff_read())) {
-		uint8_t x;
-		while (!(ns16550_lsr_read(&ns16550) & LSR_DATA_READY));
-		
-		x = ns16550_rbr_read(&ns16550);
-		
-		if (x != IGNORE_CODE) {
-			if (x & KEY_RELEASE)
-				key_released(x ^ KEY_RELEASE);
-			else
-				active_read_key_pressed(x);
-		}
-	}
-	return ch;
+	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)
+		return IRQ_ACCEPT;
+	else
+		return IRQ_DECLINE;
 }
 
-/** Poll for key press and release events.
- *
- * This function can be used to implement keyboard polling.
- */
-void ns16550_poll(void)
+void ns16550_irq_handler(irq_t *irq)
 {
-	while (ns16550_lsr_read(&ns16550) & LSR_DATA_READY) {
+	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox) {
+		/*
+		 * This will hopefully go to the IRQ dispatch code soon.
+		 */
+		ipc_irq_send_notif(irq);
+		return;
+	}
+
+	ns16550_instance_t *ns16550_instance = irq->instance;
+	ns16550_t *dev = ns16550_instance->ns16550;
+
+	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
 		uint8_t x;
 		
-		x = ns16550_rbr_read(&ns16550);
+		x = pio_read_8(&dev->rbr);
 		
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
@@ -208,19 +200,7 @@ void ns16550_poll(void)
 				key_pressed(x);
 		}
 	}
-}
 
-irq_ownership_t ns16550_claim(void *instance)
-{
-	return (ns16550_lsr_read(&ns16550) & LSR_DATA_READY);
-}
-
-void ns16550_irq_handler(irq_t *irq)
-{
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
-		ipc_irq_send_notif(irq);
-	else
-		ns16550_interrupt();
 }
 
 /** @}

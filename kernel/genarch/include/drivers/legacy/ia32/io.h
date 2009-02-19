@@ -39,10 +39,12 @@
 
 #include <arch/types.h>
 
-#define i8042_BASE	((ioport8_t *)0x60)
+#define I8042_BASE	((ioport8_t *)0x60)
 
 #define EGA_VIDEORAM 	0xb8000
 #define EGA_BASE	((ioport8_t *)0x3d4)
+
+#define NS16550_BASE	((ioport8_t *)0x3f8)
 
 #endif
 

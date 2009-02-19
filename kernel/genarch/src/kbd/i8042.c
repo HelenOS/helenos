@@ -52,7 +52,7 @@
 #include <ipc/irq.h>
 
 i8042_instance_t lgcy_i8042_instance = {
-	.i8042 = (i8042_t *) i8042_BASE,
+	.i8042 = (i8042_t *) I8042_BASE,
 };
 
 /* Keyboard commands. */
@@ -88,7 +88,6 @@ static void i8042_resume(chardev_t *);
 static chardev_operations_t ops = {
 	.suspend = i8042_suspend,
 	.resume = i8042_resume,
-	.read = i8042_key_read
 };
 
 /** Structure for i8042's IRQ. */
@@ -226,26 +225,6 @@ void i8042_resume(chardev_t *d)
 /* Called from getc(). */
 void i8042_suspend(chardev_t *d)
 {
-}
-
-char i8042_key_read(chardev_t *d)
-{
-	i8042_t *dev = lgcy_i8042_instance.i8042;
-	char ch;
-	
-	while (!(ch = active_read_buff_read())) {
-		uint8_t x;
-		
-		while (!(pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK))
-			;
-		
-		x = pio_read_8(&dev->data);
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			active_read_key_pressed(x);
-	}
-	return ch;
 }
 
 /** @}
