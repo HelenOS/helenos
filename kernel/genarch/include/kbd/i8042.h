@@ -39,7 +39,6 @@
 #include <console/chardev.h>
 
 extern void i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno, inr_t mouse_inr);
-extern void i8042_poll(void);
 extern void i8042_grab(void);
 extern void i8042_release(void);
 extern char i8042_key_read(chardev_t *d);

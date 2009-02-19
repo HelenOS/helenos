@@ -223,22 +223,5 @@ char i8042_key_read(chardev_t *d)
 	return ch;
 }
 
-/** Poll for key press and release events.
- *
- * This function can be used to implement keyboard polling.
- */
-void i8042_poll(void)
-{
-	uint8_t x;
-	
-	while (((x = i8042_status_read() & i8042_BUFFER_FULL_MASK))) {
-		x = i8042_data_read();
-		if (x & KEY_RELEASE)
-			key_released(x ^ KEY_RELEASE);
-		else
-			key_pressed(x);
-	}
-}
-
 /** @}
  */
