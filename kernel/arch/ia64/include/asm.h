@@ -41,52 +41,64 @@
 
 #define IA64_IOSPACE_ADDRESS 0xE001000000000000ULL
 
-static inline void pio_write_8(ioport_t port, uint8_t v)
+static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	*((uint8_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;
+	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void pio_write_16(ioport_t port, uint16_t v)
+static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	*((uint16_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;
+	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline void pio_write_32(ioport_t port, uint32_t v)
+static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	*((uint32_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xfff) | ((port >> 2) << 12)))) = v;
+	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
 
 	asm volatile ("mf\n" ::: "memory");
 }
 
-static inline uint8_t pio_read_8(ioport_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint8_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xfff) | ((port >> 2) << 12))));
+	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
-static inline uint16_t pio_read_16(ioport_t port)
+static inline uint16_t pio_read_16(ioport16_t *port)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint16_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xffE) | ((port >> 2) << 12))));
+	    ((prt & 0xffE) | ((prt >> 2) << 12))));
 }
 
-static inline uint32_t pio_read_32(ioport_t port)
+static inline uint32_t pio_read_32(ioport32_t *port)
 {
+	uintptr_t prt = (uintptr_t) port;
+
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint32_t *)(IA64_IOSPACE_ADDRESS +
-	    ((port & 0xfff) | ((port >> 2) << 12))));
+	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
 /** Return base address of current stack

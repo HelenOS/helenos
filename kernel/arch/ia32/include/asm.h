@@ -105,9 +105,9 @@ GEN_WRITE_REG(dr7)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void pio_write_8(uint16_t port, uint8_t val)
+static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
-	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port) );
+	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port));
 }
 
 /** Word to port
@@ -117,9 +117,9 @@ static inline void pio_write_8(uint16_t port, uint8_t val)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void pio_write_16(uint16_t port, uint16_t val)
+static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
-	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port) );
+	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port));
 }
 
 /** Double word to port
@@ -129,9 +129,9 @@ static inline void pio_write_16(uint16_t port, uint16_t val)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void pio_write_32(uint16_t port, uint32_t val)
+static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
-	asm volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port) );
+	asm volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port));
 }
 
 /** Byte from port
@@ -141,11 +141,11 @@ static inline void pio_write_32(uint16_t port, uint32_t val)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint8_t pio_read_8(uint16_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uint8_t val;
 	
-	asm volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port) );
+	asm volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port));
 	return val;
 }
 
@@ -156,11 +156,11 @@ static inline uint8_t pio_read_8(uint16_t port)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint16_t pio_read_16(uint16_t port)
+static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	uint16_t val;
 	
-	asm volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port) );
+	asm volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port));
 	return val;
 }
 
@@ -171,11 +171,11 @@ static inline uint16_t pio_read_16(uint16_t port)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint32_t pio_read_32(uint16_t port)
+static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uint32_t val;
 	
-	asm volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port) );
+	asm volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port));
 	return val;
 }
 

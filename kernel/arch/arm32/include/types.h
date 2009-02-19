@@ -64,7 +64,9 @@ typedef uint32_t ipl_t;
 typedef uint32_t unative_t;
 typedef int32_t native_t;
 
-typedef uintptr_t ioport_t;
+typedef volatile uint8_t ioport8_t;
+typedef volatile uint16_t ioport16_t;
+typedef volatile uint32_t ioport32_t;
 
 typedef struct {
 } fncptr_t;

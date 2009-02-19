@@ -46,12 +46,12 @@ static inline void cpu_sleep(void)
 {
 }
 
-static inline void pio_write_8(ioport_t port, uint8_t v)
+static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	/* XXX */
 }
 
-static inline uint8_t pio_read_8(ioport_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return 0;	/* XXX */
 }

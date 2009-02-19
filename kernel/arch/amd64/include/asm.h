@@ -73,7 +73,7 @@ static inline void cpu_halt(void)
  * @param port Port to read from
  * @return Value read
  */
-static inline uint8_t pio_read_8(uint16_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uint8_t val;
 
@@ -88,7 +88,7 @@ static inline uint8_t pio_read_8(uint16_t port)
  * @param port Port to write to
  * @param val Value to write
  */
-static inline void pio_write_8(uint16_t port, uint8_t val)
+static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port));
 }

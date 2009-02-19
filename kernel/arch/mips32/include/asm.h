@@ -75,12 +75,12 @@ extern void interrupts_restore(ipl_t ipl);
 extern ipl_t interrupts_read(void);
 extern void asm_delay_loop(uint32_t t);
 
-static inline void pio_write_8(ioport_t port, uint8_t v)
+static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	/* XXX */
 }
 
-static inline uint8_t pio_read_8(ioport_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return 0;	/* XXX */
 }
