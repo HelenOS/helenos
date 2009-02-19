@@ -58,7 +58,7 @@ SPINLOCK_INITIALIZE(egalock);
 static uint32_t ega_cursor;
 static uint8_t *videoram;
 static uint8_t *backbuf;
-static ioport_t ega_base;
+static ioport8_t *ega_base;
 
 chardev_t ega_console;
 
@@ -131,7 +131,7 @@ static chardev_operations_t ega_ops = {
 	.write = ega_putchar
 };
 
-void ega_init(ioport_t base, uintptr_t videoram_phys)
+void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 {
 	/* Initialize the software structure. */	
 	ega_base = base;

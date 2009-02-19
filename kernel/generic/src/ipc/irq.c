@@ -101,10 +101,10 @@ static void code_execute(call_t *call, irq_code_t *code)
 			    code->cmds[i].value;
 			break;
 		case CMD_PORT_READ_1:
-			dstval = pio_read_8((long) code->cmds[i].addr);
+			dstval = pio_read_8((ioport8_t *) code->cmds[i].addr);
 			break;
 		case CMD_PORT_WRITE_1:
-			pio_write_8((long) code->cmds[i].addr, code->cmds[i].value);
+			pio_write_8((ioport8_t *) code->cmds[i].addr, code->cmds[i].value);
 			break;
 		default:
 			break;

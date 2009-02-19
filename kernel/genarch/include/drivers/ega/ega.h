@@ -46,7 +46,7 @@
 #define EGA_DATA_REG	1
 
 extern void ega_redraw(void);
-extern void ega_init(ioport_t, uintptr_t);
+extern void ega_init(ioport8_t *, uintptr_t);
 
 #endif
 

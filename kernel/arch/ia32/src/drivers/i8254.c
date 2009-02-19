@@ -53,8 +53,8 @@
 #include <ddi/irq.h>
 #include <ddi/device.h>
 
-#define CLK_PORT1	0x40
-#define CLK_PORT4	0x43
+#define CLK_PORT1	((ioport8_t *)0x40)
+#define CLK_PORT4	((ioport8_t *)0x43)
 
 #define CLK_CONST	1193180
 #define MAGIC_NUMBER	1194

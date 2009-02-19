@@ -36,7 +36,7 @@
 #define KERN_ia64_EGA_H
 
 #define EGA_VIDEORAM 	0xb8000
-#define EGA_BASE	0x3d4
+#define EGA_BASE	((ioport8_t *)0x3d4)
 
 #endif
 

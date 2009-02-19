@@ -119,8 +119,8 @@ void pic_disable_irqs(uint16_t irqmask)
 
 void pic_eoi(void)
 {
-	pio_write_8(0x20, 0x20);
-	pio_write_8(0xa0, 0x20);
+	pio_write_8((ioport8_t *)0x20, 0x20);
+	pio_write_8((ioport8_t *)0xa0, 0x20);
 }
 
 void pic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
