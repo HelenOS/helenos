@@ -52,7 +52,7 @@
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <arch/bootinfo.h>
-#include <arch/drivers/ega.h>
+#include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/kbd/i8042.h>
 #include <genarch/kbd/ns16550.h>

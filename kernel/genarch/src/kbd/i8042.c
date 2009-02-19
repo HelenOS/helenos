@@ -41,6 +41,7 @@
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_pc.h>
+#include <genarch/drivers/legacy/ia32/io.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -51,7 +52,7 @@
 #include <ipc/irq.h>
 
 i8042_instance_t lgcy_i8042_instance = {
-	.i8042 = (i8042_t *) 0x60,
+	.i8042 = (i8042_t *) i8042_BASE,
 };
 
 /* Keyboard commands. */

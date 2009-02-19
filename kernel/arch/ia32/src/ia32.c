@@ -38,7 +38,7 @@
 
 #include <arch/pm.h>
 
-#include <arch/drivers/ega.h>
+#include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
 #include <arch/drivers/vesa.h>
 #include <genarch/kbd/i8042.h>

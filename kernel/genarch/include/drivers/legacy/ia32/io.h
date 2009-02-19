@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64
+/** @addtogroup ia32
  * @{
  */
 /** @file
+ * @brief	This file contains definitions used by architectures with the
+ * 		ia32 legacy I/O space (i.e. ia32, amd64 and ia64). 
  */
 
-#ifndef KERN_ia64_EGA_H
-#define KERN_ia64_EGA_H
+#ifndef KERN_LEGACY_IA32_IO_H
+#define KERN_LEGACY_IA32_IO_H
+
+#include <arch/types.h>
+
+#define i8042_BASE	((ioport8_t *)0x60)
 
 #define EGA_VIDEORAM 	0xb8000
 #define EGA_BASE	((ioport8_t *)0x3d4)
