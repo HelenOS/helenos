@@ -310,7 +310,7 @@ static char sgcn_key_read(chardev_t *d)
 /**
  * The driver works in polled mode, so no interrupt should be handled by it.
  */
-static irq_ownership_t sgcn_claim(void *instance)
+static irq_ownership_t sgcn_claim(irq_t *irq)
 {
 	return IRQ_DECLINE;
 }

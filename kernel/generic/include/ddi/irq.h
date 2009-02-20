@@ -139,7 +139,7 @@ typedef struct irq {
 	/** Trigger level of the IRQ. */
 	irq_trigger_t trigger;
 	/** Claim ownership of the IRQ. */
-	irq_ownership_t (* claim)(void *);
+	irq_ownership_t (* claim)(struct irq *);
 	/** Handler for this IRQ and device. */
 	irq_handler_t handler;
 	/** Instance argument for the handler and the claim function. */

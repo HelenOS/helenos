@@ -49,7 +49,7 @@ extern void z8530_grab(void);
 extern void z8530_release(void);
 extern void z8530_interrupt(void);
 extern char z8530_key_read(chardev_t *);
-extern irq_ownership_t z8530_claim(void *);
+extern irq_ownership_t z8530_claim(irq_t *);
 extern void z8530_irq_handler(irq_t *);
 
 #endif

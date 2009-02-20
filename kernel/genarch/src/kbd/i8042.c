@@ -126,9 +126,9 @@ void i8042_release(void)
 	interrupts_restore(ipl);
 }
 
-static irq_ownership_t i8042_claim(void *instance)
+static irq_ownership_t i8042_claim(irq_t *irq)
 {
-	i8042_instance_t *i8042_instance = instance;
+	i8042_instance_t *i8042_instance = irq->instance;
 	i8042_t *dev = i8042_instance->i8042;
 	if (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		return IRQ_ACCEPT;

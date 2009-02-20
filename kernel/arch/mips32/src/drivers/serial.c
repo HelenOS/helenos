@@ -120,7 +120,7 @@ static void serial_irq_handler(irq_t *irq)
 		serial_handler();
 }
 
-static irq_ownership_t serial_claim(void *instance)
+static irq_ownership_t serial_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

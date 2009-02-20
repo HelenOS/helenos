@@ -61,7 +61,7 @@
 
 static irq_t i8254_irq;
 
-static irq_ownership_t i8254_claim(void *instance)
+static irq_ownership_t i8254_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

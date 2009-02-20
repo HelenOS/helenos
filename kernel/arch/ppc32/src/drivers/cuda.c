@@ -264,7 +264,7 @@ static void cuda_irq_handler(irq_t *irq)
 	}
 }
 
-static irq_ownership_t cuda_claim(void *instance)
+static irq_ownership_t cuda_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

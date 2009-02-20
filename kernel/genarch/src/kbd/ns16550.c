@@ -156,9 +156,9 @@ void ns16550_suspend(chardev_t *d)
 {
 }
 
-irq_ownership_t ns16550_claim(void *instance)
+irq_ownership_t ns16550_claim(irq_t *irq)
 {
-	ns16550_instance_t *ns16550_instance = instance;
+	ns16550_instance_t *ns16550_instance = irq->instance;
 	ns16550_t *dev = ns16550_instance->ns16550;
 
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)

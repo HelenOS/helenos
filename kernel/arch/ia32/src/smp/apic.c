@@ -132,7 +132,7 @@ static void apic_spurious(int n __attribute__((unused)), istate_t *istate __attr
 #endif
 }
 
-static irq_ownership_t l_apic_timer_claim(void *instance)
+static irq_ownership_t l_apic_timer_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

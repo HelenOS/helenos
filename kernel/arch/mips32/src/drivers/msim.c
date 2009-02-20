@@ -109,7 +109,7 @@ static void msim_irq_handler(irq_t *irq)
 	}
 }
 
-static irq_ownership_t msim_claim(void *instance)
+static irq_ownership_t msim_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

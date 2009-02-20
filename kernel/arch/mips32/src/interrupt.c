@@ -101,7 +101,7 @@ static void timer_start(void)
 	cp0_compare_write(nextcount);
 }
 
-static irq_ownership_t timer_claim(void *instance)
+static irq_ownership_t timer_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }

@@ -194,7 +194,7 @@ void z8530_poll(void)
 	}
 }
 
-irq_ownership_t z8530_claim(void *instance)
+irq_ownership_t z8530_claim(irq_t *irq)
 {
 	return (z8530_read_a(&z8530, RR0) & RR0_RCA);
 }

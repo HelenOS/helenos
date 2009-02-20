@@ -203,7 +203,7 @@ static void gxemul_irq_handler(irq_t *irq)
 	}
 }
 
-static irq_ownership_t gxemul_claim(void *instance)
+static irq_ownership_t gxemul_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }
@@ -265,7 +265,7 @@ static void gxemul_timer_start(uint32_t frequency)
 	*((uint32_t*) gxemul_hw_map.rtc_freq) = frequency;
 }
 
-static irq_ownership_t gxemul_timer_claim(void *instance)
+static irq_ownership_t gxemul_timer_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }
