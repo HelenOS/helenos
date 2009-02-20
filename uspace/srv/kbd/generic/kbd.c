@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <libadt/fifo.h>
 #include <kbd/kbd.h>
+#include <kbd/keycode.h>
 
 #include <kbd.h>
 #include <key_buffer.h>
@@ -60,7 +61,7 @@ int phone2cons = -1;
 keybuffer_t keybuffer;
 
 /** Currently active modifiers. */
-static unsigned mods;
+static unsigned mods = KM_NUM_LOCK;
 
 void kbd_push_scancode(int scancode)
 {
@@ -68,7 +69,6 @@ void kbd_push_scancode(int scancode)
 	kbd_ctl_parse_scancode(scancode);
 }
 
-#include <kbd/keycode.h>
 void kbd_push_ev(int type, unsigned int key)
 {
 	kbd_event_t ev;

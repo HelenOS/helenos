@@ -40,29 +40,14 @@
 #include <kbd/keycode.h>
 #include <kbd_ctl.h>
 
-static int scanmap_simple[];
+enum dec_state {
+	ds_s,
+	ds_e
+};
 
-void kbd_ctl_parse_scancode(int scancode)
-{
-	kbd_ev_type_t type;
-	unsigned int key;
+static enum dec_state ds = ds_s;
 
-	if (scancode < 0 || scancode >= 0x100)
-		return;
-
-	if (scancode & 0x80) {
-		scancode &= ~0x80;
-		type = KE_RELEASE;
-	} else {
-		type = KE_PRESS;
-	}
-
-	key = scanmap_simple[scancode];
-	if (key != 0)
-		kbd_push_ev(type, key);
-}
-
-static int scanmap_simple[128] = {
+static int scanmap_simple[] = {
 
 	[0x29] = KC_BACKTICK,
 
@@ -150,14 +135,86 @@ static int scanmap_simple[128] = {
 	[0x57] = KC_F11,
 	[0x58] = KC_F12,
 
-	[0x1c] = KC_ENTER
+	[0x1c] = KC_ENTER,
 
-/*
-	[0x1] = KC_PRNSCR,
-	[0x1] = KC_SCROLL_LOCK,
-	[0x1] = KC_PAUSE,
-*/
+	[0x45] = KC_NUM_LOCK,
+	[0x37] = KC_NTIMES,
+	[0x4a] = KC_NMINUS,
+	[0x4e] = KC_NPLUS,
+	[0x47] = KC_N7,
+	[0x48] = KC_N8,
+	[0x49] = KC_N9,
+	[0x4b] = KC_N4,
+	[0x4c] = KC_N5,
+	[0x4d] = KC_N6,
+	[0x4f] = KC_N1,
+	[0x50] = KC_N2,
+	[0x51] = KC_N3,
+	[0x52] = KC_N0,
+	[0x53] = KC_NPERIOD
 };
+
+static int scanmap_e0[] = {
+	[0x38] = KC_RALT,
+	[0x1d] = KC_RSHIFT,
+
+	[0x37] = KC_PRTSCR,
+	[0x52] = KC_INSERT,
+	[0x49] = KC_PAGE_UP,
+
+	[0x53] = KC_DELETE,
+	[0x4f] = KC_END,
+	[0x51] = KC_PAGE_DOWN,
+
+	[0x48] = KC_UP,
+	[0x4b] = KC_LEFT,
+	[0x50] = KC_DOWN,
+	[0x4d] = KC_RIGHT,
+
+	[0x35] = KC_NSLASH,
+	[0x1c] = KC_NENTER
+};
+
+
+void kbd_ctl_parse_scancode(int scancode)
+{
+	kbd_ev_type_t type;
+	unsigned int key;
+	int *map;
+	size_t map_length;
+
+	if (scancode == 0xe0) {
+		ds = ds_e;
+		return;
+	}
+
+	switch (ds) {
+	case ds_s:
+		map = scanmap_simple;
+		map_length = sizeof(scanmap_simple) / sizeof(int);
+		break;
+	case ds_e:
+		map = scanmap_e0;
+		map_length = sizeof(scanmap_e0) / sizeof(int);
+		break;
+	}
+
+	ds = ds_s;
+
+	if (scancode & 0x80) {
+		scancode &= ~0x80;
+		type = KE_RELEASE;
+	} else {
+		type = KE_PRESS;
+	}
+
+	if (scancode < 0 || scancode >= map_length)
+		return;
+
+	key = map[scancode];
+	if (key != 0)
+		kbd_push_ev(type, key);
+}
 
 /**
  * @}
