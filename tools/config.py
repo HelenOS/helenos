@@ -103,6 +103,8 @@ def check_inside(text, defaults, ctype):
 			varval = ''
 		else:
 			varval = defaults[condname]
+			if (varval == '*'):
+				varval = 'y'
 		
 		if (ctype == 'cnf'):
 			if (oper == '=') and (condval == varval):
@@ -249,6 +251,8 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 			default = ''
 		else:
 			default = defaults[varname]
+			if (default == '*'):
+				default = 'y'
 		
 		outmk.write('# %s\n%s = %s\n\n' % (name, varname, default))
 		
@@ -302,7 +306,7 @@ def main():
 			
 			# Cancel out all defaults which have to be deduced
 			for varname, vartype, name, choices, cond in ask_names:
-				if (vartype == 'y'):
+				if ((vartype == 'y') and (defaults.has_key(varname)) and (defaults[varname] == '*')):
 					defaults[varname] = None
 			
 			options = []
@@ -335,7 +339,7 @@ def main():
 					
 					options.append("     %s [%s] --> " % (name, default))
 				elif (vartype == 'y'):
-					defaults[varname] = 'y'
+					defaults[varname] = '*'
 					continue
 				elif (vartype == 'y/n'):
 					if (default == None):
