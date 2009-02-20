@@ -243,7 +243,7 @@ static void parse_leaf(int scancode, int *map, size_t map_length)
 
 	key = map[scancode];
 	if (key != 0)
-		kbd_push_ev(KE_PRESS, key, 0);
+		kbd_push_ev(KE_PRESS, key);
 }
 
 
