@@ -104,7 +104,6 @@ bool
 ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 {
 	ns16550_instance_t *instance;
-	irq_t *irq;
 
 	chardev_initialize("ns16550_kbd", &kbrd, &ops);
 	stdin = &kbrd;
@@ -113,29 +112,22 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	if (!instance)
 		return false;
 
-	irq = malloc(sizeof(irq_t), FRAME_ATOMIC);
-	if (!irq) {
-		free(instance);
-		return false;
-	}
-
 	instance->devno = devno;
 	instance->ns16550 = dev;
-	instance->irq = irq;
 	
-	irq_initialize(irq);
-	irq->devno = devno;
-	irq->inr = inr;
-	irq->claim = ns16550_claim;
-	irq->handler = ns16550_irq_handler;
-	irq->instance = instance;
-	irq->cir = cir;
-	irq->cir_arg = cir_arg;
-	irq_register(irq);
+	irq_initialize(&instance->irq);
+	instance->irq.devno = devno;
+	instance->irq.inr = inr;
+	instance->irq.claim = ns16550_claim;
+	instance->irq.handler = ns16550_irq_handler;
+	instance->irq.instance = instance;
+	instance->irq.cir = cir;
+	instance->irq.cir_arg = cir_arg;
+	irq_register(&instance->irq);
 
-	ns16550_irq = irq;	/* TODO: remove me soon */
+	ns16550_irq = &instance->irq;	/* TODO: remove me soon */
 	
-	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY)) 
+	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
 		(void) pio_read_8(&dev->rbr);
 	
 	sysinfo_set_item_val("kbd", NULL, true);

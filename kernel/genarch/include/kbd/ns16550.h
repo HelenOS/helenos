@@ -65,7 +65,7 @@ typedef struct ns16550 ns16550_t;
 typedef struct ns16550_instance {
 	devno_t devno;
 	ns16550_t *ns16550;
-	irq_t *irq;
+	irq_t irq;
 } ns16550_instance_t;
 
 extern bool ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *);
