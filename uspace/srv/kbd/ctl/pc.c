@@ -135,6 +135,8 @@ static int scanmap_simple[] = {
 	[0x57] = KC_F11,
 	[0x58] = KC_F12,
 
+	[0x46] = KC_SCROLL_LOCK,
+
 	[0x1c] = KC_ENTER,
 
 	[0x45] = KC_NUM_LOCK,
@@ -159,7 +161,9 @@ static int scanmap_e0[] = {
 	[0x1d] = KC_RSHIFT,
 
 	[0x37] = KC_PRTSCR,
+
 	[0x52] = KC_INSERT,
+	[0x47] = KC_HOME,
 	[0x49] = KC_PAGE_UP,
 
 	[0x53] = KC_DELETE,

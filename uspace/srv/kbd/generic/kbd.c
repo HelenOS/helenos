@@ -63,6 +63,9 @@ keybuffer_t keybuffer;
 /** Currently active modifiers. */
 static unsigned mods = KM_NUM_LOCK;
 
+/** Currently pressed lock keys. We track these to tackle autorepeat. */
+static unsigned lock_keys;
+
 void kbd_push_scancode(int scancode)
 {
 	printf("scancode: 0x%x\n", scancode);
@@ -98,8 +101,19 @@ void kbd_push_ev(int type, unsigned int key)
 	default: mod_mask = 0; break;
 	}
 
-	if (mod_mask != 0 && type == KE_PRESS)
-		mods = mods ^ mod_mask;
+	if (mod_mask != 0) {
+		if (type == KE_PRESS) {
+			/*
+			 * Only change lock state on transition from released
+			 * to pressed. This prevents autorepeat from messing
+			 * up the lock state.
+			 */
+			mods = mods ^ (mod_mask & ~lock_keys);
+			lock_keys = lock_keys | mod_mask;
+		} else {
+			lock_keys = lock_keys & ~mod_mask;
+		}
+	}
 
 	printf("type: %d\n", type);
 	printf("mods: 0x%x\n", mods);
