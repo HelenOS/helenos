@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch_drivers	
+/** @addtogroup genarch_drivers
  * @{
  */
 /** @file
@@ -37,13 +37,14 @@
 
 #include <arch/types.h>
 
-#define ROW		80
-#define ROWS		25
-#define SCREEN		(ROW * ROWS)
+#define EGA_COLS       80
+#define EGA_ROWS       25
+#define EGA_SCREEN     (EGA_COLS * EGA_ROWS)
+#define EGA_VRAM_SIZE  (2 * EGA_SCREEN)
 
 /* EGA device registers. */
-#define EGA_INDEX_REG	0
-#define EGA_DATA_REG	1
+#define EGA_INDEX_REG  0
+#define EGA_DATA_REG   1
 
 extern void ega_redraw(void);
 extern void ega_init(ioport8_t *, uintptr_t);

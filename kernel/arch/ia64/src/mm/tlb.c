@@ -749,5 +749,13 @@ void page_not_present(uint64_t vector, istate_t *istate)
 	}
 }
 
+void tlb_arch_init(void)
+{
+}
+
+void tlb_print(void)
+{
+}
+
 /** @}
  */

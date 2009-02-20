@@ -37,6 +37,10 @@
 #include <mm/as.h>
 #include <align.h>
 #include <config.h>
+#include <ddi/ddi.h>
+
+/** Physical memory area for devices. */
+static parea_t dev_area;
 
 void page_arch_init(void)
 {
@@ -63,10 +67,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
-void hw_area(uintptr_t *physaddr, pfn_t *frames)
+void hw_area(void)
 {
-	*physaddr = end_frame;
-	*frames = ADDR2PFN(0xffffffff - end_frame);
+	dev_area.pbase = end_frame;
+	dev_area.frames = SIZE2FRAMES(0xffffffff - end_frame);
+	ddi_parea_register(&dev_area);
 }
 
 /** @}

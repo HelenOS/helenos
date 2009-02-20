@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -41,6 +41,10 @@
 #include <debug.h>
 #include <align.h>
 #include <config.h>
+#include <ddi/ddi.h>
+
+/** Physical memory area for devices. */
+static parea_t dev_area;
 
 #ifdef CONFIG_SMP
 /** Entries locked in DTLB of BSP.
@@ -164,10 +168,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
-void hw_area(uintptr_t *physaddr, pfn_t *frames)
+void hw_area(void)
 {
-	*physaddr = end_frame;
-	*frames = ADDR2PFN(0x7ffffffffff - end_frame);
+	dev_area.pbase = end_frame;
+	dev_area.frames = SIZE2FRAMES(0x7ffffffffff - end_frame);
+	ddi_parea_register(&dev_area);
 }
 
 /** @}

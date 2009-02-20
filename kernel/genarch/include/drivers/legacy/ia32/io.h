@@ -30,8 +30,8 @@
  * @{
  */
 /** @file
- * @brief	This file contains definitions used by architectures with the
- * 		ia32 legacy I/O space (i.e. ia32, amd64 and ia64). 
+ * @brief This file contains definitions used by architectures with the
+ *        ia32 legacy I/O space (i.e. ia32, amd64 and ia64).
  */
 
 #ifndef KERN_LEGACY_IA32_IO_H
@@ -39,12 +39,11 @@
 
 #include <arch/types.h>
 
-#define I8042_BASE	((ioport8_t *)0x60)
+#define I8042_BASE    ((ioport8_t *) 0x60)
+#define EGA_BASE      ((ioport8_t *) 0x3d4)
+#define NS16550_BASE  ((ioport8_t *) 0x3f8)
 
-#define EGA_VIDEORAM 	0xb8000
-#define EGA_BASE	((ioport8_t *)0x3d4)
-
-#define NS16550_BASE	((ioport8_t *)0x3f8)
+#define EGA_VIDEORAM  0xb8000
 
 #endif
 

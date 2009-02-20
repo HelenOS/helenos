@@ -58,14 +58,10 @@ SPINLOCK_INITIALIZE(parea_lock);
 /** List with enabled physical memory areas. */
 static LIST_INITIALIZE(parea_head);
 
-/** Physical memory area for devices. */
-static parea_t dev_area;
-
 /** Initialize DDI. */
 void ddi_init(void)
 {
-	hw_area(&dev_area.pbase, &dev_area.frames);
-	ddi_parea_register(&dev_area);
+	hw_area();
 }
 
 /** Enable piece of physical memory for mapping by physmem_map().

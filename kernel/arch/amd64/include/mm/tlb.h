@@ -35,9 +35,6 @@
 #ifndef KERN_amd64_TLB_H_
 #define KERN_amd64_TLB_H_
 
-#define tlb_arch_init()
-#define tlb_print()
-
 #endif
 
 /** @}

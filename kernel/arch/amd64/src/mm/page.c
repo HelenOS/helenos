@@ -34,6 +34,8 @@
 
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
+#include <genarch/drivers/ega/ega.h>
+#include <genarch/drivers/legacy/ia32/io.h>
 #include <arch/mm/frame.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -46,6 +48,11 @@
 #include <print.h>
 #include <panic.h>
 #include <align.h>
+#include <ddi/ddi.h>
+
+/** Physical memory area for devices. */
+static parea_t dev_area;
+static parea_t ega_area;
 
 /* Definitions for identity page mapper */
 pte_t helper_ptl1[512] __attribute__((aligned (PAGE_SIZE)));
@@ -214,10 +221,15 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return virtaddr;
 }
 
-void hw_area(uintptr_t *physaddr, pfn_t *frames)
+void hw_area(void)
 {
-	*physaddr = end_frame;
-	*frames = ADDR2PFN(0xfffffffffffff - end_frame);
+	dev_area.pbase = end_frame;
+	dev_area.frames = SIZE2FRAMES(0xfffffffffffff - end_frame);
+	ddi_parea_register(&dev_area);
+	
+	ega_area.pbase = EGA_VIDEORAM;
+	ega_area.frames = SIZE2FRAMES(EGA_VRAM_SIZE);
+	ddi_parea_register(&ega_area);
 }
 
 /** @}

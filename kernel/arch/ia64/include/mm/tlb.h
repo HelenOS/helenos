@@ -35,9 +35,6 @@
 #ifndef KERN_ia64_TLB_H_
 #define KERN_ia64_TLB_H_
 
-#define tlb_arch_init()
-#define tlb_print()
-
 #include <arch/mm/page.h>
 #include <arch/mm/asid.h>
 #include <arch/interrupt.h>

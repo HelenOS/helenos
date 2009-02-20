@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -34,9 +34,6 @@
 
 #ifndef KERN_ia32_TLB_H_
 #define KERN_ia32_TLB_H_
-
-#define tlb_arch_init()
-#define tlb_print()
 
 #endif
 

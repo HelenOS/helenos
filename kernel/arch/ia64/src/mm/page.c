@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -48,6 +48,10 @@
 #include <arch/barrier.h>
 #include <memstr.h>
 #include <align.h>
+#include <ddi/ddi.h>
+
+/** Physical memory area for devices. */
+static parea_t dev_area;
 
 static void set_environment(void);
 
@@ -274,10 +278,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size __attribute__ ((unused)))
 	return PA2KA(physaddr);
 }
 
-void hw_area(uintptr_t *physaddr, pfn_t *frames)
+void hw_area(void)
 {
-	*physaddr = end_frame;
-	*frames = ADDR2PFN(0x7fffffffffffffffUL - end_frame);
+	dev_area.pbase = end_frame;
+	dev_area.frames = SIZE2FRAMES(0x7fffffffffffffffUL - end_frame);
+	ddi_parea_register(&dev_area);
 }
 
 /** @}

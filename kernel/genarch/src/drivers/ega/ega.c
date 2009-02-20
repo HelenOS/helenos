@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch_drivers	
+/** @addtogroup genarch_drivers
  * @{
  */
 /**
@@ -67,16 +67,16 @@ chardev_t ega_console;
  */
 static void ega_check_cursor(void)
 {
-	if (ega_cursor < SCREEN)
+	if (ega_cursor < EGA_SCREEN)
 		return;
 
-	memmove((void *) videoram, (void *) (videoram + ROW * 2),
-	    (SCREEN - ROW) * 2);
-	memmove((void *) backbuf, (void *) (backbuf + ROW * 2),
-	    (SCREEN - ROW) * 2);
-	memsetw(videoram + (SCREEN - ROW) * 2, ROW, 0x0720);
-	memsetw(backbuf + (SCREEN - ROW) * 2, ROW, 0x0720);
-	ega_cursor = ega_cursor - ROW;
+	memmove((void *) videoram, (void *) (videoram + EGA_COLS * 2),
+	    (EGA_SCREEN - EGA_COLS) * 2);
+	memmove((void *) backbuf, (void *) (backbuf + EGA_COLS * 2),
+	    (EGA_SCREEN - EGA_COLS) * 2);
+	memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, 0x0720);
+	memsetw(backbuf + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, 0x0720);
+	ega_cursor = ega_cursor - EGA_COLS;
 }
 
 static void ega_move_cursor(void)
@@ -84,7 +84,7 @@ static void ega_move_cursor(void)
 	pio_write_8(ega_base + EGA_INDEX_REG, 0xe);
 	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
 	pio_write_8(ega_base + EGA_INDEX_REG, 0xf);
-	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));	
+	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));
 }
 
 static void ega_display_char(char ch, bool silent)
@@ -104,13 +104,13 @@ static void ega_putchar(chardev_t *d __attribute__((unused)), const char ch, boo
 	
 	switch (ch) {
 	case '\n':
-		ega_cursor = (ega_cursor + ROW) - ega_cursor % ROW;
+		ega_cursor = (ega_cursor + EGA_COLS) - ega_cursor % EGA_COLS;
 		break;
 	case '\t':
 		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
 		break; 
 	case '\b':
-		if (ega_cursor % ROW)
+		if (ega_cursor % EGA_COLS)
 			ega_cursor--;
 		break;
 	default:
@@ -133,18 +133,18 @@ static chardev_operations_t ega_ops = {
 
 void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 {
-	/* Initialize the software structure. */	
+	/* Initialize the software structure. */
 	ega_base = base;
 	
-	backbuf = (uint8_t *) malloc(SCREEN * 2, 0);
+	backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, 0);
 	if (!backbuf)
 		panic("Unable to allocate backbuffer.");
 	
-	videoram = (uint8_t *) hw_map(videoram_phys, SCREEN * 2);
+	videoram = (uint8_t *) hw_map(videoram_phys, EGA_VRAM_SIZE);
 	
 	/* Clear the screen and set the cursor position. */
-	memsetw(videoram, SCREEN, 0x0720);
-	memsetw(backbuf, SCREEN, 0x0720);
+	memsetw(videoram, EGA_SCREEN, 0x0720);
+	memsetw(backbuf, EGA_SCREEN, 0x0720);
 	ega_move_cursor();
 	
 	chardev_initialize("ega_out", &ega_console, &ega_ops);
@@ -152,15 +152,15 @@ void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 2);
-	sysinfo_set_item_val("fb.width", NULL, ROW);
-	sysinfo_set_item_val("fb.height", NULL, ROWS);
+	sysinfo_set_item_val("fb.width", NULL, EGA_COLS);
+	sysinfo_set_item_val("fb.height", NULL, EGA_ROWS);
 	sysinfo_set_item_val("fb.blinking", NULL, true);
 	sysinfo_set_item_val("fb.address.physical", NULL, videoram_phys);
 }
 
 void ega_redraw(void)
 {
-	memcpy(videoram, backbuf, SCREEN * 2);
+	memcpy(videoram, backbuf, EGA_VRAM_SIZE);
 	ega_move_cursor();
 }
 

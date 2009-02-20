@@ -67,5 +67,13 @@ void tlb_invalidate_pages(asid_t asid __attribute__((unused)), uintptr_t page, c
 		invlpg(page + i * PAGE_SIZE);
 }
 
+void tlb_arch_init(void)
+{
+}
+
+void tlb_print(void)
+{
+}
+
 /** @}
  */
