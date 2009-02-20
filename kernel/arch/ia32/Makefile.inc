@@ -45,11 +45,11 @@ SUNCC_CFLAGS += $(CMN1)
 ## Accepted CPUs
 #
 
-ifeq ($(MACHINE),athlon-xp)
+ifeq ($(MACHINE),athlon_xp)
 	CMN2 = -march=athlon-xp
 	SUNCC_CFLAGS += -xarch=ssea
 endif
-ifeq ($(MACHINE),athlon-mp)
+ifeq ($(MACHINE),athlon_mp)
 	CMN2 = -march=athlon-mp
 	SUNCC_CFLAGS += xarch=ssea
 endif
