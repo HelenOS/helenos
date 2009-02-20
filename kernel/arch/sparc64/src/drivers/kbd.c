@@ -154,8 +154,9 @@ void kbd_init(ofw_tree_node_t *node)
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550_init(device_assign_devno(),
-		    (ioport_t) (hw_map(aligned_addr, offset + size) + offset), inr, cir, cir_arg);
+		(void) ns16550_init((ns16550_t *) (hw_map(aligned_addr,
+		    offset + size) + offset), device_assign_devno(), inr, cir,
+		    cir_arg);
 		break;
 #endif
 	default:
