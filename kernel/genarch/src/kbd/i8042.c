@@ -49,7 +49,6 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <sysinfo/sysinfo.h>
-#include <ipc/irq.h>
 
 i8042_instance_t lgcy_i8042_instance = {
 	.i8042 = (i8042_t *) I8042_BASE,
@@ -156,14 +155,14 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	
 	/*
 	 * Clear input buffer.
-	 * Number of iterations is limited to prevent infinite looping.
 	 */
-	int i;
-	for (i = 0; (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK) &&
-	    i < 100; i++) {
+	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		(void) pio_read_8(&dev->data);
-	}
 	
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.devno", NULL, kbd_devno);
 	sysinfo_set_item_val("kbd.inr", NULL, kbd_inr);
