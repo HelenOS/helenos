@@ -81,6 +81,36 @@ static inline uint8_t pio_read_8(ioport8_t *port)
 	return val;
 }
 
+/** Word from port
+ *
+ * Get word from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline uint16_t pio_read_16(ioport16_t *port)
+{
+	uint16_t val;
+	
+	asm volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port));
+	return val;
+}
+
+/** Double word from port
+ *
+ * Get double word from port
+ *
+ * @param port Port to read from
+ * @return Value read
+ */
+static inline uint32_t pio_read_32(ioport32_t *port)
+{
+	uint32_t val;
+	
+	asm volatile ("inl %w1, %0 \n" : "=a" (val) : "d" (port));
+	return val;
+}
+
 /** Byte to port
  *
  * Output byte to port
@@ -91,6 +121,30 @@ static inline uint8_t pio_read_8(ioport8_t *port)
 static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port));
+}
+
+/** Word to port
+ *
+ * Output word to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void pio_write_16(ioport16_t *port, uint16_t val)
+{
+	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port));
+}
+
+/** Double word to port
+ *
+ * Output double word to port
+ *
+ * @param port Port to write to
+ * @param val Value to write
+ */
+static inline void pio_write_32(ioport32_t *port, uint32_t val)
+{
+	asm volatile ("outl %0, %w1\n" : : "a" (val), "d" (port));
 }
 
 /** Swap Hidden part of GS register with visible one */

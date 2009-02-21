@@ -214,8 +214,6 @@ void arch_grab_console(void)
 #else
 	ega_redraw();
 #endif
-	
-	i8042_grab();
 }
 
 /** Return console to userspace
@@ -223,7 +221,6 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
-	i8042_release();
 }
 
 /** Construct function pointer
