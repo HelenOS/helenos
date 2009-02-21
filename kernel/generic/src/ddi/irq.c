@@ -82,7 +82,7 @@
  * Spinlock protecting the kernel IRQ hash table.
  * This lock must be taken only when interrupts are disabled.
  */
-static SPINLOCK_INITIALIZE(irq_kernel_hash_table_lock);
+SPINLOCK_INITIALIZE(irq_kernel_hash_table_lock);
 /** The kernel IRQ hash table. */
 static hash_table_t irq_kernel_hash_table;
 
@@ -178,8 +178,6 @@ void irq_initialize(irq_t *irq)
  */
 void irq_register(irq_t *irq)
 {
-	spinlock_t *lock = &irq_kernel_hash_table_lock;
-	hash_table_t *table = &irq_kernel_hash_table;
 	ipl_t ipl;
 	unative_t key[] = {
 		(unative_t) irq->inr,
@@ -187,11 +185,11 @@ void irq_register(irq_t *irq)
 	};
 	
 	ipl = interrupts_disable();
-	spinlock_lock(lock);
+	spinlock_lock(&irq_kernel_hash_table_lock);
 	spinlock_lock(&irq->lock);
-	hash_table_insert(table, key, &irq->link);
+	hash_table_insert(&irq_kernel_hash_table, key, &irq->link);
 	spinlock_unlock(&irq->lock);	
-	spinlock_unlock(lock);
+	spinlock_unlock(&irq_kernel_hash_table_lock);
 	interrupts_restore(ipl);
 }
 
