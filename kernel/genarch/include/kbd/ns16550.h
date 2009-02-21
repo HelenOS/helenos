@@ -69,8 +69,6 @@ typedef struct ns16550_instance {
 } ns16550_instance_t;
 
 extern bool ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *);
-extern void ns16550_grab(void);
-extern void ns16550_release(void);
 extern irq_ownership_t ns16550_claim(irq_t *);
 extern void ns16550_irq_handler(irq_t *);
 
