@@ -40,12 +40,20 @@
 #include <kbd_port.h>
 #include <kbd.h>
 
-irq_cmd_t msim_cmds[1] = {
-	{ CMD_MEM_READ_1, (void *) 0, 0, 2 }
+irq_cmd_t msim_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+	
 };
 
 irq_code_t msim_kbd = {
-	1,
+	sizeof(msim_cmds) / sizeof(irq_cmd_t),
 	msim_cmds
 };
 

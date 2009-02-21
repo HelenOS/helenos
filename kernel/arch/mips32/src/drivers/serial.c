@@ -34,7 +34,6 @@
 
 #include <interrupt.h>
 #include <arch/cp0.h>
-#include <ipc/irq.h>
 #include <arch/drivers/serial.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -114,10 +113,7 @@ static void serial_handler(void)
 /** Process keyboard interrupt. Does not work in simics? */
 static void serial_irq_handler(irq_t *irq)
 {
-	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
-		ipc_irq_send_notif(irq);
-	else
-		serial_handler();
+	serial_handler();
 }
 
 static irq_ownership_t serial_claim(irq_t *irq)
