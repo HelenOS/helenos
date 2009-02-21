@@ -68,7 +68,7 @@ static unsigned lock_keys;
 
 void kbd_push_scancode(int scancode)
 {
-	printf("scancode: 0x%x\n", scancode);
+/*	printf("scancode: 0x%x\n", scancode);*/
 	kbd_ctl_parse_scancode(scancode);
 }
 
@@ -114,11 +114,11 @@ void kbd_push_ev(int type, unsigned int key)
 			lock_keys = lock_keys & ~mod_mask;
 		}
 	}
-
+/*
 	printf("type: %d\n", type);
 	printf("mods: 0x%x\n", mods);
 	printf("keycode: %u\n", key);
-
+*/
 	ev.type = type;
 	ev.key = key;
 	ev.mods = mods;
