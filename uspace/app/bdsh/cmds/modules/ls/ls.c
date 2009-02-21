@@ -114,7 +114,7 @@ static void ls_scan_dir(const char *d, DIR *dirp)
 			ls_print_dir(dp->d_name);
 			break;
 		case LS_FILE:
-			ls_print_file(dp->d_name);
+			ls_print_file(dp->d_name, buff);
 			break;
 		case LS_BOGUS:
 			/* Odd chance it was deleted from the time readdir() found
@@ -143,9 +143,9 @@ static void ls_print_dir(const char *d)
 	return;
 }
 
-static void ls_print_file(const char *f)
+static void ls_print_file(const char *name, const char *pathname)
 {
-	printf("%-40s\t%llu\n", f, (long long) flen(f));
+	printf("%-40s\t%llu\n", name, (long long) flen(pathname));
 
 	return;
 }
@@ -192,7 +192,7 @@ int cmd_ls(char **argv)
 		free(buff);
 		return CMD_FAILURE;
 	case LS_FILE:
-		ls_print_file(buff);
+		ls_print_file(buff, buff);
 		break;
 	case LS_DIR:
 		dirp = opendir(buff);
