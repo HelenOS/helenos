@@ -131,7 +131,7 @@ static inline void pio_write_16(ioport16_t *port, uint16_t val)
  */
 static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
-	asm volatile ("outl %l0, %w1\n" : : "a" (val), "d" (port));
+	asm volatile ("outl %0, %w1\n" : : "a" (val), "d" (port));
 }
 
 /** Byte from port
@@ -175,7 +175,7 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uint32_t val;
 	
-	asm volatile ("inl %w1, %l0 \n" : "=a" (val) : "d" (port));
+	asm volatile ("inl %w1, %0 \n" : "=a" (val) : "d" (port));
 	return val;
 }
 
