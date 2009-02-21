@@ -42,15 +42,17 @@
 
 static irq_cmd_t gxemul_cmds[] = {
 	{ 
-		CMD_MEM_READ_1, 
-		(void *) 0, 
-		0, 
-		2
+		.cmd = CMD_PIO_READ_8, 
+		.addr = (void *) 0, 	/* will be patched in run-time */
+		.dstarg = 2,
+	},
+	{
+		.cmd = CMD_ACCEPT
 	}
 };
 
 static irq_code_t gxemul_kbd = {
-	1,
+	sizeof(gxemul_cmds) / sizeof(irq_cmd_t),
 	gxemul_cmds
 };
 

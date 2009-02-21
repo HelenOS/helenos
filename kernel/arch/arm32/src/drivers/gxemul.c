@@ -187,20 +187,16 @@ static char gxemul_do_read(chardev_t *dev)
  */
 static void gxemul_irq_handler(irq_t *irq)
 {
-	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox)) {
-		ipc_irq_send_notif(irq);
-	} else {
-		char ch = 0;
+	char ch = 0;
 		
-		ch = *((char *) gxemul_hw_map.kbd);
-		if (ch == '\r') {
-			ch = '\n';
-		}
-		if (ch == 0x7f) {
-			ch = '\b';
-		}
-		chardev_push_character(&console, ch);
+	ch = *((char *) gxemul_hw_map.kbd);
+	if (ch == '\r') {
+		ch = '\n';
 	}
+	if (ch == 0x7f) {
+		ch = '\b';
+	}
+	chardev_push_character(&console, ch);
 }
 
 static irq_ownership_t gxemul_claim(irq_t *irq)
