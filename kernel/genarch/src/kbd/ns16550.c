@@ -40,7 +40,6 @@
 #include <genarch/kbd/scanc_sun.h>
 #include <arch/drivers/kbd.h>
 #include <ddi/irq.h>
-#include <ipc/irq.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
@@ -54,8 +53,6 @@
 
 #define LSR_DATA_READY	0x01
 
-static irq_t *ns16550_irq;
-
 /*
  * These codes read from ns16550 data register are silently ignored.
  */
@@ -68,27 +65,6 @@ static chardev_operations_t ops = {
 	.suspend = ns16550_suspend,
 	.resume = ns16550_resume,
 };
-
-/** Initialize keyboard and service interrupts using kernel routine */
-void ns16550_grab(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&ns16550_irq->lock);
-	ns16550_irq->notif_cfg.notify = false;
-	spinlock_unlock(&ns16550_irq->lock);
-	interrupts_restore(ipl);
-}
-
-/** Resume the former interrupt vector */
-void ns16550_release(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&ns16550_irq->lock);
-	if (ns16550_irq->notif_cfg.answerbox)
-		ns16550_irq->notif_cfg.notify = true;
-	spinlock_unlock(&ns16550_irq->lock);
-	interrupts_restore(ipl);
-}
 
 /** Initialize ns16550.
  *
@@ -125,11 +101,13 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	instance->irq.cir_arg = cir_arg;
 	irq_register(&instance->irq);
 
-	ns16550_irq = &instance->irq;	/* TODO: remove me soon */
-	
 	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
 		(void) pio_read_8(&dev->rbr);
 	
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
@@ -140,8 +118,6 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	/* Enable interrupts */
 	pio_write_8(&dev->ier, IER_ERBFI);
 	pio_write_8(&dev->mcr, MCR_OUT2);
-	
-	ns16550_grab();
 	
 	return true;
 }
@@ -169,14 +145,6 @@ irq_ownership_t ns16550_claim(irq_t *irq)
 
 void ns16550_irq_handler(irq_t *irq)
 {
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox) {
-		/*
-		 * This will hopefully go to the IRQ dispatch code soon.
-		 */
-		ipc_irq_send_notif(irq);
-		return;
-	}
-
 	ns16550_instance_t *ns16550_instance = irq->instance;
 	ns16550_t *dev = ns16550_instance->ns16550;
 
