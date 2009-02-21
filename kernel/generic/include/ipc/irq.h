@@ -36,18 +36,21 @@
 #define KERN_IPC_IRQ_H_
 
 /** Maximum length of IPC IRQ program */
-#define IRQ_MAX_PROG_SIZE	10
+#define IRQ_MAX_PROG_SIZE	20
 
 #include <ipc/ipc.h>
 #include <ddi/irq.h>
 #include <arch/types.h>
 #include <adt/list.h>
 
-extern int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
-    unative_t method, irq_code_t *ucode);
-extern void ipc_irq_send_notif(irq_t *irq);
-extern void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno);
-extern void ipc_irq_cleanup(answerbox_t *box);
+extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, unative_t,
+    irq_code_t *);
+
+extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
+extern void ipc_irq_top_half_handler(irq_t *);
+
+extern int ipc_irq_unregister(answerbox_t *, inr_t, devno_t);
+extern void ipc_irq_cleanup(answerbox_t *);
 
 /*
  * User friendly wrappers for ipc_irq_send_msg(). They are in the form
@@ -66,8 +69,8 @@ extern void ipc_irq_cleanup(answerbox_t *box);
 #define ipc_irq_send_msg_5(irq, a1, a2, a3, a4, a5) \
     ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), (a5))
 
-extern void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2,
-    unative_t a3, unative_t a4, unative_t a5);
+extern void ipc_irq_send_msg(irq_t *, unative_t, unative_t, unative_t, unative_t,
+    unative_t);
 
 #endif
 

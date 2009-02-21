@@ -63,13 +63,35 @@
 #define MOUSE_OUT_INIT  0xf4
 #define MOUSE_ACK       0xfa
 
-static irq_cmd_t i8042_cmds[2] = {
-	{ CMD_PORT_READ_1, (void *) 0x64, 0, 1 },
-	{ CMD_PORT_READ_1, (void *) 0x60, 0, 2 }
+static irq_cmd_t i8042_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0x64,
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_BTEST,
+		.value = i8042_OUTPUT_FULL,
+		.srcarg = 1,
+		.dstarg = 3
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0x60,
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 static irq_code_t i8042_kbd = {
-	2,
+	sizeof(i8042_cmds) / sizeof(irq_cmd_t),
 	i8042_cmds
 };
 

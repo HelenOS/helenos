@@ -36,24 +36,25 @@
 #define KERN_IRQ_H_
 
 typedef enum {
-	CMD_MEM_READ_1 = 0,
-	CMD_MEM_READ_2,
-	CMD_MEM_READ_4,
-	CMD_MEM_READ_8,
-	CMD_MEM_WRITE_1,
-	CMD_MEM_WRITE_2,
-	CMD_MEM_WRITE_4,
-	CMD_MEM_WRITE_8,
-	CMD_PORT_READ_1,
-	CMD_PORT_WRITE_1,
+	CMD_PIO_READ_8 = 1,
+	CMD_PIO_READ_16,
+	CMD_PIO_READ_32,
+	CMD_PIO_WRITE_8,
+	CMD_PIO_WRITE_16,
+	CMD_PIO_WRITE_32,
+	CMD_BTEST,
+	CMD_PREDICATE,
+	CMD_ACCEPT,
+	CMD_DECLINE,
 	CMD_LAST
 } irq_cmd_type;
 
 typedef struct {
 	irq_cmd_type cmd;
 	void *addr;
-	unsigned long long value; 
-	int dstarg;
+	unsigned long long value;
+	unsigned int srcarg;
+	unsigned int dstarg;
 } irq_cmd_t;
 
 typedef struct {
@@ -65,8 +66,10 @@ typedef struct {
 
 #include <arch/types.h>
 #include <adt/list.h>
+#include <adt/hash_table.h>
 #include <synch/spinlock.h>
 #include <proc/task.h>
+#include <ipc/ipc.h>
 
 typedef enum {
 	IRQ_DECLINE,		/**< Decline to service. */
@@ -96,6 +99,8 @@ typedef struct {
 	answerbox_t *answerbox;
 	/** Method to be used for the notification. */
 	unative_t method;
+	/** Arguments that will be sent if the IRQ is claimed. */
+	unative_t scratch[IPC_CALL_LEN];
 	/** Top-half pseudocode. */
 	irq_code_t *code;
 	/** Counter. */
@@ -154,11 +159,13 @@ typedef struct irq {
 	ipc_notif_cfg_t notif_cfg; 
 } irq_t;
 
+SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
+extern hash_table_t irq_uspace_hash_table;
+
 extern void irq_init(count_t, count_t);
 extern void irq_initialize(irq_t *);
 extern void irq_register(irq_t *);
 extern irq_t *irq_dispatch_and_lock(inr_t);
-extern irq_t *irq_find_and_lock(inr_t, devno_t);
 
 #endif
 

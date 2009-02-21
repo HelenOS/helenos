@@ -94,38 +94,6 @@ static chardev_operations_t ops = {
 static irq_t i8042_kbd_irq;
 static irq_t i8042_mouse_irq;
 
-void i8042_grab(void)
-{
-	ipl_t ipl = interrupts_disable();
-	
-	spinlock_lock(&i8042_kbd_irq.lock);
-	i8042_kbd_irq.notif_cfg.notify = false;
-	spinlock_unlock(&i8042_kbd_irq.lock);
-	
-	spinlock_lock(&i8042_mouse_irq.lock);
-	i8042_mouse_irq.notif_cfg.notify = false;
-	spinlock_unlock(&i8042_mouse_irq.lock);
-	
-	interrupts_restore(ipl);
-}
-
-void i8042_release(void)
-{
-	ipl_t ipl = interrupts_disable();
-	
-	spinlock_lock(&i8042_kbd_irq.lock);
-	if (i8042_kbd_irq.notif_cfg.answerbox)
-		i8042_kbd_irq.notif_cfg.notify = true;
-	spinlock_unlock(&i8042_kbd_irq.lock);
-	
-	spinlock_lock(&i8042_mouse_irq.lock);
-	if (i8042_mouse_irq.notif_cfg.answerbox)
-		i8042_mouse_irq.notif_cfg.notify = true;
-	spinlock_unlock(&i8042_mouse_irq.lock);
-	
-	interrupts_restore(ipl);
-}
-
 static irq_ownership_t i8042_claim(irq_t *irq)
 {
 	i8042_instance_t *i8042_instance = irq->instance;
@@ -138,14 +106,6 @@ static irq_ownership_t i8042_claim(irq_t *irq)
 
 static void i8042_irq_handler(irq_t *irq)
 {
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox) {
-		/*
-		 * This will hopefully go to the IRQ dispatcher code soon.
-		 */ 
-		ipc_irq_send_notif(irq);
-		return;
-	}
-
 	i8042_instance_t *instance = irq->instance;
 	i8042_t *dev = instance->i8042;
 
@@ -213,8 +173,6 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	sysinfo_set_item_val("mouse", NULL, true);
 	sysinfo_set_item_val("mouse.devno", NULL, mouse_devno);
 	sysinfo_set_item_val("mouse.inr", NULL, mouse_inr);
-	
-	i8042_grab();
 }
 
 /* Called from getc(). */

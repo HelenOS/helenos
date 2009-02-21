@@ -44,8 +44,28 @@
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler
  * - ARG3: payload modified by a 'top-half' handler
+ * - ARG4: payload modified by a 'top-half' handler
+ * - ARG5: payload modified by a 'top-half' handler
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
  *         in multithreaded drivers)
+ *
+ * Note on synchronization for ipc_irq_register(), ipc_irq_unregister(),
+ * ipc_irq_cleanup() and IRQ handlers:
+ *
+ *   By always taking all of the uspace IRQ hash table lock, IRQ structure lock
+ *   and answerbox lock, we can rule out race conditions between the
+ *   registration functions and also the cleanup function. Thus the observer can
+ *   either see the IRQ structure present in both the hash table and the
+ *   answerbox list or absent in both. Views in which the IRQ structure would be
+ *   linked in the hash table but not in the answerbox list, or vice versa, are
+ *   not possible.
+ *
+ *   By always taking the hash table lock and the IRQ structure lock, we can
+ *   rule out a scenario in which we would free up an IRQ structure, which is
+ *   still referenced by, for example, an IRQ handler. The locking scheme forces
+ *   us to lock the IRQ structure only after any progressing IRQs on that
+ *   structure are finished. Because we hold the hash table lock, we prevent new
+ *   IRQs from taking new references to the IRQ structure.
  */
 
 #include <arch.h>
@@ -58,65 +78,7 @@
 #include <console/console.h>
 #include <print.h>
 
-/** Execute code associated with IRQ notification.
- *
- * @param call		Notification call.
- * @param code		Top-half pseudocode.
- */
-static void code_execute(call_t *call, irq_code_t *code)
-{
-	unsigned int i;
-	unative_t dstval = 0;
-	
-	if (!code)
-		return;
-	
-	for (i = 0; i < code->cmdcount; i++) {
-		switch (code->cmds[i].cmd) {
-		case CMD_MEM_READ_1:
-			dstval = *((uint8_t *) code->cmds[i].addr);
-			break;
-		case CMD_MEM_READ_2:
-			dstval = *((uint16_t *) code->cmds[i].addr);
-			break;
-		case CMD_MEM_READ_4:
-			dstval = *((uint32_t *) code->cmds[i].addr);
-			break;
-		case CMD_MEM_READ_8:
-			dstval = *((uint64_t *) code->cmds[i].addr);
-			break;
-		case CMD_MEM_WRITE_1:
-			*((uint8_t *) code->cmds[i].addr) = code->cmds[i].value;
-			break;
-		case CMD_MEM_WRITE_2:
-			*((uint16_t *) code->cmds[i].addr) =
-			    code->cmds[i].value;
-			break;
-		case CMD_MEM_WRITE_4:
-			*((uint32_t *) code->cmds[i].addr) =
-			    code->cmds[i].value;
-			break;
-		case CMD_MEM_WRITE_8:
-			*((uint64_t *) code->cmds[i].addr) =
-			    code->cmds[i].value;
-			break;
-		case CMD_PORT_READ_1:
-			dstval = pio_read_8((ioport8_t *) code->cmds[i].addr);
-			break;
-		case CMD_PORT_WRITE_1:
-			pio_write_8((ioport8_t *) code->cmds[i].addr, code->cmds[i].value);
-			break;
-		default:
-			break;
-		}
-		if (code->cmds[i].dstarg && code->cmds[i].dstarg <
-		    IPC_CALL_LEN) {
-			call->data.args[code->cmds[i].dstarg] = dstval;
-		}
-	}
-}
-
-/** Free top-half pseudocode.
+/** Free the top-half pseudocode.
  *
  * @param code		Pointer to the top-half pseudocode.
  */
@@ -128,7 +90,7 @@ static void code_free(irq_code_t *code)
 	}
 }
 
-/** Copy top-half pseudocode from userspace into the kernel.
+/** Copy the top-half pseudocode from userspace into the kernel.
  *
  * @param ucode		Userspace address of the top-half pseudocode.
  *
@@ -164,38 +126,6 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	return code;
 }
 
-/** Unregister task from IRQ notification.
- *
- * @param box		Answerbox associated with the notification.
- * @param inr		IRQ number.
- * @param devno		Device number.
- */
-void ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
-{
-	ipl_t ipl;
-	irq_t *irq;
-
-	ipl = interrupts_disable();
-	irq = irq_find_and_lock(inr, devno);
-	if (irq) {
-		if (irq->notif_cfg.answerbox == box) {
-			code_free(irq->notif_cfg.code);
-			irq->notif_cfg.notify = false;
-			irq->notif_cfg.answerbox = NULL;
-			irq->notif_cfg.code = NULL;
-			irq->notif_cfg.method = 0;
-			irq->notif_cfg.counter = 0;
-
-			spinlock_lock(&box->irq_lock);
-			list_remove(&irq->notif_cfg.link);
-			spinlock_unlock(&box->irq_lock);
-			
-			spinlock_unlock(&irq->lock);
-		}
-	}
-	interrupts_restore(ipl);
-}
-
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
  * @param box		Receiving answerbox.
@@ -212,6 +142,10 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	ipl_t ipl;
 	irq_code_t *code;
 	irq_t *irq;
+	unative_t key[] = {
+		(unative_t) inr,
+		(unative_t) devno
+	};
 
 	if (ucode) {
 		code = code_from_uspace(ucode);
@@ -221,35 +155,155 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		code = NULL;
 	}
 
-	ipl = interrupts_disable();
-	irq = irq_find_and_lock(inr, devno);
-	if (!irq) {
-		interrupts_restore(ipl);
-		code_free(code);
-		return ENOENT;
-	}
-	
-	if (irq->notif_cfg.answerbox) {
-		spinlock_unlock(&irq->lock);
-		interrupts_restore(ipl);
-		code_free(code);
-		return EEXISTS;
-	}
-	
+	/*
+	 * Allocate and populate the IRQ structure.
+	 */
+	irq = malloc(sizeof(irq_t), 0);
+	irq_initialize(irq);
+	irq->devno = devno;
+	irq->inr = inr;
+	irq->claim = ipc_irq_top_half_claim;
+	irq->handler = ipc_irq_top_half_handler;	
 	irq->notif_cfg.notify = true;
 	irq->notif_cfg.answerbox = box;
 	irq->notif_cfg.method = method;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
 
+	/*
+	 * Enlist the IRQ structure in the uspace IRQ hash table and the
+	 * answerbox's list.
+	 */
+	ipl = interrupts_disable();
+	spinlock_lock(&irq_uspace_hash_table_lock);
+	spinlock_lock(&irq->lock);
 	spinlock_lock(&box->irq_lock);
+	if (hash_table_find(&irq_uspace_hash_table, key)) {
+		code_free(code);
+		spinlock_unlock(&box->irq_lock);
+		spinlock_unlock(&irq->lock);
+		spinlock_unlock(&irq_uspace_hash_table_lock);
+		free(irq);
+		interrupts_restore(ipl);
+		return EEXISTS;
+	}
+	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	list_append(&irq->notif_cfg.link, &box->irq_head);
 	spinlock_unlock(&box->irq_lock);
-
 	spinlock_unlock(&irq->lock);
-	interrupts_restore(ipl);
+	spinlock_unlock(&irq_uspace_hash_table_lock);
 
-	return 0;
+	interrupts_restore(ipl);
+	return EOK;
+}
+
+/** Unregister task from IRQ notification.
+ *
+ * @param box		Answerbox associated with the notification.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ */
+int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
+{
+	ipl_t ipl;
+	unative_t key[] = {
+		(unative_t) inr,
+		(unative_t) devno
+	};
+	link_t *lnk;
+	irq_t *irq;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&irq_uspace_hash_table_lock);
+	lnk = hash_table_find(&irq_uspace_hash_table, key);
+	if (!lnk) {
+		spinlock_unlock(&irq_uspace_hash_table_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+	irq = hash_table_get_instance(lnk, irq_t, link);
+	spinlock_lock(&irq->lock);
+	spinlock_lock(&box->irq_lock);
+	
+	ASSERT(irq->notif_cfg.answerbox == box);
+	
+	/* Free up the pseudo code and associated structures. */
+	code_free(irq->notif_cfg.code);
+
+	/* Remove the IRQ from the answerbox's list. */ 
+	list_remove(&irq->notif_cfg.link);
+
+	/* Remove the IRQ from the uspace IRQ hash table. */
+	hash_table_remove(&irq_uspace_hash_table, key, 2);
+	
+	spinlock_unlock(&irq_uspace_hash_table_lock);
+	spinlock_unlock(&irq->lock);
+	spinlock_unlock(&box->irq_lock);
+	
+	/* Free up the IRQ structure. */
+	free(irq);
+	
+	interrupts_restore(ipl);
+	return EOK;
+}
+
+
+/** Disconnect all IRQ notifications from an answerbox.
+ *
+ * This function is effective because the answerbox contains
+ * list of all irq_t structures that are registered to
+ * send notifications to it.
+ *
+ * @param box		Answerbox for which we want to carry out the cleanup.
+ */
+void ipc_irq_cleanup(answerbox_t *box)
+{
+	ipl_t ipl;
+	
+loop:
+	ipl = interrupts_disable();
+	spinlock_lock(&irq_uspace_hash_table_lock);
+	spinlock_lock(&box->irq_lock);
+	
+	while (box->irq_head.next != &box->irq_head) {
+		link_t *cur = box->irq_head.next;
+		irq_t *irq;
+		DEADLOCK_PROBE_INIT(p_irqlock);
+		unative_t key[2];
+		
+		irq = list_get_instance(cur, irq_t, notif_cfg.link);
+		if (!spinlock_trylock(&irq->lock)) {
+			/*
+			 * Avoid deadlock by trying again.
+			 */
+			spinlock_unlock(&box->irq_lock);
+			spinlock_unlock(&irq_uspace_hash_table_lock);
+			interrupts_restore(ipl);
+			DEADLOCK_PROBE(p_irqlock, DEADLOCK_THRESHOLD);
+			goto loop;
+		}
+		key[0] = irq->inr;
+		key[1] = irq->devno;
+		
+		
+		ASSERT(irq->notif_cfg.answerbox == box);
+		
+		/* Unlist from the answerbox. */
+		list_remove(&irq->notif_cfg.link);
+		
+		/* Remove from the hash table. */
+		hash_table_remove(&irq_uspace_hash_table, key, 2);
+		
+		/* Free up the pseudo code and associated structures. */
+		code_free(irq->notif_cfg.code);
+		
+		spinlock_unlock(&irq->lock);
+		free(irq);
+	}
+	
+	spinlock_unlock(&box->irq_lock);
+	spinlock_unlock(&irq_uspace_hash_table_lock);
+	interrupts_restore(ipl);
 }
 
 /** Add a call to the proper answerbox queue.
@@ -266,6 +320,122 @@ static void send_call(irq_t *irq, call_t *call)
 	spinlock_unlock(&irq->notif_cfg.answerbox->irq_lock);
 		
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
+}
+
+/** Apply the top-half pseudo code to find out whether to accept the IRQ or not.
+ *
+ * @param irq		IRQ structure.
+ *
+ * @return		IRQ_ACCEPT if the interrupt is accepted by the
+ *			pseudocode. IRQ_DECLINE otherwise.
+ */
+irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
+{
+	unsigned int i;
+	unative_t dstval;
+	irq_code_t *code = irq->notif_cfg.code;
+	unative_t *scratch = irq->notif_cfg.scratch;
+
+	
+	if (!irq->notif_cfg.notify)
+		return IRQ_DECLINE;
+	
+	if (!code)
+		return IRQ_DECLINE;
+	
+	for (i = 0; i < code->cmdcount; i++) {
+		unsigned int srcarg = code->cmds[i].srcarg;
+		unsigned int dstarg = code->cmds[i].dstarg;
+		
+		if (srcarg >= IPC_CALL_LEN)
+			break;
+		if (dstarg >= IPC_CALL_LEN)
+			break;
+	
+		switch (code->cmds[i].cmd) {
+		case CMD_PIO_READ_8:
+			dstval = pio_read_8((ioport8_t *) code->cmds[i].addr);
+			if (dstarg)
+				scratch[dstarg] = dstval;
+			break;
+		case CMD_PIO_READ_16:
+			dstval = pio_read_16((ioport16_t *) code->cmds[i].addr);
+			if (dstarg)
+				scratch[dstarg] = dstval;
+			break;
+		case CMD_PIO_READ_32:
+			dstval = pio_read_32((ioport32_t *) code->cmds[i].addr);
+			if (dstarg)
+				scratch[dstarg] = dstval;
+			break;
+		case CMD_PIO_WRITE_8:
+			pio_write_8((ioport8_t *) code->cmds[i].addr,
+			    (uint8_t) code->cmds[i].value);
+			break;
+		case CMD_PIO_WRITE_16:
+			pio_write_16((ioport16_t *) code->cmds[i].addr,
+			    (uint16_t) code->cmds[i].value);
+			break;
+		case CMD_PIO_WRITE_32:
+			pio_write_32((ioport32_t *) code->cmds[i].addr,
+			    (uint32_t) code->cmds[i].value);
+			break;
+		case CMD_BTEST:
+			if (srcarg && dstarg) {
+				dstval = scratch[srcarg] & code->cmds[i].value;
+				scratch[dstarg] = dstval;
+			}
+			break;
+		case CMD_PREDICATE:
+			if (srcarg && !scratch[srcarg]) {
+				i += code->cmds[i].value;
+				continue;
+			}
+			break;
+		case CMD_ACCEPT:
+			return IRQ_ACCEPT;
+			break;
+		case CMD_DECLINE:
+		default:
+			return IRQ_DECLINE;
+		}
+	}
+	
+	return IRQ_DECLINE;
+}
+
+
+/* IRQ top-half handler.
+ *
+ * We expect interrupts to be disabled and the irq->lock already held.
+ *
+ * @param irq		IRQ structure.
+ */
+void ipc_irq_top_half_handler(irq_t *irq)
+{
+	ASSERT(irq);
+
+	if (irq->notif_cfg.answerbox) {
+		call_t *call;
+
+		call = ipc_call_alloc(FRAME_ATOMIC);
+		if (!call)
+			return;
+		
+		call->flags |= IPC_CALL_NOTIF;
+		/* Put a counter to the message */
+		call->priv = ++irq->notif_cfg.counter;
+
+		/* Set up args */
+		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
+		IPC_SET_ARG1(call->data, irq->notif_cfg.scratch[1]);
+		IPC_SET_ARG2(call->data, irq->notif_cfg.scratch[2]);
+		IPC_SET_ARG3(call->data, irq->notif_cfg.scratch[3]);
+		IPC_SET_ARG4(call->data, irq->notif_cfg.scratch[4]);
+		IPC_SET_ARG5(call->data, irq->notif_cfg.scratch[5]);
+
+		send_call(irq, call);
+	}
 }
 
 /** Send notification message.
@@ -291,102 +461,19 @@ void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3,
 			return;
 		}
 		call->flags |= IPC_CALL_NOTIF;
+		/* Put a counter to the message */
+		call->priv = ++irq->notif_cfg.counter;
+
 		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
 		IPC_SET_ARG4(call->data, a4);
 		IPC_SET_ARG5(call->data, a5);
-		/* Put a counter to the message */
-		call->priv = ++irq->notif_cfg.counter;
 		
 		send_call(irq, call);
 	}
 	spinlock_unlock(&irq->lock);
-}
-
-/** Notify a task that an IRQ had occurred.
- *
- * We expect interrupts to be disabled and the irq->lock already held.
- *
- * @param irq		IRQ structure.
- */
-void ipc_irq_send_notif(irq_t *irq)
-{
-	call_t *call;
-
-	ASSERT(irq);
-
-	if (irq->notif_cfg.answerbox) {
-		call = ipc_call_alloc(FRAME_ATOMIC);
-		if (!call) {
-			return;
-		}
-		call->flags |= IPC_CALL_NOTIF;
-		/* Put a counter to the message */
-		call->priv = ++irq->notif_cfg.counter;
-		/* Set up args */
-		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
-
-		/* Execute code to handle irq */
-		code_execute(call, irq->notif_cfg.code);
-		
-		send_call(irq, call);
-	}
-}
-
-/** Disconnect all IRQ notifications from an answerbox.
- *
- * This function is effective because the answerbox contains
- * list of all irq_t structures that are registered to
- * send notifications to it.
- *
- * @param box		Answerbox for which we want to carry out the cleanup.
- */
-void ipc_irq_cleanup(answerbox_t *box)
-{
-	ipl_t ipl;
-	
-loop:
-	ipl = interrupts_disable();
-	spinlock_lock(&box->irq_lock);
-	
-	while (box->irq_head.next != &box->irq_head) {
-		link_t *cur = box->irq_head.next;
-		irq_t *irq;
-		DEADLOCK_PROBE_INIT(p_irqlock);
-		
-		irq = list_get_instance(cur, irq_t, notif_cfg.link);
-		if (!spinlock_trylock(&irq->lock)) {
-			/*
-			 * Avoid deadlock by trying again.
-			 */
-			spinlock_unlock(&box->irq_lock);
-			interrupts_restore(ipl);
-			DEADLOCK_PROBE(p_irqlock, DEADLOCK_THRESHOLD);
-			goto loop;
-		}
-		
-		ASSERT(irq->notif_cfg.answerbox == box);
-		
-		list_remove(&irq->notif_cfg.link);
-		
-		/*
-		 * Don't forget to free any top-half pseudocode.
-		 */
-		code_free(irq->notif_cfg.code);
-		
-		irq->notif_cfg.notify = false;
-		irq->notif_cfg.answerbox = NULL;
-		irq->notif_cfg.code = NULL;
-		irq->notif_cfg.method = 0;
-		irq->notif_cfg.counter = 0;
-
-		spinlock_unlock(&irq->lock);
-	}
-	
-	spinlock_unlock(&box->irq_lock);
-	interrupts_restore(ipl);
 }
 
 /** @}

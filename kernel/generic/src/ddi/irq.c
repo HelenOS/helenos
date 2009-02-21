@@ -69,19 +69,30 @@
 
 #include <ddi/irq.h>
 #include <adt/hash_table.h>
+#include <mm/slab.h>
 #include <arch/types.h>
 #include <synch/spinlock.h>
+#include <memstr.h>
 #include <arch.h>
 
 #define KEY_INR		0
 #define KEY_DEVNO	1
 
 /**
- * Spinlock protecting the hash table.
+ * Spinlock protecting the kernel IRQ hash table.
  * This lock must be taken only when interrupts are disabled.
  */
-SPINLOCK_INITIALIZE(irq_hash_table_lock);
-static hash_table_t irq_hash_table;
+static SPINLOCK_INITIALIZE(irq_kernel_hash_table_lock);
+/** The kernel IRQ hash table. */
+static hash_table_t irq_kernel_hash_table;
+
+/**
+ * Spinlock protecting the uspace IRQ hash table.
+ * This lock must be taken only when interrupts are disabled.
+ */
+SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
+/** The uspace IRQ hash table. */
+hash_table_t irq_uspace_hash_table;
 
 /**
  * Hash table operations for cases when we know that
@@ -111,6 +122,9 @@ static hash_table_operations_t irq_lin_ops = {
 	.remove_callback = NULL		/* not used */
 };
 
+/** Number of buckets in either of the hash tables. */
+static count_t buckets;
+
 /** Initialize IRQ subsystem.
  *
  * @param inrs Numbers of unique IRQ numbers or INRs.
@@ -118,16 +132,24 @@ static hash_table_operations_t irq_lin_ops = {
  */
 void irq_init(count_t inrs, count_t chains)
 {
+	buckets = chains;
 	/*
 	 * Be smart about the choice of the hash table operations.
 	 * In cases in which inrs equals the requested number of
 	 * chains (i.e. where there is no collision between
 	 * different keys), we can use optimized set of operations.
 	 */
-	if (inrs == chains)
-		hash_table_create(&irq_hash_table, chains, 2, &irq_lin_ops);
-	else
-		hash_table_create(&irq_hash_table, chains, 2, &irq_ht_ops);
+	if (inrs == chains) {
+		hash_table_create(&irq_uspace_hash_table, chains, 2,
+		    &irq_lin_ops);
+		hash_table_create(&irq_kernel_hash_table, chains, 2,
+		    &irq_lin_ops);
+	} else {
+		hash_table_create(&irq_uspace_hash_table, chains, 2,
+		    &irq_ht_ops);
+		hash_table_create(&irq_kernel_hash_table, chains, 2,
+		    &irq_ht_ops);
+	}
 }
 
 /** Initialize one IRQ structure.
@@ -137,35 +159,27 @@ void irq_init(count_t inrs, count_t chains)
  */
 void irq_initialize(irq_t *irq)
 {
+	memsetb(irq, 0, sizeof(irq_t));
 	link_initialize(&irq->link);
 	spinlock_initialize(&irq->lock, "irq.lock");
-	irq->preack = false;
+	link_initialize(&irq->notif_cfg.link);
 	irq->inr = -1;
 	irq->devno = -1;
-	irq->trigger = (irq_trigger_t) 0;
-	irq->claim = NULL;
-	irq->handler = NULL;
-	irq->instance = NULL;
-	irq->cir = NULL;
-	irq->cir_arg = NULL;
-	irq->notif_cfg.notify = false;
-	irq->notif_cfg.answerbox = NULL;
-	irq->notif_cfg.code = NULL;
-	irq->notif_cfg.method = 0;
-	irq->notif_cfg.counter = 0;
-	link_initialize(&irq->notif_cfg.link);
 }
 
 /** Register IRQ for device.
  *
  * The irq structure must be filled with information
  * about the interrupt source and with the claim()
- * function pointer and irq_handler() function pointer.
+ * function pointer and handler() function pointer.
  *
- * @param irq IRQ structure belonging to a device.
+ * @param irq		IRQ structure belonging to a device.
+ * @return		True on success, false on failure.
  */
 void irq_register(irq_t *irq)
 {
+	spinlock_t *lock = &irq_kernel_hash_table_lock;
+	hash_table_t *table = &irq_kernel_hash_table;
 	ipl_t ipl;
 	unative_t key[] = {
 		(unative_t) irq->inr,
@@ -173,9 +187,11 @@ void irq_register(irq_t *irq)
 	};
 	
 	ipl = interrupts_disable();
-	spinlock_lock(&irq_hash_table_lock);
-	hash_table_insert(&irq_hash_table, key, &irq->link);
-	spinlock_unlock(&irq_hash_table_lock);
+	spinlock_lock(lock);
+	spinlock_lock(&irq->lock);
+	hash_table_insert(table, key, &irq->link);
+	spinlock_unlock(&irq->lock);	
+	spinlock_unlock(lock);
 	interrupts_restore(ipl);
 }
 
@@ -201,58 +217,33 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
 		(unative_t) -1		/* search will use claim() instead of devno */
 	};
 	
-	spinlock_lock(&irq_hash_table_lock);
-
-	lnk = hash_table_find(&irq_hash_table, key);
+	/*
+	 * Try uspace handlers first.
+	 */
+	spinlock_lock(&irq_uspace_hash_table_lock);
+	lnk = hash_table_find(&irq_uspace_hash_table, key);
 	if (lnk) {
 		irq_t *irq;
 		
 		irq = hash_table_get_instance(lnk, irq_t, link);
-
-		spinlock_unlock(&irq_hash_table_lock);
+		spinlock_unlock(&irq_uspace_hash_table_lock);
 		return irq;
 	}
-	
-	spinlock_unlock(&irq_hash_table_lock);
+	spinlock_unlock(&irq_uspace_hash_table_lock);
 
-	return NULL;	
-}
-
-/** Find the IRQ structure corresponding to inr and devno.
- *
- * This functions attempts to lookup the IRQ structure
- * corresponding to its arguments. On success, this
- * function returns with interrups disabled, holding
- * the lock of the respective IRQ structure.
- *
- * This function assumes interrupts are already disabled.
- *
- * @param inr INR being looked up.
- * @param devno Devno being looked up.
- *
- * @return Locked IRQ structure on success or NULL on failure.
- */
-irq_t *irq_find_and_lock(inr_t inr, devno_t devno)
-{
-	link_t *lnk;
-	unative_t keys[] = {
-		(unative_t) inr,
-		(unative_t) devno
-	};
-	
-	spinlock_lock(&irq_hash_table_lock);
-
-	lnk = hash_table_find(&irq_hash_table, keys);
+	/*
+	 * Fallback to kernel handlers.
+	 */
+	spinlock_lock(&irq_kernel_hash_table_lock);
+	lnk = hash_table_find(&irq_kernel_hash_table, key);
 	if (lnk) {
 		irq_t *irq;
 		
 		irq = hash_table_get_instance(lnk, irq_t, link);
-
-		spinlock_unlock(&irq_hash_table_lock);
+		spinlock_unlock(&irq_kernel_hash_table_lock);
 		return irq;
 	}
-	
-	spinlock_unlock(&irq_hash_table_lock);
+	spinlock_unlock(&irq_kernel_hash_table_lock);
 
 	return NULL;	
 }
@@ -273,7 +264,7 @@ irq_t *irq_find_and_lock(inr_t inr, devno_t devno)
 index_t irq_ht_hash(unative_t key[])
 {
 	inr_t inr = (inr_t) key[KEY_INR];
-	return inr % irq_hash_table.entries;
+	return inr % buckets;
 }
 
 /** Compare hash table element with a key.
@@ -308,7 +299,7 @@ bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock(). */
 		rv = ((irq->inr == inr) &&
-		    (irq->claim(irq->instance) == IRQ_ACCEPT));
+		    (irq->claim(irq) == IRQ_ACCEPT));
 	} else {
 		/* Invoked by irq_find_and_lock(). */
 		rv = ((irq->inr == inr) && (irq->devno == devno));
@@ -367,7 +358,7 @@ bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
 	spinlock_lock(&irq->lock);
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock() */
-		rv = (irq->claim(irq->instance) == IRQ_ACCEPT);
+		rv = (irq->claim(irq) == IRQ_ACCEPT);
 	} else {
 		/* Invoked by irq_find_and_lock() */
 		rv = (irq->devno == devno);
