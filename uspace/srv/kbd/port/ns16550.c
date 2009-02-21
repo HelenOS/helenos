@@ -50,12 +50,37 @@
 #define MCR_REG		4	/** Modem Control Register. */
 #define LSR_REG		5	/** Line Status Register. */
 
-irq_cmd_t ns16550_cmds[1] = {
-	{ CMD_PORT_READ_1, 0, 0, 2 },
+#define LSR_DATA_READY	0x01
+
+static irq_cmd_t ns16550_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_BTEST,
+		.value = LSR_DATA_READY,
+		.srcarg = 1,
+		.dstarg = 3
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 irq_code_t ns16550_kbd = {
-	1,
+	sizeof(ns16550_cmds) / sizeof(irq_cmd_t),
 	ns16550_cmds
 };
 
@@ -68,15 +93,14 @@ int kbd_port_init(void)
 	async_set_interrupt_received(ns16550_irq_handler);
 
 	ns16550_port = sysinfo_value("kbd.port");
-	ns16550_kbd.cmds[0].addr = (void *) (ns16550_port + RBR_REG);
+	ns16550_kbd.cmds[0].addr = (void *) (ns16550_port + LSR_REG);
+	ns16550_kbd.cmds[3].addr = (void *) (ns16550_port + RBR_REG);
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 	    0, &ns16550_kbd);
 	iospace_enable(task_get_id(), ns16550_port, 8);
 
 	return 0;
 }
-
-#define LSR_DATA_READY	0x01
 
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
