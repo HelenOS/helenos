@@ -34,7 +34,6 @@
  */
 
 #include <interrupt.h>
-#include <ipc/irq.h>
 #include <console/chardev.h>
 #include <arch/drivers/gxemul.h>
 #include <console/console.h>
@@ -202,29 +201,6 @@ static void gxemul_irq_handler(irq_t *irq)
 static irq_ownership_t gxemul_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
-}
-
-
-/** Acquire console back for kernel. */
-void gxemul_grab_console(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&gxemul_console_irq.lock);
-	gxemul_console_irq.notif_cfg.notify = false;
-	spinlock_unlock(&gxemul_console_irq.lock);
-	interrupts_restore(ipl);
-}
-
-/** Return console to userspace. */
-void gxemul_release_console(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&gxemul_console_irq.lock);
-	if (gxemul_console_irq.notif_cfg.answerbox) {
-		gxemul_console_irq.notif_cfg.notify = true;
-	}
-	spinlock_unlock(&gxemul_console_irq.lock);
-	interrupts_restore(ipl);
 }
 
 /** Initializes console object representing gxemul console.

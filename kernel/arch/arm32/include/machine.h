@@ -104,8 +104,6 @@ extern uintptr_t machine_get_fb_address(void);
 
 #ifdef MACHINE_gxemul
 	#define machine_console_init(devno)            gxemul_console_init(devno)
-	#define machine_grab_console                   gxemul_grab_console
-	#define machine_release_console                gxemul_release_console 
 	#define machine_hw_map_init                    gxemul_hw_map_init
 	#define machine_timer_irq_start                gxemul_timer_irq_start
 	#define machine_cpu_halt                       gxemul_cpu_halt

@@ -50,13 +50,11 @@ void arch_grab_console(void)
 #ifdef CONFIG_FB
 	fb_redraw();
 #endif
-	machine_grab_console();
 }
 
 /** Return console to userspace. */
 void arch_release_console(void)
 {
-	machine_release_console();
 }
 
 /** @}
