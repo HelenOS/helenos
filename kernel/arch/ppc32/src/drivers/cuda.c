@@ -33,7 +33,6 @@
  */
 
 #include <arch/drivers/cuda.h>
-#include <ipc/irq.h>
 #include <arch/asm.h>
 #include <console/console.h>
 #include <console/chardev.h>
@@ -251,16 +250,12 @@ int cuda_get_scancode(void)
 
 static void cuda_irq_handler(irq_t *irq)
 {
-	if ((irq->notif_cfg.notify) && (irq->notif_cfg.answerbox))
-		ipc_irq_send_notif(irq);
-	else {
-		int scan_code = cuda_get_scancode();
+	int scan_code = cuda_get_scancode();
 		
-		if (scan_code != -1) {
-			uint8_t scancode = (uint8_t) scan_code;
-			if ((scancode & 0x80) != 0x80)
-				chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
-		}
+	if (scan_code != -1) {
+		uint8_t scancode = (uint8_t) scan_code;
+		if ((scancode & 0x80) != 0x80)
+			chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
 	}
 }
 
@@ -268,34 +263,6 @@ static irq_ownership_t cuda_claim(irq_t *irq)
 {
 	return IRQ_ACCEPT;
 }
-
-
-/** Initialize keyboard and service interrupts using kernel routine */
-void cuda_grab(void)
-{
-	if (cuda) {
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&cuda_irq.lock);
-		cuda_irq.notif_cfg.notify = false;
-		spinlock_unlock(&cuda_irq.lock);
-		interrupts_restore(ipl);
-	}
-}
-
-
-/** Resume the former interrupt vector */
-void cuda_release(void)
-{
-	if (cuda) {
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&cuda_irq.lock);
-		if (cuda_irq.notif_cfg.answerbox)
-			cuda_irq.notif_cfg.notify = true;
-		spinlock_unlock(&cuda_irq.unlock);
-		interrupts_restore(ipl);
-	}
-}
-
 
 void cuda_init(devno_t devno, uintptr_t base, size_t size)
 {
