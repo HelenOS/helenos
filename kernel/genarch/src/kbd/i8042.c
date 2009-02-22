@@ -89,10 +89,6 @@ static chardev_operations_t ops = {
 	.resume = i8042_resume,
 };
 
-/** Structure for i8042's IRQ. */
-static irq_t i8042_kbd_irq;
-static irq_t i8042_mouse_irq;
-
 static irq_ownership_t i8042_claim(irq_t *irq)
 {
 	i8042_instance_t *i8042_instance = irq->instance;
@@ -125,33 +121,30 @@ static void i8042_irq_handler(irq_t *irq)
 }
 
 /** Initialize i8042. */
-void
-i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
-    inr_t mouse_inr)
+bool
+i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 {
-	i8042_t *dev = lgcy_i8042_instance.i8042;
+	i8042_instance_t *instance;
 
 	chardev_initialize("i8042_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
-	irq_initialize(&i8042_kbd_irq);
-	i8042_kbd_irq.devno = kbd_devno;
-	i8042_kbd_irq.inr = kbd_inr;
-	i8042_kbd_irq.claim = i8042_claim;
-	i8042_kbd_irq.handler = i8042_irq_handler;
-	i8042_kbd_irq.instance = &lgcy_i8042_instance;
-	irq_register(&i8042_kbd_irq);
+	instance = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
+	if (!instance)
+		return false;
 	
-	irq_initialize(&i8042_mouse_irq);
-	i8042_mouse_irq.devno = mouse_devno;
-	i8042_mouse_irq.inr = mouse_inr;
-	i8042_mouse_irq.claim = i8042_claim;
-	i8042_mouse_irq.handler = i8042_irq_handler;
-	i8042_mouse_irq.instance = &lgcy_i8042_instance;
-	irq_register(&i8042_mouse_irq);
+	instance->devno = devno;
+	instance->i8042 = dev;
 	
-	trap_virtual_enable_irqs(1 << kbd_inr);
-	trap_virtual_enable_irqs(1 << mouse_inr);
+	irq_initialize(&instance->irq);
+	instance->irq.devno = devno;
+	instance->irq.inr = inr;
+	instance->irq.claim = i8042_claim;
+	instance->irq.handler = i8042_irq_handler;
+	instance->irq.instance = instance;
+	irq_register(&instance->irq);
+	
+	trap_virtual_enable_irqs(1 << inr);
 	
 	/*
 	 * Clear input buffer.
@@ -164,14 +157,13 @@ i8042_init(devno_t kbd_devno, inr_t kbd_inr, devno_t mouse_devno,
 	 * self-sufficient.
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, kbd_devno);
-	sysinfo_set_item_val("kbd.inr", NULL, kbd_inr);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
 #ifdef KBD_LEGACY
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 #endif
-	sysinfo_set_item_val("mouse", NULL, true);
-	sysinfo_set_item_val("mouse.devno", NULL, mouse_devno);
-	sysinfo_set_item_val("mouse.inr", NULL, mouse_inr);
+
+	return true;
 }
 
 /* Called from getc(). */

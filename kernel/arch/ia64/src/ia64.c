@@ -166,8 +166,7 @@ void arch_post_smp_init(void)
 	(void) ns16550_init((ns16550_t *)NS16550_BASE, kbd, NS16550_IRQ, NULL,
 	     NULL);
 #else
-	devno_t mouse = device_assign_devno();
-	i8042_init(kbd, IRQ_KBD, mouse, IRQ_MOUSE);
+	(void) i8042_init((i8042_t *)I8042_BASE, kbd, IRQ_KBD);
 #endif
 #endif
 
@@ -222,12 +221,6 @@ void arch_grab_console(void)
 {
 #ifdef SKI
 	ski_kbd_grab();
-#else
-#ifdef CONFIG_NS16550
-	ns16550_grab();
-#else
-	i8042_grab();
-#endif
 #endif
 }
 
@@ -238,12 +231,6 @@ void arch_release_console(void)
 {
 #ifdef SKI
 	ski_kbd_release();
-#else
-#ifdef CONFIG_NS16550
-	ns16550_release();
-#else
-	i8042_release();
-#endif
 #endif
 }
 
