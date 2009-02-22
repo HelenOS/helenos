@@ -145,7 +145,7 @@ static void poll_keyboard(void)
 		if (ski_kbd_irq.notif_cfg.notify &&
 		    ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, ch);
-			ipc_irq_send_notif(&ski_kbd_irq);
+			/* XXX: send notification to userspace */
 		} else {
 			chardev_push_character(&ski_console, ch);
 		}	
@@ -159,7 +159,7 @@ static void poll_keyboard(void)
 		if (ski_kbd_irq.notif_cfg.notify &&
 		    ski_kbd_irq.notif_cfg.answerbox) {
 			chardev_push_character(&ski_uconsole, 0);
-			ipc_irq_send_notif(&ski_kbd_irq);
+			/* XXX: send notification to userspace */
 		}
 		last = 0;
 	}
