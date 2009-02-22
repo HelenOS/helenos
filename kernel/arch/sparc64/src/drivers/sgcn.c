@@ -381,13 +381,7 @@ void sgcn_poll(void)
 	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
 	
 	if (*in_rdptr_ptr != *in_wrptr_ptr) {
-		if (sgcn_irq.notif_cfg.notify && sgcn_irq.notif_cfg.answerbox) {
-			ipc_irq_send_notif(&sgcn_irq);
-			spinlock_unlock(&sgcn_irq.lock);
-			interrupts_restore(ipl);
-			spinlock_unlock(&sgcn_input_lock);
-			return;
-		}
+		/* XXX: send notification to userspace */
 	}
 	
 	spinlock_unlock(&sgcn_irq.lock);

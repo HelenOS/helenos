@@ -162,16 +162,6 @@ void arch_grab_console(void)
 	scr_redraw();
 #endif
 	switch (kbd_type) {
-#ifdef CONFIG_Z8530
-	case KBD_Z8530:
-		z8530_grab();
-		break;
-#endif
-#ifdef CONFIG_NS16550
-	case KBD_NS16550:
-		ns16550_grab();
-		break;
-#endif
 #ifdef CONFIG_SGCN
 	case KBD_SGCN:
 		sgcn_grab();
@@ -188,16 +178,6 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 	switch (kbd_type) {
-#ifdef CONFIG_Z8530
-	case KBD_Z8530:
-		z8530_release();
-		break;
-#endif
-#ifdef CONFIG_NS16550
-	case KBD_NS16550:
-		ns16550_release();
-		break;
-#endif
 #ifdef CONFIG_SGCN
 	case KBD_SGCN:
 		sgcn_release();

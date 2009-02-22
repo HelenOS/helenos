@@ -148,8 +148,9 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		z8530_init(device_assign_devno(),
-		    hw_map(aligned_addr, offset + size) + offset, inr, cir, cir_arg);
+		(void) z8530_init((z8530_t *) hw_map(aligned_addr,
+		    offset + size) + offset, device_assign_devno(), inr, cir,
+		    cir_arg);
 		break;
 #endif
 #ifdef CONFIG_NS16550

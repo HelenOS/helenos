@@ -31,34 +31,45 @@
  */
 /**
  * @file
- * @brief	Zilog 8530 serial port / keyboard driver.
+ * @brief	Zilog 8530 serial port driver.
  */
 
 #include <genarch/kbd/z8530.h>
 #include <genarch/kbd/key.h>
 #include <genarch/kbd/scanc.h>
 #include <genarch/kbd/scanc_sun.h>
-#include <arch/drivers/z8530.h>
-#include <ddi/irq.h>
-#include <ipc/irq.h>
-#include <arch/interrupt.h>
 #include <arch/drivers/kbd.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <console/chardev.h>
 #include <console/console.h>
-#include <interrupt.h>
+#include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
-#include <print.h>
+#include <ddi/irq.h>
+#include <arch/asm.h>
+#include <mm/slab.h>
+
+static inline void z8530_write(ioport8_t *ctl, uint8_t reg, uint8_t val)
+{
+	/*
+	 * Registers 8-15 will automatically issue the Point High
+	 * command as their bit 3 is 1.
+	 */
+	pio_write_8(ctl, reg);	/* select register */
+	pio_write_8(ctl, val);	/* write value */
+}
+
+static inline uint8_t z8530_read(ioport8_t *ctl, uint8_t reg) 
+{
+	/*
+	 * Registers 8-15 will automatically issue the Point High
+	 * command as their bit 3 is 1.
+	 */
+	pio_write_8(ctl, reg);	/* select register */
+	return pio_read_8(ctl);
+}
 
 /*
  * These codes read from z8530 data register are silently ignored.
  */
 #define IGNORE_CODE	0x7f		/* all keys up */
-
-static z8530_t z8530;		/**< z8530 device structure. */
-static irq_t z8530_irq;		/**< z8530's IRQ. */ 
 
 static void z8530_suspend(chardev_t *);
 static void z8530_resume(chardev_t *);
@@ -66,84 +77,62 @@ static void z8530_resume(chardev_t *);
 static chardev_operations_t ops = {
 	.suspend = z8530_suspend,
 	.resume = z8530_resume,
-	.read = z8530_key_read
 };
 
-/** Initialize keyboard and service interrupts using kernel routine. */
-void z8530_grab(void)
+/** Initialize z8530. */
+bool
+z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 {
-	ipl_t ipl = interrupts_disable();
+	z8530_instance_t *instance;
 
-	(void) z8530_read_a(&z8530, RR8);
+	chardev_initialize("z8530_kbd", &kbrd, &ops);
+	stdin = &kbrd;
+
+	instance = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
+	if (!instance)
+		return false;
+
+	instance->devno = devno;
+	instance->z8530 = dev;
+
+	irq_initialize(&instance->irq);
+	instance->irq.devno = devno;
+	instance->irq.inr = inr;
+	instance->irq.claim = z8530_claim;
+	instance->irq.handler = z8530_irq_handler;
+	instance->irq.instance = instance;
+	instance->irq.cir = cir;
+	instance->irq.cir_arg = cir_arg;
+	irq_register(&instance->irq);
+
+	(void) z8530_read(&dev->ctl_a, RR8);
 
 	/*
 	 * Clear any pending TX interrupts or we never manage
 	 * to set FHC UART interrupt state to idle.
 	 */
-	z8530_write_a(&z8530, WR0, WR0_TX_IP_RST);
+	z8530_write(&dev->ctl_a, WR0, WR0_TX_IP_RST);
 
 	/* interrupt on all characters */
-	z8530_write_a(&z8530, WR1, WR1_IARCSC);
+	z8530_write(&dev->ctl_a, WR1, WR1_IARCSC);
 
 	/* 8 bits per character and enable receiver */
-	z8530_write_a(&z8530, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
+	z8530_write(&dev->ctl_a, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
 	/* Master Interrupt Enable. */
-	z8530_write_a(&z8530, WR9, WR9_MIE);
-	
-	spinlock_lock(&z8530_irq.lock);
-	z8530_irq.notif_cfg.notify = false;
-	spinlock_unlock(&z8530_irq.lock);
-	interrupts_restore(ipl);
-}
+	z8530_write(&dev->ctl_a, WR9, WR9_MIE);
 
-/** Resume the former IPC notification behavior. */
-void z8530_release(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&z8530_irq.lock);
-	if (z8530_irq.notif_cfg.answerbox)
-		z8530_irq.notif_cfg.notify = true;
-	spinlock_unlock(&z8530_irq.lock);
-	interrupts_restore(ipl);
-}
-
-/** Initialize z8530. */
-void
-z8530_init(devno_t devno, uintptr_t vaddr, inr_t inr, cir_t cir, void *cir_arg)
-{
-	chardev_initialize("z8530_kbd", &kbrd, &ops);
-	stdin = &kbrd;
-
-	z8530.devno = devno;
-	z8530.reg = (uint8_t *) vaddr;
-
-	irq_initialize(&z8530_irq);
-	z8530_irq.devno = devno;
-	z8530_irq.inr = inr;
-	z8530_irq.claim = z8530_claim;
-	z8530_irq.handler = z8530_irq_handler;
-	z8530_irq.cir = cir;
-	z8530_irq.cir_arg = cir_arg;
-	irq_register(&z8530_irq);
-
+	/*
+	 * This is the necessary evil until the userspace drivers are entirely
+	 * self-sufficient.
+	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, vaddr);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) dev);
 
-	z8530_grab();
-}
-
-/** Process z8530 interrupt.
- *
- * @param n Interrupt vector.
- * @param istate Interrupted state.
- */
-void z8530_interrupt(void)
-{
-	z8530_poll();
+	return true;
 }
 
 /* Called from getc(). */
@@ -156,35 +145,22 @@ void z8530_suspend(chardev_t *d)
 {
 }
 
-char z8530_key_read(chardev_t *d)
+irq_ownership_t z8530_claim(irq_t *irq)
 {
-	char ch;	
+	z8530_instance_t *instance = irq->instance;
+	z8530_t *dev = instance->z8530;
 
-	while(!(ch = active_read_buff_read())) {
-		uint8_t x;
-		while (!(z8530_read_a(&z8530, RR0) & RR0_RCA))
-			;
-		x = z8530_read_a(&z8530, RR8);
-		if (x != IGNORE_CODE) {
-			if (x & KEY_RELEASE)
-				key_released(x ^ KEY_RELEASE);
-			else
-				active_read_key_pressed(x);
-		}
-	}
-	return ch;
+	return (z8530_read(&dev->ctl_a, RR0) & RR0_RCA);
 }
 
-/** Poll for key press and release events.
- *
- * This function can be used to implement keyboard polling.
- */
-void z8530_poll(void)
+void z8530_irq_handler(irq_t *irq)
 {
+	z8530_instance_t *instance = irq->instance;
+	z8530_t *dev = instance->z8530;
 	uint8_t x;
 
-	while (z8530_read_a(&z8530, RR0) & RR0_RCA) {
-		x = z8530_read_a(&z8530, RR8);
+	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
+		x = z8530_read(&dev->ctl_a, RR8);
 		if (x != IGNORE_CODE) {
 			if (x & KEY_RELEASE)
 				key_released(x ^ KEY_RELEASE);
@@ -192,19 +168,6 @@ void z8530_poll(void)
 				key_pressed(x);
 		}
 	}
-}
-
-irq_ownership_t z8530_claim(irq_t *irq)
-{
-	return (z8530_read_a(&z8530, RR0) & RR0_RCA);
-}
-
-void z8530_irq_handler(irq_t *irq)
-{
-	if (irq->notif_cfg.notify && irq->notif_cfg.answerbox)
-		ipc_irq_send_notif(irq);
-	else
-		z8530_interrupt();
 }
 
 /** @}

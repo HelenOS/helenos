@@ -41,19 +41,40 @@
 #include <kbd_port.h>
 #include <sys/types.h>
 
-/** Top-half pseudocode for z8530. */
-irq_cmd_t z8530_cmds[] = {
+#define CHAN_A_STATUS	4
+#define CHAN_A_DATA	6
+
+#define RR0_RCA	1
+
+static irq_cmd_t z8530_cmds[] = {
 	{
-		CMD_MEM_READ_1,
-		0,		/**< Address. Will be patched in run-time. */
-		0,		/**< Value. Not used. */
-		1		/**< Arg 1 will contain the result. */
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_BTEST,
+		.value = RR0_RCA,
+		.srcarg = 1,
+		.dstarg = 3
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = (void *) 0,	/* will be patched in run-time */
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
 	}
 };
-
 	
 irq_code_t z8530_kbd = {
-	1,
+	sizeof(z8530_cmds) / sizeof(irq_cmd_t),
 	z8530_cmds
 };
 
@@ -62,7 +83,10 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 int kbd_port_init(void)
 {
 	async_set_interrupt_received(z8530_irq_handler);
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") + 6;
+	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") +
+	    CHAN_A_STATUS;
+	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.virtual") +
+	    CHAN_A_DATA;
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 	    0, &z8530_kbd);
 	return 0;
@@ -70,7 +94,7 @@ int kbd_port_init(void)
 
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	int scan_code = IPC_GET_ARG1(*call);
+	int scan_code = IPC_GET_ARG2(*call);
 	kbd_push_scancode(scan_code);
 }
 
