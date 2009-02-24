@@ -51,24 +51,24 @@
 #define KLOG_SIZE PAGE_SIZE
 #define KLOG_LATENCY 8
 
-/**< Kernel log cyclic buffer */
+/** Kernel log cyclic buffer */
 static char klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
 
-/**< Kernel log initialized */
+/** Kernel log initialized */
 static bool klog_inited = false;
-/**< First kernel log characters */
+/** First kernel log characters */
 static index_t klog_start = 0;
-/**< Number of valid kernel log characters */
+/** Number of valid kernel log characters */
 static size_t klog_len = 0;
-/**< Number of stored (not printed) kernel log characters */
+/** Number of stored (not printed) kernel log characters */
 static size_t klog_stored = 0;
-/**< Number of stored kernel log characters for uspace */
+/** Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
-/**< Silence output */
+/** Silence output */
 bool silent = false;
 
-/**< Kernel log spinlock */
+/** Kernel log spinlock */
 SPINLOCK_INITIALIZE(klog_lock);
 
 /** Physical memory area used for klog buffer */
