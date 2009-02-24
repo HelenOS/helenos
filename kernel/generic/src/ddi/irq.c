@@ -72,6 +72,7 @@
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <synch/spinlock.h>
+#include <console/console.h>
 #include <memstr.h>
 #include <arch.h>
 
@@ -193,6 +194,56 @@ void irq_register(irq_t *irq)
 	interrupts_restore(ipl);
 }
 
+/** Search and lock the uspace IRQ hash table.
+ *
+ */
+static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
+{
+	link_t *lnk;
+	unative_t key[] = {
+		(unative_t) inr,
+		(unative_t) -1    /* search will use claim() instead of devno */
+	};
+	
+	spinlock_lock(&irq_uspace_hash_table_lock);
+	lnk = hash_table_find(&irq_uspace_hash_table, key);
+	if (lnk) {
+		irq_t *irq;
+		
+		irq = hash_table_get_instance(lnk, irq_t, link);
+		spinlock_unlock(&irq_uspace_hash_table_lock);
+		return irq;
+	}
+	spinlock_unlock(&irq_uspace_hash_table_lock);
+	
+	return NULL;
+}
+
+/** Search and lock the kernel IRQ hash table.
+ *
+ */
+static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
+{
+	link_t *lnk;
+	unative_t key[] = {
+		(unative_t) inr,
+		(unative_t) -1    /* search will use claim() instead of devno */
+	};
+	
+	spinlock_lock(&irq_kernel_hash_table_lock);
+	lnk = hash_table_find(&irq_kernel_hash_table, key);
+	if (lnk) {
+		irq_t *irq;
+		
+		irq = hash_table_get_instance(lnk, irq_t, link);
+		spinlock_unlock(&irq_kernel_hash_table_lock);
+		return irq;
+	}
+	spinlock_unlock(&irq_kernel_hash_table_lock);
+	
+	return NULL;
+}
+
 /** Dispatch the IRQ.
  *
  * We assume this function is only called from interrupt
@@ -209,41 +260,27 @@ void irq_register(irq_t *irq)
  */
 irq_t *irq_dispatch_and_lock(inr_t inr)
 {
-	link_t *lnk;
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) -1		/* search will use claim() instead of devno */
-	};
+	irq_t *irq;
 	
 	/*
-	 * Try uspace handlers first.
+	 * If the kernel console is silenced,
+	 * then try first the uspace handlers,
+	 * eventually fall back to kernel handlers.
+	 *
+	 * If the kernel console is active,
+	 * then do it the other way around.
 	 */
-	spinlock_lock(&irq_uspace_hash_table_lock);
-	lnk = hash_table_find(&irq_uspace_hash_table, key);
-	if (lnk) {
-		irq_t *irq;
-		
-		irq = hash_table_get_instance(lnk, irq_t, link);
-		spinlock_unlock(&irq_uspace_hash_table_lock);
-		return irq;
+	if (silent) {
+		irq = irq_dispatch_and_lock_uspace(inr);
+		if (irq)
+			return irq;
+		return irq_dispatch_and_lock_kernel(inr);
 	}
-	spinlock_unlock(&irq_uspace_hash_table_lock);
-
-	/*
-	 * Fallback to kernel handlers.
-	 */
-	spinlock_lock(&irq_kernel_hash_table_lock);
-	lnk = hash_table_find(&irq_kernel_hash_table, key);
-	if (lnk) {
-		irq_t *irq;
-		
-		irq = hash_table_get_instance(lnk, irq_t, link);
-		spinlock_unlock(&irq_kernel_hash_table_lock);
+	
+	irq = irq_dispatch_and_lock_kernel(inr);
+	if (irq)
 		return irq;
-	}
-	spinlock_unlock(&irq_kernel_hash_table_lock);
-
-	return NULL;	
+	return irq_dispatch_and_lock_uspace(inr);
 }
 
 /** Compute hash index for the key.

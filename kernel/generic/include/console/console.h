@@ -41,6 +41,8 @@
 extern chardev_t *stdin;
 extern chardev_t *stdout;
 
+extern bool silent;
+
 extern void klog_init(void);
 extern void klog_update(void);
 

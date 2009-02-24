@@ -163,7 +163,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->devno = devno;
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
-	irq->handler = ipc_irq_top_half_handler;	
+	irq->handler = ipc_irq_top_half_handler;
 	irq->notif_cfg.notify = true;
 	irq->notif_cfg.answerbox = box;
 	irq->notif_cfg.method = method;

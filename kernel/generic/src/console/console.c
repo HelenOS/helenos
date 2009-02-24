@@ -65,8 +65,8 @@ static size_t klog_stored = 0;
 /**< Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
-/**< Silent output */
-static bool silent = false;
+/**< Silence output */
+bool silent = false;
 
 /**< Kernel log spinlock */
 SPINLOCK_INITIALIZE(klog_lock);

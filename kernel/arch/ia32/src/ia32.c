@@ -164,7 +164,6 @@ void arch_grab_console(void)
 #else
 	ega_redraw();
 #endif
-	
 }
 
 /** Return console to userspace
