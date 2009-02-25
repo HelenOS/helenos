@@ -153,7 +153,6 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
 		else
 			conf_frame = first;
 		
-		while (1);
 		zone_create(first, count, conf_frame, 0);
 		
 		if (phys_regions_count < MAX_REGIONS) {
