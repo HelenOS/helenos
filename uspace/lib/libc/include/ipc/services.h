@@ -44,7 +44,8 @@ typedef enum {
 	SERVICE_VIDEO,
 	SERVICE_CONSOLE,
 	SERVICE_VFS,
-	SERVICE_DEVMAP
+	SERVICE_DEVMAP,
+	SERVICE_FHC
 } services_t;
 
 /* Memory area to be received from NS */

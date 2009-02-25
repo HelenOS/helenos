@@ -37,6 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <sysinfo.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -65,6 +66,9 @@ static unsigned mods = KM_NUM_LOCK;
 
 /** Currently pressed lock keys. We track these to tackle autorepeat. */
 static unsigned lock_keys;
+
+int cir_service = 0;
+int cir_phone = -1;
 
 void kbd_push_scancode(int scancode)
 {
@@ -171,6 +175,16 @@ int main(int argc, char **argv)
 	printf(NAME ": HelenOS Keyboard service\n");
 	
 	ipcarg_t phonead;
+	
+	if (sysinfo_value("kbd.cir.fhc") == 1)
+		cir_service = SERVICE_FHC;
+	
+	if (cir_service) {
+		while (cir_phone < 0) {
+			cir_phone = ipc_connect_me_to(PHONE_NS, cir_service,
+			    0, 0);
+		}
+	}
 	
 	/* Initialize port driver. */
 	if (kbd_port_init())

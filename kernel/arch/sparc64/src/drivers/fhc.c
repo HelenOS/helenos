@@ -45,6 +45,7 @@
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <sysinfo/sysinfo.h>
 
 fhc_t *central_fhc = NULL;
 
@@ -86,6 +87,12 @@ fhc_t *fhc_init(ofw_tree_node_t *node)
 
 	fhc->uart_imap = (uint32_t *) hw_map(paddr, reg->size);
 	
+	/*
+	 * Set sysinfo data needed by the uspace FHC driver.
+	 */
+	sysinfo_set_item_val("fhc.uart.size", NULL, reg->size);
+	sysinfo_set_item_val("fhc.uart.physical", NULL, paddr);
+
 	return fhc;
 }
 

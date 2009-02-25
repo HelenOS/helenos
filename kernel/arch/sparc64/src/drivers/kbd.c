@@ -47,6 +47,7 @@
 #include <align.h>
 #include <func.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
 
 kbd_type_t kbd_type = KBD_UNKNOWN;
 
@@ -115,6 +116,7 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
+		sysinfo_set_item_val("kbd.cir.fhc", NULL, 1);
 		break;
 		
 	case KBD_NS16550:

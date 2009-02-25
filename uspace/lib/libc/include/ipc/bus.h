@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup libcipc
  * @{
- */ 
-/** @file
  */
+/** @file
+ */ 
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#ifndef LIBC_BUS_H_
+#define LIBC_BUS_H_
 
-#include <key_buffer.h>
+#include <ipc/ipc.h>
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
-
-extern int cir_service;
-extern int cir_phone;
-
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int);
+typedef enum {
+	BUS_CLEAR_INTERRUPT = IPC_FIRST_USER_METHOD
+} bus_request_t;
 
 #endif
 
-/**
- * @}
- */ 
-
+/** @}
+ */
