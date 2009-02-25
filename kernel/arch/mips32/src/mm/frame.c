@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -153,6 +153,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame)
 		else
 			conf_frame = first;
 		
+		while (1);
 		zone_create(first, count, conf_frame, 0);
 		
 		if (phys_regions_count < MAX_REGIONS) {
@@ -220,7 +221,7 @@ void frame_arch_init(void)
 					ZERO_PAGE_VALUE = 0xdeadbeef;
 					if (ZERO_PAGE_VALUE != 0xdeadbeef)
 						avail = false;
-#if defined(lgxemul) || defined(bgxemul)
+#if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
 					else {
 						ZERO_PAGE_VALUE_KSEG1(frame) = 0xaabbccdd;
 						if (ZERO_PAGE_VALUE_KSEG1(frame) != 0xaabbccdd)
