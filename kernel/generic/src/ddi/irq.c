@@ -160,7 +160,7 @@ void irq_init(count_t inrs, count_t chains)
  */
 void irq_initialize(irq_t *irq)
 {
-	memsetb(irq, 0, sizeof(irq_t));
+	memsetb(irq, sizeof(irq_t), 0);
 	link_initialize(&irq->link);
 	spinlock_initialize(&irq->lock, "irq.lock");
 	link_initialize(&irq->notif_cfg.link);
