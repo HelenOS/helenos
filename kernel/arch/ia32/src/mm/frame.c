@@ -57,7 +57,7 @@ static void init_e820_memory(pfn_t minconf)
 	unsigned int i;
 	pfn_t start, conf;
 	size_t size;
-
+	
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address, FRAME_SIZE));

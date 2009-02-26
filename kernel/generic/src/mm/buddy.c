@@ -46,7 +46,7 @@
 #include <macros.h>
 
 /** Return size needed for the buddy configuration data. */
-size_t buddy_conf_size(int max_order)
+size_t buddy_conf_size(size_t max_order)
 {
 	return sizeof(buddy_system_t) + (max_order + 1) * sizeof(link_t);
 }

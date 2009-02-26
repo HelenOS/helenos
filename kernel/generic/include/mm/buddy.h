@@ -82,7 +82,7 @@ extern void buddy_system_create(buddy_system_t *, uint8_t,
 extern link_t *buddy_system_alloc(buddy_system_t *, uint8_t);
 extern bool buddy_system_can_alloc(buddy_system_t *, uint8_t);
 extern void buddy_system_free(buddy_system_t *, link_t *);
-extern size_t buddy_conf_size(int);
+extern size_t buddy_conf_size(size_t);
 extern link_t *buddy_system_alloc_block(buddy_system_t *, link_t *);
 
 #endif

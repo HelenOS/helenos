@@ -38,33 +38,43 @@
 
 #include <arch/types.h>
 #include <adt/list.h>
-#include <synch/spinlock.h>
 #include <mm/buddy.h>
 #include <arch/mm/page.h>
 #include <arch/mm/frame.h>
 
-#define ONE_FRAME	0
-#define TWO_FRAMES	1
-#define FOUR_FRAMES	2
+#define ONE_FRAME    0
+#define TWO_FRAMES   1
+#define FOUR_FRAMES  2
 
 
 #ifdef ARCH_STACK_FRAMES
-#define STACK_FRAMES ARCH_STACK_FRAMES
+	#define STACK_FRAMES  ARCH_STACK_FRAMES
 #else
-#define STACK_FRAMES ONE_FRAME
+	#define STACK_FRAMES  ONE_FRAME
 #endif
 
-/** Maximum number of zones in system. */
-#define ZONES_MAX       	16
+/** Maximum number of zones in the system. */
+#define ZONES_MAX  32
 
-/** Convert the frame address to kernel va. */
-#define FRAME_KA		0x1
+typedef uint8_t frame_flags_t;
+
+/** Convert the frame address to kernel VA. */
+#define FRAME_KA          0x01
 /** Do not panic and do not sleep on failure. */
-#define FRAME_ATOMIC		0x2
+#define FRAME_ATOMIC      0x02
 /** Do not start reclaiming when no free memory. */
-#define FRAME_NO_RECLAIM	0x4
-/** Do not allocate above 4 GiB. */
-#define FRAME_LOW_4_GiB		0x8
+#define FRAME_NO_RECLAIM  0x04
+
+typedef uint8_t zone_flags_t;
+
+/** Zone is reserved (not available for allocation) */
+#define ZONE_RESERVED  0x08
+/** Zone is used by firmware (not available for allocation) */
+#define ZONE_FIRMWARE  0x10
+
+/** Currently there is no equivalent zone flags
+    for frame flags */
+#define FRAME_TO_ZONE_FLAGS(frame_flags)  0
 
 static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
@@ -88,31 +98,31 @@ static inline size_t FRAMES2SIZE(count_t frames)
 	return (size_t) (frames << FRAME_WIDTH);
 }
 
-#define IS_BUDDY_ORDER_OK(index, order)		\
+#define IS_BUDDY_ORDER_OK(index, order) \
     ((~(((unative_t) -1) << (order)) & (index)) == 0)
-#define IS_BUDDY_LEFT_BLOCK(zone, frame)	\
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK(zone, frame)	\
-    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
-#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame)	\
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 0)
-#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame)	\
-    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
+#define IS_BUDDY_LEFT_BLOCK(zone, frame) \
+    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 0)
+#define IS_BUDDY_RIGHT_BLOCK(zone, frame) \
+    (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 1)
+#define IS_BUDDY_LEFT_BLOCK_ABS(zone, frame) \
+    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 0)
+#define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame) \
+    (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 1)
 
-#define frame_alloc(order, flags)		\
+#define frame_alloc(order, flags) \
     frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void *frame_alloc_generic(uint8_t, int, unsigned int *);
+extern void *frame_alloc_generic(uint8_t, frame_flags_t, count_t *);
 extern void frame_free(uintptr_t);
 extern void frame_reference_add(pfn_t);
 
-extern int zone_create(pfn_t, count_t, pfn_t, int);
-extern void *frame_get_parent(pfn_t, unsigned int);
-extern void frame_set_parent(pfn_t, void *, unsigned int);
+extern count_t zone_create(pfn_t, count_t, pfn_t, zone_flags_t);
+extern void *frame_get_parent(pfn_t, count_t);
+extern void frame_set_parent(pfn_t, void *, count_t);
 extern void frame_mark_unavailable(pfn_t, count_t);
 extern uintptr_t zone_conf_size(count_t);
-extern void zone_merge(unsigned int, unsigned int);
+extern bool zone_merge(count_t, count_t);
 extern void zone_merge_all(void);
 extern uint64_t zone_total_size(void);
 
@@ -120,7 +130,7 @@ extern uint64_t zone_total_size(void);
  * Console functions
  */
 extern void zone_print_list(void);
-extern void zone_print_one(unsigned int);
+extern void zone_print_one(count_t);
 
 #endif
 

@@ -59,7 +59,7 @@
 /* slab_reclaim constants */
 
 /** Reclaim all possible memory, because we are in memory stress */
-#define SLAB_RECLAIM_ALL  0x1 
+#define SLAB_RECLAIM_ALL  0x01
 
 /* cache_create flags */
 

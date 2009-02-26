@@ -154,8 +154,13 @@ void kmp(void *arg __attribute__((unused)))
 		/*
 		 * Prepare new GDT for CPU in question.
 		 */
+		
+		/* XXX Flag FRAME_LOW_4_GiB was removed temporarily,
+		 * it needs to be replaced by a generic fuctionality of
+		 * the memory subsystem
+		 */
 		gdt_new = (struct descriptor *) malloc(GDT_ITEMS *
-		    sizeof(struct descriptor), FRAME_ATOMIC | FRAME_LOW_4_GiB);
+		    sizeof(struct descriptor), FRAME_ATOMIC);
 		if (!gdt_new)
 			panic("Cannot allocate memory for GDT.");
 
