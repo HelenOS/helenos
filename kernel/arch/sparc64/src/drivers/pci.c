@@ -44,6 +44,7 @@
 #include <print.h>
 #include <func.h>
 #include <arch/asm.h>
+#include <sysinfo/sysinfo.h>
 
 #define SABRE_INTERNAL_REG	0
 #define PSYCHO_INTERNAL_REG	2	
@@ -108,6 +109,12 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	pci->op = &pci_sabre_ops;
 	pci->reg = (uint64_t *) hw_map(paddr, reg[SABRE_INTERNAL_REG].size);
 
+	/*
+	 * Set sysinfo data needed by the uspace OBIO driver.
+	 */
+	sysinfo_set_item_val("obio.base.physical", NULL, paddr);
+	sysinfo_set_item_val("kbd.cir.obio", NULL, 1);
+
 	return pci;
 }
 
@@ -148,6 +155,12 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 	pci->model = PCI_PSYCHO;
 	pci->op = &pci_psycho_ops;
 	pci->reg = (uint64_t *) hw_map(paddr, reg[PSYCHO_INTERNAL_REG].size);
+
+	/*
+	 * Set sysinfo data needed by the uspace OBIO driver.
+	 */
+	sysinfo_set_item_val("obio.base.physical", NULL, paddr);
+	sysinfo_set_item_val("kbd.cir.obio", NULL, 1);
 
 	return pci;
 }

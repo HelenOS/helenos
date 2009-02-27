@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,51 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include ../Makefile.config
 
-DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/rd \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/bdsh
+LIBC_PREFIX = ../../lib/libc
+SOFTINT_PREFIX = ../../lib/softint
 
-ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
-endif
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
-endif
+LIBS = $(LIBC_PREFIX)/libc.a
 
-ifeq ($(UARCH),sparc64)
-	DIRS += \
-		srv/fhc \
-		srv/obio
-endif
+## Sources
+#
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+OUTPUT = obio
+SOURCES = \
+	obio.c
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+.PHONY: all clean depend disasm
 
-clean: $(CLEANS)
+all: $(OUTPUT) $(OUTPUT).disasm
 
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
+-include Makefile.depend
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
+
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< >$@
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

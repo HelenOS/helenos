@@ -92,6 +92,7 @@ fhc_t *fhc_init(ofw_tree_node_t *node)
 	 */
 	sysinfo_set_item_val("fhc.uart.size", NULL, reg->size);
 	sysinfo_set_item_val("fhc.uart.physical", NULL, paddr);
+	sysinfo_set_item_val("kbd.cir.fhc", NULL, 1);
 
 	return fhc;
 }

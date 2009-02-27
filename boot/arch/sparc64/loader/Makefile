@@ -103,7 +103,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/fhc/fhc
+	$(USPACEDIR)/srv/fhc/fhc \
+	$(USPACEDIR)/srv/obio/obio 
 
 RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \

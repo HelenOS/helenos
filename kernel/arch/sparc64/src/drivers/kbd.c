@@ -116,7 +116,6 @@ void kbd_init(ofw_tree_node_t *node)
 			printf("Failed to determine keyboard interrupt.\n");
 			return;
 		}
-		sysinfo_set_item_val("kbd.cir.fhc", NULL, 1);
 		break;
 		
 	case KBD_NS16550:
@@ -133,7 +132,6 @@ void kbd_init(ofw_tree_node_t *node)
 			return;
 		};
 		break;
-		
 	default:
 		panic("Unexpected keyboard type.");
 	}

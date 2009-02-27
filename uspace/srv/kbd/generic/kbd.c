@@ -178,6 +178,8 @@ int main(int argc, char **argv)
 	
 	if (sysinfo_value("kbd.cir.fhc") == 1)
 		cir_service = SERVICE_FHC;
+	else if (sysinfo_value("kbd.cir.obio") == 1)
+		cir_service = SERVICE_OBIO;
 	
 	if (cir_service) {
 		while (cir_phone < 0) {
