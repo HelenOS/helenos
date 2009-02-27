@@ -514,23 +514,31 @@ void cmd_init(void)
  */
 int cmd_help(cmd_arg_t *argv)
 {
-	link_t *cur;
-
 	spinlock_lock(&cmd_lock);
+	
+	link_t *cur;
+	size_t len = 0;
+	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
+		cmd_info_t *hlp;
+		hlp = list_get_instance(cur, cmd_info_t, link);
+		
+		spinlock_lock(&hlp->lock);
+		if (strlen(hlp->name) > len)
+			len = strlen(hlp->name);
+		spinlock_unlock(&hlp->lock);
+	}
 	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
 		cmd_info_t *hlp;
-		
 		hlp = list_get_instance(cur, cmd_info_t, link);
-		spinlock_lock(&hlp->lock);
 		
-		printf("%s - %s\n", hlp->name, hlp->description);
-
+		spinlock_lock(&hlp->lock);
+		printf("%-*s %s\n", len, hlp->name, hlp->description);
 		spinlock_unlock(&hlp->lock);
 	}
 	
 	spinlock_unlock(&cmd_lock);
-
+	
 	return 1;
 }
 
@@ -948,18 +956,23 @@ int cmd_continue(cmd_arg_t *argv)
  */
 int cmd_tests(cmd_arg_t *argv)
 {
+	size_t len = 0;
 	test_t *test;
+	for (test = tests; test->name != NULL; test++) {
+		if (strlen(test->name) > len)
+			len = strlen(test->name);
+	}
 	
 	for (test = tests; test->name != NULL; test++)
-		printf("%-10s %s%s\n", test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
 	
-	printf("%-10s Run all safe tests\n", "*");
+	printf("%-*s Run all safe tests\n", len, "*");
 	return 1;
 }
 
 static bool run_test(const test_t *test)
 {
-	printf("%s\t\t%s\n", test->name, test->desc);
+	printf("%s (%s)\n", test->name, test->desc);
 	
 	/* Update and read thread accounting
 	   for benchmarking */
