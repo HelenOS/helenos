@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
 	spawn("/srv/kbd");
 	spawn("/srv/console");
 	spawn("/srv/fhc");
+	spawn("/srv/obio");
 	
 	console_wait();
 	version_print();
