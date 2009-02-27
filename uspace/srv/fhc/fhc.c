@@ -32,7 +32,7 @@
 
 /**
  * @file	fhc.c
- * @brief	FHC bus driver.
+ * @brief	FHC bus controller driver.
  */
 
 #include <ipc/ipc.h>
@@ -62,7 +62,7 @@ static void *fhc_uart_phys;
 static volatile uint32_t *fhc_uart_virt;
 static size_t fhc_uart_size;
 
-/** Handle one connection to ramdisk.
+/** Handle one connection to fhc.
  *
  * @param iid		Hash of the request that opened the connection.
  * @param icall		Call data of the request that opened the connection.
