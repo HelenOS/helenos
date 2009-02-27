@@ -140,7 +140,7 @@ static bool fhc_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS FHC bus driver\n");
+	printf(NAME ": HelenOS FHC bus controller driver\n");
 	
 	if (!fhc_init())
 		return -1;
