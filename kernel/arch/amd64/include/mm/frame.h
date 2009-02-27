@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64mm	
+/** @addtogroup amd64mm
  * @{
  */
 /** @file
@@ -39,12 +39,11 @@
 #include <arch/types.h>
 #endif /* __ASM__ */
 
-#define FRAME_WIDTH		12	/* 4K */
-#define FRAME_SIZE		(1 << FRAME_WIDTH)
+#define FRAME_WIDTH  12  /* 4K */
+#define FRAME_SIZE   (1 << FRAME_WIDTH)
 
 #ifndef __ASM__
 extern uintptr_t last_frame;
-extern uintptr_t end_frame;
 extern void frame_arch_init(void);
 extern void physmem_print(void);
 #endif /* __ASM__ */

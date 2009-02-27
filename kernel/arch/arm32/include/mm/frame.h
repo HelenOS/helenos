@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm	
+/** @addtogroup arm32mm
  * @{
  */
 /** @file
@@ -36,22 +36,21 @@
 #ifndef KERN_arm32_FRAME_H_
 #define KERN_arm32_FRAME_H_
 
-#define FRAME_WIDTH		12 /* 4KB frames */
-#define FRAME_SIZE		(1 << FRAME_WIDTH)
+#define FRAME_WIDTH  12  /* 4KB frames */
+#define FRAME_SIZE   (1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__
 
 #include <arch/types.h>
 
-#define BOOT_PAGE_TABLE_SIZE    0x4000
-#define BOOT_PAGE_TABLE_ADDRESS 0x4000
+#define BOOT_PAGE_TABLE_SIZE     0x4000
+#define BOOT_PAGE_TABLE_ADDRESS  0x4000
 
 #define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
 #define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
 
 extern uintptr_t last_frame;
-extern uintptr_t end_frame;
 
 extern void frame_arch_init(void);
 extern void boot_page_table_free(void);

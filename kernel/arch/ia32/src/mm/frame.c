@@ -50,34 +50,62 @@ size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
 uintptr_t last_frame = 0;
-uintptr_t end_frame = 0;
 
 static void init_e820_memory(pfn_t minconf)
 {
 	unsigned int i;
-	pfn_t start, conf;
-	size_t size;
-	
 	for (i = 0; i < e820counter; i++) {
+		uint64_t base = e820table[i].base_address;
+		uint64_t size = e820table[i].size;
+		
+#ifdef __32_BITS__
+		
+		/* Ignore physical memory above 4 GB */
+		if ((base >> 32) != 0)
+			continue;
+		
+		/* Clip regions above 4 GB */
+		if (((base + size) >> 32) != 0)
+			size = 0xffffffff - base;
+		
+#endif
+		pfn_t pfn;
+		count_t count;
+		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-			start = ADDR2PFN(ALIGN_UP(e820table[i].base_address, FRAME_SIZE));
-			size = SIZE2FRAMES(ALIGN_DOWN(e820table[i].size, FRAME_SIZE));
+			/* To be safe, make available zone possibly smaller */
+			pfn = ADDR2PFN(ALIGN_UP(base, FRAME_SIZE));
+			count = SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE));
 			
-			if ((minconf < start) || (minconf >= start + size))
-				conf = start;
+			pfn_t conf;
+			if ((minconf < pfn) || (minconf >= pfn + count))
+				conf = pfn;
 			else
 				conf = minconf;
 			
-			zone_create(start, size, conf, 0);
+			zone_create(pfn, count, conf, ZONE_AVAILABLE);
 			
-			if (last_frame < ALIGN_UP(e820table[i].base_address +
-			    e820table[i].size, FRAME_SIZE))
-				last_frame =
-				    ALIGN_UP(e820table[i].base_address + e820table[i].size, FRAME_SIZE);
+			// XXX this has to be removed
+			if (last_frame < ALIGN_UP(base + size, FRAME_SIZE))
+				last_frame = ALIGN_UP(base + size, FRAME_SIZE);
+		}
+		
+		if (e820table[i].type == MEMMAP_MEMORY_RESERVED) {
+			/* To be safe, make reserved zone possibly larger */
+			pfn = ADDR2PFN(ALIGN_DOWN(base, FRAME_SIZE));
+			count = SIZE2FRAMES(ALIGN_UP(size, FRAME_SIZE));
+			
+			zone_create(pfn, count, 0, ZONE_RESERVED);
+		}
+		
+		if (e820table[i].type == MEMMAP_MEMORY_ACPI) {
+			/* To be safe, make firmware zone possibly larger */
+			pfn = ADDR2PFN(ALIGN_DOWN(base, (uintptr_t) FRAME_SIZE));
+			count = SIZE2FRAMES(ALIGN_UP(size, (uintptr_t) FRAME_SIZE));
+			
+			zone_create(pfn, count, 0, ZONE_FIRMWARE);
 		}
 	}
-	
-	end_frame = last_frame;
 }
 
 static char *e820names[] = {

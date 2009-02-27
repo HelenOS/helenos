@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -51,7 +51,6 @@
 #define MINCONF 1
 
 uintptr_t last_frame = 0;
-uintptr_t end_frame = 0;
 
 void frame_arch_init(void)
 {

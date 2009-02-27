@@ -61,7 +61,6 @@ extern void page_table_destroy(pte_t *page_table);
 extern void map_structure(uintptr_t s, size_t size);
 
 extern uintptr_t hw_map(uintptr_t physaddr, size_t size);
-extern void hw_area(void);
 
 #endif
 

@@ -48,10 +48,6 @@
 #include <arch/barrier.h>
 #include <memstr.h>
 #include <align.h>
-#include <ddi/ddi.h>
-
-/** Physical memory area for devices. */
-static parea_t dev_area;
 
 static void set_environment(void);
 
@@ -67,9 +63,9 @@ void page_arch_init(void)
 void set_environment(void)
 {
 	region_register rr;
-	pta_register pta;	
+	pta_register pta;
 	int i;
-#ifdef CONFIG_VHPT	
+#ifdef CONFIG_VHPT
 	uintptr_t vhpt_base;
 #endif
 
@@ -276,13 +272,6 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size __attribute__ ((unused)))
 {
 	/* THIS is a dirty hack. */
 	return (uintptr_t)((uint64_t)(PA2KA(physaddr)) + VIO_OFFSET);
-}
-
-void hw_area(void)
-{
-	dev_area.pbase = end_frame;
-	dev_area.frames = SIZE2FRAMES(0x7fffffffffffffffUL - end_frame);
-	ddi_parea_register(&dev_area);
 }
 
 /** @}

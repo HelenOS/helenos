@@ -43,10 +43,6 @@
 #include <arch/types.h>
 #include <interrupt.h>
 #include <arch/mm/frame.h>
-#include <ddi/ddi.h>
-
-/** Physical memory area for devices. */
-static parea_t dev_area;
 
 /** Initializes page tables.
  *
@@ -108,13 +104,6 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	return virtaddr;
-}
-
-void hw_area(void)
-{
-	dev_area.pbase = end_frame;
-	dev_area.frames = SIZE2FRAMES(0xffffffff - end_frame);
-	ddi_parea_register(&dev_area);
 }
 
 /** @}

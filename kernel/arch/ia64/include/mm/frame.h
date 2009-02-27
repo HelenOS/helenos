@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -35,8 +35,8 @@
 #ifndef KERN_ia64_FRAME_H_
 #define KERN_ia64_FRAME_H_
 
-#define FRAME_WIDTH		14	/* 16K */
-#define FRAME_SIZE		(1 << FRAME_WIDTH)
+#define FRAME_WIDTH  14  /* 16K */
+#define FRAME_SIZE   (1 << FRAME_WIDTH)
 
 #ifdef KERNEL
 #ifndef __ASM__
@@ -44,7 +44,6 @@
 #include <arch/types.h>
 
 extern uintptr_t last_frame;
-extern uintptr_t end_frame;
 
 extern void frame_arch_init(void);
 #define physmem_print()

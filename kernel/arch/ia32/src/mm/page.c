@@ -34,8 +34,6 @@
 
 #include <arch/mm/page.h>
 #include <genarch/mm/page_pt.h>
-#include <genarch/drivers/ega/ega.h>
-#include <genarch/drivers/legacy/ia32/io.h>
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <mm/page.h>
@@ -50,17 +48,12 @@
 #include <memstr.h>
 #include <print.h>
 #include <interrupt.h>
-#include <ddi/ddi.h>
-
-/** Physical memory area for devices. */
-static parea_t dev_area;
-static parea_t ega_area;
 
 void page_arch_init(void)
 {
 	uintptr_t cur;
 	int flags;
-
+	
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
 	
@@ -73,12 +66,12 @@ void page_arch_init(void)
 				flags |= PAGE_GLOBAL;
 			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 		}
-
+		
 		exc_register(14, "page_fault", (iroutine) page_fault);
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 	} else
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-
+	
 	paging_on();
 }
 
@@ -98,17 +91,6 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
 	return virtaddr;
-}
-
-void hw_area(void)
-{
-	dev_area.pbase = end_frame;
-	dev_area.frames = SIZE2FRAMES(0xffffffff - end_frame);
-	ddi_parea_register(&dev_area);
-	
-	ega_area.pbase = EGA_VIDEORAM;
-	ega_area.frames = SIZE2FRAMES(EGA_VRAM_SIZE);
-	ddi_parea_register(&ega_area);
 }
 
 void page_fault(int n __attribute__((unused)), istate_t *istate)

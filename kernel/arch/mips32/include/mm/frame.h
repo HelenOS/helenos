@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -45,8 +45,6 @@
 
 extern void frame_arch_init(void);
 extern void physmem_print(void);
-
-extern uintptr_t end_frame;
 
 #endif /* __ASM__ */
 #endif /* KERNEL */

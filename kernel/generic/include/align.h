@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @ingroup others
  * @{
  */
 /**
  * @file
- * @brief	Macros for making values and addresses aligned.
+ * @brief Macros for making values and addresses aligned.
  */
 
 #ifndef KERN_ALIGN_H_
@@ -43,7 +43,7 @@
  * @param s Address or size to be aligned.
  * @param a Size of alignment, must be power of 2.
  */
-#define ALIGN_DOWN(s, a)	((s) & ~((a) - 1))
+#define ALIGN_DOWN(s, a)  ((s) & ~((a) - 1))
 
 
 /** Align to the nearest higher address.
@@ -51,7 +51,7 @@
  * @param s Address or size to be aligned.
  * @param a Size of alignment, must be power of 2.
  */
-#define ALIGN_UP(s, a)		(((s) + ((a) - 1)) & ~((a) - 1))
+#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
 
 #endif
 

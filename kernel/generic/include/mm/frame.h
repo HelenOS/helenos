@@ -39,6 +39,7 @@
 #include <arch/types.h>
 #include <adt/list.h>
 #include <mm/buddy.h>
+#include <synch/spinlock.h>
 #include <arch/mm/page.h>
 #include <arch/mm/frame.h>
 
@@ -67,14 +68,51 @@ typedef uint8_t frame_flags_t;
 
 typedef uint8_t zone_flags_t;
 
+/** Available zone (free for allocation) */
+#define ZONE_AVAILABLE  0x00
 /** Zone is reserved (not available for allocation) */
-#define ZONE_RESERVED  0x08
+#define ZONE_RESERVED   0x08
 /** Zone is used by firmware (not available for allocation) */
-#define ZONE_FIRMWARE  0x10
+#define ZONE_FIRMWARE   0x10
 
 /** Currently there is no equivalent zone flags
     for frame flags */
 #define FRAME_TO_ZONE_FLAGS(frame_flags)  0
+
+typedef struct {
+	count_t refcount;     /**< Tracking of shared frames */
+	uint8_t buddy_order;  /**< Buddy system block order */
+	link_t buddy_link;    /**< Link to the next free block inside
+                               one order */
+	void *parent;         /**< If allocated by slab, this points there */
+} frame_t;
+
+typedef struct {
+	pfn_t base;                    /**< Frame_no of the first frame
+                                        in the frames array */
+	count_t count;                 /**< Size of zone */
+	count_t free_count;            /**< Number of free frame_t
+                                        structures */
+	count_t busy_count;            /**< Number of busy frame_t
+                                        structures */
+	zone_flags_t flags;            /**< Type of the zone */
+	
+	frame_t *frames;               /**< Array of frame_t structures
+                                        in this zone */
+	buddy_system_t *buddy_system;  /**< Buddy system for the zone */
+} zone_t;
+
+/*
+ * The zoneinfo.lock must be locked when accessing zoneinfo structure.
+ * Some of the attributes in zone_t structures are 'read-only'
+ */
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	count_t count;
+	zone_t info[ZONES_MAX];
+} zones_t;
+
+extern zones_t zones;
 
 static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
@@ -98,6 +136,11 @@ static inline size_t FRAMES2SIZE(count_t frames)
 	return (size_t) (frames << FRAME_WIDTH);
 }
 
+static inline bool zone_flags_available(zone_flags_t flags)
+{
+	return ((flags & (ZONE_RESERVED | ZONE_FIRMWARE)) == 0);
+}
+
 #define IS_BUDDY_ORDER_OK(index, order) \
     ((~(((unative_t) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame) \
@@ -117,6 +160,7 @@ extern void *frame_alloc_generic(uint8_t, frame_flags_t, count_t *);
 extern void frame_free(uintptr_t);
 extern void frame_reference_add(pfn_t);
 
+extern count_t find_zone(pfn_t frame, count_t count, count_t hint);
 extern count_t zone_create(pfn_t, count_t, pfn_t, zone_flags_t);
 extern void *frame_get_parent(pfn_t, count_t);
 extern void frame_set_parent(pfn_t, void *, count_t);

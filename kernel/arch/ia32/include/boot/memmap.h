@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,23 +35,28 @@
 #ifndef KERN_ia32_MEMMAP_H_
 #define KERN_ia32_MEMMAP_H_
 
-/* E820h memory range types - other values*/
-	/* Free memory */
-#define MEMMAP_MEMORY_AVAILABLE	1
-	/* Not available for OS */
-#define MEMMAP_MEMORY_RESERVED	2 
-	/* OS may use it after reading ACPI table */
-#define MEMMAP_MEMORY_ACPI	3 
-	/* Unusable, required to be saved and restored across an NVS sleep */
-#define MEMMAP_MEMORY_NVS	4 
-	/* Corrupted memory */
-#define MEMMAP_MEMORY_UNUSABLE	5 
+/* E820h memory range types */
 
-	 /* size of one entry */
-#define MEMMAP_E820_RECORD_SIZE 20 
-	/* maximum entries */
-#define MEMMAP_E820_MAX_RECORDS 32 
+/* Free memory */
+#define MEMMAP_MEMORY_AVAILABLE  1
 
+/* Not available for OS */
+#define MEMMAP_MEMORY_RESERVED   2
+
+/* OS may use it after reading ACPI table */
+#define MEMMAP_MEMORY_ACPI       3
+
+/* Unusable, required to be saved and restored across an NVS sleep */
+#define MEMMAP_MEMORY_NVS        4
+
+/* Corrupted memory */
+#define MEMMAP_MEMORY_UNUSABLE   5
+
+/* Size of one entry */
+#define MEMMAP_E820_RECORD_SIZE  20
+
+/* Maximum entries */
+#define MEMMAP_E820_MAX_RECORDS  32
 
 #ifndef __ASM__
 
