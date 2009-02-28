@@ -94,7 +94,6 @@ finit:
 	return rc;
 }
 
-/* Borrowed from Jiri Svoboda's 'cli' uspace app */
 static void read_line(char *buffer, int n)
 {
 	char c;
@@ -114,8 +113,10 @@ static void read_line(char *buffer, int n)
 			}
 			continue;
 		}
-		putchar(c);
-		buffer[chars++] = c;
+		if (c >= ' ') {
+			putchar(c);
+			buffer[chars++] = c;
+		}
 	}
 	putchar('\n');
 	buffer[chars] = '\0';
