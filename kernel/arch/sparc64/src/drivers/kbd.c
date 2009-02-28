@@ -66,6 +66,13 @@ void kbd_init(ofw_tree_node_t *node)
 	const char *name;
 	cir_t cir;
 	void *cir_arg;
+
+#ifdef CONFIG_NS16550
+	ns16550_t *ns16550;
+#endif
+#ifdef CONFIG_Z8530
+	z8530_t *z8530;
+#endif
 	
 	name = ofw_tree_node_name(node);
 	
@@ -100,6 +107,7 @@ void kbd_init(ofw_tree_node_t *node)
 	
 	uintptr_t pa;
 	size_t size;
+	devno_t devno;
 	inr_t inr;
 	
 	switch (kbd_type) {
@@ -148,16 +156,42 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		(void) z8530_init((z8530_t *) hw_map(aligned_addr,
-		    offset + size) + offset, device_assign_devno(), inr, cir,
-		    cir_arg);
+		devno = device_assign_devno();
+		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
+		    offset;
+		(void) z8530_init(z8530, devno, inr, cir, cir_arg);
+		
+		/*
+		 * This is the necessary evil until the userspace drivers are
+		 * entirely self-sufficient.
+		 */
+		sysinfo_set_item_val("kbd", NULL, true);
+		sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
+		sysinfo_set_item_val("kbd.devno", NULL, devno);
+		sysinfo_set_item_val("kbd.inr", NULL, inr);
+		sysinfo_set_item_val("kbd.address.virtual", NULL,
+		    (uintptr_t) z8530);
+		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 		break;
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		(void) ns16550_init((ns16550_t *) (hw_map(aligned_addr,
-		    offset + size) + offset), device_assign_devno(), inr, cir,
-		    cir_arg);
+		devno = device_assign_devno();
+		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
+		    offset;
+		(void) ns16550_init(ns16550, devno, inr, cir, cir_arg);
+		
+		/*
+		 * This is the necessary evil until the userspace driver is
+		 * entirely self-sufficient.
+		 */
+		sysinfo_set_item_val("kbd", NULL, true);
+		sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
+		sysinfo_set_item_val("kbd.devno", NULL, devno);
+		sysinfo_set_item_val("kbd.inr", NULL, inr);
+		sysinfo_set_item_val("kbd.address.virtual", NULL,
+		    (uintptr_t) ns16550);
+		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 		break;
 #endif
 	default:

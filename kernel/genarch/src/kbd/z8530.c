@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,6 @@
 #include <arch/drivers/kbd.h>
 #include <console/console.h>
 #include <console/chardev.h>
-#include <sysinfo/sysinfo.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
@@ -121,16 +120,6 @@ z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	
 	/* Master Interrupt Enable. */
 	z8530_write(&dev->ctl_a, WR9, WR9_MIE);
-
-	/*
-	 * This is the necessary evil until the userspace drivers are entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) dev);
 
 	return true;
 }

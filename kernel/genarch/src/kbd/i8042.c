@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,6 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <interrupt.h>
-#include <sysinfo/sysinfo.h>
 
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4
@@ -148,17 +147,6 @@ i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		(void) pio_read_8(&dev->data);
 	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
-#ifdef KBD_LEGACY
-	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
-#endif
-
 	return true;
 }
 

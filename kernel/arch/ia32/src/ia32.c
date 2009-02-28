@@ -62,6 +62,7 @@
 #include <syscall/syscall.h>
 #include <console/console.h>
 #include <ddi/device.h>
+#include <sysinfo/sysinfo.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -124,9 +125,17 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	devno_t kbd = device_assign_devno();
+	devno_t devno = device_assign_devno();
 	/* keyboard controller */
-	(void) i8042_init((i8042_t *) I8042_BASE, kbd, IRQ_KBD);
+	(void) i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD);
+
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
 }
 
 void calibrate_delay_loop(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2006 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,6 @@
 #include <console/console.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
-#include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>
 #include <mm/slab.h>
 
@@ -103,17 +102,6 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 
 	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
 		(void) pio_read_8(&dev->rbr);
-	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (uintptr_t) dev);
-	sysinfo_set_item_val("kbd.port", NULL, (uintptr_t) dev);
 	
 	/* Enable interrupts */
 	pio_write_8(&dev->ier, IER_ERBFI);

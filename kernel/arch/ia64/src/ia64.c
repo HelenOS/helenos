@@ -160,14 +160,22 @@ void arch_post_smp_init(void)
 #endif		
 
 #ifdef I460GX
-	devno_t kbd = device_assign_devno();
+	devno_t devno = device_assign_devno();
+	inr_t inr;
 
 #ifdef CONFIG_NS16550
-	(void) ns16550_init((ns16550_t *)NS16550_BASE, kbd, NS16550_IRQ, NULL,
-	     NULL);
+	inr = NS16550_IRQ;
+	(void) ns16550_init((ns16550_t *)NS16550_BASE, devno, inr, NULL, NULL);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
+	sysinfo_set_item_val("kbd.port", NULL, (uintptr_t)NS16550_BASE);
 #else
-	(void) i8042_init((i8042_t *)I8042_BASE, kbd, IRQ_KBD);
+	inr = IRQ_KBD;
+	(void) i8042_init((i8042_t *)I8042_BASE, devno, inr);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 #endif
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
 #endif
 
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
