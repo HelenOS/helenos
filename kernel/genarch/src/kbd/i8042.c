@@ -50,10 +50,6 @@
 #include <interrupt.h>
 #include <sysinfo/sysinfo.h>
 
-i8042_instance_t lgcy_i8042_instance = {
-	.i8042 = (i8042_t *) I8042_BASE,
-};
-
 /* Keyboard commands. */
 #define KBD_ENABLE	0xf4
 #define KBD_DISABLE	0xf5
@@ -78,8 +74,8 @@ i8042_instance_t lgcy_i8042_instance = {
 #define i8042_COMMAND 		0x69
 
 #define i8042_BUFFER_FULL_MASK	0x01
-#define i8042_WAIT_MASK			0x02
-#define i8042_MOUSE_DATA		0x20
+#define i8042_WAIT_MASK		0x02
+#define i8042_MOUSE_DATA	0x20
 
 static void i8042_suspend(chardev_t *);
 static void i8042_resume(chardev_t *);
