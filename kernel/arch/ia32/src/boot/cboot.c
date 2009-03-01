@@ -52,7 +52,12 @@ void ia32_cboot(uint32_t signature, const mb_info_t *mi)
 	mb_mod_t *mods;
 	uint32_t i;
 
-	flags = mi->flags;
+	if (signature == MULTIBOOT_LOADER_MAGIC) {
+		flags = mi->flags;
+	} else {
+		/* No multiboot info available. */
+		flags = 0;
+	}
 
 	/* Copy module information. */
 

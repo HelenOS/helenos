@@ -104,29 +104,12 @@ multiboot_image_start:
 
 	call map_kernel							# map kernel and turn paging on
 
-	movl grub_eax, %eax
-	movl grub_ebx, %ebx
-	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
-	je valid_boot
-
-		xorl %ecx, %ecx							# no memory map available
-		movl %ecx, e820counter
-
-		jmp invalid_boot
-
-	valid_boot:
-
-	movl grub_eax, %eax
-	movl grub_ebx, %ebx
-
-	# ia32_boot(grub_eax, grub_ebx)
-	pushl %ebx
-	pushl %eax
+	# ia32_cboot(grub_eax, grub_ebx)
+	pushl grub_ebx
+	pushl grub_eax
 	call ia32_cboot		# Does not return.
 
 	# Not reached.
-
-	invalid_boot:
 
 	cli
 	hlt
