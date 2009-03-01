@@ -223,7 +223,7 @@ start64:
 			movq %rdx, 16(%rdi)
 			
 			addl $16, %esi
-			addq $16, %rdi
+			addq $48, %rdi
 			
 			loop mods_loop
 			

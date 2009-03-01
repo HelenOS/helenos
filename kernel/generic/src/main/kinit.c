@@ -174,9 +174,12 @@ void kinit(void *arg)
 			printf("init[%" PRIc "].addr is not frame aligned\n", i);
 			continue;
 		}
+
+		char *name = init.tasks[i].name;
+		if (name[0] == '\0') name = "init-bin";
 		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
-		    "init-bin", &programs[i]);
+		    name, &programs[i]);
 		
 		if ((rc == 0) && (programs[i].task != NULL)) {
 			/*

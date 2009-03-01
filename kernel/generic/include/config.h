@@ -40,11 +40,14 @@
 
 #define STACK_SIZE  PAGE_SIZE
 
-#define CONFIG_INIT_TASKS  32
+#define CONFIG_INIT_TASKS 	32
+
+#define CONFIG_TASK_NAME_BUFLEN 32
 
 typedef struct {
 	uintptr_t addr;
 	size_t size;
+	char name[CONFIG_TASK_NAME_BUFLEN];
 } init_task_t;
 
 typedef struct {

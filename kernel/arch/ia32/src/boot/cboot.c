@@ -38,6 +38,7 @@
 #include <arch/boot/memmap.h>
 #include <config.h>
 #include <memstr.h>
+#include <func.h>
 
 /* This is a symbol so the type is only dummy. Obtain the value using &. */
 extern int _hardcoded_unmapped_size;
@@ -68,6 +69,16 @@ void ia32_cboot(uint32_t signature, const mb_info_t *mi)
 		for (i = 0; i < init.cnt; i++) {
 			init.tasks[i].addr = mods[i].start + 0x80000000;
 			init.tasks[i].size = mods[i].end - mods[i].start;
+
+			/* Copy command line, if available. */
+			if (mods[i].string) {
+				strncpy(init.tasks[i].name, mods[i].string,
+				    CONFIG_TASK_NAME_BUFLEN - 1);
+				init.tasks[i].name[CONFIG_TASK_NAME_BUFLEN - 1]
+				    = '\0';
+			} else {
+				init.tasks[i].name[0] = '\0';
+			}
 		}
 	} else {
 		init.cnt = 0;
