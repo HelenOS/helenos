@@ -427,14 +427,14 @@ void task_print_list(void)
 	spinlock_lock(&tasks_lock);
 
 #ifdef __32_BITS__	
-	printf("taskid name       ctx address    as         "
+	printf("taskid name         ctx address    as         "
 	    "cycles     threads calls  callee\n");
 	printf("------ ------------ --- ---------- ---------- "
 	    "---------- ------- ------ ------>\n");
 #endif
 
 #ifdef __64_BITS__
-	printf("taskid name       ctx address            as                 "
+	printf("taskid name         ctx address            as                 "
 	    "cycles     threads calls  callee\n");
 	printf("------ ------------ --- ------------------ ------------------ "
 	    "---------- ------- ------ ------>\n");
