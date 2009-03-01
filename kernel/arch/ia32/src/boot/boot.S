@@ -101,116 +101,32 @@ multiboot_image_start:
 	shr $16, %ebx
 	mov %bx, KA2PA(vesa_bpp)
 #endif	
-	
+
 	call map_kernel							# map kernel and turn paging on
-	
+
 	movl grub_eax, %eax
 	movl grub_ebx, %ebx
 	cmpl $MULTIBOOT_LOADER_MAGIC, %eax				# compare GRUB signature
 	je valid_boot
-		
+
 		xorl %ecx, %ecx							# no memory map available
 		movl %ecx, e820counter
-		
-		jmp invalid_boot
-		
-	valid_boot:
-		
-		movl (%ebx), %eax						# ebx = physical address of struct multiboot_info
-		
-		bt $3, %eax								# mbi->flags[3] (mods_count, mods_addr valid)
-		jc mods_valid
-			
-			xorl %ecx, %ecx
-			movl %ecx, init
-			jmp mods_end
-		
-		mods_valid:
-		
-		movl 20(%ebx), %ecx						# mbi->mods_count
-		movl %ecx, init
-		
-		cmpl $0, %ecx
-		je mods_end
-		
-		movl 24(%ebx), %esi						# mbi->mods_addr
-		movl $init, %edi
-		
-		mods_loop:
-		
-			movl 0(%esi), %edx					# mods->mod_start
-			addl $0x80000000, %edx
-			movl %edx, 4(%edi)
-			
-			movl 4(%esi), %edx
-			subl 0(%esi), %edx					# mods->mod_end - mods->mod_start
-			movl %edx, 8(%edi)
-			
-			addl $16, %esi
-			addl $8	, %edi
-			
-			loop mods_loop
-			
-		mods_end:
-		
-		bt $6, %eax								# mbi->flags[6] (mmap_length, mmap_addr valid)	
-		jc mmap_valid
-			
-			xorl %edx, %edx
-			jmp mmap_invalid
-			
-		mmap_valid:
-		movl 44(%ebx), %ecx						# mbi->mmap_length
-		movl 48(%ebx), %esi						# mbi->mmap_addr
-		movl $e820table, %edi
-		xorl %edx, %edx
-		
-		mmap_loop:
-			cmpl $0, %ecx
-			jle mmap_end
-			
-			movl 4(%esi), %eax					# mmap->base_addr_low
-			movl %eax, (%edi)
-			
-			movl 8(%esi), %eax					# mmap->base_addr_high
-			movl %eax, 4(%edi)
-			
-			movl 12(%esi), %eax					# mmap->length_low
-			movl %eax, 8(%edi)
-			
-			movl 16(%esi), %eax					# mmap->length_high
-			movl %eax, 12(%edi)
-			
-			movl 20(%esi), %eax					# mmap->type
-			movl %eax, 16(%edi)
-			
-			movl (%esi), %eax					# mmap->size
-			addl $0x4, %eax
-			addl %eax, %esi
-			subl %eax, %ecx
-			addl $MEMMAP_E820_RECORD_SIZE, %edi
-			incl %edx
-			jmp mmap_loop
-		
-		mmap_end:
-		
-		mmap_invalid:
-		movl %edx, e820counter
-		
-	invalid_boot:
-	
-#ifdef CONFIG_SMP
-	
-	# copy AP bootstrap routines below 1 MB
-	
-	movl $BOOT_OFFSET, %esi
-	movl $AP_BOOT_OFFSET, %edi
-	movl $_hardcoded_unmapped_size, %ecx
-	rep movsb
-	
-#endif
 
-	call main_bsp								# never returns
+		jmp invalid_boot
+
+	valid_boot:
+
+	movl grub_eax, %eax
+	movl grub_ebx, %ebx
+
+	# ia32_boot(grub_eax, grub_ebx)
+	pushl %ebx
+	pushl %eax
+	call ia32_cboot		# Does not return.
+
+	# Not reached.
+
+	invalid_boot:
 
 	cli
 	hlt

@@ -81,7 +81,7 @@
 #include <adt/btree.h>
 #include <smp/smp.h>
 #include <ddi/ddi.h>
-
+#include <main/main.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -113,9 +113,6 @@ size_t hardcoded_ktext_size = 0;
 size_t hardcoded_kdata_size = 0;
 /** Lowest safe stack virtual address. */
 uintptr_t stack_safe = 0;		
-
-void main_bsp(void);
-void main_ap(void);
 
 /*
  * These two functions prevent stack from underflowing during the
