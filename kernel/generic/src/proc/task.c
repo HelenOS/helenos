@@ -249,6 +249,35 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
 	    sizeof(TASK->taskid));
 }
 
+/** Syscall for setting the task name.
+ *
+ * The name simplifies identifying the task in the task list.
+ *
+ * @param name	The new name for the task. (typically the same
+ *		as the command used to execute it).
+ *
+ * @return 0 on success or an error code from @ref errno.h.
+ */
+unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
+{
+	int rc;
+	char namebuf[TASK_NAME_BUFLEN];
+
+	/* Cap length of name and copy it from userspace. */
+
+	if (name_len > TASK_NAME_BUFLEN - 1)
+		name_len = TASK_NAME_BUFLEN - 1;
+
+	rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	if (rc != 0)
+		return (unative_t) rc;
+
+	namebuf[name_len] = '\0';
+	strcpy(TASK->name, namebuf);
+
+	return EOK;
+}
+
 /** Find task structure corresponding to task ID.
  *
  * The tasks_lock must be already held by the caller of this function and

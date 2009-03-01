@@ -144,6 +144,7 @@ extern void task_destroy_arch(task_t *t);
 #endif
 
 extern unative_t sys_task_get_id(task_id_t *uspace_task_id);
+extern unative_t sys_task_set_name(const char *uspace_name, size_t name_len);
 
 #endif
 

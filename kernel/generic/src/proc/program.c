@@ -206,8 +206,8 @@ unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 
 	/* Cap length of name and copy it from userspace. */
 
-	if (name_len > THREAD_NAME_BUFLEN - 1)
-		name_len = THREAD_NAME_BUFLEN - 1;
+	if (name_len > TASK_NAME_BUFLEN - 1)
+		name_len = TASK_NAME_BUFLEN - 1;
 
 	rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)

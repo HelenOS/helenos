@@ -270,6 +270,9 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
  */
 static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 {
+	/* Set the task name. */
+	task_set_name(pathname);
+
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */
 		DPRINTF("Run ELF interpreter.\n");

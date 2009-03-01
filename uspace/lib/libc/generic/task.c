@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <loader/loader.h>
+#include <string.h>
 
 task_id_t task_get_id(void)
 {
@@ -46,6 +47,17 @@ task_id_t task_get_id(void)
 	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
 
 	return task_id;
+}
+
+/** Set the task name.
+ *
+ * @param name	The new name, typically the command used to execute the
+ *		program.
+ * @return	Zero on success or negative error code.
+ */
+int task_set_name(const char *name)
+{
+	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, strlen(name));
 }
 
 /** Create a new task by running an executable from the filesystem.
