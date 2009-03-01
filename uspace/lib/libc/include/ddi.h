@@ -37,9 +37,10 @@
 
 #include <task.h>
 
-extern int physmem_map(void *pf, void *vp, unsigned long pages, int flags);
-extern int iospace_enable(task_id_t id, void *ioaddr, unsigned long size);
-extern int preemption_control(int enable);
+extern int physmem_map(void *, void *, unsigned long, int);
+extern int iospace_enable(task_id_t, void *, unsigned long);
+extern int preemption_control(int);
+extern int pio_enable(void *, size_t, void **);
 
 #endif
 

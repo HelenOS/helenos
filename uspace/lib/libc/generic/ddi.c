@@ -35,37 +35,43 @@
 #include <ddi.h>
 #include <libc.h>
 #include <task.h>
+#include <as.h>
+#include <align.h>
+#include <libarch/config.h>
 #include <kernel/ddi/ddi_arg.h>
 
 /** Map piece of physical memory to task.
  *
  * Caller of this function must have the CAP_MEM_MANAGER capability.
  *
- * @param pf Physical address of the starting frame.
- * @param vp Virtual address of the sterting page.
- * @param pages Number of pages to map.
- * @param flags Flags for the new address space area.
+ * @param pf		Physical address of the starting frame.
+ * @param vp		Virtual address of the starting page.
+ * @param pages		Number of pages to map.
+ * @param flags		Flags for the new address space area.
  *
- * @return 0 on success, EPERM if the caller lacks the CAP_MEM_MANAGER capability,
- *	   ENOENT if there is no task with specified ID and ENOMEM if there
- *	   was some problem in creating address space area.
+ * @return 		0 on success, EPERM if the caller lacks the
+ *			CAP_MEM_MANAGER capability, ENOENT if there is no task
+ *			with specified ID and ENOMEM if there was some problem
+ *			in creating address space area.
  */
 int physmem_map(void *pf, void *vp, unsigned long pages, int flags)
 {
-	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp, pages, flags);
+	return __SYSCALL4(SYS_PHYSMEM_MAP, (sysarg_t) pf, (sysarg_t) vp, pages,
+	    flags);
 }
 
 /** Enable I/O space range to task.
  *
  * Caller of this function must have the IO_MEM_MANAGER capability.
  *
- * @param id Task ID.
- * @param ioaddr Starting address of the I/O range.
- * @param size Size of the range.
+ * @param id		Task ID.
+ * @param ioaddr	Starting address of the I/O range.
+ * @param size		Size of the range.
  *
- * @return 0 on success, EPERM if the caller lacks the CAP_IO_MANAGER capability,
- *	   ENOENT if there is no task with specified ID and ENOMEM if there
- *	   was some problem in allocating memory.
+ * @return		0 on success, EPERM if the caller lacks the
+ *			CAP_IO_MANAGER capability, ENOENT if there is no task
+ *			with specified ID and ENOMEM if there was some problem
+ *			in allocating memory.
  */
 int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 {
@@ -80,11 +86,42 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 
 /** Interrupt control
  *
- * @param enable 1 - enable interrupts, 0 - disable interrupts
+ * @param enable	1 - enable interrupts, 0 - disable interrupts
  */
 int preemption_control(int enable)
 {
 	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
+}
+
+/** Enable PIO for specified I/O range.
+ *
+ * @param pio_addr	I/O start address.
+ * @param size		Size of the I/O region.
+ * @param use_addr	Address where the final address for application's PIO
+ * 			will be stored.
+ *
+ * @return		Zero on success or negative error code.
+ */
+int pio_enable(void *pio_addr, size_t size, void **use_addr)
+{
+	void *phys;
+	void *virt;
+	size_t offset;
+	unsigned int pages;
+
+#ifdef IO_SPACE_BOUNDARY
+	if (pio_addr < IO_SPACE_BOUNDARY) {
+		*use_addr = pio_addr;
+		return iospace_enable(task_get_id(), pio_addr, size);
+	}
+#endif
+
+	phys = ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
+	offset = pio_addr - phys;
+	pages = ALIGN_UP(offset + size, PAGE_SIZE) >> PAGE_WIDTH;
+	virt = as_get_mappable_page(pages);
+	*use_addr = virt + offset;
+	return physmem_map(phys, virt, pages, AS_AREA_READ | AS_AREA_WRITE);
 }
 
 /** @}

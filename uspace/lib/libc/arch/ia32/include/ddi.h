@@ -33,6 +33,8 @@
 #ifndef LIBC_ia32_DDI_H_
 #define LIBC_ia32_DDI_H_
 
+#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
+
 static inline void outb(int16_t port, uint8_t b)
 {
 	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
