@@ -27,15 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libblock 
+/** @addtogroup libblock
  * @{
- */ 
+ */
 /**
  * @file
  * @brief
  */
 
-#include "libblock.h" 
+#include "libblock.h"
 #include "../../srv/vfs/vfs.h"
 #include "../../srv/rd/rd.h"
 #include <ipc/devmap.h>
@@ -146,7 +146,7 @@ int block_init(dev_handle_t dev_handle, size_t com_size)
 	if (!com_area) {
 		return ENOMEM;
 	}
-	dev_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+	dev_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
 	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
 
 	if (dev_phone < 0) {
