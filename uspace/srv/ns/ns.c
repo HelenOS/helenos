@@ -28,11 +28,11 @@
 
 /** @addtogroup ns
  * @{
- */ 
+ */
 
 /**
- * @file	ns.c
- * @brief	Naming service for HelenOS IPC.
+ * @file  ns.c
+ * @brief Naming service for HelenOS IPC.
  */
 
 
@@ -52,18 +52,19 @@
 #include <ddi.h>
 #include <as.h>
 
-#define NAME	"ns"
+#define NAME  "ns"
 
-#define NS_HASH_TABLE_CHAINS	20
+#define NS_HASH_TABLE_CHAINS  20
 
 static int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
-static int connect_to_service(ipcarg_t service, ipc_call_t *call,
+static void connect_to_service(ipcarg_t service, ipc_call_t *call,
     ipc_callid_t callid);
 
 void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
     ipc_callid_t callid);
 void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
     ipc_callid_t callid);
+
 
 /* Static functions implementing NS hash table operations. */
 static hash_index_t ns_hash(unsigned long *key);
@@ -83,13 +84,21 @@ static hash_table_t ns_hash_table;
 /** NS hash table item. */
 typedef struct {
 	link_t link;
-	ipcarg_t service;		/**< Number of the service. */
-	ipcarg_t phone;			/**< Phone registered with the service. */
-	ipcarg_t in_phone_hash;		/**< Incoming phone hash. */
+	ipcarg_t service;        /**< Number of the service. */
+	ipcarg_t phone;          /**< Phone registered with the service. */
+	ipcarg_t in_phone_hash;  /**< Incoming phone hash. */
 } hashed_service_t;
 
-static void *clockaddr = NULL;
-static void *klogaddr = NULL;
+/** Pending connection structure. */
+typedef struct {
+	link_t link;
+	ipcarg_t service;        /**< Number of the service. */
+	ipc_callid_t callid;     /**< Call ID waiting for the connection */
+	ipcarg_t arg2;           /**< Second argument */
+	ipcarg_t arg3;           /**< Third argument */
+} pending_req_t;
+
+static link_t pending_req;
 
 /** Request for connection to a clonable service. */
 typedef struct {
@@ -102,10 +111,13 @@ typedef struct {
 /** List of clonable-service connection requests. */
 static link_t cs_req;
 
+static void *clockaddr = NULL;
+static void *klogaddr = NULL;
+
 /** Return true if @a service is clonable. */
 static bool service_clonable(int service)
 {
-	return service == SERVICE_LOAD;
+	return (service == SERVICE_LOAD);
 }
 
 static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
@@ -128,26 +140,59 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void 
 	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
 }
 
+/** Process pending connection requests */
+static void process_pending_req()
+{
+	link_t *cur;
+	
+loop:
+	for (cur = pending_req.next; cur != &pending_req; cur = cur->next) {
+		pending_req_t *pr = list_get_instance(cur, pending_req_t, link);
+		
+		unsigned long keys[3] = {
+			pr->service,
+			0,
+			0
+		};
+		
+		link_t *link = hash_table_find(&ns_hash_table, keys);
+		if (!link)
+			continue;
+		
+		hashed_service_t *hs = hash_table_get_instance(link, hashed_service_t, link);
+		ipcarg_t retval = ipc_forward_fast(pr->callid, hs->phone,
+		    pr->arg2, pr->arg3, 0, IPC_FF_NONE);
+		
+		if (!(pr->callid & IPC_CALLID_NOTIFICATION))
+			ipc_answer_0(pr->callid, retval);
+		
+		list_remove(cur);
+		free(pr);
+		goto loop;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS IPC Naming Service\n");
 	
-	ipc_call_t call;
-	ipc_callid_t callid;
-	
-	ipcarg_t retval;
-
 	if (!hash_table_create(&ns_hash_table, NS_HASH_TABLE_CHAINS, 3,
 	    &ns_hash_table_ops)) {
-		printf(NAME ": No memory available\n");
+		printf(NAME ": No memory available for services\n");
 		return ENOMEM;
 	}
-
+	
+	list_initialize(&pending_req);
 	list_initialize(&cs_req);
 	
 	printf(NAME ": Accepting connections\n");
-	while (1) {
-		callid = ipc_wait_for_call(&call);
+	while (true) {
+		process_pending_req();
+		
+		ipc_call_t call;
+		ipc_callid_t callid = ipc_wait_for_call(&call);
+		ipcarg_t retval;
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {
@@ -186,17 +231,18 @@ int main(int argc, char **argv)
 				    &call, callid);
 				continue;
 			} else {
-				retval = connect_to_service(IPC_GET_ARG1(call),
-				    &call, callid);
+				connect_to_service(IPC_GET_ARG1(call), &call,
+				    callid);
+				continue;
 			}
 			break;
 		default:
 			retval = ENOENT;
 			break;
 		}
-		if (!(callid & IPC_CALLID_NOTIFICATION)) {
+		
+		if (!(callid & IPC_CALLID_NOTIFICATION))
 			ipc_answer_0(callid, retval);
-		}
 	}
 	
 	/* Not reached */
@@ -205,11 +251,12 @@ int main(int argc, char **argv)
 
 /** Register service.
  *
- * @param service	Service to be registered.
- * @param phone		Phone to be used for connections to the service.
- * @param call		Pointer to call structure.
+ * @param service Service to be registered.
+ * @param phone   Phone to be used for connections to the service.
+ * @param call    Pointer to call structure.
  *
- * @return		Zero on success or a value from @ref errno.h.
+ * @return Zero on success or a value from @ref errno.h.
+ *
  */
 int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 {
@@ -218,117 +265,135 @@ int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
 		call->in_phone_hash,
 		0
 	};
-	hashed_service_t *hs;
-
-	if (hash_table_find(&ns_hash_table, keys)) {
+	
+	if (hash_table_find(&ns_hash_table, keys))
 		return EEXISTS;
-	}
-			
-	hs = (hashed_service_t *) malloc(sizeof(hashed_service_t));
-	if (!hs) {
+	
+	hashed_service_t *hs = (hashed_service_t *) malloc(sizeof(hashed_service_t));
+	if (!hs)
 		return ENOMEM;
-	}
-			
+	
 	link_initialize(&hs->link);
 	hs->service = service;
 	hs->phone = phone;
 	hs->in_phone_hash = call->in_phone_hash;
 	hash_table_insert(&ns_hash_table, keys, &hs->link);
-			
+	
 	return 0;
 }
 
 /** Connect client to service.
  *
- * @param service	Service to be connected to.
- * @param call		Pointer to call structure.
- * @param callid	Call ID of the request.
+ * @param service Service to be connected to.
+ * @param call    Pointer to call structure.
+ * @param callid  Call ID of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
+ *
  */
-int connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
+void connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 {
-	unsigned long keys[3] = { service, 0, 0 };
-	link_t *hlp;
-	hashed_service_t *hs;
-
-	hlp = hash_table_find(&ns_hash_table, keys);
-	if (!hlp) {
-		return ENOENT;
+	ipcarg_t retval;
+	unsigned long keys[3] = {
+		service,
+		0,
+		0
+	};
+	
+	link_t *link = hash_table_find(&ns_hash_table, keys);
+	if (!link) {
+		if (IPC_GET_ARG4(*call) & IPC_FLAG_BLOCKING) {
+			/* Blocking connection, add to pending list */
+			pending_req_t *pr = (pending_req_t *) malloc(sizeof(pending_req_t));
+			if (!pr) {
+				retval = ENOMEM;
+				goto out;
+			}
+			
+			pr->service = service;
+			pr->callid = callid;
+			pr->arg2 = IPC_GET_ARG2(*call);
+			pr->arg3 = IPC_GET_ARG3(*call);
+			list_append(&pr->link, &pending_req);
+			return;
+		}
+		retval = ENOENT;
+		goto out;
 	}
-	hs = hash_table_get_instance(hlp, hashed_service_t, link);
-	return ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call), 
-		IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	
+	hashed_service_t *hs = hash_table_get_instance(link, hashed_service_t, link);
+	retval = ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
+	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	
+out:
+	if (!(callid & IPC_CALLID_NOTIFICATION))
+		ipc_answer_0(callid, retval);
 }
 
 /** Register clonable service.
  *
- * @param service	Service to be registered.
- * @param phone		Phone to be used for connections to the service.
- * @param call		Pointer to call structure.
+ * @param service Service to be registered.
+ * @param phone   Phone to be used for connections to the service.
+ * @param call    Pointer to call structure.
+ *
  */
 void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
     ipc_callid_t callid)
 {
-	int rc;
-	cs_req_t *csr;
-
 	if (list_empty(&cs_req)) {
 		/* There was no pending connection request. */
 		printf(NAME ": Unexpected clonable server.\n");
 		ipc_answer_0(callid, EBUSY);
 		return;
 	}
-
-	csr = list_get_instance(cs_req.next, cs_req_t, link);
+	
+	cs_req_t *csr = list_get_instance(cs_req.next, cs_req_t, link);
 	list_remove(&csr->link);
-
+	
 	/* Currently we can only handle a single type of clonable service. */
 	assert(csr->service == SERVICE_LOAD);
-
+	
 	ipc_answer_0(callid, EOK);
-
-	rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
+	
+	int rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
 		IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
-
+	
 	free(csr);
 }
 
 /** Connect client to clonable service.
  *
- * @param service	Service to be connected to.
- * @param call		Pointer to call structure.
- * @param callid	Call ID of the request.
+ * @param service Service to be connected to.
+ * @param call    Pointer to call structure.
+ * @param callid  Call ID of the request.
  *
- * @return		Zero on success or a value from @ref errno.h.
+ * @return Zero on success or a value from @ref errno.h.
+ *
  */
 void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
     ipc_callid_t callid)
 {
-	int rc;
-	cs_req_t *csr;
-
 	assert(service == SERVICE_LOAD);
-
-	csr = malloc(sizeof(cs_req_t));
+	
+	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {
 		ipc_answer_0(callid, ENOMEM);
 		return;
 	}
-
+	
 	/* Spawn a loader. */
-	rc = loader_spawn("loader");
-
+	int rc = loader_spawn("loader");
+	
 	if (rc < 0) {
 		free(csr);
 		ipc_answer_0(callid, rc);
 		return;
 	}
-
+	
 	csr->service = service;
 	csr->call = *call;
 	csr->callid = callid;
-
+	
 	/*
 	 * We can forward the call only after the server we spawned connects
 	 * to us. Meanwhile we might need to service more connection requests.
@@ -340,13 +405,15 @@ void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
 /** Compute hash index into NS hash table.
  *
  * @param key Pointer keys. However, only the first key (i.e. service number)
- * 	      is used to compute the hash index.
+ *            is used to compute the hash index.
+ *
  * @return Hash index corresponding to key[0].
+ *
  */
 hash_index_t ns_hash(unsigned long *key)
 {
 	assert(key);
-	return *key % NS_HASH_TABLE_CHAINS;
+	return (*key % NS_HASH_TABLE_CHAINS);
 }
 
 /** Compare a key with hashed item.
@@ -357,20 +424,20 @@ hash_index_t ns_hash(unsigned long *key)
  * value. Note that this is close to being classified
  * as a nasty hack.
  *
- * @param key Array of keys.
+ * @param key  Array of keys.
  * @param keys Must be lesser or equal to 3.
  * @param item Pointer to a hash table item.
+ *
  * @return Non-zero if the key matches the item, zero otherwise.
+ *
  */
 int ns_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	hashed_service_t *hs;
-
 	assert(key);
 	assert(keys <= 3);
 	assert(item);
 	
-	hs = hash_table_get_instance(item, hashed_service_t, link);
+	hashed_service_t *hs = hash_table_get_instance(item, hashed_service_t, link);
 	
 	if (keys == 2)
 		return key[1] == hs->in_phone_hash;
@@ -381,6 +448,7 @@ int ns_compare(unsigned long key[], hash_count_t keys, link_t *item)
 /** Perform actions after removal of item from the hash table.
  *
  * @param item Item that was removed from the hash table.
+ *
  */
 void ns_remove(link_t *item)
 {
@@ -388,6 +456,6 @@ void ns_remove(link_t *item)
 	free(hash_table_get_instance(item, hashed_service_t, link));
 }
 
-/** 
+/**
  * @}
  */
