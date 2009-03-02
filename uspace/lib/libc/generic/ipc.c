@@ -598,8 +598,32 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3)
 	ipcarg_t newphid;
 	int res;
 
-	res = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, 
+	res = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
 	    NULL, NULL, NULL, NULL, &newphid);
+	if (res)
+		return res;
+	return newphid;
+}
+
+/** Ask through phone for a new connection to some service.
+ *
+ * If the connection is not available at the moment, the
+ * call will block.
+ *
+ * @param phoneid	Phone handle used for contacting the other side.
+ * @param arg1		User defined argument.
+ * @param arg2		User defined argument.
+ * @param arg3		User defined argument.
+ *
+ * @return		New phone handle on success or a negative error code.
+ */
+int ipc_connect_me_to_blocking(int phoneid, int arg1, int arg2, int arg3)
+{
+	ipcarg_t newphid;
+	int res;
+
+	res = ipc_call_sync_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
 	if (res)
 		return res;
 	return newphid;

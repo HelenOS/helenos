@@ -76,7 +76,7 @@ static inline ipc_callid_t async_get_call(ipc_call_t *data)
 #define async_send_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, dataptr) \
     async_send_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
         (arg5), (dataptr))
- 
+
 extern aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr);
 extern aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
@@ -86,8 +86,8 @@ extern void async_wait_for(aid_t amsgid, ipcarg_t *result);
 extern int async_wait_timeout(aid_t amsgid, ipcarg_t *retval,
     suseconds_t timeout);
 
-fid_t async_new_connection(ipcarg_t in_phone_hash,ipc_callid_t callid, 
-    ipc_call_t *call, void (*cthread)(ipc_callid_t,ipc_call_t *));
+fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
+    ipc_call_t *call, void (*cthread)(ipc_callid_t, ipc_call_t *));
 void async_usleep(suseconds_t timeout);
 void async_create_manager(void);
 void async_destroy_manager(void);

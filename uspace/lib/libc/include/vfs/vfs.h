@@ -39,7 +39,8 @@
 
 extern char *absolutize(const char *, size_t *);
 
-extern int mount(const char *, const char *, const char *);
+extern int mount(const char *, const char *, const char *,
+    const unsigned int flags);
 
 #endif
 

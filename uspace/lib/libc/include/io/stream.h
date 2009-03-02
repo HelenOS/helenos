@@ -47,7 +47,8 @@ extern ssize_t read_stdin(void *, size_t);
 extern ssize_t write_stdout(const void *, size_t);
 extern ssize_t write_stderr(const void *, size_t);
 
-extern int get_cons_phone(void);
+extern int get_console_phone(void);
+extern void console_wait(void);
 
 #endif
 

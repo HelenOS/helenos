@@ -115,10 +115,18 @@ void klog_update(void)
 	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);
 }
 
-int get_cons_phone(void)
+int get_console_phone(void)
 {
-	open_console();
+	if (console_phone < 0)
+		console_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_CONSOLE, 0, 0);
+	
 	return console_phone;
+}
+
+void console_wait(void)
+{
+	while (console_phone < 0)
+		get_console_phone();
 }
 
 /** @}

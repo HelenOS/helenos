@@ -246,8 +246,11 @@ extern void ipc_call_async_fast(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
 extern void ipc_call_async_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
     ipcarg_t, ipcarg_t, void *, ipc_async_callback_t, int);
 
+#define IPC_FLAG_BLOCKING  0x01
+
 extern int ipc_connect_to_me(int, int, int, int, ipcarg_t *);
 extern int ipc_connect_me_to(int, int, int, int);
+extern int ipc_connect_me_to_blocking(int, int, int, int);
 extern int ipc_hangup(int);
 extern int ipc_register_irq(int, int, int, irq_code_t *);
 extern int ipc_unregister_irq(int, int);

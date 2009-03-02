@@ -41,7 +41,7 @@
 
 int kbd_get_event(kbd_event_t *ev)
 {
-	int console_phone = get_cons_phone();
+	int console_phone = get_console_phone();
 	ipcarg_t r0, r1, r2, r3;
 	int rc;
 

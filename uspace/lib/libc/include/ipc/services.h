@@ -30,8 +30,8 @@
  * @{
  */
 /**
- * @file	services.h
- * @brief	List of all known services and their codes.
+ * @file  services.h
+ * @brief List of all known services and their codes.
  */
 
 #ifndef LIBIPC_SERVICES_H_
