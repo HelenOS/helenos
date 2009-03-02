@@ -509,21 +509,24 @@ int main(int argc, char *argv[])
 	async_set_client_connection(client_connection);
 	
 	/* Connect to keyboard driver */
-	kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
-	while (kbd_phone < 0) {
-		usleep(10000);
-		kbd_phone = ipc_connect_me_to(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
+	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
+	if (kbd_phone < 0) {
+		printf(NAME ": Failed to connect to keyboard service\n");
+		return -1;
 	}
 	
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0)
+	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+		printf(NAME ": Failed to create callback from keyboard service\n");
 		return -1;
+	}
+	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	/* Connect to framebuffer driver */
-	fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
-	while (fb_info.phone < 0) {
-		usleep(10000);
-		fb_info.phone = ipc_connect_me_to(PHONE_NS, SERVICE_VIDEO, 0, 0);
+	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
+	if (fb_info.phone < 0) {
+		printf(NAME ": Failed to connect to video service\n");
+		return -1;
 	}
 	
 	/* Disable kernel output to the console */
