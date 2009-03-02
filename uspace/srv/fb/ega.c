@@ -314,7 +314,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_CURSOR_VISIBILITY:
-			if(IPC_GET_ARG1(call))
+			if (IPC_GET_ARG1(call))
 				cursor_enable();
 			else
 				cursor_disable();
@@ -395,6 +395,6 @@ int ega_init(void)
 }
 
 
-/** 
+/**
  * @}
  */
