@@ -60,6 +60,8 @@ static uint8_t *videoram;
 static uint8_t *backbuf;
 static ioport8_t *ega_base;
 
+#define EMPTY_CHAR  0x0720
+
 chardev_t ega_console;
 
 /*
@@ -69,13 +71,13 @@ static void ega_check_cursor(void)
 {
 	if (ega_cursor < EGA_SCREEN)
 		return;
-
+	
 	memmove((void *) videoram, (void *) (videoram + EGA_COLS * 2),
 	    (EGA_SCREEN - EGA_COLS) * 2);
 	memmove((void *) backbuf, (void *) (backbuf + EGA_COLS * 2),
 	    (EGA_SCREEN - EGA_COLS) * 2);
-	memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, 0x0720);
-	memsetw(backbuf + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, 0x0720);
+	memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
+	memsetw(backbuf + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
 	ega_cursor = ega_cursor - EGA_COLS;
 }
 
@@ -103,8 +105,15 @@ static void ega_sync_cursor(void)
 	uint8_t lo = pio_read_8(ega_base + EGA_DATA_REG);
 	
 	ega_cursor = (hi << 8) | lo;
+	
+	if (ega_cursor >= EGA_SCREEN)
+		ega_cursor = 0;
+	
 	if ((ega_cursor % EGA_COLS) != 0)
 		ega_cursor = (ega_cursor + EGA_COLS) - ega_cursor % EGA_COLS;
+	
+	memsetw(videoram + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
+	memsetw(backbuf + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
 	
 	ega_check_cursor();
 	ega_move_cursor();
@@ -119,7 +128,7 @@ static void ega_display_char(char ch, bool silent)
 		videoram[ega_cursor * 2] = ch;
 }
 
-static void ega_putchar(chardev_t *d __attribute__((unused)), const char ch, bool silent)
+static void ega_putchar(chardev_t *dev __attribute__((unused)), const char ch, bool silent)
 {
 	ipl_t ipl;
 	
