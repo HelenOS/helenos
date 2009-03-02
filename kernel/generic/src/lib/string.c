@@ -141,26 +141,6 @@ void strncpy(char *dest, const char *src, size_t len)
 	dest[i - 1] = '\0';
 }
 
-/** Copy string.
- *
- * Copy string from src address to dst address.  The copying is done
- * char-by-char until the null character. The source and destination memory
- * areas cannot overlap.
- *
- * @param src		Source string to copy from.
- * @param dst		Destination string to copy to.
- *
- * @return		Address of the destination string.
- */
-char *strcpy(char *dest, const char *src)
-{
-	char *orig = dest;
-	
-	while ((*dest++ = *src++) != '\0');
-
-	return orig;
-}
-
 /** Find first occurence of character in string.
  *
  * @param s	String to search.
@@ -173,30 +153,6 @@ extern char *strchr(const char *s, int i)
 	while (*s != '\0') {
 		if (*s == i) return (char *) s;
 		++s;
-	}
-
-	return NULL;
-}
-
-/** Find last occurence of character in string.
- *
- * @param s	String to search.
- * @param i	Character to look for.
- *
- * @return	Pointer to character in @a s or NULL if not found.
- */
-extern char *strrchr(const char *s, int i)
-{
-	const char *start;
-
-	start = s;
-	if (*s == '\0') return NULL;
-
-	while (*s != '\0') ++s;
-
-	while (s != start) {
-		--s;
-		if (*s == i) return (char *) s;
 	}
 
 	return NULL;
