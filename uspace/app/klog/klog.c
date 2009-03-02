@@ -27,9 +27,9 @@
  */
 
 /** @addtogroup klog KLog
- * @brief	HelenOS KLog
+ * @brief HelenOS KLog
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -49,12 +49,6 @@
 
 /* Pointer to klog area */
 static char *klog;
-
-static void console_wait(void)
-{
-	while (get_cons_phone() < 0)
-		usleep(50000);	// FIXME
-}
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
