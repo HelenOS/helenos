@@ -132,12 +132,10 @@ static int driver_register(char *name)
 	int phone;
 	ipcarg_t callback_phonehash;
 
-	phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
-
-	while (phone < 0) {
-		usleep(100000);
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-		    DEVMAP_DRIVER, 0);
+	phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+	if (phone < 0) {
+		printf("Failed to connect to device mapper\n");
+		return -1;
 	}
 	
 	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
