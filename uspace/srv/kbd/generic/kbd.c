@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 	
 	if (cir_service) {
 		while (cir_phone < 0) {
-			cir_phone = ipc_connect_me_to(PHONE_NS, cir_service,
+			cir_phone = ipc_connect_me_to_blocking(PHONE_NS, cir_service,
 			    0, 0);
 		}
 	}
