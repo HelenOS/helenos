@@ -28,11 +28,11 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
- * @file	vfs_ops.c
- * @brief	Operations that VFS offers to its clients.
+ * @file vfs_ops.c
+ * @brief Operations that VFS offers to its clients.
  */
 
 #include "vfs.h"
@@ -55,6 +55,18 @@
 /* Forward declarations of static functions. */
 static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, size_t);
 
+/** Pending mount structure. */
+typedef struct {
+	link_t link;
+	char *fs_name;            /**< File system name */
+	char *mp;                 /**< Mount point */
+	ipc_callid_t callid;      /**< Call ID waiting for the mount */
+	ipc_callid_t rid;         /**< Request ID */
+	dev_handle_t dev_handle;  /**< Device handle */
+} pending_req_t;
+
+LIST_INITIALIZE(pending_req);
+
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
  * concurrent VFS operation which modifies the file system namespace.
@@ -67,135 +79,43 @@ vfs_pair_t rootfs = {
 	.dev_handle = 0
 };
 
-void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
+    fs_handle_t fs_handle, char *mp)
 {
-	dev_handle_t dev_handle;
-	vfs_node_t *mp_node = NULL;
-	ipc_callid_t callid;
-	ipc_call_t data;
-	int rc;
-	int phone;
-	size_t size;
-
-	/*
-	 * We expect the library to do the device-name to device-handle
-	 * translation for us, thus the device handle will arrive as ARG1
-	 * in the request.
-	 */
-	dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-
-	/*
-	 * For now, don't make use of ARG2 and ARG3, but they can be used to
-	 * carry mount options in the future.
-	 */
-
-	/*
-	 * Now, we expect the client to send us data with the name of the file
-	 * system.
-	 */
-	if (!ipc_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	/*
-	 * Don't receive more than is necessary for storing a full file system
-	 * name.
-	 */
-	if (size < 1 || size > FS_NAME_MAXLEN) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	/* Deliver the file system name. */
-	char fs_name[FS_NAME_MAXLEN + 1];
-	(void) ipc_data_write_finalize(callid, fs_name, size);
-	fs_name[size] = '\0';
-	
-	/*
-	 * Wait for IPC_M_PING so that we can return an error if we don't know
-	 * fs_name.
-	 */
-	callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_PING) {
-		ipc_answer_0(callid, ENOTSUP);
-		ipc_answer_0(rid, ENOTSUP);
-		return;
-	}
-
-	/*
-	 * Check if we know a file system with the same name as is in fs_name.
-	 * This will also give us its file system handle.
-	 */
-	fs_handle_t fs_handle = fs_name_to_handle(fs_name, true);
-	if (!fs_handle) {
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
-
-	/* Acknowledge that we know fs_name. */
-	ipc_answer_0(callid, EOK);
-
-	/* Now, we want the client to send us the mount point. */
-	if (!ipc_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	/* Check whether size is reasonable wrt. the mount point. */
-	if (size < 1 || size > MAX_PATH_LEN) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	/* Allocate buffer for the mount point data being received. */
-	char *buf;
-	buf = malloc(size + 1);
-	if (!buf) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-
-	/* Deliver the mount point. */
-	(void) ipc_data_write_finalize(callid, buf, size);
-	buf[size] = '\0';
-
 	/* Resolve the path to the mountpoint. */
 	vfs_lookup_res_t mp_res;
+	vfs_node_t *mp_node = NULL;
+	int rc;
+	int phone;
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
 		rwlock_write_lock(&namespace_rwlock);
-		if ((size == 1) && (buf[0] == '/')) {
+		if ((strlen(mp) == 1) && (mp[0] == '/')) {
 			/* Trying to mount root FS over root FS */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			free(buf);
 			ipc_answer_0(rid, EBUSY);
 			return;
 		}
-		rc = vfs_lookup_internal(buf, L_DIRECTORY, &mp_res, NULL);
+		
+		rc = vfs_lookup_internal(mp, L_DIRECTORY, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			free(buf);
 			ipc_answer_0(rid, rc);
 			return;
 		}
+		
 		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
-			free(buf);
 			ipc_answer_0(rid, ENOMEM);
 			return;
 		}
+		
 		/*
 		 * Now we hold a reference to mp_node.
 		 * It will be dropped upon the corresponding VFS_UNMOUNT.
@@ -204,18 +124,17 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		rwlock_write_unlock(&namespace_rwlock);
 	} else {
 		/* We still don't have the root file system mounted. */
-		if ((size == 1) && (buf[0] == '/')) {
+		if ((strlen(mp) == 1) && (mp[0] == '/')) {
 			vfs_lookup_res_t mr_res;
 			vfs_node_t *mr_node;
 			ipcarg_t rindex;
 			ipcarg_t rsize;
 			ipcarg_t rlnkcnt;
-		
+			
 			/*
 			 * For this simple, but important case,
 			 * we are almost done.
 			 */
-			free(buf);
 			
 			/* Tell the mountee that it is being mounted. */
 			phone = vfs_grab_phone(fs_handle);
@@ -228,22 +147,22 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 				ipc_answer_0(rid, rc);
 				return;
 			}
-
+			
 			mr_res.triplet.fs_handle = fs_handle;
 			mr_res.triplet.dev_handle = dev_handle;
 			mr_res.triplet.index = (fs_index_t) rindex;
 			mr_res.size = (size_t) rsize;
 			mr_res.lnkcnt = (unsigned) rlnkcnt;
 			mr_res.type = VFS_NODE_DIRECTORY;
-
+			
 			rootfs.fs_handle = fs_handle;
 			rootfs.dev_handle = dev_handle;
 			futex_up(&rootfs_futex);
-
+			
 			/* Add reference to the mounted root. */
 			mr_node = vfs_node_get(&mr_res); 
 			assert(mr_node);
-
+			
 			ipc_answer_0(rid, rc);
 			return;
 		} else {
@@ -252,20 +171,17 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			 * being mounted first.
 			 */
 			futex_up(&rootfs_futex);
-			free(buf);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
 	}
 	futex_up(&rootfs_futex);
 	
-	free(buf);	/* The buffer is not needed anymore. */
-	
 	/*
 	 * At this point, we have all necessary pieces: file system and device
 	 * handles, and we know the mount point VFS node.
 	 */
-
+	
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
 	rc = async_req_4_0(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
@@ -273,7 +189,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	    (ipcarg_t) fs_handle,
 	    (ipcarg_t) dev_handle);
 	vfs_release_phone(phone);
-
+	
 	if (rc != EOK) {
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
@@ -281,6 +197,170 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	ipc_answer_0(rid, rc);
+}
+
+/** Process pending mount requests */
+void vfs_process_pending_mount()
+{
+	link_t *cur;
+	
+loop:
+	for (cur = pending_req.next; cur != &pending_req; cur = cur->next) {
+		pending_req_t *pr = list_get_instance(cur, pending_req_t, link);
+		
+		fs_handle_t fs_handle = fs_name_to_handle(pr->fs_name, true);
+		if (!fs_handle)
+			continue;
+		
+		/* Acknowledge that we know fs_name. */
+		ipc_answer_0(pr->callid, EOK);
+		
+		/* Do the mount */
+		vfs_mount_internal(pr->rid, pr->dev_handle, fs_handle, pr->mp);
+		
+		free(pr->fs_name);
+		free(pr->mp);
+		list_remove(cur);
+		free(pr);
+		goto loop;
+	}
+}
+
+void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
+{
+	/*
+	 * We expect the library to do the device-name to device-handle
+	 * translation for us, thus the device handle will arrive as ARG1
+	 * in the request.
+	 */
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	
+	/*
+	 * Mount flags are passed as ARG2.
+	 */
+	unsigned int flags = (unsigned int) IPC_GET_ARG2(*request);
+	
+	/*
+	 * For now, don't make use of ARG3, but it can be used to
+	 * carry mount options in the future.
+	 */
+	
+	/* We want the client to send us the mount point. */
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	/* Check whether size is reasonable wrt. the mount point. */
+	if ((size < 1) || (size > MAX_PATH_LEN)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	/* Allocate buffer for the mount point data being received. */
+	char *mp = malloc(size + 1);
+	if (!mp) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	/* Deliver the mount point. */
+	ipcarg_t retval = ipc_data_write_finalize(callid, mp, size);
+	if (retval != EOK) {
+		ipc_answer_0(rid, EREFUSED);
+		free(mp);
+		return;
+	}
+	mp[size] = '\0';
+	
+	/*
+	 * Now, we expect the client to send us data with the name of the file
+	 * system.
+	 */
+	if (!ipc_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		free(mp);
+		return;
+	}
+	
+	/*
+	 * Don't receive more than is necessary for storing a full file system
+	 * name.
+	 */
+	if ((size < 1) || (size > FS_NAME_MAXLEN)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		free(mp);
+		return;
+	}
+	
+	/*
+	 * Allocate buffer for file system name.
+	 */
+	char *fs_name = (char *) malloc(size + 1);
+	if (fs_name == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, EREFUSED);
+		free(mp);
+		return;
+	}
+	
+	/* Deliver the file system name. */
+	retval = ipc_data_write_finalize(callid, fs_name, size);
+	if (retval != EOK) {
+		ipc_answer_0(rid, EREFUSED);
+		free(mp);
+		free(fs_name);
+		return;
+	}
+	fs_name[size] = '\0';
+	
+	/*
+	 * Check if we know a file system with the same name as is in fs_name.
+	 * This will also give us its file system handle.
+	 */
+	fs_handle_t fs_handle = fs_name_to_handle(fs_name, true);
+	if (!fs_handle) {
+		if (flags & IPC_FLAG_BLOCKING) {
+			/* Blocking mount, add to pending list */
+			pending_req_t *pr = (pending_req_t *) malloc(sizeof(pending_req_t));
+			if (!pr) {
+				ipc_answer_0(callid, ENOMEM);
+				ipc_answer_0(rid, ENOMEM);
+				free(mp);
+				free(fs_name);
+				return;
+			}
+			
+			pr->fs_name = fs_name;
+			pr->mp = mp;
+			pr->callid = callid;
+			pr->rid = rid;
+			pr->dev_handle = dev_handle;
+			list_append(&pr->link, &pending_req);
+			return;
+		}
+		
+		ipc_answer_0(callid, ENOENT);
+		ipc_answer_0(rid, ENOENT);
+		free(mp);
+		free(fs_name);
+		return;
+	}
+	
+	/* Acknowledge that we know fs_name. */
+	ipc_answer_0(callid, EOK);
+	
+	/* Do the mount */
+	vfs_mount_internal(rid, dev_handle, fs_handle, mp);
+	free(mp);
+	free(fs_name);
 }
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)

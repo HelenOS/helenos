@@ -28,10 +28,10 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
- * @file	vfs_register.c
+ * @file vfs_register.c
  * @brief
  */
 
@@ -278,6 +278,11 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
 	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
+	
+	/* Process pending mount requests possibly waiting
+	 * for this filesystem implementation.
+	 */
+	vfs_process_pending_mount();
 }
 
 /** For a given file system handle, implement policy for allocating a phone.

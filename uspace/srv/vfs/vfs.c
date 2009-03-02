@@ -28,11 +28,11 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
- * @file	vfs.c
- * @brief	VFS service for HelenOS.
+ * @file vfs.c
+ * @brief VFS service for HelenOS.
  */
 
 #include <ipc/ipc.h>
@@ -51,14 +51,14 @@
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	bool keep_on_going = 1;
-
+	bool keep_on_going = true;
+	
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
 	ipc_answer_0(iid, EOK);
-
+	
 	/*
 	 * Here we enter the main connection fibril loop.
 	 * The logic behind this loop and the protocol is that we'd like to keep
@@ -70,13 +70,12 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * connection later.
 	 */
 	while (keep_on_going) {
-		ipc_callid_t callid;
 		ipc_call_t call;
-		int phone;
+		ipc_callid_t callid = async_get_call(&call);
+		
 		fs_handle_t fs_handle;
-
-		callid = async_get_call(&call);
-
+		int phone;
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
@@ -139,22 +138,19 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		}
 	}
-
-	/* TODO: cleanup after the client */
 	
+	/* TODO: cleanup after the client */
 }
 
 int main(int argc, char **argv)
 {
-	ipcarg_t phonead;
-
 	printf(NAME ": HelenOS VFS server\n");
-
+	
 	/*
 	 * Initialize the list of registered file systems.
 	 */
 	list_initialize(&fs_head);
-
+	
 	/*
 	 * Initialize VFS node hash table.
 	 */
@@ -162,7 +158,7 @@ int main(int argc, char **argv)
 		printf(NAME ": Failed to initialize VFS node hash table\n");
 		return ENOMEM;
 	}
-
+	
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
@@ -172,6 +168,7 @@ int main(int argc, char **argv)
 		printf(NAME ": Cannot allocate a mappable piece of address space\n");
 		return ENOMEM;
 	}
+	
 	if (as_area_create(plb, PLB_SIZE, AS_AREA_READ | AS_AREA_WRITE |
 	    AS_AREA_CACHEABLE) != plb) {
 		printf(NAME ": Cannot create address space area\n");
@@ -183,12 +180,13 @@ int main(int argc, char **argv)
 	 * Set a connectio handling function/fibril.
 	 */
 	async_set_client_connection(vfs_connection);
-
+	
 	/*
 	 * Register at the naming service.
 	 */
+	ipcarg_t phonead;
 	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, &phonead);
-
+	
 	/*
 	 * Start accepting connections.
 	 */
@@ -199,4 +197,4 @@ int main(int argc, char **argv)
 
 /**
  * @}
- */ 
+ */
