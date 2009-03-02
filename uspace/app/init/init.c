@@ -27,37 +27,33 @@
  */
 
 /** @addtogroup init Init
- * @brief	Init process for testing purposes.
+ * @brief Init process for user space environment configuration.
  * @{
- */ 
+ */
 /**
  * @file
  */
 
 #include <stdio.h>
 #include <unistd.h>
+#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <task.h>
 #include <malloc.h>
+#include <macros.h>
 #include "init.h"
 #include "version.h"
-
-static void console_wait(void)
-{
-	while (get_cons_phone() < 0)
-		usleep(50000);	// FIXME
-}
 
 static bool mount_fs(const char *fstype)
 {
 	int rc = -1;
 	
 	while (rc < 0) {
-		rc = mount(fstype, "/", "initrd");
-
+		rc = mount(fstype, "/", "initrd", IPC_FLAG_BLOCKING);
+		
 		switch (rc) {
 		case EOK:
 			printf(NAME ": Root filesystem mounted\n");
@@ -71,8 +67,6 @@ static bool mount_fs(const char *fstype)
 		case ENOENT:
 			printf(NAME ": Unknown filesystem type (%s)\n", fstype);
 			return false;
-		default:
-			sleep(5);	// FIXME
 		}
 	}
 	
@@ -82,24 +76,25 @@ static bool mount_fs(const char *fstype)
 static void spawn(char *fname)
 {
 	char *argv[2];
-
+	
 	printf(NAME ": Spawning %s\n", fname);
-
+	
 	argv[0] = fname;
 	argv[1] = NULL;
-
-	if (task_spawn(fname, argv) != 0) {
-		/* Success */
-		sleep(1);
-	}
+	
+	if (task_spawn(fname, argv))
+		/* Add reasonable delay to avoid
+		   intermixed klog output */
+		usleep(10000);
+	else
+		printf(NAME ": Error spawning %s\n", fname);
 }
 
 int main(int argc, char *argv[])
 {
 	info_print();
-	sleep(5);	// FIXME
 	
-	if (!mount_fs("tmpfs") && !mount_fs("fat")) {
+	if (!mount_fs(STRING(RDFMT))) {
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
