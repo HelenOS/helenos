@@ -160,25 +160,5 @@ void _memsetw(void *dst, size_t cnt, uint16_t x)
 		p[i] = x;	
 }
 
-/** Copy string.
- *
- * Copy string from src address to dst address.  The copying is done
- * char-by-char until the null character. The source and destination memory
- * areas cannot overlap.
- *
- * @param src		Source string to copy from.
- * @param dst		Destination string to copy to.
- *
- * @return		Address of the destination string.
- */
-char *strcpy(char *dest, const char *src)
-{
-	char *orig = dest;
-	
-	while ((*(dest++) = *(src++)))
-		;
-	return orig;
-}
-
 /** @}
  */

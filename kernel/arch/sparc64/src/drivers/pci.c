@@ -42,7 +42,7 @@
 #include <arch/types.h>
 #include <debug.h>
 #include <print.h>
-#include <func.h>
+#include <string.h>
 #include <arch/asm.h>
 #include <sysinfo/sysinfo.h>
 

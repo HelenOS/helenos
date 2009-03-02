@@ -37,7 +37,7 @@
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
 #include <arch/types.h>
-#include <func.h>
+#include <string.h>
 #include <align.h>
 #include <print.h>
 

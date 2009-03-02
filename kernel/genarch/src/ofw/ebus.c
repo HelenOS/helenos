@@ -38,7 +38,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/memstr.h>
 #include <arch/trap/interrupt.h>
-#include <func.h>
+#include <string.h>
 #include <panic.h>
 #include <debug.h>
 #include <macros.h>

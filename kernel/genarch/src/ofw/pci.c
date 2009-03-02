@@ -39,7 +39,7 @@
 #include <arch/drivers/pci.h>
 #include <arch/trap/interrupt.h>
 #include <arch/memstr.h>
-#include <func.h>
+#include <string.h>
 #include <panic.h>
 #include <macros.h>
 

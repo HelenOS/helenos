@@ -45,7 +45,7 @@
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <align.h>
-#include <func.h>
+#include <string.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
 

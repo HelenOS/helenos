@@ -32,17 +32,16 @@
 /** @file
  */
 
-#ifndef KERN_FUNC_H_
-#define KERN_FUNC_H_
+#ifndef KERN_STRING_H_
+#define KERN_STRING_H_
 
 #include <arch/types.h>
-#include <atomic.h>
 
-extern atomic_t haltstate;
-
-extern void halt(void);
-extern unative_t atoi(const char *text);
-extern void order(const uint64_t val, uint64_t *rv, char *suffix);
+extern size_t strlen(const char *str);
+extern int strcmp(const char *src, const char *dst);
+extern int strncmp(const char *src, const char *dst, size_t len);
+extern void strncpy(char *dest, const char *src, size_t len);
+extern char *strcpy(char *dest, const char *src);
 
 #endif
 

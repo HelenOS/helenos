@@ -38,7 +38,7 @@
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <debug.h>
-#include <func.h>
+#include <string.h>
 #include <print.h>
 #include <mm/page.h>
 #include <ipc/irq.h>

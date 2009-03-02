@@ -40,7 +40,7 @@
 #include <print.h>
 #include <arch/arg.h>
 #include <macros.h>
-#include <func.h>
+#include <string.h>
 #include <arch.h>
 
 /** show prefixes 0x or 0 */

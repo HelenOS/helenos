@@ -49,6 +49,7 @@
 #include <macros.h>
 #include <debug.h>
 #include <func.h>
+#include <string.h>
 #include <symtab.h>
 #include <macros.h>
 #include <sysinfo/sysinfo.h>

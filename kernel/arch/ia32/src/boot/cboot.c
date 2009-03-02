@@ -38,7 +38,7 @@
 #include <arch/boot/memmap.h>
 #include <config.h>
 #include <memstr.h>
-#include <func.h>
+#include <string.h>
 
 /* This is a symbol so the type is only dummy. Obtain the value using &. */
 extern int _hardcoded_unmapped_size;

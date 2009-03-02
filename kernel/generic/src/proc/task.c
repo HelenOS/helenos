@@ -52,6 +52,7 @@
 #include <print.h>
 #include <errno.h>
 #include <func.h>
+#include <string.h>
 #include <syscall/copy.h>
 
 /** Spinlock protecting the tasks_tree AVL tree. */

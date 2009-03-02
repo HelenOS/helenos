@@ -50,6 +50,7 @@
 #include <arch.h>
 #include <config.h>
 #include <func.h>
+#include <string.h>
 #include <macros.h>
 #include <debug.h>
 #include <symtab.h>
