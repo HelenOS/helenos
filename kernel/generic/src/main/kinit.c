@@ -202,12 +202,18 @@ void kinit(void *arg)
 	}
 	
 	/*
-	 * Run user tasks with reasonable delays
+	 * Run user tasks with small delays
+	 * to avoid intermixed klog output.
+	 *
+	 * TODO: This certainly does not guarantee
+	 *       anything, it just works in most of the
+	 *       cases. Some better way how to achieve
+	 *       nice klog output should be found.
 	 */
 	for (i = 0; i < init.cnt; i++) {
 		if (programs[i].task != NULL) {
-			thread_usleep(50000);
 			program_ready(&programs[i]);
+			thread_usleep(10000);
 		}
 	}
 
