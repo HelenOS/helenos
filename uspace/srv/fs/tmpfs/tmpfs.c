@@ -126,18 +126,15 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	int vfs_phone;
-
 	printf(NAME ": HelenOS TMPFS file system server\n");
-
-	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
-	while (vfs_phone < EOK) {
-		usleep(10000);
-		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
+	
+	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	if (vfs_phone < EOK) {
+		printf(NAME ": Unable to connect to VFS\n");
+		return -1;
 	}
 	
-	int rc;
-	rc = fs_register(vfs_phone, &tmpfs_reg, &tmpfs_vfs_info,
+	int rc = fs_register(vfs_phone, &tmpfs_reg, &tmpfs_vfs_info,
 	    tmpfs_connection);
 	if (rc != EOK) {
 		printf(NAME ": Failed to register file system (%d)\n", rc);

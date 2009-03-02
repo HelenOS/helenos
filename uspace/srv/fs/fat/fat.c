@@ -128,10 +128,10 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		goto err;
 
-	vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
-	while (vfs_phone < EOK) {
-		usleep(10000);
-		vfs_phone = ipc_connect_me_to(PHONE_NS, SERVICE_VFS, 0, 0);
+	vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	if (vfs_phone < EOK) {
+		printf("fat: failed to connect to VFS\n");
+		return -1;
 	}
 	
 	rc = fs_register(vfs_phone, &fat_reg, &fat_vfs_info, fat_connection);
