@@ -270,8 +270,12 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
  */
 static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 {
+	const char *cp;
+
 	/* Set the task name. */
-	task_set_name(pathname);
+	cp = strrchr(pathname, '/');
+	cp = (cp == NULL) ? pathname : (cp + 1);
+	task_set_name(cp);
 
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */

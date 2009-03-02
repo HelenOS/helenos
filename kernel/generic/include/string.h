@@ -43,6 +43,9 @@ extern int strncmp(const char *src, const char *dst, size_t len);
 extern void strncpy(char *dest, const char *src, size_t len);
 extern char *strcpy(char *dest, const char *src);
 
+extern char *strchr(const char *s, int i);
+extern char *strrchr(const char *s, int i);
+
 #endif
 
 /** @}

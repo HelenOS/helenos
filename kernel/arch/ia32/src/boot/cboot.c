@@ -39,9 +39,45 @@
 #include <config.h>
 #include <memstr.h>
 #include <string.h>
+#include <macros.h>
 
 /* This is a symbol so the type is only dummy. Obtain the value using &. */
 extern int _hardcoded_unmapped_size;
+
+/** Extract command name from the multiboot module command line.
+ *
+ * @param buf		Destination buffer (will always null-terminate).
+ * @param n		Size of destination buffer.
+ * @param cmd_line	Input string (the command line).			
+ */
+static void extract_command(char *buf, size_t n, const char *cmd_line)
+{
+	const char *start, *end, *cp;
+	size_t max_len;
+
+	/* Find the first space. */
+	end = strchr(cmd_line, ' ');
+	if (end == NULL) end = cmd_line + strlen(cmd_line);
+
+	/*
+	 * Find last occurence of '/' before 'end'. If found, place start at
+	 * next character. Otherwise, place start at beginning of buffer.
+	 */
+	cp = end;
+	start = buf;
+	while (cp != start) {
+		if (*cp == '/') {
+			start = cp + 1;
+			break;
+		}
+		--cp;
+	}
+
+	/* Copy the command and null-terminate the string. */
+	max_len = min(n - 1, (size_t) (end - start));
+	strncpy(buf, start, max_len + 1);
+	buf[max_len] = '\0';
+}
 
 /** C part of ia32 boot sequence.
  * @param signature	Should contain the multiboot signature.
@@ -72,10 +108,9 @@ void ia32_cboot(uint32_t signature, const mb_info_t *mi)
 
 			/* Copy command line, if available. */
 			if (mods[i].string) {
-				strncpy(init.tasks[i].name, mods[i].string,
-				    CONFIG_TASK_NAME_BUFLEN - 1);
-				init.tasks[i].name[CONFIG_TASK_NAME_BUFLEN - 1]
-				    = '\0';
+				extract_command(init.tasks[i].name,
+				    CONFIG_TASK_NAME_BUFLEN,
+				    mods[i].string);
 			} else {
 				init.tasks[i].name[0] = '\0';
 			}

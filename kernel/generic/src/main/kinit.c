@@ -64,6 +64,8 @@
 #include <security/cap.h>
 #include <lib/rd.h>
 #include <ipc/ipc.h>
+#include <debug.h>
+#include <string.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -77,6 +79,9 @@
 #ifdef CONFIG_KCONSOLE
 static char alive[ALIVE_CHARS] = "-\\|/";
 #endif
+
+#define BOOT_PREFIX		"boot:"
+#define BOOT_PREFIX_LEN		5
 
 /** Kernel initialization thread.
  *
@@ -175,11 +180,23 @@ void kinit(void *arg)
 			continue;
 		}
 
-		char *name = init.tasks[i].name;
-		if (name[0] == '\0') name = "init-bin";
+		/*
+		 * Construct task name from the 'boot:' prefix and the
+		 * name stored in the init structure (if any).
+		 */
+
+		char namebuf[TASK_NAME_BUFLEN], *name;
+
+		name = init.tasks[i].name;
+		if (name[0] == '\0') name = "<unknown>";
+
+		ASSERT(TASK_NAME_BUFLEN >= BOOT_PREFIX_LEN);
+		strncpy(namebuf, BOOT_PREFIX, TASK_NAME_BUFLEN);
+		strncpy(namebuf + BOOT_PREFIX_LEN, name,
+		    TASK_NAME_BUFLEN - BOOT_PREFIX_LEN);
 		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
-		    name, &programs[i]);
+		    namebuf, &programs[i]);
 		
 		if ((rc == 0) && (programs[i].task != NULL)) {
 			/*
