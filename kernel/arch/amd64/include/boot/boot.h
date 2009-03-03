@@ -42,7 +42,16 @@
 #define MULTIBOOT_HEADER_MAGIC	0x1BADB002
 #define MULTIBOOT_HEADER_FLAGS	0x00010003
 
-#define MULTIBOOT_LOADER_MAGIC	0x2BADB002
+#ifndef __ASM__
+
+#ifdef CONFIG_SMP
+
+/* This is only a symbol so the type is dummy. Obtain the value using &. */
+extern int _hardcoded_unmapped_size;
+
+#endif /* CONFIG_SMP */
+
+#endif /* __ASM__ */
 
 #endif
 

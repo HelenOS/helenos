@@ -101,6 +101,11 @@ ifeq ($(CONFIG_OFW_TREE), y)
 		genarch/src/ofw/upa.c 
 endif
 
+ifeq ($(CONFIG_MULTIBOOT), y)
+	GENARCH_SOURCES += \
+		genarch/src/multiboot/multiboot.c
+endif
+
 ifeq ($(CONFIG_EGA), y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/ega/ega.c

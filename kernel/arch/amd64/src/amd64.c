@@ -39,12 +39,14 @@
 #include <config.h>
 
 #include <proc/thread.h>
+#include <genarch/multiboot/multiboot.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
 #include <arch/drivers/vesa.h>
 #include <genarch/kbd/i8042.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
+#include <arch/boot/boot.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -64,7 +66,6 @@
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <sysinfo/sysinfo.h>
-
 
 /** Disable I/O on non-privileged levels
  *
@@ -94,6 +95,23 @@ static void clean_AM_flag(void)
 		"mov %%rax, %%cr0\n"
 		::: "%rax"
 	);
+}
+
+/** Perform amd64-specific initialization before main_bsp() is called.
+ *
+ * @param signature Should contain the multiboot signature.
+ * @param mi        Pointer to the multiboot information structure.
+ */
+void arch_pre_main(uint32_t signature, const multiboot_info_t *mi)
+{
+	/* Parse multiboot information obtained from the bootloader. */
+	multiboot_info_parse(signature, mi);
+	
+#ifdef CONFIG_SMP
+	/* Copy AP bootstrap routines below 1 MB. */
+	memcpy((void *) AP_BOOT_OFFSET, (void *) BOOT_OFFSET,
+	    (size_t) &_hardcoded_unmapped_size);
+#endif
 }
 
 void arch_pre_mm_init(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,9 @@
 #ifndef KERN_ia32_ARCH_H_
 #define KERN_ia32_ARCH_H_
 
-#include <arch/boot/multiboot.h>
+#include <genarch/multiboot/multiboot.h>
 
-extern void arch_pre_main(uint32_t signature, const mb_info_t *mi);
+extern void arch_pre_main(uint32_t, const multiboot_info_t *);
 
 #endif
 
