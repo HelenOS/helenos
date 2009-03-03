@@ -33,45 +33,72 @@
 #ifndef LIBC_ia32_DDI_H_
 #define LIBC_ia32_DDI_H_
 
+#include <sys/types.h>
+#include <libarch/types.h>
+
 #define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
 
-static inline void outb(int16_t port, uint8_t b)
-{
-	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
-}
-
-static inline void outw(int16_t port, int16_t w)
-{
-	asm volatile ("outw %0, %1\n" :: "a" (w), "d" (port));
-}
-
-static inline void outl(int16_t port, uint32_t l)
-{
-	asm volatile ("outl %0, %1\n" :: "a" (l), "d" (port));
-}
-
-static inline uint8_t inb(int16_t port)
+static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uint8_t val;
-
-	asm volatile ("inb %1, %0 \n" : "=a" (val) : "d"(port));
+	
+	asm volatile (
+		"inb %w[port], %b[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
 }
 
-static inline int16_t inw(int16_t port)
+static inline uint16_t pio_read_16(ioport16_t *port)
 {
-	int16_t val;
-
-	asm volatile ("inw %1, %0 \n" : "=a" (val) : "d"(port));
+	uint16_t val;
+	
+	asm volatile (
+		"inw %w[port], %w[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
 }
 
-static inline uint32_t inl(int16_t port)
+static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uint32_t val;
-
-	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
+	
+	asm volatile (
+		"inl %w[port], %[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
+}
+
+static inline void pio_write_8(ioport8_t *port, uint8_t val)
+{
+	asm volatile (
+		"outb %b[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
+}
+
+static inline void pio_write_16(ioport16_t *port, uint16_t val)
+{
+	asm volatile (
+		"outw %w[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
+}
+
+static inline void pio_write_32(ioport32_t *port, uint32_t val)
+{
+	asm volatile (
+		"outl %[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
 }
 
 #endif

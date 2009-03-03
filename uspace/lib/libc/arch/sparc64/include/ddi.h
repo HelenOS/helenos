@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
 /** @file
+ * @ingroup libsparc64
  */
 
-#ifndef LIBC_SYS_TYPES_H_
-#define LIBC_SYS_TYPES_H_
+#ifndef LIBC_sparc64_DDI_H_
+#define LIBC_sparc64_DDI_H_
 
+#include <sys/types.h>
 #include <libarch/types.h>
 
-typedef unsigned long size_t;
-typedef signed long ssize_t;
-typedef long off_t;
-typedef int mode_t;
+static inline memory_barrier(void)
+{
+	asm volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory");
+}
 
-typedef volatile uint8_t ioport8_t;
-typedef volatile uint16_t ioport16_t;
-typedef volatile uint32_t ioport32_t;
+static inline void pio_write_8(ioport8_t *port, uint8_t v)
+{
+	*port = v;
+	memory_barrier();
+}
+
+static inline void pio_write_16(ioport16_t *port, uint16_t v)
+{
+	*port = v;
+	memory_barrier();
+}
+
+static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+	memory_barrier();
+}
+
+static inline uint8_t pio_read_8(ioport8_t *port)
+{
+	uint8_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
+
+static inline uint16_t pio_read_16(ioport16_t *port)
+{
+	uint16_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
+
+static inline uint32_t pio_read_32(ioport32_t *port)
+{
+	uint32_t rv;
+
+	rv = *port;
+	memory_barrier();
+
+	return rv;
+}
 
 #endif
-
-/** @}
- */

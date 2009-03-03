@@ -33,6 +33,7 @@
  */ 
 
 #include <ddi.h>
+#include <libarch/ddi.h>
 #include <libc.h>
 #include <task.h>
 #include <as.h>
