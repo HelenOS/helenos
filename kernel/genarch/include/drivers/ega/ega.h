@@ -36,6 +36,7 @@
 #define KERN_EGA_H_
 
 #include <arch/types.h>
+#include <typedefs.h>
 
 #define EGA_COLS       80
 #define EGA_ROWS       25

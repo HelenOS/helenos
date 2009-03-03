@@ -36,6 +36,7 @@
 #define KERN_ia64_ASM_H_
 
 #include <config.h>
+#include <typedefs.h>
 #include <arch/types.h>
 #include <arch/register.h>
 

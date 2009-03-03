@@ -38,6 +38,7 @@
 
 #include <arch/pm.h>
 #include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 
 extern uint32_t interrupt_handler_size;
