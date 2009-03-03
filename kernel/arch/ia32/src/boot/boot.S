@@ -104,13 +104,15 @@ multiboot_image_start:
 
 	call map_kernel							# map kernel and turn paging on
 
-	# ia32_cboot(grub_eax, grub_ebx)
+	# arch_pre_main(grub_eax, grub_ebx)
 	pushl grub_ebx
 	pushl grub_eax
-	call ia32_cboot		# Does not return.
-
+	call arch_pre_main
+	
+	call main_bsp
+	
 	# Not reached.
-
+	
 	cli
 	hlt
 

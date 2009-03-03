@@ -99,7 +99,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/i8259.c \
 	arch/$(KARCH)/src/drivers/vesa.c \
 	arch/$(KARCH)/src/boot/boot.S \
-	arch/$(KARCH)/src/boot/cboot.c \
 	arch/$(KARCH)/src/boot/memmap.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/debugger.c \

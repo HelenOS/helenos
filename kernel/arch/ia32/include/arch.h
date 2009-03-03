@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -34,6 +34,10 @@
 
 #ifndef KERN_ia32_ARCH_H_
 #define KERN_ia32_ARCH_H_
+
+#include <arch/boot/multiboot.h>
+
+extern void arch_pre_main(uint32_t signature, const mb_info_t *mi);
 
 #endif
 

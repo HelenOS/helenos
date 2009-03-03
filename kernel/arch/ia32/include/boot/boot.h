@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,14 +35,24 @@
 #ifndef KERN_ia32_BOOT_H_
 #define KERN_ia32_BOOT_H_
 
-#define BOOT_OFFSET		0x108000
-#define AP_BOOT_OFFSET		0x8000
-#define BOOT_STACK_SIZE	0x400
+#define BOOT_OFFSET      0x108000
+#define AP_BOOT_OFFSET   0x8000
+#define BOOT_STACK_SIZE  0x400
 
-#define MULTIBOOT_HEADER_MAGIC	0x1BADB002
-#define MULTIBOOT_HEADER_FLAGS	0x00010003
+#define MULTIBOOT_HEADER_MAGIC  0x1BADB002
+#define MULTIBOOT_HEADER_FLAGS  0x00010003
 
-#define MULTIBOOT_LOADER_MAGIC	0x2BADB002
+#define MULTIBOOT_LOADER_MAGIC  0x2BADB002
+
+#ifndef __ASM__
+
+#ifdef CONFIG_SMP
+
+extern int _hardcoded_unmapped_size;
+
+#endif /* CONFIG_SMP */
+
+#endif /* __ASM__ */
 
 #endif
 

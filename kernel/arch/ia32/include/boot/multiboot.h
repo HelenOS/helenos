@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_CBOOT_H__
-#define KERN_ia32_CBOOT_H_
+#ifndef KERN_ia32_MULTIBOOT_H__
+#define KERN_ia32_MULTIBOOT_H_
 
 #include <arch/types.h>
 #include <arch/boot/memmap.h>
@@ -57,33 +57,32 @@ typedef struct {
 	uint32_t flags;
 	uintptr_t mem_lower;
 	uintptr_t mem_upper;
-
+	
 	uint32_t boot_device;
 	char *cmdline;
-
+	
 	uint32_t mods_count;
 	mb_mod_t *mods_addr;
-
+	
 	uint32_t syms[4];
-
+	
 	uint32_t mmap_length;
 	mb_mmap_t *mmap_addr;
-
+	
 	/* ... */
 } __attribute__ ((packed)) mb_info_t;
 
 enum mb_info_flags {
-	MBINFO_FLAGS_MEM	= 0x01,
-	MBINFO_FLAGS_BOOT	= 0x02,
-	MBINFO_FLAGS_CMDLINE	= 0x04,
-	MBINFO_FLAGS_MODS	= 0x08,
-	MBINFO_FLAGS_SYMS1	= 0x10,
-	MBINFO_FLAGS_SYMS2	= 0x20,
-	MBINFO_FLAGS_MMAP	= 0x40
+	MBINFO_FLAGS_MEM     = 0x01,
+	MBINFO_FLAGS_BOOT    = 0x02,
+	MBINFO_FLAGS_CMDLINE = 0x04,
+	MBINFO_FLAGS_MODS    = 0x08,
+	MBINFO_FLAGS_SYMS1   = 0x10,
+	MBINFO_FLAGS_SYMS2   = 0x20,
+	MBINFO_FLAGS_MMAP    = 0x40
+	
 	/* ... */
 };
-
-extern void ia32_cboot(uint32_t signature, const mb_info_t *mi);
 
 #endif
 
