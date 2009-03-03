@@ -90,12 +90,11 @@ void userspace(uspace_arg_t *kernel_uarg)
 
 	/* set user mode, set registers, jump */
 	asm volatile (
-		"mov sp, %0			\n"
-		"msr spsr_c, %1			\n"
-		"ldmfd sp!, {r0-r12, sp, lr}^	\n"
+		"mov sp, %[ustate]\n"
+		"msr spsr_c, %[user_mode]\n"
+		"ldmfd sp!, {r0-r12, sp, lr}^\n"
 		"ldmfd sp!, {pc}^\n"
-		:
-		: "r" (&ustate), "r" (user_mode)
+		:: [ustate] "r" (&ustate), [user_mode] "r" (user_mode)
 	);
 
 	/* unreachable */

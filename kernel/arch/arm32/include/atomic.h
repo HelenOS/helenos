@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
-/** @file 
+/** @file
  *  @brief Atomic operations.
  */
 
@@ -42,26 +42,26 @@
  * @param i   Value to be added.
  *
  * @return Value after addition.
+ *
  */
 static inline long atomic_add(atomic_t *val, int i)
 {
 	int ret;
 	volatile long *mem = &(val->count);
-
+	
 	asm volatile (
-	"1:\n"
-		"ldr r2, [%1]       \n"
-		"add r3, r2, %2     \n"
-		"str r3, %0         \n"
-		"swp r3, r3, [%1]   \n"
-		"cmp r3, r2         \n"
-		"bne 1b             \n"
-
-		: "=m" (ret)
-		: "r" (mem), "r" (i)
+		"1:\n"
+			"ldr r2, [%[mem]]\n"
+			"add r3, r2, %[i]\n"
+			"str r3, %[ret]\n"
+			"swp r3, r3, [%[mem]]\n"
+			"cmp r3, r2\n"
+			"bne 1b\n"
+		: [ret] "=m" (ret)
+		: [mem] "r" (mem), [i] "r" (i)
 		: "r3", "r2"
 	);
-
+	
 	return ret;
 }
 

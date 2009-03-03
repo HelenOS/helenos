@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
-/** @file 
+/** @file
  *  @brief Declarations of functions implemented in assembly.
  */
 
@@ -77,18 +77,19 @@ static inline uint32_t pio_read_32(ioport32_t *port)
 }
 
 /** Return base address of current stack.
- * 
+ *
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
 static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	asm volatile (
-		"and %0, sp, %1\n" 
-		: "=r" (v) 
-		: "r" (~(STACK_SIZE - 1))
+		"and %[v], sp, %[size]\n" 
+		: [v] "=r" (v)
+		: [size] "r" (~(STACK_SIZE - 1))
 	);
 	return v;
 }

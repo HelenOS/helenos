@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -39,12 +39,12 @@
 /*
  * TODO: implement true ARM memory barriers for macros below.
  */
-#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
+#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
-#define memory_barrier()        asm volatile ("" ::: "memory")
-#define read_barrier()          asm volatile ("" ::: "memory")
-#define write_barrier()         asm volatile ("" ::: "memory")
+#define memory_barrier()  asm volatile ("" ::: "memory")
+#define read_barrier()    asm volatile ("" ::: "memory")
+#define write_barrier()   asm volatile ("" ::: "memory")
 
 #define smc_coherence(a)
 #define smc_coherence_block(a, l)

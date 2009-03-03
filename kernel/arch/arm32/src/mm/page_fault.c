@@ -49,29 +49,31 @@
 static inline fault_status_t read_fault_status_register(void)
 {
 	fault_status_union_t fsu;
-
+	
 	/* fault status is stored in CP15 register 5 */
 	asm volatile (
-		"mrc p15, 0, %0, c5, c0, 0"
-		: "=r"(fsu.dummy)
+		"mrc p15, 0, %[dummy], c5, c0, 0"
+		: [dummy] "=r" (fsu.dummy)
 	);
+	
 	return fsu.fs;
 }
 
 /** Returns FAR (fault address register) content.
  *
  * @return FAR (fault address register) content (address that caused a page
- * 	   fault)
+ *         fault)
  */
 static inline uintptr_t read_fault_address_register(void)
 {
 	uintptr_t ret;
-
+	
 	/* fault adress is stored in CP15 register 6 */
 	asm volatile (
-		"mrc p15, 0, %0, c6, c0, 0"
-		: "=r"(ret)
+		"mrc p15, 0, %[ret], c6, c0, 0"
+		: [ret] "=r" (ret)
 	);
+	
 	return ret;
 }
 
@@ -80,29 +82,26 @@ static inline uintptr_t read_fault_address_register(void)
  * @param instr Instruction
  *
  * @return true when instruction is load/store, false otherwise
+ *
  */
 static inline bool is_load_store_instruction(instruction_t instr)
 {
 	/* load store immediate offset */
-	if (instr.type == 0x2) {
+	if (instr.type == 0x2)
 		return true;
-	}
-
+	
 	/* load store register offset */
-	if (instr.type == 0x3 && instr.bit4 == 0) {
+	if ((instr.type == 0x3) && (instr.bit4 == 0))
 		return true;
-	}
-
+	
 	/* load store multiple */
-	if (instr.type == 0x4) {
+	if (instr.type == 0x4)
 		return true;
-	}
-
+	
 	/* oprocessor load/store */
-	if (instr.type == 0x6) {
+	if (instr.type == 0x6)
 		return true;
-	}
-
+	
 	return false;
 }
 
@@ -115,12 +114,11 @@ static inline bool is_load_store_instruction(instruction_t instr)
 static inline bool is_swap_instruction(instruction_t instr)
 {
 	/* swap, swapb instruction */
-	if (instr.type == 0x0 &&
-	    (instr.opcode == 0x8 || instr.opcode == 0xa) &&
-	    instr.access == 0x0 && instr.bits567 == 0x4 && instr.bit4 == 1) {
+	if ((instr.type == 0x0) &&
+	    ((instr.opcode == 0x8) || (instr.opcode == 0xa)) &&
+	    (instr.access == 0x0) && (instr.bits567 == 0x4) && (instr.bit4 == 1))
 		return true;
-	}
-
+	
 	return false;
 }
 

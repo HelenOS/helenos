@@ -193,9 +193,8 @@ typedef struct {
 static inline void set_ptl0_addr(pte_level0_t *pt)
 {
 	asm volatile (
-		"mcr p15, 0, %0, c2, c0, 0 \n"
-		:
-		: "r"(pt)
+		"mcr p15, 0, %[pt], c2, c0, 0\n"
+		:: [pt] "r" (pt)
 	);
 }
 

@@ -36,7 +36,7 @@
 #include <arch/cpu.h>
 #include <cpu.h>
 #include <arch.h>
-#include <print.h>	
+#include <print.h>
 
 /** Number of indexes left out in the #imp_data array */
 #define IMP_DATA_START_OFFSET 0x40
@@ -82,10 +82,10 @@ static void arch_cpu_identify(cpu_arch_t *cpu)
 {
 	uint32_t ident;
 	asm volatile (
-		"mrc p15, 0, %0, c0, c0, 0\n"
-		: "=r" (ident)
+		"mrc p15, 0, %[ident], c0, c0, 0\n"
+		: [ident] "=r" (ident)
 	);
-
+	
 	cpu->imp_num = ident >> 24;
 	cpu->variant_num = (ident << 8) >> 28;
 	cpu->arch_num = (ident << 12) >> 28;

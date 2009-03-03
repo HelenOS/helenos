@@ -63,57 +63,60 @@
  *
  * Temporary exception stack is used to save a few registers
  * before stack switch takes place.
+ *
  */
 inline static void setup_stack_and_save_regs()
 {
-	asm volatile(
-		"ldr r13, =exc_stack		\n"
-		"stmfd r13!, {r0}		\n"
-		"mrs r0, spsr			\n"
-		"and r0, r0, #0x1f		\n"
-		"cmp r0, #0x10			\n"
-		"bne 1f				\n"
-
+	asm volatile (
+		"ldr r13, =exc_stack\n"
+		"stmfd r13!, {r0}\n"
+		"mrs r0, spsr\n"
+		"and r0, r0, #0x1f\n"
+		"cmp r0, #0x10\n"
+		"bne 1f\n"
+		
 		/* prev mode was usermode */
-		"ldmfd r13!, {r0}		\n"
-		"ldr r13, =supervisor_sp	\n"
-		"ldr r13, [r13]			\n"
-		"stmfd r13!, {lr}		\n"
-		"stmfd r13!, {r0-r12}		\n"
-		"stmfd r13!, {r13, lr}^		\n"
-		"mrs r0, spsr			\n"
-		"stmfd r13!, {r0}		\n"
-		"b 2f				\n"
-
+		"ldmfd r13!, {r0}\n"
+		"ldr r13, =supervisor_sp\n"
+		"ldr r13, [r13]\n"
+		"stmfd r13!, {lr}\n"
+		"stmfd r13!, {r0-r12}\n"
+		"stmfd r13!, {r13, lr}^\n"
+		"mrs r0, spsr\n"
+		"stmfd r13!, {r0}\n"
+		"b 2f\n"
+		
 		/* mode was not usermode */
-	"1:\n"
-		"stmfd r13!, {r1, r2, r3}	\n"
-		"mrs r1, cpsr			\n"
-		"mov r2, lr			\n"
-		"bic r1, r1, #0x1f		\n"
-		"orr r1, r1, r0			\n"
-		"mrs r0, cpsr			\n"
-		"msr cpsr_c, r1			\n"
-
-		"mov r3, r13			\n"
-		"stmfd r13!, {r2}		\n"
-		"mov r2, lr			\n"
-		"stmfd r13!, {r4-r12}		\n"
-		"mov r1, r13			\n"
-		/* the following two lines are for debugging */
-		"mov sp, #0			\n"
-		"mov lr, #0			\n"
-		"msr cpsr_c, r0			\n"
-
-		"ldmfd r13!, {r4, r5, r6, r7}	\n"
-		"stmfd r1!, {r4, r5, r6}	\n"
-		"stmfd r1!, {r7}		\n"
-		"stmfd r1!, {r2}		\n"
-		"stmfd r1!, {r3}		\n"
-		"mrs r0, spsr			\n"
-		"stmfd r1!, {r0}		\n"
-		"mov r13, r1			\n"
-	"2:\n"
+		"1:\n"
+			"stmfd r13!, {r1, r2, r3}\n"
+			"mrs r1, cpsr\n"
+			"mov r2, lr\n"
+			"bic r1, r1, #0x1f\n"
+			"orr r1, r1, r0\n"
+			"mrs r0, cpsr\n"
+			"msr cpsr_c, r1\n"
+			
+			"mov r3, r13\n"
+			"stmfd r13!, {r2}\n"
+			"mov r2, lr\n"
+			"stmfd r13!, {r4-r12}\n"
+			"mov r1, r13\n"
+			
+			/* the following two lines are for debugging */
+			"mov sp, #0\n"
+			"mov lr, #0\n"
+			"msr cpsr_c, r0\n"
+			
+			"ldmfd r13!, {r4, r5, r6, r7}\n"
+			"stmfd r1!, {r4, r5, r6}\n"
+			"stmfd r1!, {r7}\n"
+			"stmfd r1!, {r2}\n"
+			"stmfd r1!, {r3}\n"
+			"mrs r0, spsr\n"
+			"stmfd r1!, {r0}\n"
+			"mov r13, r1\n"
+			
+		"2:\n"
 	);
 }
 
@@ -189,10 +192,13 @@ inline static void switch_to_irq_servicing_mode()
 }
 
 /** Calls exception dispatch routine. */
-#define CALL_EXC_DISPATCH(exception)		\
-	asm("mov r0, %0" : : "i" (exception));	\
-	asm("mov r1, r13");			\
-	asm("bl exc_dispatch");		
+#define CALL_EXC_DISPATCH(exception) \
+	asm volatile ( \
+		"mov r0, %[exc]\n" \
+		"mov r1, r13\n" \
+		"bl exc_dispatch\n" \
+		:: [exc] "i" (exception) \
+	);\
 
 /** General exception handler.
  *
@@ -201,9 +207,9 @@ inline static void switch_to_irq_servicing_mode()
  *
  *  @param exception Exception number.
  */
-#define PROCESS_EXCEPTION(exception)		\
-	setup_stack_and_save_regs();		\
-	CALL_EXC_DISPATCH(exception)		\
+#define PROCESS_EXCEPTION(exception) \
+	setup_stack_and_save_regs(); \
+	CALL_EXC_DISPATCH(exception) \
 	load_regs();
 
 /** Updates specified exception vector to jump to given handler.
@@ -333,17 +339,23 @@ static void high_vectors(void)
 {
 	uint32_t control_reg;
 	
-	asm volatile("mrc p15, 0, %0, c1, c1" : "=r" (control_reg));
+	asm volatile (
+		"mrc p15, 0, %[control_reg], c1, c1"
+		: [control_reg] "=r" (control_reg)
+	);
 	
 	/* switch on the high vectors bit */
 	control_reg |= CP15_R1_HIGH_VECTORS_BIT;
 	
-	asm volatile("mcr p15, 0, %0, c1, c1" : : "r" (control_reg));
+	asm volatile (
+		"mcr p15, 0, %[control_reg], c1, c1"
+		:: [control_reg] "r" (control_reg)
+	);
 }
 #endif
 
 /** Initializes exception handling.
- * 
+ *
  * Installs low-level exception handlers and then registers
  * exceptions and their handlers to kernel exception dispatcher.
  */

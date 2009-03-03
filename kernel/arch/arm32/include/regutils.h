@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** 
@@ -57,14 +57,20 @@
 static inline uint32_t nm## _status_reg_read(void) \
 { \
 	uint32_t retval; \
-	asm volatile("mrs %0, " #reg : "=r" (retval)); \
+	asm volatile( \
+		"mrs %[retval], " #reg \
+		: [retval] "=r" (retval) \
+	); \
 	return retval; \
 }
 
 #define GEN_STATUS_WRITE(nm,reg,fieldname, field) \
 static inline void nm## _status_reg_ ##fieldname## _write(uint32_t value) \
 { \
-	asm volatile("msr " #reg "_" #field ", %0" : : "r" (value)); \
+	asm volatile( \
+		"msr " #reg "_" #field ", %[value]" \
+		:: [value] "r" (value) \
+	); \
 }
 
 

@@ -48,7 +48,7 @@ void tlb_invalidate_all(void)
 	asm volatile (
 		"eor r1, r1\n"
 		"mcr p15, 0, r1, c8, c7, 0\n"
-		: : : "r1"
+		::: "r1"
 	);
 }
 
@@ -68,9 +68,8 @@ void tlb_invalidate_asid(asid_t asid)
 static inline void invalidate_page(uintptr_t page)
 {
 	asm volatile (
-		"mcr p15, 0, %0, c8, c7, 1"		
-		:
-		: "r" (page)
+		"mcr p15, 0, %[page], c8, c7, 1\n"
+		:: [page] "r" (page)
 	);
 }
 
