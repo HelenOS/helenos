@@ -73,13 +73,13 @@ typedef struct {
 	union {
 		uint16_t	eaidx;		/* FAT12/FAT16 */
 		uint16_t	firstc_hi;	/* FAT32 */
-	};
+	} __attribute__ ((packed));
 	uint16_t	mtime;
 	uint16_t	mdate;
 	union {
 		uint16_t	firstc;		/* FAT12/FAT16 */
 		uint16_t	firstc_lo;	/* FAT32 */
-	};
+	} __attribute__ ((packed));
 	uint32_t	size;
 } __attribute__ ((packed)) fat_dentry_t;
 
