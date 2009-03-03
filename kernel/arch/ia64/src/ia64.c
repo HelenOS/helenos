@@ -70,6 +70,7 @@ bootinfo_t *bootinfo;
 
 static uint64_t iosapic_base = 0xfec00000;
 
+/** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
 	/* Setup usermode init tasks. */

@@ -51,6 +51,7 @@
 
 bootinfo_t bootinfo;
 
+/** Performs ppc32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
 	init.cnt = bootinfo.taskmap.count;

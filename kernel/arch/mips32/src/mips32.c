@@ -76,6 +76,7 @@ uintptr_t supervisor_sp __attribute__ ((section (".text")));
 
 count_t cpu_count = 0;
 
+/** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	/* Setup usermode */

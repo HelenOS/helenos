@@ -50,7 +50,7 @@
 
 bootinfo_t bootinfo;
 
-/** Perform sparc64 specific initialization before main_bsp() is called. */
+/** Perform sparc64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
 	/* Copy init task info. */
