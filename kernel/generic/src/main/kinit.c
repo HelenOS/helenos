@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Kernel initialization thread.
+ * @brief Kernel initialization thread.
  *
  * This file contains kinit kernel thread which carries out
  * high level system initialization.
@@ -80,8 +80,8 @@
 static char alive[ALIVE_CHARS] = "-\\|/";
 #endif
 
-#define BOOT_PREFIX		"boot:"
-#define BOOT_PREFIX_LEN		5
+#define BOOT_PREFIX      "boot:"
+#define BOOT_PREFIX_LEN  5
 
 /** Kernel initialization thread.
  *
@@ -97,15 +97,15 @@ void kinit(void *arg)
 #if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
 #endif
-
+	
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
 	 */
 	thread_detach(THREAD);
-
+	
 	interrupts_disable();
-
-#ifdef CONFIG_SMP		 	
+	
+#ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		waitq_initialize(&ap_completion_wq);
 		/*
@@ -125,9 +125,7 @@ void kinit(void *arg)
 		thread_join(thread);
 		thread_detach(thread);
 	}
-#endif /* CONFIG_SMP */
 	
-#ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		count_t i;
 		
@@ -143,7 +141,6 @@ void kinit(void *arg)
 				thread_ready(thread);
 			} else
 				printf("Unable to create kcpulb thread for cpu" PRIc "\n", i);
-
 		}
 	}
 #endif /* CONFIG_SMP */
@@ -152,7 +149,7 @@ void kinit(void *arg)
 	 * At this point SMP, if present, is configured.
 	 */
 	arch_post_smp_init();
-
+	
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {
 		/*
@@ -179,17 +176,19 @@ void kinit(void *arg)
 			printf("init[%" PRIc "].addr is not frame aligned\n", i);
 			continue;
 		}
-
+		
 		/*
 		 * Construct task name from the 'boot:' prefix and the
 		 * name stored in the init structure (if any).
 		 */
-
-		char namebuf[TASK_NAME_BUFLEN], *name;
-
+		
+		char namebuf[TASK_NAME_BUFLEN];
+		char *name;
+		
 		name = init.tasks[i].name;
-		if (name[0] == '\0') name = "<unknown>";
-
+		if (name[0] == '\0')
+			name = "<unknown>";
+		
 		ASSERT(TASK_NAME_BUFLEN >= BOOT_PREFIX_LEN);
 		strncpy(namebuf, BOOT_PREFIX, TASK_NAME_BUFLEN);
 		strncpy(namebuf + BOOT_PREFIX_LEN, name,
@@ -233,7 +232,7 @@ void kinit(void *arg)
 			thread_usleep(10000);
 		}
 	}
-
+	
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);

@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
  * @file
- * @brief	Miscellaneous functions.
+ * @brief Miscellaneous functions.
  */
 
 #include <string.h>
@@ -47,13 +47,13 @@
  * @param str NULL terminated string.
  *
  * @return Number of characters in str.
+ *
  */
 size_t strlen(const char *str)
 {
 	int i;
 	
-	for (i = 0; str[i]; i++)
-		;
+	for (i = 0; str[i]; i++);
 	
 	return i;
 }
@@ -80,8 +80,10 @@ int strcmp(const char *src, const char *dst)
 	}
 	if (*src == *dst)
 		return 0;
+	
 	if (!*src)
 		return -1;
+	
 	return 1;
 }
 
@@ -107,13 +109,17 @@ int strncmp(const char *src, const char *dst, size_t len)
 	for (i = 0; (*src) && (*dst) && (i < len); src++, dst++, i++) {
 		if (*src < *dst)
 			return -1;
+		
 		if (*src > *dst)
 			return 1;
 	}
+	
 	if (i == len || *src == *dst)
 		return 0;
+	
 	if (!*src)
 		return -1;
+	
 	return 1;
 }
 
@@ -125,36 +131,38 @@ int strncmp(const char *src, const char *dst, size_t len)
  * If 'src' is shorter than 'len', '\0' is inserted behind the
  * last copied character.
  *
- * @param src Source string.
+ * @param src  Source string.
  * @param dest Destination buffer.
- * @param len Size of destination buffer.
+ * @param len  Size of destination buffer.
+ *
  */
 void strncpy(char *dest, const char *src, size_t len)
 {
 	unsigned int i;
-
+	
 	for (i = 0; i < len; i++) {
 		if (!(dest[i] = src[i]))
 			return;
 	}
-
+	
 	dest[i - 1] = '\0';
 }
 
 /** Find first occurence of character in string.
  *
- * @param s	String to search.
- * @param i	Character to look for.
+ * @param s String to search.
+ * @param i Character to look for.
  *
- * @return	Pointer to character in @a s or NULL if not found.
+ * @return Pointer to character in @a s or NULL if not found.
  */
 extern char *strchr(const char *s, int i)
 {
 	while (*s != '\0') {
-		if (*s == i) return (char *) s;
+		if (*s == i)
+			return (char *) s;
 		++s;
 	}
-
+	
 	return NULL;
 }
 

@@ -27,12 +27,12 @@
  */
 
 /** @addtogroup loader
- * @brief	Loads and runs programs from VFS.
+ * @brief Loads and runs programs from VFS.
  * @{
- */ 
+ */
 /**
  * @file
- * @brief	Loads and runs programs from VFS.
+ * @brief Loads and runs programs from VFS.
  *
  * The program loader is a special init binary. Its image is used
  * to create a new task upon a @c task_spawn syscall. The syscall
@@ -88,17 +88,18 @@ static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	task_id_t task_id;
 	size_t len;
-
+	
 	task_id = task_get_id();
-
+	
 	if (!ipc_data_read_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
-	if (len > sizeof(task_id)) len = sizeof(task_id);
-
+	
+	if (len > sizeof(task_id))
+		len = sizeof(task_id);
+	
 	ipc_data_read_finalize(callid, &task_id, len);
 	ipc_answer_0(rid, EOK);
 }
@@ -114,28 +115,28 @@ static void loader_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t len;
 	char *name_buf;
-
+	
 	if (!ipc_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	name_buf = malloc(len + 1);
 	if (!name_buf) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
+	
 	ipc_data_write_finalize(callid, name_buf, len);
 	ipc_answer_0(rid, EOK);
-
+	
 	if (pathname != NULL) {
 		free(pathname);
 		pathname = NULL;
 	}
-
+	
 	name_buf[len] = '\0';
 	pathname = name_buf;
 }
@@ -151,35 +152,35 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	size_t buf_len, arg_len;
 	char *p;
 	int n;
-
+	
 	if (!ipc_data_write_receive(&callid, &buf_len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	if (arg_buf != NULL) {
 		free(arg_buf);
 		arg_buf = NULL;
 	}
-
+	
 	if (argv != NULL) {
 		free(argv);
 		argv = NULL;
 	}
-
+	
 	arg_buf = malloc(buf_len + 1);
 	if (!arg_buf) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
+	
 	ipc_data_write_finalize(callid, arg_buf, buf_len);
 	ipc_answer_0(rid, EOK);
-
+	
 	arg_buf[buf_len] = '\0';
-
+	
 	/*
 	 * Count number of arguments
 	 */
@@ -190,17 +191,17 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 		p = p + arg_len + 1;
 		++n;
 	}
-
+	
 	/* Allocate argv */
 	argv = malloc((n + 1) * sizeof(char *));
-
+	
 	if (argv == NULL) {
 		free(arg_buf);
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
+	
 	/*
 	 * Fill argv with argument pointers
 	 */
@@ -208,12 +209,12 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	n = 0;
 	while (p < arg_buf + buf_len) {
 		argv[n] = p;
-
+		
 		arg_len = strlen(p);
 		p = p + arg_len + 1;
 		++n;
 	}
-
+	
 	argc = n;
 	argv[n] = NULL;
 }
@@ -227,26 +228,26 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
-
+	
 	rc = elf_load_file(pathname, 0, &prog_info);
 	if (rc < 0) {
 		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
-
+	
 	elf_create_pcb(&prog_info, &pcb);
-
+	
 	pcb.argc = argc;
 	pcb.argv = argv;
-
+	
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
 		is_dyn_linked = false;
 		ipc_answer_0(rid, EOK);
 		return 0;
 	}
-
+	
 	rc = elf_load_file(prog_info.interp, 0, &interp_info);
 	if (rc < 0) {
 		DPRINTF("Failed to load interpreter '%s.'\n",
@@ -254,10 +255,10 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return 1;
 	}
-
+	
 	is_dyn_linked = true;
 	ipc_answer_0(rid, EOK);
-
+	
 	return 0;
 }
 
@@ -271,21 +272,20 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 {
 	const char *cp;
-
+	
 	/* Set the task name. */
 	cp = strrchr(pathname, '/');
 	cp = (cp == NULL) ? pathname : (cp + 1);
 	task_set_name(cp);
-
+	
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */
 		DPRINTF("Run ELF interpreter.\n");
 		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
 		close_console();
-
+		
 		ipc_answer_0(rid, EOK);
 		elf_run(&interp_info, &pcb);
-
 	} else {
 		/* Statically linked program */
 		close_console();
@@ -306,24 +306,25 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	int retval;
-
+	
 	/* Already have a connection? */
 	if (connected) {
 		ipc_answer_0(iid, ELIMIT);
 		return;
 	}
-
+	
 	connected = true;
 	
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
-
+	
 	/* Ignore parameters, the connection is already open */
-	(void)iid; (void)icall;
-
+	(void) iid;
+	(void) icall;
+	
 	while (1) {
 		callid = async_get_call(&call);
-
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			exit(0);
@@ -360,18 +361,18 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 int main(int argc, char *argv[])
 {
 	ipcarg_t phonead;
-
+	
 	connected = false;
 	
 	/* Set a handler of incomming connections. */
 	async_set_client_connection(loader_connection);
-
+	
 	/* Register at naming service. */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, &phonead) != 0) 
 		return -1;
 	
 	async_manager();
-
+	
 	/* Never reached */
 	return 0;
 }
