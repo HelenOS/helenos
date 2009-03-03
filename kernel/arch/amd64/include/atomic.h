@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -41,29 +41,41 @@
 
 static inline void atomic_inc(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock incq %0\n" : "+m" (val->count));
+	asm volatile (
+		"lock incq %[count]\n"
+		: [count] "+m" (val->count)
+	);
 #else
-	asm volatile ("incq %0\n" : "+m" (val->count));
+	asm volatile (
+		"incq %[count]\n"
+		: [count] "+m" (val->count)
+	);
 #endif /* CONFIG_SMP */
 }
 
 static inline void atomic_dec(atomic_t *val) {
 #ifdef CONFIG_SMP
-	asm volatile ("lock decq %0\n" : "+m" (val->count));
+	asm volatile (
+		"lock decq %[count]\n"
+		: [count] "+m" (val->count)
+	);
 #else
-	asm volatile ("decq %0\n" : "+m" (val->count));
+	asm volatile (
+		"decq %[count]\n"
+		: [count] "+m" (val->count)
+	);
 #endif /* CONFIG_SMP */
 }
 
 static inline long atomic_postinc(atomic_t *val) 
 {
 	long r = 1;
-
+	
 	asm volatile (
-		"lock xaddq %1, %0\n"
-		: "+m" (val->count), "+r" (r)
+		"lock xaddq %[r], %[count]\n"
+		: [count] "+m" (val->count), [r] "+r" (r)
 	);
-
+	
 	return r;
 }
 
@@ -72,23 +84,23 @@ static inline long atomic_postdec(atomic_t *val)
 	long r = -1;
 	
 	asm volatile (
-		"lock xaddq %1, %0\n"
-		: "+m" (val->count), "+r" (r)
+		"lock xaddq %[r], %[count]\n"
+		: [count] "+m" (val->count), [r] "+r" (r)
 	);
 	
 	return r;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+#define atomic_preinc(val)  (atomic_postinc(val) + 1)
+#define atomic_predec(val)  (atomic_postdec(val) - 1)
 
 static inline uint64_t test_and_set(atomic_t *val) {
 	uint64_t v;
 	
 	asm volatile (
-		"movq $1, %0\n"
-		"xchgq %0, %1\n"
-		: "=r" (v), "+m" (val->count)
+		"movq $1, %[v]\n"
+		"xchgq %[v], %[count]\n"
+		: [v] "=r" (v), [count] "+m" (val->count)
 	);
 	
 	return v;
@@ -99,22 +111,22 @@ static inline uint64_t test_and_set(atomic_t *val) {
 static inline void atomic_lock_arch(atomic_t *val)
 {
 	uint64_t tmp;
-
+	
 	preemption_disable();
 	asm volatile (
 		"0:\n"
 #ifdef CONFIG_HT
 		"pause\n"
 #endif
-		"mov %0, %1\n"
-		"testq %1, %1\n"
+		"mov %[count], %[tmp]\n"
+		"testq %[tmp], %[tmp]\n"
 		"jnz 0b\n"       /* lightweight looping on locked spinlock */
 		
-		"incq %1\n"      /* now use the atomic operation */
-		"xchgq %0, %1\n"
-		"testq %1, %1\n"
+		"incq %[tmp]\n"  /* now use the atomic operation */
+		"xchgq %[count], %[tmp]\n"
+		"testq %[tmp], %[tmp]\n"
 		"jnz 0b\n"
-                : "+m" (val->count), "=&r" (tmp)
+		: [count] "+m" (val->count), [tmp] "=&r" (tmp)
 	);
 	/*
 	 * Prevent critical section code from bleeding out this way up.

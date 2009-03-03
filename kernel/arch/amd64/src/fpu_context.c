@@ -39,25 +39,25 @@
 void fpu_context_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxsave %0"
-		: "=m"(*fctx)
-		);
+		"fxsave %[fctx]\n"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
 /** Restore FPU (mmx,sse) context using fxrstor instruction */
 void fpu_context_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxrstor %0"
-		: "=m"(*fctx)
-		);
+		"fxrstor %[fctx]\n"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
 void fpu_init()
 {
 	/* TODO: Zero all SSE, MMX etc. registers */
 	asm volatile (
-		"fninit;"
+		"fninit\n"
 	);
 }
 

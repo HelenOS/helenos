@@ -77,21 +77,19 @@ static char *vendor_str[] = {
 void cpu_setup_fpu(void)
 {
 	asm volatile (
-		"movq %%cr0, %%rax;"
-		"btsq $1, %%rax;" /* cr0.mp */
-		"btrq $2, %%rax;"  /* cr0.em */
-		"movq %%rax, %%cr0;"
-
-		"movq %%cr4, %%rax;"
-		"bts $9, %%rax;" /* cr4.osfxsr */
-		"movq %%rax, %%cr4;"
-		:
-		:
-		:"%rax"
-		);
+		"movq %%cr0, %%rax\n"
+		"btsq $1, %%rax\n"  /* cr0.mp */
+		"btrq $2, %%rax\n"  /* cr0.em */
+		"movq %%rax, %%cr0\n"
+		
+		"movq %%cr4, %%rax\n"
+		"bts $9, %%rax\n"   /* cr4.osfxsr */
+		"movq %%rax, %%cr4\n"
+		::: "%rax"
+	);
 }
 
-/** Set the TS flag to 1. 
+/** Set the TS flag to 1.
  *
  * If a thread accesses coprocessor, exception is run, which 
  * does a lazy fpu context switch.
@@ -99,26 +97,22 @@ void cpu_setup_fpu(void)
  */
 void fpu_disable(void)
 {
-	asm	volatile (
-		"mov %%cr0,%%rax;"
-		"bts $3,%%rax;"
-		"mov %%rax,%%cr0;"
-		:
-		:
-		:"%rax"
-		);
+	asm volatile (
+		"mov %%cr0, %%rax\n"
+		"bts $3, %%rax\n"
+		"mov %%rax, %%cr0\n"
+		::: "%rax"
+	);
 }
 
 void fpu_enable(void)
 {
-	asm	volatile (
-		"mov %%cr0,%%rax;"
-		"btr $3,%%rax;"
-		"mov %%rax,%%cr0;"
-		:
-		:
-		:"%rax"
-		);	
+	asm volatile (
+		"mov %%cr0, %%rax\n"
+		"btr $3, %%rax\n"
+		"mov %%rax, %%cr0\n"
+		::: "%rax"
+	);
 }
 
 void cpu_arch_init(void)

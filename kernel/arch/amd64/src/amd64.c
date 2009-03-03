@@ -72,15 +72,13 @@
  */
 static void clean_IOPL_NT_flags(void)
 {
-	asm (
+	asm volatile (
 		"pushfq\n"
 		"pop %%rax\n"
 		"and $~(0x7000), %%rax\n"
 		"pushq %%rax\n"
 		"popfq\n"
-		:
-		:
-		: "%rax"
+		::: "%rax"
 	);
 }
 
@@ -90,13 +88,11 @@ static void clean_IOPL_NT_flags(void)
  */
 static void clean_AM_flag(void)
 {
-	asm (
+	asm volatile (
 		"mov %%cr0, %%rax\n"
 		"and $~(0x40000), %%rax\n"
 		"mov %%rax, %%cr0\n"
-		:
-		:
-		: "%rax"
+		::: "%rax"
 	);
 }
 

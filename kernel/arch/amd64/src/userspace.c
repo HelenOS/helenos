@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -47,36 +47,33 @@
  */
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	ipl_t ipl;
+	ipl_t ipl = interrupts_disable();
 	
-	ipl = interrupts_disable();
-
-	/* Clear CF,PF,AF,ZF,SF,DF,OF */
+	/* Clear CF, PF, AF, ZF, SF, DF, OF */
 	ipl &= ~(0xcd4);
-
-	asm volatile (""
-			  "pushq %0\n"
-			  "pushq %1\n"
-			  "pushq %2\n"
-			  "pushq %3\n"
-			  "pushq %4\n"
-			  "movq %5, %%rax\n"
-			  /* %rdi is defined to hold pcb_ptr - set it to 0 */
-			  "xorq %%rdi, %%rdi\n"
-			  "iretq\n"
-			  : : 
-			  "i" (gdtselector(UDATA_DES) | PL_USER), 
-			  "r" (kernel_uarg->uspace_stack+THREAD_STACK_SIZE), 
-			  "r" (ipl), 
-			  "i" (gdtselector(UTEXT_DES) | PL_USER), 
-			  "r" (kernel_uarg->uspace_entry),
-			  "r" (kernel_uarg->uspace_uarg)
-			  : "rax"
-			  );
+	
+	asm volatile (
+			"pushq %[udata_des]\n"
+			"pushq %[stack_size]\n"
+			"pushq %[ipl]\n"
+			"pushq %[utext_des]\n"
+			"pushq %[entry]\n"
+			"movq %[uarg], %%rax\n"
+			
+			/* %rdi is defined to hold pcb_ptr - set it to 0 */
+			"xorq %%rdi, %%rdi\n"
+			"iretq\n"
+			:: [udata_des] "i" (gdtselector(UDATA_DES) | PL_USER),
+			   [stack_size] "r" (kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
+			   [ipl] "r" (ipl),
+			   [utext_des] "i" (gdtselector(UTEXT_DES) | PL_USER),
+			   [entry] "r" (kernel_uarg->uspace_entry),
+			   [uarg] "r" (kernel_uarg->uspace_uarg)
+			: "rax"
+		);
 	
 	/* Unreachable */
-	for(;;)
-		;
+	while (1);
 }
 
 /** @}
