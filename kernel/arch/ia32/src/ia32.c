@@ -157,6 +157,10 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    (uintptr_t) I8042_BASE);
+	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	    (uintptr_t) I8042_BASE);
 }
 
 void calibrate_delay_loop(void)

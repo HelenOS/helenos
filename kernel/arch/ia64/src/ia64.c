@@ -168,11 +168,18 @@ void arch_post_smp_init(void)
 	inr = NS16550_IRQ;
 	(void) ns16550_init((ns16550_t *)NS16550_BASE, devno, inr, NULL, NULL);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
-	sysinfo_set_item_val("kbd.port", NULL, (uintptr_t)NS16550_BASE);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    (uintptr_t) NS16550_BASE);
+	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	    (uintptr_t) NS16550_BASE);
 #else
 	inr = IRQ_KBD;
 	(void) i8042_init((i8042_t *)I8042_BASE, devno, inr);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
+	sysinfo_set_item_val("kbd.address.physical", NULL,
+	    (uintptr_t) I8042_BASE);
+	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	    (uintptr_t) I8042_BASE);
 #endif
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);

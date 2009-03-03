@@ -41,6 +41,7 @@
 #include <kbd.h>
 #include <kbd_port.h>
 #include <sys/types.h>
+#include <ddi.h>
 
 #define CHAN_A_STATUS	4
 #define CHAN_A_DATA	6
@@ -84,9 +85,9 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 int kbd_port_init(void)
 {
 	async_set_interrupt_received(z8530_irq_handler);
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual") +
+	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.kernel") +
 	    CHAN_A_STATUS;
-	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.virtual") +
+	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.kernel") +
 	    CHAN_A_DATA;
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 	    sysinfo_value("kbd.inr"), &z8530_kbd);

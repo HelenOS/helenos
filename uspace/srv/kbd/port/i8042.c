@@ -35,6 +35,8 @@
  * @brief i8042 port driver.
  */
 
+#include <ddi.h>
+#include <libarch/ddi.h>
 #include <ipc/ipc.h>
 #include <async.h>
 #include <unistd.h>
@@ -66,7 +68,7 @@
 static irq_cmd_t i8042_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0x64,
+		.addr = NULL,	/* will be patched in run-time */
 		.dstarg = 1
 	},
 	{
@@ -82,7 +84,7 @@ static irq_cmd_t i8042_cmds[] = {
 	},
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0x60,
+		.addr = NULL,	/* will be patched in run-time */
 		.dstarg = 2
 	},
 	{
@@ -95,68 +97,54 @@ static irq_code_t i8042_kbd = {
 	i8042_cmds
 };
 
+static uintptr_t i8042_physical;
+static uintptr_t i8042_kernel;
+static i8042_t * i8042;
+
 static void wait_ready(void) {
-	while (i8042_status_read() & i8042_INPUT_FULL)
-	    ;
+	while (pio_read_8(&i8042->status) & i8042_INPUT_FULL)
+		;
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int kbd_port_init(void)
 {
-//	int i;
 	int mouseenabled = 0;
+	void *vaddr;
+
+	i8042_physical = sysinfo_value("kbd.address.physical");
+	i8042_kernel = sysinfo_value("kbd.address.kernel");
+	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
+		return -1;
+	i8042 = vaddr;
 
 	async_set_interrupt_received(i8042_irq_handler);
-	iospace_enable(task_get_id(), (void *) i8042_DATA, 5);
 
 	/* Disable kbd, enable mouse */
-	i8042_command_write(i8042_CMD_KBD);
+	pio_write_8(&i8042->status, i8042_CMD_KBD);
 	wait_ready();
-	i8042_command_write(i8042_CMD_KBD);
+	pio_write_8(&i8042->status, i8042_CMD_KBD);
 	wait_ready();
-	i8042_data_write(i8042_KBD_DISABLE);
+	pio_write_8(&i8042->data, i8042_KBD_DISABLE);
 	wait_ready();
 
 	/* Flush all current IO */
-	while (i8042_status_read() & i8042_OUTPUT_FULL)
-		i8042_data_read();
+	while (pio_read_8(&i8042->status) & i8042_OUTPUT_FULL)
+		(void) pio_read_8(&i8042->data);
 	
-	/* Initialize mouse */
-/*	i8042_command_write(i8042_CMD_MOUSE);
-	wait_ready();
-	i8042_data_write(MOUSE_OUT_INIT);
-	wait_ready();
-	
-	int mouseanswer = 0;
-	for (i=0;i < 1000; i++) {
-		int status = i8042_status_read();
-		if (status & i8042_OUTPUT_FULL) {
-			int data = i8042_data_read();
-			if (status & i8042_MOUSE_DATA) {
-				mouseanswer = data;
-				break;
-			}
-		}
-		usleep(1000);
-	}*/
-//	if (mouseanswer == MOUSE_ACK) {
-//		/* enable mouse */
-//		mouseenabled = 1;
-//		
-//		ipc_register_irq(sysinfo_value("mouse.inr"), sysinfo_value("mouse.devno"), 0, &i8042_kbd);
-//	}
-
 	/* Enable kbd */
+	i8042_kbd.cmds[0].addr = &((i8042_t *) i8042_kernel)->status;
+	i8042_kbd.cmds[3].addr = &((i8042_t *) i8042_kernel)->data;
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"), 0, &i8042_kbd);
 
 	int newcontrol = i8042_KBD_IE | i8042_KBD_TRANSLATE;
 	if (mouseenabled)
 		newcontrol |= i8042_MOUSE_IE;
 	
-	i8042_command_write(i8042_CMD_KBD);
+	pio_write_8(&i8042->status, i8042_CMD_KBD);
 	wait_ready();
-	i8042_data_write(newcontrol);
+	pio_write_8(&i8042->data, newcontrol);
 	wait_ready();
 	
 	return 0;
@@ -167,12 +155,12 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	int status = IPC_GET_ARG1(*call);
 
 	if ((status & i8042_MOUSE_DATA))
-		return 0;
+		return;
 
 	int scan_code = IPC_GET_ARG2(*call);
 
 	kbd_push_scancode(scan_code);
-	return 1;
+	return;
 }
 
 /**

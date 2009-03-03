@@ -86,20 +86,22 @@ irq_code_t ns16550_kbd = {
 
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
-uint16_t ns16550_port;
+static uintptr_t ns16550_physical;
+static uintptr_t ns16550_kernel; 
 
 int kbd_port_init(void)
 {
+	void *vaddr;
+
 	async_set_interrupt_received(ns16550_irq_handler);
 
-	ns16550_port = sysinfo_value("kbd.port");
-	ns16550_kbd.cmds[0].addr = (void *) (ns16550_port + LSR_REG);
-	ns16550_kbd.cmds[3].addr = (void *) (ns16550_port + RBR_REG);
+	ns16550_physical = sysinfo_value("kbd.address.physical");
+	ns16550_kernel = sysinfo_value("kbd.address.kernel");
+	ns16550_kbd.cmds[0].addr = (void *) (ns16550_kernel + LSR_REG);
+	ns16550_kbd.cmds[3].addr = (void *) (ns16550_kernel + RBR_REG);
 	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
 	    0, &ns16550_kbd);
-	iospace_enable(task_get_id(), ns16550_port, 8);
-
-	return 0;
+	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }
 
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)

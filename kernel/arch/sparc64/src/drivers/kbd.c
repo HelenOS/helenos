@@ -169,7 +169,7 @@ void kbd_init(ofw_tree_node_t *node)
 		sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
 		sysinfo_set_item_val("kbd.devno", NULL, devno);
 		sysinfo_set_item_val("kbd.inr", NULL, inr);
-		sysinfo_set_item_val("kbd.address.virtual", NULL,
+		sysinfo_set_item_val("kbd.address.kernel", NULL,
 		    (uintptr_t) z8530);
 		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 		break;
@@ -189,7 +189,7 @@ void kbd_init(ofw_tree_node_t *node)
 		sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 		sysinfo_set_item_val("kbd.devno", NULL, devno);
 		sysinfo_set_item_val("kbd.inr", NULL, inr);
-		sysinfo_set_item_val("kbd.address.virtual", NULL,
+		sysinfo_set_item_val("kbd.address.kernel", NULL,
 		    (uintptr_t) ns16550);
 		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 		break;

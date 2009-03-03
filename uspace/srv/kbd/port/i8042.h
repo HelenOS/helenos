@@ -38,35 +38,15 @@
 #ifndef KBD_PORT_i8042_H_
 #define KBD_PORT_i8042_H_
 
-#include <ddi.h>
 #include <libarch/ddi.h>
+#include <libarch/types.h>
 
-#define i8042_DATA      0x60
-#define i8042_STATUS    0X64
-
-
-typedef unsigned char u8;
-typedef short u16;
-
-static inline void i8042_data_write(u8 data)
-{
-	outb(i8042_DATA, data);
-}
-
-static inline u8 i8042_data_read(void)
-{
-	return inb(i8042_DATA);
-}
-
-static inline u8 i8042_status_read(void)
-{
-	return inb(i8042_STATUS);
-}
-
-static inline void i8042_command_write(u8 command)
-{
-	outb(i8042_STATUS, command);
-}
+struct i8042 {
+	ioport8_t data;
+	uint8_t pad[3];
+	ioport8_t status;
+} __attribute__ ((packed));
+typedef struct i8042 i8042_t;
 
 #endif
 
