@@ -48,6 +48,7 @@
 #include <arch/machine.h>
 #include <userspace.h>
 #include <macros.h>
+#include <string.h>
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
@@ -59,6 +60,8 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); ++i) {
 		init.tasks[i].addr = bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
+		strncpy(init.tasks[i].name, bootinfo->tasks[i].name,
+			CONFIG_TASK_NAME_BUFLEN);
 	}
 }
 

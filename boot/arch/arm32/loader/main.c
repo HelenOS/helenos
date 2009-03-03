@@ -41,6 +41,7 @@
 #include <printf.h>
 #include <align.h>
 #include <macros.h>
+#include <string.h>
 
 #include "mm.h"
 
@@ -103,6 +104,8 @@ void bootstrap(void)
 		if (i > 0) {
 			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
 			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
+			strncpy(bootinfo.tasks[bootinfo.cnt].name,
+			    components[i].name, BOOTINFO_TASK_NAME_BUFLEN);
 			bootinfo.cnt++;
 		}
 		top += components[i].size;

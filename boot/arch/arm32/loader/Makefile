@@ -67,6 +67,7 @@ SOURCES = \
 	print/gxemul.c \
 	_components.c \
 	../../../generic/printf.c \
+	../../../generic/string.c \
 	../../../genarch/division.c
 
 COMPONENTS = \

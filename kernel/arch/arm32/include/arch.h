@@ -39,11 +39,14 @@
 #define TASKMAP_MAX_RECORDS  32
 #define CPUMAP_MAX_RECORDS   32
 
+#define BOOTINFO_TASK_NAME_BUFLEN 32
+
 #include <typedefs.h>
 
 typedef struct {
 	uintptr_t addr;
 	uint32_t size;
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } utask_t;
 
 typedef struct {
