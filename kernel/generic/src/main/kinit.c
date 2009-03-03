@@ -80,8 +80,8 @@
 static char alive[ALIVE_CHARS] = "-\\|/";
 #endif
 
-#define BOOT_PREFIX      "boot:"
-#define BOOT_PREFIX_LEN  5
+#define INIT_PREFIX      "init:"
+#define INIT_PREFIX_LEN  5
 
 /** Kernel initialization thread.
  *
@@ -178,7 +178,7 @@ void kinit(void *arg)
 		}
 		
 		/*
-		 * Construct task name from the 'boot:' prefix and the
+		 * Construct task name from the 'init:' prefix and the
 		 * name stored in the init structure (if any).
 		 */
 		
@@ -189,10 +189,10 @@ void kinit(void *arg)
 		if (name[0] == '\0')
 			name = "<unknown>";
 		
-		ASSERT(TASK_NAME_BUFLEN >= BOOT_PREFIX_LEN);
-		strncpy(namebuf, BOOT_PREFIX, TASK_NAME_BUFLEN);
-		strncpy(namebuf + BOOT_PREFIX_LEN, name,
-		    TASK_NAME_BUFLEN - BOOT_PREFIX_LEN);
+		ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
+		strncpy(namebuf, INIT_PREFIX, TASK_NAME_BUFLEN);
+		strncpy(namebuf + INIT_PREFIX_LEN, name,
+		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN);
 		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    namebuf, &programs[i]);
