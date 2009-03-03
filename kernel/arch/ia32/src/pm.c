@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -154,7 +154,7 @@ static void clean_IOPL_NT_flags(void)
 		"and $0xffff8fff, %%eax\n"
 		"push %%eax\n"
 		"popfl\n"
-		: : : "eax"
+		::: "eax"
 	);
 }
 
@@ -165,7 +165,7 @@ static void clean_AM_flag(void)
 		"mov %%cr0, %%eax\n"
 		"and $0xfffbffff, %%eax\n"
 		"mov %%eax, %%cr0\n"
-		: : : "eax"
+		::: "eax"
 	);
 }
 

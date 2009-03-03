@@ -48,17 +48,17 @@
  * Identification of CPUs.
  * Contains only non-MP-Specification specific SMP code.
  */
-#define AMD_CPUID_EBX	0x68747541
-#define AMD_CPUID_ECX 	0x444d4163
-#define AMD_CPUID_EDX 	0x69746e65
+#define AMD_CPUID_EBX  0x68747541
+#define AMD_CPUID_ECX  0x444d4163
+#define AMD_CPUID_EDX  0x69746e65
 
-#define INTEL_CPUID_EBX	0x756e6547
-#define INTEL_CPUID_ECX 0x6c65746e
-#define INTEL_CPUID_EDX 0x49656e69
+#define INTEL_CPUID_EBX  0x756e6547
+#define INTEL_CPUID_ECX  0x6c65746e
+#define INTEL_CPUID_EDX  0x49656e69
 
 
 enum vendor {
-	VendorUnknown=0,
+	VendorUnknown = 0,
 	VendorAMD,
 	VendorIntel
 };
@@ -72,25 +72,21 @@ static char *vendor_str[] = {
 void fpu_disable(void)
 {
 	asm volatile (
-		"mov %%cr0,%%eax;"
-		"or $8,%%eax;"
-		"mov %%eax,%%cr0;"
-		:
-		:
-		: "%eax"
+		"mov %%cr0, %%eax\n"
+		"or $8, %%eax\n"
+		"mov %%eax, %%cr0\n"
+		::: "%eax"
 	);
 }
 
 void fpu_enable(void)
 {
 	asm volatile (
-		"mov %%cr0,%%eax;"
-		"and $0xffFFffF7,%%eax;"
-		"mov %%eax,%%cr0;"
-		:
-		:
-		: "%eax"
-	);	
+		"mov %%cr0, %%eax\n"
+		"and $0xffFFffF7, %%eax\n"
+		"mov %%eax,%%cr0\n"
+		::: "%eax"
+	);
 }
 
 void cpu_arch_init(void)
@@ -102,26 +98,26 @@ void cpu_arch_init(void)
 	
 	CPU->arch.tss = tss_p;
 	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] - ((uint8_t *) CPU->arch.tss);
-
+	
 	CPU->fpu_owner = NULL;
-
+	
 	cpuid(1, &info);
-
+	
 	fi.word = info.cpuid_edx;
 	efi.word = info.cpuid_ecx;
 	
 	if (fi.bits.fxsr)
 		fpu_fxsr();
 	else
-		fpu_fsr();	
+		fpu_fsr();
 	
 	if (fi.bits.sse) {
 		asm volatile (
-			"mov %%cr4,%0\n"
-			"or %1,%0\n"
-			"mov %0,%%cr4\n"
-			: "+r" (help)
-			: "i" (CR4_OSFXSR_MASK|(1<<10)) 
+			"mov %%cr4, %[help]\n"
+			"or %[mask], %[help]\n"
+			"mov %[help], %%cr4\n"
+			: [help] "+r" (help)
+			: [mask] "i" (CR4_OSFXSR_MASK | (1 << 10))
 		);
 	}
 	

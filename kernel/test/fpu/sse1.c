@@ -58,14 +58,14 @@ static void testit1(void *data)
 
 	for (i = 0; i < ATTEMPTS; i++) {
 		asm volatile (
-			"movlpd	%0, %%xmm2\n"
-			: "=m" (arg)
+			"movlpd %[arg], %%xmm2\n"
+			: [arg] "=m" (arg)
 		);
 
 		delay(DELAY);
 		asm volatile (
-			"movlpd %%xmm2, %0\n"
-			: "=m" (after_arg)
+			"movlpd %%xmm2, %[after_arg]\n"
+			: [after_arg] "=m" (after_arg)
 		);
 		
 		if (arg != after_arg) {
@@ -90,14 +90,14 @@ static void testit2(void *data)
 
 	for (i = 0; i < ATTEMPTS; i++) {
 		asm volatile (
-			"movlpd	%0, %%xmm2\n"
-			: "=m" (arg)
+			"movlpd %[arg], %%xmm2\n"
+			: [arg] "=m" (arg)
 		);
 
 		scheduler();
 		asm volatile (
-			"movlpd %%xmm2, %0\n"
-			: "=m" (after_arg)
+			"movlpd %%xmm2, %[after_arg]\n"
+			: [after_arg] "=m" (after_arg)
 		);
 		
 		if (arg != after_arg) {

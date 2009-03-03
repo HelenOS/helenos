@@ -74,21 +74,21 @@ static inline uint32_t has_cpuid(void)
 	uint32_t val, ret;
 	
 	asm volatile (
-		"pushf\n"               /* read flags */
-		"popl %0\n"
-		"movl %0, %1\n"
+		"pushf\n"                    /* read flags */
+		"popl %[ret]\n"
+		"movl %[ret], %[val]\n"
 		
-		"btcl $21, %1\n"        /* swap the ID bit */
+		"btcl $21, %[val]\n"         /* swap the ID bit */
 		
-		"pushl %1\n"            /* propagate the change into flags */
+		"pushl %[val]\n"             /* propagate the change into flags */
 		"popf\n"
 		"pushf\n"
-		"popl %1\n"
+		"popl %[val]\n"
 		
-		"andl $(1 << 21), %0\n" /* interrested only in ID bit */
-		"andl $(1 << 21), %1\n"
-		"xorl %1, %0\n"
-		: "=r" (ret), "=r" (val)
+		"andl $(1 << 21), %[ret]\n"  /* interrested only in ID bit */
+		"andl $(1 << 21), %[val]\n"
+		"xorl %[val], %[ret]\n"
+		: [ret] "=r" (ret), [val] "=r" (val)
 	);
 	
 	return ret;
@@ -98,7 +98,8 @@ static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 {
 	asm volatile (
 		"cpuid\n"
-		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx), "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
+		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx),
+		  "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
 		: "a" (cmd)
 	);
 }

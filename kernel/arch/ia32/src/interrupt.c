@@ -138,12 +138,12 @@ static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
 {
 	uint32_t mxcsr;
 	asm (
-		"stmxcsr %0;\n"
-		: "=m" (mxcsr)
+		"stmxcsr %[mxcsr]\n"
+		: [mxcsr] "=m" (mxcsr)
 	);
 	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx.",
 	    (unative_t) mxcsr);
-
+	
 	decode_istate(istate);
 	printf("MXCSR: %#lx\n", mxcsr);
 	panic("SIMD FP exception(19).");

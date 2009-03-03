@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -56,6 +56,7 @@ extern void asm_fake_loop(uint32_t t);
 /** Halt CPU
  *
  * Halt the current CPU until interrupt event.
+ *
  */
 static inline void cpu_halt(void)
 {
@@ -68,16 +69,22 @@ static inline void cpu_sleep(void)
 }
 
 #define GEN_READ_REG(reg) static inline unative_t read_ ##reg (void) \
-    { \
-	unative_t res; \
-	asm volatile ("movl %%" #reg ", %0" : "=r" (res) ); \
-	return res; \
-    }
+	{ \
+		unative_t res; \
+		asm volatile ( \
+			"movl %%" #reg ", %[res]" \
+			: [res] "=r" (res) \
+		); \
+		return res; \
+	}
 
 #define GEN_WRITE_REG(reg) static inline void write_ ##reg (unative_t regn) \
-    { \
-	asm volatile ("movl %0, %%" #reg : : "r" (regn)); \
-    }
+	{ \
+		asm volatile ( \
+			"movl %[regn], %%" #reg \
+			:: [regn] "r" (regn) \
+		); \
+	}
 
 GEN_READ_REG(cr0)
 GEN_READ_REG(cr2)
@@ -104,10 +111,14 @@ GEN_WRITE_REG(dr7)
  *
  * @param port Port to write to
  * @param val Value to write
+ *
  */
 static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
-	asm volatile ("outb %b0, %w1\n" : : "a" (val), "d" (port));
+	asm volatile (
+		"outb %b[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
 }
 
 /** Word to port
@@ -116,10 +127,14 @@ static inline void pio_write_8(ioport8_t *port, uint8_t val)
  *
  * @param port Port to write to
  * @param val Value to write
+ *
  */
 static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
-	asm volatile ("outw %w0, %w1\n" : : "a" (val), "d" (port));
+	asm volatile (
+		"outw %w[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
 }
 
 /** Double word to port
@@ -128,10 +143,14 @@ static inline void pio_write_16(ioport16_t *port, uint16_t val)
  *
  * @param port Port to write to
  * @param val Value to write
+ *
  */
 static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
-	asm volatile ("outl %0, %w1\n" : : "a" (val), "d" (port));
+	asm volatile (
+		"outl %[val], %w[port]\n"
+		:: [val] "a" (val), [port] "d" (port)
+	);
 }
 
 /** Byte from port
@@ -140,12 +159,18 @@ static inline void pio_write_32(ioport32_t *port, uint32_t val)
  *
  * @param port Port to read from
  * @return Value read
+ *
  */
 static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uint8_t val;
 	
-	asm volatile ("inb %w1, %b0 \n" : "=a" (val) : "d" (port));
+	asm volatile (
+		"inb %w[port], %b[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
 }
 
@@ -155,12 +180,18 @@ static inline uint8_t pio_read_8(ioport8_t *port)
  *
  * @param port Port to read from
  * @return Value read
+ *
  */
 static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	uint16_t val;
 	
-	asm volatile ("inw %w1, %w0 \n" : "=a" (val) : "d" (port));
+	asm volatile (
+		"inw %w[port], %w[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
 }
 
@@ -170,12 +201,18 @@ static inline uint16_t pio_read_16(ioport16_t *port)
  *
  * @param port Port to read from
  * @return Value read
+ *
  */
 static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uint32_t val;
 	
-	asm volatile ("inl %w1, %0 \n" : "=a" (val) : "d" (port));
+	asm volatile (
+		"inl %w[port], %[val]\n"
+		: [val] "=a" (val)
+		: [port] "d" (port)
+	);
+	
 	return val;
 }
 
@@ -185,16 +222,19 @@ static inline uint32_t pio_read_32(ioport32_t *port)
  * value of EFLAGS.
  *
  * @return Old interrupt priority level.
+ *
  */
 static inline ipl_t interrupts_enable(void)
 {
 	ipl_t v;
+	
 	asm volatile (
-		"pushf\n\t"
-		"popl %0\n\t"
+		"pushf\n"
+		"popl %[v]\n"
 		"sti\n"
-		: "=r" (v)
+		: [v] "=r" (v)
 	);
+	
 	return v;
 }
 
@@ -204,16 +244,19 @@ static inline ipl_t interrupts_enable(void)
  * value of EFLAGS.
  *
  * @return Old interrupt priority level.
+ *
  */
 static inline ipl_t interrupts_disable(void)
 {
 	ipl_t v;
+	
 	asm volatile (
-		"pushf\n\t"
-		"popl %0\n\t"
+		"pushf\n"
+		"popl %[v]\n"
 		"cli\n"
-		: "=r" (v)
+		: [v] "=r" (v)
 	);
+	
 	return v;
 }
 
@@ -222,44 +265,56 @@ static inline ipl_t interrupts_disable(void)
  * Restore EFLAGS.
  *
  * @param ipl Saved interrupt priority level.
+ *
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
 	asm volatile (
-		"pushl %0\n\t"
+		"pushl %[ipl]\n"
 		"popf\n"
-		: : "r" (ipl)
+		:: [ipl] "r" (ipl)
 	);
 }
 
 /** Return interrupt priority level.
  *
  * @return EFLAFS.
+ *
  */
 static inline ipl_t interrupts_read(void)
 {
 	ipl_t v;
+	
 	asm volatile (
-		"pushf\n\t"
-		"popl %0\n"
-		: "=r" (v)
+		"pushf\n"
+		"popl %[v]\n"
+		: [v] "=r" (v)
 	);
+	
 	return v;
 }
 
 /** Write to MSR */
 static inline void write_msr(uint32_t msr, uint64_t value)
 {
-	asm volatile ("wrmsr" : : "c" (msr), "a" ((uint32_t)(value)),
-	    "d" ((uint32_t)(value >> 32)));
+	asm volatile (
+		"wrmsr"
+		:: "c" (msr), "a" ((uint32_t) (value)),
+		   "d" ((uint32_t) (value >> 32))
+	);
 }
 
 static inline uint64_t read_msr(uint32_t msr)
 {
 	uint32_t ax, dx;
-
-	asm volatile ("rdmsr" : "=a"(ax), "=d"(dx) : "c" (msr));
-	return ((uint64_t)dx << 32) | ax;
+	
+	asm volatile (
+		"rdmsr"
+		: "=a" (ax), "=d" (dx)
+		: "c" (msr)
+	);
+	
+	return ((uint64_t) dx << 32) | ax;
 }
 
 
@@ -268,14 +323,15 @@ static inline uint64_t read_msr(uint32_t msr)
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
 static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 	
 	asm volatile (
-		"andl %%esp, %0\n"
-		: "=r" (v)
+		"andl %%esp, %[v]\n"
+		: [v] "=r" (v)
 		: "0" (~(STACK_SIZE - 1))
 	);
 	
@@ -286,57 +342,78 @@ static inline uintptr_t get_stack_base(void)
 static inline uintptr_t * get_ip() 
 {
 	uintptr_t *ip;
-
+	
 	asm volatile (
-		"mov %%eip, %0"
-		: "=r" (ip)
-		);
+		"mov %%eip, %[ip]"
+		: [ip] "=r" (ip)
+	);
+	
 	return ip;
 }
 
 /** Invalidate TLB Entry.
  *
  * @param addr Address on a page whose TLB entry is to be invalidated.
+ *
  */
 static inline void invlpg(uintptr_t addr)
 {
-	asm volatile ("invlpg %0\n" :: "m" (*(unative_t *)addr));
+	asm volatile (
+		"invlpg %[addr]\n"
+		:: [addr] "m" (*(unative_t *) addr)
+	);
 }
 
 /** Load GDTR register from memory.
  *
  * @param gdtr_reg Address of memory from where to load GDTR.
+ *
  */
 static inline void gdtr_load(ptr_16_32_t *gdtr_reg)
 {
-	asm volatile ("lgdtl %0\n" : : "m" (*gdtr_reg));
+	asm volatile (
+		"lgdtl %[gdtr_reg]\n"
+		:: [gdtr_reg] "m" (*gdtr_reg)
+	);
 }
 
 /** Store GDTR register to memory.
  *
  * @param gdtr_reg Address of memory to where to load GDTR.
+ *
  */
 static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 {
-	asm volatile ("sgdtl %0\n" : : "m" (*gdtr_reg));
+	asm volatile (
+		"sgdtl %[gdtr_reg]\n"
+		:: [gdtr_reg] "m" (*gdtr_reg)
+	);
 }
 
 /** Load IDTR register from memory.
  *
  * @param idtr_reg Address of memory from where to load IDTR.
+ *
  */
 static inline void idtr_load(ptr_16_32_t *idtr_reg)
 {
-	asm volatile ("lidtl %0\n" : : "m" (*idtr_reg));
+	asm volatile (
+		"lidtl %[idtr_reg]\n" 
+		:: [idtr_reg] "m" (*idtr_reg)
+	);
 }
 
 /** Load TR from descriptor table.
  *
  * @param sel Selector specifying descriptor of TSS segment.
+ *
  */
 static inline void tr_load(uint16_t sel)
 {
-	asm volatile ("ltr %0" : : "r" (sel));
+	asm volatile (
+		"ltr %[sel]"
+		:: [sel] "r" (sel)
+	);
 }
 
 #endif

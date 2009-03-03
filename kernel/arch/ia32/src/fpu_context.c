@@ -44,46 +44,43 @@ static fpu_context_function fpu_save, fpu_restore;
 static void fpu_context_f_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fnsave %0"
-		: "=m"(*fctx)
-		);
+		"fnsave %[fctx]"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
 static void fpu_context_f_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"frstor %0"
-		: "=m"(*fctx)
-		);
+		"frstor %[fctx]"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
 static void fpu_context_fx_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxsave %0"
-		: "=m"(*fctx)
-		);
+		"fxsave %[fctx]"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
 static void fpu_context_fx_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxrstor %0"
-		: "=m"(*fctx)
-		);
+		"fxrstor %[fctx]"
+		: [fctx] "=m" (*fctx)
+	);
 }
 
-/*
-	Setup using fxsr instruction
-*/
+/* Setup using fxsr instruction */
 void fpu_fxsr(void)
 {
 	fpu_save=fpu_context_fx_save;
 	fpu_restore=fpu_context_fx_restore;
 }
-/*
-	Setup using not fxsr instruction
-*/
+
+/* Setup using not fxsr instruction */
 void fpu_fsr(void)
 {
 	fpu_save = fpu_context_f_save;
@@ -102,16 +99,18 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_init()
 {
-	uint32_t help0 = 0, help1 = 0;
+	uint32_t help0 = 0;
+	uint32_t help1 = 0;
+	
 	asm volatile (
-		"fninit;\n"
-		"stmxcsr %0\n"
-		"mov %0,%1;\n"
-		"or %2,%1;\n"
-		"mov %1,%0;\n"
-		"ldmxcsr %0;\n"
-		: "+m" (help0), "+r" (help1)
-		: "i" (0x1f80)
+		"fninit\n"
+		"stmxcsr %[help0]\n"
+		"mov %[help0], %[help1]\n"
+		"or %[magic], %[help1]\n"
+		"mov %[help1], %[help0]\n"
+		"ldmxcsr %[help0]\n"
+		: [help0] "+m" (help0), [help1] "+r" (help1)
+		: [magic] "i" (0x1f80)
 	);
 }
 

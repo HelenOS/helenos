@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -47,10 +47,8 @@
  */
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-
+	ipl_t ipl = interrupts_disable();
+	
 	asm volatile (
 		/*
 		 * Clear nested task flag.
@@ -60,35 +58,33 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"and $0xffffbfff, %%eax\n"
 		"push %%eax\n"
 		"popfl\n"
-
+		
 		/* Set up GS register (TLS) */
-		"movl %6, %%gs\n"
-
-		"pushl %0\n"
-		"pushl %1\n"
-		"pushl %2\n"
-		"pushl %3\n"
-		"pushl %4\n"
-		"movl %5, %%eax\n"
-
+		"movl %[tls_des], %%gs\n"
+		
+		"pushl %[udata_des]\n"
+		"pushl %[stack_size]\n"
+		"pushl %[ipl]\n"
+		"pushl %[utext_des]\n"
+		"pushl %[entry]\n"
+		"movl %[uarg], %%eax\n"
+		
 		/* %ebx is defined to hold pcb_ptr - set it to 0 */
-		"xorl %%ebx, %%ebx\n"	
-
+		"xorl %%ebx, %%ebx\n"
+		
 		"iret\n"
-		: 
-		: "i" (selector(UDATA_DES) | PL_USER),
-		  "r" ((uint8_t *) kernel_uarg->uspace_stack +
-		      THREAD_STACK_SIZE),
-		  "r" (ipl),
-		  "i" (selector(UTEXT_DES) | PL_USER),
-		  "r" (kernel_uarg->uspace_entry),
-		  "r" (kernel_uarg->uspace_uarg),
-		  "r" (selector(TLS_DES))
+		:
+		: [udata_des] "i" (selector(UDATA_DES) | PL_USER),
+		  [stack_size] "r" ((uint8_t *) kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
+		  [ipl] "r" (ipl),
+		  [utext_des] "i" (selector(UTEXT_DES) | PL_USER),
+		  [entry] "r" (kernel_uarg->uspace_entry),
+		  [uarg] "r" (kernel_uarg->uspace_uarg),
+		  [tls_des] "r" (selector(TLS_DES))
 		: "eax");
 	
 	/* Unreachable */
-	for(;;)
-		;
+	while (1);
 }
 
 /** @}
