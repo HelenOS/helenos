@@ -51,6 +51,7 @@
 #include <libarch/ddi.h>
 #include <console/style.h>
 #include <console/color.h>
+#include <sys/types.h>
 
 #include "ega.h"
 #include "../console/screenbuffer.h"
@@ -63,7 +64,7 @@ typedef struct saved_screen {
 
 saved_screen saved_screens[MAX_SAVED_SCREENS];
 
-#define EGA_IO_ADDRESS 0x3d4
+#define EGA_IO_BASE ((ioport8_t *) 0x3d4)
 #define EGA_IO_SIZE 2
 
 int ega_normal_color = 0x0f;
@@ -99,30 +100,30 @@ static void cursor_goto(unsigned int row, unsigned int col)
 
 	ega_cursor = col + scr_width * row;
 	
-	outb(EGA_IO_ADDRESS, 0xe);
-	outb(EGA_IO_ADDRESS + 1, (ega_cursor >> 8) & 0xff);
-	outb(EGA_IO_ADDRESS, 0xf);
-	outb(EGA_IO_ADDRESS + 1, ega_cursor & 0xff);
+	pio_write_8(EGA_IO_BASE, 0xe);
+	pio_write_8(EGA_IO_BASE + 1, (ega_cursor >> 8) & 0xff);
+	pio_write_8(EGA_IO_BASE, 0xf);
+	pio_write_8(EGA_IO_BASE + 1, ega_cursor & 0xff);
 }
 
 static void cursor_disable(void)
 {
 	uint8_t stat;
 
-	outb(EGA_IO_ADDRESS, 0xa);
-	stat=inb(EGA_IO_ADDRESS + 1);
-	outb(EGA_IO_ADDRESS, 0xa);
-	outb(EGA_IO_ADDRESS + 1, stat | (1 << 5));
+	pio_write_8(EGA_IO_BASE, 0xa);
+	stat = pio_read_8(EGA_IO_BASE + 1);
+	pio_write_8(EGA_IO_BASE, 0xa);
+	pio_write_8(EGA_IO_BASE + 1, stat | (1 << 5));
 }
 
 static void cursor_enable(void)
 {
 	uint8_t stat;
 
-	outb(EGA_IO_ADDRESS, 0xa);
-	stat=inb(EGA_IO_ADDRESS + 1);
-	outb(EGA_IO_ADDRESS, 0xa);
-	outb(EGA_IO_ADDRESS + 1, stat & (~(1 << 5)));
+	pio_write_8(EGA_IO_BASE, 0xa);
+	stat = pio_read_8(EGA_IO_BASE + 1);
+	pio_write_8(EGA_IO_BASE, 0xa);
+	pio_write_8(EGA_IO_BASE + 1, stat & (~(1 << 5)));
 }
 
 static void scroll(int rows)
@@ -380,7 +381,7 @@ int ega_init(void)
 
 	style = NORMAL_COLOR;
 
-	iospace_enable(task_get_id(), (void *) EGA_IO_ADDRESS, 2);
+	iospace_enable(task_get_id(), (void *) EGA_IO_BASE, 2);
 
 	sz = scr_width * scr_height * 2;
 	scr_addr = as_get_mappable_page(sz);
