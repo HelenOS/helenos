@@ -62,6 +62,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
+#include <string.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ	(4 + LEGACY_INTERRUPT_BASE)
@@ -84,6 +85,8 @@ void arch_pre_main(void)
 		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
 		    VRN_MASK;
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
+		strncpy(init.tasks[i].name, bootinfo->taskmap.tasks[i].name,
+			CONFIG_TASK_NAME_BUFLEN);
 	}
 }
 

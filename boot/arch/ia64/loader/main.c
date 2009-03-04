@@ -34,6 +34,7 @@
 #include <align.h>
 #include <balloc.h>
 #include <macros.h>
+#include <string.h>
 
 extern bootinfo_t binfo;
 component_t components[COMPONENTS];
@@ -124,6 +125,9 @@ void bootstrap(void)
 			    components[i].start;
 			bootinfo->taskmap.tasks[bootinfo->taskmap.count].size =
 			    components[i].size;
+			strncpy(bootinfo->taskmap.tasks[
+			    bootinfo->taskmap.count].name,
+			    components[i].name, BOOTINFO_TASK_NAME_BUFLEN);
 			bootinfo->taskmap.count++;
 		}
 	}

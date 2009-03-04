@@ -39,10 +39,13 @@
 #define EFI_MEMMAP_IO 1
 #define EFI_MEMMAP_IO_PORTS 2
 
+/** Size of buffer for storing task name in binit_task_t. */
+#define BOOTINFO_TASK_NAME_BUFLEN 32
 
 typedef struct {
 	void *addr; 
 	unsigned long size;
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } binit_task_t;
 	
 typedef struct {
