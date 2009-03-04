@@ -72,6 +72,7 @@ SOURCES = \
 	msim.c \
 	_components.c \
 	../../../generic/printf.c \
+	../../../generic/string.c \
 	asm.S \
 	boot.S
 

@@ -38,9 +38,17 @@
 
 #ifndef __ASM__
 
+/** Size of buffer for storing task name in task_t. */
+#define BOOTINFO_TASK_NAME_BUFLEN 32
+
+/** Struct holding information about single loaded task. */
 typedef struct {
+	/** Address where the task was placed. */
 	void *addr;
+	/** Size of the task's binary. */
 	unsigned int size;
+	/** Task name. */
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } task_t;
 
 typedef struct {
