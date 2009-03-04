@@ -96,7 +96,7 @@ static inline uint16_t pio_read_16(ioport16_t *port)
 	asm volatile ("mf\n" ::: "memory");
 
 	return *((uint16_t *)(IA64_IOSPACE_ADDRESS +
-	    ((prt & 0xffE) | ((prt >> 2) << 12))));
+	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
 static inline uint32_t pio_read_32(ioport32_t *port)
