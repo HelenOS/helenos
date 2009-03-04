@@ -65,6 +65,7 @@ SOURCES = \
 	_components.c \
 	../../../genarch/ofw.c \
 	../../../generic/printf.c \
+	../../../generic/string.c \
 	asm.S \
 	boot.S
 

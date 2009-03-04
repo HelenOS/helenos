@@ -33,6 +33,7 @@
 #include <ofw.h>
 #include <align.h>
 #include <macros.h>
+#include <string.h>
 
 #define HEAP_GAP 1024000
 
@@ -166,6 +167,9 @@ void bootstrap(void)
 			if (j == 0) {
 				bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = (void *) (pages << PAGE_WIDTH);
 				bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
+				strncpy(bootinfo.taskmap.tasks[bootinfo.taskmap.count].name,
+				    components[i].name, BOOTINFO_TASK_NAME_BUFLEN);
+
 				bootinfo.taskmap.count++;
 			}
 		}
