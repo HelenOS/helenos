@@ -165,7 +165,29 @@ static char map_shifted[] = {
 static char map_neutral[] = {
 	[KC_BACKSPACE] = '\b',
 	[KC_TAB] = '\t',
-	[KC_ENTER] = '\n'
+	[KC_ENTER] = '\n',
+	[KC_SPACE] = ' ',
+
+	[KC_NSLASH] = '/',
+	[KC_NTIMES] = '*',
+	[KC_NMINUS] = '-',
+	[KC_NPLUS] = '+',
+	[KC_NENTER] = '\n'
+};
+
+static char map_numeric[] = {
+	[KC_N7] = '7',
+	[KC_N8] = '8',
+	[KC_N9] = '9',
+	[KC_N4] = '4',
+	[KC_N5] = '5',
+	[KC_N6] = '6',
+	[KC_N1] = '1',
+	[KC_N2] = '2',
+	[KC_N3] = '3',
+
+	[KC_N0] = '0',
+	[KC_NPERIOD] = '.'
 };
 
 static int translate(unsigned int key, char *map, size_t map_length)
@@ -197,10 +219,15 @@ char layout_parse_ev(kbd_event_t *ev)
 	else
 		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(char));
 
-	if (c != 0 ) return c;
+	if (c != 0) return c;
 
+	if ((ev->mods & KM_NUM_LOCK) != 0)
+		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(char));
+	else
+		c = 0;
+
+	return c;
 }
-
 
 /**
  * @}
