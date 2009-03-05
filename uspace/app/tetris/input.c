@@ -58,6 +58,7 @@
 
 #include <async.h>
 #include <ipc/console.h>
+#include <kbd/kbd.h>
 
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \
@@ -111,6 +112,7 @@ rwait(struct timeval *tvp)
 		s = NULL;
 
 	if (!lastchar) {
+again:
 		if (!getchar_inprog) {
 			cons_phone = get_console_phone();
 			getchar_inprog = async_send_2(cons_phone,
@@ -127,6 +129,9 @@ rwait(struct timeval *tvp)
 		if (rc) {
 			stop("end of file, help");
 		}
+		if (IPC_GET_ARG1(charcall) == KE_RELEASE)
+			goto again;
+
 		lastchar = IPC_GET_ARG4(charcall);
 	}
 	if (tvp) {
