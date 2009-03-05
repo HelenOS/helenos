@@ -38,6 +38,9 @@
 
 #define TASKMAP_MAX_RECORDS 32
 
+/** Size of buffer for storing task name in task_t. */
+#define BOOTINFO_TASK_NAME_BUFLEN 32
+
 #define BSP_PROCESSOR	1
 #define AP_PROCESSOR	0
 
@@ -47,6 +50,7 @@
 typedef struct {
 	void *addr;
 	uint32_t size;
+	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } task_t;
 
 typedef struct {

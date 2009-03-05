@@ -47,6 +47,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
 #include <ddi/irq.h>
+#include <string.h>
 
 bootinfo_t bootinfo;
 
@@ -61,6 +62,8 @@ void arch_pre_main(void)
 	for (i = 0; i < bootinfo.taskmap.count; i++) {
 		init.tasks[i].addr = (uintptr_t) bootinfo.taskmap.tasks[i].addr;
 		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+		strncpy(init.tasks[i].name, bootinfo.taskmap.tasks[i].name,
+			CONFIG_TASK_NAME_BUFLEN);
 	}
 	
 	/* Copy boot allocations info. */

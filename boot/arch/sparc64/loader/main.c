@@ -179,6 +179,9 @@ void bootstrap(void)
 			    base + top;
 			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
 			    components[i].size;
+			strncpy(bootinfo.taskmap.tasks[
+			    bootinfo.taskmap.count].name, components[i].name,
+			    BOOTINFO_TASK_NAME_BUFLEN);
 			bootinfo.taskmap.count++;
 		}
 		top += components[i].size;
