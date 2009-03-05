@@ -83,14 +83,16 @@ static void print_fixed_hex(const uint64_t num, const int width)
  */
 static void print_number(const unative_t num, const unsigned int base)
 {
-	int val = num;
-	char d[sizeof(unative_t) * 8 + 1];		/* this is good enough even for base == 2 */
+	int val = num;	
+
+	/* This is enough even for base 2. */
+	char d[sizeof(unative_t) * 8 + 1]; 
 	int i = sizeof(unative_t) * 8 - 1;
-	
+
 	do {
 		d[i--] = digits[val % base];
 	} while (val /= base);
-	
+
 	d[sizeof(unative_t) * 8] = 0;	
 	puts(&d[i + 1]);
 }
@@ -156,89 +158,89 @@ void printf(const char *fmt, ...)
 	int i = 0;
 	va_list ap;
 	char c;	
-	
+
 	va_start(ap, fmt);
-	
+
 	while ((c = fmt[i++])) {
 		switch (c) {
-			
-			/* control character */
+
+		/* control character */
+		case '%':
+
+			switch (c = fmt[i++]) {
+
+			/* percentile itself */
 			case '%':
+				break;
+
+			/*
+			 * String and character conversions.
+			 */
+			case 's':
+				puts(va_arg(ap, char_ptr));
+				goto loop;
+
+			case 'c':
+				c = (char) va_arg(ap, int);
+				break;
+
+			/*
+			 * Hexadecimal conversions with fixed width.
+			 */
+			case 'P': 
+				puts("0x");
+			case 'p':
+				print_fixed_hex(va_arg(ap, unative_t),
+				    sizeof(unative_t));
+				goto loop;
+
+			case 'Q':
+				puts("0x");
+			case 'q':
+				print_fixed_hex(va_arg(ap, uint64_t), INT64);
+				goto loop;
+
+			case 'L': 
+				puts("0x");
+			case 'l':
+				print_fixed_hex(va_arg(ap, unative_t), INT32);
+				goto loop;
+
+			case 'W':
+				puts("0x");
+			case 'w':
+				print_fixed_hex(va_arg(ap, unative_t), INT16);
+				goto loop;
+
+			case 'B':
+				puts("0x");
+			case 'b':
+				print_fixed_hex(va_arg(ap, unative_t), INT8);
+				goto loop;
+
+			/*
+			 * Decimal and hexadecimal conversions.
+			 */
+			case 'd':
+				print_number(va_arg(ap, unative_t), 10);
+				goto loop;
 				
-				switch (c = fmt[i++]) {
-					
-					/* percentile itself */
-					case '%':
-						break;
-					
-					/*
-					 * String and character conversions.
-					 */
-					case 's':
-						puts(va_arg(ap, char_ptr));
-						goto loop;
-					
-					case 'c':
-						c = (char) va_arg(ap, int);
-						break;
-					
-					/*
-					 * Hexadecimal conversions with fixed width.
-					 */
-					case 'P': 
-						puts("0x");
-					case 'p':
-						print_fixed_hex(va_arg(ap, unative_t), sizeof(unative_t));
-						goto loop;
-					
-					case 'Q':
-						puts("0x");
-					case 'q':
-						print_fixed_hex(va_arg(ap, uint64_t), INT64);
-						goto loop;
-					
-					case 'L': 
-						puts("0x");
-					case 'l':
-						print_fixed_hex(va_arg(ap, unative_t), INT32);
-						goto loop;
-					
-					case 'W':
-						puts("0x");
-					case 'w':
-						print_fixed_hex(va_arg(ap, unative_t), INT16);
-						goto loop;
-					
-					case 'B':
-						puts("0x");
-					case 'b':
-						print_fixed_hex(va_arg(ap, unative_t), INT8);
-						goto loop;
-					
-					/*
-					 * Decimal and hexadecimal conversions.
-					 */
-					case 'd':
-						print_number(va_arg(ap, unative_t), 10);
-						goto loop;
-					
-					case 'X':
-						puts("0x");
-					case 'x':
-						print_number(va_arg(ap, unative_t), 16);
-						goto loop;
-					
-					/*
-					 * Bad formatting.
-					 */
-					default:
-						goto out;
-			}
-			
+			case 'X':
+				puts("0x");
+			case 'x':
+				print_number(va_arg(ap, unative_t), 16);
+				goto loop;
+				
+			/*
+			 * Bad formatting.
+			 */
 			default:
-				write(&c, 1);
+				goto out;
+			}
+
+		default:
+			write(&c, 1);
 		}
-	
 loop:
 		;
 	}
