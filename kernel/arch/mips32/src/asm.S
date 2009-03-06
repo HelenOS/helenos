@@ -71,12 +71,12 @@ memsetb:
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
+	move	$t2,$a0			# save dst
 	addiu	$v0,$a1,3
 	li	$v1,-4			# 0xfffffffffffffffc
 	and	$v0,$v0,$v1
 	beq	$a1,$v0,3f
 	move	$t0,$a0
-	move	$t2,$a0			# save dst
 
 0:
 	beq	$a2,$zero,2f
