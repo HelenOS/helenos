@@ -62,7 +62,7 @@ loader_t *loader_connect(void)
 	loader_t *ldr;
 	int phone_id;
 
-	phone_id = ipc_connect_me_to(PHONE_NS, SERVICE_LOAD, 0, 0);
+	phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
 	if (phone_id < 0)
 		return NULL;
 
