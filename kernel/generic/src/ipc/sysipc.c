@@ -936,6 +936,11 @@ restart:
 	/* Include phone address('id') of the caller in the request,
 	 * copy whole call->data, not only call->data.args */
 	if (STRUCT_TO_USPACE(calldata, &call->data)) {
+		/* XXX
+		 * To avoid deadlocks in synchronous calls
+		 * this should be replaced by discarding
+		 * the call and notifying the caller.
+		 */
 		return 0;
 	}
 	return (unative_t)call;
