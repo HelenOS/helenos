@@ -27,9 +27,9 @@
  */
 
 /** @addtogroup kbd
- * @brief	US Dvorak Simplified Keyboard layout.
+ * @brief US Dvorak Simplified Keyboard layout.
  * @{
- */ 
+ */
 
 #include <kbd.h>
 #include <kbd/kbd.h>
@@ -192,8 +192,9 @@ static char map_numeric[] = {
 
 static int translate(unsigned int key, char *map, size_t map_length)
 {
-	if (key >= map_length) return 0;
-	return map[key];	
+	if (key >= map_length)
+		return 0;
+	return map[key];
 }
 
 char layout_parse_ev(kbd_event_t *ev)
@@ -205,21 +206,24 @@ char layout_parse_ev(kbd_event_t *ev)
 		return 0;
 
 	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(char));
-	if (c != 0) return c;
+	if (c != 0)
+		return c;
 
 	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
 		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(char));
 	else
 		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(char));
 
-	if (c != 0) return c;
+	if (c != 0)
+		return c;
 
 	if ((ev->mods & KM_SHIFT) != 0)
 		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(char));
 	else
 		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(char));
 
-	if (c != 0) return c;
+	if (c != 0)
+		return c;
 
 	if ((ev->mods & KM_NUM_LOCK) != 0)
 		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(char));
@@ -231,4 +235,4 @@ char layout_parse_ev(kbd_event_t *ev)
 
 /**
  * @}
- */ 
+ */
