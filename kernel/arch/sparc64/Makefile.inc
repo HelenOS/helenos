@@ -42,11 +42,11 @@ LFLAGS += -no-check-sections -N
 
 DEFS += -D__64_BITS__
 
-ifeq ($(MACHINE),us)
+ifeq ($(PROCESSOR),us)
 	DEFS += -DUS
 endif
 
-ifeq ($(MACHINE),us3)
+ifeq ($(PROCESSOR),us3)
 	DEFS += -DUS3
 endif
 

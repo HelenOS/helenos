@@ -46,7 +46,7 @@ DEFS += -D__64_BITS__
 ## Accepted CPUs
 #
 
-ifeq ($(MACHINE),opteron)
+ifeq ($(PROCESSOR),opteron)
 	CMN2 := -march=opteron
 	GCC_CFLAGS += $(CMN2)
 	ICC_CFLAGS += $(CMN2)

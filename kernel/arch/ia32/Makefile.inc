@@ -45,23 +45,23 @@ SUNCC_CFLAGS += $(CMN1)
 ## Accepted CPUs
 #
 
-ifeq ($(MACHINE),athlon_xp)
+ifeq ($(PROCESSOR),athlon_xp)
 	CMN2 = -march=athlon-xp
 	SUNCC_CFLAGS += -xarch=ssea
 endif
-ifeq ($(MACHINE),athlon_mp)
+ifeq ($(PROCESSOR),athlon_mp)
 	CMN2 = -march=athlon-mp
 	SUNCC_CFLAGS += xarch=ssea
 endif
-ifeq ($(MACHINE),pentium3)
+ifeq ($(PROCESSOR),pentium3)
 	CMN2 = -march=pentium3
 	SUNCC_CFLAGS += -xarch=sse
 endif
-ifeq ($(MACHINE),pentium4)
+ifeq ($(PROCESSOR),pentium4)
 	CMN2 = -march=pentium4
 	SUNCC_CFLAGS += -xarch=sse2
 endif
-ifeq ($(MACHINE),core)
+ifeq ($(PROCESSOR),core)
 	CMN2 = -march=prescott
 	SUNCC_CFLAGS += -xarch=sse3
 endif
