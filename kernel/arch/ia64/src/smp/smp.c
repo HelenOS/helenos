@@ -52,8 +52,6 @@
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <arch/bootinfo.h>
-#include <genarch/kbd/i8042.h>
-#include <genarch/kbd/ns16550.h>
 #include <smp/smp.h>
 #include <smp/ipi.h>
 #include <arch/atomic.h>

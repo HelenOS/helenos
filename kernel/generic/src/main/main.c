@@ -256,6 +256,7 @@ void main_bsp_separated_stack(void)
 	
 	LOG_EXEC(ipc_init());
 	LOG_EXEC(klog_init());
+	LOG_EXEC(console_init());
 	
 #ifdef CONFIG_KCONSOLE
 	LOG_EXEC(kconsole_notify_init());

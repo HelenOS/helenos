@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	Headers for Zilog 8530 serial port / keyboard driver.
+ * @brief	Headers for Zilog 8530 serial controller.
  */
 
 #ifndef KERN_Z8530_H_
@@ -39,6 +39,7 @@
 
 #include <ddi/irq.h>
 #include <arch/types.h>
+#include <console/chardev.h>
 
 #define WR0	0
 #define WR1	1
@@ -117,9 +118,10 @@ typedef struct {
 	devno_t devno;
 	irq_t irq;
 	z8530_t *z8530;
+	chardev_t *devout;
 } z8530_instance_t;
 
-extern bool z8530_init(z8530_t *, devno_t, inr_t, cir_t, void *);
+extern bool z8530_init(z8530_t *, devno_t, inr_t, cir_t, void *, chardev_t *);
 extern irq_ownership_t z8530_claim(irq_t *);
 extern void z8530_irq_handler(irq_t *);
 

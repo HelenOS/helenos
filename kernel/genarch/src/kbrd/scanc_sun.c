@@ -34,7 +34,7 @@
  * @brief	Scan codes for Sun keyboards.
  */
 
-#include <genarch/kbd/scanc.h>
+#include <genarch/kbrd/scanc.h>
 
 /** Primary meaning of scancodes. */
 char sc_primary_map[] = {

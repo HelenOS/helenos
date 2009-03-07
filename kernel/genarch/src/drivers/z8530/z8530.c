@@ -31,15 +31,10 @@
  */
 /**
  * @file
- * @brief	Zilog 8530 serial port driver.
+ * @brief	Zilog 8530 serial controller driver.
  */
 
-#include <genarch/kbd/z8530.h>
-#include <genarch/kbd/key.h>
-#include <genarch/kbd/scanc.h>
-#include <genarch/kbd/scanc_sun.h>
-#include <arch/drivers/kbd.h>
-#include <console/console.h>
+#include <genarch/drivers/z8530/z8530.h>
 #include <console/chardev.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
@@ -65,27 +60,12 @@ static inline uint8_t z8530_read(ioport8_t *ctl, uint8_t reg)
 	return pio_read_8(ctl);
 }
 
-/*
- * These codes read from z8530 data register are silently ignored.
- */
-#define IGNORE_CODE	0x7f		/* all keys up */
-
-static void z8530_suspend(chardev_t *);
-static void z8530_resume(chardev_t *);
-
-static chardev_operations_t ops = {
-	.suspend = z8530_suspend,
-	.resume = z8530_resume,
-};
-
 /** Initialize z8530. */
 bool
-z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
+z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
+    chardev_t *devout)
 {
 	z8530_instance_t *instance;
-
-	chardev_initialize("z8530_kbd", &kbrd, &ops);
-	stdin = &kbrd;
 
 	instance = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
 	if (!instance)
@@ -93,6 +73,7 @@ z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 
 	instance->devno = devno;
 	instance->z8530 = dev;
+	instance->devout = devout;
 
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
@@ -124,22 +105,15 @@ z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	return true;
 }
 
-/* Called from getc(). */
-void z8530_resume(chardev_t *d)
-{
-}
-
-/* Called from getc(). */
-void z8530_suspend(chardev_t *d)
-{
-}
-
 irq_ownership_t z8530_claim(irq_t *irq)
 {
 	z8530_instance_t *instance = irq->instance;
 	z8530_t *dev = instance->z8530;
 
-	return (z8530_read(&dev->ctl_a, RR0) & RR0_RCA);
+	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA)
+		return IRQ_ACCEPT;
+	else
+		return IRQ_DECLINE;
 }
 
 void z8530_irq_handler(irq_t *irq)
@@ -150,12 +124,8 @@ void z8530_irq_handler(irq_t *irq)
 
 	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
 		x = z8530_read(&dev->ctl_a, RR8);
-		if (x != IGNORE_CODE) {
-			if (x & KEY_RELEASE)
-				key_released(x ^ KEY_RELEASE);
-			else
-				key_pressed(x);
-		}
+		if (instance->devout)
+			chardev_push_character(instance->devout, x);
 	}
 }
 

@@ -31,58 +31,22 @@
  */
 /**
  * @file
- * @brief	i8042 processor driver.
+ * @brief	i8042 processor driver
  *
- * It takes care of low-level keyboard functions.
+ * It takes care of the i8042 serial communication.
  */
 
-#include <genarch/kbd/i8042.h>
-#include <arch/drivers/kbd.h>
-#include <genarch/kbd/key.h>
-#include <genarch/kbd/scanc.h>
-#include <genarch/kbd/scanc_pc.h>
+#include <genarch/drivers/i8042/i8042.h>
 #include <genarch/drivers/legacy/ia32/io.h>
-#include <cpu.h>
 #include <arch/asm.h>
-#include <arch.h>
 #include <console/chardev.h>
-#include <console/console.h>
-#include <interrupt.h>
-
-/* Keyboard commands. */
-#define KBD_ENABLE	0xf4
-#define KBD_DISABLE	0xf5
-#define KBD_ACK		0xfa
-
-/*
- * 60  Write 8042 Command Byte: next data byte written to port 60h is
- *     placed in 8042 command register. Format:
- *
- *    |7|6|5|4|3|2|1|0|8042 Command Byte
- *     | | | | | | | `---- 1=enable output register full interrupt
- *     | | | | | | `----- should be 0
- *     | | | | | `------ 1=set status register system, 0=clear
- *     | | | | `------- 1=override keyboard inhibit, 0=allow inhibit
- *     | | | `-------- disable keyboard I/O by driving clock line low
- *     | | `--------- disable auxiliary device, drives clock line low
- *     | `---------- IBM scancode translation 0=AT, 1=PC/XT
- *     `----------- reserved, should be 0
- */
+#include <mm/slab.h>
 
 #define i8042_SET_COMMAND 	0x60
 #define i8042_COMMAND 		0x69
 
 #define i8042_BUFFER_FULL_MASK	0x01
 #define i8042_WAIT_MASK		0x02
-#define i8042_MOUSE_DATA	0x20
-
-static void i8042_suspend(chardev_t *);
-static void i8042_resume(chardev_t *);
-
-static chardev_operations_t ops = {
-	.suspend = i8042_suspend,
-	.resume = i8042_resume,
-};
 
 static irq_ownership_t i8042_claim(irq_t *irq)
 {
@@ -105,31 +69,24 @@ static void i8042_irq_handler(irq_t *irq)
 	if (((status = pio_read_8(&dev->status)) & i8042_BUFFER_FULL_MASK)) {
 		data = pio_read_8(&dev->data);
 			
-		if ((status & i8042_MOUSE_DATA))
-			return;
-
-		if (data & KEY_RELEASE)
-			key_released(data ^ KEY_RELEASE);
-		else
-			key_pressed(data);
+		if (instance->devout)
+			chardev_push_character(instance->devout, data);
 	}
 }
 
 /** Initialize i8042. */
 bool
-i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
+i8042_init(i8042_t *dev, devno_t devno, inr_t inr, chardev_t *devout)
 {
 	i8042_instance_t *instance;
 
-	chardev_initialize("i8042_kbd", &kbrd, &ops);
-	stdin = &kbrd;
-	
 	instance = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
 	if (!instance)
 		return false;
 	
 	instance->devno = devno;
 	instance->i8042 = dev;
+	instance->devout = devout;
 	
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
@@ -139,8 +96,6 @@ i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 	instance->irq.instance = instance;
 	irq_register(&instance->irq);
 	
-	trap_virtual_enable_irqs(1 << inr);
-	
 	/*
 	 * Clear input buffer.
 	 */
@@ -148,16 +103,6 @@ i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 		(void) pio_read_8(&dev->data);
 	
 	return true;
-}
-
-/* Called from getc(). */
-void i8042_resume(chardev_t *d)
-{
-}
-
-/* Called from getc(). */
-void i8042_suspend(chardev_t *d)
-{
 }
 
 /** @}

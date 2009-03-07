@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,32 @@
 /** @addtogroup genarch	
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef KERN_KEY_H_
-#define KERN_KEY_H_
+#ifndef KERN_I8042_H_
+#define KERN_I8042_H_
 
+#include <ddi/irq.h>
 #include <arch/types.h>
 #include <console/chardev.h>
+#include <typedefs.h>
 
-#define KEY_RELEASE     0x80
+struct i8042 {
+	ioport8_t data;
+	uint8_t pad[3];
+	ioport8_t status;
+} __attribute__ ((packed));
+typedef struct i8042 i8042_t;
 
-extern chardev_t kbrd;
+typedef struct i8042_instance {
+	devno_t devno;
+	irq_t irq;
+	i8042_t *i8042;
+	chardev_t *devout;
+} i8042_instance_t;
 
-extern void key_released(uint8_t sc);
-extern void key_pressed(uint8_t sc);
-extern uint8_t active_read_buff_read(void);
-extern void active_read_buff_write(uint8_t ch);
-extern void active_read_key_pressed(uint8_t sc);
+extern bool i8042_init(i8042_t *, devno_t, inr_t, chardev_t *);
 
 #endif
 

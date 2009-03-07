@@ -54,7 +54,8 @@
 #include <arch/bootinfo.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
-#include <genarch/kbd/i8042.h>
+#include <genarch/kbrd/kbrd.h>
+#include <genarch/drivers/i8042/i8042.h>
 #include <genarch/kbd/ns16550.h>
 #include <smp/smp.h>
 #include <smp/ipi.h>
@@ -177,7 +178,9 @@ void arch_post_smp_init(void)
 	    (uintptr_t) NS16550_BASE);
 #else
 	inr = IRQ_KBD;
-	(void) i8042_init((i8042_t *)I8042_BASE, devno, inr);
+	kbrd_init(stdin);
+	(void) i8042_init((i8042_t *)I8042_BASE, devno, inr, &kbrdin);
+	trap_virtual_enable_irqs(1 << inr);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);

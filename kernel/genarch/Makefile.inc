@@ -70,28 +70,32 @@ endif
 
 ifeq ($(CONFIG_I8042),y)
 	GENARCH_SOURCES += \
-		genarch/src/kbd/i8042.c \
-		genarch/src/kbd/key.c \
-		genarch/src/kbd/scanc_pc.c
-endif
-
-ifeq ($(CONFIG_SUN_KBD),y)
-	GENARCH_SOURCES += \
-		genarch/src/kbd/key.c \
-		genarch/src/kbd/scanc_sun.c
-endif
-
-ifeq ($(CONFIG_Z8530),y)
-	GENARCH_SOURCES += \
-		genarch/src/kbd/z8530.c
+		genarch/src/drivers/i8042/i8042.c
 endif
 
 ifeq ($(CONFIG_NS16550),y)
 	GENARCH_SOURCES += \
-		genarch/src/kbd/ns16550.c
+		genarch/src/drivers/ns16550/ns16550.c
 endif
 
-ifeq ($(CONFIG_OFW_TREE), y)
+ifeq ($(CONFIG_Z8530),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/z8530/z8530.c
+endif
+
+ifeq ($(CONFIG_PC_KBD),y)
+	GENARCH_SOURCES += \
+		genarch/src/kbrd/kbrd.c \
+		genarch/src/kbrd/scanc_pc.c
+endif
+
+ifeq ($(CONFIG_SUN_KBD),y)
+	GENARCH_SOURCES += \
+		genarch/src/kbrd/kbrd.c \
+		genarch/src/kbrd/scanc_sun.c
+endif
+
+ifeq ($(CONFIG_OFW_TREE),y)
 	GENARCH_SOURCES += \
 		genarch/src/ofw/ofw_tree.c \
 		genarch/src/ofw/ebus.c \

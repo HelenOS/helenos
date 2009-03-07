@@ -44,7 +44,8 @@
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
 #include <arch/drivers/vesa.h>
-#include <genarch/kbd/i8042.h>
+#include <genarch/drivers/i8042/i8042.h>
+#include <genarch/kbrd/kbrd.h>
 #include <arch/drivers/i8254.h>
 #include <arch/drivers/i8259.h>
 
@@ -147,8 +148,15 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 	devno_t devno = device_assign_devno();
-	/* keyboard controller */
-	(void) i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD);
+
+	/*
+	 * Initialize the keyboard module and conect it to stdin. Then
+	 * initialize the i8042 controller and connect it to kbrdin. Enable
+	 * keyboard interrupts.
+	 */
+	kbrd_init(stdin);
+	(void) i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD, &kbrdin);
+	trap_virtual_enable_irqs(1 << IRQ_KBD);
 
 	/*
 	 * This is the necessary evil until the userspace driver is entirely

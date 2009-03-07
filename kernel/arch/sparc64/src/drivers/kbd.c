@@ -34,12 +34,18 @@
 
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
+
+#ifdef CONFIG_SUN_KBD
+#include <genarch/kbrd/kbrd.h>
+#endif
 #ifdef CONFIG_Z8530
-#include <genarch/kbd/z8530.h>
+#include <genarch/drivers/z8530/z8530.h>
 #endif
 #ifdef CONFIG_NS16550
-#include <genarch/kbd/ns16550.h>
+#include <genarch/drivers/ns16550/ns16550.h>
 #endif
+
+#include <console/console.h>
 #include <ddi/device.h>
 #include <ddi/irq.h>
 #include <arch/mm/page.h>
@@ -159,7 +165,8 @@ void kbd_init(ofw_tree_node_t *node)
 		devno = device_assign_devno();
 		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
-		(void) z8530_init(z8530, devno, inr, cir, cir_arg);
+		kbrd_init(stdin);
+		(void) z8530_init(z8530, devno, inr, cir, cir_arg, &kbrdin);
 		
 		/*
 		 * This is the necessary evil until the userspace drivers are
@@ -179,7 +186,8 @@ void kbd_init(ofw_tree_node_t *node)
 		devno = device_assign_devno();
 		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
-		(void) ns16550_init(ns16550, devno, inr, cir, cir_arg);
+		kbrd_init(stdin);
+		(void) ns16550_init(ns16550, devno, inr, cir, cir_arg, &kbrdin);
 		
 		/*
 		 * This is the necessary evil until the userspace driver is

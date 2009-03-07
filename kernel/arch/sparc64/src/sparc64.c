@@ -89,8 +89,6 @@ void arch_post_mm_init(void)
 		 * But we only create 128 buckets.
 		 */
 		irq_init(1 << 11, 128);
-
-		standalone_sparc64_console_init();
 	}
 }
 
@@ -104,13 +102,14 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	static thread_t *t = NULL;
+	if (config.cpu_active == 1) {
+		standalone_sparc64_console_init();
 
-	if (!t) {
-		/*
-	         * Create thread that polls keyboard.
-	         */
-		t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
+		/* Create thread that polls keyboard.
+		 * XXX: this is only used by sgcn now
+		 */
+		thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll",
+		    true);
 		if (!t)
 			panic("Cannot create kkbdpoll.");
 		thread_ready(t);

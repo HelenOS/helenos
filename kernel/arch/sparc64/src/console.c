@@ -40,13 +40,6 @@
 
 #include <arch/drivers/sgcn.h>
 
-#ifdef CONFIG_Z8530
-#include <genarch/kbd/z8530.h>
-#endif
-#ifdef CONFIG_NS16550
-#include <genarch/kbd/ns16550.h>
-#endif
-
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/asm.h>
@@ -70,8 +63,6 @@
 static void standard_console_init(ofw_tree_node_t *aliases)
 {
 #ifdef CONFIG_FB
-	stdin = NULL;
-
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *screen;
 	ofw_tree_node_t *keyboard;

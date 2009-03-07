@@ -31,39 +31,16 @@
  */
 /**
  * @file
- * @brief	NS 16550 serial port / keyboard driver.
+ * @brief	NS 16550 serial controller driver.
  */
 
-#include <genarch/kbd/ns16550.h>
-#include <genarch/kbd/key.h>
-#include <genarch/kbd/scanc.h>
-#include <genarch/kbd/scanc_sun.h>
-#include <arch/drivers/kbd.h>
+#include <genarch/drivers/ns16550/ns16550.h>
 #include <ddi/irq.h>
-#include <cpu.h>
 #include <arch/asm.h>
-#include <arch.h>
 #include <console/chardev.h>
-#include <console/console.h>
-#include <interrupt.h>
-#include <arch/interrupt.h>
-#include <synch/spinlock.h>
 #include <mm/slab.h>
 
 #define LSR_DATA_READY	0x01
-
-/*
- * These codes read from ns16550 data register are silently ignored.
- */
-#define IGNORE_CODE	0x7f		/* all keys up */
-
-static void ns16550_suspend(chardev_t *);
-static void ns16550_resume(chardev_t *);
-
-static chardev_operations_t ops = {
-	.suspend = ns16550_suspend,
-	.resume = ns16550_resume,
-};
 
 /** Initialize ns16550.
  *
@@ -72,16 +49,15 @@ static chardev_operations_t ops = {
  * @param inr		Interrupt number.
  * @param cir		Clear interrupt function.
  * @param cir_arg	First argument to cir.
+ * @param devout	Output character device.
  *
  * @return		True on success, false on failure.
  */
 bool
-ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
+ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
+    chardev_t *devout)
 {
 	ns16550_instance_t *instance;
-
-	chardev_initialize("ns16550_kbd", &kbrd, &ops);
-	stdin = &kbrd;
 	
 	instance = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
 	if (!instance)
@@ -89,6 +65,7 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 
 	instance->devno = devno;
 	instance->ns16550 = dev;
+	instance->devout = devout;
 	
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
@@ -110,20 +87,10 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 	return true;
 }
 
-/* Called from getc(). */
-void ns16550_resume(chardev_t *d)
-{
-}
-
-/* Called from getc(). */
-void ns16550_suspend(chardev_t *d)
-{
-}
-
 irq_ownership_t ns16550_claim(irq_t *irq)
 {
-	ns16550_instance_t *ns16550_instance = irq->instance;
-	ns16550_t *dev = ns16550_instance->ns16550;
+	ns16550_instance_t *instance = irq->instance;
+	ns16550_t *dev = instance->ns16550;
 
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)
 		return IRQ_ACCEPT;
@@ -133,22 +100,16 @@ irq_ownership_t ns16550_claim(irq_t *irq)
 
 void ns16550_irq_handler(irq_t *irq)
 {
-	ns16550_instance_t *ns16550_instance = irq->instance;
-	ns16550_t *dev = ns16550_instance->ns16550;
+	ns16550_instance_t *instance = irq->instance;
+	ns16550_t *dev = instance->ns16550;
 
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
 		uint8_t x;
 		
 		x = pio_read_8(&dev->rbr);
-		
-		if (x != IGNORE_CODE) {
-			if (x & KEY_RELEASE)
-				key_released(x ^ KEY_RELEASE);
-			else
-				key_pressed(x);
-		}
+		if (instance->devout)
+			chardev_push_character(instance->devout, x);
 	}
-
 }
 
 /** @}

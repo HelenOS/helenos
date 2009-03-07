@@ -106,9 +106,29 @@ static irq_ownership_t klog_claim(irq_t *irq)
 	return IRQ_DECLINE;
 }
 
+static void stdin_suspend(chardev_t *d)
+{
+}
+
+static void stdin_resume(chardev_t *d)
+{
+}
+
+static chardev_operations_t stdin_ops = {
+	.suspend = stdin_suspend,
+	.resume = stdin_resume,
+};
+
 /** Standard input character device */
+static chardev_t _stdin;
 chardev_t *stdin = NULL;
 chardev_t *stdout = &null_stdout;
+
+void console_init(void)
+{
+	chardev_initialize("stdin", &_stdin, &stdin_ops);
+	stdin = &_stdin;
+}
 
 /** Initialize kernel logging facility
  *
