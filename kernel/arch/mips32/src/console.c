@@ -38,14 +38,6 @@
 #include <arch/drivers/msim.h>
 #include <genarch/fb/fb.h>
 
-void console_init(devno_t devno)
-{
-	if (serial_init())
-		serial_console(devno);
-	else
-		msim_console(devno);
-}
-
 /** Acquire console back for kernel
  *
  */

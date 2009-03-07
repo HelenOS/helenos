@@ -35,40 +35,7 @@
 #ifndef KERN_mips32_SERIAL_H_
 #define KERN_mips32_SERIAL_H_
 
-#include <console/chardev.h>
-
 #define SERIAL_ADDRESS    0x98000000
-
-#define SERIAL_MAX        4
-#define SERIAL_COM1       0x3f8
-#define SERIAL_COM1_IRQ   4
-#define SERIAL_COM2       0x2f8
-#define SERIAL_COM2_IRQ   3
-
-#define P_WRITEB(where, what)     (*((volatile char *) (SERIAL_ADDRESS + where)) = what)
-#define P_READB(where)            (*((volatile char *) (SERIAL_ADDRESS + where)))
-
-#define SERIAL_READ(x)            P_READB(x)
-#define SERIAL_WRITE(x, c)        P_WRITEB(x, c)
-
-/* Interrupt enable register */
-#define SERIAL_READ_IER(x)              (P_READB((x) + 1))
-#define SERIAL_WRITE_IER(x,c)           (P_WRITEB((x) + 1, c))
-
-/* Interrupt identification register */
-#define SERIAL_READ_IIR(x)             (P_READB((x) + 2))
-
-/* Line status register */
-#define SERIAL_READ_LSR(x)             (P_READB((x) + 5))
-#define TRANSMIT_EMPTY_BIT      5          
-
-typedef struct {
-	int port;
-	int irq;
-}serial_t;
-
-extern void serial_console(devno_t devno);
-extern int serial_init(void);
 
 #endif
 

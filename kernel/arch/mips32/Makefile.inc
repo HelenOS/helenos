@@ -86,6 +86,5 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/msim.c \
-	arch/$(KARCH)/src/drivers/serial.c \
 	arch/$(KARCH)/src/smp/dorder.c \
 	arch/$(KARCH)/src/smp/smp.c

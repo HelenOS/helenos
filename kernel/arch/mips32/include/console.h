@@ -35,8 +35,6 @@
 #ifndef KERN_mips32_CONSOLE_H_
 #define KERN_mips32_CONSOLE_H_
 
-extern void console_init(devno_t devno);
-
 #endif
 
 /** @}

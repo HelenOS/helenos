@@ -56,6 +56,7 @@
 #include <ddi/device.h>
 #include <config.h>
 #include <string.h>
+#include <arch/drivers/msim.h>
 
 #include <arch/asm/regname.h>
 
@@ -132,7 +133,7 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	interrupt_init();
-	console_init(device_assign_devno());
+	msim_console(device_assign_devno());
 #ifdef CONFIG_FB
 	/* GXemul framebuffer */
 	fb_properties_t gxemul_prop = {
