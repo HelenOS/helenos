@@ -95,6 +95,11 @@ ifeq ($(CONFIG_SUN_KBD),y)
 		genarch/src/kbrd/scanc_sun.c
 endif
 
+ifeq ($(CONFIG_SRLN),y)
+	GENARCH_SOURCES += \
+		genarch/src/srln/srln.c
+endif
+
 ifeq ($(CONFIG_OFW_TREE),y)
 	GENARCH_SOURCES += \
 		genarch/src/ofw/ofw_tree.c \

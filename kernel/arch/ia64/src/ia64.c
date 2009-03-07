@@ -55,8 +55,10 @@
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/kbrd/kbrd.h>
+#include <genarch/srln/srln.h>
 #include <genarch/drivers/i8042/i8042.h>
-#include <genarch/kbd/ns16550.h>
+#include <genarch/drivers/ns16550/ns16550.h>
+#include <arch/drivers/kbd.h>
 #include <smp/smp.h>
 #include <smp/ipi.h>
 #include <arch/atomic.h>
@@ -170,7 +172,9 @@ void arch_post_smp_init(void)
 
 #ifdef CONFIG_NS16550
 	inr = NS16550_IRQ;
-	(void) ns16550_init((ns16550_t *)NS16550_BASE, devno, inr, NULL, NULL);
+	srln_init(stdin);
+	(void) ns16550_init((ns16550_t *)NS16550_BASE, devno, inr, NULL, NULL,
+	    &srlnin);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
