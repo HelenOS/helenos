@@ -127,16 +127,12 @@ OBJECTS := $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS)
 
 .PHONY: all clean depend disasm links
 
-all: links $(OUTPUT) $(OUTPUT).disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
-links:
-	ln -sfn ../arch/$(UARCH)/include include/arch
-	ln -sfn ../genarch/include include/genarch
-
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend include/arch include/genarch $(OBJECTS)
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
