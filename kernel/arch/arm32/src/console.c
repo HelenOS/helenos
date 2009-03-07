@@ -39,11 +39,6 @@
 
 #include <genarch/fb/fb.h>
 
-void console_init(devno_t devno)
-{
-	machine_console_init(devno);
-}
-
 /** Acquire console back for kernel. */
 void arch_grab_console(void)
 {

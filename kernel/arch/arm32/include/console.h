@@ -36,13 +36,6 @@
 #ifndef KERN_arm32_CONSOLE_H_
 #define KERN_arm32_CONSOLE_H_
 
-
-/** Initializes console.
- *
- * @param devno Console device number.
- */
-extern void console_init(devno_t devno);
-
 #endif
 
 /** @}

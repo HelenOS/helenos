@@ -82,7 +82,7 @@ void arch_post_mm_init(void)
 
 	interrupt_init();
 	
-	console_init(device_assign_devno());
+	machine_console_init(device_assign_devno());
 
 #ifdef CONFIG_FB
 	fb_properties_t prop = {
