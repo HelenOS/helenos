@@ -48,15 +48,18 @@
 				 * sys_ipc_hangup() to close the connection.
 				 * Used by answerbox to close the connection.
 				 */
-#define EEXISTS		-8	/* Entry already exists */
-#define EBADMEM		-9	/* Bad memory pointer */
-#define ENOTSUP		-10	/* Not supported */
-#define EADDRNOTAVAIL	-11	/* Address not available. */
-#define ETIMEOUT        -12     /* Timeout expired */
-#define EINVAL          -13     /* Invalid value */
-#define EBUSY           -14     /* Resource is busy */
-#define EOVERFLOW	-15	/* The result does not fit its size. */
-#define EINTR		-16	/* Operation was interrupted. */
+#define EPARTY		-8	/* The other party encountered an error when
+				 * receiving the call.
+				 */
+#define EEXISTS		-9	/* Entry already exists */
+#define EBADMEM		-10	/* Bad memory pointer */
+#define ENOTSUP		-11	/* Not supported */
+#define EADDRNOTAVAIL	-12	/* Address not available. */
+#define ETIMEOUT        -13     /* Timeout expired */
+#define EINVAL          -14     /* Invalid value */
+#define EBUSY           -15     /* Resource is busy */
+#define EOVERFLOW	-16	/* The result does not fit its size. */
+#define EINTR		-17	/* Operation was interrupted. */
 
 #endif
 

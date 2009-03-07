@@ -936,11 +936,21 @@ restart:
 	/* Include phone address('id') of the caller in the request,
 	 * copy whole call->data, not only call->data.args */
 	if (STRUCT_TO_USPACE(calldata, &call->data)) {
-		/* XXX
-		 * To avoid deadlocks in synchronous calls
-		 * this should be replaced by discarding
-		 * the call and notifying the caller.
+		/*
+		 * The callee will not receive this call and no one else has
+		 * a chance to answer it. Reply with the EPARTY error code.
 		 */
+		ipc_data_t saved_data;
+		int saveddata = 0;
+
+		if (answer_need_old(call)) {
+			memcpy(&saved_data, &call->data, sizeof(call->data));
+			saveddata = 1;
+		}
+		
+		IPC_SET_RETVAL(call->data, EPARTY);
+		(void) answer_preprocess(call, saveddata ? &saved_data : NULL);
+		ipc_answer(&TASK->answerbox, call);
 		return 0;
 	}
 	return (unative_t)call;
