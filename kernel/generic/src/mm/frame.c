@@ -160,6 +160,7 @@ static count_t zones_insert_zone(pfn_t base, count_t count)
  * @return Total number of available frames.
  *
  */
+#ifdef CONFIG_DEBUG
 static count_t total_frames_free(void)
 {
 	count_t total = 0;
@@ -169,6 +170,7 @@ static count_t total_frames_free(void)
 	
 	return total;
 }
+#endif
 
 /** Find a zone with a given frames.
  *
@@ -288,15 +290,12 @@ static link_t *zone_buddy_find_buddy(buddy_system_t *buddy, link_t *block)
 	    frame->buddy_order));
 	
 	bool is_left = IS_BUDDY_LEFT_BLOCK_ABS(zone, frame);
-	bool is_right = IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame);
-	
-	ASSERT(is_left ^ is_right);
 	
 	index_t index;
 	if (is_left) {
 		index = (frame_index(zone, frame)) +
 		    (1 << frame->buddy_order);
-	} else {  /* if (is_right) */
+	} else {	/* is_right */
 		index = (frame_index(zone, frame)) -
 		    (1 << frame->buddy_order);
 	}
@@ -483,7 +482,9 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
 	if (frame->refcount)
 		return;
 	
-	link_t *link = buddy_system_alloc_block(zone->buddy_system,
+	link_t *link __attribute__ ((unused));
+	
+	link = buddy_system_alloc_block(zone->buddy_system,
 	    &frame->buddy_link);
 	
 	ASSERT(link);
@@ -608,8 +609,9 @@ static void return_config_frames(count_t znum, pfn_t pfn, count_t count)
 	    || (pfn >= zones.info[znum].base + zones.info[znum].count))
 		return;
 	
-	frame_t *frame
-	    = &zones.info[znum].frames[pfn - zones.info[znum].base];
+	frame_t *frame __attribute__ ((unused));
+
+	frame = &zones.info[znum].frames[pfn - zones.info[znum].base];
 	ASSERT(!frame->buddy_order);
 	
 	count_t i;
