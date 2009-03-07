@@ -260,7 +260,9 @@ void ski_kbd_release(void)
 void kkbdpoll(void *arg)
 {
 	while (1) {
-		poll_keyboard();
+		if (!silent) {
+			poll_keyboard();
+		}
 		thread_usleep(POLL_INTERVAL);
 	}
 }
