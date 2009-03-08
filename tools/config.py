@@ -40,6 +40,7 @@ INPUT = sys.argv[1]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
 DEFS = 'config.defs'
+PRECONF = 'defaults'
 
 def read_defaults(fname, defaults):
 	"Read saved values from last configuration run"
@@ -276,6 +277,49 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	outmc.close()
 	outdf.close()
 
+def sorted_dir(root):
+	list = os.listdir(root)
+	list.sort()
+	return list
+
+def read_preconfigured(root, fname, screen, defaults):
+	options = []
+	opt2path = {}
+	cnt = 0
+	
+	# Look for profiles
+	for name in sorted_dir(root):
+		path = os.path.join(root, name)
+		canon = os.path.join(path, fname)
+		
+		if ((os.path.isdir(path)) and (os.path.exists(canon)) and (os.path.isfile(canon))):
+			subprofile = False
+			
+			# Look for subprofiles
+			for subname in sorted_dir(path):
+				subpath = os.path.join(path, subname)
+				subcanon = os.path.join(subpath, fname)
+				
+				if ((os.path.isdir(subpath)) and (os.path.exists(subcanon)) and (os.path.isfile(subcanon))):
+					subprofile = True
+					options.append("%s (%s)" % (name, subname))
+					opt2path[cnt] = (canon, subcanon)
+					cnt += 1
+			
+			if (not subprofile):
+				options.append(name)
+				opt2path[cnt] = (canon, None)
+				cnt += 1
+	
+	(button, value) = xtui.choice_window(screen, 'Load preconfigured defaults', 'Choose configuration profile', options, None)
+	
+	if (button == 'cancel'):
+		return None
+	
+	read_defaults(opt2path[value][0], defaults)
+	if (opt2path[value][1] != None):
+		read_defaults(opt2path[value][1], defaults)
+
 def main():
 	defaults = {}
 	ask_names = []
@@ -302,6 +346,7 @@ def main():
 	screen = xtui.screen_init()
 	try:
 		selname = None
+		position = None
 		while True:
 			
 			# Cancel out all defaults which have to be deduced
@@ -311,8 +356,10 @@ def main():
 			
 			options = []
 			opt2row = {}
-			position = None
-			cnt = 0
+			cnt = 1
+			
+			options.append("  --- Load preconfigured defaults ... ")
+			
 			for varname, vartype, name, choices, cond in ask_names:
 				
 				if ((cond) and (not check_condition(cond, defaults, ask_names))):
@@ -361,11 +408,20 @@ def main():
 				
 				cnt += 1
 			
+			if (position >= options):
+				position = None
+			
 			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
 			
 			if (button == 'cancel'):
 				return 'Configuration canceled'
 			
+			if (value == 0):
+				read_preconfigured(PRECONF, MAKEFILE, screen, defaults)
+				position = 1
+				continue
+			
+			position = None
 			if (not opt2row.has_key(value)):
 				raise RuntimeError("Error selecting value: %s" % value)
 			
