@@ -79,7 +79,7 @@ ifeq ($(UARCH), ia32)
 		port/i8042.c \
 		ctl/pc.c
 endif
-ifeq ($(MACHINE), i640GX)
+ifeq ($(MACHINE), i460GX)
 	GENARCH_SOURCES += \
 		port/i8042.c \
 		ctl/pc.c
