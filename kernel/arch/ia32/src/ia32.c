@@ -111,13 +111,17 @@ void arch_post_mm_init(void)
 		
 		/* hard clock */
 		i8254_init();
-
+		
 #ifdef CONFIG_FB
 		if (vesa_present()) 
 			vesa_init();
 		else
 #endif
-			ega_init(EGA_BASE, EGA_VIDEORAM);	/* video */
+#ifdef CONFIG_EGA
+			ega_init(EGA_BASE, EGA_VIDEORAM);  /* video */
+#else
+			{}
+#endif
 		
 		/* Enable debugger */
 		debugger_init();
