@@ -35,24 +35,17 @@
 #include <arch/ski/ski.h>
 #include <console/console.h>
 #include <console/chardev.h>
-#include <arch/interrupt.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/types.h>
-#include <ddi/device.h>
-#include <ddi/irq.h>
-#include <ipc/irq.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
+#include <arch.h>
 
-#define SKI_KBD_INR  0
+static chardev_t *skiout;
 
-static irq_t ski_kbd_irq;
-static devno_t ski_kbd_devno;
-
-chardev_t ski_console;
-chardev_t ski_uconsole;
+static chardev_t ski_stdout;
 
 static bool kbd_disabled;
 
@@ -81,6 +74,10 @@ static void ski_putchar(chardev_t *d, const char ch, bool silent)
 	}
 }
 
+static chardev_operations_t ski_ops = {
+	.write = ski_putchar
+};
+
 /** Ask debug console if a key was pressed.
  *
  * Use SSC (Simulator System Call) to
@@ -107,26 +104,10 @@ static int32_t ski_getchar(void)
 	return (int32_t) ch;
 }
 
-/**
- * This is a blocking wrapper for ski_getchar().
- * To be used when the kernel crashes. 
- */
-static char ski_getchar_blocking(chardev_t *d)
-{
-	int ch;
-	
-	while(!(ch = ski_getchar()));
-	
-	if (ch == '\r')
-		ch = '\n'; 
-	return (char) ch;
-}
-
 /** Ask keyboard if a key was pressed. */
 static void poll_keyboard(void)
 {
 	char ch;
-	static char last; 
 	ipl_t ipl;
 	
 	ipl = interrupts_disable();
@@ -136,74 +117,37 @@ static void poll_keyboard(void)
 		return;
 	}
 	
-	spinlock_lock(&ski_kbd_irq.lock);
-	
 	ch = ski_getchar();
 	if(ch == '\r')
 		ch = '\n'; 
-	if (ch) {
-		if (ski_kbd_irq.notif_cfg.notify &&
-		    ski_kbd_irq.notif_cfg.answerbox) {
-			chardev_push_character(&ski_uconsole, ch);
-			/* XXX: send notification to userspace */
-		} else {
-			chardev_push_character(&ski_console, ch);
-		}	
-		last = ch;
-		spinlock_unlock(&ski_kbd_irq.lock);
+	if (ch && skiout) {
+		chardev_push_character(skiout, ch);
 		interrupts_restore(ipl);
 		return;
 	}
 
-	if (last) {
-		if (ski_kbd_irq.notif_cfg.notify &&
-		    ski_kbd_irq.notif_cfg.answerbox) {
-			chardev_push_character(&ski_uconsole, 0);
-			/* XXX: send notification to userspace */
-		}
-		last = 0;
-	}
-
-	spinlock_unlock(&ski_kbd_irq.lock);
 	interrupts_restore(ipl);
 }
 
-/* Called from getc(). */
-static void ski_kbd_enable(chardev_t *d)
-{
-	kbd_disabled = false;
-}
+#define POLL_INTERVAL           10000           /* 10 ms */
 
-/* Called from getc(). */
-static void ski_kbd_disable(chardev_t *d)
+/** Kernel thread for polling keyboard. */
+static void kkbdpoll(void *arg)
 {
-	kbd_disabled = true;
+	while (1) {
+		if (!silent) {
+			poll_keyboard();
+		}
+		thread_usleep(POLL_INTERVAL);
+	}
 }
-
-/** Decline to service hardware IRQ.
- *
- * This is only a virtual IRQ, so always decline.
- *
- * @return Always IRQ_DECLINE.
- */
-static irq_ownership_t ski_kbd_claim(irq_t *irq)
-{
-	return IRQ_DECLINE;
-}
-
-static chardev_operations_t ski_ops = {
-	.resume = ski_kbd_enable,
-	.suspend = ski_kbd_disable,
-	.write = ski_putchar,
-	.read = ski_getchar_blocking
-};
 
 /** Initialize debug console
  *
  * Issue SSC (Simulator System Call) to
  * to open debug console.
  */
-void ski_init_console(void)
+void ski_console_init(chardev_t *devout)
 {
 	asm volatile (
 		"mov r15 = %0\n"
@@ -213,22 +157,16 @@ void ski_init_console(void)
 		: "r15", "r8"
 	);
 
-	chardev_initialize("ski_console", &ski_console, &ski_ops);
-	chardev_initialize("ski_uconsole", &ski_uconsole, &ski_ops);
-	stdin = &ski_console;
-	stdout = &ski_console;
+	skiout = devout;
+	chardev_initialize("ski_stdout", &ski_stdout, &ski_ops);
+	stdout = &ski_stdout;
 
-	ski_kbd_devno = device_assign_devno();
-	
-	irq_initialize(&ski_kbd_irq);
-	ski_kbd_irq.inr = SKI_KBD_INR;
-	ski_kbd_irq.devno = ski_kbd_devno;
-	ski_kbd_irq.claim = ski_kbd_claim;
-	irq_register(&ski_kbd_irq);
+	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
+	if (!t)
+		panic("Cannot create kkbdpoll.");
+	thread_ready(t);
 
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, SKI_KBD_INR);
-	sysinfo_set_item_val("kbd.devno", NULL, ski_kbd_devno);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
 
 	sysinfo_set_item_val("fb", NULL, false);
@@ -236,35 +174,12 @@ void ski_init_console(void)
 
 void ski_kbd_grab(void)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&ski_kbd_irq.lock);
-	ski_kbd_irq.notif_cfg.notify = false;
-	spinlock_unlock(&ski_kbd_irq.lock);
-	interrupts_restore(ipl);
+	kbd_disabled = true;
 }
 
 void ski_kbd_release(void)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&ski_kbd_irq.lock);
-	if (ski_kbd_irq.notif_cfg.answerbox)
-		ski_kbd_irq.notif_cfg.notify = true;
-	spinlock_unlock(&ski_kbd_irq.lock);
-	interrupts_restore(ipl);
-}
-
-
-#define POLL_INTERVAL		50000		/* 50 ms */
-
-/** Kernel thread for polling keyboard. */
-void kkbdpoll(void *arg)
-{
-	while (1) {
-		if (!silent) {
-			poll_keyboard();
-		}
-		thread_usleep(POLL_INTERVAL);
-	}
+	kbd_disabled = false;
 }
 
 /** @}

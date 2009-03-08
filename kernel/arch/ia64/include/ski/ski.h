@@ -36,20 +36,15 @@
 #define KERN_ia64_SKI_H_
 
 #include <arch/types.h>
-#include <console/console.h>
+#include <console/chardev.h>
 
 #define SKI_INIT_CONSOLE	20
 #define SKI_GETCHAR		21
 #define SKI_PUTCHAR		31
 
-extern chardev_t ski_uconsole;
-
-extern void ski_init_console(void);
-
+extern void ski_console_init(chardev_t *);
 extern void ski_kbd_grab(void);
 extern void ski_kbd_release(void);
-
-extern void kkbdpoll(void *arg);
 
 #endif
 

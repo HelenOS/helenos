@@ -130,20 +130,13 @@ static void iosapic_init(void)
 
 }
 
-
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);
-#ifdef SKI
-		ski_init_console();
-#else
-		ega_init(EGA_BASE, EGA_VIDEORAM);
-#endif
 	}
-	it_init();
-		
+	it_init();	
 }
 
 void arch_post_cpu_init(void)
@@ -156,17 +149,16 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	/*
-	 * Create thread that polls keyboard.
-	 */
 #ifdef SKI
-	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
-	if (!t)
-		panic("Cannot create kkbdpoll.");
-	thread_ready(t);
+	srln_init(stdin);
+	ski_console_init(&srlnin);
 #endif		
 
 #ifdef I460GX
+#ifdef CONFIG_EGA
+	ega_init(EGA_BASE, EGA_VIDEORAM);
+#endif
+
 	devno_t devno = device_assign_devno();
 	inr_t inr;
 
