@@ -256,5 +256,5 @@ def error_dialog(screen, title, msg):
 		grid.runOnce()
 	elif (dialog):
 		call_dlg(dlgcmd, '--title', title, '--msgbox', msg, '6', str(width + width_extra))
-	
-	sys.stdout.write("\n%s: %s\n" % (title, msg))
+	else:
+		sys.stdout.write("\n%s: %s\n" % (title, msg))

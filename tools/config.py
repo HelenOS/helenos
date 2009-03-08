@@ -337,7 +337,10 @@ def main():
 						defaults[varname] = choices[0][0]
 						continue
 					
-					options.append("     %s [%s] --> " % (name, default))
+					if (default == None):
+						options.append("?     %s --> " % name)
+					else:
+						options.append("      %s [%s] --> " % (name, default))
 				elif (vartype == 'y'):
 					defaults[varname] = '*'
 					continue
@@ -345,12 +348,12 @@ def main():
 					if (default == None):
 						default = 'y'
 						defaults[varname] = default
-					options.append(" <%s> %s " % (yes_no(default), name))
+					options.append("  <%s> %s " % (yes_no(default), name))
 				elif (vartype == 'n/y'):
 					if (default == None):
 						default = 'n'
 						defaults[varname] = default
-					options.append(" <%s> %s " % (yes_no(default), name))
+					options.append("  <%s> %s " % (yes_no(default), name))
 				else:
 					raise RuntimeError("Unknown variable type: %s" % vartype)
 				
@@ -377,7 +380,7 @@ def main():
 				if (check_choices(defaults, ask_names)):
 					break
 				else:
-					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values.')
+					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 			
 			if (seltype == 'choice'):
