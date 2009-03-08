@@ -86,3 +86,4 @@ void srln_init(chardev_t *devout)
 
 /** @}
  */
+
