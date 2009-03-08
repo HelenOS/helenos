@@ -27,19 +27,17 @@
  */
 
 /** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
+ * @brief	Generic scancode parser.
  * @ingroup  kbd
  * @{
  */ 
 /** @file
  */
 
-#ifndef KBD_CTL_H_
-#define KBD_CTL_H_
+#ifndef KBD_STROKE_H_
+#define KBD_STROKE_H_
 
-extern void kbd_ctl_parse_scancode(int);
-extern int kbd_ctl_init(void);
-
+extern void stroke_sim(unsigned, unsigned);
 
 #endif
 

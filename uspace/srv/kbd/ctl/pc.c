@@ -39,13 +39,14 @@
 #include <kbd/kbd.h>
 #include <kbd/keycode.h>
 #include <kbd_ctl.h>
+#include <gsp.h>
 
 enum dec_state {
 	ds_s,
 	ds_e
 };
 
-static enum dec_state ds = ds_s;
+static enum dec_state ds;
 
 static int scanmap_simple[] = {
 
@@ -179,6 +180,11 @@ static int scanmap_e0[] = {
 	[0x1c] = KC_NENTER
 };
 
+int kbd_ctl_init(void)
+{
+	ds = ds_s;
+	return 0;
+}
 
 void kbd_ctl_parse_scancode(int scancode)
 {

@@ -27,18 +27,47 @@
  */
 
 /** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
+ * @brief	Generic scancode parser.
  * @ingroup  kbd
  * @{
  */ 
 /** @file
  */
 
-#ifndef KBD_CTL_H_
-#define KBD_CTL_H_
+#ifndef KBD_GSP_H_
+#define KBD_GSP_H_
 
-extern void kbd_ctl_parse_scancode(int);
-extern int kbd_ctl_init(void);
+#include <libadt/hash_table.h>
+
+enum {
+	GSP_END		= -1,
+	GSP_DEFAULT	= -2
+};
+
+typedef struct {
+	/** Transition table, (state, input) -> (state, output). */
+	hash_table_t trans;
+
+	/** Current number of states. */
+	int states;
+} gsp_t;
+
+typedef struct {
+	link_t link;
+
+	int old_state;
+	int input;
+
+	int new_state;
+
+	unsigned out_mods;
+	unsigned out_key;
+} gsp_trans_t;
+
+extern void gsp_init(gsp_t *);
+extern int gsp_insert_defs(gsp_t *, const int *);
+extern int gsp_insert_seq(gsp_t *, const int *, unsigned, unsigned);
+extern int gsp_step(gsp_t *, int, int, unsigned *, unsigned *);
 
 
 #endif

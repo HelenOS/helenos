@@ -189,7 +189,11 @@ int main(int argc, char **argv)
 	}
 	
 	/* Initialize port driver. */
-	if (kbd_port_init())
+	if (kbd_port_init() != 0)
+		return -1;
+
+	/* Initialize controller driver. */
+	if (kbd_ctl_init() != 0)
 		return -1;
 	
 	/* Initialize key buffer */

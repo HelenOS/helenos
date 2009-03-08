@@ -44,6 +44,8 @@ LIBS = $(LIBC_PREFIX)/libc.a
 OUTPUT = kbd
 GENERIC_SOURCES = \
 	generic/kbd.c \
+	genarch/gsp.c \
+	genarch/stroke.c \
 	generic/key_buffer.c
 
 ARCH_SOURCES =

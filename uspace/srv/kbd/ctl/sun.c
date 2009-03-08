@@ -45,6 +45,11 @@
 
 static int scanmap_simple[];
 
+int kbd_ctl_init(void)
+{
+	return 0;
+}
+
 void kbd_ctl_parse_scancode(int scancode)
 {
 	kbd_ev_type_t type;

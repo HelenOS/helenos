@@ -26,24 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+/** @addtogroup kbd
  * @{
- */ 
-/** @file
+ */
+/**
+ * @file
+ * @brief	Stroke simulator.
+ *
+ * When simulating a keyboard using a serial TTY we need to convert the
+ * recognized strokes (such as Shift-A) to sequences of key presses and
+ * releases (such as 'press Shift, press A, release A, release Shift').
  */
 
-#ifndef KBD_CTL_H_
-#define KBD_CTL_H_
+#include <stroke.h>
+#include <kbd.h>
+#include <kbd/kbd.h>
+#include <kbd/keycode.h>
 
-extern void kbd_ctl_parse_scancode(int);
-extern int kbd_ctl_init(void);
+/** Correspondence between modifers and the modifier keycodes. */
+static unsigned int mods_keys[][2] = {
+	{ KM_LSHIFT, KC_LSHIFT },
+	{ 0, 0 }
+};
 
+/** Simulate keystroke using sequences of key presses and releases. */
+void stroke_sim(unsigned mod, unsigned key)
+{
+	int i;
 
-#endif
+	/* Simulate modifier presses. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_ev(KE_PRESS, mods_keys[i][1]);
+		}
+		++i;
+	}
+
+	/* Simulate key press and release. */
+	if (key != 0) {
+		kbd_push_ev(KE_PRESS, key);
+		kbd_push_ev(KE_RELEASE, key);
+	}
+
+	/* Simulate modifier releases. */
+	i = 0;
+	while (mods_keys[i][0] != 0) {
+		if (mod & mods_keys[i][0]) {
+			kbd_push_ev(KE_RELEASE, mods_keys[i][1]);
+		}
+		++i;
+	}
+}
 
 /**
  * @}
  */ 
-
