@@ -416,6 +416,13 @@ def main():
 			if (button == 'cancel'):
 				return 'Configuration canceled'
 			
+			if (button == 'done'):
+				if (check_choices(defaults, ask_names)):
+					break
+				else:
+					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
+					continue
+			
 			if (value == 0):
 				read_preconfigured(PRECONF, MAKEFILE, screen, defaults)
 				position = 1
@@ -431,13 +438,6 @@ def main():
 					default = None
 			else:
 				default = defaults[selname]
-			
-			if (button == 'done'):
-				if (check_choices(defaults, ask_names)):
-					break
-				else:
-					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
-					continue
 			
 			if (seltype == 'choice'):
 				defaults[selname] = subchoice(screen, name, choices, default)
