@@ -101,9 +101,7 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	if (config.cpu_active == 1) {
-		standalone_sparc64_console_init();
-	}
+	standalone_sparc64_console_init();
 }
 
 /** Calibrate delay loop.
