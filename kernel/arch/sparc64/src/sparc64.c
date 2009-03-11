@@ -37,7 +37,6 @@
 #include <config.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
-#include <proc/thread.h>
 #include <console/console.h>
 #include <arch/boot/boot.h>
 #include <arch/arch.h>
@@ -104,15 +103,6 @@ void arch_post_smp_init(void)
 {
 	if (config.cpu_active == 1) {
 		standalone_sparc64_console_init();
-
-		/* Create thread that polls keyboard.
-		 * XXX: this is only used by sgcn now
-		 */
-		thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll",
-		    true);
-		if (!t)
-			panic("Cannot create kkbdpoll.");
-		thread_ready(t);
 	}
 }
 

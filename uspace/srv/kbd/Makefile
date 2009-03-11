@@ -116,9 +116,15 @@ ifeq ($(UARCH), ppc32)
 		ctl/stty.c
 endif
 ifeq ($(UARCH), sparc64)
+    ifeq ($(MACHINE),serengeti)
+	GENARCH_SOURCES += \
+		port/sgcn.c \
+		ctl/stty.c
+    else
 	GENARCH_SOURCES += \
 		port/z8530.c \
 		ctl/sun.c
+    endif
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

@@ -57,6 +57,8 @@
 
 kbd_type_t kbd_type = KBD_UNKNOWN;
 
+#if defined (CONFIG_Z8530) || defined (CONFIG_NS16550)
+
 /** Initialize keyboard.
  *
  * Traverse OpenFirmware device tree in order to find necessary
@@ -208,5 +210,6 @@ void kbd_init(ofw_tree_node_t *node)
 	}
 }
 
+	#endif
 /** @}
  */

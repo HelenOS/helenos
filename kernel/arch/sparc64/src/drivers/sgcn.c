@@ -34,6 +34,7 @@
  * @brief	SGCN driver.
  */
 
+#include <arch.h>
 #include <arch/drivers/sgcn.h>
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
@@ -41,14 +42,13 @@
 #include <string.h>
 #include <print.h>
 #include <mm/page.h>
-#include <ipc/irq.h>
-#include <ddi/ddi.h>
-#include <ddi/device.h>
+#include <proc/thread.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <ddi/device.h>
 #include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>
+
+#define POLL_INTERVAL		10000
 
 /*
  * Physical address at which the SBBC starts. This value has been obtained
@@ -82,16 +82,6 @@
 /* magic string contained at the beginning of the console buffer */
 #define SGCN_BUFFER_MAGIC	"CON"
 
-/**
- * The driver is polling based, but in order to notify the userspace
- * of a key being pressed, we need to supply the interface with some
- * interrupt number. The interrupt number can be arbitrary as it it
- * will never be used for identifying HW interrupts, but only in
- * notifying the userspace. 
- */
-#define FICTIONAL_INR		1
-
-
 /*
  * Returns a pointer to the object of a given type which is placed at the given
  * offset from the SRAM beginning.
@@ -123,13 +113,8 @@ static uintptr_t sram_begin;
  */
 static uintptr_t sgcn_buffer_begin;
 
-/**
- * SGCN IRQ structure. So far used only for notifying the userspace of the
- * key being pressed, not for kernel being informed about keyboard interrupts.
- */ 
-static irq_t sgcn_irq;
-
-// TODO think of a way how to synchronize accesses to SGCN buffer between the kernel and the userspace
+/* true iff the kernel driver should ignore pressed keys */
+static bool kbd_disabled;
 
 /* 
  * Ensures that writing to the buffer and consequent update of the write pointer
@@ -308,41 +293,11 @@ static char sgcn_key_read(chardev_t *d)
 }
 
 /**
- * The driver works in polled mode, so no interrupt should be handled by it.
- */
-static irq_ownership_t sgcn_claim(irq_t *irq)
-{
-	return IRQ_DECLINE;
-}
-
-/**
- * The driver works in polled mode, so no interrupt should be handled by it.
- */
-static void sgcn_irq_handler(irq_t *irq)
-{
-	panic("Not yet implemented, SGCN works in polled mode.");
-}
-
-/**
  * Grabs the input for kernel.
  */
 void sgcn_grab(void)
 {
-	ipl_t ipl = interrupts_disable();
-	
-	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
-	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
-	
-	/* skip all the user typed before the grab and hasn't been processed */
-	spinlock_lock(&sgcn_input_lock);
-	*in_rdptr_ptr = *in_wrptr_ptr;
-	spinlock_unlock(&sgcn_input_lock);
-
-	spinlock_lock(&sgcn_irq.lock);
-	sgcn_irq.notif_cfg.notify = false;
-	spinlock_unlock(&sgcn_irq.lock);
-	
-	interrupts_restore(ipl);
+	kbd_disabled = true;
 }
 
 /**
@@ -350,12 +305,7 @@ void sgcn_grab(void)
  */
 void sgcn_release(void)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sgcn_irq.lock);
-	if (sgcn_irq.notif_cfg.answerbox)
-		sgcn_irq.notif_cfg.notify = true;
-	spinlock_unlock(&sgcn_irq.lock);
-	interrupts_restore(ipl);
+	kbd_disabled = true;
 }
 
 /**
@@ -363,16 +313,20 @@ void sgcn_release(void)
  * there are some unread characters in the input queue. If so, it picks them up
  * and sends them to the upper layers of HelenOS.
  */
-void sgcn_poll(void)
+static void sgcn_poll()
 {
 	uint32_t begin = SGCN_BUFFER_HEADER->in_begin;
 	uint32_t end = SGCN_BUFFER_HEADER->in_end;
 	uint32_t size = end - begin;
-	
+
 	spinlock_lock(&sgcn_input_lock);
 	
 	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sgcn_irq.lock);
+
+	if (kbd_disabled) {
+		interrupts_restore(ipl);
+		return;
+	}
 	
 	/* we need pointers to volatile variables */
 	volatile char *buf_ptr = (volatile char *)
@@ -380,13 +334,6 @@ void sgcn_poll(void)
 	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
 	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
 	
-	if (*in_rdptr_ptr != *in_wrptr_ptr) {
-		/* XXX: send notification to userspace */
-	}
-	
-	spinlock_unlock(&sgcn_irq.lock);
-	interrupts_restore(ipl);	
-
 	while (*in_rdptr_ptr != *in_wrptr_ptr) {
 		
 		buf_ptr = (volatile char *)
@@ -399,8 +346,21 @@ void sgcn_poll(void)
 		}
 		chardev_push_character(&sgcn_io, c);	
 	}	
-	
+
+	interrupts_restore(ipl);	
 	spinlock_unlock(&sgcn_input_lock);
+}
+
+/**
+ * Polling thread function.
+ */
+static void kkbdpoll(void *arg) {
+	while (1) {
+		if (!silent) {
+			sgcn_poll();
+		}
+		thread_usleep(POLL_INTERVAL);
+	}
 }
 
 /**
@@ -413,19 +373,14 @@ void sgcn_init(void)
 
 	kbd_type = KBD_SGCN;
 
-	devno_t devno = device_assign_devno();
-	irq_initialize(&sgcn_irq);
-	sgcn_irq.devno = devno;
-	sgcn_irq.inr = FICTIONAL_INR;
-	sgcn_irq.claim = sgcn_claim;
-	sgcn_irq.handler = sgcn_irq_handler;
-	irq_register(&sgcn_irq);
-	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SGCN);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, FICTIONAL_INR);
 	sysinfo_set_item_val("fb.kind", NULL, 4);
+
+	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
+	if (!t)
+		panic("Cannot create kkbdpoll.");
+	thread_ready(t);
 	
 	chardev_initialize("sgcn_io", &sgcn_io, &sgcn_ops);
 	stdin = &sgcn_io;

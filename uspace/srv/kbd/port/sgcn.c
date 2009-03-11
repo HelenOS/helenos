@@ -36,12 +36,14 @@
 
 #include <as.h>
 #include <ddi.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <kbd.h>
 #include <kbd_port.h>
 #include <sysinfo.h>
 #include <stdio.h>
+#include <thread.h>
+
+#define POLL_INTERVAL		10000
 
 /**
  * SGCN buffer header. It is placed at the very beginning of the SGCN
@@ -87,16 +89,16 @@ static uintptr_t sram_virt_addr;
  */
 static uintptr_t sram_buffer_offset;
 
-static void sgcn_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+/* polling thread */
+static void *sgcn_thread_impl(void *arg);
 
 
 /**
  * Initializes the SGCN driver.
- * Maps the physical memory (SRAM) and registers the interrupt. 
+ * Maps the physical memory (SRAM) and creates the polling thread. 
  */
 int kbd_port_init(void)
 {
-	async_set_interrupt_received(sgcn_irq_handler);
 	sram_virt_addr = (uintptr_t) as_get_mappable_page(sysinfo_value("sram.area.size"));
 	if (physmem_map((void *) sysinfo_value("sram.address.physical"),
 	    (void *) sram_virt_addr, sysinfo_value("sram.area.size") / PAGE_SIZE,
@@ -106,8 +108,15 @@ int kbd_port_init(void)
 	}
 	
 	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
-	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
-		0, (void *) 0);
+
+	thread_id_t tid;
+	int rc;
+
+	rc = thread_create(sgcn_thread_impl, NULL, "kbd_poll", &tid);
+	if (rc != 0) {
+		return rc;
+	}
+
 	return 0;
 }
 
@@ -115,7 +124,7 @@ int kbd_port_init(void)
  * Handler of the "key pressed" event. Reads codes of all the pressed keys from
  * the buffer. 
  */
-static void sgcn_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+static void sgcn_key_pressed(void)
 {
 	char c;
 	
@@ -136,6 +145,20 @@ static void sgcn_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 		kbd_push_scancode(c);
 	}
 }
+
+/**
+ * Thread to poll SGCN for keypresses.
+ */
+static void *sgcn_thread_impl(void *arg)
+{
+	(void) arg;
+
+	while (1) {
+		sgcn_key_pressed();
+		usleep(POLL_INTERVAL);
+	}
+}
+
 
 /** @}
  */

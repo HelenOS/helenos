@@ -124,26 +124,6 @@ void standalone_sparc64_console_init(void)
 }
 
 
-/** Kernel thread for polling keyboard.
- *
- * @param arg Ignored.
- */
-void kkbdpoll(void *arg)
-{
-	thread_detach(THREAD);
-
-	if (kbd_type != KBD_SGCN)
-		return;
-
-	while (1) {
-#ifdef CONFIG_SGCN
-		if (kbd_type == KBD_SGCN)
-			sgcn_poll();
-#endif
-		thread_usleep(KEYBOARD_POLL_PAUSE);
-	}
-}
-
 /** Acquire console back for kernel
  *
  */

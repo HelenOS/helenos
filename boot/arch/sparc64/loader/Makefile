@@ -101,17 +101,25 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs
+
+ifeq ($(MACHINE),generic)
+RD_SRVS += \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/fhc/fhc \
-	$(USPACEDIR)/srv/obio/obio 
+	$(USPACEDIR)/srv/obio/obio
+endif
 
 RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/bdsh/bdsh \
 	$(USPACEDIR)/app/klog/klog
+
+ifeq ($(MACHINE),generic)
+RD_APPS += \
+	$(USPACEDIR)/app/tester/tester
+endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 ALL_COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(ALL_COMPONENTS))))

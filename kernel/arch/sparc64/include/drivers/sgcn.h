@@ -117,7 +117,6 @@ typedef struct {
 
 void sgcn_grab(void);
 void sgcn_release(void);
-void sgcn_poll(void);
 void sgcn_init(void);
 
 #endif
