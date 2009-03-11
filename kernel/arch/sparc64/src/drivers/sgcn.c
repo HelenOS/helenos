@@ -73,7 +73,7 @@
  * that the OBP console buffer is not the only console buffer
  * which can be used. It is, however, used because when the kernel
  * is running, the OBP buffer is not used by OBP any more but OBP
- * has already made neccessary arangements so that the output will
+ * has already made necessary arrangements so that the output will
  * be read from the OBP buffer and input will go to the OBP buffer.
  * Therefore HelenOS needs to make no such arrangements any more.
  */
@@ -96,7 +96,7 @@
  * offset from the console buffer beginning.
  */
 #define SGCN_BUFFER(type, offset) \
-				((type *) (sgcn_buffer_begin + (offset)))
+	((type *) (sgcn_buffer_begin + (offset)))
 
 /** Returns a pointer to the console buffer header. */
 #define SGCN_BUFFER_HEADER	(SGCN_BUFFER(sgcn_buffer_header_t, 0))
@@ -145,6 +145,9 @@ static chardev_operations_t sgcn_ops = {
 /** SGCN character device */
 chardev_t sgcn_io;
 
+/** Address of the chardev, which is connected to SGCN. */
+static chardev_t *sgcnout;
+
 /**
  * Set some sysinfo values (SRAM address and SRAM size).
  */
@@ -152,7 +155,7 @@ static void register_sram(uintptr_t sram_begin_physical)
 {
 	sysinfo_set_item_val("sram.area.size", NULL, MAPPED_AREA_SIZE);
 	sysinfo_set_item_val("sram.address.physical", NULL,
-		sram_begin_physical);
+	    sram_begin_physical);
 }
 
 /**
@@ -163,9 +166,6 @@ static void register_sram(uintptr_t sram_begin_physical)
  * property of the "/chosen" OBP node. The sram_begin variable will
  * be set to the virtual address which maps to the SRAM physical
  * address.
- *
- * It also registers the physical area of SRAM and sets some sysinfo
- * values (SRAM address and SRAM size).
  */
 static void init_sram_begin(void)
 {
@@ -184,7 +184,7 @@ static void init_sram_begin(void)
 		panic("Cannot find SRAM TOC.");
 
 	sram_begin_physical = SBBC_START + SBBC_SRAM_OFFSET
-		+ *((uint32_t *) iosram_toc->value);
+	    + *((uint32_t *) iosram_toc->value);
 	sram_begin = hw_map(sram_begin_physical, MAPPED_AREA_SIZE);
 	
 	register_sram(sram_begin_physical);
@@ -218,7 +218,7 @@ static void sgcn_buffer_begin_init(void)
 	sgcn_buffer_begin = sram_begin + SRAM_TOC->keys[i].offset;
 	
 	sysinfo_set_item_val("sram.buffer.offset", NULL,
-		SRAM_TOC->keys[i].offset);
+	    SRAM_TOC->keys[i].offset);
 }
 
 /**
@@ -241,7 +241,7 @@ static void sgcn_do_putchar(const char c)
 	
 	/* we need pointers to volatile variables */
 	volatile char *buf_ptr = (volatile char *)
-		SGCN_BUFFER(char, SGCN_BUFFER_HEADER->out_wrptr);
+	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->out_wrptr);
 	volatile uint32_t *out_wrptr_ptr = &(SGCN_BUFFER_HEADER->out_wrptr);
 	volatile uint32_t *out_rdptr_ptr = &(SGCN_BUFFER_HEADER->out_rdptr);
 
@@ -319,35 +319,28 @@ static void sgcn_poll()
 	uint32_t end = SGCN_BUFFER_HEADER->in_end;
 	uint32_t size = end - begin;
 
-	spinlock_lock(&sgcn_input_lock);
-	
-	ipl_t ipl = interrupts_disable();
-
-	if (kbd_disabled) {
-		interrupts_restore(ipl);
+	if (kbd_disabled)
 		return;
-	}
+
+	spinlock_lock(&sgcn_input_lock);
 	
 	/* we need pointers to volatile variables */
 	volatile char *buf_ptr = (volatile char *)
-		SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
 	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
 	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
 	
 	while (*in_rdptr_ptr != *in_wrptr_ptr) {
 		
 		buf_ptr = (volatile char *)
-			SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+		    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
 		char c = *buf_ptr;
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 			
-		if (c == '\r') {
-			c = '\n';
-		}
-		chardev_push_character(&sgcn_io, c);	
+		if (sgcnout)
+			chardev_push_character(sgcnout, c);	
 	}	
 
-	interrupts_restore(ipl);	
 	spinlock_unlock(&sgcn_input_lock);
 }
 
@@ -367,7 +360,7 @@ static void kkbdpoll(void *arg) {
  * A public function which initializes I/O from/to Serengeti console
  * and sets it as a default input/output. 
  */
-void sgcn_init(void)
+void sgcn_init(chardev_t *devout)
 {
 	sgcn_buffer_begin_init();
 
@@ -383,8 +376,9 @@ void sgcn_init(void)
 	thread_ready(t);
 	
 	chardev_initialize("sgcn_io", &sgcn_io, &sgcn_ops);
-	stdin = &sgcn_io;
 	stdout = &sgcn_io;
+
+	sgcnout = devout;
 }
 
 /** @}

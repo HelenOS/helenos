@@ -36,6 +36,7 @@
 #define KERN_sparc64_SGCN_H_
 
 #include <arch/types.h>
+#include <console/chardev.h>
 
 /* number of bytes in the TOC magic, including the terminating '\0' */
 #define TOC_MAGIC_BYTES		8
@@ -117,7 +118,7 @@ typedef struct {
 
 void sgcn_grab(void);
 void sgcn_release(void);
-void sgcn_init(void);
+void sgcn_init(chardev_t *);
 
 #endif
 

@@ -37,9 +37,8 @@
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
-
 #include <arch/drivers/sgcn.h>
-
+#include <genarch/srln/srln.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/asm.h>
@@ -97,7 +96,8 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 /** Initilize I/O on the Serengeti machine. */
 static void serengeti_init(void)
 {
-	sgcn_init();
+	srln_init(stdin);
+	sgcn_init(&srlnin);
 }
 
 /**
