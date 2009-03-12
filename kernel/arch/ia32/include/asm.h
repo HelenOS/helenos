@@ -56,12 +56,16 @@ extern void asm_fake_loop(uint32_t t);
 
 /** Halt CPU
  *
- * Halt the current CPU until interrupt event.
+ * Halt the current CPU.
  *
  */
 static inline void cpu_halt(void)
 {
-	asm volatile ("hlt\n");
+	asm volatile (
+		"0:\n"
+		"	hlt\n"
+		"	jmp 0b\n"
+	);
 }
 
 static inline void cpu_sleep(void)

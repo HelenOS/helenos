@@ -69,7 +69,11 @@ static inline void cpu_sleep(void)
 
 static inline void cpu_halt(void)
 {
-	asm volatile ("hlt\n");
+	asm volatile (
+		"0:\n"
+		"	hlt\n"
+		"	jmp 0b\n"
+	);
 }
 
 
