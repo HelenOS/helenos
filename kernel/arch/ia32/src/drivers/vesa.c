@@ -58,10 +58,9 @@ uint16_t vesa_scanline;
 
 int vesa_present(void)
 {
-	if (vesa_width != 0xffff)
+	if ((vesa_width != 0xffff) && (vesa_height != 0xffff))
 		return true;
-	if (vesa_height != 0xffff)
-		return true;
+	
 	return false;
 }
 
