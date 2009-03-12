@@ -257,7 +257,7 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 		
 		outmk.write('# %s\n%s = %s\n\n' % (name, varname, default))
 		
-		if ((vartype == "y") or (vartype == "y/n") or (vartype == "n/y")):
+		if ((vartype == "y") or (vartype == "n") or (vartype == "y/n") or (vartype == "n/y")):
 			if (default == "y"):
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
 				outdf.write(' -D%s' % varname)
