@@ -68,6 +68,16 @@ ifeq ($(CONFIG_FB),y)
 		genarch/src/fb/fb.c
 endif
 
+ifeq ($(CONFIG_DSRLNIN),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/dsrln/dsrlnin.c
+endif
+
+ifeq ($(CONFIG_DSRLNOUT),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/dsrln/dsrlnout.c
+endif
+
 ifeq ($(CONFIG_I8042),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/i8042/i8042.c
