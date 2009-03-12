@@ -38,8 +38,8 @@
 #include <arch/types.h>
 #include <console/chardev.h>
 
-extern chardev_t *stdin;
-extern chardev_t *stdout;
+extern indev_t *stdin;
+extern outdev_t *stdout;
 
 extern bool silent;
 
@@ -48,9 +48,10 @@ extern void console_init(void);
 extern void klog_init(void);
 extern void klog_update(void);
 
-extern uint8_t getc(chardev_t *chardev);
-extern uint8_t _getc(chardev_t *chardev);
-extern count_t gets(chardev_t *chardev, char *buf, size_t buflen);
+extern bool check_poll(indev_t *indev);
+extern uint8_t getc(indev_t *indev);
+extern uint8_t _getc(indev_t *indev);
+extern count_t gets(indev_t *indev, char *buf, size_t buflen);
 extern void putchar(char c);
 
 extern void grab_console(void);

@@ -74,67 +74,16 @@ SPINLOCK_INITIALIZE(klog_lock);
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
 
-/*
- * For now, we use 0 as INR.
- * However, it is therefore desirable to have architecture specific
- * definition of KLOG_VIRT_INR in the future.
- */
-#define KLOG_VIRT_INR	0
-
-static irq_t klog_irq;
-
-static chardev_operations_t null_stdout_ops = {
-	.suspend = NULL,
-	.resume = NULL,
-	.write = NULL,
-	.read = NULL
-};
-
-chardev_t null_stdout = {
-	.name = "null",
-	.op = &null_stdout_ops
-};
-
-/** Allways refuse IRQ ownership.
- *
- * This is not a real IRQ, so we always decline.
- *
- * @return Always returns IRQ_DECLINE.
- */
-static irq_ownership_t klog_claim(irq_t *irq)
-{
-	return IRQ_DECLINE;
-}
-
-static void stdin_suspend(chardev_t *d)
-{
-}
-
-static void stdin_resume(chardev_t *d)
-{
-}
-
-static chardev_operations_t stdin_ops = {
-	.suspend = stdin_suspend,
-	.resume = stdin_resume,
-};
-
-/** Standard input character device */
-static chardev_t _stdin;
-chardev_t *stdin = NULL;
-chardev_t *stdout = &null_stdout;
-
-void console_init(void)
-{
-	chardev_initialize("stdin", &_stdin, &stdin_ops);
-	stdin = &_stdin;
-}
+/** Standard input and output character devices */
+indev_t *stdin = NULL;
+outdev_t *stdout = NULL;
 
 /** Initialize kernel logging facility
  *
  * The shared area contains kernel cyclic buffer. Userspace application may
  * be notified on new data with indication of position and size
  * of the data within the circular buffer.
+ *
  */
 void klog_init(void)
 {
@@ -142,23 +91,19 @@ void klog_init(void)
 	
 	ASSERT((uintptr_t) faddr % FRAME_SIZE == 0);
 	ASSERT(KLOG_SIZE % FRAME_SIZE == 0);
-
-	devno_t devno = device_assign_devno();
 	
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(KLOG_SIZE);
 	ddi_parea_register(&klog_parea);
-
+	
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(KLOG_SIZE));
-	sysinfo_set_item_val("klog.devno", NULL, devno);
-	sysinfo_set_item_val("klog.inr", NULL, KLOG_VIRT_INR);
-
-	irq_initialize(&klog_irq);
-	klog_irq.devno = devno;
-	klog_irq.inr = KLOG_VIRT_INR;
-	klog_irq.claim = klog_claim;
-	irq_register(&klog_irq);
+	
+	//irq_initialize(&klog_irq);
+	//klog_irq.devno = devno;
+	//klog_irq.inr = KLOG_VIRT_INR;
+	//klog_irq.claim = klog_claim;
+	//irq_register(&klog_irq);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
@@ -177,64 +122,73 @@ void release_console(void)
 	arch_release_console();
 }
 
-/** Get character from character device. Do not echo character.
- *
- * @param chardev Character device.
- *
- * @return Character read.
- */
-uint8_t _getc(chardev_t *chardev)
+bool check_poll(indev_t *indev)
 {
-	uint8_t ch;
-	ipl_t ipl;
+	if (indev == NULL)
+		return false;
+	
+	if (indev->op == NULL)
+		return false;
+	
+	return (indev->op->poll != NULL);
+}
 
+/** Get character from input character device. Do not echo character.
+ *
+ * @param indev Input character device.
+ * @return Character read.
+ *
+ */
+uint8_t _getc(indev_t *indev)
+{
 	if (atomic_get(&haltstate)) {
-		/* If we are here, we are hopefully on the processor, that 
+		/* If we are here, we are hopefully on the processor that
 		 * issued the 'halt' command, so proceed to read the character
 		 * directly from input
 		 */
-		if (chardev->op->read)
-			return chardev->op->read(chardev);
-		/* no other way of interacting with user, halt */
+		if (check_poll(indev))
+			return indev->op->poll(indev);
+		
+		/* No other way of interacting with user */
+		interrupts_disable();
+		
 		if (CPU)
 			printf("cpu%u: ", CPU->id);
 		else
 			printf("cpu: ");
-		printf("halted (no kconsole)\n");
+		printf("halted (no polling input)\n");
 		cpu_halt();
 	}
-
-	waitq_sleep(&chardev->wq);
-	ipl = interrupts_disable();
-	spinlock_lock(&chardev->lock);
-	ch = chardev->buffer[(chardev->index - chardev->counter) % CHARDEV_BUFLEN];
-	chardev->counter--;
-	spinlock_unlock(&chardev->lock);
+	
+	waitq_sleep(&indev->wq);
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&indev->lock);
+	uint8_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
+	indev->counter--;
+	spinlock_unlock(&indev->lock);
 	interrupts_restore(ipl);
-
-	chardev->op->resume(chardev);
-
+	
 	return ch;
 }
 
-/** Get string from character device.
+/** Get string from input character device.
  *
- * Read characters from character device until first occurrence
+ * Read characters from input character device until first occurrence
  * of newline character.
  *
- * @param chardev Character device.
- * @param buf Buffer where to store string terminated by '\0'.
+ * @param indev  Input character device.
+ * @param buf    Buffer where to store string terminated by '\0'.
  * @param buflen Size of the buffer.
  *
  * @return Number of characters read.
+ *
  */
-count_t gets(chardev_t *chardev, char *buf, size_t buflen)
+count_t gets(indev_t *indev, char *buf, size_t buflen)
 {
 	index_t index = 0;
-	char ch;
 	
 	while (index < buflen) {
-		ch = _getc(chardev);
+		char ch = _getc(indev);
 		if (ch == '\b') {
 			if (index > 0) {
 				index--;
@@ -253,15 +207,14 @@ count_t gets(chardev_t *chardev, char *buf, size_t buflen)
 		}
 		buf[index++] = ch;
 	}
+	
 	return (count_t) index;
 }
 
-/** Get character from device & echo it to screen */
-uint8_t getc(chardev_t *chardev)
+/** Get character from input device & echo it to screen */
+uint8_t getc(indev_t *indev)
 {
-	uint8_t ch;
-
-	ch = _getc(chardev);
+	uint8_t ch = _getc(indev);
 	putchar(ch);
 	return ch;
 }
@@ -270,10 +223,10 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_inited) && (klog_irq.notif_cfg.notify) && (klog_uspace > 0)) {
-		ipc_irq_send_msg_3(&klog_irq, klog_start, klog_len, klog_uspace);
-		klog_uspace = 0;
-	}
+//	if ((klog_inited) && (klog_irq.notif_cfg.notify) && (klog_uspace > 0)) {
+//		ipc_irq_send_msg_3(&klog_irq, klog_start, klog_len, klog_uspace);
+//		klog_uspace = 0;
+//	}
 	
 	spinlock_unlock(&klog_lock);
 }
@@ -282,7 +235,7 @@ void putchar(char c)
 {
 	spinlock_lock(&klog_lock);
 	
-	if ((klog_stored > 0) && (stdout->op->write)) {
+	if ((klog_stored > 0) && (stdout) && (stdout->op->write)) {
 		/* Print charaters stored in kernel log */
 		index_t i;
 		for (i = klog_len - klog_stored; i < klog_len; i++)
@@ -297,7 +250,7 @@ void putchar(char c)
 	else
 		klog_start = (klog_start + 1) % KLOG_SIZE;
 	
-	if (stdout->op->write)
+	if ((stdout) && (stdout->op->write))
 		stdout->op->write(stdout, c, silent);
 	else {
 		/* The character is just in the kernel log */
