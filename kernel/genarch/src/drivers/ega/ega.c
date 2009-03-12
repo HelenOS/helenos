@@ -60,9 +60,10 @@ static uint8_t *videoram;
 static uint8_t *backbuf;
 static ioport8_t *ega_base;
 
-#define EMPTY_CHAR  0x0720
+#define SPACE  0x20
+#define STYLE  0x07
 
-chardev_t ega_console;
+#define EMPTY_CHAR  (STYLE << 8 | SPACE)
 
 /*
  * This function takes care of scrolling.
@@ -123,12 +124,15 @@ static void ega_sync_cursor(void)
 static void ega_display_char(char ch, bool silent)
 {
 	backbuf[ega_cursor * 2] = ch;
+	backbuf[ega_cursor * 2 + 1] = STYLE;
 	
-	if (!silent)
+	if (!silent) {
 		videoram[ega_cursor * 2] = ch;
+		videoram[ega_cursor * 2 + 1] = STYLE;
+	}
 }
 
-static void ega_putchar(chardev_t *dev __attribute__((unused)), const char ch, bool silent)
+static void ega_putchar(outdev_t *dev __attribute__((unused)), const char ch, bool silent)
 {
 	ipl_t ipl;
 	
@@ -160,7 +164,8 @@ static void ega_putchar(chardev_t *dev __attribute__((unused)), const char ch, b
 	interrupts_restore(ipl);
 }
 
-static chardev_operations_t ega_ops = {
+static outdev_t ega_console;
+static outdev_operations_t ega_ops = {
 	.write = ega_putchar
 };
 
@@ -179,7 +184,7 @@ void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 	memcpy(backbuf, videoram, EGA_VRAM_SIZE);
 	ega_sync_cursor();
 	
-	chardev_initialize("ega_out", &ega_console, &ega_ops);
+	outdev_initialize("ega", &ega_console, &ega_ops);
 	stdout = &ega_console;
 	
 	sysinfo_set_item_val("fb", NULL, true);

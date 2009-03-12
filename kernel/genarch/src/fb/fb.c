@@ -283,7 +283,7 @@ static void cursor_remove(bool silent)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putchar(chardev_t *dev, char ch, bool silent)
+static void fb_putchar(outdev_t *dev, char ch, bool silent)
 {
 	spinlock_lock(&fb_lock);
 	
@@ -326,9 +326,9 @@ static void fb_putchar(chardev_t *dev, char ch, bool silent)
 	spinlock_unlock(&fb_lock);
 }
 
-static chardev_t framebuffer;
-static chardev_operations_t fb_ops = {
-	.write = fb_putchar,
+static outdev_t fb_console;
+static outdev_operations_t fb_ops = {
+	.write = fb_putchar
 };
 
 
@@ -423,7 +423,7 @@ void fb_redraw(void)
 }
 
 
-/** Initialize framebuffer as a chardev output device
+/** Initialize framebuffer as a output character device
  *
  * @param addr   Physical address of the framebuffer
  * @param x      Screen width in pixels
@@ -526,8 +526,8 @@ void fb_init(fb_properties_t *props)
 	
 	fb_redraw();
 	
-	chardev_initialize("fb", &framebuffer, &fb_ops);
-	stdout = &framebuffer;
+	outdev_initialize("fb", &fb_console, &fb_ops);
+	stdout = &fb_console;
 }
 
 /** @}
