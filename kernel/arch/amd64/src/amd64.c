@@ -193,17 +193,19 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+#ifdef CONFIG_PC_KBD
 	devno_t devno = device_assign_devno();
-
-        /*
-	 * Initialize the keyboard module and conect it to stdin. Then
-	 * initialize the i8042 controller and connect it to kbrdin. Enable
-	 * keyboard interrupts.
-         */
-	kbrd_init(stdin);
-	(void) i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD, &kbrdin);
-	trap_virtual_enable_irqs(1 << IRQ_KBD);
-
+	
+	/*
+	 * Initialize the i8042 controller. Then initialize the keyboard
+	 * module and connect it to i8042. Enable keyboard interrupts.
+	 */
+	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD);
+	if (kbrdin) {
+		kbrd_init(kbrdin);
+		trap_virtual_enable_irqs(1 << IRQ_KBD);
+	}
+	
 	/*
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
@@ -215,6 +217,7 @@ void arch_post_smp_init(void)
 	    (uintptr_t) I8042_BASE);
 	sysinfo_set_item_val("kbd.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
+#endif
 }
 
 void calibrate_delay_loop(void)
@@ -250,9 +253,14 @@ unative_t sys_tls_set(unative_t addr)
 void arch_grab_console(void)
 {
 #ifdef CONFIG_FB
-	vesa_redraw();
+	if (vesa_present())
+		vesa_redraw();
+	else
+#endif
+#ifdef CONFIG_EGA
+		ega_redraw();
 #else
-	ega_redraw();
+		{}
 #endif
 }
 
