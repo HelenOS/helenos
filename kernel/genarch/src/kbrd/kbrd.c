@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Keyboard processing.
+ * @brief Keyboard processing.
  */
 
 #include <genarch/kbrd/kbrd.h>
@@ -53,46 +53,35 @@
 #include <macros.h>
 
 #ifdef CONFIG_SUN_KBD
-#	define IGNORE_CODE	0x7f
+	#define IGNORE_CODE  0x7f
 #endif
 
-#define KEY_RELEASE		0x80
+#define KEY_RELEASE  0x80
 
-#define PRESSED_SHIFT		(1 << 0)
-#define PRESSED_CAPSLOCK	(1 << 1)
-#define LOCKED_CAPSLOCK		(1 << 0)
+#define PRESSED_SHIFT     (1 << 0)
+#define PRESSED_CAPSLOCK  (1 << 1)
+#define LOCKED_CAPSLOCK   (1 << 0)
 
-chardev_t kbrdin;
-static chardev_t *kbdout;
+static indev_t kbrdout;
 
-static void kbrdin_suspend(chardev_t *d)
-{
-}
-
-static void kbrdin_resume(chardev_t *d)
-{
-}
-
-chardev_operations_t kbrdin_ops = {
-	.suspend = kbrdin_suspend,
-	.resume = kbrdin_resume,
+indev_operations_t kbrdout_ops = {
+	.poll = NULL
 };
 
-SPINLOCK_INITIALIZE(keylock);		/**< keylock protects keyflags and lockflags. */
-static volatile int keyflags;		/**< Tracking of multiple keypresses. */
-static volatile int lockflags;		/**< Tracking of multiple keys lockings. */
+SPINLOCK_INITIALIZE(keylock);   /**< keylock protects keyflags and lockflags. */
+static volatile int keyflags;   /**< Tracking of multiple keypresses. */
+static volatile int lockflags;  /**< Tracking of multiple keys lockings. */
 
 static void key_released(uint8_t);
 static void key_pressed(uint8_t);
 
 static void kkbrd(void *arg)
 {
-	chardev_t *in = (chardev_t *) arg;
-	uint8_t sc;
-
-	while (1) {
-		sc = _getc(in);
-
+	indev_t *in = (indev_t *) arg;
+	
+	while (true) {
+		uint8_t sc = _getc(in);
+		
 #ifdef CONFIG_SUN_KBD
 		if (sc == IGNORE_CODE)
 			continue;
@@ -105,17 +94,16 @@ static void kkbrd(void *arg)
 	}
 }
 
-
-void kbrd_init(chardev_t *devout)
+void kbrd_init(indev_t *devin)
 {
-	thread_t *t;
-
-	chardev_initialize("kbrd", &kbrdin, &kbrdin_ops);
-	kbdout = devout;
+	indev_initialize("kbrd", &kbrdout, &kbrdout_ops);
+	thread_t *thread
+	    = thread_create(kkbrd, devin, TASK, 0, "kkbrd", false);
 	
-	t = thread_create(kkbrd, &kbrdin, TASK, 0, "kkbrd", false);
-	ASSERT(t);
-	thread_ready(t);
+	if (thread) {
+		stdin = &kbrdout;
+		thread_ready(thread);
+	}
 }
 
 /** Process release of key.
@@ -153,12 +141,12 @@ void key_pressed(uint8_t sc)
 	char ascii = sc_primary_map[sc];
 	bool shift, capslock;
 	bool letter = false;
-
+	
 	spinlock_lock(&keylock);
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
-	    	keyflags |= PRESSED_SHIFT;
+		keyflags |= PRESSED_SHIFT;
 		break;
 	case SC_CAPSLOCK:
 		keyflags |= PRESSED_CAPSLOCK;
@@ -166,43 +154,43 @@ void key_pressed(uint8_t sc)
 	case SC_SPEC_ESCAPE:
 		break;
 	case SC_LEFTARR:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x5b);
-		chardev_push_character(kbdout, 0x44);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x5b);
+		indev_push_character(stdin, 0x44);
 		break;
 	case SC_RIGHTARR:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x5b);
-		chardev_push_character(kbdout, 0x43);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x5b);
+		indev_push_character(stdin, 0x43);
 		break;
 	case SC_UPARR:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x5b);
-		chardev_push_character(kbdout, 0x41);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x5b);
+		indev_push_character(stdin, 0x41);
 		break;
 	case SC_DOWNARR:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x5b);
-		chardev_push_character(kbdout, 0x42);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x5b);
+		indev_push_character(stdin, 0x42);
 		break;
 	case SC_HOME:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x4f);
-		chardev_push_character(kbdout, 0x48);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x4f);
+		indev_push_character(stdin, 0x48);
 		break;
 	case SC_END:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x4f);
-		chardev_push_character(kbdout, 0x46);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x4f);
+		indev_push_character(stdin, 0x46);
 		break;
 	case SC_DELETE:
-		chardev_push_character(kbdout, 0x1b);
-		chardev_push_character(kbdout, 0x5b);
-		chardev_push_character(kbdout, 0x33);
-		chardev_push_character(kbdout, 0x7e);
+		indev_push_character(stdin, 0x1b);
+		indev_push_character(stdin, 0x5b);
+		indev_push_character(stdin, 0x33);
+		indev_push_character(stdin, 0x7e);
 		break;
 	default:
-	    	letter = islower(ascii);
+		letter = islower(ascii);
 		capslock = (keyflags & PRESSED_CAPSLOCK) ||
 		    (lockflags & LOCKED_CAPSLOCK);
 		shift = keyflags & PRESSED_SHIFT;
@@ -210,7 +198,7 @@ void key_pressed(uint8_t sc)
 			shift = !shift;
 		if (shift)
 			map = sc_secondary_map;
-		chardev_push_character(kbdout, map[sc]);
+		indev_push_character(stdin, map[sc]);
 		break;
 	}
 	spinlock_unlock(&keylock);

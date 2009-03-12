@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
@@ -38,9 +38,7 @@
 
 #include <console/chardev.h>
 
-extern chardev_t kbrdin;
-
-extern void kbrd_init(chardev_t *);
+extern void kbrd_init(indev_t *devin);
 
 #endif
 

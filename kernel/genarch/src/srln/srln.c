@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Serial line processing.
+ * @brief Serial line processing.
  */
 
 #include <genarch/srln/srln.h>
@@ -40,50 +40,49 @@
 #include <proc/thread.h>
 #include <arch.h>
 
-chardev_t srlnin;
-static chardev_t *srlnout;
+static indev_t srlnout;
 
-static void srlnin_suspend(chardev_t *d)
-{
-}
-
-static void srlnin_resume(chardev_t *d)
-{
-}
-
-chardev_operations_t srlnin_ops = {
-	.suspend = srlnin_suspend,
-	.resume = srlnin_resume,
+indev_operations_t srlnout_ops = {
+	.poll = NULL
 };
 
 static void ksrln(void *arg)
 {
-	chardev_t *in = (chardev_t *) arg;
-	uint8_t ch;
-
-	while (1) {
-		ch = _getc(in);
+	indev_t *in = (indev_t *) arg;
+	bool cr = false;
+	
+	while (true) {
+		uint8_t ch = _getc(in);
 		
-		if (ch == '\r')
+		if ((ch == '\n') && (cr)) {
+			cr = false;
 			continue;
+		}
 		
-		chardev_push_character(srlnout, ch);
+		if (ch == '\r') {
+			ch = '\n';
+			cr = true;
+		} else
+			cr = false;
+		
+		if (ch == 0x7f)
+			ch = '\b';
+		
+		indev_push_character(stdin, ch);
 	}
 }
 
-
-void srln_init(chardev_t *devout)
+void srln_init(indev_t *devin)
 {
-	thread_t *t;
-
-	chardev_initialize("srln", &srlnin, &srlnin_ops);
-	srlnout = devout;
+	indev_initialize("srln", &srlnout, &srlnout_ops);
+	thread_t *thread
+	    = thread_create(ksrln, devin, TASK, 0, "ksrln", false);
 	
-	t = thread_create(ksrln, &srlnin, TASK, 0, "ksrln", false);
-	ASSERT(t);
-	thread_ready(t);
+	if (thread) {
+		stdin = &srlnout;
+		thread_ready(thread);
+	}
 }
 
 /** @}
  */
-
