@@ -295,7 +295,7 @@ static int cmdtab_compl(char *name)
 	
 }
 
-static char *clever_readline(const char *prompt, chardev_t *input)
+static char *clever_readline(const char *prompt, indev_t *input)
 {
 	static int histposition = 0;
 
@@ -456,6 +456,11 @@ static char *clever_readline(const char *prompt, chardev_t *input)
 	return current;
 }
 
+bool kconsole_check_poll(void)
+{
+	return check_poll(stdin);
+}
+
 /** Kernel console prompt.
  *
  * @param prompt Kernel console prompt (e.g kconsole/panic).
@@ -469,7 +474,7 @@ void kconsole(char *prompt, char *msg, bool kcon)
 	cmd_info_t *cmd_info;
 	count_t len;
 	char *cmdline;
-
+	
 	if (!stdin) {
 		LOG("No stdin for kernel console");
 		return;
@@ -480,6 +485,8 @@ void kconsole(char *prompt, char *msg, bool kcon)
 	
 	if (kcon)
 		_getc(stdin);
+	else
+		printf("Type \"exit\" to leave the console.\n");
 	
 	while (true) {
 		cmdline = clever_readline((char *) prompt, stdin);
@@ -487,13 +494,12 @@ void kconsole(char *prompt, char *msg, bool kcon)
 		if (!len)
 			continue;
 		
+		if ((!kcon) && (len == 4) && (strncmp(cmdline, "exit", 4) == 0))
+			break;
+		
 		cmd_info = parse_cmdline(cmdline, len);
 		if (!cmd_info)
 			continue;
-		
-		if ((!kcon)
-		    && (strncmp(cmd_info->name, "exit", min(strlen(cmd_info->name), 5)) == 0))
-			break;
 		
 		(void) cmd_info->func(cmd_info->argv);
 	}
