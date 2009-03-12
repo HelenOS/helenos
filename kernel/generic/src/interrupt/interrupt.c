@@ -42,7 +42,6 @@
 #include <debug.h>
 #include <console/kconsole.h>
 #include <console/console.h>
-#include <console/chardev.h>
 #include <console/cmd.h>
 #include <panic.h>
 #include <print.h>
@@ -68,13 +67,13 @@ iroutine exc_register(int n, const char *name, iroutine f)
 	iroutine old;
 	
 	spinlock_lock(&exctbl_lock);
-
+	
 	old = exc_table[n].f;
 	exc_table[n].f = f;
 	exc_table[n].name = name;
-
-	spinlock_unlock(&exctbl_lock);	
-
+	
+	spinlock_unlock(&exctbl_lock);
+	
 	return old;
 }
 
@@ -148,7 +147,7 @@ static int cmd_exc_print(cmd_arg_t *argv)
 		if (((i + 1) % 20) == 0) {
 			printf(" -- Press any key to continue -- ");
 			spinlock_unlock(&exctbl_lock);
-			getc(stdin);
+			_getc(stdin);
 			spinlock_lock(&exctbl_lock);
 			printf("\n");
 		}
