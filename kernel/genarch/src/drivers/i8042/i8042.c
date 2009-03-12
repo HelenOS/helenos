@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	i8042 processor driver
+ * @brief i8042 processor driver
  *
  * It takes care of the i8042 serial communication.
  */
@@ -42,16 +42,21 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 
-#define i8042_SET_COMMAND 	0x60
-#define i8042_COMMAND 		0x69
+indev_operations_t kbrdin_ops = {
+	.poll = NULL
+};
 
-#define i8042_BUFFER_FULL_MASK	0x01
-#define i8042_WAIT_MASK		0x02
+#define i8042_SET_COMMAND  0x60
+#define i8042_COMMAND      0x69
+
+#define i8042_BUFFER_FULL_MASK  0x01
+#define i8042_WAIT_MASK         0x02
 
 static irq_ownership_t i8042_claim(irq_t *irq)
 {
 	i8042_instance_t *i8042_instance = irq->instance;
 	i8042_t *dev = i8042_instance->i8042;
+	
 	if (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		return IRQ_ACCEPT;
 	else
@@ -62,31 +67,26 @@ static void i8042_irq_handler(irq_t *irq)
 {
 	i8042_instance_t *instance = irq->instance;
 	i8042_t *dev = instance->i8042;
-
-	uint8_t data;
 	uint8_t status;
-		
+	
 	if (((status = pio_read_8(&dev->status)) & i8042_BUFFER_FULL_MASK)) {
-		data = pio_read_8(&dev->data);
-			
-		if (instance->devout)
-			chardev_push_character(instance->devout, data);
+		uint8_t data = pio_read_8(&dev->data);
+		indev_push_character(&instance->kbrdin, data);
 	}
 }
 
 /** Initialize i8042. */
-bool
-i8042_init(i8042_t *dev, devno_t devno, inr_t inr, chardev_t *devout)
+indev_t *i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 {
-	i8042_instance_t *instance;
-
-	instance = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
+	i8042_instance_t *instance
+	    = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
 	if (!instance)
-		return false;
+		return NULL;
+	
+	indev_initialize("i8042", &instance->kbrdin, &kbrdin_ops);
 	
 	instance->devno = devno;
 	instance->i8042 = dev;
-	instance->devout = devout;
 	
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
@@ -102,7 +102,7 @@ i8042_init(i8042_t *dev, devno_t devno, inr_t inr, chardev_t *devout)
 	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		(void) pio_read_8(&dev->data);
 	
-	return true;
+	return &instance->kbrdin;
 }
 
 /** @}

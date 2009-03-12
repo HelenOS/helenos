@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	NS 16550 serial controller driver.
+ * @brief NS 16550 serial controller driver.
  */
 
 #include <genarch/drivers/ns16550/ns16550.h>
@@ -40,32 +40,56 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 
-#define LSR_DATA_READY	0x01
+#define LSR_DATA_READY  0x01
+
+indev_operations_t kbrdin_ops = {
+	.poll = NULL
+};
+
+static irq_ownership_t ns16550_claim(irq_t *irq)
+{
+	ns16550_instance_t *instance = irq->instance;
+	ns16550_t *dev = instance->ns16550;
+	
+	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)
+		return IRQ_ACCEPT;
+	else
+		return IRQ_DECLINE;
+}
+
+static void ns16550_irq_handler(irq_t *irq)
+{
+	ns16550_instance_t *instance = irq->instance;
+	ns16550_t *dev = instance->ns16550;
+	
+	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
+		uint8_t x = pio_read_8(&dev->rbr);
+		chardev_push_character(&instance->kbrdin, x);
+	}
+}
 
 /** Initialize ns16550.
  *
- * @param dev		Addrress of the beginning of the device in I/O space.
- * @param devno		Device number.
- * @param inr		Interrupt number.
- * @param cir		Clear interrupt function.
- * @param cir_arg	First argument to cir.
- * @param devout	Output character device.
+ * @param dev      Addrress of the beginning of the device in I/O space.
+ * @param devno    Device number.
+ * @param inr      Interrupt number.
+ * @param cir      Clear interrupt function.
+ * @param cir_arg  First argument to cir.
  *
- * @return		True on success, false on failure.
+ * @return Keyboard device pointer or NULL on failure.
+ *
  */
-bool
-ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
-    chardev_t *devout)
+indev_t *ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
 {
-	ns16550_instance_t *instance;
-	
-	instance = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
+	ns16550_instance_t *instance
+	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
 	if (!instance)
-		return false;
-
+		return NULL;
+	
+	indev_initialize("ns16550", &instance->kbrdin, &kbrdin_ops);
+	
 	instance->devno = devno;
 	instance->ns16550 = dev;
-	instance->devout = devout;
 	
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
@@ -76,7 +100,7 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
 	instance->irq.cir = cir;
 	instance->irq.cir_arg = cir_arg;
 	irq_register(&instance->irq);
-
+	
 	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
 		(void) pio_read_8(&dev->rbr);
 	
@@ -84,32 +108,7 @@ ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
 	pio_write_8(&dev->ier, IER_ERBFI);
 	pio_write_8(&dev->mcr, MCR_OUT2);
 	
-	return true;
-}
-
-irq_ownership_t ns16550_claim(irq_t *irq)
-{
-	ns16550_instance_t *instance = irq->instance;
-	ns16550_t *dev = instance->ns16550;
-
-	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)
-		return IRQ_ACCEPT;
-	else
-		return IRQ_DECLINE;
-}
-
-void ns16550_irq_handler(irq_t *irq)
-{
-	ns16550_instance_t *instance = irq->instance;
-	ns16550_t *dev = instance->ns16550;
-
-	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
-		uint8_t x;
-		
-		x = pio_read_8(&dev->rbr);
-		if (instance->devout)
-			chardev_push_character(instance->devout, x);
-	}
+	return &instance->kbrdin;
 }
 
 /** @}

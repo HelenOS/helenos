@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /** @file
@@ -40,21 +40,20 @@
 #include <console/chardev.h>
 #include <typedefs.h>
 
-struct i8042 {
+typedef struct {
 	ioport8_t data;
 	uint8_t pad[3];
 	ioport8_t status;
-} __attribute__ ((packed));
-typedef struct i8042 i8042_t;
+} __attribute__ ((packed)) i8042_t;
 
-typedef struct i8042_instance {
+typedef struct {
 	devno_t devno;
 	irq_t irq;
 	i8042_t *i8042;
-	chardev_t *devout;
+	indev_t kbrdin;
 } i8042_instance_t;
 
-extern bool i8042_init(i8042_t *, devno_t, inr_t, chardev_t *);
+extern indev_t *i8042_init(i8042_t *, devno_t, inr_t);
 
 #endif
 

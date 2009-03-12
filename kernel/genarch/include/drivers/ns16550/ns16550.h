@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Headers for NS 16550 serial controller.
+ * @brief Headers for NS 16550 serial controller.
  */
 
 #ifndef KERN_NS16550_H_
@@ -41,38 +41,34 @@
 #include <arch/types.h>
 #include <console/chardev.h>
 
-#define IER_ERBFI	0x01	/** Enable Receive Buffer Full Interrupt. */
+#define IER_ERBFI  0x01  /** Enable Receive Buffer Full Interrupt. */
 
-#define LCR_DLAB	0x80	/** Divisor Latch Access bit. */
+#define LCR_DLAB   0x80  /** Divisor Latch Access bit. */
 
-#define MCR_OUT2	0x08	/** OUT2. */
+#define MCR_OUT2   0x08  /** OUT2. */
 
 /** NS16550 registers. */
-struct ns16550 {
-	ioport8_t rbr;	/**< Receiver Buffer Register. */
-	ioport8_t ier;	/**< Interrupt Enable Register. */
+typedef struct {
+	ioport8_t rbr;      /**< Receiver Buffer Register. */
+	ioport8_t ier;      /**< Interrupt Enable Register. */
 	union {
-		ioport8_t iir;	/**< Interrupt Ident Register (read). */
-		ioport8_t fcr;	/**< FIFO control register (write). */
+		ioport8_t iir;  /**< Interrupt Ident Register (read). */
+		ioport8_t fcr;  /**< FIFO control register (write). */
 	} __attribute__ ((packed));
-	ioport8_t lcr;	/**< Line Control register. */
-	ioport8_t mcr;	/**< Modem Control Register. */
-	ioport8_t lsr;	/**< Line Status Register. */
-} __attribute__ ((packed));
-typedef struct ns16550 ns16550_t;
+	ioport8_t lcr;      /**< Line Control register. */
+	ioport8_t mcr;      /**< Modem Control Register. */
+	ioport8_t lsr;      /**< Line Status Register. */
+} __attribute__ ((packed)) ns16550_t;
 
 /** Structure representing the ns16550 device. */
-typedef struct ns16550_instance {
+typedef struct {
 	devno_t devno;
 	ns16550_t *ns16550;
 	irq_t irq;
-	chardev_t *devout;
+	indev_t kbrdin;
 } ns16550_instance_t;
 
-extern bool ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *,
-    chardev_t *);
-extern irq_ownership_t ns16550_claim(irq_t *);
-extern void ns16550_irq_handler(irq_t *);
+extern indev_t *ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *)
 
 #endif
 

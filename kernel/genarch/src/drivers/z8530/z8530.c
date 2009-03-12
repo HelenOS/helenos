@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Zilog 8530 serial controller driver.
+ * @brief Zilog 8530 serial controller driver.
  */
 
 #include <genarch/drivers/z8530/z8530.h>
@@ -40,14 +40,18 @@
 #include <arch/asm.h>
 #include <mm/slab.h>
 
+indev_operations_t kbrdin_ops = {
+	.poll = NULL
+};
+
 static inline void z8530_write(ioport8_t *ctl, uint8_t reg, uint8_t val)
 {
 	/*
 	 * Registers 8-15 will automatically issue the Point High
 	 * command as their bit 3 is 1.
 	 */
-	pio_write_8(ctl, reg);	/* select register */
-	pio_write_8(ctl, val);	/* write value */
+	pio_write_8(ctl, reg);  /* Select register */
+	pio_write_8(ctl, val);  /* Write value */
 }
 
 static inline uint8_t z8530_read(ioport8_t *ctl, uint8_t reg) 
@@ -56,25 +60,45 @@ static inline uint8_t z8530_read(ioport8_t *ctl, uint8_t reg)
 	 * Registers 8-15 will automatically issue the Point High
 	 * command as their bit 3 is 1.
 	 */
-	pio_write_8(ctl, reg);	/* select register */
+	pio_write_8(ctl, reg);   /* Select register */
 	return pio_read_8(ctl);
 }
 
-/** Initialize z8530. */
-bool
-z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
-    chardev_t *devout)
+static irq_ownership_t z8530_claim(irq_t *irq)
 {
-	z8530_instance_t *instance;
+	z8530_instance_t *instance = irq->instance;
+	z8530_t *dev = instance->z8530;
+	
+	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA)
+		return IRQ_ACCEPT;
+	else
+		return IRQ_DECLINE;
+}
 
-	instance = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
+static void z8530_irq_handler(irq_t *irq)
+{
+	z8530_instance_t *instance = irq->instance;
+	z8530_t *dev = instance->z8530;
+	
+	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
+		uint8_t x = z8530_read(&dev->ctl_a, RR8);
+		chardev_push_character(&instance->kbrdin, x);
+	}
+}
+
+/** Initialize z8530. */
+indev_t *z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
+{
+	z8530_instance_t *instance
+	    = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
 	if (!instance)
 		return false;
-
+	
+	indev_initialize("z8530", &instance->kbrdin, &kbrdin_ops);
+	
 	instance->devno = devno;
 	instance->z8530 = dev;
-	instance->devout = devout;
-
+	
 	irq_initialize(&instance->irq);
 	instance->irq.devno = devno;
 	instance->irq.inr = inr;
@@ -84,49 +108,25 @@ z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg,
 	instance->irq.cir = cir;
 	instance->irq.cir_arg = cir_arg;
 	irq_register(&instance->irq);
-
+	
 	(void) z8530_read(&dev->ctl_a, RR8);
-
+	
 	/*
 	 * Clear any pending TX interrupts or we never manage
 	 * to set FHC UART interrupt state to idle.
 	 */
 	z8530_write(&dev->ctl_a, WR0, WR0_TX_IP_RST);
-
+	
 	/* interrupt on all characters */
 	z8530_write(&dev->ctl_a, WR1, WR1_IARCSC);
-
+	
 	/* 8 bits per character and enable receiver */
 	z8530_write(&dev->ctl_a, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
 	/* Master Interrupt Enable. */
 	z8530_write(&dev->ctl_a, WR9, WR9_MIE);
-
-	return true;
-}
-
-irq_ownership_t z8530_claim(irq_t *irq)
-{
-	z8530_instance_t *instance = irq->instance;
-	z8530_t *dev = instance->z8530;
-
-	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA)
-		return IRQ_ACCEPT;
-	else
-		return IRQ_DECLINE;
-}
-
-void z8530_irq_handler(irq_t *irq)
-{
-	z8530_instance_t *instance = irq->instance;
-	z8530_t *dev = instance->z8530;
-	uint8_t x;
-
-	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
-		x = z8530_read(&dev->ctl_a, RR8);
-		if (instance->devout)
-			chardev_push_character(instance->devout, x);
-	}
+	
+	return &instance->kbrdin;
 }
 
 /** @}
