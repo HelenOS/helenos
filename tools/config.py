@@ -391,6 +391,9 @@ def main():
 				elif (vartype == 'y'):
 					defaults[varname] = '*'
 					continue
+				elif (vartype == 'n'):
+					defaults[varname] = 'n'
+					continue
 				elif (vartype == 'y/n'):
 					if (default == None):
 						default = 'y'
