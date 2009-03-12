@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -40,42 +40,38 @@
 #include <arch/mm/asid.h>
 #include <arch/exception.h>
 
-#ifdef TLBCNT
-#	define TLB_ENTRY_COUNT		TLBCNT
-#else
-#	define TLB_ENTRY_COUNT		48
-#endif
+#define TLB_ENTRY_COUNT  48
 
-#define TLB_WIRED		1
-#define TLB_KSTACK_WIRED_INDEX	0
+#define TLB_WIRED               1
+#define TLB_KSTACK_WIRED_INDEX  0
 
-#define TLB_PAGE_MASK_4K	(0x000 << 13)
-#define TLB_PAGE_MASK_16K	(0x003 << 13)
-#define TLB_PAGE_MASK_64K	(0x00f << 13)
-#define TLB_PAGE_MASK_256K	(0x03f << 13)
-#define TLB_PAGE_MASK_1M	(0x0ff << 13)
-#define TLB_PAGE_MASK_4M	(0x3ff << 13)
-#define TLB_PAGE_MASK_16M	(0xfff << 13)
+#define TLB_PAGE_MASK_4K    (0x000 << 13)
+#define TLB_PAGE_MASK_16K   (0x003 << 13)
+#define TLB_PAGE_MASK_64K   (0x00f << 13)
+#define TLB_PAGE_MASK_256K  (0x03f << 13)
+#define TLB_PAGE_MASK_1M    (0x0ff << 13)
+#define TLB_PAGE_MASK_4M    (0x3ff << 13)
+#define TLB_PAGE_MASK_16M   (0xfff << 13)
 
-#define PAGE_UNCACHED			2
-#define PAGE_CACHEABLE_EXC_WRITE	5
+#define PAGE_UNCACHED             2
+#define PAGE_CACHEABLE_EXC_WRITE  5
 
 typedef union {
 	struct {
 #ifdef BIG_ENDIAN
-		unsigned : 2;		/* zero */
-		unsigned pfn : 24;	/* frame number */
-		unsigned c : 3; 	/* cache coherency attribute */
-		unsigned d : 1; 	/* dirty/write-protect bit */
-		unsigned v : 1; 	/* valid bit */
-		unsigned g : 1; 	/* global bit */
+		unsigned : 2;       /* zero */
+		unsigned pfn : 24;  /* frame number */
+		unsigned c : 3;     /* cache coherency attribute */
+		unsigned d : 1;     /* dirty/write-protect bit */
+		unsigned v : 1;     /* valid bit */
+		unsigned g : 1;     /* global bit */
 #else
-		unsigned g : 1; 	/* global bit */
-		unsigned v : 1; 	/* valid bit */
-		unsigned d : 1; 	/* dirty/write-protect bit */
-		unsigned c : 3; 	/* cache coherency attribute */
-		unsigned pfn : 24;	/* frame number */
-		unsigned : 2;		/* zero */
+		unsigned g : 1;     /* global bit */
+		unsigned v : 1;     /* valid bit */
+		unsigned d : 1;     /* dirty/write-protect bit */
+		unsigned c : 3;     /* cache coherency attribute */
+		unsigned pfn : 24;  /* frame number */
+		unsigned : 2;       /* zero */
 #endif
 	} __attribute__ ((packed));
 	uint32_t value;
@@ -163,7 +159,7 @@ static inline void tlbwr(void)
 	asm volatile ("tlbwr\n\t");
 }
 
-#define tlb_invalidate(asid)	tlb_invalidate_asid(asid)
+#define tlb_invalidate(asid)  tlb_invalidate_asid(asid)
 
 extern void tlb_invalid(istate_t *istate);
 extern void tlb_refill(istate_t *istate);
