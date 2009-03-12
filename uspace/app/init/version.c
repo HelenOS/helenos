@@ -61,7 +61,8 @@ void info_print(void)
 /** Print version information. */
 void version_print(void)
 {
-	printf("HelenOS init\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n", release, revision, timestamp);
+	printf("HelenOS init\nRelease %s%s%s\n", release, revision, timestamp);
+	printf("Copyright (c) 2001-2009 HelenOS project\n");
 }
 
 /** @}

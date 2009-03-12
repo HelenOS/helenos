@@ -82,12 +82,12 @@ static void spawn(char *fname)
 	argv[0] = fname;
 	argv[1] = NULL;
 	
-	if (task_spawn(fname, argv))
-		/* Add reasonable delay to avoid
-		   intermixed klog output */
+	if (task_spawn(fname, argv)) {
+		/* Add reasonable delay to avoid intermixed klog output. */
 		usleep(10000);
-	else
+	} else {
 		printf(NAME ": Error spawning %s\n", fname);
+	}
 }
 
 int main(int argc, char *argv[])
