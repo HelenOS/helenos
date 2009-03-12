@@ -40,28 +40,36 @@
 #include <libadt/hash_table.h>
 
 enum {
-	GSP_END		= -1,
-	GSP_DEFAULT	= -2
+	GSP_END		= -1,	/**< Terminates a sequence. */
+	GSP_DEFAULT	= -2	/**< Wildcard, catches unhandled cases. */
 };
 
+/** Scancode parser description */
 typedef struct {
-	/** Transition table, (state, input) -> (state, output). */
+	/** Transition table, (state, input) -> (state, output) */
 	hash_table_t trans;
 
-	/** Current number of states. */
+	/** Number of states */
 	int states;
 } gsp_t;
 
+/** Scancode parser transition. */
 typedef struct {
-	link_t link;
+	link_t link;		/**< Link to hash table in @c gsp_t */ 
 
-	int old_state;
-	int input;
+	/* Preconditions */
 
-	int new_state;
+	int old_state;		/**< State before transition */
+	int input;		/**< Input symbol (scancode) */
 
-	unsigned out_mods;
-	unsigned out_key;
+	/* Effects */
+
+	int new_state;		/**< State after transition */
+
+	/* Output emitted during transition */
+
+	unsigned out_mods;	/**< Modifier to emit */
+	unsigned out_key;	/**< Keycode to emit */
 } gsp_trans_t;
 
 extern void gsp_init(gsp_t *);
@@ -69,10 +77,8 @@ extern int gsp_insert_defs(gsp_t *, const int *);
 extern int gsp_insert_seq(gsp_t *, const int *, unsigned, unsigned);
 extern int gsp_step(gsp_t *, int, int, unsigned *, unsigned *);
 
-
 #endif
 
 /**
  * @}
  */ 
-
