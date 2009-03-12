@@ -52,15 +52,6 @@ ifeq ($(MACHINE),bgxemul)
 	TARGET = mips-sgi-irix5
 	GCC_CFLAGS += -EB -DBIG_ENDIAN -mips3
 endif
-ifeq ($(MACHINE),simics)
-	# SIMICS 4kc emulation is broken, although for instructions
-	# that do not bother us
-	
-	BFD_NAME = elf32-tradlittlemips
-	BFD = elf32-tradlittlemips
-	GCC_CFLAGS += -mhard-float -mips3 -DTLBCNT=16
-	TLBCNT = 16
-endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
@@ -85,6 +76,5 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/drivers/msim.c \
 	arch/$(KARCH)/src/smp/dorder.c \
 	arch/$(KARCH)/src/smp/smp.c
