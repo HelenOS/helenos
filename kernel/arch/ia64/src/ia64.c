@@ -152,21 +152,23 @@ void arch_post_smp_init(void)
 #ifdef SKI
 	srln_init(stdin);
 	ski_console_init(&srlnin);
-#endif		
-
+#endif
+	
 #ifdef I460GX
 #ifdef CONFIG_EGA
 	ega_init(EGA_BASE, EGA_VIDEORAM);
 #endif
-
+	
 	devno_t devno = device_assign_devno();
 	inr_t inr;
-
+	
 #ifdef CONFIG_NS16550
 	inr = NS16550_IRQ;
-	srln_init(stdin);
-	(void) ns16550_init((ns16550_t *)NS16550_BASE, devno, inr, NULL, NULL,
-	    &srlnin);
+	
+	indev_t *kbrdin = ns16550_init(ns16550_t *) NS16550_BASE, devno, inr, NULL, NULL);
+	if (kbrdin)
+		srln_init(kbrdin);
+	
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
@@ -174,9 +176,16 @@ void arch_post_smp_init(void)
 	    (uintptr_t) NS16550_BASE);
 #else
 	inr = IRQ_KBD;
-	kbrd_init(stdin);
-	(void) i8042_init((i8042_t *)I8042_BASE, devno, inr, &kbrdin);
-	trap_virtual_enable_irqs(1 << inr);
+	/*
+	 * Initialize the i8042 controller. Then initialize the keyboard
+	 * module and connect it to i8042. Enable keyboard interrupts.
+	 */
+	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, devno, irq);
+	if (kbrdin) {
+		kbrd_init(kbrdin);
+		trap_virtual_enable_irqs(1 << inr);
+	}
+	
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
@@ -187,7 +196,7 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 #endif
-
+	
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);

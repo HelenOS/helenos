@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -167,8 +167,10 @@ void kbd_init(ofw_tree_node_t *node)
 		devno = device_assign_devno();
 		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
-		kbrd_init(stdin);
-		(void) z8530_init(z8530, devno, inr, cir, cir_arg, &kbrdin);
+		
+		indev_t *kbrdin = z8530_init(z8530, devno, inr, cir, cir_arg);
+		if (kbrdin)
+			kbrd_init(kbrdin);
 		
 		/*
 		 * This is the necessary evil until the userspace drivers are
@@ -188,8 +190,10 @@ void kbd_init(ofw_tree_node_t *node)
 		devno = device_assign_devno();
 		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
-		kbrd_init(stdin);
-		(void) ns16550_init(ns16550, devno, inr, cir, cir_arg, &kbrdin);
+		
+		indev_t *kbrdin = ns16550_init(ns16550, devno, inr, cir, cir_arg);
+		if (kbrdin)
+			kbrd_init(kbrdin);
 		
 		/*
 		 * This is the necessary evil until the userspace driver is
