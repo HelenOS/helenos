@@ -47,14 +47,14 @@ atomic_t haltstate = {0}; /**< Halt flag */
 
 /** Halt wrapper
  *
- * Set halt flag and halt the cpu.
+ * Set halt flag and halt the CPU.
  *
  */
 void halt()
 {
 #ifdef CONFIG_DEBUG
 	bool rundebugger = false;
-
+	
 	if (!atomic_get(&haltstate)) {
 		atomic_set(&haltstate, 1);
 		rundebugger = true;
@@ -62,18 +62,19 @@ void halt()
 #else
 	atomic_set(&haltstate, 1);
 #endif
-
+	
 	interrupts_disable();
 	
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
-	if (rundebugger)
-		kconsole("panic", "\nLast resort kernel console ready\n", false);
+	if ((rundebugger) && (kconsole_check_poll()))
+		kconsole("panic", "\nLast resort kernel console ready.\n", false);
 #endif
 	
 	if (CPU)
 		printf("cpu%u: halted\n", CPU->id);
 	else
 		printf("cpu: halted\n");
+	
 	cpu_halt();
 }
 
