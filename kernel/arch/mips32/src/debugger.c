@@ -384,7 +384,7 @@ void debugger_bpoint(istate_t *istate)
 		atomic_set(&haltstate, 1);
 		spinlock_unlock(&bkpoint_lock);
 		
-		kconsole("debug", "Debug console ready (type 'exit' to continue)\n", false);
+		kconsole("debug", "Debug console ready.\n", false);
 		
 		spinlock_lock(&bkpoint_lock);
 		atomic_set(&haltstate, 0);

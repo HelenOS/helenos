@@ -234,7 +234,7 @@ static void handle_exception(int slot, istate_t *istate)
 
 #ifdef CONFIG_KCONSOLE
 	atomic_set(&haltstate, 1);
-	kconsole("debug", "Debug console ready (type 'exit' to continue)\n", false);
+	kconsole("debug", "Debug console ready.\n", false);
 	atomic_set(&haltstate, 0);
 #endif
 }
