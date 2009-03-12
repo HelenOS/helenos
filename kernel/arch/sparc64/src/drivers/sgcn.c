@@ -130,23 +130,20 @@ SPINLOCK_INITIALIZE(sgcn_input_lock);
 
 
 /* functions referenced from definitions of I/O operations structures */
-static void sgcn_noop(chardev_t *);
-static void sgcn_putchar(chardev_t *, const char, bool);
-static char sgcn_key_read(chardev_t *);
+static void sgcn_putchar(outdev_t *, const char, bool);
 
-/** character device operations */
-static chardev_operations_t sgcn_ops = {
-	.suspend = sgcn_noop,
-	.resume = sgcn_noop,
-	.read = sgcn_key_read,
+/** SGCN output device operations */
+static outdev_operations_t sgcnout_ops = {
 	.write = sgcn_putchar
 };
 
-/** SGCN character device */
-chardev_t sgcn_io;
+/** SGCN input device operations */
+static indev_operations_t sgcnin_ops = {
+	.poll = NULL
+};
 
-/** Address of the chardev, which is connected to SGCN. */
-static chardev_t *sgcnout;
+static indev_t sgcnin;		/**< SGCN input device. */
+static outdev_t sgcnout;	/**< SGCN output device. */
 
 /**
  * Set some sysinfo values (SRAM address and SRAM size).
@@ -203,6 +200,11 @@ static void init_sram_begin(void)
  */
 static void sgcn_buffer_begin_init(void)
 {
+	static bool initialized;
+	
+	if (initialized)
+		return;
+
 	init_sram_begin();
 		
 	ASSERT(strcmp(SRAM_TOC->magic, SRAM_TOC_MAGIC) == 0);
@@ -219,13 +221,8 @@ static void sgcn_buffer_begin_init(void)
 	
 	sysinfo_set_item_val("sram.buffer.offset", NULL,
 	    SRAM_TOC->keys[i].offset);
-}
-
-/**
- * Default suspend/resume operation for the input device.
- */
-static void sgcn_noop(chardev_t *d)
-{
+	
+	initialized = true;
 }
 
 /**
@@ -271,7 +268,7 @@ static void sgcn_do_putchar(const char c)
  * feed character is written ('\n'), the carriage return character ('\r') is
  * written straight away. 
  */
-static void sgcn_putchar(struct chardev * cd, const char c, bool silent)
+static void sgcn_putchar(outdev_t *od, const char c, bool silent)
 {
 	if (!silent) {
 		spinlock_lock(&sgcn_output_lock);
@@ -282,14 +279,6 @@ static void sgcn_putchar(struct chardev * cd, const char c, bool silent)
 		
 		spinlock_unlock(&sgcn_output_lock);
 	}
-}
-
-/**
- * Called when actively reading the character. Not implemented yet.
- */
-static char sgcn_key_read(chardev_t *d)
-{
-	return (char) 0;
 }
 
 /**
@@ -337,8 +326,7 @@ static void sgcn_poll()
 		char c = *buf_ptr;
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 			
-		if (sgcnout)
-			chardev_push_character(sgcnout, c);	
+		indev_push_character(&sgcnin, c);	
 	}	
 
 	spinlock_unlock(&sgcn_input_lock);
@@ -357,10 +345,9 @@ static void kkbdpoll(void *arg) {
 }
 
 /**
- * A public function which initializes I/O from/to Serengeti console
- * and sets it as a default input/output. 
+ * A public function which initializes input from the Serengeti console.
  */
-void sgcn_init(chardev_t *devout)
+indev_t *sgcnin_init(void)
 {
 	sgcn_buffer_begin_init();
 
@@ -368,17 +355,28 @@ void sgcn_init(chardev_t *devout)
 
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SGCN);
-	sysinfo_set_item_val("fb.kind", NULL, 4);
 
 	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 	if (!t)
 		panic("Cannot create kkbdpoll.");
 	thread_ready(t);
 	
-	chardev_initialize("sgcn_io", &sgcn_io, &sgcn_ops);
-	stdout = &sgcn_io;
+	indev_initialize("sgcnin", &sgcnin, &sgcnin_ops);
 
-	sgcnout = devout;
+	return &sgcnin;
+}
+
+/**
+ * A public function which initializes output to the Serengeti console.
+ */
+void sgcnout_init(void)
+{
+	sgcn_buffer_begin_init();
+
+	sysinfo_set_item_val("fb.kind", NULL, 4);
+
+	outdev_initialize("sgcnout", &sgcnout, &sgcnout_ops);	
+	stdout = &sgcnout;
 }
 
 /** @}

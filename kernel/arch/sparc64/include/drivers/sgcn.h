@@ -118,7 +118,8 @@ typedef struct {
 
 void sgcn_grab(void);
 void sgcn_release(void);
-void sgcn_init(chardev_t *);
+indev_t *sgcnin_init(void);
+void sgcnout_init(void);
 
 #endif
 

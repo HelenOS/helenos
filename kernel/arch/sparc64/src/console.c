@@ -96,9 +96,14 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 /** Initilize I/O on the Serengeti machine. */
 static void serengeti_init(void)
 {
-#ifdef CONFIG_SRLN
-	srln_init(stdin);
-	sgcn_init(&srlnin);
+#ifdef CONFIG_SGCN_KBD
+	indev_t *kbrdin;
+	kbrdin = sgcnin_init();
+	if (kbrdin)
+		srlnin_init(kbrdin);
+#endif
+#ifdef CONFIG_SGCN_PRN
+	sgcnout_init();
 #endif
 }
 
