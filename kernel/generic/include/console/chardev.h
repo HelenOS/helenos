@@ -39,40 +39,59 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
-#define CHARDEV_BUFLEN 512
+#define INDEV_BUFLEN  512
 
-struct chardev;
+struct indev;
 
-/* Character device operations interface. */
+/* Input character device operations interface. */
 typedef struct {
-	/** Suspend pushing characters. */
-	void (* suspend)(struct chardev *);
-	/** Resume pushing characters. */
-	void (* resume)(struct chardev *);
-	/** Write character to stream. */
-	void (* write)(struct chardev *, char c, bool silent);
 	/** Read character directly from device, assume interrupts disabled. */
-	char (* read)(struct chardev *); 
-} chardev_operations_t;
+	char (* poll)(struct indev *);
+} indev_operations_t;
 
 /** Character input device. */
-typedef struct chardev {
+typedef struct indev {
 	char *name;
-	
 	waitq_t wq;
+	
 	/** Protects everything below. */
-	SPINLOCK_DECLARE(lock);	
-	uint8_t buffer[CHARDEV_BUFLEN];
+	SPINLOCK_DECLARE(lock);
+	uint8_t buffer[INDEV_BUFLEN];
 	count_t counter;
-	/** Implementation of chardev operations. */
-	chardev_operations_t *op;
+	
+	/** Implementation of indev operations. */
+	indev_operations_t *op;
 	index_t index;
 	void *data;
-} chardev_t;
+} indev_t;
 
-extern void chardev_initialize(char *name, chardev_t *chardev,
-    chardev_operations_t *op);
-extern void chardev_push_character(chardev_t *chardev, uint8_t ch);
+
+struct outdev;
+
+/* Output character device operations interface. */
+typedef struct {
+	/** Write character to output. */
+	void (* write)(struct outdev *, char c, bool silent);
+} outdev_operations_t;
+
+/** Character input device. */
+typedef struct outdev {
+	char *name;
+	
+	/** Protects everything below. */
+	SPINLOCK_DECLARE(lock);
+	
+	/** Implementation of outdev operations. */
+	outdev_operations_t *op;
+	void *data;
+} outdev_t;
+
+extern void indev_initialize(char *name, indev_t *indev,
+    indev_operations_t *op);
+extern void indev_push_character(indev_t *indev, uint8_t ch);
+
+extern void outdev_initialize(char *name, outdev_t *outdev,
+    outdev_operations_t *op);
 
 #endif /* KERN_CHARDEV_H_ */
 
