@@ -183,7 +183,7 @@ start64:
 	movl grub_ebx, %esi
 	call arch_pre_main
 
-	call main_bsp  
+	call main_bsp
 
 	# Not reached.
 	
