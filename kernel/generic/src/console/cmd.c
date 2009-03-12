@@ -79,12 +79,6 @@ static cmd_info_t help_info = {
 	.argc = 0
 };
 
-static cmd_info_t exit_info = {
-	.name = "exit",
-	.description = "Exit kconsole.",
-	.argc = 0
-};
-
 static int cmd_reboot(cmd_arg_t *argv);
 static cmd_info_t reboot_info = {
 	.name = "reboot",
@@ -457,7 +451,6 @@ static cmd_info_t *basic_commands[] = {
 	&continue_info,
 	&cpus_info,
 	&desc_info,
-	&exit_info,
 	&reboot_info,
 	&uptime_info,
 	&halt_info,
