@@ -39,13 +39,16 @@
 #include <ddi/device.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
+#include <genarch/drivers/dsrln/dsrlnin.h>
+#include <genarch/drivers/dsrln/dsrlnout.h>
+#include <genarch/srln/srln.h>
+#include <sysinfo/sysinfo.h>
 #include <ddi/irq.h>
-#include <arch/debug/print.h>
+#include <arch/drivers/gxemul.h>
 #include <print.h>
 #include <config.h>
 #include <interrupt.h>
 #include <arch/regutils.h>
-#include <arch/machine.h>
 #include <userspace.h>
 #include <macros.h>
 #include <string.h>
@@ -75,18 +78,15 @@ void arch_pre_mm_init(void)
 /** Performs arm32 specific initialization afterr mm is initialized. */
 void arch_post_mm_init(void)
 {
-	machine_hw_map_init();
-
+	gxemul_init();
+	
 	/* Initialize exception dispatch table */
 	exception_init();
-
 	interrupt_init();
 	
-	machine_console_init(device_assign_devno());
-
 #ifdef CONFIG_FB
 	fb_properties_t prop = {
-		.addr = machine_get_fb_address(),
+		.addr = GXEMUL_FB_ADDRESS,
 		.offset = 0,
 		.x = 640,
 		.y = 480,
@@ -94,7 +94,11 @@ void arch_post_mm_init(void)
 		.visual = VISUAL_BGR_8_8_8,
 	};
 	fb_init(&prop);
-#endif
+#else
+#ifdef CONFIG_ARM_PRN
+	dsrlnout_init((ioport8_t *) gxemul_kbd);
+#endif /* CONFIG_ARM_PRN */
+#endif /* CONFIG_FB */
 }
 
 /** Performs arm32 specific tasks needed after cpu is initialized.
@@ -123,6 +127,26 @@ void arch_pre_smp_init(void)
  */
 void arch_post_smp_init(void)
 {
+#ifdef CONFIG_ARM_KBD
+	devno_t devno = device_assign_devno();
+	
+	/*
+	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
+	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
+	 */
+	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) gxemul_kbd, devno, GXEMUL_KBD_IRQ);
+	if (kbrdin)
+		srln_init(kbrdin);
+	
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (unative_t) gxemul_kbd);
+#endif
 }
 
 
@@ -156,7 +180,8 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	machine_cpu_halt();
+	*((char *) (gxemul_kbd + GXEMUL_HALT_OFFSET))
+		= 0;
 }
 
 /** Reboot. */

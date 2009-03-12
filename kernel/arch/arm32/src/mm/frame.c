@@ -35,9 +35,8 @@
 
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
-#include <arch/machine.h>
+#include <arch/drivers/gxemul.h>
 #include <config.h>
-#include <arch/debug/print.h>
 
 /** Address of the last frame in the memory. */
 uintptr_t last_frame = 0;
@@ -45,10 +44,11 @@ uintptr_t last_frame = 0;
 /** Creates memory zones. */
 void frame_arch_init(void)
 {
-	/* all memory as one zone */
-	zone_create(0, ADDR2PFN(machine_get_memory_size()),
+	last_frame = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	
+	/* All memory as one zone */
+	zone_create(0, ADDR2PFN(last_frame),
 	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
-	last_frame = machine_get_memory_size();
 	
 	/* blacklist boot page table */
 	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,
@@ -58,10 +58,9 @@ void frame_arch_init(void)
 /** Frees the boot page table. */
 void boot_page_table_free(void)
 {
-	int i;
-	for (i = 0; i < BOOT_PAGE_TABLE_SIZE_IN_FRAMES; i++) {
+	unsigned int i;
+	for (i = 0; i < BOOT_PAGE_TABLE_SIZE_IN_FRAMES; i++)
 		frame_free(i * FRAME_SIZE + BOOT_PAGE_TABLE_ADDRESS);
-	}
 }
 
 /** @}

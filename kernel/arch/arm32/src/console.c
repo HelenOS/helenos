@@ -26,17 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
-/** @file 
+/** @file
  *  @brief Console.
  */
 
 #include <console/console.h>
 #include <arch/console.h>
-#include <arch/machine.h>
-
 #include <genarch/fb/fb.h>
 
 /** Acquire console back for kernel. */

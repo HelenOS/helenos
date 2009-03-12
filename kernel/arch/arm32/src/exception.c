@@ -34,13 +34,12 @@
  */
 
 #include <arch/exception.h>
-#include <arch/debug/print.h>
 #include <arch/memstr.h>
 #include <arch/regutils.h>
 #include <interrupt.h>
-#include <arch/machine.h>
 #include <arch/mm/page_fault.h>
 #include <arch/barrier.h>
+#include <arch/drivers/gxemul.h>
 #include <print.h>
 #include <syscall/syscall.h>
 
@@ -260,14 +259,20 @@ static void fiq_exception_entry(void)
 /** Low-level Prefetch Abort Exception handler. */
 static void prefetch_abort_exception_entry(void)
 {
-	asm("sub lr, lr, #4");
+	asm volatile (
+		"sub lr, lr, #4"
+	);
+	
 	PROCESS_EXCEPTION(EXC_PREFETCH_ABORT);
 } 
 
 /** Low-level Data Abort Exception handler. */
 static void data_abort_exception_entry(void)
 {
-	asm("sub lr, lr, #8");
+	asm volatile (
+		"sub lr, lr, #8"
+	);
+	
 	PROCESS_EXCEPTION(EXC_DATA_ABORT);
 }
 
@@ -279,7 +284,10 @@ static void data_abort_exception_entry(void)
  */
 static void irq_exception_entry(void)
 {
-	asm("sub lr, lr, #4");
+	asm volatile (
+		"sub lr, lr, #4"
+	);
+	
 	setup_stack_and_save_regs();
 	
 	switch_to_irq_servicing_mode();
@@ -299,13 +307,35 @@ static void swi_exception(int exc_no, istate_t *istate)
 	    istate->r3, istate->r4, istate->r5, istate->r6);
 }
 
+/** Returns the mask of active interrupts. */
+static inline uint32_t gxemul_irqc_get_sources(void)
+{
+	return *((uint32_t *) gxemul_irqc);
+}
+
 /** Interrupt Exception handler.
  *
  * Determines the sources of interrupt and calls their handlers.
  */
 static void irq_exception(int exc_no, istate_t *istate)
 {
-	machine_irq_exception(exc_no, istate);
+	uint32_t sources = gxemul_irqc_get_sources();
+	unsigned int i;
+	
+	for (i = 0; i < GXEMUL_IRQC_MAX_IRQ; i++) {
+		if (sources & (1 << i)) {
+			irq_t *irq = irq_dispatch_and_lock(i);
+			if (irq) {
+				/* The IRQ handler was found. */
+				irq->handler(irq);
+				spinlock_unlock(&irq->lock);
+			} else {
+				/* Spurious interrupt.*/
+				printf("cpu%d: spurious interrupt (inum=%d)\n",
+				    CPU->id, i);
+			}
+		}
+	}
 }
 
 /** Fills exception vectors with appropriate exception handlers. */
@@ -329,7 +359,7 @@ void install_exception_handlers(void)
 	install_handler((unsigned) irq_exception_entry,
 	    (unsigned *) EXC_IRQ_VEC);
 	
-	install_handler((unsigned)fiq_exception_entry,
+	install_handler((unsigned) fiq_exception_entry,
 	    (unsigned *) EXC_FIQ_VEC);
 }
 
@@ -379,18 +409,18 @@ void exception_init(void)
  */
 void print_istate(istate_t *istate)
 {
-	dprintf("istate dump:\n");
-
-	dprintf(" r0: %x    r1: %x    r2: %x    r3: %x\n",
+	printf("istate dump:\n");
+	
+	printf(" r0: %x    r1: %x    r2: %x    r3: %x\n",
 	    istate->r0, istate->r1, istate->r2, istate->r3);
-	dprintf(" r4: %x    r5: %x    r6: %x    r7: %x\n", 
+	printf(" r4: %x    r5: %x    r6: %x    r7: %x\n", 
 	    istate->r4, istate->r5, istate->r6, istate->r7);
-	dprintf(" r8: %x    r8: %x   r10: %x   r11: %x\n", 
+	printf(" r8: %x    r8: %x   r10: %x   r11: %x\n", 
 	    istate->r8, istate->r9, istate->r10, istate->r11);
-	dprintf(" r12: %x    sp: %x    lr: %x  spsr: %x\n",
+	printf(" r12: %x    sp: %x    lr: %x  spsr: %x\n",
 	    istate->r12, istate->sp, istate->lr, istate->spsr);
-
-	dprintf(" pc: %x\n", istate->pc);
+	
+	printf(" pc: %x\n", istate->pc);
 }
 
 /** @}

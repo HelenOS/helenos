@@ -51,28 +51,24 @@
  */
 void page_arch_init(void)
 {
-	uintptr_t cur;
-	int flags;
-
+	int flags = PAGE_CACHEABLE;
 	page_mapping_operations = &pt_mapping_operations;
-
-	flags = PAGE_CACHEABLE;
-
-	/* PA2KA(identity) mapping for all frames until last_frame */
-	for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
-		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-	}
 	
-	/* create mapping for exception table at high offset */
+	uintptr_t cur;
+	/* Kernel identity mapping */
+	for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
+		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+	
+	/* Create mapping for exception table at high offset */
 #ifdef HIGH_EXCEPTION_VECTORS
 	void *virtaddr = frame_alloc(ONE_FRAME, FRAME_KA);
 	page_mapping_insert(AS_KERNEL, EXC_BASE_ADDRESS, KA2PA(virtaddr), flags);
 #else
 #error "Only high exception vector supported now"
 #endif
-
+	
 	as_switch(NULL, AS_KERNEL);
-
+	
 	boot_page_table_free();
 }
 
@@ -93,7 +89,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		panic("Unable to map physical memory %p (%d bytes).",
 		    physaddr, size)
 	}
-
+	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
@@ -101,7 +97,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 		    physaddr + PFN2ADDR(i),
 		    PAGE_NOT_CACHEABLE | PAGE_READ | PAGE_WRITE | PAGE_KERNEL);
 	}
-
+	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	return virtaddr;
 }

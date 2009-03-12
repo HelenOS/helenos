@@ -38,40 +38,32 @@
 #ifndef KERN_arm32_GXEMUL_H_
 #define KERN_arm32_GXEMUL_H_
 
-#include <console/chardev.h>
-
-/** Last interrupt number (beginning from 0) whose status is probed 
+/** Last interrupt number (beginning from 0) whose status is probed
  * from interrupt controller
  */
-#define GXEMUL_IRQC_MAX_IRQ		8
+#define GXEMUL_IRQC_MAX_IRQ  8
+#define GXEMUL_KBD_IRQ       2
+#define GXEMUL_TIMER_IRQ     4
 
 /** Timer frequency */
-#define GXEMUL_TIMER_FREQ		100
+#define GXEMUL_TIMER_FREQ  100
 
-/** Struct containing mappings of gxemul HW devices into kernel part 
- *  of virtual address space.
- */
-typedef struct {
-	uintptr_t videoram;
-	uintptr_t kbd;
-	uintptr_t rtc;
-	uintptr_t rtc_freq;
-	uintptr_t rtc_ack;
-	uintptr_t irqc;
-	uintptr_t irqc_mask;
-	uintptr_t irqc_unmask;
-} gxemul_hw_map_t;
+#define GXEMUL_KBD_ADDRESS   0x10000000
+#define GXEMUL_MP_ADDRESS    0x11000000
+#define GXEMUL_FB_ADDRESS    0x12000000
+#define GXEMUL_RTC_ADDRESS   0x15000000
+#define GXEMUL_IRQC_ADDRESS  0x16000000
 
-extern void gxemul_hw_map_init(void);
-extern void gxemul_console_init(devno_t devno);
-extern void gxemul_release_console(void);
-extern void gxemul_grab_console(void);
-extern void gxemul_timer_irq_start(void);
-extern void gxemul_debug_putc(char ch);
-extern void gxemul_cpu_halt(void);
-extern void gxemul_irq_exception(int exc_no, istate_t *istate);
-extern size_t gxemul_get_memory_size(void);
-extern uintptr_t gxemul_get_fb_address(void);
+extern void *gxemul_kbd;
+extern void *gxemul_rtc;
+extern void *gxemul_irqc;
+
+#define GXEMUL_HALT_OFFSET        0x010
+#define GXEMUL_RTC_FREQ_OFFSET    0x100
+#define GXEMUL_MP_MEMSIZE_OFFSET  0x090
+#define GXEMUL_RTC_ACK_OFFSET     0x110
+
+extern void gxemul_init(void);
 
 #endif
 

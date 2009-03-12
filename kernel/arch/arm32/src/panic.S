@@ -31,5 +31,5 @@
 .global panic_printf
 
 panic_printf:
-	bl debug_printf
+	bl printf
 	bl cpu_halt
