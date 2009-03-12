@@ -40,22 +40,22 @@
 #include <mm/asid.h>
 #include <config.h>
 #include <arch/drivers/msim.h>
-#include <arch/drivers/serial.h>
 #include <print.h>
 
-#define ZERO_PAGE_MASK		TLB_PAGE_MASK_256K
-#define ZERO_FRAMES			2048
-#define ZERO_PAGE_WIDTH		18  /* 256K */
-#define ZERO_PAGE_SIZE		(1 << ZERO_PAGE_WIDTH)
-#define ZERO_PAGE_ASID		ASID_INVALID
-#define ZERO_PAGE_TLBI		0
-#define ZERO_PAGE_ADDR		0
-#define ZERO_PAGE_OFFSET	(ZERO_PAGE_SIZE / sizeof(uint32_t) - 1)
-#define ZERO_PAGE_VALUE		(((volatile uint32_t *) ZERO_PAGE_ADDR)[ZERO_PAGE_OFFSET])
+#define ZERO_PAGE_MASK    TLB_PAGE_MASK_256K
+#define ZERO_FRAMES       2048
+#define ZERO_PAGE_WIDTH   18  /* 256K */
+#define ZERO_PAGE_SIZE    (1 << ZERO_PAGE_WIDTH)
+#define ZERO_PAGE_ASID    ASID_INVALID
+#define ZERO_PAGE_TLBI    0
+#define ZERO_PAGE_ADDR    0
+#define ZERO_PAGE_OFFSET  (ZERO_PAGE_SIZE / sizeof(uint32_t) - 1)
+#define ZERO_PAGE_VALUE   (((volatile uint32_t *) ZERO_PAGE_ADDR)[ZERO_PAGE_OFFSET])
 
-#define ZERO_PAGE_VALUE_KSEG1(frame) (((volatile uint32_t *) (0xa0000000 + (frame << ZERO_PAGE_WIDTH)))[ZERO_PAGE_OFFSET])
+#define ZERO_PAGE_VALUE_KSEG1(frame) \
+	(((volatile uint32_t *) (0xa0000000 + (frame << ZERO_PAGE_WIDTH)))[ZERO_PAGE_OFFSET])
 
-#define MAX_REGIONS			32
+#define MAX_REGIONS  32
 
 typedef struct {
 	pfn_t start;
@@ -64,7 +64,6 @@ typedef struct {
 
 static count_t phys_regions_count = 0;
 static phys_region_t phys_regions[MAX_REGIONS];
-
 
 /** Check whether frame is available
  *
@@ -84,13 +83,7 @@ static bool frame_available(pfn_t frame)
 	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
-
-#ifdef MACHINE_simics
-	/* Simics device (serial line) */
-	if (frame == (KA2PA(SERIAL_ADDRESS) >> ZERO_PAGE_WIDTH))
-		return false;
-#endif
-
+	
 #if defined(MACHINE_lgxemul) || defined(MACHINE_bgxemul)
 	/* gxemul devices */
 	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
