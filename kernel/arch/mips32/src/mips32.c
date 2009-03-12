@@ -52,6 +52,9 @@
 #include <arch/debugger.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
+#include <genarch/drivers/dsrln/dsrlnin.h>
+#include <genarch/drivers/dsrln/dsrlnout.h>
+#include <genarch/srln/srln.h>
 #include <macros.h>
 #include <ddi/device.h>
 #include <config.h>
@@ -133,7 +136,7 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	interrupt_init();
-	msim_console(device_assign_devno());
+	
 #ifdef CONFIG_FB
 	/* GXemul framebuffer */
 	fb_properties_t gxemul_prop = {
@@ -145,23 +148,11 @@ void arch_post_mm_init(void)
 		.visual = VISUAL_BGR_8_8_8,
 	};
 	fb_init(&gxemul_prop);
-#endif
-
-#ifdef MACHINE_msim
-	sysinfo_set_item_val("machine.msim", NULL, 1);
-#endif
-
-#ifdef MACHINE_simics
-	sysinfo_set_item_val("machine.simics", NULL, 1);
-#endif
-
-#ifdef MACHINE_bgxemul
-	sysinfo_set_item_val("machine.bgxemul", NULL, 1);
-#endif
-
-#ifdef MACHINE_lgxemul
-	sysinfo_set_item_val("machine.lgxemul", NULL, 1);
-#endif
+#else
+#ifdef CONFIG_MIPS_PRN
+	dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
+#endif /* CONFIG_MIPS_PRN */
+#endif /* CONFIG_FB */
 }
 
 void arch_post_cpu_init(void)
@@ -174,6 +165,28 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+#ifdef CONFIG_MIPS_KBD
+	devno_t devno = device_assign_devno();
+	
+	/*
+	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
+	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
+	 */
+	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, devno, MSIM_KBD_IRQ);
+	if (kbrdin) {
+		srln_init(kbrdin);
+		cp0_unmask_int(MSIM_KBD_IRQ);
+	}
+	
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno);
+	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, MSIM_KBD_ADDRESS);
+#endif
 }
 
 void calibrate_delay_loop(void)
@@ -222,7 +235,6 @@ unative_t sys_tls_set(unative_t addr)
 void arch_reboot(void)
 {
 	___halt();
-	
 	while (1);
 }
 

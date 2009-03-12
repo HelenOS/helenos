@@ -26,16 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
  */
 
 #include <console/console.h>
-#include <arch/console.h>
-#include <arch/drivers/serial.h>
-#include <arch/drivers/msim.h>
 #include <genarch/fb/fb.h>
 
 /** Acquire console back for kernel
@@ -46,7 +43,6 @@ void arch_grab_console(void)
 #ifdef CONFIG_FB
 	fb_redraw();
 #endif
-	msim_kbd_grab();
 }
 
 /** Return console to userspace
@@ -54,7 +50,6 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
-	msim_kbd_release();
 }
 
 /** @}
