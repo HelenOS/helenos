@@ -35,14 +35,14 @@
 #ifndef KERN_ia64_SKI_H_
 #define KERN_ia64_SKI_H_
 
-#include <arch/types.h>
 #include <console/chardev.h>
 
 #define SKI_INIT_CONSOLE	20
 #define SKI_GETCHAR		21
 #define SKI_PUTCHAR		31
 
-extern void ski_console_init(chardev_t *);
+extern indev_t *skiin_init(void);
+extern void skiout_init(void);
 extern void ski_kbd_grab(void);
 extern void ski_kbd_release(void);
 

@@ -43,9 +43,8 @@
 #include <arch/drivers/kbd.h>
 #include <arch.h>
 
-static chardev_t *skiout;
-
-static chardev_t ski_stdout;
+static indev_t skiin;		/**< Ski input device. */
+static outdev_t skiout;		/**< Ski output device. */
 
 static bool kbd_disabled;
 
@@ -57,7 +56,7 @@ static bool kbd_disabled;
  * @param d Character device.
  * @param ch Character to be printed.
  */
-static void ski_putchar(chardev_t *d, const char ch, bool silent)
+static void ski_putchar(outdev_t *d, const char ch, bool silent)
 {
 	if (!silent) {
 		asm volatile (
@@ -74,7 +73,11 @@ static void ski_putchar(chardev_t *d, const char ch, bool silent)
 	}
 }
 
-static chardev_operations_t ski_ops = {
+static indev_operations_t skiin_ops = {
+	.poll = NULL
+};
+
+static outdev_operations_t skiout_ops = {
 	.write = ski_putchar
 };
 
@@ -108,25 +111,16 @@ static int32_t ski_getchar(void)
 static void poll_keyboard(void)
 {
 	char ch;
-	ipl_t ipl;
 	
-	ipl = interrupts_disable();
-	
-	if (kbd_disabled) {
-		interrupts_restore(ipl);
+	if (kbd_disabled)
 		return;
-	}
-	
 	ch = ski_getchar();
 	if(ch == '\r')
 		ch = '\n'; 
-	if (ch && skiout) {
-		chardev_push_character(skiout, ch);
-		interrupts_restore(ipl);
+	if (ch) {
+		indev_push_character(&skiin, ch);
 		return;
 	}
-
-	interrupts_restore(ipl);
 }
 
 #define POLL_INTERVAL           10000           /* 10 ms */
@@ -147,8 +141,13 @@ static void kkbdpoll(void *arg)
  * Issue SSC (Simulator System Call) to
  * to open debug console.
  */
-void ski_console_init(chardev_t *devout)
+static void ski_init(void)
 {
+	static bool initialized;
+
+	if (initialized)
+		return;
+	
 	asm volatile (
 		"mov r15 = %0\n"
 		"break 0x80000\n"
@@ -156,18 +155,34 @@ void ski_console_init(chardev_t *devout)
 		: "i" (SKI_INIT_CONSOLE)
 		: "r15", "r8"
 	);
+	
+	initialized = true;
+}
 
-	skiout = devout;
-	chardev_initialize("ski_stdout", &ski_stdout, &ski_ops);
-	stdout = &ski_stdout;
+indev_t *skiin_init(void)
+{
+	ski_init();
 
+	indev_initialize("skiin", &skiin, &skiin_ops);
 	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
-	if (!t)
-		panic("Cannot create kkbdpoll.");
-	thread_ready(t);
+	if (t)
+		thread_ready(t);
+	else
+		return NULL;
 
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
+
+	return &skiin;
+}
+
+
+void skiout_init(void)
+{
+	ski_init();
+
+	outdev_initialize("skiout", &skiout, &skiout_ops);
+	stdout = &skiout;
 
 	sysinfo_set_item_val("fb", NULL, false);
 }

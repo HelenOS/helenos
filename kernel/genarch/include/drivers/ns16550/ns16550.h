@@ -68,7 +68,7 @@ typedef struct {
 	indev_t kbrdin;
 } ns16550_instance_t;
 
-extern indev_t *ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *)
+extern indev_t *ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *);
 
 #endif
 

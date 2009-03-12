@@ -150,8 +150,11 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 #ifdef SKI
-	srln_init(stdin);
-	ski_console_init(&srlnin);
+	indev_t *in;
+	in = skiin_init();
+	if (in)
+		srln_init(in);
+	skiout_init();
 #endif
 	
 #ifdef I460GX
@@ -165,7 +168,7 @@ void arch_post_smp_init(void)
 #ifdef CONFIG_NS16550
 	inr = NS16550_IRQ;
 	
-	indev_t *kbrdin = ns16550_init(ns16550_t *) NS16550_BASE, devno, inr, NULL, NULL);
+	indev_t *kbrdin = ns16550_init((ns16550_t *) NS16550_BASE, devno, inr, NULL, NULL);
 	if (kbrdin)
 		srln_init(kbrdin);
 	
