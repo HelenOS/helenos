@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -36,15 +36,9 @@
 #define KERN_mips32_MSIM_H_
 
 /** Address of devices. */
-#define MSIM_VIDEORAM		0x90000000
-#define MSIM_KBD_ADDRESS	0x90000000
-#define MSIM_KBD_IRQ 		2
-
-#include <console/chardev.h>
-
-void msim_console(devno_t devno);
-void msim_kbd_release(void);
-void msim_kbd_grab(void);
+#define MSIM_VIDEORAM     0x90000000
+#define MSIM_KBD_ADDRESS  0x90000000
+#define MSIM_KBD_IRQ      2
 
 #endif
 
