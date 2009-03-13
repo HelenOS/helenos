@@ -62,34 +62,29 @@
 static void standard_console_init(ofw_tree_node_t *aliases)
 {
 #ifdef CONFIG_FB
-	ofw_tree_property_t *prop;
-	ofw_tree_node_t *screen;
-	ofw_tree_node_t *keyboard;
-	
-	prop = ofw_tree_getprop(aliases, "screen");
-	if (!prop)
+	ofw_tree_property_t *prop_scr = ofw_tree_getprop(aliases, "screen");
+	if (!prop_scr)
 		panic("Cannot find property 'screen'.");
-	if (!prop->value)
+	if (!prop_scr->value)
 		panic("Cannot find screen alias.");
-	screen = ofw_tree_lookup(prop->value);
+	ofw_tree_node_t *screen = ofw_tree_lookup(prop_scr->value);
 	if (!screen)
-		panic("Cannot find %s.", prop->value);
-
+		panic("Cannot find %s.", prop_scr->value);
+	
 	scr_init(screen);
+#endif
 
-	prop = ofw_tree_getprop(aliases, "keyboard");
-	if (!prop)
+#ifdef CONFIG_SUN_KBD
+	ofw_tree_property_t *prop_kbd = ofw_tree_getprop(aliases, "keyboard");
+	if (!prop_kbd)
 		panic("Cannot find property 'keyboard'.");
-	if (!prop->value)
+	if (!prop_kbd->value)
 		panic("Cannot find keyboard alias.");
-	keyboard = ofw_tree_lookup(prop->value);
+	ofw_tree_node_t *keyboard = ofw_tree_lookup(prop_kbd->value);
 	if (!keyboard)
-		panic("Cannot find %s.", prop->value);
-
+		panic("Cannot find %s.", prop_kbd->value);
+	
 	kbd_init(keyboard);
-#else
-	panic("Standard console requires FB, "
-	      "but the kernel is not compiled with FB support.");
 #endif
 }
 

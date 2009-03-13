@@ -42,7 +42,7 @@
 
 #define LSR_DATA_READY  0x01
 
-indev_operations_t kbrdin_ops = {
+static indev_operations_t kbrdin_ops = {
 	.poll = NULL
 };
 
@@ -64,7 +64,7 @@ static void ns16550_irq_handler(irq_t *irq)
 	
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
 		uint8_t x = pio_read_8(&dev->rbr);
-		chardev_push_character(&instance->kbrdin, x);
+		indev_push_character(&instance->kbrdin, x);
 	}
 }
 

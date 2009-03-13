@@ -39,7 +39,7 @@
 #include <mm/slab.h>
 #include <arch/asm.h>
 
-indev_operations_t kbrdin_ops = {
+static indev_operations_t kbrdin_ops = {
 	.poll = NULL
 };
 

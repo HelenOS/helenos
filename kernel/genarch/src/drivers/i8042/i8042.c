@@ -42,7 +42,7 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 
-indev_operations_t kbrdin_ops = {
+static indev_operations_t kbrdin_ops = {
 	.poll = NULL
 };
 

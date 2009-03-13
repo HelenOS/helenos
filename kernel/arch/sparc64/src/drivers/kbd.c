@@ -57,7 +57,7 @@
 
 kbd_type_t kbd_type = KBD_UNKNOWN;
 
-#if defined (CONFIG_Z8530) || defined (CONFIG_NS16550)
+#ifdef CONFIG_SUN_KBD
 
 /** Initialize keyboard.
  *
@@ -168,9 +168,9 @@ void kbd_init(ofw_tree_node_t *node)
 		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
 		
-		indev_t *kbrdin = z8530_init(z8530, devno, inr, cir, cir_arg);
-		if (kbrdin)
-			kbrd_init(kbrdin);
+		indev_t *kbrdin_z8530 = z8530_init(z8530, devno, inr, cir, cir_arg);
+		if (kbrdin_z8530)
+			kbrd_init(kbrdin_z8530);
 		
 		/*
 		 * This is the necessary evil until the userspace drivers are
@@ -191,9 +191,9 @@ void kbd_init(ofw_tree_node_t *node)
 		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
 		
-		indev_t *kbrdin = ns16550_init(ns16550, devno, inr, cir, cir_arg);
-		if (kbrdin)
-			kbrd_init(kbrdin);
+		indev_t *kbrdin_ns16550 = ns16550_init(ns16550, devno, inr, cir, cir_arg);
+		if (kbrdin_ns16550)
+			kbrd_init(kbrdin_ns16550);
 		
 		/*
 		 * This is the necessary evil until the userspace driver is
@@ -214,6 +214,7 @@ void kbd_init(ofw_tree_node_t *node)
 	}
 }
 
-	#endif
+#endif
+
 /** @}
  */

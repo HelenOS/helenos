@@ -76,7 +76,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/tick.c \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/sgcn.c \
-	arch/$(KARCH)/src/drivers/pci.c
+	arch/$(KARCH)/src/drivers/pci.c \
+	arch/$(KARCH)/src/drivers/fhc.c
 
 ifeq ($(CONFIG_FB),y)
 	ARCH_SOURCES += \
@@ -92,9 +93,4 @@ endif
 ifeq ($(CONFIG_TSB),y)
 	ARCH_SOURCES += \
 		arch/$(KARCH)/src/mm/tsb.c
-endif
-
-ifdef CONFIG_Z8530
-	ARCH_SOURCES += \
-		arch/$(KARCH)/src/drivers/fhc.c
 endif

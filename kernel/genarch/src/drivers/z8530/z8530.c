@@ -40,7 +40,7 @@
 #include <arch/asm.h>
 #include <mm/slab.h>
 
-indev_operations_t kbrdin_ops = {
+static indev_operations_t kbrdin_ops = {
 	.poll = NULL
 };
 
@@ -82,7 +82,7 @@ static void z8530_irq_handler(irq_t *irq)
 	
 	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
 		uint8_t x = z8530_read(&dev->ctl_a, RR8);
-		chardev_push_character(&instance->kbrdin, x);
+		indev_push_character(&instance->kbrdin, x);
 	}
 }
 

@@ -120,7 +120,7 @@ typedef struct {
 	indev_t kbrdin;
 } z8530_instance_t;
 
-extern devin_t *z8530_init(z8530_t *, devno_t, inr_t, cir_t, void *);
+extern indev_t *z8530_init(z8530_t *, devno_t, inr_t, cir_t, void *);
 
 #endif
 
