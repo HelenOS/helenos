@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -36,63 +36,60 @@
 #define KERN_amd64_PM_H_
 
 #ifndef __ASM__
-#	include <arch/types.h>
-#	include <arch/context.h>
+	#include <arch/types.h>
+	#include <arch/context.h>
 #endif
 
-#define IDT_ITEMS 64
-#define GDT_ITEMS 8
+#define IDT_ITEMS  64
+#define GDT_ITEMS  8
 
 
-#define NULL_DES	0
-/* Warning: Do not reorder next items, unless you look into syscall.c!!! */
-#define KTEXT_DES	1
-#define	KDATA_DES	2
-#define UDATA_DES	3
-#define UTEXT_DES	4
-#define KTEXT32_DES     5
-/* EndOfWarning */
-#define TSS_DES		6
-
-
+#define NULL_DES     0
+/* Warning: Do not reorder the following items, unless you look into syscall.c! */
+#define KTEXT_DES    1
+#define KDATA_DES    2
+#define UDATA_DES    3
+#define UTEXT_DES    4
+#define KTEXT32_DES  5
+/* End of warning */
+#define TSS_DES      6
 
 #ifdef CONFIG_FB
 
-#define VESA_INIT_DES		8
-#define VESA_INIT_SEGMENT 0x8000
-#undef GDT_ITEMS 
-#define GDT_ITEMS 9
+#define VESA_INIT_DES      8
+#define VESA_INIT_SEGMENT  0x8000
 
-#endif /*CONFIG_FB*/
+#undef GDT_ITEMS
+#define GDT_ITEMS  9
 
+#endif /* CONFIG_FB */
 
+#define gdtselector(des)  ((des) << 3)
+#define idtselector(des)  ((des) << 4)
 
-#define gdtselector(des)	((des) << 3)
-#define idtselector(des)	((des) << 4)
+#define PL_KERNEL  0
+#define PL_USER    3
 
-#define PL_KERNEL	0
-#define PL_USER		3
+#define AR_PRESENT   ( 1 << 7)
+#define AR_DATA       (2 << 3)
+#define AR_CODE       (3 << 3)
+#define AR_WRITABLE   (1 << 1)
+#define AR_READABLE   (1 << 1)
+#define AR_TSS        (0x09)
+#define AR_INTERRUPT  (0x0e)
+#define AR_TRAP       (0x0f)
 
-#define AR_PRESENT	(1<<7)
-#define AR_DATA		(2<<3)
-#define AR_CODE		(3<<3)
-#define AR_WRITABLE	(1<<1)
-#define AR_READABLE     (1<<1)
-#define AR_TSS		(0x9)
-#define AR_INTERRUPT    (0xe)
-#define AR_TRAP         (0xf)
+#define DPL_KERNEL  (PL_KERNEL << 5)
+#define DPL_USER    (PL_USER << 5)
 
-#define DPL_KERNEL	(PL_KERNEL<<5)
-#define DPL_USER	(PL_USER<<5)
+#define TSS_BASIC_SIZE  104
+#define TSS_IOMAP_SIZE  (16 * 1024 + 1)  /* 16K for bitmap + 1 terminating byte for convenience */
 
-#define TSS_BASIC_SIZE	104
-#define TSS_IOMAP_SIZE	(16*1024+1)	/* 16K for bitmap + 1 terminating byte for convenience */
-
-#define IO_PORTS	(64*1024)
+#define IO_PORTS  (64 * 1024)
 
 #ifndef __ASM__
 
-struct descriptor {
+typedef struct {
 	unsigned limit_0_15: 16;
 	unsigned base_0_15: 16;
 	unsigned base_16_23: 8;
@@ -103,10 +100,9 @@ struct descriptor {
 	unsigned special: 1;
 	unsigned granularity : 1;
 	unsigned base_24_31: 8;
-} __attribute__ ((packed));
-typedef struct descriptor descriptor_t;
+} __attribute__ ((packed)) descriptor_t;
 
-struct tss_descriptor {
+typedef struct {
 	unsigned limit_0_15: 16;
 	unsigned base_0_15: 16;
 	unsigned base_16_23: 8;
@@ -121,10 +117,9 @@ struct tss_descriptor {
 	unsigned base_24_31: 8;	
 	unsigned base_32_63 : 32;
 	unsigned  : 32;
-} __attribute__ ((packed));
-typedef struct tss_descriptor tss_descriptor_t;
+} __attribute__ ((packed)) tss_descriptor_t;
 
-struct idescriptor {
+typedef struct {
 	unsigned offset_0_15: 16;
 	unsigned selector: 16;
 	unsigned ist:3;
@@ -135,22 +130,19 @@ struct idescriptor {
 	unsigned offset_16_31: 16;
 	unsigned offset_32_63: 32;
 	unsigned  : 32;
-} __attribute__ ((packed));
-typedef struct idescriptor idescriptor_t;
+} __attribute__ ((packed)) idescriptor_t;
 
-struct ptr_16_64 {
+typedef struct {
 	uint16_t limit;
 	uint64_t base;
-} __attribute__ ((packed));
-typedef struct ptr_16_64 ptr_16_64_t;
+} __attribute__ ((packed)) ptr_16_64_t;
 
-struct ptr_16_32 {
+typedef struct {
 	uint16_t limit;
 	uint32_t base;
-} __attribute__ ((packed));
-typedef struct ptr_16_32 ptr_16_32_t;
+} __attribute__ ((packed)) ptr_16_32_t;
 
-struct tss {
+typedef struct {
 	uint32_t reserve1;
 	uint64_t rsp0;
 	uint64_t rsp1;
@@ -167,8 +159,7 @@ struct tss {
 	uint16_t reserve4;
 	uint16_t iomap_base;
 	uint8_t iomap[TSS_IOMAP_SIZE];
-} __attribute__ ((packed));
-typedef struct tss tss_t;
+} __attribute__ ((packed)) tss_t;
 
 extern tss_t *tss_p;
 

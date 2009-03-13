@@ -35,9 +35,9 @@
 #ifndef KERN_amd64_CPU_H_
 #define KERN_amd64_CPU_H_
 
-#define RFLAGS_IF	(1 << 9)
-#define RFLAGS_DF	(1 << 10)
-#define RFLAGS_RF	(1 << 16)
+#define RFLAGS_IF  (1 << 9)
+#define RFLAGS_DF  (1 << 10)
+#define RFLAGS_RF  (1 << 16)
 
 #define EFER_MSR_NUM    0xc0000080
 #define AMD_SCE_FLAG    0
@@ -62,17 +62,15 @@ typedef struct {
 	int family;
 	int model;
 	int stepping;
-	struct tss *tss;
+	tss_t *tss;
 	
-	count_t iomapver_copy;	/** Copy of TASK's I/O Permission bitmap generation count. */
+	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
 } cpu_arch_t;
 
 struct star_msr {
-	
 };
 
 struct lstar_msr {
-	
 };
 
 extern void set_efer_flag(int flag);

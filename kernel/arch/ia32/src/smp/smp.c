@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -131,8 +131,8 @@ void kmp(void *arg __attribute__((unused)))
 	uint8_t apic = l_apic_id();
 
 	for (i = 0; i < ops->cpu_count(); i++) {
-		struct descriptor *gdt_new;
-	
+		descriptor_t *gdt_new;
+		
 		/*
 		 * Skip processors marked unusable.
 		 */
@@ -159,14 +159,14 @@ void kmp(void *arg __attribute__((unused)))
 		 * it needs to be replaced by a generic fuctionality of
 		 * the memory subsystem
 		 */
-		gdt_new = (struct descriptor *) malloc(GDT_ITEMS *
-		    sizeof(struct descriptor), FRAME_ATOMIC);
+		gdt_new = (descriptor_t *) malloc(GDT_ITEMS *
+		    sizeof(descriptor_t), FRAME_ATOMIC);
 		if (!gdt_new)
 			panic("Cannot allocate memory for GDT.");
 
-		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(struct descriptor));
-		memsetb(&gdt_new[TSS_DES], sizeof(struct descriptor), 0);
-		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(struct descriptor);
+		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(descriptor_t));
+		memsetb(&gdt_new[TSS_DES], sizeof(descriptor_t), 0);
+		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(descriptor_t);
 		protected_ap_gdtr.base = KA2PA((uintptr_t) gdt_new);
 		gdtr.base = (uintptr_t) gdt_new;
 

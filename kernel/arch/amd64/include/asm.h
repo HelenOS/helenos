@@ -342,7 +342,7 @@ static inline void invlpg(uintptr_t addr)
  * @param gdtr_reg Address of memory from where to load GDTR.
  *
  */
-static inline void gdtr_load(struct ptr_16_64 *gdtr_reg)
+static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
 		"lgdtq %[gdtr_reg]\n"
@@ -355,7 +355,7 @@ static inline void gdtr_load(struct ptr_16_64 *gdtr_reg)
  * @param gdtr_reg Address of memory to where to load GDTR.
  *
  */
-static inline void gdtr_store(struct ptr_16_64 *gdtr_reg)
+static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
 		"sgdtq %[gdtr_reg]\n"
@@ -368,7 +368,7 @@ static inline void gdtr_store(struct ptr_16_64 *gdtr_reg)
  * @param idtr_reg Address of memory from where to load IDTR.
  *
  */
-static inline void idtr_load(struct ptr_16_64 *idtr_reg)
+static inline void idtr_load(ptr_16_64_t *idtr_reg)
 {
 	asm volatile (
 		"lidtq %[idtr_reg]\n"

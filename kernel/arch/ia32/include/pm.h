@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,61 +35,59 @@
 #ifndef KERN_ia32_PM_H_
 #define KERN_ia32_PM_H_
 
-#define IDT_ITEMS	64	
-#define GDT_ITEMS	7
+#define IDT_ITEMS  64
+#define GDT_ITEMS  7
 
-#define VESA_INIT_SEGMENT 0x8000
-
-#define NULL_DES	0
-#define KTEXT_DES	1
-#define	KDATA_DES	2
-#define UTEXT_DES	3
-#define UDATA_DES	4
-#define TSS_DES		5
-#define TLS_DES		6 /* Pointer to Thread-Local-Storage data */
+#define NULL_DES   0
+#define KTEXT_DES  1
+#define KDATA_DES  2
+#define UTEXT_DES  3
+#define UDATA_DES  4
+#define TSS_DES    5
+#define TLS_DES    6  /* Pointer to Thread-Local-Storage data */
 
 #ifdef CONFIG_FB
 
-#define VESA_INIT_SEGMENT 0x8000
-#define VESA_INIT_DES 7
+#define VESA_INIT_SEGMENT  0x8000
+#define VESA_INIT_DES      7
+#define KTEXT32_DES        KTEXT_DES
+
 #undef GDT_ITEMS
-#define GDT_ITEMS 8
+#define GDT_ITEMS  8
 
 #endif /* CONFIG_FB */
 
+#define gdtselector(des)  ((des) << 3)
 
-#define gdtselector(des)	((des) << 3)
+#define PL_KERNEL  0
+#define PL_USER    3
 
-#define PL_KERNEL	0
-#define PL_USER		3
+#define AR_PRESENT    (1 << 7)
+#define AR_DATA       (2 << 3)
+#define AR_CODE       (3 << 3)
+#define AR_WRITABLE   (1 << 1)
+#define AR_INTERRUPT  (0x0e)
+#define AR_TSS        (0x09)
 
-#define AR_PRESENT	(1 << 7)
-#define AR_DATA		(2 << 3)
-#define AR_CODE		(3 << 3)
-#define AR_WRITABLE	(1 << 1)
-#define AR_INTERRUPT	(0xe)
-#define AR_TSS		(0x9)
+#define DPL_KERNEL  (PL_KERNEL << 5)
+#define DPL_USER    (PL_USER << 5)
 
-#define DPL_KERNEL	(PL_KERNEL << 5)
-#define DPL_USER	(PL_USER << 5)
+#define TSS_BASIC_SIZE  104
+#define TSS_IOMAP_SIZE  (16 * 1024 + 1)  /* 16K for bitmap + 1 terminating byte for convenience */
 
-#define TSS_BASIC_SIZE	104
-#define TSS_IOMAP_SIZE	(16 * 1024 + 1)	/* 16K for bitmap + 1 terminating byte for convenience */
-
-#define IO_PORTS	(64 * 1024)
+#define IO_PORTS  (64 * 1024)
 
 #ifndef __ASM__
 
 #include <arch/types.h>
 #include <arch/context.h>
 
-struct ptr_16_32 {
+typedef struct {
 	uint16_t limit;
 	uint32_t base;
-} __attribute__ ((packed));
-typedef struct ptr_16_32 ptr_16_32_t;
+} __attribute__ ((packed)) ptr_16_32_t;
 
-struct descriptor {
+typedef struct {
 	unsigned limit_0_15: 16;
 	unsigned base_0_15: 16;
 	unsigned base_16_23: 8;
@@ -100,19 +98,17 @@ struct descriptor {
 	unsigned special: 1;
 	unsigned granularity : 1;
 	unsigned base_24_31: 8;
-} __attribute__ ((packed));
-typedef struct descriptor  descriptor_t;
+} __attribute__ ((packed)) descriptor_t;
 
-struct idescriptor {
+typedef struct {
 	unsigned offset_0_15: 16;
 	unsigned selector: 16;
 	unsigned unused: 8;
 	unsigned access: 8;
 	unsigned offset_16_31: 16;
-} __attribute__ ((packed));
-typedef struct idescriptor idescriptor_t;
+} __attribute__ ((packed)) idescriptor_t;
 
-struct tss {
+typedef struct {
 	uint16_t link;
 	unsigned : 16;
 	uint32_t esp0;
@@ -152,13 +148,12 @@ struct tss {
 	unsigned : 16;
 	uint16_t iomap_base;
 	uint8_t iomap[TSS_IOMAP_SIZE];
-} __attribute__ ((packed));
-typedef struct tss tss_t;
+} __attribute__ ((packed)) tss_t;
 
 extern ptr_16_32_t gdtr;
 extern ptr_16_32_t bootstrap_gdtr;
 extern ptr_16_32_t protected_ap_gdtr;
-extern struct tss *tss_p;
+extern tss_t *tss_p;
 
 extern descriptor_t gdt[];
 

@@ -112,7 +112,7 @@ void idt_setoffset(idescriptor_t *d, uintptr_t offset)
 
 void tss_initialize(tss_t *t)
 {
-	memsetb(t, sizeof(struct tss), 0);
+	memsetb(t, sizeof(tss_t), 0);
 }
 
 /*

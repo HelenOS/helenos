@@ -55,7 +55,7 @@ typedef struct {
 	unsigned int family;
 	unsigned int model;
 	unsigned int stepping;
-	struct tss *tss;
+	tss_t *tss;
 	
 	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
 } cpu_arch_t;

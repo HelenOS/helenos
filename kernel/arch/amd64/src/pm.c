@@ -137,8 +137,8 @@ void gdt_tss_setbase(descriptor_t *d, uintptr_t base)
 
 void gdt_tss_setlimit(descriptor_t *d, uint32_t limit)
 {
-	struct tss_descriptor *td = (tss_descriptor_t *) d;
-
+	tss_descriptor_t *td = (tss_descriptor_t *) d;
+	
 	td->limit_0_15 = limit & 0xffff;
 	td->limit_16_19 = (limit >> 16) & 0xf;
 }
@@ -185,14 +185,14 @@ void idt_init(void)
  */
 void pm_init(void)
 {
-	descriptor_t *gdt_p = (struct descriptor *) gdtr.base;
+	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
 	tss_descriptor_t *tss_desc;
-
+	
 	/*
 	 * Each CPU has its private GDT and TSS.
 	 * All CPUs share one IDT.
 	 */
-
+	
 	if (config.cpu_active == 1) {
 		idt_init();
 		/*
@@ -200,20 +200,19 @@ void pm_init(void)
 		 * the heap hasn't been initialized so far.
 		 */
 		tss_p = &tss;
-	}
-	else {
+	} else {
 		/* We are going to use malloc, which may return
 		 * non boot-mapped pointer, initialize the CR3 register
 		 * ahead of page_init */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-
-		tss_p = (struct tss *) malloc(sizeof(tss_t), FRAME_ATOMIC);
+		
+		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("Cannot allocate TSS.");
 	}
-
+	
 	tss_initialize(tss_p);
-
+	
 	tss_desc = (tss_descriptor_t *) (&gdt_p[TSS_DES]);
 	tss_desc->present = 1;
 	tss_desc->type = AR_TSS;
@@ -221,7 +220,7 @@ void pm_init(void)
 	
 	gdt_tss_setbase(&gdt_p[TSS_DES], (uintptr_t) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
-
+	
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);
 	/*

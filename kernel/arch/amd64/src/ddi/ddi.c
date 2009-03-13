@@ -57,15 +57,15 @@
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	count_t bits;
-
+	
 	bits = ioaddr + size;
 	if (bits > IO_PORTS)
 		return ENOENT;
-
+	
 	if (task->arch.iomap.bits < bits) {
 		bitmap_t oldiomap;
 		uint8_t *newmap;
-	
+		
 		/*
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
@@ -77,34 +77,34 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		bitmap_initialize(&oldiomap, task->arch.iomap.map,
 		    task->arch.iomap.bits);
 		bitmap_initialize(&task->arch.iomap, newmap, bits);
-
+		
 		/*
 		 * Mark the new range inaccessible.
 		 */
 		bitmap_set_range(&task->arch.iomap, oldiomap.bits,
 		    bits - oldiomap.bits);
-
+		
 		/*
 		 * In case there really existed smaller iomap,
 		 * copy its contents and deallocate it.
-		 */		
+		 */
 		if (oldiomap.bits) {
 			bitmap_copy(&task->arch.iomap, &oldiomap,
 			    oldiomap.bits);
 			free(oldiomap.map);
 		}
 	}
-
+	
 	/*
 	 * Enable the range and we are done.
 	 */
 	bitmap_clear_range(&task->arch.iomap, (index_t) ioaddr, (count_t) size);
-
+	
 	/*
 	 * Increment I/O Permission bitmap generation counter.
 	 */
 	task->arch.iomapver++;
-
+	
 	return 0;
 }
 
@@ -122,7 +122,7 @@ void io_perm_bitmap_install(void)
 	descriptor_t *gdt_p;
 	tss_descriptor_t *tss_desc;
 	count_t ver;
-
+	
 	/* First, copy the I/O Permission Bitmap. */
 	spinlock_lock(&TASK->lock);
 	ver = TASK->arch.iomapver;
@@ -140,7 +140,7 @@ void io_perm_bitmap_install(void)
 		bitmap_set_range(&iomap, ALIGN_UP(TASK->arch.iomap.bits, 8), 8);
 	}
 	spinlock_unlock(&TASK->lock);
-
+	
 	/*
 	 * Second, adjust TSS segment limit.
 	 * Take the extra ending byte will all bits set into account. 
@@ -151,10 +151,10 @@ void io_perm_bitmap_install(void)
 	gdtr_load(&cpugdtr);
 	
 	/*
-         * Before we load new TSS limit, the current TSS descriptor
-         * type must be changed to describe inactive TSS.
-         */
-	tss_desc = (tss_descriptor_t *)	&gdt_p[TSS_DES];
+	 * Before we load new TSS limit, the current TSS descriptor
+	 * type must be changed to describe inactive TSS.
+	 */
+	tss_desc = (tss_descriptor_t *) &gdt_p[TSS_DES];
 	tss_desc->type = AR_TSS;
 	tr_load(gdtselector(TSS_DES));
 	
