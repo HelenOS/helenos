@@ -35,21 +35,9 @@
 #ifndef KERN_MACROS_H_
 #define KERN_MACROS_H_
 
+#ifndef __ASM__
+
 #include <arch/types.h>
-
-#define isdigit(d)     (((d) >= '0') && ((d) <= '9'))
-#define islower(c)     (((c) >= 'a') && ((c) <= 'z'))
-#define isupper(c)     (((c) >= 'A') && ((c) <= 'Z'))
-#define isalpha(c)     (is_lower((c)) || is_upper((c)))
-#define isalphanum(c)  (is_alpha((c)) || is_digit((c)))
-#define isspace(c) \
-	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
-
-#define min(a, b)  ((a) < (b) ? (a) : (b))
-#define max(a, b)  ((a) > (b) ? (a) : (b))
-
-#define min3(a, b, c)  ((a) < (b) ? (min(a, c)) : (min(b, c)))
-#define max3(a, b, c)  ((a) > (b) ? (max(a, c)) : (max(b, c)))
 
 /** Return true if the intervals overlap.
  *
@@ -65,6 +53,22 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 	
 	return ((s1 < e2) && (s2 < e1));
 }
+
+#endif /* __ASM__ */
+
+#define isdigit(d)     (((d) >= '0') && ((d) <= '9'))
+#define islower(c)     (((c) >= 'a') && ((c) <= 'z'))
+#define isupper(c)     (((c) >= 'A') && ((c) <= 'Z'))
+#define isalpha(c)     (is_lower((c)) || is_upper((c)))
+#define isalphanum(c)  (is_alpha((c)) || is_digit((c)))
+#define isspace(c) \
+	(((c) == ' ') || ((c) == '\t') || ((c) == '\n') || ((c) == '\r'))
+
+#define min(a, b)  ((a) < (b) ? (a) : (b))
+#define max(a, b)  ((a) > (b) ? (a) : (b))
+
+#define min3(a, b, c)  ((a) < (b) ? (min(a, c)) : (min(b, c)))
+#define max3(a, b, c)  ((a) > (b) ? (max(a, c)) : (max(b, c)))
 
 /* Compute overlapping of physical addresses */
 #define PA_overlaps(x, szx, y, szy) \
