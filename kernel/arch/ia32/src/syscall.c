@@ -44,7 +44,7 @@ void syscall_setup_cpu(void)
 	extern void sysenter_handler(void);
 
 	/* set kernel mode CS selector */
-	write_msr(IA32_MSR_SYSENTER_CS, selector(KTEXT_DES));
+	write_msr(IA32_MSR_SYSENTER_CS, gdtselector(KTEXT_DES));
 	/* set kernel mode entry point */
 	write_msr(IA32_MSR_SYSENTER_EIP, (uint32_t) sysenter_handler);
 }

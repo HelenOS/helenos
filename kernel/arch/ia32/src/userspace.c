@@ -74,13 +74,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 		
 		"iret\n"
 		:
-		: [udata_des] "i" (selector(UDATA_DES) | PL_USER),
+		: [udata_des] "i" (gdtselector(UDATA_DES) | PL_USER),
 		  [stack_size] "r" ((uint8_t *) kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
 		  [ipl] "r" (ipl),
-		  [utext_des] "i" (selector(UTEXT_DES) | PL_USER),
+		  [utext_des] "i" (gdtselector(UTEXT_DES) | PL_USER),
 		  [entry] "r" (kernel_uarg->uspace_entry),
 		  [uarg] "r" (kernel_uarg->uspace_uarg),
-		  [tls_des] "r" (selector(TLS_DES))
+		  [tls_des] "r" (gdtselector(TLS_DES))
 		: "eax");
 	
 	/* Unreachable */

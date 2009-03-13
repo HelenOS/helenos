@@ -127,7 +127,7 @@ void idt_init(void)
 		d = &idt[i];
 
 		d->unused = 0;
-		d->selector = selector(KTEXT_DES);
+		d->selector = gdtselector(KTEXT_DES);
 
 		d->access = AR_PRESENT | AR_INTERRUPT;	/* masking interrupt */
 
@@ -214,7 +214,7 @@ void pm_init(void)
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	tr_load(selector(TSS_DES));
+	tr_load(gdtselector(TSS_DES));
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
 	clean_AM_flag();          /* Disable alignment check */
