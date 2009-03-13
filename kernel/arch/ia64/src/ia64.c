@@ -68,7 +68,7 @@
 #include <string.h>
 
 /* NS16550 as a COM 1 */
-#define NS16550_IRQ	(4 + LEGACY_INTERRUPT_BASE)
+#define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
 
 bootinfo_t *bootinfo;
 
@@ -157,47 +157,41 @@ void arch_post_smp_init(void)
 	skiout_init();
 #endif
 	
-#ifdef I460GX
 #ifdef CONFIG_EGA
 	ega_init(EGA_BASE, EGA_VIDEORAM);
 #endif
 	
-	devno_t devno = device_assign_devno();
-	inr_t inr;
-	
 #ifdef CONFIG_NS16550
-	inr = NS16550_IRQ;
+	devno_t devno_ns16550 = device_assign_devno();
+	indev_t *kbrdin_ns16550
+	    = ns16550_init((ns16550_t *) NS16550_BASE, devno_ns16550, NS16550_IRQ, NULL, NULL);
+	if (kbrdin_ns16550)
+		srln_init(kbrdin_ns16550);
 	
-	indev_t *kbrdin = ns16550_init((ns16550_t *) NS16550_BASE, devno, inr, NULL, NULL);
-	if (kbrdin)
-		srln_init(kbrdin);
-	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno_ns16550);
+	sysinfo_set_item_val("kbd.inr", NULL, NS16550_IRQ);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
 	sysinfo_set_item_val("kbd.address.kernel", NULL,
 	    (uintptr_t) NS16550_BASE);
-#else
-	inr = IRQ_KBD;
-	/*
-	 * Initialize the i8042 controller. Then initialize the keyboard
-	 * module and connect it to i8042. Enable keyboard interrupts.
-	 */
-	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, devno, irq);
-	if (kbrdin) {
-		kbrd_init(kbrdin);
-		trap_virtual_enable_irqs(1 << inr);
-	}
+#endif
 	
+#ifdef CONFIG_I8042
+	devno_t devno_i8042 = device_assign_devno();
+	indev_t *kbrdin_i8042 = i8042_init((i8042_t *) I8042_BASE, devno_i8042, IRQ_KBD);
+	if (kbrdin_i8042)
+		kbrd_init(kbrdin_i8042);
+	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.devno", NULL, devno_i8042);
+	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
 	sysinfo_set_item_val("kbd.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
-#endif
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, inr);
 #endif
 	
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
