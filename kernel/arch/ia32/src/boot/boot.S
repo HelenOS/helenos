@@ -42,79 +42,63 @@
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
 	.long MULTIBOOT_HEADER_FLAGS
-	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)	# checksum
+	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)  # checksum
 	.long multiboot_header
 	.long unmapped_ktext_start
 	.long 0
 	.long 0
 	.long multiboot_image_start
-	
+
 multiboot_image_start:
 	cld
-	movl $START_STACK, %esp			# initialize stack pointer
-	lgdt KA2PA(bootstrap_gdtr)		# initialize Global Descriptor Table register
-
-	movw $selector(KDATA_DES), %cx
+	movl $START_STACK, %esp     # initialize stack pointer
+	lgdt KA2PA(bootstrap_gdtr)  # initialize Global Descriptor Table register
+	
+	movw $gdtselector(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
 	movw %cx, %gs
-	movw %cx, %ds					# kernel data + stack
+	movw %cx, %ds               # kernel data + stack
 	movw %cx, %ss
 	
-	jmpl $selector(KTEXT_DES), $multiboot_meeting_point
+	jmpl $gdtselector(KTEXT_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
-	movl %eax, grub_eax					# save parameters from GRUB
+	movl %eax, grub_eax         # save parameters from GRUB
 	movl %ebx, grub_ebx
 	
-	xorl %eax, %eax  
- 	cpuid
- 	cmp $0x0, %eax						# any function > 0?
-	jbe pse_unsupported
-	movl $0x1, %eax						# Basic function code 1
+	xorl %eax, %eax
 	cpuid
-	bt $3, %edx							# Test if PSE is supported
+	cmp $0x0, %eax              # any function > 0?
+	jbe pse_unsupported
+	movl $0x1, %eax             # basic function code 1
+	cpuid
+	bt $3, %edx                 # test if PSE is supported
 	jc pse_supported
-
+	
 	pse_unsupported:
 		movl $pse_msg, %esi
 		jmp error_halt
 	
 	pse_supported:
-	
-#ifdef CONFIG_FB
-	mov $vesa_init, %esi
-	mov $VESA_INIT_SEGMENT << 4, %edi
-	mov $e_vesa_init - vesa_init, %ecx
-	rep movsb
 
-	mov $VESA_INIT_SEGMENT << 4, %edi
-	jmpl *%edi
-	
-	vesa_meeting_point:
-	
-	mov %esi, KA2PA(vesa_ph_addr)
-	mov %di, KA2PA(vesa_height)
-	shr $16, %edi
-	mov %di, KA2PA(vesa_width)
-	mov %bx, KA2PA(vesa_scanline)
-	shr $16, %ebx
-	mov %bx, KA2PA(vesa_bpp)
-#endif	
+#include "vesa_prot.inc"
 
-	call map_kernel							# map kernel and turn paging on
-
-	# arch_pre_main(grub_eax, grub_ebx)
+	# map kernel and turn paging on
+	call map_kernel
+	
+	# call arch_pre_main(grub_eax, grub_ebx)
 	pushl grub_ebx
 	pushl grub_eax
 	call arch_pre_main
 	
 	call main_bsp
 	
-	# Not reached.
-	
+	# not reached
 	cli
-	hlt
+	hlt0:
+		hlt
+		jmp hlt0
 
 .global map_kernel
 map_kernel:
@@ -123,38 +107,39 @@ map_kernel:
 	# For simplicity, we map the entire 4G space.
 	#
 	movl %cr4, %ecx
-	orl $(1 << 4), %ecx							# turn PSE on
-	andl $(~(1 << 5)), %ecx						# turn PAE off
+	orl $(1 << 4), %ecx                 # turn PSE on
+	andl $(~(1 << 5)), %ecx             # turn PAE off
 	movl %ecx, %cr4
 	
 	movl $(page_directory + 0), %esi
 	movl $(page_directory + 2048), %edi
 	xorl %ecx, %ecx
 	xorl %ebx, %ebx
-0:
-	movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
-	orl %ebx, %eax
-	movl %eax, (%esi, %ecx, 4)					# mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
-	movl %eax, (%edi, %ecx, 4)					# mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
-	addl $(4 * 1024 * 1024), %ebx
-
-	incl %ecx
-	cmpl $512, %ecx
-	jl 0b
-
+	
+	floop:
+		movl $((1 << 7) | (1 << 1) | (1 << 0)), %eax
+		orl %ebx, %eax
+		movl %eax, (%esi, %ecx, 4)      # mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
+		movl %eax, (%edi, %ecx, 4)      # mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M
+		addl $(4 * 1024 * 1024), %ebx
+		
+		incl %ecx
+		cmpl $512, %ecx
+		jl floop
+	
 	movl %esi, %cr3
 	
 	movl %cr0, %ebx
-	orl $(1 << 31), %ebx						# turn paging on
+	orl $(1 << 31), %ebx                # turn paging on
 	movl %ebx, %cr0
 	ret
 
 # Print string from %esi to EGA display (in red) and halt
 error_halt:
-	movl $0xb8000, %edi						# base of EGA text mode memory
+	movl $0xb8000, %edi         # base of EGA text mode memory
 	xorl %eax, %eax
 	
-	movw $0x3d4, %dx						# read bits 8 - 15 of the cursor address
+	movw $0x3d4, %dx            # read bits 8 - 15 of the cursor address
 	movb $0xe, %al
 	outb %al, %dx
 	
@@ -162,7 +147,7 @@ error_halt:
 	inb %dx, %al
 	shl $8, %ax
 	
-	movw $0x3d4, %dx						# read bits 0 - 7 of the cursor address
+	movw $0x3d4, %dx            # read bits 0 - 7 of the cursor address
 	movb $0xf, %al
 	outb %al, %dx
 	
@@ -171,25 +156,27 @@ error_halt:
 	
 	cmp $1920, %ax
 	jbe cursor_ok
-		movw $1920, %ax						# sanity check for the cursor on the last line
+	
+		movw $1920, %ax         # sanity check for the cursor on the last line
+	
 	cursor_ok:
 	
 	movw %ax, %bx
 	shl $1, %eax
 	addl %eax, %edi
 	
-	movw $0x0c00, %ax						# black background, light red foreground
+	movw $0x0c00, %ax           # black background, light red foreground
 	
 	ploop:
 		lodsb
 		cmp $0, %al
 		je ploop_end
 		stosw
-		inc %bx	
+		inc %bx
 		jmp ploop
 	ploop_end:
 	
-	movw $0x3d4, %dx						# write bits 8 - 15 of the cursor address
+	movw $0x3d4, %dx            # write bits 8 - 15 of the cursor address
 	movb $0xe, %al
 	outb %al, %dx
 	
@@ -197,247 +184,20 @@ error_halt:
 	movb %bh, %al
 	outb %al, %dx
 	
-	movw $0x3d4, %dx						# write bits 0 - 7 of the cursor address
+	movw $0x3d4, %dx            # write bits 0 - 7 of the cursor address
 	movb $0xf, %al
 	outb %al, %dx
 	
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-		
+	
 	cli
-	hlt
+	hlt1:
+		hlt
+		jmp hlt1
 
-#ifdef CONFIG_FB
-vesa_init:
-	jmp $selector(VESA_INIT_DES), $vesa_init_real - vesa_init
-	
-.code16
-vesa_init_real:
-	
-	mov %cr0, %eax
-	and $~1, %eax
-	mov %eax, %cr0
-	
-	jmp $VESA_INIT_SEGMENT, $vesa_init_real2 - vesa_init
-	
-vesa_init_real2:
-	
-	mov $VESA_INIT_SEGMENT, %bx
-	
-	mov %bx, %es
-	mov %bx, %fs
-	mov %bx, %gs
-	mov %bx, %ds
-	mov %bx, %ss
-	
-	movl %esp, %eax
-	movl $0x0000fffc, %esp
-	movl $0x0000fffc, %ebp
-	pushl %eax
-	
-#define VESA_INFO_SIZE 1024
-
-#define VESA_MODE_ATTRIBUTES_OFFSET 0
-#define VESA_MODE_LIST_PTR_OFFSET 14
-#define VESA_MODE_SCANLINE_OFFSET 16
-#define VESA_MODE_WIDTH_OFFSET 18
-#define VESA_MODE_HEIGHT_OFFSET 20
-#define VESA_MODE_BPP_OFFSET 25
-#define VESA_MODE_PHADDR_OFFSET 40
-
-#define VESA_END_OF_MODES 0xffff
-
-#define VESA_OK 0x4f
-
-#define VESA_GET_INFO 0x4f00
-#define VESA_GET_MODE_INFO 0x4f01
-#define VESA_SET_MODE 0x4f02
-#define VESA_SET_PALETTE 0x4f09
-
-#if CONFIG_VESA_BPP == 24
-#define CONFIG_VESA_BPP_VARIANT 32
-#endif
-
-	mov $VESA_GET_INFO, %ax
-	mov $e_vesa_init - vesa_init, %di
-	push %di
-	int $0x10
-	
-	pop %di
-	cmp $VESA_OK, %al
-	jnz 0f
-	
-	mov 2 + VESA_MODE_LIST_PTR_OFFSET(%di), %si
-	mov %si, %gs
-	mov VESA_MODE_LIST_PTR_OFFSET(%di), %si
-	
-	add $VESA_INFO_SIZE, %di
-
-1:# Try next mode
-	mov %gs:(%si), %cx
-	cmp $VESA_END_OF_MODES, %cx
-	jz 0f
-	
-	inc %si
-	inc %si
-	push %cx
-	push %di
-	push %si
-	mov $VESA_GET_MODE_INFO, %ax
-	int $0x10
-	
-	pop %si
-	pop %di
-	pop %cx
-	cmp $VESA_OK, %al
-	jnz 0f
-	
-	mov $CONFIG_VESA_WIDTH, %ax
-	cmp VESA_MODE_WIDTH_OFFSET(%di), %ax
-	jnz 1b
-	
-	mov $CONFIG_VESA_HEIGHT, %ax
-	cmp VESA_MODE_HEIGHT_OFFSET(%di), %ax
-	jnz 1b
-	
-	mov $CONFIG_VESA_BPP, %al
-	cmp VESA_MODE_BPP_OFFSET(%di), %al
-
-#ifdef CONFIG_VESA_BPP_VARIANT
-	jz 2f
-	
-	mov $CONFIG_VESA_BPP_VARIANT, %al
-	cmp VESA_MODE_BPP_OFFSET(%di), %al
-#endif
-	jnz 1b
-
-2:
-	
-	mov %cx, %bx
-	or $0xc000, %bx
-	push %di
-	mov $VESA_SET_MODE, %ax
-	int $0x10
-	
-	pop %di
-	cmp $VESA_OK, %al
-	jnz 0f
-
-#if CONFIG_VESA_BPP == 8
-	
-	# Set 3:2:3 VGA palette
-	
-	mov VESA_MODE_ATTRIBUTES_OFFSET(%di), %ax
-	push %di
-	mov $vga323 - vesa_init, %di
-	mov $0x100, %ecx
-	
-	bt $5, %ax							# Test if VGA compatible registers are present
-	jnc vga_compat
-		
-		# Try VESA routine to set palette
-		
-		mov $VESA_SET_PALETTE, %ax
-		xor %bl, %bl
-		xor %dx, %dx
-		int $0x10
-		
-		cmp $0x00, %ah
-		je vga_not_compat
-	
-	vga_compat:
-		
-		# Try VGA registers to set palette
-		
-		movw $0x3c6, %dx						# Set palette mask
-		movb $0xff, %al
-		outb %al, %dx
-		
-		movw $0x3c8, %dx						# First index to set
-		xor %al, %al
-		outb %al, %dx
-		
-		movw $0x3c9, %dx						# Data port
-		vga_loop:
-			movb %es:2(%di), %al
-			outb %al, %dx
-			
-			movb %es:1(%di), %al
-			outb %al, %dx
-			
-			movb %es:(%di), %al
-			outb %al, %dx
-			
-			addw $4, %di
-			loop vga_loop
-		
-	vga_not_compat:
-	
-	pop %di
-	
-#endif
-	
-	mov VESA_MODE_PHADDR_OFFSET(%di), %esi
-	mov VESA_MODE_WIDTH_OFFSET(%di), %ax
-	shl $16, %eax
-	mov VESA_MODE_HEIGHT_OFFSET(%di), %ax
-	mov VESA_MODE_BPP_OFFSET(%di), %bl
-	xor %bh, %bh
-	shl $16, %ebx
-	mov VESA_MODE_SCANLINE_OFFSET(%di), %bx
-	mov %eax, %edi
-	
-8:	
-	
-	mov %cr0, %eax
-	or $1, %eax
-	mov %eax, %cr0
-	
-	jmp 9f
-9:
-	
-	ljmpl $selector(KTEXT_DES), $(vesa_init_protect - vesa_init + VESA_INIT_SEGMENT << 4)
-
-0:# No prefered mode found
-	mov $0x111, %cx
-	push %di
-	push %cx
-	mov $VESA_GET_MODE_INFO, %ax
-	int $0x10
-	
-	pop %cx
-	pop %di
-	cmp $VESA_OK, %al
-	jnz 1f
-	jz 2b						# Force relative jump
-	
-1:
-	mov $0x0003, %ax
-	int $0x10
-	mov $0xffffffff, %edi		# EGA text mode used, because of problems with VESA
-	xor %ax, %ax
-	jz 8b						# Force relative jump
-
-vga323:
-#include "vga323.pal"
-
-.code32
-vesa_init_protect:
-	movw $selector(KDATA_DES), %cx
-	movw %cx, %es
-	movw %cx, %fs
-	movw %cx, %gs
-	movw %cx, %ds					# kernel data + stack
-	movw %cx, %ss
-	
-	movl $START_STACK, %esp			# initialize stack pointer
-
-	jmpl $selector(KTEXT_DES), $vesa_meeting_point
-
-.align 4
-e_vesa_init:
-#endif	
+#include "vesa_real.inc"
 
 .section K_DATA_START, "aw", @progbits
 
