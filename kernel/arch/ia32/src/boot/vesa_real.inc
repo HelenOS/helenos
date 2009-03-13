@@ -326,6 +326,7 @@ default_mode:
 	.ascii STRING(CONFIG_VESA_MODE)
 	.ascii "-"
 	.asciz STRING(CONFIG_VESA_BPP)
+	.fill 24
 
 #include "vesa_ret.inc"
 
