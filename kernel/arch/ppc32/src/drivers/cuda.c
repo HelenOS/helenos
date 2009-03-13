@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -204,32 +204,9 @@ static void receive_packet(uint8_t *kind, index_t count, uint8_t data[])
 }
 
 
-/* Called from getc(). */
-static void cuda_resume(chardev_t *d)
-{
-}
-
-
-/* Called from getc(). */
-static void cuda_suspend(chardev_t *d)
-{
-}
-
-
-static char key_read(chardev_t *d)
-{
-	char ch;
-	
-	ch = 0;
-	return ch;
-}
-
-
-static chardev_t kbrd;
-static chardev_operations_t ops = {
-	.suspend = cuda_suspend,
-	.resume = cuda_resume,
-	.read = key_read
+static indev_t kbrd;
+static indev_operations_t ops = {
+	.poll = NULL
 };
 
 
@@ -251,11 +228,11 @@ int cuda_get_scancode(void)
 static void cuda_irq_handler(irq_t *irq)
 {
 	int scan_code = cuda_get_scancode();
-		
+	
 	if (scan_code != -1) {
 		uint8_t scancode = (uint8_t) scan_code;
 		if ((scancode & 0x80) != 0x80)
-			chardev_push_character(&kbrd, lchars[scancode & 0x7f]);
+			indev_push_character(&kbrd, lchars[scancode & 0x7f]);
 	}
 }
 
@@ -268,7 +245,7 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 {
 	cuda = (uint8_t *) hw_map(base, size);
 	
-	chardev_initialize("cuda_kbd", &kbrd, &ops);
+	indev_initialize("cuda_kbd", &kbrd, &ops);
 	stdin = &kbrd;
 	
 	irq_initialize(&cuda_irq);

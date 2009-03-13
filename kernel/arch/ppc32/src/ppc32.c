@@ -79,6 +79,8 @@ void arch_pre_mm_init(void)
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
+
+#ifdef CONFIG_FB
 		/* Initialize framebuffer */
 		if (bootinfo.screen.addr) {
 			unsigned int visual;
@@ -109,6 +111,7 @@ void arch_post_mm_init(void)
 			};
 			fb_init(&prop);
 		}
+#endif
 		
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
@@ -159,7 +162,9 @@ void userspace(uspace_arg_t *kernel_uarg)
  */
 void arch_grab_console(void)
 {
+#ifdef CONFIG_FB
 	fb_redraw();
+#endif
 }
 
 /** Return console to userspace
