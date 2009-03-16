@@ -53,7 +53,6 @@
 #include <string.h>
 #include <macros.h>
 #include <debug.h>
-#include <symtab.h>
 #include <cpu.h>
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
@@ -65,6 +64,10 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 #ifdef CONFIG_TEST
 #include <test.h>
@@ -167,6 +170,7 @@ static cmd_info_t desc_info = {
 	.argv = &desc_argv
 };
 
+#ifdef CONFIG_SYMTAB
 /* Data and methods for 'symaddr' command. */
 static int cmd_symaddr(cmd_arg_t *argv);
 static char symaddr_buf[MAX_CMDLINE+1];
@@ -182,6 +186,7 @@ static cmd_info_t symaddr_info = {
 	.argc = 1,
 	.argv = &symaddr_argv
 };
+#endif
 
 static char set_buf[MAX_CMDLINE+1];
 static int cmd_set4(cmd_arg_t *argv);
@@ -458,7 +463,9 @@ static cmd_info_t *basic_commands[] = {
 	&ipc_info,
 	&set4_info,
 	&slabs_info,
+#ifdef CONFIG_SYMTAB
 	&symaddr_info,
+#endif
 	&sched_info,
 	&threads_info,
 	&tasks_info,
@@ -605,6 +612,8 @@ int cmd_desc(cmd_arg_t *argv)
 	return 1;
 }
 
+#ifdef CONFIG_SYMTAB
+
 /** Search symbol table */
 int cmd_symaddr(cmd_arg_t *argv)
 {
@@ -613,14 +622,16 @@ int cmd_symaddr(cmd_arg_t *argv)
 	return 1;
 }
 
+#endif
+
 /** Call function with zero parameters */
 int cmd_call0(cmd_arg_t *argv)
 {
+#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
-	char *symbol;
 	unative_t (*fnc)(void);
 	fncptr_t fptr;
-	
+
 	symaddr = get_symbol_addr((char *) argv->buffer);
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
@@ -628,12 +639,11 @@ int cmd_call0(cmd_arg_t *argv)
 		symtab_print_search((char *) argv->buffer);
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
-		symbol = get_symtab_entry(symaddr);
 		fnc = (unative_t (*)(void)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call0);
-		printf("Calling %s() (%p)\n", symbol, symaddr);
+		printf("Calling %s() (%p)\n", argv->buffer, symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
 	}
-	
+#endif
 	return 1;
 }
 
@@ -669,6 +679,7 @@ int cmd_mcall0(cmd_arg_t *argv)
 /** Call function with one parameter */
 int cmd_call1(cmd_arg_t *argv)
 {
+#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, ...);
@@ -676,6 +687,7 @@ int cmd_call1(cmd_arg_t *argv)
 	fncptr_t fptr;
 	
 	symaddr = get_symbol_addr((char *) argv->buffer);
+
 	if (!symaddr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (symaddr == (uintptr_t) -1) {
@@ -687,13 +699,14 @@ int cmd_call1(cmd_arg_t *argv)
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
 	}
-	
+#endif
 	return 1;
 }
 
 /** Call function with two parameters */
 int cmd_call2(cmd_arg_t *argv)
 {
+#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, unative_t, ...);
@@ -713,14 +726,15 @@ int cmd_call2(cmd_arg_t *argv)
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
-	}
-	
+	}	
+#endif
 	return 1;
 }
 
 /** Call function with three parameters */
 int cmd_call3(cmd_arg_t *argv)
 {
+#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
@@ -742,7 +756,7 @@ int cmd_call3(cmd_arg_t *argv)
 		       arg1, arg2, arg3, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
 	}
-	
+#endif
 	return 1;
 }
 
@@ -797,18 +811,29 @@ int cmd_set4(cmd_arg_t *argv)
 	bool pointer = false;
 
 	if (((char *)argv->buffer)[0] == '*') {
+#ifdef CONFIG_SYMTAB
 		addr = (uint32_t *) get_symbol_addr((char *) argv->buffer + 1);
+#else
+		addr = 0;
+#endif
 		pointer = true;
 	} else if (((char *) argv->buffer)[0] >= '0' && 
-		   ((char *)argv->buffer)[0] <= '9')
+		   ((char *)argv->buffer)[0] <= '9') {
 		addr = (uint32_t *)atoi((char *)argv->buffer);
-	else
+	} else {
+#ifdef CONFIG_SYMTAB
 		addr = (uint32_t *)get_symbol_addr((char *) argv->buffer);
+#else
+		addr = 0;
+#endif
+	}
 
 	if (!addr)
 		printf("Symbol %s not found.\n", argv->buffer);
 	else if (addr == (uint32_t *) -1) {
+#ifdef CONFIG_SYMTAB
 		symtab_print_search((char *) argv->buffer);
+#endif
 		printf("Duplicate symbol, be more specific.\n");
 	} else {
 		if (pointer)

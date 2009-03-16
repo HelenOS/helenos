@@ -41,12 +41,15 @@
 #include <arch.h>
 #include <debug.h>
 #include <proc/thread.h>
-#include <symtab.h>
 #include <print.h>
 #include <interrupt.h>
 #include <func.h>
 #include <ddi/irq.h>
 #include <arch/debugger.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 static char * exctable[] = {
 	"Interrupt",
@@ -76,12 +79,14 @@ static void print_regdump(istate_t *istate)
 	char *pcsymbol = "";
 	char *rasymbol = "";
 
+#ifdef CONFIG_SYMTAB
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		pcsymbol = s;
 	s = get_symtab_entry(istate->ra);
 	if (s)
 		rasymbol = s;
+#endif
 	
 	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol, istate->ra, rasymbol, istate->sp);
 }

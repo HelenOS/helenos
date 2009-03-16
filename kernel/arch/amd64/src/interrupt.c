@@ -43,7 +43,6 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <arch.h>
-#include <symtab.h>
 #include <arch/asm.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
@@ -52,6 +51,10 @@
 #include <arch/ddi/ddi.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 /*
  * Interrupt and exception dispatching.
@@ -66,8 +69,12 @@ void decode_istate(int n, istate_t *istate)
 	char *symbol;
 /*	uint64_t *x = &istate->stack[0]; */
 
+#ifdef CONFIG_SYMTAB
 	if (!(symbol = get_symtab_entry(istate->rip)))
 		symbol = "";
+#else
+	symbol = "";
+#endif
 
 	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n", n, __func__);
 	printf("%%rip: %#llx (%s)\n", istate->rip, symbol);

@@ -195,7 +195,6 @@ GENERIC_SOURCES = \
 	generic/src/printf/vprintf.c \
 	generic/src/printf/vsprintf.c \
 	generic/src/printf/vsnprintf.c \
-	generic/src/debug/symtab.c \
 	generic/src/time/clock.c \
 	generic/src/time/timeout.c \
 	generic/src/time/delay.c \
@@ -224,6 +223,14 @@ ifeq ($(CONFIG_KCONSOLE),y)
 GENERIC_SOURCES += \
 	generic/src/console/kconsole.c \
 	generic/src/console/cmd.c
+endif
+
+## Kernel symbol information
+#
+
+ifeq ($(CONFIG_SYMTAB),y)
+GENERIC_SOURCES += \
+	generic/src/debug/symtab.c
 endif
 
 ## Udebug interface sources
@@ -321,6 +328,12 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+ifeq ($(CONFIG_SYMTAB),y)
+	SYMTAB_OBJECTS := generic/src/debug/real_map.o
+else
+	SYMTAB_OBJECTS :=
+endif
+
 .PHONY: all build clean archlinks depend disasm
 
 all: ../Makefile.config ../config.h ../config.defs
@@ -363,8 +376,8 @@ generic/src/debug/real_map.bin: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(
 generic/src/debug/real_map.o: generic/src/debug/real_map.bin
 	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@ 
 
-kernel.raw: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) generic/src/debug/real_map.o
-	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/real_map.o -o $@ -Map kernel.map
+kernel.raw: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
+	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS) -o $@ -Map kernel.map
 
 kernel.bin: kernel.raw
 	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin

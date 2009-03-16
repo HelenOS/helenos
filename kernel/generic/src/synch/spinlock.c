@@ -42,7 +42,10 @@
 #include <preemption.h>
 #include <print.h>
 #include <debug.h>
+
+#ifdef CONFIG_SYMTAB
 #include <symtab.h>
+#endif
 
 #ifdef CONFIG_FB
 #include <genarch/fb/fb.h>
@@ -76,8 +79,10 @@ void spinlock_initialize(spinlock_t *sl, char *name)
 void spinlock_lock_debug(spinlock_t *sl)
 {
 	count_t i = 0;
-	char *symbol;
 	bool deadlock_reported = false;
+#ifdef CONFIG_SYMTAB
+	char *symbol;
+#endif
 
 	preemption_disable();
 	while (test_and_set(&sl->val)) {
@@ -108,9 +113,11 @@ void spinlock_lock_debug(spinlock_t *sl)
 		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%u: looping on spinlock %" PRIp ":%s, caller=%" PRIp,
 				CPU->id, sl, sl->name, CALLER);
+#ifdef CONFIG_SYMTAB
 			symbol = get_symtab_entry(CALLER);
 			if (symbol)
 				printf("(%s)", symbol);
+#endif
 			printf("\n");
 			i = 0;
 			deadlock_reported = true;

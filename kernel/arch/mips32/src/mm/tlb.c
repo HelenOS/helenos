@@ -40,12 +40,15 @@
 #include <arch/cp0.h>
 #include <panic.h>
 #include <arch.h>
-#include <symtab.h>
 #include <synch/mutex.h>
 #include <print.h>
 #include <debug.h>
 #include <align.h>
 #include <interrupt.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 static void tlb_refill_fail(istate_t *);
 static void tlb_invalid_fail(istate_t *);
@@ -323,12 +326,14 @@ void tlb_refill_fail(istate_t *istate)
 	char *symbol = "";
 	char *sym2 = "";
 
+#ifdef CONFIG_SYMTAB
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
 	s = get_symtab_entry(istate->ra);
 	if (s)
 		sym2 = s;
+#endif
 
 	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
 	    cp0_badvaddr_read());
@@ -341,9 +346,12 @@ void tlb_invalid_fail(istate_t *istate)
 {
 	char *symbol = "";
 
+#ifdef CONFIG_SYMTAB
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
+#endif
+
 	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
 	    cp0_badvaddr_read());
 	panic("%x: TLB Invalid Exception at %x(%s).", cp0_badvaddr_read(),
@@ -354,9 +362,12 @@ void tlb_modified_fail(istate_t *istate)
 {
 	char *symbol = "";
 
+#ifdef CONFIG_SYMTAB
 	char *s = get_symtab_entry(istate->epc);
 	if (s)
 		symbol = s;
+#endif
+
 	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
 	    cp0_badvaddr_read());
 	panic("%x: TLB Modified Exception at %x(%s).", cp0_badvaddr_read(),

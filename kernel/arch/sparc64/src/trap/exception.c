@@ -40,14 +40,25 @@
 #include <arch/asm.h>
 #include <arch/register.h>
 #include <debug.h>
-#include <symtab.h>
 #include <print.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 void dump_istate(istate_t *istate)
 {
+	char *tpcs, *tnpcs;
+
+#ifdef CONFIG_SYMTAB
+	tpcs = get_symtab_entry(istate->tpc);
+	tnpcs = get_symtab_entry(istate->tnpc);
+#else
+	tpcs = tnpcs = "n/a";
+#endif
 	printf("TSTATE=%#" PRIx64 "\n", istate->tstate);
-	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, get_symtab_entry(istate->tpc));
-	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, get_symtab_entry(istate->tnpc));
+	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, tpcs);
+	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, tnpcs);
 }
 
 /** Handle instruction_access_exception. (0x8) */

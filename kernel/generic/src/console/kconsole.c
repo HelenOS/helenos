@@ -50,10 +50,13 @@
 #include <debug.h>
 #include <func.h>
 #include <string.h>
-#include <symtab.h>
 #include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 /** Simple kernel console.
  *
@@ -258,7 +261,7 @@ static const char *cmdtab_search_one(const char *name,link_t **startpos)
  */
 static int cmdtab_compl(char *name)
 {
-	static char output[MAX_SYMBOL_NAME + 1];
+	static char output[/*MAX_SYMBOL_NAME*/128 + 1];
 	link_t *startpos = NULL;
 	const char *foundtxt;
 	int found = 0;
@@ -290,9 +293,8 @@ static int cmdtab_compl(char *name)
 			startpos = startpos->next;
 		}
 	}
-	strncpy(name, output, MAX_SYMBOL_NAME);
+	strncpy(name, output, 128/*MAX_SYMBOL_NAME*/);
 	return found;
-	
 }
 
 static char *clever_readline(const char *prompt, indev_t *input)
@@ -347,7 +349,11 @@ static char *clever_readline(const char *prompt, indev_t *input)
 			if (i == 0) { /* Command completion */
 				found = cmdtab_compl(tmp);
 			} else { /* Symtab completion */
+#ifdef CONFIG_SYMTAB
 				found = symtab_compl(tmp);
+#else
+				found = 0;
+#endif
 			}
 
 			if (found == 0) 
@@ -515,10 +521,13 @@ void kconsole_thread(void *data)
 
 static int parse_int_arg(char *text, size_t len, unative_t *result)
 {
-	static char symname[MAX_SYMBOL_NAME];
 	uintptr_t symaddr;
 	bool isaddr = false;
 	bool isptr = false;
+
+#ifdef CONFIG_SYMTAB
+	static char symname[MAX_SYMBOL_NAME];
+#endif
 	
 	/* If we get a name, try to find it in symbol table */
 	if (text[0] == '&') {
@@ -531,6 +540,7 @@ static int parse_int_arg(char *text, size_t len, unative_t *result)
 		len--;
 	}
 	if (text[0] < '0' || text[0] > '9') {
+#ifdef CONFIG_SYMTAB
 		strncpy(symname, text, min(len + 1, MAX_SYMBOL_NAME));
 		symaddr = get_symbol_addr(symname);
 		if (!symaddr) {
@@ -542,6 +552,9 @@ static int parse_int_arg(char *text, size_t len, unative_t *result)
 			symtab_print_search(symname);
 			return -1;
 		}
+#else
+		symaddr = 0;
+#endif
 		if (isaddr)
 			*result = (unative_t)symaddr;
 		else if (isptr)

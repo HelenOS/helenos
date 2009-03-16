@@ -35,7 +35,6 @@
 #include <arch/debugger.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
-#include <symtab.h>
 #include <print.h>
 #include <panic.h>
 #include <interrupt.h>
@@ -44,6 +43,10 @@
 #include <debug.h>
 #include <func.h>
 #include <smp/ipi.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 typedef struct  {
 	uintptr_t address;      /**< Breakpoint address */
@@ -229,8 +232,13 @@ static void handle_exception(int slot, istate_t *istate)
 			    *((unative_t *) breakpoints[slot].address));
 		}
 	}
+
+#ifdef CONFIG_SYMTAB
 	printf("Reached breakpoint %d:%lx(%s)\n", slot, getip(istate),
 	    get_symtab_entry(getip(istate)));
+#else
+	printf("Reached breakpoint %d:%lx\n", slot, getip(istate));
+#endif
 
 #ifdef CONFIG_KCONSOLE
 	atomic_set(&haltstate, 1);
@@ -355,7 +363,11 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
+#ifdef CONFIG_SYMTAB
 			symbol = get_symtab_entry(breakpoints[i].address);
+#else
+			symbol = "n/a";
+#endif
 
 #ifdef __32_BITS__
 			printf("%-2u %-5d %#10zx %s\n", i,

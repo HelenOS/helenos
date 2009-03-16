@@ -44,7 +44,6 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <arch.h>
-#include <symtab.h>
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
@@ -52,6 +51,10 @@
 #include <ipc/sysipc.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
+
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 /*
  * Interrupt and exception dispatching.
@@ -63,10 +66,15 @@ void (* eoi_function)(void) = NULL;
 
 void decode_istate(istate_t *istate)
 {
-	char *symbol = get_symtab_entry(istate->eip);
+	char *symbol;
 
+#ifdef CONFIG_SYMTAB
+	symbol = get_symtab_entry(istate->eip);
 	if (!symbol)
 		symbol = "";
+#else
+	symbol = "";
+#endif
 
 	if (CPU)
 		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);

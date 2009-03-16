@@ -39,9 +39,11 @@
 #include <mm/as.h>
 #include <arch.h>
 #include <print.h>
-#include <symtab.h>
 #include <macros.h>
 
+#ifdef CONFIG_SYMTAB
+#include <symtab.h>
+#endif
 
 static unsigned int seed = 10;
 static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
@@ -121,12 +123,14 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	char *symbol = "";
 	char *sym2 = "";
 
+#ifdef CONFIG_SYMTAB
 	char *str = get_symtab_entry(istate->pc);
 	if (str)
 		symbol = str;
 	str = get_symtab_entry(istate->lr);
 	if (str)
 		sym2 = str;
+#endif
 
 	fault_if_from_uspace(istate,
 	    "PHT Refill Exception on %p.", badvaddr);
