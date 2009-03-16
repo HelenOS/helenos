@@ -62,7 +62,7 @@ static inline void atomic_dec(atomic_t *val) {
 #else
 	asm volatile (
 		"decl %[count]\n"
-		: "+m" (val->count)
+		: [count] "+m" (val->count)
 	);
 #endif /* CONFIG_SMP */
 }
