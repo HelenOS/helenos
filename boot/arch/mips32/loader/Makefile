@@ -36,18 +36,24 @@ ifndef CROSS_PREFIX
 	CROSS_PREFIX = /usr/local
 endif
 
-ifeq ($(IMAGE),binary)
-	LD_IN = binary
-endif
-
-ifeq ($(IMAGE),ecoff)
-	LD_IN = ecoff
-endif
-
-BFD_NAME = elf32-tradlittlemips
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
+
+ifeq ($(MACHINE),lgxemul)
+	BFD_NAME = elf32-tradlittlemips
+	BFD = ecoff-littlemips
+endif
+ifeq ($(MACHINE),bgxemul)
+	BFD_NAME = elf32-tradbigmips
+	BFD = ecoff-bigmips
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
+	TARGET = mips-linux-gnu
+endif
+ifeq ($(MACHINE),msim)
+	BFD_NAME = elf32-tradlittlemips
+	BFD = binary
+endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
@@ -83,7 +89,7 @@ COMPONENTS = \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs 
+	$(USPACEDIR)/srv/vfs/vfs
 ifeq ($(RDFMT),tmpfs)
 	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif
@@ -114,8 +120,11 @@ all: image.boot
 
 -include Makefile.depend
 
-image.boot: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
-	$(LD) -no-check-sections -N -T _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) -o $@
+image.boot: image.raw
+	$(OBJCOPY) -O $(BFD) $< $@
+
+image.raw: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
+	$(LD) -no-check-sections -N -T _link.ld -o $@ $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
 
 depend:
 	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
@@ -127,7 +136,7 @@ clean:
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -f _components.h _components.c _link.ld _link.ld.in $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.boot Makefile.depend
+	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.raw image.boot Makefile.depend
 
 _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
 	for file in $(RD_SRVS) ; do \
@@ -145,9 +154,6 @@ endif
 	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
 	rm initrd.fs
 	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned int" $(COMPONENTS) ./initrd.img
-
-_link.ld.in: _link.ld.in.$(LD_IN)
-	cp $< $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@

@@ -30,10 +30,11 @@
 #
 
 BFD_ARCH = mips
+BFD = binary
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
 
-GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss
+GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
 DEFS += -D__32_BITS__
 
@@ -42,20 +43,16 @@ DEFS += -D__32_BITS__
 
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
-	BFD = binary
-	GCC_CFLAGS += -mips3
 endif
 ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-bigmips
-	BFD = ecoff-bigmips
+	BFD_NAME = elf32-tradbigmips
 	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips
-	TARGET = mips-sgi-irix5
-	GCC_CFLAGS += -EB -DBIG_ENDIAN -mips3
+	TARGET = mips-linux-gnu
+	GCC_CFLAGS += -DBIG_ENDIAN
 endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
-	BFD = binary
-	GCC_CFLAGS += -mhard-float -mips3
+	GCC_CFLAGS += -mhard-float
 endif
 
 ARCH_SOURCES = \

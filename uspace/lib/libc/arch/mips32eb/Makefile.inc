@@ -29,9 +29,9 @@
 ## Toolchain configuration
 #
 
-TARGET = mips-sgi-irix5
+TARGET = mips-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
-CFLAGS += -mips3 
+CFLAGS += -mips3
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 		arch/$(UARCH)/src/fibril.S \
@@ -40,4 +40,4 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 LFLAGS += -N
 
 BFD_ARCH = mips
-BFD_NAME = elf32-big
+BFD_NAME = elf32-tradbigmips
