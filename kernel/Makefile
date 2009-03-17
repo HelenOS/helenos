@@ -159,6 +159,7 @@ GENERIC_SOURCES = \
 	generic/src/ddi/ddi.c \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
+	generic/src/debug/symtab.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
@@ -223,14 +224,6 @@ ifeq ($(CONFIG_KCONSOLE),y)
 GENERIC_SOURCES += \
 	generic/src/console/kconsole.c \
 	generic/src/console/cmd.c
-endif
-
-## Kernel symbol information
-#
-
-ifeq ($(CONFIG_SYMTAB),y)
-GENERIC_SOURCES += \
-	generic/src/debug/symtab.c
 endif
 
 ## Udebug interface sources

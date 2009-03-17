@@ -45,10 +45,7 @@
 #include <debug.h>
 #include <align.h>
 #include <interrupt.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 static void tlb_refill_fail(istate_t *);
 static void tlb_invalid_fail(istate_t *);
@@ -323,54 +320,39 @@ fail:
 
 void tlb_refill_fail(istate_t *istate)
 {
-	char *symbol = "";
-	char *sym2 = "";
+	char *symbol, *sym2;
 
-#ifdef CONFIG_SYMTAB
-	char *s = get_symtab_entry(istate->epc);
-	if (s)
-		symbol = s;
-	s = get_symtab_entry(istate->ra);
-	if (s)
-		sym2 = s;
-#endif
-
+	symbol = symtab_fmt_name_lookup(istate->epc);
+	sym2 = symtab_fmt_name_lookup(istate->ra);
+	
 	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Refill Exception at %x(%s<-%s).", cp0_badvaddr_read(),
+	panic("%x: TLB Refill Exception at %x (%s<-%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol, sym2);
 }
 
 
 void tlb_invalid_fail(istate_t *istate)
 {
-	char *symbol = "";
+	char *symbol;
 
-#ifdef CONFIG_SYMTAB
-	char *s = get_symtab_entry(istate->epc);
-	if (s)
-		symbol = s;
-#endif
+	symbol = symtab_fmt_name_lookup(istate->epc);
 
 	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Invalid Exception at %x(%s).", cp0_badvaddr_read(),
+	panic("%x: TLB Invalid Exception at %x (%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol);
 }
 
 void tlb_modified_fail(istate_t *istate)
 {
-	char *symbol = "";
+	char *symbol;
 
-#ifdef CONFIG_SYMTAB
-	char *s = get_symtab_entry(istate->epc);
-	if (s)
-		symbol = s;
-#endif
+	symbol = symtab_fmt_name_lookup(istate->epc);
 
 	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
 	    cp0_badvaddr_read());
-	panic("%x: TLB Modified Exception at %x(%s).", cp0_badvaddr_read(),
+	panic("%x: TLB Modified Exception at %x (%s).", cp0_badvaddr_read(),
 	    istate->epc, symbol);
 }
 

@@ -40,10 +40,7 @@
 #include <arch.h>
 #include <print.h>
 #include <macros.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 static unsigned int seed = 10;
 static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
@@ -120,17 +117,11 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
-	char *symbol = "";
-	char *sym2 = "";
+	char *symbol;
+	char *sym2;
 
-#ifdef CONFIG_SYMTAB
-	char *str = get_symtab_entry(istate->pc);
-	if (str)
-		symbol = str;
-	str = get_symtab_entry(istate->lr);
-	if (str)
-		sym2 = str;
-#endif
+	symbol = symtab_fmt_name_lookup(istate->pc);
+	sym2 = symtab_fmt_name_lookup(istate->lr);
 
 	fault_if_from_uspace(istate,
 	    "PHT Refill Exception on %p.", badvaddr);

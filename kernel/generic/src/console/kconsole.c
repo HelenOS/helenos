@@ -53,10 +53,8 @@
 #include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
+#include <errno.h>
 
 /** Simple kernel console.
  *
@@ -349,11 +347,7 @@ static char *clever_readline(const char *prompt, indev_t *input)
 			if (i == 0) { /* Command completion */
 				found = cmdtab_compl(tmp);
 			} else { /* Symtab completion */
-#ifdef CONFIG_SYMTAB
 				found = symtab_compl(tmp);
-#else
-				found = 0;
-#endif
 			}
 
 			if (found == 0) 
@@ -524,10 +518,9 @@ static int parse_int_arg(char *text, size_t len, unative_t *result)
 	uintptr_t symaddr;
 	bool isaddr = false;
 	bool isptr = false;
+	int rc;
 
-#ifdef CONFIG_SYMTAB
 	static char symname[MAX_SYMBOL_NAME];
-#endif
 	
 	/* If we get a name, try to find it in symbol table */
 	if (text[0] == '&') {
@@ -540,21 +533,21 @@ static int parse_int_arg(char *text, size_t len, unative_t *result)
 		len--;
 	}
 	if (text[0] < '0' || text[0] > '9') {
-#ifdef CONFIG_SYMTAB
 		strncpy(symname, text, min(len + 1, MAX_SYMBOL_NAME));
-		symaddr = get_symbol_addr(symname);
-		if (!symaddr) {
+		rc = symtab_addr_lookup(symname, &symaddr);
+		switch (rc) {
+		case ENOENT:
 			printf("Symbol %s not found.\n", symname);
 			return -1;
-		}
-		if (symaddr == (uintptr_t) -1) {
+		case EOVERFLOW:
 			printf("Duplicate symbol %s.\n", symname);
 			symtab_print_search(symname);
 			return -1;
+		default:
+			printf("No symbol information available.\n");
+			return -1;
 		}
-#else
-		symaddr = 0;
-#endif
+
 		if (isaddr)
 			*result = (unative_t)symaddr;
 		else if (isptr)

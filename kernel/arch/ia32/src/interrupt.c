@@ -51,10 +51,7 @@
 #include <ipc/sysipc.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 /*
  * Interrupt and exception dispatching.
@@ -68,13 +65,7 @@ void decode_istate(istate_t *istate)
 {
 	char *symbol;
 
-#ifdef CONFIG_SYMTAB
-	symbol = get_symtab_entry(istate->eip);
-	if (!symbol)
-		symbol = "";
-#else
-	symbol = "";
-#endif
+	symbol = symtab_fmt_name_lookup(istate->eip);
 
 	if (CPU)
 		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);

@@ -42,10 +42,7 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <func.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 bpinfo_t breakpoints[BKPOINTS_MAX];
 SPINLOCK_INITIALIZE(bkpoint_lock);
@@ -262,12 +259,9 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
-#ifdef CONFIG_SYMTAB
-			symbol = get_symtab_entry(breakpoints[i].address);
-#else
-			symbol = "n/a";
-#endif
-			
+			symbol = symtab_fmt_name_lookup(
+			    breakpoints[i].address);
+
 			printf("%-2u %-5d %#10zx %-6s %-7s %-8s %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
@@ -356,12 +350,8 @@ void debugger_bpoint(istate_t *istate)
 			printf("Warning: breakpoint recursion\n");
 		
 		if (!(cur->flags & BKPOINT_FUNCCALL)) {
-#ifdef CONFIG_SYMTAB
 			printf("***Breakpoint %d: %p in %s.\n", i, fireaddr,
-			    get_symtab_entry(istate->epc));
-#else
-			printf("***Breakpoint %d: %p.\n", i, fireaddr);
-#endif
+			    symtab_fmt_name_lookup(istate->epc));
 		}
 
 		/* Return first instruction back */
@@ -375,12 +365,9 @@ void debugger_bpoint(istate_t *istate)
 		} 
 		cur->flags |= BKPOINT_INPROG;
 	} else {
-#ifdef CONFIG_SYMTAB
-		printf("***Breakpoint %p in %s.\n", fireaddr,
-		       get_symtab_entry(fireaddr));
-#else
-		printf("***Breakpoint %p.\n", fireaddr);	
-#endif
+		printf("***Breakpoint %d: %p in %s.\n", i, fireaddr,
+		    symtab_fmt_name_lookup(fireaddr));
+
 		/* Move on to next instruction */
 		istate->epc += 4;
 	}

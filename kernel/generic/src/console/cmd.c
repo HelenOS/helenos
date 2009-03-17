@@ -64,10 +64,8 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
+#include <errno.h>
 
 #ifdef CONFIG_TEST
 #include <test.h>
@@ -170,7 +168,6 @@ static cmd_info_t desc_info = {
 	.argv = &desc_argv
 };
 
-#ifdef CONFIG_SYMTAB
 /* Data and methods for 'symaddr' command. */
 static int cmd_symaddr(cmd_arg_t *argv);
 static char symaddr_buf[MAX_CMDLINE+1];
@@ -186,7 +183,6 @@ static cmd_info_t symaddr_info = {
 	.argc = 1,
 	.argv = &symaddr_argv
 };
-#endif
 
 static char set_buf[MAX_CMDLINE+1];
 static int cmd_set4(cmd_arg_t *argv);
@@ -463,9 +459,7 @@ static cmd_info_t *basic_commands[] = {
 	&ipc_info,
 	&set4_info,
 	&slabs_info,
-#ifdef CONFIG_SYMTAB
 	&symaddr_info,
-#endif
 	&sched_info,
 	&threads_info,
 	&tasks_info,
@@ -612,8 +606,6 @@ int cmd_desc(cmd_arg_t *argv)
 	return 1;
 }
 
-#ifdef CONFIG_SYMTAB
-
 /** Search symbol table */
 int cmd_symaddr(cmd_arg_t *argv)
 {
@@ -622,28 +614,31 @@ int cmd_symaddr(cmd_arg_t *argv)
 	return 1;
 }
 
-#endif
-
 /** Call function with zero parameters */
 int cmd_call0(cmd_arg_t *argv)
 {
-#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
+	char *symbol;
 	unative_t (*fnc)(void);
 	fncptr_t fptr;
+	int rc;
 
-	symaddr = get_symbol_addr((char *) argv->buffer);
-	if (!symaddr)
-		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search((char *) argv->buffer);
+	symbol = (char *) argv->buffer;
+	rc = symtab_addr_lookup(symbol, &symaddr);
+
+	if (rc == ENOENT)
+		printf("Symbol %s not found.\n", symbol);
+	else if (rc == EOVERFLOW) {
+		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
-	} else {
-		fnc = (unative_t (*)(void)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call0);
-		printf("Calling %s() (%p)\n", argv->buffer, symaddr);
+	} else if (rc == EOK) {
+		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
+		    (void *) symaddr, (void *) cmd_call0);
+		printf("Calling %s() (%p)\n", symbol, symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
+	} else {
+		printf("No symbol information available.\n");
 	}
-#endif
 	return 1;
 }
 
@@ -679,62 +674,65 @@ int cmd_mcall0(cmd_arg_t *argv)
 /** Call function with one parameter */
 int cmd_call1(cmd_arg_t *argv)
 {
-#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, ...);
 	unative_t arg1 = argv[1].intval;
 	fncptr_t fptr;
-	
-	symaddr = get_symbol_addr((char *) argv->buffer);
+	int rc;
 
-	if (!symaddr)
-		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search((char *) argv->buffer);
+	symbol = (char *) argv->buffer;
+	rc = symtab_addr_lookup(symbol, &symaddr);
+
+	if (rc == ENOENT) {
+		printf("Symbol %s not found.\n", symbol);
+	} else if (rc == EOVERFLOW) {
+		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
-	} else {
-		symbol = get_symtab_entry(symaddr);
+	} else if (rc == EOK) {
 		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
+	} else {
+		printf("No symbol information available.\n");
 	}
-#endif
+
 	return 1;
 }
 
 /** Call function with two parameters */
 int cmd_call2(cmd_arg_t *argv)
 {
-#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, unative_t, ...);
 	unative_t arg1 = argv[1].intval;
 	unative_t arg2 = argv[2].intval;
 	fncptr_t fptr;
-	
-	symaddr = get_symbol_addr((char *) argv->buffer);
-	if (!symaddr)
-		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search((char *) argv->buffer);
+	int rc;
+
+	symbol = (char *) argv->buffer;
+	rc = symtab_addr_lookup(symbol, &symaddr);
+
+	if (rc == ENOENT) {
+		printf("Symbol %s not found.\n", symbol);
+	} else if (rc == EOVERFLOW) {
+		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
-	} else {
-		symbol = get_symtab_entry(symaddr);
+	} else if (rc == EOK) {
 		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
-	}	
-#endif
+	} else {
+		printf("No symbol information available.\n");
+	}
 	return 1;
 }
 
 /** Call function with three parameters */
 int cmd_call3(cmd_arg_t *argv)
 {
-#ifdef CONFIG_SYMTAB
 	uintptr_t symaddr;
 	char *symbol;
 	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
@@ -742,21 +740,24 @@ int cmd_call3(cmd_arg_t *argv)
 	unative_t arg2 = argv[2].intval;
 	unative_t arg3 = argv[3].intval;
 	fncptr_t fptr;
+	int rc;
 	
-	symaddr = get_symbol_addr((char *) argv->buffer);
-	if (!symaddr)
-		printf("Symbol %s not found.\n", argv->buffer);
-	else if (symaddr == (uintptr_t) -1) {
-		symtab_print_search((char *) argv->buffer);
+	symbol = (char *) argv->buffer;
+	rc = symtab_addr_lookup(symbol, &symaddr);
+
+	if (rc == ENOENT) {
+		printf("Symbol %s not found.\n", symbol);
+	} else if (rc == EOVERFLOW) {
+		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
-	} else {
-		symbol = get_symtab_entry(symaddr);
+	} else if (rc == EOK) {
 		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
+	} else {
+		printf("No symbol information available.\n");
 	}
-#endif
 	return 1;
 }
 
@@ -806,41 +807,34 @@ int cmd_physmem(cmd_arg_t *argv)
 /** Write 4 byte value to address */
 int cmd_set4(cmd_arg_t *argv)
 {
-	uint32_t *addr;
+	uintptr_t addr;
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
+	int rc;
 
 	if (((char *)argv->buffer)[0] == '*') {
-#ifdef CONFIG_SYMTAB
-		addr = (uint32_t *) get_symbol_addr((char *) argv->buffer + 1);
-#else
-		addr = 0;
-#endif
+		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
 	} else if (((char *) argv->buffer)[0] >= '0' && 
 		   ((char *)argv->buffer)[0] <= '9') {
-		addr = (uint32_t *)atoi((char *)argv->buffer);
+		rc = EOK;
+		addr = atoi((char *)argv->buffer);
 	} else {
-#ifdef CONFIG_SYMTAB
-		addr = (uint32_t *)get_symbol_addr((char *) argv->buffer);
-#else
-		addr = 0;
-#endif
+		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
 	}
 
-	if (!addr)
+	if (rc == ENOENT)
 		printf("Symbol %s not found.\n", argv->buffer);
-	else if (addr == (uint32_t *) -1) {
-#ifdef CONFIG_SYMTAB
+	else if (rc == EOVERFLOW) {
 		symtab_print_search((char *) argv->buffer);
-#endif
 		printf("Duplicate symbol, be more specific.\n");
-	} else {
+	} else if (rc == EOK) {
 		if (pointer)
-			addr = (uint32_t *)(*(unative_t *)addr);
+			addr = *(uintptr_t *) addr;
 		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
-		*addr = arg1;
-		
+		*(uint32_t *) addr = arg1;
+	} else {
+		printf("No symbol information available.\n");
 	}
 	
 	return 1;

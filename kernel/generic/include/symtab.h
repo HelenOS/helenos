@@ -44,13 +44,18 @@ struct symtab_entry {
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern char * get_symtab_entry(unative_t addr);
-extern uintptr_t get_symbol_addr(const char *name);
+extern int symtab_name_lookup(unative_t addr, char **name);
+extern char *symtab_fmt_name_lookup(unative_t addr);
+extern int symtab_addr_lookup(const char *name, uintptr_t *addr);
 extern void symtab_print_search(const char *name);
 extern int symtab_compl(char *name);
 
+#ifdef CONFIG_SYMTAB
+
 /* Symtable linked together by build process */
 extern struct symtab_entry symbol_table[];
+
+#endif
 
 #endif
 

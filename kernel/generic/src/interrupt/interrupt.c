@@ -45,10 +45,7 @@
 #include <console/cmd.h>
 #include <panic.h>
 #include <print.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 static struct {
 	const char *name;
@@ -133,13 +130,7 @@ static int cmd_exc_print(cmd_arg_t *argv)
 #endif
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
-#ifdef CONFIG_SYMTAB
-		symbol = get_symtab_entry((unative_t) exc_table[i].f);
-		if (!symbol)
-			symbol = "not found";
-#else
-		symbol = "n/a";
-#endif
+		symbol = symtab_fmt_name_lookup((unative_t) exc_table[i].f);
 
 #ifdef __32_BITS__
 		printf("%-3u %-20s %10p %s\n", i + IVT_FIRST, exc_table[i].name,

@@ -41,28 +41,62 @@
 #include <print.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <errno.h>
 
-/** Return entry that seems most likely to correspond to argument.
+/** Get name of symbol that seems most likely to correspond to address.
  *
- * Return entry that seems most likely to correspond
- * to address passed in the argument.
+ * @param addr	Address.
+ * @param name	Place to store pointer to the symbol name.
  *
- * @param addr Address.
- *
- * @return Pointer to respective symbol string on success, NULL otherwise.
+ * @return	Zero on success or negative error code, ENOENT if not found,
+ *		ENOTSUP if symbol table not available.
  */
-char * get_symtab_entry(unative_t addr)
+int symtab_name_lookup(unative_t addr, char **name)
 {
+#ifdef CONFIG_SYMTAB
 	count_t i;
 
 	for (i = 1; symbol_table[i].address_le; ++i) {
 		if (addr < uint64_t_le2host(symbol_table[i].address_le))
 			break;
 	}
-	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le))
-		return symbol_table[i - 1].symbol_name;
-	return NULL;
+	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le)) {
+		*name = symbol_table[i - 1].symbol_name;
+		return EOK;
+	}
+
+	*name = NULL;
+	return ENOENT;
+#else
+	*name = NULL;
+	return ENOTSUP;
+#endif
 }
+
+/** Lookup symbol by address and format for display.
+ *
+ * Returns name of closest corresponding symbol, "Not found" if none exists
+ * or "N/A" if no symbol information is available.
+ *
+ * @param addr	Address.
+ * @param name	Place to store pointer to the symbol name.
+ *
+ * @return	Pointer to a human-readable string.
+ */
+char *symtab_fmt_name_lookup(unative_t addr)
+{
+	int rc;
+	char *name;
+
+	rc = symtab_name_lookup(addr, &name);
+	switch (rc) {
+	case EOK: return name;
+	case ENOENT: return "Not found";
+	default: return "N/A";
+	}
+}
+
+#ifdef CONFIG_SYMTAB
 
 /** Find symbols that match the parameter forward and print them.
  *
@@ -102,36 +136,47 @@ static char * symtab_search_one(const char *name, int *startpos)
 	return NULL;
 }
 
+#endif
+
 /** Return address that corresponds to the entry
  *
  * Search symbol table, and if there is one match, return it
  *
- * @param name Name of the symbol
- * @return 0 - Not found, -1 - Duplicate symbol, other - address of symbol
+ * @param name	Name of the symbol
+ * @param addr	Place to store symbol address
+ *
+ * @return 	Zero on success, ENOENT - not found, EOVERFLOW - duplicate
+ *		symbol, ENOTSUP - no symbol information available.
  */
-uintptr_t get_symbol_addr(const char *name)
+int symtab_addr_lookup(const char *name, uintptr_t *addr)
 {
+#ifdef CONFIG_SYMTAB
 	count_t found = 0;
-	uintptr_t addr = NULL;
 	char *hint;
 	int i;
 
 	i = 0;
 	while ((hint = symtab_search_one(name, &i))) {
 		if (!strlen(hint)) {
-			addr =  uint64_t_le2host(symbol_table[i].address_le);
+			*addr =  uint64_t_le2host(symbol_table[i].address_le);
 			found++;
 		}
 		i++;
 	}
 	if (found > 1)
-		return ((uintptr_t) -1);
-	return addr;
+		return EOVERFLOW;
+	if (found < 1)
+		return ENOENT;
+	return EOK;
+#else
+	return ENOTSUP;
+#endif
 }
 
 /** Find symbols that match parameter and prints them */
 void symtab_print_search(const char *name)
 {
+#ifdef CONFIG_SYMTAB
 	int i;
 	uintptr_t addr;
 	char *realname;
@@ -144,6 +189,9 @@ void symtab_print_search(const char *name)
 		printf("%p: %s\n", addr, realname);
 		i++;
 	}
+#else
+	printf("No symbol information available.\n");
+#endif
 }
 
 /** Symtab completion
@@ -153,6 +201,7 @@ void symtab_print_search(const char *name)
  */
 int symtab_compl(char *input)
 {
+#ifdef CONFIG_SYMTAB
 	char output[MAX_SYMBOL_NAME + 1];
 	int startpos = 0;
 	char *foundtxt;
@@ -196,7 +245,9 @@ int symtab_compl(char *input)
 	}
 	strncpy(input, output, MAX_SYMBOL_NAME);
 	return found;
-	
+#else
+	return 0;
+#endif
 }
 
 /** @}

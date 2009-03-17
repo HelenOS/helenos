@@ -53,10 +53,7 @@
 #include <ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <mm/tlb.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48
@@ -140,13 +137,9 @@ void dump_interrupted_context(istate_t *istate)
 {
 	char *ifa, *iipa, *iip;
 
-#ifdef CONFIG_SYMTAB
-	ifa = get_symtab_entry(istate->cr_ifa);
-	iipa = get_symtab_entry(istate->cr_iipa);
-	iip = get_symtab_entry(istate->cr_iip);
-#else
-	ifa = iipa = iip = "n/a";
-#endif
+	ifa = symtab_fmt_name_lookup(istate->cr_ifa);
+	iipa = symtab_fmt_name_lookup(istate->cr_iipa);
+	iip = symtab_fmt_name_lookup(istate->cr_iip);
 
 	putchar('\n');
 	printf("Interrupted context dump:\n");

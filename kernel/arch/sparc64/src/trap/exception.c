@@ -41,21 +41,15 @@
 #include <arch/register.h>
 #include <debug.h>
 #include <print.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 void dump_istate(istate_t *istate)
 {
 	char *tpcs, *tnpcs;
 
-#ifdef CONFIG_SYMTAB
-	tpcs = get_symtab_entry(istate->tpc);
-	tnpcs = get_symtab_entry(istate->tnpc);
-#else
-	tpcs = tnpcs = "n/a";
-#endif
+	tpcs = symtab_fmt_name_lookup(istate->tpc);
+	tnpcs = symtab_fmt_name_lookup(istate->tnpc);
+
 	printf("TSTATE=%#" PRIx64 "\n", istate->tstate);
 	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, tpcs);
 	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, tnpcs);

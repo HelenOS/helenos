@@ -46,10 +46,7 @@
 #include <func.h>
 #include <ddi/irq.h>
 #include <arch/debugger.h>
-
-#ifdef CONFIG_SYMTAB
 #include <symtab.h>
-#endif
 
 static char * exctable[] = {
 	"Interrupt",
@@ -76,19 +73,13 @@ static char * exctable[] = {
 
 static void print_regdump(istate_t *istate)
 {
-	char *pcsymbol = "";
-	char *rasymbol = "";
+	char *pcsymbol, *rasymbol;
 
-#ifdef CONFIG_SYMTAB
-	char *s = get_symtab_entry(istate->epc);
-	if (s)
-		pcsymbol = s;
-	s = get_symtab_entry(istate->ra);
-	if (s)
-		rasymbol = s;
-#endif
-	
-	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol, istate->ra, rasymbol, istate->sp);
+	pcsymbol = symtab_fmt_name_lookup(istate->epc);
+	rasymbol = symtab_fmt_name_lookup(istate->ra);
+
+	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol,
+	    istate->ra, rasymbol, istate->sp);
 }
 
 static void unhandled_exception(int n, istate_t *istate)
