@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,23 +45,20 @@
 /** Perform sparc64 specific initialization of paging. */
 void page_arch_init(void)
 {
-	if (config.cpu_active == 1) {
+	if (config.cpu_active == 1)
 		page_mapping_operations = &ht_mapping_operations;
-	}
 }
 
 /** Map memory-mapped device into virtual memory.
  *
- * So far, only DTLB is used to map devices into memory. Chances are that there
- * will be only a limited amount of devices that the kernel itself needs to
- * lock in DTLB.
+ * We are currently using identity mapping for mapping device registers.
  *
- * @param physaddr Physical address of the page where the device is located.
- * 	Must be at least page-aligned.
- * @param size Size of the device's registers. Must not exceed 4M and must
- * 	include extra space caused by the alignment.
+ * @param physaddr	Physical address of the page where the device is
+ * 			located.
+ * @param size		Size of the device's registers. This argument is
+ * 			ignored.
  *
- * @return Virtual address of the page where the device is mapped.
+ * @return		Virtual address of the page where the device is mapped.
  */
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
