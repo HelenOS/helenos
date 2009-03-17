@@ -46,7 +46,6 @@ void serial_puts(char *str);
 void serial_goto(const unsigned int row, const unsigned int col);
 void serial_clrscr(void);
 void serial_scroll(int i);
-void serial_set_style(const unsigned int mode);
 void serial_cursor_disable(void);
 void serial_cursor_enable(void);
 void serial_set_scroll_region(unsigned height);

@@ -46,14 +46,16 @@
 #include <console/color.h>
 #include <console/style.h>
 
+#include "../console/screenbuffer.h"
+#include "main.h"
 #include "serial_console.h"
 
 #define MAX_CONTROL 20
 
 static void serial_sgr(const unsigned int mode);
 
-static int width;
-static int height;
+static int scr_width;
+static int scr_height;
 static bool color = true;	/** True if producing color output. */
 static putc_function_t putc_function;
 
@@ -102,7 +104,7 @@ void serial_puts(char *str)
 
 void serial_goto(const unsigned int row, const unsigned int col)
 {
-	if ((row > height) || (col > width))
+	if ((row > scr_height) || (col > scr_width))
 		return;
 	
 	char control[MAX_CONTROL];
@@ -125,7 +127,7 @@ void serial_clrscr(void)
 void serial_scroll(int i)
 {
 	if (i > 0) {
-		serial_goto(height - 1, 0);
+		serial_goto(scr_height - 1, 0);
 		while (i--)
 			serial_puts("\033D");
 	} else if (i < 0) {
@@ -163,9 +165,84 @@ void serial_cursor_enable(void)
 
 void serial_console_init(putc_function_t putc_fn, uint32_t w, uint32_t h)
 {
-	width = w;
-	height = h;
+	scr_width = w;
+	scr_height = h;
 	putc_function = putc_fn;
+}
+
+static void serial_set_style(int style)
+{
+	if (style == STYLE_EMPHASIS) {
+		if (color) {
+			serial_sgr(SGR_RESET);
+			serial_sgr(SGR_FGCOLOR + CI_RED);
+			serial_sgr(SGR_BGCOLOR + CI_WHITE);
+		}
+		serial_sgr(SGR_BOLD);
+	} else {
+		if (color) {
+			serial_sgr(SGR_RESET);
+			serial_sgr(SGR_FGCOLOR + CI_BLACK);
+			serial_sgr(SGR_BGCOLOR + CI_WHITE);
+		}
+		serial_sgr(SGR_NORMAL_INT);
+	}
+}
+
+static void serial_set_idx(unsigned fgcolor, unsigned bgcolor,
+    unsigned flags)
+{
+	if (color) {
+		serial_sgr(SGR_RESET);
+		serial_sgr(SGR_FGCOLOR + color_map[fgcolor]);
+		serial_sgr(SGR_BGCOLOR + color_map[bgcolor]);
+	} else {
+		if (fgcolor < bgcolor)
+			serial_sgr(SGR_RESET);
+		else
+			serial_sgr(SGR_REVERSE);
+	}	
+}
+
+static void serial_set_rgb(uint32_t fgcolor, uint32_t bgcolor)
+{
+	if (fgcolor < bgcolor)
+		serial_sgr(SGR_REVERSE_OFF);
+	else
+		serial_sgr(SGR_REVERSE);	
+}
+
+static void serial_set_attrs(const attrs_t *a)
+{
+	switch (a->t) {
+	case at_style: serial_set_style(a->a.s.style); break;
+	case at_rgb: serial_set_rgb(a->a.r.fg_color, a->a.r.bg_color); break;
+	case at_idx: serial_set_idx(a->a.i.fg_color,
+	    a->a.i.bg_color, a->a.i.flags); break;
+	default: break;
+	}
+}
+
+static void draw_text_data(keyfield_t *data)
+{
+	int i, j;
+	attrs_t *a0, *a1;
+
+	serial_goto(0, 0);
+	a0 = &data[0].attrs;
+	serial_set_attrs(a0);
+
+	for (i = 0; i < scr_height; i++) {
+		for (j = 0; j < scr_width; j++) {
+			a1 = &data[i * scr_width + j].attrs;
+			if (!attrs_same(*a0, *a1))
+				serial_set_attrs(a1);
+			(*putc_function)(data[i * scr_width + j].character);
+			a0 = a1;
+/*		scr_addr[i * 2] = data[i].character;
+		scr_addr[i * 2 + 1] = attr_to_ega_style(&data[i].attrs);*/
+		}
+	}
 }
 
 /**
@@ -176,6 +253,9 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 	ipc_callid_t callid;
 	ipc_call_t call;
+	keyfield_t *interbuf = NULL;
+	size_t intersize = 0;
+
 	char c;
 	int lastcol = 0;
 	int lastrow = 0;
@@ -183,8 +263,10 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int newrow;
 	int fgcolor;
 	int bgcolor;
+	int flags;
 	int style;
 	int i;
+
 	
 	if (client_connected) {
 		ipc_answer_0(iid, ELIMIT);
@@ -198,7 +280,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	   to 0 - height rows. */
 	serial_clrscr();
 	serial_goto(0, 0);
-	serial_set_scroll_region(height);
+	serial_set_scroll_region(scr_height);
 	
 	while (true) {
 		callid = async_get_call(&call);
@@ -207,6 +289,25 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);
 			return;
+		case IPC_M_SHARE_OUT:
+			/* We accept one area for data interchange */
+			intersize = IPC_GET_ARG2(call);
+			if (intersize >= scr_width * scr_height *
+			    sizeof(*interbuf)) {
+				receive_comm_area(callid, &call,
+				    (void *) &interbuf);
+				continue;
+			}
+			retval = EINVAL;
+			break;
+		case FB_DRAW_TEXT_DATA:
+			if (!interbuf) {
+				retval = EINVAL;
+				break;
+			}
+			draw_text_data(interbuf);
+			retval = 0;
+			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
 			newrow = IPC_GET_ARG2(call);
@@ -227,59 +328,35 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, height, width);
+			ipc_answer_2(callid, EOK, scr_height, scr_width);
 			continue;
 		case FB_CLEAR:
 			serial_clrscr();
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
-			style =  IPC_GET_ARG1(call);
-			if (style == STYLE_EMPHASIS) {
-				if (color) {
-					serial_sgr(SGR_RESET);
-					serial_sgr(SGR_FGCOLOR + CI_RED);
-					serial_sgr(SGR_BGCOLOR + CI_WHITE);
-				}
-				serial_sgr(SGR_BOLD);
-			} else {
-				if (color) {
-					serial_sgr(SGR_RESET);
-					serial_sgr(SGR_FGCOLOR + CI_BLACK);
-					serial_sgr(SGR_BGCOLOR + CI_WHITE);
-				}
-				serial_sgr(SGR_NORMAL_INT);
-			}
+			style = IPC_GET_ARG1(call);
+			serial_set_style(style);
 			retval = 0;
 			break;
 		case FB_SET_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
+			flags = IPC_GET_ARG3(call);
 
-			if (color) {
-				serial_sgr(SGR_RESET);
-				serial_sgr(SGR_FGCOLOR + color_map[fgcolor]);
-				serial_sgr(SGR_BGCOLOR + color_map[bgcolor]);
-			} else {
-				if (fgcolor < bgcolor)
-					serial_sgr(SGR_RESET);
-				else
-					serial_sgr(SGR_REVERSE);
-			}
+			serial_set_idx(fgcolor, bgcolor, flags);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
 			fgcolor = IPC_GET_ARG1(call);
 			bgcolor = IPC_GET_ARG2(call);
-			if (fgcolor < bgcolor)
-				serial_sgr(SGR_REVERSE_OFF);
-			else
-				serial_sgr(SGR_REVERSE);
+
+			serial_set_rgb(fgcolor, bgcolor);
 			retval = 0;
 			break;
 		case FB_SCROLL:
 			i = IPC_GET_ARG1(call);
-			if ((i > height) || (i < -height)) {
+			if ((i > scr_height) || (i < -scr_height)) {
 				retval = EINVAL;
 				break;
 			}
