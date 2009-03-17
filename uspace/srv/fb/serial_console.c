@@ -239,8 +239,6 @@ static void draw_text_data(keyfield_t *data)
 				serial_set_attrs(a1);
 			(*putc_function)(data[i * scr_width + j].character);
 			a0 = a1;
-/*		scr_addr[i * 2] = data[i].character;
-		scr_addr[i * 2 + 1] = attr_to_ega_style(&data[i].attrs);*/
 		}
 	}
 }
