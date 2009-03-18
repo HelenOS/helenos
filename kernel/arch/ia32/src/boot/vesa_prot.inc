@@ -38,9 +38,18 @@
 		jmp skip_loop
 	skip_loop_done:
 	
-	mov (%esi), %al
-	cmp $0, %al
-	je no_cmdline
+	space_loop:
+		mov (%esi), %al
+		
+		cmp $0, %al
+		je no_cmdline
+		
+		cmp $' ', %al
+		jne space_loop_done
+		
+		inc %esi
+		jmp space_loop
+	space_loop_done:
 	
 	# copy at most 23 characters from command line
 	
