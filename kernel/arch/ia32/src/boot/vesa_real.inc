@@ -163,7 +163,7 @@ vesa_init_real2:
 		# try next mode
 		mov %gs:(%si), %cx
 		cmp $VESA_END_OF_MODES, %cx
-		jz no_mode
+		je no_mode
 		
 		inc %si
 		inc %si
@@ -177,29 +177,40 @@ vesa_init_real2:
 		pop %di
 		pop %cx
 		cmp $VESA_OK, %al
-		jnz no_mode
+		jne no_mode
+		
+		# check for proper attributes (supported, color, graphics, liner framebuffer)
+		
+		mov VESA_MODE_ATTRIBUTES_OFFSET(%di), %ax
+		and $0x99, %ax
+		cmp $0x99, %ax
+		jne next_mode
+		
+		# check for proper resolution
 		
 		mov default_width - vesa_init, %ax
 		cmp VESA_MODE_WIDTH_OFFSET(%di), %ax
-		jnz next_mode
+		jne next_mode
 		
 		mov default_height - vesa_init, %ax
 		cmp VESA_MODE_HEIGHT_OFFSET(%di), %ax
-		jnz next_mode
+		jne next_mode
+		
+		# check for proper bpp
 		
 		mov default_bpp - vesa_init, %al
 		cmp VESA_MODE_BPP_OFFSET(%di), %al
-		jz set_mode
+		je set_mode
 		
 		mov $24, %al
 		cmp default_bpp - vesa_init, %al
-		jnz next_mode
+		jne next_mode
 		
 		# for 24 bpp modes accept also 32 bit bpp
 		
 		mov $32, %al
 		cmp VESA_MODE_BPP_OFFSET(%di), %al
-		jnz next_mode
+		jne next_mode
 	
 	set_mode:
 		mov %cx, %bx
