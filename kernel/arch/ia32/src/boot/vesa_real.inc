@@ -4,22 +4,28 @@
 
 #define VESA_INFO_SIZE 1024
 
-#define VESA_MODE_ATTRIBUTES_OFFSET 0
-#define VESA_MODE_LIST_PTR_OFFSET 14
-#define VESA_MODE_SCANLINE_OFFSET 16
-#define VESA_MODE_WIDTH_OFFSET 18
-#define VESA_MODE_HEIGHT_OFFSET 20
-#define VESA_MODE_BPP_OFFSET 25
-#define VESA_MODE_PHADDR_OFFSET 40
+#define VESA_MODE_ATTRIBUTES_OFFSET  0
+#define VESA_MODE_LIST_PTR_OFFSET    14
+#define VESA_MODE_SCANLINE_OFFSET    16
+#define VESA_MODE_WIDTH_OFFSET       18
+#define VESA_MODE_HEIGHT_OFFSET      20
+#define VESA_MODE_BPP_OFFSET         25
+#define VESA_MODE_RED_MASK_OFFSET    31
+#define VESA_MODE_RED_POS_OFFSET     32
+#define VESA_MODE_GREEN_MASK_OFFSET  33
+#define VESA_MODE_GREEN_POS_OFFSET   34
+#define VESA_MODE_BLUE_MASK_OFFSET   35
+#define VESA_MODE_BLUE_POS_OFFSET    36
+#define VESA_MODE_PHADDR_OFFSET      40
 
-#define VESA_END_OF_MODES 0xffff
+#define VESA_END_OF_MODES  0xffff
 
-#define VESA_OK 0x4f
+#define VESA_OK  0x4f
 
-#define VESA_GET_INFO 0x4f00
-#define VESA_GET_MODE_INFO 0x4f01
-#define VESA_SET_MODE 0x4f02
-#define VESA_SET_PALETTE 0x4f09
+#define VESA_GET_INFO       0x4f00
+#define VESA_GET_MODE_INFO  0x4f01
+#define VESA_SET_MODE       0x4f02
+#define VESA_SET_PALETTE    0x4f09
 
 .code32
 vesa_init:
@@ -277,21 +283,42 @@ vesa_init_real2:
 		
 		vga_not_set:
 		
-		mov VESA_MODE_PHADDR_OFFSET(%di), %esi
-		mov VESA_MODE_WIDTH_OFFSET(%di), %ax
+		# store mode parameters
+		#  eax = bpp[8] scanline[16]
+		#  ebx = width[16]  height[16]
+		#  edx = red_mask[8] red_pos[8] green_mask[8] green_pos[8]
+		#  esi = blue_mask[8] blue_pos[8]
+		#  edi = linear frame buffer
+		
+		mov VESA_MODE_BPP_OFFSET(%di), %al
+		xor %ah, %ah
 		shl $16, %eax
-		mov VESA_MODE_HEIGHT_OFFSET(%di), %ax
-		mov VESA_MODE_BPP_OFFSET(%di), %bl
-		xor %bh, %bh
+		mov VESA_MODE_SCANLINE_OFFSET(%di), %ax
+		
+		mov VESA_MODE_WIDTH_OFFSET(%di), %bx
 		shl $16, %ebx
-		mov VESA_MODE_SCANLINE_OFFSET(%di), %bx
-		mov %eax, %edi
+		mov VESA_MODE_HEIGHT_OFFSET(%di), %bx
+		
+		mov VESA_MODE_BLUE_MASK_OFFSET(%di), %dl
+		shl $8, %edx
+		mov VESA_MODE_BLUE_POS_OFFSET(%di), %dl
+		mov %edx, %esi
+		
+		mov VESA_MODE_RED_MASK_OFFSET(%di), %dl
+		shl $8, %edx
+		mov VESA_MODE_RED_POS_OFFSET(%di), %dl
+		shl $8, %edx
+		mov VESA_MODE_GREEN_MASK_OFFSET(%di), %dl
+		shl $8, %edx
+		mov VESA_MODE_GREEN_POS_OFFSET(%di), %dl
+		
+		mov VESA_MODE_PHADDR_OFFSET(%di), %edi
 		
 		vesa_leave_real:
 		
-			mov %cr0, %eax
-			or $1, %eax
-			mov %eax, %cr0
+			mov %cr0, %ecx
+			or $1, %ecx
+			mov %ecx, %cr0
 			
 			jmp vesa_leave_real2
 			

@@ -82,11 +82,26 @@
 	vesa_meeting_point:
 		# returned back to protected mode
 		
-		mov %esi, KA2PA(vesa_ph_addr)
-		mov %di, KA2PA(vesa_height)
-		shr $16, %edi
-		mov %di, KA2PA(vesa_width)
-		mov %bx, KA2PA(vesa_scanline)
+		mov %ax, KA2PA(vesa_scanline)
+		shr $16, %eax
+		mov %ax, KA2PA(vesa_bpp)
+		
+		mov %bx, KA2PA(vesa_height)
 		shr $16, %ebx
-		mov %bx, KA2PA(vesa_bpp)
+		mov %bx, KA2PA(vesa_width)
+		
+		mov %dl, KA2PA(vesa_green_pos)
+		shr $8, %edx
+		mov %dl, KA2PA(vesa_green_mask)
+		shr $8, %edx
+		mov %dl, KA2PA(vesa_red_pos)
+		shr $8, %edx
+		mov %dl, KA2PA(vesa_red_mask)
+		
+		mov %esi, %edx
+		mov %dl, KA2PA(vesa_blue_pos)
+		shr $8, %edx
+		mov %dl, KA2PA(vesa_blue_mask)
+		
+		mov %edi, KA2PA(vesa_ph_addr)
 #endif

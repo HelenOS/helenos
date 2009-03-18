@@ -56,6 +56,15 @@ uint16_t vesa_height;
 uint16_t vesa_bpp;
 uint16_t vesa_scanline;
 
+uint8_t vesa_red_mask;
+uint8_t vesa_red_pos;
+
+uint8_t vesa_green_mask;
+uint8_t vesa_green_pos;
+
+uint8_t vesa_blue_mask;
+uint8_t vesa_blue_pos;
+
 int vesa_present(void)
 {
 	if ((vesa_width != 0xffff) && (vesa_height != 0xffff))
@@ -73,7 +82,12 @@ void vesa_init(void)
 		visual = VISUAL_INDIRECT_8;
 		break;
 	case 16:
-		visual = VISUAL_RGB_5_6_5;
+		if ((vesa_red_mask == 5) && (vesa_red_pos == 10)
+		    && (vesa_green_mask == 5) && (vesa_green_pos == 5)
+		    && (vesa_blue_mask == 5) && (vesa_blue_pos == 0))
+			visual = VISUAL_RGB_5_5_5;
+		else
+			visual = VISUAL_RGB_5_6_5;
 		break;
 	case 24:
 		visual = VISUAL_RGB_8_8_8;
