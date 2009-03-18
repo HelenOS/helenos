@@ -53,9 +53,13 @@ extern uint8_t getc(indev_t *indev);
 extern uint8_t _getc(indev_t *indev);
 extern count_t gets(indev_t *indev, char *buf, size_t buflen);
 extern void putchar(char c);
+extern unative_t sys_klog(int fd, const void * buf, size_t count);
 
 extern void grab_console(void);
 extern void release_console(void);
+
+extern unative_t sys_debug_enable_console(void);
+extern unative_t sys_debug_disable_console(void);
 
 extern void arch_grab_console(void);
 extern void arch_release_console(void);
