@@ -39,7 +39,6 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <arch/types.h>
-#include <ddi/device.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
 #include <ipc/irq.h>
@@ -47,6 +46,8 @@
 #include <func.h>
 #include <print.h>
 #include <atomic.h>
+#include <syscall/copy.h>
+#include <errno.h>
 
 #define KLOG_SIZE PAGE_SIZE
 #define KLOG_LATENCY 8
@@ -120,6 +121,24 @@ void release_console(void)
 {
 	silent = true;
 	arch_release_console();
+}
+
+/** Tell kernel to get keyboard/console access again */
+unative_t sys_debug_enable_console(void)
+{
+#ifdef CONFIG_KCONSOLE
+	grab_console();
+	return true;
+#else
+	return false;
+#endif
+}
+
+/** Tell kernel to relinquish keyboard/console access */
+unative_t sys_debug_disable_console(void)
+{
+	release_console();
+	return true;
 }
 
 bool check_poll(indev_t *indev)
@@ -273,6 +292,39 @@ void putchar(char c)
 	
 	if (update)
 		klog_update();
+}
+
+/** Print using kernel facility
+ *
+ * Print to kernel log.
+ *
+ */
+unative_t sys_klog(int fd, const void * buf, size_t count) 
+{
+	char *data;
+	int rc;
+
+	if (count > PAGE_SIZE)
+		return ELIMIT;
+	
+	if (count > 0) {
+		data = (char *) malloc(count + 1, 0);
+		if (!data)
+			return ENOMEM;
+		
+		rc = copy_from_uspace(data, buf, count);
+		if (rc) {
+			free(data);
+			return rc;
+		}
+		data[count] = 0;
+		
+		printf("%s", data);
+		free(data);
+	} else
+		klog_update();
+	
+	return count;
 }
 
 /** @}
