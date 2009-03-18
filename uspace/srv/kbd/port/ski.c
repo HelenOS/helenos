@@ -73,7 +73,8 @@ static void *ski_thread_impl(void *arg)
 	while (1) {
 		while (1) {
 			c = ski_getchar();
-			if (c == 0) break;
+			if (c == 0)
+				break;
 			kbd_push_scancode(c);
 		}
 
