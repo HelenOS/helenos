@@ -185,7 +185,7 @@ vesa_init_real2:
 		cmp $VESA_OK, %al
 		jne no_mode
 		
-		# check for proper attributes (supported, color, graphics, liner framebuffer)
+		# check for proper attributes (supported, color, graphics, linear framebuffer)
 		
 		mov VESA_MODE_ATTRIBUTES_OFFSET(%di), %ax
 		and $0x99, %ax
