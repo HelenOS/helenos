@@ -37,15 +37,19 @@
 #include <kbd/kbd.h>
 #include <ipc/ipc.h>
 #include <ipc/console.h>
+#include <console.h>
 #include <async.h>
 
 int kbd_get_event(kbd_event_t *ev)
 {
-	int console_phone = get_console_phone();
+	int cons_phone = console_phone_get();
 	ipcarg_t r0, r1, r2, r3;
 	int rc;
 
-	rc = async_req_0_4(console_phone, CONSOLE_GETKEY, &r0, &r1, &r2, &r3);
+	if (cons_phone < 0)
+		return -1;
+
+	rc = async_req_0_4(cons_phone, CONSOLE_GETKEY, &r0, &r1, &r2, &r3);
 	if (rc < 0)
 		return -1;
 

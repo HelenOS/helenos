@@ -43,12 +43,11 @@
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <ipc/console.h>
+#include <console.h>
 #include <kbd/kbd.h>
 #include <unistd.h>
 #include <async.h>
 #include <sys/types.h>
-
-static int console_phone = -1;
 
 ssize_t write_stderr(const void *buf, size_t count)
 {
@@ -57,8 +56,9 @@ ssize_t write_stderr(const void *buf, size_t count)
 
 ssize_t read_stdin(void *buf, size_t count)
 {
-	open_console();
-	if (console_phone >= 0) {
+	int cons_phone = console_phone_get();
+
+	if (cons_phone >= 0) {
 		kbd_event_t ev;
 		int rc;
 		size_t i = 0;
@@ -79,54 +79,22 @@ ssize_t read_stdin(void *buf, size_t count)
 
 ssize_t write_stdout(const void *buf, size_t count)
 {
-	open_console();
-	if (console_phone >= 0) {
+	int cons_phone = console_phone_get();
+
+	if (cons_phone >= 0) {
 		int i;
-	
+
 		for (i = 0; i < count; i++)
-			async_msg_1(console_phone, CONSOLE_PUTCHAR,
-			    ((const char *) buf)[i]);
-		
+			console_putchar(((const char *) buf)[i]);
+
 		return count;
 	} else
 		return __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, count);
 }
 
-void open_console(void)
-{
-	if (console_phone < 0) {
-		int phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0, 0);
-		if (phone >= 0)
-			console_phone = phone;
-	}
-}
-
-void close_console(void)
-{
-	if (console_phone >= 0) {
-		if (ipc_hangup(console_phone) == 0) {
-			console_phone = -1;
-		}
-	}
-}
-
 void klog_update(void)
 {
 	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);
-}
-
-int get_console_phone(void)
-{
-	if (console_phone < 0)
-		console_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_CONSOLE, 0, 0);
-	
-	return console_phone;
-}
-
-void console_wait(void)
-{
-	while (console_phone < 0)
-		get_console_phone();
 }
 
 /** @}

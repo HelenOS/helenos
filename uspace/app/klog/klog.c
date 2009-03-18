@@ -41,6 +41,7 @@
 #include <as.h>
 #include <sysinfo.h>
 #include <io/stream.h>
+#include <console.h>
 #include <errno.h>
 
 #define NAME "klog"

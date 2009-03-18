@@ -53,6 +53,7 @@
 #include <ipc/services.h>
 #include <ipc/loader.h>
 #include <loader/pcb.h>
+#include <console.h>
 #include <errno.h>
 #include <async.h>
 #include <as.h>
@@ -282,13 +283,13 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 		/* Dynamically linked program */
 		DPRINTF("Run ELF interpreter.\n");
 		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
-		close_console();
+		console_close();
 		
 		ipc_answer_0(rid, EOK);
 		elf_run(&interp_info, &pcb);
 	} else {
 		/* Statically linked program */
-		close_console();
+		console_close();
 		ipc_answer_0(rid, EOK);
 		elf_run(&prog_info, &pcb);
 	} 

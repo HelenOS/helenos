@@ -58,6 +58,7 @@
 
 #include <async.h>
 #include <ipc/console.h>
+#include <console.h>
 #include <kbd/kbd.h>
 
 /* return true iff the given timeval is positive */
@@ -114,7 +115,7 @@ rwait(struct timeval *tvp)
 	if (!lastchar) {
 again:
 		if (!getchar_inprog) {
-			cons_phone = get_console_phone();
+			cons_phone = console_phone_get();
 			getchar_inprog = async_send_2(cons_phone,
 			    CONSOLE_GETKEY, 0, 0, &charcall);
 		}

@@ -44,6 +44,7 @@
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
+#include <console.h>
 #include "init.h"
 #include "version.h"
 
