@@ -39,6 +39,7 @@
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
+#include <ddi/device.h>
 
 static indev_operations_t kbrdin_ops = {
 	.poll = NULL
@@ -87,7 +88,7 @@ static void z8530_irq_handler(irq_t *irq)
 }
 
 /** Initialize z8530. */
-indev_t *z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
+indev_t *z8530_init(z8530_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
 	z8530_instance_t *instance
 	    = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
@@ -96,11 +97,10 @@ indev_t *z8530_init(z8530_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir
 	
 	indev_initialize("z8530", &instance->kbrdin, &kbrdin_ops);
 	
-	instance->devno = devno;
 	instance->z8530 = dev;
 	
 	irq_initialize(&instance->irq);
-	instance->irq.devno = devno;
+	instance->irq.devno = device_assign_devno();
 	instance->irq.inr = inr;
 	instance->irq.claim = z8530_claim;
 	instance->irq.handler = z8530_irq_handler;

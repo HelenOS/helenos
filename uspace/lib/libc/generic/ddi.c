@@ -41,6 +41,16 @@
 #include <libarch/config.h>
 #include <kernel/ddi/ddi_arg.h>
 
+/** Return unique device number.
+ *
+ * @return New unique device number.
+ *
+ */
+int device_assign_devno(void)
+{
+	return __SYSCALL0(SYS_DEVICE_ASSIGN_DEVNO);
+}
+
 /** Map piece of physical memory to task.
  *
  * Caller of this function must have the CAP_MEM_MANAGER capability.

@@ -62,13 +62,12 @@ typedef struct {
 
 /** Structure representing the ns16550 device. */
 typedef struct {
-	devno_t devno;
 	ns16550_t *ns16550;
 	irq_t irq;
 	indev_t kbrdin;
 } ns16550_instance_t;
 
-extern indev_t *ns16550_init(ns16550_t *, devno_t, inr_t, cir_t, void *);
+extern indev_t *ns16550_init(ns16550_t *, inr_t, cir_t, void *);
 
 #endif
 

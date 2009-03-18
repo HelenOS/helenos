@@ -37,6 +37,7 @@
 
 #include <task.h>
 
+extern int device_assign_devno(void);
 extern int physmem_map(void *, void *, unsigned long, int);
 extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int preemption_control(int);

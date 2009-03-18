@@ -81,12 +81,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int devno = sysinfo_value("klog.devno");
-	int inr = sysinfo_value("klog.inr");
-	if (ipc_register_irq(inr, devno, 0, NULL) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
-		return -1;
-	}
+//	int inr = sysinfo_value("klog.inr");
+//	if (ipc_register_irq(inr, devno, 0, NULL) != EOK) {
+//		printf(NAME ": Error registering klog notifications\n");
+//		return -1;
+//	}
 	
 	async_set_interrupt_received(interrupt_received);
 	klog_update();

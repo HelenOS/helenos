@@ -50,7 +50,6 @@
 #include <proc/uarg.h>
 #include <syscall/syscall.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 #include <arch/bootinfo.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/drivers/ega/ega.h>
@@ -162,14 +161,12 @@ void arch_post_smp_init(void)
 #endif
 	
 #ifdef CONFIG_NS16550
-	devno_t devno_ns16550 = device_assign_devno();
 	indev_t *kbrdin_ns16550
-	    = ns16550_init((ns16550_t *) NS16550_BASE, devno_ns16550, NS16550_IRQ, NULL, NULL);
+	    = ns16550_init((ns16550_t *) NS16550_BASE, NS16550_IRQ, NULL, NULL);
 	if (kbrdin_ns16550)
 		srln_init(kbrdin_ns16550);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno_ns16550);
 	sysinfo_set_item_val("kbd.inr", NULL, NS16550_IRQ);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
@@ -179,13 +176,11 @@ void arch_post_smp_init(void)
 #endif
 	
 #ifdef CONFIG_I8042
-	devno_t devno_i8042 = device_assign_devno();
-	indev_t *kbrdin_i8042 = i8042_init((i8042_t *) I8042_BASE, devno_i8042, IRQ_KBD);
+	indev_t *kbrdin_i8042 = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
 	if (kbrdin_i8042)
 		kbrd_init(kbrdin_i8042);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno_i8042);
 	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
 	sysinfo_set_item_val("kbd.address.physical", NULL,

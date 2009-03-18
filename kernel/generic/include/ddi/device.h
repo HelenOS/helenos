@@ -39,6 +39,7 @@
 #include <typedefs.h>
 
 extern devno_t device_assign_devno(void);
+extern unative_t sys_device_assign_devno(void);
 
 #endif
 

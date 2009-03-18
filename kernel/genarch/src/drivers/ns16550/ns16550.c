@@ -39,6 +39,7 @@
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
+#include <ddi/device.h>
 
 #define LSR_DATA_READY  0x01
 
@@ -79,7 +80,7 @@ static void ns16550_irq_handler(irq_t *irq)
  * @return Keyboard device pointer or NULL on failure.
  *
  */
-indev_t *ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void *cir_arg)
+indev_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
 	ns16550_instance_t *instance
 	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
@@ -88,11 +89,10 @@ indev_t *ns16550_init(ns16550_t *dev, devno_t devno, inr_t inr, cir_t cir, void 
 	
 	indev_initialize("ns16550", &instance->kbrdin, &kbrdin_ops);
 	
-	instance->devno = devno;
 	instance->ns16550 = dev;
 	
 	irq_initialize(&instance->irq);
-	instance->irq.devno = devno;
+	instance->irq.devno = device_assign_devno();
 	instance->irq.inr = inr;
 	instance->irq.claim = ns16550_claim;
 	instance->irq.handler = ns16550_irq_handler;

@@ -65,7 +65,6 @@
 #include <syscall/syscall.h>
 #include <console/console.h>
 #include <ddi/irq.h>
-#include <ddi/device.h>
 #include <sysinfo/sysinfo.h>
 
 /** Disable I/O on non-privileged levels
@@ -194,13 +193,11 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 #ifdef CONFIG_PC_KBD
-	devno_t devno = device_assign_devno();
-	
 	/*
 	 * Initialize the i8042 controller. Then initialize the keyboard
 	 * module and connect it to i8042. Enable keyboard interrupts.
 	 */
-	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, devno, IRQ_KBD);
+	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
 	if (kbrdin) {
 		kbrd_init(kbrdin);
 		trap_virtual_enable_irqs(1 << IRQ_KBD);
@@ -211,7 +208,6 @@ void arch_post_smp_init(void)
 	 * self-sufficient.
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);

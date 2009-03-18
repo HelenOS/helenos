@@ -89,7 +89,7 @@ int kbd_port_init(void)
 	    CHAN_A_STATUS;
 	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.kernel") +
 	    CHAN_A_DATA;
-	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
+	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
 	    sysinfo_value("kbd.inr"), &z8530_kbd);
 	return 0;
 }

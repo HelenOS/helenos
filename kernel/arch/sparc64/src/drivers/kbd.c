@@ -46,7 +46,6 @@
 #endif
 
 #include <console/console.h>
-#include <ddi/device.h>
 #include <ddi/irq.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
@@ -74,7 +73,7 @@ void kbd_init(ofw_tree_node_t *node)
 	const char *name;
 	cir_t cir;
 	void *cir_arg;
-
+	
 #ifdef CONFIG_NS16550
 	ns16550_t *ns16550;
 #endif
@@ -115,7 +114,6 @@ void kbd_init(ofw_tree_node_t *node)
 	
 	uintptr_t pa;
 	size_t size;
-	devno_t devno;
 	inr_t inr;
 	
 	switch (kbd_type) {
@@ -164,11 +162,10 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		devno = device_assign_devno();
 		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
 		
-		indev_t *kbrdin_z8530 = z8530_init(z8530, devno, inr, cir, cir_arg);
+		indev_t *kbrdin_z8530 = z8530_init(z8530, inr, cir, cir_arg);
 		if (kbrdin_z8530)
 			kbrd_init(kbrdin_z8530);
 		
@@ -178,7 +175,6 @@ void kbd_init(ofw_tree_node_t *node)
 		 */
 		sysinfo_set_item_val("kbd", NULL, true);
 		sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
-		sysinfo_set_item_val("kbd.devno", NULL, devno);
 		sysinfo_set_item_val("kbd.inr", NULL, inr);
 		sysinfo_set_item_val("kbd.address.kernel", NULL,
 		    (uintptr_t) z8530);
@@ -187,11 +183,10 @@ void kbd_init(ofw_tree_node_t *node)
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		devno = device_assign_devno();
 		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
 		    offset;
 		
-		indev_t *kbrdin_ns16550 = ns16550_init(ns16550, devno, inr, cir, cir_arg);
+		indev_t *kbrdin_ns16550 = ns16550_init(ns16550, inr, cir, cir_arg);
 		if (kbrdin_ns16550)
 			kbrd_init(kbrdin_ns16550);
 		
@@ -201,7 +196,6 @@ void kbd_init(ofw_tree_node_t *node)
 		 */
 		sysinfo_set_item_val("kbd", NULL, true);
 		sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
-		sysinfo_set_item_val("kbd.devno", NULL, devno);
 		sysinfo_set_item_val("kbd.inr", NULL, inr);
 		sysinfo_set_item_val("kbd.address.kernel", NULL,
 		    (uintptr_t) ns16550);

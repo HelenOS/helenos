@@ -47,13 +47,12 @@ typedef struct {
 } __attribute__ ((packed)) i8042_t;
 
 typedef struct {
-	devno_t devno;
 	irq_t irq;
 	i8042_t *i8042;
 	indev_t kbrdin;
 } i8042_instance_t;
 
-extern indev_t *i8042_init(i8042_t *, devno_t, inr_t);
+extern indev_t *i8042_init(i8042_t *, inr_t);
 
 #endif
 

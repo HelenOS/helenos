@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /**
  * @file
- * @brief	i8254 chip driver.
+ * @brief i8254 chip driver.
  *
  * Low level time functions.
  */

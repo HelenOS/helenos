@@ -114,13 +114,12 @@ typedef struct {
 
 /** Structure representing the z8530 device. */
 typedef struct {
-	devno_t devno;
 	irq_t irq;
 	z8530_t *z8530;
 	indev_t kbrdin;
 } z8530_instance_t;
 
-extern indev_t *z8530_init(z8530_t *, devno_t, inr_t, cir_t, void *);
+extern indev_t *z8530_init(z8530_t *, inr_t, cir_t, void *);
 
 #endif
 

@@ -56,7 +56,6 @@
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
 #include <macros.h>
-#include <ddi/device.h>
 #include <config.h>
 #include <string.h>
 #include <arch/drivers/msim.h>
@@ -166,13 +165,11 @@ void arch_pre_smp_init(void)
 void arch_post_smp_init(void)
 {
 #ifdef CONFIG_MIPS_KBD
-	devno_t devno = device_assign_devno();
-	
 	/*
 	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
 	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
 	 */
-	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, devno, MSIM_KBD_IRQ);
+	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
 	if (kbrdin) {
 		srln_init(kbrdin);
 		cp0_unmask_int(MSIM_KBD_IRQ);
@@ -183,7 +180,6 @@ void arch_post_smp_init(void)
 	 * self-sufficient.
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, MSIM_KBD_ADDRESS);
 #endif

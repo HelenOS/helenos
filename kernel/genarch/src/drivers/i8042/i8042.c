@@ -41,6 +41,7 @@
 #include <arch/asm.h>
 #include <console/chardev.h>
 #include <mm/slab.h>
+#include <ddi/device.h>
 
 static indev_operations_t kbrdin_ops = {
 	.poll = NULL
@@ -76,7 +77,7 @@ static void i8042_irq_handler(irq_t *irq)
 }
 
 /** Initialize i8042. */
-indev_t *i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
+indev_t *i8042_init(i8042_t *dev, inr_t inr)
 {
 	i8042_instance_t *instance
 	    = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
@@ -85,11 +86,10 @@ indev_t *i8042_init(i8042_t *dev, devno_t devno, inr_t inr)
 	
 	indev_initialize("i8042", &instance->kbrdin, &kbrdin_ops);
 	
-	instance->devno = devno;
 	instance->i8042 = dev;
 	
 	irq_initialize(&instance->irq);
-	instance->irq.devno = devno;
+	instance->irq.devno = device_assign_devno();
 	instance->irq.inr = inr;
 	instance->irq.claim = i8042_claim;
 	instance->irq.handler = i8042_irq_handler;

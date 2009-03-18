@@ -38,6 +38,7 @@
 #include <console/chardev.h>
 #include <mm/slab.h>
 #include <arch/asm.h>
+#include <ddi/device.h>
 
 static indev_operations_t kbrdin_ops = {
 	.poll = NULL
@@ -56,7 +57,7 @@ static void dsrlnin_irq_handler(irq_t *irq)
 	indev_push_character(&instance->kbrdin, pio_read_8(&dev->data));
 }
 
-indev_t *dsrlnin_init(dsrlnin_t *dev, devno_t devno, inr_t inr)
+indev_t *dsrlnin_init(dsrlnin_t *dev, inr_t inr)
 {
 	dsrlnin_instance_t *instance
 	    = malloc(sizeof(dsrlnin_instance_t), FRAME_ATOMIC);
@@ -65,11 +66,10 @@ indev_t *dsrlnin_init(dsrlnin_t *dev, devno_t devno, inr_t inr)
 	
 	indev_initialize("dsrlnin", &instance->kbrdin, &kbrdin_ops);
 	
-	instance->devno = devno;
 	instance->dsrlnin = dev;
 	
 	irq_initialize(&instance->irq);
-	instance->irq.devno = devno;
+	instance->irq.devno = device_assign_devno();
 	instance->irq.inr = inr;
 	instance->irq.claim = dsrlnin_claim;
 	instance->irq.handler = dsrlnin_irq_handler;

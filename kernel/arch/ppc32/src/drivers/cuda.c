@@ -40,6 +40,7 @@
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <stdarg.h>
+#include <ddi/device.h>
 
 #define CUDA_IRQ 10
 #define SPECIAL		'?'
@@ -241,7 +242,7 @@ static irq_ownership_t cuda_claim(irq_t *irq)
 	return IRQ_ACCEPT;
 }
 
-void cuda_init(devno_t devno, uintptr_t base, size_t size)
+void cuda_init(uintptr_t base, size_t size)
 {
 	cuda = (uint8_t *) hw_map(base, size);
 	
@@ -249,7 +250,7 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 	stdin = &kbrd;
 	
 	irq_initialize(&cuda_irq);
-	cuda_irq.devno = devno;
+	cuda_irq.devno = device_assign_devno();
 	cuda_irq.inr = CUDA_IRQ;
 	cuda_irq.claim = cuda_claim;
 	cuda_irq.handler = cuda_irq_handler;
@@ -258,7 +259,6 @@ void cuda_init(devno_t devno, uintptr_t base, size_t size)
 	pic_enable_interrupt(CUDA_IRQ);
 	
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, CUDA_IRQ);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, base);
 }

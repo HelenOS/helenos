@@ -134,14 +134,11 @@ void kconsole_init(void)
  */
 void kconsole_notify_init(void)
 {
-	devno_t devno = device_assign_devno();
-	
 	sysinfo_set_item_val("kconsole.present", NULL, true);
-	sysinfo_set_item_val("kconsole.devno", NULL, devno);
 	sysinfo_set_item_val("kconsole.inr", NULL, KCONSOLE_VIRT_INR);
 	
 	irq_initialize(&kconsole_irq);
-	kconsole_irq.devno = devno;
+	kconsole_irq.devno = device_assign_devno();
 	kconsole_irq.inr = KCONSOLE_VIRT_INR;
 	kconsole_irq.claim = kconsole_claim;
 	irq_register(&kconsole_irq);

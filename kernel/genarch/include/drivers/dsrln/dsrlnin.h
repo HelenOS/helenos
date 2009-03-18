@@ -47,13 +47,12 @@ typedef struct {
 } __attribute__ ((packed)) dsrlnin_t;
 
 typedef struct {
-	devno_t devno;
 	irq_t irq;
 	dsrlnin_t *dsrlnin;
 	indev_t kbrdin;
 } dsrlnin_instance_t;
 
-extern indev_t *dsrlnin_init(dsrlnin_t *, devno_t, inr_t);
+extern indev_t *dsrlnin_init(dsrlnin_t *, inr_t);
 
 #endif
 

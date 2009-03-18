@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	Device numbers.
+ * @brief Device numbers.
  */
 
 #include <arch/types.h>
@@ -47,12 +47,15 @@ static atomic_t last;
  */
 devno_t device_assign_devno(void)
 {
-	devno_t devno;	
-
-	devno = (devno_t) atomic_postinc(&last);
+	devno_t devno = (devno_t) atomic_postinc(&last);
 	ASSERT(devno >= 0);
-
+	
 	return devno;
+}
+
+unative_t sys_device_assign_devno(void)
+{
+	return (unative_t) device_assign_devno();
 }
 
 /** @}

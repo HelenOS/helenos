@@ -42,7 +42,6 @@
 #include <userspace.h>
 #include <proc/uarg.h>
 #include <console/console.h>
-#include <ddi/device.h>
 #include <ddi/irq.h>
 #include <arch/drivers/pic.h>
 #include <macros.h>
@@ -121,8 +120,7 @@ void arch_post_mm_init(void)
 			pic_init(bootinfo.macio.addr, PAGE_SIZE);
 			
 			/* Initialize I/O controller */
-			cuda_init(device_assign_devno(),
-			    bootinfo.macio.addr + 0x16000, 2 * PAGE_SIZE);
+			cuda_init(bootinfo.macio.addr + 0x16000, 2 * PAGE_SIZE);
 		}
 		
 		/* Merge all zones to 1 big zone */

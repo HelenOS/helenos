@@ -32,9 +32,9 @@
 
 /**
  * @file
- * @brief	Syscall table and syscall wrappers.
+ * @brief Syscall table and syscall wrappers.
  */
- 
+
 #include <syscall/syscall.h>
 #include <proc/thread.h>
 #include <proc/task.h>
@@ -42,100 +42,50 @@
 #include <mm/as.h>
 #include <print.h>
 #include <putchar.h>
-#include <errno.h>
 #include <arch.h>
 #include <debug.h>
+#include <ddi/device.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
 #include <ddi/ddi.h>
 #include <security/cap.h>
-#include <syscall/copy.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <udebug/udebug.h>
-
-/** Print using kernel facility
- *
- * Print to kernel log.
- *
- */
-static unative_t sys_klog(int fd, const void * buf, size_t count) 
-{
-	char *data;
-	int rc;
-
-	if (count > PAGE_SIZE)
-		return ELIMIT;
-	
-	if (count > 0) {
-		data = (char *) malloc(count + 1, 0);
-		if (!data)
-			return ENOMEM;
-		
-		rc = copy_from_uspace(data, buf, count);
-		if (rc) {
-			free(data);
-			return rc;
-		}
-		data[count] = 0;
-		
-		printf("%s", data);
-		free(data);
-	} else
-		klog_update();
-	
-	return count;
-}
-
-/** Tell kernel to get keyboard/console access again */
-static unative_t sys_debug_enable_console(void)
-{
-#ifdef CONFIG_KCONSOLE
-	grab_console();
-	return true;
-#else
-	return false;
-#endif
-}
-
-/** Tell kernel to relinquish keyboard/console access */
-static unative_t sys_debug_disable_console(void)
-{
-	release_console();
-	return true;
-}
 
 /** Dispatch system call */
 unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
 	unative_t rc;
-
+	
 #ifdef CONFIG_UDEBUG
 	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 #endif
-	if (id < SYSCALL_END) {	
+	
+	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
 		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
 		task_kill(TASK->taskid);
 		thread_exit();
 	}
-		
+	
 	if (THREAD->interrupted)
 		thread_exit();
-
+	
 #ifdef CONFIG_UDEBUG
 	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-
+	
 	/*
 	 * Stopping point needed for tasks that only invoke non-blocking
 	 * system calls.
 	 */
 	udebug_stoppable_begin();
 	udebug_stoppable_end();
-#endif	
+#endif
+	
 	return rc;
 }
 
@@ -182,6 +132,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_cap_revoke,
 	
 	/* DDI related syscalls. */
+	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
 	(syshandler_t) sys_preempt_control,

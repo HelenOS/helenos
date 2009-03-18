@@ -39,6 +39,7 @@
 #include <sysinfo.h>
 #include <kbd_port.h>
 #include <kbd.h>
+#include <ddi.h>
 
 irq_cmd_t msim_cmds[] = {
 	{
@@ -63,7 +64,7 @@ int kbd_port_init(void)
 {
 	async_set_interrupt_received(msim_irq_handler);
 	msim_cmds[0].addr = sysinfo_value("kbd.address.virtual");
-	ipc_register_irq(sysinfo_value("kbd.inr"), sysinfo_value("kbd.devno"),
+	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
 	    0, &msim_kbd);
 	return 0;
 }
