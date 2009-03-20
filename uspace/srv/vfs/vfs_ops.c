@@ -343,6 +343,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			pr->callid = callid;
 			pr->rid = rid;
 			pr->dev_handle = dev_handle;
+			link_initialize(&pr->link);
 			list_append(&pr->link, &pending_req);
 			return;
 		}
