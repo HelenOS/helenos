@@ -43,14 +43,16 @@ SECTIONS {
 		QUAD(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);		/* global variables */
 
-		*(.eh_frame);
-
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
 
 		*(.bss);		/* uninitialized static variables */
 
 		kdata_end = .;
+	}
+
+	/DISCARD/ : {
+		*(*);
 	}
 	
 #ifdef CONFIG_SMP	
