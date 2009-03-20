@@ -42,12 +42,9 @@
 
 int kbd_get_event(kbd_event_t *ev)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	ipcarg_t r0, r1, r2, r3;
 	int rc;
-
-	if (cons_phone < 0)
-		return -1;
 
 	rc = async_req_0_4(cons_phone, CONSOLE_GETKEY, &r0, &r1, &r2, &r3);
 	if (rc < 0)

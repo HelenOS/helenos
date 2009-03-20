@@ -42,10 +42,17 @@
 
 static int console_phone = -1;
 
-void console_open(void)
+void console_open(bool blocking)
 {
 	if (console_phone < 0) {
-		int phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0, 0);
+		int phone;
+		if (blocking) {
+			phone = ipc_connect_me_to_blocking(PHONE_NS,
+			    SERVICE_CONSOLE, 0, 0);
+		} else {
+			phone = ipc_connect_me_to(PHONE_NS, SERVICE_CONSOLE, 0,
+			    0);
+		}
 		if (phone >= 0)
 			console_phone = phone;
 	}
@@ -60,10 +67,10 @@ void console_close(void)
 	}
 }
 
-int console_phone_get(void)
+int console_phone_get(bool blocking)
 {
 	if (console_phone < 0)
-		console_open();
+		console_open(blocking);
 	
 	return console_phone;
 }
@@ -71,36 +78,36 @@ int console_phone_get(void)
 void console_wait(void)
 {
 	while (console_phone < 0)
-		console_open();
+		console_open(true);
 }
 
 void console_clear(void)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_0(cons_phone, CONSOLE_CLEAR);
 }
 
 void console_goto(int row, int col)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_2(cons_phone, CONSOLE_GOTO, row, col);
 }
 
 void console_putchar(int c)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_1(cons_phone, CONSOLE_PUTCHAR, c);
 }
 
 void console_flush(void)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_0(cons_phone, CONSOLE_FLUSH);
 }
 
 int console_get_size(int *rows, int *cols)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	ipcarg_t r, c;
 	int rc;
 
@@ -114,25 +121,25 @@ int console_get_size(int *rows, int *cols)
 
 void console_set_style(int style)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_1(cons_phone, CONSOLE_SET_STYLE, style);
 }
 
 void console_set_color(int fg_color, int bg_color, int flags)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_3(cons_phone, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
 }
 
 void console_set_rgb_color(int fg_color, int bg_color)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_2(cons_phone, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
 }
 
 void console_cursor_visibility(int show)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(true);
 	async_msg_1(cons_phone, CONSOLE_CURSOR_VISIBILITY, show != 0);
 }
 

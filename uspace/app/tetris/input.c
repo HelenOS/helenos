@@ -115,7 +115,7 @@ rwait(struct timeval *tvp)
 	if (!lastchar) {
 again:
 		if (!getchar_inprog) {
-			cons_phone = console_phone_get();
+			cons_phone = console_phone_get(true);
 			getchar_inprog = async_send_2(cons_phone,
 			    CONSOLE_GETKEY, 0, 0, &charcall);
 		}

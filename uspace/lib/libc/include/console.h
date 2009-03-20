@@ -37,11 +37,12 @@
 
 #include <console/style.h>
 #include <console/color.h>
+#include <bool.h>
 
-extern void console_open(void);
+extern void console_open(bool);
 extern void console_close(void);
 
-extern int console_phone_get(void);
+extern int console_phone_get(bool);
 extern void console_wait(void);
 
 extern void console_clear(void);

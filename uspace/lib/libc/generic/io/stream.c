@@ -56,7 +56,7 @@ ssize_t write_stderr(const void *buf, size_t count)
 
 ssize_t read_stdin(void *buf, size_t count)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(false);
 
 	if (cons_phone >= 0) {
 		kbd_event_t ev;
@@ -79,7 +79,7 @@ ssize_t read_stdin(void *buf, size_t count)
 
 ssize_t write_stdout(const void *buf, size_t count)
 {
-	int cons_phone = console_phone_get();
+	int cons_phone = console_phone_get(false);
 
 	if (cons_phone >= 0) {
 		int i;
