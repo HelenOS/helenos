@@ -231,6 +231,45 @@ static unsigned attr_to_ega_style(const attrs_t *a)
 	}
 }
 
+#define FB_WRITE_BUF_SIZE 256
+static char fb_write_buf[FB_WRITE_BUF_SIZE];
+
+static void fb_write(ipc_callid_t rid, ipc_call_t *request)
+{
+	int row, col;
+	ipc_callid_t callid;
+	size_t len;
+	size_t i;
+
+	row = IPC_GET_ARG1(*request);
+	col = IPC_GET_ARG2(*request);
+
+	if ((col >= scr_width) || (row >= scr_height)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (len > FB_WRITE_BUF_SIZE)
+		len = FB_WRITE_BUF_SIZE;
+	if (len >= scr_width - col)
+		len = scr_width - col;
+
+	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
+
+	for (i = 0; i < len; i++) {
+		printchar(fb_write_buf[i], row, col++);
+	}
+
+	ipc_answer_1(rid, EOK, len);
+}
+
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int retval;
@@ -295,6 +334,11 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			printchar(c, row, col);
 			retval = 0;
 			break;
+		case FB_WRITE:
+			fb_write(callid, &call);
+
+			/* Message already answered */
+			continue;
  		case FB_CURSOR_GOTO:
 			row = IPC_GET_ARG1(call);
 			col = IPC_GET_ARG2(call);
