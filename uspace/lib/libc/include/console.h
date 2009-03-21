@@ -48,6 +48,8 @@ extern void console_wait(void);
 extern void console_clear(void);
 extern void console_goto(int, int);
 extern void console_putchar(int);
+extern ssize_t console_write(const char *buf, size_t nbyte);
+extern void console_putstr(const char *s);
 extern void console_flush(void);
 
 extern int console_get_size(int *, int *);

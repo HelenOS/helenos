@@ -97,10 +97,18 @@ int putchar(int c)
 int getchar(void)
 {
 	unsigned char c;
+
+	flush_stdout();
 	if (read_stdin((void *) &c, 1) == 1)
 		return c;
 	
 	return EOF;
+}
+
+int fflush(FILE *f)
+{
+	(void) f;
+	return flush_stdout();
 }
 
 /** @}

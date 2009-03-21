@@ -89,6 +89,23 @@ static keyfield_t *interbuffer = NULL;		/**< Pointer to memory shared
 						 * with framebufer used for
 						 * faster virtual console
 						 * switching */
+/** Size of fb_buf. */
+#define FB_BUF_SIZE 256
+
+/** Buffer for sending characters to FB driver. */
+static char fb_buf[FB_BUF_SIZE];
+
+/* Properties of fb_buf data. */
+static int fb_buf_row;		/**< Row where fb_buf data belong. */
+static int fb_buf_col;		/**< Column where fb_buf data start. */
+static int fb_console;		/**< VC to which fb_buf data belong. */
+int fb_bi = 0;			/**< Number of valid chars in fb_buf. */
+
+/** Size of cwrite_buf. */
+#define CWRITE_BUF_SIZE 256
+
+/** Buffer for receiving data via the CONSOLE_WRITE call from the client. */
+static char cwrite_buf[CWRITE_BUF_SIZE];
 
 
 /** Find unused virtual console.
@@ -158,9 +175,66 @@ static void set_attrs(attrs_t *attrs)
 	}
 }
 
+/** Write a character vector to FB driver via IPC. */
+static ssize_t fb_write(const char *buf, size_t nbyte, int row, int col)
+{
+	ipcarg_t rc;
+	ipc_call_t answer;
+	aid_t req;
+
+	async_serialize_start();
+	
+	req = async_send_2(fb_info.phone, FB_WRITE, row, col, &answer);
+	rc = ipc_data_write_start(fb_info.phone, (void *) buf, nbyte);
+
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return (ssize_t) rc;
+	}
+
+	async_wait_for(req, &rc);
+	async_serialize_end();
+
+	if (rc == EOK)
+		return (ssize_t) IPC_GET_ARG1(answer);
+	else
+		return -1;
+}
+
+/** Flush buffered characters to FB. */
+static void fb_buf_flush(void)
+{
+	screenbuffer_t *scr;
+	int i;
+
+	scr = &(connections[fb_console].screenbuffer);
+
+	if (fb_bi > 0) {
+		if (fb_write(fb_buf, fb_bi, fb_buf_row, fb_buf_col) < 0) {
+			/* Try falling back to char-by-char. */
+			for (i = 0; i < fb_bi; i++) {
+				async_msg_3(fb_info.phone, FB_PUTCHAR, fb_buf[i],
+				    fb_buf_row, fb_buf_col + i);
+			}
+		}
+		fb_bi = 0;
+	}
+}
+
+/** Print a character to the active VC with buffering. */
 static void prtchr(char c, int row, int col)
 {
-	async_msg_3(fb_info.phone, FB_PUTCHAR, c, row, col);
+	if (fb_bi >= FB_BUF_SIZE)
+		fb_buf_flush();
+
+	if (fb_bi == 0) {
+		fb_buf_row = row;
+		fb_buf_col = col;
+		fb_console = active_console;
+	}
+
+	fb_buf[fb_bi++] = c;
 }
 
 /** Check key and process special keys. 
@@ -169,20 +243,26 @@ static void prtchr(char c, int row, int col)
  */
 static void write_char(int console, char key)
 {
+	bool flush_cursor = false;
 	screenbuffer_t *scr = &(connections[console].screenbuffer);
-	
+
 	switch (key) {
 	case '\n':
+		fb_buf_flush();
+		flush_cursor = true;
 		scr->position_y++;
 		scr->position_x = 0;
 		break;
 	case '\r':
+		fb_buf_flush();
 		break;
 	case '\t':
+		fb_buf_flush();
 		scr->position_x += 8;
 		scr->position_x -= scr->position_x % 8; 
 		break;
 	case '\b':
+		fb_buf_flush();
 		if (scr->position_x == 0) 
 			break;
 		scr->position_x--;
@@ -197,8 +277,12 @@ static void write_char(int console, char key)
 		screenbuffer_putchar(scr, key);
 		scr->position_x++;
 	}
-	
-	scr->position_y += (scr->position_x >= scr->size_x);
+
+	if (scr->position_x >= scr->size_x) {
+		fb_buf_flush();
+		flush_cursor = true;
+		scr->position_y++;
+	}
 	
 	if (scr->position_y >= scr->size_y) {
 		scr->position_y = scr->size_y - 1;
@@ -207,12 +291,11 @@ static void write_char(int console, char key)
 		if (console == active_console)
 			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
-	
+
 	scr->position_x = scr->position_x % scr->size_x;
-	
-	if (console == active_console)
+
+	if (console == active_console && flush_cursor)
 		curs_goto(scr->position_y, scr->position_x);
-	
 }
 
 /** Switch to new console */
@@ -225,7 +308,9 @@ static void change_console(int newcons)
 	
 	if (newcons == active_console)
 		return;
-	
+
+	fb_buf_flush();
+
 	if (newcons == KERNEL_CONSOLE) {
 		async_serialize_start();
 		curs_hide_sync();
@@ -360,6 +445,31 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Handle CONSOLE_WRITE call. */
+static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t len;
+	size_t i;
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+	}
+
+	if (len > CWRITE_BUF_SIZE)
+		len = CWRITE_BUF_SIZE;
+
+	(void) ipc_data_write_finalize(callid, cwrite_buf, len);
+
+	for (i = 0; i < len; i++) {
+		write_char(consnum, cwrite_buf[i]);
+	}
+
+	gcons_notify_char(consnum);
+	ipc_answer_1(rid, EOK, len);
+}
+
 /** Default thread for new connections */
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -411,6 +521,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			write_char(consnum, IPC_GET_ARG1(call));
 			gcons_notify_char(consnum);
 			break;
+		case CONSOLE_WRITE:
+			cons_write(consnum, callid, &call);
+			continue;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
 			if (consnum == active_console) {
@@ -421,6 +534,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			
 			break;
 		case CONSOLE_GOTO:
+			fb_buf_flush();
 			screenbuffer_goto(&conn->screenbuffer,
 			    IPC_GET_ARG2(call), IPC_GET_ARG1(call));
 			if (consnum == active_console)
@@ -432,16 +546,19 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg2 = fb_info.cols;
 			break;
 		case CONSOLE_FLUSH:
+			fb_buf_flush();
 			if (consnum == active_console)
 				async_req_0_0(fb_info.phone, FB_FLUSH);
 			break;
 		case CONSOLE_SET_STYLE:
+			fb_buf_flush();
 			arg1 = IPC_GET_ARG1(call);
 			screenbuffer_set_style(&conn->screenbuffer, arg1);
 			if (consnum == active_console)
 				set_style(arg1);
 			break;
 		case CONSOLE_SET_COLOR:
+			fb_buf_flush();
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
 			arg3 = IPC_GET_ARG3(call);
@@ -451,6 +568,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				set_color(arg1, arg2, arg3);
 			break;
 		case CONSOLE_SET_RGB_COLOR:
+			fb_buf_flush();
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
 			screenbuffer_set_rgb_color(&conn->screenbuffer, arg1,
@@ -459,6 +577,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				set_rgb_color(arg1, arg2);
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
+			fb_buf_flush();
 			arg1 = IPC_GET_ARG1(call);
 			conn->screenbuffer.is_cursor_visible = arg1;
 			if (consnum == active_console)

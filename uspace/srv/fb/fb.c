@@ -1472,6 +1472,46 @@ static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
 	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
 }
 
+#define FB_WRITE_BUF_SIZE 256
+static char fb_write_buf[FB_WRITE_BUF_SIZE];
+
+static void fb_write(viewport_t *vport, ipc_callid_t rid, ipc_call_t *request)
+{
+	int row, col;
+	ipc_callid_t callid;
+	size_t len;
+	size_t i;
+
+	row = IPC_GET_ARG1(*request);
+	col = IPC_GET_ARG2(*request);
+
+	if ((col >= vport->cols) || (row >= vport->rows)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (len > FB_WRITE_BUF_SIZE)
+		len = FB_WRITE_BUF_SIZE;
+	if (len >= vport->cols - col)
+		len = vport->cols - col;
+
+	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
+
+	for (i = 0; i < len; i++) {
+		draw_char(vport, fb_write_buf[i], col++, row);
+	}
+
+	ipc_answer_1(rid, EOK, len);
+}
+
+
 /** Function for handling connections to FB
  *
  */
@@ -1543,6 +1583,11 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_0(callid, EOK);
 			
 			draw_char(vport, glyph, col, row);
+			
+			/* Message already answered */
+			continue;
+		case FB_WRITE:
+			fb_write(vport, callid, &call);
 			
 			/* Message already answered */
 			continue;

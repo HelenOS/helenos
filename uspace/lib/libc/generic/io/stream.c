@@ -80,16 +80,29 @@ ssize_t read_stdin(void *buf, size_t count)
 ssize_t write_stdout(const void *buf, size_t count)
 {
 	int cons_phone = console_phone_get(false);
+	int left, rc;
 
 	if (cons_phone >= 0) {
 		int i;
 
-		for (i = 0; i < count; i++)
-			console_putchar(((const char *) buf)[i]);
+		left = count;
+		while (left > 0) {
+			rc = console_write(buf, left);
+			if (rc < 0)
+				break;
+			buf += rc;
+			left -= rc;
+		}
 
 		return count;
 	} else
 		return __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, count);
+}
+
+int flush_stdout(void)
+{
+	console_flush();
+	return 0;
 }
 
 void klog_update(void)

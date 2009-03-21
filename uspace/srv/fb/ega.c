@@ -359,7 +359,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 
 		default:
-			retval = ENOENT;
+			retval = EINVAL;
 		}
 		ipc_answer_0(callid, retval);
 	}

@@ -243,6 +243,54 @@ static void draw_text_data(keyfield_t *data)
 	}
 }
 
+int lastcol = 0;
+int lastrow = 0;
+
+#define FB_WRITE_BUF_SIZE 256
+static char fb_write_buf[FB_WRITE_BUF_SIZE];
+
+static void fb_write(ipc_callid_t rid, ipc_call_t *request)
+{
+	int row, col;
+	ipc_callid_t callid;
+	size_t len;
+	size_t i;
+
+	row = IPC_GET_ARG1(*request);
+	col = IPC_GET_ARG2(*request);
+
+	if ((col >= scr_width) || (row >= scr_height)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (len > FB_WRITE_BUF_SIZE)
+		len = FB_WRITE_BUF_SIZE;
+	if (len >= scr_width - col)
+		len = scr_width - col;
+
+	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
+
+	if ((lastcol != col) || (lastrow != row))
+		serial_goto(row, col);
+
+	for (i = 0; i < len; i++) {
+		(*putc_function)(fb_write_buf[i]);
+	}
+
+	lastcol = col + len;
+	lastrow = row;
+
+	ipc_answer_1(rid, EOK, len);
+}
+
 /**
  * Main function of the thread serving client connections.
  */
@@ -255,8 +303,6 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	size_t intersize = 0;
 
 	char c;
-	int lastcol = 0;
-	int lastrow = 0;
 	int newcol;
 	int newrow;
 	int fgcolor;
@@ -317,6 +363,11 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			(*putc_function)(c);
 			retval = 0;
 			break;
+		case FB_WRITE:
+			fb_write(callid, &call);
+			
+			/* Message already answered */
+			continue;
 		case FB_CURSOR_GOTO:
 			newrow = IPC_GET_ARG1(call);
 			newcol = IPC_GET_ARG2(call);

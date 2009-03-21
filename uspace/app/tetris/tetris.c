@@ -390,7 +390,7 @@ main(int argc, char *argv[])
 					scr_update();
 					scr_msg(key_msg, 0);
 					scr_msg(msg, 1);
-	//				(void) fflush(stdout);
+					(void) fflush(stdout);
 				} while (rwait((struct timeval *)NULL) == -1);
 				scr_msg(msg, 0);
 				scr_msg(key_msg, 1);

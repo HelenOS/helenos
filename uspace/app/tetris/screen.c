@@ -117,11 +117,6 @@ void moveto(int r, int c)
 	console_goto(r, c);
 }
 
-static void fflush(void)
-{
-	console_flush();
-}
-
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
@@ -274,7 +269,7 @@ scr_update(void)
 	}
 	if (cur_so)
 		resume_normal();
- 	fflush();
+ 	fflush(stdout);
 }
 
 /*

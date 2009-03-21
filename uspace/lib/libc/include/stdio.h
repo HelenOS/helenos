@@ -69,6 +69,7 @@ extern int getchar(void);
 
 extern int puts(const char *);
 extern int putchar(int);
+extern int fflush(FILE *);
 
 extern int printf(const char *, ...);
 extern int asprintf(char **, const char *, ...);
