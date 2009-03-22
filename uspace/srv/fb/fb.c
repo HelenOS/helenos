@@ -866,35 +866,40 @@ static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned i
 	cursor_show(vport);
 }
 
-
-/** Draw text data to viewport
+/** Draw text data to viewport.
  *
  * @param vport Viewport id
- * @param data  Text data fitting exactly into viewport
- *
+ * @param data  Text data.
+ * @param x	Leftmost column of the area.
+ * @param y	Topmost row of the area.
+ * @param w	Number of rows.
+ * @param h	Number of columns.
  */
-static void draw_text_data(viewport_t *vport, keyfield_t *data)
+static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
+    unsigned int y, unsigned int w, unsigned int h)
 {
-	unsigned int i;
+	unsigned int i, j;
 	bb_cell_t *bbp;
 	attrs_t *a;
 	attr_rgb_t rgb;
-	
-	for (i = 0; i < vport->cols * vport->rows; i++) {
-		unsigned int col = i % vport->cols;
-		unsigned int row = i / vport->cols;
-		
-		bbp = &vport->backbuf[BB_POS(vport, col, row)];
-		uint8_t glyph = bbp->glyph;
 
-		a = &data[i].attrs;
-		rgb_from_attr(&rgb, a);
+	for (j = 0; j < h; j++) {
+		for (i = 0; i < w; i++) {
+			unsigned int col = x + i;
+			unsigned int row = y + j;
 
-		bbp->glyph = data[i].character;
-		bbp->fg_color = rgb.fg_color;
-		bbp->bg_color = rgb.bg_color;
+			bbp = &vport->backbuf[BB_POS(vport, col, row)];
+			uint8_t glyph = bbp->glyph;
 
-		draw_vp_glyph(vport, false, col, row);
+			a = &data[j * w + i].attrs;
+			rgb_from_attr(&rgb, a);
+
+			bbp->glyph = data[j * w + i].character;
+			bbp->fg_color = rgb.fg_color;
+			bbp->bg_color = rgb.bg_color;
+
+			draw_vp_glyph(vport, false, col, row);
+		}
 	}
 	cursor_show(vport);
 }
@@ -998,6 +1003,8 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	viewport_t *vport = &viewports[vp];
 	unsigned int x;
 	unsigned int y;
+	unsigned int w;
+	unsigned int h;
 	
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_SHARE_OUT:
@@ -1058,15 +1065,23 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		    IPC_GET_ARG2(*call), vport->width - x, vport->height - y, putpixel, (void *) vport);
 		break;
 	case FB_DRAW_TEXT_DATA:
+		x = IPC_GET_ARG1(*call);
+		y = IPC_GET_ARG2(*call);
+		w = IPC_GET_ARG3(*call);
+		h = IPC_GET_ARG4(*call);
 		if (!interbuffer) {
 			retval = EINVAL;
 			break;
 		}
-		if (intersize < vport->cols * vport->rows * sizeof(*interbuffer)) {
+		if (x + w > vport->cols || y + h > vport->rows) {
 			retval = EINVAL;
 			break;
 		}
-		draw_text_data(vport, interbuffer);
+		if (intersize < w * h * sizeof(*interbuffer)) {
+			retval = EINVAL;
+			break;
+		}
+		draw_text_data(vport, interbuffer, x, y, w, h);
 		break;
 	default:
 		handled = false;
@@ -1472,46 +1487,6 @@ static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
 	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
 }
 
-#define FB_WRITE_BUF_SIZE 256
-static char fb_write_buf[FB_WRITE_BUF_SIZE];
-
-static void fb_write(viewport_t *vport, ipc_callid_t rid, ipc_call_t *request)
-{
-	int row, col;
-	ipc_callid_t callid;
-	size_t len;
-	size_t i;
-
-	row = IPC_GET_ARG1(*request);
-	col = IPC_GET_ARG2(*request);
-
-	if ((col >= vport->cols) || (row >= vport->rows)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (!ipc_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (len > FB_WRITE_BUF_SIZE)
-		len = FB_WRITE_BUF_SIZE;
-	if (len >= vport->cols - col)
-		len = vport->cols - col;
-
-	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
-
-	for (i = 0; i < len; i++) {
-		draw_char(vport, fb_write_buf[i], col++, row);
-	}
-
-	ipc_answer_1(rid, EOK, len);
-}
-
-
 /** Function for handling connections to FB
  *
  */
@@ -1583,11 +1558,6 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_0(callid, EOK);
 			
 			draw_char(vport, glyph, col, row);
-			
-			/* Message already answered */
-			continue;
-		case FB_WRITE:
-			fb_write(vport, callid, &call);
 			
 			/* Message already answered */
 			continue;

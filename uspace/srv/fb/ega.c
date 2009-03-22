@@ -78,7 +78,7 @@ static int client_connected = 0;
 
 static unsigned int scr_width;
 static unsigned int scr_height;
-static char *scr_addr;
+static uint8_t *scr_addr;
 
 static unsigned int style;
 
@@ -151,13 +151,30 @@ static void printchar(char c, unsigned int row, unsigned int col)
 	cursor_goto(row, col + 1);
 }
 
-static void draw_text_data(keyfield_t *data)
+/** Draw text data to viewport.
+ *
+ * @param vport Viewport id
+ * @param data  Text data.
+ * @param x	Leftmost column of the area.
+ * @param y	Topmost row of the area.
+ * @param w	Number of rows.
+ * @param h	Number of columns.
+ */
+static void draw_text_data(keyfield_t *data, unsigned int x,
+    unsigned int y, unsigned int w, unsigned int h)
 {
-	int i;
+	unsigned int i, j;
+	keyfield_t *field;
+	uint8_t *dp;
 
-	for (i = 0; i < scr_width * scr_height; i++) {
-		scr_addr[i * 2] = data[i].character;
-		scr_addr[i * 2 + 1] = attr_to_ega_style(&data[i].attrs);
+	for (j = 0; j < h; j++) {
+		for (i = 0; i < w; i++) {
+			field = &data[j * w + i];
+			dp = &scr_addr[2 * ((y + j) * scr_width + (x + i))];
+
+			dp[0] = field->character;
+			dp[1] = attr_to_ega_style(&field->attrs);
+		}
 	}
 }
 
@@ -231,52 +248,13 @@ static unsigned attr_to_ega_style(const attrs_t *a)
 	}
 }
 
-#define FB_WRITE_BUF_SIZE 256
-static char fb_write_buf[FB_WRITE_BUF_SIZE];
-
-static void fb_write(ipc_callid_t rid, ipc_call_t *request)
-{
-	int row, col;
-	ipc_callid_t callid;
-	size_t len;
-	size_t i;
-
-	row = IPC_GET_ARG1(*request);
-	col = IPC_GET_ARG2(*request);
-
-	if ((col >= scr_width) || (row >= scr_height)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (!ipc_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (len > FB_WRITE_BUF_SIZE)
-		len = FB_WRITE_BUF_SIZE;
-	if (len >= scr_width - col)
-		len = scr_width - col;
-
-	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
-
-	for (i = 0; i < len; i++) {
-		printchar(fb_write_buf[i], row, col++);
-	}
-
-	ipc_answer_1(rid, EOK, len);
-}
-
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int retval;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	char c;
-	unsigned int row, col;
+	unsigned int row, col, w, h;
 	int bg_color, fg_color, attr;
 	uint32_t bg_rgb, fg_rgb;
 	keyfield_t *interbuf = NULL;
@@ -309,11 +287,19 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		case FB_DRAW_TEXT_DATA:
+			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
+			w = IPC_GET_ARG3(call);
+			h = IPC_GET_ARG4(call);
 			if (!interbuf) {
 				retval = EINVAL;
 				break;
 			}
-			draw_text_data(interbuf);
+			if (col + w > scr_width || row + h > scr_height) {
+				retval = EINVAL;
+				break;
+			}
+			draw_text_data(interbuf, col, row, w, h);
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
@@ -334,11 +320,6 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			printchar(c, row, col);
 			retval = 0;
 			break;
-		case FB_WRITE:
-			fb_write(callid, &call);
-
-			/* Message already answered */
-			continue;
  		case FB_CURSOR_GOTO:
 			row = IPC_GET_ARG1(call);
 			col = IPC_GET_ARG2(call);

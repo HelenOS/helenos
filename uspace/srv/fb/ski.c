@@ -47,7 +47,7 @@
 #define SKI_PUTCHAR		31
 
 #define WIDTH 80
-#define HEIGHT 25
+#define HEIGHT 24
 
 /** Display character on ski debug console
  *

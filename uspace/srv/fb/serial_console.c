@@ -223,21 +223,40 @@ static void serial_set_attrs(const attrs_t *a)
 	}
 }
 
-static void draw_text_data(keyfield_t *data)
+/** Draw text data to viewport.
+ *
+ * @param vport Viewport id
+ * @param data  Text data.
+ * @param x	Leftmost column of the area.
+ * @param y	Topmost row of the area.
+ * @param w	Number of rows.
+ * @param h	Number of columns.
+ */
+static void draw_text_data(keyfield_t *data, unsigned int x,
+    unsigned int y, unsigned int w, unsigned int h)
 {
-	int i, j;
+	unsigned int i, j;
+	keyfield_t *field;
 	attrs_t *a0, *a1;
 
-	serial_goto(0, 0);
+	serial_goto(y, x);
 	a0 = &data[0].attrs;
 	serial_set_attrs(a0);
 
-	for (i = 0; i < scr_height; i++) {
-		for (j = 0; j < scr_width; j++) {
-			a1 = &data[i * scr_width + j].attrs;
+	for (j = 0; j < h; j++) {
+		if (j > 0 && w != scr_width)
+			serial_goto(y, x);
+
+		for (i = 0; i < w; i++) {
+			unsigned int col = x + i;
+			unsigned int row = y + j;
+
+			field = &data[j * w + i];
+
+			a1 = &field->attrs;
 			if (!attrs_same(*a0, *a1))
 				serial_set_attrs(a1);
-			(*putc_function)(data[i * scr_width + j].character);
+			(*putc_function)(field->character);
 			a0 = a1;
 		}
 	}
@@ -245,51 +264,6 @@ static void draw_text_data(keyfield_t *data)
 
 int lastcol = 0;
 int lastrow = 0;
-
-#define FB_WRITE_BUF_SIZE 256
-static char fb_write_buf[FB_WRITE_BUF_SIZE];
-
-static void fb_write(ipc_callid_t rid, ipc_call_t *request)
-{
-	int row, col;
-	ipc_callid_t callid;
-	size_t len;
-	size_t i;
-
-	row = IPC_GET_ARG1(*request);
-	col = IPC_GET_ARG2(*request);
-
-	if ((col >= scr_width) || (row >= scr_height)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (!ipc_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	if (len > FB_WRITE_BUF_SIZE)
-		len = FB_WRITE_BUF_SIZE;
-	if (len >= scr_width - col)
-		len = scr_width - col;
-
-	(void) ipc_data_write_finalize(callid, fb_write_buf, len);
-
-	if ((lastcol != col) || (lastrow != row))
-		serial_goto(row, col);
-
-	for (i = 0; i < len; i++) {
-		(*putc_function)(fb_write_buf[i]);
-	}
-
-	lastcol = col + len;
-	lastrow = row;
-
-	ipc_answer_1(rid, EOK, len);
-}
 
 /**
  * Main function of the thread serving client connections.
@@ -303,8 +277,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	size_t intersize = 0;
 
 	char c;
-	int newcol;
-	int newrow;
+	int col, row, w, h;
 	int fgcolor;
 	int bgcolor;
 	int flags;
@@ -345,35 +318,40 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		case FB_DRAW_TEXT_DATA:
+			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
+			w = IPC_GET_ARG3(call);
+			h = IPC_GET_ARG4(call);
 			if (!interbuf) {
 				retval = EINVAL;
 				break;
 			}
-			draw_text_data(interbuf);
+			if (col + w > scr_width || row + h > scr_height) {
+				retval = EINVAL;
+				break;
+			}
+			draw_text_data(interbuf, col, row, w, h);
+			lastrow = row + h - 1;
+			lastcol = col + w;
 			retval = 0;
 			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
-			newrow = IPC_GET_ARG2(call);
-			newcol = IPC_GET_ARG3(call);
-			if ((lastcol != newcol) || (lastrow != newrow))
-				serial_goto(newrow, newcol);
-			lastcol = newcol + 1;
-			lastrow = newrow;
+			row = IPC_GET_ARG2(call);
+			col = IPC_GET_ARG3(call);
+			if ((lastcol != col) || (lastrow != row))
+				serial_goto(row, col);
+			lastcol = col + 1;
+			lastrow = row;
 			(*putc_function)(c);
 			retval = 0;
 			break;
-		case FB_WRITE:
-			fb_write(callid, &call);
-			
-			/* Message already answered */
-			continue;
 		case FB_CURSOR_GOTO:
-			newrow = IPC_GET_ARG1(call);
-			newcol = IPC_GET_ARG2(call);
-			serial_goto(newrow, newcol);
-			lastrow = newrow;
-			lastcol = newcol;
+			row = IPC_GET_ARG1(call);
+			col = IPC_GET_ARG2(call);
+			serial_goto(row, col);
+			lastrow = row;
+			lastcol = col;
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:

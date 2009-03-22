@@ -45,7 +45,7 @@
 #include "msim.h"
 
 #define WIDTH 80
-#define HEIGHT 25
+#define HEIGHT 24
 
 static char *virt_addr;
 
