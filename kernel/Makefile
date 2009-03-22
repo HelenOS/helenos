@@ -47,6 +47,7 @@ endif
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)"
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32 -finput-charset=UTF-8 \
 	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
 	-nostdlib -nostdinc -pipe
 

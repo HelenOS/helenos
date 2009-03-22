@@ -70,6 +70,12 @@ char *test_print4(bool quiet)
 		printf("Czech:   %s\n", "Příliš žluťoučký kůň úpěl dábelské ódy");
 		printf("Greek:   %s\n", "Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
 		printf("Hebrew:  %s\n", "משוואת ברנולי היא משוואה בהידרודינמיקה");
+		
+		printf("\nUTF-32 strings using printf(\"%%ls\"):\n");
+		printf("English: %ls\n", L"Quick brown fox jumps over the lazy dog");
+		printf("Czech:   %ls\n", L"Příliš žluťoučký kůň úpěl dábelské ódy");
+		printf("Greek:   %ls\n", L"Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
+		printf("Hebrew:  %ls\n", L"משוואת ברנולי היא משוואה בהידרודינמיקה");
 	}
 	
 	return NULL;
