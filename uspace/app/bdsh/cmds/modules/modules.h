@@ -26,6 +26,7 @@
 #include "pwd/entry.h"
 #include "sleep/entry.h"
 #include "cp/entry.h"
+#include "kcon/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
  * point, help entry point, etc. You can use config.h to control what modules
@@ -41,6 +42,7 @@ module_t modules[] = {
 #include "pwd/pwd_def.h"
 #include "sleep/sleep_def.h"
 #include "cp/cp_def.h"
+#include "kcon/kcon_def.h"
 	{NULL, NULL, NULL, NULL}
 };
 

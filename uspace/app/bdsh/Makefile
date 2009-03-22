@@ -57,6 +57,7 @@ SUBDIRS = \
 	cmds/modules/pwd/ \
 	cmds/modules/sleep/ \
 	cmds/modules/cp/ \
+	cmds/modules/kcon/ \
 	cmds/builtins/ \
 	cmds/builtins/exit/\
 	cmds/builtins/cd/
@@ -71,6 +72,7 @@ SOURCES = \
 	cmds/modules/pwd/pwd.c \
 	cmds/modules/sleep/sleep.c \
 	cmds/modules/cp/cp.c \
+	cmds/modules/kcon/kcon.c \
 	cmds/builtins/exit/exit.c \
 	cmds/builtins/cd/cd.c \
 	cmds/mod_cmds.c \

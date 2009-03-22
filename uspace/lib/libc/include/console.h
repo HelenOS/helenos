@@ -58,6 +58,8 @@ extern void console_set_color(int, int, int);
 extern void console_set_rgb_color(int, int);
 extern void console_cursor_visibility(int);
 
+extern void console_kcon_enable(void);
+
 #endif
  
 /** @}

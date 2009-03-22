@@ -282,5 +282,13 @@ void console_cursor_visibility(int show)
 	async_msg_1(cons_phone, CONSOLE_CURSOR_VISIBILITY, show != 0);
 }
 
+void console_kcon_enable(void)
+{
+	int cons_phone = console_phone_get(true);
+
+	cbuffer_flush();
+	async_msg_0(cons_phone, CONSOLE_KCON_ENABLE);
+}
+
 /** @}
  */

@@ -625,6 +625,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg3 = ev.mods;
 			arg4 = ev.c;
 			break;
+		case CONSOLE_KCON_ENABLE:
+			change_console(KERNEL_CONSOLE);
+			break;
 		}
 		ipc_answer_4(callid, EOK, arg1, arg2, arg3, arg4);
 	}
