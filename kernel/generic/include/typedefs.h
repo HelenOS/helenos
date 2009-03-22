@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -50,6 +50,8 @@ typedef uint32_t context_id_t;
 
 typedef int32_t inr_t;
 typedef int32_t devno_t;
+
+typedef int32_t wchar_t;
 
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
