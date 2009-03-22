@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,28 +29,34 @@
 #include <print.h>
 #include <test.h>
 
-char *test_print1(bool quiet)
+char *test_print4(bool quiet)
 {
 	if (!quiet) {
-		printf("Testing printf(\"%%*.*s\", 5, 3, \"text\"):\n");
-		printf("Expected output: \"  tex\"\n");
-		printf("Real output:     \"%*.*s\"\n\n", 5, 3, "text");
+		printf("ASCII printable characters (32 - 127) using printf(%%c):\n");
 		
-		printf("Testing printf(\"%%10.8s\", \"very long text\"):\n");
-		printf("Expected output: \"  very lon\"\n");
-		printf("Real output:     \"%10.8s\"\n\n", "very long text");
+		uint8_t hextet;
+		for (hextet = 2; hextet < 8; hextet++) {
+			printf("%#" PRIx8 ": ", hextet << 4);
+			
+			uint8_t index;
+			for (index = 0; index < 16; index++)
+				printf("%c", (char) ((hextet << 4) + index));
+			
+			printf("\n");
+		}
 		
-		printf("Testing printf(\"%%8.10s\", \"text\"):\n");
-		printf("Expected output: \"text\"\n");
-		printf("Real output:     \"%8.10s\"\n\n", "text");
+		printf("\nExtended ASCII characters (128 - 255) using printf(%%c):\n");
 		
-		printf("Testing printf(\"%%8.10s\", \"very long text\"):\n");
-		printf("Expected output: \"very long \"\n");
-		printf("Real output:     \"%8.10s\"\n\n", "very long text");
+		for (hextet = 8; hextet < 16; hextet++) {
+			printf("%#" PRIx8 ": ", hextet << 4);
+			
+			uint8_t index;
+			for (index = 0; index < 16; index++)
+				printf("%c", (char) ((hextet << 4) + index));
+			
+			printf("\n");
+		}
 		
-		printf("Testing printf(\"%%s\", NULL):\n");
-		printf("Expected output: \"(NULL)\"\n");
-		printf("Real output:     \"%s\"\n\n", NULL);
 	}
 	
 	return NULL;

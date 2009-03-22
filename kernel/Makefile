@@ -261,6 +261,9 @@ ifeq ($(CONFIG_TEST),y)
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
 		test/print/print1.c \
+		test/print/print2.c \
+		test/print/print3.c \
+		test/print/print4.c \
 		test/thread/thread1.c \
 		test/sysinfo/sysinfo1.c
 	

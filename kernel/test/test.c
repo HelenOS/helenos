@@ -56,11 +56,14 @@ test_t tests[] = {
 #include <synch/semaphore1.def>
 #include <synch/semaphore2.def>
 #include <print/print1.def>
+#include <print/print2.def>
+#include <print/print3.def>
+#include <print/print4.def>
 #include <thread/thread1.def>
 #include <sysinfo/sysinfo1.def>
 	{
 		.name = NULL,
-		.desc = NULL, 
+		.desc = NULL,
 		.entry = NULL
 	}
 };

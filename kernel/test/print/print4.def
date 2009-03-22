@@ -1,0 +1,6 @@
+{
+	"print4",
+	"Unicode test",
+	&test_print4,
+	true
+},
