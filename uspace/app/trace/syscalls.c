@@ -65,6 +65,8 @@ const sc_desc_t syscall_desc[] = {
     [SYS_IPC_REGISTER_IRQ] = { "ipc_register_irq",	4,	V_ERRNO },
     [SYS_IPC_UNREGISTER_IRQ] = { "ipc_unregister_irq",	2,	V_ERRNO },
 
+    [SYS_EVENT_SUBSCRIBE] = { "event_subscribe",	2,	V_ERRNO },
+
     [SYS_CAP_GRANT] = { "cap_grant",			2,	V_ERRNO },
     [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
     [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },

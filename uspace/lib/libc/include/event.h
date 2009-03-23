@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup klog KLog
- * @brief HelenOS KLog
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdio.h>
+#ifndef LIBC_EVENT_H_
+#define LIBC_EVENT_H_
+
+#include <kernel/event/event_types.h>
 #include <ipc/ipc.h>
-#include <async.h>
-#include <ipc/services.h>
-#include <as.h>
-#include <sysinfo.h>
-#include <io/stream.h>
-#include <console.h>
-#include <event.h>
-#include <errno.h>
 
-#define NAME "klog"
+extern int event_subscribe(event_type_t, ipcarg_t);
 
-#define KLOG_SIZE PAGE_SIZE
-
-/* Pointer to klog area */
-static char *klog;
-
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-	async_serialize_start();
-	
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	size_t i;
-	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % KLOG_SIZE]);
-	
-	async_serialize_end();
-}
-
-int main(int argc, char *argv[])
-{
-	console_wait();
-	
-	klog = (char *) as_get_mappable_page(KLOG_SIZE);
-	if (klog == NULL) {
-		printf(NAME ": Error allocating memory area\n");
-		return -1;
-	}
-	
-	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog, KLOG_SIZE,
-	    SERVICE_MEM_KLOG);
-	if (res != EOK) {
-		printf(NAME ": Error initializing memory area\n");
-		return -1;
-	}
-	
-	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
-		return -1;
-	}
-	
-	async_set_interrupt_received(interrupt_received);
-	klog_update();
-	async_manager();
-
-	return 0;
-}
+#endif
 
 /** @}
  */

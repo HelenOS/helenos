@@ -49,6 +49,7 @@
 #include <synch/futex.h>
 #include <synch/smc.h>
 #include <ddi/ddi.h>
+#include <event/event.h>
 #include <security/cap.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
@@ -126,6 +127,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
+
+	/* Event notification syscalls. */
+	(syshandler_t) sys_event_subscribe,
 	
 	/* Capabilities related syscalls. */
 	(syshandler_t) sys_cap_grant,

@@ -64,6 +64,7 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
+#include <event/event.h>
 #include <symtab.h>
 #include <errno.h>
 
@@ -954,8 +955,7 @@ int cmd_continue(cmd_arg_t *argv)
 	printf("The kernel will now relinquish the console.\n");
 	release_console();
 	
-	if ((kconsole_notify) && (kconsole_irq.notif_cfg.notify))
-		ipc_irq_send_msg_0(&kconsole_irq);
+	event_notify_0(EVENT_KCONSOLE);
 	
 	return 1;
 }

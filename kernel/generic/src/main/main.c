@@ -82,6 +82,7 @@
 #include <smp/smp.h>
 #include <ddi/ddi.h>
 #include <main/main.h>
+#include <event/event.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -255,11 +256,8 @@ void main_bsp_separated_stack(void)
 		printf("No init binaries found\n");
 	
 	LOG_EXEC(ipc_init());
+	LOG_EXEC(event_init());
 	LOG_EXEC(klog_init());
-	
-#ifdef CONFIG_KCONSOLE
-	LOG_EXEC(kconsole_notify_init());
-#endif
 	
 	/*
 	 * Create kernel task.

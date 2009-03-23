@@ -41,6 +41,7 @@
 #include <arch/types.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
+#include <event/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
 #include <func.h>
@@ -99,12 +100,6 @@ void klog_init(void)
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(KLOG_SIZE));
-	
-	//irq_initialize(&klog_irq);
-	//klog_irq.devno = devno;
-	//klog_irq.inr = KLOG_VIRT_INR;
-	//klog_irq.claim = klog_claim;
-	//irq_register(&klog_irq);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
@@ -242,10 +237,10 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-//	if ((klog_inited) && (klog_irq.notif_cfg.notify) && (klog_uspace > 0)) {
-//		ipc_irq_send_msg_3(&klog_irq, klog_start, klog_len, klog_uspace);
-//		klog_uspace = 0;
-//	}
+	if (klog_inited && event_is_subscribed(EVENT_KLOG) && klog_uspace > 0) {
+		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
+		klog_uspace = 0;
+	}
 	
 	spinlock_unlock(&klog_lock);
 }

@@ -44,12 +44,14 @@
 #include <synch/synch.h>
 #include <ipc/ipc.h>
 #include <ipc/kbox.h>
+#include <event/event.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>
 #include <proc/task.h>
 #include <memstr.h>
 #include <debug.h>
+
 
 #include <print.h>
 #include <console/console.h>
@@ -525,6 +527,9 @@ void ipc_cleanup(void)
 	/* Disconnect all our phones ('ipc_phone_hangup') */
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&TASK->phones[i]);
+
+	/* Unsubscribe from any event notifications. */
+	event_cleanup_answerbox(&TASK->answerbox);
 
 	/* Disconnect all connected irqs */
 	ipc_irq_cleanup(&TASK->answerbox);

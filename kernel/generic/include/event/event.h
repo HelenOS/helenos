@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup klog KLog
- * @brief HelenOS KLog
+/** @addtogroup generic
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdio.h>
+#ifndef KERN_EVENT_H_
+#define KERN_EVENT_H_
+
+#include <event/event_types.h>
+#include <arch/types.h>
+#include <synch/spinlock.h>
 #include <ipc/ipc.h>
-#include <async.h>
-#include <ipc/services.h>
-#include <as.h>
-#include <sysinfo.h>
-#include <io/stream.h>
-#include <console.h>
-#include <event.h>
-#include <errno.h>
 
-#define NAME "klog"
+/** Event notification structure. */
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	
+	/** Answerbox for notifications. */
+	answerbox_t *answerbox;
+	/** Method to be used for the notification. */
+	unative_t method;
+	/** Counter. */
+	count_t counter;
+} event_t;
 
-#define KLOG_SIZE PAGE_SIZE
+extern void event_init(void);
+extern unative_t sys_event_subscribe(unative_t, unative_t);
+extern bool event_is_subscribed(event_type_t);
+extern void event_cleanup_answerbox(answerbox_t *);
 
-/* Pointer to klog area */
-static char *klog;
+#define event_notify_0(e) \
+	event_notify((e), 0, 0, 0, 0, 0)
+#define event_notify_1(e, a1) \
+	event_notify((e), (a1), 0, 0, 0, 0)
+#define event_notify_2(e, a1, a2) \
+	event_notify((e), (a1), (a2), 0, 0, 0)
+#define event_notify_3(e, a1, a2, a3) \
+	event_notify((e), (a1), (a2), (a3), 0, 0)
+#define event_notify_4(e, a1, a2, a3, a4) \
+	event_notify((e), (a1), (a2), (a3), (a4), 0)
+#define event_notify_5(e, a1, a2, a3, a4, a5) \
+	event_notify((e), (a1), (a2), (a3), (a4), (a5))
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-	async_serialize_start();
-	
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	size_t i;
-	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % KLOG_SIZE]);
-	
-	async_serialize_end();
-}
+extern void event_notify(event_type_t, unative_t, unative_t, unative_t,
+    unative_t, unative_t);
 
-int main(int argc, char *argv[])
-{
-	console_wait();
-	
-	klog = (char *) as_get_mappable_page(KLOG_SIZE);
-	if (klog == NULL) {
-		printf(NAME ": Error allocating memory area\n");
-		return -1;
-	}
-	
-	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog, KLOG_SIZE,
-	    SERVICE_MEM_KLOG);
-	if (res != EOK) {
-		printf(NAME ": Error initializing memory area\n");
-		return -1;
-	}
-	
-	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
-		return -1;
-	}
-	
-	async_set_interrupt_received(interrupt_received);
-	klog_update();
-	async_manager();
-
-	return 0;
-}
+#endif
 
 /** @}
  */

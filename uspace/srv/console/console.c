@@ -49,6 +49,7 @@
 #include <sys/mman.h>
 #include <stdio.h>
 #include <sysinfo.h>
+#include <event.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -729,13 +730,10 @@ int main(int argc, char *argv[])
 		return -1;
 	
 	/* Receive kernel notifications */
-//	if (sysinfo_value("kconsole.present")) {
-//		int inr = sysinfo_value("kconsole.inr");
-//		if (ipc_register_irq(inr, device_assign_devno(), 0, NULL) != EOK)
-//			printf(NAME ": Error registering kconsole notifications\n");
-//		
-//		async_set_interrupt_received(interrupt_received);
-//	}
+	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
+		printf(NAME ": Error registering kconsole notifications\n");
+		
+	async_set_interrupt_received(interrupt_received);
 	
 	// FIXME: avoid connectiong to itself, keep using klog
 	// printf(NAME ": Accepting connections\n");

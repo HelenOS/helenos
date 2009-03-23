@@ -161,6 +161,7 @@ GENERIC_SOURCES = \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
+	generic/src/event/event.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
