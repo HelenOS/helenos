@@ -62,16 +62,22 @@ char *test_print4(bool quiet)
 		}
 		
 		printf("\nUTF-8 strings using printf(\"%%s\"):\n");
-		printf("English: %s\n", "Quick brown fox jumps over the lazy dog");
-		printf("Czech:   %s\n", "Příliš žluťoučký kůň úpěl dábelské ódy");
-		printf("Greek:   %s\n", "Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
-		printf("Hebrew:  %s\n", "משוואת ברנולי היא משוואה בהידרודינמיקה");
+		printf("English:  %s\n", "Quick brown fox jumps over the lazy dog");
+		printf("Czech:    %s\n", "Příliš žluťoučký kůň úpěl dábelské ódy");
+		printf("Greek:    %s\n", "Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
+		printf("Hebrew:   %s\n", "משוואת ברנולי היא משוואה בהידרודינמיקה");
+		printf("Arabic:   %s\n", "التوزيع الجغرافي للحمل العنقودي");
+		printf("Russian:  %s\n", "Леннон познакомился с художницей-авангардисткой");
+		printf("Armenian: %s\n", "Սկսեց հրատարակվել Երուսաղեմի հայկական");
 		
 		printf("\nUTF-32 strings using printf(\"%%ls\"):\n");
-		printf("English: %ls\n", L"Quick brown fox jumps over the lazy dog");
-		printf("Czech:   %ls\n", L"Příliš žluťoučký kůň úpěl dábelské ódy");
-		printf("Greek:   %ls\n", L"Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
-		printf("Hebrew:  %ls\n", L"משוואת ברנולי היא משוואה בהידרודינמיקה");
+		printf("English:  %ls\n", L"Quick brown fox jumps over the lazy dog");
+		printf("Czech:    %ls\n", L"Příliš žluťoučký kůň úpěl dábelské ódy");
+		printf("Greek:    %ls\n", L"Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
+		printf("Hebrew:   %ls\n", L"משוואת ברנולי היא משוואה בהידרודינמיקה");
+		printf("Arabic:   %ls\n", L"التوزيع الجغرافي للحمل العنقودي");
+		printf("Russian:  %ls\n", L"Леннон познакомился с художницей-авангардисткой");
+		printf("Armenian: %ls\n", L"Սկսեց հրատարակվել Երուսաղեմի հայկական");
 	}
 	
 	return NULL;
