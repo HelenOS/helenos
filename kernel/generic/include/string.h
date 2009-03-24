@@ -37,8 +37,20 @@
 
 #include <typedefs.h>
 
-extern wchar_t utf8_decode(const char *str, index_t *index);
+#define UTF8_NO_LIMIT  ((index_t) -1)
+
+extern char invalch;
+
+extern wchar_t utf8_decode(const char *str, index_t *index, index_t limit);
+extern bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit);
+extern size_t utf8_count_bytes(const char *str, count_t count);
+extern bool ascii_check(const wchar_t ch);
+extern bool unicode_check(const wchar_t ch);
+
 extern size_t strlen(const char *str);
+extern size_t strlen_utf8(const char *str);
+extern size_t strlen_utf32(const wchar_t *str);
+
 extern int strcmp(const char *src, const char *dst);
 extern int strncmp(const char *src, const char *dst, size_t len);
 extern void strncpy(char *dest, const char *src, size_t len);
