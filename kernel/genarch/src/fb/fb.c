@@ -78,7 +78,7 @@ static unsigned int position = 0;
 #define BG_COLOR     0x000080
 #define FG_COLOR     0xffff00
 
-#define CURSOR       219
+#define CURSOR       0x2588
 
 #define RED(x, bits)         ((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
 #define GREEN(x, bits)       ((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
