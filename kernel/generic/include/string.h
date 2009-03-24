@@ -35,8 +35,9 @@
 #ifndef KERN_STRING_H_
 #define KERN_STRING_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
+extern wchar_t utf8_decode(const char *str, index_t *index);
 extern size_t strlen(const char *str);
 extern int strcmp(const char *src, const char *dst);
 extern int strncmp(const char *src, const char *dst, size_t len);
