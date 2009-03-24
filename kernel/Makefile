@@ -193,10 +193,8 @@ GENERIC_SOURCES = \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \
-	generic/src/printf/sprintf.c \
 	generic/src/printf/snprintf.c \
 	generic/src/printf/vprintf.c \
-	generic/src/printf/vsprintf.c \
 	generic/src/printf/vsnprintf.c \
 	generic/src/time/clock.c \
 	generic/src/time/timeout.c \
