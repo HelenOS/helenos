@@ -101,12 +101,14 @@ close(BDF);
 
 @chars = sort { $a <=> $b } (@chars);
 
-print "#define FONT_GLYPHS     " . @chars . "\n";
+print "#define FONT_GLYPHS     " . (@chars + 1). "\n";
 print "#define FONT_SCANLINES  " . $height . "\n";
 
 print "\n";
 print "index_t fb_font_glyph(const wchar_t ch)\n";
-print "{";
+print "{\n";
+print "\tif (ch == 0x0000)\n";
+print "\t\treturn 0;\n\n";
 
 my $pos = 0;
 my $start = -1;
@@ -117,30 +119,30 @@ for $index (@chars) {
 		if ($start != -1) {
 			if ($start == $prev) {
 				printf "\tif (ch == 0x%.4x)\n", $start;
+				print "\t\treturn " . $start_pos . ";\n";
 			} else {
 				printf "\tif ((ch >= 0x%.4x) && (ch <= 0x%.4x))\n", $start, $prev;
+				print "\t\treturn (ch - " . ($start - $start_pos) . ");\n";
 			}
 			
-			print "\t\treturn (ch - " . ($start - $start_pos) . ");\n";
 			print "\t\n";
 		}
 		
 		$start = $index;
 		$start_pos = $pos;
 	}
+	
 	$pos++;
 	$prev = $index;
 }
 
-print "\treturn 31;\n";
+print "\treturn " . @chars . ";\n";
 print "}\n";
 
 print "\n";
 print "uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES] = {";
 
-my $f1 = 0;
 for $index (@chars) {
-	print "," if ($f1 > 0);
 	print "\n\t{";
 	
 	my $y;
@@ -149,8 +151,14 @@ for $index (@chars) {
 		printf "0x%.2x", $glyphs[$index]->[$y];
 	}
 	
-	print "}";
-	$f1++;
+	print "},";
 }
 
-print "\n};\n";
+print "\n\t\n\t/* Special glyph for unknown character */\n\t{";
+my $y;
+for ($y = 0; $y < $height; $y++) {
+	print ", " if ($y > 0);
+	printf "0x%.2x", $glyphs[63]->[$y];
+}
+
+print "}\n};\n";

@@ -66,22 +66,22 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 104);
 	
 	if (ch == 0x02ee)
-		return (ch - 120);
+		return 630;
 	
 	if ((ch >= 0x0300) && (ch <= 0x0301))
 		return (ch - 137);
 	
 	if (ch == 0x0303)
-		return (ch - 138);
+		return 633;
 	
 	if (ch == 0x0309)
-		return (ch - 143);
+		return 634;
 	
 	if ((ch >= 0x0312) && (ch <= 0x0314))
 		return (ch - 151);
 	
 	if (ch == 0x0323)
-		return (ch - 165);
+		return 638;
 	
 	if ((ch >= 0x0340) && (ch <= 0x0341))
 		return (ch - 193);
@@ -90,16 +90,16 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 243);
 	
 	if (ch == 0x037a)
-		return (ch - 247);
+		return 643;
 	
 	if (ch == 0x037e)
-		return (ch - 250);
+		return 644;
 	
 	if ((ch >= 0x0384) && (ch <= 0x038a))
 		return (ch - 255);
 	
 	if (ch == 0x038c)
-		return (ch - 256);
+		return 652;
 	
 	if ((ch >= 0x038e) && (ch <= 0x03a1))
 		return (ch - 257);
@@ -156,13 +156,13 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 343);
 	
 	if (ch == 0x060c)
-		return (ch - 366);
+		return 1182;
 	
 	if (ch == 0x061b)
-		return (ch - 380);
+		return 1183;
 	
 	if (ch == 0x061f)
-		return (ch - 383);
+		return 1184;
 	
 	if ((ch >= 0x0621) && (ch <= 0x063a))
 		return (ch - 384);
@@ -180,19 +180,19 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 403);
 	
 	if (ch == 0x10d3)
-		return (ch - 2919);
+		return 1388;
 	
 	if (ch == 0x10d7)
-		return (ch - 2922);
+		return 1389;
 	
 	if (ch == 0x10da)
-		return (ch - 2924);
+		return 1390;
 	
 	if (ch == 0x10dd)
-		return (ch - 2926);
+		return 1391;
 	
 	if (ch == 0x10e6)
-		return (ch - 2934);
+		return 1392;
 	
 	if ((ch >= 0x1e00) && (ch <= 0x1e9b))
 		return (ch - 6287);
@@ -213,7 +213,7 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 6554);
 	
 	if (ch == 0x2070)
-		return (ch - 6588);
+		return 1716;
 	
 	if ((ch >= 0x2074) && (ch <= 0x208f))
 		return (ch - 6591);
@@ -234,19 +234,19 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 6735);
 	
 	if (ch == 0x2300)
-		return (ch - 6749);
+		return 2211;
 	
 	if (ch == 0x2302)
-		return (ch - 6750);
+		return 2212;
 	
 	if ((ch >= 0x2308) && (ch <= 0x230b))
 		return (ch - 6755);
 	
 	if (ch == 0x2310)
-		return (ch - 6759);
+		return 2217;
 	
 	if (ch == 0x2318)
-		return (ch - 6766);
+		return 2218;
 	
 	if ((ch >= 0x231a) && (ch <= 0x231b))
 		return (ch - 6767);
@@ -261,7 +261,7 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 6890);
 	
 	if (ch == 0x23ce)
-		return (ch - 6906);
+		return 2260;
 	
 	if ((ch >= 0x2409) && (ch <= 0x240d))
 		return (ch - 6964);
@@ -270,7 +270,7 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 6985);
 	
 	if (ch == 0x2426)
-		return (ch - 6986);
+		return 2268;
 	
 	if ((ch >= 0x2500) && (ch <= 0x2595))
 		return (ch - 7203);
@@ -288,13 +288,13 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 7225);
 	
 	if (ch == 0x2620)
-		return (ch - 7237);
+		return 2523;
 	
 	if (ch == 0x2622)
-		return (ch - 7238);
+		return 2524;
 	
 	if (ch == 0x2626)
-		return (ch - 7241);
+		return 2525;
 	
 	if ((ch >= 0x2628) && (ch <= 0x262b))
 		return (ch - 7242);
@@ -327,7 +327,7 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 61890);
 	
 	if (ch == 0xfc90)
-		return (ch - 61934);
+		return 2722;
 	
 	if ((ch >= 0xfcf2) && (ch <= 0xfcf4))
 		return (ch - 62031);
@@ -336,7 +336,7 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 62102);
 	
 	if (ch == 0xfdf2)
-		return (ch - 62280);
+		return 2730;
 	
 	if ((ch >= 0xfe50) && (ch <= 0xfe52))
 		return (ch - 62373);
@@ -351,15 +351,15 @@ uint16_t fb_font_glyph(const wchar_t ch)
 		return (ch - 62379);
 	
 	if (ch == 0xfe74)
-		return (ch - 62380);
+		return 2760;
 	
 	if ((ch >= 0xfe76) && (ch <= 0xfefc))
 		return (ch - 62381);
 	
 	if (ch == 0xfeff)
-		return (ch - 62383);
+		return 2896;
 	
-	return 31;
+	return 2898;
 }
 
 uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES] = {
@@ -3260,7 +3260,10 @@ uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES] = {
 	{0x00, 0x00, 0x42, 0x22, 0x12, 0x0a, 0x04, 0x0c, 0x12, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	{0x00, 0x00, 0x22, 0x12, 0x12, 0x0a, 0x0a, 0x0e, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	{0xf1, 0x35, 0x55, 0x8a, 0xe0, 0x06, 0x95, 0xd6, 0xb5, 0x97, 0x00, 0xee, 0x8a, 0xee, 0x28, 0xe8},
-	{0x00, 0x38, 0x7c, 0x7c, 0xc6, 0x92, 0xf2, 0xe6, 0xfe, 0xe6, 0x7c, 0x7c, 0x38, 0x00, 0x00, 0x00}
+	{0x00, 0x38, 0x7c, 0x7c, 0xc6, 0x92, 0xf2, 0xe6, 0xfe, 0xe6, 0x7c, 0x7c, 0x38, 0x00, 0x00, 0x00},
+	
+	/* Special glyph for unknown character */
+	{0x00, 0x00, 0x7c, 0xc6, 0xc6, 0x0c, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00, 0x00}
 };
 
 /** @}

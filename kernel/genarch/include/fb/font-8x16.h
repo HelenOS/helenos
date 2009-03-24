@@ -35,7 +35,7 @@
 #ifndef KERN_FONT_8X16_H_
 #define KERN_FONT_8X16_H_
 
-#define FONT_GLYPHS     2898
+#define FONT_GLYPHS     2899
 #define FONT_WIDTH      8
 #define FONT_SCANLINES  16
 

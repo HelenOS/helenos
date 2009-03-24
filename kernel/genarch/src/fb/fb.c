@@ -77,6 +77,7 @@ static unsigned int position = 0;
 
 #define BG_COLOR     0x000080
 #define FG_COLOR     0xffff00
+#define INV_COLOR    0xaaaaaa
 
 #define CURSOR       0x2588
 
@@ -344,6 +345,13 @@ static void glyphs_render(void)
 	uint16_t glyph;
 	
 	for (glyph = 0; glyph < FONT_GLYPHS; glyph++) {
+		uint32_t fg_color;
+		
+		if (glyph == FONT_GLYPHS - 1)
+			fg_color = INV_COLOR;
+		else
+			fg_color = FG_COLOR;
+		
 		unsigned int y;
 		
 		for (y = 0; y < FONT_SCANLINES; y++) {
@@ -353,7 +361,7 @@ static void glyphs_render(void)
 				void *dst = &glyphs[GLYPH_POS(glyph, y) +
 				    x * pixelbytes];
 				uint32_t rgb = (fb_font[glyph][y] &
-				    (1 << (7 - x))) ? FG_COLOR : BG_COLOR;
+				    (1 << (7 - x))) ? fg_color : BG_COLOR;
 				rgb_conv(dst, rgb);
 			}
 		}
