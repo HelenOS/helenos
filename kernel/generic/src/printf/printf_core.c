@@ -612,7 +612,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			
 			do {
 				i++;
-				switch ((uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT)) != 0) {
+				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				switch (uc) {
 				case '#':
 					flags |= __PRINTF_FLAG_PREFIX;
 					break;
