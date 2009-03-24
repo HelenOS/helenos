@@ -132,7 +132,7 @@ static void ega_display_char(char ch, bool silent)
 	}
 }
 
-static void ega_putchar(outdev_t *dev __attribute__((unused)), const char ch, bool silent)
+static void ega_putchar(outdev_t *dev __attribute__((unused)), wchar_t ch, bool silent)
 {
 	ipl_t ipl;
 	

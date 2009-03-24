@@ -53,7 +53,7 @@
 SPINLOCK_INITIALIZE(fb_lock);
 
 static uint8_t *fb_addr;
-static uint8_t *backbuf;
+static uint16_t *backbuf;
 static uint8_t *glyphs;
 static uint8_t *bgscan;
 
@@ -199,7 +199,7 @@ static void logo_hide(bool silent)
 /** Draw character at given position
  *
  */
-static void glyph_draw(uint8_t glyph, unsigned int col, unsigned int row, bool silent)
+static void glyph_draw(uint16_t glyph, unsigned int col, unsigned int row, bool silent)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
@@ -242,7 +242,7 @@ static void screen_scroll(bool silent)
 				
 				for (col = 0, x = 0; col < cols; col++,
 				    x += FONT_WIDTH) {
-					uint8_t glyph;
+					uint16_t glyph;
 					
 					if (row < rows - 1) {
 						if (backbuf[BB_POS(col, row)] ==
@@ -261,20 +261,20 @@ static void screen_scroll(bool silent)
 		}
 	}
 	
-	memmove(backbuf, backbuf + cols, cols * (rows - 1));
-	memsetb(&backbuf[BB_POS(0, rows - 1)], cols, 0);
+	memmove(backbuf, &backbuf[BB_POS(0, 1)], cols * (rows - 1) * sizeof(uint16_t));
+	memsetw(&backbuf[BB_POS(0, rows - 1)], cols, 0);
 }
 
 
 static void cursor_put(bool silent)
 {
-	glyph_draw(CURSOR, position % cols, position / cols, silent);
+	glyph_draw(fb_font_glyph(CURSOR), position % cols, position / cols, silent);
 }
 
 
 static void cursor_remove(bool silent)
 {
-	glyph_draw(0, position % cols, position / cols, silent);
+	glyph_draw(fb_font_glyph(0), position % cols, position / cols, silent);
 }
 
 
@@ -283,7 +283,7 @@ static void cursor_remove(bool silent)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putchar(outdev_t *dev, char ch, bool silent)
+static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
 	spinlock_lock(&fb_lock);
 	
@@ -305,13 +305,13 @@ static void fb_putchar(outdev_t *dev, char ch, bool silent)
 	case '\t':
 		cursor_remove(silent);
 		do {
-			glyph_draw((uint8_t) ' ', position % cols,
+			glyph_draw(fb_font_glyph(' '), position % cols,
 			    position / cols, silent);
 			position++;
 		} while ((position % 8) && (position < cols * rows));
 		break;
 	default:
-		glyph_draw((uint8_t) ch, position % cols,
+		glyph_draw(fb_font_glyph(ch), position % cols,
 		    position / cols, silent);
 		position++;
 	}
@@ -341,7 +341,7 @@ static outdev_operations_t fb_ops = {
 static void glyphs_render(void)
 {
 	/* Prerender glyphs */
-	unsigned int glyph;
+	uint16_t glyph;
 	
 	for (glyph = 0; glyph < FONT_GLYPHS; glyph++) {
 		unsigned int y;
@@ -352,7 +352,7 @@ static void glyphs_render(void)
 			for (x = 0; x < FONT_WIDTH; x++) {
 				void *dst = &glyphs[GLYPH_POS(glyph, y) +
 				    x * pixelbytes];
-				uint32_t rgb = (fb_font[ROW2Y(glyph) + y] &
+				uint32_t rgb = (fb_font[glyph][y] &
 				    (1 << (7 - x))) ? FG_COLOR : BG_COLOR;
 				rgb_conv(dst, rgb);
 			}
@@ -398,10 +398,10 @@ void fb_redraw(void)
 			
 			for (col = 0, x = 0; col < cols;
 			    col++, x += FONT_WIDTH) {
-				void *d = &fb_addr[FB_POS(x, y + yd)];
-				void *s = &glyphs[GLYPH_POS(backbuf[BB_POS(col,
-				    row)], yd)];
-				memcpy(d, s, glyphscanline);
+				uint16_t glyph = backbuf[BB_POS(col, row)];
+				void *dst = &fb_addr[FB_POS(x, y + yd)];
+				void *src = &glyphs[GLYPH_POS(glyph, yd)];
+				memcpy(dst, src, glyphscanline);
 			}
 		}
 	}
@@ -494,11 +494,11 @@ void fb_init(fb_properties_t *props)
 	glyphbytes = ROW2Y(glyphscanline);
 	bgscanbytes = xres * pixelbytes;
 	
-	unsigned int fbsize = scanline * yres;
-	unsigned int bbsize = cols * rows;
-	unsigned int glyphsize = FONT_GLYPHS * glyphbytes;
+	size_t fbsize = scanline * yres;
+	size_t bbsize = cols * rows * sizeof(uint16_t);
+	size_t glyphsize = FONT_GLYPHS * glyphbytes;
 	
-	backbuf = (uint8_t *) malloc(bbsize, 0);
+	backbuf = (uint16_t *) malloc(bbsize, 0);
 	if (!backbuf)
 		panic("Unable to allocate backbuffer.");
 	
@@ -510,7 +510,7 @@ void fb_init(fb_properties_t *props)
 	if (!bgscan)
 		panic("Unable to allocate background pixel.");
 	
-	memsetb(backbuf, bbsize, 0);
+	memsetw(backbuf, cols * rows, 0);
 	
 	glyphs_render();
 	
