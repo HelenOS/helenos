@@ -41,19 +41,19 @@
 #include <mm/frame.h>
 
 /** Minimum size to be allocated by malloc */
-#define SLAB_MIN_MALLOC_W 4
+#define SLAB_MIN_MALLOC_W  4
 
 /** Maximum size to be allocated by malloc */
-#define SLAB_MAX_MALLOC_W 18
+#define SLAB_MAX_MALLOC_W  22
 
 /** Initial Magazine size (TODO: dynamically growing magazines) */
 #define SLAB_MAG_SIZE  4
 
 /** If object size is less, store control structure inside SLAB */
-#define SLAB_INSIDE_SIZE   (PAGE_SIZE >> 3)
+#define SLAB_INSIDE_SIZE  (PAGE_SIZE >> 3)
 
 /** Maximum wasted space we allow for cache */
-#define SLAB_MAX_BADNESS(cache)	\
+#define SLAB_MAX_BADNESS(cache) \
 	(((unsigned int) PAGE_SIZE << (cache)->order) >> 2)
 
 /* slab_reclaim constants */
@@ -64,17 +64,17 @@
 /* cache_create flags */
 
 /** Do not use per-cpu cache */
-#define SLAB_CACHE_NOMAGAZINE 0x1
+#define SLAB_CACHE_NOMAGAZINE   0x01
 /** Have control structure inside SLAB */
-#define SLAB_CACHE_SLINSIDE   0x2
+#define SLAB_CACHE_SLINSIDE     0x02
 /** We add magazine cache later, if we have this flag */
-#define SLAB_CACHE_MAGDEFERRED (0x4 | SLAB_CACHE_NOMAGAZINE)
+#define SLAB_CACHE_MAGDEFERRED  (0x04 | SLAB_CACHE_NOMAGAZINE)
 
 typedef struct {
 	link_t link;
-	count_t busy;	/**< Count of full slots in magazine */
-	count_t size;	/**< Number of slots in magazine */
-	void *objs[];	/**< Slots in magazine */
+	count_t busy;  /**< Count of full slots in magazine */
+	count_t size;  /**< Number of slots in magazine */
+	void *objs[];  /**< Slots in magazine */
 } slab_magazine_t;
 
 typedef struct {
@@ -86,38 +86,38 @@ typedef struct {
 
 typedef struct {
 	char *name;
-
+	
 	link_t link;
-
+	
 	/* Configuration */
 	/** Size of slab position - align_up(sizeof(obj)) */
 	size_t size;
-
+	
 	int (*constructor)(void *obj, int kmflag);
 	int (*destructor)(void *obj);
-
+	
 	/** Flags changing behaviour of cache */
 	int flags;
-
+	
 	/* Computed values */
-	uint8_t order;			/**< Order of frames to be allocated */
-	unsigned int objects;		/**< Number of objects that fit in */
-
+	uint8_t order;         /**< Order of frames to be allocated */
+	unsigned int objects;  /**< Number of objects that fit in */
+	
 	/* Statistics */
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
 	/** How many magazines in magazines list */
 	atomic_t magazine_counter; 
-
+	
 	/* Slabs */
-	link_t full_slabs;	/**< List of full slabs */
-	link_t partial_slabs;	/**< List of partial slabs */
+	link_t full_slabs;     /**< List of full slabs */
+	link_t partial_slabs;  /**< List of partial slabs */
 	SPINLOCK_DECLARE(slablock);
-	/* Magazines  */
-	link_t magazines;	/**< List o full magazines */
+	/* Magazines */
+	link_t magazines;  /**< List o full magazines */
 	SPINLOCK_DECLARE(maglock);
-
+	
 	/** CPU cache */
 	slab_mag_cache_t *mag_cache;
 } slab_cache_t;
@@ -141,6 +141,7 @@ extern void slab_print_list(void);
 extern void *malloc(unsigned int, int);
 extern void *realloc(void *, unsigned int, int);
 extern void free(void *);
+
 #endif
 
 /** @}

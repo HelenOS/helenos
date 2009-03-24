@@ -129,7 +129,7 @@ static slab_cache_t slab_cache_cache;
 static slab_cache_t *slab_extern_cache;
 /** Caches for malloc */
 static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1];
-char *malloc_names[] =  {
+static char *malloc_names[] =  {
 	"malloc-16",
 	"malloc-32",
 	"malloc-64",
@@ -144,7 +144,11 @@ char *malloc_names[] =  {
 	"malloc-32K",
 	"malloc-64K",
 	"malloc-128K",
-	"malloc-256K"
+	"malloc-256K",
+	"malloc-512K",
+	"malloc-1M",
+	"malloc-2M",
+	"malloc-4M"
 };
 
 /** Slab descriptor */
