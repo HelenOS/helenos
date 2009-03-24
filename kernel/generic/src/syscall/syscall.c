@@ -41,7 +41,6 @@
 #include <proc/program.h>
 #include <mm/as.h>
 #include <print.h>
-#include <putchar.h>
 #include <arch.h>
 #include <debug.h>
 #include <ddi/device.h>

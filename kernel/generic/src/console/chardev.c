@@ -33,7 +33,6 @@
  */
 
 #include <console/chardev.h>
-#include <putchar.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 

@@ -26,26 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
 #include <print.h>
-int printf(const char *fmt, ...);
 
 int printf(const char *fmt, ...)
 {
 	int ret;
 	va_list args;
-
+	
 	va_start(args, fmt);
-
+	
 	ret = vprintf(fmt, args);
 	
 	va_end(args);
-
+	
 	return ret;
 }
 

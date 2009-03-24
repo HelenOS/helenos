@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -39,28 +39,58 @@
 #include <arch/asm.h>
 #include <arch/types.h>
 #include <typedefs.h>
+#include <string.h>
 
-SPINLOCK_INITIALIZE(printf_lock);			/**< vprintf spinlock */
+SPINLOCK_INITIALIZE(printf_lock);  /**< vprintf spinlock */
 
-static int vprintf_write(const char *str, size_t count, void *unused)
+static int vprintf_write_utf8(const char *str, size_t size, void *data)
 {
-	size_t i;
-	for (i = 0; i < count; i++)
-		putchar(str[i]);
-	return i;
+	index_t index = 0;
+	index_t chars = 0;
+	
+	while (index < size) {
+		putchar(utf8_decode(str, &index, size - 1));
+		index++;
+		chars++;
+	}
+	
+	return chars;
 }
 
-int puts(const char *s)
+static int vprintf_write_utf32(const wchar_t *str, size_t size, void *data)
 {
-	size_t i;
-	for (i = 0; s[i] != 0; i++)
-		putchar(s[i]);
-	return i;
+	index_t index = 0;
+	
+	while (index < (size / sizeof(wchar_t))) {
+		putchar(str[index]);
+		index++;
+	}
+	
+	return index;
+}
+
+int puts(const char *str)
+{
+	index_t index = 0;
+	index_t chars = 0;
+	wchar_t uc;
+	
+	while ((uc = utf8_decode(str, &index, UTF8_NO_LIMIT)) != 0) {
+		putchar(uc);
+		index++;
+		chars++;
+	}
+	
+	return chars;
 }
 
 int vprintf(const char *fmt, va_list ap)
 {
-	struct printf_spec ps = {(int(*)(void *, size_t, void *)) vprintf_write, NULL};
+	printf_spec_t ps = {
+		vprintf_write_utf8,
+		vprintf_write_utf32,
+		NULL
+	};
 	
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&printf_lock);

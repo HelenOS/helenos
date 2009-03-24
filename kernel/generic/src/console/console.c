@@ -46,15 +46,16 @@
 #include <arch.h>
 #include <func.h>
 #include <print.h>
+#include <putchar.h>
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
 
-#define KLOG_SIZE PAGE_SIZE
-#define KLOG_LATENCY 8
+#define KLOG_SIZE     PAGE_SIZE
+#define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
-static char klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
+static wchar_t klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
 static bool klog_inited = false;
@@ -95,11 +96,11 @@ void klog_init(void)
 	ASSERT(KLOG_SIZE % FRAME_SIZE == 0);
 	
 	klog_parea.pbase = (uintptr_t) faddr;
-	klog_parea.frames = SIZE2FRAMES(KLOG_SIZE);
+	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
 	ddi_parea_register(&klog_parea);
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
-	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(KLOG_SIZE));
+	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(sizeof(klog)));
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
@@ -245,7 +246,7 @@ void klog_update(void)
 	spinlock_unlock(&klog_lock);
 }
 
-void putchar(char c)
+void putchar(const wchar_t ch)
 {
 	spinlock_lock(&klog_lock);
 	
@@ -258,14 +259,14 @@ void putchar(char c)
 	}
 	
 	/* Store character in the cyclic kernel log */
-	klog[(klog_start + klog_len) % KLOG_SIZE] = c;
+	klog[(klog_start + klog_len) % KLOG_SIZE] = ch;
 	if (klog_len < KLOG_SIZE)
 		klog_len++;
 	else
 		klog_start = (klog_start + 1) % KLOG_SIZE;
 	
 	if ((stdout) && (stdout->op->write))
-		stdout->op->write(stdout, c, silent);
+		stdout->op->write(stdout, ch, silent);
 	else {
 		/* The character is just in the kernel log */
 		if (klog_stored < klog_len)
@@ -278,7 +279,7 @@ void putchar(char c)
 	
 	/* Check notify uspace to update */
 	bool update;
-	if ((klog_uspace > KLOG_LATENCY) || (c == '\n'))
+	if ((klog_uspace > KLOG_LATENCY) || (ch == '\n'))
 		update = true;
 	else
 		update = false;
@@ -294,11 +295,11 @@ void putchar(char c)
  * Print to kernel log.
  *
  */
-unative_t sys_klog(int fd, const void * buf, size_t count) 
+unative_t sys_klog(int fd, const void * buf, size_t count)
 {
 	char *data;
 	int rc;
-
+	
 	if (count > PAGE_SIZE)
 		return ELIMIT;
 	

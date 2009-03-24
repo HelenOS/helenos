@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -46,11 +46,9 @@ SPINLOCK_EXTERN(printf_lock);
 
 extern int puts(const char *s);
 extern int printf(const char *fmt, ...);
-extern int sprintf(char *str, const char *fmt, ...);
 extern int snprintf(char *str, size_t size, const char *fmt, ...);
 
 extern int vprintf(const char *fmt, va_list ap);
-extern int vsprintf(char *str, const char *fmt, va_list ap);
 extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
 
 #endif

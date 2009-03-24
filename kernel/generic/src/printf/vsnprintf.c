@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -34,62 +34,149 @@
 
 #include <print.h>
 #include <printf/printf_core.h>
+#include <string.h>
 #include <memstr.h>
 
-struct vsnprintf_data {
-	size_t size; /* total space for string */
-	size_t len; /* count of currently used characters */
-	char *string; /* destination string */
-};
+typedef struct {
+	size_t size;    /* Total size of the buffer (in bytes) */
+	size_t len;     /* Number of already used bytes */
+	char *dst;      /* Destination */
+} vsnprintf_data_t;
 
-/** Write string to given buffer.
- * Write at most data->size characters including trailing zero. According to C99, snprintf() has to return number
- * of characters that would have been written if enough space had been available. Hence the return value is not
- * number of really printed characters but size of the input string. Number of really used characters 
- * is stored in data->len.
- * @param str source string to print
- * @param count size of source string
- * @param data structure with destination string, counter of used space and total string size.
- * @return number of characters to print (not characters really printed!)
+/** Write UTF-8 string to given buffer.
+ *
+ * Write at most data->size plain characters including trailing zero.
+ * According to C99, snprintf() has to return number of characters that
+ * would have been written if enough space had been available. Hence
+ * the return value is not the number of actually printed characters
+ * but size of the input string.
+ *
+ * @param str  Source UTF-8 string to print.
+ * @param size Number of plain characters in str.
+ * @param data Structure describing destination string, counter
+ *             of used space and total string size.
+ *
+ * @return Number of UTF-8 characters to print (not characters actually
+ *         printed).
+ *
  */
-static int vsnprintf_write(const char *str, size_t count, struct vsnprintf_data *data)
+static int vsnprintf_write_utf8(const char *str, size_t size, vsnprintf_data_t *data)
 {
-	size_t i;
-	i = data->size - data->len;
-
-	if (i == 0) {
-		return count;
-	}
+	size_t left = data->size - data->len;
 	
-	if (i == 1) {
-		/* We have only one free byte left in buffer => write there trailing zero */
-		data->string[data->size - 1] = 0;
+	if (left == 0)
+		return ((int) size);
+	
+	if (left == 1) {
+		/* We have only one free byte left in buffer
+		 * -> store trailing zero
+		 */
+		data->dst[data->size - 1] = 0;
 		data->len = data->size;
-		return count;
+		return ((int) size);
 	}
 	
-	if (i <= count) {
-		/* We have not enought space for whole string with the trailing zero => print only a part of string */
-			memcpy((void *)(data->string + data->len), (void *)str, i - 1);
-			data->string[data->size - 1] = 0;
-			data->len = data->size;
-			return count;
+	if (left <= size) {
+		/* We have not enought space for whole string
+		 * with the trailing zero => print only a part
+		 * of string
+		 */
+		index_t index = 0;
+		
+		while (index < size) {
+			wchar_t uc = utf8_decode(str, &index, size - 1);
+			
+			if (!utf8_encode(uc, data->dst, &data->len, data->size - 1))
+				break;
+			
+			data->len++;
+			index++;
+		}
+		
+		/* Put trailing zero at end, but not count it
+		 * into data->len so it could be rewritten next time
+		 */
+		data->dst[data->len] = 0;
+		
+		return ((int) size);
 	}
 	
-	/* Buffer is big enought to print whole string */
-	memcpy((void *)(data->string + data->len), (void *)str, count);
-	data->len += count;
-	/* Put trailing zero at end, but not count it into data->len so it could be rewritten next time */
-	data->string[data->len] = 0;
+	/* Buffer is big enought to print the whole string */
+	memcpy((void *)(data->dst + data->len), (void *) str, size);
+	data->len += size;
+	
+	/* Put trailing zero at end, but not count it
+	 * into data->len so it could be rewritten next time
+	 */
+	data->dst[data->len] = 0;
+	
+	return ((int) size);
+}
 
-	return count;	
+/** Write UTF-32 string to given buffer.
+ *
+ * Write at most data->size plain characters including trailing zero.
+ * According to C99, snprintf() has to return number of characters that
+ * would have been written if enough space had been available. Hence
+ * the return value is not the number of actually printed characters
+ * but size of the input string.
+ *
+ * @param str  Source UTF-32 string to print.
+ * @param size Number of bytes in str.
+ * @param data Structure describing destination string, counter
+ *             of used space and total string size.
+ *
+ * @return Number of UTF-8 characters to print (not characters actually
+ *         printed).
+ *
+ */
+static int vsnprintf_write_utf32(const wchar_t *str, size_t size, vsnprintf_data_t *data)
+{
+	index_t index = 0;
+	
+	while (index < (size / sizeof(wchar_t))) {
+		size_t left = data->size - data->len;
+		
+		if (left == 0)
+			return ((int) size);
+		
+		if (left == 1) {
+			/* We have only one free byte left in buffer
+			 * -> store trailing zero
+			 */
+			data->dst[data->size - 1] = 0;
+			data->len = data->size;
+			return ((int) size);
+		}
+		
+		if (!utf8_encode(str[index], data->dst, &data->len, data->size - 1))
+			break;
+		
+		data->len++;
+		index++;
+	}
+	
+	/* Put trailing zero at end, but not count it
+	 * into data->len so it could be rewritten next time
+	 */
+	data->dst[data->len] = 0;
+	
+	return ((int) size);
 }
 
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
-	struct vsnprintf_data data = {size, 0, str};
-	struct printf_spec ps = {(int(*)(void *, size_t, void *))vsnprintf_write, &data};
-
+	vsnprintf_data_t data = {
+		size,
+		0,
+		str
+	};
+	printf_spec_t ps = {
+		(int(*) (const char *, size_t, void *)) vsnprintf_write_utf8,
+		(int(*) (const wchar_t *, size_t, void *)) vsnprintf_write_utf32,
+		&data
+	};
+	
 	/* Print 0 at end of string - fix the case that nothing will be printed */
 	if (size > 0)
 		str[0] = 0;

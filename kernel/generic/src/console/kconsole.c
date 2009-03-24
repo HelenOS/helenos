@@ -55,6 +55,7 @@
 #include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
+#include <putchar.h>
 
 /** Simple kernel console.
  *
@@ -159,9 +160,9 @@ int cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-static void rdln_print_c(char ch, int count)
+static void rdln_print_c(wchar_t ch, count_t count)
 {
-	int i;
+	count_t i;
 	for (i = 0; i < count; i++)
 		putchar(ch);
 }

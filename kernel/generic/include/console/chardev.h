@@ -71,7 +71,7 @@ struct outdev;
 /* Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (* write)(struct outdev *, char c, bool silent);
+	void (* write)(struct outdev *, wchar_t c, bool silent);
 } outdev_operations_t;
 
 /** Character input device. */

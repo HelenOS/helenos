@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_PUTCHAR_H_
 #define KERN_PUTCHAR_H_
 
-extern void putchar(const char ch);
+extern void putchar(const wchar_t ch);
 
 #endif
 
