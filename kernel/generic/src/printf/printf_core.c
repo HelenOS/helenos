@@ -159,7 +159,7 @@ static int printf_putwchar(const wchar_t ch, printf_spec_t *ps)
 	if (!unicode_check(ch))
 		return ps->write_utf8((void *) &invalch, 1, ps->data);
 	
-	return ps->write_utf32(&ch, 1, ps->data);
+	return ps->write_utf32(&ch, sizeof(wchar_t), ps->data);
 }
 
 /** Print one formatted ASCII character.

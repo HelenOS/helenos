@@ -49,16 +49,12 @@ char *test_print4(bool quiet)
 			printf("\n");
 		}
 		
-		printf("\nExtended ASCII characters (128 - 255) using printf(\"%%c\") and printf(\"%%lc\"):\n");
+		printf("\nExtended ASCII characters (128 - 255) using printf(\"%%lc\"):\n");
 		
 		for (hextet = 8; hextet < 16; hextet++) {
 			printf("%#" PRIx8 ": ", hextet << 4);
 			
 			uint8_t index;
-			for (index = 0; index < 16; index++)
-				printf("%c", (char) ((hextet << 4) + index));
-			
-			printf("  ");
 			for (index = 0; index < 16; index++)
 				printf("%lc", (wchar_t) ((hextet << 4) + index));
 			
