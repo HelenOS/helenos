@@ -61,9 +61,366 @@ static uint8_t *backbuf;
 static ioport8_t *ega_base;
 
 #define SPACE  0x20
-#define STYLE  0x07
+#define STYLE  0x1e
+#define INVAL  0x17
 
-#define EMPTY_CHAR  (STYLE << 8 | SPACE)
+#define EMPTY_CHAR  ((STYLE << 8) | SPACE)
+
+static uint16_t ega_oem_glyph(const wchar_t ch)
+{
+	if ((ch >= 0x0000) && (ch <= 0x007f))
+		return ch;
+	
+	if (ch == 0x00a0)
+		return 255;
+	
+	if (ch == 0x00a1)
+		return 173;
+	
+	if ((ch >= 0x00a2) && (ch <= 0x00a3))
+		return (ch - 7);
+	
+	if (ch == 0x00a5)
+		return 157;
+	
+	if (ch == 0x00aa)
+		return 166;
+	
+	if (ch == 0x00ab)
+		return 174;
+	
+	if (ch == 0x00ac)
+		return 170;
+	
+	if (ch == 0x00b0)
+		return 248;
+	
+	if (ch == 0x00b1)
+		return 241;
+	
+	if (ch == 0x00b2)
+		return 253;
+	
+	if (ch == 0x00b5)
+		return 230;
+	
+	if (ch == 0x00b7)
+		return 250;
+	
+	if (ch == 0x00ba)
+		return 167;
+	
+	if (ch == 0x00bb)
+		return 175;
+	
+	if (ch == 0x00bc)
+		return 172;
+	
+	if (ch == 0x00bd)
+		return 171;
+	
+	if (ch == 0x00bf)
+		return 168;
+	
+	if ((ch >= 0x00c4) && (ch <= 0x00c5))
+		return (ch - 54);
+	
+	if (ch == 0x00c6)
+		return 146;
+	
+	if (ch == 0x00c7)
+		return 128;
+	
+	if (ch == 0x00c9)
+		return 144;
+	
+	if (ch == 0x00d1)
+		return 165;
+	
+	if (ch == 0x00d6)
+		return 153;
+	
+	if (ch == 0x00dc)
+		return 154;
+	
+	if (ch == 0x00df)
+		return 225;
+	
+	if (ch == 0x00e0)
+		return 133;
+	
+	if (ch == 0x00e1)
+		return 160;
+	
+	if (ch == 0x00e2)
+		return 131;
+	
+	if (ch == 0x00e4)
+		return 132;
+	
+	if (ch == 0x00e5)
+		return 134;
+	
+	if (ch == 0x00e6)
+		return 145;
+	
+	if (ch == 0x00e7)
+		return 135;
+	
+	if (ch == 0x00e8)
+		return 138;
+	
+	if (ch == 0x00e9)
+		return 130;
+	
+	if ((ch >= 0x00ea) && (ch <= 0x00eb))
+		return (ch - 98);
+	
+	if (ch == 0x00ec)
+		return 141;
+	
+	if (ch == 0x00ed)
+		return 161;
+	
+	if (ch == 0x00ee)
+		return 140;
+	
+	if (ch == 0x00ef)
+		return 139;
+	
+	if (ch == 0x00f1)
+		return 164;
+	
+	if (ch == 0x00f2)
+		return 149;
+	
+	if (ch == 0x00f3)
+		return 162;
+	
+	if (ch == 0x00f4)
+		return 147;
+	
+	if (ch == 0x00f6)
+		return 148;
+	
+	if (ch == 0x00f7)
+		return 246;
+	
+	if (ch == 0x00f9)
+		return 151;
+	
+	if (ch == 0x00fa)
+		return 163;
+	
+	if (ch == 0x00fb)
+		return 150;
+	
+	if (ch == 0x00fc)
+		return 129;
+	
+	if (ch == 0x00ff)
+		return 152;
+	
+	if (ch == 0x0192)
+		return 159;
+	
+	if (ch == 0x0393)
+		return 226;
+	
+	if (ch == 0x0398)
+		return 233;
+	
+	if (ch == 0x03a3)
+		return 228;
+	
+	if (ch == 0x03a6)
+		return 232;
+	
+	if (ch == 0x03a9)
+		return 234;
+	
+	if (ch == 0x03b1)
+		return 224;
+	
+	if (ch == 0x03b4)
+		return 235;
+	
+	if (ch == 0x03b5)
+		return 238;
+	
+	if (ch == 0x03c0)
+		return 227;
+	
+	if (ch == 0x03c3)
+		return 229;
+	
+	if (ch == 0x03c4)
+		return 231;
+	
+	if (ch == 0x03c6)
+		return 237;
+	
+	if (ch == 0x207f)
+		return 252;
+	
+	if (ch == 0x20a7)
+		return 158;
+	
+	if (ch == 0x2219)
+		return 249;
+	
+	if (ch == 0x221a)
+		return 251;
+	
+	if (ch == 0x221e)
+		return 236;
+	
+	if (ch == 0x2229)
+		return 239;
+	
+	if (ch == 0x2248)
+		return 247;
+	
+	if (ch == 0x2261)
+		return 240;
+	
+	if (ch == 0x2264)
+		return 243;
+	
+	if (ch == 0x2265)
+		return 242;
+	
+	if (ch == 0x2310)
+		return 169;
+	
+	if ((ch >= 0x2320) && (ch <= 0x2321))
+		return (ch - 8748);
+	
+	if (ch == 0x2500)
+		return 196;
+	
+	if (ch == 0x2502)
+		return 179;
+	
+	if (ch == 0x250c)
+		return 218;
+	
+	if (ch == 0x2510)
+		return 191;
+	
+	if (ch == 0x2514)
+		return 192;
+	
+	if (ch == 0x2518)
+		return 217;
+	
+	if (ch == 0x251c)
+		return 195;
+	
+	if (ch == 0x2524)
+		return 180;
+	
+	if (ch == 0x252c)
+		return 194;
+	
+	if (ch == 0x2534)
+		return 193;
+	
+	if (ch == 0x253c)
+		return 197;
+	
+	if (ch == 0x2550)
+		return 205;
+	
+	if (ch == 0x2551)
+		return 186;
+	
+	if ((ch >= 0x2552) && (ch <= 0x2553))
+		return (ch - 9341);
+	
+	if (ch == 0x2554)
+		return 201;
+	
+	if (ch == 0x2555)
+		return 184;
+	
+	if (ch == 0x2556)
+		return 183;
+	
+	if (ch == 0x2557)
+		return 187;
+	
+	if (ch == 0x2558)
+		return 212;
+	
+	if (ch == 0x2559)
+		return 211;
+	
+	if (ch == 0x255a)
+		return 200;
+	
+	if (ch == 0x255b)
+		return 190;
+	
+	if (ch == 0x255c)
+		return 189;
+	
+	if (ch == 0x255d)
+		return 188;
+	
+	if ((ch >= 0x255e) && (ch <= 0x255f))
+		return (ch - 9368);
+	
+	if (ch == 0x2560)
+		return 204;
+	
+	if ((ch >= 0x2561) && (ch <= 0x2562))
+		return (ch - 9388);
+	
+	if (ch == 0x2563)
+		return 185;
+	
+	if ((ch >= 0x2564) && (ch <= 0x2565))
+		return (ch - 9363);
+	
+	if (ch == 0x2566)
+		return 203;
+	
+	if ((ch >= 0x2567) && (ch <= 0x2568))
+		return (ch - 9368);
+	
+	if (ch == 0x2569)
+		return 202;
+	
+	if (ch == 0x256a)
+		return 216;
+	
+	if (ch == 0x256b)
+		return 215;
+	
+	if (ch == 0x256c)
+		return 206;
+	
+	if (ch == 0x2580)
+		return 223;
+	
+	if (ch == 0x2584)
+		return 220;
+	
+	if (ch == 0x2588)
+		return 219;
+	
+	if (ch == 0x258c)
+		return 221;
+	
+	if (ch == 0x2590)
+		return 222;
+	
+	if ((ch >= 0x2591) && (ch <= 0x2593))
+		return (ch - 9441);
+	
+	return 256;
+}
 
 /*
  * This function takes care of scrolling.
@@ -121,14 +478,26 @@ static void ega_sync_cursor(void)
 	ega_show_cursor();
 }
 
-static void ega_display_char(char ch, bool silent)
+static void ega_display_char(wchar_t ch, bool silent)
 {
-	backbuf[ega_cursor * 2] = ch;
-	backbuf[ega_cursor * 2 + 1] = STYLE;
+	uint16_t index = ega_oem_glyph(ch);
+	uint8_t glyph;
+	uint8_t style;
+	
+	if ((index >> 8)) {
+		glyph = '?';
+		style = INVAL;
+	} else {
+		glyph = index & 0xff;
+		style = STYLE;
+	}
+	
+	backbuf[ega_cursor * 2] = glyph;
+	backbuf[ega_cursor * 2 + 1] = style;
 	
 	if (!silent) {
-		videoram[ega_cursor * 2] = ch;
-		videoram[ega_cursor * 2 + 1] = STYLE;
+		videoram[ega_cursor * 2] = glyph;
+		videoram[ega_cursor * 2 + 1] = style;
 	}
 }
 
@@ -145,7 +514,7 @@ static void ega_putchar(outdev_t *dev __attribute__((unused)), wchar_t ch, bool 
 		break;
 	case '\t':
 		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
-		break; 
+		break;
 	case '\b':
 		if (ega_cursor % EGA_COLS)
 			ega_cursor--;
