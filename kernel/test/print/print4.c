@@ -34,36 +34,36 @@ char *test_print4(bool quiet)
 	if (!quiet) {
 		printf("ASCII printable characters (32 - 127) using printf(\"%%c\") and printf(\"%%lc\"):\n");
 		
-		uint8_t hextet;
-		for (hextet = 2; hextet < 8; hextet++) {
-			printf("%#" PRIx8 ": ", hextet << 4);
+		uint8_t group;
+		for (group = 1; group < 4; group++) {
+			printf("%#" PRIx8 ": ", group << 5);
 			
 			uint8_t index;
-			for (index = 0; index < 16; index++)
-				printf("%c", (char) ((hextet << 4) + index));
+			for (index = 0; index < 32; index++)
+				printf("%c", (char) ((group << 5) + index));
 			
 			printf("  ");
-			for (index = 0; index < 16; index++)
-				printf("%lc", (wchar_t) ((hextet << 4) + index));
+			for (index = 0; index < 32; index++)
+				printf("%lc", (wchar_t) ((group << 5) + index));
 			
 			printf("\n");
 		}
 		
 		printf("\nExtended ASCII characters (128 - 255) using printf(\"%%lc\"):\n");
 		
-		for (hextet = 8; hextet < 16; hextet++) {
-			printf("%#" PRIx8 ": ", hextet << 4);
+		for (group = 4; group < 8; group++) {
+			printf("%#" PRIx8 ": ", group << 5);
 			
 			uint8_t index;
-			for (index = 0; index < 16; index++)
-				printf("%lc", (wchar_t) ((hextet << 4) + index));
+			for (index = 0; index < 32; index++)
+				printf("%lc", (wchar_t) ((group << 5) + index));
 			
 			printf("\n");
 		}
 		
 		printf("\nUTF-8 strings using printf(\"%%s\"):\n");
 		printf("English:  %s\n", "Quick brown fox jumps over the lazy dog");
-		printf("Czech:    %s\n", "Příliš žluťoučký kůň úpěl dábelské ódy");
+		printf("Czech:    %s\n", "Příliš žluťoučký kůň úpěl ďábelské ódy");
 		printf("Greek:    %s\n", "Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
 		printf("Hebrew:   %s\n", "משוואת ברנולי היא משוואה בהידרודינמיקה");
 		printf("Arabic:   %s\n", "التوزيع الجغرافي للحمل العنقودي");
@@ -72,7 +72,7 @@ char *test_print4(bool quiet)
 		
 		printf("\nUTF-32 strings using printf(\"%%ls\"):\n");
 		printf("English:  %ls\n", L"Quick brown fox jumps over the lazy dog");
-		printf("Czech:    %ls\n", L"Příliš žluťoučký kůň úpěl dábelské ódy");
+		printf("Czech:    %ls\n", L"Příliš žluťoučký kůň úpěl ďábelské ódy");
 		printf("Greek:    %ls\n", L"Ὦ ξεῖν’, ἀγγέλλειν Λακεδαιμονίοις ὅτι τῇδε");
 		printf("Hebrew:   %ls\n", L"משוואת ברנולי היא משוואה בהידרודינמיקה");
 		printf("Arabic:   %ls\n", L"التوزيع الجغرافي للحمل العنقودي");
