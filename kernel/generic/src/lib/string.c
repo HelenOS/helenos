@@ -44,6 +44,12 @@
 
 char invalch = '?';
 
+/** Byte mask consisting of bits 0 - (@n - 1) */
+#define LO_MASK_8(n) ((uint8_t)((1 << (n)) - 1))
+
+/** Number of data bits in a UTF-8 continuation byte. */
+#define CONT_BITS 6
+
 /** Decode a single UTF-8 character from a NULL-terminated string.
  *
  * Decode a single UTF-8 character from a plain char NULL-terminated
@@ -60,76 +66,62 @@ char invalch = '?';
  */
 wchar_t utf8_decode(const char *str, index_t *index, index_t limit)
 {
-	uint8_t c1;           /* First plain character from str */
-	uint8_t c2;           /* Second plain character from str */
-	uint8_t c3;           /* Third plain character from str */
-	uint8_t c4;           /* Fourth plain character from str */
-	
+	uint8_t b0, b;          /* Bytes read from str. */
+	wchar_t ch;
+
+	int b0_bits;		/* Data bits in first byte. */
+	int cbytes;		/* Number of continuation bytes. */
+
 	if (*index > limit)
 		return invalch;
-	
-	c1 = (uint8_t) str[*index];
-	
-	if ((c1 & 0x80) == 0) {
-		/* Plain ASCII (code points 0 .. 127) */
-		return (wchar_t) c1;
+
+	b0 = (uint8_t) str[*index];
+
+	/* Determine code length. */
+
+	if ((b0 & 0x80) == 0) {
+		/* 0xxxxxxx (Plain ASCII) */
+		b0_bits = 7;
+		cbytes = 0;
+	} else if ((b0 & 0xe0) == 0xc0) {
+		/* 110xxxxx 10xxxxxx */
+		b0_bits = 5;
+		cbytes = 1;
+	} else if ((b0 & 0xf0) == 0xe0) {
+		/* 1110xxxx 10xxxxxx 10xxxxxx */
+		b0_bits = 4;
+		cbytes = 2;
+	} else if ((b0 & 0xf8) == 0xf0) {
+		/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+		b0_bits = 3;
+		cbytes = 3;
+	} else {
+		/* 10xxxxxx -- unexpected continuation byte. */
+		return invalch;
 	}
-	
-	if ((c1 & 0xe0) == 0xc0) {
-		/* Code points 128 .. 2047 */
-		if (*index + 1 > limit)
-			return invalch;
-		
-		c2 = (uint8_t) str[*index + 1];
-		if ((c2 & 0xc0) == 0x80) {
-			(*index)++;
-			return ((wchar_t) ((c1 & 0x1f) << 6) | (c2 & 0x3f));
-		} else
-			return invalch;
+
+	if (*index + cbytes > limit) {
+		return invalch;
 	}
-	
-	if ((c1 & 0xf0) == 0xe0) {
-		/* Code points 2048 .. 65535 */
-		if (*index + 2 > limit)
+
+	ch = b0 & LO_MASK_8(b0_bits);
+
+	/* Decode continuation bytes. */
+	while (cbytes > 0) {
+		b = (uint8_t) str[*index + 1];
+		++(*index);
+
+		/* Must be 10xxxxxx. */
+		if ((b & 0xc0) != 0x80) {
 			return invalch;
-		
-		c2 = (uint8_t) str[*index + 1];
-		if ((c2 & 0xc0) == 0x80) {
-			(*index)++;
-			c3 = (uint8_t) str[*index + 1];
-			if ((c3 & 0xc0) == 0x80) {
-				(*index)++;
-				return ((wchar_t) ((c1 & 0x0f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f));
-			} else
-				return invalch;
-		} else
-			return invalch;
+		}
+
+		/* Shift data bits to ch. */
+		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
+		--cbytes;
 	}
-	
-	if ((c1 & 0xf8) == 0xf0) {
-		/* Code points 65536 .. 1114111 */
-		if (*index + 3 > limit)
-			return invalch;
-		
-		c2 = (uint8_t) str[*index + 1];
-		if ((c2 & 0xc0) == 0x80) {
-			(*index)++;
-			c3 = (uint8_t) str[*index + 1];
-			if ((c3 & 0xc0) == 0x80) {
-				(*index)++;
-				c4 = (uint8_t) str[*index + 1];
-				if ((c4 & 0xc0) == 0x80) {
-					(*index)++;
-					return ((wchar_t) ((c1 & 0x07) << 18) | ((c2 & 0x3f) << 12) | ((c3 & 0x3f) << 6) | (c4 & 0x3f));
-				} else
-					return invalch;
-			} else
-				return invalch;
-		} else
-			return invalch;
-	}
-	
-	return invalch;
+
+	return ch;
 }
 
 /** Encode a single UTF-32 character as UTF-8
