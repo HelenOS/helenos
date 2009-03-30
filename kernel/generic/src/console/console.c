@@ -238,7 +238,7 @@ void klog_update(void)
 {
 	spinlock_lock(&klog_lock);
 	
-	if (klog_inited && event_is_subscribed(EVENT_KLOG) && klog_uspace > 0) {
+	if ((klog_inited) && (event_is_subscribed(EVENT_KLOG)) && (klog_uspace > 0)) {
 		event_notify_3(EVENT_KLOG, klog_start, klog_len, klog_uspace);
 		klog_uspace = 0;
 	}
