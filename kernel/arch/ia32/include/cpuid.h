@@ -35,6 +35,13 @@
 #ifndef KERN_ia32_CPUID_H_
 #define KERN_ia32_CPUID_H_
 
+#define INTEL_CPUID_LEVEL     0x00000000
+#define INTEL_CPUID_STANDARD  0x00000001
+#define INTEL_PSE             3
+#define INTEL_SEP             11
+
+#ifndef __ASM__
+
 #include <arch/types.h>
 
 typedef struct {
@@ -104,6 +111,7 @@ static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 	);
 }
 
+#endif /* !def __ASM__ */
 #endif
 
 /** @}

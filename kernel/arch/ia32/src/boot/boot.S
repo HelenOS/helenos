@@ -31,6 +31,7 @@
 #include <arch/boot/memmap.h>
 #include <arch/mm/page.h>
 #include <arch/pm.h>
+#include <arch/cpuid.h>
 
 #define START_STACK (BOOT_OFFSET - BOOT_STACK_SIZE)
 
@@ -67,13 +68,14 @@ multiboot_image_start:
 	movl %eax, grub_eax         # save parameters from GRUB
 	movl %ebx, grub_ebx
 	
-	xorl %eax, %eax
+	movl $(INTEL_CPUID_LEVEL), %eax
 	cpuid
 	cmp $0x0, %eax              # any function > 0?
 	jbe pse_unsupported
-	movl $0x1, %eax             # basic function code 1
+	
+	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
-	bt $3, %edx                 # test if PSE is supported
+	bt $(INTEL_PSE), %edx
 	jc pse_supported
 	
 	pse_unsupported:
@@ -81,6 +83,14 @@ multiboot_image_start:
 		jmp error_halt
 	
 	pse_supported:
+	
+	bt $(INTEL_SEP), %edx
+	jc sep_supported
+	
+		movl $sep_msg, %esi
+		jmp error_halt
+	
+	sep_supported:
 
 #include "vesa_prot.inc"
 
@@ -213,3 +223,6 @@ grub_ebx:
 
 pse_msg:
 	.asciz "Page Size Extension not supported. System halted."
+
+sep_msg:
+	.asciz "SYSENTER/SYSEXIT not supported. System halted."
