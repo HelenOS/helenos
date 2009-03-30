@@ -100,7 +100,7 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 	/* Copy module information. */
 	
 	if ((flags & MBINFO_FLAGS_MODS) != 0) {
-		init.cnt = mi->mods_count;
+		init.cnt = min(mi->mods_count, CONFIG_INIT_TASKS);
 		mods = (multiboot_mod_t *) MULTIBOOT_PTR(mi->mods_addr);
 		
 		for (i = 0; i < init.cnt; i++) {
@@ -130,7 +130,7 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 		e820counter = 0;
 		
 		i = 0;
-		while (mmap_length > 0) {
+		while ((mmap_length > 0) && (i < MEMMAP_E820_MAX_RECORDS)) {
 			e820table[i++] = mme->mm_info;
 			
 			/* Compute address of next structure. */
