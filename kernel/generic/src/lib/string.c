@@ -44,8 +44,14 @@
 
 char invalch = '?';
 
-/** Byte mask consisting of bits 0 - (@n - 1) */
+/** Byte mask consisting of lowest @n bits (out of eight). */
 #define LO_MASK_8(n) ((uint8_t)((1 << (n)) - 1))
+
+/** Byte mask consisting of lowest @n bits (out of 32). */
+#define LO_MASK_32(n) ((uint32_t)((1 << (n)) - 1))
+
+/** Byte mask consisting of highest @n bits (out of eight). */
+#define HI_MASK_8(n) (~LO_MASK_8(8 - (n)))
 
 /** Number of data bits in a UTF-8 continuation byte. */
 #define CONT_BITS 6
@@ -144,55 +150,56 @@ wchar_t utf8_decode(const char *str, index_t *index, index_t limit)
  */
 bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit)
 {
+	uint32_t cc;		/* Unsigned version of ch. */
+
+	int cbytes;		/* Number of continuation bytes. */
+	int b0_bits;		/* Number of data bits in first byte. */
+	int i;
+
 	if (*index > limit)
 		return false;
-	
-	if ((ch >= 0) && (ch <= 127)) {
-		/* Plain ASCII (code points 0 .. 127) */
-		str[*index] = ch & 0x7f;
-		return true;
+
+	if (ch < 0)
+		return false;
+
+	/* Bit operations should only be done on unsigned numbers. */
+	cc = (uint32_t) ch;
+
+	/* Determine how many continuation bytes are needed. */
+	if ((cc & ~LO_MASK_32(7)) == 0) {
+		b0_bits = 7;
+		cbytes = 0;
+	} else if ((cc & ~LO_MASK_32(11)) == 0) {
+		b0_bits = 5;
+		cbytes = 1;
+	} else if ((cc & ~LO_MASK_32(16)) == 0) {
+		b0_bits = 4;
+		cbytes = 2;
+	} else if ((cc & ~LO_MASK_32(21)) == 0) {
+		b0_bits = 3;
+		cbytes = 3;
+	} else {
+		/* Codes longer than 21 bits are not supported. */
+		return false;
 	}
-	
-	if ((ch >= 128) && (ch <= 2047)) {
-		/* Code points 128 .. 2047 */
-		if (*index + 1 > limit)
-			return false;
-		
-		str[*index] = 0xc0 | ((ch >> 6) & 0x1f);
-		(*index)++;
-		str[*index] = 0x80 | (ch & 0x3f);
-		return true;
+
+	/* Check for available space in buffer. */
+	if (*index + cbytes > limit)
+		return false;
+
+	/* Encode continuation bytes. */
+	for (i = cbytes; i > 0; --i) {
+		str[*index + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
+		cc = cc >> CONT_BITS;
 	}
+
+	/* Encode first byte. */
+	str[*index] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
+
+	/* Advance index. */
+	*index += cbytes;
 	
-	if ((ch >= 2048) && (ch <= 65535)) {
-		/* Code points 2048 .. 65535 */
-		if (*index + 2 > limit)
-			return false;
-		
-		str[*index] = 0xe0 | ((ch >> 12) & 0x0f);
-		(*index)++;
-		str[*index] = 0x80 | ((ch >> 6) & 0x3f);
-		(*index)++;
-		str[*index] = 0x80 | (ch & 0x3f);
-		return true;
-	}
-	
-	if ((ch >= 65536) && (ch <= 1114111)) {
-		/* Code points 65536 .. 1114111 */
-		if (*index + 3 > limit)
-			return false;
-		
-		str[*index] = 0xf0 | ((ch >> 18) & 0x07);
-		(*index)++;
-		str[*index] = 0x80 | ((ch >> 12) & 0x3f);
-		(*index)++;
-		str[*index] = 0x80 | ((ch >> 6) & 0x3f);
-		(*index)++;
-		str[*index] = 0x80 | (ch & 0x3f);
-		return true;
-	}
-	
-	return false;
+	return true;
 }
 
 /** Get bytes used by UTF-8 characters.
