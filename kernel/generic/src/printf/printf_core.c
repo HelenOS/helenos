@@ -257,7 +257,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 	size_t size = strlen_utf8(str);
 	if (precision == 0)
 		precision = size;
-	
+
 	count_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
@@ -266,7 +266,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-	
+
 	int retval;
 	size_t bytes = utf8_count_bytes(str, min(size, precision));
 	if ((retval = printf_putnchars_utf8(str, bytes, ps)) < 0)
@@ -278,7 +278,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
 	}
-	
+
 	return ((int) counter);
 }
 
@@ -585,13 +585,19 @@ static int print_number(uint64_t num, int width, int precision, int base,
 int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 {
 	index_t i = 0;  /* Index of the currently processed character from fmt */
+	index_t nxt = 0;
 	index_t j = 0;  /* Index to the first not printed nonformating character */
 	
 	wchar_t uc;           /* Current UTF-32 character decoded from fmt */
 	count_t counter = 0;  /* Number of UTF-8 characters printed */
 	int retval;           /* Return values from nested functions */
 	
-	while ((uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT)) != 0) {
+	while (true) {
+		i = nxt;
+		uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+
+		if (uc == '\0') break;
+
 		/* Control character */
 		if (uc == '%') {
 			/* Print common characters if any processed */
@@ -611,8 +617,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			bool end = false;
 			
 			do {
-				i++;
-				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				i = nxt;
+				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				switch (uc) {
 				case '#':
 					flags |= __PRINTF_FLAG_PREFIX;
@@ -637,18 +643,21 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			/* Width & '*' operator */
 			int width = 0;
 			if (isdigit(uc)) {
-				while ((uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT)) != 0) {
-					if (!isdigit(uc))
-						break;
-					
+				while (true) {
 					width *= 10;
 					width += uc - '0';
-					i++;
+
+					i = nxt;
+					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+					if (uc == '\0')
+						break;
+					if (!isdigit(uc))
+						break;
 				}
 			} else if (uc == '*') {
 				/* Get width value from argument list */
-				i++;
-				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				i = nxt;
+				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				width = (int) va_arg(ap, int);
 				if (width < 0) {
 					/* Negative width sets '-' flag */
@@ -660,21 +669,24 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			/* Precision and '*' operator */
 			int precision = 0;
 			if (uc == '.') {
-				i++;
-				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				i = nxt;
+				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (isdigit(uc)) {
-					while ((uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT)) != 0) {
-						if (!isdigit(uc))
-							break;
-						
+					while (true) {
 						precision *= 10;
 						precision += uc - '0';
-						i++;
+
+						i = nxt;
+						uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+						if (uc == '\0')
+							break;
+						if (!isdigit(uc))
+							break;
 					}
-				} else if (fmt[i] == '*') {
+				} else if (uc == '*') {
 					/* Get precision value from the argument list */
-					i++;
-					uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+					i = nxt;
+					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					precision = (int) va_arg(ap, int);
 					if (precision < 0) {
 						/* Ignore negative precision */
@@ -692,22 +704,22 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case 'h':
 				/* Char or short */
 				qualifier = PrintfQualifierShort;
-				i++;
-				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				i = nxt;
+				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (uc == 'h') {
-					i++;
-					uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+					i = nxt;
+					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					qualifier = PrintfQualifierByte;
 				}
 				break;
 			case 'l':
 				/* Long or long long */
 				qualifier = PrintfQualifierLong;
-				i++;
-				uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+				i = nxt;
+				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (uc == 'l') {
-					i++;
-					uc = utf8_decode(fmt, &i, UTF8_NO_LIMIT);
+					i = nxt;
+					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					qualifier = PrintfQualifierLongLong;
 				}
 				break;
@@ -734,7 +746,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				}
 				
 				counter += retval;
-				j = i + 1;
+				j = nxt;
 				goto next_char;
 			case 'c':
 				if (qualifier == PrintfQualifierLong)
@@ -748,7 +760,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				};
 				
 				counter += retval;
-				j = i + 1;
+				j = nxt;
 				goto next_char;
 			
 			/*
@@ -852,11 +864,10 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			}
 			
 			counter += retval;
-			j = i + 1;
+			j = nxt;
 		}
 next_char:
-		
-		i++;
+		;
 	}
 	
 	if (i > j) {

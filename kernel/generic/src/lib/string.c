@@ -59,8 +59,9 @@ char invalch = '?';
 /** Decode a single UTF-8 character from a NULL-terminated string.
  *
  * Decode a single UTF-8 character from a plain char NULL-terminated
- * string. Decoding starts at @index and this index is incremented
- * if the current UTF-8 string is encoded in more than a single byte.
+ * string. Decoding starts at @index and this index is moved to the
+ * beginning of the next character. In case of decoding error,
+ * index advances. However, index is never moved beyond (str+limit).
  *
  * @param str   Plain character NULL-terminated string.
  * @param index Index (counted in plain characters) where to start
@@ -78,10 +79,10 @@ wchar_t utf8_decode(const char *str, index_t *index, index_t limit)
 	int b0_bits;		/* Data bits in first byte. */
 	int cbytes;		/* Number of continuation bytes. */
 
-	if (*index > limit)
+	if (*index + 1 > limit)
 		return invalch;
 
-	b0 = (uint8_t) str[*index];
+	b0 = (uint8_t) str[(*index)++];
 
 	/* Determine code length. */
 
@@ -114,8 +115,7 @@ wchar_t utf8_decode(const char *str, index_t *index, index_t limit)
 
 	/* Decode continuation bytes. */
 	while (cbytes > 0) {
-		b = (uint8_t) str[*index + 1];
-		++(*index);
+		b = (uint8_t) str[(*index)++];
 
 		/* Must be 10xxxxxx. */
 		if ((b & 0xc0) != 0x80) {
@@ -134,8 +134,8 @@ wchar_t utf8_decode(const char *str, index_t *index, index_t limit)
  *
  * Encode a single UTF-32 character as UTF-8 and store it into
  * the given buffer at @index. Encoding starts at @index and
- * this index is incremented if the UTF-8 character takes
- * more than a single byte.
+ * this index is moved at the position where the next character
+ * can be written to.
  *
  * @param ch    Input UTF-32 character.
  * @param str   Output buffer.
@@ -156,7 +156,7 @@ bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit)
 	int b0_bits;		/* Number of data bits in first byte. */
 	int i;
 
-	if (*index > limit)
+	if (*index >= limit)
 		return false;
 
 	if (ch < 0)
@@ -184,7 +184,7 @@ bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit)
 	}
 
 	/* Check for available space in buffer. */
-	if (*index + cbytes > limit)
+	if (*index + cbytes >= limit)
 		return false;
 
 	/* Encode continuation bytes. */
@@ -197,7 +197,7 @@ bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit)
 	str[*index] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
 
 	/* Advance index. */
-	*index += cbytes;
+	*index += (1 + cbytes);
 	
 	return true;
 }
@@ -219,13 +219,20 @@ size_t utf8_count_bytes(const char *str, count_t count)
 {
 	size_t size = 0;
 	index_t index = 0;
+	index_t iprev;
+	wchar_t ch;
 	
-	while ((utf8_decode(str, &index, UTF8_NO_LIMIT) != 0) && (size < count)) {
+	while (true) {
+		iprev = index;
+		if (size >= count)
+			break;
+		ch = utf8_decode(str, &index, UTF8_NO_LIMIT);
+		if (ch == '\0') break;
+
 		size++;
-		index++;
 	}
 	
-	return index;
+	return iprev;
 }
 
 /** Check whether character is plain ASCII.
@@ -283,7 +290,6 @@ size_t strlen_utf8(const char *str)
 	
 	while (utf8_decode(str, &index, UTF8_NO_LIMIT) != 0) {
 		size++;
-		index++;
 	}
 	
 	return size;
