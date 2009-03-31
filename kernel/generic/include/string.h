@@ -37,12 +37,12 @@
 
 #include <typedefs.h>
 
-#define UTF8_NO_LIMIT  ((index_t) -1)
+#define UTF8_NO_LIMIT  ((size_t) -1)
 
 extern char invalch;
 
-extern wchar_t utf8_decode(const char *str, index_t *index, index_t limit);
-extern bool utf8_encode(const wchar_t ch, char *str, index_t *index, index_t limit);
+extern wchar_t chr_decode(const char *, size_t *, size_t);
+extern bool chr_encode(const wchar_t, char *, size_t *, size_t limit);
 extern size_t utf8_count_bytes(const char *str, count_t count);
 extern bool ascii_check(const wchar_t ch);
 extern bool unicode_check(const wchar_t ch);

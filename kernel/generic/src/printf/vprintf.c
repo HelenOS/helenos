@@ -49,7 +49,7 @@ static int vprintf_write_utf8(const char *str, size_t size, void *data)
 	index_t chars = 0;
 	
 	while (index < size) {
-		putchar(utf8_decode(str, &index, size));
+		putchar(chr_decode(str, &index, size));
 		chars++;
 	}
 	
@@ -74,7 +74,7 @@ int puts(const char *str)
 	index_t chars = 0;
 	wchar_t uc;
 	
-	while ((uc = utf8_decode(str, &index, UTF8_NO_LIMIT)) != 0) {
+	while ((uc = chr_decode(str, &index, UTF8_NO_LIMIT)) != 0) {
 		putchar(uc);
 		chars++;
 	}

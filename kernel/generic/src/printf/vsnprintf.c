@@ -84,9 +84,9 @@ static int vsnprintf_write_utf8(const char *str, size_t size, vsnprintf_data_t *
 		index_t index = 0;
 		
 		while (index < size) {
-			wchar_t uc = utf8_decode(str, &index, size);
+			wchar_t uc = chr_decode(str, &index, size);
 
-			if (!utf8_encode(uc, data->dst, &data->len, data->size - 1))
+			if (!chr_encode(uc, data->dst, &data->len, data->size - 1))
 				break;
 		}
 		
@@ -146,7 +146,7 @@ static int vsnprintf_write_utf32(const wchar_t *str, size_t size, vsnprintf_data
 			return ((int) size);
 		}
 		
-		if (!utf8_encode(str[index], data->dst, &data->len, data->size - 1))
+		if (!chr_encode(str[index], data->dst, &data->len, data->size - 1))
 			break;
 		
 		index++;

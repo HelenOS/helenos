@@ -594,7 +594,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 	
 	while (true) {
 		i = nxt;
-		uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+		uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 
 		if (uc == '\0') break;
 
@@ -618,7 +618,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			
 			do {
 				i = nxt;
-				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+				uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				switch (uc) {
 				case '#':
 					flags |= __PRINTF_FLAG_PREFIX;
@@ -648,7 +648,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					width += uc - '0';
 
 					i = nxt;
-					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+					uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					if (uc == '\0')
 						break;
 					if (!isdigit(uc))
@@ -657,7 +657,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			} else if (uc == '*') {
 				/* Get width value from argument list */
 				i = nxt;
-				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+				uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				width = (int) va_arg(ap, int);
 				if (width < 0) {
 					/* Negative width sets '-' flag */
@@ -670,14 +670,14 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			int precision = 0;
 			if (uc == '.') {
 				i = nxt;
-				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+				uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (isdigit(uc)) {
 					while (true) {
 						precision *= 10;
 						precision += uc - '0';
 
 						i = nxt;
-						uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+						uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 						if (uc == '\0')
 							break;
 						if (!isdigit(uc))
@@ -686,7 +686,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				} else if (uc == '*') {
 					/* Get precision value from the argument list */
 					i = nxt;
-					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+					uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					precision = (int) va_arg(ap, int);
 					if (precision < 0) {
 						/* Ignore negative precision */
@@ -705,10 +705,10 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				/* Char or short */
 				qualifier = PrintfQualifierShort;
 				i = nxt;
-				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+				uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (uc == 'h') {
 					i = nxt;
-					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+					uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					qualifier = PrintfQualifierByte;
 				}
 				break;
@@ -716,10 +716,10 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				/* Long or long long */
 				qualifier = PrintfQualifierLong;
 				i = nxt;
-				uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+				uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 				if (uc == 'l') {
 					i = nxt;
-					uc = utf8_decode(fmt, &nxt, UTF8_NO_LIMIT);
+					uc = chr_decode(fmt, &nxt, UTF8_NO_LIMIT);
 					qualifier = PrintfQualifierLongLong;
 				}
 				break;
