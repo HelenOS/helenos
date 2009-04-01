@@ -43,13 +43,14 @@ extern char invalch;
 
 extern wchar_t chr_decode(const char *, size_t *, size_t);
 extern bool chr_encode(const wchar_t, char *, size_t *, size_t);
-extern size_t str_lsize(const char *, count_t);
-extern bool ascii_check(const wchar_t ch);
-extern bool unicode_check(const wchar_t ch);
 
-extern size_t strlen(const char *str);
+extern size_t str_size(const char *str);
+extern size_t str_lsize(const char *, count_t);
 extern count_t str_length(const char *str);
 extern count_t wstr_length(const wchar_t *str);
+
+extern bool ascii_check(const wchar_t ch);
+extern bool unicode_check(const wchar_t ch);
 
 extern int strcmp(const char *src, const char *dst);
 extern int strncmp(const char *src, const char *dst, size_t len);

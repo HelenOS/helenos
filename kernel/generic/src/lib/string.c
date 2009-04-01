@@ -69,7 +69,6 @@ char invalch = '?';
  * @param limit Size of the substring.
  *
  * @return	Value of decoded character or '?' on decoding error.
- *
  */
 wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
 {
@@ -246,7 +245,6 @@ bool ascii_check(const wchar_t ch)
 /** Check whether character is Unicode.
  *
  * @return True if character is valid Unicode code point.
- *
  */
 bool unicode_check(const wchar_t ch)
 {
@@ -256,18 +254,19 @@ bool unicode_check(const wchar_t ch)
 	return false;
 }
 
-/** Return number of plain characters in a string.
+/** Return number of bytes the string occupies.
  *
- * @param str NULL-terminated string.
- *
- * @return Number of characters in @a str.
- *
+ * @param str A string.
+ * @return Number of bytes in @a str excluding the null terminator.
  */
-size_t strlen(const char *str)
+size_t str_size(const char *str)
 {
 	size_t size;
-	for (size = 0; str[size]; size++);
-	
+
+	size = 0;
+	while (*str++ != '\0')
+		++size;
+
 	return size;
 }
 
@@ -346,7 +345,6 @@ int strcmp(const char *src, const char *dst)
  * @param len Maximal length for comparison.
  *
  * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
- *
  */
 int strncmp(const char *src, const char *dst, size_t len)
 {
@@ -380,7 +378,6 @@ int strncmp(const char *src, const char *dst, size_t len)
  * @param src  Source string.
  * @param dest Destination buffer.
  * @param len  Size of destination buffer.
- *
  */
 void strncpy(char *dest, const char *src, size_t len)
 {

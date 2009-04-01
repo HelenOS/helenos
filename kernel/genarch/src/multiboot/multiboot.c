@@ -54,7 +54,7 @@ static void extract_command(char *buf, size_t n, const char *cmd_line)
 	/* Find the first space. */
 	end = strchr(cmd_line, ' ');
 	if (end == NULL)
-		end = cmd_line + strlen(cmd_line);
+		end = cmd_line + str_size(cmd_line);
 	
 	/*
 	 * Find last occurence of '/' before 'end'. If found, place start at

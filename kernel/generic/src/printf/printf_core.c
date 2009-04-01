@@ -125,9 +125,9 @@ static int printf_putnchars_utf32(const wchar_t *buf, size_t size,
 static int printf_putstr(const char *str, printf_spec_t *ps)
 {
 	if (str == NULL)
-		return printf_putnchars_utf8(nullstr, strlen(nullstr), ps);
+		return printf_putnchars_utf8(nullstr, str_size(nullstr), ps);
 	
-	return ps->write_utf8((void *) str, strlen(str), ps->data);
+	return ps->write_utf8((void *) str, str_size(str), ps->data);
 }
 
 /** Print one ASCII character.

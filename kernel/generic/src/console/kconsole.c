@@ -137,8 +137,8 @@ int cmd_register(cmd_info_t *cmd)
 			spinlock_lock(&cmd->lock);
 			spinlock_lock(&hlp->lock);
 		}
-		if ((strncmp(hlp->name, cmd->name, max(strlen(cmd->name),
-		    strlen(hlp->name))) == 0)) {
+		if ((strncmp(hlp->name, cmd->name, max(str_size(cmd->name),
+		    str_size(hlp->name))) == 0)) {
 			/* The command is already there. */
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd->lock);
@@ -172,7 +172,7 @@ static void insert_char(char *str, char ch, int pos)
 {
 	int i;
 	
-	for (i = strlen(str); i > pos; i--)
+	for (i = str_size(str); i > pos; i--)
 		str[i] = str[i - 1];
 	str[pos] = ch;
 }
@@ -180,7 +180,7 @@ static void insert_char(char *str, char ch, int pos)
 /** Try to find a command beginning with prefix */
 static const char *cmdtab_search_one(const char *name,link_t **startpos)
 {
-	size_t namelen = strlen(name);
+	size_t namelen = str_size(name);
 	const char *curname;
 
 	spinlock_lock(&cmd_lock);
@@ -193,7 +193,7 @@ static const char *cmdtab_search_one(const char *name,link_t **startpos)
 		hlp = list_get_instance(*startpos, cmd_info_t, link);
 
 		curname = hlp->name;
-		if (strlen(curname) < namelen)
+		if (str_size(curname) < namelen)
 			continue;
 		if (strncmp(curname, name, namelen) == 0) {
 			spinlock_unlock(&cmd_lock);	
@@ -222,7 +222,7 @@ static int cmdtab_compl(char *name)
 	while ((foundtxt = cmdtab_search_one(name, &startpos))) {
 		startpos = startpos->next;
 		if (!found)
-			strncpy(output, foundtxt, strlen(foundtxt) + 1);
+			strncpy(output, foundtxt, str_size(foundtxt) + 1);
 		else {
 			for (i = 0; output[i] && foundtxt[i] &&
 			    output[i] == foundtxt[i]; i++)
@@ -234,7 +234,7 @@ static int cmdtab_compl(char *name)
 	if (!found)
 		return 0;
 
-	if (found > 1 && !strlen(output)) {
+	if (found > 1 && !str_size(output)) {
 		printf("\n");
 		startpos = NULL;
 		while ((foundtxt = cmdtab_search_one(name, &startpos))) {
@@ -309,10 +309,10 @@ static char *clever_readline(const char *prompt, indev_t *input)
 			    i++, curlen++)
 				insert_char(current, tmp[i], i + position);
 
-			if (strlen(tmp) || found == 1) { /* If we have a hint */
+			if (str_size(tmp) || found == 1) { /* If we have a hint */
 				for (i = position; i < curlen; i++) 
 					putchar(current[i]);
-				position += strlen(tmp);
+				position += str_size(tmp);
 				/* Add space to end */
 				if (found == 1 && position == curlen &&
 				    curlen < MAX_CMDLINE) {
@@ -325,7 +325,7 @@ static char *clever_readline(const char *prompt, indev_t *input)
 				printf("%s> ", prompt);
 				for (i = 0; i < curlen; i++)
 					putchar(current[i]);
-				position += strlen(tmp);
+				position += str_size(tmp);
 			}
 			rdln_print_c('\b', curlen - position);
 			continue;
@@ -384,7 +384,7 @@ static char *clever_readline(const char *prompt, indev_t *input)
 				}
 				current = history[histposition];
 				printf("%s", current);
-				curlen = strlen(current);
+				curlen = str_size(current);
 				position = curlen;
 				continue;
 			}
@@ -443,7 +443,7 @@ void kconsole(char *prompt, char *msg, bool kcon)
 	
 	while (true) {
 		cmdline = clever_readline((char *) prompt, stdin);
-		len = strlen(cmdline);
+		len = str_size(cmdline);
 		if (!len)
 			continue;
 		
@@ -544,7 +544,7 @@ cmd_info_t *parse_cmdline(char *cmdline, size_t len)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 		
-		if (strncmp(hlp->name, &cmdline[start], max(strlen(hlp->name),
+		if (strncmp(hlp->name, &cmdline[start], max(str_size(hlp->name),
 		    end - start + 1)) == 0) {
 			cmd = hlp;
 			break;

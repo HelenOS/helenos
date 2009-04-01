@@ -519,8 +519,8 @@ int cmd_help(cmd_arg_t *argv)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
 		spinlock_lock(&hlp->lock);
-		if (strlen(hlp->name) > len)
-			len = strlen(hlp->name);
+		if (str_size(hlp->name) > len)
+			len = str_size(hlp->name);
 		spinlock_unlock(&hlp->lock);
 	}
 	
@@ -591,7 +591,7 @@ int cmd_desc(cmd_arg_t *argv)
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
 
-		if (strncmp(hlp->name, (const char *) argv->buffer, strlen(hlp->name)) == 0) {
+		if (strncmp(hlp->name, (const char *) argv->buffer, str_size(hlp->name)) == 0) {
 			printf("%s - %s\n", hlp->name, hlp->description);
 			if (hlp->help)
 				hlp->help();
@@ -972,8 +972,8 @@ int cmd_tests(cmd_arg_t *argv)
 	size_t len = 0;
 	test_t *test;
 	for (test = tests; test->name != NULL; test++) {
-		if (strlen(test->name) > len)
-			len = strlen(test->name);
+		if (str_size(test->name) > len)
+			len = str_size(test->name);
 	}
 	
 	for (test = tests; test->name != NULL; test++)

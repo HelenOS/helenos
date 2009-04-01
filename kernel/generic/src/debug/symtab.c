@@ -106,7 +106,7 @@ char *symtab_fmt_name_lookup(unative_t addr)
  */
 static char * symtab_search_one(const char *name, int *startpos)
 {
-	unsigned int namelen = strlen(name);
+	unsigned int namelen = str_size(name);
 	char *curname;
 	int i, j;
 	int colonoffset = -1;
@@ -126,7 +126,7 @@ static char * symtab_search_one(const char *name, int *startpos)
 			continue;
 		j -= colonoffset;
 		curname += j;
-		if (strlen(curname) < namelen)
+		if (str_size(curname) < namelen)
 			continue;
 		if (strncmp(curname, name, namelen) == 0) {
 			*startpos = i;
@@ -157,7 +157,7 @@ int symtab_addr_lookup(const char *name, uintptr_t *addr)
 
 	i = 0;
 	while ((hint = symtab_search_one(name, &i))) {
-		if (!strlen(hint)) {
+		if (!str_size(hint)) {
 			*addr =  uint64_t_le2host(symbol_table[i].address_le);
 			found++;
 		}
@@ -214,7 +214,7 @@ int symtab_compl(char *input)
 		name++;
 
 	/* Do not print everything */
-	if (!strlen(name))
+	if (!str_size(name))
 		return 0;
 	
 
@@ -223,7 +223,7 @@ int symtab_compl(char *input)
 	while ((foundtxt = symtab_search_one(name, &startpos))) {
 		startpos++;
 		if (!found)
-			strncpy(output, foundtxt, strlen(foundtxt) + 1);
+			strncpy(output, foundtxt, str_size(foundtxt) + 1);
 		else {
 			for (i = 0; output[i] && foundtxt[i] &&
 			     output[i] == foundtxt[i]; i++)
@@ -235,7 +235,7 @@ int symtab_compl(char *input)
 	if (!found)
 		return 0;
 
-	if (found > 1 && !strlen(output)) {
+	if (found > 1 && !str_size(output)) {
 		printf("\n");
 		startpos = 0;
 		while ((foundtxt = symtab_search_one(name, &startpos))) {

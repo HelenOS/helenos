@@ -252,8 +252,8 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 	if (path[0] != '/')
 		return NULL;
 	
-	for (i = 1; i < strlen(path) && node; i = j + 1) {
-		for (j = i; j < strlen(path) && path[j] != '/'; j++)
+	for (i = 1; i < str_size(path) && node; i = j + 1) {
+		for (j = i; j < str_size(path) && path[j] != '/'; j++)
 			;
 		if (i == j)	/* skip extra slashes */
 			continue;
