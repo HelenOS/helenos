@@ -199,37 +199,35 @@ bool chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 	return true;
 }
 
-/** Get bytes used by UTF-8 characters.
+/** Get size of string, with length limit.
  *
- * Get the number of bytes (count of plain characters) which
- * are used by a given count of UTF-8 characters in a string.
- * As UTF-8 encoding is multibyte, there is no constant
- * correspondence between number of characters and used bytes.
+ * Get the number of bytes which are used by up to @a max_len first
+ * characters in the string @a str. If @a max_len is greater than
+ * the length of @a str, the entire string is measured.
  *
- * @param str   UTF-8 string to consider.
- * @param count Number of UTF-8 characters to count.
+ * @param str   String to consider.
+ * @param count Maximum number of characters to measure.
  *
  * @return Number of bytes used by the characters.
- *
  */
-size_t utf8_count_bytes(const char *str, count_t count)
+size_t str_lsize(const char *str, count_t max_len)
 {
-	size_t size = 0;
-	index_t index = 0;
-	index_t iprev;
+	count_t len = 0;
+	size_t cur = 0;
+	size_t prev;
 	wchar_t ch;
-	
+
 	while (true) {
-		iprev = index;
-		if (size >= count)
+		prev = cur;
+		if (len >= max_len)
 			break;
-		ch = chr_decode(str, &index, UTF8_NO_LIMIT);
+		ch = chr_decode(str, &cur, UTF8_NO_LIMIT);
 		if (ch == '\0') break;
 
-		size++;
+		len++;
 	}
-	
-	return iprev;
+
+	return prev;
 }
 
 /** Check whether character is plain ASCII.
@@ -262,7 +260,7 @@ bool unicode_check(const wchar_t ch)
  *
  * @param str NULL-terminated string.
  *
- * @return Number of characters in str.
+ * @return Number of characters in @a str.
  *
  */
 size_t strlen(const char *str)
@@ -273,38 +271,37 @@ size_t strlen(const char *str)
 	return size;
 }
 
-/** Return number of UTF-8 characters in a string.
+/** Return number of characters in a string.
  *
- * @param str NULL-terminated UTF-8 string.
- *
- * @return Number of UTF-8 characters in str.
- *
+ * @param str NULL-terminated string.
+ * @return Number of characters in string.
  */
-size_t strlen_utf8(const char *str)
+count_t str_length(const char *str)
 {
-	size_t size = 0;
-	index_t index = 0;
-	
-	while (chr_decode(str, &index, UTF8_NO_LIMIT) != 0) {
-		size++;
+	count_t len = 0;
+	size_t offset = 0;
+
+	while (chr_decode(str, &offset, UTF8_NO_LIMIT) != 0) {
+		len++;
 	}
-	
-	return size;
+
+	return len;
 }
 
-/** Return number of UTF-32 characters in a string.
+/** Return number of characters in a wide string.
  *
- * @param str NULL-terminated UTF-32 string.
- *
- * @return Number of UTF-32 characters in str.
- *
+ * @param str NULL-terminated wide string.
+ * @return Number of characters in @a str.
  */
-size_t strlen_utf32(const wchar_t *str)
+count_t wstr_length(const wchar_t *wstr)
 {
-	size_t size;
-	for (size = 0; str[size]; size++);
-	
-	return size;
+	count_t len;
+
+	len = 0;
+	while (*wstr++ != '\0')
+		++len;
+
+	return len;
 }
 
 /** Compare two NULL terminated strings

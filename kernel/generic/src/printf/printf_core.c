@@ -254,7 +254,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 		return printf_putstr(nullstr, ps);
 	
 	/* Print leading spaces */
-	size_t size = strlen_utf8(str);
+	size_t size = str_length(str);
 	if (precision == 0)
 		precision = size;
 
@@ -268,7 +268,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 	}
 
 	int retval;
-	size_t bytes = utf8_count_bytes(str, min(size, precision));
+	size_t bytes = str_lsize(str, min(size, precision));
 	if ((retval = printf_putnchars_utf8(str, bytes, ps)) < 0)
 		return -counter;
 	
@@ -298,7 +298,7 @@ static int print_utf32(wchar_t *str, int width, unsigned int precision,
 		return printf_putstr(nullstr, ps);
 	
 	/* Print leading spaces */
-	size_t size = strlen_utf32(str);
+	size_t size = wstr_length(str);
 	if (precision == 0)
 		precision = size;
 	
