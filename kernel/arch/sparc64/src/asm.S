@@ -228,6 +228,11 @@ memsetb:
 	b _memsetb
 	nop
 
+.global memsetw
+memsetw:
+	b _memsetw
+	nop
+
 
 .macro WRITE_ALTERNATE_REGISTER reg, bit
 	rdpr %pstate, %g1				! save PSTATE.PEF

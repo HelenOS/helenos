@@ -130,7 +130,7 @@ SPINLOCK_INITIALIZE(sgcn_input_lock);
 
 
 /* functions referenced from definitions of I/O operations structures */
-static void sgcn_putchar(outdev_t *, const char, bool);
+static void sgcn_putchar(outdev_t *, const wchar_t, bool);
 
 /** SGCN output device operations */
 static outdev_operations_t sgcnout_ops = {
@@ -268,14 +268,17 @@ static void sgcn_do_putchar(const char c)
  * feed character is written ('\n'), the carriage return character ('\r') is
  * written straight away. 
  */
-static void sgcn_putchar(outdev_t *od, const char c, bool silent)
+static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
 {
 	if (!silent) {
 		spinlock_lock(&sgcn_output_lock);
 		
-		sgcn_do_putchar(c);
-		if (c == '\n')
-			sgcn_do_putchar('\r');
+		if (ascii_check(ch)) {
+			sgcn_do_putchar(ch);
+			if (ch == '\n')
+				sgcn_do_putchar('\r');
+		} else
+			sgcn_do_putchar(invalch);
 		
 		spinlock_unlock(&sgcn_output_lock);
 	}
