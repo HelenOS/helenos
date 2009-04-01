@@ -264,9 +264,8 @@ static void sgcn_do_putchar(const char c)
 }
 
 /**
- * SGCN output operation. Prints a single character to the SGCN. If the line
- * feed character is written ('\n'), the carriage return character ('\r') is
- * written straight away. 
+ * SGCN output operation. Prints a single character to the SGCN. Newline
+ * character is converted to CRLF.
  */
 static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
 {
@@ -274,9 +273,9 @@ static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
 		spinlock_lock(&sgcn_output_lock);
 		
 		if (ascii_check(ch)) {
-			sgcn_do_putchar(ch);
 			if (ch == '\n')
 				sgcn_do_putchar('\r');
+			sgcn_do_putchar(ch);
 		} else
 			sgcn_do_putchar(invalch);
 		
