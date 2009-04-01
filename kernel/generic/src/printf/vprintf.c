@@ -45,40 +45,40 @@ SPINLOCK_INITIALIZE(printf_lock);  /**< vprintf spinlock */
 
 static int vprintf_write_utf8(const char *str, size_t size, void *data)
 {
-	index_t index = 0;
-	index_t chars = 0;
-	
-	while (index < size) {
-		putchar(chr_decode(str, &index, size));
+	size_t offset = 0;
+	count_t chars = 0;
+
+	while (offset < size) {
+		putchar(chr_decode(str, &offset, size));
 		chars++;
 	}
-	
+
 	return chars;
 }
 
 static int vprintf_write_utf32(const wchar_t *str, size_t size, void *data)
 {
 	index_t index = 0;
-	
+
 	while (index < (size / sizeof(wchar_t))) {
 		putchar(str[index]);
 		index++;
 	}
-	
+
 	return index;
 }
 
 int puts(const char *str)
 {
-	index_t index = 0;
-	index_t chars = 0;
+	size_t offset = 0;
+	count_t chars = 0;
 	wchar_t uc;
-	
-	while ((uc = chr_decode(str, &index, UTF8_NO_LIMIT)) != 0) {
+
+	while ((uc = chr_decode(str, &offset, UTF8_NO_LIMIT)) != 0) {
 		putchar(uc);
 		chars++;
 	}
-	
+
 	return chars;
 }
 
@@ -89,15 +89,15 @@ int vprintf(const char *fmt, va_list ap)
 		vprintf_write_utf32,
 		NULL
 	};
-	
+
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&printf_lock);
-	
+
 	int ret = printf_core(fmt, &ps, ap);
-	
+
 	spinlock_unlock(&printf_lock);
 	interrupts_restore(ipl);
-	
+
 	return ret;
 }
 

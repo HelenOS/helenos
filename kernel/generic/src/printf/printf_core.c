@@ -252,11 +252,11 @@ static int print_utf8(char *str, int width, unsigned int precision,
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-	
-	/* Print leading spaces */
-	size_t size = str_length(str);
+
+	/* Print leading spaces. */
+	count_t strw = str_length(str);
 	if (precision == 0)
-		precision = size;
+		precision = strw;
 
 	count_t counter = 0;
 	width -= precision;
@@ -268,18 +268,19 @@ static int print_utf8(char *str, int width, unsigned int precision,
 	}
 
 	int retval;
-	size_t bytes = str_lsize(str, min(size, precision));
-	if ((retval = printf_putnchars_utf8(str, bytes, ps)) < 0)
+	size_t size = str_lsize(str, precision);
+	if ((retval = printf_putnchars_utf8(str, size, ps)) < 0)
 		return -counter;
-	
+
 	counter += retval;
-	
+
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
 	}
 
 	return ((int) counter);
+
 }
 
 /** Print UTF-32 string.
@@ -291,17 +292,17 @@ static int print_utf8(char *str, int width, unsigned int precision,
  *
  * @return Number of UTF-32 characters printed, negative value on failure.
  */
-static int print_utf32(wchar_t *str, int width, unsigned int precision,
+static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
 	uint32_t flags, printf_spec_t *ps)
 {
-	if (str == NULL)
+	if (wstr == NULL)
 		return printf_putstr(nullstr, ps);
-	
-	/* Print leading spaces */
-	size_t size = wstr_length(str);
+
+	/* Print leading spaces. */
+	size_t strw = wstr_length(wstr);
 	if (precision == 0)
-		precision = size;
-	
+		precision = strw;
+
 	count_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
@@ -310,19 +311,19 @@ static int print_utf32(wchar_t *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-	
+
 	int retval;
-	size_t bytes = min(size, precision) * sizeof(wchar_t);
-	if ((retval = printf_putnchars_utf32(str, bytes, ps)) < 0)
+	size_t size = min(strw, precision) * sizeof(wchar_t);
+	if ((retval = printf_putnchars_utf32(wstr, size, ps)) < 0)
 		return -counter;
-	
+
 	counter += retval;
-	
+
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
 	}
-	
+
 	return ((int) counter);
 }
 
@@ -584,9 +585,9 @@ static int print_number(uint64_t num, int width, int precision, int base,
  */
 int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 {
-	index_t i = 0;  /* Index of the currently processed character from fmt */
-	index_t nxt = 0;
-	index_t j = 0;  /* Index to the first not printed nonformating character */
+	size_t i = 0;  /* Index of the currently processed character from fmt */
+	size_t nxt = 0;
+	size_t j = 0;  /* Index to the first not printed nonformating character */
 	
 	wchar_t uc;           /* Current UTF-32 character decoded from fmt */
 	count_t counter = 0;  /* Number of UTF-8 characters printed */

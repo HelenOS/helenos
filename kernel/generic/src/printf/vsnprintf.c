@@ -77,7 +77,7 @@ static int vsnprintf_write_utf8(const char *str, size_t size, vsnprintf_data_t *
 	}
 	
 	if (left <= size) {
-		/* We have not enought space for whole string
+		/* We do not have enough space for the whole string
 		 * with the trailing zero => print only a part
 		 * of string
 		 */
