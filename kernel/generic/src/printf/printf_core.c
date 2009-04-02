@@ -114,12 +114,12 @@ static int printf_putnchars_utf32(const wchar_t *buf, size_t size,
 	return ps->write_utf32((void *) buf, size, ps->data);
 }
 
-/** Print UTF-8 string without adding a newline.
+/** Print string without adding newline.
  *
- * @param str UTF-8 string to print.
- * @param ps  Write function specification and support data.
+ * @param str	String to print.
+ * @param ps	Write function specification and support data.
  *
- * @return Number of UTF-8 characters printed.
+ * @return Number of characters printed.
  *
  */
 static int printf_putstr(const char *str, printf_spec_t *ps)
@@ -238,16 +238,16 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
 	return (int) (counter + 1);
 }
 
-/** Print UTF-8 string.
+/** Format and print a string.
  *
- * @param str       UTF-8 string to be printed.
+ * @param str       String to be printed.
  * @param width     Width modifier.
  * @param precision Precision modifier.
  * @param flags     Flags that modify the way the string is printed.
  *
- * @return Number of UTF-8 characters printed, negative value on failure.
+ * @return Number of characters printed, negative value on failure.
  */
-static int print_utf8(char *str, int width, unsigned int precision,
+static int print_str(char *str, int width, unsigned int precision,
 	uint32_t flags, printf_spec_t *ps)
 {
 	if (str == NULL)
@@ -258,6 +258,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 	if (precision == 0)
 		precision = strw;
 
+	/* Left padding */
 	count_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
@@ -267,6 +268,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 		}
 	}
 
+	/* Part of @a str fitting into the alloted space. */
 	int retval;
 	size_t size = str_wsize(str, precision);
 	if ((retval = printf_putnchars_utf8(str, size, ps)) < 0)
@@ -274,6 +276,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 
 	counter += retval;
 
+	/* Right padding */
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
@@ -283,16 +286,17 @@ static int print_utf8(char *str, int width, unsigned int precision,
 
 }
 
-/** Print UTF-32 string.
+/** Format and print a wide string.
  *
- * @param str       UTF-32 string to be printed.
- * @param width     Width modifier.
- * @param precision Precision modifier.
- * @param flags     Flags that modify the way the string is printed.
+ * @param wstr		Wide string to be printed.
+ * @param width		Width modifier.
+ * @param precision	Precision modifier.
+ * @param flags		Flags that modify the way the string is printed.
  *
- * @return Number of UTF-32 characters printed, negative value on failure.
+ * @return		Number of characters printed, negative value
+ *			on failure.
  */
-static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
+static int print_wstr(wchar_t *wstr, int width, unsigned int precision,
 	uint32_t flags, printf_spec_t *ps)
 {
 	if (wstr == NULL)
@@ -303,6 +307,7 @@ static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
 	if (precision == 0)
 		precision = strw;
 
+	/* Left padding */
 	count_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
@@ -312,6 +317,7 @@ static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
 		}
 	}
 
+	/* Part of @a wstr fitting into the alloted space. */
 	int retval;
 	size_t size = wstr_wlength(wstr, precision) * sizeof(wchar_t);
 	if ((retval = printf_putnchars_utf32(wstr, size, ps)) < 0)
@@ -319,6 +325,7 @@ static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
 
 	counter += retval;
 
+	/* Right padding */
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
@@ -416,9 +423,9 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			precision = width - size + number_size;
 	}
 	
-	/* Print leading spaces */
+	/* Print leading spaces. */
 	if (number_size > precision) {
-		/* Print the whole number, not only a part */
+		/* Print the whole number, not only a part. */
 		precision = number_size;
 	}
 	
@@ -432,13 +439,13 @@ static int print_number(uint64_t num, int width, int precision, int base,
 		}
 	}
 	
-	/* Print sign */
+	/* Print sign. */
 	if (sgn) {
 		if (printf_putchar(sgn, ps) == 1)
 			counter++;
 	}
 	
-	/* Print prefix */
+	/* Print prefix. */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
 		case 2:
@@ -471,19 +478,19 @@ static int print_number(uint64_t num, int width, int precision, int base,
 		}
 	}
 	
-	/* Print leading zeroes */
+	/* Print leading zeroes. */
 	precision -= number_size;
 	while (precision-- > 0) {
 		if (printf_putchar('0', ps) == 1)
 			counter++;
 	}
 	
-	/* Print the number itself */
+	/* Print the number itself. */
 	int retval;
 	if ((retval = printf_putstr(++ptr, ps)) > 0)
 		counter += retval;
 	
-	/* Print tailing spaces */
+	/* Print tailing spaces. */
 	
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
@@ -575,12 +582,11 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *  - X, x Print hexadecimal number with upper- or lower-case. Prefix is
  *         not printed by default.
  *
- * All other characters from fmt except the formatting directives are printed in
+ * All other characters from fmt except the formatting directives are printed
  * verbatim.
  *
- * @param fmt Formatting NULL terminated string (UTF-8 or plain ASCII).
- *
- * @return Number of UTF-8 characters printed, negative value on failure.
+ * @param fmt Format string.
+ * @return Number of characters printed, negative value on failure.
  *
  */
 int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
@@ -589,8 +595,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 	size_t nxt = 0;
 	size_t j = 0;  /* Index to the first not printed nonformating character */
 	
-	wchar_t uc;           /* Current UTF-32 character decoded from fmt */
-	count_t counter = 0;  /* Number of UTF-8 characters printed */
+	wchar_t uc;           /* Current character decoded from fmt */
+	count_t counter = 0;  /* Number of characters printed */
 	int retval;           /* Return values from nested functions */
 	
 	while (true) {
@@ -737,9 +743,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			 */
 			case 's':
 				if (qualifier == PrintfQualifierLong)
-					retval = print_utf32(va_arg(ap, wchar_t *), width, precision, flags, ps);
+					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
 				else
-					retval = print_utf8(va_arg(ap, char *), width, precision, flags, ps);
+					retval = print_str(va_arg(ap, char *), width, precision, flags, ps);
 				
 				if (retval < 0) {
 					counter = -counter;
