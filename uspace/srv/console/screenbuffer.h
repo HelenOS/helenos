@@ -36,6 +36,7 @@
 #define __SCREENBUFFER_H__
 
 #include <stdint.h>
+#include <sys/types.h>
 
 #define DEFAULT_FOREGROUND 0x0	/**< default console foreground color */
 #define DEFAULT_BACKGROUND 0xf0f0f0	/**< default console background color */
@@ -70,7 +71,7 @@ typedef struct {
 
 /** One field on screen. It contain one character and its attributes. */
 typedef struct {
-	char character;			/**< Character itself */
+	wchar_t character;		/**< Character itself */
 	attrs_t attrs;			/**< Character`s attributes */
 } keyfield_t;
 
@@ -91,7 +92,7 @@ typedef struct {
  * @param y	position on screen
  * @return	keyfield structure with character and its attributes on x,y
  */
-static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsigned int y) 
+static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
@@ -116,7 +117,7 @@ static inline int attrs_same(attrs_t a1, attrs_t a2)
 }
 
 
-void screenbuffer_putchar(screenbuffer_t *scr, char c);
+void screenbuffer_putchar(screenbuffer_t *scr, wchar_t c);
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y);
 
 void screenbuffer_clear(screenbuffer_t *scr);

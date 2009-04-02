@@ -102,6 +102,11 @@ void serial_puts(char *str)
 		putc_function(*(str++));
 }
 
+void serial_putchar(wchar_t ch)
+{
+	(*putc_function)(ch);
+}
+
 void serial_goto(const unsigned int row, const unsigned int col)
 {
 	if ((row > scr_height) || (col > scr_width))
@@ -256,7 +261,7 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 			a1 = &field->attrs;
 			if (!attrs_same(*a0, *a1))
 				serial_set_attrs(a1);
-			(*putc_function)(field->character);
+			serial_putchar(field->character);
 			a0 = a1;
 		}
 	}
@@ -276,7 +281,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;
 
-	char c;
+	wchar_t c;
 	int col, row, w, h;
 	int fgcolor;
 	int bgcolor;
@@ -343,7 +348,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				serial_goto(row, col);
 			lastcol = col + 1;
 			lastrow = row;
-			(*putc_function)(c);
+			serial_putchar(c);
 			retval = 0;
 			break;
 		case FB_CURSOR_GOTO:

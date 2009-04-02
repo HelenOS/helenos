@@ -103,7 +103,7 @@ struct {
 /** Buffer for receiving data via the CONSOLE_WRITE call from the client. */
 static char cwrite_buf[CWRITE_BUF_SIZE];
 
-static void fb_putchar(char c, int row, int col);
+static void fb_putchar(wchar_t c, int row, int col);
 
 
 /** Find unused virtual console.
@@ -251,18 +251,18 @@ static void cell_mark_changed(int row, int col)
 
 
 /** Print a character to the active VC with buffering. */
-static void fb_putchar(char c, int row, int col)
+static void fb_putchar(wchar_t c, int row, int col)
 {
 	async_msg_3(fb_info.phone, FB_PUTCHAR, c, row, col);
 }
 
 /** Process a character from the client (TTY emulation). */
-static void write_char(int console, char key)
+static void write_char(int console, wchar_t ch)
 {
 	bool flush_cursor = false;
 	screenbuffer_t *scr = &(connections[console].screenbuffer);
 
-	switch (key) {
+	switch (ch) {
 	case '\n':
 		fb_pending_flush();
 		flush_cursor = true;
@@ -287,7 +287,7 @@ static void write_char(int console, char key)
 		if (console == active_console)
 			cell_mark_changed(scr->position_y, scr->position_x);
 
-		screenbuffer_putchar(scr, key);
+		screenbuffer_putchar(scr, ch);
 		scr->position_x++;
 	}
 

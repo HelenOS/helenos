@@ -97,7 +97,7 @@ struct {
 
 /** Backbuffer character cell. */
 typedef struct {
-	uint8_t glyph;
+	uint32_t glyph;
 	uint32_t fg_color;
 	uint32_t bg_color;
 } bb_cell_t;
@@ -194,9 +194,9 @@ static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
     ipcarg_t bg_color, ipcarg_t attr);
 
 static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
+    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
 static void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
+    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
 
 static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
     unsigned int row);
@@ -659,13 +659,17 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
  * @param bg_color	Backgroudn color.
  */
 static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color)
+    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color)
 {
 	unsigned int i, yd;
 	unsigned long fg_buf, bg_buf;
 	unsigned long *maskp, *dp;
 	unsigned long mask;
 	unsigned int ww, d_add;
+
+	/* Check glyph range. */
+	if (glyph >= FONT_GLYPHS)
+		return;
 
 	/*
 	 * Prepare a pair of words, one filled with foreground-color
@@ -677,7 +681,6 @@ static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
 		screen.rgb_conv(&((uint8_t *)&bg_buf)[i * screen.pixelbytes],
 		    bg_color);
 	}
-
 
 	/* Pointer to the current position in the mask. */
 	maskp = (unsigned long *) &glyphs[GLYPH_POS(glyph, 0, cursor)];
@@ -720,13 +723,17 @@ static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
  * @param bg_color	Backgroudn color.
  */
 void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color)
+    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color)
 {
 	unsigned int i, j, yd;
 	uint8_t fg_buf[4], bg_buf[4];
 	uint8_t *dp, *sp;
 	unsigned int d_add;
 	uint8_t b;
+
+	/* Check glyph range. */
+	if (glyph >= FONT_GLYPHS)
+		return;
 
 	/* Pre-render 1x the foreground and background color pixels. */
 	if (cursor) {
@@ -779,7 +786,7 @@ static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
 	unsigned int x = vport->x + COL2X(col);
 	unsigned int y = vport->y + ROW2Y(row);
 
-	uint8_t glyph;
+	uint32_t glyph;
 	uint32_t fg_color;
 	uint32_t bg_color;
 	
@@ -836,7 +843,7 @@ static void cursor_blink(viewport_t *vport)
  * @param row    Screen position relative to viewport
  *
  */
-static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned int row)
+static void draw_char(viewport_t *vport, wchar_t c, unsigned int col, unsigned int row)
 {
 	bb_cell_t *bbp;
 
@@ -846,7 +853,7 @@ static void draw_char(viewport_t *vport, uint8_t c, unsigned int col, unsigned i
 		cursor_hide(vport);
 
 	bbp = &vport->backbuf[BB_POS(vport, col, row)];
-	bbp->glyph = c;
+	bbp->glyph = (uint32_t) c;
 	bbp->fg_color = vport->attr.fg_color;
 	bbp->bg_color = vport->attr.bg_color;
 
@@ -889,7 +896,7 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 			unsigned int row = y + j;
 
 			bbp = &vport->backbuf[BB_POS(vport, col, row)];
-			uint8_t glyph = bbp->glyph;
+			uint32_t glyph = bbp->glyph;
 
 			a = &data[j * w + i].attrs;
 			rgb_from_attr(&rgb, a);
@@ -1510,7 +1517,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int retval;
 		unsigned int i;
 		int scroll;
-		uint8_t glyph;
+		uint32_t glyph;
 		unsigned int row, col;
 		
 		if ((vport->cursor_active) || (anims_enabled))

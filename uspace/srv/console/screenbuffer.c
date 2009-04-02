@@ -43,13 +43,13 @@
  * @param scr	screenbuffer
  * @param c	stored character
  */
-void screenbuffer_putchar(screenbuffer_t *scr, char c) 
+void screenbuffer_putchar(screenbuffer_t *scr, wchar_t ch)
 {
 	keyfield_t *field;
-	
+
 	field = get_field_at(scr, scr->position_x, scr->position_y);
 
-	field->character = c;
+	field->character = ch;
 	field->attrs = scr->attrs;
 }
 
