@@ -42,12 +42,16 @@
 extern char invalch;
 
 extern wchar_t chr_decode(const char *, size_t *, size_t);
-extern int chr_encode(const wchar_t, char *, size_t *, size_t);
+extern int chr_encode(wchar_t, char *, size_t *, size_t);
+extern count_t chr_width(wchar_t);
 
-extern size_t str_size(const char *str);
+extern size_t str_size(const char *);
 extern size_t str_lsize(const char *, count_t);
-extern count_t str_length(const char *str);
-extern count_t wstr_length(const wchar_t *str);
+extern size_t str_wsize(const char *, count_t);
+
+extern count_t str_length(const char *);
+extern count_t wstr_length(const wchar_t *);
+extern count_t wstr_wlength(const wchar_t *, count_t);
 
 extern bool ascii_check(const wchar_t ch);
 extern bool unicode_check(const wchar_t ch);

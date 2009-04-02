@@ -32,7 +32,32 @@
 
 /**
  * @file
- * @brief Miscellaneous functions.
+ * @brief String functions.
+ *
+ * Strings and characters use the Universal Character Set (UCS). The standard
+ * strings, called just strings are encoded in UTF-8. Wide strings (encoded
+ * in UTF-32) are supported to a limited degree. A single character is
+ * represented as wchar_t.
+ *
+ * Strings have the following metrics:
+ *
+ *	Metric	Abbrev.	Meaning
+ *	------	------	-------
+ *	size	n	Number of bytes the string is encoded into, excluding
+ *			the null terminator.
+ *	length	l	The number of characters in the string, excluding
+ *			the null terminator.
+ *	width	w	The number of character cells the string takes up on a
+ *			monospace display.
+ *
+ * Naming scheme:
+ *
+ *	chr_xxx		operate on characters
+ *	str_xxx		operate on strings
+ *	wstr_xxx	operate on wide strings
+ *
+ *	[w]str_[n|l|w]xxx	operate on a prefix limited by size, length
+ *				or width.
  */
 
 #include <string.h>
@@ -145,7 +170,7 @@ wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
  *	   was not enough space in the output buffer or EINVAL if the character
  *	   code was invalid.
  */
-int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
+int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz)
 {
 	uint32_t cc;		/* Unsigned version of ch. */
 
@@ -199,16 +224,26 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 	return EOK;
 }
 
+/** Get display width of character.
+ *
+ * @param ch	The character.
+ * @return	Character width in display cells.
+ */
+count_t chr_width(wchar_t ch)
+{
+	return 1;
+}
+
 /** Get size of string, with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
  * characters in the string @a str. If @a max_len is greater than
  * the length of @a str, the entire string is measured.
  *
- * @param str   String to consider.
- * @param count Maximum number of characters to measure.
+ * @param str	String to consider.
+ * @param count	Maximum number of characters to measure.
  *
- * @return Number of bytes used by the characters.
+ * @return	Number of bytes used by the characters.
  */
 size_t str_lsize(const char *str, count_t max_len)
 {
@@ -228,6 +263,64 @@ size_t str_lsize(const char *str, count_t max_len)
 	}
 
 	return prev;
+}
+
+/** Get size of string, with width limit.
+ *
+ * Get the number of bytes which are used by the longest prefix of @a str
+ * that can fit into @a max_width display cells.
+ *
+ * @param str   String to consider.
+ * @param count Maximum number of display cells.
+ *
+ * @return	Number of bytes used by the characters that fit.
+ */
+size_t str_wsize(const char *str, count_t max_width)
+{
+	count_t width = 0;
+	size_t cur = 0;
+	size_t prev;
+	wchar_t ch;
+
+	while (true) {
+		prev = cur;
+		if (width >= max_width)
+			break;
+		ch = chr_decode(str, &cur, UTF8_NO_LIMIT);
+		if (ch == '\0') break;
+
+		width += chr_width(ch);
+	}
+
+	return prev;
+}
+
+
+/** Get length of wide string, with width limit.
+ *
+ * Get the number of characters in a wide string that can fit into @a max_width
+ * display cells.
+ *
+ * @param wstr   Wide string to consider.
+ * @param count Maximum number of display cells.
+ *
+ * @return	Number of bytes used by the characters that fit.
+ */
+count_t wstr_wlength(const wchar_t *wstr, count_t max_width)
+{
+	count_t width = 0;
+	index_t cur = 0;
+
+	while (true) {
+		if (width >= max_width)
+			break;
+		if (wstr[cur] == '\0') break;
+
+		width += chr_width(wstr[cur]);
+		++cur;
+	}
+
+	return (count_t) cur;
 }
 
 /** Check whether character is plain ASCII.
@@ -290,8 +383,8 @@ count_t str_length(const char *str)
 
 /** Return number of characters in a wide string.
  *
- * @param str NULL-terminated wide string.
- * @return Number of characters in @a str.
+ * @param	str NULL-terminated wide string.
+ * @return	Number of characters in @a str.
  */
 count_t wstr_length(const wchar_t *wstr)
 {

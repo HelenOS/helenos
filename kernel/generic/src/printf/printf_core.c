@@ -268,7 +268,7 @@ static int print_utf8(char *str, int width, unsigned int precision,
 	}
 
 	int retval;
-	size_t size = str_lsize(str, precision);
+	size_t size = str_wsize(str, precision);
 	if ((retval = printf_putnchars_utf8(str, size, ps)) < 0)
 		return -counter;
 
@@ -313,7 +313,7 @@ static int print_utf32(wchar_t *wstr, int width, unsigned int precision,
 	}
 
 	int retval;
-	size_t size = min(strw, precision) * sizeof(wchar_t);
+	size_t size = wstr_wlength(wstr, precision) * sizeof(wchar_t);
 	if ((retval = printf_putnchars_utf32(wstr, size, ps)) < 0)
 		return -counter;
 
