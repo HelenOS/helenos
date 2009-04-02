@@ -40,6 +40,7 @@
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>
+#include <errno.h>
 #include <console/kconsole.h>
 
 char invalch = '?';
@@ -140,11 +141,11 @@ wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
  * @param offset	Offset (in bytes) where to start writing.
  * @param sz		Size of the output buffer.
  *
- * @return True if the character was encoded successfully or false if there
- *	   was not enough space in the output buffer or the character code
- *	   was invalid.
+ * @return EOK if the character was encoded successfully, EOVERFLOW if there
+ *	   was not enough space in the output buffer or EINVAL if the character
+ *	   code was invalid.
  */
-bool chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 {
 	uint32_t cc;		/* Unsigned version of ch. */
 
@@ -153,10 +154,10 @@ bool chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 	int i;
 
 	if (*offset >= sz)
-		return false;
+		return EOVERFLOW;
 
 	if (ch < 0)
-		return false;
+		return EINVAL;
 
 	/* Bit operations should only be done on unsigned numbers. */
 	cc = (uint32_t) ch;
@@ -176,12 +177,12 @@ bool chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 		cbytes = 3;
 	} else {
 		/* Codes longer than 21 bits are not supported. */
-		return false;
+		return EINVAL;
 	}
 
 	/* Check for available space in buffer. */
 	if (*offset + cbytes >= sz)
-		return false;
+		return EOVERFLOW;
 
 	/* Encode continuation bytes. */
 	for (i = cbytes; i > 0; --i) {
@@ -195,7 +196,7 @@ bool chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz)
 	/* Advance offset. */
 	*offset += (1 + cbytes);
 	
-	return true;
+	return EOK;
 }
 
 /** Get size of string, with length limit.

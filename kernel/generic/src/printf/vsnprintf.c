@@ -36,6 +36,7 @@
 #include <printf/printf_core.h>
 #include <string.h>
 #include <memstr.h>
+#include <errno.h>
 
 typedef struct {
 	size_t size;    /* Total size of the buffer (in bytes) */
@@ -86,7 +87,7 @@ static int vsnprintf_write_utf8(const char *str, size_t size, vsnprintf_data_t *
 		while (index < size) {
 			wchar_t uc = chr_decode(str, &index, size);
 
-			if (!chr_encode(uc, data->dst, &data->len, data->size - 1))
+			if (chr_encode(uc, data->dst, &data->len, data->size - 1) != EOK)
 				break;
 		}
 		
@@ -146,7 +147,7 @@ static int vsnprintf_write_utf32(const wchar_t *str, size_t size, vsnprintf_data
 			return ((int) size);
 		}
 		
-		if (!chr_encode(str[index], data->dst, &data->len, data->size - 1))
+		if (chr_encode(str[index], data->dst, &data->len, data->size - 1) != EOK)
 			break;
 		
 		index++;

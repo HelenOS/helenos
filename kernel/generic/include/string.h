@@ -42,7 +42,7 @@
 extern char invalch;
 
 extern wchar_t chr_decode(const char *, size_t *, size_t);
-extern bool chr_encode(const wchar_t, char *, size_t *, size_t);
+extern int chr_encode(const wchar_t, char *, size_t *, size_t);
 
 extern size_t str_size(const char *str);
 extern size_t str_lsize(const char *, count_t);
