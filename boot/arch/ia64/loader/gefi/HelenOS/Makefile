@@ -20,6 +20,7 @@
 #  Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #  02111-1307, USA.
 #
+
 prefix=$(PREFIX)
 include ../Make.defaults
 CDIR=$(TOPDIR)/..
@@ -28,13 +29,10 @@ CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
 CRTOBJS		= ../gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT	= ../gnuefi/elf_$(ARCH)_efi.lds
 LDFLAGS		+= -T $(LDSCRIPT) -shared -Bsymbolic -L../lib -L../gnuefi $(CRTOBJS)
-#LOADLIBES	= -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 LOADLIBES	= -lefi -lgnuefi
 FORMAT		= efi-app-$(ARCH)
 
-
 all:	gefi hello.efi
-
 
 clean:
 	rm -f *.efi *~ *.o *.so *.map *.disass *.bin
@@ -44,7 +42,6 @@ clean:
 hello.efi: hello.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		   -j .rela -j .reloc --target=$(FORMAT) hello.so hello.efi
-	$(OBJDUMP) -d hello.efi > hello.disass  
 
 #When selected first lines or second lines, select if image is linked into hello or not - usefull for network boot
 #hello.so: hello.o image.o division.o
@@ -58,10 +55,8 @@ hello.o: hello.c
 division.o: division.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c division.c -o division.o
 
-
 image.bin: ../../image.boot 
 	$(OBJCOPY) -O binary ../../image.boot image.bin
-
 
 image.o: ../../image.boot mkimage
 	$(OBJCOPY) -O binary ../../image.boot image.bin
@@ -71,7 +66,6 @@ image.o: ../../image.boot mkimage
 
 mkimage: mkimage.c
 	gcc -o mkimage mkimage.c
-
 
 gefi:
 	make -C .. prefix=$(PREFIX)
