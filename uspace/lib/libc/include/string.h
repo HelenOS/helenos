@@ -37,6 +37,14 @@
 
 #include <mem.h>
 #include <sys/types.h>
+#include <bool.h>
+
+#define U_SPECIAL      '?'
+
+extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
+extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+
+extern bool chr_check(const wchar_t ch);
 
 extern int strcmp(const char *, const char *);
 extern int strncmp(const char *, const char *, size_t);

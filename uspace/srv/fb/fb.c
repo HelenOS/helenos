@@ -68,6 +68,8 @@
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000
 
+#define GLYPH_UNAVAIL	'?'
+
 #define MAX_ANIM_LEN     8
 #define MAX_ANIMATIONS   4
 #define MAX_PIXMAPS      256  /**< Maximum number of saved pixmaps */
@@ -78,7 +80,7 @@ typedef void (*rgb_conv_t)(void *, uint32_t);
 
 /** Function to draw a glyph. */
 typedef void (*dg_t)(unsigned int x, unsigned int y, bool cursor,
-    uint8_t *glyphs, uint8_t glyph, uint32_t fg_color, uint32_t bg_color);
+    uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
 
 struct {
 	uint8_t *fb_addr;
@@ -669,7 +671,7 @@ static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
 
 	/* Check glyph range. */
 	if (glyph >= FONT_GLYPHS)
-		return;
+		glyph = GLYPH_UNAVAIL;
 
 	/*
 	 * Prepare a pair of words, one filled with foreground-color
@@ -733,7 +735,7 @@ void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
 
 	/* Check glyph range. */
 	if (glyph >= FONT_GLYPHS)
-		return;
+		glyph = GLYPH_UNAVAIL;
 
 	/* Pre-render 1x the foreground and background color pixels. */
 	if (cursor) {

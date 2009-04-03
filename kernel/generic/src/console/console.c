@@ -53,10 +53,11 @@
 #include <string.h>
 
 #define KLOG_SIZE     PAGE_SIZE
+#define KLOG_LENGTH   (KLOG_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
-static wchar_t klog[KLOG_SIZE] __attribute__ ((aligned (PAGE_SIZE)));
+static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
 static bool klog_inited = false;
@@ -257,16 +258,16 @@ void putchar(const wchar_t ch)
 		/* Print charaters stored in kernel log */
 		index_t i;
 		for (i = klog_len - klog_stored; i < klog_len; i++)
-			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_SIZE], silent);
+			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_LENGTH], silent);
 		klog_stored = 0;
 	}
 	
 	/* Store character in the cyclic kernel log */
-	klog[(klog_start + klog_len) % KLOG_SIZE] = ch;
-	if (klog_len < KLOG_SIZE)
+	klog[(klog_start + klog_len) % KLOG_LENGTH] = ch;
+	if (klog_len < KLOG_LENGTH)
 		klog_len++;
 	else
-		klog_start = (klog_start + 1) % KLOG_SIZE;
+		klog_start = (klog_start + 1) % KLOG_LENGTH;
 	
 	if ((stdout) && (stdout->op->write))
 		stdout->op->write(stdout, ch, silent);

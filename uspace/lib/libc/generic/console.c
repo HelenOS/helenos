@@ -61,7 +61,7 @@ static void cons_putchar(int c);
 
 static void cbuffer_flush(void);
 static void cbuffer_drain(void);
-static void cbuffer_putc(int c);
+static inline void cbuffer_putc(int c);
 
 
 void console_open(bool blocking)

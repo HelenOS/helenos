@@ -47,10 +47,11 @@
 
 #define NAME "klog"
 
-#define KLOG_SIZE PAGE_SIZE
+#define KLOG_SIZE	PAGE_SIZE
+#define KLOG_LENGTH	(KLOG_SIZE / sizeof(wchar_t))
 
 /* Pointer to klog area */
-static char *klog;
+static wchar_t *klog;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -61,7 +62,7 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
 	size_t i;
 	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % KLOG_SIZE]);
+		putchar(klog[(klog_start + i) % KLOG_LENGTH]);
 	
 	async_serialize_end();
 }

@@ -38,6 +38,172 @@
 #include <limits.h>
 #include <ctype.h>
 #include <malloc.h>
+#include <errno.h>
+#include <string.h>
+
+/** Byte mask consisting of lowest @n bits (out of 8) */
+#define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
+
+/** Byte mask consisting of lowest @n bits (out of 32) */
+#define LO_MASK_32(n)  ((uint32_t) ((1 << (n)) - 1))
+
+/** Byte mask consisting of highest @n bits (out of 8) */
+#define HI_MASK_8(n)  (~LO_MASK_8(8 - (n)))
+
+/** Number of data bits in a UTF-8 continuation byte */
+#define CONT_BITS  6
+
+/** Decode a single character from a string.
+ *
+ * Decode a single character from a string of size @a size. Decoding starts
+ * at @a offset and this offset is moved to the beginning of the next
+ * character. In case of decoding error, offset generally advances at least
+ * by one. However, offset is never moved beyond size.
+ *
+ * @param str    String (not necessarily NULL-terminated).
+ * @param offset Byte offset in string where to start decoding.
+ * @param size   Size of the string (in bytes).
+ *
+ * @return Value of decoded character, U_SPECIAL on decoding error or
+ *         NULL if attempt to decode beyond @a size.
+ *
+ */
+wchar_t str_decode(const char *str, size_t *offset, size_t size)
+{
+	if (*offset + 1 > size)
+		return 0;
+	
+	/* First byte read from string */
+	uint8_t b0 = (uint8_t) str[(*offset)++];
+	
+	/* Determine code length */
+	
+	unsigned int b0_bits;  /* Data bits in first byte */
+	unsigned int cbytes;   /* Number of continuation bytes */
+	
+	if ((b0 & 0x80) == 0) {
+		/* 0xxxxxxx (Plain ASCII) */
+		b0_bits = 7;
+		cbytes = 0;
+	} else if ((b0 & 0xe0) == 0xc0) {
+		/* 110xxxxx 10xxxxxx */
+		b0_bits = 5;
+		cbytes = 1;
+	} else if ((b0 & 0xf0) == 0xe0) {
+		/* 1110xxxx 10xxxxxx 10xxxxxx */
+		b0_bits = 4;
+		cbytes = 2;
+	} else if ((b0 & 0xf8) == 0xf0) {
+		/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+		b0_bits = 3;
+		cbytes = 3;
+	} else {
+		/* 10xxxxxx -- unexpected continuation byte */
+		return U_SPECIAL;
+	}
+	
+	if (*offset + cbytes > size)
+		return U_SPECIAL;
+	
+	wchar_t ch = b0 & LO_MASK_8(b0_bits);
+	
+	/* Decode continuation bytes */
+	while (cbytes > 0) {
+		uint8_t b = (uint8_t) str[(*offset)++];
+		
+		/* Must be 10xxxxxx */
+		if ((b & 0xc0) != 0x80)
+			return U_SPECIAL;
+		
+		/* Shift data bits to ch */
+		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
+		cbytes--;
+	}
+	
+	return ch;
+}
+
+/** Encode a single character to string representation.
+ *
+ * Encode a single character to string representation (i.e. UTF-8) and store
+ * it into a buffer at @a offset. Encoding starts at @a offset and this offset
+ * is moved to the position where the next character can be written to.
+ *
+ * @param ch     Input character.
+ * @param str    Output buffer.
+ * @param offset Byte offset where to start writing.
+ * @param size   Size of the output buffer (in bytes).
+ *
+ * @return EOK if the character was encoded successfully, EOVERFLOW if there
+ *	   was not enough space in the output buffer or EINVAL if the character
+ *	   code was invalid.
+ */
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+{
+	if (*offset >= size)
+		return EOVERFLOW;
+	
+	if (!chr_check(ch))
+		return EINVAL;
+	
+	/* Unsigned version of ch (bit operations should only be done
+	   on unsigned types). */
+	uint32_t cc = (uint32_t) ch;
+	
+	/* Determine how many continuation bytes are needed */
+	
+	unsigned int b0_bits;  /* Data bits in first byte */
+	unsigned int cbytes;   /* Number of continuation bytes */
+	
+	if ((cc & ~LO_MASK_32(7)) == 0) {
+		b0_bits = 7;
+		cbytes = 0;
+	} else if ((cc & ~LO_MASK_32(11)) == 0) {
+		b0_bits = 5;
+		cbytes = 1;
+	} else if ((cc & ~LO_MASK_32(16)) == 0) {
+		b0_bits = 4;
+		cbytes = 2;
+	} else if ((cc & ~LO_MASK_32(21)) == 0) {
+		b0_bits = 3;
+		cbytes = 3;
+	} else {
+		/* Codes longer than 21 bits are not supported */
+		return EINVAL;
+	}
+	
+	/* Check for available space in buffer */
+	if (*offset + cbytes >= size)
+		return EOVERFLOW;
+	
+	/* Encode continuation bytes */
+	unsigned int i;
+	for (i = cbytes; i > 0; i--) {
+		str[*offset + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
+		cc = cc >> CONT_BITS;
+	}
+	
+	/* Encode first byte */
+	str[*offset] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
+	
+	/* Advance offset */
+	*offset += cbytes + 1;
+	
+	return EOK;
+}
+
+/** Check whether character is valid
+ *
+ * @return True if character is a valid Unicode code point.
+ *
+ */
+bool chr_check(const wchar_t ch)
+{
+	if ((ch >= 0) && (ch <= 1114111))
+		return true;
+	
+	return false;
+}
 
 /** Count the number of characters in the string, not including terminating 0.
  *

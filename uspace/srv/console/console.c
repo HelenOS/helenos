@@ -48,6 +48,7 @@
 #include <screenbuffer.h>
 #include <sys/mman.h>
 #include <stdio.h>
+#include <string.h>
 #include <sysinfo.h>
 #include <event.h>
 
@@ -465,25 +466,28 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
-	size_t len;
-	size_t i;
+	size_t size;
+	wchar_t ch;
+	size_t off;
 
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 	}
 
-	if (len > CWRITE_BUF_SIZE)
-		len = CWRITE_BUF_SIZE;
+	if (size > CWRITE_BUF_SIZE)
+		size = CWRITE_BUF_SIZE;
 
-	(void) ipc_data_write_finalize(callid, cwrite_buf, len);
+	(void) ipc_data_write_finalize(callid, cwrite_buf, size);
 
-	for (i = 0; i < len; i++) {
-		write_char(consnum, cwrite_buf[i]);
+	off = 0;
+	while (off < size) {
+		ch = str_decode(cwrite_buf, &off, size);
+		write_char(consnum, ch);
 	}
 
 	gcons_notify_char(consnum);
-	ipc_answer_1(rid, EOK, len);
+	ipc_answer_1(rid, EOK, size);
 }
 
 /** Default thread for new connections */
