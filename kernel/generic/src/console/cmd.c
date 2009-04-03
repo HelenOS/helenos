@@ -513,14 +513,14 @@ int cmd_help(cmd_arg_t *argv)
 	spinlock_lock(&cmd_lock);
 	
 	link_t *cur;
-	size_t len = 0;
+	count_t len = 0;
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
 		spinlock_lock(&hlp->lock);
-		if (str_size(hlp->name) > len)
-			len = str_size(hlp->name);
+		if (str_length(hlp->name) > len)
+			len = str_length(hlp->name);
 		spinlock_unlock(&hlp->lock);
 	}
 	
@@ -582,7 +582,7 @@ int cmd_uptime(cmd_arg_t *argv)
 int cmd_desc(cmd_arg_t *argv)
 {
 	link_t *cur;
-
+	
 	spinlock_lock(&cmd_lock);
 	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
@@ -590,20 +590,20 @@ int cmd_desc(cmd_arg_t *argv)
 		
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		spinlock_lock(&hlp->lock);
-
-		if (strncmp(hlp->name, (const char *) argv->buffer, str_size(hlp->name)) == 0) {
+		
+		if (str_lcmp(hlp->name, (const char *) argv->buffer, str_length(hlp->name)) == 0) {
 			printf("%s - %s\n", hlp->name, hlp->description);
 			if (hlp->help)
 				hlp->help();
 			spinlock_unlock(&hlp->lock);
 			break;
 		}
-
+		
 		spinlock_unlock(&hlp->lock);
 	}
 	
 	spinlock_unlock(&cmd_lock);	
-
+	
 	return 1;
 }
 
@@ -969,11 +969,11 @@ int cmd_continue(cmd_arg_t *argv)
  */
 int cmd_tests(cmd_arg_t *argv)
 {
-	size_t len = 0;
+	count_t len = 0;
 	test_t *test;
 	for (test = tests; test->name != NULL; test++) {
-		if (str_size(test->name) > len)
-			len = str_size(test->name);
+		if (str_length(test->name) > len)
+			len = str_length(test->name);
 	}
 	
 	for (test = tests; test->name != NULL; test++)
@@ -1096,7 +1096,7 @@ int cmd_test(cmd_arg_t *argv)
 {
 	test_t *test;
 	
-	if (strcmp((char *) argv->buffer, "*") == 0) {
+	if (str_cmp((char *) argv->buffer, "*") == 0) {
 		for (test = tests; test->name != NULL; test++) {
 			if (test->safe) {
 				printf("\n");
@@ -1108,7 +1108,7 @@ int cmd_test(cmd_arg_t *argv)
 		bool fnd = false;
 		
 		for (test = tests; test->name != NULL; test++) {
-			if (strcmp(test->name, (char *) argv->buffer) == 0) {
+			if (str_cmp(test->name, (char *) argv->buffer) == 0) {
 				fnd = true;
 				run_test(test);
 				break;
@@ -1136,7 +1136,7 @@ int cmd_bench(cmd_arg_t *argv)
 	bool fnd = false;
 	
 	for (test = tests; test->name != NULL; test++) {
-		if (strcmp(test->name, (char *) argv->buffer) == 0) {
+		if (str_cmp(test->name, (char *) argv->buffer) == 0) {
 			fnd = true;
 			
 			if (test->safe)
