@@ -37,30 +37,41 @@
 
 #include <typedefs.h>
 
-#define UTF8_NO_LIMIT  ((size_t) -1)
+#define STR_NO_LIMIT  ((size_t) -1)
+
+/**< Maximum size of a string containing cnt characters */
+#define STR_BOUNDS(cnt)  (cnt << 2)
 
 extern char invalch;
 
-extern wchar_t chr_decode(const char *, size_t *, size_t);
-extern int chr_encode(wchar_t, char *, size_t *, size_t);
-extern count_t chr_width(wchar_t);
+extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
+extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
-extern size_t str_size(const char *);
-extern size_t str_lsize(const char *, count_t);
-extern size_t str_wsize(const char *, count_t);
+extern size_t str_size(const char *str);
+extern size_t wstr_size(const wchar_t *str);
 
-extern count_t str_length(const char *);
-extern count_t wstr_length(const wchar_t *);
-extern count_t wstr_wlength(const wchar_t *, count_t);
+extern size_t str_lsize(const char *str, count_t max_len);
+extern size_t wstr_lsize(const wchar_t *str, count_t max_len);
+
+extern count_t str_length(const char *str);
+extern count_t wstr_length(const wchar_t *wstr);
+
+extern count_t str_nlength(const char *str, size_t size);
+extern count_t wstr_nlength(const wchar_t *str, size_t size);
 
 extern bool ascii_check(const wchar_t ch);
-extern bool unicode_check(const wchar_t ch);
+extern bool chr_check(const wchar_t ch);
 
-extern int strcmp(const char *src, const char *dst);
-extern int strncmp(const char *src, const char *dst, size_t len);
-extern void strncpy(char *dest, const char *src, size_t len);
+extern int str_cmp(const char *s1, const char *s2);
+extern int str_lcmp(const char *s1, const char *s2, count_t max_len);
 
-extern char *strchr(const char *s, int i);
+extern void str_ncpy(char *dst, const char *src, size_t size);
+extern void wstr_nstr(char *dst, const wchar_t *src, size_t size);
+
+extern const char *str_chr(const char *str, wchar_t ch);
+
+extern bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos);
+extern bool wstr_remove(wchar_t *str, count_t pos);
 
 #endif
 

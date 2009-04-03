@@ -37,27 +37,68 @@
  * Strings and characters use the Universal Character Set (UCS). The standard
  * strings, called just strings are encoded in UTF-8. Wide strings (encoded
  * in UTF-32) are supported to a limited degree. A single character is
- * represented as wchar_t.
+ * represented as wchar_t.@n
  *
- * Strings have the following metrics:
+ * Overview of the terminology:@n
  *
- *	Metric	Abbrev.	Meaning
- *	------	------	-------
- *	size	n	Number of bytes the string is encoded into, excluding
- *			the null terminator.
- *	length	l	The number of characters in the string, excluding
- *			the null terminator.
- *	width	w	The number of character cells the string takes up on a
- *			monospace display.
+ *  Term                  Meaning
+ *  --------------------  ----------------------------------------------------
+ *  byte                  8 bits stored in uint8_t (unsigned 8 bit integer)
  *
- * Naming scheme:
+ *  character             UTF-32 encoded Unicode character, stored in wchar_t
+ *                        (signed 32 bit integer), code points 0 .. 1114111
+ *                        are valid
  *
- *	chr_xxx		operate on characters
- *	str_xxx		operate on strings
- *	wstr_xxx	operate on wide strings
+ *  ASCII character       7 bit encoded ASCII character, stored in char
+ *                        (usually signed 8 bit integer), code points 0 .. 127
+ *                        are valid
  *
- *	[w]str_[n|l|w]xxx	operate on a prefix limited by size, length
- *				or width.
+ *  string                UTF-8 encoded NULL-terminated Unicode string, char *
+ *
+ *  wide string           UTF-32 encoded NULL-terminated Unicode string,
+ *                        wchar_t *
+ *
+ *  [wide] string size    number of BYTES in a [wide] string (excluding
+ *                        the NULL-terminator), size_t
+ *
+ *  [wide] string length  number of CHARACTERS in a [wide] string (excluding
+ *                        the NULL-terminator), count_t
+ *
+ *  [wide] string width   number of display cells on a monospace display taken
+ *                        by a [wide] string, count_t
+ *
+ *
+ * Overview of string metrics:@n
+ *
+ *  Metric  Abbrev.  Type     Meaning
+ *  ------  ------   ------   -------------------------------------------------
+ *  size    n        size_t   number of BYTES in a string (excluding the
+ *                            NULL-terminator)
+ *
+ *  length  l        count_t  number of CHARACTERS in a string (excluding the
+ *                            null terminator)
+ *
+ *  width  w         count_t  number of display cells on a monospace display
+ *                            taken by a string
+ *
+ *
+ * Function naming prefixes:@n
+ *
+ *  chr_    operate on characters
+ *  ascii_  operate on ASCII characters
+ *  str_    operate on strings
+ *  wstr_   operate on wide strings
+ *
+ *  [w]str_[n|l|w]  operate on a prefix limited by size, length
+ *                  or width
+ *
+ *
+ * A specific character inside a [wide] string can be referred to by:@n
+ *
+ *  pointer (char *, wchar_t *)
+ *  byte offset (size_t)
+ *  character index (count_t)
+ *
  */
 
 #include <string.h>
@@ -66,51 +107,50 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <errno.h>
-#include <console/kconsole.h>
+#include <align.h>
 
 char invalch = '?';
 
-/** Byte mask consisting of lowest @n bits (out of eight). */
-#define LO_MASK_8(n) ((uint8_t)((1 << (n)) - 1))
+/** Byte mask consisting of lowest @n bits (out of 8) */
+#define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
-/** Byte mask consisting of lowest @n bits (out of 32). */
-#define LO_MASK_32(n) ((uint32_t)((1 << (n)) - 1))
+/** Byte mask consisting of lowest @n bits (out of 32) */
+#define LO_MASK_32(n)  ((uint32_t) ((1 << (n)) - 1))
 
-/** Byte mask consisting of highest @n bits (out of eight). */
-#define HI_MASK_8(n) (~LO_MASK_8(8 - (n)))
+/** Byte mask consisting of highest @n bits (out of 8) */
+#define HI_MASK_8(n)  (~LO_MASK_8(8 - (n)))
 
-/** Number of data bits in a UTF-8 continuation byte. */
-#define CONT_BITS 6
+/** Number of data bits in a UTF-8 continuation byte */
+#define CONT_BITS  6
 
-/** Decode a single character from a substring.
+/** Decode a single character from a string.
  *
- * Decode a single character from a substring of size @a sz. Decoding starts
+ * Decode a single character from a string of size @a size. Decoding starts
  * at @a offset and this offset is moved to the beginning of the next
  * character. In case of decoding error, offset generally advances at least
- * by one. However, offset is never moved beyond (str + sz).
+ * by one. However, offset is never moved beyond size.
  *
- * @param str   String (not necessarily NULL-terminated).
- * @param index Index (counted in plain characters) where to start
- *              the decoding.
- * @param limit Size of the substring.
+ * @param str    String (not necessarily NULL-terminated).
+ * @param offset Byte offset in string where to start decoding.
+ * @param size   Size of the string (in bytes).
  *
- * @return	Value of decoded character or '?' on decoding error.
+ * @return Value of decoded character, invalch on decoding error or
+ *         NULL if attempt to decode beyond @a size.
+ *
  */
-wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
+wchar_t str_decode(const char *str, size_t *offset, size_t size)
 {
-	uint8_t b0, b;          /* Bytes read from str. */
-	wchar_t ch;
-
-	int b0_bits;		/* Data bits in first byte. */
-	int cbytes;		/* Number of continuation bytes. */
-
-	if (*offset + 1 > sz)
-		return invalch;
-
-	b0 = (uint8_t) str[(*offset)++];
-
-	/* Determine code length. */
-
+	if (*offset + 1 > size)
+		return 0;
+	
+	/* First byte read from string */
+	uint8_t b0 = (uint8_t) str[(*offset)++];
+	
+	/* Determine code length */
+	
+	unsigned int b0_bits;  /* Data bits in first byte */
+	unsigned int cbytes;   /* Number of continuation bytes */
+	
 	if ((b0 & 0x80) == 0) {
 		/* 0xxxxxxx (Plain ASCII) */
 		b0_bits = 7;
@@ -128,30 +168,28 @@ wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
 		b0_bits = 3;
 		cbytes = 3;
 	} else {
-		/* 10xxxxxx -- unexpected continuation byte. */
+		/* 10xxxxxx -- unexpected continuation byte */
 		return invalch;
 	}
-
-	if (*offset + cbytes > sz) {
+	
+	if (*offset + cbytes > size)
 		return invalch;
-	}
-
-	ch = b0 & LO_MASK_8(b0_bits);
-
-	/* Decode continuation bytes. */
+	
+	wchar_t ch = b0 & LO_MASK_8(b0_bits);
+	
+	/* Decode continuation bytes */
 	while (cbytes > 0) {
-		b = (uint8_t) str[(*offset)++];
-
-		/* Must be 10xxxxxx. */
-		if ((b & 0xc0) != 0x80) {
+		uint8_t b = (uint8_t) str[(*offset)++];
+		
+		/* Must be 10xxxxxx */
+		if ((b & 0xc0) != 0x80)
 			return invalch;
-		}
-
-		/* Shift data bits to ch. */
+		
+		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
-		--cbytes;
+		cbytes--;
 	}
-
+	
 	return ch;
 }
 
@@ -161,33 +199,32 @@ wchar_t chr_decode(const char *str, size_t *offset, size_t sz)
  * it into a buffer at @a offset. Encoding starts at @a offset and this offset
  * is moved to the position where the next character can be written to.
  *
- * @param ch		Input character.
- * @param str		Output buffer.
- * @param offset	Offset (in bytes) where to start writing.
- * @param sz		Size of the output buffer.
+ * @param ch     Input character.
+ * @param str    Output buffer.
+ * @param offset Byte offset where to start writing.
+ * @param size   Size of the output buffer (in bytes).
  *
  * @return EOK if the character was encoded successfully, EOVERFLOW if there
  *	   was not enough space in the output buffer or EINVAL if the character
  *	   code was invalid.
  */
-int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz)
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
-	uint32_t cc;		/* Unsigned version of ch. */
-
-	int cbytes;		/* Number of continuation bytes. */
-	int b0_bits;		/* Number of data bits in first byte. */
-	int i;
-
-	if (*offset >= sz)
+	if (*offset >= size)
 		return EOVERFLOW;
-
-	if (ch < 0)
+	
+	if (!chr_check(ch))
 		return EINVAL;
-
-	/* Bit operations should only be done on unsigned numbers. */
-	cc = (uint32_t) ch;
-
-	/* Determine how many continuation bytes are needed. */
+	
+	/* Unsigned version of ch (bit operations should only be done
+	   on unsigned types). */
+	uint32_t cc = (uint32_t) ch;
+	
+	/* Determine how many continuation bytes are needed */
+	
+	unsigned int b0_bits;  /* Data bits in first byte */
+	unsigned int cbytes;   /* Number of continuation bytes */
+	
 	if ((cc & ~LO_MASK_32(7)) == 0) {
 		b0_bits = 7;
 		cbytes = 0;
@@ -201,126 +238,185 @@ int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz)
 		b0_bits = 3;
 		cbytes = 3;
 	} else {
-		/* Codes longer than 21 bits are not supported. */
+		/* Codes longer than 21 bits are not supported */
 		return EINVAL;
 	}
-
-	/* Check for available space in buffer. */
-	if (*offset + cbytes >= sz)
+	
+	/* Check for available space in buffer */
+	if (*offset + cbytes >= size)
 		return EOVERFLOW;
-
-	/* Encode continuation bytes. */
-	for (i = cbytes; i > 0; --i) {
+	
+	/* Encode continuation bytes */
+	unsigned int i;
+	for (i = cbytes; i > 0; i--) {
 		str[*offset + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
 		cc = cc >> CONT_BITS;
 	}
-
-	/* Encode first byte. */
+	
+	/* Encode first byte */
 	str[*offset] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
-
-	/* Advance offset. */
-	*offset += (1 + cbytes);
+	
+	/* Advance offset */
+	*offset += cbytes + 1;
 	
 	return EOK;
 }
 
-/** Get display width of character.
+/** Get size of string.
  *
- * @param ch	The character.
- * @return	Character width in display cells.
+ * Get the number of bytes which are used by the string @a str (excluding the
+ * NULL-terminator).
+ *
+ * @param str String to consider.
+ *
+ * @return Number of bytes used by the string
+ *
  */
-count_t chr_width(wchar_t ch)
+size_t str_size(const char *str)
 {
-	return 1;
+	size_t size = 0;
+	
+	while (*str++ != 0)
+		size++;
+	
+	return size;
 }
 
-/** Get size of string, with length limit.
+/** Get size of wide string.
+ *
+ * Get the number of bytes which are used by the wide string @a str (excluding the
+ * NULL-terminator).
+ *
+ * @param str Wide string to consider.
+ *
+ * @return Number of bytes used by the wide string
+ *
+ */
+size_t wstr_size(const wchar_t *str)
+{
+	return (wstr_length(str) * sizeof(wchar_t));
+}
+
+/** Get size of string with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
  * characters in the string @a str. If @a max_len is greater than
- * the length of @a str, the entire string is measured.
+ * the length of @a str, the entire string is measured (excluding the
+ * NULL-terminator).
  *
- * @param str	String to consider.
- * @param count	Maximum number of characters to measure.
+ * @param str     String to consider.
+ * @param max_len Maximum number of characters to measure.
  *
- * @return	Number of bytes used by the characters.
+ * @return Number of bytes used by the characters.
+ *
  */
 size_t str_lsize(const char *str, count_t max_len)
 {
 	count_t len = 0;
-	size_t cur = 0;
-	size_t prev;
-	wchar_t ch;
-
-	while (true) {
-		prev = cur;
-		if (len >= max_len)
+	size_t offset = 0;
+	
+	while (len < max_len) {
+		if (str_decode(str, &offset, STR_NO_LIMIT) == 0)
 			break;
-		ch = chr_decode(str, &cur, UTF8_NO_LIMIT);
-		if (ch == '\0') break;
-
+		
 		len++;
 	}
-
-	return prev;
+	
+	return offset;
 }
 
-/** Get size of string, with width limit.
+/** Get size of wide string with length limit.
  *
- * Get the number of bytes which are used by the longest prefix of @a str
- * that can fit into @a max_width display cells.
+ * Get the number of bytes which are used by up to @a max_len first
+ * wide characters in the wide string @a str. If @a max_len is greater than
+ * the length of @a str, the entire wide string is measured (excluding the
+ * NULL-terminator).
  *
- * @param str   String to consider.
- * @param count Maximum number of display cells.
+ * @param str     Wide string to consider.
+ * @param max_len Maximum number of wide characters to measure.
  *
- * @return	Number of bytes used by the characters that fit.
+ * @return Number of bytes used by the wide characters.
+ *
  */
-size_t str_wsize(const char *str, count_t max_width)
+size_t wstr_lsize(const wchar_t *str, count_t max_len)
 {
-	count_t width = 0;
-	size_t cur = 0;
-	size_t prev;
-	wchar_t ch;
-
-	while (true) {
-		prev = cur;
-		if (width >= max_width)
-			break;
-		ch = chr_decode(str, &cur, UTF8_NO_LIMIT);
-		if (ch == '\0') break;
-
-		width += chr_width(ch);
-	}
-
-	return prev;
+	return (wstr_nlength(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
 }
 
-
-/** Get length of wide string, with width limit.
+/** Get number of characters in a string.
  *
- * Get the number of characters in a wide string that can fit into @a max_width
- * display cells.
+ * @param str NULL-terminated string.
  *
- * @param wstr   Wide string to consider.
- * @param count Maximum number of display cells.
+ * @return Number of characters in string.
  *
- * @return	Number of bytes used by the characters that fit.
  */
-count_t wstr_wlength(const wchar_t *wstr, count_t max_width)
+count_t str_length(const char *str)
 {
-	count_t width = 0;
-	index_t cur = 0;
+	count_t len = 0;
+	size_t offset = 0;
+	
+	while (str_decode(str, &offset, STR_NO_LIMIT) != 0)
+		len++;
+	
+	return len;
+}
 
-	while (true) {
-		if (width >= max_width)
-			break;
-		if (wstr[cur] == '\0') break;
+/** Get number of characters in a wide string.
+ *
+ * @param str NULL-terminated wide string.
+ *
+ * @return Number of characters in @a str.
+ *
+ */
+count_t wstr_length(const wchar_t *wstr)
+{
+	count_t len = 0;
+	
+	while (*wstr++ != 0)
+		len++;
+	
+	return len;
+}
 
-		width += chr_width(wstr[cur]);
-		++cur;
+/** Get number of characters in a string with size limit.
+ *
+ * @param str  NULL-terminated string.
+ * @param size Maximum number of bytes to consider.
+ *
+ * @return Number of characters in string.
+ *
+ */
+count_t str_nlength(const char *str, size_t size)
+{
+	count_t len = 0;
+	size_t offset = 0;
+	
+	while (str_decode(str, &offset, size) != 0)
+		len++;
+	
+	return len;
+}
+
+/** Get number of characters in a string with size limit.
+ *
+ * @param str  NULL-terminated string.
+ * @param size Maximum number of bytes to consider.
+ *
+ * @return Number of characters in string.
+ *
+ */
+count_t wstr_nlength(const wchar_t *str, size_t size)
+{
+	count_t len = 0;
+	count_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
+	count_t offset = 0;
+	
+	while ((offset < limit) && (*str++ != 0)) {
+		len++;
+		offset += sizeof(wchar_t);
 	}
-
-	return (count_t) cur;
+	
+	return len;
 }
 
 /** Check whether character is plain ASCII.
@@ -336,11 +432,12 @@ bool ascii_check(const wchar_t ch)
 	return false;
 }
 
-/** Check whether character is Unicode.
+/** Check whether character is valid
  *
- * @return True if character is valid Unicode code point.
+ * @return True if character is a valid Unicode code point.
+ *
  */
-bool unicode_check(const wchar_t ch)
+bool chr_check(const wchar_t ch)
 {
 	if ((ch >= 0) && (ch <= 1114111))
 		return true;
@@ -348,159 +445,241 @@ bool unicode_check(const wchar_t ch)
 	return false;
 }
 
-/** Return number of bytes the string occupies.
+/** Compare two NULL terminated strings.
  *
- * @param str A string.
- * @return Number of bytes in @a str excluding the null terminator.
- */
-size_t str_size(const char *str)
-{
-	size_t size;
-
-	size = 0;
-	while (*str++ != '\0')
-		++size;
-
-	return size;
-}
-
-/** Return number of characters in a string.
- *
- * @param str NULL-terminated string.
- * @return Number of characters in string.
- */
-count_t str_length(const char *str)
-{
-	count_t len = 0;
-	size_t offset = 0;
-
-	while (chr_decode(str, &offset, UTF8_NO_LIMIT) != 0) {
-		len++;
-	}
-
-	return len;
-}
-
-/** Return number of characters in a wide string.
- *
- * @param	str NULL-terminated wide string.
- * @return	Number of characters in @a str.
- */
-count_t wstr_length(const wchar_t *wstr)
-{
-	count_t len;
-
-	len = 0;
-	while (*wstr++ != '\0')
-		++len;
-
-	return len;
-}
-
-/** Compare two NULL terminated strings
- *
- * Do a char-by-char comparison of two NULL terminated strings.
+ * Do a char-by-char comparison of two NULL-terminated strings.
  * The strings are considered equal iff they consist of the same
  * characters on the minimum of their lengths.
  *
- * @param src First string to compare.
- * @param dst Second string to compare.
+ * @param s1 First string to compare.
+ * @param s2 Second string to compare.
  *
- * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
+ * @return 0 if the strings are equal, -1 if first is smaller,
+ *         1 if second smaller.
  *
  */
-int strcmp(const char *src, const char *dst)
+int str_cmp(const char *s1, const char *s2)
 {
-	for (; *src && *dst; src++, dst++) {
-		if (*src < *dst)
-			return -1;
-		if (*src > *dst)
-			return 1;
-	}
-	if (*src == *dst)
-		return 0;
+	wchar_t c1;
+	wchar_t c2;
 	
-	if (!*src)
-		return -1;
+	size_t off1 = 0;
+	size_t off2 = 0;
 	
-	return 1;
-}
-
-
-/** Compare two NULL terminated strings
- *
- * Do a char-by-char comparison of two NULL terminated strings.
- * The strings are considered equal iff they consist of the same
- * characters on the minimum of their lengths and specified maximal
- * length.
- *
- * @param src First string to compare.
- * @param dst Second string to compare.
- * @param len Maximal length for comparison.
- *
- * @return 0 if the strings are equal, -1 if first is smaller, 1 if second smaller.
- */
-int strncmp(const char *src, const char *dst, size_t len)
-{
-	unsigned int i;
-	
-	for (i = 0; (*src) && (*dst) && (i < len); src++, dst++, i++) {
-		if (*src < *dst)
+	while ((c1 = str_decode(s1, &off1, STR_NO_LIMIT) != 0)
+	    && (c2 = str_decode(s2, &off2, STR_NO_LIMIT) != 0)) {
+		
+		if (off1 != off2)
+			break;
+		
+		if (c1 < c2)
 			return -1;
 		
-		if (*src > *dst)
+		if (c1 > c2)
 			return 1;
 	}
 	
-	if (i == len || *src == *dst)
+	if ((off1 == off2) && (c1 == c2))
 		return 0;
 	
-	if (!*src)
+	if ((c1 == 0) || (off1 < off2))
 		return -1;
 	
 	return 1;
 }
 
-
-
-/** Copy NULL terminated string.
+/** Compare two NULL terminated strings with length limit.
  *
- * Copy at most 'len' characters from string 'src' to 'dest'.
- * If 'src' is shorter than 'len', '\0' is inserted behind the
- * last copied character.
+ * Do a char-by-char comparison of two NULL-terminated strings.
+ * The strings are considered equal iff they consist of the same
+ * characters on the minimum of their lengths and the length limit.
  *
- * @param src  Source string.
- * @param dest Destination buffer.
- * @param len  Size of destination buffer.
+ * @param s1      First string to compare.
+ * @param s2      Second string to compare.
+ * @param max_len Maximum number of characters to consider.
+ *
+ * @return 0 if the strings are equal, -1 if first is smaller,
+ *         1 if second smaller.
+ *
  */
-void strncpy(char *dest, const char *src, size_t len)
+int str_lcmp(const char *s1, const char *s2, count_t max_len)
 {
-	unsigned int i;
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
 	
-	for (i = 0; i < len; i++) {
-		if (!(dest[i] = src[i]))
-			return;
+	size_t off1 = 0;
+	size_t off2 = 0;
+	
+	count_t len = 0;
+	
+	while ((len < max_len)
+	    && ((c1 = str_decode(s1, &off1, STR_NO_LIMIT)) != 0)
+	    && ((c2 = str_decode(s2, &off2, STR_NO_LIMIT)) != 0)) {
+		
+		if (off1 != off2)
+			break;
+		
+		if (c1 < c2)
+			return -1;
+		
+		if (c1 > c2)
+			return 1;
+		
+		len++;
 	}
 	
-	dest[i - 1] = '\0';
+	if ((off1 == off2) && (len == max_len) && (c1 == c2))
+		return 0;
+	
+	if ((c1 == 0) || (off1 < off2))
+		return -1;
+	
+	return 1;
+}
+
+/** Copy NULL-terminated string.
+ *
+ * Copy source string @a src to destination buffer @a dst.
+ * No more than @a size bytes are written. NULL-terminator is always
+ * written after the last succesfully copied character (i.e. if the
+ * destination buffer is has at least 1 byte, it will be always
+ * NULL-terminated).
+ *
+ * @param src   Source string.
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ *
+ */
+void str_ncpy(char *dst, const char *src, size_t size)
+{
+	/* No space for the NULL-terminator in the buffer */
+	if (size == 0)
+		return;
+	
+	wchar_t ch;
+	size_t str_off = 0;
+	size_t dst_off = 0;
+	
+	while ((ch = str_decode(src, &str_off, STR_NO_LIMIT) != 0)) {
+		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+			break;
+	}
+	
+	if (dst_off >= size)
+		dst[size - 1] = 0;
+	else
+		dst[dst_off] = 0;
+}
+
+/** Copy NULL-terminated wide string to string
+ *
+ * Copy source wide string @a src to destination buffer @a dst.
+ * No more than @a size bytes are written. NULL-terminator is always
+ * written after the last succesfully copied character (i.e. if the
+ * destination buffer is has at least 1 byte, it will be always
+ * NULL-terminated).
+ *
+ * @param src   Source wide string.
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ *
+ */
+void wstr_nstr(char *dst, const wchar_t *src, size_t size)
+{
+	/* No space for the NULL-terminator in the buffer */
+	if (size == 0)
+		return;
+	
+	wchar_t ch;
+	count_t src_idx = 0;
+	size_t dst_off = 0;
+	
+	while ((ch = src[src_idx++]) != 0) {
+		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+			break;
+	}
+	
+	if (dst_off >= size)
+		dst[size - 1] = 0;
+	else
+		dst[dst_off] = 0;
 }
 
 /** Find first occurence of character in string.
  *
- * @param s String to search.
- * @param i Character to look for.
+ * @param str String to search.
+ * @param ch  Character to look for.
  *
- * @return Pointer to character in @a s or NULL if not found.
+ * @return Pointer to character in @a str or NULL if not found.
+ *
  */
-extern char *strchr(const char *s, int i)
+const char *str_chr(const char *str, wchar_t ch)
 {
-	while (*s != '\0') {
-		if (*s == i)
-			return (char *) s;
-		++s;
+	wchar_t acc;
+	size_t off = 0;
+	
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT) != 0)) {
+		if (acc == ch)
+			return (str + off);
 	}
 	
 	return NULL;
+}
+
+/** Insert a wide character into a wide string.
+ *
+ * Insert a wide character into a wide string at position
+ * @a pos. The characters after the position are shifted.
+ *
+ * @param str     String to insert to.
+ * @param ch      Character to insert to.
+ * @param pos     Character index where to insert.
+ @ @param max_pos Characters in the buffer.
+ *
+ * @return True if the insertion was sucessful, false if the position
+ *         is out of bounds.
+ *
+ */
+bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos)
+{
+	count_t len = wstr_length(str);
+	
+	if ((pos > len) || (pos + 1 > max_pos))
+		return false;
+	
+	count_t i;
+	for (i = len; i + 1 > pos; i--)
+		str[i + 1] = str[i];
+	
+	str[pos] = ch;
+	
+	return true;
+}
+
+/** Remove a wide character from a wide string.
+ *
+ * Remove a wide character from a wide string at position
+ * @a pos. The characters after the position are shifted.
+ *
+ * @param str String to remove from.
+ * @param pos Character index to remove.
+ *
+ * @return True if the removal was sucessful, false if the position
+ *         is out of bounds.
+ *
+ */
+bool wstr_remove(wchar_t *str, count_t pos)
+{
+	count_t len = wstr_length(str);
+	
+	if (pos >= len)
+		return false;
+	
+	count_t i;
+	for (i = pos + 1; i <= len; i++)
+		str[i - 1] = str[i];
+	
+	return true;
 }
 
 /** @}
