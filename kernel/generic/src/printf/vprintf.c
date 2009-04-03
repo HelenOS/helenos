@@ -43,29 +43,31 @@
 
 SPINLOCK_INITIALIZE(printf_lock);  /**< vprintf spinlock */
 
-static int vprintf_write_utf8(const char *str, size_t size, void *data)
+static int vprintf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	count_t chars = 0;
-
+	
 	while (offset < size) {
-		putchar(chr_decode(str, &offset, size));
+		putchar(str_decode(str, &offset, size));
 		chars++;
 	}
-
+	
 	return chars;
 }
 
-static int vprintf_write_utf32(const wchar_t *str, size_t size, void *data)
+static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 {
-	index_t index = 0;
-
-	while (index < (size / sizeof(wchar_t))) {
-		putchar(str[index]);
-		index++;
+	size_t offset = 0;
+	count_t chars = 0;
+	
+	while (offset < size) {
+		putchar(str[chars]);
+		chars++;
+		offset += sizeof(wchar_t);
 	}
-
-	return index;
+	
+	return chars;
 }
 
 int puts(const char *str)
@@ -73,31 +75,31 @@ int puts(const char *str)
 	size_t offset = 0;
 	count_t chars = 0;
 	wchar_t uc;
-
-	while ((uc = chr_decode(str, &offset, UTF8_NO_LIMIT)) != 0) {
+	
+	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
 		putchar(uc);
 		chars++;
 	}
-
+	
 	return chars;
 }
 
 int vprintf(const char *fmt, va_list ap)
 {
 	printf_spec_t ps = {
-		vprintf_write_utf8,
-		vprintf_write_utf32,
+		vprintf_str_write,
+		vprintf_wstr_write,
 		NULL
 	};
-
+	
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&printf_lock);
-
+	
 	int ret = printf_core(fmt, &ps, ap);
-
+	
 	spinlock_unlock(&printf_lock);
 	interrupts_restore(ipl);
-
+	
 	return ret;
 }
 
