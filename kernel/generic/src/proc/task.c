@@ -151,7 +151,7 @@ task_t *task_create(as_t *as, char *name)
 	ta->as = as;
 
 	memcpy(ta->name, name, TASK_NAME_BUFLEN);
-	ta->name[TASK_NAME_BUFLEN - 1] = '\0';
+	ta->name[TASK_NAME_BUFLEN - 1] = 0;
 
 	atomic_set(&ta->refcount, 0);
 	atomic_set(&ta->lifecount, 0);
@@ -273,8 +273,8 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
 	if (rc != 0)
 		return (unative_t) rc;
 
-	namebuf[name_len] = '\0';
-	strncpy(TASK->name, namebuf, TASK_NAME_BUFLEN);
+	namebuf[name_len] = 0;
+	str_ncpy(TASK->name, namebuf, TASK_NAME_BUFLEN);
 
 	return EOK;
 }

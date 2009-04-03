@@ -316,7 +316,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	interrupts_restore(ipl);
 	
 	memcpy(t->name, name, THREAD_NAME_BUFLEN);
-	t->name[THREAD_NAME_BUFLEN - 1] = '\0';
+	t->name[THREAD_NAME_BUFLEN - 1] = 0;
 	
 	t->thread_code = func;
 	t->thread_arg = arg;
@@ -723,7 +723,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	if (rc != 0)
 		return (unative_t) rc;
 
-	namebuf[name_len] = '\0';
+	namebuf[name_len] = 0;
 
 	/*
 	 * In case of failure, kernel_uarg will be deallocated in this function.

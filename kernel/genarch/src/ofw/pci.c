@@ -58,7 +58,7 @@ ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop) {
-		if (strcmp(ofw_tree_node_name(node->parent), "pci") == 0)
+		if (str_cmp(ofw_tree_node_name(node->parent), "pci") == 0)
 			return ofw_pci_apply_ranges(node->parent, reg, pa);
 		return false;
 	}

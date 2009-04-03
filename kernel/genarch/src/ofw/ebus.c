@@ -127,7 +127,7 @@ found:
 	if (!controller)
 		return false;
 		
-	if (strcmp(ofw_tree_node_name(controller), "pci") != 0) {
+	if (str_cmp(ofw_tree_node_name(controller), "pci") != 0) {
 		/*
 		 * This is not a PCI node.
 		 */

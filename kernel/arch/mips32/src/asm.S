@@ -63,6 +63,12 @@ memsetb:
 	nop
 
 
+.global memsetw
+memsetw:
+	j _memsetw
+	nop
+
+
 .global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace

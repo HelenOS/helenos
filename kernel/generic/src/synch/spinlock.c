@@ -32,9 +32,9 @@
 
 /**
  * @file
- * @brief	Spinlocks.
+ * @brief Spinlocks.
  */
- 
+
 #include <synch/spinlock.h>
 #include <atomic.h>
 #include <arch/barrier.h>

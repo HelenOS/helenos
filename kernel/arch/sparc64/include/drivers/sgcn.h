@@ -38,16 +38,16 @@
 #include <arch/types.h>
 #include <console/chardev.h>
 
-/* number of bytes in the TOC magic, including the terminating '\0' */
+/* number of bytes in the TOC magic, including the NULL-terminator */
 #define TOC_MAGIC_BYTES		8
 
-/* number of bytes in the TOC key, including the terminating '\0' */
+/* number of bytes in the TOC key, including the NULL-terminator */
 #define TOC_KEY_SIZE		8
 
 /* maximum number of entries in the SRAM table of contents */
 #define MAX_TOC_ENTRIES		32
 
-/* number of bytes in the SGCN buffer magic, including the terminating '\0' */
+/* number of bytes in the SGCN buffer magic, including the NULL-terminator */
 #define SGCN_MAGIC_BYTES	4
 
 /**

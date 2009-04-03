@@ -63,13 +63,13 @@ void scr_init(ofw_tree_node_t *node)
 	
 	name = ofw_tree_node_name(node);
 	
-	if (strcmp(name, "SUNW,m64B") == 0)
+	if (str_cmp(name, "SUNW,m64B") == 0)
 		scr_type = SCR_ATYFB;
-	else if (strcmp(name, "SUNW,XVR-100") == 0)
+	else if (str_cmp(name, "SUNW,XVR-100") == 0)
 		scr_type = SCR_XVR;
-	else if (strcmp(name, "SUNW,ffb") == 0)
+	else if (str_cmp(name, "SUNW,ffb") == 0)
 		scr_type = SCR_FFB;
-	else if (strcmp(name, "cgsix") == 0)
+	else if (str_cmp(name, "cgsix") == 0)
 		scr_type = SCR_CGSIX;
 	
 	if (scr_type == SCR_UNKNOWN) {

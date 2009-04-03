@@ -213,7 +213,7 @@ unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	if (rc != 0)
 		return (unative_t) rc;
 
-	namebuf[name_len] = '\0';
+	namebuf[name_len] = 0;
 
 	/* Spawn the new task. */
 

@@ -183,7 +183,7 @@ pci_t *pci_init(ofw_tree_node_t *node)
 	/*
 	 * First, verify this is a PCI node.
 	 */
-	ASSERT(strcmp(ofw_tree_node_name(node), "pci") == 0);
+	ASSERT(str_cmp(ofw_tree_node_name(node), "pci") == 0);
 
 	/*
 	 * Determine PCI controller model.
@@ -192,13 +192,13 @@ pci_t *pci_init(ofw_tree_node_t *node)
 	if (!prop || !prop->value)
 		return NULL;
 	
-	if (strcmp(prop->value, "SUNW,sabre") == 0) {
+	if (str_cmp(prop->value, "SUNW,sabre") == 0) {
 		/*
 		 * PCI controller Sabre.
 		 * This model is found on UltraSPARC IIi based machines.
 		 */
 		return pci_sabre_init(node);
-	} else if (strcmp(prop->value, "SUNW,psycho") == 0) {
+	} else if (str_cmp(prop->value, "SUNW,psycho") == 0) {
 		/*
 		 * PCI controller Psycho.
 		 * Used on UltraSPARC II based processors, for instance,

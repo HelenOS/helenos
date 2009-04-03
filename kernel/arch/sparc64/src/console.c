@@ -118,7 +118,7 @@ void standalone_sparc64_console_init(void)
 	/* "def-cn" = "default console" */
 	prop = ofw_tree_getprop(aliases, "def-cn");
 	
-	if ((!prop) || (!prop->value) || (strcmp(prop->value, "/sgcn") != 0)) {
+	if ((!prop) || (!prop->value) || (str_cmp(prop->value, "/sgcn") != 0)) {
 		standard_console_init(aliases);
 	} else {
 		serengeti_init();

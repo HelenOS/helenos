@@ -41,18 +41,15 @@
 
 /** Extract command name from the multiboot module command line.
  *
- * @param buf      Destination buffer (will always null-terminate).
- * @param n        Size of destination buffer.
+ * @param buf      Destination buffer (will always NULL-terminate).
+ * @param sz       Size of destination buffer (in bytes).
  * @param cmd_line Input string (the command line).
  *
  */
-static void extract_command(char *buf, size_t n, const char *cmd_line)
+static void extract_command(char *buf, size_t sz, const char *cmd_line)
 {
-	const char *start, *end, *cp;
-	size_t max_len;
-	
 	/* Find the first space. */
-	end = strchr(cmd_line, ' ');
+	const char *end = str_chr(cmd_line, ' ');
 	if (end == NULL)
 		end = cmd_line + str_size(cmd_line);
 	
@@ -60,20 +57,19 @@ static void extract_command(char *buf, size_t n, const char *cmd_line)
 	 * Find last occurence of '/' before 'end'. If found, place start at
 	 * next character. Otherwise, place start at beginning of buffer.
 	 */
-	cp = end;
-	start = buf;
+	const char *cp = end;
+	const char *start = buf;
+	
 	while (cp != start) {
 		if (*cp == '/') {
 			start = cp + 1;
 			break;
 		}
-		--cp;
+		cp--;
 	}
 	
-	/* Copy the command and null-terminate the string. */
-	max_len = min(n - 1, (size_t) (end - start));
-	strncpy(buf, start, max_len + 1);
-	buf[max_len] = '\0';
+	/* Copy the command. */
+	str_ncpy(buf, start, min(sz, (size_t) (end - start) + 1));
 }
 
 /** Parse multiboot information structure.
@@ -87,8 +83,6 @@ static void extract_command(char *buf, size_t n, const char *cmd_line)
 void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 {
 	uint32_t flags;
-	multiboot_mod_t *mods;
-	uint32_t i;
 	
 	if (signature == MULTIBOOT_LOADER_MAGIC)
 		flags = mi->flags;
@@ -98,10 +92,11 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 	}
 	
 	/* Copy module information. */
-	
+	uint32_t i;
 	if ((flags & MBINFO_FLAGS_MODS) != 0) {
 		init.cnt = min(mi->mods_count, CONFIG_INIT_TASKS);
-		mods = (multiboot_mod_t *) MULTIBOOT_PTR(mi->mods_addr);
+		multiboot_mod_t *mods
+		    = (multiboot_mod_t *) MULTIBOOT_PTR(mi->mods_addr);
 		
 		for (i = 0; i < init.cnt; i++) {
 			init.tasks[i].addr = PA2KA(mods[i].start);
@@ -113,20 +108,16 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 				    CONFIG_TASK_NAME_BUFLEN,
 				    MULTIBOOT_PTR(mods[i].string));
 			} else
-				init.tasks[i].name[0] = '\0';
+				init.tasks[i].name[0] = 0;
 		}
 	} else
 		init.cnt = 0;
 	
 	/* Copy memory map. */
 	
-	int32_t mmap_length;
-	multiboot_mmap_t *mme;
-	uint32_t size;
-	
 	if ((flags & MBINFO_FLAGS_MMAP) != 0) {
-		mmap_length = mi->mmap_length;
-		mme = MULTIBOOT_PTR(mi->mmap_addr);
+		int32_t mmap_length = mi->mmap_length;
+		multiboot_mmap_t *mme = MULTIBOOT_PTR(mi->mmap_addr);
 		e820counter = 0;
 		
 		i = 0;
@@ -134,7 +125,7 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *mi)
 			e820table[i++] = mme->mm_info;
 			
 			/* Compute address of next structure. */
-			size = sizeof(mme->size) + mme->size;
+			uint32_t size = sizeof(mme->size) + mme->size;
 			mme = ((void *) mme) + size;
 			mmap_length -= size;
 		}

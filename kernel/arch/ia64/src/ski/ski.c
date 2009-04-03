@@ -41,12 +41,25 @@
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
+#include <string.h>
 #include <arch.h>
 
 static indev_t skiin;		/**< Ski input device. */
 static outdev_t skiout;		/**< Ski output device. */
 
 static bool kbd_disabled;
+
+static void ski_do_putchar(const wchar_t ch)
+{
+	asm volatile (
+		"mov r15 = %[cmd]\n"
+		"mov r32 = %[ch]\n"   /* r32 is in0 */
+		"break 0x80000\n"  /* modifies r8 */
+		:
+		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
+		: "r15", "in0", "r8"
+	);
+}
 
 /** Display character on debug console
  *
@@ -56,20 +69,16 @@ static bool kbd_disabled;
  * @param d Character device.
  * @param ch Character to be printed.
  */
-static void ski_putchar(outdev_t *d, const char ch, bool silent)
+static void ski_putchar(outdev_t *d, const wchar_t ch, bool silent)
 {
 	if (!silent) {
-		asm volatile (
-			"mov r15 = %0\n"
-			"mov r32 = %1\n"   /* r32 is in0 */
-			"break 0x80000\n"  /* modifies r8 */
-			:
-			: "i" (SKI_PUTCHAR), "r" (ch)
-			: "r15", "in0", "r8"
-		);
-		
-		if (ch == '\n')
-			ski_putchar(d, '\r', false);
+		if (ascii_check(ch)) {
+			if (ch == '\n')
+				ski_do_putchar('\r');
+			
+			ski_do_putchar(ch);
+		} else
+			ski_do_putchar(invalch);
 	}
 }
 

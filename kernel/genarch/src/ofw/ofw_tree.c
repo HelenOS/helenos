@@ -66,7 +66,7 @@ ofw_tree_getprop(const ofw_tree_node_t *node, const char *name)
 	unsigned int i;
 	
 	for (i = 0; i < node->properties; i++) {
-		if (strcmp(node->property[i].name, name) == 0)
+		if (str_cmp(node->property[i].name, name) == 0)
 			return &node->property[i];
 	}
 
@@ -109,7 +109,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 	 * Try to find the disambigued name.
 	 */
 	for (cur = node->child; cur; cur = cur->peer) {
-		if (strcmp(cur->da_name, name) == 0)
+		if (str_cmp(cur->da_name, name) == 0)
 			return cur;
 	}
 	
@@ -121,7 +121,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node, const char *name)
 	 * are not always fully-qualified.
 	 */
 	for (cur = node->child; cur; cur = cur->peer) {
-		if (strcmp(ofw_tree_node_name(cur), name) == 0)
+		if (str_cmp(ofw_tree_node_name(cur), name) == 0)
 			return cur;
 	}
 		
@@ -146,7 +146,7 @@ ofw_tree_find_child_by_device_type(ofw_tree_node_t *node, const char *name)
 		prop = ofw_tree_getprop(cur, "device_type");
 		if (!prop || !prop->value)
 			continue;
-		if (strcmp(prop->value, name) == 0)
+		if (str_cmp(prop->value, name) == 0)
 			return cur;
 	}
 			
@@ -203,7 +203,7 @@ ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node, const char *name)
 		prop = ofw_tree_getprop(cur, "device_type");
 		if (!prop || !prop->value)
 			continue;
-		if (strcmp(prop->value, name) == 0)
+		if (str_cmp(prop->value, name) == 0)
 			return cur;
 	}
 			
@@ -229,7 +229,7 @@ ofw_tree_find_peer_by_name(ofw_tree_node_t *node, const char *name)
 		prop = ofw_tree_getprop(cur, "name");
 		if (!prop || !prop->value)
 			continue;
-		if (strcmp(prop->value, name) == 0)
+		if (str_cmp(prop->value, name) == 0)
 			return cur;
 	}
 			
@@ -252,14 +252,15 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 	if (path[0] != '/')
 		return NULL;
 	
-	for (i = 1; i < str_size(path) && node; i = j + 1) {
-		for (j = i; j < str_size(path) && path[j] != '/'; j++)
-			;
-		if (i == j)	/* skip extra slashes */
+	for (i = 1; (i < str_size(path)) && (node); i = j + 1) {
+		for (j = i; (j < str_size(path)) && (path[j] != '/'); j++);
+		
+		/* Skip extra slashes */
+		if (i == j)
 			continue;
-			
+		
 		memcpy(buf, &path[i], j - i);
-		buf[j - i] = '\0';
+		buf[j - i] = 0;
 		node = ofw_tree_find_child(node, buf);
 	}
 	

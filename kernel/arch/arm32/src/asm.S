@@ -30,6 +30,7 @@
 .text
 
 .global memsetb
+.global memsetw
 .global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
@@ -38,6 +39,9 @@
 
 memsetb:
 	b _memsetb
+
+memsetw:
+	b _memsetw
 
 memcpy:
 memcpy_from_uspace:

@@ -207,12 +207,12 @@ static void sgcn_buffer_begin_init(void)
 
 	init_sram_begin();
 		
-	ASSERT(strcmp(SRAM_TOC->magic, SRAM_TOC_MAGIC) == 0);
+	ASSERT(str_cmp(SRAM_TOC->magic, SRAM_TOC_MAGIC) == 0);
 	
 	/* lookup TOC entry with the correct key */
 	uint32_t i;
 	for (i = 0; i < MAX_TOC_ENTRIES; i++) {
-		if (strcmp(SRAM_TOC->keys[i].key, CONSOLE_KEY) == 0)
+		if (str_cmp(SRAM_TOC->keys[i].key, CONSOLE_KEY) == 0)
 			break;
 	}
 	ASSERT(i < MAX_TOC_ENTRIES);

@@ -54,6 +54,7 @@
 #include <synch/spinlock.h>
 #include <mm/tlb.h>
 #include <symtab.h>
+#include <putchar.h>
 
 #define VECTORS_64_BUNDLE	20
 #define VECTORS_16_BUNDLE	48

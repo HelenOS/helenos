@@ -86,9 +86,9 @@ void kbd_init(ofw_tree_node_t *node)
 	/*
 	 * Determine keyboard serial controller type.
 	 */
-	if (strcmp(name, "zs") == 0)
+	if (str_cmp(name, "zs") == 0)
 		kbd_type = KBD_Z8530;
-	else if (strcmp(name, "su") == 0)
+	else if (str_cmp(name, "su") == 0)
 		kbd_type = KBD_NS16550;
 	
 	if (kbd_type == KBD_UNKNOWN) {

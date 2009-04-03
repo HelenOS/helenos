@@ -55,7 +55,7 @@ void cpu_print_report(cpu_t *m)
 	
 	*((uint64_t *) &vendor[0 * sizeof(uint64_t)]) = CPU->arch.cpuid0;
 	*((uint64_t *) &vendor[1 * sizeof(uint64_t)]) = CPU->arch.cpuid1;
-	vendor[sizeof(vendor) - 1] = '\0';
+	vendor[sizeof(vendor) - 1] = 0;
 	
 	switch(m->arch.cpuid3.family) {
 	case FAMILY_ITANIUM:

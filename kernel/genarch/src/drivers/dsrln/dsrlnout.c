@@ -40,13 +40,18 @@
 #include <arch/asm.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
+#include <string.h>
 
 static ioport8_t *dsrlnout_base;
 
-static void dsrlnout_putchar(outdev_t *dev __attribute__((unused)), const char ch, bool silent)
+static void dsrlnout_putchar(outdev_t *dev __attribute__((unused)), const wchar_t ch, bool silent)
 {
-	if (!silent)
-		pio_write_8(dsrlnout_base, ch);
+	if (!silent) {
+		if (ascii_check(ch))
+			pio_write_8(dsrlnout_base, ch);
+		else
+			pio_write_8(dsrlnout_base, invalch);
+	}
 }
 
 static outdev_t dsrlnout_console;
