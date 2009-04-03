@@ -47,6 +47,7 @@ ipc_callid_t callids[MAX_CONNECTIONS];
 test_t tests[] = {
 #include "thread/thread1.def"
 #include "print/print1.def"
+#include "print/print4.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
 #include "ipc/register.def"

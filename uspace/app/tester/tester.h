@@ -60,6 +60,7 @@ typedef struct {
 
 extern char * test_thread1(bool quiet);
 extern char * test_print1(bool quiet);
+extern char * test_print4(bool quiet);
 extern char * test_fault1(bool quiet);
 extern char * test_fault2(bool quiet);
 extern char * test_register(bool quiet);

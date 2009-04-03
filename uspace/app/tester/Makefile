@@ -45,6 +45,7 @@ OUTPUT = tester
 SOURCES = tester.c \
 	thread/thread1.c \
 	print/print1.c \
+	print/print4.c \
 	fault/fault1.c \
 	fault/fault2.c \
 	ipc/register.c \
