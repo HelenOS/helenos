@@ -47,6 +47,7 @@
 #include <config.h>
 #include <bitops.h>
 #include <print.h>
+#include <string.h>
 #include <ddi/ddi.h>
 #include <arch/types.h>
 
@@ -78,8 +79,6 @@ static unsigned int position = 0;
 #define BG_COLOR     0x000080
 #define FG_COLOR     0xffff00
 #define INV_COLOR    0xaaaaaa
-
-#define CURSOR       0x2588
 
 #define RED(x, bits)         ((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
 #define GREEN(x, bits)       ((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
@@ -200,7 +199,7 @@ static void logo_hide(bool silent)
 /** Draw character at given position
  *
  */
-static void glyph_draw(uint16_t glyph, unsigned int col, unsigned int row, bool silent)
+static void glyph_draw(uint16_t glyph, unsigned int col, unsigned int row, bool silent, bool overlay)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
@@ -209,7 +208,8 @@ static void glyph_draw(uint16_t glyph, unsigned int col, unsigned int row, bool 
 	if (y >= ytrim)
 		logo_hide(silent);
 	
-	backbuf[BB_POS(col, row)] = glyph;
+	if (!overlay)
+		backbuf[BB_POS(col, row)] = glyph;
 	
 	if (!silent) {
 		for (yd = 0; yd < FONT_SCANLINES; yd++)
@@ -269,13 +269,19 @@ static void screen_scroll(bool silent)
 
 static void cursor_put(bool silent)
 {
-	glyph_draw(fb_font_glyph(CURSOR), position % cols, position / cols, silent);
+	unsigned int col = position % cols;
+	unsigned int row = position / cols;
+	
+	glyph_draw(fb_font_glyph(U_CURSOR), col, row, silent, true);
 }
 
 
 static void cursor_remove(bool silent)
 {
-	glyph_draw(fb_font_glyph(0), position % cols, position / cols, silent);
+	unsigned int col = position % cols;
+	unsigned int row = position / cols;
+	
+	glyph_draw(backbuf[BB_POS(col, row)], col, row, silent, true);
 }
 
 
@@ -307,13 +313,13 @@ static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 		cursor_remove(silent);
 		do {
 			glyph_draw(fb_font_glyph(' '), position % cols,
-			    position / cols, silent);
+			    position / cols, silent, false);
 			position++;
 		} while ((position % 8) && (position < cols * rows));
 		break;
 	default:
 		glyph_draw(fb_font_glyph(ch), position % cols,
-		    position / cols, silent);
+		    position / cols, silent, false);
 		position++;
 	}
 	

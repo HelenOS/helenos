@@ -259,10 +259,10 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				continue;
 			
 			if (wstr_remove(current, position - 1)) {
-				putchar('\b');
-				printf("%ls", current + position);
 				position--;
-				print_cc('\b', wstr_length(current) - position);
+				putchar('\b');
+				printf("%ls ", current + position);
+				print_cc('\b', wstr_length(current) - position + 1);
 				continue;
 			}
 		}
@@ -333,65 +333,69 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			continue;
 		}
 		
-		if (ch == 0x1b) {
-			/* Special command */
-			wchar_t mod = _getc(indev);
-			wchar_t ch = _getc(indev);
+		if (ch == U_LEFT_ARROW) {
+			/* Left */
+			if (position > 0) {
+				putchar('\b');
+				position--;
+			}
+			continue;
+		}
+		
+		if (ch == U_RIGHT_ARROW) {
+			/* Right */
+			if (position < wstr_length(current)) {
+				putchar(current[position]);
+				position++;
+			}
+			continue;
+		}
+		
+		if ((ch == U_UP_ARROW) || (ch == U_DOWN_ARROW)) {
+			/* Up, down */
+			print_cc('\b', position);
+			print_cc(' ', wstr_length(current));
+			print_cc('\b', wstr_length(current));
 			
-			if ((mod != 0x5b) && (mod != 0x4f))
+			if (ch == U_UP_ARROW) {
+				/* Up */
+				if (history_pos == 0)
+					history_pos = KCONSOLE_HISTORY - 1;
+				else
+					history_pos--;
+			} else {
+				/* Down */
+				history_pos++;
+				history_pos = history_pos % KCONSOLE_HISTORY;
+			}
+			current = history[history_pos];
+			printf("%ls", current);
+			position = wstr_length(current);
+			continue;
+		}
+		
+		if (ch == U_HOME_ARROW) {
+			/* Home */
+			print_cc('\b', position);
+			position = 0;
+			continue;
+		}
+		
+		if (ch == U_END_ARROW) {
+			/* End */
+			printf("%ls", current + position);
+			position = wstr_length(current);
+			continue;
+		}
+		
+		if (ch == U_DELETE) {
+			/* Delete */
+			if (position == wstr_length(current))
 				continue;
 			
-			if ((ch == 0x33) && (_getc(indev) == 0x7e)) {
-				/* Delete */
-				if (position == wstr_length(current))
-					continue;
-				
-				if (wstr_remove(current, position)) {
-					putchar('\b');
-					printf("%ls", current + position);
-					position--;
-					print_cc('\b', wstr_length(current) - position);
-				}
-			} else if (ch == 0x48) {
-				/* Home */
-				print_cc('\b', position);
-				position = 0;
-			} else if (ch == 0x46) {
-				/* End */
-				printf("%ls", current + position);
-				position = wstr_length(current);
-			} else if (ch == 0x44) {
-				/* Left */
-				if (position > 0) {
-					putchar('\b');
-					position--;
-				}
-			} else if (ch == 0x43) {
-				/* Right */
-				if (position < wstr_length(current)) {
-					putchar(current[position]);
-					position++;
-				}
-			} else if ((ch == 0x41) || (ch == 0x42)) {
-				/* Up, down */
-				print_cc('\b', position);
-				print_cc(' ', wstr_length(current));
-				print_cc('\b', wstr_length(current));
-				
-				if (ch == 0x41) {
-					/* Up */
-					if (history_pos == 0)
-						history_pos = KCONSOLE_HISTORY - 1;
-					else
-						history_pos--;
-				} else {
-					/* Down */
-					history_pos++;
-					history_pos = history_pos % KCONSOLE_HISTORY;
-				}
-				current = history[history_pos];
-				printf("%ls", current);
-				position = wstr_length(current);
+			if (wstr_remove(current, position)) {
+				printf("%ls ", current + position);
+				print_cc('\b', wstr_length(current) - position + 1);
 			}
 			continue;
 		}

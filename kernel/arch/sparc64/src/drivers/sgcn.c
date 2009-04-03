@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	SGCN driver.
+ * @brief SGCN driver.
  */
 
 #include <arch.h>
@@ -277,7 +277,7 @@ static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
 				sgcn_do_putchar('\r');
 			sgcn_do_putchar(ch);
 		} else
-			sgcn_do_putchar(invalch);
+			sgcn_do_putchar(U_SPECIAL);
 		
 		spinlock_unlock(&sgcn_output_lock);
 	}

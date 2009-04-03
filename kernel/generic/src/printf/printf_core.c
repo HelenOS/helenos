@@ -81,6 +81,7 @@ typedef enum {
 static char nullstr[] = "(NULL)";
 static char digits_small[] = "0123456789abcdef";
 static char digits_big[] = "0123456789ABCDEF";
+static char invalch = U_SPECIAL;
 
 /** Print one or more characters without adding newline.
  *

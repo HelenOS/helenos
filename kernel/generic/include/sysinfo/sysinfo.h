@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -36,6 +36,7 @@
 #define KERN_SYSINFO_H_
 
 #include <arch/types.h>
+#include <string.h>
 
 typedef union sysinfo_item_val {
 	unative_t val;
@@ -59,13 +60,13 @@ typedef struct sysinfo_item {
 	int subinfo_type;
 } sysinfo_item_t;
 
-#define SYSINFO_VAL_VAL 0
-#define SYSINFO_VAL_FUNCTION 1
-#define SYSINFO_VAL_UNDEFINED '?'
+#define SYSINFO_VAL_VAL        0
+#define SYSINFO_VAL_FUNCTION   1
+#define SYSINFO_VAL_UNDEFINED  U_SPECIAL
 
-#define SYSINFO_SUBINFO_NONE 0
-#define SYSINFO_SUBINFO_TABLE 1
-#define SYSINFO_SUBINFO_FUNCTION 2
+#define SYSINFO_SUBINFO_NONE      0
+#define SYSINFO_SUBINFO_TABLE     1
+#define SYSINFO_SUBINFO_FUNCTION  2
 
 typedef unative_t (*sysinfo_val_fn_t)(sysinfo_item_t *root);
 typedef unative_t (*sysinfo_subinfo_fn_t)(const char *subname);

@@ -26,30 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Scan codes for sun keyboards.
+ * @brief Scan codes for Sun keyboards.
  */
 
 #ifndef KERN_SCANC_SUN_H_
 #define KERN_SCANC_SUN_H_
 
-#define SC_ESC		0x1d
-#define SC_BACKSPACE	0x2b
 #define SC_LSHIFT       0x63
 #define SC_RSHIFT       0x6e
 #define SC_CAPSLOCK     0x77
-#define SC_SPEC_ESCAPE  0xe0	/* ??? */
-#define SC_LEFTARR      0x18
-#define SC_RIGHTARR     0x1c
-#define SC_UPARR        0x14
-#define SC_DOWNARR      0x1b
-#define SC_DELETE       0x42
-#define SC_HOME         0x34
-#define SC_END          0x4a
+#define SC_SCAN_ESCAPE  0xe0
 
 #endif
 

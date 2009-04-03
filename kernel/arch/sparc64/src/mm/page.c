@@ -53,12 +53,12 @@ void page_arch_init(void)
  *
  * We are currently using identity mapping for mapping device registers.
  *
- * @param physaddr	Physical address of the page where the device is
- * 			located.
- * @param size		Size of the device's registers. This argument is
- * 			ignored.
+ * @param physaddr Physical address of the page where the device is
+ *                 located.
+ * @param size     Size of the device's registers.
  *
- * @return		Virtual address of the page where the device is mapped.
+ * @return Virtual address of the page where the device is mapped.
+ *
  */
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {

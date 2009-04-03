@@ -34,6 +34,7 @@
  * @brief i8042 processor driver
  *
  * It takes care of the i8042 serial communication.
+ *
  */
 
 #include <genarch/drivers/i8042/i8042.h>

@@ -39,6 +39,7 @@
 #include <console/console.h>
 #include <proc/thread.h>
 #include <arch.h>
+#include <string.h>
 
 static indev_t srlnout;
 
@@ -50,10 +51,62 @@ static void ksrln(void *arg)
 {
 	indev_t *in = (indev_t *) arg;
 	bool cr = false;
+	uint32_t escape = 0;
 	
 	while (true) {
-		uint8_t ch = _getc(in);
+		wchar_t ch = _getc(in);
 		
+		/* ANSI escape sequence processing */
+		if (escape != 0) {
+			escape <<= 8;
+			escape |= ch & 0xff;
+			
+			if ((escape == 0x1b4f) || (escape == 0x1b5b) || (escape == 0x1b5b33))
+				continue;
+			
+			switch (escape) {
+			case 0x1b4f46:
+			case 0x1b5b46:
+				ch = U_END_ARROW;
+				escape = 0;
+				break;
+			case 0x1b4f48:
+			case 0x1b5b48:
+				ch = U_HOME_ARROW;
+				escape = 0;
+				break;
+			case 0x1b5b41:
+				ch = U_UP_ARROW;
+				escape = 0;
+				break;
+			case 0x1b5b42:
+				ch = U_DOWN_ARROW;
+				escape = 0;
+				break;
+			case 0x1b5b43:
+				ch = U_RIGHT_ARROW;
+				escape = 0;
+				break;
+			case 0x1b5b44:
+				ch = U_LEFT_ARROW;
+				escape = 0;
+				break;
+			case 0x1b5b337e:
+				ch = U_DELETE;
+				escape = 0;
+				break;
+			default:
+				escape = 0;
+			}
+		}
+		
+		if (ch == 0x1b) {
+			escape = ch & 0xff;
+			continue;
+		}
+		
+		/* Replace carriage return with line feed
+		   and suppress any following line feed */
 		if ((ch == '\n') && (cr)) {
 			cr = false;
 			continue;
@@ -65,6 +118,7 @@ static void ksrln(void *arg)
 		} else
 			cr = false;
 		
+		/* Backspace */
 		if (ch == 0x7f)
 			ch = '\b';
 		

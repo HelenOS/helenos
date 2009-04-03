@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
@@ -36,10 +36,12 @@
 #ifndef KERN_SCANC_H_
 #define KERN_SCANC_H_
 
-#define SPECIAL         '?'
+#include <typedefs.h>
 
-extern char sc_primary_map[];
-extern char sc_secondary_map[];
+#define SCANCODES  128
+
+extern wchar_t sc_primary_map[SCANCODES];
+extern wchar_t sc_secondary_map[SCANCODES];
 
 #endif
 

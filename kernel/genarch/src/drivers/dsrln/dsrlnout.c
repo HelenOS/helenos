@@ -50,7 +50,7 @@ static void dsrlnout_putchar(outdev_t *dev __attribute__((unused)), const wchar_
 		if (ascii_check(ch))
 			pio_write_8(dsrlnout_base, ch);
 		else
-			pio_write_8(dsrlnout_base, invalch);
+			pio_write_8(dsrlnout_base, U_SPECIAL);
 	}
 }
 

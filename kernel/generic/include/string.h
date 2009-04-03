@@ -37,12 +37,31 @@
 
 #include <typedefs.h>
 
+/**< Common Unicode characters */
+#define U_SPECIAL      '?'
+
+#define U_LEFT_ARROW   0x2190
+#define U_UP_ARROW     0x2191
+#define U_RIGHT_ARROW  0x2192
+#define U_DOWN_ARROW   0x2193
+
+#define U_PAGE_UP      0x21de
+#define U_PAGE_DOWN    0x21df
+
+#define U_HOME_ARROW   0x21f1
+#define U_END_ARROW    0x21f2
+
+#define U_NULL         0x2400
+#define U_ESCAPE       0x241b
+#define U_DELETE       0x2421
+
+#define U_CURSOR       0x2588
+
+/**< No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
 /**< Maximum size of a string containing cnt characters */
 #define STR_BOUNDS(cnt)  (cnt << 2)
-
-extern char invalch;
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);

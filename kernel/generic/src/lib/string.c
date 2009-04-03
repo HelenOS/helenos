@@ -109,8 +109,6 @@
 #include <errno.h>
 #include <align.h>
 
-char invalch = '?';
-
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
 
@@ -134,7 +132,7 @@ char invalch = '?';
  * @param offset Byte offset in string where to start decoding.
  * @param size   Size of the string (in bytes).
  *
- * @return Value of decoded character, invalch on decoding error or
+ * @return Value of decoded character, U_SPECIAL on decoding error or
  *         NULL if attempt to decode beyond @a size.
  *
  */
@@ -169,11 +167,11 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 		cbytes = 3;
 	} else {
 		/* 10xxxxxx -- unexpected continuation byte */
-		return invalch;
+		return U_SPECIAL;
 	}
 	
 	if (*offset + cbytes > size)
-		return invalch;
+		return U_SPECIAL;
 	
 	wchar_t ch = b0 & LO_MASK_8(b0_bits);
 	
@@ -183,7 +181,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 		
 		/* Must be 10xxxxxx */
 		if ((b & 0xc0) != 0x80)
-			return invalch;
+			return U_SPECIAL;
 		
 		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));

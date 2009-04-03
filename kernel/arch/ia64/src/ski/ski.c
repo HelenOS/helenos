@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -78,7 +78,7 @@ static void ski_putchar(outdev_t *d, const wchar_t ch, bool silent)
 			
 			ski_do_putchar(ch);
 		} else
-			ski_do_putchar(invalch);
+			ski_do_putchar(SPECIAL);
 	}
 }
 

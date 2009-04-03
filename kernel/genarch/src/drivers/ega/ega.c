@@ -44,6 +44,7 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <memstr.h>
+#include <string.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
@@ -485,7 +486,7 @@ static void ega_display_char(wchar_t ch, bool silent)
 	uint8_t style;
 	
 	if ((index >> 8)) {
-		glyph = '?';
+		glyph = U_SPECIAL;
 		style = INVAL;
 	} else {
 		glyph = index & 0xff;

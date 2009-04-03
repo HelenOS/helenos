@@ -128,8 +128,8 @@ void arch_post_smp_init(void)
 {
 #ifdef CONFIG_ARM_KBD
 	/*
-	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
+	 * Initialize the GXemul keyboard port. Then initialize the serial line
+	 * module and connect it to the GXemul keyboard. Enable keyboard interrupts.
 	 */
 	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) gxemul_kbd, GXEMUL_KBD_IRQ);
 	if (kbrdin)
