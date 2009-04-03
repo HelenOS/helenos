@@ -46,7 +46,7 @@ struct indev;
 /* Input character device operations interface. */
 typedef struct {
 	/** Read character directly from device, assume interrupts disabled. */
-	char (* poll)(struct indev *);
+	wchar_t (* poll)(struct indev *);
 } indev_operations_t;
 
 /** Character input device. */
@@ -56,7 +56,7 @@ typedef struct indev {
 	
 	/** Protects everything below. */
 	SPINLOCK_DECLARE(lock);
-	uint8_t buffer[INDEV_BUFLEN];
+	wchar_t buffer[INDEV_BUFLEN];
 	count_t counter;
 	
 	/** Implementation of indev operations. */
@@ -71,7 +71,7 @@ struct outdev;
 /* Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (* write)(struct outdev *, wchar_t c, bool silent);
+	void (* write)(struct outdev *, wchar_t, bool);
 } outdev_operations_t;
 
 /** Character input device. */
@@ -88,7 +88,7 @@ typedef struct outdev {
 
 extern void indev_initialize(char *name, indev_t *indev,
     indev_operations_t *op);
-extern void indev_push_character(indev_t *indev, uint8_t ch);
+extern void indev_push_character(indev_t *indev, wchar_t ch);
 
 extern void outdev_initialize(char *name, outdev_t *outdev,
     outdev_operations_t *op);

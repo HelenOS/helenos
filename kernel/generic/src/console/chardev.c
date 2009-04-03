@@ -59,7 +59,7 @@ void indev_initialize(char *name, indev_t *indev,
  * @param ch    Character being pushed.
  *
  */
-void indev_push_character(indev_t *indev, uint8_t ch)
+void indev_push_character(indev_t *indev, wchar_t ch)
 {
 	ASSERT(indev);
 	
