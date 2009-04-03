@@ -40,11 +40,11 @@
 
 /** Structure for specifying output methods for different printf clones. */
 typedef struct {
-	/* UTF-8 output function, returns number of printed UTF-8 characters or EOF */
-	int (*write_utf8)(const char *, size_t, void *);
+	/* String output function, returns number of printed characters or EOF */
+	int (*str_write)(const char *, size_t, void *);
 	
-	/* UTF-32 output function, returns number of printed UTF-32 characters or EOF */
-	int (*write_utf32)(const wchar_t *, size_t, void *);
+	/* Wide string output function, returns number of printed characters or EOF */
+	int (*wstr_write)(const wchar_t *, size_t, void *);
 	
 	/* User data - output stream specification, state, locks, etc. */
 	void *data;
