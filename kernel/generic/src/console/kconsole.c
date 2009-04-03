@@ -509,7 +509,7 @@ static bool parse_argument(const char *cmdline, size_t size, size_t *start, size
 		
 		prev = offset;
 	}
-	*end = offset;
+	*end = prev;
 	
 	return found_start;
 }

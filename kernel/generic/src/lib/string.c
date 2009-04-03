@@ -458,32 +458,27 @@ bool chr_check(const wchar_t ch)
  */
 int str_cmp(const char *s1, const char *s2)
 {
-	wchar_t c1;
-	wchar_t c2;
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
 	
 	size_t off1 = 0;
 	size_t off2 = 0;
-	
-	while ((c1 = str_decode(s1, &off1, STR_NO_LIMIT) != 0)
-	    && (c2 = str_decode(s2, &off2, STR_NO_LIMIT) != 0)) {
-		
-		if (off1 != off2)
-			break;
-		
+
+	while (true) {
+		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
+		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+
 		if (c1 < c2)
 			return -1;
 		
 		if (c1 > c2)
 			return 1;
+
+		if (c1 == 0 || c2 == 0)
+			break;		
 	}
-	
-	if ((off1 == off2) && (c1 == c2))
-		return 0;
-	
-	if ((c1 == 0) || (off1 < off2))
-		return -1;
-	
-	return 1;
+
+	return 0;
 }
 
 /** Compare two NULL terminated strings with length limit.
@@ -509,30 +504,28 @@ int str_lcmp(const char *s1, const char *s2, count_t max_len)
 	size_t off2 = 0;
 	
 	count_t len = 0;
-	
-	while ((len < max_len)
-	    && ((c1 = str_decode(s1, &off1, STR_NO_LIMIT)) != 0)
-	    && ((c2 = str_decode(s2, &off2, STR_NO_LIMIT)) != 0)) {
-		
-		if (off1 != off2)
+
+	while (true) {
+		if (len >= max_len)
 			break;
-		
+
+		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
+		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+
 		if (c1 < c2)
 			return -1;
-		
+
 		if (c1 > c2)
 			return 1;
-		
-		len++;
+
+		if (c1 == 0 || c2 == 0)
+			break;
+
+		++len;	
 	}
-	
-	if ((off1 == off2) && (len == max_len) && (c1 == c2))
-		return 0;
-	
-	if ((c1 == 0) || (off1 < off2))
-		return -1;
-	
-	return 1;
+
+	return 0;
+
 }
 
 /** Copy NULL-terminated string.
@@ -558,7 +551,7 @@ void str_ncpy(char *dst, const char *src, size_t size)
 	size_t str_off = 0;
 	size_t dst_off = 0;
 	
-	while ((ch = str_decode(src, &str_off, STR_NO_LIMIT) != 0)) {
+	while ((ch = str_decode(src, &str_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dst, &dst_off, size) != EOK)
 			break;
 	}
@@ -616,7 +609,7 @@ const char *str_chr(const char *str, wchar_t ch)
 	wchar_t acc;
 	size_t off = 0;
 	
-	while ((acc = str_decode(str, &off, STR_NO_LIMIT) != 0)) {
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc == ch)
 			return (str + off);
 	}
