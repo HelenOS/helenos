@@ -39,15 +39,15 @@
 #include <synch/spinlock.h>
 #include <ipc/irq.h>
 
-#define MAX_CMDLINE     256
-#define KCONSOLE_HISTORY 10
+#define MAX_CMDLINE       256
+#define KCONSOLE_HISTORY  10
 
 typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
 	ARG_TYPE_STRING,
 	/** Variable type - either symbol or string. */
-	ARG_TYPE_VAR      
+	ARG_TYPE_VAR
 } cmd_arg_type_t;
 
 /** Structure representing one argument of kconsole command line. */
@@ -96,7 +96,7 @@ extern bool kconsole_check_poll(void);
 extern void kconsole(char *prompt, char *msg, bool kcon);
 extern void kconsole_thread(void *data);
 
-extern int cmd_register(cmd_info_t *cmd);
+extern bool cmd_register(cmd_info_t *cmd);
 
 #endif
 
