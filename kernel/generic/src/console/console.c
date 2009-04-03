@@ -50,6 +50,7 @@
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <string.h>
 
 #define KLOG_SIZE     PAGE_SIZE
 #define KLOG_LATENCY  8
@@ -154,7 +155,7 @@ bool check_poll(indev_t *indev)
  * @return Character read.
  *
  */
-uint8_t _getc(indev_t *indev)
+wchar_t _getc(indev_t *indev)
 {
 	if (atomic_get(&haltstate)) {
 		/* If we are here, we are hopefully on the processor that
@@ -178,7 +179,7 @@ uint8_t _getc(indev_t *indev)
 	waitq_sleep(&indev->wq);
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&indev->lock);
-	uint8_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
+	wchar_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
 	indev->counter--;
 	spinlock_unlock(&indev->lock);
 	interrupts_restore(ipl);
@@ -192,7 +193,7 @@ uint8_t _getc(indev_t *indev)
  * of newline character.
  *
  * @param indev  Input character device.
- * @param buf    Buffer where to store string terminated by '\0'.
+ * @param buf    Buffer where to store string terminated by NULL.
  * @param buflen Size of the buffer.
  *
  * @return Number of characters read.
@@ -200,36 +201,38 @@ uint8_t _getc(indev_t *indev)
  */
 count_t gets(indev_t *indev, char *buf, size_t buflen)
 {
-	index_t index = 0;
+	size_t offset = 0;
+	count_t count = 0;
+	buf[offset] = 0;
 	
-	while (index < buflen) {
-		char ch = _getc(indev);
+	wchar_t ch;
+	while ((ch = _getc(indev)) != '\n') {
 		if (ch == '\b') {
-			if (index > 0) {
-				index--;
-				/* Space backspace, space */
+			if (count > 0) {
+				/* Space, backspace, space */
 				putchar('\b');
 				putchar(' ');
 				putchar('\b');
+				
+				count--;
+				offset = str_lsize(buf, count);
+				buf[offset] = 0;
 			}
-			continue;
-		} 
-		putchar(ch);
-		
-		if (ch == '\n') { /* end of string => write 0, return */
-			buf[index] = '\0';
-			return (count_t) index;
 		}
-		buf[index++] = ch;
+		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
+			putchar(ch);
+			count++;
+			buf[offset] = 0;
+		}
 	}
 	
-	return (count_t) index;
+	return count;
 }
 
 /** Get character from input device & echo it to screen */
-uint8_t getc(indev_t *indev)
+wchar_t getc(indev_t *indev)
 {
-	uint8_t ch = _getc(indev);
+	wchar_t ch = _getc(indev);
 	putchar(ch);
 	return ch;
 }
@@ -295,32 +298,32 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-unative_t sys_klog(int fd, const void * buf, size_t count)
+unative_t sys_klog(int fd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
 	
-	if (count > PAGE_SIZE)
+	if (size > PAGE_SIZE)
 		return ELIMIT;
 	
-	if (count > 0) {
-		data = (char *) malloc(count + 1, 0);
+	if (size > 0) {
+		data = (char *) malloc(size + 1, 0);
 		if (!data)
 			return ENOMEM;
 		
-		rc = copy_from_uspace(data, buf, count);
+		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
 			return rc;
 		}
-		data[count] = 0;
+		data[size] = 0;
 		
 		printf("%s", data);
 		free(data);
 	} else
 		klog_update();
 	
-	return count;
+	return size;
 }
 
 /** @}
