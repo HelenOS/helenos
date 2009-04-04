@@ -64,7 +64,7 @@
 #define STR_BOUNDS(cnt)  (cnt << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
-extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+extern int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -78,8 +78,8 @@ extern count_t wstr_length(const wchar_t *wstr);
 extern count_t str_nlength(const char *str, size_t size);
 extern count_t wstr_nlength(const wchar_t *str, size_t size);
 
-extern bool ascii_check(const wchar_t ch);
-extern bool chr_check(const wchar_t ch);
+extern bool ascii_check(wchar_t ch);
+extern bool chr_check(wchar_t ch);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, count_t max_len);

@@ -38,15 +38,23 @@
 #include <sys/types.h>
 #include <io/printf_core.h>
 
-static int vfprintf_write(const char *s, size_t count, void *f)
+static int vfprintf_str_write(const char *s, size_t size, void *f)
 {
-	return fwrite(s, 1, count, (FILE *) f);
+	/* FIXME: Should return number of characters? */
+	return fwrite(s, 1, size, (FILE *) f);
+}
+
+static int vfprintf_wstr_write(const char *s, size_t size, void *f)
+{
+	/* TODO */
+	return size;
 }
 
 int vfprintf(FILE *f, const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {
-		(int (*)(void *, size_t, void *)) vfprintf_write,
+		vfprintf_str_write,
+		vfprintf_wstr_write,
 		(void *) f
 	};
 

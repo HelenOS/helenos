@@ -41,10 +41,40 @@
 
 static atomic_t printf_futex = FUTEX_INITIALIZER;
 
-static int vprintf_write(const char *str, size_t count, void *unused)
+static int vprintf_str_write(const char *str, size_t size, void *data)
 {
-	return write_stdout(str, count);
+	size_t offset = 0;
+	size_t prev;
+	count_t chars = 0;
+	
+	while (offset < size) {
+		prev = offset;
+		str_decode(str, &offset, size);
+		write_stdout(str + prev, offset - prev);
+		chars++;
+	}
+	
+	return chars;
 }
+
+static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+{
+	size_t offset = 0;
+	size_t boff;
+	count_t chars = 0;
+	char buf[4];
+	
+	while (offset < size) {
+		boff = 0;
+		chr_encode(str[chars], buf, &boff, 4);
+		write_stdout(buf, boff);
+		chars++;
+		offset += sizeof(wchar_t);
+	}
+	
+	return chars;
+}
+
 
 /** Print formatted text.
  * @param fmt	format string
@@ -54,7 +84,8 @@ static int vprintf_write(const char *str, size_t count, void *unused)
 int vprintf(const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {
-		(int (*)(void *, size_t, void *)) vprintf_write,
+		vprintf_str_write,
+		vprintf_wstr_write,
 		 NULL
 	};
 	/*

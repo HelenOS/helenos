@@ -47,6 +47,11 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
 
+typedef int64_t ssize_t;
+typedef uint64_t size_t;
+typedef uint64_t count_t;
+typedef uint64_t index_t;
+
 typedef uint64_t uintptr_t;
 
 #endif

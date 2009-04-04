@@ -206,7 +206,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  *	   was not enough space in the output buffer or EINVAL if the character
  *	   code was invalid.
  */
-int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+int chr_encode(wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -422,7 +422,7 @@ count_t wstr_nlength(const wchar_t *str, size_t size)
  * @return True if character is plain ASCII.
  *
  */
-bool ascii_check(const wchar_t ch)
+bool ascii_check(wchar_t ch)
 {
 	if ((ch >= 0) && (ch <= 127))
 		return true;
@@ -435,7 +435,7 @@ bool ascii_check(const wchar_t ch)
  * @return True if character is a valid Unicode code point.
  *
  */
-bool chr_check(const wchar_t ch)
+bool chr_check(wchar_t ch)
 {
 	if ((ch >= 0) && (ch <= 1114111))
 		return true;

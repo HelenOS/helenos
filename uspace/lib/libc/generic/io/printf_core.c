@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,12 +28,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /**
  * @file
- * @brief	Printing functions.
+ * @brief Printing functions.
  */
 
 #include <unistd.h>
@@ -41,20 +42,30 @@
 #include <ctype.h>
 #include <string.h>
 
-#define __PRINTF_FLAG_PREFIX		0x00000001	/**< show prefixes 0x or 0*/
-#define __PRINTF_FLAG_SIGNED		0x00000002	/**< signed / unsigned number */
-#define __PRINTF_FLAG_ZEROPADDED	0x00000004	/**< print leading zeroes */
-#define __PRINTF_FLAG_LEFTALIGNED	0x00000010	/**< align to left */
-#define __PRINTF_FLAG_SHOWPLUS		0x00000020	/**< always show + sign */
-#define __PRINTF_FLAG_SPACESIGN		0x00000040	/**< print space instead of plus */
-#define __PRINTF_FLAG_BIGCHARS		0x00000080	/**< show big characters */
-#define __PRINTF_FLAG_NEGATIVE		0x00000100	/**< number has - sign */
+/** show prefixes 0x or 0 */
+#define __PRINTF_FLAG_PREFIX       0x00000001
+/** signed / unsigned number */
+#define __PRINTF_FLAG_SIGNED       0x00000002
+/** print leading zeroes */
+#define __PRINTF_FLAG_ZEROPADDED   0x00000004
+/** align to left */
+#define __PRINTF_FLAG_LEFTALIGNED  0x00000010
+/** always show + sign */
+#define __PRINTF_FLAG_SHOWPLUS     0x00000020
+/** print space instead of plus */
+#define __PRINTF_FLAG_SPACESIGN    0x00000040
+/** show big characters */
+#define __PRINTF_FLAG_BIGCHARS     0x00000080
+/** number has - sign */
+#define __PRINTF_FLAG_NEGATIVE     0x00000100
 
-#define PRINT_NUMBER_BUFFER_SIZE	(64+5)		/**< Buffer big enought for 64 bit number
-							 * printed in base 2, sign, prefix and
-							 * 0 to terminate string.. (last one is only for better testing 
-							 * end of buffer by zero-filling subroutine)
-							 */
+/**
+ * Buffer big enough for 64-bit number printed in base 2, sign, prefix and 0
+ * to terminate string... (last one is only for better testing end of buffer by
+ * zero-filling subroutine)
+ */
+#define PRINT_NUMBER_BUFFER_SIZE  (64 + 5)
+
 /** Enumeration of possible arguments types.
  */
 typedef enum {
@@ -63,171 +74,296 @@ typedef enum {
 	PrintfQualifierInt,
 	PrintfQualifierLong,
 	PrintfQualifierLongLong,
-	PrintfQualifierSizeT,
 	PrintfQualifierPointer
 } qualifier_t;
 
-static char digits_small[] = "0123456789abcdef";	/**< Small hexadecimal characters */
-static char digits_big[] = "0123456789ABCDEF";		/**< Big hexadecimal characters */
+static char nullstr[] = "(NULL)";
+static char digits_small[] = "0123456789abcdef";
+static char digits_big[] = "0123456789ABCDEF";
+static char invalch = U_SPECIAL;
 
-/** Print count chars from buffer without adding newline
- * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
- * @param count 
- * @param ps output method and its data
- * @return number of printed characters
+/** Print one or more characters without adding newline.
+ *
+ * @param buf  Buffer holding characters with size of
+ *             at least size bytes. NULL is not allowed!
+ * @param size Size of the buffer in bytes.
+ * @param ps   Output method and its data.
+ *
+ * @return Number of characters printed.
+ *
  */
-static int printf_putnchars(const char * buf, size_t count,
-    struct printf_spec *ps)
+static int printf_putnchars(const char *buf, size_t size,
+    printf_spec_t *ps)
 {
-	return ps->write((void *)buf, count, ps->data);
+	return ps->str_write((void *) buf, size, ps->data);
 }
 
-/** Print string without added newline
- * @param str string to print
- * @param ps write function specification and support data
- * @return number of printed characters
+/** Print one or more wide characters without adding newline.
+ *
+ * @param buf  Buffer holding wide characters with size of
+ *             at least size bytes. NULL is not allowed!
+ * @param size Size of the buffer in bytes.
+ * @param ps   Output method and its data.
+ *
+ * @return Number of wide characters printed.
+ *
  */
-static int printf_putstr(const char * str, struct printf_spec *ps)
+static int printf_wputnchars(const wchar_t *buf, size_t size,
+    printf_spec_t *ps)
 {
-	size_t count;
-	
+	return ps->wstr_write((void *) buf, size, ps->data);
+}
+
+/** Print string without adding a newline.
+ *
+ * @param str String to print.
+ * @param ps  Write function specification and support data.
+ *
+ * @return Number of characters printed.
+ *
+ */
+static int printf_putstr(const char *str, printf_spec_t *ps)
+{
 	if (str == NULL)
-		return printf_putnchars("(NULL)", 6, ps);
-
-	count = strlen(str);
-
-	return ps->write((void *) str, count, ps->data);
+		return printf_putnchars(nullstr, str_size(nullstr), ps);
+	
+	return ps->str_write((void *) str, str_size(str), ps->data);
 }
 
-/** Print one character to output
- * @param c one character
- * @param ps output method
- * @return number of printed characters
+/** Print one ASCII character.
+ *
+ * @param c  ASCII character to be printed.
+ * @param ps Output method.
+ *
+ * @return Number of characters printed.
+ *
  */
-static int printf_putchar(int c, struct printf_spec *ps)
+static int printf_putchar(const char ch, printf_spec_t *ps)
 {
-	unsigned char ch = c;
+	if (!ascii_check(ch))
+		return ps->str_write((void *) &invalch, 1, ps->data);
 	
-	return ps->write((void *) &ch, 1, ps->data);
+	return ps->str_write(&ch, 1, ps->data);
 }
 
-/** Print one formatted character
- * @param c character to print
- * @param width 
- * @param flags
- * @return number of printed characters
+/** Print one wide character.
+ *
+ * @param c  Wide character to be printed.
+ * @param ps Output method.
+ *
+ * @return Number of characters printed.
+ *
  */
-static int print_char(char c, int width, uint64_t flags, struct printf_spec *ps)
+static int printf_putwchar(const wchar_t ch, printf_spec_t *ps)
 {
-	int counter = 0;
+	if (!chr_check(ch))
+		return ps->str_write((void *) &invalch, 1, ps->data);
 	
+	return ps->wstr_write(&ch, sizeof(wchar_t), ps->data);
+}
+
+/** Print one formatted ASCII character.
+ *
+ * @param ch    Character to print.
+ * @param width Width modifier.
+ * @param flags Flags that change the way the character is printed.
+ *
+ * @return Number of characters printed, negative value on failure.
+ *
+ */
+static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *ps)
+{
+	count_t counter = 0;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
-		/*
-		 * One space is consumed by the character itself, hence the
-		 * predecrement.
-		 */
 		while (--width > 0) {
-			if (printf_putchar(' ', ps) > 0)	
-				++counter;
+			/*
+			 * One space is consumed by the character itself, hence
+			 * the predecrement.
+			 */
+			if (printf_putchar(' ', ps) > 0)
+				counter++;
 		}
 	}
- 	
-	if (printf_putchar(c, ps) > 0)
+	
+	if (printf_putchar(ch, ps) > 0)
 		counter++;
-	/*
-	 * One space is consumed by the character itself, hence the
-	 * predecrement.
-	 */
+	
 	while (--width > 0) {
+		/*
+		 * One space is consumed by the character itself, hence
+		 * the predecrement.
+		 */
 		if (printf_putchar(' ', ps) > 0)
-			++counter;
+			counter++;
 	}
 	
-	return ++counter;
+	return (int) (counter + 1);
 }
 
-/** Print one string
- * @param s string
- * @param width 
- * @param precision
- * @param flags
- * @return number of printed characters
+/** Print one formatted wide character.
+ *
+ * @param ch    Character to print.
+ * @param width Width modifier.
+ * @param flags Flags that change the way the character is printed.
+ *
+ * @return Number of characters printed, negative value on failure.
+ *
  */
-static int print_string(char *s, int width, int precision, uint64_t flags,
-    struct printf_spec *ps)
+static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_t *ps)
 {
-	int counter = 0;
-	size_t size;
-	int retval;
-
-	if (s == NULL) {
-		return printf_putstr("(NULL)", ps);
+	count_t counter = 0;
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		while (--width > 0) {
+			/*
+			 * One space is consumed by the character itself, hence
+			 * the predecrement.
+			 */
+			if (printf_putchar(' ', ps) > 0)
+				counter++;
+		}
 	}
 	
-	size = strlen(s);
-
-	/* print leading spaces */
-
-	if (precision == 0) 
-		precision = size;
-
-	width -= precision;
+	if (printf_putwchar(ch, ps) > 0)
+		counter++;
 	
+	while (--width > 0) {
+		/*
+		 * One space is consumed by the character itself, hence
+		 * the predecrement.
+		 */
+		if (printf_putchar(' ', ps) > 0)
+			counter++;
+	}
+	
+	return (int) (counter + 1);
+}
+
+/** Print string.
+ *
+ * @param str       String to be printed.
+ * @param width     Width modifier.
+ * @param precision Precision modifier.
+ * @param flags     Flags that modify the way the string is printed.
+ *
+ * @return Number of characters printed, negative value on failure.
+ */
+static int print_str(char *str, int width, unsigned int precision,
+	uint32_t flags, printf_spec_t *ps)
+{
+	if (str == NULL)
+		return printf_putstr(nullstr, ps);
+
+	/* Print leading spaces. */
+	count_t strw = str_length(str);
+	if (precision == 0)
+		precision = strw;
+
+	/* Left padding */
+	count_t counter = 0;
+	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
-		while (width-- > 0) { 	
-			if (printf_putchar(' ', ps) == 1)	
+		while (width-- > 0) {
+			if (printf_putchar(' ', ps) == 1)
 				counter++;
 		}
 	}
 
- 	if ((retval = printf_putnchars(s, size < precision ? size : precision,
-	    ps)) < 0) {
+	/* Part of @a str fitting into the alloted space. */
+	int retval;
+	size_t size = str_lsize(str, precision);
+	if ((retval = printf_putnchars(str, size, ps)) < 0)
 		return -counter;
-	}
 
-	counter += retval;	
+	counter += retval;
 
+	/* Right padding */
 	while (width-- > 0) {
-		if (printf_putchar(' ', ps) == 1)	
-			++counter;
+		if (printf_putchar(' ', ps) == 1)
+			counter++;
 	}
-	
-	return counter;
+
+	return ((int) counter);
+
 }
 
+/** Print wide string.
+ *
+ * @param str       Wide string to be printed.
+ * @param width     Width modifier.
+ * @param precision Precision modifier.
+ * @param flags     Flags that modify the way the string is printed.
+ *
+ * @return Number of wide characters printed, negative value on failure.
+ */
+static int print_wstr(wchar_t *str, int width, unsigned int precision,
+	uint32_t flags, printf_spec_t *ps)
+{
+	if (str == NULL)
+		return printf_putstr(nullstr, ps);
 
-/** Print number in given base
+	/* Print leading spaces. */
+	size_t strw = wstr_length(str);
+	if (precision == 0)
+		precision = strw;
+
+	/* Left padding */
+	count_t counter = 0;
+	width -= precision;
+	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
+		while (width-- > 0) {
+			if (printf_putchar(' ', ps) == 1)
+				counter++;
+		}
+	}
+
+	/* Part of @a wstr fitting into the alloted space. */
+	int retval;
+	size_t size = wstr_lsize(str, precision);
+	if ((retval = printf_wputnchars(str, size, ps)) < 0)
+		return -counter;
+
+	counter += retval;
+
+	/* Right padding */
+	while (width-- > 0) {
+		if (printf_putchar(' ', ps) == 1)
+			counter++;
+	}
+
+	return ((int) counter);
+}
+
+/** Print a number in a given base.
  *
- * Print significant digits of a number in given
- * base.
+ * Print significant digits of a number in given base.
  *
- * @param num  Number to print.
- * @param width
- * @param precision
- * @param base Base to print the number in (should
- *             be in range 2 .. 16).
- * @param flags output modifiers
- * @return number of printed characters
+ * @param num       Number to print.
+ * @param width     Width modifier.
+ * @param precision Precision modifier.
+ * @param base      Base to print the number in (must be between 2 and 16).
+ * @param flags     Flags that modify the way the number is printed.
+ *
+ * @return Number of characters printed.
  *
  */
 static int print_number(uint64_t num, int width, int precision, int base,
-    uint64_t flags, struct printf_spec *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
-	char *digits = digits_small;
-	char d[PRINT_NUMBER_BUFFER_SIZE];	/* this is good enough even for
-						 * base == 2, prefix and sign */
-	char *ptr = &d[PRINT_NUMBER_BUFFER_SIZE - 1];
-	int size = 0; /* size of number with all prefixes and signs */
-	int number_size; /* size of plain number */
-	char sgn;
-	int retval;
-	int counter = 0;
+	char *digits;
+	if (flags & __PRINTF_FLAG_BIGCHARS)
+		digits = digits_big;
+	else
+		digits = digits_small;
 	
-	if (flags & __PRINTF_FLAG_BIGCHARS) 
-		digits = digits_big;	
+	char data[PRINT_NUMBER_BUFFER_SIZE];
+	char *ptr = &data[PRINT_NUMBER_BUFFER_SIZE - 1];
 	
-	*ptr-- = 0; /* Put zero at end of string */
-
+	/* Size of number with all prefixes and signs */
+	int size = 0;
+	
+	/* Put zero at end of string */
+	*ptr-- = 0;
+	
 	if (num == 0) {
 		*ptr-- = '0';
 		size++;
@@ -238,15 +374,17 @@ static int print_number(uint64_t num, int width, int precision, int base,
 		} while (num /= base);
 	}
 	
-	number_size = size;
-
+	/* Size of plain number */
+	int number_size = size;
+	
 	/*
-	 * Collect sum of all prefixes/signs/... to calculate padding and
-	 * leading zeroes
+	 * Collect the sum of all prefixes/signs/etc. to calculate padding and
+	 * leading zeroes.
 	 */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
-		case 2:	/* Binary formating is not standard, but usefull */
+		case 2:
+			/* Binary formating is not standard, but usefull */
 			size += 2;
 			break;
 		case 8:
@@ -257,8 +395,8 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			break;
 		}
 	}
-
-	sgn = 0;
+	
+	char sgn = 0;
 	if (flags & __PRINTF_FLAG_SIGNED) {
 		if (flags & __PRINTF_FLAG_NEGATIVE) {
 			sgn = '-';
@@ -271,47 +409,46 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			size++;
 		}
 	}
-
-	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
+	
+	if (flags & __PRINTF_FLAG_LEFTALIGNED)
 		flags &= ~__PRINTF_FLAG_ZEROPADDED;
-	}
-
+	
 	/*
-	 * If number is leftaligned or precision is specified then zeropadding
-	 * is ignored.
+	 * If the number is left-aligned or precision is specified then
+	 * padding with zeros is ignored.
 	 */
 	if (flags & __PRINTF_FLAG_ZEROPADDED) {
-		if ((precision == 0) && (width > size)) {
+		if ((precision == 0) && (width > size))
 			precision = width - size + number_size;
-		}
 	}
-
-	/* print leading spaces */
-
-	/* We must print whole number not only a part. */
-	if (number_size > precision)
+	
+	/* Print leading spaces */
+	if (number_size > precision) {
+		/* Print the whole number, not only a part */
 		precision = number_size;
-
+	}
+	
 	width -= precision + size - number_size;
+	count_t counter = 0;
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
-		while (width-- > 0) { 	
-			if (printf_putchar(' ', ps) == 1)	
+		while (width-- > 0) {
+			if (printf_putchar(' ', ps) == 1)
 				counter++;
 		}
 	}
 	
-	/* print sign */
+	/* Print sign */
 	if (sgn) {
 		if (printf_putchar(sgn, ps) == 1)
 			counter++;
 	}
 	
-	/* print prefix */
-	
+	/* Print prefix */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch(base) {
-		case 2:	/* Binary formating is not standard, but usefull */
+		case 2:
+			/* Binary formating is not standard, but usefull */
 			if (printf_putchar('0', ps) == 1)
 				counter++;
 			if (flags & __PRINTF_FLAG_BIGCHARS) {
@@ -339,152 +476,154 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			break;
 		}
 	}
-
-	/* print leading zeroes */
+	
+	/* Print leading zeroes */
 	precision -= number_size;
-	while (precision-- > 0) { 	
+	while (precision-- > 0) {
 		if (printf_putchar('0', ps) == 1)
 			counter++;
 	}
-
 	
-	/* print number itself */
-
-	if ((retval = printf_putstr(++ptr, ps)) > 0) {
+	/* Print the number itself */
+	int retval;
+	if ((retval = printf_putstr(++ptr, ps)) > 0)
 		counter += retval;
-	}
 	
-	/* print ending spaces */
+	/* Print tailing spaces */
 	
-	while (width-- > 0) { 	
-		if (printf_putchar(' ', ps) == 1)	
+	while (width-- > 0) {
+		if (printf_putchar(' ', ps) == 1)
 			counter++;
 	}
-
-	return counter;
+	
+	return ((int) counter);
 }
-
 
 /** Print formatted string.
  *
  * Print string formatted according to the fmt parameter and variadic arguments.
  * Each formatting directive must have the following form:
- * 
- * 	\% [ FLAGS ] [ WIDTH ] [ .PRECISION ] [ TYPE ] CONVERSION
+ *
+ *  \% [ FLAGS ] [ WIDTH ] [ .PRECISION ] [ TYPE ] CONVERSION
  *
  * FLAGS:@n
- * 	- "#" Force to print prefix.
- * 	For conversion \%o the prefix is 0, for %x and \%X prefixes are 0x and
- *	0X and for conversion \%b the prefix is 0b.
+ *  - "#" Force to print prefix. For \%o conversion, the prefix is 0, for
+ *        \%x and \%X prefixes are 0x and 0X and for conversion \%b the
+ *        prefix is 0b.
  *
- * 	- "-"	Align to left.
+ *  - "-" Align to left.
  *
- * 	- "+"	Print positive sign just as negative.
+ *  - "+" Print positive sign just as negative.
  *
- * 	- " "	If the printed number is positive and "+" flag is not set,
- *		print space in place of sign.
+ *  - " " If the printed number is positive and "+" flag is not set,
+ *        print space in place of sign.
  *
- * 	- "0"	Print 0 as padding instead of spaces. Zeroes are placed between
- *		sign and the rest of the number. This flag is ignored if "-"
- *		flag is specified.
- * 
+ *  - "0" Print 0 as padding instead of spaces. Zeroes are placed between
+ *        sign and the rest of the number. This flag is ignored if "-"
+ *        flag is specified.
+ *
  * WIDTH:@n
- * 	- Specify minimal width of printed argument. If it is bigger, width is
- *	  ignored. If width is specified with a "*" character instead of number,
- *	  width is taken from parameter list. And integer parameter is expected
- *	  before parameter for processed conversion specification. If this value
- *	  is negative its absolute value is taken and the "-" flag is set.
+ *  - Specify the minimal width of a printed argument. If it is bigger,
+ *    width is ignored. If width is specified with a "*" character instead of
+ *    number, width is taken from parameter list. And integer parameter is
+ *    expected before parameter for processed conversion specification. If
+ *    this value is negative its absolute value is taken and the "-" flag is
+ *    set.
  *
  * PRECISION:@n
- * 	- Value precision. For numbers it specifies minimum valid numbers.
- *	  Smaller numbers are printed with leading zeroes. Bigger numbers are
- *	  not affected. Strings with more than precision characters are cut off.
- *	  Just as with width, an "*" can be used used instead of a number. An
- *	  integer value is then expected in parameters. When both width and
- *	  precision are specified using "*", the first parameter is used for
- *	  width and the second one for precision.
- * 
+ *  - Value precision. For numbers it specifies minimum valid numbers.
+ *    Smaller numbers are printed with leading zeroes. Bigger numbers are not
+ *    affected. Strings with more than precision characters are cut off. Just
+ *    as with width, an "*" can be used used instead of a number. An integer
+ *    value is then expected in parameters. When both width and precision are
+ *    specified using "*", the first parameter is used for width and the
+ *    second one for precision.
+ *
  * TYPE:@n
- * 	- "hh"	Signed or unsigned char.@n
- * 	- "h"	Signed or usigned short.@n
- * 	- ""	Signed or usigned int (default value).@n
- * 	- "l"	Signed or usigned long int.@n
- * 	- "ll"	Signed or usigned long long int.@n
- * 	- "z"	Type size_t.@n
- * 
- * 
+ *  - "hh" Signed or unsigned char.@n
+ *  - "h"  Signed or unsigned short.@n
+ *  - ""   Signed or unsigned int (default value).@n
+ *  - "l"  Signed or unsigned long int.@n
+ *         If conversion is "c", the character is wchar_t (wide character).@n
+ *         If conversion is "s", the string is wchar_t * (wide string).@n
+ *  - "ll" Signed or unsigned long long int.@n
+ *
  * CONVERSION:@n
- * 	- %	Print percentile character itself.
+ *  - % Print percentile character itself.
  *
- * 	- c	Print single character.
+ *  - c Print single character. The character is expected to be plain
+ *      ASCII (e.g. only values 0 .. 127 are valid).@n
+ *      If type is "l", then the character is expected to be wide character
+ *      (e.g. values 0 .. 0x10ffff are valid).
  *
- * 	- s	Print zero terminated string. If a NULL value is passed as
- *		value, "(NULL)" is printed instead.
- * 
- * 	- P, p	Print value of a pointer. Void * value is expected and it is
- *		printed in hexadecimal notation with prefix (as with '\%#X' or
- *		'\%#x' for 32bit or '\%#X' or '\%#x' for 64bit long pointers).
+ *  - s Print zero terminated string. If a NULL value is passed as
+ *      value, "(NULL)" is printed instead.@n
+ *      If type is "l", then the string is expected to be wide string.
  *
- * 	- b	Print value as unsigned binary number. Prefix is not printed by
- *		default. (Nonstandard extension.)
- * 
- * 	- o	Print value as unsigned octal number. Prefix is not printed by
- *		default. 
+ *  - P, p Print value of a pointer. Void * value is expected and it is
+ *         printed in hexadecimal notation with prefix (as with \%#X / \%#x
+ *         for 32-bit or \%#X / \%#x for 64-bit long pointers).
  *
- * 	- d, i	Print signed decimal number. There is no difference between d
- *		and i conversion.
+ *  - b Print value as unsigned binary number. Prefix is not printed by
+ *      default. (Nonstandard extension.)
  *
- * 	- u	Print unsigned decimal number.
+ *  - o Print value as unsigned octal number. Prefix is not printed by
+ *      default.
  *
- * 	- X, x	Print hexadecimal number with upper- or lower-case. Prefix is
- *		not printed by default.
- * 
- * All other characters from fmt except the formatting directives are printed in
+ *  - d, i Print signed decimal number. There is no difference between d
+ *         and i conversion.
+ *
+ *  - u Print unsigned decimal number.
+ *
+ *  - X, x Print hexadecimal number with upper- or lower-case. Prefix is
+ *         not printed by default.
+ *
+ * All other characters from fmt except the formatting directives are printed
  * verbatim.
  *
- * @param fmt Formatting NULL terminated string.
- * @return Number of printed characters or negative value on failure.
+ * @param fmt Format NULL-terminated string.
+ *
+ * @return Number of characters printed, negative value on failure.
+ *
  */
-int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
+int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 {
-	/* i is the index of the currently processed char from fmt */
-	int i = 0;
-	/* j is the index to the first not printed nonformating character */
-	int j = 0;
-
-	int end;
-	int counter;	/* counter of printed characters */
-	int retval;	/* used to store return values from called functions */
-	char c;
-	qualifier_t qualifier;	/* type of argument */
-	int base;	/* base in which will be a numeric parameter printed */
-	uint64_t number; /* argument value */
-	size_t	size;	/* byte size of integer parameter */
-	int width, precision;
-	uint64_t flags;
+	size_t i;        /* Index of the currently processed character from fmt */
+	size_t nxt = 0;  /* Index of the next character from fmt */
+	size_t j = 0;    /* Index to the first not printed nonformating character */
 	
-	counter = 0;
+	count_t counter = 0;  /* Number of characters printed */
+	int retval;           /* Return values from nested functions */
 	
-	while ((c = fmt[i])) {
-		/* control character */
-		if (c == '%' ) { 
-			/* print common characters if any processed */	
+	while (true) {
+		i = nxt;
+		wchar_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+		
+		if (uc == 0)
+			break;
+		
+		/* Control character */
+		if (uc == '%') {
+			/* Print common characters if any processed */
 			if (i > j) {
-				if ((retval = printf_putnchars(&fmt[j],
-				    (size_t)(i - j), ps)) < 0) { /* error */
-					goto minus_out;
+				if ((retval = printf_putnchars(&fmt[j], i - j, ps)) < 0) {
+					/* Error */
+					counter = -counter;
+					goto out;
 				}
 				counter += retval;
 			}
-		
+			
 			j = i;
-			/* parse modifiers */
-			flags = 0;
-			end = 0;
+			
+			/* Parse modifiers */
+			uint32_t flags = 0;
+			bool end = false;
 			
 			do {
-				++i;
-				switch (c = fmt[i]) {
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				switch (uc) {
 				case '#':
 					flags |= __PRINTF_FLAG_PREFIX;
 					break;
@@ -501,114 +640,145 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					flags |= __PRINTF_FLAG_ZEROPADDED;
 					break;
 				default:
-					end = 1;
-				};	
-				
-			} while (end == 0);	
+					end = true;
+				};
+			} while (!end);
 			
-			/* width & '*' operator */
-			width = 0;
-			if (isdigit(fmt[i])) {
-				while (isdigit(fmt[i])) {
+			/* Width & '*' operator */
+			int width = 0;
+			if (isdigit(uc)) {
+				while (true) {
 					width *= 10;
-					width += fmt[i++] - '0';
+					width += uc - '0';
+					
+					i = nxt;
+					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+					if (uc == 0)
+						break;
+					if (!isdigit(uc))
+						break;
 				}
-			} else if (fmt[i] == '*') {
-				/* get width value from argument list*/
-				i++;
-				width = (int)va_arg(ap, int);
+			} else if (uc == '*') {
+				/* Get width value from argument list */
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				width = (int) va_arg(ap, int);
 				if (width < 0) {
-					/* negative width sets '-' flag */
+					/* Negative width sets '-' flag */
 					width *= -1;
 					flags |= __PRINTF_FLAG_LEFTALIGNED;
 				}
 			}
 			
-			/* precision and '*' operator */	
-			precision = 0;
-			if (fmt[i] == '.') {
-				++i;
-				if (isdigit(fmt[i])) {
-					while (isdigit(fmt[i])) {
+			/* Precision and '*' operator */
+			int precision = 0;
+			if (uc == '.') {
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				if (isdigit(uc)) {
+					while (true) {
 						precision *= 10;
-						precision += fmt[i++] - '0';
+						precision += uc - '0';
+						
+						i = nxt;
+						uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+						if (uc == 0)
+							break;
+						if (!isdigit(uc))
+							break;
 					}
-				} else if (fmt[i] == '*') {
-					/* get precision value from argument */
-					i++;
-					precision = (int)va_arg(ap, int);
+				} else if (uc == '*') {
+					/* Get precision value from the argument list */
+					i = nxt;
+					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+					precision = (int) va_arg(ap, int);
 					if (precision < 0) {
-						/* negative precision ignored */
+						/* Ignore negative precision */
 						precision = 0;
 					}
 				}
 			}
-
-			switch (fmt[i++]) {
-			/** @todo unimplemented qualifiers:
-			 * t ptrdiff_t - ISO C 99
+			
+			qualifier_t qualifier;
+			
+			switch (uc) {
+			/** @todo Unimplemented qualifiers:
+			 *        t ptrdiff_t - ISO C 99
 			 */
-			case 'h':	/* char or short */
+			case 'h':
+				/* Char or short */
 				qualifier = PrintfQualifierShort;
-				if (fmt[i] == 'h') {
-					i++;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				if (uc == 'h') {
+					i = nxt;
+					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 					qualifier = PrintfQualifierByte;
 				}
 				break;
-			case 'l':	/* long or long long*/
+			case 'l':
+				/* Long or long long */
 				qualifier = PrintfQualifierLong;
-				if (fmt[i] == 'l') {
-					i++;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				if (uc == 'l') {
+					i = nxt;
+					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 					qualifier = PrintfQualifierLongLong;
 				}
 				break;
-			case 'z':	/* size_t */
-				qualifier = PrintfQualifierSizeT;
-				break;
 			default:
-				/* set default type */
+				/* Default type */
 				qualifier = PrintfQualifierInt;
-				--i;
-			}	
+			}
 			
-			base = 10;
-
-			switch (c = fmt[i]) {
-
+			unsigned int base = 10;
+			
+			switch (uc) {
 			/*
 			 * String and character conversions.
 			 */
 			case 's':
-				if ((retval = print_string(va_arg(ap, char*),
-				    width, precision, flags, ps)) < 0) {
-					goto minus_out;
+				if (qualifier == PrintfQualifierLong)
+					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
+				else
+					retval = print_str(va_arg(ap, char *), width, precision, flags, ps);
+				
+				if (retval < 0) {
+					counter = -counter;
+					goto out;
 				}
-					
+				
 				counter += retval;
-				j = i + 1; 
+				j = nxt;
 				goto next_char;
 			case 'c':
-				c = va_arg(ap, unsigned int);
-				retval = print_char(c, width, flags, ps);
+				if (qualifier == PrintfQualifierLong)
+					retval = print_wchar(va_arg(ap, wchar_t), width, flags, ps);
+				else
+					retval = print_char(va_arg(ap, unsigned int), width, flags, ps);
+				
 				if (retval < 0) {
-					goto minus_out;
-				}
-
+					counter = -counter;
+					goto out;
+				};
+				
 				counter += retval;
-				j = i + 1;
+				j = nxt;
 				goto next_char;
-
-			/* 
+			
+			/*
 			 * Integer values
 			 */
-			case 'P': /* pointer */
-			       	flags |= __PRINTF_FLAG_BIGCHARS;
+			case 'P':
+				/* Pointer */
+				flags |= __PRINTF_FLAG_BIGCHARS;
 			case 'p':
 				flags |= __PRINTF_FLAG_PREFIX;
 				base = 16;
 				qualifier = PrintfQualifierPointer;
-				break;	
-			case 'b': 
+				break;
+			case 'b':
 				base = 2;
 				break;
 			case 'o':
@@ -616,7 +786,7 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 				break;
 			case 'd':
 			case 'i':
-				flags |= __PRINTF_FLAG_SIGNED;  
+				flags |= __PRINTF_FLAG_SIGNED;
 			case 'u':
 				break;
 			case 'X':
@@ -624,66 +794,63 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 			case 'x':
 				base = 16;
 				break;
-			/* percentile itself */
-			case '%': 
+			
+			/* Percentile itself */
+			case '%':
 				j = i;
 				goto next_char;
+			
 			/*
 			 * Bad formatting.
 			 */
 			default:
 				/*
-				 * Unknown format. Now, j is the index of '%',
-				 * so we will print the whole bad format
-				 * sequence.
+				 * Unknown format. Now, j is the index of '%'
+				 * so we will print whole bad format sequence.
 				 */
-				goto next_char;		
+				goto next_char;
 			}
-		
-		
+			
 			/* Print integers */
+			size_t size;
+			uint64_t number;
 			switch (qualifier) {
 			case PrintfQualifierByte:
 				size = sizeof(unsigned char);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierShort:
 				size = sizeof(unsigned short);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierInt:
 				size = sizeof(unsigned int);
-				number = (uint64_t)va_arg(ap, unsigned int);
+				number = (uint64_t) va_arg(ap, unsigned int);
 				break;
 			case PrintfQualifierLong:
 				size = sizeof(unsigned long);
-				number = (uint64_t)va_arg(ap, unsigned long);
+				number = (uint64_t) va_arg(ap, unsigned long);
 				break;
 			case PrintfQualifierLongLong:
 				size = sizeof(unsigned long long);
-				number = (uint64_t)va_arg(ap,
-				    unsigned long long);
+				number = (uint64_t) va_arg(ap, unsigned long long);
 				break;
 			case PrintfQualifierPointer:
 				size = sizeof(void *);
-				number = (uint64_t)(unsigned long)va_arg(ap,
-				    void *);
+				number = (uint64_t) (unsigned long) va_arg(ap, void *);
 				break;
-			case PrintfQualifierSizeT:
-				size = sizeof(size_t);
-				number = (uint64_t)va_arg(ap, size_t);
-				break;
-			default: /* Unknown qualifier */
-				goto minus_out;
-					
+			default:
+				/* Unknown qualifier */
+				counter = -counter;
+				goto out;
 			}
 			
 			if (flags & __PRINTF_FLAG_SIGNED) {
 				if (number & (0x1 << (size * 8 - 1))) {
 					flags |= __PRINTF_FLAG_NEGATIVE;
-				
+					
 					if (size == sizeof(uint64_t)) {
-						number = -((int64_t)number);
+						number = -((int64_t) number);
 					} else {
 						number = ~number;
 						number &=
@@ -693,31 +860,31 @@ int printf_core(const char *fmt, struct printf_spec *ps, va_list ap)
 					}
 				}
 			}
-
-			if ((retval = print_number(number, width, precision,
-			    base, flags, ps)) < 0 ) {
-				goto minus_out;
-			}
-
-			counter += retval;
-			j = i + 1;
-		}	
-next_char:
 			
-		++i;
+			if ((retval = print_number(number, width, precision,
+			    base, flags, ps)) < 0) {
+				counter = -counter;
+				goto out;
+			}
+			
+			counter += retval;
+			j = nxt;
+		}
+next_char:
+		;
 	}
 	
 	if (i > j) {
-		retval = printf_putnchars(&fmt[j], (size_t)(i - j), ps);
-		if (retval < 0) { /* error */
-			goto minus_out;
+		if ((retval = printf_putnchars(&fmt[j], i - j, ps)) < 0) {
+			/* Error */
+			counter = -counter;
+			goto out;
 		}
 		counter += retval;
 	}
 	
-	return counter;
-minus_out:
-	return -counter;
+out:
+	return ((int) counter);
 }
 
 /** @}

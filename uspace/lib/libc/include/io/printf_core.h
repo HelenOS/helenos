@@ -39,15 +39,18 @@
 #include <stdarg.h>
 
 /** Structure for specifying output methods for different printf clones. */
-struct printf_spec {
-	/* Output function, returns count of printed characters or EOF */
-	int (*write)(void *, size_t, void *);
-	/* Support data - output stream specification, its state, locks,... */
+typedef struct printf_spec {
+	/* String output function, returns number of printed characters or EOF */
+	int (*str_write)(const char *, size_t, void *);
+	
+	/* Wide string output function, returns number of printed characters or EOF */
+	int (*wstr_write)(const wchar_t *, size_t, void *);
+	
+	/* User data - output stream specification, state, locks, etc. */
 	void *data;
+} printf_spec_t;
 
-};
-
-int printf_core(const char *fmt, struct printf_spec *ps ,va_list ap);
+int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
 
 #endif
 

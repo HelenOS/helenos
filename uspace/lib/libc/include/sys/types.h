@@ -37,8 +37,6 @@
 
 #include <libarch/types.h>
 
-typedef unsigned long size_t;
-typedef signed long ssize_t;
 typedef long off_t;
 typedef int mode_t;
 

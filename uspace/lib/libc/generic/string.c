@@ -39,6 +39,7 @@
 #include <ctype.h>
 #include <malloc.h>
 #include <errno.h>
+#include <align.h>
 #include <string.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
@@ -192,17 +193,417 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 	return EOK;
 }
 
+/** Get size of string.
+ *
+ * Get the number of bytes which are used by the string @a str (excluding the
+ * NULL-terminator).
+ *
+ * @param str String to consider.
+ *
+ * @return Number of bytes used by the string
+ *
+ */
+size_t str_size(const char *str)
+{
+	size_t size = 0;
+	
+	while (*str++ != 0)
+		size++;
+	
+	return size;
+}
+
+/** Get size of wide string.
+ *
+ * Get the number of bytes which are used by the wide string @a str (excluding the
+ * NULL-terminator).
+ *
+ * @param str Wide string to consider.
+ *
+ * @return Number of bytes used by the wide string
+ *
+ */
+size_t wstr_size(const wchar_t *str)
+{
+	return (wstr_length(str) * sizeof(wchar_t));
+}
+
+/** Get size of string with length limit.
+ *
+ * Get the number of bytes which are used by up to @a max_len first
+ * characters in the string @a str. If @a max_len is greater than
+ * the length of @a str, the entire string is measured (excluding the
+ * NULL-terminator).
+ *
+ * @param str     String to consider.
+ * @param max_len Maximum number of characters to measure.
+ *
+ * @return Number of bytes used by the characters.
+ *
+ */
+size_t str_lsize(const char *str, count_t max_len)
+{
+	count_t len = 0;
+	size_t offset = 0;
+	
+	while (len < max_len) {
+		if (str_decode(str, &offset, STR_NO_LIMIT) == 0)
+			break;
+		
+		len++;
+	}
+	
+	return offset;
+}
+
+/** Get size of wide string with length limit.
+ *
+ * Get the number of bytes which are used by up to @a max_len first
+ * wide characters in the wide string @a str. If @a max_len is greater than
+ * the length of @a str, the entire wide string is measured (excluding the
+ * NULL-terminator).
+ *
+ * @param str     Wide string to consider.
+ * @param max_len Maximum number of wide characters to measure.
+ *
+ * @return Number of bytes used by the wide characters.
+ *
+ */
+size_t wstr_lsize(const wchar_t *str, count_t max_len)
+{
+	return (wstr_nlength(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
+}
+
+/** Get number of characters in a string.
+ *
+ * @param str NULL-terminated string.
+ *
+ * @return Number of characters in string.
+ *
+ */
+count_t str_length(const char *str)
+{
+	count_t len = 0;
+	size_t offset = 0;
+	
+	while (str_decode(str, &offset, STR_NO_LIMIT) != 0)
+		len++;
+	
+	return len;
+}
+
+/** Get number of characters in a wide string.
+ *
+ * @param str NULL-terminated wide string.
+ *
+ * @return Number of characters in @a str.
+ *
+ */
+count_t wstr_length(const wchar_t *wstr)
+{
+	count_t len = 0;
+	
+	while (*wstr++ != 0)
+		len++;
+	
+	return len;
+}
+
+/** Get number of characters in a string with size limit.
+ *
+ * @param str  NULL-terminated string.
+ * @param size Maximum number of bytes to consider.
+ *
+ * @return Number of characters in string.
+ *
+ */
+count_t str_nlength(const char *str, size_t size)
+{
+	count_t len = 0;
+	size_t offset = 0;
+	
+	while (str_decode(str, &offset, size) != 0)
+		len++;
+	
+	return len;
+}
+
+/** Get number of characters in a string with size limit.
+ *
+ * @param str  NULL-terminated string.
+ * @param size Maximum number of bytes to consider.
+ *
+ * @return Number of characters in string.
+ *
+ */
+count_t wstr_nlength(const wchar_t *str, size_t size)
+{
+	count_t len = 0;
+	count_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
+	count_t offset = 0;
+	
+	while ((offset < limit) && (*str++ != 0)) {
+		len++;
+		offset += sizeof(wchar_t);
+	}
+	
+	return len;
+}
+
+/** Check whether character is plain ASCII.
+ *
+ * @return True if character is plain ASCII.
+ *
+ */
+bool ascii_check(wchar_t ch)
+{
+	if ((ch >= 0) && (ch <= 127))
+		return true;
+	
+	return false;
+}
+
 /** Check whether character is valid
  *
  * @return True if character is a valid Unicode code point.
  *
  */
-bool chr_check(const wchar_t ch)
+bool chr_check(wchar_t ch)
 {
 	if ((ch >= 0) && (ch <= 1114111))
 		return true;
 	
 	return false;
+}
+
+/** Compare two NULL terminated strings.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings.
+ * The strings are considered equal iff they consist of the same
+ * characters on the minimum of their lengths.
+ *
+ * @param s1 First string to compare.
+ * @param s2 Second string to compare.
+ *
+ * @return 0 if the strings are equal, -1 if first is smaller,
+ *         1 if second smaller.
+ *
+ */
+int str_cmp(const char *s1, const char *s2)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
+	
+	size_t off1 = 0;
+	size_t off2 = 0;
+
+	while (true) {
+		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
+		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+
+		if (c1 < c2)
+			return -1;
+		
+		if (c1 > c2)
+			return 1;
+
+		if (c1 == 0 || c2 == 0)
+			break;		
+	}
+
+	return 0;
+}
+
+/** Compare two NULL terminated strings with length limit.
+ *
+ * Do a char-by-char comparison of two NULL-terminated strings.
+ * The strings are considered equal iff they consist of the same
+ * characters on the minimum of their lengths and the length limit.
+ *
+ * @param s1      First string to compare.
+ * @param s2      Second string to compare.
+ * @param max_len Maximum number of characters to consider.
+ *
+ * @return 0 if the strings are equal, -1 if first is smaller,
+ *         1 if second smaller.
+ *
+ */
+int str_lcmp(const char *s1, const char *s2, count_t max_len)
+{
+	wchar_t c1 = 0;
+	wchar_t c2 = 0;
+	
+	size_t off1 = 0;
+	size_t off2 = 0;
+	
+	count_t len = 0;
+
+	while (true) {
+		if (len >= max_len)
+			break;
+
+		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
+		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
+
+		if (c1 < c2)
+			return -1;
+
+		if (c1 > c2)
+			return 1;
+
+		if (c1 == 0 || c2 == 0)
+			break;
+
+		++len;	
+	}
+
+	return 0;
+
+}
+
+/** Copy NULL-terminated string.
+ *
+ * Copy source string @a src to destination buffer @a dst.
+ * No more than @a size bytes are written. NULL-terminator is always
+ * written after the last succesfully copied character (i.e. if the
+ * destination buffer is has at least 1 byte, it will be always
+ * NULL-terminated).
+ *
+ * @param src   Source string.
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ *
+ */
+void str_ncpy(char *dst, const char *src, size_t size)
+{
+	/* No space for the NULL-terminator in the buffer */
+	if (size == 0)
+		return;
+	
+	wchar_t ch;
+	size_t str_off = 0;
+	size_t dst_off = 0;
+	
+	while ((ch = str_decode(src, &str_off, STR_NO_LIMIT)) != 0) {
+		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+			break;
+	}
+	
+	if (dst_off >= size)
+		dst[size - 1] = 0;
+	else
+		dst[dst_off] = 0;
+}
+
+/** Copy NULL-terminated wide string to string
+ *
+ * Copy source wide string @a src to destination buffer @a dst.
+ * No more than @a size bytes are written. NULL-terminator is always
+ * written after the last succesfully copied character (i.e. if the
+ * destination buffer is has at least 1 byte, it will be always
+ * NULL-terminated).
+ *
+ * @param src   Source wide string.
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ *
+ */
+void wstr_nstr(char *dst, const wchar_t *src, size_t size)
+{
+	/* No space for the NULL-terminator in the buffer */
+	if (size == 0)
+		return;
+	
+	wchar_t ch;
+	count_t src_idx = 0;
+	size_t dst_off = 0;
+	
+	while ((ch = src[src_idx++]) != 0) {
+		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+			break;
+	}
+	
+	if (dst_off >= size)
+		dst[size - 1] = 0;
+	else
+		dst[dst_off] = 0;
+}
+
+/** Find first occurence of character in string.
+ *
+ * @param str String to search.
+ * @param ch  Character to look for.
+ *
+ * @return Pointer to character in @a str or NULL if not found.
+ *
+ */
+const char *str_chr(const char *str, wchar_t ch)
+{
+	wchar_t acc;
+	size_t off = 0;
+	
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
+		if (acc == ch)
+			return (str + off);
+	}
+	
+	return NULL;
+}
+
+/** Insert a wide character into a wide string.
+ *
+ * Insert a wide character into a wide string at position
+ * @a pos. The characters after the position are shifted.
+ *
+ * @param str     String to insert to.
+ * @param ch      Character to insert to.
+ * @param pos     Character index where to insert.
+ @ @param max_pos Characters in the buffer.
+ *
+ * @return True if the insertion was sucessful, false if the position
+ *         is out of bounds.
+ *
+ */
+bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos)
+{
+	count_t len = wstr_length(str);
+	
+	if ((pos > len) || (pos + 1 > max_pos))
+		return false;
+	
+	count_t i;
+	for (i = len; i + 1 > pos; i--)
+		str[i + 1] = str[i];
+	
+	str[pos] = ch;
+	
+	return true;
+}
+
+/** Remove a wide character from a wide string.
+ *
+ * Remove a wide character from a wide string at position
+ * @a pos. The characters after the position are shifted.
+ *
+ * @param str String to remove from.
+ * @param pos Character index to remove.
+ *
+ * @return True if the removal was sucessful, false if the position
+ *         is out of bounds.
+ *
+ */
+bool wstr_remove(wchar_t *str, count_t pos)
+{
+	count_t len = wstr_length(str);
+	
+	if (pos >= len)
+		return false;
+	
+	count_t i;
+	for (i = pos + 1; i <= len; i++)
+		str[i - 1] = str[i];
+	
+	return true;
 }
 
 /** Count the number of characters in the string, not including terminating 0.
