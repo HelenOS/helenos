@@ -140,13 +140,13 @@ static void kkbrd(void *arg)
 	while (true) {
 		wchar_t sc = _getc(in);
 		
-		if ((sc == IGNORE_CODE) || (sc >= SCANCODES))
+		if (sc == IGNORE_CODE)
 			continue;
 		
 		if (sc & KEY_RELEASE)
-			key_released(sc ^ KEY_RELEASE);
+			key_released((sc ^ KEY_RELEASE) & 0x7f);
 		else
-			key_pressed(sc);
+			key_pressed(sc & 0x7f);
 	}
 }
 
