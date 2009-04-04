@@ -119,7 +119,8 @@ static void totalmemtest(void)
 	
 	TPRINTF("done.\n");
 	
-	slab_print_list();
+	if (!test_quiet)
+		slab_print_list();
 	
 	slab_cache_destroy(cache1);
 	slab_cache_destroy(cache2);
@@ -187,7 +188,9 @@ static void slabtest(void *priv)
 	
 	TPRINTF("Thread #%" PRIu64 " finished\n", THREAD->tid);
 	
-	slab_print_list();
+	if (!test_quiet)
+		slab_print_list();
+	
 	semaphore_up(&thr_sem);
 }
 
