@@ -992,14 +992,27 @@ loop:
 	/* If no memory, reclaim some slab memory,
 	   if it does not help, reclaim all */
 	if ((znum == (count_t) -1) && (!(flags & FRAME_NO_RECLAIM))) {
+		spinlock_unlock(&zones.lock);
+		interrupts_restore(ipl);
+		
 		count_t freed = slab_reclaim(0);
+		
+		ipl = interrupts_disable();
+		spinlock_lock(&zones.lock);
 		
 		if (freed > 0)
 			znum = find_free_zone(order,
 			    FRAME_TO_ZONE_FLAGS(flags), hint);
 		
 		if (znum == (count_t) -1) {
+			spinlock_unlock(&zones.lock);
+			interrupts_restore(ipl);
+			
 			freed = slab_reclaim(SLAB_RECLAIM_ALL);
+			
+			ipl = interrupts_disable();
+			spinlock_lock(&zones.lock);
+			
 			if (freed > 0)
 				znum = find_free_zone(order,
 				    FRAME_TO_ZONE_FLAGS(flags), hint);
