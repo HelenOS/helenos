@@ -29,29 +29,27 @@
 #include <print.h>
 #include <test.h>
 
-char *test_print1(bool quiet)
+char *test_print1(void)
 {
-	if (!quiet) {
-		printf("Testing printf(\"%%*.*s\", 5, 3, \"text\"):\n");
-		printf("Expected output: \"  tex\"\n");
-		printf("Real output:     \"%*.*s\"\n\n", 5, 3, "text");
-		
-		printf("Testing printf(\"%%10.8s\", \"very long text\"):\n");
-		printf("Expected output: \"  very lon\"\n");
-		printf("Real output:     \"%10.8s\"\n\n", "very long text");
-		
-		printf("Testing printf(\"%%8.10s\", \"text\"):\n");
-		printf("Expected output: \"text\"\n");
-		printf("Real output:     \"%8.10s\"\n\n", "text");
-		
-		printf("Testing printf(\"%%8.10s\", \"very long text\"):\n");
-		printf("Expected output: \"very long \"\n");
-		printf("Real output:     \"%8.10s\"\n\n", "very long text");
-		
-		printf("Testing printf(\"%%s\", NULL):\n");
-		printf("Expected output: \"(NULL)\"\n");
-		printf("Real output:     \"%s\"\n\n", NULL);
-	}
+	TPRINTF("Testing printf(\"%%*.*s\", 5, 3, \"text\"):\n");
+	TPRINTF("Expected output: \"  tex\"\n");
+	TPRINTF("Real output:     \"%*.*s\"\n\n", 5, 3, "text");
+	
+	TPRINTF("Testing printf(\"%%10.8s\", \"very long text\"):\n");
+	TPRINTF("Expected output: \"  very lon\"\n");
+	TPRINTF("Real output:     \"%10.8s\"\n\n", "very long text");
+	
+	TPRINTF("Testing printf(\"%%8.10s\", \"text\"):\n");
+	TPRINTF("Expected output: \"text\"\n");
+	TPRINTF("Real output:     \"%8.10s\"\n\n", "text");
+	
+	TPRINTF("Testing printf(\"%%8.10s\", \"very long text\"):\n");
+	TPRINTF("Expected output: \"very long \"\n");
+	TPRINTF("Real output:     \"%8.10s\"\n\n", "very long text");
+	
+	TPRINTF("Testing printf(\"%%s\", NULL):\n");
+	TPRINTF("Expected output: \"(NULL)\"\n");
+	TPRINTF("Real output:     \"%s\"\n\n", NULL);
 	
 	return NULL;
 }

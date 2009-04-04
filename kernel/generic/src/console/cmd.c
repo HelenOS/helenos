@@ -31,8 +31,8 @@
  */
 
 /**
- * @file	cmd.c
- * @brief	Kernel console command wrappers.
+ * @file  cmd.c
+ * @brief Kernel console command wrappers.
  *
  * This file is meant to contain all wrapper functions for
  * all kconsole commands. The point is in separating
@@ -996,7 +996,8 @@ static bool run_test(const test_t *test)
 	interrupts_restore(ipl);
 	
 	/* Execute the test */
-	char * ret = test->entry(false);
+	test_quiet = false;
+	char *ret = test->entry();
 	
 	/* Update and read thread accounting */
 	ipl = interrupts_disable();
@@ -1048,7 +1049,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		interrupts_restore(ipl);
 		
 		/* Execute the test */
-		char * ret = test->entry(true);
+		test_quiet = true;
+		char * ret = test->entry();
 		
 		/* Update and read thread accounting */
 		ipl = interrupts_disable();
@@ -1150,7 +1152,7 @@ int cmd_bench(cmd_arg_t *argv)
 		
 	if (!fnd)
 		printf("Unknown test\n");
-
+	
 	return 1;
 }
 

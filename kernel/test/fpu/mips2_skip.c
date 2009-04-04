@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char * test_mips2(bool quiet)
+char *test_mips2(void)
 {
 	return NULL;
 }

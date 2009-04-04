@@ -40,13 +40,12 @@
 #include <synch/synch.h>
 #include <synch/spinlock.h>
 
-#define READERS		50
-#define WRITERS		50
+#define READERS  50
+#define WRITERS  50
 
 static atomic_t thread_count;
 static rwlock_t rwlock;
 static atomic_t threads_fault;
-static bool sh_quiet;
 
 SPINLOCK_INITIALIZE(rw_lock);
 
@@ -57,8 +56,8 @@ static uint32_t seed = 0xdeadbeef;
 static uint32_t random(uint32_t max)
 {
 	uint32_t rc;
-
-	spinlock_lock(&rw_lock);	
+	
+	spinlock_lock(&rw_lock);
 	rc = seed % max;
 	seed = (((seed << 2) ^ (seed >> 2)) * 487) + rc;
 	spinlock_unlock(&rw_lock);
@@ -70,43 +69,39 @@ static void writer(void *arg)
 	int rc, to;
 	thread_detach(THREAD);
 	waitq_sleep(&can_start);
-
+	
 	to = random(40000);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " w+ (%d)\n", CPU->id, THREAD->tid, to);
+	TPRINTF("cpu%u, tid %" PRIu64 " w+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_write_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		if (!sh_quiet)
-			printf("cpu%u, tid %" PRIu64 " w!\n", CPU->id, THREAD->tid);
+		TPRINTF("cpu%u, tid %" PRIu64 " w!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " w=\n", CPU->id, THREAD->tid);
-
+	TPRINTF("cpu%u, tid %" PRIu64 " w=\n", CPU->id, THREAD->tid);
+	
 	if (rwlock.readers_in) {
-		if (!sh_quiet)
-			printf("Oops.");
+		TPRINTF("Oops.\n");
 		atomic_inc(&threads_fault);
 		atomic_dec(&thread_count);
 		return;
 	}
+	
 	thread_usleep(random(1000000));
+	
 	if (rwlock.readers_in) {
-		if (!sh_quiet)
-			printf("Oops.");	
+		TPRINTF("Oops.\n");
 		atomic_inc(&threads_fault);
 		atomic_dec(&thread_count);
 		return;
 	}
-
+	
 	rwlock_write_unlock(&rwlock);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " w-\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 " w-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 
@@ -118,33 +113,28 @@ static void reader(void *arg)
 	
 	to = random(2000);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " r+ (%d)\n", CPU->id, THREAD->tid, to);
+	TPRINTF("cpu%u, tid %" PRIu64 " r+ (%d)\n", CPU->id, THREAD->tid, to);
 	
 	rc = rwlock_read_lock_timeout(&rwlock, to);
 	if (SYNCH_FAILED(rc)) {
-		if (!sh_quiet)
-			printf("cpu%u, tid %" PRIu64 " r!\n", CPU->id, THREAD->tid);
+		TPRINTF("cpu%u, tid %" PRIu64 " r!\n", CPU->id, THREAD->tid);
 		atomic_dec(&thread_count);
 		return;
 	}
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " r=\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 " r=\n", CPU->id, THREAD->tid);
 	
 	thread_usleep(30000);
 	rwlock_read_unlock(&rwlock);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 " r-\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 " r-\n", CPU->id, THREAD->tid);
 	atomic_dec(&thread_count);
 }
 
-char * test_rwlock4(bool quiet)
+char *test_rwlock4(void)
 {
 	context_t ctx;
 	uint32_t i;
-	sh_quiet = quiet;
 	
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);
@@ -158,36 +148,32 @@ char * test_rwlock4(bool quiet)
 	thread_t *thrd;
 	
 	context_save(&ctx);
-	if (!quiet) {
-		printf("sp=%#x, readers_in=%" PRIc "\n", ctx.sp, rwlock.readers_in);
-		printf("Creating %" PRIu32 " readers\n", rd);
-	}
+	TPRINTF("sp=%#x, readers_in=%" PRIc "\n", ctx.sp, rwlock.readers_in);
+	TPRINTF("Creating %" PRIu32 " readers\n", rd);
 	
 	for (i = 0; i < rd; i++) {
 		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 		if (thrd)
 			thread_ready(thrd);
-		else if (!quiet)
-			printf("Could not create reader %" PRIu32 "\n", i);
+		else
+			TPRINTF("Could not create reader %" PRIu32 "\n", i);
 	}
-
-	if (!quiet)
-		printf("Creating %" PRIu32 " writers\n", wr);
+	
+	TPRINTF("Creating %" PRIu32 " writers\n", wr);
 	
 	for (i = 0; i < wr; i++) {
 		thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 		if (thrd)
 			thread_ready(thrd);
-		else if (!quiet)
-			printf("Could not create writer %" PRIu32 "\n", i);
+		else
+			TPRINTF("Could not create writer %" PRIu32 "\n", i);
 	}
 	
 	thread_usleep(20000);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 	while (atomic_get(&thread_count) > 0) {
-		if (!quiet)
-			printf("Threads left: %ld\n", atomic_get(&thread_count));
+		TPRINTF("Threads left: %ld\n", atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	

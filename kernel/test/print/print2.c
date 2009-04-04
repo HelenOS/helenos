@@ -29,31 +29,29 @@
 #include <print.h>
 #include <test.h>
 
-char *test_print2(bool quiet)
+char *test_print2(void)
 {
-	if (!quiet) {
-		printf("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
-		printf("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
-		printf("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
-		
-		printf("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", 1, 2, 3, 4, 5):\n");
-		printf("Expected output: [1] [ 02] [03 ] [004] [005]\n");
-		printf("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", 1, 2, 3, 4, 5);
-		
-		printf("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", -1, -2, -3, -4, -5):\n");
-		printf("Expected output: [-1] [-02] [-03] [-004] [-005]\n");
-		printf("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", -1, -2, -3, -4, -5);
-		
-		printf("Testing printf(\"%%#x %%5.3#x %%-5.3#x %%3.5#x %%-3.5#x\", 17, 18, 19, 20, 21):\n");
-		printf("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
-		printf("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);
-		
-		unative_t nat = 0x12345678u;
-		
-		printf("Testing printf(\"%%#" PRIx64 " %%#" PRIx32 " %%#" PRIx16 " %%#" PRIx8 " %%#" PRIxn " %%#" PRIx64 " %%s\", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, \"Lovely string\"):\n");
-		printf("Expected output: [0x1234567887654321] [0x12345678] [0x1234] [0x12] [0x12345678] [0x1234567887654321] \"Lovely string\"\n");
-		printf("Real output:     [%#" PRIx64 "] [%#" PRIx32 "] [%#" PRIx16 "] [%#" PRIx8 "] [%#" PRIxn "] [%#" PRIx64 "] \"%s\"\n\n", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, "Lovely string");
-	}
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	
+	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", 1, 2, 3, 4, 5):\n");
+	TPRINTF("Expected output: [1] [ 02] [03 ] [004] [005]\n");
+	TPRINTF("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", 1, 2, 3, 4, 5);
+	
+	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", -1, -2, -3, -4, -5):\n");
+	TPRINTF("Expected output: [-1] [-02] [-03] [-004] [-005]\n");
+	TPRINTF("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", -1, -2, -3, -4, -5);
+	
+	TPRINTF("Testing printf(\"%%#x %%5.3#x %%-5.3#x %%3.5#x %%-3.5#x\", 17, 18, 19, 20, 21):\n");
+	TPRINTF("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
+	TPRINTF("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);
+	
+	unative_t nat = 0x12345678u;
+	
+	TPRINTF("Testing printf(\"%%#" PRIx64 " %%#" PRIx32 " %%#" PRIx16 " %%#" PRIx8 " %%#" PRIxn " %%#" PRIx64 " %%s\", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, \"Lovely string\"):\n");
+	TPRINTF("Expected output: [0x1234567887654321] [0x12345678] [0x1234] [0x12] [0x12345678] [0x1234567887654321] \"Lovely string\"\n");
+	TPRINTF("Real output:     [%#" PRIx64 "] [%#" PRIx32 "] [%#" PRIx16 "] [%#" PRIx8 "] [%#" PRIxn "] [%#" PRIx64 "] \"%s\"\n\n", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, "Lovely string");
 	
 	return NULL;
 }

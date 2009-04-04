@@ -33,101 +33,92 @@
 #include <arch.h>
 #include <memstr.h>
 
-#define VAL_COUNT   1024
+#define VAL_COUNT  1024
 
-static void * data[VAL_COUNT];
+static void *data[VAL_COUNT];
 
-static void testit(int size, int count, bool quiet) 
+static void testit(int size, int count)
 {
 	slab_cache_t *cache;
 	int i;
 	
-	if (!quiet)
-		printf("Creating cache, object size: %d.\n", size);
+	TPRINTF("Creating cache, object size: %d.\n", size);
 	
 	cache = slab_cache_create("test_cache", size, 0, NULL, NULL,
-				SLAB_CACHE_NOMAGAZINE);
+	    SLAB_CACHE_NOMAGAZINE);
 	
-	if (!quiet)
-		printf("Allocating %d items...", count);
+	TPRINTF("Allocating %d items...", count);
 	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
 	
-	if (!quiet) {
-		printf("done.\n");
-		printf("Freeing %d items...", count);
-	}
+	TPRINTF("done.\n");
+	
+	TPRINTF("Freeing %d items...", count);
 	
 	for (i = 0; i < count; i++)
 		slab_free(cache, data[i]);
 	
-	if (!quiet) {
-		printf("done.\n");
-		printf("Allocating %d items...", count);
-	}
+	TPRINTF("done.\n");
+	
+	TPRINTF("Allocating %d items...", count);
 	
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
 	
-	if (!quiet) {
-		printf("done.\n");
-		printf("Freeing %d items...", count / 2);
-	}
+	TPRINTF("done.\n");
+	
+	TPRINTF("Freeing %d items...", count / 2);
 	
 	for (i = count - 1; i >= count / 2; i--)
 		slab_free(cache, data[i]);
 	
-	if (!quiet) {
-		printf("done.\n");	
-		printf("Allocating %d items...", count / 2);
-	}
+	TPRINTF("done.\n");
+	
+	TPRINTF("Allocating %d items...", count / 2);
 	
 	for (i = count / 2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
 	
-	if (!quiet) {
-		printf("done.\n");
-		printf("Freeing %d items...", count);
-	}
+	TPRINTF("done.\n");
+	
+	TPRINTF("Freeing %d items...", count);
 	
 	for (i = 0; i < count; i++)
 		slab_free(cache, data[i]);
 	
-	if (!quiet)
-		printf("done.\n");	
+	TPRINTF("done.\n");
+	
 	slab_cache_destroy(cache);
 	
-	if (!quiet)
-		printf("Test complete.\n");
+	TPRINTF("Test complete.\n");
 }
 
-static void testsimple(bool quiet)
+static void testsimple(void)
 {
-	testit(100, VAL_COUNT, quiet);
-	testit(200, VAL_COUNT, quiet);
-	testit(1024, VAL_COUNT, quiet);
-	testit(2048, 512, quiet);
-	testit(4000, 128, quiet);
-	testit(8192, 128, quiet);
-	testit(16384, 128, quiet);
-	testit(16385, 128, quiet);
+	testit(100, VAL_COUNT);
+	testit(200, VAL_COUNT);
+	testit(1024, VAL_COUNT);
+	testit(2048, 512);
+	testit(4000, 128);
+	testit(8192, 128);
+	testit(16384, 128);
+	testit(16385, 128);
 }
 
-#define THREADS     6
-#define THR_MEM_COUNT   1024
-#define THR_MEM_SIZE    128
+#define THREADS        6
+#define THR_MEM_COUNT  1024
+#define THR_MEM_SIZE   128
 
-static void * thr_data[THREADS][THR_MEM_COUNT];
+static void *thr_data[THREADS][THR_MEM_COUNT];
 static slab_cache_t *thr_cache;
 static semaphore_t thr_sem;
-static bool sh_quiet;
 
 static void slabtest(void *data)
 {
@@ -136,8 +127,7 @@ static void slabtest(void *data)
 	
 	thread_detach(THREAD);
 	
-	if (!sh_quiet)
-		printf("Starting thread #%" PRIu64 "...\n", THREAD->tid);
+	TPRINTF("Starting thread #%" PRIu64 "...\n", THREAD->tid);
 	
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < THR_MEM_COUNT; i++)
@@ -150,24 +140,23 @@ static void slabtest(void *data)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}
 	
-	if (!sh_quiet)
-		printf("Thread #%" PRIu64 " finished\n", THREAD->tid);
+	TPRINTF("Thread #%" PRIu64 " finished\n", THREAD->tid);
 	
 	semaphore_up(&thr_sem);
 }
 
-static void testthreads(bool quiet)
+static void testthreads(void)
 {
 	thread_t *t;
 	int i;
-
+	
 	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, NULL, NULL,
-					SLAB_CACHE_NOMAGAZINE);
+	    SLAB_CACHE_NOMAGAZINE);
+	
 	semaphore_initialize(&thr_sem, 0);
 	for (i = 0; i < THREADS; i++) {  
 		if (!(t = thread_create(slabtest, (void *) (unative_t) i, TASK, 0, "slabtest", false))) {
-			if (!quiet)
-				printf("Could not create thread %d\n", i);
+			TPRINTF("Could not create thread %d\n", i);
 		} else
 			thread_ready(t);
 	}
@@ -177,16 +166,13 @@ static void testthreads(bool quiet)
 	
 	slab_cache_destroy(thr_cache);
 	
-	if (!quiet)
-		printf("Test complete.\n");
+	TPRINTF("Test complete.\n");
 }
 
-char * test_slab1(bool quiet)
+char *test_slab1(void)
 {
-	sh_quiet = quiet;
-	
-	testsimple(quiet);
-	testthreads(quiet);
+	testsimple();
+	testthreads();
 	
 	return NULL;
 }

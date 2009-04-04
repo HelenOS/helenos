@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char * test_fpu1(bool quiet)
+char *test_fpu1(void)
 {
 	return NULL;
 }

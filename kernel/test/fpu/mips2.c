@@ -43,7 +43,6 @@
 static atomic_t threads_ok;
 static atomic_t threads_fault;
 static waitq_t can_start;
-static bool sh_quiet;
 
 static void testit1(void *data)
 {
@@ -69,8 +68,7 @@ static void testit1(void *data)
 		);
 		
 		if (arg != after_arg) {
-			if (!sh_quiet)
-				printf("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			TPRINTF("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -101,8 +99,7 @@ static void testit2(void *data)
 		);
 		
 		if (arg != after_arg) {
-			if (!sh_quiet)
-				printf("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
+			TPRINTF("General reg tid%" PRIu64 ": arg(%d) != %d\n", THREAD->tid, arg, after_arg);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -111,47 +108,41 @@ static void testit2(void *data)
 }
 
 
-char * test_mips2(bool quiet)
+char *test_mips2(void)
 {
 	unsigned int i, total = 0;
-	sh_quiet = quiet;
 	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
 	atomic_set(&threads_fault, 0);
 	
-	if (!quiet)
-		printf("Creating %u threads... ", 2 * THREADS);
+	TPRINTF("Creating %u threads... ", 2 * THREADS);
 	
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
 		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1", false))) {
-			if (!quiet)
-				printf("could not create thread %u\n", 2 * i);
+			TPRINTF("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
 		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2", false))) {
-			if (!quiet)
-				printf("could not create thread %u\n", 2 * i + 1);
+			TPRINTF("could not create thread %u\n", 2 * i + 1);
 			break;
 		}
 		thread_ready(t);
 		total++;
 	}
 	
-	if (!quiet)
-		printf("ok\n");
+	TPRINTF("ok\n");
 		
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 	while (atomic_get(&threads_ok) != (long) total) {
-		if (!quiet)
-			printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}
 	

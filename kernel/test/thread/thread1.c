@@ -36,51 +36,45 @@
 
 #include <arch.h>
 
-#define THREADS 5
+#define THREADS  5
 
 static atomic_t finish;
 static atomic_t threads_finished;
-static bool sh_quiet;
 
 static void threadtest(void *data)
 {
-	thread_detach(THREAD);	
-
+	thread_detach(THREAD);
+	
 	while (atomic_get(&finish)) {
-		if (!sh_quiet)
-			printf("%" PRIu64 " ", THREAD->tid);
+		TPRINTF("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);
 	}
 	atomic_inc(&threads_finished);
 }
 
-char * test_thread1(bool quiet)
+char *test_thread1(void)
 {
 	unsigned int i, total = 0;
-	sh_quiet = quiet;
 	
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);
-
+	
 	for (i = 0; i < THREADS; i++) {  
 		thread_t *t;
 		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest", false))) {
-			if (!quiet)
-				printf("Could not create thread %d\n", i);
+			TPRINTF("Could not create thread %d\n", i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 	}
 	
-	if (!quiet)
-		printf("Running threads for 10 seconds...\n");
+	TPRINTF("Running threads for 10 seconds...\n");
 	thread_sleep(10);
 	
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < ((long) total)) {
-		if (!quiet)
-			printf("Threads left: %d\n", total - atomic_get(&threads_finished));
+		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_finished));
 		thread_sleep(1);
 	}
 	

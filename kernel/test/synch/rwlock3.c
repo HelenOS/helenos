@@ -34,41 +34,35 @@
 
 #include <synch/rwlock.h>
 
-#define THREADS	4
+#define THREADS  4
 
 static atomic_t thread_count;
 static rwlock_t rwlock;
-static bool sh_quiet;
 
 static void reader(void *arg)
 {
 	thread_detach(THREAD);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 ": trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 ": trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);
 	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	
-	if (!sh_quiet) {
-		printf("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);    		
-		printf("cpu%u, tid %" PRIu64 ": trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);    	
-	}
-
+	TPRINTF("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 ": trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);
+	
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
 	
-	if (!sh_quiet)
-		printf("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);
 	
 	atomic_dec(&thread_count);
 }
 
-char * test_rwlock3(bool quiet)
+char *test_rwlock3(void)
 {
 	int i;
 	thread_t *thrd;
-	sh_quiet = quiet;
 	
 	atomic_set(&thread_count, THREADS);
 	
@@ -79,16 +73,15 @@ char * test_rwlock3(bool quiet)
 		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
 		if (thrd)
 			thread_ready(thrd);
-		else if (!quiet)
-			printf("Could not create reader %d\n", i);
+		else
+			TPRINTF("Could not create reader %d\n", i);
 	}
-
+	
 	thread_sleep(1);
 	rwlock_write_unlock(&rwlock);
 	
 	while (atomic_get(&thread_count) > 0) {
-		if (!quiet)
-			printf("Threads left: %ld\n", atomic_get(&thread_count));
+		TPRINTF("Threads left: %ld\n", atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	

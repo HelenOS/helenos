@@ -50,8 +50,8 @@ static uint32_t seed = 0xdeadbeef;
 static uint32_t random(uint32_t max)
 {
 	uint32_t rc;
-
-	spinlock_lock(&sem_lock);	
+	
+	spinlock_lock(&sem_lock);
 	rc = seed % max;
 	seed = (((seed << 2) ^ (seed >> 2)) * 487) + rc;
 	spinlock_unlock(&sem_lock);
@@ -67,21 +67,21 @@ static void consumer(void *arg)
 	waitq_sleep(&can_start);
 	
 	to = random(20000);
-	printf("cpu%u, tid %" PRIu64 " down+ (%d)\n", CPU->id, THREAD->tid, to);
+	TPRINTF("cpu%u, tid %" PRIu64 " down+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = semaphore_down_timeout(&sem, to);
 	if (SYNCH_FAILED(rc)) {
-		printf("cpu%u, tid %" PRIu64 " down!\n", CPU->id, THREAD->tid);
+		TPRINTF("cpu%u, tid %" PRIu64 " down!\n", CPU->id, THREAD->tid);
 		return;
 	}
 	
-	printf("cpu%u, tid %" PRIu64 " down=\n", CPU->id, THREAD->tid);	
+	TPRINTF("cpu%u, tid %" PRIu64 " down=\n", CPU->id, THREAD->tid);	
 	thread_usleep(random(30000));
 	
 	semaphore_up(&sem);
-	printf("cpu%u, tid %" PRIu64 " up\n", CPU->id, THREAD->tid);
+	TPRINTF("cpu%u, tid %" PRIu64 " up\n", CPU->id, THREAD->tid);
 }
 
-char * test_semaphore2(bool quiet)
+char *test_semaphore2(void)
 {
 	uint32_t i, k;
 	
@@ -91,13 +91,13 @@ char * test_semaphore2(bool quiet)
 	thread_t *thrd;
 	
 	k = random(7) + 1;
-	printf("Creating %" PRIu32 " consumers\n", k);
+	TPRINTF("Creating %" PRIu32 " consumers\n", k);
 	for (i = 0; i < k; i++) {
 		thrd = thread_create(consumer, NULL, TASK, 0, "consumer", false);
 		if (thrd)
 			thread_ready(thrd);
 		else
-			printf("Error creating thread\n");
+			TPRINTF("Error creating thread\n");
 	}
 	
 	thread_usleep(20000);

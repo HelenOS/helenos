@@ -35,39 +35,39 @@
 #include <synch/waitq.h>
 #include <synch/rwlock.h>
 
-#define READERS		50
-#define WRITERS		50
+#define READERS  50
+#define WRITERS  50
 
 static rwlock_t rwlock;
 
-char * test_rwlock1(bool quiet)
+char *test_rwlock1(void)
 {
 	rwlock_initialize(&rwlock);
-
+	
 	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);	
-
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);	
+	rwlock_write_unlock(&rwlock);
+	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_lock(&rwlock);
 	rwlock_read_lock(&rwlock);
-
+	rwlock_read_lock(&rwlock);
+	rwlock_read_lock(&rwlock);
+	
 	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
+	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	
 	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);	
-
+	rwlock_write_unlock(&rwlock);
+	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);
-
+	
 	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);	
-
+	rwlock_write_unlock(&rwlock);
+	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_unlock(&rwlock);
 	

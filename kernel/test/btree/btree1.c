@@ -33,15 +33,14 @@
 
 static void *data = (void *) 0xdeadbeef;
 
-char * test_btree1(bool quiet)
+char *test_btree1(void)
 {
 	btree_t t;
 	int i;
-
+	
 	btree_create(&t);
 	
-	if (!quiet)
-		printf("Inserting keys.\n");
+	TPRINTF("Inserting keys.\n");
 	btree_insert(&t, 19, data, NULL);
 	btree_insert(&t, 20, data, NULL);
 	btree_insert(&t, 21, data, NULL);
@@ -78,11 +77,10 @@ char * test_btree1(bool quiet)
 	for (i = 100; i >= 50; i--)
 		btree_insert(&t, i, data, NULL);
 	
-	if (!quiet)
+	if (!test_quiet)
 		btree_print(&t);
 	
-	if (!quiet)
-		printf("Removing keys.\n");
+	TPRINTF("Removing keys.\n");
 	btree_remove(&t, 50, NULL);
 	btree_remove(&t, 49, NULL);
 	btree_remove(&t, 51, NULL);
@@ -158,7 +156,7 @@ char * test_btree1(bool quiet)
 	btree_remove(&t, 35, NULL);
 	btree_remove(&t, 36, NULL);
 	
-	if (!quiet)
+	if (!test_quiet)
 		btree_print(&t);
 	
 	return NULL;

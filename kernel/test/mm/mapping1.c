@@ -35,65 +35,58 @@
 #include <arch/types.h>
 #include <debug.h>
 
-#define PAGE0	0x10000000
-#define PAGE1	(PAGE0+PAGE_SIZE)
+#define PAGE0  0x10000000
+#define PAGE1  (PAGE0 + PAGE_SIZE)
 
-#define VALUE0	0x01234567
-#define VALUE1	0x89abcdef
+#define VALUE0  0x01234567
+#define VALUE1  0x89abcdef
 
-char * test_mapping1(bool quiet)
+char *test_mapping1(void)
 {
 	uintptr_t frame0, frame1;
 	uint32_t v0, v1;
-
+	
 	frame0 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
 	frame1 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
 	
-	if (!quiet)
-		printf("Writing %#x to physical address %p.\n", VALUE0, KA2PA(frame0));
+	TPRINTF("Writing %#x to physical address %p.\n", VALUE0, KA2PA(frame0));
 	*((uint32_t *) frame0) = VALUE0;
-	if (!quiet)
-		printf("Writing %#x to physical address %p.\n", VALUE1, KA2PA(frame1));
+	
+	TPRINTF("Writing %#x to physical address %p.\n", VALUE1, KA2PA(frame1));
 	*((uint32_t *) frame1) = VALUE1;
 	
-	if (!quiet)
-		printf("Mapping virtual address %p to physical address %p.\n", PAGE0, KA2PA(frame0));
+	TPRINTF("Mapping virtual address %p to physical address %p.\n", PAGE0, KA2PA(frame0));
 	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE);
-	if (!quiet)
-		printf("Mapping virtual address %p to physical address %p.\n", PAGE1, KA2PA(frame1));	
+	
+	TPRINTF("Mapping virtual address %p to physical address %p.\n", PAGE1, KA2PA(frame1));
 	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
 	
 	v0 = *((uint32_t *) PAGE0);
 	v1 = *((uint32_t *) PAGE1);
-	if (!quiet) {
-		printf("Value at virtual address %p is %#x.\n", PAGE0, v0);
-		printf("Value at virtual address %p is %#x.\n", PAGE1, v1);
-	}
+	TPRINTF("Value at virtual address %p is %#x.\n", PAGE0, v0);
+	TPRINTF("Value at virtual address %p is %#x.\n", PAGE1, v1);
 	
 	if (v0 != VALUE0)
 		return "Value at v0 not equal to VALUE0";
 	if (v1 != VALUE1)
 		return "Value at v1 not equal to VALUE1";
 	
-	if (!quiet)
-		printf("Writing %#x to virtual address %p.\n", 0, PAGE0);
+	TPRINTF("Writing %#x to virtual address %p.\n", 0, PAGE0);
 	*((uint32_t *) PAGE0) = 0;
-	if (!quiet)
-		printf("Writing %#x to virtual address %p.\n", 0, PAGE1);
-	*((uint32_t *) PAGE1) = 0;	
-
+	
+	TPRINTF("Writing %#x to virtual address %p.\n", 0, PAGE1);
+	*((uint32_t *) PAGE1) = 0;
+	
 	v0 = *((uint32_t *) PAGE0);
 	v1 = *((uint32_t *) PAGE1);
 	
-	if (!quiet) {
-		printf("Value at virtual address %p is %#x.\n", PAGE0, *((uint32_t *) PAGE0));	
-		printf("Value at virtual address %p is %#x.\n", PAGE1, *((uint32_t *) PAGE1));
-	}
-
+	TPRINTF("Value at virtual address %p is %#x.\n", PAGE0, *((uint32_t *) PAGE0));	
+	TPRINTF("Value at virtual address %p is %#x.\n", PAGE1, *((uint32_t *) PAGE1));
+	
 	if (v0 != 0)
 		return "Value at v0 not equal to 0";
 	if (v1 != 0)
 		return "Value at v1 not equal to 0";
 	
-	return NULL;	
+	return NULL;
 }

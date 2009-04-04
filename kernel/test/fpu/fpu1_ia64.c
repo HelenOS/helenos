@@ -63,7 +63,6 @@ static inline long double sqrt(long double a)
 static atomic_t threads_ok;
 static atomic_t threads_fault;
 static waitq_t can_start;
-static bool sh_quiet;
 
 static void e(void *data)
 {
@@ -85,8 +84,7 @@ static void e(void *data)
 		}
 		
 		if ((int) (100000000 * e) != E_10e8) {
-			if (!sh_quiet)
-				printf("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+			TPRINTF("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -119,8 +117,7 @@ static void pi(void *data)
 		}
 		
 		if ((int) (1000000 * pi) != PI_10e8) {
-			if (!sh_quiet)
-				printf("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+			TPRINTF("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -128,47 +125,41 @@ static void pi(void *data)
 	atomic_inc(&threads_ok);
 }
 
-char * test_fpu1(bool quiet)
+char *test_fpu1(void)
 {
 	unsigned int i, total = 0;
-	sh_quiet = quiet;
 	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
 	atomic_set(&threads_fault, 0);
 	
-	if (!quiet)
-		printf("Creating %u threads... ", 2 * THREADS);
+	TPRINTF("Creating %u threads... ", 2 * THREADS);
 	
-	for (i = 0; i < THREADS; i++) {  
+	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
 		if (!(t = thread_create(e, NULL, TASK, 0, "e", false))) {
-			if (!quiet)
-				printf("could not create thread %u\n", 2 * i);
+			TPRINTF("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
 		if (!(t = thread_create(pi, NULL, TASK, 0, "pi", false))) {
-			if (!quiet)
-				printf("could not create thread %u\n", 2 * i + 1);
+			TPRINTF("could not create thread %u\n", 2 * i + 1);
 			break;
 		}
 		thread_ready(t);
 		total++;
 	}
 	
-	if (!quiet)
-		printf("ok\n");
+	TPRINTF("ok\n");
 	
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 	while (atomic_get(&threads_ok) != (long) total) {
-		if (!quiet)
-			printf("Threads left: %d\n", total - atomic_get(&threads_ok));
+		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}
 	

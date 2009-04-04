@@ -38,7 +38,16 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-typedef char *(*test_entry_t)(bool);
+extern bool test_quiet;
+
+#define TPRINTF(format, ...) \
+	{ \
+		if (!test_quiet) { \
+			printf(format, ##__VA_ARGS__); \
+		} \
+	}
+
+typedef char *(*test_entry_t)(void);
 
 typedef struct {
 	char *name;
@@ -47,33 +56,33 @@ typedef struct {
 	bool safe;
 } test_t;
 
-extern char *test_atomic1(bool quiet);
-extern char *test_avltree1(bool quiet);
-extern char *test_btree1(bool quiet);
-extern char *test_mips1(bool quiet);
-extern char *test_fault1(bool quiet);
-extern char *test_fpu1(bool quiet);
-extern char *test_sse1(bool quiet);
-extern char *test_mips2(bool quiet);
-extern char *test_falloc1(bool quiet);
-extern char *test_falloc2(bool quiet);
-extern char *test_mapping1(bool quiet);
-extern char *test_purge1(bool quiet);
-extern char *test_slab1(bool quiet);
-extern char *test_slab2(bool quiet);
-extern char *test_rwlock1(bool quiet);
-extern char *test_rwlock2(bool quiet);
-extern char *test_rwlock3(bool quiet);
-extern char *test_rwlock4(bool quiet);
-extern char *test_rwlock5(bool quiet);
-extern char *test_semaphore1(bool quiet);
-extern char *test_semaphore2(bool quiet);
-extern char *test_print1(bool quiet);
-extern char *test_print2(bool quiet);
-extern char *test_print3(bool quiet);
-extern char *test_print4(bool quiet);
-extern char *test_thread1(bool quiet);
-extern char *test_sysinfo1(bool quiet);
+extern char *test_atomic1(void);
+extern char *test_avltree1(void);
+extern char *test_btree1(void);
+extern char *test_mips1(void);
+extern char *test_fault1(void);
+extern char *test_fpu1(void);
+extern char *test_sse1(void);
+extern char *test_mips2(void);
+extern char *test_falloc1(void);
+extern char *test_falloc2(void);
+extern char *test_mapping1(void);
+extern char *test_purge1(void);
+extern char *test_slab1(void);
+extern char *test_slab2(void);
+extern char *test_rwlock1(void);
+extern char *test_rwlock2(void);
+extern char *test_rwlock3(void);
+extern char *test_rwlock4(void);
+extern char *test_rwlock5(void);
+extern char *test_semaphore1(void);
+extern char *test_semaphore2(void);
+extern char *test_print1(void);
+extern char *test_print2(void);
+extern char *test_print3(void);
+extern char *test_print4(void);
+extern char *test_thread1(void);
+extern char *test_sysinfo1(void);
 
 extern test_t tests[];
 

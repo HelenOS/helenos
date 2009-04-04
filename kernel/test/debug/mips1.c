@@ -36,10 +36,9 @@
 
 #include <arch.h>
 
-char *test_mips1(bool quiet)
+char *test_mips1(void)
 {
-	if (!quiet)
-		printf("If kconsole is compiled in, you should enter debug mode now.\n");
+	TPRINTF("If kconsole is compiled in, you should enter debug mode now.\n");
 	
 	asm volatile (
 		"break\n"

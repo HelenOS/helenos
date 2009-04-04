@@ -34,6 +34,8 @@
 
 #include <test.h>
 
+bool test_quiet;
+
 test_t tests[] = {
 #include <atomic/atomic1.def>
 #include <avltree/avltree1.def>

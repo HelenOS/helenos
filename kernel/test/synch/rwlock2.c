@@ -34,45 +34,41 @@
 
 #include <synch/rwlock.h>
 
-#define READERS		50
-#define WRITERS		50
+#define READERS  50
+#define WRITERS  50
 
 static rwlock_t rwlock;
-static bool sh_quiet;
 
 static void writer(void *arg)
 {
-	if (!sh_quiet)
-		printf("Trying to lock rwlock for writing....\n");
+	TPRINTF("Trying to lock rwlock for writing....\n");
 	
 	rwlock_write_lock(&rwlock);
 	rwlock_write_unlock(&rwlock);
 	
-	if (!sh_quiet)
-		printf("Trying to lock rwlock for reading....\n");
+	TPRINTF("Trying to lock rwlock for reading....\n");
 	
 	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);	
+	rwlock_read_unlock(&rwlock);
 }
 
-char * test_rwlock2(bool quiet)
+char *test_rwlock2(void)
 {
 	thread_t *thrd;
-	sh_quiet = quiet;
 	
 	rwlock_initialize(&rwlock);
-
+	
 	rwlock_read_lock(&rwlock);
 	rwlock_read_lock(&rwlock);
 	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);	
+	rwlock_read_lock(&rwlock);
 	
 	thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
 	if (thrd)
 		thread_ready(thrd);
 	else
 		return "Could not create thread";
-
+	
 	thread_sleep(1);
 	
 	rwlock_read_unlock(&rwlock);

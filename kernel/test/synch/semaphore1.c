@@ -35,9 +35,9 @@
 #include <synch/waitq.h>
 #include <synch/semaphore.h>
 
-#define AT_ONCE			3
-#define PRODUCERS		50
-#define CONSUMERS		50
+#define AT_ONCE    3
+#define PRODUCERS  50
+#define CONSUMERS  50
 
 static semaphore_t sem;
 
@@ -47,10 +47,10 @@ static atomic_t items_consumed;
 
 static void producer(void *arg)
 {
-	thread_detach(THREAD);	
-
+	thread_detach(THREAD);
+	
 	waitq_sleep(&can_start);
-	    
+	
 	semaphore_down(&sem);
 	atomic_inc(&items_produced);
 	thread_usleep(250);
@@ -59,7 +59,7 @@ static void producer(void *arg)
 
 static void consumer(void *arg)
 {
-	thread_detach(THREAD);	
+	thread_detach(THREAD);
 	
 	waitq_sleep(&can_start);
 	
@@ -69,49 +69,49 @@ static void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-char * test_semaphore1(bool quiet)
+char *test_semaphore1(void)
 {
 	int i, j, k;
 	int consumers, producers;
 	
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);
-
+	
 	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
-
+		
 		atomic_set(&items_produced, 0);
 		atomic_set(&items_consumed, 0);
 		
 		consumers = i * CONSUMERS;
 		producers = (4 - i) * PRODUCERS;
 		
-		printf("Creating %d consumers and %d producers...", consumers, producers);
-	
+		TPRINTF("Creating %d consumers and %d producers...", consumers, producers);
+		
 		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
 			for (k = 0; k < i; k++) {
 				thrd = thread_create(consumer, NULL, TASK, 0, "consumer", false);
 				if (thrd)
 					thread_ready(thrd);
 				else
-					printf("could not create consumer %d\n", i);
+					TPRINTF("could not create consumer %d\n", i);
 			}
 			for (k = 0; k < (4 - i); k++) {
 				thrd = thread_create(producer, NULL, TASK, 0, "producer", false);
 				if (thrd)
 					thread_ready(thrd);
 				else
-					printf("could not create producer %d\n", i);
+					TPRINTF("could not create producer %d\n", i);
 			}
 		}
-
-		printf("ok\n");
-
+		
+		TPRINTF("ok\n");
+		
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
-	
+		
 		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
-			printf("%d consumers remaining, %d producers remaining\n", consumers - items_consumed.count, producers - items_produced.count);
+			TPRINTF("%d consumers remaining, %d producers remaining\n", consumers - items_consumed.count, producers - items_produced.count);
 			thread_sleep(1);
 		}
 	}

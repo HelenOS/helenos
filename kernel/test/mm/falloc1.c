@@ -36,12 +36,13 @@
 #include <debug.h>
 #include <align.h>
 
-#define MAX_FRAMES 1024
-#define MAX_ORDER 8
-#define TEST_RUNS 2
+#define MAX_FRAMES  1024
+#define MAX_ORDER   8
+#define TEST_RUNS   2
 
-char * test_falloc1(bool quiet) {
-	uintptr_t * frames = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
+char *test_falloc1(void) {
+	uintptr_t *frames
+	    = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
 	int results[MAX_ORDER + 1];
 	
 	int i, order, run;
@@ -52,51 +53,45 @@ char * test_falloc1(bool quiet) {
 	
 	if (frames == NULL)
 		return "Unable to allocate frames";
-
+	
 	for (run = 0; run < TEST_RUNS; run++) {
 		for (order = 0; order <= MAX_ORDER; order++) {
-			if (!quiet)
-				printf("Allocating %d frames blocks ... ", 1 << order);
+			TPRINTF("Allocating %d frames blocks ... ", 1 << order);
 			
 			allocated = 0;
 			for (i = 0; i < MAX_FRAMES >> order; i++) {
 				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					if (!quiet)
-						printf("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					TPRINTF("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
 					return "Test failed";
 				}
 				
 				if (frames[allocated])
 					allocated++;
 				else {
-					if (!quiet)
-						printf("done. ");
+					TPRINTF("done. ");
 					break;
 				}
 			}
 			
-			if (!quiet)
-				printf("%d blocks allocated.\n", allocated);
-		
+			TPRINTF("%d blocks allocated.\n", allocated);
+			
 			if (run) {
 				if (results[order] != allocated)
 					return "Possible frame leak";
 			} else
 				results[order] = allocated;
 			
-			if (!quiet)
-				printf("Deallocating ... ");
+			TPRINTF("Deallocating ... ");
 			
 			for (i = 0; i < allocated; i++)
 				frame_free(KA2PA(frames[i]));
 			
-			if (!quiet)
-				printf("done.\n");
+			TPRINTF("done.\n");
 		}
 	}
-
+	
 	free(frames);
 	
 	return NULL;

@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char * test_sse1(bool quiet)
+char *test_sse1(void)
 {
 	return NULL;
 }
