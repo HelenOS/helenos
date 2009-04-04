@@ -26,14 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FB_FONT_8X16_H_
-#define FB_FONT_8X16_H_
+/** @addtogroup genarch
+ * @{
+ */
+/** @file
+ */
 
-#define FONT_GLYPHS      256
-#define FONT_WIDTH       8
-#define FONT_SCANLINES   16
+#ifndef FONT_8X16_H_
+#define FONT_8X16_H_
 
+#define FONT_GLYPHS     2899
+#define FONT_WIDTH      8
+#define FONT_SCANLINES  16
 
-extern unsigned char fb_font[FONT_GLYPHS * FONT_SCANLINES];
+#include <sys/types.h>
+
+extern uint16_t fb_font_glyph(const wchar_t ch);
+extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif
+
+/** @}
+ */

@@ -388,7 +388,7 @@ static void vport_scroll(viewport_t *vport, int lines)
 {
 	unsigned int row, col;
 	unsigned int x, y;
-	uint8_t glyph;
+	uint32_t glyph;
 	uint32_t fg_color;
 	uint32_t bg_color;
 	bb_cell_t *bbp, *xbp;
@@ -465,11 +465,11 @@ static void render_glyphs(viewport_t* vport)
 			
 			for (x = 0; x < FONT_WIDTH; x++) {
 				screen.rgb_conv(&vport->glyphs[GLYPH_POS(glyph, y, false) + x * screen.pixelbytes],
-				    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x)))
+				    (fb_font[glyph][y] & (1 << (7 - x)))
 				    ? 0xffffff : 0x000000);
 				
 				screen.rgb_conv(&vport->glyphs[GLYPH_POS(glyph, y, true) + x * screen.pixelbytes],
-				    (fb_font[glyph * FONT_SCANLINES + y] & (1 << (7 - x)))
+				    (fb_font[glyph][y] & (1 << (7 - x)))
 				    ? 0x000000 : 0xffffff);
 			}
 		}
@@ -669,10 +669,6 @@ static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
 	unsigned long mask;
 	unsigned int ww, d_add;
 
-	/* Check glyph range. */
-	if (glyph >= FONT_GLYPHS)
-		glyph = GLYPH_UNAVAIL;
-
 	/*
 	 * Prepare a pair of words, one filled with foreground-color
 	 * pattern and the other filled with background-color pattern.
@@ -733,10 +729,6 @@ void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
 	unsigned int d_add;
 	uint8_t b;
 
-	/* Check glyph range. */
-	if (glyph >= FONT_GLYPHS)
-		glyph = GLYPH_UNAVAIL;
-
 	/* Pre-render 1x the foreground and background color pixels. */
 	if (cursor) {
 		screen.rgb_conv(fg_buf, bg_color);
@@ -754,7 +746,7 @@ void draw_glyph_fallback(unsigned int x, unsigned int y, bool cursor,
 
 	for (yd = 0; yd < FONT_SCANLINES; yd++) {
 		/* Byte containing bits of the glyph scanline. */
-		b = fb_font[glyph * FONT_SCANLINES + yd];
+		b = fb_font[glyph][yd];
 
 		for (i = 0; i < FONT_WIDTH; i++) {
 			/* Choose color based on the current bit. */
@@ -855,7 +847,7 @@ static void draw_char(viewport_t *vport, wchar_t c, unsigned int col, unsigned i
 		cursor_hide(vport);
 
 	bbp = &vport->backbuf[BB_POS(vport, col, row)];
-	bbp->glyph = (uint32_t) c;
+	bbp->glyph = fb_font_glyph(c);
 	bbp->fg_color = vport->attr.fg_color;
 	bbp->bg_color = vport->attr.bg_color;
 
@@ -898,12 +890,11 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 			unsigned int row = y + j;
 
 			bbp = &vport->backbuf[BB_POS(vport, col, row)];
-			uint32_t glyph = bbp->glyph;
 
 			a = &data[j * w + i].attrs;
 			rgb_from_attr(&rgb, a);
 
-			bbp->glyph = data[j * w + i].character;
+			bbp->glyph = fb_font_glyph(data[j * w + i].character);
 			bbp->fg_color = rgb.fg_color;
 			bbp->bg_color = rgb.bg_color;
 
@@ -1519,7 +1510,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int retval;
 		unsigned int i;
 		int scroll;
-		uint32_t glyph;
+		wchar_t ch;
 		unsigned int row, col;
 		
 		if ((vport->cursor_active) || (anims_enabled))
@@ -1556,7 +1547,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		
 		case FB_PUTCHAR:
-			glyph = IPC_GET_ARG1(call);
+			ch = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);
 			col = IPC_GET_ARG3(call);
 			
@@ -1566,7 +1557,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			ipc_answer_0(callid, EOK);
 			
-			draw_char(vport, glyph, col, row);
+			draw_char(vport, ch, col, row);
 			
 			/* Message already answered */
 			continue;

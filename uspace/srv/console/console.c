@@ -198,6 +198,7 @@ static void fb_update_area(connection_t *conn, int x, int y, int w, int h)
 	}
 
 	if (rc != 0) {
+		/*
 		attrs = &conn->screenbuffer.attrs;
 
 		for (j = 0; j < h; j++) {
@@ -210,7 +211,7 @@ static void fb_update_area(connection_t *conn, int x, int y, int w, int h)
 
 				fb_putchar(field->character, y + j, x + i);
 			}
-		}
+		}*/
 	}
 }
 
