@@ -1135,23 +1135,32 @@ int cmd_bench(cmd_arg_t *argv)
 	test_t *test;
 	uint32_t cnt = argv[1].intval;
 	
-	bool fnd = false;
-	
-	for (test = tests; test->name != NULL; test++) {
-		if (str_cmp(test->name, (char *) argv->buffer) == 0) {
-			fnd = true;
-			
-			if (test->safe)
-				run_bench(test, cnt);
-			else
-				printf("Unsafe test\n");
-			
-			break;
+	if (str_cmp((char *) argv->buffer, "*") == 0) {
+		for (test = tests; test->name != NULL; test++) {
+			if (test->safe) {
+				if (!run_bench(test, cnt))
+					break;
+			}
 		}
-	}
+	} else {
+		bool fnd = false;
 		
-	if (!fnd)
-		printf("Unknown test\n");
+		for (test = tests; test->name != NULL; test++) {
+			if (str_cmp(test->name, (char *) argv->buffer) == 0) {
+				fnd = true;
+				
+				if (test->safe)
+					run_bench(test, cnt);
+				else
+					printf("Unsafe test\n");
+				
+				break;
+			}
+		}
+		
+		if (!fnd)
+			printf("Unknown test\n");
+	}
 	
 	return 1;
 }
