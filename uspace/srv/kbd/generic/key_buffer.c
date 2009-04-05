@@ -93,14 +93,6 @@ void keybuffer_push(keybuffer_t *keybuffer, const kbd_event_t *ev)
 	futex_up(&keybuffer_futex);
 }
 
-void keybuffer_push0(keybuffer_t *keybuffer, int c)
-{
-	kbd_event_t ev;
-
-	ev.key = c; ev.mods = 0; ev.c = c;
-	keybuffer_push(keybuffer, &ev);
-}
-
 /** Pop event from buffer.
  *
  * @param edst	Pointer to where the event should be saved.

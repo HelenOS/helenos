@@ -35,6 +35,8 @@
 #ifndef LIBC_KBD_H_
 #define LIBC_KBD_H_
 
+#include <sys/types.h>
+
 typedef enum kbd_ev_type {
 	KE_PRESS,
 	KE_RELEASE
@@ -52,7 +54,7 @@ typedef struct {
 	unsigned int mods;
 
 	/** The character that was generated or '\0' for none. */
-	char c;
+	wchar_t c;
 } kbd_event_t;
 
 extern int kbd_get_event(kbd_event_t *);

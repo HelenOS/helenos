@@ -55,7 +55,6 @@ extern void keybuffer_init(keybuffer_t *);
 extern int keybuffer_available(keybuffer_t *);
 extern int keybuffer_empty(keybuffer_t *);
 extern void keybuffer_push(keybuffer_t *, const kbd_event_t *);
-extern void keybuffer_push0(keybuffer_t *, int c);
 extern int keybuffer_pop(keybuffer_t *, kbd_event_t *);
 
 #endif

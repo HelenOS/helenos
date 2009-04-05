@@ -38,8 +38,9 @@
 #define KBD_LAYOUT_H_
 
 #include <kbd/kbd.h>
+#include <sys/types.h>
 
-extern char layout_parse_ev(kbd_event_t *);
+extern wchar_t layout_parse_ev(kbd_event_t *);
 
 #endif
 

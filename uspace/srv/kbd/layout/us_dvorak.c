@@ -36,7 +36,7 @@
 #include <kbd/keycode.h>
 #include <layout.h>
 
-static char map_lcase[] = {
+static wchar_t map_lcase[] = {
 	[KC_R] = 'p',
 	[KC_T] = 'y',
 	[KC_Y] = 'f',
@@ -69,7 +69,7 @@ static char map_lcase[] = {
 	[KC_SLASH] = 'z',
 };
 
-static char map_ucase[] = {
+static wchar_t map_ucase[] = {
 	[KC_R] = 'P',
 	[KC_T] = 'Y',
 	[KC_Y] = 'F',
@@ -102,7 +102,7 @@ static char map_ucase[] = {
 	[KC_SLASH] = 'Z',
 };
 
-static char map_not_shifted[] = {
+static wchar_t map_not_shifted[] = {
 	[KC_BACKTICK] = '`',
 
 	[KC_1] = '1',
@@ -132,7 +132,7 @@ static char map_not_shifted[] = {
 	[KC_Z] = ';',
 };
 
-static char map_shifted[] = {
+static wchar_t map_shifted[] = {
 	[KC_BACKTICK] = '~',
 
 	[KC_1] = '!',
@@ -162,7 +162,7 @@ static char map_shifted[] = {
 	[KC_Z] = ':',
 };
 
-static char map_neutral[] = {
+static wchar_t map_neutral[] = {
 	[KC_BACKSPACE] = '\b',
 	[KC_TAB] = '\t',
 	[KC_ENTER] = '\n',
@@ -175,7 +175,7 @@ static char map_neutral[] = {
 	[KC_NENTER] = '\n'
 };
 
-static char map_numeric[] = {
+static wchar_t map_numeric[] = {
 	[KC_N7] = '7',
 	[KC_N8] = '8',
 	[KC_N9] = '9',
@@ -190,43 +190,43 @@ static char map_numeric[] = {
 	[KC_NPERIOD] = '.'
 };
 
-static int translate(unsigned int key, char *map, size_t map_length)
+static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 {
 	if (key >= map_length)
 		return 0;
 	return map[key];
 }
 
-char layout_parse_ev(kbd_event_t *ev)
+wchar_t layout_parse_ev(kbd_event_t *ev)
 {
-	char c;
+	wchar_t c;
 
 	/* Produce no characters when Ctrl or Alt is pressed. */
 	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
 		return 0;
 
-	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(char));
+	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(wchar_t));
 	if (c != 0)
 		return c;
 
 	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
-		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(char));
+		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(wchar_t));
 	else
-		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(char));
+		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(wchar_t));
 
 	if (c != 0)
 		return c;
 
 	if ((ev->mods & KM_SHIFT) != 0)
-		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(char));
+		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(wchar_t));
 	else
-		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(char));
+		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(wchar_t));
 
 	if (c != 0)
 		return c;
 
 	if ((ev->mods & KM_NUM_LOCK) != 0)
-		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(char));
+		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(wchar_t));
 	else
 		c = 0;
 
