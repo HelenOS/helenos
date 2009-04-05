@@ -49,17 +49,10 @@ GENERIC_SOURCES = \
 	generic/key_buffer.c
 
 ARCH_SOURCES =
-GENARCH_SOURCES =
-
-ifeq ($(KBD_LAYOUT), cz)
-	GENARCH_SOURCES += layout/cz.c
-endif
-ifeq ($(KBD_LAYOUT), us_qwerty)
-	GENARCH_SOURCES += layout/us_qwerty.c
-endif
-ifeq ($(KBD_LAYOUT), us_dvorak)
-	GENARCH_SOURCES += layout/us_dvorak.c
-endif
+GENARCH_SOURCES = \
+	layout/cz.c \
+	layout/us_qwerty.c \
+	layout/us_dvorak.c
 
 ifeq ($(UARCH), amd64)
 	GENARCH_SOURCES += \

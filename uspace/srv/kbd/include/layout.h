@@ -40,7 +40,13 @@
 #include <kbd/kbd.h>
 #include <sys/types.h>
 
-extern wchar_t layout_parse_ev(kbd_event_t *);
+typedef struct {
+	wchar_t (*parse_ev)(kbd_event_t *);
+} layout_op_t;
+
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
 
 #endif
 

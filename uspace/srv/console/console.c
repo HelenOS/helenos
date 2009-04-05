@@ -436,7 +436,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			conn = &connections[active_console];
 
 			if ((ev.key >= KC_F1) && (ev.key < KC_F1 +
-			    CONSOLE_COUNT)) {
+			    CONSOLE_COUNT) && ((ev.mods & KM_CTRL) == 0)) {
 				if (ev.key == KC_F12)
 					change_console(KERNEL_CONSOLE);
 				else

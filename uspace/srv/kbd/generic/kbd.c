@@ -70,6 +70,16 @@ static unsigned lock_keys;
 int cir_service = 0;
 int cir_phone = -1;
 
+#define NUM_LAYOUTS 3
+
+static layout_op_t *layout[NUM_LAYOUTS] = {
+	&us_qwerty_op,
+	&us_dvorak_op,
+	&cz_op
+};
+
+static int active_layout = 0;
+
 void kbd_push_scancode(int scancode)
 {
 /*	printf("scancode: 0x%x\n", scancode);*/
@@ -123,11 +133,29 @@ void kbd_push_ev(int type, unsigned int key)
 	printf("mods: 0x%x\n", mods);
 	printf("keycode: %u\n", key);
 */
+	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F1) {
+		active_layout = 0;
+		return;
+	}
+
+	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F2) {
+		active_layout = 1;
+		return;
+	}
+
+	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F3) {
+		active_layout = 2;
+		return;
+	}
+
 	ev.type = type;
 	ev.key = key;
 	ev.mods = mods;
 
-	ev.c = layout_parse_ev(&ev);
+	ev.c = layout[active_layout]->parse_ev(&ev);
 
 	async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
