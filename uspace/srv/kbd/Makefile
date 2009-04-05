@@ -51,6 +51,9 @@ GENERIC_SOURCES = \
 ARCH_SOURCES =
 GENARCH_SOURCES =
 
+ifeq ($(KBD_LAYOUT), cz)
+	GENARCH_SOURCES += layout/cz.c
+endif
 ifeq ($(KBD_LAYOUT), us_qwerty)
 	GENARCH_SOURCES += layout/us_qwerty.c
 endif
