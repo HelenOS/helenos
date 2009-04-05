@@ -324,7 +324,6 @@ void connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 	hashed_service_t *hs = hash_table_get_instance(link, hashed_service_t, link);
 	retval = ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
 	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
-	
 out:
 	if (!(callid & IPC_CALLID_NOTIFICATION))
 		ipc_answer_0(callid, retval);
@@ -357,8 +356,9 @@ void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
 	
 	int rc = ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
 		IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
-	
+
 	free(csr);
+	ipc_hangup(phone);
 }
 
 /** Connect client to clonable service.

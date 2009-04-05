@@ -178,7 +178,6 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	ipc_data_write_finalize(callid, arg_buf, buf_len);
-	ipc_answer_0(rid, EOK);
 	
 	arg_buf[buf_len] = '\0';
 	
@@ -198,11 +197,10 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (argv == NULL) {
 		free(arg_buf);
-		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	
+
 	/*
 	 * Fill argv with argument pointers
 	 */
@@ -218,6 +216,8 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	
 	argc = n;
 	argv[n] = NULL;
+
+	ipc_answer_0(rid, EOK);
 }
 
 /** Load the previously selected program.

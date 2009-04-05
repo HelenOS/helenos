@@ -242,6 +242,8 @@ int loader_run(loader_t *ldr)
 	if (rc != EOK)
 		return rc;
 
+	ipc_hangup(ldr->phone_id);
+	ldr->phone_id = 0;
 	return EOK;
 }
 
