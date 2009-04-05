@@ -53,10 +53,12 @@
 #define MAX_CONTROL 20
 
 static void serial_sgr(const unsigned int mode);
+void serial_putchar(wchar_t ch);
 
 static int scr_width;
 static int scr_height;
 static bool color = true;	/** True if producing color output. */
+static bool utf8 = false;	/** True if producing UTF8 output. */
 static putc_function_t putc_function;
 
 /* Allow only 1 connection */
@@ -104,7 +106,26 @@ void serial_puts(char *str)
 
 void serial_putchar(wchar_t ch)
 {
-	(*putc_function)(ch);
+	uint8_t buf[STR_BOUNDS(1)];
+	size_t offs;
+	size_t i;
+
+	if (utf8 != true) {
+		if (ch >= 0 && ch < 128)
+			(*putc_function)((uint8_t) ch);
+		else 
+			(*putc_function)('?');
+		return;
+	}
+
+	offs = 0;
+	if (chr_encode(ch, buf, &offs, STR_BOUNDS(1)) == EOK) {
+		for (i = 0; i < offs; i++)
+			(*putc_function)(buf[i]);
+	} else {
+		(*putc_function)('?');
+	}
+
 }
 
 void serial_goto(const unsigned int row, const unsigned int col)

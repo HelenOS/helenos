@@ -83,6 +83,7 @@ static uint8_t *scr_addr;
 static unsigned int style;
 
 static unsigned attr_to_ega_style(const attrs_t *a);
+static uint8_t ega_glyph(wchar_t ch);
 
 static void clrscr(void)
 {
@@ -143,9 +144,9 @@ static void scroll(int rows)
 	}
 }
 
-static void printchar(char c, unsigned int row, unsigned int col)
+static void printchar(wchar_t c, unsigned int row, unsigned int col)
 {
-	scr_addr[(row * scr_width + col) * 2] = c;
+	scr_addr[(row * scr_width + col) * 2] = ega_glyph(c);
 	scr_addr[(row * scr_width + col) * 2 + 1] = style;
 	
 	cursor_goto(row, col + 1);
@@ -172,7 +173,7 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 			field = &data[j * w + i];
 			dp = &scr_addr[2 * ((y + j) * scr_width + (x + i))];
 
-			dp[0] = field->character;
+			dp[0] = ega_glyph(field->character);
 			dp[1] = attr_to_ega_style(&field->attrs);
 		}
 	}
@@ -248,12 +249,20 @@ static unsigned attr_to_ega_style(const attrs_t *a)
 	}
 }
 
+static uint8_t ega_glyph(wchar_t ch)
+{
+	if (ch >= 0 && ch < 128)
+		return ch;
+
+	return '?';
+}
+
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	int retval;
 	ipc_callid_t callid;
 	ipc_call_t call;
-	char c;
+	wchar_t c;
 	unsigned int row, col, w, h;
 	int bg_color, fg_color, attr;
 	uint32_t bg_rgb, fg_rgb;
