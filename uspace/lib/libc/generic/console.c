@@ -57,7 +57,7 @@ static char *cbuffer_end = cbuffer + CBUFFER_SIZE;
 static char *cbp = cbuffer;
 
 static ssize_t cons_write(const char *buf, size_t nbyte);
-static void cons_putchar(int c);
+static void cons_putchar(wchar_t c);
 
 static void cbuffer_flush(void);
 static void cbuffer_drain(void);
@@ -119,9 +119,11 @@ void console_goto(int row, int col)
 	async_msg_2(cons_phone, CONSOLE_GOTO, row, col);
 }
 
-void console_putchar(int c)
+void console_putchar(wchar_t c)
 {
-	cbuffer_putc(c);
+//	cbuffer_putc(c);
+	cbuffer_flush();
+	cons_putchar(c);
 }
 
 /** Write all data from output buffer to the console. */
@@ -162,7 +164,7 @@ static inline void cbuffer_putc(int c)
 }
 
 /** Write one character to the console via IPC. */
-static void cons_putchar(int c)
+static void cons_putchar(wchar_t c)
 {
 	int cons_phone = console_phone_get(true);
 	async_msg_1(cons_phone, CONSOLE_PUTCHAR, c);

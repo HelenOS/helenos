@@ -81,6 +81,8 @@ char *test_print4(bool quiet)
 		printf("Arabic:   %ls\n", L"التوزيع الجغرافي للحمل العنقودي");
 		printf("Russian:  %ls\n", L"Леннон познакомился с художницей-авангардисткой");
 		printf("Armenian: %ls\n", L"Սկսեց հրատարակվել Երուսաղեմի հայկական");
+
+		printf("Test: [%d] '%lc'\n", L'\x0161', L'\x0161');
 	}
 
 	printf("[Press a key]\n");

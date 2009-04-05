@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <io/io.h>
+#include <string.h>
+#include <errno.h>
 
 const static char nl = '\n';
 
@@ -87,10 +89,16 @@ int putstr(const char *str)
 
 int putchar(int c)
 {
-	unsigned char ch = c;
-	if (write_stdout((void *) &ch, 1) == 1)
+	char buf[STR_BOUNDS(1)];
+	size_t offs;
+
+	offs = 0;
+	if (chr_encode(c, buf, &offs, STR_BOUNDS(1)) != EOK)
+		return EOF;
+
+	if (write_stdout((void *) buf, offs) == offs)
 		return c;
-	
+
 	return EOF;
 }
 

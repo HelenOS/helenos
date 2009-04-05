@@ -37,18 +37,18 @@
 #include <layout.h>
 
 static wchar_t map_lcase[] = {
-	[KC_2] = 'ě',
-	[KC_3] = 'š',
-	[KC_4] = 'č',
-	[KC_5] = 'ř',
-	[KC_6] = 'ž',
-	[KC_7] = 'ý',
-	[KC_8] = 'á',
-	[KC_9] = 'í',
-	[KC_0] = 'é',
+	[KC_2] = L'ě',
+	[KC_3] = L'š',
+	[KC_4] = L'č',
+	[KC_5] = L'ř',
+	[KC_6] = L'ž',
+	[KC_7] = L'ý',
+	[KC_8] = L'á',
+	[KC_9] = L'í',
+	[KC_0] = L'é',
 
-	[KC_LBRACKET] = 'ú',
-	[KC_SEMICOLON] = 'ů',
+	[KC_LBRACKET] = L'ú',
+	[KC_SEMICOLON] = L'ů',
 
 	[KC_Q] = 'q',
 	[KC_W] = 'w',
@@ -81,18 +81,18 @@ static wchar_t map_lcase[] = {
 };
 
 static wchar_t map_ucase[] = {
-	[KC_2] = 'Ě',
-	[KC_3] = 'Š',
-	[KC_4] = 'Č',
-	[KC_5] = 'Ř',
-	[KC_6] = 'Ž',
-	[KC_7] = 'Ý',
-	[KC_8] = 'Á',
-	[KC_9] = 'Í',
-	[KC_0] = 'É',
+	[KC_2] = L'Ě',
+	[KC_3] = L'Š',
+	[KC_4] = L'Č',
+	[KC_5] = L'Ř',
+	[KC_6] = L'Ž',
+	[KC_7] = L'Ý',
+	[KC_8] = L'Á',
+	[KC_9] = L'Í',
+	[KC_0] = L'É',
 
-	[KC_LBRACKET] = 'Ú',
-	[KC_SEMICOLON] = 'Ů',
+	[KC_LBRACKET] = L'Ú',
+	[KC_SEMICOLON] = L'Ů',
 
 	[KC_Q] = 'Q',
 	[KC_W] = 'W',
@@ -133,7 +133,7 @@ static wchar_t map_not_shifted[] = {
 
 	[KC_RBRACKET] = ')',
 
-	[KC_QUOTE] = '§',
+	[KC_QUOTE] = L'§',
 
 	[KC_COMMA] = ',',
 	[KC_PERIOD] = '.',

@@ -34,6 +34,8 @@
 #include <string.h>
 #include <io/stream.h>
 #include <console.h>
+#include <kbd/kbd.h>
+#include <kbd/keycode.h>
 
 #include "config.h"
 #include "util.h"
@@ -96,26 +98,30 @@ finit:
 
 static void read_line(char *buffer, int n)
 {
-	char c;
+	kbd_event_t ev;
 	int chars;
 
 	chars = 0;
 	while (chars < n - 1) {
-		c = getchar();
-		if (c < 0)
+		fflush(stdout);
+		if (kbd_get_event(&ev) < 0)
 			return;
-		if (c == '\n')
+		if (ev.type == KE_RELEASE)
+			continue;
+
+		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
 			break;
-		if (c == '\b') {
+		if (ev.key == KC_BACKSPACE) {
 			if (chars > 0) {
 				putchar('\b');
 				--chars;
 			}
 			continue;
 		}
-		if (c >= ' ') {
-			putchar(c);
-			buffer[chars++] = c;
+		if (ev.c >= ' ') {
+			//putchar(ev.c);
+			console_putchar(ev.c);
+			buffer[chars++] = ev.c;
 		}
 	}
 	putchar('\n');
