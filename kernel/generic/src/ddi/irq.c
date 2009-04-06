@@ -101,11 +101,12 @@ hash_table_t irq_uspace_hash_table;
  */
 static index_t irq_ht_hash(unative_t *key);
 static bool irq_ht_compare(unative_t *key, count_t keys, link_t *item);
+static void irq_ht_remove(link_t *item);
 
 static hash_table_operations_t irq_ht_ops = {
 	.hash = irq_ht_hash,
 	.compare = irq_ht_compare,
-	.remove_callback = NULL		/* not used */
+	.remove_callback = irq_ht_remove,
 };
 
 /**
@@ -116,11 +117,12 @@ static hash_table_operations_t irq_ht_ops = {
  */
 static index_t irq_lin_hash(unative_t *key);
 static bool irq_lin_compare(unative_t *key, count_t keys, link_t *item);
+static void irq_lin_remove(link_t *item);
 
 static hash_table_operations_t irq_lin_ops = {
 	.hash = irq_lin_hash,
 	.compare = irq_lin_compare,
-	.remove_callback = NULL		/* not used */
+	.remove_callback = irq_lin_remove,
 };
 
 /** Number of buckets in either of the hash tables. */
@@ -347,6 +349,16 @@ bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 	return rv;
 }
 
+/** Unlock IRQ structure after hash_table_remove().
+ *
+ * @param lnk		Link in the removed and locked IRQ structure.
+ */
+void irq_ht_remove(link_t *lnk)
+{
+	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+	spinlock_unlock(&irq->lock);
+}
+
 /** Compute hash index for the key.
  *
  * This function computes hash index into
@@ -404,6 +416,16 @@ bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
 		spinlock_unlock(&irq->lock);
 	
 	return rv;
+}
+
+/** Unlock IRQ structure after hash_table_remove().
+ *
+ * @param lnk		Link in the removed and locked IRQ structure.
+ */
+void irq_lin_remove(link_t *lnk)
+{
+	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+	spinlock_unlock(&irq->lock);
 }
 
 /** @}

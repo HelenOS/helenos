@@ -142,6 +142,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	ipl_t ipl;
 	irq_code_t *code;
 	irq_t *irq;
+	link_t *hlp;
 	unative_t key[] = {
 		(unative_t) inr,
 		(unative_t) devno
@@ -176,17 +177,19 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	 */
 	ipl = interrupts_disable();
 	spinlock_lock(&irq_uspace_hash_table_lock);
-	spinlock_lock(&irq->lock);
-	spinlock_lock(&box->irq_lock);
-	if (hash_table_find(&irq_uspace_hash_table, key)) {
+	hlp = hash_table_find(&irq_uspace_hash_table, key);
+	if (hlp) {
+		irq_t *hirq = hash_table_get_instance(hlp, irq_t, link);
+		/* hirq is locked */
+		spinlock_unlock(&hirq->lock);
 		code_free(code);
-		spinlock_unlock(&box->irq_lock);
-		spinlock_unlock(&irq->lock);
 		spinlock_unlock(&irq_uspace_hash_table_lock);
 		free(irq);
 		interrupts_restore(ipl);
 		return EEXISTS;
 	}
+	spinlock_lock(&irq->lock);	/* not really necessary, but paranoid */
+	spinlock_lock(&box->irq_lock);
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	list_append(&irq->notif_cfg.link, &box->irq_head);
 	spinlock_unlock(&box->irq_lock);
@@ -222,7 +225,7 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 		return ENOENT;
 	}
 	irq = hash_table_get_instance(lnk, irq_t, link);
-	spinlock_lock(&irq->lock);
+	/* irq is locked */
 	spinlock_lock(&box->irq_lock);
 	
 	ASSERT(irq->notif_cfg.answerbox == box);
@@ -233,11 +236,19 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 	/* Remove the IRQ from the answerbox's list. */ 
 	list_remove(&irq->notif_cfg.link);
 
+	/*
+	 * We need to drop the IRQ lock now because hash_table_remove() will try
+	 * to reacquire it. That basically violates the natural locking order,
+	 * but a deadlock in hash_table_remove() is prevented by the fact that
+	 * we already held the IRQ lock and didn't drop the hash table lock in
+	 * the meantime.
+	 */
+	spinlock_unlock(&irq->lock);
+
 	/* Remove the IRQ from the uspace IRQ hash table. */
 	hash_table_remove(&irq_uspace_hash_table, key, 2);
 	
 	spinlock_unlock(&irq_uspace_hash_table_lock);
-	spinlock_unlock(&irq->lock);
 	spinlock_unlock(&box->irq_lock);
 	
 	/* Free up the IRQ structure. */
@@ -294,6 +305,13 @@ loop:
 		/* Free up the pseudo code and associated structures. */
 		code_free(irq->notif_cfg.code);
 		
+		/*
+		 * We need to drop the IRQ lock now because hash_table_remove()
+		 * will try to reacquire it. That basically violates the natural
+		 * locking order, but a deadlock in hash_table_remove() is
+		 * prevented by the fact that we already held the IRQ lock and
+		 * didn't drop the hash table lock in the meantime.
+		 */
 		spinlock_unlock(&irq->lock);
 		
 		/* Remove from the hash table. */
