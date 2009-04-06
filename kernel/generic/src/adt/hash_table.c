@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Implementation of generic chained hash table.
+ * @brief Implementation of generic chained hash table.
  *
  * This file contains implementation of generic chained hash table.
  */
@@ -56,13 +56,15 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
 	index_t i;
 
 	ASSERT(h);
-	ASSERT(op && op->hash && op->compare);
+	ASSERT(op);
+	ASSERT(op->hash);
+	ASSERT(op->compare);
 	ASSERT(max_keys > 0);
 	
 	h->entry = (link_t *) malloc(m * sizeof(link_t), 0);
-	if (!h->entry) {
+	if (!h->entry)
 		panic("Cannot allocate memory for hash table.");
-	}
+	
 	memsetb(h->entry, m * sizeof(link_t), 0);
 	
 	for (i = 0; i < m; i++)
@@ -82,10 +84,13 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
 void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
 {
 	index_t chain;
-
+	
 	ASSERT(item);
-	ASSERT(h && h->op && h->op->hash && h->op->compare);
-
+	ASSERT(h);
+	ASSERT(h->op);
+	ASSERT(h->op->hash);
+	ASSERT(h->op->compare);
+	
 	chain = h->op->hash(key);
 	ASSERT(chain < h->entries);
 	
@@ -103,9 +108,12 @@ link_t *hash_table_find(hash_table_t *h, unative_t key[])
 {
 	link_t *cur;
 	index_t chain;
-
-	ASSERT(h && h->op && h->op->hash && h->op->compare);
-
+	
+	ASSERT(h);
+	ASSERT(h->op);
+	ASSERT(h->op->hash);
+	ASSERT(h->op->compare);
+	
 	chain = h->op->hash(key);
 	ASSERT(chain < h->entries);
 	
@@ -133,12 +141,16 @@ void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
 {
 	index_t chain;
 	link_t *cur;
-
-	ASSERT(h && h->op && h->op->hash && h->op->compare && h->op->remove_callback);
+	
+	ASSERT(h);
+	ASSERT(h->op);
+	ASSERT(h->op->hash);
+	ASSERT(h->op->compare);
+	ASSERT(h->op->remove_callback);
 	ASSERT(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
-
+	
 		/*
 		 * All keys are known, hash_table_find() can be used to find the entry.
 		 */
