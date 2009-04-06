@@ -291,13 +291,14 @@ loop:
 		/* Unlist from the answerbox. */
 		list_remove(&irq->notif_cfg.link);
 		
-		/* Remove from the hash table. */
-		hash_table_remove(&irq_uspace_hash_table, key, 2);
-		
 		/* Free up the pseudo code and associated structures. */
 		code_free(irq->notif_cfg.code);
 		
 		spinlock_unlock(&irq->lock);
+		
+		/* Remove from the hash table. */
+		hash_table_remove(&irq_uspace_hash_table, key, 2);
+		
 		free(irq);
 	}
 	
