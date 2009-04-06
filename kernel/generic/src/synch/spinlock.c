@@ -106,9 +106,9 @@ void spinlock_lock_debug(spinlock_t *sl)
 #endif
 		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%u: looping on spinlock %" PRIp ":%s, "
-			    "caller=%" PRIp "(%s)", CPU->id, sl, sl->name,
+			    "caller=%" PRIp "(%s)\n", CPU->id, sl, sl->name,
 			    CALLER, symtab_fmt_name_lookup(CALLER));
-
+			
 			i = 0;
 			deadlock_reported = true;
 		}
