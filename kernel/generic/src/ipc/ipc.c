@@ -44,15 +44,13 @@
 #include <synch/synch.h>
 #include <ipc/ipc.h>
 #include <ipc/kbox.h>
-#include <event/event.h>
+#include <ipc/event.h>
 #include <errno.h>
 #include <mm/slab.h>
 #include <arch.h>
 #include <proc/task.h>
 #include <memstr.h>
 #include <debug.h>
-
-
 #include <print.h>
 #include <console/console.h>
 #include <proc/thread.h>

@@ -64,7 +64,7 @@
 #include <proc/task.h>
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
-#include <event/event.h>
+#include <ipc/event.h>
 #include <symtab.h>
 #include <errno.h>
 

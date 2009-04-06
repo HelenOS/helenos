@@ -48,7 +48,7 @@
 #include <synch/futex.h>
 #include <synch/smc.h>
 #include <ddi/ddi.h>
-#include <event/event.h>
+#include <ipc/event.h>
 #include <security/cap.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>

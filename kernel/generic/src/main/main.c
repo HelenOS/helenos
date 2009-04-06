@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief 	Main initialization kernel function for all processors.
+ * @brief Main initialization kernel function for all processors.
  *
  * During kernel boot, all processors, after architecture dependent
  * initialization, start executing code found in this file. After
@@ -82,7 +82,7 @@
 #include <smp/smp.h>
 #include <ddi/ddi.h>
 #include <main/main.h>
-#include <event/event.h>
+#include <ipc/event.h>
 
 /** Global configuration structure. */
 config_t config;

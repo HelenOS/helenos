@@ -31,11 +31,11 @@
  */
 /**
  * @file
- * @brief	Kernel event notifications.
+ * @brief Kernel event notifications.
  */
 
-#include <event/event.h>
-#include <event/event_types.h>
+#include <ipc/event.h>
+#include <ipc/event_types.h>
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <synch/spinlock.h>
@@ -49,40 +49,41 @@
  * Arranging the events in this two-dimensional array should decrease the
  * likelyhood of cacheline ping-pong.
  */
-static event_t *events[EVENT_END];
+static event_t events[EVENT_END];
 
 /** Initialize kernel events. */
 void event_init(void)
 {
-	int i;
-
+	unsigned int i;
+	
 	for (i = 0; i < EVENT_END; i++) {
-		events[i] = (event_t *) malloc(sizeof(event_t), 0);
-		spinlock_initialize(&events[i]->lock, "event.lock");
-		events[i]->answerbox = NULL;
-		events[i]->counter = 0;
-		events[i]->method = 0;
+		spinlock_initialize(&events[i].lock, "event.lock");
+		events[i].answerbox = NULL;
+		events[i].counter = 0;
+		events[i].method = 0;
 	}
 }
 
 static int
-event_subscribe(event_type_t e, unative_t method, answerbox_t *answerbox)
+event_subscribe(event_type_t evno, unative_t method, answerbox_t *answerbox)
 {
-	if (e >= EVENT_END)
+	if (evno >= EVENT_END)
 		return ELIMIT;
-
-	int res = EEXISTS;
-	event_t *event = events[e];
-
-	spinlock_lock(&event->lock);
-	if (!event->answerbox) {
-		event->answerbox = answerbox;
-		event->method = method;
-		event->counter = 0;
+	
+	spinlock_lock(&events[evno].lock);
+	
+	int res;
+	
+	if (events[evno].answerbox == NULL) {
+		events[evno].answerbox = answerbox;
+		events[evno].method = method;
+		events[evno].counter = 0;
 		res = EOK;
-	}
-	spinlock_unlock(&event->lock);
-
+	} else
+		res = EEXISTS;
+	
+	spinlock_unlock(&events[evno].lock);
+	
 	return res;
 }
 
@@ -92,61 +93,62 @@ unative_t sys_event_subscribe(unative_t evno, unative_t method)
 	    method, &TASK->answerbox);
 }
 
-bool event_is_subscribed(event_type_t e)
+bool event_is_subscribed(event_type_t evno)
 {
 	bool res;
-
-	ASSERT(e < EVENT_END);
-	spinlock_lock(&events[e]->lock);
-	res = events[e]->answerbox != NULL;
-	spinlock_unlock(&events[e]->lock);
-
+	
+	ASSERT(evno < EVENT_END);
+	
+	spinlock_lock(&events[evno].lock);
+	res = events[evno].answerbox != NULL;
+	spinlock_unlock(&events[evno].lock);
+	
 	return res;
 }
 
 
 void event_cleanup_answerbox(answerbox_t *answerbox)
 {
-	int i;
-
+	unsigned int i;
+	
 	for (i = 0; i < EVENT_END; i++) {
-		spinlock_lock(&events[i]->lock);
-		if (events[i]->answerbox == answerbox) {
-			events[i]->answerbox = NULL;
-			events[i]->counter = 0;
-			events[i]->method = 0;
+		spinlock_lock(&events[i].lock);
+		if (events[i].answerbox == answerbox) {
+			events[i].answerbox = NULL;
+			events[i].counter = 0;
+			events[i].method = 0;
 		}
-		spinlock_unlock(&events[i]->lock);
+		spinlock_unlock(&events[i].lock);
 	}
 }
 
 void
-event_notify(event_type_t e, unative_t a1, unative_t a2, unative_t a3,
+event_notify(event_type_t evno, unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5)
 {
-	ASSERT(e < EVENT_END);
-	event_t *event = events[e];
-	spinlock_lock(&event->lock);
-	if (event->answerbox) {
+	ASSERT(evno < EVENT_END);
+	
+	spinlock_lock(&events[evno].lock);
+	if (events[evno].answerbox != NULL) {
 		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
 		if (call) {
 			call->flags |= IPC_CALL_NOTIF;
-			call->priv = ++event->counter;
-			IPC_SET_METHOD(call->data, event->method);
+			call->priv = ++events[evno].counter;
+			IPC_SET_METHOD(call->data, events[evno].method);
 			IPC_SET_ARG1(call->data, a1);
 			IPC_SET_ARG2(call->data, a2);
 			IPC_SET_ARG3(call->data, a3);
 			IPC_SET_ARG4(call->data, a4);
 			IPC_SET_ARG5(call->data, a5);
-
-			spinlock_lock(&event->answerbox->irq_lock);
-			list_append(&call->link, &event->answerbox->irq_notifs);
-			spinlock_unlock(&event->answerbox->irq_lock);
-
-			waitq_wakeup(&event->answerbox->wq, WAKEUP_FIRST);
+			
+			spinlock_lock(&events[evno].answerbox->irq_lock);
+			list_append(&call->link, &events[evno].answerbox->irq_notifs);
+			spinlock_unlock(&events[evno].answerbox->irq_lock);
+			
+			waitq_wakeup(&events[evno].answerbox->wq, WAKEUP_FIRST);
 		}
 	}
-	spinlock_unlock(&event->lock);
+	spinlock_unlock(&events[evno].lock);
 }
 
 /** @}

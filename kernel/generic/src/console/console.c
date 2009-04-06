@@ -41,7 +41,7 @@
 #include <arch/types.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
-#include <event/event.h>
+#include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
 #include <func.h>
@@ -52,8 +52,8 @@
 #include <errno.h>
 #include <string.h>
 
-#define KLOG_SIZE     PAGE_SIZE
-#define KLOG_LENGTH   (KLOG_SIZE / sizeof(wchar_t))
+#define KLOG_PAGES    4
+#define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
 /** Kernel log cyclic buffer */
@@ -95,14 +95,13 @@ void klog_init(void)
 	void *faddr = (void *) KA2PA(klog);
 	
 	ASSERT((uintptr_t) faddr % FRAME_SIZE == 0);
-	ASSERT(KLOG_SIZE % FRAME_SIZE == 0);
 	
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
 	ddi_parea_register(&klog_parea);
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
-	sysinfo_set_item_val("klog.pages", NULL, SIZE2FRAMES(sizeof(klog)));
+	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
 	spinlock_lock(&klog_lock);
 	klog_inited = true;
