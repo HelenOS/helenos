@@ -120,23 +120,28 @@ static bool service_clonable(int service)
 	return (service == SERVICE_LOAD);
 }
 
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, char *name, void **addr)
+static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *ph_addr, count_t pages, void **addr)
 {
-	void *ph_addr;
+	if (ph_addr == NULL) {
+		ipc_answer_0(callid, ENOENT);
+		return;
+	}
 	
-	if (!*addr) {
-		ph_addr = (void *) sysinfo_value(name);
-		if (!ph_addr) {
+	if (*addr == NULL) {
+		*addr = as_get_mappable_page(pages * PAGE_SIZE);
+		
+		if (*addr == NULL) {
 			ipc_answer_0(callid, ENOENT);
 			return;
 		}
-		*addr = as_get_mappable_page(PAGE_SIZE);
-		if (physmem_map(ph_addr, *addr, 1,
+		
+		if (physmem_map(ph_addr, *addr, pages,
 		    AS_AREA_READ | AS_AREA_CACHEABLE) != 0) {
 			ipc_answer_0(callid, ENOENT);
 			return;
 		}
 	}
+	
 	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
 }
 
@@ -197,10 +202,10 @@ int main(int argc, char **argv)
 		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:
-				get_as_area(callid, &call, "clock.faddr", &clockaddr);
+				get_as_area(callid, &call, sysinfo_value("clock.faddr"), 1, &clockaddr);
 				break;
 			case SERVICE_MEM_KLOG:
-				get_as_area(callid, &call, "klog.faddr", &klogaddr);
+				get_as_area(callid, &call, sysinfo_value("klog.faddr"), sysinfo_value("klog.pages"), &klogaddr);
 				break;
 			default:
 				ipc_answer_0(callid, ENOENT);

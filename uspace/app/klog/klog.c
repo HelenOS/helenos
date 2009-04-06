@@ -47,22 +47,21 @@
 
 #define NAME "klog"
 
-#define KLOG_SIZE	PAGE_SIZE
-#define KLOG_LENGTH	(KLOG_SIZE / sizeof(wchar_t))
-
 /* Pointer to klog area */
 static wchar_t *klog;
+static count_t klog_length;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 	async_serialize_start();
 	
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	size_t i;
+	count_t klog_start = (count_t) IPC_GET_ARG1(*call);
+	count_t klog_len = (count_t) IPC_GET_ARG2(*call);
+	count_t klog_stored = (count_t) IPC_GET_ARG3(*call);
+	count_t i;
+	
 	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % KLOG_LENGTH]);
+		putchar(klog[(klog_start + i) % klog_length]);
 	
 	async_serialize_end();
 }
@@ -71,14 +70,18 @@ int main(int argc, char *argv[])
 {
 	console_wait();
 	
-	klog = (char *) as_get_mappable_page(KLOG_SIZE);
+	count_t klog_pages = sysinfo_value("klog.pages");
+	size_t klog_size = klog_pages * PAGE_SIZE;
+	klog_length = klog_size / sizeof(wchar_t);
+	
+	klog = (char *) as_get_mappable_page(klog_pages);
 	if (klog == NULL) {
 		printf(NAME ": Error allocating memory area\n");
 		return -1;
 	}
 	
-	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog, KLOG_SIZE,
-	    SERVICE_MEM_KLOG);
+	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog,
+	    klog_size, SERVICE_MEM_KLOG);
 	if (res != EOK) {
 		printf(NAME ": Error initializing memory area\n");
 		return -1;
@@ -92,7 +95,7 @@ int main(int argc, char *argv[])
 	async_set_interrupt_received(interrupt_received);
 	klog_update();
 	async_manager();
-
+	
 	return 0;
 }
 

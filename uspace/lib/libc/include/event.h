@@ -35,7 +35,7 @@
 #ifndef LIBC_EVENT_H_
 #define LIBC_EVENT_H_
 
-#include <kernel/event/event_types.h>
+#include <kernel/ipc/event_types.h>
 #include <ipc/ipc.h>
 
 extern int event_subscribe(event_type_t, ipcarg_t);

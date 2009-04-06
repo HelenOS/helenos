@@ -38,15 +38,15 @@
 
 #include <libc.h>
 #include <event.h>
-#include <kernel/event/event_types.h>
+#include <kernel/ipc/event_types.h>
 #include <ipc/ipc.h>
 
 /** Subscribe for event notifications.
  *
- * @param e		Event number.
- * @param method	Use this method for notifying me.
+ * @param evno   Event number.
+ * @param method Use this method for notifying me.
  *
- * @return		Value returned by the kernel.
+ * @return Value returned by the kernel.
  */
 int event_subscribe(event_type_t e, ipcarg_t method)
 {
