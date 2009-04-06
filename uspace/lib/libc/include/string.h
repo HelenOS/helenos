@@ -40,6 +40,7 @@
 #include <bool.h>
 
 #define U_SPECIAL      '?'
+#define U_BOM          0xfeff
 
 /**< No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)

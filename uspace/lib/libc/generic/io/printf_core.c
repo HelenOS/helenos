@@ -248,7 +248,7 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
  * @return Number of characters printed, negative value on failure.
  */
 static int print_str(char *str, int width, unsigned int precision,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
@@ -296,16 +296,19 @@ static int print_str(char *str, int width, unsigned int precision,
  * @return Number of wide characters printed, negative value on failure.
  */
 static int print_wstr(wchar_t *str, int width, unsigned int precision,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-
+	
+	if (*str == U_BOM)
+		str++;
+	
 	/* Print leading spaces. */
 	size_t strw = wstr_length(str);
 	if (precision == 0)
 		precision = strw;
-
+	
 	/* Left padding */
 	count_t counter = 0;
 	width -= precision;
@@ -315,15 +318,15 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-
+	
 	/* Part of @a wstr fitting into the alloted space. */
 	int retval;
 	size_t size = wstr_lsize(str, precision);
 	if ((retval = printf_wputnchars(str, size, ps)) < 0)
 		return -counter;
-
+	
 	counter += retval;
-
+	
 	/* Right padding */
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
