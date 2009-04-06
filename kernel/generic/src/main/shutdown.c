@@ -32,10 +32,11 @@
 
 /**
  * @file
- * @brief 	Shutdown procedures.
+ * @brief Shutdown procedures.
  */
 
 #include <arch.h>
+#include <func.h>
 #include <print.h>
 
 void reboot(void)
@@ -47,6 +48,7 @@ void reboot(void)
 #endif
 	
 	arch_reboot();
+	halt();
 }
 
 /** @}
