@@ -131,7 +131,7 @@ link_t *hash_table_find(hash_table_t *h, unative_t key[])
 
 /** Remove all matching items from hash table.
  *
- * For each removed item, h->remove_callback() is called.
+ * For each removed item, h->remove_callback() is called (if not NULL).
  *
  * @param h Hash table.
  * @param key Array of keys that will be compared against items of the hash table.
@@ -146,7 +146,6 @@ void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
 	ASSERT(h->op);
 	ASSERT(h->op->hash);
 	ASSERT(h->op->compare);
-	ASSERT(h->op->remove_callback);
 	ASSERT(keys <= h->max_keys);
 	
 	if (keys == h->max_keys) {
@@ -158,7 +157,8 @@ void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
 		cur = hash_table_find(h, key);
 		if (cur) {
 			list_remove(cur);
-			h->op->remove_callback(cur);
+			if (h->op->remove_callback)
+				h->op->remove_callback(cur);
 		}
 		return;
 	}
@@ -176,7 +176,8 @@ void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
 				cur = cur->prev;
 				
 				list_remove(hlp);
-				h->op->remove_callback(hlp);
+				if (h->op->remove_callback)
+					h->op->remove_callback(hlp);
 				
 				continue;
 			}
