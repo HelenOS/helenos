@@ -50,6 +50,7 @@ static indev_operations_t kbrdin_ops = {
 
 #define i8042_SET_COMMAND  0x60
 #define i8042_COMMAND      0x69
+#define i8042_CPU_RESET    0xfe
 
 #define i8042_BUFFER_FULL_MASK  0x01
 #define i8042_WAIT_MASK         0x02
@@ -97,13 +98,24 @@ indev_t *i8042_init(i8042_t *dev, inr_t inr)
 	instance->irq.instance = instance;
 	irq_register(&instance->irq);
 	
-	/*
-	 * Clear input buffer.
-	 */
+	/* Clear input buffer */
 	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
 		(void) pio_read_8(&dev->data);
 	
 	return &instance->kbrdin;
+}
+
+/* Reset CPU by pulsing pin 0 */
+void i8042_cpu_reset(i8042_t *dev)
+{
+	interrupts_disable();
+	
+	/* Clear input buffer */
+	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
+		(void) pio_read_8(&dev->data);
+	
+	/* Reset CPU */
+	pio_write_8(&dev->status, i8042_CPU_RESET);
 }
 
 /** @}

@@ -281,5 +281,12 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	return addr;
 }
 
+void arch_reboot(void)
+{
+#ifdef CONFIG_PC_KBD
+	i8042_cpu_reset((i8042_t *) I8042_BASE);
+#endif
+}
+
 /** @}
  */

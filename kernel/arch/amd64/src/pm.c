@@ -230,24 +230,5 @@ void pm_init(void)
 	tr_load(gdtselector(TSS_DES));
 }
 
-/* Reboot the machine by initiating
- * a triple fault
- */
-void arch_reboot(void)
-{
-	preemption_disable();
-	ipl_t ipl = interrupts_disable();
-	
-	memsetb(idt, sizeof(idt), 0);
-	idtr_load(&idtr);
-	
-	interrupts_restore(ipl);
-	asm volatile (
-		"int $0x03\n"
-		"cli\n"
-		"hlt\n"
-	);
-}
-
 /** @}
  */

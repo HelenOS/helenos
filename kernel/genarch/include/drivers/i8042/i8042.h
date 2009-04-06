@@ -53,6 +53,7 @@ typedef struct {
 } i8042_instance_t;
 
 extern indev_t *i8042_init(i8042_t *, inr_t);
+extern void i8042_cpu_reset(i8042_t *);
 
 #endif
 

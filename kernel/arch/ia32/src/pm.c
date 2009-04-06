@@ -232,28 +232,5 @@ void set_tls_desc(uintptr_t tls)
 	gdtr_load(&cpugdtr);
 }
 
-/* Reboot the machine by initiating
- * a triple fault
- */
-void arch_reboot(void)
-{
-	preemption_disable();
-	ipl_t ipl = interrupts_disable();
-	
-	memsetb(idt, sizeof(idt), 0);
-	
-	ptr_16_32_t idtr;
-	idtr.limit = sizeof(idt);
-	idtr.base = (uintptr_t) idt;
-	idtr_load(&idtr);
-	
-	interrupts_restore(ipl);
-	asm volatile (
-		"int $0x03\n"
-		"cli\n"
-		"hlt\n"
-	);
-}
-
 /** @}
  */
