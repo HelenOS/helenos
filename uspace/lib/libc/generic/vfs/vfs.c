@@ -534,7 +534,7 @@ char *getcwd(char *buf, size_t size)
 		futex_up(&cwd_futex);
 		return NULL;
 	}
-	strcpy(buf, cwd_path);
+	str_ncpy(buf, cwd_path, size);
 	futex_up(&cwd_futex);
 	return buf;
 }

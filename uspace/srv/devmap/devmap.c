@@ -112,7 +112,7 @@ static devmap_device_t *devmap_device_find_name(const char *name)
 	
 	while (item != &devices_list) {
 		device = list_get_instance(item, devmap_device_t, devices);
-		if (0 == strcmp(device->name, name))
+		if (0 == str_cmp(device->name, name))
 			break;
 		item = item->next;
 	}
