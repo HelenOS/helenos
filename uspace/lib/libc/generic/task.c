@@ -57,7 +57,7 @@ task_id_t task_get_id(void)
  */
 int task_set_name(const char *name)
 {
-	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, strlen(name));
+	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
 }
 
 /** Create a new task by running an executable from the filesystem.

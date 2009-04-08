@@ -57,7 +57,7 @@ futex_t vfs_phone_futex = FUTEX_INITIALIZER;
 futex_t cwd_futex = FUTEX_INITIALIZER;
 DIR *cwd_dir = NULL;
 char *cwd_path = NULL;
-size_t cwd_len = 0;
+size_t cwd_size = 0;
 
 char *absolutize(const char *path, size_t *retlen)
 {
@@ -65,22 +65,22 @@ char *absolutize(const char *path, size_t *retlen)
 	char *ncwd_path_nc;
 
 	futex_down(&cwd_futex);
-	size_t len = strlen(path);
+	size_t size = str_size(path);
 	if (*path != '/') {
 		if (!cwd_path) {
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		ncwd_path_nc = malloc(cwd_len + 1 + len + 1);
+		ncwd_path_nc = malloc(cwd_size + 1 + size + 1);
 		if (!ncwd_path_nc) {
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		strcpy(ncwd_path_nc, cwd_path);
-		ncwd_path_nc[cwd_len] = '/';
-		ncwd_path_nc[cwd_len + 1] = '\0';
+		str_ncpy(ncwd_path_nc, cwd_path, cwd_size + 1 + size + 1);
+		ncwd_path_nc[cwd_size] = '/';
+		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
-		ncwd_path_nc = malloc(len + 1);
+		ncwd_path_nc = malloc(size + 1);
 		if (!ncwd_path_nc) {
 			futex_up(&cwd_futex);
 			return NULL;
@@ -132,7 +132,7 @@ static int device_get_handle(const char *name, dev_handle_t *handle,
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, strlen(name) + 1); 
+	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -166,8 +166,8 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 	if (res != EOK)
 		return res;
 	
-	size_t mpa_len;
-	char *mpa = absolutize(mp, &mpa_len);
+	size_t mpa_size;
+	char *mpa = absolutize(mp, &mpa_size);
 	if (!mpa)
 		return ENOMEM;
 	
@@ -176,7 +176,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 	vfs_connect();
 	
 	req = async_send_2(vfs_phone, VFS_MOUNT, dev_handle, flags, NULL);
-	rc = ipc_data_write_start(vfs_phone, (void *) mpa, mpa_len);
+	rc = ipc_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -185,7 +185,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 		return (int) rc;
 	}
 	
-	rc = ipc_data_write_start(vfs_phone, (void *) fs_name, strlen(fs_name));
+	rc = ipc_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -208,8 +208,8 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	ipc_call_t answer;
 	aid_t req;
 	
-	size_t pa_len;
-	char *pa = absolutize(path, &pa_len);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
 	
@@ -218,7 +218,7 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	vfs_connect();
 	
 	req = async_send_3(vfs_phone, VFS_OPEN, lflag, oflag, 0, &answer);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -384,8 +384,8 @@ int mkdir(const char *path, mode_t mode)
 	ipcarg_t rc;
 	aid_t req;
 	
-	size_t pa_len;
-	char *pa = absolutize(path, &pa_len);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
 	
@@ -394,7 +394,7 @@ int mkdir(const char *path, mode_t mode)
 	vfs_connect();
 	
 	req = async_send_1(vfs_phone, VFS_MKDIR, mode, NULL);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -414,8 +414,8 @@ static int _unlink(const char *path, int lflag)
 	ipcarg_t rc;
 	aid_t req;
 	
-	size_t pa_len;
-	char *pa = absolutize(path, &pa_len);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
 
@@ -424,7 +424,7 @@ static int _unlink(const char *path, int lflag)
 	vfs_connect();
 	
 	req = async_send_0(vfs_phone, VFS_UNLINK, NULL);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_len);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -454,13 +454,13 @@ int rename(const char *old, const char *new)
 	ipcarg_t rc;
 	aid_t req;
 	
-	size_t olda_len;
-	char *olda = absolutize(old, &olda_len);
+	size_t olda_size;
+	char *olda = absolutize(old, &olda_size);
 	if (!olda)
 		return ENOMEM;
 
-	size_t newa_len;
-	char *newa = absolutize(new, &newa_len);
+	size_t newa_size;
+	char *newa = absolutize(new, &newa_size);
 	if (!newa) {
 		free(olda);
 		return ENOMEM;
@@ -471,7 +471,7 @@ int rename(const char *old, const char *new)
 	vfs_connect();
 	
 	req = async_send_0(vfs_phone, VFS_RENAME, NULL);
-	rc = ipc_data_write_start(vfs_phone, olda, olda_len);
+	rc = ipc_data_write_start(vfs_phone, olda, olda_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -480,7 +480,7 @@ int rename(const char *old, const char *new)
 		free(newa);
 		return (int) rc;
 	}
-	rc = ipc_data_write_start(vfs_phone, newa, newa_len);
+	rc = ipc_data_write_start(vfs_phone, newa, newa_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -499,8 +499,8 @@ int rename(const char *old, const char *new)
 
 int chdir(const char *path)
 {
-	size_t pa_len;
-	char *pa = absolutize(path, &pa_len);
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
 	if (!pa)
 		return ENOMEM;
 
@@ -516,11 +516,11 @@ int chdir(const char *path)
 		cwd_dir = NULL;
 		free(cwd_path);	
 		cwd_path = NULL;
-		cwd_len = 0;
+		cwd_size = 0;
 	}
 	cwd_dir = d;
 	cwd_path = pa;
-	cwd_len = pa_len;
+	cwd_size = pa_size;
 	futex_up(&cwd_futex);
 	return EOK;
 }
@@ -530,7 +530,7 @@ char *getcwd(char *buf, size_t size)
 	if (!size)
 		return NULL;
 	futex_down(&cwd_futex);
-	if (size < cwd_len + 1) {
+	if (size < cwd_size + 1) {
 		futex_up(&cwd_futex);
 		return NULL;
 	}

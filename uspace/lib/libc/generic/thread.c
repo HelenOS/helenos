@@ -109,7 +109,7 @@ int thread_create(void (* function)(void *), void *arg, char *name,
 	uarg->uspace_uarg = uarg;
 	
 	rc = __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg, (sysarg_t) name,
-	    (sysarg_t) strlen(name), (sysarg_t) tid);
+	    (sysarg_t) str_size(name), (sysarg_t) tid);
 	
 	if (rc) {
 		/*

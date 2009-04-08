@@ -54,7 +54,7 @@
 int loader_spawn(const char *name)
 {
 	return __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
-	    (sysarg_t) name, strlen(name));
+	    (sysarg_t) name, str_size(name));
 }
 
 loader_t *loader_connect(void)
@@ -168,7 +168,7 @@ int loader_set_args(loader_t *ldr, char *const argv[])
 	ap = argv;
 	buffer_size = 0;
 	while (*ap != NULL) {
-		buffer_size += strlen(*ap) + 1;
+		buffer_size += str_size(*ap) + 1;
 		++ap;
 	}
 
@@ -178,9 +178,10 @@ int loader_set_args(loader_t *ldr, char *const argv[])
 	/* Now fill the buffer with null-terminated argument strings */
 	ap = argv;
 	dp = arg_buf;
+
 	while (*ap != NULL) {
-		strcpy(dp, *ap);
-		dp += strlen(*ap) + 1;
+		str_ncpy(dp, *ap, buffer_size - (dp - arg_buf));
+		dp += str_size(*ap) + 1;
 
 		++ap;
 	}
