@@ -45,9 +45,11 @@
  * Tetris scores.
  */
 #include <sys/time.h>
+#include <string.h>
+
 #define MAXLOGNAME 16
 struct highscore {
-	char	hs_name[MAXLOGNAME + 1];	/* login name */
+	char	hs_name[STR_BOUNDS(MAXLOGNAME) + 1];	/* login name */
 	int	hs_score;	/* raw score */
 	int	hs_level;	/* play level */
 //	time_t	hs_time;	/* time at game end */

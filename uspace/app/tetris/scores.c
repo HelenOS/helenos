@@ -55,6 +55,9 @@
 #include <stdio.h>
 /* #include <stdlib.h> */
 #include <string.h>
+#include <kbd/kbd.h>
+#include <kbd/keycode.h>
+#include <stdlib.h>
 /* #include <time.h> */
 /* #include <term.h> */
 /* #include <unistd.h> */
@@ -122,32 +125,57 @@ static void copyhiscore(int dest, int src)
 void insertscore(int score, int level)
 {
 	int i,j;
-	int key;
-
+	size_t off;
+	kbd_event_t ev;
 	
 	clear_screen();
 	moveto(10 , 10);
 	puts("Insert your name: ");
 	strncpy(scores[NUMSPOTS - 1].hs_name, "Player", MAXLOGNAME);
-	i = 6;
+	i = 6; off = 6;
 
 	moveto(10 , 28);
 	printf("%s%.*s",scores[NUMSPOTS - 1].hs_name,MAXLOGNAME-i,"........................................");
-	key = getchar();	
-	while(key != '\n') {
-		if (key == '\b') {
-			if (i > 0) 
-				scores[NUMSPOTS - 1].hs_name[--i] = '\0';	
-		} else {
-			if (i < (MAXLOGNAME - 1))
-				scores[NUMSPOTS - 1].hs_name[i++] = key;	
-				scores[NUMSPOTS - 1].hs_name[i] = '\0';	
+
+	while (1) {
+		fflush(stdout);
+		if (kbd_get_event(&ev) != EOK)
+			exit(1);
+
+		if (ev.type == KE_RELEASE)
+			continue;
+
+		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
+			break;
+
+		if (ev.key == KC_BACKSPACE) {
+			if (i > 0) {
+				wchar_t uc;
+
+				--i;
+				while (off > 0) {
+					--off;
+					size_t otmp = off;
+					uc = str_decode(scores[NUMSPOTS - 1].hs_name,
+					    &otmp, STR_BOUNDS(MAXLOGNAME) + 1);
+					if (uc != U_SPECIAL)
+						break;
+				}
+
+				scores[NUMSPOTS - 1].hs_name[off] = '\0';
+			}
+		} else if (ev.c != '\0') {
+			if (i < (MAXLOGNAME - 1)) {
+				if (chr_encode(ev.c, scores[NUMSPOTS - 1].hs_name,
+				    &off, STR_BOUNDS(MAXLOGNAME) + 1) == EOK) {
+					++i;
+				}
+				scores[NUMSPOTS - 1].hs_name[off] = '\0';
+			}
 		}
 		
 		moveto(10 , 28);
 		printf("%s%.*s",scores[NUMSPOTS - 1].hs_name,MAXLOGNAME-i,"........................................");
-	
-		key = getchar();	
 	}
 	
 	scores[NUMSPOTS - 1].hs_score = score;	
