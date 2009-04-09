@@ -40,6 +40,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <align.h>
+#include <mem.h>
 #include <string.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
@@ -806,15 +807,6 @@ char *strcpy(char *dest, const char *src)
 	return orig;
 }
 
-char *strncpy(char *dest, const char *src, size_t n)
-{
-	char *orig = dest;
-	
-	while ((*(dest++) = *(src++)) && --n)
-		;
-	return orig;
-}
-
 char *strcat(char *dest, const char *src)
 {
 	char *orig = dest;
@@ -826,15 +818,15 @@ char *strcat(char *dest, const char *src)
 	return orig;
 }
 
-char * strdup(const char *s1)
+char *str_dup(const char *src)
 {
-	size_t len = str_size(s1) + 1;
-	void *ret = malloc(len);
+	size_t size = str_size(src);
+	void *dest = malloc(size + 1);
 
-	if (ret == NULL)
+	if (dest == NULL)
 		return (char *) NULL;
 
-	return (char *) memcpy(ret, s1, len);
+	return (char *) memcpy(dest, src, size + 1);
 }
 
 char *strtok(char *s, const char *delim)

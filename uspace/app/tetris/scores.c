@@ -131,7 +131,7 @@ void insertscore(int score, int level)
 	clear_screen();
 	moveto(10 , 10);
 	puts("Insert your name: ");
-	strncpy(scores[NUMSPOTS - 1].hs_name, "Player", MAXLOGNAME);
+	str_ncpy(scores[NUMSPOTS - 1].hs_name, "Player", MAXLOGNAME);
 	i = 6; off = 6;
 
 	moveto(10 , 28);
@@ -195,7 +195,7 @@ void initscores(void)
 {
 	int i;
 	for(i = 0; i < NUMSPOTS; i++) {
-		strncpy(scores[i].hs_name, "HelenOS Team", MAXLOGNAME);
+		str_ncpy(scores[i].hs_name, "HelenOS Team", MAXLOGNAME);
 		scores[i].hs_score = (NUMSPOTS - i) * 200;	
 		scores[i].hs_level = (i + 1 > MAXLEVEL?MAXLEVEL:i + 1);
 	}

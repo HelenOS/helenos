@@ -311,7 +311,7 @@ main(int argc, char *argv[])
 				errx(1, "duplicate command keys specified.");
 		}
 		if (keys[i] == ' ')
-			strncpy(key_write[i], "<space>", sizeof key_write[i]);
+			str_ncpy(key_write[i], "<space>", sizeof key_write[i]);
 		else {
 			key_write[i][0] = keys[i];
 			key_write[i][1] = '\0';

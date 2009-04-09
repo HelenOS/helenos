@@ -61,7 +61,7 @@ int tok_input(cliuser_t *usr)
 	if (NULL == usr->line)
 		return CL_EFAIL;
 
-	tmp = strdup(usr->line);
+	tmp = str_dup(usr->line);
 
 	cmd[n] = strtok(tmp, " ");
 	while (cmd[n] && n < WORD_MAX) {
@@ -155,7 +155,7 @@ void get_input(cliuser_t *usr)
 	/* Make sure we don't have rubbish or a C/R happy user */
 	if (str_cmp(line, "") == 0 || str_cmp(line, "\n") == 0)
 		return;
-	usr->line = strdup(line);
+	usr->line = str_dup(line);
 
 	return;
 }

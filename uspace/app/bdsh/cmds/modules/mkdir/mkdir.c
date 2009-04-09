@@ -93,7 +93,7 @@ create_directory(const char *path, unsigned int p)
 
 	/* Its a good idea to allocate path, plus we (may) need a copy of
 	 * path to tokenize if parents are specified */
-	if (NULL == (tmp = strdup(path))) {
+	if (NULL == (tmp = str_dup(path))) {
 		cli_error(CL_ENOMEM, "%s: path too big?", cmdname);
 		return 1;
 	}

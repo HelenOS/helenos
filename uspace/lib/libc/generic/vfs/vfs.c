@@ -99,7 +99,7 @@ char *absolutize(const char *path, size_t *retlen)
 	 * the address in ncwd_path need not be the same as ncwd_path_nc, even
 	 * though they both point into the same dynamically allocated buffer.
 	 */
-	ncwd_path = strdup(ncwd_path);
+	ncwd_path = str_dup(ncwd_path);
 	free(ncwd_path_nc);
 	if (!ncwd_path) {
 		futex_up(&cwd_futex);

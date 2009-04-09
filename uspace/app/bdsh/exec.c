@@ -80,7 +80,7 @@ static char *find_command(char *cmd)
 		return (char *) cmd;
 	}
 
-	path_tok = strdup(PATH);
+	path_tok = str_dup(PATH);
 
 	/* Extract the PATH env to a path[] array */
 	path[n] = strtok(path_tok, PATH_DELIM);
@@ -114,7 +114,7 @@ unsigned int try_exec(char *cmd, char **argv)
 	task_id_t tid;
 	char *tmp;
 
-	tmp = strdup(find_command(cmd));
+	tmp = str_dup(find_command(cmd));
 	free(found);
 
 	tid = task_spawn((const char *)tmp, argv);

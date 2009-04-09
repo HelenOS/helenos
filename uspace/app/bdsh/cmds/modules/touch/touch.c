@@ -80,7 +80,7 @@ int cmd_touch(char **argv)
 	}
 
 	for (i = 1; i < argc; i ++) {
-		buff = strdup(argv[i]);
+		buff = str_dup(argv[i]);
 		dirp = opendir(buff);
 		if (dirp) {
 			cli_error(CL_ENOTSUP, "%s is a directory", buff);

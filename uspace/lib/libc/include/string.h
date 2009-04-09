@@ -78,6 +78,8 @@ extern const char *str_rchr(const char *str, wchar_t ch);
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos);
 extern bool wstr_remove(wchar_t *str, count_t pos);
 
+extern char *str_dup(const char *);
+
 /*
  * TODO: Get rid of this.
  */
@@ -86,11 +88,7 @@ extern int strncmp(const char *, const char *, size_t);
 extern int stricmp(const char *, const char *);
 
 extern char *strcpy(char *, const char *);
-extern char *strncpy(char *, const char *, size_t);
-
 extern char *strcat(char *, const char *);
-
-extern char *strdup(const char *);
 
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
