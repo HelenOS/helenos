@@ -60,7 +60,7 @@ extern int rmdir(const char *);
 extern int chdir(const char *);
 extern char *getcwd(char *buf, size_t);
 
-extern void _exit(int status);
+extern void _exit(int status) __attribute__ ((noreturn));
 extern void *sbrk(ssize_t incr);
 extern int usleep(unsigned long usec);
 extern unsigned int sleep(unsigned int seconds);
