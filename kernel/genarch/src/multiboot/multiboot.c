@@ -69,7 +69,7 @@ static void extract_command(char *buf, size_t sz, const char *cmd_line)
 	}
 	
 	/* Copy the command. */
-	str_ncpy(buf, start, min(sz, (size_t) (end - start) + 1));
+	str_ncpy(buf, sz, start, (size_t) (end - start));
 }
 
 /** Parse multiboot information structure.

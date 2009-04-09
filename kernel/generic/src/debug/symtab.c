@@ -225,7 +225,7 @@ int symtab_compl(char *input, count_t size)
 	
 	while ((hint = symtab_search_one(name, &pos))) {
 		if ((found == 0) || (str_length(output) > str_length(hint)))
-			str_ncpy(output, hint, MAX_SYMBOL_NAME);
+			str_cpy(output, MAX_SYMBOL_NAME, hint);
 		
 		pos++;
 		found++;
@@ -241,7 +241,7 @@ int symtab_compl(char *input, count_t size)
 	}
 	
 	if (found > 0)
-		str_ncpy(input, output, size);
+		str_cpy(input, size, output);
 	
 	return found;
 	

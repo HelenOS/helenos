@@ -190,10 +190,10 @@ void kinit(void *arg)
 			name = "<unknown>";
 		
 		ASSERT(TASK_NAME_BUFLEN >= INIT_PREFIX_LEN);
-		str_ncpy(namebuf, INIT_PREFIX, TASK_NAME_BUFLEN);
-		str_ncpy(namebuf + INIT_PREFIX_LEN, name,
-		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN);
-		
+		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
+		str_cpy(namebuf + INIT_PREFIX_LEN,
+		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
+
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    namebuf, &programs[i]);
 		

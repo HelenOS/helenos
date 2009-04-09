@@ -214,7 +214,7 @@ static int cmdtab_compl(char *input, size_t size)
 	
 	while ((hint = cmdtab_search_one(name, &pos))) {
 		if ((found == 0) || (str_length(output) > str_length(hint)))
-			str_ncpy(output, hint, MAX_CMDLINE);
+			str_cpy(output, MAX_CMDLINE, hint);
 		
 		pos = pos->next;
 		found++;
@@ -231,7 +231,7 @@ static int cmdtab_compl(char *input, size_t size)
 	}
 	
 	if (found > 0)
-		str_ncpy(input, output, size);
+		str_cpy(input, size, output);
 	
 	return found;
 }
@@ -438,7 +438,7 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
 	
 	if ((text[0] < '0') || (text[0] > '9')) {
 		char symname[MAX_SYMBOL_NAME];
-		str_ncpy(symname, text, min(len + 1, MAX_SYMBOL_NAME));
+		str_ncpy(symname, MAX_SYMBOL_NAME, text, len + 1);
 		
 		uintptr_t symaddr;
 		int rc = symtab_addr_lookup(symname, &symaddr);
@@ -580,8 +580,8 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
 			buf = (char *) cmd->argv[i].buffer;
-			str_ncpy(buf, cmdline + start,
-			    min((end - start) + 1, cmd->argv[i].len));
+			str_ncpy(buf, cmd->argv[i].len, cmdline + start,
+			    (end - start) + 1);
 			break;
 		case ARG_TYPE_INT:
 			if (!parse_int_arg(cmdline + start, end - start,
@@ -592,8 +592,9 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 			if ((start < end - 1) && (cmdline[start] == '"')) {
 				if (cmdline[end - 1] == '"') {
 					buf = (char *) cmd->argv[i].buffer;
-					str_ncpy(buf, cmdline + start + 1,
-					    min((end - start) - 1, cmd->argv[i].len));
+					str_ncpy(buf, cmd->argv[i].len,
+					    cmdline + start + 1,
+					    (end - start) - 1);
 					cmd->argv[i].intval = (unative_t) buf;
 					cmd->argv[i].vartype = ARG_TYPE_STRING;
 				} else {

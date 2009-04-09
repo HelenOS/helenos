@@ -91,8 +91,8 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
 		init.tasks[i].addr = bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
-		str_ncpy(init.tasks[i].name, bootinfo->tasks[i].name,
-			CONFIG_TASK_NAME_BUFLEN);
+		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
+		    bootinfo->tasks[i].name);
 	}
 	
 	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {

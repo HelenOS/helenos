@@ -61,8 +61,8 @@ void arch_pre_main(void)
 	for (i = 0; i < min3(bootinfo.taskmap.count, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
 		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
-		str_ncpy(init.tasks[i].name, bootinfo.taskmap.tasks[i].name,
-			CONFIG_TASK_NAME_BUFLEN);
+		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
+		    bootinfo.taskmap.tasks[i].name);
 	}
 }
 

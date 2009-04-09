@@ -528,38 +528,71 @@ int str_lcmp(const char *s1, const char *s2, count_t max_len)
 
 }
 
-/** Copy NULL-terminated string.
+/** Copy string.
  *
- * Copy source string @a src to destination buffer @a dst.
- * No more than @a size bytes are written. NULL-terminator is always
- * written after the last succesfully copied character (i.e. if the
- * destination buffer is has at least 1 byte, it will be always
- * NULL-terminated).
+ * Copy source string @a src to destination buffer @a dest.
+ * No more than @a size bytes are written. If the size of the output buffer
+ * is at least one byte, the output string will always be well-formed, i.e.
+ * null-terminated and containing only complete characters.
  *
- * @param src   Source string.
  * @param dst   Destination buffer.
  * @param count Size of the destination buffer.
- *
+ * @param src   Source string.
  */
-void str_ncpy(char *dst, const char *src, size_t size)
+void str_cpy(char *dest, size_t size, const char *src)
 {
-	/* No space for the NULL-terminator in the buffer */
+	wchar_t ch;
+	size_t src_off;
+	size_t dest_off;
+
+	/* No space for the NULL-terminator in the buffer. */
 	if (size == 0)
 		return;
 	
-	wchar_t ch;
-	size_t str_off = 0;
-	size_t dst_off = 0;
-	
-	while ((ch = str_decode(src, &str_off, STR_NO_LIMIT)) != 0) {
-		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+	src_off = 0;
+	dest_off = 0;
+
+	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
+		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
+
+	dest[dest_off] = '\0';
+}
+
+/** Copy size-limited substring.
+ *
+ * Copy source string @a src to destination buffer @a dest.
+ * No more than @a size bytes are written. If the size of the output buffer
+ * is at least one byte, the output string will always be well-formed, i.e.
+ * null-terminated and containing only complete characters.
+ *
+ * No more than @a n bytes are read from the input string, so it does not
+ * have to be null-terminated.
+ *
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ * @param src   Source string.
+ */
+void str_ncpy(char *dest, size_t size, const char *src, size_t n)
+{
+	wchar_t ch;
+	size_t src_off;
+	size_t dest_off;
+
+	/* No space for the null terminator in the buffer. */
+	if (size == 0)
+		return;
 	
-	if (dst_off >= size)
-		dst[size - 1] = 0;
-	else
-		dst[dst_off] = 0;
+	src_off = 0;
+	dest_off = 0;
+
+	while ((ch = str_decode(src, &src_off, n)) != 0) {
+		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
+			break;
+	}
+
+	dest[dest_off] = '\0';
 }
 
 /** Copy NULL-terminated wide string to string

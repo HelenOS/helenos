@@ -273,8 +273,8 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
 	if (rc != 0)
 		return (unative_t) rc;
 
-	namebuf[name_len] = 0;
-	str_ncpy(TASK->name, namebuf, TASK_NAME_BUFLEN);
+	namebuf[name_len] = '\0';
+	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);
 
 	return EOK;
 }

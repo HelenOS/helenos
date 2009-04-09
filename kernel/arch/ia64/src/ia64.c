@@ -87,8 +87,8 @@ void arch_pre_main(void)
 		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
 		    VRN_MASK;
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
-		str_ncpy(init.tasks[i].name, bootinfo->taskmap.tasks[i].name,
-			CONFIG_TASK_NAME_BUFLEN);
+		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
+		    bootinfo->taskmap.tasks[i].name);
 	}
 }
 
