@@ -535,7 +535,6 @@ void wstr_nstr(char *dst, const wchar_t *src, size_t size)
  * @param ch  Character to look for.
  *
  * @return Pointer to character in @a str or NULL if not found.
- *
  */
 const char *str_chr(const char *str, wchar_t ch)
 {
@@ -548,6 +547,28 @@ const char *str_chr(const char *str, wchar_t ch)
 	}
 	
 	return NULL;
+}
+
+/** Find last occurence of character in string.
+ *
+ * @param str String to search.
+ * @param ch  Character to look for.
+ *
+ * @return Pointer to character in @a str or NULL if not found.
+ */
+const char *str_rchr(const char *str, wchar_t ch)
+{
+	wchar_t acc;
+	size_t off = 0;
+	char *res;
+
+	res = NULL;
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
+		if (acc == ch)
+			res = (str + off);
+	}
+
+	return res;
 }
 
 /** Insert a wide character into a wide string.
@@ -625,44 +646,6 @@ int stricmp(const char *a, const char *b)
 		c++;
 	
 	return (tolower(a[c]) - tolower(b[c]));
-}
-
-/** Return pointer to the first occurence of character c in string.
- *
- * @param str		Scanned string.
- * @param c		Searched character (taken as one byte).
- * @return		Pointer to the matched character or NULL if it is not
- * 			found in given string.
- */
-char *strchr(const char *str, int c)
-{
-	while (*str != '\0') {
-		if (*str == (char) c)
-			return (char *) str;
-		str++;
-	}
-
-	return NULL;
-}
-
-/** Return pointer to the last occurence of character c in string.
- *
- * @param str		Scanned string.
- * @param c		Searched character (taken as one byte).
- * @return		Pointer to the matched character or NULL if it is not
- * 			found in given string.
- */
-char *strrchr(const char *str, int c)
-{
-	char *retval = NULL;
-
-	while (*str != '\0') {
-		if (*str == (char) c)
-			retval = (char *) str;
-		str++;
-	}
-
-	return (char *) retval;
 }
 
 /** Convert string to a number. 
@@ -869,11 +852,11 @@ char *strtok_r(char *s, const char *delim, char **next)
 		s = *next;
 
 	/* Skip over leading delimiters. */
-	while (*s && (strchr(delim, *s) != NULL)) ++s;
+	while (*s && (str_chr(delim, *s) != NULL)) ++s;
 	start = s;
 
 	/* Skip over token characters. */
-	while (*s && (strchr(delim, *s) == NULL)) ++s;
+	while (*s && (str_chr(delim, *s) == NULL)) ++s;
 	end = s;
 	*next = (*s ? s + 1 : s);
 

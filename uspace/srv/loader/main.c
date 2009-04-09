@@ -275,7 +275,7 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 	const char *cp;
 	
 	/* Set the task name. */
-	cp = strrchr(pathname, '/');
+	cp = str_rchr(pathname, '/');
 	cp = (cp == NULL) ? pathname : (cp + 1);
 	task_set_name(cp);
 	

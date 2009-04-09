@@ -241,7 +241,7 @@ start:
 		}
 	}
 	if ((optchar = (int)*place++) == (int)':' ||
-	    (oli = strchr(options + (IGNORE_FIRST ? 1 : 0), optchar)) == NULL) {
+	    (oli = str_chr(options + (IGNORE_FIRST ? 1 : 0), optchar)) == NULL) {
 		/* option letter unknown or ':' */
 		if (!*place)
 			++optind;
@@ -377,7 +377,7 @@ getopt_long(nargc, nargv, options, long_options, idx)
 			nonopt_start = nonopt_end = -1;
 			return -1;
 		}
-		if ((has_equal = strchr(current_argv, '=')) != NULL) {
+		if ((has_equal = str_chr(current_argv, '=')) != NULL) {
 			/* argument found (--option=arg) */
 			current_argv_len = has_equal - current_argv;
 			has_equal++;

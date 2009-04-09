@@ -73,6 +73,7 @@ extern void str_ncpy(char *dst, const char *src, size_t size);
 extern void wstr_nstr(char *dst, const wchar_t *src, size_t size);
 
 extern const char *str_chr(const char *str, wchar_t ch);
+extern const char *str_rchr(const char *str, wchar_t ch);
 
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos);
 extern bool wstr_remove(wchar_t *str, count_t pos);
@@ -90,9 +91,6 @@ extern char *strncpy(char *, const char *, size_t);
 extern char *strcat(char *, const char *);
 
 extern char *strdup(const char *);
-
-extern char *strchr(const char *, int);
-extern char *strrchr(const char *, int);
 
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);

@@ -66,7 +66,7 @@ int fat_dentry_namecmp(char *name, const char *component)
 
 	if (!(rc = stricmp(name, component)))
 		return rc;
-	if (!strchr(name, '.')) {
+	if (!str_chr(name, '.')) {
 		/*
 		 * There is no '.' in the name, so we know that there is enough
 		 * space for appending an extra '.' to name.
