@@ -149,7 +149,7 @@ create_directory(const char *path, unsigned int p)
 	while (dirs[i] != NULL) {
 		/* Sometimes make or scripts conjoin odd paths. Account for something
 		 * like this: ../../foo/bar/../foo/foofoo/./bar */
-		if (!strcmp(dirs[i], "..") || !strcmp(dirs[i], ".")) {
+		if (!str_cmp(dirs[i], "..") || !str_cmp(dirs[i], ".")) {
 			if (0 != (chdir(dirs[i]))) {
 				cli_error(CL_EFAIL, "%s: impossible path: %s",
 					cmdname, path);

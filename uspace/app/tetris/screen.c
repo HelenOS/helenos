@@ -280,7 +280,7 @@ void
 scr_msg(char *s, int set)
 {
 	
-	int l = strlen(s);
+	int l = str_size(s);
 	
 	moveto(Rows - 2, ((Cols - l) >> 1) - 1);
 	if (set)

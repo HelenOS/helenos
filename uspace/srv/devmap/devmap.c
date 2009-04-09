@@ -563,7 +563,7 @@ static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	
 	ipc_answer_0(iid, EOK);
 	
-	size_t name_size = strlen(device->name);
+	size_t name_size = str_size(device->name);
 	
 	/* FIXME:
 	 * We have no channel from DEVMAP to client, therefore

@@ -219,7 +219,7 @@ void console_putstr(const char *s)
 	size_t len;
 	ssize_t rc;
 
-	len = strlen(s);
+	len = str_size(s);
 	while (len > 0) {
 		rc = console_write(s, len);
 		if (rc < 0)

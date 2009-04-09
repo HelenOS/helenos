@@ -289,7 +289,7 @@ savescore(int level)
 /* 	change = 0; */
 /* 	me = thisuser(); */
 /* 	for (i = 0, sp = &scores[0]; i < nscores; i++, sp++) { */
-/* 		if (sp->hs_level != level || strcmp(sp->hs_name, me) != 0) */
+/* 		if (sp->hs_level != level || str_cmp(sp->hs_name, me) != 0) */
 /* 			continue; */
 /* 		if (score > sp->hs_score) { */
 /* 			(void)printf("%s bettered %s %d score of %d!\n", */
@@ -417,7 +417,7 @@ savescore(int level)
 /* 		 * This is O(n^2), but do you think we care? */
 /* 		 *\/ */
 /* 		for (j = 0, pu = count; j < numnames; j++, pu++) */
-/* 			if (strcmp(sp->hs_name, pu->name) == 0) */
+/* 			if (str_cmp(sp->hs_name, pu->name) == 0) */
 /* 				break; */
 /* 		if (j == numnames) { */
 /* 			/\* */
@@ -554,7 +554,7 @@ showscores(int level)
 /* 		if (me != NULL && */
 /* 		    sp->hs_level == level && */
 /* 		    sp->hs_score == score && */
-/* 		    strcmp(sp->hs_name, me) == 0) { */
+/* 		    str_cmp(sp->hs_name, me) == 0) { */
 /* 			putpad(SOstr); */
 /* 			highlight = 1; */
 /* 		} */

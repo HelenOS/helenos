@@ -103,7 +103,7 @@ static int id_insert(struct pci_access *a, int cat, int id1, int id2,
 	u32 id34 = id_pair(id3, id4);
 	unsigned int h = id_hash(cat, id12, id34);
 	struct id_entry *n = a->id_hash[h];
-	int len = strlen((char *) text);
+	int len = str_size((char *) text);
 
 	while (n && (n->id12 != id12 || n->id34 != id34 || n->cat != cat))
 		n = n->next;

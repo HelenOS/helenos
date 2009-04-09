@@ -606,31 +606,6 @@ bool wstr_remove(wchar_t *str, count_t pos)
 	return true;
 }
 
-/** Count the number of characters in the string, not including terminating 0.
- *
- * @param str		String.
- * @return		Number of characters in string.
- */
-size_t strlen(const char *str) 
-{
-	size_t counter = 0;
-
-	while (str[counter] != 0)
-		counter++;
-
-	return counter;
-}
-
-int strcmp(const char *a, const char *b)
-{
-	int c = 0;
-	
-	while (a[c] && b[c] && (!(a[c] - b[c])))
-		c++;
-	
-	return (a[c] - b[c]);
-}
-
 int strncmp(const char *a, const char *b, size_t n)
 {
 	size_t c = 0;
@@ -870,7 +845,7 @@ char *strcat(char *dest, const char *src)
 
 char * strdup(const char *s1)
 {
-	size_t len = strlen(s1) + 1;
+	size_t len = str_size(s1) + 1;
 	void *ret = malloc(len);
 
 	if (ret == NULL)

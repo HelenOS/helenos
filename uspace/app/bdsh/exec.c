@@ -71,7 +71,7 @@ static char *find_command(char *cmd)
 	char *path_tok;
 	char *path[PATH_MAX];
 	int n = 0, i = 0;
-	size_t x = strlen(cmd) + 2;
+	size_t x = str_size(cmd) + 2;
 
 	found = (char *)malloc(PATH_MAX);
 
@@ -85,7 +85,7 @@ static char *find_command(char *cmd)
 	/* Extract the PATH env to a path[] array */
 	path[n] = strtok(path_tok, PATH_DELIM);
 	while (NULL != path[n]) {
-		if ((strlen(path[n]) + x ) > PATH_MAX) {
+		if ((str_size(path[n]) + x ) > PATH_MAX) {
 			cli_error(CL_ENOTSUP,
 				"Segment %d of path is too large, search ends at segment %d",
 				n, n-1);

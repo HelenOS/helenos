@@ -146,16 +146,14 @@ static void read_line(char *buffer, int n)
 void get_input(cliuser_t *usr)
 {
 	char line[INPUT_MAX];
-	size_t len = 0;
 
 	console_set_style(STYLE_EMPHASIS);
 	printf("%s", usr->prompt);
 	console_set_style(STYLE_NORMAL);
 
 	read_line(line, INPUT_MAX);
-	len = strlen(line);
 	/* Make sure we don't have rubbish or a C/R happy user */
-	if (len == 0 || line[0] == '\n')
+	if (str_cmp(line, "") == 0 || str_cmp(line, "\n") == 0)
 		return;
 	usr->line = strdup(line);
 

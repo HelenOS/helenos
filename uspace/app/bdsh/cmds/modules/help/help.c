@@ -107,7 +107,7 @@ int cmd_help(char *argv[])
 	}
 
 	if (argc == 3) {
-		if (!strcmp("extended", argv[2]))
+		if (!str_cmp("extended", argv[2]))
 			level = HELP_LONG;
 		else
 			level = HELP_SHORT;

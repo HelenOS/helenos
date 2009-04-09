@@ -177,7 +177,7 @@ bool tmpfs_restore(dev_handle_t dev)
 		goto error;
 	
 	tag[5] = 0;
-	if (strcmp(tag, "TMPFS") != 0)
+	if (str_cmp(tag, "TMPFS") != 0)
 		goto error;
 	
 	if (!tmpfs_restore_recursion(dev, &bufpos, &buflen, &pos,

@@ -487,7 +487,7 @@ hit:
 	b = fat_block_get(bs, childp, 0, BLOCK_FLAGS_NONE);
 	d = (fat_dentry_t *)b->data;
 	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    strcmp(d->name, FAT_NAME_DOT) == 0) {
+	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
 	   	memset(d, 0, sizeof(fat_dentry_t));
 	   	strcpy(d->name, FAT_NAME_DOT);
 		strcpy(d->ext, FAT_EXT_PAD);
@@ -497,7 +497,7 @@ hit:
 	}
 	d++;
 	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    strcmp(d->name, FAT_NAME_DOT_DOT) == 0) {
+	    str_cmp(d->name, FAT_NAME_DOT_DOT) == 0) {
 		memset(d, 0, sizeof(fat_dentry_t));
 		strcpy(d->name, FAT_NAME_DOT_DOT);
 		strcpy(d->ext, FAT_EXT_PAD);
@@ -937,7 +937,7 @@ miss:
 		ipc_answer_1(rid, ENOENT, 0);
 		return;
 hit:
-		(void) ipc_data_read_finalize(callid, name, strlen(name) + 1);
+		(void) ipc_data_read_finalize(callid, name, str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 

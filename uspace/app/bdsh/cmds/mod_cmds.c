@@ -64,7 +64,7 @@ int is_module(const char *command)
 		return -2;
 
 	for (mod = modules; mod->name != NULL; mod++, i++) {
-		if (!strcmp(mod->name, command))
+		if (!str_cmp(mod->name, command))
 			return i;
 	}
 
@@ -81,7 +81,7 @@ int is_module_alias(const char *command)
 		return -1;
 
 	for(i=0; mod_aliases[i] != NULL; i+=2) {
-		if (!strcmp(mod_aliases[i], command))
+		if (!str_cmp(mod_aliases[i], command))
 			return 1;
 	}
 
@@ -97,7 +97,7 @@ char *alias_for_module(const char *command)
 		return (char *)NULL;
 
 	for(i=0; mod_aliases[i] != NULL; i++) {
-		if (!strcmp(mod_aliases[i], command))
+		if (!str_cmp(mod_aliases[i], command))
 			return (char *)mod_aliases[++i];
 		i++;
 	}

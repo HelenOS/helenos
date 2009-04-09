@@ -49,7 +49,7 @@ int is_builtin(const char *command)
 		return -2;
 
 	for (cmd = builtins; cmd->name != NULL; cmd++, i++) {
-		if (!strcmp(cmd->name, command))
+		if (!str_cmp(cmd->name, command))
 			return i;
 	}
 
@@ -64,7 +64,7 @@ int is_builtin_alias(const char *command)
 		return -1;
 
 	for(i=0; builtin_aliases[i] != NULL; i+=2) {
-		if (!strcmp(builtin_aliases[i], command))
+		if (!str_cmp(builtin_aliases[i], command))
 			return 1;
 	}
 
@@ -79,7 +79,7 @@ char *alias_for_builtin(const char *command)
 		return (char *)NULL;
 
 	for(i=0; builtin_aliases[i] != NULL; i++) {
-		if (!strcmp(builtin_aliases[i], command))
+		if (!str_cmp(builtin_aliases[i], command))
 			return (char *)builtin_aliases[++i];
 		i++;
 	}

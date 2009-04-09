@@ -45,8 +45,8 @@
 /**< No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-/**< Maximum size of a string containing cnt characters */
-#define STR_BOUNDS(cnt)  (cnt << 2)
+/**< Maximum size of a string containing @c length characters */
+#define STR_BOUNDS(length)  ((length) << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
@@ -81,7 +81,6 @@ extern bool wstr_remove(wchar_t *str, count_t pos);
  * TODO: Get rid of this.
  */
 
-extern int strcmp(const char *, const char *);
 extern int strncmp(const char *, const char *, size_t);
 extern int stricmp(const char *, const char *);
 
@@ -89,8 +88,6 @@ extern char *strcpy(char *, const char *);
 extern char *strncpy(char *, const char *, size_t);
 
 extern char *strcat(char *, const char *);
-
-extern size_t strlen(const char *);
 
 extern char *strdup(const char *);
 

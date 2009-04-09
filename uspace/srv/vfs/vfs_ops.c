@@ -91,7 +91,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
 		rwlock_write_lock(&namespace_rwlock);
-		if ((strlen(mp) == 1) && (mp[0] == '/')) {
+		if (str_cmp(mp, "/") == 0) {
 			/* Trying to mount root FS over root FS */
 			rwlock_write_unlock(&namespace_rwlock);
 			futex_up(&rootfs_futex);
@@ -124,7 +124,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		rwlock_write_unlock(&namespace_rwlock);
 	} else {
 		/* We still don't have the root file system mounted. */
-		if ((strlen(mp) == 1) && (mp[0] == '/')) {
+		if (str_cmp(mp, "/") == 0) {
 			vfs_lookup_res_t mr_res;
 			vfs_node_t *mr_node;
 			ipcarg_t rindex;

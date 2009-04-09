@@ -216,7 +216,7 @@ int cmd_rm(char **argv)
 
 	i = optind;
 	while (NULL != argv[i]) {
-		len = strlen(argv[i]) + 2;
+		len = str_size(argv[i]) + 2;
 		buff = (char *) realloc(buff, len);
 		if (buff == NULL) {
 			printf("rm: out of memory\n");

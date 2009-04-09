@@ -49,7 +49,7 @@
 	int n; \
 	n = snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__); \
 	if (n > 0) \
-		(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, strlen(buf)); \
+		(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, str_size(buf)); \
 }
 
 typedef struct {

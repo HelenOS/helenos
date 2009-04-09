@@ -62,6 +62,8 @@ static bool is_d_char(const char ch)
 int fat_dentry_namecmp(char *name, const char *component)
 {
 	int rc;
+	size_t size;
+
 	if (!(rc = stricmp(name, component)))
 		return rc;
 	if (!strchr(name, '.')) {
@@ -69,8 +71,9 @@ int fat_dentry_namecmp(char *name, const char *component)
 		 * There is no '.' in the name, so we know that there is enough
 		 * space for appending an extra '.' to name.
 		 */
-		name[strlen(name)] = '.';
-		name[strlen(name) + 1] = '\0';
+		size = str_size(name);
+		name[size] = '.';
+		name[size + 1] = '\0';
 		rc = stricmp(name, component);
 	}
 	return rc;

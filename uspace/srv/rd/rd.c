@@ -196,7 +196,7 @@ static int driver_register(char *name)
 	
 	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
 
-	retval = ipc_data_write_start(phone, (char *) name, strlen(name) + 1); 
+	retval = ipc_data_write_start(phone, (char *) name, str_size(name) + 1);
 
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -219,7 +219,8 @@ static int device_register(int driver_phone, char *name, int *handle)
 
 	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0, &answer);
 
-	retval = ipc_data_write_start(driver_phone, (char *) name, strlen(name) + 1); 
+	retval = ipc_data_write_start(driver_phone, (char *) name,
+	    str_size(name) + 1);
 
 	if (retval != EOK) {
 		async_wait_for(req, NULL);

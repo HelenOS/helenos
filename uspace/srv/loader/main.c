@@ -150,11 +150,11 @@ static void loader_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
-	size_t buf_len, arg_len;
+	size_t buf_size, arg_size;
 	char *p;
 	int n;
 	
-	if (!ipc_data_write_receive(&callid, &buf_len)) {
+	if (!ipc_data_write_receive(&callid, &buf_size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -170,25 +170,25 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 		argv = NULL;
 	}
 	
-	arg_buf = malloc(buf_len + 1);
+	arg_buf = malloc(buf_size + 1);
 	if (!arg_buf) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, arg_buf, buf_len);
+	ipc_data_write_finalize(callid, arg_buf, buf_size);
 	
-	arg_buf[buf_len] = '\0';
+	arg_buf[buf_size] = '\0';
 	
 	/*
 	 * Count number of arguments
 	 */
 	p = arg_buf;
 	n = 0;
-	while (p < arg_buf + buf_len) {
-		arg_len = strlen(p);
-		p = p + arg_len + 1;
+	while (p < arg_buf + buf_size) {
+		arg_size = str_size(p);
+		p = p + arg_size + 1;
 		++n;
 	}
 	
@@ -206,11 +206,11 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	p = arg_buf;
 	n = 0;
-	while (p < arg_buf + buf_len) {
+	while (p < arg_buf + buf_size) {
 		argv[n] = p;
 		
-		arg_len = strlen(p);
-		p = p + arg_len + 1;
+		arg_size = str_size(p);
+		p = p + arg_size + 1;
 		++n;
 	}
 	

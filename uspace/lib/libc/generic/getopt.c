@@ -382,7 +382,7 @@ getopt_long(nargc, nargv, options, long_options, idx)
 			current_argv_len = has_equal - current_argv;
 			has_equal++;
 		} else
-			current_argv_len = strlen(current_argv);
+			current_argv_len = str_size(current_argv);
 	    
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
@@ -390,7 +390,7 @@ getopt_long(nargc, nargv, options, long_options, idx)
 			    current_argv_len))
 				continue;
 
-			if (strlen(long_options[i].name) ==
+			if (str_size(long_options[i].name) ==
 			    (unsigned)current_argv_len) {
 				/* exact match */
 				match = i;

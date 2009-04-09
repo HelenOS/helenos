@@ -277,7 +277,7 @@ main(int argc, char *argv[])
 /* 			classic = 1; */
 /* 			break; */
 /* 		case 'k': */
-/* 			if (strlen(keys = optarg) != 6) */
+/* 			if (str_size(keys = optarg) != 6) */
 /* 				usage(); */
 /* 			break; */
 /* 		case 'l': */
