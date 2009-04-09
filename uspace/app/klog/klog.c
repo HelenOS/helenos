@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	size_t klog_size = klog_pages * PAGE_SIZE;
 	klog_length = klog_size / sizeof(wchar_t);
 	
-	klog = (char *) as_get_mappable_page(klog_pages);
+	klog = (wchar_t *) as_get_mappable_page(klog_pages);
 	if (klog == NULL) {
 		printf(NAME ": Error allocating memory area\n");
 		return -1;
