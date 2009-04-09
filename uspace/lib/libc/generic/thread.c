@@ -130,6 +130,8 @@ int thread_create(void (* function)(void *), void *arg, char *name,
 void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
+	for (;;)
+		;
 }
 
 /** Detach thread.
@@ -152,6 +154,7 @@ void thread_detach(thread_id_t thread)
  */
 int thread_join(thread_id_t thread)
 {
+	return 0;
 }
 
 /** Get current thread ID.
