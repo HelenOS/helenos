@@ -76,7 +76,7 @@ char *absolutize(const char *path, size_t *retlen)
 			futex_up(&cwd_futex);
 			return NULL;
 		}
-		str_ncpy(ncwd_path_nc, cwd_path, cwd_size + 1 + size + 1);
+		str_cpy(ncwd_path_nc, cwd_size + 1 + size + 1, cwd_path);
 		ncwd_path_nc[cwd_size] = '/';
 		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
@@ -534,7 +534,7 @@ char *getcwd(char *buf, size_t size)
 		futex_up(&cwd_futex);
 		return NULL;
 	}
-	str_ncpy(buf, cwd_path, size);
+	str_cpy(buf, size, cwd_path);
 	futex_up(&cwd_futex);
 	return buf;
 }

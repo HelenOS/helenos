@@ -182,7 +182,7 @@ int cmd_ls(char **argv)
 	if (argc == 1)
 		getcwd(buff, PATH_MAX);
 	else
-		str_ncpy(buff, argv[1], PATH_MAX);
+		str_cpy(buff, PATH_MAX, argv[1]);
 
 	scope = ls_scope(buff);
 

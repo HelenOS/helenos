@@ -180,7 +180,7 @@ int loader_set_args(loader_t *ldr, char *const argv[])
 	dp = arg_buf;
 
 	while (*ap != NULL) {
-		str_ncpy(dp, *ap, buffer_size - (dp - arg_buf));
+		str_cpy(dp, buffer_size - (dp - arg_buf), *ap);
 		dp += str_size(*ap) + 1;
 
 		++ap;

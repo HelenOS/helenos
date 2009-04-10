@@ -325,7 +325,7 @@ int tmpfs_link_node(void *prnt, void *chld, const char *nm)
 		free(namep);
 		return ENOMEM;
 	}
-	strcpy(namep->name, nm);
+	str_cpy(namep->name, size + 1, nm);
 	namep->parent = parentp;
 	
 	childp->lnkcnt++;
