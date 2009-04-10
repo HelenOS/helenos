@@ -95,7 +95,7 @@ static void serengeti_init(void)
 	indev_t *kbrdin;
 	kbrdin = sgcnin_init();
 	if (kbrdin)
-		srlnin_init(kbrdin);
+		srln_init(kbrdin);
 #endif
 #ifdef CONFIG_SGCN_PRN
 	sgcnout_init();
@@ -134,8 +134,9 @@ void arch_grab_console(void)
 #ifdef CONFIG_FB
 	scr_redraw();
 #endif
+	
 	switch (kbd_type) {
-#ifdef CONFIG_SGCN
+#ifdef CONFIG_SGCN_KBD
 	case KBD_SGCN:
 		sgcn_grab();
 		break;
@@ -151,7 +152,7 @@ void arch_grab_console(void)
 void arch_release_console(void)
 {
 	switch (kbd_type) {
-#ifdef CONFIG_SGCN
+#ifdef CONFIG_SGCN_KBD
 	case KBD_SGCN:
 		sgcn_release();
 		break;
