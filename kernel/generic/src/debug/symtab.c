@@ -120,7 +120,7 @@ static const char *symtab_search_one(const char *name, count_t *startpos)
 	for (pos = *startpos; symbol_table[pos].address_le; pos++) {
 		const char *curname = symbol_table[pos].symbol_name;
 		
-		/* Find a ':' in name */
+		/* Find a ':' in curname */
 		const char *colon = str_chr(curname, ':');
 		if (colon == NULL)
 			continue;

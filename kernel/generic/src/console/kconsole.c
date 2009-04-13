@@ -302,6 +302,16 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (found == 0)
 				continue;
 			
+			if (found > 1) {
+				/* No unique hint, list was printed */
+				printf("%s> ", prompt);
+				printf("%ls", current);
+				print_cc('\b', wstr_length(current) - position);
+				continue;
+			}
+			
+			/* We have a hint */
+			
 			size_t off = 0;
 			count_t i = 0;
 			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
@@ -310,26 +320,17 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				i++;
 			}
 			
-			if ((str_length(tmp) > 0) || (found == 1)) {
-				/* We have a hint */
-				printf("%ls", current + position);
-				print_cc('\b', wstr_length(current) - position);
-				position += str_length(tmp);
-				
-				if ((found == 1) && (position == wstr_length(current))) {
-					if (wstr_linsert(current, ' ', position, MAX_CMDLINE)) {
-						printf("%ls", current + position);
-						position++;
-					}
-				}
-			} else {
-				/* No unique hint, list was printed */
-				printf("%s> ", prompt);
-				printf("%ls", current);
-				position += str_length(tmp);
-			}
-			
+			printf("%ls", current + position);
+			position += str_length(tmp);
 			print_cc('\b', wstr_length(current) - position);
+			
+			if (position == wstr_length(current)) {
+				/* Insert a space after the last completed argument */
+				if (wstr_linsert(current, ' ', position, MAX_CMDLINE)) {
+					printf("%ls", current + position);
+					position++;
+				}
+			}
 			continue;
 		}
 		
