@@ -128,13 +128,14 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box		Receiving answerbox.
- * @param inr		IRQ number.
- * @param devno		Device number.
- * @param method	Method to be associated with the notification.
- * @param ucode		Uspace pointer to top-half pseudocode.
+ * @param box    Receiving answerbox.
+ * @param inr    IRQ number.
+ * @param devno  Device number.
+ * @param method Method to be associated with the notification.
+ * @param ucode  Uspace pointer to top-half pseudocode.
  *
- * @return 		EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
     unative_t method, irq_code_t *ucode)
@@ -147,7 +148,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		(unative_t) inr,
 		(unative_t) devno
 	};
-
+	
 	if (ucode) {
 		code = code_from_uspace(ucode);
 		if (!code)
@@ -155,7 +156,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	} else {
 		code = NULL;
 	}
-
+	
 	/*
 	 * Allocate and populate the IRQ structure.
 	 */
@@ -170,7 +171,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->notif_cfg.method = method;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
-
+	
 	/*
 	 * Enlist the IRQ structure in the uspace IRQ hash table and the
 	 * answerbox's list.
@@ -179,7 +180,9 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	spinlock_lock(&irq_uspace_hash_table_lock);
 	hlp = hash_table_find(&irq_uspace_hash_table, key);
 	if (hlp) {
-		irq_t *hirq = hash_table_get_instance(hlp, irq_t, link);
+		irq_t *hirq __attribute__((unused))
+		    = hash_table_get_instance(hlp, irq_t, link);
+		
 		/* hirq is locked */
 		spinlock_unlock(&hirq->lock);
 		code_free(code);
@@ -188,14 +191,15 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		interrupts_restore(ipl);
 		return EEXISTS;
 	}
-	spinlock_lock(&irq->lock);	/* not really necessary, but paranoid */
+	
+	spinlock_lock(&irq->lock);  /* Not really necessary, but paranoid */
 	spinlock_lock(&box->irq_lock);
 	hash_table_insert(&irq_uspace_hash_table, key, &irq->link);
 	list_append(&irq->notif_cfg.link, &box->irq_head);
 	spinlock_unlock(&box->irq_lock);
 	spinlock_unlock(&irq->lock);
 	spinlock_unlock(&irq_uspace_hash_table_lock);
-
+	
 	interrupts_restore(ipl);
 	return EOK;
 }

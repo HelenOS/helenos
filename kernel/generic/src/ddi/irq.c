@@ -351,11 +351,12 @@ bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
 
 /** Unlock IRQ structure after hash_table_remove().
  *
- * @param lnk		Link in the removed and locked IRQ structure.
+ * @param lnk Link in the removed and locked IRQ structure.
  */
 void irq_ht_remove(link_t *lnk)
 {
-	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+	irq_t *irq __attribute__((unused))
+	    = hash_table_get_instance(lnk, irq_t, link);
 	spinlock_unlock(&irq->lock);
 }
 
@@ -424,7 +425,8 @@ bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
  */
 void irq_lin_remove(link_t *lnk)
 {
-	irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+	irq_t *irq __attribute__((unused))
+	    = hash_table_get_instance(lnk, irq_t, link);
 	spinlock_unlock(&irq->lock);
 }
 
