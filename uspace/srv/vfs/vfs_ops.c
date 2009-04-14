@@ -804,60 +804,62 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 {
-	size_t len;
+	size_t olen, nlen;
 	ipc_callid_t callid;
 	int rc;
 
 	/* Retrieve the old path. */
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!ipc_data_write_receive(&callid, &olen)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-	char *old = malloc(len + 1);
+	char *old = malloc(olen + 1);
 	if (!old) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	if ((rc = ipc_data_write_finalize(callid, old, len))) {
+	if ((rc = ipc_data_write_finalize(callid, old, olen))) {
 		ipc_answer_0(rid, rc);
 		free(old);
 		return;
 	}
-	old[len] = '\0';
+	old[olen] = '\0';
 	
 	/* Retrieve the new path. */
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!ipc_data_write_receive(&callid, &nlen)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(old);
 		return;
 	}
-	char *new = malloc(len + 1);
+	char *new = malloc(nlen + 1);
 	if (!new) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		free(old);
 		return;
 	}
-	if ((rc = ipc_data_write_finalize(callid, new, len))) {
+	if ((rc = ipc_data_write_finalize(callid, new, nlen))) {
 		ipc_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
 	}
-	new[len] = '\0';
+	new[nlen] = '\0';
 
-	char *oldc = canonify(old, &len);
-	char *newc = canonify(new, NULL);
+	char *oldc = canonify(old, &olen);
+	char *newc = canonify(new, &nlen);
 	if (!oldc || !newc) {
 		ipc_answer_0(rid, EINVAL);
 		free(old);
 		free(new);
 		return;
 	}
-	if (!strncmp(newc, oldc, len)) {
+	oldc[olen] = '\0';
+	newc[nlen] = '\0';
+	if (!str_lcmp(newc, oldc, str_length(oldc))) {
 		/* oldc is a prefix of newc */
 		ipc_answer_0(rid, EINVAL);
 		free(old);

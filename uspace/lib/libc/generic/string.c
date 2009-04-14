@@ -661,17 +661,6 @@ bool wstr_remove(wchar_t *str, count_t pos)
 	return true;
 }
 
-int strncmp(const char *a, const char *b, size_t n)
-{
-	size_t c = 0;
-
-	while (c < n && a[c] && b[c] && (!(a[c] - b[c])))
-		c++;
-	
-	return ( c < n ? a[c] - b[c] : 0);
-	
-}
-
 int stricmp(const char *a, const char *b)
 {
 	int c = 0;

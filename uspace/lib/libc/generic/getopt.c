@@ -386,8 +386,8 @@ getopt_long(nargc, nargv, options, long_options, idx)
 	    
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
-			if (strncmp(current_argv, long_options[i].name,
-			    current_argv_len))
+			if (str_lcmp(current_argv, long_options[i].name,
+			    str_nlength(current_argv, current_argv_len)))
 				continue;
 
 			if (str_size(long_options[i].name) ==

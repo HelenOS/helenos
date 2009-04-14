@@ -86,7 +86,6 @@ extern char *str_dup(const char *);
  * TODO: Get rid of this.
  */
 
-extern int strncmp(const char *, const char *, size_t);
 extern int stricmp(const char *, const char *);
 
 extern char *strcat(char *, const char *);
