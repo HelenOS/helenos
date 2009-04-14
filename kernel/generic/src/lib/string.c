@@ -108,6 +108,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <align.h>
+#include <debug.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -536,7 +537,7 @@ int str_lcmp(const char *s1, const char *s2, count_t max_len)
  * null-terminated and containing only complete characters.
  *
  * @param dst   Destination buffer.
- * @param count Size of the destination buffer.
+ * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  */
 void str_cpy(char *dest, size_t size, const char *src)
@@ -545,9 +546,8 @@ void str_cpy(char *dest, size_t size, const char *src)
 	size_t src_off;
 	size_t dest_off;
 
-	/* No space for the NULL-terminator in the buffer. */
-	if (size == 0)
-		return;
+	/* There must be space for a null terminator in the buffer. */
+	ASSERT(size > 0);
 	
 	src_off = 0;
 	dest_off = 0;
@@ -562,17 +562,18 @@ void str_cpy(char *dest, size_t size, const char *src)
 
 /** Copy size-limited substring.
  *
- * Copy source string @a src to destination buffer @a dest.
- * No more than @a size bytes are written. If the size of the output buffer
- * is at least one byte, the output string will always be well-formed, i.e.
- * null-terminated and containing only complete characters.
+ * Copy prefix of string @a src of max. size @a size to destination buffer
+ * @a dest. No more than @a size bytes are written. The output string will
+ * always be well-formed, i.e. null-terminated and containing only complete
+ * characters.
  *
  * No more than @a n bytes are read from the input string, so it does not
  * have to be null-terminated.
  *
  * @param dst   Destination buffer.
- * @param count Size of the destination buffer.
+ * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
+ * @param n	Maximum number of bytes to read from @a src.
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
@@ -580,9 +581,8 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	size_t src_off;
 	size_t dest_off;
 
-	/* No space for the null terminator in the buffer. */
-	if (size == 0)
-		return;
+	/* There must be space for a null terminator in the buffer. */
+	ASSERT(size > 0);
 	
 	src_off = 0;
 	dest_off = 0;
