@@ -478,7 +478,7 @@ fill_0_normal_tl1:
 	 */
 	rdpr %tl, %g3
 	cmp %g3, 1
-	be 1f
+	be %xcc, 1f
 	nop
 0:	ba 0b					! this is for debugging, if we ever get here
 	nop					! it will be easy to find
@@ -499,7 +499,7 @@ fill_0_normal_tl1:
 	wrpr %g4, 0, %cwp			! resynchronize CWP
 
 	andcc %g3, TSTATE_PRIV_BIT, %g0		! if this trap came from the privileged mode...
-	bnz 0f					! ...skip setting of kernel stack and primary context
+	bnz %xcc, 0f				! ...skip setting of kernel stack and primary context
 	nop
 	
 .endif
@@ -672,7 +672,7 @@ fill_0_normal_tl1:
 	and %l0, NWINDOWS - 1, %l0	! %l0 mod NWINDOWS
 	rdpr %cwp, %l1
 	cmp %l0, %l1
-	bz 0f				! CWP is ok
+	bz %xcc, 0f			! CWP is ok
 	nop
 
 	/*
@@ -712,7 +712,7 @@ fill_0_normal_tl1:
 .if NOT(\is_syscall)
 	rdpr %tstate, %g1
 	andcc %g1, TSTATE_PRIV_BIT, %g0		! if we are not returning to userspace...,
-	bnz 1f					! ...skip restoring userspace windows
+	bnz %xcc, 1f				! ...skip restoring userspace windows
 	nop
 .endif
 
@@ -749,7 +749,7 @@ fill_0_normal_tl1:
 	 */
 	clr %g4
 0:	andcc %g7, UWB_ALIGNMENT - 1, %g0	! alignment check
-	bz 0f					! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
+	bz %xcc, 0f				! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
 	nop
 
 	add %g7, -STACK_WINDOW_SAVE_AREA_SIZE, %g7
@@ -785,7 +785,7 @@ fill_0_normal_tl1:
 	wrpr %g1, 0, %cwp
 	add %g4, %g2, %g2
 	cmp %g2, NWINDOWS - 2
-	bg 2f					! fix the CANRESTORE=NWINDOWS-1 anomaly
+	bg %xcc, 2f				! fix the CANRESTORE=NWINDOWS-1 anomaly
 	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
 	
