@@ -79,6 +79,8 @@ void frame_arch_init(void)
 		 */
 		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 	}
+
+	end_of_identity = PA2KA(last_frame);
 }
 
 /** @}

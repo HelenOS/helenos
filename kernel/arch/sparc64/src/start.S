@@ -84,7 +84,7 @@ kernel_image_start:
 	! l5 <= physmem_base[(PHYSMEM_ADDR_SIZE - 1):13]
 	sllx %l5, 13 + (63 - (PHYSMEM_ADDR_SIZE - 1)), %l5
 	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5	
-	
+
 	/*
 	 * Setup basic runtime environment.
 	 */
@@ -333,7 +333,7 @@ kernel_image_start:
 2:
 	ldx [%g2], %g3
 	cmp %g3, %g1
-	bne 2b
+	bne %xcc, 2b
 	nop
 
 	/*
@@ -381,10 +381,31 @@ physmem_base:
 	.quad 0
 
 /*
- * This variable is used by the fast_data_MMU_miss trap handler. In runtime, it
- * is further modified to reflect the starting address of physical memory.
+ * The fast_data_access_mmu_miss_data_hi label and the end_of_identity and
+ * kernel_8k_tlb_data_template variables are meant to stay together,
+ * aligned on 16B boundary.
  */
+.global fast_data_access_mmu_miss_data_hi
+.global end_of_identity 
 .global kernel_8k_tlb_data_template
+
+.align 16
+/*
+ * This label is used by the fast_data_access_MMU_miss trap handler.
+ */
+fast_data_access_mmu_miss_data_hi:
+/*
+ * This variable is used by the fast_data_access_MMU_miss trap handler.
+ * In runtime, it is modified to contain the address of the end of physical
+ * memory.
+ */
+end_of_identity:
+	.quad -1 
+/*
+ * This variable is used by the fast_data_access_MMU_miss trap handler.
+ * In runtime, it is further modified to reflect the starting address of
+ * physical memory.
+ */
 kernel_8k_tlb_data_template:
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	.quad ((1 << TTE_V_SHIFT) | (PAGESIZE_8K << TTE_SIZE_SHIFT) | TTE_CP | \

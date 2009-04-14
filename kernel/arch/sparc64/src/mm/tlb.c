@@ -199,12 +199,12 @@ void itlb_pte_copy(pte_t *t, index_t index)
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 {
-	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
+	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	index_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, page_16k);
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -222,7 +222,8 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
+		if (as_page_fault(page_16k, PF_ACCESS_EXEC, istate) ==
+		    AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
 			    __func__);
 		}
@@ -242,11 +243,13 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
  */
 void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 {
-	uintptr_t va;
+	uintptr_t page_8k;
+	uintptr_t page_16k;
 	index_t index;
 	pte_t *t;
 
-	va = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
+	page_8k = (uint64_t) tag.vpn << MMU_PAGE_WIDTH;
+	page_16k = ALIGN_DOWN(page_8k, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;
 
 	if (tag.context == ASID_KERNEL) {
@@ -254,13 +257,22 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 			/* NULL access in kernel */
 			do_fast_data_access_mmu_miss_fault(istate, tag,
 			    __func__);
+		} else if (page_8k >= end_of_identity) {
+			/*
+			 * The kernel is accessing the I/O space.
+			 * We still do identity mapping for I/O,
+			 * but without caching.
+			 */
+			dtlb_insert_mapping(page_8k, KA2PA(page_8k),
+			    PAGESIZE_8K, false, false);
+			return;
 		}
 		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected "
 		    "kernel page fault.");
 	}
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, page_16k);
 	if (t) {
 		/*
 		 * The mapping was found in the software page hash table.
@@ -278,7 +290,8 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
+		if (as_page_fault(page_16k, PF_ACCESS_READ, istate) ==
+		    AS_PF_FAULT) {
 			do_fast_data_access_mmu_miss_fault(istate, tag,
 			    __func__);
 		}
@@ -295,15 +308,15 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
  */
 void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 {
-	uintptr_t va;
+	uintptr_t page_16k;
 	index_t index;
 	pte_t *t;
 
-	va = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
+	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
 	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, va);
+	t = page_mapping_find(AS, page_16k);
 	if (t && PTE_WRITABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table and is
@@ -313,7 +326,7 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 		t->a = true;
 		t->d = true;
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY,
-		    va + index * MMU_PAGE_SIZE);
+		    page_16k + index * MMU_PAGE_SIZE);
 		dtlb_pte_copy(t, index, false);
 #ifdef CONFIG_TSB
 		dtsb_pte_copy(t, index, false);
@@ -325,7 +338,8 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
+		if (as_page_fault(page_16k, PF_ACCESS_WRITE, istate) ==
+		    AS_PF_FAULT) {
 			do_fast_data_access_protection_fault(istate, tag,
 			    __func__);
 		}

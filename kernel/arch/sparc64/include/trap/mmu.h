@@ -103,16 +103,19 @@
 	 * Note that branch-delay slots are used in order to save space.
 	 */
 0:
-	mov VA_DMMU_TAG_ACCESS, %g1
-	ldxa [%g1] ASI_DMMU, %g1			! read the faulting Context and VPN
+	sethi %hi(fast_data_access_mmu_miss_data_hi), %g7
+	wr %g0, ASI_DMMU, %asi
+	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g1		! read the faulting Context and VPN
 	set TLB_TAG_ACCESS_CONTEXT_MASK, %g2
 	andcc %g1, %g2, %g3				! get Context
-	bnz 0f						! Context is non-zero
+	bnz %xcc, 0f					! Context is non-zero
 	andncc %g1, %g2, %g3				! get page address into %g3
-	bz 0f						! page address is zero
+	bz  %xcc, 0f					! page address is zero
+	ldx [%g7 + %lo(end_of_identity)], %g4
+	cmp %g3, %g4
+	bgeu %xcc, 0f
 
-	sethi %hi(kernel_8k_tlb_data_template), %g2
-	ldx [%g2 + %lo(kernel_8k_tlb_data_template)], %g2
+	ldx [%g7 + %lo(kernel_8k_tlb_data_template)], %g2
 	or %g3, %g2, %g2
 	stxa %g2, [%g0] ASI_DTLB_DATA_IN_REG		! identity map the kernel page
 	retry
@@ -138,8 +141,7 @@
 	 * Read the Tag Access register for the higher-level handler.
 	 * This is necessary to survive nested DTLB misses.
 	 */	
-	mov VA_DMMU_TAG_ACCESS, %g2
-	ldxa [%g2] ASI_DMMU, %g2
+	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g2
 
 	/*
 	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
