@@ -376,8 +376,7 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (strncmp(fs->vfs_info.name, name,
-		    sizeof(fs->vfs_info.name)) == 0) { 
+		if (str_cmp(fs->vfs_info.name, name) == 0) { 
 			handle = fs->fs_handle;
 			break;
 		}
