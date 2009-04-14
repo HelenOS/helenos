@@ -529,6 +529,25 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	dest[dest_off] = '\0';
 }
 
+/** Append one string to another.
+ *
+ * Append source string @a src to string in destination buffer @a dest.
+ * Size of the destination buffer is @a dest. If the size of the output buffer
+ * is at least one byte, the output string will always be well-formed, i.e.
+ * null-terminated and containing only complete characters.
+ *
+ * @param dst   Destination buffer.
+ * @param count Size of the destination buffer.
+ * @param src   Source string.
+ */
+void str_append(char *dest, size_t size, const char *src)
+{
+	size_t dstr_size;
+
+	dstr_size = str_size(dest);
+	str_cpy(dest + dstr_size, size - dstr_size, src);
+}
+
 /** Copy NULL-terminated wide string to string
  *
  * Copy source wide string @a src to destination buffer @a dst.
@@ -818,17 +837,6 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 	number = _strtoul(nptr, endptr, base, &sgn);
 
 	return (sgn ? -number : number);
-}
-
-char *strcat(char *dest, const char *src)
-{
-	char *orig = dest;
-	while (*dest++)
-		;
-	--dest;
-	while ((*dest++ = *src++))
-		;
-	return orig;
 }
 
 char *str_dup(const char *src)

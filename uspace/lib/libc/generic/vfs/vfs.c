@@ -87,7 +87,7 @@ char *absolutize(const char *path, size_t *retlen)
 		}
 		ncwd_path_nc[0] = '\0';
 	}
-	strcat(ncwd_path_nc, path);
+	str_append(ncwd_path_nc, cwd_size + 1 + size + 1, path);
 	ncwd_path = canonify(ncwd_path_nc, retlen);
 	if (!ncwd_path) {
 		futex_up(&cwd_futex);

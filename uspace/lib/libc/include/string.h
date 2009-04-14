@@ -71,6 +71,7 @@ extern int str_lcmp(const char *s1, const char *s2, count_t max_len);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
+extern void str_append(char *dest, size_t size, const char *src);
 
 extern void wstr_nstr(char *dst, const wchar_t *src, size_t size);
 
@@ -87,8 +88,6 @@ extern char *str_dup(const char *);
  */
 
 extern int stricmp(const char *, const char *);
-
-extern char *strcat(char *, const char *);
 
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
