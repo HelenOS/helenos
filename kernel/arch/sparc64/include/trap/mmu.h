@@ -116,7 +116,7 @@
 	bgeu %xcc, 0f
 
 	ldx [%g7 + %lo(kernel_8k_tlb_data_template)], %g2
-	or %g3, %g2, %g2
+	add %g3, %g2, %g2
 	stxa %g2, [%g0] ASI_DTLB_DATA_IN_REG		! identity map the kernel page
 	retry
 

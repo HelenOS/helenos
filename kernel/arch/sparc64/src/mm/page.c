@@ -62,7 +62,7 @@ void page_arch_init(void)
  */
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
-	return KA2PA(physaddr);
+	return PA2KA(physaddr);
 }
 
 /** @}
