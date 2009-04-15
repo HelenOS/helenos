@@ -35,10 +35,12 @@
  */
 
 #include <ipc/ipc.h>
+#include <ipc/bus.h>
 #include <async.h>
 #include <sysinfo.h>
 #include <kbd.h>
 #include <kbd_port.h>
+#include <sun.h>
 #include <ddi.h>
 
 /* NS16550 registers */
@@ -89,7 +91,7 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 static uintptr_t ns16550_physical;
 static uintptr_t ns16550_kernel; 
 
-int kbd_port_init(void)
+int ns16550_port_init(void)
 {
 	void *vaddr;
 
@@ -100,7 +102,7 @@ int kbd_port_init(void)
 	ns16550_kbd.cmds[0].addr = (void *) (ns16550_kernel + LSR_REG);
 	ns16550_kbd.cmds[3].addr = (void *) (ns16550_kernel + RBR_REG);
 	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    0, &ns16550_kbd);
+	    sysinfo_value("kbd.inr"), &ns16550_kbd);
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }
 
@@ -108,6 +110,10 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
 	kbd_push_scancode(scan_code);
+	
+	if (cir_service)
+		async_msg_1(cir_phone, BUS_CLEAR_INTERRUPT,
+		    IPC_GET_METHOD(*call));
 }
 
 /**

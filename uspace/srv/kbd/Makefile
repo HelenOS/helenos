@@ -59,9 +59,11 @@ ifeq ($(UARCH), amd64)
 		port/i8042.c \
 		ctl/pc.c
 endif
+
 ifeq ($(UARCH), arm32)
 	GENARCH_SOURCES += \
 		port/gxemul.c
+	
 	ifeq ($(CONFIG_FB), y)
 		GENARCH_SOURCES += \
 			ctl/gxe_fb.c
@@ -70,29 +72,35 @@ ifeq ($(UARCH), arm32)
 			ctl/stty.c
 	endif
 endif
+
 ifeq ($(UARCH), ia32)
 	GENARCH_SOURCES += \
 		port/i8042.c \
 		ctl/pc.c
 endif
+
 ifeq ($(MACHINE), i460GX)
 	GENARCH_SOURCES += \
 		port/i8042.c \
 		ctl/pc.c
 endif
+
 ifeq ($(MACHINE), ski)
 	GENARCH_SOURCES += \
 		port/ski.c \
 		ctl/stty.c
 endif
+
 ifeq ($(MACHINE), msim)
 	GENARCH_SOURCES += \
 		port/msim.c \
 		ctl/stty.c
 endif
+
 ifeq ($(MACHINE), lgxemul)
 	GENARCH_SOURCES += \
 		port/gxemul.c
+	
 	ifeq ($(CONFIG_FB), y)
 		GENARCH_SOURCES += \
 			ctl/gxe_fb.c
@@ -101,26 +109,31 @@ ifeq ($(MACHINE), lgxemul)
 			ctl/stty.c
 	endif
 endif
+
 ifeq ($(MACHINE), bgxemul)
 	GENARCH_SOURCES += \
 		port/gxemul.c \
 		ctl/stty.c
 endif
+
 ifeq ($(UARCH), ppc32)
 	GENARCH_SOURCES += \
 		port/dummy.c \
 		ctl/stty.c
 endif
+
 ifeq ($(UARCH), sparc64)
-    ifeq ($(MACHINE),serengeti)
-	GENARCH_SOURCES += \
-		port/sgcn.c \
-		ctl/stty.c
-    else
-	GENARCH_SOURCES += \
-		port/z8530.c \
-		ctl/sun.c
-    endif
+	ifeq ($(MACHINE),serengeti)
+		GENARCH_SOURCES += \
+			port/sgcn.c \
+			ctl/stty.c
+	else
+		GENARCH_SOURCES += \
+			port/sun.c \
+			port/z8530.c \
+			port/ns16550.c \
+			ctl/sun.c
+	endif
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

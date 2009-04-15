@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,81 +29,40 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	Z8530 keyboard port driver.
+ * @brief Sun keyboard virtual port driver.
  */
 
-#include <ipc/ipc.h>
-#include <ipc/bus.h>
-#include <async.h>
-#include <sysinfo.h>
 #include <kbd.h>
 #include <kbd_port.h>
 #include <sun.h>
-#include <sys/types.h>
-#include <ddi.h>
+#include <sysinfo.h>
 
-#define CHAN_A_STATUS	4
-#define CHAN_A_DATA	6
+typedef enum {
+	KBD_UNKNOWN,
+	KBD_Z8530,
+	KBD_NS16550,
+	KBD_SGCN
+} kbd_type_t;
 
-#define RR0_RCA	1
-
-static irq_cmd_t z8530_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
-		.dstarg = 1
-	},
-	{
-		.cmd = CMD_BTEST,
-		.value = RR0_RCA,
-		.srcarg = 1,
-		.dstarg = 3
-	},
-	{
-		.cmd = CMD_PREDICATE,
-		.value = 2,
-		.srcarg = 3
-	},
-	{
-		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
-		.dstarg = 2
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-	
-irq_code_t z8530_kbd = {
-	sizeof(z8530_cmds) / sizeof(irq_cmd_t),
-	z8530_cmds
-};
-
-static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
-
-int z8530_port_init(void)
+/** Sun keyboard virtual port driver.
+ *
+ * This is a virtual port driver which can use
+ * both ns16550_port_init and z8530_port_init
+ * according to the information passed from the
+ * kernel. This is just a temporal hack.
+ *
+ */
+int kbd_port_init(void)
 {
-	async_set_interrupt_received(z8530_irq_handler);
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.kernel") +
-	    CHAN_A_STATUS;
-	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.kernel") +
-	    CHAN_A_DATA;
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    sysinfo_value("kbd.inr"), &z8530_kbd);
-	return 0;
-}
-
-static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
-{
-	int scan_code = IPC_GET_ARG2(*call);
-	kbd_push_scancode(scan_code);
+	if (sysinfo_value("kbd.type") == KBD_Z8530)
+		return z8530_port_init();
+	else if (sysinfo_value("kbd.type") == KBD_NS16550)
+		return ns16550_port_init();
 	
-	if (cir_service)
-		async_msg_1(cir_phone, BUS_CLEAR_INTERRUPT,
-		    IPC_GET_METHOD(*call));
+	return -1;
 }
 
 /** @}
- */
+*/
