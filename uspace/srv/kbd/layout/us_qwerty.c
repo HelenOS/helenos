@@ -36,9 +36,11 @@
 #include <kbd/keycode.h>
 #include <layout.h>
 
+static void layout_reset(void);
 static wchar_t layout_parse_ev(kbd_event_t *ev);
 
 layout_op_t us_qwerty_op = {
+	layout_reset,
 	layout_parse_ev
 };
 
@@ -195,6 +197,10 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	if (key >= map_length)
 		return 0;
 	return map[key];
+}
+
+static void layout_reset(void)
+{
 }
 
 static wchar_t layout_parse_ev(kbd_event_t *ev)

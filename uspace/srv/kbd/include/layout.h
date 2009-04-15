@@ -41,6 +41,7 @@
 #include <sys/types.h>
 
 typedef struct {
+	void (*reset)(void);
 	wchar_t (*parse_ev)(kbd_event_t *);
 } layout_op_t;
 

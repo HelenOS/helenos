@@ -34,11 +34,22 @@
 #include <kbd.h>
 #include <kbd/kbd.h>
 #include <kbd/keycode.h>
+#include <bool.h>
 #include <layout.h>
 
+static void layout_reset(void);
 static wchar_t layout_parse_ev(kbd_event_t *ev);
 
+enum m_state {
+	ms_start,
+	ms_hacek,
+	ms_carka	
+};
+
+static enum m_state mstate;
+
 layout_op_t cz_op = {
+	layout_reset,
 	layout_parse_ev
 };
 
@@ -200,6 +211,56 @@ static wchar_t map_numeric[] = {
 	[KC_NPERIOD] = '.'
 };
 
+static wchar_t map_hacek_lcase[] = {
+	[KC_E] = L'ě',
+	[KC_R] = L'ř',
+	[KC_T] = L'ť',
+	[KC_Y] = L'ž',
+	[KC_U] = L'ů',
+
+	[KC_S] = L'š',
+	[KC_D] = L'ď',
+
+	[KC_C] = L'č',
+	[KC_N] = L'ň'
+};
+
+static wchar_t map_hacek_ucase[] = {
+	[KC_E] = L'Ě',
+	[KC_R] = L'Ř',
+	[KC_T] = L'Ť',
+	[KC_Y] = L'Ž',
+	[KC_U] = L'Ů',
+
+	[KC_S] = L'Š',
+	[KC_D] = L'Ď',
+
+	[KC_C] = L'Č',
+	[KC_N] = L'Ň'
+};
+
+static wchar_t map_carka_lcase[] = {
+	[KC_E] = L'é',
+	[KC_U] = L'ú',
+	[KC_I] = L'í',
+	[KC_O] = L'ó',
+
+	[KC_A] = L'á',
+
+	[KC_Z] = L'ý',
+};
+
+static wchar_t map_carka_ucase[] = {
+	[KC_E] = L'É',
+	[KC_U] = L'Ú',
+	[KC_I] = L'Í',
+	[KC_O] = L'Ó',
+
+	[KC_A] = L'Á',
+
+	[KC_Z] = L'Ý',
+};
+
 static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 {
 	if (key >= map_length)
@@ -207,13 +268,58 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static wchar_t layout_parse_ev(kbd_event_t *ev)
+static wchar_t parse_ms_hacek(kbd_event_t *ev)
+{
+	wchar_t c;
+
+	mstate = ms_start;
+
+	/* Produce no characters when Ctrl or Alt is pressed. */
+	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
+		return 0;
+
+	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
+		c = translate(ev->key, map_hacek_ucase, sizeof(map_hacek_ucase) / sizeof(wchar_t));
+	else
+		c = translate(ev->key, map_hacek_lcase, sizeof(map_hacek_lcase) / sizeof(wchar_t));
+
+	return c;
+}
+
+static wchar_t parse_ms_carka(kbd_event_t *ev)
+{
+	wchar_t c;
+
+	mstate = ms_start;
+
+	/* Produce no characters when Ctrl or Alt is pressed. */
+	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
+		return 0;
+
+	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
+		c = translate(ev->key, map_carka_ucase, sizeof(map_carka_ucase) / sizeof(wchar_t));
+	else
+		c = translate(ev->key, map_carka_lcase, sizeof(map_carka_lcase) / sizeof(wchar_t));
+
+	return c;
+}
+
+static wchar_t parse_ms_start(kbd_event_t *ev)
 {
 	wchar_t c;
 
 	/* Produce no characters when Ctrl or Alt is pressed. */
 	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
 		return 0;
+
+	if (ev->key == KC_EQUALS) {
+		if ((ev->mods & KM_SHIFT) != 0)
+			mstate = ms_hacek;
+		else
+			mstate = ms_carka;
+
+		return 0;
+	}
 
 	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(wchar_t));
 	if (c != 0)
@@ -241,6 +347,41 @@ static wchar_t layout_parse_ev(kbd_event_t *ev)
 		c = 0;
 
 	return c;
+}
+
+static bool key_is_mod(unsigned key)
+{
+	switch (key) {
+	case KC_LSHIFT:
+	case KC_RSHIFT:
+	case KC_LALT:
+	case KC_RALT:
+	case KC_LCTRL:
+	case KC_RCTRL:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static void layout_reset(void)
+{
+	mstate = ms_start;
+}
+
+static wchar_t layout_parse_ev(kbd_event_t *ev)
+{
+	if (ev->type != KE_PRESS)
+		return '\0';
+
+	if (key_is_mod(ev->key))
+		return '\0';
+
+	switch (mstate) {
+	case ms_start: return parse_ms_start(ev);
+	case ms_hacek: return parse_ms_hacek(ev);
+	case ms_carka: return parse_ms_carka(ev);
+	}
 }
 
 /**

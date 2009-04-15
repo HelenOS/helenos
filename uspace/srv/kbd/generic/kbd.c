@@ -136,18 +136,21 @@ void kbd_push_ev(int type, unsigned int key)
 	if (type == KE_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F1) {
 		active_layout = 0;
+		layout[active_layout]->reset();
 		return;
 	}
 
 	if (type == KE_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F2) {
 		active_layout = 1;
+		layout[active_layout]->reset();
 		return;
 	}
 
 	if (type == KE_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F3) {
 		active_layout = 2;
+		layout[active_layout]->reset();
 		return;
 	}
 
@@ -223,6 +226,9 @@ int main(int argc, char **argv)
 	/* Initialize controller driver. */
 	if (kbd_ctl_init() != 0)
 		return -1;
+
+	/* Initialize (reset) layout. */
+	layout[active_layout]->reset();
 	
 	/* Initialize key buffer */
 	keybuffer_init(&keybuffer);
