@@ -162,8 +162,8 @@ void kbd_init(ofw_tree_node_t *node)
 	switch (kbd_type) {
 #ifdef CONFIG_Z8530
 	case KBD_Z8530:
-		z8530 = (z8530_t *) hw_map(aligned_addr, offset + size) +
-		    offset;
+		z8530 = (z8530_t *)
+		    (hw_map(aligned_addr, offset + size) + offset);
 		
 		indev_t *kbrdin_z8530 = z8530_init(z8530, inr, cir, cir_arg);
 		if (kbrdin_z8530)
@@ -183,8 +183,8 @@ void kbd_init(ofw_tree_node_t *node)
 #endif
 #ifdef CONFIG_NS16550
 	case KBD_NS16550:
-		ns16550 = (ns16550_t *) hw_map(aligned_addr, offset + size) +
-		    offset;
+		ns16550 = (ns16550_t *)
+		   (hw_map(aligned_addr, offset + size) + offset);
 		
 		indev_t *kbrdin_ns16550 = ns16550_init(ns16550, inr, cir, cir_arg);
 		if (kbrdin_ns16550)
