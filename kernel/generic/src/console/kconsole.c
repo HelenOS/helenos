@@ -582,7 +582,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		case ARG_TYPE_STRING:
 			buf = (char *) cmd->argv[i].buffer;
 			str_ncpy(buf, cmd->argv[i].len, cmdline + start,
-			    (end - start) + 1);
+			    end - start);
 			break;
 		case ARG_TYPE_INT:
 			if (!parse_int_arg(cmdline + start, end - start,
