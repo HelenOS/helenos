@@ -26,17 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: $(BASE)/image.boot
+TMP = distroot
 
-$(BASE)/image.boot: depend arch/$(BARCH)/loader/image.boot
-	cp arch/$(BARCH)/loader/image.boot $(BASE)/image.boot
+build: $(BASE)/image.iso
+
+$(BASE)/image.iso: depend arch/$(BARCH)/loader/image.boot
+	mkdir -p $(TMP)/boot
+	cp arch/$(BARCH)/loader/image.boot $(TMP)/boot/image.boot
+	cp arch/$(BARCH)/yaboot/ofboot.b $(TMP)/boot/ofboot.b
+	cp arch/$(BARCH)/yaboot/yaboot $(TMP)/boot/yaboot
+	cp arch/$(BARCH)/yaboot/yaboot.conf $(TMP)/boot/yaboot.conf
+	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
 
 depend:
 	-rm arch/$(BARCH)/loader/image.boot
 
 arch/$(BARCH)/loader/image.boot:
-	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	$(MAKE) -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 
 clean: generic_clean
-	make -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -f $(BASE)/image.boot
+	$(MAKE) -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	-rm -fr $(TMP)
+	-rm -f $(BASE)/image.iso
