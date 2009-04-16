@@ -51,7 +51,7 @@ endif
 ifeq ($(CONFIG_RD_EXTERNAL),y)
 	cp arch/$(BARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
 endif
-	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $(BASE)/image.iso $(TMP)/
+	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
 
 depend:
 	-rm arch/$(BARCH)/loader/image.boot

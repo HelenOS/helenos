@@ -26,13 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+TMP = distroot
+
 INIT_TASKS = \
 	$(USPACEDIR)/srv/ns/ns \
 	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs 
+	$(USPACEDIR)/srv/vfs/vfs
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif
@@ -45,6 +47,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat
 
 RD_APPS = \
@@ -57,17 +60,17 @@ RD_APPS = \
 build: $(BASE)/image.iso
 
 $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
-	mkdir -p arch/$(BARCH)/iso/boot/grub
-	cp arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/iso/boot/grub/
+	mkdir -p $(TMP)/boot/grub
+	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
 ifneq ($(RDFMT),tmpfs)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "tmpfs" >arch/$(BARCH)/iso/boot/grub/menu.lst
+	cat arch/$(BARCH)/grub/menu.lst | grep -v "tmpfs" > $(TMP)/boot/grub/menu.lst
 endif
 ifneq ($(RDFMT),fat)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "fat" >arch/$(BARCH)/iso/boot/grub/menu.lst
+	cat arch/$(BARCH)/grub/menu.lst | grep -v "fat" > $(TMP)/boot/grub/menu.lst
 endif
-	cp $(KERNELDIR)/kernel.bin arch/$(BARCH)/iso/boot/
+	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
 	for task in $(INIT_TASKS) ; do \
-		cp $$task arch/$(BARCH)/iso/boot/ ; \
+		cp $$task $(TMP)/boot/ ; \
 	done
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
@@ -76,14 +79,14 @@ endif
 		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ arch/$(BARCH)/iso/boot/initrd.fs
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ arch/$(BARCH)/iso/boot/initrd.fs
+	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
 endif
-	$(BASE)/tools/mkhord.py 4096 arch/$(BARCH)/iso/boot/initrd.fs arch/$(BARCH)/iso/boot/initrd.img
-	rm arch/$(BARCH)/iso/boot/initrd.fs
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BASE)/image.iso arch/$(BARCH)/iso/
+	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/initrd.fs $(TMP)/boot/initrd.img
+	rm $(TMP)/boot/initrd.fs
+	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
 
 clean:
 	-for file in $(RD_SRVS) ; do \
@@ -92,5 +95,5 @@ clean:
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -fr arch/$(BARCH)/iso
+	-rm -fr $(TMP)
 	-rm -f $(BASE)/image.iso
