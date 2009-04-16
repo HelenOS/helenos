@@ -54,19 +54,6 @@ layout_op_t cz_op = {
 };
 
 static wchar_t map_lcase[] = {
-	[KC_2] = L'ě',
-	[KC_3] = L'š',
-	[KC_4] = L'č',
-	[KC_5] = L'ř',
-	[KC_6] = L'ž',
-	[KC_7] = L'ý',
-	[KC_8] = L'á',
-	[KC_9] = L'í',
-	[KC_0] = L'é',
-
-	[KC_LBRACKET] = L'ú',
-	[KC_SEMICOLON] = L'ů',
-
 	[KC_Q] = 'q',
 	[KC_W] = 'w',
 	[KC_E] = 'e',
@@ -98,19 +85,6 @@ static wchar_t map_lcase[] = {
 };
 
 static wchar_t map_ucase[] = {
-	[KC_2] = L'Ě',
-	[KC_3] = L'Š',
-	[KC_4] = L'Č',
-	[KC_5] = L'Ř',
-	[KC_6] = L'Ž',
-	[KC_7] = L'Ý',
-	[KC_8] = L'Á',
-	[KC_9] = L'Í',
-	[KC_0] = L'É',
-
-	[KC_LBRACKET] = L'Ú',
-	[KC_SEMICOLON] = L'Ů',
-
 	[KC_Q] = 'Q',
 	[KC_W] = 'W',
 	[KC_E] = 'E',
@@ -181,6 +155,36 @@ static wchar_t map_shifted[] = {
 	[KC_COMMA] = '?',
 	[KC_PERIOD] = ':',
 	[KC_SLASH] = '_',
+};
+
+static wchar_t map_ns_nocaps[] = {
+	[KC_2] = L'ě',
+	[KC_3] = L'š',
+	[KC_4] = L'č',
+	[KC_5] = L'ř',
+	[KC_6] = L'ž',
+	[KC_7] = L'ý',
+	[KC_8] = L'á',
+	[KC_9] = L'í',
+	[KC_0] = L'é',
+
+	[KC_LBRACKET] = L'ú',
+	[KC_SEMICOLON] = L'ů'
+};
+
+static wchar_t map_ns_caps[] = {
+	[KC_2] = L'Ě',
+	[KC_3] = L'Š',
+	[KC_4] = L'Č',
+	[KC_5] = L'Ř',
+	[KC_6] = L'Ž',
+	[KC_7] = L'Ý',
+	[KC_8] = L'Á',
+	[KC_9] = L'Í',
+	[KC_0] = L'É',
+
+	[KC_LBRACKET] = L'Ú',
+	[KC_SEMICOLON] = L'Ů'
 };
 
 static wchar_t map_neutral[] = {
@@ -324,6 +328,16 @@ static wchar_t parse_ms_start(kbd_event_t *ev)
 	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(wchar_t));
 	if (c != 0)
 		return c;
+
+	if ((ev->mods & KM_SHIFT) == 0) {
+		if ((ev->mods & KM_CAPS_LOCK) != 0)
+			c = translate(ev->key, map_ns_caps, sizeof(map_ns_caps) / sizeof(wchar_t));
+		else
+			c = translate(ev->key, map_ns_nocaps, sizeof(map_ns_nocaps) / sizeof(wchar_t));
+
+		if (c != 0)
+			return c;
+	}	
 
 	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
 		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(wchar_t));
