@@ -52,6 +52,7 @@ extern void console_putchar(wchar_t);
 extern ssize_t console_write(const char *buf, size_t nbyte);
 extern void console_putstr(const char *s);
 extern void console_flush(void);
+extern void console_flush_optional(void);
 
 extern int console_get_size(int *, int *);
 extern void console_set_style(int);

@@ -48,6 +48,7 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <as.h>
+#include <console.h>
 #include <loader/pcb.h>
 
 extern char _heap;
@@ -83,6 +84,7 @@ void __main(void *pcb_ptr)
 	}
 
 	main(argc, argv);
+	console_flush_optional();
 }
 
 void __exit(void)

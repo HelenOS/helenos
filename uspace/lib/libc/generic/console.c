@@ -238,6 +238,12 @@ void console_flush(void)
 	async_msg_0(cons_phone, CONSOLE_FLUSH);
 }
 
+void console_flush_optional(void)
+{
+	if (console_phone >= 0)
+		console_flush();
+}
+
 int console_get_size(int *rows, int *cols)
 {
 	int cons_phone = console_phone_get(true);
