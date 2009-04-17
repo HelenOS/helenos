@@ -1,0 +1,5 @@
+<chrp-boot>
+<description>HelenOS</description>
+<os-name>HelenOS</os-name>
+<boot-script>boot cd:,\boot\yaboot</boot-script>
+</chrp-boot>

@@ -32,8 +32,10 @@ build: $(BASE)/image.iso
 
 $(BASE)/image.iso: depend arch/$(BARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
+	mkdir -p $(TMP)/ppc
 	cp arch/$(BARCH)/loader/image.boot $(TMP)/boot/image.boot
 	cp arch/$(BARCH)/yaboot/ofboot.b $(TMP)/boot/ofboot.b
+	cp arch/$(BARCH)/yaboot/bootinfo.txt $(TMP)/ppc/bootinfo.txt
 	cp arch/$(BARCH)/yaboot/yaboot $(TMP)/boot/yaboot
 	cp arch/$(BARCH)/yaboot/yaboot.conf $(TMP)/boot/yaboot.conf
 	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
