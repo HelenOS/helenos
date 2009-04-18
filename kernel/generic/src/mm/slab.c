@@ -936,7 +936,7 @@ void slab_enable_cpucache(void)
 void *malloc(unsigned int size, int flags)
 {
 	ASSERT(_slab_initialized);
-	ASSERT(size && size <= (1 << SLAB_MAX_MALLOC_W));
+	ASSERT(size <= (1 << SLAB_MAX_MALLOC_W));
 	
 	if (size < (1 << SLAB_MIN_MALLOC_W))
 		size = (1 << SLAB_MIN_MALLOC_W);
