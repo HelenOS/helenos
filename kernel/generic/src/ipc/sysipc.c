@@ -332,7 +332,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		src = IPC_GET_ARG1(call->data);
 		size = IPC_GET_ARG2(call->data);
 		
-		if ((size <= 0) || (size > DATA_XFER_LIMIT))
+		if (size > DATA_XFER_LIMIT)
 			return ELIMIT;
 		
 		call->buffer = (uint8_t *) malloc(size, 0);
