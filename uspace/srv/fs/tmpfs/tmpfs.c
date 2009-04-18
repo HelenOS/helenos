@@ -127,7 +127,12 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS TMPFS file system server\n");
-	
+
+	if (!tmpfs_init()) {
+		printf(NAME ": failed to initialize TMPFS\n");
+		return -1;
+	}
+
 	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
@@ -140,7 +145,7 @@ int main(int argc, char **argv)
 		printf(NAME ": Failed to register file system (%d)\n", rc);
 		return rc;
 	}
-	
+
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 	/* not reached */

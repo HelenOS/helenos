@@ -52,6 +52,7 @@ typedef enum {
 
 typedef struct tmpfs_dentry {
 	fs_index_t index;	/**< TMPFS node index. */
+	dev_handle_t dev_handle;/**< Device handle. */
 	link_t dh_link;		/**< Dentries hash table link. */
 	struct tmpfs_dentry *sibling;
 	struct tmpfs_dentry *child;
@@ -65,6 +66,8 @@ typedef struct tmpfs_dentry {
 extern fs_reg_t tmpfs_reg;
 
 extern libfs_ops_t tmpfs_libfs_ops;
+
+extern bool tmpfs_init(void);
 
 extern void tmpfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_mount(ipc_callid_t, ipc_call_t *);

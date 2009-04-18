@@ -58,13 +58,10 @@
 
 #define NAMES_BUCKETS		4
 
-/*
- * For now, we don't distinguish between different dev_handles/instances. All
- * requests resolve to the only instance, rooted in the following variable.
- */
-static tmpfs_dentry_t *root;
-
-#define TMPFS_DEV		0	/**< Dummy device handle for TMPFS */
+/** All root nodes have index 0. */
+#define TMPFS_SOME_ROOT		0
+/** Global counter for assigning node indices. Shared by all instances. */
+fs_index_t tmpfs_next_index = 1;
 
 /*
  * Implementation of the libfs interface.
@@ -102,7 +99,7 @@ static bool tmpfs_has_children(void *nodep)
 
 static void *tmpfs_root_get(dev_handle_t dev_handle)
 {
-	return root; 
+	return tmpfs_node_get(dev_handle, TMPFS_SOME_ROOT); 
 }
 
 static char tmpfs_plb_get_char(unsigned pos)
@@ -142,18 +139,22 @@ libfs_ops_t tmpfs_libfs_ops = {
 /** Hash table of all directory entries. */
 hash_table_t dentries;
 
+#define DENTRIES_KEY_INDEX	0
+#define DENTRIES_KEY_DEV	1
+
 /* Implementation of hash table interface for the dentries hash table. */
-static hash_index_t dentries_hash(unsigned long *key)
+static hash_index_t dentries_hash(unsigned long key[])
 {
-	return *key % DENTRIES_BUCKETS;
+	return key[DENTRIES_KEY_INDEX] % DENTRIES_BUCKETS;
 }
 
-static int dentries_compare(unsigned long *key, hash_count_t keys,
+static int dentries_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
 	tmpfs_dentry_t *dentry = hash_table_get_instance(item, tmpfs_dentry_t,
 	    dh_link);
-	return dentry->index == *key;
+	return (dentry->index == key[DENTRIES_KEY_INDEX] &&
+	    dentry->dev_handle == key[DENTRIES_KEY_DEV]);
 }
 
 static void dentries_remove_callback(link_t *item)
@@ -166,8 +167,6 @@ hash_table_operations_t dentries_ops = {
 	.compare = dentries_compare,
 	.remove_callback = dentries_remove_callback
 };
-
-fs_index_t tmpfs_next_index = 1;
 
 typedef struct {
 	char *name;
@@ -215,6 +214,7 @@ static void tmpfs_name_initialize(tmpfs_name_t *namep)
 static bool tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 {
 	dentry->index = 0;
+	dentry->dev_handle = 0;
 	dentry->sibling = NULL;
 	dentry->child = NULL;
 	dentry->type = TMPFS_NONE;
@@ -226,15 +226,21 @@ static bool tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 	    &names_ops);
 }
 
-static bool tmpfs_init(void)
+bool tmpfs_init(void)
 {
-	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 1, &dentries_ops))
+	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 2, &dentries_ops))
 		return false;
-	root = (tmpfs_dentry_t *) tmpfs_create_node(TMPFS_DEV, L_DIRECTORY);
-	if (!root) {
-		hash_table_destroy(&dentries);
+	
+	return true;
+}
+
+static bool tmpfs_instance_init(dev_handle_t dev_handle)
+{
+	tmpfs_dentry_t *root;
+	
+	root = (tmpfs_dentry_t *) tmpfs_create_node(dev_handle, L_DIRECTORY);
+	if (!root) 
 		return false;
-	}
 	root->lnkcnt = 0;	/* FS root is not linked */
 	return true;
 }
@@ -272,8 +278,11 @@ void *tmpfs_match(void *prnt, const char *component)
 void *
 tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
-	unsigned long key = index;
-	link_t *lnk = hash_table_find(&dentries, &key);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = index,
+		[DENTRIES_KEY_DEV] = dev_handle
+	};
+	link_t *lnk = hash_table_find(&dentries, key);
 	if (!lnk)
 		return NULL;
 	return hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link); 
@@ -296,15 +305,22 @@ void *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 		free(node);
 		return NULL;
 	}
-	node->index = tmpfs_next_index++;
+	if (!tmpfs_root_get(dev_handle))
+		node->index = TMPFS_SOME_ROOT;
+	else
+		node->index = tmpfs_next_index++;
+	node->dev_handle = dev_handle;
 	if (lflag & L_DIRECTORY) 
 		node->type = TMPFS_DIRECTORY;
 	else 
 		node->type = TMPFS_FILE;
 
 	/* Insert the new node into the dentry hash table. */
-	unsigned long key = node->index;
-	hash_table_insert(&dentries, &key, &node->dh_link);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = node->index,
+		[DENTRIES_KEY_DEV] = node->dev_handle
+	};
+	hash_table_insert(&dentries, key, &node->dh_link);
 	return (void *) node;
 }
 
@@ -384,8 +400,11 @@ int tmpfs_destroy_node(void *nodep)
 	assert(!dentry->child);
 	assert(!dentry->sibling);
 
-	unsigned long key = dentry->index;
-	hash_table_remove(&dentries, &key, 1);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = dentry->index,
+		[DENTRIES_KEY_DEV] = dentry->dev_handle
+	};
+	hash_table_remove(&dentries, key, 2);
 
 	hash_table_destroy(&dentry->names);
 
@@ -421,12 +440,13 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 	opts[size] = '\0';
 
-	/* Initialize TMPFS. */
-	if (!root && !tmpfs_init()) {
+	/* Initialize TMPFS instance. */
+	if (!tmpfs_instance_init(dev_handle)) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
+	tmpfs_dentry_t *root = tmpfs_root_get(dev_handle);
 	if (str_cmp(opts, "restore") == 0) {
 		if (tmpfs_restore(dev_handle))
 			ipc_answer_3(rid, EOK, root->index, root->size,
@@ -463,8 +483,11 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	unsigned long key = index;
-	hlp = hash_table_find(&dentries, &key);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = index,
+		[DENTRIES_KEY_DEV] = dev_handle,
+	};
+	hlp = hash_table_find(&dentries, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -536,8 +559,11 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	unsigned long key = index;
-	hlp = hash_table_find(&dentries, &key);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = index,
+		[DENTRIES_KEY_DEV] = dev_handle
+	};
+	hlp = hash_table_find(&dentries, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -597,8 +623,11 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	 * Lookup the respective dentry.
 	 */
 	link_t *hlp;
-	unsigned long key = index;
-	hlp = hash_table_find(&dentries, &key);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = index,
+		[DENTRIES_KEY_DEV] = dev_handle
+	};
+	hlp = hash_table_find(&dentries, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
@@ -632,8 +661,11 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 
 	link_t *hlp;
-	unsigned long key = index;
-	hlp = hash_table_find(&dentries, &key);
+	unsigned long key[] = {
+		[DENTRIES_KEY_INDEX] = index,
+		[DENTRIES_KEY_DEV] = dev_handle
+	};
+	hlp = hash_table_find(&dentries, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
