@@ -155,7 +155,7 @@ static int device_get_handle(const char *name, dev_handle_t *handle,
 }
 
 int mount(const char *fs_name, const char *mp, const char *dev,
-	const unsigned int flags)
+    const char *opts, const unsigned int flags)
 {
 	int res;
 	ipcarg_t rc;
@@ -185,6 +185,15 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 		return (int) rc;
 	}
 	
+	rc = ipc_data_write_start(vfs_phone, (void *) opts, str_size(opts));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(mpa);
+		return (int) rc;
+	}
+
 	rc = ipc_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);

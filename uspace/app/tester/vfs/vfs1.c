@@ -45,7 +45,7 @@ char *test_vfs1(bool quiet)
 {
 	int rc;
 
-	rc = mount("tmpfs", "/", "nulldev0", 0);
+	rc = mount("tmpfs", "/", "nulldev0", "", 0);
 	switch (rc) {
 	case EOK:
 		if (!quiet)

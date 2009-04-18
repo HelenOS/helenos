@@ -254,6 +254,8 @@ extern futex_t plb_futex;	/**< Futex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 
+#define MAX_MNTOPTS_LEN		256
+
 /** Holding this rwlock prevents changes in file system namespace. */ 
 extern rwlock_t namespace_rwlock;
 

@@ -755,6 +755,28 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	uint16_t rde;
 	int rc;
 
+	/* accept the mount options */
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	char *opts = malloc(size + 1);
+	if (!opts) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	if (retval != EOK) {
+		ipc_answer_0(rid, retval);
+		free(opts);
+		return;
+	}
+	opts[size] = '\0';
+
 	/* initialize libblock */
 	rc = block_init(dev_handle, BS_SIZE);
 	if (rc != EOK) {

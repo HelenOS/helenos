@@ -399,13 +399,35 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 
+	/* accept the mount options */
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	char *opts = malloc(size + 1);
+	if (!opts) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	if (retval != EOK) {
+		ipc_answer_0(rid, retval);
+		free(opts);
+		return;
+	}
+	opts[size] = '\0';
+
 	/* Initialize TMPFS. */
 	if (!root && !tmpfs_init()) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
 
-	if (dev_handle >= 0) {
+	if (str_cmp(opts, "restore") == 0) {
 		if (tmpfs_restore(dev_handle))
 			ipc_answer_3(rid, EOK, root->index, root->size,
 			    root->lnkcnt);

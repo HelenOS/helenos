@@ -60,6 +60,7 @@ typedef struct {
 	link_t link;
 	char *fs_name;            /**< File system name */
 	char *mp;                 /**< Mount point */
+	char *opts;		  /**< Mount options. */
 	ipc_callid_t callid;      /**< Call ID waiting for the mount */
 	ipc_callid_t rid;         /**< Request ID */
 	dev_handle_t dev_handle;  /**< Device handle */
@@ -80,13 +81,16 @@ vfs_pair_t rootfs = {
 };
 
 static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
-    fs_handle_t fs_handle, char *mp)
+    fs_handle_t fs_handle, char *mp, char *opts)
 {
-	/* Resolve the path to the mountpoint. */
 	vfs_lookup_res_t mp_res;
 	vfs_node_t *mp_node = NULL;
-	int rc;
+	ipcarg_t rc;
 	int phone;
+	aid_t msg;
+	ipc_call_t answer;
+
+	/* Resolve the path to the mountpoint. */
 	futex_down(&rootfs_futex);
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
@@ -127,9 +131,9 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		if (str_cmp(mp, "/") == 0) {
 			vfs_lookup_res_t mr_res;
 			vfs_node_t *mr_node;
-			ipcarg_t rindex;
-			ipcarg_t rsize;
-			ipcarg_t rlnkcnt;
+			fs_index_t rindex;
+			size_t rsize;
+			unsigned rlnkcnt;
 			
 			/*
 			 * For this simple, but important case,
@@ -138,8 +142,19 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			
 			/* Tell the mountee that it is being mounted. */
 			phone = vfs_grab_phone(fs_handle);
-			rc = async_req_1_3(phone, VFS_MOUNTED,
-			    (ipcarg_t) dev_handle, &rindex, &rsize, &rlnkcnt);
+			msg = async_send_1(phone, VFS_MOUNTED,
+			    (ipcarg_t) dev_handle, &answer);
+			/* send the mount options */
+			rc = ipc_data_write_start(phone, (void *)opts,
+			    str_size(opts));
+			if (rc != EOK) {
+				async_wait_for(msg, NULL);
+				vfs_release_phone(phone);
+				futex_up(&rootfs_futex);
+				ipc_answer_0(rid, rc);
+				return;
+			}
+			async_wait_for(msg, &rc);
 			vfs_release_phone(phone);
 			
 			if (rc != EOK) {
@@ -147,12 +162,16 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 				ipc_answer_0(rid, rc);
 				return;
 			}
+
+			rindex = (fs_index_t) IPC_GET_ARG1(answer);
+			rsize = (size_t) IPC_GET_ARG2(answer);
+			rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
 			
 			mr_res.triplet.fs_handle = fs_handle;
 			mr_res.triplet.dev_handle = dev_handle;
-			mr_res.triplet.index = (fs_index_t) rindex;
-			mr_res.size = (size_t) rsize;
-			mr_res.lnkcnt = (unsigned) rlnkcnt;
+			mr_res.triplet.index = rindex;
+			mr_res.size = rsize;
+			mr_res.lnkcnt = rlnkcnt;
 			mr_res.type = VFS_NODE_DIRECTORY;
 			
 			rootfs.fs_handle = fs_handle;
@@ -183,11 +202,23 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	 */
 	
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
-	rc = async_req_4_0(phone, VFS_MOUNT,
+	msg = async_send_4(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
 	    (ipcarg_t) mp_res.triplet.index,
 	    (ipcarg_t) fs_handle,
-	    (ipcarg_t) dev_handle);
+	    (ipcarg_t) dev_handle, &answer);
+	/* send the mount options */
+	rc = ipc_data_write_start(phone, (void *)opts, str_size(opts));
+	if (rc != EOK) {
+		async_wait_for(msg, NULL);
+		vfs_release_phone(phone);
+		/* Mount failed, drop reference to mp_node. */
+		if (mp_node)
+			vfs_node_put(mp_node);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	async_wait_for(msg, &rc);
 	vfs_release_phone(phone);
 	
 	if (rc != EOK) {
@@ -216,10 +247,12 @@ loop:
 		ipc_answer_0(pr->callid, EOK);
 		
 		/* Do the mount */
-		vfs_mount_internal(pr->rid, pr->dev_handle, fs_handle, pr->mp);
+		vfs_mount_internal(pr->rid, pr->dev_handle, fs_handle, pr->mp,
+		    pr->opts);
 		
 		free(pr->fs_name);
 		free(pr->mp);
+		free(pr->opts);
 		list_remove(cur);
 		free(pr);
 		goto loop;
@@ -278,6 +311,41 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	mp[size] = '\0';
 	
+	/* Now we expect to receive the mount options. */
+	if (!ipc_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		free(mp);
+		return;
+	}
+
+	/* Check the offered options size. */
+	if (size < 0 || size > MAX_MNTOPTS_LEN) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		free(mp);
+		return;
+	}
+
+	/* Allocate buffer for the mount options. */
+	char *opts = (char *) malloc(size + 1);
+	if (!opts) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		free(mp);
+		return;
+	}
+
+	/* Deliver the mount options. */
+	retval = ipc_data_write_finalize(callid, opts, size);
+	if (retval != EOK) {
+		ipc_answer_0(rid, retval);
+		free(mp);
+		free(opts);
+		return;
+	}
+	opts[size] = '\0';
+	
 	/*
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
@@ -286,6 +354,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(mp);
+		free(opts);
 		return;
 	}
 	
@@ -297,6 +366,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(mp);
+		free(opts);
 		return;
 	}
 	
@@ -308,6 +378,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		free(mp);
+		free(opts);
 		return;
 	}
 	
@@ -316,6 +387,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(mp);
+		free(opts);
 		free(fs_name);
 		return;
 	}
@@ -331,6 +403,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(rid, ENOTSUP);
 		free(mp);
+		free(opts);
 		free(fs_name);
 		return;
 	}
@@ -351,11 +424,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 				ipc_answer_0(rid, ENOMEM);
 				free(mp);
 				free(fs_name);
+				free(opts);
 				return;
 			}
 			
 			pr->fs_name = fs_name;
 			pr->mp = mp;
+			pr->opts = opts;
 			pr->callid = callid;
 			pr->rid = rid;
 			pr->dev_handle = dev_handle;
@@ -368,6 +443,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOENT);
 		free(mp);
 		free(fs_name);
+		free(opts);
 		return;
 	}
 	
@@ -375,9 +451,10 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(callid, EOK);
 	
 	/* Do the mount */
-	vfs_mount_internal(rid, dev_handle, fs_handle, mp);
+	vfs_mount_internal(rid, dev_handle, fs_handle, mp, opts);
 	free(mp);
 	free(fs_name);
+	free(opts);
 }
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)

@@ -45,15 +45,20 @@
 #include <malloc.h>
 #include <macros.h>
 #include <console.h>
+#include <string.h>
 #include "init.h"
 #include "version.h"
 
 static bool mount_fs(const char *fstype)
 {
 	int rc = -1;
+	char *opts = "";
 	
+	if (str_cmp(fstype, "tmpfs") == 0)
+		opts = "restore";
+
 	while (rc < 0) {
-		rc = mount(fstype, "/", "initrd", IPC_FLAG_BLOCKING);
+		rc = mount(fstype, "/", "initrd", opts, IPC_FLAG_BLOCKING);
 		
 		switch (rc) {
 		case EOK:
