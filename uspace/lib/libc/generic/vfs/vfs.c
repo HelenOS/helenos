@@ -193,6 +193,16 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 		free(mpa);
 		return (int) rc;
 	}
+
+	/* Ask VFS whether it likes fs_name. */
+	rc = async_req_0_0(vfs_phone, IPC_M_PING);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(mpa);
+		return (int) rc;
+	}
 	
 	async_wait_for(req, &rc);
 	async_serialize_end();

@@ -320,7 +320,21 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	fs_name[size] = '\0';
-	
+
+	/*
+	 * Wait for IPC_M_PING so that we can return an error if we don't know
+	 * fs_name.
+	 */
+	ipc_call_t data;
+	callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_PING) {
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(rid, ENOTSUP);
+		free(mp);
+		free(fs_name);
+		return;
+	}
+
 	/*
 	 * Check if we know a file system with the same name as is in fs_name.
 	 * This will also give us its file system handle.
@@ -328,8 +342,10 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	fs_handle_t fs_handle = fs_name_to_handle(fs_name, true);
 	if (!fs_handle) {
 		if (flags & IPC_FLAG_BLOCKING) {
+			pending_req_t *pr;
+
 			/* Blocking mount, add to pending list */
-			pending_req_t *pr = (pending_req_t *) malloc(sizeof(pending_req_t));
+			pr = (pending_req_t *) malloc(sizeof(pending_req_t));
 			if (!pr) {
 				ipc_answer_0(callid, ENOMEM);
 				ipc_answer_0(rid, ENOMEM);
