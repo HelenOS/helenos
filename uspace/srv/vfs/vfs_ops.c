@@ -272,7 +272,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/* Deliver the mount point. */
 	ipcarg_t retval = ipc_data_write_finalize(callid, mp, size);
 	if (retval != EOK) {
-		ipc_answer_0(rid, EREFUSED);
+		ipc_answer_0(rid, retval);
 		free(mp);
 		return;
 	}
@@ -306,7 +306,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	char *fs_name = (char *) malloc(size + 1);
 	if (fs_name == NULL) {
 		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, EREFUSED);
+		ipc_answer_0(rid, ENOMEM);
 		free(mp);
 		return;
 	}
@@ -314,7 +314,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/* Deliver the file system name. */
 	retval = ipc_data_write_finalize(callid, fs_name, size);
 	if (retval != EOK) {
-		ipc_answer_0(rid, EREFUSED);
+		ipc_answer_0(rid, retval);
 		free(mp);
 		free(fs_name);
 		return;
