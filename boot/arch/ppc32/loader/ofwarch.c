@@ -52,7 +52,8 @@ int ofw_macio(macio_t *macio)
 {
 	char device_name[BUF_SIZE];
 	
-	if (ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
+	if ((ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
+	    && (ofw_get_property(ofw_aliases, "mac-io", device_name, sizeof(device_name)) <= 0))
 		return false;
 	
 	phandle device = ofw_find_device(device_name);
