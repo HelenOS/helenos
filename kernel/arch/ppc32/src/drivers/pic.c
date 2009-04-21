@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -40,12 +40,14 @@
 
 static volatile uint32_t *pic = NULL;
 
-void pic_init(uintptr_t base, size_t size)
+void pic_init(uintptr_t base, size_t size, cir_t *cir, void **cir_arg)
 {
 	pic = (uint32_t *) hw_map(base, size);
+	*cir = pic_ack_interrupt;
+	*cir_arg = NULL;
 }
 
-void pic_enable_interrupt(int intnum)
+void pic_enable_interrupt(inr_t intnum)
 {
 	if (pic) {
 		if (intnum < 32)
@@ -56,7 +58,7 @@ void pic_enable_interrupt(int intnum)
 	
 }
 
-void pic_disable_interrupt(int intnum)
+void pic_disable_interrupt(inr_t intnum)
 {
 	if (pic) {
 		if (intnum < 32)
@@ -66,7 +68,7 @@ void pic_disable_interrupt(int intnum)
 	}
 }
 
-void pic_ack_interrupt(int intnum)
+void pic_ack_interrupt(void *arg, inr_t intnum)
 {
 	if (pic) {
 		if (intnum < 32) 

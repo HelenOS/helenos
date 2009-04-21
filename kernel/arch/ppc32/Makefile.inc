@@ -54,7 +54,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/drivers/cuda.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

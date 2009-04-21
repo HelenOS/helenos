@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -37,7 +37,7 @@
 
 #define LOADED_PROG_STACK_PAGES_NO 2
 
-#include <arch/ski/ski.h>
+#include <arch/drivers/ski.h>
 
 extern void arch_pre_main(void);
 

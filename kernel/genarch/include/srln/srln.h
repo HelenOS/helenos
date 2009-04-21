@@ -37,8 +37,17 @@
 #define KERN_SRLN_H_
 
 #include <console/chardev.h>
+#include <proc/thread.h>
 
-extern void srln_init(indev_t *devin);
+typedef struct {
+	thread_t *thread;
+	
+	indev_t *sink;
+	indev_t raw;
+} srln_instance_t;
+
+extern srln_instance_t *srln_init(void);
+extern indev_t *srln_wire(srln_instance_t *, indev_t *);
 
 #endif
 

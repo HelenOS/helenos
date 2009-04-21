@@ -33,7 +33,7 @@
  */
 
 #include <arch.h>
-#include <arch/ski/ski.h>
+#include <arch/drivers/ski.h>
 #include <arch/drivers/it.h>
 #include <arch/interrupt.h>
 #include <arch/barrier.h>

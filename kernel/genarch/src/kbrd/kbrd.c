@@ -59,107 +59,128 @@
 #define PRESSED_CAPSLOCK  (1 << 1)
 #define LOCKED_CAPSLOCK   (1 << 0)
 
-static indev_t kbrdout;
-
-indev_operations_t kbrdout_ops = {
+static indev_operations_t kbrd_raw_ops = {
 	.poll = NULL
 };
-
-SPINLOCK_INITIALIZE(keylock);   /**< keylock protects keyflags and lockflags. */
-static volatile int keyflags;   /**< Tracking of multiple keypresses. */
-static volatile int lockflags;  /**< Tracking of multiple keys lockings. */
 
 /** Process release of key.
  *
  * @param sc Scancode of the key being released.
  */
-static void key_released(wchar_t sc)
+static void key_released(kbrd_instance_t *instance, wchar_t sc)
 {
-	spinlock_lock(&keylock);
+	spinlock_lock(&instance->keylock);
+	
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
-		keyflags &= ~PRESSED_SHIFT;
+		instance->keyflags &= ~PRESSED_SHIFT;
 		break;
 	case SC_CAPSLOCK:
-		keyflags &= ~PRESSED_CAPSLOCK;
-		if (lockflags & LOCKED_CAPSLOCK)
-			lockflags &= ~LOCKED_CAPSLOCK;
+		instance->keyflags &= ~PRESSED_CAPSLOCK;
+		if (instance->lockflags & LOCKED_CAPSLOCK)
+			instance->lockflags &= ~LOCKED_CAPSLOCK;
 		else
-			lockflags |= LOCKED_CAPSLOCK;
+			instance->lockflags |= LOCKED_CAPSLOCK;
 		break;
 	default:
 		break;
 	}
-	spinlock_unlock(&keylock);
+	
+	spinlock_unlock(&instance->keylock);
 }
 
 /** Process keypress.
  *
  * @param sc Scancode of the key being pressed.
  */
-static void key_pressed(wchar_t sc)
+static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 {
 	bool letter;
 	bool shift;
 	bool capslock;
 	
-	spinlock_lock(&keylock);
+	spinlock_lock(&instance->keylock);
+	
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
-		keyflags |= PRESSED_SHIFT;
+		instance->keyflags |= PRESSED_SHIFT;
 		break;
 	case SC_CAPSLOCK:
-		keyflags |= PRESSED_CAPSLOCK;
+		instance->keyflags |= PRESSED_CAPSLOCK;
 		break;
 	case SC_SCAN_ESCAPE:
 		break;
 	default:
 		letter = islower(sc_primary_map[sc]);
-		shift = keyflags & PRESSED_SHIFT;
-		capslock = (keyflags & PRESSED_CAPSLOCK) ||
-		    (lockflags & LOCKED_CAPSLOCK);
+		shift = instance->keyflags & PRESSED_SHIFT;
+		capslock = (instance->keyflags & PRESSED_CAPSLOCK) ||
+		    (instance->lockflags & LOCKED_CAPSLOCK);
 		
 		if ((letter) && (capslock))
 			shift = !shift;
 		
 		if (shift)
-			indev_push_character(stdin, sc_secondary_map[sc]);
+			indev_push_character(instance->sink, sc_secondary_map[sc]);
 		else
-			indev_push_character(stdin, sc_primary_map[sc]);
+			indev_push_character(instance->sink, sc_primary_map[sc]);
 		break;
 	}
-	spinlock_unlock(&keylock);
+	
+	spinlock_unlock(&instance->keylock);
 }
 
 static void kkbrd(void *arg)
 {
-	indev_t *in = (indev_t *) arg;
+	kbrd_instance_t *instance = (kbrd_instance_t *) arg;
 	
 	while (true) {
-		wchar_t sc = _getc(in);
+		wchar_t sc = indev_pop_character(&instance->raw);
 		
 		if (sc == IGNORE_CODE)
 			continue;
 		
 		if (sc & KEY_RELEASE)
-			key_released((sc ^ KEY_RELEASE) & 0x7f);
+			key_released(instance, (sc ^ KEY_RELEASE) & 0x7f);
 		else
-			key_pressed(sc & 0x7f);
+			key_pressed(instance, sc & 0x7f);
 	}
 }
 
-void kbrd_init(indev_t *devin)
+kbrd_instance_t *kbrd_init(void)
 {
-	indev_initialize("kbrd", &kbrdout, &kbrdout_ops);
-	thread_t *thread
-	    = thread_create(kkbrd, devin, TASK, 0, "kkbrd", false);
-	
-	if (thread) {
-		stdin = &kbrdout;
-		thread_ready(thread);
+	kbrd_instance_t *instance
+	    = malloc(sizeof(kbrd_instance_t), FRAME_ATOMIC);
+	if (instance) {
+		instance->thread
+			= thread_create(kkbrd, (void *) instance, TASK, 0, "kkbrd", false);
+		
+		if (!instance->thread) {
+			free(instance);
+			return NULL;
+		}
+		
+		instance->sink = NULL;
+		indev_initialize("kbrd", &instance->raw, &kbrd_raw_ops);
+		
+		spinlock_initialize(&instance->keylock, "instance_keylock");
+		instance->keyflags = 0;
+		instance->lockflags = 0;
 	}
+	
+	return instance;
+}
+
+indev_t *kbrd_wire(kbrd_instance_t *instance, indev_t *sink)
+{
+	ASSERT(instance);
+	ASSERT(sink);
+	
+	instance->sink = sink;
+	thread_ready(instance->thread);
+	
+	return &instance->raw;
 }
 
 /** @}

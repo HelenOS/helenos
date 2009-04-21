@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -37,15 +37,6 @@
 
 #include <arch/types.h>
 #include <genarch/ofw/ofw_tree.h>
-
-typedef enum {
-	KBD_UNKNOWN,
-	KBD_Z8530,
-	KBD_NS16550,
-	KBD_SGCN
-} kbd_type_t;
-
-extern kbd_type_t kbd_type;
 
 extern void kbd_init(ofw_tree_node_t *node);
 

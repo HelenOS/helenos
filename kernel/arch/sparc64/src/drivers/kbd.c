@@ -54,100 +54,54 @@
 #include <print.h>
 #include <sysinfo/sysinfo.h>
 
-kbd_type_t kbd_type = KBD_UNKNOWN;
-
 #ifdef CONFIG_SUN_KBD
 
-/** Initialize keyboard.
- *
- * Traverse OpenFirmware device tree in order to find necessary
- * info about the keyboard device.
- *
- * @param node Keyboard device node.
- */
-void kbd_init(ofw_tree_node_t *node)
-{
-	size_t offset;
-	uintptr_t aligned_addr;
-	ofw_tree_property_t *prop;
-	const char *name;
-	cir_t cir;
-	void *cir_arg;
-	
-#ifdef CONFIG_NS16550
-	ns16550_t *ns16550;
-#endif
 #ifdef CONFIG_Z8530
-	z8530_t *z8530;
-#endif
+
+static bool kbd_z8530_init(ofw_tree_node_t *node)
+{
+	const char *name = ofw_tree_node_name(node);
 	
-	name = ofw_tree_node_name(node);
-	
-	/*
-	 * Determine keyboard serial controller type.
-	 */
-	if (str_cmp(name, "zs") == 0)
-		kbd_type = KBD_Z8530;
-	else if (str_cmp(name, "su") == 0)
-		kbd_type = KBD_NS16550;
-	
-	if (kbd_type == KBD_UNKNOWN) {
-		printf("Unknown keyboard device.\n");
-		return;
-	}
+	if (str_cmp(name, "zs") != 0)
+		return false;
 	
 	/*
 	 * Read 'interrupts' property.
 	 */
-	uint32_t interrupts;
-	prop = ofw_tree_getprop(node, "interrupts");
-	if ((!prop) || (!prop->value))
-		panic("Cannot find 'interrupt' property.");
-	interrupts = *((uint32_t *) prop->value);
+	ofw_tree_property_t *prop = ofw_tree_getprop(node, "interrupts");
+	if ((!prop) || (!prop->value)) {
+		printf("z8530: Unable to find interrupts property\n");
+		return false;
+	}
+	
+	uint32_t interrupts = *((uint32_t *) prop->value);
 	
 	/*
 	 * Read 'reg' property.
 	 */
 	prop = ofw_tree_getprop(node, "reg");
-	if ((!prop) || (!prop->value))
-		panic("Cannot find 'reg' property.");
+	if ((!prop) || (!prop->value)) {
+		printf("z8530: Unable to find reg property\n");
+		return false;
+	}
+	
+	size_t size = ((ofw_fhc_reg_t *) prop->value)->size;
 	
 	uintptr_t pa;
-	size_t size;
-	inr_t inr;
+	if (!ofw_fhc_apply_ranges(node->parent,
+	    ((ofw_fhc_reg_t *) prop->value), &pa)) {
+		printf("z8530: Failed to determine address\n");
+		return false;
+	}
 	
-	switch (kbd_type) {
-	case KBD_Z8530:
-		size = ((ofw_fhc_reg_t *) prop->value)->size;
-		if (!ofw_fhc_apply_ranges(node->parent,
-		    ((ofw_fhc_reg_t *) prop->value), &pa)) {
-			printf("Failed to determine keyboard address.\n");
-			return;
-		}
-		if (!ofw_fhc_map_interrupt(node->parent,
-		    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr, &cir,
-		    &cir_arg)) {
-			printf("Failed to determine keyboard interrupt.\n");
-			return;
-		}
-		break;
-		
-	case KBD_NS16550:
-		size = ((ofw_ebus_reg_t *) prop->value)->size;
-		if (!ofw_ebus_apply_ranges(node->parent,
-		    ((ofw_ebus_reg_t *) prop->value), &pa)) {
-			printf("Failed to determine keyboard address.\n");
-			return;
-		}
-		if (!ofw_ebus_map_interrupt(node->parent,
-		    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr, &cir,
-		    &cir_arg)) {
-			printf("Failed to determine keyboard interrupt.\n");
-			return;
-		};
-		break;
-	default:
-		panic("Unexpected keyboard type.");
+	inr_t inr;
+	cir_t cir;
+	void *cir_arg;
+	if (!ofw_fhc_map_interrupt(node->parent,
+	    ((ofw_fhc_reg_t *) prop->value), interrupts, &inr, &cir,
+	    &cir_arg)) {
+		printf("z8530: Failed to determine interrupt\n");
+		return false;
 	}
 	
 	/*
@@ -156,59 +110,144 @@ void kbd_init(ofw_tree_node_t *node)
 	 * be pretty much unaligned, depending on the
 	 * underlying controller.
 	 */
-	aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
-	offset = pa - aligned_addr;
+	uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
+	size_t offset = pa - aligned_addr;
 	
-	switch (kbd_type) {
-#ifdef CONFIG_Z8530
-	case KBD_Z8530:
-		z8530 = (z8530_t *)
-		    (hw_map(aligned_addr, offset + size) + offset);
-		
-		indev_t *kbrdin_z8530 = z8530_init(z8530, inr, cir, cir_arg);
-		if (kbrdin_z8530)
-			kbrd_init(kbrdin_z8530);
-		
-		/*
-		 * This is the necessary evil until the userspace drivers are
-		 * entirely self-sufficient.
-		 */
-		sysinfo_set_item_val("kbd", NULL, true);
-		sysinfo_set_item_val("kbd.type", NULL, KBD_Z8530);
-		sysinfo_set_item_val("kbd.inr", NULL, inr);
-		sysinfo_set_item_val("kbd.address.kernel", NULL,
-		    (uintptr_t) z8530);
-		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
-		break;
-#endif
-#ifdef CONFIG_NS16550
-	case KBD_NS16550:
-		ns16550 = (ns16550_t *)
-		   (hw_map(aligned_addr, offset + size) + offset);
-		
-		indev_t *kbrdin_ns16550 = ns16550_init(ns16550, inr, cir, cir_arg);
-		if (kbrdin_ns16550)
-			kbrd_init(kbrdin_ns16550);
-		
-		/*
-		 * This is the necessary evil until the userspace driver is
-		 * entirely self-sufficient.
-		 */
-		sysinfo_set_item_val("kbd", NULL, true);
-		sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
-		sysinfo_set_item_val("kbd.inr", NULL, inr);
-		sysinfo_set_item_val("kbd.address.kernel", NULL,
-		    (uintptr_t) ns16550);
-		sysinfo_set_item_val("kbd.address.physical", NULL, pa);
-		break;
-#endif
-	default:
-		printf("Kernel is not compiled with the necessary keyboard "
-		    "driver this machine requires.\n");
+	z8530_t *z8530 = (z8530_t *)
+	    (hw_map(aligned_addr, offset + size) + offset);
+	
+	z8530_instance_t *z8530_instance = z8530_init(z8530, inr, cir, cir_arg);
+	if (z8530_instance) {
+		kbrd_instance_t *kbrd_instance = kbrd_init();
+		if (kbrd_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
+			z8530_wire(z8530_instance, kbrd);
+		}
 	}
+	
+	/*
+	 * This is the necessary evil until the userspace drivers are
+	 * entirely self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	    (uintptr_t) z8530);
+	sysinfo_set_item_val("kbd.address.physical", NULL, pa);
+	sysinfo_set_item_val("kbd.type.z8530", NULL, true);
+	
+	return true;
 }
 
+#endif /* CONFIG_Z8530 */
+
+#ifdef CONFIG_NS16550
+
+static bool kbd_ns16550_init(ofw_tree_node_t *node)
+{
+	const char *name = ofw_tree_node_name(node);
+	
+	if (str_cmp(name, "su") != 0)
+		return false;
+	
+	/*
+	 * Read 'interrupts' property.
+	 */
+	ofw_tree_property_t *prop = ofw_tree_getprop(node, "interrupts");
+	if ((!prop) || (!prop->value)) {
+		printf("ns16550: Unable to find interrupts property\n");
+		return false;
+	}
+	
+	uint32_t interrupts = *((uint32_t *) prop->value);
+	
+	/*
+	 * Read 'reg' property.
+	 */
+	prop = ofw_tree_getprop(node, "reg");
+	if ((!prop) || (!prop->value)) {
+		printf("ns16550: Unable to find reg property\n");
+		return false;
+	}
+	
+	size_t size = ((ofw_ebus_reg_t *) prop->value)->size;
+	
+	uintptr_t pa;
+	if (!ofw_ebus_apply_ranges(node->parent,
+	    ((ofw_ebus_reg_t *) prop->value), &pa)) {
+		printf("ns16550: Failed to determine address\n");
+		return false;
+	}
+	
+	inr_t inr;
+	cir_t cir;
+	void *cir_arg;
+	if (!ofw_ebus_map_interrupt(node->parent,
+	    ((ofw_ebus_reg_t *) prop->value), interrupts, &inr, &cir,
+	    &cir_arg)) {
+		printf("ns16550: Failed to determine interrupt\n");
+		return false;
+	}
+	
+	/*
+	 * We need to pass aligned address to hw_map().
+	 * However, the physical keyboard address can
+	 * be pretty much unaligned, depending on the
+	 * underlying controller.
+	 */
+	uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
+	size_t offset = pa - aligned_addr;
+	
+	ns16550_t *ns16550 = (ns16550_t *)
+	   (hw_map(aligned_addr, offset + size) + offset);
+	
+	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, inr, cir, cir_arg);
+	if (ns16550_instance) {
+		kbrd_instance_t *kbrd_instance = kbrd_init();
+		if (kbrd_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
+			ns16550_wire(ns16550_instance, kbrd);
+		}
+	}
+	
+	/*
+	 * This is the necessary evil until the userspace drivers are
+	 * entirely self-sufficient.
+	 */
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.inr", NULL, inr);
+	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	    (uintptr_t) ns16550);
+	sysinfo_set_item_val("kbd.address.physical", NULL, pa);
+	sysinfo_set_item_val("kbd.type.ns16550", NULL, true);
+	
+	return true;
+}
+
+#endif /* CONFIG_NS16550 */
+
+/** Initialize keyboard.
+ *
+ * Traverse OpenFirmware device tree in order to find necessary
+ * info about the keyboard device.
+ *
+ * @param node Keyboard device node.
+ *
+ */
+void kbd_init(ofw_tree_node_t *node)
+{
+#ifdef CONFIG_Z8530
+	kbd_z8530_init(node);
 #endif
+	
+#ifdef CONFIG_NS16550
+	kbd_ns16550_init(node);
+#endif
+}
+
+#endif /* CONFIG_SUN_KBD */
 
 /** @}
  */

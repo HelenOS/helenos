@@ -49,10 +49,11 @@ typedef struct {
 typedef struct {
 	irq_t irq;
 	dsrlnin_t *dsrlnin;
-	indev_t kbrdin;
+	indev_t *srlnin;
 } dsrlnin_instance_t;
 
-extern indev_t *dsrlnin_init(dsrlnin_t *, inr_t);
+extern dsrlnin_instance_t *dsrlnin_init(dsrlnin_t *, inr_t);
+extern void dsrlnin_wire(dsrlnin_instance_t *, indev_t *);
 
 #endif
 

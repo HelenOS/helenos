@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <arch/ski/ski.h>
+#include <arch/drivers/ski.h>
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
@@ -44,116 +44,30 @@
 #include <string.h>
 #include <arch.h>
 
-static indev_t skiin;		/**< Ski input device. */
-static outdev_t skiout;		/**< Ski output device. */
+#define POLL_INTERVAL  10000  /* 10 ms */
 
-static bool kbd_disabled;
+#define SKI_INIT_CONSOLE  20
+#define SKI_GETCHAR       21
+#define SKI_PUTCHAR       31
 
-static void ski_do_putchar(const wchar_t ch)
-{
-	asm volatile (
-		"mov r15 = %[cmd]\n"
-		"mov r32 = %[ch]\n"   /* r32 is in0 */
-		"break 0x80000\n"  /* modifies r8 */
-		:
-		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
-		: "r15", "in0", "r8"
-	);
-}
-
-/** Display character on debug console
- *
- * Use SSC (Simulator System Call) to
- * display character on debug console.
- *
- * @param d Character device.
- * @param ch Character to be printed.
- */
-static void ski_putchar(outdev_t *d, const wchar_t ch, bool silent)
-{
-	if (!silent) {
-		if (ascii_check(ch)) {
-			if (ch == '\n')
-				ski_do_putchar('\r');
-			
-			ski_do_putchar(ch);
-		} else
-			ski_do_putchar(SPECIAL);
-	}
-}
-
-static indev_operations_t skiin_ops = {
-	.poll = NULL
-};
+static void ski_putchar(outdev_t *, const wchar_t, bool);
 
 static outdev_operations_t skiout_ops = {
 	.write = ski_putchar
 };
 
-/** Ask debug console if a key was pressed.
- *
- * Use SSC (Simulator System Call) to
- * get character from debug console.
- *
- * This call is non-blocking.
- *
- * @return ASCII code of pressed key or 0 if no key pressed.
- */
-static int32_t ski_getchar(void)
-{
-	uint64_t ch;
-	
-	asm volatile (
-		"mov r15 = %1\n"
-		"break 0x80000;;\n"	/* modifies r8 */
-		"mov %0 = r8;;\n"		
-
-		: "=r" (ch)
-		: "i" (SKI_GETCHAR)
-		: "r15", "r8"
-	);
-
-	return (int32_t) ch;
-}
-
-/** Ask keyboard if a key was pressed. */
-static void poll_keyboard(void)
-{
-	char ch;
-	
-	if (kbd_disabled)
-		return;
-	ch = ski_getchar();
-	if(ch == '\r')
-		ch = '\n'; 
-	if (ch) {
-		indev_push_character(&skiin, ch);
-		return;
-	}
-}
-
-#define POLL_INTERVAL           10000           /* 10 ms */
-
-/** Kernel thread for polling keyboard. */
-static void kkbdpoll(void *arg)
-{
-	while (1) {
-		if (!silent) {
-			poll_keyboard();
-		}
-		thread_usleep(POLL_INTERVAL);
-	}
-}
+static outdev_t skiout;            /**< Ski output device. */
+static bool initialized = false;
+static bool kbd_disabled = false;
 
 /** Initialize debug console
  *
  * Issue SSC (Simulator System Call) to
  * to open debug console.
+ *
  */
 static void ski_init(void)
 {
-	static bool initialized;
-
 	if (initialized)
 		return;
 	
@@ -168,32 +82,134 @@ static void ski_init(void)
 	initialized = true;
 }
 
-indev_t *skiin_init(void)
+static void ski_do_putchar(const wchar_t ch)
 {
-	ski_init();
-
-	indev_initialize("skiin", &skiin, &skiin_ops);
-	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
-	if (t)
-		thread_ready(t);
-	else
-		return NULL;
-
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
-
-	return &skiin;
+	asm volatile (
+		"mov r15 = %[cmd]\n"
+		"mov r32 = %[ch]\n"   /* r32 is in0 */
+		"break 0x80000\n"     /* modifies r8 */
+		:
+		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
+		: "r15", "in0", "r8"
+	);
 }
 
+/** Display character on debug console
+ *
+ * Use SSC (Simulator System Call) to
+ * display character on debug console.
+ *
+ * @param dev    Character device.
+ * @param ch     Character to be printed.
+ * @param silent Whether the output should be silenced.
+ *
+ */
+static void ski_putchar(outdev_t *dev, const wchar_t ch, bool silent)
+{
+	if (!silent) {
+		if (ascii_check(ch)) {
+			if (ch == '\n')
+				ski_do_putchar('\r');
+			
+			ski_do_putchar(ch);
+		} else
+			ski_do_putchar(U_SPECIAL);
+	}
+}
 
 void skiout_init(void)
 {
 	ski_init();
-
+	
 	outdev_initialize("skiout", &skiout, &skiout_ops);
 	stdout = &skiout;
-
+	
 	sysinfo_set_item_val("fb", NULL, false);
+}
+
+/** Ask debug console if a key was pressed.
+ *
+ * Use SSC (Simulator System Call) to
+ * get character from debug console.
+ *
+ * This call is non-blocking.
+ *
+ * @return ASCII code of pressed key or 0 if no key pressed.
+ *
+ */
+static wchar_t ski_getchar(void)
+{
+	uint64_t ch;
+	
+	asm volatile (
+		"mov r15 = %1\n"
+		"break 0x80000;;\n"  /* modifies r8 */
+		"mov %0 = r8;;\n"
+		
+		: "=r" (ch)
+		: "i" (SKI_GETCHAR)
+		: "r15", "r8"
+	);
+	
+	return (wchar_t) ch;
+}
+
+/** Ask keyboard if a key was pressed. */
+static void poll_keyboard(ski_instance_t *instance)
+{
+	if (kbd_disabled)
+		return;
+	
+	wchar_t ch = ski_getchar();
+	
+	if (ch != 0)
+		indev_push_character(instance->srlnin, ch);
+}
+
+/** Kernel thread for polling keyboard. */
+static void kskipoll(void *arg)
+{
+	ski_instance_t *instance = (ski_instance_t *) arg;
+	
+	while (true) {
+		if (!silent)
+			poll_keyboard(instance);
+		
+		thread_usleep(POLL_INTERVAL);
+	}
+}
+
+ski_instance_t *skiin_init(void)
+{
+	ski_init();
+	
+	ski_instance_t *instance
+	    = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
+	
+	if (instance) {
+		instance->thread = thread_create(kskipoll, (void *) instance, TASK, 0, "kskipoll", true);
+		
+		if (!instance->thread) {
+			free(instance);
+			return NULL;
+		}
+		
+		instance->srlnin = NULL;
+	}
+	
+	return instance;
+}
+
+void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
+{
+	ASSERT(instance);
+	ASSERT(srlnin);
+	
+	instance->srlnin = srlnin;
+	thread_ready(instance->thread);
+	
+	sysinfo_set_item_val("kbd", NULL, true);
+	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
 }
 
 void ski_kbd_grab(void)

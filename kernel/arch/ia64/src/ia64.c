@@ -33,7 +33,7 @@
  */
 
 #include <arch.h>
-#include <arch/ski/ski.h>
+#include <arch/drivers/ski.h>
 #include <arch/drivers/it.h>
 #include <arch/interrupt.h>
 #include <arch/barrier.h>
@@ -148,11 +148,17 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-#ifdef SKI
-	indev_t *in;
-	in = skiin_init();
-	if (in)
-		srln_init(in);
+#ifdef MACHINE_ski
+	ski_instance_t *ski_instance = skiin_init();
+	if (ski_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			skiin_wire(ski_instance, srln);
+		}
+	}
+	
 	skiout_init();
 #endif
 	
@@ -161,10 +167,16 @@ void arch_post_smp_init(void)
 #endif
 	
 #ifdef CONFIG_NS16550
-	indev_t *kbrdin_ns16550
+	ns16550_instance_t *ns16550_instance
 	    = ns16550_init((ns16550_t *) NS16550_BASE, NS16550_IRQ, NULL, NULL);
-	if (kbrdin_ns16550)
-		srln_init(kbrdin_ns16550);
+	if (ns16550_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			ns16550_wire(ns16550_instance, srln);
+		}
+	}
 	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, NS16550_IRQ);
@@ -176,9 +188,15 @@ void arch_post_smp_init(void)
 #endif
 	
 #ifdef CONFIG_I8042
-	indev_t *kbrdin_i8042 = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
-	if (kbrdin_i8042)
-		kbrd_init(kbrdin_i8042);
+	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
+	if (i8042_instance) {
+		kbrd_instance_t *kbrd_instance = kbrd_init();
+		if (kbrd_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
+			i8042_wire(i8042_instance, kbrd);
+		}
+	}
 	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
@@ -238,7 +256,7 @@ unative_t sys_tls_set(unative_t addr)
  */
 void arch_grab_console(void)
 {
-#ifdef SKI
+#ifdef MACHINE_ski
 	ski_kbd_grab();
 #endif
 }
@@ -248,7 +266,7 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
-#ifdef SKI
+#ifdef MACHINE_ski
 	ski_kbd_release();
 #endif
 }

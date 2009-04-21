@@ -60,7 +60,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/mips32.c \
-	arch/$(KARCH)/src/console.c \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/interrupt.c \

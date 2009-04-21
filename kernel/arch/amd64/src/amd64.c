@@ -197,10 +197,15 @@ void arch_post_smp_init(void)
 	 * Initialize the i8042 controller. Then initialize the keyboard
 	 * module and connect it to i8042. Enable keyboard interrupts.
 	 */
-	indev_t *kbrdin = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
-	if (kbrdin) {
-		kbrd_init(kbrdin);
-		trap_virtual_enable_irqs(1 << IRQ_KBD);
+	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE, IRQ_KBD);
+	if (i8042_instance) {
+		kbrd_instance_t *kbrd_instance = kbrd_init();
+		if (kbrd_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
+			i8042_wire(i8042_instance, kbrd);
+			trap_virtual_enable_irqs(1 << IRQ_KBD);
+		}
 	}
 	
 	/*

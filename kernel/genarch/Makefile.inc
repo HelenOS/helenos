@@ -93,6 +93,11 @@ ifeq ($(CONFIG_Z8530),y)
 		genarch/src/drivers/z8530/z8530.c
 endif
 
+ifeq ($(CONFIG_VIA_CUDA),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/via-cuda/cuda.c
+endif
+
 ifeq ($(CONFIG_PC_KBD),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbrd/kbrd.c \

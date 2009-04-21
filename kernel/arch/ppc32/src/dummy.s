@@ -30,9 +30,13 @@
 
 .global asm_delay_loop
 .global sys_tls_set
+.global cpu_halt
 
 sys_tls_set:
 	b sys_tls_set
 
 asm_delay_loop:
 	blr
+
+cpu_halt:
+	b cpu_halt

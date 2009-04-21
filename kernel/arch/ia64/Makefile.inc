@@ -64,8 +64,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/it.c
 
 ifeq ($(MACHINE),ski)
-	ARCH_SOURCES += arch/$(KARCH)/src/ski/ski.c
-	DEFS += -DSKI
+	ARCH_SOURCES += arch/$(KARCH)/src/drivers/ski.c
 	BFD = binary
 endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32
+/** @addtogroup ia64
  * @{
  */
 /** @file
  */
 
-#include <console/console.h>
-#include <genarch/fb/fb.h>
+#ifndef KERN_ia64_SKI_H_
+#define KERN_ia64_SKI_H_
 
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-#ifdef CONFIG_FB
-	fb_redraw();
+#include <console/chardev.h>
+#include <proc/thread.h>
+
+typedef struct {
+	thread_t *thread;
+	indev_t *srlnin;
+} ski_instance_t;
+
+extern void skiout_init(void);
+
+extern ski_instance_t *skiin_init(void);
+extern void skiin_wire(ski_instance_t *, indev_t *);
+extern void ski_kbd_grab(void);
+extern void ski_kbd_release(void);
+
 #endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
-}
 
 /** @}
  */

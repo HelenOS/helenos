@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32
+/** @addtogroup genarch
  * @{
  */
 /** @file
- *  @brief Console.
  */
 
-#include <console/console.h>
-#include <arch/console.h>
-#include <genarch/fb/fb.h>
+#include <genarch/drivers/via-cuda/cuda.h>
+#include <console/chardev.h>
+#include <ddi/irq.h>
+#include <arch/asm.h>
+#include <mm/slab.h>
+#include <ddi/device.h>
 
-/** Acquire console back for kernel. */
-void arch_grab_console(void)
+static irq_ownership_t cuda_claim(irq_t *irq)
 {
-#ifdef CONFIG_FB
-	fb_redraw();
-#endif
+	return IRQ_DECLINE;
 }
 
-/** Return console to userspace. */
-void arch_release_console(void)
+static void cuda_irq_handler(irq_t *irq)
 {
 }
+
+cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+{
+	cuda_instance_t *instance
+	    = malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
+	if (instance) {
+		instance->cuda = dev;
+		instance->kbrdin = NULL;
+		
+		irq_initialize(&instance->irq);
+		instance->irq.devno = device_assign_devno();
+		instance->irq.inr = inr;
+		instance->irq.claim = cuda_claim;
+		instance->irq.handler = cuda_irq_handler;
+		instance->irq.instance = instance;
+		instance->irq.cir = cir;
+		instance->irq.cir_arg = cir_arg;
+	}
+	
+	return instance;
+}
+
+void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
+{
+}
+
 
 /** @}
  */

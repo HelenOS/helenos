@@ -35,13 +35,13 @@
 
 #include <arch.h>
 #include <config.h>
-#include <arch/console.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
 #include <sysinfo/sysinfo.h>
+#include <console/console.h>
 #include <ddi/irq.h>
 #include <arch/drivers/gxemul.h>
 #include <print.h>
@@ -129,11 +129,18 @@ void arch_post_smp_init(void)
 #ifdef CONFIG_ARM_KBD
 	/*
 	 * Initialize the GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the GXemul keyboard. Enable keyboard interrupts.
+	 * module and connect it to the GXemul keyboard.
 	 */
-	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) gxemul_kbd, GXEMUL_KBD_IRQ);
-	if (kbrdin)
-		srln_init(kbrdin);
+	dsrlnin_instance_t *dsrlnin_instance
+	    = dsrlnin_init((dsrlnin_t *) gxemul_kbd, GXEMUL_KBD_IRQ);
+	if (dsrlnin_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			dsrlnin_wire(dsrlnin_instance, srln);
+		}
+	}
 	
 	/*
 	 * This is the necessary evil until the userspace driver is entirely
@@ -199,6 +206,19 @@ void arch_reboot()
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+/** Acquire console back for kernel. */
+void arch_grab_console(void)
+{
+#ifdef CONFIG_FB
+	fb_redraw();
+#endif
+}
+
+/** Return console to userspace. */
+void arch_release_console(void)
+{
 }
 
 /** @}

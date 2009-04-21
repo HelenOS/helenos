@@ -36,16 +36,14 @@
 #include <arch/cp0.h>
 #include <arch/exception.h>
 #include <mm/as.h>
-
 #include <userspace.h>
-#include <arch/console.h>
 #include <memstr.h>
 #include <proc/thread.h>
 #include <proc/uarg.h>
 #include <print.h>
+#include <console/console.h>
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
-
 #include <arch/interrupt.h>
 #include <console/chardev.h>
 #include <arch/barrier.h>
@@ -59,7 +57,6 @@
 #include <config.h>
 #include <string.h>
 #include <arch/drivers/msim.h>
-
 #include <arch/asm/regname.h>
 
 /* Size of the code jumping to the exception handler code
@@ -169,10 +166,16 @@ void arch_post_smp_init(void)
 	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
 	 * module and connect it to the msim/GXemul keyboard. Enable keyboard interrupts.
 	 */
-	indev_t *kbrdin = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
-	if (kbrdin) {
-		srln_init(kbrdin);
-		cp0_unmask_int(MSIM_KBD_IRQ);
+	dsrlnin_instance_t *dsrlnin_instance
+	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
+	if (dsrlnin_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			dsrlnin_wire(dsrlnin_instance, srln);
+			cp0_unmask_int(MSIM_KBD_IRQ);
+		}
 	}
 	
 	/*
@@ -246,6 +249,20 @@ void arch_reboot(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void arch_grab_console(void)
+{
+#ifdef CONFIG_FB
+	fb_redraw();
+#endif
+}
+
+/** Return console to userspace
+ *
+ */
+void arch_release_console(void)
+{
 }
 
 /** @}

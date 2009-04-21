@@ -39,13 +39,6 @@
 #include <sun.h>
 #include <sysinfo.h>
 
-typedef enum {
-	KBD_UNKNOWN,
-	KBD_Z8530,
-	KBD_NS16550,
-	KBD_SGCN
-} kbd_type_t;
-
 /** Sun keyboard virtual port driver.
  *
  * This is a virtual port driver which can use
@@ -56,10 +49,15 @@ typedef enum {
  */
 int kbd_port_init(void)
 {
-	if (sysinfo_value("kbd.type") == KBD_Z8530)
-		return z8530_port_init();
-	else if (sysinfo_value("kbd.type") == KBD_NS16550)
-		return ns16550_port_init();
+	if (sysinfo_value("kbd.type.z8530")) {
+		if (z8530_port_init() == 0)
+			return 0;
+	}
+	
+	if (sysinfo_value("kbd.type.ns16550")) {
+		if (ns16550_port_init() == 0)
+			return 0;
+	}
 	
 	return -1;
 }

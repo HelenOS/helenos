@@ -41,20 +41,18 @@
 #include <arch.h>
 #include <string.h>
 
-static indev_t srlnout;
-
-indev_operations_t srlnout_ops = {
+static indev_operations_t srln_raw_ops = {
 	.poll = NULL
 };
 
 static void ksrln(void *arg)
 {
-	indev_t *in = (indev_t *) arg;
+	srln_instance_t *instance = (srln_instance_t *) arg;
 	bool cr = false;
 	uint32_t escape = 0;
 	
 	while (true) {
-		wchar_t ch = _getc(in);
+		wchar_t ch = indev_pop_character(&instance->raw);
 		
 		/* ANSI escape sequence processing */
 		if (escape != 0) {
@@ -122,20 +120,39 @@ static void ksrln(void *arg)
 		if (ch == 0x7f)
 			ch = '\b';
 		
-		indev_push_character(stdin, ch);
+		indev_push_character(instance->sink, ch);
 	}
 }
 
-void srln_init(indev_t *devin)
+srln_instance_t *srln_init(void)
 {
-	indev_initialize("srln", &srlnout, &srlnout_ops);
-	thread_t *thread
-	    = thread_create(ksrln, devin, TASK, 0, "ksrln", false);
-	
-	if (thread) {
-		stdin = &srlnout;
-		thread_ready(thread);
+	srln_instance_t *instance
+	    = malloc(sizeof(srln_instance_t), FRAME_ATOMIC);
+	if (instance) {
+		instance->thread
+			= thread_create(ksrln, (void *) instance, TASK, 0, "ksrln", false);
+		
+		if (!instance->thread) {
+			free(instance);
+			return NULL;
+		}
+		
+		instance->sink = NULL;
+		indev_initialize("srln", &instance->raw, &srln_raw_ops);
 	}
+	
+	return instance;
+}
+
+indev_t *srln_wire(srln_instance_t *instance, indev_t *sink)
+{
+	ASSERT(instance);
+	ASSERT(sink);
+	
+	instance->sink = sink;
+	thread_ready(instance->thread);
+	
+	return &instance->raw;
 }
 
 /** @}

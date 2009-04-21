@@ -41,10 +41,6 @@
 #include <mm/slab.h>
 #include <ddi/device.h>
 
-static indev_operations_t kbrdin_ops = {
-	.poll = NULL
-};
-
 static inline void z8530_write(ioport8_t *ctl, uint8_t reg, uint8_t val)
 {
 	/*
@@ -82,51 +78,58 @@ static void z8530_irq_handler(irq_t *irq)
 	z8530_t *dev = instance->z8530;
 	
 	if (z8530_read(&dev->ctl_a, RR0) & RR0_RCA) {
-		uint8_t x = z8530_read(&dev->ctl_a, RR8);
-		indev_push_character(&instance->kbrdin, x);
+		uint8_t data = z8530_read(&dev->ctl_a, RR8);
+		indev_push_character(instance->kbrdin, data);
 	}
 }
 
 /** Initialize z8530. */
-indev_t *z8530_init(z8530_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+z8530_instance_t *z8530_init(z8530_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
 	z8530_instance_t *instance
 	    = malloc(sizeof(z8530_instance_t), FRAME_ATOMIC);
-	if (!instance)
-		return false;
+	if (instance) {
+		instance->z8530 = dev;
+		instance->kbrdin = NULL;
+		
+		irq_initialize(&instance->irq);
+		instance->irq.devno = device_assign_devno();
+		instance->irq.inr = inr;
+		instance->irq.claim = z8530_claim;
+		instance->irq.handler = z8530_irq_handler;
+		instance->irq.instance = instance;
+		instance->irq.cir = cir;
+		instance->irq.cir_arg = cir_arg;
+	}
 	
-	indev_initialize("z8530", &instance->kbrdin, &kbrdin_ops);
+	return instance;
+}
+
+void z8530_wire(z8530_instance_t *instance, indev_t *kbrdin)
+{
+	ASSERT(instance);
+	ASSERT(kbrdin);
 	
-	instance->z8530 = dev;
+	instance->kbrdin = kbrdin;
 	
-	irq_initialize(&instance->irq);
-	instance->irq.devno = device_assign_devno();
-	instance->irq.inr = inr;
-	instance->irq.claim = z8530_claim;
-	instance->irq.handler = z8530_irq_handler;
-	instance->irq.instance = instance;
-	instance->irq.cir = cir;
-	instance->irq.cir_arg = cir_arg;
 	irq_register(&instance->irq);
 	
-	(void) z8530_read(&dev->ctl_a, RR8);
+	(void) z8530_read(&instance->z8530->ctl_a, RR8);
 	
 	/*
 	 * Clear any pending TX interrupts or we never manage
 	 * to set FHC UART interrupt state to idle.
 	 */
-	z8530_write(&dev->ctl_a, WR0, WR0_TX_IP_RST);
+	z8530_write(&instance->z8530->ctl_a, WR0, WR0_TX_IP_RST);
 	
 	/* interrupt on all characters */
-	z8530_write(&dev->ctl_a, WR1, WR1_IARCSC);
+	z8530_write(&instance->z8530->ctl_a, WR1, WR1_IARCSC);
 	
 	/* 8 bits per character and enable receiver */
-	z8530_write(&dev->ctl_a, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
+	z8530_write(&instance->z8530->ctl_a, WR3, WR3_RX8BITSCH | WR3_RX_ENABLE);
 	
 	/* Master Interrupt Enable. */
-	z8530_write(&dev->ctl_a, WR9, WR9_MIE);
-	
-	return &instance->kbrdin;
+	z8530_write(&instance->z8530->ctl_a, WR9, WR9_MIE);
 }
 
 /** @}

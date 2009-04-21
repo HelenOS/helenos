@@ -116,10 +116,11 @@ typedef struct {
 typedef struct {
 	irq_t irq;
 	z8530_t *z8530;
-	indev_t kbrdin;
+	indev_t *kbrdin;
 } z8530_instance_t;
 
-extern indev_t *z8530_init(z8530_t *, inr_t, cir_t, void *);
+extern z8530_instance_t *z8530_init(z8530_t *, inr_t, cir_t, void *);
+extern void z8530_wire(z8530_instance_t *, indev_t *);
 
 #endif
 

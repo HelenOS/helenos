@@ -101,9 +101,6 @@
 /** Returns a pointer to the console buffer header. */
 #define SGCN_BUFFER_HEADER	(SGCN_BUFFER(sgcn_buffer_header_t, 0))
 
-/** defined in drivers/kbd.c */
-extern kbd_type_t kbd_type;
-
 /** starting address of SRAM, will be set by the init_sram_begin function */
 static uintptr_t sram_begin;
 
@@ -353,10 +350,7 @@ indev_t *sgcnin_init(void)
 {
 	sgcn_buffer_begin_init();
 
-	kbd_type = KBD_SGCN;
-
 	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_SGCN);
 
 	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
 	if (!t)

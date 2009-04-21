@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup genarch
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_mips32_CONSOLE_H_
-#define KERN_mips32_CONSOLE_H_
+#ifndef KERN_CUDA_H_
+#define KERN_CUDA_H_
+
+#include <ddi/irq.h>
+#include <arch/types.h>
+#include <console/chardev.h>
+
+typedef struct {
+} cuda_t;
+
+typedef struct {
+	irq_t irq;
+	cuda_t *cuda;
+	indev_t *kbrdin;
+} cuda_instance_t;
+
+extern cuda_instance_t *cuda_init(cuda_t *, inr_t, cir_t, void *);
+extern void cuda_wire(cuda_instance_t *, indev_t *);
 
 #endif
 

@@ -44,10 +44,6 @@
 #include <mm/slab.h>
 #include <ddi/device.h>
 
-static indev_operations_t kbrdin_ops = {
-	.poll = NULL
-};
-
 #define i8042_SET_COMMAND  0x60
 #define i8042_COMMAND      0x69
 #define i8042_CPU_RESET    0xfe
@@ -74,35 +70,46 @@ static void i8042_irq_handler(irq_t *irq)
 	
 	if (((status = pio_read_8(&dev->status)) & i8042_BUFFER_FULL_MASK)) {
 		uint8_t data = pio_read_8(&dev->data);
-		indev_push_character(&instance->kbrdin, data);
+		indev_push_character(instance->kbrdin, data);
 	}
 }
 
+/**< Clear input buffer. */
+static void i8042_clear_buffer(i8042_t *dev)
+{
+	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
+		(void) pio_read_8(&dev->data);
+}
+
 /** Initialize i8042. */
-indev_t *i8042_init(i8042_t *dev, inr_t inr)
+i8042_instance_t *i8042_init(i8042_t *dev, inr_t inr)
 {
 	i8042_instance_t *instance
 	    = malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
-	if (!instance)
-		return NULL;
+	if (instance) {
+		instance->i8042 = dev;
+		instance->kbrdin = NULL;
+		
+		irq_initialize(&instance->irq);
+		instance->irq.devno = device_assign_devno();
+		instance->irq.inr = inr;
+		instance->irq.claim = i8042_claim;
+		instance->irq.handler = i8042_irq_handler;
+		instance->irq.instance = instance;
+		
+	}
 	
-	indev_initialize("i8042", &instance->kbrdin, &kbrdin_ops);
+	return instance;
+}
+
+void i8042_wire(i8042_instance_t *instance, indev_t *kbrdin)
+{
+	ASSERT(instance);
+	ASSERT(kbrdin);
 	
-	instance->i8042 = dev;
-	
-	irq_initialize(&instance->irq);
-	instance->irq.devno = device_assign_devno();
-	instance->irq.inr = inr;
-	instance->irq.claim = i8042_claim;
-	instance->irq.handler = i8042_irq_handler;
-	instance->irq.instance = instance;
+	instance->kbrdin = kbrdin;
 	irq_register(&instance->irq);
-	
-	/* Clear input buffer */
-	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
-		(void) pio_read_8(&dev->data);
-	
-	return &instance->kbrdin;
+	i8042_clear_buffer(instance->i8042);
 }
 
 /* Reset CPU by pulsing pin 0 */
@@ -110,9 +117,7 @@ void i8042_cpu_reset(i8042_t *dev)
 {
 	interrupts_disable();
 	
-	/* Clear input buffer */
-	while (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK)
-		(void) pio_read_8(&dev->data);
+	i8042_clear_buffer(dev);
 	
 	/* Reset CPU */
 	pio_write_8(&dev->status, i8042_CPU_RESET);

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -36,6 +36,7 @@
 #define KERN_ppc32_PIC_H_
 
 #include <arch/types.h>
+#include <ddi/irq.h>
 
 #define PIC_PENDING_LOW    8
 #define PIC_PENDING_HIGH   4
@@ -44,11 +45,11 @@
 #define PIC_ACK_LOW        10
 #define PIC_ACK_HIGH       6
 
-void pic_init(uintptr_t base, size_t size);
-void pic_enable_interrupt(int intnum);
-void pic_disable_interrupt(int intnum);
-void pic_ack_interrupt(int intnum);
-int pic_get_pending(void);
+extern void pic_init(uintptr_t base, size_t size, cir_t *cir, void **cir_arg);
+extern void pic_enable_interrupt(inr_t intnum);
+extern void pic_disable_interrupt(inr_t intnum);
+extern void pic_ack_interrupt(void *arg, inr_t intnum);
+extern int pic_get_pending(void);
 
 #endif
 

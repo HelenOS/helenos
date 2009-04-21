@@ -49,10 +49,11 @@ typedef struct {
 typedef struct {
 	irq_t irq;
 	i8042_t *i8042;
-	indev_t kbrdin;
+	indev_t *kbrdin;
 } i8042_instance_t;
 
-extern indev_t *i8042_init(i8042_t *, inr_t);
+extern i8042_instance_t *i8042_init(i8042_t *, inr_t);
+extern void i8042_wire(i8042_instance_t *, indev_t *);
 extern void i8042_cpu_reset(i8042_t *);
 
 #endif

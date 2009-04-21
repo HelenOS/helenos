@@ -35,7 +35,7 @@
 #include <config.h>
 #include <arch.h>
 #include <arch/boot/boot.h>
-#include <arch/drivers/cuda.h>
+#include <genarch/drivers/via-cuda/cuda.h>
 #include <arch/interrupt.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
@@ -44,10 +44,12 @@
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <arch/drivers/pic.h>
+#include <align.h>
 #include <macros.h>
 #include <string.h>
 
 #define IRQ_COUNT  64
+#define IRQ_CUDA   10
 
 bootinfo_t bootinfo;
 
@@ -117,10 +119,27 @@ void arch_post_mm_init(void)
 		
 		if (bootinfo.macio.addr) {
 			/* Initialize PIC */
-			pic_init(bootinfo.macio.addr, PAGE_SIZE);
+			cir_t cir;
+			void *cir_arg;
+			pic_init(bootinfo.macio.addr, PAGE_SIZE, &cir, &cir_arg);
+			
+#ifdef CONFIG_VIA_CUDA
+			uintptr_t pa = bootinfo.macio.addr + 0x16000;
+			uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
+			size_t offset = pa - aligned_addr;
+			size_t size = 2 * PAGE_SIZE;
+			
+			cuda_t *cuda = (cuda_t *)
+			    (hw_map(aligned_addr, offset + size) + offset);
 			
 			/* Initialize I/O controller */
-			cuda_init(bootinfo.macio.addr + 0x16000, 2 * PAGE_SIZE);
+			cuda_instance_t *cuda_instance =
+			    cuda_init(cuda, IRQ_CUDA, cir, cir_arg);
+			if (cuda_instance) {
+				indev_t *sink = stdin_wire();
+				cuda_wire(cuda_instance, sink);
+			}
+#endif
 		}
 		
 		/* Merge all zones to 1 big zone */
@@ -184,6 +203,12 @@ void arch_release_console(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void arch_reboot(void)
+{
+	// TODO
+	while (1);
 }
 
 /** @}

@@ -60,7 +60,6 @@ static void exception_external(int n, istate_t *istate)
 	int inum;
 	
 	while ((inum = pic_get_pending()) != -1) {
-		bool ack = false;
 		irq_t *irq = irq_dispatch_and_lock(inum);
 		if (irq) {
 			/*
@@ -69,11 +68,17 @@ static void exception_external(int n, istate_t *istate)
 			
 			if (irq->preack) {
 				/* Acknowledge the interrupt before processing */
-				pic_ack_interrupt(inum);
-				ack = true;
+				if (irq->cir)
+					irq->cir(irq->cir_arg, irq->inr);
 			}
 			
 			irq->handler(irq);
+			
+			if (!irq->preack) {
+				if (irq->cir)
+					irq->cir(irq->cir_arg, irq->inr);
+			}
+			
 			spinlock_unlock(&irq->lock);
 		} else {
 			/*
@@ -83,9 +88,6 @@ static void exception_external(int n, istate_t *istate)
 			printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
 #endif
 		}
-		
-		if (!ack)
-			pic_ack_interrupt(inum);
 	}
 }
 

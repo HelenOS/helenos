@@ -43,10 +43,6 @@
 
 #define LSR_DATA_READY  0x01
 
-static indev_operations_t kbrdin_ops = {
-	.poll = NULL
-};
-
 static irq_ownership_t ns16550_claim(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
@@ -64,9 +60,16 @@ static void ns16550_irq_handler(irq_t *irq)
 	ns16550_t *dev = instance->ns16550;
 	
 	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
-		uint8_t x = pio_read_8(&dev->rbr);
-		indev_push_character(&instance->kbrdin, x);
+		uint8_t data = pio_read_8(&dev->rbr);
+		indev_push_character(instance->kbrdin, data);
 	}
+}
+
+/**< Clear input buffer. */
+static void ns16550_clear_buffer(ns16550_t *dev)
+{
+	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
+		(void) pio_read_8(&dev->rbr);
 }
 
 /** Initialize ns16550.
@@ -77,38 +80,43 @@ static void ns16550_irq_handler(irq_t *irq)
  * @param cir      Clear interrupt function.
  * @param cir_arg  First argument to cir.
  *
- * @return Keyboard device pointer or NULL on failure.
+ * @return Keyboard instance or NULL on failure.
  *
  */
-indev_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
 	ns16550_instance_t *instance
 	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
-	if (!instance)
-		return NULL;
+	if (instance) {
+		instance->ns16550 = dev;
+		instance->kbrdin = NULL;
+		
+		irq_initialize(&instance->irq);
+		instance->irq.devno = device_assign_devno();
+		instance->irq.inr = inr;
+		instance->irq.claim = ns16550_claim;
+		instance->irq.handler = ns16550_irq_handler;
+		instance->irq.instance = instance;
+		instance->irq.cir = cir;
+		instance->irq.cir_arg = cir_arg;
+	}
 	
-	indev_initialize("ns16550", &instance->kbrdin, &kbrdin_ops);
+	return instance;
+}
+
+void ns16550_wire(ns16550_instance_t *instance, indev_t *kbrdin)
+{
+	ASSERT(instance);
+	ASSERT(kbrdin);
 	
-	instance->ns16550 = dev;
-	
-	irq_initialize(&instance->irq);
-	instance->irq.devno = device_assign_devno();
-	instance->irq.inr = inr;
-	instance->irq.claim = ns16550_claim;
-	instance->irq.handler = ns16550_irq_handler;
-	instance->irq.instance = instance;
-	instance->irq.cir = cir;
-	instance->irq.cir_arg = cir_arg;
+	instance->kbrdin = kbrdin;
 	irq_register(&instance->irq);
 	
-	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
-		(void) pio_read_8(&dev->rbr);
+	ns16550_clear_buffer(instance->ns16550);
 	
 	/* Enable interrupts */
-	pio_write_8(&dev->ier, IER_ERBFI);
-	pio_write_8(&dev->mcr, MCR_OUT2);
-	
-	return &instance->kbrdin;
+	pio_write_8(&instance->ns16550->ier, IER_ERBFI);
+	pio_write_8(&instance->ns16550->mcr, MCR_OUT2);
 }
 
 /** @}

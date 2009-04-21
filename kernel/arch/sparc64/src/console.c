@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -135,15 +135,9 @@ void arch_grab_console(void)
 	scr_redraw();
 #endif
 	
-	switch (kbd_type) {
 #ifdef CONFIG_SGCN_KBD
-	case KBD_SGCN:
-		sgcn_grab();
-		break;
+	sgcn_grab();
 #endif
-	default:
-		break;
-	}
 }
 
 /** Return console to userspace
@@ -151,15 +145,9 @@ void arch_grab_console(void)
  */
 void arch_release_console(void)
 {
-	switch (kbd_type) {
 #ifdef CONFIG_SGCN_KBD
-	case KBD_SGCN:
-		sgcn_release();
-		break;
+	sgcn_release();
 #endif
-	default:
-		break;
-	}
 }
 
 /** @}
