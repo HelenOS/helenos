@@ -641,10 +641,12 @@ const char *str_chr(const char *str, wchar_t ch)
 {
 	wchar_t acc;
 	size_t off = 0;
+	size_t last = 0;
 	
 	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc == ch)
-			return (str + off);
+			return (str + last);
+		last = off;
 	}
 	
 	return NULL;
