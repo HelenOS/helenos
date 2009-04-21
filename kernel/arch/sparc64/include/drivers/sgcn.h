@@ -37,6 +37,7 @@
 
 #include <arch/types.h>
 #include <console/chardev.h>
+#include <proc/thread.h>
 
 /* number of bytes in the TOC magic, including the NULL-terminator */
 #define TOC_MAGIC_BYTES		8
@@ -116,10 +117,16 @@ typedef struct {
 	uint32_t out_wrptr;
 } __attribute__ ((packed)) sgcn_buffer_header_t;
 
-void sgcn_grab(void);
-void sgcn_release(void);
-indev_t *sgcnin_init(void);
-void sgcnout_init(void);
+typedef struct {
+	thread_t *thread;
+	indev_t *srlnin;
+} sgcn_instance_t;
+
+extern void sgcn_grab(void);
+extern void sgcn_release(void);
+extern sgcn_instance_t *sgcnin_init(void);
+extern void sgcnin_wire(sgcn_instance_t *, indev_t *);
+extern void sgcnout_init(void);
 
 #endif
 

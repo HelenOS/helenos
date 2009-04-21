@@ -134,12 +134,6 @@ static outdev_operations_t sgcnout_ops = {
 	.write = sgcn_putchar
 };
 
-/** SGCN input device operations */
-static indev_operations_t sgcnin_ops = {
-	.poll = NULL
-};
-
-static indev_t sgcnin;		/**< SGCN input device. */
 static outdev_t sgcnout;	/**< SGCN output device. */
 
 /**
@@ -301,7 +295,7 @@ void sgcn_release(void)
  * there are some unread characters in the input queue. If so, it picks them up
  * and sends them to the upper layers of HelenOS.
  */
-static void sgcn_poll()
+static void sgcn_poll(sgcn_instance_t *instance)
 {
 	uint32_t begin = SGCN_BUFFER_HEADER->in_begin;
 	uint32_t end = SGCN_BUFFER_HEADER->in_end;
@@ -319,13 +313,12 @@ static void sgcn_poll()
 	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
 	
 	while (*in_rdptr_ptr != *in_wrptr_ptr) {
-		
 		buf_ptr = (volatile char *)
 		    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
 		char c = *buf_ptr;
 		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
 			
-		indev_push_character(&sgcnin, c);	
+		indev_push_character(instance->srlnin, c);	
 	}	
 
 	spinlock_unlock(&sgcn_input_lock);
@@ -334,11 +327,10 @@ static void sgcn_poll()
 /**
  * Polling thread function.
  */
-static void kkbdpoll(void *arg) {
+static void ksgcnpoll(void *instance) {
 	while (1) {
-		if (!silent) {
-			sgcn_poll();
-		}
+		if (!silent) 
+			sgcn_poll(instance);
 		thread_usleep(POLL_INTERVAL);
 	}
 }
@@ -346,20 +338,35 @@ static void kkbdpoll(void *arg) {
 /**
  * A public function which initializes input from the Serengeti console.
  */
-indev_t *sgcnin_init(void)
+sgcn_instance_t *sgcnin_init(void)
 {
 	sgcn_buffer_begin_init();
 
-	sysinfo_set_item_val("kbd", NULL, true);
+	sgcn_instance_t *instance =
+	    malloc(sizeof(sgcn_instance_t), FRAME_ATOMIC);
+	if (!instance)
+		return NULL;
 
-	thread_t *t = thread_create(kkbdpoll, NULL, TASK, 0, "kkbdpoll", true);
-	if (!t)
-		panic("Cannot create kkbdpoll.");
-	thread_ready(t);
+	instance->srlnin = NULL;
+	instance->thread = thread_create(ksgcnpoll, instance, TASK, 0,
+	    "ksgcnpoll", true);
+	if (!instance->thread) {
+		free(instance);
+		return NULL;
+	}
 	
-	indev_initialize("sgcnin", &sgcnin, &sgcnin_ops);
+	return instance;
+}
 
-	return &sgcnin;
+void sgcnin_wire(sgcn_instance_t *instance, indev_t *srlnin)
+{
+	ASSERT(instance);
+	ASSERT(srlnin);
+
+	instance->srlnin = srlnin;
+	thread_ready(instance->thread);
+
+	sysinfo_set_item_val("kbd", NULL, true);
 }
 
 /**

@@ -92,10 +92,15 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 static void serengeti_init(void)
 {
 #ifdef CONFIG_SGCN_KBD
-	indev_t *kbrdin;
-	kbrdin = sgcnin_init();
-	if (kbrdin)
-		srln_init(kbrdin);
+	sgcn_instance_t *sgcn_instance = sgcnin_init();
+	if (sgcn_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			sgcnin_wire(sgcn_instance, srln);
+		}
+	}
 #endif
 #ifdef CONFIG_SGCN_PRN
 	sgcnout_init();

@@ -183,11 +183,12 @@ ski_instance_t *skiin_init(void)
 {
 	ski_init();
 	
-	ski_instance_t *instance
-	    = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
+	ski_instance_t *instance =
+	    malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
 	
 	if (instance) {
-		instance->thread = thread_create(kskipoll, (void *) instance, TASK, 0, "kskipoll", true);
+		instance->thread = thread_create(kskipoll, instance, TASK, 0,
+		    "kskipoll", true);
 		
 		if (!instance->thread) {
 			free(instance);
