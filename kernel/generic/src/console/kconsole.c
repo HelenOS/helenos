@@ -245,7 +245,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 	current[0] = 0;
 	
 	while (true) {
-		wchar_t ch = _getc(indev);
+		wchar_t ch = indev_pop_character(indev);
 		
 		if (ch == '\n') {
 			/* Enter */
@@ -653,7 +653,7 @@ void kconsole(char *prompt, char *msg, bool kcon)
 		printf("%s", msg);
 	
 	if (kcon)
-		_getc(stdin);
+		indev_pop_character(stdin);
 	else
 		printf("Type \"exit\" to leave the console.\n");
 	

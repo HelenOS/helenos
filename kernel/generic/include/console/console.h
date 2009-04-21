@@ -40,17 +40,15 @@
 
 extern indev_t *stdin;
 extern outdev_t *stdout;
-
 extern bool silent;
 
+extern indev_t *stdin_wire(void);
 extern void console_init(void);
 
 extern void klog_init(void);
 extern void klog_update(void);
 
-extern bool check_poll(indev_t *indev);
 extern wchar_t getc(indev_t *indev);
-extern wchar_t _getc(indev_t *indev);
 extern count_t gets(indev_t *indev, char *buf, size_t buflen);
 extern unative_t sys_klog(int fd, const void *buf, size_t size);
 

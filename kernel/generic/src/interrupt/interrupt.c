@@ -145,7 +145,7 @@ static int cmd_exc_print(cmd_arg_t *argv)
 		if (((i + 1) % 20) == 0) {
 			printf(" -- Press any key to continue -- ");
 			spinlock_unlock(&exctbl_lock);
-			_getc(stdin);
+			indev_pop_character(stdin);
 			spinlock_lock(&exctbl_lock);
 			printf("\n");
 		}

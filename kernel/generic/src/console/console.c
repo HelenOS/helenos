@@ -44,7 +44,6 @@
 #include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
-#include <func.h>
 #include <print.h>
 #include <putchar.h>
 #include <atomic.h>
@@ -70,18 +69,33 @@ static size_t klog_stored = 0;
 /** Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
-/** Silence output */
-bool silent = false;
-
 /** Kernel log spinlock */
 SPINLOCK_INITIALIZE(klog_lock);
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
 
+static indev_operations_t stdin_ops = {
+	.poll = NULL
+};
+
+/** Silence output */
+bool silent = false;
+
 /** Standard input and output character devices */
 indev_t *stdin = NULL;
 outdev_t *stdout = NULL;
+
+indev_t *stdin_wire(void)
+{
+	if (stdin == NULL) {
+		stdin = malloc(sizeof(indev_t), FRAME_ATOMIC);
+		if (stdin != NULL)
+			indev_initialize("stdin", stdin, &stdin_ops);
+	}
+	
+	return stdin;
+}
 
 /** Initialize kernel logging facility
  *
@@ -138,55 +152,6 @@ unative_t sys_debug_disable_console(void)
 	return true;
 }
 
-bool check_poll(indev_t *indev)
-{
-	if (indev == NULL)
-		return false;
-	
-	if (indev->op == NULL)
-		return false;
-	
-	return (indev->op->poll != NULL);
-}
-
-/** Get character from input character device. Do not echo character.
- *
- * @param indev Input character device.
- * @return Character read.
- *
- */
-wchar_t _getc(indev_t *indev)
-{
-	if (atomic_get(&haltstate)) {
-		/* If we are here, we are hopefully on the processor that
-		 * issued the 'halt' command, so proceed to read the character
-		 * directly from input
-		 */
-		if (check_poll(indev))
-			return indev->op->poll(indev);
-		
-		/* No other way of interacting with user */
-		interrupts_disable();
-		
-		if (CPU)
-			printf("cpu%u: ", CPU->id);
-		else
-			printf("cpu: ");
-		printf("halted (no polling input)\n");
-		cpu_halt();
-	}
-	
-	waitq_sleep(&indev->wq);
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&indev->lock);
-	wchar_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
-	indev->counter--;
-	spinlock_unlock(&indev->lock);
-	interrupts_restore(ipl);
-	
-	return ch;
-}
-
 /** Get string from input character device.
  *
  * Read characters from input character device until first occurrence
@@ -206,7 +171,7 @@ count_t gets(indev_t *indev, char *buf, size_t buflen)
 	buf[offset] = 0;
 	
 	wchar_t ch;
-	while ((ch = _getc(indev)) != '\n') {
+	while ((ch = indev_pop_character(indev)) != '\n') {
 		if (ch == '\b') {
 			if (count > 0) {
 				/* Space, backspace, space */
@@ -232,7 +197,7 @@ count_t gets(indev_t *indev, char *buf, size_t buflen)
 /** Get character from input device & echo it to screen */
 wchar_t getc(indev_t *indev)
 {
-	wchar_t ch = _getc(indev);
+	wchar_t ch = indev_pop_character(indev);
 	putchar(ch);
 	return ch;
 }

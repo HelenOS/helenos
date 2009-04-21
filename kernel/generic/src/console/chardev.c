@@ -35,6 +35,9 @@
 #include <console/chardev.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
+#include <print.h>
+#include <func.h>
+#include <arch.h>
 
 /** Initialize input character device.
  *
@@ -79,6 +82,46 @@ void indev_push_character(indev_t *indev, wchar_t ch)
 	spinlock_unlock(&indev->lock);
 }
 
+/** Pop character from input character device.
+ *
+ * @param indev Input character device.
+ *
+ * @return Character read.
+ *
+ */
+wchar_t indev_pop_character(indev_t *indev)
+{
+	if (atomic_get(&haltstate)) {
+		/* If we are here, we are hopefully on the processor that
+		 * issued the 'halt' command, so proceed to read the character
+		 * directly from input
+		 */
+		if (check_poll(indev))
+			return indev->op->poll(indev);
+		
+		/* No other way of interacting with user */
+		interrupts_disable();
+		
+		if (CPU)
+			printf("cpu%u: ", CPU->id);
+		else
+			printf("cpu: ");
+		
+		printf("halted (no polling input)\n");
+		cpu_halt();
+	}
+	
+	waitq_sleep(&indev->wq);
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&indev->lock);
+	wchar_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
+	indev->counter--;
+	spinlock_unlock(&indev->lock);
+	interrupts_restore(ipl);
+	
+	return ch;
+}
+
 /** Initialize output character device.
  *
  * @param outdev Output character device.
@@ -91,6 +134,17 @@ void outdev_initialize(char *name, outdev_t *outdev,
 	outdev->name = name;
 	spinlock_initialize(&outdev->lock, "outdev");
 	outdev->op = op;
+}
+
+bool check_poll(indev_t *indev)
+{
+	if (indev == NULL)
+		return false;
+	
+	if (indev->op == NULL)
+		return false;
+	
+	return (indev->op->poll != NULL);
 }
 
 /** @}

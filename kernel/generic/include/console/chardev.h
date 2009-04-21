@@ -89,9 +89,12 @@ typedef struct outdev {
 extern void indev_initialize(char *name, indev_t *indev,
     indev_operations_t *op);
 extern void indev_push_character(indev_t *indev, wchar_t ch);
+extern wchar_t indev_pop_character(indev_t *indev);
 
 extern void outdev_initialize(char *name, outdev_t *outdev,
     outdev_operations_t *op);
+
+extern bool check_poll(indev_t *indev);
 
 #endif /* KERN_CHARDEV_H_ */
 
