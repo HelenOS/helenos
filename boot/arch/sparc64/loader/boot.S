@@ -43,7 +43,7 @@
 
 .global start
 start:
-	b 1f
+	ba %xcc, 1f
 	nop
 
 /*
@@ -83,7 +83,7 @@ silo_ramdisk_size:
 	call ofw_init		! initialize OpenFirmware
 	stx %o4, [%l0]
 	
-	b bootstrap
+	ba %xcc, bootstrap
 	nop
 
 .align STACK_ALIGNMENT

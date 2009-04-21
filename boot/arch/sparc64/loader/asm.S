@@ -40,7 +40,7 @@
 .global jump_to_kernel
 
 halt:
-	b halt
+	ba %xcc, halt
 	nop
 	
 memcpy:
@@ -116,7 +116,7 @@ jump_to_kernel:
 	set subarchitecture, %g2
 	ldub [%g2], %g2
 	cmp %g2, 3
-	be 1f
+	be %xcc, 1f
 	nop
 0:
 	call icache_flush

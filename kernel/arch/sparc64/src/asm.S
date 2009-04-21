@@ -225,12 +225,12 @@ memcpy_to_uspace_failover_address:
 
 .global memsetb
 memsetb:
-	b _memsetb
+	ba %xcc, _memsetb
 	nop
 
 .global memsetw
 memsetw:
-	b _memsetw
+	ba %xcc, _memsetw
 	nop
 
 

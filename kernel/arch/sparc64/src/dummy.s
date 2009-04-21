@@ -42,5 +42,5 @@ dummy:
 
 .global cpu_halt
 cpu_halt:
-	b cpu_halt
+	ba %xcc, cpu_halt
 	nop
