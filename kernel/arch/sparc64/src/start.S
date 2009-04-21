@@ -294,7 +294,7 @@ kernel_image_start:
 	/* Not reached. */
 
 0:
-	ba 0b
+	ba %xcc, 0b
 	nop
 
 
@@ -352,7 +352,7 @@ kernel_image_start:
 #endif
 	
 0:
-	ba 0b
+	ba %xcc, 0b
 	nop
 
 

@@ -341,7 +341,7 @@ fill_1_normal_tl0:
 .org trap_table + (TT_TRAP_INSTRUCTION_0+\cur)*ENTRY_SIZE
 .global trap_instruction_\cur\()_tl0
 trap_instruction_\cur\()_tl0:
-	ba trap_instruction_handler
+	ba %xcc, trap_instruction_handler
 	mov \cur, %g2
 .endr
 
@@ -480,7 +480,7 @@ fill_0_normal_tl1:
 	cmp %g3, 1
 	be %xcc, 1f
 	nop
-0:	ba 0b					! this is for debugging, if we ever get here
+0:	ba %xcc, 0b				! this is for debugging, if we ever get here
 	nop					! it will be easy to find
 
 1:
@@ -545,7 +545,7 @@ fill_0_normal_tl1:
 	flush %l0
 
 .if NOT(\is_syscall)
-	ba 1f
+	ba %xcc, 1f
 	nop
 0:
 	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
@@ -774,7 +774,7 @@ fill_0_normal_tl1:
 	and %g3, NWINDOWS - 1, %g3
 	wrpr %g3, 0, %cwp			! switch to the preceeding window
 
-	ba 0b
+	ba %xcc, 0b
 	inc %g4
 
 0:
