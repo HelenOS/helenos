@@ -98,22 +98,22 @@ extern void async_set_interrupt_received(async_client_conn_t conn);
 
 /* Wrappers for simple communication */
 #define async_msg_0(phone, method) \
-    ipc_call_async_0((phone), (method), NULL, NULL, !in_interrupt_handler())
+    ipc_call_async_0((phone), (method), NULL, NULL, true)
 #define async_msg_1(phone, method, arg1) \
     ipc_call_async_1((phone), (method), (arg1), NULL, NULL, \
-        !in_interrupt_handler())
+        true)
 #define async_msg_2(phone, method, arg1, arg2) \
     ipc_call_async_2((phone), (method), (arg1), (arg2), NULL, NULL, \
-        !in_interrupt_handler())
+        true)
 #define async_msg_3(phone, method, arg1, arg2, arg3) \
     ipc_call_async_3((phone), (method), (arg1), (arg2), (arg3), NULL, NULL, \
-        !in_interrupt_handler())
+        true)
 #define async_msg_4(phone, method, arg1, arg2, arg3, arg4) \
     ipc_call_async_4((phone), (method), (arg1), (arg2), (arg3), (arg4), NULL, \
-        NULL, !in_interrupt_handler())
+        NULL, true)
 #define async_msg_5(phone, method, arg1, arg2, arg3, arg4, arg5) \
     ipc_call_async_5((phone), (method), (arg1), (arg2), (arg3), (arg4), \
-        (arg5), NULL, NULL, !in_interrupt_handler())
+        (arg5), NULL, NULL, true)
 
 /*
  * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
@@ -252,8 +252,6 @@ static inline void async_serialize_end(void)
 {
 	fibril_dec_sercount();
 }
-
-extern bool in_interrupt_handler(void);
 
 extern atomic_t async_futex;
 
