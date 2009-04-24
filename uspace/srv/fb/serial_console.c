@@ -274,9 +274,6 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 			serial_goto(y, x);
 
 		for (i = 0; i < w; i++) {
-			unsigned int col = x + i;
-			unsigned int row = y + j;
-
 			field = &data[j * w + i];
 
 			a1 = &field->attrs;
@@ -304,12 +301,9 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	wchar_t c;
 	int col, row, w, h;
-	int fgcolor;
-	int bgcolor;
-	int flags;
-	int style;
 	int i;
 
+	attrs_t cur_attr;
 	
 	if (client_connected) {
 		ipc_answer_0(iid, ELIMIT);
@@ -318,6 +312,9 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	client_connected = 1;
 	ipc_answer_0(iid, EOK);
+
+	cur_attr.t = at_style;
+	cur_attr.a.s.style = STYLE_NORMAL;
 	
 	/* Clear the terminal, set scrolling region
 	   to 0 - height rows. */
@@ -388,23 +385,28 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
-			style = IPC_GET_ARG1(call);
-			serial_set_style(style);
+			cur_attr.t = at_style;
+			cur_attr.a.s.style = IPC_GET_ARG1(call);
+			cur_attr.a.i.bg_color = IPC_GET_ARG2(call);
+			serial_set_attrs(&cur_attr);
+
 			retval = 0;
 			break;
 		case FB_SET_COLOR:
-			fgcolor = IPC_GET_ARG1(call);
-			bgcolor = IPC_GET_ARG2(call);
-			flags = IPC_GET_ARG3(call);
+			cur_attr.t = at_idx;
+			cur_attr.a.i.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.i.bg_color = IPC_GET_ARG2(call);
+			cur_attr.a.i.flags = IPC_GET_ARG3(call);
+			serial_set_attrs(&cur_attr);
 
-			serial_set_idx(fgcolor, bgcolor, flags);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
-			fgcolor = IPC_GET_ARG1(call);
-			bgcolor = IPC_GET_ARG2(call);
+			cur_attr.t = at_rgb;
+			cur_attr.a.i.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.i.bg_color = IPC_GET_ARG2(call);
+			serial_set_attrs(&cur_attr);
 
-			serial_set_rgb(fgcolor, bgcolor);
 			retval = 0;
 			break;
 		case FB_SCROLL:
@@ -422,6 +424,18 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				serial_cursor_enable();
 			else
 				serial_cursor_disable();
+			retval = 0;
+			break;
+		case FB_SCREEN_GRAB:
+			serial_clrscr();
+			serial_set_attrs(&cur_attr);
+			retval = 0;
+			break;
+		case FB_SCREEN_RELINQUISH:
+			serial_sgr(SGR_RESET);
+			serial_puts("\033[2J");
+			serial_goto(0, 0);
+			serial_cursor_enable();
 			retval = 0;
 			break;
 		default:

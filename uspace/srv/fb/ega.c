@@ -391,7 +391,10 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			}
 			retval = 0;
 			break;
-
+		case FB_SCREEN_GRAB:
+		case FB_SCREEN_RELINQUISH:
+			retval = EOK;
+			break;
 		default:
 			retval = EINVAL;
 		}

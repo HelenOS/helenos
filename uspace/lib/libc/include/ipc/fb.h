@@ -66,7 +66,9 @@ typedef enum {
 	FB_ANIM_CHGVP,
 	FB_ANIM_START,
 	FB_ANIM_STOP,
-	FB_POINTER_MOVE
+	FB_POINTER_MOVE,
+	FB_SCREEN_GRAB,
+	FB_SCREEN_RELINQUISH
 } fb_request_t;
 
 #endif

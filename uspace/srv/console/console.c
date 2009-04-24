@@ -141,6 +141,16 @@ static void curs_goto(int row, int col)
 	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
 }
 
+static void screen_grab(void)
+{
+	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_GRAB);
+}
+
+static void screen_relinquish(void)
+{
+	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_RELINQUISH);
+}
+
 static void set_style(int style)
 {
 	async_msg_1(fb_info.phone, FB_SET_STYLE, style); 
@@ -330,7 +340,9 @@ static void change_console(int newcons)
 		async_serialize_start();
 		curs_hide_sync();
 		gcons_in_kernel();
+		screen_relinquish();
 		async_serialize_end();
+
 		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
 			prev_console = active_console;
@@ -342,8 +354,10 @@ static void change_console(int newcons)
 	if (newcons != KERNEL_CONSOLE) {
 		async_serialize_start();
 		
-		if (active_console == KERNEL_CONSOLE)
+		if (active_console == KERNEL_CONSOLE) {
+			screen_grab();
 			gcons_redraw_console();
+		}
 		
 		active_console = newcons;
 		gcons_change_console(newcons);
