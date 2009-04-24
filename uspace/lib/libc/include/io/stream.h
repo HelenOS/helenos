@@ -37,14 +37,10 @@
 
 #include <libarch/types.h>
 
-#define EMFILE -17
-
-extern void klog_update(void);
+#define EMFILE  -17
 
 extern ssize_t read_stdin(void *, size_t);
-extern ssize_t write_stdout(const void *, size_t);
-extern ssize_t write_stderr(const void *, size_t);
-extern int flush_stdout(void);
+extern void klog_update(void);
 
 #endif
 

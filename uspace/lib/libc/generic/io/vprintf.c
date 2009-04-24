@@ -38,6 +38,7 @@
 #include <io/printf_core.h>
 #include <futex.h>
 #include <async.h>
+#include <console.h>
 
 static atomic_t printf_futex = FUTEX_INITIALIZER;
 
@@ -50,7 +51,7 @@ static int vprintf_str_write(const char *str, size_t size, void *data)
 	while (offset < size) {
 		prev = offset;
 		str_decode(str, &offset, size);
-		write_stdout(str + prev, offset - prev);
+		console_write(str + prev, offset - prev);
 		chars++;
 	}
 	
@@ -67,7 +68,7 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 	while (offset < size) {
 		boff = 0;
 		chr_encode(str[chars], buf, &boff, 4);
-		write_stdout(buf, boff);
+		console_write(buf, boff);
 		chars++;
 		offset += sizeof(wchar_t);
 	}

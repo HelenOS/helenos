@@ -218,19 +218,11 @@ void kinit(void *arg)
 	}
 	
 	/*
-	 * Run user tasks with small delays
-	 * to avoid intermixed klog output.
-	 *
-	 * TODO: This certainly does not guarantee
-	 *       anything, it just works in most of the
-	 *       cases. Some better way how to achieve
-	 *       nice klog output should be found.
+	 * Run user tasks.
 	 */
 	for (i = 0; i < init.cnt; i++) {
-		if (programs[i].task != NULL) {
+		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
-			thread_usleep(10000);
-		}
 	}
 	
 #ifdef CONFIG_KCONSOLE

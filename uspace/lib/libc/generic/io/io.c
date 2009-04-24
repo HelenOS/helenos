@@ -38,6 +38,7 @@
 #include <io/io.h>
 #include <string.h>
 #include <errno.h>
+#include <console.h>
 
 const static char nl = '\n';
 
@@ -49,8 +50,9 @@ int puts(const char *str)
 		return putnchars("(NULL)", 6);
 	
 	for (count = 0; str[count] != 0; count++);
-	if (write_stdout((void *) str, count) == count) {
-		if (write_stdout(&nl, 1) == 1)
+	
+	if (console_write((void *) str, count) == count) {
+		if (console_write(&nl, 1) == 1)
 			return 0;
 	}
 	
@@ -64,7 +66,7 @@ int puts(const char *str)
  */
 int putnchars(const char *buf, size_t count)
 {
-	if (write_stdout((void *) buf, count) == count)
+	if (console_write((void *) buf, count) == count)
 		return 0;
 	
 	return EOF;
@@ -81,7 +83,7 @@ int putstr(const char *str)
 		return putnchars("(NULL)", 6);
 
 	for (count = 0; str[count] != 0; count++);
-	if (write_stdout((void *) str, count) == count)
+	if (console_write((void *) str, count) == count)
 		return 0;
 	
 	return EOF;
@@ -96,7 +98,7 @@ int putchar(int c)
 	if (chr_encode(c, buf, &offs, STR_BOUNDS(1)) != EOK)
 		return EOF;
 
-	if (write_stdout((void *) buf, offs) == offs)
+	if (console_write((void *) buf, offs) == offs)
 		return c;
 
 	return EOF;
@@ -105,8 +107,8 @@ int putchar(int c)
 int getchar(void)
 {
 	unsigned char c;
-
-	flush_stdout();
+	
+	console_flush();
 	if (read_stdin((void *) &c, 1) == 1)
 		return c;
 	
@@ -115,8 +117,10 @@ int getchar(void)
 
 int fflush(FILE *f)
 {
+	/* Dummy implementation */
 	(void) f;
-	return flush_stdout();
+	console_flush();
+	return 0;
 }
 
 /** @}

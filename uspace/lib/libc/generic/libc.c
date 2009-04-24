@@ -84,7 +84,7 @@ void __main(void *pcb_ptr)
 	}
 
 	main(argc, argv);
-	console_flush_optional();
+	console_flush();
 }
 
 void __exit(void)

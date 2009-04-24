@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup libc
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -40,19 +40,16 @@
 #include <sys/types.h>
 #include <bool.h>
 
-extern void console_open(bool);
+extern int console_open(bool);
 extern void console_close(void);
-
-extern int console_phone_get(bool);
 extern void console_wait(void);
 
 extern void console_clear(void);
 extern void console_goto(int, int);
 extern void console_putchar(wchar_t);
-extern ssize_t console_write(const char *buf, size_t nbyte);
-extern void console_putstr(const char *s);
+extern ssize_t console_write(const char *, size_t);
+extern void console_putstr(const char *);
 extern void console_flush(void);
-extern void console_flush_optional(void);
 
 extern int console_get_size(int *, int *);
 extern void console_set_style(int);
@@ -63,6 +60,6 @@ extern void console_cursor_visibility(int);
 extern void console_kcon_enable(void);
 
 #endif
- 
+
 /** @}
  */

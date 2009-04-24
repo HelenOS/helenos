@@ -49,60 +49,26 @@
 #include <async.h>
 #include <sys/types.h>
 
-ssize_t write_stderr(const void *buf, size_t count)
-{
-	return count;
-}
-
 ssize_t read_stdin(void *buf, size_t count)
 {
-	int cons_phone = console_phone_get(false);
-
+	int cons_phone = console_open(false);
+	
 	if (cons_phone >= 0) {
 		kbd_event_t ev;
 		int rc;
 		size_t i = 0;
-	
+		
 		while (i < count) {
 			do {
 				rc = kbd_get_event(&ev);
 				if (rc < 0) return -1;
 			} while (ev.c == 0 || ev.type == KE_RELEASE);
-
+			
 			((char *) buf)[i++] = ev.c;
 		}
 		return i;
-	} else {
-		return -1;
-	}
-}
-
-ssize_t write_stdout(const void *buf, size_t count)
-{
-	int cons_phone = console_phone_get(false);
-	int left, rc;
-
-	if (cons_phone >= 0) {
-		int i;
-
-		left = count;
-		while (left > 0) {
-			rc = console_write(buf, left);
-			if (rc < 0)
-				break;
-			buf += rc;
-			left -= rc;
-		}
-
-		return count;
 	} else
-		return __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, count);
-}
-
-int flush_stdout(void)
-{
-	console_flush();
-	return 0;
+		return -1;
 }
 
 void klog_update(void)
