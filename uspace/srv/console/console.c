@@ -512,6 +512,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	gcons_notify_connect(consnum);
 	conn->client_phone = IPC_GET_ARG5(*icall);
 	screenbuffer_clear(&conn->screenbuffer);
+	if (consnum == active_console)
+		clrscr();
 	
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
