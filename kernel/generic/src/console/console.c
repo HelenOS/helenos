@@ -124,11 +124,13 @@ void klog_init(void)
 
 void grab_console(void)
 {
+	bool prev = silent;
+	
 	silent = false;
 	arch_grab_console();
 	
 	/* Force the console to print the prompt */
-	if (stdin)
+	if ((stdin) && (prev))
 		indev_push_character(stdin, '\n');
 }
 
