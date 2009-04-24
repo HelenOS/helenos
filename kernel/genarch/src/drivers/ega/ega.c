@@ -426,44 +426,55 @@ static uint16_t ega_oem_glyph(const wchar_t ch)
 /*
  * This function takes care of scrolling.
  */
-static void ega_check_cursor(void)
+static void ega_check_cursor(bool silent)
 {
 	if (ega_cursor < EGA_SCREEN)
 		return;
 	
-	memmove((void *) videoram, (void *) (videoram + EGA_COLS * 2),
-	    (EGA_SCREEN - EGA_COLS) * 2);
 	memmove((void *) backbuf, (void *) (backbuf + EGA_COLS * 2),
 	    (EGA_SCREEN - EGA_COLS) * 2);
-	memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
 	memsetw(backbuf + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
+	
+	if (!silent) {
+		memmove((void *) videoram, (void *) (videoram + EGA_COLS * 2),
+		    (EGA_SCREEN - EGA_COLS) * 2);
+		memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
+	}
+	
 	ega_cursor = ega_cursor - EGA_COLS;
 }
 
-static void ega_show_cursor(void)
+static void ega_show_cursor(bool silent)
 {
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
-	uint8_t stat = pio_read_8(ega_base + EGA_DATA_REG);
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
-	pio_write_8(ega_base + EGA_DATA_REG, stat & (~(1 << 5)));
+	if (!silent) {
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
+		uint8_t stat = pio_read_8(ega_base + EGA_DATA_REG);
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
+		pio_write_8(ega_base + EGA_DATA_REG, stat & (~(1 << 5)));
+	}
 }
 
-static void ega_move_cursor(void)
+static void ega_move_cursor(bool silent)
 {
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
-	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
-	pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));
+	if (!silent) {
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
+		pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
+		pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));
+	}
 }
 
-static void ega_sync_cursor(void)
+static void ega_sync_cursor(bool silent)
 {
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
-	uint8_t hi = pio_read_8(ega_base + EGA_DATA_REG);
-	pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
-	uint8_t lo = pio_read_8(ega_base + EGA_DATA_REG);
-	
-	ega_cursor = (hi << 8) | lo;
+	if (!silent) {
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
+		uint8_t hi = pio_read_8(ega_base + EGA_DATA_REG);
+		pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
+		uint8_t lo = pio_read_8(ega_base + EGA_DATA_REG);
+		
+		ega_cursor = (hi << 8) | lo;
+	} else
+		ega_cursor = 0;
 	
 	if (ega_cursor >= EGA_SCREEN)
 		ega_cursor = 0;
@@ -471,12 +482,14 @@ static void ega_sync_cursor(void)
 	if ((ega_cursor % EGA_COLS) != 0)
 		ega_cursor = (ega_cursor + EGA_COLS) - ega_cursor % EGA_COLS;
 	
-	memsetw(videoram + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
 	memsetw(backbuf + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
 	
-	ega_check_cursor();
-	ega_move_cursor();
-	ega_show_cursor();
+	if (!silent)
+		memsetw(videoram + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
+	
+	ega_check_cursor(silent);
+	ega_move_cursor(silent);
+	ega_show_cursor(silent);
 }
 
 static void ega_display_char(wchar_t ch, bool silent)
@@ -525,10 +538,8 @@ static void ega_putchar(outdev_t *dev __attribute__((unused)), wchar_t ch, bool 
 		ega_cursor++;
 		break;
 	}
-	ega_check_cursor();
-	
-	if (!silent)
-		ega_move_cursor();
+	ega_check_cursor(silent);
+	ega_move_cursor(silent);
 	
 	spinlock_unlock(&egalock);
 	interrupts_restore(ipl);
@@ -552,7 +563,7 @@ void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 	
 	/* Synchronize the back buffer and cursor position. */
 	memcpy(backbuf, videoram, EGA_VRAM_SIZE);
-	ega_sync_cursor();
+	ega_sync_cursor(silent);
 	
 	outdev_initialize("ega", &ega_console, &ega_ops);
 	stdout = &ega_console;
@@ -568,8 +579,8 @@ void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 void ega_redraw(void)
 {
 	memcpy(videoram, backbuf, EGA_VRAM_SIZE);
-	ega_move_cursor();
-	ega_show_cursor();
+	ega_move_cursor(silent);
+	ega_show_cursor(silent);
 }
 
 /** @}
