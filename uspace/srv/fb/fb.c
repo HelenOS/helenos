@@ -511,10 +511,10 @@ static void render_glyphs(void)
 			
 			for (x = 0; x < FONT_WIDTH; x++) {
 				screen.mask_conv(&screen.glyphs[GLYPH_POS(glyph, y, false) + x * screen.pixelbytes],
-				    (fb_font[glyph][y] & (1 << (7 - x))) ? 1 : 0);
+				    (fb_font[glyph][y] & (1 << (7 - x))) ? true : false);
 				
 				screen.mask_conv(&screen.glyphs[GLYPH_POS(glyph, y, true) + x * screen.pixelbytes],
-				    (fb_font[glyph][y] & (1 << (7 - x))) ? 1 : 0);
+				    (fb_font[glyph][y] & (1 << (7 - x))) ? false : true);
 			}
 		}
 	}
