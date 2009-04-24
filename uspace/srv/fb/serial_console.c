@@ -426,16 +426,16 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				serial_cursor_disable();
 			retval = 0;
 			break;
-		case FB_SCREEN_GRAB:
-			serial_clrscr();
-			serial_set_attrs(&cur_attr);
-			retval = 0;
-			break;
-		case FB_SCREEN_RELINQUISH:
+		case FB_SCREEN_YIELD:
 			serial_sgr(SGR_RESET);
 			serial_puts("\033[2J");
 			serial_goto(0, 0);
 			serial_cursor_enable();
+			retval = 0;
+			break;
+		case FB_SCREEN_RECLAIM:
+			serial_clrscr();
+			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
 		default:

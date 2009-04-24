@@ -1713,8 +1713,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			mouse_move(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			retval = EOK;
 			break;
-		case FB_SCREEN_GRAB:
-		case FB_SCREEN_RELINQUISH:
+		case FB_SCREEN_YIELD:
+		case FB_SCREEN_RECLAIM:
 			retval = EOK;
 			break;
 		default:
