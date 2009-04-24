@@ -126,6 +126,10 @@ void grab_console(void)
 {
 	silent = false;
 	arch_grab_console();
+	
+	/* Force the console to print the prompt */
+	if (stdin)
+		indev_push_character(stdin, '\n');
 }
 
 void release_console(void)
