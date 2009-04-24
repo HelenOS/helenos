@@ -956,6 +956,7 @@ int cmd_continue(cmd_arg_t *argv)
 	release_console();
 	
 	event_notify_0(EVENT_KCONSOLE);
+	indev_pop_character(stdin);
 	
 	return 1;
 }
