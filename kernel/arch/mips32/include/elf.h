@@ -35,9 +35,11 @@
 #ifndef KERN_mips32_ELF_H_
 #define KERN_mips32_ELF_H_
 
+#include <byteorder.h>
+
 #define	ELF_MACHINE		EM_MIPS
 
-#ifdef BIG_ENDIAN
+#ifdef ARCH_IS_BIG_ENDIAN
 #  define ELF_DATA_ENCODING	ELFDATA2MSB
 #else
 #  define ELF_DATA_ENCODING	ELFDATA2LSB

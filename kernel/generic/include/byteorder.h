@@ -36,6 +36,7 @@
 #define KERN_BYTEORDER_H_
 
 #include <arch/byteorder.h>
+#include <arch/types.h>
 
 #if !(defined(ARCH_IS_BIG_ENDIAN) ^ defined(ARCH_IS_LITTLE_ENDIAN))
 #error The architecture must be either big-endian or little-endian.
