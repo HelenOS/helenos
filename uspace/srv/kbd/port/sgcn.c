@@ -42,6 +42,7 @@
 #include <sysinfo.h>
 #include <stdio.h>
 #include <thread.h>
+#include <bool.h>
 
 #define POLL_INTERVAL		10000
 
@@ -92,6 +93,7 @@ static uintptr_t sram_buffer_offset;
 /* polling thread */
 static void *sgcn_thread_impl(void *arg);
 
+static volatile bool polling_disabled = false;
 
 /**
  * Initializes the SGCN driver.
@@ -122,10 +124,12 @@ int kbd_port_init(void)
 
 void kbd_port_yield(void)
 {
+	polling_disabled = true;
 }
 
 void kbd_port_reclaim(void)
 {
+	polling_disabled = false;
 }
 
 /**
@@ -162,11 +166,11 @@ static void *sgcn_thread_impl(void *arg)
 	(void) arg;
 
 	while (1) {
-		sgcn_key_pressed();
+		if (polling_disabled == false)
+			sgcn_key_pressed();
 		usleep(POLL_INTERVAL);
 	}
 }
-
 
 /** @}
  */
