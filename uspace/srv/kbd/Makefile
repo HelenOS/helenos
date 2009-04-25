@@ -112,8 +112,15 @@ endif
 
 ifeq ($(MACHINE), bgxemul)
 	GENARCH_SOURCES += \
-		port/gxemul.c \
-		ctl/stty.c
+		port/gxemul.c
+	
+	ifeq ($(CONFIG_FB), y)
+		GENARCH_SOURCES += \
+			ctl/gxe_fb.c
+	else
+		GENARCH_SOURCES += \
+			ctl/stty.c
+	endif
 endif
 
 ifeq ($(UARCH), ppc32)
