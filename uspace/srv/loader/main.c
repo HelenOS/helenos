@@ -231,7 +231,7 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 	
 	rc = elf_load_file(pathname, 0, &prog_info);
-	if (rc < 0) {
+	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		ipc_answer_0(rid, EINVAL);
 		return 1;
@@ -250,7 +250,7 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	rc = elf_load_file(prog_info.interp, 0, &interp_info);
-	if (rc < 0) {
+	if (rc != EE_OK) {
 		DPRINTF("Failed to load interpreter '%s.'\n",
 		    prog_info.interp);
 		ipc_answer_0(rid, EINVAL);
