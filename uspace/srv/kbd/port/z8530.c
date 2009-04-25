@@ -95,6 +95,14 @@ int z8530_port_init(void)
 	return 0;
 }
 
+void z8530_port_yield(void)
+{
+}
+
+void z8530_port_reclaim(void)
+{
+}
+
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);

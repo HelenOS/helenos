@@ -151,6 +151,14 @@ int kbd_port_init(void)
 	return 0;
 }
 
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int status = IPC_GET_ARG1(*call);

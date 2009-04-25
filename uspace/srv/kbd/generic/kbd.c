@@ -193,6 +193,14 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 			phone2cons = IPC_GET_ARG5(call);
 			retval = 0;
 			break;
+		case KBD_YIELD:
+			kbd_port_yield();
+			retval = 0;
+			break;
+		case KBD_RECLAIM:
+			kbd_port_reclaim();
+			retval = 0;
+			break;
 		default:
 			retval = EINVAL;
 		}

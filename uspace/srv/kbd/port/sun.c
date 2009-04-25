@@ -62,5 +62,13 @@ int kbd_port_init(void)
 	return -1;
 }
 
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
 /** @}
 */

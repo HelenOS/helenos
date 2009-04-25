@@ -69,6 +69,14 @@ int kbd_port_init(void)
 	return 0;
 }
 
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
 /** Process data sent when a key is pressed.
  *  
  *  @param keybuffer Buffer of pressed keys.

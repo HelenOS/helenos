@@ -215,12 +215,12 @@ void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
 
 void ski_kbd_grab(void)
 {
-	kbd_disabled = true;
+	kbd_disabled = false;
 }
 
 void ski_kbd_release(void)
 {
-	kbd_disabled = false;
+	kbd_disabled = true;
 }
 
 /** @}

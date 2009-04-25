@@ -38,6 +38,8 @@
 #define KBD_PORT_H_
 
 extern int kbd_port_init(void);
+extern void kbd_port_yield(void);
+extern void kbd_port_reclaim(void);
 
 #endif
 

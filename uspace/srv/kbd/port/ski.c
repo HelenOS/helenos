@@ -42,6 +42,7 @@
 #include <kbd_port.h>
 #include <sys/types.h>
 #include <thread.h>
+#include <bool.h>
 
 #define SKI_GETCHAR		21
 
@@ -49,6 +50,8 @@
 
 static void *ski_thread_impl(void *arg);
 static int32_t ski_getchar(void);
+
+static volatile bool polling_disabled = false;
 
 /** Initialize Ski port driver. */
 int kbd_port_init(void)
@@ -64,6 +67,16 @@ int kbd_port_init(void)
 	return 0;
 }
 
+void kbd_port_yield(void)
+{
+	polling_disabled = true;
+}
+
+void kbd_port_reclaim(void)
+{
+	polling_disabled = false;
+}
+
 /** Thread to poll Ski for keypresses. */
 static void *ski_thread_impl(void *arg)
 {
@@ -71,7 +84,7 @@ static void *ski_thread_impl(void *arg)
 	(void) arg;
 
 	while (1) {
-		while (1) {
+		while (polling_disabled == false) {
 			c = ski_getchar();
 			if (c == 0)
 				break;

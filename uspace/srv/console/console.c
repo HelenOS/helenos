@@ -64,6 +64,9 @@
 int active_console = 0;
 int prev_console = 0;
 
+/** Phone to the keyboard driver. */
+static int kbd_phone;
+
 /** Information about framebuffer */
 struct {
 	int phone;		/**< Framebuffer phone */
@@ -149,6 +152,16 @@ static void screen_yield(void)
 static void screen_reclaim(void)
 {
 	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
+}
+
+static void kbd_yield(void)
+{
+	ipc_call_sync_0_0(kbd_phone, KBD_YIELD);
+}
+
+static void kbd_reclaim(void)
+{
+	ipc_call_sync_0_0(kbd_phone, KBD_RECLAIM);
 }
 
 static void set_style(int style)
@@ -341,6 +354,7 @@ static void change_console(int newcons)
 		curs_hide_sync();
 		gcons_in_kernel();
 		screen_yield();
+		kbd_yield();
 		async_serialize_end();
 
 		
@@ -356,6 +370,7 @@ static void change_console(int newcons)
 		
 		if (active_console == KERNEL_CONSOLE) {
 			screen_reclaim();
+			kbd_reclaim();
 			gcons_redraw_console();
 		}
 		
@@ -665,7 +680,6 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS Console service\n");
 	
 	ipcarg_t phonehash;
-	int kbd_phone;
 	size_t ib_size;
 	int i;
 	

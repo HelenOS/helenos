@@ -279,7 +279,7 @@ static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
  */
 void sgcn_grab(void)
 {
-	kbd_disabled = true;
+	kbd_disabled = false;
 }
 
 /**

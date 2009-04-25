@@ -69,22 +69,17 @@ int kbd_port_init(void)
 	return 0;
 }
 
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);
-//	static int esc_count=0;
-
-//	if (scan_code == 0x1b) {
-//		esc_count++;
-//		if (esc_count == 3)
-//			__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
-//	} else {
-//		esc_count=0;
-//	}
-
-//	if (fb_fb)
-//		return kbd_arch_process_fb(keybuffer, scan_code);
-
 	kbd_push_scancode(scan_code);
 }
 

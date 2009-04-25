@@ -120,6 +120,14 @@ int kbd_port_init(void)
 	return 0;
 }
 
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
 /**
  * Handler of the "key pressed" event. Reads codes of all the pressed keys from
  * the buffer. 
