@@ -341,18 +341,19 @@ static void ksgcnpoll(void *instance) {
 sgcn_instance_t *sgcnin_init(void)
 {
 	sgcn_buffer_begin_init();
-
+	
 	sgcn_instance_t *instance =
 	    malloc(sizeof(sgcn_instance_t), FRAME_ATOMIC);
-	if (!instance)
-		return NULL;
-
-	instance->srlnin = NULL;
-	instance->thread = thread_create(ksgcnpoll, instance, TASK, 0,
-	    "ksgcnpoll", true);
-	if (!instance->thread) {
-		free(instance);
-		return NULL;
+	
+	if (instance) {
+		instance->srlnin = NULL;
+		instance->thread = thread_create(ksgcnpoll, instance, TASK, 0,
+		    "ksgcnpoll", true);
+		
+		if (!instance->thread) {
+			free(instance);
+			return NULL;
+		}
 	}
 	
 	return instance;
