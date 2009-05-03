@@ -503,6 +503,7 @@ static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
 	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
+		return;
 	}
 
 	if (size > CWRITE_BUF_SIZE)
@@ -510,11 +511,15 @@ static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
 
 	(void) ipc_data_write_finalize(callid, cwrite_buf, size);
 
+	async_serialize_start();
+
 	off = 0;
 	while (off < size) {
 		ch = str_decode(cwrite_buf, &off, size);
 		write_char(consnum, ch);
 	}
+
+	async_serialize_end();
 
 	gcons_notify_char(consnum);
 	ipc_answer_1(rid, EOK, size);
@@ -575,7 +580,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			gcons_notify_char(consnum);
 			break;
 		case CONSOLE_WRITE:
+			async_serialize_end();
 			cons_write(consnum, callid, &call);
+			async_serialize_start();
 			continue;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
