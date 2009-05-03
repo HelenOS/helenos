@@ -71,6 +71,12 @@ ssize_t read_stdin(void *buf, size_t count)
 		return -1;
 }
 
+/** Write a string to klog. */
+int klog_puts(const char *str)
+{
+	return __SYSCALL3(SYS_KLOG, 1, (sysarg_t) str, str_size(str));
+}
+
 void klog_update(void)
 {
 	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);

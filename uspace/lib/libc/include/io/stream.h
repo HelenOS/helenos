@@ -40,6 +40,7 @@
 #define EMFILE  -17
 
 extern ssize_t read_stdin(void *, size_t);
+extern int klog_puts(const char *);
 extern void klog_update(void);
 
 #endif
