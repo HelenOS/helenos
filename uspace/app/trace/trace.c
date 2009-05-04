@@ -666,6 +666,8 @@ static void main_init(void)
 	arg_def[0] = V_CHAR;
 	o = oper_new("putchar", 1, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_PUTCHAR, o);
+	o = oper_new("write", 0, arg_def, V_VOID, 0, resp_def);
+	proto_add_oper(p, CONSOLE_WRITE, o);
 	o = oper_new("clear", 0, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CLEAR, o);
 
