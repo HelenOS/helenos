@@ -552,6 +552,9 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn)
 	uint16_t bps;
 	block_t *b;
 
+	if (!parentp)
+		return EBUSY;
+
 	futex_down(&parentp->lock);
 	futex_down(&childp->lock);
 	assert(childp->lnkcnt == 1);
