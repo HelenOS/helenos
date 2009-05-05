@@ -42,21 +42,25 @@
 #include <async.h>
 
 typedef struct {
-	void * (* match)(void *, const char *);
-	void * (* node_get)(dev_handle_t, fs_index_t);
-	void (* node_put)(void *);
-	void * (* create)(dev_handle_t, int);
-	int (* destroy)(void *);
-	int (* link)(void *, void *, const char *);
-	int (* unlink)(void *, void *);
-	fs_index_t (* index_get)(void *);
-	size_t (* size_get)(void *);
-	unsigned (* lnkcnt_get)(void *);
-	bool (* has_children)(void *);
-	void *(* root_get)(dev_handle_t);
+	void *data;	/**< Data of the file system implementation. */
+} fs_node_t;
+
+typedef struct {
+	fs_node_t * (* match)(fs_node_t *, const char *);
+	fs_node_t * (* node_get)(dev_handle_t, fs_index_t);
+	void (* node_put)(fs_node_t *);
+	fs_node_t * (* create)(dev_handle_t, int);
+	int (* destroy)(fs_node_t *);
+	int (* link)(fs_node_t *, fs_node_t *, const char *);
+	int (* unlink)(fs_node_t *, fs_node_t *);
+	fs_index_t (* index_get)(fs_node_t *);
+	size_t (* size_get)(fs_node_t *);
+	unsigned (* lnkcnt_get)(fs_node_t *);
+	bool (* has_children)(fs_node_t *);
+	fs_node_t *(* root_get)(dev_handle_t);
 	char (* plb_get_char)(unsigned pos);	
-	bool (* is_directory)(void *);
-	bool (* is_file)(void *);
+	bool (* is_directory)(fs_node_t *);
+	bool (* is_file)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {

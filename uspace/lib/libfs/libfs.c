@@ -148,9 +148,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (last < next)
 		last += PLB_SIZE;
 
-	void *par = NULL;
-	void *cur = ops->root_get(dev_handle);
-	void *tmp = NULL;
+	fs_node_t *par = NULL;
+	fs_node_t *cur = ops->root_get(dev_handle);
+	fs_node_t *tmp = NULL;
 
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
@@ -189,29 +189,28 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					ipc_answer_0(rid, ENOTDIR);
 					goto out;
 				}
-				void *nodep;
+				fs_node_t *fn;
 				if (lflag & L_CREATE)
-					nodep = ops->create(dev_handle, lflag);
+					fn = ops->create(dev_handle, lflag);
 				else
-					nodep = ops->node_get(dev_handle,
+					fn = ops->node_get(dev_handle,
 					    index);
-				if (nodep) {
+				if (fn) {
 					int rc;
 
-					rc = ops->link(cur, nodep, component);
+					rc = ops->link(cur, fn, component);
 					if (rc != EOK) {
 						if (lflag & L_CREATE) {
-							(void)ops->destroy(
-							    nodep);
+							(void)ops->destroy(fn);
 						}
 						ipc_answer_0(rid, rc);
 					} else {
 						ipc_answer_5(rid, EOK,
 						    fs_handle, dev_handle,
-						    ops->index_get(nodep),
-						    ops->size_get(nodep),
-						    ops->lnkcnt_get(nodep));
-						ops->node_put(nodep);
+						    ops->index_get(fn),
+						    ops->size_get(fn),
+						    ops->lnkcnt_get(fn));
+						ops->node_put(fn);
 					}
 				} else {
 					ipc_answer_0(rid, ENOSPC);
@@ -263,26 +262,26 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			assert(len);
 			component[len] = '\0';
 				
-			void *nodep;
+			fs_node_t *fn;
 			if (lflag & L_CREATE)
-				nodep = ops->create(dev_handle, lflag);
+				fn = ops->create(dev_handle, lflag);
 			else
-				nodep = ops->node_get(dev_handle, index);
-			if (nodep) {
+				fn = ops->node_get(dev_handle, index);
+			if (fn) {
 				int rc;
 
-				rc = ops->link(cur, nodep, component);
+				rc = ops->link(cur, fn, component);
 				if (rc != EOK) {
 					if (lflag & L_CREATE)
-						(void)ops->destroy(nodep);
+						(void)ops->destroy(fn);
 					ipc_answer_0(rid, rc);
 				} else {
 					ipc_answer_5(rid, EOK,
 					    fs_handle, dev_handle,
-					    ops->index_get(nodep),
-					    ops->size_get(nodep),
-					    ops->lnkcnt_get(nodep));
-					ops->node_put(nodep);
+					    ops->index_get(fn),
+					    ops->size_get(fn),
+					    ops->lnkcnt_get(fn));
+					ops->node_put(fn);
 				}
 			} else {
 				ipc_answer_0(rid, ENOSPC);

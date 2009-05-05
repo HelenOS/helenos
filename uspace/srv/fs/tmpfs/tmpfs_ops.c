@@ -68,36 +68,36 @@ fs_index_t tmpfs_next_index = 1;
  */
 
 /* Forward declarations of static functions. */
-static void *tmpfs_match(void *, const char *);
-static void *tmpfs_node_get(dev_handle_t, fs_index_t);
-static void tmpfs_node_put(void *);
-static void *tmpfs_create_node(dev_handle_t, int);
-static int tmpfs_link_node(void *, void *, const char *);
-static int tmpfs_unlink_node(void *, void *);
-static int tmpfs_destroy_node(void *);
+static fs_node_t *tmpfs_match(fs_node_t *, const char *);
+static fs_node_t *tmpfs_node_get(dev_handle_t, fs_index_t);
+static void tmpfs_node_put(fs_node_t *);
+static fs_node_t *tmpfs_create_node(dev_handle_t, int);
+static int tmpfs_link_node(fs_node_t *, fs_node_t *, const char *);
+static int tmpfs_unlink_node(fs_node_t *, fs_node_t *);
+static int tmpfs_destroy_node(fs_node_t *);
 
 /* Implementation of helper functions. */
-static fs_index_t tmpfs_index_get(void *nodep)
+static fs_index_t tmpfs_index_get(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->index;
+	return TMPFS_NODE(fn)->index;
 }
 
-static size_t tmpfs_size_get(void *nodep)
+static size_t tmpfs_size_get(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->size;
+	return TMPFS_NODE(fn)->size;
 }
 
-static unsigned tmpfs_lnkcnt_get(void *nodep)
+static unsigned tmpfs_lnkcnt_get(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->lnkcnt;
+	return TMPFS_NODE(fn)->lnkcnt;
 }
 
-static bool tmpfs_has_children(void *nodep)
+static bool tmpfs_has_children(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->child != NULL;
+	return TMPFS_NODE(fn)->child != NULL;
 }
 
-static void *tmpfs_root_get(dev_handle_t dev_handle)
+static fs_node_t *tmpfs_root_get(dev_handle_t dev_handle)
 {
 	return tmpfs_node_get(dev_handle, TMPFS_SOME_ROOT); 
 }
@@ -107,14 +107,14 @@ static char tmpfs_plb_get_char(unsigned pos)
 	return tmpfs_reg.plb_ro[pos % PLB_SIZE];
 }
 
-static bool tmpfs_is_directory(void *nodep)
+static bool tmpfs_is_directory(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->type == TMPFS_DIRECTORY;
+	return TMPFS_NODE(fn)->type == TMPFS_DIRECTORY;
 }
 
-static bool tmpfs_is_file(void *nodep)
+static bool tmpfs_is_file(fs_node_t *fn)
 {
-	return ((tmpfs_dentry_t *) nodep)->type == TMPFS_FILE;
+	return TMPFS_NODE(fn)->type == TMPFS_FILE;
 }
 
 /** libfs operations */
@@ -213,6 +213,7 @@ static void tmpfs_name_initialize(tmpfs_name_t *namep)
 
 static bool tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
 {
+	dentry->bp = NULL;
 	dentry->index = 0;
 	dentry->dev_handle = 0;
 	dentry->sibling = NULL;
@@ -236,12 +237,12 @@ bool tmpfs_init(void)
 
 static bool tmpfs_instance_init(dev_handle_t dev_handle)
 {
-	tmpfs_dentry_t *root;
+	fs_node_t *rfn;
 	
-	root = (tmpfs_dentry_t *) tmpfs_create_node(dev_handle, L_DIRECTORY);
-	if (!root) 
+	rfn = tmpfs_create_node(dev_handle, L_DIRECTORY);
+	if (!rfn) 
 		return false;
-	root->lnkcnt = 0;	/* FS root is not linked */
+	TMPFS_NODE(rfn)->lnkcnt = 0;	/* FS root is not linked */
 	return true;
 }
 
@@ -264,19 +265,18 @@ tmpfs_match_one(tmpfs_dentry_t *parentp, tmpfs_dentry_t *childp,
 	return !str_cmp(namep->name, component);
 }
 
-void *tmpfs_match(void *prnt, const char *component)
+fs_node_t *tmpfs_match(fs_node_t *pfn, const char *component)
 {
-	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
+	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_dentry_t *childp = parentp->child;
 
 	while (childp && !tmpfs_match_one(parentp, childp, component))
 		childp = childp->sibling;
 
-	return (void *) childp;
+	return FS_NODE(childp);
 }
 
-void *
-tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
+fs_node_t *tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
 	unsigned long key[] = {
 		[DENTRIES_KEY_INDEX] = index,
@@ -285,26 +285,34 @@ tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
 	link_t *lnk = hash_table_find(&dentries, key);
 	if (!lnk)
 		return NULL;
-	return hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link); 
+	return FS_NODE(hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link));
 }
 
-void tmpfs_node_put(void *node)
+void tmpfs_node_put(fs_node_t *fn)
 {
 	/* nothing to do */
 }
 
-void *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
+fs_node_t *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 
-	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
-	if (!node)
+	fs_node_t *fn = malloc(sizeof(fs_node_t));
+	if (!fn)
 		return NULL;
-
+	
+	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
+	if (!node) {
+		free(fn);
+		return NULL;
+	}
 	if (!tmpfs_dentry_initialize(node)) {
+		free(fn);
 		free(node);
 		return NULL;
 	}
+	fn->data = node;
+	node->bp = fn;	/* establish the back pointer */
 	if (!tmpfs_root_get(dev_handle))
 		node->index = TMPFS_SOME_ROOT;
 	else
@@ -321,13 +329,13 @@ void *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 		[DENTRIES_KEY_DEV] = node->dev_handle
 	};
 	hash_table_insert(&dentries, key, &node->dh_link);
-	return (void *) node;
+	return fn;
 }
 
-int tmpfs_link_node(void *prnt, void *chld, const char *nm)
+int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
-	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *) prnt;
-	tmpfs_dentry_t *childp = (tmpfs_dentry_t *) chld;
+	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
+	tmpfs_dentry_t *childp = TMPFS_NODE(cfn);
 
 	assert(parentp->type == TMPFS_DIRECTORY);
 
@@ -362,10 +370,10 @@ int tmpfs_link_node(void *prnt, void *chld, const char *nm)
 	return EOK;
 }
 
-int tmpfs_unlink_node(void *prnt, void *chld)
+int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn)
 {
-	tmpfs_dentry_t *parentp = (tmpfs_dentry_t *)prnt;
-	tmpfs_dentry_t *childp = (tmpfs_dentry_t *)chld;
+	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
+	tmpfs_dentry_t *childp = TMPFS_NODE(cfn);
 
 	if (!parentp)
 		return EBUSY;
@@ -392,9 +400,9 @@ int tmpfs_unlink_node(void *prnt, void *chld)
 	return EOK;
 }
 
-int tmpfs_destroy_node(void *nodep)
+int tmpfs_destroy_node(fs_node_t *fn)
 {
-	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) nodep;
+	tmpfs_dentry_t *dentry = TMPFS_NODE(fn);
 	
 	assert(!dentry->lnkcnt);
 	assert(!dentry->child);
@@ -410,6 +418,7 @@ int tmpfs_destroy_node(void *nodep)
 
 	if (dentry->type == TMPFS_FILE)
 		free(dentry->data);
+	free(dentry->bp);
 	free(dentry);
 	return EOK;
 }
@@ -446,7 +455,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	tmpfs_dentry_t *root = tmpfs_root_get(dev_handle);
+	tmpfs_dentry_t *root = TMPFS_NODE(tmpfs_root_get(dev_handle));
 	if (str_cmp(opts, "restore") == 0) {
 		if (tmpfs_restore(dev_handle))
 			ipc_answer_3(rid, EOK, root->index, root->size,
@@ -672,7 +681,7 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	}
 	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
 	    dh_link);
-	rc = tmpfs_destroy_node(dentry);
+	rc = tmpfs_destroy_node(FS_NODE(dentry));
 	ipc_answer_0(rid, rc);
 }
 

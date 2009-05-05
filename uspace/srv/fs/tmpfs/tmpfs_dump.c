@@ -55,7 +55,7 @@ struct rdentry {
 
 static bool
 tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
-    tmpfs_dentry_t *parent)
+    fs_node_t *pfn)
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
@@ -63,7 +63,8 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 	
 	do {
 		char *fname;
-		tmpfs_dentry_t *node;
+		fs_node_t *fn;
+		tmpfs_dentry_t *nodep;
 		uint32_t size;
 		
 		if (block_read(dev, bufpos, buflen, pos, &entry, sizeof(entry),
@@ -80,23 +81,23 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			if (fname == NULL)
 				return false;
 			
-			node = (tmpfs_dentry_t *) ops->create(dev, L_FILE);
-			if (node == NULL) {
+			fn = ops->create(dev, L_FILE);
+			if (fn == NULL) {
 				free(fname);
 				return false;
 			}
 			
 			if (block_read(dev, bufpos, buflen, pos, fname,
 			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
-				ops->destroy((void *) node);
+				ops->destroy(fn);
 				free(fname);
 				return false;
 			}
 			fname[entry.len] = 0;
 			
-			rc = ops->link((void *) parent, (void *) node, fname);
+			rc = ops->link(pfn, fn, fname);
 			if (rc != EOK) {
-				ops->destroy((void *) node);
+				ops->destroy(fn);
 				free(fname);
 				return false;
 			}
@@ -108,12 +109,13 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			
 			size = uint32_t_le2host(size);
 			
-			node->data = malloc(size);
-			if (node->data == NULL)
+			nodep = TMPFS_NODE(fn);
+			nodep->data = malloc(size);
+			if (nodep->data == NULL)
 				return false;
 			
-			node->size = size;
-			if (block_read(dev, bufpos, buflen, pos, node->data,
+			nodep->size = size;
+			if (block_read(dev, bufpos, buflen, pos, nodep->data,
 			    size, TMPFS_BLOCK_SIZE) != EOK)
 				return false;
 			
@@ -123,30 +125,30 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 			if (fname == NULL)
 				return false;
 			
-			node = (tmpfs_dentry_t *) ops->create(dev, L_DIRECTORY);
-			if (node == NULL) {
+			fn = ops->create(dev, L_DIRECTORY);
+			if (fn == NULL) {
 				free(fname);
 				return false;
 			}
 			
 			if (block_read(dev, bufpos, buflen, pos, fname,
 			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
-				ops->destroy((void *) node);
+				ops->destroy(fn);
 				free(fname);
 				return false;
 			}
 			fname[entry.len] = 0;
 
-			rc = ops->link((void *) parent, (void *) node, fname);
+			rc = ops->link(pfn, fn, fname);
 			if (rc != EOK) {
-				ops->destroy((void *) node);
+				ops->destroy(fn);
 				free(fname);
 				return false;
 			}
 			free(fname);
 			
 			if (!tmpfs_restore_recursion(dev, bufpos, buflen, pos,
-			    node))
+			    fn))
 				return false;
 			
 			break;

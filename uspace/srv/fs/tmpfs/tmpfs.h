@@ -44,6 +44,9 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
+#define TMPFS_NODE(node)	((node) ? (tmpfs_dentry_t *)(node)->data : NULL)
+#define FS_NODE(node)		((node) ? (node)->bp : NULL)
+
 typedef enum {
 	TMPFS_NONE,
 	TMPFS_FILE,
@@ -51,6 +54,7 @@ typedef enum {
 } tmpfs_dentry_type_t;
 
 typedef struct tmpfs_dentry {
+	fs_node_t *bp;		/**< Back pointer to the FS node. */
 	fs_index_t index;	/**< TMPFS node index. */
 	dev_handle_t dev_handle;/**< Device handle. */
 	link_t dh_link;		/**< Dentries hash table link. */

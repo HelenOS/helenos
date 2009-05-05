@@ -178,6 +178,9 @@ typedef struct {
 
 /** FAT in-core node. */
 typedef struct fat_node {
+	/** Back pointer to the FS node. */
+	fs_node_t		*bp;
+	
 	futex_t			lock;
 	fat_node_type_t		type;
 	fat_idx_t		*idx;
