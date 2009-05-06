@@ -87,7 +87,8 @@ static unsigned int cat_file(const char *fname, size_t blen)
 	off_t total = 0;
 	char *buff = NULL;
 
-	if (-1 == (fd = open(fname, O_RDONLY))) {
+	fd = open(fname, O_RDONLY);
+	if (fd < 0) {
 		printf("Unable to open %s\n", fname);
 		return 1;
 	}
