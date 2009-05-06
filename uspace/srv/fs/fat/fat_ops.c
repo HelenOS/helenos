@@ -554,6 +554,9 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn)
 
 	if (!parentp)
 		return EBUSY;
+	
+	if (fat_has_children(cfn))
+		return ENOTEMPTY;
 
 	futex_down(&parentp->lock);
 	futex_down(&childp->lock);
