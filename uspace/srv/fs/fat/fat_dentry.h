@@ -47,6 +47,9 @@
 #define FAT_ATTR_VOLLABEL	(1 << 3)
 #define FAT_ATTR_SUBDIR		(1 << 4)
 
+#define FAT_LCASE_LOWER_NAME	0x08
+#define FAT_LCASE_LOWER_EXT	0x10
+
 #define FAT_PAD			' ' 
 
 #define FAT_DENTRY_UNUSED	0x00
@@ -65,7 +68,7 @@ typedef struct {
 	uint8_t		name[8];
 	uint8_t		ext[3];
 	uint8_t		attr;
-	uint8_t		reserved;
+	uint8_t		lcase;
 	uint8_t		ctime_fine;
 	uint16_t	ctime;
 	uint16_t	cdate;

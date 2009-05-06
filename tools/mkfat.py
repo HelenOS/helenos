@@ -138,7 +138,7 @@ DIR_ENTRY = """little:
 	char name[8]               /* file name */
 	char ext[3]                /* file extension */
 	uint8_t attr               /* file attributes */
-	padding[1]                 /* reserved for NT */
+	uint8_t lcase              /* file name case (NT extension) */
 	uint8_t ctime_fine         /* create time (fine resolution) */
 	uint16_t ctime             /* create time */
 	uint16_t cdate             /* create date */
@@ -217,6 +217,7 @@ def create_dirent(name, directory, cluster, size):
 	else:
 		dir_entry.attr = 0x20
 	
+	dir_entry.lcase = 0x18
 	dir_entry.ctime_fine = 0 # FIXME
 	dir_entry.ctime = 0 # FIXME
 	dir_entry.cdate = 0 # FIXME

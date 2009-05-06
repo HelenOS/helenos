@@ -114,37 +114,51 @@ bool fat_dentry_name_verify(const char *name)
 
 void fat_dentry_name_get(const fat_dentry_t *d, char *buf)
 {
-	int i;
-
+	unsigned int i;
+	
 	for (i = 0; i < FAT_NAME_LEN; i++) {
 		if (d->name[i] == FAT_PAD)
 			break;
+		
 		if (d->name[i] == FAT_DENTRY_E5_ESC)
 			*buf++ = 0xe5;
-		else
-			*buf++ = d->name[i];
+		else {
+			if (d->lcase & FAT_LCASE_LOWER_NAME)
+				*buf++ = tolower(d->name[i]);
+			else
+				*buf++ = d->name[i];
+		}
 	}
+	
 	if (d->ext[0] != FAT_PAD)
 		*buf++ = '.';
+	
 	for (i = 0; i < FAT_EXT_LEN; i++) {
 		if (d->ext[i] == FAT_PAD) {
 			*buf = '\0';
 			return;
 		}
+		
 		if (d->ext[i] == FAT_DENTRY_E5_ESC)
 			*buf++ = 0xe5;
-		else
-			*buf++ = d->ext[i];
+		else {
+			if (d->lcase & FAT_LCASE_LOWER_EXT)
+				*buf++ = tolower(d->ext[i]);
+			else
+				*buf++ = d->ext[i];
+		}
 	}
+	
 	*buf = '\0';
 }
 
 void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 {
-	int i;
+	unsigned int i;
 	const char fake_ext[] = "   ";
-
-
+	bool lower_name = true;
+	bool lower_ext = true;
+	
 	for (i = 0; i < FAT_NAME_LEN; i++) {
 		switch ((uint8_t) *name) {
 		case 0xe5:
@@ -156,12 +170,19 @@ void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 			d->name[i] = FAT_PAD;
 			break;
 		default:
+			if (isalpha(*name)) {
+				if (!islower(*name))
+					lower_name = false;
+			}
+			
 			d->name[i] = toupper(*name++);
 			break;
 		}
 	}
+	
 	if (*name++ != '.')
 		name = fake_ext;
+	
 	for (i = 0; i < FAT_EXT_LEN; i++) {
 		switch ((uint8_t) *name) {
 		case 0xe5:
@@ -172,10 +193,25 @@ void fat_dentry_name_set(fat_dentry_t *d, const char *name)
 			d->ext[i] = FAT_PAD;
 			break;
 		default:
+			if (isalpha(*name)) {
+				if (!islower(*name))
+					lower_ext = false;
+			}
+			
 			d->ext[i] = toupper(*name++);
 			break;
 		}
 	}
+	
+	if (lower_name)
+		d->lcase |= FAT_LCASE_LOWER_NAME;
+	else
+		d->lcase &= ~FAT_LCASE_LOWER_NAME;
+	
+	if (lower_ext)
+		d->lcase |= FAT_LCASE_LOWER_EXT;
+	else
+		d->lcase &= ~FAT_LCASE_LOWER_EXT;
 }
 
 fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *d)
