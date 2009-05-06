@@ -103,7 +103,7 @@ int vfs_fd_alloc(void)
  */
 int vfs_fd_free(int fd)
 {
-	if ((fd >= MAX_OPEN_FILES) || (files[fd] == NULL))
+	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || (files[fd] == NULL))
 		return EBADF;
 	vfs_file_delref(files[fd]);
 	files[fd] = NULL;
@@ -150,7 +150,7 @@ void vfs_file_delref(vfs_file_t *file)
  */
 vfs_file_t *vfs_file_get(int fd)
 {
-	if (fd < MAX_OPEN_FILES)
+	if ((fd >= 0) && (fd < MAX_OPEN_FILES))
 		return files[fd];
 	return NULL;
 }
