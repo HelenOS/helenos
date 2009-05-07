@@ -44,11 +44,17 @@
 #include <string.h>
 #include <arch.h>
 
-#define POLL_INTERVAL  10000  /* 10 ms */
+enum {
+	/** Interval between polling in microseconds */
+	POLL_INTERVAL =  10000,  /* 0.01 s */
 
-#define SKI_INIT_CONSOLE  20
-#define SKI_GETCHAR       21
-#define SKI_PUTCHAR       31
+	/** Max. number of characters to pull out at a time */
+	POLL_LIMIT    =     30,
+
+	SKI_INIT_CONSOLE  = 20,
+	SKI_GETCHAR       = 21,
+	SKI_PUTCHAR       = 31
+};
 
 static void ski_putchar(outdev_t *, const wchar_t, bool);
 
@@ -154,16 +160,29 @@ static wchar_t ski_getchar(void)
 	return (wchar_t) ch;
 }
 
-/** Ask keyboard if a key was pressed. */
+/** Ask keyboard if a key was pressed.
+ *
+ * If so, it will repeat and pull up to POLL_LIMIT characters.
+ */
 static void poll_keyboard(ski_instance_t *instance)
 {
+	wchar_t ch;
+	int count;
+
 	if (kbd_disabled)
 		return;
-	
-	wchar_t ch = ski_getchar();
-	
-	if (ch != 0)
+
+	count = POLL_LIMIT;
+
+	while (count > 0) {
+		ch = ski_getchar();
+
+		if (ch == '\0')
+			break;
+
 		indev_push_character(instance->srlnin, ch);
+		--count;
+	}
 }
 
 /** Kernel thread for polling keyboard. */
