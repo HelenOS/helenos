@@ -133,7 +133,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *p)
 		/* Register image as the program loader */
 		ASSERT(program_loader == NULL);
 		program_loader = image_addr;
-		printf("Registered program loader at 0x%" PRIp "\n",
+		LOG("Registered program loader at 0x%" PRIp "\n",
 		    image_addr);
 		return EOK;
 	}
