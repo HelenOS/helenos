@@ -952,8 +952,16 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	}
 	oldc[olen] = '\0';
 	newc[nlen] = '\0';
-	if (!str_lcmp(newc, oldc, str_length(oldc))) {
-		/* oldc is a prefix of newc */
+	if ((!str_lcmp(newc, oldc, str_length(oldc))) &&
+	    ((newc[str_length(oldc)] == '/') ||
+	    (str_length(oldc) == 1) ||
+	    (str_length(oldc) == str_length(newc)))) {
+	    	/*
+		 * oldc is a prefix of newc and either
+		 * - newc continues with a / where oldc ends, or
+		 * - oldc was / itself, or
+		 * - oldc and newc are equal.
+		 */
 		ipc_answer_0(rid, EINVAL);
 		free(old);
 		free(new);
