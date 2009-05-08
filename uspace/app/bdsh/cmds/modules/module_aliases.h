@@ -12,6 +12,7 @@
  * the entry point being reached. */
 
 char *mod_aliases[] = {
+	"ren", "mv",
 	NULL, NULL
 };
 
