@@ -42,10 +42,10 @@
 #define U_SPECIAL      '?'
 #define U_BOM          0xfeff
 
-/**< No size limit constant */
+/** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-/**< Maximum size of a string containing @c length characters */
+/** Maximum size of a string containing @c length characters */
 #define STR_BOUNDS(length)  ((length) << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
