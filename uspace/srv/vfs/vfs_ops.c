@@ -989,8 +989,23 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	/* Determine the path to the parent of the node with the new name. */
+	char *parentc = str_dup(newc);
+	if (!parentc) {
+		rwlock_write_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, rc);
+		free(old);
+		free(new);
+		return;
+	}
+	char *lastsl = str_rchr(parentc + 1, L'/');
+	if (lastsl)
+		*lastsl = '\0';
+	else
+		parentc[1] = '\0';
 	/* Lookup parent of the new file name. */
-	rc = vfs_lookup_internal(newc, L_PARENT, &new_par_lr, NULL);
+	rc = vfs_lookup_internal(parentc, L_NONE, &new_par_lr, NULL);
+	free(parentc);	/* not needed anymore */
 	if (rc != EOK) {
 		rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);

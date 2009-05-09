@@ -166,11 +166,6 @@ typedef struct {
  * VFS_UNLINK.
  */
 #define L_UNLINK	32	
-/**
- * L_PARENT performs a lookup but returns the triplet of the parent node.
- * This flag may not be combined with any other lookup flag.
- */
-#define L_PARENT	64	
 
 typedef enum vfs_node_type {
 	VFS_NODE_UNKNOWN,

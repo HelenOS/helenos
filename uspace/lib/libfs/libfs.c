@@ -216,11 +216,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					ipc_answer_0(rid, ENOSPC);
 				}
 				goto out;
-			} else if (lflag & L_PARENT) {
-				/* return parent */
-				ipc_answer_5(rid, EOK, fs_handle, dev_handle,
-				    ops->index_get(cur), ops->size_get(cur),
-				    ops->lnkcnt_get(cur));
 			} 
 			ipc_answer_0(rid, ENOENT);
 			goto out;
@@ -293,15 +288,6 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 
 	/* handle hit */
-	if (lflag & L_PARENT) {
-		ops->node_put(cur);
-		cur = par;
-		par = NULL;
-		if (!cur) {
-			ipc_answer_0(rid, ENOENT);
-			goto out;
-		}
-	}
 	if (lflag & L_UNLINK) {
 		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
 		int res = ops->unlink(par, cur);
