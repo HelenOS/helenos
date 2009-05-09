@@ -241,7 +241,7 @@ static void fat_node_put(fs_node_t *);
 static fs_node_t *fat_create_node(dev_handle_t, int);
 static int fat_destroy_node(fs_node_t *);
 static int fat_link(fs_node_t *, fs_node_t *, const char *);
-static int fat_unlink(fs_node_t *, fs_node_t *);
+static int fat_unlink(fs_node_t *, fs_node_t *, const char *);
 static fs_node_t *fat_match(fs_node_t *, const char *);
 static fs_index_t fat_index_get(fs_node_t *);
 static size_t fat_size_get(fs_node_t *);
@@ -543,7 +543,7 @@ hit:
 	return EOK;
 }
 
-int fat_unlink(fs_node_t *pfn, fs_node_t *cfn)
+int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	fat_node_t *parentp = FAT_NODE(pfn);
 	fat_node_t *childp = FAT_NODE(cfn);

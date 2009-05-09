@@ -52,7 +52,7 @@ typedef struct {
 	fs_node_t * (* create)(dev_handle_t, int);
 	int (* destroy)(fs_node_t *);
 	int (* link)(fs_node_t *, fs_node_t *, const char *);
-	int (* unlink)(fs_node_t *, fs_node_t *);
+	int (* unlink)(fs_node_t *, fs_node_t *, const char *);
 	fs_index_t (* index_get)(fs_node_t *);
 	size_t (* size_get)(fs_node_t *);
 	unsigned (* lnkcnt_get)(fs_node_t *);

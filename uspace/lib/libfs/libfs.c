@@ -290,7 +290,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* handle hit */
 	if (lflag & L_UNLINK) {
 		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
-		int res = ops->unlink(par, cur);
+		int res = ops->unlink(par, cur, component);
 		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
 		goto out;

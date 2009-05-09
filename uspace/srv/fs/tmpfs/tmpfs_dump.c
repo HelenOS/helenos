@@ -64,7 +64,7 @@ tmpfs_restore_recursion(int dev, off_t *bufpos, size_t *buflen, off_t *pos,
 	do {
 		char *fname;
 		fs_node_t *fn;
-		tmpfs_dentry_t *nodep;
+		tmpfs_node_t *nodep;
 		uint32_t size;
 		
 		if (block_read(dev, bufpos, buflen, pos, &entry, sizeof(entry),

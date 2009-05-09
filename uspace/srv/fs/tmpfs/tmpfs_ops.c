@@ -54,9 +54,7 @@
 #define min(a, b)		((a) < (b) ? (a) : (b))
 #define max(a, b)		((a) > (b) ? (a) : (b))
 
-#define DENTRIES_BUCKETS	256
-
-#define NAMES_BUCKETS		4
+#define NODES_BUCKETS	256
 
 /** All root nodes have index 0. */
 #define TMPFS_SOME_ROOT		0
@@ -73,7 +71,7 @@ static fs_node_t *tmpfs_node_get(dev_handle_t, fs_index_t);
 static void tmpfs_node_put(fs_node_t *);
 static fs_node_t *tmpfs_create_node(dev_handle_t, int);
 static int tmpfs_link_node(fs_node_t *, fs_node_t *, const char *);
-static int tmpfs_unlink_node(fs_node_t *, fs_node_t *);
+static int tmpfs_unlink_node(fs_node_t *, fs_node_t *, const char *);
 static int tmpfs_destroy_node(fs_node_t *);
 
 /* Implementation of helper functions. */
@@ -94,7 +92,7 @@ static unsigned tmpfs_lnkcnt_get(fs_node_t *fn)
 
 static bool tmpfs_has_children(fs_node_t *fn)
 {
-	return TMPFS_NODE(fn)->child != NULL;
+	return !list_empty(&TMPFS_NODE(fn)->cs_head);
 }
 
 static fs_node_t *tmpfs_root_get(dev_handle_t dev_handle)
@@ -136,100 +134,60 @@ libfs_ops_t tmpfs_libfs_ops = {
 	.is_file = tmpfs_is_file
 };
 
-/** Hash table of all directory entries. */
-hash_table_t dentries;
+/** Hash table of all TMPFS nodes. */
+hash_table_t nodes;
 
-#define DENTRIES_KEY_INDEX	0
-#define DENTRIES_KEY_DEV	1
+#define NODES_KEY_INDEX	0
+#define NODES_KEY_DEV	1
 
-/* Implementation of hash table interface for the dentries hash table. */
-static hash_index_t dentries_hash(unsigned long key[])
+/* Implementation of hash table interface for the nodes hash table. */
+static hash_index_t nodes_hash(unsigned long key[])
 {
-	return key[DENTRIES_KEY_INDEX] % DENTRIES_BUCKETS;
+	return key[NODES_KEY_INDEX] % NODES_BUCKETS;
 }
 
-static int dentries_compare(unsigned long key[], hash_count_t keys,
-    link_t *item)
+static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	tmpfs_dentry_t *dentry = hash_table_get_instance(item, tmpfs_dentry_t,
-	    dh_link);
-	return (dentry->index == key[DENTRIES_KEY_INDEX] &&
-	    dentry->dev_handle == key[DENTRIES_KEY_DEV]);
+	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
+	    nh_link);
+	return (nodep->index == key[NODES_KEY_INDEX] &&
+	    nodep->dev_handle == key[NODES_KEY_DEV]);
 }
 
-static void dentries_remove_callback(link_t *item)
+static void nodes_remove_callback(link_t *item)
 {
 }
 
-/** TMPFS dentries hash table operations. */
-hash_table_operations_t dentries_ops = {
-	.hash = dentries_hash,
-	.compare = dentries_compare,
-	.remove_callback = dentries_remove_callback
+/** TMPFS nodes hash table operations. */
+hash_table_operations_t nodes_ops = {
+	.hash = nodes_hash,
+	.compare = nodes_compare,
+	.remove_callback = nodes_remove_callback
 };
 
-typedef struct {
-	char *name;
-	tmpfs_dentry_t *parent;
-	link_t link;
-} tmpfs_name_t;
-
-/* Implementation of hash table interface for the names hash table. */
-static hash_index_t names_hash(unsigned long *key)
+static void tmpfs_node_initialize(tmpfs_node_t *nodep)
 {
-	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) *key;
-	return dentry->index % NAMES_BUCKETS;
+	nodep->bp = NULL;
+	nodep->index = 0;
+	nodep->dev_handle = 0;
+	nodep->type = TMPFS_NONE;
+	nodep->lnkcnt = 0;
+	nodep->size = 0;
+	nodep->data = NULL;
+	link_initialize(&nodep->nh_link);
+	list_initialize(&nodep->cs_head);
 }
 
-static int names_compare(unsigned long *key, hash_count_t keys, link_t *item)
+static void tmpfs_dentry_initialize(tmpfs_dentry_t *dentryp)
 {
-	tmpfs_dentry_t *dentry = (tmpfs_dentry_t *) *key;
-	tmpfs_name_t *namep = hash_table_get_instance(item, tmpfs_name_t,
-	    link);
-	return dentry == namep->parent;
-}
-
-static void names_remove_callback(link_t *item)
-{
-	tmpfs_name_t *namep = hash_table_get_instance(item, tmpfs_name_t,
-	    link);
-	free(namep->name);
-	free(namep);
-}
-
-/** TMPFS node names hash table operations. */
-static hash_table_operations_t names_ops = {
-	.hash = names_hash,
-	.compare = names_compare,
-	.remove_callback = names_remove_callback
-};
-
-static void tmpfs_name_initialize(tmpfs_name_t *namep)
-{
-	namep->name = NULL;
-	namep->parent = NULL;
-	link_initialize(&namep->link);
-}
-
-static bool tmpfs_dentry_initialize(tmpfs_dentry_t *dentry)
-{
-	dentry->bp = NULL;
-	dentry->index = 0;
-	dentry->dev_handle = 0;
-	dentry->sibling = NULL;
-	dentry->child = NULL;
-	dentry->type = TMPFS_NONE;
-	dentry->lnkcnt = 0;
-	dentry->size = 0;
-	dentry->data = NULL;
-	link_initialize(&dentry->dh_link);
-	return (bool)hash_table_create(&dentry->names, NAMES_BUCKETS, 1,
-	    &names_ops);
+	link_initialize(&dentryp->link);
+	dentryp->name = NULL;
+	dentryp->node = NULL;
 }
 
 bool tmpfs_init(void)
 {
-	if (!hash_table_create(&dentries, DENTRIES_BUCKETS, 2, &dentries_ops))
+	if (!hash_table_create(&nodes, NODES_BUCKETS, 2, &nodes_ops))
 		return false;
 	
 	return true;
@@ -246,46 +204,32 @@ static bool tmpfs_instance_init(dev_handle_t dev_handle)
 	return true;
 }
 
-/** Compare one component of path to a directory entry.
- *
- * @param parentp	Pointer to node from which we descended.
- * @param childp	Pointer to node to compare the path component with.
- * @param component	Array of characters holding component name.
- *
- * @return		True on match, false otherwise.
- */
-static bool
-tmpfs_match_one(tmpfs_dentry_t *parentp, tmpfs_dentry_t *childp,
-    const char *component)
-{
-	unsigned long key = (unsigned long) parentp;
-	link_t *hlp = hash_table_find(&childp->names, &key);
-	assert(hlp);
-	tmpfs_name_t *namep = hash_table_get_instance(hlp, tmpfs_name_t, link);
-	return !str_cmp(namep->name, component);
-}
-
 fs_node_t *tmpfs_match(fs_node_t *pfn, const char *component)
 {
-	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
-	tmpfs_dentry_t *childp = parentp->child;
+	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
+	link_t *lnk;
 
-	while (childp && !tmpfs_match_one(parentp, childp, component))
-		childp = childp->sibling;
+	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
+	    lnk = lnk->next) {
+		tmpfs_dentry_t *dentryp = list_get_instance(lnk, tmpfs_dentry_t,
+		    link);
+		if (!str_cmp(dentryp->name, component))
+			return FS_NODE(dentryp->node);
+	}
 
-	return FS_NODE(childp);
+	return NULL;
 }
 
 fs_node_t *tmpfs_node_get(dev_handle_t dev_handle, fs_index_t index)
 {
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = index,
-		[DENTRIES_KEY_DEV] = dev_handle
+		[NODES_KEY_INDEX] = index,
+		[NODES_KEY_DEV] = dev_handle
 	};
-	link_t *lnk = hash_table_find(&dentries, key);
+	link_t *lnk = hash_table_find(&nodes, key);
 	if (!lnk)
 		return NULL;
-	return FS_NODE(hash_table_get_instance(lnk, tmpfs_dentry_t, dh_link));
+	return FS_NODE(hash_table_get_instance(lnk, tmpfs_node_t, nh_link));
 }
 
 void tmpfs_node_put(fs_node_t *fn)
@@ -297,104 +241,101 @@ fs_node_t *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 
-	fs_node_t *fn = malloc(sizeof(fs_node_t));
-	if (!fn)
+	tmpfs_node_t *nodep = malloc(sizeof(tmpfs_node_t));
+	if (!nodep)
 		return NULL;
-	
-	tmpfs_dentry_t *node = malloc(sizeof(tmpfs_dentry_t));
-	if (!node) {
-		free(fn);
-		return NULL;
-	}
-	if (!tmpfs_dentry_initialize(node)) {
-		free(fn);
-		free(node);
+	tmpfs_node_initialize(nodep);
+	nodep->bp = malloc(sizeof(fs_node_t));
+	if (!nodep->bp) {
+		free(nodep);
 		return NULL;
 	}
-	fn->data = node;
-	node->bp = fn;	/* establish the back pointer */
+	nodep->bp->data = nodep;	/* link the FS and TMPFS nodes */
 	if (!tmpfs_root_get(dev_handle))
-		node->index = TMPFS_SOME_ROOT;
+		nodep->index = TMPFS_SOME_ROOT;
 	else
-		node->index = tmpfs_next_index++;
-	node->dev_handle = dev_handle;
+		nodep->index = tmpfs_next_index++;
+	nodep->dev_handle = dev_handle;
 	if (lflag & L_DIRECTORY) 
-		node->type = TMPFS_DIRECTORY;
+		nodep->type = TMPFS_DIRECTORY;
 	else 
-		node->type = TMPFS_FILE;
+		nodep->type = TMPFS_FILE;
 
-	/* Insert the new node into the dentry hash table. */
+	/* Insert the new node into the nodes hash table. */
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = node->index,
-		[DENTRIES_KEY_DEV] = node->dev_handle
+		[NODES_KEY_INDEX] = nodep->index,
+		[NODES_KEY_DEV] = nodep->dev_handle
 	};
-	hash_table_insert(&dentries, key, &node->dh_link);
-	return fn;
+	hash_table_insert(&nodes, key, &nodep->nh_link);
+	return FS_NODE(nodep);
 }
 
 int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
-	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
-	tmpfs_dentry_t *childp = TMPFS_NODE(cfn);
+	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
+	tmpfs_node_t *childp = TMPFS_NODE(cfn);
+	tmpfs_dentry_t *dentryp;
+	link_t *lnk;
 
 	assert(parentp->type == TMPFS_DIRECTORY);
 
-	tmpfs_name_t *namep = malloc(sizeof(tmpfs_name_t));
-	if (!namep)
+	/* Check for duplicit entries. */
+	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
+	    lnk = lnk->next) {
+		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);	
+		if (!str_cmp(dentryp->name, nm))
+			return EEXIST;
+	}
+
+	/* Allocate and initialize the dentry. */
+	dentryp = malloc(sizeof(tmpfs_dentry_t));
+	if (!dentryp)
 		return ENOMEM;
-	tmpfs_name_initialize(namep);
+	tmpfs_dentry_initialize(dentryp);
+
+	/* Populate and link the new dentry. */
 	size_t size = str_size(nm);
-	namep->name = malloc(size + 1);
-	if (!namep->name) {
-		free(namep);
+	dentryp->name = malloc(size + 1);
+	if (!dentryp->name) {
+		free(dentryp);
 		return ENOMEM;
 	}
-	str_cpy(namep->name, size + 1, nm);
-	namep->parent = parentp;
-	
+	str_cpy(dentryp->name, size + 1, nm);
+	dentryp->node = childp;
 	childp->lnkcnt++;
-
-	unsigned long key = (unsigned long) parentp;
-	hash_table_insert(&childp->names, &key, &namep->link);
-
-	/* Insert the new node into the namespace. */
-	if (parentp->child) {
-		tmpfs_dentry_t *tmp = parentp->child;
-		while (tmp->sibling)
-			tmp = tmp->sibling;
-		tmp->sibling = childp;
-	} else {
-		parentp->child = childp;
-	}
+	list_append(&dentryp->link, &parentp->cs_head);
 
 	return EOK;
 }
 
-int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn)
+int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
-	tmpfs_dentry_t *parentp = TMPFS_NODE(pfn);
-	tmpfs_dentry_t *childp = TMPFS_NODE(cfn);
+	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
+	tmpfs_node_t *childp = NULL;
+	tmpfs_dentry_t *dentryp;
+	link_t *lnk;
 
 	if (!parentp)
 		return EBUSY;
+	
+	for (lnk = parentp->cs_head.next; lnk != &parentp->cs_head;
+	    lnk = lnk->next) {
+		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
+		if (!str_cmp(dentryp->name, nm)) {
+			childp = dentryp->node;
+			assert(FS_NODE(childp) == cfn);
+			break;
+		}	
+	}
 
-	if (childp->child)
+	if (!childp)
+		return ENOENT;
+		
+	if ((childp->lnkcnt == 1) && !list_empty(&childp->cs_head))
 		return ENOTEMPTY;
 
-	if (parentp->child == childp) {
-		parentp->child = childp->sibling;
-	} else {
-		/* TODO: consider doubly linked list for organizing siblings. */
-		tmpfs_dentry_t *tmp = parentp->child;
-		while (tmp->sibling != childp)
-			tmp = tmp->sibling;
-		tmp->sibling = childp->sibling;
-	}
-	childp->sibling = NULL;
-
-	unsigned long key = (unsigned long) parentp;
-	hash_table_remove(&childp->names, &key, 1);
-
+	list_remove(&dentryp->link);
+	free(dentryp);
 	childp->lnkcnt--;
 
 	return EOK;
@@ -402,24 +343,21 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn)
 
 int tmpfs_destroy_node(fs_node_t *fn)
 {
-	tmpfs_dentry_t *dentry = TMPFS_NODE(fn);
+	tmpfs_node_t *nodep = TMPFS_NODE(fn);
 	
-	assert(!dentry->lnkcnt);
-	assert(!dentry->child);
-	assert(!dentry->sibling);
+	assert(!nodep->lnkcnt);
+	assert(list_empty(&nodep->cs_head));
 
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = dentry->index,
-		[DENTRIES_KEY_DEV] = dentry->dev_handle
+		[NODES_KEY_INDEX] = nodep->index,
+		[NODES_KEY_DEV] = nodep->dev_handle
 	};
-	hash_table_remove(&dentries, key, 2);
+	hash_table_remove(&nodes, key, 2);
 
-	hash_table_destroy(&dentry->names);
-
-	if (dentry->type == TMPFS_FILE)
-		free(dentry->data);
-	free(dentry->bp);
-	free(dentry);
+	if (nodep->type == TMPFS_FILE)
+		free(nodep->data);
+	free(nodep->bp);
+	free(nodep);
 	return EOK;
 }
 
@@ -455,15 +393,16 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	tmpfs_dentry_t *root = TMPFS_NODE(tmpfs_root_get(dev_handle));
+	tmpfs_node_t *rootp = TMPFS_NODE(tmpfs_root_get(dev_handle));
 	if (str_cmp(opts, "restore") == 0) {
 		if (tmpfs_restore(dev_handle))
-			ipc_answer_3(rid, EOK, root->index, root->size,
-			    root->lnkcnt);
+			ipc_answer_3(rid, EOK, rootp->index, rootp->size,
+			    rootp->lnkcnt);
 		else
 			ipc_answer_0(rid, ELIMIT);
 	} else {
-		ipc_answer_3(rid, EOK, root->index, root->size, root->lnkcnt);
+		ipc_answer_3(rid, EOK, rootp->index, rootp->size,
+		    rootp->lnkcnt);
 	}
 }
 
@@ -489,20 +428,20 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	off_t pos = (off_t)IPC_GET_ARG3(*request);
 
 	/*
-	 * Lookup the respective dentry.
+	 * Lookup the respective TMPFS node.
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = index,
-		[DENTRIES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index,
+		[NODES_KEY_DEV] = dev_handle,
 	};
-	hlp = hash_table_find(&dentries, key);
+	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
-	    dh_link);
+	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
+	    nh_link);
 
 	/*
 	 * Receive the read request.
@@ -516,39 +455,37 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	size_t bytes;
-	if (dentry->type == TMPFS_FILE) {
-		bytes = max(0, min(dentry->size - pos, size));
-		(void) ipc_data_read_finalize(callid, dentry->data + pos,
+	if (nodep->type == TMPFS_FILE) {
+		bytes = max(0, min(nodep->size - pos, size));
+		(void) ipc_data_read_finalize(callid, nodep->data + pos,
 		    bytes);
 	} else {
+		tmpfs_dentry_t *dentryp;
+		link_t *lnk;
 		int i;
-		tmpfs_dentry_t *cur;
 		
-		assert(dentry->type == TMPFS_DIRECTORY);
+		assert(nodep->type == TMPFS_DIRECTORY);
 		
 		/*
 		 * Yes, we really use O(n) algorithm here.
 		 * If it bothers someone, it could be fixed by introducing a
 		 * hash table.
 		 */
-		for (i = 0, cur = dentry->child; i < pos && cur; i++,
-		    cur = cur->sibling)
+		for (i = 0, lnk = nodep->cs_head.next;
+		    i < pos && lnk != &nodep->cs_head;
+		    i++, lnk = lnk->next)
 			;
 
-		if (!cur) {
+		if (lnk == &nodep->cs_head) {
 			ipc_answer_0(callid, ENOENT);
 			ipc_answer_1(rid, ENOENT, 0);
 			return;
 		}
 
-		unsigned long key = (unsigned long) dentry;
-		link_t *hlp = hash_table_find(&cur->names, &key);
-		assert(hlp);
-		tmpfs_name_t *namep = hash_table_get_instance(hlp, tmpfs_name_t,
-		    link);
+		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
-		(void) ipc_data_read_finalize(callid, namep->name,
-		    str_size(namep->name) + 1);
+		(void) ipc_data_read_finalize(callid, dentryp->name,
+		    str_size(dentryp->name) + 1);
 		bytes = 1;
 	}
 
@@ -565,20 +502,20 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	off_t pos = (off_t)IPC_GET_ARG3(*request);
 
 	/*
-	 * Lookup the respective dentry.
+	 * Lookup the respective TMPFS node.
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = index,
-		[DENTRIES_KEY_DEV] = dev_handle
+		[NODES_KEY_INDEX] = index,
+		[NODES_KEY_DEV] = dev_handle
 	};
-	hlp = hash_table_find(&dentries, key);
+	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
-	    dh_link);
+	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
+	    nh_link);
 
 	/*
 	 * Receive the write request.
@@ -594,13 +531,13 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Check whether the file needs to grow.
 	 */
-	if (pos + size <= dentry->size) {
+	if (pos + size <= nodep->size) {
 		/* The file size is not changing. */
-		(void) ipc_data_write_finalize(callid, dentry->data + pos, size);
-		ipc_answer_2(rid, EOK, size, dentry->size);
+		(void) ipc_data_write_finalize(callid, nodep->data + pos, size);
+		ipc_answer_2(rid, EOK, size, nodep->size);
 		return;
 	}
-	size_t delta = (pos + size) - dentry->size;
+	size_t delta = (pos + size) - nodep->size;
 	/*
 	 * At this point, we are deliberately extremely straightforward and
 	 * simply realloc the contents of the file on every write that grows the
@@ -608,18 +545,18 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 * our heap allocator can save us and just grow the block whenever
 	 * possible.
 	 */
-	void *newdata = realloc(dentry->data, dentry->size + delta);
+	void *newdata = realloc(nodep->data, nodep->size + delta);
 	if (!newdata) {
 		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_2(rid, EOK, 0, dentry->size);
+		ipc_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	/* Clear any newly allocated memory in order to emulate gaps. */
-	memset(newdata + dentry->size, 0, delta);
-	dentry->size += delta;
-	dentry->data = newdata;
-	(void) ipc_data_write_finalize(callid, dentry->data + pos, size);
-	ipc_answer_2(rid, EOK, size, dentry->size);
+	memset(newdata + nodep->size, 0, delta);
+	nodep->size += delta;
+	nodep->data = newdata;
+	(void) ipc_data_write_finalize(callid, nodep->data + pos, size);
+	ipc_answer_2(rid, EOK, size, nodep->size);
 }
 
 void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
@@ -629,37 +566,37 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	size_t size = (off_t)IPC_GET_ARG3(*request);
 
 	/*
-	 * Lookup the respective dentry.
+	 * Lookup the respective TMPFS node.
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = index,
-		[DENTRIES_KEY_DEV] = dev_handle
+		[NODES_KEY_INDEX] = index,
+		[NODES_KEY_DEV] = dev_handle
 	};
-	hlp = hash_table_find(&dentries, key);
+	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
-	    dh_link);
+	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
+	    nh_link);
 
-	if (size == dentry->size) {
+	if (size == nodep->size) {
 		ipc_answer_0(rid, EOK);
 		return;
 	}
 
-	void *newdata = realloc(dentry->data, size);
+	void *newdata = realloc(nodep->data, size);
 	if (!newdata) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	if (size > dentry->size) {
-		size_t delta = size - dentry->size;
-		memset(newdata + dentry->size, 0, delta);
+	if (size > nodep->size) {
+		size_t delta = size - nodep->size;
+		memset(newdata + nodep->size, 0, delta);
 	}
-	dentry->size = size;
-	dentry->data = newdata;
+	nodep->size = size;
+	nodep->data = newdata;
 	ipc_answer_0(rid, EOK);
 }
 
@@ -671,17 +608,17 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 
 	link_t *hlp;
 	unsigned long key[] = {
-		[DENTRIES_KEY_INDEX] = index,
-		[DENTRIES_KEY_DEV] = dev_handle
+		[NODES_KEY_INDEX] = index,
+		[NODES_KEY_DEV] = dev_handle
 	};
-	hlp = hash_table_find(&dentries, key);
+	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-	tmpfs_dentry_t *dentry = hash_table_get_instance(hlp, tmpfs_dentry_t,
-	    dh_link);
-	rc = tmpfs_destroy_node(FS_NODE(dentry));
+	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
+	    nh_link);
+	rc = tmpfs_destroy_node(FS_NODE(nodep));
 	ipc_answer_0(rid, rc);
 }
 

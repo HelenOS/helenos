@@ -44,7 +44,7 @@
 #define dprintf(...)	printf(__VA_ARGS__)
 #endif
 
-#define TMPFS_NODE(node)	((node) ? (tmpfs_dentry_t *)(node)->data : NULL)
+#define TMPFS_NODE(node)	((node) ? (tmpfs_node_t *)(node)->data : NULL)
 #define FS_NODE(node)		((node) ? (node)->bp : NULL)
 
 typedef enum {
@@ -53,19 +53,26 @@ typedef enum {
 	TMPFS_DIRECTORY
 } tmpfs_dentry_type_t;
 
+/* forward declaration */
+struct tmpfs_node;
+
 typedef struct tmpfs_dentry {
+	link_t link;		/**< Linkage for the list of siblings. */
+	struct tmpfs_node *node;/**< Back pointer to TMPFS node. */
+	char *name;		/**< Name of dentry. */
+} tmpfs_dentry_t;
+
+typedef struct tmpfs_node {
 	fs_node_t *bp;		/**< Back pointer to the FS node. */
 	fs_index_t index;	/**< TMPFS node index. */
 	dev_handle_t dev_handle;/**< Device handle. */
-	link_t dh_link;		/**< Dentries hash table link. */
-	struct tmpfs_dentry *sibling;
-	struct tmpfs_dentry *child;
-	hash_table_t names;	/**< All names linking to this TMPFS node. */ 
+	link_t nh_link;		/**< Nodes hash table link. */
 	tmpfs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
 	size_t size;		/**< File size if type is TMPFS_FILE. */
 	void *data;		/**< File content's if type is TMPFS_FILE. */
-} tmpfs_dentry_t;
+	link_t cs_head;		/**< Head of child's siblings list. */
+} tmpfs_node_t;
 
 extern fs_reg_t tmpfs_reg;
 
