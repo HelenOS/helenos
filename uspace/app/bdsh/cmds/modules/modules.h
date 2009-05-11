@@ -27,6 +27,7 @@
 #include "sleep/entry.h"
 #include "cp/entry.h"
 #include "mv/entry.h"
+#include "mount/entry.h"
 #include "kcon/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
@@ -44,7 +45,9 @@ module_t modules[] = {
 #include "sleep/sleep_def.h"
 #include "cp/cp_def.h"
 #include "mv/mv_def.h"
+#include "mount/mount_def.h"
 #include "kcon/kcon_def.h"
+
 	{NULL, NULL, NULL, NULL}
 };
 
