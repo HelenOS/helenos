@@ -810,6 +810,7 @@ aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
+	msg->wdata.inlist = false;
 	/* We may sleep in the next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
@@ -849,6 +850,7 @@ aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
+	msg->wdata.inlist = false;
 	/* We may sleep in next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
