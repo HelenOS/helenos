@@ -58,7 +58,7 @@ SUBDIRS = \
 	cmds/modules/sleep/ \
 	cmds/modules/cp/ \
 	cmds/modules/mv/ \
-	cmds/modules/mount \
+	cmds/modules/mount/ \
 	cmds/modules/kcon/ \
 	cmds/builtins/ \
 	cmds/builtins/exit/\
