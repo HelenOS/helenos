@@ -276,6 +276,18 @@ static bool rd_init(void)
 		printf(NAME ": Unable to register device\n");
 		return false;
 	}
+
+	/*
+	 * Create the second device.
+	 * We need at least two devices for the sake of testing of non-root
+	 * mounts. Of course it would be better to allow the second device
+	 * be created dynamically...
+	 */
+	if (EOK != device_register(driver_phone, "spared", &dev_handle)) {
+		ipc_hangup(driver_phone);
+		printf(NAME ": Unable to register device\n");
+		return false;
+	}
 	
 	return true;
 }
