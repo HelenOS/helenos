@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include <console.h>
+#include <sys/time.h>
+#include "../tester.h"
 
-#ifndef TESTER_H_
-#define TESTER_H_
+#define DURATION_SECS		 10
+#define COUNT_GRANULARITY	100
 
-#include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
+char * test_ping_pong(bool quiet)
+{
+	int i;
+	int w, h;
+	struct timeval start, now;
+	long count;
 
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-#define TEST_SKIPPED    "Test Skipped"
+	printf("Pinging console server for %d seconds...\n", DURATION_SECS);
 
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
+	if (gettimeofday(&start, NULL) != 0)
+		return "Failed getting the time.";
 
-typedef char * (* test_entry_t)(bool);
+	count = 0;
 
-typedef struct {
-	char * name;
-	char * desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+	while (true) {
+		if (gettimeofday(&now, NULL) != 0)
+			return "Failed getting the time.";
 
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_print4(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-extern char * test_ping_pong(bool quiet);
-extern char * test_devmap1(bool quiet);
-extern char * test_loop1(bool quiet);
-extern char * test_vfs1(bool quiet);
-extern char * test_console1(bool quiet);
-extern char * test_stdio1(bool quiet);
-extern char * test_stdio2(bool quiet);
+		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
+			break;
 
-extern test_t tests[];
+		for (i = 0; i < COUNT_GRANULARITY; i++)
+			console_get_size(&w, &h);
+		count += COUNT_GRANULARITY;
+	}
 
-#endif
+	printf("Completed %ld round trips in %d seconds, %ld RT/s.\n", count,
+	    DURATION_SECS, count / DURATION_SECS);
 
-/** @}
- */
+	return NULL;
+}
