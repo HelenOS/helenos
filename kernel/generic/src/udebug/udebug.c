@@ -137,11 +137,6 @@ void udebug_stoppable_begin(void)
 	ASSERT(THREAD);
 	ASSERT(TASK);
 
-	/* Early check for undebugged tasks */
-	if (!udebug_thread_precheck()) {
-		return;
-	}
-
 	mutex_lock(&TASK->udebug.lock);
 
 	nsc = --TASK->udebug.not_stoppable_count;
@@ -202,11 +197,6 @@ void udebug_stoppable_begin(void)
  */
 void udebug_stoppable_end(void)
 {
-	/* Early check for undebugged tasks */
-	if (!udebug_thread_precheck()) {
-		return;
-	}
-
 restart:
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
