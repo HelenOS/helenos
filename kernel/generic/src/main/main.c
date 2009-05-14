@@ -250,10 +250,10 @@ void main_bsp_separated_stack(void)
 		count_t i;
 		for (i = 0; i < init.cnt; i++)
 			LOG("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
-			    "].size=%#" PRIs "\n", i, init.tasks[i].addr, i,
+			    "].size=%#" PRIs, i, init.tasks[i].addr, i,
 			    init.tasks[i].size);
 	} else
-		printf("No init binaries found\n");
+		printf("No init binaries found.\n");
 	
 	LOG_EXEC(ipc_init());
 	LOG_EXEC(event_init());

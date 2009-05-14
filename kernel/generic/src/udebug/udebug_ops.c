@@ -181,15 +181,11 @@ int udebug_begin(call_t *call)
 	thread_t *t;
 	link_t *cur;
 
-	LOG("udebug_begin()\n");
-
+	LOG("Debugging task %llu", TASK->taskid);
 	mutex_lock(&TASK->udebug.lock);
-	LOG("debugging task %llu\n", TASK->taskid);
 
 	if (TASK->udebug.dt_state != UDEBUG_TS_INACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
-		LOG("udebug_begin(): busy error\n");
-
 		return EBUSY;
 	}
 
@@ -217,10 +213,6 @@ int udebug_begin(call_t *call)
 	}
 
 	mutex_unlock(&TASK->udebug.lock);
-
-	LOG("udebug_begin() done (%s)\n", 
-	    reply ? "reply" : "stoppability wait");
-
 	return reply;
 }
 
@@ -233,13 +225,10 @@ int udebug_end(void)
 {
 	int rc;
 
-	LOG("udebug_end()\n");
+	LOG("Task %" PRIu64, TASK->taskid);
 
 	mutex_lock(&TASK->udebug.lock);
-	LOG("task %" PRIu64 "\n", TASK->taskid);
-
 	rc = udebug_task_cleanup(TASK);
-
 	mutex_unlock(&TASK->udebug.lock);
 
 	return rc;
@@ -254,19 +243,16 @@ int udebug_end(void)
  */
 int udebug_set_evmask(udebug_evmask_t mask)
 {
-	LOG("udebug_set_mask()\n");
+	LOG("mask = 0x%x", mask);
 
 	mutex_lock(&TASK->udebug.lock);
 
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
-		LOG("udebug_set_mask(): not active debuging session\n");
-
 		return EINVAL;
 	}
 
 	TASK->udebug.evmask = mask;
-
 	mutex_unlock(&TASK->udebug.lock);
 
 	return 0;
@@ -317,7 +303,7 @@ int udebug_stop(thread_t *t, call_t *call)
 {
 	int rc;
 
-	LOG("udebug_stop()\n");
+	LOG("udebug_stop()");
 
 	/*
 	 * On success, this will lock t->udebug.lock. Note that this makes sure
@@ -340,7 +326,6 @@ int udebug_stop(thread_t *t, call_t *call)
 	/*
 	 * Answer GO call.
 	 */
-	LOG("udebug_stop - answering go call\n");
 
 	/* Make sure nobody takes this call away from us. */
 	call = t->udebug.go_call;
@@ -348,7 +333,6 @@ int udebug_stop(thread_t *t, call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_STOP);
-	LOG("udebug_stop/ipc_answer\n");
 
 	THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
 
@@ -358,7 +342,6 @@ int udebug_stop(thread_t *t, call_t *call)
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
 
-	LOG("udebog_stop/done\n");
 	return 0;
 }
 
@@ -392,7 +375,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	int flags;
 	size_t max_ids;
 
-	LOG("udebug_thread_read()\n");
+	LOG("udebug_thread_read()");
 
 	/* Allocate a buffer to hold thread IDs */
 	id_buffer = malloc(buf_size, 0);

@@ -84,10 +84,10 @@ void ipc_kbox_cleanup(void)
 	interrupts_restore(ipl);
 	
 	if (have_kb_thread) {
-		LOG("join kb.thread..\n");
+		LOG("Join kb.thread.");
 		thread_join(TASK->kb.thread);
 		thread_detach(TASK->kb.thread);
-		LOG("join done\n");
+		LOG("...join done.");
 		TASK->kb.thread = NULL;
 	}
 
@@ -108,22 +108,20 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 {
 	ipl_t ipl;
 
-	LOG("kbox_proc_phone_hungup()\n");
-
 	/* Was it our debugger, who hung up? */
 	if (call->sender == TASK->udebug.debugger) {
 		/* Terminate debugging session (if any). */
-		LOG("kbox: terminate debug session\n");
+		LOG("Terminate debugging session.");
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
 		udebug_task_cleanup(TASK);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 	} else {
-		LOG("kbox: was not debugger\n");
+		LOG("Was not debugger.");
 	}
 
-	LOG("kbox: continue with hangup message\n");
+	LOG("Continue with hangup message.");
 	IPC_SET_RETVAL(call->data, 0);
 	ipc_answer(&TASK->kb.box, call);
 
@@ -145,7 +143,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 		}
 		mutex_unlock(&TASK->kb.cleanup_lock);
 
-		LOG("phone list is empty\n");
+		LOG("Phone list is empty.");
 		*last = true;
 	} else {
 		*last = false;
@@ -169,7 +167,7 @@ static void kbox_thread_proc(void *arg)
 	bool done;
 
 	(void)arg;
-	LOG("kbox_thread_proc()\n");
+	LOG("Starting.");
 	done = false;
 
 	while (!done) {
@@ -201,7 +199,7 @@ static void kbox_thread_proc(void *arg)
 		}
 	}
 
-	LOG("kbox: finished\n");
+	LOG("Exiting.");
 }
 
 

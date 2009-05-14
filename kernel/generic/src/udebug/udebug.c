@@ -271,7 +271,7 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 		return;
 	}
 
-	//printf("udebug_syscall_event\n");
+	/* Fill in the GO response. */
 	call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
 
@@ -279,7 +279,6 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	IPC_SET_ARG1(call->data, etype);
 	IPC_SET_ARG2(call->data, id);
 	IPC_SET_ARG3(call->data, rc);
-	//printf("udebug_syscall_event/ipc_answer\n");
 
 	THREAD->udebug.syscall_args[0] = a1;
 	THREAD->udebug.syscall_args[1] = a2;
@@ -329,21 +328,19 @@ void udebug_thread_b_event_attach(struct thread *t, struct task *ta)
 
 	thread_attach(t, ta);
 
-	LOG("udebug_thread_b_event\n");
-	LOG("- check state\n");
+	LOG("Check state");
 
 	/* Must only generate events when in debugging session */
 	if (THREAD->udebug.active != true) {
-		LOG("- udebug.active: %s, udebug.go: %s\n",
-			THREAD->udebug.active ? "yes(+)" : "no(-)",
-			THREAD->udebug.go ? "yes(-)" : "no(+)");
+		LOG("udebug.active: %s, udebug.go: %s",
+			THREAD->udebug.active ? "Yes(+)" : "No",
+			THREAD->udebug.go ? "Yes(-)" : "No");
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
 	}
 
-	LOG("- trigger event\n");
-
+	LOG("Trigger event");
 	call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
 	IPC_SET_RETVAL(call->data, 0);
@@ -363,7 +360,7 @@ void udebug_thread_b_event_attach(struct thread *t, struct task *ta)
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
 
-	LOG("- sleep\n");
+	LOG("Wait for Go");
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
 }
 
@@ -379,21 +376,19 @@ void udebug_thread_e_event(void)
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
 
-	LOG("udebug_thread_e_event\n");
-	LOG("- check state\n");
+	LOG("Check state");
 
 	/* Must only generate events when in debugging session. */
 	if (THREAD->udebug.active != true) {
-/*		printf("- udebug.active: %s, udebug.go: %s\n",
-			THREAD->udebug.active ? "yes(+)" : "no(-)",
-			THREAD->udebug.go ? "yes(-)" : "no(+)");*/
+		LOG("udebug.active: %s, udebug.go: %s",
+			THREAD->udebug.active ? "Yes" : "No",
+			THREAD->udebug.go ? "Yes" : "No");
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
 	}
 
-	LOG("- trigger event\n");
-
+	LOG("Trigger event");
 	call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
 	IPC_SET_RETVAL(call->data, 0);
@@ -432,14 +427,12 @@ int udebug_task_cleanup(struct task *ta)
 	int flags;
 	ipl_t ipl;
 
-	LOG("udebug_task_cleanup()\n");
-	LOG("task %" PRIu64 "\n", ta->taskid);
-
 	if (ta->udebug.dt_state != UDEBUG_TS_BEGINNING &&
 	    ta->udebug.dt_state != UDEBUG_TS_ACTIVE) {
-		LOG("udebug_task_cleanup(): task not being debugged\n");
 		return EINVAL;
 	}
+
+	LOG("Task %" PRIu64, ta->taskid);
 
 	/* Finish debugging of all userspace threads */
 	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
@@ -470,7 +463,7 @@ int udebug_task_cleanup(struct task *ta)
 				t->udebug.go = false;	
 
 				/* Answer GO call */
-				LOG("answer GO call with EVENT_FINISHED\n");
+				LOG("Answer GO call with EVENT_FINISHED.");
 				IPC_SET_RETVAL(t->udebug.go_call->data, 0);
 				IPC_SET_ARG1(t->udebug.go_call->data,
 				    UDEBUG_EVENT_FINISHED);
