@@ -98,27 +98,6 @@ static void udebug_wait_for_go(waitq_t *wq)
 	waitq_sleep_finish(wq, rc, ipl);
 }
 
-/** Do a preliminary check that a debugging session is in progress.
- * 
- * This only requires the THREAD->udebug.lock mutex (and not TASK->udebug.lock
- * mutex). For an undebugged task, this will never block (while there could be
- * collisions by different threads on the TASK mutex), thus improving SMP
- * perormance for undebugged tasks.
- *
- * @return	True if the thread was in a debugging session when the function
- *		checked, false otherwise.
- */
-static bool udebug_thread_precheck(void)
-{
-	bool res;
-
-	mutex_lock(&THREAD->udebug.lock);
-	res = THREAD->udebug.active;
-	mutex_unlock(&THREAD->udebug.lock);
-
-	return res;
-}
-
 /** Start of stoppable section.
  *
  * A stoppable section is a section of code where if the thread can be stoped. In other words,
@@ -244,11 +223,6 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 	udebug_event_t etype;
 
 	etype = end_variant ? UDEBUG_EVENT_SYSCALL_E : UDEBUG_EVENT_SYSCALL_B;
-
-	/* Early check for undebugged tasks */
-	if (!udebug_thread_precheck()) {
-		return;
-	}
 
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);

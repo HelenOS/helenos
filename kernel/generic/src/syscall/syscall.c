@@ -59,9 +59,19 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
 	unative_t rc;
-	
+
 #ifdef CONFIG_UDEBUG
-	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
+	bool debug;
+
+	/*
+	 * Early check for undebugged tasks. We do not lock anything as this
+	 * test need not be precise in either way.
+	 */
+	debug = THREAD->udebug.active;
+	
+	if (debug) {
+		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
+	}
 #endif
 	
 	if (id < SYSCALL_END) {
@@ -76,14 +86,17 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		thread_exit();
 	
 #ifdef CONFIG_UDEBUG
-	udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
+	if (debug) {
+		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
 	
-	/*
-	 * Stopping point needed for tasks that only invoke non-blocking
-	 * system calls.
-	 */
-	udebug_stoppable_begin();
-	udebug_stoppable_end();
+		/*
+		 * Stopping point needed for tasks that only invoke
+		 * non-blocking system calls. Not needed if the task
+		 * is not being debugged (it cannot block here).
+		 */
+		udebug_stoppable_begin();
+		udebug_stoppable_end();
+	}
 #endif
 	
 	return rc;
