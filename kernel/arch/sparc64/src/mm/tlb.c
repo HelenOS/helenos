@@ -497,38 +497,7 @@ void dump_sfsr_and_sfar(void)
 	dtlb_sfsr_write(0);
 }
 
-#if defined (US3)
-/** Invalidates given TLB entry if and only if it is non-locked or global.
- * 
- * @param tlb		TLB number (one of TLB_DSMALL, TLB_DBIG_0, TLB_DBIG_1,
- *			TLB_ISMALL, TLB_IBIG).
- * @param entry		Entry index within the given TLB.
- */
-static void tlb_invalidate_entry(int tlb, index_t entry)
-{
-	tlb_data_t d;
-	tlb_tag_read_reg_t t;
-	
-	if (tlb == TLB_DSMALL || tlb == TLB_DBIG_0 || tlb == TLB_DBIG_1) {
-		d.value = dtlb_data_access_read(tlb, entry);
-		if (!d.l || d.g) {
-			t.value = dtlb_tag_read_read(tlb, entry);
-			d.v = false;
-			dtlb_tag_access_write(t.value);
-			dtlb_data_access_write(tlb, entry, d.value);
-		}
-	} else if (tlb == TLB_ISMALL || tlb == TLB_IBIG) {
-		d.value = itlb_data_access_read(tlb, entry);
-		if (!d.l || d.g) {
-			t.value = itlb_tag_read_read(tlb, entry);
-			d.v = false;
-			itlb_tag_access_write(t.value);
-			itlb_data_access_write(tlb, entry, d.value);
-		}
-	}
-}
-#endif
-
+#if defined (US)
 /** Invalidate all unlocked ITLB and DTLB entries. */
 void tlb_invalidate_all(void)
 {
@@ -543,7 +512,6 @@ void tlb_invalidate_all(void)
 	 * be safe to invalidate them as late as now.
 	 */
 
-#if defined (US)
 	tlb_data_t d;
 	tlb_tag_read_reg_t t;
 
@@ -567,21 +535,18 @@ void tlb_invalidate_all(void)
 		}
 	}
 
+}
+
 #elif defined (US3)
 
-	for (i = 0; i < tlb_ismall_size(); i++)
-		tlb_invalidate_entry(TLB_ISMALL, i);
-	for (i = 0; i < tlb_ibig_size(); i++)
-		tlb_invalidate_entry(TLB_IBIG, i);
-	for (i = 0; i < tlb_dsmall_size(); i++)
-		tlb_invalidate_entry(TLB_DSMALL, i);
-	for (i = 0; i < tlb_dbig_size(); i++)
-		tlb_invalidate_entry(TLB_DBIG_0, i);
-	for (i = 0; i < tlb_dbig_size(); i++)
-		tlb_invalidate_entry(TLB_DBIG_1, i);
-#endif
-
+/** Invalidate all unlocked ITLB and DTLB entries. */
+void tlb_invalidate_all(void)
+{
+	itlb_demap(TLB_DEMAP_ALL, 0, 0);
+	dtlb_demap(TLB_DEMAP_ALL, 0, 0);
 }
+
+#endif
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID
  * (Context).
