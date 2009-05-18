@@ -42,9 +42,7 @@ spinlock_arch:
 	movl 12(%esp),%ebx
 
 0:	
-	#ifdef CONFIG_HT
 	pause			# Pentium 4's with HT love this instruction
-	#endif
 	movl (%ebx),%eax
 	testl %eax,%eax
 	jnz 0b			# lightweight looping while it is locked
