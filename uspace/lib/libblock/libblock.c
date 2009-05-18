@@ -146,9 +146,8 @@ int block_init(dev_handle_t dev_handle, size_t com_size)
 	if (!com_area) {
 		return ENOMEM;
 	}
-	dev_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
-	    DEVMAP_CONNECT_TO_DEVICE, dev_handle);
 
+	dev_phone = devmap_device_connect(dev_handle, IPC_FLAG_BLOCKING);
 	if (dev_phone < 0) {
 		munmap(com_area, com_size);
 		return dev_phone;

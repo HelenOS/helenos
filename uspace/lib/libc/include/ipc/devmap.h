@@ -33,6 +33,7 @@
 #ifndef DEVMAP_DEVMAP_H_
 #define DEVMAP_DEVMAP_H_
 
+#include <atomic.h>
 #include <ipc/ipc.h>
 #include <libadt/list.h>
 

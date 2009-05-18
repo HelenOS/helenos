@@ -52,7 +52,7 @@
 #include <async.h>
 #include <futex.h>
 #include <stdio.h>
-#include <ipc/devmap.h>
+#include <devmap.h>
 #include <ipc/bd.h>
 
 #define NAME "rd"
@@ -180,66 +180,6 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int driver_register(char *name)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-	int phone;
-	ipcarg_t callback_phonehash;
-
-	phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
-	if (phone < 0) {
-		printf(NAME ": Failed to connect to device mapper\n");
-		return -1;
-	}
-	
-	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
-
-	retval = ipc_data_write_start(phone, (char *) name, str_size(name) + 1);
-
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		return -1;
-	}
-
-	async_set_client_connection(rd_connection);
-
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
-	async_wait_for(req, &retval);
-
-	return phone;
-}
-
-static int device_register(int driver_phone, char *name, int *handle)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-
-	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0, &answer);
-
-	retval = ipc_data_write_start(driver_phone, (char *) name,
-	    str_size(name) + 1);
-
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (handle != NULL)
-		*handle = -1;
-	
-	if (EOK == retval) {
-		if (NULL != handle)
-			*handle = (int) IPC_GET_ARG1(answer);
-	}
-	
-	return retval;
-}
-
 /** Prepare the ramdisk image for operation. */
 static bool rd_init(void)
 {
@@ -264,14 +204,14 @@ static bool rd_init(void)
 	
 	printf(NAME ": Found RAM disk at %p, %d bytes\n", rd_ph_addr, rd_size);
 	
-	int driver_phone = driver_register(NAME);
+	int driver_phone = devmap_driver_register(NAME, rd_connection);
 	if (driver_phone < 0) {
 		printf(NAME ": Unable to register driver\n");
 		return false;
 	}
 	
 	int dev_handle;
-	if (EOK != device_register(driver_phone, "initrd", &dev_handle)) {
+	if (devmap_device_register(driver_phone, "initrd", &dev_handle) != EOK) {
 		ipc_hangup(driver_phone);
 		printf(NAME ": Unable to register device\n");
 		return false;
@@ -283,7 +223,7 @@ static bool rd_init(void)
 	 * mounts. Of course it would be better to allow the second device
 	 * be created dynamically...
 	 */
-	if (EOK != device_register(driver_phone, "spared", &dev_handle)) {
+	if (devmap_device_register(driver_phone, "spared", &dev_handle) != EOK) {
 		ipc_hangup(driver_phone);
 		printf(NAME ": Unable to register device\n");
 		return false;

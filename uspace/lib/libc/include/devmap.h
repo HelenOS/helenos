@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,19 @@
 /** @file
  */
 
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
+#ifndef LIBC_DEVMAP_H_
+#define LIBC_DEVMAP_H_
 
-#include <sys/types.h>
+#include <ipc/devmap.h>
+#include <async.h>
 
-extern char *absolutize(const char *, size_t *);
+typedef int dev_handle_t;
 
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int flags);
+extern int devmap_driver_register(const char *, async_client_conn_t);
+extern int devmap_device_get_handle(const char *, dev_handle_t *,
+    unsigned int);
+extern int devmap_device_connect(dev_handle_t, unsigned int);
+extern int devmap_device_register(int, const char *, int *);
 
 #endif
 

@@ -48,7 +48,7 @@
 #include <futex.h>
 #include <errno.h>
 #include <string.h>
-#include <ipc/devmap.h>
+#include <devmap.h>
 #include "../../../srv/vfs/vfs.h"
 
 int vfs_phone = -1;
@@ -115,54 +115,15 @@ static void vfs_connect(void)
 		vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
 }
 
-static int device_get_handle(const char *name, dev_handle_t *handle,
-    const unsigned int flags)
-{
-	int phone;
-	
-	if (flags & IPC_FLAG_BLOCKING)
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
-	else
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
-	
-	if (phone < 0)
-		return phone;
-	
-	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
-	    &answer);
-	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
-	
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		ipc_hangup(phone);
-		return retval;
-	}
-	
-	async_wait_for(req, &retval);
-	
-	if (handle != NULL)
-		*handle = -1;
-	
-	if (retval == EOK) {
-		if (handle != NULL)
-			*handle = (dev_handle_t) IPC_GET_ARG1(answer);
-	}
-	
-	ipc_hangup(phone);
-	return retval;
-}
-
 int mount(const char *fs_name, const char *mp, const char *dev,
-    const char *opts, const unsigned int flags)
+    const char *opts, unsigned int flags)
 {
 	int res;
 	ipcarg_t rc;
 	aid_t req;
 	dev_handle_t dev_handle;
 	
-	res = device_get_handle(dev, &dev_handle, flags);
+	res = devmap_device_get_handle(dev, &dev_handle, flags);
 	if (res != EOK)
 		return res;
 	

@@ -32,7 +32,7 @@
 #include <ipc/services.h>
 #include <async.h>
 #include <errno.h>
-#include <ipc/devmap.h>
+#include <devmap.h>
 #include "../tester.h"
 
 #include <time.h>
@@ -84,22 +84,14 @@ static int device_client_fibril(void *arg)
 
 	handle = (int)arg;
 
-	device_phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-	    DEVMAP_CONNECT_TO_DEVICE, handle);
-
+	device_phone = devmap_device_connect(handle, 0);
 	if (device_phone < 0) {
-		printf("Failed to connect to devmap as client (handle = %u).\n",
+		printf("Failed to connect to device (handle = %u).\n",
 		    handle);
 		return -1;
 	}
-/*	
- *	device_phone = (int) IPC_GET_ARG5(answer);
- */
+
 	printf("Connected to device.\n");
-	ipc_call_sync_1_0(device_phone, 1024, 1025);
-/*
- * ipc_hangup(device_phone);
- */
 	ipc_hangup(device_phone);
 
 	return EOK;
@@ -121,126 +113,6 @@ static int device_client(int handle)
 	return EOK;
 }
 
-/**
- *
- */
-static int driver_register(char *name)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-	int phone;
-	ipcarg_t callback_phonehash;
-
-	phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
-	if (phone < 0) {
-		printf("Failed to connect to device mapper\n");
-		return -1;
-	}
-	
-	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
-
-	retval = ipc_data_write_start(phone, (char *)name, str_size(name) + 1); 
-
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		return -1;
-	}
-
-	async_set_client_connection(driver_client_connection);
-
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
-/*	
-	if (NULL == async_new_connection(callback_phonehash, 0, NULL,
-			driver_client_connection)) {
-		printf("Failed to create new fibril.\n");	
-		async_wait_for(req, NULL);
-		return -1;
-	}
-*/
-	async_wait_for(req, &retval);
-	printf("Driver '%s' registered.\n", name);
-
-	return phone;
-}
-
-static int device_get_handle(int driver_phone, char *name, int *handle)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-
-	req = async_send_2(driver_phone, DEVMAP_DEVICE_GET_HANDLE, 0, 0,
-	    &answer);
-
-	retval = ipc_data_write_start(driver_phone, name, str_size(name) + 1);
-
-	if (retval != EOK) {
-		printf("Failed to send device name '%s'.\n", name);
-		async_wait_for(req, NULL);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (NULL != handle) {
-		*handle = -1;
-	}
-
-	if (EOK == retval) {
-		
-		if (NULL != handle) {
-			*handle = (int) IPC_GET_ARG1(answer);
-		}
-		printf("Device '%s' has handle %u.\n", name,
-		    (int) IPC_GET_ARG1(answer));
-	} else {
-		printf("Failed to get handle for device '%s'.\n", name);
-	}
-
-	return retval;
-}
-
-/** Register new device.
- * @param driver_phone
- * @param name Device name.
- * @param handle Output variable. Handle to the created instance of device.
- */
-static int device_register(int driver_phone, char *name, int *handle)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-
-	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0, &answer);
-
-	retval = ipc_data_write_start(driver_phone, (char *)name,
-	    str_size(name) + 1);
-
-	if (retval != EOK) {
-		printf("Failed to send device name '%s'.\n", name);
-		async_wait_for(req, NULL);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (NULL != handle) {
-		*handle = -1;
-	}
-
-	if (EOK == retval) {
-		
-		if (NULL != handle) {
-			*handle = (int) IPC_GET_ARG1(answer);
-		}
-		printf("Device registered with handle %u.\n",
-		    (int) IPC_GET_ARG1(answer));
-	}
-
-	return retval;
-}
-
 /** Test DevMap from the driver's point of view.
  *
  *
@@ -252,41 +124,49 @@ char * test_devmap1(bool quiet)
 	int dev2_handle;
 	int dev3_handle;
 	int handle;
+	int rc;
 
 	/* Register new driver */
-	driver_phone = driver_register("TestDriver");
+	driver_phone = devmap_driver_register("TestDriver",
+	    driver_client_connection);
 
 	if (driver_phone < 0) {
 		return "Error: Cannot register driver.\n";	
 	}
 
-	/* Register new device dev1*/
-	if (EOK != device_register(driver_phone, TEST_DEVICE1, &dev1_handle)) {
+	/* Register new device dev1. */
+	rc = devmap_device_register(driver_phone, TEST_DEVICE1, &dev1_handle);
+	if (rc != EOK) {
 		ipc_hangup(driver_phone);
 		return "Error: cannot register device.\n";
 	}
 
-	/* Get handle for dev2 (Should fail unless device is already 
-	 * registered by someone else) 
+	/*
+	 * Get handle for dev2 (Should fail unless device is already registered
+	 * by someone else).
 	 */
-	if (EOK == device_get_handle(driver_phone, TEST_DEVICE2, &handle)) {
+	rc = devmap_device_get_handle(TEST_DEVICE2, &handle, 0);
+	if (rc == EOK) {
 		ipc_hangup(driver_phone);
 		return "Error: got handle for dev2 before it was registered.\n";
 	}
 
-	/* Register new device dev2*/
-	if (EOK != device_register(driver_phone, TEST_DEVICE2, &dev2_handle)) {
+	/* Register new device dev2. */
+	rc = devmap_device_register(driver_phone, TEST_DEVICE2, &dev2_handle);
+	if (rc != EOK) {
 		ipc_hangup(driver_phone);
 		return "Error: cannot register device dev2.\n";
 	}
 
-	/* Register again device dev1 */
-	if (EOK == device_register(driver_phone, TEST_DEVICE1, &dev3_handle)) {
+	/* Register device dev1 again. */
+	rc = devmap_device_register(driver_phone, TEST_DEVICE1, &dev3_handle);
+	if (rc == EOK) {
 		return "Error: dev1 registered twice.\n";
 	}
 
-	/* Get handle for dev1*/
-	if (EOK != device_get_handle(driver_phone, TEST_DEVICE1, &handle)) {
+	/* Get handle for dev1. */
+	rc = devmap_device_get_handle(TEST_DEVICE1, &handle, 0);
+	if (rc != EOK) {
 		ipc_hangup(driver_phone);
 		return "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
 	}
@@ -296,7 +176,7 @@ char * test_devmap1(bool quiet)
 		return "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
 	}
 
-	if (EOK != device_client(dev1_handle)) {
+	if (device_client(dev1_handle) != EOK) {
 		ipc_hangup(driver_phone);
 		return "Error: failed client test for 'DEVMAP_DEVICE1'.\n";
 	}

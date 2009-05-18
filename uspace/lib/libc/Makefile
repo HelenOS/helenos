@@ -47,6 +47,7 @@ GENERIC_SOURCES = \
 	generic/as.c \
 	generic/cap.c \
 	generic/console.c \
+	generic/devmap.c \
 	generic/event.c \
 	generic/mem.c \
 	generic/string.c \

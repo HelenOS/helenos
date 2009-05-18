@@ -38,6 +38,7 @@
 #include <futex.h>
 #include <rwlock.h>
 #include <sys/types.h>
+#include <devmap.h>
 #include <bool.h>
 
 // FIXME: according to CONFIG_DEBUG
@@ -49,7 +50,6 @@
 
 /* Basic types. */
 typedef int16_t fs_handle_t;
-typedef int16_t dev_handle_t;
 typedef uint32_t fs_index_t;
 
 typedef enum {
