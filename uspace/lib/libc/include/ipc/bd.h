@@ -1,8 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Konopa
- * Copyright (c) 2007 Martin Jelen
- * Copyright (c) 2007 Peter Majer
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,22 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rd
+/** @addtogroup libcipc
  * @{
  */
+/** @file
+ */ 
 
-/**
- * @file	rd.h
- * @brief	Initial RAM disk for HelenOS - header
- */
+#ifndef LIBC_IPC_BD_H_
+#define LIBC_IPC_BD_H_
 
-/* Basic constants. */
+#include <ipc/ipc.h>
 
-#ifndef RD_RD_H_
-#define RD_RD_H_
-
-#define RD_BASE		1024
-#define	RD_READ_BLOCK	(RD_BASE + 1)	/**< Method for reading block. */
-#define RD_WRITE_BLOCK	(RD_BASE + 2)	/**< Method for writing block. */
+typedef enum {
+	BD_READ_BLOCK = IPC_FIRST_USER_METHOD,
+	BD_WRITE_BLOCK
+} bd_request_t;
 
 #endif
+
+/** @}
+ */

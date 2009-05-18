@@ -37,8 +37,8 @@
 
 #include "libblock.h"
 #include "../../srv/vfs/vfs.h"
-#include "../../srv/rd/rd.h"
 #include <ipc/devmap.h>
+#include <ipc/bd.h>
 #include <ipc/services.h>
 #include <errno.h>
 #include <sys/mman.h>
@@ -477,7 +477,7 @@ block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
 		if (*bufpos == *buflen) {
 			/* Refill the communication buffer with a new block. */
 			ipcarg_t retval;
-			int rc = async_req_2_1(devcon->dev_phone, RD_READ_BLOCK,
+			int rc = async_req_2_1(devcon->dev_phone, BD_READ_BLOCK,
 			    *pos / block_size, block_size, &retval);
 			if ((rc != EOK) || (retval != EOK))
 				return (rc != EOK ? rc : retval);

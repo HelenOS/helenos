@@ -53,7 +53,7 @@
 #include <futex.h>
 #include <stdio.h>
 #include <ipc/devmap.h>
-#include "rd.h"
+#include <ipc/bd.h>
 
 #define NAME "rd"
 
@@ -122,7 +122,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 */
 			ipc_answer_0(callid, EOK);
 			return;
-		case RD_READ_BLOCK:
+		case BD_READ_BLOCK:
 			offset = IPC_GET_ARG1(call);
 			block_size = IPC_GET_ARG2(call);
 			if (block_size > maxblock_size) {
@@ -144,7 +144,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			futex_up(&rd_futex);
 			retval = EOK;
 			break;
-		case RD_WRITE_BLOCK:
+		case BD_WRITE_BLOCK:
 			offset = IPC_GET_ARG1(call);
 			block_size = IPC_GET_ARG2(call);
 			if (block_size > maxblock_size) {
