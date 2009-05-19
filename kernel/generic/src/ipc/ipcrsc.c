@@ -160,27 +160,29 @@ call_t *get_call(unative_t callid)
 	return result;
 }
 
-/** Allocate new phone slot in the current TASK structure.
+/** Allocate new phone slot in the specified task.
+ *
+ * @param t		Task for which to allocate a new phone.
  *
  * @return		New phone handle or -1 if the phone handle limit is
  *			exceeded.
  */
-int phone_alloc(void)
+int phone_alloc(task_t *t)
 {
 	int i;
 
-	spinlock_lock(&TASK->lock);
+	spinlock_lock(&t->lock);
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
-		    atomic_get(&TASK->phones[i].active_calls) == 0)
-			TASK->phones[i].state = IPC_PHONE_FREE;
+		if (t->phones[i].state == IPC_PHONE_HUNGUP &&
+		    atomic_get(&t->phones[i].active_calls) == 0)
+			t->phones[i].state = IPC_PHONE_FREE;
 
-		if (TASK->phones[i].state == IPC_PHONE_FREE) {
-			TASK->phones[i].state = IPC_PHONE_CONNECTING;
+		if (t->phones[i].state == IPC_PHONE_FREE) {
+			t->phones[i].state = IPC_PHONE_CONNECTING;
 			break;
 		}
 	}
-	spinlock_unlock(&TASK->lock);
+	spinlock_unlock(&t->lock);
 
 	if (i == IPC_MAX_PHONES)
 		return -1;

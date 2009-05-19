@@ -111,6 +111,25 @@
 /* System-specific methods - only through special syscalls
  * These methods have special behaviour
  */
+/** Clone connection.
+ *
+ * The calling task clones one of its phones for the callee.
+ *
+ * - ARG1 - The caller sets ARG1 to the phone of the cloned connection.
+ *	  - The callee gets the new phone from ARG1.
+ * - on answer, the callee acknowledges the new connection by sending EOK back
+ *   or the kernel closes it
+ */
+#define IPC_M_CONNECTION_CLONE	1
+/** Protocol for CONNECT - ME
+ *
+ * Through this call, the recipient learns about the new cloned connection. 
+ * 
+ * - ARG5 - the kernel sets ARG5 to contain the hash of the used phone
+ * - on asnwer, the callee acknowledges the new connection by sending EOK back
+ *   or the kernel closes it
+ */
+#define IPC_M_CONNECT_ME	2
 /** Protocol for CONNECT - TO - ME 
  *
  * Calling process asks the callee to create a callback connection,
@@ -127,7 +146,7 @@
  *                     - the allocated phoneid is passed to userspace 
  *                       (on the receiving side) as ARG5 of the call.
  */
-#define IPC_M_CONNECT_TO_ME	1
+#define IPC_M_CONNECT_TO_ME	3	
 /** Protocol for CONNECT - ME - TO
  *
  * Calling process asks the callee to create for him a new connection.
@@ -145,11 +164,11 @@
  *                     -  recepient may forward message.
  *
  */
-#define IPC_M_CONNECT_ME_TO	2
+#define IPC_M_CONNECT_ME_TO	4	
 /** This message is sent to answerbox when the phone
  * is hung up
  */
-#define IPC_M_PHONE_HUNGUP	3
+#define IPC_M_PHONE_HUNGUP	5
 
 /** Send as_area over IPC.
  * - ARG1 - source as_area base address
@@ -159,7 +178,7 @@
  * on answer, the recipient must set:
  * - ARG1 - dst as_area base adress
  */
-#define IPC_M_SHARE_OUT		4	
+#define IPC_M_SHARE_OUT		6	
 
 /** Receive as_area over IPC.
  * - ARG1 - destination as_area base address
@@ -171,7 +190,7 @@
  * - ARG1 - source as_area base address
  * - ARG2 - flags that will be used for sharing
  */
-#define IPC_M_SHARE_IN		5	
+#define IPC_M_SHARE_IN		7	
 
 /** Send data to another address space over IPC.
  * - ARG1 - source address space virtual address
@@ -182,7 +201,7 @@
  * - ARG1 - final destination address space virtual address
  * - ARG2 - final size of data to be copied
  */
-#define IPC_M_DATA_WRITE	6
+#define IPC_M_DATA_WRITE	8
 
 /** Receive data from another address space over IPC.
  * - ARG1 - destination virtual address in the source address space
@@ -193,13 +212,13 @@
  * - ARG1 - source virtual address in the destination address space
  * - ARG2 - final size of data to be copied
  */
-#define IPC_M_DATA_READ		7
+#define IPC_M_DATA_READ		9
 
 /** Debug the recipient.
  * - ARG1 - specifies the debug method (from udebug_method_t)
  * - other arguments are specific to the debug method
  */
-#define IPC_M_DEBUG_ALL		8
+#define IPC_M_DEBUG_ALL		10
 
 /* Well-known methods */
 #define IPC_M_LAST_SYSTEM	511

@@ -248,7 +248,7 @@ int ipc_connect_kbox(task_id_t taskid)
 		return EINVAL;
 	}
 
-	newphid = phone_alloc();
+	newphid = phone_alloc(TASK);
 	if (newphid < 0) {
 		mutex_unlock(&ta->kb.cleanup_lock);
 		return ELIMIT;

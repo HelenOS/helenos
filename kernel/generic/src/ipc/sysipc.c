@@ -93,6 +93,8 @@ static inline int method_is_system(unative_t method)
 static inline int method_is_forwardable(unative_t method)
 {
 	switch (method) {
+	case IPC_M_CONNECTION_CLONE:
+	case IPC_M_CONNECT_ME:
 	case IPC_M_PHONE_HUNGUP:
 		/* This message is meant only for the original recipient. */
 		return 0;
@@ -140,6 +142,8 @@ static inline int method_is_immutable(unative_t method)
 static inline int answer_need_old(call_t *call)
 {
 	switch (IPC_GET_METHOD(call->data)) {
+	case IPC_M_CONNECTION_CLONE:
+	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_TO_ME:
 	case IPC_M_CONNECT_ME_TO:
 	case IPC_M_SHARE_OUT:
@@ -182,9 +186,48 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	if (!olddata)
 		return 0;
 
-	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
+	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECTION_CLONE) {
+		phoneid = IPC_GET_ARG1(*olddata);
+		phone_t *phone = &TASK->phones[phoneid]; 
+		if (IPC_GET_RETVAL(answer->data) != EOK) {
+			/*
+			 * The recipient of the cloned phone rejected the offer.
+			 * In this case, the connection was established at the
+			 * request time and therefore we need to slam the phone.
+			 * We don't merely hangup as that would result in
+			 * sending IPC_M_HUNGUP to the third party on the
+			 * other side of the cloned phone.
+			 */
+			mutex_lock(&phone->lock);
+			if (phone->state == IPC_PHONE_CONNECTED) {
+				spinlock_lock(&phone->callee->lock);
+				list_remove(&phone->link);
+				phone->state = IPC_PHONE_SLAMMED;
+				spinlock_unlock(&phone->callee->lock);
+			}
+			mutex_unlock(&phone->lock);
+		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME) {
+		phone_t *phone = (phone_t *)IPC_GET_ARG5(*olddata);
+		if (IPC_GET_RETVAL(answer->data) != EOK) {
+			/*
+			 * The other party on the cloned phoned rejected our
+			 * request for connection on the protocol level.
+			 * We need to break the connection without sending
+			 * IPC_M_HUNGUP back.
+			 */
+			mutex_lock(&phone->lock);
+			if (phone->state == IPC_PHONE_CONNECTED) {
+				spinlock_lock(&phone->callee->lock);
+				list_remove(&phone->link);
+				phone->state = IPC_PHONE_SLAMMED;
+				spinlock_unlock(&phone->callee->lock);
+			}
+			mutex_unlock(&phone->lock);
+		}
+	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
 		phoneid = IPC_GET_ARG5(*olddata);
-		if (IPC_GET_RETVAL(answer->data)) {
+		if (IPC_GET_RETVAL(answer->data) != EOK) {
 			/* The connection was not accepted */
 			phone_dealloc(phoneid);
 		} else {
@@ -196,7 +239,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		}
 	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
 		/* If the users accepted call, connect */
-		if (!IPC_GET_RETVAL(answer->data)) {
+		if (IPC_GET_RETVAL(answer->data) == EOK) {
 			ipc_phone_connect((phone_t *) IPC_GET_ARG5(*olddata),
 			    &TASK->answerbox);
 		}
@@ -308,8 +351,48 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	int rc;
 
 	switch (IPC_GET_METHOD(call->data)) {
+	case IPC_M_CONNECTION_CLONE: {
+		phone_t *cloned_phone;
+		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
+		    return ENOENT);
+		if (cloned_phone < phone) {
+			mutex_lock(&cloned_phone->lock);
+			mutex_lock(&phone->lock);
+		} else {
+			mutex_lock(&phone->lock);
+			mutex_lock(&cloned_phone->lock);
+		}
+		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
+		    phone->state != IPC_PHONE_CONNECTED) {
+			mutex_unlock(&cloned_phone->lock);
+			mutex_unlock(&phone->lock);
+			return EINVAL;
+		}
+		/*
+		 * We can be pretty sure now that both tasks exist and we are
+		 * connected to them. As we continue to hold the phone locks,
+		 * we are effectively preventing them from finishing their
+		 * potential cleanup.
+		 */
+		newphid = phone_alloc(phone->callee->task);
+		if (newphid < 0) {
+			mutex_unlock(&cloned_phone->lock);
+			mutex_unlock(&phone->lock);
+			return ELIMIT;
+		}
+		ipc_phone_connect(&phone->callee->task->phones[newphid],
+		    cloned_phone->callee);
+		mutex_unlock(&cloned_phone->lock);
+		mutex_unlock(&phone->lock);
+		/* Set the new phone for the callee. */
+		IPC_SET_ARG1(call->data, newphid);
+		break;
+	}
+	case IPC_M_CONNECT_ME:
+		IPC_SET_ARG5(call->data, (unative_t) phone);
+		break;
 	case IPC_M_CONNECT_ME_TO:
-		newphid = phone_alloc();
+		newphid = phone_alloc(TASK);
 		if (newphid < 0)
 			return ELIMIT;
 		/* Set arg5 for server */
@@ -399,7 +482,7 @@ static int process_request(answerbox_t *box, call_t *call)
 	int phoneid;
 
 	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME) {
-		phoneid = phone_alloc();
+		phoneid = phone_alloc(TASK);
 		if (phoneid < 0) { /* Failed to allocate phone */
 			IPC_SET_RETVAL(call->data, ELIMIT);
 			ipc_answer(box, call);
