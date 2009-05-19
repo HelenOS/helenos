@@ -33,12 +33,13 @@ include ../../../version
 
 LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
+LIBBLOCK_PREFIX = ../../lib/libblock
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I../../srv/kbd/include
+CFLAGS += -I../../srv/kbd/include -I$(LIBBLOCK_PREFIX)
 
-LIBS = $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
 DEFS += -DRELEASE=$(RELEASE)
 
 PROGRAM = bdsh
@@ -51,6 +52,7 @@ SUBDIRS = \
 	cmds/modules/help/ \
 	cmds/modules/mkdir/ \
 	cmds/modules/rm/ \
+	cmds/modules/bdd/ \
 	cmds/modules/cat/ \
 	cmds/modules/touch/ \
 	cmds/modules/ls/ \
@@ -68,6 +70,7 @@ SOURCES = \
 	cmds/modules/help/help.c \
 	cmds/modules/mkdir/mkdir.c \
 	cmds/modules/rm/rm.c \
+	cmds/modules/bdd/bdd.c \
 	cmds/modules/cat/cat.c \
 	cmds/modules/touch/touch.c \
 	cmds/modules/ls/ls.c \
