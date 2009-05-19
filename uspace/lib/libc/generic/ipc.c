@@ -704,7 +704,7 @@ int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
 
-	return __SYSCALL3(SYS_IPC_FORWARD_SLOW, callid, (sysarg_t) &data, mode);
+	return __SYSCALL4(SYS_IPC_FORWARD_SLOW, callid, phoneid, (sysarg_t) &data, mode);
 }
 
 /** Wrapper for making IPC_M_SHARE_IN calls.
