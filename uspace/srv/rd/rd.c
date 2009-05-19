@@ -210,7 +210,7 @@ static bool rd_init(void)
 		return false;
 	}
 	
-	int dev_handle;
+	dev_handle_t dev_handle;
 	if (devmap_device_register(driver_phone, "initrd", &dev_handle) != EOK) {
 		ipc_hangup(driver_phone);
 		printf(NAME ": Unable to register device\n");
