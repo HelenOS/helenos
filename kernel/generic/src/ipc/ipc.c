@@ -328,12 +328,10 @@ int ipc_phone_hangup(phone_t *phone)
 		list_remove(&phone->link);
 		spinlock_unlock(&box->lock);
 
-		if (phone->state != IPC_PHONE_SLAMMED) {
-			call = ipc_call_alloc(0);
-			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
-			call->flags |= IPC_CALL_DISCARD_ANSWER;
-			_ipc_call(phone, box, call);
-		}
+		call = ipc_call_alloc(0);
+		IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+		call->flags |= IPC_CALL_DISCARD_ANSWER;
+		_ipc_call(phone, box, call);
 	}
 
 	phone->state = IPC_PHONE_HUNGUP;
