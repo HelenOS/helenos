@@ -130,7 +130,7 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
 	phys = ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	offset = pio_addr - phys;
 	pages = ALIGN_UP(offset + size, PAGE_SIZE) >> PAGE_WIDTH;
-	virt = as_get_mappable_page(pages);
+	virt = as_get_mappable_page(pages << PAGE_WIDTH);
 	*use_addr = virt + offset;
 	return physmem_map(phys, virt, pages, AS_AREA_READ | AS_AREA_WRITE);
 }
