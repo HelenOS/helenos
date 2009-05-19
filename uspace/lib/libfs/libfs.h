@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,15 @@
 #include <async.h>
 
 typedef struct {
-	void *data;	/**< Data of the file system implementation. */
+	bool mp_active;
+	int phone;
+	fs_handle_t fs_handle;
+	dev_handle_t dev_handle;
+} mp_data_t;
+
+typedef struct {
+	mp_data_t mp_data;	/**< Mount point info. */
+	void *data;		/**< Data of the file system implementation. */
 } fs_node_t;
 
 typedef struct {
@@ -71,6 +79,9 @@ typedef struct {
 
 extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
 
+extern void fs_node_initialize(fs_node_t *);
+
+extern void libfs_mount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
 extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 
 #endif

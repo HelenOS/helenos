@@ -149,6 +149,7 @@ skip_cache:
 		}
 	}
 	fat_node_initialize(nodep);
+	fs_node_initialize(fn);
 	fn->data = nodep;
 	nodep->bp = fn;
 	
@@ -847,6 +848,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
+	fs_node_initialize(rfn);
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
 		free(rfn);
@@ -886,7 +888,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	libfs_mount(&fat_libfs_ops, rid, request);
 }
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)

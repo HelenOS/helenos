@@ -84,11 +84,17 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
     fs_handle_t fs_handle, char *mp, char *opts)
 {
 	vfs_lookup_res_t mp_res;
+	vfs_lookup_res_t mr_res;
 	vfs_node_t *mp_node = NULL;
+	vfs_node_t *mr_node;
+	fs_index_t rindex;
+	size_t rsize;
+	unsigned rlnkcnt;
 	ipcarg_t rc;
 	int phone;
 	aid_t msg;
 	ipc_call_t answer;
+			
 
 	/* Resolve the path to the mountpoint. */
 	futex_down(&rootfs_futex);
@@ -129,12 +135,6 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	} else {
 		/* We still don't have the root file system mounted. */
 		if (str_cmp(mp, "/") == 0) {
-			vfs_lookup_res_t mr_res;
-			vfs_node_t *mr_node;
-			fs_index_t rindex;
-			size_t rsize;
-			unsigned rlnkcnt;
-			
 			/*
 			 * For this simple, but important case,
 			 * we are almost done.
@@ -201,12 +201,29 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	 * handles, and we know the mount point VFS node.
 	 */
 	
+	int mountee_phone = vfs_grab_phone(fs_handle);
+	assert(mountee_phone >= 0);
+	vfs_release_phone(mountee_phone);
+
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
 	msg = async_send_4(phone, VFS_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
 	    (ipcarg_t) mp_res.triplet.index,
 	    (ipcarg_t) fs_handle,
 	    (ipcarg_t) dev_handle, &answer);
+	
+	/* send connection */
+	rc = async_req_1_0(phone, IPC_M_CONNECTION_CLONE, mountee_phone);
+	if (rc != EOK) {
+		async_wait_for(msg, NULL);
+		vfs_release_phone(phone);
+		/* Mount failed, drop reference to mp_node. */
+		if (mp_node)
+			vfs_node_put(mp_node);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	
 	/* send the mount options */
 	rc = ipc_data_write_start(phone, (void *)opts, str_size(opts));
 	if (rc != EOK) {
@@ -227,6 +244,21 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			vfs_node_put(mp_node);
 	}
 	
+	rindex = (fs_index_t) IPC_GET_ARG1(answer);
+	rsize = (size_t) IPC_GET_ARG2(answer);
+	rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+	
+	mr_res.triplet.fs_handle = fs_handle;
+	mr_res.triplet.dev_handle = dev_handle;
+	mr_res.triplet.index = rindex;
+	mr_res.size = rsize;
+	mr_res.lnkcnt = rlnkcnt;
+	mr_res.type = VFS_NODE_DIRECTORY;
+	
+	/* Add reference to the mounted root. */
+	mr_node = vfs_node_get(&mr_res); 
+	assert(mr_node);
+
 	ipc_answer_0(rid, rc);
 }
 

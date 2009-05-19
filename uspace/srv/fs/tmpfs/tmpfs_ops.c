@@ -250,6 +250,7 @@ fs_node_t *tmpfs_create_node(dev_handle_t dev_handle, int lflag)
 		free(nodep);
 		return NULL;
 	}
+	fs_node_initialize(nodep->bp);
 	nodep->bp->data = nodep;	/* link the FS and TMPFS nodes */
 	if (!tmpfs_root_get(dev_handle))
 		nodep->index = TMPFS_SOME_ROOT;

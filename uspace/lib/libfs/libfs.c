@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,6 +122,85 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	return IPC_GET_RETVAL(answer);
 }
 
+void fs_node_initialize(fs_node_t *fn)
+{
+	memset(fn, 0, sizeof(fs_node_t));
+}
+
+void libfs_mount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t mp_dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
+	fs_index_t mp_fs_index = (fs_index_t)IPC_GET_ARG2(*request);
+	fs_handle_t mr_fs_handle = (fs_handle_t)IPC_GET_ARG3(*request);
+	dev_handle_t mr_dev_handle = (dev_handle_t)IPC_GET_ARG4(*request);
+	int res;
+	ipcarg_t rc;
+
+	ipc_call_t call;
+	ipc_callid_t callid;
+
+	/* accept the phone */
+	callid = async_get_call(&call);
+	int mountee_phone = (int)IPC_GET_ARG1(call);
+	if ((IPC_GET_METHOD(call) != IPC_M_CONNECTION_CLONE) ||
+	    mountee_phone < 0) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	ipc_answer_0(callid, EOK);	/* acknowledge the mountee_phone */
+	
+	res = ipc_data_write_receive(&callid, NULL);
+	if (!res) {
+		ipc_hangup(mountee_phone);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	fs_node_t *fn = ops->node_get(mp_dev_handle, mp_fs_index);
+	if (!fn) {
+		ipc_hangup(mountee_phone);
+		ipc_answer_0(callid, ENOENT);
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	if (fn->mp_data.mp_active) {
+		ipc_hangup(mountee_phone);
+		ops->node_put(fn);
+		ipc_answer_0(callid, EBUSY);
+		ipc_answer_0(rid, EBUSY);
+		return;
+	}
+
+	rc = async_req_0_0(mountee_phone, IPC_M_CONNECT_ME);
+	if (rc != 0) {
+		ipc_hangup(mountee_phone);
+		ops->node_put(fn);
+		ipc_answer_0(callid, rc);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	
+	ipc_call_t answer;
+	aid_t msg = async_send_1(mountee_phone, VFS_MOUNTED, mr_dev_handle,
+	    &answer);
+	ipc_forward_fast(callid, mountee_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_wait_for(msg, &rc);
+	
+	if (rc == EOK) {
+		fn->mp_data.mp_active = true;
+		fn->mp_data.fs_handle = mr_fs_handle;
+		fn->mp_data.dev_handle = mr_dev_handle;
+		fn->mp_data.phone = mountee_phone;
+	}
+	/*
+	 * Do not release the FS node so that it stays in memory.
+	 */
+	ipc_answer_0(rid, rc);
+}
+
 /** Lookup VFS triplet by name in the file system name space.
  *
  * The path passed in the PLB must be in the canonical file system path format
@@ -137,8 +216,9 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
-	unsigned next = IPC_GET_ARG1(*request);
+	unsigned first = IPC_GET_ARG1(*request);
 	unsigned last = IPC_GET_ARG2(*request);
+	unsigned next = first;
 	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
 	fs_index_t index = IPC_GET_ARG5(*request); /* when L_LINK specified */
@@ -151,6 +231,14 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_node_t *par = NULL;
 	fs_node_t *cur = ops->root_get(dev_handle);
 	fs_node_t *tmp = NULL;
+
+	if (cur->mp_data.mp_active) {
+		ipc_forward_slow(rid, cur->mp_data.phone, VFS_LOOKUP,
+		    next, last, cur->mp_data.dev_handle, lflag, index,
+		    IPC_FF_ROUTE_FROM_ME);
+		ops->node_put(cur);
+		return;
+	}
 
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
@@ -174,6 +262,21 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 		/* match the component */
 		tmp = ops->match(cur, component);
+		if (tmp && tmp->mp_data.mp_active) {
+			if (next > last)
+				next = last = first;
+			else
+				next--;
+				
+			ipc_forward_slow(rid, tmp->mp_data.phone, VFS_LOOKUP,
+			    next, last, tmp->mp_data.dev_handle, lflag, index,
+			    IPC_FF_ROUTE_FROM_ME);
+			ops->node_put(cur);
+			ops->node_put(tmp);
+			if (par)
+				ops->node_put(par);
+			return;
+		}
 
 		/* handle miss: match amongst siblings */
 		if (!tmp) {
