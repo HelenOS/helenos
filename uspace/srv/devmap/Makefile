@@ -65,7 +65,7 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 disasm: $(OUTPUT).disasm
 
 $(OUTPUT).disasm: $(OUTPUT)
-	$(OBJDUMP) -d $< >$@
+	$(OBJDUMP) -d $< > $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
