@@ -33,7 +33,7 @@ INIT_TASKS = \
 	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
 	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/rd/rd \
+	$(USPACEDIR)/srv/bd/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs

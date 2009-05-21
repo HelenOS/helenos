@@ -38,12 +38,12 @@ DIRS = \
 	lib/softint \
 	lib/softfloat \
 	srv/bd/gxe_bd \
+	srv/bd/rd \
 	srv/ns \
 	srv/loader \
 	srv/fb \
 	srv/kbd \
 	srv/console \
-	srv/rd \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
