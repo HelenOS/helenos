@@ -1030,7 +1030,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
-	char *lastsl = str_rchr(parentc + 1, L'/');
+	char *lastsl = str_rchr(parentc + 1, '/');
 	if (lastsl)
 		*lastsl = '\0';
 	else
