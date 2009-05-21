@@ -409,12 +409,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t mp_index = (fs_index_t) IPC_GET_ARG2(*request);
-	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
-	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
-	
-	ipc_answer_0(rid, ENOTSUP);
+	libfs_mount(&tmpfs_libfs_ops, rid, request);
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
