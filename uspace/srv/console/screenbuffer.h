@@ -27,19 +27,19 @@
  */
 
 /** @addtogroup console
- * @{ 
+ * @{
  */
 /** @file
  */
 
-#ifndef __SCREENBUFFER_H__
-#define __SCREENBUFFER_H__
+#ifndef SCREENBUFFER_H__
+#define SCREENBUFFER_H__
 
 #include <stdint.h>
 #include <sys/types.h>
 
-#define DEFAULT_FOREGROUND 0x0	/**< default console foreground color */
-#define DEFAULT_BACKGROUND 0xf0f0f0	/**< default console background color */
+#define DEFAULT_FOREGROUND 0x0       /**< default console foreground color */
+#define DEFAULT_BACKGROUND 0xf0f0f0  /**< default console background color */
 
 typedef struct {
 	uint8_t style;
@@ -52,8 +52,8 @@ typedef struct {
 } attr_idx_t;
 
 typedef struct {
-	uint32_t bg_color;      /**< background color */
-	uint32_t fg_color;      /**< foreground color */
+	uint32_t bg_color;  /**< background color */
+	uint32_t fg_color;  /**< foreground color */
 } attr_rgb_t;
 
 typedef struct {
@@ -66,31 +66,44 @@ typedef struct {
 		attr_style_t s;
 		attr_idx_t i;
 		attr_rgb_t r;
-	} a; 
+	} a;
 } attrs_t;
 
 /** One field on screen. It contain one character and its attributes. */
 typedef struct {
-	wchar_t character;		/**< Character itself */
-	attrs_t attrs;			/**< Character`s attributes */
+	wchar_t character;  /**< Character itself */
+	attrs_t attrs;      /**< Character`s attributes */
 } keyfield_t;
 
 /** Structure for buffering state of one virtual console.
  */
 typedef struct {
-	keyfield_t *buffer;			/**< Screen content - characters and their attributes. Used as a circular buffer. */
-	unsigned int size_x, size_y;		/**< Number of columns and rows */
-	unsigned int position_x, position_y;	/**< Coordinates of last printed character for determining cursor position */
-	attrs_t attrs;				/**< Current attributes. */
-	unsigned int top_line;			/**< Points to buffer[][] line that will be printed at screen as the first line */
-	unsigned char is_cursor_visible;	/**< Cursor state - default is visible */
+	keyfield_t *buffer;               /**< Screen content - characters and
+	                                       their attributes (used as a circular buffer) */
+	unsigned int size_x;              /**< Number of columns  */
+	unsigned int size_y;              /**< Number of rows */
+	
+	/** Coordinates of last printed character for determining cursor position */
+	unsigned int position_x;
+	unsigned int position_y;
+	
+	attrs_t attrs;                    /**< Current attributes. */
+	unsigned int top_line;            /**< Points to buffer[][] line that will
+	                                       be printed at screen as the first line */
+	unsigned char is_cursor_visible;  /**< Cursor state - default is visible */
 } screenbuffer_t;
 
-/** Returns keyfield for position on screen. Screenbuffer->buffer is cyclic buffer so we must couted in index of the topmost line.
- * @param scr	screenbuffer
- * @param x	position on screen
- * @param y	position on screen
- * @return	keyfield structure with character and its attributes on x,y
+/** Returns keyfield for position on screen
+ *
+ * Screenbuffer->buffer is cyclic buffer so we
+ * must couted in index of the topmost line.
+ *
+ * @param scr Screenbuffer
+ * @param x   Position on screen
+ * @param y   Position on screen
+ *
+ * @return Keyfield structure with character and its attributes on x, y
+ *
  */
 static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
@@ -98,21 +111,28 @@ static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsi
 }
 
 /** Compares two sets of attributes.
- * @param s1 first style
- * @param s2 second style
- * @return nonzero on equality
+ *
+ * @param s1 First style
+ * @param s2 Second style
+ *
+ * @return Nonzero on equality
+ *
  */
 static inline int attrs_same(attrs_t a1, attrs_t a2)
 {
-	if (a1.t != a2.t) return 0;
-
+	if (a1.t != a2.t)
+		return 0;
+	
 	switch (a1.t) {
-	case at_style: return a1.a.s.style == a2.a.s.style;
-	case at_idx: return a1.a.i.fg_color == a2.a.i.fg_color &&
-	    a1.a.i.bg_color == a2.a.i.bg_color &&
-	    a1.a.i.flags == a2.a.i.flags;
-	case at_rgb: return a1.a.r.fg_color == a2.a.r.fg_color &&
-	    a1.a.r.bg_color == a2.a.r.bg_color;
+	case at_style:
+		return (a1.a.s.style == a2.a.s.style);
+	case at_idx:
+		return (a1.a.i.fg_color == a2.a.i.fg_color)
+		    && (a1.a.i.bg_color == a2.a.i.bg_color)
+		    && (a1.a.i.flags == a2.a.i.flags);
+	case at_rgb:
+		return (a1.a.r.fg_color == a2.a.r.fg_color)
+		    && (a1.a.r.bg_color == a2.a.r.bg_color);
 	}
 }
 
@@ -132,7 +152,5 @@ void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color,
 
 #endif
 
- 
 /** @}
  */
-

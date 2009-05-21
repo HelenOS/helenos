@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup console
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -55,9 +55,12 @@
 #include "console.h"
 #include "gcons.h"
 
-#define MAX_KEYREQUESTS_BUFFERED 32
+#define NAME  "console"
 
-#define NAME "console"
+#define MAX_KEYREQUESTS_BUFFERED  32
+
+/** Size of cwrite_buf. */
+#define CWRITE_BUF_SIZE  256
 
 /** Index of currently used virtual console.
  */
@@ -69,46 +72,42 @@ static int kbd_phone;
 
 /** Information about framebuffer */
 struct {
-	int phone;		/**< Framebuffer phone */
-	ipcarg_t rows;		/**< Framebuffer rows */
-	ipcarg_t cols;		/**< Framebuffer columns */
+	int phone;      /**< Framebuffer phone */
+	ipcarg_t rows;  /**< Framebuffer rows */
+	ipcarg_t cols;  /**< Framebuffer columns */
 } fb_info;
 
 typedef struct {
-	keybuffer_t keybuffer;		/**< Buffer for incoming keys. */
+	keybuffer_t keybuffer;        /**< Buffer for incoming keys. */
+	
 	/** Buffer for unsatisfied request for keys. */
 	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t,
-		MAX_KEYREQUESTS_BUFFERED);	
-	int keyrequest_counter;		/**< Number of requests in buffer. */
-	int client_phone;		/**< Phone to connected client. */
-	int used;			/**< 1 if this virtual console is
-					 * connected to some client.*/
-	screenbuffer_t screenbuffer;	/**< Screenbuffer for saving screen
-					 * contents and related settings. */
+	    MAX_KEYREQUESTS_BUFFERED);
+	
+	int keyrequest_counter;       /**< Number of requests in buffer. */
+	int client_phone;             /**< Phone to connected client. */
+	int used;                     /**< 1 if this virtual console is
+	                                   connected to some client. */
+	screenbuffer_t screenbuffer;  /**< Screenbuffer for saving screen
+	                                   contents and related settings. */
 } connection_t;
 
-static connection_t connections[CONSOLE_COUNT];	/**< Array of data for virtual
-						 * consoles */
-static keyfield_t *interbuffer = NULL;		/**< Pointer to memory shared
-						 * with framebufer used for
-						 * faster virtual console
-						 * switching */
+/** Array of data for virtual consoles */
+static connection_t connections[CONSOLE_COUNT];
+
+/** Pointer to memory shared with framebufer used for
+    faster virtual console switching */
+static keyfield_t *interbuffer = NULL;
 
 /** Information on row-span yet unsent to FB driver. */
 struct {
-	int row;		/**< Row where the span lies. */
-	int col;		/**< Leftmost column of the span. */
-	int n;			/**< Width of the span. */
+	int row;  /**< Row where the span lies. */
+	int col;  /**< Leftmost column of the span. */
+	int cnt;  /**< Width of the span. */
 } fb_pending;
-
-/** Size of cwrite_buf. */
-#define CWRITE_BUF_SIZE 256
 
 /** Buffer for receiving data via the CONSOLE_WRITE call from the client. */
 static char cwrite_buf[CWRITE_BUF_SIZE];
-
-static void fb_putchar(wchar_t c, int row, int col);
-
 
 /** Find unused virtual console.
  *
@@ -121,6 +120,7 @@ static int find_free_connection(void)
 		if (!connections[i].used)
 			return i;
 	}
+	
 	return -1;
 }
 
@@ -185,12 +185,10 @@ static void set_attrs(attrs_t *attrs)
 	case at_style:
 		set_style(attrs->a.s.style);
 		break;
-
 	case at_idx:
 		set_color(attrs->a.i.fg_color, attrs->a.i.bg_color,
 		    attrs->a.i.flags);
 		break;
-
 	case at_rgb:
 		set_rgb_color(attrs->a.r.fg_color, attrs->a.r.bg_color);
 		break;
@@ -200,55 +198,34 @@ static void set_attrs(attrs_t *attrs)
 /** Send an area of screenbuffer to the FB driver. */
 static void fb_update_area(connection_t *conn, int x, int y, int w, int h)
 {
-	int i, j;
-	int rc;
+	int i;
+	int j;
 	attrs_t *attrs;
 	keyfield_t *field;
-
+	
 	if (interbuffer) {
 		for (j = 0; j < h; j++) {
 			for (i = 0; i < w; i++) {
 				interbuffer[i + j * w] =
-				    *get_field_at(&conn->screenbuffer,
-					x + i, y + j);
+				    *get_field_at(&conn->screenbuffer, x + i, y + j);
 			}
 		}
-
-		rc = async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
+		
+		async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
 		    x, y, w, h);
-	} else {
-		rc = ENOTSUP;
-	}
-
-	if (rc != 0) {
-		/*
-		attrs = &conn->screenbuffer.attrs;
-
-		for (j = 0; j < h; j++) {
-			for (i = 0; i < w; i++) {
-				field = get_field_at(&conn->screenbuffer,
-				    x + i, y + j);
-				if (!attrs_same(*attrs, field->attrs))
-					set_attrs(&field->attrs);
-				attrs = &field->attrs;
-
-				fb_putchar(field->character, y + j, x + i);
-			}
-		}*/
 	}
 }
 
 /** Flush pending cells to FB. */
 static void fb_pending_flush(void)
 {
-	screenbuffer_t *scr;
-
-	scr = &(connections[active_console].screenbuffer);
-
-	if (fb_pending.n > 0) {
+	screenbuffer_t *scr
+	    = &(connections[active_console].screenbuffer);
+	
+	if (fb_pending.cnt > 0) {
 		fb_update_area(&connections[active_console], fb_pending.col,
-		    fb_pending.row, fb_pending.n, 1);
-		fb_pending.n = 0;
+		    fb_pending.row, fb_pending.cnt, 1);
+		fb_pending.cnt = 0;
 	}
 }
 
@@ -256,24 +233,24 @@ static void fb_pending_flush(void)
  *
  * This adds the cell to the pending rowspan if possible. Otherwise
  * the old span is flushed first.
+ *
  */
 static void cell_mark_changed(int row, int col)
 {
-	if (fb_pending.n != 0) {
-		if (row != fb_pending.row ||
-		    col != fb_pending.col + fb_pending.n) {
+	if (fb_pending.cnt != 0) {
+		if ((row != fb_pending.row)
+		    || (col != fb_pending.col + fb_pending.cnt)) {
 			fb_pending_flush();
 		}
 	}
-
-	if (fb_pending.n == 0) {
+	
+	if (fb_pending.cnt == 0) {
 		fb_pending.row = row;
 		fb_pending.col = col;
 	}
-
-	++fb_pending.n;
+	
+	fb_pending.cnt++;
 }
-
 
 /** Print a character to the active VC with buffering. */
 static void fb_putchar(wchar_t c, int row, int col)
@@ -286,7 +263,7 @@ static void write_char(int console, wchar_t ch)
 {
 	bool flush_cursor = false;
 	screenbuffer_t *scr = &(connections[console].screenbuffer);
-
+	
 	switch (ch) {
 	case '\n':
 		fb_pending_flush();
@@ -298,7 +275,7 @@ static void write_char(int console, wchar_t ch)
 		break;
 	case '\t':
 		scr->position_x += 8;
-		scr->position_x -= scr->position_x % 8; 
+		scr->position_x -= scr->position_x % 8;
 		break;
 	case '\b':
 		if (scr->position_x == 0) 
@@ -308,14 +285,14 @@ static void write_char(int console, wchar_t ch)
 			cell_mark_changed(scr->position_y, scr->position_x);
 		screenbuffer_putchar(scr, ' ');
 		break;
-	default:	
+	default:
 		if (console == active_console)
 			cell_mark_changed(scr->position_y, scr->position_x);
-
+		
 		screenbuffer_putchar(scr, ch);
 		scr->position_x++;
 	}
-
+	
 	if (scr->position_x >= scr->size_x) {
 		flush_cursor = true;
 		scr->position_y++;
@@ -329,9 +306,9 @@ static void write_char(int console, wchar_t ch)
 		if (console == active_console)
 			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
-
+	
 	scr->position_x = scr->position_x % scr->size_x;
-
+	
 	if (console == active_console && flush_cursor)
 		curs_goto(scr->position_y, scr->position_x);
 }
@@ -340,15 +317,17 @@ static void write_char(int console, wchar_t ch)
 static void change_console(int newcons)
 {
 	connection_t *conn;
-	int i, j, rc;
+	int i;
+	int j;
+	int rc;
 	keyfield_t *field;
 	attrs_t *attrs;
 	
 	if (newcons == active_console)
 		return;
-
+	
 	fb_pending_flush();
-
+	
 	if (newcons == KERNEL_CONSOLE) {
 		async_serialize_start();
 		curs_hide_sync();
@@ -356,7 +335,7 @@ static void change_console(int newcons)
 		screen_yield();
 		kbd_yield();
 		async_serialize_end();
-
+		
 		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
 			prev_console = active_console;
@@ -408,10 +387,9 @@ static void change_console(int newcons)
 						set_attrs(&field->attrs);
 					attrs = &field->attrs;
 					if ((field->character == ' ') &&
-					    (attrs_same(field->attrs,
-					    conn->screenbuffer.attrs)))
+					    (attrs_same(field->attrs, conn->screenbuffer.attrs)))
 						continue;
-
+					
 					fb_putchar(field->character, j, i);
 				}
 		}
@@ -435,7 +413,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	int newcon;
 	
 	/* Ignore parameters, the connection is alread opened */
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
@@ -460,10 +438,9 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			ev.mods = IPC_GET_ARG3(call);
 			ev.c = IPC_GET_ARG4(call);
 			
-			/* switch to another virtual console */
-			
+			/* Switch to another virtual console */
 			conn = &connections[active_console];
-
+			
 			if ((ev.key >= KC_F1) && (ev.key < KC_F1 +
 			    CONSOLE_COUNT) && ((ev.mods & KM_CTRL) == 0)) {
 				if (ev.key == KC_F12)
@@ -473,17 +450,17 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			
-			/* if client is awaiting key, send it */
-			if (conn->keyrequest_counter > 0) {		
+			/* If client is awaiting key, send it */
+			if (conn->keyrequest_counter > 0) {
 				conn->keyrequest_counter--;
 				ipc_answer_4(fifo_pop(conn->keyrequests), EOK,
 				    ev.type, ev.key, ev.mods, ev.c);
 				break;
 			}
-
+			
 			keybuffer_push(&conn->keybuffer, &ev);
 			retval = 0;
-
+			
 			break;
 		default:
 			retval = ENOENT;
@@ -499,28 +476,28 @@ static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
 	size_t size;
 	wchar_t ch;
 	size_t off;
-
+	
 	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	if (size > CWRITE_BUF_SIZE)
 		size = CWRITE_BUF_SIZE;
-
+	
 	(void) ipc_data_write_finalize(callid, cwrite_buf, size);
-
+	
 	async_serialize_start();
-
+	
 	off = 0;
 	while (off < size) {
 		ch = str_decode(cwrite_buf, &off, size);
 		write_char(consnum, ch);
 	}
-
+	
 	async_serialize_end();
-
+	
 	gcons_notify_char(consnum);
 	ipc_answer_1(rid, EOK, size);
 }
@@ -552,7 +529,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
 	
-	while (1) {
+	while (true) {
 		async_serialize_end();
 		callid = async_get_call(&call);
 		async_serialize_start();
@@ -561,7 +538,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		arg2 = 0;
 		arg3 = 0;
 		arg4 = 0;
-
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			gcons_notify_disconnect(consnum);
@@ -608,7 +585,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fb_pending_flush();
 			if (consnum == active_console) {
 				async_req_0_0(fb_info.phone, FB_FLUSH);
-
+				
 				scr = &(connections[consnum].screenbuffer);
 				curs_goto(scr->position_y, scr->position_x);
 			}
@@ -650,7 +627,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			if (keybuffer_empty(&conn->keybuffer)) {
 				/* buffer is empty -> store request */
 				if (conn->keyrequest_counter <
-					MAX_KEYREQUESTS_BUFFERED) {	
+					MAX_KEYREQUESTS_BUFFERED) {
 					fifo_push(conn->keyrequests, callid);
 					conn->keyrequest_counter++;
 				} else {
@@ -743,18 +720,18 @@ int main(int argc, char *argv[])
 		}
 	}
 	connections[KERNEL_CONSOLE].used = 1;
-
+	
 	/* Set up shared memory buffer. */
 	ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
 	interbuffer = as_get_mappable_page(ib_size);
-
-	fb_pending.n = 0;
-
+	
+	fb_pending.cnt = 0;
+	
 	if (as_area_create(interbuffer, ib_size, AS_AREA_READ |
 	    AS_AREA_WRITE | AS_AREA_CACHEABLE) != interbuffer) {
 		interbuffer = NULL;
 	}
-
+	
 	if (interbuffer) {
 		if (ipc_share_out_start(fb_info.phone, interbuffer,
 		    AS_AREA_READ) != EOK) {
@@ -774,7 +751,7 @@ int main(int argc, char *argv[])
 	/* Receive kernel notifications */
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
 		printf(NAME ": Error registering kconsole notifications\n");
-		
+	
 	async_set_interrupt_received(interrupt_received);
 	
 	// FIXME: avoid connectiong to itself, keep using klog

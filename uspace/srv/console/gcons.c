@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup console
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -43,16 +43,16 @@
 #include "console.h"
 #include "gcons.h"
 
-#define CONSOLE_TOP      66
-#define CONSOLE_MARGIN   6
+#define CONSOLE_TOP     66
+#define CONSOLE_MARGIN  6
 
-#define STATUS_START    110
-#define STATUS_TOP      8
-#define STATUS_SPACE    4
-#define STATUS_WIDTH    48
-#define STATUS_HEIGHT   48
+#define STATUS_START   110
+#define STATUS_TOP     8
+#define STATUS_SPACE   4
+#define STATUS_WIDTH   48
+#define STATUS_HEIGHT  48
 
-#define MAIN_COLOR      0xffffff
+#define MAIN_COLOR  0xffffff
 
 static int use_gcons = 0;
 static ipcarg_t xres,yres;
@@ -114,28 +114,28 @@ static void redraw_state(int consnum)
 	char data[5];
 	int i;
 	enum butstate state = console_state[consnum];
-
+	
 	vp_switch(cstatus_vp[consnum]);
 	if (ic_pixmaps[state] != -1)
 		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum],
 		    ic_pixmaps[state]);
-
- 	if (state != CONS_DISCONNECTED && state != CONS_KERNEL &&
-		state != CONS_DISCONNECTED_SEL) {
- 		snprintf(data, 5, "%d", consnum + 1);
- 		for (i = 0; data[i]; i++)
- 			tran_putch(data[i], 1, 2 + i);
- 	}
+	
+	if (state != CONS_DISCONNECTED && state != CONS_KERNEL &&
+	    state != CONS_DISCONNECTED_SEL) {
+		snprintf(data, 5, "%d", consnum + 1);
+		for (i = 0; data[i]; i++)
+			tran_putch(data[i], 1, 2 + i);
+	}
 }
 
 /** Notification run on changing console (except kernel console) */
 void gcons_change_console(int consnum)
 {
 	int i;
-
+	
 	if (!use_gcons)
 		return;
-
+	
 	if (active_console == KERNEL_CONSOLE) {
 		for (i = 0; i < CONSOLE_COUNT; i++)
 			redraw_state(i);
@@ -149,14 +149,14 @@ void gcons_change_console(int consnum)
 		redraw_state(active_console);
 	}
 	active_console = consnum;
-
+	
 	if (console_state[consnum] == CONS_DISCONNECTED) {
 		console_state[consnum] = CONS_DISCONNECTED_SEL;
 		redraw_state(consnum);
 	} else
 		console_state[consnum] = CONS_SELECTED;
 	redraw_state(consnum);
-
+	
 	vp_switch(console_vp);
 }
 
@@ -165,16 +165,16 @@ void gcons_notify_char(int consnum)
 {
 	if (!use_gcons)
 		return;
-
-	if (consnum == active_console ||
-		console_state[consnum] == CONS_HAS_DATA)
+	
+	if ((consnum == active_console) ||
+	    (console_state[consnum] == CONS_HAS_DATA))
 		return;
-
+	
 	console_state[consnum] = CONS_HAS_DATA;
-
+	
 	if (active_console == KERNEL_CONSOLE)
 		return;
-
+	
 	redraw_state(consnum);
 	
 	vp_switch(console_vp);
@@ -185,6 +185,7 @@ void gcons_notify_disconnect(int consnum)
 {
 	if (!use_gcons)
 		return;
+	
 	if (active_console == consnum)
 		console_state[consnum] = CONS_DISCONNECTED_SEL;
 	else
@@ -202,14 +203,15 @@ void gcons_notify_connect(int consnum)
 {
 	if (!use_gcons)
 		return;
+	
 	if (active_console == consnum)
 		console_state[consnum] = CONS_SELECTED;
 	else
 		console_state[consnum] = CONS_IDLE;
-
+	
 	if (active_console == KERNEL_CONSOLE)
 		return;
-
+	
 	redraw_state(consnum);
 	vp_switch(console_vp);
 }
@@ -225,7 +227,7 @@ void gcons_in_kernel(void)
 }
 
 /** Return x, where left <= x <= right && |a-x|==min(|a-x|) is smallest */
-static inline int limit(int a,int left, int right)
+static inline int limit(int a, int left, int right)
 {
 	if (a < left)
 		a = left;
@@ -246,15 +248,15 @@ void gcons_mouse_move(int dx, int dy)
 {
 	mouse_x = limit(mouse_x + dx, 0, xres);
 	mouse_y = limit(mouse_y + dy, 0, yres);
-
+	
 	async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
 static int gcons_find_conbut(int x, int y)
 {
 	int status_start = STATUS_START + (xres - 800) / 2;
-
-	if (y < STATUS_TOP || y >= STATUS_TOP + STATUS_HEIGHT)
+	
+	if ((y < STATUS_TOP) || (y >= STATUS_TOP + STATUS_HEIGHT))
 		return -1;
 	
 	if (x < status_start)
@@ -275,7 +277,7 @@ static int gcons_find_conbut(int x, int y)
 int gcons_mouse_btn(int state)
 {
 	int conbut;
-
+	
 	if (state) {
 		conbut = gcons_find_conbut(mouse_x, mouse_y);
 		if (conbut != -1) {
@@ -284,14 +286,17 @@ int gcons_mouse_btn(int state)
 			btn_y = mouse_y;
 		}
 		return -1;
-	} 
-	if (!state && !btn_pressed)
+	}
+	
+	if ((!state) && (!btn_pressed))
 		return -1;
+	
 	btn_pressed = 0;
-
+	
 	conbut = gcons_find_conbut(mouse_x, mouse_y);
 	if (conbut == gcons_find_conbut(btn_x, btn_y))
 		return conbut;
+	
 	return -1;
 }
 
@@ -307,35 +312,40 @@ static void draw_pixmap(char *logo, size_t size, int x, int y)
 {
 	char *shm;
 	int rc;
-
+	
 	/* Create area */
 	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
 	    MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return;
-
+	
 	memcpy(shm, logo, size);
+	
 	/* Send area */
 	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
+	
 	rc = ipc_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
+	
 	/* Draw logo */
 	async_msg_2(fbphone, FB_DRAW_PPM, x, y);
+	
 drop:
 	/* Drop area */
 	async_msg_0(fbphone, FB_DROP_SHM);
-exit:       
+	
+exit:
 	/* Remove area */
 	munmap(shm, size);
 }
 
-extern char _binary_helenos_ppm_start[0];
-extern int _binary_helenos_ppm_size;
-extern char _binary_nameic_ppm_start[0];
-extern int _binary_nameic_ppm_size;
+extern char _binary_gfx_helenos_ppm_start[0];
+extern int _binary_gfx_helenos_ppm_size;
+extern char _binary_gfx_nameic_ppm_start[0];
+extern int _binary_gfx_nameic_ppm_size;
 
 /** Redraws console graphics */
 void gcons_redraw_console(void)
@@ -348,13 +358,14 @@ void gcons_redraw_console(void)
 	vp_switch(0);
 	set_rgb_color(MAIN_COLOR, MAIN_COLOR);
 	clear();
-	draw_pixmap(_binary_helenos_ppm_start,
-	    (size_t) &_binary_helenos_ppm_size, xres - 66, 2);
-	draw_pixmap(_binary_nameic_ppm_start,
-	    (size_t) &_binary_nameic_ppm_size, 5, 17);
+	draw_pixmap(_binary_gfx_helenos_ppm_start,
+	    (size_t) &_binary_gfx_helenos_ppm_size, xres - 66, 2);
+	draw_pixmap(_binary_gfx_nameic_ppm_start,
+	    (size_t) &_binary_gfx_nameic_ppm_size, 5, 17);
 	
 	for (i = 0; i < CONSOLE_COUNT; i++)
 		redraw_state(i);
+	
 	vp_switch(console_vp);
 }
 
@@ -369,84 +380,86 @@ static int make_pixmap(char *data, int size)
 	char *shm;
 	int rc;
 	int pxid = -1;
-
+	
 	/* Create area */
 	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
 	    MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return -1;
-
+	
 	memcpy(shm, data, size);
+	
 	/* Send area */
 	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
+	
 	rc = ipc_share_out_start(fbphone, shm, PROTO_READ);
 	if (rc)
 		goto drop;
-
+	
 	/* Obtain pixmap */
 	rc = async_req_0_0(fbphone, FB_SHM2PIXMAP);
 	if (rc < 0)
 		goto drop;
+	
 	pxid = rc;
+	
 drop:
 	/* Drop area */
 	async_msg_0(fbphone, FB_DROP_SHM);
-exit:       
+	
+exit:
 	/* Remove area */
 	munmap(shm, size);
-
+	
 	return pxid;
 }
 
-extern char _binary_anim_1_ppm_start[0];
-extern int _binary_anim_1_ppm_size;
-extern char _binary_anim_2_ppm_start[0];
-extern int _binary_anim_2_ppm_size;
-extern char _binary_anim_3_ppm_start[0];
-extern int _binary_anim_3_ppm_size;
-extern char _binary_anim_4_ppm_start[0];
-extern int _binary_anim_4_ppm_size;
+extern char _binary_gfx_anim_1_ppm_start[0];
+extern int _binary_gfx_anim_1_ppm_size;
+extern char _binary_gfx_anim_2_ppm_start[0];
+extern int _binary_gfx_anim_2_ppm_size;
+extern char _binary_gfx_anim_3_ppm_start[0];
+extern int _binary_gfx_anim_3_ppm_size;
+extern char _binary_gfx_anim_4_ppm_start[0];
+extern int _binary_gfx_anim_4_ppm_size;
 
 static void make_anim(void)
 {
-	int an;
-	int pm;
-
-	an = async_req_1_0(fbphone, FB_ANIM_CREATE, cstatus_vp[KERNEL_CONSOLE]);
+	int an = async_req_1_0(fbphone, FB_ANIM_CREATE, cstatus_vp[KERNEL_CONSOLE]);
 	if (an < 0)
 		return;
-
-	pm = make_pixmap(_binary_anim_1_ppm_start,
-	    (int) &_binary_anim_1_ppm_size);
+	
+	int pm = make_pixmap(_binary_gfx_anim_1_ppm_start,
+	    (int) &_binary_gfx_anim_1_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
-
-	pm = make_pixmap(_binary_anim_2_ppm_start,
-	    (int) &_binary_anim_2_ppm_size);
+	
+	pm = make_pixmap(_binary_gfx_anim_2_ppm_start,
+	    (int) &_binary_gfx_anim_2_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
-
-	pm = make_pixmap(_binary_anim_3_ppm_start,
-	    (int) &_binary_anim_3_ppm_size);
+	
+	pm = make_pixmap(_binary_gfx_anim_3_ppm_start,
+	    (int) &_binary_gfx_anim_3_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
-
-	pm = make_pixmap(_binary_anim_4_ppm_start,
-	    (int) &_binary_anim_4_ppm_size);
+	
+	pm = make_pixmap(_binary_gfx_anim_4_ppm_start,
+	    (int) &_binary_gfx_anim_4_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
-
+	
 	async_msg_1(fbphone, FB_ANIM_START, an);
-
+	
 	animation = an;
 }
 
-extern char _binary_cons_selected_ppm_start[0];
-extern int _binary_cons_selected_ppm_size;
-extern char _binary_cons_idle_ppm_start[0];
-extern int _binary_cons_idle_ppm_size;
-extern char _binary_cons_has_data_ppm_start[0];
-extern int _binary_cons_has_data_ppm_size;
-extern char _binary_cons_kernel_ppm_start[0];
-extern int _binary_cons_kernel_ppm_size;
+extern char _binary_gfx_cons_selected_ppm_start[0];
+extern int _binary_gfx_cons_selected_ppm_size;
+extern char _binary_gfx_cons_idle_ppm_start[0];
+extern int _binary_gfx_cons_idle_ppm_size;
+extern char _binary_gfx_cons_has_data_ppm_start[0];
+extern int _binary_gfx_cons_has_data_ppm_size;
+extern char _binary_gfx_cons_kernel_ppm_start[0];
+extern int _binary_gfx_cons_kernel_ppm_size;
 
 /** Initialize nice graphical console environment */
 void gcons_init(int phone)
@@ -464,7 +477,8 @@ void gcons_init(int phone)
 	if ((xres < 800) || (yres < 600))
 		return;
 	
-	/* create console viewport */
+	/* Create console viewport */
+	
 	/* Align width & height to character size */
 	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP,
 	    ALIGN_DOWN(xres - 2 * CONSOLE_MARGIN, 8),
@@ -486,18 +500,20 @@ void gcons_init(int phone)
 	
 	/* Initialize icons */
 	ic_pixmaps[CONS_SELECTED] =
-	    make_pixmap(_binary_cons_selected_ppm_start,
-	    (int) &_binary_cons_selected_ppm_size);
-	ic_pixmaps[CONS_IDLE] = make_pixmap(_binary_cons_idle_ppm_start,
-	    (int) &_binary_cons_idle_ppm_size);
+	    make_pixmap(_binary_gfx_cons_selected_ppm_start,
+	    (int) &_binary_gfx_cons_selected_ppm_size);
+	ic_pixmaps[CONS_IDLE] =
+	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
+	    (int) &_binary_gfx_cons_idle_ppm_size);
 	ic_pixmaps[CONS_HAS_DATA] =
-	    make_pixmap(_binary_cons_has_data_ppm_start,
-	    (int) &_binary_cons_has_data_ppm_size);
+	    make_pixmap(_binary_gfx_cons_has_data_ppm_start,
+	    (int) &_binary_gfx_cons_has_data_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED] =
-	    make_pixmap(_binary_cons_idle_ppm_start,
-	    (int) &_binary_cons_idle_ppm_size);
-	ic_pixmaps[CONS_KERNEL] = make_pixmap(_binary_cons_kernel_ppm_start,
-	    (int) &_binary_cons_kernel_ppm_size);
+	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
+	    (int) &_binary_gfx_cons_idle_ppm_size);
+	ic_pixmaps[CONS_KERNEL] =
+	    make_pixmap(_binary_gfx_cons_kernel_ppm_start,
+	    (int) &_binary_gfx_cons_kernel_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
 	
 	make_anim();

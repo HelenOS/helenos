@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup console
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -37,34 +37,40 @@
 #include <malloc.h>
 #include <unistd.h>
 
-/** Store one character to screenbuffer. Its position is determined by
- * scr->position_x and scr->position_y.
+/** Store one character to screenbuffer.
  *
- * @param scr	screenbuffer
- * @param c	stored character
+ * Its position is determined by scr->position_x
+ * and scr->position_y.
+ *
+ * @param scr Screenbuffer
+ * @param c   Stored character
+ *
  */
 void screenbuffer_putchar(screenbuffer_t *scr, wchar_t ch)
 {
-	keyfield_t *field;
-
-	field = get_field_at(scr, scr->position_x, scr->position_y);
-
+	keyfield_t *field =
+	    get_field_at(scr, scr->position_x, scr->position_y);
+	
 	field->character = ch;
 	field->attrs = scr->attrs;
 }
 
-/** Initilize screenbuffer. Allocate space for screen content in accordance to given size.
- * @param scr		initialized screenbuffer
- * @param size_x	width in characters		
- * @param size_y	height in characters
- * @return pointer to screenbuffer (same as scr parameter) or NULL
+/** Initilize screenbuffer.
+ *
+ * Allocate space for screen content in accordance to given size.
+ *
+ * @param scr    Initialized screenbuffer
+ * @param size_x Width in characters
+ * @param size_y Height in characters
+ *
+ * @return Pointer to screenbuffer (same as scr parameter) or NULL
+ *
  */
 screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y) 
 {
 	scr->buffer = (keyfield_t *) malloc(sizeof(keyfield_t) * size_x * size_y);
-	if (!scr->buffer) {
+	if (!scr->buffer)
 		return NULL;
-	}
 	
 	scr->size_x = size_x;
 	scr->size_y = size_y;
@@ -77,8 +83,10 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
 	return scr;
 }
 
-/** Clear screenbuffer. 
- * @param scr screenbuffer
+/** Clear screenbuffer.
+ *
+ * @param scr Screenbuffer
+ *
  */
 void screenbuffer_clear(screenbuffer_t *scr)
 {
@@ -88,15 +96,17 @@ void screenbuffer_clear(screenbuffer_t *scr)
 		scr->buffer[i].character = ' ';
 		scr->buffer[i].attrs = scr->attrs;
 	}
-
+	
 	scr->top_line = 0;
 	scr->position_y = 0;
 	scr->position_x = 0;
 }
 
 /** Clear one buffer line.
+ *
  * @param scr
  * @param line One buffer line (not a screen line!)
+ *
  */
 void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
 {
@@ -109,22 +119,25 @@ void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
 }
 
 /** Copy content buffer from screenbuffer to given memory.
- * @param scr	source screenbuffer
- * @param dest  destination
+ *
+ * @param scr  Source screenbuffer
+ * @param dest Destination
+ *
  */
 void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest) 
 {
 	unsigned int i;
 	
-	for (i = 0; i < scr->size_x * scr->size_y; i++) {
+	for (i = 0; i < scr->size_x * scr->size_y; i++)
 		dest[i] = scr->buffer[i];
-	}
 }
 
 /** Set new cursor position in screenbuffer.
+ *
  * @param scr
  * @param x
  * @param y
+ *
  */
 void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
 {
@@ -133,9 +146,11 @@ void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
 }
 
 /** Set new style.
+ *
  * @param scr
  * @param fg_color
  * @param bg_color
+ *
  */
 void screenbuffer_set_style(screenbuffer_t *scr, int style)
 {
@@ -144,9 +159,11 @@ void screenbuffer_set_style(screenbuffer_t *scr, int style)
 }
 
 /** Set new color.
+ *
  * @param scr
  * @param fg_color
  * @param bg_color
+ *
  */
 void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color, unsigned int flags)
 {
@@ -157,9 +174,11 @@ void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color, unsigned
 }
 
 /** Set new RGB color.
+ *
  * @param scr
  * @param fg_color
  * @param bg_color
+ *
  */
 void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
 {
@@ -168,6 +187,5 @@ void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color, unsi
 	scr->attrs.a.r.bg_color = bg_color;
 }
 
- 
 /** @}
  */

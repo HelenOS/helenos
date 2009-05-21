@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup console
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -46,6 +46,6 @@ void gcons_mouse_move(int dx, int dy);
 int gcons_mouse_btn(int state);
 
 #endif
- 
+
 /** @}
  */

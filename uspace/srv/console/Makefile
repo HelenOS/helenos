@@ -42,23 +42,29 @@ LIBS = $(LIBC_PREFIX)/libc.a
 #
 
 OUTPUT = console
+
 GENERIC_SOURCES = \
 	console.c \
 	screenbuffer.c \
 	../kbd/generic/key_buffer.c \
 	gcons.c
 
-IMAGES = helenos.ppm nameic.ppm cons_selected.ppm cons_idle.ppm \
-	cons_has_data.ppm cons_kernel.ppm anim_1.ppm anim_2.ppm anim_3.ppm \
-	anim_4.ppm
-
-ARCH_SOURCES = 
+IMAGES = \
+	gfx/helenos.ppm \
+	gfx/nameic.ppm \
+	gfx/cons_selected.ppm \
+	gfx/cons_idle.ppm \
+	gfx/cons_has_data.ppm \
+	gfx/cons_kernel.ppm \
+	gfx/anim_1.ppm \
+	gfx/anim_2.ppm \
+	gfx/anim_3.ppm \
+	gfx/anim_4.ppm
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES))) \
-			$(addsuffix .o,$(basename $(IMAGES)))	
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
+	$(addsuffix .o,$(basename $(IMAGES)))
 
-OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
+OBJECTS := $(GENERIC_OBJECTS)
 
 .PHONY: all clean depend disasm
 
