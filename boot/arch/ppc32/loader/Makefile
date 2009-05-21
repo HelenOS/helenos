@@ -88,6 +88,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat
 

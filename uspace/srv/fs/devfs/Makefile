@@ -26,61 +26,57 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include ../Makefile.config
+LIBC_PREFIX = ../../../lib/libc
+LIBFS_PREFIX = ../../../lib/libfs
+SOFTINT_PREFIX = ../../../lib/softint
 
-DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
-	srv/bd/gxe_bd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/rd \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/fs/devfs \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/bdsh
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
-endif
+CFLAGS += -I $(LIBFS_PREFIX) 
 
-ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
-endif
+LIBS = \
+	$(LIBFS_PREFIX)/libfs.a \
+	$(LIBC_PREFIX)/libc.a
 
-ifeq ($(UARCH),sparc64)
-	DIRS += \
-		srv/fhc \
-		srv/obio
-endif
+## Sources
+#
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+OUTPUT = devfs
+SOURCES = \
+	devfs.c \
+	devfs_ops.c
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-clean: $(CLEANS)
+.PHONY: all clean depend disasm
 
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
+all: $(OUTPUT) $(OUTPUT).disasm
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+-include Makefile.depend
+
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
+
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< > $@
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

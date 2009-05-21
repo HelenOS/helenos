@@ -79,6 +79,32 @@ static bool mount_fs(const char *fstype)
 	return true;
 }
 
+static bool mount_devfs(void)
+{
+	int rc = -1;
+	
+	while (rc < 0) {
+		rc = mount("devfs", "/dev", "null", "", IPC_FLAG_BLOCKING);
+		
+		switch (rc) {
+		case EOK:
+			printf(NAME ": Device filesystem mounted\n");
+			break;
+		case EBUSY:
+			printf(NAME ": Device filesystem already mounted\n");
+			break;
+		case ELIMIT:
+			printf(NAME ": Unable to mount device filesystem\n");
+			return false;
+		case ENOENT:
+			printf(NAME ": Unknown filesystem type (devfs)\n");
+			return false;
+		}
+	}
+	
+	return true;
+}
+
 static void spawn(char *fname)
 {
 	char *argv[2];
@@ -101,7 +127,13 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	// FIXME: spawn("/srv/pci");
+	spawn("/srv/devfs");
+	
+	if (!mount_devfs()) {
+		return(NAME ": Exiting\n");
+		return -2;
+	}
+	
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
 	spawn("/srv/console");
