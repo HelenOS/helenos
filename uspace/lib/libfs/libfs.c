@@ -129,10 +129,10 @@ void fs_node_initialize(fs_node_t *fn)
 
 void libfs_mount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t mp_dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t mp_fs_index = (fs_index_t)IPC_GET_ARG2(*request);
-	fs_handle_t mr_fs_handle = (fs_handle_t)IPC_GET_ARG3(*request);
-	dev_handle_t mr_dev_handle = (dev_handle_t)IPC_GET_ARG4(*request);
+	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
+	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
+	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
 	int res;
 	ipcarg_t rc;
 
