@@ -355,6 +355,8 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		phone_t *cloned_phone;
 		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
 		    return ENOENT);
+		if (phone  == cloned_phone)
+			return EEXISTS;
 		if (cloned_phone < phone) {
 			mutex_lock(&cloned_phone->lock);
 			mutex_lock(&phone->lock);
