@@ -48,12 +48,12 @@
  */
 int list_member(const link_t *link, const link_t *head)
 {
-	int found = false;
+	int found = 0;
 	link_t *hlp = head->next;
 	
 	while (hlp != head) {
 		if (hlp == link) {
-			found = true;
+			found = 1;
 			break;
 		}
 		hlp = hlp->next;
@@ -77,12 +77,35 @@ void list_concat(link_t *head1, link_t *head2)
 {
 	if (list_empty(head2))
 		return;
-
+	
 	head2->next->prev = head1->prev;
-	head2->prev->next = head1;	
+	head2->prev->next = head1;
 	head1->prev->next = head2->next;
 	head1->prev = head2->prev;
 	list_initialize(head2);
+}
+
+
+/** Count list items
+ *
+ * Return the number of items in the list.
+ *
+ * @param link List to count.
+ *
+ * @return Number of items in the list.
+ *
+ */
+unsigned int list_count(const link_t *link)
+{
+	unsigned int count = 0;
+	link_t *hlp = link->next;
+	
+	while (hlp != link) {
+		count++;
+		hlp = hlp->next;
+	}
+	
+	return count;
 }
 
 /** @}

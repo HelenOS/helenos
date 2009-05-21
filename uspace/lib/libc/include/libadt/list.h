@@ -37,26 +37,20 @@
 
 #include <unistd.h>
 
-#ifndef true
-# define true 1
-#endif
-#ifndef false
-# define false 0
-#endif
-
-typedef struct link link_t;
-
 /** Doubly linked list head and link type. */
-struct link {
-	link_t *prev;	/**< Pointer to the previous item in the list. */
-	link_t *next;	/**< Pointer to the next item in the list. */
-};
+typedef struct link {
+	struct link *prev;  /**< Pointer to the previous item in the list. */
+	struct link *next;  /**< Pointer to the next item in the list. */
+} link_t;
 
 /** Declare and initialize statically allocated list.
  *
  * @param name Name of the new statically allocated list.
  */
-#define LIST_INITIALIZE(name)		link_t name = { .prev = &name, .next = &name }
+#define LIST_INITIALIZE(name)  link_t name = { \
+	.prev = &name, \
+	.next = &name \
+}
 
 /** Initialize doubly-linked circular list link
  *
@@ -145,7 +139,7 @@ static inline void list_remove(link_t *link)
  */
 static inline int list_empty(link_t *head)
 {
-	return head->next == head ? true : false;
+	return ((head->next == head) ? 1 : 0);
 }
 
 
@@ -161,11 +155,11 @@ static inline int list_empty(link_t *head)
  */
 static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
-	link_t *hlp;
-
 	part1->prev->next = part2;
-	part2->prev->next = part1;	
-	hlp = part1->prev;
+	part2->prev->next = part1;
+	
+	link_t *hlp = part1->prev;
+	
 	part1->prev = part2->prev;
 	part2->prev = hlp;
 }
@@ -195,10 +189,11 @@ static inline void headless_list_concat(link_t *part1, link_t *part2)
 	headless_list_split_or_concat(part1, part2);
 }
 
-#define list_get_instance(link,type,member) (type *)(((char *)(link))-((char *)&(((type *)NULL)->member)))
+#define list_get_instance(link, type, member)  ((type *) (((void *)(link)) - ((void *) &(((type *) NULL)->member))))
 
 extern int list_member(const link_t *link, const link_t *head);
 extern void list_concat(link_t *head1, link_t *head2);
+extern unsigned int list_count(const link_t *link);
 
 #endif
 
