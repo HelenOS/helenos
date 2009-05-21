@@ -112,7 +112,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	while (1) {
+	while (true) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
@@ -204,27 +204,15 @@ static bool rd_init(void)
 	
 	printf(NAME ": Found RAM disk at %p, %d bytes\n", rd_ph_addr, rd_size);
 	
-	int driver_phone = devmap_driver_register(NAME, rd_connection);
-	if (driver_phone < 0) {
-		printf(NAME ": Unable to register driver\n");
+	int rc = devmap_driver_register(NAME, rd_connection);
+	if (rc < 0) {
+		printf(NAME ": Unable to register driver (%d)\n", rc);
 		return false;
 	}
 	
 	dev_handle_t dev_handle;
-	if (devmap_device_register(driver_phone, "initrd", &dev_handle) != EOK) {
-		ipc_hangup(driver_phone);
-		printf(NAME ": Unable to register device\n");
-		return false;
-	}
-
-	/*
-	 * Create the second device.
-	 * We need at least two devices for the sake of testing of non-root
-	 * mounts. Of course it would be better to allow the second device
-	 * be created dynamically...
-	 */
-	if (devmap_device_register(driver_phone, "spared", &dev_handle) != EOK) {
-		ipc_hangup(driver_phone);
+	if (devmap_device_register("initrd", &dev_handle) != EOK) {
+		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device\n");
 		return false;
 	}
@@ -248,4 +236,4 @@ int main(int argc, char **argv)
 
 /**
  * @}
- */ 
+ */

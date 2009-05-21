@@ -115,7 +115,6 @@ int main(int argc, char **argv)
 
 static int gxe_bd_init(void)
 {
-	int driver_phone;
 	dev_handle_t dev_handle;
 	void *vaddr;
 	int rc;
@@ -125,7 +124,6 @@ static int gxe_bd_init(void)
 		printf(NAME ": Unable to register driver.\n");
 		return rc;
 	}
-	driver_phone = rc;
 
 	rc = pio_enable((void *) dev_physical, sizeof(gxe_bd_t), &vaddr);
 	if (rc != EOK) {
@@ -143,9 +141,9 @@ static int gxe_bd_init(void)
 
 	devbuf = vaddr;
 
-	rc = devmap_device_register(driver_phone, "disk0", &dev_handle);
+	rc = devmap_device_register("disk0", &dev_handle);
 	if (rc != EOK) {
-		ipc_hangup(driver_phone);
+		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device.\n");
 		return rc;
 	}

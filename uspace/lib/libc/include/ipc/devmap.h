@@ -37,7 +37,9 @@
 #include <ipc/ipc.h>
 #include <libadt/list.h>
 
-#define DEVMAP_NAME_MAXLEN 512
+#define DEVMAP_NAME_MAXLEN  255
+
+typedef ipcarg_t dev_handle_t;
 
 typedef enum {
 	DEVMAP_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
@@ -45,56 +47,30 @@ typedef enum {
 	DEVMAP_DEVICE_REGISTER,
 	DEVMAP_DEVICE_UNREGISTER,
 	DEVMAP_DEVICE_GET_NAME,
-	DEVMAP_DEVICE_GET_HANDLE
+	DEVMAP_DEVICE_GET_HANDLE,
+	DEVMAP_DEVICE_GET_COUNT,
+	DEVMAP_DEVICE_GET_DEVICES
 } devmap_request_t;
 
-/** Representation of device driver.
- * Each driver is responsible for a set of devices.
- */
-typedef struct {
-		/** Pointers to previous and next drivers in linked list */
-	link_t drivers;	
-		/** Pointer to the linked list of devices controlled by
-		 * this driver */
-	link_t devices;
-		/** Phone asociated with this driver */
-	ipcarg_t phone;
-		/** Device driver name */
-	char *name;	
-		/** Futex for list of devices owned by this driver */
-	atomic_t devices_futex;
-} devmap_driver_t;
-
-/** Info about registered device
+/** Interface provided by devmap.
  *
- */
-typedef struct {
-		/** Pointer to the previous and next device in the list of all devices */
-	link_t devices;
-		/** Pointer to the previous and next device in the list of devices
-		 owned by one driver */
-	link_t driver_devices;
-		/** Unique device identifier  */
-	int handle;
-		/** Device name */
-	char *name;
-		/** Device driver handling this device */
-	devmap_driver_t *driver;
-} devmap_device_t;
-
-/** Interface provided by devmap. 
  * Every process that connects to devmap must ask one of following
  * interfaces otherwise connection will be refused.
+ *
  */
 typedef enum {
-		/** Connect as device driver */
-	DEVMAP_DRIVER = 1,	
-		/** Connect as client */
+	/** Connect as device driver */
+	DEVMAP_DRIVER = 1,
+	/** Connect as client */
 	DEVMAP_CLIENT,
-		/** Create new connection to instance of device that
-		 * is specified by second argument of call. */
+	/** Create new connection to instance of device that
+	    is specified by second argument of call. */
 	DEVMAP_CONNECT_TO_DEVICE
 } devmap_interface_t;
 
-#endif
+typedef struct {
+	dev_handle_t handle;
+	char name[DEVMAP_NAME_MAXLEN + 1];
+} dev_desc_t;
 
+#endif

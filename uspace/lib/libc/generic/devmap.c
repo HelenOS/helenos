@@ -35,104 +35,163 @@
 #include <async.h>
 #include <errno.h>
 
-static int devmap_phone = -1;
+static int devmap_phone_driver = -1;
+static int devmap_phone_client = -1;
 
 /** Get phone to device mapper task. */
-static int devmap_get_phone(unsigned int flags)
+int devmap_get_phone(devmap_interface_t iface, unsigned int flags)
 {
-	int phone;
-
-	if (devmap_phone >= 0)
-		return devmap_phone;
-
-	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
-		    DEVMAP_CLIENT, 0);
-	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
-		    DEVMAP_CLIENT, 0);
+	switch (iface) {
+	case DEVMAP_DRIVER:
+		if (devmap_phone_driver >= 0)
+			return devmap_phone_driver;
+		
+		if (flags & IPC_FLAG_BLOCKING)
+			devmap_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
+			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+		else
+			devmap_phone_driver = ipc_connect_me_to(PHONE_NS,
+			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+		
+		return devmap_phone_driver;
+	case DEVMAP_CLIENT:
+		if (devmap_phone_client >= 0)
+			return devmap_phone_client;
+		
+		if (flags & IPC_FLAG_BLOCKING)
+			devmap_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
+			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+		else
+			devmap_phone_client = ipc_connect_me_to(PHONE_NS,
+			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+		
+		return devmap_phone_client;
+	default:
+		return -1;
 	}
+}
 
-	if (phone < 0)
-		return phone;
-
-	devmap_phone = phone;
-	return phone;
+void devmap_hangup_phone(devmap_interface_t iface)
+{
+	switch (iface) {
+	case DEVMAP_DRIVER:
+		if (devmap_phone_driver >= 0) {
+			ipc_hangup(devmap_phone_driver);
+			devmap_phone_driver = -1;
+		}
+		break;
+	case DEVMAP_CLIENT:
+		if (devmap_phone_client >= 0) {
+			ipc_hangup(devmap_phone_client);
+			devmap_phone_client = -1;
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 /** Register new driver with devmap. */
 int devmap_driver_register(const char *name, async_client_conn_t conn)
 {
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-	int phone;
-	ipcarg_t callback_phonehash;
-
-	phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
-	    DEVMAP_DRIVER, 0);
-
-	if (phone < 0) {
-		return phone;
-	}
+	int phone = devmap_get_phone(DEVMAP_DRIVER, IPC_FLAG_BLOCKING);
 	
-	req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
-	retval = ipc_data_write_start(phone, name, str_size(name) + 1); 
-
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		ipc_hangup(phone);
-		return -1;
-	}
-
-	async_set_client_connection(conn);
-
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
-	async_wait_for(req, &retval);
-
-	return phone;
-}
-
-int devmap_device_get_handle(const char *name, dev_handle_t *handle,
-    unsigned int flags)
-{
-	ipcarg_t retval;
-	aid_t req;
-	ipc_call_t answer;
-	int phone;
-
-	phone = devmap_get_phone(flags);
 	if (phone < 0)
 		return phone;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
+	
+	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return -1;
+	}
+	
+	async_set_client_connection(conn);
+	
+	ipcarg_t callback_phonehash;
+	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	async_wait_for(req, &retval);
+	
+	return retval;
+}
 
-	req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
+/** Register new device.
+ *
+ * @param name   Device name.
+ * @param handle Output: Handle to the created instance of device.
+ *
+ */
+int devmap_device_register(const char *name, dev_handle_t *handle)
+{
+	int phone = devmap_get_phone(DEVMAP_DRIVER, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return phone;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, 0, 0,
 	    &answer);
-
-	retval = ipc_data_write_start(phone, name, str_size(name) + 1);
-
+	
+	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		return retval;
 	}
-
+	
 	async_wait_for(req, &retval);
-
+	
 	if (retval != EOK) {
 		if (handle != NULL)
 			*handle = -1;
 		return retval;
 	}
-
+	
 	if (handle != NULL)
-		*handle = (int) IPC_GET_ARG1(answer);
+		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+	
+	return retval;
+}
 
+int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned int flags)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, flags);
+	
+	if (phone < 0)
+		return phone;
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
+	    &answer);
+	
+	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	if (retval != EOK) {
+		if (handle != NULL)
+			*handle = -1;
+		return retval;
+	}
+	
+	if (handle != NULL)
+		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+	
 	return retval;
 }
 
 int devmap_device_connect(dev_handle_t handle, unsigned int flags)
 {
 	int phone;
-
+	
 	if (flags & IPC_FLAG_BLOCKING) {
 		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
@@ -140,40 +199,46 @@ int devmap_device_connect(dev_handle_t handle, unsigned int flags)
 		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
 	}
-
+	
 	return phone;
 }
 
-/** Register new device.
- *
- * @param driver_phone
- * @param name Device name.
- * @param handle Output: Handle to the created instance of device.
- */
-int devmap_device_register(int driver_phone, const char *name, int *handle)
+ipcarg_t devmap_device_get_count(void)
 {
-	ipcarg_t retval;
-	aid_t req;
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return 0;
+	
+	ipcarg_t count;
+	int retval = ipc_call_sync_0_1(phone, DEVMAP_DEVICE_GET_COUNT, &count);
+	if (retval != EOK)
+		return 0;
+	
+	return count;
+}
+
+ipcarg_t devmap_device_get_devices(ipcarg_t count, dev_desc_t *data)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return 0;
+	
 	ipc_call_t answer;
-
-	req = async_send_2(driver_phone, DEVMAP_DEVICE_REGISTER, 0, 0,
-	    &answer);
-
-	retval = ipc_data_write_start(driver_phone, name, str_size(name) + 1);
-
+	aid_t req = async_send_0(phone, DEVMAP_DEVICE_GET_DEVICES, &answer);
+	
+	ipcarg_t retval = ipc_data_read_start(phone, data, count * sizeof(dev_desc_t));
+	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		return retval;
+		return 0;
 	}
-
+	
 	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
-		if (handle != NULL)
-			*handle = -1;
-		return retval;
-	}
-
-	*handle = (int) IPC_GET_ARG1(answer);
-	return retval;
+	
+	if (retval != EOK)
+		return 0;
+	
+	return IPC_GET_ARG1(answer);
 }

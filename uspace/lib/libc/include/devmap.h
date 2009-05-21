@@ -38,13 +38,17 @@
 #include <ipc/devmap.h>
 #include <async.h>
 
-typedef int dev_handle_t;
+extern int devmap_get_phone(devmap_interface_t, unsigned int);
+extern void devmap_hangup_phone(devmap_interface_t iface);
 
 extern int devmap_driver_register(const char *, async_client_conn_t);
-extern int devmap_device_get_handle(const char *, dev_handle_t *,
-    unsigned int);
+extern int devmap_device_register(const char *, dev_handle_t *);
+
+extern int devmap_device_get_handle(const char *, dev_handle_t *, unsigned int);
 extern int devmap_device_connect(dev_handle_t, unsigned int);
-extern int devmap_device_register(int, const char *, int *);
+
+extern ipcarg_t devmap_device_get_count(void);
+extern ipcarg_t devmap_device_get_devices(ipcarg_t, dev_desc_t *);
 
 #endif
 

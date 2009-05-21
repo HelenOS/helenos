@@ -119,72 +119,71 @@ static int device_client(int handle)
  */
 char * test_devmap1(bool quiet)
 {
-	int driver_phone;
-	int dev1_handle;
-	int dev2_handle;
-	int dev3_handle;
-	int handle;
-	int rc;
-
+	const char *retval = NULL;
+	
 	/* Register new driver */
-	driver_phone = devmap_driver_register("TestDriver",
-	    driver_client_connection);
-
-	if (driver_phone < 0) {
-		return "Error: Cannot register driver.\n";	
+	int rc = devmap_driver_register("TestDriver", driver_client_connection);
+	if (rc < 0) {
+		retval = "Error: Cannot register driver.\n";
+		goto out;
 	}
-
+	
 	/* Register new device dev1. */
-	rc = devmap_device_register(driver_phone, TEST_DEVICE1, &dev1_handle);
+	dev_handle_t dev1_handle;
+	rc = devmap_device_register(TEST_DEVICE1, &dev1_handle);
 	if (rc != EOK) {
-		ipc_hangup(driver_phone);
-		return "Error: cannot register device.\n";
+		retval = "Error: cannot register device.\n";
+		goto out;
 	}
-
+	
 	/*
 	 * Get handle for dev2 (Should fail unless device is already registered
 	 * by someone else).
 	 */
+	dev_handle_t handle;
 	rc = devmap_device_get_handle(TEST_DEVICE2, &handle, 0);
 	if (rc == EOK) {
-		ipc_hangup(driver_phone);
-		return "Error: got handle for dev2 before it was registered.\n";
+		retval = "Error: got handle for dev2 before it was registered.\n";
+		goto out;
 	}
-
+	
 	/* Register new device dev2. */
-	rc = devmap_device_register(driver_phone, TEST_DEVICE2, &dev2_handle);
+	dev_handle_t dev2_handle;
+	rc = devmap_device_register(TEST_DEVICE2, &dev2_handle);
 	if (rc != EOK) {
-		ipc_hangup(driver_phone);
-		return "Error: cannot register device dev2.\n";
+		retval = "Error: cannot register device dev2.\n";
+		goto out;
 	}
-
+	
 	/* Register device dev1 again. */
-	rc = devmap_device_register(driver_phone, TEST_DEVICE1, &dev3_handle);
+	dev_handle_t dev3_handle;
+	rc = devmap_device_register(TEST_DEVICE1, &dev3_handle);
 	if (rc == EOK) {
-		return "Error: dev1 registered twice.\n";
+		retval = "Error: dev1 registered twice.\n";
+		goto out;
 	}
-
+	
 	/* Get handle for dev1. */
 	rc = devmap_device_get_handle(TEST_DEVICE1, &handle, 0);
 	if (rc != EOK) {
-		ipc_hangup(driver_phone);
-		return "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
+		retval = "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
+		goto out;
 	}
-
+	
 	if (handle != dev1_handle) {
-		ipc_hangup(driver_phone);
-		return "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
+		retval = "Error: cannot get handle for 'DEVMAP_DEVICE1'.\n";
+		goto out;
 	}
-
+	
 	if (device_client(dev1_handle) != EOK) {
-		ipc_hangup(driver_phone);
-		return "Error: failed client test for 'DEVMAP_DEVICE1'.\n";
+		retval = "Error: failed client test for 'DEVMAP_DEVICE1'.\n";
+		goto out;
 	}
-
-	/* TODO: */
-
-	ipc_hangup(driver_phone);
-
+	
+out:
+	devmap_hangup_phone(DEVMAP_DRIVER);
+	devmap_hangup_phone(DEVMAP_CLIENT);
+	
 	return NULL;
 }
 
