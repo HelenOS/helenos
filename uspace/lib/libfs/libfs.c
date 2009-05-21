@@ -198,7 +198,8 @@ void libfs_mount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Do not release the FS node so that it stays in memory.
 	 */
-	ipc_answer_0(rid, rc);
+	ipc_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
+	    IPC_GET_ARG3(answer));
 }
 
 /** Lookup VFS triplet by name in the file system name space.
