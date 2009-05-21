@@ -84,7 +84,9 @@ typedef struct {
 	uint8_t buffer[512];
 } gxe_buf_t;
 
-static size_t maxblock_size = 512;
+static const size_t block_size = 512;
+static size_t comm_size;
+
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
 static gxe_buf_t *devbuf;
@@ -95,9 +97,9 @@ static atomic_t dev_futex = FUTEX_INITIALIZER;
 
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int gxe_bd_read_block(uint64_t offset, size_t block_size, void *buf);
-static int gxe_bd_write_block(uint64_t offset, size_t block_size,
-    const void *buf);
+static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf);
+static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf);
+static int gxe_bd_write_block(uint64_t offset, size_t size, const void *buf);
 
 int main(int argc, char **argv)
 {
@@ -156,21 +158,21 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
+	ipcarg_t method;
 	int flags;
 	int retval;
-	off_t offset;
-	size_t block_size;
+	off_t idx;
+	off_t size;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
 
-	if (!ipc_share_out_receive(&callid, &maxblock_size, &flags)) {
+	if (!ipc_share_out_receive(&callid, &comm_size, &flags)) {
 		ipc_answer_0(callid, EHANGUP);
 		return;
 	}
-	maxblock_size = 512;
 
-	fs_va = as_get_mappable_page(maxblock_size);
+	fs_va = as_get_mappable_page(comm_size);
 	if (fs_va == NULL) {
 		ipc_answer_0(callid, EHANGUP);
 		return;
@@ -180,20 +182,21 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		method = IPC_GET_METHOD(call);
+		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
 			ipc_answer_0(callid, EOK);
 			return;
 		case BD_READ_BLOCK:
-			offset = IPC_GET_ARG1(call);
-			block_size = IPC_GET_ARG2(call);
-			retval = gxe_bd_read_block(offset, block_size, fs_va);
-			break;
 		case BD_WRITE_BLOCK:
-			offset = IPC_GET_ARG1(call);
-			block_size = IPC_GET_ARG2(call);
-			retval = gxe_bd_write_block(offset, block_size, fs_va);
+			idx = IPC_GET_ARG1(call);
+			size = IPC_GET_ARG2(call);
+			if (size > comm_size) {
+				retval = EINVAL;
+				break;
+			}
+			retval = gx_bd_rdwr(method, idx * size, size, fs_va);
 			break;
 		default:
 			retval = EINVAL;
@@ -203,17 +206,39 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int gxe_bd_read_block(uint64_t offset, size_t block_size, void *buf)
+static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf)
+{
+	int rc;
+	size_t now;
+
+	while (size > 0) {
+		now = size < block_size ? size : block_size;
+
+		if (method == BD_READ_BLOCK)
+			rc = gxe_bd_read_block(offset, now, buf);
+		else
+			rc = gxe_bd_write_block(offset, now, buf);
+
+		if (rc != EOK)
+			return rc;
+
+		buf += block_size;
+		offset += block_size;
+
+		if (size > block_size)
+			size -= block_size;
+		else
+			size = 0;
+	}
+
+	return EOK;
+}
+
+static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf)
 {
 	uint32_t status;
 	size_t i;
 	uint32_t w;
-
-	if (block_size != maxblock_size) {
-		printf("Failed: bs = %d, mbs = %d\n", block_size,
-		    maxblock_size);
-		return EINVAL;
-	}
 
 	futex_down(&dev_futex);
 	pio_write_32(&dev->offset_lo, (uint32_t) offset);
@@ -226,7 +251,7 @@ static int gxe_bd_read_block(uint64_t offset, size_t block_size, void *buf)
 		return EIO;
 	}
 
-	for (i = 0; i < maxblock_size; i++) {
+	for (i = 0; i < size; i++) {
 		((uint8_t *) buf)[i] = w =
 		    pio_read_8(&devbuf->buffer[i]);
 	}
@@ -235,20 +260,13 @@ static int gxe_bd_read_block(uint64_t offset, size_t block_size, void *buf)
 	return EOK;
 }
 
-static int gxe_bd_write_block(uint64_t offset, size_t block_size,
-    const void *buf)
+static int gxe_bd_write_block(uint64_t offset, size_t size, const void *buf)
 {
 	uint32_t status;
 	size_t i;
 	uint32_t w;
 
-	if (block_size != maxblock_size) {
-		printf("Failed: bs = %d, mbs = %d\n", block_size,
-		    maxblock_size);
-		return EINVAL;
-	}
-
-	for (i = 0; i < maxblock_size; i++) {
+	for (i = 0; i < size; i++) {
 		pio_write_8(&devbuf->buffer[i], ((const uint8_t *) buf)[i]);
 	}
 
