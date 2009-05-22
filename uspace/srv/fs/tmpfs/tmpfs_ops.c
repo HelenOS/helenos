@@ -409,7 +409,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_mount(&tmpfs_libfs_ops, rid, request);
+	libfs_mount(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
 }
 
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)

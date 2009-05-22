@@ -81,7 +81,7 @@ extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
 
 extern void fs_node_initialize(fs_node_t *);
 
-extern void libfs_mount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
+extern void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 
 #endif

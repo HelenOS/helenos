@@ -127,7 +127,8 @@ void fs_node_initialize(fs_node_t *fn)
 	memset(fn, 0, sizeof(fs_node_t));
 }
 
-void libfs_mount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
 {
 	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);

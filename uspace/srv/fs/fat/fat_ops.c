@@ -888,7 +888,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	libfs_mount(&fat_libfs_ops, rid, request);
+	libfs_mount(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
 }
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
