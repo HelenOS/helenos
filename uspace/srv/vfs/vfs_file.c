@@ -78,19 +78,23 @@ bool vfs_files_init(void)
  */
 int vfs_fd_alloc(void)
 {
-	int i;
-
+	if (!vfs_files_init())
+		return ENOMEM;
+	
+	unsigned int i;
 	for (i = 0; i < MAX_OPEN_FILES; i++) {
 		if (!files[i]) {
 			files[i] = (vfs_file_t *) malloc(sizeof(vfs_file_t));
 			if (!files[i])
 				return ENOMEM;
+			
 			memset(files[i], 0, sizeof(vfs_file_t));
 			futex_initialize(&files[i]->lock, 1);
 			vfs_file_addref(files[i]);
-			return i;
+			return (int) i;
 		}
 	}
+	
 	return EMFILE;
 }
 
@@ -103,10 +107,15 @@ int vfs_fd_alloc(void)
  */
 int vfs_fd_free(int fd)
 {
+	if (!vfs_files_init())
+		return ENOMEM;
+	
 	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || (files[fd] == NULL))
 		return EBADF;
+	
 	vfs_file_delref(files[fd]);
 	files[fd] = NULL;
+	
 	return EOK;
 }
 
@@ -150,11 +159,15 @@ void vfs_file_delref(vfs_file_t *file)
  */
 vfs_file_t *vfs_file_get(int fd)
 {
+	if (!vfs_files_init())
+		return NULL;
+	
 	if ((fd >= 0) && (fd < MAX_OPEN_FILES))
 		return files[fd];
+	
 	return NULL;
 }
 
 /**
  * @}
- */ 
+ */
