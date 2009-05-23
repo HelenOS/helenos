@@ -355,18 +355,19 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		phone_t *cloned_phone;
 		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
 		    return ENOENT);
-		if (phone  == cloned_phone)
-			return EEXISTS;
 		if (cloned_phone < phone) {
 			mutex_lock(&cloned_phone->lock);
 			mutex_lock(&phone->lock);
-		} else {
+		} else if (cloned_phone > phone) {
 			mutex_lock(&phone->lock);
 			mutex_lock(&cloned_phone->lock);
+		} else {
+			mutex_lock(&phone->lock);
 		}
 		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 		    phone->state != IPC_PHONE_CONNECTED) {
-			mutex_unlock(&cloned_phone->lock);
+			if (cloned_phone != phone)
+				mutex_unlock(&cloned_phone->lock);
 			mutex_unlock(&phone->lock);
 			return EINVAL;
 		}
@@ -378,13 +379,15 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		 */
 		newphid = phone_alloc(phone->callee->task);
 		if (newphid < 0) {
-			mutex_unlock(&cloned_phone->lock);
+			if (cloned_phone != phone)
+				mutex_unlock(&cloned_phone->lock);
 			mutex_unlock(&phone->lock);
 			return ELIMIT;
 		}
 		ipc_phone_connect(&phone->callee->task->phones[newphid],
 		    cloned_phone->callee);
-		mutex_unlock(&cloned_phone->lock);
+		if (cloned_phone != phone)
+			mutex_unlock(&cloned_phone->lock);
 		mutex_unlock(&phone->lock);
 		/* Set the new phone for the callee. */
 		IPC_SET_ARG1(call->data, newphid);
