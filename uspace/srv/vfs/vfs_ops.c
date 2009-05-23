@@ -74,7 +74,6 @@ LIST_INITIALIZE(pending_req);
  */
 RWLOCK_INITIALIZE(namespace_rwlock);
 
-futex_t rootfs_futex = FUTEX_INITIALIZER;
 vfs_pair_t rootfs = {
 	.fs_handle = 0,
 	.dev_handle = 0
@@ -95,34 +94,29 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	aid_t msg;
 	ipc_call_t answer;
 			
-
 	/* Resolve the path to the mountpoint. */
-	futex_down(&rootfs_futex);
+	rwlock_write_lock(&namespace_rwlock);
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
-		rwlock_write_lock(&namespace_rwlock);
 		if (str_cmp(mp, "/") == 0) {
 			/* Trying to mount root FS over root FS */
-			rwlock_write_unlock(&namespace_rwlock);
-			futex_up(&rootfs_futex);
 			ipc_answer_0(rid, EBUSY);
+			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
 		rc = vfs_lookup_internal(mp, L_DIRECTORY, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
-			rwlock_write_unlock(&namespace_rwlock);
-			futex_up(&rootfs_futex);
 			ipc_answer_0(rid, rc);
+			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
 		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
-			rwlock_write_unlock(&namespace_rwlock);
-			futex_up(&rootfs_futex);
 			ipc_answer_0(rid, ENOMEM);
+			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
@@ -131,7 +125,6 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		 * It will be dropped upon the corresponding VFS_UNMOUNT.
 		 * This prevents the mount point from being deleted.
 		 */
-		rwlock_write_unlock(&namespace_rwlock);
 	} else {
 		/* We still don't have the root file system mounted. */
 		if (str_cmp(mp, "/") == 0) {
@@ -150,16 +143,16 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			if (rc != EOK) {
 				async_wait_for(msg, NULL);
 				vfs_release_phone(phone);
-				futex_up(&rootfs_futex);
 				ipc_answer_0(rid, rc);
+				rwlock_write_unlock(&namespace_rwlock);
 				return;
 			}
 			async_wait_for(msg, &rc);
 			vfs_release_phone(phone);
 			
 			if (rc != EOK) {
-				futex_up(&rootfs_futex);
 				ipc_answer_0(rid, rc);
+				rwlock_write_unlock(&namespace_rwlock);
 				return;
 			}
 
@@ -176,25 +169,24 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			
 			rootfs.fs_handle = fs_handle;
 			rootfs.dev_handle = dev_handle;
-			futex_up(&rootfs_futex);
 			
 			/* Add reference to the mounted root. */
 			mr_node = vfs_node_get(&mr_res); 
 			assert(mr_node);
 			
 			ipc_answer_0(rid, rc);
+			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		} else {
 			/*
 			 * We can't resolve this without the root filesystem
 			 * being mounted first.
 			 */
-			futex_up(&rootfs_futex);
 			ipc_answer_0(rid, ENOENT);
+			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 	}
-	futex_up(&rootfs_futex);
 	
 	/*
 	 * At this point, we have all necessary pieces: file system and device
@@ -221,6 +213,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		if (mp_node)
 			vfs_node_put(mp_node);
 		ipc_answer_0(rid, rc);
+		rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
 	
@@ -233,33 +226,35 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		if (mp_node)
 			vfs_node_put(mp_node);
 		ipc_answer_0(rid, rc);
+		rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
 	async_wait_for(msg, &rc);
 	vfs_release_phone(phone);
 	
-	if (rc != EOK) {
+	if (rc == EOK) {
+		rindex = (fs_index_t) IPC_GET_ARG1(answer);
+		rsize = (size_t) IPC_GET_ARG2(answer);
+		rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
+	
+		mr_res.triplet.fs_handle = fs_handle;
+		mr_res.triplet.dev_handle = dev_handle;
+		mr_res.triplet.index = rindex;
+		mr_res.size = rsize;
+		mr_res.lnkcnt = rlnkcnt;
+		mr_res.type = VFS_NODE_DIRECTORY;
+	
+		/* Add reference to the mounted root. */
+		mr_node = vfs_node_get(&mr_res); 
+		assert(mr_node);
+	} else {
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
 	}
-	
-	rindex = (fs_index_t) IPC_GET_ARG1(answer);
-	rsize = (size_t) IPC_GET_ARG2(answer);
-	rlnkcnt = (unsigned) IPC_GET_ARG3(answer);
-	
-	mr_res.triplet.fs_handle = fs_handle;
-	mr_res.triplet.dev_handle = dev_handle;
-	mr_res.triplet.index = rindex;
-	mr_res.size = rsize;
-	mr_res.lnkcnt = rlnkcnt;
-	mr_res.type = VFS_NODE_DIRECTORY;
-	
-	/* Add reference to the mounted root. */
-	mr_node = vfs_node_get(&mr_res); 
-	assert(mr_node);
 
 	ipc_answer_0(rid, rc);
+	rwlock_write_unlock(&namespace_rwlock);
 }
 
 /** Process pending mount requests */
