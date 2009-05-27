@@ -68,7 +68,7 @@ typedef struct {
 
 typedef struct {
 	link_t link;
-	int dev_handle;
+	dev_handle_t dev_handle;
 	int dev_phone;
 	void *com_area;
 	size_t com_size;
