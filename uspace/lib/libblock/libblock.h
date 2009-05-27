@@ -96,7 +96,8 @@ extern int block_cache_init(dev_handle_t, size_t, unsigned);
 extern block_t *block_get(dev_handle_t, bn_t, int flags);
 extern void block_put(block_t *);
 
-extern int block_read(int, off_t *, size_t *, off_t *, void *, size_t, size_t);
+extern int block_read(dev_handle_t, off_t *, size_t *, off_t *, void *, size_t,
+    size_t);
 
 #endif
 

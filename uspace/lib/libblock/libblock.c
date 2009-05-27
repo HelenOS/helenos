@@ -445,8 +445,8 @@ void block_put(block_t *block)
  * @return		EOK on success or a negative return code on failure.
  */
 int
-block_read(int dev_handle, off_t *bufpos, size_t *buflen, off_t *pos, void *dst,
-    size_t size, size_t block_size)
+block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
+    void *dst, size_t size, size_t block_size)
 {
 	off_t offset = 0;
 	size_t left = size;
