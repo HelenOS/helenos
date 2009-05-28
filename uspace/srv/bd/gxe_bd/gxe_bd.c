@@ -72,24 +72,18 @@ typedef struct {
 
 	uint32_t status;
 
-/*	FIXME: Need to fix pio_enable() to support >= page_size areas.
-
 	uint32_t pad4[3];
-	uint32_t pad5[0x3fc0];
+	uint8_t pad5[0x3fc0];
 
-	uint8_t buffer[512];*/
+	uint8_t buffer[512];
 } gxe_bd_t;
 
-typedef struct {
-	uint8_t buffer[512];
-} gxe_buf_t;
 
 static const size_t block_size = 512;
 static size_t comm_size;
 
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
-static gxe_buf_t *devbuf;
 
 static uint32_t disk_id = 0;
 
@@ -134,14 +128,6 @@ static int gxe_bd_init(void)
 	}
 
 	dev = vaddr;
-
-	rc = pio_enable((void *) dev_physical + 0x4000, sizeof(gxe_buf_t), &vaddr);
-	if (rc != EOK) {
-		printf(NAME ": Could not initialize device I/O space.\n");
-		return rc;
-	}
-
-	devbuf = vaddr;
 
 	rc = devmap_device_register("disk0", &dev_handle);
 	if (rc != EOK) {
@@ -252,8 +238,7 @@ static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf)
 	}
 
 	for (i = 0; i < size; i++) {
-		((uint8_t *) buf)[i] = w =
-		    pio_read_8(&devbuf->buffer[i]);
+		((uint8_t *) buf)[i] = w = pio_read_8(&dev->buffer[i]);
 	}
 
 	futex_up(&dev_futex);
@@ -267,7 +252,7 @@ static int gxe_bd_write_block(uint64_t offset, size_t size, const void *buf)
 	uint32_t w;
 
 	for (i = 0; i < size; i++) {
-		pio_write_8(&devbuf->buffer[i], ((const uint8_t *) buf)[i]);
+		pio_write_8(&dev->buffer[i], ((const uint8_t *) buf)[i]);
 	}
 
 	futex_down(&dev_futex);
