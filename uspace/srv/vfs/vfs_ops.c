@@ -258,7 +258,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 }
 
 /** Process pending mount requests */
-void vfs_process_pending_mount()
+void vfs_process_pending_mount(void)
 {
 	link_t *cur;
 	
