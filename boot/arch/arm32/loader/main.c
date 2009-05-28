@@ -87,20 +87,13 @@ void bootstrap(void)
 	printf(" kernel entry point at %L\n", KERNEL_VIRTUAL_ADDRESS);
 	printf(" %L: boot info structure\n", &bootinfo);
 
+	unsigned int top = 0;
+	bootinfo.cnt = 0;
 	unsigned int i, j;
 	for (i = 0; i < COMPONENTS; i++) {
 		printf(" %L: %s image (size %d bytes)\n", 
-			components[i].start, components[i].name, components[i].size);
-	}
-
-	printf("\nCopying components\n");
-
-	unsigned int top = 0;
-	bootinfo.cnt = 0;
-	for (i = 0; i < COMPONENTS; i++) {
-		printf(" %s...", components[i].name);
+		    components[i].start, components[i].name, components[i].size);
 		top = ALIGN_UP(top, KERNEL_PAGE_SIZE);
-		memcpy(((void *) KERNEL_VIRTUAL_ADDRESS) + top, components[i].start, components[i].size);
 		if (i > 0) {
 			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
 			bootinfo.tasks[bootinfo.cnt].size = components[i].size;
@@ -109,9 +102,23 @@ void bootstrap(void)
 			bootinfo.cnt++;
 		}
 		top += components[i].size;
+	}
+	j = bootinfo.cnt - 1; 
+
+	printf("\nCopying components\n");
+
+	for (i = COMPONENTS - 1; i > 0; i--, j--) {
+		printf(" %s...", components[i].name);
+		memcpy((void *)bootinfo.tasks[j].addr, components[i].start,
+		    components[i].size);
 		printf("done.\n");
 	}
 	
+	printf("\nCopying kernel...");
+	memcpy((void *)KERNEL_VIRTUAL_ADDRESS, components[0].start,
+	    components[0].size);
+	printf("done.\n");
+
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo);
 }
