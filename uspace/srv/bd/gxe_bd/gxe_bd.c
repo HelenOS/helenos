@@ -58,6 +58,10 @@ enum {
 	STATUS_FAILURE	= 0
 };
 
+enum {
+	MAX_DISKS	= 2
+};
+
 typedef struct {
 	uint32_t offset_lo;
 	uint32_t pad0;
@@ -85,15 +89,18 @@ static size_t comm_size;
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
 
-static uint32_t disk_id = 0;
+static dev_handle_t dev_handle[MAX_DISKS];
 
 static atomic_t dev_futex = FUTEX_INITIALIZER;
 
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf);
-static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf);
-static int gxe_bd_write_block(uint64_t offset, size_t size, const void *buf);
+static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
+    void *buf);
+static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
+    void *buf);
+static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
+    const void *buf);
 
 int main(int argc, char **argv)
 {
@@ -111,9 +118,9 @@ int main(int argc, char **argv)
 
 static int gxe_bd_init(void)
 {
-	dev_handle_t dev_handle;
 	void *vaddr;
-	int rc;
+	int rc, i;
+	char name[16];
 
 	rc = devmap_driver_register(NAME, gxe_bd_connection);
 	if (rc < 0) {
@@ -129,11 +136,15 @@ static int gxe_bd_init(void)
 
 	dev = vaddr;
 
-	rc = devmap_device_register("disk0", &dev_handle);
-	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
-		printf(NAME ": Unable to register device.\n");
-		return rc;
+	for (i = 0; i < MAX_DISKS; i++) {
+		snprintf(name, 16, "disk%d", i);
+		rc = devmap_device_register(name, &dev_handle[i]);
+		if (rc != EOK) {
+			devmap_hangup_phone(DEVMAP_DRIVER);
+			printf(NAME ": Unable to register device %s.\n",
+				name);
+			return rc;
+		}
 	}
 
 	return EOK;
@@ -145,10 +156,26 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
+	dev_handle_t dh;
 	int flags;
 	int retval;
 	off_t idx;
 	off_t size;
+	int disk_id, i;
+
+	/* Get the device handle. */
+	dh = IPC_GET_ARG1(*icall);
+
+	/* Determine which disk device is the client connecting to. */
+	disk_id = -1;
+	for (i = 0; i < MAX_DISKS; i++)
+		if (dev_handle[i] == dh)
+			disk_id = i;
+
+	if (disk_id < 0) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
@@ -182,7 +209,8 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			retval = gx_bd_rdwr(method, idx * size, size, fs_va);
+			retval = gx_bd_rdwr(disk_id, method, idx * size,
+			    size, fs_va);
 			break;
 		default:
 			retval = EINVAL;
@@ -192,7 +220,8 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf)
+static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
+    void *buf)
 {
 	int rc;
 	size_t now;
@@ -201,9 +230,9 @@ static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf)
 		now = size < block_size ? size : block_size;
 
 		if (method == BD_READ_BLOCK)
-			rc = gxe_bd_read_block(offset, now, buf);
+			rc = gxe_bd_read_block(disk_id, offset, now, buf);
 		else
-			rc = gxe_bd_write_block(offset, now, buf);
+			rc = gxe_bd_write_block(disk_id, offset, now, buf);
 
 		if (rc != EOK)
 			return rc;
@@ -220,7 +249,8 @@ static int gx_bd_rdwr(ipcarg_t method, off_t offset, off_t size, void *buf)
 	return EOK;
 }
 
-static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf)
+static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
+    void *buf)
 {
 	uint32_t status;
 	size_t i;
@@ -245,11 +275,11 @@ static int gxe_bd_read_block(uint64_t offset, size_t size, void *buf)
 	return EOK;
 }
 
-static int gxe_bd_write_block(uint64_t offset, size_t size, const void *buf)
+static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
+    const void *buf)
 {
 	uint32_t status;
 	size_t i;
-	uint32_t w;
 
 	for (i = 0; i < size; i++) {
 		pio_write_8(&dev->buffer[i], ((const uint8_t *) buf)[i]);
