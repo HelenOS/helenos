@@ -165,6 +165,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	vfs_release_phone(phone);
 
 	ipcarg_t rc;
+	/* XXX shouldn't we disable fibril preemption here? */
 	async_wait_for(req, &rc);
 
 	futex_down(&plb_futex);
