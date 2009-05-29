@@ -486,8 +486,11 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
+	async_serialize_start();
+	
 	if (!vfs_files_init()) {
 		ipc_answer_0(rid, ENOMEM);
+		async_serialize_end();
 		return;
 	}
 
@@ -511,6 +514,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	if ((lflag & (L_FILE | L_DIRECTORY)) == 0 ||
 	    (lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) {
 		ipc_answer_0(rid, EINVAL);
+		async_serialize_end();
 		return;
 	}
 
@@ -524,18 +528,21 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	if (!ipc_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
+		async_serialize_end();
 		return;
 	}
 	char *path = malloc(len + 1);
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
+		async_serialize_end();
 		return;
 	}
 	int rc;
 	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
+		async_serialize_end();
 		return;
 	}
 	path[len] = '\0';
@@ -560,6 +567,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 			rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(path);
+		async_serialize_end();
 		return;
 	}
 
@@ -582,6 +590,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 				rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
 				ipc_answer_0(rid, rc);
+				async_serialize_end();
 				return;
 			}
 			node->size = 0;
@@ -597,6 +606,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	if (fd < 0) {
 		vfs_node_put(node);
 		ipc_answer_0(rid, fd);
+		async_serialize_end();
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
@@ -616,6 +626,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 	/* Success! Return the new file descriptor to the client. */
 	ipc_answer_1(rid, EOK, fd);
+	async_serialize_end();
 }
 
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
