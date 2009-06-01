@@ -163,11 +163,12 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	    (ipcarg_t) root->dev_handle, (ipcarg_t) lflag, (ipcarg_t) index,
 	    &answer);
 	vfs_release_phone(phone);
-
+	
+	async_serialize_start();
 	ipcarg_t rc;
-	/* XXX shouldn't we disable fibril preemption here? */
 	async_wait_for(req, &rc);
-
+	async_serialize_end();
+	
 	futex_down(&plb_futex);
 	list_remove(&entry.plb_link);
 	/*
