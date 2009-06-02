@@ -54,6 +54,8 @@
 #include <func.h>
 #include <string.h>
 #include <syscall/copy.h>
+#include <macros.h>
+#include <ipc/event.h>
 
 /** Spinlock protecting the tasks_tree AVL tree. */
 SPINLOCK_INITIALIZE(tasks_lock);
@@ -228,6 +230,12 @@ void task_destroy(task_t *t)
 	 */
 	if (atomic_predec(&t->as->refcount) == 0) 
 		as_destroy(t->as);
+	
+	/*
+	 * Notify about task destruction.
+	 */
+	if (event_is_subscribed(EVENT_WAIT))
+		event_notify_2(EVENT_WAIT, LOWER32(t->taskid), UPPER32(t->taskid));
 	
 	free(t);
 	TASK = NULL;

@@ -38,6 +38,7 @@
 typedef enum event_type {
 	EVENT_KLOG = 0,
 	EVENT_KCONSOLE,
+	EVENT_WAIT,
 	EVENT_END
 } event_type_t;
 
