@@ -41,7 +41,4 @@ typedef unsigned long uint64_t;
 typedef uint64_t uintptr_t;
 typedef uint64_t unative_t;
 
-typedef unsigned long count_t;
-
-
 #endif
