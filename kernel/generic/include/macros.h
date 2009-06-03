@@ -86,8 +86,9 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 #define LOWER32(arg)  ((arg) & 0xffffffff)
 #define UPPER32(arg)  (((arg) >> 32) & 0xffffffff)
 
-#define MERGE_LOHI32(lo, hi) \
-    (((lo) & 0xffffffff) | (((hi) & 0xffffffff) << 32))
+#define MERGE_LOUP32(lo, up) \
+	((((uint64_t) (lo)) & 0xffffffff) \
+	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
 
 /** Pseudorandom generator
  *
