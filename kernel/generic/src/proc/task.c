@@ -198,7 +198,14 @@ task_t *task_create(as_t *as, char *name)
 	avltree_insert(&tasks_tree, &ta->tasks_tree_node);
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
-
+	
+	/*
+	 * Notify about task creation.
+	 */
+	if (event_is_subscribed(EVENT_WAIT))
+		event_notify_3(EVENT_WAIT, TASK_CREATE, LOWER32(ta->taskid),
+		    UPPER32(ta->taskid));
+	
 	return ta;
 }
 
@@ -235,7 +242,8 @@ void task_destroy(task_t *t)
 	 * Notify about task destruction.
 	 */
 	if (event_is_subscribed(EVENT_WAIT))
-		event_notify_2(EVENT_WAIT, LOWER32(t->taskid), UPPER32(t->taskid));
+		event_notify_3(EVENT_WAIT, TASK_DESTROY, LOWER32(t->taskid),
+		    UPPER32(t->taskid));
 	
 	free(t);
 	TASK = NULL;
