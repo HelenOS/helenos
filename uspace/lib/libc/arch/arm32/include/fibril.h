@@ -38,7 +38,7 @@
 
 #include <sys/types.h>
 #include <align.h>
-#include "thread.h"
+#include <thread.h>
 
 /** Size of a stack item */
 #define STACK_ITEM_SIZE		4
