@@ -232,7 +232,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 		return;
 	}
 
-	if (callid == IPC_CALLRET_FATAL) {
+	if (callid == (ipc_callid_t) IPC_CALLRET_FATAL) {
 		futex_up(&ipc_futex);
 		/* Call asynchronous handler with error code */
 		if (call->callback)
@@ -241,7 +241,7 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
 		return;
 	}
 
-	if (callid == IPC_CALLRET_TEMPORARY) {
+	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 		futex_up(&ipc_futex);
 
 		call->u.msg.phoneid = phoneid;
@@ -309,7 +309,7 @@ void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1,
 	    arg2, arg3, arg4);
 
-	if (callid == IPC_CALLRET_TEMPORARY) {
+	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 		if (!call) {
 			call = ipc_prepare_async(private, callback);
 			if (!call)
@@ -442,7 +442,7 @@ static void try_dispatch_queued_calls(void)
 		call = list_get_instance(queued_calls.next, async_call_t, list);
 		callid = _ipc_call_async(call->u.msg.phoneid,
 		    &call->u.msg.data);
-		if (callid == IPC_CALLRET_TEMPORARY) {
+		if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 			break;
 		}
 		list_remove(&call->list);
@@ -451,7 +451,7 @@ static void try_dispatch_queued_calls(void)
 		if (call->fid)
 			fibril_add_ready(call->fid);
 		
-		if (callid == IPC_CALLRET_FATAL) {
+		if (callid == (ipc_callid_t) IPC_CALLRET_FATAL) {
 			if (call->callback)
 				call->callback(call->private, ENOENT, NULL);
 			free(call);
