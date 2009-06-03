@@ -41,7 +41,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
-#include <futex.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ipc/devmap.h>
@@ -62,8 +61,6 @@ typedef struct {
 	ipcarg_t phone;
 	/** Device driver name */
 	char *name;
-	/** Futex for list of devices owned by this driver */
-	atomic_t devices_futex;
 } devmap_driver_t;
 
 /** Info about registered device
@@ -94,29 +91,15 @@ LIST_INITIALIZE(devices_list);
 LIST_INITIALIZE(drivers_list);
 LIST_INITIALIZE(pending_req);
 
-/* Locking order:
- *  drivers_list_futex
- *  devices_list_futex
- *  (devmap_driver_t *)->devices_futex
- *  create_handle_futex
- **/
-
-static atomic_t devices_list_futex = FUTEX_INITIALIZER;
-static atomic_t drivers_list_futex = FUTEX_INITIALIZER;
-static atomic_t create_handle_futex = FUTEX_INITIALIZER;
-
 static dev_handle_t last_handle = 0;
 
 static dev_handle_t devmap_create_handle(void)
 {
 	/* TODO: allow reusing old handles after their unregistration
-	 * and implement some version of LRU algorithm
+	 * and implement some version of LRU algorithm, avoid overflow
 	 */
 	
-	/* FIXME: overflow */
-	futex_down(&create_handle_futex);
 	last_handle++;
-	futex_up(&create_handle_futex);
 	
 	return last_handle;
 }
@@ -131,7 +114,7 @@ static devmap_device_t *devmap_device_find_name(const char *name)
 	
 	while (item != &devices_list) {
 		device = list_get_instance(item, devmap_device_t, devices);
-		if (0 == str_cmp(device->name, name))
+		if (str_cmp(device->name, name) == 0)
 			break;
 		item = item->next;
 	}
@@ -150,8 +133,6 @@ static devmap_device_t *devmap_device_find_name(const char *name)
  */
 static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
 {
-	futex_down(&devices_list_futex);
-	
 	link_t *item = (&devices_list)->next;
 	devmap_device_t *device = NULL;
 	
@@ -162,14 +143,10 @@ static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
 		item = item->next;
 	}
 	
-	if (item == &devices_list) {
-		futex_up(&devices_list_futex);
+	if (item == &devices_list)
 		return NULL;
-	}
 	
 	device = list_get_instance(item, devmap_device_t, devices);
-	
-	futex_up(&devices_list_futex);
 	
 	return device;
 }
@@ -249,7 +226,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	if (EOK != ipc_data_write_finalize(callid, driver->name, name_size)) {
+	if (ipc_data_write_finalize(callid, driver->name, name_size) != EOK) {
 		free(driver->name);
 		free(driver);
 		ipc_answer_0(iid, EREFUSED);
@@ -258,21 +235,18 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	
 	driver->name[name_size] = 0;
 	
-	/* Initialize futex for list of devices owned by this driver */
-	futex_initialize(&(driver->devices_futex), 1);
-	
 	/*
 	 * Initialize list of asociated devices
 	 */
 	list_initialize(&(driver->devices));
 	
 	/*
-	 * Create connection to the driver 
+	 * Create connection to the driver
 	 */
 	ipc_call_t call;
 	callid = async_get_call(&call);
 	
-	if (IPC_M_CONNECT_TO_ME != IPC_GET_METHOD(call)) {
+	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
 		ipc_answer_0(callid, ENOTSUP);
 		
 		free(driver->name);
@@ -287,8 +261,6 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	
 	list_initialize(&(driver->drivers));
 	
-	futex_down(&drivers_list_futex);
-	
 	/* TODO:
 	 * check that no driver with name equal to driver->name is registered
 	 */
@@ -297,7 +269,6 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	 * Insert new driver into list of registered drivers
 	 */
 	list_append(&(driver->drivers), &drivers_list);
-	futex_up(&drivers_list_futex);
 	
 	ipc_answer_0(iid, EOK);
 	
@@ -314,27 +285,17 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	if (driver == NULL)
 		return EEXISTS;
 	
-	futex_down(&drivers_list_futex);
-	
 	if (driver->phone != 0)
 		ipc_hangup(driver->phone);
 	
 	/* Remove it from list of drivers */
 	list_remove(&(driver->drivers));
 	
-	/* Unregister all its devices */
-	futex_down(&devices_list_futex);
-	futex_down(&(driver->devices_futex));
-	
 	while (!list_empty(&(driver->devices))) {
 		devmap_device_t *device = list_get_instance(driver->devices.next,
 		    devmap_device_t, driver_devices);
 		devmap_device_unregister_core(device);
 	}
-	
-	futex_up(&(driver->devices_futex));
-	futex_up(&devices_list_futex);
-	futex_up(&drivers_list_futex);
 	
 	/* free name and driver */
 	if (driver->name != NULL)
@@ -347,8 +308,10 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 
 
 /** Process pending lookup requests */
-static void process_pending_lookup()
+static void process_pending_lookup(void)
 {
+	async_serialize_start();
+	
 	link_t *cur;
 	
 loop:
@@ -364,8 +327,11 @@ loop:
 		free(pr->name);
 		list_remove(cur);
 		free(pr);
+		
 		goto loop;
 	}
+	
+	async_serialize_end();
 }
 
 
@@ -419,12 +385,9 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	list_initialize(&(device->devices));
 	list_initialize(&(device->driver_devices));
 	
-	futex_down(&devices_list_futex);
-	
 	/* Check that device with such name is not already registered */
 	if (NULL != devmap_device_find_name(device->name)) {
 		printf(NAME ": Device '%s' already registered\n", device->name);
-		futex_up(&devices_list_futex);	
 		free(device->name);
 		free(device);
 		ipc_answer_0(iid, EEXISTS);
@@ -439,17 +402,9 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	/* Insert device into list of all devices  */
 	list_append(&device->devices, &devices_list);
 	
-	/* Insert device into list of devices that belog to one driver */
-	futex_down(&device->driver->devices_futex);	
-	
 	list_append(&device->driver_devices, &device->driver->devices);
 	
-	futex_up(&device->driver->devices_futex);
-	futex_up(&devices_list_futex);
-	
 	ipc_answer_1(iid, EOK, device->handle);
-	
-	process_pending_lookup();
 }
 
 /**
@@ -600,15 +555,11 @@ static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall)
 
 static void devmap_get_count(ipc_callid_t iid, ipc_call_t *icall)
 {
-	futex_down(&devices_list_futex);
 	ipc_answer_1(iid, EOK, list_count(&devices_list));
-	futex_up(&devices_list_futex);
 }
 
 static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 {
-	futex_down(&devices_list_futex);
-	
 	ipc_callid_t callid;
 	size_t size;
 	if (!ipc_data_read_receive(&callid, &size)) {
@@ -623,7 +574,7 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	count_t count = size / sizeof(dev_desc_t);
+	size_t count = size / sizeof(dev_desc_t);
 	dev_desc_t *desc = (dev_desc_t *) malloc(size);
 	if (desc == NULL) {
 		ipc_answer_0(callid, ENOMEM);
@@ -631,7 +582,7 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	count_t pos = 0;
+	size_t pos = 0;
 	link_t *item = devices_list.next;
 	
 	while ((item != &devices_list) && (pos < count)) {
@@ -651,8 +602,6 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	free(desc);
-	
-	futex_up(&devices_list_futex);
 	
 	ipc_answer_1(iid, EOK, pos);
 }
@@ -677,16 +626,12 @@ static bool devmap_init()
 	list_initialize(&(device->devices));
 	list_initialize(&(device->driver_devices));
 	
-	futex_down(&devices_list_futex);
-	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();
 	device->driver = NULL;
 	
 	/* Insert device into list of all devices  */
 	list_append(&device->devices, &devices_list);
-	
-	futex_up(&devices_list_futex);
 	
 	return true;
 }
@@ -699,7 +644,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	/* Accept connection */
 	ipc_answer_0(iid, EOK);
 	
-	devmap_driver_t *driver = NULL; 
+	devmap_driver_t *driver = NULL;
 	devmap_driver_register(&driver);
 	
 	if (NULL == driver)
@@ -710,10 +655,12 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		async_serialize_start();
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
-			/* Exit thread */
+			async_serialize_end();
 			continue;
 		case DEVMAP_DRIVER_UNREGISTER:
 			if (NULL == driver)
@@ -739,14 +686,21 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			if (!(callid & IPC_CALLID_NOTIFICATION))
 				ipc_answer_0(callid, ENOENT);
 		}
+		
+		async_serialize_end();
 	}
 	
 	if (NULL != driver) {
 		/*
 		 * Unregister the device driver and all its devices.
 		 */
+		
+		async_serialize_start();
+		
 		devmap_driver_unregister(driver);
 		driver = NULL;
+		
+		async_serialize_end();
 	}
 }
 
@@ -763,10 +717,12 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
+		async_serialize_start();
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
-			/* Exit thread */
+			async_serialize_end();
 			continue;
 		case DEVMAP_DEVICE_GET_HANDLE:
 			devmap_get_handle(callid, &call);
@@ -784,6 +740,8 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			if (!(callid & IPC_CALLID_NOTIFICATION))
 				ipc_answer_0(callid, ENOENT);
 		}
+		
+		async_serialize_end();
 	}
 }
 
@@ -806,7 +764,7 @@ static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	default:
 		/* No such interface */
-		ipc_answer_0(iid, ENOENT); 
+		ipc_answer_0(iid, ENOENT);
 	}
 }
 
@@ -822,7 +780,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	/* Set a handler of incomming connections */
+	/* Set a handler of incomming connections and
+	   pending operations */
+	async_set_pending(process_pending_lookup);
 	async_set_client_connection(devmap_connection);
 	
 	/* Register device mapper at naming service */
