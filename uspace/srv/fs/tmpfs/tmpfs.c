@@ -114,8 +114,20 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_TRUNCATE:
 			tmpfs_truncate(callid, &call);
 			break;
+		case VFS_CLOSE:
+			tmpfs_close(callid, &call);
+			break;
 		case VFS_DESTROY:
 			tmpfs_destroy(callid, &call);
+			break;
+		case VFS_OPEN_NODE:
+			tmpfs_open_node(callid, &call);
+			break;
+		case VFS_DEVICE:
+			tmpfs_device(callid, &call);
+			break;
+		case VFS_SYNC:
+			tmpfs_sync(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);

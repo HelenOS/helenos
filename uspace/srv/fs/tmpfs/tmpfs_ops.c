@@ -596,6 +596,11 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EOK);
 }
 
+void tmpfs_close(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, EOK);
+}
+
 void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
@@ -618,6 +623,22 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
+void tmpfs_open_node(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_open_node(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
+}
+
+void tmpfs_device(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void tmpfs_sync(ipc_callid_t rid, ipc_call_t *request)
+{
+	/* Dummy implementation */
+	ipc_answer_0(rid, EOK);
+}
+
 /**
  * @}
- */ 
+ */

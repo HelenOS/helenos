@@ -1169,6 +1169,11 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 	return;
 }
 
+void fat_close(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, EOK);
+}
+
 void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
@@ -1185,6 +1190,22 @@ void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
+void fat_open_node(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_open_node(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
+}
+
+void fat_device(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void fat_sync(ipc_callid_t rid, ipc_call_t *request)
+{
+	/* Dummy implementation */
+	ipc_answer_0(rid, EOK);
+}
+
 /**
  * @}
- */ 
+ */

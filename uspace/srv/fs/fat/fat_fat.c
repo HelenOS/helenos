@@ -46,6 +46,7 @@
 #include <align.h>
 #include <assert.h>
 #include <futex.h>
+#include <mem.h>
 
 /**
  * The fat_alloc_lock futex protects all copies of the File Allocation Table
