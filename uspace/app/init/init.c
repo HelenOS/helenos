@@ -44,12 +44,16 @@
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
-#include <console.h>
 #include <string.h>
+#include <devmap.h>
 #include "init.h"
-#include "version.h"
 
-static bool mount_fs(const char *fstype)
+static void info_print(void)
+{
+	printf(NAME ": HelenOS init\n");
+}
+
+static bool mount_root(const char *fstype)
 {
 	int rc = -1;
 	char *opts = "";
@@ -118,11 +122,35 @@ static void spawn(char *fname)
 		printf(NAME ": Error spawning %s\n", fname);
 }
 
+static void getvc(char *dev, char *app)
+{
+	char *argv[4];
+	char vc[MAX_DEVICE_NAME];
+	
+	snprintf(vc, MAX_DEVICE_NAME, "/dev/%s", dev);
+	
+	printf(NAME ": Spawning getvc on %s\n", vc);
+	
+	dev_handle_t handle;
+	devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	
+	if (handle >= 0) {
+		argv[0] = "/app/getvc";
+		argv[1] = vc;
+		argv[2] = app;
+		argv[3] = NULL;
+		
+		if (!task_spawn("/app/getvc", argv))
+			printf(NAME ": Error spawning getvc on %s\n", vc);
+	} else
+		printf(NAME ": Error waiting on %s\n", vc);
+}
+
 int main(int argc, char *argv[])
 {
 	info_print();
 	
-	if (!mount_fs(STRING(RDFMT))) {
+	if (!mount_root(STRING(RDFMT))) {
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
@@ -140,11 +168,13 @@ int main(int argc, char *argv[])
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	
-	console_wait();
-	version_print();
-	
-	spawn("/app/klog");
-	spawn("/app/bdsh");
+	getvc("vc0", "/app/bdsh");
+	getvc("vc1", "/app/bdsh");
+	getvc("vc2", "/app/bdsh");
+	getvc("vc3", "/app/bdsh");
+	getvc("vc4", "/app/bdsh");
+	getvc("vc5", "/app/bdsh");
+	getvc("vc6", "/app/klog");
 	
 	return 0;
 }

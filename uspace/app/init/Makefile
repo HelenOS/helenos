@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../version
-
 ## Setup toolchain
 #
 
@@ -36,18 +34,14 @@ SOFTINT_PREFIX = ../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I../../srv/kbd/include
-
 LIBS = $(LIBC_PREFIX)/libc.a
-DEFS += -DRELEASE=$(RELEASE)
 
 ## Sources
 #
 
 OUTPUT = init
 SOURCES = \
-	init.c \
-	version.c
+	init.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

@@ -28,7 +28,7 @@
 
 /** @addtogroup init
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -36,10 +36,11 @@
 #ifndef __INIT_H__
 #define __INIT_H__
 
-#define NAME "init"
+#define NAME  "init"
+
+#define MAX_DEVICE_NAME  32
 
 #endif
 
 /** @}
  */
-
