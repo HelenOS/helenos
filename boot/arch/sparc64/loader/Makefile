@@ -112,6 +112,7 @@ RD_SRVS += \
 endif
 
 RD_APPS = \
+	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/bdsh/bdsh \

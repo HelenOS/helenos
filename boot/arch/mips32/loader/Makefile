@@ -107,6 +107,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd
 
 RD_APPS = \
+	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \

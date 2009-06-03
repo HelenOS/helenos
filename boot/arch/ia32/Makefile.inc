@@ -52,6 +52,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/fat/fat
 
 RD_APPS = \
+	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
