@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <as.h>
 #include <libc.h>
@@ -102,7 +102,7 @@ int as_area_change_flags(void *address, int flags)
 static size_t heapsize = 0;
 static size_t maxheapsize = (size_t) (-1);
 
-static void * last_allocated = 0;
+static void *last_allocated = 0;
 
 /* Start of heap linker symbol */
 extern char _heap;
@@ -119,15 +119,15 @@ void *sbrk(ssize_t incr)
 	void *res;
 	
 	/* Check for invalid values */
-	if (incr < 0 && -incr > heapsize)
+	if ((incr < 0) && (((size_t) -incr) > heapsize))
 		return NULL;
 	
 	/* Check for too large value */
-	if (incr > 0 && incr+heapsize < heapsize)
+	if ((incr > 0) && (incr + heapsize < heapsize))
 		return NULL;
 	
 	/* Check for too small values */
-	if (incr < 0 && incr+heapsize > heapsize)
+	if ((incr < 0) && (incr + heapsize > heapsize))
 		return NULL;
 	
 	/* Check for user limit */
@@ -175,7 +175,7 @@ void *as_get_mappable_page(size_t sz)
 	asz = 1 << (fnzb64(sz - 1) + 1);
 
 	/* Set heapsize to some meaningful value */
-	if (maxheapsize == -1)
+	if (maxheapsize == (size_t) -1)
 		set_maxheapsize(MAX_HEAP_SIZE);
 	
 	/*
