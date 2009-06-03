@@ -49,6 +49,7 @@
 #include <futex.h>
 #include <libadt/list.h>
 #include <libadt/hash_table.h>
+#include <mem.h>
 
 /** Lock protecting the device connection list */
 static futex_t dcl_lock = FUTEX_INITIALIZER;
