@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup libcipc
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -36,15 +36,13 @@
 #define LIBC_IPC_CONSOLE_H_
 
 #include <ipc/ipc.h>
+#include <ipc/vfs.h>
 
 typedef enum {
-	CONSOLE_GETKEY = IPC_FIRST_USER_METHOD,
-	CONSOLE_PUTCHAR,
-	CONSOLE_WRITE,
-	CONSOLE_CLEAR,
+	CONSOLE_GET_SIZE = VFS_LAST_SRV,
+	CONSOLE_GET_EVENT,
 	CONSOLE_GOTO,
-	CONSOLE_GETSIZE,
-	CONSOLE_FLUSH,
+	CONSOLE_CLEAR,
 	CONSOLE_SET_STYLE,
 	CONSOLE_SET_COLOR,
 	CONSOLE_SET_RGB_COLOR,
@@ -53,6 +51,6 @@ typedef enum {
 } console_request_t;
 
 #endif
- 
+
 /** @}
  */

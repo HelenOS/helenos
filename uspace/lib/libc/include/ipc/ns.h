@@ -35,6 +35,13 @@
 #ifndef LIBIPC_NS_H_
 #define LIBIPC_NS_H_
 
+#include <ipc/ipc.h>
+
+typedef enum {
+	NS_PING = IPC_FIRST_USER_METHOD,
+	NS_TASK_WAIT
+} ns_request_t;
+
 #endif
 
 /** @}
