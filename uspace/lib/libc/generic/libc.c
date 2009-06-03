@@ -27,28 +27,29 @@
  */
 
 /** @addtogroup lc Libc
- * @brief	HelenOS C library
+ * @brief HelenOS C library
  * @{
  * @}
  */
+
 /** @addtogroup libc generic
  * @ingroup lc
  * @{
  */
+
 /** @file
- */ 
+ */
 
 #include <libc.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <malloc.h>
 #include <tls.h>
 #include <thread.h>
 #include <fibril.h>
-#include <io/stream.h>
 #include <ipc/ipc.h>
 #include <async.h>
 #include <as.h>
-#include <console.h>
 #include <loader/pcb.h>
 
 extern char _heap;
@@ -63,28 +64,45 @@ void _exit(int status)
 
 void __main(void *pcb_ptr)
 {
-	fibril_t *f;
-	int argc;
-	char **argv;
-
 	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
+	
 	_async_init();
-	f = fibril_setup();
-	__tcb_set(f->tcb);
+	fibril_t *fibril = fibril_setup();
+	__tcb_set(fibril->tcb);
 	
 	/* Save the PCB pointer */
-	__pcb = (pcb_t *)pcb_ptr;
-
+	__pcb = (pcb_t *) pcb_ptr;
+	
+	int argc;
+	char **argv;
+	
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
+		
+		if (__pcb->filc > 0)
+			stdin = fopen_node(__pcb->filv[0], "r");
+		
+		if (__pcb->filc > 1)
+			stdout = fopen_node(__pcb->filv[1], "w");
+		
+		if (__pcb->filc > 2)
+			stderr = fopen_node(__pcb->filv[2], "w");
 	}
-
+	
 	main(argc, argv);
-	console_flush();
+	
+	if (stdin != NULL)
+		fclose(stdin);
+	
+	if (stdout != NULL)
+		fclose(stdout);
+	
+	if (stderr != NULL)
+		fclose(stderr);
 }
 
 void __exit(void)
