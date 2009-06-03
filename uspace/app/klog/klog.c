@@ -40,25 +40,24 @@
 #include <ipc/services.h>
 #include <as.h>
 #include <sysinfo.h>
-#include <io/stream.h>
-#include <console.h>
 #include <event.h>
 #include <errno.h>
+#include <io/klog.h>
 
-#define NAME "klog"
+#define NAME  "klog"
 
 /* Pointer to klog area */
 static wchar_t *klog;
-static count_t klog_length;
+static size_t klog_length;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 	async_serialize_start();
 	
-	count_t klog_start = (count_t) IPC_GET_ARG1(*call);
-	count_t klog_len = (count_t) IPC_GET_ARG2(*call);
-	count_t klog_stored = (count_t) IPC_GET_ARG3(*call);
-	count_t i;
+	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
+	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
+	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
+	size_t i;
 	
 	for (i = klog_len - klog_stored; i < klog_len; i++)
 		putchar(klog[(klog_start + i) % klog_length]);
@@ -68,9 +67,7 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	console_wait();
-	
-	count_t klog_pages = sysinfo_value("klog.pages");
+	size_t klog_pages = sysinfo_value("klog.pages");
 	size_t klog_size = klog_pages * PAGE_SIZE;
 	klog_length = klog_size / sizeof(wchar_t);
 	

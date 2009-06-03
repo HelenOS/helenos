@@ -57,9 +57,9 @@
 #include "tetris.h"
 
 #include <async.h>
+#include <vfs/vfs.h>
+#include <io/console.h>
 #include <ipc/console.h>
-#include <console.h>
-#include <kbd/kbd.h>
 
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \
@@ -98,7 +98,6 @@ rwait(struct timeval *tvp)
 	struct timeval starttv, endtv, *s;
 	static ipc_call_t charcall;
 	ipcarg_t rc;
-	int cons_phone;
 
 	/*
 	 * Someday, select() will do this for us.
@@ -115,11 +114,10 @@ rwait(struct timeval *tvp)
 	if (!lastchar) {
 again:
 		if (!getchar_inprog) {
-			cons_phone = console_open(true);
-			getchar_inprog = async_send_2(cons_phone,
-			    CONSOLE_GETKEY, 0, 0, &charcall);
+			getchar_inprog = async_send_0(fphone(stdin),
+			    CONSOLE_GET_EVENT, &charcall);
 		}
-		if (!s) 
+		if (!s)
 			async_wait_for(getchar_inprog, &rc);
 		else if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
 			tvp->tv_sec = 0;
@@ -130,7 +128,7 @@ again:
 		if (rc) {
 			stop("end of file, help");
 		}
-		if (IPC_GET_ARG1(charcall) == KE_RELEASE)
+		if (IPC_GET_ARG1(charcall) == KEY_RELEASE)
 			goto again;
 
 		lastchar = IPC_GET_ARG4(charcall);

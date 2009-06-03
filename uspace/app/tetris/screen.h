@@ -46,11 +46,12 @@
  */
 #define	putpad(s)	tputs(s, 1, put)
 
+#include <sys/types.h>
 #include <async.h>
 
 typedef struct {
-	int ws_row;
-	int ws_col;
+	ipcarg_t ws_row;
+	ipcarg_t ws_col;
 } winsize_t;
 
 extern winsize_t winsize;

@@ -55,8 +55,9 @@
 #include <stdio.h>
 /* #include <stdlib.h> */
 #include <string.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
+#include <vfs/vfs.h>
 #include <stdlib.h>
 /* #include <time.h> */
 /* #include <term.h> */
@@ -127,7 +128,7 @@ void insertscore(int score, int level)
 {
 	int i,j;
 	size_t off;
-	kbd_event_t ev;
+	console_event_t ev;
 	
 	clear_screen();
 	moveto(10 , 10);
@@ -141,10 +142,10 @@ void insertscore(int score, int level)
 
 	while (1) {
 		fflush(stdout);
-		if (kbd_get_event(&ev) != EOK)
+		if (!console_get_event(fphone(stdin), &ev))
 			exit(1);
 
-		if (ev.type == KE_RELEASE)
+		if (ev.type == KEY_RELEASE)
 			continue;
 
 		if (ev.key == KC_ENTER || ev.key == KC_NENTER)

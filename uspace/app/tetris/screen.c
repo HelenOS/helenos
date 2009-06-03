@@ -50,12 +50,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <console.h>
-
+#include <vfs/vfs.h>
 #include <async.h>
 #include "screen.h"
 #include "tetris.h"
-#include <ipc/console.h>
+#include <io/console.h>
 
 static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
 static int curscore;
@@ -64,7 +63,7 @@ static int isset;		/* true => terminal is in game mode */
 
 /*
  * putstr() is for unpadded strings (either as in termcap(5) or
- * simply literal strings); 
+ * simply literal strings);
  */
 static inline void putstr(char *s)
 {
@@ -74,17 +73,17 @@ static inline void putstr(char *s)
 
 static void start_standout(void)
 {
-	console_set_rgb_color(0xf0f0f0, 0);
+	console_set_rgb_color(fphone(stdout), 0xf0f0f0, 0);
 }
 
 static void resume_normal(void)
 {
-	console_set_rgb_color(0, 0xf0f0f0);
+	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
 }
 
 void clear_screen(void)
 {
-	console_clear();
+	console_clear(fphone(stdout));
 	moveto(0, 0);
 }
 
@@ -96,7 +95,7 @@ scr_clear(void)
 {
 
 	resume_normal();
-	console_clear();
+	console_clear(fphone(stdout));
 	curscore = -1;
 	memset((char *)curscreen, 0, sizeof(curscreen));
 }
@@ -107,21 +106,21 @@ scr_clear(void)
 void
 scr_init(void)
 {
-	console_cursor_visibility(0);
+	console_cursor_visibility(fphone(stdout), 0);
 	resume_normal();
 	scr_clear();
 }
 
 void moveto(int r, int c)
 {
-	console_goto(r, c);
+	console_goto(fphone(stdout), c, r);
 }
 
 winsize_t winsize;
 
 static int get_display_size(winsize_t *ws)
 {
-	return console_get_size(&ws->ws_row, &ws->ws_col);
+	return console_get_size(fphone(stdout), &ws->ws_col, &ws->ws_row);
 }
 
 /*
