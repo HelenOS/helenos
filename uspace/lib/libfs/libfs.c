@@ -42,6 +42,7 @@
 #include <as.h>
 #include <assert.h>
 #include <dirent.h>
+#include <mem.h>
 
 /** Register file system server.
  *
@@ -208,12 +209,13 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
  * The path passed in the PLB must be in the canonical file system path format
  * as returned by the canonify() function.
  *
- * @param ops		libfs operations structure with function pointers to
- *			file system implementation
- * @param fs_handle	File system handle of the file system where to perform
- *			the lookup.
- * @param rid		Request ID of the VFS_LOOKUP request.
- * @param request	VFS_LOOKUP request data itself.
+ * @param ops       libfs operations structure with function pointers to
+ *                  file system implementation
+ * @param fs_handle File system handle of the file system where to perform
+ *                  the lookup.
+ * @param rid       Request ID of the VFS_LOOKUP request.
+ * @param request   VFS_LOOKUP request data itself.
+ *
  */
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
@@ -424,6 +426,33 @@ out:
 		ops->node_put(cur);
 	if (tmp)
 		ops->node_put(tmp);
+}
+
+/** Open VFS triplet.
+ *
+ * @param ops       libfs operations structure with function pointers to
+ *                  file system implementation
+ * @param rid       Request ID of the VFS_OPEN_NODE request.
+ * @param request   VFS_OPEN_NODE request data itself.
+ *
+ */
+void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
+{
+	dev_handle_t dev_handle = IPC_GET_ARG1(*request);
+	fs_index_t index = IPC_GET_ARG2(*request);
+	
+	fs_node_t *node = ops->node_get(dev_handle, index);
+	
+	if (node == NULL) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	ipc_answer_5(rid, EOK, fs_handle, dev_handle, index,
+	    ops->size_get(node), ops->lnkcnt_get(node));
+	
+	ops->node_put(node);
 }
 
 /** @}

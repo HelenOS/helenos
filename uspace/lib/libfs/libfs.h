@@ -26,20 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libfs 
+/** @addtogroup libfs
  * @{
- */ 
+ */
 /**
  * @file
  */
 
 #ifndef LIBFS_LIBFS_H_
-#define	LIBFS_LIBFS_H_ 
+#define LIBFS_LIBFS_H_
 
-#include "../../srv/vfs/vfs.h"
+#include <ipc/vfs.h>
 #include <stdint.h>
 #include <ipc/ipc.h>
 #include <async.h>
+#include <devmap.h>
 
 typedef struct {
 	bool mp_active;
@@ -49,8 +50,8 @@ typedef struct {
 } mp_data_t;
 
 typedef struct {
-	mp_data_t mp_data;	/**< Mount point info. */
-	void *data;		/**< Data of the file system implementation. */
+	mp_data_t mp_data;  /**< Mount point info. */
+	void *data;         /**< Data of the file system implementation. */
 } fs_node_t;
 
 typedef struct {
@@ -66,15 +67,15 @@ typedef struct {
 	unsigned (* lnkcnt_get)(fs_node_t *);
 	bool (* has_children)(fs_node_t *);
 	fs_node_t *(* root_get)(dev_handle_t);
-	char (* plb_get_char)(unsigned pos);	
+	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {
-	int fs_handle;		/**< File system handle. */
-	ipcarg_t vfs_phonehash;	/**< Initial VFS phonehash. */
-	uint8_t *plb_ro;	/**< Read-only PLB view. */
+	int fs_handle;           /**< File system handle. */
+	ipcarg_t vfs_phonehash;  /**< Initial VFS phonehash. */
+	uint8_t *plb_ro;         /**< Read-only PLB view. */
 } fs_reg_t;
 
 extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
@@ -83,9 +84,10 @@ extern void fs_node_initialize(fs_node_t *);
 
 extern void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+extern void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,
+    ipc_call_t *);
 
 #endif
 
 /** @}
  */
-
