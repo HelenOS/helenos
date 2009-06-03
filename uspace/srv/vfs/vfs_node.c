@@ -180,7 +180,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
-		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);	
+		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);
 		if (node->type == VFS_NODE_UNKNOWN &&
 		    result->type != VFS_NODE_UNKNOWN) {
 			/* Upgrade the node type. */
@@ -233,4 +233,4 @@ void nodes_remove_callback(link_t *item)
 
 /**
  * @}
- */ 
+ */

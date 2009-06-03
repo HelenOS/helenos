@@ -93,7 +93,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	int phone;
 	aid_t msg;
 	ipc_call_t answer;
-			
+	
 	/* Resolve the path to the mountpoint. */
 	rwlock_write_lock(&namespace_rwlock);
 	if (rootfs.fs_handle) {
@@ -490,7 +490,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-
+	
 	/*
 	 * The POSIX interface is open(path, oflag, mode).
 	 * We can receive oflags and mode along with the VFS_OPEN call; the path
@@ -503,35 +503,37 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int oflag = IPC_GET_ARG2(*request);
 	int mode = IPC_GET_ARG3(*request);
 	size_t len;
-
+	
 	/*
 	 * Make sure that we are called with exactly one of L_FILE and
-	 * L_DIRECTORY.
+	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN.
 	 */
-	if ((lflag & (L_FILE | L_DIRECTORY)) == 0 ||
-	    (lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) {
+	if (((lflag & (L_FILE | L_DIRECTORY)) == 0)
+	    || ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY))
+	    || ((lflag & L_OPEN) != 0)) {
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	if (oflag & O_CREAT)
 		lflag |= L_CREATE;
 	if (oflag & O_EXCL)
 		lflag |= L_EXCLUSIVE;
-
+	
 	ipc_callid_t callid;
-
 	if (!ipc_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
+	
 	char *path = malloc(len + 1);
 	if (!path) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
+	
 	int rc;
 	if ((rc = ipc_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
@@ -549,11 +551,11 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		rwlock_write_lock(&namespace_rwlock);
 	else
 		rwlock_read_lock(&namespace_rwlock);
-
+	
 	/* The path is now populated and we can call vfs_lookup_internal(). */
 	vfs_lookup_res_t lr;
-	rc = vfs_lookup_internal(path, lflag, &lr, NULL);
-	if (rc) {
+	rc = vfs_lookup_internal(path, lflag | L_OPEN, &lr, NULL);
+	if (rc != EOK) {
 		if (lflag & L_CREATE)
 			rwlock_write_unlock(&namespace_rwlock);
 		else
@@ -562,16 +564,16 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		free(path);
 		return;
 	}
-
+	
 	/* Path is no longer needed. */
 	free(path);
-
+	
 	vfs_node_t *node = vfs_node_get(&lr);
 	if (lflag & L_CREATE)
 		rwlock_write_unlock(&namespace_rwlock);
 	else
 		rwlock_read_unlock(&namespace_rwlock);
-
+	
 	/* Truncate the file if requested and if necessary. */
 	if (oflag & O_TRUNC) {
 		rwlock_write_lock(&node->contents_rwlock);
@@ -588,7 +590,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		}
 		rwlock_write_unlock(&node->contents_rwlock);
 	}
-
+	
 	/*
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
 	 * structure.
@@ -601,9 +603,9 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 	vfs_file_t *file = vfs_file_get(fd);
 	file->node = node;
-	if (oflag & O_APPEND) 
+	if (oflag & O_APPEND)
 		file->append = true;
-
+	
 	/*
 	 * The following increase in reference count is for the fact that the
 	 * file is being opened and that a file structure is pointing to it.
@@ -613,16 +615,209 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
-
+	
 	/* Success! Return the new file descriptor to the client. */
 	ipc_answer_1(rid, EOK, fd);
+}
+
+void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
+{
+	// FIXME: check for sanity of the supplied fs, dev and index
+	
+	if (!vfs_files_init()) {
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	/*
+	 * The interface is open_node(fs, dev, index, oflag).
+	 */
+	vfs_lookup_res_t lr;
+	
+	lr.triplet.fs_handle = IPC_GET_ARG1(*request);
+	lr.triplet.dev_handle = IPC_GET_ARG2(*request);
+	lr.triplet.index = IPC_GET_ARG3(*request);
+	int oflag = IPC_GET_ARG4(*request);
+	
+	rwlock_read_lock(&namespace_rwlock);
+	
+	int rc = vfs_open_node_internal(&lr);
+	if (rc != EOK) {
+		rwlock_read_unlock(&namespace_rwlock);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	
+	vfs_node_t *node = vfs_node_get(&lr);
+	rwlock_read_unlock(&namespace_rwlock);
+	
+	/* Truncate the file if requested and if necessary. */
+	if (oflag & O_TRUNC) {
+		rwlock_write_lock(&node->contents_rwlock);
+		if (node->size) {
+			rc = vfs_truncate_internal(node->fs_handle,
+			    node->dev_handle, node->index, 0);
+			if (rc) {
+				rwlock_write_unlock(&node->contents_rwlock);
+				vfs_node_put(node);
+				ipc_answer_0(rid, rc);
+				return;
+			}
+			node->size = 0;
+		}
+		rwlock_write_unlock(&node->contents_rwlock);
+	}
+	
+	/*
+	 * Get ourselves a file descriptor and the corresponding vfs_file_t
+	 * structure.
+	 */
+	int fd = vfs_fd_alloc();
+	if (fd < 0) {
+		vfs_node_put(node);
+		ipc_answer_0(rid, fd);
+		return;
+	}
+	vfs_file_t *file = vfs_file_get(fd);
+	file->node = node;
+	if (oflag & O_APPEND)
+		file->append = true;
+	
+	/*
+	 * The following increase in reference count is for the fact that the
+	 * file is being opened and that a file structure is pointing to it.
+	 * It is necessary so that the file will not disappear when
+	 * vfs_node_put() is called. The reference will be dropped by the
+	 * respective VFS_CLOSE.
+	 */
+	vfs_node_addref(node);
+	vfs_node_put(node);
+	
+	/* Success! Return the new file descriptor to the client. */
+	ipc_answer_1(rid, EOK, fd);
+}
+
+void vfs_node(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	ipc_answer_3(rid, EOK, file->node->fs_handle,
+	    file->node->dev_handle, file->node->index);
+}
+
+void vfs_device(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	futex_down(&file->lock);
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	
+	/* Make a VFS_DEVICE request at the destination FS server. */
+	aid_t msg;
+	ipc_call_t answer;
+	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
+	    file->node->dev_handle, file->node->index, &answer);
+	
+	/* Wait for reply from the FS server. */
+	ipcarg_t rc;
+	async_wait_for(msg, &rc);
+	
+	vfs_release_phone(fs_phone);
+	futex_up(&file->lock);
+	
+	ipc_answer_1(rid, EOK, IPC_GET_ARG1(answer));
+}
+
+void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	futex_down(&file->lock);
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	
+	/* Make a VFS_SYMC request at the destination FS server. */
+	aid_t msg;
+	ipc_call_t answer;
+	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
+	    file->node->dev_handle, file->node->index, &answer);
+	
+	/* Wait for reply from the FS server. */
+	ipcarg_t rc;
+	async_wait_for(msg, &rc);
+	
+	vfs_release_phone(fs_phone);
+	futex_up(&file->lock);
+	
+	ipc_answer_0(rid, rc);
 }
 
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	int rc = vfs_fd_free(fd);
-	ipc_answer_0(rid, rc);
+	
+	/* Lookup the file structure corresponding to the file descriptor. */
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	futex_down(&file->lock);
+	
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	
+	/* Make a VFS_CLOSE request at the destination FS server. */
+	aid_t msg;
+	ipc_call_t answer;
+	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
+	    file->node->dev_handle, file->node->index, &answer);
+	
+	/* Wait for reply from the FS server. */
+	ipcarg_t rc;
+	async_wait_for(msg, &rc);
+	
+	vfs_release_phone(fs_phone);
+	futex_up(&file->lock);
+	
+	int retval = IPC_GET_ARG1(answer);
+	if (retval != EOK)
+		ipc_answer_0(rid, retval);
+	
+	retval = vfs_fd_free(fd);
+	ipc_answer_0(rid, retval);
 }
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
@@ -705,11 +900,12 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 */
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
-	vfs_release_phone(fs_phone);
-	
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
+	
+	vfs_release_phone(fs_phone);
+	
 	size_t bytes = IPC_GET_ARG1(answer);
 
 	if (file->node->type == VFS_NODE_DIRECTORY)
@@ -1116,4 +1312,4 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 
 /**
  * @}
- */ 
+ */

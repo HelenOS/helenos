@@ -94,6 +94,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OPEN:
 			vfs_open(callid, &call);
 			break;
+		case VFS_OPEN_NODE:
+			vfs_open_node(callid, &call);
+			break;
 		case VFS_CLOSE:
 			vfs_close(callid, &call);
 			break;
@@ -117,6 +120,15 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_RENAME:
 			vfs_rename(callid, &call);
+			break;
+		case VFS_DEVICE:
+			vfs_device(callid, &call);
+			break;
+		case VFS_SYNC:
+			vfs_sync(callid, &call);
+			break;
+		case VFS_NODE:
+			vfs_node(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);
@@ -164,6 +176,7 @@ int main(int argc, char **argv)
 	/*
 	 * Set a connectio handling function/fibril.
 	 */
+	async_set_pending(vfs_process_pending_mount);
 	async_set_client_connection(vfs_connection);
 	
 	/*

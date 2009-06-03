@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef VFS_VFS_H_
 #define VFS_VFS_H_
@@ -40,56 +40,12 @@
 #include <sys/types.h>
 #include <devmap.h>
 #include <bool.h>
+#include <ipc/vfs.h>
 
 // FIXME: according to CONFIG_DEBUG
-// #define dprintf(...)	printf(__VA_ARGS__)
+// #define dprintf(...)  printf(__VA_ARGS__)
 
 #define dprintf(...)
-
-#define VFS_FIRST	IPC_FIRST_USER_METHOD
-
-/* Basic types. */
-typedef int16_t fs_handle_t;
-typedef uint32_t fs_index_t;
-
-typedef enum {
-	VFS_READ = VFS_FIRST,
-	VFS_WRITE,
-	VFS_TRUNCATE,
-	VFS_MOUNT,
-	VFS_UNMOUNT,
-	VFS_LAST_CMN,	/* keep this the last member of this enum */
-} vfs_request_cmn_t;
-
-typedef enum {
-	VFS_LOOKUP = VFS_LAST_CMN,
-	VFS_MOUNTED,
-	VFS_DESTROY,
-	VFS_LAST_CLNT,	/* keep this the last member of this enum */
-} vfs_request_clnt_t;
-
-typedef enum {
-	VFS_REGISTER = VFS_LAST_CMN,
-	VFS_OPEN,
-	VFS_CLOSE,
-	VFS_SEEK,
-	VFS_MKDIR,
-	VFS_UNLINK,
-	VFS_RENAME,
-	VFS_LAST_SRV,	/* keep this the last member of this enum */
-} vfs_request_srv_t;
-
-#define FS_NAME_MAXLEN	20
-
-/**
- * A structure like this is passed to VFS by each individual FS upon its
- * registration. It assosiates a human-readable identifier with each
- * registered FS.
- */
-typedef struct {
-	/** Unique identifier of the fs. */
-	char name[FS_NAME_MAXLEN + 1];
-} vfs_info_t;
 
 /**
  * A structure like this will be allocated for each registered file system.
@@ -105,8 +61,8 @@ typedef struct {
 /**
  * VFS_PAIR uniquely represents a file system instance.
  */
-#define VFS_PAIR		\
-	fs_handle_t fs_handle;	\
+#define VFS_PAIR \
+	fs_handle_t fs_handle; \
 	dev_handle_t dev_handle;
 
 /**
@@ -116,8 +72,8 @@ typedef struct {
  * @note	fs_handle, dev_handle and index are meant to be returned in one
  *		IPC reply.
  */
-#define VFS_TRIPLET	\
-	VFS_PAIR;	\
+#define VFS_TRIPLET \
+	VFS_PAIR; \
 	fs_index_t index;
 
 typedef struct {
@@ -127,45 +83,6 @@ typedef struct {
 typedef struct {
 	VFS_TRIPLET;
 } vfs_triplet_t;
-
-/*
- * Lookup flags.
- */
-/**
- * No lookup flags used.
- */
-#define L_NONE		0
-/**
- * Lookup will succeed only if the object is a regular file.  If L_CREATE is
- * specified, an empty file will be created. This flag is mutually exclusive
- * with L_DIRECTORY.
- */
-#define L_FILE		1
-/**
- * Lookup wil succeed only if the object is a directory. If L_CREATE is
- * specified, an empty directory will be created. This flag is mutually
- * exclusive with L_FILE.
- */
-#define L_DIRECTORY	2
-/**
- * When used with L_CREATE, L_EXCLUSIVE will cause the lookup to fail if the
- * object already exists. L_EXCLUSIVE is implied when L_DIRECTORY is used.
- */
-#define L_EXCLUSIVE	4
-/**
- * L_CREATE is used for creating both regular files and directories.
- */
-#define L_CREATE	8
-/**
- * L_LINK is used for linking to an already existing nodes.
- */
-#define L_LINK		16
-/**
- * L_UNLINK is used to remove leaves from the file system namespace. This flag
- * cannot be passed directly by the client, but will be set by VFS during
- * VFS_UNLINK.
- */
-#define L_UNLINK	32	
 
 typedef enum vfs_node_type {
 	VFS_NODE_UNKNOWN,
@@ -234,10 +151,6 @@ extern link_t fs_head;		/**< List of registered file systems. */
 
 extern vfs_pair_t rootfs;	/**< Root file system. */
 
-#define MAX_PATH_LEN		(64 * 1024)
-
-#define PLB_SIZE		(2 * MAX_PATH_LEN)
-
 /** Each instance of this type describes one path lookup in progress. */
 typedef struct {
 	link_t	plb_link;	/**< Active PLB entries list link. */
@@ -259,8 +172,9 @@ extern void vfs_release_phone(int);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
 
-extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *, vfs_pair_t *,
-    ...);
+extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
+    vfs_pair_t *, ...);
+extern int vfs_open_node_internal(vfs_lookup_res_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
@@ -283,6 +197,10 @@ extern void vfs_process_pending_mount(void);
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
+extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
+extern void vfs_device(ipc_callid_t, ipc_call_t *);
+extern void vfs_sync(ipc_callid_t, ipc_call_t *);
+extern void vfs_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);
 extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);

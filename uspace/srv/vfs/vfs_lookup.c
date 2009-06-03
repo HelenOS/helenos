@@ -28,10 +28,10 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
- * @file	vfs_lookup.c
+ * @file vfs_lookup.c
  * @brief
  */
 
@@ -46,23 +46,24 @@
 #include <libadt/list.h>
 #include <vfs/canonify.h>
 
-#define min(a, b)	((a) < (b) ? (a) : (b))
+#define min(a, b)  ((a) < (b) ? (a) : (b))
 
 futex_t plb_futex = FUTEX_INITIALIZER;
-link_t plb_head;	/**< PLB entry ring buffer. */
+link_t plb_head;  /**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
 /** Perform a path lookup.
  *
- * @param path		Path to be resolved; it must be a NULL-terminated
- *			string.
- * @param lflag		Flags to be used during lookup.
- * @param result	Empty structure where the lookup result will be stored.
- *			Can be NULL.
- * @param altroot	If non-empty, will be used instead of rootfs as the root
- *			of the whole VFS tree.
+ * @param path    Path to be resolved; it must be a NULL-terminated
+ *                string.
+ * @param lflag   Flags to be used during lookup.
+ * @param result  Empty structure where the lookup result will be stored.
+ *                Can be NULL.
+ * @param altroot If non-empty, will be used instead of rootfs as the root
+ *                of the whole VFS tree.
  *
- * @return		EOK on success or an error code from errno.h.
+ * @return EOK on success or an error code from errno.h.
+ *
  */
 int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
     vfs_pair_t *altroot, ...)
@@ -178,7 +179,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	memset(plb, 0, cnt2);
 	futex_up(&plb_futex);
 
-	if ((rc == EOK) && result) {
+	if ((rc == EOK) && (result)) {
 		result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);
 		result->triplet.dev_handle = (dev_handle_t) IPC_GET_ARG2(answer);
 		result->triplet.index = (fs_index_t) IPC_GET_ARG3(answer);
@@ -192,6 +193,41 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 			result->type = VFS_NODE_UNKNOWN;
 	}
 
+	return rc;
+}
+
+/** Perform a node open operation.
+ *
+ * @return EOK on success or an error code from errno.h.
+ *
+ */
+int vfs_open_node_internal(vfs_lookup_res_t *result)
+{
+	int phone = vfs_grab_phone(result->triplet.fs_handle);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, VFS_OPEN_NODE,
+	    (ipcarg_t) result->triplet.dev_handle,
+	    (ipcarg_t) result->triplet.index, &answer);
+	
+	vfs_release_phone(phone);
+	
+	async_serialize_start();
+	ipcarg_t rc;
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	
+	if (rc == EOK) {
+		result->size = (size_t) IPC_GET_ARG1(answer);
+		result->lnkcnt = (unsigned) IPC_GET_ARG2(answer);
+		if (IPC_GET_ARG3(answer) & L_FILE)
+			result->type = VFS_NODE_FILE;
+		else if (IPC_GET_ARG3(answer) & L_DIRECTORY)
+			result->type = VFS_NODE_DIRECTORY;
+		else
+			result->type = VFS_NODE_UNKNOWN;
+	}
+	
 	return rc;
 }
 
