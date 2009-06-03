@@ -35,14 +35,21 @@
 #ifndef LIBC_MACROS_H_
 #define LIBC_MACROS_H_
 
-#define SIZE2KB(size) ((size) >> 10)
-#define SIZE2MB(size) ((size) >> 20)
+#define SIZE2KB(size)  ((size) >> 10)
+#define SIZE2MB(size)  ((size) >> 20)
 
-#define KB2SIZE(kb) ((kb) << 10)
-#define MB2SIZE(mb) ((mb) << 20)
+#define KB2SIZE(kb)  ((kb) << 10)
+#define MB2SIZE(mb)  ((mb) << 20)
 
-#define STRING(arg) STRING_ARG(arg)
-#define STRING_ARG(arg) #arg
+#define STRING(arg)      STRING_ARG(arg)
+#define STRING_ARG(arg)  #arg
+
+#define LOWER32(arg)  ((arg) & 0xffffffff)
+#define UPPER32(arg)  (((arg) >> 32) & 0xffffffff)
+
+#define MERGE_LOUP32(lo, up) \
+	((((uint64_t) (lo)) & 0xffffffff) \
+	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
 
 #endif
 
