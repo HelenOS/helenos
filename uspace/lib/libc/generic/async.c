@@ -178,6 +178,7 @@ __thread connection_t *FIBRIL_connection;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
+static void default_pending(void);
 
 /**
  * Pointer to a fibril function that will be used to handle connections.
@@ -190,10 +191,14 @@ static async_client_conn_t client_connection = default_client_connection;
  */
 static async_client_conn_t interrupt_received = default_interrupt_received;
 
+/**
+ * Pointer to a fibril function that will be used to handle pending
+ * operations.
+ */
+static async_pending_t pending = default_pending;
 
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
-
 
 #define CONN_HASH_TABLE_CHAINS  32
 
@@ -376,6 +381,42 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	return true;
 }
 
+/** Pending fibril.
+ *
+ * After each call the pending operations are executed in a separate
+ * fibril. The function pending() is c.
+ *
+ * @param arg Unused.
+ *
+ * @return Always zero.
+ *
+ */
+static int pending_fibril(void *arg)
+{
+	pending();
+	
+	return 0;
+}
+
+/** Process pending actions.
+ *
+ * A new fibril is created which would process the pending operations.
+ *
+ * @return False if an error occured.
+ *         True if the execution was passed to the pending fibril.
+ *
+ */
+static bool process_pending(void)
+{
+	futex_down(&async_futex);
+	
+	fid_t fid = fibril_create(pending_fibril, NULL);
+	fibril_add_ready(fid);
+	
+	futex_up(&async_futex);
+	return true;
+}
+
 /** Return new incoming message for the current (fibril-local) connection.
  *
  * @param call  Storage where the incoming call data will be stored.
@@ -472,6 +513,15 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
 }
 
+/** Default fibril function that gets called to handle pending operations.
+ *
+ * This function is defined as a weak symbol - to be redefined in user code.
+ *
+ */
+static void default_pending(void)
+{
+}
+
 /** Wrapper for client connection fibril.
  *
  * When a new connection arrives, a fibril with this implementing function is
@@ -563,7 +613,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	}
 	
 	/* Add connection to the connection hash table */
-	ipcarg_t key = conn->in_phone_hash;
+	unsigned long key = conn->in_phone_hash;
 	
 	futex_down(&async_futex);
 	hash_table_insert(&conn_hash_table, &key, &conn->link);
@@ -588,7 +638,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	/* Unrouted call - do some default behaviour */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		process_notification(callid, call);
-		return;
+		goto out;
 	}
 	
 	switch (IPC_GET_METHOD(*call)) {
@@ -597,15 +647,19 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		/* Open new connection with fibril etc. */
 		async_new_connection(IPC_GET_ARG5(*call), callid, call,
 		    client_connection);
-		return;
+		goto out;
 	}
 	
 	/* Try to route the call through the connection hash table */
 	if (route_call(callid, call))
-		return;
+		goto out;
 	
 	/* Unknown call from unknown phone - hang it up */
 	ipc_answer_0(callid, EHANGUP);
+	return;
+	
+out:
+	process_pending();
 }
 
 /** Fire all timeouts that expired. */
@@ -759,13 +813,13 @@ int _async_init(void)
  */
 static void reply_received(void *arg, int retval, ipc_call_t *data)
 {
+	futex_down(&async_futex);
+	
 	amsg_t *msg = (amsg_t *) arg;
 	msg->retval = retval;
 	
-	futex_down(&async_futex);
-	
 	/* Copy data after futex_down, just in case the call was detached */
-	if (msg->dataptr)
+	if ((msg->dataptr) && (data))
 		*msg->dataptr = *data;
 	
 	write_barrier();
@@ -992,6 +1046,16 @@ void async_set_client_connection(async_client_conn_t conn)
 void async_set_interrupt_received(async_client_conn_t intr)
 {
 	interrupt_received = intr;
+}
+
+/** Setter for pending function pointer.
+ *
+ * @param pend Function that will implement a new pending
+ *             operations fibril.
+ */
+void async_set_pending(async_pending_t pend)
+{
+	pending = pend;
 }
 
 /** Pseudo-synchronous message sending - fast version.
