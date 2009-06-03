@@ -56,7 +56,7 @@
  * the base address of the stack.
  */
 typedef struct {
-	count_t preemption_disabled;	/**< Preemption disabled counter. */
+	size_t preemption_disabled;	/**< Preemption disabled counter. */
 	thread_t *thread;		/**< Current thread. */
 	task_t *task;			/**< Current task. */
 	cpu_t *cpu;			/**< Executing cpu. */

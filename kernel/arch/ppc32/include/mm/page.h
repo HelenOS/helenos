@@ -102,21 +102,21 @@
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
-	get_pt_flags((pte_t *) (ptl0), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
 	PAGE_PRESENT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
 	PAGE_PRESENT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
-	get_pt_flags((pte_t *) (ptl3), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
 
 /* Set PTE flags accessors for each level. */
 #define SET_PTL1_FLAGS_ARCH(ptl0, i, x)	\
-	set_pt_flags((pte_t *) (ptl0), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl0), (size_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
-	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl3), (size_t) (i), (x))
 
 /* Macros for querying the last-level PTEs. */
 #define PTE_VALID_ARCH(pte)			(*((uint32_t *) (pte)) != 0)
@@ -130,7 +130,7 @@
 #include <mm/mm.h>
 #include <arch/interrupt.h>
 
-static inline int get_pt_flags(pte_t *pt, index_t i)
+static inline int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -143,7 +143,7 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 	    (p->global << PAGE_GLOBAL_SHIFT));
 }
 
-static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
+static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	

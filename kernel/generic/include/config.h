@@ -50,7 +50,7 @@ typedef struct {
 } init_task_t;
 
 typedef struct {
-	count_t cnt;
+	size_t cnt;
 	init_task_t tasks[CONFIG_INIT_TASKS];
 } init_t;
 
@@ -65,8 +65,8 @@ typedef struct {
 } ballocs_t;
 
 typedef struct {
-	count_t cpu_count;            /**< Number of processors detected. */
-	volatile count_t cpu_active;  /**< Number of processors that are up and running. */
+	size_t cpu_count;            /**< Number of processors detected. */
+	volatile size_t cpu_active;  /**< Number of processors that are up and running. */
 	
 	uintptr_t base;
 	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */

@@ -42,7 +42,7 @@
 
 #include <typedefs.h>
 
-extern count_t cpu_count;
+extern size_t cpu_count;
 
 typedef struct {
 	uintptr_t addr;

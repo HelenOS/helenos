@@ -195,7 +195,7 @@ void anon_share(as_area_t *area)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
-			count_t count = (count_t) node->value[i];
+			size_t count = (size_t) node->value[i];
 			unsigned int j;
 			
 			for (j = 0; j < count; j++) {

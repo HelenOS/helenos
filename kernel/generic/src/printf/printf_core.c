@@ -174,7 +174,7 @@ static int printf_putwchar(const wchar_t ch, printf_spec_t *ps)
  */
 static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *ps)
 {
-	count_t counter = 0;
+	size_t counter = 0;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (--width > 0) {
 			/*
@@ -212,7 +212,7 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
  */
 static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_t *ps)
 {
-	count_t counter = 0;
+	size_t counter = 0;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (--width > 0) {
 			/*
@@ -255,12 +255,12 @@ static int print_str(char *str, int width, unsigned int precision,
 		return printf_putstr(nullstr, ps);
 
 	/* Print leading spaces. */
-	count_t strw = str_length(str);
+	size_t strw = str_length(str);
 	if (precision == 0)
 		precision = strw;
 
 	/* Left padding */
-	count_t counter = 0;
+	size_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) {
@@ -311,7 +311,7 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 		precision = strw;
 	
 	/* Left padding */
-	count_t counter = 0;
+	size_t counter = 0;
 	width -= precision;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) {
@@ -433,7 +433,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	}
 	
 	width -= precision + size - number_size;
-	count_t counter = 0;
+	size_t counter = 0;
 	
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) {
@@ -596,7 +596,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 	size_t nxt = 0;  /* Index of the next character from fmt */
 	size_t j = 0;    /* Index to the first not printed nonformating character */
 	
-	count_t counter = 0;  /* Number of characters printed */
+	size_t counter = 0;   /* Number of characters printed */
 	int retval;           /* Return values from nested functions */
 	
 	while (true) {

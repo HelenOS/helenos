@@ -112,33 +112,33 @@ static inline uintptr_t ka2pa(uintptr_t x)
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
 	(write_cr3((uintptr_t) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
-	set_pt_addr((pte_t *) (ptl0), (index_t) (i), a)
+	set_pt_addr((pte_t *) (ptl0), (size_t) (i), a)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a) \
-	set_pt_addr((pte_t *) (ptl1), (index_t) (i), a)
+	set_pt_addr((pte_t *) (ptl1), (size_t) (i), a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a) \
-	set_pt_addr((pte_t *) (ptl2), (index_t) (i), a)
+	set_pt_addr((pte_t *) (ptl2), (size_t) (i), a)
 #define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
-	set_pt_addr((pte_t *) (ptl3), (index_t) (i), a)
+	set_pt_addr((pte_t *) (ptl3), (size_t) (i), a)
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
-	get_pt_flags((pte_t *) (ptl0), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
-	get_pt_flags((pte_t *) (ptl1), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl1), (size_t) (i))
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
-	get_pt_flags((pte_t *) (ptl2), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl2), (size_t) (i))
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
-	get_pt_flags((pte_t *) (ptl3), (index_t) (i))
+	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
 
 /* Set PTE flags accessors for each level. */
 #define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
-	set_pt_flags((pte_t *) (ptl0), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl0), (size_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x) \
-	set_pt_flags((pte_t *) (ptl1), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl1), (size_t) (i), (x))
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x) \
-	set_pt_flags((pte_t *) (ptl2), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl2), (size_t) (i), (x))
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
-	set_pt_flags((pte_t *) (ptl3), (index_t) (i), (x))
+	set_pt_flags((pte_t *) (ptl3), (size_t) (i), (x))
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(p) \
@@ -176,7 +176,7 @@ static inline uintptr_t ka2pa(uintptr_t x)
  */
 #define PFERR_CODE_ID		(1 << 4)
 
-static inline int get_pt_flags(pte_t *pt, index_t i)
+static inline int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -189,7 +189,7 @@ static inline int get_pt_flags(pte_t *pt, index_t i)
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
-static inline void set_pt_addr(pte_t *pt, index_t i, uintptr_t a)
+static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 
@@ -197,7 +197,7 @@ static inline void set_pt_addr(pte_t *pt, index_t i, uintptr_t a)
 	p->addr_32_51 = a >> 32;
 }
 
-static inline void set_pt_flags(pte_t *pt, index_t i, int flags)
+static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	

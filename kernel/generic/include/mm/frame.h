@@ -80,7 +80,7 @@ typedef uint8_t zone_flags_t;
 #define FRAME_TO_ZONE_FLAGS(frame_flags)  0
 
 typedef struct {
-	count_t refcount;     /**< Tracking of shared frames */
+	size_t refcount;     /**< Tracking of shared frames */
 	uint8_t buddy_order;  /**< Buddy system block order */
 	link_t buddy_link;    /**< Link to the next free block inside
                                one order */
@@ -90,10 +90,10 @@ typedef struct {
 typedef struct {
 	pfn_t base;                    /**< Frame_no of the first frame
                                         in the frames array */
-	count_t count;                 /**< Size of zone */
-	count_t free_count;            /**< Number of free frame_t
+	size_t count;                 /**< Size of zone */
+	size_t free_count;            /**< Number of free frame_t
                                         structures */
-	count_t busy_count;            /**< Number of busy frame_t
+	size_t busy_count;            /**< Number of busy frame_t
                                         structures */
 	zone_flags_t flags;            /**< Type of the zone */
 	
@@ -108,7 +108,7 @@ typedef struct {
  */
 typedef struct {
 	SPINLOCK_DECLARE(lock);
-	count_t count;
+	size_t count;
 	zone_t info[ZONES_MAX];
 } zones_t;
 
@@ -124,14 +124,14 @@ static inline pfn_t ADDR2PFN(uintptr_t addr)
 	return (pfn_t) (addr >> FRAME_WIDTH);
 }
 
-static inline count_t SIZE2FRAMES(size_t size)
+static inline size_t SIZE2FRAMES(size_t size)
 {
 	if (!size)
 		return 0;
-	return (count_t) ((size - 1) >> FRAME_WIDTH) + 1;
+	return (size_t) ((size - 1) >> FRAME_WIDTH) + 1;
 }
 
-static inline size_t FRAMES2SIZE(count_t frames)
+static inline size_t FRAMES2SIZE(size_t frames)
 {
 	return (size_t) (frames << FRAME_WIDTH);
 }
@@ -156,17 +156,17 @@ static inline bool zone_flags_available(zone_flags_t flags)
     frame_alloc_generic(order, flags, NULL)
 
 extern void frame_init(void);
-extern void *frame_alloc_generic(uint8_t, frame_flags_t, count_t *);
+extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
 extern void frame_free(uintptr_t);
 extern void frame_reference_add(pfn_t);
 
-extern count_t find_zone(pfn_t frame, count_t count, count_t hint);
-extern count_t zone_create(pfn_t, count_t, pfn_t, zone_flags_t);
-extern void *frame_get_parent(pfn_t, count_t);
-extern void frame_set_parent(pfn_t, void *, count_t);
-extern void frame_mark_unavailable(pfn_t, count_t);
-extern uintptr_t zone_conf_size(count_t);
-extern bool zone_merge(count_t, count_t);
+extern size_t find_zone(pfn_t frame, size_t count, size_t hint);
+extern size_t zone_create(pfn_t, size_t, pfn_t, zone_flags_t);
+extern void *frame_get_parent(pfn_t, size_t);
+extern void frame_set_parent(pfn_t, void *, size_t);
+extern void frame_mark_unavailable(pfn_t, size_t);
+extern uintptr_t zone_conf_size(size_t);
+extern bool zone_merge(size_t, size_t);
 extern void zone_merge_all(void);
 extern uint64_t zone_total_size(void);
 
@@ -174,7 +174,7 @@ extern uint64_t zone_total_size(void);
  * Console functions
  */
 extern void zone_print_list(void);
-extern void zone_print_one(count_t);
+extern void zone_print_one(size_t);
 
 #endif
 

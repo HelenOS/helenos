@@ -46,7 +46,7 @@ bool ofw_fhc_apply_ranges(ofw_tree_node_t *node, ofw_fhc_reg_t *reg, uintptr_t *
 {
 	ofw_tree_property_t *prop;
 	ofw_fhc_range_t *range;
-	count_t ranges;
+	size_t ranges;
 
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop)
@@ -88,7 +88,7 @@ bool ofw_central_apply_ranges(ofw_tree_node_t *node, ofw_central_reg_t *reg, uin
 	
 	ofw_tree_property_t *prop;
 	ofw_central_range_t *range;
-	count_t ranges;
+	size_t ranges;
 	
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop)

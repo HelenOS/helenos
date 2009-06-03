@@ -82,7 +82,7 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 		 * with the trailing zero => print only a part
 		 * of string
 		 */
-		index_t index = 0;
+		size_t index = 0;
 		
 		while (index < size) {
 			wchar_t uc = str_decode(str, &index, size);
@@ -130,7 +130,7 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
  */
 static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_t *data)
 {
-	index_t index = 0;
+	size_t index = 0;
 	
 	while (index < (size / sizeof(wchar_t))) {
 		size_t left = data->size - data->len;

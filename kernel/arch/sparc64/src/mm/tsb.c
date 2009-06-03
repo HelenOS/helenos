@@ -50,20 +50,21 @@
  *
  * @param as Address space.
  * @param page First page to invalidate in TSB.
- * @param pages Number of pages to invalidate. Value of (count_t) -1 means the
+ * @param pages Number of pages to invalidate. Value of (size_t) -1 means the
  * 	whole TSB.
  */
-void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
+void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 {
-	index_t i0, i;
-	count_t cnt;
+	size_t i0;
+	size_t i;
+	size_t cnt;
 	
 	ASSERT(as->arch.itsb && as->arch.dtsb);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
 	ASSERT(i0 < ITSB_ENTRY_COUNT && i0 < DTSB_ENTRY_COUNT);
 
-	if (pages == (count_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
+	if (pages == (size_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
 		cnt = ITSB_ENTRY_COUNT;
 	else
 		cnt = pages * 2;
@@ -81,11 +82,11 @@ void tsb_invalidate(as_t *as, uintptr_t page, count_t pages)
  * @param t 	Software PTE.
  * @param index	Zero if lower 8K-subpage, one if higher 8K subpage.
  */
-void itsb_pte_copy(pte_t *t, index_t index)
+void itsb_pte_copy(pte_t *t, size_t index)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
-	index_t entry;
+	size_t entry;
 
 	ASSERT(index <= 1);
 	
@@ -127,11 +128,11 @@ void itsb_pte_copy(pte_t *t, index_t index)
  * @param index	Zero if lower 8K-subpage, one if higher 8K-subpage.
  * @param ro	If true, the mapping is copied read-only.
  */
-void dtsb_pte_copy(pte_t *t, index_t index, bool ro)
+void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 {
 	as_t *as;
 	tsb_entry_t *tsb;
-	index_t entry;
+	size_t entry;
 	
 	ASSERT(index <= 1);
 

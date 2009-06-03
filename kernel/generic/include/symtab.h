@@ -48,7 +48,7 @@ extern int symtab_name_lookup(unative_t addr, char **name);
 extern char *symtab_fmt_name_lookup(unative_t addr);
 extern int symtab_addr_lookup(const char *name, uintptr_t *addr);
 extern void symtab_print_search(const char *name);
-extern int symtab_compl(char *input, count_t size);
+extern int symtab_compl(char *input, size_t size);
 
 #ifdef CONFIG_SYMTAB
 

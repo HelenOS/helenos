@@ -156,8 +156,8 @@ typedef struct {
 	slab_cache_t *cache; 	/**< Pointer to parent cache. */
 	link_t link;       	/**< List of full/partial slabs. */
 	void *start;       	/**< Start address of first available item. */
-	count_t available; 	/**< Count of available items in this slab. */
-	index_t nextavail; 	/**< The index of next available item. */
+	size_t available; 	/**< Count of available items in this slab. */
+	size_t nextavail; 	/**< The index of next available item. */
 } slab_t;
 
 #ifdef CONFIG_DEBUG
@@ -177,7 +177,7 @@ static slab_t *slab_space_alloc(slab_cache_t *cache, int flags)
 	slab_t *slab;
 	size_t fsize;
 	unsigned int i;
-	count_t zone = 0;
+	size_t zone = 0;
 	
 	data = frame_alloc_generic(cache->order, FRAME_KA | flags, &zone);
 	if (!data) {
@@ -215,7 +215,7 @@ static slab_t *slab_space_alloc(slab_cache_t *cache, int flags)
  *
  * @return number of freed frames
  */
-static count_t slab_space_free(slab_cache_t *cache, slab_t *slab)
+static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
 	frame_free(KA2PA(slab->start));
 	if (! (cache->flags & SLAB_CACHE_SLINSIDE))
@@ -243,7 +243,7 @@ static slab_t * obj2slab(void *obj)
  *
  * @return Number of freed pages
  */
-static count_t slab_obj_destroy(slab_cache_t *cache, void *obj, slab_t *slab)
+static size_t slab_obj_destroy(slab_cache_t *cache, void *obj, slab_t *slab)
 {
 	int freed = 0;
 
@@ -371,10 +371,10 @@ static void put_mag_to_cache(slab_cache_t *cache, slab_magazine_t *mag)
  *
  * @return Number of freed pages
  */
-static count_t magazine_destroy(slab_cache_t *cache, slab_magazine_t *mag)
+static size_t magazine_destroy(slab_cache_t *cache, slab_magazine_t *mag)
 {
 	unsigned int i;
-	count_t frames = 0;
+	size_t frames = 0;
 
 	for (i = 0; i < mag->busy; i++) {
 		frames += slab_obj_destroy(cache, mag->objs[i], NULL);
@@ -649,11 +649,11 @@ slab_cache_create(char *name, size_t size, size_t align,
  * @param flags If contains SLAB_RECLAIM_ALL, do aggressive freeing
  * @return Number of freed pages
  */
-static count_t _slab_reclaim(slab_cache_t *cache, int flags)
+static size_t _slab_reclaim(slab_cache_t *cache, int flags)
 {
 	unsigned int i;
 	slab_magazine_t *mag;
-	count_t frames = 0;
+	size_t frames = 0;
 	int magcount;
 	
 	if (cache->flags & SLAB_CACHE_NOMAGAZINE)
@@ -771,11 +771,11 @@ void slab_free(slab_cache_t *cache, void *obj)
 }
 
 /* Go through all caches and reclaim what is possible */
-count_t slab_reclaim(int flags)
+size_t slab_reclaim(int flags)
 {
 	slab_cache_t *cache;
 	link_t *cur;
-	count_t frames = 0;
+	size_t frames = 0;
 
 	spinlock_lock(&slab_cache_lock);
 

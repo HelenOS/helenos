@@ -54,7 +54,7 @@
  * @param map Address of the memory used to hold the map.
  * @param bits Number of bits stored in bitmap.
  */
-void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, count_t bits)
+void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits)
 {
 	bitmap->map = map;
 	bitmap->bits = bits;
@@ -66,13 +66,13 @@ void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, count_t bits)
  * @param start Starting bit.
  * @param bits Number of bits to set.
  */
-void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits)
+void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
-	index_t i=0;
-	index_t aligned_start;
-	count_t lub;		/* leading unaligned bits */
-	count_t amb;		/* aligned middle bits */
-	count_t tab;		/* trailing aligned bits */
+	size_t i = 0;
+	size_t aligned_start;
+	size_t lub;		/* leading unaligned bits */
+	size_t amb;		/* aligned middle bits */
+	size_t tab;		/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
@@ -116,13 +116,13 @@ void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits)
  * @param start Starting bit.
  * @param bits Number of bits to clear.
  */
-void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits)
+void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
-	index_t i=0;
-	index_t aligned_start;
-	count_t lub;		/* leading unaligned bits */
-	count_t amb;		/* aligned middle bits */
-	count_t tab;		/* trailing aligned bits */
+	size_t i = 0;
+	size_t aligned_start;
+	size_t lub;		/* leading unaligned bits */
+	size_t amb;		/* aligned middle bits */
+	size_t tab;		/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
@@ -168,9 +168,9 @@ void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits)
  * @param src Source bitmap.
  * @param bits Number of bits to copy.
  */
-void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits)
+void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t bits)
 {
-	index_t i;
+	size_t i;
 	
 	ASSERT(bits <= dst->bits);
 	ASSERT(bits <= src->bits);

@@ -49,7 +49,7 @@ extern void klog_init(void);
 extern void klog_update(void);
 
 extern wchar_t getc(indev_t *indev);
-extern count_t gets(indev_t *indev, char *buf, size_t buflen);
+extern size_t gets(indev_t *indev, char *buf, size_t buflen);
 extern unative_t sys_klog(int fd, const void *buf, size_t size);
 
 extern void grab_console(void);

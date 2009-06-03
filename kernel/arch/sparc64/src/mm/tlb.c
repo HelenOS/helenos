@@ -54,8 +54,8 @@
 #include <arch/mm/tsb.h>
 #endif
 
-static void dtlb_pte_copy(pte_t *, index_t, bool);
-static void itlb_pte_copy(pte_t *, index_t);
+static void dtlb_pte_copy(pte_t *, size_t, bool);
+static void itlb_pte_copy(pte_t *, size_t);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
 static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
     const char *);
@@ -130,7 +130,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
  * @param ro		If true, the entry will be created read-only, regardless
  * 			of its w field.
  */
-void dtlb_pte_copy(pte_t *t, index_t index, bool ro)
+void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
 {
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
@@ -167,7 +167,7 @@ void dtlb_pte_copy(pte_t *t, index_t index, bool ro)
  * @param t		Page Table Entry to be copied.
  * @param index		Zero if lower 8K-subpage, one if higher 8K-subpage.
  */
-void itlb_pte_copy(pte_t *t, index_t index)
+void itlb_pte_copy(pte_t *t, size_t index)
 {
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
@@ -200,7 +200,7 @@ void itlb_pte_copy(pte_t *t, index_t index)
 void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 {
 	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
-	index_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
+	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
 
 	page_table_lock(AS, true);
@@ -245,7 +245,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 {
 	uintptr_t page_8k;
 	uintptr_t page_16k;
-	index_t index;
+	size_t index;
 	pte_t *t;
 
 	page_8k = (uint64_t) tag.vpn << MMU_PAGE_WIDTH;
@@ -309,7 +309,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 {
 	uintptr_t page_16k;
-	index_t index;
+	size_t index;
 	pte_t *t;
 
 	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
@@ -579,7 +579,7 @@ void tlb_invalidate_asid(asid_t asid)
  * @param page		First page which to sweep out from ITLB and DTLB.
  * @param cnt		Number of ITLB and DTLB entries to invalidate.
  */
-void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	unsigned int i;
 	tlb_context_reg_t pc_save, ctx;

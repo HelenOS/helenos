@@ -89,7 +89,7 @@ int as_destructor_arch(as_t *as)
 	 * The count must be calculated with respect to the emualted 16K page
 	 * size.
 	 */
-	count_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
+	size_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
 	    sizeof(tsb_entry_t)) >> FRAME_WIDTH;
 	frame_free(KA2PA((uintptr_t) as->arch.itsb));
 	return cnt;
@@ -101,7 +101,7 @@ int as_destructor_arch(as_t *as)
 int as_create_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
-	tsb_invalidate(as, 0, (count_t) -1);
+	tsb_invalidate(as, 0, (size_t) -1);
 #endif
 	return 0;
 }

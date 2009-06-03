@@ -43,7 +43,7 @@ bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
 {
 	ofw_tree_property_t *prop;
 	ofw_sbus_range_t *range;
-	count_t ranges;
+	size_t ranges;
 	
 	/*
 	 * The SBUS support is very rudimentary in that we simply assume

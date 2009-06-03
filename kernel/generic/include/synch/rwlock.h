@@ -53,7 +53,7 @@ typedef struct {
 	 */
 	mutex_t exclusive;
 	/** Number of readers in critical section. */
-	count_t readers_in;
+	size_t readers_in;
 } rwlock_t;
 
 #define rwlock_write_lock(rwl) \

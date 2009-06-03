@@ -418,8 +418,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 			    btree_node_t, leaf_link);
 			if ((cond = (bool) node->keys)) {
 				uintptr_t b = node->key[node->keys - 1];
-				count_t c =
-				    (count_t) node->value[node->keys - 1];
+				size_t c =
+				    (size_t) node->value[node->keys - 1];
 				unsigned int i = 0;
 			
 				if (overlaps(b, c * PAGE_SIZE, area->base,
@@ -555,10 +555,10 @@ int as_area_destroy(as_t *as, uintptr_t address)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t b = node->key[i];
-			count_t j;
+			size_t j;
 			pte_t *pte;
 			
-			for (j = 0; j < (count_t) node->value[i]; j++) {
+			for (j = 0; j < (size_t) node->value[i]; j++) {
 				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
@@ -788,8 +788,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	ipl_t ipl;
 	int page_flags;
 	uintptr_t *old_frame;
-	index_t frame_idx;
-	count_t used_pages;
+	size_t frame_idx;
+	size_t used_pages;
 	
 	/* Flags for the new memory mapping */
 	page_flags = area_flags_to_page_flags(flags);
@@ -827,7 +827,7 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
-			used_pages += (count_t) node->value[i];
+			used_pages += (size_t) node->value[i];
 		}
 	}
 
@@ -853,10 +853,10 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t b = node->key[i];
-			count_t j;
+			size_t j;
 			pte_t *pte;
 			
-			for (j = 0; j < (count_t) node->value[i]; j++) {
+			for (j = 0; j < (size_t) node->value[i]; j++) {
 				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
@@ -903,9 +903,9 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		node = list_get_instance(cur, btree_node_t, leaf_link);
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t b = node->key[i];
-			count_t j;
+			size_t j;
 			
-			for (j = 0; j < (count_t) node->value[i]; j++) {
+			for (j = 0; j < (size_t) node->value[i]; j++) {
 				page_table_lock(as, false);
 
 				/* Insert the new mapping */
@@ -1397,16 +1397,16 @@ size_t as_area_get_size(uintptr_t base)
  *
  * @return		Zero on failure and non-zero on success.
  */
-int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
+int used_space_insert(as_area_t *a, uintptr_t page, size_t count)
 {
 	btree_node_t *leaf, *node;
-	count_t pages;
+	size_t pages;
 	unsigned int i;
 
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
 
-	pages = (count_t) btree_search(&a->used_space, page, &leaf);
+	pages = (size_t) btree_search(&a->used_space, page, &leaf);
 	if (pages) {
 		/*
 		 * We hit the beginning of some used space.
@@ -1423,8 +1423,8 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 	if (node) {
 		uintptr_t left_pg = node->key[node->keys - 1];
 		uintptr_t right_pg = leaf->key[0];
-		count_t left_cnt = (count_t) node->value[node->keys - 1];
-		count_t right_cnt = (count_t) leaf->value[0];
+		size_t left_cnt = (size_t) node->value[node->keys - 1];
+		size_t right_cnt = (size_t) leaf->value[0];
 		
 		/*
 		 * Examine the possibility that the interval fits
@@ -1478,7 +1478,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		}
 	} else if (page < leaf->key[0]) {
 		uintptr_t right_pg = leaf->key[0];
-		count_t right_cnt = (count_t) leaf->value[0];
+		size_t right_cnt = (size_t) leaf->value[0];
 	
 		/*
 		 * Investigate the border case in which the left neighbour does
@@ -1513,8 +1513,8 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 	if (node) {
 		uintptr_t left_pg = leaf->key[leaf->keys - 1];
 		uintptr_t right_pg = node->key[0];
-		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1];
-		count_t right_cnt = (count_t) node->value[0];
+		size_t left_cnt = (size_t) leaf->value[leaf->keys - 1];
+		size_t right_cnt = (size_t) node->value[0];
 		
 		/*
 		 * Examine the possibility that the interval fits
@@ -1568,7 +1568,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		}
 	} else if (page >= leaf->key[leaf->keys - 1]) {
 		uintptr_t left_pg = leaf->key[leaf->keys - 1];
-		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1];
+		size_t left_cnt = (size_t) leaf->value[leaf->keys - 1];
 	
 		/*
 		 * Investigate the border case in which the right neighbour
@@ -1606,8 +1606,8 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		if (page < leaf->key[i]) {
 			uintptr_t left_pg = leaf->key[i - 1];
 			uintptr_t right_pg = leaf->key[i];
-			count_t left_cnt = (count_t) leaf->value[i - 1];
-			count_t right_cnt = (count_t) leaf->value[i];
+			size_t left_cnt = (size_t) leaf->value[i - 1];
+			size_t right_cnt = (size_t) leaf->value[i];
 
 			/*
 			 * The interval fits between left_pg and right_pg.
@@ -1665,7 +1665,7 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
 		}
 	}
 
-	panic("Inconsistency detected while adding %" PRIc " pages of used "
+	panic("Inconsistency detected while adding %" PRIs " pages of used "
 	    "space at %p.", count, page);
 }
 
@@ -1679,16 +1679,16 @@ int used_space_insert(as_area_t *a, uintptr_t page, count_t count)
  *
  * @return		Zero on failure and non-zero on success.
  */
-int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
+int used_space_remove(as_area_t *a, uintptr_t page, size_t count)
 {
 	btree_node_t *leaf, *node;
-	count_t pages;
+	size_t pages;
 	unsigned int i;
 
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
 
-	pages = (count_t) btree_search(&a->used_space, page, &leaf);
+	pages = (size_t) btree_search(&a->used_space, page, &leaf);
 	if (pages) {
 		/*
 		 * We are lucky, page is the beginning of some interval.
@@ -1717,7 +1717,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	node = btree_leaf_node_left_neighbour(&a->used_space, leaf);
 	if (node && page < leaf->key[0]) {
 		uintptr_t left_pg = node->key[node->keys - 1];
-		count_t left_cnt = (count_t) node->value[node->keys - 1];
+		size_t left_cnt = (size_t) node->value[node->keys - 1];
 
 		if (overlaps(left_pg, left_cnt * PAGE_SIZE, page,
 		    count * PAGE_SIZE)) {
@@ -1733,7 +1733,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 				return 1;
 			} else if (page + count * PAGE_SIZE <
 			    left_pg + left_cnt*PAGE_SIZE) {
-				count_t new_cnt;
+				size_t new_cnt;
 				
 				/*
 				 * The interval is contained in the rightmost
@@ -1757,7 +1757,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	
 	if (page > leaf->key[leaf->keys - 1]) {
 		uintptr_t left_pg = leaf->key[leaf->keys - 1];
-		count_t left_cnt = (count_t) leaf->value[leaf->keys - 1];
+		size_t left_cnt = (size_t) leaf->value[leaf->keys - 1];
 
 		if (overlaps(left_pg, left_cnt * PAGE_SIZE, page,
 		    count * PAGE_SIZE)) {
@@ -1772,7 +1772,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 				return 1;
 			} else if (page + count * PAGE_SIZE < left_pg +
 			    left_cnt * PAGE_SIZE) {
-				count_t new_cnt;
+				size_t new_cnt;
 				
 				/*
 				 * The interval is contained in the rightmost
@@ -1799,7 +1799,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	for (i = 1; i < leaf->keys - 1; i++) {
 		if (page < leaf->key[i]) {
 			uintptr_t left_pg = leaf->key[i - 1];
-			count_t left_cnt = (count_t) leaf->value[i - 1];
+			size_t left_cnt = (size_t) leaf->value[i - 1];
 
 			/*
 			 * Now the interval is between intervals corresponding
@@ -1819,7 +1819,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 					return 1;
 				} else if (page + count * PAGE_SIZE <
 				    left_pg + left_cnt * PAGE_SIZE) {
-					count_t new_cnt;
+					size_t new_cnt;
 				
 					/*
 					 * The interval is contained in the
@@ -1844,7 +1844,7 @@ int used_space_remove(as_area_t *a, uintptr_t page, count_t count)
 	}
 
 error:
-	panic("Inconsistency detected while removing %" PRIc " pages of used "
+	panic("Inconsistency detected while removing %" PRIs " pages of used "
 	    "space from %p.", count, page);
 }
 
@@ -1943,7 +1943,7 @@ void as_print(as_t *as)
 			as_area_t *area = node->value[i];
 		
 			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%" PRIc
+			printf("as_area: %p, base=%p, pages=%" PRIs
 			    " (%p - %p)\n", area, area->base, area->pages,
 			    area->base, area->base + FRAMES2SIZE(area->pages));
 			mutex_unlock(&area->lock);

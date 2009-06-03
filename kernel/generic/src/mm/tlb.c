@@ -79,7 +79,7 @@ void tlb_init(void)
  * @param count Number of pages, if required by type.
  */
 void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
-    uintptr_t page, count_t count)
+    uintptr_t page, size_t count)
 {
 	unsigned int i;
 
@@ -108,7 +108,7 @@ void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 			/*
 			 * Enqueue the message.
 			 */
-			index_t idx = cpu->tlb_messages_count++;
+			size_t idx = cpu->tlb_messages_count++;
 			cpu->tlb_messages[idx].type = type;
 			cpu->tlb_messages[idx].asid = asid;
 			cpu->tlb_messages[idx].page = page;
@@ -143,7 +143,7 @@ void tlb_shootdown_ipi_recv(void)
 	tlb_invalidate_type_t type;
 	asid_t asid;
 	uintptr_t page;
-	count_t count;
+	size_t count;
 	unsigned int i;
 	
 	ASSERT(CPU);

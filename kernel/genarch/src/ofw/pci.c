@@ -54,7 +54,7 @@ ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 {
 	ofw_tree_property_t *prop;
 	ofw_pci_range_t *range;
-	count_t ranges;
+	size_t ranges;
 
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop) {
@@ -97,7 +97,7 @@ ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg,
 	
 	ofw_tree_property_t *prop;
 	ofw_pci_reg_t *assigned_address;
-	count_t assigned_addresses;
+	size_t assigned_addresses;
 	
 	prop = ofw_tree_getprop(node, "assigned-addresses");
 	if (!prop)

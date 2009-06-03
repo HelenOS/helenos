@@ -247,7 +247,8 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 {
 	char buf[NAME_BUF_LEN + 1];
 	ofw_tree_node_t *node = ofw_root;
-	index_t i, j;
+	size_t i;
+	size_t j;
 	
 	if (path[0] != '/')
 		return NULL;

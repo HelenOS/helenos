@@ -64,7 +64,7 @@ typedef struct {
 	int stepping;
 	tss_t *tss;
 	
-	count_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
+	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
 } cpu_arch_t;
 
 struct star_msr {

@@ -77,7 +77,7 @@ typedef struct {
 	/** Function implementing the command. */
 	int (* func)(cmd_arg_t *);
 	/** Number of arguments. */
-	count_t argc;
+	size_t argc;
 	/** Argument vector. */
 	cmd_arg_t *argv;
 	/** Function for printing detailed help. */

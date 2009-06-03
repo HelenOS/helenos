@@ -57,7 +57,7 @@ void physmem_print(void)
 void frame_arch_init(void)
 {
 	pfn_t minconf = 2;
-	count_t i;
+	size_t i;
 	pfn_t start, conf;
 	size_t size;
 	

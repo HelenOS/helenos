@@ -160,9 +160,9 @@ static inline void itsb_nucleus_extension_write(uint64_t v)
 struct as;
 struct pte;
 
-extern void tsb_invalidate(struct as *as, uintptr_t page, count_t pages);
-extern void itsb_pte_copy(struct pte *t, index_t index);
-extern void dtsb_pte_copy(struct pte *t, index_t index, bool ro);
+extern void tsb_invalidate(struct as *as, uintptr_t page, size_t pages);
+extern void itsb_pte_copy(struct pte *t, size_t index);
+extern void dtsb_pte_copy(struct pte *t, size_t index, bool ro);
 
 #endif /* !def __ASM__ */
 

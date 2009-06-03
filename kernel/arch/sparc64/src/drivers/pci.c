@@ -91,7 +91,7 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 		return NULL;
 
 	ofw_upa_reg_t *reg = prop->value;
-	count_t regs = prop->size / sizeof(ofw_upa_reg_t);
+	size_t regs = prop->size / sizeof(ofw_upa_reg_t);
 
 	if (regs < SABRE_INTERNAL_REG + 1)
 		return NULL;
@@ -138,7 +138,7 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 		return NULL;
 
 	ofw_upa_reg_t *reg = prop->value;
-	count_t regs = prop->size / sizeof(ofw_upa_reg_t);
+	size_t regs = prop->size / sizeof(ofw_upa_reg_t);
 
 	if (regs < PSYCHO_INTERNAL_REG + 1)
 		return NULL;

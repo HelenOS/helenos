@@ -47,7 +47,7 @@
 typedef struct {
 	SPINLOCK_DECLARE(lock);
 	link_t rq_head;		/**< List of ready threads. */
-	count_t n;		/**< Number of threads in rq_ready. */
+	size_t n;		/**< Number of threads in rq_ready. */
 } runq_t;
 
 extern atomic_t nrdy;

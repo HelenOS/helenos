@@ -549,7 +549,7 @@ void tlb_invalidate_asid(asid_t asid)
 }
 
 
-void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	// TODO
 	tlb_invalidate_all();

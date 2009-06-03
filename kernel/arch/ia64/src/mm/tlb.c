@@ -100,7 +100,7 @@ void tlb_invalidate_asid(asid_t asid)
 }
 
 
-void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt)
+void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	region_register rr;
 	bool restore_rr = false;
@@ -267,7 +267,7 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
  * @param tr		Translation register.
  */
 void
-itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
+itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, size_t tr)
 {
 	tr_mapping_insert(va, asid, entry, false, tr);
 }
@@ -281,7 +281,7 @@ itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
  * @param tr		Translation register.
  */
 void
-dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
+dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, size_t tr)
 {
 	tr_mapping_insert(va, asid, entry, true, tr);
 }
@@ -298,7 +298,7 @@ dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr)
  */
 void
 tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
-    index_t tr)
+    size_t tr)
 {
 	region_register rr;
 	bool restore_rr = false;
@@ -353,7 +353,7 @@ tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
  */
 void
 dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
-    index_t tr)
+    size_t tr)
 {
 	tlb_entry_t entry;
 	
@@ -382,7 +382,7 @@ dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
  * @param page		Virtual page address including VRN bits.
  * @param width		Width of the purge in bits.
  */
-void dtr_purge(uintptr_t page, count_t width)
+void dtr_purge(uintptr_t page, size_t width)
 {
 	asm volatile ("ptr.d %0, %1\n" : : "r" (page), "r" (width << 2));
 }

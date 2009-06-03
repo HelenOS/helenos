@@ -59,8 +59,8 @@
 static void futex_initialize(futex_t *futex);
 
 static futex_t *futex_find(uintptr_t paddr);
-static index_t futex_ht_hash(unative_t *key);
-static bool futex_ht_compare(unative_t *key, count_t keys, link_t *item);
+static size_t futex_ht_hash(unative_t *key);
+static bool futex_ht_compare(unative_t *key, size_t keys, link_t *item);
 static void futex_ht_remove_callback(link_t *item);
 
 /**
@@ -288,9 +288,9 @@ gain_write_access:
  *
  * @return Index into futex hash table.
  */
-index_t futex_ht_hash(unative_t *key)
+size_t futex_ht_hash(unative_t *key)
 {
-	return *key & (FUTEX_HT_SIZE-1);
+	return (*key & (FUTEX_HT_SIZE - 1));
 }
 
 /** Compare futex hash table item with a key.
@@ -300,7 +300,7 @@ index_t futex_ht_hash(unative_t *key)
  *
  * @return True if the item matches the key. False otherwise.
  */
-bool futex_ht_compare(unative_t *key, count_t keys, link_t *item)
+bool futex_ht_compare(unative_t *key, size_t keys, link_t *item)
 {
 	futex_t *futex;
 

@@ -76,7 +76,7 @@
 /* Stack pointer saved when entering user mode */
 uintptr_t supervisor_sp __attribute__ ((section (".text")));
 
-count_t cpu_count = 0;
+size_t cpu_count = 0;
 
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
@@ -84,7 +84,7 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	/* Setup usermode */
 	init.cnt = bootinfo->cnt;
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
 		init.tasks[i].addr = bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;

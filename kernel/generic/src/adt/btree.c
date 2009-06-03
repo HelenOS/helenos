@@ -63,9 +63,9 @@ static void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key);
 static void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key);
 static btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree, btree_key_t *median);
 static btree_node_t *node_combine(btree_node_t *node);
-static index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
-static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
-static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx);
+static size_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right);
+static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, size_t idx);
+static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, size_t idx);
 static bool try_insert_by_rotation_to_left(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree);
 static bool try_insert_by_rotation_to_right(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree);
 static bool try_rotation_from_left(btree_node_t *rnode);
@@ -137,7 +137,7 @@ void btree_insert(btree_t *t, btree_key_t key, void *value, btree_node_t *leaf_n
  */
 void btree_destroy_subtree(btree_node_t *root)
 {
-	count_t i;
+	size_t i;
 
 	if (root->keys) {
 		for (i = 0; i < root->keys + 1; i++) { 
@@ -269,7 +269,7 @@ void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node)
 	}
 	
 	if (node->keys > FILL_FACTOR) {
-		count_t i;
+		size_t i;
 
 		/*
 		 * The key can be immediatelly removed.
@@ -285,7 +285,7 @@ void _btree_remove(btree_t *t, btree_key_t key, btree_node_t *node)
 		}
 		
 	} else {
-		index_t idx;
+		size_t idx;
 		btree_node_t *rnode, *parent;
 
 		/*
@@ -335,7 +335,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 			continue;
 		} else {
 			void *val;
-			count_t i;
+			size_t i;
 		
 			/*
 			 * Now if the key is smaller than cur->key[i]
@@ -442,11 +442,11 @@ void node_initialize(btree_node_t *node)
  */ 
 void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *lsubtree)
 {
-	count_t i;
+	size_t i;
 
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
-			count_t j;
+			size_t j;
 		
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
@@ -478,11 +478,11 @@ void node_insert_key_and_lsubtree(btree_node_t *node, btree_key_t key, void *val
  */ 
 void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree)
 {
-	count_t i;
+	size_t i;
 
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
-			count_t j;
+			size_t j;
 		
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
@@ -510,7 +510,7 @@ void node_insert_key_and_rsubtree(btree_node_t *node, btree_key_t key, void *val
  */
 void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
 {
-	count_t i, j;
+	size_t i, j;
 	
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
@@ -538,7 +538,7 @@ void node_remove_key_and_lsubtree(btree_node_t *node, btree_key_t key)
  */
 void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 {
-	count_t i, j;
+	size_t i, j;
 	
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
@@ -576,7 +576,7 @@ void node_remove_key_and_rsubtree(btree_node_t *node, btree_key_t key)
 btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree_node_t *rsubtree, btree_key_t *median)
 {
 	btree_node_t *rnode;
-	count_t i, j;
+	size_t i, j;
 
 	ASSERT(median);
 	ASSERT(node->keys == BTREE_MAX_KEYS);
@@ -603,7 +603,7 @@ btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree
 	 * Copy big keys, values and subtree pointers to the new right sibling.
 	 * If this is an index node, do not copy the median.
 	 */
-	i = (count_t) INDEX_NODE(node);
+	i = (size_t) INDEX_NODE(node);
 	for (i += MEDIAN_HIGH_INDEX(node), j = 0; i < node->keys; i++, j++) {
 		rnode->key[j] = node->key[i];
 		rnode->value[j] = node->value[i];
@@ -636,9 +636,9 @@ btree_node_t *node_split(btree_node_t *node, btree_key_t key, void *value, btree
  */
 btree_node_t *node_combine(btree_node_t *node)
 {
-	index_t idx;
+	size_t idx;
 	btree_node_t *rnode;
-	count_t i;
+	size_t i;
 
 	ASSERT(!ROOT_NODE(node));
 	
@@ -685,9 +685,9 @@ btree_node_t *node_combine(btree_node_t *node)
  *
  * @return Index of the key associated with the subtree.
  */ 
-index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right)
+size_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool right)
 {
-	count_t i;
+	size_t i;
 	
 	for (i = 0; i < node->keys + 1; i++) {
 		if (subtree == node->subtree[i])
@@ -706,7 +706,7 @@ index_t find_key_by_subtree(btree_node_t *node, btree_node_t *subtree, bool righ
  * @param rnode Right sibling.
  * @param idx Index of the parent node key that is taking part in the rotation.
  */
-void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
+void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, size_t idx)
 {
 	btree_key_t key;
 
@@ -743,7 +743,7 @@ void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
  * @param rnode Right sibling.
  * @param idx Index of the parent node key that is taking part in the rotation.
  */
-void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
+void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, size_t idx)
 {
 	btree_key_t key;
 
@@ -786,7 +786,7 @@ void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode, index_t idx)
  */
 bool try_insert_by_rotation_to_left(btree_node_t *node, btree_key_t inskey, void *insvalue, btree_node_t *rsubtree)
 {
-	index_t idx;
+	size_t idx;
 	btree_node_t *lnode;
 
 	/*
@@ -833,7 +833,7 @@ bool try_insert_by_rotation_to_left(btree_node_t *node, btree_key_t inskey, void
  */
 bool try_insert_by_rotation_to_right(btree_node_t *node, btree_key_t inskey, void *insvalue, btree_node_t *rsubtree)
 {
-	index_t idx;
+	size_t idx;
 	btree_node_t *rnode;
 
 	/*
@@ -872,7 +872,7 @@ bool try_insert_by_rotation_to_right(btree_node_t *node, btree_key_t inskey, voi
  */
 bool try_rotation_from_left(btree_node_t *rnode)
 {
-	index_t idx;
+	size_t idx;
 	btree_node_t *lnode;
 
 	/*
@@ -907,7 +907,7 @@ bool try_rotation_from_left(btree_node_t *rnode)
  */
 bool try_rotation_from_right(btree_node_t *lnode)
 {
-	index_t idx;
+	size_t idx;
 	btree_node_t *rnode;
 
 	/*
@@ -940,7 +940,7 @@ bool try_rotation_from_right(btree_node_t *lnode)
  */
 void btree_print(btree_t *t)
 {
-	count_t i;
+	size_t i;
 	int depth = t->root->depth;
 	link_t head, *cur;
 

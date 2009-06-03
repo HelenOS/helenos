@@ -148,7 +148,7 @@ char *test_rwlock4(void)
 	thread_t *thrd;
 	
 	context_save(&ctx);
-	TPRINTF("sp=%#x, readers_in=%" PRIc "\n", ctx.sp, rwlock.readers_in);
+	TPRINTF("sp=%#x, readers_in=%" PRIs "\n", ctx.sp, rwlock.readers_in);
 	TPRINTF("Creating %" PRIu32 " readers\n", rd);
 	
 	for (i = 0; i < rd; i++) {

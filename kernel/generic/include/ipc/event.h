@@ -49,7 +49,7 @@ typedef struct {
 	/** Method to be used for the notification. */
 	unative_t method;
 	/** Counter. */
-	count_t counter;
+	size_t counter;
 } event_t;
 
 extern void event_init(void);

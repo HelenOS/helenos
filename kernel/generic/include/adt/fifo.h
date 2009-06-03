@@ -59,9 +59,9 @@
 #define FIFO_INITIALIZE_STATIC(name, t, itms)		\
 	struct {					\
 		t fifo[(itms)];				\
-		count_t items;				\
-		index_t head;				\
-		index_t tail;				\
+		size_t items;				\
+		size_t head;				\
+		size_t tail;				\
 	} name = {					\
 		.items = (itms),			\
 		.head = 0,				\
@@ -80,9 +80,9 @@
 #define FIFO_INITIALIZE_DYNAMIC(name, t, itms)		\
 	struct {					\
 		t *fifo;				\
-		count_t items;				\
-		index_t head;				\
-		index_t tail;				\
+		size_t items;				\
+		size_t head;				\
+		size_t tail;				\
 	} name = {					\
 		.fifo = NULL,				\
 		.items = (itms),			\

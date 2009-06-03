@@ -47,7 +47,7 @@ typedef struct {
 	 *
 	 * @return Index into hash table.
 	 */
-	index_t (* hash)(unative_t key[]);
+	size_t (* hash)(unative_t key[]);
 	
 	/** Hash table item comparison function.
 	 *
@@ -56,7 +56,7 @@ typedef struct {
 	 *
 	 * @return true if the keys match, false otherwise.
 	 */
-	bool (*compare)(unative_t key[], count_t keys, link_t *item);
+	bool (*compare)(unative_t key[], size_t keys, link_t *item);
 
 	/** Hash table item removal callback.
 	 *
@@ -68,19 +68,19 @@ typedef struct {
 /** Hash table structure. */
 typedef struct {
 	link_t *entry;
-	count_t entries;
-	count_t max_keys;
+	size_t entries;
+	size_t max_keys;
 	hash_table_operations_t *op;
 } hash_table_t;
 
 #define hash_table_get_instance(item, type, member) \
 	list_get_instance((item), type, member)
 
-extern void hash_table_create(hash_table_t *h, count_t m, count_t max_keys,
+extern void hash_table_create(hash_table_t *h, size_t m, size_t max_keys,
     hash_table_operations_t *op);
 extern void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item);
 extern link_t *hash_table_find(hash_table_t *h, unative_t key[]);
-extern void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys);
+extern void hash_table_remove(hash_table_t *h, unative_t key[], size_t keys);
 
 #endif
 

@@ -56,7 +56,7 @@
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	count_t bits;
+	size_t bits;
 	
 	bits = ioaddr + size;
 	if (bits > IO_PORTS)
@@ -98,7 +98,7 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 	/*
 	 * Enable the range and we are done.
 	 */
-	bitmap_clear_range(&task->arch.iomap, (index_t) ioaddr, (count_t) size);
+	bitmap_clear_range(&task->arch.iomap, (size_t) ioaddr, (size_t) size);
 	
 	/*
 	 * Increment I/O Permission bitmap generation counter.
@@ -117,11 +117,11 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
  */
 void io_perm_bitmap_install(void)
 {
-	count_t bits;
+	size_t bits;
 	ptr_16_64_t cpugdtr;
 	descriptor_t *gdt_p;
 	tss_descriptor_t *tss_desc;
-	count_t ver;
+	size_t ver;
 	
 	/* First, copy the I/O Permission Bitmap. */
 	spinlock_lock(&TASK->lock);

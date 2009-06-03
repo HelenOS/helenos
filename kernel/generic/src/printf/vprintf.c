@@ -46,7 +46,7 @@ SPINLOCK_INITIALIZE(printf_lock);  /**< vprintf spinlock */
 static int vprintf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
-	count_t chars = 0;
+	size_t chars = 0;
 	
 	while (offset < size) {
 		putchar(str_decode(str, &offset, size));
@@ -59,7 +59,7 @@ static int vprintf_str_write(const char *str, size_t size, void *data)
 static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 {
 	size_t offset = 0;
-	count_t chars = 0;
+	size_t chars = 0;
 	
 	while (offset < size) {
 		putchar(str[chars]);
@@ -73,7 +73,7 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 int puts(const char *str)
 {
 	size_t offset = 0;
-	count_t chars = 0;
+	size_t chars = 0;
 	wchar_t uc;
 	
 	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {

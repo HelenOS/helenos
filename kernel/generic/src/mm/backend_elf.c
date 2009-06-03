@@ -82,7 +82,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	elf_segment_header_t *entry = area->backend_data.segment;
 	btree_node_t *leaf;
 	uintptr_t base, frame, page, start_anon;
-	index_t i;
+	size_t i;
 	bool dirty = false;
 
 	if (!as_area_check_access(area, access))
@@ -234,7 +234,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
 	uintptr_t base, start_anon;
-	index_t i;
+	size_t i;
 
 	ASSERT((page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) &&
 	    (page < entry->p_vaddr + entry->p_memsz));
@@ -304,7 +304,7 @@ void elf_share(as_area_t *area)
 		
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
-			count_t count = (count_t) node->value[i];
+			size_t count = (size_t) node->value[i];
 			unsigned int j;
 			
 			/*

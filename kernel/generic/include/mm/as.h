@@ -94,7 +94,7 @@ typedef struct as {
 	 * Number of processors on wich is this address space active.
 	 * Protected by asidlock.
 	 */
-	count_t cpu_refcount;
+	size_t cpu_refcount;
 	/**
 	 * Address space identifier.
 	 * Constant on architectures that do not support ASIDs.
@@ -132,7 +132,7 @@ typedef struct {
 	/** This lock must be acquired only when the as_area lock is held. */
 	mutex_t lock;		
 	/** This structure can be deallocated if refcount drops to 0. */
-	count_t refcount;
+	size_t refcount;
 	/**
 	 * B+tree containing complete map of anonymous pages of the shared area.
 	 */
@@ -156,7 +156,7 @@ typedef union mem_backend_data {
 	};
 	struct {	/**< phys_backend members */
 		uintptr_t base;
-		count_t frames;
+		size_t frames;
 	};
 } mem_backend_data_t;
 
@@ -175,7 +175,7 @@ typedef struct {
 	/** Attributes related to the address space area itself. */
 	int attributes;
 	/** Size of this area in multiples of PAGE_SIZE. */
-	count_t pages;
+	size_t pages;
 	/** Base address of this area. */
 	uintptr_t base;
 	/** Map of used space. */
@@ -225,8 +225,8 @@ extern int as_area_change_flags(as_t *as, int flags, uintptr_t address);
 extern int as_area_get_flags(as_area_t *area);
 extern bool as_area_check_access(as_area_t *area, pf_access_t access);
 extern size_t as_area_get_size(uintptr_t base);
-extern int used_space_insert(as_area_t *a, uintptr_t page, count_t count);
-extern int used_space_remove(as_area_t *a, uintptr_t page, count_t count);
+extern int used_space_insert(as_area_t *a, uintptr_t page, size_t count);
+extern int used_space_remove(as_area_t *a, uintptr_t page, size_t count);
 
 
 /* Interface to be implemented by architectures. */

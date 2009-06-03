@@ -53,7 +53,7 @@ uintptr_t vhpt_set_up(void)
 void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
 	region_register rr_save, rr;
-	index_t vrn;
+	size_t vrn;
 	rid_t rid;
 	uint64_t tag;
 

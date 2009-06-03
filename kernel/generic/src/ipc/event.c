@@ -64,8 +64,8 @@ void event_init(void)
 	}
 }
 
-static int
-event_subscribe(event_type_t evno, unative_t method, answerbox_t *answerbox)
+static int event_subscribe(event_type_t evno, unative_t method,
+    answerbox_t *answerbox)
 {
 	if (evno >= EVENT_END)
 		return ELIMIT;
@@ -122,8 +122,7 @@ void event_cleanup_answerbox(answerbox_t *answerbox)
 	}
 }
 
-void
-event_notify(event_type_t evno, unative_t a1, unative_t a2, unative_t a3,
+void event_notify(event_type_t evno, unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5)
 {
 	ASSERT(evno < EVENT_END);

@@ -62,7 +62,7 @@ typedef struct {
 	pfn_t count;
 } phys_region_t;
 
-static count_t phys_regions_count = 0;
+static size_t phys_regions_count = 0;
 static phys_region_t phys_regions[MAX_REGIONS];
 
 /** Check whether frame is available
@@ -119,7 +119,7 @@ static bool frame_safe(pfn_t frame)
 	
 	/* Init tasks */
 	bool safe = true;
-	count_t i;
+	size_t i;
 	for (i = 0; i < init.cnt; i++)
 		if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
 		    KA2PA(init.tasks[i].addr), init.tasks[i].size)) {
@@ -174,7 +174,7 @@ void frame_arch_init(void)
 	cp0_entry_lo1_write(0);
 	cp0_entry_hi_write(0);
 
-	count_t i;
+	size_t i;
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbwi();
@@ -251,7 +251,7 @@ void physmem_print(void)
 	printf("Base       Size\n");
 	printf("---------- ----------\n");
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < phys_regions_count; i++) {
 		printf("%#010x %10u\n",
 			PFN2ADDR(phys_regions[i].start), PFN2ADDR(phys_regions[i].count));

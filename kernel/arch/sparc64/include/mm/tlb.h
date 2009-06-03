@@ -322,7 +322,7 @@ static inline void mmu_secondary_context_write(uint64_t v)
  * @return		Current value of specified IMMU TLB Data Access
  * 			Register.
  */
-static inline uint64_t itlb_data_access_read(index_t entry)
+static inline uint64_t itlb_data_access_read(size_t entry)
 {
 	itlb_data_access_addr_t reg;
 	
@@ -336,7 +336,7 @@ static inline uint64_t itlb_data_access_read(index_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-static inline void itlb_data_access_write(index_t entry, uint64_t value)
+static inline void itlb_data_access_write(size_t entry, uint64_t value)
 {
 	itlb_data_access_addr_t reg;
 	
@@ -353,7 +353,7 @@ static inline void itlb_data_access_write(index_t entry, uint64_t value)
  * @return		Current value of specified DMMU TLB Data Access
  * 			Register.
  */
-static inline uint64_t dtlb_data_access_read(index_t entry)
+static inline uint64_t dtlb_data_access_read(size_t entry)
 {
 	dtlb_data_access_addr_t reg;
 	
@@ -367,7 +367,7 @@ static inline uint64_t dtlb_data_access_read(index_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-static inline void dtlb_data_access_write(index_t entry, uint64_t value)
+static inline void dtlb_data_access_write(size_t entry, uint64_t value)
 {
 	dtlb_data_access_addr_t reg;
 	
@@ -383,7 +383,7 @@ static inline void dtlb_data_access_write(index_t entry, uint64_t value)
  *
  * @return		Current value of specified IMMU TLB Tag Read Register.
  */
-static inline uint64_t itlb_tag_read_read(index_t entry)
+static inline uint64_t itlb_tag_read_read(size_t entry)
 {
 	itlb_tag_read_addr_t tag;
 
@@ -398,7 +398,7 @@ static inline uint64_t itlb_tag_read_read(index_t entry)
  *
  * @return		Current value of specified DMMU TLB Tag Read Register.
  */
-static inline uint64_t dtlb_tag_read_read(index_t entry)
+static inline uint64_t dtlb_tag_read_read(size_t entry)
 {
 	dtlb_tag_read_addr_t tag;
 
@@ -418,7 +418,7 @@ static inline uint64_t dtlb_tag_read_read(index_t entry)
  * @return		Current value of specified IMMU TLB Data Access
  * 			Register.
  */
-static inline uint64_t itlb_data_access_read(int tlb, index_t entry)
+static inline uint64_t itlb_data_access_read(int tlb, size_t entry)
 {
 	itlb_data_access_addr_t reg;
 	
@@ -433,7 +433,7 @@ static inline uint64_t itlb_data_access_read(int tlb, index_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-static inline void itlb_data_access_write(int tlb, index_t entry,
+static inline void itlb_data_access_write(int tlb, size_t entry,
 	uint64_t value)
 {
 	itlb_data_access_addr_t reg;
@@ -453,7 +453,7 @@ static inline void itlb_data_access_write(int tlb, index_t entry,
  * @return		Current value of specified DMMU TLB Data Access
  * 			Register.
  */
-static inline uint64_t dtlb_data_access_read(int tlb, index_t entry)
+static inline uint64_t dtlb_data_access_read(int tlb, size_t entry)
 {
 	dtlb_data_access_addr_t reg;
 	
@@ -469,7 +469,7 @@ static inline uint64_t dtlb_data_access_read(int tlb, index_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-static inline void dtlb_data_access_write(int tlb, index_t entry,
+static inline void dtlb_data_access_write(int tlb, size_t entry,
 	uint64_t value)
 {
 	dtlb_data_access_addr_t reg;
@@ -488,7 +488,7 @@ static inline void dtlb_data_access_write(int tlb, index_t entry,
  *
  * @return		Current value of specified IMMU TLB Tag Read Register.
  */
-static inline uint64_t itlb_tag_read_read(int tlb, index_t entry)
+static inline uint64_t itlb_tag_read_read(int tlb, size_t entry)
 {
 	itlb_tag_read_addr_t tag;
 
@@ -505,7 +505,7 @@ static inline uint64_t itlb_tag_read_read(int tlb, index_t entry)
  *
  * @return		Current value of specified DMMU TLB Tag Read Register.
  */
-static inline uint64_t dtlb_tag_read_read(int tlb, index_t entry)
+static inline uint64_t dtlb_tag_read_read(int tlb, size_t entry)
 {
 	dtlb_tag_read_addr_t tag;
 

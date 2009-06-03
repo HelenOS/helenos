@@ -41,18 +41,19 @@
 
 typedef struct {
 	uint8_t *map;
-	count_t bits;
+	size_t bits;
 } bitmap_t;
 
-extern void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, count_t bits);
-extern void bitmap_set_range(bitmap_t *bitmap, index_t start, count_t bits);
-extern void bitmap_clear_range(bitmap_t *bitmap, index_t start, count_t bits);
-extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, count_t bits);
+extern void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits);
+extern void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits);
+extern void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits);
+extern void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t bits);
 
-static inline int bitmap_get(bitmap_t *bitmap,index_t bit)
+static inline int bitmap_get(bitmap_t *bitmap, size_t bit)
 {
 	if(bit >= bitmap->bits)
 		return 0;
+	
 	return !! ((bitmap->map)[bit/8] & (1 << (bit & 7)));
 }
 

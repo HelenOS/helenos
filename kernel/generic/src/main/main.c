@@ -153,7 +153,7 @@ void main_bsp(void)
 	config.stack_base = config.base + config.kernel_size;
 	
 	/* Avoid placing stack on top of init */
-	count_t i;
+	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		if (PA_overlaps(config.stack_base, config.stack_size,
 		    init.tasks[i].addr, init.tasks[i].size))
@@ -233,7 +233,7 @@ void main_bsp_separated_stack(void)
 	/* Slab must be initialized after we know the number of processors. */
 	LOG_EXEC(slab_enable_cpucache());
 	
-	printf("Detected %" PRIc " CPU(s), %" PRIu64" MiB free memory\n",
+	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
 	    config.cpu_count, SIZE2MB(zone_total_size()));
 	
 	LOG_EXEC(cpu_init());
@@ -247,9 +247,9 @@ void main_bsp_separated_stack(void)
 	LOG_EXEC(futex_init());
 	
 	if (init.cnt > 0) {
-		count_t i;
+		size_t i;
 		for (i = 0; i < init.cnt; i++)
-			LOG("init[%" PRIc "].addr=%#" PRIp ", init[%" PRIc
+			LOG("init[%" PRIs "].addr=%#" PRIp ", init[%" PRIs
 			    "].size=%#" PRIs, i, init.tasks[i].addr, i,
 			    init.tasks[i].size);
 	} else

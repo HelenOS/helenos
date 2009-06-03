@@ -61,14 +61,14 @@ typedef struct {
 	tlb_invalidate_type_t type;	/**< Message type. */
 	asid_t asid;			/**< Address space identifier. */
 	uintptr_t page;			/**< Page address. */
-	count_t count;			/**< Number of pages to invalidate. */
+	size_t count;			/**< Number of pages to invalidate. */
 } tlb_shootdown_msg_t;
 
 extern void tlb_init(void);
 
 #ifdef CONFIG_SMP
 extern void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
-    uintptr_t page, count_t count);
+    uintptr_t page, size_t count);
 extern void tlb_shootdown_finalize(void);
 extern void tlb_shootdown_ipi_recv(void);
 #else
@@ -84,7 +84,7 @@ extern void tlb_shootdown_ipi_send(void);
 
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_asid(asid_t asid);
-extern void tlb_invalidate_pages(asid_t asid, uintptr_t page, count_t cnt);
+extern void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt);
 #endif
 
 /** @}

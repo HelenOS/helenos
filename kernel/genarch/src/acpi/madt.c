@@ -62,11 +62,11 @@ static int madt_cmp(void * a, void * b);
 struct madt_l_apic *madt_l_apic_entries = NULL;
 struct madt_io_apic *madt_io_apic_entries = NULL;
 
-index_t madt_l_apic_entry_index = 0;
-index_t madt_io_apic_entry_index = 0;
-count_t madt_l_apic_entry_cnt = 0;
-count_t madt_io_apic_entry_cnt = 0;
-count_t cpu_count = 0;
+size_t madt_l_apic_entry_index = 0;
+size_t madt_io_apic_entry_index = 0;
+size_t madt_l_apic_entry_cnt = 0;
+size_t madt_io_apic_entry_cnt = 0;
+size_t cpu_count = 0;
 
 struct madt_apic_header * * madt_entries_index = NULL;
 unsigned int madt_entries_index_cnt = 0;
@@ -86,10 +86,10 @@ char *entry[] = {
 /*
  * ACPI MADT Implementation of SMP configuration interface.
  */
-static count_t madt_cpu_count(void);
-static bool madt_cpu_enabled(index_t i);
-static bool madt_cpu_bootstrap(index_t i);
-static uint8_t madt_cpu_apic_id(index_t i);
+static size_t madt_cpu_count(void);
+static bool madt_cpu_enabled(size_t i);
+static bool madt_cpu_bootstrap(size_t i);
+static uint8_t madt_cpu_apic_id(size_t i);
 static int madt_irq_to_pin(unsigned int irq);
 
 struct smp_config_operations madt_config_operations = {
@@ -100,25 +100,25 @@ struct smp_config_operations madt_config_operations = {
 	.irq_to_pin = madt_irq_to_pin
 };
 
-count_t madt_cpu_count(void)
+size_t madt_cpu_count(void)
 {
 	return madt_l_apic_entry_cnt;
 }
 
-bool madt_cpu_enabled(index_t i)
+bool madt_cpu_enabled(size_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->flags & 0x1;
 
 }
 
-bool madt_cpu_bootstrap(index_t i)
+bool madt_cpu_bootstrap(size_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id == l_apic_id();
 }
 
-uint8_t madt_cpu_apic_id(index_t i)
+uint8_t madt_cpu_apic_id(size_t i)
 {
 	ASSERT(i < madt_l_apic_entry_cnt);
 	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;

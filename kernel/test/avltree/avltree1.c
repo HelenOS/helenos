@@ -194,14 +194,14 @@ static avltree_node_t *alloc_avltree_node(void)
 	return node;
 }
 
-static void test_tree_insert(avltree_t *tree, count_t node_count)
+static void test_tree_insert(avltree_t *tree, size_t node_count)
 {
 	unsigned int i;
 	avltree_node_t *newnode;
 	
 	avltree_create(tree);
 	
-	TPRINTF("Inserting %" PRIc " nodes...", node_count);
+	TPRINTF("Inserting %" PRIs " nodes...", node_count);
 	
 	for (i = 0; i < node_count; i++) {
 		newnode = alloc_avltree_node();
@@ -214,7 +214,7 @@ static void test_tree_insert(avltree_t *tree, count_t node_count)
 	TPRINTF("done.\n");
 }
 
-static void test_tree_delete(avltree_t *tree, count_t node_count,
+static void test_tree_delete(avltree_t *tree, size_t node_count,
     int node_position)
 {
 	avltree_node_t *delnode;
@@ -245,7 +245,7 @@ static void test_tree_delete(avltree_t *tree, count_t node_count,
 	TPRINTF("done.\n");
 }
 
-static void test_tree_delmin(avltree_t *tree, count_t node_count)
+static void test_tree_delmin(avltree_t *tree, size_t node_count)
 {
 	unsigned int i = 0;
 	

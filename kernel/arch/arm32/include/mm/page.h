@@ -94,21 +94,21 @@
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
-	get_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i))
+	get_pt_level0_flags((pte_level0_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
 	PAGE_PRESENT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
 	PAGE_PRESENT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
-	get_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i))
+	get_pt_level1_flags((pte_level1_t *) (ptl3), (size_t) (i))
 
 /* Set PTE flags accessors for each level. */
 #define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
-	set_pt_level0_flags((pte_level0_t *) (ptl0), (index_t) (i), (x))
+	set_pt_level0_flags((pte_level0_t *) (ptl0), (size_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
-	set_pt_level1_flags((pte_level1_t *) (ptl3), (index_t) (i), (x))
+	set_pt_level1_flags((pte_level1_t *) (ptl3), (size_t) (i), (x))
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
@@ -204,7 +204,7 @@ static inline void set_ptl0_addr(pte_level0_t *pt)
  *  @param pt     Level 0 page table.
  *  @param i      Index of the entry to return.
  */
-static inline int get_pt_level0_flags(pte_level0_t *pt, index_t i)
+static inline int get_pt_level0_flags(pte_level0_t *pt, size_t i)
 {
 	pte_level0_t *p = &pt[i];
 	int np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
@@ -219,7 +219,7 @@ static inline int get_pt_level0_flags(pte_level0_t *pt, index_t i)
  *  @param pt     Level 1 page table.
  *  @param i      Index of the entry to return.
  */
-static inline int get_pt_level1_flags(pte_level1_t *pt, index_t i)
+static inline int get_pt_level1_flags(pte_level1_t *pt, size_t i)
 {
 	pte_level1_t *p = &pt[i];
 
@@ -244,7 +244,7 @@ static inline int get_pt_level1_flags(pte_level1_t *pt, index_t i)
  *  @param i      index of the entry to be changed
  *  @param flags  new flags
  */
-static inline void set_pt_level0_flags(pte_level0_t *pt, index_t i, int flags)
+static inline void set_pt_level0_flags(pte_level0_t *pt, size_t i, int flags)
 {
 	pte_level0_t *p = &pt[i];
 
@@ -272,7 +272,7 @@ static inline void set_pt_level0_flags(pte_level0_t *pt, index_t i, int flags)
  *  @param i      Index of the entry to be changed.
  *  @param flags  New flags.
  */  
-static inline void set_pt_level1_flags(pte_level1_t *pt, index_t i, int flags)
+static inline void set_pt_level1_flags(pte_level1_t *pt, size_t i, int flags)
 {
 	pte_level1_t *p = &pt[i];
 	

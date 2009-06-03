@@ -45,8 +45,8 @@
 
 #define EBUFSIZE	32
 
-void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot);
-void _bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot);
+void _qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot);
+void _bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot);
 
 /** Quicksort wrapper
  *
@@ -61,7 +61,7 @@ void _bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, v
  * @param cmp Comparator function.
  * 
  */
-void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
+void qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b))
 {
 	uint8_t buf_tmp[EBUFSIZE];
 	uint8_t buf_pivot[EBUFSIZE];
@@ -93,7 +93,7 @@ void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * 
  * @param pivot Pointer to scratch memory buffer e_size bytes long.
  * 
  */
-void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot)
+void _qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot)
 {
 	if (n > 4) {
 		unsigned int i = 0, j = n - 1;
@@ -133,7 +133,7 @@ void _qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void *
  * @param cmp Comparator function.
  * 
  */
-void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b))
+void bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b))
 {
 	uint8_t buf_slot[EBUFSIZE];
 	void * slot = buf_slot;
@@ -160,7 +160,7 @@ void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, vo
  * @param slot Pointer to scratch memory buffer e_size bytes long.
  * 
  */
-void _bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot)
+void _bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot)
 {
 	bool done = false;
 	void * p;

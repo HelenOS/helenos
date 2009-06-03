@@ -52,7 +52,7 @@ static void falloc(void *arg)
 {
 	int order, run, allocated, i;
 	uint8_t val = THREAD->tid % THREADS;
-	index_t k;
+	size_t k;
 	
 	void **frames =  (void **) malloc(MAX_FRAMES * sizeof(void *), FRAME_ATOMIC);
 	if (frames == NULL) {
@@ -82,9 +82,9 @@ static void falloc(void *arg)
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): Deallocating ... \n", THREAD->tid, CPU->id);
 			
 			for (i = 0; i < allocated; i++) {
-				for (k = 0; k <= (((index_t) FRAME_SIZE << order) - 1); k++) {
+				for (k = 0; k <= (((size_t) FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
-						TPRINTF("Thread #%" PRIu64 " (cpu%u): Unexpected data (%c) in block %p offset %#" PRIi "\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+						TPRINTF("Thread #%" PRIu64 " (cpu%u): Unexpected data (%c) in block %p offset %#" PRIs "\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}

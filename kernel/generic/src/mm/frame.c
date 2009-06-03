@@ -67,29 +67,29 @@ zones_t zones;
  */
 mutex_t mem_avail_mtx;
 condvar_t mem_avail_cv;
-count_t mem_avail_req = 0;  /**< Number of frames requested. */
-count_t mem_avail_gen = 0;  /**< Generation counter. */
+size_t mem_avail_req = 0;  /**< Number of frames requested. */
+size_t mem_avail_gen = 0;  /**< Generation counter. */
 
 /********************/
 /* Helper functions */
 /********************/
 
-static inline index_t frame_index(zone_t *zone, frame_t *frame)
+static inline size_t frame_index(zone_t *zone, frame_t *frame)
 {
-	return (index_t) (frame - zone->frames);
+	return (size_t) (frame - zone->frames);
 }
 
-static inline index_t frame_index_abs(zone_t *zone, frame_t *frame)
+static inline size_t frame_index_abs(zone_t *zone, frame_t *frame)
 {
-	return (index_t) (frame - zone->frames) + zone->base;
+	return (size_t) (frame - zone->frames) + zone->base;
 }
 
-static inline bool frame_index_valid(zone_t *zone, index_t index)
+static inline bool frame_index_valid(zone_t *zone, size_t index)
 {
 	return (index < zone->count);
 }
 
-static inline index_t make_frame_index(zone_t *zone, frame_t *frame)
+static inline size_t make_frame_index(zone_t *zone, frame_t *frame)
 {
 	return (frame - zone->frames);
 }
@@ -120,27 +120,27 @@ static void frame_initialize(frame_t *frame)
  * @return Zone number on success, -1 on error.
  *
  */
-static count_t zones_insert_zone(pfn_t base, count_t count)
+static size_t zones_insert_zone(pfn_t base, size_t count)
 {
 	if (zones.count + 1 == ZONES_MAX) {
 		printf("Maximum zone count %u exceeded!\n", ZONES_MAX);
-		return (count_t) -1;
+		return (size_t) -1;
 	}
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < zones.count; i++) {
 		/* Check for overlap */
 		if (overlaps(base, count,
 		    zones.info[i].base, zones.info[i].count)) {
 			printf("Zones overlap!\n");
-			return (count_t) -1;
+			return (size_t) -1;
 		}
 		if (base < zones.info[i].base)
 			break;
 	}
 	
 	/* Move other zones up */
-	count_t j;
+	size_t j;
 	for (j = zones.count; j > i; j--) {
 		zones.info[j] = zones.info[j - 1];
 		zones.info[j].buddy_system->data =
@@ -161,10 +161,10 @@ static count_t zones_insert_zone(pfn_t base, count_t count)
  *
  */
 #ifdef CONFIG_DEBUG
-static count_t total_frames_free(void)
+static size_t total_frames_free(void)
 {
-	count_t total = 0;
-	count_t i;
+	size_t total = 0;
+	size_t i;
 	for (i = 0; i < zones.count; i++)
 		total += zones.info[i].free_count;
 	
@@ -184,12 +184,12 @@ static count_t total_frames_free(void)
  * @return Zone index or -1 if not found.
  *
  */
-count_t find_zone(pfn_t frame, count_t count, count_t hint)
+size_t find_zone(pfn_t frame, size_t count, size_t hint)
 {
 	if (hint >= zones.count)
 		hint = 0;
 	
-	count_t i = hint;
+	size_t i = hint;
 	do {
 		if ((zones.info[i].base <= frame)
 		    && (zones.info[i].base + zones.info[i].count >= frame + count))
@@ -200,7 +200,7 @@ count_t find_zone(pfn_t frame, count_t count, count_t hint)
 			i = 0;
 	} while (i != hint);
 	
-	return (count_t) -1;
+	return (size_t) -1;
 }
 
 /** @return True if zone can allocate specified order */
@@ -220,12 +220,12 @@ static bool zone_can_alloc(zone_t *zone, uint8_t order)
  * @param hind  Preferred zone.
  *
  */
-static count_t find_free_zone(uint8_t order, zone_flags_t flags, count_t hint)
+static size_t find_free_zone(uint8_t order, zone_flags_t flags, size_t hint)
 {
 	if (hint >= zones.count)
 		hint = 0;
 	
-	count_t i = hint;
+	size_t i = hint;
 	do {
 		/*
 		 * Check whether the zone meets the search criteria.
@@ -243,7 +243,7 @@ static count_t find_free_zone(uint8_t order, zone_flags_t flags, count_t hint)
 			i = 0;
 	} while (i != hint);
 	
-	return (count_t) -1;
+	return (size_t) -1;
 }
 
 /**************************/
@@ -265,7 +265,7 @@ static link_t *zone_buddy_find_block(buddy_system_t *buddy, link_t *child,
 	frame_t *frame = list_get_instance(child, frame_t, buddy_link);
 	zone_t *zone = (zone_t *) buddy->data;
 	
-	index_t index = frame_index(zone, frame);
+	size_t index = frame_index(zone, frame);
 	do {
 		if (zone->frames[index].buddy_order != order)
 			return &zone->frames[index].buddy_link;
@@ -291,7 +291,7 @@ static link_t *zone_buddy_find_buddy(buddy_system_t *buddy, link_t *block)
 	
 	bool is_left = IS_BUDDY_LEFT_BLOCK_ABS(zone, frame);
 	
-	index_t index;
+	size_t index;
 	if (is_left) {
 		index = (frame_index(zone, frame)) +
 		    (1 << frame->buddy_order);
@@ -446,7 +446,7 @@ static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
  * @param frame_idx Frame index relative to zone.
  *
  */
-static void zone_frame_free(zone_t *zone, index_t frame_idx)
+static void zone_frame_free(zone_t *zone, size_t frame_idx)
 {
 	ASSERT(zone_flags_available(zone->flags));
 	
@@ -467,14 +467,14 @@ static void zone_frame_free(zone_t *zone, index_t frame_idx)
 }
 
 /** Return frame from zone. */
-static frame_t *zone_get_frame(zone_t *zone, index_t frame_idx)
+static frame_t *zone_get_frame(zone_t *zone, size_t frame_idx)
 {
 	ASSERT(frame_idx < zone->count);
 	return &zone->frames[frame_idx];
 }
 
 /** Mark frame in zone unavailable to allocation. */
-static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
+static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 {
 	ASSERT(zone_flags_available(zone->flags));
 	
@@ -503,7 +503,7 @@ static void zone_mark_unavailable(zone_t *zone, index_t frame_idx)
  * @param buddy  Merged zone buddy.
  *
  */
-static void zone_merge_internal(count_t z1, count_t z2, zone_t *old_z1, buddy_system_t *buddy)
+static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1, buddy_system_t *buddy)
 {
 	ASSERT(zone_flags_available(zones.info[z1].flags));
 	ASSERT(zone_flags_available(zones.info[z2].flags));
@@ -529,7 +529,7 @@ static void zone_merge_internal(count_t z1, count_t z2, zone_t *old_z1, buddy_sy
 	    + buddy_conf_size(order));
 	
 	/* This marks all frames busy */
-	count_t i;
+	size_t i;
 	for (i = 0; i < zones.info[z1].count; i++)
 		frame_initialize(&zones.info[z1].frames[i]);
 	
@@ -599,11 +599,11 @@ static void zone_merge_internal(count_t z1, count_t z2, zone_t *old_z1, buddy_sy
  * @param count Old zone frame count.
  *
  */
-static void return_config_frames(count_t znum, pfn_t pfn, count_t count)
+static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 {
 	ASSERT(zone_flags_available(zones.info[znum].flags));
 	
-	count_t cframes = SIZE2FRAMES(zone_conf_size(count));
+	size_t cframes = SIZE2FRAMES(zone_conf_size(count));
 	
 	if ((pfn < zones.info[znum].base)
 	    || (pfn >= zones.info[znum].base + zones.info[znum].count))
@@ -614,7 +614,7 @@ static void return_config_frames(count_t znum, pfn_t pfn, count_t count)
 	frame = &zones.info[znum].frames[pfn - zones.info[znum].base];
 	ASSERT(!frame->buddy_order);
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < cframes; i++) {
 		zones.info[znum].busy_count++;
 		zone_frame_free(&zones.info[znum],
@@ -634,17 +634,17 @@ static void return_config_frames(count_t znum, pfn_t pfn, count_t count)
  * @param count     Allocated frames in block.
  *
  */
-static void zone_reduce_region(count_t znum, pfn_t frame_idx, count_t count)
+static void zone_reduce_region(size_t znum, pfn_t frame_idx, size_t count)
 {
 	ASSERT(zone_flags_available(zones.info[znum].flags));
 	ASSERT(frame_idx + count < zones.info[znum].count);
 	
 	uint8_t order = zones.info[znum].frames[frame_idx].buddy_order;
-	ASSERT((count_t) (1 << order) >= count);
+	ASSERT((size_t) (1 << order) >= count);
 	
 	/* Reduce all blocks to order 0 */
-	count_t i;
-	for (i = 0; i < (count_t) (1 << order); i++) {
+	size_t i;
+	for (i = 0; i < (size_t) (1 << order); i++) {
 		frame_t *frame = &zones.info[znum].frames[i + frame_idx];
 		frame->buddy_order = 0;
 		if (!frame->refcount)
@@ -653,7 +653,7 @@ static void zone_reduce_region(count_t znum, pfn_t frame_idx, count_t count)
 	}
 	
 	/* Free unneeded frames */
-	for (i = count; i < (count_t) (1 << order); i++)
+	for (i = count; i < (size_t) (1 << order); i++)
 		zone_frame_free(&zones.info[znum], i + frame_idx);
 }
 
@@ -670,7 +670,7 @@ static void zone_reduce_region(count_t znum, pfn_t frame_idx, count_t count)
  * The function uses
  *
  */
-bool zone_merge(count_t z1, count_t z2)
+bool zone_merge(size_t z1, size_t z2)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
@@ -733,7 +733,7 @@ bool zone_merge(count_t z1, count_t z2)
 	    zones.info[z2].count);
 	
 	/* Move zones down */
-	count_t i;
+	size_t i;
 	for (i = z2 + 1; i < zones.count; i++) {
 		zones.info[i - 1] = zones.info[i];
 		zones.info[i - 1].buddy_system->data =
@@ -758,7 +758,7 @@ errout:
  */
 void zone_merge_all(void)
 {
-	count_t i = 0;
+	size_t i = 0;
 	while (i < zones.count) {
 		if (!zone_merge(i, i + 1))
 			i++;
@@ -776,7 +776,7 @@ void zone_merge_all(void)
  * @return Initialized zone.
  *
  */
-static void zone_construct(zone_t *zone, buddy_system_t *buddy, pfn_t start, count_t count, zone_flags_t flags)
+static void zone_construct(zone_t *zone, buddy_system_t *buddy, pfn_t start, size_t count, zone_flags_t flags)
 {
 	zone->base = start;
 	zone->count = count;
@@ -799,7 +799,7 @@ static void zone_construct(zone_t *zone, buddy_system_t *buddy, pfn_t start, cou
 		zone->frames = (frame_t *) ((uint8_t *) zone->buddy_system +
 		    buddy_conf_size(order));
 		
-		count_t i;
+		size_t i;
 		for (i = 0; i < count; i++)
 			frame_initialize(&zone->frames[i]);
 		
@@ -819,7 +819,7 @@ static void zone_construct(zone_t *zone, buddy_system_t *buddy, pfn_t start, cou
  * @return Size of zone configuration info (in bytes).
  *
  */
-uintptr_t zone_conf_size(count_t count)
+uintptr_t zone_conf_size(size_t count)
 {
 	return (count * sizeof(frame_t) + buddy_conf_size(fnzb(count)));
 }
@@ -840,7 +840,7 @@ uintptr_t zone_conf_size(count_t count)
  * @return Zone number or -1 on error.
  *
  */
-count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t flags)
+size_t zone_create(pfn_t start, size_t count, pfn_t confframe, zone_flags_t flags)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
@@ -855,7 +855,7 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 		/* If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init
 		 */
-		count_t confcount = SIZE2FRAMES(zone_conf_size(count));
+		size_t confcount = SIZE2FRAMES(zone_conf_size(count));
 		if ((confframe >= start) && (confframe < start + count)) {
 			for (; confframe < start + count; confframe++) {
 				uintptr_t addr = PFN2ADDR(confframe);
@@ -868,7 +868,7 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 					continue;
 				
 				bool overlap = false;
-				count_t i;
+				size_t i;
 				for (i = 0; i < init.cnt; i++)
 					if (overlaps(addr, PFN2ADDR(confcount),
 					    KA2PA(init.tasks[i].addr),
@@ -886,11 +886,11 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 				panic("Cannot find configuration data for zone.");
 		}
 		
-		count_t znum = zones_insert_zone(start, count);
-		if (znum == (count_t) -1) {
+		size_t znum = zones_insert_zone(start, count);
+		if (znum == (size_t) -1) {
 			spinlock_unlock(&zones.lock);
 			interrupts_restore(ipl);
-			return (count_t) -1;
+			return (size_t) -1;
 		}
 		
 		buddy_system_t *buddy = (buddy_system_t *) PA2KA(PFN2ADDR(confframe));
@@ -898,7 +898,7 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 		
 		/* If confdata in zone, mark as unavailable */
 		if ((confframe >= start) && (confframe < start + count)) {
-			count_t i;
+			size_t i;
 			for (i = confframe; i < confframe + confcount; i++)
 				zone_mark_unavailable(&zones.info[znum],
 				    i - zones.info[znum].base);
@@ -911,11 +911,11 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 	}
 	
 	/* Non-available zone */
-	count_t znum = zones_insert_zone(start, count);
-	if (znum == (count_t) -1) {
+	size_t znum = zones_insert_zone(start, count);
+	if (znum == (size_t) -1) {
 		spinlock_unlock(&zones.lock);
 		interrupts_restore(ipl);
-		return (count_t) -1;
+		return (size_t) -1;
 	}
 	zone_construct(&zones.info[znum], NULL, start, count, flags);
 	
@@ -930,14 +930,14 @@ count_t zone_create(pfn_t start, count_t count, pfn_t confframe, zone_flags_t fl
 /*******************/
 
 /** Set parent of frame. */
-void frame_set_parent(pfn_t pfn, void *data, count_t hint)
+void frame_set_parent(pfn_t pfn, void *data, size_t hint)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 	
-	count_t znum = find_zone(pfn, 1, hint);
+	size_t znum = find_zone(pfn, 1, hint);
 	
-	ASSERT(znum != (count_t) -1);
+	ASSERT(znum != (size_t) -1);
 	
 	zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent = data;
@@ -946,14 +946,14 @@ void frame_set_parent(pfn_t pfn, void *data, count_t hint)
 	interrupts_restore(ipl);
 }
 
-void *frame_get_parent(pfn_t pfn, count_t hint)
+void *frame_get_parent(pfn_t pfn, size_t hint)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 	
-	count_t znum = find_zone(pfn, 1, hint);
+	size_t znum = find_zone(pfn, 1, hint);
 	
-	ASSERT(znum != (count_t) -1);
+	ASSERT(znum != (size_t) -1);
 	
 	void *res = zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent;
@@ -973,11 +973,11 @@ void *frame_get_parent(pfn_t pfn, count_t hint)
  * @return Physical address of the allocated frame.
  *
  */
-void *frame_alloc_generic(uint8_t order, frame_flags_t flags, count_t *pzone)
+void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
 {
-	count_t size = ((count_t) 1) << order;
+	size_t size = ((size_t) 1) << order;
 	ipl_t ipl;
-	count_t hint = pzone ? (*pzone) : 0;
+	size_t hint = pzone ? (*pzone) : 0;
 	
 loop:
 	ipl = interrupts_disable();
@@ -986,16 +986,16 @@ loop:
 	/*
 	 * First, find suitable frame zone.
 	 */
-	count_t znum = find_free_zone(order,
+	size_t znum = find_free_zone(order,
 	    FRAME_TO_ZONE_FLAGS(flags), hint);
 	
 	/* If no memory, reclaim some slab memory,
 	   if it does not help, reclaim all */
-	if ((znum == (count_t) -1) && (!(flags & FRAME_NO_RECLAIM))) {
+	if ((znum == (size_t) -1) && (!(flags & FRAME_NO_RECLAIM))) {
 		spinlock_unlock(&zones.lock);
 		interrupts_restore(ipl);
 		
-		count_t freed = slab_reclaim(0);
+		size_t freed = slab_reclaim(0);
 		
 		ipl = interrupts_disable();
 		spinlock_lock(&zones.lock);
@@ -1004,7 +1004,7 @@ loop:
 			znum = find_free_zone(order,
 			    FRAME_TO_ZONE_FLAGS(flags), hint);
 		
-		if (znum == (count_t) -1) {
+		if (znum == (size_t) -1) {
 			spinlock_unlock(&zones.lock);
 			interrupts_restore(ipl);
 			
@@ -1019,7 +1019,7 @@ loop:
 		}
 	}
 	
-	if (znum == (count_t) -1) {
+	if (znum == (size_t) -1) {
 		if (flags & FRAME_ATOMIC) {
 			spinlock_unlock(&zones.lock);
 			interrupts_restore(ipl);
@@ -1027,7 +1027,7 @@ loop:
 		}
 		
 #ifdef CONFIG_DEBUG
-		count_t avail = total_frames_free();
+		size_t avail = total_frames_free();
 #endif
 		
 		spinlock_unlock(&zones.lock);
@@ -1038,8 +1038,8 @@ loop:
 		 */
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " waiting for %" PRIc " frames, "
-		    "%" PRIc " available.\n", THREAD->tid, size, avail);
+		printf("Thread %" PRIu64 " waiting for %" PRIs " frames, "
+		    "%" PRIs " available.\n", THREAD->tid, size, avail);
 #endif
 		
 		mutex_lock(&mem_avail_mtx);
@@ -1048,7 +1048,7 @@ loop:
 			mem_avail_req = min(mem_avail_req, size);
 		else
 			mem_avail_req = size;
-		count_t gen = mem_avail_gen;
+		size_t gen = mem_avail_gen;
 		
 		while (gen == mem_avail_gen)
 			condvar_wait(&mem_avail_cv, &mem_avail_mtx);
@@ -1095,9 +1095,9 @@ void frame_free(uintptr_t frame)
 	 * First, find host frame zone for addr.
 	 */
 	pfn_t pfn = ADDR2PFN(frame);
-	count_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, NULL);
 	
-	ASSERT(znum != (count_t) -1);
+	ASSERT(znum != (size_t) -1);
 	
 	zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
 	
@@ -1134,9 +1134,9 @@ void frame_reference_add(pfn_t pfn)
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	count_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, NULL);
 	
-	ASSERT(znum != (count_t) -1);
+	ASSERT(znum != (size_t) -1);
 	
 	zones.info[znum].frames[pfn - zones.info[znum].base].refcount++;
 	
@@ -1145,15 +1145,15 @@ void frame_reference_add(pfn_t pfn)
 }
 
 /** Mark given range unavailable in frame zones. */
-void frame_mark_unavailable(pfn_t start, count_t count)
+void frame_mark_unavailable(pfn_t start, size_t count)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < count; i++) {
-		count_t znum = find_zone(start + i, 1, 0);
-		if (znum == (count_t) -1)  /* PFN not found */
+		size_t znum = find_zone(start + i, 1, 0);
+		if (znum == (size_t) -1)  /* PFN not found */
 			continue;
 		
 		zone_mark_unavailable(&zones.info[znum],
@@ -1182,7 +1182,7 @@ void frame_init(void)
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)),
 		    SIZE2FRAMES(config.stack_size));
 		
-		count_t i;
+		size_t i;
 		for (i = 0; i < init.cnt; i++) {
 			pfn_t pfn = ADDR2PFN(KA2PA(init.tasks[i].addr));
 			frame_mark_unavailable(pfn,
@@ -1207,7 +1207,7 @@ uint64_t zone_total_size(void)
 	spinlock_lock(&zones.lock);
 	
 	uint64_t total = 0;
-	count_t i;
+	size_t i;
 	for (i = 0; i < zones.count; i++)
 		total += (uint64_t) FRAMES2SIZE(zones.info[i].count);
 	
@@ -1241,7 +1241,7 @@ void zone_print_list(void)
 	 * the listing).
 	 */
 	
-	count_t i;
+	size_t i;
 	for (i = 0;; i++) {
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&zones.lock);
@@ -1253,17 +1253,17 @@ void zone_print_list(void)
 		}
 		
 		uintptr_t base = PFN2ADDR(zones.info[i].base);
-		count_t count = zones.info[i].count;
+		size_t count = zones.info[i].count;
 		zone_flags_t flags = zones.info[i].flags;
-		count_t free_count = zones.info[i].free_count;
-		count_t busy_count = zones.info[i].busy_count;
+		size_t free_count = zones.info[i].free_count;
+		size_t busy_count = zones.info[i].busy_count;
 		
 		spinlock_unlock(&zones.lock);
 		interrupts_restore(ipl);
 		
 		bool available = zone_flags_available(flags);
 		
-		printf("%-2" PRIc, i);
+		printf("%-2" PRIs, i);
 		
 #ifdef __32_BITS__
 		printf("   %10p", base);
@@ -1273,13 +1273,13 @@ void zone_print_list(void)
 		printf("   %18p", base);
 #endif
 		
-		printf(" %12" PRIc " %c%c%c      ", count,
+		printf(" %12" PRIs " %c%c%c      ", count,
 		    available ? 'A' : ' ',
 		    (flags & ZONE_RESERVED) ? 'R' : ' ',
 		    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 		
 		if (available)
-			printf("%12" PRIc " %12" PRIc,
+			printf("%12" PRIs " %12" PRIs,
 			    free_count, busy_count);
 		
 		printf("\n");
@@ -1291,13 +1291,13 @@ void zone_print_list(void)
  * @param num Zone base address or zone number.
  *
  */
-void zone_print_one(count_t num)
+void zone_print_one(size_t num)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
-	count_t znum = (count_t) -1;
+	size_t znum = (size_t) -1;
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < zones.count; i++) {
 		if ((i == num) || (PFN2ADDR(zones.info[i].base) == num)) {
 			znum = i;
@@ -1305,7 +1305,7 @@ void zone_print_one(count_t num)
 		}
 	}
 	
-	if (znum == (count_t) -1) {
+	if (znum == (size_t) -1) {
 		spinlock_unlock(&zones.lock);
 		interrupts_restore(ipl);
 		printf("Zone not found.\n");
@@ -1314,18 +1314,18 @@ void zone_print_one(count_t num)
 	
 	uintptr_t base = PFN2ADDR(zones.info[i].base);
 	zone_flags_t flags = zones.info[i].flags;
-	count_t count = zones.info[i].count;
-	count_t free_count = zones.info[i].free_count;
-	count_t busy_count = zones.info[i].busy_count;
+	size_t count = zones.info[i].count;
+	size_t free_count = zones.info[i].free_count;
+	size_t busy_count = zones.info[i].busy_count;
 	
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
 	
 	bool available = zone_flags_available(flags);
 	
-	printf("Zone number:       %" PRIc "\n", znum);
+	printf("Zone number:       %" PRIs "\n", znum);
 	printf("Zone base address: %p\n", base);
-	printf("Zone size:         %" PRIc " frames (%" PRIs " KiB)\n", count,
+	printf("Zone size:         %" PRIs " frames (%" PRIs " KiB)\n", count,
 	    SIZE2KB(FRAMES2SIZE(count)));
 	printf("Zone flags:        %c%c%c\n",
 	    available ? 'A' : ' ',
@@ -1333,9 +1333,9 @@ void zone_print_one(count_t num)
 	    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 	
 	if (available) {
-		printf("Allocated space:   %" PRIc " frames (%" PRIs " KiB)\n",
+		printf("Allocated space:   %" PRIs " frames (%" PRIs " KiB)\n",
 		    busy_count, SIZE2KB(FRAMES2SIZE(busy_count)));
-		printf("Available space:   %" PRIc " frames (%" PRIs " KiB)\n",
+		printf("Available space:   %" PRIs " frames (%" PRIs " KiB)\n",
 		    free_count, SIZE2KB(FRAMES2SIZE(free_count)));
 	}
 }

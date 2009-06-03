@@ -415,7 +415,7 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 {
 	thread_t *t;
-	count_t count = 0;
+	size_t count = 0;
 
 loop:	
 	if (list_empty(&wq->head)) {

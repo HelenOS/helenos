@@ -86,7 +86,7 @@ SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_head);      /**< Command list. */
 
 static wchar_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
-static count_t history_pos = 0;
+static size_t history_pos = 0;
 
 /** Initialize kconsole data structures
  *
@@ -159,9 +159,9 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-static void print_cc(wchar_t ch, count_t count)
+static void print_cc(wchar_t ch, size_t count)
 {
-	count_t i;
+	size_t i;
 	for (i = 0; i < count; i++)
 		putchar(ch);
 }
@@ -169,7 +169,7 @@ static void print_cc(wchar_t ch, count_t count)
 /** Try to find a command beginning with prefix */
 static const char *cmdtab_search_one(const char *name, link_t **startpos)
 {
-	count_t namelen = str_length(name);
+	size_t namelen = str_length(name);
 	
 	spinlock_lock(&cmd_lock);
 	
@@ -205,7 +205,7 @@ static int cmdtab_compl(char *input, size_t size)
 {
 	const char *name = input;
 	
-	count_t found = 0;
+	size_t found = 0;
 	link_t *pos = NULL;
 	const char *hint;
 	char output[MAX_CMDLINE];
@@ -240,7 +240,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 {
 	printf("%s> ", prompt);
 	
-	count_t position = 0;
+	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
 	
@@ -280,7 +280,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			
 			/* Find the beginning of the word
 			   and copy it to tmp */
-			count_t beg;
+			size_t beg;
 			for (beg = position - 1; (beg > 0) && (!isspace(current[beg]));
 			    beg--);
 			
@@ -313,7 +313,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			/* We have a hint */
 			
 			size_t off = 0;
-			count_t i = 0;
+			size_t i = 0;
 			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
 				if (!wstr_linsert(current, ch, position + i, MAX_CMDLINE))
 					break;
@@ -542,7 +542,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		
 		if (str_lcmp(hlp->name, cmdline + start,
 		    max(str_length(hlp->name),
-		    str_nlength(cmdline + start, (count_t) (end - start) - 1))) == 0) {
+		    str_nlength(cmdline + start, (size_t) (end - start) - 1))) == 0) {
 			cmd = hlp;
 			break;
 		}
@@ -568,7 +568,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 	 */
 	
 	bool error = false;
-	count_t i;
+	size_t i;
 	for (i = 0; i < cmd->argc; i++) {
 		start = end;
 		if (!parse_argument(cmdline, size, &start, &end)) {
@@ -659,7 +659,7 @@ void kconsole(char *prompt, char *msg, bool kcon)
 	
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin);
-		count_t len = wstr_length(tmp);
+		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;
 		

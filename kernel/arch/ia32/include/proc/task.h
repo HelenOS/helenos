@@ -40,7 +40,7 @@
 
 typedef struct {
 	/** I/O Permission bitmap Generation counter. */
-	count_t iomapver;
+	size_t iomapver;
 	/** I/O Permission bitmap. */
 	bitmap_t iomap;
 } task_arch_t;

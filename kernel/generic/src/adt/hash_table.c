@@ -51,9 +51,9 @@
  * @param max_keys Maximal number of keys needed to identify an item.
  * @param op Hash table operations structure.
  */
-void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_operations_t *op)
+void hash_table_create(hash_table_t *h, size_t m, size_t max_keys, hash_table_operations_t *op)
 {
-	index_t i;
+	size_t i;
 
 	ASSERT(h);
 	ASSERT(op);
@@ -83,7 +83,7 @@ void hash_table_create(hash_table_t *h, count_t m, count_t max_keys, hash_table_
  */
 void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
 {
-	index_t chain;
+	size_t chain;
 	
 	ASSERT(item);
 	ASSERT(h);
@@ -107,7 +107,7 @@ void hash_table_insert(hash_table_t *h, unative_t key[], link_t *item)
 link_t *hash_table_find(hash_table_t *h, unative_t key[])
 {
 	link_t *cur;
-	index_t chain;
+	size_t chain;
 	
 	ASSERT(h);
 	ASSERT(h->op);
@@ -137,9 +137,9 @@ link_t *hash_table_find(hash_table_t *h, unative_t key[])
  * @param key Array of keys that will be compared against items of the hash table.
  * @param keys Number of keys in the key array.
  */
-void hash_table_remove(hash_table_t *h, unative_t key[], count_t keys)
+void hash_table_remove(hash_table_t *h, unative_t key[], size_t keys)
 {
-	index_t chain;
+	size_t chain;
 	link_t *cur;
 	
 	ASSERT(h);

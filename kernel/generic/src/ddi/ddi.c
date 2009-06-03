@@ -97,7 +97,7 @@ void ddi_parea_register(parea_t *parea)
  *         creating address space area.
  *
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
+static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 {
 	ASSERT(TASK);
 	ASSERT((pf % FRAME_SIZE) == 0);
@@ -118,9 +118,9 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, count_t pages, int flags)
 	
 	/* Find the zone of the physical memory */
 	spinlock_lock(&zones.lock);
-	count_t znum = find_zone(ADDR2PFN(pf), pages, 0);
+	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
-	if (znum == (count_t) -1) {
+	if (znum == (size_t) -1) {
 		/* Frames not found in any zones
 		 * -> assume it is hardware device and allow mapping
 		 */
@@ -242,7 +242,7 @@ unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
 {
 	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
 	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
-	    (count_t) pages, (int) flags);
+	    (size_t) pages, (int) flags);
 }
 
 /** Wrapper for SYS_ENABLE_IOSPACE syscall.

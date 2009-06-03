@@ -240,7 +240,7 @@ static inline uint64_t ttag(uint64_t va)
  *
  * @return Current contents of rr[i].
  */
-static inline uint64_t rr_read(index_t i)
+static inline uint64_t rr_read(size_t i)
 {
 	uint64_t ret;
 	ASSERT(i < REGION_REGISTERS);
@@ -253,7 +253,7 @@ static inline uint64_t rr_read(index_t i)
  * @param i Region register index.
  * @param v Value to be written to rr[i].
  */
-static inline void rr_write(index_t i, uint64_t v)
+static inline void rr_write(size_t i, uint64_t v)
 {
 	ASSERT(i < REGION_REGISTERS);
 	asm volatile (

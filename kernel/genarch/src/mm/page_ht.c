@@ -51,8 +51,8 @@
 #include <adt/hash_table.h>
 #include <align.h>
 
-static index_t hash(unative_t key[]);
-static bool compare(unative_t key[], count_t keys, link_t *item);
+static size_t hash(unative_t key[]);
+static bool compare(unative_t key[], size_t keys, link_t *item);
 static void remove_callback(link_t *item);
 
 static void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
@@ -93,11 +93,11 @@ page_mapping_operations_t ht_mapping_operations = {
  *
  * @return Index into page hash table.
  */
-index_t hash(unative_t key[])
+size_t hash(unative_t key[])
 {
 	as_t *as = (as_t *) key[KEY_AS];
 	uintptr_t page = (uintptr_t) key[KEY_PAGE];
-	index_t index;
+	size_t index;
 	
 	/*
 	 * Virtual page addresses have roughly the same probability
@@ -124,7 +124,7 @@ index_t hash(unative_t key[])
  *
  * @return true on match, false otherwise.
  */
-bool compare(unative_t key[], count_t keys, link_t *item)
+bool compare(unative_t key[], size_t keys, link_t *item)
 {
 	pte_t *t;
 

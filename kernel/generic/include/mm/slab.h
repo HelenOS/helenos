@@ -72,8 +72,8 @@
 
 typedef struct {
 	link_t link;
-	count_t busy;  /**< Count of full slots in magazine */
-	count_t size;  /**< Number of slots in magazine */
+	size_t busy;  /**< Count of full slots in magazine */
+	size_t size;  /**< Number of slots in magazine */
 	void *objs[];  /**< Slots in magazine */
 } slab_magazine_t;
 
@@ -128,7 +128,7 @@ extern void slab_cache_destroy(slab_cache_t *);
 
 extern void * slab_alloc(slab_cache_t *, int);
 extern void slab_free(slab_cache_t *, void *);
-extern count_t slab_reclaim(int);
+extern size_t slab_reclaim(int);
 
 /* slab subsytem initialization */
 extern void slab_cache_init(void);

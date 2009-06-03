@@ -76,12 +76,12 @@ extern void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool
 extern void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);
 extern void itc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);
 
-extern void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, index_t tr);
-extern void dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr);
-extern void itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, index_t tr);
+extern void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr, size_t tr);
+extern void dtr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, size_t tr);
+extern void itr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, size_t tr);
 
-extern void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, index_t tr);
-extern void dtr_purge(uintptr_t page, count_t width);
+extern void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr, size_t tr);
+extern void dtr_purge(uintptr_t page, size_t width);
 
 extern void dtc_pte_copy(pte_t *t);
 extern void itc_pte_copy(pte_t *t);

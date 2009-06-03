@@ -37,7 +37,7 @@
 #include <debug.h>
 
 extern void tlb_invalidate_all(void);
-extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, count_t cnt);
+extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, size_t cnt);
 
 char *test_purge1(void)
 {

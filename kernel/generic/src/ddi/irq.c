@@ -99,8 +99,8 @@ hash_table_t irq_uspace_hash_table;
  * Hash table operations for cases when we know that
  * there will be collisions between different keys.
  */
-static index_t irq_ht_hash(unative_t *key);
-static bool irq_ht_compare(unative_t *key, count_t keys, link_t *item);
+static size_t irq_ht_hash(unative_t *key);
+static bool irq_ht_compare(unative_t *key, size_t keys, link_t *item);
 static void irq_ht_remove(link_t *item);
 
 static hash_table_operations_t irq_ht_ops = {
@@ -115,8 +115,8 @@ static hash_table_operations_t irq_ht_ops = {
  * However, there might be still collisions among
  * elements with single key (sharing of one IRQ).
  */
-static index_t irq_lin_hash(unative_t *key);
-static bool irq_lin_compare(unative_t *key, count_t keys, link_t *item);
+static size_t irq_lin_hash(unative_t *key);
+static bool irq_lin_compare(unative_t *key, size_t keys, link_t *item);
 static void irq_lin_remove(link_t *item);
 
 static hash_table_operations_t irq_lin_ops = {
@@ -126,14 +126,14 @@ static hash_table_operations_t irq_lin_ops = {
 };
 
 /** Number of buckets in either of the hash tables. */
-static count_t buckets;
+static size_t buckets;
 
 /** Initialize IRQ subsystem.
  *
  * @param inrs Numbers of unique IRQ numbers or INRs.
  * @param chains Number of chains in the hash table.
  */
-void irq_init(count_t inrs, count_t chains)
+void irq_init(size_t inrs, size_t chains)
 {
 	buckets = chains;
 	/*
@@ -298,7 +298,7 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
  *
  * @return Index into the hash table.
  */
-index_t irq_ht_hash(unative_t key[])
+size_t irq_ht_hash(unative_t key[])
 {
 	inr_t inr = (inr_t) key[KEY_INR];
 	return inr % buckets;
@@ -324,7 +324,7 @@ index_t irq_ht_hash(unative_t key[])
  *
  * @return True on match or false otherwise.
  */
-bool irq_ht_compare(unative_t key[], count_t keys, link_t *item)
+bool irq_ht_compare(unative_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
 	inr_t inr = (inr_t) key[KEY_INR];
@@ -371,7 +371,7 @@ void irq_ht_remove(link_t *lnk)
  *
  * @return Index into the hash table.
  */
-index_t irq_lin_hash(unative_t key[])
+size_t irq_lin_hash(unative_t key[])
 {
 	inr_t inr = (inr_t) key[KEY_INR];
 	return inr;
@@ -397,7 +397,7 @@ index_t irq_lin_hash(unative_t key[])
  *
  * @return True on match or false otherwise.
  */
-bool irq_lin_compare(unative_t key[], count_t keys, link_t *item)
+bool irq_lin_compare(unative_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = list_get_instance(item, irq_t, link);
 	devno_t devno = (devno_t) key[KEY_DEVNO];

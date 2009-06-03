@@ -55,7 +55,7 @@
 int symtab_name_lookup(unative_t addr, char **name)
 {
 #ifdef CONFIG_SYMTAB
-	count_t i;
+	size_t i;
 	
 	for (i = 1; symbol_table[i].address_le; i++) {
 		if (addr < uint64_t_le2host(symbol_table[i].address_le))
@@ -112,11 +112,11 @@ char *symtab_fmt_name_lookup(unative_t addr)
  * @return Pointer to the part of string that should be completed or NULL.
  *
  */
-static const char *symtab_search_one(const char *name, count_t *startpos)
+static const char *symtab_search_one(const char *name, size_t *startpos)
 {
-	count_t namelen = str_length(name);
+	size_t namelen = str_length(name);
 	
-	count_t pos;
+	size_t pos;
 	for (pos = *startpos; symbol_table[pos].address_le; pos++) {
 		const char *curname = symbol_table[pos].symbol_name;
 		
@@ -153,8 +153,8 @@ static const char *symtab_search_one(const char *name, count_t *startpos)
 int symtab_addr_lookup(const char *name, uintptr_t *addr)
 {
 #ifdef CONFIG_SYMTAB
-	count_t found = 0;
-	count_t pos = 0;
+	size_t found = 0;
+	size_t pos = 0;
 	const char *hint;
 	
 	while ((hint = symtab_search_one(name, &pos))) {
@@ -182,7 +182,7 @@ int symtab_addr_lookup(const char *name, uintptr_t *addr)
 void symtab_print_search(const char *name)
 {
 #ifdef CONFIG_SYMTAB
-	count_t pos = 0;
+	size_t pos = 0;
 	while (symtab_search_one(name, &pos)) {
 		uintptr_t addr = uint64_t_le2host(symbol_table[pos].address_le);
 		char *realname = symbol_table[pos].symbol_name;
@@ -203,7 +203,7 @@ void symtab_print_search(const char *name)
  * @return 0 - nothing found, 1 - success, >1 print duplicates
  *
  */
-int symtab_compl(char *input, count_t size)
+int symtab_compl(char *input, size_t size)
 {
 #ifdef CONFIG_SYMTAB
 	const char *name = input;
@@ -216,8 +216,8 @@ int symtab_compl(char *input, count_t size)
 	if (str_length(name) == 0)
 		return 0;
 	
-	count_t found = 0;
-	count_t pos = 0;
+	size_t found = 0;
+	size_t pos = 0;
 	const char *hint;
 	char output[MAX_SYMBOL_NAME];
 	

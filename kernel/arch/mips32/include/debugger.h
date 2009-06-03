@@ -53,7 +53,7 @@ typedef struct  {
 	unative_t instruction; /**< Original instruction */
 	unative_t nextinstruction;  /**< Original instruction following break */
 	int flags;        /**< Flags regarding breakpoint */
-	count_t counter;
+	size_t counter;
 	void (*bkfunc)(void *b, istate_t *istate);
 } bpinfo_t;
 

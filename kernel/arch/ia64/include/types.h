@@ -54,8 +54,6 @@ typedef struct {
 } uint128_t;
 
 typedef uint64_t size_t;
-typedef uint64_t count_t;
-typedef uint64_t index_t;
 
 typedef uint64_t uintptr_t;
 typedef uint64_t pfn_t;
@@ -72,8 +70,6 @@ typedef struct {
 
 #define PRIp "lx"	/**< Format for uintptr_t. */
 #define PRIs "lu"	/**< Format for size_t. */
-#define PRIc "lu"	/**< Format for count_t. */
-#define PRIi "lu"	/**< Format for index_t. */
 
 #define PRId8 "d"	/**< Format for int8_t. */
 #define PRId16 "d"	/**< Format for int16_t. */

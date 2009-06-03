@@ -49,7 +49,7 @@ typedef struct {
 	/** Futex hash table link. */
 	link_t ht_link;
 	/** Number of tasks that reference this futex. */
-	count_t refcount;
+	size_t refcount;
 } futex_t;
 
 extern void futex_init(void);

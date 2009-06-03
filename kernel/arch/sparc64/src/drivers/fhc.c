@@ -71,7 +71,7 @@ fhc_t *fhc_init(ofw_tree_node_t *node)
 	if (!prop || !prop->value)
 		return NULL;
 		
-	count_t regs = prop->size / sizeof(ofw_central_reg_t);
+	size_t regs = prop->size / sizeof(ofw_central_reg_t);
 	if (regs + 1 < UART_IMAP_REG)
 		return NULL;
 

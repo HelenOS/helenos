@@ -127,7 +127,7 @@ void kinit(void *arg)
 	}
 	
 	if (config.cpu_count > 1) {
-		count_t i;
+		size_t i;
 		
 		/*
 		 * For each CPU, create its load balancing thread.
@@ -140,7 +140,7 @@ void kinit(void *arg)
 				spinlock_unlock(&thread->lock);
 				thread_ready(thread);
 			} else
-				printf("Unable to create kcpulb thread for cpu" PRIc "\n", i);
+				printf("Unable to create kcpulb thread for cpu" PRIs "\n", i);
 		}
 	}
 #endif /* CONFIG_SMP */
@@ -168,12 +168,12 @@ void kinit(void *arg)
 	/*
 	 * Create user tasks, load RAM disk images.
 	 */
-	count_t i;
+	size_t i;
 	program_t programs[CONFIG_INIT_TASKS];
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%" PRIc "].addr is not frame aligned\n", i);
+			printf("init[%" PRIs "].addr is not frame aligned\n", i);
 			continue;
 		}
 		
@@ -213,7 +213,7 @@ void kinit(void *arg)
 			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %" PRIc " not used (error %d)\n", i, rd);
+				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
 		}
 	}
 	

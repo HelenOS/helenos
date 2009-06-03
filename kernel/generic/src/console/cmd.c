@@ -513,7 +513,7 @@ int cmd_help(cmd_arg_t *argv)
 	spinlock_lock(&cmd_lock);
 	
 	link_t *cur;
-	count_t len = 0;
+	size_t len = 0;
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
@@ -651,7 +651,7 @@ int cmd_mcall0(cmd_arg_t *argv)
 	 * call the function.
 	 */
 	
-	count_t i;
+	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
 		if (!cpus[i].active)
 			continue;
@@ -970,7 +970,7 @@ int cmd_continue(cmd_arg_t *argv)
  */
 int cmd_tests(cmd_arg_t *argv)
 {
-	count_t len = 0;
+	size_t len = 0;
 	test_t *test;
 	for (test = tests; test->name != NULL; test++) {
 		if (str_length(test->name) > len)

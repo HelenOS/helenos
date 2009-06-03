@@ -61,7 +61,7 @@ static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 /** Kernel log initialized */
 static bool klog_inited = false;
 /** First kernel log characters */
-static index_t klog_start = 0;
+static size_t klog_start = 0;
 /** Number of valid kernel log characters */
 static size_t klog_len = 0;
 /** Number of stored (not printed) kernel log characters */
@@ -170,10 +170,10 @@ unative_t sys_debug_disable_console(void)
  * @return Number of characters read.
  *
  */
-count_t gets(indev_t *indev, char *buf, size_t buflen)
+size_t gets(indev_t *indev, char *buf, size_t buflen)
 {
 	size_t offset = 0;
-	count_t count = 0;
+	size_t count = 0;
 	buf[offset] = 0;
 	
 	wchar_t ch;
@@ -226,7 +226,7 @@ void putchar(const wchar_t ch)
 	
 	if ((klog_stored > 0) && (stdout) && (stdout->op->write)) {
 		/* Print charaters stored in kernel log */
-		index_t i;
+		size_t i;
 		for (i = klog_len - klog_stored; i < klog_len; i++)
 			stdout->op->write(stdout, klog[(klog_start + i) % KLOG_LENGTH], silent);
 		klog_stored = 0;

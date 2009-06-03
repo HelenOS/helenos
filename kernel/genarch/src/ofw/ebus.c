@@ -49,7 +49,7 @@ ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
 {
 	ofw_tree_property_t *prop;
 	ofw_ebus_range_t *range;
-	count_t ranges;
+	size_t ranges;
 
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop)
@@ -91,7 +91,7 @@ ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg,
 		return false;
 
 	ofw_ebus_intr_map_t *intr_map = prop->value;
-	count_t count = prop->size / sizeof(ofw_ebus_intr_map_t);
+	size_t count = prop->size / sizeof(ofw_ebus_intr_map_t);
 	
 	ASSERT(count);
 	

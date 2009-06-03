@@ -57,11 +57,11 @@ typedef struct indev {
 	/** Protects everything below. */
 	SPINLOCK_DECLARE(lock);
 	wchar_t buffer[INDEV_BUFLEN];
-	count_t counter;
+	size_t counter;
 	
 	/** Implementation of indev operations. */
 	indev_operations_t *op;
-	index_t index;
+	size_t index;
 	void *data;
 } indev_t;
 

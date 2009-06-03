@@ -46,7 +46,7 @@ typedef uint64_t btree_key_t;
 /** B-tree node structure. */
 typedef struct btree_node {
 	/** Number of keys. */
-	count_t keys;
+	size_t keys;
 
 	/**
 	 * Keys. We currently support only single keys. Additional room for one

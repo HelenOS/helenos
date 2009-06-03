@@ -46,8 +46,6 @@ typedef unsigned long uint32_t;
 typedef unsigned long long uint64_t;
 
 typedef uint32_t size_t;
-typedef uint32_t count_t;
-typedef uint32_t index_t;
 
 typedef uint32_t uintptr_t;
 typedef uint32_t pfn_t;
@@ -62,8 +60,6 @@ typedef struct {
 
 #define PRIp "x"	/**< Format for uintptr_t. */
 #define PRIs "u"	/**< Format for size_t. */
-#define PRIc "u"	/**< Format for count_t. */
-#define PRIi "u"	/**< Format for index_t. */
 
 #define PRId8 "d"	/**< Format for int8_t. */
 #define PRId16 "d"	/**< Format for int16_t. */

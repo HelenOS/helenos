@@ -51,18 +51,18 @@ typedef struct {
 	SPINLOCK_DECLARE(lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
-	count_t tlb_messages_count;
+	size_t tlb_messages_count;
 	
 	context_t saved_context;
 
 	atomic_t nrdy;
 	runq_t rq[RQ_COUNT];
-	volatile count_t needs_relink;
+	volatile size_t needs_relink;
 
 	SPINLOCK_DECLARE(timeoutlock);
 	link_t timeout_active_head;
 
-	count_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
+	size_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
 					     so that clock() can react. This variable is
 					     CPU-local and can be only accessed when interrupts
 					     are disabled. */

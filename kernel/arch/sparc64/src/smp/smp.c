@@ -61,7 +61,7 @@ volatile uint64_t waking_up_mid = (uint64_t) -1;
 void smp_init(void)
 {
 	ofw_tree_node_t *node;
-	count_t cnt = 0;
+	size_t cnt = 0;
 	
 	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");

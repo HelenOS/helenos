@@ -75,7 +75,7 @@ void spinlock_initialize(spinlock_t *sl, char *name)
 #ifdef CONFIG_DEBUG_SPINLOCK
 void spinlock_lock_debug(spinlock_t *sl)
 {
-	count_t i = 0;
+	size_t i = 0;
 	bool deadlock_reported = false;
 
 	preemption_disable();

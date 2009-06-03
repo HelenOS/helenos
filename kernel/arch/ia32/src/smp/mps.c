@@ -86,10 +86,10 @@ unsigned int l_intr_entry_cnt = 0;
 /*
  * Implementation of IA-32 SMP configuration interface.
  */
-static count_t get_cpu_count(void);
-static bool is_cpu_enabled(index_t i);
-static bool is_bsp(index_t i);
-static uint8_t get_cpu_apic_id(index_t i);
+static size_t get_cpu_count(void);
+static bool is_cpu_enabled(size_t i);
+static bool is_bsp(size_t i);
+static uint8_t get_cpu_apic_id(size_t i);
 static int mps_irq_to_pin(unsigned int irq);
 
 struct smp_config_operations mps_config_operations = {
@@ -100,24 +100,24 @@ struct smp_config_operations mps_config_operations = {
 	.irq_to_pin = mps_irq_to_pin
 };
 
-count_t get_cpu_count(void)
+size_t get_cpu_count(void)
 {
 	return processor_entry_cnt;
 }
 
-bool is_cpu_enabled(index_t i)
+bool is_cpu_enabled(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	return (bool) ((processor_entries[i].cpu_flags & 0x01) == 0x01);
 }
 
-bool is_bsp(index_t i)
+bool is_bsp(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	return (bool) ((processor_entries[i].cpu_flags & 0x02) == 0x02);
 }
 
-uint8_t get_cpu_apic_id(index_t i)
+uint8_t get_cpu_apic_id(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	return processor_entries[i].l_apic_id;

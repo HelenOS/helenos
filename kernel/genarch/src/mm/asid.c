@@ -65,7 +65,7 @@
 #include <adt/list.h>
 #include <debug.h>
 
-static count_t asids_allocated = 0;
+static size_t asids_allocated = 0;
 
 /** Allocate free address space identifier.
  *
@@ -120,7 +120,7 @@ asid_t asid_get(void)
 		 * of TLB entries (e.g. TSB on sparc64), the
 		 * cache must be invalidated as well.
 		 */
-		as_invalidate_translation_cache(as, 0, (count_t) -1);
+		as_invalidate_translation_cache(as, 0, (size_t) -1);
 		
 		/*
 		 * Get the system rid of the stolen ASID.

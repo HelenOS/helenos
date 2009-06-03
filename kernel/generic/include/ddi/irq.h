@@ -104,7 +104,7 @@ typedef struct {
 	/** Top-half pseudocode. */
 	irq_code_t *code;
 	/** Counter. */
-	count_t counter;
+	size_t counter;
 	/**
 	 * Link between IRQs that are notifying the same answerbox. The list is
 	 * protected by the answerbox irq_lock.
@@ -162,7 +162,7 @@ typedef struct irq {
 SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
 
-extern void irq_init(count_t, count_t);
+extern void irq_init(size_t, size_t);
 extern void irq_initialize(irq_t *);
 extern void irq_register(irq_t *);
 extern irq_t *irq_dispatch_and_lock(inr_t);

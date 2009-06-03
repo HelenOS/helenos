@@ -70,7 +70,7 @@ static void init_e820_memory(pfn_t minconf)
 		
 #endif
 		pfn_t pfn;
-		count_t count;
+		size_t count;
 		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
 			/* To be safe, make available zone possibly smaller */

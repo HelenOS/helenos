@@ -107,7 +107,7 @@ static inline void spinlock_unlock(spinlock_t *sl)
 extern int printf(const char *, ...);
 
 #define DEADLOCK_THRESHOLD		100000000
-#define DEADLOCK_PROBE_INIT(pname)	count_t pname = 0
+#define DEADLOCK_PROBE_INIT(pname)	size_t pname = 0
 #define DEADLOCK_PROBE(pname, value)					\
 	if ((pname)++ > (value)) {					\
 		(pname) = 0;						\

@@ -131,7 +131,7 @@ void set_environment(void)
 vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 {
 	region_register rr_save, rr;
-	index_t vrn;
+	size_t vrn;
 	rid_t rid;
 	vhpt_entry_t *v;
 
@@ -176,7 +176,7 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 {
 	region_register rr_save, rr;	
-	index_t vrn;
+	size_t vrn;
 	rid_t rid;
 	bool match;
 
@@ -223,7 +223,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
     int flags)
 {
 	region_register rr_save, rr;	
-	index_t vrn;
+	size_t vrn;
 	rid_t rid;
 	uint64_t tag;
 

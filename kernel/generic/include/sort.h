@@ -40,8 +40,8 @@
 /* 
  * sorting routines
  */
-extern void bubblesort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b));
-extern void qsort(void * data, count_t n, size_t e_size, int (* cmp) (void * a, void * b));
+extern void bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b));
+extern void qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b));
 
 /*
  * default sorting comparators

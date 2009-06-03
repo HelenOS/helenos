@@ -101,7 +101,7 @@ static void null_interrupt(int n, istate_t *istate)
 static void gp_fault(int n, istate_t *istate)
 {
 	if (TASK) {
-		count_t ver;
+		size_t ver;
 
 		spinlock_lock(&TASK->lock);
 		ver = TASK->arch.iomapver;
