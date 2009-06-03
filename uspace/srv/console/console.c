@@ -36,36 +36,29 @@
 #include <fb.h>
 #include <ipc/ipc.h>
 #include <kbd.h>
-#include <kbd/keycode.h>
+#include <io/keycode.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <errno.h>
-#include <key_buffer.h>
+#include <keybuffer.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
 #include <libadt/fifo.h>
-#include <screenbuffer.h>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>
 #include <sysinfo.h>
 #include <event.h>
+#include <devmap.h>
 
 #include "console.h"
 #include "gcons.h"
+#include "screenbuffer.h"
 
 #define NAME  "console"
 
-#define MAX_KEYREQUESTS_BUFFERED  32
-
-/** Size of cwrite_buf. */
-#define CWRITE_BUF_SIZE  256
-
-/** Index of currently used virtual console.
- */
-int active_console = 0;
-int prev_console = 0;
+#define MAX_DEVICE_NAME  32
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -73,27 +66,25 @@ static int kbd_phone;
 /** Information about framebuffer */
 struct {
 	int phone;      /**< Framebuffer phone */
-	ipcarg_t rows;  /**< Framebuffer rows */
 	ipcarg_t cols;  /**< Framebuffer columns */
+	ipcarg_t rows;  /**< Framebuffer rows */
 } fb_info;
 
 typedef struct {
-	keybuffer_t keybuffer;        /**< Buffer for incoming keys. */
-	
-	/** Buffer for unsatisfied request for keys. */
-	FIFO_CREATE_STATIC(keyrequests, ipc_callid_t,
-	    MAX_KEYREQUESTS_BUFFERED);
-	
-	int keyrequest_counter;       /**< Number of requests in buffer. */
-	int client_phone;             /**< Phone to connected client. */
-	int used;                     /**< 1 if this virtual console is
-	                                   connected to some client. */
-	screenbuffer_t screenbuffer;  /**< Screenbuffer for saving screen
-	                                   contents and related settings. */
-} connection_t;
+	size_t index;             /**< Console index */
+	size_t refcount;          /**< Connection reference count */
+	dev_handle_t dev_handle;  /**< Device handle */
+	keybuffer_t keybuffer;    /**< Buffer for incoming keys. */
+	screenbuffer_t scr;       /**< Screenbuffer for saving screen
+	                               contents and related settings. */
+} console_t;
 
 /** Array of data for virtual consoles */
-static connection_t connections[CONSOLE_COUNT];
+static console_t consoles[CONSOLE_COUNT];
+
+static console_t *active_console = &consoles[0];
+static console_t *prev_console = &consoles[0];
+static console_t *kernel_console = &consoles[KERNEL_CONSOLE];
 
 /** Pointer to memory shared with framebufer used for
     faster virtual console switching */
@@ -101,32 +92,67 @@ static keyfield_t *interbuffer = NULL;
 
 /** Information on row-span yet unsent to FB driver. */
 struct {
-	int row;  /**< Row where the span lies. */
-	int col;  /**< Leftmost column of the span. */
-	int cnt;  /**< Width of the span. */
+	size_t col;  /**< Leftmost column of the span. */
+	size_t row;  /**< Row where the span lies. */
+	size_t cnt;  /**< Width of the span. */
 } fb_pending;
 
-/** Buffer for receiving data via the CONSOLE_WRITE call from the client. */
-static char cwrite_buf[CWRITE_BUF_SIZE];
-
-/** Find unused virtual console.
- *
- */
-static int find_free_connection(void) 
-{
-	int i;
+/** Pending input structure. */
+typedef struct {
+	link_t link;
+	console_t *cons;      /**< Console waiting for input */
+	ipc_callid_t rid;     /**< Call ID waiting for input */
+	ipc_callid_t callid;  /**< Call ID waiting for IPC_DATA_READ */
 	
-	for (i = 0; i < CONSOLE_COUNT; i++) {
-		if (!connections[i].used)
-			return i;
+	size_t pos;           /**< Position of the last stored data */
+	size_t size;          /**< Size of ther buffer */
+	char *data;           /**< Already stored data */
+} pending_input_t;
+
+LIST_INITIALIZE(pending_input);
+
+/** Process pending input requests */
+static void process_pending_input(void)
+{
+	async_serialize_start();
+	
+	link_t *cur;
+	
+loop:
+	for (cur = pending_input.next; cur != &pending_input; cur = cur->next) {
+		pending_input_t *pr = list_get_instance(cur, pending_input_t, link);
+		
+		console_event_t ev;
+		if (keybuffer_pop(&pr->cons->keybuffer, &ev)) {
+			
+			if (pr->data != NULL) {
+				if (ev.type == KEY_PRESS) {
+					pr->data[pr->pos] = ev.c;
+					pr->pos++;
+				}
+			} else {
+				ipc_answer_4(pr->rid, EOK, ev.type, ev.key, ev.mods, ev.c);
+				
+				list_remove(cur);
+				free(pr);
+				
+				goto loop;
+			}
+		}
+		
+		if ((pr->data != NULL) && (pr->pos == pr->size)) {
+			(void) ipc_data_read_finalize(pr->callid, pr->data, pr->size);
+			ipc_answer_1(pr->rid, EOK, pr->size);
+			
+			free(pr->data);
+			list_remove(cur);
+			free(pr);
+			
+			goto loop;
+		}
 	}
 	
-	return -1;
-}
-
-static void clrscr(void)
-{
-	async_msg_0(fb_info.phone, FB_CLEAR);
+	async_serialize_end();
 }
 
 static void curs_visibility(bool visible)
@@ -139,9 +165,14 @@ static void curs_hide_sync(void)
 	ipc_call_sync_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
-static void curs_goto(int row, int col)
+static void curs_goto(size_t x, size_t y)
 {
-	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, row, col); 
+	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
+}
+
+static void screen_clear(void)
+{
+	async_msg_0(fb_info.phone, FB_CLEAR);
 }
 
 static void screen_yield(void)
@@ -166,7 +197,7 @@ static void kbd_reclaim(void)
 
 static void set_style(int style)
 {
-	async_msg_1(fb_info.phone, FB_SET_STYLE, style); 
+	async_msg_1(fb_info.phone, FB_SET_STYLE, style);
 }
 
 static void set_color(int fgcolor, int bgcolor, int flags)
@@ -196,34 +227,29 @@ static void set_attrs(attrs_t *attrs)
 }
 
 /** Send an area of screenbuffer to the FB driver. */
-static void fb_update_area(connection_t *conn, int x, int y, int w, int h)
+static void fb_update_area(console_t *cons, ipcarg_t x0, ipcarg_t y0, ipcarg_t width, ipcarg_t height)
 {
-	int i;
-	int j;
-	attrs_t *attrs;
-	keyfield_t *field;
-	
 	if (interbuffer) {
-		for (j = 0; j < h; j++) {
-			for (i = 0; i < w; i++) {
-				interbuffer[i + j * w] =
-				    *get_field_at(&conn->screenbuffer, x + i, y + j);
+		ipcarg_t x;
+		ipcarg_t y;
+		
+		for (y = 0; y < height; y++) {
+			for (x = 0; x < width; x++) {
+				interbuffer[y * width + x] =
+				    *get_field_at(&cons->scr, x0 + x, y0 + y);
 			}
 		}
 		
 		async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
-		    x, y, w, h);
+		    x0, y0, width, height);
 	}
 }
 
 /** Flush pending cells to FB. */
 static void fb_pending_flush(void)
 {
-	screenbuffer_t *scr
-	    = &(connections[active_console].screenbuffer);
-	
 	if (fb_pending.cnt > 0) {
-		fb_update_area(&connections[active_console], fb_pending.col,
+		fb_update_area(active_console, fb_pending.col,
 		    fb_pending.row, fb_pending.cnt, 1);
 		fb_pending.cnt = 0;
 	}
@@ -235,100 +261,85 @@ static void fb_pending_flush(void)
  * the old span is flushed first.
  *
  */
-static void cell_mark_changed(int row, int col)
+static void cell_mark_changed(size_t col, size_t row)
 {
 	if (fb_pending.cnt != 0) {
-		if ((row != fb_pending.row)
-		    || (col != fb_pending.col + fb_pending.cnt)) {
+		if ((col != fb_pending.col + fb_pending.cnt)
+		    || (row != fb_pending.row)) {
 			fb_pending_flush();
 		}
 	}
 	
 	if (fb_pending.cnt == 0) {
-		fb_pending.row = row;
 		fb_pending.col = col;
+		fb_pending.row = row;
 	}
 	
 	fb_pending.cnt++;
 }
 
 /** Print a character to the active VC with buffering. */
-static void fb_putchar(wchar_t c, int row, int col)
+static void fb_putchar(wchar_t c, ipcarg_t col, ipcarg_t row)
 {
-	async_msg_3(fb_info.phone, FB_PUTCHAR, c, row, col);
+	async_msg_3(fb_info.phone, FB_PUTCHAR, c, col, row);
 }
 
 /** Process a character from the client (TTY emulation). */
-static void write_char(int console, wchar_t ch)
+static void write_char(console_t *cons, wchar_t ch)
 {
-	bool flush_cursor = false;
-	screenbuffer_t *scr = &(connections[console].screenbuffer);
-	
 	switch (ch) {
 	case '\n':
 		fb_pending_flush();
-		flush_cursor = true;
-		scr->position_y++;
-		scr->position_x = 0;
+		cons->scr.position_y++;
+		cons->scr.position_x = 0;
 		break;
 	case '\r':
 		break;
 	case '\t':
-		scr->position_x += 8;
-		scr->position_x -= scr->position_x % 8;
+		cons->scr.position_x += 8;
+		cons->scr.position_x -= cons->scr.position_x % 8;
 		break;
 	case '\b':
-		if (scr->position_x == 0) 
+		if (cons->scr.position_x == 0)
 			break;
-		scr->position_x--;
-		if (console == active_console)
-			cell_mark_changed(scr->position_y, scr->position_x);
-		screenbuffer_putchar(scr, ' ');
+		cons->scr.position_x--;
+		if (cons == active_console)
+			cell_mark_changed(cons->scr.position_x, cons->scr.position_y);
+		screenbuffer_putchar(&cons->scr, ' ');
 		break;
 	default:
-		if (console == active_console)
-			cell_mark_changed(scr->position_y, scr->position_x);
+		if (cons == active_console)
+			cell_mark_changed(cons->scr.position_x, cons->scr.position_y);
 		
-		screenbuffer_putchar(scr, ch);
-		scr->position_x++;
+		screenbuffer_putchar(&cons->scr, ch);
+		cons->scr.position_x++;
 	}
 	
-	if (scr->position_x >= scr->size_x) {
-		flush_cursor = true;
-		scr->position_y++;
-	}
+	if (cons->scr.position_x >= cons->scr.size_x)
+		cons->scr.position_y++;
 	
-	if (scr->position_y >= scr->size_y) {
+	if (cons->scr.position_y >= cons->scr.size_y) {
 		fb_pending_flush();
-		scr->position_y = scr->size_y - 1;
-		screenbuffer_clear_line(scr, scr->top_line);
-		scr->top_line = (scr->top_line + 1) % scr->size_y;
-		if (console == active_console)
+		cons->scr.position_y = cons->scr.size_y - 1;
+		screenbuffer_clear_line(&cons->scr, cons->scr.top_line);
+		cons->scr.top_line = (cons->scr.top_line + 1) % cons->scr.size_y;
+		
+		if (cons == active_console)
 			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
 	
-	scr->position_x = scr->position_x % scr->size_x;
-	
-	if (console == active_console && flush_cursor)
-		curs_goto(scr->position_y, scr->position_x);
+	cons->scr.position_x = cons->scr.position_x % cons->scr.size_x;
 }
 
 /** Switch to new console */
-static void change_console(int newcons)
+static void change_console(console_t *cons)
 {
-	connection_t *conn;
-	int i;
-	int j;
-	int rc;
-	keyfield_t *field;
-	attrs_t *attrs;
-	
-	if (newcons == active_console)
+	if (cons == active_console)
 		return;
 	
 	fb_pending_flush();
 	
-	if (newcons == KERNEL_CONSOLE) {
+	if (cons == kernel_console) {
 		async_serialize_start();
 		curs_hide_sync();
 		gcons_in_kernel();
@@ -336,67 +347,67 @@ static void change_console(int newcons)
 		kbd_yield();
 		async_serialize_end();
 		
-		
 		if (__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE)) {
 			prev_console = active_console;
-			active_console = KERNEL_CONSOLE;
+			active_console = kernel_console;
 		} else
-			newcons = active_console;
+			cons = active_console;
 	}
 	
-	if (newcons != KERNEL_CONSOLE) {
+	if (cons != kernel_console) {
+		size_t x;
+		size_t y;
+		int rc = 0;
+		
 		async_serialize_start();
 		
-		if (active_console == KERNEL_CONSOLE) {
+		if (active_console == kernel_console) {
 			screen_reclaim();
 			kbd_reclaim();
 			gcons_redraw_console();
 		}
 		
-		active_console = newcons;
-		gcons_change_console(newcons);
-		conn = &connections[active_console];
+		active_console = cons;
+		gcons_change_console(cons->index);
 		
-		set_attrs(&conn->screenbuffer.attrs);
+		set_attrs(&cons->scr.attrs);
 		curs_visibility(false);
 		if (interbuffer) {
-			for (j = 0; j < conn->screenbuffer.size_y; j++) {
-				for (i = 0; i < conn->screenbuffer.size_x; i++) {
-					unsigned int size_x;
-					
-					size_x = conn->screenbuffer.size_x; 
-					interbuffer[j * size_x + i] =
-					    *get_field_at(&conn->screenbuffer, i, j);
+			for (y = 0; y < cons->scr.size_y; y++) {
+				for (x = 0; x < cons->scr.size_x; x++) {
+					interbuffer[y * cons->scr.size_x + x] =
+					    *get_field_at(&cons->scr, x, y);
 				}
 			}
+			
 			/* This call can preempt, but we are already at the end */
 			rc = async_req_4_0(fb_info.phone, FB_DRAW_TEXT_DATA,
-			    0, 0, conn->screenbuffer.size_x,
-			    conn->screenbuffer.size_y);
+			    0, 0, cons->scr.size_x,
+			    cons->scr.size_y);
 		}
 		
 		if ((!interbuffer) || (rc != 0)) {
-			set_attrs(&conn->screenbuffer.attrs);
-			clrscr();
-			attrs = &conn->screenbuffer.attrs;
+			set_attrs(&cons->scr.attrs);
+			screen_clear();
 			
-			for (j = 0; j < conn->screenbuffer.size_y; j++)
-				for (i = 0; i < conn->screenbuffer.size_x; i++) {
-					field = get_field_at(&conn->screenbuffer, i, j);
-					if (!attrs_same(*attrs, field->attrs))
+			for (y = 0; y < cons->scr.size_y; y++)
+				for (x = 0; x < cons->scr.size_x; x++) {
+					keyfield_t *field = get_field_at(&cons->scr, x, y);
+					
+					if (!attrs_same(cons->scr.attrs, field->attrs))
 						set_attrs(&field->attrs);
-					attrs = &field->attrs;
+					
+					cons->scr.attrs = field->attrs;
 					if ((field->character == ' ') &&
-					    (attrs_same(field->attrs, conn->screenbuffer.attrs)))
+					    (attrs_same(field->attrs, cons->scr.attrs)))
 						continue;
 					
-					fb_putchar(field->character, j, i);
+					fb_putchar(field->character, x, y);
 				}
 		}
 		
-		curs_goto(conn->screenbuffer.position_y,
-		    conn->screenbuffer.position_x);
-		curs_visibility(conn->screenbuffer.is_cursor_visible);
+		curs_goto(cons->scr.position_x, cons->scr.position_y);
+		curs_visibility(cons->scr.is_cursor_visible);
 		
 		async_serialize_end();
 	}
@@ -405,31 +416,19 @@ static void change_console(int newcons)
 /** Handler for keyboard */
 static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int retval;
-	kbd_event_t ev;
-	connection_t *conn;
-	int newcon;
-	
-	/* Ignore parameters, the connection is alread opened */
+	/* Ignore parameters, the connection is already opened */
 	while (true) {
-		callid = async_get_call(&call);
+		
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		int retval;
+		console_event_t ev;
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
-		case KBD_MS_LEFT:
-			newcon = gcons_mouse_btn(IPC_GET_ARG1(call));
-			if (newcon != -1)
-				change_console(newcon);
-			retval = 0;
-			break;
-		case KBD_MS_MOVE:
-			gcons_mouse_move(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
-			retval = 0;
-			break;
 		case KBD_EVENT:
 			/* Got event from keyboard driver. */
 			retval = 0;
@@ -438,29 +437,16 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			ev.mods = IPC_GET_ARG3(call);
 			ev.c = IPC_GET_ARG4(call);
 			
-			/* Switch to another virtual console */
-			conn = &connections[active_console];
-			
 			if ((ev.key >= KC_F1) && (ev.key < KC_F1 +
 			    CONSOLE_COUNT) && ((ev.mods & KM_CTRL) == 0)) {
-				if (ev.key == KC_F12)
-					change_console(KERNEL_CONSOLE);
+				if (ev.key == KC_F1 + KERNEL_CONSOLE)
+					change_console(kernel_console);
 				else
-					change_console(ev.key - KC_F1);
+					change_console(&consoles[ev.key - KC_F1]);
 				break;
 			}
 			
-			/* If client is awaiting key, send it */
-			if (conn->keyrequest_counter > 0) {
-				conn->keyrequest_counter--;
-				ipc_answer_4(fifo_pop(conn->keyrequests), EOK,
-				    ev.type, ev.key, ev.mods, ev.c);
-				break;
-			}
-			
-			keybuffer_push(&conn->keybuffer, &ev);
-			retval = 0;
-			
+			keybuffer_push(&active_console->keybuffer, &ev);
 			break;
 		default:
 			retval = ENOENT;
@@ -469,62 +455,154 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Handle CONSOLE_WRITE call. */
-static void cons_write(int consnum, ipc_callid_t rid, ipc_call_t *request)
+static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t size;
-	wchar_t ch;
-	size_t off;
-	
 	if (!ipc_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 	
-	if (size > CWRITE_BUF_SIZE)
-		size = CWRITE_BUF_SIZE;
+	char *buf = (char *) malloc(size);
+	if (buf == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
 	
-	(void) ipc_data_write_finalize(callid, cwrite_buf, size);
+	(void) ipc_data_write_finalize(callid, buf, size);
 	
 	async_serialize_start();
 	
-	off = 0;
+	size_t off = 0;
 	while (off < size) {
-		ch = str_decode(cwrite_buf, &off, size);
-		write_char(consnum, ch);
+		wchar_t ch = str_decode(buf, &off, size);
+		write_char(cons, ch);
 	}
+	
+	if (cons == active_console)
+		curs_goto(cons->scr.position_x, cons->scr.position_y);
 	
 	async_serialize_end();
 	
-	gcons_notify_char(consnum);
+	gcons_notify_char(cons->index);
 	ipc_answer_1(rid, EOK, size);
+	
+	free(buf);
+}
+
+static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_read_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	char *buf = (char *) malloc(size);
+	if (buf == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	async_serialize_start();
+	
+	size_t pos = 0;
+	console_event_t ev;
+	while ((keybuffer_pop(&cons->keybuffer, &ev)) && (pos < size)) {
+		if (ev.type == KEY_PRESS) {
+			buf[pos] = ev.c;
+			pos++;
+		}
+	}
+	
+	if (pos == size) {
+		(void) ipc_data_read_finalize(callid, buf, size);
+		ipc_answer_1(rid, EOK, size);
+		free(buf);
+	} else {
+		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
+		if (!pr) {
+			ipc_answer_0(rid, ENOMEM);
+			free(buf);
+			async_serialize_end();
+			return;
+		}
+		
+		pr->cons = cons;
+		pr->rid = rid;
+		pr->callid = callid;
+		pr->pos = pos;
+		pr->size = size;
+		pr->data = buf;
+		list_append(&pr->link, &pending_input);
+	}
+	
+	async_serialize_end();
+}
+
+static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
+{
+	async_serialize_start();
+	
+	console_event_t ev;
+	if (keybuffer_pop(&cons->keybuffer, &ev)) {
+		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
+	} else {
+		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
+		if (!pr) {
+			ipc_answer_0(rid, ENOMEM);
+			async_serialize_end();
+			return;
+		}
+		
+		pr->cons = cons;
+		pr->rid = rid;
+		pr->callid = 0;
+		pr->data = NULL;
+		list_append(&pr->link, &pending_input);
+	}
+	
+	async_serialize_end();
 }
 
 /** Default thread for new connections */
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int consnum;
-	ipcarg_t arg1, arg2, arg3, arg4;
-	connection_t *conn;
-	screenbuffer_t *scr;
+	console_t *cons = NULL;
 	
-	if ((consnum = find_free_connection()) == -1) {
-		ipc_answer_0(iid, ELIMIT);
+	size_t i;
+	for (i = 0; i < CONSOLE_COUNT; i++) {
+		if (i == KERNEL_CONSOLE)
+			continue;
+		
+		if (consoles[i].dev_handle == (dev_handle_t) IPC_GET_ARG1(*icall)) {
+			cons = &consoles[i];
+			break;
+		}
+	}
+	
+	if (cons == NULL) {
+		ipc_answer_0(iid, ENOENT);
 		return;
 	}
-	conn = &connections[consnum];
-	conn->used = 1;
+	
+	ipc_callid_t callid;
+	ipc_call_t call;
+	ipcarg_t arg1;
+	ipcarg_t arg2;
+	ipcarg_t arg3;
 	
 	async_serialize_start();
-	gcons_notify_connect(consnum);
-	conn->client_phone = IPC_GET_ARG5(*icall);
-	screenbuffer_clear(&conn->screenbuffer);
-	if (consnum == active_console)
-		clrscr();
+	if (cons->refcount == 0)
+		gcons_notify_connect(cons->index);
+	
+	cons->refcount++;
 	
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
@@ -537,64 +615,55 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		arg1 = 0;
 		arg2 = 0;
 		arg3 = 0;
-		arg4 = 0;
 		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			gcons_notify_disconnect(consnum);
-			
-			/* Answer all pending requests */
-			while (conn->keyrequest_counter > 0) {
-				conn->keyrequest_counter--;
-				ipc_answer_0(fifo_pop(conn->keyrequests),
-				    ENOENT);
-				break;
-			}
-			conn->used = 0;
+			cons->refcount--;
+			if (cons->refcount == 0)
+				gcons_notify_disconnect(cons->index);
 			return;
-		case CONSOLE_PUTCHAR:
-			write_char(consnum, IPC_GET_ARG1(call));
-			gcons_notify_char(consnum);
-			break;
-		case CONSOLE_WRITE:
+		case VFS_READ:
 			async_serialize_end();
-			cons_write(consnum, callid, &call);
+			cons_read(cons, callid, &call);
 			async_serialize_start();
 			continue;
+		case VFS_WRITE:
+			async_serialize_end();
+			cons_write(cons, callid, &call);
+			async_serialize_start();
+			continue;
+		case VFS_SYNC:
+			fb_pending_flush();
+			if (cons == active_console) {
+				async_req_0_0(fb_info.phone, FB_FLUSH);
+				
+				curs_goto(cons->scr.position_x, cons->scr.position_y);
+			}
+			break;
 		case CONSOLE_CLEAR:
 			/* Send message to fb */
-			if (consnum == active_console) {
-				async_msg_0(fb_info.phone, FB_CLEAR); 
-			}
+			if (cons == active_console)
+				async_msg_0(fb_info.phone, FB_CLEAR);
 			
-			screenbuffer_clear(&conn->screenbuffer);
+			screenbuffer_clear(&cons->scr);
 			
 			break;
 		case CONSOLE_GOTO:
-			screenbuffer_goto(&conn->screenbuffer,
-			    IPC_GET_ARG2(call), IPC_GET_ARG1(call));
-			if (consnum == active_console)
+			screenbuffer_goto(&cons->scr,
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			if (cons == active_console)
 				curs_goto(IPC_GET_ARG1(call),
 				    IPC_GET_ARG2(call));
 			break;
-		case CONSOLE_GETSIZE:
-			arg1 = fb_info.rows;
-			arg2 = fb_info.cols;
-			break;
-		case CONSOLE_FLUSH:
-			fb_pending_flush();
-			if (consnum == active_console) {
-				async_req_0_0(fb_info.phone, FB_FLUSH);
-				
-				scr = &(connections[consnum].screenbuffer);
-				curs_goto(scr->position_y, scr->position_x);
-			}
+		case CONSOLE_GET_SIZE:
+			arg1 = fb_info.cols;
+			arg2 = fb_info.rows;
 			break;
 		case CONSOLE_SET_STYLE:
 			fb_pending_flush();
 			arg1 = IPC_GET_ARG1(call);
-			screenbuffer_set_style(&conn->screenbuffer, arg1);
-			if (consnum == active_console)
+			screenbuffer_set_style(&cons->scr, arg1);
+			if (cons == active_console)
 				set_style(arg1);
 			break;
 		case CONSOLE_SET_COLOR:
@@ -602,55 +671,35 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
 			arg3 = IPC_GET_ARG3(call);
-			screenbuffer_set_color(&conn->screenbuffer, arg1,
-			    arg2, arg3);
-			if (consnum == active_console)
+			screenbuffer_set_color(&cons->scr, arg1, arg2, arg3);
+			if (cons == active_console)
 				set_color(arg1, arg2, arg3);
 			break;
 		case CONSOLE_SET_RGB_COLOR:
 			fb_pending_flush();
 			arg1 = IPC_GET_ARG1(call);
 			arg2 = IPC_GET_ARG2(call);
-			screenbuffer_set_rgb_color(&conn->screenbuffer, arg1,
-			    arg2);
-			if (consnum == active_console)
+			screenbuffer_set_rgb_color(&cons->scr, arg1, arg2);
+			if (cons == active_console)
 				set_rgb_color(arg1, arg2);
 			break;
 		case CONSOLE_CURSOR_VISIBILITY:
 			fb_pending_flush();
 			arg1 = IPC_GET_ARG1(call);
-			conn->screenbuffer.is_cursor_visible = arg1;
-			if (consnum == active_console)
+			cons->scr.is_cursor_visible = arg1;
+			if (cons == active_console)
 				curs_visibility(arg1);
 			break;
-		case CONSOLE_GETKEY:
-			if (keybuffer_empty(&conn->keybuffer)) {
-				/* buffer is empty -> store request */
-				if (conn->keyrequest_counter <
-					MAX_KEYREQUESTS_BUFFERED) {
-					fifo_push(conn->keyrequests, callid);
-					conn->keyrequest_counter++;
-				} else {
-					/*
-					 * No key available and too many
-					 * requests => fail.
-					*/
-					ipc_answer_0(callid, ELIMIT);
-				}
-				continue;
-			}
-			kbd_event_t ev;
-			keybuffer_pop(&conn->keybuffer, &ev);
-			arg1 = ev.type;
-			arg2 = ev.key;
-			arg3 = ev.mods;
-			arg4 = ev.c;
-			break;
+		case CONSOLE_GET_EVENT:
+			async_serialize_end();
+			cons_get_event(cons, callid, &call);
+			async_serialize_start();
+			continue;
 		case CONSOLE_KCON_ENABLE:
-			change_console(KERNEL_CONSOLE);
+			change_console(kernel_console);
 			break;
 		}
-		ipc_answer_4(callid, EOK, arg1, arg2, arg3, arg4);
+		ipc_answer_3(callid, EOK, arg1, arg2, arg3);
 	}
 }
 
@@ -659,28 +708,23 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-int main(int argc, char *argv[])
+static bool console_init(void)
 {
-	printf(NAME ": HelenOS Console service\n");
-	
-	ipcarg_t phonehash;
-	size_t ib_size;
-	int i;
-	
-	async_set_client_connection(client_connection);
-	
 	/* Connect to keyboard driver */
+	
 	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	if (kbd_phone < 0) {
 		printf(NAME ": Failed to connect to keyboard service\n");
-		return -1;
+		return false;
 	}
 	
+	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from keyboard service\n");
-		return -1;
+		return false;
 	}
 	
+	async_set_pending(process_pending_input);
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 	
 	/* Connect to framebuffer driver */
@@ -690,47 +734,27 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	/* Disable kernel output to the console */
-	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
+	/* Register driver */
+	int rc = devmap_driver_register(NAME, client_connection);
+	if (rc < 0) {
+		printf(NAME ": Unable to register driver (%d)\n", rc);
+		return false;
+	}
 	
 	/* Initialize gcons */
 	gcons_init(fb_info.phone);
-	/* Synchronize, the gcons can have something in queue */
+	
+	/* Synchronize, the gcons could put something in queue */
 	async_req_0_0(fb_info.phone, FB_FLUSH);
-	
-	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.rows,
-	    &fb_info.cols); 
-	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
-	clrscr();
-	
-	/* Init virtual consoles */
-	for (i = 0; i < CONSOLE_COUNT; i++) {
-		connections[i].used = 0;
-		keybuffer_init(&connections[i].keybuffer);
-		
-		connections[i].keyrequests.head = 0;
-		connections[i].keyrequests.tail = 0;
-		connections[i].keyrequests.items = MAX_KEYREQUESTS_BUFFERED;
-		connections[i].keyrequest_counter = 0;
-		
-		if (screenbuffer_init(&connections[i].screenbuffer,
-		    fb_info.cols, fb_info.rows) == NULL) {
-			/* FIXME: handle error */
-			return -1;
-		}
-	}
-	connections[KERNEL_CONSOLE].used = 1;
+	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
 	
 	/* Set up shared memory buffer. */
-	ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
+	size_t ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;
 	interbuffer = as_get_mappable_page(ib_size);
 	
-	fb_pending.cnt = 0;
-	
 	if (as_area_create(interbuffer, ib_size, AS_AREA_READ |
-	    AS_AREA_WRITE | AS_AREA_CACHEABLE) != interbuffer) {
+	    AS_AREA_WRITE | AS_AREA_CACHEABLE) != interbuffer)
 		interbuffer = NULL;
-	}
 	
 	if (interbuffer) {
 		if (ipc_share_out_start(fb_info.phone, interbuffer,
@@ -740,13 +764,38 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	curs_goto(0, 0);
-	curs_visibility(
-	    connections[active_console].screenbuffer.is_cursor_visible);
+	fb_pending.cnt = 0;
 	
-	/* Register at NS */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CONSOLE, 0, 0, &phonehash) != 0)
-		return -1;
+	/* Inititalize consoles */
+	size_t i;
+	for (i = 0; i < CONSOLE_COUNT; i++) {
+		if (i != KERNEL_CONSOLE) {
+			if (screenbuffer_init(&consoles[i].scr,
+			    fb_info.cols, fb_info.rows) == NULL) {
+				printf(NAME ": Unable to allocate screen buffer %u\n", i);
+				return false;
+			}
+			screenbuffer_clear(&consoles[i].scr);
+			keybuffer_init(&consoles[i].keybuffer);
+			consoles[i].index = i;
+			consoles[i].refcount = 0;
+			
+			char vc[MAX_DEVICE_NAME];
+			snprintf(vc, MAX_DEVICE_NAME, "vc%u", i);
+			
+			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
+				devmap_hangup_phone(DEVMAP_DRIVER);
+				printf(NAME ": Unable to register device %s\n", vc);
+				return false;
+			}
+		}
+	}
+	
+	/* Initialize the screen */
+	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+	screen_clear();
+	curs_goto(0, 0);
+	curs_visibility(active_console->scr.is_cursor_visible);
 	
 	/* Receive kernel notifications */
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
@@ -754,8 +803,22 @@ int main(int argc, char *argv[])
 	
 	async_set_interrupt_received(interrupt_received);
 	
-	// FIXME: avoid connectiong to itself, keep using klog
-	// printf(NAME ": Accepting connections\n");
+	return true;
+}
+
+int main(int argc, char *argv[])
+{
+	printf(NAME ": HelenOS Console service\n");
+	
+	/* Disable kernel output to the console */
+	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
+	
+	if (!console_init()) {
+		__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+		return -1;
+	}
+	
+	printf(NAME ": Accepting connections\n");
 	async_manager();
 	
 	return 0;

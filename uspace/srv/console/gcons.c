@@ -39,6 +39,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <align.h>
+#include <bool.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -54,8 +55,9 @@
 
 #define MAIN_COLOR  0xffffff
 
-static int use_gcons = 0;
-static ipcarg_t xres,yres;
+static bool use_gcons = false;
+static ipcarg_t xres;
+static ipcarg_t yres;
 
 enum butstate {
 	CONS_DISCONNECTED = 0,
@@ -77,7 +79,14 @@ static int fbphone;
 static int ic_pixmaps[CONS_LAST] = {-1, -1, -1, -1, -1, -1};
 static int animation = -1;
 
-static int active_console = 0;
+static size_t active_console = 0;
+
+size_t mouse_x;
+size_t mouse_y;
+
+bool btn_pressed;
+size_t btn_x;
+size_t btn_y;
 
 static void vp_switch(int vp)
 {
@@ -85,8 +94,7 @@ static void vp_switch(int vp)
 }
 
 /** Create view port */
-static int vp_create(unsigned int x, unsigned int y, unsigned int width,
-    unsigned int height)
+static int vp_create(size_t x, size_t y, size_t width, size_t height)
 {
 	return async_req_2_0(fbphone, FB_VIEWPORT_CREATE, (x << 16) | y,
 	    (width << 16) | height);
@@ -97,48 +105,52 @@ static void clear(void)
 	async_msg_0(fbphone, FB_CLEAR);
 }
 
-static void set_rgb_color(int fgcolor, int bgcolor)
+static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 {
 	async_msg_2(fbphone, FB_SET_RGB_COLOR, fgcolor, bgcolor);
 }
 
 /** Transparent putchar */
-static void tran_putch(char c, int row, int col)
+static void tran_putch(wchar_t ch, size_t col, size_t row)
 {
-	async_msg_3(fbphone, FB_PUTCHAR, c, row, col);
+	async_msg_3(fbphone, FB_PUTCHAR, ch, col, row);
 }
 
 /** Redraw the button showing state of a given console */
-static void redraw_state(int consnum)
+static void redraw_state(size_t index)
 {
-	char data[5];
-	int i;
-	enum butstate state = console_state[consnum];
+	vp_switch(cstatus_vp[index]);
 	
-	vp_switch(cstatus_vp[consnum]);
+	enum butstate state = console_state[index];
+	
 	if (ic_pixmaps[state] != -1)
-		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[consnum],
+		async_msg_2(fbphone, FB_VP_DRAW_PIXMAP, cstatus_vp[index],
 		    ic_pixmaps[state]);
 	
-	if (state != CONS_DISCONNECTED && state != CONS_KERNEL &&
-	    state != CONS_DISCONNECTED_SEL) {
-		snprintf(data, 5, "%d", consnum + 1);
-		for (i = 0; data[i]; i++)
-			tran_putch(data[i], 1, 2 + i);
+	if ((state != CONS_DISCONNECTED) && (state != CONS_KERNEL)
+	    && (state != CONS_DISCONNECTED_SEL)) {
+		
+		char data[5];
+		snprintf(data, 5, "%u", index + 1);
+		
+		size_t i;
+		for (i = 0; data[i] != 0; i++)
+			tran_putch(data[i], 2 + i, 1);
 	}
 }
 
 /** Notification run on changing console (except kernel console) */
-void gcons_change_console(int consnum)
+void gcons_change_console(size_t index)
 {
-	int i;
-	
 	if (!use_gcons)
 		return;
 	
 	if (active_console == KERNEL_CONSOLE) {
+		size_t i;
+		
 		for (i = 0; i < CONSOLE_COUNT; i++)
 			redraw_state(i);
+		
 		if (animation != -1)
 			async_msg_1(fbphone, FB_ANIM_START, animation);
 	} else {
@@ -146,73 +158,74 @@ void gcons_change_console(int consnum)
 			console_state[active_console] = CONS_DISCONNECTED;
 		else
 			console_state[active_console] = CONS_IDLE;
+		
 		redraw_state(active_console);
 	}
-	active_console = consnum;
 	
-	if (console_state[consnum] == CONS_DISCONNECTED) {
-		console_state[consnum] = CONS_DISCONNECTED_SEL;
-		redraw_state(consnum);
-	} else
-		console_state[consnum] = CONS_SELECTED;
-	redraw_state(consnum);
+	active_console = index;
 	
+	if ((console_state[index] == CONS_DISCONNECTED)
+	    || (console_state[index] == CONS_DISCONNECTED_SEL))
+		console_state[index] = CONS_DISCONNECTED_SEL;
+	else
+		console_state[index] = CONS_SELECTED;
+	
+	redraw_state(index);
 	vp_switch(console_vp);
 }
 
 /** Notification function that gets called on new output to virtual console */
-void gcons_notify_char(int consnum)
+void gcons_notify_char(size_t index)
 {
 	if (!use_gcons)
 		return;
 	
-	if ((consnum == active_console) ||
-	    (console_state[consnum] == CONS_HAS_DATA))
+	if ((index == active_console)
+	    || (console_state[index] == CONS_HAS_DATA))
 		return;
 	
-	console_state[consnum] = CONS_HAS_DATA;
+	console_state[index] = CONS_HAS_DATA;
 	
 	if (active_console == KERNEL_CONSOLE)
 		return;
 	
-	redraw_state(consnum);
-	
+	redraw_state(index);
 	vp_switch(console_vp);
 }
 
 /** Notification function called on service disconnect from console */
-void gcons_notify_disconnect(int consnum)
+void gcons_notify_disconnect(size_t index)
 {
 	if (!use_gcons)
 		return;
 	
-	if (active_console == consnum)
-		console_state[consnum] = CONS_DISCONNECTED_SEL;
+	if (index == active_console)
+		console_state[index] = CONS_DISCONNECTED_SEL;
 	else
-		console_state[consnum] = CONS_DISCONNECTED;
+		console_state[index] = CONS_DISCONNECTED;
 	
 	if (active_console == KERNEL_CONSOLE)
 		return;
 	
-	redraw_state(consnum);
+	redraw_state(index);
 	vp_switch(console_vp);
 }
 
 /** Notification function called on console connect */
-void gcons_notify_connect(int consnum)
+void gcons_notify_connect(size_t index)
 {
 	if (!use_gcons)
 		return;
 	
-	if (active_console == consnum)
-		console_state[consnum] = CONS_SELECTED;
+	if (index == active_console)
+		console_state[index] = CONS_SELECTED;
 	else
-		console_state[consnum] = CONS_IDLE;
+		console_state[index] = CONS_IDLE;
 	
 	if (active_console == KERNEL_CONSOLE)
 		return;
 	
-	redraw_state(consnum);
+	redraw_state(index);
 	vp_switch(console_vp);
 }
 
@@ -226,25 +239,24 @@ void gcons_in_kernel(void)
 	vp_switch(0);
 }
 
-/** Return x, where left <= x <= right && |a-x|==min(|a-x|) is smallest */
-static inline int limit(int a, int left, int right)
+/** Return x, where left <= x <= right && |a-x| == min(|a-x|) is smallest */
+static inline int limit(size_t a, size_t left, size_t right)
 {
 	if (a < left)
 		a = left;
+	
 	if (a >= right)
 		a = right - 1;
+	
 	return a;
 }
-
-int mouse_x, mouse_y;
-int btn_pressed, btn_x, btn_y;
 
 /** Handle mouse move
  *
  * @param dx Delta X of mouse move
  * @param dy Delta Y of mouse move
  */
-void gcons_mouse_move(int dx, int dy)
+void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
 	mouse_x = limit(mouse_x + dx, 0, xres);
 	mouse_y = limit(mouse_y + dy, 0, yres);
@@ -272,16 +284,16 @@ static int gcons_find_conbut(int x, int y)
 
 /** Handle mouse click
  *
- * @param state New state (1-pressed, 0-depressed)
+ * @param state New state (true - pressed, false - depressed)
  */
-int gcons_mouse_btn(int state)
+int gcons_mouse_btn(bool state)
 {
 	int conbut;
 	
 	if (state) {
 		conbut = gcons_find_conbut(mouse_x, mouse_y);
 		if (conbut != -1) {
-			btn_pressed = 1;
+			btn_pressed = true;
 			btn_x = mouse_x;
 			btn_y = mouse_y;
 		}
@@ -291,7 +303,7 @@ int gcons_mouse_btn(int state)
 	if ((!state) && (!btn_pressed))
 		return -1;
 	
-	btn_pressed = 0;
+	btn_pressed = false;
 	
 	conbut = gcons_find_conbut(mouse_x, mouse_y);
 	if (conbut == gcons_find_conbut(btn_x, btn_y))
@@ -373,9 +385,11 @@ void gcons_redraw_console(void)
  *
  * @param data PPM data
  * @param size PPM data size
+ *
  * @return Pixmap identification
+ *
  */
-static int make_pixmap(char *data, int size)
+static int make_pixmap(char *data, size_t size)
 {
 	char *shm;
 	int rc;
@@ -464,13 +478,9 @@ extern int _binary_gfx_cons_kernel_ppm_size;
 /** Initialize nice graphical console environment */
 void gcons_init(int phone)
 {
-	int rc;
-	int i;
-	int status_start = STATUS_START;
-	
 	fbphone = phone;
 	
-	rc = async_req_0_2(phone, FB_GET_RESOLUTION, &xres, &yres);
+	int rc = async_req_0_2(phone, FB_GET_RESOLUTION, &xres, &yres);
 	if (rc)
 		return;
 	
@@ -483,17 +493,21 @@ void gcons_init(int phone)
 	console_vp = vp_create(CONSOLE_MARGIN, CONSOLE_TOP,
 	    ALIGN_DOWN(xres - 2 * CONSOLE_MARGIN, 8),
 	    ALIGN_DOWN(yres - (CONSOLE_TOP + CONSOLE_MARGIN), 16));
+	
 	if (console_vp < 0)
 		return;
 	
 	/* Create status buttons */
-	status_start += (xres - 800) / 2;
+	size_t status_start = STATUS_START + (xres - 800) / 2;
+	size_t i;
 	for (i = 0; i < CONSOLE_COUNT; i++) {
 		cstatus_vp[i] = vp_create(status_start + CONSOLE_MARGIN +
 		    i * (STATUS_WIDTH + STATUS_SPACE), STATUS_TOP,
 		    STATUS_WIDTH, STATUS_HEIGHT);
+		
 		if (cstatus_vp[i] < 0)
 			return;
+		
 		vp_switch(cstatus_vp[i]);
 		set_rgb_color(0x202020, 0xffffff);
 	}
@@ -501,26 +515,27 @@ void gcons_init(int phone)
 	/* Initialize icons */
 	ic_pixmaps[CONS_SELECTED] =
 	    make_pixmap(_binary_gfx_cons_selected_ppm_start,
-	    (int) &_binary_gfx_cons_selected_ppm_size);
+	    (size_t) &_binary_gfx_cons_selected_ppm_size);
 	ic_pixmaps[CONS_IDLE] =
 	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
-	    (int) &_binary_gfx_cons_idle_ppm_size);
+	    (size_t) &_binary_gfx_cons_idle_ppm_size);
 	ic_pixmaps[CONS_HAS_DATA] =
 	    make_pixmap(_binary_gfx_cons_has_data_ppm_start,
-	    (int) &_binary_gfx_cons_has_data_ppm_size);
+	    (size_t) &_binary_gfx_cons_has_data_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED] =
 	    make_pixmap(_binary_gfx_cons_idle_ppm_start,
-	    (int) &_binary_gfx_cons_idle_ppm_size);
+	    (size_t) &_binary_gfx_cons_idle_ppm_size);
 	ic_pixmaps[CONS_KERNEL] =
 	    make_pixmap(_binary_gfx_cons_kernel_ppm_start,
-	    (int) &_binary_gfx_cons_kernel_ppm_size);
+	    (size_t) &_binary_gfx_cons_kernel_ppm_size);
 	ic_pixmaps[CONS_DISCONNECTED_SEL] = ic_pixmaps[CONS_SELECTED];
 	
 	make_anim();
 	
-	use_gcons = 1;
+	use_gcons = true;
 	console_state[0] = CONS_DISCONNECTED_SEL;
 	console_state[KERNEL_CONSOLE] = CONS_KERNEL;
+	
 	gcons_redraw_console();
 }
 

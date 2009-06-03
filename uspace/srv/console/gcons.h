@@ -32,18 +32,23 @@
 /** @file
  */
 
-#ifndef _GCONS_H_
-#define _GCONS_H_
+#ifndef GCONS_H_
+#define GCONS_H_
+
+#include <sys/types.h>
 
 void gcons_init(int phone);
+
 void gcons_redraw_console(void);
-void gcons_change_console(int consnum);
-void gcons_notify_char(int consnum);
+void gcons_change_console(size_t index);
+void gcons_notify_char(size_t index);
 void gcons_in_kernel(void);
-void gcons_notify_connect(int consnum);
-void gcons_notify_disconnect(int consnum);
-void gcons_mouse_move(int dx, int dy);
-int gcons_mouse_btn(int state);
+
+void gcons_notify_connect(size_t index);
+void gcons_notify_disconnect(size_t index);
+
+void gcons_mouse_move(ssize_t dx, ssize_t dy);
+int gcons_mouse_btn(bool state);
 
 #endif
 

@@ -37,9 +37,10 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <bool.h>
 
-#define DEFAULT_FOREGROUND 0x0       /**< default console foreground color */
-#define DEFAULT_BACKGROUND 0xf0f0f0  /**< default console background color */
+#define DEFAULT_FOREGROUND  0x0       /**< default console foreground color */
+#define DEFAULT_BACKGROUND  0xf0f0f0  /**< default console background color */
 
 typedef struct {
 	uint8_t style;
@@ -72,25 +73,25 @@ typedef struct {
 /** One field on screen. It contain one character and its attributes. */
 typedef struct {
 	wchar_t character;  /**< Character itself */
-	attrs_t attrs;      /**< Character`s attributes */
+	attrs_t attrs;      /**< Character attributes */
 } keyfield_t;
 
 /** Structure for buffering state of one virtual console.
  */
 typedef struct {
-	keyfield_t *buffer;               /**< Screen content - characters and
-	                                       their attributes (used as a circular buffer) */
-	unsigned int size_x;              /**< Number of columns  */
-	unsigned int size_y;              /**< Number of rows */
+	keyfield_t *buffer;      /**< Screen content - characters and
+	                              their attributes (used as a circular buffer) */
+	size_t size_x;           /**< Number of columns  */
+	size_t size_y;           /**< Number of rows */
 	
 	/** Coordinates of last printed character for determining cursor position */
-	unsigned int position_x;
-	unsigned int position_y;
+	size_t position_x;
+	size_t position_y;
 	
-	attrs_t attrs;                    /**< Current attributes. */
-	unsigned int top_line;            /**< Points to buffer[][] line that will
-	                                       be printed at screen as the first line */
-	unsigned char is_cursor_visible;  /**< Cursor state - default is visible */
+	attrs_t attrs;           /**< Current attributes. */
+	size_t top_line;         /**< Points to buffer[][] line that will
+	                              be printed at screen as the first line */
+	bool is_cursor_visible;  /**< Cursor state - default is visible */
 } screenbuffer_t;
 
 /** Returns keyfield for position on screen
@@ -105,7 +106,7 @@ typedef struct {
  * @return Keyfield structure with character and its attributes on x, y
  *
  */
-static inline keyfield_t *get_field_at(screenbuffer_t *scr, unsigned int x, unsigned int y)
+static inline keyfield_t *get_field_at(screenbuffer_t *scr, size_t x, size_t y)
 {
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
@@ -138,17 +139,17 @@ static inline int attrs_same(attrs_t a1, attrs_t a2)
 
 
 void screenbuffer_putchar(screenbuffer_t *scr, wchar_t c);
-screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y);
+screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, size_t size_x, size_t size_y);
 
 void screenbuffer_clear(screenbuffer_t *scr);
-void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line);
+void screenbuffer_clear_line(screenbuffer_t *scr, size_t line);
 void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest);
-void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y);
-void screenbuffer_set_style(screenbuffer_t *scr, int style);
-void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color,
-    unsigned int bg_color, unsigned int attr);
-void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color,
-    unsigned int bg_color);
+void screenbuffer_goto(screenbuffer_t *scr, size_t x, size_t y);
+void screenbuffer_set_style(screenbuffer_t *scr, uint8_t style);
+void screenbuffer_set_color(screenbuffer_t *scr, uint8_t fg_color,
+    uint8_t bg_color, uint8_t attr);
+void screenbuffer_set_rgb_color(screenbuffer_t *scr, uint32_t fg_color,
+    uint32_t bg_color);
 
 #endif
 

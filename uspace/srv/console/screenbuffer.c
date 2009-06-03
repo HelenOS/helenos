@@ -33,7 +33,7 @@
  */
 
 #include <screenbuffer.h>
-#include <console/style.h>
+#include <io/style.h>
 #include <malloc.h>
 #include <unistd.h>
 
@@ -66,7 +66,7 @@ void screenbuffer_putchar(screenbuffer_t *scr, wchar_t ch)
  * @return Pointer to screenbuffer (same as scr parameter) or NULL
  *
  */
-screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y) 
+screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, size_t size_x, size_t size_y)
 {
 	scr->buffer = (keyfield_t *) malloc(sizeof(keyfield_t) * size_x * size_y);
 	if (!scr->buffer)
@@ -90,7 +90,7 @@ screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, int size_x, int size_y)
  */
 void screenbuffer_clear(screenbuffer_t *scr)
 {
-	unsigned int i;
+	size_t i;
 	
 	for (i = 0; i < (scr->size_x * scr->size_y); i++) {
 		scr->buffer[i].character = ' ';
@@ -98,8 +98,8 @@ void screenbuffer_clear(screenbuffer_t *scr)
 	}
 	
 	scr->top_line = 0;
-	scr->position_y = 0;
 	scr->position_x = 0;
+	scr->position_y = 0;
 }
 
 /** Clear one buffer line.
@@ -108,13 +108,13 @@ void screenbuffer_clear(screenbuffer_t *scr)
  * @param line One buffer line (not a screen line!)
  *
  */
-void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
+void screenbuffer_clear_line(screenbuffer_t *scr, size_t line)
 {
-	unsigned int i;
+	size_t x;
 	
-	for (i = 0; i < scr->size_x; i++) {
-		scr->buffer[i + line * scr->size_x].character = ' ';
-		scr->buffer[i + line * scr->size_x].attrs = scr->attrs;
+	for (x = 0; x < scr->size_x; x++) {
+		scr->buffer[x + line * scr->size_x].character = ' ';
+		scr->buffer[x + line * scr->size_x].attrs = scr->attrs;
 	}
 }
 
@@ -124,11 +124,11 @@ void screenbuffer_clear_line(screenbuffer_t *scr, unsigned int line)
  * @param dest Destination
  *
  */
-void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest) 
+void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
 {
-	unsigned int i;
+	size_t i;
 	
-	for (i = 0; i < scr->size_x * scr->size_y; i++)
+	for (i = 0; i < (scr->size_x * scr->size_y); i++)
 		dest[i] = scr->buffer[i];
 }
 
@@ -139,7 +139,7 @@ void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest)
  * @param y
  *
  */
-void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
+void screenbuffer_goto(screenbuffer_t *scr, size_t x, size_t y)
 {
 	scr->position_x = x % scr->size_x;
 	scr->position_y = y % scr->size_y;
@@ -152,7 +152,7 @@ void screenbuffer_goto(screenbuffer_t *scr, unsigned int x, unsigned int y)
  * @param bg_color
  *
  */
-void screenbuffer_set_style(screenbuffer_t *scr, int style)
+void screenbuffer_set_style(screenbuffer_t *scr, uint8_t style)
 {
 	scr->attrs.t = at_style;
 	scr->attrs.a.s.style = style;
@@ -165,7 +165,7 @@ void screenbuffer_set_style(screenbuffer_t *scr, int style)
  * @param bg_color
  *
  */
-void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color, unsigned int flags)
+void screenbuffer_set_color(screenbuffer_t *scr, uint8_t fg_color, uint8_t bg_color, uint8_t flags)
 {
 	scr->attrs.t = at_idx;
 	scr->attrs.a.i.fg_color = fg_color;
@@ -180,7 +180,7 @@ void screenbuffer_set_color(screenbuffer_t *scr, unsigned int fg_color, unsigned
  * @param bg_color
  *
  */
-void screenbuffer_set_rgb_color(screenbuffer_t *scr, unsigned int fg_color, unsigned int bg_color)
+void screenbuffer_set_rgb_color(screenbuffer_t *scr, uint32_t fg_color, uint32_t bg_color)
 {
 	scr->attrs.t = at_rgb;
 	scr->attrs.a.r.fg_color = fg_color;

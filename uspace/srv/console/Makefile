@@ -46,7 +46,7 @@ OUTPUT = console
 GENERIC_SOURCES = \
 	console.c \
 	screenbuffer.c \
-	../kbd/generic/key_buffer.c \
+	../kbd/generic/keybuffer.c \
 	gcons.c
 
 IMAGES = \
