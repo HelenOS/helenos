@@ -38,37 +38,25 @@
 #include <io/printf_core.h>
 #include <futex.h>
 #include <async.h>
-#include <console.h>
+#include <string.h>
 
 static atomic_t printf_futex = FUTEX_INITIALIZER;
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
+static int vprintf_str_write(const char *str, size_t size, void *stream)
 {
-	size_t offset = 0;
-	size_t prev;
-	count_t chars = 0;
-	
-	while (offset < size) {
-		prev = offset;
-		str_decode(str, &offset, size);
-		console_write(str + prev, offset - prev);
-		chars++;
-	}
-	
-	return chars;
+	size_t wr = fwrite(str, 1, size, (FILE *) stream);
+	return str_nlength(str, wr);
 }
 
-static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)
 {
 	size_t offset = 0;
-	size_t boff;
-	count_t chars = 0;
-	char buf[4];
+	size_t chars = 0;
 	
 	while (offset < size) {
-		boff = 0;
-		chr_encode(str[chars], buf, &boff, 4);
-		console_write(buf, boff);
+		if (fputc(str[chars], (FILE *) stream) <= 0)
+			break;
+		
 		chars++;
 		offset += sizeof(wchar_t);
 	}
@@ -76,32 +64,54 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 	return chars;
 }
 
-
 /** Print formatted text.
- * @param fmt	format string
- * @param ap	format parameters
+ *
+ * @param stream Output stream
+ * @param fmt    Format string
+ * @param ap     Format parameters
+ *
  * \see For more details about format string see printf_core.
+ *
  */
-int vprintf(const char *fmt, va_list ap)
+int vfprintf(FILE *stream, const char *fmt, va_list ap)
 {
 	struct printf_spec ps = {
 		vprintf_str_write,
 		vprintf_wstr_write,
-		 NULL
+		stream
 	};
+	
 	/*
 	 * Prevent other threads to execute printf_core()
 	 */
 	futex_down(&printf_futex);
+	
 	/*
 	 * Prevent other pseudo threads of the same thread
 	 * to execute printf_core()
 	 */
 	async_serialize_start();
+	
 	int ret = printf_core(fmt, &ps, ap);
+	
 	async_serialize_end();
 	futex_up(&printf_futex);
+	
 	return ret;
+}
+
+/** Print formatted text to stdout.
+ *
+ * @param file Output stream
+ * @param fmt  Format string
+ * @param ap   Format parameters
+ *
+ * \see For more details about format string see printf_core.
+ *
+ */
+int vprintf(const char *fmt, va_list ap)
+{
+	return vfprintf(stdout, fmt, ap);
 }
 
 /** @}

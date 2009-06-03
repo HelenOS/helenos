@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,26 +32,15 @@
 /** @file
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <io/printf_core.h>
+#ifndef LIBC_STREAM_H_
+#define LIBC_STREAM_H_
 
-/** Print formatted to the given buffer.
- * @param str	buffer
- * @param fmt	format string
- * \see For more details about format string see printf_core.
- */
-int sprintf(char *str, const char *fmt, ...)
-{
-	int ret;
-	va_list args;
-	
-	va_start(args, fmt);
-	ret = vsprintf(str, fmt, args);
-	va_end(args);
+#include <sys/types.h>
 
-	return ret;
-}
+extern size_t klog_write(const void *buf, size_t size);
+extern void klog_update(void);
+
+#endif
 
 /** @}
  */

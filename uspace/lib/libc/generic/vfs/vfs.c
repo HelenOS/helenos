@@ -49,12 +49,13 @@
 #include <errno.h>
 #include <string.h>
 #include <devmap.h>
-#include "../../../srv/vfs/vfs.h"
+#include <ipc/vfs.h>
+#include <ipc/devmap.h>
 
-int vfs_phone = -1;
-futex_t vfs_phone_futex = FUTEX_INITIALIZER;
+static int vfs_phone = -1;
+static futex_t vfs_phone_futex = FUTEX_INITIALIZER;
+static futex_t cwd_futex = FUTEX_INITIALIZER;
 
-futex_t cwd_futex = FUTEX_INITIALIZER;
 DIR *cwd_dir = NULL;
 char *cwd_path = NULL;
 size_t cwd_size = 0;
@@ -210,15 +211,37 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
-
+	
 	if (rc != EOK)
 	    return (int) rc;
+	
 	return (int) IPC_GET_ARG1(answer);
 }
 
 int open(const char *path, int oflag, ...)
 {
 	return _open(path, L_FILE, oflag);
+}
+
+int open_node(fs_node_t *node, int oflag)
+{
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_4(vfs_phone, VFS_OPEN_NODE, node->fs_handle,
+	    node->dev_handle, node->index, oflag, &answer);
+	
+	ipcarg_t rc;
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	
+	if (rc != EOK)
+	    return (int) rc;
+	
+	return (int) IPC_GET_ARG1(answer);
 }
 
 int close(int fildes)
@@ -289,6 +312,64 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return (ssize_t) IPC_GET_ARG1(answer);
 	else
 		return -1;
+}
+
+int fd_phone(int fildes)
+{
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	ipcarg_t device;
+	ipcarg_t rc = async_req_1_1(vfs_phone, VFS_DEVICE, fildes, &device);
+	
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	
+	if (rc != EOK)
+		return -1;
+	
+	return devmap_device_connect((dev_handle_t) device, 0);
+}
+
+void fd_node(int fildes, fs_node_t *node)
+{
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	ipcarg_t fs_handle;
+	ipcarg_t dev_handle;
+	ipcarg_t index;
+	ipcarg_t rc = async_req_1_3(vfs_phone, VFS_NODE, fildes, &fs_handle,
+	    &dev_handle, &index);
+	
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	
+	if (rc == EOK) {
+		node->fs_handle = (fs_handle_t) fs_handle;
+		node->dev_handle = (dev_handle_t) dev_handle;
+		node->index = (fs_index_t) index;
+	} else {
+		node->fs_handle = 0;
+		node->dev_handle = 0;
+		node->index = 0;
+	}
+}
+
+int fsync(int fildes)
+{
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	ipcarg_t rc = async_req_1_0(vfs_phone, VFS_SYNC, fildes);
+	
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	
+	return (int) rc;
 }
 
 off_t lseek(int fildes, off_t offset, int whence)
@@ -386,7 +467,7 @@ int mkdir(const char *path, mode_t mode)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
-	return rc; 
+	return rc;
 }
 
 static int _unlink(const char *path, int lflag)
@@ -416,7 +497,7 @@ static int _unlink(const char *path, int lflag)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	free(pa);
-	return rc; 
+	return rc;
 }
 
 int unlink(const char *path)

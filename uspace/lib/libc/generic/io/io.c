@@ -30,97 +30,338 @@
  * @{
  */
 /** @file
- */ 
+ */
 
-#include <libc.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <io/io.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-#include <console.h>
+#include <bool.h>
+#include <malloc.h>
+#include <io/klog.h>
+#include <vfs/vfs.h>
+#include <ipc/devmap.h>
 
-const static char nl = '\n';
+FILE stdin_null = {
+	.fd = -1,
+	.error = true,
+	.eof = true,
+	.klog = false,
+	.phone = -1
+};
 
-int puts(const char *str)
+FILE stdout_klog = {
+	.fd = -1,
+	.error = false,
+	.eof = false,
+	.klog = true,
+	.phone = -1
+};
+
+FILE *stdin = &stdin_null;
+FILE *stdout = &stdout_klog;
+FILE *stderr = &stdout_klog;
+
+static bool parse_mode(const char *mode, int *flags)
 {
-	size_t count;
+	/* Parse mode except first character. */
+	const char *mp = mode;
+	if (*mp++ == 0) {
+		errno = EINVAL;
+		return false;
+	}
 	
-	if (str == NULL)
-		return putnchars("(NULL)", 6);
+	if ((*mp == 'b') || (*mp == 't'))
+		mp++;
 	
-	for (count = 0; str[count] != 0; count++);
+	bool plus;
+	if (*mp == '+') {
+		mp++;
+		plus = true;
+	} else
+		plus = false;
 	
-	if (console_write((void *) str, count) == count) {
-		if (console_write(&nl, 1) == 1)
-			return 0;
+	if (*mp != 0) {
+		errno = EINVAL;
+		return false;
+	}
+	
+	/* Parse first character of mode and determine flags for open(). */
+	switch (mode[0]) {
+	case 'r':
+		*flags = plus ? O_RDWR : O_RDONLY;
+		break;
+	case 'w':
+		*flags = (O_TRUNC | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+		break;
+	case 'a':
+		/* TODO: a+ must read from beginning, append to the end. */
+		if (plus) {
+			errno = ENOTSUP;
+			return false;
+		}
+		*flags = (O_APPEND | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+	default:
+		errno = EINVAL;
+		return false;
+	}
+	
+	return true;
+}
+
+/** Open a stream.
+ *
+ * @param path Path of the file to open.
+ * @param mode Mode string, (r|w|a)[b|t][+].
+ *
+ */
+FILE *fopen(const char *path, const char *mode)
+{
+	int flags;
+	if (!parse_mode(mode, &flags))
+		return NULL;
+	
+	/* Open file. */
+	FILE *stream = malloc(sizeof(FILE));
+	if (stream == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	stream->fd = open(path, flags, 0666);
+	if (stream->fd < 0) {
+		/* errno was set by open() */
+		free(stream);
+		return NULL;
+	}
+	
+	stream->error = false;
+	stream->eof = false;
+	stream->klog = false;
+	stream->phone = -1;
+	
+	return stream;
+}
+
+FILE *fopen_node(fs_node_t *node, const char *mode)
+{
+	int flags;
+	if (!parse_mode(mode, &flags))
+		return NULL;
+	
+	/* Open file. */
+	FILE *stream = malloc(sizeof(FILE));
+	if (stream == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	stream->fd = open_node(node, flags);
+	if (stream->fd < 0) {
+		/* errno was set by open_node() */
+		free(stream);
+		return NULL;
+	}
+	
+	stream->error = false;
+	stream->eof = false;
+	stream->klog = false;
+	stream->phone = -1;
+	
+	return stream;
+}
+
+int fclose(FILE *stream)
+{
+	int rc = 0;
+	
+	fflush(stream);
+	
+	if (stream->phone >= 0)
+		ipc_hangup(stream->phone);
+	
+	if (stream->fd >= 0)
+		rc = close(stream->fd);
+	
+	if ((stream != &stdin_null) && (stream != &stdout_klog))
+		free(stream);
+	
+	stream = NULL;
+	
+	if (rc != 0) {
+		/* errno was set by close() */
+		return EOF;
+	}
+	
+	return 0;
+}
+
+/** Read from a stream.
+ *
+ * @param buf    Destination buffer.
+ * @param size   Size of each record.
+ * @param nmemb  Number of records to read.
+ * @param stream Pointer to the stream.
+ *
+ */
+size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
+{
+	size_t left = size * nmemb;
+	size_t done = 0;
+	
+	while ((left > 0) && (!stream->error) && (!stream->eof)) {
+		ssize_t rd = read(stream->fd, buf + done, left);
+		
+		if (rd < 0)
+			stream->error = true;
+		else if (rd == 0)
+			stream->eof = true;
+		else {
+			left -= rd;
+			done += rd;
+		}
+	}
+	
+	return (done / size);
+}
+
+/** Write to a stream.
+ *
+ * @param buf    Source buffer.
+ * @param size   Size of each record.
+ * @param nmemb  Number of records to write.
+ * @param stream Pointer to the stream.
+ *
+ */
+size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
+{
+	size_t left = size * nmemb;
+	size_t done = 0;
+	
+	while ((left > 0) && (!stream->error)) {
+		ssize_t wr;
+		
+		if (stream->klog)
+			wr = klog_write(buf + done, left);
+		else
+			wr = write(stream->fd, buf + done, left);
+		
+		if (wr <= 0)
+			stream->error = true;
+		else {
+			left -= wr;
+			done += wr;
+		}
+	}
+	
+	return (done / size);
+}
+
+int fputc(wchar_t c, FILE *stream)
+{
+	char buf[STR_BOUNDS(1)];
+	size_t sz = 0;
+	
+	if (chr_encode(c, buf, &sz, STR_BOUNDS(1)) == EOK) {
+		size_t wr = fwrite(buf, sz, 1, stream);
+		
+		if (wr < sz)
+			return EOF;
+		
+		return (int) c;
 	}
 	
 	return EOF;
 }
 
-/** Put count chars from buffer to stdout without adding newline
- * @param buf Buffer with size at least count bytes - NULL pointer NOT allowed!
- * @param count 
- * @return 0 on succes, EOF on fail
- */
-int putnchars(const char *buf, size_t count)
+int putchar(wchar_t c)
 {
-	if (console_write((void *) buf, count) == count)
-		return 0;
-	
-	return EOF;
+	return fputc(c, stdout);
 }
 
-/** Same as puts, but does not print newline at end
- *
- */
-int putstr(const char *str)
+int fputs(const char *str, FILE *stream)
 {
-	size_t count;
-	
-	if (str == NULL)
-		return putnchars("(NULL)", 6);
-
-	for (count = 0; str[count] != 0; count++);
-	if (console_write((void *) str, count) == count)
-		return 0;
-	
-	return EOF;
+	return fwrite(str, str_size(str), 1, stream);
 }
 
-int putchar(int c)
+int puts(const char *str)
 {
-	char buf[STR_BOUNDS(1)];
-	size_t offs;
+	return fputs(str, stdout);
+}
 
-	offs = 0;
-	if (chr_encode(c, buf, &offs, STR_BOUNDS(1)) != EOK)
+int fgetc(FILE *stream)
+{
+	char c;
+	
+	if (fread(&c, sizeof(char), 1, stream) < sizeof(char))
 		return EOF;
-
-	if (console_write((void *) buf, offs) == offs)
-		return c;
-
-	return EOF;
+	
+	return (int) c;
 }
 
 int getchar(void)
 {
-	unsigned char c;
-	
-	console_flush();
-	if (read_stdin((void *) &c, 1) == 1)
-		return c;
-	
-	return EOF;
+	return fgetc(stdin);
 }
 
-int fflush(FILE *f)
+int fseek(FILE *stream, long offset, int origin)
 {
-	/* Dummy implementation */
-	(void) f;
-	console_flush();
+	off_t rc = lseek(stream->fd, offset, origin);
+	if (rc == (off_t) (-1)) {
+		/* errno has been set by lseek. */
+		return -1;
+	}
+	
+	stream->eof = false;
+	
 	return 0;
+}
+
+int fflush(FILE *stream)
+{
+	if (stream->klog) {
+		klog_update();
+		return EOK;
+	}
+	
+	if (stream->fd >= 0)
+		return fsync(stream->fd);
+	
+	return ENOENT;
+}
+
+int feof(FILE *stream)
+{
+	return stream->eof;
+}
+
+int ferror(FILE *stream)
+{
+	return stream->error;
+}
+
+int fphone(FILE *stream)
+{
+	if (stream->fd >= 0) {
+		if (stream->phone < 0)
+			stream->phone = fd_phone(stream->fd);
+		
+		return stream->phone;
+	}
+	
+	return -1;
+}
+
+void fnode(FILE *stream, fs_node_t *node)
+{
+	if (stream->fd >= 0) {
+		fd_node(stream->fd, node);
+	} else {
+		node->fs_handle = 0;
+		node->dev_handle = 0;
+		node->index = 0;
+	}
 }
 
 /** @}

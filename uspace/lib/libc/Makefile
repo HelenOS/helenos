@@ -46,7 +46,6 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
-	generic/console.c \
 	generic/devmap.c \
 	generic/event.c \
 	generic/mem.c \
@@ -61,15 +60,12 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \
-	generic/io/fprintf.c \
-	generic/io/stdio.c \
-	generic/io/stream.c \
-	generic/io/sprintf.c \
+	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \
-	generic/io/vsprintf.c \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
+	generic/io/console.c \
 	malloc/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
@@ -81,7 +77,6 @@ GENERIC_SOURCES = \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \
-	generic/kbd.c \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \

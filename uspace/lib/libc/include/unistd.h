@@ -39,26 +39,30 @@
 #include <libarch/config.h>
 
 #ifndef NULL
-#define NULL 0
+	#define NULL  0
 #endif
 
-#define getpagesize()     (PAGE_SIZE)
+#define getpagesize()  (PAGE_SIZE)
 
 #ifndef SEEK_SET
-	#define SEEK_SET	0
-	#define SEEK_CUR	1
-	#define SEEK_END	2
+	#define SEEK_SET  0
+	#define SEEK_CUR  1
+	#define SEEK_END  2
 #endif
 
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
+
 extern off_t lseek(int, off_t, int);
 extern int ftruncate(int, off_t);
+
 extern int close(int);
+extern int fsync(int);
 extern int unlink(const char *);
+
+extern char *getcwd(char *buf, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
-extern char *getcwd(char *buf, size_t);
 
 extern void _exit(int status) __attribute__ ((noreturn));
 extern void *sbrk(ssize_t incr);

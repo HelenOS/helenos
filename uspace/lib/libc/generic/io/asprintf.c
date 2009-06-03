@@ -36,42 +36,52 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <io/printf_core.h>
 
-static int asprintf_prewrite(const char *str, size_t count, void *unused)
+static int asprintf_str_write(const char *str, size_t count, void *unused)
 {
-	return count;
+	return str_nlength(str, count);
+}
+
+static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
+{
+	return wstr_nlength(str, count);
 }
 
 /** Allocate and print to string.
  *
- * @param strp		Address of the pointer where to store the address of
- * 			the newly allocated string.
- * @fmt			Format strin.
+ * @param strp Address of the pointer where to store the address of
+ *             the newly allocated string.
+ * @fmt        Format string.
  *
- * @return		Number of characters printed or a negative error code.
+ * @return Number of characters printed or a negative error code.
+ *
  */
 int asprintf(char **strp, const char *fmt, ...)
 {
 	struct printf_spec ps = {
-		 asprintf_prewrite,
-		 NULL
+		asprintf_str_write,
+		asprintf_wstr_write,
+		NULL
 	};
-	int ret;
+	
 	va_list args;
-
 	va_start(args, fmt);
-	ret = printf_core(fmt, &ps, args);
+	
+	int ret = printf_core(fmt, &ps, args);
 	va_end(args);
+	
 	if (ret > 0) {
-		*strp = malloc(ret + 20);
-		if (!*strp)
+		*strp = malloc(STR_BOUNDS(ret) + 1);
+		if (*strp == NULL)
 			return -1;
+		
 		va_start(args, fmt);
-		vsprintf(*strp, fmt, args);
-		va_end(args);		
+		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
+		va_end(args);
 	}
-
+	
 	return ret;
 }
 

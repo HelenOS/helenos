@@ -37,21 +37,23 @@
 #include <io/printf_core.h>
 
 /** Print formatted to the given buffer with limited size.
- * @param str	buffer
- * @param size	buffer size
- * @param fmt	format string
+ *
+ * @param str  Buffer
+ * @param size Buffer size
+ * @param fmt  Format string
+ *
  * \see For more details about format string see printf_core.
+ *
  */
 int snprintf(char *str, size_t size, const char *fmt, ...)
 {
-	int ret;
 	va_list args;
-	
 	va_start(args, fmt);
-	ret = vsnprintf(str, size, fmt, args);
-
+	
+	int ret = vsnprintf(str, size, fmt, args);
+	
 	va_end(args);
-
+	
 	return ret;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,39 +27,29 @@
  */
 
 /** @addtogroup libc
- * @{ 
+ * @{
  */
 /** @file
  */
 
-#ifndef LIBC_KBD_H_
-#define LIBC_KBD_H_
+#ifndef LIBC_IO_COLOR_H_
+#define LIBC_IO_COLOR_H_
 
-#include <sys/types.h>
-
-typedef enum kbd_ev_type {
-	KE_PRESS,
-	KE_RELEASE
-} kbd_ev_type_t;
-
-/** Keyboard event structure. */
-typedef struct {
-	/** Press or release event. */
-	kbd_ev_type_t type;
-
-	/** Keycode of the key that was pressed or released. */
-	unsigned int key;
-
-	/** Bitmask of modifiers held. */
-	unsigned int mods;
-
-	/** The character that was generated or '\0' for none. */
-	wchar_t c;
-} kbd_event_t;
-
-extern int kbd_get_event(kbd_event_t *);
+enum console_color {
+	COLOR_BLACK   = 0,
+	COLOR_BLUE    = 1,
+	COLOR_GREEN   = 2,
+	COLOR_CYAN    = 3,
+	COLOR_RED     = 4,
+	COLOR_MAGENTA = 5,
+	COLOR_YELLOW  = 6,
+	COLOR_WHITE   = 7,
+	
+	CATTR_BRIGHT  = 8,
+	CATTR_BLINK   = 8
+};
 
 #endif
- 
+
 /** @}
  */

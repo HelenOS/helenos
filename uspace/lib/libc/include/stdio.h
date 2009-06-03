@@ -38,75 +38,88 @@
 #include <sys/types.h>
 #include <stdarg.h>
 
-#define EOF (-1)
-
-#include <string.h>
-#include <io/stream.h>
+#define EOF  (-1)
 
 #define DEBUG(fmt, ...) \
 { \
 	char buf[256]; \
-	int n; \
-	n = snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__); \
+	int n = snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__); \
 	if (n > 0) \
 		(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, str_size(buf)); \
 }
 
+#ifndef SEEK_SET
+	#define SEEK_SET  0
+	#define SEEK_CUR  1
+	#define SEEK_END  2
+#endif
+
 typedef struct {
 	/** Underlying file descriptor. */
 	int fd;
-
+	
 	/** Error indicator. */
 	int error;
-
+	
 	/** End-of-file indicator. */
 	int eof;
+	
+	/** Klog indicator */
+	int klog;
+	
+	/** Phone to the file provider */
+	int phone;
 } FILE;
 
-extern FILE *stdin, *stdout, *stderr;
+extern FILE stdin_null;
+extern FILE stdout_klog;
+
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
+
+/* Character and string input functions */
+extern int fgetc(FILE *);
+extern char *fgets(char *, size_t, FILE *);
 
 extern int getchar(void);
+extern char *gets(char *, size_t);
 
+/* Character and string output functions */
+extern int fputc(wchar_t, FILE *);
+extern int fputs(const char *, FILE *);
+
+extern int putchar(wchar_t);
 extern int puts(const char *);
-extern int putchar(int);
-extern int fflush(FILE *);
+
+/* Formatted string output functions */
+extern int fprintf(FILE *, const char*, ...);
+extern int vfprintf(FILE *, const char *, va_list);
 
 extern int printf(const char *, ...);
-extern int asprintf(char **, const char *, ...);
-extern int sprintf(char *, const char *, ...);
-extern int snprintf(char *, size_t , const char *, ...);
-
 extern int vprintf(const char *, va_list);
-extern int vsprintf(char *, const char *, va_list);
+
+extern int snprintf(char *, size_t , const char *, ...);
+extern int asprintf(char **, const char *, ...);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
-extern int rename(const char *, const char *);
-
+/* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern int fclose(FILE *);
+
 extern size_t fread(void *, size_t, size_t, FILE *);
 extern size_t fwrite(const void *, size_t, size_t, FILE *);
+
+extern int fseek(FILE *, long, int);
+extern int ftell(FILE *);
 extern int feof(FILE *);
+
+extern int fflush(FILE *);
 extern int ferror(FILE *);
 extern void clearerr(FILE *);
 
-extern int fgetc(FILE *);
-extern int fputc(int, FILE *);
-extern int fputs(const char *, FILE *);
-
-extern int fprintf(FILE *, const char *, ...);
-extern int vfprintf(FILE *, const char *, va_list);
-
-#define getc fgetc
-#define putc fputc
-
-extern int fseek(FILE *, long, int);
-
-#ifndef SEEK_SET
-	#define SEEK_SET	0
-	#define SEEK_CUR	1
-	#define SEEK_END	2
-#endif
+/* Misc file functions */
+extern int rename(const char *, const char *);
 
 #endif
 

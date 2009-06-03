@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,33 +30,49 @@
  * @{
  */
 /** @file
- */ 
+ */
 
-#include <stdio.h>
-#include <io/stream.h>
-#include <kbd/kbd.h>
+#ifndef LIBC_IO_CONSOLE_H_
+#define LIBC_IO_CONSOLE_H_
+
 #include <ipc/ipc.h>
-#include <ipc/console.h>
-#include <console.h>
-#include <async.h>
+#include <bool.h>
 
-int kbd_get_event(kbd_event_t *ev)
-{
-	int cons_phone = console_open(true);
-	ipcarg_t r0, r1, r2, r3;
-	int rc;
+typedef enum {
+	KEY_PRESS,
+	KEY_RELEASE
+} console_ev_type_t;
 
-	rc = async_req_0_4(cons_phone, CONSOLE_GETKEY, &r0, &r1, &r2, &r3);
-	if (rc < 0)
-		return -1;
+/** Console event structure. */
+typedef struct {
+	/** Press or release event. */
+	console_ev_type_t type;
+	
+	/** Keycode of the key that was pressed or released. */
+	unsigned int key;
+	
+	/** Bitmask of modifiers held. */
+	unsigned int mods;
+	
+	/** The character that was generated or '\0' for none. */
+	wchar_t c;
+} console_event_t;
 
-	ev->type = r0;
-	ev->key = r1;
-	ev->mods = r2;
-	ev->c = r3;
+extern void console_clear(int phone);
 
-	return 0;
-}
+extern int console_get_size(int phone, ipcarg_t *rows, ipcarg_t *cols);
+extern void console_goto(int phone, ipcarg_t row, ipcarg_t col);
+
+extern void console_set_style(int phone, int style);
+extern void console_set_color(int phone, int fg_color, int bg_color, int flags);
+extern void console_set_rgb_color(int phone, int fg_color, int bg_color);
+
+extern void console_cursor_visibility(int phone, bool show);
+extern void console_kcon_enable(int phone);
+
+extern bool console_get_event(int phone, console_event_t *event);
+
+#endif
 
 /** @}
  */

@@ -27,13 +27,13 @@
  */
 
 /** @addtogroup libc
- * @{ 
+ * @{
  */
 /** @file
  */
 
-#ifndef LIBC_KBD_KEYCODE_H_
-#define LIBC_KBD_KEYCODE_H_
+#ifndef LIBC_IO_KEYCODE_H_
+#define LIBC_IO_KEYCODE_H_
 
 /** Keycode definitions.
  *
@@ -199,22 +199,22 @@ enum keycode {
 } keycode_t;
 
 enum keymod {
-	KM_LSHIFT	= 0x001,
-	KM_RSHIFT	= 0x002,
-	KM_LCTRL	= 0x004,
-	KM_RCTRL	= 0x008,
-	KM_LALT		= 0x010,
-	KM_RALT		= 0x020,
-	KM_CAPS_LOCK	= 0x040,
-	KM_NUM_LOCK	= 0x080,
-	KM_SCROLL_LOCK	= 0x100,
-
-	KM_SHIFT	= KM_LSHIFT | KM_RSHIFT,
-	KM_CTRL		= KM_LCTRL | KM_RCTRL,
-	KM_ALT		= KM_LALT | KM_RALT
+	KM_LSHIFT      = 0x001,
+	KM_RSHIFT      = 0x002,
+	KM_LCTRL       = 0x004,
+	KM_RCTRL       = 0x008,
+	KM_LALT        = 0x010,
+	KM_RALT        = 0x020,
+	KM_CAPS_LOCK   = 0x040,
+	KM_NUM_LOCK    = 0x080,
+	KM_SCROLL_LOCK = 0x100,
+	
+	KM_SHIFT       = KM_LSHIFT | KM_RSHIFT,
+	KM_CTRL        = KM_LCTRL | KM_RCTRL,
+	KM_ALT         = KM_LALT | KM_RALT
 } keymod_t;
 
 #endif
- 
+
 /** @}
  */

@@ -35,13 +35,13 @@
 #ifndef LIBC_FCNTL_H_
 #define LIBC_FCNTL_H_
 
-#define O_CREAT		1
-#define O_EXCL		2
-#define O_TRUNC		4
-#define O_APPEND	8
-#define O_RDONLY	16
-#define O_RDWR		32
-#define O_WRONLY	64
+#define O_CREAT   1
+#define O_EXCL    2
+#define O_TRUNC   4
+#define O_APPEND  8
+#define O_RDONLY  16
+#define O_RDWR    32
+#define O_WRONLY  64
 
 extern int open(const char *, int, ...);
 

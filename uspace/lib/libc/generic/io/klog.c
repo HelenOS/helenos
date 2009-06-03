@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,20 +28,26 @@
  */
 
 /** @addtogroup libc
- * @{ 
+ * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CONSOLE_STYLE_H_
-#define LIBC_CONSOLE_STYLE_H_
+#include <libc.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <io/klog.h>
 
-enum console_style {
-	STYLE_NORMAL	= 0,
-	STYLE_EMPHASIS	= 1
-};
+size_t klog_write(const void *buf, size_t size)
+{
+	return (size_t) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, size);
+}
 
-#endif
- 
+void klog_update(void)
+{
+	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);
+}
+
 /** @}
  */

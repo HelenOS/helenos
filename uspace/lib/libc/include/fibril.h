@@ -40,13 +40,13 @@
 #include <libarch/tls.h>
 
 #ifndef context_set
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = (sysarg_t) (ptls);
+#define context_set(c, _pc, stack, size, ptls) \
+	(c)->pc = (sysarg_t) (_pc); \
+	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+	(c)->tls = (sysarg_t) (ptls);
 #endif /* context_set */
 
-#define FIBRIL_SERIALIZED   1
+#define FIBRIL_SERIALIZED  1
 
 typedef enum {
 	FIBRIL_PREEMPT,

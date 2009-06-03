@@ -56,5 +56,3 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
 
 /** @}
  */
- 
- 

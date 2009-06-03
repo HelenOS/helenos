@@ -34,23 +34,43 @@
 
 #include <io/printf_core.h>
 #include <stdio.h>
-#include <stdio.h>
 
 /** Print formatted text.
- * @param fmt	format string
+ *
+ * @param stream Output stream
+ * @param fmt    Format string
+ *
  * \see For more details about format string see printf_core.
+ *
+ */
+int fprintf(FILE *stream, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	int ret = vfprintf(stream, fmt, args);
+	
+	va_end(args);
+	
+	return ret;
+}
+
+/** Print formatted text to stdout.
+ *
+ * @param fmt Format string
+ *
+ * \see For more details about format string see printf_core.
+ *
  */
 int printf(const char *fmt, ...)
 {
-	int ret;
 	va_list args;
-
 	va_start(args, fmt);
-
-	ret = vprintf(fmt, args);
+	
+	int ret = vprintf(fmt, args);
 	
 	va_end(args);
-
+	
 	return ret;
 }
 

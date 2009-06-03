@@ -35,7 +35,7 @@
 #ifndef LIBC_DIRENT_H_
 #define LIBC_DIRENT_H_
 
-#define NAME_MAX	256	
+#define NAME_MAX  256
 
 struct dirent {
 	char d_name[NAME_MAX + 1];
@@ -45,7 +45,6 @@ typedef struct {
 	int fd;
 	struct dirent res;
 } DIR;
-
 
 extern DIR *opendir(const char *);
 extern struct dirent *readdir(DIR *);

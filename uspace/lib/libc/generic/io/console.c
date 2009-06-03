@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2006 Jakub Vana
  * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,29 +29,74 @@
  */
 
 /** @addtogroup libc
- * @{ 
+ * @{
  */
 /** @file
  */
 
-#ifndef LIBC_CONSOLE_COLOR_H_
-#define LIBC_CONSOLE_COLOR_H_
+#include <libc.h>
+#include <async.h>
+#include <io/console.h>
+#include <ipc/console.h>
 
-enum console_color {
-	COLOR_BLACK	= 0,
-	COLOR_BLUE	= 1,
-	COLOR_GREEN	= 2,
-	COLOR_CYAN	= 3,
-	COLOR_RED	= 4,
-	COLOR_MAGENTA	= 5,
-	COLOR_YELLOW	= 6,
-	COLOR_WHITE	= 7,
+void console_clear(int phone)
+{
+	async_msg_0(phone, CONSOLE_CLEAR);
+}
 
-	CATTR_BRIGHT	= 8,
-	CATTR_BLINK	= 8
-};
+int console_get_size(int phone, ipcarg_t *rows, ipcarg_t *cols)
+{
+	return async_req_0_2(phone, CONSOLE_GET_SIZE, rows, cols);
+}
 
-#endif
- 
+void console_set_style(int phone, int style)
+{
+	async_msg_1(phone, CONSOLE_SET_STYLE, style);
+}
+
+void console_set_color(int phone, int fg_color, int bg_color, int flags)
+{
+	async_msg_3(phone, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
+}
+
+void console_set_rgb_color(int phone, int fg_color, int bg_color)
+{
+	async_msg_2(phone, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
+}
+
+void console_cursor_visibility(int phone, bool show)
+{
+	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, show != false);
+}
+
+void console_kcon_enable(int phone)
+{
+	async_msg_0(phone, CONSOLE_KCON_ENABLE);
+}
+
+void console_goto(int phone, ipcarg_t row, ipcarg_t col)
+{
+	async_msg_2(phone, CONSOLE_GOTO, row, col);
+}
+
+bool console_get_event(int phone, console_event_t *event)
+{
+	ipcarg_t type;
+	ipcarg_t key;
+	ipcarg_t mods;
+	ipcarg_t c;
+	
+	int rc = async_req_0_4(phone, CONSOLE_GET_EVENT, &type, &key, &mods, &c);
+	if (rc < 0)
+		return false;
+	
+	event->type = type;
+	event->key = key;
+	event->mods = mods;
+	event->c = c;
+	
+	return true;
+}
+
 /** @}
  */

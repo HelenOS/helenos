@@ -32,32 +32,13 @@
 /** @file
  */
 
-#ifndef LIBC_CONSOLE_H_
-#define LIBC_CONSOLE_H_
+#ifndef LIBC_IO_STYLE_H_
+#define LIBC_IO_STYLE_H_
 
-#include <console/style.h>
-#include <console/color.h>
-#include <sys/types.h>
-#include <bool.h>
-
-extern int console_open(bool);
-extern void console_close(void);
-extern void console_wait(void);
-
-extern void console_clear(void);
-extern void console_goto(int, int);
-extern void console_putchar(wchar_t);
-extern ssize_t console_write(const char *, size_t);
-extern void console_putstr(const char *);
-extern void console_flush(void);
-
-extern int console_get_size(int *, int *);
-extern void console_set_style(int);
-extern void console_set_color(int, int, int);
-extern void console_set_rgb_color(int, int);
-extern void console_cursor_visibility(int);
-
-extern void console_kcon_enable(void);
+enum console_style {
+	STYLE_NORMAL   = 0,
+	STYLE_EMPHASIS = 1
+};
 
 #endif
 
