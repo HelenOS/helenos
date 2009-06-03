@@ -28,11 +28,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <io/stream.h>
+#include <io/console.h>
+#include <io/color.h>
+#include <io/style.h>
 #include <async.h>
 #include "../tester.h"
-
-#include <console.h>
 
 const char *color_name[] = {
 	[COLOR_BLACK] = "black",
@@ -50,56 +50,56 @@ char * test_console1(bool quiet)
 	int i, j;
 
 	printf("Style test: ");
-	console_set_style(STYLE_NORMAL);
+	console_set_style(fphone(stdout), STYLE_NORMAL);
 	printf("normal ");
-	console_set_style(STYLE_EMPHASIS);
+	console_set_style(fphone(stdout), STYLE_EMPHASIS);
 	printf("emphasized");
-	console_set_style(STYLE_NORMAL);
+	console_set_style(fphone(stdout), STYLE_NORMAL);
 	printf(".\n");
 
 	printf("Foreground color test:\n");
 	for (j = 0; j < 2; j++) {
 		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
-			console_set_color(i, COLOR_WHITE,
+			console_set_color(fphone(stdout), i, COLOR_WHITE,
 			    j ? CATTR_BRIGHT : 0);
 			printf(" %s ", color_name[i]);
 		}
-		console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 		putchar('\n');
 	}
 
 	printf("Background color test:\n");
 	for (j = 0; j < 2; j++) {
 		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
-			console_set_color(COLOR_WHITE, i,
+			console_set_color(fphone(stdout), COLOR_WHITE, i,
 			    j ? CATTR_BRIGHT : 0);
 			printf(" %s ", color_name[i]);
 		}
-		console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 		putchar('\n');
 	}
 
 	printf("Now let's test RGB colors:\n");
 
 	for (i = 0; i < 255; i += 16) {
-		console_set_rgb_color(0xffffff, i << 16);
+		console_set_rgb_color(fphone(stdout), 0xffffff, i << 16);
 		putchar('X');
 	}
-	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 	putchar('\n');
 
 	for (i = 0; i < 255; i += 16) {
-		console_set_rgb_color(0xffffff, i << 8);
+		console_set_rgb_color(fphone(stdout), 0xffffff, i << 8);
 		putchar('X');
 	}
-	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 	putchar('\n');
 
 	for (i = 0; i < 255; i += 16) {
-		console_set_rgb_color(0xffffff, i);
+		console_set_rgb_color(fphone(stdout), 0xffffff, i);
 		putchar('X');
 	}
-	console_set_color(COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 	putchar('\n');
 
 	printf("[press a key]\n");

@@ -130,6 +130,7 @@ int main(int argc, char **argv)
 		
 		list_tests();
 		printf("> ");
+		fflush(stdout);
 		
 		c = getchar();
 		printf("%c\n", c);

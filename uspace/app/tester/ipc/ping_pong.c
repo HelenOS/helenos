@@ -28,41 +28,46 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <console.h>
 #include <sys/time.h>
+#include <ipc/ns.h>
+#include <async.h>
+#include <errno.h>
 #include "../tester.h"
 
-#define DURATION_SECS		 10
-#define COUNT_GRANULARITY	100
+#define DURATION_SECS      10
+#define COUNT_GRANULARITY  100
 
-char * test_ping_pong(bool quiet)
+char *test_ping_pong(bool quiet)
 {
-	int i;
-	int w, h;
-	struct timeval start, now;
-	long count;
-
-	printf("Pinging console server for %d seconds...\n", DURATION_SECS);
-
+	printf("Pinging ns server for %d seconds...\n", DURATION_SECS);
+	
+	struct timeval start;
 	if (gettimeofday(&start, NULL) != 0)
 		return "Failed getting the time.";
-
-	count = 0;
-
+	
+	uint64_t count = 0;
+	
 	while (true) {
+		struct timeval now;
 		if (gettimeofday(&now, NULL) != 0)
 			return "Failed getting the time.";
-
+		
 		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
-
-		for (i = 0; i < COUNT_GRANULARITY; i++)
-			console_get_size(&w, &h);
+		
+		size_t i;
+		for (i = 0; i < COUNT_GRANULARITY; i++) {
+			int retval = async_req_0_0(PHONE_NS, NS_PING);
+			
+			if (retval != EOK)
+				return "Failed to send ping message.";
+		}
+		
 		count += COUNT_GRANULARITY;
 	}
-
-	printf("Completed %ld round trips in %d seconds, %ld RT/s.\n", count,
-	    DURATION_SECS, count / DURATION_SECS);
-
+	
+	printf("Completed %lu round trips in %u seconds, %lu RT/s.\n",
+	    count, DURATION_SECS, count / DURATION_SECS);
+	
 	return NULL;
 }
