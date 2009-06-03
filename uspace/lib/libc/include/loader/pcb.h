@@ -37,6 +37,7 @@
 #define LIBC_PCB_H_
 
 #include <sys/types.h>
+#include <vfs/vfs.h>
 
 typedef void (*entry_point_t)(void);
 
@@ -45,19 +46,26 @@ typedef void (*entry_point_t)(void);
  * Holds pointers to data passed from the program loader to the program
  * and/or to the dynamic linker. This includes the program entry point,
  * arguments, environment variables etc.
+ *
  */
 typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
-
+	
 	/** Number of command-line arguments. */
 	int argc;
 	/** Command-line arguments. */
 	char **argv;
-
+	
+	/** Number of preset files. */
+	int filc;
+	/** Preset files. */
+	fs_node_t **filv;
+	
 	/*
 	 * ELF-specific data.
 	 */
+	
 	/** Pointer to ELF dynamic section of the program. */
 	void *dynamic;
 } pcb_t;
