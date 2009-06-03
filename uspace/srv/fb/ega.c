@@ -49,8 +49,8 @@
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <libarch/ddi.h>
-#include <console/style.h>
-#include <console/color.h>
+#include <io/style.h>
+#include <io/color.h>
 #include <sys/types.h>
 
 #include "ega.h"
@@ -70,7 +70,7 @@ saved_screen saved_screens[MAX_SAVED_SCREENS];
 int ega_normal_color = 0x0f;
 int ega_inverted_color = 0xf0;
 
-#define NORMAL_COLOR		ega_normal_color       
+#define NORMAL_COLOR		ega_normal_color
 #define INVERTED_COLOR		ega_inverted_color
 
 /* Allow only 1 connection */
@@ -95,7 +95,7 @@ static void clrscr(void)
 	}
 }
 
-static void cursor_goto(unsigned int row, unsigned int col)
+static void cursor_goto(unsigned int col, unsigned int row)
 {
 	int ega_cursor;
 
@@ -144,7 +144,7 @@ static void scroll(int rows)
 	}
 }
 
-static void printchar(wchar_t c, unsigned int row, unsigned int col)
+static void printchar(wchar_t c, unsigned int col, unsigned int row)
 {
 	scr_addr[(row * scr_width + col) * 2] = ega_glyph(c);
 	scr_addr[(row * scr_width + col) * 2 + 1] = style;
@@ -241,11 +241,15 @@ static unsigned int rgb_to_ega_style(uint32_t fg, uint32_t bg)
 static unsigned attr_to_ega_style(const attrs_t *a)
 {
 	switch (a->t) {
-	case at_style: return style_to_ega_style(a->a.s.style);
-	case at_rgb: return rgb_to_ega_style(a->a.r.fg_color, a->a.r.bg_color);
-	case at_idx: return color_to_ega_style(a->a.i.fg_color,
-	    a->a.i.bg_color, a->a.i.flags);
-	default: return INVERTED_COLOR;
+	case at_style:
+		return style_to_ega_style(a->a.s.style);
+	case at_rgb:
+		return rgb_to_ega_style(a->a.r.fg_color, a->a.r.bg_color);
+	case at_idx:
+		return color_to_ega_style(a->a.i.fg_color,
+		    a->a.i.bg_color, a->a.i.flags);
+	default:
+		return INVERTED_COLOR;
 	}
 }
 
@@ -320,23 +324,23 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
-			row = IPC_GET_ARG2(call);
-			col = IPC_GET_ARG3(call);
+			col = IPC_GET_ARG2(call);
+			row = IPC_GET_ARG3(call);
 			if (col >= scr_width || row >= scr_height) {
 				retval = EINVAL;
 				break;
 			}
-			printchar(c, row, col);
+			printchar(c, col, row);
 			retval = 0;
 			break;
  		case FB_CURSOR_GOTO:
-			row = IPC_GET_ARG1(call);
-			col = IPC_GET_ARG2(call);
+ 			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
 			if (row >= scr_height || col >= scr_width) {
 				retval = EINVAL;
 				break;
 			}
-			cursor_goto(row, col);
+			cursor_goto(col, row);
  			retval = 0;
  			break;
 		case FB_SCROLL:

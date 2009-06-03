@@ -27,10 +27,10 @@
  */
 
 /** @addtogroup egafb
- * @brief	HelenOS EGA framebuffer.
+ * @brief HelenOS EGA framebuffer.
  * @ingroup fbs
  * @{
- */ 
+ */
 /** @file
  */
 
@@ -43,4 +43,3 @@ extern int ega_init(void);
 
 /** @}
  */
-

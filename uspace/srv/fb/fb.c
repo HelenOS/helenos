@@ -51,8 +51,8 @@
 #include <ipc/services.h>
 #include <kernel/errno.h>
 #include <kernel/genarch/fb/visuals.h>
-#include <console/color.h>
-#include <console/style.h>
+#include <io/color.h>
+#include <io/style.h>
 #include <async.h>
 #include <bool.h>
 
@@ -375,8 +375,8 @@ static void draw_filled_rect(unsigned int x0, unsigned int y0, unsigned int x1,
  */
 static void vport_redraw(viewport_t *vport)
 {
-	unsigned int row;
 	unsigned int col;
+	unsigned int row;
 	
 	for (row = 0; row < vport->rows; row++) {
 		for (col = 0; col < vport->cols; col++) {
@@ -431,8 +431,8 @@ static void vport_clear(viewport_t *vport)
  */
 static void vport_scroll(viewport_t *vport, int lines)
 {
-	unsigned int row;
 	unsigned int col;
+	unsigned int row;
 	unsigned int x;
 	unsigned int y;
 	uint32_t glyph;
@@ -1564,7 +1564,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		unsigned int i;
 		int scroll;
 		wchar_t ch;
-		unsigned int row, col;
+		unsigned int col, row;
 		
 		if ((vport->cursor_active) || (anims_enabled))
 			callid = async_get_call_timeout(&call, 250000);
@@ -1601,8 +1601,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		case FB_PUTCHAR:
 			ch = IPC_GET_ARG1(call);
-			row = IPC_GET_ARG2(call);
-			col = IPC_GET_ARG3(call);
+			col = IPC_GET_ARG2(call);
+			row = IPC_GET_ARG3(call);
 			
 			if ((col >= vport->cols) || (row >= vport->rows)) {
 				retval = EINVAL;
@@ -1620,8 +1620,8 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_CURSOR_GOTO:
-			row = IPC_GET_ARG1(call);
-			col = IPC_GET_ARG2(call);
+			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
 			
 			if ((col >= vport->cols) || (row >= vport->rows)) {
 				retval = EINVAL;
@@ -1641,7 +1641,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, vport->rows, vport->cols);
+			ipc_answer_2(callid, EOK, vport->cols, vport->rows);
 			continue;
 		case FB_SCROLL:
 			scroll = IPC_GET_ARG1(call);

@@ -43,8 +43,9 @@
 #include <ipc/fb.h>
 #include <bool.h>
 #include <errno.h>
-#include <console/color.h>
-#include <console/style.h>
+#include <io/color.h>
+#include <io/style.h>
+#include <string.h>
 
 #include "../console/screenbuffer.h"
 #include "main.h"
@@ -128,9 +129,9 @@ void serial_putchar(wchar_t ch)
 
 }
 
-void serial_goto(const unsigned int row, const unsigned int col)
+void serial_goto(const unsigned int col, const unsigned int row)
 {
-	if ((row > scr_height) || (col > scr_width))
+	if ((col > scr_width) || (row > scr_height))
 		return;
 	
 	char control[MAX_CONTROL];
@@ -153,7 +154,7 @@ void serial_clrscr(void)
 void serial_scroll(int i)
 {
 	if (i > 0) {
-		serial_goto(scr_height - 1, 0);
+		serial_goto(0, scr_height - 1);
 		while (i--)
 			serial_puts("\033D");
 	} else if (i < 0) {
@@ -235,17 +236,24 @@ static void serial_set_rgb(uint32_t fgcolor, uint32_t bgcolor)
 	if (fgcolor < bgcolor)
 		serial_sgr(SGR_REVERSE_OFF);
 	else
-		serial_sgr(SGR_REVERSE);	
+		serial_sgr(SGR_REVERSE);
 }
 
 static void serial_set_attrs(const attrs_t *a)
 {
 	switch (a->t) {
-	case at_style: serial_set_style(a->a.s.style); break;
-	case at_rgb: serial_set_rgb(a->a.r.fg_color, a->a.r.bg_color); break;
-	case at_idx: serial_set_idx(a->a.i.fg_color,
-	    a->a.i.bg_color, a->a.i.flags); break;
-	default: break;
+	case at_style:
+		serial_set_style(a->a.s.style);
+		break;
+	case at_rgb:
+		serial_set_rgb(a->a.r.fg_color, a->a.r.bg_color);
+		break;
+	case at_idx:
+		serial_set_idx(a->a.i.fg_color,
+		    a->a.i.bg_color, a->a.i.flags);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -265,13 +273,13 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 	keyfield_t *field;
 	attrs_t *a0, *a1;
 
-	serial_goto(y, x);
+	serial_goto(x, y);
 	a0 = &data[0].attrs;
 	serial_set_attrs(a0);
 
 	for (j = 0; j < h; j++) {
 		if (j > 0 && w != scr_width)
-			serial_goto(y, x);
+			serial_goto(x, j);
 
 		for (i = 0; i < w; i++) {
 			field = &data[j * w + i];
@@ -354,31 +362,31 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			draw_text_data(interbuf, col, row, w, h);
-			lastrow = row + h - 1;
 			lastcol = col + w;
+			lastrow = row + h - 1;
 			retval = 0;
 			break;
 		case FB_PUTCHAR:
 			c = IPC_GET_ARG1(call);
-			row = IPC_GET_ARG2(call);
-			col = IPC_GET_ARG3(call);
+			col = IPC_GET_ARG2(call);
+			row = IPC_GET_ARG3(call);
 			if ((lastcol != col) || (lastrow != row))
-				serial_goto(row, col);
+				serial_goto(col, row);
 			lastcol = col + 1;
 			lastrow = row;
 			serial_putchar(c);
 			retval = 0;
 			break;
 		case FB_CURSOR_GOTO:
-			row = IPC_GET_ARG1(call);
-			col = IPC_GET_ARG2(call);
-			serial_goto(row, col);
-			lastrow = row;
+			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
+			serial_goto(col, row);
 			lastcol = col;
+			lastrow = row;
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, scr_height, scr_width);
+			ipc_answer_2(callid, EOK, scr_width, scr_height);
 			continue;
 		case FB_CLEAR:
 			serial_clrscr();
@@ -416,7 +424,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			serial_scroll(i);
-			serial_goto(lastrow, lastcol);
+			serial_goto(lastcol, lastrow);
 			retval = 0;
 			break;
 		case FB_CURSOR_VISIBILITY:
@@ -445,6 +453,6 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** 
+/**
  * @}
  */
