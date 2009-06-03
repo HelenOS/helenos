@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef DEVFS_DEVFS_OPS_H_
 #define DEVFS_DEVFS_OPS_H_
@@ -41,9 +41,13 @@ extern bool devfs_init(void);
 extern void devfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void devfs_mount(ipc_callid_t, ipc_call_t *);
 extern void devfs_lookup(ipc_callid_t, ipc_call_t *);
+extern void devfs_open_node(ipc_callid_t, ipc_call_t *);
+extern void devfs_device(ipc_callid_t, ipc_call_t *);
+extern void devfs_sync(ipc_callid_t, ipc_call_t *);
 extern void devfs_read(ipc_callid_t, ipc_call_t *);
 extern void devfs_write(ipc_callid_t, ipc_call_t *);
 extern void devfs_truncate(ipc_callid_t, ipc_call_t *);
+extern void devfs_close(ipc_callid_t, ipc_call_t *);
 extern void devfs_destroy(ipc_callid_t, ipc_call_t *);
 
 #endif

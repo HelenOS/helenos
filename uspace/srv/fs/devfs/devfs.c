@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file devfs.c
@@ -74,6 +74,12 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_LOOKUP:
 			devfs_lookup(callid, &call);
 			break;
+		case VFS_OPEN_NODE:
+			devfs_open_node(callid, &call);
+			break;
+		case VFS_DEVICE:
+			devfs_device(callid, &call);
+			break;
 		case VFS_READ:
 			devfs_read(callid, &call);
 			break;
@@ -82,6 +88,12 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_TRUNCATE:
 			devfs_truncate(callid, &call);
+			break;
+		case VFS_CLOSE:
+			devfs_close(callid, &call);
+			break;
+		case VFS_SYNC:
+			devfs_sync(callid, &call);
 			break;
 		case VFS_DESTROY:
 			devfs_destroy(callid, &call);
@@ -122,6 +134,6 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-/** 
+/**
  * @}
  */
