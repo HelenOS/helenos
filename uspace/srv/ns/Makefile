@@ -41,7 +41,10 @@ LIBS = $(LIBC_PREFIX)/libc.a
 
 OUTPUT = ns
 SOURCES = \
-	ns.c
+	ns.c \
+	service.c \
+	clonable.c \
+	task.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
