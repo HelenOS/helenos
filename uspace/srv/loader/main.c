@@ -53,9 +53,9 @@
 #include <ipc/services.h>
 #include <ipc/loader.h>
 #include <loader/pcb.h>
-#include <console.h>
 #include <errno.h>
 #include <async.h>
+#include <string.h>
 #include <as.h>
 
 #include <elf.h>
@@ -76,6 +76,13 @@ static char **argv = NULL;
 /** Buffer holding all arguments */
 static char *arg_buf = NULL;
 
+/** Number of preset files */
+static int filc = 0;
+/** Preset files vector */
+static char **filv = NULL;
+/** Buffer holding all preset files */
+static fs_node_t *fil_buf = NULL;
+
 static elf_info_t prog_info;
 static elf_info_t interp_info;
 
@@ -84,7 +91,7 @@ static bool is_dyn_linked;
 /** Used to limit number of connections to one. */
 static bool connected;
 
-static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	task_id_t task_id;
@@ -111,7 +118,7 @@ static void loader_get_taskid(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void loader_set_pathname(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t len;
@@ -147,7 +154,7 @@ static void loader_set_pathname(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t buf_size, arg_size;
@@ -220,13 +227,77 @@ static void loader_set_args(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EOK);
 }
 
+/** Receive a call setting preset files of the program to execute.
+ *
+ * @param rid
+ * @param request
+ */
+static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t buf_size;
+	if (!ipc_data_write_receive(&callid, &buf_size)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	if ((buf_size % sizeof(fs_node_t)) != 0) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	if (fil_buf != NULL) {
+		free(fil_buf);
+		fil_buf = NULL;
+	}
+	
+	if (filv != NULL) {
+		free(filv);
+		filv = NULL;
+	}
+	
+	fil_buf = malloc(buf_size);
+	if (!fil_buf) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	ipc_data_write_finalize(callid, fil_buf, buf_size);
+	
+	int count = buf_size / sizeof(fs_node_t);
+	
+	/* Allocate filvv */
+	filv = malloc((count + 1) * sizeof(fs_node_t *));
+	
+	if (filv == NULL) {
+		free(fil_buf);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	/*
+	 * Fill filv with argument pointers
+	 */
+	int i;
+	for (i = 0; i < count; i++)
+		filv[i] = &fil_buf[i];
+	
+	filc = count;
+	filv[count] = NULL;
+	
+	ipc_answer_0(rid, EOK);
+}
+
 /** Load the previously selected program.
  *
  * @param rid
  * @param request
  * @return 0 on success, !0 on error.
  */
-static int loader_load(ipc_callid_t rid, ipc_call_t *request)
+static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 	
@@ -241,6 +312,9 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
 	
 	pcb.argc = argc;
 	pcb.argv = argv;
+	
+	pcb.filc = filc;
+	pcb.filv = filv;
 	
 	if (prog_info.interp == NULL) {
 		/* Statically linked program */
@@ -270,7 +344,7 @@ static int loader_load(ipc_callid_t rid, ipc_call_t *request)
  * @param request
  * @return 0 on success, !0 on error.
  */
-static void loader_run(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 {
 	const char *cp;
 	
@@ -283,17 +357,15 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
 		/* Dynamically linked program */
 		DPRINTF("Run ELF interpreter.\n");
 		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
-		console_close();
 		
 		ipc_answer_0(rid, EOK);
 		elf_run(&interp_info, &pcb);
 	} else {
 		/* Statically linked program */
-		console_close();
 		ipc_answer_0(rid, EOK);
 		elf_run(&prog_info, &pcb);
-	} 
-
+	}
+	
 	/* Not reached */
 }
 
@@ -302,7 +374,7 @@ static void loader_run(ipc_callid_t rid, ipc_call_t *request)
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
  */
-static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -330,19 +402,22 @@ static void loader_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			exit(0);
 		case LOADER_GET_TASKID:
-			loader_get_taskid(callid, &call);
+			ldr_get_taskid(callid, &call);
 			continue;
 		case LOADER_SET_PATHNAME:
-			loader_set_pathname(callid, &call);
+			ldr_set_pathname(callid, &call);
 			continue;
 		case LOADER_SET_ARGS:
-			loader_set_args(callid, &call);
+			ldr_set_args(callid, &call);
+			continue;
+		case LOADER_SET_FILES:
+			ldr_set_files(callid, &call);
 			continue;
 		case LOADER_LOAD:
-			loader_load(callid, &call);
+			ldr_load(callid, &call);
 			continue;
 		case LOADER_RUN:
-			loader_run(callid, &call);
+			ldr_run(callid, &call);
 			/* Not reached */
 		default:
 			retval = ENOENT;
@@ -366,7 +441,7 @@ int main(int argc, char *argv[])
 	connected = false;
 	
 	/* Set a handler of incomming connections. */
-	async_set_client_connection(loader_connection);
+	async_set_client_connection(ldr_connection);
 	
 	/* Register at naming service. */
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, &phonead) != 0) 
