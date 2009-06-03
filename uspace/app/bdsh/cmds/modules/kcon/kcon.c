@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <console.h>
+#include <io/console.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -65,7 +65,7 @@ int cmd_kcon(char **argv)
 		return CMD_FAILURE;
 	}
 
-	console_kcon_enable();
+	console_kcon_enable(fphone(stdout));
 
 	return CMD_SUCCESS;
 }

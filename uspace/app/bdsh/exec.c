@@ -123,7 +123,8 @@ unsigned int try_exec(char *cmd, char **argv)
 	if (tid == 0) {
 		cli_error(CL_EEXEC, "Cannot spawn `%s'.", cmd);
 		return 1;
-	} else {
-		return 0;
 	}
+	
+	task_wait(tid);
+	return 0;
 }

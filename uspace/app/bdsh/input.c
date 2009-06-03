@@ -32,10 +32,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <io/stream.h>
-#include <console.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
+#include <io/style.h>
 #include <errno.h>
 #include <bool.h>
 
@@ -100,18 +99,19 @@ finit:
 
 static void read_line(char *buffer, int n)
 {
-	kbd_event_t ev;
+	console_event_t ev;
 	size_t offs, otmp;
 	wchar_t dec;
 
 	offs = 0;
 	while (true) {
 		fflush(stdout);
-		if (kbd_get_event(&ev) < 0)
+		if (!console_get_event(fphone(stdin), &ev))
 			return;
-		if (ev.type == KE_RELEASE)
+		
+		if (ev.type != KEY_PRESS)
 			continue;
-
+		
 		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
 			break;
 		if (ev.key == KC_BACKSPACE) {
@@ -131,9 +131,8 @@ static void read_line(char *buffer, int n)
 			continue;
 		}
 		if (ev.c >= ' ') {
-			//putchar(ev.c);
 			if (chr_encode(ev.c, buffer, &offs, n - 1) == EOK)
-				console_putchar(ev.c);
+				putchar(ev.c);
 		}
 	}
 	putchar('\n');
@@ -147,9 +146,9 @@ void get_input(cliuser_t *usr)
 {
 	char line[INPUT_MAX];
 
-	console_set_style(STYLE_EMPHASIS);
+	console_set_style(fphone(stdout), STYLE_EMPHASIS);
 	printf("%s", usr->prompt);
-	console_set_style(STYLE_NORMAL);
+	console_set_style(fphone(stdout), STYLE_NORMAL);
 
 	read_line(line, INPUT_MAX);
 	/* Make sure we don't have rubbish or a C/R happy user */
