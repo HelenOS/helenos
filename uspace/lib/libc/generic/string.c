@@ -138,8 +138,8 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  * @param size   Size of the output buffer (in bytes).
  *
  * @return EOK if the character was encoded successfully, EOVERFLOW if there
- *	   was not enough space in the output buffer or EINVAL if the character
- *	   code was invalid.
+ *         was not enough space in the output buffer or EINVAL if the character
+ *         code was invalid.
  */
 int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
@@ -243,9 +243,9 @@ size_t wstr_size(const wchar_t *str)
  * @return Number of bytes used by the characters.
  *
  */
-size_t str_lsize(const char *str, count_t max_len)
+size_t str_lsize(const char *str, size_t max_len)
 {
-	count_t len = 0;
+	size_t len = 0;
 	size_t offset = 0;
 	
 	while (len < max_len) {
@@ -271,7 +271,7 @@ size_t str_lsize(const char *str, count_t max_len)
  * @return Number of bytes used by the wide characters.
  *
  */
-size_t wstr_lsize(const wchar_t *str, count_t max_len)
+size_t wstr_lsize(const wchar_t *str, size_t max_len)
 {
 	return (wstr_nlength(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
 }
@@ -283,9 +283,9 @@ size_t wstr_lsize(const wchar_t *str, count_t max_len)
  * @return Number of characters in string.
  *
  */
-count_t str_length(const char *str)
+size_t str_length(const char *str)
 {
-	count_t len = 0;
+	size_t len = 0;
 	size_t offset = 0;
 	
 	while (str_decode(str, &offset, STR_NO_LIMIT) != 0)
@@ -301,9 +301,9 @@ count_t str_length(const char *str)
  * @return Number of characters in @a str.
  *
  */
-count_t wstr_length(const wchar_t *wstr)
+size_t wstr_length(const wchar_t *wstr)
 {
-	count_t len = 0;
+	size_t len = 0;
 	
 	while (*wstr++ != 0)
 		len++;
@@ -319,9 +319,9 @@ count_t wstr_length(const wchar_t *wstr)
  * @return Number of characters in string.
  *
  */
-count_t str_nlength(const char *str, size_t size)
+size_t str_nlength(const char *str, size_t size)
 {
-	count_t len = 0;
+	size_t len = 0;
 	size_t offset = 0;
 	
 	while (str_decode(str, &offset, size) != 0)
@@ -338,11 +338,11 @@ count_t str_nlength(const char *str, size_t size)
  * @return Number of characters in string.
  *
  */
-count_t wstr_nlength(const wchar_t *str, size_t size)
+size_t wstr_nlength(const wchar_t *str, size_t size)
 {
-	count_t len = 0;
-	count_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
-	count_t offset = 0;
+	size_t len = 0;
+	size_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
+	size_t offset = 0;
 	
 	while ((offset < limit) && (*str++ != 0)) {
 		len++;
@@ -430,7 +430,7 @@ int str_cmp(const char *s1, const char *s2)
  *         1 if second smaller.
  *
  */
-int str_lcmp(const char *s1, const char *s2, count_t max_len)
+int str_lcmp(const char *s1, const char *s2, size_t max_len)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
@@ -438,7 +438,7 @@ int str_lcmp(const char *s1, const char *s2, count_t max_len)
 	size_t off1 = 0;
 	size_t off2 = 0;
 	
-	count_t len = 0;
+	size_t len = 0;
 
 	while (true) {
 		if (len >= max_len)
@@ -568,7 +568,7 @@ void wstr_nstr(char *dst, const wchar_t *src, size_t size)
 		return;
 	
 	wchar_t ch;
-	count_t src_idx = 0;
+	size_t src_idx = 0;
 	size_t dst_off = 0;
 	
 	while ((ch = src[src_idx++]) != 0) {
@@ -616,7 +616,7 @@ const char *str_rchr(const char *str, wchar_t ch)
 	wchar_t acc;
 	size_t off = 0;
 	size_t last = 0;
-	char *res = NULL;
+	const char *res = NULL;
 	
 	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc == ch)
@@ -641,14 +641,14 @@ const char *str_rchr(const char *str, wchar_t ch)
  *         is out of bounds.
  *
  */
-bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos)
+bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
 {
-	count_t len = wstr_length(str);
+	size_t len = wstr_length(str);
 	
 	if ((pos > len) || (pos + 1 > max_pos))
 		return false;
 	
-	count_t i;
+	size_t i;
 	for (i = len; i + 1 > pos; i--)
 		str[i + 1] = str[i];
 	
@@ -669,14 +669,14 @@ bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos)
  *         is out of bounds.
  *
  */
-bool wstr_remove(wchar_t *str, count_t pos)
+bool wstr_remove(wchar_t *str, size_t pos)
 {
-	count_t len = wstr_length(str);
+	size_t len = wstr_length(str);
 	
 	if (pos >= len)
 		return false;
 	
-	count_t i;
+	size_t i;
 	for (i = pos + 1; i <= len; i++)
 		str[i - 1] = str[i];
 	

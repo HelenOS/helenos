@@ -39,8 +39,8 @@
 #include <sys/types.h>
 #include <bool.h>
 
-#define U_SPECIAL      '?'
-#define U_BOM          0xfeff
+#define U_SPECIAL  '?'
+#define U_BOM      0xfeff
 
 /** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
@@ -54,20 +54,20 @@ extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
 
-extern size_t str_lsize(const char *str, count_t max_len);
-extern size_t wstr_lsize(const wchar_t *str, count_t max_len);
+extern size_t str_lsize(const char *str, size_t max_len);
+extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
 
-extern count_t str_length(const char *str);
-extern count_t wstr_length(const wchar_t *wstr);
+extern size_t str_length(const char *str);
+extern size_t wstr_length(const wchar_t *wstr);
 
-extern count_t str_nlength(const char *str, size_t size);
-extern count_t wstr_nlength(const wchar_t *str, size_t size);
+extern size_t str_nlength(const char *str, size_t size);
+extern size_t wstr_nlength(const wchar_t *str, size_t size);
 
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);
 
 extern int str_cmp(const char *s1, const char *s2);
-extern int str_lcmp(const char *s1, const char *s2, count_t max_len);
+extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
@@ -78,8 +78,8 @@ extern void wstr_nstr(char *dst, const wchar_t *src, size_t size);
 extern const char *str_chr(const char *str, wchar_t ch);
 extern const char *str_rchr(const char *str, wchar_t ch);
 
-extern bool wstr_linsert(wchar_t *str, wchar_t ch, count_t pos, count_t max_pos);
-extern bool wstr_remove(wchar_t *str, count_t pos);
+extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
+extern bool wstr_remove(wchar_t *str, size_t pos);
 
 extern char *str_dup(const char *);
 
