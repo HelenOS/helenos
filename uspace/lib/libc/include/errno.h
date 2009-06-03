@@ -41,17 +41,18 @@ extern int _errno;
 
 #include <kernel/errno.h>
 
-#define ENAMETOOLONG	(-256)
-#define EISDIR		(-257)
-#define ENOTDIR		(-258)
-#define ENOSPC		(-259)
-#define EEXIST		(-260)
-#define ENOTEMPTY	(-261)
-#define EBADF		(-262)
-#define ERANGE		(-263)
-#define EXDEV		(-264)
-#define EIO		(-265)
-#define EMLINK		(-266)
+#define EMFILE        (-17)
+#define ENAMETOOLONG  (-256)
+#define EISDIR        (-257)
+#define ENOTDIR       (-258)
+#define ENOSPC        (-259)
+#define EEXIST        (-260)
+#define ENOTEMPTY     (-261)
+#define EBADF         (-262)
+#define ERANGE        (-263)
+#define EXDEV         (-264)
+#define EIO           (-265)
+#define EMLINK        (-266)
 
 #endif
 
