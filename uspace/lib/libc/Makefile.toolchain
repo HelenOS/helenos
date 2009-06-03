@@ -26,10 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CFLAGS = -fno-builtin -Wall -Werror-implicit-function-declaration \
+CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32 -finput-charset=UTF-8 \
-	-Wmissing-prototypes -O3 -nostdlib -nostdinc -imacros \
-	$(LIBC_PREFIX)/../../../config.h -I$(LIBC_PREFIX)/include -pipe -g
+	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-nostdlib -nostdinc -pipe -g
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 
