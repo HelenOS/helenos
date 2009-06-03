@@ -99,6 +99,8 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	if (phone < 0)
 		return phone;
 	
+	async_serialize_start();
+	
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
 	
@@ -106,6 +108,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
+		async_serialize_end();
 		return -1;
 	}
 	
@@ -114,6 +117,8 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	ipcarg_t callback_phonehash;
 	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
 	async_wait_for(req, &retval);
+	
+	async_serialize_end();
 	
 	return retval;
 }
@@ -131,6 +136,8 @@ int devmap_device_register(const char *name, dev_handle_t *handle)
 	if (phone < 0)
 		return phone;
 	
+	async_serialize_start();
+	
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, 0, 0,
 	    &answer);
@@ -139,10 +146,13 @@ int devmap_device_register(const char *name, dev_handle_t *handle)
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
+		async_serialize_end();
 		return retval;
 	}
 	
 	async_wait_for(req, &retval);
+	
+	async_serialize_end();
 	
 	if (retval != EOK) {
 		if (handle != NULL)
@@ -163,6 +173,8 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 	if (phone < 0)
 		return phone;
 	
+	async_serialize_start();
+	
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
@@ -171,10 +183,13 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
+		async_serialize_end();
 		return retval;
 	}
 	
 	async_wait_for(req, &retval);
+	
+	async_serialize_end();
 	
 	if (retval != EOK) {
 		if (handle != NULL)
@@ -211,7 +226,7 @@ ipcarg_t devmap_device_get_count(void)
 		return 0;
 	
 	ipcarg_t count;
-	int retval = ipc_call_sync_0_1(phone, DEVMAP_DEVICE_GET_COUNT, &count);
+	int retval = async_req_0_1(phone, DEVMAP_DEVICE_GET_COUNT, &count);
 	if (retval != EOK)
 		return 0;
 	
@@ -225,6 +240,8 @@ ipcarg_t devmap_device_get_devices(ipcarg_t count, dev_desc_t *data)
 	if (phone < 0)
 		return 0;
 	
+	async_serialize_start();
+	
 	ipc_call_t answer;
 	aid_t req = async_send_0(phone, DEVMAP_DEVICE_GET_DEVICES, &answer);
 	
@@ -232,10 +249,13 @@ ipcarg_t devmap_device_get_devices(ipcarg_t count, dev_desc_t *data)
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
+		async_serialize_end();
 		return 0;
 	}
 	
 	async_wait_for(req, &retval);
+	
+	async_serialize_end();
 	
 	if (retval != EOK)
 		return 0;
