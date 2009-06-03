@@ -95,7 +95,7 @@ struct along {
 
 static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 {
-	int i, j;
+	unsigned int i, j;
 	struct along *adst = dst;
 	const struct along *asrc = src;
 
