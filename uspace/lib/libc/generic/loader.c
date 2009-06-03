@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <ipc/ipc.h>
 #include <ipc/loader.h>
@@ -47,9 +47,12 @@
 /** Connect to a new program loader.
  *
  * Spawns a new program loader task and returns the connection structure.
- * @param name	Symbolic name to set on the newly created task.
- * @return	Pointer to the loader connection structure (should be
- *		de-allocated using free() after use).
+ *
+ * @param name Symbolic name to set on the newly created task.
+ *
+ * @return Pointer to the loader connection structure (should be
+ *         deallocated using free() after use).
+ *
  */
 int loader_spawn(const char *name)
 {
@@ -59,46 +62,42 @@ int loader_spawn(const char *name)
 
 loader_t *loader_connect(void)
 {
-	loader_t *ldr;
-	int phone_id;
-
-	phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
+	int phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
 	if (phone_id < 0)
 		return NULL;
-
-	ldr = malloc(sizeof(loader_t));
+	
+	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
-
+	
 	ldr->phone_id = phone_id;
-	return ldr;	
+	return ldr;
 }
 
 /** Get ID of the new task.
  *
  * Retrieves the ID of the new task from the loader.
  *
- * @param ldr		Loader connection structure.
- * @param task_id	Points to a variable where the ID should be stored.
- * @return		Zero on success or negative error code.
+ * @param ldr     Loader connection structure.
+ * @param task_id Points to a variable where the ID should be stored.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 {
-	ipc_call_t answer;
-	aid_t req;
-	int rc;
-	ipcarg_t retval;
-
 	/* Get task ID. */
-	req = async_send_0(ldr->phone_id, LOADER_GET_TASKID, &answer);
-	rc = ipc_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_GET_TASKID, &answer);
+	int rc = ipc_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
 	}
-
+	
+	ipcarg_t retval;
 	async_wait_for(req, &retval);
-	return (int)retval;
+	return (int) retval;
 }
 
 /** Set pathname of the program to load.
@@ -107,38 +106,34 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
  * to the current working directory (it will be absolutized before
  * sending to the loader).
  *
- * @param ldr		Loader connection structure.
- * @param path		Pathname of the program file.
- * @return		Zero on success or negative error code.
+ * @param ldr  Loader connection structure.
+ * @param path Pathname of the program file.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int loader_set_pathname(loader_t *ldr, const char *path)
 {
-	ipc_call_t answer;
-	aid_t req;
-	int rc;
-	ipcarg_t retval;
-
-	char *pa;
 	size_t pa_len;
-
-	pa = absolutize(path, &pa_len);
+	char *pa = absolutize(path, &pa_len);
 	if (!pa)
 		return 0;
-
+	
 	/* Send program pathname */
-	req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
-	rc = ipc_data_write_start(ldr->phone_id, (void *)pa, pa_len);
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
+	int rc = ipc_data_write_start(ldr->phone_id, (void *) pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
 	}
-
+	
 	free(pa);
-
+	
+	ipcarg_t retval;
 	async_wait_for(req, &retval);
-	return (int)retval;
+	return (int) retval;
 }
-
 
 /** Set command-line arguments for the program.
  *
@@ -146,61 +141,109 @@ int loader_set_pathname(loader_t *ldr, const char *path)
  * program. By convention, the very first argument is typically the same as
  * the command used to execute the program.
  *
- * @param ldr		Loader connection structure.
- * @param argv		NULL-terminated array of pointers to arguments.
- * @return		Zero on success or negative error code.
+ * @param ldr  Loader connection structure.
+ * @param argv NULL-terminated array of pointers to arguments.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int loader_set_args(loader_t *ldr, char *const argv[])
 {
-	aid_t req;
-	ipc_call_t answer;
-	ipcarg_t rc;
-
-	char *const *ap;
-	char *dp;
-	char *arg_buf;
-	size_t buffer_size;
-
-	/* 
+	/*
 	 * Serialize the arguments into a single array. First
 	 * compute size of the buffer needed.
 	 */
-	ap = argv;
-	buffer_size = 0;
+	char *const *ap = argv;
+	size_t buffer_size = 0;
 	while (*ap != NULL) {
 		buffer_size += str_size(*ap) + 1;
-		++ap;
+		ap++;
 	}
-
-	arg_buf = malloc(buffer_size);
-	if (arg_buf == NULL) return ENOMEM;
-
+	
+	char *arg_buf = malloc(buffer_size);
+	if (arg_buf == NULL)
+		return ENOMEM;
+	
 	/* Now fill the buffer with null-terminated argument strings */
 	ap = argv;
-	dp = arg_buf;
-
+	char *dp = arg_buf;
+	
 	while (*ap != NULL) {
 		str_cpy(dp, buffer_size - (dp - arg_buf), *ap);
 		dp += str_size(*ap) + 1;
-
-		++ap;
+		ap++;
 	}
-
+	
 	/* Send serialized arguments to the loader */
-
-	req = async_send_0(ldr->phone_id, LOADER_SET_ARGS, &answer);
-	rc = ipc_data_write_start(ldr->phone_id, (void *)arg_buf, buffer_size);
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_ARGS, &answer);
+	ipcarg_t rc = ipc_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
 	}
-
+	
 	async_wait_for(req, &rc);
-	if (rc != EOK) return rc;
-
+	if (rc != EOK)
+		return rc;
+	
 	/* Free temporary buffer */
 	free(arg_buf);
+	
+	return EOK;
+}
 
+/** Set preset files for the program.
+ *
+ * Sets the vector of preset files to be passed to the loaded
+ * program. By convention, the first three files represent stdin,
+ * stdout and stderr respectively.
+ *
+ * @param ldr   Loader connection structure.
+ * @param files NULL-terminated array of pointers to files.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int loader_set_files(loader_t *ldr, fs_node_t *const files[])
+{
+	/*
+	 * Serialize the arguments into a single array. First
+	 * compute size of the buffer needed.
+	 */
+	fs_node_t *const *ap = files;
+	size_t count = 0;
+	while (*ap != NULL) {
+		count++;
+		ap++;
+	}
+	
+	fs_node_t *files_buf = (fs_node_t *) malloc(count * sizeof(fs_node_t));
+	if (files_buf == NULL)
+		return ENOMEM;
+	
+	/* Fill the buffer */
+	size_t i;
+	for (i = 0; i < count; i++)
+		files_buf[i] = *files[i];
+	
+	/* Send serialized files to the loader */
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_FILES, &answer);
+	ipcarg_t rc = ipc_data_write_start(ldr->phone_id, (void *) files_buf,
+	    count * sizeof(fs_node_t));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+	
+	/* Free temporary buffer */
+	free(files_buf);
+	
 	return EOK;
 }
 
@@ -209,18 +252,14 @@ int loader_set_args(loader_t *ldr, char *const argv[])
  * If this function succeeds, the program has been successfully loaded
  * and is ready to be executed.
  *
- * @param ldr		Loader connection structure.
- * @return		Zero on success or negative error code.
+ * @param ldr Loader connection structure.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int loader_load_program(loader_t *ldr)
 {
-	int rc;
-
-	rc = async_req_0_0(ldr->phone_id, LOADER_LOAD);
-	if (rc != EOK)
-		return rc;
-
-	return EOK;
+	return (int) async_req_0_0(ldr->phone_id, LOADER_LOAD);
 }
 
 /** Instruct loader to execute the program.
@@ -232,17 +271,17 @@ int loader_load_program(loader_t *ldr)
  * After using this function, no further operations must be performed
  * on the loader structure. It should be de-allocated using free().
  *
- * @param ldr		Loader connection structure.
- * @return		Zero on success or negative error code.
+ * @param ldr Loader connection structure.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int loader_run(loader_t *ldr)
 {
-	int rc;
-
-	rc = async_req_0_0(ldr->phone_id, LOADER_RUN);
+	int rc = async_req_0_0(ldr->phone_id, LOADER_RUN);
 	if (rc != EOK)
 		return rc;
-
+	
 	ipc_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 	return EOK;
@@ -254,8 +293,10 @@ int loader_run(loader_t *ldr)
  * After using this function, no further operations must be performed
  * on the loader structure. It should be de-allocated using free().
  *
- * @param ldr		Loader connection structure.
- * @return		Zero on success or negative error code.
+ * @param ldr Loader connection structure.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 void loader_abort(loader_t *ldr)
 {
