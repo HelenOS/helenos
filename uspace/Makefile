@@ -54,6 +54,7 @@ DIRS = \
 	app/trace \
 	app/klog \
 	app/init \
+	app/getvc \
 	app/bdsh
 
 ifeq ($(UARCH),amd64)
