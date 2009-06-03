@@ -31,7 +31,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <task.h>
 #include <libc.h>
@@ -39,21 +39,25 @@
 #include <errno.h>
 #include <loader/loader.h>
 #include <string.h>
+#include <ipc/ns.h>
+#include <macros.h>
+#include <async.h>
 
 task_id_t task_get_id(void)
 {
 	task_id_t task_id;
-
 	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
-
+	
 	return task_id;
 }
 
 /** Set the task name.
  *
- * @param name	The new name, typically the command used to execute the
- *		program.
- * @return	Zero on success or negative error code.
+ * @param name The new name, typically the command used to execute the
+ *             program.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int task_set_name(const char *name)
 {
@@ -65,57 +69,91 @@ int task_set_name(const char *name)
  * This is really just a convenience wrapper over the more complicated
  * loader API.
  *
- * @param path	pathname of the binary to execute
- * @param argv	command-line arguments
- * @return	ID of the newly created task or zero on error.
+ * @param path pathname of the binary to execute
+ * @param argv command-line arguments
+ *
+ * @return ID of the newly created task or zero on error.
+ *
  */
-task_id_t task_spawn(const char *path, char *const argv[])
+task_id_t task_spawn(const char *path, char *const args[])
 {
-	loader_t *ldr;
-	task_id_t task_id;
-	int rc;
-
 	/* Connect to a program loader. */
-	ldr = loader_connect();
+	loader_t *ldr = loader_connect();
 	if (ldr == NULL)
 		return 0;
-
+	
 	/* Get task ID. */
-	rc = loader_get_task_id(ldr, &task_id);
+	task_id_t task_id;
+	int rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
-
+	
 	/* Send program pathname. */
 	rc = loader_set_pathname(ldr, path);
 	if (rc != EOK)
 		goto error;
-
+	
 	/* Send arguments. */
-	rc = loader_set_args(ldr, argv);
+	rc = loader_set_args(ldr, args);
 	if (rc != EOK)
 		goto error;
-
+	
+	
+	/* Send default files */
+	fs_node_t *files[4];
+	fs_node_t stdin_node;
+	fs_node_t stdout_node;
+	fs_node_t stderr_node;
+	
+	if ((stdin != NULL) && (stdin != &stdin_null)) {
+		fnode(stdin, &stdin_node);
+		files[0] = &stdin_node;
+	} else
+		files[0] = NULL;
+	
+	if ((stdout != NULL) && (stdout != &stdout_klog)) {
+		fnode(stdout, &stdout_node);
+		files[1] = &stdout_node;
+	} else
+		files[1] = NULL;
+	
+	if ((stderr != NULL) && (stderr != &stdout_klog)) {
+		fnode(stderr, &stderr_node);
+		files[2] = &stderr_node;
+	} else
+		files[2] = NULL;
+	
+	files[3] = NULL;
+	
+	rc = loader_set_files(ldr, files);
+	if (rc != EOK)
+		goto error;
+	
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)
 		goto error;
-
+	
 	/* Run it. */
 	rc = loader_run(ldr);
 	if (rc != EOK)
 		goto error;
-
+	
 	/* Success */
-
 	free(ldr);
 	return task_id;
-
-	/* Error exit */
+	
 error:
+	/* Error exit */
 	loader_abort(ldr);
 	free(ldr);
-
+	
 	return 0;
+}
+
+int task_wait(task_id_t id)
+{
+	return (int) async_req_2_0(PHONE_NS, NS_TASK_WAIT, LOWER32(id), UPPER32(id));
 }
 
 /** @}
