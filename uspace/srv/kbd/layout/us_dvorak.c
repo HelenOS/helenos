@@ -32,12 +32,12 @@
  */
 
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <layout.h>
 
 static void layout_reset(void);
-static wchar_t layout_parse_ev(kbd_event_t *ev);
+static wchar_t layout_parse_ev(console_event_t *ev);
 
 layout_op_t us_dvorak_op = {
 	layout_reset,
@@ -209,7 +209,7 @@ static void layout_reset(void)
 {
 }
 
-static wchar_t layout_parse_ev(kbd_event_t *ev)
+static wchar_t layout_parse_ev(console_event_t *ev)
 {
 	wchar_t c;
 

@@ -32,12 +32,12 @@
  */
 /**
  * @file
- * @brief	PC keyboard controller driver.
+ * @brief PC keyboard controller driver.
  */
 
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <kbd_ctl.h>
 #include <gsp.h>
 
@@ -188,7 +188,7 @@ int kbd_ctl_init(void)
 
 void kbd_ctl_parse_scancode(int scancode)
 {
-	kbd_ev_type_t type;
+	console_ev_type_t type;
 	unsigned int key;
 	int *map;
 	size_t map_length;
@@ -213,9 +213,9 @@ void kbd_ctl_parse_scancode(int scancode)
 
 	if (scancode & 0x80) {
 		scancode &= ~0x80;
-		type = KE_RELEASE;
+		type = KEY_RELEASE;
 	} else {
-		type = KE_PRESS;
+		type = KEY_PRESS;
 	}
 
 	if (scancode < 0 || scancode >= map_length)

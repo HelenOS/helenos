@@ -31,17 +31,18 @@
  */
 /**
  * @file
- * @brief	Stroke simulator.
+ * @brief Stroke simulator.
  *
  * When simulating a keyboard using a serial TTY we need to convert the
  * recognized strokes (such as Shift-A) to sequences of key presses and
  * releases (such as 'press Shift, press A, release A, release Shift').
+ *
  */
 
 #include <stroke.h>
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 
 /** Correspondence between modifers and the modifier keycodes. */
 static unsigned int mods_keys[][2] = {
@@ -58,22 +59,22 @@ void stroke_sim(unsigned mod, unsigned key)
 	i = 0;
 	while (mods_keys[i][0] != 0) {
 		if (mod & mods_keys[i][0]) {
-			kbd_push_ev(KE_PRESS, mods_keys[i][1]);
+			kbd_push_ev(KEY_PRESS, mods_keys[i][1]);
 		}
 		++i;
 	}
 
 	/* Simulate key press and release. */
 	if (key != 0) {
-		kbd_push_ev(KE_PRESS, key);
-		kbd_push_ev(KE_RELEASE, key);
+		kbd_push_ev(KEY_PRESS, key);
+		kbd_push_ev(KEY_RELEASE, key);
 	}
 
 	/* Simulate modifier releases. */
 	i = 0;
 	while (mods_keys[i][0] != 0) {
 		if (mod & mods_keys[i][0]) {
-			kbd_push_ev(KE_RELEASE, mods_keys[i][1]);
+			kbd_push_ev(KEY_RELEASE, mods_keys[i][1]);
 		}
 		++i;
 	}
@@ -81,4 +82,4 @@ void stroke_sim(unsigned mod, unsigned key)
 
 /**
  * @}
- */ 
+ */

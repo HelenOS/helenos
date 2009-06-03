@@ -27,24 +27,25 @@
  */
 
 /** @addtogroup kbdgen
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+ * @brief HelenOS generic uspace keyboard handler.
+ * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  */
 
-#ifndef __KEY_BUFFER_H__
-#define __KEY_BUFFER_H__
+#ifndef __KEYBUFFER_H__
+#define __KEYBUFFER_H__
 
 #include <sys/types.h>
-#include <kbd/kbd.h>
+#include <io/console.h>
+#include <bool.h>
 
 /** Size of buffer for pressed keys */
-#define KEYBUFFER_SIZE 128 
+#define KEYBUFFER_SIZE  128
 
 typedef struct {
-	kbd_event_t fifo[KEYBUFFER_SIZE];
+	console_event_t fifo[KEYBUFFER_SIZE];
 	unsigned long head;
 	unsigned long tail;
 	unsigned long items;
@@ -52,14 +53,13 @@ typedef struct {
 
 extern void keybuffer_free(keybuffer_t *);
 extern void keybuffer_init(keybuffer_t *);
-extern int keybuffer_available(keybuffer_t *);
-extern int keybuffer_empty(keybuffer_t *);
-extern void keybuffer_push(keybuffer_t *, const kbd_event_t *);
-extern int keybuffer_pop(keybuffer_t *, kbd_event_t *);
+extern size_t keybuffer_available(keybuffer_t *);
+extern bool keybuffer_empty(keybuffer_t *);
+extern void keybuffer_push(keybuffer_t *, const console_event_t *);
+extern bool keybuffer_pop(keybuffer_t *, console_event_t *);
 
 #endif
 
 /**
  * @}
- */ 
-
+ */

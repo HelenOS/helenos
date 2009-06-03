@@ -36,8 +36,7 @@
  */
 
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/keycode.h>
 #include <kbd_ctl.h>
 #include <gsp.h>
 #include <stroke.h>

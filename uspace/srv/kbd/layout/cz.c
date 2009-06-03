@@ -27,23 +27,23 @@
  */
 
 /** @addtogroup kbd
- * @brief	US QWERTY leyout.
+ * @brief US QWERTY leyout.
  * @{
- */ 
+ */
 
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <bool.h>
 #include <layout.h>
 
 static void layout_reset(void);
-static wchar_t layout_parse_ev(kbd_event_t *ev);
+static wchar_t layout_parse_ev(console_event_t *ev);
 
 enum m_state {
 	ms_start,
 	ms_hacek,
-	ms_carka	
+	ms_carka
 };
 
 static enum m_state mstate;
@@ -272,7 +272,7 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static wchar_t parse_ms_hacek(kbd_event_t *ev)
+static wchar_t parse_ms_hacek(console_event_t *ev)
 {
 	wchar_t c;
 
@@ -290,7 +290,7 @@ static wchar_t parse_ms_hacek(kbd_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_carka(kbd_event_t *ev)
+static wchar_t parse_ms_carka(console_event_t *ev)
 {
 	wchar_t c;
 
@@ -308,7 +308,7 @@ static wchar_t parse_ms_carka(kbd_event_t *ev)
 	return c;
 }
 
-static wchar_t parse_ms_start(kbd_event_t *ev)
+static wchar_t parse_ms_start(console_event_t *ev)
 {
 	wchar_t c;
 
@@ -383,21 +383,24 @@ static void layout_reset(void)
 	mstate = ms_start;
 }
 
-static wchar_t layout_parse_ev(kbd_event_t *ev)
+static wchar_t layout_parse_ev(console_event_t *ev)
 {
-	if (ev->type != KE_PRESS)
-		return '\0';
-
+	if (ev->type != KEY_PRESS)
+		return 0;
+	
 	if (key_is_mod(ev->key))
-		return '\0';
-
+		return 0;
+	
 	switch (mstate) {
-	case ms_start: return parse_ms_start(ev);
-	case ms_hacek: return parse_ms_hacek(ev);
-	case ms_carka: return parse_ms_carka(ev);
+	case ms_start:
+		return parse_ms_start(ev);
+	case ms_hacek:
+		return parse_ms_hacek(ev);
+	case ms_carka:
+		return parse_ms_carka(ev);
 	}
 }
 
 /**
  * @}
- */ 
+ */

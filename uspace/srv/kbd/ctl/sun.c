@@ -36,8 +36,8 @@
  */
 
 #include <kbd.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 #include <kbd_ctl.h>
 
 #define KBD_KEY_RELEASE		0x80
@@ -52,7 +52,7 @@ int kbd_ctl_init(void)
 
 void kbd_ctl_parse_scancode(int scancode)
 {
-	kbd_ev_type_t type;
+	console_ev_type_t type;
 	unsigned int key;
 
 	if (scancode < 0 || scancode >= 0x100)
@@ -63,9 +63,9 @@ void kbd_ctl_parse_scancode(int scancode)
 
 	if (scancode & KBD_KEY_RELEASE) {
 		scancode &= ~KBD_KEY_RELEASE;
-		type = KE_RELEASE;
+		type = KEY_RELEASE;
 	} else {
-		type = KE_PRESS;
+		type = KEY_PRESS;
 	}
 
 	key = scanmap_simple[scancode];

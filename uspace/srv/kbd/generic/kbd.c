@@ -28,10 +28,10 @@
 
 /**
  * @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+ * @brief HelenOS generic uspace keyboard handler.
+ * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  */
 
@@ -46,11 +46,11 @@
 #include <async.h>
 #include <errno.h>
 #include <libadt/fifo.h>
-#include <kbd/kbd.h>
-#include <kbd/keycode.h>
+#include <io/console.h>
+#include <io/keycode.h>
 
 #include <kbd.h>
-#include <key_buffer.h>
+#include <keybuffer.h>
 #include <kbd_port.h>
 #include <kbd_ctl.h>
 #include <layout.h>
@@ -88,7 +88,7 @@ void kbd_push_scancode(int scancode)
 
 void kbd_push_ev(int type, unsigned int key)
 {
-	kbd_event_t ev;
+	console_event_t ev;
 	unsigned mod_mask;
 
 	switch (key) {
@@ -102,7 +102,7 @@ void kbd_push_ev(int type, unsigned int key)
 	}
 
 	if (mod_mask != 0) {
-		if (type == KE_PRESS)
+		if (type == KEY_PRESS)
 			mods = mods | mod_mask;
 		else
 			mods = mods & ~mod_mask;
@@ -116,7 +116,7 @@ void kbd_push_ev(int type, unsigned int key)
 	}
 
 	if (mod_mask != 0) {
-		if (type == KE_PRESS) {
+		if (type == KEY_PRESS) {
 			/*
 			 * Only change lock state on transition from released
 			 * to pressed. This prevents autorepeat from messing
@@ -133,21 +133,21 @@ void kbd_push_ev(int type, unsigned int key)
 	printf("mods: 0x%x\n", mods);
 	printf("keycode: %u\n", key);
 */
-	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F1) {
 		active_layout = 0;
 		layout[active_layout]->reset();
 		return;
 	}
 
-	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F2) {
 		active_layout = 1;
 		layout[active_layout]->reset();
 		return;
 	}
 
-	if (type == KE_PRESS && (mods & KM_LCTRL) &&
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F3) {
 		active_layout = 2;
 		layout[active_layout]->reset();

@@ -46,7 +46,7 @@ GENERIC_SOURCES = \
 	generic/kbd.c \
 	genarch/gsp.c \
 	genarch/stroke.c \
-	generic/key_buffer.c
+	generic/keybuffer.c
 
 ARCH_SOURCES =
 GENARCH_SOURCES = \

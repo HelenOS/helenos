@@ -27,22 +27,22 @@
  */
 
 /** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+ * @brief HelenOS generic uspace keyboard handler.
+ * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  */
 
 #ifndef KBD_LAYOUT_H_
 #define KBD_LAYOUT_H_
 
-#include <kbd/kbd.h>
 #include <sys/types.h>
+#include <io/console.h>
 
 typedef struct {
 	void (*reset)(void);
-	wchar_t (*parse_ev)(kbd_event_t *);
+	wchar_t (*parse_ev)(console_event_t *);
 } layout_op_t;
 
 extern layout_op_t us_qwerty_op;
@@ -53,5 +53,4 @@ extern layout_op_t cz_op;
 
 /**
  * @}
- */ 
-
+ */

@@ -27,27 +27,27 @@
  */
 
 /** @addtogroup kbdgen generic
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+ * @brief HelenOS generic uspace keyboard handler.
+ * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  */
 
 #ifndef KBD_KBD_H_
 #define KBD_KBD_H_
 
-#include <key_buffer.h>
+#include <keybuffer.h>
 #include <ipc/ipc.h>
 
-#define KBD_EVENT	1024
-#define KBD_MS_LEFT	1025
-#define KBD_MS_RIGHT	1026
-#define KBD_MS_MIDDLE	1027
-#define KBD_MS_MOVE	1028
+#define KBD_EVENT      1024
+#define KBD_MS_LEFT    1025
+#define KBD_MS_RIGHT   1026
+#define KBD_MS_MIDDLE  1027
+#define KBD_MS_MOVE    1028
 
 typedef enum {
-	KBD_YIELD	= IPC_FIRST_USER_METHOD,
+	KBD_YIELD = IPC_FIRST_USER_METHOD,
 	KBD_RECLAIM
 } kbd_request_t;
 
@@ -61,5 +61,4 @@ extern void kbd_push_ev(int, unsigned int);
 
 /**
  * @}
- */ 
-
+ */

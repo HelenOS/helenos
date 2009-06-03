@@ -27,13 +27,14 @@
  */
 
 /** @addtogroup kbdgen
- * @brief	HelenOS generic uspace keyboard handler.
- * @ingroup  kbd
+ * @brief HelenOS generic uspace keyboard handler.
+ * @ingroup kbd
  * @{
- */ 
+ */
 /** @file
  */
-#include <key_buffer.h>
+
+#include <keybuffer.h>
 #include <futex.h>
 
 atomic_t keybuffer_futex = FUTEX_INITIALIZER;
@@ -58,19 +59,24 @@ void keybuffer_init(keybuffer_t *keybuffer)
 }
 
 /** Get free space in buffer.
- * This function is useful for processing some scancodes that are translated 
+ *
+ * This function is useful for processing some scancodes that are translated
  * to more than one character.
+ *
  * @return empty buffer space
+ *
  */
-int keybuffer_available(keybuffer_t *keybuffer)
+size_t keybuffer_available(keybuffer_t *keybuffer)
 {
 	return KEYBUFFER_SIZE - keybuffer->items;
 }
 
 /**
+ *
  * @return nonzero, if buffer is not empty.
+ *
  */
-int keybuffer_empty(keybuffer_t *keybuffer)
+bool keybuffer_empty(keybuffer_t *keybuffer)
 {
 	return (keybuffer->items == 0);
 }
@@ -79,39 +85,48 @@ int keybuffer_empty(keybuffer_t *keybuffer)
  *
  * If the buffer is full, the event is ignored.
  *
- * @param keybuffer	The keybuffer.
- * @param ev		The event to push.
+ * @param keybuffer The keybuffer.
+ * @param ev        The event to push.
+ *
  */
-void keybuffer_push(keybuffer_t *keybuffer, const kbd_event_t *ev)
+void keybuffer_push(keybuffer_t *keybuffer, const console_event_t *ev)
 {
 	futex_down(&keybuffer_futex);
+	
 	if (keybuffer->items < KEYBUFFER_SIZE) {
 		keybuffer->fifo[keybuffer->tail] = *ev;
 		keybuffer->tail = (keybuffer->tail + 1) % KEYBUFFER_SIZE;
 		keybuffer->items++;
 	}
+	
 	futex_up(&keybuffer_futex);
 }
 
 /** Pop event from buffer.
  *
- * @param edst	Pointer to where the event should be saved.
- * @return	Zero on empty buffer, nonzero otherwise.
+ * @param edst Pointer to where the event should be saved.
+ *
+ * @return True if an event was popped.
+ *
  */
-int keybuffer_pop(keybuffer_t *keybuffer, kbd_event_t *edst)
+bool keybuffer_pop(keybuffer_t *keybuffer, console_event_t *edst)
 {
 	futex_down(&keybuffer_futex);
+	
 	if (keybuffer->items > 0) {
 		keybuffer->items--;
-		*edst = (keybuffer->fifo[keybuffer->head]) ;
+		*edst = (keybuffer->fifo[keybuffer->head]);
 		keybuffer->head = (keybuffer->head + 1) % KEYBUFFER_SIZE;
 		futex_up(&keybuffer_futex);
-		return 1;
+		
+		return true;
 	}
+	
 	futex_up(&keybuffer_futex);
-	return 0;
+	
+	return false;
 }
 
 /**
  * @}
- */ 
+ */
