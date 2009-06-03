@@ -661,13 +661,8 @@ static void main_init(void)
 	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
 	resp_def[2] = V_INTEGER; resp_def[3] = V_CHAR;
 	o = oper_new("getkey", 0, arg_def, V_ERRNO, 4, resp_def);
-	proto_add_oper(p, CONSOLE_GETKEY, o);
 
 	arg_def[0] = V_CHAR;
-	o = oper_new("putchar", 1, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_PUTCHAR, o);
-	o = oper_new("write", 0, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_WRITE, o);
 	o = oper_new("clear", 0, arg_def, V_VOID, 0, resp_def);
 	proto_add_oper(p, CONSOLE_CLEAR, o);
 
@@ -677,9 +672,7 @@ static void main_init(void)
 
 	resp_def[0] = V_INTEGER; resp_def[1] = V_INTEGER;
 	o = oper_new("getsize", 0, arg_def, V_INTEGER, 2, resp_def);
-	proto_add_oper(p, CONSOLE_GETSIZE, o);
-	o = oper_new("flush", 0, arg_def, V_VOID, 0, resp_def);
-	proto_add_oper(p, CONSOLE_FLUSH, o);
+	proto_add_oper(p, CONSOLE_GET_SIZE, o);
 
 	arg_def[0] = V_INTEGER;
 	o = oper_new("set_style", 1, arg_def, V_VOID, 0, resp_def);
