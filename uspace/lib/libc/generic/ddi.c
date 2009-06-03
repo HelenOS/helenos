@@ -127,7 +127,7 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
 	}
 #endif
 
-	phys = ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
+	phys = (void *) ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	offset = pio_addr - phys;
 	pages = ALIGN_UP(offset + size, PAGE_SIZE) >> PAGE_WIDTH;
 	virt = as_get_mappable_page(pages << PAGE_WIDTH);
