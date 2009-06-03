@@ -336,6 +336,26 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return 0;
 }
 
+static void phones_lock(phone_t *p1, phone_t *p2)
+{
+	if (p1 < p2) {
+		mutex_lock(&p1->lock);
+		mutex_lock(&p2->lock);
+	} else if (p1 > p2) {
+		mutex_lock(&p2->lock);
+		mutex_lock(&p1->lock);
+	} else {
+		mutex_lock(&p1->lock);
+	}
+}
+
+static void phones_unlock(phone_t *p1, phone_t *p2)
+{
+	mutex_unlock(&p1->lock);
+	if (p1 != p2)
+		mutex_unlock(&p2->lock);
+}
+
 /** Called before the request is sent.
  *
  * @param call		Call structure with the request.
@@ -355,20 +375,10 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		phone_t *cloned_phone;
 		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
 		    return ENOENT);
-		if (cloned_phone < phone) {
-			mutex_lock(&cloned_phone->lock);
-			mutex_lock(&phone->lock);
-		} else if (cloned_phone > phone) {
-			mutex_lock(&phone->lock);
-			mutex_lock(&cloned_phone->lock);
-		} else {
-			mutex_lock(&phone->lock);
-		}
+		phones_lock(cloned_phone, phone);
 		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 		    phone->state != IPC_PHONE_CONNECTED) {
-			if (cloned_phone != phone)
-				mutex_unlock(&cloned_phone->lock);
-			mutex_unlock(&phone->lock);
+			phones_unlock(cloned_phone, phone);
 			return EINVAL;
 		}
 		/*
@@ -379,16 +389,12 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		 */
 		newphid = phone_alloc(phone->callee->task);
 		if (newphid < 0) {
-			if (cloned_phone != phone)
-				mutex_unlock(&cloned_phone->lock);
-			mutex_unlock(&phone->lock);
+			phones_unlock(cloned_phone, phone);
 			return ELIMIT;
 		}
 		ipc_phone_connect(&phone->callee->task->phones[newphid],
 		    cloned_phone->callee);
-		if (cloned_phone != phone)
-			mutex_unlock(&cloned_phone->lock);
-		mutex_unlock(&phone->lock);
+		phones_unlock(cloned_phone, phone);
 		/* Set the new phone for the callee. */
 		IPC_SET_ARG1(call->data, newphid);
 		break;
