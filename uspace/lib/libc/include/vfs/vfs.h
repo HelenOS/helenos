@@ -44,20 +44,20 @@ typedef struct {
 	fs_handle_t fs_handle;
 	dev_handle_t dev_handle;
 	fs_index_t index;
-} fs_node_t;
+} inode_t;
 
 extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
     unsigned int flags);
 
-extern int open_node(fs_node_t *node, int oflag);
+extern int open_node(inode_t *node, int oflag);
 extern int fd_phone(int);
-extern void fd_node(int, fs_node_t *);
+extern void fd_node(int, inode_t *);
 
-extern FILE *fopen_node(fs_node_t *node, const char *);
+extern FILE *fopen_node(inode_t *node, const char *);
 extern int fphone(FILE *);
-extern void fnode(FILE *stream, fs_node_t *node);
+extern void fnode(FILE *stream, inode_t *node);
 
 #endif
 

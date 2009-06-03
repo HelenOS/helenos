@@ -223,7 +223,7 @@ int open(const char *path, int oflag, ...)
 	return _open(path, L_FILE, oflag);
 }
 
-int open_node(fs_node_t *node, int oflag)
+int open_node(inode_t *node, int oflag)
 {
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -332,7 +332,7 @@ int fd_phone(int fildes)
 	return devmap_device_connect((dev_handle_t) device, 0);
 }
 
-void fd_node(int fildes, fs_node_t *node)
+void fd_node(int fildes, inode_t *node)
 {
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
