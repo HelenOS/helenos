@@ -711,17 +711,20 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static bool console_init(void)
 {
-	/* Connect to keyboard driver */
+	async_serialize_start();
 	
+	/* Connect to keyboard driver */
 	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	if (kbd_phone < 0) {
 		printf(NAME ": Failed to connect to keyboard service\n");
+		async_serialize_end();
 		return false;
 	}
 	
 	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from keyboard service\n");
+		async_serialize_end();
 		return false;
 	}
 	
@@ -732,6 +735,7 @@ static bool console_init(void)
 	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
+		async_serialize_end();
 		return -1;
 	}
 	
@@ -739,6 +743,7 @@ static bool console_init(void)
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver (%d)\n", rc);
+		async_serialize_end();
 		return false;
 	}
 	
@@ -774,6 +779,7 @@ static bool console_init(void)
 			if (screenbuffer_init(&consoles[i].scr,
 			    fb_info.cols, fb_info.rows) == NULL) {
 				printf(NAME ": Unable to allocate screen buffer %u\n", i);
+				async_serialize_end();
 				return false;
 			}
 			screenbuffer_clear(&consoles[i].scr);
@@ -787,6 +793,7 @@ static bool console_init(void)
 			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
 				devmap_hangup_phone(DEVMAP_DRIVER);
 				printf(NAME ": Unable to register device %s\n", vc);
+				async_serialize_end();
 				return false;
 			}
 		}
@@ -808,6 +815,7 @@ static bool console_init(void)
 	
 	async_set_interrupt_received(interrupt_received);
 	
+	async_serialize_end();
 	return true;
 }
 
