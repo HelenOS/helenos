@@ -100,10 +100,10 @@ task_id_t task_spawn(const char *path, char *const args[])
 	
 	
 	/* Send default files */
-	inode_t *files[4];
-	inode_t stdin_node;
-	inode_t stdout_node;
-	inode_t stderr_node;
+	fdi_node_t *files[4];
+	fdi_node_t stdin_node;
+	fdi_node_t stdout_node;
+	fdi_node_t stderr_node;
 	
 	if ((stdin != NULL) && (stdin != &stdin_null)) {
 		fnode(stdin, &stdin_node);

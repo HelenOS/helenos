@@ -50,7 +50,7 @@ extern loader_t *loader_connect(void);
 extern int loader_get_task_id(loader_t *, task_id_t *);
 extern int loader_set_pathname(loader_t *, const char *);
 extern int loader_set_args(loader_t *, char *const[]);
-extern int loader_set_files(loader_t *, inode_t *const[]);
+extern int loader_set_files(loader_t *, fdi_node_t *const[]);
 extern int loader_load_program(loader_t *);
 extern int loader_run(loader_t *);
 extern void loader_abort(loader_t *);

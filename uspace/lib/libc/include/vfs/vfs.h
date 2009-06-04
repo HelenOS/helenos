@@ -40,24 +40,28 @@
 #include <ipc/devmap.h>
 #include <stdio.h>
 
+/**
+ * This type is a libc version of the VFS triplet.
+ * It uniquelly identifies a file system node within a file system instance.
+ */
 typedef struct {
 	fs_handle_t fs_handle;
 	dev_handle_t dev_handle;
 	fs_index_t index;
-} inode_t;
+} fdi_node_t;
 
 extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int flags);
+    unsigned int);
 
-extern int open_node(inode_t *node, int oflag);
+extern int open_node(fdi_node_t *, int);
 extern int fd_phone(int);
-extern void fd_node(int, inode_t *);
+extern void fd_node(int, fdi_node_t *);
 
-extern FILE *fopen_node(inode_t *node, const char *);
+extern FILE *fopen_node(fdi_node_t *, const char *);
 extern int fphone(FILE *);
-extern void fnode(FILE *stream, inode_t *node);
+extern void fnode(FILE *, fdi_node_t *);
 
 #endif
 

@@ -81,7 +81,7 @@ static int filc = 0;
 /** Preset files vector */
 static char **filv = NULL;
 /** Buffer holding all preset files */
-static inode_t *fil_buf = NULL;
+static fdi_node_t *fil_buf = NULL;
 
 static elf_info_t prog_info;
 static elf_info_t interp_info;
@@ -242,7 +242,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	if ((buf_size % sizeof(inode_t)) != 0) {
+	if ((buf_size % sizeof(fdi_node_t)) != 0) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -267,10 +267,10 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 	
 	ipc_data_write_finalize(callid, fil_buf, buf_size);
 	
-	int count = buf_size / sizeof(inode_t);
+	int count = buf_size / sizeof(fdi_node_t);
 	
 	/* Allocate filvv */
-	filv = malloc((count + 1) * sizeof(inode_t *));
+	filv = malloc((count + 1) * sizeof(fdi_node_t *));
 	
 	if (filv == NULL) {
 		free(fil_buf);

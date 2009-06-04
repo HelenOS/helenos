@@ -205,20 +205,21 @@ int loader_set_args(loader_t *ldr, char *const argv[])
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_files(loader_t *ldr, inode_t *const files[])
+int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
 {
 	/*
 	 * Serialize the arguments into a single array. First
 	 * compute size of the buffer needed.
 	 */
-	inode_t *const *ap = files;
+	fdi_node_t *const *ap = files;
 	size_t count = 0;
 	while (*ap != NULL) {
 		count++;
 		ap++;
 	}
 	
-	inode_t *files_buf = (inode_t *) malloc(count * sizeof(inode_t));
+	fdi_node_t *files_buf;
+	files_buf = (fdi_node_t *) malloc(count * sizeof(fdi_node_t));
 	if (files_buf == NULL)
 		return ENOMEM;
 	
@@ -231,7 +232,7 @@ int loader_set_files(loader_t *ldr, inode_t *const files[])
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_FILES, &answer);
 	ipcarg_t rc = ipc_data_write_start(ldr->phone_id, (void *) files_buf,
-	    count * sizeof(inode_t));
+	    count * sizeof(fdi_node_t));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;

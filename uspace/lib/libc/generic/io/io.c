@@ -144,7 +144,7 @@ FILE *fopen(const char *path, const char *mode)
 	return stream;
 }
 
-FILE *fopen_node(inode_t *node, const char *mode)
+FILE *fopen_node(fdi_node_t *node, const char *mode)
 {
 	int flags;
 	if (!parse_mode(mode, &flags))
@@ -353,7 +353,7 @@ int fphone(FILE *stream)
 	return -1;
 }
 
-void fnode(FILE *stream, inode_t *node)
+void fnode(FILE *stream, fdi_node_t *node)
 {
 	if (stream->fd >= 0) {
 		fd_node(stream->fd, node);

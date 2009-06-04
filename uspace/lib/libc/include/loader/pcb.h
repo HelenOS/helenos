@@ -60,7 +60,7 @@ typedef struct {
 	/** Number of preset files. */
 	int filc;
 	/** Preset files. */
-	inode_t **filv;
+	fdi_node_t **filv;
 	
 	/*
 	 * ELF-specific data.
