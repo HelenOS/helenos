@@ -528,6 +528,7 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
 		if (!pr) {
+			ipc_answer_0(callid, ENOMEM);
 			ipc_answer_0(rid, ENOMEM);
 			free(buf);
 			async_serialize_end();
