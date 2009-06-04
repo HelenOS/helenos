@@ -29,7 +29,7 @@
 CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32 -finput-charset=UTF-8 \
 	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-nostdlib -nostdinc -pipe -g
+	-Werror-implicit-function-declaration -nostdlib -nostdinc -pipe -g
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 

@@ -31,6 +31,7 @@
 #include <io/console.h>
 #include <io/color.h>
 #include <io/style.h>
+#include <vfs/vfs.h>
 #include <async.h>
 #include "../tester.h"
 

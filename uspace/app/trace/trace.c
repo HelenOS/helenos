@@ -41,6 +41,8 @@
 #include <udebug.h>
 #include <async.h>
 #include <task.h>
+#include <mem.h>
+#include <string.h>
 #include <loader/loader.h>
 
 #include <libc.h>

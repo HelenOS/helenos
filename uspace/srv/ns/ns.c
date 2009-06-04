@@ -45,6 +45,7 @@
 #include <ddi.h>
 #include <event.h>
 #include <macros.h>
+#include <sysinfo.h>
 #include "ns.h"
 #include "service.h"
 #include "clonable.h"

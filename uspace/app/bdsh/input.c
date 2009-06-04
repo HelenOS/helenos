@@ -35,6 +35,7 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <io/style.h>
+#include <vfs/vfs.h>
 #include <errno.h>
 #include <bool.h>
 

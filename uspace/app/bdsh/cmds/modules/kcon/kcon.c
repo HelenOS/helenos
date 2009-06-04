@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <io/console.h>
+#include <vfs/vfs.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"

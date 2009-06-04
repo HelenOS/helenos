@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <getopt.h>
+#include <mem.h>
+#include <string.h>
 
 #include "config.h"
 #include "errors.h"
