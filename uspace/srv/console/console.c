@@ -792,7 +792,11 @@ static bool console_init(void)
 		}
 	}
 	
+	/* Disable kernel output to the console */
+	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
+	
 	/* Initialize the screen */
+	gcons_redraw_console();
 	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	screen_clear();
 	curs_goto(0, 0);
@@ -811,13 +815,8 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Console service\n");
 	
-	/* Disable kernel output to the console */
-	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
-	
-	if (!console_init()) {
-		__SYSCALL0(SYS_DEBUG_ENABLE_CONSOLE);
+	if (!console_init())
 		return -1;
-	}
 	
 	printf(NAME ": Accepting connections\n");
 	async_manager();

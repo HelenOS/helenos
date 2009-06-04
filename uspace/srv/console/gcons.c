@@ -536,7 +536,7 @@ void gcons_init(int phone)
 	console_state[0] = CONS_DISCONNECTED_SEL;
 	console_state[KERNEL_CONSOLE] = CONS_KERNEL;
 	
-	gcons_redraw_console();
+	vp_switch(console_vp);
 }
 
 /** @}
