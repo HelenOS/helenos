@@ -30,8 +30,8 @@
 #
 
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+LIBC_PREFIX = ../../../lib/libc
+SOFTINT_PREFIX = ../../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
@@ -40,9 +40,9 @@ LIBS = $(LIBC_PREFIX)/libc.a
 ## Sources
 #
 
-OUTPUT = fhc
+OUTPUT = obio
 SOURCES = \
-	fhc.c
+	obio.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

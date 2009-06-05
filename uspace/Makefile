@@ -67,8 +67,8 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/fhc \
-		srv/obio
+		srv/cir/fhc \
+		srv/cir/obio
 endif
 
 BUILDS := $(addsuffix .build,$(DIRS))

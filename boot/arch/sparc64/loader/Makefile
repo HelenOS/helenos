@@ -107,8 +107,8 @@ RD_SRVS = \
 ifeq ($(MACHINE),generic)
 RD_SRVS += \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/fhc/fhc \
-	$(USPACEDIR)/srv/obio/obio
+	$(USPACEDIR)/srv/cir/fhc/fhc \
+	$(USPACEDIR)/srv/cir/obio/obio
 endif
 
 RD_APPS = \
