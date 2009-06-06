@@ -49,7 +49,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/bd/ata_bd/ata_bd
 
 RD_APPS = \
 	$(USPACEDIR)/app/getvc/getvc \
