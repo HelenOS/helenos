@@ -145,7 +145,7 @@ int fibril_switch(fibril_switch_type_t stype)
 			goto ret_0;
 		/*
 		 * Do not preempt if there is not enough threads to run the
-		 * ready fibrils, which are not serialized.
+		 * ready fibrils which are not serialized.
 		 */
 		if (list_empty(&serialized_list) &&
 		    threads_in_manager <= serialized_threads) {
