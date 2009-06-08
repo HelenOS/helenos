@@ -349,8 +349,10 @@ int fgetc(FILE *stream)
 	char c;
 
 	/* This could be made faster by only flushing when needed. */
-	if (stdout) fflush(stdout);
-	if (stderr) fflush(stderr);
+	if (stdout)
+		fflush(stdout);
+	if (stderr)
+		fflush(stderr);
 
 	if (fread(&c, sizeof(char), 1, stream) < sizeof(char))
 		return EOF;
