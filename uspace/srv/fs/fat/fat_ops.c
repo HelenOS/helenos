@@ -48,8 +48,8 @@
 #include <errno.h>
 #include <string.h>
 #include <byteorder.h>
-#include <libadt/hash_table.h>
-#include <libadt/list.h>
+#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <assert.h>
 #include <futex.h>
 #include <sys/mman.h>

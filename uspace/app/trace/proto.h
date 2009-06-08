@@ -35,7 +35,7 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 #include <ipc/ipc.h>
 #include "trace.h"
 

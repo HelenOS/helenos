@@ -34,7 +34,7 @@ SOFTINT_PREFIX = ../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -Iinclude -I../libadt/include
+CFLAGS += -Iinclude
 
 LIBS = $(LIBC_PREFIX)/libc.a
 

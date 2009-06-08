@@ -46,7 +46,7 @@
 #include <ctype.h>
 #include <bool.h>
 #include <futex.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <as.h>
 #include <assert.h>
 #include <atomic.h>

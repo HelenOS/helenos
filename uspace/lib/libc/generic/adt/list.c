@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <libadt/list.h>
+#include <adt/list.h>
 
 
 /** Check for membership

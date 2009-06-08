@@ -45,7 +45,7 @@
 #include <bool.h>
 #include <futex.h>
 #include <rwlock.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <fcntl.h>

@@ -43,7 +43,7 @@
 #include <stdarg.h>
 #include <bool.h>
 #include <futex.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <vfs/canonify.h>
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))

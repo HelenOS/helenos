@@ -36,7 +36,7 @@
 #define LIBC_FIBRIL_H_
 
 #include <libarch/fibril.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <libarch/tls.h>
 
 #ifndef context_set

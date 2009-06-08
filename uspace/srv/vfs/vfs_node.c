@@ -40,7 +40,7 @@
 #include <string.h>
 #include <futex.h>
 #include <rwlock.h>
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>

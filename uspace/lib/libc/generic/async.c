@@ -95,8 +95,8 @@
 #include <async.h>
 #include <fibril.h>
 #include <stdio.h>
-#include <libadt/hash_table.h>
-#include <libadt/list.h>
+#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <ipc/ipc.h>
 #include <assert.h>
 #include <errno.h>

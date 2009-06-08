@@ -43,7 +43,7 @@
 #include <bool.h>
 #include <string.h>
 #include <as.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <atomic.h>
 #include "vfs.h"
 

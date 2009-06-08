@@ -47,8 +47,8 @@
 #include <as.h>
 #include <assert.h>
 #include <futex.h>
-#include <libadt/list.h>
-#include <libadt/hash_table.h>
+#include <adt/list.h>
+#include <adt/hash_table.h>
 #include <mem.h>
 
 /** Lock protecting the device connection list */

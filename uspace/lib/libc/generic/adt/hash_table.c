@@ -36,8 +36,8 @@
  * This is an implementation of generic chained hash table.
  */
 
-#include <libadt/hash_table.h>
-#include <libadt/list.h>
+#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <unistd.h>
 #include <malloc.h>
 #include <assert.h>

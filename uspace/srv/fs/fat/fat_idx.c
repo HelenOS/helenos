@@ -39,8 +39,8 @@
 #include "../../vfs/vfs.h"
 #include <errno.h>
 #include <string.h>
-#include <libadt/hash_table.h>
-#include <libadt/list.h>
+#include <adt/hash_table.h>
+#include <adt/list.h>
 #include <assert.h>
 #include <futex.h>
 

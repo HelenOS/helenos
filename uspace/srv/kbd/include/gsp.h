@@ -37,7 +37,7 @@
 #ifndef KBD_GSP_H_
 #define KBD_GSP_H_
 
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 
 enum {
 	GSP_END		= -1,	/**< Terminates a sequence. */

@@ -43,7 +43,7 @@
 #include <libc.h>
 #include <malloc.h>
 #include <errno.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <futex.h>

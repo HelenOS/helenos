@@ -32,7 +32,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <bool.h>
 #include <errno.h>
 #include <assert.h>

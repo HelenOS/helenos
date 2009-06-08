@@ -49,7 +49,7 @@
  */
 
 #include <gsp.h>
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 #include <stdlib.h>
 #include <stdio.h>
 

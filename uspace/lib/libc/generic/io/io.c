@@ -42,7 +42,7 @@
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <ipc/devmap.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 
 static FILE stdin_null = {
 	.fd = -1,

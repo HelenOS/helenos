@@ -35,7 +35,7 @@
 #ifndef LIBC_HASH_TABLE_H_
 #define LIBC_HASH_TABLE_H_
 
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <unistd.h>
 
 typedef unsigned long hash_count_t;

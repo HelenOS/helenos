@@ -41,8 +41,8 @@
 #include "../../srv/vfs/vfs.h"
 #include <futex.h>
 #include <rwlock.h>
-#include <libadt/hash_table.h>
-#include <libadt/list.h>
+#include <adt/hash_table.h>
+#include <adt/list.h>
 
 /*
  * Flags that can be used with block_get().

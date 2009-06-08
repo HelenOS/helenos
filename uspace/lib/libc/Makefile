@@ -72,8 +72,8 @@ GENERIC_SOURCES = \
 	generic/async.c \
 	generic/loader.c \
 	generic/getopt.c \
-	generic/libadt/list.o \
-	generic/libadt/hash_table.o \
+	generic/adt/list.o \
+	generic/adt/hash_table.o \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \

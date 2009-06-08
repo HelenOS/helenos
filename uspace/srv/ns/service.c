@@ -31,7 +31,7 @@
  */
 
 #include <ipc/ipc.h>
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 #include <assert.h>
 #include <errno.h>
 #include "service.h"

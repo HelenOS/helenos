@@ -45,7 +45,7 @@
 #include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
-#include <libadt/fifo.h>
+#include <adt/fifo.h>
 #include <io/console.h>
 #include <io/keycode.h>
 

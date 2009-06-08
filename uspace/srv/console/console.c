@@ -44,7 +44,7 @@
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
-#include <libadt/fifo.h>
+#include <adt/fifo.h>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>

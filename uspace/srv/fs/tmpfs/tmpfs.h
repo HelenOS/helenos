@@ -38,7 +38,7 @@
 #include <atomic.h>
 #include <sys/types.h>
 #include <bool.h>
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 
 #ifndef dprintf
 #define dprintf(...)	printf(__VA_ARGS__)

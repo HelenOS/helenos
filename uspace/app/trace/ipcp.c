@@ -34,7 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <libadt/hash_table.h>
+#include <adt/hash_table.h>
 
 #include "ipc_desc.h"
 #include "proto.h"

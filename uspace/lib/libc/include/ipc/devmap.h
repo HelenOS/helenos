@@ -35,7 +35,7 @@
 
 #include <atomic.h>
 #include <ipc/ipc.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 
 #define DEVMAP_NAME_MAXLEN  255
 

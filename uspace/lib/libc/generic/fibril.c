@@ -33,7 +33,7 @@
 /** @file
  */
 
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <fibril.h>
 #include <thread.h>
 #include <tls.h>

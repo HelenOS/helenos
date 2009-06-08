@@ -34,7 +34,7 @@
 #define VFS_VFS_H_
 
 #include <ipc/ipc.h>
-#include <libadt/list.h>
+#include <adt/list.h>
 #include <futex.h>
 #include <rwlock.h>
 #include <sys/types.h>
