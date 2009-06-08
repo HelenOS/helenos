@@ -49,7 +49,8 @@
 #define FIBRIL_INITIAL_STACK_PAGES_NO	1
 #endif
 
-/** This futex serializes access to ready_list, serialized_list and manage_list.
+/**
+ * This futex serializes access to ready_list, serialized_list and manager_list.
  */ 
 static atomic_t fibril_futex = FUTEX_INITIALIZER;
 
@@ -59,12 +60,12 @@ static LIST_INITIALIZE(manager_list);
 
 static void fibril_main(void);
 
-/** Number of fibrils that are in async_serialized mode */
-static int serialized_fibrils;	/* Protected by async_futex */
-/** Thread-local count of serialization. If >0, we must not preempt */
+/** Number of threads that are executing a manager fibril. */
+static int threads_in_manager;
+/** Number of threads that are executing a manager fibril and are serialized. */
+static int serialized_threads;	/* Protected by async_futex */
+/** Thread-local count of serialization. If > 0, we must not preempt */
 static __thread int serialization_count;
-/** Counter for fibrils residing in async_manager */
-static int fibrils_in_manager;
 
 /** Setup fibril information into TCB structure */
 fibril_t *fibril_setup(void)
@@ -143,11 +144,11 @@ int fibril_switch(fibril_switch_type_t stype)
 		if (list_empty(&ready_list) && list_empty(&serialized_list))
 			goto ret_0;
 		/*
-		 * Do not preempt if there is not sufficient count of fibril 
-		 * managers.
+		 * Do not preempt if there is not enough threads to run the
+		 * ready fibrils, which are not serialized.
 		 */
 		if (list_empty(&serialized_list) &&
-		    fibrils_in_manager <= serialized_fibrils) {
+		    threads_in_manager <= serialized_threads) {
 			goto ret_0;
 		}
 	}
@@ -194,7 +195,7 @@ int fibril_switch(fibril_switch_type_t stype)
 			list_append(&srcf->link, &ready_list);
 		else if (stype == FIBRIL_FROM_MANAGER) {
 			list_append(&srcf->link, &manager_list);
-			fibrils_in_manager--;
+			threads_in_manager--;
 		} else {	
 			/*
 			 * If stype == FIBRIL_TO_MANAGER, don't put ourselves to
@@ -208,10 +209,10 @@ int fibril_switch(fibril_switch_type_t stype)
 	if (stype == FIBRIL_TO_MANAGER || stype == FIBRIL_FROM_DEAD) {
 		dstf = list_get_instance(manager_list.next, fibril_t, link);
 		if (serialization_count && stype == FIBRIL_TO_MANAGER) {
-			serialized_fibrils++;
+			serialized_threads++;
 			srcf->flags |= FIBRIL_SERIALIZED;
 		}
-		fibrils_in_manager++;
+		threads_in_manager++;
 
 		if (stype == FIBRIL_FROM_DEAD) 
 			dstf->clean_after_me = srcf;
@@ -219,7 +220,7 @@ int fibril_switch(fibril_switch_type_t stype)
 		if (!list_empty(&serialized_list)) {
 			dstf = list_get_instance(serialized_list.next, fibril_t,
 			    link);
-			serialized_fibrils--;
+			serialized_threads--;
 		} else {
 			dstf = list_get_instance(ready_list.next, fibril_t,
 			    link);
@@ -269,7 +270,7 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 
 /** Add a fibril to the ready list.
  *
- * @param fid		Pinter to the fibril structure of the fibril to be
+ * @param fid		Pointer to the fibril structure of the fibril to be
  *			added.
  */
 void fibril_add_ready(fid_t fid)
@@ -287,7 +288,8 @@ void fibril_add_ready(fid_t fid)
 
 /** Add a fibril to the manager list.
  *
- * @param fid		Pinter to the fibril structure of the fibril to be added.
+ * @param fid		Pointer to the fibril structure of the fibril to be
+ *			added.
  */
 void fibril_add_manager(fid_t fid)
 {
@@ -314,7 +316,7 @@ void fibril_remove_manager(void)
 
 /** Return fibril id of the currently running fibril.
  *
- * @return		Fibril ID of the currently running pseudo thread.
+ * @return		Fibril ID of the currently running fibril.
  */
 fid_t fibril_get_id(void)
 {

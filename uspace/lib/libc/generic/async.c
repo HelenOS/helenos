@@ -550,9 +550,10 @@ static int connection_fibril(void *arg)
 	
 	/* Answer all remaining messages with EHANGUP */
 	while (!list_empty(&FIBRIL_connection->msg_queue)) {
-		msg_t *msg
-		    = list_get_instance(FIBRIL_connection->msg_queue.next, msg_t, link);
+		msg_t *msg;
 		
+		msg = list_get_instance(FIBRIL_connection->msg_queue.next,
+		    msg_t, link);
 		list_remove(&msg->link);
 		ipc_answer_0(msg->callid, EHANGUP);
 		free(msg);
@@ -717,8 +718,8 @@ static int async_manager_worker(void)
 		
 		suseconds_t timeout;
 		if (!list_empty(&timeout_list)) {
-			awaiter_t *waiter
-			    = list_get_instance(timeout_list.next, awaiter_t, link);
+			awaiter_t *waiter = list_get_instance(timeout_list.next,
+			    awaiter_t, link);
 			
 			struct timeval tv;
 			gettimeofday(&tv, NULL);
@@ -735,8 +736,8 @@ static int async_manager_worker(void)
 		futex_up(&async_futex);
 		
 		ipc_call_t call;
-		ipc_callid_t callid
-		    = ipc_wait_cycle(&call, timeout, SYNCH_FLAGS_NONE);
+		ipc_callid_t callid = ipc_wait_cycle(&call, timeout,
+		    SYNCH_FLAGS_NONE);
 		
 		if (!callid) {
 			handle_expired_timeouts();
