@@ -79,30 +79,15 @@ void __main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
+		stdio_init(0, NULL);
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
-		
-		if (__pcb->filc > 0)
-			stdin = fopen_node(__pcb->filv[0], "r");
-		
-		if (__pcb->filc > 1)
-			stdout = fopen_node(__pcb->filv[1], "w");
-		
-		if (__pcb->filc > 2)
-			stderr = fopen_node(__pcb->filv[2], "w");
+		stdio_init(__pcb->filc, __pcb->filv);
 	}
 	
 	main(argc, argv);
-	
-	if (stdin != NULL)
-		fclose(stdin);
-	
-	if (stdout != NULL)
-		fclose(stdout);
-	
-	if (stderr != NULL)
-		fclose(stderr);
+	stdio_done();
 }
 
 void __exit(void)

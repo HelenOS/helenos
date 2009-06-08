@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <stdarg.h>
+#include <libadt/list.h>
 
 #define EOF  (-1)
 
@@ -55,6 +56,9 @@
 #endif
 
 typedef struct {
+	/** Linked list pointer. */
+	link_t link;
+	
 	/** Underlying file descriptor. */
 	int fd;
 	
@@ -70,9 +74,6 @@ typedef struct {
 	/** Phone to the file provider */
 	int phone;
 } FILE;
-
-extern FILE stdin_null;
-extern FILE stdout_klog;
 
 extern FILE *stdin;
 extern FILE *stdout;

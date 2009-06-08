@@ -42,8 +42,9 @@
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <ipc/devmap.h>
+#include <libadt/list.h>
 
-FILE stdin_null = {
+static FILE stdin_null = {
 	.fd = -1,
 	.error = true,
 	.eof = true,
@@ -51,7 +52,7 @@ FILE stdin_null = {
 	.phone = -1
 };
 
-FILE stdout_klog = {
+static FILE stdout_klog = {
 	.fd = -1,
 	.error = false,
 	.eof = false,
@@ -59,9 +60,54 @@ FILE stdout_klog = {
 	.phone = -1
 };
 
-FILE *stdin = &stdin_null;
-FILE *stdout = &stdout_klog;
-FILE *stderr = &stdout_klog;
+static FILE stderr_klog = {
+	.fd = -1,
+	.error = false,
+	.eof = false,
+	.klog = true,
+	.phone = -1
+};
+
+FILE *stdin = NULL;
+FILE *stdout = NULL;
+FILE *stderr = NULL;
+
+static LIST_INITIALIZE(files);
+
+void stdio_init(int filc, fdi_node_t *filv[])
+{
+	if (filc > 0) {
+		stdin = fopen_node(filv[0], "r");
+	} else {
+		stdin = &stdin_null;
+		list_append(&stdin->link, &files);
+	}
+	
+	if (filc > 1) {
+		stdout = fopen_node(filv[1], "w");
+	} else {
+		stdout = &stdout_klog;
+		list_append(&stdout->link, &files);
+	}
+	
+	if (filc > 2) {
+		stderr = fopen_node(filv[2], "w");
+	} else {
+		stderr = &stderr_klog;
+		list_append(&stderr->link, &files);
+	}
+}
+
+void stdio_done(void)
+{
+	link_t *link = files.next;
+	
+	while (link != &files) {
+		FILE *file = list_get_instance(link, FILE, link);
+		fclose(file);
+		link = files.next;
+	}
+}
 
 static bool parse_mode(const char *mode, int *flags)
 {
@@ -141,6 +187,8 @@ FILE *fopen(const char *path, const char *mode)
 	stream->klog = false;
 	stream->phone = -1;
 	
+	list_append(&stream->link, &files);
+	
 	return stream;
 }
 
@@ -169,6 +217,8 @@ FILE *fopen_node(fdi_node_t *node, const char *mode)
 	stream->klog = false;
 	stream->phone = -1;
 	
+	list_append(&stream->link, &files);
+	
 	return stream;
 }
 
@@ -184,7 +234,11 @@ int fclose(FILE *stream)
 	if (stream->fd >= 0)
 		rc = close(stream->fd);
 	
-	if ((stream != &stdin_null) && (stream != &stdout_klog))
+	list_remove(&stream->link);
+	
+	if ((stream != &stdin_null)
+	    && (stream != &stdout_klog)
+	    && (stream != &stderr_klog))
 		free(stream);
 	
 	stream = NULL;
@@ -353,15 +407,12 @@ int fphone(FILE *stream)
 	return -1;
 }
 
-void fnode(FILE *stream, fdi_node_t *node)
+int fnode(FILE *stream, fdi_node_t *node)
 {
-	if (stream->fd >= 0) {
-		fd_node(stream->fd, node);
-	} else {
-		node->fs_handle = 0;
-		node->dev_handle = 0;
-		node->index = 0;
-	}
+	if (stream->fd >= 0)
+		return fd_node(stream->fd, node);
+	
+	return ENOENT;
 }
 
 /** @}

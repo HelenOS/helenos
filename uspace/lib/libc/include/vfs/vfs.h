@@ -55,13 +55,16 @@ extern char *absolutize(const char *, size_t *);
 extern int mount(const char *, const char *, const char *, const char *,
     unsigned int);
 
+extern void stdio_init(int filc, fdi_node_t *filv[]);
+extern void stdio_done(void);
+
 extern int open_node(fdi_node_t *, int);
 extern int fd_phone(int);
-extern void fd_node(int, fdi_node_t *);
+extern int fd_node(int, fdi_node_t *);
 
 extern FILE *fopen_node(fdi_node_t *, const char *);
 extern int fphone(FILE *);
-extern void fnode(FILE *, fdi_node_t *);
+extern int fnode(FILE *, fdi_node_t *);
 
 #endif
 

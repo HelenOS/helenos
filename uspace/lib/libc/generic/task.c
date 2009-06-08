@@ -105,22 +105,19 @@ task_id_t task_spawn(const char *path, char *const args[])
 	fdi_node_t stdout_node;
 	fdi_node_t stderr_node;
 	
-	if ((stdin != NULL) && (stdin != &stdin_null)) {
-		fnode(stdin, &stdin_node);
+	if ((stdin != NULL) && (fnode(stdin, &stdin_node) == EOK))
 		files[0] = &stdin_node;
-	} else
+	else
 		files[0] = NULL;
 	
-	if ((stdout != NULL) && (stdout != &stdout_klog)) {
-		fnode(stdout, &stdout_node);
+	if ((stdout != NULL) && (fnode(stdout, &stdout_node) == EOK))
 		files[1] = &stdout_node;
-	} else
+	else
 		files[1] = NULL;
 	
-	if ((stderr != NULL) && (stderr != &stdout_klog)) {
-		fnode(stderr, &stderr_node);
+	if ((stderr != NULL) && (fnode(stderr, &stderr_node) == EOK))
 		files[2] = &stderr_node;
-	} else
+	else
 		files[2] = NULL;
 	
 	files[3] = NULL;

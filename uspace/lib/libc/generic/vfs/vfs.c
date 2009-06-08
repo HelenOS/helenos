@@ -332,7 +332,7 @@ int fd_phone(int fildes)
 	return devmap_device_connect((dev_handle_t) device, 0);
 }
 
-void fd_node(int fildes, fdi_node_t *node)
+int fd_node(int fildes, fdi_node_t *node)
 {
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -351,11 +351,9 @@ void fd_node(int fildes, fdi_node_t *node)
 		node->fs_handle = (fs_handle_t) fs_handle;
 		node->dev_handle = (dev_handle_t) dev_handle;
 		node->index = (fs_index_t) index;
-	} else {
-		node->fs_handle = 0;
-		node->dev_handle = 0;
-		node->index = 0;
 	}
+	
+	return rc;
 }
 
 int fsync(int fildes)
