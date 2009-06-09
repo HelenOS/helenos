@@ -40,6 +40,7 @@
 #include <string.h>
 #include <assert.h>
 #include <bool.h>
+#include <fibril_sync.h>
 #include "vfs.h"
 
 /**
@@ -89,7 +90,7 @@ int vfs_fd_alloc(void)
 				return ENOMEM;
 			
 			memset(files[i], 0, sizeof(vfs_file_t));
-			futex_initialize(&files[i]->lock, 1);
+			fibril_mutex_initialize(&files[i]->lock);
 			vfs_file_addref(files[i]);
 			return (int) i;
 		}

@@ -165,10 +165,8 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	    &answer);
 	vfs_release_phone(phone);
 	
-	async_serialize_start();
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
-	async_serialize_end();
 	
 	futex_down(&plb_futex);
 	list_remove(&entry.plb_link);

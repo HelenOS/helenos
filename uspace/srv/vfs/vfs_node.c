@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <futex.h>
-#include <rwlock.h>
+#include <fibril_sync.h>
 #include <adt/hash_table.h>
 #include <assert.h>
 #include <async.h>
@@ -177,7 +177,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		node->lnkcnt = result->lnkcnt;
 		node->type = result->type;
 		link_initialize(&node->nh_link);
-		rwlock_initialize(&node->contents_rwlock);
+		fibril_rwlock_initialize(&node->contents_rwlock);
 		hash_table_insert(&nodes, key, &node->nh_link);
 	} else {
 		node = hash_table_get_instance(tmp, vfs_node_t, nh_link);

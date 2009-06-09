@@ -35,8 +35,8 @@
 
 #include <ipc/ipc.h>
 #include <adt/list.h>
+#include <fibril_sync.h>
 #include <futex.h>
-#include <rwlock.h>
 #include <sys/types.h>
 #include <devmap.h>
 #include <bool.h>
@@ -54,7 +54,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	futex_t phone_futex;	/**< Phone serializing futex. */
+	fibril_mutex_t phone_lock;
 	ipcarg_t phone;
 } fs_info_t;
 
@@ -122,7 +122,7 @@ typedef struct {
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
 	 */
-	rwlock_t contents_rwlock;
+	fibril_rwlock_t contents_rwlock;
 } vfs_node_t;
 
 /**
@@ -131,7 +131,7 @@ typedef struct {
  */
 typedef struct {
 	/** Serializes access to this open file. */
-	futex_t lock;
+	fibril_mutex_t lock;
 
 	vfs_node_t *node;
 	
@@ -165,7 +165,7 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 #define MAX_MNTOPTS_LEN		256
 
 /** Holding this rwlock prevents changes in file system namespace. */ 
-extern rwlock_t namespace_rwlock;
+extern fibril_rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(fs_handle_t);
 extern void vfs_release_phone(int);

@@ -45,14 +45,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <bool.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>
 #include <atomic.h>
 #include "vfs.h"
 
-atomic_t fs_head_futex = FUTEX_INITIALIZER;
+FIBRIL_MUTEX_INITIALIZE(fs_head_lock);
 link_t fs_head;
 
 atomic_t fs_handle_next = {
@@ -159,7 +159,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	link_initialize(&fs_info->fs_link);
-	futex_initialize(&fs_info->phone_futex, 1);
+	fibril_mutex_initialize(&fs_info->phone_lock);
 		
 	rc = ipc_data_write_finalize(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
@@ -180,8 +180,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 		
-	futex_down(&fs_head_futex);
-	fibril_inc_sercount();
+	fibril_mutex_lock(&fs_head_lock);
 
 	/*
 	 * Check for duplicit registrations.
@@ -191,8 +190,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		 * We already register a fs like this.
 		 */
 		dprintf("FS is already registered.\n");
-		fibril_dec_sercount();
-		futex_up(&fs_head_futex);
+		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
 		ipc_answer_0(callid, EEXISTS);
 		ipc_answer_0(rid, EEXISTS);
@@ -214,8 +212,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
-		fibril_dec_sercount();
-		futex_up(&fs_head_futex);
+		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -233,8 +230,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (!ipc_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
-		fibril_dec_sercount();
-		futex_up(&fs_head_futex);
+		fibril_mutex_unlock(&fs_head_lock);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
@@ -248,8 +244,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (size != PLB_SIZE) {
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
-		fibril_dec_sercount();
-		futex_up(&fs_head_futex);
+		fibril_mutex_unlock(&fs_head_lock);
 		ipc_hangup(fs_info->phone);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
@@ -273,8 +268,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
-	fibril_dec_sercount();
-	futex_up(&fs_head_futex);
+	fibril_mutex_unlock(&fs_head_lock);
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
 	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
@@ -297,28 +291,18 @@ int vfs_grab_phone(fs_handle_t handle)
 	 * be more demanding). Instead, we simply take the respective
 	 * phone_futex and keep it until vfs_release_phone().
 	 */
-	futex_down(&fs_head_futex);
+	fibril_mutex_lock(&fs_head_lock);
 	link_t *cur;
 	fs_info_t *fs;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
-			futex_up(&fs_head_futex);
-			/*
-			 * For now, take the futex unconditionally.
-			 * Oh yeah, serialization rocks.
-			 * It will be up'ed in vfs_release_phone().
-			 */
-			futex_down(&fs->phone_futex);
-			/*
-			 * Avoid deadlock with other fibrils in the same thread
-			 * by disabling fibril preemption.
-			 */
-			fibril_inc_sercount();
+			fibril_mutex_unlock(&fs_head_lock);
+			fibril_mutex_lock(&fs->phone_lock);
 			return fs->phone;
 		}
 	}
-	futex_up(&fs_head_futex);
+	fibril_mutex_unlock(&fs_head_lock);
 	return 0;
 }
 
@@ -330,23 +314,18 @@ void vfs_release_phone(int phone)
 {
 	bool found = false;
 
-	/*
-	 * Undo the fibril_inc_sercount() done in vfs_grab_phone().
-	 */
-	fibril_dec_sercount();
-	
-	futex_down(&fs_head_futex);
+	fibril_mutex_lock(&fs_head_lock);
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->phone == phone) {
 			found = true;
-			futex_up(&fs_head_futex);
-			futex_up(&fs->phone_futex);
+			fibril_mutex_unlock(&fs_head_lock);
+			fibril_mutex_unlock(&fs->phone_lock);
 			return;
 		}
 	}
-	futex_up(&fs_head_futex);
+	fibril_mutex_unlock(&fs_head_lock);
 
 	/*
 	 * Not good to get here.
@@ -357,8 +336,8 @@ void vfs_release_phone(int phone)
 /** Convert file system name to its handle.
  *
  * @param name		File system name.
- * @param lock		If true, the function will down and up the
- * 			fs_head_futex.
+ * @param lock		If true, the function will lock and unlock the
+ * 			fs_head_lock.
  *
  * @return		File system handle or zero if file system not found.
  */
@@ -367,7 +346,7 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	int handle = 0;
 	
 	if (lock)
-		futex_down(&fs_head_futex);
+		fibril_mutex_lock(&fs_head_lock);
 	link_t *cur;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
@@ -377,7 +356,7 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 		}
 	}
 	if (lock)
-		futex_up(&fs_head_futex);
+		fibril_mutex_unlock(&fs_head_lock);
 	return handle;
 }
 

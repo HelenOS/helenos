@@ -44,7 +44,7 @@
 #include <string.h>
 #include <bool.h>
 #include <futex.h>
-#include <rwlock.h>
+#include <fibril_sync.h>
 #include <adt/list.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -72,7 +72,7 @@ LIST_INITIALIZE(pending_req);
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
  * concurrent VFS operation which modifies the file system namespace.
  */
-RWLOCK_INITIALIZE(namespace_rwlock);
+FIBRIL_RWLOCK_INITIALIZE(namespace_rwlock);
 
 vfs_pair_t rootfs = {
 	.fs_handle = 0,
@@ -95,28 +95,28 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	ipc_call_t answer;
 	
 	/* Resolve the path to the mountpoint. */
-	rwlock_write_lock(&namespace_rwlock);
+	fibril_rwlock_write_lock(&namespace_rwlock);
 	if (rootfs.fs_handle) {
 		/* We already have the root FS. */
 		if (str_cmp(mp, "/") == 0) {
 			/* Trying to mount root FS over root FS */
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, EBUSY);
-			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
 		rc = vfs_lookup_internal(mp, L_DIRECTORY, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, rc);
-			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
 		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, ENOMEM);
-			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 		
@@ -141,18 +141,18 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			rc = ipc_data_write_start(phone, (void *)opts,
 			    str_size(opts));
 			if (rc != EOK) {
-				async_wait_for(msg, NULL);
 				vfs_release_phone(phone);
+				async_wait_for(msg, NULL);
+				fibril_rwlock_write_unlock(&namespace_rwlock);
 				ipc_answer_0(rid, rc);
-				rwlock_write_unlock(&namespace_rwlock);
 				return;
 			}
-			async_wait_for(msg, &rc);
 			vfs_release_phone(phone);
+			async_wait_for(msg, &rc);
 			
 			if (rc != EOK) {
+				fibril_rwlock_write_unlock(&namespace_rwlock);
 				ipc_answer_0(rid, rc);
-				rwlock_write_unlock(&namespace_rwlock);
 				return;
 			}
 
@@ -174,16 +174,16 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			mr_node = vfs_node_get(&mr_res); 
 			assert(mr_node);
 			
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, rc);
-			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		} else {
 			/*
 			 * We can't resolve this without the root filesystem
 			 * being mounted first.
 			 */
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, ENOENT);
-			rwlock_write_unlock(&namespace_rwlock);
 			return;
 		}
 	}
@@ -207,30 +207,30 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	/* send connection */
 	rc = async_req_1_0(phone, IPC_M_CONNECTION_CLONE, mountee_phone);
 	if (rc != EOK) {
-		async_wait_for(msg, NULL);
 		vfs_release_phone(phone);
+		async_wait_for(msg, NULL);
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
 		ipc_answer_0(rid, rc);
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
 	
 	/* send the mount options */
 	rc = ipc_data_write_start(phone, (void *)opts, str_size(opts));
 	if (rc != EOK) {
-		async_wait_for(msg, NULL);
 		vfs_release_phone(phone);
+		async_wait_for(msg, NULL);
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
-		rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
-	async_wait_for(msg, &rc);
 	vfs_release_phone(phone);
+	async_wait_for(msg, &rc);
 	
 	if (rc == EOK) {
 		rindex = (fs_index_t) IPC_GET_ARG1(answer);
@@ -254,7 +254,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	}
 
 	ipc_answer_0(rid, rc);
-	rwlock_write_unlock(&namespace_rwlock);
+	fibril_rwlock_write_unlock(&namespace_rwlock);
 }
 
 /** Process pending mount requests */
@@ -508,9 +508,9 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * Make sure that we are called with exactly one of L_FILE and
 	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN.
 	 */
-	if (((lflag & (L_FILE | L_DIRECTORY)) == 0)
-	    || ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY))
-	    || ((lflag & L_OPEN) != 0)) {
+	if (((lflag & (L_FILE | L_DIRECTORY)) == 0) ||
+	    ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) ||
+	    ((lflag & L_OPEN) != 0)) {
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
@@ -548,18 +548,18 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * triplet.
 	 */
 	if (lflag & L_CREATE)
-		rwlock_write_lock(&namespace_rwlock);
+		fibril_rwlock_write_lock(&namespace_rwlock);
 	else
-		rwlock_read_lock(&namespace_rwlock);
+		fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	/* The path is now populated and we can call vfs_lookup_internal(). */
 	vfs_lookup_res_t lr;
 	rc = vfs_lookup_internal(path, lflag | L_OPEN, &lr, NULL);
 	if (rc != EOK) {
 		if (lflag & L_CREATE)
-			rwlock_write_unlock(&namespace_rwlock);
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 		else
-			rwlock_read_unlock(&namespace_rwlock);
+			fibril_rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -570,25 +570,25 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	
 	vfs_node_t *node = vfs_node_get(&lr);
 	if (lflag & L_CREATE)
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 	else
-		rwlock_read_unlock(&namespace_rwlock);
+		fibril_rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Truncate the file if requested and if necessary. */
 	if (oflag & O_TRUNC) {
-		rwlock_write_lock(&node->contents_rwlock);
+		fibril_rwlock_write_lock(&node->contents_rwlock);
 		if (node->size) {
 			rc = vfs_truncate_internal(node->fs_handle,
 			    node->dev_handle, node->index, 0);
 			if (rc) {
-				rwlock_write_unlock(&node->contents_rwlock);
+				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
 				ipc_answer_0(rid, rc);
 				return;
 			}
 			node->size = 0;
 		}
-		rwlock_write_unlock(&node->contents_rwlock);
+		fibril_rwlock_write_unlock(&node->contents_rwlock);
 	}
 	
 	/*
@@ -639,33 +639,33 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	lr.triplet.index = IPC_GET_ARG3(*request);
 	int oflag = IPC_GET_ARG4(*request);
 	
-	rwlock_read_lock(&namespace_rwlock);
+	fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	int rc = vfs_open_node_internal(&lr);
 	if (rc != EOK) {
-		rwlock_read_unlock(&namespace_rwlock);
+		fibril_rwlock_read_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		return;
 	}
 	
 	vfs_node_t *node = vfs_node_get(&lr);
-	rwlock_read_unlock(&namespace_rwlock);
+	fibril_rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Truncate the file if requested and if necessary. */
 	if (oflag & O_TRUNC) {
-		rwlock_write_lock(&node->contents_rwlock);
+		fibril_rwlock_write_lock(&node->contents_rwlock);
 		if (node->size) {
 			rc = vfs_truncate_internal(node->fs_handle,
 			    node->dev_handle, node->index, 0);
 			if (rc) {
-				rwlock_write_unlock(&node->contents_rwlock);
+				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
 				ipc_answer_0(rid, rc);
 				return;
 			}
 			node->size = 0;
 		}
-		rwlock_write_unlock(&node->contents_rwlock);
+		fibril_rwlock_write_unlock(&node->contents_rwlock);
 	}
 	
 	/*
@@ -708,8 +708,8 @@ void vfs_node(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_answer_3(rid, EOK, file->node->fs_handle,
-	    file->node->dev_handle, file->node->index);
+	ipc_answer_3(rid, EOK, file->node->fs_handle, file->node->dev_handle,
+	    file->node->index);
 }
 
 void vfs_device(ipc_callid_t rid, ipc_call_t *request)
@@ -727,7 +727,7 @@ void vfs_device(ipc_callid_t rid, ipc_call_t *request)
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
 	/* Make a VFS_DEVICE request at the destination FS server. */
@@ -736,12 +736,13 @@ void vfs_device(ipc_callid_t rid, ipc_call_t *request)
 	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
 	    file->node->dev_handle, file->node->index, &answer);
 	
+	vfs_release_phone(fs_phone);
+
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	
-	vfs_release_phone(fs_phone);
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	
 	ipc_answer_1(rid, EOK, IPC_GET_ARG1(answer));
 }
@@ -761,7 +762,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
 	/* Make a VFS_SYMC request at the destination FS server. */
@@ -769,13 +770,14 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	ipc_call_t answer;
 	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
 	    file->node->dev_handle, file->node->index, &answer);
-	
+
+	vfs_release_phone(fs_phone);
+
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	
-	vfs_release_phone(fs_phone);
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	
 	ipc_answer_0(rid, rc);
 }
@@ -795,7 +797,7 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 	
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
@@ -804,13 +806,14 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	ipc_call_t answer;
 	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
 	    file->node->dev_handle, file->node->index, &answer);
+
+	vfs_release_phone(fs_phone);
 	
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	
-	vfs_release_phone(fs_phone);
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	
 	int retval = IPC_GET_ARG1(answer);
 	if (retval != EOK)
@@ -862,16 +865,16 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time.
 	 */
 	if (read)
-		rwlock_read_lock(&file->node->contents_rwlock);
+		fibril_rwlock_read_lock(&file->node->contents_rwlock);
 	else
-		rwlock_write_lock(&file->node->contents_rwlock);
+		fibril_rwlock_write_lock(&file->node->contents_rwlock);
 
 	if (file->node->type == VFS_NODE_DIRECTORY) {
 		/*
@@ -879,7 +882,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		 * while we are in readdir().
 		 */
 		assert(read);
-		rwlock_read_lock(&namespace_rwlock);
+		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
 	
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
@@ -899,32 +902,32 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * don't have to bother.
 	 */
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+
+	vfs_release_phone(fs_phone);
 	
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
 	async_wait_for(msg, &rc);
 	
-	vfs_release_phone(fs_phone);
-	
 	size_t bytes = IPC_GET_ARG1(answer);
 
 	if (file->node->type == VFS_NODE_DIRECTORY)
-		rwlock_read_unlock(&namespace_rwlock);
+		fibril_rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Unlock the VFS node. */
 	if (read)
-		rwlock_read_unlock(&file->node->contents_rwlock);
+		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
 		/* Update the cached version of node's size. */
 		if (rc == EOK)
 			file->node->size = IPC_GET_ARG2(answer); 
-		rwlock_write_unlock(&file->node->contents_rwlock);
+		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	
 	/* Update the position pointer and unlock the open file. */
 	if (rc == EOK)
 		file->pos += bytes;
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	
 	/*
 	 * FS server's reply is the final result of the whole operation we
@@ -958,40 +961,40 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	off_t newpos;
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 	if (whence == SEEK_SET) {
 		file->pos = off;
-		futex_up(&file->lock);
+		fibril_mutex_unlock(&file->lock);
 		ipc_answer_1(rid, EOK, off);
 		return;
 	}
 	if (whence == SEEK_CUR) {
 		if (file->pos + off < file->pos) {
-			futex_up(&file->lock);
+			fibril_mutex_unlock(&file->lock);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		file->pos += off;
 		newpos = file->pos;
-		futex_up(&file->lock);
+		fibril_mutex_unlock(&file->lock);
 		ipc_answer_1(rid, EOK, newpos);
 		return;
 	}
 	if (whence == SEEK_END) {
-		rwlock_read_lock(&file->node->contents_rwlock);
+		fibril_rwlock_read_lock(&file->node->contents_rwlock);
 		size_t size = file->node->size;
-		rwlock_read_unlock(&file->node->contents_rwlock);
+		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 		if (size + off < size) {
-			futex_up(&file->lock);
+			fibril_mutex_unlock(&file->lock);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		newpos = size + off;
-		futex_up(&file->lock);
+		fibril_mutex_unlock(&file->lock);
 		ipc_answer_1(rid, EOK, newpos);
 		return;
 	}
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	ipc_answer_0(rid, EINVAL);
 }
 
@@ -1020,16 +1023,16 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-	futex_down(&file->lock);
+	fibril_mutex_lock(&file->lock);
 
-	rwlock_write_lock(&file->node->contents_rwlock);
+	fibril_rwlock_write_lock(&file->node->contents_rwlock);
 	rc = vfs_truncate_internal(file->node->fs_handle,
 	    file->node->dev_handle, file->node->index, size);
 	if (rc == EOK)
 		file->node->size = size;
-	rwlock_write_unlock(&file->node->contents_rwlock);
+	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 
-	futex_up(&file->lock);
+	fibril_mutex_unlock(&file->lock);
 	ipc_answer_0(rid, (ipcarg_t)rc);
 }
 
@@ -1059,10 +1062,10 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	}
 	path[len] = '\0';
 	
-	rwlock_write_lock(&namespace_rwlock);
+	fibril_rwlock_write_lock(&namespace_rwlock);
 	int lflag = L_DIRECTORY | L_CREATE | L_EXCLUSIVE;
 	rc = vfs_lookup_internal(path, lflag, NULL, NULL);
-	rwlock_write_unlock(&namespace_rwlock);
+	fibril_rwlock_write_unlock(&namespace_rwlock);
 	free(path);
 	ipc_answer_0(rid, rc);
 }
@@ -1093,13 +1096,13 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	}
 	path[len] = '\0';
 	
-	rwlock_write_lock(&namespace_rwlock);
+	fibril_rwlock_write_lock(&namespace_rwlock);
 	lflag &= L_DIRECTORY;	/* sanitize lflag */
 	vfs_lookup_res_t lr;
 	rc = vfs_lookup_internal(path, lflag | L_UNLINK, &lr, NULL);
 	free(path);
 	if (rc != EOK) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		return;
 	}
@@ -1113,7 +1116,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	futex_down(&nodes_futex);
 	node->lnkcnt--;
 	futex_up(&nodes_futex);
-	rwlock_write_unlock(&namespace_rwlock);
+	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(node);
 	ipc_answer_0(rid, EOK);
 }
@@ -1194,11 +1197,11 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	vfs_lookup_res_t old_lr;
 	vfs_lookup_res_t new_lr;
 	vfs_lookup_res_t new_par_lr;
-	rwlock_write_lock(&namespace_rwlock);
+	fibril_rwlock_write_lock(&namespace_rwlock);
 	/* Lookup the node belonging to the old file name. */
 	rc = vfs_lookup_internal(oldc, L_NONE, &old_lr, NULL);
 	if (rc != EOK) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1206,7 +1209,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	}
 	vfs_node_t *old_node = vfs_node_get(&old_lr);
 	if (!old_node) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, ENOMEM);
 		free(old);
 		free(new);
@@ -1215,7 +1218,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	/* Determine the path to the parent of the node with the new name. */
 	char *parentc = str_dup(newc);
 	if (!parentc) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1230,7 +1233,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	rc = vfs_lookup_internal(parentc, L_NONE, &new_par_lr, NULL);
 	free(parentc);	/* not needed anymore */
 	if (rc != EOK) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1239,7 +1242,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	/* Check whether linking to the same file system instance. */
 	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
 	    (old_node->dev_handle != new_par_lr.triplet.dev_handle)) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, EXDEV);	/* different file systems */
 		free(old);
 		free(new);
@@ -1255,7 +1258,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	case EOK:
 		new_node = vfs_node_get(&new_lr);
 		if (!new_node) {
-			rwlock_write_unlock(&namespace_rwlock);
+			fibril_rwlock_write_unlock(&namespace_rwlock);
 			ipc_answer_0(rid, ENOMEM);
 			free(old);
 			free(new);
@@ -1266,7 +1269,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		futex_up(&nodes_futex);
 		break;
 	default:
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		ipc_answer_0(rid, ENOTEMPTY);
 		free(old);
 		free(new);
@@ -1275,7 +1278,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	/* Create the new link for the new name. */
 	rc = vfs_lookup_internal(newc, L_LINK, NULL, NULL, old_node->index);
 	if (rc != EOK) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		if (new_node)
 			vfs_node_put(new_node);
 		ipc_answer_0(rid, rc);
@@ -1289,7 +1292,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	/* Destroy the link for the old name. */
 	rc = vfs_lookup_internal(oldc, L_UNLINK, NULL, NULL);
 	if (rc != EOK) {
-		rwlock_write_unlock(&namespace_rwlock);
+		fibril_rwlock_write_unlock(&namespace_rwlock);
 		vfs_node_put(old_node);
 		if (new_node)
 			vfs_node_put(new_node);
@@ -1301,7 +1304,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	futex_down(&nodes_futex);
 	old_node->lnkcnt--;
 	futex_up(&nodes_futex);
-	rwlock_write_unlock(&namespace_rwlock);
+	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(old_node);
 	if (new_node)
 		vfs_node_put(new_node);
