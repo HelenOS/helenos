@@ -192,6 +192,26 @@ FILE *fopen(const char *path, const char *mode)
 	return stream;
 }
 
+FILE *fdopen(int fd, const char *mode)
+{
+	/* Open file. */
+	FILE *stream = malloc(sizeof(FILE));
+	if (stream == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+	
+	stream->fd = fd;
+	stream->error = false;
+	stream->eof = false;
+	stream->klog = false;
+	stream->phone = -1;
+	
+	list_append(&stream->link, &files);
+	
+	return stream;
+}
+
 FILE *fopen_node(fdi_node_t *node, const char *mode)
 {
 	int flags;
@@ -376,6 +396,11 @@ int fseek(FILE *stream, long offset, int origin)
 	stream->eof = false;
 	
 	return 0;
+}
+
+void rewind(FILE *stream)
+{
+	(void) fseek(stream, 0, SEEK_SET);
 }
 
 int fflush(FILE *stream)

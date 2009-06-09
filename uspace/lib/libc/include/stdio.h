@@ -106,12 +106,14 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
+extern FILE *fdopen(int, const char *);
 extern int fclose(FILE *);
 
 extern size_t fread(void *, size_t, size_t, FILE *);
 extern size_t fwrite(const void *, size_t, size_t, FILE *);
 
 extern int fseek(FILE *, long, int);
+extern void rewind(FILE *);
 extern int ftell(FILE *);
 extern int feof(FILE *);
 
