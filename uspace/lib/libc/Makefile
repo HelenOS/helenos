@@ -51,6 +51,7 @@ GENERIC_SOURCES = \
 	generic/mem.c \
 	generic/string.c \
 	generic/fibril.c \
+	generic/fibril_sync.c \
 	generic/pcb.c \
 	generic/smc.c \
 	generic/thread.c \
