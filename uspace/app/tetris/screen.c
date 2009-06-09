@@ -36,7 +36,7 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -56,9 +56,13 @@
 #include "tetris.h"
 #include <io/console.h>
 
-static cell curscreen[B_SIZE];	/* 1 => standout (or otherwise marked) */
+#define STOP  (B_COLS - 3)
+
+static cell curscreen[B_SIZE];  /* non-zero => standout (or otherwise marked) */
 static int curscore;
-static int isset;		/* true => terminal is in game mode */
+static int isset;               /* true => terminal is in game mode */
+
+static const struct shape *lastshape;
 
 
 /*
@@ -71,9 +75,9 @@ static inline void putstr(char *s)
 		putchar(*(s++));
 }
 
-static void start_standout(void)
+static void start_standout(uint32_t color)
 {
-	console_set_rgb_color(fphone(stdout), 0xf0f0f0, 0);
+	console_set_rgb_color(fphone(stdout), 0xf0f0f0, color);
 }
 
 static void resume_normal(void)
@@ -90,21 +94,18 @@ void clear_screen(void)
 /*
  * Clear the screen, forgetting the current contents in the process.
  */
-void
-scr_clear(void)
+void scr_clear(void)
 {
-
 	resume_normal();
 	console_clear(fphone(stdout));
 	curscore = -1;
-	memset((char *)curscreen, 0, sizeof(curscreen));
+	memset(curscreen, 0, sizeof(curscreen));
 }
 
 /*
  * Set up screen
  */
-void
-scr_init(void)
+void scr_init(void)
 {
 	console_cursor_visibility(fphone(stdout), 0);
 	resume_normal();
@@ -126,102 +127,108 @@ static int get_display_size(winsize_t *ws)
 /*
  * Set up screen mode.
  */
-void
-scr_set(void)
+void scr_set(void)
 {
 	winsize_t ws;
-
-	Rows = 0, Cols = 0;
+	
+	Rows = 0;
+	Cols = 0;
+	
 	if (get_display_size(&ws) == 0) {
 		Rows = ws.ws_row;
 		Cols = ws.ws_col;
 	}
-	if (Rows < MINROWS || Cols < MINCOLS) {
+	
+	if ((Rows < MINROWS) || (Cols < MINCOLS)) {
 		char smallscr[55];
-
+		
 		snprintf(smallscr, sizeof(smallscr),
 		    "the screen is too small (must be at least %dx%d)",
 		    MINROWS, MINCOLS);
 		stop(smallscr);
 	}
 	isset = 1;
-
+	
 	scr_clear();
 }
 
 /*
  * End screen mode.
  */
-void
-scr_end(void)
+void scr_end(void)
 {
+	console_cursor_visibility(fphone(stdout), 1);
 }
 
-void
-stop(char *why)
+void stop(char *why)
 {
-
 	if (isset)
 		scr_end();
+	
 	errx(1, "aborting: %s", why);
 }
-
 
 /*
  * Update the screen.
  */
-void
-scr_update(void)
+void scr_update(void)
 {
-	cell *bp, *sp;
-	cell so, cur_so = 0;
-	int i, ccol, j;
-	static const struct shape *lastshape;
-
-	/* always leave cursor after last displayed point */
+	cell *bp;
+	cell *sp;
+	cell so;
+	cell cur_so = 0;
+	int i;
+	int j;
+	int ccol;
+	
+	/* Always leave cursor after last displayed point */
 	curscreen[D_LAST * B_COLS - 1] = -1;
-
+	
 	if (score != curscore) {
 		moveto(0, 0);
 		printf("Score: %d", score);
 		curscore = score;
 	}
-
-	/* draw preview of next pattern */
-	if (showpreview && (nextshape != lastshape)) {
+	
+	/* Draw preview of next pattern */
+	if ((showpreview) && (nextshape != lastshape)) {
 		int i;
-		static int r=5, c=2;
+		static int r = 5, c = 2;
 		int tr, tc, t;
-
+		
 		lastshape = nextshape;
-
-		/* clean */
+		
+		/* Clean */
 		resume_normal();
-		moveto(r-1, c-1); putstr("          ");
-		moveto(r,   c-1); putstr("          ");
-		moveto(r+1, c-1); putstr("          ");
-		moveto(r+2, c-1); putstr("          ");
-
-		moveto(r-3, c-2);
+		moveto(r - 1, c - 1);
+		putstr("          ");
+		moveto(r, c - 1);
+		putstr("          ");
+		moveto(r + 1, c - 1);
+		putstr("          ");
+		moveto(r + 2, c - 1);
+		putstr("          ");
+		
+		moveto(r - 3, c - 2);
 		putstr("Next shape:");
-
-		/* draw */
-		start_standout();
+		
+		/* Draw */
+		start_standout(nextshape->color);
 		moveto(r, 2 * c);
 		putstr("  ");
 		for (i = 0; i < 3; i++) {
 			t = c + r * B_COLS;
 			t += nextshape->off[i];
-
+			
 			tr = t / B_COLS;
 			tc = t % B_COLS;
-
+			
 			moveto(tr, 2*tc);
 			putstr("  ");
 		}
 		resume_normal();
 	}
-
+	
 	bp = &board[D_FIRST * B_COLS];
 	sp = &curscreen[D_FIRST * B_COLS];
 	for (j = D_FIRST; j < D_LAST; j++) {
@@ -229,6 +236,7 @@ scr_update(void)
 		for (i = 0; i < B_COLS; bp++, sp++, i++) {
 			if (*sp == (so = *bp))
 				continue;
+			
 			*sp = so;
 			if (i != ccol) {
 				if (cur_so) {
@@ -237,15 +245,16 @@ scr_update(void)
 				}
 				moveto(RTOD(j), CTOD(i));
 			}
+			
 			if (so != cur_so) {
 				if (so)
-					start_standout();
+					start_standout(so);
 				else
 					resume_normal();
 				cur_so = so;
 			}
 			putstr("  ");
-
+			
 			ccol = i + 1;
 			/*
 			 * Look ahead a bit, to avoid extra motion if
@@ -255,33 +264,35 @@ scr_update(void)
 			 * `unnecessarily'.  Skip it all, though, if
 			 * the next cell is a different color.
 			 */
-#define	STOP (B_COLS - 3)
-			if (i > STOP || sp[1] != bp[1] || so != bp[1])
+			
+			if ((i > STOP) || (sp[1] != bp[1]) || (so != bp[1]))
 				continue;
+			
 			if (sp[2] != bp[2])
 				sp[1] = -1;
-			else if (i < STOP && so == bp[2] && sp[3] != bp[3]) {
+			else if ((i < STOP) && (so == bp[2]) && (sp[3] != bp[3])) {
 				sp[2] = -1;
 				sp[1] = -1;
 			}
 		}
 	}
+	
 	if (cur_so)
 		resume_normal();
- 	fflush(stdout);
+	
+	fflush(stdout);
 }
 
 /*
- * Write a message (set!=0), or clear the same message (set==0).
+ * Write a message (set != 0), or clear the same message (set == 0).
  * (We need its length in case we have to overwrite with blanks.)
  */
-void
-scr_msg(char *s, int set)
+void scr_msg(char *s, int set)
 {
-	
 	int l = str_size(s);
 	
 	moveto(Rows - 2, ((Cols - l) >> 1) - 1);
+	
 	if (set)
 		putstr(s);
 	else
@@ -291,4 +302,3 @@ scr_msg(char *s, int set)
 
 /** @}
  */
-

@@ -36,15 +36,14 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
 
-int	rwait(struct timeval *);
-int	tgetchar(void);
-void	tsleep(void);
+extern int rwait(struct timeval *);
+extern int tgetchar(void);
+extern void tsleep(void);
 
 /** @}
  */
-

@@ -36,7 +36,7 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -55,57 +55,60 @@
  * worrying about addressing problems.
  */
 
-	/* the board */
-#define	B_COLS	12
-#define	B_ROWS	23
-#define	B_SIZE	(B_ROWS * B_COLS)
+/* The board */
+#define B_COLS  12
+#define B_ROWS  23
+#define B_SIZE  (B_ROWS * B_COLS)
 
-typedef unsigned char cell;
-extern cell	board[B_SIZE];	/* 1 => occupied, 0 => empty */
+typedef uint32_t cell;
 
-	/* the displayed area (rows) */
-#define	D_FIRST	1
-#define	D_LAST	22
+extern cell board[B_SIZE];  /* 1 => occupied, 0 => empty */
 
-	/* the active area (rows) */
-#define	A_FIRST	1
-#define	A_LAST	21
+/* The displayed area (rows) */
+#define D_FIRST  1
+#define D_LAST   22
+
+/* The active area (rows) */
+#define A_FIRST  1
+#define A_LAST   21
 
 /*
  * Minimum display size.
  */
-#define	MINROWS	23
-#define	MINCOLS	40
+#define MINROWS  23
+#define MINCOLS  40
 
-extern int	Rows, Cols;	/* current screen size */
+/* Current screen size */
+extern int Rows;
+extern int Cols;
 
 /*
  * Translations from board coordinates to display coordinates.
  * As with board coordinates, display coordiates are zero origin.
  */
-#define	RTOD(x)	((x) - 1)
-#define	CTOD(x)	((x) * 2 + (((Cols - 2 * B_COLS) >> 1) - 1))
+#define RTOD(x)  ((x) - 1)
+#define CTOD(x)  ((x) * 2 + (((Cols - 2 * B_COLS) >> 1) - 1))
 
 /*
  * A `shape' is the fundamental thing that makes up the game.  There
  * are 7 basic shapes, each consisting of four `blots':
  *
- *	X.X	  X.X		X.X
- *	  X.X	X.X	X.X.X	X.X	X.X.X	X.X.X	X.X.X.X
- *			  X		X	    X
+ *      X.X       X.X           X.X
+ *        X.X   X.X     X.X.X   X.X     X.X.X   X.X.X   X.X.X.X
+ *                        X             X           X
  *
- *	  0	  1	  2	  3	  4	  5	  6
+ *          0     1       2       3       4       5       6
  *
  * Except for 3 and 6, the center of each shape is one of the blots.
- * This blot is designated (0,0).  The other three blots can then be
+ * This blot is designated (0, 0).  The other three blots can then be
  * described as offsets from the center.  Shape 3 is the same under
  * rotation, so its center is effectively irrelevant; it has been chosen
  * so that it `sticks out' upward and leftward.  Except for shape 6,
- * all the blots are contained in a box going from (-1,-1) to (+1,+1);
+ * all the blots are contained in a box going from (-1, -1) to (+1, +1);
  * shape 6's center `wobbles' as it rotates, so that while it `sticks out'
  * rightward, its rotation---a vertical line---`sticks out' downward.
- * The containment box has to include the offset (2,0), making the overall
- * containment box range from offset (-1,-1) to (+2,+1).  (This is why
+ * The containment box has to include the offset (2, 0), making the overall
+ * containment box range from offset (-1, -1) to (+2, +1).  (This is why
  * there is only one row above, but two rows below, the display area.)
  *
  * The game works by choosing one of these shapes at random and putting
@@ -116,7 +119,7 @@ extern int	Rows, Cols;	/* current screen size */
  * At this time, any completely filled rows are elided, and blots above
  * these rows move down to make more room.  A new random shape is again
  * introduced at the top of the board, and the whole process repeats.
- * The game ends when the new shape will not fit at (1,5).
+ * The game ends when the new shape will not fit at (1, 5).
  *
  * While the shapes are falling, the user can rotate them counterclockwise
  * 90 degrees (in addition to moving them left or right), provided that the
@@ -128,9 +131,10 @@ extern int	Rows, Cols;	/* current screen size */
  * rotated forms.
  */
 struct shape {
-	int	rot;	/* index of rotated version of this shape */
-	int	rotc;	/* -- " -- in classic version  */
-	int	off[3];	/* offsets to other blots if center is at (0,0) */
+	int rot;     /* index of rotated version of this shape */
+	int rotc;    /* -- " -- in classic version  */
+	int off[3];  /* offsets to other blots if center is at (0,0) */
+	uint32_t color;
 };
 
 extern const struct shape shapes[];
@@ -148,15 +152,16 @@ extern const struct shape *nextshape;
  * The value eventually reaches a limit, and things stop going faster,
  * but by then the game is utterly impossible.
  */
-extern long	fallrate;	/* less than 1 million; smaller => faster */
-#define	faster() (fallrate -= fallrate / 3000)
+extern long fallrate;  /* less than 1 million; smaller => faster */
+
+#define faster()  (fallrate -= fallrate / 3000)
 
 /*
  * Game level must be between 1 and 9.  This controls the initial fall rate
  * and affects scoring.
  */
-#define	MINLEVEL	1
-#define	MAXLEVEL	9
+#define MINLEVEL  1
+#define MAXLEVEL  9
 
 /*
  * Scoring is as follows:
@@ -170,19 +175,17 @@ extern long	fallrate;	/* less than 1 million; smaller => faster */
  *
  * If previewing has been turned on, the score is multiplied by PRE_PENALTY.
  */
-#define PRE_PENALTY 0.75
+#define PRE_PENALTY  0.75
 
-extern int	score;		/* the obvious thing */
-//extern gid_t	gid, egid;
+extern int score;  /* The obvious thing */
 
-extern char	key_msg[100];
-extern int	showpreview;
-extern int	classic;
+extern char key_msg[100];
+extern int showpreview;
+extern int classic;
 
-int	fits_in(const struct shape *, int);
-void	place(const struct shape *, int, int);
-void	stop(char *);
+extern int fits_in(const struct shape *, int);
+extern void place(const struct shape *, int, int);
+extern void stop(char *);
 
 /** @}
  */
-

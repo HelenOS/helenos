@@ -34,8 +34,9 @@
  *
  *	@(#)scores.h	8.1 (Berkeley) 5/31/93
  */
+
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -44,26 +45,25 @@
 /*
  * Tetris scores.
  */
+
 #include <sys/time.h>
 #include <string.h>
 
-#define MAXLOGNAME 16
+#define MAXLOGNAME   16
+#define MAXHISCORES  10
+#define MAXSCORES    9  /* maximum high score entries per person */
+#define EXPIRATION   (5L * 365 * 24 * 60 * 60)
+
 struct highscore {
-	char	hs_name[STR_BOUNDS(MAXLOGNAME) + 1];	/* login name */
-	int	hs_score;	/* raw score */
-	int	hs_level;	/* play level */
-//	time_t	hs_time;	/* time at game end */
+	char hs_name[STR_BOUNDS(MAXLOGNAME) + 1];  /* login name */
+	int hs_score;                              /* raw score */
+	int hs_level;                              /* play level */
+	time_t hs_time;                            /* time at game end */
 };
 
-#define MAXHISCORES	10
-//#define MAXSCORES	9	/* maximum high score entries per person */
-//#define	EXPIRATION	(5L * 365 * 24 * 60 * 60)
-
-void savescore(int);
-void showscores(int);
-void insertscore(int score, int level);
-void initscores(void);
+extern void showscores(int);
+extern void initscores(void);
+extern void insertscore(int score, int level);
 
 /** @}
  */
-

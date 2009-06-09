@@ -36,7 +36,7 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -50,49 +50,49 @@
 #include <unistd.h>
 #include "tetris.h"
 
-#define	TL	-B_COLS-1	/* top left */
-#define	TC	-B_COLS		/* top center */
-#define	TR	-B_COLS+1	/* top right */
-#define	ML	-1		/* middle left */
-#define	MR	1		/* middle right */
-#define	BL	B_COLS-1	/* bottom left */
-#define	BC	B_COLS		/* bottom center */
-#define	BR	B_COLS+1	/* bottom right */
+#define TL  (-B_COLS - 1)  /* top left */
+#define TC  (-B_COLS)      /* top center */
+#define TR  (-B_COLS + 1)  /* top right */
+#define ML  -1             /* middle left */
+#define MR  1              /* middle right */
+#define BL  (B_COLS - 1)   /* bottom left */
+#define BC  B_COLS         /* bottom center */
+#define BR  (B_COLS + 1)   /* bottom right */
 
 const struct shape shapes[] = {
-	/* 0*/	{ 7,	7,	{ TL, TC, MR } },
-	/* 1*/	{ 8,	8,	{ TC, TR, ML } },
-	/* 2*/	{ 9,	11,	{ ML, MR, BC } },
-	/* 3*/	{ 3,	3,	{ TL, TC, ML } },
-	/* 4*/	{ 12,	14,	{ ML, BL, MR } },
-	/* 5*/	{ 15,	17,	{ ML, BR, MR } },
-	/* 6*/	{ 18,	18,	{ ML, MR, 2  } }, /* sticks out */
-	/* 7*/	{ 0,	0,	{ TC, ML, BL } },
-	/* 8*/	{ 1,	1,	{ TC, MR, BR } },
-	/* 9*/	{ 10,	2,	{ TC, MR, BC } },
-	/*10*/	{ 11,	9,	{ TC, ML, MR } },
-	/*11*/	{ 2,	10,	{ TC, ML, BC } },
-	/*12*/	{ 13,	4,	{ TC, BC, BR } },
-	/*13*/	{ 14,	12,	{ TR, ML, MR } },
-	/*14*/	{ 4,	13,	{ TL, TC, BC } },
-	/*15*/	{ 16,	5,	{ TR, TC, BC } },
-	/*16*/	{ 17,	15,	{ TL, MR, ML } },
-	/*17*/	{ 5,	16,	{ TC, BC, BL } },
-	/*18*/	{ 6,	6,	{ TC, BC, 2*B_COLS } }/* sticks out */
+	/*  0 */  {  7,  7, { TL, TC, MR }, 0xff042d},
+	/*  1 */  {  8,  8, { TC, TR, ML }, 0xff9304},
+	/*  2 */  {  9, 11, { ML, MR, BC }, 0xbeff04},
+	/*  3 */  {  3,  3, { TL, TC, ML }, 0x63ff04},
+	/*  4 */  { 12, 14, { ML, BL, MR }, 0xce04ff},
+	/*  5 */  { 15, 17, { ML, BR, MR }, 0xff04cf},
+	/*  6 */  { 18, 18, { ML, MR, 2  }, 0x7604ff},  /* sticks out */
+	/*  7 */  {  0,  0, { TC, ML, BL }, 0xff042d},
+	/*  8 */  {  1,  1, { TC, MR, BR }, 0xff9304},
+	/*  9 */  { 10,  2, { TC, MR, BC }, 0xbeff04},
+	/* 10 */  { 11,  9, { TC, ML, MR }, 0xbeff04},
+	/* 11 */  {  2, 10, { TC, ML, BC }, 0xbeff04},
+	/* 12 */  { 13,  4, { TC, BC, BR }, 0xce04ff},
+	/* 13 */  { 14, 12, { TR, ML, MR }, 0xce04ff},
+	/* 14 */  {  4, 13, { TL, TC, BC }, 0xce04ff},
+	/* 15 */  { 16,  5, { TR, TC, BC }, 0xff04cf},
+	/* 16 */  { 17, 15, { TL, MR, ML }, 0xff04cf},
+	/* 17 */  {  5, 16, { TC, BC, BL }, 0xff04cf},
+	/* 18 */  {  6,  6, { TC, BC, 2 * B_COLS }, 0x7604ff}  /* sticks out */
 };
 
 /*
  * Return true iff the given shape fits in the given position,
  * taking the current board into account.
  */
-int
-fits_in(const struct shape *shape, int pos)
+int fits_in(const struct shape *shape, int pos)
 {
 	int *o = shape->off;
-
-	if (board[pos] || board[pos + *o++] || board[pos + *o++] ||
-	    board[pos + *o])
+	
+	if ((board[pos]) || (board[pos + *o++]) || (board[pos + *o++]) ||
+	    (board[pos + *o]))
 		return 0;
+	
 	return 1;
 }
 
@@ -100,17 +100,15 @@ fits_in(const struct shape *shape, int pos)
  * Write the given shape into the current board, turning it on
  * if `onoff' is 1, and off if `onoff' is 0.
  */
-void
-place(const struct shape *shape, int pos, int onoff)
+void place(const struct shape *shape, int pos, int onoff)
 {
 	int *o = shape->off;
-
-	board[pos] = onoff;
-	board[pos + *o++] = onoff;
-	board[pos + *o++] = onoff;
-	board[pos + *o] = onoff;
+	
+	board[pos] = onoff ? shape->color : 0x000000;
+	board[pos + *o++] = onoff ? shape->color : 0x000000;
+	board[pos + *o++] = onoff ? shape->color : 0x000000;
+	board[pos + *o] = onoff ? shape->color : 0x000000;
 }
 
 /** @}
  */
-

@@ -36,7 +36,7 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
@@ -92,13 +92,12 @@ static char lastchar = '\0';
  * Return 0 => no input, 1 => can read() from stdin
  *
  */
-int
-rwait(struct timeval *tvp)
+int rwait(struct timeval *tvp)
 {
 	struct timeval starttv, endtv, *s;
 	static ipc_call_t charcall;
 	ipcarg_t rc;
-
+	
 	/*
 	 * Someday, select() will do this for us.
 	 * Just in case that day is now, and no one has
@@ -110,13 +109,14 @@ rwait(struct timeval *tvp)
 		s = &endtv;
 	} else
 		s = NULL;
-
+	
 	if (!lastchar) {
 again:
 		if (!getchar_inprog) {
 			getchar_inprog = async_send_0(fphone(stdin),
 			    CONSOLE_GET_EVENT, &charcall);
 		}
+		
 		if (!s)
 			async_wait_for(getchar_inprog, &rc);
 		else if (async_wait_timeout(getchar_inprog, &rc, s->tv_usec) == ETIMEOUT) {
@@ -124,33 +124,35 @@ again:
 			tvp->tv_usec = 0;
 			return (0);
 		}
+		
 		getchar_inprog = 0;
-		if (rc) {
+		if (rc)
 			stop("end of file, help");
-		}
+		
 		if (IPC_GET_ARG1(charcall) == KEY_RELEASE)
 			goto again;
-
+		
 		lastchar = IPC_GET_ARG4(charcall);
 	}
+	
 	if (tvp) {
 		/* since there is input, we may not have timed out */
 		(void) gettimeofday(&endtv, NULL);
 		TV_SUB(&endtv, &starttv);
-		TV_SUB(tvp, &endtv);	/* adjust *tvp by elapsed time */
+		TV_SUB(tvp, &endtv);  /* adjust *tvp by elapsed time */
 	}
-	return (1);
+	
+	return 1;
 }
 
 /*
  * `sleep' for the current turn time (using select).
  * Eat any input that might be available.
  */
-void
-tsleep(void)
+void tsleep(void)
 {
 	struct timeval tv;
-
+	
 	tv.tv_sec = 0;
 	tv.tv_usec = fallrate;
 	while (TV_POS(&tv))
@@ -163,12 +165,11 @@ tsleep(void)
 /*
  * getchar with timeout.
  */
-int
-tgetchar(void)
+int tgetchar(void)
 {
 	static struct timeval timeleft;
 	char c;
-
+	
 	/*
 	 * Reset timeleft to fallrate whenever it is not positive.
 	 * In any case, wait to see if there is any input.  If so,
@@ -179,17 +180,18 @@ tgetchar(void)
 	 * Most of the hard work is done by rwait().
 	 */
 	if (!TV_POS(&timeleft)) {
-		faster();	/* go faster */
+		faster();  /* go faster */
 		timeleft.tv_sec = 0;
 		timeleft.tv_usec = fallrate;
 	}
+	
 	if (!rwait(&timeleft))
-		return (-1);
+		return -1;
+	
 	c = lastchar;
 	lastchar = '\0';
-	return ((int)(unsigned char)c);
+	return ((int) (unsigned char) c);
 }
 
 /** @}
  */
-

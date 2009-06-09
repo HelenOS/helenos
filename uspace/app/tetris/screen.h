@@ -36,15 +36,15 @@
  */
 
 /** @addtogroup tetris
- * @{ 
+ * @{
  */
 /** @file
  */
 
 /*
- * putpad() is for padded strings with count=1.
+ * putpad() is for padded strings with count = 1.
  */
-#define	putpad(s)	tputs(s, 1, put)
+#define putpad(s)  tputs(s, 1, put)
 
 #include <sys/types.h>
 #include <async.h>
@@ -56,17 +56,17 @@ typedef struct {
 
 extern winsize_t winsize;
 
-void moveto(int r, int c);
-void clear_screen(void);
+extern void moveto(int r, int c);
+extern void clear_screen(void);
 
-int	put(int);			/* just calls putchar; for tputs */
-void	scr_clear(void);
-void	scr_end(void);
-void	scr_init(void);
-void	scr_msg(char *, int);
-void	scr_set(void);
-void	scr_update(void);
+/* just calls putchar; for tputs */
+extern int put(int);
+extern void scr_clear(void);
+extern void scr_end(void);
+extern void scr_init(void);
+extern void scr_msg(char *, int);
+extern void scr_set(void);
+extern void scr_update(void);
 
 /** @}
  */
-
