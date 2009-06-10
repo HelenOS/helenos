@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
+#include <fibril_sync.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ipc/devmap.h>
@@ -61,6 +62,8 @@ typedef struct {
 	ipcarg_t phone;
 	/** Device driver name */
 	char *name;
+	/** Fibril mutex for list of devices owned by this driver */
+	fibril_mutex_t devices_mutex;
 } devmap_driver_t;
 
 /** Info about registered device
@@ -91,6 +94,17 @@ LIST_INITIALIZE(devices_list);
 LIST_INITIALIZE(drivers_list);
 LIST_INITIALIZE(pending_req);
 
+/* Locking order:
+ *  drivers_list_mutex
+ *  devices_list_mutex
+ *  (devmap_driver_t *)->devices_mutex
+ *  create_handle_mutex
+ **/
+
+static FIBRIL_MUTEX_INITIALIZE(devices_list_mutex);
+static FIBRIL_MUTEX_INITIALIZE(drivers_list_mutex);
+static FIBRIL_MUTEX_INITIALIZE(create_handle_mutex);
+
 static dev_handle_t last_handle = 0;
 
 static dev_handle_t devmap_create_handle(void)
@@ -99,7 +113,9 @@ static dev_handle_t devmap_create_handle(void)
 	 * and implement some version of LRU algorithm, avoid overflow
 	 */
 	
+	fibril_mutex_lock(&create_handle_mutex);
 	last_handle++;
+	fibril_mutex_unlock(&create_handle_mutex);
 	
 	return last_handle;
 }
@@ -133,6 +149,8 @@ static devmap_device_t *devmap_device_find_name(const char *name)
  */
 static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
 {
+	fibril_mutex_lock(&devices_list_mutex);
+	
 	link_t *item = (&devices_list)->next;
 	devmap_device_t *device = NULL;
 	
@@ -143,10 +161,14 @@ static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
 		item = item->next;
 	}
 	
-	if (item == &devices_list)
+	if (item == &devices_list) {
+		fibril_mutex_unlock(&devices_list_mutex);
 		return NULL;
+	}
 	
 	device = list_get_instance(item, devmap_device_t, devices);
+	
+	fibril_mutex_unlock(&devices_list_mutex);
 	
 	return device;
 }
@@ -235,10 +257,13 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	
 	driver->name[name_size] = 0;
 	
+	/* Initialize mutex for list of devices owned by this driver */
+	fibril_mutex_initialize(&driver->devices_mutex);
+	
 	/*
 	 * Initialize list of asociated devices
 	 */
-	list_initialize(&(driver->devices));
+	list_initialize(&driver->devices);
 	
 	/*
 	 * Create connection to the driver
@@ -261,6 +286,8 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	
 	list_initialize(&(driver->drivers));
 	
+	fibril_mutex_lock(&drivers_list_mutex);
+	
 	/* TODO:
 	 * check that no driver with name equal to driver->name is registered
 	 */
@@ -269,6 +296,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	 * Insert new driver into list of registered drivers
 	 */
 	list_append(&(driver->drivers), &drivers_list);
+	fibril_mutex_unlock(&drivers_list_mutex);
 	
 	ipc_answer_0(iid, EOK);
 	
@@ -285,17 +313,27 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	if (driver == NULL)
 		return EEXISTS;
 	
+	fibril_mutex_lock(&drivers_list_mutex);
+	
 	if (driver->phone != 0)
 		ipc_hangup(driver->phone);
 	
 	/* Remove it from list of drivers */
 	list_remove(&(driver->drivers));
 	
+	/* Unregister all its devices */
+	fibril_mutex_lock(&devices_list_mutex);
+	fibril_mutex_lock(&driver->devices_mutex);
+	
 	while (!list_empty(&(driver->devices))) {
 		devmap_device_t *device = list_get_instance(driver->devices.next,
 		    devmap_device_t, driver_devices);
 		devmap_device_unregister_core(device);
 	}
+	
+	fibril_mutex_unlock(&driver->devices_mutex);
+	fibril_mutex_unlock(&devices_list_mutex);
+	fibril_mutex_unlock(&drivers_list_mutex);
 	
 	/* free name and driver */
 	if (driver->name != NULL)
@@ -310,8 +348,6 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 /** Process pending lookup requests */
 static void process_pending_lookup(void)
 {
-	async_serialize_start();
-	
 	link_t *cur;
 	
 loop:
@@ -330,8 +366,6 @@ loop:
 		
 		goto loop;
 	}
-	
-	async_serialize_end();
 }
 
 
@@ -385,9 +419,12 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	list_initialize(&(device->devices));
 	list_initialize(&(device->driver_devices));
 	
+	fibril_mutex_lock(&devices_list_mutex);
+	
 	/* Check that device with such name is not already registered */
 	if (NULL != devmap_device_find_name(device->name)) {
 		printf(NAME ": Device '%s' already registered\n", device->name);
+		fibril_mutex_unlock(&devices_list_mutex);
 		free(device->name);
 		free(device);
 		ipc_answer_0(iid, EEXISTS);
@@ -402,7 +439,13 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	/* Insert device into list of all devices  */
 	list_append(&device->devices, &devices_list);
 	
+	/* Insert device into list of devices that belog to one driver */
+	fibril_mutex_lock(&device->driver->devices_mutex);
+	
 	list_append(&device->driver_devices, &device->driver->devices);
+	
+	fibril_mutex_unlock(&device->driver->devices_mutex);
+	fibril_mutex_unlock(&devices_list_mutex);
 	
 	ipc_answer_1(iid, EOK, device->handle);
 }
@@ -555,11 +598,15 @@ static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall)
 
 static void devmap_get_count(ipc_callid_t iid, ipc_call_t *icall)
 {
+	fibril_mutex_lock(&devices_list_mutex);
 	ipc_answer_1(iid, EOK, list_count(&devices_list));
+	fibril_mutex_unlock(&devices_list_mutex);
 }
 
 static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 {
+	fibril_mutex_lock(&devices_list_mutex);
+	
 	ipc_callid_t callid;
 	size_t size;
 	if (!ipc_data_read_receive(&callid, &size)) {
@@ -603,6 +650,8 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 	
 	free(desc);
 	
+	fibril_mutex_unlock(&devices_list_mutex);
+	
 	ipc_answer_1(iid, EOK, pos);
 }
 
@@ -626,12 +675,16 @@ static bool devmap_init()
 	list_initialize(&(device->devices));
 	list_initialize(&(device->driver_devices));
 	
+	fibril_mutex_lock(&devices_list_mutex);
+	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();
 	device->driver = NULL;
 	
 	/* Insert device into list of all devices  */
 	list_append(&device->devices, &devices_list);
+	
+	fibril_mutex_unlock(&devices_list_mutex);
 	
 	return true;
 }
@@ -655,12 +708,9 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		async_serialize_start();
-		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
-			async_serialize_end();
 			continue;
 		case DEVMAP_DRIVER_UNREGISTER:
 			if (NULL == driver)
@@ -686,21 +736,14 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			if (!(callid & IPC_CALLID_NOTIFICATION))
 				ipc_answer_0(callid, ENOENT);
 		}
-		
-		async_serialize_end();
 	}
 	
 	if (NULL != driver) {
 		/*
 		 * Unregister the device driver and all its devices.
 		 */
-		
-		async_serialize_start();
-		
 		devmap_driver_unregister(driver);
 		driver = NULL;
-		
-		async_serialize_end();
 	}
 }
 
@@ -717,12 +760,9 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		async_serialize_start();
-		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
-			async_serialize_end();
 			continue;
 		case DEVMAP_DEVICE_GET_HANDLE:
 			devmap_get_handle(callid, &call);
@@ -740,8 +780,6 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			if (!(callid & IPC_CALLID_NOTIFICATION))
 				ipc_answer_0(callid, ENOENT);
 		}
-		
-		async_serialize_end();
 	}
 }
 
