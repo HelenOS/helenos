@@ -55,7 +55,7 @@ typedef struct {
 	}
 
 typedef struct {
-	fibril_mutex_t	fm;
+	fibril_mutex_t fm;
 } fibril_rwlock_t;
 
 #define FIBRIL_RWLOCK_INITIALIZE(name) \

@@ -316,20 +316,22 @@ void fibril_remove_manager(void)
 
 /** Return fibril id of the currently running fibril.
  *
- * @return		Fibril ID of the currently running fibril.
+ * @return fibril ID of the currently running fibril.
+ *
  */
 fid_t fibril_get_id(void)
 {
 	return (fid_t) __tcb_get()->fibril_data;
 }
 
-/** Disable preemption 
+/** Disable preemption
  *
  * If the fibril wants to send several message in a row and does not want to be
  * preempted, it should start async_serialize_start() in the beginning of
  * communication and async_serialize_end() in the end. If it is a true
  * multithreaded application, it should protect the communication channel by a
- * futex as well. Interrupt messages can still be preempted.
+ * futex as well.
+ *
  */
 void fibril_inc_sercount(void)
 {
