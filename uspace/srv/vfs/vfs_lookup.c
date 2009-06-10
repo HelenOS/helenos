@@ -210,10 +210,8 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	
 	vfs_release_phone(phone);
 	
-	async_serialize_start();
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
-	async_serialize_end();
 	
 	if (rc == EOK) {
 		result->size = (size_t) IPC_GET_ARG1(answer);
