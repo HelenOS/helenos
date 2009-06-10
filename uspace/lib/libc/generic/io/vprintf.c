@@ -87,7 +87,7 @@ int vfprintf(FILE *stream, const char *fmt, va_list ap)
 	futex_down(&printf_futex);
 	
 	/*
-	 * Prevent other pseudo threads of the same thread
+	 * Prevent other fibrils of the same thread
 	 * to execute printf_core()
 	 */
 	async_serialize_start();
