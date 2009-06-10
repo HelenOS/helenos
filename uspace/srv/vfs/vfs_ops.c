@@ -66,6 +66,7 @@ typedef struct {
 	dev_handle_t dev_handle;  /**< Device handle */
 } pending_req_t;
 
+FIBRIL_MUTEX_INITIALIZE(pending_lock);
 LIST_INITIALIZE(pending_req);
 
 /**
@@ -263,9 +264,10 @@ void vfs_process_pending_mount(void)
 	link_t *cur;
 	
 loop:
+	fibril_mutex_lock(&pending_lock);
 	for (cur = pending_req.next; cur != &pending_req; cur = cur->next) {
 		pending_req_t *pr = list_get_instance(cur, pending_req_t, link);
-		
+
 		fs_handle_t fs_handle = fs_name_to_handle(pr->fs_name, true);
 		if (!fs_handle)
 			continue;
@@ -282,8 +284,11 @@ loop:
 		free(pr->opts);
 		list_remove(cur);
 		free(pr);
+		fibril_mutex_unlock(&pending_lock);
+		fibril_yield();
 		goto loop;
 	}
+	fibril_mutex_unlock(&pending_lock);
 }
 
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -462,7 +467,9 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 			pr->rid = rid;
 			pr->dev_handle = dev_handle;
 			link_initialize(&pr->link);
+			fibril_mutex_lock(&pending_lock);
 			list_append(&pr->link, &pending_req);
+			fibril_mutex_unlock(&pending_lock);
 			return;
 		}
 		
