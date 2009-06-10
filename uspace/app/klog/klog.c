@@ -52,8 +52,6 @@ static size_t klog_length;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
-	async_serialize_start();
-	
 	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
 	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
 	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
@@ -61,8 +59,6 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	
 	for (i = klog_len - klog_stored; i < klog_len; i++)
 		putchar(klog[(klog_start + i) % klog_length]);
-	
-	async_serialize_end();
 }
 
 int main(int argc, char *argv[])
