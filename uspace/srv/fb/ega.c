@@ -149,7 +149,7 @@ static void printchar(wchar_t c, unsigned int col, unsigned int row)
 	scr_addr[(row * scr_width + col) * 2] = ega_glyph(c);
 	scr_addr[(row * scr_width + col) * 2 + 1] = style;
 	
-	cursor_goto(row, col + 1);
+	cursor_goto(col + 1, row);
 }
 
 /** Draw text data to viewport.
@@ -316,7 +316,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, scr_height, scr_width);
+			ipc_answer_2(callid, EOK, scr_width, scr_height);
 			continue;
 		case FB_CLEAR:
 			clrscr();
