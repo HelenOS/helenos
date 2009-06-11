@@ -90,27 +90,81 @@ void fibril_mutex_unlock(fibril_mutex_t *fm)
 
 void fibril_rwlock_initialize(fibril_rwlock_t *frw)
 {
-	fibril_mutex_initialize(&frw->fm);
+	frw->writers = 0;
+	frw->readers = 0;
+	list_initialize(&frw->waiters);
 }
 
 void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 {
-	fibril_mutex_lock(&frw->fm);
+	futex_down(&async_futex);
+	if (frw->writers) {
+		fibril_t *f = (fibril_t *) fibril_get_id();
+		f->flags &= ~FIBRIL_WRITER;
+		list_append(&f->link, &frw->waiters);
+		fibril_switch(FIBRIL_TO_MANAGER);
+	} else {
+		frw->readers++;
+		futex_up(&async_futex);
+	}
 }
 
 void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 {
-	fibril_mutex_lock(&frw->fm);
+	futex_down(&async_futex);
+	if (frw->writers || frw->readers) {
+		fibril_t *f = (fibril_t *) fibril_get_id();
+		f->flags |= FIBRIL_WRITER;
+		list_append(&f->link, &frw->waiters);
+		fibril_switch(FIBRIL_TO_MANAGER);
+	} else {
+		frw->writers++;
+		futex_up(&async_futex);
+	}
+}
+
+static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
+{
+	futex_down(&async_futex);
+	assert(frw->readers || (frw->writers == 1));
+	if (frw->readers) {
+		if (--frw->readers)
+			goto out;
+	} else {
+		frw->writers--;
+	}
+	
+	assert(!frw->readers && !frw->writers);
+	
+	while (!list_empty(&frw->waiters)) {
+		link_t *tmp = frw->waiters.next;
+		fibril_t *f = list_get_instance(tmp, fibril_t, link);
+		
+		if (f->flags & FIBRIL_WRITER) {
+			if (frw->readers)
+				break;
+			list_remove(&f->link);
+			fibril_add_ready((fid_t) f);
+			frw->writers++;
+			break;
+		} else {
+			list_remove(&f->link);
+			fibril_add_ready((fid_t) f);
+			frw->readers++;
+		}
+	}
+out:
+	futex_up(&async_futex);
 }
 
 void fibril_rwlock_read_unlock(fibril_rwlock_t *frw)
 {
-	fibril_mutex_unlock(&frw->fm);
+	_fibril_rwlock_common_unlock(frw);
 }
 
 void fibril_rwlock_write_unlock(fibril_rwlock_t *frw)
 {
-	fibril_mutex_unlock(&frw->fm);
+	_fibril_rwlock_common_unlock(frw);
 }
 
 /** @}

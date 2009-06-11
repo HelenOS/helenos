@@ -55,17 +55,18 @@ typedef struct {
 	}
 
 typedef struct {
-	fibril_mutex_t fm;
+	unsigned writers;
+	unsigned readers;
+	link_t waiters;
 } fibril_rwlock_t;
 
 #define FIBRIL_RWLOCK_INITIALIZE(name) \
 	fibril_rwlock_t name = { \
-		.fm = { \
-			.counter = 1, \
-			.waiters = { \
-				.prev = &name.fm.waiters, \
-				.next = &name.fm.waiters, \
-			} \
+		.readers = 0, \
+		.writers = 0, \
+		.waiters = { \
+			.prev = &name.waiters, \
+			.next = &name.waiters, \
 		} \
 	}
 

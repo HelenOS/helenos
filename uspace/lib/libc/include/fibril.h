@@ -46,7 +46,8 @@
 	(c)->tls = (sysarg_t) (ptls);
 #endif /* context_set */
 
-#define FIBRIL_SERIALIZED  1
+#define FIBRIL_SERIALIZED	1
+#define FIBRIL_WRITER 		2
 
 typedef enum {
 	FIBRIL_PREEMPT,
