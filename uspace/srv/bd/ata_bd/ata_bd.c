@@ -50,6 +50,7 @@
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <bool.h>
 
 #define NAME "ata_bd"
 
@@ -133,6 +134,14 @@ enum error_bits {
 	ER_AMNF		= 0x01  /**< Address Mark Not Found */
 };
 
+typedef struct {
+	bool present;
+	unsigned heads;
+	unsigned cylinders;
+	unsigned sectors;
+	uint64_t blocks;
+} disk_t;
+
 static const size_t block_size = 512;
 static size_t comm_size;
 
@@ -145,8 +154,7 @@ static dev_handle_t dev_handle[MAX_DISKS];
 
 static atomic_t dev_futex = FUTEX_INITIALIZER;
 
-static unsigned heads, cylinders, sectors;
-static uint64_t disk_blocks;
+static disk_t disk[2];
 
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
@@ -154,12 +162,14 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
     void *buf);
 static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf);
+static int drive_identify(int drive_id, disk_t *d);
 
 int main(int argc, char **argv)
 {
 	uint8_t status;
-	uint16_t data;
-	int i;
+	char name[16];
+	int i, rc;
+	int n_disks;
 
 	printf(NAME ": ATA disk driver\n");
 
@@ -187,12 +197,63 @@ int main(int argc, char **argv)
 
 	printf("Status = 0x%x\n", pio_read_8(&cmd->status));
 
-	printf("Issue drive_identify command\n");
-	pio_write_8(&cmd->drive_head, 0x00);
+	(void) drive_identify(0, &disk[0]);
+	(void) drive_identify(1, &disk[1]);
+
+	n_disks = 0;
+
+	for (i = 0; i < MAX_DISKS; i++) {
+		/* Skip unattached drives. */
+		if (disk[i].present == false)
+			continue;
+
+		snprintf(name, 16, "disk%d", i);
+		rc = devmap_device_register(name, &dev_handle[i]);
+		if (rc != EOK) {
+			devmap_hangup_phone(DEVMAP_DRIVER);
+			printf(NAME ": Unable to register device %s.\n",
+				name);
+			return rc;
+		}
+		++n_disks;
+	}
+
+	if (n_disks == 0) {
+		printf("No disks detected.\n");
+		return -1;
+	}
+
+	printf(NAME ": Accepting connections\n");
+	async_manager();
+
+	/* Not reached */
+	return 0;
+}
+
+static int drive_identify(int disk_id, disk_t *d)
+{
+	uint16_t data;
+	uint8_t status;
+	int i;
+
+	printf("Identify drive %d\n", disk_id);
+	pio_write_8(&cmd->drive_head, ((disk_id != 0) ? DHR_DRV : 0));
 	async_usleep(100);
 	pio_write_8(&cmd->command, 0xEC);
 
-	printf("Status = 0x%x\n", pio_read_8(&cmd->status));
+	status = pio_read_8(&cmd->status);
+	printf("Status = 0x%x\n", status);
+
+	d->present = false;
+
+	/*
+	 * Detect if drive is present. This is Qemu only! Need to
+	 * do the right thing to work with real drives.
+	 */
+	if ((status & SR_DRDY) == 0) {
+		printf("None attached.\n");
+		return ENOENT;
+	}
 
 	for (i = 0; i < 256; i++) {
 		do {
@@ -202,30 +263,28 @@ int main(int argc, char **argv)
 		data = pio_read_16(&cmd->data_port);
 
 		switch (i) {
-		case 1: cylinders = data; break;
-		case 3: heads = data; break;
-		case 6: sectors = data; break;
+		case 1: d->cylinders = data; break;
+		case 3: d->heads = data; break;
+		case 6: d->sectors = data; break;
 		}
 	}
 
 	printf("\n\nStatus = 0x%x\n", pio_read_8(&cmd->status));
 
+	d->blocks = d->cylinders * d->heads * d->sectors;
+
 	printf("Geometry: %u cylinders, %u heads, %u sectors\n",
-		cylinders, heads, sectors);
-	disk_blocks = cylinders * heads * sectors;
+		d->cylinders, d->heads, d->sectors);
 
-	printf(NAME ": Accepting connections\n");
-	async_manager();
+	d->present = true;
 
-	/* Not reached */
-	return 0;
+	return EOK;
 }
 
 static int ata_bd_init(void)
 {
 	void *vaddr;
-	int rc, i;
-	char name[16];
+	int rc;
 
 	rc = devmap_driver_register(NAME, ata_bd_connection);
 	if (rc < 0) {
@@ -249,16 +308,6 @@ static int ata_bd_init(void)
 
 	ctl = vaddr;
 
-	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "disk%d", i);
-		rc = devmap_device_register(name, &dev_handle[i]);
-		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
-			return rc;
-		}
-	}
 
 	return EOK;
 }
@@ -285,7 +334,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (dev_handle[i] == dh)
 			disk_id = i;
 
-	if (disk_id < 0) {
+	if (disk_id < 0 || disk[disk_id].present == false) {
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}
@@ -374,17 +423,20 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	uint64_t c, h, s;
 	uint64_t idx;
 	uint8_t drv_head;
+	disk_t *d;
+
+	d = &disk[disk_id];
 
 	/* Check device bounds. */
-	if (blk_idx >= disk_blocks)
+	if (blk_idx >= d->blocks)
 		return EINVAL;
 
 	/* Compute CHS. */
-	c = blk_idx / (heads * sectors);
-	idx = blk_idx % (heads * sectors);
+	c = blk_idx / (d->heads * d->sectors);
+	idx = blk_idx % (d->heads * d->sectors);
 
-	h = idx / sectors;
-	s = 1 + (idx % sectors);
+	h = idx / d->sectors;
+	s = 1 + (idx % d->sectors);
 
 	/* New value for Drive/Head register */
 	drv_head =
