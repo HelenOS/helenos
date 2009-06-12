@@ -70,6 +70,10 @@ typedef struct {
 		} \
 	}
 
+typedef struct {
+	link_t waiters;
+} fibril_condvar_t;
+
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
@@ -80,6 +84,11 @@ extern void fibril_rwlock_read_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_read_unlock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_unlock(fibril_rwlock_t *);
+
+extern void fibril_condvar_initialize(fibril_condvar_t *);
+extern void fibril_condvar_wait(fibril_condvar_t *, fibril_mutex_t *);
+extern void fibril_condvar_signal(fibril_condvar_t *);
+extern void fibril_condvar_broadcast(fibril_condvar_t *);
 
 #endif
 

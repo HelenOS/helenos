@@ -71,9 +71,8 @@ bool fibril_mutex_trylock(fibril_mutex_t *fm)
 	return locked;
 }
 
-void fibril_mutex_unlock(fibril_mutex_t *fm)
+static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 {
-	futex_down(&async_futex);
 	assert(fm->counter <= 0);
 	if (fm->counter++ < 0) {
 		link_t *tmp;
@@ -85,6 +84,12 @@ void fibril_mutex_unlock(fibril_mutex_t *fm)
 		list_remove(&f->link);
 		fibril_add_ready((fid_t) f);
 	}
+}
+
+void fibril_mutex_unlock(fibril_mutex_t *fm)
+{
+	futex_down(&async_futex);
+	_fibril_mutex_unlock_unsafe(fm);
 	futex_up(&async_futex);
 }
 
@@ -165,6 +170,48 @@ void fibril_rwlock_read_unlock(fibril_rwlock_t *frw)
 void fibril_rwlock_write_unlock(fibril_rwlock_t *frw)
 {
 	_fibril_rwlock_common_unlock(frw);
+}
+
+void fibril_condvar_initialize(fibril_condvar_t *fcv)
+{
+	list_initialize(&fcv->waiters);
+}
+
+void fibril_condvar_wait(fibril_condvar_t *fcv, fibril_mutex_t *fm)
+{
+	fibril_t *f = (fibril_t *) fibril_get_id();
+
+	futex_down(&async_futex);
+	list_append(&f->link, &fcv->waiters);
+	_fibril_mutex_unlock_unsafe(fm);
+	fibril_switch(FIBRIL_TO_MANAGER);
+	fibril_mutex_lock(fm);
+}
+
+static void _fibril_condvar_wakeup_common(fibril_condvar_t *fcv, bool once)
+{
+	link_t *tmp;
+	fibril_t *f;
+
+	futex_down(&async_futex);
+	while (!list_empty(&fcv->waiters)) {
+		tmp = fcv->waiters.next;
+		f = list_get_instance(tmp, fibril_t, link);
+		fibril_add_ready((fid_t) f);
+		if (once)
+			break;
+	}
+	futex_up(&async_futex);
+}
+
+void fibril_condvar_signal(fibril_condvar_t *fcv)
+{
+	_fibril_condvar_wakeup_common(fcv, true);
+}
+
+void fibril_condvar_broadcast(fibril_condvar_t *fcv)
+{
+	_fibril_condvar_wakeup_common(fcv, false);
 }
 
 /** @}
