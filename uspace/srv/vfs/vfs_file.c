@@ -40,6 +40,7 @@
 #include <string.h>
 #include <assert.h>
 #include <bool.h>
+#include <fibril.h>
 #include <fibril_sync.h>
 #include "vfs.h"
 
@@ -58,7 +59,7 @@
  * This resource being per-connection and, in the first place, per-fibril, we
  * don't need to protect it by a futex.
  */
-__thread vfs_file_t **files = NULL;
+fibril_local vfs_file_t **files = NULL;
 
 /** Initialize the table of open files. */
 bool vfs_files_init(void)

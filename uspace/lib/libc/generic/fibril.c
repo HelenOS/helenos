@@ -64,8 +64,8 @@ static void fibril_main(void);
 static int threads_in_manager;
 /** Number of threads that are executing a manager fibril and are serialized. */
 static int serialized_threads;	/* Protected by async_futex */
-/** Thread-local count of serialization. If > 0, we must not preempt */
-static __thread int serialization_count;
+/** Fibril-local count of serialization. If > 0, we must not preempt */
+static fibril_local int serialization_count;
 
 /** Setup fibril information into TCB structure */
 fibril_t *fibril_setup(void)

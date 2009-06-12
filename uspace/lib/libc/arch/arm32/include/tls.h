@@ -40,7 +40,7 @@
 
 #define CONFIG_TLS_VARIANT_1
 
-/** Offsets for accessing __thread variables are shifted 8 bytes higher. */
+/** Offsets for accessing thread-local variables are shifted 8 bytes higher. */
 #define ARM_TP_OFFSET  (-8)
 
 /** TCB (Thread Control Block) struct. 

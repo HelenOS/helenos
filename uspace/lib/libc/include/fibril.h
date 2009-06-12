@@ -72,6 +72,9 @@ struct fibril {
 };
 typedef struct fibril fibril_t;
 
+/** Fibril-local variable specifier */
+#define fibril_local __thread
+
 extern int context_save(context_t *c);
 extern void context_restore(context_t *c) __attribute__ ((noreturn));
 

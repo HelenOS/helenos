@@ -54,6 +54,7 @@
 #include <io/color.h>
 #include <io/style.h>
 #include <async.h>
+#include <fibril.h>
 #include <bool.h>
 
 #include "font-8x16.h"
@@ -1038,8 +1039,8 @@ static int shm2pixmap(unsigned char *shm, size_t size)
  *
  * @return false if the call was not handled byt this function, true otherwise
  *
- * Note: this function is not threads safe, you would have
- * to redefine static variables with __thread
+ * Note: this function is not thread-safe, you would have
+ * to redefine static variables with fibril_local.
  *
  */
 static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
