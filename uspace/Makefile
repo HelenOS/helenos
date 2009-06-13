@@ -38,6 +38,7 @@ DIRS = \
 	lib/softint \
 	lib/softfloat \
 	srv/bd/ata_bd \
+	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
 	srv/ns \
