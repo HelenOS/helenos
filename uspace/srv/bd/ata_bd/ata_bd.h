@@ -117,6 +117,12 @@ enum error_bits {
 	ER_AMNF		= 0x01  /**< Address Mark Not Found */
 };
 
+enum ata_command {
+	CMD_IDENTIFY_DRIVE	= 0xEC,
+	CMD_READ_SECTORS	= 0x20,
+	CMD_WRITE_SECTORS	= 0x30
+};
+
 typedef struct {
 	bool present;
 	unsigned heads;

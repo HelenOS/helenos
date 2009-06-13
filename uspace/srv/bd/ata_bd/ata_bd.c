@@ -68,7 +68,7 @@ static dev_handle_t dev_handle[MAX_DISKS];
 
 static atomic_t dev_futex = FUTEX_INITIALIZER;
 
-static disk_t disk[2];
+static disk_t disk[MAX_DISKS];
 
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
@@ -96,11 +96,7 @@ int main(int argc, char **argv)
 	/* Put drives to reset, disable interrupts. */
 	printf("Reset drives...\n");
 	pio_write_8(&ctl->device_control, DCR_SRST);
-/*	printf("wait for busy\n");
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) == 0);
-*/
+	/* FIXME: Find out how to do this properly. */
 	async_usleep(100);
 	pio_write_8(&ctl->device_control, 0);
 
@@ -153,7 +149,7 @@ static int drive_identify(int disk_id, disk_t *d)
 	printf("Identify drive %d\n", disk_id);
 	pio_write_8(&cmd->drive_head, ((disk_id != 0) ? DHR_DRV : 0));
 	async_usleep(100);
-	pio_write_8(&cmd->command, 0xEC);
+	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
 
 	status = pio_read_8(&cmd->status);
 	printf("Status = 0x%x\n", status);
@@ -169,7 +165,7 @@ static int drive_identify(int disk_id, disk_t *d)
 		return ENOENT;
 	}
 
-	for (i = 0; i < 256; i++) {
+	for (i = 0; i < block_size / 2; i++) {
 		do {
 			status = pio_read_8(&cmd->status);
 		} while ((status & SR_DRDY) == 0);
@@ -366,11 +362,11 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
 	pio_write_8(&cmd->cylinder_high, c >> 16);
-	pio_write_8(&cmd->command, 0x20);
+	pio_write_8(&cmd->command, CMD_READ_SECTORS);
 
 	/* Read data from the disk buffer. */
 
-	for (i = 0; i < 256; i++) {
+	for (i = 0; i < block_size / 2; i++) {
 		do {
 			status = pio_read_8(&cmd->status);
 		} while ((status & SR_DRDY) == 0);
