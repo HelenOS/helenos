@@ -76,6 +76,8 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
     void *buf);
 static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf);
+static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+    const void *buf);
 static int drive_identify(int drive_id, disk_t *d);
 
 int main(int argc, char **argv)
@@ -306,7 +308,7 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, off_t size,
 		if (method == BD_READ_BLOCK)
 			rc = ata_bd_read_block(disk_id, blk_idx, 1, buf);
 		else
-			rc = ENOTSUP;
+			rc = ata_bd_write_block(disk_id, blk_idx, 1, buf);
 
 		if (rc != EOK)
 			return rc;
@@ -373,6 +375,59 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 		data = pio_read_16(&cmd->data_port);
 		((uint16_t *) buf)[i] = data;
+	}
+
+	futex_up(&dev_futex);
+	return EOK;
+}
+
+static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+    const void *buf)
+{
+	size_t i;
+	uint8_t status;
+	uint64_t c, h, s;
+	uint64_t idx;
+	uint8_t drv_head;
+	disk_t *d;
+
+	d = &disk[disk_id];
+
+	/* Check device bounds. */
+	if (blk_idx >= d->blocks)
+		return EINVAL;
+
+	/* Compute CHS. */
+	c = blk_idx / (d->heads * d->sectors);
+	idx = blk_idx % (d->heads * d->sectors);
+
+	h = idx / d->sectors;
+	s = 1 + (idx % d->sectors);
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    ((disk_id != 0) ? DHR_DRV : 0) |
+	    (h & 0x0f);
+
+	futex_down(&dev_futex);
+
+	/* Program a Read Sectors operation. */
+
+	pio_write_8(&cmd->drive_head, drv_head);
+	pio_write_8(&cmd->sector_count, 1);
+	pio_write_8(&cmd->sector_number, s);
+	pio_write_8(&cmd->cylinder_low, c & 0xff);
+	pio_write_8(&cmd->cylinder_high, c >> 16);
+	pio_write_8(&cmd->command, CMD_WRITE_SECTORS);
+
+	/* Write data to the disk buffer. */
+
+	for (i = 0; i < block_size / 2; i++) {
+		do {
+			status = pio_read_8(&cmd->status);
+		} while ((status & SR_DRDY) == 0);
+
+		pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
 	}
 
 	futex_up(&dev_futex);
