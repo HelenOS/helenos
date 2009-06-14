@@ -197,6 +197,7 @@ static void _fibril_condvar_wakeup_common(fibril_condvar_t *fcv, bool once)
 	while (!list_empty(&fcv->waiters)) {
 		tmp = fcv->waiters.next;
 		f = list_get_instance(tmp, fibril_t, link);
+		list_remove(&f->link);
 		fibril_add_ready((fid_t) f);
 		if (once)
 			break;

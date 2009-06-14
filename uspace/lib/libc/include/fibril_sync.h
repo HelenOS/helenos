@@ -74,6 +74,14 @@ typedef struct {
 	link_t waiters;
 } fibril_condvar_t;
 
+#define FIBRIL_CONDVAR_INITIALIZE(name) \
+	fibril_condvar_t name = { \
+		.waiters = { \
+			.next = &name.waiters, \
+			.prev = &name.waiters, \
+		} \
+	}
+
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
