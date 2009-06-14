@@ -57,16 +57,18 @@ static bool mount_root(const char *fstype)
 {
 	int rc = -1;
 	char *opts = "";
+	const char *root_dev = "initrd";
 	
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 
 	while (rc < 0) {
-		rc = mount(fstype, "/", "initrd", opts, IPC_FLAG_BLOCKING);
+		rc = mount(fstype, "/", root_dev, opts, IPC_FLAG_BLOCKING);
 		
 		switch (rc) {
 		case EOK:
-			printf(NAME ": Root filesystem mounted\n");
+			printf(NAME ": Root filesystem mounted, %s at %s\n",
+			    fstype, root_dev);
 			break;
 		case EBUSY:
 			printf(NAME ": Root filesystem already mounted\n");
