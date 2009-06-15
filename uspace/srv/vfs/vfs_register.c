@@ -268,6 +268,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
+	pending_new_fs = true;
+	fibril_condvar_signal(&pending_cv);
 	fibril_mutex_unlock(&fs_head_lock);
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",

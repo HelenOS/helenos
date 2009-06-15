@@ -45,6 +45,7 @@
 #include <as.h>
 #include <adt/list.h>
 #include <atomic.h>
+#include <assert.h>
 #include "vfs.h"
 
 #define NAME "vfs"
@@ -174,10 +175,16 @@ int main(int argc, char **argv)
 	memset(plb, 0, PLB_SIZE);
 	
 	/*
-	 * Set a connectio handling function/fibril.
+	 * Set a connection handling function/fibril.
 	 */
-	async_set_pending(vfs_process_pending_mount);
 	async_set_client_connection(vfs_connection);
+
+	/*
+	 * Add a fibril for handling pending mounts.
+	 */
+	fid_t fid = fibril_create(vfs_process_pending_mount, NULL);
+	assert(fid);
+	fibril_add_ready(fid);
 	
 	/*
 	 * Register at the naming service.

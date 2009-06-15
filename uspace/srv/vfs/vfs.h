@@ -170,6 +170,10 @@ extern fibril_rwlock_t namespace_rwlock;
 extern int vfs_grab_phone(fs_handle_t);
 extern void vfs_release_phone(int);
 
+extern fibril_mutex_t fs_head_lock;
+extern bool pending_new_fs;
+extern fibril_condvar_t pending_cv;
+
 extern fs_handle_t fs_name_to_handle(char *, bool);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
