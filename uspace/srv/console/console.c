@@ -51,6 +51,8 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
+#include <assert.h>
+#include <fibril_sync.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -111,14 +113,20 @@ typedef struct {
 
 LIST_INITIALIZE(pending_input);
 
+static FIBRIL_MUTEX_INITIALIZE(input_mutex);
+static FIBRIL_CONDVAR_INITIALIZE(input_cv);
+static input_flag = false;
+
 /** Process pending input requests */
 static void process_pending_input(void)
 {
-	async_serialize_start();
-	
 	link_t *cur;
 	
 loop:
+	fibril_mutex_lock(&input_mutex);
+	while (!input_flag)
+		fibril_condvar_wait(&input_cv, &input_mutex);
+rescan:
 	for (cur = pending_input.next; cur != &pending_input; cur = cur->next) {
 		pending_input_t *pr = list_get_instance(cur, pending_input_t, link);
 		
@@ -132,27 +140,25 @@ loop:
 				}
 			} else {
 				ipc_answer_4(pr->rid, EOK, ev.type, ev.key, ev.mods, ev.c);
-				
 				list_remove(cur);
 				free(pr);
-				
-				goto loop;
+				goto rescan;
 			}
 		}
 		
 		if ((pr->data != NULL) && (pr->pos == pr->size)) {
 			(void) ipc_data_read_finalize(pr->callid, pr->data, pr->size);
 			ipc_answer_1(pr->rid, EOK, pr->size);
-			
+
 			free(pr->data);
 			list_remove(cur);
 			free(pr);
-			
-			goto loop;
+			goto rescan;
 		}
 	}
-	
-	async_serialize_end();
+	input_flag = false;
+	fibril_mutex_unlock(&input_mutex);
+	goto loop;
 }
 
 static void curs_visibility(bool visible)
@@ -453,7 +459,11 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 			}
 			
+			fibril_mutex_lock(&input_mutex);
 			keybuffer_push(&active_console->keybuffer, &ev);
+			input_flag = true;
+			fibril_condvar_signal(&input_cv);
+			fibril_mutex_unlock(&input_mutex);
 			break;
 		default:
 			retval = ENOENT;
@@ -514,10 +524,9 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	async_serialize_start();
-	
 	size_t pos = 0;
 	console_event_t ev;
+	fibril_mutex_lock(&input_mutex);
 	while ((keybuffer_pop(&cons->keybuffer, &ev)) && (pos < size)) {
 		if (ev.type == KEY_PRESS) {
 			buf[pos] = ev.c;
@@ -532,10 +541,10 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
 		if (!pr) {
+			fibril_mutex_unlock(&input_mutex);
 			ipc_answer_0(callid, ENOMEM);
 			ipc_answer_0(rid, ENOMEM);
 			free(buf);
-			async_serialize_end();
 			return;
 		}
 		
@@ -547,22 +556,21 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		pr->data = buf;
 		list_append(&pr->link, &pending_input);
 	}
-	
-	async_serialize_end();
+	fibril_mutex_unlock(&input_mutex);
 }
 
 static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
-	async_serialize_start();
-	
 	console_event_t ev;
+
+	fibril_mutex_lock(&input_mutex);
 	if (keybuffer_pop(&cons->keybuffer, &ev)) {
 		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
 	} else {
 		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
 		if (!pr) {
+			fibril_mutex_unlock(&input_mutex);
 			ipc_answer_0(rid, ENOMEM);
-			async_serialize_end();
 			return;
 		}
 		
@@ -572,8 +580,7 @@ static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *reques
 		pr->data = NULL;
 		list_append(&pr->link, &pending_input);
 	}
-	
-	async_serialize_end();
+	fibril_mutex_unlock(&input_mutex);
 }
 
 /** Default thread for new connections */
@@ -715,31 +722,33 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static bool console_init(void)
 {
-	async_serialize_start();
-	
 	/* Connect to keyboard driver */
 	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	if (kbd_phone < 0) {
 		printf(NAME ": Failed to connect to keyboard service\n");
-		async_serialize_end();
 		return false;
 	}
 	
 	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from keyboard service\n");
-		async_serialize_end();
 		return false;
 	}
 	
-	async_set_pending(process_pending_input);
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
+
+	fid_t fid = fibril_create(process_pending_input, NULL);
+	if (!fid) {
+		printf(NAME ": Failed to create fibril for handling pending "
+		    "input\n");
+		return -1;
+	}
+	fibril_add_ready(fid);
 	
 	/* Connect to framebuffer driver */
 	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
-		async_serialize_end();
 		return -1;
 	}
 	
@@ -747,7 +756,6 @@ static bool console_init(void)
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver (%d)\n", rc);
-		async_serialize_end();
 		return false;
 	}
 	
@@ -783,7 +791,6 @@ static bool console_init(void)
 			if (screenbuffer_init(&consoles[i].scr,
 			    fb_info.cols, fb_info.rows) == NULL) {
 				printf(NAME ": Unable to allocate screen buffer %u\n", i);
-				async_serialize_end();
 				return false;
 			}
 			screenbuffer_clear(&consoles[i].scr);
@@ -797,7 +804,6 @@ static bool console_init(void)
 			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
 				devmap_hangup_phone(DEVMAP_DRIVER);
 				printf(NAME ": Unable to register device %s\n", vc);
-				async_serialize_end();
 				return false;
 			}
 		}
@@ -807,11 +813,13 @@ static bool console_init(void)
 	__SYSCALL0(SYS_DEBUG_DISABLE_CONSOLE);
 	
 	/* Initialize the screen */
+	async_serialize_start();
 	gcons_redraw_console();
 	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
 	screen_clear();
 	curs_goto(0, 0);
 	curs_visibility(active_console->scr.is_cursor_visible);
+	async_serialize_end();
 	
 	/* Receive kernel notifications */
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
@@ -819,7 +827,6 @@ static bool console_init(void)
 	
 	async_set_interrupt_received(interrupt_received);
 	
-	async_serialize_end();
 	return true;
 }
 

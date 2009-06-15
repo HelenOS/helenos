@@ -43,7 +43,6 @@
 
 typedef ipc_callid_t aid_t;
 typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
-typedef void (*async_pending_t)(void);
 
 extern atomic_t async_futex;
 
@@ -99,7 +98,6 @@ extern int _async_init(void);
 
 extern void async_set_client_connection(async_client_conn_t conn);
 extern void async_set_interrupt_received(async_client_conn_t conn);
-extern void async_set_pending(async_pending_t pend);
 
 /* Wrappers for simple communication */
 #define async_msg_0(phone, method) \
