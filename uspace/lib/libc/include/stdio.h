@@ -41,6 +41,9 @@
 
 #define EOF  (-1)
 
+/** Default size for stream I/O buffers */
+#define BUFSIZ 4096
+
 #define DEBUG(fmt, ...) \
 { \
 	char buf[256]; \
@@ -54,6 +57,15 @@
 	#define SEEK_CUR  1
 	#define SEEK_END  2
 #endif
+
+enum _buffer_type {
+	/** No buffering */
+	_IONBF,
+	/** Line buffering */
+	_IOLBF,
+	/** Full buffering */
+	_IOFBF
+};
 
 typedef struct {
 	/** Linked list pointer. */
@@ -73,6 +85,15 @@ typedef struct {
 	
 	/** Phone to the file provider */
 	int phone;
+
+	/** Buffering type */
+	enum _buffer_type btype;
+	/** Buffer */
+	uint8_t *buf;
+	/** Buffer size */
+	size_t buf_size;
+	/** Buffer I/O pointer */
+	uint8_t *buf_head;
 } FILE;
 
 extern FILE *stdin;
@@ -120,6 +141,8 @@ extern int feof(FILE *);
 extern int fflush(FILE *);
 extern int ferror(FILE *);
 extern void clearerr(FILE *);
+
+extern void setvbuf(FILE *, void *, int, size_t);
 
 /* Misc file functions */
 extern int rename(const char *, const char *);

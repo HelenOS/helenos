@@ -147,8 +147,10 @@ void get_input(cliuser_t *usr)
 {
 	char line[INPUT_MAX];
 
+	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_EMPHASIS);
 	printf("%s", usr->prompt);
+	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_NORMAL);
 
 	read_line(line, INPUT_MAX);

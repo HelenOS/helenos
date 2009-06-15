@@ -77,11 +77,13 @@ static inline void putstr(char *s)
 
 static void start_standout(uint32_t color)
 {
+	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), 0xf0f0f0, color);
 }
 
 static void resume_normal(void)
 {
+	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
 }
 
@@ -114,6 +116,7 @@ void scr_init(void)
 
 void moveto(int r, int c)
 {
+	fflush(stdout);
 	console_goto(fphone(stdout), c, r);
 }
 

@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <assert.h>
 #include <string.h>
 #include <errno.h>
 #include <bool.h>
@@ -44,12 +45,18 @@
 #include <ipc/devmap.h>
 #include <adt/list.h>
 
+static void _fflushbuf(FILE *stream);
+
 static FILE stdin_null = {
 	.fd = -1,
 	.error = true,
 	.eof = true,
 	.klog = false,
-	.phone = -1
+	.phone = -1,
+	.btype = _IONBF,
+	.buf = NULL,
+	.buf_size = 0,
+	.buf_head = NULL
 };
 
 static FILE stdout_klog = {
@@ -57,7 +64,11 @@ static FILE stdout_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1
+	.phone = -1,
+	.btype = _IOLBF,
+	.buf = NULL,
+	.buf_size = BUFSIZ,
+	.buf_head = NULL
 };
 
 static FILE stderr_klog = {
@@ -65,7 +76,11 @@ static FILE stderr_klog = {
 	.error = false,
 	.eof = false,
 	.klog = true,
-	.phone = -1
+	.phone = -1,
+	.btype = _IONBF,
+	.buf = NULL,
+	.buf_size = 0,
+	.buf_head = NULL
 };
 
 FILE *stdin = NULL;
@@ -156,6 +171,30 @@ static bool parse_mode(const char *mode, int *flags)
 	return true;
 }
 
+/** Set stream buffer. */
+void setvbuf(FILE *stream, void *buf, int mode, size_t size)
+{
+	stream->btype = mode;
+	stream->buf = buf;
+	stream->buf_size = size;
+	stream->buf_head = stream->buf;
+}
+
+/** Allocate stream buffer. */
+static int _fallocbuf(FILE *stream)
+{
+	assert(stream->buf == NULL);
+
+	stream->buf = malloc(stream->buf_size);
+	if (stream->buf == NULL) {
+		errno = ENOMEM;
+		return -1;
+	}
+
+	stream->buf_head = stream->buf;
+	return 0;
+}
+
 /** Open a stream.
  *
  * @param path Path of the file to open.
@@ -186,6 +225,9 @@ FILE *fopen(const char *path, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
+
+	/* FIXME: Should select buffering type based on what was opened. */
+	setvbuf(stream, NULL, _IOFBF, BUFSIZ);
 	
 	list_append(&stream->link, &files);
 	
@@ -206,6 +248,9 @@ FILE *fdopen(int fd, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
+
+	/* FIXME: Should select buffering type based on what was opened. */
+	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
 	
 	list_append(&stream->link, &files);
 	
@@ -236,6 +281,9 @@ FILE *fopen_node(fdi_node_t *node, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
+
+	/* FIXME: Should select buffering type based on what was opened. */
+	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
 	
 	list_append(&stream->link, &files);
 	
@@ -283,7 +331,10 @@ size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t left = size * nmemb;
 	size_t done = 0;
-	
+
+	/* Make sure no data is pending write. */
+	_fflushbuf(stream);
+
 	while ((left > 0) && (!stream->error) && (!stream->eof)) {
 		ssize_t rd = read(stream->fd, buf + done, left);
 		
@@ -300,15 +351,7 @@ size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 	return (done / size);
 }
 
-/** Write to a stream.
- *
- * @param buf    Source buffer.
- * @param size   Size of each record.
- * @param nmemb  Number of records to write.
- * @param stream Pointer to the stream.
- *
- */
-size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
+static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t left = size * nmemb;
 	size_t done = 0;
@@ -330,6 +373,91 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	}
 	
 	return (done / size);
+}
+
+/** Drain stream buffer, do not sync stream. */
+static void _fflushbuf(FILE *stream)
+{
+	size_t bytes_used;
+
+	if (!stream->buf || stream->btype == _IONBF || stream->error)
+		return;
+
+	bytes_used = stream->buf_head - stream->buf;
+	if (bytes_used == 0)
+		return;
+
+	(void) _fwrite(stream->buf, 1, bytes_used, stream);
+	stream->buf_head = stream->buf;
+}
+
+/** Write to a stream.
+ *
+ * @param buf    Source buffer.
+ * @param size   Size of each record.
+ * @param nmemb  Number of records to write.
+ * @param stream Pointer to the stream.
+ *
+ */
+size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
+{
+	uint8_t *data;
+	size_t bytes_left;
+	size_t now;
+	size_t buf_free;
+	size_t total_written;
+	size_t i;
+	uint8_t b;
+	bool need_flush;
+
+	/* If not buffered stream, write out directly. */
+	if (stream->btype == _IONBF)
+		return _fwrite(buf, size, nmemb, stream);
+
+	/* Perform lazy allocation of stream buffer. */
+	if (stream->buf == NULL) {
+		if (_fallocbuf(stream) != 0)
+			return 0; /* Errno set by _fallocbuf(). */
+	}
+
+	data = (uint8_t *) buf;
+	bytes_left = size * nmemb;
+	total_written = 0;
+	need_flush = false;
+
+	while (!stream->error && bytes_left > 0) {
+
+		buf_free = stream->buf_size - (stream->buf_head - stream->buf);
+		if (bytes_left > buf_free)
+			now = buf_free;
+		else
+			now = bytes_left;
+
+		for (i = 0; i < now; i++) {
+			b = data[i];
+			stream->buf_head[i] = b;
+
+			if (b == '\n' && stream->btype == _IOLBF)
+				need_flush = true;
+		}
+
+		buf += now;
+		stream->buf_head += now;
+		buf_free -= now;
+		bytes_left -= now;
+		total_written += now;
+
+		if (buf_free == 0) {
+			/* Only need to drain buffer. */
+			_fflushbuf(stream);
+			need_flush = false;
+		}
+	}
+
+	if (need_flush)
+		fflush(stream);
+
+	return (total_written / size);
 }
 
 int fputc(wchar_t c, FILE *stream)
@@ -405,6 +533,8 @@ void rewind(FILE *stream)
 
 int fflush(FILE *stream)
 {
+	_fflushbuf(stream);
+
 	if (stream->klog) {
 		klog_update();
 		return EOK;
