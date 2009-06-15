@@ -287,9 +287,12 @@ static void fb_putchar(wchar_t c, ipcarg_t col, ipcarg_t row)
 /** Process a character from the client (TTY emulation). */
 static void write_char(console_t *cons, wchar_t ch)
 {
+	bool flush_cursor = false;
+
 	switch (ch) {
 	case '\n':
 		fb_pending_flush();
+		flush_cursor = true;
 		cons->scr.position_y++;
 		cons->scr.position_x = 0;
 		break;
@@ -315,8 +318,10 @@ static void write_char(console_t *cons, wchar_t ch)
 		cons->scr.position_x++;
 	}
 	
-	if (cons->scr.position_x >= cons->scr.size_x)
+	if (cons->scr.position_x >= cons->scr.size_x) {
+		flush_cursor = true;
 		cons->scr.position_y++;
+	}
 	
 	if (cons->scr.position_y >= cons->scr.size_y) {
 		fb_pending_flush();
@@ -327,7 +332,9 @@ static void write_char(console_t *cons, wchar_t ch)
 		if (cons == active_console)
 			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
-	
+
+	if (cons == active_console && flush_cursor)
+		curs_goto(cons->scr.position_x, cons->scr.position_y);
 	cons->scr.position_x = cons->scr.position_x % cons->scr.size_x;
 }
 
@@ -481,9 +488,6 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		wchar_t ch = str_decode(buf, &off, size);
 		write_char(cons, ch);
 	}
-	
-	if (cons == active_console)
-		curs_goto(cons->scr.position_x, cons->scr.position_y);
 	
 	async_serialize_end();
 	
