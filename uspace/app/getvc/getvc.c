@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
 		return -2;
 	
 	version_print(argv[1]);
+	fflush(stdout);
 	task_id_t id = spawn(argv[2]);
 	task_wait(id);
 	
