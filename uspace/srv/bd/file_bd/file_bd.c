@@ -60,8 +60,8 @@ static atomic_t dev_futex = FUTEX_INITIALIZER;
 
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int file_bd_read(off_t blk_idx, off_t size, void *buf);
-static int file_bd_write(off_t blk_idx, off_t size, void *buf);
+static int file_bd_read(off_t blk_idx, size_t size, void *buf);
+static int file_bd_write(off_t blk_idx, size_t size, void *buf);
 
 int main(int argc, char **argv)
 {
@@ -118,7 +118,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int flags;
 	int retval;
 	off_t idx;
-	off_t size;
+	size_t size;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
@@ -165,7 +165,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int file_bd_read(off_t blk_idx, off_t size, void *buf)
+static int file_bd_read(off_t blk_idx, size_t size, void *buf)
 {
 	size_t n_rd;
 
@@ -193,7 +193,7 @@ static int file_bd_read(off_t blk_idx, off_t size, void *buf)
 	return EOK;
 }
 
-static int file_bd_write(off_t blk_idx, off_t size, void *buf)
+static int file_bd_write(off_t blk_idx, size_t size, void *buf)
 {
 	size_t n_wr;
 

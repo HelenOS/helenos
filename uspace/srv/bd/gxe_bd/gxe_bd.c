@@ -95,7 +95,7 @@ static atomic_t dev_futex = FUTEX_INITIALIZER;
 
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
+static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
     void *buf);
 static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
     void *buf);
@@ -160,7 +160,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int flags;
 	int retval;
 	off_t idx;
-	off_t size;
+	size_t size;
 	int disk_id, i;
 
 	/* Get the device handle. */
@@ -220,7 +220,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
+static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
     void *buf)
 {
 	int rc;

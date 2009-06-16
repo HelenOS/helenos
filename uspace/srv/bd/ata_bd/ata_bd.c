@@ -72,7 +72,7 @@ static disk_t disk[MAX_DISKS];
 
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, off_t size,
+static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
     void *buf);
 static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf);
@@ -146,7 +146,7 @@ static int drive_identify(int disk_id, disk_t *d)
 {
 	uint16_t data;
 	uint8_t status;
-	int i;
+	size_t i;
 
 	printf("Identify drive %d\n", disk_id);
 	pio_write_8(&cmd->drive_head, ((disk_id != 0) ? DHR_DRV : 0));
@@ -234,7 +234,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int flags;
 	int retval;
 	off_t idx;
-	off_t size;
+	size_t size;
 	int disk_id, i;
 
 	/* Get the device handle. */
@@ -294,14 +294,14 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, off_t size,
+static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
     void *buf)
 {
 	int rc;
-	off_t now;
+	size_t now;
 
 	while (size > 0) {
-		now = size < block_size ? size : (off_t) block_size;
+		now = size < block_size ? size : block_size;
 		if (now != block_size)
 			return EINVAL;
 
