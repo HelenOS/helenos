@@ -83,6 +83,12 @@ int main(int argc, char *argv[])
 	stdin = fopen(argv[1], "r");
 	stdout = fopen(argv[1], "w");
 	stderr = fopen(argv[1], "w");
+
+	/*
+	 * FIXME: fopen() should actually detect that we are opening a console
+	 * and it should set line-buffering mode automatically.
+	 */
+	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	
 	if ((stdin == NULL)
 	    || (stdout == NULL)
@@ -90,7 +96,6 @@ int main(int argc, char *argv[])
 		return -2;
 	
 	version_print(argv[1]);
-	fflush(stdout);
 	task_id_t id = spawn(argv[2]);
 	task_wait(id);
 	
