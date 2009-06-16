@@ -74,7 +74,7 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry);
 static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
 /** Read until the buffer is read in its entirety. */
-static int my_read(int fd, char *buf, size_t len)
+static int my_read(int fd, void *buf, size_t len)
 {
 	int cnt = 0;
 	do {
@@ -331,21 +331,26 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	int flags = 0;
 	uintptr_t bias;
 	uintptr_t base;
+	void *seg_ptr;
+	uintptr_t seg_addr;
 	size_t mem_sz;
 	int rc;
 
-	DPRINTF("Load segment at addr 0x%x, size 0x%x\n", entry->p_vaddr,
-		entry->p_memsz);
-	
 	bias = elf->bias;
+
+	seg_addr = entry->p_vaddr + bias;
+	seg_ptr = (void *) seg_addr;
+
+	DPRINTF("Load segment at addr 0x%x, size 0x%x\n", seg_addr,
+		entry->p_memsz);	
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
-		    (entry->p_vaddr % entry->p_align)) {
+		    (seg_addr % entry->p_align)) {
 			DPRINTF("Align check 1 failed offset%%align=%d, "
 			    "vaddr%%align=%d\n",
 			    entry->p_offset % entry->p_align,
-			    entry->p_vaddr % entry->p_align
+			    seg_addr % entry->p_align
 			);
 			return EE_INVALID;
 		}
@@ -364,7 +369,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-	DPRINTF("Map to p_vaddr=0x%x-0x%x.\n", entry->p_vaddr + bias,
+	DPRINTF("Map to seg_addr=0x%x-0x%x.\n", seg_addr,
 	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
 
 	/*
@@ -379,7 +384,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	}
 
 	DPRINTF("as_area_create(0x%lx, 0x%x, %d) -> 0x%lx\n",
-		entry->p_vaddr+bias, entry->p_memsz, flags, (uintptr_t)a);
+		base + bias, mem_sz, flags, (uintptr_t)a);
 
 	/*
 	 * Load segment data
@@ -399,7 +404,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	uint8_t *dp;
 
 	left = entry->p_filesz;
-	dp = (uint8_t *)(entry->p_vaddr + bias);
+	dp = seg_ptr;
 
 	while (left > 0) {
 		now = 16384;
@@ -416,7 +421,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		dp += now;
 	}
 
-	rc = as_area_change_flags((uint8_t *)entry->p_vaddr + bias, flags);
+	rc = as_area_change_flags(seg_ptr, flags);
 	if (rc != 0) {
 		DPRINTF("Failed to set memory area flags.\n");
 		return EE_MEMORY;
@@ -424,7 +429,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 
 	if (flags & AS_AREA_EXEC) {
 		/* Enforce SMC coherence for the segment */
-		if (smc_coherence(entry->p_vaddr + bias, entry->p_filesz))
+		if (smc_coherence(seg_ptr, entry->p_filesz))
 			return EE_MEMORY;
 	}
 

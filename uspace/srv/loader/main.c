@@ -79,7 +79,7 @@ static char *arg_buf = NULL;
 /** Number of preset files */
 static int filc = 0;
 /** Preset files vector */
-static char **filv = NULL;
+static fdi_node_t **filv = NULL;
 /** Buffer holding all preset files */
 static fdi_node_t *fil_buf = NULL;
 

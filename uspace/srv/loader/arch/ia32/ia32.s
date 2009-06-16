@@ -46,4 +46,4 @@ program_run:
 	# Save a tiny bit of stack space
 	pop %ebp
 
-	jmp %eax
+	jmp *%eax
