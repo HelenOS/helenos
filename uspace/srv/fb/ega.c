@@ -87,7 +87,7 @@ static uint8_t ega_glyph(wchar_t ch);
 
 static void clrscr(void)
 {
-	int i;
+	unsigned i;
 	
 	for (i = 0; i < scr_width * scr_height; i++) {
 		scr_addr[i * 2] = ' ';
@@ -129,7 +129,8 @@ static void cursor_enable(void)
 
 static void scroll(int rows)
 {
-	int i;
+	unsigned i;
+
 	if (rows > 0) {
 		memmove(scr_addr, ((char *) scr_addr) + rows * scr_width * 2,
 		    scr_width * scr_height * 2 - rows * scr_width * 2);
@@ -345,7 +346,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  			break;
 		case FB_SCROLL:
 			i = IPC_GET_ARG1(call);
-			if (i > scr_height || i < -((int) scr_height)) {
+			if (i > (int) scr_height || i < -((int) scr_height)) {
 				retval = EINVAL;
 				break;
 			}

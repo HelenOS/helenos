@@ -450,7 +450,8 @@ static void vport_scroll(viewport_t *vport, int lines)
 	for (row = 0; row < vport->rows; row++) {
 		x = vport->x;
 		for (col = 0; col < vport->cols; col++) {
-			if ((row + lines >= 0) && (row + lines < vport->rows)) {
+			if (((int) row + lines >= 0) &&
+			    ((int) row + lines < (int) vport->rows)) {
 				xbp = &vport->backbuf[BB_POS(vport, col, row + lines)];
 				bbp = &vport->backbuf[BB_POS(vport, col, row)];
 				
