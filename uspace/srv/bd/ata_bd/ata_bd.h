@@ -50,22 +50,32 @@ enum {
 	MAX_DISKS	= 2
 };
 
+/** ATA Command Register Block. */
 typedef union {
-	/* Read */
+	/* Read/Write */
 	struct {
-		uint8_t data_port;
-		uint8_t error;
+		uint16_t data_port;
 		uint8_t sector_count;
 		uint8_t sector_number;
 		uint8_t cylinder_low;
 		uint8_t cylinder_high;
 		uint8_t drive_head;
+		uint8_t pad_rw0;		
+	};
+
+	/* Read Only */
+	struct {
+		uint8_t pad_ro0;
+		uint8_t error;
+		uint8_t pad_ro1[5];
 		uint8_t status;
 	};
 
-	/* Write */
+	/* Write Only */
 	struct {
-		uint8_t pad0[7];
+		uint8_t pad_wo0;
+		uint8_t features;
+		uint8_t pad_wo1[5];
 		uint8_t command;
 	};
 } ata_cmd_t;
