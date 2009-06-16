@@ -35,7 +35,6 @@ char * test_stdio2(bool quiet)
 {
 	FILE *f;
 	char *file_name = "/test";
-	size_t n;
 	int c;
 
 	printf("Open file '%s' for writing\n", file_name);

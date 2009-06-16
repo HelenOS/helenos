@@ -128,15 +128,16 @@ static void getvc(char *dev, char *app)
 {
 	char *argv[4];
 	char vc[MAX_DEVICE_NAME];
+	int rc;
 	
 	snprintf(vc, MAX_DEVICE_NAME, "/dev/%s", dev);
 	
 	printf(NAME ": Spawning getvc on %s\n", vc);
 	
 	dev_handle_t handle;
-	devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	
-	if (handle >= 0) {
+	if (rc == EOK) {
 		argv[0] = "/app/getvc";
 		argv[1] = vc;
 		argv[2] = app;
@@ -144,8 +145,9 @@ static void getvc(char *dev, char *app)
 		
 		if (!task_spawn("/app/getvc", argv))
 			printf(NAME ": Error spawning getvc on %s\n", vc);
-	} else
+	} else {
 		printf(NAME ": Error waiting on %s\n", vc);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -160,7 +162,7 @@ int main(int argc, char *argv[])
 	spawn("/srv/devfs");
 	
 	if (!mount_devfs()) {
-		return(NAME ": Exiting\n");
+		printf(NAME ": Exiting\n");
 		return -2;
 	}
 	

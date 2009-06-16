@@ -193,7 +193,7 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 	
 	if (retval != EOK) {
 		if (handle != NULL)
-			*handle = -1;
+			*handle = (dev_handle_t) -1;
 		return retval;
 	}
 	

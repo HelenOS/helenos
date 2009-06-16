@@ -474,13 +474,13 @@ block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
 			left -= rd;
 		}
 		
-		if (*bufpos == *buflen) {
+		if (*bufpos == (off_t) *buflen) {
 			/* Refill the communication buffer with a new block. */
 			ipcarg_t retval;
 			int rc = async_req_2_1(devcon->dev_phone, BD_READ_BLOCK,
 			    *pos / block_size, block_size, &retval);
 			if ((rc != EOK) || (retval != EOK))
-				return (rc != EOK ? rc : retval);
+				return (rc != EOK ? rc : (int) retval);
 			
 			*bufpos = 0;
 			*buflen = block_size;

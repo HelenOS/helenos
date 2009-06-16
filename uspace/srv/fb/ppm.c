@@ -89,7 +89,7 @@ int ppm_draw(unsigned char *data, size_t datasz, unsigned int sx,
 {
 	unsigned int width, height;
 	unsigned int maxcolor;
-	int i;
+	unsigned i;
 	unsigned int color;
 	unsigned int coef;
 	
