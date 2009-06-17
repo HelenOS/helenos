@@ -393,8 +393,10 @@ recycle:
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
+			async_serialize_start();
 			rc = block_read(dev_handle, &bufpos, &buflen, &pos,
 			    b->data, cache->block_size, cache->block_size);
+			async_serialize_end();
 			assert(rc == EOK);
 		}
 
