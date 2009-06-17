@@ -463,7 +463,7 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 	l = hash_table_find(&ui_hash, ikey);
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uih_link);
-		futex_down(&fidx->lock);
+		fibril_mutex_lock(&fidx->lock);
 	}
 	fibril_mutex_unlock(&used_lock);
 
