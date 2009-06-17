@@ -285,13 +285,14 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
  */
 int vfs_grab_phone(fs_handle_t handle)
 {
+	int phone;
+
 	/*
-	 * For now, we don't try to be very clever and very fast.
-	 * We simply lookup the phone in the fs_head list. We currently don't
-	 * open any additional phones (even though that itself would be pretty
-	 * straightforward; housekeeping multiple open phones to a FS task would
-	 * be more demanding). Instead, we simply take the respective
-	 * phone_futex and keep it until vfs_release_phone().
+	 * For now, we don't try to be very clever and very fast.  We simply
+	 * lookup the phone in the fs_head list and duplicate it.  The duplicate
+	 * phone will be returned to the client and the client will use it for
+	 * communication.  In the future, we should cache the connections so
+	 * that they do not have to be reestablished over and over again.
 	 */
 	fibril_mutex_lock(&fs_head_lock);
 	link_t *cur;
@@ -301,38 +302,25 @@ int vfs_grab_phone(fs_handle_t handle)
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			return fs->phone;
+			phone = ipc_connect_me_to(fs->phone, 0, 0, 0);
+			fibril_mutex_unlock(&fs->phone_lock);
+
+			assert(phone > 0);
+			return phone;
 		}
 	}
 	fibril_mutex_unlock(&fs_head_lock);
 	return 0;
 }
 
-/** Tell VFS that the phone is in use for any request.
+/** Tell VFS that the phone is not needed anymore.
  *
  * @param phone		Phone to FS task.
  */
 void vfs_release_phone(int phone)
 {
-	bool found = false;
-
-	fibril_mutex_lock(&fs_head_lock);
-	link_t *cur;
-	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
-		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
-		if (fs->phone == phone) {
-			found = true;
-			fibril_mutex_unlock(&fs_head_lock);
-			fibril_mutex_unlock(&fs->phone_lock);
-			return;
-		}
-	}
-	fibril_mutex_unlock(&fs_head_lock);
-
-	/*
-	 * Not good to get here.
-	 */
-	assert(found == true);
+	/* TODO: implement connection caching */
+	ipc_hangup(phone);
 }
 
 /** Convert file system name to its handle.
