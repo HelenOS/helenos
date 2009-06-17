@@ -39,8 +39,7 @@
 
 #include <stdint.h>
 #include "../../srv/vfs/vfs.h"
-#include <futex.h>
-#include <rwlock.h>
+#include <fibril_sync.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 
@@ -63,14 +62,14 @@
 typedef unsigned bn_t;	/**< Block number type. */
 
 typedef struct block {
-	/** Futex protecting the reference count. */
-	futex_t lock;
+	/** Mutex protecting the reference count. */
+	fibril_mutex_t lock;
 	/** Number of references to the block_t structure. */
 	unsigned refcnt;
 	/** If true, the block needs to be written back to the block device. */
 	bool dirty;
 	/** Readers / Writer lock protecting the contents of the block. */
-	rwlock_t contents_lock;
+	fibril_rwlock_t contents_lock;
 	/** Handle of the device where the block resides. */
 	dev_handle_t dev_handle;
 	/** Block offset on the block device. Counted in 'size'-byte blocks. */

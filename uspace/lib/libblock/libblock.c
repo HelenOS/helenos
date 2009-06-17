@@ -46,13 +46,13 @@
 #include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <mem.h>
 
 /** Lock protecting the device connection list */
-static futex_t dcl_lock = FUTEX_INITIALIZER;
+static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
 static LIST_INITIALIZE(dcl_head);
 
@@ -60,7 +60,7 @@ static LIST_INITIALIZE(dcl_head);
 #define CACHE_BUCKETS			(1 << CACHE_BUCKETS_LOG2)
 
 typedef struct {
-	futex_t lock;
+	fibril_mutex_t lock;
 	size_t block_size;		/**< Block size. */
 	unsigned block_count;		/**< Total number of blocks. */
 	hash_table_t block_hash;
@@ -83,15 +83,15 @@ static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
 	link_t *cur;
 
-	futex_down(&dcl_lock);
+	fibril_mutex_lock(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *devcon = list_get_instance(cur, devcon_t, link);
 		if (devcon->dev_handle == dev_handle) {
-			futex_up(&dcl_lock);
+			fibril_mutex_unlock(&dcl_lock);
 			return devcon;
 		}
 	}
-	futex_up(&dcl_lock);
+	fibril_mutex_unlock(&dcl_lock);
 	return NULL;
 }
 
@@ -115,25 +115,25 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
 	devcon->bb_size = 0;
 	devcon->cache = NULL;
 
-	futex_down(&dcl_lock);
+	fibril_mutex_lock(&dcl_lock);
 	for (cur = dcl_head.next; cur != &dcl_head; cur = cur->next) {
 		devcon_t *d = list_get_instance(cur, devcon_t, link);
 		if (d->dev_handle == dev_handle) {
-			futex_up(&dcl_lock);
+			fibril_mutex_unlock(&dcl_lock);
 			free(devcon);
 			return EEXIST;
 		}
 	}
 	list_append(&devcon->link, &dcl_head);
-	futex_up(&dcl_lock);
+	fibril_mutex_unlock(&dcl_lock);
 	return EOK;
 }
 
 static void devcon_remove(devcon_t *devcon)
 {
-	futex_down(&dcl_lock);
+	fibril_mutex_lock(&dcl_lock);
 	list_remove(&devcon->link);
-	futex_up(&dcl_lock);
+	fibril_mutex_unlock(&dcl_lock);
 }
 
 int block_init(dev_handle_t dev_handle, size_t com_size)
@@ -262,7 +262,7 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
 	if (!cache)
 		return ENOMEM;
 	
-	futex_initialize(&cache->lock, 1);
+	fibril_mutex_initialize(&cache->lock);
 	list_initialize(&cache->free_head);
 	cache->block_size = size;
 	cache->block_count = blocks;
@@ -284,10 +284,10 @@ static bool cache_can_grow(cache_t *cache)
 
 static void block_initialize(block_t *b)
 {
-	futex_initialize(&b->lock, 1);
+	fibril_mutex_initialize(&b->lock);
 	b->refcnt = 1;
 	b->dirty = false;
-	rwlock_initialize(&b->contents_lock);
+	fibril_rwlock_initialize(&b->contents_lock);
 	link_initialize(&b->free_link);
 	link_initialize(&b->hash_link);
 }
@@ -316,18 +316,18 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 	assert(devcon->cache);
 	
 	cache = devcon->cache;
-	futex_down(&cache->lock);
+	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
 		/*
 		 * We found the block in the cache.
 		 */
 		b = hash_table_get_instance(l, block_t, hash_link);
-		futex_down(&b->lock);
+		fibril_mutex_lock(&b->lock);
 		if (b->refcnt++ == 0)
 			list_remove(&b->free_link);
-		futex_up(&b->lock);
-		futex_up(&cache->lock);
+		fibril_mutex_unlock(&b->lock);
+		fibril_mutex_unlock(&cache->lock);
 	} else {
 		/*
 		 * The block was not found in the cache.
@@ -378,8 +378,8 @@ recycle:
 		 * kill concurent operations on the cache while doing I/O on the
 		 * block.
 		 */
-		futex_down(&b->lock);
-		futex_up(&cache->lock);
+		fibril_mutex_lock(&b->lock);
+		fibril_mutex_unlock(&cache->lock);
 
 		if (sync) {
 			/*
@@ -393,14 +393,12 @@ recycle:
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
-			async_serialize_start();
 			rc = block_read(dev_handle, &bufpos, &buflen, &pos,
 			    b->data, cache->block_size, cache->block_size);
-			async_serialize_end();
 			assert(rc == EOK);
 		}
 
-		futex_up(&b->lock);
+		fibril_mutex_unlock(&b->lock);
 	}
 	return b;
 }
@@ -420,8 +418,8 @@ void block_put(block_t *block)
 	assert(devcon->cache);
 
 	cache = devcon->cache;
-	futex_down(&cache->lock);
-	futex_down(&block->lock);
+	fibril_mutex_lock(&cache->lock);
+	fibril_mutex_lock(&block->lock);
 	if (!--block->refcnt) {
 		/*
 		 * Last reference to the block was dropped, put the block on the
@@ -429,8 +427,8 @@ void block_put(block_t *block)
 		 */
 		list_append(&block->free_link, &cache->free_head);
 	}
-	futex_up(&block->lock);
-	futex_up(&cache->lock);	
+	fibril_mutex_unlock(&block->lock);
+	fibril_mutex_unlock(&cache->lock);
 }
 
 /** Read data from a block device.
