@@ -42,7 +42,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <futex.h>
+#include <fibril_sync.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {
@@ -68,8 +68,8 @@ typedef struct {
 	link_t		freed_head;
 } unused_t;
 
-/** Futex protecting the list of unused structures. */
-static futex_t unused_futex = FUTEX_INITIALIZER;
+/** Mutex protecting the list of unused structures. */
+static FIBRIL_MUTEX_INITIALIZE(unused_lock);
 
 /** List of unused structures. */
 static LIST_INITIALIZE(unused_head);
@@ -89,19 +89,19 @@ static unused_t *unused_find(dev_handle_t dev_handle, bool lock)
 	link_t *l;
 
 	if (lock)
-		futex_down(&unused_futex);
+		fibril_mutex_lock(&unused_lock);
 	for (l = unused_head.next; l != &unused_head; l = l->next) {
 		u = list_get_instance(l, unused_t, link);
 		if (u->dev_handle == dev_handle) 
 			return u;
 	}
 	if (lock)
-		futex_up(&unused_futex);
+		fibril_mutex_unlock(&unused_lock);
 	return NULL;
 }
 
-/** Futex protecting the up_hash and ui_hash. */
-static futex_t used_futex = FUTEX_INITIALIZER; 
+/** Mutex protecting the up_hash and ui_hash. */
+static FIBRIL_MUTEX_INITIALIZE(used_lock);
 
 /**
  * Global hash table of all used fat_idx_t structures.
@@ -231,7 +231,7 @@ static bool fat_index_alloc(dev_handle_t dev_handle, fs_index_t *index)
 			 */
 			*index = u->next++;
 			--u->remaining;
-			futex_up(&unused_futex);
+			fibril_mutex_unlock(&unused_lock);
 			return true;
 		}
 	} else {
@@ -244,7 +244,7 @@ static bool fat_index_alloc(dev_handle_t dev_handle, fs_index_t *index)
 			list_remove(&f->link);
 			free(f);
 		}
-		futex_up(&unused_futex);
+		fibril_mutex_unlock(&unused_lock);
 		return true;
 	}
 	/*
@@ -252,7 +252,7 @@ static bool fat_index_alloc(dev_handle_t dev_handle, fs_index_t *index)
 	 * theoretically still possible (e.g. too many open unlinked nodes or
 	 * too many zero-sized nodes).
 	 */
-	futex_up(&unused_futex);
+	fibril_mutex_unlock(&unused_lock);
 	return false;
 }
 
@@ -302,7 +302,7 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 				if (lnk->prev != &u->freed_head)
 					try_coalesce_intervals(lnk->prev, lnk,
 					    lnk);
-				futex_up(&unused_futex);
+				fibril_mutex_unlock(&unused_lock);
 				return;
 			}
 			if (f->last == index - 1) {
@@ -310,7 +310,7 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 				if (lnk->next != &u->freed_head)
 					try_coalesce_intervals(lnk, lnk->next,
 					    lnk);
-				futex_up(&unused_futex);
+				fibril_mutex_unlock(&unused_lock);
 				return;
 			}
 			if (index > f->first) {
@@ -321,7 +321,7 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 				n->first = index;
 				n->last = index;
 				list_insert_before(&n->link, lnk);
-				futex_up(&unused_futex);
+				fibril_mutex_unlock(&unused_lock);
 				return;
 			}
 
@@ -335,7 +335,7 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 		n->last = index;
 		list_append(&n->link, &u->freed_head);
 	}
-	futex_up(&unused_futex);
+	fibril_mutex_unlock(&unused_lock);
 }
 
 static fat_idx_t *fat_idx_create(dev_handle_t dev_handle)
@@ -352,7 +352,7 @@ static fat_idx_t *fat_idx_create(dev_handle_t dev_handle)
 		
 	link_initialize(&fidx->uph_link);
 	link_initialize(&fidx->uih_link);
-	futex_initialize(&fidx->lock, 1);
+	fibril_mutex_initialize(&fidx->lock);
 	fidx->dev_handle = dev_handle;
 	fidx->pfc = FAT_CLST_RES0;	/* no parent yet */
 	fidx->pdi = 0;
@@ -365,10 +365,10 @@ fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
 {
 	fat_idx_t *fidx;
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	fidx = fat_idx_create(dev_handle);
 	if (!fidx) {
-		futex_up(&used_futex);
+		fibril_mutex_unlock(&used_lock);
 		return NULL;
 	}
 		
@@ -378,8 +378,8 @@ fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
 	};
 	
 	hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
-	futex_down(&fidx->lock);
-	futex_up(&used_futex);
+	fibril_mutex_lock(&fidx->lock);
+	fibril_mutex_unlock(&used_lock);
 
 	return fidx;
 }
@@ -395,14 +395,14 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 		[UPH_PDI_KEY] = pdi,
 	};
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	l = hash_table_find(&up_hash, pkey);
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
 	} else {
 		fidx = fat_idx_create(dev_handle);
 		if (!fidx) {
-			futex_up(&used_futex);
+			fibril_mutex_unlock(&used_lock);
 			return NULL;
 		}
 		
@@ -417,8 +417,8 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 		hash_table_insert(&up_hash, pkey, &fidx->uph_link);
 		hash_table_insert(&ui_hash, ikey, &fidx->uih_link);
 	}
-	futex_down(&fidx->lock);
-	futex_up(&used_futex);
+	fibril_mutex_lock(&fidx->lock);
+	fibril_mutex_unlock(&used_lock);
 
 	return fidx;
 }
@@ -431,9 +431,9 @@ void fat_idx_hashin(fat_idx_t *idx)
 		[UPH_PDI_KEY] = idx->pdi,
 	};
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	hash_table_insert(&up_hash, pkey, &idx->uph_link);
-	futex_up(&used_futex);
+	fibril_mutex_unlock(&used_lock);
 }
 
 void fat_idx_hashout(fat_idx_t *idx)
@@ -444,9 +444,9 @@ void fat_idx_hashout(fat_idx_t *idx)
 		[UPH_PDI_KEY] = idx->pdi,
 	};
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	hash_table_remove(&up_hash, pkey, 3);
-	futex_up(&used_futex);
+	fibril_mutex_unlock(&used_lock);
 }
 
 fat_idx_t *
@@ -459,13 +459,13 @@ fat_idx_get_by_index(dev_handle_t dev_handle, fs_index_t index)
 		[UIH_INDEX_KEY] = index,
 	};
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	l = hash_table_find(&ui_hash, ikey);
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uih_link);
 		futex_down(&fidx->lock);
 	}
-	futex_up(&used_futex);
+	fibril_mutex_unlock(&used_lock);
 
 	return fidx;
 }
@@ -483,14 +483,14 @@ void fat_idx_destroy(fat_idx_t *idx)
 
 	assert(idx->pfc == FAT_CLST_RES0);
 
-	futex_down(&used_futex);
+	fibril_mutex_lock(&used_lock);
 	/*
 	 * Since we can only free unlinked nodes, the index structure is not
 	 * present in the position hash (uph). We therefore hash it out from
 	 * the index hash only.
 	 */
 	hash_table_remove(&ui_hash, ikey, 2);
-	futex_up(&used_futex);
+	fibril_mutex_unlock(&used_lock);
 	/* Release the VFS index. */
 	fat_index_free(idx->dev_handle, idx->index);
 	/* Deallocate the structure. */
@@ -524,12 +524,12 @@ int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 	if (!u)
 		return ENOMEM;
 	unused_initialize(u, dev_handle);
-	futex_down(&unused_futex);
+	fibril_mutex_lock(&unused_lock);
 	if (!unused_find(dev_handle, false))
 		list_append(&u->link, &unused_head);
 	else
 		rc = EEXIST;
-	futex_up(&unused_futex);
+	fibril_mutex_unlock(&unused_lock);
 	return rc;
 }
 
@@ -540,7 +540,7 @@ void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
 	u = unused_find(dev_handle, true);
 	assert(u);
 	list_remove(&u->link);
-	futex_up(&unused_futex);
+	fibril_mutex_unlock(&unused_lock);
 
 	while (!list_empty(&u->freed_head)) {
 		freed_t *f;

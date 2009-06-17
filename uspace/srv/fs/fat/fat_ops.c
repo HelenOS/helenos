@@ -51,22 +51,22 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <sys/mman.h>
 #include <align.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
 
-/** Futex protecting the list of cached free FAT nodes. */
-static futex_t ffn_futex = FUTEX_INITIALIZER;
+/** Mutex protecting the list of cached free FAT nodes. */
+static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 
 /** List of cached free FAT nodes. */
 static LIST_INITIALIZE(ffn_head);
 
 static void fat_node_initialize(fat_node_t *node)
 {
-	futex_initialize(&node->lock, 1);
+	fibril_mutex_initialize(&node->lock);
 	node->bp = NULL;
 	node->idx = NULL;
 	node->type = 0;
@@ -115,30 +115,30 @@ static fat_node_t *fat_node_get_new(void)
 	fs_node_t *fn;
 	fat_node_t *nodep;
 
-	futex_down(&ffn_futex);
+	fibril_mutex_lock(&ffn_mutex);
 	if (!list_empty(&ffn_head)) {
 		/* Try to use a cached free node structure. */
 		fat_idx_t *idxp_tmp;
 		nodep = list_get_instance(ffn_head.next, fat_node_t, ffn_link);
-		if (futex_trydown(&nodep->lock) == ESYNCH_WOULD_BLOCK)
+		if (!fibril_mutex_trylock(&nodep->lock))
 			goto skip_cache;
 		idxp_tmp = nodep->idx;
-		if (futex_trydown(&idxp_tmp->lock) == ESYNCH_WOULD_BLOCK) {
-			futex_up(&nodep->lock);
+		if (!fibril_mutex_trylock(&idxp_tmp->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
 			goto skip_cache;
 		}
 		list_remove(&nodep->ffn_link);
-		futex_up(&ffn_futex);
+		fibril_mutex_unlock(&ffn_mutex);
 		if (nodep->dirty)
 			fat_node_sync(nodep);
 		idxp_tmp->nodep = NULL;
-		futex_up(&nodep->lock);
-		futex_up(&idxp_tmp->lock);
+		fibril_mutex_unlock(&nodep->lock);
+		fibril_mutex_unlock(&idxp_tmp->lock);
 		fn = FS_NODE(nodep);
 	} else {
 skip_cache:
 		/* Try to allocate a new node structure. */
-		futex_up(&ffn_futex);
+		fibril_mutex_unlock(&ffn_mutex);
 		fn = (fs_node_t *)malloc(sizeof(fs_node_t));
 		if (!fn)
 			return NULL;
@@ -175,10 +175,10 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 		 * We are lucky.
 		 * The node is already instantiated in memory.
 		 */
-		futex_down(&idxp->nodep->lock);
+		fibril_mutex_lock(&idxp->nodep->lock);
 		if (!idxp->nodep->refcnt++)
 			list_remove(&idxp->nodep->ffn_link);
-		futex_up(&idxp->nodep->lock);
+		fibril_mutex_unlock(&idxp->nodep->lock);
 		return idxp->nodep;
 	}
 
@@ -268,7 +268,7 @@ fs_node_t *fat_node_get(dev_handle_t dev_handle, fs_index_t index)
 		return NULL;
 	/* idxp->lock held */
 	nodep = fat_node_get_core(idxp);
-	futex_up(&idxp->lock);
+	fibril_mutex_unlock(&idxp->lock);
 	return FS_NODE(nodep);
 }
 
@@ -277,12 +277,12 @@ void fat_node_put(fs_node_t *fn)
 	fat_node_t *nodep = FAT_NODE(fn);
 	bool destroy = false;
 
-	futex_down(&nodep->lock);
+	fibril_mutex_lock(&nodep->lock);
 	if (!--nodep->refcnt) {
 		if (nodep->idx) {
-			futex_down(&ffn_futex);
+			fibril_mutex_lock(&ffn_mutex);
 			list_append(&nodep->ffn_link, &ffn_head);
-			futex_up(&ffn_futex);
+			fibril_mutex_unlock(&ffn_mutex);
 		} else {
 			/*
 			 * The node does not have any index structure associated
@@ -293,7 +293,7 @@ void fat_node_put(fs_node_t *fn)
 			destroy = true;
 		}
 	}
-	futex_up(&nodep->lock);
+	fibril_mutex_unlock(&nodep->lock);
 	if (destroy) {
 		free(nodep->bp);
 		free(nodep);
@@ -360,7 +360,7 @@ fs_node_t *fat_create_node(dev_handle_t dev_handle, int flags)
 	nodep->idx = idxp;
 	idxp->nodep = nodep;
 
-	futex_up(&idxp->lock);
+	fibril_mutex_unlock(&idxp->lock);
 	return FS_NODE(nodep);
 }
 
@@ -409,16 +409,16 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_cluster_t mcl, lcl;
 	int rc;
 
-	futex_down(&childp->lock);
+	fibril_mutex_lock(&childp->lock);
 	if (childp->lnkcnt == 1) {
 		/*
 		 * On FAT, we don't support multiple hard links.
 		 */
-		futex_up(&childp->lock);
+		fibril_mutex_unlock(&childp->lock);
 		return EMLINK;
 	}
 	assert(childp->lnkcnt == 0);
-	futex_up(&childp->lock);
+	fibril_mutex_unlock(&childp->lock);
 
 	if (!fat_dentry_name_verify(name)) {
 		/*
@@ -432,7 +432,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * a new one.
 	 */
 	
-	futex_down(&parentp->idx->lock);
+	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
@@ -463,12 +463,12 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 */
 	if (parentp->idx->pfc == FAT_CLST_ROOT) {
 		/* Can't grow the root directory. */
-		futex_up(&parentp->idx->lock);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return ENOSPC;
 	}
 	rc = fat_alloc_clusters(bs, parentp->idx->dev_handle, 1, &mcl, &lcl);
 	if (rc != EOK) {
-		futex_up(&parentp->idx->lock);
+		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
 	}
 	fat_append_clusters(bs, parentp, mcl);
@@ -491,9 +491,9 @@ hit:
 	fat_dentry_name_set(d, name);
 	b->dirty = true;		/* need to sync block */
 	block_put(b);
-	futex_up(&parentp->idx->lock);
+	fibril_mutex_unlock(&parentp->idx->lock);
 
-	futex_down(&childp->idx->lock);
+	fibril_mutex_lock(&childp->idx->lock);
 	
 	/*
 	 * If possible, create the Sub-directory Identifier Entry and the
@@ -529,12 +529,12 @@ hit:
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->pdi = i * dps + j;
-	futex_up(&childp->idx->lock);
+	fibril_mutex_unlock(&childp->idx->lock);
 
-	futex_down(&childp->lock);
+	fibril_mutex_lock(&childp->lock);
 	childp->lnkcnt = 1;
 	childp->dirty = true;		/* need to sync node */
-	futex_up(&childp->lock);
+	fibril_mutex_unlock(&childp->lock);
 
 	/*
 	 * Hash in the index structure into the position hash.
@@ -559,10 +559,10 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	if (fat_has_children(cfn))
 		return ENOTEMPTY;
 
-	futex_down(&parentp->lock);
-	futex_down(&childp->lock);
+	fibril_mutex_lock(&parentp->lock);
+	fibril_mutex_lock(&childp->lock);
 	assert(childp->lnkcnt == 1);
-	futex_down(&childp->idx->lock);
+	fibril_mutex_lock(&childp->idx->lock);
 	bs = block_bb_get(childp->idx->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
 
@@ -581,11 +581,11 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	/* clear position information */
 	childp->idx->pfc = FAT_CLST_RES0;
 	childp->idx->pdi = 0;
-	futex_up(&childp->idx->lock);
+	fibril_mutex_unlock(&childp->idx->lock);
 	childp->lnkcnt = 0;
 	childp->dirty = true;
-	futex_up(&childp->lock);
-	futex_up(&parentp->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&parentp->lock);
 
 	return EOK;
 }
@@ -602,7 +602,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 	fat_dentry_t *d;
 	block_t *b;
 
-	futex_down(&parentp->idx->lock);
+	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
@@ -617,7 +617,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
-				futex_up(&parentp->idx->lock);
+				fibril_mutex_unlock(&parentp->idx->lock);
 				return NULL;
 			default:
 			case FAT_DENTRY_VALID:
@@ -636,7 +636,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 				fat_idx_t *idx = fat_idx_get_by_pos(
 				    parentp->idx->dev_handle, parentp->firstc,
 				    i * dps + j);
-				futex_up(&parentp->idx->lock);
+				fibril_mutex_unlock(&parentp->idx->lock);
 				if (!idx) {
 					/*
 					 * Can happen if memory is low or if we
@@ -646,7 +646,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 					return NULL;
 				}
 				nodep = fat_node_get_core(idx);
-				futex_up(&idx->lock);
+				fibril_mutex_unlock(&idx->lock);
 				block_put(b);
 				return FS_NODE(nodep);
 			}
@@ -654,7 +654,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 		block_put(b);
 	}
 
-	futex_up(&parentp->idx->lock);
+	fibril_mutex_unlock(&parentp->idx->lock);
 	return NULL;
 }
 
@@ -686,7 +686,7 @@ bool fat_has_children(fs_node_t *fn)
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
 	
-	futex_down(&nodep->idx->lock);
+	fibril_mutex_lock(&nodep->idx->lock);
 	bs = block_bb_get(nodep->idx->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
 	dps = bps / sizeof(fat_dentry_t);
@@ -705,22 +705,22 @@ bool fat_has_children(fs_node_t *fn)
 				continue;
 			case FAT_DENTRY_LAST:
 				block_put(b);
-				futex_up(&nodep->idx->lock);
+				fibril_mutex_unlock(&nodep->idx->lock);
 				return false;
 			default:
 			case FAT_DENTRY_VALID:
 				block_put(b);
-				futex_up(&nodep->idx->lock);
+				fibril_mutex_unlock(&nodep->idx->lock);
 				return true;
 			}
 			block_put(b);
-			futex_up(&nodep->idx->lock);
+			fibril_mutex_unlock(&nodep->idx->lock);
 			return true;
 		}
 		block_put(b);
 	}
 
-	futex_up(&nodep->idx->lock);
+	fibril_mutex_unlock(&nodep->idx->lock);
 	return false;
 }
 
@@ -881,7 +881,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rootp->bp = rfn;
 	rfn->data = rootp;
 	
-	futex_up(&ridxp->lock);
+	fibril_mutex_unlock(&ridxp->lock);
 
 	ipc_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
 }

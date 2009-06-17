@@ -35,6 +35,7 @@
 
 #include "fat_fat.h"
 #include <ipc/ipc.h>
+#include <fibril_sync.h>
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
@@ -160,7 +161,7 @@ typedef struct {
 	/** Used indices (index) hash table link. */
 	link_t		uih_link;
 
-	futex_t		lock;
+	fibril_mutex_t	lock;
 	dev_handle_t	dev_handle;
 	fs_index_t	index;
 	/**
@@ -181,7 +182,7 @@ typedef struct fat_node {
 	/** Back pointer to the FS node. */
 	fs_node_t		*bp;
 	
-	futex_t			lock;
+	fibril_mutex_t		lock;
 	fat_node_type_t		type;
 	fat_idx_t		*idx;
 	/**

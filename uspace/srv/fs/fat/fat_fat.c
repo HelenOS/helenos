@@ -45,15 +45,15 @@
 #include <byteorder.h>
 #include <align.h>
 #include <assert.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <mem.h>
 
 /**
- * The fat_alloc_lock futex protects all copies of the File Allocation Table
+ * The fat_alloc_lock mutex protects all copies of the File Allocation Table
  * during allocation of clusters. The lock does not have to be held durring
  * deallocation of clusters.
  */  
-static futex_t fat_alloc_lock = FUTEX_INITIALIZER;
+static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
 
 /** Walk the cluster chain.
  *
@@ -326,7 +326,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	/*
 	 * Search FAT1 for unused clusters.
 	 */
-	futex_down(&fat_alloc_lock);
+	fibril_mutex_lock(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < sf; b++) {
 		blk = block_get(dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
@@ -350,14 +350,14 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 					*mcl = lifo[found - 1];
 					*lcl = lifo[0];
 					free(lifo);
-					futex_up(&fat_alloc_lock);
+					fibril_mutex_unlock(&fat_alloc_lock);
 					return EOK;
 				}
 			}
 		}
 		block_put(blk);
 	}
-	futex_up(&fat_alloc_lock);
+	fibril_mutex_unlock(&fat_alloc_lock);
 
 	/*
 	 * We could not find enough clusters. Now we need to free the clusters
