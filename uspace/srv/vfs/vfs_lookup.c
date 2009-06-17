@@ -42,13 +42,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <bool.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <adt/list.h>
 #include <vfs/canonify.h>
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 
-futex_t plb_futex = FUTEX_INITIALIZER;
+FIBRIL_MUTEX_INITIALIZE(plb_mutex);
 link_t plb_head;  /**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
@@ -92,7 +92,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 		va_end(ap);
 	}
 	
-	futex_down(&plb_futex);
+	fibril_mutex_lock(&plb_mutex);
 
 	plb_entry_t entry;
 	link_initialize(&entry.plb_link);
@@ -119,7 +119,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 			/*
 			 * The buffer cannot absorb the path.
 			 */
-			futex_up(&plb_futex);
+			fibril_mutex_unlock(&plb_mutex);
 			return ELIMIT;
 		}
 	} else {
@@ -127,7 +127,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 			/*
 			 * The buffer cannot absorb the path.
 			 */
-			futex_up(&plb_futex);
+			fibril_mutex_unlock(&plb_mutex);
 			return ELIMIT;
 		}
 	}
@@ -146,7 +146,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	 */
 	list_append(&entry.plb_link, &plb_head);
 	
-	futex_up(&plb_futex);
+	fibril_mutex_unlock(&plb_mutex);
 
 	/*
 	 * Copy the path into PLB.
@@ -168,14 +168,14 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	async_wait_for(req, &rc);
 	vfs_release_phone(phone);
 	
-	futex_down(&plb_futex);
+	fibril_mutex_lock(&plb_mutex);
 	list_remove(&entry.plb_link);
 	/*
 	 * Erasing the path from PLB will come handy for debugging purposes.
 	 */
 	memset(&plb[first], 0, cnt1);
 	memset(plb, 0, cnt2);
-	futex_up(&plb_futex);
+	fibril_mutex_unlock(&plb_mutex);
 
 	if ((rc == EOK) && (result)) {
 		result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);

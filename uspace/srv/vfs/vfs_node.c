@@ -38,15 +38,14 @@
 #include "vfs.h"
 #include <stdlib.h>
 #include <string.h>
-#include <futex.h>
 #include <fibril_sync.h>
 #include <adt/hash_table.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
 
-/** Futex protecting the VFS node hash table. */
-futex_t nodes_futex = FUTEX_INITIALIZER;
+/** Mutex protecting the VFS node hash table. */
+FIBRIL_MUTEX_INITIALIZE(nodes_mutex);
 
 #define NODES_BUCKETS_LOG	8
 #define NODES_BUCKETS		(1 << NODES_BUCKETS_LOG)
@@ -89,9 +88,9 @@ static inline void _vfs_node_addref(vfs_node_t *node)
  */
 void vfs_node_addref(vfs_node_t *node)
 {
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	_vfs_node_addref(node);
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 }
 
 /** Decrement reference count of a VFS node.
@@ -105,7 +104,7 @@ void vfs_node_delref(vfs_node_t *node)
 	bool free_vfs_node = false;
 	bool free_fs_node = false;
 
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	if (node->refcnt-- == 1) {
 		/*
 		 * We are dropping the last reference to this node.
@@ -121,7 +120,7 @@ void vfs_node_delref(vfs_node_t *node)
 		if (!node->lnkcnt)
 			free_fs_node = true;
 	}
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 
 	if (free_fs_node) {
 		/* 
@@ -161,12 +160,12 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 	link_t *tmp;
 	vfs_node_t *node;
 
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	tmp = hash_table_find(&nodes, key);
 	if (!tmp) {
 		node = (vfs_node_t *) malloc(sizeof(vfs_node_t));
 		if (!node) {
-			futex_up(&nodes_futex);
+			fibril_mutex_unlock(&nodes_mutex);
 			return NULL;
 		}
 		memset(node, 0, sizeof(vfs_node_t));
@@ -193,7 +192,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 	assert(node->type == result->type || result->type == VFS_NODE_UNKNOWN);
 
 	_vfs_node_addref(node);
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 
 	return node;
 }

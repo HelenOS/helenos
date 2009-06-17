@@ -57,7 +57,7 @@
  * first VFS_OPEN operation.
  *
  * This resource being per-connection and, in the first place, per-fibril, we
- * don't need to protect it by a futex.
+ * don't need to protect it by a mutex.
  */
 fibril_local vfs_file_t **files = NULL;
 

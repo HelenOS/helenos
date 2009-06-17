@@ -36,7 +36,6 @@
 #include <ipc/ipc.h>
 #include <adt/list.h>
 #include <fibril_sync.h>
-#include <futex.h>
 #include <sys/types.h>
 #include <devmap.h>
 #include <bool.h>
@@ -145,7 +144,7 @@ typedef struct {
 	off_t pos;
 } vfs_file_t;
 
-extern futex_t nodes_futex;
+extern fibril_mutex_t nodes_mutex;
 
 extern link_t fs_head;		/**< List of registered file systems. */
 
@@ -158,7 +157,7 @@ typedef struct {
 	size_t len;		/**< Number of characters in this PLB entry. */
 } plb_entry_t;
 
-extern futex_t plb_futex;	/**< Futex protecting plb and plb_head. */
+extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_head. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern link_t plb_head;		/**< List of active PLB entries. */
 

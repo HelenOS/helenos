@@ -43,7 +43,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <bool.h>
-#include <futex.h>
 #include <fibril_sync.h>
 #include <adt/list.h>
 #include <unistd.h>
@@ -1131,9 +1130,9 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	 * VFS_DESTROY'ed after the last reference to it is dropped.
 	 */
 	vfs_node_t *node = vfs_node_get(&lr);
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	node->lnkcnt--;
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(node);
 	ipc_answer_0(rid, EOK);
@@ -1282,9 +1281,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 			free(new);
 			return;
 		}
-		futex_down(&nodes_futex);
+		fibril_mutex_lock(&nodes_mutex);
 		new_node->lnkcnt--;
-		futex_up(&nodes_futex);
+		fibril_mutex_unlock(&nodes_mutex);
 		break;
 	default:
 		fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -1304,9 +1303,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	old_node->lnkcnt++;
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 	/* Destroy the link for the old name. */
 	rc = vfs_lookup_internal(oldc, L_UNLINK, NULL, NULL);
 	if (rc != EOK) {
@@ -1319,9 +1318,9 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
-	futex_down(&nodes_futex);
+	fibril_mutex_lock(&nodes_mutex);
 	old_node->lnkcnt--;
-	futex_up(&nodes_futex);
+	fibril_mutex_unlock(&nodes_mutex);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(old_node);
 	if (new_node)
