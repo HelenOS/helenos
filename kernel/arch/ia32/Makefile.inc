@@ -35,7 +35,8 @@ BFD = binary
 TARGET = i686-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686
 
-DEFS += -D__32_BITS__
+BITS = 32
+ENDIANESS = LE
 
 CMN1 = -m32
 GCC_CFLAGS += $(CMN1)

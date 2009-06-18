@@ -40,7 +40,8 @@ SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
 LFLAGS += -no-check-sections -N
 
-DEFS += -D__64_BITS__
+BITS = 64
+ENDIANESS = BE
 
 ifeq ($(PROCESSOR),us)
 	DEFS += -DUS

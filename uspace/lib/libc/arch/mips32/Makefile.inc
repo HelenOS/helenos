@@ -31,11 +31,14 @@
 
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
-CFLAGS += -mips3
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c
+
+CFLAGS += -mips3
+
+ENDIANESS = LE
 
 BFD_ARCH = mips
 BFD_NAME = elf32-tradlittlemips

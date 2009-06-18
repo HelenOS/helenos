@@ -38,5 +38,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/fibril.S \
 CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N
 
+ENDIANESS = BE
+
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc

@@ -39,7 +39,8 @@ ATSIGN = %
 
 GCC_CFLAGS += -fno-zero-initialized-in-bss
 
-DEFS += -D__32_BITS__
+BITS = 32
+ENDIANESS = LE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \

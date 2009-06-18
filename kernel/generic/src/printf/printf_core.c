@@ -302,9 +302,6 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
 	
-	if (*str == U_BOM)
-		str++;
-	
 	/* Print leading spaces. */
 	size_t strw = wstr_length(str);
 	if (precision == 0)

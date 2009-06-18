@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -41,40 +41,40 @@
 typedef union {
 	float f;
 	uint32_t binary;
-
-	struct 	{
-#if defined(ARCH_IS_BIG_ENDIAN)
-		uint32_t sign:1;
-		uint32_t exp:8;
-		uint32_t fraction:23;
-#elif defined(ARCH_IS_LITTLE_ENDIAN)
-		uint32_t fraction:23;
-		uint32_t exp:8;
-		uint32_t sign:1;
-#else 
-#error "Unknown endians."
+	
+	struct {
+#if defined(__BE__)
+		uint32_t sign : 1;
+		uint32_t exp : 8;
+		uint32_t fraction : 23;
+#elif defined(__LE__)
+		uint32_t fraction : 23;
+		uint32_t exp : 8;
+		uint32_t sign : 1;
+#else
+	#error Unknown endianess
 #endif
 		} parts __attribute__ ((packed));
- 	} float32;
-	
+} float32;
+
 typedef union {
 	double d;
 	uint64_t binary;
 	
-	struct	{
-#if defined(ARCH_IS_BIG_ENDIAN)
-		uint64_t sign:1;
-		uint64_t exp:11;
-		uint64_t fraction:52;
-#elif defined(ARCH_IS_LITTLE_ENDIAN)
-		uint64_t fraction:52;
-		uint64_t exp:11;
-		uint64_t sign:1;
-#else 
-#error "Unknown endians."
+	struct {
+#if defined(__BE__)
+		uint64_t sign : 1;
+		uint64_t exp : 11;
+		uint64_t fraction : 52;
+#elif defined(__LE__)
+		uint64_t fraction : 52;
+		uint64_t exp : 11;
+		uint64_t sign : 1;
+#else
+	#error Unknown endianess
 #endif
-		} parts __attribute__ ((packed));
-	} float64;
+	} parts __attribute__ ((packed));
+} float64;
 
 #define FLOAT32_MAX 0x7f800000
 #define FLOAT32_MIN 0xff800000
@@ -109,7 +109,5 @@ typedef union {
 
 #endif
 
-
- /** @}
+/** @}
  */
-

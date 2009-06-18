@@ -31,13 +31,15 @@
 
 TARGET = mips-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
-CFLAGS += -mips3
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 		arch/$(UARCH)/src/fibril.S \
 		arch/$(UARCH)/src/tls.c
 
+CFLAGS += -mips3
 LFLAGS += -N
+
+ENDIANESS = BE
 
 BFD_ARCH = mips
 BFD_NAME = elf32-tradbigmips

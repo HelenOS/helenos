@@ -39,7 +39,8 @@ GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
 LFLAGS += -no-check-sections -N
 
-DEFS += -D__32_BITS__
+BITS = 32
+ENDIANESS = BE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \

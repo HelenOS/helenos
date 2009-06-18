@@ -41,7 +41,8 @@ GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel
 
-DEFS += -D__64_BITS__
+BITS = 64
+ENDIANESS = LE
 
 ## Accepted CPUs
 #

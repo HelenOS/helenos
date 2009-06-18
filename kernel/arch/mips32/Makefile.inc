@@ -36,22 +36,25 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel
 
 GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
-DEFS += -D__32_BITS__
+BITS = 32
 
 ## Accepted MACHINEs
 #
 
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
+	ENDIANESS = LE
 endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-tradbigmips
 	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips
 	TARGET = mips-linux-gnu
-	GCC_CFLAGS += -DBIG_ENDIAN
+	ENDIANESS = BE
+	GCC_CFLAGS += -D__BE__
 endif
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
+	ENDIANESS = LE
 	GCC_CFLAGS += -mhard-float
 endif
 

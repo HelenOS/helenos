@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,48 +35,47 @@
 #ifndef KERN_BYTEORDER_H_
 #define KERN_BYTEORDER_H_
 
-#include <arch/byteorder.h>
 #include <arch/types.h>
 
-#if !(defined(ARCH_IS_BIG_ENDIAN) ^ defined(ARCH_IS_LITTLE_ENDIAN))
-#error The architecture must be either big-endian or little-endian.
+#if !(defined(__BE__) ^ defined(__LE__))
+	#error The architecture must be either big-endian or little-endian.
 #endif
 
-#ifdef ARCH_IS_BIG_ENDIAN
+#ifdef __BE__
 
-#define uint16_t_le2host(n)		uint16_t_byteorder_swap(n)
-#define uint32_t_le2host(n)		uint32_t_byteorder_swap(n)
-#define uint64_t_le2host(n)		uint64_t_byteorder_swap(n)
+#define uint16_t_le2host(n)  (uint16_t_byteorder_swap(n))
+#define uint32_t_le2host(n)  (uint32_t_byteorder_swap(n))
+#define uint64_t_le2host(n)  (uint64_t_byteorder_swap(n))
 
-#define uint16_t_be2host(n)		(n)
-#define uint32_t_be2host(n)		(n)
-#define uint64_t_be2host(n)		(n)
+#define uint16_t_be2host(n)  (n)
+#define uint32_t_be2host(n)  (n)
+#define uint64_t_be2host(n)  (n)
 
-#define host2uint16_t_le(n)		uint16_t_byteorder_swap(n)
-#define host2uint32_t_le(n)		uint32_t_byteorder_swap(n)
-#define host2uint64_t_le(n)		uint64_t_byteorder_swap(n)
+#define host2uint16_t_le(n)  (uint16_t_byteorder_swap(n))
+#define host2uint32_t_le(n)  (uint32_t_byteorder_swap(n))
+#define host2uint64_t_le(n)  (uint64_t_byteorder_swap(n))
 
-#define host2uint16_t_be(n)		(n)
-#define host2uint32_t_be(n)		(n)
-#define host2uint64_t_be(n)		(n)
+#define host2uint16_t_be(n)  (n)
+#define host2uint32_t_be(n)  (n)
+#define host2uint64_t_be(n)  (n)
 
 #else
 
-#define uint16_t_le2host(n)		(n)
-#define uint32_t_le2host(n)		(n)
-#define uint64_t_le2host(n)		(n)
+#define uint16_t_le2host(n)  (n)
+#define uint32_t_le2host(n)  (n)
+#define uint64_t_le2host(n)  (n)
 
-#define uint16_t_be2host(n)		uint16_t_byteorder_swap(n)
-#define uint32_t_be2host(n)		uint32_t_byteorder_swap(n)
-#define uint64_t_be2host(n)		uint64_t_byteorder_swap(n)
+#define uint16_t_be2host(n)  (uint16_t_byteorder_swap(n))
+#define uint32_t_be2host(n)  (uint32_t_byteorder_swap(n))
+#define uint64_t_be2host(n)  (uint64_t_byteorder_swap(n))
 
-#define host2uint16_t_le(n)		(n)
-#define host2uint32_t_le(n)		(n)
-#define host2uint64_t_le(n)		(n)
+#define host2uint16_t_le(n)  (n)
+#define host2uint32_t_le(n)  (n)
+#define host2uint64_t_le(n)  (n)
 
-#define host2uint16_t_be(n)		uint16_t_byteorder_swap(n)
-#define host2uint32_t_be(n)		uint32_t_byteorder_swap(n)
-#define host2uint64_t_be(n)		uint64_t_byteorder_swap(n)
+#define host2uint16_t_be(n)  (uint16_t_byteorder_swap(n))
+#define host2uint32_t_be(n)  (uint32_t_byteorder_swap(n))
+#define host2uint64_t_be(n)  (uint64_t_byteorder_swap(n))
 
 #endif
 

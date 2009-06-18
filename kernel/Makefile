@@ -44,12 +44,12 @@ endif
 ## Common compiler flags
 #
 
-DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)"
+DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32 -finput-charset=UTF-8 \
-	-fno-builtin -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
-	-nostdlib -nostdinc -pipe
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
+	-Wmissing-prototypes -Werror -nostdlib -nostdinc -pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fno-builtin -Wall -Wmissing-prototypes -Werror \

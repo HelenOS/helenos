@@ -40,5 +40,7 @@ CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
 LFLAGS += -N
 
+ENDIANESS = BE
+
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common

@@ -38,5 +38,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 
 LFLAGS += -N
 
+ENDIANESS = LE
+
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64

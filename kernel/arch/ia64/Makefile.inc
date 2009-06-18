@@ -41,7 +41,8 @@ ICC_CFLAGS += $(CMN1)
 LFLAGS += -EL
 AFLAGS += -mconstant-gp
 
-DEFS += -D__64_BITS__
+BITS = 64
+ENDIANESS = LE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
