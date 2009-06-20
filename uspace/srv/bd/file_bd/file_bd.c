@@ -44,7 +44,7 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -56,7 +56,7 @@ static size_t comm_size;
 static FILE *img;
 
 static dev_handle_t dev_handle;
-static atomic_t dev_futex = FUTEX_INITIALIZER;
+static fibril_mutex_t dev_lock;
 
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
@@ -105,6 +105,8 @@ static int file_bd_init(const char *fname)
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
+
+	fibril_mutex_initialize(&dev_lock);
 
 	return EOK;
 }
@@ -169,23 +171,17 @@ static int file_bd_read(off_t blk_idx, size_t size, void *buf)
 {
 	size_t n_rd;
 
-	printf("file_bd_read\n");
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&dev_lock);
 
-	printf("seek\n");
 	fseek(img, blk_idx * size, SEEK_SET);
-	printf("read\n");
 	n_rd = fread(buf, 1, size, img);
-	printf("done\n");
-
-	printf("done\n");
 
 	if (ferror(img)) {
-		futex_up(&dev_futex);
+		fibril_mutex_unlock(&dev_lock);
 		return EIO;	/* Read error */
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&dev_lock);
 
 	if (n_rd < size) 
 		return EINVAL;	/* Read beyond end of disk */
@@ -197,17 +193,17 @@ static int file_bd_write(off_t blk_idx, size_t size, void *buf)
 {
 	size_t n_wr;
 
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&dev_lock);
 
 	fseek(img, blk_idx * size, SEEK_SET);
 	n_wr = fread(buf, 1, size, img);
 
 	if (ferror(img) || n_wr < size) {
-		futex_up(&dev_futex);
+		fibril_mutex_unlock(&dev_lock);
 		return EIO;	/* Write error */
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&dev_lock);
 
 	return EOK;
 }

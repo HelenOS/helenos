@@ -37,6 +37,9 @@
  * This driver currently works only with CHS addressing and uses PIO.
  * Currently based on the (now obsolete) ANSI X3.221-1994 (ATA-1) standard.
  * At this point only reading is possible, not writing.
+ *
+ * The driver services a single controller which can have up to two disks
+ * attached.
  */
 
 #include <stdio.h>
@@ -46,7 +49,7 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -64,10 +67,7 @@ static uintptr_t ctl_physical = 0x170;
 static ata_cmd_t *cmd;
 static ata_ctl_t *ctl;
 
-static dev_handle_t dev_handle[MAX_DISKS];
-
-static atomic_t dev_futex = FUTEX_INITIALIZER;
-
+/** Per-disk state. */
 static disk_t disk[MAX_DISKS];
 
 static int ata_bd_init(void);
@@ -89,8 +89,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("cmd_physical = 0x%x\n", cmd_physical);
-	printf("ctl_physical = 0x%x\n", ctl_physical);
+	printf("I/O address 0x%x\n", cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -120,7 +119,7 @@ int main(int argc, char **argv)
 			continue;
 
 		snprintf(name, 16, "disk%d", i);
-		rc = devmap_device_register(name, &dev_handle[i]);
+		rc = devmap_device_register(name, &disk[i].dev_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n",
@@ -181,14 +180,13 @@ static int drive_identify(int disk_id, disk_t *d)
 		}
 	}
 
-	printf("\n\nStatus = 0x%x\n", pio_read_8(&cmd->status));
-
 	d->blocks = d->cylinders * d->heads * d->sectors;
 
 	printf("Geometry: %u cylinders, %u heads, %u sectors\n",
 		d->cylinders, d->heads, d->sectors);
 
 	d->present = true;
+	fibril_mutex_initialize(&d->lock);
 
 	return EOK;
 }
@@ -243,7 +241,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (dev_handle[i] == dh)
+		if (disk[i].dev_handle == dh)
 			disk_id = i;
 
 	if (disk_id < 0 || disk[disk_id].present == false) {
@@ -355,7 +353,7 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	    ((disk_id != 0) ? DHR_DRV : 0) |
 	    (h & 0x0f);
 
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&d->lock);
 
 	/* Program a Read Sectors operation. */
 
@@ -377,7 +375,7 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		((uint16_t *) buf)[i] = data;
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&d->lock);
 	return EOK;
 }
 
@@ -409,7 +407,7 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	    ((disk_id != 0) ? DHR_DRV : 0) |
 	    (h & 0x0f);
 
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&d->lock);
 
 	/* Program a Read Sectors operation. */
 
@@ -430,7 +428,7 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&d->lock);
 	return EOK;
 }
 

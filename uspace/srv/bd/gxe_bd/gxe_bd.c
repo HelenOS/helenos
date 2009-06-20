@@ -42,7 +42,7 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -91,7 +91,7 @@ static gxe_bd_t *dev;
 
 static dev_handle_t dev_handle[MAX_DISKS];
 
-static atomic_t dev_futex = FUTEX_INITIALIZER;
+static fibril_mutex_t dev_lock[MAX_DISKS];
 
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
@@ -145,6 +145,7 @@ static int gxe_bd_init(void)
 				name);
 			return rc;
 		}
+		fibril_mutex_initialize(&dev_lock[i]);
 	}
 
 	return EOK;
@@ -256,7 +257,7 @@ static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
 	size_t i;
 	uint32_t w;
 
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&dev_lock[disk_id]);
 	pio_write_32(&dev->offset_lo, (uint32_t) offset);
 	pio_write_32(&dev->offset_hi, offset >> 32);
 	pio_write_32(&dev->disk_id, disk_id);
@@ -264,6 +265,7 @@ static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
 
 	status = pio_read_32(&dev->status);
 	if (status == STATUS_FAILURE) {
+		fibril_mutex_unlock(&dev_lock[disk_id]);
 		return EIO;
 	}
 
@@ -271,7 +273,7 @@ static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
 		((uint8_t *) buf)[i] = w = pio_read_8(&dev->buffer[i]);
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&dev_lock[disk_id]);
 	return EOK;
 }
 
@@ -285,7 +287,7 @@ static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
 		pio_write_8(&dev->buffer[i], ((const uint8_t *) buf)[i]);
 	}
 
-	futex_down(&dev_futex);
+	fibril_mutex_lock(&dev_lock[disk_id]);
 	pio_write_32(&dev->offset_lo, (uint32_t) offset);
 	pio_write_32(&dev->offset_hi, offset >> 32);
 	pio_write_32(&dev->disk_id, disk_id);
@@ -293,10 +295,11 @@ static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
 
 	status = pio_read_32(&dev->status);
 	if (status == STATUS_FAILURE) {
+		fibril_mutex_unlock(&dev_lock[disk_id]);
 		return EIO;
 	}
 
-	futex_up(&dev_futex);
+	fibril_mutex_unlock(&dev_lock[disk_id]);
 	return EOK;
 }
 
