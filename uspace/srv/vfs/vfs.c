@@ -83,11 +83,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_REGISTER:
 			vfs_register(callid, &call);
-			/*
-			 * Keep the connection open so that a file system can
-			 * later ask us to connect it to another file system.
-			 * This is necessary to support non-root mounts.
-			 */
+			keep_on_going = false;
 			break;
 		case VFS_MOUNT:
 			vfs_mount(callid, &call);
