@@ -41,6 +41,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <libfs.h>
+#include <fibril_sync.h>
 #include <adt/hash_table.h>
 #include "devfs.h"
 #include "devfs_ops.h"
@@ -57,6 +58,9 @@ typedef struct {
 
 /** Hash table of opened devices */
 static hash_table_t devices;
+
+/** Hash table mutex */
+static FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 
 #define DEVICES_KEYS        1
 #define DEVICES_KEY_HANDLE  0
@@ -195,10 +199,12 @@ void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 					[DEVICES_KEY_HANDLE] = (unsigned long) handle
 				};
 				
+				fibril_mutex_lock(&devices_mutex);
 				link_t *lnk = hash_table_find(&devices, key);
 				if (lnk == NULL) {
 					int phone = devmap_device_connect(handle, 0);
 					if (phone < 0) {
+						fibril_mutex_unlock(&devices_mutex);
 						free(name);
 						ipc_answer_0(rid, ENOENT);
 						return;
@@ -206,6 +212,7 @@ void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 					
 					device_t *dev = (device_t *) malloc(sizeof(device_t));
 					if (dev == NULL) {
+						fibril_mutex_unlock(&devices_mutex);
 						free(name);
 						ipc_answer_0(rid, ENOMEM);
 						return;
@@ -220,6 +227,7 @@ void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 					device_t *dev = hash_table_get_instance(lnk, device_t, link);
 					dev->refcount++;
 				}
+				fibril_mutex_unlock(&devices_mutex);
 			}
 			
 			free(name);
@@ -238,16 +246,19 @@ void devfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 		[DEVICES_KEY_HANDLE] = (unsigned long) handle
 	};
 	
+	fibril_mutex_lock(&devices_mutex);
 	link_t *lnk = hash_table_find(&devices, key);
 	if (lnk == NULL) {
 		int phone = devmap_device_connect(handle, 0);
 		if (phone < 0) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = (device_t *) malloc(sizeof(device_t));
 		if (dev == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOMEM);
 			return;
 		}
@@ -261,6 +272,7 @@ void devfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
 		dev->refcount++;
 	}
+	fibril_mutex_unlock(&devices_mutex);
 	
 	ipc_answer_3(rid, EOK, 0, 1, L_FILE);
 }
@@ -274,11 +286,14 @@ void devfs_device(ipc_callid_t rid, ipc_call_t *request)
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
+		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
+		fibril_mutex_unlock(&devices_mutex);
 		
 		ipc_answer_1(rid, EOK, (ipcarg_t) index);
 	} else
@@ -295,8 +310,10 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
+		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -305,6 +322,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		
 		ipc_callid_t callid;
 		if (!ipc_data_read_receive(&callid, NULL)) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);
 			return;
@@ -318,6 +336,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Forward the IPC_M_DATA_READ request to the driver */
 		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
 		ipcarg_t rc;
@@ -369,8 +388,10 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
+		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -379,6 +400,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		
 		ipc_callid_t callid;
 		if (!ipc_data_write_receive(&callid, NULL)) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);
 			return;
@@ -392,6 +414,8 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
 		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		
+		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
 		ipcarg_t rc;
@@ -420,8 +444,10 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
+		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -433,6 +459,8 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 			ipc_hangup(dev->phone);
 			hash_table_remove(&devices, key, DEVICES_KEYS);
 		}
+		
+		fibril_mutex_unlock(&devices_mutex);
 		
 		ipc_answer_0(rid, EOK);
 	} else
@@ -448,8 +476,10 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
 		
+		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
+			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(rid, ENOENT);
 			return;
 		}
@@ -460,6 +490,8 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		ipc_call_t answer;
 		aid_t msg = async_send_2(dev->phone, IPC_GET_METHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
+		
+		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver */
 		ipcarg_t rc;
