@@ -96,6 +96,8 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch  (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			return;
 		case VFS_MOUNTED:
 			tmpfs_mounted(callid, &call);
 			break;
