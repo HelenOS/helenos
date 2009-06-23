@@ -49,6 +49,7 @@ static const char copyright[] =
 #include <sys/time.h>
 #include <sys/types.h>
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -206,6 +207,7 @@ static int tetris_menu(int *level)
 					printf("off");
 				break;
 			case 'h':
+				loadscores();
 				showscores(firstgame);
 				tetris_menu_draw(*level);
 				break;
@@ -297,7 +299,9 @@ int main(int argc, char *argv[])
 	    key_write[4], key_write[5]);
 	
 	scr_init();
-	initscores();
+	if (loadscores() != EOK)
+		initscores();
+
 	while (tetris_menu(&level)) {
 		fallrate = 1000000 / level;
 		
@@ -415,7 +419,9 @@ int main(int argc, char *argv[])
 		}
 		
 		scr_clear();
+		loadscores();
 		insertscore(score, level);
+		savescores();
 		score = 0;
 	}
 	

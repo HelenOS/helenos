@@ -196,5 +196,38 @@ void initscores(void)
 	}
 }
 
+int loadscores(void)
+{
+	FILE *f;
+	size_t cnt;
+	int rc;
+
+	f = fopen("/tetris.sco", "rb");
+	if (f == NULL)
+		return ENOENT;
+
+	cnt = fread(scores, sizeof(struct highscore), NUMSPOTS, f);
+	rc = fclose(f);
+
+	if (cnt != NUMSPOTS || rc != 0)
+		return EIO;
+
+	return EOK;
+}
+
+void savescores(void)
+{
+	FILE *f;
+	size_t cnt;
+	int rc;
+
+	f = fopen("/tetris.sco", "wb");
+	cnt = fwrite(scores, sizeof(struct highscore), NUMSPOTS, f);
+	rc = fclose(f);
+
+	if (cnt != NUMSPOTS || rc != 0)
+		printf("Error saving score table\n");
+}
+
 /** @}
  */

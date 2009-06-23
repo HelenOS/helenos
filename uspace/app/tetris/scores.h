@@ -64,6 +64,8 @@ struct highscore {
 extern void showscores(int);
 extern void initscores(void);
 extern void insertscore(int score, int level);
+extern int loadscores(void);
+extern void savescores(void);
 
 /** @}
  */
