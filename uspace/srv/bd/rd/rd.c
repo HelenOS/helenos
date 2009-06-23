@@ -50,7 +50,7 @@
 #include <async.h>
 #include <align.h>
 #include <async.h>
-#include <futex.h>
+#include <fibril_sync.h>
 #include <stdio.h>
 #include <devmap.h>
 #include <ipc/bd.h>
@@ -63,12 +63,12 @@ static void *rd_addr;
 static size_t rd_size;
 
 /**
- * This futex protects the ramdisk's data.
+ * This rwlock protects the ramdisk's data.
  * If we were to serve multiple requests (read + write or several writes)
  * concurrently (i.e. from two or more threads), each read and write needs to be
- * protected by this futex.
+ * protected by this rwlock.
  */ 
-atomic_t rd_futex = FUTEX_INITIALIZER;
+fibril_rwlock_t rd_lock;
 
 /** Handle one connection to ramdisk.
  *
@@ -139,9 +139,9 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = ELIMIT;
 				break;
 			}
-			futex_down(&rd_futex);
+			fibril_rwlock_read_lock(&rd_lock);
 			memcpy(fs_va, rd_addr + offset * block_size, block_size);
-			futex_up(&rd_futex);
+			fibril_rwlock_read_unlock(&rd_lock);
 			retval = EOK;
 			break;
 		case BD_WRITE_BLOCK:
@@ -161,9 +161,9 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = ELIMIT;
 				break;
 			}
-			futex_up(&rd_futex);
+			fibril_rwlock_write_lock(&rd_lock);
 			memcpy(rd_addr + offset * block_size, fs_va, block_size);
-			futex_down(&rd_futex);
+			fibril_rwlock_write_unlock(&rd_lock);
 			retval = EOK;
 			break;
 		default:
@@ -216,6 +216,8 @@ static bool rd_init(void)
 		printf(NAME ": Unable to register device\n");
 		return false;
 	}
+
+	fibril_rwlock_initialize(&rd_lock);
 	
 	return true;
 }
