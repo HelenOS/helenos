@@ -146,6 +146,8 @@ typedef struct {
 
 extern fibril_mutex_t nodes_mutex;
 
+extern fibril_condvar_t fs_head_cv;
+extern fibril_mutex_t fs_head_lock;
 extern link_t fs_head;		/**< List of registered file systems. */
 
 extern vfs_pair_t rootfs;	/**< Root file system. */
@@ -168,10 +170,6 @@ extern fibril_rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(fs_handle_t);
 extern void vfs_release_phone(int);
-
-extern fibril_mutex_t fs_head_lock;
-extern bool pending_new_fs;
-extern fibril_condvar_t pending_cv;
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
 
@@ -196,7 +194,6 @@ extern void vfs_file_delref(vfs_file_t *);
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
 
-extern void vfs_process_pending_mount(void);
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);

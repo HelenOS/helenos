@@ -43,9 +43,7 @@
 #include <bool.h>
 #include <string.h>
 #include <as.h>
-#include <adt/list.h>
 #include <atomic.h>
-#include <assert.h>
 #include "vfs.h"
 
 #define NAME "vfs"
@@ -141,11 +139,6 @@ int main(int argc, char **argv)
 	printf(NAME ": HelenOS VFS server\n");
 	
 	/*
-	 * Initialize the list of registered file systems.
-	 */
-	list_initialize(&fs_head);
-	
-	/*
 	 * Initialize VFS node hash table.
 	 */
 	if (!vfs_nodes_init()) {
@@ -156,7 +149,6 @@ int main(int argc, char **argv)
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
-	list_initialize(&plb_head);
 	plb = as_get_mappable_page(PLB_SIZE);
 	if (!plb) {
 		printf(NAME ": Cannot allocate a mappable piece of address space\n");
@@ -175,13 +167,6 @@ int main(int argc, char **argv)
 	 */
 	async_set_client_connection(vfs_connection);
 
-	/*
-	 * Add a fibril for handling pending mounts.
-	 */
-	fid_t fid = fibril_create(vfs_process_pending_mount, NULL);
-	assert(fid);
-	fibril_add_ready(fid);
-	
 	/*
 	 * Register at the naming service.
 	 */

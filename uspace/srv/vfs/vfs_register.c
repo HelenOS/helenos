@@ -52,8 +52,9 @@
 #include <atomic.h>
 #include "vfs.h"
 
+FIBRIL_CONDVAR_INITIALIZE(fs_head_cv);
 FIBRIL_MUTEX_INITIALIZE(fs_head_lock);
-link_t fs_head;
+LIST_INITIALIZE(fs_head);
 
 atomic_t fs_handle_next = {
 	.count = 1
@@ -268,8 +269,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	ipc_answer_1(rid, EOK, (ipcarg_t) fs_info->fs_handle);
 	
-	pending_new_fs = true;
-	fibril_condvar_signal(&pending_cv);
+	fibril_condvar_signal(&fs_head_cv);
 	fibril_mutex_unlock(&fs_head_lock);
 	
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",

@@ -49,7 +49,7 @@
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 
 FIBRIL_MUTEX_INITIALIZE(plb_mutex);
-link_t plb_head;  /**< PLB entry ring buffer. */
+LIST_INITIALIZE(plb_head);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
 /** Perform a path lookup.

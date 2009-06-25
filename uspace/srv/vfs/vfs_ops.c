@@ -54,21 +54,6 @@
 /* Forward declarations of static functions. */
 static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, size_t);
 
-/** Pending mount structure. */
-typedef struct {
-	link_t link;
-	char *fs_name;            /**< File system name */
-	char *mp;                 /**< Mount point */
-	char *opts;		  /**< Mount options. */
-	ipc_callid_t callid;      /**< Call ID waiting for the mount */
-	ipc_callid_t rid;         /**< Request ID */
-	dev_handle_t dev_handle;  /**< Device handle */
-} pending_req_t;
-
-FIBRIL_CONDVAR_INITIALIZE(pending_cv);
-bool pending_new_fs = false;	/**< True if a new file system was mounted. */
-LIST_INITIALIZE(pending_req);
-
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
  * concurrent VFS operation which modifies the file system namespace.
@@ -260,48 +245,6 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 }
 
-/** Process pending mount requests */
-void vfs_process_pending_mount(void)
-{
-	link_t *cur;
-	
-	while (true) {
-		fibril_mutex_lock(&fs_head_lock);
-		while (!pending_new_fs)
-			fibril_condvar_wait(&pending_cv, &fs_head_lock);
-rescan:
-		for (cur = pending_req.next; cur != &pending_req;
-		    cur = cur->next) {
-			pending_req_t *pr = list_get_instance(cur,
-			    pending_req_t, link);
-			fs_handle_t fs_handle = fs_name_to_handle(pr->fs_name,
-			    false);
-			if (!fs_handle)
-				continue;
-		
-			/* Acknowledge that we know fs_name. */
-			ipc_answer_0(pr->callid, EOK);
-		
-			list_remove(cur);
-			fibril_mutex_unlock(&fs_head_lock);
-			
-			/* Do the mount */
-			vfs_mount_internal(pr->rid, pr->dev_handle, fs_handle,
-			    pr->mp, pr->opts);
-
-			free(pr->fs_name);
-			free(pr->mp);
-			free(pr->opts);
-			free(pr);
-		
-			fibril_mutex_lock(&fs_head_lock);
-			goto rescan;
-		}
-		pending_new_fs = false;
-		fibril_mutex_unlock(&fs_head_lock);
-	}
-}
-
 void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	/*
@@ -456,33 +399,13 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * This will also give us its file system handle.
 	 */
 	fibril_mutex_lock(&fs_head_lock);
-	fs_handle_t fs_handle = fs_name_to_handle(fs_name, false);
+	fs_handle_t fs_handle;
+recheck:
+	fs_handle = fs_name_to_handle(fs_name, false);
 	if (!fs_handle) {
 		if (flags & IPC_FLAG_BLOCKING) {
-			pending_req_t *pr;
-
-			/* Blocking mount, add to pending list */
-			pr = (pending_req_t *) malloc(sizeof(pending_req_t));
-			if (!pr) {
-				fibril_mutex_unlock(&fs_head_lock);
-				ipc_answer_0(callid, ENOMEM);
-				ipc_answer_0(rid, ENOMEM);
-				free(mp);
-				free(fs_name);
-				free(opts);
-				return;
-			}
-			
-			pr->fs_name = fs_name;
-			pr->mp = mp;
-			pr->opts = opts;
-			pr->callid = callid;
-			pr->rid = rid;
-			pr->dev_handle = dev_handle;
-			link_initialize(&pr->link);
-			list_append(&pr->link, &pending_req);
-			fibril_mutex_unlock(&fs_head_lock);
-			return;
+			fibril_condvar_wait(&fs_head_cv, &fs_head_lock);
+			goto recheck;
 		}
 		
 		fibril_mutex_unlock(&fs_head_lock);
