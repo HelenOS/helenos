@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ipc/devmap.h>
-#include <assert.h>
 
 #define NAME  "devmap"
 
@@ -84,19 +83,8 @@ typedef struct {
 	devmap_driver_t *driver;
 } devmap_device_t;
 
-/** Pending lookup structure. */
-typedef struct {
-	link_t link;
-	char *name;              /**< Device name */
-	ipc_callid_t callid;     /**< Call ID waiting for the lookup */
-} pending_req_t;
-
 LIST_INITIALIZE(devices_list);
 LIST_INITIALIZE(drivers_list);
-LIST_INITIALIZE(pending_req);
-
-static bool pending_new_dev = false;
-static FIBRIL_CONDVAR_INITIALIZE(pending_cv);
 
 /* Locking order:
  *  drivers_list_mutex
@@ -106,6 +94,7 @@ static FIBRIL_CONDVAR_INITIALIZE(pending_cv);
  **/
 
 static FIBRIL_MUTEX_INITIALIZE(devices_list_mutex);
+static FIBRIL_CONDVAR_INITIALIZE(devices_list_cv);
 static FIBRIL_MUTEX_INITIALIZE(drivers_list_mutex);
 static FIBRIL_MUTEX_INITIALIZE(create_handle_mutex);
 
@@ -344,38 +333,6 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	return EOK;
 }
 
-
-/** Process pending lookup requests */
-static void process_pending_lookup(void)
-{
-	link_t *cur;
-
-loop:
-	fibril_mutex_lock(&devices_list_mutex);
-	while (!pending_new_dev)
-		fibril_condvar_wait(&pending_cv, &devices_list_mutex);
-rescan:
-	for (cur = pending_req.next; cur != &pending_req; cur = cur->next) {
-		pending_req_t *pr = list_get_instance(cur, pending_req_t, link);
-		
-		const devmap_device_t *dev = devmap_device_find_name(pr->name);
-		if (!dev)
-			continue;
-		
-		ipc_answer_1(pr->callid, EOK, dev->handle);
-		
-		free(pr->name);
-		list_remove(cur);
-		free(pr);
-		
-		goto rescan;
-	}
-	pending_new_dev = false;
-	fibril_mutex_unlock(&devices_list_mutex);
-	goto loop;
-}
-
-
 /** Register instance of device
  *
  */
@@ -452,8 +409,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	list_append(&device->driver_devices, &device->driver->devices);
 	
 	fibril_mutex_unlock(&device->driver->devices_mutex);
-	pending_new_dev = true;
-	fibril_condvar_signal(&pending_cv);
+	fibril_condvar_broadcast(&devices_list_cv);
 	fibril_mutex_unlock(&devices_list_mutex);
 	
 	ipc_answer_1(iid, EOK, device->handle);
@@ -540,31 +496,23 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	name[size] = '\0';
 	
 	fibril_mutex_lock(&devices_list_mutex);
+	const devmap_device_t *dev;
+recheck:
 
 	/*
-	 * Find device name in linked list of known devices.
+	 * Find device name in the list of known devices.
 	 */
-	const devmap_device_t *dev = devmap_device_find_name(name);
+	dev = devmap_device_find_name(name);
 	
 	/*
 	 * Device was not found.
 	 */
 	if (dev == NULL) {
 		if (IPC_GET_ARG1(*icall) & IPC_FLAG_BLOCKING) {
-			/* Blocking lookup, add to pending list */
-			pending_req_t *pr = (pending_req_t *) malloc(sizeof(pending_req_t));
-			if (!pr) {
-				fibril_mutex_unlock(&devices_list_mutex);
-				ipc_answer_0(iid, ENOMEM);
-				free(name);
-				return;
-			}
-			
-			pr->name = name;
-			pr->callid = iid;
-			list_append(&pr->link, &pending_req);
-			fibril_mutex_unlock(&devices_list_mutex);
-			return;
+			/* Blocking lookup */
+			fibril_condvar_wait(&devices_list_cv,
+			    &devices_list_mutex);
+			goto recheck;
 		}
 		
 		ipc_answer_0(iid, ENOENT);
@@ -836,11 +784,6 @@ int main(int argc, char *argv[])
 	/* Set a handler of incomming connections */
 	async_set_client_connection(devmap_connection);
 
-	/* Create a fibril for handling pending device lookups */
-	fid_t fid = fibril_create(process_pending_lookup, NULL);
-	assert(fid);
-	fibril_add_ready(fid);
-	
 	/* Register device mapper at naming service */
 	ipcarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, &phonead) != 0) 
