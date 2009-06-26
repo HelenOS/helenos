@@ -5,10 +5,10 @@ Memory management
 
 1.1 Hierarchical 4-level per address space page tables
 
-SPARTAN kernel deploys generic interface for 4-level page tables
-for these architectures: amd64, ia32, mips32 and ppc32. In this
-setting, page tables are hierarchical and are not shared by
-address spaces (i.e. one set of page tables per address space).
+SPARTAN kernel deploys generic interface for 4-level page tables for these
+architectures: amd64, arm32, ia32, mips32 and ppc32. In this setting, page
+tables are hierarchical and are not shared by address spaces (i.e. one set of
+page tables per address space).
 
 
  VADDR
