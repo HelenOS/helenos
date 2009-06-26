@@ -51,7 +51,6 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
-#include <assert.h>
 #include <fibril_sync.h>
 
 #include "console.h"
@@ -99,67 +98,8 @@ struct {
 	size_t cnt;  /**< Width of the span. */
 } fb_pending;
 
-/** Pending input structure. */
-typedef struct {
-	link_t link;
-	console_t *cons;      /**< Console waiting for input */
-	ipc_callid_t rid;     /**< Call ID waiting for input */
-	ipc_callid_t callid;  /**< Call ID waiting for IPC_DATA_READ */
-	
-	size_t pos;           /**< Position of the last stored data */
-	size_t size;          /**< Size of ther buffer */
-	char *data;           /**< Already stored data */
-} pending_input_t;
-
-LIST_INITIALIZE(pending_input);
-
 static FIBRIL_MUTEX_INITIALIZE(input_mutex);
 static FIBRIL_CONDVAR_INITIALIZE(input_cv);
-static input_flag = false;
-
-/** Process pending input requests */
-static void process_pending_input(void)
-{
-	link_t *cur;
-	
-loop:
-	fibril_mutex_lock(&input_mutex);
-	while (!input_flag)
-		fibril_condvar_wait(&input_cv, &input_mutex);
-rescan:
-	for (cur = pending_input.next; cur != &pending_input; cur = cur->next) {
-		pending_input_t *pr = list_get_instance(cur, pending_input_t, link);
-		
-		console_event_t ev;
-		if (keybuffer_pop(&pr->cons->keybuffer, &ev)) {
-			
-			if (pr->data != NULL) {
-				if (ev.type == KEY_PRESS) {
-					pr->data[pr->pos] = ev.c;
-					pr->pos++;
-				}
-			} else {
-				ipc_answer_4(pr->rid, EOK, ev.type, ev.key, ev.mods, ev.c);
-				list_remove(cur);
-				free(pr);
-				goto rescan;
-			}
-		}
-		
-		if ((pr->data != NULL) && (pr->pos == pr->size)) {
-			(void) ipc_data_read_finalize(pr->callid, pr->data, pr->size);
-			ipc_answer_1(pr->rid, EOK, pr->size);
-
-			free(pr->data);
-			list_remove(cur);
-			free(pr);
-			goto rescan;
-		}
-	}
-	input_flag = false;
-	fibril_mutex_unlock(&input_mutex);
-	goto loop;
-}
 
 static void curs_visibility(bool visible)
 {
@@ -461,8 +401,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 			
 			fibril_mutex_lock(&input_mutex);
 			keybuffer_push(&active_console->keybuffer, &ev);
-			input_flag = true;
-			fibril_condvar_signal(&input_cv);
+			fibril_condvar_broadcast(&input_cv);
 			fibril_mutex_unlock(&input_mutex);
 			break;
 		default:
@@ -527,6 +466,7 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	size_t pos = 0;
 	console_event_t ev;
 	fibril_mutex_lock(&input_mutex);
+recheck:
 	while ((keybuffer_pop(&cons->keybuffer, &ev)) && (pos < size)) {
 		if (ev.type == KEY_PRESS) {
 			buf[pos] = ev.c;
@@ -539,22 +479,8 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_1(rid, EOK, size);
 		free(buf);
 	} else {
-		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
-		if (!pr) {
-			fibril_mutex_unlock(&input_mutex);
-			ipc_answer_0(callid, ENOMEM);
-			ipc_answer_0(rid, ENOMEM);
-			free(buf);
-			return;
-		}
-		
-		pr->cons = cons;
-		pr->rid = rid;
-		pr->callid = callid;
-		pr->pos = pos;
-		pr->size = size;
-		pr->data = buf;
-		list_append(&pr->link, &pending_input);
+		fibril_condvar_wait(&input_cv, &input_mutex);
+		goto recheck;
 	}
 	fibril_mutex_unlock(&input_mutex);
 }
@@ -564,21 +490,12 @@ static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *reques
 	console_event_t ev;
 
 	fibril_mutex_lock(&input_mutex);
+recheck:
 	if (keybuffer_pop(&cons->keybuffer, &ev)) {
 		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
 	} else {
-		pending_input_t *pr = (pending_input_t *) malloc(sizeof(pending_input_t));
-		if (!pr) {
-			fibril_mutex_unlock(&input_mutex);
-			ipc_answer_0(rid, ENOMEM);
-			return;
-		}
-		
-		pr->cons = cons;
-		pr->rid = rid;
-		pr->callid = 0;
-		pr->data = NULL;
-		list_append(&pr->link, &pending_input);
+		fibril_condvar_wait(&input_cv, &input_mutex);
+		goto recheck;
 	}
 	fibril_mutex_unlock(&input_mutex);
 }
@@ -737,14 +654,6 @@ static bool console_init(void)
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
 
-	fid_t fid = fibril_create(process_pending_input, NULL);
-	if (!fid) {
-		printf(NAME ": Failed to create fibril for handling pending "
-		    "input\n");
-		return -1;
-	}
-	fibril_add_ready(fid);
-	
 	/* Connect to framebuffer driver */
 	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
