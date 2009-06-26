@@ -167,10 +167,13 @@ rsdp_found:
 	LOG("%p: ACPI Root System Description Pointer\n", acpi_rsdp);
 
 	acpi_rsdt = (struct acpi_rsdt *) (unative_t) acpi_rsdp->rsdt_address;
-	if (acpi_rsdp->revision) acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);
+	if (acpi_rsdp->revision)
+		acpi_xsdt = (struct acpi_xsdt *) ((uintptr_t) acpi_rsdp->xsdt_address);
 
-	if (acpi_rsdt) map_sdt((struct acpi_sdt_header *) acpi_rsdt);
-	if (acpi_xsdt) map_sdt((struct acpi_sdt_header *) acpi_xsdt);	
+	if (acpi_rsdt)
+		map_sdt((struct acpi_sdt_header *) acpi_rsdt);
+	if (acpi_xsdt)
+		map_sdt((struct acpi_sdt_header *) acpi_xsdt);
 
 	if (acpi_rsdt && !acpi_sdt_check((uint8_t *) acpi_rsdt)) {
 		printf("RSDT: bad checksum\n");
@@ -181,8 +184,10 @@ rsdp_found:
 		return;
 	}
 
-	if (acpi_xsdt) configure_via_xsdt();
-	else if (acpi_rsdt) configure_via_rsdt();
+	if (acpi_xsdt)
+		configure_via_xsdt();
+	else if (acpi_rsdt)
+		configure_via_rsdt();
 
 }
 
