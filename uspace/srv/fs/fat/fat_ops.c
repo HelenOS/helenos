@@ -770,6 +770,7 @@ libfs_ops_t fat_libfs_ops = {
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	enum cache_mode cmode;
 	fat_bs_t *bs;
 	uint16_t bps;
 	uint16_t rde;
@@ -796,6 +797,12 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	opts[size] = '\0';
+
+	/* Check for option enabling write through. */
+	if (str_cmp(opts, "wtcache") == 0)
+		cmode = CACHE_MODE_WT;
+	else
+		cmode = CACHE_MODE_WB;
 
 	/* initialize libblock */
 	rc = block_init(dev_handle, BS_SIZE);
@@ -826,7 +833,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/* Initialize the block cache */
-	rc = block_cache_init(dev_handle, bps, 0 /* XXX */);
+	rc = block_cache_init(dev_handle, bps, 0 /* XXX */, cmode);
 	if (rc != EOK) {
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);

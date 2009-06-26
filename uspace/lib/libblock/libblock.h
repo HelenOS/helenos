@@ -84,13 +84,21 @@ typedef struct block {
 	void *data;
 } block_t;
 
+/** Caching mode */
+enum cache_mode {
+	/** Write-Through */
+	CACHE_MODE_WT,
+	/** Write-Back */
+	CACHE_MODE_WB
+};
+
 extern int block_init(dev_handle_t, size_t);
 extern void block_fini(dev_handle_t);
 
 extern int block_bb_read(dev_handle_t, off_t, size_t);
 extern void *block_bb_get(dev_handle_t);
 
-extern int block_cache_init(dev_handle_t, size_t, unsigned);
+extern int block_cache_init(dev_handle_t, size_t, unsigned, enum cache_mode);
 
 extern block_t *block_get(dev_handle_t, bn_t, int flags);
 extern void block_put(block_t *);

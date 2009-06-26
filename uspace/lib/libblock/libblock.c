@@ -65,6 +65,7 @@ typedef struct {
 	unsigned block_count;		/**< Total number of blocks. */
 	hash_table_t block_hash;
 	link_t free_head;
+	enum cache_mode mode;
 } cache_t;
 
 typedef struct {
@@ -78,6 +79,9 @@ typedef struct {
 	size_t bb_size;
 	cache_t *cache;
 } devcon_t;
+
+static int write_block(devcon_t *devcon, bn_t boff, size_t block_size,
+    const void *src);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -250,7 +254,8 @@ static hash_table_operations_t cache_ops = {
 	.remove_callback = cache_remove_callback
 };
 
-int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
+int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
+    enum cache_mode mode)
 {
 	devcon_t *devcon = devcon_search(dev_handle);
 	cache_t *cache;
@@ -266,6 +271,7 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks)
 	list_initialize(&cache->free_head);
 	cache->block_size = size;
 	cache->block_count = blocks;
+	cache->mode = mode;
 
 	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
 	    &cache_ops)) {
@@ -413,6 +419,7 @@ void block_put(block_t *block)
 {
 	devcon_t *devcon = devcon_search(block->dev_handle);
 	cache_t *cache;
+	int rc;
 
 	assert(devcon);
 	assert(devcon->cache);
@@ -426,6 +433,13 @@ void block_put(block_t *block)
 		 * free list.
 		 */
 		list_append(&block->free_link, &cache->free_head);
+		if (cache->mode != CACHE_MODE_WB && block->dirty) {
+			rc = write_block(devcon, block->boff, block->size,
+			    block->data);
+			assert(rc == EOK);
+
+			block->dirty = false;
+		}
 	}
 	fibril_mutex_unlock(&block->lock);
 	fibril_mutex_unlock(&cache->lock);
@@ -487,6 +501,32 @@ block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
 		}
 	}
 	
+	return EOK;
+}
+
+/** Write block to block device.
+ *
+ * @param devcon	Device connection.
+ * @param boff		Block index.
+ * @param block_size	Block size.
+ * @param src		Buffer containing the data to write.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+static int write_block(devcon_t *devcon, bn_t boff, size_t block_size,
+    const void *src)
+{
+	ipcarg_t retval;
+	int rc;
+
+	assert(devcon);
+	memcpy(devcon->com_area, src, block_size);
+	
+	rc = async_req_2_1(devcon->dev_phone, BD_WRITE_BLOCK,
+	    boff, block_size, &retval);
+	if ((rc != EOK) || (retval != EOK))
+		return (rc != EOK ? rc : (int) retval);
+
 	return EOK;
 }
 

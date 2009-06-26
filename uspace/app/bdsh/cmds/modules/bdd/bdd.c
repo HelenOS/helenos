@@ -102,7 +102,7 @@ int cmd_bdd(char **argv)
 		return CMD_FAILURE;
 	}
 
-	rc = block_cache_init(handle, BLOCK_SIZE, 2);
+	rc = block_cache_init(handle, BLOCK_SIZE, 2, CACHE_MODE_WB);
 	if (rc != EOK) {
 		printf("Error: could not init block cache.\n");
 		return CMD_FAILURE;
