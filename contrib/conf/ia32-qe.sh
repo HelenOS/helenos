@@ -7,4 +7,4 @@ if [ ! -f "$DISK_IMG" ]; then
 	tools/mkfat.py uspace/dist/data "$DISK_IMG"
 fi
 
-gxemul $@ -E testmips -C R4000 -X image.boot -d d0:"$DISK_IMG"
+qemu -m 32 -hda "$DISK_IMG" -cdrom image.iso -boot d

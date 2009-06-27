@@ -150,6 +150,20 @@ static void getvc(char *dev, char *app)
 	}
 }
 
+void mount_data(void)
+{
+	int rc;
+
+	printf("Trying to mount disk0 on /data... ");
+	fflush(stdout);
+
+	rc = mount("fat", "/data", "disk0", "wtcache", 0);
+	if (rc == EOK)
+		printf("OK\n");
+	else
+		printf("Failed\n");
+}
+
 int main(int argc, char *argv[])
 {
 	info_print();
@@ -171,7 +185,12 @@ int main(int argc, char *argv[])
 	spawn("/srv/console");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
-	
+	spawn("/srv/ata_bd");
+	spawn("/srv/gxe_bd");
+
+	usleep(250000);
+	mount_data();	
+
 	getvc("vc0", "/app/bdsh");
 	getvc("vc1", "/app/bdsh");
 	getvc("vc2", "/app/bdsh");

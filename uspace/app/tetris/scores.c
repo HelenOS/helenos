@@ -202,7 +202,7 @@ int loadscores(void)
 	size_t cnt;
 	int rc;
 
-	f = fopen("/tetris.sco", "rb");
+	f = fopen("/data/tetris.sco", "rb");
 	if (f == NULL)
 		return ENOENT;
 
@@ -221,7 +221,7 @@ void savescores(void)
 	size_t cnt;
 	int rc;
 
-	f = fopen("/tetris.sco", "wb");
+	f = fopen("/data/tetris.sco", "wb");
 	cnt = fwrite(scores, sizeof(struct highscore), NUMSPOTS, f);
 	rc = fclose(f);
 
