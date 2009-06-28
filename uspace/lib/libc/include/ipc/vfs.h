@@ -57,35 +57,39 @@ typedef struct {
 } vfs_info_t;
 
 typedef enum {
-	VFS_OPEN_NODE = IPC_FIRST_USER_METHOD,
-	VFS_READ,
-	VFS_WRITE,
-	VFS_TRUNCATE,
-	VFS_MOUNT,
-	VFS_UNMOUNT,
-	VFS_DEVICE,
-	VFS_SYNC,
-	VFS_CLOSE,
-	VFS_LAST_CMN  /* keep this the last member of this enum */
-} vfs_request_cmn_t;
+	VFS_IN_OPEN = IPC_FIRST_USER_METHOD,
+	VFS_IN_OPEN_NODE,
+	VFS_IN_READ,
+	VFS_IN_WRITE,
+	VFS_IN_SEEK,
+	VFS_IN_TRUNCATE,
+	VFS_IN_CLOSE,
+	VFS_IN_MOUNT,
+	VFS_IN_UNMOUNT,
+	VFS_IN_DEVICE,
+	VFS_IN_SYNC,
+	VFS_IN_REGISTER,
+	VFS_IN_MKDIR,
+	VFS_IN_UNLINK,
+	VFS_IN_RENAME,
+	VFS_IN_NODE
+} vfs_in_request_t;
 
 typedef enum {
-	VFS_LOOKUP = VFS_LAST_CMN,
-	VFS_MOUNTED,
-	VFS_DESTROY,
-	VFS_LAST_CLNT  /* keep this the last member of this enum */
-} vfs_request_clnt_t;
-
-typedef enum {
-	VFS_REGISTER = VFS_LAST_CMN,
-	VFS_OPEN,
-	VFS_SEEK,
-	VFS_MKDIR,
-	VFS_UNLINK,
-	VFS_RENAME,
-	VFS_NODE,
-	VFS_LAST_SRV  /* keep this the last member of this enum */
-} vfs_request_srv_t;
+	VFS_OUT_OPEN_NODE = IPC_FIRST_USER_METHOD,
+	VFS_OUT_READ,
+	VFS_OUT_WRITE,
+	VFS_OUT_TRUNCATE,
+	VFS_OUT_CLOSE,
+	VFS_OUT_MOUNT,
+	VFS_OUT_MOUNTED,
+	VFS_OUT_UNMOUNT,
+	VFS_OUT_DEVICE,
+	VFS_OUT_SYNC,
+	VFS_OUT_LOOKUP,
+	VFS_OUT_DESTROY,
+	VFS_OUT_LAST
+} vfs_out_request_t;
 
 /*
  * Lookup flags.

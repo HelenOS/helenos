@@ -69,7 +69,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	 * out-of-order, when it knows that the operation succeeded or failed.
 	 */
 	ipc_call_t answer;
-	aid_t req = async_send_0(vfs_phone, VFS_REGISTER, &answer);
+	aid_t req = async_send_0(vfs_phone, VFS_IN_REGISTER, &answer);
 
 	/*
 	 * Send our VFS info structure to VFS.
@@ -104,7 +104,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	}
 	 
 	/*
-	 * Pick up the answer for the request to the VFS_REQUEST call.
+	 * Pick up the answer for the request to the VFS_IN_REQUEST call.
 	 */
 	async_wait_for(req, NULL);
 	reg->fs_handle = (int) IPC_GET_ARG1(answer);
@@ -186,7 +186,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	ipc_call_t answer;
-	aid_t msg = async_send_1(mountee_phone, VFS_MOUNTED, mr_dev_handle,
+	aid_t msg = async_send_1(mountee_phone, VFS_OUT_MOUNTED, mr_dev_handle,
 	    &answer);
 	ipc_forward_fast(callid, mountee_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	async_wait_for(msg, &rc);
@@ -213,8 +213,8 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
  *                  file system implementation
  * @param fs_handle File system handle of the file system where to perform
  *                  the lookup.
- * @param rid       Request ID of the VFS_LOOKUP request.
- * @param request   VFS_LOOKUP request data itself.
+ * @param rid       Request ID of the VFS_OUT_LOOKUP request.
+ * @param request   VFS_OUT_LOOKUP request data itself.
  *
  */
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
@@ -237,7 +237,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_node_t *tmp = NULL;
 
 	if (cur->mp_data.mp_active) {
-		ipc_forward_slow(rid, cur->mp_data.phone, VFS_LOOKUP,
+		ipc_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
 		    next, last, cur->mp_data.dev_handle, lflag, index,
 		    IPC_FF_ROUTE_FROM_ME);
 		ops->node_put(cur);
@@ -272,9 +272,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			else
 				next--;
 				
-			ipc_forward_slow(rid, tmp->mp_data.phone, VFS_LOOKUP,
-			    next, last, tmp->mp_data.dev_handle, lflag, index,
-			    IPC_FF_ROUTE_FROM_ME);
+			ipc_forward_slow(rid, tmp->mp_data.phone,
+			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.dev_handle,
+			    lflag, index, IPC_FF_ROUTE_FROM_ME);
 			ops->node_put(cur);
 			ops->node_put(tmp);
 			if (par)
@@ -432,8 +432,8 @@ out:
  *
  * @param ops       libfs operations structure with function pointers to
  *                  file system implementation
- * @param rid       Request ID of the VFS_OPEN_NODE request.
- * @param request   VFS_OPEN_NODE request data itself.
+ * @param rid       Request ID of the VFS_OUT_OPEN_NODE request.
+ * @param request   VFS_OUT_OPEN_NODE request data itself.
  *
  */
 void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,

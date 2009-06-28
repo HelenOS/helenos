@@ -551,17 +551,17 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			if (cons->refcount == 0)
 				gcons_notify_disconnect(cons->index);
 			return;
-		case VFS_READ:
+		case VFS_OUT_READ:
 			async_serialize_end();
 			cons_read(cons, callid, &call);
 			async_serialize_start();
 			continue;
-		case VFS_WRITE:
+		case VFS_OUT_WRITE:
 			async_serialize_end();
 			cons_write(cons, callid, &call);
 			async_serialize_start();
 			continue;
-		case VFS_SYNC:
+		case VFS_OUT_SYNC:
 			fb_pending_flush();
 			if (cons == active_console) {
 				async_req_0_0(fb_info.phone, FB_FLUSH);

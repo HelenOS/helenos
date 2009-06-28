@@ -67,37 +67,37 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch  (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
-		case VFS_MOUNTED:
+		case VFS_OUT_MOUNTED:
 			devfs_mounted(callid, &call);
 			break;
-		case VFS_MOUNT:
+		case VFS_OUT_MOUNT:
 			devfs_mount(callid, &call);
 			break;
-		case VFS_LOOKUP:
+		case VFS_OUT_LOOKUP:
 			devfs_lookup(callid, &call);
 			break;
-		case VFS_OPEN_NODE:
+		case VFS_OUT_OPEN_NODE:
 			devfs_open_node(callid, &call);
 			break;
-		case VFS_DEVICE:
+		case VFS_OUT_DEVICE:
 			devfs_device(callid, &call);
 			break;
-		case VFS_READ:
+		case VFS_OUT_READ:
 			devfs_read(callid, &call);
 			break;
-		case VFS_WRITE:
+		case VFS_OUT_WRITE:
 			devfs_write(callid, &call);
 			break;
-		case VFS_TRUNCATE:
+		case VFS_OUT_TRUNCATE:
 			devfs_truncate(callid, &call);
 			break;
-		case VFS_CLOSE:
+		case VFS_OUT_CLOSE:
 			devfs_close(callid, &call);
 			break;
-		case VFS_SYNC:
+		case VFS_OUT_SYNC:
 			devfs_sync(callid, &call);
 			break;
-		case VFS_DESTROY:
+		case VFS_OUT_DESTROY:
 			devfs_destroy(callid, &call);
 			break;
 		default:

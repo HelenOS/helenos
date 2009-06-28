@@ -159,7 +159,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 
 	ipc_call_t answer;
 	int phone = vfs_grab_phone(root->fs_handle);
-	aid_t req = async_send_5(phone, VFS_LOOKUP, (ipcarg_t) first,
+	aid_t req = async_send_5(phone, VFS_OUT_LOOKUP, (ipcarg_t) first,
 	    (ipcarg_t) (first + len - 1) % PLB_SIZE,
 	    (ipcarg_t) root->dev_handle, (ipcarg_t) lflag, (ipcarg_t) index,
 	    &answer);
@@ -204,7 +204,7 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	int phone = vfs_grab_phone(result->triplet.fs_handle);
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, VFS_OPEN_NODE,
+	aid_t req = async_send_2(phone, VFS_OUT_OPEN_NODE,
 	    (ipcarg_t) result->triplet.dev_handle,
 	    (ipcarg_t) result->triplet.index, &answer);
 	

@@ -91,37 +91,37 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch  (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
-		case VFS_MOUNTED:
+		case VFS_OUT_MOUNTED:
 			fat_mounted(callid, &call);
 			break;
-		case VFS_MOUNT:
+		case VFS_OUT_MOUNT:
 			fat_mount(callid, &call);
 			break;
-		case VFS_LOOKUP:
+		case VFS_OUT_LOOKUP:
 			fat_lookup(callid, &call);
 			break;
-		case VFS_READ:
+		case VFS_OUT_READ:
 			fat_read(callid, &call);
 			break;
-		case VFS_WRITE:
+		case VFS_OUT_WRITE:
 			fat_write(callid, &call);
 			break;
-		case VFS_TRUNCATE:
+		case VFS_OUT_TRUNCATE:
 			fat_truncate(callid, &call);
 			break;
-		case VFS_CLOSE:
+		case VFS_OUT_CLOSE:
 			fat_close(callid, &call);
 			break;
-		case VFS_DESTROY:
+		case VFS_OUT_DESTROY:
 			fat_destroy(callid, &call);
 			break;
-		case VFS_OPEN_NODE:
+		case VFS_OUT_OPEN_NODE:
 			fat_open_node(callid, &call);
 			break;
-		case VFS_DEVICE:
+		case VFS_OUT_DEVICE:
 			fat_device(callid, &call);
 			break;
-		case VFS_SYNC:
+		case VFS_OUT_SYNC:
 			fat_sync(callid, &call);
 			break;
 		default:

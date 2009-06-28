@@ -79,50 +79,50 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			break;
-		case VFS_REGISTER:
+		case VFS_IN_REGISTER:
 			vfs_register(callid, &call);
 			keep_on_going = false;
 			break;
-		case VFS_MOUNT:
+		case VFS_IN_MOUNT:
 			vfs_mount(callid, &call);
 			break;
-		case VFS_OPEN:
+		case VFS_IN_OPEN:
 			vfs_open(callid, &call);
 			break;
-		case VFS_OPEN_NODE:
+		case VFS_IN_OPEN_NODE:
 			vfs_open_node(callid, &call);
 			break;
-		case VFS_CLOSE:
+		case VFS_IN_CLOSE:
 			vfs_close(callid, &call);
 			break;
-		case VFS_READ:
+		case VFS_IN_READ:
 			vfs_read(callid, &call);
 			break;
-		case VFS_WRITE:
+		case VFS_IN_WRITE:
 			vfs_write(callid, &call);
 			break;
-		case VFS_SEEK:
+		case VFS_IN_SEEK:
 			vfs_seek(callid, &call);
 			break;
-		case VFS_TRUNCATE:
+		case VFS_IN_TRUNCATE:
 			vfs_truncate(callid, &call);
 			break;
-		case VFS_MKDIR:
+		case VFS_IN_MKDIR:
 			vfs_mkdir(callid, &call);
 			break;
-		case VFS_UNLINK:
+		case VFS_IN_UNLINK:
 			vfs_unlink(callid, &call);
 			break;
-		case VFS_RENAME:
+		case VFS_IN_RENAME:
 			vfs_rename(callid, &call);
 			break;
-		case VFS_DEVICE:
+		case VFS_IN_DEVICE:
 			vfs_device(callid, &call);
 			break;
-		case VFS_SYNC:
+		case VFS_IN_SYNC:
 			vfs_sync(callid, &call);
 			break;
-		case VFS_NODE:
+		case VFS_IN_NODE:
 			vfs_node(callid, &call);
 			break;
 		default:

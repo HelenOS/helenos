@@ -108,7 +108,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 		
 		/*
 		 * Now we hold a reference to mp_node.
-		 * It will be dropped upon the corresponding VFS_UNMOUNT.
+		 * It will be dropped upon the corresponding VFS_IN_UNMOUNT.
 		 * This prevents the mount point from being deleted.
 		 */
 	} else {
@@ -121,7 +121,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			
 			/* Tell the mountee that it is being mounted. */
 			phone = vfs_grab_phone(fs_handle);
-			msg = async_send_1(phone, VFS_MOUNTED,
+			msg = async_send_1(phone, VFS_OUT_MOUNTED,
 			    (ipcarg_t) dev_handle, &answer);
 			/* send the mount options */
 			rc = ipc_data_write_start(phone, (void *)opts,
@@ -183,7 +183,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	assert(mountee_phone >= 0);
 
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
-	msg = async_send_4(phone, VFS_MOUNT,
+	msg = async_send_4(phone, VFS_OUT_MOUNT,
 	    (ipcarg_t) mp_res.triplet.dev_handle,
 	    (ipcarg_t) mp_res.triplet.index,
 	    (ipcarg_t) fs_handle,
@@ -437,8 +437,8 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	
 	/*
 	 * The POSIX interface is open(path, oflag, mode).
-	 * We can receive oflags and mode along with the VFS_OPEN call; the path
-	 * will need to arrive in another call.
+	 * We can receive oflags and mode along with the VFS_IN_OPEN call;
+	 * the path will need to arrive in another call.
 	 *
 	 * We also receive one private, non-POSIX set of flags called lflag
 	 * used to pass information to vfs_lookup_internal().
@@ -555,7 +555,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * file is being opened and that a file structure is pointing to it.
 	 * It is necessary so that the file will not disappear when
 	 * vfs_node_put() is called. The reference will be dropped by the
-	 * respective VFS_CLOSE.
+	 * respective VFS_IN_CLOSE.
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
@@ -632,7 +632,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	 * file is being opened and that a file structure is pointing to it.
 	 * It is necessary so that the file will not disappear when
 	 * vfs_node_put() is called. The reference will be dropped by the
-	 * respective VFS_CLOSE.
+	 * respective VFS_IN_CLOSE.
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
@@ -674,11 +674,11 @@ void vfs_device(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_lock(&file->lock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
-	/* Make a VFS_DEVICE request at the destination FS server. */
+	/* Make a VFS_OUT_DEVICE request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
-	    file->node->dev_handle, file->node->index, &answer);
+	msg = async_send_2(fs_phone, VFS_OUT_DEVICE, file->node->dev_handle,
+	    file->node->index, &answer);
 
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
@@ -708,11 +708,11 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_lock(&file->lock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
-	/* Make a VFS_SYMC request at the destination FS server. */
+	/* Make a VFS_OUT_SYMC request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
-	    file->node->dev_handle, file->node->index, &answer);
+	msg = async_send_2(fs_phone, VFS_OUT_SYNC, file->node->dev_handle,
+	    file->node->index, &answer);
 
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
@@ -742,11 +742,11 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_lock(&file->lock);
 	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
-	/* Make a VFS_CLOSE request at the destination FS server. */
+	/* Make a VFS_OUT_CLOSE request at the destination FS server. */
 	aid_t msg;
 	ipc_call_t answer;
-	msg = async_send_2(fs_phone, IPC_GET_METHOD(*request),
-	    file->node->dev_handle, file->node->index, &answer);
+	msg = async_send_2(fs_phone, VFS_OUT_CLOSE, file->node->dev_handle,
+	    file->node->index, &answer);
 
 	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
@@ -832,7 +832,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipc_call_t answer;
 	if (!read && file->append)
 		file->pos = file->node->size;
-	msg = async_send_3(fs_phone, IPC_GET_METHOD(*request),
+	msg = async_send_3(fs_phone, read ? VFS_OUT_READ : VFS_OUT_WRITE,
 	    file->node->dev_handle, file->node->index, file->pos, &answer);
 	
 	/*
@@ -946,7 +946,7 @@ vfs_truncate_internal(fs_handle_t fs_handle, dev_handle_t dev_handle,
 	int fs_phone;
 	
 	fs_phone = vfs_grab_phone(fs_handle);
-	rc = async_req_3_0(fs_phone, VFS_TRUNCATE, (ipcarg_t)dev_handle,
+	rc = async_req_3_0(fs_phone, VFS_OUT_TRUNCATE, (ipcarg_t)dev_handle,
 	    (ipcarg_t)index, (ipcarg_t)size);
 	vfs_release_phone(fs_phone);
 	return (int)rc;
@@ -1050,7 +1050,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * The name has already been unlinked by vfs_lookup_internal().
 	 * We have to get and put the VFS node to ensure that it is
-	 * VFS_DESTROY'ed after the last reference to it is dropped.
+	 * VFS_OUT_DESTROY'ed after the last reference to it is dropped.
 	 */
 	vfs_node_t *node = vfs_node_get(&lr);
 	fibril_mutex_lock(&nodes_mutex);
