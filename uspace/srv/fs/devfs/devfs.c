@@ -79,8 +79,8 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_OPEN_NODE:
 			devfs_open_node(callid, &call);
 			break;
-		case VFS_OUT_DEVICE:
-			devfs_device(callid, &call);
+		case VFS_OUT_STAT:
+			devfs_stat(callid, &call);
 			break;
 		case VFS_OUT_READ:
 			devfs_read(callid, &call);

@@ -36,7 +36,25 @@
 #define LIBC_SYS_STAT_H_
 
 #include <sys/types.h>
+#include <bool.h>
+#include <ipc/vfs.h>
+#include <ipc/devmap.h>
 
+struct stat {
+	fs_handle_t	fs_handle;
+	dev_handle_t	dev_handle;
+	fs_index_t	index;
+	unsigned	lnkcnt;
+	bool		is_file;
+	off_t		size;
+	union {
+		struct {
+			dev_handle_t	device;
+		} devfs_stat;
+	};
+};
+
+extern int fstat(int, struct stat *);
 extern int mkdir(const char *, mode_t);
 
 #endif

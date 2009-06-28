@@ -38,8 +38,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -314,48 +314,6 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 		return -1;
 }
 
-int fd_phone(int fildes)
-{
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
-	
-	ipcarg_t device;
-	ipcarg_t rc = async_req_1_1(vfs_phone, VFS_IN_DEVICE, fildes, &device);
-	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
-	
-	if (rc != EOK)
-		return -1;
-	
-	return devmap_device_connect((dev_handle_t) device, 0);
-}
-
-int fd_node(int fildes, fdi_node_t *node)
-{
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
-	
-	ipcarg_t fs_handle;
-	ipcarg_t dev_handle;
-	ipcarg_t index;
-	ipcarg_t rc = async_req_1_3(vfs_phone, VFS_IN_NODE, fildes, &fs_handle,
-	    &dev_handle, &index);
-	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
-	
-	if (rc == EOK) {
-		node->fs_handle = (fs_handle_t) fs_handle;
-		node->dev_handle = (dev_handle_t) dev_handle;
-		node->index = (fs_index_t) index;
-	}
-	
-	return rc;
-}
-
 int fsync(int fildes)
 {
 	futex_down(&vfs_phone_futex);
@@ -403,6 +361,31 @@ int ftruncate(int fildes, off_t length)
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
 	return (int) rc;
+}
+
+int fstat(int fildes, struct stat *stat)
+{
+	ipcarg_t rc;
+	ipc_call_t answer;
+	aid_t req;
+
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	req = async_send_1(vfs_phone, VFS_IN_FSTAT, fildes, NULL);
+	rc = ipc_data_read_start(vfs_phone, (void *)stat, sizeof(struct stat));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		return (ssize_t) rc;
+	}
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+
+	return rc;
 }
 
 DIR *opendir(const char *dirname)
@@ -596,6 +579,35 @@ char *getcwd(char *buf, size_t size)
 	str_cpy(buf, size, cwd_path);
 	futex_up(&cwd_futex);
 	return buf;
+}
+
+int fd_phone(int fildes)
+{
+	struct stat stat;
+	int rc;
+
+	rc = fstat(fildes, &stat);
+
+	if (!stat.devfs_stat.device)
+		return -1;
+	
+	return devmap_device_connect(stat.devfs_stat.device, 0);
+}
+
+int fd_node(int fildes, fdi_node_t *node)
+{
+	struct stat stat;
+	int rc;
+
+	rc = fstat(fildes, &stat);
+	
+	if (rc == EOK) {
+		node->fs_handle = stat.fs_handle;
+		node->dev_handle = stat.dev_handle;
+		node->index = stat.index;
+	}
+	
+	return rc;
 }
 
 /** @}

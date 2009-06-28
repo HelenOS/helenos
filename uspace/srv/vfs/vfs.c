@@ -107,6 +107,12 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_TRUNCATE:
 			vfs_truncate(callid, &call);
 			break;
+		case VFS_IN_FSTAT:
+			vfs_fstat(callid, &call);
+			break;
+		case VFS_IN_STAT:
+			vfs_stat(callid, &call);
+			break;
 		case VFS_IN_MKDIR:
 			vfs_mkdir(callid, &call);
 			break;
@@ -116,14 +122,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_RENAME:
 			vfs_rename(callid, &call);
 			break;
-		case VFS_IN_DEVICE:
-			vfs_device(callid, &call);
-			break;
 		case VFS_IN_SYNC:
 			vfs_sync(callid, &call);
-			break;
-		case VFS_IN_NODE:
-			vfs_node(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, ENOTSUP);

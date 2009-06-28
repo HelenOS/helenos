@@ -641,55 +641,6 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_1(rid, EOK, fd);
 }
 
-void vfs_node(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = IPC_GET_ARG1(*request);
-	
-	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	ipc_answer_3(rid, EOK, file->node->fs_handle, file->node->dev_handle,
-	    file->node->index);
-}
-
-void vfs_device(ipc_callid_t rid, ipc_call_t *request)
-{
-	int fd = IPC_GET_ARG1(*request);
-	
-	/* Lookup the file structure corresponding to the file descriptor. */
-	vfs_file_t *file = vfs_file_get(fd);
-	if (!file) {
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
-	
-	/* Make a VFS_OUT_DEVICE request at the destination FS server. */
-	aid_t msg;
-	ipc_call_t answer;
-	msg = async_send_2(fs_phone, VFS_OUT_DEVICE, file->node->dev_handle,
-	    file->node->index, &answer);
-
-	/* Wait for reply from the FS server. */
-	ipcarg_t rc;
-	async_wait_for(msg, &rc);
-
-	vfs_release_phone(fs_phone);
-	fibril_mutex_unlock(&file->lock);
-	
-	ipc_answer_1(rid, EOK, IPC_GET_ARG1(answer));
-}
-
 void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -974,6 +925,44 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 	fibril_mutex_unlock(&file->lock);
 	ipc_answer_0(rid, (ipcarg_t)rc);
+}
+
+void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
+{
+	int fd = IPC_GET_ARG1(*request);
+	size_t size = IPC_GET_ARG2(*request);
+	ipcarg_t rc;
+
+	vfs_file_t *file = vfs_file_get(fd);
+	if (!file) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+
+	ipc_callid_t callid;
+	if (!ipc_data_read_receive(&callid, NULL)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	fibril_mutex_lock(&file->lock);
+
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	
+	aid_t msg;
+	msg = async_send_3(fs_phone, VFS_OUT_STAT, file->node->dev_handle,
+	    file->node->index, true, NULL);
+	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_wait_for(msg, &rc);
+	vfs_release_phone(fs_phone);
+
+	fibril_mutex_unlock(&file->lock);
+	ipc_answer_0(rid, rc);
+}
+
+void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
+{
 }
 
 void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)

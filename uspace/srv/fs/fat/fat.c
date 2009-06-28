@@ -109,6 +109,9 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_TRUNCATE:
 			fat_truncate(callid, &call);
 			break;
+		case VFS_OUT_STAT:
+			fat_stat(callid, &call);
+			break;
 		case VFS_OUT_CLOSE:
 			fat_close(callid, &call);
 			break;
@@ -117,9 +120,6 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_OUT_OPEN_NODE:
 			fat_open_node(callid, &call);
-			break;
-		case VFS_OUT_DEVICE:
-			fat_device(callid, &call);
 			break;
 		case VFS_OUT_SYNC:
 			fat_sync(callid, &call);

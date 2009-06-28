@@ -628,7 +628,7 @@ void tmpfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	libfs_open_node(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
 }
 
-void tmpfs_device(ipc_callid_t rid, ipc_call_t *request)
+void tmpfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_answer_0(rid, ENOTSUP);
 }

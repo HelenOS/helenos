@@ -86,10 +86,10 @@ extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_write(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_truncate(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_stat(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_close(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_destroy(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_open_node(ipc_callid_t, ipc_call_t *);
-extern void tmpfs_device(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_sync(ipc_callid_t, ipc_call_t *);
 
 extern bool tmpfs_restore(dev_handle_t);
