@@ -963,6 +963,66 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
+	size_t len;
+	ipc_callid_t callid;
+
+	if (!ipc_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	char *path = malloc(len + 1);
+	if (!path) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	int rc;
+	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+		ipc_answer_0(rid, rc);
+		free(path);
+		return;
+	}
+	path[len] = '\0';
+
+	if (!ipc_data_read_receive(&callid, NULL)) {
+		free(path);
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	vfs_lookup_res_t lr;
+	fibril_rwlock_read_lock(&namespace_rwlock);
+	rc = vfs_lookup_internal(path, L_NONE, &lr, NULL);
+	free(path);
+	if (rc != EOK) {
+		fibril_rwlock_read_unlock(&namespace_rwlock);
+		ipc_answer_0(callid, rc);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	vfs_node_t *node = vfs_node_get(&lr);
+	if (!node) {
+		fibril_rwlock_read_unlock(&namespace_rwlock);
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	fibril_rwlock_read_unlock(&namespace_rwlock);
+
+	int fs_phone = vfs_grab_phone(node->fs_handle);
+	aid_t msg;
+	msg = async_send_3(fs_phone, VFS_OUT_STAT, node->dev_handle,
+	    node->index, false, NULL);
+	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_wait_for(msg, &rc);
+	vfs_release_phone(fs_phone);
+
+	ipc_answer_0(rid, rc);
+
+	vfs_node_put(node);
 }
 
 void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)

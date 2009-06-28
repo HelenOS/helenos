@@ -9,8 +9,7 @@
 
 static unsigned int ls_scope(const char *);
 static void ls_scan_dir(const char *, DIR *);
-static void ls_print_dir(const char *);
-static void ls_print_file(const char *, const char *);
+static void ls_print(const char *, const char *);
 
 #endif /* LS_H */
 

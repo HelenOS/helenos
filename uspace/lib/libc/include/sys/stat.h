@@ -55,6 +55,7 @@ struct stat {
 };
 
 extern int fstat(int, struct stat *);
+extern int stat(const char *, struct stat *);
 extern int mkdir(const char *, mode_t);
 
 #endif

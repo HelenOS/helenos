@@ -164,12 +164,12 @@ void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (first >= last) {
 		/* Root entry */
-		if (lflag & L_DIRECTORY)
+		if (!(lflag & L_FILE))
 			ipc_answer_5(rid, EOK, devfs_reg.fs_handle, dev_handle, 0, 0, 0);
 		else
 			ipc_answer_0(rid, ENOENT);
 	} else {
-		if (lflag & L_FILE) {
+		if (!(lflag & L_DIRECTORY)) {
 			size_t len;
 			if (last >= first)
 				len = last - first + 1;

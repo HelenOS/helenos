@@ -388,6 +388,44 @@ int fstat(int fildes, struct stat *stat)
 	return rc;
 }
 
+int stat(const char *path, struct stat *stat)
+{
+	ipcarg_t rc;
+	aid_t req;
+	
+	size_t pa_size;
+	char *pa = absolutize(path, &pa_size);
+	if (!pa)
+		return ENOMEM;
+	
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	req = async_send_0(vfs_phone, VFS_IN_STAT, NULL);
+	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(pa);
+		return (int) rc;
+	}
+	rc = ipc_data_read_start(vfs_phone, stat, sizeof(struct stat));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(pa);
+		return (int) rc;
+	}
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	free(pa);
+	return rc;
+}
+
 DIR *opendir(const char *dirname)
 {
 	DIR *dirp = malloc(sizeof(DIR));

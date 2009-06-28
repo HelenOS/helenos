@@ -50,48 +50,9 @@
 
 static char *cmdname = "ls";
 
-static inline off_t flen(const char *f)
-{
-	int fd;
-	off_t size;
-
-	fd = open(f, O_RDONLY);
-	if (fd == -1)
-		return 0;
-
-	size = lseek(fd, 0, SEEK_END);
-	close(fd);
-
-	if (size < 0)
-		size = 0;
-
-	return size;
-}
-
-static unsigned int ls_scope(const char *path)
-{
-	int fd;
-	DIR *dirp;
-
-	dirp = opendir(path);
-	if (dirp) {
-		closedir(dirp);
-		return LS_DIR;
-	}
-
-	fd = open(path, O_RDONLY);
-	if (fd > 0) {
-		close(fd);
-		return LS_FILE;
-	}
-
-	return LS_BOGUS;
-}
-
 static void ls_scan_dir(const char *d, DIR *dirp)
 {
 	struct dirent *dp;
-	unsigned int scope;
 	char *buff;
 
 	if (! dirp)
@@ -108,20 +69,7 @@ static void ls_scan_dir(const char *d, DIR *dirp)
 		/* Don't worry if inserting a double slash, this will be fixed by
 		 * absolutize() later with subsequent calls to open() or readdir() */
 		snprintf(buff, PATH_MAX - 1, "%s/%s", d, dp->d_name);
-		scope = ls_scope(buff);
-		switch (scope) {
-		case LS_DIR:
-			ls_print_dir(dp->d_name);
-			break;
-		case LS_FILE:
-			ls_print_file(dp->d_name, buff);
-			break;
-		case LS_BOGUS:
-			/* Odd chance it was deleted from the time readdir() found
-			 * it and the time that it was scoped */
-			printf("ls: skipping bogus node %s\n", dp->d_name);
-			break;
-		}
+		ls_print(dp->d_name, buff);
 	}
 
 	free(buff);
@@ -129,23 +77,29 @@ static void ls_scan_dir(const char *d, DIR *dirp)
 	return;
 }
 
-/* ls_print_* currently does nothing more than print the entry.
+/* ls_print currently does nothing more than print the entry.
  * in the future, we will likely pass the absolute path, and
  * some sort of ls_options structure that controls how each
  * entry is printed and what is printed about it.
  *
  * Now we just print basic DOS style lists */
 
-static void ls_print_dir(const char *d)
+static void ls_print(const char *name, const char *pathname)
 {
-	printf("%-40s\t<dir>\n", d);
+	struct stat s;
+	int rc;
 
-	return;
-}
-
-static void ls_print_file(const char *name, const char *pathname)
-{
-	printf("%-40s\t%llu\n", name, (long long) flen(pathname));
+	if (rc = stat(pathname, &s)) {
+		/* Odd chance it was deleted from the time readdir() found it */
+		printf("ls: skipping bogus node %s\n", pathname);
+		printf("rc=%d\n", rc);
+		return;
+	}
+	
+	if (s.is_file)
+		printf("%-40s\t%llu\n", name, (long long) s.size);
+	else
+		printf("%-40s\n", name);
 
 	return;
 }
@@ -166,7 +120,7 @@ void help_cmd_ls(unsigned int level)
 int cmd_ls(char **argv)
 {
 	unsigned int argc;
-	unsigned int scope;
+	struct stat s;
 	char *buff;
 	DIR *dirp;
 
@@ -184,19 +138,17 @@ int cmd_ls(char **argv)
 	else
 		str_cpy(buff, PATH_MAX, argv[1]);
 
-	scope = ls_scope(buff);
-
-	switch (scope) {
-	case LS_BOGUS:
+	if (stat(buff, &s)) {
 		cli_error(CL_ENOENT, buff);
 		free(buff);
 		return CMD_FAILURE;
-	case LS_FILE:
-		ls_print_file(buff, buff);
-		break;
-	case LS_DIR:
+	}
+
+	if (s.is_file) {
+		ls_print(buff, buff);
+	} else {
 		dirp = opendir(buff);
-		if (! dirp) {
+		if (!dirp) {
 			/* May have been deleted between scoping it and opening it */
 			cli_error(CL_EFAIL, "Could not stat %s", buff);
 			free(buff);
@@ -204,7 +156,6 @@ int cmd_ls(char **argv)
 		}
 		ls_scan_dir(buff, dirp);
 		closedir(dirp);
-		break;
 	}
 
 	free(buff);
