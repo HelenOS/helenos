@@ -80,8 +80,8 @@ typedef struct {
 	cache_t *cache;
 } devcon_t;
 
-static int write_block(devcon_t *devcon, bn_t boff, size_t block_size,
-    const void *src);
+static int read_block(devcon_t *devcon, bn_t boff, size_t block_size);
+static int write_block(devcon_t *devcon, bn_t boff, size_t block_size);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -211,14 +211,14 @@ int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
 	if (!bb_buf)
 		return ENOMEM;
 	
-	off_t bufpos = 0;
-	size_t buflen = 0;
-	rc = block_read(dev_handle, &bufpos, &buflen, &off,
-	    bb_buf, size, size);
+	rc = read_block(devcon, 0, size);
 	if (rc != EOK) {
 	    	free(bb_buf);
 		return rc;
 	}
+
+	memcpy(bb_buf, devcon->com_area, size);
+
 	devcon->bb_buf = bb_buf;
 	devcon->bb_off = off;
 	devcon->bb_size = size;
@@ -339,9 +339,6 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 		 * The block was not found in the cache.
 		 */
 		int rc;
-		off_t bufpos = 0;
-		size_t buflen = 0;
-		off_t pos = boff * cache->block_size;
 		bool sync = false;
 
 		if (cache_can_grow(cache)) {
@@ -399,9 +396,9 @@ recycle:
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
-			rc = block_read(dev_handle, &bufpos, &buflen, &pos,
-			    b->data, cache->block_size, cache->block_size);
+			rc = read_block(devcon, b->boff, cache->block_size);
 			assert(rc == EOK);
+			memcpy(b->data, devcon->com_area, cache->block_size);
 		}
 
 		fibril_mutex_unlock(&b->lock);
@@ -434,8 +431,8 @@ void block_put(block_t *block)
 		 */
 		list_append(&block->free_link, &cache->free_head);
 		if (cache->mode != CACHE_MODE_WB && block->dirty) {
-			rc = write_block(devcon, block->boff, block->size,
-			    block->data);
+			memcpy(devcon->com_area, block->data, block->size);
+			rc = write_block(devcon, block->boff, block->size);
 			assert(rc == EOK);
 
 			block->dirty = false;
@@ -445,7 +442,7 @@ void block_put(block_t *block)
 	fibril_mutex_unlock(&cache->lock);
 }
 
-/** Read data from a block device.
+/** Read sequential data from a block device.
  *
  * @param dev_handle	Device handle of the block device.
  * @param bufpos	Pointer to the first unread valid offset within the
@@ -459,9 +456,8 @@ void block_put(block_t *block)
  *
  * @return		EOK on success or a negative return code on failure.
  */
-int
-block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
-    void *dst, size_t size, size_t block_size)
+int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
+    off_t *pos, void *dst, size_t size, size_t block_size)
 {
 	off_t offset = 0;
 	size_t left = size;
@@ -490,17 +486,40 @@ block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
 		
 		if (*bufpos == (off_t) *buflen) {
 			/* Refill the communication buffer with a new block. */
-			ipcarg_t retval;
-			int rc = async_req_2_1(devcon->dev_phone, BD_READ_BLOCK,
-			    *pos / block_size, block_size, &retval);
-			if ((rc != EOK) || (retval != EOK))
-				return (rc != EOK ? rc : (int) retval);
+			int rc;
+
+			rc = read_block(devcon, *pos / block_size, block_size);
+			if (rc != EOK)
+				return rc;
 			
 			*bufpos = 0;
 			*buflen = block_size;
 		}
 	}
 	
+	return EOK;
+}
+
+/** Read block from block device.
+ *
+ * @param devcon	Device connection.
+ * @param boff		Block index.
+ * @param block_size	Block size.
+ * @param src		Buffer for storing the data.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+static int read_block(devcon_t *devcon, bn_t boff, size_t block_size)
+{
+	ipcarg_t retval;
+	int rc;
+
+	assert(devcon);
+	rc = async_req_2_1(devcon->dev_phone, BD_READ_BLOCK, boff, block_size,
+	    &retval);
+	if ((rc != EOK) || (retval != EOK))
+		return (rc != EOK ? rc : (int) retval);
+
 	return EOK;
 }
 
@@ -513,17 +532,14 @@ block_read(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen, off_t *pos,
  *
  * @return		EOK on success or negative error code on failure.
  */
-static int write_block(devcon_t *devcon, bn_t boff, size_t block_size,
-    const void *src)
+static int write_block(devcon_t *devcon, bn_t boff, size_t block_size)
 {
 	ipcarg_t retval;
 	int rc;
 
 	assert(devcon);
-	memcpy(devcon->com_area, src, block_size);
-	
-	rc = async_req_2_1(devcon->dev_phone, BD_WRITE_BLOCK,
-	    boff, block_size, &retval);
+	rc = async_req_2_1(devcon->dev_phone, BD_WRITE_BLOCK, boff, block_size,
+	    &retval);
 	if ((rc != EOK) || (retval != EOK))
 		return (rc != EOK ? rc : (int) retval);
 
