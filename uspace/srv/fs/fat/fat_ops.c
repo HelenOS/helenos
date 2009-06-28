@@ -1204,7 +1204,7 @@ void fat_open_node(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	libfs_stat(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
 }
 
 void fat_sync(ipc_callid_t rid, ipc_call_t *request)

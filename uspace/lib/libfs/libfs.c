@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <mem.h>
+#include <sys/stat.h>
 
 /** Register file system server.
  *
@@ -426,6 +427,43 @@ out:
 		ops->node_put(cur);
 	if (tmp)
 		ops->node_put(tmp);
+}
+
+void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
+    ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	fs_node_t *fn = ops->node_get(dev_handle, index);
+
+	ipc_callid_t callid;
+	size_t size;
+	if (!ipc_data_read_receive(&callid, &size) ||
+	    size < sizeof(struct stat)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	struct stat *stat = malloc(sizeof(struct stat));
+	if (!stat) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	memset(stat, 0, sizeof(struct stat));
+	
+	stat->fs_handle = fs_handle;
+	stat->dev_handle = dev_handle;
+	stat->index = index;
+	stat->lnkcnt = ops->lnkcnt_get(fn); 
+	stat->is_file = ops->is_file(fn);
+	stat->size = ops->size_get(fn);
+
+	ipc_data_read_finalize(callid, stat, sizeof(struct stat));
+	ipc_answer_0(rid, EOK);
+
+	free(stat);
 }
 
 /** Open VFS triplet.
