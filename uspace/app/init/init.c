@@ -55,31 +55,31 @@ static void info_print(void)
 
 static bool mount_root(const char *fstype)
 {
-	int rc = -1;
 	char *opts = "";
 	const char *root_dev = "initrd";
 	
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
-
-	while (rc < 0) {
-		rc = mount(fstype, "/", root_dev, opts, IPC_FLAG_BLOCKING);
-		
-		switch (rc) {
-		case EOK:
-			printf(NAME ": Root filesystem mounted, %s at %s\n",
-			    fstype, root_dev);
-			break;
-		case EBUSY:
-			printf(NAME ": Root filesystem already mounted\n");
-			break;
-		case ELIMIT:
-			printf(NAME ": Unable to mount root filesystem\n");
-			return false;
-		case ENOENT:
-			printf(NAME ": Unknown filesystem type (%s)\n", fstype);
-			return false;
-		}
+	
+	int rc = mount(fstype, "/", root_dev, opts, IPC_FLAG_BLOCKING);
+	
+	switch (rc) {
+	case EOK:
+		printf(NAME ": Root filesystem mounted, %s at %s\n",
+		    fstype, root_dev);
+		break;
+	case EBUSY:
+		printf(NAME ": Root filesystem already mounted\n");
+		return false;
+	case ELIMIT:
+		printf(NAME ": Unable to mount root filesystem\n");
+		return false;
+	case ENOENT:
+		printf(NAME ": Unknown filesystem type (%s)\n", fstype);
+		return false;
+	default:
+		printf(NAME ": Error mounting root filesystem (%d)\n", rc);
+		return false;
 	}
 	
 	return true;
@@ -87,25 +87,37 @@ static bool mount_root(const char *fstype)
 
 static bool mount_devfs(void)
 {
-	int rc = -1;
+	char null[MAX_DEVICE_NAME];
+	int null_id = devmap_null_create();
 	
-	while (rc < 0) {
-		rc = mount("devfs", "/dev", "null", "", IPC_FLAG_BLOCKING);
-		
-		switch (rc) {
-		case EOK:
-			printf(NAME ": Device filesystem mounted\n");
-			break;
-		case EBUSY:
-			printf(NAME ": Device filesystem already mounted\n");
-			break;
-		case ELIMIT:
-			printf(NAME ": Unable to mount device filesystem\n");
-			return false;
-		case ENOENT:
-			printf(NAME ": Unknown filesystem type (devfs)\n");
-			return false;
-		}
+	if (null_id == -1) {
+		printf(NAME ": Unable to create null device\n");
+		return false;
+	}
+	
+	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
+	int rc = mount("devfs", "/dev", null, "", IPC_FLAG_BLOCKING);
+	
+	switch (rc) {
+	case EOK:
+		printf(NAME ": Device filesystem mounted\n");
+		break;
+	case EBUSY:
+		printf(NAME ": Device filesystem already mounted\n");
+		devmap_null_destroy(null_id);
+		return false;
+	case ELIMIT:
+		printf(NAME ": Unable to mount device filesystem\n");
+		devmap_null_destroy(null_id);
+		return false;
+	case ENOENT:
+		printf(NAME ": Unknown filesystem type (devfs)\n");
+		devmap_null_destroy(null_id);
+		return false;
+	default:
+		printf(NAME ": Error mounting device filesystem (%d)\n", rc);
+		devmap_null_destroy(null_id);
+		return false;
 	}
 	
 	return true;
@@ -187,10 +199,10 @@ int main(int argc, char *argv[])
 	spawn("/srv/obio");
 	spawn("/srv/ata_bd");
 	spawn("/srv/gxe_bd");
-
-	usleep(250000);
-	mount_data();	
-
+	
+	usleep(250000); // FIXME
+	mount_data();
+	
 	getvc("vc0", "/app/bdsh");
 	getvc("vc1", "/app/bdsh");
 	getvc("vc2", "/app/bdsh");
