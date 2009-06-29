@@ -46,7 +46,8 @@
 #include <string.h>
 #include <ipc/devmap.h>
 
-#define NAME  "devmap"
+#define NAME          "devmap"
+#define NULL_DEVICES  256
 
 /** Representation of device driver.
  *
@@ -97,8 +98,10 @@ static FIBRIL_MUTEX_INITIALIZE(devices_list_mutex);
 static FIBRIL_CONDVAR_INITIALIZE(devices_list_cv);
 static FIBRIL_MUTEX_INITIALIZE(drivers_list_mutex);
 static FIBRIL_MUTEX_INITIALIZE(create_handle_mutex);
+static FIBRIL_MUTEX_INITIALIZE(null_devices_mutex);
 
 static dev_handle_t last_handle = 0;
+static devmap_device_t *null_devices[NULL_DEVICES];
 
 static dev_handle_t devmap_create_handle(void)
 {
@@ -618,21 +621,43 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_1(iid, EOK, pos);
 }
 
-/** Initialize device mapper.
- *
- *
- */
-static bool devmap_init(void)
+static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
 {
+	fibril_mutex_lock(&null_devices_mutex);
+	
+	unsigned int i;
+	bool fnd = false;
+	
+	for (i = 0; i < NULL_DEVICES; i++) {
+		if (null_devices[i] == NULL) {
+			fnd = true;
+			break;
+		}
+	}
+	
+	if (!fnd) {
+		fibril_mutex_unlock(&null_devices_mutex);
+		ipc_answer_0(iid, ENOMEM);
+		return;
+	}
+	
 	/* Create NULL device entry */
 	devmap_device_t *device = (devmap_device_t *) malloc(sizeof(devmap_device_t));
-	if (device == NULL)
-		return false;
+	if (device == NULL) {
+		fibril_mutex_unlock(&null_devices_mutex);
+		ipc_answer_0(iid, ENOMEM);
+		return;
+	}
 	
-	device->name = str_dup("null");
+	char null[DEVMAP_NAME_MAXLEN];
+	snprintf(null, DEVMAP_NAME_MAXLEN, "null%u", i);
+	
+	device->name = str_dup(null);
 	if (device->name == NULL) {
+		fibril_mutex_unlock(&null_devices_mutex);
 		free(device);
-		return false;
+		ipc_answer_0(iid, ENOMEM);
+		return;
 	}
 	
 	list_initialize(&(device->devices));
@@ -644,10 +669,49 @@ static bool devmap_init(void)
 	device->handle = devmap_create_handle();
 	device->driver = NULL;
 	
-	/* Insert device into list of all devices  */
+	/* Insert device into list of all devices
+	   and into null devices array */
 	list_append(&device->devices, &devices_list);
+	null_devices[i] = device;
 	
 	fibril_mutex_unlock(&devices_list_mutex);
+	fibril_mutex_unlock(&null_devices_mutex);
+	
+	ipc_answer_1(iid, EOK, (ipcarg_t) i);
+}
+
+static void devmap_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
+{
+	fibril_mutex_lock(&null_devices_mutex);
+	
+	ipcarg_t i = IPC_GET_ARG1(*icall);
+	
+	if (null_devices[i] == NULL) {
+		ipc_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	devmap_device_unregister_core(null_devices[i]);
+	null_devices[i] = NULL;
+	
+	fibril_mutex_unlock(&null_devices_mutex);
+	
+	ipc_answer_0(iid, EOK);
+}
+
+/** Initialize device mapper.
+ *
+ *
+ */
+static bool devmap_init(void)
+{
+	fibril_mutex_lock(&null_devices_mutex);
+	
+	unsigned int i;
+	for (i = 0; i < NULL_DEVICES; i++)
+		null_devices[i] = NULL;
+	
+	fibril_mutex_unlock(&null_devices_mutex);
 	
 	return true;
 }
@@ -701,7 +765,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	if (NULL != driver) {
+	if (driver != NULL) {
 		/*
 		 * Unregister the device driver and all its devices.
 		 */
@@ -732,6 +796,12 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case DEVMAP_DEVICE_GET_NAME:
 			devmap_get_name(callid, &call);
+			break;
+		case DEVMAP_DEVICE_NULL_CREATE:
+			devmap_null_create(callid, &call);
+			break;
+		case DEVMAP_DEVICE_NULL_DESTROY:
+			devmap_null_destroy(callid, &call);
 			break;
 		case DEVMAP_DEVICE_GET_COUNT:
 			devmap_get_count(callid, &call);
@@ -783,7 +853,7 @@ int main(int argc, char *argv[])
 	
 	/* Set a handler of incomming connections */
 	async_set_client_connection(devmap_connection);
-
+	
 	/* Register device mapper at naming service */
 	ipcarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, &phonead) != 0) 

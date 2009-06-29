@@ -47,6 +47,9 @@ extern int devmap_device_register(const char *, dev_handle_t *);
 extern int devmap_device_get_handle(const char *, dev_handle_t *, unsigned int);
 extern int devmap_device_connect(dev_handle_t, unsigned int);
 
+extern int devmap_null_create(void);
+extern void devmap_null_destroy(int);
+
 extern ipcarg_t devmap_device_get_count(void);
 extern ipcarg_t devmap_device_get_devices(ipcarg_t, dev_desc_t *);
 

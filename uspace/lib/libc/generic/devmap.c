@@ -218,6 +218,31 @@ int devmap_device_connect(dev_handle_t handle, unsigned int flags)
 	return phone;
 }
 
+int devmap_null_create(void)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return -1;
+	
+	ipcarg_t null_id;
+	int retval = async_req_0_1(phone, DEVMAP_DEVICE_NULL_CREATE, &null_id);
+	if (retval != EOK)
+		return -1;
+	
+	return (int) null_id;
+}
+
+void devmap_null_destroy(int null_id)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return;
+	
+	async_req_1_0(phone, DEVMAP_DEVICE_NULL_DESTROY, (ipcarg_t) null_id);
+}
+
 ipcarg_t devmap_device_get_count(void)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
