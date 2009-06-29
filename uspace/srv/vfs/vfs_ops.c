@@ -1017,10 +1017,12 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	msg = async_send_3(fs_phone, VFS_OUT_STAT, node->dev_handle,
 	    node->index, false, NULL);
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-	async_wait_for(msg, &rc);
+	
+	ipcarg_t rv;
+	async_wait_for(msg, &rv);
 	vfs_release_phone(fs_phone);
 
-	ipc_answer_0(rid, rc);
+	ipc_answer_0(rid, rv);
 
 	vfs_node_put(node);
 }
