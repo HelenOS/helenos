@@ -180,17 +180,34 @@ void setvbuf(FILE *stream, void *buf, int mode, size_t size)
 	stream->buf_head = stream->buf;
 }
 
+static void _setvbuf(FILE *stream)
+{
+	/* FIXME: Use more complex rules for setting buffering options. */
+	
+	switch (stream->fd) {
+	case 1:
+		setvbuf(stream, NULL, _IOLBF, BUFSIZ);
+		break;
+	case 0:
+	case 2:
+		setvbuf(stream, NULL, _IONBF, 0);
+		break;
+	default:
+		setvbuf(stream, NULL, _IOFBF, BUFSIZ);
+	}
+}
+
 /** Allocate stream buffer. */
 static int _fallocbuf(FILE *stream)
 {
 	assert(stream->buf == NULL);
-
+	
 	stream->buf = malloc(stream->buf_size);
 	if (stream->buf == NULL) {
 		errno = ENOMEM;
 		return -1;
 	}
-
+	
 	stream->buf_head = stream->buf;
 	return 0;
 }
@@ -225,9 +242,7 @@ FILE *fopen(const char *path, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
-
-	/* FIXME: Should select buffering type based on what was opened. */
-	setvbuf(stream, NULL, _IOFBF, BUFSIZ);
+	_setvbuf(stream);
 	
 	list_append(&stream->link, &files);
 	
@@ -248,9 +263,7 @@ FILE *fdopen(int fd, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
-
-	/* FIXME: Should select buffering type based on what was opened. */
-	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
+	_setvbuf(stream);
 	
 	list_append(&stream->link, &files);
 	
@@ -281,9 +294,7 @@ FILE *fopen_node(fdi_node_t *node, const char *mode)
 	stream->eof = false;
 	stream->klog = false;
 	stream->phone = -1;
-
-	/* FIXME: Should select buffering type based on what was opened. */
-	setvbuf(stream, NULL, _IOLBF, BUFSIZ);
+	_setvbuf(stream);
 	
 	list_append(&stream->link, &files);
 	
@@ -331,10 +342,10 @@ size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t left = size * nmemb;
 	size_t done = 0;
-
+	
 	/* Make sure no data is pending write. */
 	_fflushbuf(stream);
-
+	
 	while ((left > 0) && (!stream->error) && (!stream->eof)) {
 		ssize_t rd = read(stream->fd, buf + done, left);
 		
@@ -379,14 +390,14 @@ static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 static void _fflushbuf(FILE *stream)
 {
 	size_t bytes_used;
-
-	if (!stream->buf || stream->btype == _IONBF || stream->error)
+	
+	if ((!stream->buf) || (stream->btype == _IONBF) || (stream->error))
 		return;
-
+	
 	bytes_used = stream->buf_head - stream->buf;
 	if (bytes_used == 0)
 		return;
-
+	
 	(void) _fwrite(stream->buf, 1, bytes_used, stream);
 	stream->buf_head = stream->buf;
 }
@@ -409,54 +420,56 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	size_t i;
 	uint8_t b;
 	bool need_flush;
-
+	
 	/* If not buffered stream, write out directly. */
-	if (stream->btype == _IONBF)
-		return _fwrite(buf, size, nmemb, stream);
-
+	if (stream->btype == _IONBF) {
+		now = _fwrite(buf, size, nmemb, stream);
+		fflush(stream);
+		return now;
+	}
+	
 	/* Perform lazy allocation of stream buffer. */
 	if (stream->buf == NULL) {
 		if (_fallocbuf(stream) != 0)
 			return 0; /* Errno set by _fallocbuf(). */
 	}
-
+	
 	data = (uint8_t *) buf;
 	bytes_left = size * nmemb;
 	total_written = 0;
 	need_flush = false;
-
-	while (!stream->error && bytes_left > 0) {
-
+	
+	while ((!stream->error) && (bytes_left > 0)) {
 		buf_free = stream->buf_size - (stream->buf_head - stream->buf);
 		if (bytes_left > buf_free)
 			now = buf_free;
 		else
 			now = bytes_left;
-
+		
 		for (i = 0; i < now; i++) {
 			b = data[i];
 			stream->buf_head[i] = b;
-
-			if (b == '\n' && stream->btype == _IOLBF)
+			
+			if ((b == '\n') && (stream->btype == _IOLBF))
 				need_flush = true;
 		}
-
+		
 		buf += now;
 		stream->buf_head += now;
 		buf_free -= now;
 		bytes_left -= now;
 		total_written += now;
-
+		
 		if (buf_free == 0) {
 			/* Only need to drain buffer. */
 			_fflushbuf(stream);
 			need_flush = false;
 		}
 	}
-
+	
 	if (need_flush)
 		fflush(stream);
-
+	
 	return (total_written / size);
 }
 
@@ -495,13 +508,13 @@ int puts(const char *str)
 int fgetc(FILE *stream)
 {
 	char c;
-
+	
 	/* This could be made faster by only flushing when needed. */
 	if (stdout)
 		fflush(stdout);
 	if (stderr)
 		fflush(stderr);
-
+	
 	if (fread(&c, sizeof(char), 1, stream) < sizeof(char))
 		return EOF;
 	
@@ -534,7 +547,7 @@ void rewind(FILE *stream)
 int fflush(FILE *stream)
 {
 	_fflushbuf(stream);
-
+	
 	if (stream->klog) {
 		klog_update();
 		return EOK;
