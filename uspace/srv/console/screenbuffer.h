@@ -135,6 +135,8 @@ static inline int attrs_same(attrs_t a1, attrs_t a2)
 		return (a1.a.r.fg_color == a2.a.r.fg_color)
 		    && (a1.a.r.bg_color == a2.a.r.bg_color);
 	}
+	
+	return 0;
 }
 
 
