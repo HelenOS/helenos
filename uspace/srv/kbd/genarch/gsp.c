@@ -244,7 +244,7 @@ static void trans_insert(gsp_t *p, gsp_trans_t *t)
 	key[0] = t->old_state;
 	key[1] = t->input;
 
-	hash_table_insert(&p->trans, &key, &t->link);
+	hash_table_insert(&p->trans, key, &t->link);
 }
 
 /** Allocate transition structure. */
@@ -276,7 +276,8 @@ static int trans_op_compare(unsigned long key[], hash_count_t keys,
 	gsp_trans_t *t;
 
 	t = hash_table_get_instance(item, gsp_trans_t, link);
-	return (key[0] == t->old_state && key[1] == t->input);
+	return ((key[0] == (unsigned long) t->old_state)
+	    && (key[1] == (unsigned long) t->input));
 }
 
 static void trans_op_remove_callback(link_t *item)

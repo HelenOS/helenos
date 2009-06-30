@@ -207,6 +207,9 @@ void kbd_ctl_parse_scancode(int scancode)
 		map = scanmap_e0;
 		map_length = sizeof(scanmap_e0) / sizeof(int);
 		break;
+	default:
+		map = NULL;
+		map_length = 0;
 	}
 
 	ds = ds_s;
@@ -218,7 +221,7 @@ void kbd_ctl_parse_scancode(int scancode)
 		type = KEY_PRESS;
 	}
 
-	if (scancode < 0 || scancode >= map_length)
+	if ((scancode < 0) || ((size_t) scancode >= map_length))
 		return;
 
 	key = map[scancode];

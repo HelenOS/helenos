@@ -399,6 +399,8 @@ static wchar_t layout_parse_ev(console_event_t *ev)
 	case ms_carka:
 		return parse_ms_carka(ev);
 	}
+	
+	return 0;
 }
 
 /**

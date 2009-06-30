@@ -135,8 +135,8 @@ int kbd_port_init(void)
 		(void) pio_read_8(&i8042->data);
 	
 	/* Enable kbd */
-	i8042_kbd.cmds[0].addr = &((i8042_t *) i8042_kernel)->status;
-	i8042_kbd.cmds[3].addr = &((i8042_t *) i8042_kernel)->data;
+	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
+	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
 	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &i8042_kbd);
 
 	int newcontrol = i8042_KBD_IE | i8042_KBD_TRANSLATE;
