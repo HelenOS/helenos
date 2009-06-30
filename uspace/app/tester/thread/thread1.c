@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define THREADS 5
+#define THREADS  20
+#define DELAY    10
 
 #include <atomic.h>
 #include <thread.h>
@@ -42,40 +43,38 @@ static bool sh_quiet;
 static void threadtest(void *data)
 {
 	thread_detach(thread_get_id());
-
-	while (atomic_get(&finish)) {
-		if (!sh_quiet)
-			printf("%llu ", thread_get_id());
+	
+	while (atomic_get(&finish))
 		usleep(100000);
-	}
+	
 	atomic_inc(&threads_finished);
 }
 
-char * test_thread1(bool quiet)
+char *test_thread1(void)
 {
-	unsigned int i, total = 0;
-	sh_quiet = quiet;
+	unsigned int i;
+	unsigned int total = 0;
 	
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);
-
-	for (i = 0; i < THREADS; i++) {  
+	
+	TPRINTF("Creating threads");
+	for (i = 0; i < THREADS; i++) {
 		if (thread_create(threadtest, NULL, "threadtest", NULL) < 0) {
-			if (!quiet)
-				printf("Could not create thread %d\n", i);
+			TPRINTF("\nCould not create thread %u\n", i);
 			break;
 		}
+		TPRINTF(".");
 		total++;
 	}
 	
-	if (!quiet)
-		printf("Running threads for 10 seconds...\n");
-	sleep(10);
+	TPRINTF("\nRunning threads for %u seconds...", DELAY);
+	sleep(DELAY);
+	TPRINTF("\n");
 	
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < total) {
-		if (!quiet)
-			printf("Threads left: %d\n", total - atomic_get(&threads_finished));
+		TPRINTF("Threads left: %u\n", total - atomic_get(&threads_finished));
 		sleep(1);
 	}
 	

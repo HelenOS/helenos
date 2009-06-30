@@ -27,58 +27,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester User space Tester
- * @brief	User space testing infrastructure.
+/** @addtogroup tester User space tester
+ * @brief User space testing infrastructure.
  * @{
- */ 
+ */
 /**
  * @file
  */
 
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include "tester.h"
 
-int myservice = 0;
-int phones[MAX_PHONES];
-int connections[MAX_CONNECTIONS];
-ipc_callid_t callids[MAX_CONNECTIONS];
+bool test_quiet;
+int test_argc;
+char **test_argv;
 
 test_t tests[] = {
 #include "thread/thread1.def"
 #include "print/print1.def"
+#include "print/print2.def"
+#include "print/print3.def"
 #include "print/print4.def"
-#include "fault/fault1.def"
-#include "fault/fault2.def"
-#include "ipc/register.def"
-#include "ipc/connect.def"
-#include "ipc/send_async.def"
-#include "ipc/send_sync.def"
-#include "ipc/answer.def"
-#include "ipc/hangup.def"
-#include "ipc/ping_pong.def"
-#include "devmap/devmap1.def"
-#include "loop/loop1.def"
-#include "vfs/vfs1.def"
 #include "console/console1.def"
 #include "stdio/stdio1.def"
 #include "stdio/stdio2.def"
-	{NULL, NULL, NULL}
+#include "fault/fault1.def"
+#include "fault/fault2.def"
+#include "vfs/vfs1.def"
+#include "ipc/ping_pong.def"
+#include "ipc/register.def"
+#include "ipc/connect.def"
+#include "loop/loop1.def"
+#include "mm/malloc1.def"
+	{NULL, NULL, NULL, false}
 };
 
 static bool run_test(test_t *test)
 {
-	printf("%s\t\t%s\n", test->name, test->desc);
-	
 	/* Execute the test */
-	char * ret = test->entry(false);
+	char *ret = test->entry();
 	
 	if (ret == NULL) {
-		printf("Test passed\n\n");
+		printf("\nTest passed\n");
 		return true;
 	}
-
-	printf("%s\n\n", ret);
+	
+	printf("\n%s\n", ret);
 	return false;
 }
 
@@ -87,75 +83,64 @@ static void run_safe_tests(void)
 	test_t *test;
 	unsigned int i = 0;
 	unsigned int n = 0;
-
+	
 	printf("\n*** Running all safe tests ***\n\n");
-
+	
 	for (test = tests; test->name != NULL; test++) {
 		if (test->safe) {
+			printf("%s (%s)\n", test->name, test->desc);
 			if (run_test(test))
 				i++;
 			else
 				n++;
 		}
 	}
-
-	printf("\nSafe tests completed, %u tests run, %u passed.\n\n", i + n, i);
+	
+	printf("\nCompleted, %u tests run, %u passed.\n", i + n, i);
 }
 
 static void list_tests(void)
 {
+	size_t len = 0;
 	test_t *test;
-	char c = 'a';
+	for (test = tests; test->name != NULL; test++) {
+		if (str_length(test->name) > len)
+			len = str_length(test->name);
+	}
 	
-	for (test = tests; test->name != NULL; test++, c++)
-		printf("%c\t%s\t\t%s%s\n", c, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
 	
-	printf("*\t\t\tRun all safe tests\n");
+	printf("%-*s Run all safe tests\n", len, "*");
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-	printf("Number of arguments: %d\n", argc);
-	if (argv) {
-		printf("Arguments:");
-		while (*argv) {
-			printf(" '%s'", *argv++);
-		}
-		printf("\n");
-	}
-
-	while (1) {
-		char c;
-		test_t *test;
-		
+	if (argc < 2) {
+		printf("Usage:\n\n");
+		printf("%s <test> [args ...]\n\n", argv[0]);
 		list_tests();
-		printf("> ");
-		fflush(stdout);
-		
-		c = getchar();
-		printf("%c\n", c);
-		
-		if ((c >= 'a') && (c <= 'z')) {
-			for (test = tests; test->name != NULL; test++, c--)
-				if (c == 'a')
-					break;
-			
-			if (test->name == NULL)
-				printf("Unknown test\n\n");
-			else
-				run_test(test);
-		} else if (c == '*') {
-			run_safe_tests();
-		} else if (c < 0) {
-			/* got EOF */
-			break;
-		} else {
-			printf("Invalid test\n\n");
-		}
-			
+		return 0;
 	}
-
-	return 0;
+	
+	test_quiet = false;
+	test_argc = argc - 2;
+	test_argv = argv + 2;
+	
+	if (str_cmp(argv[1], "*") == 0) {
+		run_safe_tests();
+		return 0;
+	}
+	
+	test_t *test;
+	for (test = tests; test->name != NULL; test++) {
+		if (str_cmp(argv[1], test->name) == 0) {
+			return (run_test(test) ? 0 : -1);
+		}
+	}
+	
+	printf("Unknown test \"%s\"\n", argv[1]);
+	return -2;
 }
 
 /** @}

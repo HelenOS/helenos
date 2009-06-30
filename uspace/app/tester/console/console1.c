@@ -46,78 +46,78 @@ const char *color_name[] = {
 	[COLOR_WHITE] = "white"
 };
 
-char * test_console1(bool quiet)
+char *test_console1(void)
 {
-	int i, j;
-
-	printf("Style test: ");
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
-	printf("normal ");
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_EMPHASIS);
-	printf("emphasized");
-	fflush(stdout);
-	console_set_style(fphone(stdout), STYLE_NORMAL);
-	printf(".\n");
-
-	printf("Foreground color test:\n");
-	for (j = 0; j < 2; j++) {
-		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
+	if (!test_quiet) {
+		printf("Style test: ");
+		fflush(stdout);
+		console_set_style(fphone(stdout), STYLE_NORMAL);
+		printf("normal ");
+		fflush(stdout);
+		console_set_style(fphone(stdout), STYLE_EMPHASIS);
+		printf("emphasized");
+		fflush(stdout);
+		console_set_style(fphone(stdout), STYLE_NORMAL);
+		printf(".\n");
+		
+		unsigned int i;
+		unsigned int j;
+		
+		printf("\nForeground color test:\n");
+		for (j = 0; j < 2; j++) {
+			for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
+				fflush(stdout);
+				console_set_color(fphone(stdout), i, COLOR_WHITE,
+				    j ? CATTR_BRIGHT : 0);
+				printf(" %s ", color_name[i]);
+			}
 			fflush(stdout);
-			console_set_color(fphone(stdout), i, COLOR_WHITE,
-			    j ? CATTR_BRIGHT : 0);
-			printf(" %s ", color_name[i]);
+			console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+			putchar('\n');
+		}
+		
+		printf("\nBackground color test:\n");
+		for (j = 0; j < 2; j++) {
+			for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
+				fflush(stdout);
+				console_set_color(fphone(stdout), COLOR_WHITE, i,
+				    j ? CATTR_BRIGHT : 0);
+				printf(" %s ", color_name[i]);
+			}
+			fflush(stdout);
+			console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+			putchar('\n');
+		}
+		
+		printf("\nRGB colors test:\n");
+		
+		for (i = 0; i < 255; i += 16) {
+			fflush(stdout);
+			console_set_rgb_color(fphone(stdout), 0xffffff, i << 16);
+			putchar('X');
+		}
+		fflush(stdout);
+		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+		putchar('\n');
+		
+		for (i = 0; i < 255; i += 16) {
+			fflush(stdout);
+			console_set_rgb_color(fphone(stdout), 0xffffff, i << 8);
+			putchar('X');
+		}
+		fflush(stdout);
+		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+		putchar('\n');
+		
+		for (i = 0; i < 255; i += 16) {
+			fflush(stdout);
+			console_set_rgb_color(fphone(stdout), 0xffffff, i);
+			putchar('X');
 		}
 		fflush(stdout);
 		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
 		putchar('\n');
 	}
-
-	printf("Background color test:\n");
-	for (j = 0; j < 2; j++) {
-		for (i = COLOR_BLACK; i <= COLOR_WHITE; i++) {
-			fflush(stdout);
-			console_set_color(fphone(stdout), COLOR_WHITE, i,
-			    j ? CATTR_BRIGHT : 0);
-			printf(" %s ", color_name[i]);
-		}
-		fflush(stdout);
-		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
-		putchar('\n');
-	}
-
-	printf("Now let's test RGB colors:\n");
-
-	for (i = 0; i < 255; i += 16) {
-		fflush(stdout);
-		console_set_rgb_color(fphone(stdout), 0xffffff, i << 16);
-		putchar('X');
-	}
-	fflush(stdout);
-	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
-	putchar('\n');
-
-	for (i = 0; i < 255; i += 16) {
-		fflush(stdout);
-		console_set_rgb_color(fphone(stdout), 0xffffff, i << 8);
-		putchar('X');
-	}
-	fflush(stdout);
-	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
-	putchar('\n');
-
-	for (i = 0; i < 255; i += 16) {
-		fflush(stdout);
-		console_set_rgb_color(fphone(stdout), 0xffffff, i);
-		putchar('X');
-	}
-	fflush(stdout);
-	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
-	putchar('\n');
-
-	printf("[press a key]\n");
-	getchar();
-
+	
 	return NULL;
 }

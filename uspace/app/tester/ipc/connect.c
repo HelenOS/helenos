@@ -28,32 +28,46 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <atomic.h>
 #include "../tester.h"
 
-char * test_connect(bool quiet)
-{
-	char c;
-	int svc;
-	int phid;
+static atomic_t finish;
 
-	printf("Choose one service: 0:10000....9:10009 (q to skip)\n");
-	do {
-		c = getchar();
-		if ((c == 'Q') || (c == 'q'))
-			return TEST_SKIPPED;
-	} while (c < '0' || c > '9');
+static void callback(void *priv, int retval, ipc_call_t *data)
+{
+	atomic_set(&finish, 1);
+}
+
+char *test_connect(void)
+{
+	TPRINTF("Connecting to %u...", IPC_TEST_SERVICE);
+	int phone = ipc_connect_me_to(PHONE_NS, IPC_TEST_SERVICE, 0, 0);
+	if (phone > 0) {
+		TPRINTF("phoneid %d\n", phone);
+	} else {
+		TPRINTF("\n");
+		return "ipc_connect_me_to() failed";
+	}
 	
-	svc = IPC_TEST_START + c - '0';
-	if (svc == myservice)
-		return "Currently cannot connect to myself, update test";
+	printf("Sending synchronous message...\n");
+	int retval = ipc_call_sync_0_0(phone, IPC_TEST_METHOD);
+	TPRINTF("Received response to synchronous message\n");
 	
-	printf("Connecting to %d..", svc);
-	phid = ipc_connect_me_to(PHONE_NS, svc, 0, 0);
-	if (phid > 0) {
-		printf("phoneid: %d\n", phid);
-		phones[phid] = 1;
-	} else
-		return "Error";
+	TPRINTF("Sending asynchronous message...\n");
+	atomic_set(&finish, 0);
+	ipc_call_async_0(phone, IPC_TEST_METHOD, NULL, callback, 1);
+	while (atomic_get(&finish) != 1)
+		TPRINTF(".");
+	TPRINTF("Received response to asynchronous message\n");
+	
+	TPRINTF("Hanging up...");
+	retval = ipc_hangup(phone);
+	if (retval == 0) {
+		TPRINTF("OK\n");
+	} else {
+		TPRINTF("\n");
+		return "ipc_hangup() failed";
+	}
 	
 	return NULL;
 }

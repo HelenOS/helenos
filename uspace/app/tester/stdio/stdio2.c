@@ -31,38 +31,53 @@
 #include <errno.h>
 #include "../tester.h"
 
-char * test_stdio2(bool quiet)
+char *test_stdio2(void)
 {
-	FILE *f;
+	FILE *file;
 	char *file_name = "/test";
-	int c;
-
-	printf("Open file '%s' for writing\n", file_name);
+	
+	TPRINTF("Open file \"%s\" for writing...", file_name);
 	errno = 0;
-	f = fopen(file_name, "wt");
-
-	if (f == NULL)
-		return "Failed opening file.";
-
-	fprintf(f, "Integer: %d, string: '%s'\n", 42, "Hello!");
-	if (fclose(f) != 0)
-		return "Failed closing file.";
-
-	printf("Open file '%s' for reading\n", file_name);
-
-	f = fopen(file_name, "rt");
-	if (f == NULL)
-		return "Failed opening file.";
-
-	printf("File contains:\n");
+	file = fopen(file_name, "wt");
+	if (file == NULL) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed opening file";
+	} else
+		TPRINTF("OK\n");
+	
+	TPRINTF("Write to file...");
+	fprintf(file, "integer: %u, string: \"%s\"", 42, "Hello!");
+	TPRINTF("OK\n");
+	
+	TPRINTF("Close...");
+	if (fclose(file) != 0) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed closing file";
+	} else
+		TPRINTF("OK\n");
+	
+	TPRINTF("Open file \"%s\" for reading...", file_name);
+	file = fopen(file_name, "rt");
+	if (file == NULL) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed opening file";
+	} else
+		TPRINTF("OK\n");
+	
+	TPRINTF("File contains:\n");
 	while (true) {
-		c = fgetc(f);
-		if (c == EOF) break;
-		putchar(c);
+		int c = fgetc(file);
+		if (c == EOF)
+			break;
+		TPRINTF("%c", c);
 	}
-
-	if (fclose(f) != 0)
-		return "Failed closing file.";
-
+	
+	TPRINTF("\nClose...");
+	if (fclose(file) != 0) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed closing file";
+	} else
+		TPRINTF("OK\n");
+	
 	return NULL;
 }

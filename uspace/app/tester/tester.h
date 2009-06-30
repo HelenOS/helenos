@@ -39,43 +39,45 @@
 #include <bool.h>
 #include <ipc/ipc.h>
 
-#define IPC_TEST_START	10000
-#define MAX_PHONES		20
-#define MAX_CONNECTIONS 50
-#define TEST_SKIPPED    "Test Skipped"
+#define IPC_TEST_SERVICE  10240
+#define IPC_TEST_METHOD   2000
 
-extern int myservice;
-extern int phones[MAX_PHONES];
-extern int connections[MAX_CONNECTIONS];
-extern ipc_callid_t callids[MAX_CONNECTIONS];
+extern bool test_quiet;
+extern int test_argc;
+extern char **test_argv;
 
-typedef char * (* test_entry_t)(bool);
+#define TPRINTF(format, ...) \
+	{ \
+		if (!test_quiet) { \
+			fprintf(stderr, format, ##__VA_ARGS__); \
+		} \
+	}
+
+typedef char *(*test_entry_t)(void);
 
 typedef struct {
-	char * name;
-	char * desc;
+	char *name;
+	char *desc;
 	test_entry_t entry;
 	bool safe;
 } test_t;
 
-extern char * test_thread1(bool quiet);
-extern char * test_print1(bool quiet);
-extern char * test_print4(bool quiet);
-extern char * test_fault1(bool quiet);
-extern char * test_fault2(bool quiet);
-extern char * test_register(bool quiet);
-extern char * test_connect(bool quiet);
-extern char * test_send_async(bool quiet);
-extern char * test_send_sync(bool quiet);
-extern char * test_answer(bool quiet);
-extern char * test_hangup(bool quiet);
-extern char * test_ping_pong(bool quiet);
-extern char * test_devmap1(bool quiet);
-extern char * test_loop1(bool quiet);
-extern char * test_vfs1(bool quiet);
-extern char * test_console1(bool quiet);
-extern char * test_stdio1(bool quiet);
-extern char * test_stdio2(bool quiet);
+extern char *test_thread1(void);
+extern char *test_print1(void);
+extern char *test_print2(void);
+extern char *test_print3(void);
+extern char *test_print4(void);
+extern char *test_console1(void);
+extern char *test_stdio1(void);
+extern char *test_stdio2(void);
+extern char *test_fault1(void);
+extern char *test_fault2(void);
+extern char *test_vfs1(void);
+extern char *test_ping_pong(void);
+extern char *test_register(void);
+extern char *test_connect(void);
+extern char *test_loop1(void);
+extern char *test_malloc1(void);
 
 extern test_t tests[];
 

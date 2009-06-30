@@ -1,6 +1,0 @@
-{
-	"answer",
-	"IPC answer message test",
-	&test_answer,
-	true
-},

@@ -31,55 +31,60 @@
 #include <errno.h>
 #include "../tester.h"
 
-#define BUF_SIZE 32
+#define BUF_SIZE  32
+
 static char buf[BUF_SIZE + 1];
 
-char * test_stdio1(bool quiet)
+char *test_stdio1(void)
 {
-	FILE *f;
+	FILE *file;
 	char *file_name = "/readme";
-	size_t n;
-	int c;
-
-	printf("Open file '%s'\n", file_name);
+	
+	TPRINTF("Open file \"%s\"...", file_name);
 	errno = 0;
-	f = fopen(file_name, "rt");
-
-	if (f == NULL) printf("errno = %d\n", errno);
-
-	if (f == NULL)
-		return "Failed opening file.";
-
-	n = fread(buf, 1, BUF_SIZE, f);
-	if (ferror(f)) {
-		fclose(f);
-		return "Failed reading file.";
-	}
-
-	printf("Read %d bytes.\n", n);
-
-	buf[n] = '\0';
-	printf("Read string '%s'.\n", buf);
-
-	printf("Seek to beginning.\n");
-	if (fseek(f, 0, SEEK_SET) != 0) {
-		fclose(f);
-		return "Failed seeking.";
-	}
-
-	printf("Read using fgetc().\n");
+	file = fopen(file_name, "rt");
+	if (file == NULL) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed opening file";
+	} else
+		TPRINTF("OK\n");
+	
+	TPRINTF("Read file...");
+	size_t cnt = fread(buf, 1, BUF_SIZE, file);
+	if (ferror(file)) {
+		TPRINTF("errno = %d\n", errno);
+		fclose(file);
+		return "Failed reading file";
+	} else
+		TPRINTF("OK\n");
+	
+	buf[cnt] = '\0';
+	TPRINTF("Read %u bytes, string \"%s\"\n", cnt, buf);
+	
+	TPRINTF("Seek to beginning...");
+	if (fseek(file, 0, SEEK_SET) != 0) {
+		TPRINTF("errno = %d\n", errno);
+		fclose(file);
+		return "Failed seeking in file";
+	} else
+		TPRINTF("OK\n");
+	
+	TPRINTF("Read using fgetc()...");
 	while (true) {
-		c = fgetc(f);
-		if (c == EOF) break;
-
-		printf("'%c'", c);
+		int c = fgetc(file);
+		if (c == EOF)
+			break;
+		
+		TPRINTF(".");
 	}
-
-	printf("[EOF]\n");
-	printf("Closing.\n");
-
-	if (fclose(f) != 0)
-		return "Failed closing.";
-
+	TPRINTF("[EOF]\n");
+	
+	TPRINTF("Close...");
+	if (fclose(file) != 0) {
+		TPRINTF("errno = %d\n", errno);
+		return "Failed closing file";
+	} else
+		TPRINTF("OK\n");
+	
 	return NULL;
 }

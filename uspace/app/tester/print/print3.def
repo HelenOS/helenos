@@ -1,0 +1,6 @@
+{
+	"print3",
+	"Buffered printf test",
+	&test_print3,
+	true
+},

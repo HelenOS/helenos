@@ -30,12 +30,11 @@
 #include <stdlib.h>
 #include "../tester.h"
 
-char *test_loop1(bool quiet)
+char *test_loop1(void)
 {
-	printf("Looping...\n");
-	while (1);
-	printf("Survived endless loop?!!\n");
-
-	return NULL;
+	TPRINTF("Looping...");
+	while (true);
+	TPRINTF("\n");
+	
+	return "Survived endless loop";
 }
-

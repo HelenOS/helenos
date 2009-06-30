@@ -32,58 +32,58 @@
 #include <errno.h>
 #include "../tester.h"
 
+#define MAX_CONNECTIONS  50
+
+static int connections[MAX_CONNECTIONS];
+
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	ipcarg_t phonehash = icall->in_phone_hash;
-	int retval;
-	int i;
-
-	printf("Connected phone: %P, accepting\n", icall->in_phone_hash);
+	unsigned int i;
+	
+	TPRINTF("Connected phone %#x accepting\n", icall->in_phone_hash);
 	ipc_answer_0(iid, EOK);
-	for (i = 0; i < 1024; i++)
+	for (i = 0; i < MAX_CONNECTIONS; i++) {
 		if (!connections[i]) {
-			connections[i] = phonehash;
+			connections[i] = icall->in_phone_hash;
 			break;
 		}
+	}
 	
-	while (1) {
-		callid = async_get_call(&call);
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		int retval;
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			printf("Phone (%P) hung up.\n", phonehash);
+			TPRINTF("Phone %#x hung up\n", icall->in_phone_hash);
 			retval = 0;
 			break;
+		case IPC_TEST_METHOD:
+			TPRINTF("Received well known message from %#x: %#x\n",
+			    icall->in_phone_hash, callid);
+			ipc_answer_0(callid, EOK);
+			break;
 		default:
-			printf("Received message from %P: %X\n", phonehash,
-			    callid);
-			for (i = 0; i < 1024; i++)
-				if (!callids[i]) {
-					callids[i] = callid;
-					break;
-				}
-			continue;
+			TPRINTF("Received unknown message from %#x: %#x\n",
+			    icall->in_phone_hash, callid);
+			ipc_answer_0(callid, ENOENT);
+			break;
 		}
-		ipc_answer_0(callid, retval);
 	}
 }
 
-char * test_register(bool quiet)
+char *test_register(void)
 {
-	int i;
-	
 	async_set_client_connection(client_connection);
-
-	for (i = IPC_TEST_START; i < IPC_TEST_START + 10; i++) {
-		ipcarg_t phonead;
-		int res = ipc_connect_to_me(PHONE_NS, i, 0, 0, &phonead);
-		if (!res)
-			break;
-		printf("Failed registering as %d..:%d\n", i, res);
-	}
-	printf("Registered as service: %d\n", i);
-	myservice = i;
+	
+	ipcarg_t phonead;
+	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
+	if (res != 0)
+		return "Failed registering IPC service";
+	
+	TPRINTF("Registered as service %u, accepting connections\n", IPC_TEST_SERVICE);
+	async_manager();
 	
 	return NULL;
 }

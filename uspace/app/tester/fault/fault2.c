@@ -29,7 +29,7 @@
 
 #include "../tester.h"
 
-char * test_fault2(bool quiet)
+char *test_fault2(void)
 {
 	volatile long long var;
 	volatile int var1;

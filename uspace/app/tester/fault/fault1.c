@@ -29,7 +29,7 @@
 
 #include "../tester.h"
 
-char * test_fault1(bool quiet)
+char *test_fault1(void)
 {
 	((int *)(0))[1] = 0;
 	

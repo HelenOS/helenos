@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,49 +28,25 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <errno.h>
 #include "../tester.h"
 
-char * test_answer(bool quiet)
+char *test_print2(void)
 {
-	int i,cnt, errn = 0;
-	char c;
-
-	cnt = 0;
-	for (i = 0;i < 50; i++) {
-		if (callids[i]) {
-			printf("%d: %P\n", cnt, callids[i]);
-			cnt++;
-		}
-		if (cnt >= 10)
-			break;
-	}
-	if (!cnt)
-		return NULL;
-	printf("Choose message:\n");
-	do {
-		c = getchar();
-	} while (c < '0' || (c-'0') >= cnt);
-	cnt = c - '0' + 1;
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
 	
-	for (i = 0; cnt; i++)
-		if (callids[i])
-			cnt--;
-	i -= 1;
-
-	printf("Normal (n) or hangup (h) or error(e) message?\n");
-	do {
-		c = getchar();
-	} while (c != 'n' && c != 'h' && c != 'e');
-	if (c == 'n')
-		errn = 0;
-	else if (c == 'h')
-		errn = EHANGUP;
-	else if (c == 'e')
-		errn = ENOENT;
-	printf("Answering %P\n", callids[i]);
-	ipc_answer_0(callids[i], errn);
-	callids[i] = 0;
+	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", 1, 2, 3, 4, 5):\n");
+	TPRINTF("Expected output: [1] [ 02] [03 ] [004] [005]\n");
+	TPRINTF("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", 1, 2, 3, 4, 5);
+	
+	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", -1, -2, -3, -4, -5):\n");
+	TPRINTF("Expected output: [-1] [-02] [-03] [-004] [-005]\n");
+	TPRINTF("Real output:     [%d] [%3.2d] [%-3.2d] [%2.3d] [%-2.3d]\n\n", -1, -2, -3, -4, -5);
+	
+	TPRINTF("Testing printf(\"%%#x %%5.3#x %%-5.3#x %%3.5#x %%-3.5#x\", 17, 18, 19, 20, 21):\n");
+	TPRINTF("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
+	TPRINTF("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);
 	
 	return NULL;
 }

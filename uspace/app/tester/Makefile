@@ -45,22 +45,20 @@ OUTPUT = tester
 SOURCES = tester.c \
 	thread/thread1.c \
 	print/print1.c \
+	print/print2.c \
+	print/print3.c \
 	print/print4.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	ipc/register.c \
-	ipc/connect.c \
-	ipc/send_async.c \
-	ipc/send_sync.c \
-	ipc/answer.c \
-	ipc/hangup.c \
-	ipc/ping_pong.c \
-	loop/loop1.c \
-	devmap/devmap1.c \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
-	vfs/vfs1.c
+	fault/fault1.c \
+	fault/fault2.c \
+	vfs/vfs1.c \
+	ipc/ping_pong.c \
+	ipc/register.c \
+	ipc/connect.c \
+	loop/loop1.c \
+	mm/malloc1.c
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 

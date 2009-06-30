@@ -37,20 +37,23 @@
 #define DURATION_SECS      10
 #define COUNT_GRANULARITY  100
 
-char *test_ping_pong(bool quiet)
+char *test_ping_pong(void)
 {
-	printf("Pinging ns server for %d seconds...\n", DURATION_SECS);
+	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
 	
 	struct timeval start;
-	if (gettimeofday(&start, NULL) != 0)
-		return "Failed getting the time.";
+	if (gettimeofday(&start, NULL) != 0) {
+		TPRINTF("\n");
+		return "Failed getting the time";
+	}
 	
 	uint64_t count = 0;
-	
 	while (true) {
 		struct timeval now;
-		if (gettimeofday(&now, NULL) != 0)
-			return "Failed getting the time.";
+		if (gettimeofday(&now, NULL) != 0) {
+			TPRINTF("\n");
+			return "Failed getting the time";
+		}
 		
 		if (tv_sub(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
@@ -59,14 +62,16 @@ char *test_ping_pong(bool quiet)
 		for (i = 0; i < COUNT_GRANULARITY; i++) {
 			int retval = async_req_0_0(PHONE_NS, NS_PING);
 			
-			if (retval != EOK)
-				return "Failed to send ping message.";
+			if (retval != EOK) {
+				TPRINTF("\n");
+				return "Failed to send ping message";
+			}
 		}
 		
 		count += COUNT_GRANULARITY;
 	}
 	
-	printf("Completed %lu round trips in %u seconds, %lu RT/s.\n",
+	TPRINTF("OK\nCompleted %llu round trips in %u seconds, %llu rt/s.\n",
 	    count, DURATION_SECS, count / DURATION_SECS);
 	
 	return NULL;
