@@ -56,6 +56,7 @@
 #include <async.h>
 #include <fibril.h>
 #include <bool.h>
+#include <stdio.h>
 
 #include "font-8x16.h"
 #include "fb.h"
@@ -1067,10 +1068,11 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		if (IPC_GET_ARG1(*call) == shm_id) {
 			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
 			shm_size = IPC_GET_ARG2(*call);
-			if (!ipc_answer_1(callid, EOK, (sysarg_t) dest))
-				shm = dest;
-			else
+			if (ipc_answer_1(callid, EOK, (sysarg_t) dest)) {
 				shm_id = 0;
+				return false;
+			}
+			shm = dest;
 			
 			if (shm[0] != 'P')
 				return false;
