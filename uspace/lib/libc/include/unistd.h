@@ -65,7 +65,6 @@ extern int rmdir(const char *);
 extern int chdir(const char *);
 
 extern void _exit(int status) __attribute__ ((noreturn));
-extern void *sbrk(ssize_t incr);
 extern int usleep(unsigned long usec);
 extern unsigned int sleep(unsigned int seconds);
 

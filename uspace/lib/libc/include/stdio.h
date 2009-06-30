@@ -37,20 +37,21 @@
 
 #include <sys/types.h>
 #include <stdarg.h>
+#include <string.h>
 #include <adt/list.h>
 
 #define EOF  (-1)
 
 /** Default size for stream I/O buffers */
-#define BUFSIZ 4096
+#define BUFSIZ  4096
 
 #define DEBUG(fmt, ...) \
-{ \
-	char buf[256]; \
-	int n = snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__); \
-	if (n > 0) \
-		(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) buf, str_size(buf)); \
-}
+	{ \
+		char _buf[256]; \
+		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
+		if (_n > 0) \
+			(void) __SYSCALL3(SYS_KLOG, 1, (sysarg_t) _buf, str_size(_buf)); \
+	}
 
 #ifndef SEEK_SET
 	#define SEEK_SET  0

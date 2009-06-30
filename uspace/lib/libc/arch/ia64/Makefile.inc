@@ -37,7 +37,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/ddi.c
 
-CFLAGS += -fno-unwind-tables -DMALLOC_ALIGNMENT_16
+CFLAGS += -fno-unwind-tables
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 
 ENDIANESS = LE

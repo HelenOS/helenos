@@ -89,7 +89,7 @@ FILE *stderr = NULL;
 
 static LIST_INITIALIZE(files);
 
-void stdio_init(int filc, fdi_node_t *filv[])
+void __stdio_init(int filc, fdi_node_t *filv[])
 {
 	if (filc > 0) {
 		stdin = fopen_node(filv[0], "r");
@@ -113,7 +113,7 @@ void stdio_init(int filc, fdi_node_t *filv[])
 	}
 }
 
-void stdio_done(void)
+void __stdio_done(void)
 {
 	link_t *link = files.next;
 	

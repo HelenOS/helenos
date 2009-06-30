@@ -47,7 +47,7 @@ int	opterr = 1;		/* if error message should be printed */
 int	optind = 1;		/* index into parent argv vector */
 int	optopt = '?';		/* character checked for validity */
 int	optreset;		/* reset getopt */
-char *optarg;		/* argument associated with option */
+const char *optarg;		/* argument associated with option */
 
 
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
@@ -162,7 +162,7 @@ getopt_internal(nargc, nargv, options)
 	char **nargv;
 	const char *options;
 {
-	char *oli;				/* option letter list index */
+	const char *oli;				/* option letter list index */
 	int optchar;
 
 	assert(nargv != NULL);
@@ -275,7 +275,7 @@ start:
 	} else {				/* takes (optional) argument */
 		optarg = NULL;
 		if (*place)			/* no white space */
-			optarg = *place;
+			optarg = place;
 		/* XXX: disable test for :: if PC? (GNU doesn't) */
 		else if (oli[1] != ':') {	/* arg not optional */
 			if (++optind >= nargc) {	/* no arg */
@@ -353,7 +353,8 @@ getopt_long(nargc, nargv, options, long_options, idx)
 
 	retval = getopt_internal(nargc, (char **)nargv, options);
 	if (retval == -2) {
-		char *current_argv, *has_equal;
+		char *current_argv;
+		const char *has_equal;
 		size_t current_argv_len;
 		int i, ambiguous, match;
 

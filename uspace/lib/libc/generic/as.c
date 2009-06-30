@@ -38,60 +38,63 @@
 #include <align.h>
 #include <sys/types.h>
 #include <bitops.h>
+#include <malloc.h>
 
-/**
- * Either 4*256M on 32-bit architecures or 16*256M on 64-bit architectures.
- */
-#define MAX_HEAP_SIZE	(sizeof(uintptr_t)<<28)
+/** Last position allocated by as_get_mappable_page */
+static uintptr_t last_allocated = 0;
 
 /** Create address space area.
  *
  * @param address Virtual address where to place new address space area.
- * @param size Size of the area.
- * @param flags Flags describing type of the area.
+ * @param size    Size of the area.
+ * @param flags   Flags describing type of the area.
  *
  * @return address on success, (void *) -1 otherwise.
+ *
  */
 void *as_area_create(void *address, size_t size, int flags)
 {
-	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t ) address,
+	return (void *) __SYSCALL3(SYS_AS_AREA_CREATE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
 }
 
 /** Resize address space area.
  *
  * @param address Virtual address pointing into already existing address space
- * 	area.
- * @param size New requested size of the area.
- * @param flags Currently unused.
+ *                area.
+ * @param size    New requested size of the area.
+ * @param flags   Currently unused.
  *
- * @return Zero on success or a code from @ref errno.h on failure.
+ * @return zero on success or a code from @ref errno.h on failure.
+ *
  */
 int as_area_resize(void *address, size_t size, int flags)
 {
-	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t ) address,
+	return __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
 }
 
 /** Destroy address space area.
  *
  * @param address Virtual address pointing into the address space area being
- * 	destroyed.
+ *                destroyed.
  *
- * @return Zero on success or a code from @ref errno.h on failure.
+ * @return zero on success or a code from @ref errno.h on failure.
+ *
  */
 int as_area_destroy(void *address)
 {
-	return __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t ) address);
+	return __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t) address);
 }
 
 /** Change address-space area flags.
  *
  * @param address Virtual address pointing into the address space area being
- * 	modified.
- * @param flags New flags describing type of the area.
+ *                modified.
+ * @param flags   New flags describing type of the area.
  *
- * @return Zero on success or a code from @ref errno.h on failure.
+ * @return zero on success or a code from @ref errno.h on failure.
+ *
  */
 int as_area_change_flags(void *address, int flags)
 {
@@ -99,101 +102,29 @@ int as_area_change_flags(void *address, int flags)
 	    (sysarg_t) flags);
 }
 
-static size_t heapsize = 0;
-static size_t maxheapsize = (size_t) (-1);
-
-static void *last_allocated = 0;
-
-/* Start of heap linker symbol */
-extern char _heap;
-
-/** Sbrk emulation 
- *
- * @param incr New area that should be allocated or negative, 
-               if it should be shrinked
- * @return Pointer to newly allocated area
- */
-void *sbrk(ssize_t incr)
-{
-	int rc;
-	void *res;
-	
-	/* Check for invalid values */
-	if ((incr < 0) && (((size_t) -incr) > heapsize))
-		return NULL;
-	
-	/* Check for too large value */
-	if ((incr > 0) && (incr + heapsize < heapsize))
-		return NULL;
-	
-	/* Check for too small values */
-	if ((incr < 0) && (incr + heapsize > heapsize))
-		return NULL;
-	
-	/* Check for user limit */
-	if ((maxheapsize != (size_t) (-1)) && (heapsize + incr) > maxheapsize)
-		return NULL;
-	
-	rc = as_area_resize(&_heap, heapsize + incr, 0);
-	if (rc != 0)
-		return NULL;
-	
-	/* Compute start of new area */
-	res = (void *) &_heap + heapsize;
-
-	heapsize += incr;
-
-	return res;
-}
-
-/** Set maximum heap size and return pointer just after the heap */
-void *set_maxheapsize(size_t mhs)
-{
-	maxheapsize = mhs;
-	/* Return pointer to area not managed by sbrk */
-	return ((void *) &_heap + maxheapsize);
-}
-
 /** Return pointer to some unmapped area, where fits new as_area
  *
- * @param sz Requested size of the allocation.
+ * @param size Requested size of the allocation.
  *
- * @return Pointer to the beginning 
+ * @return pointer to the beginning
  *
- * TODO: make some first_fit/... algorithm, we are now just incrementing
- *       the pointer to last area
  */
-void *as_get_mappable_page(size_t sz)
+void *as_get_mappable_page(size_t size)
 {
-	void *res;
-	uint64_t asz;
-	int i;
+	if (size == 0)
+		return NULL;
 	
-	if (!sz)
-		return NULL;	
-
-	asz = 1 << (fnzb64(sz - 1) + 1);
-
-	/* Set heapsize to some meaningful value */
-	if (maxheapsize == (size_t) -1)
-		set_maxheapsize(MAX_HEAP_SIZE);
+	size_t sz = 1 << (fnzb(size - 1) + 1);
+	if (last_allocated == 0)
+		last_allocated = get_max_heap_addr();
 	
 	/*
 	 * Make sure we allocate from naturally aligned address.
 	 */
-	i = 0;
-	if (!last_allocated) {
-		last_allocated = (void *) ALIGN_UP((void *) &_heap +
-		    maxheapsize, asz);
-	} else {
-		last_allocated = (void *) ALIGN_UP(((uintptr_t)
-		    last_allocated) + (int) (i > 0), asz);
-	}
-
-	res = last_allocated;
-	last_allocated += ALIGN_UP(sz, PAGE_SIZE);
-
-	return res;
+	uintptr_t res = ALIGN_UP(last_allocated, sz);
+	last_allocated = res + ALIGN_UP(size, PAGE_SIZE);
+	
+	return ((void *) res);
 }
 
 /** @}

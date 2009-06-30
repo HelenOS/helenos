@@ -738,7 +738,7 @@ void async_destroy_manager(void)
  *
  * @return Zero on success or an error code.
  */
-int _async_init(void)
+int __async_init(void)
 {
 	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1,
 	    &conn_hash_table_ops)) {

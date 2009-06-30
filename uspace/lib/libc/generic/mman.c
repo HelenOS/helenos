@@ -37,17 +37,18 @@
 #include <as.h>
 #include <unistd.h>
 
-void *mmap(void  *start, size_t length, int prot, int flags, int fd,
+void *mmap(void *start, size_t length, int prot, int flags, int fd,
     off_t offset)
 {
 	if (!start)
 		start = as_get_mappable_page(length);
 	
-//	if (! ((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
+//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return MAP_FAILED;
-	if (! (flags & MAP_ANONYMOUS))
+	
+	if (!(flags & MAP_ANONYMOUS))
 		return MAP_FAILED;
-
+	
 	return as_area_create(start, length, prot);
 }
 

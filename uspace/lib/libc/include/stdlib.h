@@ -38,10 +38,10 @@
 #include <unistd.h>
 #include <malloc.h>
 
-#define abort() _exit(1)
-#define exit(status)	_exit((status))
+#define abort()       _exit(1)
+#define exit(status)  _exit((status))
 
-#define RAND_MAX 714025
+#define RAND_MAX  714025
 
 extern long int random(void);
 extern void srandom(unsigned int seed);
@@ -50,6 +50,7 @@ static inline int rand(void)
 {
 	return random();
 }
+
 static inline void srand(unsigned int seed)
 {
 	srandom(seed);

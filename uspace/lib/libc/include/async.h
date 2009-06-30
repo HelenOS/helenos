@@ -46,16 +46,17 @@ typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 extern atomic_t async_futex;
 
-static inline void async_manager(void)
-{
-	fibril_switch(FIBRIL_TO_MANAGER);
-}
-
+extern int __async_init(void);
 extern ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
 
 static inline ipc_callid_t async_get_call(ipc_call_t *data)
 {
 	return async_get_call_timeout(data, 0);
+}
+
+static inline void async_manager(void)
+{
+	fibril_switch(FIBRIL_TO_MANAGER);
 }
 
 /*
@@ -94,7 +95,6 @@ extern fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 extern void async_usleep(suseconds_t timeout);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
-extern int _async_init(void);
 
 extern void async_set_client_connection(async_client_conn_t conn);
 extern void async_set_interrupt_received(async_client_conn_t conn);

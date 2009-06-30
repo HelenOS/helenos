@@ -49,6 +49,7 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/devmap.c \
 	generic/event.c \
+	generic/errno.c \
 	generic/mem.c \
 	generic/string.c \
 	generic/fibril.c \
@@ -68,7 +69,7 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
-	malloc/malloc.c \
+	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
@@ -105,7 +106,7 @@ kerninc:
 
 clean:
 	-rm -f include/kernel include/arch include/libarch libc.a arch/$(UARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(UARCH)/ malloc -name '*.o' -follow -exec rm \{\} \;
+	find generic/ arch/$(UARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
 depend: kerninc
 	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null

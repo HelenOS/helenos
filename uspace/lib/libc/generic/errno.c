@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,20 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_MEM_H_
-#define LIBC_MEM_H_
+#include <errno.h>
+#include <fibril.h>
 
-#include <sys/types.h>
-
-#define bzero(ptr, len)  memset((ptr), 0, (len))
-
-extern void *memset(void *, int, size_t);
-extern void *memcpy(void *, const void *, size_t);
-extern void *memmove(void *, const void *, size_t);
-
-extern int bcmp(const char *, const char *, size_t);
-
-#endif
+int _errno;
 
 /** @}
  */

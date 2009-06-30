@@ -52,10 +52,7 @@
 #include <as.h>
 #include <loader/pcb.h>
 
-extern char _heap;
 extern int main(int argc, char *argv[]);
-
-int _errno;
 
 void _exit(int status)
 {
@@ -64,9 +61,8 @@ void _exit(int status)
 
 void __main(void *pcb_ptr)
 {
-	(void) as_area_create(&_heap, 1, AS_AREA_WRITE | AS_AREA_READ);
-	
-	_async_init();
+	__heap_init();
+	__async_init();
 	fibril_t *fibril = fibril_setup();
 	__tcb_set(fibril->tcb);
 	
@@ -79,15 +75,15 @@ void __main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
-		stdio_init(0, NULL);
+		__stdio_init(0, NULL);
 	} else {
 		argc = __pcb->argc;
 		argv = __pcb->argv;
-		stdio_init(__pcb->filc, __pcb->filv);
+		__stdio_init(__pcb->filc, __pcb->filv);
 	}
 	
 	main(argc, argv);
-	stdio_done();
+	__stdio_done();
 }
 
 void __exit(void)

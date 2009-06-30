@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -42,10 +42,10 @@
  *
  * If number is zero, it returns 0
  */
-static inline int fnzb32(uint32_t arg)
+static inline unsigned int fnzb32(uint32_t arg)
 {
-	int n = 0;
-
+	unsigned int n = 0;
+	
 	if (arg >> 16) {
 		arg >>= 16;
 		n += 16;
@@ -74,19 +74,22 @@ static inline int fnzb32(uint32_t arg)
 	return n;
 }
 
-static inline int fnzb64(uint64_t arg)
+static inline unsigned int fnzb64(uint64_t arg)
 {
-	int n = 0;
-
+	unsigned int n = 0;
+	
 	if (arg >> 32) {
 		arg >>= 32;
 		n += 32;
 	}
 	
-	return n + fnzb32((uint32_t) arg);
+	return (n + fnzb32((uint32_t) arg));
 }
 
-#define fnzb(x) fnzb32(x)
+static inline unsigned int fnzb(size_t arg)
+{
+	return fnzb64(arg);
+}
 
 #endif
 
