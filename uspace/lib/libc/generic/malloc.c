@@ -276,16 +276,16 @@ loop:
 				split_mark(cur, real_size);
 				result = addr;
 			} else {
-				/* Block start has to be aligned, thus
-				   the previous block needs to be enlarged */
+				/* Block start has to be aligned */
 				size_t excess = (size_t) (aligned - addr);
 				
 				if (cur->size >= real_size + excess) {
+					/* The current block is large enought to fit
+					   data in including alignment */
 					if ((void *) cur > heap_start) {
-						// TODO: This can be optimized further in case
-						// of expanding a previous allocated block if the
-						// excess is large enought to put another free
-						// block in between
+						/* There is a block before the current block.
+						   This previous block can be enlarged to compensate
+						   for the alignment excess */
 						heap_block_foot_t *prev_foot =
 						    ((void *) cur) - sizeof(heap_block_foot_t);
 						
@@ -295,18 +295,35 @@ loop:
 						block_check(prev_head);
 						
 						size_t reduced_size = cur->size - excess;
-						cur = ((void *) cur) + excess;
+						heap_block_head_t *next_head = ((void *) cur) + excess;
 						
-						block_init(prev_head, prev_head->size + excess, prev_head->free);
-						block_init(cur, reduced_size, true);
-						split_mark(cur, real_size);
+						if ((!prev_head->free) && (excess >= STRUCT_OVERHEAD)) {
+							/* The previous block is not free and there is enought
+							   space to fill in a new free block between the previous
+							   and current block */
+							block_init(cur, excess, true);
+						} else {
+							/* The previous block is free (thus there is no need to
+							   induce additional fragmentation to the heap) or the
+							   excess is small, thus just enlarge the previous block */
+							block_init(prev_head, prev_head->size + excess, prev_head->free);
+						}
+						
+						block_init(next_head, reduced_size, true);
+						split_mark(next_head, real_size);
 						result = aligned;
+						cur = next_head;
 					} else {
+						/* The current block is the first block on the heap.
+						   We have to make sure that the alignment excess
+						   is large enought to fit a new free block just
+						   before the current block */
 						while (excess < STRUCT_OVERHEAD) {
 							aligned += falign;
 							excess += falign;
 						}
 						
+						/* Check for current block size again */
 						if (cur->size >= real_size + excess) {
 							size_t reduced_size = cur->size - excess;
 							cur = (heap_block_head_t *) (heap_start + excess);
