@@ -280,7 +280,7 @@ loop:
 				size_t excess = (size_t) (aligned - addr);
 				
 				if (cur->size >= real_size + excess) {
-					/* The current block is large enought to fit
+					/* The current block is large enough to fit
 					   data in including alignment */
 					if ((void *) cur > heap_start) {
 						/* There is a block before the current block.
@@ -298,7 +298,7 @@ loop:
 						heap_block_head_t *next_head = ((void *) cur) + excess;
 						
 						if ((!prev_head->free) && (excess >= STRUCT_OVERHEAD)) {
-							/* The previous block is not free and there is enought
+							/* The previous block is not free and there is enough
 							   space to fill in a new free block between the previous
 							   and current block */
 							block_init(cur, excess, true);
@@ -316,7 +316,7 @@ loop:
 					} else {
 						/* The current block is the first block on the heap.
 						   We have to make sure that the alignment excess
-						   is large enought to fit a new free block just
+						   is large enough to fit a new free block just
 						   before the current block */
 						while (excess < STRUCT_OVERHEAD) {
 							aligned += falign;
