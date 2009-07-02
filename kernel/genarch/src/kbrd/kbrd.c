@@ -45,6 +45,10 @@
 #include <genarch/kbrd/scanc_sun.h>
 #endif
 
+#ifdef CONFIG_MAC_KBD
+#include <genarch/kbrd/scanc_mac.h>
+#endif
+
 #include <synch/spinlock.h>
 #include <console/chardev.h>
 #include <console/console.h>

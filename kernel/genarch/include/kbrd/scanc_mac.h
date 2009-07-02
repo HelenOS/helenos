@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,81 +29,18 @@
 /** @addtogroup genarch
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Scan codes for Macintosh ADB keyboards.
  */
 
-#ifndef KERN_CUDA_H_
-#define KERN_CUDA_H_
+#ifndef KERN_SCANC_MAC_H_
+#define KERN_SCANC_MAC_H_
 
-#include <ddi/irq.h>
-#include <arch/types.h>
-#include <console/chardev.h>
-#include <synch/spinlock.h>
-
-typedef struct {
-	uint8_t b;
-	uint8_t pad0[0x1ff];
-
-	uint8_t a;
-	uint8_t pad1[0x1ff];
-
-	uint8_t dirb;
-	uint8_t pad2[0x1ff];
-
-	uint8_t dira;
-	uint8_t pad3[0x1ff];
-
-	uint8_t t1cl;
-	uint8_t pad4[0x1ff];
-
-	uint8_t t1ch;
-	uint8_t pad5[0x1ff];
-
-	uint8_t t1ll;
-	uint8_t pad6[0x1ff];
-
-	uint8_t t1lh;
-	uint8_t pad7[0x1ff];
-
-	uint8_t t2cl;
-	uint8_t pad8[0x1ff];
-
-	uint8_t t2ch;
-	uint8_t pad9[0x1ff];
-
-	uint8_t sr;
-	uint8_t pad10[0x1ff];
-
-	uint8_t acr;
-	uint8_t pad11[0x1ff];
-
-	uint8_t pcr;
-	uint8_t pad12[0x1ff];
-
-	uint8_t ifr;
-	uint8_t pad13[0x1ff];
-
-	uint8_t ier;
-	uint8_t pad14[0x1ff];
-
-	uint8_t anh;
-	uint8_t pad15[0x1ff];
-} cuda_t;
-
-enum {
-	CUDA_RCV_BUF_SIZE = 5
-};
-
-typedef struct {
-	irq_t irq;
-	cuda_t *cuda;
-	indev_t *kbrdin;
-	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
-	SPINLOCK_DECLARE(dev_lock);
-} cuda_instance_t;
-
-extern cuda_instance_t *cuda_init(cuda_t *, inr_t, cir_t, void *);
-extern void cuda_wire(cuda_instance_t *, indev_t *);
+#define SC_LSHIFT       0x38
+#define SC_RSHIFT       0xfd	/* Not used */
+#define SC_CAPSLOCK     0xfe	/* Not used */
+#define SC_SCAN_ESCAPE  0xff	/* Not used */
 
 #endif
 

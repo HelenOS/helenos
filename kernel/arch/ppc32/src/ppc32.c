@@ -36,6 +36,7 @@
 #include <arch.h>
 #include <arch/boot/boot.h>
 #include <genarch/drivers/via-cuda/cuda.h>
+#include <genarch/kbrd/kbrd.h>
 #include <arch/interrupt.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
@@ -117,31 +118,6 @@ void arch_post_mm_init(void)
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
 		
-		if (bootinfo.macio.addr) {
-			/* Initialize PIC */
-			cir_t cir;
-			void *cir_arg;
-			pic_init(bootinfo.macio.addr, PAGE_SIZE, &cir, &cir_arg);
-			
-#ifdef CONFIG_VIA_CUDA
-			uintptr_t pa = bootinfo.macio.addr + 0x16000;
-			uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
-			size_t offset = pa - aligned_addr;
-			size_t size = 2 * PAGE_SIZE;
-			
-			cuda_t *cuda = (cuda_t *)
-			    (hw_map(aligned_addr, offset + size) + offset);
-			
-			/* Initialize I/O controller */
-			cuda_instance_t *cuda_instance =
-			    cuda_init(cuda, IRQ_CUDA, cir, cir_arg);
-			if (cuda_instance) {
-				indev_t *sink = stdin_wire();
-				cuda_wire(cuda_instance, sink);
-			}
-#endif
-		}
-		
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}
@@ -157,6 +133,35 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	if (bootinfo.macio.addr) {
+		/* Initialize PIC */
+		cir_t cir;
+		void *cir_arg;
+		pic_init(bootinfo.macio.addr, PAGE_SIZE, &cir, &cir_arg);
+
+#ifdef CONFIG_MAC_KBD
+		uintptr_t pa = bootinfo.macio.addr + 0x16000;
+		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
+		size_t offset = pa - aligned_addr;
+		size_t size = 2 * PAGE_SIZE;
+			
+		cuda_t *cuda = (cuda_t *)
+		    (hw_map(aligned_addr, offset + size) + offset);
+			
+		/* Initialize I/O controller */
+		cuda_instance_t *cuda_instance =
+		    cuda_init(cuda, IRQ_CUDA, cir, cir_arg);
+		if (cuda_instance) {
+			kbrd_instance_t *kbrd_instance = kbrd_init();
+			if (kbrd_instance) {
+				indev_t *sink = stdin_wire();
+				indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
+				cuda_wire(cuda_instance, kbrd);
+				pic_enable_interrupt(IRQ_CUDA);
+			}
+		}
+#endif
+	}
 }
 
 void calibrate_delay_loop(void)
