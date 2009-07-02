@@ -286,26 +286,21 @@ void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!ipc_data_read_receive(&callid, &size) ||
-	    size < sizeof(struct stat)) {
+	    size != sizeof(struct stat)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
-	struct stat *stat = malloc(sizeof(struct stat));
-	if (!stat) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	memset(stat, 0, sizeof(struct stat));
+	struct stat stat;
+	memset(&stat, 0, sizeof(struct stat));
 
-	stat->fs_handle = devfs_reg.fs_handle;
-	stat->dev_handle = dev_handle;
-	stat->index = index;
-	stat->lnkcnt = 1;
-	stat->is_file = (index != 0);
-	stat->size = 0;
+	stat.fs_handle = devfs_reg.fs_handle;
+	stat.dev_handle = dev_handle;
+	stat.index = index;
+	stat.lnkcnt = 1;
+	stat.is_file = (index != 0);
+	stat.size = 0;
 	
 	if (index != 0) {
 		unsigned long key[] = {
@@ -315,14 +310,12 @@ void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 		fibril_mutex_lock(&devices_mutex);
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk != NULL) 
-			stat->devfs_stat.device = (dev_handle_t)index;
+			stat.devfs_stat.device = (dev_handle_t)index;
 		fibril_mutex_unlock(&devices_mutex);
 	}
 
-	ipc_data_read_finalize(callid, stat, sizeof(struct stat));
+	ipc_data_read_finalize(callid, &stat, sizeof(struct stat));
 	ipc_answer_0(rid, EOK);
-
-	free(stat);
 }
 
 void devfs_read(ipc_callid_t rid, ipc_call_t *request)

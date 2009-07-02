@@ -439,31 +439,24 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ipc_callid_t callid;
 	size_t size;
 	if (!ipc_data_read_receive(&callid, &size) ||
-	    size < sizeof(struct stat)) {
+	    size != sizeof(struct stat)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
-	struct stat *stat = malloc(sizeof(struct stat));
-	if (!stat) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	memset(stat, 0, sizeof(struct stat));
+	struct stat stat;
+	memset(&stat, 0, sizeof(struct stat));
 	
-	stat->fs_handle = fs_handle;
-	stat->dev_handle = dev_handle;
-	stat->index = index;
-	stat->lnkcnt = ops->lnkcnt_get(fn); 
-	stat->is_file = ops->is_file(fn);
-	stat->size = ops->size_get(fn);
+	stat.fs_handle = fs_handle;
+	stat.dev_handle = dev_handle;
+	stat.index = index;
+	stat.lnkcnt = ops->lnkcnt_get(fn); 
+	stat.is_file = ops->is_file(fn);
+	stat.size = ops->size_get(fn);
 
-	ipc_data_read_finalize(callid, stat, sizeof(struct stat));
+	ipc_data_read_finalize(callid, &stat, sizeof(struct stat));
 	ipc_answer_0(rid, EOK);
-
-	free(stat);
 }
 
 /** Open VFS triplet.
