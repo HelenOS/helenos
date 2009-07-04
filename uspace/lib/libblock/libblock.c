@@ -63,6 +63,7 @@ typedef struct {
 	fibril_mutex_t lock;
 	size_t block_size;		/**< Block size. */
 	unsigned block_count;		/**< Total number of blocks. */
+	unsigned blocks_cached;		/**< Number of cached blocks. */
 	hash_table_t block_hash;
 	link_t free_head;
 	enum cache_mode mode;
@@ -72,6 +73,7 @@ typedef struct {
 	link_t link;
 	dev_handle_t dev_handle;
 	int dev_phone;
+	fibril_mutex_t com_area_lock;
 	void *com_area;
 	size_t com_size;
 	void *bb_buf;
@@ -112,6 +114,7 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
 	link_initialize(&devcon->link);
 	devcon->dev_handle = dev_handle;
 	devcon->dev_phone = dev_phone;
+	fibril_mutex_initialize(&devcon->com_area_lock);
 	devcon->com_area = com_area;
 	devcon->com_size = com_size;
 	devcon->bb_buf = NULL;
@@ -211,13 +214,15 @@ int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
 	if (!bb_buf)
 		return ENOMEM;
 	
+	fibril_mutex_lock(&devcon->com_area_lock);
 	rc = read_block(devcon, 0, size);
 	if (rc != EOK) {
+		fibril_mutex_unlock(&devcon->com_area_lock);
 	    	free(bb_buf);
 		return rc;
 	}
-
 	memcpy(bb_buf, devcon->com_area, size);
+	fibril_mutex_unlock(&devcon->com_area_lock);
 
 	devcon->bb_buf = bb_buf;
 	devcon->bb_off = off;
@@ -271,6 +276,7 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	list_initialize(&cache->free_head);
 	cache->block_size = size;
 	cache->block_count = blocks;
+	cache->blocks_cached = 0;
 	cache->mode = mode;
 
 	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
@@ -283,8 +289,14 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	return EOK;
 }
 
+#define CACHE_LO_WATERMARK	10	
+#define CACHE_HI_WATERMARK	20	
 static bool cache_can_grow(cache_t *cache)
 {
+	if (cache->blocks_cached < CACHE_LO_WATERMARK)
+		return true;
+	if (!list_empty(&cache->free_head))
+		return false;
 	return true;
 }
 
@@ -315,6 +327,7 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 	block_t *b;
 	link_t *l;
 	unsigned long key = boff;
+	bn_t oboff;
 	
 	devcon = devcon_search(dev_handle);
 
@@ -355,6 +368,7 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 				free(b);
 				goto recycle;
 			}
+			cache->blocks_cached++;
 		} else {
 			/*
 			 * Try to recycle a block from the free list.
@@ -364,8 +378,9 @@ recycle:
 			assert(!list_empty(&cache->free_head));
 			l = cache->free_head.next;
 			list_remove(l);
-			b = hash_table_get_instance(l, block_t, hash_link);
+			b = list_get_instance(l, block_t, free_link);
 			sync = b->dirty;
+			oboff = b->boff;
 			temp_key = b->boff;
 			hash_table_remove(&cache->block_hash, &temp_key, 1);
 		}
@@ -389,16 +404,22 @@ recycle:
 			 * The block is dirty and needs to be written back to
 			 * the device before we can read in the new contents.
 			 */
-			abort();	/* TODO: block_write() */
+			fibril_mutex_lock(&devcon->com_area_lock);
+			memcpy(devcon->com_area, b->data, b->size);
+			rc = write_block(devcon, oboff, cache->block_size);
+			assert(rc == EOK);
+			fibril_mutex_unlock(&devcon->com_area_lock);
 		}
 		if (!(flags & BLOCK_FLAGS_NOREAD)) {
 			/*
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
+			fibril_mutex_lock(&devcon->com_area_lock);
 			rc = read_block(devcon, b->boff, cache->block_size);
 			assert(rc == EOK);
 			memcpy(b->data, devcon->com_area, cache->block_size);
+			fibril_mutex_unlock(&devcon->com_area_lock);
 		}
 
 		fibril_mutex_unlock(&b->lock);
@@ -426,14 +447,43 @@ void block_put(block_t *block)
 	fibril_mutex_lock(&block->lock);
 	if (!--block->refcnt) {
 		/*
-		 * Last reference to the block was dropped, put the block on the
-		 * free list.
+		 * Last reference to the block was dropped. Either free the
+		 * block or put it on the free list.
+		 */
+		if (cache->blocks_cached > CACHE_HI_WATERMARK) {
+			/*
+			 * Currently there are too many cached blocks.
+			 */
+			if (block->dirty) {
+				fibril_mutex_lock(&devcon->com_area_lock);
+				memcpy(devcon->com_area, block->data,
+				    block->size);
+				rc = write_block(devcon, block->boff,
+				    block->size);
+				assert(rc == EOK);
+				fibril_mutex_unlock(&devcon->com_area_lock);
+			}
+			/*
+			 * Take the block out of the cache and free it.
+			 */
+			unsigned long key = block->boff;
+			hash_table_remove(&cache->block_hash, &key, 1);
+			free(block);
+			free(block->data);
+			cache->blocks_cached--;
+			fibril_mutex_unlock(&cache->lock);
+			return;
+		}
+		/*
+		 * Put the block on the free list.
 		 */
 		list_append(&block->free_link, &cache->free_head);
 		if (cache->mode != CACHE_MODE_WB && block->dirty) {
+			fibril_mutex_lock(&devcon->com_area_lock);
 			memcpy(devcon->com_area, block->data, block->size);
 			rc = write_block(devcon, block->boff, block->size);
 			assert(rc == EOK);
+			fibril_mutex_unlock(&devcon->com_area_lock);
 
 			block->dirty = false;
 		}
@@ -464,6 +514,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 	devcon_t *devcon = devcon_search(dev_handle);
 	assert(devcon);
 	
+	fibril_mutex_lock(&devcon->com_area_lock);
 	while (left > 0) {
 		size_t rd;
 		
@@ -489,13 +540,16 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			int rc;
 
 			rc = read_block(devcon, *pos / block_size, block_size);
-			if (rc != EOK)
+			if (rc != EOK) {
+				fibril_mutex_unlock(&devcon->com_area_lock);
 				return rc;
+			}
 			
 			*bufpos = 0;
 			*buflen = block_size;
 		}
 	}
+	fibril_mutex_unlock(&devcon->com_area_lock);
 	
 	return EOK;
 }
