@@ -96,7 +96,9 @@ int main(int argc, char **argv)
 		return -1;
 
 	/* Put drives to reset, disable interrupts. */
-	printf("Reset drives...\n");
+	printf("Reset drives... ");
+	fflush(stdout);
+
 	pio_write_8(&ctl->device_control, DCR_SRST);
 	/* FIXME: Find out how to do this properly. */
 	async_usleep(100);
@@ -106,8 +108,6 @@ int main(int argc, char **argv)
 		status = pio_read_8(&cmd->status);
 	} while ((status & SR_BSY) != 0);
 	printf("Done\n");
-
-	printf("Status = 0x%x\n", pio_read_8(&cmd->status));
 
 	(void) drive_identify(0, &disk[0]);
 	(void) drive_identify(1, &disk[1]);
@@ -149,13 +149,14 @@ static int drive_identify(int disk_id, disk_t *d)
 	uint8_t status;
 	size_t i;
 
-	printf("Identify drive %d\n", disk_id);
+	printf("Identify drive %d... ", disk_id);
+	fflush(stdout);
+
 	pio_write_8(&cmd->drive_head, ((disk_id != 0) ? DHR_DRV : 0));
 	async_usleep(100);
 	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
 
 	status = pio_read_8(&cmd->status);
-	printf("Status = 0x%x\n", status);
 
 	d->present = false;
 
