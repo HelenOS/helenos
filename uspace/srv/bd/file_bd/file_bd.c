@@ -49,6 +49,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <bool.h>
+#include <task.h>
 
 #define NAME "file_bd"
 
@@ -86,6 +87,7 @@ int main(int argc, char **argv)
 	}
 
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 
 	/* Not reached */

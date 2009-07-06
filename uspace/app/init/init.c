@@ -136,6 +136,36 @@ static void spawn(char *fname)
 		printf(NAME ": Error spawning %s\n", fname);
 }
 
+static void srv_start(char *fname)
+{
+	char *argv[2];
+	task_id_t id;
+	task_exit_t texit;
+	int rc, retval;
+	
+	printf(NAME ": Starting %s\n", fname);
+	
+	argv[0] = fname;
+	argv[1] = NULL;
+	
+	id = task_spawn(fname, argv);
+	if (!id) {
+		printf(NAME ": Error spawning %s\n", fname);
+		return;
+	}
+
+	rc = task_wait(id, &texit, &retval);
+	if (rc != EOK) {
+		printf(NAME ": Error waiting for %s\n", fname);
+		return;
+	}
+
+	if (texit != TASK_EXIT_NORMAL || retval != 0) {
+		printf(NAME ": Server %s failed to start (returned %d)\n",
+			fname, retval);
+	}
+}
+
 static void getvc(char *dev, char *app)
 {
 	char *argv[4];
@@ -197,10 +227,14 @@ int main(int argc, char *argv[])
 	spawn("/srv/console");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
-	spawn("/srv/ata_bd");
-	spawn("/srv/gxe_bd");
+
+	/*
+	 * Start these synchronously so that mount_data() can be
+	 * non-blocking.
+	 */
+	srv_start("/srv/ata_bd");
+	srv_start("/srv/gxe_bd");
 	
-	usleep(250000); // FIXME
 	mount_data();
 	
 	getvc("vc0", "/app/bdsh");

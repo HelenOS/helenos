@@ -46,6 +46,7 @@
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <task.h>
 
 #define NAME "gxe_bd"
 
@@ -110,6 +111,7 @@ int main(int argc, char **argv)
 		return -1;
 
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 
 	/* Not reached */
