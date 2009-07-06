@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 			}
 			continue;
 		case IPC_M_PHONE_HUNGUP:
-			retval = EOK;
+			retval = ns_task_disconnect(&call);
 			break;
 		case IPC_M_CONNECT_TO_ME:
 			/*
@@ -170,6 +170,9 @@ int main(int argc, char **argv)
 			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			wait_for_task(id, &call, callid);
 			continue;
+		case NS_ID_INTRO:
+			retval = ns_task_id_intro(&call);
+			break;
 		case NS_RETVAL:
 			retval = ns_task_retval(&call);
 			break;

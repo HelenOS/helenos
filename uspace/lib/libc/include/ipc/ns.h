@@ -40,6 +40,7 @@
 typedef enum {
 	NS_PING = IPC_FIRST_USER_METHOD,
 	NS_TASK_WAIT,
+	NS_ID_INTRO,
 	NS_RETVAL
 } ns_request_t;
 

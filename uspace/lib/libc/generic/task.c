@@ -162,11 +162,7 @@ int task_wait(task_id_t id, int *retval)
 
 int task_retval(int val)
 {
-	task_id_t id;
-
-	id = task_get_id();
-	return (int) async_req_3_0(PHONE_NS, NS_RETVAL, LOWER32(id),
-	    UPPER32(id), val);
+	return (int) async_req_1_0(PHONE_NS, NS_RETVAL, val);
 }
 
 /** @}
