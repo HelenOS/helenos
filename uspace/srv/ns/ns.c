@@ -108,13 +108,6 @@ int main(int argc, char **argv)
 		task_id_t id;
 		ipcarg_t retval;
 		
-		if (callid & IPC_CALLID_NOTIFICATION) {
-			id = (task_id_t)
-			    MERGE_LOUP32(IPC_GET_ARG2(call), IPC_GET_ARG3(call));
-			wait_notification((wait_type_t) IPC_GET_ARG1(call), id);
-			continue;
-		}
-		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {

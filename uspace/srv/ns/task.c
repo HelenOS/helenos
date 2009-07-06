@@ -48,12 +48,7 @@ static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id);
 
 /* TODO:
  *
- * The current implementation of waiting on a task is not perfect. If somebody
- * The caller has to make sure that it is not trying to wait
- * before the NS has a change to receive the task creation notification. This
- * can be assured by waiting for this event in task_spawn().
- *
- * Finally, as there is currently no convention that each task has to be waited
+ * As there is currently no convention that each task has to be waited
  * for, the NS can leak memory because of the zombie tasks.
  *
  */
@@ -207,9 +202,6 @@ int task_init(void)
 		return ENOMEM;
 	}
 	
-	if (event_subscribe(EVENT_WAIT, 0) != EOK)
-		printf(NAME ": Error registering wait notifications\n");
-	
 	list_initialize(&pending_wait);
 	
 	return EOK;
@@ -247,54 +239,6 @@ loop:
 	}
 }
 
-static void fail_pending_wait(task_id_t id, int rc)
-{
-	link_t *cur;
-	
-loop:
-	for (cur = pending_wait.next; cur != &pending_wait; cur = cur->next) {
-		pending_wait_t *pr = list_get_instance(cur, pending_wait_t, link);
-		
-		if (pr->id == id) {
-			if (!(pr->callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(pr->callid, rc);
-		
-			list_remove(cur);
-			free(pr);
-			goto loop;
-		}
-	}
-}
-
-void wait_notification(wait_type_t et, task_id_t id)
-{
-	unsigned long keys[2] = {
-		LOWER32(id),
-		UPPER32(id)
-	};
-	
-	link_t *link = hash_table_find(&task_hash_table, keys);
-	
-	if (link == NULL) {
-		hashed_task_t *ht =
-		    (hashed_task_t *) malloc(sizeof(hashed_task_t));
-		if (ht == NULL) {
-			fail_pending_wait(id, ENOMEM);
-			return;
-		}
-		
-		link_initialize(&ht->link);
-		ht->id = id;
-		ht->destroyed = (et == TASK_CREATE) ? false : true;
-		ht->retval = -1;
-		hash_table_insert(&task_hash_table, keys, &ht->link);
-	} else {
-		hashed_task_t *ht =
-		    hash_table_get_instance(link, hashed_task_t, link);
-		ht->destroyed = (et == TASK_CREATE) ? false : true;
-	}
-}
-
 void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
 	ipcarg_t retval;
@@ -308,6 +252,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	    hash_table_get_instance(link, hashed_task_t, link) : NULL;
 
 	if (ht == NULL) {
+		/* No such task exists. */
 		retval = ENOENT;
 		goto out;
 	}
@@ -338,9 +283,10 @@ out:
 int ns_task_id_intro(ipc_call_t *call)
 {
 	task_id_t id;
-	unsigned long keys[1];
+	unsigned long keys[2];
 	link_t *link;
 	p2i_entry_t *e;
+	hashed_task_t *ht;
 
 	id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 
@@ -354,10 +300,27 @@ int ns_task_id_intro(ipc_call_t *call)
 	if (e == NULL)
 		return ENOMEM;
 
+	ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
+	if (ht == NULL)
+		return ENOMEM;
+
+	/* Insert to phone-to-id map. */
+
 	link_initialize(&e->link);
 	e->phash = call->in_phone_hash;
 	e->id = id;
 	hash_table_insert(&phone_to_id, keys, &e->link);
+
+	/* Insert to main table. */
+
+	keys[0] = LOWER32(id);
+	keys[1] = UPPER32(id);
+
+	link_initialize(&ht->link);
+	ht->id = id;
+	ht->destroyed = false;
+	ht->retval = -1;
+	hash_table_insert(&task_hash_table, keys, &ht->link);
 
 	return EOK;
 }
@@ -389,11 +352,29 @@ int ns_task_retval(ipc_call_t *call)
 
 int ns_task_disconnect(ipc_call_t *call)
 {
-	unsigned long keys[1];
+	unsigned long keys[2];
+	task_id_t id;
+	int rc;
 
+	rc = get_id_by_phone(call->in_phone_hash, &id);
+	if (rc != EOK)
+		return rc;
+
+	/* Delete from phone-to-id map. */
 	keys[0] = call->in_phone_hash;
 	hash_table_remove(&phone_to_id, keys, 1);
-	
+
+	/* Mark task as finished. */
+	keys[0] = LOWER32(id);
+	keys[1] = UPPER32(id);
+
+	link_t *link = hash_table_find(&task_hash_table, keys);
+	hashed_task_t *ht =
+	    hash_table_get_instance(link, hashed_task_t, link);
+	assert(ht != NULL);
+
+	ht->destroyed = true;
+
 	return EOK;
 }
 
