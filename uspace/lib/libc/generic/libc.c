@@ -61,6 +61,8 @@ void _exit(int status)
 
 void __main(void *pcb_ptr)
 {
+	int retval;
+
 	__heap_init();
 	__async_init();
 	fibril_t *fibril = fibril_setup();
@@ -82,8 +84,10 @@ void __main(void *pcb_ptr)
 		__stdio_init(__pcb->filc, __pcb->filv);
 	}
 	
-	main(argc, argv);
+	retval = main(argc, argv);
+
 	__stdio_done();
+	(void) task_retval(retval);
 }
 
 void __exit(void)

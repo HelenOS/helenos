@@ -42,6 +42,8 @@ extern void process_pending_wait(void);
 extern void wait_notification(wait_type_t et, task_id_t id);
 extern void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid);
 
+extern int ns_task_retval(ipc_call_t *call);
+
 #endif
 
 /**

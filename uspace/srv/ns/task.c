@@ -63,6 +63,7 @@
 typedef struct {
 	link_t link;
 	task_id_t id;    /**< Task ID. */
+	int retval;
 	bool destroyed;
 } hashed_task_t;
 
@@ -173,7 +174,7 @@ loop:
 			continue;
 		
 		if (!(pr->callid & IPC_CALLID_NOTIFICATION))
-			ipc_answer_0(pr->callid, EOK);
+			ipc_answer_1(pr->callid, EOK, ht->retval);
 		
 		hash_table_remove(&task_hash_table, keys, 2);
 		list_remove(cur);
@@ -221,6 +222,7 @@ void wait_notification(wait_type_t et, task_id_t id)
 		link_initialize(&ht->link);
 		ht->id = id;
 		ht->destroyed = (et == TASK_CREATE) ? false : true;
+		ht->retval = -1;
 		hash_table_insert(&task_hash_table, keys, &ht->link);
 	} else {
 		hashed_task_t *ht =
@@ -261,7 +263,29 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	
 out:
 	if (!(callid & IPC_CALLID_NOTIFICATION))
-		ipc_answer_0(callid, retval);
+		ipc_answer_1(callid, retval, ht->retval);
+}
+
+int ns_task_retval(ipc_call_t *call)
+{
+	task_id_t id;
+	unsigned long keys[2];
+
+	id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
+
+	keys[0] = LOWER32(id);
+	keys[1] = UPPER32(id);
+	
+	link_t *link = hash_table_find(&task_hash_table, keys);
+	hashed_task_t *ht = (link != NULL) ?
+	    hash_table_get_instance(link, hashed_task_t, link) : NULL;
+	
+	if ((ht == NULL) || ht->destroyed)
+		return EINVAL;
+
+	ht->retval = IPC_GET_ARG3(*call);
+
+	return EOK;
 }
 
 /**

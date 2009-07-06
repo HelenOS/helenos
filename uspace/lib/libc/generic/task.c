@@ -148,9 +148,25 @@ error:
 	return 0;
 }
 
-int task_wait(task_id_t id)
+int task_wait(task_id_t id, int *retval)
 {
-	return (int) async_req_2_0(PHONE_NS, NS_TASK_WAIT, LOWER32(id), UPPER32(id));
+	ipcarg_t rv;
+	int rc;
+
+	rc = (int) async_req_2_1(PHONE_NS, NS_TASK_WAIT, LOWER32(id),
+	    UPPER32(id), &rv);
+	*retval = rv;
+
+	return rc;
+}
+
+int task_retval(int val)
+{
+	task_id_t id;
+
+	id = task_get_id();
+	return (int) async_req_3_0(PHONE_NS, NS_RETVAL, LOWER32(id),
+	    UPPER32(id), val);
 }
 
 /** @}

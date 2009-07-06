@@ -113,6 +113,7 @@ unsigned int try_exec(char *cmd, char **argv)
 {
 	task_id_t tid;
 	char *tmp;
+	int retval;
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
@@ -125,6 +126,9 @@ unsigned int try_exec(char *cmd, char **argv)
 		return 1;
 	}
 	
-	task_wait(tid);
+	task_wait(tid, &retval);
+	if (retval != 0)
+		printf("Command failed (return value %d).\n", retval);
+
 	return 0;
 }

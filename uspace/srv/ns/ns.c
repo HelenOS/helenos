@@ -170,6 +170,9 @@ int main(int argc, char **argv)
 			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
 			wait_for_task(id, &call, callid);
 			continue;
+		case NS_RETVAL:
+			retval = ns_task_retval(&call);
+			break;
 		default:
 			retval = ENOENT;
 			break;
