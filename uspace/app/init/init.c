@@ -41,6 +41,7 @@
 #include <bool.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
@@ -126,6 +127,10 @@ static bool mount_devfs(void)
 static void spawn(char *fname)
 {
 	char *argv[2];
+	struct stat s;
+	
+	if (stat(fname, &s) == ENOENT)
+		return;
 	
 	printf(NAME ": Spawning %s\n", fname);
 	
@@ -142,6 +147,10 @@ static void srv_start(char *fname)
 	task_id_t id;
 	task_exit_t texit;
 	int rc, retval;
+	struct stat s;
+	
+	if (stat(fname, &s) == ENOENT)
+		return;
 	
 	printf(NAME ": Starting %s\n", fname);
 	
