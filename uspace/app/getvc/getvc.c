@@ -73,6 +73,7 @@ static task_id_t spawn(char *fname)
 
 int main(int argc, char *argv[])
 {
+	task_exit_t texit;
 	int retval;
 
 	if (argc < 3) {
@@ -99,7 +100,7 @@ int main(int argc, char *argv[])
 	
 	version_print(argv[1]);
 	task_id_t id = spawn(argv[2]);
-	task_wait(id, &retval);
+	task_wait(id, &texit, &retval);
 	
 	return 0;
 }

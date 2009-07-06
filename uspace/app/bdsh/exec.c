@@ -112,6 +112,7 @@ static char *find_command(char *cmd)
 unsigned int try_exec(char *cmd, char **argv)
 {
 	task_id_t tid;
+	task_exit_t texit;
 	char *tmp;
 	int retval;
 
@@ -126,9 +127,12 @@ unsigned int try_exec(char *cmd, char **argv)
 		return 1;
 	}
 	
-	task_wait(tid, &retval);
-	if (retval != 0)
+	task_wait(tid, &texit, &retval);
+	if (texit != TASK_EXIT_NORMAL) {
+		printf("Command failed (unexpectedly terminated).\n");
+	} else if (retval != 0) {
 		printf("Command failed (return value %d).\n", retval);
+	}
 
 	return 0;
 }

@@ -39,10 +39,15 @@
 
 typedef uint64_t task_id_t;
 
+typedef enum {
+	TASK_EXIT_NORMAL,
+	TASK_EXIT_UNEXPECTED
+} task_exit_t;
+
 extern task_id_t task_get_id(void);
 extern int task_set_name(const char *name);
 extern task_id_t task_spawn(const char *path, char *const argv[]);
-extern int task_wait(task_id_t id, int *retval);
+extern int task_wait(task_id_t id, task_exit_t *texit, int *retval);
 extern int task_retval(int val);
 
 

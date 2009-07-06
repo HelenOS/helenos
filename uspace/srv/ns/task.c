@@ -56,9 +56,10 @@ static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id);
 /** Task hash table item. */
 typedef struct {
 	link_t link;
-	task_id_t id;    /**< Task ID. */
-	int retval;
-	bool destroyed;
+	task_id_t id;	/**< Task ID. */
+	bool finished;	/**< Task is done. */
+	bool have_rval;	/**< Task returned a value. */
+	int retval;	/**< The return value. */
 } hashed_task_t;
 
 /** Compute hash index into task hash table.
@@ -211,6 +212,7 @@ int task_init(void)
 void process_pending_wait(void)
 {
 	link_t *cur;
+	task_exit_t texit;
 	
 loop:
 	for (cur = pending_wait.next; cur != &pending_wait; cur = cur->next) {
@@ -226,12 +228,16 @@ loop:
 			continue;
 		
 		hashed_task_t *ht = hash_table_get_instance(link, hashed_task_t, link);
-		if (!ht->destroyed)
+		if (!ht->finished)
 			continue;
 		
-		if (!(pr->callid & IPC_CALLID_NOTIFICATION))
-			ipc_answer_1(pr->callid, EOK, ht->retval);
-		
+		if (!(pr->callid & IPC_CALLID_NOTIFICATION)) {
+			texit = ht->have_rval ? TASK_EXIT_NORMAL :
+			    TASK_EXIT_UNEXPECTED;
+			ipc_answer_2(pr->callid, EOK, texit,
+			    ht->retval);
+		}
+
 		hash_table_remove(&task_hash_table, keys, 2);
 		list_remove(cur);
 		free(pr);
@@ -242,6 +248,8 @@ loop:
 void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
 	ipcarg_t retval;
+	task_exit_t texit;
+
 	unsigned long keys[2] = {
 		LOWER32(id),
 		UPPER32(id)
@@ -257,7 +265,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 		goto out;
 	}
 
-	if (!ht->destroyed) {
+	if (!ht->finished) {
 		/* Add to pending list */
 		pending_wait_t *pr =
 		    (pending_wait_t *) malloc(sizeof(pending_wait_t));
@@ -276,8 +284,10 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	retval = EOK;
 	
 out:
-	if (!(callid & IPC_CALLID_NOTIFICATION))
-		ipc_answer_1(callid, retval, ht->retval);
+	if (!(callid & IPC_CALLID_NOTIFICATION)) {
+		texit = ht->have_rval ? TASK_EXIT_NORMAL : TASK_EXIT_UNEXPECTED;
+		ipc_answer_2(callid, retval, texit, ht->retval);
+	}
 }
 
 int ns_task_id_intro(ipc_call_t *call)
@@ -318,7 +328,8 @@ int ns_task_id_intro(ipc_call_t *call)
 
 	link_initialize(&ht->link);
 	ht->id = id;
-	ht->destroyed = false;
+	ht->finished = false;
+	ht->have_rval = false;
 	ht->retval = -1;
 	hash_table_insert(&task_hash_table, keys, &ht->link);
 
@@ -342,9 +353,11 @@ int ns_task_retval(ipc_call_t *call)
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_instance(link, hashed_task_t, link) : NULL;
 	
-	if ((ht == NULL) || ht->destroyed)
+	if ((ht == NULL) || ht->finished)
 		return EINVAL;
 
+	ht->finished = true;
+	ht->have_rval = true;
 	ht->retval = IPC_GET_ARG1(*call);
 
 	return EOK;
@@ -371,9 +384,10 @@ int ns_task_disconnect(ipc_call_t *call)
 	link_t *link = hash_table_find(&task_hash_table, keys);
 	hashed_task_t *ht =
 	    hash_table_get_instance(link, hashed_task_t, link);
-	assert(ht != NULL);
+	if (ht == NULL)
+		return EOK;
 
-	ht->destroyed = true;
+	ht->finished = true;
 
 	return EOK;
 }
