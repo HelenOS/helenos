@@ -94,11 +94,19 @@ enum {
 	CUDA_RCV_BUF_SIZE = 5
 };
 
+enum cuda_xfer_state {
+	cx_listen,
+	cx_receive,
+	cx_rcv_end
+};
+
 typedef struct {
 	irq_t irq;
 	cuda_t *cuda;
 	indev_t *kbrdin;
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
+	size_t bidx;
+	enum cuda_xfer_state xstate;
 	SPINLOCK_DECLARE(dev_lock);
 } cuda_instance_t;
 
