@@ -710,6 +710,37 @@ void data_access_bit_fault(uint64_t vector, istate_t *istate)
 	page_table_unlock(AS, true);
 }
 
+/** Data access rights fault handler.
+ *
+ * @param vector Interruption vector.
+ * @param istate Structure with saved interruption state.
+ */
+void data_access_rights_fault(uint64_t vector, istate_t *istate)
+{
+	region_register rr;
+	rid_t rid;
+	uintptr_t va;
+	pte_t *t;
+
+	va = istate->cr_ifa;	/* faulting address */
+	rr.word = rr_read(VA2VRN(va));
+	rid = rr.map.rid;
+
+	/*
+	 * Assume a write to a read-only page.
+	 */
+	page_table_lock(AS, true);
+	t = page_mapping_find(AS, va);
+	ASSERT(t && t->p);
+	ASSERT(!t->w);
+	if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
+		fault_if_from_uspace(istate, "Page fault at %p.", va);
+		panic("%s: va=%p, rid=%d, iip=%p.", __func__, va, rid,
+		    istate->cr_iip);
+	}
+	page_table_unlock(AS, true);
+}
+
 /** Page not present fault handler.
  *
  * @param vector Interruption vector.

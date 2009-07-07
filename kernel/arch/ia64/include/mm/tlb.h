@@ -92,6 +92,7 @@ extern void data_nested_tlb_fault(uint64_t vector, istate_t *istate);
 extern void data_dirty_bit_fault(uint64_t vector, istate_t *istate);
 extern void instruction_access_bit_fault(uint64_t vector, istate_t *istate);
 extern void data_access_bit_fault(uint64_t vector, istate_t *istate);
+extern void data_access_rights_fault(uint64_t vector, istate_t *istate);
 extern void page_not_present(uint64_t vector, istate_t *istate);
 
 #endif
