@@ -192,6 +192,8 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
 		t->k = !(flags & PAGE_USER);
 		t->c = (flags & PAGE_CACHEABLE) != 0;
 		t->p = !(flags & PAGE_NOT_PRESENT);
+		t->a = false;
+		t->d = false;
 
 		t->as = as;
 		t->page = ALIGN_DOWN(page, PAGE_SIZE);
