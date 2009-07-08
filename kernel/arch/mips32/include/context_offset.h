@@ -86,7 +86,7 @@
 #define EOFFSET_STATUS 0x58
 #define EOFFSET_EPC    0x5c
 #define EOFFSET_K1     0x60
-#define REGISTER_SPACE 100
+#define REGISTER_SPACE 104	/* respect stack alignment */
 
 #ifdef __ASM__
 
