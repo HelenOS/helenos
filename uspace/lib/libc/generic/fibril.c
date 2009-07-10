@@ -165,6 +165,12 @@ int fibril_switch(fibril_switch_type_t stype)
 	if (stype != FIBRIL_FROM_DEAD) {
 		/* Save current state */
 		if (!context_save(&srcf->ctx)) {
+			/*
+			 * Make sure to reload srcf with the current fibril
+			 * address. Its value may be invalid after
+			 * contex_restore() due to e.g. register recycling.
+			 */
+			srcf = __tcb_get()->fibril_data;
 			if (serialization_count)
 				srcf->flags &= ~FIBRIL_SERIALIZED;
 			if (srcf->clean_after_me) {
