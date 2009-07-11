@@ -97,7 +97,9 @@ enum {
 enum cuda_xfer_state {
 	cx_listen,
 	cx_receive,
-	cx_rcv_end
+	cx_rcv_end,
+	cx_send_start,
+	cx_send
 };
 
 typedef struct {
@@ -105,7 +107,9 @@ typedef struct {
 	cuda_t *cuda;
 	indev_t *kbrdin;
 	uint8_t rcv_buf[CUDA_RCV_BUF_SIZE];
+	uint8_t snd_buf[CUDA_RCV_BUF_SIZE];
 	size_t bidx;
+	size_t snd_bytes;
 	enum cuda_xfer_state xstate;
 	SPINLOCK_DECLARE(dev_lock);
 } cuda_instance_t;

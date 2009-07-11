@@ -41,10 +41,18 @@
 #include <ddi/device.h>
 #include <synch/spinlock.h>
 
-static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *buf, size_t len);
+static irq_ownership_t cuda_claim(irq_t *irq);
+static void cuda_irq_handler(irq_t *irq);
+
 static void cuda_irq_listen(irq_t *irq);
 static void cuda_irq_receive(irq_t *irq);
 static void cuda_irq_rcv_end(irq_t *irq, void *buf, size_t *len);
+static void cuda_irq_send_start(irq_t *irq);
+static void cuda_irq_send(irq_t *irq);
+
+static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *buf, size_t len);
+static void cuda_send_start(cuda_instance_t *instance);
+static void cuda_autopoll_set(cuda_instance_t *instance, bool enable);
 
 /** B register fields */
 enum {
@@ -67,14 +75,75 @@ enum {
 	SR_OUT	= 0x10
 };
 
+/** Packet types */
+enum {
+	PT_ADB	= 0x00,
+	PT_CUDA	= 0x01
+};
+
+/** CUDA packet types */
+enum {
+	CPT_AUTOPOLL	= 0x01
+};
+
+cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+{
+	cuda_instance_t *instance
+	    = malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
+	if (instance) {
+		instance->cuda = dev;
+		instance->kbrdin = NULL;
+		instance->xstate = cx_listen;
+		instance->bidx = 0;
+		instance->snd_bytes = 0;
+
+		spinlock_initialize(&instance->dev_lock, "cuda_dev");
+
+		/* Disable all interrupts from CUDA. */
+		pio_write_8(&dev->ier, IER_CLR | ALL_INT);
+
+		irq_initialize(&instance->irq);
+		instance->irq.devno = device_assign_devno();
+		instance->irq.inr = inr;
+		instance->irq.claim = cuda_claim;
+		instance->irq.handler = cuda_irq_handler;
+		instance->irq.instance = instance;
+		instance->irq.cir = cir;
+		instance->irq.cir_arg = cir_arg;
+		instance->irq.preack = true;
+	}
+	
+	return instance;
+}
+
 #include <print.h>
+void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
+{
+	cuda_t *dev = instance->cuda;
+
+	ASSERT(instance);
+	ASSERT(kbrdin);
+
+	instance->kbrdin = kbrdin;
+	irq_register(&instance->irq);
+
+	/* Enable SR interrupt. */
+	pio_write_8(&dev->ier, TIP | TREQ);
+	pio_write_8(&dev->ier, IER_SET | SR_INT);
+
+	/* Enable ADB autopolling. */
+	cuda_autopoll_set(instance, true);
+}
+
 static irq_ownership_t cuda_claim(irq_t *irq)
 {
 	cuda_instance_t *instance = irq->instance;
 	cuda_t *dev = instance->cuda;
 	uint8_t ifr;
 
+	spinlock_lock(&instance->dev_lock);
 	ifr = pio_read_8(&dev->ifr);
+	spinlock_unlock(&instance->dev_lock);
 
 	if ((ifr & SR_INT) == 0)
 		return IRQ_DECLINE;
@@ -102,6 +171,8 @@ static void cuda_irq_handler(irq_t *irq)
 	case cx_receive: cuda_irq_receive(irq); break;
 	case cx_rcv_end: cuda_irq_rcv_end(irq, rbuf, &len);
 	    handle = true; break;
+	case cx_send_start: cuda_irq_send_start(irq); break;
+	case cx_send: cuda_irq_send(irq); break;
 	}
 
 	spinlock_unlock(&instance->dev_lock);
@@ -171,18 +242,73 @@ static void cuda_irq_rcv_end(irq_t *irq, void *buf, size_t *len)
 	b = pio_read_8(&dev->b);
 	data = pio_read_8(&dev->sr);
 
-	instance->xstate = cx_listen;
-
 	if ((b & TREQ) == 0) {
 		instance->xstate = cx_receive;
 		pio_write_8(&dev->b, b & ~TIP);
 	} else {
 		instance->xstate = cx_listen;
+		cuda_send_start(instance);
 	}
 
         memcpy(buf, instance->rcv_buf, instance->bidx);
         *len = instance->bidx;
 	instance->bidx = 0;
+}
+
+/** Interrupt in send_start state.
+ *
+ * Process result of sending first byte (and send second on success).
+ */
+static void cuda_irq_send_start(irq_t *irq)
+{
+	cuda_instance_t *instance = irq->instance;
+	cuda_t *dev = instance->cuda;
+	uint8_t b;
+
+	b = pio_read_8(&dev->b);
+
+	if ((b & TREQ) == 0) {
+		/* Collision */
+		pio_write_8(&dev->acr, pio_read_8(&dev->acr) & ~SR_OUT);
+		pio_read_8(&dev->sr);
+		pio_write_8(&dev->b, pio_read_8(&dev->b) | TIP | TACK);
+		instance->xstate = cx_listen;
+		return;
+	}
+
+	pio_write_8(&dev->sr, instance->snd_buf[1]);
+	pio_write_8(&dev->b, pio_read_8(&dev->b) ^ TACK);
+	instance->bidx = 2;
+
+	instance->xstate = cx_send;
+}
+
+/** Interrupt in send state.
+ *
+ * Send next byte or terminate transmission.
+ */
+static void cuda_irq_send(irq_t *irq)
+{
+	cuda_instance_t *instance = irq->instance;
+	cuda_t *dev = instance->cuda;
+
+	if (instance->bidx < instance->snd_bytes) {
+		/* Send next byte. */
+		pio_write_8(&dev->sr, instance->snd_buf[instance->bidx++]);
+		pio_write_8(&dev->b, pio_read_8(&dev->b) ^ TACK);
+		return;
+	}
+
+	/* End transfer. */
+	instance->snd_bytes = 0;
+	instance->bidx = 0;
+
+	pio_write_8(&dev->acr, pio_read_8(&dev->acr) & ~SR_OUT);
+	pio_read_8(&dev->sr);
+	pio_write_8(&dev->b, pio_read_8(&dev->b) | TACK | TIP);
+
+	instance->xstate = cx_listen;
+	/* TODO: Match reply with request. */
 }
 
 static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *data, size_t len)
@@ -198,49 +324,37 @@ static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *data, size_t 
 		indev_push_character(instance->kbrdin, data[4]);
 }
 
-cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
+static void cuda_autopoll_set(cuda_instance_t *instance, bool enable)
 {
-	cuda_instance_t *instance
-	    = malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
-	if (instance) {
-		instance->cuda = dev;
-		instance->kbrdin = NULL;
-		instance->xstate = cx_listen;
-		instance->bidx = 0;
+	instance->snd_buf[0] = PT_CUDA;
+	instance->snd_buf[1] = CPT_AUTOPOLL;
+	instance->snd_buf[2] = enable ? 0x01 : 0x00;
+	instance->snd_bytes = 3;
+	instance->bidx = 0;
 
-		spinlock_initialize(&instance->dev_lock, "cuda_dev");
-
-		/* Disable all interrupts from CUDA. */
-		pio_write_8(&dev->ier, IER_CLR | ALL_INT);
-
-		irq_initialize(&instance->irq);
-		instance->irq.devno = device_assign_devno();
-		instance->irq.inr = inr;
-		instance->irq.claim = cuda_claim;
-		instance->irq.handler = cuda_irq_handler;
-		instance->irq.instance = instance;
-		instance->irq.cir = cir;
-		instance->irq.cir_arg = cir_arg;
-		instance->irq.preack = true;
-	}
-	
-	return instance;
+	cuda_send_start(instance);
 }
 
-void cuda_wire(cuda_instance_t *instance, indev_t *kbrdin)
+static void cuda_send_start(cuda_instance_t *instance)
 {
 	cuda_t *dev = instance->cuda;
 
-	ASSERT(instance);
-	ASSERT(kbrdin);
+	ASSERT(instance->xstate == cx_listen);
 
-	instance->kbrdin = kbrdin;
-	irq_register(&instance->irq);
+	if (instance->snd_bytes == 0)
+		return;
 
-	/* Enable SR interrupt. */
-	pio_write_8(&dev->ier, TIP | TREQ);
-	pio_write_8(&dev->ier, IER_SET | SR_INT);
+	/* Check for incoming data. */
+	if ((pio_read_8(&dev->b) & TREQ) == 0)
+		return;
+
+	pio_write_8(&dev->acr, pio_read_8(&dev->acr) | SR_OUT);
+	pio_write_8(&dev->sr, instance->snd_buf[0]);
+	pio_write_8(&dev->b, pio_read_8(&dev->b) & ~TIP);
+
+	instance->xstate = cx_send_start;
 }
+
 
 /** @}
  */
