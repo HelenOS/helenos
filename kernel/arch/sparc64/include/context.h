@@ -39,7 +39,7 @@
 #include <arch/types.h>
 #include <align.h>
 
-#define SP_DELTA	STACK_WINDOW_SAVE_AREA_SIZE
+#define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
 #ifdef context_set
 #undef context_set

@@ -45,6 +45,11 @@
  */
 #define STACK_WINDOW_SAVE_AREA_SIZE	(16 * STACK_ITEM_SIZE)
 
+/*
+ * Six extended words for first six arguments.
+ */
+#define STACK_ARG_SAVE_AREA_SIZE		(6 * STACK_ITEM_SIZE)
+
 /**
  * By convention, the actual top of the stack is %sp + STACK_BIAS.
  */
