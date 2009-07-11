@@ -45,7 +45,7 @@
 	(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
 #endif /* context_set */
 
-extern int context_save_arch(context_t *c);
+extern int context_save_arch(context_t *c) __attribute__ ((returns_twice));
 extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
 
 /** Save register context.
