@@ -384,7 +384,7 @@ void *realloc(const void *addr, const size_t size)
 	assert(!head->free);
 	
 	void *ptr = NULL;
-	size_t real_size = GROSS_SIZE(size);
+	size_t real_size = GROSS_SIZE(ALIGN_UP(size, BASE_ALIGN));
 	size_t orig_size = head->size;
 	
 	if (orig_size > real_size) {
@@ -409,7 +409,7 @@ void *realloc(const void *addr, const size_t size)
 		    && (head->size + next_head->size >= real_size)) {
 			block_check(next_head);
 			block_init(head, head->size + next_head->size, false);
-			split_mark(head, size);
+			split_mark(head, ALIGN_UP(size, BASE_ALIGN));
 			
 			ptr = ((void *) head) + sizeof(heap_block_head_t);
 		} else {
