@@ -76,10 +76,6 @@ extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
  * corresponding call to context_save(), the only
  * difference being return value.
  *
- * Note that content of any local variable defined by
- * the caller of context_save() is undefined after
- * context_restore().
- *
  * @param c Context structure.
  */
 static inline void context_restore(context_t *c)
