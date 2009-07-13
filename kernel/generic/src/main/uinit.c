@@ -79,6 +79,14 @@ void uinit(void *arg)
 	uarg.uspace_thread_arg = NULL;
 
 	free((uspace_arg_t *) arg);
+	
+	/*
+	 * Disable interrupts so that the execution of userspace() is not
+	 * disturbed by any interrupts as some of the userspace()
+	 * implementations will switch to the userspace stack before switching
+	 * the mode.
+	 */
+	(void) interrupts_disable();
 	userspace(&uarg);
 }
 
