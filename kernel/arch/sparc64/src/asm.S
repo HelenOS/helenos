@@ -277,7 +277,7 @@ read_from_ag_g7:
  */
 .global switch_to_userspace
 switch_to_userspace:
-	save %o1, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	save %o1, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	flushw
 	wrpr %g0, 0, %cleanwin		! avoid information leak
 
