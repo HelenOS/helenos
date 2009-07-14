@@ -388,6 +388,10 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_GET_CSIZE:
 			ipc_answer_2(callid, EOK, scr_width, scr_height);
 			continue;
+		case FB_GET_COLOR_CAP:
+			ipc_answer_1(callid, EOK, color ? FB_CCAP_INDEXED :
+			    FB_CCAP_STYLE);
+			continue;
 		case FB_CLEAR:
 			serial_clrscr();
 			retval = 0;

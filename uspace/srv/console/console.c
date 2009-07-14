@@ -69,6 +69,7 @@ struct {
 	int phone;      /**< Framebuffer phone */
 	ipcarg_t cols;  /**< Framebuffer columns */
 	ipcarg_t rows;  /**< Framebuffer rows */
+	int color_cap;	/**< Color capabilities (FB_CCAP_xxx) */
 } fb_info;
 
 typedef struct {
@@ -170,6 +171,19 @@ static void set_attrs(attrs_t *attrs)
 		set_rgb_color(attrs->a.r.fg_color, attrs->a.r.bg_color);
 		break;
 	}
+}
+
+int ccap_fb_to_con(int ccap_fb, int *ccap_con)
+{
+	switch (ccap_fb) {
+	case FB_CCAP_NONE: *ccap_con = CONSOLE_CCAP_NONE; break;
+	case FB_CCAP_STYLE: *ccap_con = CONSOLE_CCAP_STYLE; break;
+	case FB_CCAP_INDEXED: *ccap_con = CONSOLE_CCAP_INDEXED; break;
+	case FB_CCAP_RGB: *ccap_con = CONSOLE_CCAP_RGB; break;
+	default: return EINVAL;
+	}
+
+	return EOK;
 }
 
 /** Send an area of screenbuffer to the FB driver. */
@@ -526,6 +540,9 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipcarg_t arg1;
 	ipcarg_t arg2;
 	ipcarg_t arg3;
+
+	int cons_ccap;
+	int rc;
 	
 	async_serialize_start();
 	if (cons->refcount == 0)
@@ -588,6 +605,14 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg1 = fb_info.cols;
 			arg2 = fb_info.rows;
 			break;
+		case CONSOLE_GET_COLOR_CAP:
+			rc = ccap_fb_to_con(fb_info.color_cap, &cons_ccap);
+			if (rc != EOK) {
+				ipc_answer_0(callid, rc);
+				continue;
+			}
+			arg1 = cons_ccap;
+			break;
 		case CONSOLE_SET_STYLE:
 			fb_pending_flush();
 			arg1 = IPC_GET_ARG1(call);
@@ -639,6 +664,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 static bool console_init(void)
 {
+	ipcarg_t color_cap;
+
 	/* Connect to keyboard driver */
 	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
 	if (kbd_phone < 0) {
@@ -674,6 +701,8 @@ static bool console_init(void)
 	/* Synchronize, the gcons could put something in queue */
 	async_req_0_0(fb_info.phone, FB_FLUSH);
 	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
+	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &color_cap);
+	fb_info.color_cap = color_cap;
 	
 	/* Set up shared memory buffer. */
 	size_t ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;

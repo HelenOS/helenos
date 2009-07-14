@@ -41,6 +41,7 @@ typedef enum {
 	FB_PUTCHAR = IPC_FIRST_USER_METHOD,
 	FB_CLEAR,
 	FB_GET_CSIZE,
+	FB_GET_COLOR_CAP,
 	FB_CURSOR_VISIBILITY,
 	FB_CURSOR_GOTO,
 	FB_SCROLL,
@@ -70,6 +71,13 @@ typedef enum {
 	FB_SCREEN_YIELD,
 	FB_SCREEN_RECLAIM
 } fb_request_t;
+
+enum {
+	FB_CCAP_NONE = 0,
+	FB_CCAP_STYLE,
+	FB_CCAP_INDEXED,
+	FB_CCAP_RGB
+};
 
 #endif
 

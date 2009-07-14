@@ -43,6 +43,13 @@ typedef enum {
 	KEY_RELEASE
 } console_ev_type_t;
 
+enum {
+	CONSOLE_CCAP_NONE = 0,
+	CONSOLE_CCAP_STYLE,
+	CONSOLE_CCAP_INDEXED,
+	CONSOLE_CCAP_RGB
+};
+
 /** Console event structure. */
 typedef struct {
 	/** Press or release event. */
@@ -68,6 +75,7 @@ extern void console_set_color(int phone, int fg_color, int bg_color, int flags);
 extern void console_set_rgb_color(int phone, int fg_color, int bg_color);
 
 extern void console_cursor_visibility(int phone, bool show);
+extern int console_get_color_cap(int phone, int *ccap);
 extern void console_kcon_enable(int phone);
 
 extern bool console_get_event(int phone, console_event_t *event);

@@ -1647,6 +1647,9 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case FB_GET_CSIZE:
 			ipc_answer_2(callid, EOK, vport->cols, vport->rows);
 			continue;
+		case FB_GET_COLOR_CAP:
+			ipc_answer_1(callid, EOK, FB_CCAP_RGB);
+			continue;
 		case FB_SCROLL:
 			scroll = IPC_GET_ARG1(call);
 			if ((scroll > (int) vport->rows) || (scroll < (-(int) vport->rows))) {

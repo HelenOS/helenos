@@ -69,6 +69,17 @@ void console_cursor_visibility(int phone, bool show)
 	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, show != false);
 }
 
+int console_get_color_cap(int phone, int *ccap)
+{
+	ipcarg_t ccap_tmp;
+	int rc;
+
+	rc = async_req_0_1(phone, CONSOLE_GET_COLOR_CAP, &ccap_tmp);
+	*ccap = ccap_tmp;
+
+	return rc;
+}
+
 void console_kcon_enable(int phone)
 {
 	async_msg_0(phone, CONSOLE_KCON_ENABLE);

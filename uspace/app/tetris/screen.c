@@ -62,6 +62,8 @@ static cell curscreen[B_SIZE];  /* non-zero => standout (or otherwise marked) */
 static int curscore;
 static int isset;               /* true => terminal is in game mode */
 
+static int use_color;		/* true => use colors */
+
 static const struct shape *lastshape;
 
 
@@ -78,7 +80,8 @@ static inline void putstr(char *s)
 static void start_standout(uint32_t color)
 {
 	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0xf0f0f0, color);
+	console_set_rgb_color(fphone(stdout), 0xf0f0f0,
+	    use_color ? color : 0x000000);
 }
 
 static void resume_normal(void)
@@ -127,6 +130,18 @@ static int get_display_size(winsize_t *ws)
 	return console_get_size(fphone(stdout), &ws->ws_col, &ws->ws_row);
 }
 
+static int get_display_color_sup(void)
+{
+	int rc;
+	int ccap;
+
+	rc = console_get_color_cap(fphone(stdout), &ccap);
+	if (rc != 0)
+		return 0;
+
+	return (ccap >= CONSOLE_CCAP_RGB);
+}
+
 /*
  * Set up screen mode.
  */
@@ -141,6 +156,8 @@ void scr_set(void)
 		Rows = ws.ws_row;
 		Cols = ws.ws_col;
 	}
+
+	use_color = get_display_color_sup();
 	
 	if ((Rows < MINROWS) || (Cols < MINCOLS)) {
 		char smallscr[55];
