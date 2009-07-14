@@ -405,8 +405,9 @@ void *realloc(const void *addr, const size_t size)
 		heap_block_head_t *next_head =
 		    (heap_block_head_t *) (((void *) head) + head->size);
 		
-		if (((void *) next_head < heap_end)
-		    && (head->size + next_head->size >= real_size)) {
+		if (((void *) next_head < heap_end) &&
+		    (head->size + next_head->size >= real_size) &&
+		    (next_head->free)) {
 			block_check(next_head);
 			block_init(head, head->size + next_head->size, false);
 			split_mark(head, ALIGN_UP(size, BASE_ALIGN));
