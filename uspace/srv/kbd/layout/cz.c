@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup kbd
- * @brief US QWERTY leyout.
+ * @brief Czech QWERTZ layout.
  * @{
  */
 
