@@ -123,7 +123,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 		"ldx %0, %2\n"
 		"brz %2, 0b\n"
 		"nop\n"
-		"ba %xcc, 1b\n"
+		"ba %%xcc, 1b\n"
 		"nop\n"
 	"2:\n"
 		: "+m" (*((uint64_t *) x)), "+r" (tmp1), "+r" (tmp2) : "r" (0)
