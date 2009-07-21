@@ -72,8 +72,11 @@ int abort_trace;
 
 uintptr_t thash;
 volatile int paused;
-fibril_condvar_t paused_cv;
-fibril_mutex_t paused_lock;
+fibril_condvar_t state_cv;
+fibril_mutex_t state_lock;
+
+int cev_valid;
+console_event_t cev;
 
 void thread_trace_start(uintptr_t thread_hash);
 
@@ -85,12 +88,26 @@ static loader_t *task_ldr;
 display_mask_t display_mask;
 
 static int program_run_fibril(void *arg);
+static int cev_fibril(void *arg);
 
 static void program_run(void)
 {
 	fid_t fid;
 
 	fid = fibril_create(program_run_fibril, NULL);
+	if (fid == 0) {
+		printf("Error creating fibril\n");
+		exit(1);
+	}
+
+	fibril_add_ready(fid);
+}
+
+static void cev_fibril_start(void)
+{
+	fid_t fid;
+
+	fid = fibril_create(cev_fibril, NULL);
 	if (fid == 0) {
 		printf("Error creating fibril\n");
 		exit(1);
@@ -456,17 +473,17 @@ static int trace_loop(void *thread_hash_arg)
 
 	while (!abort_trace) {
 
-		fibril_mutex_lock(&paused_lock);
+		fibril_mutex_lock(&state_lock);
 		if (paused) {
 			printf("Thread [%d] paused. Press R to resume.\n",
 			    thread_id);
 
 			while (paused)
-				fibril_condvar_wait(&paused_cv, &paused_lock);
+				fibril_condvar_wait(&state_cv, &state_lock);
 
 			printf("Thread [%d] resumed.\n", thread_id);
 		}
-		fibril_mutex_unlock(&paused_lock);
+		fibril_mutex_unlock(&state_lock);
 
 		/* Run thread until an event occurs */
 		rc = udebug_go(phoneid, thread_hash,
@@ -488,16 +505,19 @@ static int trace_loop(void *thread_hash_arg)
 				break;
 			case UDEBUG_EVENT_STOP:
 				printf("Stop event\n");
-				fibril_mutex_lock(&paused_lock);
+				fibril_mutex_lock(&state_lock);
 				paused = 1;
-				fibril_mutex_unlock(&paused_lock);
+				fibril_mutex_unlock(&state_lock);
 				break;
 			case UDEBUG_EVENT_THREAD_B:
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
 				printf("Thread 0x%lx exited.\n", val0);
+				fibril_mutex_lock(&state_lock);
 				abort_trace = 1;
+				fibril_condvar_broadcast(&state_cv);
+				fibril_mutex_unlock(&state_lock);
 				break;
 			default:
 				printf("Unknown event type %d.\n", ev_type);
@@ -592,6 +612,32 @@ error:
 	return NULL;
 }
 
+static int cev_fibril(void *arg)
+{
+	(void) arg;
+
+	printf("cev_fibril()\n");
+	while (true) {
+		printf("cev_fibril: wait for cev_valid == 0\n");
+		fibril_mutex_lock(&state_lock);
+		while (cev_valid)
+			fibril_condvar_wait(&state_cv, &state_lock);
+		fibril_mutex_unlock(&state_lock);
+
+		printf("cev_fibril: wait for key\n");
+
+		if (!console_get_event(fphone(stdin), &cev))
+			return -1;
+
+		printf("cev_fibril: broadcast cev_valid = 1\n");
+
+		fibril_mutex_lock(&state_lock);
+		cev_valid = 1;
+		fibril_condvar_broadcast(&state_cv);
+		fibril_mutex_unlock(&state_lock);		
+	}
+}
+
 static void trace_task(task_id_t task_id)
 {
 	console_event_t ev;
@@ -622,8 +668,23 @@ static void trace_task(task_id_t task_id)
 	done = false;
 
 	while (!done) {
-		if (!console_get_event(fphone(stdin), &ev))
-			return;
+		printf("trace_task: wait for cev_valid || abort_trace\n");
+		fibril_mutex_lock(&state_lock);
+		while (!cev_valid && !abort_trace)
+			fibril_condvar_wait(&state_cv, &state_lock);
+		fibril_mutex_unlock(&state_lock);
+
+		printf("trace_task: got something\n");
+
+		ev = cev;
+
+		fibril_mutex_lock(&state_lock);
+		cev_valid = false;
+		fibril_condvar_broadcast(&state_cv);
+		fibril_mutex_unlock(&state_lock);
+
+		if (abort_trace)
+			break;
 
 		if (ev.type != KEY_PRESS)
 			continue;
@@ -639,10 +700,10 @@ static void trace_task(task_id_t task_id)
 				printf("Error: stop -> %d\n", rc);
 			break;
 		case KC_R:
-			fibril_mutex_lock(&paused_lock);
+			fibril_mutex_lock(&state_lock);
 			paused = 0;
-			fibril_condvar_broadcast(&paused_cv);
-			fibril_mutex_unlock(&paused_lock);
+			fibril_condvar_broadcast(&state_cv);
+			fibril_mutex_unlock(&state_lock);
 			printf("Resume...\n");
 			break;
 		}
@@ -682,8 +743,10 @@ static void main_init(void)
 
 	next_thread_id = 1;
 	paused = 0;
-	fibril_mutex_initialize(&paused_lock);
-	fibril_condvar_initialize(&paused_cv);
+	cev_valid = 0;
+
+	fibril_mutex_initialize(&state_lock);
+	fibril_condvar_initialize(&state_cv);
 
 	proto_init();
 
@@ -873,6 +936,7 @@ int main(int argc, char *argv[])
 		program_run();
 	}
 
+	cev_fibril_start();
 	trace_task(task_id);
 
 	return 0;
