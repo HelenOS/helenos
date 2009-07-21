@@ -83,6 +83,7 @@ void thread_trace_start(uintptr_t thread_hash);
 static proto_t *proto_console;
 static task_id_t task_id;
 static loader_t *task_ldr;
+static int task_wait_for;
 
 /** Combination of events/data to print. */
 display_mask_t display_mask;
@@ -860,6 +861,7 @@ static int parse_args(int argc, char *argv[])
 				--argc; ++argv;
 				task_id = strtol(*argv, &err_p, 10);
 				task_ldr = NULL;
+				task_wait_for = 0;
 				if (*err_p) {
 					printf("Task ID syntax error\n");
 					print_syntax();
@@ -897,6 +899,7 @@ static int parse_args(int argc, char *argv[])
 		while (*cp) printf("'%s'\n", *cp++);
 	}
 	task_ldr = preload_task(*argv, argv, &task_id);
+	task_wait_for = 1;
 
 	return 0;
 }
@@ -904,6 +907,8 @@ static int parse_args(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	int rc;
+	task_exit_t texit;
+	int retval;
 
 	printf("System Call / IPC Tracer\n");
 	printf("Controls: Q - Quit, P - Pause, R - Resume\n");
@@ -923,12 +928,28 @@ int main(int argc, char *argv[])
 
 	printf("Connected to task %lld.\n", task_id);
 
-	if (task_ldr != NULL) {
+	if (task_ldr != NULL)
 		program_run();
-	}
 
 	cev_fibril_start();
 	trace_task(task_id);
+
+	if (task_wait_for) {
+		printf("Waiting for task to exit.\n");
+
+		rc = task_wait(task_id, &texit, &retval);
+		if (rc != EOK) {
+			printf("Failed waiting for task.\n");
+			return -1;
+		}
+
+		if (texit == TASK_EXIT_NORMAL) {
+			printf("Task exited normally, return value %d.\n",
+			    retval);
+		} else {
+			printf("Task exited unexpectedly.\n");
+		}
+	}
 
 	return 0;
 }
