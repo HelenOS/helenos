@@ -550,6 +550,33 @@ static loader_t *preload_task(const char *path, char *const argv[],
 	if (rc != EOK)
 		goto error;
 
+	/* Send default files */
+	fdi_node_t *files[4];
+	fdi_node_t stdin_node;
+	fdi_node_t stdout_node;
+	fdi_node_t stderr_node;
+	
+	if ((stdin != NULL) && (fnode(stdin, &stdin_node) == EOK))
+		files[0] = &stdin_node;
+	else
+		files[0] = NULL;
+	
+	if ((stdout != NULL) && (fnode(stdout, &stdout_node) == EOK))
+		files[1] = &stdout_node;
+	else
+		files[1] = NULL;
+	
+	if ((stderr != NULL) && (fnode(stderr, &stderr_node) == EOK))
+		files[2] = &stderr_node;
+	else
+		files[2] = NULL;
+	
+	files[3] = NULL;
+	
+	rc = loader_set_files(ldr, files);
+	if (rc != EOK)
+		goto error;
+
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)
