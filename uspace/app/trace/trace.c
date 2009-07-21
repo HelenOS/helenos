@@ -43,6 +43,7 @@
 #include <task.h>
 #include <mem.h>
 #include <string.h>
+#include <bool.h>
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
@@ -68,22 +69,22 @@ int n_threads;
 int next_thread_id;
 
 int phoneid;
-int abort_trace;
+bool abort_trace;
 
 uintptr_t thash;
-volatile int paused;
-fibril_condvar_t state_cv;
-fibril_mutex_t state_lock;
+static bool paused;
+static fibril_condvar_t state_cv;
+static fibril_mutex_t state_lock;
 
-int cev_valid;
-console_event_t cev;
+static bool cev_valid;
+static console_event_t cev;
 
 void thread_trace_start(uintptr_t thread_hash);
 
 static proto_t *proto_console;
 static task_id_t task_id;
 static loader_t *task_ldr;
-static int task_wait_for;
+static bool task_wait_for;
 
 /** Combination of events/data to print. */
 display_mask_t display_mask;
@@ -507,7 +508,7 @@ static int trace_loop(void *thread_hash_arg)
 			case UDEBUG_EVENT_STOP:
 				printf("Stop event\n");
 				fibril_mutex_lock(&state_lock);
-				paused = 1;
+				paused = true;
 				fibril_mutex_unlock(&state_lock);
 				break;
 			case UDEBUG_EVENT_THREAD_B:
@@ -516,7 +517,7 @@ static int trace_loop(void *thread_hash_arg)
 			case UDEBUG_EVENT_THREAD_E:
 				printf("Thread 0x%lx exited.\n", val0);
 				fibril_mutex_lock(&state_lock);
-				abort_trace = 1;
+				abort_trace = true;
 				fibril_condvar_broadcast(&state_cv);
 				fibril_mutex_unlock(&state_lock);
 				break;
@@ -627,7 +628,7 @@ static int cev_fibril(void *arg)
 			return -1;
 
 		fibril_mutex_lock(&state_lock);
-		cev_valid = 1;
+		cev_valid = true;
 		fibril_condvar_broadcast(&state_cv);
 		fibril_mutex_unlock(&state_lock);		
 	}
@@ -654,7 +655,7 @@ static void trace_task(task_id_t task_id)
 		return;
 	}
 
-	abort_trace = 0;
+	abort_trace = false;
 
 	for (i = 0; i < n_threads; i++) {
 		thread_trace_start(thread_hash_buf[i]);
@@ -693,7 +694,7 @@ static void trace_task(task_id_t task_id)
 			break;
 		case KC_R:
 			fibril_mutex_lock(&state_lock);
-			paused = 0;
+			paused = false;
 			fibril_condvar_broadcast(&state_cv);
 			fibril_mutex_unlock(&state_lock);
 			printf("Resume...\n");
@@ -702,7 +703,7 @@ static void trace_task(task_id_t task_id)
 	}
 
 	printf("\nTerminate debugging session...\n");
-	abort_trace = 1;
+	abort_trace = true;
 	udebug_end(phoneid);
 	ipc_hangup(phoneid);
 
@@ -734,8 +735,8 @@ static void main_init(void)
 	};
 
 	next_thread_id = 1;
-	paused = 0;
-	cev_valid = 0;
+	paused = false;
+	cev_valid = false;
 
 	fibril_mutex_initialize(&state_lock);
 	fibril_condvar_initialize(&state_cv);
@@ -861,7 +862,7 @@ static int parse_args(int argc, char *argv[])
 				--argc; ++argv;
 				task_id = strtol(*argv, &err_p, 10);
 				task_ldr = NULL;
-				task_wait_for = 0;
+				task_wait_for = false;
 				if (*err_p) {
 					printf("Task ID syntax error\n");
 					print_syntax();
@@ -899,7 +900,7 @@ static int parse_args(int argc, char *argv[])
 		while (*cp) printf("'%s'\n", *cp++);
 	}
 	task_ldr = preload_task(*argv, argv, &task_id);
-	task_wait_for = 1;
+	task_wait_for = true;
 
 	return 0;
 }
