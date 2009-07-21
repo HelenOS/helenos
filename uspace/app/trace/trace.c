@@ -46,6 +46,7 @@
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
+#include <fibril_sync.h>
 
 #include <libc.h>
 
@@ -71,6 +72,8 @@ int abort_trace;
 
 uintptr_t thash;
 volatile int paused;
+fibril_condvar_t paused_cv;
+fibril_mutex_t paused_lock;
 
 void thread_trace_start(uintptr_t thread_hash);
 
@@ -453,13 +456,17 @@ static int trace_loop(void *thread_hash_arg)
 
 	while (!abort_trace) {
 
+		fibril_mutex_lock(&paused_lock);
 		if (paused) {
-			printf("Press R to resume.\n");
-			while (paused) {
-				async_usleep(1000000);
-			}
-			printf("Resumed\n");
+			printf("Thread [%d] paused. Press R to resume.\n",
+			    thread_id);
+
+			while (paused)
+				fibril_condvar_wait(&paused_cv, &paused_lock);
+
+			printf("Thread [%d] resumed.\n", thread_id);
 		}
+		fibril_mutex_unlock(&paused_lock);
 
 		/* Run thread until an event occurs */
 		rc = udebug_go(phoneid, thread_hash,
@@ -481,6 +488,9 @@ static int trace_loop(void *thread_hash_arg)
 				break;
 			case UDEBUG_EVENT_STOP:
 				printf("Stop event\n");
+				fibril_mutex_lock(&paused_lock);
+				paused = 1;
+				fibril_mutex_unlock(&paused_lock);
 				break;
 			case UDEBUG_EVENT_THREAD_B:
 				event_thread_b(val0);
@@ -598,13 +608,14 @@ static void trace_task(task_id_t task_id)
 		case KC_P:
 			printf("Pause...\n");
 			rc = udebug_stop(phoneid, thash);
-			if (rc == EOK)
-				paused = 1;
-			else
-				printf("stop -> %d\n", rc);
+			if (rc != EOK)
+				printf("Error: stop -> %d\n", rc);
 			break;
 		case KC_R:
+			fibril_mutex_lock(&paused_lock);
 			paused = 0;
+			fibril_condvar_broadcast(&paused_cv);
+			fibril_mutex_unlock(&paused_lock);
 			printf("Resume...\n");
 			break;
 		}
@@ -644,6 +655,8 @@ static void main_init(void)
 
 	next_thread_id = 1;
 	paused = 0;
+	fibril_mutex_initialize(&paused_lock);
+	fibril_condvar_initialize(&paused_cv);
 
 	proto_init();
 
