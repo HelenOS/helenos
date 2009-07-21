@@ -616,20 +616,14 @@ static int cev_fibril(void *arg)
 {
 	(void) arg;
 
-	printf("cev_fibril()\n");
 	while (true) {
-		printf("cev_fibril: wait for cev_valid == 0\n");
 		fibril_mutex_lock(&state_lock);
 		while (cev_valid)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
 
-		printf("cev_fibril: wait for key\n");
-
 		if (!console_get_event(fphone(stdin), &cev))
 			return -1;
-
-		printf("cev_fibril: broadcast cev_valid = 1\n");
 
 		fibril_mutex_lock(&state_lock);
 		cev_valid = 1;
@@ -668,13 +662,10 @@ static void trace_task(task_id_t task_id)
 	done = false;
 
 	while (!done) {
-		printf("trace_task: wait for cev_valid || abort_trace\n");
 		fibril_mutex_lock(&state_lock);
 		while (!cev_valid && !abort_trace)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
-
-		printf("trace_task: got something\n");
 
 		ev = cev;
 
