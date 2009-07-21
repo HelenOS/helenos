@@ -44,6 +44,8 @@
 #include <mem.h>
 #include <string.h>
 #include <loader/loader.h>
+#include <io/console.h>
+#include <io/keycode.h>
 
 #include <libc.h>
 
@@ -452,11 +454,9 @@ static int trace_loop(void *thread_hash_arg)
 	while (!abort_trace) {
 
 		if (paused) {
-			printf("Press R to resume (and be patient).\n");
+			printf("Press R to resume.\n");
 			while (paused) {
-				usleep(1000000);
-				fibril_yield();
-				printf(".");
+				async_usleep(1000000);
 			}
 			printf("Resumed\n");
 		}
@@ -557,9 +557,10 @@ error:
 
 static void trace_task(task_id_t task_id)
 {
+	console_event_t ev;
+	bool done;
 	int i;
 	int rc;
-	int c;
 
 	ipcp_init();
 
@@ -581,18 +582,31 @@ static void trace_task(task_id_t task_id)
 		thread_trace_start(thread_hash_buf[i]);
 	}
 
-	while(1) {
-		c = getchar();
-		if (c == 'q') break;
-		if (c == 'p') {
+	done = false;
+
+	while (!done) {
+		if (!console_get_event(fphone(stdin), &ev))
+			return;
+
+		if (ev.type != KEY_PRESS)
+			continue;
+
+		switch (ev.key) {
+		case KC_Q:
+			done = true;
+			break;
+		case KC_P:
 			printf("Pause...\n");
-			paused = 1;
 			rc = udebug_stop(phoneid, thash);
-			printf("stop -> %d\n", rc);
-		}
-		if (c == 'r') {
+			if (rc == EOK)
+				paused = 1;
+			else
+				printf("stop -> %d\n", rc);
+			break;
+		case KC_R:
 			paused = 0;
 			printf("Resume...\n");
+			break;
 		}
 	}
 
