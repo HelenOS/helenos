@@ -47,6 +47,7 @@
 #include <macros.h>
 #include <string.h>
 #include <devmap.h>
+#include <config.h>
 #include "init.h"
 
 static void info_print(void)
@@ -241,11 +242,14 @@ int main(int argc, char *argv[])
 	 * Start these synchronously so that mount_data() can be
 	 * non-blocking.
 	 */
+#ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
 	srv_start("/srv/gxe_bd");
-	
+#endif	
+#ifdef CONFIG_MOUNT_DATA
 	mount_data();
-	
+#endif
+
 	getvc("vc0", "/app/bdsh");
 	getvc("vc1", "/app/bdsh");
 	getvc("vc2", "/app/bdsh");
