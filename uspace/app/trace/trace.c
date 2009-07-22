@@ -68,6 +68,8 @@ int n_threads;
 
 int next_thread_id;
 
+ipc_call_t thread_ipc_req[THBUF_SIZE];
+
 int phoneid;
 bool abort_trace;
 
@@ -339,22 +341,34 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 	ipcp_call_sync(phoneidx, &question, &reply);
 }
 
-static void sc_ipc_call_sync_slow(sysarg_t *sc_args)
+static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
 {
 	ipc_call_t question, reply;
 	int rc;
 
 	memset(&question, 0, sizeof(question));
 	rc = udebug_mem_read(phoneid, &question.args, sc_args[1], sizeof(question.args));
-	printf("dmr->%d\n", rc);
-	if (rc < 0) return;
+	if (rc < 0) {
+		printf("Error: mem_read->%d\n", rc);
+		return;
+	}
+
+	thread_ipc_req[thread_id] = question;
+}
+
+static void sc_ipc_call_sync_slow_e(unsigned thread_id, sysarg_t *sc_args)
+{
+	ipc_call_t question, reply;
+	int rc;
 
 	memset(&reply, 0, sizeof(reply));
 	rc = udebug_mem_read(phoneid, &reply.args, sc_args[2], sizeof(reply.args));
-	printf("dmr->%d\n", rc);
-	if (rc < 0) return;
+	if (rc < 0) {
+		printf("Error: mem_read->%d\n", rc);
+		return;
+	}
 
-	ipcp_call_sync(sc_args[0], &question, &reply);
+	ipcp_call_sync(sc_args[0], &thread_ipc_req[thread_id], &reply);
 }
 
 static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
@@ -399,6 +413,14 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 		print_sc_args(sc_args, syscall_desc[sc_id].n_args);
 	}
 
+	switch (sc_id) {
+	case SYS_IPC_CALL_SYNC_SLOW:
+		sc_ipc_call_sync_slow_b(thread_id, sc_args);
+		break;
+	default:
+		break;
+	}
+
 	async_serialize_end();
 }
 
@@ -439,7 +461,7 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 		sc_ipc_call_sync_fast(sc_args);
 		break;
 	case SYS_IPC_CALL_SYNC_SLOW:
-		sc_ipc_call_sync_slow(sc_args);
+		sc_ipc_call_sync_slow_e(thread_id, sc_args);
 		break;
 	case SYS_IPC_WAIT:
 		sc_ipc_wait(sc_args, sc_rc);
@@ -470,6 +492,10 @@ static int trace_loop(void *thread_hash_arg)
 
 	thread_hash = (uintptr_t)thread_hash_arg;
 	thread_id = next_thread_id++;
+	if (thread_id >= THBUF_SIZE) {
+		printf("Too many threads.\n");
+		return ELIMIT;
+	}
 
 	printf("Start tracing thread [%d] (hash 0x%lx).\n", thread_id, thread_hash);
 
