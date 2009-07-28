@@ -17,6 +17,9 @@ SECTIONS {
 		*(COMMON); 		/* global variables */
 		*(.reginfo);
 
+		. = 0x2000;
+		*(ST);			/* bootloader stack section */
+
 		. = 0x4000;
 		*(PT);			/* page table placed at 0x4000 */
 [[COMPONENTS]]

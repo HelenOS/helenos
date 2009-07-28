@@ -110,6 +110,12 @@ ifeq ($(CONFIG_SUN_KBD),y)
 		genarch/src/kbrd/scanc_sun.c
 endif
 
+ifeq ($(CONFIG_PL050),y)
+	GENARCH_SOURCES += \
+		genarch/src/kbrd/kbrd_pl050.c \
+		genarch/src/kbrd/scanc_pl050.c
+endif
+
 ifeq ($(CONFIG_MAC_KBD),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbrd/kbrd.c \

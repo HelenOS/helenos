@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt, Petr Stepan
+ * Copyright (c) 2009 Vineeth Pillai
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,89 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32gxemul
+/** @addtogroup kbd_port
+ * @ingroup kbd
  * @{
- */
+ */ 
 /** @file
- *  @brief GXemul drivers.
+ * @brief pl050 port driver.
  */
 
-#include <arch/drivers/gxemul.h>
-#include <mm/page.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
+#include <ipc/ipc.h>
+#include <async.h>
+#include <unistd.h>
+#include <sysinfo.h>
+#include <kbd_port.h>
+#include <kbd.h>
+#include <ddi.h>
+#include <stdio.h>
 
-void *gxemul_kbd;
-void *gxemul_rtc;
-void *gxemul_irqc;
+#define PL050_STAT_RXFULL (1 << 4)
+static irq_cmd_t pl050_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_BTEST,
+		.value = PL050_STAT_RXFULL,
+		.srcarg = 1,
+		.dstarg = 3
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,	/* will be patched in run-time */
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
 
-void gxemul_init(void)
+static irq_code_t pl050_kbd = {
+	sizeof(pl050_cmds) / sizeof(irq_cmd_t),
+	pl050_cmds
+};
+
+static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
+
+int kbd_port_init(void)
 {
-	gxemul_kbd = (void *) hw_map(GXEMUL_KBD_ADDRESS, PAGE_SIZE);
-	gxemul_rtc = (void *) hw_map(GXEMUL_RTC_ADDRESS, PAGE_SIZE);
-	gxemul_irqc = (void *) hw_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE);
+
+	pl050_kbd.cmds[0].addr = (void *) sysinfo_value("kbd.address.status");
+	pl050_kbd.cmds[3].addr = (void *) sysinfo_value("kbd.address.data");
+
+	async_set_interrupt_received(pl050_irq_handler);
+
+	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &pl050_kbd);
+
+	return 0;
 }
 
-/** @}
- */
+void kbd_port_yield(void)
+{
+}
+
+void kbd_port_reclaim(void)
+{
+}
+
+static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call)
+{
+	int scan_code = IPC_GET_ARG2(*call);
+
+	kbd_push_scancode(scan_code);
+	return;
+}
+
+/**
+ * @}
+ */ 

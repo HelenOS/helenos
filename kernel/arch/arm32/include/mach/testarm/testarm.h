@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2009 Vineeth Pillai
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +27,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-/** @addtogroup arm32boot
+/** @addtogroup arm32gxemul GXemul
+ *  @brief GXemul machine specific parts.
+ *  @ingroup arm32
  * @{
  */
 /** @file
- *  @brief GXemul specific code.
- */ 
-
-
-#include <printf.h>
-
-
-/** Address where characters to be printed are expected. */
-#define PUTC_ADDRESS	0x10000000
-
-
-/** Prints a character to the console.
- *
- * @param ch Character to be printed.
+ *  @brief GXemul peripheries drivers declarations.
  */
-static void putc(char ch)
-{
-	*((volatile char *) PUTC_ADDRESS) = ch;
-}
 
+#ifndef KERN_arm32_GXEMUL_H_
+#define KERN_arm32_GXEMUL_H_
 
-/** Prints a string to the console.
- *
- * @param str String to be printed.
- * @param len Number of characters to be printed.
+#include <arch/machine_func.h>
+
+/** Last interrupt number (beginning from 0) whose status is probed
+ * from interrupt controller
  */
-void write(const char *str, const int len)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		putc(str[i]);
-	}
-}
+#define GXEMUL_IRQC_MAX_IRQ  8
+#define GXEMUL_KBD_IRQ       2
+#define GXEMUL_TIMER_IRQ     4
+
+/** Timer frequency */
+#define GXEMUL_TIMER_FREQ  100
+
+#define GXEMUL_KBD_ADDRESS   0x10000000
+#define GXEMUL_MP_ADDRESS    0x11000000
+#define GXEMUL_FB_ADDRESS    0x12000000
+#define GXEMUL_RTC_ADDRESS   0x15000000
+#define GXEMUL_IRQC_ADDRESS  0x16000000
+
+extern void *gxemul_kbd;
+extern void *gxemul_rtc;
+extern void *gxemul_irqc;
+
+#define GXEMUL_HALT_OFFSET        0x010
+#define GXEMUL_RTC_FREQ_OFFSET    0x100
+#define GXEMUL_MP_MEMSIZE_OFFSET  0x090
+#define GXEMUL_RTC_ACK_OFFSET     0x110
+
+extern void gxemul_init(void);
+extern void gxemul_fb_init(void);
+extern void gxemul_output_init(void);
+extern void gxemul_input_init(void);
+extern void gxemul_release_console(void);
+extern void gxemul_grab_console(void);
+extern void gxemul_timer_irq_start(void);
+extern void gxemul_cpu_halt(void);
+extern void gxemul_irq_exception(int exc_no, istate_t *istate);
+extern uintptr_t gxemul_get_memory_size(void);
+extern uintptr_t gxemul_get_fb_address(void);
+extern void gxemul_fb_init(void);
+extern void gxemul_frame_init(void);
+
+
+#endif
 
 /** @}
  */
-

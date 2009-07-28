@@ -35,15 +35,13 @@
 
 #include <arch/asm.h>
 #include <arch/regutils.h>
-#include <arch/drivers/gxemul.h>
+#include <arch/machine.h>
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <interrupt.h>
 
 /** Initial size of a table holding interrupt handlers. */
 #define IRQ_COUNT 8
-
-static irq_t gxemul_timer_irq;
 
 /** Disable interrupts.
  *
@@ -52,7 +50,7 @@ static irq_t gxemul_timer_irq;
 ipl_t interrupts_disable(void)
 {
 	ipl_t ipl = current_status_reg_read();
-	
+
 	current_status_reg_control_write(STATUS_REG_IRQ_DISABLED_BIT | ipl);
 	
 	return ipl;
@@ -65,7 +63,7 @@ ipl_t interrupts_disable(void)
 ipl_t interrupts_enable(void)
 {
 	ipl_t ipl = current_status_reg_read();
-	
+
 	current_status_reg_control_write(ipl & ~STATUS_REG_IRQ_DISABLED_BIT);
 	
 	return ipl;
@@ -91,57 +89,14 @@ ipl_t interrupts_read(void)
 	return current_status_reg_read();
 }
 
-/** Starts gxemul Real Time Clock device, which asserts regular interrupts.
- *
- * @param frequency Interrupts frequency (0 disables RTC).
- */
-static void gxemul_timer_start(uint32_t frequency)
-{
-	*((uint32_t *) (gxemul_rtc + GXEMUL_RTC_FREQ_OFFSET))
-	    = frequency;
-}
-
-static irq_ownership_t gxemul_timer_claim(irq_t *irq)
-{
-	return IRQ_ACCEPT;
-}
-
-/** Timer interrupt handler.
- *
- * @param irq Interrupt information.
- * @param arg Not used.
- */
-static void gxemul_timer_irq_handler(irq_t *irq)
-{
-	/*
-	* We are holding a lock which prevents preemption.
-	* Release the lock, call clock() and reacquire the lock again.
-	*/
-	spinlock_unlock(&irq->lock);
-	clock();
-	spinlock_lock(&irq->lock);
-	
-	/* acknowledge tick */
-	*((uint32_t *) (gxemul_rtc + GXEMUL_RTC_ACK_OFFSET))
-	    = 0;
-}
-
 /** Initialize basic tables for exception dispatching
  * and starts the timer.
  */
 void interrupt_init(void)
 {
 	irq_init(IRQ_COUNT, IRQ_COUNT);
+	machine_timer_irq_start();
 	
-	irq_initialize(&gxemul_timer_irq);
-	gxemul_timer_irq.devno = device_assign_devno();
-	gxemul_timer_irq.inr = GXEMUL_TIMER_IRQ;
-	gxemul_timer_irq.claim = gxemul_timer_claim;
-	gxemul_timer_irq.handler = gxemul_timer_irq_handler;
-	
-	irq_register(&gxemul_timer_irq);
-	
-	gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
 /** @}

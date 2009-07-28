@@ -67,7 +67,7 @@ char *release = STRING(RELEASE);
 /** Prints bootloader version information. */
 static void version_print(void)
 {
-	printf("HelenOS ARM32 Bootloader\nRelease %s%s%s\nCopyright (c) 2007 HelenOS project\n", 
+	printf("HelenOS ARM32 Bootloader\nRelease %s%s%s\nCopyright (c) 2009 HelenOS project\n", 
 		release, revision, timestamp);
 }
 
@@ -91,8 +91,6 @@ void bootstrap(void)
 	bootinfo.cnt = 0;
 	unsigned int i, j;
 	for (i = 0; i < COMPONENTS; i++) {
-		printf(" %L: %s image (size %d bytes)\n", 
-		    components[i].start, components[i].name, components[i].size);
 		top = ALIGN_UP(top, KERNEL_PAGE_SIZE);
 		if (i > 0) {
 			bootinfo.tasks[bootinfo.cnt].addr = ((void *) KERNEL_VIRTUAL_ADDRESS) + top;
@@ -106,18 +104,17 @@ void bootstrap(void)
 	j = bootinfo.cnt - 1; 
 
 	printf("\nCopying components\n");
-
+	printf("Component\tAddress\t\tSize (Bytes)\n");
+	printf("============================================\n");
 	for (i = COMPONENTS - 1; i > 0; i--, j--) {
-		printf(" %s...", components[i].name);
+		printf("%s\t\t0x%x\t%d\n", components[i].name, bootinfo.tasks[j].addr, components[i].size);
 		memcpy((void *)bootinfo.tasks[j].addr, components[i].start,
 		    components[i].size);
-		printf("done.\n");
 	}
-	
-	printf("\nCopying kernel...");
+	printf("KERNEL\t\t0x%x\t%d\n", KERNEL_VIRTUAL_ADDRESS, components[0].size);
+
 	memcpy((void *)KERNEL_VIRTUAL_ADDRESS, components[0].start,
 	    components[0].size);
-	printf("done.\n");
 
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS, &bootinfo);

@@ -41,6 +41,15 @@ BFD_ARCH = arm
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
 
+ifeq ($(MACHINE), testarm)
+	DMACHINE = MACHINE_GXEMUL_TESTARM
+endif
+
+ifeq ($(MACHINE), integratorcp)
+	DMACHINE = MACHINE_ICP
+endif
+
+
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
@@ -64,7 +73,7 @@ SOURCES = \
 	boot.S \
 	asm.S \
 	mm.c \
-	print/gxemul.c \
+	print/print.c \
 	_components.c \
 	../../../generic/printf.c \
 	../../../generic/string.c \
@@ -92,8 +101,11 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd
+	$(USPACEDIR)/srv/bd/file_bd/file_bd
+ifeq ($(MACHINE), testarm)
+	RD_SRVS += \
+		$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd
+endif
 
 RD_APPS = \
 	$(USPACEDIR)/app/getvc/getvc \
@@ -148,4 +160,4 @@ endif
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	$(CC) -D$(DMACHINE) $(DEFS) $(CFLAGS) -c $< -o $@

@@ -116,6 +116,13 @@ static void bgr_0888(void *dst, uint32_t rgb)
 	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8);
 }
 
+static void rgb_8880(void *dst, uint32_t rgb)
+{
+	*((uint32_t *) dst)
+	   = (RED(rgb, 8) << 24) | (GREEN(rgb, 8) << 16) | (BLUE(rgb, 8) << 8);
+
+}
+
 
 /** RGB 8:8:8 conversion
  *
@@ -470,7 +477,7 @@ void fb_init(fb_properties_t *props)
 		pixelbytes = 3;
 		break;
 	case VISUAL_RGB_8_8_8_0:
-		rgb_conv = rgb_888;
+		rgb_conv = rgb_8880;
 		pixelbytes = 4;
 		break;
 	case VISUAL_RGB_0_8_8_8:

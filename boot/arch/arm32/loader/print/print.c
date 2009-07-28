@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2009 Vineeth Pillai
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +27,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32gxemul GXemul
- *  @brief GXemul machine specific parts.
- *  @ingroup arm32
+
+/** @addtogroup arm32boot
  * @{
  */
 /** @file
- *  @brief GXemul peripheries drivers declarations.
- */
+ *  @brief bootloader output logic
+ */ 
 
-#ifndef KERN_arm32_GXEMUL_H_
-#define KERN_arm32_GXEMUL_H_
 
-/** Last interrupt number (beginning from 0) whose status is probed
- * from interrupt controller
- */
-#define GXEMUL_IRQC_MAX_IRQ  8
-#define GXEMUL_KBD_IRQ       2
-#define GXEMUL_TIMER_IRQ     4
+#include <printf.h>
 
-/** Timer frequency */
-#define GXEMUL_TIMER_FREQ  100
 
-#define GXEMUL_KBD_ADDRESS   0x10000000
-#define GXEMUL_MP_ADDRESS    0x11000000
-#define GXEMUL_FB_ADDRESS    0x12000000
-#define GXEMUL_RTC_ADDRESS   0x15000000
-#define GXEMUL_IRQC_ADDRESS  0x16000000
-
-extern void *gxemul_kbd;
-extern void *gxemul_rtc;
-extern void *gxemul_irqc;
-
-#define GXEMUL_HALT_OFFSET        0x010
-#define GXEMUL_RTC_FREQ_OFFSET    0x100
-#define GXEMUL_MP_MEMSIZE_OFFSET  0x090
-#define GXEMUL_RTC_ACK_OFFSET     0x110
-
-extern void gxemul_init(void);
-
+/** Address where characters to be printed are expected. */
+#ifdef MACHINE_GXEMUL_TESTARM
+#define PUTC_ADDRESS	0x10000000
 #endif
+#ifdef MACHINE_ICP
+#define  PUTC_ADDRESS    0x16000000
+#endif
+
+
+
+/** Prints a character to the console.
+ *
+ * @param ch Character to be printed.
+ */
+static void putc(char ch)
+{
+	if (ch == '\n')
+		*((volatile char *) PUTC_ADDRESS) = '\r';
+	*((volatile char *) PUTC_ADDRESS) = ch;
+}
+
+
+/** Prints a string to the console.
+ *
+ * @param str String to be printed.
+ * @param len Number of characters to be printed.
+ */
+void write(const char *str, const int len)
+{
+	int i;
+	for (i = 0; i < len; ++i) {
+		putc(str[i]);
+	}
+}
 
 /** @}
  */
+

@@ -34,8 +34,10 @@
 .global start
 .global jump_to_kernel
 .global page_table
+.global boot_stack
 
 start:
+	ldr sp, =boot_stack
 	b bootstrap
 
 jump_to_kernel:
@@ -46,6 +48,10 @@ jump_to_kernel:
 	#
 	bx r0
 
+#bootloader stack
+.section ST
+	.space 4096
+boot_stack:
 
 # place page_table to PT section
 .section PT

@@ -37,13 +37,10 @@
 #include <config.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
-#include <genarch/drivers/dsrln/dsrlnin.h>
-#include <genarch/drivers/dsrln/dsrlnout.h>
-#include <genarch/srln/srln.h>
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <ddi/irq.h>
-#include <arch/drivers/gxemul.h>
+#include <arch/machine.h>
 #include <print.h>
 #include <config.h>
 #include <interrupt.h>
@@ -77,25 +74,17 @@ void arch_pre_mm_init(void)
 /** Performs arm32 specific initialization afterr mm is initialized. */
 void arch_post_mm_init(void)
 {
-	gxemul_init();
+	machine_init();
 	
 	/* Initialize exception dispatch table */
 	exception_init();
 	interrupt_init();
 	
 #ifdef CONFIG_FB
-	fb_properties_t prop = {
-		.addr = GXEMUL_FB_ADDRESS,
-		.offset = 0,
-		.x = 640,
-		.y = 480,
-		.scan = 1920,
-		.visual = VISUAL_BGR_8_8_8,
-	};
-	fb_init(&prop);
+	machine_fb_init();
 #else
 #ifdef CONFIG_ARM_PRN
-	dsrlnout_init((ioport8_t *) gxemul_kbd);
+	machine_output_init();
 #endif /* CONFIG_ARM_PRN */
 #endif /* CONFIG_FB */
 }
@@ -126,37 +115,13 @@ void arch_pre_smp_init(void)
  */
 void arch_post_smp_init(void)
 {
-#ifdef CONFIG_ARM_KBD
-	/*
-	 * Initialize the GXemul keyboard port. Then initialize the serial line
-	 * module and connect it to the GXemul keyboard.
-	 */
-	dsrlnin_instance_t *dsrlnin_instance
-	    = dsrlnin_init((dsrlnin_t *) gxemul_kbd, GXEMUL_KBD_IRQ);
-	if (dsrlnin_instance) {
-		srln_instance_t *srln_instance = srln_init();
-		if (srln_instance) {
-			indev_t *sink = stdin_wire();
-			indev_t *srln = srln_wire(srln_instance, sink);
-			dsrlnin_wire(dsrlnin_instance, srln);
-		}
-	}
-	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (unative_t) gxemul_kbd);
-#endif
+	machine_input_init();
 }
 
 
 /** Performs arm32 specific tasks needed before the new task is run. */
 void before_task_runs_arch(void)
 {
-	tlb_invalidate_all();
 }
 
 
@@ -168,6 +133,7 @@ void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
 	
+	tlb_invalidate_all();
 	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
 	supervisor_sp = (uintptr_t) stck;
 }
@@ -183,8 +149,7 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	*((char *) (gxemul_kbd + GXEMUL_HALT_OFFSET))
-		= 0;
+	machine_cpu_halt();
 }
 
 /** Reboot. */
@@ -211,6 +176,7 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 /** Acquire console back for kernel. */
 void arch_grab_console(void)
 {
+	machine_grab_console();
 #ifdef CONFIG_FB
 	fb_redraw();
 #endif
@@ -219,6 +185,7 @@ void arch_grab_console(void)
 /** Return console to userspace. */
 void arch_release_console(void)
 {
+	machine_release_console();
 }
 
 /** @}

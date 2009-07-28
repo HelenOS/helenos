@@ -61,6 +61,7 @@ ifeq ($(UARCH), amd64)
 endif
 
 ifeq ($(UARCH), arm32)
+ifeq ($(MACHINE), testarm)
 	GENARCH_SOURCES += \
 		port/gxemul.c
 	
@@ -71,6 +72,12 @@ ifeq ($(UARCH), arm32)
 		GENARCH_SOURCES += \
 			ctl/stty.c
 	endif
+endif
+ifeq ($(MACHINE), integratorcp)
+	 GENARCH_SOURCES += \
+		port/pl050.c \
+		ctl/pl050.c
+endif
 endif
 
 ifeq ($(UARCH), ia32)

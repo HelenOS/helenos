@@ -136,6 +136,13 @@ static inline unative_t istate_get_pc(istate_t *istate)
 extern void install_exception_handlers(void);
 extern void exception_init(void);
 extern void print_istate(istate_t *istate);
+extern void reset_exception_entry(void);
+extern void irq_exception_entry(void);
+extern void fiq_exception_entry(void);
+extern void undef_instr_exception_entry(void);
+extern void prefetch_abort_exception_entry(void);
+extern void data_abort_exception_entry(void);
+extern void swi_exception_entry(void);
 
 
 #endif

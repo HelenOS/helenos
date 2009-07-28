@@ -39,7 +39,7 @@
 #include <interrupt.h>
 #include <arch/mm/page_fault.h>
 #include <arch/barrier.h>
-#include <arch/drivers/gxemul.h>
+#include <arch/machine.h>
 #include <print.h>
 #include <syscall/syscall.h>
 
@@ -57,159 +57,6 @@
 
 /** Size of memory block occupied by exception vectors. */
 #define EXC_VECTORS_SIZE     (EXC_VECTORS * 4)
-
-/** Switches to kernel stack and saves all registers there.
- *
- * Temporary exception stack is used to save a few registers
- * before stack switch takes place.
- *
- */
-inline static void setup_stack_and_save_regs()
-{
-	asm volatile (
-		"ldr r13, =exc_stack\n"
-		"stmfd r13!, {r0}\n"
-		"mrs r0, spsr\n"
-		"and r0, r0, #0x1f\n"
-		"cmp r0, #0x10\n"
-		"bne 1f\n"
-		
-		/* prev mode was usermode */
-		"ldmfd r13!, {r0}\n"
-		"ldr r13, =supervisor_sp\n"
-		"ldr r13, [r13]\n"
-		"stmfd r13!, {lr}\n"
-		"stmfd r13!, {r0-r12}\n"
-		"stmfd r13!, {r13, lr}^\n"
-		"mrs r0, spsr\n"
-		"stmfd r13!, {r0}\n"
-		"b 2f\n"
-		
-		/* mode was not usermode */
-		"1:\n"
-			"stmfd r13!, {r1, r2, r3}\n"
-			"mrs r1, cpsr\n"
-			"mov r2, lr\n"
-			"bic r1, r1, #0x1f\n"
-			"orr r1, r1, r0\n"
-			"mrs r0, cpsr\n"
-			"msr cpsr_c, r1\n"
-			
-			"mov r3, r13\n"
-			"stmfd r13!, {r2}\n"
-			"mov r2, lr\n"
-			"stmfd r13!, {r4-r12}\n"
-			"mov r1, r13\n"
-			
-			/* the following two lines are for debugging */
-			"mov sp, #0\n"
-			"mov lr, #0\n"
-			"msr cpsr_c, r0\n"
-			
-			"ldmfd r13!, {r4, r5, r6, r7}\n"
-			"stmfd r1!, {r4, r5, r6}\n"
-			"stmfd r1!, {r7}\n"
-			"stmfd r1!, {r2}\n"
-			"stmfd r1!, {r3}\n"
-			"mrs r0, spsr\n"
-			"stmfd r1!, {r0}\n"
-			"mov r13, r1\n"
-			
-		"2:\n"
-	);
-}
-
-/** Returns from exception mode.
- * 
- * Previously saved state of registers (including control register)
- * is restored from the stack.
- */
-inline static void load_regs()
-{
-	asm volatile(
-		"ldmfd r13!, {r0}		\n"
-		"msr spsr, r0			\n"
-		"and r0, r0, #0x1f		\n"
-		"cmp r0, #0x10			\n"
-		"bne 1f				\n"
-
-		/* return to user mode */
-		"ldmfd r13!, {r13, lr}^		\n"
-		"b 2f				\n"
-
-		/* return to non-user mode */
-	"1:\n"
-		"ldmfd r13!, {r1, r2}		\n"
-		"mrs r3, cpsr			\n"
-		"bic r3, r3, #0x1f		\n"
-		"orr r3, r3, r0			\n"
-		"mrs r0, cpsr			\n"
-		"msr cpsr_c, r3			\n"
-
-		"mov r13, r1			\n"
-		"mov lr, r2			\n"
-		"msr cpsr_c, r0			\n"
-
-		/* actual return */
-	"2:\n"
-		"ldmfd r13, {r0-r12, pc}^\n"
-	);
-}
-
-
-/** Switch CPU to mode in which interrupts are serviced (currently it 
- * is Undefined mode).
- *
- * The default mode for interrupt servicing (Interrupt Mode)
- * can not be used because of nested interrupts (which can occur
- * because interrupts are enabled in higher levels of interrupt handler).
- */
-inline static void switch_to_irq_servicing_mode()
-{
-	/* switch to Undefined mode */
-	asm volatile(
-		/* save regs used during switching */
-		"stmfd sp!, {r0-r3}		\n"
-
-		/* save stack pointer and link register to r1, r2 */
-		"mov r1, sp			\n"
-		"mov r2, lr			\n"
-
-		/* mode switch */
-		"mrs r0, cpsr			\n"
-		"bic r0, r0, #0x1f		\n"
-		"orr r0, r0, #0x1b		\n"
-		"msr cpsr_c, r0			\n"
-
-		/* restore saved sp and lr */
-		"mov sp, r1			\n"
-		"mov lr, r2			\n"
-
-		/* restore original regs */
-		"ldmfd sp!, {r0-r3}		\n"
-	);
-}
-
-/** Calls exception dispatch routine. */
-#define CALL_EXC_DISPATCH(exception) \
-	asm volatile ( \
-		"mov r0, %[exc]\n" \
-		"mov r1, r13\n" \
-		"bl exc_dispatch\n" \
-		:: [exc] "i" (exception) \
-	);\
-
-/** General exception handler.
- *
- *  Stores registers, dispatches the exception,
- *  and finally restores registers and returns from exception processing.
- *
- *  @param exception Exception number.
- */
-#define PROCESS_EXCEPTION(exception) \
-	setup_stack_and_save_regs(); \
-	CALL_EXC_DISPATCH(exception) \
-	load_regs();
 
 /** Updates specified exception vector to jump to given handler.
  *
@@ -232,71 +79,6 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 
 }
 
-/** Low-level Reset Exception handler. */
-static void reset_exception_entry(void)
-{
-	PROCESS_EXCEPTION(EXC_RESET);
-}
-
-/** Low-level Software Interrupt Exception handler. */
-static void swi_exception_entry(void)
-{
-	PROCESS_EXCEPTION(EXC_SWI);
-}
-
-/** Low-level Undefined Instruction Exception handler. */
-static void undef_instr_exception_entry(void)
-{
-	PROCESS_EXCEPTION(EXC_UNDEF_INSTR);
-}
-
-/** Low-level Fast Interrupt Exception handler. */
-static void fiq_exception_entry(void)
-{
-	PROCESS_EXCEPTION(EXC_FIQ);
-}
-
-/** Low-level Prefetch Abort Exception handler. */
-static void prefetch_abort_exception_entry(void)
-{
-	asm volatile (
-		"sub lr, lr, #4"
-	);
-	
-	PROCESS_EXCEPTION(EXC_PREFETCH_ABORT);
-} 
-
-/** Low-level Data Abort Exception handler. */
-static void data_abort_exception_entry(void)
-{
-	asm volatile (
-		"sub lr, lr, #8"
-	);
-	
-	PROCESS_EXCEPTION(EXC_DATA_ABORT);
-}
-
-/** Low-level Interrupt Exception handler.
- *
- * CPU is switched to Undefined mode before further interrupt processing
- * because of possible occurence of nested interrupt exception, which
- * would overwrite (and thus spoil) stack pointer.
- */
-static void irq_exception_entry(void)
-{
-	asm volatile (
-		"sub lr, lr, #4"
-	);
-	
-	setup_stack_and_save_regs();
-	
-	switch_to_irq_servicing_mode();
-	
-	CALL_EXC_DISPATCH(EXC_IRQ)
-
-	load_regs();
-}
-
 /** Software Interrupt handler.
  *
  * Dispatches the syscall.
@@ -305,37 +87,6 @@ static void swi_exception(int exc_no, istate_t *istate)
 {
 	istate->r0 = syscall_handler(istate->r0, istate->r1, istate->r2,
 	    istate->r3, istate->r4, istate->r5, istate->r6);
-}
-
-/** Returns the mask of active interrupts. */
-static inline uint32_t gxemul_irqc_get_sources(void)
-{
-	return *((uint32_t *) gxemul_irqc);
-}
-
-/** Interrupt Exception handler.
- *
- * Determines the sources of interrupt and calls their handlers.
- */
-static void irq_exception(int exc_no, istate_t *istate)
-{
-	uint32_t sources = gxemul_irqc_get_sources();
-	unsigned int i;
-	
-	for (i = 0; i < GXEMUL_IRQC_MAX_IRQ; i++) {
-		if (sources & (1 << i)) {
-			irq_t *irq = irq_dispatch_and_lock(i);
-			if (irq) {
-				/* The IRQ handler was found. */
-				irq->handler(irq);
-				spinlock_unlock(&irq->lock);
-			} else {
-				/* Spurious interrupt.*/
-				printf("cpu%d: spurious interrupt (inum=%d)\n",
-				    CPU->id, i);
-			}
-		}
-	}
 }
 
 /** Fills exception vectors with appropriate exception handlers. */
@@ -383,6 +134,15 @@ static void high_vectors(void)
 	);
 }
 #endif
+
+/** Interrupt Exception handler.
+ *
+ * Determines the sources of interrupt and calls their handlers.
+ */
+static void irq_exception(int exc_no, istate_t *istate)
+{
+	machine_irq_exception(exc_no, istate);
+}
 
 /** Initializes exception handling.
  *

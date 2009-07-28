@@ -45,7 +45,9 @@ ENDIANESS = LE
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/start.S \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/exc_handler.S \
 	arch/$(KARCH)/src/arm32.c \
+	arch/$(KARCH)/src/machine_func.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/dummy.S \
 	arch/$(KARCH)/src/panic.S \
@@ -58,5 +60,12 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/page_fault.c \
-	arch/$(KARCH)/src/drivers/gxemul.c
+	arch/$(KARCH)/src/mm/page_fault.c 
+ifeq ($(MACHINE), testarm)
+        ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
+else ifeq ($(MACHINE), integratorcp)
+        ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
+endif
+ifeq ($(CONFIG_PL050), y)
+	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
+endif

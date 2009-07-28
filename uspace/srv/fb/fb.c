@@ -250,6 +250,16 @@ static void bgr_0888(void *dst, uint32_t rgb)
 	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8);
 }
 
+static void rgb_8880(void *dst, uint32_t rgb)
+{
+	*((uint32_t *) dst)
+	    = (RED(rgb, 8) << 24) | (GREEN(rgb, 8) << 16) | BLUE(rgb, 8) << 8;
+}
+
+static void mask_8880(void *dst, bool mask)
+{
+	*((uint32_t *) dst) = (mask ? 0xffffff00 : 0);
+}
 
 /** RGB 8:8:8 conversion
  *
@@ -650,8 +660,8 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 		screen.pixelbytes = 3;
 		break;
 	case VISUAL_RGB_8_8_8_0:
-		screen.rgb_conv = rgb_888;
-		screen.mask_conv = mask_888;
+		screen.rgb_conv = rgb_8880;
+		screen.mask_conv = mask_8880;
 		screen.pixelbytes = 4;
 		break;
 	case VISUAL_RGB_0_8_8_8:
@@ -1744,17 +1754,17 @@ int fb_init(void)
 	unsigned int fb_height = sysinfo_value("fb.height");
 	unsigned int fb_scanline = sysinfo_value("fb.scanline");
 	unsigned int fb_visual = sysinfo_value("fb.visual");
-	
+
 	unsigned int fbsize = fb_scanline * fb_height;
 	void *fb_addr = as_get_mappable_page(fbsize);
-	
+
 	if (physmem_map(fb_ph_addr + fb_offset, fb_addr,
 	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
-	
+
 	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual))
 		return 0;
-	
+
 	return -1;
 }
 

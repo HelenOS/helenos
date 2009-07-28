@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik, Michal Kebrt
+ * Copyright (c) 2009 Vineeth Pillai
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,44 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm
+/** @addtogroup genarch	
  * @{
  */
-/** @file
- *  @brief Frame related functions.
+/**
+ * @file
+ * @brief	Scan codes for pl050 keyboards.
  */
 
-#include <mm/frame.h>
-#include <arch/mm/frame.h>
-#include <arch/machine.h>
-#include <config.h>
+#ifndef KERN_SCANC_PL050_H_
+#define KERN_SCANC_PL050_H_
 
-/** Address of the last frame in the memory. */
-uintptr_t last_frame = 0;
+#define SC_SCAN_ESCAPE	0xE0
+#define SC_ESC		0x76
+#define SC_BACKSPACE	0x66
+#define SC_LSHIFT       0x12
+#define SC_RSHIFT       0x59
+#define SC_CAPSLOCK     0x58
+#define SC_SPEC_ESCAPE  0xe0
+#define SC_LEFTARR      0x6b
+#define SC_RIGHTARR     0x74
+#define SC_UPARR        0x75
+#define SC_DOWNARR      0x72
+#define SC_DELETE       0x70
+#define SC_HOME         0x6C
+#define SC_END          0x69
 
-/** Creates memory zones. */
-void frame_arch_init(void)
-{
-	last_frame = machine_get_memory_size();
-	
-	/* All memory as one zone */
-	zone_create(0, ADDR2PFN(last_frame),
-	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
-	
-	/* blacklist boot page table */
-	frame_mark_unavailable(BOOT_PAGE_TABLE_START_FRAME,
-	    BOOT_PAGE_TABLE_SIZE_IN_FRAMES);
-
-	machine_frame_init();
-}
-
-/** Frees the boot page table. */
-void boot_page_table_free(void)
-{
-	unsigned int i;
-	for (i = 0; i < BOOT_PAGE_TABLE_SIZE_IN_FRAMES; i++)
-		frame_free(i * FRAME_SIZE + BOOT_PAGE_TABLE_ADDRESS);
-}
+#endif
 
 /** @}
  */
