@@ -140,9 +140,11 @@ void event_notify(event_type_t evno, unative_t a1, unative_t a2, unative_t a3,
 			IPC_SET_ARG4(call->data, a4);
 			IPC_SET_ARG5(call->data, a5);
 			
+			ipl_t ipl = interrupts_disable();
 			spinlock_lock(&events[evno].answerbox->irq_lock);
 			list_append(&call->link, &events[evno].answerbox->irq_notifs);
 			spinlock_unlock(&events[evno].answerbox->irq_lock);
+			interrupts_restore(ipl);
 			
 			waitq_wakeup(&events[evno].answerbox->wq, WAKEUP_FIRST);
 		}
