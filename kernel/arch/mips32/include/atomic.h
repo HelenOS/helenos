@@ -88,6 +88,13 @@ static inline uint32_t test_and_set(atomic_t *val) {
 	return v;
 }
 
+static inline void atomic_lock_arch(atomic_t *val) {
+	do {
+		while (val->count)
+			;
+	} while (test_and_set(val));
+}
+
 #endif
 
 /** @}
