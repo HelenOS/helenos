@@ -410,7 +410,7 @@ void *realloc(const void *addr, const size_t size)
 		    (next_head->free)) {
 			block_check(next_head);
 			block_init(head, head->size + next_head->size, false);
-			split_mark(head, ALIGN_UP(size, BASE_ALIGN));
+			split_mark(head, real_size);
 			
 			ptr = ((void *) head) + sizeof(heap_block_head_t);
 		} else {
