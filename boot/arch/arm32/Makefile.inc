@@ -35,7 +35,7 @@ depend:
 	-rm arch/$(BARCH)/loader/image.boot
 
 arch/$(BARCH)/loader/image.boot:
-	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR) MACHINE=$(MACHINE)
+	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
 
 clean:
 	make -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
