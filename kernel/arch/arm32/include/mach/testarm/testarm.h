@@ -36,8 +36,8 @@
  *  @brief GXemul peripheries drivers declarations.
  */
 
-#ifndef KERN_arm32_GXEMUL_H_
-#define KERN_arm32_GXEMUL_H_
+#ifndef KERN_arm32_MACHINE_H_
+#define KERN_arm32_MACHINE_H_
 
 #include <arch/machine_func.h>
 

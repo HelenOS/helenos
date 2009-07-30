@@ -41,15 +41,6 @@ BFD_ARCH = arm
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
 
-ifeq ($(MACHINE), testarm)
-	DMACHINE = MACHINE_GXEMUL_TESTARM
-endif
-
-ifeq ($(MACHINE), integratorcp)
-	DMACHINE = MACHINE_ICP
-endif
-
-
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
@@ -102,7 +93,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/bd/file_bd/file_bd
-ifeq ($(MACHINE), testarm)
+ifeq ($(MACHINE),testarm)
 	RD_SRVS += \
 		$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd
 endif
@@ -160,4 +151,4 @@ endif
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 
 %.o: %.c
-	$(CC) -D$(DMACHINE) $(DEFS) $(CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

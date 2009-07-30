@@ -40,7 +40,6 @@
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <ddi/irq.h>
-#include <arch/machine.h>
 #include <print.h>
 #include <config.h>
 #include <interrupt.h>
@@ -48,6 +47,15 @@
 #include <userspace.h>
 #include <macros.h>
 #include <string.h>
+
+#ifdef MACHINE_testarm
+	#include <arch/mach/testarm/testarm.h>
+#endif
+
+#ifdef MACHINE_integratorcp
+	#include <arch/mach/integratorcp/integratorcp.h>
+#endif
+
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)

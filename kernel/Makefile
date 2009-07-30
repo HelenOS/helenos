@@ -343,9 +343,6 @@ build: kernel.bin disasm
 clean:
 	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(KARCH)/_link.ld
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
-ifeq ($(PLATFORM),arm32)
-	rm -f arch/$(KARCH)/include/machine.h 
-endif
 	for arch in arch/* ; do \
 	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null ; \
 	done ; exit 0
@@ -353,9 +350,6 @@ endif
 archlinks:
 	ln -sfn ../../arch/$(KARCH)/include/ generic/include/arch
 	ln -sfn ../../genarch/include/ generic/include/genarch
-ifeq ($(PLATFORM),arm32)
-	ln -sfn mach/$(MACHINE)/$(MACHINE).h arch/$(KARCH)/include/machine.h 
-endif
 
 depend: archlinks
 	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null

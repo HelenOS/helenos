@@ -40,11 +40,12 @@
 
 
 /** Address where characters to be printed are expected. */
-#ifdef MACHINE_GXEMUL_TESTARM
-#define PUTC_ADDRESS	0x10000000
+#ifdef MACHINE_testarm
+	#define PUTC_ADDRESS  0x10000000
 #endif
-#ifdef MACHINE_ICP
-#define  PUTC_ADDRESS    0x16000000
+
+#ifdef MACHINE_integratorcp
+	#define PUTC_ADDRESS  0x16000000
 #endif
 
 

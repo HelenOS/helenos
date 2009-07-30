@@ -60,12 +60,16 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/page_fault.c 
-ifeq ($(MACHINE), testarm)
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
-else ifeq ($(MACHINE), integratorcp)
-        ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
+	arch/$(KARCH)/src/mm/page_fault.c
+
+ifeq ($(MACHINE),testarm)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
 endif
-ifeq ($(CONFIG_PL050), y)
+
+ifeq ($(MACHINE),integratorcp)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
+endif
+
+ifeq ($(CONFIG_PL050),y)
 	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
 endif
