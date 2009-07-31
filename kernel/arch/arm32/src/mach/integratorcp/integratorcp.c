@@ -136,7 +136,7 @@ void icp_fb_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 2560,
-		.visual = VISUAL_RGB_8_8_8_0,
+		.visual = VISUAL_BGR_0_8_8_8,
 	};
 	prop.addr = icp_get_fb_address();
 	fb_init(&prop);

@@ -85,15 +85,15 @@ void vesa_init(void)
 		if ((vesa_red_mask == 5) && (vesa_red_pos == 10)
 		    && (vesa_green_mask == 5) && (vesa_green_pos == 5)
 		    && (vesa_blue_mask == 5) && (vesa_blue_pos == 0))
-			visual = VISUAL_RGB_5_5_5;
+			visual = VISUAL_BGR_5_5_5;
 		else
-			visual = VISUAL_RGB_5_6_5;
+			visual = VISUAL_BGR_5_6_5;
 		break;
 	case 24:
-		visual = VISUAL_RGB_8_8_8;
+		visual = VISUAL_BGR_8_8_8;
 		break;
 	case 32:
-		visual = VISUAL_RGB_0_8_8_8;
+		visual = VISUAL_BGR_8_8_8_0;
 		break;
 	default:
 		panic("Unsupported bits per pixel.");

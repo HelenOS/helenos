@@ -50,6 +50,7 @@
 #include <string.h>
 #include <ddi/ddi.h>
 #include <arch/types.h>
+#include <byteorder.h>
 
 SPINLOCK_INITIALIZE(fb_lock);
 
@@ -80,9 +81,9 @@ static unsigned int position = 0;
 #define FG_COLOR     0xffff00
 #define INV_COLOR    0xaaaaaa
 
-#define RED(x, bits)         ((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
-#define GREEN(x, bits)       ((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
-#define BLUE(x, bits)        ((x >> (8 - bits)) & ((1 << bits) - 1))
+#define RED(x, bits)         (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define GREEN(x, bits)       (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define BLUE(x, bits)        (((x) >> (8 - (bits))) & ((1 << (bits)) - 1))
 
 #define COL2X(col)           ((col) * FONT_WIDTH)
 #define ROW2Y(row)           ((row) * FONT_SCANLINES)
@@ -97,76 +98,69 @@ static unsigned int position = 0;
 
 static void (*rgb_conv)(void *, uint32_t);
 
-
-/** ARGB 8:8:8:8 conversion
+/*
+ * RGB conversion functions.
  *
+ * These functions write an RGB value to some memory in some predefined format.
+ * The naming convention corresponds to the format created by these functions.
+ * The functions use the so called network order (i.e. big endian) with respect
+ * to their names.
  */
+
 static void rgb_0888(void *dst, uint32_t rgb)
 {
-	*((uint32_t *) dst) = rgb & 0xffffff;
+	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
+	    (RED(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (BLUE(rgb, 8)));
 }
 
-
-/** ABGR 8:8:8:8 conversion
- *
- */
 static void bgr_0888(void *dst, uint32_t rgb)
 {
-	*((uint32_t *) dst)
-	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8);
+	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
+	    (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (RED(rgb, 8)));
 }
 
 static void rgb_8880(void *dst, uint32_t rgb)
 {
-	*((uint32_t *) dst)
-	   = (RED(rgb, 8) << 24) | (GREEN(rgb, 8) << 16) | (BLUE(rgb, 8) << 8);
-
+	*((uint32_t *) dst) = host2uint32_t_be((RED(rgb, 8) << 24) |
+	    (GREEN(rgb,	8) << 16) | (BLUE(rgb, 8) << 8) | 0);
 }
 
-
-/** RGB 8:8:8 conversion
- *
- */
-static void rgb_888(void *dst, uint32_t rgb)
+static void bgr_8880(void *dst, uint32_t rgb)
 {
-	((uint8_t *) dst)[0] = BLUE(rgb, 8);
-	((uint8_t *) dst)[1] = GREEN(rgb, 8);
-	((uint8_t *) dst)[2] = RED(rgb, 8);
+	*((uint32_t *) dst) = host2uint32_t_be((BLUE(rgb, 8) << 24) |
+	    (GREEN(rgb,	8) << 16) | (RED(rgb, 8) << 8) | 0);
 }
 
-
-/** BGR 8:8:8 conversion
- *
- */
-static void bgr_888(void *dst, uint32_t rgb)
+static void rgb_888(void *dst, uint32_t rgb)
 {
 	((uint8_t *) dst)[0] = RED(rgb, 8);
 	((uint8_t *) dst)[1] = GREEN(rgb, 8);
 	((uint8_t *) dst)[2] = BLUE(rgb, 8);
 }
 
-
-/** RGB 5:5:5 conversion
- *
- */
-static void rgb_555(void *dst, uint32_t rgb)
+static void bgr_888(void *dst, uint32_t rgb)
 {
-	*((uint16_t *) dst)
-	    = (RED(rgb, 5) << 10) | (GREEN(rgb, 5) << 5) | BLUE(rgb, 5);
+	((uint8_t *) dst)[0] = BLUE(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = RED(rgb, 8);
+}
+
+static void bgr_555(void *dst, uint32_t rgb)
+{
+	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 5) << 5)) & 0xff;
+	uint8_t lo = (GREEN(rgb, 5) >> 3) | (RED(rgb, 5) << 2);
+	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
+}
+
+static void bgr_565(void *dst, uint32_t rgb)
+{
+	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 6) << 5)) & 0xff;
+	uint8_t lo = (GREEN(rgb, 6) >> 3) | (RED(rgb, 5) << 3);
+	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
 }
 
 
-/** RGB 5:6:5 conversion
- *
- */
-static void rgb_565(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst)
-	    = (RED(rgb, 5) << 11) | (GREEN(rgb, 6) << 5) | BLUE(rgb, 5);
-}
-
-
-/** RGB 3:2:3
+/** BGR 3:2:3
  *
  * Even though we try 3:2:3 color scheme here, an 8-bit framebuffer
  * will most likely use a color palette. The color appearance
@@ -183,7 +177,7 @@ static void rgb_565(void *dst, uint32_t rgb)
  * 0 and 255 to other colors.
  *
  */
-static void rgb_323(void *dst, uint32_t rgb)
+static void bgr_323(void *dst, uint32_t rgb)
 {
 	*((uint8_t *) dst)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
@@ -457,15 +451,15 @@ void fb_init(fb_properties_t *props)
 {
 	switch (props->visual) {
 	case VISUAL_INDIRECT_8:
-		rgb_conv = rgb_323;
+		rgb_conv = bgr_323;
 		pixelbytes = 1;
 		break;
-	case VISUAL_RGB_5_5_5:
-		rgb_conv = rgb_555;
+	case VISUAL_BGR_5_5_5:
+		rgb_conv = bgr_555;
 		pixelbytes = 2;
 		break;
-	case VISUAL_RGB_5_6_5:
-		rgb_conv = rgb_565;
+	case VISUAL_BGR_5_6_5:
+		rgb_conv = bgr_565;
 		pixelbytes = 2;
 		break;
 	case VISUAL_RGB_8_8_8:
@@ -486,6 +480,10 @@ void fb_init(fb_properties_t *props)
 		break;
 	case VISUAL_BGR_0_8_8_8:
 		rgb_conv = bgr_0888;
+		pixelbytes = 4;
+		break;
+	case VISUAL_BGR_8_8_8_0:
+		rgb_conv = bgr_8880;
 		pixelbytes = 4;
 		break;
 	default:

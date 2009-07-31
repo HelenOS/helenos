@@ -57,6 +57,7 @@
 #include <fibril.h>
 #include <bool.h>
 #include <stdio.h>
+#include <byteorder.h>
 
 #include "font-8x16.h"
 #include "fb.h"
@@ -212,9 +213,9 @@ static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
     unsigned int row);
 
 
-#define RED(x, bits)                 ((x >> (8 + 8 + 8 - bits)) & ((1 << bits) - 1))
-#define GREEN(x, bits)               ((x >> (8 + 8 - bits)) & ((1 << bits) - 1))
-#define BLUE(x, bits)                ((x >> (8 - bits)) & ((1 << bits) - 1))
+#define RED(x, bits)                 (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define GREEN(x, bits)               (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define BLUE(x, bits)                (((x) >> (8 - (bits))) & ((1 << (bits)) - 1))
 
 #define COL2X(col)                   ((col) * FONT_WIDTH)
 #define ROW2Y(row)                   ((row) * FONT_SCANLINES)
@@ -226,45 +227,57 @@ static void draw_vp_glyph(viewport_t *vport, bool cursor, unsigned int col,
 #define BB_POS(vport, col, row)      ((row) * vport->cols + (col))
 #define GLYPH_POS(glyph, y, cursor)  (((glyph) + (cursor) * FONT_GLYPHS) * screen.glyphbytes + (y) * screen.glyphscanline)
 
-
-/** ARGB 8:8:8:8 conversion
+/*
+ * RGB conversion and mask functions.
  *
+ * These functions write an RGB value to some memory in some predefined format.
+ * The naming convention corresponds to the format created by these functions.
+ * The functions use the so called network order (i.e. big endian) with respect
+ * to their names.
  */
+
 static void rgb_0888(void *dst, uint32_t rgb)
 {
-	*((uint32_t *) dst) = rgb & 0x00ffffff;
+	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
+	    (RED(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (BLUE(rgb, 8)));
+}
+
+static void bgr_0888(void *dst, uint32_t rgb)
+{
+	*((uint32_t *) dst) = host2uint32_t_be((0 << 24) |
+	    (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | (RED(rgb, 8)));
 }
 
 static void mask_0888(void *dst, bool mask)
 {
-	*((uint32_t *) dst) = (mask ? 0x00ffffff : 0);
-}
-
-
-/** ABGR 8:8:8:8 conversion
- *
- */
-static void bgr_0888(void *dst, uint32_t rgb)
-{
-	*((uint32_t *) dst)
-	    = (BLUE(rgb, 8) << 16) | (GREEN(rgb, 8) << 8) | RED(rgb, 8);
+	bgr_0888(dst, mask ? 0xffffff : 0);
 }
 
 static void rgb_8880(void *dst, uint32_t rgb)
 {
-	*((uint32_t *) dst)
-	    = (RED(rgb, 8) << 24) | (GREEN(rgb, 8) << 16) | BLUE(rgb, 8) << 8;
+	*((uint32_t *) dst) = host2uint32_t_be((RED(rgb, 8) << 24) |
+	    (GREEN(rgb,	8) << 16) | (BLUE(rgb, 8) << 8) | 0);
+}
+
+static void bgr_8880(void *dst, uint32_t rgb)
+{
+	*((uint32_t *) dst) = host2uint32_t_be((BLUE(rgb, 8) << 24) |
+	    (GREEN(rgb,	8) << 16) | (RED(rgb, 8) << 8) | 0);
 }
 
 static void mask_8880(void *dst, bool mask)
 {
-	*((uint32_t *) dst) = (mask ? 0xffffff00 : 0);
+	bgr_8880(dst, mask ? 0xffffff : 0);
 }
 
-/** RGB 8:8:8 conversion
- *
- */
 static void rgb_888(void *dst, uint32_t rgb)
+{
+	((uint8_t *) dst)[0] = RED(rgb, 8);
+	((uint8_t *) dst)[1] = GREEN(rgb, 8);
+	((uint8_t *) dst)[2] = BLUE(rgb, 8);
+}
+
+static void bgr_888(void *dst, uint32_t rgb)
 {
 	((uint8_t *) dst)[0] = BLUE(rgb, 8);
 	((uint8_t *) dst)[1] = GREEN(rgb, 8);
@@ -273,63 +286,34 @@ static void rgb_888(void *dst, uint32_t rgb)
 
 static void mask_888(void *dst, bool mask)
 {
-	if (mask) {
-		((uint8_t *) dst)[0] = 0xff;
-		((uint8_t *) dst)[1] = 0xff;
-		((uint8_t *) dst)[2] = 0xff;
-	} else {
-		((uint8_t *) dst)[0] = 0;
-		((uint8_t *) dst)[1] = 0;
-		((uint8_t *) dst)[2] = 0;
-	}
+	bgr_888(dst, mask ? 0xffffff : 0);
 }
 
-
-/** BGR 8:8:8 conversion
- *
- */
-static void bgr_888(void *dst, uint32_t rgb)
+static void bgr_555(void *dst, uint32_t rgb)
 {
-	((uint8_t *) dst)[0] = RED(rgb, 8);
-	((uint8_t *) dst)[1] = GREEN(rgb, 8);
-	((uint8_t *) dst)[2] = BLUE(rgb, 8);
-}
-
-
-/** RGB 5:5:5 conversion
- *
- */
-static void rgb_555(void *dst, uint32_t rgb)
-{
-	*((uint16_t *) dst)
-	    = (RED(rgb, 5) << 10) | (GREEN(rgb, 5) << 5) | BLUE(rgb, 5);
+	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 5) << 5)) & 0xff;
+	uint8_t lo = (GREEN(rgb, 5) >> 3) | (RED(rgb, 5) << 2);
+	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
 }
 
 static void mask_555(void *dst, bool mask)
 {
-	*((uint16_t *) dst) = (mask ? 0x7fff : 0);
+	bgr_555(dst, mask ? 0xffffff : 0);
 }
 
-
-/** RGB 5:6:5 conversion
- *
- */
-static void rgb_565(void *dst, uint32_t rgb)
+static void bgr_565(void *dst, uint32_t rgb)
 {
-	*((uint16_t *) dst)
-	    = (RED(rgb, 5) << 11) | (GREEN(rgb, 6) << 5) | BLUE(rgb, 5);
+	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 6) << 5)) & 0xff;
+	uint8_t lo = (GREEN(rgb, 6) >> 3) | (RED(rgb, 5) << 3);
+	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
 }
 
 static void mask_565(void *dst, bool mask)
 {
-	*((uint16_t *) dst) = (mask ? 0xffff : 0);
+	bgr_565(dst, mask ? 0xffffff : 0);
 }
 
-
-/** RGB 3:2:3
- *
- */
-static void rgb_323(void *dst, uint32_t rgb)
+static void bgr_323(void *dst, uint32_t rgb)
 {
 	*((uint8_t *) dst)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
@@ -337,7 +321,7 @@ static void rgb_323(void *dst, uint32_t rgb)
 
 static void mask_323(void *dst, bool mask)
 {
-	*((uint8_t *) dst) = (mask ? 0xff : 0);
+	bgr_323(dst, mask ? 0x0 : ~0x0);
 }
 
 /** Draw a filled rectangle.
@@ -631,21 +615,19 @@ static int vport_create(unsigned int x, unsigned int y,
 static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
     unsigned int scan, unsigned int visual)
 {
-	
-	
 	switch (visual) {
 	case VISUAL_INDIRECT_8:
-		screen.rgb_conv = rgb_323;
+		screen.rgb_conv = bgr_323;
 		screen.mask_conv = mask_323;
 		screen.pixelbytes = 1;
 		break;
-	case VISUAL_RGB_5_5_5:
-		screen.rgb_conv = rgb_555;
+	case VISUAL_BGR_5_5_5:
+		screen.rgb_conv = bgr_555;
 		screen.mask_conv = mask_555;
 		screen.pixelbytes = 2;
 		break;
-	case VISUAL_RGB_5_6_5:
-		screen.rgb_conv = rgb_565;
+	case VISUAL_BGR_5_6_5:
+		screen.rgb_conv = bgr_565;
 		screen.mask_conv = mask_565;
 		screen.pixelbytes = 2;
 		break;
@@ -672,6 +654,11 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 	case VISUAL_BGR_0_8_8_8:
 		screen.rgb_conv = bgr_0888;
 		screen.mask_conv = mask_0888;
+		screen.pixelbytes = 4;
+		break;
+	case VISUAL_BGR_8_8_8_0:
+		screen.rgb_conv = bgr_8880;
+		screen.mask_conv = mask_8880;
 		screen.pixelbytes = 4;
 		break;
 	default:

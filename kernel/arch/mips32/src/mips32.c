@@ -141,7 +141,7 @@ void arch_post_mm_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 1920,
-		.visual = VISUAL_BGR_8_8_8,
+		.visual = VISUAL_RGB_8_8_8,
 	};
 	fb_init(&gxemul_prop);
 #else
