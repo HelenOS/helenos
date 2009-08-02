@@ -306,7 +306,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/* Check the offered options size. */
-	if (size < 0 || size > MAX_MNTOPTS_LEN) {
+	if (size > MAX_MNTOPTS_LEN) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(mp);
@@ -447,6 +447,9 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int oflag = IPC_GET_ARG2(*request);
 	int mode = IPC_GET_ARG3(*request);
 	size_t len;
+
+	/* Ignore mode for now. */
+	(void) mode;
 	
 	/*
 	 * Make sure that we are called with exactly one of L_FILE and
@@ -1052,6 +1055,9 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	path[len] = '\0';
+
+	/* Ignore mode for now. */
+	(void) mode;
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
 	int lflag = L_DIRECTORY | L_CREATE | L_EXCLUSIVE;

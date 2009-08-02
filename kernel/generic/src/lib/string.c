@@ -637,7 +637,7 @@ void wstr_nstr(char *dst, const wchar_t *src, size_t size)
  * @return Pointer to character in @a str or NULL if not found.
  *
  */
-const char *str_chr(const char *str, wchar_t ch)
+char *str_chr(const char *str, wchar_t ch)
 {
 	wchar_t acc;
 	size_t off = 0;
@@ -645,7 +645,7 @@ const char *str_chr(const char *str, wchar_t ch)
 	
 	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc == ch)
-			return (str + last);
+			return (char *) (str + last);
 		last = off;
 	}
 	
