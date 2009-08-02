@@ -38,7 +38,6 @@
 
 static atomic_t finish;
 static atomic_t threads_finished;
-static bool sh_quiet;
 
 static void threadtest(void *data)
 {
@@ -53,7 +52,7 @@ static void threadtest(void *data)
 char *test_thread1(void)
 {
 	unsigned int i;
-	unsigned int total = 0;
+	int total = 0;
 	
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);

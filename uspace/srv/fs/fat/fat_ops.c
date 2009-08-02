@@ -402,7 +402,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_dentry_t *d;
 	fat_bs_t *bs;
 	block_t *b;
-	int i, j;
+	unsigned i, j;
 	uint16_t bps;
 	unsigned dps;
 	unsigned blocks;

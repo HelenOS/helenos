@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 {
 	int pos;
 	int c;
-	char *keys;
+	const char *keys;
 	int level = 2;
 	char key_write[6][10];
 	int i;

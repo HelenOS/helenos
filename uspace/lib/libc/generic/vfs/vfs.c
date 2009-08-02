@@ -366,7 +366,6 @@ int ftruncate(int fildes, off_t length)
 int fstat(int fildes, struct stat *stat)
 {
 	ipcarg_t rc;
-	ipc_call_t answer;
 	aid_t req;
 
 	futex_down(&vfs_phone_futex);

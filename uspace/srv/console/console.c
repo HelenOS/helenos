@@ -173,7 +173,7 @@ static void set_attrs(attrs_t *attrs)
 	}
 }
 
-int ccap_fb_to_con(int ccap_fb, int *ccap_con)
+static int ccap_fb_to_con(int ccap_fb, int *ccap_con)
 {
 	switch (ccap_fb) {
 	case FB_CCAP_NONE: *ccap_con = CONSOLE_CCAP_NONE; break;
