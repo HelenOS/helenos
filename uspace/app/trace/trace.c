@@ -206,13 +206,17 @@ static int get_thread_list(void)
 
 void val_print(sysarg_t val, val_type_t v_type)
 {
+	long sval;
+
+	sval = (long) val;
+
 	switch (v_type) {
 	case V_VOID:
 		printf("<void>");
 		break;
 
 	case V_INTEGER:
-		printf("%ld", val);
+		printf("%ld", sval);
 		break;
 
 	case V_HASH:
@@ -221,29 +225,29 @@ void val_print(sysarg_t val, val_type_t v_type)
 		break;
 
 	case V_ERRNO:
-		if (val >= -15 && val <= 0) {
-			printf("%ld %s (%s)", val,
-			    err_desc[-val].name,
-			    err_desc[-val].desc);
+		if (sval >= -15 && sval <= 0) {
+			printf("%ld %s (%s)", sval,
+			    err_desc[-sval].name,
+			    err_desc[-sval].desc);
 		} else {
-			printf("%ld", val);
+			printf("%ld", sval);
 		}
 		break;
 	case V_INT_ERRNO:
-		if (val >= -15 && val < 0) {
-			printf("%ld %s (%s)", val,
-			    err_desc[-val].name,
-			    err_desc[-val].desc);
+		if (sval >= -15 && sval < 0) {
+			printf("%ld %s (%s)", sval,
+			    err_desc[-sval].name,
+			    err_desc[-sval].desc);
 		} else {
-			printf("%ld", val);
+			printf("%ld", sval);
 		}
 		break;
 
 	case V_CHAR:
-		if (val >= 0x20 && val < 0x7f) {
-			printf("'%c'", val);
+		if (sval >= 0x20 && sval < 0x7f) {
+			printf("'%c'", sval);
 		} else {
-			switch (val) {
+			switch (sval) {
 			case '\a': printf("'\\a'"); break;
 			case '\b': printf("'\\b'"); break;
 			case '\n': printf("'\\n'"); break;
@@ -282,7 +286,8 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 	ipc_call_t call;
 	ipcarg_t phoneid;
 	
-	if (sc_rc == IPC_CALLRET_FATAL || sc_rc == IPC_CALLRET_TEMPORARY)
+	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL ||
+	    sc_rc == (sysarg_t) IPC_CALLRET_TEMPORARY)
 		return;
 
 	phoneid = sc_args[0];
@@ -302,7 +307,8 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
 	ipc_call_t call;
 	int rc;
 
-	if (sc_rc == IPC_CALLRET_FATAL || sc_rc == IPC_CALLRET_TEMPORARY)
+	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL ||
+	    sc_rc == (sysarg_t) IPC_CALLRET_TEMPORARY)
 		return;
 
 	memset(&call, 0, sizeof(call));
@@ -343,11 +349,13 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 
 static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
 {
-	ipc_call_t question, reply;
+	ipc_call_t question;
 	int rc;
 
 	memset(&question, 0, sizeof(question));
-	rc = udebug_mem_read(phoneid, &question.args, sc_args[1], sizeof(question.args));
+	rc = udebug_mem_read(phoneid, &question.args, sc_args[1],
+	    sizeof(question.args));
+
 	if (rc < 0) {
 		printf("Error: mem_read->%d\n", rc);
 		return;
@@ -358,11 +366,13 @@ static void sc_ipc_call_sync_slow_b(unsigned thread_id, sysarg_t *sc_args)
 
 static void sc_ipc_call_sync_slow_e(unsigned thread_id, sysarg_t *sc_args)
 {
-	ipc_call_t question, reply;
+	ipc_call_t reply;
 	int rc;
 
 	memset(&reply, 0, sizeof(reply));
-	rc = udebug_mem_read(phoneid, &reply.args, sc_args[2], sizeof(reply.args));
+	rc = udebug_mem_read(phoneid, &reply.args, sc_args[2],
+	    sizeof(reply.args));
+
 	if (rc < 0) {
 		printf("Error: mem_read->%d\n", rc);
 		return;

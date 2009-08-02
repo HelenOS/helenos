@@ -46,7 +46,7 @@
 hash_table_t srv_proto;
 
 typedef struct {
-	int srv;
+	unsigned srv;
 	proto_t *proto;
 	link_t link;
 } srv_proto_t;

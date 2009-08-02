@@ -202,7 +202,7 @@ static void getvc(char *dev, char *app)
 	}
 }
 
-void mount_data(void)
+static void mount_data(void)
 {
 	int rc;
 
@@ -245,9 +245,14 @@ int main(int argc, char *argv[])
 #ifdef CONFIG_START_BD
 	srv_start("/srv/ata_bd");
 	srv_start("/srv/gxe_bd");
-#endif	
+#else
+	(void) srv_start;
+#endif
+
 #ifdef CONFIG_MOUNT_DATA
 	mount_data();
+#else
+	(void) mount_data;
 #endif
 
 	getvc("vc0", "/app/bdsh");
