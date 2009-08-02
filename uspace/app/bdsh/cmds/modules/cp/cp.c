@@ -172,7 +172,8 @@ void help_cmd_cp(unsigned int level)
 
 int cmd_cp(char **argv)
 {
-	unsigned int argc, buffer = 0, verbose = 0;
+	unsigned int argc, verbose = 0;
+	int buffer = 0;
 	int c, opt_ind;
 	int64_t ret;
 

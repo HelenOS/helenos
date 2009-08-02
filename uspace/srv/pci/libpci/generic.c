@@ -29,7 +29,7 @@ void pci_generic_scan_bus(struct pci_access *a, byte * busmap, int bus)
 	for (dev = 0; dev < 32; dev++) {
 		t->dev = dev;
 		multi = 0;
-		for (t->func = 0; !t->func || multi && t->func < 8;
+		for (t->func = 0; !t->func || (multi && t->func < 8);
 		     t->func++) {
 			u32 vd = pci_read_long(t, PCI_VENDOR_ID);
 			struct pci_dev *d;

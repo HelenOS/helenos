@@ -209,7 +209,7 @@ int cmd_rm(char **argv)
 		}
 	}
 
-	if (optind == argc) {
+	if ((unsigned) optind == argc) {
 		cli_error(CL_EFAIL,
 			"%s: insufficient arguments. Try %s --help", cmdname, cmdname);
 		rm_end(&rm);

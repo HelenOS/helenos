@@ -89,7 +89,8 @@ static void ls_print(const char *name, const char *pathname)
 	struct stat s;
 	int rc;
 
-	if (rc = stat(pathname, &s)) {
+	rc = stat(pathname, &s);
+	if (rc != 0) {
 		/* Odd chance it was deleted from the time readdir() found it */
 		printf("ls: skipping bogus node %s\n", pathname);
 		printf("rc=%d\n", rc);
