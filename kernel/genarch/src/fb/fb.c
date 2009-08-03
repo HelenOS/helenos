@@ -145,18 +145,28 @@ static void bgr_888(void *dst, uint32_t rgb)
 	((uint8_t *) dst)[2] = RED(rgb, 8);
 }
 
-static void bgr_555(void *dst, uint32_t rgb)
+static void rgb_555_be(void *dst, uint32_t rgb)
 {
-	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 5) << 5)) & 0xff;
-	uint8_t lo = (GREEN(rgb, 5) >> 3) | (RED(rgb, 5) << 2);
-	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
+	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 10 |
+	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
 }
 
-static void bgr_565(void *dst, uint32_t rgb)
+static void rgb_555_le(void *dst, uint32_t rgb)
 {
-	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 6) << 5)) & 0xff;
-	uint8_t lo = (GREEN(rgb, 6) >> 3) | (RED(rgb, 5) << 3);
-	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
+	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 10 |
+	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
+}
+
+static void rgb_565_be(void *dst, uint32_t rgb)
+{
+	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 11 |
+	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
+}
+
+static void rgb_565_le(void *dst, uint32_t rgb)
+{
+	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 11 |
+	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
 }
 
 
@@ -454,12 +464,20 @@ void fb_init(fb_properties_t *props)
 		rgb_conv = bgr_323;
 		pixelbytes = 1;
 		break;
-	case VISUAL_BGR_5_5_5:
-		rgb_conv = bgr_555;
+	case VISUAL_RGB_5_5_5_LE:
+		rgb_conv = rgb_555_le;
 		pixelbytes = 2;
 		break;
-	case VISUAL_BGR_5_6_5:
-		rgb_conv = bgr_565;
+	case VISUAL_RGB_5_5_5_BE:
+		rgb_conv = rgb_555_be;
+		pixelbytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_LE:
+		rgb_conv = rgb_565_le;
+		pixelbytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_BE:
+		rgb_conv = rgb_565_be;
 		pixelbytes = 2;
 		break;
 	case VISUAL_RGB_8_8_8:

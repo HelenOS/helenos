@@ -289,28 +289,38 @@ static void mask_888(void *dst, bool mask)
 	bgr_888(dst, mask ? 0xffffff : 0);
 }
 
-static void bgr_555(void *dst, uint32_t rgb)
+static void rgb_555_be(void *dst, uint32_t rgb)
 {
-	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 5) << 5)) & 0xff;
-	uint8_t lo = (GREEN(rgb, 5) >> 3) | (RED(rgb, 5) << 2);
-	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
+	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 10 |
+	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
+}
+
+static void rgb_555_le(void *dst, uint32_t rgb)
+{
+	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 10 |
+	    GREEN(rgb, 5) << 5 | BLUE(rgb, 5));
+}
+
+static void rgb_565_be(void *dst, uint32_t rgb)
+{
+	*((uint16_t *) dst) = host2uint16_t_be(RED(rgb, 5) << 11 |
+	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
+}
+
+static void rgb_565_le(void *dst, uint32_t rgb)
+{
+	*((uint16_t *) dst) = host2uint16_t_le(RED(rgb, 5) << 11 |
+	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
 }
 
 static void mask_555(void *dst, bool mask)
 {
-	bgr_555(dst, mask ? 0xffffff : 0);
-}
-
-static void bgr_565(void *dst, uint32_t rgb)
-{
-	uint8_t hi = (BLUE(rgb, 5) | (GREEN(rgb, 6) << 5)) & 0xff;
-	uint8_t lo = (GREEN(rgb, 6) >> 3) | (RED(rgb, 5) << 3);
-	*((uint16_t *) dst) = host2uint16_t_be((hi << 8) | lo);
+	rgb_555_be(dst, mask ? 0xffffff : 0);
 }
 
 static void mask_565(void *dst, bool mask)
 {
-	bgr_565(dst, mask ? 0xffffff : 0);
+	rgb_565_be(dst, mask ? 0xffffff : 0);
 }
 
 static void bgr_323(void *dst, uint32_t rgb)
@@ -621,13 +631,23 @@ static bool screen_init(void *addr, unsigned int xres, unsigned int yres,
 		screen.mask_conv = mask_323;
 		screen.pixelbytes = 1;
 		break;
-	case VISUAL_BGR_5_5_5:
-		screen.rgb_conv = bgr_555;
+	case VISUAL_RGB_5_5_5_LE:
+		screen.rgb_conv = rgb_555_le;
 		screen.mask_conv = mask_555;
 		screen.pixelbytes = 2;
 		break;
-	case VISUAL_BGR_5_6_5:
-		screen.rgb_conv = bgr_565;
+	case VISUAL_RGB_5_5_5_BE:
+		screen.rgb_conv = rgb_555_be;
+		screen.mask_conv = mask_555;
+		screen.pixelbytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_LE:
+		screen.rgb_conv = rgb_565_le;
+		screen.mask_conv = mask_565;
+		screen.pixelbytes = 2;
+		break;
+	case VISUAL_RGB_5_6_5_BE:
+		screen.rgb_conv = rgb_565_be;
 		screen.mask_conv = mask_565;
 		screen.pixelbytes = 2;
 		break;

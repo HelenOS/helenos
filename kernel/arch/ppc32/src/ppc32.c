@@ -92,7 +92,7 @@ void arch_post_mm_init(void)
 				visual = VISUAL_INDIRECT_8;
 				break;
 			case 16:
-				visual = VISUAL_BGR_5_5_5;
+				visual = VISUAL_RGB_5_5_5_BE;
 				break;
 			case 24:
 				visual = VISUAL_BGR_8_8_8;

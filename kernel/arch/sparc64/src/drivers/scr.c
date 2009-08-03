@@ -133,7 +133,7 @@ void scr_init(ofw_tree_node_t *node)
 			break;
 		case 16:
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
-			visual = VISUAL_BGR_5_6_5;
+			visual = VISUAL_RGB_5_6_5_BE;
 			break;
 		case 24:
 			fb_scanline = fb_linebytes * 4;
@@ -177,7 +177,7 @@ void scr_init(ofw_tree_node_t *node)
 			break;
 		case 16:
 			fb_scanline = fb_linebytes * (fb_depth >> 3);
-			visual = VISUAL_BGR_5_6_5;
+			visual = VISUAL_RGB_5_6_5_BE;
 			break;
 		case 24:
 			fb_scanline = fb_linebytes * 4;
