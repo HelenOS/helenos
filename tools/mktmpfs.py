@@ -34,7 +34,7 @@ import sys
 import os
 import xstruct
 
-exclude_names = set(['.svn'])
+exclude_names = set(['.svn', '.bzr'])
 
 HEADER = """little:
 	char tag[5]  /* 'TMPFS' */

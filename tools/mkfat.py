@@ -36,7 +36,7 @@ import random
 import xstruct
 import array
 
-exclude_names = set(['.svn'])
+exclude_names = set(['.svn', '.bzr'])
 
 def align_up(size, alignment):
 	"Return size aligned up to alignment"
