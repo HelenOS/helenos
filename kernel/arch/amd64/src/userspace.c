@@ -33,6 +33,7 @@
  */
 
 #include <userspace.h>
+#include <arch/cpu.h>
 #include <arch/pm.h>
 #include <arch/types.h>
 #include <arch.h>
@@ -49,8 +50,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 {
 	ipl_t ipl = interrupts_disable();
 	
-	/* Clear CF, PF, AF, ZF, SF, DF, OF */
-	ipl &= ~(0xcd4);
+	ipl &= ~(RFLAGS_CF | RFLAGS_PF | RFLAGS_AF | RFLAGS_ZF | RFLAGS_SF |
+	    RFLAGS_DF | RFLAGS_OF);
 	
 	asm volatile (
 		"pushq %[udata_des]\n"
