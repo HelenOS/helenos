@@ -35,8 +35,7 @@
  * @brief ATA disk driver
  *
  * This driver currently works only with CHS addressing and uses PIO.
- * Currently based on the (now obsolete) ANSI X3.221-1994 (ATA-1) standard.
- * At this point only reading is possible, not writing.
+ * Currently based on the (now obsolete) ATA-1, ATA-2 standards.
  *
  * The driver services a single controller which can have up to two disks
  * attached.
@@ -95,20 +94,6 @@ int main(int argc, char **argv)
 	if (ata_bd_init() != EOK)
 		return -1;
 
-	/* Put drives to reset, disable interrupts. */
-	printf("Reset drives... ");
-	fflush(stdout);
-
-	pio_write_8(&ctl->device_control, DCR_SRST);
-	/* FIXME: Find out how to do this properly. */
-	async_usleep(100);
-	pio_write_8(&ctl->device_control, 0);
-
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-	printf("Done\n");
-
 	(void) drive_identify(0, &disk[0]);
 	(void) drive_identify(1, &disk[1]);
 
@@ -147,41 +132,66 @@ static int drive_identify(int disk_id, disk_t *d)
 {
 	uint16_t data;
 	uint8_t status;
+	uint8_t drv_head;
 	size_t i;
 
 	printf("Identify drive %d... ", disk_id);
 	fflush(stdout);
 
-	pio_write_8(&cmd->drive_head, ((disk_id != 0) ? DHR_DRV : 0));
-	async_usleep(100);
-	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
-
-	status = pio_read_8(&cmd->status);
-
+	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
 	d->present = false;
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
+
+	pio_write_8(&cmd->drive_head, drv_head);
 
 	/*
 	 * Detect if drive is present. This is Qemu only! Need to
 	 * do the right thing to work with real drives.
 	 */
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
+
 	if ((status & SR_DRDY) == 0) {
 		printf("None attached.\n");
 		return ENOENT;
 	}
+	/***/
 
-	for (i = 0; i < block_size / 2; i++) {
-		do {
-			status = pio_read_8(&cmd->status);
-		} while ((status & SR_DRDY) == 0);
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
 
-		data = pio_read_16(&cmd->data_port);
+	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
 
-		switch (i) {
-		case 1: d->cylinders = data; break;
-		case 3: d->heads = data; break;
-		case 6: d->sectors = data; break;
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
+
+	/* Read data from the disk buffer. */
+
+	if ((status & SR_DRQ) != 0) {
+//		for (i = 0; i < block_size / 2; i++) {
+//			data = pio_read_16(&cmd->data_port);
+//			((uint16_t *) buf)[i] = data;
+//		}
+
+		for (i = 0; i < block_size / 2; i++) {
+			data = pio_read_16(&cmd->data_port);
+
+			switch (i) {
+			case 1: d->cylinders = data; break;
+			case 3: d->heads = data; break;
+			case 6: d->sectors = data; break;
+			}
 		}
 	}
+
+	if ((status & SR_ERR) != 0)
+		return EIO;
 
 	d->blocks = d->cylinders * d->heads * d->sectors;
 
@@ -360,23 +370,38 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	/* Program a Read Sectors operation. */
 
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
+
 	pio_write_8(&cmd->drive_head, drv_head);
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
+
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
 	pio_write_8(&cmd->cylinder_high, c >> 16);
+
 	pio_write_8(&cmd->command, CMD_READ_SECTORS);
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
 
 	/* Read data from the disk buffer. */
 
-	for (i = 0; i < block_size / 2; i++) {
-		do {
-			status = pio_read_8(&cmd->status);
-		} while ((status & SR_DRDY) == 0);
-
-		data = pio_read_16(&cmd->data_port);
-		((uint16_t *) buf)[i] = data;
+	if ((status & SR_DRQ) != 0) {
+		for (i = 0; i < block_size / 2; i++) {
+			data = pio_read_16(&cmd->data_port);
+			((uint16_t *) buf)[i] = data;
+		}
 	}
+
+	if ((status & SR_ERR) != 0)
+		return EIO;
 
 	fibril_mutex_unlock(&d->lock);
 	return EOK;
@@ -414,27 +439,42 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	/* Program a Read Sectors operation. */
 
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
+	
 	pio_write_8(&cmd->drive_head, drv_head);
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
+
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
 	pio_write_8(&cmd->cylinder_high, c >> 16);
+
 	pio_write_8(&cmd->command, CMD_WRITE_SECTORS);
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & SR_BSY) != 0);
 
 	/* Write data to the disk buffer. */
 
-	for (i = 0; i < block_size / 2; i++) {
-		do {
-			status = pio_read_8(&cmd->status);
-		} while ((status & SR_DRDY) == 0);
-
-		pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
+	if ((status & SR_DRQ) != 0) {
+		for (i = 0; i < block_size / 2; i++) {
+			pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
+		}
 	}
 
 	fibril_mutex_unlock(&d->lock);
+
+	if (status & SR_ERR)
+		return EIO;
+
 	return EOK;
 }
-
 
 /**
  * @}
