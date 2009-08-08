@@ -44,11 +44,7 @@
 #include <errno.h>
 #include <arch.h>
 
-/**
- * The events array.
- * Arranging the events in this two-dimensional array should decrease the
- * likelyhood of cacheline ping-pong.
- */
+/** The events array. */
 static event_t events[EVENT_END];
 
 /** Initialize kernel events. */

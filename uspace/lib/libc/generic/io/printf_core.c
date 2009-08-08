@@ -489,7 +489,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	if ((retval = printf_putstr(++ptr, ps)) > 0)
 		counter += retval;
 	
-	/* Print tailing spaces */
+	/* Print trailing spaces */
 	
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
