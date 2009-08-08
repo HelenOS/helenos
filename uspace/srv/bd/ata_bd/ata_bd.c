@@ -59,11 +59,17 @@
 
 #define NAME "ata_bd"
 
+/** Physical block size. Should be always 512. */
 static const size_t block_size = 512;
+
+/** Size of the communication area. */
 static size_t comm_size;
 
+/** I/O base address of the command registers. */
 static uintptr_t cmd_physical = 0x1f0;
+/** I/O base address of the control registers. */
 static uintptr_t ctl_physical = 0x170;
+
 static ata_cmd_t *cmd;
 static ata_ctl_t *ctl;
 
@@ -79,10 +85,10 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     const void *buf);
 static int drive_identify(int drive_id, disk_t *d);
+static uint8_t wait_status(unsigned set, unsigned n_reset);
 
 int main(int argc, char **argv)
 {
-	uint8_t status;
 	char name[16];
 	int i, rc;
 	int n_disks;
@@ -128,82 +134,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static int drive_identify(int disk_id, disk_t *d)
-{
-	uint16_t data;
-	uint8_t status;
-	uint8_t drv_head;
-	size_t i;
 
-	printf("Identify drive %d... ", disk_id);
-	fflush(stdout);
-
-	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
-	d->present = false;
-
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-
-	pio_write_8(&cmd->drive_head, drv_head);
-
-	/*
-	 * Detect if drive is present. This is Qemu only! Need to
-	 * do the right thing to work with real drives.
-	 */
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-
-	if ((status & SR_DRDY) == 0) {
-		printf("None attached.\n");
-		return ENOENT;
-	}
-	/***/
-
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
-
-	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
-
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-
-	/* Read data from the disk buffer. */
-
-	if ((status & SR_DRQ) != 0) {
-//		for (i = 0; i < block_size / 2; i++) {
-//			data = pio_read_16(&cmd->data_port);
-//			((uint16_t *) buf)[i] = data;
-//		}
-
-		for (i = 0; i < block_size / 2; i++) {
-			data = pio_read_16(&cmd->data_port);
-
-			switch (i) {
-			case 1: d->cylinders = data; break;
-			case 3: d->heads = data; break;
-			case 6: d->sectors = data; break;
-			}
-		}
-	}
-
-	if ((status & SR_ERR) != 0)
-		return EIO;
-
-	d->blocks = d->cylinders * d->heads * d->sectors;
-
-	printf("Geometry: %u cylinders, %u heads, %u sectors\n",
-		d->cylinders, d->heads, d->sectors);
-
-	d->present = true;
-	fibril_mutex_initialize(&d->lock);
-
-	return EOK;
-}
-
+/** Register driver and enable device I/O. */
 static int ata_bd_init(void)
 {
 	void *vaddr;
@@ -235,6 +167,7 @@ static int ata_bd_init(void)
 	return EOK;
 }
 
+/** Block device connection handler */
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	void *fs_va = NULL;
@@ -305,6 +238,16 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Transfer a logical block from/to the device.
+ *
+ * @param disk_id	Device index (0 or 1)
+ * @param method	@c BD_READ_BLOCK or @c BD_WRITE_BLOCK
+ * @param blk_idx	Index of the first block.
+ * @param size		Size of the logical block.
+ * @param buf		Data buffer.
+ *
+ * @return EOK on success, EIO on error.
+ */
 static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
     void *buf)
 {
@@ -336,7 +279,89 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
 	return EOK;
 }
 
+/** Issue IDENTIFY command.
+ *
+ * This is used to detect whether an ATA device is present and if so,
+ * to determine its parameters. The parameters are written to @a d.
+ *
+ * @param disk_id	Device ID, 0 or 1.
+ * @param d		Device structure to store parameters in.
+ */
+static int drive_identify(int disk_id, disk_t *d)
+{
+	uint16_t data;
+	uint8_t status;
+	uint8_t drv_head;
+	size_t i;
 
+	printf("Identify drive %d... ", disk_id);
+	fflush(stdout);
+
+	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
+	d->present = false;
+
+	wait_status(0, ~SR_BSY);
+	pio_write_8(&cmd->drive_head, drv_head);
+
+	/*
+	 * Detect if drive is present. This is only temorary.
+	 * We should really try for some time before giving up.
+	 */
+	status = wait_status(0, ~SR_BSY);
+
+	if ((status & SR_DRDY) == 0) {
+		printf("None attached.\n");
+		return ENOENT;
+	}
+	/***/
+
+	wait_status(SR_DRDY, ~SR_BSY);
+	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
+
+	status = wait_status(0, ~SR_BSY);
+
+	/* Read data from the disk buffer. */
+
+	if ((status & SR_DRQ) != 0) {
+//		for (i = 0; i < block_size / 2; i++) {
+//			data = pio_read_16(&cmd->data_port);
+//			((uint16_t *) buf)[i] = data;
+//		}
+
+		for (i = 0; i < block_size / 2; i++) {
+			data = pio_read_16(&cmd->data_port);
+
+			switch (i) {
+			case 1: d->cylinders = data; break;
+			case 3: d->heads = data; break;
+			case 6: d->sectors = data; break;
+			}
+		}
+	}
+
+	if ((status & SR_ERR) != 0)
+		return EIO;
+
+	d->blocks = d->cylinders * d->heads * d->sectors;
+
+	printf("Geometry: %u cylinders, %u heads, %u sectors\n",
+		d->cylinders, d->heads, d->sectors);
+
+	d->present = true;
+	fibril_mutex_initialize(&d->lock);
+
+	return EOK;
+}
+
+/** Read a physical from the device.
+ *
+ * @param disk_id	Device index (0 or 1)
+ * @param blk_idx	Index of the first block.
+ * @param blk_cnt	Number of blocks to transfer.
+ * @param buf		Buffer for holding the data.
+ *
+ * @return EOK on success, EIO on error.
+ */
 static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf)
 {
@@ -370,16 +395,10 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	/* Program a Read Sectors operation. */
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-
+	wait_status(0, ~SR_BSY);
 	pio_write_8(&cmd->drive_head, drv_head);
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
-
+	wait_status(SR_DRDY, ~SR_BSY);
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
@@ -387,9 +406,7 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	pio_write_8(&cmd->command, CMD_READ_SECTORS);
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
+	status = wait_status(0, ~SR_BSY);
 
 	/* Read data from the disk buffer. */
 
@@ -407,6 +424,15 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	return EOK;
 }
 
+/** Write a physical block to the device.
+ *
+ * @param disk_id	Device index (0 or 1)
+ * @param blk_idx	Index of the first block.
+ * @param blk_cnt	Number of blocks to transfer.
+ * @param buf		Buffer holding the data to write.
+ *
+ * @return EOK on success, EIO on error.
+ */
 static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     const void *buf)
 {
@@ -439,16 +465,10 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	/* Program a Read Sectors operation. */
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
-	
+	wait_status(0, ~SR_BSY);
 	pio_write_8(&cmd->drive_head, drv_head);
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0 || (status & SR_DRDY) == 0);
-
+	wait_status(SR_DRDY, ~SR_BSY);
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
@@ -456,9 +476,7 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 
 	pio_write_8(&cmd->command, CMD_WRITE_SECTORS);
 
-	do {
-		status = pio_read_8(&cmd->status);
-	} while ((status & SR_BSY) != 0);
+	status = wait_status(0, ~SR_BSY);
 
 	/* Write data to the disk buffer. */
 
@@ -474,6 +492,26 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 
 	return EOK;
+}
+
+/** Wait until some status bits are set and some reset.
+ *
+ * Example: wait_status(SR_DRDY, ~SR_BSY) waits for SR_DRDY to become
+ * set and SR_BSY to become reset.
+ *
+ * @param set		Combination if bits which must be all set.
+ * @param n_reset	Negated combination of bits which must be all reset.
+ * @return		The last value of status register that was read.
+ */
+static uint8_t wait_status(unsigned set, unsigned n_reset)
+{
+	uint8_t status;
+
+	do {
+		status = pio_read_8(&cmd->status);
+	} while ((status & ~n_reset) != 0 || (status & set) != set);
+
+	return status;
 }
 
 /**
