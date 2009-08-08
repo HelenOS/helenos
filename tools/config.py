@@ -224,7 +224,7 @@ def check_choices(defaults, ask_names):
 def create_output(mkname, mcname, dfname, defaults, ask_names):
 	"Create output configuration"
 	
-	revision = commands.getoutput('svnversion . 2> /dev/null')
+	revision = commands.getoutput('bzr version-info --custom --template="{revision_id}" 2> /dev/null')
 	timestamp = commands.getoutput('date "+%Y-%m-%d %H:%M:%S"')
 	
 	outmk = file(mkname, 'w')
