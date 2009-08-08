@@ -53,27 +53,28 @@ void userspace(uspace_arg_t *kernel_uarg)
 	ipl &= ~(0xcd4);
 	
 	asm volatile (
-			"pushq %[udata_des]\n"
-			"pushq %[stack_size]\n"
-			"pushq %[ipl]\n"
-			"pushq %[utext_des]\n"
-			"pushq %[entry]\n"
-			"movq %[uarg], %%rax\n"
+		"pushq %[udata_des]\n"
+		"pushq %[stack_size]\n"
+		"pushq %[ipl]\n"
+		"pushq %[utext_des]\n"
+		"pushq %[entry]\n"
+		"movq %[uarg], %%rax\n"
 			
-			/* %rdi is defined to hold pcb_ptr - set it to 0 */
-			"xorq %%rdi, %%rdi\n"
-			"iretq\n"
-			:: [udata_des] "i" (gdtselector(UDATA_DES) | PL_USER),
-			   [stack_size] "r" (kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
-			   [ipl] "r" (ipl),
-			   [utext_des] "i" (gdtselector(UTEXT_DES) | PL_USER),
-			   [entry] "r" (kernel_uarg->uspace_entry),
-			   [uarg] "r" (kernel_uarg->uspace_uarg)
-			: "rax"
-		);
+		/* %rdi is defined to hold pcb_ptr - set it to 0 */
+		"xorq %%rdi, %%rdi\n"
+		"iretq\n"
+		:: [udata_des] "i" (gdtselector(UDATA_DES) | PL_USER),
+		   [stack_size] "r" (kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
+		   [ipl] "r" (ipl),
+		   [utext_des] "i" (gdtselector(UTEXT_DES) | PL_USER),
+		   [entry] "r" (kernel_uarg->uspace_entry),
+		   [uarg] "r" (kernel_uarg->uspace_uarg)
+		: "rax"
+	);
 	
 	/* Unreachable */
-	while (1);
+	while (1)
+		;
 }
 
 /** @}
