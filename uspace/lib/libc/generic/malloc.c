@@ -391,7 +391,7 @@ void *realloc(const void *addr, const size_t size)
 		/* Shrink */
 		if (orig_size - real_size >= STRUCT_OVERHEAD) {
 			/* Split the original block to a full block
-			   and a tailing free block */
+			   and a trailing free block */
 			block_init((void *) head, real_size, false);
 			block_init((void *) head + real_size,
 			    orig_size - real_size, true);
