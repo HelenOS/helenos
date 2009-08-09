@@ -33,7 +33,6 @@
  */
 
 #include <libc.h>
-#include <fb.h>
 #include <ipc/ipc.h>
 #include <ipc/kbd.h>
 #include <io/keycode.h>
