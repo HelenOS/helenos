@@ -39,7 +39,7 @@
 
 extern void kbd_ctl_parse_scancode(int);
 extern int kbd_ctl_init(void);
-
+extern void kbd_ctl_set_ind(unsigned);
 
 #endif
 

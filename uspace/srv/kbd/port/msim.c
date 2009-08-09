@@ -77,6 +77,11 @@ void kbd_port_reclaim(void)
 {
 }
 
+void kbd_port_write(uint8_t data)
+{
+	(void) data;
+}
+
 static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);

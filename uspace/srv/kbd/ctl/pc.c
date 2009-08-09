@@ -39,11 +39,27 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <kbd_ctl.h>
+#include <kbd_port.h>
 #include <gsp.h>
 
 enum dec_state {
 	ds_s,
 	ds_e
+};
+
+enum special_code {
+	SC_ACK = 0xfa,
+	SC_NAK = 0xfe
+};
+
+enum lock_ind_bits {
+	LI_SCROLL	= 0x01,
+	LI_NUM		= 0x02,
+	LI_CAPS		= 0x04
+};
+
+enum kbd_command {
+	KBD_CMD_SET_LEDS = 0xed
 };
 
 static enum dec_state ds;
@@ -193,6 +209,13 @@ void kbd_ctl_parse_scancode(int scancode)
 	int *map;
 	size_t map_length;
 
+	/*
+	 * ACK/NAK are returned as response to us sending a command.
+	 * We are not interested in them.
+	 */
+	if (scancode == SC_ACK || scancode == SC_NAK)
+		return;
+
 	if (scancode == 0xe0) {
 		ds = ds_e;
 		return;
@@ -227,6 +250,22 @@ void kbd_ctl_parse_scancode(int scancode)
 	key = map[scancode];
 	if (key != 0)
 		kbd_push_ev(type, key);
+}
+
+void kbd_ctl_set_ind(unsigned mods)
+{
+	uint8_t b;
+
+	b = 0;
+	if ((mods & KM_CAPS_LOCK) != 0)
+		b = b | LI_CAPS;
+	if ((mods & KM_NUM_LOCK) != 0)
+		b = b | LI_NUM;
+	if ((mods & KM_SCROLL_LOCK) != 0)
+		b = b | LI_SCROLL;
+
+	kbd_port_write(KBD_CMD_SET_LEDS);
+	kbd_port_write(b);
 }
 
 /**
