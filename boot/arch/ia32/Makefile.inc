@@ -59,7 +59,9 @@ RD_APPS = \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+	$(USPACEDIR)/app/bdsh/bdsh \
+	$(USPACEDIR)/app/lspci/lspci \
+	$(USPACEDIR)/app/shutters/shutters 
 
 build: $(BASE)/image.iso
 

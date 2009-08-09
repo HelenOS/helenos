@@ -26,71 +26,54 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
+## Setup toolchain
 #
 
--include ../Makefile.config
+LIBC_PREFIX = ../../lib/libc
+SOFTINT_PREFIX = ../../lib/softint
 
-DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
-	srv/bd/ata_bd \
-	srv/bd/file_bd \
-	srv/bd/gxe_bd \
-	srv/bd/rd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/fs/devfs \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/shutters \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/getvc \
-	app/bdsh
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-ifeq ($(UARCH),amd64)
-	DIRS += \
-		srv/pci \
-		app/lspci
-endif
 
-ifeq ($(UARCH),ia32)
-	DIRS += \
-		srv/pci \
-		app/lspci
-endif
+LIBS = libpci/libpci.a $(LIBC_PREFIX)/libc.a
 
-ifeq ($(UARCH),sparc64)
-	DIRS += \
-		srv/pci \
-		app/lspci \
-		srv/cir/fhc \
-		srv/cir/obio
-endif
+## Sources
+#
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+OUTPUT = lspci
+SOURCES = \
+	pci.c
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+.PHONY: all clean depend disasm
 
-clean: $(CLEANS)
+all: $(OUTPUT) disasm
 
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
+-include Makefile.depend
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+clean:
+	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
+	$(MAKE) -C libpci clean
+
+depend:
+	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
+
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(MAKE) -C libpci
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+disasm:
+	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+
+%.o: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.o: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+libpci/libpci.a:
+	$(MAKE) -C libpci

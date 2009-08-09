@@ -101,6 +101,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/bd/file_bd/file_bd
@@ -117,7 +118,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/bdsh/bdsh \
-	$(USPACEDIR)/app/klog/klog
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/lspci/lspci
 
 ifeq ($(MACHINE),generic)
 RD_APPS += \

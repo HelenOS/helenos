@@ -263,6 +263,9 @@ int main(int argc, char *argv[])
 	getvc("vc5", "/app/bdsh");
 	getvc("vc6", "/app/klog");
 	
+	usleep(1000000);
+	spawn("/srv/pci");
+	
 	return 0;
 }
 

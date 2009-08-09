@@ -15,7 +15,7 @@ INCL=internal.h pci.h header.h sysdep.h types.h pci_ids.h
 
 PCILIB=libpci.a
 
-OBJS += i386-ports.o
+OBJS += i386-ports.o us2.o
 
 all: $(PCILIB)
 

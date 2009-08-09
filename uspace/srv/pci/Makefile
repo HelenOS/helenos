@@ -34,37 +34,52 @@ SOFTINT_PREFIX = ../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
+CFLAGS += -I../libipc/include
 
-LIBS = libpci/libpci.a $(LIBC_PREFIX)/libc.a
+LIBS =  $(LIBC_PREFIX)/libc.a
 
 ## Sources
 #
 
 OUTPUT = pci
 SOURCES = \
-	pci.c
+	main.c \
+	pci.c \
+	intel_piix3.c \
+	isa.c \
+	serial.c
+
+ifeq ($(PROCESSOR), us)
+	SOURCES += psycho.c
+endif
+
+ifeq ($(UARCH), ia32)
+	SOURCES += intel_method1.c
+endif
+
+CFLAGS += -D$(UARCH)
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all clean depend disasm
 
-all: $(OUTPUT) disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
-	$(MAKE) -C libpci clean
 
 depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(MAKE) -C libpci
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+disasm: $(OUTPUT).disasm
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< >$@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
@@ -74,6 +89,3 @@ disasm:
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
-
-libpci/libpci.a:
-	$(MAKE) -C libpci

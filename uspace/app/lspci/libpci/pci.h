@@ -26,6 +26,7 @@ enum pci_access_type {
 	/* Known access methods, remember to update access.c as well */
 	PCI_ACCESS_I386_TYPE1,	/* i386 ports, type 1 (params: none) */
 	PCI_ACCESS_I386_TYPE2,	/* i386 ports, type 2 (params: none) */
+	PCI_ACCESS_US2, 
 	PCI_ACCESS_MAX
 };
 

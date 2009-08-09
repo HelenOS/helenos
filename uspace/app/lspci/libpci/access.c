@@ -16,8 +16,19 @@
 #include "internal.h"
 
 static struct pci_methods *pci_methods[PCI_ACCESS_MAX] = {
+	#ifdef UARCH_ia32
 	&pm_intel_conf1,
 	&pm_intel_conf2,
+	#else
+	0,
+	0,
+	#endif	
+	
+	#ifdef UARCH_sparc64
+	&pm_us2
+	#else
+	0
+	#endif
 };
 
 struct pci_access *pci_alloc(void)

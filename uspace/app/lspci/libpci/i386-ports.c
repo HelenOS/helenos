@@ -9,50 +9,17 @@
  */
 
 #include <unistd.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
 
 #include "internal.h"
 
-static inline void outb(u8 b, u16 port)
-{
-	asm volatile ("outb %0, %1\n" :: "a" (b), "d" (port));
-}
+#define PCI_CONF1	0xcf8
+#define PCI_CONF1_SIZE	8
 
-static inline void outw(u16 w, u16 port)
-{
-	asm volatile ("outw %0, %1\n" :: "a" (w), "d" (port));
-}
-
-static inline void outl(u32 l, u16 port)
-{
-	asm volatile ("outl %0, %1\n" :: "a" (l), "d" (port));
-}
-
-static inline u8 inb(u16 port)
-{
-	u8 val;
-
-	asm volatile ("inb %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
-
-static inline u16 inw(u16 port)
-{
-	u16 val;
-
-	asm volatile ("inw %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
-
-static inline u32 inl(u16 port)
-{
-	u32 val;
-
-	asm volatile ("inl %1, %0 \n" : "=a" (val) : "d"(port));
-	return val;
-}
 
 static void conf12_init(struct pci_access *a)
-{
+{	
 }
 
 static void conf12_cleanup(struct pci_access *a UNUSED)
@@ -79,14 +46,14 @@ static int intel_sanity_check(struct pci_access *a, struct pci_methods *m)
 	d.func = 0;
 	for (d.dev = 0; d.dev < 32; d.dev++) {
 		u16 class, vendor;
-		if ((m->read(&d, PCI_CLASS_DEVICE, (byte *) & class,
+		if (m->read(&d, PCI_CLASS_DEVICE, (byte *) & class,
 			 sizeof(class))
 		    && (class == cpu_to_le16(PCI_CLASS_BRIDGE_HOST)
-			|| class == cpu_to_le16(PCI_CLASS_DISPLAY_VGA)))
-		    || (m->read(&d, PCI_VENDOR_ID, (byte *) & vendor,
+			|| class == cpu_to_le16(PCI_CLASS_DISPLAY_VGA))
+		    || m->read(&d, PCI_VENDOR_ID, (byte *) & vendor,
 			       sizeof(vendor))
 		    && (vendor == cpu_to_le16(PCI_VENDOR_ID_INTEL)
-			|| vendor == cpu_to_le16(PCI_VENDOR_ID_COMPAQ)))) {
+			|| vendor == cpu_to_le16(PCI_VENDOR_ID_COMPAQ))) {
 			a->debug("...outside the Asylum at 0/%02x/0",
 				 d.dev);
 			return 1;
@@ -106,15 +73,25 @@ static int conf1_detect(struct pci_access *a)
 {
 	unsigned int tmp;
 	int res = 0;
+	
+	/*
+	 * Gain control over PCI configuration ports.
+	 */
+	void * addr; 
+	if (pio_enable((void *)PCI_CONF1, PCI_CONF1_SIZE, &addr)) {
+		return 0;
+	}
 
-	outb(0x01, 0xCFB);
-	tmp = inl(0xCF8);
-	outl(0x80000000, 0xCF8);
-	if (inl(0xCF8) == 0x80000000)
+	pio_write_8(0xCFB, 0x01);
+	tmp = pio_read_32(0xCF8);
+	pio_write_32(0xCF8, 0x80000000);
+	if (pio_read_32(0xCF8) == 0x80000000) {
 		res = 1;
-	outl(tmp, 0xCF8);
-	if (res)
+	}
+	pio_write_32(0xCF8, tmp);
+	if (res) {
 		res = intel_sanity_check(a, &pm_intel_conf1);
+	}
 	return res;
 }
 
@@ -125,18 +102,18 @@ static int conf1_read(struct pci_dev *d, int pos, byte * buf, int len)
 	if (pos >= 256)
 		return 0;
 
-	outl(0x80000000 | ((d->bus & 0xff) << 16) |
-	     (PCI_DEVFN(d->dev, d->func) << 8) | (pos & ~3), 0xcf8);
+	pio_write_32(0xcf8, 0x80000000 | ((d->bus & 0xff) << 16) |
+	     (PCI_DEVFN(d->dev, d->func) << 8) | (pos & ~3));
 
 	switch (len) {
 	case 1:
-		buf[0] = inb(addr);
+		buf[0] = pio_read_8(addr);
 		break;
 	case 2:
-		((u16 *) buf)[0] = cpu_to_le16(inw(addr));
+		((u16 *) buf)[0] = cpu_to_le16(pio_read_16(addr));
 		break;
 	case 4:
-		((u32 *) buf)[0] = cpu_to_le32(inl(addr));
+		((u32 *) buf)[0] = cpu_to_le32(pio_read_32(addr));
 		break;
 	default:
 		return pci_generic_block_read(d, pos, buf, len);
@@ -151,18 +128,18 @@ static int conf1_write(struct pci_dev *d, int pos, byte * buf, int len)
 	if (pos >= 256)
 		return 0;
 
-	outl(0x80000000 | ((d->bus & 0xff) << 16) |
-	     (PCI_DEVFN(d->dev, d->func) << 8) | (pos & ~3), 0xcf8);
+	pio_write_32(0xcf8, 0x80000000 | ((d->bus & 0xff) << 16) |
+	     (PCI_DEVFN(d->dev, d->func) << 8) | (pos & ~3));
 
 	switch (len) {
 	case 1:
-		outb(buf[0], addr);
+		pio_write_8(addr, buf[0]);
 		break;
 	case 2:
-		outw(le16_to_cpu(((u16 *) buf)[0]), addr);
+		pio_write_16(addr, le16_to_cpu(((u16 *) buf)[0]));
 		break;
 	case 4:
-		outl(le32_to_cpu(((u32 *) buf)[0]), addr);
+		pio_write_32(addr, le32_to_cpu(((u32 *) buf)[0]));
 		break;
 	default:
 		return pci_generic_block_write(d, pos, buf, len);
@@ -176,11 +153,22 @@ static int conf1_write(struct pci_dev *d, int pos, byte * buf, int len)
 
 static int conf2_detect(struct pci_access *a)
 {
+	/*
+	 * Gain control over PCI configuration ports.
+	 */
+	void * addr; 
+	if (pio_enable((void *)PCI_CONF1, PCI_CONF1_SIZE, &addr)) {
+		return 0;
+	}
+	if (pio_enable((void *)0xC000, 0x1000, &addr)) {
+		return 0;
+	}	
+	
 	/* This is ugly and tends to produce false positives. Beware. */
-	outb(0x00, 0xCFB);
-	outb(0x00, 0xCF8);
-	outb(0x00, 0xCFA);
-	if (inb(0xCF8) == 0x00 && inb(0xCFA) == 0x00)
+	pio_write_8(0xCFB, 0x00);
+	pio_write_8(0xCF8, 0x00);
+	pio_write_8(0xCFA, 0x00);
+	if (pio_read_8(0xCF8) == 0x00 && pio_read_8(0xCFA) == 0x00)
 		return intel_sanity_check(a, &pm_intel_conf2);
 	else
 		return 0;
@@ -196,23 +184,23 @@ static int conf2_read(struct pci_dev *d, int pos, byte * buf, int len)
 	if (d->dev >= 16)
 		/* conf2 supports only 16 devices per bus */
 		return 0;
-	outb((d->func << 1) | 0xf0, 0xcf8);
-	outb(d->bus, 0xcfa);
+	pio_write_8(0xcf8, (d->func << 1) | 0xf0);
+	pio_write_8(0xcfa, d->bus);
 	switch (len) {
 	case 1:
-		buf[0] = inb(addr);
+		buf[0] = pio_read_8(addr);
 		break;
 	case 2:
-		((u16 *) buf)[0] = cpu_to_le16(inw(addr));
+		((u16 *) buf)[0] = cpu_to_le16(pio_read_16(addr));
 		break;
 	case 4:
-		((u32 *) buf)[0] = cpu_to_le32(inl(addr));
+		((u32 *) buf)[0] = cpu_to_le32(pio_read_32(addr));
 		break;
 	default:
-		outb(0, 0xcf8);
+		pio_write_8(0xcf8, 0);
 		return pci_generic_block_read(d, pos, buf, len);
 	}
-	outb(0, 0xcf8);
+	pio_write_8(0xcf8, 0);
 	return 1;
 }
 
@@ -225,23 +213,23 @@ static int conf2_write(struct pci_dev *d, int pos, byte * buf, int len)
 
 	if (d->dev >= 16)
 		d->access->error("conf2_write: only first 16 devices exist.");
-	outb((d->func << 1) | 0xf0, 0xcf8);
-	outb(d->bus, 0xcfa);
+	pio_write_8(0xcf8, (d->func << 1) | 0xf0);
+	pio_write_8(0xcfa, d->bus);
 	switch (len) {
 	case 1:
-		outb(buf[0], addr);
+		pio_write_8(addr, buf[0]);
 		break;
 	case 2:
-		outw(le16_to_cpu(*(u16 *) buf), addr);
+		pio_write_16(addr, le16_to_cpu(*(u16 *) buf));
 		break;
 	case 4:
-		outl(le32_to_cpu(*(u32 *) buf), addr);
+		pio_write_32(addr, le32_to_cpu(*(u32 *) buf));
 		break;
 	default:
-		outb(0, 0xcf8);
+		pio_write_8(0xcf8, 0);
 		return pci_generic_block_write(d, pos, buf, len);
 	}
-	outb(0, 0xcf8);
+	pio_write_8(0xcf8, 0);
 	return 1;
 }
 
