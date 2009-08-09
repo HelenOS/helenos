@@ -45,8 +45,7 @@ OUTPUT = kbd
 GENERIC_SOURCES = \
 	generic/kbd.c \
 	genarch/gsp.c \
-	genarch/stroke.c \
-	generic/keybuffer.c
+	genarch/stroke.c
 
 ARCH_SOURCES =
 GENARCH_SOURCES = \

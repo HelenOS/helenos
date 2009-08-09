@@ -37,6 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/kbd.h>
 #include <sysinfo.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -50,7 +51,6 @@
 #include <io/keycode.h>
 
 #include <kbd.h>
-#include <keybuffer.h>
 #include <kbd_port.h>
 #include <kbd_ctl.h>
 #include <layout.h>
@@ -59,7 +59,6 @@
 
 int cons_connected = 0;
 int phone2cons = -1;
-keybuffer_t keybuffer;
 
 /** Currently active modifiers. */
 static unsigned mods = KM_NUM_LOCK;
@@ -240,9 +239,6 @@ int main(int argc, char **argv)
 
 	/* Initialize (reset) layout. */
 	layout[active_layout]->reset();
-	
-	/* Initialize key buffer */
-	keybuffer_init(&keybuffer);
 	
 	async_set_client_connection(console_connection);
 

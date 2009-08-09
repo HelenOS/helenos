@@ -37,20 +37,6 @@
 #ifndef KBD_KBD_H_
 #define KBD_KBD_H_
 
-#include <keybuffer.h>
-#include <ipc/ipc.h>
-
-#define KBD_EVENT      1024
-#define KBD_MS_LEFT    1025
-#define KBD_MS_RIGHT   1026
-#define KBD_MS_MIDDLE  1027
-#define KBD_MS_MOVE    1028
-
-typedef enum {
-	KBD_YIELD = IPC_FIRST_USER_METHOD,
-	KBD_RECLAIM
-} kbd_request_t;
-
 extern int cir_service;
 extern int cir_phone;
 
