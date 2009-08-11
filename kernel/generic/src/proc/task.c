@@ -196,13 +196,6 @@ task_t *task_create(as_t *as, char *name)
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 	
-	/*
-	 * Notify about task creation.
-	 */
-	if (event_is_subscribed(EVENT_WAIT))
-		event_notify_3(EVENT_WAIT, TASK_CREATE, LOWER32(ta->taskid),
-		    UPPER32(ta->taskid));
-	
 	return ta;
 }
 
@@ -234,13 +227,6 @@ void task_destroy(task_t *t)
 	 */
 	if (atomic_predec(&t->as->refcount) == 0) 
 		as_destroy(t->as);
-	
-	/*
-	 * Notify about task destruction.
-	 */
-	if (event_is_subscribed(EVENT_WAIT))
-		event_notify_3(EVENT_WAIT, TASK_DESTROY, LOWER32(t->taskid),
-		    UPPER32(t->taskid));
 	
 	free(t);
 	TASK = NULL;
