@@ -461,7 +461,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
 	 */
-	if (parentp->idx->pfc == FAT_CLST_ROOT) {
+	if (parentp->firstc == FAT_CLST_ROOT) {
 		/* Can't grow the root directory. */
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return ENOSPC;
