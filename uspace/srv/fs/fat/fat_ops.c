@@ -459,14 +459,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
 	}
+	fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
 	fat_append_clusters(bs, parentp, mcl);
-	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NOREAD);
+	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
 	d = (fat_dentry_t *)b->data;
-	/*
-	 * Clear all dentries in the block except for the first one (the first
-	 * dentry will be cleared in the next step).
-	 */
-	memset(d + 1, 0, bps - sizeof(fat_dentry_t));
 
 hit:
 	/*
