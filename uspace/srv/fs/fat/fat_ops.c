@@ -331,20 +331,8 @@ fs_node_t *fat_create_node(dev_handle_t dev_handle, int flags)
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
-		int i;
-		block_t *b;
-
-		/*
-		 * Populate the new cluster with unused dentries.
-		 */
-		for (i = 0; i < bs->spc; i++) {
-			b = _fat_block_get(bs, dev_handle, mcl, i,
-			    BLOCK_FLAGS_NOREAD);
-			/* mark all dentries as never-used */
-			memset(b->data, 0, bps);
-			b->dirty = true;
-			block_put(b);
-		}
+		/* Populate the new cluster with unused dentries. */
+		fat_zero_cluster(bs, dev_handle, mcl);
 		nodep->type = FAT_DIRECTORY;
 		nodep->firstc = mcl;
 		nodep->size = bps * bs->spc;

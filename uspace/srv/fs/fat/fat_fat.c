@@ -450,6 +450,23 @@ void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 	}
 }
 
+void
+fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
+{
+	int i;
+	block_t *b;
+	unsigned bps;
+
+	bps = uint16_t_le2host(bs->bps);
+	
+	for (i = 0; i < bs->spc; i++) {
+		b = _fat_block_get(bs, dev_handle, c, i, BLOCK_FLAGS_NOREAD);
+		memset(b->data, 0, bps);
+		b->dirty = true;
+		block_put(b);
+	}
+}
+
 /**
  * @}
  */ 
