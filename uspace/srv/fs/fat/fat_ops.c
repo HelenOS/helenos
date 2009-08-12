@@ -461,6 +461,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	}
 	fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
 	fat_append_clusters(bs, parentp, mcl);
+	parentp->size += bps * bs->spc;
+	parentp->dirty = true;		/* need to sync node */
 	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
 	d = (fat_dentry_t *)b->data;
 
