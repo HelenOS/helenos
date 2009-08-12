@@ -342,7 +342,7 @@ fs_node_t *fat_create_node(dev_handle_t dev_handle, int flags)
 			    BLOCK_FLAGS_NOREAD);
 			/* mark all dentries as never-used */
 			memset(b->data, 0, bps);
-			b->dirty = false;
+			b->dirty = true;
 			block_put(b);
 		}
 		nodep->type = FAT_DIRECTORY;
