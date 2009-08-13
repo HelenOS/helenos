@@ -132,6 +132,11 @@ void kbd_port_reclaim(void)
 	polling_disabled = false;
 }
 
+void kbd_port_write(uint8_t data)
+{
+	(void) data;
+}
+
 /**
  * Handler of the "key pressed" event. Reads codes of all the pressed keys from
  * the buffer. 

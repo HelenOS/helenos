@@ -77,6 +77,11 @@ void kbd_port_reclaim(void)
 	polling_disabled = false;
 }
 
+void kbd_port_write(uint8_t data)
+{
+	(void) data;
+}
+
 /** Thread to poll Ski for keypresses. */
 static void *ski_thread_impl(void *arg)
 {

@@ -34,7 +34,7 @@ SOFTINT_PREFIX = ../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -I. -I../kbd/include -I../fb
+CFLAGS += -I.
 
 LIBS = $(LIBC_PREFIX)/libc.a
 
@@ -46,7 +46,7 @@ OUTPUT = console
 GENERIC_SOURCES = \
 	console.c \
 	screenbuffer.c \
-	../kbd/generic/keybuffer.c \
+	keybuffer.c \
 	gcons.c
 
 IMAGES = \

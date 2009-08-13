@@ -37,9 +37,12 @@
 #ifndef KBD_PORT_H_
 #define KBD_PORT_H_
 
+#include <sys/types.h>
+
 extern int kbd_port_init(void);
 extern void kbd_port_yield(void);
 extern void kbd_port_reclaim(void);
+extern void kbd_port_write(uint8_t);
 
 #endif
 

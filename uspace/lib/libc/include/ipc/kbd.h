@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,14 +34,19 @@
 /** @file
  */
 
-#ifndef KBD_KBD_H_
-#define KBD_KBD_H_
+#ifndef LIBC_IPC_KBD_H_
+#define LIBC_IPC_KBD_H_
 
-extern int cir_service;
-extern int cir_phone;
+#include <ipc/ipc.h>
 
-extern void kbd_push_scancode(int);
-extern void kbd_push_ev(int, unsigned int);
+typedef enum {
+	KBD_YIELD = IPC_FIRST_USER_METHOD,
+	KBD_RECLAIM
+} kbd_request_t;
+
+typedef enum {
+	KBD_EVENT = IPC_FIRST_USER_METHOD
+} kbd_notif_t;
 
 #endif
 

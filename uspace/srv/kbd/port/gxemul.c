@@ -77,6 +77,11 @@ void kbd_port_reclaim(void)
 {
 }
 
+void kbd_port_write(uint8_t data)
+{
+	(void) data;
+}
+
 /** Process data sent when a key is pressed.
  *  
  *  @param keybuffer Buffer of pressed keys.

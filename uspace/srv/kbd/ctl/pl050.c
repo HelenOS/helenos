@@ -257,6 +257,11 @@ static bool is_lock_key(int sc)
 	    (sc == PL050_SCROLL_SCAN_CODE));
 }
 
+void kbd_ctl_set_ind(unsigned mods)
+{
+	(void) mods;
+}
+
 /**
  * @}
  */ 

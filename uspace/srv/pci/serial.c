@@ -119,7 +119,7 @@ static void serial_init_port(ioport8_t *port)
 	pio_write_8(port + 1, 0x00);    //                   (hi byte)
 	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
 	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-	pio_write_8(port + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), Aux Output2 set 
 }
 
 static serial_dev_t * serial_alloc_dev()
