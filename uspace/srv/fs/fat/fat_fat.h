@@ -83,6 +83,7 @@ extern void fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern void fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
     off_t);
+extern void fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
 
 #endif
 

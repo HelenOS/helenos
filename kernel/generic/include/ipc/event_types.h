@@ -38,14 +38,8 @@
 typedef enum event_type {
 	EVENT_KLOG = 0,
 	EVENT_KCONSOLE,
-	EVENT_WAIT,
 	EVENT_END
 } event_type_t;
-
-typedef enum wait_type {
-	TASK_CREATE = 0,
-	TASK_DESTROY
-} wait_type_t;
 
 #endif
 

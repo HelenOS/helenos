@@ -34,12 +34,10 @@
 #define NS_TASK_H__
 
 #include <ipc/ipc.h>
-#include <event.h>
 
 extern int task_init(void);
 extern void process_pending_wait(void);
 
-extern void wait_notification(wait_type_t et, task_id_t id);
 extern void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid);
 
 extern int ns_task_id_intro(ipc_call_t *call);

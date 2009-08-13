@@ -181,7 +181,6 @@ restart:
 	mutex_lock(&THREAD->udebug.lock);
 
 	if (THREAD->udebug.active && THREAD->udebug.go == false) {
-		TASK->udebug.begin_call = NULL;
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 
