@@ -198,7 +198,7 @@ static ioport8_t * serial_probe_port(void *phys_addr)
 	
 	pio_write_8(port_addr + 4, 0x1f);
 	if ((pio_read_8(port_addr + 6) & 0xf0) != 0xf0) {
-		return 0;
+		return NULL;
 	}
 	pio_write_8(port_addr + 4, olddata);
 	
