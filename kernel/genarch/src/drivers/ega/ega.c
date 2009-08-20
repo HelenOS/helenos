@@ -566,7 +566,7 @@ void ega_init(ioport8_t *base, uintptr_t videoram_phys)
 	ega_sync_cursor(silent);
 	
 	outdev_initialize("ega", &ega_console, &ega_ops);
-	stdout = &ega_console;
+	stdout_wire(&ega_console);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 2);

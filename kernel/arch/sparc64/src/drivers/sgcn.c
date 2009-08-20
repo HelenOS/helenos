@@ -379,8 +379,8 @@ void sgcnout_init(void)
 
 	sysinfo_set_item_val("fb.kind", NULL, 4);
 
-	outdev_initialize("sgcnout", &sgcnout, &sgcnout_ops);	
-	stdout = &sgcnout;
+	outdev_initialize("sgcnout", &sgcnout, &sgcnout_ops);
+	stdout_wire(&sgcnout);
 }
 
 /** @}

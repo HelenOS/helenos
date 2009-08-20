@@ -128,7 +128,7 @@ void skiout_init(void)
 	ski_init();
 	
 	outdev_initialize("skiout", &skiout, &skiout_ops);
-	stdout = &skiout;
+	stdout_wire(&skiout);
 	
 	sysinfo_set_item_val("fb", NULL, false);
 }

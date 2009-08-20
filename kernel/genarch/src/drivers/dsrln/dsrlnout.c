@@ -65,7 +65,7 @@ void dsrlnout_init(ioport8_t *base)
 	dsrlnout_base = base;
 	
 	outdev_initialize("dsrlnout", &dsrlnout_console, &dsrlnout_ops);
-	stdout = &dsrlnout_console;
+	stdout_wire(&dsrlnout_console);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 3);

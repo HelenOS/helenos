@@ -75,8 +75,17 @@ SPINLOCK_INITIALIZE(klog_lock);
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
 
+static indev_t stdin_sink;
+static outdev_t stdout_source;
+
 static indev_operations_t stdin_ops = {
 	.poll = NULL
+};
+
+static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
+
+static outdev_operations_t stdout_ops = {
+	.write = stdout_write
 };
 
 /** Silence output */
@@ -89,12 +98,31 @@ outdev_t *stdout = NULL;
 indev_t *stdin_wire(void)
 {
 	if (stdin == NULL) {
-		stdin = malloc(sizeof(indev_t), FRAME_ATOMIC);
-		if (stdin != NULL)
-			indev_initialize("stdin", stdin, &stdin_ops);
+		indev_initialize("stdin", &stdin_sink, &stdin_ops);
+		stdin = &stdin_sink;
 	}
 	
 	return stdin;
+}
+
+void stdout_wire(outdev_t *outdev)
+{
+	if (stdout == NULL) {
+		outdev_initialize("stdout", &stdout_source, &stdout_ops);
+		stdout = &stdout_source;
+	}
+	
+	list_append(&outdev->link, &stdout->list);
+}
+
+static void stdout_write(outdev_t *dev, wchar_t ch, bool silent)
+{
+	link_t *cur;
+	
+	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+		sink->op->write(sink, ch, silent);
+	}
 }
 
 /** Initialize kernel logging facility

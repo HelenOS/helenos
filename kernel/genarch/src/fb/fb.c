@@ -582,7 +582,7 @@ bool fb_init(fb_properties_t *props)
 	fb_redraw();
 	
 	outdev_initialize("fb", &fb_console, &fb_ops);
-	stdout = &fb_console;
+	stdout_wire(&fb_console);
 	
 	return true;
 }
