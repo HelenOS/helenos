@@ -40,6 +40,8 @@
 #include <arch/interrupt.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
+#include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/pci.h>
 #include <userspace.h>
 #include <proc/uarg.h>
 #include <console/console.h>
@@ -48,6 +50,7 @@
 #include <align.h>
 #include <macros.h>
 #include <string.h>
+#include <print.h>
 
 #define IRQ_COUNT  64
 #define IRQ_CUDA   10
@@ -62,57 +65,95 @@ void arch_pre_main(void)
 	uint32_t i;
 	
 	for (i = 0; i < min3(bootinfo.taskmap.count, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
-		init.tasks[i].addr = PA2KA(bootinfo.taskmap.tasks[i].addr);
+		init.tasks[i].addr = bootinfo.taskmap.tasks[i].addr;
 		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo.taskmap.tasks[i].name);
 	}
+	
+	/* Copy boot allocations info. */
+	ballocs.base = bootinfo.ballocs.base;
+	ballocs.size = bootinfo.ballocs.size;
+	
+	ofw_tree_init(bootinfo.ofw_root);
 }
 
 void arch_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
 	interrupt_init();
-
+	
 	/* Start decrementer */
 	start_decrementer();
+}
+
+static bool display_register(ofw_tree_node_t *node, void *arg)
+{
+	uintptr_t fb_addr = 0;
+	uint32_t fb_width = 0;
+	uint32_t fb_height = 0;
+	uint32_t fb_scanline = 0;
+	unsigned int visual = VISUAL_UNKNOWN;
+	
+	ofw_tree_property_t *prop = ofw_tree_getprop(node, "address");
+	if ((prop) && (prop->value))
+		fb_addr = *((uintptr_t *) prop->value);
+	
+	prop = ofw_tree_getprop(node, "width");
+	if ((prop) && (prop->value))
+		fb_width = *((uint32_t *) prop->value);
+	
+	prop = ofw_tree_getprop(node, "height");
+	if ((prop) && (prop->value))
+		fb_height = *((uint32_t *) prop->value);
+	
+	prop = ofw_tree_getprop(node, "depth");
+	if ((prop) && (prop->value)) {
+		uint32_t fb_bpp = *((uint32_t *) prop->value);
+		switch (fb_bpp) {
+		case 8:
+			visual = VISUAL_INDIRECT_8;
+			break;
+		case 16:
+			visual = VISUAL_RGB_5_5_5_BE;
+			break;
+		case 24:
+			visual = VISUAL_BGR_8_8_8;
+			break;
+		case 32:
+			visual = VISUAL_RGB_0_8_8_8;
+			break;
+		default:
+			visual = VISUAL_UNKNOWN;
+		}
+	}
+	
+	prop = ofw_tree_getprop(node, "linebytes");
+	if ((prop) && (prop->value))
+		fb_scanline = *((uint32_t *) prop->value);
+	
+	if ((fb_addr) && (fb_width > 0) && (fb_height > 0)
+	    && (fb_scanline > 0) && (visual != VISUAL_UNKNOWN)) {
+		fb_properties_t fb_prop = {
+			.addr = fb_addr,
+			.offset = 0,
+			.x = fb_width,
+			.y = fb_height,
+			.scan = fb_scanline,
+			.visual = visual,
+		};
+		fb_init(&fb_prop);
+	}
+	
+	/* Consider only a single device for now */
+	return false;
 }
 
 void arch_post_mm_init(void)
 {
 	if (config.cpu_active == 1) {
-
 #ifdef CONFIG_FB
-		/* Initialize framebuffer */
-		if (bootinfo.screen.addr) {
-			unsigned int visual;
-			
-			switch (bootinfo.screen.bpp) {
-			case 8:
-				visual = VISUAL_INDIRECT_8;
-				break;
-			case 16:
-				visual = VISUAL_RGB_5_5_5_BE;
-				break;
-			case 24:
-				visual = VISUAL_BGR_8_8_8;
-				break;
-			case 32:
-				visual = VISUAL_RGB_0_8_8_8;
-				break;
-			default:
-				panic("Unsupported bits per pixel.");
-			}
-			fb_properties_t prop = {
-				.addr = bootinfo.screen.addr,
-				.offset = 0,
-				.x = bootinfo.screen.width,
-				.y = bootinfo.screen.height,
-				.scan = bootinfo.screen.scanline,
-				.visual = visual,
-			};
-			fb_init(&prop);
-		}
+		ofw_tree_walk_by_device_type("display", display_register, NULL);
 #endif
 		
 		/* Initialize IRQ routing */
@@ -131,23 +172,29 @@ void arch_pre_smp_init(void)
 {
 }
 
-void arch_post_smp_init(void)
+static bool macio_register(ofw_tree_node_t *node, void *arg)
 {
-	if (bootinfo.macio.addr) {
+	ofw_pci_reg_t *assigned_address = NULL;
+	
+	ofw_tree_property_t *prop = ofw_tree_getprop(node, "assigned-addresses");
+	if ((prop) && (prop->value))
+		assigned_address = ((ofw_pci_reg_t *) prop->value);
+	
+	if (assigned_address) {
 		/* Initialize PIC */
 		cir_t cir;
 		void *cir_arg;
-		pic_init(bootinfo.macio.addr, PAGE_SIZE, &cir, &cir_arg);
-
+		pic_init(assigned_address[0].addr, PAGE_SIZE, &cir, &cir_arg);
+		
 #ifdef CONFIG_MAC_KBD
-		uintptr_t pa = bootinfo.macio.addr + 0x16000;
+		uintptr_t pa = assigned_address[0].addr + 0x16000;
 		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
 		size_t offset = pa - aligned_addr;
 		size_t size = 2 * PAGE_SIZE;
-			
+		
 		cuda_t *cuda = (cuda_t *)
 		    (hw_map(aligned_addr, offset + size) + offset);
-			
+		
 		/* Initialize I/O controller */
 		cuda_instance_t *cuda_instance =
 		    cuda_init(cuda, IRQ_CUDA, cir, cir_arg);
@@ -162,6 +209,14 @@ void arch_post_smp_init(void)
 		}
 #endif
 	}
+	
+	/* Consider only a single device for now */
+	return false;
+}
+
+void arch_post_smp_init(void)
+{
+	ofw_tree_walk_by_device_type("mac-io", macio_register, NULL);
 }
 
 void calibrate_delay_loop(void)

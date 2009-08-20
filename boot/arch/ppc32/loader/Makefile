@@ -61,19 +61,21 @@ CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -I../../../genarch -imacros
 
 SOURCES = \
 	main.c \
-	ofwarch.c \
 	_components.c \
-	../../../genarch/ofw.c \
 	../../../generic/printf.c \
 	../../../generic/string.c \
+	../../../genarch/balloc.c \
+	../../../genarch/ofw.c \
+	../../../genarch/ofw_tree.c \
+	ofwarch.c \
 	asm.S \
 	boot.S
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/bd/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs
@@ -98,8 +100,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+	$(USPACEDIR)/app/bdsh/bdsh \
+	$(USPACEDIR)/app/klog/klog
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))

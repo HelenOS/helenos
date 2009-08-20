@@ -27,31 +27,37 @@
  */
 
 #include <balloc.h>
+#include <asm.h>
 #include <types.h>
 #include <align.h>
 
 static ballocs_t *ballocs;
+static uintptr_t phys_base;
 
-void balloc_init(ballocs_t *b, uintptr_t base)
+void balloc_init(ballocs_t *ball, uintptr_t base, uintptr_t kernel_base)
 {
-	ballocs = b;
-	ballocs->base = base;
+	ballocs = ball;
+	phys_base = base;
+	ballocs->base = kernel_base;
 	ballocs->size = 0;
 }
 
 void *balloc(size_t size, size_t alignment)
 {
-	uintptr_t addr;
-
 	/* Enforce minimal alignment. */
 	alignment = ALIGN_UP(alignment, 4);
 	
-	addr = ballocs->base + ALIGN_UP(ballocs->size, alignment);
-
+	uintptr_t addr = phys_base + ALIGN_UP(ballocs->size, alignment);
+	
 	if (ALIGN_UP(ballocs->size, alignment) + size > BALLOC_MAX_SIZE)
 		return NULL;
-		
+	
 	ballocs->size = ALIGN_UP(ballocs->size, alignment) + size;
 	
 	return (void *) addr;
+}
+
+void *balloc_rebase(void *ptr)
+{
+	return (void *) ((uintptr_t) ptr - phys_base + ballocs->base);
 }

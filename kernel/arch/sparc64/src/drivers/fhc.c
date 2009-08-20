@@ -45,6 +45,7 @@
 #include <mm/slab.h>
 #include <arch/types.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/fhc.h>
 #include <sysinfo/sysinfo.h>
 
 fhc_t *central_fhc = NULL;

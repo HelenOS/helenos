@@ -36,8 +36,9 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/ebus.h>
+#include <genarch/ofw/pci.h>
 #include <arch/memstr.h>
-#include <arch/trap/interrupt.h>
 #include <string.h>
 #include <panic.h>
 #include <debug.h>

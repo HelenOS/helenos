@@ -34,6 +34,9 @@
 
 #include <arch/drivers/scr.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/pci.h>
+#include <genarch/ofw/sbus.h>
+#include <genarch/ofw/upa.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
 #include <arch/types.h>

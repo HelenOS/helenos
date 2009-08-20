@@ -42,6 +42,7 @@
 #include <align.h>
 #include <macros.h>
 #include <string.h>
+#include <memstr.h>
 
 #include "mm.h"
 

@@ -34,18 +34,18 @@
 #include <balloc.h>
 #include <types.h>
 
-#define KERNEL_VIRTUAL_ADDRESS 0x400000
+#define KERNEL_VIRTUAL_ADDRESS  0x400000
 
-#define TASKMAP_MAX_RECORDS 32
+#define TASKMAP_MAX_RECORDS  32
 
 /** Size of buffer for storing task name in task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
-#define BSP_PROCESSOR	1
-#define AP_PROCESSOR	0
+#define BSP_PROCESSOR  1
+#define AP_PROCESSOR   0
 
-#define SUBARCH_US	1
-#define SUBARCH_US3	3
+#define SUBARCH_US   1
+#define SUBARCH_US3  3
 
 typedef struct {
 	void *addr;
@@ -68,8 +68,6 @@ typedef struct {
 
 extern uint32_t silo_ramdisk_image;
 extern uint32_t silo_ramdisk_size;
-
-extern bootinfo_t bootinfo;
 
 extern void start(void);
 extern void bootstrap(void);

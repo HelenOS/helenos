@@ -39,15 +39,6 @@
 #define BOOT_arm32_ASM_H
 
 
-/** Copies cnt bytes from dst to src.
- *
- * @param dst Destination address.
- * @param src Source address.
- * @param cnt Count of bytes to be copied.
- */
-#define memcpy(dst, src, cnt) __builtin_memcpy((dst), (src), (cnt))
-
-
 /** Called when the CPU is switched on.
  *
  *  This function is placed to the 0x0 address where ARM CPU starts execution. 

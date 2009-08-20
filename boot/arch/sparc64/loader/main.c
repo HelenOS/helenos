@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2006 Jakub Jermar 
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
+#include "main.h"
 #include <printf.h>
 #include "asm.h"
 #include "_components.h"
@@ -38,33 +38,32 @@
 #include <align.h>
 #include <macros.h>
 #include <string.h>
+#include <memstr.h>
 
-bootinfo_t bootinfo;
-
-component_t components[COMPONENTS];
-
-char *release = STRING(RELEASE);
+static bootinfo_t bootinfo;
+static component_t components[COMPONENTS];
+static char *release = STRING(RELEASE);
 
 #ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
+	static char *revision = ", revision " STRING(REVISION);
 #else
-	char *revision = "";
+	static char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
+	static char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
-	char *timestamp = "";
+	static char *timestamp = "";
 #endif
 
 /** UltraSPARC subarchitecture - 1 for US, 3 for US3 */
-uint8_t subarchitecture;
+static uint8_t subarchitecture;
 
 /**
  * mask of the MID field inside the ICBUS_CONFIG register shifted by
  * MID_SHIFT bits to the right
  */
-uint16_t mid_mask;
+static uint16_t mid_mask;
 
 /** Print version information. */
 static void version_print(void)
@@ -75,13 +74,13 @@ static void version_print(void)
 }
 
 /* the lowest ID (read from the VER register) of some US3 CPU model */
-#define FIRST_US3_CPU 	0x14
+#define FIRST_US3_CPU  0x14
 
 /* the greatest ID (read from the VER register) of some US3 CPU model */
-#define LAST_US3_CPU 	0x19
+#define LAST_US3_CPU   0x19
 
 /* UltraSPARC IIIi processor implementation code */
-#define US_IIIi_CODE	0x15
+#define US_IIIi_CODE   0x15
 
 /**
  * Sets the global variables "subarchitecture" and "mid_mask" to
@@ -90,7 +89,10 @@ static void version_print(void)
 static void detect_subarchitecture(void)
 {
 	uint64_t v;
-	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%ver, %0\n"
+		: "=r" (v)
+	);
 	
 	v = (v << 16) >> 48;
 	if ((v >= FIRST_US3_CPU) && (v <= LAST_US3_CPU)) {
@@ -102,9 +104,8 @@ static void detect_subarchitecture(void)
 	} else if (v < FIRST_US3_CPU) {
 		subarchitecture = SUBARCH_US;
 		mid_mask = (1 << 5) - 1;
-	} else {
+	} else
 		printf("\nThis CPU is not supported by HelenOS.");
-	}
 }
 
 void bootstrap(void)
@@ -112,28 +113,29 @@ void bootstrap(void)
 	void *base = (void *) KERNEL_VIRTUAL_ADDRESS;
 	void *balloc_base;
 	unsigned int top = 0;
-	int i, j;
-
+	unsigned int i;
+	unsigned int j;
+	
 	version_print();
 	
 	detect_subarchitecture();
 	init_components(components);
-
+	
 	if (!ofw_get_physmem_start(&bootinfo.physmem_start)) {
 		printf("Error: unable to get start of physical memory.\n");
 		halt();
 	}
-
+	
 	if (!ofw_memmap(&bootinfo.memmap)) {
 		printf("Error: unable to get memory map, halting.\n");
 		halt();
 	}
-
+	
 	if (bootinfo.memmap.total == 0) {
 		printf("Error: no memory detected, halting.\n");
 		halt();
 	}
-
+	
 	/*
 	 * SILO for some reason adds 0x400000 and subtracts
 	 * bootinfo.physmem_start to/from silo_ramdisk_image.
@@ -142,21 +144,19 @@ void bootstrap(void)
 	if (silo_ramdisk_image) {
 		silo_ramdisk_image += bootinfo.physmem_start;
 		silo_ramdisk_image -= 0x400000;
-		/* Install 1:1 mapping for the ramdisk. */
-		if (ofw_map((void *)((uintptr_t) silo_ramdisk_image),
-		    (void *)((uintptr_t) silo_ramdisk_image),
+		
+		/* Install 1:1 mapping for the RAM disk. */
+		if (ofw_map((void *) ((uintptr_t) silo_ramdisk_image),
+		    (void *) ((uintptr_t) silo_ramdisk_image),
 		    silo_ramdisk_size, -1) != 0) {
-			printf("Failed to map ramdisk.\n");
+			printf("Failed to map RAM disk.\n");
 			halt();
 		}
 	}
 	
-	printf("\nSystem info\n");
-	printf(" memory: %dM starting at %P\n",
+	printf("\nMemory statistics (total %d MB, starting at %P)\n",
 	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
-
-	printf("\nMemory statistics\n");
-	printf(" kernel entry point at %P\n", KERNEL_VIRTUAL_ADDRESS);
+	printf(" %P: kernel entry point\n", KERNEL_VIRTUAL_ADDRESS);
 	printf(" %P: boot info structure\n", &bootinfo);
 	
 	/*
@@ -175,6 +175,7 @@ void bootstrap(void)
 				printf("Skipping superfluous components.\n");
 				break;
 			}
+			
 			bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr =
 			    base + top;
 			bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
@@ -186,22 +187,25 @@ void bootstrap(void)
 		}
 		top += components[i].size;
 	}
-
-	j = bootinfo.taskmap.count - 1;	/* do not consider ramdisk */
-
+	
+	/* Do not consider RAM disk */
+	j = bootinfo.taskmap.count - 1;
+	
 	if (silo_ramdisk_image) {
-		/* Treat the ramdisk as the last bootinfo task. */
+		/* Treat the RAM disk as the last bootinfo task. */
 		if (bootinfo.taskmap.count == TASKMAP_MAX_RECORDS) {
-			printf("Skipping ramdisk.\n");
+			printf("Skipping RAM disk.\n");
 			goto skip_ramdisk;
 		}
+		
 		top = ALIGN_UP(top, PAGE_SIZE);
 		bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = 
 		    base + top;
 		bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
 		    silo_ramdisk_size;
 		bootinfo.taskmap.count++;
-		printf("\nCopying ramdisk...");
+		printf("\nCopying RAM disk...");
+		
 		/*
 		 * Claim and map the whole ramdisk as it may exceed the area
 		 * given to us by SILO.
@@ -209,22 +213,23 @@ void bootstrap(void)
 		(void) ofw_claim_phys(base + top, silo_ramdisk_size);
 		(void) ofw_map(bootinfo.physmem_start + base + top, base + top,
 		    silo_ramdisk_size, -1);
-		memmove(base + top, (void *)((uintptr_t)silo_ramdisk_image),
+		memmove(base + top, (void *) ((uintptr_t) silo_ramdisk_image),
 		    silo_ramdisk_size);
+		
 		printf("done.\n");
 		top += silo_ramdisk_size;
 	}
 skip_ramdisk:
-
+	
 	/*
 	 * Now we can proceed to copy the components. We do it in reverse order
 	 * so that we don't overwrite anything even if the components overlap
 	 * with base.
 	 */
-	printf("\nCopying bootinfo tasks\n");
+	printf("\nCopying tasks...");
 	for (i = COMPONENTS - 1; i > 0; i--, j--) {
-		printf(" %s...", components[i].name);
-
+		printf("%s ", components[i].name);
+		
 		/*
 		 * At this point, we claim the physical memory that we are
 		 * going to use. We should be safe in case of the virtual
@@ -239,18 +244,19 @@ skip_ramdisk:
 		(void) ofw_claim_phys(bootinfo.physmem_start +
 		    bootinfo.taskmap.tasks[j].addr,
 		    ALIGN_UP(components[i].size, PAGE_SIZE));
-		    
-		memcpy((void *)bootinfo.taskmap.tasks[j].addr,
+		
+		memcpy((void *) bootinfo.taskmap.tasks[j].addr,
 		    components[i].start, components[i].size);
-		printf("done.\n");
+		
 	}
-
+	printf(".\n");
+	
 	printf("\nCopying kernel...");
 	(void) ofw_claim_phys(bootinfo.physmem_start + base,
 	    ALIGN_UP(components[0].size, PAGE_SIZE));
 	memcpy(base, components[0].start, components[0].size);
 	printf("done.\n");
-
+	
 	/*
 	 * Claim and map the physical memory for the boot allocator.
 	 * Initialize the boot allocator.
@@ -260,23 +266,24 @@ skip_ramdisk:
 	    BALLOC_MAX_SIZE);
 	(void) ofw_map(bootinfo.physmem_start + balloc_base, balloc_base,
 	    BALLOC_MAX_SIZE, -1);
-	balloc_init(&bootinfo.ballocs, (uintptr_t)balloc_base);
-
+	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base,
+	    (uintptr_t) balloc_base);
+	
 	printf("\nCanonizing OpenFirmware device tree...");
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
-
+	
 #ifdef CONFIG_AP
 	printf("\nChecking for secondary processors...");
-	if (!ofw_cpu())
+	if (!ofw_cpu(mid_mask, bootinfo.physmem_start))
 		printf("Error: unable to get CPU properties\n");
 	printf("done.\n");
 #endif
-
+	
 	ofw_setup_palette();
-
+	
 	printf("\nBooting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
 	    bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo,
-	    sizeof(bootinfo));
+	    sizeof(bootinfo), subarchitecture);
 }

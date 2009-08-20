@@ -32,8 +32,6 @@
 #define PAGE_SIZE   16384
 #define PAGE_WIDTH  14
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
 void jump_to_kernel(void *entry, void *bootinfo) __attribute__((noreturn));
 
 #endif

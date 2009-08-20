@@ -29,38 +29,35 @@
 #ifndef BOOT_ppc32_MAIN_H_
 #define BOOT_ppc32_MAIN_H_
 
-#include "ofw.h"
+#include <ofw.h>
+#include <ofw_tree.h>
+#include <balloc.h>
+#include <types.h>
 
-#define TASKMAP_MAX_RECORDS 32
+#define TASKMAP_MAX_RECORDS  32
 
 /** Size of buffer for storing task name in task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
-/** Struct holding information about single loaded task. */
 typedef struct {
-	/** Address where the task was placed. */
 	void *addr;
-	/** Size of the task's binary. */
-	unsigned int size;
-	/** Task name. */
+	uint32_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } task_t;
 
 typedef struct {
-	unsigned int count;
+	uint32_t count;
 	task_t tasks[TASKMAP_MAX_RECORDS];
 } taskmap_t;
 
 typedef struct {
 	memmap_t memmap;
 	taskmap_t taskmap;
-	screen_t screen;
-	macio_t macio;
+	ballocs_t ballocs;
+	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
 
 extern void start(void);
 extern void bootstrap(void);
-
-extern memmap_t memmap;
 
 #endif

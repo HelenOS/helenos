@@ -33,9 +33,7 @@
 #include <../../../../kernel/arch/ia64/include/bootinfo.h> 
 
 
-#define CONFIG_INIT_TASKS	32
-
-
+#define CONFIG_INIT_TASKS  32
 
 extern void start(void);
 extern void bootstrap(void);

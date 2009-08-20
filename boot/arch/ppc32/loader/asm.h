@@ -29,23 +29,33 @@
 #ifndef BOOT_ppc32_ASM_H_
 #define BOOT_ppc32_ASM_H_
 
-#define PAGE_SIZE 4096
-#define PAGE_WIDTH 12
+#define PAGE_WIDTH  12
+#define PAGE_SIZE   (1 << PAGE_WIDTH)
 
-#define TRANS_SIZE 1024
-#define TRANS_ITEM_SIZE 4
+#define TRANS_SIZE   1024
+#define BOOT_OFFSET  0x8000
 
-#define KERNEL_START_ADDR 0x80008000
+#define BALLOC_MAX_SIZE  (128 * 1024)
 
 #ifndef __ASM__
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include "types.h"
+#include "main.h"
+#include "ofwarch.h"
 
-extern void *trans[TRANS_SIZE];
+#define PA2KA(x)  (((uintptr_t) (x)) + 0x80000000)
+
+extern uint8_t balloc_base[BALLOC_MAX_SIZE];
+extern uintptr_t trans[TRANS_SIZE];
 
 extern void halt();
-extern void jump_to_kernel(void *bootinfo, unsigned int bootinfo_size, void *trans, unsigned int kernel_size, void *real_mode, void *fb, unsigned int scanline) __attribute__((noreturn));
+extern void jump_to_kernel(void *bootinfo, unsigned int bootinfo_size,
+    uintptr_t trans[], unsigned int kernel_size, void *real_mode) __attribute__((noreturn));
 extern void real_mode();
+
+#else
+
+#define PA2KA(x)  ((x) + 0x80000000)
 
 #endif
 
