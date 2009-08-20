@@ -67,7 +67,7 @@ typedef struct fb_properties {
 SPINLOCK_EXTERN(fb_lock);
 
 void fb_redraw(void);
-void fb_init(fb_properties_t *props);
+bool fb_init(fb_properties_t *props);
 
 #endif
 

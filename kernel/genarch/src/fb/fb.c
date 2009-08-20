@@ -457,8 +457,13 @@ void fb_redraw(void)
  * @param visual Color model
  *
  */
-void fb_init(fb_properties_t *props)
+bool fb_init(fb_properties_t *props)
 {
+	ASSERT(props);
+	ASSERT(props->x > 0);
+	ASSERT(props->y > 0);
+	ASSERT(props->scan > 0);
+	
 	switch (props->visual) {
 	case VISUAL_INDIRECT_8:
 		rgb_conv = bgr_323;
@@ -505,7 +510,8 @@ void fb_init(fb_properties_t *props)
 		pixelbytes = 4;
 		break;
 	default:
-		panic("Unsupported visual.");
+		LOG("Unsupported visual.");
+		return false;
 	}
 	
 	xres = props->x;
@@ -535,23 +541,35 @@ void fb_init(fb_properties_t *props)
 	size_t bbsize = cols * rows * sizeof(uint16_t);
 	size_t glyphsize = FONT_GLYPHS * glyphbytes;
 	
+	fb_addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	if (!fb_addr) {
+		LOG("Unable to map framebuffer.");
+		return false;
+	}
+	
 	backbuf = (uint16_t *) malloc(bbsize, 0);
-	if (!backbuf)
-		panic("Unable to allocate backbuffer.");
+	if (!backbuf) {
+		LOG("Unable to allocate backbuffer.");
+		return false;
+	}
 	
 	glyphs = (uint8_t *) malloc(glyphsize, 0);
-	if (!glyphs)
-		panic("Unable to allocate glyphs.");
+	if (!glyphs) {
+		free(backbuf);
+		LOG("Unable to allocate glyphs.");
+		return false;
+	}
 	
 	bgscan = malloc(bgscanbytes, 0);
-	if (!bgscan)
-		panic("Unable to allocate background pixel.");
+	if (!bgscan) {
+		free(glyphs);
+		free(backbuf);
+		LOG("Unable to allocate background pixel.");
+		return false;
+	}
 	
 	memsetw(backbuf, cols * rows, 0);
-	
 	glyphs_render();
-	
-	fb_addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
 	
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 1);
@@ -565,6 +583,8 @@ void fb_init(fb_properties_t *props)
 	
 	outdev_initialize("fb", &fb_console, &fb_ops);
 	stdout = &fb_console;
+	
+	return true;
 }
 
 /** @}
