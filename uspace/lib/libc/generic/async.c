@@ -174,7 +174,7 @@ typedef struct {
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
-fibril_local connection_t *FIBRIL_connection;
+static fibril_local connection_t *FIBRIL_connection;
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);

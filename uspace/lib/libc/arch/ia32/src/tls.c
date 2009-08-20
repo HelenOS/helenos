@@ -36,6 +36,7 @@
 
 #include <tls.h>
 #include <sys/types.h>
+#include <align.h>
 
 tcb_t * __alloc_tls(void **data, size_t size)
 {
@@ -46,6 +47,33 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 {
 	tls_free_variant_2(tcb, size);
 }
+
+//#ifdef __SHARED__
+
+typedef struct {
+	unsigned long int ti_module;
+	unsigned long int ti_offset;
+} tls_index;
+
+void __attribute__ ((__regparm__ (1)))
+    *___tls_get_addr(tls_index *ti);
+
+void __attribute__ ((__regparm__ (1)))
+    *___tls_get_addr(tls_index *ti)
+{
+	size_t tls_size;
+	uint8_t *tls;
+
+	/* Calculate size of TLS block */
+	tls_size = ALIGN_UP(&_tbss_end - &_tdata_start, &_tls_alignment);
+
+	/* The TLS block is just before TCB */
+	tls = (uint8_t *)__tcb_get() - tls_size;
+
+	return tls + ti->ti_offset;
+}
+
+//#endif
 
 /** @}
  */

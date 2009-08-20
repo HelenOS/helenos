@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@ LIBC_PREFIX = ../libc
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -Iinclude
+PIC_CFLAGS := $(CFLAGS) -fPIC -D__PIC__
 
 ## Sources
 #
@@ -48,21 +50,28 @@ GENERIC_SOURCES = \
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 
+OBJECTS := $(GENERIC_OBJECTS)
+PIC_OBJECTS := $(addsuffix .pio,$(basename $(OBJECTS)))
+
 .PHONY: all clean depend
 
-all: libsoftint.a
+all: libsoftint.a libsoftint.pic.a
 
 -include Makefile.depend
 
 clean:
-	-rm -f libsoftint.a Makefile.depend
-	find generic/ -name '*.o' -follow -exec rm \{\} \;
+	-rm -f libsoftint.a libsoftint.pic.a Makefile.depend
+	find generic/ \( -name '*.o' -o -name '*.pio' \) -follow -exec rm \{\} \;
 
 depend:
 	-makedepend -f - -- $(DEPEMD_DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend $(DEFS) $(PIC_CFLAGS) -o.pio -f - $(GENERIC_SOURCES) >> Makefile.depend 2> /dev/null
 
-libsoftint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libsoftint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+libsoftint.a: depend $(OBJECTS)
+	$(AR) rc $@ $(OBJECTS)
+
+libsoftint.pic.a: depend $(PIC_OBJECTS)
+	$(AR) rc $@ $(PIC_OBJECTS)
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
@@ -72,3 +81,12 @@ libsoftint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+%.pio: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.pio: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.pio: %.c
+	$(CC) $(DEFS) $(PIC_CFLAGS) -c $< -o $@

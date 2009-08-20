@@ -46,5 +46,25 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	tls_free_variant_1(tcb, size);
 }
 
+typedef struct {
+	unsigned long ti_module;
+	unsigned long ti_offset;
+} tls_index;
+
+void *__tls_get_addr(tls_index *ti);
+
+/* mips32 uses TLS variant 1 */
+void *__tls_get_addr(tls_index *ti)
+{
+	uint8_t *tls;
+	uint32_t v;
+
+	tls = (uint8_t *)__tcb_get() + sizeof(tcb_t);
+
+	/* Hopefully this is right. No docs found. */
+	v = (uint32_t) (tls + ti->ti_offset + 0x8000);
+	return (void *) v;
+}
+
 /** @}
  */

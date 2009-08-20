@@ -147,6 +147,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 		    SERVICE_MEM_REALTIME, &rights);
 		if (res) {
 			printf("Failed to initialize timeofday memarea\n");
+			printf("Address was 0x%x\n", (unsigned)mapping);
 			_exit(1);
 		}
 		if (!(rights & AS_AREA_READ)) {

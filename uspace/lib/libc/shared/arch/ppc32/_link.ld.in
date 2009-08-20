@@ -1,0 +1,100 @@
+STARTUP(LIBC_PREFIX/arch/UARCH/src/entry.o)
+ENTRY(__entry)
+
+PHDRS {
+	interp PT_INTERP;
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
+	dynamic PT_DYNAMIC;
+}
+
+SECTIONS {
+	. = 0x1000 + SIZEOF_HEADERS;
+
+	.interp : {
+		*(.interp);
+	} :text :interp
+
+	/* Align on word boundary -- instructions will follow. */
+	. = ALIGN(4);
+
+	.init : {
+		*(.init);
+	} :text
+	.text : {
+		*(.text);
+		*(.text.*);
+		*(.rodata*);
+	} :text
+
+	.rel.plt : {
+		*(.rel.plt);
+	} :text
+	/* 
+	 *.rel.dyn MUST FOLLOW IMMEDIATELY after .rel.plt 
+	 * without alignment gap or DT_REL will be broken
+	 */
+	.rel.dyn : {
+		*(.rel.*);
+	} :text
+
+	.dynsym : {
+		*(.dynsym);
+	} :text
+
+	.dynstr : {
+		*(.dynstr);
+	} :text
+
+	. = . + 0x1000;
+
+	.dynamic : {
+		*(.dynamic);
+	} :data :dynamic
+
+	.data : {
+		*(.data);
+		*(.sdata);
+	} :data
+
+	.data.rel : {
+                *(.data.rel);
+	} :data
+
+	.got : {
+                *(.got);
+	} :data
+	.got.plt : {
+                *(.got.plt);
+	} :data
+
+/*	.tdata : {
+		_tdata_start = .;
+		*(.tdata);
+		_tdata_end = .;
+	} :data
+	.tbss : {
+		_tbss_start = .;
+		*(.tbss);
+		_tbss_end = .;
+	} :data
+	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
+*/
+	.bss : {
+		*(.sbss);
+		*(COMMON);
+		*(.bss);
+	} :data
+
+	.plt : {
+		*(.plt);
+	} :data
+
+	/DISCARD/ : {
+		*(.comment);
+		*(.gnu.attributes);
+	}
+
+	. = ALIGN(0x1000);
+	_heap = .;
+}

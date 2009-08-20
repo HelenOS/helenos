@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@
  */
 
 #include <tls.h>
+#include <align.h>
 #include <sys/types.h>
 
 tcb_t * __alloc_tls(void **data, size_t size)
@@ -43,6 +45,37 @@ tcb_t * __alloc_tls(void **data, size_t size)
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
 	tls_free_variant_1(tcb, size);
+}
+
+static void kputint(unsigned i)
+{
+	asm volatile (
+		"mr %%r3, %0\n"
+		"li %%r9, 32\n"
+		"sc\n"
+		:
+		: "r" (i)
+		: "%r3","%r9"
+	) ;
+}
+
+typedef struct {
+	unsigned long int ti_module;
+	unsigned long int ti_offset;
+} tls_index;
+
+void *__tls_get_addr(tls_index *ti);
+
+/* ppc32 uses TLS variant 1 */
+void *__tls_get_addr(tls_index *ti)
+{
+	uint8_t *tls;
+
+	/* The TLS section is just after TCB */
+	tls = (uint8_t *)__tcb_get() + sizeof(tcb_t);
+
+	/* Hopefully this is right. No docs found. */
+	return tls + ti->ti_offset + 32768;
 }
 
 /** @}

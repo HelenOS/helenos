@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,10 @@ SOFTINT_PREFIX = ../softint
 #
 
 include $(LIBC_PREFIX)/Makefile.toolchain
+-include rtld/arch/$(UARCH)/Makefile.inc
 
+CFLAGS += -Irtld/include -I../../srv/loader/include -D__32_BITS__
+PIC_CFLAGS := $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
 
 ## Sources
 #
@@ -73,6 +77,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
+	generic/dlfcn.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.o \
@@ -83,7 +88,13 @@ GENERIC_SOURCES = \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
-	generic/vfs/canonify.c
+	generic/vfs/canonify.c \
+	rtld/rtld.c \
+	rtld/elf_load.c \
+	rtld/dynamic.c \
+	rtld/module.c \
+	rtld/symbol.c
+
 
 ARCH_SOURCES += \
 	arch/$(UARCH)/src/entry.s \
@@ -92,27 +103,39 @@ ARCH_SOURCES += \
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
+PIC_OBJECTS := $(addsuffix .pio,$(basename $(OBJECTS)))
+
+OUTPUT := libc.a
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
+	OUTPUT += libc.pic.a
+endif
 
 .PHONY: all clean depend kerninc
 
-all: kerninc libc.a arch/$(UARCH)/_link.ld
+all: kerninc $(OUTPUT) arch/$(UARCH)/_link.ld
 
 kerninc:
 	ln -sfn ../../../../kernel/generic/include include/kernel
 	ln -sfn kernel/arch include/arch
 	ln -sfn ../arch/$(UARCH)/include include/libarch
+	ln -sfn ../arch/$(UARCH)/include rtld/include/arch
 
 -include Makefile.depend
 
 clean:
-	-rm -f include/kernel include/arch include/libarch libc.a arch/$(UARCH)/_link.ld Makefile.depend
-	find generic/ arch/$(UARCH)/ -name '*.o' -follow -exec rm \{\} \;
+	-rm -f include/kernel include/arch include/libarch rtld/include/arch libc.a libc.pic.a arch/$(UARCH)/_link.ld Makefile.depend
+	find . \( -name '*.o' -o -name '*.pio' \) -follow -exec rm \{\} \;
 
 depend: kerninc
 	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
+	-makedepend $(DEFS) $(PIC_CFLAGS) -o.pio -f - $(ARCH_SOURCES) $(GENERIC_SOURCES) >> Makefile.depend 2> /dev/null
 
-libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libc.a $(LIBS) $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+libc.a: depend $(OBJECTS)
+	$(AR) rc $@ $(LIBS) $(OBJECTS)
+
+libc.pic.a: depend $(PIC_OBJECTS)
+	$(AR) rc $@ $(LIBS) $(PIC_OBJECTS)
 
 arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
@@ -125,3 +148,12 @@ arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 
 %.o: %.c
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+%.pio: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.pio: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
+%.pio: %.c
+	$(CC) $(DEFS) $(PIC_CFLAGS) -c $< -o $@

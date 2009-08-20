@@ -2,8 +2,7 @@ LIBC_PREFIX = ../../lib/libc
 SOFTINT_PREFIX = ../../lib/softint
 
 include $(LIBC_PREFIX)/Makefile.toolchain
-
-LIBS = $(LIBC_PREFIX)/libc.a
+include $(LIBC_PREFIX)/Makefile.app
 
 OUTPUT = tetris
 SOURCES = shapes.c scores.c input.c tetris.c screen.c
@@ -19,7 +18,7 @@ depend:
 	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LD_SCRIPT) $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend *.o

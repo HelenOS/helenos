@@ -51,11 +51,22 @@
 
 static inline void cpuid_serialization(void)
 {
+#ifndef __IN_SHARED_LIBC__
 	asm volatile (
 		"xorl %%eax, %%eax\n"
 		"cpuid\n"
 		::: "eax", "ebx", "ecx", "edx", "memory"
 	);
+#else
+	/* Must not clobber PIC register ebx */
+	asm volatile (
+		"movl %%ebx, %%esi\n"
+		"xorl %%eax, %%eax\n"
+		"cpuid\n"
+		"movl %%esi, %%ebx\n"
+		::: "eax", "ecx", "edx", "esi", "memory"
+	);
+#endif
 }
 
 #if defined(CONFIG_FENCES_P4)

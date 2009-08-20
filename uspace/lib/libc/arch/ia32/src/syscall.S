@@ -64,6 +64,8 @@ __syscall_int:
  * segment, otherwise the SYSENTER wouldn't work in the first place).
  */
 .global __syscall_sysenter
+	.type __syscall_sysenter, @function
+
 __syscall_sysenter:
 	pushl %ebx
 	pushl %esi
@@ -88,3 +90,5 @@ ra:
 	popl %esi
 	popl %ebx
 	ret
+
+	.size __syscall_sysenter, . - __syscall_sysenter

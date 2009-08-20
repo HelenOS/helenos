@@ -72,6 +72,8 @@ int main(int argc, char *argv[])
 		printf(NAME ": Error allocating memory area\n");
 		return -1;
 	}
+
+	printf("got area at 0x%08lx, length %lx byes\n", klog, klog_size);
 	
 	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog,
 	    klog_size, SERVICE_MEM_KLOG);

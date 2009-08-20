@@ -42,6 +42,11 @@
 
 #include "elf.h"
 
+typedef enum {
+	/** Leave all segments in RW access mode. */
+	ELDF_RW = 1
+} eld_flags_t;
+
 /**
  * Some data extracted from the headers are stored here
  */
@@ -66,6 +71,9 @@ typedef struct {
 	/** Difference between run-time addresses and link-time addresses */
 	uintptr_t bias;
 
+	/** Flags passed to the ELF loader. */
+	eld_flags_t flags;
+
 	/** A copy of the ELF file header */
 	elf_header_t *header;
 
@@ -73,8 +81,8 @@ typedef struct {
 	elf_info_t *info;
 } elf_ld_t;
 
-int elf_load_file(char *file_name, size_t so_bias, elf_info_t *info);
-void elf_run(elf_info_t *info, pcb_t *pcb);
+int elf_load_file(char *file_name, size_t so_bias, eld_flags_t flags,
+    elf_info_t *info);
 void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
 
 #endif

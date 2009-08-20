@@ -166,7 +166,7 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 	case PT_DYNAMIC:
 	case PT_INTERP:
 		interp = (char *)elf + entry->p_offset;
-		/* FIXME */
+		/* DO NOT COMMIT ME */
 		/*if (memcmp((uintptr_t)interp, (uintptr_t)ELF_INTERP_ZSTR,
 		    ELF_INTERP_ZLEN) != 0) {
 			return EE_UNSUPPORTED;

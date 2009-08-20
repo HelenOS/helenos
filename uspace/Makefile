@@ -37,6 +37,7 @@ DIRS = \
 	lib/libblock \
 	lib/softint \
 	lib/softfloat \
+	lib/libtest \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
@@ -53,6 +54,8 @@ DIRS = \
 	srv/devmap \
 	app/tetris \
 	app/tester \
+	app/dltest2 \
+	app/dload \
 	app/trace \
 	app/klog \
 	app/init \
@@ -73,10 +76,17 @@ ifeq ($(UARCH),sparc64)
 		srv/cir/obio
 endif
 
+ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
+	DIRS += \
+		lib/libc/shared \
+		app/dltest
+endif
+
+
 BUILDS := $(addsuffix .build,$(DIRS))
 CLEANS := $(addsuffix .clean,$(DIRS))
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+.PHONY: all $(BUILDS) $(CLEANS) clean kerninc
 
 all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
 

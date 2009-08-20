@@ -97,9 +97,16 @@ RD_APPS = \
 	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/dload/dload \
+	$(USPACEDIR)/app/dltest/dltest \
+	$(USPACEDIR)/app/dltest2/dltest2 \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/bdsh/bdsh
+
+RD_LIBS = \
+	$(USPACEDIR)/lib/libc/shared/libc.so.0 \
+	$(USPACEDIR)/lib/libtest/libtest.so.0
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
@@ -120,14 +127,20 @@ clean:
 	-for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
+	-for lib in $(RD_LIBS) ; do \
+		rm -f $(USPACEDIR)/dist/lib/`basename $$lib` ; \
+	done
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
 	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.boot Makefile.depend
 
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
+_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_LIBS) $(RD_APPS) _link.ld.in
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for lib in $(RD_LIBS) ; do \
+		cp $$lib $(USPACEDIR)/dist/lib/ ; \
 	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \

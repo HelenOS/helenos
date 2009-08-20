@@ -36,10 +36,11 @@ SOFTINT_PREFIX = ../../lib/softint
 LIBBLOCK_PREFIX = ../../lib/libblock
 
 include $(LIBC_PREFIX)/Makefile.toolchain
+include $(LIBC_PREFIX)/Makefile.app
 
 CFLAGS += -I../../srv/kbd/include -I$(LIBBLOCK_PREFIX)
 
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
+LIBS += $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
 DEFS += -DRELEASE=$(RELEASE)
 
 PROGRAM = bdsh
@@ -113,7 +114,7 @@ CLEANDIRS += $(addsuffix *.gch,$(SUBDIRS) )
 	@$(CC) -M $(CFLAGS) $(INC) $*.c > $*.d
 
 $(PROGRAM): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(PROGRAM).map
+	$(LD) -T $(LD_SCRIPT) $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(PROGRAM).map
 
 # Everything else is a phony target
 .PHONY: all clean distclean depend disasm

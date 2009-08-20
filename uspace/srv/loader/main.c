@@ -65,6 +65,8 @@
 
 #define DPRINTF(...)
 
+void program_run(void *entry, pcb_t *pcb);
+
 /** Pathname of the file that will be loaded */
 static char *pathname = NULL;
 
@@ -303,7 +305,7 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 {
 	int rc;
 	
-	rc = elf_load_file(pathname, 0, &prog_info);
+	rc = elf_load_file(pathname, 0, 0, &prog_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable '%s'.\n", pathname);
 		ipc_answer_0(rid, EINVAL);
@@ -325,7 +327,8 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 		return 0;
 	}
 	
-	rc = elf_load_file(prog_info.interp, 0, &interp_info);
+	printf("Load ELF interpreter '%s'\n", prog_info.interp);
+	rc = elf_load_file(prog_info.interp, 0, 0, &interp_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load interpreter '%s.'\n",
 		    prog_info.interp);
@@ -333,6 +336,11 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 		return 1;
 	}
 	
+	printf("Run interpreter.\n");
+	printf("entry point: 0x%lx\n", interp_info.entry);
+	printf("pcb address: 0x%lx\n", &pcb);
+	printf("prog dynamic: 0x%lx\n", prog_info.dynamic);
+
 	is_dyn_linked = true;
 	ipc_answer_0(rid, EOK);
 	
@@ -361,11 +369,11 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
 		
 		ipc_answer_0(rid, EOK);
-		elf_run(&interp_info, &pcb);
+		program_run(interp_info.entry, &pcb);
 	} else {
 		/* Statically linked program */
 		ipc_answer_0(rid, EOK);
-		elf_run(&prog_info, &pcb);
+		program_run(prog_info.entry, &pcb);
 	}
 	
 	/* Not reached */

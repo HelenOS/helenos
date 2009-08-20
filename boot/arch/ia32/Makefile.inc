@@ -57,13 +57,23 @@ RD_APPS = \
 	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/dltest2/dltest2 \
+	$(USPACEDIR)/app/dload/dload \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/bdsh/bdsh
 
+RD_LIBS = \
+	$(USPACEDIR)/lib/libtest/libtest.so.0
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
+	RD_LIBS += $(USPACEDIR)/lib/libc/shared/libc.so.0
+	RD_APPS += $(USPACEDIR)/app/dltest/dltest
+endif
+
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
+$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_LIBS) $(RD_APPS)
 	mkdir -p $(TMP)/boot/grub
 	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
 ifneq ($(RDFMT),tmpfs)
@@ -78,6 +88,9 @@ endif
 	done
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for lib in $(RD_LIBS) ; do \
+		cp $$lib $(USPACEDIR)/dist/lib/ ; \
 	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
@@ -95,6 +108,9 @@ endif
 clean:
 	-for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	-for lib in $(RD_LIBS) ; do \
+		rm -f $(USPACEDIR)/dist/lib/`basename $$lib` ; \
 	done
 	-for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \

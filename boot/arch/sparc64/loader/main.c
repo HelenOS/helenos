@@ -209,7 +209,12 @@ void bootstrap(void)
 		(void) ofw_claim_phys(base + top, silo_ramdisk_size);
 		(void) ofw_map(bootinfo.physmem_start + base + top, base + top,
 		    silo_ramdisk_size, -1);
-		memmove(base + top, (void *)((uintptr_t)silo_ramdisk_image),
+		/*
+		 * FIXME If the source and destination overlap, it may be
+		 * desirable to copy in reverse order, depending on how the two
+		 * regions overlap.
+		 */
+		memcpy(base + top, (void *)((uintptr_t)silo_ramdisk_image),
 		    silo_ramdisk_size);
 		printf("done.\n");
 		top += silo_ramdisk_size;
