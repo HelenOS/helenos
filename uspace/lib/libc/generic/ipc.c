@@ -564,6 +564,12 @@ ipc_callid_t ipc_trywait_for_call(ipc_call_t *call)
 	return callid;
 }
 
+/** Interrupt one thread of this task from waiting for IPC. */
+void ipc_poke(void)
+{
+	__SYSCALL0(SYS_IPC_POKE);
+}
+
 /** Ask destination to do a callback connection.
  *
  * @param phoneid	Phone handle used for contacting the other side.

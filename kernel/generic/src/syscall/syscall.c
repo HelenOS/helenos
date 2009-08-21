@@ -136,6 +136,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_forward_fast,
 	(syshandler_t) sys_ipc_forward_slow,
 	(syshandler_t) sys_ipc_wait_for_call,
+	(syshandler_t) sys_ipc_poke,
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
