@@ -39,6 +39,19 @@
 #include <futex.h>
 #include <assert.h>
 
+static void optimize_execution_power(void)
+{
+	/*
+	 * When waking up a worker fibril previously blocked in fibril
+	 * synchronization, chances are that there is an idle manager fibril
+	 * waiting for IPC, that could start executing the awakened worker
+	 * fibril right away. We try to detect this and bring the manager
+	 * fibril back to fruitful work.
+	 */
+	if (atomic_get(&threads_in_ipc_wait) > 0)
+		ipc_poke();
+}
+
 void fibril_mutex_initialize(fibril_mutex_t *fm)
 {
 	fm->counter = 1;
@@ -83,6 +96,7 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 		f = list_get_instance(tmp, fibril_t, link);
 		list_remove(&f->link);
 		fibril_add_ready((fid_t) f);
+		optimize_execution_power();
 	}
 }
 
@@ -151,11 +165,13 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 			list_remove(&f->link);
 			fibril_add_ready((fid_t) f);
 			frw->writers++;
+			optimize_execution_power();
 			break;
 		} else {
 			list_remove(&f->link);
 			fibril_add_ready((fid_t) f);
 			frw->readers++;
+			optimize_execution_power();
 		}
 	}
 out:
@@ -199,6 +215,7 @@ static void _fibril_condvar_wakeup_common(fibril_condvar_t *fcv, bool once)
 		f = list_get_instance(tmp, fibril_t, link);
 		list_remove(&f->link);
 		fibril_add_ready((fid_t) f);
+		optimize_execution_power();
 		if (once)
 			break;
 	}
