@@ -75,6 +75,7 @@ extern void waitq_sleep_finish(waitq_t *, int, ipl_t);
 extern void waitq_wakeup(waitq_t *, wakeup_mode_t);
 extern void _waitq_wakeup_unsafe(waitq_t *, wakeup_mode_t);
 extern void waitq_interrupt_sleep(struct thread *);
+extern void waitq_unsleep(waitq_t *);
 
 #endif
 
