@@ -150,15 +150,20 @@ void arch_post_mm_init(void)
 		/* hard clock */
 		i8254_init();
 		
-#ifdef CONFIG_FB
-		if (vesa_present()) 
-			vesa_init();
-		else
+#if (defined(CONFIG_FB) || defined(CONFIG_EGA))
+		bool vesa = false;
 #endif
+		
+#ifdef CONFIG_FB
+		vesa = vesa_init();
+#endif
+		
 #ifdef CONFIG_EGA
-			ega_init(EGA_BASE, EGA_VIDEORAM);  /* video */
-#else
-			{}
+		if (!vesa) {
+			outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
+			if (egadev)
+				stdout_wire(egadev);
+		}
 #endif
 		
 		/* Enable debugger */
@@ -246,30 +251,6 @@ unative_t sys_tls_set(unative_t addr)
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
 	return 0;
-}
-
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-#ifdef CONFIG_FB
-	if (vesa_present())
-		vesa_redraw();
-	else
-#endif
-#ifdef CONFIG_EGA
-		ega_redraw();
-#else
-		{}
-#endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
 }
 
 /** Construct function pointer

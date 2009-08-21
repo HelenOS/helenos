@@ -142,11 +142,13 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 			.scan = fb_scanline,
 			.visual = visual,
 		};
-		fb_init(&fb_prop);
+		
+		outdev_t *fbdev = fb_init(&fb_prop);
+		if (fbdev)
+			stdout_wire(fbdev);
 	}
 	
-	/* Consider only a single device for now */
-	return false;
+	return true;
 }
 
 void arch_post_mm_init(void)
@@ -232,23 +234,6 @@ void userspace(uspace_arg_t *kernel_uarg)
 	
 	/* Unreachable */
 	while (true);
-}
-
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-#ifdef CONFIG_FB
-	fb_redraw();
-#endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
 }
 
 /** Construct function pointer

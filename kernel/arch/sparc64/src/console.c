@@ -102,8 +102,11 @@ static void serengeti_init(void)
 		}
 	}
 #endif
+	
 #ifdef CONFIG_SGCN_PRN
-	sgcnout_init();
+	outdev_t *sgcndev = sgcnout_init();
+	if (sgcndev)
+		stdout_wire(sgcndev);
 #endif
 }
 
@@ -128,31 +131,6 @@ void standalone_sparc64_console_init(void)
 	} else {
 		serengeti_init();
 	}
-}
-
-
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-#ifdef CONFIG_FB
-	scr_redraw();
-#endif
-	
-#ifdef CONFIG_SGCN_KBD
-	sgcn_grab();
-#endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
-#ifdef CONFIG_SGCN_KBD
-	sgcn_release();
-#endif
 }
 
 /** @}

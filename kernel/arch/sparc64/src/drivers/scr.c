@@ -39,6 +39,8 @@
 #include <genarch/ofw/upa.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
+#include <console/chardev.h>
+#include <console/console.h>
 #include <arch/types.h>
 #include <string.h>
 #include <align.h>
@@ -237,12 +239,10 @@ void scr_init(ofw_tree_node_t *node)
 		.scan = fb_scanline,
 		.visual = visual,
 	};
-	fb_init(&props);
-}
-
-void scr_redraw(void)
-{
-	fb_redraw();
+	
+	outdev_t *fbdev = fb_init(&props);
+	if (fbdev)
+		stdout_wire(fbdev);
 }
 
 /** @}

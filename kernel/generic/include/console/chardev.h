@@ -73,6 +73,9 @@ struct outdev;
 typedef struct {
 	/** Write character to output. */
 	void (* write)(struct outdev *, wchar_t, bool);
+	
+	/** Redraw any previously cached characters. */
+	void (* redraw)(struct outdev *);
 } outdev_operations_t;
 
 /** Character output device. */

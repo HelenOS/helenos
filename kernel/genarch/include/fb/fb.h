@@ -36,7 +36,8 @@
 #define KERN_FB_H_
 
 #include <arch/types.h>
-#include <synch/spinlock.h>
+#include <console/chardev.h>
+#include <genarch/fb/visuals.h>
 
 /**
  * Properties of the framebuffer device.
@@ -44,30 +45,27 @@
 typedef struct fb_properties {
 	/** Physical address of the framebuffer device. */
 	uintptr_t addr;
-
+	
 	/**
 	 * Address where the first (top left) pixel is mapped,
 	 * relative to "addr".
 	 */
 	unsigned int offset;
-
+	
 	/** Screen width in pixels. */
 	unsigned int x;
-
+	
 	/** Screen height in pixels. */
 	unsigned int y;
-
+	
 	/** Bytes per one scanline. */
 	unsigned int scan;
-
+	
 	/** Color model. */
-	unsigned int visual;
+	visual_t visual;
 } fb_properties_t;
 
-SPINLOCK_EXTERN(fb_lock);
-
-void fb_redraw(void);
-bool fb_init(fb_properties_t *props);
+outdev_t *fb_init(fb_properties_t *props);
 
 #endif
 

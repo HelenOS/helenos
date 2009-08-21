@@ -38,23 +38,24 @@
 #include <arch/types.h>
 #include <console/chardev.h>
 #include <proc/thread.h>
+#include <synch/spinlock.h>
 
 /* number of bytes in the TOC magic, including the NULL-terminator */
-#define TOC_MAGIC_BYTES		8
+#define TOC_MAGIC_BYTES  8
 
 /* number of bytes in the TOC key, including the NULL-terminator */
-#define TOC_KEY_SIZE		8
+#define TOC_KEY_SIZE  8
 
 /* maximum number of entries in the SRAM table of contents */
-#define MAX_TOC_ENTRIES		32
+#define MAX_TOC_ENTRIES  32
 
 /* number of bytes in the SGCN buffer magic, including the NULL-terminator */
-#define SGCN_MAGIC_BYTES	4
+#define SGCN_MAGIC_BYTES  4
 
 /**
  * Entry in the SRAM table of contents. Describes one segment of the SRAM
  * which serves a particular purpose (e.g. OBP serial console, Solaris serial
- * console, Solaris mailbox,...). 
+ * console, Solaris mailbox,...).
  */
 typedef struct {
 	/** key (e.g. "OBPCONS", "SOLCONS", "SOLMBOX",...) */
@@ -83,7 +84,7 @@ typedef struct {
 
 /**
  * SGCN buffer header. It is placed at the very beginning of the SGCN
- * buffer. 
+ * buffer.
  */
 typedef struct {
 	/** hard-wired to "CON" */
@@ -103,7 +104,7 @@ typedef struct {
 	
 	/** offset within the SGCN buffer of the input buffer write pointer */
 	uint32_t in_wrptr;
-
+	
 	/** offset within the SGCN buffer of the output buffer start */
 	uint32_t out_begin;
 	
@@ -118,15 +119,31 @@ typedef struct {
 } __attribute__ ((packed)) sgcn_buffer_header_t;
 
 typedef struct {
+	/** Starting address of SRAM */
+	uintptr_t sram_begin;
+	
+	/** Starting address of the SGCN buffer */
+	uintptr_t buffer_begin;
+	
+	/**
+	 * Ensure that writing to the buffer and consequent
+	 * update of the write pointer are one atomic operation.
+	 */
+	SPINLOCK_DECLARE(output_lock);
+	
+	/**
+	 * Prevent the input buffer read/write pointers from
+	 * getting to inconsistent state.
+	 */
+	SPINLOCK_DECLARE(input_lock);
+	
 	thread_t *thread;
 	indev_t *srlnin;
 } sgcn_instance_t;
 
-extern void sgcn_grab(void);
-extern void sgcn_release(void);
 extern sgcn_instance_t *sgcnin_init(void);
 extern void sgcnin_wire(sgcn_instance_t *, indev_t *);
-extern void sgcnout_init(void);
+extern outdev_t *sgcnout_init(void);
 
 #endif
 

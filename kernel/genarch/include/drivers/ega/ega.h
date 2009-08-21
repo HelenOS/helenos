@@ -37,6 +37,7 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <console/chardev.h>
 
 #define EGA_COLS       80
 #define EGA_ROWS       25
@@ -47,8 +48,7 @@
 #define EGA_INDEX_REG  0
 #define EGA_DATA_REG   1
 
-extern void ega_redraw(void);
-extern void ega_init(ioport8_t *, uintptr_t);
+extern outdev_t *ega_init(ioport8_t *, uintptr_t);
 
 #endif
 

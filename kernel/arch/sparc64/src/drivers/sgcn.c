@@ -48,7 +48,7 @@
 #include <sysinfo/sysinfo.h>
 #include <synch/spinlock.h>
 
-#define POLL_INTERVAL		10000
+#define POLL_INTERVAL  10000
 
 /*
  * Physical address at which the SBBC starts. This value has been obtained
@@ -56,16 +56,16 @@
  * for the Simics-simulated Serengeti machine. The author of this code is
  * not sure whether this value is valid generally. 
  */
-#define SBBC_START		0x63000000000
+#define SBBC_START  0x63000000000
 
 /* offset of SRAM within the SBBC memory */
-#define SBBC_SRAM_OFFSET	0x900000
+#define SBBC_SRAM_OFFSET  0x900000
 
 /* size (in bytes) of the physical memory area which will be mapped */
-#define MAPPED_AREA_SIZE	(128 * 1024)
+#define MAPPED_AREA_SIZE  (128 * 1024)
 
 /* magic string contained at the beginning of SRAM */
-#define SRAM_TOC_MAGIC		"TOCSRAM"
+#define SRAM_TOC_MAGIC  "TOCSRAM"
 
 /*
  * Key into the SRAM table of contents which identifies the entry
@@ -77,64 +77,38 @@
  * be read from the OBP buffer and input will go to the OBP buffer.
  * Therefore HelenOS needs to make no such arrangements any more.
  */
-#define CONSOLE_KEY		"OBPCONS"
+#define CONSOLE_KEY  "OBPCONS"
 
 /* magic string contained at the beginning of the console buffer */
-#define SGCN_BUFFER_MAGIC	"CON"
+#define SGCN_BUFFER_MAGIC  "CON"
 
 /*
  * Returns a pointer to the object of a given type which is placed at the given
  * offset from the SRAM beginning.
  */
-#define SRAM(type, offset)	((type *) (sram_begin + (offset)))
+#define SRAM(type, offset)  ((type *) (instance->sram_begin + (offset)))
 
 /* Returns a pointer to the SRAM table of contents. */
-#define SRAM_TOC		(SRAM(iosram_toc_t, 0))
+#define SRAM_TOC  (SRAM(iosram_toc_t, 0))
 
 /*
  * Returns a pointer to the object of a given type which is placed at the given
  * offset from the console buffer beginning.
  */
 #define SGCN_BUFFER(type, offset) \
-	((type *) (sgcn_buffer_begin + (offset)))
+	((type *) (instance->buffer_begin + (offset)))
 
 /** Returns a pointer to the console buffer header. */
-#define SGCN_BUFFER_HEADER	(SGCN_BUFFER(sgcn_buffer_header_t, 0))
+#define SGCN_BUFFER_HEADER  (SGCN_BUFFER(sgcn_buffer_header_t, 0))
 
-/** starting address of SRAM, will be set by the init_sram_begin function */
-static uintptr_t sram_begin;
-
-/**
- * starting address of the SGCN buffer, will be set by the
- * init_sgcn_buffer_begin function
- */
-static uintptr_t sgcn_buffer_begin;
-
-/* true iff the kernel driver should ignore pressed keys */
-static bool kbd_disabled;
-
-/* 
- * Ensures that writing to the buffer and consequent update of the write pointer
- * are together one atomic operation.
- */
-SPINLOCK_INITIALIZE(sgcn_output_lock);
-
-/* 
- * Prevents the input buffer read/write pointers from getting to inconsistent
- * state. 
- */
-SPINLOCK_INITIALIZE(sgcn_input_lock);
-
-
-/* functions referenced from definitions of I/O operations structures */
 static void sgcn_putchar(outdev_t *, const wchar_t, bool);
 
-/** SGCN output device operations */
-static outdev_operations_t sgcnout_ops = {
-	.write = sgcn_putchar
+static outdev_operations_t sgcndev_ops = {
+	.write = sgcn_putchar,
+	.redraw = NULL
 };
 
-static outdev_t sgcnout;	/**< SGCN output device. */
+static sgcn_instance_t *instance = NULL;
 
 /**
  * Set some sysinfo values (SRAM address and SRAM size).
@@ -157,25 +131,70 @@ static void register_sram(uintptr_t sram_begin_physical)
  */
 static void init_sram_begin(void)
 {
-	ofw_tree_node_t *chosen;
-	ofw_tree_property_t *iosram_toc;
-	uintptr_t sram_begin_physical;
-
-	chosen = ofw_tree_lookup("/chosen");
+	ASSERT(instance)
+	
+	ofw_tree_node_t *chosen = ofw_tree_lookup("/chosen");
 	if (!chosen)
 		panic("Cannot find '/chosen'.");
-
-	iosram_toc = ofw_tree_getprop(chosen, "iosram-toc");
+	
+	ofw_tree_property_t *iosram_toc =
+	    ofw_tree_getprop(chosen, "iosram-toc");
 	if (!iosram_toc)
 		panic("Cannot find property 'iosram-toc'.");
 	if (!iosram_toc->value)
 		panic("Cannot find SRAM TOC.");
-
-	sram_begin_physical = SBBC_START + SBBC_SRAM_OFFSET
+	
+	uintptr_t sram_begin_physical = SBBC_START + SBBC_SRAM_OFFSET
 	    + *((uint32_t *) iosram_toc->value);
-	sram_begin = hw_map(sram_begin_physical, MAPPED_AREA_SIZE);
+	instance->sram_begin = hw_map(sram_begin_physical, MAPPED_AREA_SIZE);
 	
 	register_sram(sram_begin_physical);
+}
+
+/**
+ * Function regularly called by the keyboard polling thread. Finds out whether
+ * there are some unread characters in the input queue. If so, it picks them up
+ * and sends them to the upper layers of HelenOS.
+ */
+static void sgcn_poll(sgcn_instance_t *instance)
+{
+	uint32_t begin = SGCN_BUFFER_HEADER->in_begin;
+	uint32_t end = SGCN_BUFFER_HEADER->in_end;
+	uint32_t size = end - begin;
+	
+	if (silent)
+		return;
+	
+	spinlock_lock(&instance->input_lock);
+	
+	/* we need pointers to volatile variables */
+	volatile char *buf_ptr = (volatile char *)
+	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
+	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
+	
+	while (*in_rdptr_ptr != *in_wrptr_ptr) {
+		buf_ptr = (volatile char *)
+		    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+		char c = *buf_ptr;
+		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
+		
+		indev_push_character(instance->srlnin, c);
+	}
+	
+	spinlock_unlock(&instance->input_lock);
+}
+
+/**
+ * Polling thread function.
+ */
+static void ksgcnpoll(void *instance) {
+	while (true) {
+		if (!silent)
+			sgcn_poll(instance);
+		
+		thread_usleep(POLL_INTERVAL);
+	}
 }
 
 /**
@@ -189,31 +208,43 @@ static void init_sram_begin(void)
  * This function also writes the offset of the SGCN buffer within SRAM
  * under the sram.buffer.offset sysinfo key.
  */
-static void sgcn_buffer_begin_init(void)
+static void sgcn_init(void)
 {
-	static bool initialized;
-	
-	if (initialized)
+	if (instance)
 		return;
-
-	init_sram_begin();
+	
+	instance = malloc(sizeof(sgcn_instance_t), FRAME_ATOMIC);
+	
+	if (instance) {
+		instance->thread = thread_create(ksgcnpoll, instance, TASK, 0,
+		    "ksgcnpoll", true);
 		
-	ASSERT(str_cmp(SRAM_TOC->magic, SRAM_TOC_MAGIC) == 0);
-	
-	/* lookup TOC entry with the correct key */
-	uint32_t i;
-	for (i = 0; i < MAX_TOC_ENTRIES; i++) {
-		if (str_cmp(SRAM_TOC->keys[i].key, CONSOLE_KEY) == 0)
-			break;
+		if (!instance->thread) {
+			free(instance);
+			instance = NULL;
+			return;
+		}
+		
+		init_sram_begin();
+		
+		ASSERT(str_cmp(SRAM_TOC->magic, SRAM_TOC_MAGIC) == 0);
+		
+		/* Lookup TOC entry with the correct key */
+		uint32_t i;
+		for (i = 0; i < MAX_TOC_ENTRIES; i++) {
+			if (str_cmp(SRAM_TOC->keys[i].key, CONSOLE_KEY) == 0)
+				break;
+		}
+		ASSERT(i < MAX_TOC_ENTRIES);
+		
+		instance->buffer_begin =
+		    instance->sram_begin + SRAM_TOC->keys[i].offset;
+		
+		sysinfo_set_item_val("sram.buffer.offset", NULL,
+		    SRAM_TOC->keys[i].offset);
+		
+		instance->srlnin = NULL;
 	}
-	ASSERT(i < MAX_TOC_ENTRIES);
-	
-	sgcn_buffer_begin = sram_begin + SRAM_TOC->keys[i].offset;
-	
-	sysinfo_set_item_val("sram.buffer.offset", NULL,
-	    SRAM_TOC->keys[i].offset);
-	
-	initialized = true;
 }
 
 /**
@@ -227,12 +258,12 @@ static void sgcn_do_putchar(const char c)
 	uint32_t end = SGCN_BUFFER_HEADER->out_end;
 	uint32_t size = end - begin;
 	
-	/* we need pointers to volatile variables */
+	/* We need pointers to volatile variables */
 	volatile char *buf_ptr = (volatile char *)
 	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->out_wrptr);
 	volatile uint32_t *out_wrptr_ptr = &(SGCN_BUFFER_HEADER->out_wrptr);
 	volatile uint32_t *out_rdptr_ptr = &(SGCN_BUFFER_HEADER->out_rdptr);
-
+	
 	/*
 	 * Write the character and increment the write pointer modulo the
 	 * output buffer size. Note that if we are to rewrite a character
@@ -248,8 +279,8 @@ static void sgcn_do_putchar(const char c)
 	 *             to user console, which is not a time-critical operation
 	 */
 	uint32_t new_wrptr = (((*out_wrptr_ptr) - begin + 1) % size) + begin;
-	while (*out_rdptr_ptr == new_wrptr)
-		;
+	while (*out_rdptr_ptr == new_wrptr);
+	
 	*buf_ptr = c;
 	*out_wrptr_ptr = new_wrptr;
 }
@@ -258,10 +289,10 @@ static void sgcn_do_putchar(const char c)
  * SGCN output operation. Prints a single character to the SGCN. Newline
  * character is converted to CRLF.
  */
-static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
+static void sgcn_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 {
 	if (!silent) {
-		spinlock_lock(&sgcn_output_lock);
+		spinlock_lock(&instance->output_lock);
 		
 		if (ascii_check(ch)) {
 			if (ch == '\n')
@@ -270,68 +301,7 @@ static void sgcn_putchar(outdev_t *od, const wchar_t ch, bool silent)
 		} else
 			sgcn_do_putchar(U_SPECIAL);
 		
-		spinlock_unlock(&sgcn_output_lock);
-	}
-}
-
-/**
- * Grabs the input for kernel.
- */
-void sgcn_grab(void)
-{
-	kbd_disabled = false;
-}
-
-/**
- * Releases the input so that userspace can use it.
- */
-void sgcn_release(void)
-{
-	kbd_disabled = true;
-}
-
-/**
- * Function regularly called by the keyboard polling thread. Finds out whether
- * there are some unread characters in the input queue. If so, it picks them up
- * and sends them to the upper layers of HelenOS.
- */
-static void sgcn_poll(sgcn_instance_t *instance)
-{
-	uint32_t begin = SGCN_BUFFER_HEADER->in_begin;
-	uint32_t end = SGCN_BUFFER_HEADER->in_end;
-	uint32_t size = end - begin;
-
-	if (kbd_disabled)
-		return;
-
-	spinlock_lock(&sgcn_input_lock);
-	
-	/* we need pointers to volatile variables */
-	volatile char *buf_ptr = (volatile char *)
-	    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
-	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
-	
-	while (*in_rdptr_ptr != *in_wrptr_ptr) {
-		buf_ptr = (volatile char *)
-		    SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-		char c = *buf_ptr;
-		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
-			
-		indev_push_character(instance->srlnin, c);	
-	}	
-
-	spinlock_unlock(&sgcn_input_lock);
-}
-
-/**
- * Polling thread function.
- */
-static void ksgcnpoll(void *instance) {
-	while (1) {
-		if (!silent) 
-			sgcn_poll(instance);
-		thread_usleep(POLL_INTERVAL);
+		spinlock_unlock(&instance->output_lock);
 	}
 }
 
@@ -340,22 +310,7 @@ static void ksgcnpoll(void *instance) {
  */
 sgcn_instance_t *sgcnin_init(void)
 {
-	sgcn_buffer_begin_init();
-	
-	sgcn_instance_t *instance =
-	    malloc(sizeof(sgcn_instance_t), FRAME_ATOMIC);
-	
-	if (instance) {
-		instance->srlnin = NULL;
-		instance->thread = thread_create(ksgcnpoll, instance, TASK, 0,
-		    "ksgcnpoll", true);
-		
-		if (!instance->thread) {
-			free(instance);
-			return NULL;
-		}
-	}
-	
+	sgcn_init();
 	return instance;
 }
 
@@ -363,24 +318,40 @@ void sgcnin_wire(sgcn_instance_t *instance, indev_t *srlnin)
 {
 	ASSERT(instance);
 	ASSERT(srlnin);
-
+	
 	instance->srlnin = srlnin;
 	thread_ready(instance->thread);
-
+	
 	sysinfo_set_item_val("kbd", NULL, true);
 }
 
 /**
  * A public function which initializes output to the Serengeti console.
  */
-void sgcnout_init(void)
+outdev_t *sgcnout_init(void)
 {
-	sgcn_buffer_begin_init();
-
-	sysinfo_set_item_val("fb.kind", NULL, 4);
-
-	outdev_initialize("sgcnout", &sgcnout, &sgcnout_ops);
-	stdout_wire(&sgcnout);
+	sgcn_init();
+	if (!instance)
+		return NULL;
+	
+	outdev_t *sgcndev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	if (!sgcndev)
+		return NULL;
+	
+	outdev_initialize("sgcndev", sgcndev, &sgcndev_ops);
+	sgcndev->data = instance;
+	
+	if (!fb_exported) {
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("fb.kind", NULL, 4);
+		
+		fb_exported = true;
+	}
+	
+	return sgcndev;
 }
 
 /** @}

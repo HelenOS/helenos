@@ -48,28 +48,17 @@
 #define MACHINE_GENFUNC	machine_genfunc
 
 struct arm_machine_ops {
-	void		(*machine_grab_console)(void);
-	void		(*machine_release_console)(void);
 	void		(*machine_init)(void);
 	void		(*machine_timer_irq_start)(void);
 	void		(*machine_cpu_halt)(void);
 	uintptr_t	(*machine_get_memory_size)(void);
-	void		(*machine_fb_init)(void);
 	void		(*machine_irq_exception)(int, istate_t*);
-	uintptr_t	(*machine_get_fb_address)(void);
 	void		(*machine_frame_init)(void);
 	void		(*machine_output_init)(void);
 	void		(*machine_input_init)(void);
 };
 
 extern struct arm_machine_ops machine_ops;
-
-
-/** Acquire console back for kernel. */
-extern void machine_grab_console(void);
-
-/** Return console to userspace. */
-extern void machine_release_console(void);
 
 
 /** Maps HW devices to the kernel address space using #hw_map. */
@@ -90,11 +79,6 @@ extern void machine_cpu_halt(void);
  */
 extern uintptr_t machine_get_memory_size(void);
 
-/** Initializes the Frame Buffer
- *
- */
-extern void machine_fb_init(void);
-
 
 /** Interrupt exception handler.
  *
@@ -103,12 +87,6 @@ extern void machine_fb_init(void);
  */
 extern void machine_irq_exception(int exc_no, istate_t *istate);
 
-
-/** Returns address of framebuffer device.
- *
- *  @return Address of framebuffer device.
- */
-extern uintptr_t machine_get_fb_address(void);
 
 /*
  * Machine specific frame initialization

@@ -55,17 +55,28 @@
  * Simple and short. Function for displaying characters and "scrolling".
  */
 
-SPINLOCK_INITIALIZE(egalock);
-static uint32_t ega_cursor;
-static uint8_t *videoram;
-static uint8_t *backbuf;
-static ioport8_t *ega_base;
-
 #define SPACE  0x20
 #define STYLE  0x1e
 #define INVAL  0x17
 
 #define EMPTY_CHAR  ((STYLE << 8) | SPACE)
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	
+	uint32_t cursor;
+	uint8_t *addr;
+	uint8_t *backbuf;
+	ioport8_t *base;
+} ega_instance_t;
+
+static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent);
+static void ega_redraw(outdev_t *dev);
+
+static outdev_operations_t egadev_ops = {
+	.write = ega_putchar,
+	.redraw = ega_redraw
+};
 
 static uint16_t ega_oem_glyph(const wchar_t ch)
 {
@@ -426,73 +437,82 @@ static uint16_t ega_oem_glyph(const wchar_t ch)
 /*
  * This function takes care of scrolling.
  */
-static void ega_check_cursor(bool silent)
+static void ega_check_cursor(ega_instance_t *instance, bool silent)
 {
-	if (ega_cursor < EGA_SCREEN)
+	if (instance->cursor < EGA_SCREEN)
 		return;
 	
-	memmove((void *) backbuf, (void *) (backbuf + EGA_COLS * 2),
+	memmove((void *) instance->backbuf,
+	    (void *) (instance->backbuf + EGA_COLS * 2),
 	    (EGA_SCREEN - EGA_COLS) * 2);
-	memsetw(backbuf + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
+	memsetw(instance->backbuf + (EGA_SCREEN - EGA_COLS) * 2,
+	    EGA_COLS, EMPTY_CHAR);
 	
 	if (!silent) {
-		memmove((void *) videoram, (void *) (videoram + EGA_COLS * 2),
+		memmove((void *) instance->addr,
+		    (void *) (instance->addr + EGA_COLS * 2),
 		    (EGA_SCREEN - EGA_COLS) * 2);
-		memsetw(videoram + (EGA_SCREEN - EGA_COLS) * 2, EGA_COLS, EMPTY_CHAR);
+		memsetw(instance->addr + (EGA_SCREEN - EGA_COLS) * 2,
+		    EGA_COLS, EMPTY_CHAR);
 	}
 	
-	ega_cursor = ega_cursor - EGA_COLS;
+	instance->cursor = instance->cursor - EGA_COLS;
 }
 
-static void ega_show_cursor(bool silent)
+static void ega_show_cursor(ega_instance_t *instance, bool silent)
 {
 	if (!silent) {
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
-		uint8_t stat = pio_read_8(ega_base + EGA_DATA_REG);
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0a);
-		pio_write_8(ega_base + EGA_DATA_REG, stat & (~(1 << 5)));
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0a);
+		uint8_t stat = pio_read_8(instance->base + EGA_DATA_REG);
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0a);
+		pio_write_8(instance->base + EGA_DATA_REG, stat & (~(1 << 5)));
 	}
 }
 
-static void ega_move_cursor(bool silent)
+static void ega_move_cursor(ega_instance_t *instance, bool silent)
 {
 	if (!silent) {
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
-		pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) ((ega_cursor >> 8) & 0xff));
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
-		pio_write_8(ega_base + EGA_DATA_REG, (uint8_t) (ega_cursor & 0xff));
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0e);
+		pio_write_8(instance->base + EGA_DATA_REG,
+		    (uint8_t) ((instance->cursor >> 8) & 0xff));
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0f);
+		pio_write_8(instance->base + EGA_DATA_REG,
+		    (uint8_t) (instance->cursor & 0xff));
 	}
 }
 
-static void ega_sync_cursor(bool silent)
+static void ega_sync_cursor(ega_instance_t *instance, bool silent)
 {
 	if (!silent) {
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0e);
-		uint8_t hi = pio_read_8(ega_base + EGA_DATA_REG);
-		pio_write_8(ega_base + EGA_INDEX_REG, 0x0f);
-		uint8_t lo = pio_read_8(ega_base + EGA_DATA_REG);
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0e);
+		uint8_t hi = pio_read_8(instance->base + EGA_DATA_REG);
+		pio_write_8(instance->base + EGA_INDEX_REG, 0x0f);
+		uint8_t lo = pio_read_8(instance->base + EGA_DATA_REG);
 		
-		ega_cursor = (hi << 8) | lo;
+		instance->cursor = (hi << 8) | lo;
 	} else
-		ega_cursor = 0;
+		instance->cursor = 0;
 	
-	if (ega_cursor >= EGA_SCREEN)
-		ega_cursor = 0;
+	if (instance->cursor >= EGA_SCREEN)
+		instance->cursor = 0;
 	
-	if ((ega_cursor % EGA_COLS) != 0)
-		ega_cursor = (ega_cursor + EGA_COLS) - ega_cursor % EGA_COLS;
+	if ((instance->cursor % EGA_COLS) != 0)
+		instance->cursor =
+		    (instance->cursor + EGA_COLS) - instance->cursor % EGA_COLS;
 	
-	memsetw(backbuf + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
+	memsetw(instance->backbuf + instance->cursor * 2,
+	    EGA_SCREEN - instance->cursor, EMPTY_CHAR);
 	
 	if (!silent)
-		memsetw(videoram + ega_cursor * 2, EGA_SCREEN - ega_cursor, EMPTY_CHAR);
+		memsetw(instance->addr + instance->cursor * 2,
+		    EGA_SCREEN - instance->cursor, EMPTY_CHAR);
 	
-	ega_check_cursor(silent);
-	ega_move_cursor(silent);
-	ega_show_cursor(silent);
+	ega_check_cursor(instance, silent);
+	ega_move_cursor(instance, silent);
+	ega_show_cursor(instance, silent);
 }
 
-static void ega_display_char(wchar_t ch, bool silent)
+static void ega_display_char(ega_instance_t *instance, wchar_t ch, bool silent)
 {
 	uint16_t index = ega_oem_glyph(ch);
 	uint8_t glyph;
@@ -506,81 +526,116 @@ static void ega_display_char(wchar_t ch, bool silent)
 		style = STYLE;
 	}
 	
-	backbuf[ega_cursor * 2] = glyph;
-	backbuf[ega_cursor * 2 + 1] = style;
+	instance->backbuf[instance->cursor * 2] = glyph;
+	instance->backbuf[instance->cursor * 2 + 1] = style;
 	
 	if (!silent) {
-		videoram[ega_cursor * 2] = glyph;
-		videoram[ega_cursor * 2 + 1] = style;
+		instance->addr[instance->cursor * 2] = glyph;
+		instance->addr[instance->cursor * 2 + 1] = style;
 	}
 }
 
-static void ega_putchar(outdev_t *dev __attribute__((unused)), wchar_t ch, bool silent)
+static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
-	ipl_t ipl;
+	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	ipl = interrupts_disable();
-	spinlock_lock(&egalock);
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&instance->lock);
 	
 	switch (ch) {
 	case '\n':
-		ega_cursor = (ega_cursor + EGA_COLS) - ega_cursor % EGA_COLS;
+		instance->cursor = (instance->cursor + EGA_COLS)
+		    - instance->cursor % EGA_COLS;
 		break;
 	case '\t':
-		ega_cursor = (ega_cursor + 8) - ega_cursor % 8;
+		instance->cursor = (instance->cursor + 8)
+		    - instance->cursor % 8;
 		break;
 	case '\b':
-		if (ega_cursor % EGA_COLS)
-			ega_cursor--;
+		if (instance->cursor % EGA_COLS)
+			instance->cursor--;
 		break;
 	default:
-		ega_display_char(ch, silent);
-		ega_cursor++;
+		ega_display_char(instance, ch, silent);
+		instance->cursor++;
 		break;
 	}
-	ega_check_cursor(silent);
-	ega_move_cursor(silent);
+	ega_check_cursor(instance, silent);
+	ega_move_cursor(instance, silent);
 	
-	spinlock_unlock(&egalock);
+	spinlock_unlock(&instance->lock);
 	interrupts_restore(ipl);
 }
 
-static outdev_t ega_console;
-static outdev_operations_t ega_ops = {
-	.write = ega_putchar
-};
-
-void ega_init(ioport8_t *base, uintptr_t videoram_phys)
+static void ega_redraw(outdev_t *dev)
 {
-	/* Initialize the software structure. */
-	ega_base = base;
+	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, 0);
-	if (!backbuf)
-		panic("Unable to allocate backbuffer.");
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&instance->lock);
 	
-	videoram = (uint8_t *) hw_map(videoram_phys, EGA_VRAM_SIZE);
+	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
+	ega_move_cursor(instance, silent);
+	ega_show_cursor(instance, silent);
 	
-	/* Synchronize the back buffer and cursor position. */
-	memcpy(backbuf, videoram, EGA_VRAM_SIZE);
-	ega_sync_cursor(silent);
-	
-	outdev_initialize("ega", &ega_console, &ega_ops);
-	stdout_wire(&ega_console);
-	
-	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.kind", NULL, 2);
-	sysinfo_set_item_val("fb.width", NULL, EGA_COLS);
-	sysinfo_set_item_val("fb.height", NULL, EGA_ROWS);
-	sysinfo_set_item_val("fb.blinking", NULL, true);
-	sysinfo_set_item_val("fb.address.physical", NULL, videoram_phys);
+	spinlock_unlock(&instance->lock);
+	interrupts_restore(ipl);
 }
 
-void ega_redraw(void)
+outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 {
-	memcpy(videoram, backbuf, EGA_VRAM_SIZE);
-	ega_move_cursor(silent);
-	ega_show_cursor(silent);
+	outdev_t *egadev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	if (!egadev)
+		return NULL;
+	
+	ega_instance_t *instance = malloc(sizeof(ega_instance_t), FRAME_ATOMIC);
+	if (!instance) {
+		free(egadev);
+		return NULL;
+	}
+	
+	outdev_initialize("egadev", egadev, &egadev_ops);
+	egadev->data = instance;
+	
+	spinlock_initialize(&instance->lock, "*ega_lock");
+	
+	instance->base = base;
+	instance->addr = (uint8_t *) hw_map(addr, EGA_VRAM_SIZE);
+	if (!instance->addr) {
+		LOG("Unable to EGA video memory.");
+		free(instance);
+		free(egadev);
+		return NULL;
+	}
+	
+	instance->backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, 0);
+	if (!instance->backbuf) {
+		LOG("Unable to allocate backbuffer.");
+		free(instance);
+		free(egadev);
+		return NULL;
+	}
+	
+	/* Synchronize the back buffer and cursor position. */
+	memcpy(instance->backbuf, instance->addr, EGA_VRAM_SIZE);
+	ega_sync_cursor(instance, silent);
+	
+	if (!fb_exported) {
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("fb", NULL, true);
+		sysinfo_set_item_val("fb.kind", NULL, 2);
+		sysinfo_set_item_val("fb.width", NULL, EGA_COLS);
+		sysinfo_set_item_val("fb.height", NULL, EGA_ROWS);
+		sysinfo_set_item_val("fb.blinking", NULL, true);
+		sysinfo_set_item_val("fb.address.physical", NULL, addr);
+		
+		fb_exported = true;
+	}
+	
+	return egadev;
 }
 
 /** @}

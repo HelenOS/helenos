@@ -97,17 +97,12 @@ typedef struct {
 
 
 extern void icp_init(void);
-extern void icp_fb_init(void);
 extern void icp_output_init(void);
 extern void icp_input_init(void);
-extern void icp_release_console(void);
-extern void icp_grab_console(void);
 extern void icp_timer_irq_start(void);
 extern void icp_cpu_halt(void);
 extern void icp_irq_exception(int exc_no, istate_t *istate);
 extern uintptr_t icp_get_memory_size(void);
-extern uintptr_t icp_get_fb_address(void);
-extern void icp_fb_init(void);
 extern void icp_frame_init(void);
 
 #endif

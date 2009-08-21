@@ -70,7 +70,7 @@ static size_t klog_stored = 0;
 static size_t klog_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_INITIALIZE(klog_lock);
+SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "*klog_lock");
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
@@ -83,9 +83,11 @@ static indev_operations_t stdin_ops = {
 };
 
 static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
+static void stdout_redraw(outdev_t *dev);
 
 static outdev_operations_t stdout_ops = {
-	.write = stdout_write
+	.write = stdout_write,
+	.redraw = stdout_redraw
 };
 
 /** Silence output */
@@ -121,7 +123,19 @@ static void stdout_write(outdev_t *dev, wchar_t ch, bool silent)
 	
 	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
 		outdev_t *sink = list_get_instance(cur, outdev_t, link);
-		sink->op->write(sink, ch, silent);
+		if ((sink) && (sink->op->write))
+			sink->op->write(sink, ch, silent);
+	}
+}
+
+static void stdout_redraw(outdev_t *dev)
+{
+	link_t *cur;
+	
+	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+		if ((sink) && (sink->op->redraw))
+			sink->op->redraw(sink);
 	}
 }
 
@@ -155,7 +169,8 @@ void grab_console(void)
 	bool prev = silent;
 	
 	silent = false;
-	arch_grab_console();
+	if ((stdout) && (stdout->op->redraw))
+		stdout->op->redraw(stdout);
 	
 	/* Force the console to print the prompt */
 	if ((stdin) && (prev))
@@ -164,8 +179,8 @@ void grab_console(void)
 
 void release_console(void)
 {
+	// FIXME arch_release_console
 	silent = true;
-	arch_release_console();
 }
 
 /** Tell kernel to get keyboard/console access again */

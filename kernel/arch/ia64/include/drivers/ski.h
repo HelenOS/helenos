@@ -43,12 +43,10 @@ typedef struct {
 	indev_t *srlnin;
 } ski_instance_t;
 
-extern void skiout_init(void);
+extern outdev_t *skiout_init(void);
 
 extern ski_instance_t *skiin_init(void);
 extern void skiin_wire(ski_instance_t *, indev_t *);
-extern void ski_kbd_grab(void);
-extern void ski_kbd_release(void);
 
 #endif
 

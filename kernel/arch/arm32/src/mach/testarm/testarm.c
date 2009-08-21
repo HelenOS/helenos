@@ -56,15 +56,11 @@ void *gxemul_irqc;
 static irq_t gxemul_timer_irq;
 
 struct arm_machine_ops machine_ops = {
-	MACHINE_GENFUNC,
-	MACHINE_GENFUNC,
 	gxemul_init,
 	gxemul_timer_irq_start,
 	gxemul_cpu_halt,
 	gxemul_get_memory_size,
-	gxemul_fb_init,
 	gxemul_irq_exception,
-	gxemul_get_fb_address,
 	gxemul_frame_init,
 	gxemul_output_init,
 	gxemul_input_init
@@ -77,8 +73,9 @@ void gxemul_init(void)
 	gxemul_irqc = (void *) hw_map(GXEMUL_IRQC_ADDRESS, PAGE_SIZE);
 }
 
-void gxemul_fb_init(void)
+void gxemul_output_init(void)
 {
+#ifdef CONFIG_FB
 	fb_properties_t prop = {
 		.addr = GXEMUL_FB_ADDRESS,
 		.offset = 0,
@@ -87,12 +84,17 @@ void gxemul_fb_init(void)
 		.scan = 1920,
 		.visual = VISUAL_RGB_8_8_8,
 	};
-	fb_init(&prop);
-}
-
-void gxemul_output_init(void)
-{
-	dsrlnout_init((ioport8_t *) gxemul_kbd);
+	
+	outdev_t *fbdev = fb_init(&prop);
+	if (fbdev)
+		stdout_wire(fbdev);
+#endif
+	
+#ifdef CONFIG_ARM_PRN
+	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) gxemul_kbd);
+	if (dsrlndev)
+		stdout_wire(dsrlndev);
+#endif
 }
 
 void gxemul_input_init(void)
@@ -231,12 +233,6 @@ void gxemul_cpu_halt(void)
 void gxemul_frame_init(void)
 {
 }
-
-uintptr_t gxemul_get_fb_address()
-{
-	return ((uintptr_t)GXEMUL_FB_ADDRESS);
-}
-
 
 /** @}
  */

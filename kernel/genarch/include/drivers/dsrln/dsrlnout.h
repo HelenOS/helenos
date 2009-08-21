@@ -39,8 +39,9 @@
 
 #include <arch/types.h>
 #include <typedefs.h>
+#include <console/chardev.h>
 
-extern void dsrlnout_init(ioport8_t *);
+extern outdev_t *dsrlnout_init(ioport8_t *);
 
 #endif
 

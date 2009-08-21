@@ -46,25 +46,86 @@
 
 enum {
 	/** Interval between polling in microseconds */
-	POLL_INTERVAL =  10000,  /* 0.01 s */
-
+	POLL_INTERVAL = 10000,  /* 0.01 s */
+	
 	/** Max. number of characters to pull out at a time */
-	POLL_LIMIT    =     30,
-
-	SKI_INIT_CONSOLE  = 20,
-	SKI_GETCHAR       = 21,
-	SKI_PUTCHAR       = 31
+	POLL_LIMIT = 30,
+	
+	SKI_INIT_CONSOLE = 20,
+	SKI_GETCHAR      = 21,
+	SKI_PUTCHAR      = 31
 };
 
 static void ski_putchar(outdev_t *, const wchar_t, bool);
 
-static outdev_operations_t skiout_ops = {
-	.write = ski_putchar
+static outdev_operations_t skidev_ops = {
+	.write = ski_putchar,
+	.redraw = NULL
 };
 
-static outdev_t skiout;            /**< Ski output device. */
-static bool initialized = false;
-static bool kbd_disabled = false;
+static ski_instance_t *instance = NULL;
+
+/** Ask debug console if a key was pressed.
+ *
+ * Use SSC (Simulator System Call) to
+ * get character from debug console.
+ *
+ * This call is non-blocking.
+ *
+ * @return ASCII code of pressed key or 0 if no key pressed.
+ *
+ */
+static wchar_t ski_getchar(void)
+{
+	uint64_t ch;
+	
+	asm volatile (
+		"mov r15 = %1\n"
+		"break 0x80000;;\n"  /* modifies r8 */
+		"mov %0 = r8;;\n"
+		
+		: "=r" (ch)
+		: "i" (SKI_GETCHAR)
+		: "r15", "r8"
+	);
+	
+	return (wchar_t) ch;
+}
+
+/** Ask keyboard if a key was pressed.
+ *
+ * If so, it will repeat and pull up to POLL_LIMIT characters.
+ */
+static void poll_keyboard(ski_instance_t *instance)
+{
+	if (silent)
+		return;
+	
+	int count = POLL_LIMIT;
+	
+	while (count > 0) {
+		wchar_t ch = ski_getchar();
+		
+		if (ch == '\0')
+			break;
+		
+		indev_push_character(instance->srlnin, ch);
+		--count;
+	}
+}
+
+/** Kernel thread for polling keyboard. */
+static void kskipoll(void *arg)
+{
+	ski_instance_t *instance = (ski_instance_t *) arg;
+	
+	while (true) {
+		if (!silent)
+			poll_keyboard(instance);
+		
+		thread_usleep(POLL_INTERVAL);
+	}
+}
 
 /** Initialize debug console
  *
@@ -74,7 +135,7 @@ static bool kbd_disabled = false;
  */
 static void ski_init(void)
 {
-	if (initialized)
+	if (instance)
 		return;
 	
 	asm volatile (
@@ -85,7 +146,20 @@ static void ski_init(void)
 		: "r15", "r8"
 	);
 	
-	initialized = true;
+	instance = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
+	
+	if (instance) {
+		instance->thread = thread_create(kskipoll, instance, TASK, 0,
+		    "kskipoll", true);
+		
+		if (!instance->thread) {
+			free(instance);
+			instance = NULL;
+			return;
+		}
+		
+		instance->srlnin = NULL;
+	}
 }
 
 static void ski_do_putchar(const wchar_t ch)
@@ -123,100 +197,35 @@ static void ski_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 	}
 }
 
-void skiout_init(void)
+outdev_t *skiout_init(void)
 {
 	ski_init();
+	if (!instance)
+		return NULL;
 	
-	outdev_initialize("skiout", &skiout, &skiout_ops);
-	stdout_wire(&skiout);
+	outdev_t *skidev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	if (!skidev)
+		return NULL;
 	
-	sysinfo_set_item_val("fb", NULL, false);
-}
-
-/** Ask debug console if a key was pressed.
- *
- * Use SSC (Simulator System Call) to
- * get character from debug console.
- *
- * This call is non-blocking.
- *
- * @return ASCII code of pressed key or 0 if no key pressed.
- *
- */
-static wchar_t ski_getchar(void)
-{
-	uint64_t ch;
+	outdev_initialize("skidev", skidev, &skidev_ops);
+	skidev->data = instance;
 	
-	asm volatile (
-		"mov r15 = %1\n"
-		"break 0x80000;;\n"  /* modifies r8 */
-		"mov %0 = r8;;\n"
+	if (!fb_exported) {
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("fb", NULL, false);
 		
-		: "=r" (ch)
-		: "i" (SKI_GETCHAR)
-		: "r15", "r8"
-	);
-	
-	return (wchar_t) ch;
-}
-
-/** Ask keyboard if a key was pressed.
- *
- * If so, it will repeat and pull up to POLL_LIMIT characters.
- */
-static void poll_keyboard(ski_instance_t *instance)
-{
-	wchar_t ch;
-	int count;
-
-	if (kbd_disabled)
-		return;
-
-	count = POLL_LIMIT;
-
-	while (count > 0) {
-		ch = ski_getchar();
-
-		if (ch == '\0')
-			break;
-
-		indev_push_character(instance->srlnin, ch);
-		--count;
+		fb_exported = true;
 	}
-}
-
-/** Kernel thread for polling keyboard. */
-static void kskipoll(void *arg)
-{
-	ski_instance_t *instance = (ski_instance_t *) arg;
 	
-	while (true) {
-		if (!silent)
-			poll_keyboard(instance);
-		
-		thread_usleep(POLL_INTERVAL);
-	}
+	return skidev;
 }
 
 ski_instance_t *skiin_init(void)
 {
 	ski_init();
-	
-	ski_instance_t *instance =
-	    malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
-	
-	if (instance) {
-		instance->thread = thread_create(kskipoll, instance, TASK, 0,
-		    "kskipoll", true);
-		
-		if (!instance->thread) {
-			free(instance);
-			return NULL;
-		}
-		
-		instance->srlnin = NULL;
-	}
-	
 	return instance;
 }
 
@@ -230,16 +239,6 @@ void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
 	
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
-}
-
-void ski_kbd_grab(void)
-{
-	kbd_disabled = false;
-}
-
-void ski_kbd_release(void)
-{
-	kbd_disabled = true;
 }
 
 /** @}
