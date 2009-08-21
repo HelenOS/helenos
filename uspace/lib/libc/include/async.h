@@ -46,6 +46,8 @@ typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
 extern atomic_t async_futex;
 
+extern atomic_t threads_in_ipc_wait;
+
 extern int __async_init(void);
 extern ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
 
