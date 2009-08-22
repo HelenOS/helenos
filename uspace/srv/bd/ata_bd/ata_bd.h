@@ -115,7 +115,8 @@ enum status_bits {
 };
 
 enum drive_head_bits {
-	DHR_DRV		= 0x10
+	DHR_LBA		= 0x40,	/**< Use LBA addressing mode */
+	DHR_DRV		= 0x10	/**< Select device 1 */
 };
 
 enum error_bits {
@@ -189,11 +190,32 @@ typedef struct {
 	uint16_t _res160[1 + 255 - 160];
 } identify_data_t;
 
+enum ata_caps {
+	cap_iordy	= 0x0800,
+	cap_iordy_cbd	= 0x0400,
+	cap_lba		= 0x0200,
+	cap_dma		= 0x0100
+};
+
+/** Block addressing mode. */
+enum addr_mode {
+	am_chs,
+	am_lba28
+};
+
 typedef struct {
 	bool present;
-	unsigned heads;
-	unsigned cylinders;
-	unsigned sectors;
+	enum addr_mode amode;
+
+	/*
+	 * Geometry. Only valid if operating in CHS mode.
+	 */
+	struct {
+		unsigned heads;
+		unsigned cylinders;
+		unsigned sectors;
+	} geom;
+
 	uint64_t blocks;
 
 	char model[STR_BOUNDS(40) + 1];
