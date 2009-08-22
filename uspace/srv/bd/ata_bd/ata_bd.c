@@ -49,6 +49,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_sync.h>
+#include <string.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -84,7 +85,8 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf);
 static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     const void *buf);
-static int drive_identify(int drive_id, disk_t *d);
+static int disk_init(disk_t *d, int disk_id);
+static int drive_identify(int drive_id, void *buf);
 static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
     unsigned timeout);
 
@@ -105,11 +107,12 @@ int main(int argc, char **argv)
 		printf("Identify drive %d... ", i);
 		fflush(stdout);
 
-		rc = drive_identify(i, &disk[i]);
+		rc = disk_init(&disk[i], i);
 
 		if (rc == EOK) {
-			printf("%u cylinders, %u heads, %u sectors\n",
-			    disk[i].cylinders, disk[i].heads, disk[i].sectors);
+			printf("%s: %u cylinders, %u heads, %u sectors.\n",
+			    disk[i].model, disk[i].cylinders, disk[i].heads,
+			    disk[i].sectors);
 		} else {
 			printf("Not found.\n");
 		}
@@ -250,6 +253,61 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Initialize a disk.
+ *
+ * Probes for a disk, determines its parameters and initializes
+ * the disk structure.
+ */
+static int disk_init(disk_t *d, int disk_id)
+{
+	uint16_t buf[256];
+	uint8_t model[40];
+	uint16_t w;
+	uint8_t c;
+	size_t pos, len;
+	int rc;
+	int i;
+
+	rc = drive_identify(disk_id, buf);
+	if (rc != EOK) {
+		d->present = false;
+		return rc;
+	}
+
+	d->cylinders = buf[1];
+	d->heads = buf[3];
+	d->sectors = buf[6];
+
+	d->blocks = d->cylinders * d->heads * d->sectors;
+
+	/*
+	 * Convert model name to string representation.
+	 */
+	for (i = 0; i < 20; i++) {
+		w = buf[27 + i];
+		model[2 * i] = w >> 8;
+		model[2 * i + 1] = w & 0x00ff;
+	}
+
+	len = 40;
+	while (len > 0 && model[len - 1] == 0x20)
+		--len;
+
+	pos = 0;
+	for (i = 0; i < len; ++i) {
+		c = model[i];
+		if (c >= 0x80) c = '?';
+
+		chr_encode(c, d->model, &pos, 40);
+	}
+	d->model[pos] = '\0';
+
+	d->present = true;
+	fibril_mutex_initialize(&d->lock);
+
+	return EOK;
+}
+
 /** Transfer a logical block from/to the device.
  *
  * @param disk_id	Device index (0 or 1)
@@ -293,13 +351,13 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
 
 /** Issue IDENTIFY command.
  *
- * This is used to detect whether an ATA device is present and if so,
- * to determine its parameters. The parameters are written to @a d.
+ * Reads @c identify data into the provided buffer. This is used to detect
+ * whether an ATA device is present and if so, to determine its parameters.
  *
  * @param disk_id	Device ID, 0 or 1.
- * @param d		Device structure to store parameters in.
+ * @param buf		Pointer to a 512-byte buffer.
  */
-static int drive_identify(int disk_id, disk_t *d)
+static int drive_identify(int disk_id, void *buf)
 {
 	uint16_t data;
 	uint8_t status;
@@ -307,7 +365,6 @@ static int drive_identify(int disk_id, disk_t *d)
 	size_t i;
 
 	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
-	d->present = false;
 
 	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return EIO;
@@ -329,29 +386,14 @@ static int drive_identify(int disk_id, disk_t *d)
 	/* Read data from the disk buffer. */
 
 	if ((status & SR_DRQ) != 0) {
-//		for (i = 0; i < block_size / 2; i++) {
-//			data = pio_read_16(&cmd->data_port);
-//			((uint16_t *) buf)[i] = data;
-//		}
-
 		for (i = 0; i < block_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
-
-			switch (i) {
-			case 1: d->cylinders = data; break;
-			case 3: d->heads = data; break;
-			case 6: d->sectors = data; break;
-			}
+			((uint16_t *) buf)[i] = data;
 		}
 	}
 
 	if ((status & SR_ERR) != 0)
 		return EIO;
-
-	d->blocks = d->cylinders * d->heads * d->sectors;
-
-	d->present = true;
-	fibril_mutex_initialize(&d->lock);
 
 	return EOK;
 }

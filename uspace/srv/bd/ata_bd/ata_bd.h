@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <fibril_sync.h>
+#include <string.h>
 
 enum {
 	CTL_READ_START	= 0,
@@ -147,6 +148,8 @@ typedef struct {
 	unsigned cylinders;
 	unsigned sectors;
 	uint64_t blocks;
+
+	char model[STR_BOUNDS(40) + 1];
 
 	fibril_mutex_t lock;
 	dev_handle_t dev_handle;
