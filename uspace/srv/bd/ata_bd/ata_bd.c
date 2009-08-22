@@ -49,6 +49,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_sync.h>
+#include <string.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -84,7 +85,9 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     void *buf);
 static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
     const void *buf);
-static int drive_identify(int drive_id, disk_t *d);
+static int disk_init(disk_t *d, int disk_id);
+static int drive_identify(int drive_id, void *buf);
+static void disk_print_summary(disk_t *d);
 static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
     unsigned timeout);
 
@@ -105,11 +108,10 @@ int main(int argc, char **argv)
 		printf("Identify drive %d... ", i);
 		fflush(stdout);
 
-		rc = drive_identify(i, &disk[i]);
+		rc = disk_init(&disk[i], i);
 
 		if (rc == EOK) {
-			printf("%u cylinders, %u heads, %u sectors\n",
-			    disk[i].cylinders, disk[i].heads, disk[i].sectors);
+			disk_print_summary(&disk[i]);
 		} else {
 			printf("Not found.\n");
 		}
@@ -146,6 +148,28 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+/** Print one-line device summary. */
+static void disk_print_summary(disk_t *d)
+{
+	uint64_t mbytes;
+
+	printf("%s: ", d->model);
+
+	if (d->amode == am_chs) {
+		printf("CHS %u cylinders, %u heads, %u sectors",
+		    disk->geom.cylinders, disk->geom.heads, disk->geom.sectors);
+	} else {
+		printf("LBA-28");
+	}
+
+	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
+
+	mbytes = d->blocks / (2 * 1024);
+	if (mbytes > 0)
+		printf(" %llu MB.", mbytes);
+
+	printf("\n");
+}
 
 /** Register driver and enable device I/O. */
 static int ata_bd_init(void)
@@ -250,6 +274,77 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Initialize a disk.
+ *
+ * Probes for a disk, determines its parameters and initializes
+ * the disk structure.
+ */
+static int disk_init(disk_t *d, int disk_id)
+{
+	identify_data_t idata;
+	uint8_t model[40];
+	uint16_t w;
+	uint8_t c;
+	size_t pos, len;
+	int rc;
+	int i;
+
+	rc = drive_identify(disk_id, &idata);
+	if (rc != EOK) {
+		d->present = false;
+		return rc;
+	}
+
+	if ((idata.caps & cap_lba) == 0) {
+		/* Device only supports CHS addressing. */
+		d->amode = am_chs;
+
+		d->geom.cylinders = idata.cylinders;
+		d->geom.heads = idata.heads;
+		d->geom.sectors = idata.sectors;
+
+		d->blocks = d->geom.cylinders * d->geom.heads * d->geom.sectors;
+	} else {
+		/* Device supports LBA-28. */
+		d->amode = am_lba28;
+
+		d->geom.cylinders = 0;
+		d->geom.heads = 0;
+		d->geom.sectors = 0;
+
+		d->blocks =
+		    (uint32_t) idata.total_lba_sec0 | 
+		    ((uint32_t) idata.total_lba_sec1 << 16);
+	}
+
+	/*
+	 * Convert model name to string representation.
+	 */
+	for (i = 0; i < 20; i++) {
+		w = idata.model_name[i];
+		model[2 * i] = w >> 8;
+		model[2 * i + 1] = w & 0x00ff;
+	}
+
+	len = 40;
+	while (len > 0 && model[len - 1] == 0x20)
+		--len;
+
+	pos = 0;
+	for (i = 0; i < len; ++i) {
+		c = model[i];
+		if (c >= 0x80) c = '?';
+
+		chr_encode(c, d->model, &pos, 40);
+	}
+	d->model[pos] = '\0';
+
+	d->present = true;
+	fibril_mutex_initialize(&d->lock);
+
+	return EOK;
+}
+
 /** Transfer a logical block from/to the device.
  *
  * @param disk_id	Device index (0 or 1)
@@ -293,13 +388,13 @@ static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
 
 /** Issue IDENTIFY command.
  *
- * This is used to detect whether an ATA device is present and if so,
- * to determine its parameters. The parameters are written to @a d.
+ * Reads @c identify data into the provided buffer. This is used to detect
+ * whether an ATA device is present and if so, to determine its parameters.
  *
  * @param disk_id	Device ID, 0 or 1.
- * @param d		Device structure to store parameters in.
+ * @param buf		Pointer to a 512-byte buffer.
  */
-static int drive_identify(int disk_id, disk_t *d)
+static int drive_identify(int disk_id, void *buf)
 {
 	uint16_t data;
 	uint8_t status;
@@ -307,7 +402,6 @@ static int drive_identify(int disk_id, disk_t *d)
 	size_t i;
 
 	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
-	d->present = false;
 
 	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return EIO;
@@ -329,29 +423,14 @@ static int drive_identify(int disk_id, disk_t *d)
 	/* Read data from the disk buffer. */
 
 	if ((status & SR_DRQ) != 0) {
-//		for (i = 0; i < block_size / 2; i++) {
-//			data = pio_read_16(&cmd->data_port);
-//			((uint16_t *) buf)[i] = data;
-//		}
-
 		for (i = 0; i < block_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
-
-			switch (i) {
-			case 1: d->cylinders = data; break;
-			case 3: d->heads = data; break;
-			case 6: d->sectors = data; break;
-			}
+			((uint16_t *) buf)[i] = data;
 		}
 	}
 
 	if ((status & SR_ERR) != 0)
 		return EIO;
-
-	d->blocks = d->cylinders * d->heads * d->sectors;
-
-	d->present = true;
-	fibril_mutex_initialize(&d->lock);
 
 	return EOK;
 }
@@ -382,16 +461,24 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	if (blk_idx >= d->blocks)
 		return EINVAL;
 
-	/* Compute CHS. */
-	c = blk_idx / (d->heads * d->sectors);
-	idx = blk_idx % (d->heads * d->sectors);
+	if (d->amode == am_chs) {
+		/* Compute CHS coordinates. */
+		c = blk_idx / (d->geom.heads * d->geom.sectors);
+		idx = blk_idx % (d->geom.heads * d->geom.sectors);
 
-	h = idx / d->sectors;
-	s = 1 + (idx % d->sectors);
+		h = idx / d->geom.sectors;
+		s = 1 + (idx % d->geom.sectors);
+	} else {
+		/* Compute LBA-28 coordinates. */
+		s = blk_idx & 0xff;		/* bits 0-7 */
+		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
+		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+	}
 
 	/* New value for Drive/Head register */
 	drv_head =
 	    ((disk_id != 0) ? DHR_DRV : 0) |
+	    ((d->amode != am_chs) ? DHR_LBA : 0) |
 	    (h & 0x0f);
 
 	fibril_mutex_lock(&d->lock);
@@ -463,16 +550,24 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	if (blk_idx >= d->blocks)
 		return EINVAL;
 
-	/* Compute CHS. */
-	c = blk_idx / (d->heads * d->sectors);
-	idx = blk_idx % (d->heads * d->sectors);
+	if (d->amode == am_chs) {
+		/* Compute CHS coordinates. */
+		c = blk_idx / (d->geom.heads * d->geom.sectors);
+		idx = blk_idx % (d->geom.heads * d->geom.sectors);
 
-	h = idx / d->sectors;
-	s = 1 + (idx % d->sectors);
+		h = idx / d->geom.sectors;
+		s = 1 + (idx % d->geom.sectors);
+	} else {
+		/* Compute LBA-28 coordinates. */
+		s = blk_idx & 0xff;		/* bits 0-7 */
+		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
+		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+	}
 
 	/* New value for Drive/Head register */
 	drv_head =
 	    ((disk_id != 0) ? DHR_DRV : 0) |
+	    ((d->amode != am_chs) ? DHR_LBA : 0) |
 	    (h & 0x0f);
 
 	fibril_mutex_lock(&d->lock);
