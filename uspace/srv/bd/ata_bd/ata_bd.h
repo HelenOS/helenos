@@ -142,6 +142,53 @@ enum ata_timeout {
 	TIMEOUT_DRDY	= 1000  /* 10 s */
 };
 
+/** Data returned from @c identify command. */
+typedef struct {
+	uint16_t gen_conf;
+	uint16_t cylinders;
+	uint16_t _res2;
+	uint16_t heads;
+	uint16_t _vs4;
+	uint16_t _vs5;
+	uint16_t sectors;
+	uint16_t _vs7;
+	uint16_t _vs8;
+	uint16_t _vs9;
+	uint16_t serial_number[10];
+	uint16_t _vs20;
+	uint16_t _vs21;
+	uint16_t vs_bytes;
+	uint16_t firmware_rev[4];
+	uint16_t model_name[20];
+	uint16_t max_rw_multiple;
+	uint16_t _res48;
+	uint16_t caps;
+	uint16_t _res50;
+	uint16_t pio_timing;
+	uint16_t dma_timing;
+	uint16_t validity;
+	uint16_t cur_cyl;
+	uint16_t cur_heads;
+	uint16_t cur_sectors;
+	uint16_t cur_capacity0;
+	uint16_t cur_capacity1;
+	uint16_t mss;
+	uint16_t total_lba_sec0;
+	uint16_t total_lba_sec1;
+	uint16_t sw_dma;
+	uint16_t mw_dma;
+	uint16_t pio_modes;
+	uint16_t min_mw_dma_cycle;
+	uint16_t rec_mw_dma_cycle;
+	uint16_t min_raw_pio_cycle;
+	uint16_t min_iordy_pio_cycle;
+	uint16_t _res69;
+	uint16_t _res70;
+	uint16_t _res71[1 + 127 - 71];
+	uint16_t _vs128[1 + 159 - 128];
+	uint16_t _res160[1 + 255 - 160];
+} identify_data_t;
+
 typedef struct {
 	bool present;
 	unsigned heads;

@@ -260,7 +260,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 static int disk_init(disk_t *d, int disk_id)
 {
-	uint16_t buf[256];
+	identify_data_t idata;
 	uint8_t model[40];
 	uint16_t w;
 	uint8_t c;
@@ -268,15 +268,15 @@ static int disk_init(disk_t *d, int disk_id)
 	int rc;
 	int i;
 
-	rc = drive_identify(disk_id, buf);
+	rc = drive_identify(disk_id, &idata);
 	if (rc != EOK) {
 		d->present = false;
 		return rc;
 	}
 
-	d->cylinders = buf[1];
-	d->heads = buf[3];
-	d->sectors = buf[6];
+	d->cylinders = idata.cylinders;
+	d->heads = idata.heads;
+	d->sectors = idata.sectors;
 
 	d->blocks = d->cylinders * d->heads * d->sectors;
 
@@ -284,7 +284,7 @@ static int disk_init(disk_t *d, int disk_id)
 	 * Convert model name to string representation.
 	 */
 	for (i = 0; i < 20; i++) {
-		w = buf[27 + i];
+		w = idata.model_name[i];
 		model[2 * i] = w >> 8;
 		model[2 * i + 1] = w & 0x00ff;
 	}
