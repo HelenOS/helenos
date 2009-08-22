@@ -549,7 +549,8 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
 	pio_write_8(&cmd->cylinder_high, c >> 16);
 
-	pio_write_8(&cmd->command, CMD_READ_SECTORS);
+	pio_write_8(&cmd->command, d->amode == am_lba48 ?
+	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
 
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&d->lock);
@@ -660,7 +661,8 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
 	pio_write_8(&cmd->cylinder_high, c >> 16);
 
-	pio_write_8(&cmd->command, CMD_WRITE_SECTORS);
+	pio_write_8(&cmd->command, d->amode == am_lba48 ?
+	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
 
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&d->lock);

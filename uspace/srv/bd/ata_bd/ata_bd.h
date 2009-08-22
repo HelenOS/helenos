@@ -131,9 +131,11 @@ enum error_bits {
 };
 
 enum ata_command {
-	CMD_IDENTIFY_DRIVE	= 0xEC,
 	CMD_READ_SECTORS	= 0x20,
-	CMD_WRITE_SECTORS	= 0x30
+	CMD_READ_SECTORS_EXT	= 0x24,
+	CMD_WRITE_SECTORS	= 0x30,
+	CMD_WRITE_SECTORS_EXT	= 0x34,
+	CMD_IDENTIFY_DRIVE	= 0xEC
 };
 
 /** Timeout definitions. Unit is 10 ms. */
