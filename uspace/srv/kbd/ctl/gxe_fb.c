@@ -224,6 +224,11 @@ void kbd_ctl_parse_scancode(int scancode)
 	}
 }
 
+void kbd_ctl_set_ind(unsigned mods)
+{
+	(void) mods;
+}
+
 /**
  * @}
  */ 

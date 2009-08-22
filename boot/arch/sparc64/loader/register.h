@@ -29,11 +29,11 @@
 #ifndef BOOT_sparc64_REGISTER_H_
 #define BOOT_sparc64_REGISTER_H_
 
-#define PSTATE_IE_BIT   2
-#define PSTATE_PRIV_BIT	4
-#define PSTATE_AM_BIT   8
+#define PSTATE_IE_BIT    2
+#define PSTATE_PRIV_BIT  4
+#define PSTATE_AM_BIT    8
 
-#define ASI_ICBUS_CONFIG		0x4a
-#define ICBUS_CONFIG_MID_SHIFT		17
+#define ASI_ICBUS_CONFIG        0x4a
+#define ICBUS_CONFIG_MID_SHIFT  17
 
 #endif

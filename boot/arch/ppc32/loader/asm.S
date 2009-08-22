@@ -28,6 +28,7 @@
 
 #include "asm.h"
 #include "regname.h"
+#include "ofwarch.h"
 
 .macro SMC_COHERENCY addr
 	dcbst 0, \addr
@@ -44,8 +45,17 @@
 .endm
 
 .macro TLB_FLUSH reg
-	tlbie \reg
-	addi \reg, \reg, 0x1000
+	li \reg, 0
+	sync
+	
+	.rept 64
+		tlbie \reg
+		addi \reg, \reg, 0x1000
+	.endr
+	
+	eieio
+	tlbsync
+	sync
 .endm
 
 .text
@@ -53,6 +63,7 @@
 .global halt
 .global memcpy
 .global jump_to_kernel
+.global balloc_base
 
 halt:
 	b halt
@@ -61,64 +72,57 @@ memcpy:
 	srwi. r7, r5, 3
 	addi r6, r3, -4
 	addi r4, r4, -4
-	beq	2f
+	beq 2f
 	
 	andi. r0, r6, 3
 	mtctr r7
 	bne 5f
 	
 	1:
-	
-	lwz r7, 4(r4)
-	lwzu r8, 8(r4)
-	stw r7, 4(r6)
-	stwu r8, 8(r6)
-	bdnz 1b
-	
-	andi. r5, r5, 7
+		lwz r7, 4(r4)
+		lwzu r8, 8(r4)
+		stw r7, 4(r6)
+		stwu r8, 8(r6)
+		bdnz 1b
+		
+		andi. r5, r5, 7
 	
 	2:
-	
-	cmplwi 0, r5, 4
-	blt 3f
-	
-	lwzu r0, 4(r4)
-	addi r5, r5, -4
-	stwu r0, 4(r6)
+		cmplwi 0, r5, 4
+		blt 3f
+		
+		lwzu r0, 4(r4)
+		addi r5, r5, -4
+		stwu r0, 4(r6)
 	
 	3:
-	
-	cmpwi 0, r5, 0
-	beqlr
-	mtctr r5
-	addi r4, r4, 3
-	addi r6, r6, 3
+		cmpwi 0, r5, 0
+		beqlr
+		mtctr r5
+		addi r4, r4, 3
+		addi r6, r6, 3
 	
 	4:
-	
-	lbzu r0, 1(r4)
-	stbu r0, 1(r6)
-	bdnz 4b
-	blr
+		lbzu r0, 1(r4)
+		stbu r0, 1(r6)
+		bdnz 4b
+		blr
 	
 	5:
-	
-	subfic r0, r0, 4
-	mtctr r0
+		subfic r0, r0, 4
+		mtctr r0
 	
 	6:
-	
-	lbz r7, 4(r4)
-	addi r4, r4, 1
-	stb r7, 4(r6)
-	addi r6, r6, 1
-	bdnz 6b
-	subf r5, r0, r5
-	rlwinm. r7, r5, 32-3, 3, 31
-	beq 2b
-	mtctr r7
-	b 1b
-
+		lbz r7, 4(r4)
+		addi r4, r4, 1
+		stb r7, 4(r6)
+		addi r6, r6, 1
+		bdnz 6b
+		subf r5, r0, r5
+		rlwinm. r7, r5, 32-3, 3, 31
+		beq 2b
+		mtctr r7
+		b 1b
 
 jump_to_kernel:
 	
@@ -127,8 +131,6 @@ jump_to_kernel:
 	# r5 = trans (pa)
 	# r6 = bytes to copy
 	# r7 = real_mode (pa)
-	# r8 = framebuffer (pa)
-	# r9 = scanline
 	
 	# disable interrupts
 	
@@ -152,18 +154,22 @@ jump_to_kernel:
 	isync
 	rfi
 
+.align PAGE_WIDTH
+balloc_base:
+	.fill BALLOC_MAX_SIZE
+
 .section REALMODE, "ax"
+
 .align PAGE_WIDTH
 .global real_mode
-
 real_mode:
 	
 	# copy kernel to proper location
 	#
+	# r3 = bootinfo (pa)
+	# r4 = bootinfo_size
 	# r5 = trans (pa)
 	# r6 = bytes to copy
-	# r8 = framebuffer (pa)
-	# r9 = scanline
 	
 	li r31, PAGE_SIZE >> 2
 	li r30, 0
@@ -342,99 +348,22 @@ real_mode:
 	
 	# flush TLB
 	
-	li r31, 0
-	sync
-	
 	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	TLB_FLUSH r31
-	
-	eieio
-	tlbsync
-	sync
 	
 	# start the kernel
 	#
-	# pc = KERNEL_START_ADDR
+	# pc = PA2KA(BOOT_OFFSET)
 	# r3 = bootinfo (pa)
-	# sprg0 = KA2PA(KERNEL_START_ADDR)
+	# sprg0 = BOOT_OFFSET
 	# sprg3 = physical memory size
 	# sp = 0 (pa)
 	
-	lis r31, KERNEL_START_ADDR@ha
-	addi r31, r31, KERNEL_START_ADDR@l
-	
+	lis r31, PA2KA(BOOT_OFFSET)@ha
+	addi r31, r31, PA2KA(BOOT_OFFSET)@l
 	mtspr srr0, r31
 	
-	subis r31, r31, 0x8000
+	lis r31, BOOT_OFFSET@ha
+	addi r31, r31, BOOT_OFFSET@l
 	mtsprg0 r31
 	
 	lwz r31, 0(r3)
@@ -453,4 +382,6 @@ real_mode:
 .align PAGE_WIDTH
 .global trans
 trans:
-	.space (TRANS_SIZE * TRANS_ITEM_SIZE)
+	.rept TRANS_SIZE
+	.int 0
+	.endr

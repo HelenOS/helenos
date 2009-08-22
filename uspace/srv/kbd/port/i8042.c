@@ -159,6 +159,12 @@ void kbd_port_reclaim(void)
 {
 }
 
+void kbd_port_write(uint8_t data)
+{
+	pio_write_8(&i8042->data, data);
+	wait_ready();
+}
+
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int status = IPC_GET_ARG1(*call);

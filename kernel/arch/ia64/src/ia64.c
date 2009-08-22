@@ -159,11 +159,15 @@ void arch_post_smp_init(void)
 		}
 	}
 	
-	skiout_init();
+	outdev_t *skidev = skiout_init();
+	if (skidev)
+		stdout_wire(skidev);
 #endif
 	
 #ifdef CONFIG_EGA
-	ega_init(EGA_BASE, EGA_VIDEORAM);
+	outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
+	if (egadev)
+		stdout_wire(egadev);
 #endif
 	
 #ifdef CONFIG_NS16550
@@ -248,27 +252,7 @@ void userspace(uspace_arg_t *kernel_uarg)
  */
 unative_t sys_tls_set(unative_t addr)
 {
-        return 0;
-}
-
-/** Acquire console back for kernel
- *
- */
-void arch_grab_console(void)
-{
-#ifdef MACHINE_ski
-	ski_kbd_grab();
-#endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
-#ifdef MACHINE_ski
-	ski_kbd_release();
-#endif
+	return 0;
 }
 
 void arch_reboot(void)

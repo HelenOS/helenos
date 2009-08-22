@@ -70,13 +70,24 @@ static size_t klog_stored = 0;
 static size_t klog_uspace = 0;
 
 /** Kernel log spinlock */
-SPINLOCK_INITIALIZE(klog_lock);
+SPINLOCK_STATIC_INITIALIZE_NAME(klog_lock, "*klog_lock");
 
 /** Physical memory area used for klog buffer */
 static parea_t klog_parea;
 
+static indev_t stdin_sink;
+static outdev_t stdout_source;
+
 static indev_operations_t stdin_ops = {
 	.poll = NULL
+};
+
+static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
+static void stdout_redraw(outdev_t *dev);
+
+static outdev_operations_t stdout_ops = {
+	.write = stdout_write,
+	.redraw = stdout_redraw
 };
 
 /** Silence output */
@@ -89,12 +100,43 @@ outdev_t *stdout = NULL;
 indev_t *stdin_wire(void)
 {
 	if (stdin == NULL) {
-		stdin = malloc(sizeof(indev_t), FRAME_ATOMIC);
-		if (stdin != NULL)
-			indev_initialize("stdin", stdin, &stdin_ops);
+		indev_initialize("stdin", &stdin_sink, &stdin_ops);
+		stdin = &stdin_sink;
 	}
 	
 	return stdin;
+}
+
+void stdout_wire(outdev_t *outdev)
+{
+	if (stdout == NULL) {
+		outdev_initialize("stdout", &stdout_source, &stdout_ops);
+		stdout = &stdout_source;
+	}
+	
+	list_append(&outdev->link, &stdout->list);
+}
+
+static void stdout_write(outdev_t *dev, wchar_t ch, bool silent)
+{
+	link_t *cur;
+	
+	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+		if ((sink) && (sink->op->write))
+			sink->op->write(sink, ch, silent);
+	}
+}
+
+static void stdout_redraw(outdev_t *dev)
+{
+	link_t *cur;
+	
+	for (cur = dev->list.next; cur != &dev->list; cur = cur->next) {
+		outdev_t *sink = list_get_instance(cur, outdev_t, link);
+		if ((sink) && (sink->op->redraw))
+			sink->op->redraw(sink);
+	}
 }
 
 /** Initialize kernel logging facility
@@ -127,7 +169,8 @@ void grab_console(void)
 	bool prev = silent;
 	
 	silent = false;
-	arch_grab_console();
+	if ((stdout) && (stdout->op->redraw))
+		stdout->op->redraw(stdout);
 	
 	/* Force the console to print the prompt */
 	if ((stdin) && (prev))
@@ -136,8 +179,8 @@ void grab_console(void)
 
 void release_console(void)
 {
+	// FIXME arch_release_console
 	silent = true;
-	arch_release_console();
 }
 
 /** Tell kernel to get keyboard/console access again */

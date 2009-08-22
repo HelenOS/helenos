@@ -74,6 +74,9 @@ avltree_t tasks_tree;
 
 static task_id_t task_counter = 0;
 
+/* Forward declarations. */
+static void task_kill_internal(task_t *);
+
 /** Initialize kernel tasks support. */
 void task_init(void)
 {
@@ -82,17 +85,20 @@ void task_init(void)
 }
 
 /*
- * The idea behind this walker is to remember a single task different from
+ * The idea behind this walker is to kill and count all tasks different from
  * TASK.
  */
 static bool task_done_walker(avltree_node_t *node, void *arg)
 {
 	task_t *t = avltree_get_instance(node, task_t, tasks_tree_node);
-	task_t **tp = (task_t **) arg;
+	unsigned *cnt = (unsigned *) arg;
 
-	if (t != TASK) { 
-		*tp = t;
-		return false;	/* stop walking */
+	if (t != TASK) {
+		(*cnt)++;
+#ifdef CONFIG_DEBUG
+		printf("[%"PRIu64"] ", t->taskid);
+#endif
+		task_kill_internal(t);
 	}
 
 	return true;	/* continue the walk */
@@ -101,33 +107,24 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 /** Kill all tasks except the current task. */
 void task_done(void)
 {
-	task_t *t;
+	unsigned tasks_left;
+
 	do { /* Repeat until there are any tasks except TASK */
-		
 		/* Messing with task structures, avoid deadlock */
+#ifdef CONFIG_DEBUG
+		printf("Killing tasks... ");
+#endif
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&tasks_lock);
-		
-		t = NULL;
-		avltree_walk(&tasks_tree, task_done_walker, &t);
-		
-		if (t != NULL) {
-			task_id_t id = t->taskid;
-			
-			spinlock_unlock(&tasks_lock);
-			interrupts_restore(ipl);
-			
+		tasks_left = 0;
+		avltree_walk(&tasks_tree, task_done_walker, &tasks_left);
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		thread_sleep(1);
 #ifdef CONFIG_DEBUG
-			printf("Killing task %" PRIu64 "\n", id);
-#endif			
-			task_kill(id);
-			thread_usleep(10000);
-		} else {
-			spinlock_unlock(&tasks_lock);
-			interrupts_restore(ipl);
-		}
-		
-	} while (t != NULL);
+		printf("\n");
+#endif
+	} while (tasks_left);
 }
 
 /** Create new task with no threads.
@@ -199,13 +196,6 @@ task_t *task_create(as_t *as, char *name)
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 	
-	/*
-	 * Notify about task creation.
-	 */
-	if (event_is_subscribed(EVENT_WAIT))
-		event_notify_3(EVENT_WAIT, TASK_CREATE, LOWER32(ta->taskid),
-		    UPPER32(ta->taskid));
-	
 	return ta;
 }
 
@@ -237,13 +227,6 @@ void task_destroy(task_t *t)
 	 */
 	if (atomic_predec(&t->as->refcount) == 0) 
 		as_destroy(t->as);
-	
-	/*
-	 * Notify about task destruction.
-	 */
-	if (event_is_subscribed(EVENT_WAIT))
-		event_notify_3(EVENT_WAIT, TASK_DESTROY, LOWER32(t->taskid),
-		    UPPER32(t->taskid));
 	
 	free(t);
 	TASK = NULL;
@@ -349,33 +332,10 @@ uint64_t task_get_accounting(task_t *t)
 	return ret;
 }
 
-/** Kill task.
- *
- * This function is idempotent.
- * It signals all the task's threads to bail it out.
- *
- * @param id		ID of the task to be killed.
- *
- * @return		Zero on success or an error code from errno.h.
- */
-int task_kill(task_id_t id)
+static void task_kill_internal(task_t *ta)
 {
-	ipl_t ipl;
-	task_t *ta;
 	link_t *cur;
 
-	if (id == 1)
-		return EPERM;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	if (!(ta = task_find_by_id(id))) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		return ENOENT;
-	}
-	spinlock_unlock(&tasks_lock);
-	
 	/*
 	 * Interrupt all threads.
 	 */
@@ -396,8 +356,35 @@ int task_kill(task_id_t id)
 			waitq_interrupt_sleep(thr);
 	}
 	spinlock_unlock(&ta->lock);
-	interrupts_restore(ipl);
+}
+
+/** Kill task.
+ *
+ * This function is idempotent.
+ * It signals all the task's threads to bail it out.
+ *
+ * @param id		ID of the task to be killed.
+ *
+ * @return		Zero on success or an error code from errno.h.
+ */
+int task_kill(task_id_t id)
+{
+	ipl_t ipl;
+	task_t *ta;
+
+	if (id == 1)
+		return EPERM;
 	
+	ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	if (!(ta = task_find_by_id(id))) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return ENOENT;
+	}
+	task_kill_internal(ta);
+	spinlock_unlock(&tasks_lock);
+	interrupts_restore(ipl);
 	return 0;
 }
 

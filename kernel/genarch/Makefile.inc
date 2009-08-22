@@ -129,12 +129,16 @@ endif
 
 ifeq ($(CONFIG_OFW_TREE),y)
 	GENARCH_SOURCES += \
-		genarch/src/ofw/ofw_tree.c \
+		genarch/src/ofw/ofw_tree.c
+endif
+
+ifeq ($(CONFIG_OFW_PCI),y)
+	GENARCH_SOURCES += \
 		genarch/src/ofw/ebus.c \
 		genarch/src/ofw/fhc.c \
 		genarch/src/ofw/pci.c  \
 		genarch/src/ofw/sbus.c \
-		genarch/src/ofw/upa.c 
+		genarch/src/ofw/upa.c
 endif
 
 ifeq ($(CONFIG_MULTIBOOT), y)

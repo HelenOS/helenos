@@ -88,13 +88,7 @@ void arch_post_mm_init(void)
 	exception_init();
 	interrupt_init();
 	
-#ifdef CONFIG_FB
-	machine_fb_init();
-#else
-#ifdef CONFIG_ARM_PRN
 	machine_output_init();
-#endif /* CONFIG_ARM_PRN */
-#endif /* CONFIG_FB */
 }
 
 /** Performs arm32 specific tasks needed after cpu is initialized.
@@ -179,21 +173,6 @@ void arch_reboot()
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
-}
-
-/** Acquire console back for kernel. */
-void arch_grab_console(void)
-{
-	machine_grab_console();
-#ifdef CONFIG_FB
-	fb_redraw();
-#endif
-}
-
-/** Return console to userspace. */
-void arch_release_console(void)
-{
-	machine_release_console();
 }
 
 /** @}

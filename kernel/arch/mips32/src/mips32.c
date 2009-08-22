@@ -143,12 +143,17 @@ void arch_post_mm_init(void)
 		.scan = 1920,
 		.visual = VISUAL_RGB_8_8_8,
 	};
-	fb_init(&gxemul_prop);
-#else
+	
+	outdev_t *fbdev = fb_init(&gxemul_prop);
+	if (fbdev)
+		stdout_wire(fbdev);
+#endif
+
 #ifdef CONFIG_MIPS_PRN
-	dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
-#endif /* CONFIG_MIPS_PRN */
-#endif /* CONFIG_FB */
+	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
+	if (dsrlndev)
+		stdout_wire(dsrlndev);
+#endif
 }
 
 void arch_post_cpu_init(void)
@@ -249,20 +254,6 @@ void arch_reboot(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
-}
-
-void arch_grab_console(void)
-{
-#ifdef CONFIG_FB
-	fb_redraw();
-#endif
-}
-
-/** Return console to userspace
- *
- */
-void arch_release_console(void)
-{
 }
 
 /** @}

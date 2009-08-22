@@ -191,6 +191,7 @@ extern int ipc_call_sync_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
 
 extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, uint32_t, int);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, uint32_t);
+extern void ipc_poke(void);
 
 static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
 {

@@ -32,6 +32,11 @@
 #include <asm.h>
 #include <types.h>
 
+#define RED(i)    (((i) >> 5) & ((1 << 3) - 1))
+#define GREEN(i)  (((i) >> 3) & ((1 << 2) - 1))
+#define BLUE(i)   ((i) & ((1 << 3) - 1))
+#define CLIP(i)   ((i) <= 255 ? (i) : 255)
+
 uintptr_t ofw_cif;
 
 phandle ofw_chosen;
@@ -84,14 +89,15 @@ void ofw_init(void)
 
 /** Perform a call to OpenFirmware client interface.
  *
- * @param service	String identifying the service requested.
- * @param nargs		Number of input arguments.
- * @param nret		Number of output arguments. This includes the return
- * 			value.
- * @param rets		Buffer for output arguments or NULL. The buffer must
- * 			accommodate nret - 1 items.
+ * @param service String identifying the service requested.
+ * @param nargs   Number of input arguments.
+ * @param nret    Number of output arguments. This includes the return
+ *                value.
+ * @param rets    Buffer for output arguments or NULL. The buffer must
+ *                accommodate nret - 1 items.
  *
- * @return		Return value returned by the client interface.
+ * @return Return value returned by the client interface.
+ *
  */
 unsigned long
 ofw_call(const char *service, const int nargs, const int nret, ofw_arg_t *rets,
@@ -220,7 +226,7 @@ void *ofw_translate(const void *virt)
 	return (void *) ((result[2] << shift) | result[3]);
 }
 
-void *ofw_claim_virt(const void *virt, const int len)
+void *ofw_claim_virt(const void *virt, const unsigned int len)
 {
 	ofw_arg_t retaddr;
 
@@ -233,43 +239,56 @@ void *ofw_claim_virt(const void *virt, const int len)
 	return (void *) retaddr;
 }
 
-void *ofw_claim_phys(const void *phys, const int len)
+static void *ofw_claim_phys_internal(const void *phys, const unsigned int len, const unsigned int alignment)
 {
-	ofw_arg_t retaddr[2];
-	int shift;
-
+	/*
+	 * Note that the return value check will help
+	 * us to discover conflicts between OpenFirmware
+	 * allocations and our use of physical memory.
+	 * It is better to detect collisions here
+	 * than to cope with weird errors later.
+	 *
+	 * So this is really not to make the loader
+	 * more generic; it is here for debugging
+	 * purposes.
+	 */
+	
 	if (sizeof(unative_t) == 8) {
-		shift = 32;
+		ofw_arg_t retaddr[2];
+		int shift = 32;
+		
 		if (ofw_call("call-method", 6, 3, retaddr, "claim",
-		    ofw_memory_prop, 0, len, ((uintptr_t) phys) >> shift,
+		    ofw_memory_prop, alignment, len, ((uintptr_t) phys) >> shift,
 		    ((uintptr_t) phys) & ((uint32_t) -1)) != 0) {
-			/*
-			 * Note that this will help us to discover
-			 * conflicts between OpenFirmware allocations
-			 * and our use of physical memory.
-			 * It is better to detect collisions here
-			 * than to cope with weird errors later.
-			 *
-			 * So this is really not to make the loader
-			 * more generic; it is here for debugging
-			 * purposes.
-			 */
 			puts("Error: memory method claim() failed, halting.\n");
 			halt();
 		}
+		
+		return (void *) ((retaddr[0] << shift) | retaddr[1]);
 	} else {
-		shift = 0;
-		/*
-		 * FIXME: the number of arguments is probably different...
-		 */
-		puts("Error: 32-bit ofw_claim_phys not implemented.\n");
-		halt();
+		ofw_arg_t retaddr[1];
+		
+		if (ofw_call("call-method", 5, 2, retaddr, "claim",
+		    ofw_memory_prop, alignment, len, (uintptr_t) phys) != 0) {
+			puts("Error: memory method claim() failed, halting.\n");
+			halt();
+		}
+		
+		return (void *) retaddr[0];
 	}
-
-	return (void *) ((retaddr[0] << shift) | retaddr[1]);
 }
 
-int ofw_map(const void *phys, const void *virt, const int size, const int mode)
+void *ofw_claim_phys(const void *phys, const unsigned int len)
+{
+	return ofw_claim_phys_internal(phys, len, 0);
+}
+
+void *ofw_claim_phys_any(const unsigned int len, const unsigned int alignment)
+{
+	return ofw_claim_phys_internal(NULL, len, alignment);
+}
+
+int ofw_map(const void *phys, const void *virt, const unsigned int size, const int mode)
 {
 	uintptr_t phys_hi, phys_lo;
 
@@ -313,11 +332,11 @@ int ofw_memmap(memmap_t *map)
 		unsigned int size = buf[pos + ac + sc - 1];
 
 		/*
- 		 * This is a hot fix of the issue which occurs on machines
- 		 * where there are holes in the physical memory (such as
- 		 * SunBlade 1500). Should we detect a hole in the physical
- 		 * memory, we will ignore any memory detected behind
- 		 * the hole and pretend the hole does not exist.
+		 * This is a hot fix of the issue which occurs on machines
+		 * where there are holes in the physical memory (such as
+		 * SunBlade 1500). Should we detect a hole in the physical
+		 * memory, we will ignore any memory detected behind
+		 * the hole and pretend the hole does not exist.
 		 */
 		if ((map->count > 0) && (map->zones[map->count - 1].start +
 		    map->zones[map->count - 1].size < start))
@@ -334,50 +353,6 @@ int ofw_memmap(memmap_t *map)
 	return true;
 }
 
-int ofw_screen(screen_t *screen)
-{
-	char device_name[BUF_SIZE];
-	uint32_t virtaddr;
-	
-	if (ofw_get_property(ofw_aliases, "screen", device_name,
-	    sizeof(device_name)) <= 0)
-		return false;
-	
-	phandle device = ofw_find_device(device_name);
-	if (device == -1)
-		return false;
-	
-	if (ofw_get_property(device, "address", &virtaddr,
-	    sizeof(virtaddr)) <= 0)
-		return false;
-
-	screen->addr = (void *) ((uintptr_t) virtaddr);
-
-	if (ofw_get_property(device, "width", &screen->width,
-	    sizeof(screen->width)) <= 0)
-		return false;
-	
-	if (ofw_get_property(device, "height", &screen->height,
-	    sizeof(screen->height)) <= 0)
-		return false;
-	
-	if (ofw_get_property(device, "depth", &screen->bpp,
-	    sizeof(screen->bpp)) <= 0)
-		return false;
-	
-	if (ofw_get_property(device, "linebytes", &screen->scanline,
-	    sizeof(screen->scanline)) <= 0)
-		return false;
-	
-	return true;
-}
-
-#define RED(i)    (((i) >> 5) & ((1 << 3) - 1))
-#define GREEN(i)  (((i) >> 3) & ((1 << 2) - 1))
-#define BLUE(i)   ((i) & ((1 << 3) - 1))
-#define CLIP(i)   ((i) <= 255 ? (i) : 255)
-
-
 /**
  * Sets up the palette for the 8-bit color depth configuration so that the
  * 3:2:3 color scheme can be used. Checks that setting the palette makes sense
@@ -391,12 +366,12 @@ int ofw_setup_palette(void)
 {
 	char device_name[BUF_SIZE];
 	
-	/* resolve alias */
+	/* Resolve alias */
 	if (ofw_get_property(ofw_aliases, "screen", device_name,
 	    sizeof(device_name)) <= 0)
 		return false;
 	
-	/* for depth greater than 8 it makes no sense to set up the palette */
+	/* For depth greater than 8 it makes no sense to set up the palette */
 	uint32_t depth;
 	phandle device = ofw_find_device(device_name);
 	if (device == -1)
@@ -406,12 +381,12 @@ int ofw_setup_palette(void)
 	if (depth != 8)
 		return false;
 	
-	/* required in order to be able to make a method call */
+	/* Required in order to be able to make a method call */
 	ihandle screen = ofw_open(device_name);
 	if (screen == -1)
 		return false;
 	
-	/* setup the palette so that the (inverted) 3:2:3 scheme is usable */
+	/* Setup the palette so that the (inverted) 3:2:3 scheme is usable */
 	unsigned int i;
 	for (i = 0; i < 256; i++)
 		ofw_call("call-method", 6, 1, NULL, "color!", screen,

@@ -56,15 +56,11 @@ static parea_t fb_parea;
 static icp_hw_map_t icp_hw_map;
 static irq_t icp_timer_irq;
 struct arm_machine_ops machine_ops = {
-	MACHINE_GENFUNC,
-	MACHINE_GENFUNC,
 	icp_init,
 	icp_timer_irq_start,
 	icp_cpu_halt,
 	icp_get_memory_size,
-	icp_fb_init,
 	icp_irq_exception,
-	icp_get_fb_address,
 	icp_frame_init,
 	icp_output_init,
 	icp_input_init
@@ -127,24 +123,6 @@ static inline void icp_irqc_unmask(uint32_t irq)
 	*((uint32_t *) icp_hw_map.irqc_unmask) |= (1 << irq);
 }
 
-/** Initializes the icp frame buffer */
-void icp_fb_init(void)
-{
-	fb_properties_t prop = {
-		.addr = 0,
-		.offset = 0,
-		.x = 640,
-		.y = 480,
-		.scan = 2560,
-		.visual = VISUAL_BGR_0_8_8_8,
-	};
-	prop.addr = icp_get_fb_address();
-	fb_init(&prop);
-	fb_parea.pbase = ICP_FB;
-	fb_parea.frames = 300;
-	ddi_parea_register(&fb_parea);
-}
-
 /** Initializes icp_hw_map. */
 void icp_init(void)
 {
@@ -171,19 +149,8 @@ void icp_init(void)
 	hw_map_init_called = true;
 }
 
-
-/** Acquire console back for kernel. */
-void icp_grab_console(void)
-{
-}
-
-/** Return console to userspace. */
-void icp_release_console(void)
-{
-}
-
 /** Starts icp Real Time Clock device, which asserts regular interrupts.
- * 
+ *
  * @param frequency Interrupts frequency (0 disables RTC).
  */
 static void icp_timer_start(uint32_t frequency)
@@ -295,19 +262,6 @@ void icp_irq_exception(int exc_no, istate_t *istate)
 	}
 }
 
-/** Returns address of framebuffer device.
- *
- *  @return Address of framebuffer device.
- */
-uintptr_t icp_get_fb_address(void)
-{
-	if (!vga_init) {
-		icp_vga_init();
-		vga_init = true;
-	}
-	return (uintptr_t) ICP_FB;
-}
-
 /*
  * Integrator specific frame initialization
  */
@@ -320,6 +274,29 @@ icp_frame_init(void)
 
 void icp_output_init(void)
 {
+#ifdef CONFIG_FB
+	if (!vga_init) {
+		icp_vga_init();
+		vga_init = true;
+	}
+	
+	fb_properties_t prop = {
+		.addr = ICP_FB,
+		.offset = 0,
+		.x = 640,
+		.y = 480,
+		.scan = 2560,
+		.visual = VISUAL_BGR_0_8_8_8,
+	};
+	
+	outdev_t *fbdev = fb_init(&prop);
+	if (fbdev) {
+		stdout_wire(fbdev);
+		fb_parea.pbase = ICP_FB;
+		fb_parea.frames = 300;
+		ddi_parea_register(&fb_parea);
+	}
+#endif
 }
 
 void icp_input_init(void)

@@ -61,19 +61,21 @@ CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -I../../../genarch -imacros
 
 SOURCES = \
 	main.c \
-	ofwarch.c \
 	_components.c \
-	../../../genarch/ofw.c \
 	../../../generic/printf.c \
 	../../../generic/string.c \
+	../../../genarch/balloc.c \
+	../../../genarch/ofw.c \
+	../../../genarch/ofw_tree.c \
+	ofwarch.c \
 	asm.S \
 	boot.S
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
 	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/loader/loader \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/bd/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs
@@ -101,8 +103,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/dltest/dltest \
 	$(USPACEDIR)/app/dltest2/dltest2 \
 	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+	$(USPACEDIR)/app/bdsh/bdsh \
+	$(USPACEDIR)/app/klog/klog
 
 RD_LIBS = \
 	$(USPACEDIR)/lib/libc/shared/libc.so.0 \

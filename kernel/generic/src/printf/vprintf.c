@@ -41,7 +41,7 @@
 #include <typedefs.h>
 #include <string.h>
 
-SPINLOCK_INITIALIZE(printf_lock);  /**< vprintf spinlock */
+SPINLOCK_STATIC_INITIALIZE_NAME(printf_lock, "*printf_lock");
 
 static int vprintf_str_write(const char *str, size_t size, void *data)
 {

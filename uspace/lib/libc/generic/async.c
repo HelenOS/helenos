@@ -106,6 +106,9 @@
 
 atomic_t async_futex = FUTEX_INITIALIZER;
 
+/** Number of threads waiting for IPC in the kernel. */
+atomic_t threads_in_ipc_wait = { 0 };
+
 /** Structures of this type represent a waiting fibril. */
 typedef struct {
 	/** Expiration time. */
@@ -682,11 +685,15 @@ static int async_manager_worker(void)
 			timeout = SYNCH_NO_TIMEOUT;
 		
 		futex_up(&async_futex);
+
+		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
 		ipc_callid_t callid = ipc_wait_cycle(&call, timeout,
 		    SYNCH_FLAGS_NONE);
 		
+		atomic_dec(&threads_in_ipc_wait);
+
 		if (!callid) {
 			handle_expired_timeouts();
 			continue;

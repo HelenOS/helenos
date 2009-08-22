@@ -30,7 +30,7 @@
 #include <ofw.h>
 #include <printf.h>
 
-typedef int (* ofw_entry_t)(ofw_args_t *args);
+typedef int (*ofw_entry_t)(ofw_args_t *args);
 
 int ofw(ofw_args_t *args)
 {
@@ -48,29 +48,8 @@ void write(const char *str, const int len)
 	}
 }
 
-int ofw_macio(macio_t *macio)
-{
-	char device_name[BUF_SIZE];
-	
-	if ((ofw_get_property(ofw_aliases, "macio", device_name, sizeof(device_name)) <= 0)
-	    && (ofw_get_property(ofw_aliases, "mac-io", device_name, sizeof(device_name)) <= 0))
-		return false;
-	
-	phandle device = ofw_find_device(device_name);
-	if (device == -1)
-		return false;
-	
-	pci_reg_t pci_reg;
-	if (ofw_get_property(device, "assigned-addresses", &pci_reg, sizeof(pci_reg)) <= 0)
-		return false;
-	
-	macio->addr = (void *) pci_reg.addr.addr_lo;
-	macio->size = pci_reg.size_lo;
-
-	return true;
-}
-
 int ofw_translate_failed(ofw_arg_t flag)
 {
+	/* PearPC returns buggy flag */
 	return 0;
 }

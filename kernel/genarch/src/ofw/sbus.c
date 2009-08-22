@@ -36,6 +36,7 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/sbus.h>
 #include <macros.h>
 
 bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,

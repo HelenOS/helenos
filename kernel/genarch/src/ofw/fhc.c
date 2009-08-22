@@ -36,6 +36,7 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/fhc.h>
 #include <arch/drivers/fhc.h>
 #include <arch/memstr.h>
 #include <string.h>

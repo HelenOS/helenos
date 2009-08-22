@@ -43,6 +43,7 @@
 #include <ipc/irq.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/kbox.h>
+#include <synch/waitq.h>
 #include <udebug/udebug_ipc.h>
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
@@ -1048,6 +1049,13 @@ restart:
 		return 0;
 	}
 	return (unative_t)call;
+}
+
+/** Interrupt one thread from sys_ipc_wait_for_call(). */
+unative_t sys_ipc_poke(void)
+{
+	waitq_unsleep(&TASK->answerbox.wq);	
+	return EOK;
 }
 
 /** Connect an IRQ handler to a task.

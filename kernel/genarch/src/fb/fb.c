@@ -52,51 +52,69 @@
 #include <arch/types.h>
 #include <byteorder.h>
 
-SPINLOCK_INITIALIZE(fb_lock);
-
-static uint8_t *fb_addr;
-static uint16_t *backbuf;
-static uint8_t *glyphs;
-static uint8_t *bgscan;
-
-static unsigned int xres;
-static unsigned int yres;
-
-static unsigned int ylogo;
-static unsigned int ytrim;
-static unsigned int rowtrim;
-
-static unsigned int scanline;
-static unsigned int glyphscanline;
-
-static unsigned int pixelbytes;
-static unsigned int glyphbytes;
-static unsigned int bgscanbytes;
-
-static unsigned int cols;
-static unsigned int rows;
-static unsigned int position = 0;
-
 #define BG_COLOR     0x000080
 #define FG_COLOR     0xffff00
 #define INV_COLOR    0xaaaaaa
 
-#define RED(x, bits)         (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
-#define GREEN(x, bits)       (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
-#define BLUE(x, bits)        (((x) >> (8 - (bits))) & ((1 << (bits)) - 1))
+#define RED(x, bits)    (((x) >> (8 + 8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define GREEN(x, bits)  (((x) >> (8 + 8 - (bits))) & ((1 << (bits)) - 1))
+#define BLUE(x, bits)   (((x) >> (8 - (bits))) & ((1 << (bits)) - 1))
 
-#define COL2X(col)           ((col) * FONT_WIDTH)
-#define ROW2Y(row)           ((row) * FONT_SCANLINES)
+#define COL2X(col)  ((col) * FONT_WIDTH)
+#define ROW2Y(row)  ((row) * FONT_SCANLINES)
 
-#define X2COL(x)             ((x) / FONT_WIDTH)
-#define Y2ROW(y)             ((y) / FONT_SCANLINES)
+#define X2COL(x)  ((x) / FONT_WIDTH)
+#define Y2ROW(y)  ((y) / FONT_SCANLINES)
 
-#define FB_POS(x, y)         ((y) * scanline + (x) * pixelbytes)
-#define BB_POS(col, row)     ((row) * cols + (col))
-#define GLYPH_POS(glyph, y)  ((glyph) * glyphbytes + (y) * glyphscanline)
+#define FB_POS(instance, x, y) \
+	((y) * (instance)->scanline + (x) * (instance)->pixelbytes)
 
+#define BB_POS(instance, col, row) \
+	((row) * (instance)->cols + (col))
 
-static void (*rgb_conv)(void *, uint32_t);
+#define GLYPH_POS(instance, glyph, y) \
+	((glyph) * (instance)->glyphbytes + (y) * (instance)->glyphscanline)
+
+typedef void (* rgb_conv_t)(void *, uint32_t);
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);
+	
+	uint8_t *addr;
+	uint16_t *backbuf;
+	uint8_t *glyphs;
+	uint8_t *bgscan;
+	
+	rgb_conv_t rgb_conv;
+	
+	unsigned int xres;
+	unsigned int yres;
+	
+	unsigned int ylogo;
+	unsigned int ytrim;
+	unsigned int rowtrim;
+	
+	unsigned int scanline;
+	unsigned int glyphscanline;
+	
+	unsigned int pixelbytes;
+	unsigned int glyphbytes;
+	unsigned int bgscanbytes;
+	
+	unsigned int cols;
+	unsigned int rows;
+	
+	unsigned int position;
+} fb_instance_t;
+
+static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent);
+static void fb_redraw_internal(fb_instance_t *instance);
+static void fb_redraw(outdev_t *dev);
+
+static outdev_operations_t fbdev_ops = {
+	.write = fb_putchar,
+	.redraw = fb_redraw
+};
 
 /*
  * RGB conversion functions.
@@ -169,7 +187,6 @@ static void rgb_565_le(void *dst, uint32_t rgb)
 	    GREEN(rgb, 6) << 5 | BLUE(rgb, 5));
 }
 
-
 /** BGR 3:2:3
  *
  * Even though we try 3:2:3 color scheme here, an 8-bit framebuffer
@@ -178,7 +195,7 @@ static void rgb_565_le(void *dst, uint32_t rgb)
  * palette. This could be fixed by supporting custom palette
  * and setting it to simulate the 8-bit truecolor.
  *
- * Currently we set the palette on the ia32, amd64 and sparc64 port.
+ * Currently we set the palette on the ia32, amd64, ppc32 and sparc64 port.
  *
  * Note that the byte is being inverted by this function. The reason is
  * that we would like to use a color palette where the white color code
@@ -193,58 +210,58 @@ static void bgr_323(void *dst, uint32_t rgb)
 	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
 }
 
-
 /** Hide logo and refresh screen
  *
  */
-static void logo_hide(bool silent)
+static void logo_hide(fb_instance_t *instance, bool silent)
 {
-	ylogo = 0;
-	ytrim = yres;
-	rowtrim = rows;
+	instance->ylogo = 0;
+	instance->ytrim = instance->yres;
+	instance->rowtrim = instance->rows;
+	
 	if (!silent)
-		fb_redraw();
+		fb_redraw_internal(instance);
 }
-
 
 /** Draw character at given position
  *
  */
-static void glyph_draw(uint16_t glyph, unsigned int col, unsigned int row, bool silent, bool overlay)
+static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
+    unsigned int col, unsigned int row, bool silent, bool overlay)
 {
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(row);
 	unsigned int yd;
 	
-	if (y >= ytrim)
-		logo_hide(silent);
+	if (y >= instance->ytrim)
+		logo_hide(instance, silent);
 	
 	if (!overlay)
-		backbuf[BB_POS(col, row)] = glyph;
+		instance->backbuf[BB_POS(instance, col, row)] = glyph;
 	
 	if (!silent) {
 		for (yd = 0; yd < FONT_SCANLINES; yd++)
-			memcpy(&fb_addr[FB_POS(x, y + yd + ylogo)],
-			    &glyphs[GLYPH_POS(glyph, yd)], glyphscanline);
+			memcpy(&instance->addr[FB_POS(instance, x, y + yd + instance->ylogo)],
+			    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
+			    instance->glyphscanline);
 	}
 }
-
 
 /** Scroll screen down by one row
  *
  *
  */
-static void screen_scroll(bool silent)
+static void screen_scroll(fb_instance_t *instance, bool silent)
 {
-	if (ylogo > 0) {
-		logo_hide(silent);
+	if (instance->ylogo > 0) {
+		logo_hide(instance, silent);
 		return;
 	}
 	
 	if (!silent) {
 		unsigned int row;
 		
-		for (row = 0; row < rows; row++) {
+		for (row = 0; row < instance->rows; row++) {
 			unsigned int y = ROW2Y(row);
 			unsigned int yd;
 			
@@ -252,103 +269,49 @@ static void screen_scroll(bool silent)
 				unsigned int x;
 				unsigned int col;
 				
-				for (col = 0, x = 0; col < cols; col++,
-				    x += FONT_WIDTH) {
+				for (col = 0, x = 0; col < instance->cols;
+				    col++, x += FONT_WIDTH) {
 					uint16_t glyph;
 					
-					if (row < rows - 1) {
-						if (backbuf[BB_POS(col, row)] ==
-						    backbuf[BB_POS(col, row + 1)])
+					if (row < instance->rows - 1) {
+						if (instance->backbuf[BB_POS(instance, col, row)] ==
+						    instance->backbuf[BB_POS(instance, col, row + 1)])
 							continue;
 						
-						glyph = backbuf[BB_POS(col, row + 1)];
+						glyph = instance->backbuf[BB_POS(instance, col, row + 1)];
 					} else
 						glyph = 0;
 					
-					memcpy(&fb_addr[FB_POS(x, y + yd)],
-					    &glyphs[GLYPH_POS(glyph, yd)],
-					    glyphscanline);
+					memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
+					    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
+					    instance->glyphscanline);
 				}
 			}
 		}
 	}
 	
-	memmove(backbuf, &backbuf[BB_POS(0, 1)], cols * (rows - 1) * sizeof(uint16_t));
-	memsetw(&backbuf[BB_POS(0, rows - 1)], cols, 0);
+	memmove(instance->backbuf, &instance->backbuf[BB_POS(instance, 0, 1)],
+	    instance->cols * (instance->rows - 1) * sizeof(uint16_t));
+	memsetw(&instance->backbuf[BB_POS(instance, 0, instance->rows - 1)],
+	    instance->cols, 0);
 }
 
-
-static void cursor_put(bool silent)
+static void cursor_put(fb_instance_t *instance, bool silent)
 {
-	unsigned int col = position % cols;
-	unsigned int row = position / cols;
+	unsigned int col = instance->position % instance->cols;
+	unsigned int row = instance->position / instance->cols;
 	
-	glyph_draw(fb_font_glyph(U_CURSOR), col, row, silent, true);
+	glyph_draw(instance, fb_font_glyph(U_CURSOR), col, row, silent, true);
 }
 
-
-static void cursor_remove(bool silent)
+static void cursor_remove(fb_instance_t *instance, bool silent)
 {
-	unsigned int col = position % cols;
-	unsigned int row = position / cols;
+	unsigned int col = instance->position % instance->cols;
+	unsigned int row = instance->position / instance->cols;
 	
-	glyph_draw(backbuf[BB_POS(col, row)], col, row, silent, true);
+	glyph_draw(instance, instance->backbuf[BB_POS(instance, col, row)],
+	    col, row, silent, true);
 }
-
-
-/** Print character to screen
- *
- * Emulate basic terminal commands.
- *
- */
-static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
-{
-	spinlock_lock(&fb_lock);
-	
-	switch (ch) {
-	case '\n':
-		cursor_remove(silent);
-		position += cols;
-		position -= position % cols;
-		break;
-	case '\r':
-		cursor_remove(silent);
-		position -= position % cols;
-		break;
-	case '\b':
-		cursor_remove(silent);
-		if (position % cols)
-			position--;
-		break;
-	case '\t':
-		cursor_remove(silent);
-		do {
-			glyph_draw(fb_font_glyph(' '), position % cols,
-			    position / cols, silent, false);
-			position++;
-		} while ((position % 8) && (position < cols * rows));
-		break;
-	default:
-		glyph_draw(fb_font_glyph(ch), position % cols,
-		    position / cols, silent, false);
-		position++;
-	}
-	
-	if (position >= cols * rows) {
-		position -= cols;
-		screen_scroll(silent);
-	}
-	
-	cursor_put(silent);
-	
-	spinlock_unlock(&fb_lock);
-}
-
-static outdev_t fb_console;
-static outdev_operations_t fb_ops = {
-	.write = fb_putchar
-};
-
 
 /** Render glyphs
  *
@@ -356,7 +319,7 @@ static outdev_operations_t fb_ops = {
  * description to current visual representation.
  *
  */
-static void glyphs_render(void)
+static void glyphs_render(fb_instance_t *instance)
 {
 	/* Prerender glyphs */
 	uint16_t glyph;
@@ -375,11 +338,12 @@ static void glyphs_render(void)
 			unsigned int x;
 			
 			for (x = 0; x < FONT_WIDTH; x++) {
-				void *dst = &glyphs[GLYPH_POS(glyph, y) +
-				    x * pixelbytes];
+				void *dst =
+				    &instance->glyphs[GLYPH_POS(instance, glyph, y) +
+				    x * instance->pixelbytes];
 				uint32_t rgb = (fb_font[glyph][y] &
 				    (1 << (7 - x))) ? fg_color : BG_COLOR;
-				rgb_conv(dst, rgb);
+				instance->rgb_conv(dst, rgb);
 			}
 		}
 	}
@@ -387,24 +351,72 @@ static void glyphs_render(void)
 	/* Prerender background scanline */
 	unsigned int x;
 	
-	for (x = 0; x < xres; x++)
-		rgb_conv(&bgscan[x * pixelbytes], BG_COLOR);
+	for (x = 0; x < instance->xres; x++)
+		instance->rgb_conv(&instance->bgscan[x * instance->pixelbytes], BG_COLOR);
 }
 
-
-/** Refresh the screen
+/** Print character to screen
+ *
+ * Emulate basic terminal commands.
  *
  */
-void fb_redraw(void)
+static void fb_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
-	if (ylogo > 0) {
+	fb_instance_t *instance = (fb_instance_t *) dev->data;
+	spinlock_lock(&instance->lock);
+	
+	switch (ch) {
+	case '\n':
+		cursor_remove(instance, silent);
+		instance->position += instance->cols;
+		instance->position -= instance->position % instance->cols;
+		break;
+	case '\r':
+		cursor_remove(instance, silent);
+		instance->position -= instance->position % instance->cols;
+		break;
+	case '\b':
+		cursor_remove(instance, silent);
+		if (instance->position % instance->cols)
+			instance->position--;
+		break;
+	case '\t':
+		cursor_remove(instance, silent);
+		do {
+			glyph_draw(instance, fb_font_glyph(' '),
+			    instance->position % instance->cols,
+			    instance->position / instance->cols, silent, false);
+			instance->position++;
+		} while ((instance->position % 8)
+		    && (instance->position < instance->cols * instance->rows));
+		break;
+	default:
+		glyph_draw(instance, fb_font_glyph(ch),
+		    instance->position % instance->cols,
+		    instance->position / instance->cols, silent, false);
+		instance->position++;
+	}
+	
+	if (instance->position >= instance->cols * instance->rows) {
+		instance->position -= instance->cols;
+		screen_scroll(instance, silent);
+	}
+	
+	cursor_put(instance, silent);
+	
+	spinlock_unlock(&instance->lock);
+}
+
+static void fb_redraw_internal(fb_instance_t *instance)
+{
+	if (instance->ylogo > 0) {
 		unsigned int y;
 		
 		for (y = 0; y < LOGO_HEIGHT; y++) {
 			unsigned int x;
 			
-			for (x = 0; x < xres; x++)
-				rgb_conv(&fb_addr[FB_POS(x, y)],
+			for (x = 0; x < instance->xres; x++)
+				instance->rgb_conv(&instance->addr[FB_POS(instance, x, y)],
 				    (x < LOGO_WIDTH) ?
 				    fb_logo[y * LOGO_WIDTH + x] :
 				    LOGO_COLOR);
@@ -413,52 +425,70 @@ void fb_redraw(void)
 	
 	unsigned int row;
 	
-	for (row = 0; row < rowtrim; row++) {
-		unsigned int y = ylogo + ROW2Y(row);
+	for (row = 0; row < instance->rowtrim; row++) {
+		unsigned int y = instance->ylogo + ROW2Y(row);
 		unsigned int yd;
 		
 		for (yd = 0; yd < FONT_SCANLINES; yd++) {
 			unsigned int x;
 			unsigned int col;
 			
-			for (col = 0, x = 0; col < cols;
+			for (col = 0, x = 0; col < instance->cols;
 			    col++, x += FONT_WIDTH) {
-				uint16_t glyph = backbuf[BB_POS(col, row)];
-				void *dst = &fb_addr[FB_POS(x, y + yd)];
-				void *src = &glyphs[GLYPH_POS(glyph, yd)];
-				memcpy(dst, src, glyphscanline);
+				uint16_t glyph =
+				    instance->backbuf[BB_POS(instance, col, row)];
+				void *dst = &instance->addr[FB_POS(instance, x, y + yd)];
+				void *src = &instance->glyphs[GLYPH_POS(instance, glyph, yd)];
+				memcpy(dst, src, instance->glyphscanline);
 			}
 		}
 	}
 	
-	if (COL2X(cols) < xres) {
+	if (COL2X(instance->cols) < instance->xres) {
 		unsigned int y;
-		unsigned int size = (xres - COL2X(cols)) * pixelbytes;
+		unsigned int size =
+		    (instance->xres - COL2X(instance->cols)) * instance->pixelbytes;
 		
-		for (y = ylogo; y < yres; y++)
-			memcpy(&fb_addr[FB_POS(COL2X(cols), y)], bgscan, size);
+		for (y = instance->ylogo; y < instance->yres; y++)
+			memcpy(&instance->addr[FB_POS(instance, COL2X(instance->cols), y)],
+			    instance->bgscan, size);
 	}
 	
-	if (ROW2Y(rowtrim) + ylogo < yres) {
+	if (ROW2Y(instance->rowtrim) + instance->ylogo < instance->yres) {
 		unsigned int y;
 		
-		for (y = ROW2Y(rowtrim) + ylogo; y < yres; y++)
-			memcpy(&fb_addr[FB_POS(0, y)], bgscan, bgscanbytes);
+		for (y = ROW2Y(instance->rowtrim) + instance->ylogo;
+		    y < instance->yres; y++)
+			memcpy(&instance->addr[FB_POS(instance, 0, y)],
+			    instance->bgscan, instance->bgscanbytes);
 	}
 }
 
+/** Refresh the screen
+ *
+ */
+static void fb_redraw(outdev_t *dev)
+{
+	fb_instance_t *instance = (fb_instance_t *) dev->data;
+	
+	spinlock_lock(&instance->lock);
+	fb_redraw_internal(instance);
+	spinlock_unlock(&instance->lock);
+}
 
 /** Initialize framebuffer as a output character device
  *
- * @param addr   Physical address of the framebuffer
- * @param x      Screen width in pixels
- * @param y      Screen height in pixels
- * @param scan   Bytes per one scanline
- * @param visual Color model
- *
  */
-void fb_init(fb_properties_t *props)
+outdev_t *fb_init(fb_properties_t *props)
 {
+	ASSERT(props);
+	ASSERT(props->x > 0);
+	ASSERT(props->y > 0);
+	ASSERT(props->scan > 0);
+	
+	rgb_conv_t rgb_conv;
+	unsigned int pixelbytes;
+	
 	switch (props->visual) {
 	case VISUAL_INDIRECT_8:
 		rgb_conv = bgr_323;
@@ -505,66 +535,110 @@ void fb_init(fb_properties_t *props)
 		pixelbytes = 4;
 		break;
 	default:
-		panic("Unsupported visual.");
+		LOG("Unsupported visual.");
+		return NULL;
 	}
 	
-	xres = props->x;
-	yres = props->y;
-	scanline = props->scan;
+	outdev_t *fbdev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	if (!fbdev)
+		return NULL;
 	
-	cols = X2COL(xres);
-	rows = Y2ROW(yres);
+	fb_instance_t *instance = malloc(sizeof(fb_instance_t), FRAME_ATOMIC);
+	if (!instance) {
+		free(fbdev);
+		return NULL;
+	}
 	
-	if (yres > ylogo) {
-		ylogo = LOGO_HEIGHT;
-		rowtrim = rows - Y2ROW(ylogo);
-		if (ylogo % FONT_SCANLINES > 0)
-			rowtrim--;
-		ytrim = ROW2Y(rowtrim);
+	outdev_initialize("fbdev", fbdev, &fbdev_ops);
+	fbdev->data = instance;
+	
+	spinlock_initialize(&instance->lock, "*fb_lock");
+	instance->rgb_conv = rgb_conv;
+	instance->pixelbytes = pixelbytes;
+	instance->xres = props->x;
+	instance->yres = props->y;
+	instance->scanline = props->scan;
+	instance->position = 0;
+	
+	instance->cols = X2COL(instance->xres);
+	instance->rows = Y2ROW(instance->yres);
+	
+	if (instance->yres > LOGO_HEIGHT) {
+		instance->ylogo = LOGO_HEIGHT;
+		instance->rowtrim = instance->rows - Y2ROW(instance->ylogo);
+		if (instance->ylogo % FONT_SCANLINES > 0)
+			instance->rowtrim--;
+		instance->ytrim = ROW2Y(instance->rowtrim);
 	} else {
-		ylogo = 0;
-		ytrim = yres;
-		rowtrim = rows;
+		instance->ylogo = 0;
+		instance->ytrim = instance->yres;
+		instance->rowtrim = instance->rows;
 	}
 	
-	glyphscanline = FONT_WIDTH * pixelbytes;
-	glyphbytes = ROW2Y(glyphscanline);
-	bgscanbytes = xres * pixelbytes;
+	instance->glyphscanline = FONT_WIDTH * instance->pixelbytes;
+	instance->glyphbytes = ROW2Y(instance->glyphscanline);
+	instance->bgscanbytes = instance->xres * instance->pixelbytes;
 	
-	size_t fbsize = scanline * yres;
-	size_t bbsize = cols * rows * sizeof(uint16_t);
-	size_t glyphsize = FONT_GLYPHS * glyphbytes;
+	size_t fbsize = instance->scanline * instance->yres;
+	size_t bbsize = instance->cols * instance->rows * sizeof(uint16_t);
+	size_t glyphsize = FONT_GLYPHS * instance->glyphbytes;
 	
-	backbuf = (uint16_t *) malloc(bbsize, 0);
-	if (!backbuf)
-		panic("Unable to allocate backbuffer.");
+	instance->addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	if (!instance->addr) {
+		LOG("Unable to map framebuffer.");
+		free(instance);
+		free(fbdev);
+		return NULL;
+	}
 	
-	glyphs = (uint8_t *) malloc(glyphsize, 0);
-	if (!glyphs)
-		panic("Unable to allocate glyphs.");
+	instance->backbuf = (uint16_t *) malloc(bbsize, 0);
+	if (!instance->backbuf) {
+		LOG("Unable to allocate backbuffer.");
+		free(instance);
+		free(fbdev);
+		return NULL;
+	}
 	
-	bgscan = malloc(bgscanbytes, 0);
-	if (!bgscan)
-		panic("Unable to allocate background pixel.");
+	instance->glyphs = (uint8_t *) malloc(glyphsize, 0);
+	if (!instance->glyphs) {
+		LOG("Unable to allocate glyphs.");
+		free(instance->backbuf);
+		free(instance);
+		free(fbdev);
+		return NULL;
+	}
 	
-	memsetw(backbuf, cols * rows, 0);
+	instance->bgscan = malloc(instance->bgscanbytes, 0);
+	if (!instance->bgscan) {
+		LOG("Unable to allocate background pixel.");
+		free(instance->glyphs);
+		free(instance->backbuf);
+		free(instance);
+		free(fbdev);
+		return NULL;
+	}
 	
-	glyphs_render();
+	memsetw(instance->backbuf, instance->cols * instance->rows, 0);
+	glyphs_render(instance);
 	
-	fb_addr = (uint8_t *) hw_map((uintptr_t) props->addr, fbsize);
+	if (!fb_exported) {
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("fb", NULL, true);
+		sysinfo_set_item_val("fb.kind", NULL, 1);
+		sysinfo_set_item_val("fb.width", NULL, instance->xres);
+		sysinfo_set_item_val("fb.height", NULL, instance->yres);
+		sysinfo_set_item_val("fb.scanline", NULL, instance->scanline);
+		sysinfo_set_item_val("fb.visual", NULL, props->visual);
+		sysinfo_set_item_val("fb.address.physical", NULL, props->addr);
+		
+		fb_exported = true;
+	}
 	
-	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.kind", NULL, 1);
-	sysinfo_set_item_val("fb.width", NULL, xres);
-	sysinfo_set_item_val("fb.height", NULL, yres);
-	sysinfo_set_item_val("fb.scanline", NULL, scanline);
-	sysinfo_set_item_val("fb.visual", NULL, props->visual);
-	sysinfo_set_item_val("fb.address.physical", NULL, props->addr);
-	
-	fb_redraw();
-	
-	outdev_initialize("fb", &fb_console, &fb_ops);
-	stdout = &fb_console;
+	fb_redraw(fbdev);
+	return fbdev;
 }
 
 /** @}

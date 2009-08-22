@@ -34,17 +34,8 @@
 
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
-
-#ifdef CONFIG_SUN_KBD
-#include <genarch/kbrd/kbrd.h>
-#endif
-#ifdef CONFIG_Z8530
-#include <genarch/drivers/z8530/z8530.h>
-#endif
-#ifdef CONFIG_NS16550
-#include <genarch/drivers/ns16550/ns16550.h>
-#endif
-
+#include <genarch/ofw/fhc.h>
+#include <genarch/ofw/ebus.h>
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <arch/mm/page.h>
@@ -53,6 +44,18 @@
 #include <string.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
+
+#ifdef CONFIG_SUN_KBD
+#include <genarch/kbrd/kbrd.h>
+#endif
+
+#ifdef CONFIG_Z8530
+#include <genarch/drivers/z8530/z8530.h>
+#endif
+
+#ifdef CONFIG_NS16550
+#include <genarch/drivers/ns16550/ns16550.h>
+#endif
 
 #ifdef CONFIG_SUN_KBD
 

@@ -40,19 +40,6 @@
 #include <arch/machine_func.h>
 
 
-/** Acquire console back for kernel. */
-void machine_grab_console(void)
-{
-	(machine_ops.machine_grab_console)();
-}
-
-/** Return console to userspace. */
-void machine_release_console(void)
-{
-	(machine_ops.machine_release_console)();
-}
-
-
 /** Maps HW devices to the kernel address space using #hw_map. */
 void machine_init(void)
 {
@@ -83,15 +70,6 @@ uintptr_t machine_get_memory_size(void)
 	return (machine_ops.machine_get_memory_size)();
 }
 
-/** Initializes the Frame Buffer
- *
- */
-void machine_fb_init(void)
-{
-	(machine_ops.machine_fb_init)();
-}
-
-
 /** Interrupt exception handler.
  *
  * @param exc_no Interrupt exception number.
@@ -102,15 +80,6 @@ void machine_irq_exception(int exc_no, istate_t *istate)
 	(machine_ops.machine_irq_exception)(exc_no, istate);
 }
 
-
-/** Returns address of framebuffer device.
- *
- *  @return Address of framebuffer device.
- */
-uintptr_t machine_get_fb_address(void)
-{
-	return (machine_ops.machine_get_fb_address)();
-}
 
 /*
  * Machine specific frame initialization

@@ -50,5 +50,10 @@ void kbd_port_reclaim(void)
 {
 }
 
+void kbd_port_write(uint8_t data)
+{
+	(void) data;
+}
+
 /** @}
 */

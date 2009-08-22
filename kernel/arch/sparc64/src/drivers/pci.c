@@ -36,6 +36,7 @@
 
 #include <arch/drivers/pci.h>
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/upa.h>
 #include <arch/trap/interrupt.h>
 #include <mm/page.h>
 #include <mm/slab.h>

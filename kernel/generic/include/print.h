@@ -36,11 +36,7 @@
 #define KERN_PRINT_H_
 
 #include <arch/types.h>
-#include <synch/spinlock.h>
 #include <arch/arg.h>
-
-/* We need this address in spinlock to avoid deadlock in deadlock detection */
-SPINLOCK_EXTERN(printf_lock);
 
 #define EOF (-1)
 

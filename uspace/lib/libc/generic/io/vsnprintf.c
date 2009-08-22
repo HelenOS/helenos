@@ -99,7 +99,7 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 		return ((int) size);
 	}
 	
-	/* Buffer is big enought to print the whole string */
+	/* Buffer is big enough to print the whole string */
 	memcpy((void *)(data->dst + data->len), (void *) str, size);
 	data->len += size;
 	

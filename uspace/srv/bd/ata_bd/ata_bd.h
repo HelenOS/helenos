@@ -134,6 +134,13 @@ enum ata_command {
 	CMD_WRITE_SECTORS	= 0x30
 };
 
+/** Timeout definitions. Unit is 10 ms. */
+enum ata_timeout {
+	TIMEOUT_PROBE	=  100, /*  1 s */
+	TIMEOUT_BSY	=  100, /*  1 s */
+	TIMEOUT_DRDY	= 1000  /* 10 s */
+};
+
 typedef struct {
 	bool present;
 	unsigned heads;

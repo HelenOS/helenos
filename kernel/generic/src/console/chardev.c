@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <adt/list.h>
 #include <console/chardev.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
@@ -133,6 +134,8 @@ void outdev_initialize(char *name, outdev_t *outdev,
 {
 	outdev->name = name;
 	spinlock_initialize(&outdev->lock, "outdev");
+	link_initialize(&outdev->link);
+	list_initialize(&outdev->list);
 	outdev->op = op;
 }
 

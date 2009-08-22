@@ -187,7 +187,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		}
 	}
 
-	assert(node->size == result->size);
+	assert(node->size == result->size || node->type != VFS_NODE_FILE);
 	assert(node->lnkcnt == result->lnkcnt);
 	assert(node->type == result->type || result->type == VFS_NODE_UNKNOWN);
 

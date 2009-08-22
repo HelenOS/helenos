@@ -43,6 +43,7 @@ extern outdev_t *stdout;
 extern bool silent;
 
 extern indev_t *stdin_wire(void);
+extern void stdout_wire(outdev_t *outdev);
 extern void console_init(void);
 
 extern void klog_init(void);
@@ -57,9 +58,6 @@ extern void release_console(void);
 
 extern unative_t sys_debug_enable_console(void);
 extern unative_t sys_debug_disable_console(void);
-
-extern void arch_grab_console(void);
-extern void arch_release_console(void);
 
 #endif /* KERN_CONSOLE_H_ */
 

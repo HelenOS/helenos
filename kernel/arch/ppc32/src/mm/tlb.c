@@ -46,11 +46,6 @@ static unsigned int seed = 10;
 static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
 
 
-#define TLB_FLUSH \
-	"tlbie %0\n" \
-	"addi %0, %0, 0x1000\n"
-
-
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
@@ -450,77 +445,10 @@ void tlb_invalidate_all(void)
 		"li %0, 0\n"
 		"sync\n"
 		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
-		TLB_FLUSH
+		".rept 64\n"
+		"tlbie %0\n"
+		"addi %0, %0, 0x1000\n"
+		".endr\n"
 		
 		"eieio\n"
 		"tlbsync\n"

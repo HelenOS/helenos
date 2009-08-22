@@ -331,20 +331,8 @@ fs_node_t *fat_create_node(dev_handle_t dev_handle, int flags)
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
-		int i;
-		block_t *b;
-
-		/*
-		 * Populate the new cluster with unused dentries.
-		 */
-		for (i = 0; i < bs->spc; i++) {
-			b = _fat_block_get(bs, dev_handle, mcl, i,
-			    BLOCK_FLAGS_NOREAD);
-			/* mark all dentries as never-used */
-			memset(b->data, 0, bps);
-			b->dirty = false;
-			block_put(b);
-		}
+		/* Populate the new cluster with unused dentries. */
+		fat_zero_cluster(bs, dev_handle, mcl);
 		nodep->type = FAT_DIRECTORY;
 		nodep->firstc = mcl;
 		nodep->size = bps * bs->spc;
@@ -461,7 +449,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
 	 */
-	if (parentp->idx->pfc == FAT_CLST_ROOT) {
+	if (parentp->firstc == FAT_CLST_ROOT) {
 		/* Can't grow the root directory. */
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return ENOSPC;
@@ -471,14 +459,12 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
 	}
+	fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
 	fat_append_clusters(bs, parentp, mcl);
-	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NOREAD);
+	parentp->size += bps * bs->spc;
+	parentp->dirty = true;		/* need to sync node */
+	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
 	d = (fat_dentry_t *)b->data;
-	/*
-	 * Clear all dentries in the block except for the first one (the first
-	 * dentry will be cleared in the next step).
-	 */
-	memset(d + 1, 0, bps - sizeof(fat_dentry_t));
 
 hit:
 	/*

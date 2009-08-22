@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
- * @{
- */
+#ifndef KERN_PCI_H_
+#define KERN_PCI_H_
 
-/**
- * @file
- * @brief	Userspace bootstrap thread.
- *
- * This file contains uinit kernel thread wich is used to start every
- * userspace thread including threads created by SYS_THREAD_CREATE syscall.
- *
- * @see SYS_THREAD_CREATE
- */
- 
-#include <main/uinit.h>
+#include <genarch/ofw/ofw_tree.h>
 #include <arch/types.h>
-#include <proc/thread.h>
-#include <userspace.h>
-#include <mm/slab.h>
-#include <arch.h>
-#include <udebug/udebug.h>
+#include <ddi/irq.h>
+#include <typedefs.h>
 
+typedef struct {
+	/* Needs to be masked to obtain pure space id */
+	uint32_t space;
+	
+	/* Group phys.mid and phys.lo together */
+	uint64_t addr;
+	uint64_t size;
+} __attribute__ ((packed)) ofw_pci_reg_t;
 
-/** Thread used to bring up userspace thread.
- *
- * @param arg Pointer to structure containing userspace entry and stack
- *     addresses.
- */
-void uinit(void *arg)
-{
-	uspace_arg_t uarg;
+typedef struct {
+	uint32_t space;
+	
+	/* Group phys.mid and phys.lo together */
+	uint64_t child_base;
+	uint64_t parent_base;
+	uint64_t size;
+} __attribute__ ((packed)) ofw_pci_range_t;
 
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
+extern bool ofw_pci_apply_ranges(ofw_tree_node_t *, ofw_pci_reg_t *,
+    uintptr_t *);
 
-#ifdef CONFIG_UDEBUG
-	udebug_stoppable_end();
+extern bool ofw_pci_reg_absolutize(ofw_tree_node_t *, ofw_pci_reg_t *,
+    ofw_pci_reg_t *);
+
+extern bool ofw_pci_map_interrupt(ofw_tree_node_t *, ofw_pci_reg_t *,
+    int, int *, cir_t *, void **);
+
 #endif
-	
-	uarg.uspace_entry = ((uspace_arg_t *) arg)->uspace_entry;
-	uarg.uspace_stack = ((uspace_arg_t *) arg)->uspace_stack;
-	uarg.uspace_uarg = ((uspace_arg_t *) arg)->uspace_uarg;
-	uarg.uspace_thread_function = NULL;
-	uarg.uspace_thread_arg = NULL;
-
-	free((uspace_arg_t *) arg);
-	
-	userspace(&uarg);
-}
-
-/** @}
- */

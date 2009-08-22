@@ -33,7 +33,8 @@ HelenOS configuration system
 import sys
 import os
 import re
-import commands
+import time
+import subprocess
 import xtui
 
 INPUT = sys.argv[1]
@@ -224,8 +225,16 @@ def check_choices(defaults, ask_names):
 def create_output(mkname, mcname, dfname, defaults, ask_names):
 	"Create output configuration"
 	
-	revision = commands.getoutput('svnversion . 2> /dev/null')
-	timestamp = commands.getoutput('date "+%Y-%m-%d %H:%M:%S"')
+	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
+	
+	if (len(version) == 3):
+		revision = version[1]
+		if (version[0] != 1):
+			revision += 'M'
+		revision += ' (%s)' % version[2]
+	else:
+		revision = None
 	
 	outmk = file(mkname, 'w')
 	outmc = file(mcname, 'w')
@@ -265,13 +274,14 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, default, varname, default))
 			outdf.write(' -D%s=%s -D%s_%s' % (varname, default, varname, default))
 	
-	outmk.write('REVISION = %s\n' % revision)
+	if (revision is not None):
+		outmk.write('REVISION = %s\n' % revision)
+		outmc.write('#define REVISION %s\n' % revision)
+		outdf.write(' "-DREVISION=%s"' % revision)
+	
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
-	
-	outmc.write('#define REVISION %s\n' % revision)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
-	
-	outdf.write(' "-DREVISION=%s" "-DTIMESTAMP=%s"\n' % (revision, timestamp))
+	outdf.write(' "-DTIMESTAMP=%s"\n' % timestamp)
 	
 	outmk.close()
 	outmc.close()

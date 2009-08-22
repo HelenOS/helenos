@@ -31,14 +31,13 @@
 
 #include <types.h>
 
-#define BALLOC_MAX_SIZE		(128 * 1024)
-
 typedef struct {
 	uintptr_t base;
 	size_t size;
 } ballocs_t;
 
-extern void balloc_init(ballocs_t *b, uintptr_t base);
+extern void balloc_init(ballocs_t *ball, uintptr_t base, uintptr_t kernel_base);
 extern void *balloc(size_t size, size_t alignment);
+extern void *balloc_rebase(void *ptr);
 
 #endif

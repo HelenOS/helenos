@@ -40,14 +40,15 @@
 /* Temporary stack size for boot process */
 #define TEMP_STACK_SIZE  0x1000
 
-#define TASKMAP_MAX_RECORDS  32
-#define MEMMAP_MAX_RECORDS   32
+#define TASKMAP_MAX_RECORDS        32
+#define MEMMAP_MAX_RECORDS         32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
 #ifndef __ASM__
 
-#define BOOTINFO_TASK_NAME_BUFLEN 32
-
 #include <arch/types.h>
+#include <config.h>
+#include <genarch/ofw/ofw_tree.h>
 
 typedef struct {
 	uintptr_t addr;
@@ -72,23 +73,10 @@ typedef struct {
 } memmap_t;
 
 typedef struct {
-	uintptr_t addr;
-	unsigned int width;
-	unsigned int height;
-	unsigned int bpp;
-	unsigned int scanline;
-} screen_t;
-
-typedef struct {
-	uintptr_t addr;
-	unsigned int size;
-} macio_t;
-
-typedef struct {
 	memmap_t memmap;
 	taskmap_t taskmap;
-	screen_t screen;
-	macio_t macio;
+	ballocs_t ballocs;
+	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
 
 extern bootinfo_t bootinfo;

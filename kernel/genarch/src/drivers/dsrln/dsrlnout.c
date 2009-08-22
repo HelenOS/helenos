@@ -34,42 +34,65 @@
  * @brief Dummy serial line output.
  */
 
-
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <console/chardev.h>
 #include <arch/asm.h>
+#include <mm/slab.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <string.h>
 
-static ioport8_t *dsrlnout_base;
+typedef struct {
+	ioport8_t *base;
+} dsrlnout_instance_t;
 
-static void dsrlnout_putchar(outdev_t *dev __attribute__((unused)), const wchar_t ch, bool silent)
+static void dsrlnout_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 {
+	dsrlnout_instance_t *instance = (dsrlnout_instance_t *) dev->data;
+	
 	if (!silent) {
 		if (ascii_check(ch))
-			pio_write_8(dsrlnout_base, ch);
+			pio_write_8(instance->base, ch);
 		else
-			pio_write_8(dsrlnout_base, U_SPECIAL);
+			pio_write_8(instance->base, U_SPECIAL);
 	}
 }
 
-static outdev_t dsrlnout_console;
-static outdev_operations_t dsrlnout_ops = {
-	.write = dsrlnout_putchar
+static outdev_operations_t dsrlndev_ops = {
+	.write = dsrlnout_putchar,
+	.redraw = NULL
 };
 
-void dsrlnout_init(ioport8_t *base)
+outdev_t *dsrlnout_init(ioport8_t *base)
 {
-	/* Initialize the software structure. */
-	dsrlnout_base = base;
+	outdev_t *dsrlndev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	if (!dsrlndev)
+		return NULL;
 	
-	outdev_initialize("dsrlnout", &dsrlnout_console, &dsrlnout_ops);
-	stdout = &dsrlnout_console;
+	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t), FRAME_ATOMIC);
+	if (!instance) {
+		free(dsrlndev);
+		return NULL;
+	}
 	
-	sysinfo_set_item_val("fb", NULL, true);
-	sysinfo_set_item_val("fb.kind", NULL, 3);
-	sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(base));
+	outdev_initialize("dsrlndev", dsrlndev, &dsrlndev_ops);
+	dsrlndev->data = instance;
+	
+	instance->base = base;
+	
+	if (!fb_exported) {
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("fb", NULL, true);
+		sysinfo_set_item_val("fb.kind", NULL, 3);
+		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(base));
+		
+		fb_exported = true;
+	}
+	
+	return dsrlndev;
 }
 
 /** @}

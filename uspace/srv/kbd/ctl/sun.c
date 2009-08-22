@@ -73,6 +73,11 @@ void kbd_ctl_parse_scancode(int scancode)
 		kbd_push_ev(type, key);
 }
 
+void kbd_ctl_set_ind(unsigned mods)
+{
+	(void) mods;
+}
+
 /** Primary meaning of scancodes. */
 static int scanmap_simple[] = {
 	[0x00] = 0,

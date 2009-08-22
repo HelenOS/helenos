@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -37,8 +37,8 @@
 #include <print.h>
 #include <syscall/copy.h>
 
+bool fb_exported = false;
 sysinfo_item_t *_root = NULL;
-
 
 static sysinfo_item_t *sysinfo_find_item(const char *name, sysinfo_item_t *subtree)
 {
