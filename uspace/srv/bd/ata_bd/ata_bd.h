@@ -155,18 +155,21 @@ typedef struct {
 	uint16_t _vs7;
 	uint16_t _vs8;
 	uint16_t _vs9;
+
 	uint16_t serial_number[10];
 	uint16_t _vs20;
 	uint16_t _vs21;
 	uint16_t vs_bytes;
 	uint16_t firmware_rev[4];
 	uint16_t model_name[20];
+
 	uint16_t max_rw_multiple;
 	uint16_t _res48;
 	uint16_t caps;
 	uint16_t _res50;
 	uint16_t pio_timing;
 	uint16_t dma_timing;
+
 	uint16_t validity;
 	uint16_t cur_cyl;
 	uint16_t cur_heads;
@@ -174,8 +177,8 @@ typedef struct {
 	uint16_t cur_capacity0;
 	uint16_t cur_capacity1;
 	uint16_t mss;
-	uint16_t total_lba_sec0;
-	uint16_t total_lba_sec1;
+	uint16_t total_lba28_0;
+	uint16_t total_lba28_1;
 	uint16_t sw_dma;
 	uint16_t mw_dma;
 	uint16_t pio_modes;
@@ -183,9 +186,36 @@ typedef struct {
 	uint16_t rec_mw_dma_cycle;
 	uint16_t min_raw_pio_cycle;
 	uint16_t min_iordy_pio_cycle;
+
 	uint16_t _res69;
 	uint16_t _res70;
-	uint16_t _res71[1 + 127 - 71];
+	uint16_t _res71;
+	uint16_t _res72;
+	uint16_t _res73;
+	uint16_t _res74;
+
+	uint16_t queue_depth;
+	uint16_t _res76[1 + 79 - 76];
+	uint16_t version_maj;
+	uint16_t version_min;
+	uint16_t cmd_set0;
+	uint16_t cmd_set1;
+	uint16_t csf_sup_ext;
+	uint16_t csf_enabled0;
+	uint16_t csf_enabled1;
+	uint16_t csf_default;
+	uint16_t udma;
+
+	uint16_t _res89[1 + 99 - 89];
+
+	/* Total number of blocks in LBA-48 addressing */
+	uint16_t total_lba48_0;
+	uint16_t total_lba48_1;
+	uint16_t total_lba48_2;
+	uint16_t total_lba48_3;
+
+	/* Note: more fields are defined in ATA/ATAPI-7 */
+	uint16_t _res104[1 + 127 - 104];
 	uint16_t _vs128[1 + 159 - 128];
 	uint16_t _res160[1 + 255 - 160];
 } identify_data_t;
@@ -197,10 +227,16 @@ enum ata_caps {
 	cap_dma		= 0x0100
 };
 
+/** Bits of @c identify_data_t.cmd_set1 */
+enum ata_cs1 {
+	cs1_addr48	= 0x0400	/**< 48-bit address feature set */
+};
+
 /** Block addressing mode. */
 enum addr_mode {
-	am_chs,
-	am_lba28
+	am_chs,		/**< CHS block addressing */
+	am_lba28,	/**< LBA-28 block addressing */
+	am_lba48	/**< LBA-48 block addressing */
 };
 
 typedef struct {

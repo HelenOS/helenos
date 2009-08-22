@@ -34,8 +34,14 @@
  * @file
  * @brief ATA disk driver
  *
- * This driver currently works only with CHS addressing and uses PIO.
- * Currently based on the (now obsolete) ATA-1, ATA-2 standards.
+ * This driver supports CHS, 28-bit and 48-bit LBA addressing. It only uses
+ * PIO transfers. There is no support DMA, the PACKET feature set or any other
+ * fancy features such as S.M.A.R.T, removable devices, etc.
+ *
+ * This driver is based on the ATA-1, ATA-2, ATA-3 and ATA/ATAPI-4 through 7
+ * standards, as published by the ANSI, NCITS and INCITS standards bodies,
+ * which are freely available. This driver contains no vendor-specific
+ * code at this moment.
  *
  * The driver services a single controller which can have up to two disks
  * attached.
@@ -99,7 +105,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address 0x%x\n", cmd_physical);
+	printf("I/O address 0x%p/0x%p\n", ctl_physical, cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -155,11 +161,17 @@ static void disk_print_summary(disk_t *d)
 
 	printf("%s: ", d->model);
 
-	if (d->amode == am_chs) {
+	switch (d->amode) {
+	case am_chs:
 		printf("CHS %u cylinders, %u heads, %u sectors",
 		    disk->geom.cylinders, disk->geom.heads, disk->geom.sectors);
-	} else {
+		break;
+	case am_lba28:
 		printf("LBA-28");
+		break;
+	case am_lba48:
+		printf("LBA-48");
+		break;
 	}
 
 	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
@@ -287,7 +299,7 @@ static int disk_init(disk_t *d, int disk_id)
 	uint8_t c;
 	size_t pos, len;
 	int rc;
-	int i;
+	unsigned i;
 
 	rc = drive_identify(disk_id, &idata);
 	if (rc != EOK) {
@@ -304,8 +316,8 @@ static int disk_init(disk_t *d, int disk_id)
 		d->geom.sectors = idata.sectors;
 
 		d->blocks = d->geom.cylinders * d->geom.heads * d->geom.sectors;
-	} else {
-		/* Device supports LBA-28. */
+	} else if ((idata.cmd_set1 & cs1_addr48) == 0) {
+		/* Device only supports LBA-28 addressing. */
 		d->amode = am_lba28;
 
 		d->geom.cylinders = 0;
@@ -313,8 +325,21 @@ static int disk_init(disk_t *d, int disk_id)
 		d->geom.sectors = 0;
 
 		d->blocks =
-		    (uint32_t) idata.total_lba_sec0 | 
-		    ((uint32_t) idata.total_lba_sec1 << 16);
+		     (uint32_t) idata.total_lba28_0 | 
+		    ((uint32_t) idata.total_lba28_1 << 16);
+	} else {
+		/* Device supports LBA-48 addressing. */
+		d->amode = am_lba48;
+
+		d->geom.cylinders = 0;
+		d->geom.heads = 0;
+		d->geom.sectors = 0;
+
+		d->blocks =
+		     (uint64_t) idata.total_lba48_0 |
+		    ((uint64_t) idata.total_lba48_1 << 16) |
+		    ((uint64_t) idata.total_lba48_2 << 32) | 
+		    ((uint64_t) idata.total_lba48_3 << 48);
 	}
 
 	/*
@@ -450,7 +475,7 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	size_t i;
 	uint16_t data;
 	uint8_t status;
-	uint64_t c, h, s;
+	uint64_t c, h, s, c1, s1;
 	uint64_t idx;
 	uint8_t drv_head;
 	disk_t *d;
@@ -461,18 +486,31 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	if (blk_idx >= d->blocks)
 		return EINVAL;
 
-	if (d->amode == am_chs) {
+	switch (d->amode) {
+	case am_chs:
 		/* Compute CHS coordinates. */
 		c = blk_idx / (d->geom.heads * d->geom.sectors);
 		idx = blk_idx % (d->geom.heads * d->geom.sectors);
 
 		h = idx / d->geom.sectors;
 		s = 1 + (idx % d->geom.sectors);
-	} else {
+		break;
+
+	case am_lba28:
 		/* Compute LBA-28 coordinates. */
 		s = blk_idx & 0xff;		/* bits 0-7 */
 		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
 		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+		break;
+
+	case am_lba48:
+		/* Compute LBA-48 coordinates. */
+		s = blk_idx & 0xff;		/* bits 0-7 */
+		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
+		s1 = (blk_idx >> 24) & 0xff;	/* bits 24-31 */
+		c1 = (blk_idx >> 32) & 0xffff;	/* bits 32-47 */
+		h = 0;
+		break;
 	}
 
 	/* New value for Drive/Head register */
@@ -497,6 +535,15 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 	}
 
+	if (d->amode == am_lba48) {
+		/* Write high-order bits. */
+		pio_write_8(&cmd->sector_count, 0);
+		pio_write_8(&cmd->sector_number, s1);
+		pio_write_8(&cmd->cylinder_low, c1 & 0xff);
+		pio_write_8(&cmd->cylinder_high, c1 >> 16);
+	}
+
+	/* Write low-order bits. */
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
@@ -539,7 +586,7 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 {
 	size_t i;
 	uint8_t status;
-	uint64_t c, h, s;
+	uint64_t c, h, s, c1, s1;
 	uint64_t idx;
 	uint8_t drv_head;
 	disk_t *d;
@@ -550,18 +597,31 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	if (blk_idx >= d->blocks)
 		return EINVAL;
 
-	if (d->amode == am_chs) {
+	switch (d->amode) {
+	case am_chs:
 		/* Compute CHS coordinates. */
 		c = blk_idx / (d->geom.heads * d->geom.sectors);
 		idx = blk_idx % (d->geom.heads * d->geom.sectors);
 
 		h = idx / d->geom.sectors;
 		s = 1 + (idx % d->geom.sectors);
-	} else {
+		break;
+
+	case am_lba28:
 		/* Compute LBA-28 coordinates. */
 		s = blk_idx & 0xff;		/* bits 0-7 */
 		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
 		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+		break;
+
+	case am_lba48:
+		/* Compute LBA-48 coordinates. */
+		s = blk_idx & 0xff;		/* bits 0-7 */
+		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
+		s1 = (blk_idx >> 24) & 0xff;	/* bits 24-31 */
+		c1 = (blk_idx >> 32) & 0xffff;	/* bits 32-47 */
+		h = 0;
+		break;
 	}
 
 	/* New value for Drive/Head register */
@@ -586,6 +646,15 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 	}
 
+	if (d->amode == am_lba48) {
+		/* Write high-order bits. */
+		pio_write_8(&cmd->sector_count, 0);
+		pio_write_8(&cmd->sector_number, s1);
+		pio_write_8(&cmd->cylinder_low, c1 & 0xff);
+		pio_write_8(&cmd->cylinder_high, c1 >> 16);
+	}
+
+	/* Write low-order bits. */
 	pio_write_8(&cmd->sector_count, 1);
 	pio_write_8(&cmd->sector_number, s);
 	pio_write_8(&cmd->cylinder_low, c & 0xff);
