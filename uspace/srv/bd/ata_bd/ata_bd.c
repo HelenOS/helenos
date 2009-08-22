@@ -151,6 +151,8 @@ int main(int argc, char **argv)
 /** Print one-line device summary. */
 static void disk_print_summary(disk_t *d)
 {
+	uint64_t mbytes;
+
 	printf("%s: ", d->model);
 
 	if (d->amode == am_chs) {
@@ -160,7 +162,13 @@ static void disk_print_summary(disk_t *d)
 		printf("LBA-28");
 	}
 
-	printf(" %llu blocks.\n", d->blocks);
+	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
+
+	mbytes = d->blocks / (2 * 1024);
+	if (mbytes > 0)
+		printf(" %llu MB.", mbytes);
+
+	printf("\n");
 }
 
 /** Register driver and enable device I/O. */
