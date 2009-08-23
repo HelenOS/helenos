@@ -241,6 +241,33 @@ enum addr_mode {
 	am_lba48	/**< LBA-48 block addressing */
 };
 
+/** Block coordinates */
+typedef struct {
+	/** Addressing mode used */
+	enum addr_mode amode;
+
+	union {
+		/** CHS coordinates */
+		struct {
+			uint8_t sector;
+			uint8_t cyl_lo;
+			uint8_t cyl_hi;
+		};
+		/** LBA coordinates */
+		struct {
+			uint8_t c0;
+			uint8_t c1;
+			uint8_t c2;
+			uint8_t c3;
+			uint8_t c4;
+			uint8_t c5;
+		};
+	};
+
+	/** Lower 4 bits for device/head register */
+	uint8_t h;
+} block_coord_t;
+
 typedef struct {
 	bool present;
 	enum addr_mode amode;
