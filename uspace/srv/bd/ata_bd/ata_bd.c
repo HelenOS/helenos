@@ -34,8 +34,14 @@
  * @file
  * @brief ATA disk driver
  *
- * This driver currently works only with CHS addressing and uses PIO.
- * Currently based on the (now obsolete) ATA-1, ATA-2 standards.
+ * This driver supports CHS, 28-bit and 48-bit LBA addressing. It only uses
+ * PIO transfers. There is no support DMA, the PACKET feature set or any other
+ * fancy features such as S.M.A.R.T, removable devices, etc.
+ *
+ * This driver is based on the ATA-1, ATA-2, ATA-3 and ATA/ATAPI-4 through 7
+ * standards, as published by the ANSI, NCITS and INCITS standards bodies,
+ * which are freely available. This driver contains no vendor-specific
+ * code at this moment.
  *
  * The driver services a single controller which can have up to two disks
  * attached.
@@ -88,6 +94,8 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 static int disk_init(disk_t *d, int disk_id);
 static int drive_identify(int drive_id, void *buf);
 static void disk_print_summary(disk_t *d);
+static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc);
+static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
 static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
     unsigned timeout);
 
@@ -99,7 +107,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address 0x%x\n", cmd_physical);
+	printf("I/O address 0x%p/0x%p\n", ctl_physical, cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -155,11 +163,17 @@ static void disk_print_summary(disk_t *d)
 
 	printf("%s: ", d->model);
 
-	if (d->amode == am_chs) {
+	switch (d->amode) {
+	case am_chs:
 		printf("CHS %u cylinders, %u heads, %u sectors",
 		    disk->geom.cylinders, disk->geom.heads, disk->geom.sectors);
-	} else {
+		break;
+	case am_lba28:
 		printf("LBA-28");
+		break;
+	case am_lba48:
+		printf("LBA-48");
+		break;
 	}
 
 	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
@@ -287,7 +301,7 @@ static int disk_init(disk_t *d, int disk_id)
 	uint8_t c;
 	size_t pos, len;
 	int rc;
-	int i;
+	unsigned i;
 
 	rc = drive_identify(disk_id, &idata);
 	if (rc != EOK) {
@@ -304,8 +318,8 @@ static int disk_init(disk_t *d, int disk_id)
 		d->geom.sectors = idata.sectors;
 
 		d->blocks = d->geom.cylinders * d->geom.heads * d->geom.sectors;
-	} else {
-		/* Device supports LBA-28. */
+	} else if ((idata.cmd_set1 & cs1_addr48) == 0) {
+		/* Device only supports LBA-28 addressing. */
 		d->amode = am_lba28;
 
 		d->geom.cylinders = 0;
@@ -313,8 +327,21 @@ static int disk_init(disk_t *d, int disk_id)
 		d->geom.sectors = 0;
 
 		d->blocks =
-		    (uint32_t) idata.total_lba_sec0 | 
-		    ((uint32_t) idata.total_lba_sec1 << 16);
+		     (uint32_t) idata.total_lba28_0 | 
+		    ((uint32_t) idata.total_lba28_1 << 16);
+	} else {
+		/* Device supports LBA-48 addressing. */
+		d->amode = am_lba48;
+
+		d->geom.cylinders = 0;
+		d->geom.heads = 0;
+		d->geom.sectors = 0;
+
+		d->blocks =
+		     (uint64_t) idata.total_lba48_0 |
+		    ((uint64_t) idata.total_lba48_1 << 16) |
+		    ((uint64_t) idata.total_lba48_2 << 32) | 
+		    ((uint64_t) idata.total_lba48_3 << 48);
 	}
 
 	/*
@@ -450,36 +477,22 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	size_t i;
 	uint16_t data;
 	uint8_t status;
-	uint64_t c, h, s;
-	uint64_t idx;
 	uint8_t drv_head;
 	disk_t *d;
+	block_coord_t bc;
 
 	d = &disk[disk_id];
+	bc.h = 0;	/* Silence warning. */
 
-	/* Check device bounds. */
-	if (blk_idx >= d->blocks)
+	/* Compute block coordinates. */
+	if (coord_calc(d, blk_idx, &bc) != EOK)
 		return EINVAL;
-
-	if (d->amode == am_chs) {
-		/* Compute CHS coordinates. */
-		c = blk_idx / (d->geom.heads * d->geom.sectors);
-		idx = blk_idx % (d->geom.heads * d->geom.sectors);
-
-		h = idx / d->geom.sectors;
-		s = 1 + (idx % d->geom.sectors);
-	} else {
-		/* Compute LBA-28 coordinates. */
-		s = blk_idx & 0xff;		/* bits 0-7 */
-		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
-		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
-	}
 
 	/* New value for Drive/Head register */
 	drv_head =
 	    ((disk_id != 0) ? DHR_DRV : 0) |
 	    ((d->amode != am_chs) ? DHR_LBA : 0) |
-	    (h & 0x0f);
+	    (bc.h & 0x0f);
 
 	fibril_mutex_lock(&d->lock);
 
@@ -497,12 +510,11 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 	}
 
-	pio_write_8(&cmd->sector_count, 1);
-	pio_write_8(&cmd->sector_number, s);
-	pio_write_8(&cmd->cylinder_low, c & 0xff);
-	pio_write_8(&cmd->cylinder_high, c >> 16);
+	/* Program block coordinates into the device. */
+	coord_sc_program(&bc, 1);
 
-	pio_write_8(&cmd->command, CMD_READ_SECTORS);
+	pio_write_8(&cmd->command, d->amode == am_lba48 ?
+	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
 
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&d->lock);
@@ -539,36 +551,22 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 {
 	size_t i;
 	uint8_t status;
-	uint64_t c, h, s;
-	uint64_t idx;
 	uint8_t drv_head;
 	disk_t *d;
+	block_coord_t bc;
 
 	d = &disk[disk_id];
+	bc.h = 0;	/* Silence warning. */
 
-	/* Check device bounds. */
-	if (blk_idx >= d->blocks)
+	/* Compute block coordinates. */
+	if (coord_calc(d, blk_idx, &bc) != EOK)
 		return EINVAL;
-
-	if (d->amode == am_chs) {
-		/* Compute CHS coordinates. */
-		c = blk_idx / (d->geom.heads * d->geom.sectors);
-		idx = blk_idx % (d->geom.heads * d->geom.sectors);
-
-		h = idx / d->geom.sectors;
-		s = 1 + (idx % d->geom.sectors);
-	} else {
-		/* Compute LBA-28 coordinates. */
-		s = blk_idx & 0xff;		/* bits 0-7 */
-		c = (blk_idx >> 8) & 0xffff;	/* bits 8-23 */
-		h = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
-	}
 
 	/* New value for Drive/Head register */
 	drv_head =
 	    ((disk_id != 0) ? DHR_DRV : 0) |
 	    ((d->amode != am_chs) ? DHR_LBA : 0) |
-	    (h & 0x0f);
+	    (bc.h & 0x0f);
 
 	fibril_mutex_lock(&d->lock);
 
@@ -586,12 +584,11 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 	}
 
-	pio_write_8(&cmd->sector_count, 1);
-	pio_write_8(&cmd->sector_number, s);
-	pio_write_8(&cmd->cylinder_low, c & 0xff);
-	pio_write_8(&cmd->cylinder_high, c >> 16);
+	/* Program block coordinates into the device. */
+	coord_sc_program(&bc, 1);
 
-	pio_write_8(&cmd->command, CMD_WRITE_SECTORS);
+	pio_write_8(&cmd->command, d->amode == am_lba48 ?
+	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
 
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&d->lock);
@@ -612,6 +609,81 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 		return EIO;
 
 	return EOK;
+}
+
+/** Calculate block coordinates.
+ *
+ * Calculates block coordinates in the best coordinate system supported
+ * by the device. These can be later programmed into the device using
+ * @c coord_sc_program().
+ *
+ * @return EOK on success or EINVAL if block index is past end of device.
+ */
+static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc)
+{
+	uint64_t c;
+	uint64_t idx;
+
+	/* Check device bounds. */
+	if (blk_idx >= d->blocks)
+		return EINVAL;
+
+	bc->amode = d->amode;
+
+	switch (d->amode) {
+	case am_chs:
+		/* Compute CHS coordinates. */
+		c = blk_idx / (d->geom.heads * d->geom.sectors);
+		idx = blk_idx % (d->geom.heads * d->geom.sectors);
+
+		bc->cyl_lo = c & 0xff;
+		bc->cyl_hi = (c >> 8) & 0xff;
+		bc->h      = (idx / d->geom.sectors) & 0x0f;
+		bc->sector = (1 + (idx % d->geom.sectors)) & 0xff;
+		break;
+
+	case am_lba28:
+		/* Compute LBA-28 coordinates. */
+		bc->c0 = blk_idx & 0xff;		/* bits 0-7 */
+		bc->c1 = (blk_idx >> 8) & 0xff;		/* bits 8-15 */
+		bc->c2 = (blk_idx >> 16) & 0xff;	/* bits 16-23 */
+		bc->h  = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+		break;
+
+	case am_lba48:
+		/* Compute LBA-48 coordinates. */
+		bc->c0 = blk_idx & 0xff;		/* bits 0-7 */
+		bc->c1 = (blk_idx >> 8) & 0xff;		/* bits 8-15 */
+		bc->c2 = (blk_idx >> 16) & 0xff;	/* bits 16-23 */
+		bc->c3 = (blk_idx >> 24) & 0xff;	/* bits 24-31 */
+		bc->c4 = (blk_idx >> 32) & 0xff;	/* bits 32-39 */
+		bc->c5 = (blk_idx >> 40) & 0xff;	/* bits 40-47 */
+		bc->h  = 0;
+		break;
+	}
+
+	return EOK;
+}
+
+/** Program block coordinates and sector count into ATA registers.
+ *
+ * Note that bc->h must be programmed separately into the device/head register.
+ */
+static void coord_sc_program(const block_coord_t *bc, uint16_t scnt)
+{
+	if (bc->amode == am_lba48) {
+		/* Write high-order bits. */
+		pio_write_8(&cmd->sector_count, scnt >> 8);
+		pio_write_8(&cmd->sector_number, bc->c3);
+		pio_write_8(&cmd->cylinder_low, bc->c4);
+		pio_write_8(&cmd->cylinder_high, bc->c5);
+	}
+
+	/* Write low-order bits. */
+	pio_write_8(&cmd->sector_count, scnt & 0x00ff);
+	pio_write_8(&cmd->sector_number, bc->c0);
+	pio_write_8(&cmd->cylinder_low, bc->c1);
+	pio_write_8(&cmd->cylinder_high, bc->c2);
 }
 
 /** Wait until some status bits are set and some are reset.
