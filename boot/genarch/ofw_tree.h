@@ -32,7 +32,6 @@
 #include <types.h>
 #include <ofw.h>
 
-#define OFW_TREE_PROPERTY_MAX_NAMELEN  32
 
 /** Memory representation of OpenFirmware device tree node property. */
 typedef struct {

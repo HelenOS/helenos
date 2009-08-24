@@ -171,13 +171,15 @@ void bootstrap(void)
 	
 	pages += balloc_pages;
 	
+	printf("Setting up screens...");
+	ofw_setup_screens();
+	printf("done.\n");
+	
 	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base, balloc_kernel_base);
 	printf("\nCanonizing OpenFirmware device tree...");
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
 	
-	ofw_setup_palette();
-	
-	printf("\nBooting the kernel...\n");
+	printf("Booting the kernel...\n");
 	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa);
 }

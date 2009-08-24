@@ -31,6 +31,7 @@
 #include <printf.h>
 #include <asm.h>
 #include <types.h>
+#include <string.h>
 
 #define RED(i)    (((i) >> 5) & ((1 << 3) - 1))
 #define GREEN(i)  (((i) >> 3) & ((1 << 2) - 1))
@@ -45,7 +46,6 @@ phandle ofw_root;
 ihandle ofw_mmu;
 ihandle ofw_memory_prop;
 phandle ofw_memory;
-phandle ofw_aliases;
 
 void ofw_init(void)
 {
@@ -73,16 +73,10 @@ void ofw_init(void)
 		puts("\r\nError: Unable to get memory property, halted.\r\n");
 		halt();
 	}
-
+	
 	ofw_memory = ofw_find_device("/memory");
 	if (ofw_memory == -1) {
 		puts("\r\nError: Unable to find /memory device, halted.\r\n");
-		halt();
-	}
-	
-	ofw_aliases = ofw_find_device("/aliases");
-	if (ofw_aliases == -1) {
-		puts("\r\nError: Unable to find /aliases device, halted.\r\n");
 		halt();
 	}
 }
@@ -132,8 +126,7 @@ phandle ofw_find_device(const char *name)
 	return ofw_call("finddevice", 1, 1, NULL, name);
 }
 
-int
-ofw_get_property(const phandle device, const char *name, void *buf,
+int ofw_get_property(const phandle device, const char *name, void *buf,
     const int buflen)
 {
 	return ofw_call("getprop", 4, 1, NULL, device, name, buf, buflen);
@@ -165,7 +158,6 @@ unsigned int ofw_get_address_cells(const phandle device)
 	
 	return ret;
 }
-
 
 unsigned int ofw_get_size_cells(const phandle device)
 {
@@ -353,45 +345,91 @@ int ofw_memmap(memmap_t *map)
 	return true;
 }
 
-/**
- * Sets up the palette for the 8-bit color depth configuration so that the
- * 3:2:3 color scheme can be used. Checks that setting the palette makes sense
- * (appropriate nodes exist in the OBP tree and the color depth is not greater
+static void ofw_setup_screen(phandle handle)
+{
+	/* Check for device type */
+	char device_type[OFW_TREE_PROPERTY_MAX_VALUELEN];
+	if (ofw_get_property(handle, "device_type", device_type, OFW_TREE_PROPERTY_MAX_VALUELEN) <= 0)
+		return;
+	
+	device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
+	if (strcmp(device_type, "display") != 0)
+		return;
+	
+	/* Check for 8 bit depth */
+	uint32_t depth;
+	if (ofw_get_property(handle, "depth", &depth, sizeof(uint32_t)) <= 0)
+		depth = 0;
+	
+	/* Get device path */
+	static char path[OFW_TREE_PATH_MAX_LEN + 1];
+	size_t len = ofw_package_to_path(handle, path, OFW_TREE_PATH_MAX_LEN);
+	if (len == -1)
+		return;
+	
+	path[len] = '\0';
+	
+	/* Open the display to initialize it */
+	ihandle screen = ofw_open(path);
+	if (screen == -1)
+		return;
+	
+	if (depth == 8) {
+		/* Setup the palette so that the (inverted) 3:2:3 scheme is usable */
+		unsigned int i;
+		for (i = 0; i < 256; i++) {
+			ofw_call("call-method", 6, 1, NULL, "color!", screen,
+			    255 - i, CLIP(BLUE(i) * 37), GREEN(i) * 85, CLIP(RED(i) * 37));
+		}
+	}
+}
+
+static void ofw_setup_screens_internal(phandle current)
+{
+	while ((current != 0) && (current != -1)) {
+		ofw_setup_screen(current);
+		
+		/*
+		 * Recursively process the potential child node.
+		 */
+		phandle child = ofw_get_child_node(current);
+		if ((child != 0) && (child != -1))
+			ofw_setup_screens_internal(child);
+		
+		/*
+		 * Iteratively process the next peer node.
+		 * Note that recursion is a bad idea here.
+		 * Due to the topology of the OpenFirmware device tree,
+		 * the nesting of peer nodes could be to wide and the
+		 * risk of overflowing the stack is too real.
+		 */
+		phandle peer = ofw_get_peer_node(current);
+		if ((peer != 0) && (peer != -1)) {
+			current = peer;
+			/*
+			 * Process the peer in next iteration.
+			 */
+			continue;
+		}
+		
+		/*
+		 * No more peers on this level.
+		 */
+		break;
+	}
+}
+
+/** Setup all screens which can be detected.
+ *
+ * Open all screens which can be detected and set up the palette for the 8-bit
+ * color depth configuration so that the 3:2:3 color scheme can be used.
+ * Check that setting the palette makes sense (the color depth is not greater
  * than 8).
  *
- * @return true if the palette has been set, false otherwise
- *
  */
-int ofw_setup_palette(void)
+void ofw_setup_screens(void)
 {
-	char device_name[BUF_SIZE];
-	
-	/* Resolve alias */
-	if (ofw_get_property(ofw_aliases, "screen", device_name,
-	    sizeof(device_name)) <= 0)
-		return false;
-	
-	/* For depth greater than 8 it makes no sense to set up the palette */
-	uint32_t depth;
-	phandle device = ofw_find_device(device_name);
-	if (device == -1)
-		return false;
-	if (ofw_get_property(device, "depth", &depth, sizeof(uint32_t)) <= 0)
-		return false;
-	if (depth != 8)
-		return false;
-	
-	/* Required in order to be able to make a method call */
-	ihandle screen = ofw_open(device_name);
-	if (screen == -1)
-		return false;
-	
-	/* Setup the palette so that the (inverted) 3:2:3 scheme is usable */
-	unsigned int i;
-	for (i = 0; i < 256; i++)
-		ofw_call("call-method", 6, 1, NULL, "color!", screen,
-		    255 - i, CLIP(BLUE(i) * 37), GREEN(i) * 85, CLIP(RED(i) * 37));
-	return true;
+	ofw_setup_screens_internal(ofw_root);
 }
 
 void ofw_quiesce(void)

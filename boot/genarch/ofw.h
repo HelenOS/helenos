@@ -32,11 +32,12 @@
 #include <types.h>
 #include <stdarg.h>
 
-#define BUF_SIZE  1024
-
 #define MEMMAP_MAX_RECORDS  32
+#define MAX_OFW_ARGS        12
 
-#define MAX_OFW_ARGS  12
+#define OFW_TREE_PATH_MAX_LEN           256
+#define OFW_TREE_PROPERTY_MAX_NAMELEN   32
+#define OFW_TREE_PROPERTY_MAX_VALUELEN  64
 
 typedef unative_t ofw_arg_t;
 typedef unsigned int ihandle;
@@ -82,7 +83,6 @@ extern ihandle ofw_stdout;
 extern phandle ofw_root;
 extern ihandle ofw_mmu;
 extern phandle ofw_memory;
-extern phandle ofw_aliases;
 
 extern void ofw_init(void);
 
@@ -109,7 +109,7 @@ extern void *ofw_claim_phys(const void *virt, const unsigned int len);
 extern void *ofw_claim_phys_any(const unsigned int len, const unsigned int alignment);
 extern int ofw_map(const void *phys, const void *virt, const unsigned int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
-extern int ofw_setup_palette(void);
+extern void ofw_setup_screens(void);
 extern void ofw_quiesce(void);
 
 #endif

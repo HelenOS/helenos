@@ -35,8 +35,6 @@
 #include <asm.h>
 #include <memstr.h>
 
-#define MAX_PATH_LEN  256
-
 static ofw_tree_node_t *ofw_tree_node_alloc(void)
 {
 	return balloc(sizeof(ofw_tree_node_t), sizeof(ofw_tree_node_t));
@@ -100,8 +98,8 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		/*
 		 * Get the disambigued name.
 		 */
-		static char path[MAX_PATH_LEN + 1];
-		size_t len = ofw_package_to_path(current, path, MAX_PATH_LEN);
+		static char path[OFW_TREE_PATH_MAX_LEN + 1];
+		size_t len = ofw_package_to_path(current, path, OFW_TREE_PATH_MAX_LEN);
 		if (len == -1)
 			return;
 		
@@ -167,7 +165,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 			
 			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
 			memcpy(property[i].name, name, OFW_TREE_PROPERTY_MAX_NAMELEN);
-			property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN] = '\0';
+			property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN - 1] = '\0';
 			
 			size_t size = ofw_get_proplen(current, name);
 			property[i].size = size;

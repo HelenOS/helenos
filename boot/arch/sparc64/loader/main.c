@@ -188,6 +188,8 @@ void bootstrap(void)
 		top += components[i].size;
 	}
 	
+	printf("\n");
+	
 	/* Do not consider RAM disk */
 	j = bootinfo.taskmap.count - 1;
 	
@@ -204,7 +206,7 @@ void bootstrap(void)
 		bootinfo.taskmap.tasks[bootinfo.taskmap.count].size =
 		    silo_ramdisk_size;
 		bootinfo.taskmap.count++;
-		printf("\nCopying RAM disk...");
+		printf("Copying RAM disk...");
 		
 		/*
 		 * Claim and map the whole ramdisk as it may exceed the area
@@ -226,7 +228,7 @@ skip_ramdisk:
 	 * so that we don't overwrite anything even if the components overlap
 	 * with base.
 	 */
-	printf("\nCopying tasks...");
+	printf("Copying tasks...");
 	for (i = COMPONENTS - 1; i > 0; i--, j--) {
 		printf("%s ", components[i].name);
 		
@@ -251,7 +253,7 @@ skip_ramdisk:
 	}
 	printf(".\n");
 	
-	printf("\nCopying kernel...");
+	printf("Copying kernel...");
 	(void) ofw_claim_phys(bootinfo.physmem_start + base,
 	    ALIGN_UP(components[0].size, PAGE_SIZE));
 	memcpy(base, components[0].start, components[0].size);
@@ -269,20 +271,22 @@ skip_ramdisk:
 	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base,
 	    (uintptr_t) balloc_base);
 	
-	printf("\nCanonizing OpenFirmware device tree...");
+	printf("Setting up screens...");
+	ofw_setup_screens();
+	printf("done.\n");
+	
+	printf("Canonizing OpenFirmware device tree...");
 	bootinfo.ofw_root = ofw_tree_build();
 	printf("done.\n");
 	
 #ifdef CONFIG_AP
-	printf("\nChecking for secondary processors...");
+	printf("Checking for secondary processors...");
 	if (!ofw_cpu(mid_mask, bootinfo.physmem_start))
 		printf("Error: unable to get CPU properties\n");
 	printf("done.\n");
 #endif
 	
-	ofw_setup_palette();
-	
-	printf("\nBooting the kernel...\n");
+	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
 	    bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo,
 	    sizeof(bootinfo), subarchitecture);
