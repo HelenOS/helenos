@@ -77,10 +77,11 @@ static int wake_cpus_in_node(phandle child, uint64_t current_mid,
 	
 	for (cpus = 0; (child != 0) && (child != -1);
 	    child = ofw_get_peer_node(child), cpus++) {
-		char type_name[BUF_SIZE];
+		char type_name[OFW_TREE_PROPERTY_MAX_VALUELEN];
 		
 		if (ofw_get_property(child, "device_type", type_name,
-		    sizeof(type_name)) > 0) {
+		    OFW_TREE_PROPERTY_MAX_VALUELEN) > 0) {
+			type_name[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = 0;
 			if (strcmp(type_name, "cpu") == 0) {
 				uint32_t mid;
 				
@@ -134,10 +135,11 @@ int ofw_cpu(uint16_t mid_mask, uintptr_t physmem_start)
 	phandle node = ofw_get_child_node(cpus_parent);
 	int cpus = wake_cpus_in_node(node, current_mid, physmem_start);
 	while ((node != 0) && (node != -1)) {
-		char name[BUF_SIZE];
+		char name[OFW_TREE_PROPERTY_MAX_VALUELEN];
 		
 		if (ofw_get_property(node, "name", name,
-		    sizeof(name)) > 0) {
+		    OFW_TREE_PROPERTY_MAX_VALUELEN) > 0) {
+			name[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = 0;
 			if (strcmp(name, "cmp") == 0) {
 				phandle subnode = ofw_get_child_node(node);
 				cpus += wake_cpus_in_node(subnode,
