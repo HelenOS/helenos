@@ -1,0 +1,132 @@
+!ns.IPC_M_CONNECT_TO_ME ;
+(
+	?IPC_M_CONNECT_ME_TO ;
+	(
+		?VFS_IN_REGISTER {
+			?IPC_M_DATA_WRITE ;
+			?IPC_M_CONNECT_TO_ME ;
+			?IPC_M_SHARE_IN
+		} +
+		
+		?VFS_IN_MOUNT {
+			?IPC_M_DATA_WRITE /* mount point */ ;
+			?IPC_M_DATA_WRITE /* mount options */ ;
+			?IPC_M_DATA_WRITE /* fs name */ ;
+			?IPC_M_PING ;
+			(
+				
+				!VFS_OUT_MOUNTED ;
+				!IPC_M_DATA_WRITE /* mount options */
+			) /* root fs */ +
+			(
+				!VFS_OUT_MOUNT ;
+				!IPC_M_CONNECTION_CLONE ;
+				!VFS_M_DATA_WRITE /* mount options */
+			) /* non-root fs */
+		} +
+		
+		?VFS_IN_OPEN {
+			?IPC_M_DATA_WRITE /* path */ ;
+			[vfs_lookup_internal] ;
+			(
+				(
+					[vfs_grab_phone] ;
+					!VFS_OUT_TRUNCATE ;
+					[vfs_release_phone]
+				) +
+				NULL
+			)
+		} +
+		
+		?VFS_IN_OPEN_NODE {
+			[vfs_grab_phone] ;
+			!VFS_OUT_OPEN_NODE ;
+			[vfs_release_phone ] ;
+			(
+				(
+					[vfs_grab_phone] ;
+					!VFS_OUT_TRUNCATE ;
+					[vfs_release_phone]
+				) +
+				NULL
+				NULL
+			)
+		} +
+		
+		?VFS_IN_CLOSE {
+			[vfs_grab_phone] ;
+			!VFS_OUT_CLOSE ;
+			[vfs_release_phone ]
+		} +
+		
+		?VFS_IN_READ {
+			?IPC_M_DATA_READ {
+				[vfs_grab_phone] ;
+				!VFS_OUT_READ ;
+				!IPC_M_FORWARD ;
+				[vfs_release_phone]
+			}
+		} +
+		
+		?VFS_IN_WRITE {
+			?IPC_M_DATA_WRITE {
+				[vfs_grab_phone] ;
+				!VFS_OUT_WRITE ;
+				!IPC_M_FORWARD ;
+				[vfs_release_phone]
+			}
+		} +
+		
+		?VFS_IN_SEEK +
+		
+		?VFS_IN_TRUNCATE {
+			[vfs_grab_phone] ;
+			!VFS_OUT_TRUNCATE ;
+			[vfs_release_phone]
+		} +
+		
+		?VFS_IN_FSTAT {
+			?IPC_M_DATA_READ {
+				[vfs_grab_phone] ;
+				!VFS_OUT_STAT ;
+				!IPC_M_FORWARD ;
+				[vfs_release_phone]
+			}
+		} +
+		
+		?VFS_IN_STAT {
+			?IPC_M_DATA_WRITE /* path */ ;
+			?IPC_M_DATA_READ {
+				[vfs_lookup_internal] ;
+				!VFS_OUT_STAT ;
+				!IPC_M_FORWARD
+			}
+		} +
+		
+		?VFS_IN_MKDIR {
+			?IPC_M_DATA_WRITE /* path */ ;
+			[vfs_lookup_internal]
+		} +
+		
+		?VFS_IN_UNLINK {
+			?IPC_M_DATA_WRITE /* path */ ;
+			[vfs_lookup_internal]
+		} +
+		
+		?VFS_IN_RENAME {
+			?IPC_M_DATA_WRITE /* old path */ ;
+			?IPC_M_DATE_WRITE /* new path */ ;
+			[vfs_lookup_internal] /* lookup old path */ ;
+			[vfs_lookup_internal] /* lookup parent of new path */ ;
+			[vfs_lookup_internal] /* destroy old link for the new path */ ;
+			[vfs_lookup_internal] /* create new link for the new path */ ;
+			[vfs_lookup_internal] /* destroy link for the old path */
+		} +
+		
+		?VFS_IN_SYNC {
+			!VFS_OUT_SYNC
+		}
+		
+	)* ;
+	?IPC_M_PHONE_HANGUP
+)*

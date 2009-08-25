@@ -1,0 +1,11 @@
+[devmap_driver_register] ;
+[devmap_device_register] ;
+(
+	?IPC_M_CONNECT_ME_TO ;
+	?IPC_SHARE_IN ;
+	(
+		?BD_READ_BLOCK +
+		?BD_WRITE_BLOCK
+	)* ;
+	?IPC_M_PHONE_HANGUP
+)*
