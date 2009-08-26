@@ -1,6 +1,6 @@
-[devmap_get_phone] ;
+[../../../lib/libc/devmap_get_phone] ;
 !ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
-[fs_register] ;
+[../../../lib/libfs/fs_register] ;
 (
 	?IPC_M_CONNECT_ME_TO ;
 	(
@@ -12,8 +12,8 @@
 		
 		?VFS_OUT_LOOKUP {
 			(
-				[devmap_device_get_handle] ;
-				[devmap_device_connect]
+				[../../../lib/libc/devmap_device_get_handle] ;
+				[../../../lib/libc/devmap_device_connect]
 			) +
 			NULL
 		} +
@@ -25,8 +25,8 @@
 					!dev.IPC_M_DATA_READ /* forwarded */
 				) +
 				(
-					[devmap_device_get_count] ;
-					[devmap_device_get_devices]
+					[../../../lib/libc/devmap_device_get_count] ;
+					[../../../lib/libc/devmap_device_get_devices]
 				)
 			}
 		} +
@@ -50,7 +50,7 @@
 		?VFS_OUT_DESTROY +
 		
 		?VFS_OUT_OPEN_NODE {
-			[devmap_device_connect] +
+			[../../../lib/libc/devmap_device_connect] +
 			NULL
 		} +
 		

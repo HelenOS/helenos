@@ -1,5 +1,5 @@
 !ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
-[fs_register] ;
+[../../../lib/libfs/fs_register] ;
 (
 	?IPC_M_CONNECT_ME_TO ;
 	(
@@ -8,11 +8,11 @@
 		} +
 		
 		?VFS_OUT_MOUNT {
-			[libfs_mount]
+			[../../../lib/libfs/libfs_mount]
 		} +
 		
 		?VFS_OUT_LOOKUP {
-			[libfs_lookup]
+			[../../../lib/libfs/libfs_lookup]
 		} +
 		
 		?VFS_OUT_READ {
@@ -30,11 +30,11 @@
 		?VFS_OUT_DESTROY +
 		
 		?VFS_OUT_OPEN_NODE {
-			[libfs_open_node]
+			[../../../lib/libfs/libfs_open_node]
 		} +
 		
 		?VFS_OUT_STAT {
-			[libfs_stat]
+			[../../../lib/libfs/libfs_stat]
 		} +
 		
 		?VFS_OUT_SYNC

@@ -1,0 +1,3 @@
+[devmap_get_phone] ;
+!devmap.DEVMAP_DEVICE_GET_HANDLE ;
+!devmap.IPC_M_DATA_WRITE /* name */
