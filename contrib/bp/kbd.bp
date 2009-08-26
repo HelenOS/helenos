@@ -1,0 +1,16 @@
+(
+	!ns.IPC_M_CONNECT_ME_TO +
+	NULL
+) ;
+!ns.IPC_M_CONNECT_TO_ME ;
+(
+	IPC_M_CONNECT_ME_TO ;
+	(
+		(
+			?KBD_YIELD +
+			?KBD_RECLAIM +
+		) |
+		!console.KBD_EVENT
+	)* ;
+	?IPC_M_PHONE_HUNGUP
+)*

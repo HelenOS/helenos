@@ -41,7 +41,7 @@
 		?VFS_IN_OPEN_NODE {
 			[vfs_grab_phone] ;
 			!VFS_OUT_OPEN_NODE ;
-			[vfs_release_phone ] ;
+			[vfs_release_phone] ;
 			(
 				(
 					[vfs_grab_phone] ;
@@ -56,13 +56,13 @@
 		?VFS_IN_CLOSE {
 			[vfs_grab_phone] ;
 			!VFS_OUT_CLOSE ;
-			[vfs_release_phone ]
+			[vfs_release_phone]
 		} +
 		
 		?VFS_IN_READ {
 			?IPC_M_DATA_READ {
 				[vfs_grab_phone] ;
-				!VFS_OUT_READ ;
+				!VFS_OUT_READ /* payload */ ;
 				!IPC_M_FORWARD ;
 				[vfs_release_phone]
 			}
@@ -71,7 +71,7 @@
 		?VFS_IN_WRITE {
 			?IPC_M_DATA_WRITE {
 				[vfs_grab_phone] ;
-				!VFS_OUT_WRITE ;
+				!VFS_OUT_WRITE /* payload */ ;
 				!IPC_M_FORWARD ;
 				[vfs_release_phone]
 			}
@@ -128,5 +128,5 @@
 		}
 		
 	)* ;
-	?IPC_M_PHONE_HANGUP
+	?IPC_M_PHONE_HUNGUP
 )*
