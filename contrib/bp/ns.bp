@@ -2,12 +2,12 @@
 	(
 		?IPC_M_SHARE_IN /* SERVICE_MEM_REALTIME || SERVICE_MEM_KLOG */ +
 		?IPC_M_CONNECT_TO_ME {
-			!IPC_M_FORWARD /* clonable service */ +
-			NULL           /* regular service */
+			!clonable.IPC_M_CONNECT_TO_ME /* forwarded */ +
+			NULL
 		} +
 		?IPC_M_CONNECT_ME_TO {
-			NULL           /* clonable service */ +
-			!IPC_M_FORWARD /* regular service */
+			!service.IPC_M_CONNECT_ME_TO /* forwarded */ +
+			NULL
 		} +
 		?NS_PING +
 		?NS_TASK_WAIT +

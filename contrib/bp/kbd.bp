@@ -1,10 +1,10 @@
 (
-	!ns.IPC_M_CONNECT_ME_TO +
+	!ns.IPC_M_CONNECT_ME_TO /* cir */ +
 	NULL
 ) ;
 !ns.IPC_M_CONNECT_TO_ME ;
 (
-	IPC_M_CONNECT_ME_TO ;
+	?IPC_M_CONNECT_ME_TO ;
 	(
 		(
 			?KBD_YIELD +
@@ -13,4 +13,8 @@
 		!console.KBD_EVENT
 	)* ;
 	?IPC_M_PHONE_HUNGUP
-)*
+)* ;
+(
+	!cir.IPC_M_PHONE_HUNGUP +
+	NULL
+)

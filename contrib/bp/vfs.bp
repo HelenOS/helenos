@@ -15,13 +15,13 @@
 			?IPC_M_PING ;
 			(
 				
-				!VFS_OUT_MOUNTED ;
-				!IPC_M_DATA_WRITE /* mount options */
+				!fs.VFS_OUT_MOUNTED ;
+				!fs.IPC_M_DATA_WRITE /* mount options */
 			) /* root fs */ +
 			(
-				!VFS_OUT_MOUNT ;
-				!IPC_M_CONNECTION_CLONE ;
-				!VFS_M_DATA_WRITE /* mount options */
+				!fs.VFS_OUT_MOUNT ;
+				!fs.IPC_M_CONNECTION_CLONE ;
+				!fs.VFS_M_DATA_WRITE /* mount options */
 			) /* non-root fs */
 		} +
 		
@@ -31,7 +31,7 @@
 			(
 				(
 					[vfs_grab_phone] ;
-					!VFS_OUT_TRUNCATE ;
+					!fs.VFS_OUT_TRUNCATE ;
 					[vfs_release_phone]
 				) +
 				NULL
@@ -40,12 +40,12 @@
 		
 		?VFS_IN_OPEN_NODE {
 			[vfs_grab_phone] ;
-			!VFS_OUT_OPEN_NODE ;
+			!fs.VFS_OUT_OPEN_NODE ;
 			[vfs_release_phone] ;
 			(
 				(
 					[vfs_grab_phone] ;
-					!VFS_OUT_TRUNCATE ;
+					!fs.VFS_OUT_TRUNCATE ;
 					[vfs_release_phone]
 				) +
 				NULL
@@ -55,15 +55,15 @@
 		
 		?VFS_IN_CLOSE {
 			[vfs_grab_phone] ;
-			!VFS_OUT_CLOSE ;
+			!fs.VFS_OUT_CLOSE ;
 			[vfs_release_phone]
 		} +
 		
 		?VFS_IN_READ {
 			?IPC_M_DATA_READ {
 				[vfs_grab_phone] ;
-				!VFS_OUT_READ /* payload */ ;
-				!IPC_M_FORWARD ;
+				!fs.VFS_OUT_READ /* payload */ ;
+				!fs.IPC_M_DATA_READ /* forwarded */ ;
 				[vfs_release_phone]
 			}
 		} +
@@ -71,8 +71,8 @@
 		?VFS_IN_WRITE {
 			?IPC_M_DATA_WRITE {
 				[vfs_grab_phone] ;
-				!VFS_OUT_WRITE /* payload */ ;
-				!IPC_M_FORWARD ;
+				!fs.VFS_OUT_WRITE /* payload */ ;
+				!fs.IPC_M_DATA_WRITE /* forwarded */ ;
 				[vfs_release_phone]
 			}
 		} +
@@ -81,25 +81,25 @@
 		
 		?VFS_IN_TRUNCATE {
 			[vfs_grab_phone] ;
-			!VFS_OUT_TRUNCATE ;
+			!fs.VFS_OUT_TRUNCATE ;
 			[vfs_release_phone]
 		} +
 		
 		?VFS_IN_FSTAT {
-			?IPC_M_DATA_READ {
+			?IPC_M_DATA_READ /* struct stat */ {
 				[vfs_grab_phone] ;
-				!VFS_OUT_STAT ;
-				!IPC_M_FORWARD ;
+				!fs.VFS_OUT_STAT ;
+				!fs.IPC_M_DATA_READ /* forwarded */ ;
 				[vfs_release_phone]
 			}
 		} +
 		
 		?VFS_IN_STAT {
 			?IPC_M_DATA_WRITE /* path */ ;
-			?IPC_M_DATA_READ {
+			?IPC_M_DATA_READ /* struct stat */ {
 				[vfs_lookup_internal] ;
-				!VFS_OUT_STAT ;
-				!IPC_M_FORWARD
+				!fs.VFS_OUT_STAT ;
+				!fs.IPC_M_DATA_READ /* forwarded */
 			}
 		} +
 		
@@ -124,7 +124,7 @@
 		} +
 		
 		?VFS_IN_SYNC {
-			!VFS_OUT_SYNC
+			!fs.VFS_OUT_SYNC
 		}
 		
 	)* ;

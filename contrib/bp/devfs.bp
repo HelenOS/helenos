@@ -1,0 +1,66 @@
+[devmap_get_phone] ;
+!ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
+[fs_register] ;
+(
+	?IPC_M_CONNECT_ME_TO ;
+	(
+		?VFS_OUT_MOUNTED {
+			?IPC_M_DATA_WRITE /* mount options */
+		} +
+		
+		?VFS_OUT_MOUNT +
+		
+		?VFS_OUT_LOOKUP {
+			(
+				[devmap_device_get_handle] ;
+				[devmap_device_connect]
+			) +
+			NULL
+		} +
+		
+		?VFS_OUT_READ {
+			?IPC_M_DATA_READ /* payload */ {
+				(
+					!dev.VFS_OUT_READ ;
+					!dev.IPC_M_DATA_READ /* forwarded */
+				) +
+				(
+					[devmap_device_get_count] ;
+					[devmap_device_get_devices]
+				)
+			}
+		} +
+		
+		?VFS_OUT_WRITE {
+			?IPC_M_DATA_WRITE /* payload */ {
+				(
+					!dev.VFS_OUT_WRITE ;
+					!dev.IPC_M_DATA_WRITE /* forwarded */
+				)
+			} +
+			NULL
+		} +
+		
+		?VFS_OUT_TRUNCATE +
+		
+		?VFS_OUT_CLOSE {
+			!dev.IPC_M_PHONE_HUNGUP
+		} +
+		
+		?VFS_OUT_DESTROY +
+		
+		?VFS_OUT_OPEN_NODE {
+			[devmap_device_connect] +
+			NULL
+		} +
+		
+		?VFS_OUT_STAT {
+			?IPC_M_DATA_READ /* struct stat */
+		} +
+		
+		?VFS_OUT_SYNC
+		
+	)* ;
+	?IPC_M_PHONE_HUNGUP
+)* ;
+!vfs.IPC_M_PHONE_HUNGUP

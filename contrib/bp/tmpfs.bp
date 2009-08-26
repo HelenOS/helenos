@@ -1,4 +1,4 @@
-!ns.IPC_M_CONNECT_ME_TO ;
+!ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
 [fs_register] ;
 (
 	?IPC_M_CONNECT_ME_TO ;
@@ -41,4 +41,5 @@
 		
 	)* ;
 	?IPC_M_PHONE_HUNGUP
-)*
+)* ;
+!vfs.IPC_M_PHONE_HUNGUP
