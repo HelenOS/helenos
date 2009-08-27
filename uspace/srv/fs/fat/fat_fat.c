@@ -74,6 +74,7 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	unsigned rscnt;		/* block address of the first FAT */
 	uint16_t clusters = 0;
 	fat_cluster_t clst = firstc;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
@@ -95,10 +96,12 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		fsec = (clst * sizeof(fat_cluster_t)) / bps;
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec, BLOCK_FLAGS_NONE);
+		rc = block_get(&b, dev_handle, rscnt + fsec, BLOCK_FLAGS_NONE);
+		assert(rc == EOK);
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 		clusters++;
 	}
 
@@ -132,6 +135,7 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	unsigned ssa;		/* size of the system area */
 	unsigned clusters, max_clusters;
 	fat_cluster_t lastc;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
@@ -145,7 +149,9 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	if (firstc == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(bn < rds);
-		b = block_get(dev_handle, rscnt + bs->fatcnt * sf + bn, flags);
+		rc = block_get(&b, dev_handle, rscnt + bs->fatcnt * sf + bn,
+		    flags);
+		assert(rc == EOK);
 		return b;
 	}
 
@@ -154,8 +160,9 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	    max_clusters);
 	assert(clusters == max_clusters);
 
-	b = block_get(dev_handle, ssa + (lastc - FAT_CLST_FIRST) * bs->spc +
-	    bn % bs->spc, flags);
+	rc = block_get(&b, dev_handle, ssa +
+	    (lastc - FAT_CLST_FIRST) * bs->spc + bn % bs->spc, flags);
+	assert(rc == EOK);
 
 	return b;
 }
@@ -176,6 +183,7 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 	unsigned spc;
 	block_t *b;
 	off_t o, boundary;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	spc = bs->spc;
@@ -190,7 +198,8 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 		b = fat_block_get(bs, nodep, o / bps, flags);
 		memset(b->data + o % bps, 0, bps - o % bps);
 		b->dirty = true;		/* need to sync node */
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 	
 	if (o >= pos)
@@ -202,7 +211,8 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 		    (o - boundary) / bps, BLOCK_FLAGS_NOREAD);
 		memset(b->data, 0, min(bps, pos - o));
 		b->dirty = true;		/* need to sync node */
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 }
 
@@ -221,15 +231,18 @@ fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst)
 	uint16_t bps;
 	uint16_t rscnt;
 	fat_cluster_t *cp, value;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
 
-	b = block_get(dev_handle, rscnt + (clst * sizeof(fat_cluster_t)) / bps,
-	    BLOCK_FLAGS_NONE);
+	rc = block_get(&b, dev_handle, rscnt +
+	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
 	value = uint16_t_le2host(*cp);
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 	
 	return value;
 }
@@ -251,18 +264,21 @@ fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
 	uint16_t rscnt;
 	uint16_t sf;
 	fat_cluster_t *cp;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
 	sf = uint16_t_le2host(bs->sec_per_fat);
 
 	assert(fatno < bs->fatcnt);
-	b = block_get(dev_handle, rscnt + sf * fatno +
+	rc = block_get(&b, dev_handle, rscnt + sf * fatno +
 	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
 	*cp = host2uint16_t_le(value);
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 }
 
 /** Replay the allocatoin of clusters in all shadow instances of FAT.
@@ -314,6 +330,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	fat_cluster_t *lifo;	/* stack for storing free cluster numbers */ 
 	unsigned found = 0;	/* top of the free cluster number stack */
 	unsigned b, c, cl; 
+	int rc;
 
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
 	if (!lifo)
@@ -328,7 +345,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 */
 	fibril_mutex_lock(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < sf; b++) {
-		blk = block_get(dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
+		rc = block_get(&blk, dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
@@ -343,7 +360,8 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 				blk->dirty = true;	/* need to sync block */
 				if (++found == nclsts) {
 					/* we are almost done */
-					block_put(blk);
+					rc = block_put(blk);
+					assert(rc == EOK);
 					/* update the shadow copies of FAT */
 					fat_alloc_shadow_clusters(bs,
 					    dev_handle, lifo, nclsts);
@@ -355,7 +373,8 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 				}
 			}
 		}
-		block_put(blk);
+		rc = block_put(blk);
+		assert(rc == EOK);
 	}
 	fibril_mutex_unlock(&fat_alloc_lock);
 
@@ -456,6 +475,7 @@ fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 	int i;
 	block_t *b;
 	unsigned bps;
+	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	
@@ -463,7 +483,8 @@ fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 		b = _fat_block_get(bs, dev_handle, c, i, BLOCK_FLAGS_NOREAD);
 		memset(b->data, 0, bps);
 		b->dirty = true;
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 }
 

@@ -39,6 +39,7 @@
 #include <libblock.h>
 #include <devmap.h>
 #include <errno.h>
+#include <assert.h>
 
 #define BLOCK_SIZE	512
 #define BPR		 16
@@ -109,7 +110,8 @@ int cmd_bdd(char **argv)
 	}
 
 	while (size > 0) {
-		block = block_get(handle, boff, 0);
+		rc = block_get(&block, handle, boff, 0);
+		assert(rc == EOK);
 		blk = (uint8_t *) block->data;
 
 		bytes = (size < BLOCK_SIZE) ? size : BLOCK_SIZE;
@@ -138,7 +140,8 @@ int cmd_bdd(char **argv)
 			putchar('\n');
 		}
 
-		block_put(block);
+		rc = block_put(block);
+		assert(rc == EOK);
 
 		if (size > rows * BPR)
 			size -= rows * BPR;

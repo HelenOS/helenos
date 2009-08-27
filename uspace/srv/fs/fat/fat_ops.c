@@ -84,6 +84,7 @@ static void fat_node_sync(fat_node_t *node)
 	fat_dentry_t *d;
 	uint16_t bps;
 	unsigned dps;
+	int rc;
 	
 	assert(node->dirty);
 
@@ -107,7 +108,8 @@ static void fat_node_sync(fat_node_t *node)
 	/* TODO: update other fields? (e.g time fields) */
 	
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 }
 
 static fat_node_t *fat_node_get_new(void)
@@ -169,6 +171,7 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	unsigned bps;
 	unsigned spc;
 	unsigned dps;
+	int rc;
 
 	if (idxp->nodep) {
 		/*
@@ -225,7 +228,8 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 
 	/* Link the idx structure with the node structure. */
 	nodep->idx = idxp;
@@ -442,7 +446,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 				goto hit;
 			}
 		}
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 	j = 0;
 	
@@ -476,7 +481,8 @@ hit:
 	memset(d, 0, sizeof(fat_dentry_t));
 	fat_dentry_name_set(d, name);
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 	fibril_mutex_unlock(&parentp->idx->lock);
 
 	fibril_mutex_lock(&childp->idx->lock);
@@ -511,7 +517,8 @@ hit:
 		/* TODO: initialize also the date/time members. */
 	}
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->pdi = i * dps + j;
@@ -538,6 +545,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fat_dentry_t *d;
 	uint16_t bps;
 	block_t *b;
+	int rc;
 
 	if (!parentp)
 		return EBUSY;
@@ -560,7 +568,8 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	/* mark the dentry as not-currently-used */
 	d->name[0] = FAT_DENTRY_ERASED;
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	assert(rc == EOK);
 
 	/* remove the index structure from the position hash */
 	fat_idx_hashout(childp->idx);
@@ -587,6 +596,7 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 	unsigned blocks;
 	fat_dentry_t *d;
 	block_t *b;
+	int rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->dev_handle);
@@ -602,7 +612,8 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 			case FAT_DENTRY_FREE:
 				continue;
 			case FAT_DENTRY_LAST:
-				block_put(b);
+				rc = block_put(b);
+				assert(rc == EOK);
 				fibril_mutex_unlock(&parentp->idx->lock);
 				return NULL;
 			default:
@@ -628,16 +639,19 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 					 * Can happen if memory is low or if we
 					 * run out of 32-bit indices.
 					 */
-					block_put(b);
+					rc = block_put(b);
+					assert(rc == EOK);
 					return NULL;
 				}
 				nodep = fat_node_get_core(idx);
 				fibril_mutex_unlock(&idx->lock);
-				block_put(b);
+				rc = block_put(b);
+				assert(rc == EOK);
 				return FS_NODE(nodep);
 			}
 		}
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
@@ -668,6 +682,7 @@ bool fat_has_children(fs_node_t *fn)
 	unsigned blocks;
 	block_t *b;
 	unsigned i, j;
+	int rc;
 
 	if (nodep->type != FAT_DIRECTORY)
 		return false;
@@ -690,20 +705,24 @@ bool fat_has_children(fs_node_t *fn)
 			case FAT_DENTRY_FREE:
 				continue;
 			case FAT_DENTRY_LAST:
-				block_put(b);
+				rc = block_put(b);
+				assert(rc == EOK);
 				fibril_mutex_unlock(&nodep->idx->lock);
 				return false;
 			default:
 			case FAT_DENTRY_VALID:
-				block_put(b);
+				rc = block_put(b);
+				assert(rc == EOK);
 				fibril_mutex_unlock(&nodep->idx->lock);
 				return true;
 			}
-			block_put(b);
+			rc = block_put(b);
+			assert(rc == EOK);
 			fibril_mutex_unlock(&nodep->idx->lock);
 			return true;
 		}
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 	}
 
 	fibril_mutex_unlock(&nodep->idx->lock);
@@ -900,6 +919,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	uint16_t bps;
 	size_t bytes;
 	block_t *b;
+	int rc;
 
 	if (!fn) {
 		ipc_answer_0(rid, ENOENT);
@@ -936,7 +956,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			    BLOCK_FLAGS_NONE);
 			(void) ipc_data_read_finalize(callid, b->data + pos % bps,
 			    bytes);
-			block_put(b);
+			rc = block_put(b);
+			assert(rc == EOK);
 		}
 	} else {
 		unsigned bnum;
@@ -968,16 +989,19 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 				case FAT_DENTRY_FREE:
 					continue;
 				case FAT_DENTRY_LAST:
-					block_put(b);
+					rc = block_put(b);
+					assert(rc == EOK);
 					goto miss;
 				default:
 				case FAT_DENTRY_VALID:
 					fat_dentry_name_get(d, name);
-					block_put(b);
+					rc == block_put(b);
+					assert(rc == EOK);
 					goto hit;
 				}
 			}
-			block_put(b);
+			rc = block_put(b);
+			assert(rc == EOK);
 			bnum++;
 		}
 miss:
@@ -1009,6 +1033,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	unsigned bpc;		/* bytes per cluster */
 	off_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
+	int rc;
 	
 	if (!fn) {
 		ipc_answer_0(rid, ENOENT);
@@ -1054,7 +1079,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 		if (pos + bytes > nodep->size) {
 			nodep->size = pos + bytes;
 			nodep->dirty = true;	/* need to sync node */
@@ -1088,7 +1114,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
-		block_put(b);
+		rc = block_put(b);
+		assert(rc == EOK);
 		/*
 		 * Append the cluster chain starting in mcl to the end of the
 		 * node's cluster chain.
