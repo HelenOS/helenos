@@ -68,6 +68,8 @@ typedef struct block {
 	unsigned refcnt;
 	/** If true, the block needs to be written back to the block device. */
 	bool dirty;
+	/** If true, the blcok does not contain valid data. */
+	bool toxic;
 	/** Readers / Writer lock protecting the contents of the block. */
 	fibril_rwlock_t contents_lock;
 	/** Handle of the device where the block resides. */

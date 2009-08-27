@@ -305,6 +305,7 @@ static void block_initialize(block_t *b)
 	fibril_mutex_initialize(&b->lock);
 	b->refcnt = 1;
 	b->dirty = false;
+	b->toxic = false;
 	fibril_rwlock_initialize(&b->contents_lock);
 	link_initialize(&b->free_link);
 	link_initialize(&b->hash_link);
