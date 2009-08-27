@@ -437,12 +437,40 @@ void block_put(block_t *block)
 {
 	devcon_t *devcon = devcon_search(block->dev_handle);
 	cache_t *cache;
+	unsigned blocks_cached;
+	enum cache_mode mode;
 	int rc;
 
 	assert(devcon);
 	assert(devcon->cache);
 
 	cache = devcon->cache;
+
+retry:
+	fibril_mutex_lock(&cache->lock);
+	blocks_cached = cache->blocks_cached;
+	mode = cache->mode;
+	fibril_mutex_unlock(&cache->lock);
+
+	/*
+	 * Determine whether to sync the block. Syncing the block is best done
+	 * when not holding the cache lock as it does not impede concurrency.
+	 * Since the situation may have changed when we unlocked the cache, the
+	 * blocks_cached and mode variables are mere hints. We will recheck the
+	 * conditions later when the cache lock is held again.
+	 */
+	fibril_mutex_lock(&block->lock);
+	if (block->dirty && (block->refcnt == 1) &&
+	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
+		fibril_mutex_lock(&devcon->com_area_lock);
+		memcpy(devcon->com_area, block->data, block->size);
+		rc = write_block(devcon, block->boff, block->size);
+		assert(rc == EOK);
+		fibril_mutex_unlock(&devcon->com_area_lock);
+		block->dirty = false;
+	}
+	fibril_mutex_unlock(&block->lock);
+
 	fibril_mutex_lock(&cache->lock);
 	fibril_mutex_lock(&block->lock);
 	if (!--block->refcnt) {
@@ -455,13 +483,14 @@ void block_put(block_t *block)
 			 * Currently there are too many cached blocks.
 			 */
 			if (block->dirty) {
-				fibril_mutex_lock(&devcon->com_area_lock);
-				memcpy(devcon->com_area, block->data,
-				    block->size);
-				rc = write_block(devcon, block->boff,
-				    block->size);
-				assert(rc == EOK);
-				fibril_mutex_unlock(&devcon->com_area_lock);
+				/*
+				 * We cannot sync the block while holding the
+				 * cache lock. Release everything and retry.
+				 */
+				block->refcnt++;
+				fibril_mutex_unlock(&block->lock);
+				fibril_mutex_unlock(&cache->lock);
+				goto retry;
 			}
 			/*
 			 * Take the block out of the cache and free it.
@@ -477,16 +506,17 @@ void block_put(block_t *block)
 		/*
 		 * Put the block on the free list.
 		 */
-		list_append(&block->free_link, &cache->free_head);
 		if (cache->mode != CACHE_MODE_WB && block->dirty) {
-			fibril_mutex_lock(&devcon->com_area_lock);
-			memcpy(devcon->com_area, block->data, block->size);
-			rc = write_block(devcon, block->boff, block->size);
-			assert(rc == EOK);
-			fibril_mutex_unlock(&devcon->com_area_lock);
-
-			block->dirty = false;
+			/*
+			 * We cannot sync the block while holding the cache
+			 * lock. Release everything and retry.
+			 */
+			block->refcnt++;
+			fibril_mutex_unlock(&block->lock);
+			fibril_mutex_unlock(&cache->lock);
+			goto retry;
 		}
+		list_append(&block->free_link, &cache->free_head);
 	}
 	fibril_mutex_unlock(&block->lock);
 	fibril_mutex_unlock(&cache->lock);
