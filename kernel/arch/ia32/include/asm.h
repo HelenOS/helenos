@@ -391,7 +391,7 @@ static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 {
 	asm volatile (
 		"sgdtl %[gdtr_reg]\n"
-		:: [gdtr_reg] "m" (*gdtr_reg)
+		: [gdtr_reg] "=m" (*gdtr_reg)
 	);
 }
 
