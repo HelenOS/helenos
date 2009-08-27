@@ -312,15 +312,17 @@ static void block_initialize(block_t *b)
 
 /** Instantiate a block in memory and get a reference to it.
  *
+ * @param block			Pointer to where the function will store the
+ * 				block pointer on success.
  * @param dev_handle		Device handle of the block device.
  * @param boff			Block offset.
  * @param flags			If BLOCK_FLAGS_NOREAD is specified, block_get()
  * 				will not read the contents of the block from the
  *				device.
  *
- * @return			Block structure.
+ * @return			EOK on success or a negative error code.
  */
-block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
+int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
@@ -449,7 +451,8 @@ recycle:
 
 		fibril_mutex_unlock(&b->lock);
 	}
-	return b;
+	*block = b;
+	return EOK;
 }
 
 /** Release a reference to a block.
@@ -457,8 +460,10 @@ recycle:
  * If the last reference is dropped, the block is put on the free list.
  *
  * @param block		Block of which a reference is to be released.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void block_put(block_t *block)
+int block_put(block_t *block)
 {
 	devcon_t *devcon = devcon_search(block->dev_handle);
 	cache_t *cache;
@@ -545,6 +550,8 @@ retry:
 	}
 	fibril_mutex_unlock(&block->lock);
 	fibril_mutex_unlock(&cache->lock);
+
+	return EOK;
 }
 
 /** Read sequential data from a block device.

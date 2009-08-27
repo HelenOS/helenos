@@ -100,8 +100,8 @@ extern void *block_bb_get(dev_handle_t);
 
 extern int block_cache_init(dev_handle_t, size_t, unsigned, enum cache_mode);
 
-extern block_t *block_get(dev_handle_t, bn_t, int);
-extern void block_put(block_t *);
+extern int block_get(block_t **, dev_handle_t, bn_t, int);
+extern int block_put(block_t *);
 
 extern int block_seqread(dev_handle_t, off_t *, size_t *, off_t *, void *,
     size_t, size_t);
