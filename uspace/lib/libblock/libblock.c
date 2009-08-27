@@ -393,8 +393,8 @@ recycle:
 
 		/*
 		 * Lock the block before releasing the cache lock. Thus we don't
-		 * kill concurent operations on the cache while doing I/O on the
-		 * block.
+		 * kill concurrent operations on the cache while doing I/O on
+		 * the block.
 		 */
 		fibril_mutex_lock(&b->lock);
 		fibril_mutex_unlock(&cache->lock);
