@@ -66,7 +66,7 @@ typedef int64_t native_t;
 typedef struct {
 	unative_t fnc;
 	unative_t gp;
-} fncptr_t;
+} __attribute__((may_alias)) fncptr_t;
 
 #define PRIp "lx"	/**< Format for uintptr_t. */
 #define PRIs "lu"	/**< Format for size_t. */
