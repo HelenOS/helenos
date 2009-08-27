@@ -31,7 +31,7 @@
 #
 
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \

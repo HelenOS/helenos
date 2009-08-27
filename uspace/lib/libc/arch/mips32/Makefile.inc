@@ -30,7 +30,7 @@
 #
 
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \

@@ -30,7 +30,7 @@
 #
 
 TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \

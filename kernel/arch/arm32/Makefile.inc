@@ -33,7 +33,7 @@ BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 BFD = binary
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32
 
 ATSIGN = %
 

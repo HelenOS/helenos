@@ -30,7 +30,7 @@
 #
 
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \

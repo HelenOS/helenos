@@ -39,7 +39,7 @@ endif
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc

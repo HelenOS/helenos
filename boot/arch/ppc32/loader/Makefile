@@ -39,7 +39,7 @@ endif
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc

@@ -38,7 +38,7 @@ endif
 
 BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mipsel/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
 
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
@@ -47,7 +47,7 @@ endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-tradbigmips
 	BFD = ecoff-bigmips
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips/bin
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb/bin
 	TARGET = mips-linux-gnu
 endif
 ifeq ($(MACHINE),msim)
