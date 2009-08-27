@@ -33,15 +33,15 @@ show_usage() {
 	echo " $0 <platform>"
 	echo
 	echo "Possible target platforms are:"
-	echo " amd64      AMD64 (x86_64, x64)"
-	echo " arm32      ARM32"
+	echo " amd64      AMD64 (x86-64, x64)"
+	echo " arm32      ARM"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
-	echo " mips32     MIPS32 little-endian"
-	echo " mips32eb   MIPS32 big-endian"
-	echo " ppc32      PowerPC 32"
-	echo " ppc64      PowerPC 64"
-	echo " sparc64    UltraSPARC 64"
+	echo " mips32     MIPS little-endian"
+	echo " mips32eb   MIPS big-endian"
+	echo " ppc32      32-bit PowerPC"
+	echo " ppc64      64-bit PowerPC"
+	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
 	echo
 	
@@ -129,7 +129,7 @@ build_target() {
 	cleanup_dir "${BINUTILSDIR}"
 	cleanup_dir "${GCCDIR}"
 	
-	create_dir "${PREFIX}" "destionation directory"
+	create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
 	
 	echo ">>> Unpacking tarballs"
