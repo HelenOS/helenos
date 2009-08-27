@@ -45,6 +45,12 @@
 #define RSDP_SIGNATURE		"RSD PTR "
 #define RSDP_REVISION_OFFS	15
 
+#define CMP_SIGNATURE(left, right) \
+	(((left)[0] == (right)[0]) && \
+	((left)[1] == (right)[1]) && \
+	((left)[2] == (right)[2]) && \
+	((left)[3] == (right)[3]))
+
 struct acpi_rsdp *acpi_rsdp = NULL;
 struct acpi_rsdt *acpi_rsdt = NULL;
 struct acpi_xsdt *acpi_xsdt = NULL;
@@ -104,8 +110,8 @@ static void configure_via_rsdt(void)
 		for (j = 0; j < sizeof(signature_map) / sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *h = (struct acpi_sdt_header *) (unative_t) acpi_rsdt->entry[i];
 		
-			map_sdt(h);	
-			if (*((uint32_t *) &h->signature[0]) == *((uint32_t *) &signature_map[j].signature[0])) {
+			map_sdt(h);
+			if (CMP_SIGNATURE(h->signature, signature_map[j].signature)) {
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
@@ -126,7 +132,7 @@ static void configure_via_xsdt(void)
 			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((uintptr_t) acpi_rsdt->entry[i]);
 
 			map_sdt(h);
-			if (*((uint32_t *) &h->signature[0]) == *((uint32_t *) &signature_map[j].signature[0])) {
+			if (CMP_SIGNATURE(h->signature, signature_map[j].signature)) {
 				if (!acpi_sdt_check((uint8_t *) h))
 					goto next;
 				*signature_map[j].sdt_ptr = h;
