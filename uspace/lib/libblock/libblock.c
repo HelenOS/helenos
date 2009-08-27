@@ -327,7 +327,6 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 	block_t *b;
 	link_t *l;
 	unsigned long key = boff;
-	bn_t oboff;
 	
 	devcon = devcon_search(dev_handle);
 
@@ -335,6 +334,8 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 	assert(devcon->cache);
 	
 	cache = devcon->cache;
+
+retry:
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
@@ -352,7 +353,6 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 		 * The block was not found in the cache.
 		 */
 		int rc;
-		bool sync = false;
 
 		if (cache_can_grow(cache)) {
 			/*
@@ -377,10 +377,46 @@ block_t *block_get(dev_handle_t dev_handle, bn_t boff, int flags)
 recycle:
 			assert(!list_empty(&cache->free_head));
 			l = cache->free_head.next;
-			list_remove(l);
 			b = list_get_instance(l, block_t, free_link);
-			sync = b->dirty;
-			oboff = b->boff;
+
+			fibril_mutex_lock(&b->lock);
+			if (b->dirty) {
+				/*
+				 * The block needs to be written back to the
+				 * device before it changes identity. Do this
+				 * while not holding the cache lock so that
+				 * concurrency is not impeded. Also move the
+				 * block to the end of the free list so that we
+				 * do not slow down other instances of
+				 * block_get() draining the free list.
+				 */
+				list_remove(&b->free_link);
+				list_append(&b->free_link, &cache->free_head);
+				fibril_mutex_unlock(&cache->lock);
+				fibril_mutex_lock(&devcon->com_area_lock);
+				memcpy(devcon->com_area, b->data, b->size);
+				rc = write_block(devcon, b->boff,
+				    cache->block_size);
+				fibril_mutex_unlock(&devcon->com_area_lock);
+				assert(rc == EOK);
+				b->dirty = false;
+				if (!fibril_mutex_trylock(&cache->lock)) {
+					/*
+					 * Somebody is probably racing with us.
+					 * Unlock the block and retry.
+					 */
+					fibril_mutex_unlock(&b->lock);
+					goto retry;
+				}
+
+			}
+			fibril_mutex_unlock(&b->lock);
+
+			/*
+			 * Unlink the block from the free list and the hash
+			 * table.
+			 */
+			list_remove(&b->free_link);
 			temp_key = b->boff;
 			hash_table_remove(&cache->block_hash, &temp_key, 1);
 		}
@@ -399,17 +435,6 @@ recycle:
 		fibril_mutex_lock(&b->lock);
 		fibril_mutex_unlock(&cache->lock);
 
-		if (sync) {
-			/*
-			 * The block is dirty and needs to be written back to
-			 * the device before we can read in the new contents.
-			 */
-			fibril_mutex_lock(&devcon->com_area_lock);
-			memcpy(devcon->com_area, b->data, b->size);
-			rc = write_block(devcon, oboff, cache->block_size);
-			assert(rc == EOK);
-			fibril_mutex_unlock(&devcon->com_area_lock);
-		}
 		if (!(flags & BLOCK_FLAGS_NOREAD)) {
 			/*
 			 * The block contains old or no data. We need to read
