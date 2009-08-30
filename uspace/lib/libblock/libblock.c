@@ -49,6 +49,7 @@
 #include <fibril_sync.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
+#include <macros.h>
 #include <mem.h>
 
 /** Lock protecting the device connection list */
@@ -61,7 +62,7 @@ static LIST_INITIALIZE(dcl_head);
 
 typedef struct {
 	fibril_mutex_t lock;
-	size_t block_size;		/**< Block size. */
+	size_t lblock_size;		/**< Logical block size. */
 	unsigned block_count;		/**< Total number of blocks. */
 	unsigned blocks_cached;		/**< Number of cached blocks. */
 	hash_table_t block_hash;
@@ -73,17 +74,18 @@ typedef struct {
 	link_t link;
 	dev_handle_t dev_handle;
 	int dev_phone;
-	fibril_mutex_t com_area_lock;
-	void *com_area;
-	size_t com_size;
+	fibril_mutex_t comm_area_lock;
+	void *comm_area;
+	size_t comm_size;
 	void *bb_buf;
-	off_t bb_off;
-	size_t bb_size;
+	bn_t bb_addr;
+	size_t pblock_size;		/**< Physical block size. */
 	cache_t *cache;
 } devcon_t;
 
-static int read_block(devcon_t *devcon, bn_t boff, size_t block_size);
-static int write_block(devcon_t *devcon, bn_t boff, size_t block_size);
+static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
+static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
+static size_t get_block_size(int dev_phone, size_t *bsize);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -101,11 +103,14 @@ static devcon_t *devcon_search(dev_handle_t dev_handle)
 	return NULL;
 }
 
-static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
-   size_t com_size)
+static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
+    void *comm_area, size_t comm_size)
 {
 	link_t *cur;
 	devcon_t *devcon;
+
+	if (comm_size < bsize)
+		return EINVAL;
 
 	devcon = malloc(sizeof(devcon_t));
 	if (!devcon)
@@ -114,12 +119,12 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, void *com_area,
 	link_initialize(&devcon->link);
 	devcon->dev_handle = dev_handle;
 	devcon->dev_phone = dev_phone;
-	fibril_mutex_initialize(&devcon->com_area_lock);
-	devcon->com_area = com_area;
-	devcon->com_size = com_size;
+	fibril_mutex_initialize(&devcon->comm_area_lock);
+	devcon->comm_area = comm_area;
+	devcon->comm_size = comm_size;
 	devcon->bb_buf = NULL;
-	devcon->bb_off = 0;
-	devcon->bb_size = 0;
+	devcon->bb_addr = 0;
+	devcon->pblock_size = bsize;
 	devcon->cache = NULL;
 
 	fibril_mutex_lock(&dcl_lock);
@@ -143,35 +148,42 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(dev_handle_t dev_handle, size_t com_size)
+int block_init(dev_handle_t dev_handle, size_t comm_size)
 {
 	int rc;
 	int dev_phone;
-	void *com_area;
-	
-	com_area = mmap(NULL, com_size, PROTO_READ | PROTO_WRITE,
+	void *comm_area;
+	size_t bsize;
+
+	comm_area = mmap(NULL, comm_size, PROTO_READ | PROTO_WRITE,
 	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	if (!com_area) {
+	if (!comm_area) {
 		return ENOMEM;
 	}
 
 	dev_phone = devmap_device_connect(dev_handle, IPC_FLAG_BLOCKING);
 	if (dev_phone < 0) {
-		munmap(com_area, com_size);
+		munmap(comm_area, comm_size);
 		return dev_phone;
 	}
 
-	rc = ipc_share_out_start(dev_phone, com_area,
+	rc = ipc_share_out_start(dev_phone, comm_area,
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
-	    	munmap(com_area, com_size);
+	    	munmap(comm_area, comm_size);
+		ipc_hangup(dev_phone);
+		return rc;
+	}
+
+	if (get_block_size(dev_phone, &bsize) != EOK) {
+		munmap(comm_area, comm_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
 	
-	rc = devcon_add(dev_handle, dev_phone, com_area, com_size);
+	rc = devcon_add(dev_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
-		munmap(com_area, com_size);
+		munmap(comm_area, comm_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
@@ -194,13 +206,13 @@ void block_fini(dev_handle_t dev_handle)
 		free(devcon->cache);
 	}
 
-	munmap(devcon->com_area, devcon->com_size);
+	munmap(devcon->comm_area, devcon->comm_size);
 	ipc_hangup(devcon->dev_phone);
 
 	free(devcon);	
 }
 
-int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
+int block_bb_read(dev_handle_t dev_handle, bn_t ba)
 {
 	void *bb_buf;
 	int rc;
@@ -210,23 +222,22 @@ int block_bb_read(dev_handle_t dev_handle, off_t off, size_t size)
 		return ENOENT;
 	if (devcon->bb_buf)
 		return EEXIST;
-	bb_buf = malloc(size);
+	bb_buf = malloc(devcon->pblock_size);
 	if (!bb_buf)
 		return ENOMEM;
-	
-	fibril_mutex_lock(&devcon->com_area_lock);
-	rc = read_block(devcon, 0, size);
+
+	fibril_mutex_lock(&devcon->comm_area_lock);
+	rc = read_blocks(devcon, 0, 1);
 	if (rc != EOK) {
-		fibril_mutex_unlock(&devcon->com_area_lock);
+		fibril_mutex_unlock(&devcon->comm_area_lock);
 	    	free(bb_buf);
 		return rc;
 	}
-	memcpy(bb_buf, devcon->com_area, size);
-	fibril_mutex_unlock(&devcon->com_area_lock);
+	memcpy(bb_buf, devcon->comm_area, devcon->pblock_size);
+	fibril_mutex_unlock(&devcon->comm_area_lock);
 
 	devcon->bb_buf = bb_buf;
-	devcon->bb_off = off;
-	devcon->bb_size = size;
+	devcon->bb_addr = ba;
 
 	return EOK;
 }
@@ -274,10 +285,13 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	
 	fibril_mutex_initialize(&cache->lock);
 	list_initialize(&cache->free_head);
-	cache->block_size = size;
+	cache->lblock_size = size;
 	cache->block_count = blocks;
 	cache->blocks_cached = 0;
 	cache->mode = mode;
+
+	/* No block size translation a.t.m. */
+	assert(cache->lblock_size == devcon->pblock_size);
 
 	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
 	    &cache_ops)) {
@@ -367,7 +381,7 @@ retry:
 			b = malloc(sizeof(block_t));
 			if (!b)
 				goto recycle;
-			b->data = malloc(cache->block_size);
+			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
 				goto recycle;
@@ -397,11 +411,10 @@ recycle:
 				list_remove(&b->free_link);
 				list_append(&b->free_link, &cache->free_head);
 				fibril_mutex_unlock(&cache->lock);
-				fibril_mutex_lock(&devcon->com_area_lock);
-				memcpy(devcon->com_area, b->data, b->size);
-				rc = write_block(devcon, b->boff,
-				    cache->block_size);
-				fibril_mutex_unlock(&devcon->com_area_lock);
+				fibril_mutex_lock(&devcon->comm_area_lock);
+				memcpy(devcon->comm_area, b->data, b->size);
+				rc = write_blocks(devcon, b->boff, 1);
+				fibril_mutex_unlock(&devcon->comm_area_lock);
 				if (rc != EOK) {
 					/*
 					 * We did not manage to write the block
@@ -436,7 +449,7 @@ recycle:
 
 		block_initialize(b);
 		b->dev_handle = dev_handle;
-		b->size = cache->block_size;
+		b->size = cache->lblock_size;
 		b->boff = boff;
 		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
 
@@ -453,10 +466,10 @@ recycle:
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
-			fibril_mutex_lock(&devcon->com_area_lock);
-			rc = read_block(devcon, b->boff, cache->block_size);
-			memcpy(b->data, devcon->com_area, cache->block_size);
-			fibril_mutex_unlock(&devcon->com_area_lock);
+			fibril_mutex_lock(&devcon->comm_area_lock);
+			rc = read_blocks(devcon, b->boff, 1);
+			memcpy(b->data, devcon->comm_area, cache->lblock_size);
+			fibril_mutex_unlock(&devcon->comm_area_lock);
 			if (rc != EOK) 
 				b->toxic = true;
 		} else
@@ -507,10 +520,10 @@ retry:
 		block->dirty = false;	/* will not write back toxic block */
 	if (block->dirty && (block->refcnt == 1) &&
 	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
-		fibril_mutex_lock(&devcon->com_area_lock);
-		memcpy(devcon->com_area, block->data, block->size);
-		rc = write_block(devcon, block->boff, block->size);
-		fibril_mutex_unlock(&devcon->com_area_lock);
+		fibril_mutex_lock(&devcon->comm_area_lock);
+		memcpy(devcon->comm_area, block->data, block->size);
+		rc = write_blocks(devcon, block->boff, 1);
+		fibril_mutex_unlock(&devcon->comm_area_lock);
 		block->dirty = false;
 	}
 	fibril_mutex_unlock(&block->lock);
@@ -587,14 +600,18 @@ retry:
  * @return		EOK on success or a negative return code on failure.
  */
 int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
-    off_t *pos, void *dst, size_t size, size_t block_size)
+    off_t *pos, void *dst, size_t size)
 {
 	off_t offset = 0;
 	size_t left = size;
-	devcon_t *devcon = devcon_search(dev_handle);
+	size_t block_size;
+	devcon_t *devcon;
+
+	devcon = devcon_search(dev_handle);
 	assert(devcon);
+	block_size = devcon->pblock_size;
 	
-	fibril_mutex_lock(&devcon->com_area_lock);
+	fibril_mutex_lock(&devcon->comm_area_lock);
 	while (left > 0) {
 		size_t rd;
 		
@@ -608,7 +625,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			 * Copy the contents of the communication buffer to the
 			 * destination buffer.
 			 */
-			memcpy(dst + offset, devcon->com_area + *bufpos, rd);
+			memcpy(dst + offset, devcon->comm_area + *bufpos, rd);
 			offset += rd;
 			*bufpos += rd;
 			*pos += rd;
@@ -619,9 +636,9 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			/* Refill the communication buffer with a new block. */
 			int rc;
 
-			rc = read_block(devcon, *pos / block_size, block_size);
+			rc = read_blocks(devcon, *pos / block_size, 1);
 			if (rc != EOK) {
-				fibril_mutex_unlock(&devcon->com_area_lock);
+				fibril_mutex_unlock(&devcon->comm_area_lock);
 				return rc;
 			}
 			
@@ -629,55 +646,60 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			*buflen = block_size;
 		}
 	}
-	fibril_mutex_unlock(&devcon->com_area_lock);
+	fibril_mutex_unlock(&devcon->comm_area_lock);
 	
 	return EOK;
 }
 
-/** Read block from block device.
+/** Read blocks from block device.
  *
  * @param devcon	Device connection.
- * @param boff		Block index.
- * @param block_size	Block size.
+ * @param ba		Address of first block.
+ * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
  * @return		EOK on success or negative error code on failure.
  */
-static int read_block(devcon_t *devcon, bn_t boff, size_t block_size)
+static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 {
-	ipcarg_t retval;
 	int rc;
 
 	assert(devcon);
-	rc = async_req_2_1(devcon->dev_phone, BD_READ_BLOCK, boff, block_size,
-	    &retval);
-	if ((rc != EOK) || (retval != EOK))
-		return (rc != EOK ? rc : (int) retval);
-
-	return EOK;
+	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
+	    UPPER32(ba), cnt);
+	return rc;
 }
 
 /** Write block to block device.
  *
  * @param devcon	Device connection.
- * @param boff		Block index.
- * @param block_size	Block size.
+ * @param ba		Address of first block.
+ * @param cnt		Number of blocks.
  * @param src		Buffer containing the data to write.
  *
  * @return		EOK on success or negative error code on failure.
  */
-static int write_block(devcon_t *devcon, bn_t boff, size_t block_size)
+static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 {
-	ipcarg_t retval;
 	int rc;
 
 	assert(devcon);
-	rc = async_req_2_1(devcon->dev_phone, BD_WRITE_BLOCK, boff, block_size,
-	    &retval);
-	if ((rc != EOK) || (retval != EOK))
-		return (rc != EOK ? rc : (int) retval);
+	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
+	    UPPER32(ba), cnt);
+	return rc;
+}
 
-	return EOK;
+/** Get block size used by the device. */
+static size_t get_block_size(int dev_phone, size_t *bsize)
+{
+	ipcarg_t bs;
+	int rc;
+
+	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
+	if (rc == EOK)
+		*bsize = (size_t) bs;
+
+	return rc;
 }
 
 /** @}

@@ -46,7 +46,7 @@
 #include <libblock.h>
 #include <byteorder.h>
 
-#define TMPFS_BLOCK_SIZE	1024
+#define TMPFS_COMM_SIZE		1024
 
 struct rdentry {
 	uint8_t type;
@@ -68,7 +68,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 		uint32_t size;
 		
 		if (block_seqread(dev, bufpos, buflen, pos, &entry,
-		    sizeof(entry), TMPFS_BLOCK_SIZE) != EOK)
+		    sizeof(entry)) != EOK)
 			return false;
 		
 		entry.len = uint32_t_le2host(entry.len);
@@ -88,7 +88,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			}
 			
 			if (block_seqread(dev, bufpos, buflen, pos, fname,
-			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
+			    entry.len) != EOK) {
 				ops->destroy(fn);
 				free(fname);
 				return false;
@@ -104,7 +104,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			free(fname);
 			
 			if (block_seqread(dev, bufpos, buflen, pos, &size,
-			    sizeof(size), TMPFS_BLOCK_SIZE) != EOK)
+			    sizeof(size)) != EOK)
 				return false;
 			
 			size = uint32_t_le2host(size);
@@ -116,7 +116,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			
 			nodep->size = size;
 			if (block_seqread(dev, bufpos, buflen, pos, nodep->data,
-			    size, TMPFS_BLOCK_SIZE) != EOK)
+			    size) != EOK)
 				return false;
 			
 			break;
@@ -132,7 +132,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			}
 			
 			if (block_seqread(dev, bufpos, buflen, pos, fname,
-			    entry.len, TMPFS_BLOCK_SIZE) != EOK) {
+			    entry.len) != EOK) {
 				ops->destroy(fn);
 				free(fname);
 				return false;
@@ -165,7 +165,7 @@ bool tmpfs_restore(dev_handle_t dev)
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
 	int rc;
 
-	rc = block_init(dev, TMPFS_BLOCK_SIZE);
+	rc = block_init(dev, TMPFS_COMM_SIZE);
 	if (rc != EOK)
 		return false; 
 	
@@ -174,8 +174,7 @@ bool tmpfs_restore(dev_handle_t dev)
 	off_t pos = 0;
 	
 	char tag[6];
-	if (block_seqread(dev, &bufpos, &buflen, &pos, tag, 5,
-	    TMPFS_BLOCK_SIZE) != EOK)
+	if (block_seqread(dev, &bufpos, &buflen, &pos, tag, 5) != EOK)
 		goto error;
 	
 	tag[5] = 0;
