@@ -74,9 +74,9 @@ typedef struct {
 	link_t link;
 	dev_handle_t dev_handle;
 	int dev_phone;
-	fibril_mutex_t com_area_lock;
-	void *com_area;
-	size_t com_size;
+	fibril_mutex_t comm_area_lock;
+	void *comm_area;
+	size_t comm_size;
 	void *bb_buf;
 	bn_t bb_addr;
 	size_t pblock_size;		/**< Physical block size. */
@@ -104,12 +104,12 @@ static devcon_t *devcon_search(dev_handle_t dev_handle)
 }
 
 static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
-    void *com_area, size_t com_size)
+    void *comm_area, size_t comm_size)
 {
 	link_t *cur;
 	devcon_t *devcon;
 
-	if (com_size < bsize)
+	if (comm_size < bsize)
 		return EINVAL;
 
 	devcon = malloc(sizeof(devcon_t));
@@ -119,9 +119,9 @@ static int devcon_add(dev_handle_t dev_handle, int dev_phone, size_t bsize,
 	link_initialize(&devcon->link);
 	devcon->dev_handle = dev_handle;
 	devcon->dev_phone = dev_phone;
-	fibril_mutex_initialize(&devcon->com_area_lock);
-	devcon->com_area = com_area;
-	devcon->com_size = com_size;
+	fibril_mutex_initialize(&devcon->comm_area_lock);
+	devcon->comm_area = comm_area;
+	devcon->comm_size = comm_size;
 	devcon->bb_buf = NULL;
 	devcon->bb_addr = 0;
 	devcon->pblock_size = bsize;
@@ -148,42 +148,42 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-int block_init(dev_handle_t dev_handle, size_t com_size)
+int block_init(dev_handle_t dev_handle, size_t comm_size)
 {
 	int rc;
 	int dev_phone;
-	void *com_area;
+	void *comm_area;
 	size_t bsize;
 
-	com_area = mmap(NULL, com_size, PROTO_READ | PROTO_WRITE,
+	comm_area = mmap(NULL, comm_size, PROTO_READ | PROTO_WRITE,
 	    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-	if (!com_area) {
+	if (!comm_area) {
 		return ENOMEM;
 	}
 
 	dev_phone = devmap_device_connect(dev_handle, IPC_FLAG_BLOCKING);
 	if (dev_phone < 0) {
-		munmap(com_area, com_size);
+		munmap(comm_area, comm_size);
 		return dev_phone;
 	}
 
-	rc = ipc_share_out_start(dev_phone, com_area,
+	rc = ipc_share_out_start(dev_phone, comm_area,
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
-	    	munmap(com_area, com_size);
+	    	munmap(comm_area, comm_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
 
 	if (get_block_size(dev_phone, &bsize) != EOK) {
-		munmap(com_area, com_size);
+		munmap(comm_area, comm_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
 	
-	rc = devcon_add(dev_handle, dev_phone, bsize, com_area, com_size);
+	rc = devcon_add(dev_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
-		munmap(com_area, com_size);
+		munmap(comm_area, comm_size);
 		ipc_hangup(dev_phone);
 		return rc;
 	}
@@ -206,7 +206,7 @@ void block_fini(dev_handle_t dev_handle)
 		free(devcon->cache);
 	}
 
-	munmap(devcon->com_area, devcon->com_size);
+	munmap(devcon->comm_area, devcon->comm_size);
 	ipc_hangup(devcon->dev_phone);
 
 	free(devcon);	
@@ -226,15 +226,15 @@ int block_bb_read(dev_handle_t dev_handle, bn_t ba)
 	if (!bb_buf)
 		return ENOMEM;
 
-	fibril_mutex_lock(&devcon->com_area_lock);
+	fibril_mutex_lock(&devcon->comm_area_lock);
 	rc = read_blocks(devcon, 0, 1);
 	if (rc != EOK) {
-		fibril_mutex_unlock(&devcon->com_area_lock);
+		fibril_mutex_unlock(&devcon->comm_area_lock);
 	    	free(bb_buf);
 		return rc;
 	}
-	memcpy(bb_buf, devcon->com_area, devcon->pblock_size);
-	fibril_mutex_unlock(&devcon->com_area_lock);
+	memcpy(bb_buf, devcon->comm_area, devcon->pblock_size);
+	fibril_mutex_unlock(&devcon->comm_area_lock);
 
 	devcon->bb_buf = bb_buf;
 	devcon->bb_addr = ba;
@@ -411,10 +411,10 @@ recycle:
 				list_remove(&b->free_link);
 				list_append(&b->free_link, &cache->free_head);
 				fibril_mutex_unlock(&cache->lock);
-				fibril_mutex_lock(&devcon->com_area_lock);
-				memcpy(devcon->com_area, b->data, b->size);
+				fibril_mutex_lock(&devcon->comm_area_lock);
+				memcpy(devcon->comm_area, b->data, b->size);
 				rc = write_blocks(devcon, b->boff, 1);
-				fibril_mutex_unlock(&devcon->com_area_lock);
+				fibril_mutex_unlock(&devcon->comm_area_lock);
 				if (rc != EOK) {
 					/*
 					 * We did not manage to write the block
@@ -466,10 +466,10 @@ recycle:
 			 * The block contains old or no data. We need to read
 			 * the new contents from the device.
 			 */
-			fibril_mutex_lock(&devcon->com_area_lock);
+			fibril_mutex_lock(&devcon->comm_area_lock);
 			rc = read_blocks(devcon, b->boff, 1);
-			memcpy(b->data, devcon->com_area, cache->lblock_size);
-			fibril_mutex_unlock(&devcon->com_area_lock);
+			memcpy(b->data, devcon->comm_area, cache->lblock_size);
+			fibril_mutex_unlock(&devcon->comm_area_lock);
 			if (rc != EOK) 
 				b->toxic = true;
 		} else
@@ -520,10 +520,10 @@ retry:
 		block->dirty = false;	/* will not write back toxic block */
 	if (block->dirty && (block->refcnt == 1) &&
 	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
-		fibril_mutex_lock(&devcon->com_area_lock);
-		memcpy(devcon->com_area, block->data, block->size);
+		fibril_mutex_lock(&devcon->comm_area_lock);
+		memcpy(devcon->comm_area, block->data, block->size);
 		rc = write_blocks(devcon, block->boff, 1);
-		fibril_mutex_unlock(&devcon->com_area_lock);
+		fibril_mutex_unlock(&devcon->comm_area_lock);
 		block->dirty = false;
 	}
 	fibril_mutex_unlock(&block->lock);
@@ -611,7 +611,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 	assert(devcon);
 	block_size = devcon->pblock_size;
 	
-	fibril_mutex_lock(&devcon->com_area_lock);
+	fibril_mutex_lock(&devcon->comm_area_lock);
 	while (left > 0) {
 		size_t rd;
 		
@@ -625,7 +625,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			 * Copy the contents of the communication buffer to the
 			 * destination buffer.
 			 */
-			memcpy(dst + offset, devcon->com_area + *bufpos, rd);
+			memcpy(dst + offset, devcon->comm_area + *bufpos, rd);
 			offset += rd;
 			*bufpos += rd;
 			*pos += rd;
@@ -638,7 +638,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 
 			rc = read_blocks(devcon, *pos / block_size, 1);
 			if (rc != EOK) {
-				fibril_mutex_unlock(&devcon->com_area_lock);
+				fibril_mutex_unlock(&devcon->comm_area_lock);
 				return rc;
 			}
 			
@@ -646,7 +646,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			*buflen = block_size;
 		}
 	}
-	fibril_mutex_unlock(&devcon->com_area_lock);
+	fibril_mutex_unlock(&devcon->comm_area_lock);
 	
 	return EOK;
 }
