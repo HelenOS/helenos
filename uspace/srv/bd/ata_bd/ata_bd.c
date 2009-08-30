@@ -61,6 +61,7 @@
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
+#include <macros.h>
 
 #include "ata_bd.h"
 
@@ -85,16 +86,18 @@ static disk_t disk[MAX_DISKS];
 
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
+static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
-static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
+    const void *buf);
+static int ata_bd_read_block(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
-static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
     const void *buf);
 static int disk_init(disk_t *d, int disk_id);
 static int drive_identify(int drive_id, void *buf);
 static void disk_print_summary(disk_t *d);
-static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc);
+static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
 static int wait_status(unsigned set, unsigned n_reset, uint8_t *pstatus,
     unsigned timeout);
@@ -227,8 +230,8 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	dev_handle_t dh;
 	int flags;
 	int retval;
-	off_t idx;
-	size_t size;
+	uint64_t ba;
+	size_t cnt;
 	int disk_id, i;
 
 	/* Get the device handle. */
@@ -269,17 +272,29 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* The other side has hung up. */
 			ipc_answer_0(callid, EOK);
 			return;
-		case BD_READ_BLOCK:
-		case BD_WRITE_BLOCK:
-			idx = IPC_GET_ARG1(call);
-			size = IPC_GET_ARG2(call);
-			if (size > comm_size) {
-				retval = EINVAL;
+		case BD_READ_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
 				break;
 			}
-			retval = ata_bd_rdwr(disk_id, method, idx,
-			    size, fs_va);
+			retval = ata_bd_read_blocks(disk_id, ba, cnt, fs_va);
 			break;
+		case BD_WRITE_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
+				break;
+			}
+			retval = ata_bd_write_blocks(disk_id, ba, cnt, fs_va);
+			break;
+		case BD_GET_BLOCK_SIZE:
+			ipc_answer_1(callid, EOK, block_size);
+			continue;
 		default:
 			retval = EINVAL;
 			break;
@@ -372,42 +387,39 @@ static int disk_init(disk_t *d, int disk_id)
 	return EOK;
 }
 
-/** Transfer a logical block from/to the device.
- *
- * @param disk_id	Device index (0 or 1)
- * @param method	@c BD_READ_BLOCK or @c BD_WRITE_BLOCK
- * @param blk_idx	Index of the first block.
- * @param size		Size of the logical block.
- * @param buf		Data buffer.
- *
- * @return EOK on success, EIO on error.
- */
-static int ata_bd_rdwr(int disk_id, ipcarg_t method, off_t blk_idx, size_t size,
-    void *buf)
-{
+/** Read multiple blocks from the device. */
+static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
+    void *buf) {
+
 	int rc;
-	size_t now;
 
-	while (size > 0) {
-		now = size < block_size ? size : block_size;
-		if (now != block_size)
-			return EINVAL;
-
-		if (method == BD_READ_BLOCK)
-			rc = ata_bd_read_block(disk_id, blk_idx, 1, buf);
-		else
-			rc = ata_bd_write_block(disk_id, blk_idx, 1, buf);
-
+	while (cnt > 0) {
+		rc = ata_bd_read_block(disk_id, ba, 1, buf);
 		if (rc != EOK)
 			return rc;
 
+		++ba;
+		--cnt;
 		buf += block_size;
-		blk_idx++;
+	}
 
-		if (size > block_size)
-			size -= block_size;
-		else
-			size = 0;
+	return EOK;
+}
+
+/** Write multiple blocks to the device. */
+static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
+    const void *buf) {
+
+	int rc;
+
+	while (cnt > 0) {
+		rc = ata_bd_write_block(disk_id, ba, 1, buf);
+		if (rc != EOK)
+			return rc;
+
+		++ba;
+		--cnt;
+		buf += block_size;
 	}
 
 	return EOK;
@@ -465,13 +477,13 @@ static int drive_identify(int disk_id, void *buf)
 /** Read a physical from the device.
  *
  * @param disk_id	Device index (0 or 1)
- * @param blk_idx	Index of the first block.
- * @param blk_cnt	Number of blocks to transfer.
+ * @param ba		Address the first block.
+ * @param cnt		Number of blocks to transfer.
  * @param buf		Buffer for holding the data.
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
     void *buf)
 {
 	size_t i;
@@ -485,7 +497,7 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	bc.h = 0;	/* Silence warning. */
 
 	/* Compute block coordinates. */
-	if (coord_calc(d, blk_idx, &bc) != EOK)
+	if (coord_calc(d, ba, &bc) != EOK)
 		return EINVAL;
 
 	/* New value for Drive/Head register */
@@ -540,13 +552,13 @@ static int ata_bd_read_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 /** Write a physical block to the device.
  *
  * @param disk_id	Device index (0 or 1)
- * @param blk_idx	Index of the first block.
- * @param blk_cnt	Number of blocks to transfer.
+ * @param ba		Address of the first block.
+ * @param cnt		Number of blocks to transfer.
  * @param buf		Buffer holding the data to write.
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
+static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
     const void *buf)
 {
 	size_t i;
@@ -559,7 +571,7 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
 	bc.h = 0;	/* Silence warning. */
 
 	/* Compute block coordinates. */
-	if (coord_calc(d, blk_idx, &bc) != EOK)
+	if (coord_calc(d, ba, &bc) != EOK)
 		return EINVAL;
 
 	/* New value for Drive/Head register */
@@ -619,13 +631,13 @@ static int ata_bd_write_block(int disk_id, uint64_t blk_idx, size_t blk_cnt,
  *
  * @return EOK on success or EINVAL if block index is past end of device.
  */
-static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc)
+static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc)
 {
 	uint64_t c;
 	uint64_t idx;
 
 	/* Check device bounds. */
-	if (blk_idx >= d->blocks)
+	if (ba >= d->blocks)
 		return EINVAL;
 
 	bc->amode = d->amode;
@@ -633,8 +645,8 @@ static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc)
 	switch (d->amode) {
 	case am_chs:
 		/* Compute CHS coordinates. */
-		c = blk_idx / (d->geom.heads * d->geom.sectors);
-		idx = blk_idx % (d->geom.heads * d->geom.sectors);
+		c = ba / (d->geom.heads * d->geom.sectors);
+		idx = ba % (d->geom.heads * d->geom.sectors);
 
 		bc->cyl_lo = c & 0xff;
 		bc->cyl_hi = (c >> 8) & 0xff;
@@ -644,20 +656,20 @@ static int coord_calc(disk_t *d, uint64_t blk_idx, block_coord_t *bc)
 
 	case am_lba28:
 		/* Compute LBA-28 coordinates. */
-		bc->c0 = blk_idx & 0xff;		/* bits 0-7 */
-		bc->c1 = (blk_idx >> 8) & 0xff;		/* bits 8-15 */
-		bc->c2 = (blk_idx >> 16) & 0xff;	/* bits 16-23 */
-		bc->h  = (blk_idx >> 24) & 0x0f;	/* bits 24-27 */
+		bc->c0 = ba & 0xff;		/* bits 0-7 */
+		bc->c1 = (ba >> 8) & 0xff;	/* bits 8-15 */
+		bc->c2 = (ba >> 16) & 0xff;	/* bits 16-23 */
+		bc->h  = (ba >> 24) & 0x0f;	/* bits 24-27 */
 		break;
 
 	case am_lba48:
 		/* Compute LBA-48 coordinates. */
-		bc->c0 = blk_idx & 0xff;		/* bits 0-7 */
-		bc->c1 = (blk_idx >> 8) & 0xff;		/* bits 8-15 */
-		bc->c2 = (blk_idx >> 16) & 0xff;	/* bits 16-23 */
-		bc->c3 = (blk_idx >> 24) & 0xff;	/* bits 24-31 */
-		bc->c4 = (blk_idx >> 32) & 0xff;	/* bits 32-39 */
-		bc->c5 = (blk_idx >> 40) & 0xff;	/* bits 40-47 */
+		bc->c0 = ba & 0xff;		/* bits 0-7 */
+		bc->c1 = (ba >> 8) & 0xff;	/* bits 8-15 */
+		bc->c2 = (ba >> 16) & 0xff;	/* bits 16-23 */
+		bc->c3 = (ba >> 24) & 0xff;	/* bits 24-31 */
+		bc->c4 = (ba >> 32) & 0xff;	/* bits 32-39 */
+		bc->c5 = (ba >> 40) & 0xff;	/* bits 40-47 */
 		bc->h  = 0;
 		break;
 	}

@@ -50,10 +50,11 @@
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
+#include <macros.h>
 
 #define NAME "file_bd"
 
-static size_t comm_size;
+static const size_t block_size = 512;
 static FILE *img;
 
 static dev_handle_t dev_handle;
@@ -61,8 +62,8 @@ static fibril_mutex_t dev_lock;
 
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int file_bd_read(off_t blk_idx, size_t size, void *buf);
-static int file_bd_write(off_t blk_idx, size_t size, void *buf);
+static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf);
+static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 
 int main(int argc, char **argv)
 {
@@ -119,10 +120,11 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
+	size_t comm_size;
 	int flags;
 	int retval;
-	off_t idx;
-	size_t size;
+	uint64_t ba;
+	size_t cnt;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
@@ -148,19 +150,29 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* The other side has hung up. */
 			ipc_answer_0(callid, EOK);
 			return;
-		case BD_READ_BLOCK:
-		case BD_WRITE_BLOCK:
-			idx = IPC_GET_ARG1(call);
-			size = IPC_GET_ARG2(call);
-			if (size > comm_size) {
-				retval = EINVAL;
+		case BD_READ_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
 				break;
 			}
-			if (method == BD_READ_BLOCK)
-				retval = file_bd_read(idx, size, fs_va);
-			else
-				retval = file_bd_write(idx, size, fs_va);
+			retval = file_bd_read_blocks(ba, cnt, fs_va);
 			break;
+		case BD_WRITE_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
+				break;
+			}
+			retval = file_bd_write_blocks(ba, cnt, fs_va);
+			break;
+		case BD_GET_BLOCK_SIZE:
+			ipc_answer_1(callid, EOK, block_size);
+			continue;
 		default:
 			retval = EINVAL;
 			break;
@@ -169,14 +181,15 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static int file_bd_read(off_t blk_idx, size_t size, void *buf)
+/** Read blocks from the device. */
+static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 {
 	size_t n_rd;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, blk_idx * size, SEEK_SET);
-	n_rd = fread(buf, 1, size, img);
+	fseek(img, ba * block_size, SEEK_SET);
+	n_rd = fread(buf, block_size, cnt, img);
 
 	if (ferror(img)) {
 		fibril_mutex_unlock(&dev_lock);
@@ -185,22 +198,23 @@ static int file_bd_read(off_t blk_idx, size_t size, void *buf)
 
 	fibril_mutex_unlock(&dev_lock);
 
-	if (n_rd < size) 
-		return EINVAL;	/* Read beyond end of disk */
+	if (n_rd < cnt)
+		return EINVAL;	/* Read beyond end of device */
 
 	return EOK;
 }
 
-static int file_bd_write(off_t blk_idx, size_t size, void *buf)
+/** Write blocks to the device. */
+static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 {
 	size_t n_wr;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, blk_idx * size, SEEK_SET);
-	n_wr = fread(buf, 1, size, img);
+	fseek(img, ba * block_size, SEEK_SET);
+	n_wr = fread(buf, block_size, cnt, img);
 
-	if (ferror(img) || n_wr < size) {
+	if (ferror(img) || n_wr < cnt) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;	/* Write error */
 	}

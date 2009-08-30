@@ -38,8 +38,9 @@
 #include <ipc/ipc.h>
 
 typedef enum {
-	BD_READ_BLOCK = IPC_FIRST_USER_METHOD,
-	BD_WRITE_BLOCK
+	BD_GET_BLOCK_SIZE = IPC_FIRST_USER_METHOD,
+	BD_READ_BLOCKS,
+	BD_WRITE_BLOCKS
 } bd_request_t;
 
 #endif
