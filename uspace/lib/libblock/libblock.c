@@ -330,7 +330,7 @@ int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 	block_t *b;
 	link_t *l;
 	unsigned long key = boff;
-	int rc = EOK;
+	int rc;
 	
 	devcon = devcon_search(dev_handle);
 
@@ -340,6 +340,8 @@ int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 	cache = devcon->cache;
 
 retry:
+	rc = EOK;
+
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
