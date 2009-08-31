@@ -85,7 +85,7 @@ typedef struct {
 
 static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
 static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
-static size_t get_block_size(int dev_phone, size_t *bsize);
+static int get_block_size(int dev_phone, size_t *bsize);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -651,6 +651,79 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 	return EOK;
 }
 
+/** Read blocks directly from device (bypass cache).
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param ba		Address of first block.
+ * @param cnt		Number of blocks.
+ * @param src		Buffer for storing the data.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_read_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt, void *buf)
+{
+	devcon_t *devcon;
+	int rc;
+
+	devcon = devcon_search(dev_handle);
+	assert(devcon);
+	
+	fibril_mutex_lock(&devcon->comm_area_lock);
+
+	rc = read_blocks(devcon, ba, cnt);
+	if (rc == EOK)
+		memcpy(buf, devcon->comm_area, devcon->pblock_size * cnt);
+
+	fibril_mutex_unlock(&devcon->comm_area_lock);
+
+	return rc;
+}
+
+/** Write blocks directly to device (bypass cache).
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param ba		Address of first block.
+ * @param cnt		Number of blocks.
+ * @param src		The data to be written.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_write_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt,
+    const void *data)
+{
+	devcon_t *devcon;
+	int rc;
+
+	devcon = devcon_search(dev_handle);
+	assert(devcon);
+	
+	fibril_mutex_lock(&devcon->comm_area_lock);
+
+	memcpy(devcon->comm_area, data, devcon->pblock_size * cnt);
+	rc = read_blocks(devcon, ba, cnt);
+
+	fibril_mutex_unlock(&devcon->comm_area_lock);
+
+	return rc;
+}
+
+/** Get device block size.
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param bsize		Output block size.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
+{
+	devcon_t *devcon;
+
+	devcon = devcon_search(dev_handle);
+	assert(devcon);
+	
+	return get_block_size(devcon->dev_phone, bsize);
+}
+
 /** Read blocks from block device.
  *
  * @param devcon	Device connection.
@@ -690,7 +763,7 @@ static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 }
 
 /** Get block size used by the device. */
-static size_t get_block_size(int dev_phone, size_t *bsize)
+static int get_block_size(int dev_phone, size_t *bsize)
 {
 	ipcarg_t bs;
 	int rc;

@@ -92,7 +92,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 ifeq ($(MACHINE),testarm)
 	RD_SRVS += \
 		$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd
