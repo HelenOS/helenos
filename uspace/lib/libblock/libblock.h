@@ -108,6 +108,10 @@ extern int block_put(block_t *);
 extern int block_seqread(dev_handle_t, off_t *, size_t *, off_t *, void *,
     size_t);
 
+extern int block_get_bsize(dev_handle_t, size_t *);
+extern int block_read_direct(dev_handle_t, bn_t, size_t, void *);
+extern int block_write_direct(dev_handle_t, bn_t, size_t, const void *);
+
 #endif
 
 /** @}

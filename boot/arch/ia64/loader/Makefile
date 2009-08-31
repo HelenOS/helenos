@@ -103,7 +103,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
 RD_APPS = \
 	$(USPACEDIR)/app/getvc/getvc \
