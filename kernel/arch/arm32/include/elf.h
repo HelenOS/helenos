@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -36,15 +36,15 @@
 #ifndef KERN_arm32_ELF_H_
 #define KERN_arm32_ELF_H_
 
-#define	ELF_MACHINE		EM_ARM
+#define ELF_MACHINE  EM_ARM
 
-#ifdef BIG_ENDIAN
-#define ELF_DATA_ENCODING	ELFDATA2MSB
+#ifdef __BE__
+	#define ELF_DATA_ENCODING  ELFDATA2MSB
 #else
-#define ELF_DATA_ENCODING	ELFDATA2LSB
+	#define ELF_DATA_ENCODING  ELFDATA2LSB
 #endif
 
-#define ELF_CLASS		ELFCLASS32
+#define ELF_CLASS  ELFCLASS32
 
 #endif
 
