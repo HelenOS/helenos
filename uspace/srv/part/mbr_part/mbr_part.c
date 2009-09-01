@@ -42,6 +42,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <ipc/ipc.h>
 #include <ipc/bd.h>
@@ -131,7 +132,6 @@ static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
 int main(int argc, char **argv)
 {
 	printf(NAME ": PC MBR partition driver\n");
-	printf(NAME ": Size of br_block_t = %d\n", sizeof(br_block_t));
 
 	if (argc != 2) {
 		printf("Expected one argument (device name).\n");
@@ -201,6 +201,9 @@ static int mbr_init(const char *dev_name)
 			continue;
 
 		asprintf(&name, "%sp%d", dev_name, i);
+		if (name == NULL)
+			return ENOMEM;
+
 		rc = devmap_device_register(name, &dev);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
@@ -214,6 +217,7 @@ static int mbr_init(const char *dev_name)
 		    name, primary[i].length, size_mb);
 
 		primary[i].dev = dev;
+		free(name);
 	}
 
 	return EOK;
@@ -251,6 +255,8 @@ static int mbr_part_read(void)
 		primary[i].present = (sa != 0 || len != 0) ? true : false;
 		primary[i].dev = 0;
 	}
+
+	return EOK;
 }
 
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
