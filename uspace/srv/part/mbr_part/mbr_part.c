@@ -58,6 +58,7 @@
 #include <errno.h>
 #include <bool.h>
 #include <byteorder.h>
+#include <assert.h>
 #include <macros.h>
 #include <task.h>
 
@@ -69,9 +70,6 @@ enum {
 
 	/** Boot record signature */
 	BR_SIGNATURE	= 0xAA55,
-
-	/** Maximum number of partitions */
-	MAX_PART	= 64
 };
 
 enum ptype {
@@ -80,7 +78,7 @@ enum ptype {
 };
 
 /** Partition */
-typedef struct {
+typedef struct part {
 	/** Primary partition entry is in use */
 	bool present;
 	/** Address of first block */
@@ -89,6 +87,8 @@ typedef struct {
 	bn_t length;
 	/** Device representing the partition (outbound device) */
 	dev_handle_t dev;
+	/** Points to next partition structure. */
+	struct part *next;
 } part_t;
 
 /** Structure of a partition table entry */
@@ -129,18 +129,17 @@ static size_t block_size;
 /** Partitioned device (inbound device) */
 static dev_handle_t indev_handle;
 
-static part_t primary[MAX_PART];
+/** List of partitions. This structure is an empty head. */
+static part_t plist_head;
 
 static int mbr_init(const char *dev_name);
 static int mbr_part_read(void);
+static part_t *mbr_part_new(void);
 static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall);
 static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf);
 static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
-
-/** Total number of partitions entries in @c primary (including non-present). */
-static int total_part;
 
 int main(int argc, char **argv)
 {
@@ -169,6 +168,7 @@ static int mbr_init(const char *dev_name)
 	char *name;
 	dev_handle_t dev;
 	uint64_t size_mb;
+	part_t *part;
 
 	rc = devmap_device_get_handle(dev_name, &indev_handle, 0);
 	if (rc != EOK) {
@@ -207,11 +207,19 @@ static int mbr_init(const char *dev_name)
 		return rc;
 	}
 
-	/* Create partition devices. */
-	for (i = 0; i < total_part; ++i) {
+	/*
+	 * Create partition devices.
+	 */
+	i = 0;
+	part = plist_head.next;
+
+	while (part != NULL) {
 		/* Skip absent partitions. */
-		if (!primary[i].present)
+		if (!part->present) {
+			part = part->next;
+			++i;
 			continue;
+		}
 
 		asprintf(&name, "%sp%d", dev_name, i);
 		if (name == NULL)
@@ -224,13 +232,16 @@ static int mbr_init(const char *dev_name)
 			return rc;
 		}
 
-		size_mb = (primary[i].length * block_size + 1024 * 1024 - 1)
+		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
 		printf(NAME ": Registered device %s: %llu blocks %llu MB.\n",
-		    name, primary[i].length, size_mb);
+		    name, part->length, size_mb);
 
-		primary[i].dev = dev;
+		part->dev = dev;
 		free(name);
+
+		part = part->next;
+		++i;
 	}
 
 	return EOK;
@@ -245,6 +256,7 @@ static int mbr_part_read(void)
 	uint32_t ba;
 	part_t *ext_part, cp;
 	uint32_t base;
+	part_t *prev, *p;
 
 	brb = malloc(sizeof(br_block_t));
 	if (brb == NULL) {
@@ -269,13 +281,21 @@ static int mbr_part_read(void)
 	}
 
 	ext_part = NULL;
+	plist_head.next = NULL;
+	prev = &plist_head;
 
 	for (i = 0; i < N_PRIMARY; ++i) {
-		mbr_pte_to_part(0, &brb->pte[i], &primary[i]);
+		p = mbr_part_new();
+		if (p == NULL)
+			return ENOMEM;
+
+		mbr_pte_to_part(0, &brb->pte[i], p);
+		prev->next = p;
+		prev = p;
 
 		if (brb->pte[i].ptype == PT_EXTENDED) {
-			primary[i].present = false;
-			ext_part = &primary[i];
+			p->present = false;
+			ext_part = p;
 		}
 	}
 
@@ -311,17 +331,26 @@ static int mbr_part_read(void)
 			return EINVAL;
 		}
 
+		p = mbr_part_new();
+		if (p == NULL)
+			return ENOMEM;
+
 		/* First PTE is the logical partition itself. */
-		mbr_pte_to_part(base, &brb->pte[0], &primary[i]);
-		++i;
+		mbr_pte_to_part(base, &brb->pte[0], p);
+		prev->next = p;
+		prev = p;
 
 		/* Second PTE describes next chain element. */
 		mbr_pte_to_part(base, &brb->pte[1], &cp);
-	} while (cp.present && i < MAX_PART);
-
-	total_part = i;
+	} while (cp.present);
 
 	return EOK;
+}
+
+/** Allocate a new @c part_t structure. */
+static part_t *mbr_part_new(void)
+{
+	return malloc(sizeof(part_t));
 }
 
 /** Parse partition table entry. */
@@ -337,6 +366,7 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 
 	part->present = (sa != 0 || len != 0) ? true : false;
 	part->dev = 0;
+	part->next = NULL;
 }
 
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -351,24 +381,26 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 	uint64_t ba;
 	size_t cnt;
-	int pidx, i;
 	part_t *part;
 
 	/* Get the device handle. */
 	dh = IPC_GET_ARG1(*icall);
 
-	/* Determine which partition device is the client connecting to. */
-	pidx = -1;
-	for (i = 0; i < total_part; i++)
-		if (primary[i].dev == dh)
-			pidx = i;
+	/* 
+	 * Determine which partition device is the client connecting to.
+	 * A linear search is not terribly fast, but we only do this
+	 * once for each connection.
+	 */
+	part = plist_head.next;
+	while (part != NULL && part->dev != dh)
+		part = part->next;
 
-	if (pidx < 0/* || disk[disk_id].present == false*/) {
+	if (part == NULL) {
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}
 
-	part = &primary[pidx];
+	assert(part->present == true);
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
