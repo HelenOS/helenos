@@ -37,8 +37,10 @@
  * Handles the PC MBR partitioning scheme. Uses a block device
  * and provides one for each partition.
  *
+ * Limitations:
+ *
  * Only works with boot records using LBA. CHS-only records are not
- * supported. Only primary partition records are supported.
+ * supported. Maximum number of partitions is fixed.
  */
 
 #include <stdio.h>
@@ -66,7 +68,15 @@ enum {
 	N_PRIMARY	= 4,
 
 	/** Boot record signature */
-	BR_SIGNATURE	= 0xAA55
+	BR_SIGNATURE	= 0xAA55,
+
+	/** Maximum number of partitions */
+	MAX_PART	= 64
+};
+
+enum ptype {
+	/** Extended partition */
+	PT_EXTENDED	= 0x05
 };
 
 /** Partition */
@@ -86,10 +96,10 @@ typedef struct {
 	uint8_t status;
 	/** CHS of fist block in partition */
 	uint8_t first_chs[3];
-	/** CHS of last block in partition */
-	uint8_t last_chs[3];
 	/** Partition type */
 	uint8_t ptype;
+	/** CHS of last block in partition */
+	uint8_t last_chs[3];
 	/** LBA of first block in partition */
 	uint32_t first_lba;
 	/** Number of blocks in partition */
@@ -119,15 +129,18 @@ static size_t block_size;
 /** Partitioned device (inbound device) */
 static dev_handle_t indev_handle;
 
-static part_t primary[N_PRIMARY];
+static part_t primary[MAX_PART];
 
 static int mbr_init(const char *dev_name);
 static int mbr_part_read(void);
+static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part);
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall);
 static int mbr_bd_read(part_t *p, uint64_t ba, size_t cnt, void *buf);
 static int mbr_bd_write(part_t *p, uint64_t ba, size_t cnt, const void *buf);
 static int mbr_bsa_translate(part_t *p, uint64_t ba, size_t cnt, uint64_t *gba);
 
+/** Total number of partitions entries in @c primary (including non-present). */
+static int total_part;
 
 int main(int argc, char **argv)
 {
@@ -195,7 +208,7 @@ static int mbr_init(const char *dev_name)
 	}
 
 	/* Create partition devices. */
-	for (i = 0; i < N_PRIMARY; ++i) {
+	for (i = 0; i < total_part; ++i) {
 		/* Skip absent partitions. */
 		if (!primary[i].present)
 			continue;
@@ -227,36 +240,103 @@ static int mbr_init(const char *dev_name)
 static int mbr_part_read(void)
 {
 	int i, rc;
-	br_block_t *mbr;
+	br_block_t *brb;
 	uint16_t sgn;
-	uint32_t sa, len;
+	uint32_t ba;
+	part_t *ext_part, cp;
+	uint32_t base;
 
-	rc = block_bb_read(indev_handle, 0);
+	brb = malloc(sizeof(br_block_t));
+	if (brb == NULL) {
+		printf(NAME ": Failed allocating memory.\n");
+		return ENOMEM;	
+	}
+
+	/*
+	 * Read primary partition entries.
+	 */
+
+	rc = block_read_direct(indev_handle, 0, 1, brb);
 	if (rc != EOK) {
 		printf(NAME ": Failed reading MBR block.\n");
 		return rc;
 	}
 
-	mbr = block_bb_get(indev_handle);
-	sgn = uint16_t_le2host(mbr->signature);
-
+	sgn = uint16_t_le2host(brb->signature);
 	if (sgn != BR_SIGNATURE) {
 		printf(NAME ": Invalid boot record signature 0x%04X.\n", sgn);
 		return EINVAL;
 	}
 
+	ext_part = NULL;
+
 	for (i = 0; i < N_PRIMARY; ++i) {
-		sa  = uint32_t_le2host(mbr->pte[i].first_lba);
-		len = uint32_t_le2host(mbr->pte[i].length);
+		mbr_pte_to_part(0, &brb->pte[i], &primary[i]);
 
-		primary[i].start_addr = sa;
-		primary[i].length = len;
-
-		primary[i].present = (sa != 0 || len != 0) ? true : false;
-		primary[i].dev = 0;
+		if (brb->pte[i].ptype == PT_EXTENDED) {
+			primary[i].present = false;
+			ext_part = &primary[i];
+		}
 	}
 
+	if (ext_part == NULL)
+		return EOK;
+
+	printf("Extended partition found.\n");
+
+	/*
+	 * Read extended partition entries.
+	 */
+
+	cp.start_addr = ext_part->start_addr;
+	cp.length = ext_part->length;
+	base = ext_part->start_addr;
+
+	do {
+		/*
+		 * Addressing in the EBR chain is relative to the beginning
+		 * of the extended partition.
+		 */
+		ba = cp.start_addr;
+		rc = block_read_direct(indev_handle, ba, 1, brb);
+		if (rc != EOK) {
+			printf(NAME ": Failed reading EBR block at %u.\n", ba);
+			return rc;
+		}
+
+		sgn = uint16_t_le2host(brb->signature);
+		if (sgn != BR_SIGNATURE) {
+			printf(NAME ": Invalid boot record signature 0x%04X "
+			    " in EBR at %u.\n", sgn, ba);
+			return EINVAL;
+		}
+
+		/* First PTE is the logical partition itself. */
+		mbr_pte_to_part(base, &brb->pte[0], &primary[i]);
+		++i;
+
+		/* Second PTE describes next chain element. */
+		mbr_pte_to_part(base, &brb->pte[1], &cp);
+	} while (cp.present && i < MAX_PART);
+
+	total_part = i;
+
 	return EOK;
+}
+
+/** Parse partition table entry. */
+static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
+{
+	uint32_t sa, len;
+
+	sa = uint32_t_le2host(pte->first_lba);
+	len = uint32_t_le2host(pte->length);
+
+	part->start_addr = base + sa;
+	part->length     = len;
+
+	part->present = (sa != 0 || len != 0) ? true : false;
+	part->dev = 0;
 }
 
 static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -279,7 +359,7 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	/* Determine which partition device is the client connecting to. */
 	pidx = -1;
-	for (i = 0; i < N_PRIMARY; i++)
+	for (i = 0; i < total_part; i++)
 		if (primary[i].dev == dh)
 			pidx = i;
 
