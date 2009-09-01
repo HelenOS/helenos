@@ -341,6 +341,7 @@ int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 
 retry:
 	rc = EOK;
+	b = NULL;
 
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
@@ -465,6 +466,11 @@ recycle:
 			rc = EOK;
 
 		fibril_mutex_unlock(&b->lock);
+	}
+	if ((rc != EOK) && b) {
+		assert(b->toxic);
+		(void) block_put(b);
+		b = NULL;
 	}
 	*block = b;
 	return rc;
