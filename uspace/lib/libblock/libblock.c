@@ -344,7 +344,7 @@ int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 	block_t *b;
 	link_t *l;
 	unsigned long key = boff;
-	int rc = EOK;
+	int rc;
 	
 	devcon = devcon_search(dev_handle);
 
@@ -354,6 +354,9 @@ int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
 	cache = devcon->cache;
 
 retry:
+	rc = EOK;
+	b = NULL;
+
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
@@ -393,7 +396,11 @@ retry:
 			 */
 			unsigned long temp_key;
 recycle:
-			assert(!list_empty(&cache->free_head));
+			if (list_empty(&cache->free_head)) {
+				fibril_mutex_unlock(&cache->lock);
+				rc = ENOMEM;
+				goto out;
+			}
 			l = cache->free_head.next;
 			b = list_get_instance(l, block_t, free_link);
 
@@ -476,6 +483,12 @@ recycle:
 			rc = EOK;
 
 		fibril_mutex_unlock(&b->lock);
+	}
+out:
+	if ((rc != EOK) && b) {
+		assert(b->toxic);
+		(void) block_put(b);
+		b = NULL;
 	}
 	*block = b;
 	return rc;
