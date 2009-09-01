@@ -382,7 +382,11 @@ retry:
 			 */
 			unsigned long temp_key;
 recycle:
-			assert(!list_empty(&cache->free_head));
+			if (list_empty(&cache->free_head)) {
+				fibril_mutex_unlock(&cache->lock);
+				rc = ENOMEM;
+				goto out;
+			}
 			l = cache->free_head.next;
 			b = list_get_instance(l, block_t, free_link);
 
@@ -467,6 +471,7 @@ recycle:
 
 		fibril_mutex_unlock(&b->lock);
 	}
+out:
 	if ((rc != EOK) && b) {
 		assert(b->toxic);
 		(void) block_put(b);
