@@ -233,16 +233,18 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
  * @param bs		Buffer holding the boot sector for the file system.
  * @param dev_handle	Device handle for the file system.
  * @param clst		Cluster which to get.
+ * @param value		Output argument holding the value of the cluster.
  *
- * @return		Value found in the cluster.
+ * @return		EOK or a negative error code.
  */
-fat_cluster_t
-fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst)
+int
+fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst,
+    fat_cluster_t *value)
 {
 	block_t *b;
 	uint16_t bps;
 	uint16_t rscnt;
-	fat_cluster_t *cp, value;
+	fat_cluster_t *cp;
 	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
@@ -250,13 +252,13 @@ fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst)
 
 	rc = block_get(&b, dev_handle, rscnt +
 	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK)
+		return rc;
 	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
-	value = uint16_t_le2host(*cp);
+	*value = uint16_t_le2host(*cp);
 	rc = block_put(b);
-	assert(rc == EOK);
 	
-	return value;
+	return rc;
 }
 
 /** Set cluster in one instance of FAT.
@@ -414,11 +416,13 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
 {
 	unsigned fatno;
 	fat_cluster_t nextc;
+	int rc;
 
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
-		nextc = fat_get_cluster(bs, dev_handle, firstc);
+		rc = fat_get_cluster(bs, dev_handle, firstc, &nextc);
+		assert(rc == EOK);
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
 			fat_set_cluster(bs, dev_handle, fatno, firstc,
 			    FAT_CLST_RES0);
@@ -465,6 +469,8 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
  */
 void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 {
+	int rc;
+
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 	if (lastc == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
@@ -475,7 +481,8 @@ void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 		fat_cluster_t nextc;
 		unsigned fatno;
 
-		nextc = fat_get_cluster(bs, dev_handle, lastc);
+		rc = fat_get_cluster(bs, dev_handle, lastc, &nextc);
+		assert(rc == EOK);
 
 		/* Terminate the cluster chain in all copies of FAT. */
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
