@@ -60,14 +60,17 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
  * @param bs		Buffer holding the boot sector for the file.
  * @param dev_handle	Device handle of the device with the file.
  * @param firstc	First cluster to start the walk with.
- * @param lastc		If non-NULL, output argument hodling the last cluster number visited.
+ * @param lastc		If non-NULL, output argument hodling the last cluster
+ *			number visited.
+ * @param numc		If non-NULL, output argument holding the number of
+ *			clusters seen during the walk.
  * @param max_clusters	Maximum number of clusters to visit.	
  *
- * @return		Number of clusters seen during the walk.
+ * @return		EOK on success or a negative error code.
  */
-uint16_t 
+int 
 fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    fat_cluster_t *lastc, uint16_t max_clusters)
+    fat_cluster_t *lastc, uint16_t *numc, uint16_t max_clusters)
 {
 	block_t *b;
 	unsigned bps;
@@ -83,7 +86,9 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		/* No space allocated to the file. */
 		if (lastc)
 			*lastc = firstc;
-		return 0;
+		if (numc)
+			*numc = 0;
+		return EOK;
 	}
 
 	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
@@ -97,18 +102,22 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 		fidx = clst % (bps / sizeof(fat_cluster_t));
 		/* read FAT1 */
 		rc = block_get(&b, dev_handle, rscnt + fsec, BLOCK_FLAGS_NONE);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 		clusters++;
 	}
 
 	if (lastc && clst < FAT_CLST_LAST1)
 		*lastc = clst;
+	if (numc)
+		*numc = clusters;
 
-	return clusters;
+	return EOK;
 }
 
 /** Read block from file located on a FAT file system.
@@ -133,7 +142,8 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
 	unsigned rds;		/* root directory size */
 	unsigned sf;
 	unsigned ssa;		/* size of the system area */
-	unsigned clusters, max_clusters;
+	uint16_t clusters;
+	unsigned max_clusters;
 	fat_cluster_t lastc;
 	int rc;
 
@@ -155,8 +165,10 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
 	}
 
 	max_clusters = bn / bs->spc;
-	clusters = fat_cluster_walk(bs, dev_handle, firstc, &lastc,
+	rc = fat_cluster_walk(bs, dev_handle, firstc, &lastc, &clusters,
 	    max_clusters);
+	if (rc != EOK)
+		return rc;
 	assert(clusters == max_clusters);
 
 	rc = block_get(block, dev_handle,
@@ -424,10 +436,15 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 {
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 	fat_cluster_t lcl;
+	uint16_t numc;
 	uint8_t fatno;
+	int rc;
 
-	if (fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl,
-	    (uint16_t) -1) == 0) {
+	rc = fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl, &numc,
+	    (uint16_t) -1);
+	assert(rc == EOK);
+
+	if (numc == 0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = mcl;
 		nodep->dirty = true;		/* need to sync node */

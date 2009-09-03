@@ -219,8 +219,11 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
 		 */
-		nodep->size = bps * spc * fat_clusters_get(bs, idxp->dev_handle,
+		uint16_t clusters;
+		rc = fat_clusters_get(&clusters, bs, idxp->dev_handle,
 		    uint16_t_le2host(d->firstc));
+		assert(rc == EOK);
+		nodep->size = bps * spc * clusters;
 	} else {
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);
@@ -1188,14 +1191,17 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 			fat_chop_clusters(bs, nodep, FAT_CLST_RES0);
 		} else {
 			fat_cluster_t lastc;
-			(void) fat_cluster_walk(bs, dev_handle, nodep->firstc,
-			    &lastc, (size - 1) / bpc);
+			rc = fat_cluster_walk(bs, dev_handle, nodep->firstc,
+			    &lastc, NULL, (size - 1) / bpc);
+			if (rc != EOK)
+				goto out;
 			fat_chop_clusters(bs, nodep, lastc);
 		}
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */
 		rc = EOK;	
 	}
+out:
 	fat_node_put(fn);
 	ipc_answer_0(rid, rc);
 	return;
