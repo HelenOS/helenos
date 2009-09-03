@@ -93,8 +93,9 @@ static void fat_node_sync(fat_node_t *node)
 	dps = bps / sizeof(fat_dentry_t);
 	
 	/* Read the block that contains the dentry of interest. */
-	b = _fat_block_get(bs, node->idx->dev_handle, node->idx->pfc,
+	rc = _fat_block_get(&b, bs, node->idx->dev_handle, node->idx->pfc,
 	    (node->idx->pdi * sizeof(fat_dentry_t)) / bps, BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 
 	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
 
@@ -201,9 +202,9 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	dps = bps / sizeof(fat_dentry_t);
 
 	/* Read the block that contains the dentry of interest. */
-	b = _fat_block_get(bs, idxp->dev_handle, idxp->pfc,
+	rc = _fat_block_get(&b, bs, idxp->dev_handle, idxp->pfc,
 	    (idxp->pdi * sizeof(fat_dentry_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(b);
+	assert(rc == EOK);
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % dps);
 	if (d->attr & FAT_ATTR_SUBDIR) {
@@ -432,7 +433,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	blocks = parentp->size / bps;
 
 	for (i = 0; i < blocks; i++) {
-		b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
+		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
+		assert(rc == EOK);
 		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -468,7 +470,8 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	fat_append_clusters(bs, parentp, mcl);
 	parentp->size += bps * bs->spc;
 	parentp->dirty = true;		/* need to sync node */
-	b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
+	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 	d = (fat_dentry_t *)b->data;
 
 hit:
@@ -493,7 +496,8 @@ hit:
 	 * are not mandatory according to Standard ECMA-107 and HelenOS VFS does
 	 * not use them anyway, so this is rather a sign of our good will.
 	 */
-	b = fat_block_get(bs, childp, 0, BLOCK_FLAGS_NONE);
+	rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 	d = (fat_dentry_t *)b->data;
 	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
 	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
@@ -560,9 +564,10 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	bs = block_bb_get(childp->idx->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
 
-	b = _fat_block_get(bs, childp->idx->dev_handle, childp->idx->pfc,
+	rc = _fat_block_get(&b, bs, childp->idx->dev_handle, childp->idx->pfc,
 	    (childp->idx->pdi * sizeof(fat_dentry_t)) / bps,
 	    BLOCK_FLAGS_NONE);
+	assert(rc == EOK);
 	d = (fat_dentry_t *)b->data +
 	    (childp->idx->pdi % (bps / sizeof(fat_dentry_t)));
 	/* mark the dentry as not-currently-used */
@@ -604,7 +609,8 @@ fs_node_t *fat_match(fs_node_t *pfn, const char *component)
 	dps = bps / sizeof(fat_dentry_t);
 	blocks = parentp->size / bps;
 	for (i = 0; i < blocks; i++) {
-		b = fat_block_get(bs, parentp, i, BLOCK_FLAGS_NONE);
+		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
+		assert(rc == EOK);
 		for (j = 0; j < dps; j++) { 
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -697,7 +703,8 @@ bool fat_has_children(fs_node_t *fn)
 	for (i = 0; i < blocks; i++) {
 		fat_dentry_t *d;
 	
-		b = fat_block_get(bs, nodep, i, BLOCK_FLAGS_NONE);
+		rc = fat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NONE);
+		assert(rc == EOK);
 		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -952,8 +959,9 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		} else {
 			bytes = min(len, bps - pos % bps);
 			bytes = min(bytes, nodep->size - pos);
-			b = fat_block_get(bs, nodep, pos / bps,
+			rc = fat_block_get(&b, bs, nodep, pos / bps,
 			    BLOCK_FLAGS_NONE);
+			assert(rc == EOK);
 			(void) ipc_data_read_finalize(callid, b->data + pos % bps,
 			    bytes);
 			rc = block_put(b);
@@ -979,7 +987,9 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		while (bnum < nodep->size / bps) {
 			off_t o;
 
-			b = fat_block_get(bs, nodep, bnum, BLOCK_FLAGS_NONE);
+			rc = fat_block_get(&b, bs, nodep, bnum,
+			    BLOCK_FLAGS_NONE);
+			assert(rc == EOK);
 			for (o = pos % (bps / sizeof(fat_dentry_t));
 			    o < bps / sizeof(fat_dentry_t);
 			    o++, pos++) {
@@ -1075,7 +1085,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * next block size boundary.
 		 */
 		fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
-		b = fat_block_get(bs, nodep, pos / bps, flags);
+		rc = fat_block_get(&b, bs, nodep, pos / bps, flags);
+		assert(rc == EOK);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
@@ -1109,8 +1120,9 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		}
 		/* zero fill any gaps */
 		fat_fill_gap(bs, nodep, mcl, pos);
-		b = _fat_block_get(bs, dev_handle, lcl, (pos / bps) % spc,
+		rc = _fat_block_get(&b, bs, dev_handle, lcl, (pos / bps) % spc,
 		    flags);
+		assert(rc == EOK);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
