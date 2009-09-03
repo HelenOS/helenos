@@ -70,22 +70,22 @@ extern int fat_cluster_walk(struct fat_bs *, dev_handle_t, fat_cluster_t,
 extern int _fat_block_get(block_t **, struct fat_bs *, dev_handle_t,
     fat_cluster_t, bn_t, int);
   
-extern void fat_append_clusters(struct fat_bs *, struct fat_node *,
+extern int fat_append_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);
-extern void fat_chop_clusters(struct fat_bs *, struct fat_node *,
+extern int fat_chop_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);
 extern int fat_alloc_clusters(struct fat_bs *, dev_handle_t, unsigned,
     fat_cluster_t *, fat_cluster_t *);
-extern void fat_free_clusters(struct fat_bs *, dev_handle_t, fat_cluster_t);
-extern void fat_alloc_shadow_clusters(struct fat_bs *, dev_handle_t,
+extern int fat_free_clusters(struct fat_bs *, dev_handle_t, fat_cluster_t);
+extern int fat_alloc_shadow_clusters(struct fat_bs *, dev_handle_t,
     fat_cluster_t *, unsigned);
 extern int fat_get_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t,
     fat_cluster_t *);
-extern void fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
+extern int fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
-extern void fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
+extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
     off_t);
-extern void fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
+extern int fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
 
 #endif
 

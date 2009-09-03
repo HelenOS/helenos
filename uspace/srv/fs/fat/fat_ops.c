@@ -328,19 +328,20 @@ fs_node_t *fat_create_node(dev_handle_t dev_handle, int flags)
 
 	nodep = fat_node_get_new();
 	if (!nodep) {
-		fat_free_clusters(bs, dev_handle, mcl);	
+		(void) fat_free_clusters(bs, dev_handle, mcl);
 		return NULL;
 	}
 	idxp = fat_idx_get_new(dev_handle);
 	if (!idxp) {
-		fat_free_clusters(bs, dev_handle, mcl);	
+		(void) fat_free_clusters(bs, dev_handle, mcl);	
 		fat_node_put(FS_NODE(nodep));
 		return NULL;
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
 		/* Populate the new cluster with unused dentries. */
-		fat_zero_cluster(bs, dev_handle, mcl);
+		rc = fat_zero_cluster(bs, dev_handle, mcl);
+		assert(rc == EOK);
 		nodep->type = FAT_DIRECTORY;
 		nodep->firstc = mcl;
 		nodep->size = bps * bs->spc;
@@ -364,6 +365,7 @@ int fat_destroy_node(fs_node_t *fn)
 {
 	fat_node_t *nodep = FAT_NODE(fn);
 	fat_bs_t *bs;
+	int rc = EOK;
 
 	/*
 	 * The node is not reachable from the file system. This means that the
@@ -382,13 +384,14 @@ int fat_destroy_node(fs_node_t *fn)
 	if (nodep->firstc != FAT_CLST_RES0) {
 		assert(nodep->size);
 		/* Free all clusters allocated to the node. */
-		fat_free_clusters(bs, nodep->idx->dev_handle, nodep->firstc);
+		rc = fat_free_clusters(bs, nodep->idx->dev_handle,
+		    nodep->firstc);
 	}
 
 	fat_idx_destroy(nodep->idx);
 	free(nodep->bp);
 	free(nodep);
-	return EOK;
+	return rc;
 }
 
 int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
@@ -469,8 +472,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
 	}
-	fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
-	fat_append_clusters(bs, parentp, mcl);
+	rc = fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
+	assert(rc == EOK);
+	rc = fat_append_clusters(bs, parentp, mcl);
+	assert(rc == EOK);
 	parentp->size += bps * bs->spc;
 	parentp->dirty = true;		/* need to sync node */
 	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
@@ -1087,7 +1092,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * the limits of the last cluster. The node size may grow to the
 		 * next block size boundary.
 		 */
-		fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
+		rc = fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
+		assert(rc == EOK);
 		rc = fat_block_get(&b, bs, nodep, pos / bps, flags);
 		assert(rc == EOK);
 		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
@@ -1122,7 +1128,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 		/* zero fill any gaps */
-		fat_fill_gap(bs, nodep, mcl, pos);
+		rc = fat_fill_gap(bs, nodep, mcl, pos);
+		assert(rc == EOK);
 		rc = _fat_block_get(&b, bs, dev_handle, lcl, (pos / bps) % spc,
 		    flags);
 		assert(rc == EOK);
@@ -1135,7 +1142,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * Append the cluster chain starting in mcl to the end of the
 		 * node's cluster chain.
 		 */
-		fat_append_clusters(bs, nodep, mcl);
+		rc = fat_append_clusters(bs, nodep, mcl);
+		assert(rc == EOK);
 		nodep->size = pos + bytes;
 		nodep->dirty = true;		/* need to sync node */
 		ipc_answer_2(rid, EOK, bytes, nodep->size);
@@ -1188,14 +1196,18 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 		 * The node will be shrunk, clusters will be deallocated.
 		 */
 		if (size == 0) {
-			fat_chop_clusters(bs, nodep, FAT_CLST_RES0);
+			rc = fat_chop_clusters(bs, nodep, FAT_CLST_RES0);
+			if (rc != EOK)
+				goto out;
 		} else {
 			fat_cluster_t lastc;
 			rc = fat_cluster_walk(bs, dev_handle, nodep->firstc,
 			    &lastc, NULL, (size - 1) / bpc);
 			if (rc != EOK)
 				goto out;
-			fat_chop_clusters(bs, nodep, lastc);
+			rc = fat_chop_clusters(bs, nodep, lastc);
+			if (rc != EOK)
+				goto out;
 		}
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */

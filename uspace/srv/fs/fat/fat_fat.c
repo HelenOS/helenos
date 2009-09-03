@@ -186,8 +186,10 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
  *			chain. If pos is still in the last allocated cluster,
  *			this argument is ignored.
  * @param pos		Position in the last node block.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
+int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 {
 	uint16_t bps;
 	unsigned spc;
@@ -206,26 +208,32 @@ void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
 	    	int flags = (o % bps == 0) ?
 		    BLOCK_FLAGS_NOREAD : BLOCK_FLAGS_NONE;
 		rc = fat_block_get(&b, bs, nodep, o / bps, flags);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 		memset(b->data + o % bps, 0, bps - o % bps);
 		b->dirty = true;		/* need to sync node */
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 	}
 	
 	if (o >= pos)
-		return;
+		return EOK;
 	
 	/* zero out the initial part of the new cluster chain */
 	for (o = boundary; o < pos; o += bps) {
 		rc = _fat_block_get(&b, bs, nodep->idx->dev_handle, mcl,
 		    (o - boundary) / bps, BLOCK_FLAGS_NOREAD);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 		memset(b->data, 0, min(bps, pos - o));
 		b->dirty = true;		/* need to sync node */
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 	}
+
+	return EOK;
 }
 
 /** Get cluster from the first FAT.
@@ -268,8 +276,10 @@ fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst,
  * @param fatno		Number of the FAT instance where to make the change.
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void
+int
 fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
@@ -287,12 +297,13 @@ fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
 	assert(fatno < bs->fatcnt);
 	rc = block_get(&b, dev_handle, rscnt + sf * fatno +
 	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK)
+		return rc;
 	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
 	*cp = host2uint16_t_le(value);
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
+	return rc;
 }
 
 /** Replay the allocatoin of clusters in all shadow instances of FAT.
@@ -301,19 +312,26 @@ fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
  * @param dev_handle	Device handle of the file system.
  * @param lifo		Chain of allocated clusters.
  * @param nclsts	Number of clusters in the lifo chain.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
+int fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
     fat_cluster_t *lifo, unsigned nclsts)
 {
 	uint8_t fatno;
 	unsigned c;
+	int rc;
 
 	for (fatno = FAT1 + 1; fatno < bs->fatcnt; fatno++) {
 		for (c = 0; c < nclsts; c++) {
-			fat_set_cluster(bs, dev_handle, fatno, lifo[c],
+			rc = fat_set_cluster(bs, dev_handle, fatno, lifo[c],
 			    c == 0 ? FAT_CLST_LAST1 : lifo[c - 1]);
+			if (rc != EOK)
+				return rc;
 		}
 	}
+
+	return EOK;
 }
 
 /** Allocate clusters in all copies of FAT.
@@ -377,8 +395,9 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 					rc = block_put(blk);
 					assert(rc == EOK);
 					/* update the shadow copies of FAT */
-					fat_alloc_shadow_clusters(bs,
+					rc = fat_alloc_shadow_clusters(bs,
 					    dev_handle, lifo, nclsts);
+					assert(rc == EOK);
 					*mcl = lifo[found - 1];
 					*lcl = lifo[0];
 					free(lifo);
@@ -397,8 +416,12 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 * we have allocated so far.
 	 */
 	while (found--) {
-		fat_set_cluster(bs, dev_handle, FAT1, lifo[found],
+		rc = fat_set_cluster(bs, dev_handle, FAT1, lifo[found],
 		    FAT_CLST_RES0);
+		if (rc != EOK) {
+			free(lifo);
+			return rc;
+		}
 	}
 	
 	free(lifo);
@@ -410,8 +433,10 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
  * @param bs		Buffer hodling the boot sector of the file system.
  * @param dev_handle	Device handle of the file system.
  * @param firstc	First cluster in the chain which is to be freed.
+ *
+ * @return		EOK on success or a negative return code.
  */
-void
+int
 fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
 {
 	unsigned fatno;
@@ -422,12 +447,19 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
 	while (firstc < FAT_CLST_LAST1) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
 		rc = fat_get_cluster(bs, dev_handle, firstc, &nextc);
-		assert(rc == EOK);
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-			fat_set_cluster(bs, dev_handle, fatno, firstc,
+		if (rc != EOK)
+			return rc;
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, dev_handle, fatno, firstc,
 			    FAT_CLST_RES0);
+			if (rc != EOK)
+				return rc;
+		}
+
 		firstc = nextc;
 	}
+
+	return EOK;
 }
 
 /** Append a cluster chain to the last file cluster in all FATs.
@@ -435,8 +467,10 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
  * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		Node representing the file.
  * @param mcl		First cluster of the cluster chain to append.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
+int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 {
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 	fat_cluster_t lcl;
@@ -446,17 +480,24 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
 
 	rc = fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl, &numc,
 	    (uint16_t) -1);
-	assert(rc == EOK);
+	if (rc != EOK)
+		return rc;
 
 	if (numc == 0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = mcl;
 		nodep->dirty = true;		/* need to sync node */
-		return;
+		return EOK;
 	}
 
-	for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-		fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lcl, mcl);
+	for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+		rc = fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lcl,
+		    mcl);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
 }
 
 /** Chop off node clusters in all copies of FAT.
@@ -466,15 +507,19 @@ void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
  * @param lastc		Last cluster which will remain in the node. If this
  *			argument is FAT_CLST_RES0, then all clusters will
  *			be chopped off.
+ *
+ * @return		EOK on success or a negative return code.
  */
-void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
+int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 {
 	int rc;
 
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 	if (lastc == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
-		fat_free_clusters(bs, dev_handle, nodep->firstc);
+		rc = fat_free_clusters(bs, dev_handle, nodep->firstc);
+		if (rc != EOK)
+			return rc;
 		nodep->firstc = FAT_CLST_RES0;
 		nodep->dirty = true;		/* need to sync node */
 	} else {
@@ -482,18 +527,27 @@ void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 		unsigned fatno;
 
 		rc = fat_get_cluster(bs, dev_handle, lastc, &nextc);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 
 		/* Terminate the cluster chain in all copies of FAT. */
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-			fat_set_cluster(bs, dev_handle, fatno, lastc, FAT_CLST_LAST1);
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, dev_handle, fatno, lastc,
+			    FAT_CLST_LAST1);
+			if (rc != EOK)
+				return rc;
+		}
 
 		/* Free all following clusters. */
-		fat_free_clusters(bs, dev_handle, nextc);
+		rc = fat_free_clusters(bs, dev_handle, nextc);
+		if (rc != EOK)
+			return rc;
 	}
+
+	return EOK;
 }
 
-void
+int
 fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 {
 	int i;
@@ -506,12 +560,16 @@ fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 	for (i = 0; i < bs->spc; i++) {
 		rc = _fat_block_get(&b, bs, dev_handle, c, i,
 		    BLOCK_FLAGS_NOREAD);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 		memset(b->data, 0, bps);
 		b->dirty = true;
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK)
+			return rc;
 	}
+
+	return EOK;
 }
 
 /**
