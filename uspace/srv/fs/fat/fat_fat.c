@@ -378,6 +378,8 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	fibril_mutex_lock(&fat_alloc_lock);
 	for (b = 0, cl = 0; b < sf; b++) {
 		rc = block_get(&blk, dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			goto error;
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
@@ -393,11 +395,13 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 				if (++found == nclsts) {
 					/* we are almost done */
 					rc = block_put(blk);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto error;
 					/* update the shadow copies of FAT */
 					rc = fat_alloc_shadow_clusters(bs,
 					    dev_handle, lifo, nclsts);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto error;
 					*mcl = lifo[found - 1];
 					*lcl = lifo[0];
 					free(lifo);
@@ -407,7 +411,12 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 			}
 		}
 		rc = block_put(blk);
-		assert(rc == EOK);
+		if (rc != EOK) {
+error:
+			fibril_mutex_unlock(&fat_alloc_lock);
+			free(lifo);
+			return rc;
+		}
 	}
 	fibril_mutex_unlock(&fat_alloc_lock);
 
