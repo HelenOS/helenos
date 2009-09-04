@@ -125,6 +125,13 @@ kernel_image_start:
 	movl r10 = (KERNEL_TRANSLATION_FW)
 	itr.d dtr[r7] = r10
 	
+	# Initialize DSR
+	
+	movl r10 = (DCR_DP_MASK | DCR_DK_MASK | DCR_DX_MASK | DCR_DR_MASK | DCR_DA_MASK | DCR_DD_MASK | DCR_LC_MASK)
+	mov r9 = cr.dcr
+	or r10 = r10, r9
+	mov cr.dcr = r10
+	
 	# Initialize PSR
 	
 	movl r10 = (PSR_DT_MASK | PSR_RT_MASK | PSR_IT_MASK | PSR_IC_MASK)  /* Enable paging */

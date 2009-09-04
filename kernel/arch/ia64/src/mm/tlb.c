@@ -572,6 +572,18 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
  */
 void alternate_data_tlb_fault(uint64_t vector, istate_t *istate)
 {
+	if (istate->cr_isr.sp) {
+		/* Speculative load. Deffer the exception
+		   until a more clever approach can be used.
+		   
+		   Currently if we try to find the mapping
+		   for the speculative load while in the kernel,
+		   we might introduce a livelock because of
+		   the possibly invalid values of the address. */
+		istate->cr_ipsr.ed = true;
+		return;
+	}
+	
 	uintptr_t va = istate->cr_ifa;  /* faulting address */
 	
 	region_register_t rr;
