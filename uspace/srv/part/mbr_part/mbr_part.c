@@ -38,9 +38,19 @@
  * and provides one for each partition.
  *
  * Limitations:
- *
+ * 
  * Only works with boot records using LBA. CHS-only records are not
- * supported. Maximum number of partitions is fixed.
+ * supported.
+ *
+ * Referemces:
+ *	
+ * The source of MBR structures for this driver have been the following
+ * Wikipedia articles:
+ *	- http://en.wikipedia.org/wiki/Master_Boot_Record
+ *	- http://en.wikipedia.org/wiki/Extended_boot_record
+ *
+ * The fact that the extended partition has type 0x05 is pure observation.
+ * (TODO: can it have any other type number?)
  */
 
 #include <stdio.h>
@@ -69,7 +79,7 @@ enum {
 	N_PRIMARY	= 4,
 
 	/** Boot record signature */
-	BR_SIGNATURE	= 0xAA55,
+	BR_SIGNATURE	= 0xAA55
 };
 
 enum ptype {
@@ -365,6 +375,7 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 	part->length     = len;
 
 	part->present = (sa != 0 || len != 0) ? true : false;
+
 	part->dev = 0;
 	part->next = NULL;
 }
