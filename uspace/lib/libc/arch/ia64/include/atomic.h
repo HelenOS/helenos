@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64	
+/** @addtogroup libcia64
  * @{
  */
 /** @file
@@ -35,30 +35,79 @@
 #ifndef LIBC_ia64_ATOMIC_H_
 #define LIBC_ia64_ATOMIC_H_
 
-/** Atomic addition.
- *
- * @param val Atomic value.
- * @param imm Value to add.
- *
- * @return Value before addition.
- */
-static inline long atomic_add(atomic_t *val, int imm)
+static inline void atomic_inc(atomic_t *val)
 {
 	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+}
 
- 	asm volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v), "+m" (val->count) : "i" (imm));
- 
+static inline void atomic_dec(atomic_t *val)
+{
+	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+}
+
+static inline long atomic_preinc(atomic_t *val)
+{
+	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return (v + 1);
+}
+
+static inline long atomic_predec(atomic_t *val)
+{
+	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return (v - 1);
+}
+
+static inline long atomic_postinc(atomic_t *val)
+{
+	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
 	return v;
 }
 
-static inline void atomic_inc(atomic_t *val) { atomic_add(val, 1); }
-static inline void atomic_dec(atomic_t *val) { atomic_add(val, -1); }
-
-static inline long atomic_preinc(atomic_t *val) { return atomic_add(val, 1) + 1; }
-static inline long atomic_predec(atomic_t *val) { return atomic_add(val, -1) - 1; }
-
-static inline long atomic_postinc(atomic_t *val) { return atomic_add(val, 1); }
-static inline long atomic_postdec(atomic_t *val) { return atomic_add(val, -1); }
+static inline long atomic_postdec(atomic_t *val)
+{
+	long v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return v;
+}
 
 #endif
 

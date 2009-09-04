@@ -111,7 +111,11 @@ int cmd_bdd(char **argv)
 
 	while (size > 0) {
 		rc = block_get(&block, handle, boff, 0);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			printf("Error: could not get block %u, device %u.\n",
+			    boff, handle);
+			return CMD_FAILURE;
+		}
 		blk = (uint8_t *) block->data;
 
 		bytes = (size < BLOCK_SIZE) ? size : BLOCK_SIZE;
@@ -141,7 +145,11 @@ int cmd_bdd(char **argv)
 		}
 
 		rc = block_put(block);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			printf("Error: could not put block %p.\n",
+			    block);
+			return CMD_FAILURE;
+		}
 
 		if (size > rows * BPR)
 			size -= rows * BPR;
