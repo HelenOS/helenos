@@ -39,34 +39,37 @@
 #include <arch/register.h>
 
 /** ia64 has 256 INRs. */
-#define INR_COUNT	256
+#define INR_COUNT  256
 
 /*
  * We need to keep this just to compile.
  * We might eventually move interrupt/ stuff
  * to genarch.
  */
-#define IVT_ITEMS       0
-#define IVT_FIRST       0
+#define IVT_ITEMS  0
+#define IVT_FIRST  0
 
 /** External Interrupt vectors. */
 
-#define VECTOR_TLB_SHOOTDOWN_IPI 0xf0
-#define INTERRUPT_TIMER		255
-#define IRQ_KBD			(0x01 + LEGACY_INTERRUPT_BASE)
-#define IRQ_MOUSE		(0x0c + LEGACY_INTERRUPT_BASE)
-#define INTERRUPT_SPURIOUS	15
-#define LEGACY_INTERRUPT_BASE	0x20
+#define VECTOR_TLB_SHOOTDOWN_IPI  0xf0
+
+#define INTERRUPT_SPURIOUS  15
+#define INTERRUPT_TIMER     255
+
+#define LEGACY_INTERRUPT_BASE  0x20
+
+#define IRQ_KBD    (0x01 + LEGACY_INTERRUPT_BASE)
+#define IRQ_MOUSE  (0x0c + LEGACY_INTERRUPT_BASE)
 
 /** General Exception codes. */
-#define GE_ILLEGALOP		0
-#define GE_PRIVOP		1
-#define GE_PRIVREG		2
-#define GE_RESREGFLD		3
-#define GE_DISBLDISTRAN		4
-#define GE_ILLEGALDEP		8
+#define GE_ILLEGALOP     0
+#define GE_PRIVOP        1
+#define GE_PRIVREG       2
+#define GE_RESREGFLD     3
+#define GE_DISBLDISTRAN  4
+#define GE_ILLEGALDEP    8
 
-#define EOI	0		/**< The actual value doesn't matter. */
+#define EOI  0  /**< The actual value doesn't matter. */
 
 typedef struct {
 	uint128_t f2;
@@ -99,7 +102,7 @@ typedef struct {
 	uint128_t f29;
 	uint128_t f30;
 	uint128_t f31;
-		
+	
 	uintptr_t ar_bsp;
 	uintptr_t ar_bspstore;
 	uintptr_t ar_bspstore_new;
@@ -131,7 +134,7 @@ typedef struct {
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 {
 	istate->cr_iip = retaddr;
-	istate->cr_ipsr.ri = 0;		/* return to instruction slot #0 */
+	istate->cr_ipsr.ri = 0;    /* return to instruction slot #0 */
 }
 
 static inline unative_t istate_get_pc(istate_t *istate)

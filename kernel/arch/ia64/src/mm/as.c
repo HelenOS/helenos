@@ -54,7 +54,7 @@ void as_arch_init(void)
  */
 void as_install_arch(as_t *as)
 {
-	region_register rr;
+	region_register_t rr;
 	int i;
 	
 	ASSERT(as->asid != ASID_INVALID);
