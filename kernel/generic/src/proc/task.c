@@ -142,8 +142,6 @@ task_t *task_create(as_t *as, char *name)
 	int i;
 	
 	ta = (task_t *) malloc(sizeof(task_t), 0);
-	if (!ta)
-		return NULL;
 
 	task_create_arch(ta);
 
