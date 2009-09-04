@@ -83,8 +83,10 @@ enum {
 };
 
 enum ptype {
+	/** Unused partition entry */
+	PT_UNUSED	= 0x00,
 	/** Extended partition */
-	PT_EXTENDED	= 0x05
+	PT_EXTENDED	= 0x05,
 };
 
 /** Partition */
@@ -374,7 +376,7 @@ static void mbr_pte_to_part(uint32_t base, const pt_entry_t *pte, part_t *part)
 	part->start_addr = base + sa;
 	part->length     = len;
 
-	part->present = (sa != 0 || len != 0) ? true : false;
+	part->present = (pte->ptype != PT_UNUSED) ? true : false;
 
 	part->dev = 0;
 	part->next = NULL;
