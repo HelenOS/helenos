@@ -72,9 +72,9 @@ void as_install_arch(as_t *as)
 		rr.map.rid = ASID2RID(as->asid, i);
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
+		srlz_d();
+		srlz_i();
 	}
-	srlz_d();
-	srlz_i();
 }
 
 /** @}
