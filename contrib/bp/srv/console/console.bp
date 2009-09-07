@@ -1,0 +1,101 @@
+!ns.IPC_CONNECT_ME_TO /* kbd */ ;
+!kbd.IPC_CONNECT_TO_ME ;
+!ns.IPC_CONNECT_ME_TO /* fb */ ;
+[devmap_driver_register] ;
+!fb.FB_GET_RESOLUTION ;
+(
+	[vp_create] +
+	[vp_switch]
+)* ;
+[make_pixmap]* ;
+[make_anim] ;
+[vp_switch] ;
+!fb.FB_FLUSH ;
+!fb.FB_GET_CSIZE ;
+!fb.FB_GET_COLOR_CAP ;
+!fb.IPC_M_SHARE_OUT ;
+[devmap_device_register]* ;
+[gcons_redraw_console] ;
+[set_rgb_color] ;
+[screen_clear] ;
+[curs_goto] ;
+[curs_visibility] ;
+(
+	?IPC_M_CONNECT_ME_TO ;
+	[gcons_notify_connect] ;
+	(
+		?VFS_OUT_READ {
+			[cons_read]
+		} +
+		
+		?VFS_OUT_WRITE {
+			[cons_write]
+		} +
+		
+		?VFS_OUT_SYNC {
+			[fb_pending_flush] ;
+			(
+				(
+					!fb.FB_FLUSH ;
+					[curs_goto]
+				) +
+				NULL
+			) ;
+		} +
+		
+		?CONSOLE_CLEAR {
+			!fb.FB_FLUSH +
+			NULL
+		} +
+		
+		?CONSOLE_GOTO {
+			!fb.CURS_GOTO +
+			NULL
+		} +
+		
+		?CONSOLE_GET_SIZE +
+		
+		?CONSOLE_GET_COLOR_CAP +
+		
+		?CONSOLE_SET_STYLE {
+			[fb_pending_flush] ;
+			(
+				[set_style] +
+				NULL
+			)
+		} +
+		
+		?CONSOLE_SET_COLOR {
+			[fb_pending_flush] ;
+			(
+				[set_color] +
+				NULL
+			)
+		} +
+		
+		?CONSOLE_SET_RGB_COLOR {
+			[fb_pending_flush] ;
+			(
+				[set_rgb_color] +
+				NULL
+			)
+		} +
+		
+		?CONSOLE_CURSOR_VISIBILITY {
+			[fb_pending_flush] ;
+			(
+				[curs_visibility] +
+				NULL
+			)
+		} +
+		
+		?CONSOLE_GET_EVENT +
+		
+		?CONSOLE_KCON_ENABLE
+		
+	)* ;
+	
+	?IPC_M_PHONE_HUNGUP {
+		[gcons_notify_disconnect]
+	}
+)*

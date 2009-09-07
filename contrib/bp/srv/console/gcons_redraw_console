@@ -1,0 +1,10 @@
+(
+	[vp_switch] ;
+	[set_rgb_color] ;
+	[clear] ;
+	[draw_pixmap] ;
+	[draw_pixmap] ;
+	[redraw_state]* ;
+	[vp_switch]
+) +
+NULL
