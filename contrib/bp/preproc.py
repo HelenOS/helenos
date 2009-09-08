@@ -83,7 +83,7 @@ def parse(fname, outf):
 	inf = file(fname, "r")
 	outf.write("### %s\n\n" % fname)
 	
-	tokens = split_tokens(inf.read(), ["\n", " ", "\t", "(", ")", "{", "}", "/*", "*/", "#", "*", ";", "+", "||", "|", "!", "?"], True)
+	tokens = split_tokens(inf.read(), ["\n", " ", "\t", "(", ")", "{", "}", "[", "/*", "*/", "#", "*", ";", "+", "||", "|", "!", "?"], True)
 	
 	empty = True
 	comment = False

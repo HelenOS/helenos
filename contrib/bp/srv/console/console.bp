@@ -21,18 +21,18 @@
 [curs_goto] ;
 [curs_visibility] ;
 (
-	?IPC_M_CONNECT_ME_TO ;
+	?console.IPC_M_CONNECT_ME_TO ;
 	[gcons_notify_connect] ;
 	(
-		?VFS_OUT_READ {
+		?console.VFS_OUT_READ {
 			[cons_read]
 		} +
 		
-		?VFS_OUT_WRITE {
+		?console.VFS_OUT_WRITE {
 			[cons_write]
 		} +
 		
-		?VFS_OUT_SYNC {
+		?console.VFS_OUT_SYNC {
 			[fb_pending_flush] ;
 			(
 				(
@@ -43,21 +43,21 @@
 			) ;
 		} +
 		
-		?CONSOLE_CLEAR {
+		?console.CONSOLE_CLEAR {
 			!fb.FB_FLUSH +
 			NULL
 		} +
 		
-		?CONSOLE_GOTO {
+		?console.CONSOLE_GOTO {
 			!fb.CURS_GOTO +
 			NULL
 		} +
 		
-		?CONSOLE_GET_SIZE +
+		?console.CONSOLE_GET_SIZE +
 		
-		?CONSOLE_GET_COLOR_CAP +
+		?console.CONSOLE_GET_COLOR_CAP +
 		
-		?CONSOLE_SET_STYLE {
+		?console.CONSOLE_SET_STYLE {
 			[fb_pending_flush] ;
 			(
 				[set_style] +
@@ -65,7 +65,7 @@
 			)
 		} +
 		
-		?CONSOLE_SET_COLOR {
+		?console.CONSOLE_SET_COLOR {
 			[fb_pending_flush] ;
 			(
 				[set_color] +
@@ -73,7 +73,7 @@
 			)
 		} +
 		
-		?CONSOLE_SET_RGB_COLOR {
+		?console.CONSOLE_SET_RGB_COLOR {
 			[fb_pending_flush] ;
 			(
 				[set_rgb_color] +
@@ -81,7 +81,7 @@
 			)
 		} +
 		
-		?CONSOLE_CURSOR_VISIBILITY {
+		?console.CONSOLE_CURSOR_VISIBILITY {
 			[fb_pending_flush] ;
 			(
 				[curs_visibility] +
@@ -89,13 +89,13 @@
 			)
 		} +
 		
-		?CONSOLE_GET_EVENT +
+		?console.CONSOLE_GET_EVENT +
 		
-		?CONSOLE_KCON_ENABLE
+		?console.CONSOLE_KCON_ENABLE
 		
 	)* ;
 	
-	?IPC_M_PHONE_HUNGUP {
+	?console.IPC_M_PHONE_HUNGUP {
 		[gcons_notify_disconnect]
 	}
 )*

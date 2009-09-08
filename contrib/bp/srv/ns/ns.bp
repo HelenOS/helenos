@@ -1,18 +1,18 @@
 (
 	(
-		?IPC_M_SHARE_IN /* SERVICE_MEM_REALTIME || SERVICE_MEM_KLOG */ +
-		?IPC_M_CONNECT_TO_ME {
+		?ns.IPC_M_SHARE_IN /* SERVICE_MEM_REALTIME || SERVICE_MEM_KLOG */ +
+		?ns.IPC_M_CONNECT_TO_ME {
 			!clonable.IPC_M_CONNECT_TO_ME /* forwarded */ +
 			NULL
 		} +
-		?IPC_M_CONNECT_ME_TO {
+		?ns.IPC_M_CONNECT_ME_TO {
 			!service.IPC_M_CONNECT_ME_TO /* forwarded */ +
 			NULL
 		} +
-		?NS_PING +
-		?NS_TASK_WAIT +
-		?NS_ID_INTRO +
-		?NS_RETVAL
+		?ns.NS_PING +
+		?ns.NS_TASK_WAIT +
+		?ns.NS_ID_INTRO +
+		?ns.NS_RETVAL
 	)* ;
-	?IPC_M_PHONE_HUNGUP
+	?ns.IPC_M_PHONE_HUNGUP
 )*

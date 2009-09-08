@@ -1,18 +1,18 @@
 !ns.IPC_M_CONNECT_TO_ME ;
 (
-	?IPC_M_CONNECT_ME_TO ;
+	?vfs.IPC_M_CONNECT_ME_TO ;
 	(
-		?VFS_IN_REGISTER {
-			?IPC_M_DATA_WRITE ;
-			?IPC_M_CONNECT_TO_ME ;
-			?IPC_M_SHARE_IN
+		?vfs.VFS_IN_REGISTER {
+			?vfs.IPC_M_DATA_WRITE ;
+			?vfs.IPC_M_CONNECT_TO_ME ;
+			?vfs.IPC_M_SHARE_IN
 		} +
 		
-		?VFS_IN_MOUNT {
-			?IPC_M_DATA_WRITE /* mount point */ ;
-			?IPC_M_DATA_WRITE /* mount options */ ;
-			?IPC_M_DATA_WRITE /* fs name */ ;
-			?IPC_M_PING ;
+		?vfs.VFS_IN_MOUNT {
+			?vfs.IPC_M_DATA_WRITE /* mount point */ ;
+			?vfs.IPC_M_DATA_WRITE /* mount options */ ;
+			?vfs.IPC_M_DATA_WRITE /* fs name */ ;
+			?vfs.IPC_M_PING ;
 			(
 				
 				!fs.VFS_OUT_MOUNTED ;
@@ -25,8 +25,8 @@
 			) /* non-root fs */
 		} +
 		
-		?VFS_IN_OPEN {
-			?IPC_M_DATA_WRITE /* path */ ;
+		?vfs.VFS_IN_OPEN {
+			?vfs.IPC_M_DATA_WRITE /* path */ ;
 			[vfs_lookup_internal] ;
 			(
 				(
@@ -38,7 +38,7 @@
 			)
 		} +
 		
-		?VFS_IN_OPEN_NODE {
+		?vfs.VFS_IN_OPEN_NODE {
 			[vfs_grab_phone] ;
 			!fs.VFS_OUT_OPEN_NODE ;
 			[vfs_release_phone] ;
@@ -52,14 +52,14 @@
 			)
 		} +
 		
-		?VFS_IN_CLOSE {
+		?vfs.VFS_IN_CLOSE {
 			[vfs_grab_phone] ;
 			!fs.VFS_OUT_CLOSE ;
 			[vfs_release_phone]
 		} +
 		
-		?VFS_IN_READ {
-			?IPC_M_DATA_READ {
+		?vfs.VFS_IN_READ {
+			?vfs.IPC_M_DATA_READ {
 				[vfs_grab_phone] ;
 				!fs.VFS_OUT_READ /* payload */ ;
 				!fs.IPC_M_DATA_READ /* forwarded */ ;
@@ -67,8 +67,8 @@
 			}
 		} +
 		
-		?VFS_IN_WRITE {
-			?IPC_M_DATA_WRITE {
+		?vfs.VFS_IN_WRITE {
+			?vfs.IPC_M_DATA_WRITE {
 				[vfs_grab_phone] ;
 				!fs.VFS_OUT_WRITE /* payload */ ;
 				!fs.IPC_M_DATA_WRITE /* forwarded */ ;
@@ -76,16 +76,16 @@
 			}
 		} +
 		
-		?VFS_IN_SEEK +
+		?vfs.VFS_IN_SEEK +
 		
-		?VFS_IN_TRUNCATE {
+		?vfs.VFS_IN_TRUNCATE {
 			[vfs_grab_phone] ;
 			!fs.VFS_OUT_TRUNCATE ;
 			[vfs_release_phone]
 		} +
 		
-		?VFS_IN_FSTAT {
-			?IPC_M_DATA_READ /* struct stat */ {
+		?vfs.VFS_IN_FSTAT {
+			?vfs.IPC_M_DATA_READ /* struct stat */ {
 				[vfs_grab_phone] ;
 				!fs.VFS_OUT_STAT ;
 				!fs.IPC_M_DATA_READ /* forwarded */ ;
@@ -93,28 +93,28 @@
 			}
 		} +
 		
-		?VFS_IN_STAT {
-			?IPC_M_DATA_WRITE /* path */ ;
-			?IPC_M_DATA_READ /* struct stat */ {
+		?vfs.VFS_IN_STAT {
+			?vfs.IPC_M_DATA_WRITE /* path */ ;
+			?vfs.IPC_M_DATA_READ /* struct stat */ {
 				[vfs_lookup_internal] ;
 				!fs.VFS_OUT_STAT ;
 				!fs.IPC_M_DATA_READ /* forwarded */
 			}
 		} +
 		
-		?VFS_IN_MKDIR {
-			?IPC_M_DATA_WRITE /* path */ ;
+		?vfs.VFS_IN_MKDIR {
+			?vfs.IPC_M_DATA_WRITE /* path */ ;
 			[vfs_lookup_internal]
 		} +
 		
-		?VFS_IN_UNLINK {
-			?IPC_M_DATA_WRITE /* path */ ;
+		?vfs.VFS_IN_UNLINK {
+			?vfs.IPC_M_DATA_WRITE /* path */ ;
 			[vfs_lookup_internal]
 		} +
 		
-		?VFS_IN_RENAME {
-			?IPC_M_DATA_WRITE /* old path */ ;
-			?IPC_M_DATE_WRITE /* new path */ ;
+		?vfs.VFS_IN_RENAME {
+			?vfs.IPC_M_DATA_WRITE /* old path */ ;
+			?vfs.IPC_M_DATE_WRITE /* new path */ ;
 			[vfs_lookup_internal] /* lookup old path */ ;
 			[vfs_lookup_internal] /* lookup parent of new path */ ;
 			[vfs_lookup_internal] /* destroy old link for the new path */ ;
@@ -122,10 +122,10 @@
 			[vfs_lookup_internal] /* destroy link for the old path */
 		} +
 		
-		?VFS_IN_SYNC {
+		?vfs.VFS_IN_SYNC {
 			!fs.VFS_OUT_SYNC
 		}
 		
 	)* ;
-	?IPC_M_PHONE_HUNGUP
+	?vfs.IPC_M_PHONE_HUNGUP
 )*
