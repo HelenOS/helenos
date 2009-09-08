@@ -49,7 +49,6 @@
 					[vfs_release_phone]
 				) +
 				NULL
-				NULL
 			)
 		} +
 		
