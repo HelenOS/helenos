@@ -44,9 +44,17 @@ void console_clear(int phone)
 	async_msg_0(phone, CONSOLE_CLEAR);
 }
 
-int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows)
+int console_get_size(int phone, int *cols, int *rows)
 {
-	return async_req_0_2(phone, CONSOLE_GET_SIZE, cols, rows);
+	ipcarg_t cols_v;
+	ipcarg_t rows_v;
+	int rc;
+
+	rc = async_req_0_2(phone, CONSOLE_GET_SIZE, &cols_v, &rows_v);
+
+	*cols = (int) cols_v;
+	*rows = (int) rows_v;
+	return rc;
 }
 
 void console_set_style(int phone, int style)
@@ -85,7 +93,7 @@ void console_kcon_enable(int phone)
 	async_msg_0(phone, CONSOLE_KCON_ENABLE);
 }
 
-void console_goto(int phone, ipcarg_t col, ipcarg_t row)
+void console_goto(int phone, int col, int row)
 {
 	async_msg_2(phone, CONSOLE_GOTO, col, row);
 }
