@@ -50,8 +50,8 @@
 #include <async.h>
 
 typedef struct {
-	ipcarg_t ws_row;
-	ipcarg_t ws_col;
+	int ws_row;
+	int ws_col;
 } winsize_t;
 
 extern winsize_t winsize;
