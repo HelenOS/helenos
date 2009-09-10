@@ -67,8 +67,8 @@ typedef struct {
 
 extern void console_clear(int phone);
 
-extern int console_get_size(int phone, ipcarg_t *rows, ipcarg_t *cols);
-extern void console_goto(int phone, ipcarg_t row, ipcarg_t col);
+extern int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows);
+extern void console_goto(int phone, ipcarg_t col, ipcarg_t row);
 
 extern void console_set_style(int phone, int style);
 extern void console_set_color(int phone, int fg_color, int bg_color, int flags);
