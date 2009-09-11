@@ -1,0 +1,2 @@
+/* Interfaces required by libc */
+naming_service ns;

@@ -4,6 +4,17 @@
 context default
 	keyword whole interface yellow
 	keyword whole frame yellow
+	keyword whole architecture yellow
+	
+	keyword whole system yellow
+	keyword whole extends yellow
+	keyword whole version yellow
+	
+	keyword whole inst yellow
+	keyword whole bind yellow
+	keyword whole to yellow
+	keyword whole subsume yellow
+	keyword whole delegate yellow
 	
 	keyword whole ipcarg_t yellow
 	keyword whole void yellow
@@ -31,6 +42,9 @@ context default
 	
 	keyword [ brightblue black
 	keyword ] brightblue black
+
+context exclusive [ ] brightblue black
+	keyword % brightcyan black
 
 context exclusive /\* \*/ brown
 	spellcheck

@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-HelenOS Behavior Protocols preprocessor
+HelenOS Architecture Description Language and Behavior Protocols preprocessor
 """
 
 import sys
@@ -140,7 +140,7 @@ def parse(fname, outf):
 	outf.write("\n\n\n")
 	inf.close()
 
-def recursion(root, outf, level):
+def recursion(root, output, level):
 	"Recursive directory walk"
 	
 	for name in os.listdir(root):
@@ -160,13 +160,11 @@ def main():
 		return
 	
 	path = os.path.abspath(sys.argv[1])
-	if (os.path.isdir(path)):
-		print "<OUTPUT> is an existing directory"
+	if (not os.path.isdir(path)):
+		print "<OUTPUT> is not a directory"
 		return
 	
-	outf = file(path, "w")
-	recursion(".", outf, 0)
-	outf.close()
+	recursion(".", path, 0)
 	
 if __name__ == '__main__':
 	main()

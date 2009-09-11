@@ -1,0 +1,9 @@
+system architecture HelenOS version 0.4.1 {
+	/* SPARTAN kernel */
+	inst kernel kernel;
+	
+	/* Naming Service */
+	inst ns ns;
+	
+	[/uspace/lib/libc/bind.kernel%ns]
+};

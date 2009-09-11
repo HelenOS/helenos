@@ -1,0 +1,14 @@
+/* Bindings to kernel interfaces */
+bind %%:kernel_klog to kernel:kernel_klog;
+bind %%:kernel_console to kernel:kernel_console;
+bind %%:kernel_tls to kernel:kernel_tls;
+bind %%:kernel_thread to kernel:kernel_thread;
+bind %%:kernel_task to kernel:kernel_task;
+bind %%:kernel_program to kernel:kernel_program;
+bind %%:kernel_as to kernel:kernel_as;
+bind %%:kernel_ipc to kernel:kernel_sys;
+bind %%:kernel_event to kernel:kernel_event;
+bind %%:kernel_cap to kernel:kernel_cap;
+bind %%:kernel_ddi to kernel:kernel_ddi;
+bind %%:kernel_sysinfo to kernel:kernel_sysinfo;
+bind %%:kernel_debug to kernel:kernel_debug;

@@ -3,6 +3,9 @@
 
 context default
 	keyword whole NULL yellow
+	keyword whole try yellow
+	keyword whole catch yellow
+	keyword whole tentative yellow
 	
 	keyword /\* brown
 	keyword \*/ brown
@@ -28,6 +31,7 @@ context default
 	keyword ] brightblue black
 
 context exclusive [ ] brightblue black
+	keyword % brightcyan black
 
 context exclusive /\* \*/ brown
 	spellcheck

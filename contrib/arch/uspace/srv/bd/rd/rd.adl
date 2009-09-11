@@ -1,0 +1,9 @@
+frame rd {
+	provides:
+		block_device bd;
+	requires:
+		[/lib/libc/iface.requires]
+		device_mapper_driver dm_driver;
+	protocol:
+		[rd.bp]
+};
