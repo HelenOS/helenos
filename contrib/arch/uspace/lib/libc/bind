@@ -5,6 +5,8 @@ bind %%:kernel_tls to kernel:kernel_tls;
 bind %%:kernel_thread to kernel:kernel_thread;
 bind %%:kernel_task to kernel:kernel_task;
 bind %%:kernel_program to kernel:kernel_program;
+bind %%:kernel_futex to kernel:kernel_futex;
+bind %%:kernel_smc to kernel:kernel_smc;
 bind %%:kernel_as to kernel:kernel_as;
 bind %%:kernel_ipc to kernel:kernel_sys;
 bind %%:kernel_event to kernel:kernel_event;

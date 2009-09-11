@@ -1,1 +1,41 @@
-/* Protocol by which libc uses uspace services */
+/* Protocol according to which libc uses kernel syscalls */
+(
+	!kernel_klog.sys_klog +
+	!kernel_tls.sys_tls_set +
+	!kernel_thread.sys_thread_create +
+	!kernel_thread.sys_thread_get_id +
+	!kernel_thread.sys_thread_exit +
+	!kernel_task.sys_task_set_name +
+	!kernel_task.sys_task_get_id +
+	!kernel_program.sys_program_spawn_loader +
+	!kernel_futex.sys_futex_sleep_timeout +
+	!kernel_futex.sys_futex_wakeup +
+	!kernel_smc.sys_smc_coherence +
+	!kernel_as.sys_as_area_create +
+	!kernel_as.sys_as_area_resize +
+	!kernel_as.sys_as_area_change_flags +
+	!kernel_as.sys_as_area_destroy +
+	!kernel_ipc.sys_ipc_call_sync_fast +
+	!kernel_ipc.sys_ipc_call_sync_slow +
+	!kernel_ipc.sys_ipc_call_async_fast +
+	!kernel_ipc.sys_ipc_call_async_slow +
+	!kernel_ipc.sys_ipc_forward_fast +
+	!kernel_ipc.sys_ipc_forward_slow +
+	!kernel_ipc.sys_ipc_answer_fast +
+	!kernel_ipc.sys_ipc_answer_slow +
+	!kernel_ipc.sys_ipc_hangup +
+	!kernel_ipc.sys_ipc_wait_for_call +
+	!kernel_ipc.sys_ipc_poke +
+	!kernel_event.sys_event_subscribe +
+	!kernel_cap.sys_cap_grant +
+	!kernel_cap.sys_cap_rewoke +
+	!kernel_ddi.sys_enable_iospace +
+	!kernel_ddi.sys_physmem_map +
+	!kernel_ddi.sys_device_assign_devno +
+	!kernel_ddi.sys_preempt_control +
+	!kernel_ddi.sys_ipc_register_irq +
+	!kernel_ddi.sys_ipc_unregister_irq +
+	!kernel_sysinfo.sys_sysinfo_valid +
+	!kernel_sysinfo.sys_sysinfo_value +
+	!kernel_debug.sys_ipc_connect_kbox
+)*

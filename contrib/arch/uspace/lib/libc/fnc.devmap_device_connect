@@ -1,2 +1,1 @@
-[devmap_get_phone] ;
-!dev.IPC_M_CONNECT_ME_TO
+!ns.ipc_m_connect_me_to /* device via devmap */

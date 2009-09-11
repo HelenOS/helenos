@@ -1,2 +1,3 @@
-!ns.IPC_M_CONNECT_ME_TO /* devmap */ +
-NULL
+tentative {
+	!ns.ipc_m_connect_me_to /* devmap */
+}

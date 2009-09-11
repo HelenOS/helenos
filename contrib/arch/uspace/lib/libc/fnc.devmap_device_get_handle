@@ -1,3 +1,4 @@
-[devmap_get_phone] ;
-!devmap.DEVMAP_DEVICE_GET_HANDLE ;
-!devmap.IPC_M_DATA_WRITE /* name */
+[fnc.devmap_get_phone] ;
+!dm_client.device_get_handle {
+	!dm_client.ipc_m_data_write /* name */
+}

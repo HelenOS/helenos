@@ -5,5 +5,9 @@ system architecture HelenOS version 0.4.1 {
 	/* Naming Service */
 	inst ns ns;
 	
-	[/uspace/lib/libc/bind.kernel%ns]
+	/* RAM disk */
+	inst rd rd;
+	
+	[/uspace/lib/libc/bind%ns]
+	[/usrpace/lib/libc/bind%rd]
 };
