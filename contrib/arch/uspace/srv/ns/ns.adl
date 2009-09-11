@@ -30,7 +30,7 @@ frame ns {
 	provides:
 		naming_service ns;
 	requires:
-		[/uspace/lib/libc/requires.iface.kernel]
+		[/uspace/lib/libc/requires.kernel]
 	protocol:
 		[/uspace/lib/libc/protocol.kernel]
 };
