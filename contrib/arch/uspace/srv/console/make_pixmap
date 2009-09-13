@@ -1,0 +1,4 @@
+!fb.FB_PREPARE_SHM ;
+!fb.IPC_M_SHARE_OUT ;
+!fb.FB_SHM2PIXMAP ;
+!fb.FB_DROP_SHM

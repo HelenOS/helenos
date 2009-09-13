@@ -1,0 +1,5 @@
+interface service {
+		/* Establish connection with the service
+		   (this call is forwarded from Naming Service or Device Mapper) */
+		ipcarg_t ipc_m_connect_me_to(void);
+};

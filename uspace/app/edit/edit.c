@@ -87,7 +87,7 @@ static doc_t doc;
 static bool done;
 static pane_t pane;
 
-static ipcarg_t scr_rows, scr_columns;
+static int scr_rows, scr_columns;
 
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
@@ -361,8 +361,7 @@ static int file_save_range(char const *fname, spt_t const *spos,
 static void pane_text_display(void)
 {
 	int sh_rows, rows;
-	int i;
-	unsigned j;
+	int i, j;
 
 	sheet_get_num_rows(&doc.sh, &sh_rows);
 	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
@@ -451,7 +450,7 @@ static void pane_row_range_display(int r0, int r1)
 
 		/* Fill until the end of display area. */
 
-		if (str_length(row_buf) < scr_columns)
+		if (str_length(row_buf) < (unsigned) scr_columns)
 			fill = scr_columns - str_length(row_buf);
 		else
 			fill = 0;

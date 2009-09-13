@@ -1,0 +1,6 @@
+?fs.IPC_M_CONNECTION_CLONE ;
+?fs.IPC_M_DATA_WRITE /* mount options */ {
+	!fs.IPC_M_CONNECT_ME ;
+	!fs.VFS_OUT_MOUNTED ;
+	!fs.IPC_M_DATA_WRITE /* forwarded */
+}

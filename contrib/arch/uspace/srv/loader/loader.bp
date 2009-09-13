@@ -1,0 +1,25 @@
+!ns.NS_ID_INTRO ;
+!ns.IPC_M_CONNECT_TO_ME ;
+(
+	?loader.LOADER_GET_TASKID {
+		?loader.IPC_M_DATA_READ /* task id */
+	} +
+	
+	?loader.LOADER_SET_PATHNAME {
+		?loader.IPC_M_DATA_WRITE /* path */
+	} +
+	
+	?loader.LOADER_SET_ARGS {
+		?loader.IPC_M_DATA_WRITE /* arguments */
+	} +
+	
+	?loader.LOADER_SET_FILES {
+		?loader.IPC_M_DATA_WRITE /* files */
+	} +
+	
+	?loader.LOADER_LOAD
+)* ;
+(
+	?loader.LOADER_RUN +
+	?loader.IPC_M_PHONE_HUNGUP
+)

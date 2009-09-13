@@ -1,0 +1,74 @@
+!ns.IPC_M_CONNECT_TO_ME ;
+(
+	?fb.IPC_M_CONNECT_ME_TO ;
+	(
+		?fb.IPC_M_SHARE_OUT +
+		
+		(
+			?fb.FB_PREPARE_SHM ;
+			?fb.IPC_M_AS_AREA_SEND ;
+			?fb.FB_DRAW_PPM ;
+			?fb.FB_DROP_SHM
+		) +
+		
+		(
+			?fb.IPC_M_AS_AREA_SEND ;
+			?fb.FB_DRAW_TEXT_DATA
+		) +
+		
+		?fb.FB_SHM2PIXMAP +
+		
+		?fb.FB_VP_DRAW_PIXMAP +
+		
+		?fb.FB_VP2PIXMAP +
+		
+		?fb.FB_DROP_PIXMAP +
+		
+		?fb.FB_ANIM_CREATE +
+		
+		?fb.FB_ANIM_DROP +
+		
+		?fb.FB_ANIM_ADDPIXMAP +
+		
+		?fb.FB_ANIM_CHGVP +
+		
+		?fb.FB_ANIM_START +
+		
+		?fb.FB_ANIM_STOP +
+		
+		?fb.FB_PUTCHAR +
+		
+		?fb.FB_CLEAR +
+		
+		?fb.FB_CURSOR_GOTO +
+		
+		?fb.FB_CURSOR_VISIBILITY +
+		
+		?fb.FB_GET_CSIZE +
+		
+		?fb.FB_GET_COLOR_CAP +
+		
+		?fb.FB_SCROLL +
+		
+		?fb.FB_VIEWPORT_SWITCH +
+		
+		?fb.FB_VIEWPORT_CREATE +
+		
+		?fb.FB_VIEWPORT_DELETE +
+		
+		?fb.FB_SET_STYLE +
+		
+		?fb.FB_SET_COLOR +
+		
+		?fb.FB_SET_RGB_COLOR +
+		
+		?fb.FB_GET_RESOLUTION +
+		
+		?fb.FB_POINTER_MOVE +
+		
+		?fb.FB_SCREEN_YIELD +
+		
+		?fb.FB_SCREEN_RECLAIM
+	)* ;
+	?fb.IPC_M_PHONE_HUNGUP
+)*

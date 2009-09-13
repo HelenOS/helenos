@@ -1,0 +1,5 @@
+!ns.IPC_M_CONNECT_TO_ME ;
+(
+	?pci.IPC_M_CONNECT_ME_TO ;
+	?pci.IPC_M_PHONE_HUNGUP
+)*
