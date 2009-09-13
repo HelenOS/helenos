@@ -55,6 +55,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
 RD_APPS = \
+	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
