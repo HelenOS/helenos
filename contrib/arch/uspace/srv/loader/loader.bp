@@ -1,25 +1,23 @@
-!ns.NS_ID_INTRO ;
-!ns.IPC_M_CONNECT_TO_ME ;
 (
-	?loader.LOADER_GET_TASKID {
-		?loader.IPC_M_DATA_READ /* task id */
+	?get_taskid {
+		?ipc_m_data_read /* task ID */
 	} +
 	
-	?loader.LOADER_SET_PATHNAME {
-		?loader.IPC_M_DATA_WRITE /* path */
+	?set_pathname {
+		?ipc_m_data_write /* pathname */
 	} +
 	
-	?loader.LOADER_SET_ARGS {
-		?loader.IPC_M_DATA_WRITE /* arguments */
+	?set_args {
+		?ipc_m_data_write /* arguments */
 	} +
 	
-	?loader.LOADER_SET_FILES {
-		?loader.IPC_M_DATA_WRITE /* files */
+	?set_files {
+		?ipc_m_data_write /* files */
 	} +
 	
-	?loader.LOADER_LOAD
+	?load
 )* ;
 (
-	?loader.LOADER_RUN +
-	?loader.IPC_M_PHONE_HUNGUP
+	?run +
+	?ipc_m_phone_hungup
 )

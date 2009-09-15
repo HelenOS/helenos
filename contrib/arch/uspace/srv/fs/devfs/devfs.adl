@@ -1,11 +1,13 @@
-frame rd {
+frame devfs {
 	provides:
-		bd bd;
+		fs fs
 	requires:
 		[/uspace/lib/libc/requires%]
+		vfs vfs;
 		ns ns;
-		devmap_driver devmap_driver;
+		devmap_client devmap_client;
+		service device;
 	protocol:
 		[/uspace/lib/libc/protocol] +
-		[rd.bp]
+		[devfs_server.bp]
 };

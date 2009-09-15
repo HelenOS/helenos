@@ -1,0 +1,45 @@
+!ns.ipc_m_connect_me_to /* vfs */ ;
+[/uspace/lib/libfs/fnc.fs_register] ;
+(
+	?fs.ipc_m_connect_me_to ;
+	(
+		?fs.mounted {
+			?fs.ipc_m_data_write /* mount options */
+		} +
+		
+		?fs.mount {
+			[/uspace/lib/libfs/fnc.libfs_mount]
+		} +
+		
+		?fs.lookup {
+			[/uspace/lib/libfs/fnc.libfs_lookup]
+		} +
+		
+		?fs.open_node {
+			[/uspace/lib/libfs/fnc.libfs_open_node]
+		} +
+		
+		?fs.read {
+			tentative {
+				?fs.ipc_m_data_read /* payload */
+			}
+		} +
+		
+		?fs.write {
+			tentative {
+				?fs.ipc_m_data_write /* payload */
+			}
+		} +
+		
+		?fs.stat {
+			[/uspace/lib/libfs/fnc.libfs_stat]
+		} +
+		
+		?fs.truncate +
+		?fs.close +
+		?fs.destroy +
+		?fs.sync
+	)* ;
+	?fs.ipc_m_phone_hungup
+)* ;
+!vfs.ipc_m_phone_hungup

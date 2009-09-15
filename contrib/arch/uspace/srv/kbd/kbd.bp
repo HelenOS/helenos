@@ -1,20 +1,7 @@
+?ipc_m_connect_me_to ;
 (
-	!ns.IPC_M_CONNECT_ME_TO /* cir */ +
-	NULL
-) ;
-!ns.IPC_M_CONNECT_TO_ME ;
-(
-	?kbd.IPC_M_CONNECT_ME_TO ;
-	(
-		(
-			?kbd.KBD_YIELD +
-			?kbd.KBD_RECLAIM +
-		) |
-		!console.KBD_EVENT
-	)* ;
-	?kbd.IPC_M_PHONE_HUNGUP
+	?ipc_m_connect_to_me +
+	?yield +
+	?reclam
 )* ;
-(
-	!cir.IPC_M_PHONE_HUNGUP +
-	NULL
-)
+?ipc_m_phone_hungup

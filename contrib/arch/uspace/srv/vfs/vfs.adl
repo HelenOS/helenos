@@ -1,4 +1,4 @@
-interface vfs {
+interface vfs extends service {
 		/* Establish connection */
 		ipcarg_t ipc_m_connect_me_to(void);
 		
@@ -50,16 +50,88 @@ interface vfs {
 		/* Close connection */
 		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
-		[virtual_fs.bp]
+		[vfs.bp]
 };
 
-frame vfs {
+interface fs extends service {
+		/* Establish connection */
+		ipcarg_t ipc_m_connect_me_to(void);
+		
+		/* Notify filesystem that it was mounted */
+		ipcarg_t mounted(in ipcarg_t dev_handle, in_copy string opts);
+		
+		/* Mount filesystem */
+		ipcarg_t mount(in ipcarg_t device, in ipcarg_t flags, in_copy string point, in_copy string opts, ...);
+		
+		/* Open file by node */
+		ipcarg_t open_node(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, ...);
+		
+		/* Lookup file */
+		ipcarg_t lookup(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, ...);
+		
+		/* Read data from file */
+		ipcarg_t read(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, out_copy stream data);
+		
+		/* Write data to file */
+		ipcarg_t write(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, out_copy stream data);
+		
+		/* Truncate file */
+		ipcarg_t truncate(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t size);
+		
+		/* Get directory entry metadata */
+		ipcarg_t stat(in ipcarg_t dev_handle, in ipcarg_t fs_index, out_copy stream stat);
+		
+		/* Flush file buffers */
+		ipcarg_t sync(in ipcarg_t dev_handle, in ipcarg_t fs_index);
+		
+		/* Notify on file close */
+		ipcarg_t close(in ipcarg_t dev_handle, in ipcarg_t fs_index);
+		
+		/* Close connection */
+		ipcarg_t ipc_m_phone_hungup(void);
+};
+
+frame vfs_manager {
 	provides:
 		vfs vfs;
 	requires:
 		[/uspace/lib/libc/requires%]
-		naming_service ns;
+		fs fs;
+		ns ns;
 	protocol:
 		[/uspace/lib/libc/protocol] +
-		[vfs.bp]
+		[vfs_server.bp]
+};
+
+architecture vfs {
+	inst vfs_manager vfs;
+	inst tmpfs tmpfs;
+	inst fat fat;
+	inst devfs devfs;
+	
+	bind vfs:fs to tmpfs:fs;
+	bind vfs:fs to fat:fs;
+	bind vfs:fs to devfs:fs;
+	
+	bind tmpfs:vfs to vfs:vfs;
+	bind fat:vfs to vfs:vfs;
+	bind devfs:vfs to vfs:vfs;
+	
+	delegate vfs to vfs:vfs;
+	
+	[/uspace/lib/libc/subsume%vfs]
+	[/uspace/lib/libc/subsume%tmpfs]
+	[/uspace/lib/libc/subsume%fat]
+	[/uspace/lib/libc/subsume%devfs]
+	
+	subsume vfs:ns to ns;
+	subsume tmpfs:ns to ns;
+	subsume fat:ns to ns;
+	subsume devfs:ns to ns;
+	
+	subsume tmpfs:bd to bd;
+	subsume fat:bd to bd;
+	
+	subsume devfs:devmap_client to devmap_client;
+	subsume devfs:device to device;
 };

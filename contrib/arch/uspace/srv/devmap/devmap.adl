@@ -1,4 +1,4 @@
-interface device_mapper_driver {
+interface devmap_driver {
 		/* Establish connection (iface is DEVMAP_DRIVER) */
 		ipcarg_t ipc_m_connect_me_to(in ipcarg_t iface);
 		
@@ -23,10 +23,10 @@ interface device_mapper_driver {
 		/* Close connection */
 		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
-		[device_mapper_driver.bp]
+		[devmap_driver.bp]
 };
 
-interface device_mapper_client {
+interface devmap_client {
 		/* Establish connection (iface is DEVMAP_CLIENT) or forward to device (iface is DEVMAP_CONNECT_TO_DEVICE) */
 		ipcarg_t ipc_m_connect_me_to(in ipcarg_t iface, in ipcarg_t handle);
 		
@@ -51,16 +51,16 @@ interface device_mapper_client {
 		/* Close connection */
 		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
-		[device_mapper_client.bp]
+		[devmap_client.bp]
 	
 };
 
 frame devmap {
 	provides:
-		device_mapper_driver dm_driver;
-		device_mapper_client dm_client;
+		devmap_driver devmap_driver;
+		devmap_client devmap_client;
 	requires:
 		[/uspace/lib/libc/requires%]
 	protocol:
-		[devmap.bp]
+		[devmap_server.bp]
 };

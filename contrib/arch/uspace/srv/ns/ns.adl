@@ -1,4 +1,4 @@
-interface naming_service {
+interface ns {
 		/* Register a clonable service or a generic service */
 		ipcarg_t ipc_m_connect_to_me(in ipcarg_t service);
 		
@@ -23,12 +23,12 @@ interface naming_service {
 		/* Implicit connection close */
 		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
-		[naming_service.bp]
+		[ns.bp]
 };
 
 frame ns {
 	provides:
-		naming_service ns;
+		ns ns;
 	requires:
 		[/uspace/lib/libc/requires]
 	protocol:

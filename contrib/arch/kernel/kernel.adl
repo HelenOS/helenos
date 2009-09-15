@@ -6,7 +6,7 @@ interface kernel_klog {
 		/* Print using kernel facility */
 		unative_t sys_klog(int fd, const void *buf, size_t size);
 	protocol:
-		?sys_klog*
+		?sys_klog
 };
 
 interface kernel_console {
@@ -16,14 +16,15 @@ interface kernel_console {
 		/* Disable kernel console */
 		uintptr_t sys_debug_disable_console(void);
 	protocol:
-		(?sys_debug_enable_console + ?sys_debug_disable_console)*
+		?sys_debug_enable_console +
+		?sys_debug_disable_console
 };
 
 interface kernel_tls {
 		/* Set thread-local storage pointer (on architectures where kernel mode is required) */
 		unative_t sys_tls_set(unative_t addr);
 	protocol:
-		?sys_tls_set*
+		?sys_tls_set
 };
 
 interface kernel_thread {
@@ -36,7 +37,11 @@ interface kernel_thread {
 		/* Get current thread id */
 		unative_t sys_thread_get_id(thread_id_t *uspace_thread_id);
 	protocol:
-		(?sys_thread_create + ?sys_thread_get_id)* ; ?sys_thread_exit
+		(
+			?sys_thread_create +
+			?sys_thread_get_id
+		)* ;
+		?sys_thread_exit
 };
 
 interface kernel_task {
@@ -46,14 +51,15 @@ interface kernel_task {
 		/* Get current task id */
 		unative_t sys_task_get_id(task_id_t *uspace_task_id);
 	protocol:
-		(?sys_task_set_name + ?sys_task_get_id)*
+		?sys_task_set_name +
+		?sys_task_get_id
 };
 
 interface kernel_program {
 		/* Spawn a new instance of clonable loader service */
 		unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len);
 	protocol:
-		?sys_program_spawn_loader*
+		?sys_program_spawn_loader
 };
 
 interface kernel_futex {
@@ -63,14 +69,15 @@ interface kernel_futex {
 		/* Wakeup one thread waiting in futex wait queue */
 		unative_t sys_futex_wakeup(uintptr_t uaddr);
 	protocol:
-		(?sys_futex_sleep_timeout + ?sys_futex_wakeup)*
+		?sys_futex_sleep_timeout +
+		?sys_futex_wakeup
 };
 
 interface kernel_smc {
 		/* Enforce self-modifying code cache coherency */
 		unative_t sys_smc_coherence(uintptr_t va, size_t size);
 	protocol:
-		?sys_smc_coherence*
+		?sys_smc_coherence
 };
 
 interface kernel_as {
@@ -86,7 +93,10 @@ interface kernel_as {
 		/* Destroy an address space area */
 		unative_t sys_as_area_destroy(uintptr_t address);
 	protocol:
-		(?sys_as_area_create + ?sys_as_area_resize + ?sys_as_area_change_flags + ?sys_as_area_destroy)*
+		?sys_as_area_create +
+		?sys_as_area_resize +
+		?sys_as_area_change_flags +
+		?sys_as_area_destroy
 };
 
 interface kernel_ipc {
@@ -123,14 +133,24 @@ interface kernel_ipc {
 		/* Interrupt one thread of the current task from waiting on IPC call */
 		unative_t sys_ipc_poke(void);
 	protocol:
-		(?sys_ipc_call_sync_fast + ?sys_ipc_call_sync_slow + ?sys_ipc_call_async_fast + ?sys_ipc_call_async_slow + ?sys_ipc_forward_fast + ?sys_ipc_forward_slow + ?sys_ipc_answer_fast + ?sys_ipc_answer_slow + ?sys_ipc_hangup + ?sys_ipc_wait_for_call + ?sys_ipc_poke)*
+		?sys_ipc_call_sync_fast +
+		?sys_ipc_call_sync_slow +
+		?sys_ipc_call_async_fast +
+		?sys_ipc_call_async_slow +
+		?sys_ipc_forward_fast +
+		?sys_ipc_forward_slow +
+		?sys_ipc_answer_fast +
+		?sys_ipc_answer_slow +
+		?sys_ipc_hangup +
+		?sys_ipc_wait_for_call +
+		?sys_ipc_poke
 };
 
 interface kernel_event {
 		/* Subscribe to kernel event notifications */
 		unative_t sys_event_subscribe(unative_t evno, unative_t method);
 	protocol:
-		?sys_event_subscribe*
+		?sys_event_subscribe
 };
 
 interface kernel_cap {
@@ -140,7 +160,8 @@ interface kernel_cap {
 		/* Revoke capabilities from a task */
 		unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
 	protocol:
-		(?sys_cap_grant + ?sys_cap_rewoke)*
+		?sys_cap_grant +
+		?sys_cap_rewoke
 };
 
 interface kernel_ddi {
@@ -162,7 +183,12 @@ interface kernel_ddi {
 		/* Disconnect an IRQ handler from the current task */
 		unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno);
 	protocol:
-		(?sys_enable_iospace + ?sys_physmem_map + ?sys_device_assign_devno + ?sys_preempt_control + ?sys_ipc_register_irq + ?sys_ipc_unregister_irq)*
+		?sys_enable_iospace +
+		?sys_physmem_map +
+		?sys_device_assign_devno +
+		?sys_preempt_control +
+		?sys_ipc_register_irq +
+		?sys_ipc_unregister_irq
 };
 
 interface kernel_sysinfo {
@@ -172,14 +198,15 @@ interface kernel_sysinfo {
 		/* Get sysinfo key value */
 		unative_t sys_sysinfo_value(unatice_t ptr, unative_t len);
 	protocol:
-		(?sys_sysinfo_valid + ?sys_sysinfo_value)*
+		?sys_sysinfo_valid +
+		?sys_sysinfo_value
 };
 
 interface kernel_debug {
 		/* Connect to the kernel debugging answerbox of a given task */
 		unative_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg);
 	protocol:
-		?sys_ipc_connect_kbox*
+		?sys_ipc_connect_kbox
 };
 
 

@@ -1,4 +1,4 @@
-interface block_device extends service {
+interface bd extends service {
 		/* Establish connection */
 		ipcarg_t ipc_m_connect_me_to(void);
 		
@@ -17,5 +17,16 @@ interface block_device extends service {
 		/* Close connection */
 		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
-		[block_device.bp]
+		[bd.bp]
+};
+
+architecture bd {
+	inst rd rd;
+	
+	[/uspace/lib/libc/subsume%rd]
+	
+	delegate bd to rd:bd;
+	
+	subsume rd:ns to ns;
+	subsume rd:devmap to devmap;
 };

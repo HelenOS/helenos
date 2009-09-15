@@ -1,4 +1,4 @@
-/* Bindings to kernel interfaces */
+/* Bind %% to kernel interfaces */
 bind %%:kernel_klog to kernel:kernel_klog;
 bind %%:kernel_console to kernel:kernel_console;
 bind %%:kernel_tls to kernel:kernel_tls;

@@ -1,8 +1,12 @@
-frame klog {
+frame fat {
+	provides:
+		fs fs
 	requires:
-		naming_service ns;
 		[/uspace/lib/libc/requires%]
+		vfs vfs;
+		ns ns;
+		bd bd;
 	protocol:
 		[/uspace/lib/libc/protocol] +
-		[klog.bp]
+		[fat_server.bp]
 };

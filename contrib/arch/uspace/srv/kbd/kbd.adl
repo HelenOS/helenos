@@ -1,0 +1,37 @@
+interface kbd extends service {
+		/* Establish connection */
+		ipcarg_t ipc_m_connect_me_to(void);
+		
+		/* Callback connection */
+		ipcarg_t ipc_m_connect_to_me(void);
+		
+		/* Yield hardware */
+		ipcarg_t yield(void);
+		
+		/* Reclaim hardware */
+		ipcarg_t reclaim(void);
+		
+		/* Close connection */
+		ipcarg_t ipc_m_phone_hungup(void);
+	protocol:
+		[kbd.bp]
+};
+
+interface event {
+		/* Send keyboard event */
+		ipcarg_t event(in ipcarg_t type, in ipcarg_t key, in ipcarg_t mods, in ipcarg_t char);
+	protocol:
+		[event.bp]
+};
+
+frame kbd {
+	provides:
+		kbd kbd;
+	requires:
+		[/uspace/lib/libc/requires%]
+		event event;
+		ns ns;
+	protocol:
+		[/uspace/lib/libc/protocol] +
+		[kbd_server.bp]
+};

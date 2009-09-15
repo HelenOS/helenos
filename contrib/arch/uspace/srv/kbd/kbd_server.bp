@@ -1,0 +1,4 @@
+tentative {
+	!ns.ipc_m_connect_me_to /* cir */
+} ;
+!ns.ipc_m_connect_to_me /* kbd */
