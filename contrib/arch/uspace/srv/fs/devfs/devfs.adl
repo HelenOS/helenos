@@ -2,7 +2,7 @@ frame devfs {
 	provides:
 		fs fs
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		vfs vfs;
 		ns ns;
 		devmap_client devmap_client;

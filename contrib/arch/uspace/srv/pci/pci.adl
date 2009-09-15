@@ -12,7 +12,7 @@ frame pci {
 	provides:
 		pci pci;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		ns ns;
 	protocol:
 		[/uspace/lib/libc/protocol] +

@@ -2,7 +2,7 @@ frame tmpfs {
 	provides:
 		fs fs
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		vfs vfs;
 		ns ns;
 		bd bd;

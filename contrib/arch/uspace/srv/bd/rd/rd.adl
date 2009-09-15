@@ -2,7 +2,7 @@ frame rd {
 	provides:
 		bd bd;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		ns ns;
 		devmap_driver devmap_driver;
 	protocol:

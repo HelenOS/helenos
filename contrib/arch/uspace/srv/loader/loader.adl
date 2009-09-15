@@ -30,7 +30,7 @@ frame loader {
 	provides:
 		loader loader;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		ns ns;
 	protocol:
 		[/uspace/lib/libc/protocol] +

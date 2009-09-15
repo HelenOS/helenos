@@ -33,6 +33,14 @@ HelenOS Architecture Description Language and Behavior Protocols preprocessor
 import sys
 import os
 
+INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
+	INST, VAR, FIN, BIND, TO, SEEN_NL, IFACE, PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL = range(21)
+
+context = set()
+interface = None
+architecture = None
+protocol = None
+
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <OUTPUT>"
@@ -120,7 +128,49 @@ def preproc_bp(outname, tokens):
 	
 	return result
 
-def parse_bp(base, root, inname, nested, outname, outf, indent):
+def preproc_adl(raw, inarg):
+	"Preprocess %% statements in ADL"
+	
+	return raw.replace("%%", inarg)
+
+def identifier(token):
+	"Check whether the token is an identifier"
+	
+	if (len(token) == 0):
+		return False
+	
+	for i, char in enumerate(token):
+		if (i == 0):
+			if ((not char.isalpha()) and (char != "_")):
+				return False
+		else:
+			if ((not char.isalnum()) and (char != "_")):
+				return False
+	
+	return True
+
+def descriptor(token):
+	"Check whether the token is an interface descriptor"
+	
+	parts = token.split(":")
+	if (len(parts) != 2):
+		return False
+	
+	return (identifier(parts[0]) and identifier(parts[1]))
+
+def word(token):
+	"Check whether the token is a word"
+	
+	if (len(token) == 0):
+		return False
+	
+	for i, char in enumerate(token):
+		if ((not char.isalnum()) and (char != "_") and (char != ".")):
+			return False
+	
+	return True
+
+def parse_bp(base, root, inname, nested, outname, indent):
 	"Parse Behavior Protocol"
 	
 	if (nested):
@@ -133,17 +183,16 @@ def parse_bp(base, root, inname, nested, outname, outf, indent):
 		
 		if (not os.path.isfile(path)):
 			print "%s: Unable to include file %s" % (outname, path)
-			return True
-		
-		inf = file(path, "r")
+			return ""
 	else:
-		inf = file(inname, "r")
+		path = inname
 		nested_root = root
 	
+	inf = file(path, "r")
 	tokens = preproc_bp(outname, split_tokens(inf.read(), ["\n", " ", "\t", "(", ")", "{", "}", "[", "]", "/*", "*/", "#", "*", ";", "+", "||", "|", "!", "?"], True, True))
 	
+	output = ""
 	inc = False
-	empty = True
 	comment = False
 	lcomment = False
 	
@@ -169,145 +218,477 @@ def parse_bp(base, root, inname, nested, outname, outf, indent):
 		if (token == "\n"):
 			continue
 		
-		if (empty):
-			empty = False
-		
 		if (inc):
-			outf.write("\n%s(" % tabs(indent))
+			output += "\n%s(" % tabs(indent)
 			
-			inc_empty = parse_bp(base, nested_root, token, True, outname, outf, indent + 1)
-			if (inc_empty):
-				outf.write("\n%sNULL" % tabs(indent + 1))
+			bp = parse_bp(base, nested_root, token, True, outname, indent + 1)
+			if (bp.strip() == ""):
+				output += "\n%sNULL" % tabs(indent + 1)
+			else:
+				output += bp
 			
-			outf.write("\n%s)" % tabs(indent))
+			output += "\n%s)" % tabs(indent)
 			inc = False
 			continue
 		
 		if ((token == ";") or (token == "+") or (token == "||") or (token == "|")):
-			outf.write(" %s" % token)
+			output += " %s" % token
 		elif (token == "["):
 			inc = True
 		elif (token == "]"):
 			inc = False
 		elif (token == "("):
-			outf.write("\n%s%s" % (tabs(indent), token))
+			output += "\n%s%s" % (tabs(indent), token)
 			indent += 1
 		elif (token == ")"):
-			if (indent == 0):
-				print "%s: Too many closing parentheses" % outname
+			if (indent <= 0):
+				print "%s: Wrong number of parentheses" % outname
 			
 			indent -= 1
-			outf.write("\n%s%s" % (tabs(indent), token))
+			output += "\n%s%s" % (tabs(indent), token)
 		elif (token == "{"):
-			outf.write(" %s" % token)
+			output += " %s" % token
 			indent += 1
 		elif (token == "}"):
-			if (indent == 0):
-				print "%s: Too many closing parentheses" % outname
+			if (indent <= 0):
+				print "%s: Wrong number of parentheses" % outname
 			
 			indent -= 1
-			outf.write("\n%s%s" % (tabs(indent), token))
+			output += "\n%s%s" % (tabs(indent), token)
 		elif (token == "*"):
-			outf.write("%s" % token)
+			output += "%s" % token
 		elif ((token == "!") or (token == "?") or (token == "NULL")):
-			outf.write("\n%s%s" % (tabs(indent), token))
+			output += "\n%s%s" % (tabs(indent), token)
 		else:
-			outf.write("%s" % token)
+			output += "%s" % token
 	
 	inf.close()
 	
-	return empty
+	return output
 
-def parse_adl(base, root, inname, nested, outname, outf, indent):
+def parse_adl(base, root, inname, nested, indent):
 	"Parse Architecture Description Language"
 	
 	if (nested):
-		(infname, inarg) = inname.split("%")
+		parts = inname.split("%")
 		
-		if (infname[0:1] == "/"):
-			path = os.path.join(base, ".%s" % infname)
+		if (len(parts) > 1):
+			inarg = parts[1]
+		else:
+			inarg = "%%"
+		
+		if (parts[0][0:1] == "/"):
+			path = os.path.join(base, ".%s" % parts[0])
 			nested_root = os.path.dirname(path)
 		else:
-			path = os.path.join(root, infname)
+			path = os.path.join(root, parts[0])
 			nested_root = root
 		
 		if (not os.path.isfile(path)):
-			print "%s: Unable to include file %s" % (outname, path)
-			return True
-		
-		inf = file(path, "r")
+			print "%s: Unable to include file %s" % (inname, path)
+			return ""
 	else:
 		inarg = "%%"
-		inf = file(inname, "r")
+		path = inname
 		nested_root = root
 	
-	tokens = split_tokens(inf.read(), ["\n", " ", "\t", "%%", "[", "]"], False, True)
+	inf = file(path, "r")
 	
-	inc = False
-	empty = True
-	newline = True
-	locindent = 0
+	raw = preproc_adl(inf.read(), inarg)
+	tokens = split_tokens(raw, ["\n", " ", "\t", "(", ")", "{", "}", "[", "]", "/*", "*/", "#", ";"], True, True)
+	output = ""
 	
 	for token in tokens:
-		if (empty):
-			empty = False
 		
-		if (inc):
-			if (token.find("%") != -1):
-				parse_adl(base, nested_root, token, True, outname, outf, locindent)
-			else:
-				parse_bp(base, nested_root, token, True, outname, outf, locindent)
+		# Includes
+		
+		if (INC in context):
+			context.remove(INC)
 			
-			inc = False
+			if (PROTOCOL in context):
+				protocol += parse_bp(base, nested_root, token, True, "xxx", indent).strip()
+			else:
+				output += "\n%s" % tabs(indent)
+				output += parse_adl(base, nested_root, token, True, indent).strip()
+			
+			context.add(POST_INC)
 			continue
 		
-		if (token == "\n"):
-			newline = True
-			locindent = 0
-			outf.write("\n%s" % tabs(indent))
-		elif (token == "\t"):
-			if (newline):
-				locindent += 1
-			outf.write("%s" % token)
-		elif (token == "%%"):
-			newline = False
-			outf.write("%s" % inarg)
-		elif (token == "["):
-			newline = False
-			inc = True
-		elif (token == "]"):
-			newline = False
-			inc = False
+		if (POST_INC in context):
+			if (token != "]"):
+				print "%s: Expected ]" % inname
+			
+			context.add(SEEN_NL)
+			context.remove(POST_INC)
+			continue
+		
+		# Comments and newlines
+		
+		if (BLOCK_COMMENT in context):
+			if (token == "*/"):
+				context.remove(BLOCK_COMMENT)
+			
+			continue
+		
+		if (LINE_COMMENT in context):
+			if (token == "\n"):
+				context.remove(LINE_COMMENT)
+			
+			continue
+		
+		# Any context
+		
+		if (token == "/*"):
+			context.add(BLOCK_COMMENT)
+			continue
+		
+		if (token == "#"):
+			context.add(LINE_COMMENT)
+			continue
+		
+		if (token == "["):
+			context.add(INC)
+			continue
+		
+		# Seen newline
+		
+		if (SEEN_NL in context):
+			context.remove(SEEN_NL)
+			if (token == "\n"):
+				output += "\n%s" % tabs(indent)
+				continue
 		else:
-			newline = False;
-			outf.write("%s" % token)
+			if (token == "\n"):
+				continue
+		
+		# "interface"
+		
+		if (IFACE in context):
+			if (NULL in context):
+				if (token != ";"):
+					print "%s: Expected ;" % inname
+				else:
+					output += "%s\n" % token
+				
+				context.remove(NULL)
+				context.remove(IFACE)
+				interface = None
+				continue
+			
+			if (BODY in context):
+				if (PROTOCOL in context):
+					if (token == "{"):
+						indent += 1
+					elif (token == "}"):
+						indent -= 1
+					
+					if (indent == 1):
+						output += protocol.strip()
+						protocol = None
+						
+						output += "\n%s" % token
+						
+						context.remove(PROTOCOL)
+						context.remove(BODY)
+						context.add(NULL)
+					else:
+						protocol += token
+					
+					continue
+				
+				if (PROTOTYPE in context):
+					if (FIN in context):
+						if (token != ";"):
+							print "%s: Expected ;" % inname
+						else:
+							output += "%s" % token
+						
+						context.remove(FIN)
+						context.remove(PROTOTYPE)
+						continue
+					
+					if (PAR_RIGHT in context):
+						if (token == ")"):
+							output += "%s" % token
+							context.remove(PAR_RIGHT)
+							context.add(FIN)
+						else:
+							output += " %s" % token
+						
+						continue
+					
+					if (SIGNATURE in context):
+						output += "%s" % token
+						if (token == ")"):
+							context.remove(SIGNATURE)
+							context.add(FIN)
+						
+						context.remove(SIGNATURE)
+						context.add(PAR_RIGHT)
+						continue
+					
+					if (PAR_LEFT in context):
+						if (token != "("):
+							print "%s: Expected (" % inname
+						else:
+							output += "%s" % token
+						
+						context.remove(PAR_LEFT)
+						context.add(SIGNATURE)
+						continue
+					
+					if (not identifier(token)):
+						print "%s: Method identifier expected" % inname
+					else:
+						output += "%s" % token
+					
+					context.add(PAR_LEFT)
+					continue
+				
+				if (token == "}"):
+					if (indent != 1):
+						print "%s: Wrong number of parentheses" % inname
+					else:
+						indent = 0
+						output += "\n%s" % token
+					
+					context.remove(BODY)
+					context.add(NULL)
+					continue
+				
+				if (token == "ipcarg_t"):
+					output += "\n%s%s " % (tabs(indent), token)
+					context.add(PROTOTYPE)
+					continue
+				
+				if (token == "protocol:"):
+					output += "\n%s%s" % (tabs(indent - 1), token)
+					context.add(PROTOCOL)
+					protocol = ""
+					continue
+				
+				print "%s: Unknown token %s in interface" % (inname, token)
+				continue
+			
+			if (HEAD in context):
+				if (token == "{"):
+					output += "%s" % token
+					indent += 2
+					context.remove(HEAD)
+					context.add(BODY)
+					continue
+				
+				if (token == ";"):
+					output += "%s\n" % token
+					context.remove(HEAD)
+					context.remove(ARCH)
+					context.discard(SYSTEM)
+					continue
+				
+				if (not word(token)):
+					print "%s: Expected word" % inname
+				else:
+					output += "%s " % token
+				
+				continue
+			
+			if (not identifier(token)):
+				print "%s: Expected interface name" % inname
+			else:
+				interface = token
+				output += "%s " % token
+			
+			context.add(HEAD)
+			continue
+		
+		# "architecture"
+		
+		if (ARCH in context):
+			if (NULL in context):
+				if (token != ";"):
+					print "%s: Expected ;" % inname
+				else:
+					output += "%s\n" % token
+				
+				context.remove(NULL)
+				context.remove(ARCH)
+				context.discard(SYSTEM)
+				architecture = None
+				continue
+			
+			if (BODY in context):
+				if (BIND in context):
+					if (FIN in context):
+						if (token != ";"):
+							print "%s: Expected ;" % inname
+						else:
+							output += "%s" % token
+						
+						context.remove(FIN)
+						context.remove(BIND)
+						continue
+					
+					if (VAR in context):
+						if (not descriptor(token)):
+							print "%s: Expected second interface descriptor" % inname
+						else:
+							output += "%s" % token
+						
+						context.add(FIN)
+						context.remove(VAR)
+						continue
+					
+					if (TO in context):
+						if (token != "to"):
+							print "%s: Expected to" % inname
+						else:
+							output += "%s " % token
+						
+						context.add(VAR)
+						context.remove(TO)
+						continue
+					
+					if (not descriptor(token)):
+						print "%s: Expected interface descriptor" % inname
+					else:
+						output += "%s " % token
+					
+					context.add(TO)
+					continue
+				
+				if (INST in context):
+					if (FIN in context):
+						if (token != ";"):
+							print "%s: Expected ;" % inname
+						else:
+							output += "%s" % token
+						
+						context.remove(FIN)
+						context.remove(INST)
+						continue
+					
+					if (VAR in context):
+						if (not identifier(token)):
+							print "%s: Expected instance name" % inname
+						else:
+							output += "%s" % token
+						
+						context.add(FIN)
+						context.remove(VAR)
+						continue
+					
+					if (not identifier(token)):
+						print "%s: Expected frame/architecture type" % inname
+					else:
+						output += "%s " % token
+					
+					context.add(VAR)
+					continue
+				
+				if (token == "}"):
+					if (indent != 1):
+						print "%s: Wrong number of parentheses" % inname
+					else:
+						indent -= 1
+						output += "\n%s" % token
+					
+					context.remove(BODY)
+					context.add(NULL)
+					continue
+				
+				if (token == "inst"):
+					output += "\n%s%s " % (tabs(indent), token)
+					context.add(INST)
+					continue
+				
+				if (token == "bind"):
+					output += "\n%s%s " % (tabs(indent), token)
+					context.add(BIND)
+					continue
+				
+				print "%s: Unknown token %s in architecture" % (inname, token)
+				continue
+			
+			if (HEAD in context):
+				if (token == "{"):
+					output += "%s" % token
+					indent += 1
+					context.remove(HEAD)
+					context.add(BODY)
+					continue
+				
+				if (token == ";"):
+					output += "%s\n" % token
+					context.remove(HEAD)
+					context.remove(ARCH)
+					context.discard(SYSTEM)
+					continue
+				
+				if (not word(token)):
+					print "%s: Expected word" % inname
+				else:
+					output += "%s " % token
+				
+				continue
+			
+			if (not identifier(token)):
+				print "%s: Expected architecture name" % inname
+			else:
+				architecture = token
+				output += "%s " % token
+			
+			context.add(HEAD)
+			continue
+		
+		# "system architecture"
+		
+		if (SYSTEM in context):
+			if (token != "architecture"):
+				print "%s: Expected architecture" % inname
+			else:
+				output += "%s " % token
+			
+			context.add(ARCH)
+			continue
+		
+		if (token == "interface"):
+			output += "\n%s " % token
+			context.add(IFACE)
+			continue
+		
+		if (token == "system"):
+			output += "\n%s " % token
+			context.add(SYSTEM)
+			continue
+		
+		if (token == "architecture"):
+			output += "\n%s " % token
+			context.add(ARCH)
+			continue
+		
+		print "%s: Unknown token %s" % (inname, token)
 	
 	inf.close()
 	
-	return empty
-
-def open_bp(base, root, inname, outname):
-	"Open Behavior Protocol file"
-	
-	outf = file(outname, "w")
-	
-	outf.write("### %s\n" % inname)
-	
-	empty = parse_bp(base, root, inname, False, outname, outf, 0)
-	if (empty):
-		outf.write("NULL")
-	
-	outf.close()
+	return output
 
 def open_adl(base, root, inname, outname):
 	"Open Architecture Description file"
 	
+	context.clear()
+	interface = None
+	architecture = None
+	protocol = None
+	
+	adl = parse_adl(base, root, inname, False, 0)
+	if (adl.strip() == ""):
+		adl = "/* Empty */\n"
+	
+	if (os.path.isfile(outname)):
+		print "%s: File already exists, overwriting" % outname
+	
 	outf = file(outname, "w")
-	
-	empty = parse_adl(base, root, inname, False, outname, outf, 0)
-	if (empty):
-		outf.write("/* Empty */")
-	
+	outf.write(adl.strip())
 	outf.close()
 
 def recursion(base, root, output, level):
@@ -320,18 +701,8 @@ def recursion(base, root, output, level):
 			fcomp = split_tokens(canon, ["."])
 			cname = canon.split("/")
 			
-			filtered = False
-			while (not filtered):
-				try:
-					cname.remove(".")
-				except (ValueError):
-					filtered = True
-			
-			output_path = os.path.join(output, ".".join(cname))
-			
-			if (fcomp[-1] == ".bp"):
-				open_bp(base, root, canon, output_path)
-			elif (fcomp[-1] == ".adl"):
+			if (fcomp[-1] == ".adl"):
+				output_path = os.path.join(output, cname[-1])
 				open_adl(base, root, canon, output_path)
 		
 		if (os.path.isdir(canon)):

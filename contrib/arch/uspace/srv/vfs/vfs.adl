@@ -95,7 +95,7 @@ frame vfs_manager {
 	provides:
 		vfs vfs;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		fs fs;
 		ns ns;
 	protocol:

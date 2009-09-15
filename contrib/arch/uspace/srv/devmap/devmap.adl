@@ -60,7 +60,7 @@ frame devmap {
 		devmap_driver devmap_driver;
 		devmap_client devmap_client;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 	protocol:
 		[devmap_server.bp]
 };

@@ -28,7 +28,7 @@ frame kbd {
 	provides:
 		kbd kbd;
 	requires:
-		[/uspace/lib/libc/requires%]
+		[/uspace/lib/libc/requires]
 		event event;
 		ns ns;
 	protocol:
