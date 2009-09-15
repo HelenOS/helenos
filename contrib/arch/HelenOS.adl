@@ -11,12 +11,18 @@ system architecture HelenOS version 0.4.1 {
 	/* Klog */
 	inst klog klog;
 	
+	/* VFS */
+	inst vfs vfs;
+	
 	[/uspace/lib/libc/bind%ns]
 	
-	[/usrpace/lib/libc/bind%rd]
+	[/uspace/lib/libc/bind%rd]
 	bind rd:ns to ns:ns;
 	bind rd:dm_driver to devmap:dm_driver;
 	
-	[/usrpace/lib/libc/bind%klog]
+	[/uspace/lib/libc/bind%klog]
 	bind klog:ns to ns:ns;
+	
+	[/uspace/lib/libc/bind%vfs]
+	bind vfs:ns to ns:ns;
 };

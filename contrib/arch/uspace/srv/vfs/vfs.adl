@@ -1,0 +1,65 @@
+interface vfs {
+		/* Establish connection */
+		ipcarg_t ipc_m_connect_me_to(void);
+		
+		/* Register a filesystem driver */
+		ipcarg_t register(in_copy string name);
+		
+		/* Mount filesystem */
+		ipcarg_t mount(in ipcarg_t device, in ipcarg_t flags, in_copy string point, in_copy string opts, in_copy string fs);
+		
+		/* Open file */
+		ipcarg_t open(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, in_copy string path, out ipcarg_t fd);
+		
+		/* Open file using node */
+		ipcarg_t open_node(in ipcarg_t fs_handle, in ipcarg_t dev_handle, in ipcarg_t index, in ipcarg_t oflag, out ipcarg_t fd);
+		
+		/* Read data from file */
+		ipcarg_t read(in ipcarg_t fd, out_copy stream data);
+		
+		/* Write data to file */
+		ipcarg_t write(in ipcarg_t fd, in_copy stream data);
+		
+		/* Seek in file */
+		ipcarg_t seek(in ipcarg_t fd, in ipcarg_t offset, in ipcarg_t whence);
+		
+		/* Truncate file */
+		ipcarg_t truncate(in ipcarg_t fd, in ipcarg_t size);
+		
+		/* Get file metadata */
+		ipcarg_t fstat(in ipcarg_t fd, out_copy stream stat);
+		
+		/* Get directory entry metadata */
+		ipcarg_t stat(in_copy string path, out_copy stream stat);
+		
+		/* Create directory */
+		ipcarg_t mkdir(in ipcarg_t mode, in_copy string path);
+		
+		/* Delete directory entry */
+		ipcarg_t unlink(in ipcarg_t lflag, in_copy string path);
+		
+		/* Rename directory entry */
+		ipcarg_t rename(in_copy string old, in_copy string new);
+		
+		/* Flush file buffers */
+		ipcarg_t sync(in ipcarg_t fd);
+		
+		/* In-protocol status value */
+		ipcarg_t ipc_m_ping(void);
+		
+		/* Close connection */
+		ipcarg_t ipc_m_phone_hungup(void);
+	protocol:
+		[virtual_fs.bp]
+};
+
+frame vfs {
+	provides:
+		vfs vfs;
+	requires:
+		[/uspace/lib/libc/requires%]
+		naming_service ns;
+	protocol:
+		[/uspace/lib/libc/protocol] +
+		[vfs.bp]
+};

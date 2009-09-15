@@ -1,0 +1,7 @@
+[fnc.vp_switch] ;
+tentative {
+	!fb.FB_VP_DRAW_PIXMAP
+} ;
+tentative {
+	!fb.FB_PUTCHAR*
+}

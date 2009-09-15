@@ -47,14 +47,13 @@ def cond_append(tokens, token, trim):
 	
 	if (trim):
 		token = token.strip(" \t")
-		if (token != ""):
-			tokens.append(token)
-	else:
+	
+	if (token != ""):
 		tokens.append(token)
 	
 	return tokens
 
-def split_tokens(string, delimiters, trim = False):
+def split_tokens(string, delimiters, trim = False, separate = False):
 	"Split string to tokens by delimiters, keep the delimiters"
 	
 	tokens = []
@@ -65,9 +64,15 @@ def split_tokens(string, delimiters, trim = False):
 		for delim in delimiters:
 			if (len(delim) > 0):
 				
-				if ((string[i:(i + len(delim))] == delim) and (i > 0)):
-					tokens = cond_append(tokens, string[last:i], trim)
-					last = i
+				if (string[i:(i + len(delim))] == delim):
+					if (separate):
+						tokens = cond_append(tokens, string[last:i], trim)
+						tokens = cond_append(tokens, delim, trim)
+						last = i + len(delim)
+					elif (i > 0):
+						tokens = cond_append(tokens, string[last:i], trim)
+						last = i
+					
 					i += len(delim) - 1
 					break
 		
@@ -77,18 +82,70 @@ def split_tokens(string, delimiters, trim = False):
 	
 	return tokens
 
-def parse(fname, outf):
-	"Parse particular protocol"
+def preproc_bp(outname, tokens):
+	"Preprocess tentative statements in Behavior Protocol"
 	
-	inf = file(fname, "r")
-	outf.write("### %s\n\n" % fname)
+	result = []
+	i = 0
 	
-	tokens = split_tokens(inf.read(), ["\n", " ", "\t", "(", ")", "{", "}", "[", "/*", "*/", "#", "*", ";", "+", "||", "|", "!", "?"], True)
+	while (i < len(tokens)):
+		if (tokens[i] == "tentative"):
+			if ((i + 1 < len(tokens)) and (tokens[i + 1] == "{")):
+				i += 2
+				start = i
+				level = 1
+				
+				while ((i < len(tokens)) and (level > 0)):
+					if (tokens[i] == "{"):
+						level += 1
+					elif (tokens[i] == "}"):
+						level -= 1
+					
+					i += 1
+				
+				if (level == 0):
+					result.append("(")
+					result.extend(preproc_bp(outname, tokens[start:(i - 1)]))
+					result.append(")")
+					result.append("+")
+					result.append("NULL")
+				else:
+					print "%s: Syntax error in tentative statement" % outname
+			else:
+				print "%s: Unexpected tentative statement" % outname
+		else:
+			result.append(tokens[i])
+		
+		i += 1
 	
+	return result
+
+def parse_bp(base, root, inname, nested, outname, outf, indent):
+	"Parse Behavior Protocol"
+	
+	if (nested):
+		if (inname[0:1] == "/"):
+			path = os.path.join(base, ".%s" % inname)
+			nested_root = os.path.dirname(path)
+		else:
+			path = os.path.join(root, inname)
+			nested_root = root
+		
+		if (not os.path.isfile(path)):
+			print "%s: Unable to include file %s" % (outname, path)
+			return True
+		
+		inf = file(path, "r")
+	else:
+		inf = file(inname, "r")
+		nested_root = root
+	
+	tokens = preproc_bp(outname, split_tokens(inf.read(), ["\n", " ", "\t", "(", ")", "{", "}", "[", "]", "/*", "*/", "#", "*", ";", "+", "||", "|", "!", "?"], True, True))
+	
+	inc = False
 	empty = True
 	comment = False
 	lcomment = False
-	indent = 0
 	
 	for token in tokens:
 		if (comment):
@@ -115,44 +172,170 @@ def parse(fname, outf):
 		if (empty):
 			empty = False
 		
+		if (inc):
+			outf.write("\n%s(" % tabs(indent))
+			
+			inc_empty = parse_bp(base, nested_root, token, True, outname, outf, indent + 1)
+			if (inc_empty):
+				outf.write("\n%sNULL" % tabs(indent + 1))
+			
+			outf.write("\n%s)" % tabs(indent))
+			inc = False
+			continue
+		
 		if ((token == ";") or (token == "+") or (token == "||") or (token == "|")):
-			outf.write(" %s\n" % token)
+			outf.write(" %s" % token)
+		elif (token == "["):
+			inc = True
+		elif (token == "]"):
+			inc = False
 		elif (token == "("):
-			outf.write("%s%s\n" % (tabs(indent), token))
+			outf.write("\n%s%s" % (tabs(indent), token))
 			indent += 1
 		elif (token == ")"):
+			if (indent == 0):
+				print "%s: Too many closing parentheses" % outname
+			
 			indent -= 1
 			outf.write("\n%s%s" % (tabs(indent), token))
 		elif (token == "{"):
-			outf.write(" %s\n" % token)
+			outf.write(" %s" % token)
 			indent += 1
 		elif (token == "}"):
+			if (indent == 0):
+				print "%s: Too many closing parentheses" % outname
+			
 			indent -= 1
 			outf.write("\n%s%s" % (tabs(indent), token))
 		elif (token == "*"):
 			outf.write("%s" % token)
+		elif ((token == "!") or (token == "?") or (token == "NULL")):
+			outf.write("\n%s%s" % (tabs(indent), token))
 		else:
-			outf.write("%s%s" % (tabs(indent), token))
+			outf.write("%s" % token)
 	
+	inf.close()
+	
+	return empty
+
+def parse_adl(base, root, inname, nested, outname, outf, indent):
+	"Parse Architecture Description Language"
+	
+	if (nested):
+		(infname, inarg) = inname.split("%")
+		
+		if (infname[0:1] == "/"):
+			path = os.path.join(base, ".%s" % infname)
+			nested_root = os.path.dirname(path)
+		else:
+			path = os.path.join(root, infname)
+			nested_root = root
+		
+		if (not os.path.isfile(path)):
+			print "%s: Unable to include file %s" % (outname, path)
+			return True
+		
+		inf = file(path, "r")
+	else:
+		inarg = "%%"
+		inf = file(inname, "r")
+		nested_root = root
+	
+	tokens = split_tokens(inf.read(), ["\n", " ", "\t", "%%", "[", "]"], False, True)
+	
+	inc = False
+	empty = True
+	newline = True
+	locindent = 0
+	
+	for token in tokens:
+		if (empty):
+			empty = False
+		
+		if (inc):
+			if (token.find("%") != -1):
+				parse_adl(base, nested_root, token, True, outname, outf, locindent)
+			else:
+				parse_bp(base, nested_root, token, True, outname, outf, locindent)
+			
+			inc = False
+			continue
+		
+		if (token == "\n"):
+			newline = True
+			locindent = 0
+			outf.write("\n%s" % tabs(indent))
+		elif (token == "\t"):
+			if (newline):
+				locindent += 1
+			outf.write("%s" % token)
+		elif (token == "%%"):
+			newline = False
+			outf.write("%s" % inarg)
+		elif (token == "["):
+			newline = False
+			inc = True
+		elif (token == "]"):
+			newline = False
+			inc = False
+		else:
+			newline = False;
+			outf.write("%s" % token)
+	
+	inf.close()
+	
+	return empty
+
+def open_bp(base, root, inname, outname):
+	"Open Behavior Protocol file"
+	
+	outf = file(outname, "w")
+	
+	outf.write("### %s\n" % inname)
+	
+	empty = parse_bp(base, root, inname, False, outname, outf, 0)
 	if (empty):
 		outf.write("NULL")
 	
-	outf.write("\n\n\n")
-	inf.close()
+	outf.close()
 
-def recursion(root, output, level):
+def open_adl(base, root, inname, outname):
+	"Open Architecture Description file"
+	
+	outf = file(outname, "w")
+	
+	empty = parse_adl(base, root, inname, False, outname, outf, 0)
+	if (empty):
+		outf.write("/* Empty */")
+	
+	outf.close()
+
+def recursion(base, root, output, level):
 	"Recursive directory walk"
 	
 	for name in os.listdir(root):
 		canon = os.path.join(root, name)
 		
-		if ((os.path.isfile(canon)) and (level > 0)):
+		if (os.path.isfile(canon)):
 			fcomp = split_tokens(canon, ["."])
+			cname = canon.split("/")
+			
+			filtered = False
+			while (not filtered):
+				try:
+					cname.remove(".")
+				except (ValueError):
+					filtered = True
+			
+			output_path = os.path.join(output, ".".join(cname))
+			
 			if (fcomp[-1] == ".bp"):
-				parse(canon, outf)
+				open_bp(base, root, canon, output_path)
+			elif (fcomp[-1] == ".adl"):
+				open_adl(base, root, canon, output_path)
 		
 		if (os.path.isdir(canon)):
-			recursion(canon, outf, level + 1)
+			recursion(base, canon, output, level + 1)
 
 def main():
 	if (len(sys.argv) < 2):
@@ -161,10 +344,10 @@ def main():
 	
 	path = os.path.abspath(sys.argv[1])
 	if (not os.path.isdir(path)):
-		print "<OUTPUT> is not a directory"
+		print "Error: <OUTPUT> is not a directory"
 		return
 	
-	recursion(".", path, 0)
-	
+	recursion(".", ".", path, 0)
+
 if __name__ == '__main__':
 	main()

@@ -2,9 +2,9 @@ frame rd {
 	provides:
 		block_device bd;
 	requires:
+		[/uspace/lib/libc/requires%]
 		naming_service ns;
 		device_mapper_driver dm_driver;
-		[/uspace/lib/libc/requires]
 	protocol:
 		[/uspace/lib/libc/protocol] +
 		[rd.bp]

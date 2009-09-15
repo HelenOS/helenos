@@ -1,4 +1,6 @@
 [fnc.devmap_get_phone] ;
-!dm_client.device_get_devices {
-	!dm_client.ipc_m_data_read /* buffer */
+tentative {
+	!dm_client.device_get_devices {
+		!dm_client.ipc_m_data_read /* buffer */
+	}
 }

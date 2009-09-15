@@ -1,0 +1,6 @@
+?fs.ipc_m_connection_clone ;
+?fs.ipc_m_data_write /* mount options */ {
+	!fs.ipc_m_connect_to_me ;
+	!fs.mounted ;
+	!fs.ipc_m_data_write /* forward */
+}
