@@ -34,8 +34,6 @@ import sys
 import os
 
 # TODO:
-#  - alternative token
-#  - iface protocol repetition
 #  - interface inheritance
 
 INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
@@ -129,7 +127,7 @@ def word(token):
 	
 	return True
 
-def preproc_bp(name, tokens):
+def tentative_bp(name, tokens):
 	"Preprocess tentative statements in Behavior Protocol"
 	
 	result = []
@@ -152,7 +150,7 @@ def preproc_bp(name, tokens):
 				
 				if (level == 0):
 					result.append("(")
-					result.extend(preproc_bp(name, tokens[start:(i - 1)]))
+					result.extend(tentative_bp(name, tokens[start:(i - 1)]))
 					result.append(")")
 					result.append("+")
 					result.append("NULL")
@@ -161,7 +159,79 @@ def preproc_bp(name, tokens):
 				else:
 					print "%s: Syntax error in tentative statement" % name
 			else:
-				print "%s: Unexpected token in tentative statement" % name
+				print "%s: Expected '{' for tentative statement" % name
+		else:
+			result.append(tokens[i])
+		
+		i += 1
+	
+	return result
+
+def alternative_bp(name, tokens):
+	"Preprocess alternative statements in Behavior Protocol"
+	
+	result = []
+	i = 0
+	
+	while (i < len(tokens)):
+		if (tokens[i] == "alternative"):
+			if ((i + 1 < len(tokens)) and (tokens[i + 1] == "(")):
+				i += 2
+				reps = []
+				
+				while ((i < len(tokens)) and (tokens[i] != ")")):
+					reps.append(tokens[i])
+					if ((i + 1 < len(tokens)) and (tokens[i + 1] == ";")):
+						i += 2
+					else:
+						i += 1
+				
+				if (len(reps) >= 2):
+					if ((i + 1 < len(tokens)) and (tokens[i + 1] == "{")):
+						i += 2
+						
+						start = i
+						level = 1
+						
+						while ((i < len(tokens)) and (level > 0)):
+							if (tokens[i] == "{"):
+								level += 1
+							elif (tokens[i] == "}"):
+								level -= 1
+							
+							i += 1
+						
+						if (level == 0):
+							first = True
+							
+							for rep in reps[1:]:
+								retokens = []
+								for token in tokens[start:(i - 1)]:
+									parts = token.split(".")
+									if ((len(parts) == 2) and (parts[0] == reps[0])):
+										retokens.append("%s.%s" % (rep, parts[1]))
+									else:
+										retokens.append(token)
+								
+								if (first):
+									first = False
+								else:
+									result.append("+")
+								
+								result.append("(")
+								result.extend(alternative_bp(name, retokens))
+								result.append(")")
+							
+							if (i < len(tokens)):
+								result.append(tokens[i])
+						else:
+							print "%s: Syntax error in alternative statement" % name
+					else:
+						print "%s: Expected '{' for alternative statement body" % name
+				else:
+					print "%s: At least one pattern and one replacement required for alternative statement" % name
+			else:
+				print "%s: Expected '(' for alternative statement head" % name
 		else:
 			result.append(tokens[i])
 		
@@ -175,9 +245,9 @@ def split_bp(protocol):
 	return split_tokens(protocol, ["\n", " ", "\t", "(", ")", "{", "}", "*", ";", "+", "||", "|", "!", "?"], True, True)
 
 def extend_bp(name, tokens, iface):
-	"Add interface to incoming messages"
+	"Convert interface Behavior Protocol to generic protocol"
 	
-	result = []
+	result = ["("]
 	i = 0
 	
 	while (i < len(tokens)):
@@ -196,6 +266,9 @@ def extend_bp(name, tokens, iface):
 				print "%s: Unexpected end of protocol" % name
 		
 		i += 1
+	
+	result.append(")")
+	result.append("*")
 	
 	return result
 
@@ -226,7 +299,8 @@ def merge_bp(protocols):
 def parse_bp(name, tokens, base_indent):
 	"Parse Behavior Protocol"
 	
-	tokens = preproc_bp(name, tokens)
+	tokens = tentative_bp(name, tokens)
+	tokens = alternative_bp(name, tokens)
 	
 	indent = base_indent
 	output = ""

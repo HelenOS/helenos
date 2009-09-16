@@ -20,7 +20,7 @@
 					tentative {
 						(
 							/* root fs */
-							alternative fs tmpfs fat devfs {
+							alternative (fs; tmpfs; fat; devfs) {
 								!fs.mounted ;
 								!fs.ipc_m_data_write /* mount options */
 							}
@@ -28,7 +28,7 @@
 						(
 							/* non-root fs */
 							tentative {
-								alternative fs tmpfs fat devfs {
+								alternative (fs; tmpfs; fat; devfs) {
 									[fnc.vfs_lookup_internal] ;
 									tentative {
 										[fnc.vfs_grab_phone] ;
@@ -54,7 +54,7 @@
 		tentative {
 			?ipc_m_data_write /* path */ ;
 			tentative {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_lookup_internal] ;
 					tentative {
 						[fnc.vfs_grab_phone] ;
@@ -67,7 +67,7 @@
 	} +
 	
 	?open_node {
-		alternative fs tmpfs fat devfs {
+		alternative (fs; tmpfs; fat; devfs) {
 			[fnc.vfs_open_node_internal] ;
 			tentative {
 				[fnc.vfs_grab_phone] ;
@@ -79,7 +79,7 @@
 	
 	?close {
 		tentative {
-			alternative fs tmpfs fat devfs {
+			alternative (fs; tmpfs; fat; devfs) {
 				[fnc.vfs_grab_phone] ;
 				!fs.close ;
 				[fnc.vfs_release_phone]
@@ -90,7 +90,7 @@
 	?read {
 		tentative {
 			?ipc_m_data_read {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.read ;
 					!fs.ipc_m_data_read /* forward payload */ ;
@@ -103,7 +103,7 @@
 	?write {
 		tentative {
 			?ipc_m_data_write {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.write ;
 					!fs.ipc_m_data_write /* forward payload */ ;
@@ -115,7 +115,7 @@
 	
 	?truncate {
 		tentative {
-			alternative fs tmpfs fat devfs {
+			alternative (fs; tmpfs; fat; devfs) {
 				[fnc.vfs_grab_phone] ;
 				!fs.truncate ;
 				[fnc.vfs_release_phone]
@@ -126,7 +126,7 @@
 	?fstat {
 		tentative {
 			?ipc_m_data_read /* struct stat */ {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.stat ;
 					!fs.ipc_m_data_read /* forward struct stat */ ;
@@ -140,7 +140,7 @@
 		?ipc_m_data_write /* path */ ;
 		tentative {
 			?ipc_m_data_read /* struct stat */ {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_lookup_internal] ;
 					tentative {
 						!fs.stat ;
@@ -154,7 +154,7 @@
 	?mkdir {
 		?ipc_m_data_write /* path */ ;
 		tentative {
-			alternative fs tmpfs fat devfs {
+			alternative (fs; tmpfs; fat; devfs) {
 				[fnc.vfs_lookup_internal]
 			}
 		}
@@ -163,7 +163,7 @@
 	?unlink {
 		?ipc_m_data_write /* path */ ;
 		tentative {
-			alternative fs tmpfs fat devfs {
+			alternative (fs; tmpfs; fat; devfs) {
 				[fnc.vfs_lookup_internal]
 			}
 		}
@@ -174,7 +174,7 @@
 		tentative {
 			?ipc_m_data_write /* new path */ ;
 			tentative {
-				alternative fs tmpfs fat devfs {
+				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_lookup_internal] /* lookup old path */ ;
 					tentative {
 						[fnc.vfs_lookup_internal] /* lookup parent of new path */ ;
@@ -195,7 +195,7 @@
 	
 	?sync {
 		tentative {
-			alternative fs tmpfs fat devfs {
+			alternative (fs; tmpfs; fat; devfs) {
 				!fs.sync
 			}
 		}
