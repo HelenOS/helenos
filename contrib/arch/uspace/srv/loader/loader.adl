@@ -1,7 +1,4 @@
 interface loader extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
 		/* Set task pathname */
 		ipcarg_t set_pathname(in_copy string pathname);
 		
@@ -19,9 +16,6 @@ interface loader extends service {
 		
 		/* Run binary */
 		ipcarg_t run(void);
-		
-		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[loader.bp]
 };
@@ -33,6 +27,6 @@ frame loader {
 		[/uspace/lib/libc/requires]
 		ns ns;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[loader_server.bp]
 };

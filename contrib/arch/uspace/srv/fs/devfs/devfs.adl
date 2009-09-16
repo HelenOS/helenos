@@ -1,6 +1,11 @@
+interface devfs extends fs {
+	protocol:
+		[devfs.bp]
+};
+
 frame devfs {
 	provides:
-		fs fs;
+		devfs devfs;
 	requires:
 		[/uspace/lib/libc/requires]
 		vfs vfs;
@@ -8,6 +13,6 @@ frame devfs {
 		devmap_client devmap_client;
 		service device;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[devfs_server.bp]
 };

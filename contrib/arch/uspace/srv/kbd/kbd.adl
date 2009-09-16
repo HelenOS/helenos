@@ -1,7 +1,4 @@
 interface kbd extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
 		/* Callback connection */
 		ipcarg_t ipc_m_connect_to_me(void);
 		
@@ -10,9 +7,6 @@ interface kbd extends service {
 		
 		/* Reclaim hardware */
 		ipcarg_t reclaim(void);
-		
-		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[kbd.bp]
 };
@@ -32,6 +26,6 @@ frame kbd {
 		event event;
 		ns ns;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[kbd_server.bp]
 };

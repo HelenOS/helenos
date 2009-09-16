@@ -1,7 +1,4 @@
 interface bd extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
 		/* Share out data buffer */
 		ipcarg_t ipc_m_share_out(in ipcarg_t as_area_base, in ipcarg_t as_area_size, in ipcarg_t flags, out ipcarg_t dst_as_area_base);
 		
@@ -13,9 +10,6 @@ interface bd extends service {
 		
 		/* Write blocks via shared data buffer */
 		ipcarg_t write_blocks(in ipcarg_t index_lower, in ipcarg_t index_upper, in ipcarg_t count);
-		
-		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[bd.bp]
 };
@@ -25,8 +19,8 @@ architecture bd {
 	
 	[/uspace/lib/libc/subsume%rd]
 	
-	delegate bd to rd:bd;
+	delegate rd to rd:rd;
 	
 	subsume rd:ns to ns;
-	subsume rd:devmap to devmap;
+	subsume rd:devmap_driver to devmap_driver;
 };

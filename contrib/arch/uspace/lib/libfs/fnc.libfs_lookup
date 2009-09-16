@@ -1,1 +1,5 @@
-!fs.lookup*
+(
+	alternative fs tmpfs fat devfs {
+		!fs.lookup
+	}
+)*

@@ -1,6 +1,8 @@
-?fs.ipc_m_connection_clone ;
-?fs.ipc_m_data_write /* mount options */ {
-	!fs.ipc_m_connect_to_me ;
-	!fs.mounted ;
-	!fs.ipc_m_data_write /* forward */
+?ipc_m_connection_clone ;
+?ipc_m_data_write /* mount options */ {
+	alternative fs tmpfs fat devfs {
+		!fs.ipc_m_connect_to_me ;
+		!fs.mounted ;
+		!fs.ipc_m_data_write /* forward */
+	}
 }

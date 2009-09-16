@@ -20,23 +20,27 @@
 					tentative {
 						(
 							/* root fs */
-							!fs.mounted ;
-							!fs.ipc_m_data_write /* mount options */
+							alternative fs tmpfs fat devfs {
+								!fs.mounted ;
+								!fs.ipc_m_data_write /* mount options */
+							}
 						) +
 						(
 							/* non-root fs */
 							tentative {
-								[fnc.vfs_lookup_internal] ;
-								tentative {
-									[fnc.vfs_grab_phone] ;
-									[fnc.vfs_grab_phone] ;
-									!fs.mount ;
-									!fs.ipc_m_connection_clone ;
-									[fnc.vfs_release_phone] ;
+								alternative fs tmpfs fat devfs {
+									[fnc.vfs_lookup_internal] ;
 									tentative {
-										!fs.vfs_m_data_write /* mount options */
-									} ;
-									[fnc.vfs_release_phone]
+										[fnc.vfs_grab_phone] ;
+										[fnc.vfs_grab_phone] ;
+										!fs.mount ;
+										!fs.ipc_m_connection_clone ;
+										[fnc.vfs_release_phone] ;
+										tentative {
+											!fs.vfs_m_data_write /* mount options */
+										} ;
+										[fnc.vfs_release_phone]
+									}
 								}
 							}
 						)
@@ -50,40 +54,48 @@
 		tentative {
 			?ipc_m_data_write /* path */ ;
 			tentative {
-				[fnc.vfs_lookup_internal] ;
-				tentative {
-					[fnc.vfs_grab_phone] ;
-					!fs.truncate ;
-					[fnc.vfs_release_phone]
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_lookup_internal] ;
+					tentative {
+						[fnc.vfs_grab_phone] ;
+						!fs.truncate ;
+						[fnc.vfs_release_phone]
+					}
 				}
 			}
 		}
 	} +
 	
 	?open_node {
-		[fnc.vfs_open_node_internal] ;
-		tentative {
-			[fnc.vfs_grab_phone] ;
-			!fs.truncate ;
-			[fnc.vfs_release_phone]
+		alternative fs tmpfs fat devfs {
+			[fnc.vfs_open_node_internal] ;
+			tentative {
+				[fnc.vfs_grab_phone] ;
+				!fs.truncate ;
+				[fnc.vfs_release_phone]
+			}
 		}
 	} +
 	
 	?close {
 		tentative {
-			[fnc.vfs_grab_phone] ;
-			!fs.close ;
-			[fnc.vfs_release_phone]
+			alternative fs tmpfs fat devfs {
+				[fnc.vfs_grab_phone] ;
+				!fs.close ;
+				[fnc.vfs_release_phone]
+			}
 		}
 	} +
 	
 	?read {
 		tentative {
 			?ipc_m_data_read {
-				[fnc.vfs_grab_phone] ;
-				!fs.read ;
-				!fs.ipc_m_data_read /* forward payload */ ;
-				[fnc.vfs_release_phone]
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_grab_phone] ;
+					!fs.read ;
+					!fs.ipc_m_data_read /* forward payload */ ;
+					[fnc.vfs_release_phone]
+				}
 			}
 		}
 	} +
@@ -91,29 +103,35 @@
 	?write {
 		tentative {
 			?ipc_m_data_write {
-				[fnc.vfs_grab_phone] ;
-				!fs.write ;
-				!fs.ipc_m_data_write /* forward payload */ ;
-				[fnc.vfs_release_phone]
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_grab_phone] ;
+					!fs.write ;
+					!fs.ipc_m_data_write /* forward payload */ ;
+					[fnc.vfs_release_phone]
+				}
 			}
 		}
 	} +
 	
 	?truncate {
 		tentative {
-			[fnc.vfs_grab_phone] ;
-			!fs.truncate ;
-			[fnc.vfs_release_phone]
+			alternative fs tmpfs fat devfs {
+				[fnc.vfs_grab_phone] ;
+				!fs.truncate ;
+				[fnc.vfs_release_phone]
+			}
 		}
 	} +
 	
 	?fstat {
 		tentative {
 			?ipc_m_data_read /* struct stat */ {
-				[fnc.vfs_grab_phone] ;
-				!fs.stat ;
-				!fs.ipc_m_data_read /* forward struct stat */ ;
-				[fnc.vfs_release_phone]
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_grab_phone] ;
+					!fs.stat ;
+					!fs.ipc_m_data_read /* forward struct stat */ ;
+					[fnc.vfs_release_phone]
+				}
 			}
 		}
 	} +
@@ -122,10 +140,12 @@
 		?ipc_m_data_write /* path */ ;
 		tentative {
 			?ipc_m_data_read /* struct stat */ {
-				[fnc.vfs_lookup_internal] ;
-				tentative {
-					!fs.stat ;
-					!fs.ipc_m_data_read /* forward struct stat */
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_lookup_internal] ;
+					tentative {
+						!fs.stat ;
+						!fs.ipc_m_data_read /* forward struct stat */
+					}
 				}
 			}
 		}
@@ -134,14 +154,18 @@
 	?mkdir {
 		?ipc_m_data_write /* path */ ;
 		tentative {
-			[fnc.vfs_lookup_internal]
+			alternative fs tmpfs fat devfs {
+				[fnc.vfs_lookup_internal]
+			}
 		}
 	} +
 	
 	?unlink {
 		?ipc_m_data_write /* path */ ;
 		tentative {
-			[fnc.vfs_lookup_internal]
+			alternative fs tmpfs fat devfs {
+				[fnc.vfs_lookup_internal]
+			}
 		}
 	} +
 	
@@ -150,15 +174,17 @@
 		tentative {
 			?ipc_m_data_write /* new path */ ;
 			tentative {
-				[fnc.vfs_lookup_internal] /* lookup old path */ ;
-				tentative {
-					[fnc.vfs_lookup_internal] /* lookup parent of new path */ ;
+				alternative fs tmpfs fat devfs {
+					[fnc.vfs_lookup_internal] /* lookup old path */ ;
 					tentative {
-						[fnc.vfs_lookup_internal] /* destroy old link for the new path */ ;
+						[fnc.vfs_lookup_internal] /* lookup parent of new path */ ;
 						tentative {
-							[fnc.vfs_lookup_internal] /* create new link for the new path */ ;
+							[fnc.vfs_lookup_internal] /* destroy old link for the new path */ ;
 							tentative {
-								[fnc.vfs_lookup_internal] /* destroy link for the old path */
+								[fnc.vfs_lookup_internal] /* create new link for the new path */ ;
+								tentative {
+									[fnc.vfs_lookup_internal] /* destroy link for the old path */
+								}
 							}
 						}
 					}
@@ -169,7 +195,9 @@
 	
 	?sync {
 		tentative {
-			!fs.sync
+			alternative fs tmpfs fat devfs {
+				!fs.sync
+			}
 		}
 	} +
 	

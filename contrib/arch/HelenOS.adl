@@ -33,7 +33,7 @@ system architecture HelenOS version 0.4.1 {
 	bind bd:devmap_driver to devmap:devmap_driver;
 	
 	bind vfs:ns to ns:ns;
-	bind vfs:bd to bd:bd;
+	bind vfs:rd to bd:rd;
 	bind vfs:devmap_client to devmap:devmap_client;
 	bind vfs:device to console:console;
 	

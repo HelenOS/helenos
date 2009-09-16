@@ -1,12 +1,17 @@
+interface tmpfs extends fs {
+	protocol:
+		[tmpfs.bp]
+};
+
 frame tmpfs {
 	provides:
-		fs fs;
+		tmpfs tmpfs;
 	requires:
 		[/uspace/lib/libc/requires]
 		vfs vfs;
 		ns ns;
-		bd bd;
+		rd rd;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[tmpfs_server.bp]
 };

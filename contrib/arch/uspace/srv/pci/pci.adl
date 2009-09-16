@@ -1,9 +1,4 @@
 interface pci extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
-		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[pci.bp]
 };
@@ -15,6 +10,6 @@ frame pci {
 		[/uspace/lib/libc/requires]
 		ns ns;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[pci_server.bp]
 };

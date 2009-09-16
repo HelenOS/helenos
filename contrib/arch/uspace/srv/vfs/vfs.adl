@@ -1,7 +1,4 @@
 interface vfs extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
 		/* Register a filesystem driver */
 		ipcarg_t register(in_copy string name);
 		
@@ -54,9 +51,6 @@ interface vfs extends service {
 };
 
 interface fs extends service {
-		/* Establish connection */
-		ipcarg_t ipc_m_connect_me_to(void);
-		
 		/* Notify filesystem that it was mounted */
 		ipcarg_t mounted(in ipcarg_t dev_handle, in_copy string opts);
 		
@@ -86,51 +80,50 @@ interface fs extends service {
 		
 		/* Notify on file close */
 		ipcarg_t close(in ipcarg_t dev_handle, in ipcarg_t fs_index);
-		
-		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
 };
 
-frame vfs_manager {
+frame dispatcher {
 	provides:
 		vfs vfs;
 	requires:
 		[/uspace/lib/libc/requires]
-		fs fs;
+		tmpfs tmpfs;
+		fat fat;
+		devfs devfs;
 		ns ns;
 	protocol:
-		[/uspace/lib/libc/protocol] +
+		[/uspace/lib/libc/protocol] |
 		[vfs_server.bp]
 };
 
 architecture vfs {
-	inst vfs_manager vfs;
+	inst dispatcher dispatcher;
 	inst tmpfs tmpfs;
 	inst fat fat;
 	inst devfs devfs;
 	
-	bind vfs:fs to tmpfs:fs;
-	bind vfs:fs to fat:fs;
-	bind vfs:fs to devfs:fs;
+	bind dispatcher:tmpfs to tmpfs:tmpfs;
+	bind dispatcher:fat to fat:fat;
+	bind dispatcher:devfs to devfs:devfs;
 	
-	bind tmpfs:vfs to vfs:vfs;
-	bind fat:vfs to vfs:vfs;
-	bind devfs:vfs to vfs:vfs;
+	bind tmpfs:vfs to dispatcher:vfs;
+	bind fat:vfs to dispatcher:vfs;
+	bind devfs:vfs to dispatcher:vfs;
 	
-	delegate vfs to vfs:vfs;
+	delegate vfs to dispatcher:vfs;
 	
-	[/uspace/lib/libc/subsume%vfs]
+	[/uspace/lib/libc/subsume%dispatcher]
 	[/uspace/lib/libc/subsume%tmpfs]
 	[/uspace/lib/libc/subsume%fat]
 	[/uspace/lib/libc/subsume%devfs]
 	
-	subsume vfs:ns to ns;
+	subsume dispatcher:ns to ns;
 	subsume tmpfs:ns to ns;
 	subsume fat:ns to ns;
 	subsume devfs:ns to ns;
 	
-	subsume tmpfs:bd to bd;
-	subsume fat:bd to bd;
+	subsume tmpfs:rd to rd;
+	subsume fat:rd to rd;
 	
 	subsume devfs:devmap_client to devmap_client;
 	subsume devfs:device to device;
