@@ -33,6 +33,11 @@ HelenOS Architecture Description Language and Behavior Protocols preprocessor
 import sys
 import os
 
+# TODO:
+#  - alternative token
+#  - iface protocol repetition
+#  - interface inheritance
+
 INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 	INST, VAR, FIN, BIND, TO, SUBSUME, DELEGATE, IFACE, PROTOTYPE, PAR_LEFT, \
 	PAR_RIGHT, SIGNATURE, PROTOCOL, FRAME, PROVIDES, REQUIRES = range(25)
@@ -276,12 +281,13 @@ def get_iface(name):
 	
 	return None
 
-def dump_frame(frame, outdir):
+def dump_frame(frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
-	outname = os.path.join(outdir, "%s.bp" % frame['name'])
-	if (os.path.isfile(outname)):
-		print "%s: File already exists, overwriting" % outname
+	fname = "%s.bp" % frame['name']
+	
+	archf.write("instantiate %s from \"%s\"\n" % (var, fname))
+	outname = os.path.join(outdir, fname)
 	
 	protocols = []
 	if ('protocol' in frame):
@@ -331,46 +337,118 @@ def get_frame(name):
 	
 	return None
 
-def create_null_bp(name, outdir):
+def create_null_bp(fname, outdir, archf):
 	"Create null frame protocol"
 	
-	outname = os.path.join(outdir, name)
-	if (not os.path.isfile(outname)):
-		outf = file(outname, "w")
-		outf.write("NULL")
-		outf.close()
-
-def dump_arch(arch, outdir):
-	"Dump architecture Behavior Protocol"
-	
-	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
-	if (os.path.isfile(outname)):
-		print "%s: File already exists, overwriting" % outname
+	archf.write("frame \"%s\"\n" % fname)
+	outname = os.path.join(outdir, fname)
 	
 	outf = file(outname, "w")
+	outf.write("NULL")
+	outf.close()
+
+def merge_subarch(prefix, arch, outdir):
+	"Merge subarchitecture into architexture"
 	
-	create_null_bp("null.bp", outdir)
-	outf.write("frame \"null.bp\"\n\n")
+	insts = []
+	binds = []
+	delegates = []
+	subsumes = []
 	
 	if ('inst' in arch):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				outf.write("instantiate %s from \"%s.archbp\"\n" % (inst['var'], inst['type']))
-				dump_arch(subarch, outdir)
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch("%s_%s" % (prefix, subarch['name']), subarch, outdir)
+				insts.extend(subinsts)
+				binds.extend(subbinds)
+				delegates.extend(subdelegates)
+				subsumes.extend(subsubsumes)
 			else:
 				subframe = get_frame(inst['type'])
 				if (not subframe is None):
-					outf.write("instantiate %s from \"%s.bp\"\n" % (inst['var'], inst['type']))
-					dump_frame(subframe, outdir)
+					insts.append({'var': "%s_%s" % (prefix, inst['var']), 'frame': subframe})
 				else:
-					print "%s: '%s' is neither architecture nor frame" % (arch['name'], inst['type'])
-		
-		outf.write("\n")
+					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
 	
 	if ('bind' in arch):
 		for bind in arch['bind']:
-			outf.write("bind %s.%s to %s.%s\n" % (bind['from'][0], bind['from'][1], bind['to'][0], bind['to'][1]))
+			binds.append({'from': "%s_%s.%s" % (prefix, bind['from'][0], bind['from'][1]), 'to': "%s_%s.%s" % (prefix, bind['to'][0], bind['to'][1])})
+	
+	if ('delegate' in arch):
+		for delegate in arch['delegate']:
+			delegates.append({'to': "%s.%s" % (prefix, delegate['from']), 'rep': "%s_%s.%s" % (prefix, delegate['to'][0], delegate['to'][1])})
+	
+	if ('subsume' in arch):
+		for subsume in arch['subsume']:
+			subsumes.append({'from': "%s.%s" % (prefix, subsume['to']), 'rep': "%s_%s.%s" % (prefix, subsume['from'][0], subsume['from'][1])})
+	
+	return (insts, binds, delegates, subsumes)
+
+def dump_archbp(outdir):
+	"Dump system architecture Behavior Protocol"
+	
+	arch = get_system_arch()
+	
+	if (arch is None):
+		print "Unable to find system architecture"
+		return
+	
+	insts = []
+	binds = []
+	delegates = []
+	subsumes = []
+	
+	if ('inst' in arch):
+		for inst in arch['inst']:
+			subarch = get_arch(inst['type'])
+			if (not subarch is None):
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch(subarch['name'], subarch, outdir)
+				insts.extend(subinsts)
+				binds.extend(subbinds)
+				delegates.extend(subdelegates)
+				subsumes.extend(subsubsumes)
+			else:
+				subframe = get_frame(inst['type'])
+				if (not subframe is None):
+					insts.append({'var': inst['var'], 'frame': subframe})
+				else:
+					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+	
+	if ('bind' in arch):
+		for bind in arch['bind']:
+			binds.append({'from': "%s.%s" % (bind['from'][0], bind['from'][1]), 'to': "%s.%s" % (bind['to'][0], bind['to'][1])})
+	
+	if ('delegate' in arch):
+		for delegate in arch['delegate']:
+			print "Unable to delegate interface in system architecture"
+			break
+	
+	if ('subsume' in arch):
+		for subsume in arch['subsume']:
+			print "Unable to subsume interface in system architecture"
+			break
+	
+	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
+	outf = file(outname, "w")
+	
+	create_null_bp("null.bp", outdir, outf)
+	
+	for inst in insts:
+		dump_frame(inst['frame'], outdir, inst['var'], outf)
+	
+	for bind in binds:
+		for delegate in delegates:
+			if (bind['to'] == delegate['to']):
+				bind['to'] = delegate['rep']
+				break
+		
+		for subsume in subsumes:
+			if (bind['from'] == subsume['from']):
+				bind['from'] = subsume['rep']
+				break
+		
+		outf.write("bind %s to %s\n" % (bind['from'], bind['to']))
 	
 	outf.close()
 
@@ -796,7 +874,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (token == ";"):
 					output += "%s\n" % token
 					context.remove(HEAD)
-					context.remove(ARCH)
+					context.remove(IFACE)
 					continue
 				
 				if (not word(token)):
@@ -1154,15 +1232,9 @@ def open_adl(base, root, inname, outdir, outname):
 	output = output.strip()
 	
 	if (output != ""):
-		if (os.path.isfile(outname)):
-			print "%s: File already exists, overwriting" % outname
-		
 		outf = file(outname, "w")
 		outf.write(output)
 		outf.close()
-	else:
-		if (os.path.isfile(outname)):
-			print "%s: File already exists, but should be empty" % outname
 
 def recursion(base, root, output, level):
 	"Recursive directory walk"
@@ -1200,11 +1272,7 @@ def main():
 	arch_properties = {}
 	
 	recursion(".", ".", path, 0)
-	
-	system_arch = get_system_arch()
-	
-	if (not system_arch is None):
-		dump_arch(system_arch, path)
+	dump_archbp(path)
 
 if __name__ == '__main__':
 	main()
