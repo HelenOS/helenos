@@ -164,10 +164,64 @@ def preproc_bp(name, tokens):
 	
 	return result
 
-def parse_bp(name, protocol, base_indent):
+def split_bp(protocol):
+	"Convert Behavior Protocol to tokens"
+	
+	return split_tokens(protocol, ["\n", " ", "\t", "(", ")", "{", "}", "*", ";", "+", "||", "|", "!", "?"], True, True)
+
+def extend_bp(name, tokens, iface):
+	"Add interface to incoming messages"
+	
+	result = []
+	i = 0
+	
+	while (i < len(tokens)):
+		result.append(tokens[i])
+		
+		if (tokens[i] == "?"):
+			if (i + 1 < len(tokens)):
+				i += 1
+				parts = tokens[i].split(".")
+				
+				if (len(parts) == 1):
+					result.append("%s.%s" % (iface, tokens[i]))
+				else:
+					result.append(tokens[i])
+			else:
+				print "%s: Unexpected end of protocol" % name
+		
+		i += 1
+	
+	return result
+
+def merge_bp(protocols):
+	"Merge several Behavior Protocols"
+	
+	if (len(protocols) > 1):
+		result = []
+		first = True
+		
+		for protocol in protocols:
+			if (first):
+				first = False
+			else:
+				result.append("|")
+			
+			result.append("(")
+			result.extend(protocol)
+			result.append(")")
+		
+		return result
+	
+	if (len(protocols) == 1):
+		return protocols[0]
+	
+	return []
+
+def parse_bp(name, tokens, base_indent):
 	"Parse Behavior Protocol"
 	
-	tokens = preproc_bp(name, split_tokens(protocol, ["\n", " ", "\t", "(", ")", "{", "}", "*", ";", "+", "||", "|", "!", "?"], True, True))
+	tokens = preproc_bp(name, tokens)
 	
 	indent = base_indent
 	output = ""
@@ -212,26 +266,106 @@ def parse_bp(name, protocol, base_indent):
 	
 	return output
 
-def dump_iface_bp(interface, protocol, outdir):
-	"Dump Behavior Protocol of a given interface"
+def get_iface(name):
+	"Get interface by name"
 	
-	outname = os.path.join(outdir, "iface_%s.bp" % interface)
-	if (os.path.isfile(outname)):
-		print "%s: File already exists, overwriting" % outname
+	global iface_properties
 	
-	outf = file(outname, "w")
-	outf.write(parse_bp(outname, protocol, 0))
-	outf.close()
+	if (name in iface_properties):
+		return iface_properties[name]
+	
+	return None
 
-def dump_frame_bp(frame, protocol, outdir):
+def dump_frame(frame, outdir):
 	"Dump Behavior Protocol of a given frame"
 	
-	outname = os.path.join(outdir, "frame_%s.bp" % frame)
+	outname = os.path.join(outdir, "%s.bp" % frame['name'])
+	if (os.path.isfile(outname)):
+		print "%s: File already exists, overwriting" % outname
+	
+	protocols = []
+	if ('protocol' in frame):
+		protocols.append(frame['protocol'])
+	
+	if ('provides' in frame):
+		for provides in frame['provides']:
+			iface = get_iface(provides['iface'])
+			if (not iface is None):
+				if ('protocol' in iface):
+					protocols.append(extend_bp(outname, iface['protocol'], iface['name']))
+			else:
+				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
+	
+	outf = file(outname, "w")
+	outf.write(parse_bp(outname, merge_bp(protocols), 0))
+	outf.close()
+
+def get_system_arch():
+	"Get system architecture"
+	
+	global arch_properties
+	
+	for arch, properties in arch_properties.items():
+		if ('system' in properties):
+			return properties
+	
+	return None
+
+def get_arch(name):
+	"Get architecture by name"
+	
+	global arch_properties
+	
+	if (name in arch_properties):
+		return arch_properties[name]
+	
+	return None
+
+def get_frame(name):
+	"Get frame by name"
+	
+	global frame_properties
+	
+	if (name in frame_properties):
+		return frame_properties[name]
+	
+	return None
+
+def create_null_bp(name, outdir):
+	"Create null frame protocol"
+	
+	outname = os.path.join(outdir, name)
+	if (not os.path.isfile(outname)):
+		outf = file(outname, "w")
+		outf.write("NULL")
+		outf.close()
+
+def dump_arch(arch, outdir):
+	"Dump architecture Behavior Protocol"
+	
+	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
 	if (os.path.isfile(outname)):
 		print "%s: File already exists, overwriting" % outname
 	
 	outf = file(outname, "w")
-	outf.write(parse_bp(outname, protocol, 0))
+	
+	create_null_bp("null.bp", outdir)
+	outf.write("frame \"null.bp\"\n\n")
+	
+	if ('inst' in arch):
+		for inst in arch['inst']:
+			subarch = get_arch(inst['type'])
+			if (not subarch is None):
+				outf.write("instantiate %s from \"%s.archbp\"\n" % (inst['var'], inst['type']))
+				dump_arch(subarch, outdir)
+			else:
+				subframe = get_frame(inst['type'])
+				if (not subframe is None):
+					outf.write("instantiate %s from \"%s.bp\"\n" % (inst['var'], inst['type']))
+					dump_frame(subframe, outdir)
+				else:
+					print "%s: '%s' is neither architecture nor frame" % (arch['name'], inst['type'])
+	
 	outf.close()
 
 def preproc_adl(raw, inarg):
@@ -248,8 +382,12 @@ def parse_adl(base, root, inname, nested, indent):
 	global interface
 	global frame
 	global protocol
-	global iface_protocols
-	global frame_protocols
+	
+	global iface_properties
+	global frame_properties
+	global arch_properties
+	
+	global arg0
 	
 	if (nested):
 		parts = inname.split("%")
@@ -349,14 +487,19 @@ def parse_adl(base, root, inname, nested, indent):
 						indent -= 1
 					
 					if (indent == -1):
-						if (frame in frame_protocols):
-							print "%s: Protocol for frame '%s' already defined" % (inname, frame)
-						else:
-							frame_protocols[frame] = protocol
-						output += "\n%s" % tabs(2)
-						output += parse_bp(inname, protocol, 2)
+						bp = split_bp(protocol)
 						protocol = None
 						
+						if (not frame in frame_properties):
+							frame_properties[frame] = {}
+						
+						if ('protocol' in frame_properties[frame]):
+							print "%s: Protocol for frame '%s' already defined" % (inname, frame)
+						else:
+							frame_properties[frame]['protocol'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
 						output += "\n%s" % token
 						indent = 0
 						
@@ -380,8 +523,17 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Instance name expected in frame '%s'" % (inname, frame)
+							print "%s: Variable name expected in frame '%s'" % (inname, frame)
 						else:
+							if (not frame in frame_properties):
+								frame_properties[frame] = {}
+							
+							if (not 'requires' in frame_properties[frame]):
+								frame_properties[frame]['requires'] = []
+							
+							frame_properties[frame]['requires'].append({'iface': arg0, 'var': token})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.remove(VAR)
@@ -394,6 +546,7 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not identifier(token)):
 							print "%s: Interface name expected in frame '%s'" % (inname, frame)
 						else:
+							arg0 = token
 							output += "\n%s%s " % (tabs(indent), token)
 						
 						context.add(VAR)
@@ -411,8 +564,17 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Instance name expected in frame '%s'" % (inname, frame)
+							print "%s: Variable name expected in frame '%s'" % (inname, frame)
 						else:
+							if (not frame in frame_properties):
+								frame_properties[frame] = {}
+							
+							if (not 'provides' in frame_properties[frame]):
+								frame_properties[frame]['provides'] = []
+							
+							frame_properties[frame]['provides'].append({'iface': arg0, 'var': token})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.remove(VAR)
@@ -425,6 +587,7 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not identifier(token)):
 							print "%s: Interface name expected in frame '%s'" % (inname, frame)
 						else:
+							arg0 = token
 							output += "\n%s%s " % (tabs(indent), token)
 						
 						context.add(VAR)
@@ -486,6 +649,11 @@ def parse_adl(base, root, inname, nested, indent):
 			else:
 				frame = token
 				output += "%s " % token
+				
+				if (not frame in frame_properties):
+					frame_properties[frame] = {}
+				
+				frame_properties[frame]['name'] = frame
 			
 			context.add(HEAD)
 			continue
@@ -512,15 +680,19 @@ def parse_adl(base, root, inname, nested, indent):
 						indent -= 1
 					
 					if (indent == -1):
-						if (interface in iface_protocols):
-							print "%s: Protocol for interface '%s' already defined" % (inname, interface)
-						else:
-							iface_protocols[interface] = protocol
-						
-						output += "\n%s" % tabs(2)
-						output += parse_bp(inname, protocol, 2)
+						bp = split_bp(protocol)
 						protocol = None
 						
+						if (not interface in iface_properties):
+							iface_properties[interface] = {}
+						
+						if ('protocol' in iface_properties[interface]):
+							print "%s: Protocol for interface '%s' already defined" % (inname, interface)
+						else:
+							iface_properties[interface]['protocol'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
 						output += "\n%s" % token
 						indent = 0
 						
@@ -633,6 +805,11 @@ def parse_adl(base, root, inname, nested, indent):
 			else:
 				interface = token
 				output += "%s " % token
+				
+				if (not interface in iface_properties):
+					iface_properties[interface] = {}
+				
+				iface_properties[interface]['name'] = interface
 			
 			context.add(HEAD)
 			continue
@@ -668,6 +845,15 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not descriptor(token)):
 							print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
 						else:
+							if (not architecture in arch_properties):
+								arch_properties[architecture] = {}
+							
+							if (not 'delegate' in arch_properties[architecture]):
+								arch_properties[architecture]['delegate'] = []
+							
+							arch_properties[architecture]['delegate'].append({'from': arg0, 'to': token.split(":")})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.add(FIN)
@@ -688,6 +874,7 @@ def parse_adl(base, root, inname, nested, indent):
 						print "%s: Expected interface name in architecture '%s'" % (inname, architecture)
 					else:
 						output += "%s " % token
+						arg0 = token
 					
 					context.add(TO)
 					continue
@@ -707,6 +894,15 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not identifier(token)):
 							print "%s: Expected interface name in architecture '%s'" % (inname, architecture)
 						else:
+							if (not architecture in arch_properties):
+								arch_properties[architecture] = {}
+							
+							if (not 'subsume' in arch_properties[architecture]):
+								arch_properties[architecture]['subsume'] = []
+							
+							arch_properties[architecture]['subsume'].append({'from': arg0.split(":"), 'to': token})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.add(FIN)
@@ -727,6 +923,7 @@ def parse_adl(base, root, inname, nested, indent):
 						print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
 					else:
 						output += "%s " % token
+						arg0 = token
 					
 					context.add(TO)
 					continue
@@ -746,6 +943,15 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not descriptor(token)):
 							print "%s: Expected second interface descriptor in architecture '%s'" % (inname, architecture)
 						else:
+							if (not architecture in arch_properties):
+								arch_properties[architecture] = {}
+							
+							if (not 'bind' in arch_properties[architecture]):
+								arch_properties[architecture]['bind'] = []
+							
+							arch_properties[architecture]['bind'].append({'from': arg0.split(":"), 'to': token.split(":")})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.add(FIN)
@@ -766,6 +972,7 @@ def parse_adl(base, root, inname, nested, indent):
 						print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
 					else:
 						output += "%s " % token
+						arg0 = token
 					
 					context.add(TO)
 					continue
@@ -785,6 +992,15 @@ def parse_adl(base, root, inname, nested, indent):
 						if (not identifier(token)):
 							print "%s: Expected instance name in architecture '%s'" % (inname, architecture)
 						else:
+							if (not architecture in arch_properties):
+								arch_properties[architecture] = {}
+							
+							if (not 'inst' in arch_properties[architecture]):
+								arch_properties[architecture]['inst'] = []
+							
+							arch_properties[architecture]['inst'].append({'type': arg0, 'var': token})
+							arg0 = None
+							
 							output += "%s" % token
 						
 						context.add(FIN)
@@ -795,6 +1011,7 @@ def parse_adl(base, root, inname, nested, indent):
 						print "%s: Expected frame/architecture type in architecture '%s'" % (inname, architecture)
 					else:
 						output += "%s " % token
+						arg0 = token
 					
 					context.add(VAR)
 					continue
@@ -860,6 +1077,14 @@ def parse_adl(base, root, inname, nested, indent):
 			else:
 				architecture = token
 				output += "%s " % token
+				
+				if (not architecture in arch_properties):
+					arch_properties[architecture] = {}
+				
+				arch_properties[architecture]['name'] = architecture
+				
+				if (SYSTEM in context):
+					arch_properties[architecture]['system'] = True
 			
 			context.add(HEAD)
 			continue
@@ -909,12 +1134,15 @@ def open_adl(base, root, inname, outdir, outname):
 	global frame
 	global protocol
 	
+	global arg0
+	
 	output = ""
 	context = set()
 	architecture = None
 	interface = None
 	frame = None
 	protocol = None
+	arg0 = None
 	
 	parse_adl(base, root, inname, False, 0)
 	output = output.strip()
@@ -948,8 +1176,9 @@ def recursion(base, root, output, level):
 			recursion(base, canon, output, level + 1)
 
 def main():
-	global iface_protocols
-	global frame_protocols
+	global iface_properties
+	global frame_properties
+	global arch_properties
 	
 	if (len(sys.argv) < 2):
 		usage(sys.argv[0])
@@ -960,16 +1189,16 @@ def main():
 		print "Error: <OUTPUT> is not a directory"
 		return
 	
-	iface_protocols = {}
-	frame_protocols = {}
+	iface_properties = {}
+	frame_properties = {}
+	arch_properties = {}
 	
 	recursion(".", ".", path, 0)
 	
-	for key, value in iface_protocols.items():
-		dump_iface_bp(key, value, path)
+	system_arch = get_system_arch()
 	
-	for key, value in frame_protocols.items():
-		dump_frame_bp(key, value, path)
+	if (not system_arch is None):
+		dump_arch(system_arch, path)
 
 if __name__ == '__main__':
 	main()
