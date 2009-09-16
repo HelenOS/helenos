@@ -71,6 +71,12 @@ typedef struct {
 
 	/** Current position of the caret */
 	tag_t caret_pos;
+
+	/** 
+	 * Ideal column where the caret should try to get. This is used
+	 * for maintaining the same column during vertical movement.
+	 */
+	int ideal_column;
 } pane_t;
 
 /** Document
@@ -140,6 +146,7 @@ int main(int argc, char *argv[])
 	coord.row = coord.column = 1;
 	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
 	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+	pane.ideal_column = coord.column;
 
 	if (argc == 2) {
 		doc.file_name = argv[1];
@@ -604,6 +611,7 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	spt_t pt;
 	coord_t coord;
 	int num_rows;
+	bool pure_vertical;
 
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
@@ -617,6 +625,11 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 		if (coord.row > num_rows) coord.row = num_rows;
 	}
 
+	/* For purely vertical movement try attaining @c ideal_column. */
+	pure_vertical = (dcolumn == 0 && align_dir == dir_before);
+	if (pure_vertical)
+		coord.column = pane.ideal_column;
+
 	/*
 	 * Select the point before or after the character at the designated
 	 * coordinates. The character can be wider than one cell (e.g. tab).
@@ -624,6 +637,12 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	sheet_get_cell_pt(&doc.sh, &coord, align_dir, &pt);
 	sheet_remove_tag(&doc.sh, &pane.caret_pos);
 	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+
+	/* For non-vertical movement set the new value for @c ideal_column. */
+	if (!pure_vertical) {
+		spt_get_coord(&pt, &coord);
+		pane.ideal_column = coord.column;
+	}
 
 	caret_update();
 }
