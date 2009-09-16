@@ -35,8 +35,8 @@
 									[fnc.vfs_release_phone] ;
 									tentative {
 										!fs.vfs_m_data_write /* mount options */
-									}
-									[fnc.vfs_release_phone] ;
+									} ;
+									[fnc.vfs_release_phone]
 								}
 							}
 						)
