@@ -53,17 +53,21 @@
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>
+#include <macros.h>
 
 #include "sheet.h"
 
 enum {
-	TAB_WIDTH = 8
+	TAB_WIDTH	= 8,
+
+	/** Initial  of dat buffer in bytes */
+	INITIAL_SIZE	= 32
 };
 
 /** Initialize an empty sheet. */
 int sheet_init(sheet_t *sh)
 {
-	sh->dbuf_size = 65536;
+	sh->dbuf_size = INITIAL_SIZE;
 	sh->text_size = 0;
 
 	sh->data = malloc(sh->dbuf_size);
@@ -94,18 +98,27 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 	size_t sz;
 	link_t *link;
 	tag_t *tag;
+	char *newp;
 
 	sz = str_size(str);
-	if (sh->text_size + sz > sh->dbuf_size)
-		return ELIMIT;
+	if (sh->text_size + sz > sh->dbuf_size) {
+		/* Enlarge data buffer. */
+		newp = realloc(sh->data, sh->dbuf_size * 2);
+		if (newp == NULL)
+			return ELIMIT;
+
+		sh->data = newp;
+		sh->dbuf_size = sh->dbuf_size * 2;
+	}
 
 	ipp = sh->data + pos->b_off;
 
+	/* Copy data. */
 	memmove(ipp + sz, ipp, sh->text_size - pos->b_off);
 	memcpy(ipp, str, sz);
 	sh->text_size += sz;
 
-	/* Adjust tags */
+	/* Adjust tags. */
 
 	link = sh->tags_head.next;
 	while (link != &sh->tags_head) {
@@ -138,6 +151,8 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 	size_t sz;
 	link_t *link;
 	tag_t *tag;
+	char *newp;
+	size_t shrink_size;
 
 	spp = sh->data + spos->b_off;
 	sz = epos->b_off - spos->b_off;
@@ -145,7 +160,7 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 	memmove(spp, spp + sz, sh->text_size - (spos->b_off + sz));
 	sh->text_size -= sz;
 
-	/* Adjust tags */
+	/* Adjust tags. */
 	link = sh->tags_head.next;
 	while (link != &sh->tags_head) {
 		tag = list_get_instance(link, tag_t, link);
@@ -157,7 +172,21 @@ int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 
 		link = link->next;
 	}
-	
+
+	/* See if we should free up some memory. */
+	shrink_size = max(sh->dbuf_size / 4, INITIAL_SIZE);
+	if (sh->text_size <= shrink_size && sh->dbuf_size > INITIAL_SIZE) {
+		/* Shrink data buffer. */
+		newp = realloc(sh->data, shrink_size);
+		if (newp == NULL) {
+			/* Failed to shrink buffer... no matter. */
+			return EOK;
+		}
+
+		sh->data = newp;
+		sh->dbuf_size = shrink_size;
+	}
+
 	return EOK;
 }
 
