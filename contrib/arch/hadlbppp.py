@@ -365,6 +365,12 @@ def dump_arch(arch, outdir):
 					dump_frame(subframe, outdir)
 				else:
 					print "%s: '%s' is neither architecture nor frame" % (arch['name'], inst['type'])
+		
+		outf.write("\n")
+	
+	if ('bind' in arch):
+		for bind in arch['bind']:
+			outf.write("bind %s.%s to %s.%s\n" % (bind['from'][0], bind['from'][1], bind['to'][0], bind['to'][1]))
 	
 	outf.close()
 
