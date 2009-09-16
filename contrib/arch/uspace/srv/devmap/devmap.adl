@@ -46,7 +46,7 @@ interface devmap_client {
 		ipcarg_t device_get_count(out ipcarg_t count);
 		
 		/* Get an array of (device_name, handle) pairs */
-		ipcarg_t device_get_devices(out_copy stream data)
+		ipcarg_t device_get_devices(out_copy stream data);
 		
 		/* Close connection */
 		ipcarg_t ipc_m_phone_hungup(void);

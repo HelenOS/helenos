@@ -11,10 +11,10 @@ interface kernel_klog {
 
 interface kernel_console {
 		/* Enable kernel console */
-		uintptr_t sys_debug_enable_console(void);
+		unative_t sys_debug_enable_console(void);
 		
 		/* Disable kernel console */
-		uintptr_t sys_debug_disable_console(void);
+		unative_t sys_debug_disable_console(void);
 	protocol:
 		?sys_debug_enable_console +
 		?sys_debug_disable_console

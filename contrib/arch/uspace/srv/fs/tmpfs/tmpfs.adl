@@ -1,6 +1,6 @@
 frame tmpfs {
 	provides:
-		fs fs
+		fs fs;
 	requires:
 		[/uspace/lib/libc/requires]
 		vfs vfs;
