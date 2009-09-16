@@ -71,6 +71,12 @@ typedef struct {
 
 	/** Current position of the caret */
 	tag_t caret_pos;
+
+	/** 
+	 * Ideal column where the caret should try to get. This is used
+	 * for maintaining the same column during vertical movement.
+	 */
+	int ideal_column;
 } pane_t;
 
 /** Document
@@ -129,7 +135,9 @@ int main(int argc, char *argv[])
 	console_get_size(con, &scr_columns, &scr_rows);
 
 	pane.rows = scr_rows - 1;
+	pane.columns = scr_columns;
 	pane.sh_row = 1;
+	pane.sh_column = 1;
 
 	/* Start with an empty sheet. */
 	sheet_init(&doc.sh);
@@ -138,6 +146,7 @@ int main(int argc, char *argv[])
 	coord.row = coord.column = 1;
 	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &pt);
 	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+	pane.ideal_column = coord.column;
 
 	if (argc == 2) {
 		doc.file_name = argv[1];
@@ -205,7 +214,6 @@ static void key_handle_unmod(console_event_t const *ev)
 	switch (ev->key) {
 	case KC_ENTER:
 		insert_char('\n');
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	case KC_LEFT:
@@ -234,18 +242,15 @@ static void key_handle_unmod(console_event_t const *ev)
 		break;
 	case KC_BACKSPACE:
 		delete_char_before();
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	case KC_DELETE:
 		delete_char_after();
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	default:
 		if (ev->c >= 32 || ev->c == '\t') {
 			insert_char(ev->c);
-			pane.rflags |= REDRAW_ROW;
 			caret_update();
 		}
 		break;
@@ -401,7 +406,6 @@ static void pane_row_display(void)
 
 static void pane_row_range_display(int r0, int r1)
 {
-	int width;
 	int i, j, fill;
 	spt_t rb, re, dep;
 	coord_t rbc, rec;
@@ -414,14 +418,14 @@ static void pane_row_range_display(int r0, int r1)
 
 	console_goto(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
-		sheet_get_row_width(&doc.sh, pane.sh_row + i, &width);
-
-		/* Determine row starting point. */
-		rbc.row = pane.sh_row + i; rbc.column = 1;
+		/* Starting point for row display */
+		rbc.row = pane.sh_row + i;
+		rbc.column = pane.sh_column;
 		sheet_get_cell_pt(&doc.sh, &rbc, dir_before, &rb);
 
-		/* Determine row ending point. */
-		rec.row = pane.sh_row + i; rec.column = width + 1;
+		/* Ending point for row display */
+		rec.row = pane.sh_row + i;
+		rec.column = pane.sh_column + pane.columns;
 		sheet_get_cell_pt(&doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
@@ -493,7 +497,8 @@ static void pane_caret_display(void)
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-	console_goto(con, coord.column - 1, coord.row - pane.sh_row);
+	console_goto(con, coord.column - pane.sh_column,
+	    coord.row - pane.sh_row);
 }
 
 /** Insert a character at caret position. */
@@ -510,6 +515,10 @@ static void insert_char(wchar_t c)
 	cbuf[offs] = '\0';
 
 	(void) sheet_insert(&doc.sh, &pt, dir_before, cbuf);
+
+	pane.rflags |= REDRAW_ROW;
+	if (c == '\n')
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Delete the character before the caret. */
@@ -525,20 +534,29 @@ static void delete_char_before(void)
 	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &sp);
 
 	(void) sheet_delete(&doc.sh, &sp, &ep);
+
+	pane.rflags |= REDRAW_ROW;
+	if (coord.column < 1)
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Delete the character after the caret. */
 static void delete_char_after(void)
 {
 	spt_t sp, ep;
-	coord_t coord;
+	coord_t sc, ec;
 
 	tag_get_pt(&pane.caret_pos, &sp);
-	spt_get_coord(&sp, &coord);
+	spt_get_coord(&sp, &sc);
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &ep);
+	sheet_get_cell_pt(&doc.sh, &sc, dir_after, &ep);
+	spt_get_coord(&ep, &ec);
 
 	(void) sheet_delete(&doc.sh, &sp, &ep);
+
+	pane.rflags |= REDRAW_ROW;
+	if (ec.row != sc.row)
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Scroll pane after caret has moved.
@@ -554,19 +572,31 @@ static void caret_update(void)
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
 
-	/* Scroll pane as necessary. */
+	/* Scroll pane vertically. */
 
 	if (coord.row < pane.sh_row) {
 		pane.sh_row = coord.row;
 		pane.rflags |= REDRAW_TEXT;
 	}
+
 	if (coord.row > pane.sh_row + pane.rows - 1) {
 		pane.sh_row = coord.row - pane.rows + 1;
 		pane.rflags |= REDRAW_TEXT;
 	}
 
-	pane.rflags |= (REDRAW_CARET | REDRAW_STATUS);
+	/* Scroll pane horizontally. */
 
+	if (coord.column < pane.sh_column) {
+		pane.sh_column = coord.column;
+		pane.rflags |= REDRAW_TEXT;
+	}
+
+	if (coord.column > pane.sh_column + pane.columns - 1) {
+		pane.sh_column = coord.column - pane.columns + 1;
+		pane.rflags |= REDRAW_TEXT;
+	}
+
+	pane.rflags |= (REDRAW_CARET | REDRAW_STATUS);
 }
 
 /** Change the caret position.
@@ -581,6 +611,7 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	spt_t pt;
 	coord_t coord;
 	int num_rows;
+	bool pure_vertical;
 
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
@@ -594,6 +625,11 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 		if (coord.row > num_rows) coord.row = num_rows;
 	}
 
+	/* For purely vertical movement try attaining @c ideal_column. */
+	pure_vertical = (dcolumn == 0 && align_dir == dir_before);
+	if (pure_vertical)
+		coord.column = pane.ideal_column;
+
 	/*
 	 * Select the point before or after the character at the designated
 	 * coordinates. The character can be wider than one cell (e.g. tab).
@@ -601,6 +637,12 @@ static void caret_move(int drow, int dcolumn, enum dir_spec align_dir)
 	sheet_get_cell_pt(&doc.sh, &coord, align_dir, &pt);
 	sheet_remove_tag(&doc.sh, &pane.caret_pos);
 	sheet_place_tag(&doc.sh, &pt, &pane.caret_pos);
+
+	/* For non-vertical movement set the new value for @c ideal_column. */
+	if (!pure_vertical) {
+		spt_get_coord(&pt, &coord);
+		pane.ideal_column = coord.column;
+	}
 
 	caret_update();
 }
