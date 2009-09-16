@@ -207,7 +207,6 @@ static void key_handle_unmod(console_event_t const *ev)
 	switch (ev->key) {
 	case KC_ENTER:
 		insert_char('\n');
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	case KC_LEFT:
@@ -236,18 +235,15 @@ static void key_handle_unmod(console_event_t const *ev)
 		break;
 	case KC_BACKSPACE:
 		delete_char_before();
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	case KC_DELETE:
 		delete_char_after();
-		pane.rflags |= REDRAW_TEXT;
 		caret_update();
 		break;
 	default:
 		if (ev->c >= 32 || ev->c == '\t') {
 			insert_char(ev->c);
-			pane.rflags |= REDRAW_ROW;
 			caret_update();
 		}
 		break;
@@ -512,6 +508,10 @@ static void insert_char(wchar_t c)
 	cbuf[offs] = '\0';
 
 	(void) sheet_insert(&doc.sh, &pt, dir_before, cbuf);
+
+	pane.rflags |= REDRAW_ROW;
+	if (c == '\n')
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Delete the character before the caret. */
@@ -527,20 +527,29 @@ static void delete_char_before(void)
 	sheet_get_cell_pt(&doc.sh, &coord, dir_before, &sp);
 
 	(void) sheet_delete(&doc.sh, &sp, &ep);
+
+	pane.rflags |= REDRAW_ROW;
+	if (coord.column < 1)
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Delete the character after the caret. */
 static void delete_char_after(void)
 {
 	spt_t sp, ep;
-	coord_t coord;
+	coord_t sc, ec;
 
 	tag_get_pt(&pane.caret_pos, &sp);
-	spt_get_coord(&sp, &coord);
+	spt_get_coord(&sp, &sc);
 
-	sheet_get_cell_pt(&doc.sh, &coord, dir_after, &ep);
+	sheet_get_cell_pt(&doc.sh, &sc, dir_after, &ep);
+	spt_get_coord(&ep, &ec);
 
 	(void) sheet_delete(&doc.sh, &sp, &ep);
+
+	pane.rflags |= REDRAW_ROW;
+	if (ec.row != sc.row)
+		pane.rflags |= REDRAW_TEXT;
 }
 
 /** Scroll pane after caret has moved.
