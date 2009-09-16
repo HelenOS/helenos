@@ -129,7 +129,9 @@ int main(int argc, char *argv[])
 	console_get_size(con, &scr_columns, &scr_rows);
 
 	pane.rows = scr_rows - 1;
+	pane.columns = scr_columns;
 	pane.sh_row = 1;
+	pane.sh_column = 1;
 
 	/* Start with an empty sheet. */
 	sheet_init(&doc.sh);
@@ -401,7 +403,6 @@ static void pane_row_display(void)
 
 static void pane_row_range_display(int r0, int r1)
 {
-	int width;
 	int i, j, fill;
 	spt_t rb, re, dep;
 	coord_t rbc, rec;
@@ -414,14 +415,14 @@ static void pane_row_range_display(int r0, int r1)
 
 	console_goto(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
-		sheet_get_row_width(&doc.sh, pane.sh_row + i, &width);
-
-		/* Determine row starting point. */
-		rbc.row = pane.sh_row + i; rbc.column = 1;
+		/* Starting point for row display */
+		rbc.row = pane.sh_row + i;
+		rbc.column = pane.sh_column;
 		sheet_get_cell_pt(&doc.sh, &rbc, dir_before, &rb);
 
-		/* Determine row ending point. */
-		rec.row = pane.sh_row + i; rec.column = width + 1;
+		/* Ending point for row display */
+		rec.row = pane.sh_row + i;
+		rec.column = pane.sh_column + pane.columns;
 		sheet_get_cell_pt(&doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
@@ -493,7 +494,8 @@ static void pane_caret_display(void)
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-	console_goto(con, coord.column - 1, coord.row - pane.sh_row);
+	console_goto(con, coord.column - pane.sh_column,
+	    coord.row - pane.sh_row);
 }
 
 /** Insert a character at caret position. */
@@ -554,19 +556,31 @@ static void caret_update(void)
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
 
-	/* Scroll pane as necessary. */
+	/* Scroll pane vertically. */
 
 	if (coord.row < pane.sh_row) {
 		pane.sh_row = coord.row;
 		pane.rflags |= REDRAW_TEXT;
 	}
+
 	if (coord.row > pane.sh_row + pane.rows - 1) {
 		pane.sh_row = coord.row - pane.rows + 1;
 		pane.rflags |= REDRAW_TEXT;
 	}
 
-	pane.rflags |= (REDRAW_CARET | REDRAW_STATUS);
+	/* Scroll pane horizontally. */
 
+	if (coord.column < pane.sh_column) {
+		pane.sh_column = coord.column;
+		pane.rflags |= REDRAW_TEXT;
+	}
+
+	if (coord.column > pane.sh_column + pane.columns - 1) {
+		pane.sh_column = coord.column - pane.columns + 1;
+		pane.rflags |= REDRAW_TEXT;
+	}
+
+	pane.rflags |= (REDRAW_CARET | REDRAW_STATUS);
 }
 
 /** Change the caret position.
