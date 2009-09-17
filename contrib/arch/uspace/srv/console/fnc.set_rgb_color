@@ -1,1 +1,3 @@
-!fb.set_rgb_color
+(
+	!fb.set_rgb_color
+)

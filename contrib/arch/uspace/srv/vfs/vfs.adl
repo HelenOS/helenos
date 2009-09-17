@@ -67,7 +67,7 @@ interface fs extends service {
 		ipcarg_t read(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, out_copy stream data);
 		
 		/* Write data to file */
-		ipcarg_t write(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, out_copy stream data);
+		ipcarg_t write(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, in_copy stream data);
 		
 		/* Truncate file */
 		ipcarg_t truncate(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t size);
@@ -82,7 +82,7 @@ interface fs extends service {
 		ipcarg_t close(in ipcarg_t dev_handle, in ipcarg_t fs_index);
 };
 
-frame dispatcher {
+frame io_dispatcher {
 	provides:
 		vfs vfs;
 	requires:
@@ -97,27 +97,27 @@ frame dispatcher {
 };
 
 architecture vfs {
-	inst dispatcher dispatcher;
+	inst io_dispatcher io_dispatcher;
 	inst tmpfs tmpfs;
 	inst fat fat;
 	inst devfs devfs;
 	
-	bind dispatcher:tmpfs to tmpfs:tmpfs;
-	bind dispatcher:fat to fat:fat;
-	bind dispatcher:devfs to devfs:devfs;
+	bind io_dispatcher:tmpfs to tmpfs:tmpfs;
+	bind io_dispatcher:fat to fat:fat;
+	bind io_dispatcher:devfs to devfs:devfs;
 	
-	bind tmpfs:vfs to dispatcher:vfs;
-	bind fat:vfs to dispatcher:vfs;
-	bind devfs:vfs to dispatcher:vfs;
+	bind tmpfs:vfs to io_dispatcher:vfs;
+	bind fat:vfs to io_dispatcher:vfs;
+	bind devfs:vfs to io_dispatcher:vfs;
 	
-	delegate vfs to dispatcher:vfs;
+	delegate vfs to io_dispatcher:vfs;
 	
-	[/uspace/lib/libc/subsume%dispatcher]
+	[/uspace/lib/libc/subsume%io_dispatcher]
 	[/uspace/lib/libc/subsume%tmpfs]
 	[/uspace/lib/libc/subsume%fat]
 	[/uspace/lib/libc/subsume%devfs]
 	
-	subsume dispatcher:ns to ns;
+	subsume io_dispatcher:ns to ns;
 	subsume tmpfs:ns to ns;
 	subsume fat:ns to ns;
 	subsume devfs:ns to ns;

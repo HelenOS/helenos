@@ -1,4 +1,6 @@
-tentative {
-	[fnc.redraw_state] ;
-	[fnc.vp_switch]
-}
+(
+	tentative {
+		[fnc.redraw_state] ;
+		[fnc.vp_switch]
+	}
+)

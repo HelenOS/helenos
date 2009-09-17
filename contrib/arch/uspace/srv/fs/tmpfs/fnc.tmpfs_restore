@@ -1,0 +1,7 @@
+(
+	[/uspace/lib/libblock/fnc.block_init%rd] ;
+	tentative {
+		[/uspace/lib/libblock/fnc.block_seqread%rd]* ;
+		[/uspace/lib/libblock/fnc.block_fini%rd]
+	}
+)

@@ -1,2 +1,4 @@
-!ns.id_intro ;
-!ns.ipc_m_connect_to_me /* loader */
+(
+	!ns.id_intro ;
+	!ns.ipc_m_connect_to_me /* loader */
+)

@@ -1,1 +1,3 @@
-!fb.cursor_goto
+(
+	!fb.cursor_goto
+)

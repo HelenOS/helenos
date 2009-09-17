@@ -2,7 +2,10 @@
 	?ipc_m_connect_me_to ;
 	(
 		?mounted {
-			?ipc_m_data_write /* mount options */
+			?ipc_m_data_write /* mount options */ ;
+			tentative {
+				[fnc.tmpfs_restore]
+			}
 		} +
 		
 		?mount {

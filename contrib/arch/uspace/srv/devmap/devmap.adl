@@ -61,6 +61,8 @@ frame devmap {
 		devmap_client devmap_client;
 	requires:
 		[/uspace/lib/libc/requires]
+		ns ns;
 	protocol:
+		[/uspace/lib/libc/protocol] |
 		[devmap_server.bp]
 };

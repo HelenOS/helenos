@@ -8,6 +8,9 @@ system architecture HelenOS version 0.4.1 {
 	/* Loader (clonable service) */
 	inst loader loader;
 	
+	/* Device mapper */
+	inst devmap devmap;
+	
 	/* Block device */
 	inst bd bd;
 	
@@ -22,12 +25,15 @@ system architecture HelenOS version 0.4.1 {
 	
 	[/uspace/lib/libc/bind%ns]
 	[/uspace/lib/libc/bind%loader]
+	[/uspace/lib/libc/bind%devmap]
 	[/uspace/lib/libc/bind%bd]
 	[/uspace/lib/libc/bind%vfs]
 	[/uspace/lib/libc/bind%console]
 	[/uspace/lib/libc/bind%klog]
 	
 	bind loader:ns to ns:ns;
+	
+	bind devmap:ns to ns:ns;
 	
 	bind bd:ns to ns:ns;
 	bind bd:devmap_driver to devmap:devmap_driver;

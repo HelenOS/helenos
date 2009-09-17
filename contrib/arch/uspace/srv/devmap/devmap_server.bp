@@ -1,1 +1,3 @@
-!ns.ipc_m_connect_to_me /* devmap */
+(
+	!ns.ipc_m_connect_to_me /* devmap */
+)

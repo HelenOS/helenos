@@ -1,1 +1,3 @@
-!ns.ipc_m_share_in /* SERVICE_MEM_KLOG */
+(
+	!ns.ipc_m_share_in /* SERVICE_MEM_KLOG */
+)
