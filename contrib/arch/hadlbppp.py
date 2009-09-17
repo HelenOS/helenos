@@ -33,12 +33,10 @@ HelenOS Architecture Description Language and Behavior Protocols preprocessor
 import sys
 import os
 
-# TODO:
-#  - interface inheritance
-
 INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
-	INST, VAR, FIN, BIND, TO, SUBSUME, DELEGATE, IFACE, PROTOTYPE, PAR_LEFT, \
-	PAR_RIGHT, SIGNATURE, PROTOCOL, FRAME, PROVIDES, REQUIRES = range(25)
+	INST, VAR, FIN, BIND, TO, SUBSUME, DELEGATE, IFACE, EXTENDS, PRE_BODY, \
+	PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL, FRAME, PROVIDES, \
+	REQUIRES = range(27)
 
 def usage(prname):
 	"Print usage syntax"
@@ -355,6 +353,22 @@ def get_iface(name):
 	
 	return None
 
+def inherited_protocols(iface):
+	"Get protocols inherited by an interface"
+	
+	result = []
+	
+	if ('extends' in iface):
+		supiface = get_iface(iface['extends'])
+		if (not supiface is None):
+			if ('protocol' in supiface):
+				result.append(supiface['protocol'])
+			result.extend(inherited_protocols(supiface))
+		else:
+			print "%s: Extends unknown interface '%s'" % (iface['name'], iface['extends'])
+	
+	return result
+
 def dump_frame(frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
@@ -373,6 +387,8 @@ def dump_frame(frame, outdir, var, archf):
 			if (not iface is None):
 				if ('protocol' in iface):
 					protocols.append(extend_bp(outname, iface['protocol'], iface['name']))
+				for protocol in inherited_protocols(iface):
+					protocols.append(extend_bp(outname, protocol, iface['name']))
 			else:
 				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
 	
@@ -972,6 +988,44 @@ def parse_adl(base, root, inname, nested, indent):
 				continue
 			
 			if (HEAD in context):
+				if (PRE_BODY in context):
+					if (token == "{"):
+						output += "%s" % token
+						indent += 2
+						context.remove(PRE_BODY)
+						context.remove(HEAD)
+						context.add(BODY)
+						continue
+					
+					if (token == ";"):
+						output += "%s\n" % token
+						context.remove(PRE_BODY)
+						context.remove(HEAD)
+						context.remove(IFACE)
+						continue
+						
+					print "%s: Expected '{' or ';' in interface head '%s'" % (inname, interface)
+					continue
+				
+				if (EXTENDS in context):
+					if (not identifier(token)):
+						print "%s: Expected inherited interface name in interface head '%s'" % (inname, interface)
+					else:
+						output += " %s" % token
+						if (not interface in iface_properties):
+							iface_properties[interface] = {}
+						
+						iface_properties[interface]['extends'] = token
+					
+					context.remove(EXTENDS)
+					context.add(PRE_BODY)
+					continue
+				
+				if (token == "extends"):
+					output += " %s" % token
+					context.add(EXTENDS)
+					continue
+					
 				if (token == "{"):
 					output += "%s" % token
 					indent += 2
@@ -985,11 +1039,7 @@ def parse_adl(base, root, inname, nested, indent):
 					context.remove(IFACE)
 					continue
 				
-				if (not word(token)):
-					print "%s: Expected word in interface head '%s'" % (inname, interface)
-				else:
-					output += "%s " % token
-				
+				print "%s: Expected 'extends', '{' or ';' in interface head '%s'" % (inname, interface)
 				continue
 			
 			if (not identifier(token)):
