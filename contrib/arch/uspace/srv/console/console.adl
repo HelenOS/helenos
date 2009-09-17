@@ -50,6 +50,7 @@ frame ui_dispatcher {
 		kbd kbd;
 		fb fb;
 		ns ns;
+		sys_console sys_console;
 	protocol:
 		[/uspace/lib/libc/protocol] |
 		[console_server.bp]
@@ -72,6 +73,8 @@ architecture console {
 	[/uspace/lib/libc/subsume%fb]
 	
 	subsume ui_dispatcher:ns to ns;
+	subsume ui_dispatcher:sys_console to sys_console;
+	
 	subsume kbd:ns to ns;
 	subsume fb:ns to ns;
 };

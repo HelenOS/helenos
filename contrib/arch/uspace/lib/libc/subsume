@@ -1,6 +1,5 @@
 /* Subsume %% to kernel interfaces */
 subsume %%:sys_klog to sys_klog;
-subsume %%:sys_console to sys_console;
 subsume %%:sys_tls to sys_tls;
 subsume %%:sys_thread to sys_thread;
 subsume %%:sys_task to sys_task;

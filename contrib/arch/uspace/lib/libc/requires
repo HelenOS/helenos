@@ -1,6 +1,5 @@
 /* Kernel interfaces required by libc */
 sys_klog sys_klog;
-sys_console sys_console;
 sys_tls sys_tls;
 sys_thread sys_thread;
 sys_task sys_task;

@@ -44,6 +44,7 @@ system architecture HelenOS version 0.4.1 {
 	bind vfs:device to console:console;
 	
 	bind console:ns to ns:ns;
+	bind console:sys_console to kernel:sys_console;
 	
 	bind klog:ns to ns:ns;
 };

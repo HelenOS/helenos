@@ -57,10 +57,13 @@
 		}
 	} +
 	
+	?kcon_enable {
+		!sys_console.sys_enable_console
+	} +
+	
 	?get_event +
 	?get_size +
-	?get_color_cap +
-	?kcon_enable
+	?get_color_cap
 )* ;
 ?ipc_m_phone_hungup {
 	[fnc.gcons_notify_disconnect]

@@ -1,6 +1,5 @@
 /* Bind %% to kernel interfaces */
 bind %%:sys_klog to kernel:sys_klog;
-bind %%:sys_console to kernel:sys_console;
 bind %%:sys_tls to kernel:sys_tls;
 bind %%:sys_thread to kernel:sys_thread;
 bind %%:sys_task to kernel:sys_task;
