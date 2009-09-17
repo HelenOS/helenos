@@ -450,6 +450,19 @@ def flatten_binds(binds, delegates, subsumes):
 	else:
 		return flatten_binds(result, delegates, subsumes)
 
+def direct_binds(binds):
+	"Convert bindings matrix to set of sources by destination"
+	
+	result = {}
+	
+	for bind in binds:
+		if (not bind['to'] in result):
+			result[bind['to']] = set()
+		
+		result[bind['to']].add(bind['from'])
+	
+	return result
+
 def merge_subarch(prefix, arch, outdir):
 	"Merge subarchitecture into architexture"
 	
@@ -540,8 +553,10 @@ def dump_archbp(outdir):
 	for inst in insts:
 		dump_frame(inst['frame'], outdir, inst['var'], outf)
 	
-	for bind in flatten_binds(binds, delegates, subsumes):
-		outf.write("bind %s to %s\n" % (bind['from'], bind['to']))
+	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
+	
+	for dst, src in directed_binds.items():
+		outf.write("bind %s to %s\n" % (", ".join(src), dst))
 	
 	outf.close()
 
