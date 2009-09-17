@@ -50,7 +50,7 @@ ifeq ($(COMPILER),gcc_native)
 	GEFI_PREFIX =
 endif
 
-ifeq ($(COMPILER),icc_native)
+ifeq ($(COMPILER),icc)
 	CC = icc
 	AS = as
 	LD = ld

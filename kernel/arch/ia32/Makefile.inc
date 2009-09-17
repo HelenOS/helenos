@@ -42,6 +42,7 @@ CMN1 = -m32
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += $(CMN1)
+CLANG_CFLAGS += $(CMN1)
 
 ## Accepted CPUs
 #
@@ -70,6 +71,7 @@ endif
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 GCC_CFLAGS += $(CMN2)
 ICC_CFLAGS += $(CMN2)
+CLANG_CFLAGS += $(CMN2)
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \

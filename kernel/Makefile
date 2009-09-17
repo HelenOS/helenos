@@ -53,12 +53,16 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fno-builtin -Wall -Wmissing-prototypes -Werror \
-	-nostdlib -nostdinc \
-	-wd170
+	-nostdlib -nostdinc -wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
 	-erroff=E_ZERO_SIZED_STRUCT_UNION
+
+CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
+	-Wmissing-prototypes -nostdlib -nostdinc -pipe
 
 LFLAGS = -M
 AFLAGS =
@@ -108,7 +112,19 @@ ifeq ($(COMPILER),gcc_native)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
-ifeq ($(COMPILER),icc_native)
+ifeq ($(COMPILER),gcc_cross)
+	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
+	GCC = $(CC)
+	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
+	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
+	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
+	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
+	LIBDIR = $(TOOLCHAIN_DIR)/lib
+	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),icc)
 	CC = icc
 	GCC = gcc
 	AS = as
@@ -120,7 +136,7 @@ ifeq ($(COMPILER),icc_native)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
-ifeq ($(COMPILER),suncc_native)
+ifeq ($(COMPILER),suncc)
 	CC = suncc
 	GCC = gcc
 	AS = $(BINUTILS_PREFIX)as
@@ -133,15 +149,15 @@ ifeq ($(COMPILER),suncc_native)
 	DEPEND_DEFS = $(DEFS)
 endif
 
-ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
-	GCC = $(CC)
-	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
-	LIBDIR = $(TOOLCHAIN_DIR)/lib
-	CFLAGS = $(GCC_CFLAGS)
+ifeq ($(COMPILER),clang)
+	CC = clang
+	GCC = gcc
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
+	LIBDIR = /usr/lib
+	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
