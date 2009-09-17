@@ -2,5 +2,5 @@
 tentative {
 	!devmap.device_register {
 		!devmap.ipc_m_data_write /* name */
-	} ;
+	}
 }
