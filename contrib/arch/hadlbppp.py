@@ -421,6 +421,35 @@ def create_null_bp(fname, outdir, archf):
 	outf.write("NULL")
 	outf.close()
 
+def flatten_binds(binds, delegates, subsumes):
+	"Remove bindings which are replaced by delegation or subsumption"
+	
+	result = []
+	stable = True
+	
+	for bind in binds:
+		keep = True
+		
+		for delegate in delegates:
+			if (bind['to'] == delegate['to']):
+				keep = False
+				result.append({'from': bind['from'], 'to': delegate['rep']})
+		
+		for subsume in subsumes:
+			if (bind['from'] == subsume['from']):
+				keep = False
+				result.append({'from': subsume['rep'], 'to': bind['to']})
+		
+		if (keep):
+			result.append(bind)
+		else:
+			stable = False
+	
+	if (stable):
+		return result
+	else:
+		return flatten_binds(result, delegates, subsumes)
+
 def merge_subarch(prefix, arch, outdir):
 	"Merge subarchitecture into architexture"
 	
@@ -511,17 +540,7 @@ def dump_archbp(outdir):
 	for inst in insts:
 		dump_frame(inst['frame'], outdir, inst['var'], outf)
 	
-	for bind in binds:
-		for delegate in delegates:
-			if (bind['to'] == delegate['to']):
-				bind['to'] = delegate['rep']
-				break
-		
-		for subsume in subsumes:
-			if (bind['from'] == subsume['from']):
-				bind['from'] = subsume['rep']
-				break
-		
+	for bind in flatten_binds(binds, delegates, subsumes):
 		outf.write("bind %s to %s\n" % (bind['from'], bind['to']))
 	
 	outf.close()
