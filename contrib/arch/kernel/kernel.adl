@@ -37,10 +37,8 @@ interface sys_thread {
 		/* Get current thread id */
 		unative_t sys_thread_get_id(thread_id_t *uspace_thread_id);
 	protocol:
-		(
-			?sys_thread_create +
-			?sys_thread_get_id
-		)* ;
+		?sys_thread_create +
+		?sys_thread_get_id +
 		?sys_thread_exit
 };
 
