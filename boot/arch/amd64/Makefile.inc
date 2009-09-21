@@ -51,9 +51,11 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
 RD_APPS = \
+	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \

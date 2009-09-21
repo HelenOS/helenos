@@ -1,0 +1,6 @@
+(
+	!fb.anim_create ;
+	[fnc.make_pixmap]* ;
+	!fb.anim_add_pixmap ;
+	!fb.anim_start
+)

@@ -1,0 +1,4 @@
+(
+	[/uspace/lib/libc/fnc.devmap_driver_register] ;
+	[/uspace/lib/libc/fnc.devmap_device_register]
+)

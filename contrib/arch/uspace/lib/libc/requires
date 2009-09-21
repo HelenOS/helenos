@@ -1,0 +1,15 @@
+/* Kernel interfaces required by libc */
+sys_klog sys_klog;
+sys_tls sys_tls;
+sys_thread sys_thread;
+sys_task sys_task;
+sys_program sys_program;
+sys_futex sys_futex;
+sys_smc sys_smc;
+sys_as sys_as;
+sys_ipc sys_ipc;
+sys_event sys_event;
+sys_cap sys_cap;
+sys_ddi sys_ddi;
+sys_sysinfo sys_sysinfo;
+sys_debug sys_debug;

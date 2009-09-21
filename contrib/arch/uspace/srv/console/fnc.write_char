@@ -1,0 +1,15 @@
+(
+	(
+		[fnc.fb_pending_flush] +
+		[fnc.cell_mark_changed]
+	) ;
+	tentative {
+		[fnc.fb_pending_flush] ;
+		tentative {
+			!fb.scroll
+		}
+	} ;
+	tentative {
+		[fnc.curs_goto]
+	}
+)

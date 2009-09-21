@@ -54,7 +54,7 @@ void as_arch_init(void)
  */
 void as_install_arch(as_t *as)
 {
-	region_register rr;
+	region_register_t rr;
 	int i;
 	
 	ASSERT(as->asid != ASID_INVALID);
@@ -72,9 +72,9 @@ void as_install_arch(as_t *as)
 		rr.map.rid = ASID2RID(as->asid, i);
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
+		srlz_d();
+		srlz_i();
 	}
-	srlz_d();
-	srlz_i();
 }
 
 /** @}

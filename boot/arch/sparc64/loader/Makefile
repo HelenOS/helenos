@@ -103,7 +103,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/console/console \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
 ifeq ($(MACHINE),generic)
 RD_SRVS += \
@@ -113,6 +114,7 @@ RD_SRVS += \
 endif
 
 RD_APPS = \
+	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getvc/getvc \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \

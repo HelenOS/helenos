@@ -1,0 +1,4 @@
+(
+	!ns.ipc_m_connect_me_to /* vfs */ ;
+	[/uspace/lib/libfs/fnc.fs_register]
+)

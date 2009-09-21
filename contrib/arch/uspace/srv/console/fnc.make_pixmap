@@ -1,0 +1,6 @@
+(
+	!fb.prepare_shm ;
+	!fb.ipc_m_share_out ;
+	!fb.shm2pixmap ;
+	!fb.drop_shm
+)

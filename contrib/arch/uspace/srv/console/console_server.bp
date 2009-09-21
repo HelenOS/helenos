@@ -1,0 +1,25 @@
+(
+	!ns.ipc_m_connect_me_to /* kbd */ ;
+	!kbd.ipc_m_connect_to_me ;
+	!ns.ipc_m_connect_me_to /* fb */ ;
+	[/uspace/lib/libc/fnc.devmap_driver_register] ;
+	!fb.get_resolution ;
+	(
+		[fnc.vp_create] +
+		[fnc.vp_switch]
+	)* ;
+	[fnc.make_pixmap]* ;
+	[fnc.make_anim] ;
+	[fnc.vp_switch] ;
+	!fb.flush ;
+	!fb.get_csize ;
+	!fb.get_color_cap ;
+	!fb.ipc_m_share_out ;
+	[/uspace/lib/libc/fnc.devmap_device_register]* ;
+	!sys_console.sys_disable_console ;
+	[fnc.gcons_redraw_console] ;
+	[fnc.set_rgb_color] ;
+	[fnc.screen_clear] ;
+	[fnc.curs_goto] ;
+	[fnc.curs_visibility]
+)

@@ -1,0 +1,17 @@
+interface fat extends fs {
+	protocol:
+		[fat.bp]
+};
+
+frame fat {
+	provides:
+		fat fat;
+	requires:
+		[/uspace/lib/libc/requires]
+		vfs vfs;
+		ns ns;
+		rd rd;
+	protocol:
+		[/uspace/lib/libc/protocol] |
+		[fat_server.bp]
+};

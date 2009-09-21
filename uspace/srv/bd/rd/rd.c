@@ -54,13 +54,20 @@
 #include <stdio.h>
 #include <devmap.h>
 #include <ipc/bd.h>
+#include <macros.h>
 
 #define NAME "rd"
 
-/** Pointer to the ramdisk's image. */
+/** Pointer to the ramdisk's image */
 static void *rd_addr;
-/** Size of the ramdisk. */
+/** Size of the ramdisk */
 static size_t rd_size;
+
+/** Block size */
+static const size_t block_size = 512;
+
+static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf);
+static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 
 /**
  * This rwlock protects the ramdisk's data.
@@ -81,9 +88,9 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 	void *fs_va = NULL;
-	off_t offset;
-	size_t block_size;
-	size_t maxblock_size;
+	uint64_t ba;
+	size_t cnt;
+	size_t comm_size;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
@@ -94,8 +101,8 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Now we wait for the client to send us its communication as_area.
 	 */
 	int flags;
-	if (ipc_share_out_receive(&callid, &maxblock_size, &flags)) {
-		fs_va = as_get_mappable_page(maxblock_size);
+	if (ipc_share_out_receive(&callid, &comm_size, &flags)) {
+		fs_va = as_get_mappable_page(comm_size);
 		if (fs_va) {
 			(void) ipc_share_out_finalize(callid, fs_va);
 		} else {
@@ -122,50 +129,29 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 */
 			ipc_answer_0(callid, EOK);
 			return;
-		case BD_READ_BLOCK:
-			offset = IPC_GET_ARG1(call);
-			block_size = IPC_GET_ARG2(call);
-			if (block_size > maxblock_size) {
-				/*
-				 * Maximum block size exceeded.
-				 */
+		case BD_READ_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
 				retval = ELIMIT;
 				break;
 			}
-			if (offset * block_size > rd_size - block_size) {
-				/*
-				 * Reading past the end of the device.
-				 */
-				retval = ELIMIT;
-				break;
-			}
-			fibril_rwlock_read_lock(&rd_lock);
-			memcpy(fs_va, rd_addr + offset * block_size, block_size);
-			fibril_rwlock_read_unlock(&rd_lock);
-			retval = EOK;
+			retval = rd_read_blocks(ba, cnt, fs_va);
 			break;
-		case BD_WRITE_BLOCK:
-			offset = IPC_GET_ARG1(call);
-			block_size = IPC_GET_ARG2(call);
-			if (block_size > maxblock_size) {
-				/*
-				 * Maximum block size exceeded.
-				 */
+		case BD_WRITE_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
 				retval = ELIMIT;
 				break;
 			}
-			if (offset * block_size > rd_size - block_size) {
-				/*
-				 * Writing past the end of the device.
-				 */
-				retval = ELIMIT;
-				break;
-			}
-			fibril_rwlock_write_lock(&rd_lock);
-			memcpy(rd_addr + offset * block_size, fs_va, block_size);
-			fibril_rwlock_write_unlock(&rd_lock);
-			retval = EOK;
+			retval = rd_write_blocks(ba, cnt, fs_va);
 			break;
+		case BD_GET_BLOCK_SIZE:
+			ipc_answer_1(callid, EOK, block_size);
+			continue;
 		default:
 			/*
 			 * The client doesn't speak the same protocol.
@@ -178,6 +164,36 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		}
 		ipc_answer_0(callid, retval);
 	}
+}
+
+/** Read blocks from the device. */
+static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf)
+{
+	if ((ba + cnt) * block_size > rd_size) {
+		/* Reading past the end of the device. */
+		return ELIMIT;
+	}
+
+	fibril_rwlock_read_lock(&rd_lock);
+	memcpy(buf, rd_addr + ba * block_size, block_size * cnt);
+	fibril_rwlock_read_unlock(&rd_lock);
+
+	return EOK;
+}
+
+/** Write blocks to the device. */
+static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
+{
+	if ((ba + cnt) * block_size > rd_size) {
+		/* Writing past the end of the device. */
+		return ELIMIT;
+	}
+
+	fibril_rwlock_write_lock(&rd_lock);
+	memcpy(rd_addr + ba * block_size, buf, block_size * cnt);
+	fibril_rwlock_write_unlock(&rd_lock);
+
+	return EOK;
 }
 
 /** Prepare the ramdisk image for operation. */

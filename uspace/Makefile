@@ -51,6 +51,8 @@ DIRS = \
 	srv/fs/devfs \
 	srv/vfs \
 	srv/devmap \
+	srv/part/mbr_part \
+	app/edit \
 	app/tetris \
 	app/tester \
 	app/trace \

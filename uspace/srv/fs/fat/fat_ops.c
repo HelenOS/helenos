@@ -832,7 +832,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/* prepare the boot block */
-	rc = block_bb_read(dev_handle, BS_BLOCK * BS_SIZE, BS_SIZE);
+	rc = block_bb_read(dev_handle, BS_BLOCK);
 	if (rc != EOK) {
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);

@@ -1,0 +1,8 @@
+frame klog {
+	requires:
+		naming_service ns;
+		[/uspace/lib/libc/requires]
+	protocol:
+		[/uspace/lib/libc/protocol] |
+		[klog.bp]
+};

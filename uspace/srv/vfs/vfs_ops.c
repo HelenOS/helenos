@@ -933,7 +933,6 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	size_t size = IPC_GET_ARG2(*request);
 	ipcarg_t rc;
 
 	vfs_file_t *file = vfs_file_get(fd);

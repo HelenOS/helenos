@@ -1,0 +1,8 @@
+?ipc_m_connect_me_to ;
+?ipc_m_share_out ;
+(
+	?get_block_size +
+	?read_blocks +
+	?write_blocks
+)* ;
+?ipc_m_phone_hungup
