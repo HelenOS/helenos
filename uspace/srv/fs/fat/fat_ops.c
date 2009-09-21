@@ -77,7 +77,7 @@ static void fat_node_initialize(fat_node_t *node)
 	node->dirty = false;
 }
 
-static void fat_node_sync(fat_node_t *node)
+static int fat_node_sync(fat_node_t *node)
 {
 	block_t *b;
 	fat_bs_t *bs;
@@ -95,7 +95,8 @@ static void fat_node_sync(fat_node_t *node)
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, node->idx->dev_handle, node->idx->pfc,
 	    (node->idx->pdi * sizeof(fat_dentry_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK)
+		return rc;
 
 	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
 
@@ -110,13 +111,14 @@ static void fat_node_sync(fat_node_t *node)
 	
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
+	return rc;
 }
 
 static fat_node_t *fat_node_get_new(void)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
+	int rc;
 
 	fibril_mutex_lock(&ffn_mutex);
 	if (!list_empty(&ffn_head)) {
@@ -132,8 +134,10 @@ static fat_node_t *fat_node_get_new(void)
 		}
 		list_remove(&nodep->ffn_link);
 		fibril_mutex_unlock(&ffn_mutex);
-		if (nodep->dirty)
-			fat_node_sync(nodep);
+		if (nodep->dirty) {
+			rc = fat_node_sync(nodep);
+			assert(rc == EOK);
+		}
 		idxp_tmp->nodep = NULL;
 		fibril_mutex_unlock(&nodep->lock);
 		fibril_mutex_unlock(&idxp_tmp->lock);
@@ -440,7 +444,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	for (i = 0; i < blocks; i++) {
 		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parentp->idx->lock);
+			return rc;
+		}
 		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -455,7 +462,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 			}
 		}
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parentp->idx->lock);
+			return rc;
+		}
 	}
 	j = 0;
 	
@@ -473,13 +483,22 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return rc;
 	}
 	rc = fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	rc = fat_append_clusters(bs, parentp, mcl);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	parentp->size += bps * bs->spc;
 	parentp->dirty = true;		/* need to sync node */
 	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	d = (fat_dentry_t *)b->data;
 
 hit:
@@ -493,8 +512,9 @@ hit:
 	fat_dentry_name_set(d, name);
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
 	fibril_mutex_unlock(&parentp->idx->lock);
+	if (rc != EOK) 
+		return rc;
 
 	fibril_mutex_lock(&childp->idx->lock);
 	
@@ -505,7 +525,13 @@ hit:
 	 * not use them anyway, so this is rather a sign of our good will.
 	 */
 	rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		/*
+		 * Rather than returning an error, simply skip the creation of
+		 * these two entries.
+		 */
+		goto skip_dots;
+	}
 	d = (fat_dentry_t *)b->data;
 	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
 	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
@@ -529,8 +555,12 @@ hit:
 		/* TODO: initialize also the date/time members. */
 	}
 	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
-	assert(rc == EOK);
+	/*
+	 * Ignore the return value as we would have fallen through on error
+	 * anyway.
+	 */
+	(void) block_put(b);
+skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->pdi = i * dps + j;
@@ -575,14 +605,16 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	rc = _fat_block_get(&b, bs, childp->idx->dev_handle, childp->idx->pfc,
 	    (childp->idx->pdi * sizeof(fat_dentry_t)) / bps,
 	    BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) 
+		goto error;
 	d = (fat_dentry_t *)b->data +
 	    (childp->idx->pdi % (bps / sizeof(fat_dentry_t)));
 	/* mark the dentry as not-currently-used */
 	d->name[0] = FAT_DENTRY_ERASED;
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
+	if (rc != EOK)
+		goto error;
 
 	/* remove the index structure from the position hash */
 	fat_idx_hashout(childp->idx);
@@ -596,6 +628,12 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_unlock(&parentp->lock);
 
 	return EOK;
+
+error:
+	fibril_mutex_unlock(&parentp->idx->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&childp->idx->lock);
+	return rc;
 }
 
 fs_node_t *fat_match(fs_node_t *pfn, const char *component)
