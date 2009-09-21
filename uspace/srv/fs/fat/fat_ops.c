@@ -444,7 +444,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 	for (i = 0; i < blocks; i++) {
 		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parentp->idx->lock);
+			return rc;
+		}
 		for (j = 0; j < dps; j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -459,7 +462,10 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 			}
 		}
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parentp->idx->lock);
+			return rc;
+		}
 	}
 	j = 0;
 	
@@ -477,13 +483,22 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		return rc;
 	}
 	rc = fat_zero_cluster(bs, parentp->idx->dev_handle, mcl);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	rc = fat_append_clusters(bs, parentp, mcl);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	parentp->size += bps * bs->spc;
 	parentp->dirty = true;		/* need to sync node */
 	rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&parentp->idx->lock);
+		return rc;
+	}
 	d = (fat_dentry_t *)b->data;
 
 hit:
@@ -497,8 +512,9 @@ hit:
 	fat_dentry_name_set(d, name);
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
 	fibril_mutex_unlock(&parentp->idx->lock);
+	if (rc != EOK) 
+		return rc;
 
 	fibril_mutex_lock(&childp->idx->lock);
 	
@@ -509,7 +525,13 @@ hit:
 	 * not use them anyway, so this is rather a sign of our good will.
 	 */
 	rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		/*
+		 * Rather than returning an error, simply skip the creation of
+		 * these two entries.
+		 */
+		goto skip_dots;
+	}
 	d = (fat_dentry_t *)b->data;
 	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
 	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
@@ -533,8 +555,12 @@ hit:
 		/* TODO: initialize also the date/time members. */
 	}
 	b->dirty = true;		/* need to sync block */
-	rc = block_put(b);
-	assert(rc == EOK);
+	/*
+	 * Ignore the return value as we would have fallen through on error
+	 * anyway.
+	 */
+	(void) block_put(b);
+skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
 	childp->idx->pdi = i * dps + j;
