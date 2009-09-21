@@ -605,14 +605,16 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	rc = _fat_block_get(&b, bs, childp->idx->dev_handle, childp->idx->pfc,
 	    (childp->idx->pdi * sizeof(fat_dentry_t)) / bps,
 	    BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) 
+		goto error;
 	d = (fat_dentry_t *)b->data +
 	    (childp->idx->pdi % (bps / sizeof(fat_dentry_t)));
 	/* mark the dentry as not-currently-used */
 	d->name[0] = FAT_DENTRY_ERASED;
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
+	if (rc != EOK)
+		goto error;
 
 	/* remove the index structure from the position hash */
 	fat_idx_hashout(childp->idx);
@@ -626,6 +628,12 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_unlock(&parentp->lock);
 
 	return EOK;
+
+error:
+	fibril_mutex_unlock(&parentp->idx->lock);
+	fibril_mutex_unlock(&childp->lock);
+	fibril_mutex_unlock(&childp->idx->lock);
+	return rc;
 }
 
 fs_node_t *fat_match(fs_node_t *pfn, const char *component)
