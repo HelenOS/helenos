@@ -77,7 +77,7 @@ static void fat_node_initialize(fat_node_t *node)
 	node->dirty = false;
 }
 
-static void fat_node_sync(fat_node_t *node)
+static int fat_node_sync(fat_node_t *node)
 {
 	block_t *b;
 	fat_bs_t *bs;
@@ -95,7 +95,8 @@ static void fat_node_sync(fat_node_t *node)
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, node->idx->dev_handle, node->idx->pfc,
 	    (node->idx->pdi * sizeof(fat_dentry_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK)
+		return rc;
 
 	d = ((fat_dentry_t *)b->data) + (node->idx->pdi % dps);
 
@@ -110,13 +111,14 @@ static void fat_node_sync(fat_node_t *node)
 	
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
-	assert(rc == EOK);
+	return rc;
 }
 
 static fat_node_t *fat_node_get_new(void)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
+	int rc;
 
 	fibril_mutex_lock(&ffn_mutex);
 	if (!list_empty(&ffn_head)) {
@@ -132,8 +134,10 @@ static fat_node_t *fat_node_get_new(void)
 		}
 		list_remove(&nodep->ffn_link);
 		fibril_mutex_unlock(&ffn_mutex);
-		if (nodep->dirty)
-			fat_node_sync(nodep);
+		if (nodep->dirty) {
+			rc = fat_node_sync(nodep);
+			assert(rc == EOK);
+		}
 		idxp_tmp->nodep = NULL;
 		fibril_mutex_unlock(&nodep->lock);
 		fibril_mutex_unlock(&idxp_tmp->lock);
