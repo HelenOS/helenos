@@ -44,7 +44,8 @@ CFLAGS += -Iinclude
 ARCH_SOURCES =
 
 GENERIC_SOURCES = \
-	generic/division.c
+	generic/division.c\
+	generic/multiplication.c
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 
