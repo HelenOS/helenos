@@ -45,6 +45,21 @@
 #include <mem.h>
 #include <sys/stat.h>
 
+#define on_error(rc, action) \
+	do { \
+		if ((rc) != EOK) \
+			action; \
+	} while (0)
+
+#define combine_rc(rc1, rc2) \
+	((rc1) == EOK ? (rc2) : (rc1))
+
+#define answer_and_return(rid, rc) \
+	do { \
+		ipc_answer_0((rid), (rc)); \
+		return; \
+	} while (0)
+
 /** Register file system server.
  *
  * This function abstracts away the tedious registration protocol from
@@ -161,26 +176,27 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		return;
 	}
 
-	fs_node_t *fn = ops->node_get(mp_dev_handle, mp_fs_index);
-	if (!fn) {
+	fs_node_t *fn;
+	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
+	if (res != EOK || !fn) {
 		ipc_hangup(mountee_phone);
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_0(rid, ENOENT);
+		ipc_answer_0(callid, combine_rc(res, ENOENT));
+		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
 
 	if (fn->mp_data.mp_active) {
 		ipc_hangup(mountee_phone);
-		ops->node_put(fn);
+		(void) ops->node_put(fn);
 		ipc_answer_0(callid, EBUSY);
 		ipc_answer_0(rid, EBUSY);
 		return;
 	}
 
 	rc = async_req_0_0(mountee_phone, IPC_M_CONNECT_ME);
-	if (rc != 0) {
+	if (rc != EOK) {
 		ipc_hangup(mountee_phone);
-		ops->node_put(fn);
+		(void) ops->node_put(fn);
 		ipc_answer_0(callid, rc);
 		ipc_answer_0(rid, rc);
 		return;
@@ -229,26 +245,37 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_index_t index = IPC_GET_ARG5(*request); /* when L_LINK specified */
 	char component[NAME_MAX + 1];
 	int len;
+	int rc;
 
 	if (last < next)
 		last += PLB_SIZE;
 
 	fs_node_t *par = NULL;
-	fs_node_t *cur = ops->root_get(dev_handle);
+	fs_node_t *cur = NULL;
 	fs_node_t *tmp = NULL;
+
+	rc = ops->root_get(&cur, dev_handle);
+	on_error(rc, goto out_with_answer);
 
 	if (cur->mp_data.mp_active) {
 		ipc_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
 		    next, last, cur->mp_data.dev_handle, lflag, index,
 		    IPC_FF_ROUTE_FROM_ME);
-		ops->node_put(cur);
+		(void) ops->node_put(cur);
 		return;
 	}
 
 	if (ops->plb_get_char(next) == '/')
 		next++;		/* eat slash */
 	
-	while (next <= last && ops->has_children(cur)) {
+	while (next <= last) {
+		bool has_children;
+
+		rc = ops->has_children(&has_children, cur);
+		on_error(rc, goto out_with_answer);
+		if (!has_children)
+			break;
+
 		/* collect the component */
 		len = 0;
 		while ((next <= last) &&  (ops->plb_get_char(next) != '/')) {
@@ -266,7 +293,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		next++;		/* eat slash */
 
 		/* match the component */
-		tmp = ops->match(cur, component);
+		rc = ops->match(&tmp, cur, component);
+		on_error(rc, goto out_with_answer);
+
 		if (tmp && tmp->mp_data.mp_active) {
 			if (next > last)
 				next = last = first;
@@ -276,10 +305,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			ipc_forward_slow(rid, tmp->mp_data.phone,
 			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.dev_handle,
 			    lflag, index, IPC_FF_ROUTE_FROM_ME);
-			ops->node_put(cur);
-			ops->node_put(tmp);
+			(void) ops->node_put(cur);
+			(void) ops->node_put(tmp);
 			if (par)
-				ops->node_put(par);
+				(void) ops->node_put(par);
 			return;
 		}
 
@@ -299,18 +328,17 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				}
 				fs_node_t *fn;
 				if (lflag & L_CREATE)
-					fn = ops->create(dev_handle, lflag);
+					rc = ops->create(&fn, dev_handle,
+					    lflag);
 				else
-					fn = ops->node_get(dev_handle,
+					rc = ops->node_get(&fn, dev_handle,
 					    index);
+				on_error(rc, goto out_with_answer);
 				if (fn) {
-					int rc;
-
 					rc = ops->link(cur, fn, component);
 					if (rc != EOK) {
-						if (lflag & L_CREATE) {
-							(void)ops->destroy(fn);
-						}
+						if (lflag & L_CREATE)
+							(void) ops->destroy(fn);
 						ipc_answer_0(rid, rc);
 					} else {
 						ipc_answer_5(rid, EOK,
@@ -318,7 +346,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						    ops->index_get(fn),
 						    ops->size_get(fn),
 						    ops->lnkcnt_get(fn));
-						ops->node_put(fn);
+						(void) ops->node_put(fn);
 					}
 				} else {
 					ipc_answer_0(rid, ENOSPC);
@@ -329,8 +357,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			goto out;
 		}
 
-		if (par)
-			ops->node_put(par);
+		if (par) {
+			rc = ops->node_put(par);
+			on_error(rc, goto out_with_answer);
+		}
 
 		/* descend one level */
 		par = cur;
@@ -339,7 +369,14 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 
 	/* handle miss: excessive components */
-	if (next <= last && !ops->has_children(cur)) {
+	if (next <= last) {
+		bool has_children;
+
+		rc = ops->has_children(&has_children, cur);
+		on_error(rc, goto out_with_answer);
+		if (has_children)
+			goto skip_miss;
+
 		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
 				ipc_answer_0(rid, ENOTDIR);
@@ -367,16 +404,15 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				
 			fs_node_t *fn;
 			if (lflag & L_CREATE)
-				fn = ops->create(dev_handle, lflag);
+				rc = ops->create(&fn, dev_handle, lflag);
 			else
-				fn = ops->node_get(dev_handle, index);
+				rc = ops->node_get(&fn, dev_handle, index);
+			on_error(rc, goto out_with_answer);
 			if (fn) {
-				int rc;
-
 				rc = ops->link(cur, fn, component);
 				if (rc != EOK) {
 					if (lflag & L_CREATE)
-						(void)ops->destroy(fn);
+						(void) ops->destroy(fn);
 					ipc_answer_0(rid, rc);
 				} else {
 					ipc_answer_5(rid, EOK,
@@ -384,7 +420,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					    ops->index_get(fn),
 					    ops->size_get(fn),
 					    ops->lnkcnt_get(fn));
-					ops->node_put(fn);
+					(void) ops->node_put(fn);
 				}
 			} else {
 				ipc_answer_0(rid, ENOSPC);
@@ -394,12 +430,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		ipc_answer_0(rid, ENOENT);
 		goto out;
 	}
+skip_miss:
 
 	/* handle hit */
 	if (lflag & L_UNLINK) {
 		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
-		int res = ops->unlink(par, cur, component);
-		ipc_answer_5(rid, (ipcarg_t)res, fs_handle, dev_handle,
+		rc = ops->unlink(par, cur, component);
+		ipc_answer_5(rid, (ipcarg_t)rc, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
 		goto out;
 	}
@@ -417,16 +454,22 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		goto out;
 	}
 
-	ipc_answer_5(rid, EOK, fs_handle, dev_handle, ops->index_get(cur),
-	    ops->size_get(cur), ops->lnkcnt_get(cur));
+out_with_answer:
+	if (rc == EOK) {
+		ipc_answer_5(rid, EOK, fs_handle, dev_handle,
+		    ops->index_get(cur), ops->size_get(cur),
+		    ops->lnkcnt_get(cur));
+	} else {
+		ipc_answer_0(rid, rc);
+	}
 
 out:
 	if (par)
-		ops->node_put(par);
+		(void) ops->node_put(par);
 	if (cur)
-		ops->node_put(cur);
+		(void) ops->node_put(cur);
 	if (tmp)
-		ops->node_put(tmp);
+		(void) ops->node_put(tmp);
 }
 
 void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
@@ -434,7 +477,11 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	fs_node_t *fn = ops->node_get(dev_handle, index);
+	fs_node_t *fn;
+	int rc;
+
+	rc = ops->node_get(&fn, dev_handle, index);
+	on_error(rc, answer_and_return(rid, rc));
 
 	ipc_callid_t callid;
 	size_t size;
@@ -472,18 +519,21 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	dev_handle_t dev_handle = IPC_GET_ARG1(*request);
 	fs_index_t index = IPC_GET_ARG2(*request);
+	fs_node_t *fn;
+	int rc;
 	
-	fs_node_t *node = ops->node_get(dev_handle, index);
+	rc = ops->node_get(&fn, dev_handle, index);
+	on_error(rc, answer_and_return(rid, rc));
 	
-	if (node == NULL) {
+	if (fn == NULL) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
 	
-	ipc_answer_5(rid, EOK, fs_handle, dev_handle, index,
-	    ops->size_get(node), ops->lnkcnt_get(node));
+	ipc_answer_5(rid, EOK, fs_handle, dev_handle, index, ops->size_get(fn),
+	    ops->lnkcnt_get(fn));
 	
-	ops->node_put(node);
+	(void) ops->node_put(fn);
 }
 
 /** @}
