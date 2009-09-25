@@ -795,12 +795,6 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 				*has_children = true;
 				return EOK;
 			}
-			rc = block_put(b);
-			/* expect EOK as b was not dirty */
-			assert(rc == EOK);
-			fibril_mutex_unlock(&nodep->idx->lock);
-			*has_children = true;
-			return EOK;
 		}
 		rc = block_put(b);
 		assert(rc == EOK);	/* expect EOK as b was not dirty */
