@@ -25,7 +25,9 @@ frame kbd {
 		[/uspace/lib/libc/requires]
 		event event;
 		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* kbd */ ;
+		!event.event*
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[kbd_server.bp]
+		[/uspace/lib/libc/protocol]
 };

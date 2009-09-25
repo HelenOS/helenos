@@ -35,13 +35,13 @@ import os
 
 INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 	INST, VAR, FIN, BIND, TO, SUBSUME, DELEGATE, IFACE, EXTENDS, PRE_BODY, \
-	PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL, FRAME, PROVIDES, \
-	REQUIRES = range(27)
+	PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL, INITIALIZATION, \
+	FINALIZATION, FRAME, PROVIDES, REQUIRES = range(29)
 
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <OUTPUT>" % prname
+	print "%s <--dumpbp|--dumpadl|--noop>+ <OUTPUT>" % prname
 
 def tabs(cnt):
 	"Return given number of tabs"
@@ -245,7 +245,7 @@ def split_bp(protocol):
 def extend_bp(name, tokens, iface):
 	"Convert interface Behavior Protocol to generic protocol"
 	
-	result = ["("]
+	result = []
 	i = 0
 	
 	while (i < len(tokens)):
@@ -265,34 +265,61 @@ def extend_bp(name, tokens, iface):
 		
 		i += 1
 	
-	result.append(")")
-	result.append("*")
-	
 	return result
 
-def merge_bp(protocols):
+def merge_bp(initialization, finalization, protocols):
 	"Merge several Behavior Protocols"
 	
+	indep = []
+	
 	if (len(protocols) > 1):
-		result = []
 		first = True
 		
 		for protocol in protocols:
 			if (first):
 				first = False
 			else:
-				result.append("|")
+				indep.append("|")
 			
-			result.append("(")
-			result.extend(protocol)
-			result.append(")")
-		
-		return result
+			indep.append("(")
+			indep.extend(protocol)
+			indep.append(")")
+	elif (len(protocols) == 1):
+		indep = protocols[0]
 	
-	if (len(protocols) == 1):
-		return protocols[0]
+	inited = []
 	
-	return []
+	if (initialization != None):
+		if (len(indep) > 0):
+			inited.append("(")
+			inited.extend(initialization)
+			inited.append(")")
+			inited.append(";")
+			inited.append("(")
+			inited.extend(indep)
+			inited.append(")")
+		else:
+			inited = initialization
+	else:
+		inited = indep
+	
+	finited = []
+	
+	if (finalization != None):
+		if (len(inited) > 0):
+			finited.append("(")
+			finited.extend(inited)
+			finited.append(")")
+			finited.append(";")
+			finited.append("(")
+			finited.extend(finalization)
+			finited.append(")")
+		else:
+			finited = finalization
+	else:
+		finited = inited
+	
+	return finited
 
 def parse_bp(name, tokens, base_indent):
 	"Parse Behavior Protocol"
@@ -372,14 +399,28 @@ def inherited_protocols(iface):
 def dump_frame(frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
+	global opt_bp
+	
 	fname = "%s.bp" % frame['name']
 	
-	archf.write("instantiate %s from \"%s\"\n" % (var, fname))
+	if (archf != None):
+		archf.write("instantiate %s from \"%s\"\n" % (var, fname))
+	
 	outname = os.path.join(outdir, fname)
 	
 	protocols = []
 	if ('protocol' in frame):
 		protocols.append(frame['protocol'])
+	
+	if ('initialization' in frame):
+		initialization = frame['initialization']
+	else:
+		initialization = None
+	
+	if ('finalization' in frame):
+		finalization = frame['finalization']
+	else:
+		finalization = None
 	
 	if ('provides' in frame):
 		for provides in frame['provides']:
@@ -392,9 +433,11 @@ def dump_frame(frame, outdir, var, archf):
 			else:
 				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
 	
-	outf = file(outname, "w")
-	outf.write(parse_bp(outname, merge_bp(protocols), 0))
-	outf.close()
+	
+	if (opt_bp):
+		outf = file(outname, "w")
+		outf.write(parse_bp(outname, merge_bp(initialization, finalization, protocols), 0))
+		outf.close()
 
 def get_system_arch():
 	"Get system architecture"
@@ -430,12 +473,17 @@ def get_frame(name):
 def create_null_bp(fname, outdir, archf):
 	"Create null frame protocol"
 	
-	archf.write("frame \"%s\"\n" % fname)
+	global opt_bp
+	
+	if (archf != None):
+		archf.write("frame \"%s\"\n" % fname)
+	
 	outname = os.path.join(outdir, fname)
 	
-	outf = file(outname, "w")
-	outf.write("NULL")
-	outf.close()
+	if (opt_bp):
+		outf = file(outname, "w")
+		outf.write("NULL")
+		outf.close()
 
 def flatten_binds(binds, delegates, subsumes):
 	"Remove bindings which are replaced by delegation or subsumption"
@@ -520,6 +568,8 @@ def merge_subarch(prefix, arch, outdir):
 def dump_archbp(outdir):
 	"Dump system architecture Behavior Protocol"
 	
+	global opt_bp
+	
 	arch = get_system_arch()
 	
 	if (arch is None):
@@ -561,8 +611,12 @@ def dump_archbp(outdir):
 			print "Unable to subsume interface in system architecture"
 			break
 	
+	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
-	outf = file(outname, "w")
+	if (opt_bp):
+		outf = file(outname, "w")
+	else:
+		outf = None
 	
 	create_null_bp("null.bp", outdir, outf)
 	
@@ -572,9 +626,11 @@ def dump_archbp(outdir):
 	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
 	
 	for dst, src in directed_binds.items():
-		outf.write("bind %s to %s\n" % (", ".join(src), dst))
+		if (outf != None):
+			outf.write("bind %s to %s\n" % (", ".join(src), dst))
 	
-	outf.close()
+	if (outf != None):
+		outf.close()
 
 def preproc_adl(raw, inarg):
 	"Preprocess %% statements in ADL"
@@ -590,6 +646,8 @@ def parse_adl(base, root, inname, nested, indent):
 	global interface
 	global frame
 	global protocol
+	global initialization
+	global finalization
 	
 	global iface_properties
 	global frame_properties
@@ -688,13 +746,81 @@ def parse_adl(base, root, inname, nested, indent):
 				continue
 			
 			if (BODY in context):
+				if (FINALIZATION in context):
+					if (token == "{"):
+						indent += 1
+					elif (token == "}"):
+						indent -= 1
+					
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
+						bp = split_bp(finalization)
+						finalization = None
+						
+						if (not frame in frame_properties):
+							frame_properties[frame] = {}
+						
+						if ('finalization' in frame_properties[frame]):
+							print "%s: Finalization protocol for frame '%s' already defined" % (inname, frame)
+						else:
+							frame_properties[frame]['finalization'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
+						
+						context.remove(FINALIZATION)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
+					else:
+						finalization += token
+						continue
+				
+				if (INITIALIZATION in context):
+					if (token == "{"):
+						indent += 1
+					elif (token == "}"):
+						indent -= 1
+					
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
+						bp = split_bp(initialization)
+						initialization = None
+						
+						if (not frame in frame_properties):
+							frame_properties[frame] = {}
+						
+						if ('initialization' in frame_properties[frame]):
+							print "%s: Initialization protocol for frame '%s' already defined" % (inname, frame)
+						else:
+							frame_properties[frame]['initialization'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
+						
+						context.remove(INITIALIZATION)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
+					else:
+						initialization += token
+						continue
+				
 				if (PROTOCOL in context):
 					if (token == "{"):
 						indent += 1
 					elif (token == "}"):
 						indent -= 1
 					
-					if (indent == -1):
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
 						bp = split_bp(protocol)
 						protocol = None
 						
@@ -708,16 +834,19 @@ def parse_adl(base, root, inname, nested, indent):
 						
 						output += "\n%s" % tabs(2)
 						output += parse_bp(inname, bp, 2)
-						output += "\n%s" % token
-						indent = 0
 						
 						context.remove(PROTOCOL)
-						context.remove(BODY)
-						context.add(NULL)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
 					else:
 						protocol += token
-					
-					continue
+						continue
 				
 				if (REQUIRES in context):
 					if (FIN in context):
@@ -815,13 +944,25 @@ def parse_adl(base, root, inname, nested, indent):
 				if (token == "provides:"):
 					output += "\n%s%s" % (tabs(indent - 1), token)
 					context.add(PROVIDES)
-					protocol = ""
 					continue
 				
 				if (token == "requires:"):
 					output += "\n%s%s" % (tabs(indent - 1), token)
 					context.add(REQUIRES)
-					protocol = ""
+					continue
+				
+				if (token == "initialization:"):
+					output += "\n%s%s" % (tabs(indent - 1), token)
+					indent = 0
+					context.add(INITIALIZATION)
+					initialization = ""
+					continue
+				
+				if (token == "finalization:"):
+					output += "\n%s%s" % (tabs(indent - 1), token)
+					indent = 0
+					context.add(FINALIZATION)
+					finalization = ""
 					continue
 				
 				if (token == "protocol:"):
@@ -1011,7 +1152,7 @@ def parse_adl(base, root, inname, nested, indent):
 					if (not identifier(token)):
 						print "%s: Expected inherited interface name in interface head '%s'" % (inname, interface)
 					else:
-						output += " %s" % token
+						output += "%s " % token
 						if (not interface in iface_properties):
 							iface_properties[interface] = {}
 						
@@ -1022,7 +1163,7 @@ def parse_adl(base, root, inname, nested, indent):
 					continue
 				
 				if (token == "extends"):
-					output += " %s" % token
+					output += "%s " % token
 					context.add(EXTENDS)
 					continue
 					
@@ -1375,8 +1516,12 @@ def open_adl(base, root, inname, outdir, outname):
 	global interface
 	global frame
 	global protocol
+	global initialization
+	global finalization
 	
 	global arg0
+	
+	global opt_adl
 	
 	output = ""
 	context = set()
@@ -1384,12 +1529,14 @@ def open_adl(base, root, inname, outdir, outname):
 	interface = None
 	frame = None
 	protocol = None
+	initialization = None
+	finalization = None
 	arg0 = None
 	
 	parse_adl(base, root, inname, False, 0)
 	output = output.strip()
 	
-	if (output != ""):
+	if ((output != "") and (opt_adl)):
 		outf = file(outname, "w")
 		outf.write(output)
 		outf.close()
@@ -1415,12 +1562,28 @@ def main():
 	global iface_properties
 	global frame_properties
 	global arch_properties
+	global opt_bp
+	global opt_adl
 	
-	if (len(sys.argv) < 2):
+	if (len(sys.argv) < 3):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1])
+	opt_bp = False
+	opt_adl = False
+	
+	for arg in sys.argv[1:(len(sys.argv) - 1)]:
+		if (arg == "--dumpbp"):
+			opt_bp = True
+		elif (arg == "--dumpadl"):
+			opt_adl = True
+		elif (arg == "--noop"):
+			pass
+		else:
+			print "Error: Unknown command line option '%s'" % arg
+			return
+	
+	path = os.path.abspath(sys.argv[-1])
 	if (not os.path.isdir(path)):
 		print "Error: <OUTPUT> is not a directory"
 		return

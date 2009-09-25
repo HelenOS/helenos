@@ -91,9 +91,10 @@ frame io_dispatcher {
 		fat fat;
 		devfs devfs;
 		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* vfs */
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[vfs_server.bp]
+		[/uspace/lib/libc/protocol]
 };
 
 architecture vfs {

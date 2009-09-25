@@ -12,7 +12,10 @@ frame devfs {
 		ns ns;
 		devmap_client devmap_client;
 		service device;
+	initialization:
+		[/uspace/lib/libc/fnc.devmap_get_phone] ;
+		!ns.ipc_m_connect_me_to /* vfs */ ;
+		[/uspace/lib/libfs/fnc.fs_register]
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[devfs_server.bp]
+		[/uspace/lib/libc/protocol]
 };
