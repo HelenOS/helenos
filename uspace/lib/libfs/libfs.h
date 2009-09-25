@@ -55,18 +55,27 @@ typedef struct {
 } fs_node_t;
 
 typedef struct {
-	fs_node_t * (* match)(fs_node_t *, const char *);
-	fs_node_t * (* node_get)(dev_handle_t, fs_index_t);
-	void (* node_put)(fs_node_t *);
-	fs_node_t * (* create)(dev_handle_t, int);
+	/*
+	 * The first set of methods are functions that return an integer error
+	 * code. If some additional return value is to be returned, the first
+	 * argument holds the output argument.
+	 */
+	int (* root_get)(fs_node_t **, dev_handle_t);
+	int (* match)(fs_node_t **, fs_node_t *, const char *);
+	int (* node_get)(fs_node_t **, dev_handle_t, fs_index_t);
+	int (* node_put)(fs_node_t *);
+	int (* create)(fs_node_t **, dev_handle_t, int);
 	int (* destroy)(fs_node_t *);
 	int (* link)(fs_node_t *, fs_node_t *, const char *);
 	int (* unlink)(fs_node_t *, fs_node_t *, const char *);
+	int (* has_children)(bool *, fs_node_t *);
+	/*
+	 * The second set of methods are usually mere getters that do not return
+	 * an integer error code.
+	 */
 	fs_index_t (* index_get)(fs_node_t *);
 	size_t (* size_get)(fs_node_t *);
 	unsigned (* lnkcnt_get)(fs_node_t *);
-	bool (* has_children)(fs_node_t *);
-	fs_node_t *(* root_get)(dev_handle_t);
 	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);

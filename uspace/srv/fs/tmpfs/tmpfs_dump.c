@@ -81,15 +81,15 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			if (fname == NULL)
 				return false;
 			
-			fn = ops->create(dev, L_FILE);
-			if (fn == NULL) {
+			rc = ops->create(&fn, dev, L_FILE);
+			if (rc != EOK || fn == NULL) {
 				free(fname);
 				return false;
 			}
 			
 			if (block_seqread(dev, bufpos, buflen, pos, fname,
 			    entry.len) != EOK) {
-				ops->destroy(fn);
+				(void) ops->destroy(fn);
 				free(fname);
 				return false;
 			}
@@ -97,7 +97,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			
 			rc = ops->link(pfn, fn, fname);
 			if (rc != EOK) {
-				ops->destroy(fn);
+				(void) ops->destroy(fn);
 				free(fname);
 				return false;
 			}
@@ -125,15 +125,15 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 			if (fname == NULL)
 				return false;
 			
-			fn = ops->create(dev, L_DIRECTORY);
-			if (fn == NULL) {
+			rc = ops->create(&fn, dev, L_DIRECTORY);
+			if (rc != EOK || fn == NULL) {
 				free(fname);
 				return false;
 			}
 			
 			if (block_seqread(dev, bufpos, buflen, pos, fname,
 			    entry.len) != EOK) {
-				ops->destroy(fn);
+				(void) ops->destroy(fn);
 				free(fname);
 				return false;
 			}
@@ -141,7 +141,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 
 			rc = ops->link(pfn, fn, fname);
 			if (rc != EOK) {
-				ops->destroy(fn);
+				(void) ops->destroy(fn);
 				free(fname);
 				return false;
 			}
@@ -163,6 +163,7 @@ tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
 bool tmpfs_restore(dev_handle_t dev)
 {
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
+	fs_node_t *fn;
 	int rc;
 
 	rc = block_init(dev, TMPFS_COMM_SIZE);
@@ -181,8 +182,11 @@ bool tmpfs_restore(dev_handle_t dev)
 	if (str_cmp(tag, "TMPFS") != 0)
 		goto error;
 	
-	if (!tmpfs_restore_recursion(dev, &bufpos, &buflen, &pos,
-	    ops->root_get(dev)))
+	rc = ops->root_get(&fn, dev);
+	if (rc != EOK)
+		goto error;
+
+	if (!tmpfs_restore_recursion(dev, &bufpos, &buflen, &pos, fn))
 		goto error;
 		
 	block_fini(dev);
