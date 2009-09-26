@@ -358,6 +358,10 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	uint16_t bps;
 	uint16_t rscnt;
 	uint16_t sf;
+	uint16_t ts;
+	unsigned rde;
+	unsigned rds;
+	unsigned ssa;
 	block_t *blk;
 	fat_cluster_t *lifo;	/* stack for storing free cluster numbers */ 
 	unsigned found = 0;	/* top of the free cluster number stack */
@@ -371,6 +375,12 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
 	sf = uint16_t_le2host(bs->sec_per_fat);
+	rde = uint16_t_le2host(bs->root_ent_max);
+	ts = uint16_t_le2host(bs->totsec16);
+
+	rds = (sizeof(fat_dentry_t) * rde) / bps;
+	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
+	ssa = rscnt + bs->fatcnt * sf + rds;
 	
 	/*
 	 * Search FAT1 for unused clusters.
@@ -381,6 +391,19 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 		if (rc != EOK)
 			goto error;
 		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
+			/*
+			 * Check if the cluster is physically there. This check
+			 * becomes necessary when the file system is created
+			 * with fewer total sectors than how many is inferred
+			 * from the size of the file allocation table.
+			 */
+			if ((cl - 2) * bs->spc + ssa >= ts) {
+				rc = block_put(blk);
+				if (rc != EOK)
+					goto error;
+				goto out;
+			}
+
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
 				/*
@@ -418,6 +441,7 @@ error:
 			return rc;
 		}
 	}
+out:
 	fibril_mutex_unlock(&fat_alloc_lock);
 
 	/*
