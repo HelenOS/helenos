@@ -114,7 +114,7 @@ static int fat_node_sync(fat_node_t *node)
 	return rc;
 }
 
-static fat_node_t *fat_node_get_new(void)
+static int fat_node_get_new(fat_node_t **nodepp)
 {
 	fs_node_t *fn;
 	fat_node_t *nodep;
@@ -136,7 +136,14 @@ static fat_node_t *fat_node_get_new(void)
 		fibril_mutex_unlock(&ffn_mutex);
 		if (nodep->dirty) {
 			rc = fat_node_sync(nodep);
-			assert(rc == EOK);
+			if (rc != EOK) {
+				idxp_tmp->nodep = NULL;
+				fibril_mutex_unlock(&nodep->lock);
+				fibril_mutex_unlock(&idxp_tmp->lock);
+				free(nodep->bp);
+				free(nodep);
+				return rc;
+			}
 		}
 		idxp_tmp->nodep = NULL;
 		fibril_mutex_unlock(&nodep->lock);
@@ -148,11 +155,11 @@ skip_cache:
 		fibril_mutex_unlock(&ffn_mutex);
 		fn = (fs_node_t *)malloc(sizeof(fs_node_t));
 		if (!fn)
-			return NULL;
+			return ENOMEM;
 		nodep = (fat_node_t *)malloc(sizeof(fat_node_t));
 		if (!nodep) {
 			free(fn);
-			return NULL;
+			return ENOMEM;
 		}
 	}
 	fat_node_initialize(nodep);
@@ -160,7 +167,8 @@ skip_cache:
 	fn->data = nodep;
 	nodep->bp = fn;
 	
-	return nodep;
+	*nodepp = nodep;
+	return EOK;
 }
 
 /** Internal version of fat_node_get().
@@ -199,8 +207,8 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	
 	assert(idxp->pfc);
 
-	nodep = fat_node_get_new();
-	if (!nodep)
+	rc = fat_node_get_new(&nodep);
+	if (rc != EOK)
 		return NULL;
 
 	bs = block_bb_get(idxp->dev_handle);
@@ -431,10 +439,10 @@ int fat_create_node(fs_node_t **rfn, dev_handle_t dev_handle, int flags)
 		}
 	}
 
-	nodep = fat_node_get_new();
-	if (!nodep) {
+	rc = fat_node_get_new(&nodep);
+	if (rc != EOK) {
 		(void) fat_free_clusters(bs, dev_handle, mcl);
-		return ENOMEM;	/* FIXME: determine the true error code */
+		return rc;
 	}
 	idxp = fat_idx_get_new(dev_handle);
 	if (!idxp) {
