@@ -214,7 +214,7 @@ extern void fat_open_node(ipc_callid_t, ipc_call_t *);
 extern void fat_stat(ipc_callid_t, ipc_call_t *);
 extern void fat_sync(ipc_callid_t, ipc_call_t *);
 
-extern fat_idx_t *fat_idx_get_new(dev_handle_t);
+extern int fat_idx_get_new(fat_idx_t **, dev_handle_t);
 extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
 extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);

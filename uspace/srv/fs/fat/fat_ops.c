@@ -461,11 +461,11 @@ int fat_create_node(fs_node_t **rfn, dev_handle_t dev_handle, int flags)
 		(void) fat_free_clusters(bs, dev_handle, mcl);
 		return rc;
 	}
-	idxp = fat_idx_get_new(dev_handle);
-	if (!idxp) {
+	rc = fat_idx_get_new(&idxp, dev_handle);
+	if (rc != EOK) {
 		(void) fat_free_clusters(bs, dev_handle, mcl);	
 		(void) fat_node_put(FS_NODE(nodep));
-		return ENOMEM;	/* FIXME: determine the true error code */
+		return rc;
 	}
 	/* idxp->lock held */
 	if (flags & L_DIRECTORY) {
