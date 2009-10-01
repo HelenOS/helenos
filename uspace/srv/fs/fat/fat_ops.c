@@ -330,12 +330,11 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			case FAT_DENTRY_FREE:
 				continue;
 			case FAT_DENTRY_LAST:
+				/* miss */
 				rc = block_put(b);
-				/* expect EOK as b was not dirty */
-				assert(rc == EOK);	
 				fibril_mutex_unlock(&parentp->idx->lock);
 				*rfn = NULL;
-				return EOK;
+				return rc;
 			default:
 			case FAT_DENTRY_VALID:
 				fat_dentry_name_get(d, name);
@@ -360,22 +359,21 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					 * run out of 32-bit indices.
 					 */
 					rc = block_put(b);
-					/* expect EOK as b was not dirty */
-					assert(rc == EOK);	
-					return ENOMEM;
+					return (rc == EOK) ? ENOMEM : rc;
 				}
 				rc = fat_node_get_core(&nodep, idx);
 				assert(rc == EOK);
 				fibril_mutex_unlock(&idx->lock);
-				rc = block_put(b);
-				/* expect EOK as b was not dirty */
-				assert(rc == EOK);
+				(void) block_put(b);
 				*rfn = FS_NODE(nodep);
 				return EOK;
 			}
 		}
 		rc = block_put(b);
-		assert(rc == EOK);	/* expect EOK as b was not dirty */
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parentp->idx->lock);
+			return rc;
+		}
 	}
 
 	fibril_mutex_unlock(&parentp->idx->lock);
@@ -809,23 +807,22 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 				continue;
 			case FAT_DENTRY_LAST:
 				rc = block_put(b);
-				/* expect EOK as b was not dirty */
-				assert(rc == EOK);
 				fibril_mutex_unlock(&nodep->idx->lock);
 				*has_children = false;
-				return EOK;
+				return rc;
 			default:
 			case FAT_DENTRY_VALID:
 				rc = block_put(b);
-				/* expect EOK as b was not dirty */
-				assert(rc == EOK);
 				fibril_mutex_unlock(&nodep->idx->lock);
 				*has_children = true;
-				return EOK;
+				return rc;
 			}
 		}
 		rc = block_put(b);
-		assert(rc == EOK);	/* expect EOK as b was not dirty */
+		if (rc != EOK) {
+			fibril_mutex_unlock(&nodep->idx->lock);
+			return rc;	
+		}
 	}
 
 	fibril_mutex_unlock(&nodep->idx->lock);
