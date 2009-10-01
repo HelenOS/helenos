@@ -184,8 +184,11 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 		 * The node is already instantiated in memory.
 		 */
 		fibril_mutex_lock(&idxp->nodep->lock);
-		if (!idxp->nodep->refcnt++)
+		if (!idxp->nodep->refcnt++) {
+			fibril_mutex_lock(&ffn_mutex);
 			list_remove(&idxp->nodep->ffn_link);
+			fibril_mutex_unlock(&ffn_mutex);
+		}
 		fibril_mutex_unlock(&idxp->nodep->lock);
 		return idxp->nodep;
 	}
