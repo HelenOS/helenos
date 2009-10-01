@@ -64,6 +64,28 @@ static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
 /** List of cached free FAT nodes. */
 static LIST_INITIALIZE(ffn_head);
 
+/*
+ * Forward declarations of FAT libfs operations.
+ */
+static int fat_root_get(fs_node_t **, dev_handle_t);
+static int fat_match(fs_node_t **, fs_node_t *, const char *);
+static int fat_node_get(fs_node_t **, dev_handle_t, fs_index_t);
+static int fat_node_put(fs_node_t *);
+static int fat_create_node(fs_node_t **, dev_handle_t, int);
+static int fat_destroy_node(fs_node_t *);
+static int fat_link(fs_node_t *, fs_node_t *, const char *);
+static int fat_unlink(fs_node_t *, fs_node_t *, const char *);
+static int fat_has_children(bool *, fs_node_t *);
+static fs_index_t fat_index_get(fs_node_t *);
+static size_t fat_size_get(fs_node_t *);
+static unsigned fat_lnkcnt_get(fs_node_t *);
+static char fat_plb_get_char(unsigned);
+static bool fat_is_directory(fs_node_t *);
+static bool fat_is_file(fs_node_t *node);
+
+/*
+ * Helper functions.
+ */
 static void fat_node_initialize(fat_node_t *node)
 {
 	fibril_mutex_initialize(&node->lock);
@@ -175,7 +197,7 @@ skip_cache:
  *
  * @param idxp		Locked index structure.
  */
-static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
+static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 {
 	block_t *b;
 	fat_bs_t *bs;
@@ -198,7 +220,8 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 			fibril_mutex_unlock(&ffn_mutex);
 		}
 		fibril_mutex_unlock(&idxp->nodep->lock);
-		return idxp->nodep;
+		*nodepp = idxp->nodep;
+		return EOK;
 	}
 
 	/*
@@ -209,7 +232,7 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 
 	rc = fat_node_get_new(&nodep);
 	if (rc != EOK)
-		return NULL;
+		return rc;
 
 	bs = block_bb_get(idxp->dev_handle);
 	bps = uint16_t_le2host(bs->bps);
@@ -219,7 +242,10 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, idxp->dev_handle, idxp->pfc,
 	    (idxp->pdi * sizeof(fat_dentry_t)) / bps, BLOCK_FLAGS_NONE);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		(void) fat_node_put(FS_NODE(nodep));
+		return rc;
+	}
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % dps);
 	if (d->attr & FAT_ATTR_SUBDIR) {
@@ -237,7 +263,10 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 		uint16_t clusters;
 		rc = fat_clusters_get(&clusters, bs, idxp->dev_handle,
 		    uint16_t_le2host(d->firstc));
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_node_put(FS_NODE(nodep));
+			return rc;
+		}
 		nodep->size = bps * spc * clusters;
 	} else {
 		nodep->type = FAT_FILE;
@@ -248,33 +277,18 @@ static fat_node_t *fat_node_get_core(fat_idx_t *idxp)
 	nodep->refcnt = 1;
 
 	rc = block_put(b);
-	assert(rc == EOK);
+	if (rc != EOK) {
+		(void) fat_node_put(FS_NODE(nodep));
+		return rc;
+	}
 
 	/* Link the idx structure with the node structure. */
 	nodep->idx = idxp;
 	idxp->nodep = nodep;
 
-	return nodep;
+	*nodepp = nodep;
+	return EOK;
 }
-
-/*
- * Forward declarations of FAT libfs operations.
- */
-static int fat_root_get(fs_node_t **, dev_handle_t);
-static int fat_match(fs_node_t **, fs_node_t *, const char *);
-static int fat_node_get(fs_node_t **, dev_handle_t, fs_index_t);
-static int fat_node_put(fs_node_t *);
-static int fat_create_node(fs_node_t **, dev_handle_t, int);
-static int fat_destroy_node(fs_node_t *);
-static int fat_link(fs_node_t *, fs_node_t *, const char *);
-static int fat_unlink(fs_node_t *, fs_node_t *, const char *);
-static int fat_has_children(bool *, fs_node_t *);
-static fs_index_t fat_index_get(fs_node_t *);
-static size_t fat_size_get(fs_node_t *);
-static unsigned fat_lnkcnt_get(fs_node_t *);
-static char fat_plb_get_char(unsigned);
-static bool fat_is_directory(fs_node_t *);
-static bool fat_is_file(fs_node_t *node);
 
 /*
  * FAT libfs operations.
@@ -350,7 +364,8 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					assert(rc == EOK);	
 					return ENOMEM;
 				}
-				nodep = fat_node_get_core(idx);
+				rc = fat_node_get_core(&nodep, idx);
+				assert(rc == EOK);
 				fibril_mutex_unlock(&idx->lock);
 				rc = block_put(b);
 				/* expect EOK as b was not dirty */
@@ -373,6 +388,7 @@ int fat_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 {
 	fat_node_t *nodep;
 	fat_idx_t *idxp;
+	int rc;
 
 	idxp = fat_idx_get_by_index(dev_handle, index);
 	if (!idxp) {
@@ -380,10 +396,11 @@ int fat_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 		return EOK;
 	}
 	/* idxp->lock held */
-	nodep = fat_node_get_core(idxp);
+	rc = fat_node_get_core(&nodep, idxp);
 	fibril_mutex_unlock(&idxp->lock);
-	*rfn = FS_NODE(nodep);
-	return EOK;
+	if (rc == EOK)
+		*rfn = FS_NODE(nodep);
+	return rc;
 }
 
 int fat_node_put(fs_node_t *fn)
