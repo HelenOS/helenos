@@ -50,7 +50,7 @@
 #define NAME  "devfs"
 
 static vfs_info_t devfs_vfs_info = {
-	.name = "devfs",
+	.name = NAME,
 };
 
 fs_reg_t devfs_reg;

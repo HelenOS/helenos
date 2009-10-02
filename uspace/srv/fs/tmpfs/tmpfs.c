@@ -54,7 +54,7 @@
 
 
 vfs_info_t tmpfs_vfs_info = {
-	.name = "tmpfs",
+	.name = NAME,
 };
 
 fs_reg_t tmpfs_reg;
@@ -89,7 +89,7 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_answer_0(iid, EOK);
 	}
 	
-	dprintf("VFS-TMPFS connection established.\n");
+	dprintf(NAME ": connection opened\n");
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
