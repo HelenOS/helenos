@@ -42,6 +42,7 @@
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
+#include <task.h>
 #include <stdio.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"
@@ -156,6 +157,7 @@ int main(int argc, char **argv)
 	}
 	
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 	/* not reached */
 	return 0;

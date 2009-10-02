@@ -43,6 +43,7 @@
 #include <ipc/services.h>
 #include <async.h>
 #include <errno.h>
+#include <task.h>
 #include <libfs.h>
 #include "devfs.h"
 #include "devfs_ops.h"
@@ -130,6 +131,7 @@ int main(int argc, char *argv[])
 	}
 	
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 	
 	/* Not reached */
