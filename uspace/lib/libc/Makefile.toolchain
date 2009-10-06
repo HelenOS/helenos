@@ -65,6 +65,7 @@ endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
+	GCC = $(CC)
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
 	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
@@ -75,6 +76,7 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
+	GCC = $(CC)
 	AS = $(BINUTILS_PREFIX)as
 	LD = $(BINUTILS_PREFIX)ld
 	AR = $(BINUTILS_PREFIX)ar
@@ -85,6 +87,7 @@ endif
 
 ifeq ($(COMPILER),icc)
 	CC = icc
+	GCC = gcc
 	AS = as
 	LD = ld
 	AR = ar
@@ -95,6 +98,7 @@ endif
 
 ifeq ($(COMPILER),clang)
 	CC = clang
+	GCC = gcc
 	AS = $(BINUTILS_PREFIX)as
 	LD = $(BINUTILS_PREFIX)ld
 	AR = $(BINUTILS_PREFIX)ar

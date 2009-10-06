@@ -102,7 +102,7 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
-	GCC = gcc
+	GCC = $(CC)
 	AS = $(BINUTILS_PREFIX)as
 	LD = $(BINUTILS_PREFIX)ld
 	OBJCOPY = $(BINUTILS_PREFIX)objcopy
