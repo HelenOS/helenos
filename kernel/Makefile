@@ -48,12 +48,13 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(E
 
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
-	-Wmissing-prototypes -Werror -nostdlib -nostdinc -pipe
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
+	-pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
-	-fno-builtin -Wall -Wmissing-prototypes -Werror \
-	-nostdlib -nostdinc -wd170
+	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
+	-Werror -wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
@@ -61,8 +62,9 @@ SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 
 CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
-	-Wmissing-prototypes -nostdlib -nostdinc -pipe
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -pipe \
+	-arch $(CLANG_ARCH)
 
 LFLAGS = -M
 AFLAGS =

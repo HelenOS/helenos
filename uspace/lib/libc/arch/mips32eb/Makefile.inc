@@ -33,10 +33,10 @@ TARGET = mips-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
-		arch/$(UARCH)/src/fibril.S \
-		arch/$(UARCH)/src/tls.c
+	arch/$(UARCH)/src/fibril.S \
+	arch/$(UARCH)/src/tls.c
 
-CFLAGS += -mips3
+GCC_CFLAGS += -mips3
 LFLAGS += -N
 
 ENDIANESS = BE
