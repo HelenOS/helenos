@@ -31,6 +31,13 @@ system architecture HelenOS version 0.4.1 {
 	[/uspace/lib/libc/bind%console]
 	[/uspace/lib/libc/bind%klog]
 	
+	bind ns:kbd to console:kbd;
+	bind ns:fb to console:fb;
+	bind ns:console to console:console;
+	bind ns:vfs to vfs:vfs;
+	bind ns:devmap_driver to devmap:devmap_driver;
+	bind ns:devmap_client to devmap:devmap_client;
+	
 	bind loader:ns to ns:ns;
 	
 	bind devmap:ns to ns:ns;

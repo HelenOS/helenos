@@ -90,6 +90,8 @@ architecture console {
 	bind kbd:event to ui_dispatcher:event;
 	
 	delegate console to ui_dispatcher:console;
+	delegate kbd to kbd:kbd;
+	delegate fb to fb:fb;
 	
 	[/uspace/lib/libc/subsume%ui_dispatcher]
 	[/uspace/lib/libc/subsume%kbd]

@@ -41,7 +41,7 @@ INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <--bp|--epb|--adl|--nop>+ <OUTPUT>" % prname
+	print "%s <--bp|--ebp|--adl|--nop>+ <OUTPUT>" % prname
 
 def tabs(cnt):
 	"Return given number of tabs"
