@@ -21,8 +21,9 @@
 						(
 							/* root fs */
 							alternative (fs; tmpfs; fat; devfs) {
-								!fs.mounted ;
-								!fs.ipc_m_data_write /* mount options */
+								!fs.mounted {
+									!fs.ipc_m_data_write /* mount options */
+								}
 							}
 						) +
 						(
@@ -92,8 +93,9 @@
 			?ipc_m_data_read {
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
-					!fs.read ;
-					!fs.ipc_m_data_read /* forward payload */ ;
+					!fs.read {
+						!fs.ipc_m_data_read /* forward payload */ ;
+					} ;
 					[fnc.vfs_release_phone]
 				}
 			}
@@ -105,8 +107,9 @@
 			?ipc_m_data_write {
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
-					!fs.write ;
-					!fs.ipc_m_data_write /* forward payload */ ;
+					!fs.write {
+						!fs.ipc_m_data_write /* forward payload */ ;
+					} ;
 					[fnc.vfs_release_phone]
 				}
 			}
@@ -128,8 +131,9 @@
 			?ipc_m_data_read /* struct stat */ {
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
-					!fs.stat ;
-					!fs.ipc_m_data_read /* forward struct stat */ ;
+					!fs.stat {
+						!fs.ipc_m_data_read /* forward struct stat */ ;
+					} ;
 					[fnc.vfs_release_phone]
 				}
 			}
@@ -143,8 +147,9 @@
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_lookup_internal] ;
 					tentative {
-						!fs.stat ;
-						!fs.ipc_m_data_read /* forward struct stat */
+						!fs.stat {
+							!fs.ipc_m_data_read /* forward struct stat */
+						}
 					}
 				}
 			}
