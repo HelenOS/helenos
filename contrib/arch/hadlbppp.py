@@ -41,7 +41,7 @@ INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <--dumpbp|--dumpadl|--noop>+ <OUTPUT>" % prname
+	print "%s <--bp|--epb|--adl|--nop>+ <OUTPUT>" % prname
 
 def tabs(cnt):
 	"Return given number of tabs"
@@ -370,6 +370,11 @@ def parse_bp(name, tokens, base_indent):
 	
 	return output
 
+def parse_ebp(component, name, tokens, base_indent):
+	"Parse Behavior Protocol and generate Extended Behavior Protocol output"
+	
+	return "component %s {\n\tbehavior {\n\t\t%s\n\t}\n}" % (component, parse_bp(name, tokens, base_indent + 2))
+
 def get_iface(name):
 	"Get interface by name"
 	
@@ -400,8 +405,12 @@ def dump_frame(frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
 	global opt_bp
+	global opt_ebp
 	
-	fname = "%s.bp" % frame['name']
+	if (opt_ebp):
+		fname = "%s.ebp" % frame['name']
+	else:
+		fname = "%s.bp" % frame['name']
 	
 	if (archf != None):
 		archf.write("instantiate %s from \"%s\"\n" % (var, fname))
@@ -437,6 +446,11 @@ def dump_frame(frame, outdir, var, archf):
 	if (opt_bp):
 		outf = file(outname, "w")
 		outf.write(parse_bp(outname, merge_bp(initialization, finalization, protocols), 0))
+		outf.close()
+	
+	if (opt_ebp):
+		outf = file(outname, "w")
+		outf.write(parse_ebp(frame['name'], outname, merge_bp(initialization, finalization, protocols), 0))
 		outf.close()
 
 def get_system_arch():
@@ -474,6 +488,7 @@ def create_null_bp(fname, outdir, archf):
 	"Create null frame protocol"
 	
 	global opt_bp
+	global opt_ebp
 	
 	if (archf != None):
 		archf.write("frame \"%s\"\n" % fname)
@@ -483,6 +498,11 @@ def create_null_bp(fname, outdir, archf):
 	if (opt_bp):
 		outf = file(outname, "w")
 		outf.write("NULL")
+		outf.close()
+	
+	if (opt_ebp):
+		outf = file(outname, "w")
+		outf.write("component null {\n\tbehavior {\n\t\tNULL\n\t}\n}")
 		outf.close()
 
 def flatten_binds(binds, delegates, subsumes):
@@ -569,6 +589,7 @@ def dump_archbp(outdir):
 	"Dump system architecture Behavior Protocol"
 	
 	global opt_bp
+	global opt_ebp
 	
 	arch = get_system_arch()
 	
@@ -613,7 +634,7 @@ def dump_archbp(outdir):
 	
 	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
-	if (opt_bp):
+	if ((opt_bp) or (opt_ebp)):
 		outf = file(outname, "w")
 	else:
 		outf = None
@@ -1563,6 +1584,7 @@ def main():
 	global frame_properties
 	global arch_properties
 	global opt_bp
+	global opt_ebp
 	global opt_adl
 	
 	if (len(sys.argv) < 3):
@@ -1570,18 +1592,25 @@ def main():
 		return
 	
 	opt_bp = False
+	opt_ebp = False
 	opt_adl = False
 	
 	for arg in sys.argv[1:(len(sys.argv) - 1)]:
-		if (arg == "--dumpbp"):
+		if (arg == "--bp"):
 			opt_bp = True
-		elif (arg == "--dumpadl"):
+		elif (arg == "--ebp"):
+			opt_ebp = True
+		elif (arg == "--adl"):
 			opt_adl = True
-		elif (arg == "--noop"):
+		elif (arg == "--nop"):
 			pass
 		else:
 			print "Error: Unknown command line option '%s'" % arg
 			return
+	
+	if ((opt_bp) and (opt_ebp)):
+		print "Error: Cannot dump both original Behavior Protocols and Extended Behavior Protocols"
+		return
 	
 	path = os.path.abspath(sys.argv[-1])
 	if (not os.path.isdir(path)):
