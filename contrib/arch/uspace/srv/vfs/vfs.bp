@@ -94,7 +94,7 @@
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.read {
-						!fs.ipc_m_data_read /* forward payload */ ;
+						!fs.ipc_m_data_read /* forward payload */
 					} ;
 					[fnc.vfs_release_phone]
 				}
@@ -108,7 +108,7 @@
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.write {
-						!fs.ipc_m_data_write /* forward payload */ ;
+						!fs.ipc_m_data_write /* forward payload */
 					} ;
 					[fnc.vfs_release_phone]
 				}
@@ -132,7 +132,7 @@
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.stat {
-						!fs.ipc_m_data_read /* forward struct stat */ ;
+						!fs.ipc_m_data_read /* forward struct stat */
 					} ;
 					[fnc.vfs_release_phone]
 				}

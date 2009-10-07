@@ -58,7 +58,7 @@
 	} +
 	
 	?kcon_enable {
-		!sys_console.sys_enable_console
+		!sys_console.sys_debug_enable_console
 	} +
 	
 	?get_event +

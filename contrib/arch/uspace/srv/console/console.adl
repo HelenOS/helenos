@@ -69,7 +69,7 @@ frame ui_dispatcher {
 		!fb.get_color_cap ;
 		!fb.ipc_m_share_out ;
 		[/uspace/lib/libc/fnc.devmap_device_register]* ;
-		!sys_console.sys_disable_console ;
+		!sys_console.sys_debug_disable_console ;
 		[fnc.gcons_redraw_console] ;
 		[fnc.set_rgb_color] ;
 		[fnc.screen_clear] ;
