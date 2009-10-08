@@ -47,10 +47,11 @@ frame ui_dispatcher {
 		event event;
 	requires:
 		[/uspace/lib/libc/requires]
+		ns ns;
+		devmap_driver devmap_driver;
+		sys_console sys_console;
 		kbd kbd;
 		fb fb;
-		ns ns;
-		sys_console sys_console;
 	initialization:
 		!ns.ipc_m_connect_me_to /* kbd */ ;
 		!kbd.ipc_m_connect_to_me ;
@@ -98,6 +99,7 @@ architecture console {
 	[/uspace/lib/libc/subsume%fb]
 	
 	subsume ui_dispatcher:ns to ns;
+	subsume ui_dispatcher:devmap_driver to devmap_driver;
 	subsume ui_dispatcher:sys_console to sys_console;
 	
 	subsume kbd:ns to ns;

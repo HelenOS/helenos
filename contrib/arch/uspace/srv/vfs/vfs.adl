@@ -87,10 +87,10 @@ frame io_dispatcher {
 		vfs vfs;
 	requires:
 		[/uspace/lib/libc/requires]
+		ns ns;
 		tmpfs tmpfs;
 		fat fat;
 		devfs devfs;
-		ns ns;
 	initialization:
 		!ns.ipc_m_connect_to_me /* vfs */
 	protocol:
@@ -110,6 +110,14 @@ architecture vfs {
 	bind tmpfs:vfs to io_dispatcher:vfs;
 	bind fat:vfs to io_dispatcher:vfs;
 	bind devfs:vfs to io_dispatcher:vfs;
+	
+	bind tmpfs:tmpfs_nested to tmpfs:tmpfs;
+	bind tmpfs:fat_nested to fat:fat;
+	bind tmpfs:devfs_nested to devfs:devfs;
+	
+	bind fat:tmpfs_nested to tmpfs:tmpfs;
+	bind fat:fat_nested to fat:fat;
+	bind fat:devfs_nested to devfs:devfs;
 	
 	delegate vfs to io_dispatcher:vfs;
 	
