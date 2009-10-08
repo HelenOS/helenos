@@ -442,7 +442,6 @@ def dump_frame(frame, outdir, var, archf):
 			else:
 				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
 	
-	
 	if (opt_bp):
 		outf = file(outname, "w")
 		outf.write(parse_bp(outname, merge_bp(initialization, finalization, protocols), 0))
@@ -548,7 +547,7 @@ def direct_binds(binds):
 	return result
 
 def merge_subarch(prefix, arch, outdir):
-	"Merge subarchitecture into architexture"
+	"Merge subarchitecture into architecture"
 	
 	insts = []
 	binds = []
