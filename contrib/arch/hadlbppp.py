@@ -41,7 +41,14 @@ INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <--bp|--ebp|--adl|--nop>+ <OUTPUT>" % prname
+	print "%s <--bp|--ebp|--adl|--dot|--nop>+ <OUTPUT>" % prname
+	print
+	print "--bp   Dump original Behavior Protocols (dChecker, BPSlicer)"
+	print "--ebp  Dump Extended Behavior Protocols (bp2promela)"
+	print "--adl  Dump Architecture Description Language (modified SOFA ADL/CDL)"
+	print "--dot  Dump Dot architecture diagram (GraphViz)"
+	print "--nop  Do not dump anything (just input files syntax check)"
+	print
 
 def tabs(cnt):
 	"Return given number of tabs"
@@ -630,7 +637,6 @@ def dump_archbp(outdir):
 		for subsume in arch['subsume']:
 			print "Unable to subsume interface in system architecture"
 			break
-	
 	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
 	if ((opt_bp) or (opt_ebp)):
@@ -1578,6 +1584,134 @@ def recursion(base, root, output, level):
 		if (os.path.isdir(canon)):
 			recursion(base, canon, output, level + 1)
 
+def merge_bind(subarchs, delegates, subsumes, prefix, bfrom, bto, outf, indent):
+	"Update binding according to bound object types"
+	
+	pfrom = "%s%s" % (prefix, bfrom[0])
+	pto = "%s%s" % (prefix, bto[0])
+	attrs = []
+	
+	if (bfrom[0] in subarchs):
+		sfrom = subsumes[pfrom][bfrom[1]]
+		attrs.append("ltail=cluster_%s" % pfrom)
+	else:
+		sfrom = pfrom
+	
+	if (bto[0] in subarchs):
+		sto = delegates[pto][bto[1]]
+		attrs.append("lhead=cluster_%s" % pto)
+	else:
+		sto = pto
+	
+	outf.write("%s\t%s -> %s" % (tabs(indent), sfrom, sto))
+	if (len(attrs) > 0):
+		outf.write(" [%s]" % ", ".join(attrs))
+	outf.write(";\n")
+
+def merge_dot_subarch(prefix, name, arch, outf, indent):
+	"Dump Dot subarchitecture"
+	
+	outf.write("%ssubgraph cluster_%s {\n" % (tabs(indent), prefix))
+	outf.write("%s\tlabel=\"%s\";\n" % (tabs(indent), name))
+	outf.write("%s\tcolor=red;\n" % tabs(indent))
+	outf.write("%s\t\n" % tabs(indent))
+	
+	subarchs = set()
+	delegates = {}
+	subsumes = {}
+	
+	delegates[prefix] = {}
+	subsumes[prefix] = {}
+	
+	if ('inst' in arch):
+		for inst in arch['inst']:
+			subarch = get_arch(inst['type'])
+			if (not subarch is None):
+				(subdelegates, subsubsumes) = merge_dot_subarch("%s_%s" % (prefix, inst['var']), inst['var'], subarch, outf, indent + 1)
+				subarchs.add(inst['var'])
+				delegates.update(subdelegates)
+				subsumes.update(subsubsumes)
+			else:
+				subframe = get_frame(inst['type'])
+				if (not subframe is None):
+					outf.write("%s\t%s_%s [label=\"%s\", shape=component, style=filled, color=red, fillcolor=yellow];\n" % (tabs(indent), prefix, inst['var'], inst['var']))
+				else:
+					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+	
+	if ('bind' in arch):
+		for bind in arch['bind']:
+			merge_bind(subarchs, delegates, subsumes, "%s_" % prefix, bind['from'], bind['to'], outf, indent)
+	
+	if ('delegate' in arch):
+		for delegate in arch['delegate']:
+			delegates[prefix][delegate['from']] = "%s_%s" % (prefix, delegate['to'][0])
+	
+	if ('subsume' in arch):
+		for subsume in arch['subsume']:
+			subsumes[prefix][subsume['to']] = "%s_%s" % (prefix, subsume['from'][0])
+	
+	outf.write("%s}\n" % tabs(indent))
+	outf.write("%s\n" % tabs(indent))
+	
+	return (delegates, subsumes)
+
+def dump_dot(outdir):
+	"Dump Dot architecture"
+	
+	global opt_dot
+	
+	arch = get_system_arch()
+	
+	if (arch is None):
+		print "Unable to find system architecture"
+		return
+	
+	if (opt_dot):
+		outname = os.path.join(outdir, "%s.dot" % arch['name'])
+		outf = file(outname, "w")
+		
+		outf.write("digraph {\n")
+		outf.write("\tlabel=\"%s\";\n" % arch['name'])
+		outf.write("\tcompound=true;\n")
+		outf.write("\t\n")
+		
+		subarchs = set()
+		delegates = {}
+		subsumes = {}
+		
+		if ('inst' in arch):
+			for inst in arch['inst']:
+				subarch = get_arch(inst['type'])
+				if (not subarch is None):
+					(subdelegates, subsubsumes) = merge_dot_subarch(inst['var'], inst['var'], subarch, outf, 1)
+					subarchs.add(inst['var'])
+					delegates.update(subdelegates)
+					subsumes.update(subsubsumes)
+				else:
+					subframe = get_frame(inst['type'])
+					if (not subframe is None):
+						outf.write("\t%s [shape=component, style=filled, color=red, fillcolor=yellow];\n" % inst['var'])
+					else:
+						print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+		
+		if ('bind' in arch):
+			for bind in arch['bind']:
+				merge_bind(subarchs, delegates, subsumes, "", bind['from'], bind['to'], outf, 0)
+		
+		if ('delegate' in arch):
+			for delegate in arch['delegate']:
+				print "Unable to delegate interface in system architecture"
+				break
+		
+		if ('subsume' in arch):
+			for subsume in arch['subsume']:
+				print "Unable to subsume interface in system architecture"
+				break
+		
+		outf.write("}\n")
+		
+		outf.close()
+
 def main():
 	global iface_properties
 	global frame_properties
@@ -1585,6 +1719,7 @@ def main():
 	global opt_bp
 	global opt_ebp
 	global opt_adl
+	global opt_dot
 	
 	if (len(sys.argv) < 3):
 		usage(sys.argv[0])
@@ -1593,6 +1728,7 @@ def main():
 	opt_bp = False
 	opt_ebp = False
 	opt_adl = False
+	opt_dot = False
 	
 	for arg in sys.argv[1:(len(sys.argv) - 1)]:
 		if (arg == "--bp"):
@@ -1601,6 +1737,8 @@ def main():
 			opt_ebp = True
 		elif (arg == "--adl"):
 			opt_adl = True
+		elif (arg == "--dot"):
+			opt_dot = True
 		elif (arg == "--nop"):
 			pass
 		else:
@@ -1622,6 +1760,7 @@ def main():
 	
 	recursion(".", ".", path, 0)
 	dump_archbp(path)
+	dump_dot(path)
 
 if __name__ == '__main__':
 	main()
