@@ -553,7 +553,7 @@ def direct_binds(binds):
 	
 	return result
 
-def merge_subarch(prefix, arch, outdir):
+def merge_arch(prefix, arch, outdir):
 	"Merge subarchitecture into architecture"
 	
 	insts = []
@@ -565,7 +565,7 @@ def merge_subarch(prefix, arch, outdir):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch("%s_%s" % (prefix, subarch['name']), subarch, outdir)
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_arch("%s_%s" % (prefix, subarch['name']), subarch, outdir)
 				insts.extend(subinsts)
 				binds.extend(subbinds)
 				delegates.extend(subdelegates)
@@ -612,7 +612,7 @@ def dump_archbp(outdir):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch(subarch['name'], subarch, outdir)
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_arch(subarch['name'], subarch, outdir)
 				insts.extend(subinsts)
 				binds.extend(subbinds)
 				delegates.extend(subdelegates)
@@ -1584,31 +1584,26 @@ def recursion(base, root, output, level):
 		if (os.path.isdir(canon)):
 			recursion(base, canon, output, level + 1)
 
-def merge_bind(subarchs, delegates, subsumes, prefix, bfrom, bto, outf, indent):
-	"Update binding according to bound object types"
+def merge_dot_frame(prefix, name, frame, outf, indent):
+	"Dump Dot frame"
 	
-	pfrom = "%s%s" % (prefix, bfrom[0])
-	pto = "%s%s" % (prefix, bto[0])
-	attrs = []
+	outf.write("%ssubgraph cluster_%s {\n" % (tabs(indent), prefix))
+	outf.write("%s\tlabel=\"%s\";\n" % (tabs(indent), name))
+	outf.write("%s\tstyle=filled;\n" % tabs(indent))
+	outf.write("%s\tcolor=red;\n" % tabs(indent))
+	outf.write("%s\tfillcolor=yellow;\n" % tabs(indent))
+	outf.write("%s\t\n" % tabs(indent))
 	
-	if (bfrom[0] in subarchs):
-		sfrom = subsumes[pfrom][bfrom[1]]
-		attrs.append("ltail=cluster_%s" % pfrom)
-	else:
-		sfrom = pfrom
+	if ('provides' in frame):
+		outf.write("%s\t%s__provides [label=\"\", shape=doublecircle, style=filled, color=green, fillcolor=yellow];\n" % (tabs(indent), prefix))
 	
-	if (bto[0] in subarchs):
-		sto = delegates[pto][bto[1]]
-		attrs.append("lhead=cluster_%s" % pto)
-	else:
-		sto = pto
+	if ('requires' in frame):
+		outf.write("%s\t%s__requires [label=\"\", shape=circle, style=filled, color=red, fillcolor=yellow];\n" % (tabs(indent), prefix))
 	
-	outf.write("%s\t%s -> %s" % (tabs(indent), sfrom, sto))
-	if (len(attrs) > 0):
-		outf.write(" [%s]" % ", ".join(attrs))
-	outf.write(";\n")
+	outf.write("%s}\n" % tabs(indent))
+	outf.write("%s\n" % tabs(indent))
 
-def merge_dot_subarch(prefix, name, arch, outf, indent):
+def merge_dot_arch(prefix, name, arch, outf, indent):
 	"Dump Dot subarchitecture"
 	
 	outf.write("%ssubgraph cluster_%s {\n" % (tabs(indent), prefix))
@@ -1616,44 +1611,102 @@ def merge_dot_subarch(prefix, name, arch, outf, indent):
 	outf.write("%s\tcolor=red;\n" % tabs(indent))
 	outf.write("%s\t\n" % tabs(indent))
 	
-	subarchs = set()
-	delegates = {}
-	subsumes = {}
-	
-	delegates[prefix] = {}
-	subsumes[prefix] = {}
-	
 	if ('inst' in arch):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				(subdelegates, subsubsumes) = merge_dot_subarch("%s_%s" % (prefix, inst['var']), inst['var'], subarch, outf, indent + 1)
-				subarchs.add(inst['var'])
-				delegates.update(subdelegates)
-				subsumes.update(subsubsumes)
+				merge_dot_arch("%s_%s" % (prefix, inst['var']), inst['var'], subarch, outf, indent + 1)
 			else:
 				subframe = get_frame(inst['type'])
 				if (not subframe is None):
-					outf.write("%s\t%s_%s [label=\"%s\", shape=component, style=filled, color=red, fillcolor=yellow];\n" % (tabs(indent), prefix, inst['var'], inst['var']))
+					merge_dot_frame("%s_%s" % (prefix, inst['var']), inst['var'], subframe, outf, indent + 1)
 				else:
 					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
 	
 	if ('bind' in arch):
+		labels = {}
 		for bind in arch['bind']:
-			merge_bind(subarchs, delegates, subsumes, "%s_" % prefix, bind['from'], bind['to'], outf, indent)
+			if (bind['from'][1] != bind['to'][1]):
+				label = "%s:%s" % (bind['from'][1], bind['to'][1])
+			else:
+				label = bind['from'][1]
+			
+			if (not (bind['from'][0], bind['to'][0]) in labels):
+				labels[(bind['from'][0], bind['to'][0])] = []
+			
+			labels[(bind['from'][0], bind['to'][0])].append(label)
+		
+		for bind in arch['bind']:
+			if (not (bind['from'][0], bind['to'][0]) in labels):
+				continue
+			
+			attrs = []
+			
+			if (bind['from'][0] != bind['to'][0]):
+				attrs.append("ltail=cluster_%s_%s" % (prefix, bind['from'][0]))
+				attrs.append("lhead=cluster_%s_%s" % (prefix, bind['to'][0]))
+			
+			attrs.append("label=\"%s\"" % "\\n".join(labels[(bind['from'][0], bind['to'][0])]))
+			del labels[(bind['from'][0], bind['to'][0])]
+			
+			outf.write("%s\t%s_%s__requires -> %s_%s__provides [%s];\n" % (tabs(indent), prefix, bind['from'][0], prefix, bind['to'][0], ", ".join(attrs)))
 	
 	if ('delegate' in arch):
+		outf.write("%s\t%s__provides [label=\"\", shape=doublecircle, color=green];\n" % (tabs(indent), prefix))
+		
+		labels = {}
 		for delegate in arch['delegate']:
-			delegates[prefix][delegate['from']] = "%s_%s" % (prefix, delegate['to'][0])
+			if (delegate['from'] != delegate['to'][1]):
+				label = "%s:%s" % (delegate['from'], delegate['to'][1])
+			else:
+				label = delegate['from']
+			
+			if (not delegate['to'][0] in labels):
+				labels[delegate['to'][0]] = []
+			
+			labels[delegate['to'][0]].append(label)
+		
+		for delegate in arch['delegate']:
+			if (not delegate['to'][0] in labels):
+				continue
+			
+			attrs = []
+			attrs.append("color=gray")
+			attrs.append("lhead=cluster_%s_%s" % (prefix, delegate['to'][0]))
+			attrs.append("label=\"%s\"" % "\\n".join(labels[delegate['to'][0]]))
+			del labels[delegate['to'][0]]
+			
+			outf.write("%s\t%s__provides -> %s_%s__provides [%s];\n" % (tabs(indent), prefix, prefix, delegate['to'][0], ", ".join(attrs)))
 	
 	if ('subsume' in arch):
+		outf.write("%s\t%s__requires [label=\"\", shape=circle, color=red];\n" % (tabs(indent), prefix))
+		
+		labels = {}
 		for subsume in arch['subsume']:
-			subsumes[prefix][subsume['to']] = "%s_%s" % (prefix, subsume['from'][0])
+			if (subsume['from'][1] != subsume['to']):
+				label = "%s:%s" % (subsume['from'][1], subsume['to'])
+			else:
+				label = subsume['to']
+			
+			if (not subsume['from'][0] in labels):
+				labels[subsume['from'][0]] = []
+			
+			labels[subsume['from'][0]].append(label)
+		
+		for subsume in arch['subsume']:
+			if (not subsume['from'][0] in labels):
+				continue
+			
+			attrs = []
+			attrs.append("color=gray")
+			attrs.append("ltail=cluster_%s_%s" % (prefix, subsume['from'][0]))
+			attrs.append("label=\"%s\"" % "\\n".join(labels[subsume['from'][0]]))
+			del labels[subsume['from'][0]]
+			
+			outf.write("%s\t%s_%s__requires -> %s__requires [%s];\n" % (tabs(indent), prefix, subsume['from'][0], prefix, ", ".join(attrs)))
 	
 	outf.write("%s}\n" % tabs(indent))
 	outf.write("%s\n" % tabs(indent))
-	
-	return (delegates, subsumes)
 
 def dump_dot(outdir):
 	"Dump Dot architecture"
@@ -1673,30 +1726,48 @@ def dump_dot(outdir):
 		outf.write("digraph {\n")
 		outf.write("\tlabel=\"%s\";\n" % arch['name'])
 		outf.write("\tcompound=true;\n")
+		outf.write("\tedge [fontsize=8];\n")
 		outf.write("\t\n")
-		
-		subarchs = set()
-		delegates = {}
-		subsumes = {}
 		
 		if ('inst' in arch):
 			for inst in arch['inst']:
 				subarch = get_arch(inst['type'])
 				if (not subarch is None):
-					(subdelegates, subsubsumes) = merge_dot_subarch(inst['var'], inst['var'], subarch, outf, 1)
-					subarchs.add(inst['var'])
-					delegates.update(subdelegates)
-					subsumes.update(subsubsumes)
+					merge_dot_arch(inst['var'], inst['var'], subarch, outf, 1)
 				else:
 					subframe = get_frame(inst['type'])
 					if (not subframe is None):
-						outf.write("\t%s [shape=component, style=filled, color=red, fillcolor=yellow];\n" % inst['var'])
+						merge_dot_frame("%s" % inst['var'], inst['var'], subframe, outf, 1)
 					else:
 						print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
 		
 		if ('bind' in arch):
+			labels = {}
 			for bind in arch['bind']:
-				merge_bind(subarchs, delegates, subsumes, "", bind['from'], bind['to'], outf, 0)
+				if (bind['from'][1] != bind['to'][1]):
+					label = "%s:%s" % (bind['from'][1], bind['to'][1])
+				else:
+					label = bind['from'][1]
+				
+				if (not (bind['from'][0], bind['to'][0]) in labels):
+					labels[(bind['from'][0], bind['to'][0])] = []
+				
+				labels[(bind['from'][0], bind['to'][0])].append(label)
+			
+			for bind in arch['bind']:
+				if (not (bind['from'][0], bind['to'][0]) in labels):
+					continue
+				
+				attrs = []
+				
+				if (bind['from'][0] != bind['to'][0]):
+					attrs.append("ltail=cluster_%s" % bind['from'][0])
+					attrs.append("lhead=cluster_%s" % bind['to'][0])
+				
+				attrs.append("label=\"%s\"" % "\\n".join(labels[(bind['from'][0], bind['to'][0])]))
+				del labels[(bind['from'][0], bind['to'][0])]
+				
+				outf.write("\t%s__requires -> %s__provides [%s];\n" % (bind['from'][0], bind['to'][0], ", ".join(attrs)))
 		
 		if ('delegate' in arch):
 			for delegate in arch['delegate']:
