@@ -234,20 +234,20 @@ static hash_table_operations_t conn_hash_table_ops = {
  */
 static void insert_timeout(awaiter_t *wd)
 {
-	wd->timedout = false;
-	wd->inlist = true;
+	wd->to_event.occurred = false;
+	wd->to_event.inlist = true;
 	
 	link_t *tmp = timeout_list.next;
 	while (tmp != &timeout_list) {
-		awaiter_t *cur = list_get_instance(tmp, awaiter_t, link);
+		awaiter_t *cur;
 		
-		if (tv_gteq(&cur->expires, &wd->expires))
+		cur = list_get_instance(tmp, awaiter_t, to_event.link);
+		if (tv_gteq(&cur->to_event.expires, &wd->to_event.expires))
 			break;
-		
 		tmp = tmp->next;
 	}
 	
-	list_append(&wd->link, tmp);
+	list_append(&wd->to_event.link, tmp);
 }
 
 /** Try to route a call to an appropriate connection fibril.
@@ -294,9 +294,9 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	if (!conn->wdata.active) {
 		
 		/* If in timeout list, remove it */
-		if (conn->wdata.inlist) {
-			conn->wdata.inlist = false;
-			list_remove(&conn->wdata.link);
+		if (conn->wdata.to_event.inlist) {
+			conn->wdata.to_event.inlist = false;
+			list_remove(&conn->wdata.to_event.link);
 		}
 		
 		conn->wdata.active = true;
@@ -384,10 +384,10 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	futex_down(&async_futex);
 	
 	if (usecs) {
-		gettimeofday(&conn->wdata.expires, NULL);
-		tv_add(&conn->wdata.expires, usecs);
+		gettimeofday(&conn->wdata.to_event.expires, NULL);
+		tv_add(&conn->wdata.to_event.expires, usecs);
 	} else
-		conn->wdata.inlist = false;
+		conn->wdata.to_event.inlist = false;
 	
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
@@ -409,7 +409,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * Get it again.
 		 */
 		futex_down(&async_futex);
-		if ((usecs) && (conn->wdata.timedout)
+		if ((usecs) && (conn->wdata.to_event.occurred)
 		    && (list_empty(&conn->msg_queue))) {
 			/* If we timed out -> exit */
 			futex_up(&async_futex);
@@ -604,16 +604,17 @@ static void handle_expired_timeouts(void)
 	
 	link_t *cur = timeout_list.next;
 	while (cur != &timeout_list) {
-		awaiter_t *waiter = list_get_instance(cur, awaiter_t, link);
+		awaiter_t *waiter;
 		
-		if (tv_gt(&waiter->expires, &tv))
+		waiter = list_get_instance(cur, awaiter_t, to_event.link);
+		if (tv_gt(&waiter->to_event.expires, &tv))
 			break;
-		
+
 		cur = cur->next;
-		
-		list_remove(&waiter->link);
-		waiter->inlist = false;
-		waiter->timedout = true;
+
+		list_remove(&waiter->to_event.link);
+		waiter->to_event.inlist = false;
+		waiter->to_event.occurred = true;
 		
 		/*
 		 * Redundant condition?
@@ -650,17 +651,18 @@ static int async_manager_worker(void)
 		suseconds_t timeout;
 		if (!list_empty(&timeout_list)) {
 			awaiter_t *waiter = list_get_instance(timeout_list.next,
-			    awaiter_t, link);
+			    awaiter_t, to_event.link);
 			
 			struct timeval tv;
 			gettimeofday(&tv, NULL);
 			
-			if (tv_gteq(&tv, &waiter->expires)) {
+			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
 				continue;
 			} else
-				timeout = tv_sub(&waiter->expires, &tv);
+				timeout = tv_sub(&waiter->to_event.expires,
+				    &tv);
 		} else
 			timeout = SYNCH_NO_TIMEOUT;
 		
@@ -761,8 +763,8 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
 	write_barrier();
 	
 	/* Remove message from timeout list */
-	if (msg->wdata.inlist)
-		list_remove(&msg->wdata.link);
+	if (msg->wdata.to_event.inlist)
+		list_remove(&msg->wdata.to_event.link);
 	
 	msg->done = true;
 	if (!msg->wdata.active) {
@@ -801,7 +803,7 @@ aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	/* We may sleep in the next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
@@ -841,7 +843,7 @@ aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	/* We may sleep in next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
@@ -870,7 +872,7 @@ void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
@@ -908,8 +910,8 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 		goto done;
 	}
 	
-	gettimeofday(&msg->wdata.expires, NULL);
-	tv_add(&msg->wdata.expires, timeout);
+	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
@@ -949,8 +951,8 @@ void async_usleep(suseconds_t timeout)
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	
-	gettimeofday(&msg->wdata.expires, NULL);
-	tv_add(&msg->wdata.expires, timeout);
+	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	futex_down(&async_futex);
 	

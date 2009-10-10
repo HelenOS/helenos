@@ -40,25 +40,31 @@
 #include <sys/time.h>
 #include <bool.h>
 
-/** Structures of this type represent a waiting fibril. */
+/** Structures of this type are used to track the timeout events. */
 typedef struct {
-	/** Expiration time. */
-	struct timeval expires;
-	
 	/** If true, this struct is in the timeout list. */
 	bool inlist;
 	
 	/** Timeout list link. */
 	link_t link;
 	
+	/** If true, we have timed out. */
+	bool occurred;
+
+	/** Expiration time. */
+	struct timeval expires;
+} to_event_t;
+
+/** Structures of this type represent a waiting fibril. */
+typedef struct {
 	/** Identification of and link to the waiting fibril. */
 	fid_t fid;
 	
 	/** If true, this fibril is currently active. */
 	bool active;
-	
-	/** If true, we have timed out. */
-	bool timedout;
+
+	/** Timeout wait data. */
+	to_event_t to_event;
 } awaiter_t;
 
 #endif
