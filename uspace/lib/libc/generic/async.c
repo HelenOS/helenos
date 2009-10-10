@@ -93,6 +93,7 @@
 
 #include <futex.h>
 #include <async.h>
+#include <async_priv.h>
 #include <fibril.h>
 #include <stdio.h>
 #include <adt/hash_table.h>
@@ -108,27 +109,6 @@ atomic_t async_futex = FUTEX_INITIALIZER;
 
 /** Number of threads waiting for IPC in the kernel. */
 atomic_t threads_in_ipc_wait = { 0 };
-
-/** Structures of this type represent a waiting fibril. */
-typedef struct {
-	/** Expiration time. */
-	struct timeval expires;
-	
-	/** If true, this struct is in the timeout list. */
-	bool inlist;
-	
-	/** Timeout list link. */
-	link_t link;
-	
-	/** Identification of and link to the waiting fibril. */
-	fid_t fid;
-	
-	/** If true, this fibril is currently active. */
-	bool active;
-	
-	/** If true, we have timed out. */
-	bool timedout;
-} awaiter_t;
 
 typedef struct {
 	awaiter_t wdata;
