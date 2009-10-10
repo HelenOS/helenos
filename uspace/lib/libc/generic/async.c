@@ -82,7 +82,7 @@
  *     ipc_answer_0(icallid, EOK);
  *
  *     callid = async_get_call(&call);
- *     handle_call(callid, call);
+ *     somehow_handle_the_call(callid, call);
  *     ipc_answer_2(callid, 1, 2, 3);
  *
  *     callid = async_get_call(&call);
