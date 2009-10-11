@@ -232,7 +232,7 @@ static hash_table_operations_t conn_hash_table_ops = {
  * @param wd Wait data of the current fibril.
  *
  */
-static void insert_timeout(awaiter_t *wd)
+void async_insert_timeout(awaiter_t *wd)
 {
 	wd->to_event.occurred = false;
 	wd->to_event.inlist = true;
@@ -392,7 +392,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
 		if (usecs)
-			insert_timeout(&conn->wdata);
+			async_insert_timeout(&conn->wdata);
 		
 		conn->wdata.active = false;
 		
@@ -915,7 +915,7 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
-	insert_timeout(&msg->wdata);
+	async_insert_timeout(&msg->wdata);
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
@@ -956,7 +956,7 @@ void async_usleep(suseconds_t timeout)
 	
 	futex_down(&async_futex);
 	
-	insert_timeout(&msg->wdata);
+	async_insert_timeout(&msg->wdata);
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);

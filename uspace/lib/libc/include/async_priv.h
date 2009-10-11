@@ -67,6 +67,8 @@ typedef struct {
 	to_event_t to_event;
 } awaiter_t;
 
+extern void async_insert_timeout(awaiter_t *wd);
+
 #endif
 
 /** @}
