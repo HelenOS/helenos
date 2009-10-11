@@ -388,7 +388,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* accept the mount options */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -399,7 +399,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(opts);
@@ -466,7 +466,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size)) {
+	if (!async_data_read_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -475,7 +475,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	size_t bytes;
 	if (nodep->type == TMPFS_FILE) {
 		bytes = max(0, min(nodep->size - pos, size));
-		(void) ipc_data_read_finalize(callid, nodep->data + pos,
+		(void) async_data_read_finalize(callid, nodep->data + pos,
 		    bytes);
 	} else {
 		tmpfs_dentry_t *dentryp;
@@ -502,7 +502,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
-		(void) ipc_data_read_finalize(callid, dentryp->name,
+		(void) async_data_read_finalize(callid, dentryp->name,
 		    str_size(dentryp->name) + 1);
 		bytes = 1;
 	}
@@ -540,7 +540,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);	
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -551,7 +551,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if (pos + size <= nodep->size) {
 		/* The file size is not changing. */
-		(void) ipc_data_write_finalize(callid, nodep->data + pos, size);
+		(void) async_data_write_finalize(callid, nodep->data + pos, size);
 		ipc_answer_2(rid, EOK, size, nodep->size);
 		return;
 	}
@@ -573,7 +573,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	memset(newdata + nodep->size, 0, delta);
 	nodep->size += delta;
 	nodep->data = newdata;
-	(void) ipc_data_write_finalize(callid, nodep->data + pos, size);
+	(void) async_data_write_finalize(callid, nodep->data + pos, size);
 	ipc_answer_2(rid, EOK, size, nodep->size);
 }
 

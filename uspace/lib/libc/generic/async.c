@@ -1086,5 +1086,249 @@ ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	return rc;
 }
 
+/** Wrapper for making IPC_M_SHARE_IN calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Destination address space area base.
+ * @param size		Size of the destination address space area.
+ * @param arg		User defined argument.
+ * @param flags		Storage where the received flags will be stored. Can be
+ *			NULL.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
+    int *flags)
+{
+	int res;
+	sysarg_t tmp_flags;
+	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	if (flags)
+		*flags = tmp_flags;
+	return res;
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_IN calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_IN call will
+ * 			be stored.
+ * @param size		Destination address space area size.	
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_share_in_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address space base.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_share_in_finalize(ipc_callid_t callid, void *src, int flags)
+{
+	return ipc_share_in_finalize(callid, src, flags);
+}
+
+/** Wrapper for making IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Source address space area base address.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_share_out_start(int phoneid, void *src, int flags)
+{
+	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
+	    (ipcarg_t) flags);
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_OUT call will
+ * 			be stored.
+ * @param size		Storage where the source address space area size will be
+ *			stored.
+ * @param flags		Storage where the sharing flags will be stored.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+	assert(flags);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	*flags = (int) IPC_GET_ARG3(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Destination address space area base address.	
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_share_out_finalize(ipc_callid_t callid, void *dst)
+{
+	return ipc_share_out_finalize(callid, dst);
+}
+
+
+/** Wrapper for making IPC_M_DATA_READ calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Address of the beginning of the destination buffer.
+ * @param size		Size of the destination buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_data_read_start(int phoneid, void *dst, size_t size)
+{
+	return async_req_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
+	    (ipcarg_t) size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
+ * 			be stored.
+ * @param size		Storage where the maximum size will be stored. Can be
+ *			NULL.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_data_read_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
+		return 0;
+	if (size)
+		*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_READ calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address for the IPC_M_DATA_READ call.
+ * @param size		Size for the IPC_M_DATA_READ call. Can be smaller than
+ *			the maximum size announced by the sender.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
+{
+	return ipc_data_read_finalize(callid, src, size);
+}
+
+/** Wrapper for making IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Address of the beginning of the source buffer.
+ * @param size		Size of the source buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_data_write_start(int phoneid, const void *src, size_t size)
+{
+	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
+	    (ipcarg_t) size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
+ * 			be stored.
+ * @param size		Storage where the suggested size will be stored. May be
+ *			NULL
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_data_write_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+		return 0;
+	if (size)
+		*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Final destination address for the IPC_M_DATA_WRITE call.
+ * @param size		Final size for the IPC_M_DATA_WRITE call.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
+{
+	return ipc_data_write_finalize(callid, dst, size);
+}
+
 /** @}
  */

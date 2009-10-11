@@ -428,7 +428,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -441,7 +441,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	(void) ipc_data_write_finalize(callid, buf, size);
+	(void) async_data_write_finalize(callid, buf, size);
 	
 	async_serialize_start();
 	
@@ -463,7 +463,7 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size)) {
+	if (!async_data_read_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -488,7 +488,7 @@ recheck:
 	}
 	
 	if (pos == size) {
-		(void) ipc_data_read_finalize(callid, buf, size);
+		(void) async_data_read_finalize(callid, buf, size);
 		ipc_answer_1(rid, EOK, size);
 		free(buf);
 	} else {
@@ -712,7 +712,7 @@ static bool console_init(void)
 		interbuffer = NULL;
 	
 	if (interbuffer) {
-		if (ipc_share_out_start(fb_info.phone, interbuffer,
+		if (async_share_out_start(fb_info.phone, interbuffer,
 		    AS_AREA_READ) != EOK) {
 			as_area_destroy(interbuffer);
 			interbuffer = NULL;

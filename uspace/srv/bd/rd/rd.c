@@ -101,10 +101,10 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Now we wait for the client to send us its communication as_area.
 	 */
 	int flags;
-	if (ipc_share_out_receive(&callid, &comm_size, &flags)) {
+	if (async_share_out_receive(&callid, &comm_size, &flags)) {
 		fs_va = as_get_mappable_page(comm_size);
 		if (fs_va) {
-			(void) ipc_share_out_finalize(callid, fs_va);
+			(void) async_share_out_finalize(callid, fs_va);
 		} else {
 			ipc_answer_0(callid, EHANGUP);
 			return;		
