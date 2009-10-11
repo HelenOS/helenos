@@ -139,7 +139,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 	vfs_connect();
 	
 	req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
-	rc = ipc_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -151,7 +151,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 			return (int) rc_orig;
 	}
 	
-	rc = ipc_data_write_start(vfs_phone, (void *) opts, str_size(opts));
+	rc = async_data_write_start(vfs_phone, (void *) opts, str_size(opts));
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -163,7 +163,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 			return (int) rc_orig;
 	}
 
-	rc = ipc_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
+	rc = async_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -212,7 +212,7 @@ static int _open(const char *path, int lflag, int oflag, ...)
 	vfs_connect();
 	
 	req = async_send_3(vfs_phone, VFS_IN_OPEN, lflag, oflag, 0, &answer);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
+	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 	
@@ -289,7 +289,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	vfs_connect();
 	
 	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
-	rc = ipc_data_read_start(vfs_phone, (void *)buf, nbyte);
+	rc = async_data_read_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 	
@@ -321,7 +321,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	vfs_connect();
 	
 	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
-	rc = ipc_data_write_start(vfs_phone, (void *)buf, nbyte);
+	rc = async_data_write_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 	
@@ -401,7 +401,7 @@ int fstat(int fildes, struct stat *stat)
 	vfs_connect();
 	
 	req = async_send_1(vfs_phone, VFS_IN_FSTAT, fildes, NULL);
-	rc = ipc_data_read_start(vfs_phone, (void *)stat, sizeof(struct stat));
+	rc = async_data_read_start(vfs_phone, (void *)stat, sizeof(struct stat));
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 		
@@ -436,7 +436,7 @@ int stat(const char *path, struct stat *stat)
 	vfs_connect();
 	
 	req = async_send_0(vfs_phone, VFS_IN_STAT, NULL);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
+	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -447,7 +447,7 @@ int stat(const char *path, struct stat *stat)
 		else
 			return (int) rc_orig;
 	}
-	rc = ipc_data_read_start(vfs_phone, stat, sizeof(struct stat));
+	rc = async_data_read_start(vfs_phone, stat, sizeof(struct stat));
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -513,7 +513,7 @@ int mkdir(const char *path, mode_t mode)
 	vfs_connect();
 	
 	req = async_send_1(vfs_phone, VFS_IN_MKDIR, mode, NULL);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
+	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 	
@@ -548,7 +548,7 @@ static int _unlink(const char *path, int lflag)
 	vfs_connect();
 	
 	req = async_send_0(vfs_phone, VFS_IN_UNLINK, NULL);
-	rc = ipc_data_write_start(vfs_phone, pa, pa_size);
+	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 
@@ -601,7 +601,7 @@ int rename(const char *old, const char *new)
 	vfs_connect();
 	
 	req = async_send_0(vfs_phone, VFS_IN_RENAME, NULL);
-	rc = ipc_data_write_start(vfs_phone, olda, olda_size);
+	rc = async_data_write_start(vfs_phone, olda, olda_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -613,7 +613,7 @@ int rename(const char *old, const char *new)
 		else
 			return (int) rc_orig;
 	}
-	rc = ipc_data_write_start(vfs_phone, newa, newa_size);
+	rc = async_data_write_start(vfs_phone, newa, newa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();

@@ -729,38 +729,11 @@ int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
 {
 	int res;
 	sysarg_t tmp_flags;
-	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
 	    (ipcarg_t) size, arg, NULL, &tmp_flags);
 	if (flags)
 		*flags = tmp_flags;
 	return res;
-}
-
-/** Wrapper for receiving the IPC_M_SHARE_IN calls.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param callid	Storage where the hash of the IPC_M_SHARE_IN call will
- * 			be stored.
- * @param size		Destination address space area size.	
- *
- * @return		Non-zero on success, zero on failure.
- */
-int ipc_share_in_receive(ipc_callid_t *callid, size_t *size)
-{
-	ipc_call_t data;
-	
-	assert(callid);
-	assert(size);
-
-	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
-		return 0;
-	*size = (size_t) IPC_GET_ARG2(data);
-	return 1;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls.
@@ -789,39 +762,8 @@ int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags)
  */
 int ipc_share_out_start(int phoneid, void *src, int flags)
 {
-	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
+	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
 	    (ipcarg_t) flags);
-}
-
-/** Wrapper for receiving the IPC_M_SHARE_OUT calls.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param callid	Storage where the hash of the IPC_M_SHARE_OUT call will
- * 			be stored.
- * @param size		Storage where the source address space area size will be
- *			stored.
- * @param flags		Storage where the sharing flags will be stored.
- *
- * @return		Non-zero on success, zero on failure.
- */
-int ipc_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
-{
-	ipc_call_t data;
-	
-	assert(callid);
-	assert(size);
-	assert(flags);
-
-	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
-		return 0;
-	*size = (size_t) IPC_GET_ARG2(data);
-	*flags = (int) IPC_GET_ARG3(data);
-	return 1;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_OUT calls.
@@ -850,36 +792,8 @@ int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
  */
 int ipc_data_read_start(int phoneid, void *dst, size_t size)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
 	    (ipcarg_t) size);
-}
-
-/** Wrapper for receiving the IPC_M_DATA_READ calls.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
- * 			be stored.
- * @param size		Storage where the maximum size will be stored. Can be
- *			NULL.
- *
- * @return		Non-zero on success, zero on failure.
- */
-int ipc_data_read_receive(ipc_callid_t *callid, size_t *size)
-{
-	ipc_call_t data;
-	
-	assert(callid);
-
-	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
-		return 0;
-	if (size)
-		*size = (size_t) IPC_GET_ARG2(data);
-	return 1;
 }
 
 /** Wrapper for answering the IPC_M_DATA_READ calls.
@@ -909,36 +823,8 @@ int ipc_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
  */
 int ipc_data_write_start(int phoneid, const void *src, size_t size)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
 	    (ipcarg_t) size);
-}
-
-/** Wrapper for receiving the IPC_M_DATA_WRITE calls.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
- * 			be stored.
- * @param size		Storage where the suggested size will be stored. May be
- *			NULL
- *
- * @return		Non-zero on success, zero on failure.
- */
-int ipc_data_write_receive(ipc_callid_t *callid, size_t *size)
-{
-	ipc_call_t data;
-	
-	assert(callid);
-
-	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
-		return 0;
-	if (size)
-		*size = (size_t) IPC_GET_ARG2(data);
-	return 1;
 }
 
 /** Wrapper for answering the IPC_M_DATA_WRITE calls.

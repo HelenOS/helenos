@@ -282,16 +282,12 @@ extern int ipc_forward_slow(ipc_callid_t, int, int, ipcarg_t, ipcarg_t,
 	ipc_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
 extern int ipc_share_in_start(int, void *, size_t, ipcarg_t, int *);
-extern int ipc_share_in_receive(ipc_callid_t *, size_t *);
 extern int ipc_share_in_finalize(ipc_callid_t, void *, int );
 extern int ipc_share_out_start(int, void *, int);
-extern int ipc_share_out_receive(ipc_callid_t *, size_t *, int *);
 extern int ipc_share_out_finalize(ipc_callid_t, void *);
 extern int ipc_data_read_start(int, void *, size_t);
-extern int ipc_data_read_receive(ipc_callid_t *, size_t *);
 extern int ipc_data_read_finalize(ipc_callid_t, const void *, size_t);
 extern int ipc_data_write_start(int, const void *, size_t);
-extern int ipc_data_write_receive(ipc_callid_t *, size_t *);
 extern int ipc_data_write_finalize(ipc_callid_t, void *, size_t);
 
 extern int ipc_connect_kbox(task_id_t);

@@ -26,71 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup klog KLog
- * @brief HelenOS KLog
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdio.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <ipc/services.h>
-#include <as.h>
-#include <sysinfo.h>
-#include <event.h>
-#include <errno.h>
-#include <io/klog.h>
+#ifndef LIBC_ASYNC_PRIV_H_
+#define LIBC_ASYNC_PRIV_H_
 
-#define NAME  "klog"
+#include <adt/list.h>
+#include <fibril.h>
+#include <sys/time.h>
+#include <bool.h>
 
-/* Pointer to klog area */
-static wchar_t *klog;
-static size_t klog_length;
+/** Structures of this type are used to track the timeout events. */
+typedef struct {
+	/** If true, this struct is in the timeout list. */
+	bool inlist;
+	
+	/** Timeout list link. */
+	link_t link;
+	
+	/** If true, we have timed out. */
+	bool occurred;
 
-static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
-	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
-	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
-	size_t i;
-	
-	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % klog_length]);
-}
+	/** Expiration time. */
+	struct timeval expires;
+} to_event_t;
 
-int main(int argc, char *argv[])
-{
-	size_t klog_pages = sysinfo_value("klog.pages");
-	size_t klog_size = klog_pages * PAGE_SIZE;
-	klog_length = klog_size / sizeof(wchar_t);
+/** Structures of this type are used to track the wakeup events. */
+typedef struct {
+	/** If true, this struct is in a synchronization object wait queue. */
+	bool inlist;
 	
-	klog = (wchar_t *) as_get_mappable_page(klog_size);
-	if (klog == NULL) {
-		printf(NAME ": Error allocating memory area\n");
-		return -1;
-	}
+	/** Wait queue linkage. */
+	link_t link;
+} wu_event_t;
+
+
+/** Structures of this type represent a waiting fibril. */
+typedef struct {
+	/** Identification of and link to the waiting fibril. */
+	fid_t fid;
 	
-	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog,
-	    klog_size, SERVICE_MEM_KLOG);
-	if (res != EOK) {
-		printf(NAME ": Error initializing memory area\n");
-		return -1;
-	}
-	
-	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
-		return -1;
-	}
-	
-	async_set_interrupt_received(interrupt_received);
-	klog_update();
-	async_manager();
-	
-	return 0;
-}
+	/** If true, this fibril is currently active. */
+	bool active;
+
+	/** Timeout wait data. */
+	to_event_t to_event;
+	/** Wakeup wait data. */
+	wu_event_t wu_event;
+} awaiter_t;
+
+extern void async_insert_timeout(awaiter_t *wd);
+
+#endif
 
 /** @}
  */

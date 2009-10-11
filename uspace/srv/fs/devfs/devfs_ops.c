@@ -107,7 +107,7 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Accept the mount options */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -120,7 +120,7 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(opts);
@@ -285,7 +285,7 @@ void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size) ||
+	if (!async_data_read_receive(&callid, &size) ||
 	    size != sizeof(struct stat)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -314,7 +314,7 @@ void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 		fibril_mutex_unlock(&devices_mutex);
 	}
 
-	ipc_data_read_finalize(callid, &stat, sizeof(struct stat));
+	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	ipc_answer_0(rid, EOK);
 }
 
@@ -339,7 +339,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
 		
 		ipc_callid_t callid;
-		if (!ipc_data_read_receive(&callid, NULL)) {
+		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);
@@ -366,7 +366,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 	} else {
 		ipc_callid_t callid;
 		size_t size;
-		if (!ipc_data_read_receive(&callid, &size)) {
+		if (!async_data_read_receive(&callid, &size)) {
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);
 			return;
@@ -383,7 +383,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		size_t max = devmap_device_get_devices(count, desc);
 		
 		if (pos < max) {
-			ipc_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
+			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 		} else {
 			ipc_answer_0(callid, ENOENT);
 			ipc_answer_1(rid, ENOENT, 0);
@@ -417,7 +417,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
 		
 		ipc_callid_t callid;
-		if (!ipc_data_write_receive(&callid, NULL)) {
+		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);

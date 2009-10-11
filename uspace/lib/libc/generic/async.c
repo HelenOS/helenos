@@ -82,7 +82,7 @@
  *     ipc_answer_0(icallid, EOK);
  *
  *     callid = async_get_call(&call);
- *     handle_call(callid, call);
+ *     somehow_handle_the_call(callid, call);
  *     ipc_answer_2(callid, 1, 2, 3);
  *
  *     callid = async_get_call(&call);
@@ -93,6 +93,7 @@
 
 #include <futex.h>
 #include <async.h>
+#include <async_priv.h>
 #include <fibril.h>
 #include <stdio.h>
 #include <adt/hash_table.h>
@@ -108,27 +109,6 @@ atomic_t async_futex = FUTEX_INITIALIZER;
 
 /** Number of threads waiting for IPC in the kernel. */
 atomic_t threads_in_ipc_wait = { 0 };
-
-/** Structures of this type represent a waiting fibril. */
-typedef struct {
-	/** Expiration time. */
-	struct timeval expires;
-	
-	/** If true, this struct is in the timeout list. */
-	bool inlist;
-	
-	/** Timeout list link. */
-	link_t link;
-	
-	/** Identification of and link to the waiting fibril. */
-	fid_t fid;
-	
-	/** If true, this fibril is currently active. */
-	bool active;
-	
-	/** If true, we have timed out. */
-	bool timedout;
-} awaiter_t;
 
 typedef struct {
 	awaiter_t wdata;
@@ -252,22 +232,22 @@ static hash_table_operations_t conn_hash_table_ops = {
  * @param wd Wait data of the current fibril.
  *
  */
-static void insert_timeout(awaiter_t *wd)
+void async_insert_timeout(awaiter_t *wd)
 {
-	wd->timedout = false;
-	wd->inlist = true;
+	wd->to_event.occurred = false;
+	wd->to_event.inlist = true;
 	
 	link_t *tmp = timeout_list.next;
 	while (tmp != &timeout_list) {
-		awaiter_t *cur = list_get_instance(tmp, awaiter_t, link);
+		awaiter_t *cur;
 		
-		if (tv_gteq(&cur->expires, &wd->expires))
+		cur = list_get_instance(tmp, awaiter_t, to_event.link);
+		if (tv_gteq(&cur->to_event.expires, &wd->to_event.expires))
 			break;
-		
 		tmp = tmp->next;
 	}
 	
-	list_append(&wd->link, tmp);
+	list_append(&wd->to_event.link, tmp);
 }
 
 /** Try to route a call to an appropriate connection fibril.
@@ -314,9 +294,9 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	if (!conn->wdata.active) {
 		
 		/* If in timeout list, remove it */
-		if (conn->wdata.inlist) {
-			conn->wdata.inlist = false;
-			list_remove(&conn->wdata.link);
+		if (conn->wdata.to_event.inlist) {
+			conn->wdata.to_event.inlist = false;
+			list_remove(&conn->wdata.to_event.link);
 		}
 		
 		conn->wdata.active = true;
@@ -404,15 +384,15 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	futex_down(&async_futex);
 	
 	if (usecs) {
-		gettimeofday(&conn->wdata.expires, NULL);
-		tv_add(&conn->wdata.expires, usecs);
+		gettimeofday(&conn->wdata.to_event.expires, NULL);
+		tv_add(&conn->wdata.to_event.expires, usecs);
 	} else
-		conn->wdata.inlist = false;
+		conn->wdata.to_event.inlist = false;
 	
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
 		if (usecs)
-			insert_timeout(&conn->wdata);
+			async_insert_timeout(&conn->wdata);
 		
 		conn->wdata.active = false;
 		
@@ -429,7 +409,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * Get it again.
 		 */
 		futex_down(&async_futex);
-		if ((usecs) && (conn->wdata.timedout)
+		if ((usecs) && (conn->wdata.to_event.occurred)
 		    && (list_empty(&conn->msg_queue))) {
 			/* If we timed out -> exit */
 			futex_up(&async_futex);
@@ -624,16 +604,17 @@ static void handle_expired_timeouts(void)
 	
 	link_t *cur = timeout_list.next;
 	while (cur != &timeout_list) {
-		awaiter_t *waiter = list_get_instance(cur, awaiter_t, link);
+		awaiter_t *waiter;
 		
-		if (tv_gt(&waiter->expires, &tv))
+		waiter = list_get_instance(cur, awaiter_t, to_event.link);
+		if (tv_gt(&waiter->to_event.expires, &tv))
 			break;
-		
+
 		cur = cur->next;
-		
-		list_remove(&waiter->link);
-		waiter->inlist = false;
-		waiter->timedout = true;
+
+		list_remove(&waiter->to_event.link);
+		waiter->to_event.inlist = false;
+		waiter->to_event.occurred = true;
 		
 		/*
 		 * Redundant condition?
@@ -670,17 +651,18 @@ static int async_manager_worker(void)
 		suseconds_t timeout;
 		if (!list_empty(&timeout_list)) {
 			awaiter_t *waiter = list_get_instance(timeout_list.next,
-			    awaiter_t, link);
+			    awaiter_t, to_event.link);
 			
 			struct timeval tv;
 			gettimeofday(&tv, NULL);
 			
-			if (tv_gteq(&tv, &waiter->expires)) {
+			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
 				continue;
 			} else
-				timeout = tv_sub(&waiter->expires, &tv);
+				timeout = tv_sub(&waiter->to_event.expires,
+				    &tv);
 		} else
 			timeout = SYNCH_NO_TIMEOUT;
 		
@@ -781,8 +763,8 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
 	write_barrier();
 	
 	/* Remove message from timeout list */
-	if (msg->wdata.inlist)
-		list_remove(&msg->wdata.link);
+	if (msg->wdata.to_event.inlist)
+		list_remove(&msg->wdata.to_event.link);
 	
 	msg->done = true;
 	if (!msg->wdata.active) {
@@ -821,7 +803,7 @@ aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	/* We may sleep in the next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
@@ -861,7 +843,7 @@ aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	msg->done = false;
 	msg->dataptr = dataptr;
 	
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	/* We may sleep in next method, but it will use its own mechanism */
 	msg->wdata.active = true;
 	
@@ -890,7 +872,7 @@ void async_wait_for(aid_t amsgid, ipcarg_t *retval)
 	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
-	msg->wdata.inlist = false;
+	msg->wdata.to_event.inlist = false;
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
@@ -928,12 +910,12 @@ int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
 		goto done;
 	}
 	
-	gettimeofday(&msg->wdata.expires, NULL);
-	tv_add(&msg->wdata.expires, timeout);
+	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
-	insert_timeout(&msg->wdata);
+	async_insert_timeout(&msg->wdata);
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
@@ -969,12 +951,12 @@ void async_usleep(suseconds_t timeout)
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	
-	gettimeofday(&msg->wdata.expires, NULL);
-	tv_add(&msg->wdata.expires, timeout);
+	gettimeofday(&msg->wdata.to_event.expires, NULL);
+	tv_add(&msg->wdata.to_event.expires, timeout);
 	
 	futex_down(&async_futex);
 	
-	insert_timeout(&msg->wdata);
+	async_insert_timeout(&msg->wdata);
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
@@ -1102,6 +1084,250 @@ ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		*r5 = IPC_GET_ARG5(result);
 	
 	return rc;
+}
+
+/** Wrapper for making IPC_M_SHARE_IN calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Destination address space area base.
+ * @param size		Size of the destination address space area.
+ * @param arg		User defined argument.
+ * @param flags		Storage where the received flags will be stored. Can be
+ *			NULL.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
+    int *flags)
+{
+	int res;
+	sysarg_t tmp_flags;
+	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	if (flags)
+		*flags = tmp_flags;
+	return res;
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_IN calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_IN call will
+ * 			be stored.
+ * @param size		Destination address space area size.	
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_share_in_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address space base.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_share_in_finalize(ipc_callid_t callid, void *src, int flags)
+{
+	return ipc_share_in_finalize(callid, src, flags);
+}
+
+/** Wrapper for making IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Source address space area base address.
+ * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_share_out_start(int phoneid, void *src, int flags)
+{
+	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
+	    (ipcarg_t) flags);
+}
+
+/** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_SHARE_OUT call will
+ * 			be stored.
+ * @param size		Storage where the source address space area size will be
+ *			stored.
+ * @param flags		Storage where the sharing flags will be stored.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+	assert(size);
+	assert(flags);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
+		return 0;
+	*size = (size_t) IPC_GET_ARG2(data);
+	*flags = (int) IPC_GET_ARG3(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_SHARE_OUT calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Destination address space area base address.	
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_share_out_finalize(ipc_callid_t callid, void *dst)
+{
+	return ipc_share_out_finalize(callid, dst);
+}
+
+
+/** Wrapper for making IPC_M_DATA_READ calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param dst		Address of the beginning of the destination buffer.
+ * @param size		Size of the destination buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_data_read_start(int phoneid, void *dst, size_t size)
+{
+	return async_req_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
+	    (ipcarg_t) size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
+ * 			be stored.
+ * @param size		Storage where the maximum size will be stored. Can be
+ *			NULL.
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_data_read_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
+		return 0;
+	if (size)
+		*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_READ calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_READ call to answer.
+ * @param src		Source address for the IPC_M_DATA_READ call.
+ * @param size		Size for the IPC_M_DATA_READ call. Can be smaller than
+ *			the maximum size announced by the sender.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
+{
+	return ipc_data_read_finalize(callid, src, size);
+}
+
+/** Wrapper for making IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * @param phoneid	Phone that will be used to contact the receiving side.
+ * @param src		Address of the beginning of the source buffer.
+ * @param size		Size of the source buffer.
+ *
+ * @return		Zero on success or a negative error code from errno.h.
+ */
+int async_data_write_start(int phoneid, const void *src, size_t size)
+{
+	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
+	    (ipcarg_t) size);
+}
+
+/** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * So far, this wrapper is to be used from within a connection fibril.
+ *
+ * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
+ * 			be stored.
+ * @param size		Storage where the suggested size will be stored. May be
+ *			NULL
+ *
+ * @return		Non-zero on success, zero on failure.
+ */
+int async_data_write_receive(ipc_callid_t *callid, size_t *size)
+{
+	ipc_call_t data;
+	
+	assert(callid);
+
+	*callid = async_get_call(&data);
+	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+		return 0;
+	if (size)
+		*size = (size_t) IPC_GET_ARG2(data);
+	return 1;
+}
+
+/** Wrapper for answering the IPC_M_DATA_WRITE calls using the async framework.
+ *
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE calls
+ * so that the user doesn't have to remember the meaning of each IPC argument.
+ *
+ * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst		Final destination address for the IPC_M_DATA_WRITE call.
+ * @param size		Final size for the IPC_M_DATA_WRITE call.
+ *
+ * @return		Zero on success or a value from @ref errno.h on failure.
+ */
+int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
+{
+	return ipc_data_write_finalize(callid, dst, size);
 }
 
 /** @}

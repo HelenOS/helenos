@@ -101,7 +101,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	
 	task_id = task_get_id();
 	
-	if (!ipc_data_read_receive(&callid, &len)) {
+	if (!async_data_read_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -110,7 +110,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
 	
-	ipc_data_read_finalize(callid, &task_id, len);
+	async_data_read_finalize(callid, &task_id, len);
 	ipc_answer_0(rid, EOK);
 }
 
@@ -126,7 +126,7 @@ static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	char *name_buf;
 	
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -139,7 +139,7 @@ static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, name_buf, len);
+	async_data_write_finalize(callid, name_buf, len);
 	ipc_answer_0(rid, EOK);
 	
 	if (pathname != NULL) {
@@ -163,7 +163,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 	char *p;
 	int n;
 	
-	if (!ipc_data_write_receive(&callid, &buf_size)) {
+	if (!async_data_write_receive(&callid, &buf_size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -186,7 +186,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, arg_buf, buf_size);
+	async_data_write_finalize(callid, arg_buf, buf_size);
 	
 	arg_buf[buf_size] = '\0';
 	
@@ -238,7 +238,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t buf_size;
-	if (!ipc_data_write_receive(&callid, &buf_size)) {
+	if (!async_data_write_receive(&callid, &buf_size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -267,7 +267,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, fil_buf, buf_size);
+	async_data_write_finalize(callid, fil_buf, buf_size);
 	
 	int count = buf_size / sizeof(fdi_node_t);
 	
