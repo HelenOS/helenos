@@ -102,6 +102,7 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 		assert(!list_empty(&fm->waiters));
 		tmp = fm->waiters.next;
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
+		wdp->active = true;
 		wdp->wu_event.inlist = false;
 		list_remove(&wdp->wu_event.link);
 		fibril_add_ready(wdp->fid);
