@@ -128,8 +128,14 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 	futex_down(&async_futex);
 	if (frw->writers) {
 		fibril_t *f = (fibril_t *) fibril_get_id();
+		awaiter_t wdata;
+
+		wdata.fid = (fid_t) f;
+		wdata.active = false;
+		wdata.wu_event.inlist = true;
+		link_initialize(&wdata.wu_event.link);
 		f->flags &= ~FIBRIL_WRITER;
-		list_append(&f->link, &frw->waiters);
+		list_append(&wdata.wu_event.link, &frw->waiters);
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
 		frw->readers++;
@@ -142,8 +148,14 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 	futex_down(&async_futex);
 	if (frw->writers || frw->readers) {
 		fibril_t *f = (fibril_t *) fibril_get_id();
+		awaiter_t wdata;
+
+		wdata.fid = (fid_t) f;
+		wdata.active = false;
+		wdata.wu_event.inlist = true;
+		link_initialize(&wdata.wu_event.link);
 		f->flags |= FIBRIL_WRITER;
-		list_append(&f->link, &frw->waiters);
+		list_append(&wdata.wu_event.link, &frw->waiters);
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
 		frw->writers++;
@@ -166,19 +178,27 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 	
 	while (!list_empty(&frw->waiters)) {
 		link_t *tmp = frw->waiters.next;
-		fibril_t *f = list_get_instance(tmp, fibril_t, link);
+		awaiter_t *wdp;
+		fibril_t *f;
+		
+		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
+		f = (fibril_t *) wdp->fid;
 		
 		if (f->flags & FIBRIL_WRITER) {
 			if (frw->readers)
 				break;
-			list_remove(&f->link);
-			fibril_add_ready((fid_t) f);
+			wdp->active = true;
+			wdp->wu_event.inlist = false;
+			list_remove(&wdp->wu_event.link);
+			fibril_add_ready(wdp->fid);
 			frw->writers++;
 			optimize_execution_power();
 			break;
 		} else {
-			list_remove(&f->link);
-			fibril_add_ready((fid_t) f);
+			wdp->active = true;
+			wdp->wu_event.inlist = false;
+			list_remove(&wdp->wu_event.link);
+			fibril_add_ready(wdp->fid);
 			frw->readers++;
 			optimize_execution_power();
 		}
