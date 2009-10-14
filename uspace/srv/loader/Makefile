@@ -52,9 +52,9 @@ GENERIC_SOURCES = \
 SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend disasm
+.PHONY: all clean depend
 
-all: $(OUTPUT) disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
@@ -67,8 +67,8 @@ depend:
 $(OUTPUT): $(OBJECTS) $(LIBS) arch/$(UARCH)/_link.ld
 	$(LD) -T arch/$(UARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBS) -o $@ -Map $(OUTPUT).map
 
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< > $@
 
 arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

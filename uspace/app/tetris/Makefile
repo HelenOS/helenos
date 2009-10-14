@@ -9,7 +9,7 @@ OUTPUT = tetris
 SOURCES = shapes.c scores.c input.c tetris.c screen.c
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend disasm
+.PHONY: all clean depend
 
 all: $(OUTPUT) $(OUTPUT).disasm
 
@@ -23,8 +23,6 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 
 clean:
 	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend *.o
-
-disasm: $(OUTPUT).disasm
 
 $(OUTPUT).disasm: $(OUTPUT)
 	$(OBJDUMP) -d $< > $@

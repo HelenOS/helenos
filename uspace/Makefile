@@ -32,11 +32,6 @@
 -include ../Makefile.config
 
 DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
@@ -75,10 +70,20 @@ ifeq ($(UARCH),sparc64)
 		srv/cir/obio
 endif
 
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+LIBC = lib/libc
+LIBS = \
+	lib/libfs \
+	lib/libblock \
+	lib/softint \
+	lib/softfloat
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+LIBC_BUILD = $(addsuffix .build,$(LIBC))
+LIBS_BUILD = $(addsuffix .build,$(LIBS))
+
+BUILDS := $(addsuffix .build,$(DIRS))
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
+
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
 
 all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
 
@@ -87,5 +92,11 @@ clean: $(CLEANS)
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS):
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+	$(MAKE) -C $(basename $@) all
+
+$(LIBS_BUILD): $(LIBC_BUILD)
+	$(MAKE) -C $(basename $@) all
+
+$(LIBC_BUILD):
 	$(MAKE) -C $(basename $@) all

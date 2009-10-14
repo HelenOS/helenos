@@ -77,8 +77,6 @@ depend:
 $(OUTPUT): $(OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-disasm: $(OUTPUT).disasm
-
 $(OUTPUT).disasm: $(OUTPUT)
 	$(OBJDUMP) -d $< > $@
 

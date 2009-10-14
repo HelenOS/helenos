@@ -95,12 +95,7 @@ OBJECTS := $(GENERIC_OBJECTS) $(ARCH_OBJECTS)
 
 .PHONY: all clean depend kerninc
 
-all: kerninc libc.a arch/$(UARCH)/_link.ld
-
-kerninc:
-	ln -sfn ../../../../kernel/generic/include include/kernel
-	ln -sfn kernel/arch include/arch
-	ln -sfn ../arch/$(UARCH)/include include/libarch
+all: libc.a
 
 -include Makefile.depend
 
@@ -108,11 +103,16 @@ clean:
 	-rm -f include/kernel include/arch include/libarch libc.a arch/$(UARCH)/_link.ld Makefile.depend
 	find generic/ arch/$(UARCH)/ -name '*.o' -follow -exec rm \{\} \;
 
-depend: kerninc
+depend: kerninc arch/$(UARCH)/_link.ld
 	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
 
 libc.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
 	$(AR) rc libc.a $(LIBS) $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
+
+kerninc:
+	ln -sfn ../../../../kernel/generic/include include/kernel
+	ln -sfn kernel/arch include/arch
+	ln -sfn ../arch/$(UARCH)/include include/libarch
 
 arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

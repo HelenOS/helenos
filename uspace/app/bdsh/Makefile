@@ -116,9 +116,9 @@ $(PROGRAM): $(OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(PROGRAM).map
 
 # Everything else is a phony target
-.PHONY: all clean distclean depend disasm
+.PHONY: all clean distclean depend
 
-all: $(PROGRAM) disasm
+all: $(PROGRAM) $(PROGRAM).disasm
 
 clean:
 	@-rm -f $(OBJECTS)
@@ -130,8 +130,8 @@ clean:
 depend:
 	@echo ''
 
-disasm:
-	$(OBJDUMP) -d $(PROGRAM) >$(PROGRAM).disasm
+$(PROGRAM).disasm: $(PROGRAM)
+	$(OBJDUMP) -d $< > $@
 
 distclean: clean
 

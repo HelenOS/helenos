@@ -51,9 +51,9 @@ SOURCES = trace.c \
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all clean depend disasm
+.PHONY: all clean depend
 
-all: $(OUTPUT) disasm
+all: $(OUTPUT) $(OUTPUT).disasm
 
 -include Makefile.depend
 
@@ -66,8 +66,8 @@ depend:
 $(OUTPUT): $(OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< > $@
 
 %.o: %.S
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@

@@ -155,7 +155,7 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
 OBJECTS := $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(GENARCH_OBJECTS)
 
-.PHONY: all clean depend disasm links
+.PHONY: all clean depend
 
 all: $(OUTPUT) $(OUTPUT).disasm
 
@@ -169,8 +169,6 @@ depend:
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
 	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm: $(OUTPUT).disasm
 
 $(OUTPUT).disasm: $(OUTPUT)
 	$(OBJDUMP) -d $< > $@
