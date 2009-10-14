@@ -1726,6 +1726,7 @@ def dump_dot(outdir):
 		outf.write("digraph {\n")
 		outf.write("\tlabel=\"%s\";\n" % arch['name'])
 		outf.write("\tcompound=true;\n")
+		outf.write("\tsplines=\"polyline\";\n")
 		outf.write("\tedge [fontsize=8];\n")
 		outf.write("\t\n")
 		
