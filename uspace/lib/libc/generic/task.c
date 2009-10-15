@@ -88,6 +88,11 @@ task_id_t task_spawn(const char *path, char *const args[])
 	if (rc != EOK)
 		goto error;
 	
+	/* Send spawner's current working directory. */
+	rc = loader_set_cwd(ldr);
+	if (rc != EOK)
+		goto error;
+	
 	/* Send program pathname. */
 	rc = loader_set_pathname(ldr, path);
 	if (rc != EOK)
@@ -97,7 +102,6 @@ task_id_t task_spawn(const char *path, char *const args[])
 	rc = loader_set_args(ldr, args);
 	if (rc != EOK)
 		goto error;
-	
 	
 	/* Send default files */
 	fdi_node_t *files[4];

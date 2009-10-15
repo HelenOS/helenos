@@ -100,6 +100,41 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 	return (int) retval;
 }
 
+/** Set current working directory for the loaded task.
+ *
+ * Sets the current working directory for the loaded task.
+ *
+ * @param ldr  Loader connection structure.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int loader_set_cwd(loader_t *ldr)
+{
+	char *cwd;
+	size_t len;
+
+	cwd = (char *) malloc(MAX_PATH_LEN + 1);
+	if (!cwd)
+		return ENOMEM;
+	if (!getcwd(cwd, MAX_PATH_LEN + 1))
+		str_cpy(cwd, MAX_PATH_LEN + 1, "/"); 
+	len = str_length(cwd);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_CWD, &answer);
+	int rc = async_data_write_start(ldr->phone_id, cwd, len);
+	free(cwd);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	ipcarg_t retval;
+	async_wait_for(req, &retval);
+	return (int) retval;
+}
+
 /** Set pathname of the program to load.
  *
  * Sets the name of the program file to load. The name can be relative
