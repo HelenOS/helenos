@@ -71,6 +71,9 @@ static char *pathname = NULL;
 /** The Program control block */
 static pcb_t pcb;
 
+/** Current working directory */
+static char *cwd = NULL;
+
 /** Number of arguments */
 static int argc = 0;
 /** Argument vector */
@@ -114,6 +117,34 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, EOK);
 }
 
+/** Receive a call setting the current working directory.
+ *
+ * @param rid
+ * @param request
+ */
+static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t len;
+	
+	if (!async_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	cwd = malloc(len + 1);
+	if (!cwd) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	async_data_write_finalize(callid, cwd, len);
+	cwd[len] = '\0';
+	
+	ipc_answer_0(rid, EOK);
+}
 
 /** Receive a call setting pathname of the program to execute.
  *
@@ -312,6 +343,8 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	
 	elf_create_pcb(&prog_info, &pcb);
 	
+	pcb.cwd = cwd;
+	
 	pcb.argc = argc;
 	pcb.argv = argv;
 	
@@ -405,6 +438,9 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			exit(0);
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(callid, &call);
+			continue;
+		case LOADER_SET_CWD:
+			ldr_set_cwd(callid, &call);
 			continue;
 		case LOADER_SET_PATHNAME:
 			ldr_set_pathname(callid, &call);

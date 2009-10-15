@@ -79,6 +79,7 @@ void __main(void *pcb_ptr)
 		argv = NULL;
 		__stdio_init(0, NULL);
 	} else {
+		(void) chdir(__pcb->cwd);
 		argc = __pcb->argc;
 		argv = __pcb->argv;
 		__stdio_init(__pcb->filc, __pcb->filv);
