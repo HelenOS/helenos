@@ -51,6 +51,12 @@ ifeq ($(PROCESSOR),us3)
 	DEFS += -DUS3
 endif
 
+ifeq ($(PROCESSOR),sun4v)
+	DEFS += -DSUN4V
+#MH
+	DEFS += -DUS
+endif
+
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/asm.S \
