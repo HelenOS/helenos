@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +27,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_REGDEF_H_
+#define KERN_sparc64_sun4v_REGDEF_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+#define PSTATE_IE_BIT	(1 << 1)
+#define PSTATE_PRIV_BIT	(1 << 2)
+#define PSTATE_PEF_BIT	(1 << 4)
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+#define TSTATE_PSTATE_SHIFT	8
+#define TSTATE_PRIV_BIT		(PSTATE_PRIV_BIT << TSTATE_PSTATE_SHIFT)
+#define TSTATE_CWP_MASK		0x1f
+#define TSTATE_IE_BIT		(PSTATE_IE_BIT << TSTATE_PSTATE_SHIFT)
+
+#define WSTATE_NORMAL(n)	(n)
+#define WSTATE_OTHER(n)		((n) << 3)
+
+#define TSTATE_PEF_BIT		(PSTATE_PEF_BIT << TSTATE_PSTATE_SHIFT)
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

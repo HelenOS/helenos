@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
+#include <arch/mm/frame.h>
+#include <mm/frame.h>
+#include <arch/boot/boot.h>
+#include <arch/types.h>
+#include <config.h>
+#include <align.h>
 #include <macros.h>
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+uintptr_t last_frame = NULL;
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
-#endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
+/** Create memory zones according to information stored in bootinfo.
+ *
+ * Walk the bootinfo memory map and create frame zones according to it.
+ */
+void frame_arch_init(void)
 {
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
+	unsigned int i;
+	pfn_t confdata;
+
+	if (config.cpu_active == 1) {
+		for (i = 0; i < bootinfo.memmap.count; i++) {
+			uintptr_t start = bootinfo.memmap.zones[i].start;
+			size_t size = bootinfo.memmap.zones[i].size;
+
+			/*
+			 * The memmap is created by HelenOS boot loader.
+			 * It already contains no holes.
+			 */
+
+			confdata = ADDR2PFN(start);
+			if (confdata == ADDR2PFN(KA2PA(PFN2ADDR(0))))
+				confdata = ADDR2PFN(KA2PA(PFN2ADDR(2)));
+			zone_create(ADDR2PFN(start),
+			    SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),
+			    confdata, 0);
+			last_frame = max(last_frame, start + ALIGN_UP(size,
+			    FRAME_SIZE));
+		}
+
+		/*
+		 * On sparc64, physical memory can start on a non-zero address.
+		 * The generic frame_init() only marks PFN 0 as not free, so we
+		 * must mark the physically first frame not free explicitly
+		 * here, no matter what is its address.
+		 */
+		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
+	}
+
+//MH
+//	end_of_identity = PA2KA(last_frame);
 }
 
 /** @}

@@ -45,14 +45,19 @@ ENDIANESS = BE
 
 ifeq ($(PROCESSOR),us)
 	DEFS += -DUS
+	DEFS += -DSUN4U
+	USARCH = sun4u
 endif
 
 ifeq ($(PROCESSOR),us3)
 	DEFS += -DUS3
+	DEFS += -DSUN4U
+	USARCH = sun4u
 endif
 
 ifeq ($(PROCESSOR),sun4v)
 	DEFS += -DSUN4V
+	USARCH = sun4v
 #MH
 	DEFS += -DUS
 endif
@@ -67,11 +72,11 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/dummy.s \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/cache.S \
-	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/sparc64.c \
-	arch/$(KARCH)/src/start.S \
+	arch/$(KARCH)/src/mm/$(USARCH)/tlb.c \
+	arch/$(KARCH)/src/$(USARCH)/sparc64.c \
+	arch/$(KARCH)/src/$(USARCH)/start.S \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/trap/mmu.S \

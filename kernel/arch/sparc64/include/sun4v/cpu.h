@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_CPU_H_
+#define KERN_sparc64_sun4v_CPU_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+/** Maximum number of virtual processors. */
+#define MAX_NUM_STRANDS		64
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+/** Maximum number of logical processors in a processor core */
+#define MAX_CORE_STRANDS	8
+
+#ifndef __ASM__
+
+struct cpu;
+
+typedef struct {
+	uint64_t exec_unit_id;
+	uint8_t strand_count;
+	uint64_t cpuids[MAX_CORE_STRANDS];
+	struct cpu *cpus[MAX_CORE_STRANDS];
+	atomic_t nrdy;
+	SPINLOCK_DECLARE(proposed_nrdy_lock);
+} exec_unit_t;
+
+typedef struct cpu_arch {
+	uint64_t id;			/**< virtual processor ID */
+	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
+	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
+					     generated when the TICK register
+					     matches this value. */
+	exec_unit_t *exec_unit;		/**< Physical core. */
+	unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
+					     so that cores are equally balanced. */
+} cpu_arch_t;
+
+#endif	
+
+#ifdef __ASM__
+
 #endif
 
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
 #endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

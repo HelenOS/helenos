@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_MD_H_
+#define KERN_sparc64_sun4v_MD_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+#include <typedefs.h>
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+/**
+ * Data type used to iterate through MD nodes. Internally represented as
+ * an index to the first element of the node.
+ */
+typedef unsigned int md_node_t;
+
+/** used to iterate over children of a given node */
+typedef unsigned int md_child_iter_t;
+
+md_node_t md_get_root(void);
+md_node_t md_get_child(md_node_t node, char *name);
+md_child_iter_t md_get_child_iterator(md_node_t node);
+bool md_next_child(md_child_iter_t *it);
+md_node_t md_get_child_node(md_child_iter_t it);
+const char *md_get_node_name(md_node_t node);
+bool md_get_integer_property(md_node_t node, const char *key,
+	uint64_t *result);
+bool md_get_string_property(md_node_t node, const char *key,
+	const char **result);
+bool md_next_node(md_node_t *node, const char *name);
+void md_init(void);
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

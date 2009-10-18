@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_ASM_H_
+#define KERN_sparc64_sun4v_ASM_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
-
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

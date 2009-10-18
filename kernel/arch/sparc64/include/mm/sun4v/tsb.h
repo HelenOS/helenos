@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +27,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_TSB_H_
+#define KERN_sparc64_sun4v_TSB_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+/*
+ * TSB will claim 64K of memory, which
+ * is a nice number considered that it is one of
+ * the page sizes supported by hardware, which,
+ * again, is nice because TSBs need to be locked
+ * in TLBs - only one TLB entry will do.
+ */
+#define TSB_SIZE			3	/* when changing this, change
+						 * as.c as well */
+#define TSB_ENTRY_COUNT			(512 * (1 << TSB_SIZE))
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+#ifndef __ASM__
+
+#include <typedefs.h>
+#include <arch/mm/tte.h>
+#include <arch/mm/mmu.h>
+#include <arch/types.h>
+
+/** TSB description, used in hypercalls */
+typedef struct tsb_descr {
+	uint16_t page_size;	/**< Page size (0 = 8K, 1 = 64K,...). */
+	uint16_t associativity;	/**< TSB associativity (will be 1). */
+	uint32_t num_ttes;	/**< Number of TTEs. */
+	uint32_t context;	/**< Context number. */
+	uint32_t pgsize_mask;	/**< Equals "1 << page_size". */
+	uint64_t tsb_base;	/**< Real address of TSB base. */
+	uint64_t reserved;
+} __attribute__ ((packed)) tsb_descr_t;
+
+
+/* Forward declarations. */
+struct as;
+struct pte;
+
+extern void tsb_invalidate(struct as *as, uintptr_t page, count_t pages);
+extern void itsb_pte_copy(struct pte *t);
+extern void dtsb_pte_copy(struct pte *t, bool ro);
+
+#endif /* !def __ASM__ */
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

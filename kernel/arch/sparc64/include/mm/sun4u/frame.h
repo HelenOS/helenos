@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64mm	
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_SUN4U_FRAME_H_
+#define KERN_sparc64_SUN4U_FRAME_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+/*
+ * Page size supported by the MMU.
+ * For 8K there is the nasty illegal virtual aliasing problem.
+ * Therefore, the kernel uses 8K only internally on the TLB and TSB levels.
+ */
+#define MMU_FRAME_WIDTH		13	/* 8K */
+#define MMU_FRAME_SIZE		(1 << MMU_FRAME_WIDTH)
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+/*
+ * Page size exported to the generic memory management subsystems.
+ * This page size is not directly supported by the MMU, but we can emulate
+ * each 16K page with a pair of adjacent 8K pages.
+ */
+#define FRAME_WIDTH		14	/* 16K */
+#define FRAME_SIZE		(1 << FRAME_WIDTH)
+
+#ifdef KERNEL
+#ifndef __ASM__
+
+#include <arch/types.h>
+
+union frame_address {
+	uintptr_t address;
+	struct {
+#if defined (US)
+		unsigned : 23;
+		uint64_t pfn : 28;		/**< Physical Frame Number. */
+#elif defined (US3)
+		unsigned : 21;
+		uint64_t pfn : 30;		/**< Physical Frame Number. */
+#endif
+		unsigned offset : 13;		/**< Offset. */
+	} __attribute__ ((packed));
+};
+
+typedef union frame_address frame_address_t;
+
+extern uintptr_t last_frame;
+extern uintptr_t end_of_identity;
+
+extern void frame_arch_init(void);
+#define physmem_print()
+
+#endif
 #endif
 
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
 #endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

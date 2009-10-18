@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_REGISTER_H_
+#define KERN_sparc64_sun4v_REGISTER_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+#include <arch/regdef.h>
+#include <arch/types.h>
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+/** Processor State Register. */
+union pstate_reg {
+	uint64_t value;
+	struct {
+		uint64_t : 54;
+		unsigned cle : 1;	/**< Current Little Endian. */
+		unsigned tle : 1;	/**< Trap Little Endian. */
+		unsigned mm : 2;	/**< Memory Model. */
+		unsigned : 1;		/**< RED state. */
+		unsigned pef : 1;	/**< Enable floating-point. */
+		unsigned am : 1;	/**< 32-bit Address Mask. */
+		unsigned priv : 1;	/**< Privileged Mode. */
+		unsigned ie : 1;	/**< Interrupt Enable. */
+		unsigned : 1;
+	} __attribute__ ((packed));
+};
+typedef union pstate_reg pstate_reg_t;
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

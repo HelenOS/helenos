@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup main
+/** @addtogroup sparc64	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Various sun4v-specific macros.
  */
 
-#include <main/version.h>
-#include <print.h>
-#include <macros.h>
+#ifndef KERN_sparc64_sun4v_ARCH_H_
+#define KERN_sparc64_sun4v_ARCH_H_
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+/* scratch pad registers ASI */
+#define	ASI_SCRATCHPAD		0x20
 
-#ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
-#else
-	char *revision = "";
+/*
+ * Assignment of scratchpad register virtual addresses. The same convention is
+ * used by both Linux and Solaris.
+ */
+
+/* register where the address of the MMU fault status area will be stored */
+#define SCRATCHPAD_MMU_FSA	0x00	
+
+/* register where the CPUID will be stored */
+#define SCRATCHPAD_CPUID	0x08
+
+/* register where the kernel stack address will be stored */
+#define SCRATCHPAD_KSTACK	0x10
+
+/* register where the userspace window buffer address will be stored */
+#define SCRATCHPAD_WBUF		0x18
+
 #endif
-
-#ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
-#else
-	char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(void)
-{
-	asm volatile ("sethi 0x41923, %g0");
-	printf("%s, release %s (%s)%s\nBuilt%s for %s\n%s\n",
-		project, release, name, revision, timestamp, arch, copyright);
-}
 
 /** @}
  */

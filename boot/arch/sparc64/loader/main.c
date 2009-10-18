@@ -56,8 +56,8 @@ static char *release = STRING(RELEASE);
 	static char *timestamp = "";
 #endif
 
-/** UltraSPARC subarchitecture - 1 for US, 3 for US3 */
-static uint8_t subarchitecture;
+/** UltraSPARC subarchitecture - 1 for US, 3 for US3, 0 for other */
+static uint8_t subarchitecture = 0;
 
 /**
  * mask of the MID field inside the ICBUS_CONFIG register shifted by
@@ -68,6 +68,7 @@ static uint16_t mid_mask;
 /** Print version information. */
 static void version_print(void)
 {
+	
 	printf("HelenOS SPARC64 Bootloader\nRelease %s%s%s\n"
 	    "Copyright (c) 2006 HelenOS project\n",
 	    release, revision, timestamp);
@@ -82,8 +83,52 @@ static void version_print(void)
 /* UltraSPARC IIIi processor implementation code */
 #define US_IIIi_CODE   0x15
 
+/* max. length of the "compatible" property of the root node */
+#define COMPATIBLE_PROP_MAXLEN	64
+
+/*
+ * HelenOS bootloader will use these constants to distinguish particular
+ * UltraSPARC architectures
+ */
+#define COMPATIBLE_SUN4U	10
+#define COMPATIBLE_SUN4V	20
+
+/** US architecture. COMPATIBLE_SUN4U for sun4v, COMPATIBLE_SUN4V for sun4u */
+static uint8_t architecture;
+
 /**
- * Sets the global variables "subarchitecture" and "mid_mask" to
+ * Detects the UltraSPARC architecture (sun4u and sun4v currently supported)
+ * by inspecting the property called "compatible" in the OBP root node.
+ */
+static void detect_architecture(void)
+{
+	phandle root = ofw_find_device("/");
+	char compatible[COMPATIBLE_PROP_MAXLEN];
+
+	if (ofw_get_property(root, "compatible", compatible,
+			COMPATIBLE_PROP_MAXLEN) <= 0) {
+		printf("Unable to determine architecture, default: sun4u.\n");
+		architecture = COMPATIBLE_SUN4U;
+		return;
+	}
+
+	if (strcmp(compatible, "sun4v") == 0) {
+		architecture = COMPATIBLE_SUN4V;
+	} else {
+		/*
+	 	 * As not all sun4u machines have "sun4u" in their "compatible"
+ 	 	 * OBP property (e.g. Serengeti's OBP "compatible" property is
+ 	 	 * "SUNW,Serengeti"), we will by default fallback to sun4u if
+	 	 * an unknown value of the "compatible" property is encountered.
+ 		 */
+		architecture = COMPATIBLE_SUN4U;
+	}
+}
+
+
+/**
+ * Detects the subarchitecture (US, US3) of the sun4u
+ * processor. Sets the global variables "subarchitecture" and "mid_mask" to
  * correct values.
  */
 static void detect_subarchitecture(void)
@@ -108,17 +153,88 @@ static void detect_subarchitecture(void)
 		printf("\nThis CPU is not supported by HelenOS.");
 }
 
+/**
+ * Performs sun4u-specific initialization. The components are expected
+ * to be already copied and boot allocator initialized.
+ *
+ * @param base	kernel base virtual address
+ * @param top	virtual address above which the boot allocator
+ * 		can make allocations
+ */
+static void bootstrap_sun4u(void *base, unsigned int top)
+{
+	void *balloc_base;
+	/*
+  	 * Claim and map the physical memory for the boot allocator.
+  	 * Initialize the boot allocator.
+  	 */
+	balloc_base = base + ALIGN_UP(top, PAGE_SIZE);
+	(void) ofw_claim_phys(bootinfo.physmem_start + balloc_base,
+	    BALLOC_MAX_SIZE);
+	(void) ofw_map(bootinfo.physmem_start + balloc_base, balloc_base,
+	    BALLOC_MAX_SIZE, -1);
+	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base,
+	    (uintptr_t) balloc_base);
+	
+	printf("Setting up screens...");
+	ofw_setup_screens();
+	printf("done.\n");
+	
+	printf("Canonizing OpenFirmware device tree...");
+	bootinfo.ofw_root = ofw_tree_build();
+	printf("done.\n");
+	
+#ifdef CONFIG_AP
+	printf("Checking for secondary processors...");
+	if (!ofw_cpu(mid_mask, bootinfo.physmem_start))
+		printf("Error: unable to get CPU properties\n");
+	printf("done.\n");
+#endif
+
+}
+
+/**
+ *  * Performs sun4v-specific initialization. The components are expected
+ *   * to be already copied and boot allocator initialized.
+ *    */
+static void bootstrap_sun4v(void)
+{
+	/*
+	 * When SILO booted, the OBP had established a virtual to physical
+	 * memory mapping. This mapping is not an identity (because the
+	 * physical memory starts on non-zero address) - this is not
+	 * surprising. But! The mapping even does not map virtual address
+	 * 0 onto the starting address of the physical memory, but onto an
+	 * address which is 0x400000 bytes higher. The reason is that the
+	 * OBP had already used the memory just at the beginning of the
+	 * physical memory, so that memory cannot be used by SILO (nor
+	 * bootloader). As for now, we solve it by a nasty workaround:
+	 * we pretend that the physical memory starts 0x400000 bytes further
+	 * than it actually does (and hence pretend that the physical memory
+	 * is 0x400000 bytes smaller). Of course, the value 0x400000 will most
+	 * probably depend on the machine and OBP version (the workaround now
+	 * works on Simics). A solution would be to inspect the "available"
+	 * property of the "/memory" node to find out which parts of memory
+	 * are used by OBP and redesign the algorithm of copying
+	 * kernel/init tasks/ramdisk from the bootable image to memory
+	 * (which we must do anyway because of issues with claiming the memory
+	 * on Serengeti).
+ 	 */
+	bootinfo.physmem_start += 0x400000;
+	bootinfo.memmap.zones[0].start += 0x400000;
+	bootinfo.memmap.zones[0].size -= 0x400000;
+	printf("The sun4v init finished.");
+}
+
+
 void bootstrap(void)
 {
 	void *base = (void *) KERNEL_VIRTUAL_ADDRESS;
-	void *balloc_base;
 	unsigned int top = 0;
 	unsigned int i;
 	unsigned int j;
 	
-	version_print();
-	
-	detect_subarchitecture();
+	detect_architecture();
 	init_components(components);
 	
 	if (!ofw_get_physmem_start(&bootinfo.physmem_start)) {
@@ -259,32 +375,15 @@ skip_ramdisk:
 	memcpy(base, components[0].start, components[0].size);
 	printf("done.\n");
 	
-	/*
-	 * Claim and map the physical memory for the boot allocator.
-	 * Initialize the boot allocator.
-	 */
-	balloc_base = base + ALIGN_UP(top, PAGE_SIZE);
-	(void) ofw_claim_phys(bootinfo.physmem_start + balloc_base,
-	    BALLOC_MAX_SIZE);
-	(void) ofw_map(bootinfo.physmem_start + balloc_base, balloc_base,
-	    BALLOC_MAX_SIZE, -1);
-	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base,
-	    (uintptr_t) balloc_base);
-	
-	printf("Setting up screens...");
-	ofw_setup_screens();
-	printf("done.\n");
-	
-	printf("Canonizing OpenFirmware device tree...");
-	bootinfo.ofw_root = ofw_tree_build();
-	printf("done.\n");
-	
-#ifdef CONFIG_AP
-	printf("Checking for secondary processors...");
-	if (!ofw_cpu(mid_mask, bootinfo.physmem_start))
-		printf("Error: unable to get CPU properties\n");
-	printf("done.\n");
-#endif
+	/* perform architecture-specific initialization */
+	if (architecture == COMPATIBLE_SUN4U) {
+		bootstrap_sun4u(base, top);
+	} else if (architecture == COMPATIBLE_SUN4V) {
+		bootstrap_sun4v();
+	} else {
+		printf("Unknown architecture.\n");
+		halt();
+	}
 	
 	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) KERNEL_VIRTUAL_ADDRESS,
