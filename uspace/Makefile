@@ -85,7 +85,7 @@ CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .c
 
 .PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+all: $(BUILDS)
 
 clean: $(CLEANS)
 
