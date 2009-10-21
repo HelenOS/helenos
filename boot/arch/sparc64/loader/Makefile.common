@@ -1,6 +1,5 @@
 #
 # Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,21 +26,42 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
 
-.PHONY: all clean
+## Common names
+#
 
-all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../../../config.defs
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+DEPEND = Makefile.depend
+DEPEND_PREV = $(DEPEND).prev
+OUTPUT = image.boot
 
-clean:
-	for file in $(RD_SRVS) $(RD_SRVS_GENERIC) ; do \
-		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
-	done
-	for file in $(RD_APPS) $(RD_APPS_GENERIC) ; do \
-		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
-	done
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
-	find . -name '*.o' -follow -exec rm \{\} \;
-	find . -name '*.co' -follow -exec rm \{\} \;
+LINK = _link.ld
+COMPS = _components
+INITRD = initrd
+
+KERNELDIR = ../../../../kernel
+USPACEDIR = ../../../../uspace
+
+RD_SRVS = \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fs/devfs/devfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
+
+RD_APPS = \
+	$(USPACEDIR)/app/edit/edit \
+	$(USPACEDIR)/app/getvc/getvc \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/trace/trace \
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/bdsh/bdsh
+
+RD_SRVS_GENERIC = \
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/cir/fhc/fhc \
+	$(USPACEDIR)/srv/cir/obio/obio
+
+RD_APPS_GENERIC = \
+	$(USPACEDIR)/app/tester/tester
