@@ -91,7 +91,6 @@ void fpu_enable(void)
 
 void cpu_arch_init(void)
 {
-	cpuid_feature_info fi;
 	cpuid_extended_feature_info efi;
 	cpu_info_t info;
 	uint32_t help = 0;
@@ -103,15 +102,15 @@ void cpu_arch_init(void)
 	
 	cpuid(INTEL_CPUID_STANDARD, &info);
 	
-	fi.word = info.cpuid_edx;
+	CPU->arch.fi.word = info.cpuid_edx;
 	efi.word = info.cpuid_ecx;
 	
-	if (fi.bits.fxsr)
+	if (CPU->arch.fi.bits.fxsr)
 		fpu_fxsr();
 	else
 		fpu_fsr();
 	
-	if (fi.bits.sse) {
+	if (CPU->arch.fi.bits.sse) {
 		asm volatile (
 			"mov %%cr4, %[help]\n"
 			"or %[mask], %[help]\n"
@@ -121,8 +120,10 @@ void cpu_arch_init(void)
 		);
 	}
 	
-	/* Setup fast SYSENTER/SYSEXIT syscalls */
-	syscall_setup_cpu();
+	if (CPU->arch.fi.bits.sep) {
+		/* Setup fast SYSENTER/SYSEXIT syscalls */
+		syscall_setup_cpu();
+	}
 }
 
 void cpu_identify(void)
