@@ -101,7 +101,7 @@ void cpu_arch_init(void)
 	
 	CPU->fpu_owner = NULL;
 	
-	cpuid(1, &info);
+	cpuid(INTEL_CPUID_STANDARD, &info);
 	
 	fi.word = info.cpuid_edx;
 	efi.word = info.cpuid_ecx;
@@ -131,7 +131,7 @@ void cpu_identify(void)
 
 	CPU->arch.vendor = VendorUnknown;
 	if (has_cpuid()) {
-		cpuid(0, &info);
+		cpuid(INTEL_CPUID_LEVEL, &info);
 
 		/*
 		 * Check for AMD processor.
@@ -149,7 +149,7 @@ void cpu_identify(void)
 			&& (info.cpuid_edx == INTEL_CPUID_EDX))
 			CPU->arch.vendor = VendorIntel;
 		
-		cpuid(1, &info);
+		cpuid(INTEL_CPUID_STANDARD, &info);
 		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0f;
 		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0f;
 		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0f;						
