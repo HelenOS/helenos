@@ -69,8 +69,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"pushl %[entry]\n"
 		"movl %[uarg], %%eax\n"
 		
-		/* %ebx is defined to hold pcb_ptr - set it to 0 */
-		"xorl %%ebx, %%ebx\n"
+		/* %edi is defined to hold pcb_ptr - set it to 0 */
+		"xorl %%edi, %%edi\n"
 		
 		"iret\n"
 		:
