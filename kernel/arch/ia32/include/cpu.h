@@ -49,12 +49,15 @@
 
 #include <arch/pm.h>
 #include <arch/asm.h>
+#include <arch/cpuid.h>
 
 typedef struct {
 	unsigned int vendor;
 	unsigned int family;
 	unsigned int model;
 	unsigned int stepping;
+	cpuid_feature_info fi;
+
 	tss_t *tss;
 	
 	size_t iomapver_copy;  /** Copy of TASK's I/O Permission bitmap generation count. */
