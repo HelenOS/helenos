@@ -408,7 +408,7 @@ def inherited_protocols(iface):
 	
 	return result
 
-def dump_frame(frame, outdir, var, archf):
+def dump_frame(directed_binds, frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
 	global opt_bp
@@ -442,10 +442,21 @@ def dump_frame(frame, outdir, var, archf):
 		for provides in frame['provides']:
 			iface = get_iface(provides['iface'])
 			if (not iface is None):
+				binds = directed_binds['%s.%s' % (var, provides['iface'])]
+				if (not binds is None):
+					cnt = len(binds)
+				else:
+					cnt = 1
+				
 				if ('protocol' in iface):
-					protocols.append(extend_bp(outname, iface['protocol'], iface['name']))
+					proto = extend_bp(outname, iface['protocol'], iface['name'])
+					for _ in range(0, cnt):
+						protocols.append(proto)
+				
 				for protocol in inherited_protocols(iface):
-					protocols.append(extend_bp(outname, protocol, iface['name']))
+					proto = extend_bp(outname, protocol, iface['name'])
+					for _ in range(0, cnt):
+						protocols.append(proto)
 			else:
 				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
 	
@@ -638,6 +649,8 @@ def dump_archbp(outdir):
 			print "Unable to subsume interface in system architecture"
 			break
 	
+	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
+	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
 	if ((opt_bp) or (opt_ebp)):
 		outf = file(outname, "w")
@@ -647,9 +660,7 @@ def dump_archbp(outdir):
 	create_null_bp("null.bp", outdir, outf)
 	
 	for inst in insts:
-		dump_frame(inst['frame'], outdir, inst['var'], outf)
-	
-	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
+		dump_frame(directed_binds, inst['frame'], outdir, inst['var'], outf)
 	
 	for dst, src in directed_binds.items():
 		if (outf != None):
