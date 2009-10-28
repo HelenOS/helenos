@@ -155,11 +155,8 @@ loop:
 			continue;
 		
 		hashed_service_t *hs = hash_table_get_instance(link, hashed_service_t, link);
-		ipcarg_t retval = ipc_forward_fast(pr->callid, hs->phone,
-		    pr->arg2, pr->arg3, 0, IPC_FF_NONE);
-		
-		if (!(pr->callid & IPC_CALLID_NOTIFICATION))
-			ipc_answer_0(pr->callid, retval);
+		(void) ipc_forward_fast(pr->callid, hs->phone, pr->arg2,
+		    pr->arg3, 0, IPC_FF_NONE);
 		
 		list_remove(cur);
 		free(pr);
@@ -241,8 +238,9 @@ void connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
 	}
 	
 	hashed_service_t *hs = hash_table_get_instance(link, hashed_service_t, link);
-	retval = ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
+	(void) ipc_forward_fast(callid, hs->phone, IPC_GET_ARG2(*call),
 	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	return;
 	
 out:
 	if (!(callid & IPC_CALLID_NOTIFICATION))
