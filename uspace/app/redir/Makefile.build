@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +27,35 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
-## Common names
+## Setup toolchain
 #
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-OUTPUT = image.boot
+include Makefile.common
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-LINK = _link.ld
-COMPS = _components
-INITRD = initrd
+## Sources
+#
 
-KERNELDIR = ../../../../kernel
-USPACEDIR = ../../../../uspace
+SOURCES = \
+	redir.c
 
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+.PHONY: all
+
+all: $(OUTPUT) $(OUTPUT).disasm
+
+-include $(DEPEND)
+
+$(OUTPUT).disasm: $(OUTPUT)
+	$(OBJDUMP) -d $< > $@
+
+$(OUTPUT): $(OBJECTS) $(LIBS)
+	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+
+%.o: %.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+
+$(DEPEND):
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
+	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@

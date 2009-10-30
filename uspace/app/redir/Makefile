@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+include Makefile.common
 
-## Common names
-#
+.PHONY: all clean
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-OUTPUT = image.boot
+all: $(LIBC_PREFIX)/../../../version $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
-LINK = _link.ld
-COMPS = _components
-INITRD = initrd
-
-KERNELDIR = ../../../../kernel
-USPACEDIR = ../../../../uspace
-
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
-
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;

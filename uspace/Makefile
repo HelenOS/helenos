@@ -54,6 +54,7 @@ DIRS = \
 	app/klog \
 	app/init \
 	app/getvc \
+	app/redir \
 	app/bdsh
 
 ifeq ($(UARCH),amd64)

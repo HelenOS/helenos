@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup getvc GetVC
- * @brief Console initialization task.
+/** @addtogroup redir Redirector
+ * @brief Redirect stdin/stdout/stderr.
  * @{
  */
 /**
@@ -35,15 +35,16 @@
  */
 
 #include <sys/types.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include <task.h>
-#include "version.h"
 
 static void usage(void)
 {
-	printf("Usage: getvc <device> <path>\n");
+	printf("Usage: redirect [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ,,,]\n");
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
@@ -68,17 +69,26 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 	*stream = fdopen(fd, mode);
 }
 
-static task_id_t spawn(char *fname)
+static task_id_t spawn(int argc, char *argv[])
 {
-	char *args[2];
+	char **args = (char *) calloc(argc + 1, sizeof(char *));
+	if (!args) {
+		printf("No memory available\n");
+		return 0;
+	}
 	
-	args[0] = fname;
-	args[1] = NULL;
+	int i;
+	for (i = 0; i < argc; i++)
+		args[i] = argv[i];
 	
-	task_id_t id = task_spawn(fname, args);
+	args[argc] = NULL;
+	
+	task_id_t id = task_spawn(argv[0], args);
+	
+	free(args);
 	
 	if (id == 0)
-		printf("Error spawning %s\n", fname);
+		printf("Error spawning %s\n", argv[0]);
 	
 	return id;
 }
@@ -90,9 +100,39 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	reopen(&stdin, 0, argv[1], O_RDONLY, "r");
-	reopen(&stdout, 1, argv[1], O_WRONLY, "w");
-	reopen(&stderr, 2, argv[1], O_WRONLY, "w");
+	int i;
+	for (i = 1; i < argc; i++) {
+		if (str_cmp(argv[i], "-i") == 0) {
+			i++;
+			if (i >= argc) {
+				usage();
+				return -2;
+			}
+			reopen(&stdin, 0, argv[i], O_RDONLY, "r");
+		} else if (str_cmp(argv[i], "-o") == 0) {
+			i++;
+			if (i >= argc) {
+				usage();
+				return -3;
+			}
+			reopen(&stdout, 1, argv[i], O_WRONLY | O_CREAT, "w");
+		} else if (str_cmp(argv[i], "-e") == 0) {
+			i++;
+			if (i >= argc) {
+				usage();
+				return -4;
+			}
+			reopen(&stderr, 2, argv[i], O_WRONLY | O_CREAT, "w");
+		} else if (str_cmp(argv[i], "--") == 0) {
+			i++;
+			break;
+		}
+	}
+	
+	if (i >= argc) {
+		usage();
+		return -5;
+	}
 	
 	/*
 	 * FIXME: fdopen() should actually detect that we are opening a console
@@ -100,27 +140,17 @@ int main(int argc, char *argv[])
 	 */
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	
-	if (stdin == NULL)
-		return -2;
-	
-	if (stdout == NULL)
-		return -3;
-	
-	if (stderr == NULL)
-		return -4;
-	
-	version_print(argv[1]);
-	task_id_t id = spawn(argv[2]);
+	task_id_t id = spawn(argc - i, argv + i);
 	
 	if (id != 0) {
 		task_exit_t texit;
 		int retval;
 		task_wait(id, &texit, &retval);
 		
-		return 0;
+		return retval;
 	}
 	
-	return -5;
+	return -6;
 }
 
 /** @}
