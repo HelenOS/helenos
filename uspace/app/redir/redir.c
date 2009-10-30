@@ -44,7 +44,7 @@
 
 static void usage(void)
 {
-	printf("Usage: redirect [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ,,,]\n");
+	printf("Usage: redir [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ...]\n");
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
