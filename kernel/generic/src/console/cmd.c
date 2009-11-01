@@ -408,6 +408,19 @@ static cmd_info_t ipc_info = {
 	.argv = &ipc_argv
 };
 
+/* Data and methods for 'kill' command */
+static int cmd_kill(cmd_arg_t *argv);
+static cmd_arg_t kill_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t kill_info = {
+	.name = "kill",
+	.description = "kill <taskid> Kill a task.",
+	.func = cmd_kill,
+	.argc = 1,
+	.argv = &kill_argv
+};
+
 /* Data and methods for 'zone' command */
 static int cmd_zone(cmd_arg_t *argv);
 static cmd_arg_t zone_argv = {
@@ -458,6 +471,7 @@ static cmd_info_t *basic_commands[] = {
 	&halt_info,
 	&help_info,
 	&ipc_info,
+	&kill_info,
 	&set4_info,
 	&slabs_info,
 	&symaddr_info,
@@ -847,7 +861,8 @@ int cmd_set4(cmd_arg_t *argv)
  *
  * @return Always 1
  */
-int cmd_slabs(cmd_arg_t * argv) {
+int cmd_slabs(cmd_arg_t * argv)
+{
 	slab_print_list();
 	return 1;
 }
@@ -859,7 +874,8 @@ int cmd_slabs(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_threads(cmd_arg_t * argv) {
+int cmd_threads(cmd_arg_t * argv)
+{
 	thread_print_list();
 	return 1;
 }
@@ -870,7 +886,8 @@ int cmd_threads(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_tasks(cmd_arg_t * argv) {
+int cmd_tasks(cmd_arg_t * argv)
+{
 	task_print_list();
 	return 1;
 }
@@ -881,7 +898,8 @@ int cmd_tasks(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_sched(cmd_arg_t * argv) {
+int cmd_sched(cmd_arg_t * argv)
+{
 	sched_print_list();
 	return 1;
 }
@@ -892,7 +910,8 @@ int cmd_sched(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zones(cmd_arg_t * argv) {
+int cmd_zones(cmd_arg_t * argv)
+{
 	zone_print_list();
 	return 1;
 }
@@ -903,7 +922,8 @@ int cmd_zones(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zone(cmd_arg_t * argv) {
+int cmd_zone(cmd_arg_t * argv)
+{
 	zone_print_one(argv[0].intval);
 	return 1;
 }
@@ -914,11 +934,25 @@ int cmd_zone(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_ipc(cmd_arg_t * argv) {
+int cmd_ipc(cmd_arg_t * argv)
+{
 	ipc_print_task(argv[0].intval);
 	return 1;
 }
 
+/** Command for printing task ipc details
+ *
+ * @param argv Integer argument from cmdline expected
+ *
+ * return Always 1
+ */
+int cmd_kill(cmd_arg_t * argv)
+{
+	if (task_kill(argv[0].intval) != EOK)
+		return 0;
+
+	return 1;
+}
 
 /** Command for listing processors.
  *
