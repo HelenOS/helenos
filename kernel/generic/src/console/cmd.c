@@ -940,11 +940,11 @@ int cmd_ipc(cmd_arg_t * argv)
 	return 1;
 }
 
-/** Command for printing task ipc details
+/** Command for killing a task
  *
  * @param argv Integer argument from cmdline expected
  *
- * return Always 1
+ * return 0 on failure, 1 on success.
  */
 int cmd_kill(cmd_arg_t * argv)
 {
