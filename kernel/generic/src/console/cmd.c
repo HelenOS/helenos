@@ -861,7 +861,8 @@ int cmd_set4(cmd_arg_t *argv)
  *
  * @return Always 1
  */
-int cmd_slabs(cmd_arg_t * argv) {
+int cmd_slabs(cmd_arg_t * argv)
+{
 	slab_print_list();
 	return 1;
 }
@@ -873,7 +874,8 @@ int cmd_slabs(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_threads(cmd_arg_t * argv) {
+int cmd_threads(cmd_arg_t * argv)
+{
 	thread_print_list();
 	return 1;
 }
@@ -884,7 +886,8 @@ int cmd_threads(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_tasks(cmd_arg_t * argv) {
+int cmd_tasks(cmd_arg_t * argv)
+{
 	task_print_list();
 	return 1;
 }
@@ -895,7 +898,8 @@ int cmd_tasks(cmd_arg_t * argv) {
  *
  * @return Always 1
  */
-int cmd_sched(cmd_arg_t * argv) {
+int cmd_sched(cmd_arg_t * argv)
+{
 	sched_print_list();
 	return 1;
 }
@@ -906,7 +910,8 @@ int cmd_sched(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zones(cmd_arg_t * argv) {
+int cmd_zones(cmd_arg_t * argv)
+{
 	zone_print_list();
 	return 1;
 }
@@ -917,7 +922,8 @@ int cmd_zones(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zone(cmd_arg_t * argv) {
+int cmd_zone(cmd_arg_t * argv)
+{
 	zone_print_one(argv[0].intval);
 	return 1;
 }
@@ -928,7 +934,8 @@ int cmd_zone(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_ipc(cmd_arg_t * argv) {
+int cmd_ipc(cmd_arg_t * argv)
+{
 	ipc_print_task(argv[0].intval);
 	return 1;
 }
