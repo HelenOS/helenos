@@ -124,7 +124,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			msg = async_send_1(phone, VFS_OUT_MOUNTED,
 			    (ipcarg_t) dev_handle, &answer);
 			/* send the mount options */
-			rc = ipc_data_write_start(phone, (void *)opts,
+			rc = async_data_write_start(phone, (void *)opts,
 			    str_size(opts));
 			if (rc != EOK) {
 				async_wait_for(msg, NULL);
@@ -206,7 +206,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 	vfs_release_phone(mountee_phone);
 	
 	/* send the mount options */
-	rc = ipc_data_write_start(phone, (void *)opts, str_size(opts));
+	rc = async_data_write_start(phone, (void *)opts, str_size(opts));
 	if (rc != EOK) {
 		async_wait_for(msg, NULL);
 		vfs_release_phone(phone);
@@ -267,7 +267,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	/* We want the client to send us the mount point. */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -289,7 +289,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	/* Deliver the mount point. */
-	ipcarg_t retval = ipc_data_write_finalize(callid, mp, size);
+	ipcarg_t retval = async_data_write_finalize(callid, mp, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(mp);
@@ -298,7 +298,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	mp[size] = '\0';
 	
 	/* Now we expect to receive the mount options. */
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(mp);
@@ -323,7 +323,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/* Deliver the mount options. */
-	retval = ipc_data_write_finalize(callid, opts, size);
+	retval = async_data_write_finalize(callid, opts, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(mp);
@@ -336,7 +336,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(mp);
@@ -369,7 +369,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	/* Deliver the file system name. */
-	retval = ipc_data_write_finalize(callid, fs_name, size);
+	retval = async_data_write_finalize(callid, fs_name, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(mp);
@@ -468,7 +468,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		lflag |= L_EXCLUSIVE;
 	
 	ipc_callid_t callid;
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -482,7 +482,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	int rc;
-	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+	if ((rc = async_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -542,7 +542,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
 	 * structure.
 	 */
-	int fd = vfs_fd_alloc();
+	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
 		ipc_answer_0(rid, fd);
@@ -619,7 +619,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
 	 * structure.
 	 */
-	int fd = vfs_fd_alloc();
+	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
 		ipc_answer_0(rid, fd);
@@ -678,6 +678,41 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
+static int vfs_close_internal(vfs_file_t *file)
+{
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	fibril_mutex_lock(&file->lock);
+	
+	if (file->refcnt <= 1) {
+		/* Only close the file on the destination FS server
+		   if there are no more file descriptors (except the
+		   present one) pointing to this file. */
+		
+		int fs_phone = vfs_grab_phone(file->node->fs_handle);
+		
+		/* Make a VFS_OUT_CLOSE request at the destination FS server. */
+		aid_t msg;
+		ipc_call_t answer;
+		msg = async_send_2(fs_phone, VFS_OUT_CLOSE, file->node->dev_handle,
+		    file->node->index, &answer);
+		
+		/* Wait for reply from the FS server. */
+		ipcarg_t rc;
+		async_wait_for(msg, &rc);
+		
+		vfs_release_phone(fs_phone);
+		fibril_mutex_unlock(&file->lock);
+		
+		return IPC_GET_ARG1(answer);
+	}
+	
+	fibril_mutex_unlock(&file->lock);
+	return EOK;
+}
+
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -689,32 +724,12 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	int ret = vfs_close_internal(file);
+	if (ret != EOK)
+		ipc_answer_0(rid, ret);
 	
-	/* Make a VFS_OUT_CLOSE request at the destination FS server. */
-	aid_t msg;
-	ipc_call_t answer;
-	msg = async_send_2(fs_phone, VFS_OUT_CLOSE, file->node->dev_handle,
-	    file->node->index, &answer);
-
-	/* Wait for reply from the FS server. */
-	ipcarg_t rc;
-	async_wait_for(msg, &rc);
-
-	vfs_release_phone(fs_phone);
-	fibril_mutex_unlock(&file->lock);
-	
-	int retval = IPC_GET_ARG1(answer);
-	if (retval != EOK)
-		ipc_answer_0(rid, retval);
-	
-	retval = vfs_fd_free(fd);
-	ipc_answer_0(rid, retval);
+	ret = vfs_fd_free(fd);
+	ipc_answer_0(rid, ret);
 }
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
@@ -746,9 +761,9 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipc_callid_t callid;
 	int res;
 	if (read)
-		res = ipc_data_read_receive(&callid, NULL);
+		res = async_data_read_receive(&callid, NULL);
 	else 
-		res = ipc_data_write_receive(&callid, NULL);
+		res = async_data_write_receive(&callid, NULL);
 	if (!res) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -942,7 +957,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	ipc_callid_t callid;
-	if (!ipc_data_read_receive(&callid, NULL)) {
+	if (!async_data_read_receive(&callid, NULL)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -968,7 +983,7 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	ipc_callid_t callid;
 
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -980,14 +995,14 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	int rc;
-	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+	if ((rc = async_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
 	}
 	path[len] = '\0';
 
-	if (!ipc_data_read_receive(&callid, NULL)) {
+	if (!async_data_read_receive(&callid, NULL)) {
 		free(path);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -1036,7 +1051,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	ipc_callid_t callid;
 
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -1048,7 +1063,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	int rc;
-	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+	if ((rc = async_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -1073,7 +1088,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	ipc_callid_t callid;
 
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -1085,7 +1100,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	int rc;
-	if ((rc = ipc_data_write_finalize(callid, path, len))) {
+	if ((rc = async_data_write_finalize(callid, path, len))) {
 		ipc_answer_0(rid, rc);
 		free(path);
 		return;
@@ -1124,7 +1139,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	int rc;
 
 	/* Retrieve the old path. */
-	if (!ipc_data_write_receive(&callid, &olen)) {
+	if (!async_data_write_receive(&callid, &olen)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -1135,7 +1150,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	if ((rc = ipc_data_write_finalize(callid, old, olen))) {
+	if ((rc = async_data_write_finalize(callid, old, olen))) {
 		ipc_answer_0(rid, rc);
 		free(old);
 		return;
@@ -1143,7 +1158,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	old[olen] = '\0';
 	
 	/* Retrieve the new path. */
-	if (!ipc_data_write_receive(&callid, &nlen)) {
+	if (!async_data_write_receive(&callid, &nlen)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		free(old);
@@ -1156,7 +1171,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(old);
 		return;
 	}
-	if ((rc = ipc_data_write_finalize(callid, new, nlen))) {
+	if ((rc = async_data_write_finalize(callid, new, nlen))) {
 		ipc_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1307,6 +1322,57 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	free(old);
 	free(new);
 	ipc_answer_0(rid, EOK);
+}
+
+void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
+{
+	int oldfd = IPC_GET_ARG1(*request);
+	int newfd = IPC_GET_ARG2(*request);
+	
+	/* Lookup the file structure corresponding to oldfd. */
+	vfs_file_t *oldfile = vfs_file_get(oldfd);
+	if (!oldfile) {
+		ipc_answer_0(rid, EBADF);
+		return;
+	}
+	
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd) {
+		ipc_answer_1(rid, EOK, newfd);
+		return;
+	}
+	
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	fibril_mutex_lock(&oldfile->lock);
+	
+	/* Lookup an open file structure possibly corresponding to newfd. */
+	vfs_file_t *newfile = vfs_file_get(newfd);
+	if (newfile) {
+		/* Close the originally opened file. */
+		int ret = vfs_close_internal(newfile);
+		if (ret != EOK) {
+			ipc_answer_0(rid, ret);
+			return;
+		}
+		
+		ret = vfs_fd_free(newfd);
+		if (ret != EOK) {
+			ipc_answer_0(rid, ret);
+			return;
+		}
+	}
+	
+	/* Assign the old file to newfd. */
+	int ret = vfs_fd_assign(oldfile, newfd);
+	fibril_mutex_unlock(&oldfile->lock);
+	
+	if (ret != EOK)
+		ipc_answer_0(rid, ret);
+	else
+		ipc_answer_1(rid, EOK, newfd);
 }
 
 /**

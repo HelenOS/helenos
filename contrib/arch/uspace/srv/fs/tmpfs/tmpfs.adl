@@ -8,10 +8,15 @@ frame tmpfs {
 		tmpfs tmpfs;
 	requires:
 		[/uspace/lib/libc/requires]
-		vfs vfs;
 		ns ns;
 		rd rd;
+		vfs vfs;
+		tmpfs tmpfs_nested;
+		fat fat_nested;
+		devfs devfs_nested;
+	initialization:
+		!ns.ipc_m_connect_me_to /* vfs */ ;
+		[/uspace/lib/libfs/fnc.fs_register]
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[tmpfs_server.bp]
+		[/uspace/lib/libc/protocol]
 };

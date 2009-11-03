@@ -27,6 +27,8 @@ context default
 	keyword whole out_copy yellow
 	
 	keyword whole protocol yellow
+	keyword whole initialization yellow
+	keyword whole finalization yellow
 	keyword whole provides yellow
 	keyword whole requires yellow
 	

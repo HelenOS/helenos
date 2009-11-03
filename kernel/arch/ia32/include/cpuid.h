@@ -62,7 +62,9 @@ typedef union cpuid_extended_feature_info {
 } cpuid_extended_feature_info;
 
 struct __cpuid_feature_info {
-	unsigned 			: 23;
+	unsigned      : 11;
+	unsigned sep  :  1;
+	unsigned      : 11;
 	unsigned mmx  :  1;
 	unsigned fxsr :  1;
 	unsigned sse  :  1;

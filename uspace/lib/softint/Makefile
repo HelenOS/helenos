@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,49 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Common compiler flags
-#
+include Makefile.common
 
-LIBC_PREFIX = ../libc
+.PHONY: all clean
 
-## Setup toolchain
-#
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -Iinclude
-
-## Sources
-#
-
-ARCH_SOURCES =
-
-GENERIC_SOURCES = \
-	generic/division.c
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-
-.PHONY: all clean depend
-
-all: libsoftint.a
-
--include Makefile.depend
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBC_PREFIX)/libc.a
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
 clean:
-	-rm -f libsoftint.a Makefile.depend
-	find generic/ -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	-makedepend -f - -- $(DEPEMD_DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
-
-libsoftint.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libsoftint.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	rm -f $(DEPEND) $(DEPEND_PREV) $(LIBSOFTINT)
+	find . -name '*.o' -follow -exec rm \{\} \;

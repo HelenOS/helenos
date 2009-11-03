@@ -88,7 +88,7 @@ typedef struct fat_bs {
 			/** Boot sector signature. */
 			uint16_t	signature;
 		} __attribute__ ((packed));
-		struct {
+		struct fat32 {
 			/* FAT32 only */
 			/** Sectors per FAT. */
 			uint32_t	sectors_per_fat;

@@ -58,7 +58,8 @@ endif
 
 ifeq ($(CONFIG_SOFTINT),y)
 	GENARCH_SOURCES += \
-		genarch/src/softint/division.c
+		genarch/src/softint/division.c \
+		genarch/src/softint/multiplication.c
 endif
 
 ifeq ($(CONFIG_FB),y)

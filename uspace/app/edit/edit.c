@@ -664,7 +664,7 @@ static void pt_get_eof(spt_t *pt)
 	int num_rows;
 
 	sheet_get_num_rows(&doc.sh, &num_rows);
-	coord.row = num_rows;
+	coord.row = num_rows + 1;
 	coord.column = 1;
 
 	sheet_get_cell_pt(&doc.sh, &coord, dir_after, pt);

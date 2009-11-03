@@ -104,7 +104,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name) + 1);
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -142,7 +142,7 @@ int devmap_device_register(const char *name, dev_handle_t *handle)
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, 0, 0,
 	    &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name) + 1);
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -179,7 +179,7 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name) + 1);
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
@@ -270,7 +270,7 @@ ipcarg_t devmap_device_get_devices(ipcarg_t count, dev_desc_t *data)
 	ipc_call_t answer;
 	aid_t req = async_send_0(phone, DEVMAP_DEVICE_GET_DEVICES, &answer);
 	
-	ipcarg_t retval = ipc_data_read_start(phone, data, count * sizeof(dev_desc_t));
+	ipcarg_t retval = async_data_read_start(phone, data, count * sizeof(dev_desc_t));
 	
 	if (retval != EOK) {
 		async_wait_for(req, NULL);

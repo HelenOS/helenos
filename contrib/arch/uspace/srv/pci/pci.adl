@@ -9,7 +9,8 @@ frame pci {
 	requires:
 		[/uspace/lib/libc/requires]
 		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* pci */
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[pci_server.bp]
+		[/uspace/lib/libc/protocol]
 };

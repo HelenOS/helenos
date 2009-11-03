@@ -10,7 +10,7 @@
 	
 	?ipc_m_connect_me_to {
 		tentative {
-			alternative (service; kbd; fb; console; vfs; devmap) {
+			alternative (service; kbd; fb; console; vfs; devmap_driver; devmap_client) {
 				!service.ipc_m_connect_me_to /* forward */
 			}
 		}

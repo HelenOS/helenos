@@ -36,7 +36,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c
 
-CFLAGS += -mips3
+GCC_CFLAGS += -mips3
 
 ENDIANESS = LE
 

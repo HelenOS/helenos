@@ -71,6 +71,9 @@ static char *pathname = NULL;
 /** The Program control block */
 static pcb_t pcb;
 
+/** Current working directory */
+static char *cwd = NULL;
+
 /** Number of arguments */
 static int argc = 0;
 /** Argument vector */
@@ -101,7 +104,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	
 	task_id = task_get_id();
 	
-	if (!ipc_data_read_receive(&callid, &len)) {
+	if (!async_data_read_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -110,10 +113,38 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
 	
-	ipc_data_read_finalize(callid, &task_id, len);
+	async_data_read_finalize(callid, &task_id, len);
 	ipc_answer_0(rid, EOK);
 }
 
+/** Receive a call setting the current working directory.
+ *
+ * @param rid
+ * @param request
+ */
+static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_callid_t callid;
+	size_t len;
+	
+	if (!async_data_write_receive(&callid, &len)) {
+		ipc_answer_0(callid, EINVAL);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+	
+	cwd = malloc(len + 1);
+	if (!cwd) {
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	async_data_write_finalize(callid, cwd, len);
+	cwd[len] = '\0';
+	
+	ipc_answer_0(rid, EOK);
+}
 
 /** Receive a call setting pathname of the program to execute.
  *
@@ -126,7 +157,7 @@ static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	char *name_buf;
 	
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -139,7 +170,7 @@ static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, name_buf, len);
+	async_data_write_finalize(callid, name_buf, len);
 	ipc_answer_0(rid, EOK);
 	
 	if (pathname != NULL) {
@@ -163,7 +194,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 	char *p;
 	int n;
 	
-	if (!ipc_data_write_receive(&callid, &buf_size)) {
+	if (!async_data_write_receive(&callid, &buf_size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -186,7 +217,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, arg_buf, buf_size);
+	async_data_write_finalize(callid, arg_buf, buf_size);
 	
 	arg_buf[buf_size] = '\0';
 	
@@ -238,7 +269,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
 	size_t buf_size;
-	if (!ipc_data_write_receive(&callid, &buf_size)) {
+	if (!async_data_write_receive(&callid, &buf_size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -267,7 +298,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, fil_buf, buf_size);
+	async_data_write_finalize(callid, fil_buf, buf_size);
 	
 	int count = buf_size / sizeof(fdi_node_t);
 	
@@ -311,6 +342,8 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	elf_create_pcb(&prog_info, &pcb);
+	
+	pcb.cwd = cwd;
 	
 	pcb.argc = argc;
 	pcb.argv = argv;
@@ -405,6 +438,9 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			exit(0);
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(callid, &call);
+			continue;
+		case LOADER_SET_CWD:
+			ldr_set_cwd(callid, &call);
 			continue;
 		case LOADER_SET_PATHNAME:
 			ldr_set_pathname(callid, &call);

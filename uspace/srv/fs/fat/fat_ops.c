@@ -896,7 +896,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* accept the mount options */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -907,7 +907,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
-	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		free(opts);
@@ -1046,7 +1046,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 
 	ipc_callid_t callid;
 	size_t len;
-	if (!ipc_data_read_receive(&callid, &len)) {
+	if (!async_data_read_receive(&callid, &len)) {
 		fat_node_put(fn);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -1065,14 +1065,14 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		if (pos >= nodep->size) {
 			/* reading beyond the EOF */
 			bytes = 0;
-			(void) ipc_data_read_finalize(callid, NULL, 0);
+			(void) async_data_read_finalize(callid, NULL, 0);
 		} else {
 			bytes = min(len, bps - pos % bps);
 			bytes = min(bytes, nodep->size - pos);
 			rc = fat_block_get(&b, bs, nodep, pos / bps,
 			    BLOCK_FLAGS_NONE);
 			assert(rc == EOK);
-			(void) ipc_data_read_finalize(callid, b->data + pos % bps,
+			(void) async_data_read_finalize(callid, b->data + pos % bps,
 			    bytes);
 			rc = block_put(b);
 			assert(rc == EOK);
@@ -1130,7 +1130,7 @@ miss:
 		ipc_answer_1(rid, ENOENT, 0);
 		return;
 hit:
-		(void) ipc_data_read_finalize(callid, name, str_size(name) + 1);
+		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 
@@ -1168,7 +1168,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	
 	ipc_callid_t callid;
 	size_t len;
-	if (!ipc_data_write_receive(&callid, &len)) {
+	if (!async_data_write_receive(&callid, &len)) {
 		fat_node_put(fn);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -1203,7 +1203,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		assert(rc == EOK);
 		rc = fat_block_get(&b, bs, nodep, pos / bps, flags);
 		assert(rc == EOK);
-		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
+		(void) async_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);
@@ -1240,7 +1240,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		rc = _fat_block_get(&b, bs, dev_handle, lcl, (pos / bps) % spc,
 		    flags);
 		assert(rc == EOK);
-		(void) ipc_data_write_finalize(callid, b->data + pos % bps,
+		(void) async_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);

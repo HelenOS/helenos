@@ -31,6 +31,13 @@ frame ns {
 		ns ns;
 	requires:
 		[/uspace/lib/libc/requires]
+		kbd kbd;
+		fb fb;
+		console console;
+		vfs vfs;
+		devmap_driver devmap_driver;
+		devmap_client devmap_client;
+		loader loader;
 	protocol:
 		[/uspace/lib/libc/protocol]
 };

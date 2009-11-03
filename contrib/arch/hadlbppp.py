@@ -35,13 +35,20 @@ import os
 
 INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 	INST, VAR, FIN, BIND, TO, SUBSUME, DELEGATE, IFACE, EXTENDS, PRE_BODY, \
-	PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL, FRAME, PROVIDES, \
-	REQUIRES = range(27)
+	PROTOTYPE, PAR_LEFT, PAR_RIGHT, SIGNATURE, PROTOCOL, INITIALIZATION, \
+	FINALIZATION, FRAME, PROVIDES, REQUIRES = range(29)
 
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <OUTPUT>" % prname
+	print "%s <--bp|--ebp|--adl|--dot|--nop>+ <OUTPUT>" % prname
+	print
+	print "--bp   Dump original Behavior Protocols (dChecker, BPSlicer)"
+	print "--ebp  Dump Extended Behavior Protocols (bp2promela)"
+	print "--adl  Dump Architecture Description Language (modified SOFA ADL/CDL)"
+	print "--dot  Dump Dot architecture diagram (GraphViz)"
+	print "--nop  Do not dump anything (just input files syntax check)"
+	print
 
 def tabs(cnt):
 	"Return given number of tabs"
@@ -245,7 +252,7 @@ def split_bp(protocol):
 def extend_bp(name, tokens, iface):
 	"Convert interface Behavior Protocol to generic protocol"
 	
-	result = ["("]
+	result = []
 	i = 0
 	
 	while (i < len(tokens)):
@@ -265,34 +272,61 @@ def extend_bp(name, tokens, iface):
 		
 		i += 1
 	
-	result.append(")")
-	result.append("*")
-	
 	return result
 
-def merge_bp(protocols):
+def merge_bp(initialization, finalization, protocols):
 	"Merge several Behavior Protocols"
 	
+	indep = []
+	
 	if (len(protocols) > 1):
-		result = []
 		first = True
 		
 		for protocol in protocols:
 			if (first):
 				first = False
 			else:
-				result.append("|")
+				indep.append("|")
 			
-			result.append("(")
-			result.extend(protocol)
-			result.append(")")
-		
-		return result
+			indep.append("(")
+			indep.extend(protocol)
+			indep.append(")")
+	elif (len(protocols) == 1):
+		indep = protocols[0]
 	
-	if (len(protocols) == 1):
-		return protocols[0]
+	inited = []
 	
-	return []
+	if (initialization != None):
+		if (len(indep) > 0):
+			inited.append("(")
+			inited.extend(initialization)
+			inited.append(")")
+			inited.append(";")
+			inited.append("(")
+			inited.extend(indep)
+			inited.append(")")
+		else:
+			inited = initialization
+	else:
+		inited = indep
+	
+	finited = []
+	
+	if (finalization != None):
+		if (len(inited) > 0):
+			finited.append("(")
+			finited.extend(inited)
+			finited.append(")")
+			finited.append(";")
+			finited.append("(")
+			finited.extend(finalization)
+			finited.append(")")
+		else:
+			finited = finalization
+	else:
+		finited = inited
+	
+	return finited
 
 def parse_bp(name, tokens, base_indent):
 	"Parse Behavior Protocol"
@@ -343,6 +377,11 @@ def parse_bp(name, tokens, base_indent):
 	
 	return output
 
+def parse_ebp(component, name, tokens, base_indent):
+	"Parse Behavior Protocol and generate Extended Behavior Protocol output"
+	
+	return "component %s {\n\tbehavior {\n\t\t%s\n\t}\n}" % (component, parse_bp(name, tokens, base_indent + 2))
+
 def get_iface(name):
 	"Get interface by name"
 	
@@ -369,32 +408,67 @@ def inherited_protocols(iface):
 	
 	return result
 
-def dump_frame(frame, outdir, var, archf):
+def dump_frame(directed_binds, frame, outdir, var, archf):
 	"Dump Behavior Protocol of a given frame"
 	
-	fname = "%s.bp" % frame['name']
+	global opt_bp
+	global opt_ebp
 	
-	archf.write("instantiate %s from \"%s\"\n" % (var, fname))
+	if (opt_ebp):
+		fname = "%s.ebp" % frame['name']
+	else:
+		fname = "%s.bp" % frame['name']
+	
+	if (archf != None):
+		archf.write("instantiate %s from \"%s\"\n" % (var, fname))
+	
 	outname = os.path.join(outdir, fname)
 	
 	protocols = []
 	if ('protocol' in frame):
 		protocols.append(frame['protocol'])
 	
+	if ('initialization' in frame):
+		initialization = frame['initialization']
+	else:
+		initialization = None
+	
+	if ('finalization' in frame):
+		finalization = frame['finalization']
+	else:
+		finalization = None
+	
 	if ('provides' in frame):
 		for provides in frame['provides']:
 			iface = get_iface(provides['iface'])
 			if (not iface is None):
+				binds = directed_binds['%s.%s' % (var, provides['iface'])]
+				if (not binds is None):
+					cnt = len(binds)
+				else:
+					cnt = 1
+				
 				if ('protocol' in iface):
-					protocols.append(extend_bp(outname, iface['protocol'], iface['name']))
+					proto = extend_bp(outname, iface['protocol'], iface['name'])
+					for _ in range(0, cnt):
+						protocols.append(proto)
+				
 				for protocol in inherited_protocols(iface):
-					protocols.append(extend_bp(outname, protocol, iface['name']))
+					proto = extend_bp(outname, protocol, iface['name'])
+					for _ in range(0, cnt):
+						protocols.append(proto)
 			else:
 				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
 	
-	outf = file(outname, "w")
-	outf.write(parse_bp(outname, merge_bp(protocols), 0))
-	outf.close()
+	if (opt_bp):
+		outf = file(outname, "w")
+		outf.write(parse_bp(outname, merge_bp(initialization, finalization, protocols), 0))
+		outf.close()
+	
+	if (opt_ebp):
+		outf = file(outname, "w")
+		outf.write(parse_ebp(frame['name'], outname, merge_bp(initialization, finalization, protocols), 0))
+		outf.close()
 
 def get_system_arch():
 	"Get system architecture"
@@ -430,12 +504,23 @@ def get_frame(name):
 def create_null_bp(fname, outdir, archf):
 	"Create null frame protocol"
 	
-	archf.write("frame \"%s\"\n" % fname)
+	global opt_bp
+	global opt_ebp
+	
+	if (archf != None):
+		archf.write("frame \"%s\"\n" % fname)
+	
 	outname = os.path.join(outdir, fname)
 	
-	outf = file(outname, "w")
-	outf.write("NULL")
-	outf.close()
+	if (opt_bp):
+		outf = file(outname, "w")
+		outf.write("NULL")
+		outf.close()
+	
+	if (opt_ebp):
+		outf = file(outname, "w")
+		outf.write("component null {\n\tbehavior {\n\t\tNULL\n\t}\n}")
+		outf.close()
 
 def flatten_binds(binds, delegates, subsumes):
 	"Remove bindings which are replaced by delegation or subsumption"
@@ -479,8 +564,8 @@ def direct_binds(binds):
 	
 	return result
 
-def merge_subarch(prefix, arch, outdir):
-	"Merge subarchitecture into architexture"
+def merge_arch(prefix, arch, outdir):
+	"Merge subarchitecture into architecture"
 	
 	insts = []
 	binds = []
@@ -491,7 +576,7 @@ def merge_subarch(prefix, arch, outdir):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch("%s_%s" % (prefix, subarch['name']), subarch, outdir)
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_arch("%s_%s" % (prefix, subarch['name']), subarch, outdir)
 				insts.extend(subinsts)
 				binds.extend(subbinds)
 				delegates.extend(subdelegates)
@@ -520,6 +605,9 @@ def merge_subarch(prefix, arch, outdir):
 def dump_archbp(outdir):
 	"Dump system architecture Behavior Protocol"
 	
+	global opt_bp
+	global opt_ebp
+	
 	arch = get_system_arch()
 	
 	if (arch is None):
@@ -535,7 +623,7 @@ def dump_archbp(outdir):
 		for inst in arch['inst']:
 			subarch = get_arch(inst['type'])
 			if (not subarch is None):
-				(subinsts, subbinds, subdelegates, subsubsumes) = merge_subarch(subarch['name'], subarch, outdir)
+				(subinsts, subbinds, subdelegates, subsubsumes) = merge_arch(subarch['name'], subarch, outdir)
 				insts.extend(subinsts)
 				binds.extend(subbinds)
 				delegates.extend(subdelegates)
@@ -561,20 +649,25 @@ def dump_archbp(outdir):
 			print "Unable to subsume interface in system architecture"
 			break
 	
+	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
+	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
-	outf = file(outname, "w")
+	if ((opt_bp) or (opt_ebp)):
+		outf = file(outname, "w")
+	else:
+		outf = None
 	
 	create_null_bp("null.bp", outdir, outf)
 	
 	for inst in insts:
-		dump_frame(inst['frame'], outdir, inst['var'], outf)
-	
-	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
+		dump_frame(directed_binds, inst['frame'], outdir, inst['var'], outf)
 	
 	for dst, src in directed_binds.items():
-		outf.write("bind %s to %s\n" % (", ".join(src), dst))
+		if (outf != None):
+			outf.write("bind %s to %s\n" % (", ".join(src), dst))
 	
-	outf.close()
+	if (outf != None):
+		outf.close()
 
 def preproc_adl(raw, inarg):
 	"Preprocess %% statements in ADL"
@@ -590,6 +683,8 @@ def parse_adl(base, root, inname, nested, indent):
 	global interface
 	global frame
 	global protocol
+	global initialization
+	global finalization
 	
 	global iface_properties
 	global frame_properties
@@ -688,13 +783,81 @@ def parse_adl(base, root, inname, nested, indent):
 				continue
 			
 			if (BODY in context):
+				if (FINALIZATION in context):
+					if (token == "{"):
+						indent += 1
+					elif (token == "}"):
+						indent -= 1
+					
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
+						bp = split_bp(finalization)
+						finalization = None
+						
+						if (not frame in frame_properties):
+							frame_properties[frame] = {}
+						
+						if ('finalization' in frame_properties[frame]):
+							print "%s: Finalization protocol for frame '%s' already defined" % (inname, frame)
+						else:
+							frame_properties[frame]['finalization'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
+						
+						context.remove(FINALIZATION)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
+					else:
+						finalization += token
+						continue
+				
+				if (INITIALIZATION in context):
+					if (token == "{"):
+						indent += 1
+					elif (token == "}"):
+						indent -= 1
+					
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
+						bp = split_bp(initialization)
+						initialization = None
+						
+						if (not frame in frame_properties):
+							frame_properties[frame] = {}
+						
+						if ('initialization' in frame_properties[frame]):
+							print "%s: Initialization protocol for frame '%s' already defined" % (inname, frame)
+						else:
+							frame_properties[frame]['initialization'] = bp
+						
+						output += "\n%s" % tabs(2)
+						output += parse_bp(inname, bp, 2)
+						
+						context.remove(INITIALIZATION)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
+					else:
+						initialization += token
+						continue
+				
 				if (PROTOCOL in context):
 					if (token == "{"):
 						indent += 1
 					elif (token == "}"):
 						indent -= 1
 					
-					if (indent == -1):
+					if (((token[-1] == ":") and (indent == 0)) or (indent == -1)):
 						bp = split_bp(protocol)
 						protocol = None
 						
@@ -708,16 +871,19 @@ def parse_adl(base, root, inname, nested, indent):
 						
 						output += "\n%s" % tabs(2)
 						output += parse_bp(inname, bp, 2)
-						output += "\n%s" % token
-						indent = 0
 						
 						context.remove(PROTOCOL)
-						context.remove(BODY)
-						context.add(NULL)
+						if (indent == -1):
+							output += "\n%s" % token
+							context.remove(BODY)
+							context.add(NULL)
+							indent = 0
+							continue
+						else:
+							indent = 2
 					else:
 						protocol += token
-					
-					continue
+						continue
 				
 				if (REQUIRES in context):
 					if (FIN in context):
@@ -815,13 +981,25 @@ def parse_adl(base, root, inname, nested, indent):
 				if (token == "provides:"):
 					output += "\n%s%s" % (tabs(indent - 1), token)
 					context.add(PROVIDES)
-					protocol = ""
 					continue
 				
 				if (token == "requires:"):
 					output += "\n%s%s" % (tabs(indent - 1), token)
 					context.add(REQUIRES)
-					protocol = ""
+					continue
+				
+				if (token == "initialization:"):
+					output += "\n%s%s" % (tabs(indent - 1), token)
+					indent = 0
+					context.add(INITIALIZATION)
+					initialization = ""
+					continue
+				
+				if (token == "finalization:"):
+					output += "\n%s%s" % (tabs(indent - 1), token)
+					indent = 0
+					context.add(FINALIZATION)
+					finalization = ""
 					continue
 				
 				if (token == "protocol:"):
@@ -1011,7 +1189,7 @@ def parse_adl(base, root, inname, nested, indent):
 					if (not identifier(token)):
 						print "%s: Expected inherited interface name in interface head '%s'" % (inname, interface)
 					else:
-						output += " %s" % token
+						output += "%s " % token
 						if (not interface in iface_properties):
 							iface_properties[interface] = {}
 						
@@ -1022,7 +1200,7 @@ def parse_adl(base, root, inname, nested, indent):
 					continue
 				
 				if (token == "extends"):
-					output += " %s" % token
+					output += "%s " % token
 					context.add(EXTENDS)
 					continue
 					
@@ -1375,8 +1553,12 @@ def open_adl(base, root, inname, outdir, outname):
 	global interface
 	global frame
 	global protocol
+	global initialization
+	global finalization
 	
 	global arg0
+	
+	global opt_adl
 	
 	output = ""
 	context = set()
@@ -1384,12 +1566,14 @@ def open_adl(base, root, inname, outdir, outname):
 	interface = None
 	frame = None
 	protocol = None
+	initialization = None
+	finalization = None
 	arg0 = None
 	
 	parse_adl(base, root, inname, False, 0)
 	output = output.strip()
 	
-	if (output != ""):
+	if ((output != "") and (opt_adl)):
 		outf = file(outname, "w")
 		outf.write(output)
 		outf.close()
@@ -1411,16 +1595,244 @@ def recursion(base, root, output, level):
 		if (os.path.isdir(canon)):
 			recursion(base, canon, output, level + 1)
 
+def merge_dot_frame(prefix, name, frame, outf, indent):
+	"Dump Dot frame"
+	
+	outf.write("%ssubgraph cluster_%s {\n" % (tabs(indent), prefix))
+	outf.write("%s\tlabel=\"%s\";\n" % (tabs(indent), name))
+	outf.write("%s\tstyle=filled;\n" % tabs(indent))
+	outf.write("%s\tcolor=red;\n" % tabs(indent))
+	outf.write("%s\tfillcolor=yellow;\n" % tabs(indent))
+	outf.write("%s\t\n" % tabs(indent))
+	
+	if ('provides' in frame):
+		outf.write("%s\t%s__provides [label=\"\", shape=doublecircle, style=filled, color=green, fillcolor=yellow];\n" % (tabs(indent), prefix))
+	
+	if ('requires' in frame):
+		outf.write("%s\t%s__requires [label=\"\", shape=circle, style=filled, color=red, fillcolor=yellow];\n" % (tabs(indent), prefix))
+	
+	outf.write("%s}\n" % tabs(indent))
+	outf.write("%s\n" % tabs(indent))
+
+def merge_dot_arch(prefix, name, arch, outf, indent):
+	"Dump Dot subarchitecture"
+	
+	outf.write("%ssubgraph cluster_%s {\n" % (tabs(indent), prefix))
+	outf.write("%s\tlabel=\"%s\";\n" % (tabs(indent), name))
+	outf.write("%s\tcolor=red;\n" % tabs(indent))
+	outf.write("%s\t\n" % tabs(indent))
+	
+	if ('inst' in arch):
+		for inst in arch['inst']:
+			subarch = get_arch(inst['type'])
+			if (not subarch is None):
+				merge_dot_arch("%s_%s" % (prefix, inst['var']), inst['var'], subarch, outf, indent + 1)
+			else:
+				subframe = get_frame(inst['type'])
+				if (not subframe is None):
+					merge_dot_frame("%s_%s" % (prefix, inst['var']), inst['var'], subframe, outf, indent + 1)
+				else:
+					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+	
+	if ('bind' in arch):
+		labels = {}
+		for bind in arch['bind']:
+			if (bind['from'][1] != bind['to'][1]):
+				label = "%s:%s" % (bind['from'][1], bind['to'][1])
+			else:
+				label = bind['from'][1]
+			
+			if (not (bind['from'][0], bind['to'][0]) in labels):
+				labels[(bind['from'][0], bind['to'][0])] = []
+			
+			labels[(bind['from'][0], bind['to'][0])].append(label)
+		
+		for bind in arch['bind']:
+			if (not (bind['from'][0], bind['to'][0]) in labels):
+				continue
+			
+			attrs = []
+			
+			if (bind['from'][0] != bind['to'][0]):
+				attrs.append("ltail=cluster_%s_%s" % (prefix, bind['from'][0]))
+				attrs.append("lhead=cluster_%s_%s" % (prefix, bind['to'][0]))
+			
+			attrs.append("label=\"%s\"" % "\\n".join(labels[(bind['from'][0], bind['to'][0])]))
+			del labels[(bind['from'][0], bind['to'][0])]
+			
+			outf.write("%s\t%s_%s__requires -> %s_%s__provides [%s];\n" % (tabs(indent), prefix, bind['from'][0], prefix, bind['to'][0], ", ".join(attrs)))
+	
+	if ('delegate' in arch):
+		outf.write("%s\t%s__provides [label=\"\", shape=doublecircle, color=green];\n" % (tabs(indent), prefix))
+		
+		labels = {}
+		for delegate in arch['delegate']:
+			if (delegate['from'] != delegate['to'][1]):
+				label = "%s:%s" % (delegate['from'], delegate['to'][1])
+			else:
+				label = delegate['from']
+			
+			if (not delegate['to'][0] in labels):
+				labels[delegate['to'][0]] = []
+			
+			labels[delegate['to'][0]].append(label)
+		
+		for delegate in arch['delegate']:
+			if (not delegate['to'][0] in labels):
+				continue
+			
+			attrs = []
+			attrs.append("color=gray")
+			attrs.append("lhead=cluster_%s_%s" % (prefix, delegate['to'][0]))
+			attrs.append("label=\"%s\"" % "\\n".join(labels[delegate['to'][0]]))
+			del labels[delegate['to'][0]]
+			
+			outf.write("%s\t%s__provides -> %s_%s__provides [%s];\n" % (tabs(indent), prefix, prefix, delegate['to'][0], ", ".join(attrs)))
+	
+	if ('subsume' in arch):
+		outf.write("%s\t%s__requires [label=\"\", shape=circle, color=red];\n" % (tabs(indent), prefix))
+		
+		labels = {}
+		for subsume in arch['subsume']:
+			if (subsume['from'][1] != subsume['to']):
+				label = "%s:%s" % (subsume['from'][1], subsume['to'])
+			else:
+				label = subsume['to']
+			
+			if (not subsume['from'][0] in labels):
+				labels[subsume['from'][0]] = []
+			
+			labels[subsume['from'][0]].append(label)
+		
+		for subsume in arch['subsume']:
+			if (not subsume['from'][0] in labels):
+				continue
+			
+			attrs = []
+			attrs.append("color=gray")
+			attrs.append("ltail=cluster_%s_%s" % (prefix, subsume['from'][0]))
+			attrs.append("label=\"%s\"" % "\\n".join(labels[subsume['from'][0]]))
+			del labels[subsume['from'][0]]
+			
+			outf.write("%s\t%s_%s__requires -> %s__requires [%s];\n" % (tabs(indent), prefix, subsume['from'][0], prefix, ", ".join(attrs)))
+	
+	outf.write("%s}\n" % tabs(indent))
+	outf.write("%s\n" % tabs(indent))
+
+def dump_dot(outdir):
+	"Dump Dot architecture"
+	
+	global opt_dot
+	
+	arch = get_system_arch()
+	
+	if (arch is None):
+		print "Unable to find system architecture"
+		return
+	
+	if (opt_dot):
+		outname = os.path.join(outdir, "%s.dot" % arch['name'])
+		outf = file(outname, "w")
+		
+		outf.write("digraph {\n")
+		outf.write("\tlabel=\"%s\";\n" % arch['name'])
+		outf.write("\tcompound=true;\n")
+		outf.write("\tsplines=\"polyline\";\n")
+		outf.write("\tedge [fontsize=8];\n")
+		outf.write("\t\n")
+		
+		if ('inst' in arch):
+			for inst in arch['inst']:
+				subarch = get_arch(inst['type'])
+				if (not subarch is None):
+					merge_dot_arch(inst['var'], inst['var'], subarch, outf, 1)
+				else:
+					subframe = get_frame(inst['type'])
+					if (not subframe is None):
+						merge_dot_frame("%s" % inst['var'], inst['var'], subframe, outf, 1)
+					else:
+						print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+		
+		if ('bind' in arch):
+			labels = {}
+			for bind in arch['bind']:
+				if (bind['from'][1] != bind['to'][1]):
+					label = "%s:%s" % (bind['from'][1], bind['to'][1])
+				else:
+					label = bind['from'][1]
+				
+				if (not (bind['from'][0], bind['to'][0]) in labels):
+					labels[(bind['from'][0], bind['to'][0])] = []
+				
+				labels[(bind['from'][0], bind['to'][0])].append(label)
+			
+			for bind in arch['bind']:
+				if (not (bind['from'][0], bind['to'][0]) in labels):
+					continue
+				
+				attrs = []
+				
+				if (bind['from'][0] != bind['to'][0]):
+					attrs.append("ltail=cluster_%s" % bind['from'][0])
+					attrs.append("lhead=cluster_%s" % bind['to'][0])
+				
+				attrs.append("label=\"%s\"" % "\\n".join(labels[(bind['from'][0], bind['to'][0])]))
+				del labels[(bind['from'][0], bind['to'][0])]
+				
+				outf.write("\t%s__requires -> %s__provides [%s];\n" % (bind['from'][0], bind['to'][0], ", ".join(attrs)))
+		
+		if ('delegate' in arch):
+			for delegate in arch['delegate']:
+				print "Unable to delegate interface in system architecture"
+				break
+		
+		if ('subsume' in arch):
+			for subsume in arch['subsume']:
+				print "Unable to subsume interface in system architecture"
+				break
+		
+		outf.write("}\n")
+		
+		outf.close()
+
 def main():
 	global iface_properties
 	global frame_properties
 	global arch_properties
+	global opt_bp
+	global opt_ebp
+	global opt_adl
+	global opt_dot
 	
-	if (len(sys.argv) < 2):
+	if (len(sys.argv) < 3):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1])
+	opt_bp = False
+	opt_ebp = False
+	opt_adl = False
+	opt_dot = False
+	
+	for arg in sys.argv[1:(len(sys.argv) - 1)]:
+		if (arg == "--bp"):
+			opt_bp = True
+		elif (arg == "--ebp"):
+			opt_ebp = True
+		elif (arg == "--adl"):
+			opt_adl = True
+		elif (arg == "--dot"):
+			opt_dot = True
+		elif (arg == "--nop"):
+			pass
+		else:
+			print "Error: Unknown command line option '%s'" % arg
+			return
+	
+	if ((opt_bp) and (opt_ebp)):
+		print "Error: Cannot dump both original Behavior Protocols and Extended Behavior Protocols"
+		return
+	
+	path = os.path.abspath(sys.argv[-1])
 	if (not os.path.isdir(path)):
 		print "Error: <OUTPUT> is not a directory"
 		return
@@ -1431,6 +1843,7 @@ def main():
 	
 	recursion(".", ".", path, 0)
 	dump_archbp(path)
+	dump_dot(path)
 
 if __name__ == '__main__':
 	main()

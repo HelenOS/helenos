@@ -60,8 +60,10 @@ void before_thread_runs_arch(void)
 	uintptr_t kstk = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE -
 	    SP_DELTA];
 	
-	/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
-	write_msr(IA32_MSR_SYSENTER_ESP, kstk);
+	if (CPU->arch.fi.bits.sep) {
+		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
+		write_msr(IA32_MSR_SYSENTER_ESP, kstk);
+	}
 	
 	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
 	CPU->arch.tss->esp0 = kstk;

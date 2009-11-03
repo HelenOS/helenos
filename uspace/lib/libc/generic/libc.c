@@ -82,6 +82,7 @@ void __main(void *pcb_ptr)
 		argc = __pcb->argc;
 		argv = __pcb->argv;
 		__stdio_init(__pcb->filc, __pcb->filv);
+		(void) chdir(__pcb->cwd);
 	}
 	
 	retval = main(argc, argv);

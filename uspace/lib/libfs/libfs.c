@@ -90,7 +90,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
-	int rc = ipc_data_write_start(vfs_phone, info, sizeof(*info)); 
+	int rc = async_data_write_start(vfs_phone, info, sizeof(*info)); 
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -113,7 +113,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
-	rc = ipc_share_in_start_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
+	rc = async_share_in_start_0_0(vfs_phone, reg->plb_ro, PLB_SIZE);
 	if (rc) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -168,7 +168,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	ipc_answer_0(callid, EOK);	/* acknowledge the mountee_phone */
 	
-	res = ipc_data_write_receive(&callid, NULL);
+	res = async_data_write_receive(&callid, NULL);
 	if (!res) {
 		ipc_hangup(mountee_phone);
 		ipc_answer_0(callid, EINVAL);
@@ -485,7 +485,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size) ||
+	if (!async_data_read_receive(&callid, &size) ||
 	    size != sizeof(struct stat)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -502,7 +502,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	stat.is_file = ops->is_file(fn);
 	stat.size = ops->size_get(fn);
 
-	ipc_data_read_finalize(callid, &stat, sizeof(struct stat));
+	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	ipc_answer_0(rid, EOK);
 }
 
@@ -530,8 +530,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		return;
 	}
 	
-	ipc_answer_5(rid, EOK, fs_handle, dev_handle, index, ops->size_get(fn),
-	    ops->lnkcnt_get(fn));
+	ipc_answer_3(rid, EOK, ops->size_get(fn), ops->lnkcnt_get(fn),
+	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);
 }

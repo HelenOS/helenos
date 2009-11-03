@@ -104,7 +104,8 @@ frame fb {
 	requires:
 		[/uspace/lib/libc/requires]
 		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* fb */
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[fb_server.bp]
+		[/uspace/lib/libc/protocol]
 };

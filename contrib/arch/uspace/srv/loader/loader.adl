@@ -26,7 +26,9 @@ frame loader {
 	requires:
 		[/uspace/lib/libc/requires]
 		ns ns;
+	initialization:
+		!ns.id_intro ;
+		!ns.ipc_m_connect_to_me /* loader */
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[loader_server.bp]
+		[/uspace/lib/libc/protocol]
 };

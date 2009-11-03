@@ -33,6 +33,7 @@ BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
 TARGET = i686-pc-linux-gnu
+CLANG_ARCH = i386
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32
 
 BITS = 32

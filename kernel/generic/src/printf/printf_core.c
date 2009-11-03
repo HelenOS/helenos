@@ -38,7 +38,7 @@
 
 #include <printf/printf_core.h>
 #include <print.h>
-#include <arch/arg.h>
+#include <stdarg.h>
 #include <macros.h>
 #include <string.h>
 #include <arch.h>

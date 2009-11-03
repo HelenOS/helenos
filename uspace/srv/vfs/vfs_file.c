@@ -75,16 +75,24 @@ bool vfs_files_init(void)
 
 /** Allocate a file descriptor.
  *
- * @return		First available file descriptor or a negative error
- *			code.
+ * @param desc If true, look for an available file descriptor
+ *             in a descending order.
+ *
+ * @return First available file descriptor or a negative error
+ *         code.
  */
-int vfs_fd_alloc(void)
+int vfs_fd_alloc(bool desc)
 {
 	if (!vfs_files_init())
 		return ENOMEM;
 	
 	unsigned int i;
-	for (i = 0; i < MAX_OPEN_FILES; i++) {
+	if (desc)
+		i = MAX_OPEN_FILES;
+	else
+		i = 0;
+	
+	while (true) {
 		if (!files[i]) {
 			files[i] = (vfs_file_t *) malloc(sizeof(vfs_file_t));
 			if (!files[i])
@@ -94,6 +102,18 @@ int vfs_fd_alloc(void)
 			fibril_mutex_initialize(&files[i]->lock);
 			vfs_file_addref(files[i]);
 			return (int) i;
+		}
+		
+		if (desc) {
+			if (i == 0)
+				break;
+			
+			i--;
+		} else {
+			if (i == MAX_OPEN_FILES)
+				break;
+			
+			i++;
 		}
 	}
 	
@@ -117,6 +137,29 @@ int vfs_fd_free(int fd)
 	
 	vfs_file_delref(files[fd]);
 	files[fd] = NULL;
+	
+	return EOK;
+}
+
+/** Assign a file to a file descriptor.
+ *
+ * @param file File to assign.
+ * @param fd   File descriptor to assign to.
+ *
+ * @return EOK on success or EINVAL if fd is an invalid or already
+ *         used file descriptor.
+ *
+ */
+int vfs_fd_assign(vfs_file_t *file, int fd)
+{
+	if (!vfs_files_init())
+		return ENOMEM;
+	
+	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || (files[fd] != NULL))
+		return EINVAL;
+	
+	files[fd] = file;
+	vfs_file_addref(files[fd]);
 	
 	return EOK;
 }

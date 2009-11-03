@@ -28,15 +28,10 @@
 
 build: $(BASE)/image.boot
 
-$(BASE)/image.boot: depend arch/$(BARCH)/loader/image.boot
-	cp arch/$(BARCH)/loader/image.boot $(BASE)/image.boot
+$(BASE)/image.boot:
+	$(MAKE) -C arch/$(BARCH)/loader
+	cp arch/$(BARCH)/loader/image.boot $@
 
-depend:
-	-rm arch/$(BARCH)/loader/image.boot
-
-arch/$(BARCH)/loader/image.boot:
-	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-
-clean: generic_clean
-	make -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -f $(BASE)/image.boot
+clean:
+	$(MAKE) -C arch/$(BARCH)/loader clean
+	rm -f $(BASE)/image.boot $(BASE)/hello.efi $(BASE)/image.bin

@@ -62,7 +62,10 @@ frame devmap {
 	requires:
 		[/uspace/lib/libc/requires]
 		ns ns;
+		rd rd;
+		console console;
+	initialization:
+		!ns.ipc_m_connect_to_me /* devmap */
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[devmap_server.bp]
+		[/uspace/lib/libc/protocol]
 };

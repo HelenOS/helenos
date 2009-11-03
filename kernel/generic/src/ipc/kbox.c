@@ -136,7 +136,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 
 		/* Only detach kbox thread unless already terminating. */
 		mutex_lock(&TASK->kb.cleanup_lock);
-		if (&TASK->kb.finished == false) {
+		if (TASK->kb.finished == false) {
 			/* Detach kbox thread so it gets freed from memory. */
 			thread_detach(TASK->kb.thread);
 			TASK->kb.thread = NULL;

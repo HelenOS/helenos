@@ -36,7 +36,7 @@
 #define KERN_PRINT_H_
 
 #include <arch/types.h>
-#include <arch/arg.h>
+#include <stdarg.h>
 
 #define EOF (-1)
 

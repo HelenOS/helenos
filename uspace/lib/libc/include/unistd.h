@@ -50,6 +50,8 @@
 	#define SEEK_END  2
 #endif
 
+extern int dup2(int oldfd, int newfd);
+
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
 

@@ -47,13 +47,37 @@ frame ui_dispatcher {
 		event event;
 	requires:
 		[/uspace/lib/libc/requires]
+		ns ns;
+		devmap_driver devmap_driver;
+		sys_console sys_console;
 		kbd kbd;
 		fb fb;
-		ns ns;
-		sys_console sys_console;
+	initialization:
+		!ns.ipc_m_connect_me_to /* kbd */ ;
+		!kbd.ipc_m_connect_to_me ;
+		!ns.ipc_m_connect_me_to /* fb */ ;
+		[/uspace/lib/libc/fnc.devmap_driver_register] ;
+		!fb.get_resolution ;
+		(
+			[fnc.vp_create] +
+			[fnc.vp_switch]
+		)* ;
+		[fnc.make_pixmap]* ;
+		[fnc.make_anim] ;
+		[fnc.vp_switch] ;
+		!fb.flush ;
+		!fb.get_csize ;
+		!fb.get_color_cap ;
+		!fb.ipc_m_share_out ;
+		[/uspace/lib/libc/fnc.devmap_device_register]* ;
+		!sys_console.sys_debug_disable_console ;
+		[fnc.gcons_redraw_console] ;
+		[fnc.set_rgb_color] ;
+		[fnc.screen_clear] ;
+		[fnc.curs_goto] ;
+		[fnc.curs_visibility]
 	protocol:
-		[/uspace/lib/libc/protocol] |
-		[console_server.bp]
+		[/uspace/lib/libc/protocol]
 };
 
 architecture console {
@@ -67,12 +91,15 @@ architecture console {
 	bind kbd:event to ui_dispatcher:event;
 	
 	delegate console to ui_dispatcher:console;
+	delegate kbd to kbd:kbd;
+	delegate fb to fb:fb;
 	
 	[/uspace/lib/libc/subsume%ui_dispatcher]
 	[/uspace/lib/libc/subsume%kbd]
 	[/uspace/lib/libc/subsume%fb]
 	
 	subsume ui_dispatcher:ns to ns;
+	subsume ui_dispatcher:devmap_driver to devmap_driver;
 	subsume ui_dispatcher:sys_console to sys_console;
 	
 	subsume kbd:ns to ns;
