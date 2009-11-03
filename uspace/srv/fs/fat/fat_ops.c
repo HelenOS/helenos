@@ -362,11 +362,16 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					return (rc == EOK) ? ENOMEM : rc;
 				}
 				rc = fat_node_get_core(&nodep, idx);
-				assert(rc == EOK);
 				fibril_mutex_unlock(&idx->lock);
-				(void) block_put(b);
+				if (rc != EOK) {
+					(void) block_put(b);
+					return rc;
+				}
 				*rfn = FS_NODE(nodep);
-				return EOK;
+				rc = block_put(b);
+				if (rc != EOK)
+					(void) fat_node_put(*rfn);
+				return rc;
 			}
 		}
 		rc = block_put(b);
