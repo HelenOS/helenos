@@ -91,6 +91,11 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/pci.c \
 	arch/$(KARCH)/src/drivers/fhc.c
 
+ifeq ($(USARCH),sun4v)
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/drivers/niagara.c
+endif
+
 ifeq ($(CONFIG_FB),y)
 	ARCH_SOURCES += \
 		arch/$(KARCH)/src/drivers/scr.c

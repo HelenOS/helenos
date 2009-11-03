@@ -74,13 +74,15 @@ void tlb_arch_init(void)
 	/*
 	 * Invalidate all non-locked DTLB and ITLB entries.
 	 */
-	tlb_invalidate_all();
+	//MH
+	//tlb_invalidate_all();
 
 	/*
 	 * Clear both SFSRs.
 	 */
-	dtlb_sfsr_write(0);
-	itlb_sfsr_write(0);
+	//MH
+	//dtlb_sfsr_write(0);
+	//itlb_sfsr_write(0);
 }
 
 /** Insert privileged mapping into DMMU TLB.

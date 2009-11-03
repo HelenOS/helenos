@@ -78,11 +78,13 @@
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER tl
 //MH
+	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
 	set 0x8000, %o0
 	set 0x0, %o1
 	setx 0x80000000804087c3, %g1, %o2
 	set 0x3, %o3
 	ta 0x83
+	restore %g0, 0, %g0
 	retry
 #if 0
 	/*
