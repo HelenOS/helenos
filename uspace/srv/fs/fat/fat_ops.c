@@ -1076,11 +1076,20 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			bytes = min(bytes, nodep->size - pos);
 			rc = fat_block_get(&b, bs, nodep, pos / bps,
 			    BLOCK_FLAGS_NONE);
-			assert(rc == EOK);
+			if (rc != EOK) {
+				fat_node_put(fn);
+				ipc_answer_0(callid, rc);
+				ipc_answer_0(rid, rc);
+				return;
+			}
 			(void) async_data_read_finalize(callid, b->data + pos % bps,
 			    bytes);
 			rc = block_put(b);
-			assert(rc == EOK);
+			if (rc != EOK) {
+				fat_node_put(fn);
+				ipc_answer_0(rid, rc);
+				return;
+			}
 		}
 	} else {
 		unsigned bnum;
@@ -1104,7 +1113,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 
 			rc = fat_block_get(&b, bs, nodep, bnum,
 			    BLOCK_FLAGS_NONE);
-			assert(rc == EOK);
+			if (rc != EOK)
+				goto err;
 			for (o = pos % (bps / sizeof(fat_dentry_t));
 			    o < bps / sizeof(fat_dentry_t);
 			    o++, pos++) {
@@ -1115,32 +1125,42 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 					continue;
 				case FAT_DENTRY_LAST:
 					rc = block_put(b);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto err;
 					goto miss;
 				default:
 				case FAT_DENTRY_VALID:
 					fat_dentry_name_get(d, name);
 					rc = block_put(b);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto err;
 					goto hit;
 				}
 			}
 			rc = block_put(b);
-			assert(rc == EOK);
+			if (rc != EOK)
+				goto err;
 			bnum++;
 		}
 miss:
-		fat_node_put(fn);
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_1(rid, ENOENT, 0);
+		rc = fat_node_put(fn);
+		ipc_answer_0(callid, rc != EOK ? rc : ENOENT);
+		ipc_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
 		return;
+
+err:
+		(void) fat_node_put(fn);
+		ipc_answer_0(callid, rc);
+		ipc_answer_0(rid, rc);
+		return;
+
 hit:
 		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 
-	fat_node_put(fn);
-	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
+	rc = fat_node_put(fn);
+	ipc_answer_1(rid, rc, (ipcarg_t)bytes);
 }
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
