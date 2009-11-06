@@ -36,9 +36,11 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/asid.h>
+#include <arch/sun4v/hypercall.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
-#include <arch/mm/mmu.h>
+#include <arch/mm/tte.h>
+#include <arch/mm/tlb.h>
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <arch.h>
@@ -69,20 +71,19 @@ char *context_encoding[] = {
 	"Reserved"
 };
 
+/** Invalidate all unlocked ITLB and DTLB entries. */
+void tlb_invalidate_all(void)
+{
+	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
+		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
+	if (errno != EOK) {
+		panic("Error code = %d.\n", errno);
+	}
+}
+
 void tlb_arch_init(void)
 {
-	/*
-	 * Invalidate all non-locked DTLB and ITLB entries.
-	 */
-	//MH
-	//tlb_invalidate_all();
-
-	/*
-	 * Clear both SFSRs.
-	 */
-	//MH
-	//dtlb_sfsr_write(0);
-	//itlb_sfsr_write(0);
+	tlb_invalidate_all();
 }
 
 /** Insert privileged mapping into DMMU TLB.
@@ -96,6 +97,7 @@ void tlb_arch_init(void)
 void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
     bool locked, bool cacheable)
 {
+#if 0
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
 	page_address_t pg;
@@ -123,6 +125,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 	data.g = false;
 
 	dtlb_data_in_write(data.value);
+#endif
 }
 
 /** Copy PTE to TLB.
@@ -134,6 +137,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
  */
 void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
 {
+#if 0
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
 	page_address_t pg;
@@ -162,6 +166,7 @@ void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
 	data.g = t->g;
 
 	dtlb_data_in_write(data.value);
+#endif
 }
 
 /** Copy PTE to ITLB.
@@ -171,6 +176,7 @@ void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
  */
 void itlb_pte_copy(pte_t *t, size_t index)
 {
+#if 0
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
 	page_address_t pg;
@@ -196,6 +202,7 @@ void itlb_pte_copy(pte_t *t, size_t index)
 	data.g = t->g;
 	
 	itlb_data_in_write(data.value);
+#endif
 }
 
 /** ITLB miss handler. */
@@ -361,11 +368,13 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
  */
 static void print_tlb_entry(int i, tlb_tag_read_reg_t t, tlb_data_t d)
 {
+#if 0
 	printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
 	    "ie=%d, soft2=%#x, pfn=%#x, soft=%#x, l=%d, "
 	    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
 	    t.context, d.v, d.size, d.nfo, d.ie, d.soft2,
 	    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
+#endif
 }
 
 #if defined (US)
@@ -500,57 +509,6 @@ void dump_sfsr_and_sfar(void)
 	
 	dtlb_sfsr_write(0);
 }
-
-#if defined (US)
-/** Invalidate all unlocked ITLB and DTLB entries. */
-void tlb_invalidate_all(void)
-{
-	int i;
-	
-	/*
-	 * Walk all ITLB and DTLB entries and remove all unlocked mappings.
-	 *
-	 * The kernel doesn't use global mappings so any locked global mappings
-	 * found must have been created by someone else. Their only purpose now
-	 * is to collide with proper mappings. Invalidate immediately. It should
-	 * be safe to invalidate them as late as now.
-	 */
-
-	tlb_data_t d;
-	tlb_tag_read_reg_t t;
-
-	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
-		d.value = itlb_data_access_read(i);
-		if (!d.l || d.g) {
-			t.value = itlb_tag_read_read(i);
-			d.v = false;
-			itlb_tag_access_write(t.value);
-			itlb_data_access_write(i, d.value);
-		}
-	}
-
-	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
-		d.value = dtlb_data_access_read(i);
-		if (!d.l || d.g) {
-			t.value = dtlb_tag_read_read(i);
-			d.v = false;
-			dtlb_tag_access_write(t.value);
-			dtlb_data_access_write(i, d.value);
-		}
-	}
-
-}
-
-#elif defined (US3)
-
-/** Invalidate all unlocked ITLB and DTLB entries. */
-void tlb_invalidate_all(void)
-{
-	itlb_demap(TLB_DEMAP_ALL, 0, 0);
-	dtlb_demap(TLB_DEMAP_ALL, 0, 0);
-}
-
-#endif
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID
  * (Context).

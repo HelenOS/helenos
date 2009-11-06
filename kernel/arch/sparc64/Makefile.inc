@@ -63,7 +63,7 @@ ifeq ($(PROCESSOR),sun4v)
 endif
 
 ARCH_SOURCES = \
-	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/cpu/$(USARCH)/cpu.c \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/console.c \
@@ -93,7 +93,8 @@ ARCH_SOURCES = \
 
 ifeq ($(USARCH),sun4v)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/drivers/niagara.c
+		arch/$(KARCH)/src/drivers/niagara.c \
+		arch/$(KARCH)/src/sun4v/md.c
 endif
 
 ifeq ($(CONFIG_FB),y)
@@ -109,5 +110,5 @@ endif
 
 ifeq ($(CONFIG_TSB),y)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/mm/tsb.c
+		arch/$(KARCH)/src/mm/$(USARCH)/tsb.c
 endif

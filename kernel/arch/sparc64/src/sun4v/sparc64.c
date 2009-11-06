@@ -37,6 +37,7 @@
 #include <config.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
+#include <arch/sun4v/md.h>
 #include <console/console.h>
 #include <arch/boot/boot.h>
 #include <arch/arch.h>
@@ -67,6 +68,8 @@ void arch_pre_main(void)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo.taskmap.tasks[i].name);
 	}
+
+	md_init();
 }
 
 /** Perform sparc64 specific initialization before mm is initialized. */
