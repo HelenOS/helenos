@@ -70,7 +70,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.s \
-	arch/$(KARCH)/src/mm/as.c \
+	arch/$(KARCH)/src/mm/$(USARCH)/as.c \
 	arch/$(KARCH)/src/mm/cache.S \
 	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
@@ -80,7 +80,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/trap/mmu.S \
-	arch/$(KARCH)/src/trap/trap_table.S \
+	arch/$(KARCH)/src/trap/$(USARCH)/trap_table.S \
 	arch/$(KARCH)/src/trap/trap.c \
 	arch/$(KARCH)/src/trap/exception.c \
 	arch/$(KARCH)/src/trap/interrupt.c \

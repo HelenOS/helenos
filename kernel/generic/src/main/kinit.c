@@ -93,7 +93,6 @@ static char alive[ALIVE_CHARS] = "-\\|/";
  */
 void kinit(void *arg)
 {
-
 #if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
 #endif
@@ -165,6 +164,8 @@ void kinit(void *arg)
 	
 	interrupts_enable();
 	
+//MH
+#if defined (SUN4U)
 	/*
 	 * Create user tasks, load RAM disk images.
 	 */
@@ -225,6 +226,7 @@ void kinit(void *arg)
 			program_ready(&programs[i]);
 	}
 	
+#endif
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);
