@@ -89,7 +89,6 @@ void arch_post_mm_init(void)
 		 */
 		irq_init(1 << 11, 128);
 	}
-	niagara_init();
 }
 
 void arch_post_cpu_init(void)
@@ -104,6 +103,7 @@ void arch_post_smp_init(void)
 {
 	//MH
 	//standalone_sparc64_console_init();
+	niagarain_init();
 }
 
 /** Calibrate delay loop.

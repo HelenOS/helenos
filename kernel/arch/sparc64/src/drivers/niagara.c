@@ -40,11 +40,18 @@
 #include <ddi/ddi.h>
 #include <ddi/device.h>
 #include <arch/asm.h>
+#include <arch.h>
 #include <mm/slab.h>
 #include <arch/drivers/kbd.h>
 #include <arch/sun4v/hypercall.h>
 #include <sysinfo/sysinfo.h>
 #include <ipc/irq.h>
+#include <print.h>
+#include <proc/thread.h>
+#include <console/console.h>
+#include <genarch/srln/srln.h>
+
+#define POLL_INTERVAL  10000
 
 /**
  * The driver is polling based, but in order to notify the userspace
@@ -54,6 +61,9 @@
  * notifying the userspace. 
  */
 #define FICTIONAL_INR		1
+
+
+static niagara_instance_t *instance = NULL;
 
 /* functions referenced from definitions of I/O operations structures */
 static void niagara_putchar(outdev_t *, const wchar_t, bool);
@@ -77,6 +87,7 @@ static outdev_operations_t niagara_ops = {
  * buffer to its address space and output operation it does is performed using
  * the mapped buffer. The shared buffer definition follows.
  */
+/*
 #define OUTPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
 static volatile struct {
 	uint64_t read_ptr;
@@ -86,6 +97,7 @@ static volatile struct {
 	__attribute__ ((packed))
 	__attribute__ ((aligned(PAGE_SIZE)))
 	output_buffer;
+*/
 
 #if 0
 /** Niagara character device */
@@ -196,22 +208,28 @@ char niagara_getc(void) {
 	return read_char;
 }
 
+#endif
+
 /**
  * Function regularly called by the keyboard polling thread. Asks the
  * hypervisor whether there is any unread character. If so, it picks it up
  * and sends it to the upper layers of HelenOS.
  */
-void niagara_poll(void)
+static void niagara_poll(niagara_instance_t *instance)
 {
+	/*
 	while (output_buffer.read_ptr != output_buffer.write_ptr) {
 		do_putchar(output_buffer.data[output_buffer.read_ptr]);
 		output_buffer.read_ptr =
 			((output_buffer.read_ptr) + 1) % OUTPUT_BUFFER_SIZE;
 	}
+	*/
 
 	uint64_t c;
 
 	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
+		indev_push_character(instance->srlnin, c);
+		#if 0
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&niagara_irq.lock);
 
@@ -234,18 +252,48 @@ void niagara_poll(void)
 			if (c == '\r')
 				chardev_push_character(&niagara_io, '\n');
 		}
+		#endif
 	}
 
 }
 
-#endif
+/**
+ * Polling thread function.
+ */
+static void kniagarapoll(void *instance) {
+	while (true) {
+		//MH
+		//if (!silent)
+			niagara_poll(instance);
+		
+		thread_usleep(POLL_INTERVAL);
+	}
+}
 
 /**
  * Initializes the input/output subsystem so that the Niagara standard
  * input/output is used.
  */
-void niagara_init(void)
+static void niagara_init(void)
 {
+	if (instance)
+		return;
+	
+	instance = malloc(sizeof(niagara_instance_t), FRAME_ATOMIC);
+	
+	if (instance) {
+		instance->thread = thread_create(kniagarapoll, instance, TASK, 0,
+			"kniagarapoll", true);
+		
+		if (!instance->thread) {
+			free(instance);
+			instance = NULL;
+			return;
+		}
+	}
+
+	instance->srlnin = NULL;
+
 	#if 0
 	kbd_type = KBD_SUN4V;
 
@@ -268,8 +316,8 @@ void niagara_init(void)
 	 * Set sysinfos and pareas so that the userspace counterpart of the
 	 * niagara fb driver can communicate with kernel using a shared buffer.
  	 */
-	output_buffer.read_ptr = 0;
-	output_buffer.write_ptr = 0;
+	//output_buffer.read_ptr = 0;
+	//output_buffer.write_ptr = 0;
 
 	#if 0
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,
@@ -293,6 +341,28 @@ void niagara_init(void)
 	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	outdev_initialize("niagara_dev", niagara_dev, &niagara_ops);
 	stdout_wire(niagara_dev);
+}
+
+/**
+ * A public function which initializes input from the Niagara console.
+ */
+niagara_instance_t *niagarain_init(void)
+{
+	niagara_init();
+
+	// TODO - move to console init
+	if (instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+
+			// wire std. input to niagara
+			instance->srlnin = srln;
+			thread_ready(instance->thread);
+		}
+	}
+	return instance;
 }
 
 /** @}
