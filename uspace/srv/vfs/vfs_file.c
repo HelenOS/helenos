@@ -88,7 +88,7 @@ int vfs_fd_alloc(bool desc)
 	
 	unsigned int i;
 	if (desc)
-		i = MAX_OPEN_FILES;
+		i = MAX_OPEN_FILES - 1;
 	else
 		i = 0;
 	
