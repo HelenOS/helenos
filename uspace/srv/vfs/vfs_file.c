@@ -110,7 +110,7 @@ int vfs_fd_alloc(bool desc)
 			
 			i--;
 		} else {
-			if (i == MAX_OPEN_FILES)
+			if (i == MAX_OPEN_FILES - 1)
 				break;
 			
 			i++;
