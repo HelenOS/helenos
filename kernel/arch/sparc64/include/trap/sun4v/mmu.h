@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,10 @@
 
 #include <arch/stack.h>
 #include <arch/regdef.h>
+#include <arch/arch.h>
+#include <arch/sun4v/arch.h>
+#include <arch/sun4v/hypercall.h>
+#include <arch/mm/sun4v/mmu.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/mmu.h>
 #include <arch/mm/tte.h>
@@ -51,93 +56,69 @@
 #define TT_FAST_INSTRUCTION_ACCESS_MMU_MISS	0x64
 #define TT_FAST_DATA_ACCESS_MMU_MISS		0x68
 #define TT_FAST_DATA_ACCESS_PROTECTION		0x6c
+#define TT_CPU_MONDO				0x7c
 
 #define FAST_MMU_HANDLER_SIZE			128
 
 #ifdef __ASM__
 
-.macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
-	/*
-	 * First, try to refill TLB from TSB.
-	 */
-#ifdef CONFIG_TSB
-	ldxa [%g0] ASI_IMMU, %g1			! read TSB Tag Target Register
-	ldxa [%g0] ASI_IMMU_TSB_8KB_PTR_REG, %g2	! read TSB 8K Pointer
-	ldda [%g2] ASI_NUCLEUS_QUAD_LDD, %g4		! 16-byte atomic load into %g4 and %g5
-	cmp %g1, %g4					! is this the entry we are looking for?
-	bne,pn %xcc, 0f
-	nop
-	stxa %g5, [%g0] ASI_ITLB_DATA_IN_REG		! copy mapping from ITSB to ITLB
-	retry
-#endif
+/* MMU fault status area data fault offset */
+#define FSA_DFA_OFFSET				0x48
 
-0:
-	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+/* MMU fault status area data context */
+#define FSA_DFC_OFFSET				0x50
+
+/* offset of the target address within the TTE Data entry */
+#define TTE_DATA_TADDR_OFFSET			13
+
+.macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 	PREEMPTIBLE_HANDLER fast_instruction_access_mmu_miss
 .endm
 
+/*
+ * Handler of the Fast Data Access MMU Miss trap. If the trap occurred in the kernel
+ * (context 0), an identity mapping (with displacement) is installed. Otherwise
+ * a higher level service routine is called.
+ */
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER tl
-//MH
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
-	set 0x8000, %o0
-	set 0x0, %o1
-	setx 0x80000000804087c3, %g1, %o2
-	set 0x3, %o3
-	ta 0x83
-	restore %g0, 0, %g0
-	retry
-#if 0
-	/*
-	 * First, try to refill TLB from TSB.
-	 */
+	mov SCRATCHPAD_MMU_FSA, %g1
+	ldxa [%g1] ASI_SCRATCHPAD, %g1			! g1 <= RA of MMU fault status area
 
-#ifdef CONFIG_TSB
-	ldxa [%g0] ASI_DMMU, %g1			! read TSB Tag Target Register
-	srlx %g1, TSB_TAG_TARGET_CONTEXT_SHIFT, %g2	! is this a kernel miss?
-	brz,pn %g2, 0f
-	ldxa [%g0] ASI_DMMU_TSB_8KB_PTR_REG, %g3	! read TSB 8K Pointer
-	ldda [%g3] ASI_NUCLEUS_QUAD_LDD, %g4		! 16-byte atomic load into %g4 and %g5
-	cmp %g1, %g4					! is this the entry we are looking for?
-	bne,pn %xcc, 0f
+	/* read faulting context */
+	add %g1, FSA_DFC_OFFSET, %g2			! g2 <= RA of data fault context
+	ldxa [%g2] ASI_REAL, %g3			! read the fault context
+
+	/* read the faulting address */
+	add %g1, FSA_DFA_OFFSET, %g2			! g2 <= RA of data fault address
+	ldxa [%g2] ASI_REAL, %g1			! read the fault address
+	srlx %g1, TTE_DATA_TADDR_OFFSET, %g1		! truncate it to page boundary
+	sllx %g1, TTE_DATA_TADDR_OFFSET, %g1
+
+	/* service by higher-level routine when context != 0 */
+	brnz %g3, 0f 
 	nop
-	stxa %g5, [%g0] ASI_DTLB_DATA_IN_REG		! copy mapping from DTSB to DTLB
-	retry
-#endif
+	/* exclude page number 0 from installing the identity mapping */
+	brz %g1, 0f
+	nop
 
 	/*
-	 * Second, test if it is the portion of the kernel address space
-	 * which is faulting. If that is the case, immediately create
-	 * identity mapping for that page in DTLB. VPN 0 is excluded from
-	 * this treatment.
-	 *
-	 * Note that branch-delay slots are used in order to save space.
+	 * Installing the identity does not fit into 32 instructions, call
+	 * a separate routine. The routine performs RETRY, hence the call never
+	 * returns.
 	 */
-0:
-//MH
-//	sethi %hi(fast_data_access_mmu_miss_data_hi), %g7
-	wr %g0, ASI_DMMU, %asi
-	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g1		! read the faulting Context and VPN
-	set TLB_TAG_ACCESS_CONTEXT_MASK, %g2
-	andcc %g1, %g2, %g3				! get Context
-	bnz %xcc, 0f					! Context is non-zero
-	andncc %g1, %g2, %g3				! get page address into %g3
-	bz  %xcc, 0f					! page address is zero
-//MH
-//	ldx [%g7 + %lo(end_of_identity)], %g4
-	cmp %g3, %g4
-	bgeu %xcc, 0f
+	ba install_identity_mapping
+	nop	
 
-	ldx [%g7 + %lo(kernel_8k_tlb_data_template)], %g2
-	add %g3, %g2, %g2
-	stxa %g2, [%g0] ASI_DTLB_DATA_IN_REG		! identity map the kernel page
-	retry
+	0:
 
 	/*
-	 * Third, catch and handle special cases when the trap is caused by
-	 * the userspace register window spill or fill handler. In case
-	 * one of these two traps caused this trap, we just lower the trap
-	 * level and service the DTLB miss. In the end, we restart
-	 * the offending SAVE or RESTORE.
+	 * One of the scenarios in which this trap can occur is when the
+	 * register window spill/fill handler accesses a memory which is not
+	 * mapped. In such a case, this handler will be called from TL = 1.
+	 * We handle the situation by pretending that the MMU miss occurred
+	 * on TL = 0. Once the MMU miss trap is services, the instruction which
+	 * caused the spill/fill trap is restarted, the spill/fill trap occurs,
+	 * but this time its handler accesse memory which IS mapped.
 	 */
 0:
 .if (\tl > 0)
@@ -145,50 +126,49 @@
 .endif
 
 	/*
-	 * Switch from the MM globals.
+	 * Save the faulting virtual page and faulting context to the %g2
+	 * register. The most significant 51 bits of the %g2 register will
+	 * contain the virtual address which caused the fault truncated to the
+	 * page boundary. The least significant 13 bits of the %g2 register
+	 * will contain the number of the context in which the fault occurred.
+	 * The value of the %g2 register will be passed as a parameter to the
+	 * higher level service routine.
 	 */
-	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+	or %g1, %g3, %g2
 
-	/*
-	 * Read the Tag Access register for the higher-level handler.
-	 * This is necessary to survive nested DTLB misses.
-	 */	
-	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g2
-
-	/*
-	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
-	 */
 	PREEMPTIBLE_HANDLER fast_data_access_mmu_miss
-#endif
 .endm
 
+/*
+ * Handler of the Fast Data MMU Protection trap. Finds the trapping address
+ * and context and calls higher level service routine.
+ */
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER tl
 	/*
 	 * The same special case as in FAST_DATA_ACCESS_MMU_MISS_HANDLER.
 	 */
+	.if (\tl > 0)
+		wrpr %g0, 1, %tl
+	.endif
 
-.if (\tl > 0)
-	wrpr %g0, 1, %tl
-.endif
+	mov SCRATCHPAD_MMU_FSA, %g1
+	ldxa [%g1] ASI_SCRATCHPAD, %g1			! g1 <= RA of MMU fault status area
 
-	/*
-	 * Switch from the MM globals.
-	 */
-	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_AG_BIT, %pstate
+	/* read faulting context */
+	add %g1, FSA_DFC_OFFSET, %g2			! g2 <= RA of data fault context
+	ldxa [%g2] ASI_REAL, %g3			! read the fault context
 
-	/*
-	 * Read the Tag Access register for the higher-level handler.
-	 * This is necessary to survive nested DTLB misses.
-	 */	
-	mov VA_DMMU_TAG_ACCESS, %g2
-	ldxa [%g2] ASI_DMMU, %g2
+	/* read the faulting address */
+	add %g1, FSA_DFA_OFFSET, %g2			! g2 <= RA of data fault address
+	ldxa [%g2] ASI_REAL, %g1			! read the fault address
+	srlx %g1, TTE_DATA_TADDR_OFFSET, %g1		! truncate it to page boundary
+	sllx %g1, TTE_DATA_TADDR_OFFSET, %g1
 
-	/*
-	 * g2 will be passed as an argument to fast_data_access_mmu_miss().
-	 */
+	/* the same as for FAST_DATA_ACCESS_MMU_MISS_HANDLER */
+	or %g1, %g3, %g2
+
 	PREEMPTIBLE_HANDLER fast_data_access_protection
 .endm
-
 #endif /* __ASM__ */
 
 #endif

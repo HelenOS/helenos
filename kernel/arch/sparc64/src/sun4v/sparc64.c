@@ -101,8 +101,6 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
-	//MH
-	//standalone_sparc64_console_init();
 	niagarain_init();
 }
 

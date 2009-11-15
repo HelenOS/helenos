@@ -65,10 +65,7 @@
 
 static niagara_instance_t *instance = NULL;
 
-/* functions referenced from definitions of I/O operations structures */
 static void niagara_putchar(outdev_t *, const wchar_t, bool);
-//static void niagara_noop(chardev_t *);
-//static char niagara_read(chardev_t *);
 
 /** character device operations */
 static outdev_operations_t niagara_ops = {
@@ -103,12 +100,6 @@ static volatile struct {
 /** Niagara character device */
 chardev_t niagara_io;
 
-/**
- * Niagara IRQ structure. So far used only for notifying the userspace of the
- * key being pressed, not for kernel being informed about keyboard interrupts.
- */ 
-static irq_t niagara_irq;
-
 /** defined in drivers/kbd.c */
 extern kbd_type_t kbd_type;
 
@@ -118,21 +109,6 @@ extern kbd_type_t kbd_type;
  */
 static char read_char;
 
-/**
- * The driver works in polled mode, so no interrupt should be handled by it.
- */
-static irq_ownership_t niagara_claim(void)
-{
-	return IRQ_DECLINE;
-}
-
-/**
- * The driver works in polled mode, so no interrupt should be handled by it.
- */
-static void niagara_irq_handler(irq_t *irq, void *arg, ...)
-{
-	panic("Not yet implemented, SGCN works in polled mode.\n");
-}
 
 #endif
 
@@ -145,7 +121,6 @@ static inline void do_putchar(const char c) {
 
 /** Writes a single character to the standard output. */
 static void niagara_putchar(outdev_t *dev, const wchar_t ch, bool silent)
-//static void niagara_putchar(struct chardev * cd, const char c)
 {
 	do_putchar(ch);
 	if (ch == '\n')
@@ -229,30 +204,6 @@ static void niagara_poll(niagara_instance_t *instance)
 
 	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
 		indev_push_character(instance->srlnin, c);
-		#if 0
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&niagara_irq.lock);
-
-		if (niagara_irq.notif_cfg.notify &&
-				niagara_irq.notif_cfg.answerbox) {
-			/*
-			 * remember the character, uspace will pick it
-			 * up using pseudocode
-			 */
-			read_char = (char) c;
-			ipc_irq_send_notif(&niagara_irq);
-			spinlock_unlock(&niagara_irq.lock);
-			interrupts_restore(ipl);
-			return;
-		} else {
-			spinlock_unlock(&niagara_irq.lock);
-			interrupts_restore(ipl);	
-
-			chardev_push_character(&niagara_io, c);	
-			if (c == '\r')
-				chardev_push_character(&niagara_io, '\n');
-		}
-		#endif
 	}
 
 }
@@ -333,9 +284,6 @@ static void niagara_init(void)
 	outbuf_parea.cacheable = false;
 	ddi_parea_register(&outbuf_parea);
 
-	chardev_initialize("niagara_io", &niagara_io, &niagara_ops);
-	stdin = &niagara_io;
-	stdout = &niagara_io;
 	#endif
 
 	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
@@ -350,7 +298,6 @@ niagara_instance_t *niagarain_init(void)
 {
 	niagara_init();
 
-	// TODO - move to console init
 	if (instance) {
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {
