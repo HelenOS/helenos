@@ -27,41 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Common compiler flags
-#
+include Makefile.common
 
-LIBC_PREFIX = ../libc
+.PHONY: all clean
 
-## Setup toolchain
-#
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -Iinclude
-
-## Sources
-#
-
-SOURCES = \
-	libfs.c
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend
-
-all: libfs.a
-
--include Makefile.depend
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBC_PREFIX)/libc.a
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
 clean:
-	-rm -f libfs.a Makefile.depend
+	rm -f $(DEPEND) $(DEPEND_PREV) $(LIBFS)
 	find . -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
-
-libfs.a: depend $(OBJECTS)
-	$(AR) rc libfs.a $(OBJECTS)
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@

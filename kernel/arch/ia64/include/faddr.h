@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -37,15 +37,15 @@
 
 #include <arch/types.h>
 
-/** 
+/**
  *
  * Calculate absolute address of function
  * referenced by fptr pointer.
  *
- * @param f Function pointer.
+ * @param fptr Function pointer.
  *
  */
-#define FADDR(f)	 (*((uintptr_t *)(f)));
+#define FADDR(fptr)  (((fncptr_t *) (fptr))->fnc)
 
 #endif
 

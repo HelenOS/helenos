@@ -51,6 +51,9 @@ typedef void (*entry_point_t)(void);
 typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
+
+	/** Current working directory. */
+	char *cwd;
 	
 	/** Number of command-line arguments. */
 	int argc;

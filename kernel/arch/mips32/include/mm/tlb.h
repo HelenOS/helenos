@@ -58,7 +58,7 @@
 
 typedef union {
 	struct {
-#ifdef BIG_ENDIAN
+#ifdef __BE__
 		unsigned : 2;       /* zero */
 		unsigned pfn : 24;  /* frame number */
 		unsigned c : 3;     /* cache coherency attribute */
@@ -79,7 +79,7 @@ typedef union {
 
 typedef union {
 	struct {
-#ifdef BIG_ENDIAN
+#ifdef __BE__
 		unsigned vpn2 : 19;
 		unsigned : 5;
 		unsigned asid : 8;
@@ -94,7 +94,7 @@ typedef union {
 
 typedef union {
 	struct {
-#ifdef BIG_ENDIAN
+#ifdef __BE__
 		unsigned : 7;
 		unsigned mask : 12;
 		unsigned : 13;
@@ -109,7 +109,7 @@ typedef union {
 
 typedef union {
 	struct {
-#ifdef BIG_ENDIAN
+#ifdef __BE__
 		unsigned p : 1;
 		unsigned : 27;
 		unsigned index : 4;

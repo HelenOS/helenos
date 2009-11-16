@@ -26,87 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
 #include <printf.h>
-#include "asm.h"
-#include "_components.h"
 #include <ofw.h>
 #include <align.h>
 #include <macros.h>
 #include <string.h>
+#include "main.h"
+#include "asm.h"
+#include "_components.h"
 
-#define HEAP_GAP 1024000
-
-bootinfo_t bootinfo;
-
-
-static void check_align(const void *addr, const char *desc)
-{
-	if ((unsigned int) addr % PAGE_SIZE != 0) {
-		printf("Error: %s not on page boundary, halting.\n", desc);
-		halt();
-	}
-}
-
-
-static void fix_overlap(void *va, void **pa, const char *desc, unsigned int *top)
-{
-	if ((unsigned int) *pa + PAGE_SIZE < *top) {
-		printf("Warning: %s overlaps kernel physical area\n", desc);
-		
-		void *new_va = (void *) (ALIGN_UP((unsigned int) KERNEL_END + HEAP_GAP, PAGE_SIZE) + *top);
-		void *new_pa = (void *) (HEAP_GAP + *top);
-		*top += PAGE_SIZE;
-		
-		if (ofw_map(new_pa, new_va, PAGE_SIZE, 0) != 0) {
-			printf("Error: Unable to map page aligned memory at %L (physical %L), halting.\n", new_va, new_pa);
-			halt();
-		}
-		
-		if ((unsigned int) new_pa + PAGE_SIZE < KERNEL_SIZE) {
-			printf("Error: %s cannot be relocated, halting.\n", desc);
-			halt();	
-		}
-		
-		printf("Relocating %L -> %L (physical %L -> %L)\n", va, new_va, *pa, new_pa);
-		*pa = new_pa;
-		memcpy(new_va, va, PAGE_SIZE);
-	}
-}
-
-char *release = STRING(RELEASE);
+static bootinfo_t bootinfo;
+static component_t components[COMPONENTS];
+static char *release = STRING(RELEASE);
 
 #ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
+	static char *revision = ", revision " STRING(REVISION);
 #else
-	char *revision = "";
+	static char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
+	static char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
-	char *timestamp = "";
+	static char *timestamp = "";
 #endif
 
 /** Print version information. */
 static void version_print(void)
 {
-	printf("HelenOS PPC32 Bootloader\nRelease %s%s%s\nCopyright (c) 2006 HelenOS project\n\n", release, revision, timestamp);
+	printf("HelenOS PPC32 Bootloader\nRelease %s%s%s\n"
+	    "Copyright (c) 2006 HelenOS project\n\n",
+	    release, revision, timestamp);
+}
+
+static void check_align(const void *addr, const char *desc)
+{
+	if ((uintptr_t) addr % PAGE_SIZE != 0) {
+		printf("Error: %s not on page boundary, halting.\n", desc);
+		halt();
+	}
+}
+
+static void check_overlap(const void *pa, const char *desc, const uintptr_t top)
+{
+	if ((uintptr_t) pa + PAGE_SIZE < top) {
+		printf("Error: %s overlaps destination physical area\n", desc);
+		halt();
+	}
 }
 
 void bootstrap(void)
 {
 	version_print();
-	
-	component_t components[COMPONENTS];
 	init_components(components);
-		
-	unsigned int i;
-	for (i = 0; i < COMPONENTS; i++)
-		check_align(components[i].start, components[i].name);
-	
-	check_align(&real_mode, "bootstrap trampoline");
-	check_align(&trans, "translation table");
 	
 	if (!ofw_memmap(&bootinfo.memmap)) {
 		printf("Error: Unable to get memory map, halting.\n");
@@ -118,58 +90,70 @@ void bootstrap(void)
 		halt();
 	}
 	
-	if (!ofw_screen(&bootinfo.screen))
-		printf("Warning: Unable to get screen properties.\n");
+	check_align(&real_mode, "bootstrap trampoline");
+	check_align(trans, "translation table");
+	check_align(balloc_base, "boot allocations");
 	
-	if (!ofw_macio(&bootinfo.macio))
-		printf("Warning: Unable to get macio properties.\n");
+	unsigned int i;
+	for (i = 0; i < COMPONENTS; i++)
+		check_align(components[i].start, components[i].name);
 	
-	printf("Device statistics\n");
-	
-	if (bootinfo.screen.addr)
-		printf(" screen at %L, resolution %dx%d, %d bpp (scanline %d bytes)\n", bootinfo.screen.addr, bootinfo.screen.width, bootinfo.screen.height, bootinfo.screen.bpp, bootinfo.screen.scanline);
-	
-	if (bootinfo.macio.addr)
-		printf(" macio at %L (size %d bytes)\n", bootinfo.macio.addr, bootinfo.macio.size);
-	
-	void *real_mode_pa = ofw_translate(&real_mode);
-	void *trans_pa = ofw_translate(&trans);
 	void *bootinfo_pa = ofw_translate(&bootinfo);
+	void *real_mode_pa = ofw_translate(&real_mode);
+	void *trans_pa = ofw_translate(trans);
+	void *balloc_base_pa = ofw_translate(balloc_base);
 	
-	printf("\nMemory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
+	printf("Memory statistics (total %d MB)\n", bootinfo.memmap.total >> 20);
 	printf(" %L: boot info structure (physical %L)\n", &bootinfo, bootinfo_pa);
 	printf(" %L: bootstrap trampoline (physical %L)\n", &real_mode, real_mode_pa);
-	printf(" %L: translation table (physical %L)\n", &trans, trans_pa);
+	printf(" %L: translation table (physical %L)\n", trans, trans_pa);
+	printf(" %L: boot allocations (physical %L)\n", balloc_base, balloc_base_pa);
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %L: %s image (size %d bytes)\n", components[i].start, components[i].name, components[i].size);
 	
-	unsigned int top = 0;
+	uintptr_t top = 0;
 	for (i = 0; i < COMPONENTS; i++)
 		top += ALIGN_UP(components[i].size, PAGE_SIZE);
+	top += ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE);
+	
+	if (top >= TRANS_SIZE * PAGE_SIZE) {
+		printf("Error: boot image is too large\n");
+		halt();
+	}
+	
+	check_overlap(bootinfo_pa, "boot info", top);
+	check_overlap(real_mode_pa, "bootstrap trampoline", top);
+	check_overlap(trans_pa, "translation table", top);
 	
 	unsigned int pages = ALIGN_UP(KERNEL_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
 	
 	for (i = 0; i < pages; i++) {
 		void *pa = ofw_translate(KERNEL_START + (i << PAGE_WIDTH));
-		fix_overlap(KERNEL_START + (i << PAGE_WIDTH), &pa, "kernel", &top);
-		trans[i] = pa;
+		check_overlap(pa, "kernel", top);
+		trans[i] = (uintptr_t) pa;
 	}
 	
 	bootinfo.taskmap.count = 0;
 	for (i = 1; i < COMPONENTS; i++) {
+		if (bootinfo.taskmap.count == TASKMAP_MAX_RECORDS) {
+			printf("\nSkipping superfluous components.\n");
+			break;
+		}
+		
 		unsigned int component_pages = ALIGN_UP(components[i].size, PAGE_SIZE) >> PAGE_WIDTH;
 		unsigned int j;
 		
 		for (j = 0; j < component_pages; j++) {
 			void *pa = ofw_translate(components[i].start + (j << PAGE_WIDTH));
-			fix_overlap(components[i].start + (j << PAGE_WIDTH), &pa, components[i].name, &top);
-			trans[pages + j] = pa;
+			check_overlap(pa, components[i].name, top);
+			trans[pages + j] = (uintptr_t) pa;
 			if (j == 0) {
-				bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = (void *) (pages << PAGE_WIDTH);
+				
+				bootinfo.taskmap.tasks[bootinfo.taskmap.count].addr = (void *) PA2KA(pages << PAGE_WIDTH);
 				bootinfo.taskmap.tasks[bootinfo.taskmap.count].size = components[i].size;
 				strncpy(bootinfo.taskmap.tasks[bootinfo.taskmap.count].name,
 				    components[i].name, BOOTINFO_TASK_NAME_BUFLEN);
-
+				
 				bootinfo.taskmap.count++;
 			}
 		}
@@ -177,12 +161,25 @@ void bootstrap(void)
 		pages += component_pages;
 	}
 	
-	fix_overlap(&real_mode, &real_mode_pa, "bootstrap trampoline", &top);
-	fix_overlap(&trans, &trans_pa, "translation table", &top);
-	fix_overlap(&bootinfo, &bootinfo_pa, "boot info", &top);
+	uintptr_t balloc_kernel_base = PA2KA(pages << PAGE_WIDTH);
+	unsigned int balloc_pages = ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE) >> PAGE_WIDTH;
+	for (i = 0; i < balloc_pages; i++) {
+		void *pa = ofw_translate(balloc_base + (i << PAGE_WIDTH));
+		check_overlap(pa, "boot allocations", top);
+		trans[pages + i] = (uintptr_t) pa;
+	}
 	
-	ofw_setup_palette();
+	pages += balloc_pages;
 	
-	printf("\nBooting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa, (void *) bootinfo.screen.addr, bootinfo.screen.scanline);
+	printf("Setting up screens...");
+	ofw_setup_screens();
+	printf("done.\n");
+	
+	balloc_init(&bootinfo.ballocs, (uintptr_t) balloc_base, balloc_kernel_base);
+	printf("\nCanonizing OpenFirmware device tree...");
+	bootinfo.ofw_root = ofw_tree_build();
+	printf("done.\n");
+	
+	printf("Booting the kernel...\n");
+	jump_to_kernel(bootinfo_pa, sizeof(bootinfo), trans_pa, pages << PAGE_WIDTH, real_mode_pa);
 }

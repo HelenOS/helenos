@@ -31,14 +31,14 @@
 #
 
 TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/eabi.S
 
-CFLAGS += -ffixed-r9 -mtp=soft
+GCC_CFLAGS += -ffixed-r9 -mtp=soft
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 
 ENDIANESS = LE

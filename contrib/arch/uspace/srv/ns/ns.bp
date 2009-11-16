@@ -1,0 +1,25 @@
+/* Every task has an implicit connection to the Naming Service,
+   thus there is no explicit ?ipc_m_connect_me_to */
+
+(
+	?ipc_m_connect_to_me {
+		tentative {
+			!loader.ipc_m_connect_to_me /* forward */
+		}
+	} +
+	
+	?ipc_m_connect_me_to {
+		tentative {
+			alternative (service; kbd; fb; console; vfs; devmap_driver; devmap_client) {
+				!service.ipc_m_connect_me_to /* forward */
+			}
+		}
+	} +
+	
+	?ipc_m_share_in +
+	?ping +
+	?task_wait +
+	?id_intro +
+	?retval
+)* ;
+?ipc_m_phone_hungup

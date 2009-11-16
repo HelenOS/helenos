@@ -30,13 +30,13 @@
 #
 
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc/bin
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c
 
-CFLAGS += -mcpu=powerpc -msoft-float -m32
+GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
 LFLAGS += -N
 

@@ -26,11 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "main.h" 
+#include "main.h"
 #include <printf.h>
 #include <align.h>
 #include <macros.h>
 #include <string.h>
+#include <memstr.h>
 #include "msim.h"
 #include "asm.h"
 #include "_components.h"

@@ -212,7 +212,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	 */
 	ipc_callid_t callid;
 	size_t name_size;
-	if (!ipc_data_write_receive(&callid, &name_size)) {
+	if (!async_data_write_receive(&callid, &name_size)) {
 		free(driver);
 		ipc_answer_0(callid, EREFUSED);
 		ipc_answer_0(iid, EREFUSED);
@@ -240,7 +240,7 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	if (ipc_data_write_finalize(callid, driver->name, name_size) != EOK) {
+	if (async_data_write_finalize(callid, driver->name, name_size) != EOK) {
 		free(driver->name);
 		free(driver);
 		ipc_answer_0(iid, EREFUSED);
@@ -357,7 +357,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	/* Get device name */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		free(device);
 		ipc_answer_0(iid, EREFUSED);
 		return;
@@ -380,7 +380,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
-	ipc_data_write_finalize(callid, device->name, size);
+	async_data_write_finalize(callid, device->name, size);
 	device->name[size] = 0;
 	
 	list_initialize(&(device->devices));
@@ -465,7 +465,7 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		ipc_answer_0(callid, EREFUSED);
 		ipc_answer_0(iid, EREFUSED);
 		return;
@@ -490,7 +490,7 @@ static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Send confirmation to sender and get data into buffer.
 	 */
-	ipcarg_t retval = ipc_data_write_finalize(callid, name, size);
+	ipcarg_t retval = async_data_write_finalize(callid, name, size);
 	if (retval != EOK) {
 		ipc_answer_0(iid, EREFUSED);
 		free(name);
@@ -552,7 +552,7 @@ static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	 *
 	 * size_t name_size = str_size(device->name);
 	 *
-	 * int rc = ipc_data_write_send(phone, device->name, name_size);
+	 * int rc = async_data_write_send(phone, device->name, name_size);
 	 * if (rc != EOK) {
 	 *     async_wait_for(req, NULL);
 	 *     return rc;
@@ -575,7 +575,7 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 	
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size)) {
+	if (!async_data_read_receive(&callid, &size)) {
 		ipc_answer_0(callid, EREFUSED);
 		ipc_answer_0(iid, EREFUSED);
 		return;
@@ -607,7 +607,7 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		item = item->next;
 	}
 	
-	ipcarg_t retval = ipc_data_read_finalize(callid, desc, pos * sizeof(dev_desc_t));
+	ipcarg_t retval = async_data_read_finalize(callid, desc, pos * sizeof(dev_desc_t));
 	if (retval != EOK) {
 		ipc_answer_0(iid, EREFUSED);
 		free(desc);

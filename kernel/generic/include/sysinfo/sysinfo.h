@@ -38,6 +38,8 @@
 #include <arch/types.h>
 #include <string.h>
 
+extern bool fb_exported;
+
 typedef union sysinfo_item_val {
 	unative_t val;
 	void *fn; 

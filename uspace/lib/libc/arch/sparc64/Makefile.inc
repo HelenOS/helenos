@@ -35,7 +35,7 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
 ARCH_SOURCES += arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c
 
-CFLAGS += -mcpu=ultrasparc -m64
+GCC_CFLAGS += -mcpu=ultrasparc -m64
 LFLAGS += -no-check-sections -N
 
 ENDIANESS = BE

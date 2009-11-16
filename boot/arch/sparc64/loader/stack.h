@@ -29,8 +29,8 @@
 #ifndef BOOT_sparc64_STACK_H_
 #define BOOT_sparc64_STACK_H_
 
-#define STACK_ALIGNMENT			16
-#define STACK_BIAS			2047
-#define STACK_WINDOW_SAVE_AREA_SIZE	(16*8)
+#define STACK_ALIGNMENT              16
+#define STACK_BIAS                   2047
+#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
 
 #endif

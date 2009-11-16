@@ -145,7 +145,7 @@
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
 #define PFERR_CODE_RSVD		(1 << 3)	
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	

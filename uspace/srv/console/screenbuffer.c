@@ -32,10 +32,10 @@
 /** @file
  */
 
-#include <screenbuffer.h>
 #include <io/style.h>
 #include <malloc.h>
 #include <unistd.h>
+#include "screenbuffer.h"
 
 /** Store one character to screenbuffer.
  *

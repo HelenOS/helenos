@@ -36,6 +36,7 @@
 #define KERN_VISUALS_H_
 
 typedef enum {
+	VISUAL_UNKNOWN = 0,
 	VISUAL_INDIRECT_8,
 	VISUAL_RGB_5_5_5_LE,
 	VISUAL_RGB_5_5_5_BE,

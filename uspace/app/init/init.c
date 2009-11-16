@@ -47,7 +47,6 @@
 #include <macros.h>
 #include <string.h>
 #include <devmap.h>
-#include <config.h>
 #include "init.h"
 
 static void info_print(void)

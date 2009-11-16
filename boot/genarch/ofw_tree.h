@@ -32,33 +32,29 @@
 #include <types.h>
 #include <ofw.h>
 
-#define OFW_TREE_PROPERTY_MAX_NAMELEN	32
-
-typedef struct ofw_tree_node ofw_tree_node_t;
-typedef struct ofw_tree_property ofw_tree_property_t;
-
-/** Memory representation of OpenFirmware device tree node. */
-struct ofw_tree_node {
-	ofw_tree_node_t *parent;
-	ofw_tree_node_t *peer;
-	ofw_tree_node_t *child;
-
-	uint32_t node_handle;			/**< Old OpenFirmware node handle. */
-
-	char *da_name;				/**< Disambigued name. */
-
-	unsigned properties;			/**< Number of properties. */
-	ofw_tree_property_t *property;
-	
-	void *device;				/**< Member used solely by the kernel. */
-};
 
 /** Memory representation of OpenFirmware device tree node property. */
-struct ofw_tree_property {
+typedef struct {
 	char name[OFW_TREE_PROPERTY_MAX_NAMELEN];
 	size_t size;
 	void *value;
-};
+} ofw_tree_property_t;
+
+/** Memory representation of OpenFirmware device tree node. */
+typedef struct ofw_tree_node {
+	struct ofw_tree_node *parent;
+	struct ofw_tree_node *peer;
+	struct ofw_tree_node *child;
+	
+	uint32_t node_handle;           /**< Old OpenFirmware node handle. */
+	
+	char *da_name;                  /**< Disambigued name. */
+	
+	unsigned int properties;        /**< Number of properties. */
+	ofw_tree_property_t *property;
+	
+	void *device;                   /**< Member used solely by the kernel. */
+} ofw_tree_node_t;
 
 extern ofw_tree_node_t *ofw_tree_build(void);
 

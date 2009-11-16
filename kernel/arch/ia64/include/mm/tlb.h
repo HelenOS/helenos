@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -41,36 +41,35 @@
 #include <arch/types.h>
 
 /** Data and instruction Translation Register indices. */
-#define DTR_KERNEL	0
-#define ITR_KERNEL	0
-#define DTR_KSTACK1	4
-#define DTR_KSTACK2	5
+#define DTR_KERNEL   0
+#define ITR_KERNEL   0
+#define DTR_KSTACK1  4
+#define DTR_KSTACK2  5
 
 /** Portion of TLB insertion format data structure. */
-union tlb_entry {
+typedef union {
 	uint64_t word[2];
 	struct {
 		/* Word 0 */
-		unsigned p : 1;			/**< Present. */
-		unsigned : 1;
-		unsigned ma : 3;		/**< Memory attribute. */
-		unsigned a : 1;			/**< Accessed. */
-		unsigned d : 1;			/**< Dirty. */
-		unsigned pl : 2;		/**< Privilege level. */
-		unsigned ar : 3;		/**< Access rights. */
-		unsigned long long ppn : 38;	/**< Physical Page Number, a.k.a. PFN. */
-		unsigned : 2;
-		unsigned ed : 1;
-		unsigned ig1 : 11;
-
+		unsigned int p : 1;           /**< Present. */
+		unsigned int : 1;
+		unsigned int ma : 3;          /**< Memory attribute. */
+		unsigned int a : 1;           /**< Accessed. */
+		unsigned int d : 1;           /**< Dirty. */
+		unsigned int pl : 2;          /**< Privilege level. */
+		unsigned int ar : 3;          /**< Access rights. */
+		unsigned long long ppn : 38;  /**< Physical Page Number, a.k.a. PFN. */
+		unsigned int : 2;
+		unsigned int ed : 1;
+		unsigned int ig1 : 11;
+		
 		/* Word 1 */
-		unsigned : 2;
-		unsigned ps : 6;		/**< Page size will be 2^ps. */
-		unsigned key : 24;		/**< Protection key, unused. */
-		unsigned : 32;
+		unsigned int : 2;
+		unsigned int ps : 6;    /**< Page size will be 2^ps. */
+		unsigned int key : 24;  /**< Protection key, unused. */
+		unsigned int : 32;
 	} __attribute__ ((packed));
-} __attribute__ ((packed));
-typedef union tlb_entry tlb_entry_t;
+} __attribute__ ((packed)) tlb_entry_t;
 
 extern void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc);
 extern void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);

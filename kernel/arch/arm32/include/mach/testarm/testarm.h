@@ -67,17 +67,12 @@ extern void *gxemul_irqc;
 #define GXEMUL_RTC_ACK_OFFSET     0x110
 
 extern void gxemul_init(void);
-extern void gxemul_fb_init(void);
 extern void gxemul_output_init(void);
 extern void gxemul_input_init(void);
-extern void gxemul_release_console(void);
-extern void gxemul_grab_console(void);
 extern void gxemul_timer_irq_start(void);
 extern void gxemul_cpu_halt(void);
 extern void gxemul_irq_exception(int exc_no, istate_t *istate);
 extern uintptr_t gxemul_get_memory_size(void);
-extern uintptr_t gxemul_get_fb_address(void);
-extern void gxemul_fb_init(void);
 extern void gxemul_frame_init(void);
 
 

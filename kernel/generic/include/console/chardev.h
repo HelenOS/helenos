@@ -35,6 +35,7 @@
 #ifndef KERN_CHARDEV_H_
 #define KERN_CHARDEV_H_
 
+#include <adt/list.h>
 #include <arch/types.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
@@ -72,14 +73,21 @@ struct outdev;
 typedef struct {
 	/** Write character to output. */
 	void (* write)(struct outdev *, wchar_t, bool);
+	
+	/** Redraw any previously cached characters. */
+	void (* redraw)(struct outdev *);
 } outdev_operations_t;
 
-/** Character input device. */
+/** Character output device. */
 typedef struct outdev {
 	char *name;
 	
 	/** Protects everything below. */
 	SPINLOCK_DECLARE(lock);
+	
+	/** Fields suitable for multiplexing. */
+	link_t link;
+	link_t list;
 	
 	/** Implementation of outdev operations. */
 	outdev_operations_t *op;

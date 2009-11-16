@@ -33,15 +33,12 @@
 #include "types.h"
 #include "main.h"
 
-#define PAGE_WIDTH	14
-#define PAGE_SIZE	(1 << PAGE_WIDTH)
+#define PAGE_WIDTH  14
+#define PAGE_SIZE   (1 << PAGE_WIDTH)
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#define BALLOC_MAX_SIZE  (128 * 1024)
 
 extern void halt(void);
-/*extern void jump_to_kernel(void *entry, uint64_t cfg, bootinfo_t *bootinfo,
-	unsigned int bootinfo_size) __attribute__((noreturn));*/
-
 extern void jump_to_kernel(void *) __attribute__((noreturn));
 
 

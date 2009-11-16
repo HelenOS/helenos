@@ -35,6 +35,7 @@
  */
 
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <task.h>
@@ -45,25 +46,36 @@ static void usage(void)
 	printf("Usage: getvc <device> <path>\n");
 }
 
-static void closeall(void)
+static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
 {
-	fclose(stdin);
-	fclose(stdout);
-	fclose(stderr);
+	if (fclose(*stream))
+		return;
 	
-	close(0);
-	close(1);
-	close(2);
+	*stream = NULL;
+	
+	int oldfd = open(path, flags);
+	if (oldfd < 0)
+		return;
+	
+	if (oldfd != fd) {
+		if (dup2(oldfd, fd) != fd)
+			return;
+		
+		if (close(oldfd))
+			return;
+	}
+	
+	*stream = fdopen(fd, mode);
 }
 
 static task_id_t spawn(char *fname)
 {
-	char *argv[2];
+	char *args[2];
 	
-	argv[0] = fname;
-	argv[1] = NULL;
+	args[0] = fname;
+	args[1] = NULL;
 	
-	task_id_t id = task_spawn(fname, argv);
+	task_id_t id = task_spawn(fname, args);
 	
 	if (id == 0)
 		printf("Error spawning %s\n", fname);
@@ -73,36 +85,42 @@ static task_id_t spawn(char *fname)
 
 int main(int argc, char *argv[])
 {
-	task_exit_t texit;
-	int retval;
-
 	if (argc < 3) {
 		usage();
 		return -1;
 	}
 	
-	closeall();
+	reopen(&stdin, 0, argv[1], O_RDONLY, "r");
+	reopen(&stdout, 1, argv[1], O_WRONLY, "w");
+	reopen(&stderr, 2, argv[1], O_WRONLY, "w");
 	
-	stdin = fopen(argv[1], "r");
-	stdout = fopen(argv[1], "w");
-	stderr = fopen(argv[1], "w");
-
 	/*
-	 * FIXME: fopen() should actually detect that we are opening a console
+	 * FIXME: fdopen() should actually detect that we are opening a console
 	 * and it should set line-buffering mode automatically.
 	 */
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 	
-	if ((stdin == NULL)
-	    || (stdout == NULL)
-	    || (stderr == NULL))
+	if (stdin == NULL)
 		return -2;
+	
+	if (stdout == NULL)
+		return -3;
+	
+	if (stderr == NULL)
+		return -4;
 	
 	version_print(argv[1]);
 	task_id_t id = spawn(argv[2]);
-	task_wait(id, &texit, &retval);
 	
-	return 0;
+	if (id != 0) {
+		task_exit_t texit;
+		int retval;
+		task_wait(id, &texit, &retval);
+		
+		return 0;
+	}
+	
+	return -5;
 }
 
 /** @}

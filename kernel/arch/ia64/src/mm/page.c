@@ -62,8 +62,8 @@ void page_arch_init(void)
 /** Initialize VHPT and region registers. */
 void set_environment(void)
 {
-	region_register rr;
-	pta_register pta;
+	region_register_t rr;
+	pta_register_t pta;
 	int i;
 #ifdef CONFIG_VHPT
 	uintptr_t vhpt_base;
@@ -130,7 +130,7 @@ void set_environment(void)
  */
 vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 {
-	region_register rr_save, rr;
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	vhpt_entry_t *v;
@@ -175,7 +175,7 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
  */
 bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 {
-	region_register rr_save, rr;	
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	bool match;
@@ -222,7 +222,7 @@ void
 vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
     int flags)
 {
-	region_register rr_save, rr;	
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	uint64_t tag;
@@ -256,13 +256,13 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.p = true;
 	v->present.ma = (flags & PAGE_CACHEABLE) ?
 	    MA_WRITEBACK : MA_UNCACHEABLE;
-	v->present.a = false;	/* not accessed */
-	v->present.d = false;	/* not dirty */
+	v->present.a = false;  /* not accessed */
+	v->present.d = false;  /* not dirty */
 	v->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
 	v->present.ar = (flags & PAGE_WRITE) ? AR_WRITE : AR_READ;
 	v->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0; 
 	v->present.ppn = frame >> PPN_SHIFT;
-	v->present.ed = false;	/* exception not deffered */
+	v->present.ed = false;  /* exception not deffered */
 	v->present.ps = PAGE_WIDTH;
 	v->present.key = 0;
 	v->present.tag.tag_word = tag;

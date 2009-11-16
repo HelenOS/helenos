@@ -39,9 +39,12 @@
 #include <libblock.h>
 #include <devmap.h>
 #include <errno.h>
+#include <assert.h>
 
-#define BLOCK_SIZE	512
-#define BPR		 16
+enum {
+	/* Number of bytes per row */
+	BPR = 16
+};
 
 static const char *cmdname = "bdd";
 
@@ -65,11 +68,11 @@ int cmd_bdd(char **argv)
 	unsigned int argc;
 	unsigned int i, j;
 	dev_handle_t handle;
-	block_t *block;
 	uint8_t *blk;
 	size_t size, bytes, rows;
+	size_t block_size;
 	int rc;
-	bn_t boff;
+	bn_t ba;
 	uint8_t b;
 
 	/* Count the arguments */
@@ -81,9 +84,9 @@ int cmd_bdd(char **argv)
 	}
 
 	if (argc >= 3)
-		boff = strtol(argv[2], NULL, 0);
+		ba = strtol(argv[2], NULL, 0);
 	else
-		boff = 0;
+		ba = 0;
 
 	if (argc >= 4)
 		size = strtol(argv[3], NULL, 0);
@@ -92,27 +95,39 @@ int cmd_bdd(char **argv)
 
 	rc = devmap_device_get_handle(argv[1], &handle, 0);
 	if (rc != EOK) {
-		printf("Error: could not resolve device `%s'.\n", argv[1]);
+		printf("%s: Error resolving device `%s'.\n", cmdname, argv[1]);
 		return CMD_FAILURE;
 	}
 
-	rc = block_init(handle, BLOCK_SIZE);
+	rc = block_init(handle, 2048);
 	if (rc != EOK)  {
-		printf("Error: could not init libblock.\n");
+		printf("%s: Error initializing libblock.\n", cmdname);
 		return CMD_FAILURE;
 	}
 
-	rc = block_cache_init(handle, BLOCK_SIZE, 2, CACHE_MODE_WB);
+	rc = block_get_bsize(handle, &block_size);
 	if (rc != EOK) {
-		printf("Error: could not init block cache.\n");
+		printf("%s: Error determining device block size.\n", cmdname);
+		return CMD_FAILURE;
+	}
+
+	blk = malloc(block_size);
+	if (blk == NULL) {
+		printf("%s: Error allocating memory.\n", cmdname);
+		block_fini(handle);
 		return CMD_FAILURE;
 	}
 
 	while (size > 0) {
-		block = block_get(handle, boff, 0);
-		blk = (uint8_t *) block->data;
+		rc = block_read_direct(handle, ba, 1, blk);
+		if (rc != EOK) {
+			printf("%s: Error reading block %llu\n", cmdname, ba);
+			free(blk);
+			block_fini(handle);
+			return CMD_FAILURE;
+		}
 
-		bytes = (size < BLOCK_SIZE) ? size : BLOCK_SIZE;
+		bytes = (size < block_size) ? size : block_size;
 		rows = (bytes + BPR - 1) / BPR;
 
 		for (j = 0; j < rows; j++) {
@@ -138,16 +153,16 @@ int cmd_bdd(char **argv)
 			putchar('\n');
 		}
 
-		block_put(block);
-
 		if (size > rows * BPR)
 			size -= rows * BPR;
 		else
 			size = 0;
 
-		boff += rows * BPR;
+		/* Next block */
+		ba += 1;
 	}
 
+	free(blk);
 	block_fini(handle);
 
 	return CMD_SUCCESS;

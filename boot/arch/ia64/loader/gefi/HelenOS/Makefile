@@ -68,4 +68,4 @@ mkimage: mkimage.c
 	gcc -o mkimage mkimage.c
 
 gefi:
-	make -C .. prefix=$(PREFIX)
+	$(MAKE) -C .. prefix=$(PREFIX)

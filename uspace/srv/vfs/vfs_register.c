@@ -121,7 +121,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The first call has to be IPC_M_DATA_SEND in which we receive the
 	 * VFS info structure from the client FS.
 	 */
-	if (!ipc_data_write_receive(&callid, &size)) {
+	if (!async_data_write_receive(&callid, &size)) {
 		/*
 		 * The client doesn't obey the same protocol as we do.
 		 */
@@ -162,7 +162,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	link_initialize(&fs_info->fs_link);
 	fibril_mutex_initialize(&fs_info->phone_lock);
 		
-	rc = ipc_data_write_finalize(callid, &fs_info->vfs_info, size);
+	rc = async_data_write_finalize(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
@@ -228,7 +228,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * The client will want us to send him the address space area with PLB.
 	 */
 
-	if (!ipc_share_in_receive(&callid, &size)) {
+	if (!async_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
@@ -256,7 +256,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
-	(void) ipc_share_in_finalize(callid, plb,
+	(void) async_share_in_finalize(callid, plb,
 	    AS_AREA_READ | AS_AREA_CACHEABLE);
 
 	dprintf("Sharing PLB.\n");

@@ -1,0 +1,9 @@
+(
+	[fnc.vp_switch] ;
+	tentative {
+		!fb.vp_draw_pixmap
+	} ;
+	tentative {
+		!fb.putchar*
+	}
+)

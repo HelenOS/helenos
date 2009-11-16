@@ -32,11 +32,6 @@
 -include ../Makefile.config
 
 DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
@@ -51,6 +46,8 @@ DIRS = \
 	srv/fs/devfs \
 	srv/vfs \
 	srv/devmap \
+	srv/part/mbr_part \
+	app/edit \
 	app/tetris \
 	app/shutters \
 	app/test_serial \
@@ -59,6 +56,7 @@ DIRS = \
 	app/klog \
 	app/init \
 	app/getvc \
+	app/redir \
 	app/bdsh
 
 ifeq ($(UARCH),amd64)
@@ -81,17 +79,33 @@ ifeq ($(UARCH),sparc64)
 		srv/cir/obio
 endif
 
+LIBC = lib/libc
+LIBS = \
+	lib/libfs \
+	lib/libblock \
+	lib/softint \
+	lib/softfloat
+
+LIBC_BUILD = $(addsuffix .build,$(LIBC))
+LIBS_BUILD = $(addsuffix .build,$(LIBS))
+
 BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+all: $(BUILDS)
 
 clean: $(CLEANS)
 
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS):
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+	$(MAKE) -C $(basename $@) all
+
+$(LIBS_BUILD): $(LIBC_BUILD)
+	$(MAKE) -C $(basename $@) all
+
+$(LIBC_BUILD):
 	$(MAKE) -C $(basename $@) all

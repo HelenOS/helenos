@@ -275,7 +275,7 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  */
 unative_t sys_preempt_control(int enable)
 {
-	if (!cap_get(TASK) & CAP_PREEMPT_CONTROL)
+	if (!(cap_get(TASK) & CAP_PREEMPT_CONTROL))
 		return EPERM;
 	
 	if (enable)

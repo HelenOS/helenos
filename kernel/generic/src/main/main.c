@@ -100,18 +100,6 @@ ballocs_t ballocs = {
 
 context_t ctx;
 
-/*
- * These 'hardcoded' variables will be intialized by
- * the linker or the low level assembler code with
- * appropriate sizes and addresses.
- */
-
-/** Virtual address of where the kernel is loaded. */
-uintptr_t hardcoded_load_address = 0;
-/** Size of the kernel code in bytes. */
-size_t hardcoded_ktext_size = 0;
-/** Size of the kernel data in bytes. */
-size_t hardcoded_kdata_size = 0;
 /** Lowest safe stack virtual address. */
 uintptr_t stack_safe = 0;		
 

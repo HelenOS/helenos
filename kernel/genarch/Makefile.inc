@@ -58,7 +58,8 @@ endif
 
 ifeq ($(CONFIG_SOFTINT),y)
 	GENARCH_SOURCES += \
-		genarch/src/softint/division.c
+		genarch/src/softint/division.c \
+		genarch/src/softint/multiplication.c
 endif
 
 ifeq ($(CONFIG_FB),y)
@@ -129,12 +130,16 @@ endif
 
 ifeq ($(CONFIG_OFW_TREE),y)
 	GENARCH_SOURCES += \
-		genarch/src/ofw/ofw_tree.c \
+		genarch/src/ofw/ofw_tree.c
+endif
+
+ifeq ($(CONFIG_OFW_PCI),y)
+	GENARCH_SOURCES += \
 		genarch/src/ofw/ebus.c \
 		genarch/src/ofw/fhc.c \
 		genarch/src/ofw/pci.c  \
 		genarch/src/ofw/sbus.c \
-		genarch/src/ofw/upa.c 
+		genarch/src/ofw/upa.c
 endif
 
 ifeq ($(CONFIG_MULTIBOOT), y)

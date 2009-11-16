@@ -39,21 +39,21 @@
 #include <sys/types.h>
 #include <kernel/syscall/syscall.h>
 
-#define __syscall0	__syscall_sysenter
-#define __syscall1	__syscall_sysenter
-#define __syscall2	__syscall_sysenter
-#define __syscall3	__syscall_sysenter
-#define __syscall4	__syscall_sysenter
-#define __syscall5	__syscall_int
-#define __syscall6	__syscall_int
+#define __syscall0	__syscall_fast_func
+#define __syscall1	__syscall_fast_func
+#define __syscall2	__syscall_fast_func
+#define __syscall3	__syscall_fast_func
+#define __syscall4	__syscall_fast_func
+#define __syscall5	__syscall_slow
+#define __syscall6	__syscall_slow
 
 extern sysarg_t
-__syscall_sysenter(const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
-     const sysarg_t, const sysarg_t, const syscall_t);
+(* __syscall_fast_func)(const sysarg_t, const sysarg_t, const sysarg_t,
+    const sysarg_t, const sysarg_t, const sysarg_t, const syscall_t);
 
 extern sysarg_t
-__syscall_int(const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
-     const sysarg_t, const sysarg_t, const syscall_t);
+__syscall_slow(const sysarg_t, const sysarg_t, const sysarg_t, const sysarg_t,
+    const sysarg_t, const sysarg_t, const syscall_t);
 
 #endif
 

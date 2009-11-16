@@ -44,25 +44,22 @@
 #include <debug.h>
 #include <symtab.h>
 
-#ifdef CONFIG_FB
-#include <genarch/fb/fb.h>
-#endif
-
 #ifdef CONFIG_SMP
 
 /** Initialize spinlock
  *
- * Initialize spinlock.
- *
  * @param sl Pointer to spinlock_t structure.
+ *
  */
-void spinlock_initialize(spinlock_t *sl, char *name)
+void spinlock_initialize(spinlock_t *lock, char *name)
 {
-	atomic_set(&sl->val, 0);
+	atomic_set(&lock->val, 0);
 #ifdef CONFIG_DEBUG_SPINLOCK
-	sl->name = name;
-#endif	
+	lock->name = name;
+#endif
 }
+
+#ifdef CONFIG_DEBUG_SPINLOCK
 
 /** Lock spinlock
  *
@@ -70,58 +67,58 @@ void spinlock_initialize(spinlock_t *sl, char *name)
  * This version has limitted ability to report 
  * possible occurence of deadlock.
  *
- * @param sl Pointer to spinlock_t structure.
+ * @param lock Pointer to spinlock_t structure.
+ *
  */
-#ifdef CONFIG_DEBUG_SPINLOCK
-void spinlock_lock_debug(spinlock_t *sl)
+void spinlock_lock_debug(spinlock_t *lock)
 {
 	size_t i = 0;
 	bool deadlock_reported = false;
-
+	
 	preemption_disable();
-	while (test_and_set(&sl->val)) {
-
+	while (test_and_set(&lock->val)) {
 		/*
-		 * We need to be careful about printf_lock and fb_lock.
-		 * Both of them are used to report deadlocks via
-		 * printf() and fb_putchar().
+		 * We need to be careful about particular locks
+		 * which are directly used to report deadlocks
+		 * via printf() (and recursively other functions).
+		 * This conserns especially printf_lock and the
+		 * framebuffer lock.
 		 *
+		 * Any lock whose name is prefixed by "*" will be
+		 * ignored by this deadlock detection routine
+		 * as this might cause an infinite recursion.
 		 * We trust our code that there is no possible deadlock
-		 * caused by these two locks (except when an exception
-		 * is triggered for instance by printf() or fb_putchar()).
-		 * However, we encountered false positives caused by very
-		 * slow VESA framebuffer interaction (especially when
-		 * run in a simulator) that caused problems with both
-		 * printf_lock and fb_lock.
+		 * caused by these locks (except when an exception
+		 * is triggered for instance by printf()).
 		 *
-		 * Possible deadlocks on both printf_lock and fb_lock
-		 * are therefore not reported as they would cause an
-		 * infinite recursion.
+		 * We encountered false positives caused by very
+		 * slow framebuffer interaction (especially when
+		 * run in a simulator) that caused problems with both
+		 * printf_lock and the framebuffer lock.
+		 *
 		 */
-		if (sl == &printf_lock)
+		if (lock->name[0] == '*')
 			continue;
-#ifdef CONFIG_FB
-		if (sl == &fb_lock)
-			continue;
-#endif
+		
 		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%u: looping on spinlock %" PRIp ":%s, "
-			    "caller=%" PRIp "(%s)\n", CPU->id, sl, sl->name,
+			    "caller=%" PRIp "(%s)\n", CPU->id, lock, lock->name,
 			    CALLER, symtab_fmt_name_lookup(CALLER));
 			
 			i = 0;
 			deadlock_reported = true;
 		}
 	}
-
+	
 	if (deadlock_reported)
 		printf("cpu%u: not deadlocked\n", CPU->id);
-
+	
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
 	CS_ENTER_BARRIER();
 }
+
 #endif
 
 /** Lock spinlock conditionally
@@ -130,22 +127,21 @@ void spinlock_lock_debug(spinlock_t *sl)
  * If the spinlock is not available at the moment,
  * signal failure.
  *
- * @param sl Pointer to spinlock_t structure.
+ * @param lock Pointer to spinlock_t structure.
  *
  * @return Zero on failure, non-zero otherwise.
+ *
  */
-int spinlock_trylock(spinlock_t *sl)
+int spinlock_trylock(spinlock_t *lock)
 {
-	int rc;
-	
 	preemption_disable();
-	rc = !test_and_set(&sl->val);
-
+	int rc = !test_and_set(&lock->val);
+	
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
 	CS_ENTER_BARRIER();
-
+	
 	if (!rc)
 		preemption_enable();
 	

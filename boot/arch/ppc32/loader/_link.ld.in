@@ -18,4 +18,9 @@ SECTIONS {
 		*(COMMON);      /* global variables */
 [[COMPONENTS]]
 	}
+	
+	/DISCARD/ : {
+		*(.comment);
+		*(.note*);
+	}
 }

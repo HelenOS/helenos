@@ -1,0 +1,11 @@
+(
+	?ipc_m_connection_clone ;
+	?ipc_m_data_write /* mount options */ {
+		alternative (fs; tmpfs_nested; fat_nested; devfs_nested) {
+			!fs.ipc_m_connect_to_me ;
+			!fs.mounted {
+				!fs.ipc_m_data_write /* forward */
+			}
+		}
+	}
+)

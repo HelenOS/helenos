@@ -36,7 +36,7 @@ endif
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: depend arch/$(BARCH)/loader/image.boot
+$(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
 	mkdir -p $(TMP)/boot
 	mkdir -p $(TMP)/HelenOS
 	cat arch/$(BARCH)/silo/$(SILO_PACKAGE) | (cd $(TMP)/boot; tar xvfz -)
@@ -53,13 +53,10 @@ ifeq ($(CONFIG_RD_EXTERNAL),y)
 endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
 
-depend:
-	-rm arch/$(BARCH)/loader/image.boot
-
 arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+	$(MAKE) -C arch/$(BARCH)/loader
 
 clean: generic_clean
-	$(MAKE) -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -fr $(TMP)
-	-rm -f $(BASE)/image.iso
+	$(MAKE) -C arch/$(BARCH)/loader clean
+	rm -fr $(TMP)
+	rm -f $(BASE)/image.iso

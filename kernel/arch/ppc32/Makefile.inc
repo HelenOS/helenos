@@ -33,7 +33,7 @@ BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common
 BFD = binary
 TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32
 
 GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32

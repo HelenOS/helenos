@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int res = ipc_share_in_start_1_0(PHONE_NS, (void *) klog,
+	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog,
 	    klog_size, SERVICE_MEM_KLOG);
 	if (res != EOK) {
 		printf(NAME ": Error initializing memory area\n");

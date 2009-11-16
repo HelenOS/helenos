@@ -29,17 +29,23 @@
 ## Include configuration
 #
 
-.PHONY: all config distclean clean cscope
+.PHONY: all config config_default distclean clean cscope
 
 all: Makefile.config config.h config.defs
 	$(MAKE) -C kernel
 	$(MAKE) -C uspace
 	$(MAKE) -C boot
 
-Makefile.config config.h config.defs: HelenOS.config
+Makefile.config: config_default
+
+config.h: config_default
+
+config.defs: config_default
+
+config_default: HelenOS.config
 	tools/config.py HelenOS.config default
 
-config:
+config: HelenOS.config
 	tools/config.py HelenOS.config
 
 distclean: clean

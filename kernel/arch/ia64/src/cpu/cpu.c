@@ -53,11 +53,11 @@ void cpu_print_report(cpu_t *m)
 	char *family_str;
 	char vendor[2 * sizeof(uint64_t) + 1];
 	
-	*((uint64_t *) &vendor[0 * sizeof(uint64_t)]) = CPU->arch.cpuid0;
-	*((uint64_t *) &vendor[1 * sizeof(uint64_t)]) = CPU->arch.cpuid1;
+	memcpy(vendor, &CPU->arch.cpuid0, 8);
+	memcpy(vendor + 8, &CPU->arch.cpuid1, 8);
 	vendor[sizeof(vendor) - 1] = 0;
 	
-	switch(m->arch.cpuid3.family) {
+	switch (m->arch.cpuid3.family) {
 	case FAMILY_ITANIUM:
 		family_str = "Itanium";
 		break;

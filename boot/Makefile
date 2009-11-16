@@ -46,4 +46,4 @@ all: ../Makefile.config ../config.h ../config.defs build
 -include arch/$(BARCH)/Makefile.inc
 
 generic_clean:
-	-rm generic/*.o genarch/*.o
+	rm -f generic/*.o genarch/*.o

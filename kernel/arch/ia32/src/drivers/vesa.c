@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /**
@@ -39,6 +39,8 @@
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
 #include <arch/drivers/vesa.h>
+#include <console/chardev.h>
+#include <console/console.h>
 #include <putchar.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -65,17 +67,12 @@ uint8_t vesa_green_pos;
 uint8_t vesa_blue_mask;
 uint8_t vesa_blue_pos;
 
-int vesa_present(void)
+bool vesa_init(void)
 {
-	if ((vesa_width != 0xffff) && (vesa_height != 0xffff))
-		return true;
+	if ((vesa_width == 0xffff) || (vesa_height == 0xffff))
+		return false;
 	
-	return false;
-}
-
-void vesa_init(void)
-{
-	unsigned int visual;
+	visual_t visual;
 	
 	switch (vesa_bpp) {
 	case 8:
@@ -96,7 +93,8 @@ void vesa_init(void)
 		visual = VISUAL_BGR_8_8_8_0;
 		break;
 	default:
-		panic("Unsupported bits per pixel.");
+		LOG("Unsupported bits per pixel.");
+		return false;
 	}
 	
 	fb_properties_t vesa_props = {
@@ -107,12 +105,13 @@ void vesa_init(void)
 		.scan = vesa_scanline,
 		.visual = visual,
 	};
-	fb_init(&vesa_props);
-}
-
-void vesa_redraw(void)
-{
-	fb_redraw();
+	
+	outdev_t *fbdev = fb_init(&vesa_props);
+	if (!fbdev)
+		return false;
+	
+	stdout_wire(fbdev);
+	return true;
 }
 
 #endif

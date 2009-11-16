@@ -89,7 +89,42 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 	/* Get task ID. */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_GET_TASKID, &answer);
-	int rc = ipc_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
+	int rc = async_data_read_start(ldr->phone_id, task_id, sizeof(task_id_t));
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	ipcarg_t retval;
+	async_wait_for(req, &retval);
+	return (int) retval;
+}
+
+/** Set current working directory for the loaded task.
+ *
+ * Sets the current working directory for the loaded task.
+ *
+ * @param ldr  Loader connection structure.
+ *
+ * @return Zero on success or negative error code.
+ *
+ */
+int loader_set_cwd(loader_t *ldr)
+{
+	char *cwd;
+	size_t len;
+
+	cwd = (char *) malloc(MAX_PATH_LEN + 1);
+	if (!cwd)
+		return ENOMEM;
+	if (!getcwd(cwd, MAX_PATH_LEN + 1))
+		str_cpy(cwd, MAX_PATH_LEN + 1, "/"); 
+	len = str_length(cwd);
+	
+	ipc_call_t answer;
+	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_CWD, &answer);
+	int rc = async_data_write_start(ldr->phone_id, cwd, len);
+	free(cwd);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -122,7 +157,7 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	/* Send program pathname */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
-	int rc = ipc_data_write_start(ldr->phone_id, (void *) pa, pa_len);
+	int rc = async_data_write_start(ldr->phone_id, (void *) pa, pa_len);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -177,7 +212,7 @@ int loader_set_args(loader_t *ldr, char *const argv[])
 	/* Send serialized arguments to the loader */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_ARGS, &answer);
-	ipcarg_t rc = ipc_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
+	ipcarg_t rc = async_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -231,7 +266,7 @@ int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
 	/* Send serialized files to the loader */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_FILES, &answer);
-	ipcarg_t rc = ipc_data_write_start(ldr->phone_id, (void *) files_buf,
+	ipcarg_t rc = async_data_write_start(ldr->phone_id, (void *) files_buf,
 	    count * sizeof(fdi_node_t));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);

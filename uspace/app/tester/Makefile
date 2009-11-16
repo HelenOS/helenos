@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,67 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
-#
+include Makefile.common
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+.PHONY: all clean
 
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -I../../srv/kbd/include
-
-LIBS = $(LIBC_PREFIX)/libc.a
-
-## Sources
-#
-
-OUTPUT = tester
-SOURCES = tester.c \
-	thread/thread1.c \
-	print/print1.c \
-	print/print2.c \
-	print/print3.c \
-	print/print4.c \
-	console/console1.c \
-	stdio/stdio1.c \
-	stdio/stdio2.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	vfs/vfs1.c \
-	ipc/ping_pong.c \
-	ipc/register.c \
-	ipc/connect.c \
-	loop/loop1.c \
-	mm/malloc1.c
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend disasm
-
-all: $(OUTPUT) $(OUTPUT).disasm
-
--include Makefile.depend
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
 clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm: $(OUTPUT).disasm
-
-$(OUTPUT).disasm: $(OUTPUT)
-	$(OBJDUMP) -d $< > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;

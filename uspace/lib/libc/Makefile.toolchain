@@ -26,11 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
+GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
-	-Wmissing-prototypes -Werror-implicit-function-declaration -nostdlib \
-	-nostdinc -pipe -g -D__$(ENDIANESS)__
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -pipe -g -D__$(ENDIANESS)__
+
+ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -pipe -g -D__$(ENDIANESS)__
+
+CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -pipe -g -arch $(CLANG_ARCH) \
+	-D__$(ENDIANESS)__
+
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 
@@ -44,9 +58,9 @@ endif
 ## Setup platform configuration
 #
 
--include $(LIBC_PREFIX)/../../../Makefile.config
--include $(LIBC_PREFIX)/../../../config.defs
--include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
+include $(LIBC_PREFIX)/../../../Makefile.config
+include $(LIBC_PREFIX)/../../../config.defs
+include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
 
 ## Simple detection of the host system
 #
@@ -63,32 +77,50 @@ endif
 ## Toolchain configuration
 #
 
-ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	AR = $(BINUTILS_PREFIX)ar
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),icc_native)
-	CC = icc
-	AS = as
-	LD = ld
-	AR = ar
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
+	GCC = $(CC)
 	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
 	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
 	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
 	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
 	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
+	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),gcc_native)
+	CC = gcc
+	GCC = $(CC)
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	AR = $(BINUTILS_PREFIX)ar
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
+	CFLAGS = $(GCC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),icc)
+	CC = icc
+	GCC = gcc
+	AS = as
+	LD = ld
+	AR = ar
+	OBJCOPY = objcopy
+	OBJDUMP = objdump
+	CFLAGS = $(ICC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),clang)
+	CC = clang
+	GCC = gcc
+	AS = $(BINUTILS_PREFIX)as
+	LD = $(BINUTILS_PREFIX)ld
+	AR = $(BINUTILS_PREFIX)ar
+	OBJCOPY = $(BINUTILS_PREFIX)objcopy
+	OBJDUMP = $(BINUTILS_PREFIX)objdump
+	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif

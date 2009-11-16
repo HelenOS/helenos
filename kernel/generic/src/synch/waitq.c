@@ -173,6 +173,39 @@ out:
 	interrupts_restore(ipl);
 }
 
+/** Interrupt the first thread sleeping in the wait queue.
+ *
+ * Note that the caller somehow needs to know that the thread to be interrupted
+ * is sleeping interruptibly.
+ *
+ * @param wq		Pointer to wait queue.
+ */
+void waitq_unsleep(waitq_t *wq)
+{
+	ipl_t ipl;
+
+	ipl = interrupts_disable();
+	spinlock_lock(&wq->lock);
+
+	if (!list_empty(&wq->head)) {
+		thread_t *t;
+		
+		t = list_get_instance(wq->head.next, thread_t, wq_link);
+		spinlock_lock(&t->lock);
+		ASSERT(t->sleep_interruptible);
+		if (t->timeout_pending && timeout_unregister(&t->sleep_timeout))
+			t->timeout_pending = false;
+		list_remove(&t->wq_link);
+		t->saved_context = t->sleep_interruption_context;
+		t->sleep_queue = NULL;
+		spinlock_unlock(&t->lock);
+		thread_ready(t);
+	}
+
+	spinlock_unlock(&wq->lock);
+	interrupts_restore(ipl);
+}
+
 /** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to time out or to be

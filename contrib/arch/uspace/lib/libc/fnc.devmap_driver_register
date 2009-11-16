@@ -1,0 +1,11 @@
+(
+	[fnc.devmap_get_phone] ;
+	tentative {
+		!devmap_driver.driver_register {
+			!devmap_driver.ipc_m_data_write /* name */
+		} ;
+		tentative {
+			!devmap_driver.ipc_m_connect_to_me
+		}
+	}
+)

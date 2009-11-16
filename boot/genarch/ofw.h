@@ -32,11 +32,12 @@
 #include <types.h>
 #include <stdarg.h>
 
-#define BUF_SIZE		1024
+#define MEMMAP_MAX_RECORDS  32
+#define MAX_OFW_ARGS        12
 
-#define MEMMAP_MAX_RECORDS 	32
-
-#define MAX_OFW_ARGS            12
+#define OFW_TREE_PATH_MAX_LEN           256
+#define OFW_TREE_PROPERTY_MAX_NAMELEN   32
+#define OFW_TREE_PROPERTY_MAX_VALUELEN  64
 
 typedef unative_t ofw_arg_t;
 typedef unsigned int ihandle;
@@ -46,10 +47,10 @@ typedef unsigned int phandle;
  *
  */
 typedef struct {
-	ofw_arg_t service;		/**< Command name. */
-	ofw_arg_t nargs;		/**< Number of in arguments. */
-	ofw_arg_t nret;			/**< Number of out arguments. */
-	ofw_arg_t args[MAX_OFW_ARGS];	/**< List of arguments. */
+	ofw_arg_t service;             /**< Command name. */
+	ofw_arg_t nargs;               /**< Number of in arguments. */
+	ofw_arg_t nret;                /**< Number of out arguments. */
+	ofw_arg_t args[MAX_OFW_ARGS];  /**< List of arguments. */
 } ofw_args_t;
 
 typedef struct {
@@ -62,19 +63,6 @@ typedef struct {
 	uint32_t count;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
-
-typedef struct {
-	void *addr;
-	uint32_t width;
-	uint32_t height;
-	uint32_t bpp;
-	uint32_t scanline;
-} screen_t;
-
-typedef struct {
-	void *addr;
-	uint32_t size;
-} macio_t;
 
 typedef struct {
 	uint32_t info;
@@ -95,7 +83,6 @@ extern ihandle ofw_stdout;
 extern phandle ofw_root;
 extern ihandle ofw_mmu;
 extern phandle ofw_memory;
-extern phandle ofw_aliases;
 
 extern void ofw_init(void);
 
@@ -117,13 +104,12 @@ extern unsigned int ofw_get_address_cells(const phandle device);
 extern unsigned int ofw_get_size_cells(const phandle device);
 extern void *ofw_translate(const void *virt);
 extern int ofw_translate_failed(ofw_arg_t flag);
-extern void *ofw_claim_virt(const void *virt, const int len);
-extern void *ofw_claim_phys(const void *virt, const int len);
-extern int ofw_map(const void *phys, const void *virt, const int size, const int mode);
+extern void *ofw_claim_virt(const void *virt, const unsigned int len);
+extern void *ofw_claim_phys(const void *virt, const unsigned int len);
+extern void *ofw_claim_phys_any(const unsigned int len, const unsigned int alignment);
+extern int ofw_map(const void *phys, const void *virt, const unsigned int size, const int mode);
 extern int ofw_memmap(memmap_t *map);
-extern int ofw_screen(screen_t *screen);
-extern int ofw_macio(macio_t *macio);
-extern int ofw_setup_palette(void);
+extern void ofw_setup_screens(void);
 extern void ofw_quiesce(void);
 
 #endif

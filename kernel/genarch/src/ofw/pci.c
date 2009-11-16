@@ -36,6 +36,7 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
+#include <genarch/ofw/pci.h>
 #include <arch/drivers/pci.h>
 #include <arch/trap/interrupt.h>
 #include <arch/memstr.h>
