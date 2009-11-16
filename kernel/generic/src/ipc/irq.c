@@ -149,6 +149,8 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		(unative_t) devno
 	};
 	
+	printf("kernel ipc_irq_register() ... registering irq = %d\n", inr);
+	
 	if (ucode) {
 		code = code_from_uspace(ucode);
 		if (!code)
@@ -201,6 +203,9 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	spinlock_unlock(&irq_uspace_hash_table_lock);
 	
 	interrupts_restore(ipl);
+	
+	printf("kernel ipc_irq_register() ... registering irq = %d was successful \n", inr);
+
 	return EOK;
 }
 

@@ -53,6 +53,7 @@ DIRS = \
 	srv/devmap \
 	app/tetris \
 	app/shutters \
+	app/test_serial \
 	app/tester \
 	app/trace \
 	app/klog \

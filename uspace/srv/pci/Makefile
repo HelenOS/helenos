@@ -44,6 +44,7 @@ LIBS =  $(LIBC_PREFIX)/libc.a
 OUTPUT = pci
 SOURCES = \
 	main.c \
+	pic.c \
 	pci.c \
 	intel_piix3.c \
 	isa.c \
