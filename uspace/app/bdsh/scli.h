@@ -6,7 +6,6 @@
 
 typedef struct {
 	char *name;
-	char *home;
 	char *line;
 	char *cwd;
 	char *prompt;

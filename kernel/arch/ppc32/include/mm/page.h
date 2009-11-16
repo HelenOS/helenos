@@ -130,7 +130,7 @@
 #include <mm/mm.h>
 #include <arch/interrupt.h>
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	

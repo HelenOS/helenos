@@ -530,8 +530,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		return;
 	}
 	
-	ipc_answer_5(rid, EOK, fs_handle, dev_handle, index, ops->size_get(fn),
-	    ops->lnkcnt_get(fn));
+	ipc_answer_3(rid, EOK, ops->size_get(fn), ops->lnkcnt_get(fn),
+	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);
 }

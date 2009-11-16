@@ -176,7 +176,7 @@ static inline uintptr_t ka2pa(uintptr_t x)
  */
 #define PFERR_CODE_ID		(1 << 4)
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	

@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
-# Copyright (c) 2008 Jiri Svoboda
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,57 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
-#
+include Makefile.common
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+.PHONY: all clean
 
-include $(LIBC_PREFIX)/Makefile.toolchain
-include arch/$(UARCH)/Makefile.inc
-
-CFLAGS += -Iinclude
-
-LIBS = $(LIBC_PREFIX)/libc.a $(SOFTINT_PREFIX)/libsoftint.a
-
-## Sources
-#
-
-OUTPUT = loader
-GENERIC_SOURCES = \
-	main.c \
-	elf_load.c \
-	interp.s
-
-SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend
-
-all: $(OUTPUT) $(OUTPUT).disasm
-
--include Makefile.depend
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
 clean:
-	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm arch/$(UARCH)/_link.ld Makefile.depend
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS) arch/$(UARCH)/_link.ld
-	$(LD) -T arch/$(UARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBS) -o $@ -Map $(OUTPUT).map
-
-$(OUTPUT).disasm: $(OUTPUT)
-	$(OBJDUMP) -d $< > $@
-
-arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm arch/*/_link.ld
+	find . -name '*.o' -follow -exec rm \{\} \;

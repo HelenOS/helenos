@@ -71,7 +71,7 @@ def main():
 		basename = os.path.basename(task)
 		plainname = os.path.splitext(basename)[0]
 		path = os.path.dirname(task)
-		object = plainname + ".o"
+		object = plainname + ".co"
 		symbol = "_binary_" + basename.replace(".", "_")
 		macro = plainname.upper()
 		

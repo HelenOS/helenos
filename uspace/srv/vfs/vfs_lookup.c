@@ -208,7 +208,6 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	    (ipcarg_t) result->triplet.dev_handle,
 	    (ipcarg_t) result->triplet.index, &answer);
 	
-	
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
 	vfs_release_phone(phone);
