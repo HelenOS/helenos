@@ -288,7 +288,7 @@ static change_state_t trans[4][6] = {
  *
  * A file system path is canonical, if the following holds:
  * 1) the path is absolute (i.e. a/b/c is not canonical)
- * 2) there is no trailing slash in the path (i.e. /a/b/c is not canonical)
+ * 2) there is no trailing slash in the path (i.e. /a/b/c/ is not canonical)
  * 3) there is no extra slash in the path (i.e. /a//b/c is not canonical)
  * 4) there is no '.' component in the path (i.e. /a/./b/c is not canonical)
  * 5) there is no '..' component in the path (i.e. /a/b/../c is not canonical) 
