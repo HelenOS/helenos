@@ -61,6 +61,7 @@
 answerbox_t *ipc_phone_0 = NULL;
 
 static slab_cache_t *ipc_call_slab;
+static slab_cache_t *ipc_answerbox_slab;
 
 /** Initialize a call structure.
  *
@@ -166,17 +167,21 @@ void ipc_phone_init(phone_t *phone)
  */
 int ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t sync_box; 
+	answerbox_t *sync_box; 
 
-	ipc_answerbox_init(&sync_box, TASK);
+	sync_box = slab_alloc(ipc_answerbox_slab, 0);
+	ipc_answerbox_init(sync_box, TASK);
 
 	/* We will receive data in a special box. */
-	request->callerbox = &sync_box;
+	request->callerbox = sync_box;
 
 	ipc_call(phone, request);
-	if (!ipc_wait_for_call(&sync_box, SYNCH_NO_TIMEOUT,
-	    SYNCH_FLAGS_INTERRUPTIBLE))
+	if (!ipc_wait_for_call(sync_box, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_INTERRUPTIBLE)) {
+	    	/* The asnwerbox will be freed by someone else. */
 		return EINTR;
+	}
+	slab_free(ipc_answerbox_slab, sync_box);
 	return EOK;
 }
 
@@ -579,6 +584,8 @@ void ipc_init(void)
 {
 	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL,
 	    NULL, 0);
+	ipc_answerbox_slab = slab_cache_create("ipc_answerbox",
+	    sizeof(answerbox_t), 0, NULL, NULL, 0);
 }
 
 
