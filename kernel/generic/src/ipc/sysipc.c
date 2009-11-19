@@ -999,8 +999,6 @@ restart:
 		return 0;
 
 	if (call->flags & IPC_CALL_NOTIF) {
-		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
-
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
 		
@@ -1013,8 +1011,6 @@ restart:
 
 	if (call->flags & IPC_CALL_ANSWERED) {
 		process_answer(call);
-
-		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);

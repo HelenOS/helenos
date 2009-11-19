@@ -95,24 +95,12 @@ call_t *ipc_call_alloc(int flags)
 	return call;
 }
 
-/** Initialize a statically allocated call structure.
- *
- * @param call		Statically allocated kernel call structure to be
- *			initialized.
- */
-void ipc_call_static_init(call_t *call)
-{
-	_ipc_call_init(call);
-	call->flags |= IPC_CALL_STATIC_ALLOC;
-}
-
 /** Deallocate a call structure.
  *
  * @param call		Call structure to be freed.
  */
 void ipc_call_free(call_t *call)
 {
-	ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 	/* Check to see if we have data in the IPC_M_DATA_SEND buffer. */
 	if (call->buffer)
 		free(call->buffer);
@@ -573,7 +561,6 @@ void ipc_cleanup(void)
 		    SYNCH_FLAGS_NONE);
 		ASSERT((call->flags & IPC_CALL_ANSWERED) ||
 		    (call->flags & IPC_CALL_NOTIF));
-		ASSERT(!(call->flags & IPC_CALL_STATIC_ALLOC));
 		
 		/*
 		 * Record the receipt of this call in the current task's counter

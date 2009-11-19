@@ -50,16 +50,14 @@
 
 /** This is answer to a call */
 #define IPC_CALL_ANSWERED	(1 << 0)
-/** This call will not be freed on error */
-#define IPC_CALL_STATIC_ALLOC	(1 << 1)
 /** Answer will not be passed to userspace, will be discarded */
-#define IPC_CALL_DISCARD_ANSWER	(1 << 2)
+#define IPC_CALL_DISCARD_ANSWER (1 << 1)
 /** Call was forwarded */
-#define IPC_CALL_FORWARDED	(1 << 3)
+#define IPC_CALL_FORWARDED	(1 << 2)
 /** Identify connect_me_to answer */
-#define IPC_CALL_CONN_ME_TO	(1 << 4)
+#define IPC_CALL_CONN_ME_TO	(1 << 3)
 /** Interrupt notification */
-#define IPC_CALL_NOTIF		(1 << 5)
+#define IPC_CALL_NOTIF		(1 << 4)
 
 /*
  * Bits used in call hashes.
@@ -325,7 +323,6 @@ extern void ipc_phone_connect(phone_t *, answerbox_t *);
 extern void ipc_call_free(call_t *);
 extern call_t * ipc_call_alloc(int);
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
-extern void ipc_call_static_init(call_t *);
 extern void task_print_list(void);
 extern int ipc_forward(call_t *, phone_t *, answerbox_t *, int);
 extern void ipc_cleanup(void);
