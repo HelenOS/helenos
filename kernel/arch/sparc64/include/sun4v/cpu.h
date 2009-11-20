@@ -54,6 +54,8 @@ typedef struct {
 	SPINLOCK_DECLARE(proposed_nrdy_lock);
 } exec_unit_t;
 
+// MH
+#if 0
 typedef struct cpu_arch {
 	uint64_t id;			/**< virtual processor ID */
 	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
@@ -64,6 +66,7 @@ typedef struct cpu_arch {
 	unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
 					     so that cores are equally balanced. */
 } cpu_arch_t;
+#endif
 
 #endif	
 

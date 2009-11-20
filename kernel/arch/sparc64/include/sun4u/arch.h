@@ -26,21 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64	
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief	Various sun4u-specific macros.
  */
 
-#ifndef KERN_sparc64_MMU_H_
-#define KERN_sparc64_MMU_H_
+#ifndef KERN_sparc64_sun4u_ARCH_H_
+#define KERN_sparc64_sun4u_ARCH_H_
 
-#if defined (SUN4U)
-#include <arch/mm/sun4u/mmu.h>
-#elif defined (SUN4V)
-#include <arch/mm/sun4v/mmu.h>
-#endif
-
+#define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
+#define ASI_DCACHE_TAG		0x47	/** ASI D-Cache Tag. */
+#define ASI_ICBUS_CONFIG	0x4a	/** ASI of the UPA_CONFIG/FIREPLANE_CONFIG register. */
 
 #endif
 

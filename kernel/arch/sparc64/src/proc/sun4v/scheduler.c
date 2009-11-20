@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
- * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,9 +36,9 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/asm.h>
+#include <arch/arch.h>
 #include <arch/stack.h>
 #include <arch/sun4v/cpu.h>
-#include <arch/sun4v/arch.h>
 #include <arch/sun4v/hypercall.h>
 
 /** Perform sparc64 specific tasks needed before the new task is run. */

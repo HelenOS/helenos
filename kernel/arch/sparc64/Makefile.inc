@@ -65,6 +65,7 @@ endif
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/cpu/$(USARCH)/cpu.c \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/$(USARCH)/asm.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/console.c \
 	arch/$(KARCH)/src/context.S \
@@ -77,7 +78,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/$(USARCH)/tlb.c \
 	arch/$(KARCH)/src/$(USARCH)/sparc64.c \
 	arch/$(KARCH)/src/$(USARCH)/start.S \
-	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/proc/$(USARCH)/scheduler.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/trap/$(USARCH)/mmu.S \
 	arch/$(KARCH)/src/trap/$(USARCH)/trap_table.S \
