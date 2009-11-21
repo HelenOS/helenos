@@ -177,6 +177,7 @@ task_t *task_create(as_t *as, char *name)
 	    ta->context)))
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
 	atomic_set(&ta->active_calls, 0);
+	list_initialize(&ta->sync_box_head);
 
 	mutex_initialize(&ta->futexes_lock, MUTEX_PASSIVE);
 	btree_create(&ta->futexes);
