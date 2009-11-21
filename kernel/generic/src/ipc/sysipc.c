@@ -558,7 +558,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 		udebug_stoppable_end();
 #endif
 		if (rc != EOK) {
-			/* The call will be freed by someone else. */
+			/* The call will be freed by ipc_cleanup(). */
 			return rc;
 		}
 		process_answer(call);
@@ -611,7 +611,7 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 		udebug_stoppable_end();
 #endif
 		if (rc != EOK) {
-			/* The call will be freed by someone else. */
+			/* The call will be freed by ipc_cleanup(). */
 			return rc;
 		}
 		process_answer(call);

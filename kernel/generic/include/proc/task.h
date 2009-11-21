@@ -97,6 +97,8 @@ typedef struct task {
 	 * certain extent.
 	 */
 	atomic_t active_calls;
+	/** List of synchronous answerboxes. */
+	link_t sync_box_head;
 
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */

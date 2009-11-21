@@ -264,6 +264,9 @@ typedef struct answerbox {
 
 	waitq_t wq;
 
+	/** Linkage for the list of task's synchronous answerboxes. */
+	link_t sync_box_link;
+
 	/** Phones connected to this answerbox. */
 	link_t connected_phones;
 	/** Received calls. */
