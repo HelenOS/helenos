@@ -133,6 +133,7 @@ extern void task_destroy(task_t *t);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);
 extern uint64_t task_get_accounting(task_t *t);
+extern void task_print_list(void);
 
 extern void cap_set(task_t *t, cap_t caps);
 extern cap_t cap_get(task_t *t);
