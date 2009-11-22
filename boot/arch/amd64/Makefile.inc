@@ -43,7 +43,7 @@ ifeq ($(RDFMT),fat)
 endif
 
 RD_SRVS = \
-	$(USPACEDIR)/srv/pci/pci \
+	$(USPACEDIR)/srv/dd/dd \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
@@ -60,9 +60,10 @@ RD_APPS = \
 	$(USPACEDIR)/app/redir/redir \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/test_serial/test_serial \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+	$(USPACEDIR)/app/bdsh/bdsh  
 
 build: $(BASE)/image.iso
 

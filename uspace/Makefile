@@ -61,20 +61,17 @@ DIRS = \
 
 ifeq ($(UARCH),amd64)
 	DIRS += \
-		srv/pci \
-		app/lspci
+		srv/dd 
 endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += \
-		srv/pci \
-		app/lspci
+		srv/dd 
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/pci \
-		app/lspci \
+		srv/dd \
 		srv/cir/fhc \
 		srv/cir/obio
 endif
