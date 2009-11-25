@@ -32,6 +32,7 @@ Add a source/object file pair to a Stanse jobfile
 
 import sys
 import os
+import fcntl
 
 def usage(prname):
 	"Print usage syntax"
@@ -48,17 +49,10 @@ def main():
 	cwd = os.getcwd()
 	options = " ".join(sys.argv[4:])
 	
-	if (os.path.isfile(jobfname)):
-		jobfile = file(jobfname, "r")
-		records = jobfile.read().split("\n")
-		jobfile.close()
-	else:
-		records = []
-	
-	records.append("{%s},{%s},{%s},{%s}" % (srcfname, objfname, cwd, options))
-	
-	jobfile = file(jobfname, "w")
-	jobfile.write("\n".join(records))
+	jobfile = file(jobfname, "a")
+	fcntl.lockf(jobfile, fcntl.LOCK_EX)
+	jobfile.write("{%s},{%s},{%s},{%s}\n" % (srcfname, objfname, cwd, options))
+	fcntl.lockf(jobfile, fcntl.LOCK_UN)
 	jobfile.close()
 
 if __name__ == '__main__':
