@@ -121,7 +121,6 @@ static inline int method_is_immutable(unative_t method)
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
 		return 1;
-		break;
 	default:
 		return 0;
 	}
