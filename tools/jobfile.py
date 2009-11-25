@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,21 +26,40 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+"""
+Add a source/object file pair to a Stanse jobfile
+"""
 
+import sys
+import os
 
-## Common names
-#
+def usage(prname):
+	"Print usage syntax"
+	print prname + " <JOBFILE> <SOURCE> <OBJECT> [OPTIONS ...]"
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-RAW = kernel.raw
-BIN = kernel.bin
-MAP = kernel.map
-JOB = kernel.job
-MAP_PREV = $(MAP).prev
-DISASM = kernel.disasm
-DUMP = kernel.dump
-REAL_MAP = generic/src/debug/real_map
+def main():
+	if (len(sys.argv) < 4):
+		usage(sys.argv[0])
+		return
+	
+	jobfname = sys.argv[1]
+	srcfname = sys.argv[2]
+	objfname = sys.argv[3]
+	cwd = os.getcwd()
+	options = " ".join(sys.argv[4:])
+	
+	if (os.path.isfile(jobfname)):
+		jobfile = file(jobfname, "r")
+		records = jobfile.read().split("\n")
+		jobfile.close()
+	else:
+		records = []
+	
+	records.append("{%s},{%s},{%s},{%s}" % (srcfname, objfname, cwd, options))
+	
+	jobfile = file(jobfname, "w")
+	jobfile.write("\n".join(records))
+	jobfile.close()
 
-ARCH_INCLUDE = generic/include/arch
-GENARCH_INCLUDE = generic/include/genarch
+if __name__ == '__main__':
+	main()

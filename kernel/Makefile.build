@@ -109,7 +109,7 @@ endif
 
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
-	GCC = $(CC)
+	GCC = gcc
 	AS = $(BINUTILS_PREFIX)as
 	LD = $(BINUTILS_PREFIX)ld
 	OBJCOPY = $(BINUTILS_PREFIX)objcopy
@@ -167,6 +167,7 @@ ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
+
 
 ## Generic kernel sources
 #
@@ -383,12 +384,18 @@ $(LINK): $(LINK).in $(DEPEND)
 #
 test/fpu/%.o: test/fpu/%.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+ifeq ($(EXTRA_TOOL),stanse)
+	../tools/jobfile.py $(JOB) $< $@ $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
+endif
 
 #
 # Ordinary objects.
 #
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c $< -o $@
+ifeq ($(EXTRA_TOOL),stanse)
+	../tools/jobfile.py $(JOB) $< $@ $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
+endif
 
 $(REAL_MAP).o: $(REAL_MAP).bin
 	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@
