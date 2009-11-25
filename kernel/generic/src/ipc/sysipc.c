@@ -60,7 +60,7 @@
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
 	if (phoneid > IPC_MAX_PHONES) { \
-		err; \
+		err \
 	} \
 	phone = &TASK->phones[phoneid]; \
 }
@@ -374,7 +374,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	case IPC_M_CONNECTION_CLONE: {
 		phone_t *cloned_phone;
 		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
-		    return ENOENT);
+		    return ENOENT;);
 		phones_lock(cloned_phone, phone);
 		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 		    phone->state != IPC_PHONE_CONNECTED) {
@@ -534,7 +534,7 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	int res;
 	int rc;
 	
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
 
 	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -590,7 +590,7 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	int res;
 	int rc;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &question->args,
@@ -665,7 +665,7 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
 
 	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -704,7 +704,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &data->args,
@@ -754,7 +754,7 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 	
 	call->flags |= IPC_CALL_FORWARDED;
 
-	GET_CHECK_PHONE(phone, phoneid, { 
+	GET_CHECK_PHONE(phone, phoneid, {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return ENOENT;
@@ -959,7 +959,7 @@ unative_t sys_ipc_hangup(int phoneid)
 {
 	phone_t *phone;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
 
 	if (ipc_phone_hangup(phone))
 		return -1;
