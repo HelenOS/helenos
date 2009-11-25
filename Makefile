@@ -29,7 +29,7 @@
 ## Include configuration
 #
 
-CSCOPE = cscope.out
+CSCOPE = cscope
 STANSE = stanse
 
 .PHONY: all config config_default distclean clean cscope stanse
@@ -45,7 +45,7 @@ stanse: Makefile.config config.h config.defs
 	$(STANSE) --checker ReachabilityChecker --jobfile kernel/kernel.job
 
 cscope:
-	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs cscope -b -k -u -f$(CSCOPE)
+	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
 
 Makefile.config: config_default
 
@@ -60,7 +60,7 @@ config: HelenOS.config
 	tools/config.py HelenOS.config
 
 distclean: clean
-	rm -f $(CSCOPE) Makefile.config config.h config.defs tools/*.pyc
+	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc
 
 clean:
 	$(MAKE) -C kernel clean
