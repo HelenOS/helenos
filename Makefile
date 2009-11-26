@@ -42,7 +42,7 @@ all: Makefile.config config.h config.defs
 stanse: Makefile.config config.h config.defs
 	$(MAKE) -C kernel clean
 	$(MAKE) -C kernel EXTRA_TOOL=stanse
-	$(STANSE) --checker ReachabilityChecker --jobfile kernel/kernel.job
+	$(STANSE) --checker ReachabilityChecker --checker ThreadChecker:contrib/$(STANSE)/ThreadChecker.xml --jobfile kernel/kernel.job
 
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
