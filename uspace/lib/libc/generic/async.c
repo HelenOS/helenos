@@ -391,6 +391,20 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
+		if (conn->close_callid) {
+			/*
+			 * Handle the case when the connection was already
+			 * closed by the client but the server did not notice
+			 * the first IPC_M_PHONE_HUNGUP call and continues to
+			 * call async_get_call_timeout(). Repeat
+			 * IPC_M_PHONE_HUNGUP until the caller notices. 
+			 */
+			memset(call, 0, sizeof(ipc_call_t));
+			IPC_SET_METHOD(*call, IPC_M_PHONE_HUNGUP);
+			futex_up(&async_futex);
+			return conn->close_callid;
+		}
+
 		if (usecs)
 			async_insert_timeout(&conn->wdata);
 		
@@ -527,7 +541,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
-	conn->close_callid = false;
+	conn->close_callid = 0;
 	
 	if (call)
 		conn->call = *call;
