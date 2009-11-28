@@ -582,8 +582,10 @@ void ipc_cleanup(void)
 		 * it, when we are in cleanup */
 		for (i = 0; i < IPC_MAX_PHONES; i++) {
 			if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
-			    atomic_get(&TASK->phones[i].active_calls) == 0)
+			    atomic_get(&TASK->phones[i].active_calls) == 0) {
 				TASK->phones[i].state = IPC_PHONE_FREE;
+				TASK->phones[i].callee = NULL;
+			}
 			
 			/* Just for sure, we might have had some 
 			 * IPC_PHONE_CONNECTING phones */
