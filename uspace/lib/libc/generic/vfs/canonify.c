@@ -141,7 +141,7 @@ static void remove_trailing_slash(token_t *t, token_t *tfsl, token_t *tlcomp)
 {
 	t->start[-1] = '\0';
 }
-/** Eat the extra '/'..
+/** Eat the extra '/'.
  *
  * @param t		The current TK_SLASH token.
  */
@@ -287,11 +287,17 @@ static change_state_t trans[4][6] = {
 /** Canonify a file system path.
  *
  * A file system path is canonical, if the following holds:
- * 1) the path is absolute (i.e. a/b/c is not canonical)
- * 2) there is no trailing slash in the path (i.e. /a/b/c is not canonical)
- * 3) there is no extra slash in the path (i.e. /a//b/c is not canonical)
- * 4) there is no '.' component in the path (i.e. /a/./b/c is not canonical)
- * 5) there is no '..' component in the path (i.e. /a/b/../c is not canonical) 
+ *
+ * 1) the path is absolute
+ *    (i.e. a/b/c is not canonical)
+ * 2) there is no trailing slash in the path if it has components
+ *    (i.e. /a/b/c/ is not canonical)
+ * 3) there is no extra slash in the path
+ *    (i.e. /a//b/c is not canonical)
+ * 4) there is no '.' component in the path
+ *    (i.e. /a/./b/c is not canonical)
+ * 5) there is no '..' component in the path
+ *    (i.e. /a/b/../c is not canonical)
  *
  * This function makes a potentially non-canonical file system path canonical.
  * It works in-place and requires a NULL-terminated input string.

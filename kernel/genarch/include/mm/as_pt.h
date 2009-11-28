@@ -35,8 +35,7 @@
 #ifndef KERN_AS_PT_H_
 #define KERN_AS_PT_H_
 
-#include <mm/mm.h>
-#include <arch/types.h>
+#include <arch/mm/page.h>
 
 #define AS_PAGE_TABLE
 

@@ -226,7 +226,10 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	"Create output configuration"
 	
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+	
+	sys.stderr.write("Fetching current revision identifier ... ")
 	version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
+	sys.stderr.write("OK\n")
 	
 	if (len(version) == 3):
 		revision = version[1]

@@ -162,7 +162,6 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		break;
 	case PT_LOAD:
 		return load_segment(entry, elf, as);
-		break;
 	case PT_DYNAMIC:
 	case PT_INTERP:
 		interp = (char *)elf + entry->p_offset;
@@ -181,7 +180,6 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 	case PT_HIPROC:
 	default:
 		return EE_UNSUPPORTED;
-		break;
 	}
 	return EE_OK;
 }

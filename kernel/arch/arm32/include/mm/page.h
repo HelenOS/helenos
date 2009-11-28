@@ -74,52 +74,51 @@
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
-	((pte_t *) ((((pte_level0_t *)(ptl0))[(i)]).coarse_table_addr << 10))
+	((pte_t *) ((((pte_t *)(ptl0))[(i)].l0).coarse_table_addr << 10))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
 	(ptl1)
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i) \
 	(ptl2)
 #define GET_FRAME_ADDRESS_ARCH(ptl3, i) \
-	((uintptr_t) ((((pte_level1_t *)(ptl3))[(i)]).frame_base_addr << 12))
+	((uintptr_t) ((((pte_t *)(ptl3))[(i)].l1).frame_base_addr << 12))
 
 /* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
-	(set_ptl0_addr((pte_level0_t *) (ptl0)))
+	(set_ptl0_addr((pte_t *) (ptl0)))
 #define SET_PTL1_ADDRESS_ARCH(ptl0, i, a) \
-	(((pte_level0_t *) (ptl0))[(i)].coarse_table_addr = (a) >> 10)
+	(((pte_t *) (ptl0))[(i)].l0.coarse_table_addr = (a) >> 10)
 #define SET_PTL2_ADDRESS_ARCH(ptl1, i, a)
 #define SET_PTL3_ADDRESS_ARCH(ptl2, i, a)
 #define SET_FRAME_ADDRESS_ARCH(ptl3, i, a) \
-	(((pte_level1_t *) (ptl3))[(i)].frame_base_addr = (a) >> 12)
+	(((pte_t *) (ptl3))[(i)].l1.frame_base_addr = (a) >> 12)
 
 /* Get PTE flags accessors for each level. */
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
-	get_pt_level0_flags((pte_level0_t *) (ptl0), (size_t) (i))
+	get_pt_level0_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
 	PAGE_PRESENT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
 	PAGE_PRESENT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
-	get_pt_level1_flags((pte_level1_t *) (ptl3), (size_t) (i))
+	get_pt_level1_flags((pte_t *) (ptl3), (size_t) (i))
 
 /* Set PTE flags accessors for each level. */
 #define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
-	set_pt_level0_flags((pte_level0_t *) (ptl0), (size_t) (i), (x))
+	set_pt_level0_flags((pte_t *) (ptl0), (size_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)
 #define SET_FRAME_FLAGS_ARCH(ptl3, i, x) \
-	set_pt_level1_flags((pte_level1_t *) (ptl3), (size_t) (i), (x))
+	set_pt_level1_flags((pte_t *) (ptl3), (size_t) (i), (x))
 
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
 	(*((uint32_t *) (pte)) != 0)
 #define PTE_PRESENT_ARCH(pte) \
-	(((pte_level0_t *) (pte))->descriptor_type != 0)
+	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \
-	(((pte_level1_t *) (pte))->frame_base_addr << FRAME_WIDTH)
+	(((pte_t *) (pte))->l1.frame_base_addr << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(pte) \
-	(((pte_level1_t *) (pte))->access_permission_0 == \
-	    PTE_AP_USER_RW_KERNEL_RW)
+	(((pte_t *) (pte))->l1.access_permission_0 == PTE_AP_USER_RW_KERNEL_RW)
 #define PTE_EXECUTABLE_ARCH(pte) \
 	1
 
@@ -158,6 +157,10 @@ typedef struct {
 	unsigned frame_base_addr : 20;
 } ATTRIBUTE_PACKED pte_level1_t;
 
+typedef union {
+	pte_level0_t l0;
+	pte_level1_t l1;
+} pte_t;
 
 /* Level 1 page tables access permissions */
 
@@ -190,7 +193,7 @@ typedef struct {
  *
  * @param pt    Pointer to the page table to set.
  */   
-static inline void set_ptl0_addr(pte_level0_t *pt)
+static inline void set_ptl0_addr(pte_t *pt)
 {
 	asm volatile (
 		"mcr p15, 0, %[pt], c2, c0, 0\n"
@@ -204,9 +207,9 @@ static inline void set_ptl0_addr(pte_level0_t *pt)
  *  @param pt     Level 0 page table.
  *  @param i      Index of the entry to return.
  */
-static inline int get_pt_level0_flags(pte_level0_t *pt, size_t i)
+static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 {
-	pte_level0_t *p = &pt[i];
+	pte_level0_t *p = &pt[i].l0;
 	int np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
 
 	return (np << PAGE_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
@@ -219,9 +222,9 @@ static inline int get_pt_level0_flags(pte_level0_t *pt, size_t i)
  *  @param pt     Level 1 page table.
  *  @param i      Index of the entry to return.
  */
-static inline int get_pt_level1_flags(pte_level1_t *pt, size_t i)
+static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 {
-	pte_level1_t *p = &pt[i];
+	pte_level1_t *p = &pt[i].l1;
 
 	int dt = p->descriptor_type;
 	int ap = p->access_permission_0;
@@ -244,9 +247,9 @@ static inline int get_pt_level1_flags(pte_level1_t *pt, size_t i)
  *  @param i      index of the entry to be changed
  *  @param flags  new flags
  */
-static inline void set_pt_level0_flags(pte_level0_t *pt, size_t i, int flags)
+static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 {
-	pte_level0_t *p = &pt[i];
+	pte_level0_t *p = &pt[i].l0;
 
 	if (flags & PAGE_NOT_PRESENT) {
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
@@ -272,9 +275,9 @@ static inline void set_pt_level0_flags(pte_level0_t *pt, size_t i, int flags)
  *  @param i      Index of the entry to be changed.
  *  @param flags  New flags.
  */  
-static inline void set_pt_level1_flags(pte_level1_t *pt, size_t i, int flags)
+static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 {
-	pte_level1_t *p = &pt[i];
+	pte_level1_t *p = &pt[i].l1;
 	
 	if (flags & PAGE_NOT_PRESENT) {
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
