@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2008 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,8 @@
 #include <arch/trap/exception.h>
 #include <panic.h>
 #include <arch/asm.h>
+#include <arch/cpu.h>
+#include <arch/mm/pagesize.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
@@ -517,20 +520,11 @@ void dump_sfsr_and_sfar(void)
  */
 void tlb_invalidate_asid(asid_t asid)
 {
-	tlb_context_reg_t pc_save, ctx;
-	
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
-	
-	ctx.v = pc_save.v = mmu_primary_context_read();
-	ctx.context = asid;
-	mmu_primary_context_write(ctx.v);
-	
-	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
-	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
-	
-	mmu_primary_context_write(pc_save.v);
-	
+	__hypercall_fast4(MMU_DEMAP_CTX, 0, 0, asid,
+		MMU_FLAG_ITLB | MMU_FLAG_DTLB);
+
 	nucleus_leave();
 }
 
@@ -544,24 +538,15 @@ void tlb_invalidate_asid(asid_t asid)
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	unsigned int i;
-	tlb_context_reg_t pc_save, ctx;
 	
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
-	
-	ctx.v = pc_save.v = mmu_primary_context_read();
-	ctx.context = asid;
-	mmu_primary_context_write(ctx.v);
-	
-	for (i = 0; i < cnt * MMU_PAGES_PER_PAGE; i++) {
-		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
-		    page + i * MMU_PAGE_SIZE);
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
-		    page + i * MMU_PAGE_SIZE);
+
+	for (i = 0; i < cnt; i++) {
+		__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, page, asid,
+			MMU_FLAG_DTLB | MMU_FLAG_ITLB);
 	}
-	
-	mmu_primary_context_write(pc_save.v);
-	
+
 	nucleus_leave();
 }
 

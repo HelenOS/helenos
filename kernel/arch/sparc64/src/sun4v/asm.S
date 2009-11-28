@@ -74,5 +74,4 @@ switch_to_userspace:
 	 * Spills and fills will be handled by the userspace handlers.
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
-
 	done				! jump to userspace

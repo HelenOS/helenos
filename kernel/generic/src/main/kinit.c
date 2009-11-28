@@ -164,8 +164,6 @@ void kinit(void *arg)
 	
 	interrupts_enable();
 	
-//MH
-#if defined (SUN4U)
 	/*
 	 * Create user tasks, load RAM disk images.
 	 */
@@ -217,7 +215,7 @@ void kinit(void *arg)
 				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
 		}
 	}
-	
+
 	/*
 	 * Run user tasks.
 	 */
@@ -225,8 +223,7 @@ void kinit(void *arg)
 		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
 	}
-	
-#endif
+
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);

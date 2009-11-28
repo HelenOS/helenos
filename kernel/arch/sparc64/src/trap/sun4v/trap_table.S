@@ -280,7 +280,7 @@ interrupt_vector_trap_handler_tl0:
 .org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
 .global fast_instruction_access_mmu_miss_handler_tl0
 fast_instruction_access_mmu_miss_handler_tl0:
-	/*FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER*/
+	FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 
 /* TT = 0x68, TL = 0, fast_data_access_MMU_miss */
 .org trap_table + TT_FAST_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
@@ -389,9 +389,9 @@ division_by_zero_tl1:
 .org trap_table + (TT_DATA_ACCESS_EXCEPTION+512)*ENTRY_SIZE
 .global data_access_exception_tl1
 data_access_exception_tl1:
-	/*wrpr %g0, 1, %tl
+	wrpr %g0, 1, %tl
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER data_access_exception*/
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
