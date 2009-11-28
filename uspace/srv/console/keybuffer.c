@@ -34,8 +34,8 @@
 /** @file
  */
 
-#include <keybuffer.h>
 #include <futex.h>
+#include "keybuffer.h"
 
 atomic_t keybuffer_futex = FUTEX_INITIALIZER;
 

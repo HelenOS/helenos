@@ -79,22 +79,6 @@ typedef struct {
 #define PRIx64 "llx"	/**< Format for hexadecimal (u)int64_t. */
 #define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
 
-/** Page Table Entry. */
-typedef struct {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned pat : 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
-	unsigned avl : 2;
-	unsigned frame_address : 20;
-} __attribute__ ((packed)) pte_t;
-
 #endif
 
 /** @}

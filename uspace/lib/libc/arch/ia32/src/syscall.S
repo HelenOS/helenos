@@ -26,6 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+.data
+
+.global __syscall_fast_func
+__syscall_fast_func:
+	.long __syscall_slow
+
 .text
 
 /** Syscall wrapper - INT $0x30 version.
@@ -34,8 +40,8 @@
  * scratch registers. An optimized version of this wrapper for fewer arguments
  * could benefit from this and not save unused registers on the stack.
  */
-.global __syscall_int
-__syscall_int:
+.global __syscall_slow
+__syscall_slow:
 	pushl %ebx
 	pushl %esi
 	pushl %edi
@@ -63,8 +69,8 @@ __syscall_int:
  * these to the selector immediately following CS (it must be the flat data
  * segment, otherwise the SYSENTER wouldn't work in the first place).
  */
-.global __syscall_sysenter
-__syscall_sysenter:
+.global __syscall_fast
+__syscall_fast:
 	pushl %ebx
 	pushl %esi
 	pushl %edi

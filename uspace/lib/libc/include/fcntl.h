@@ -42,6 +42,7 @@
 #define O_RDONLY  16
 #define O_RDWR    32
 #define O_WRONLY  64
+#define O_DESC    128
 
 extern int open(const char *, int, ...);
 

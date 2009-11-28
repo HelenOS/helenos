@@ -542,7 +542,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
 	 * structure.
 	 */
-	int fd = vfs_fd_alloc();
+	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
 		ipc_answer_0(rid, fd);
@@ -619,7 +619,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	 * Get ourselves a file descriptor and the corresponding vfs_file_t
 	 * structure.
 	 */
-	int fd = vfs_fd_alloc();
+	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
 		ipc_answer_0(rid, fd);
@@ -678,6 +678,41 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
+static int vfs_close_internal(vfs_file_t *file)
+{
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	fibril_mutex_lock(&file->lock);
+	
+	if (file->refcnt <= 1) {
+		/* Only close the file on the destination FS server
+		   if there are no more file descriptors (except the
+		   present one) pointing to this file. */
+		
+		int fs_phone = vfs_grab_phone(file->node->fs_handle);
+		
+		/* Make a VFS_OUT_CLOSE request at the destination FS server. */
+		aid_t msg;
+		ipc_call_t answer;
+		msg = async_send_2(fs_phone, VFS_OUT_CLOSE, file->node->dev_handle,
+		    file->node->index, &answer);
+		
+		/* Wait for reply from the FS server. */
+		ipcarg_t rc;
+		async_wait_for(msg, &rc);
+		
+		vfs_release_phone(fs_phone);
+		fibril_mutex_unlock(&file->lock);
+		
+		return IPC_GET_ARG1(answer);
+	}
+	
+	fibril_mutex_unlock(&file->lock);
+	return EOK;
+}
+
 void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
@@ -689,32 +724,12 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/*
-	 * Lock the open file structure so that no other thread can manipulate
-	 * the same open file at a time.
-	 */
-	fibril_mutex_lock(&file->lock);
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);
+	int ret = vfs_close_internal(file);
+	if (ret != EOK)
+		ipc_answer_0(rid, ret);
 	
-	/* Make a VFS_OUT_CLOSE request at the destination FS server. */
-	aid_t msg;
-	ipc_call_t answer;
-	msg = async_send_2(fs_phone, VFS_OUT_CLOSE, file->node->dev_handle,
-	    file->node->index, &answer);
-
-	/* Wait for reply from the FS server. */
-	ipcarg_t rc;
-	async_wait_for(msg, &rc);
-
-	vfs_release_phone(fs_phone);
-	fibril_mutex_unlock(&file->lock);
-	
-	int retval = IPC_GET_ARG1(answer);
-	if (retval != EOK)
-		ipc_answer_0(rid, retval);
-	
-	retval = vfs_fd_free(fd);
-	ipc_answer_0(rid, retval);
+	ret = vfs_fd_free(fd);
+	ipc_answer_0(rid, ret);
 }
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
@@ -1307,6 +1322,57 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	free(old);
 	free(new);
 	ipc_answer_0(rid, EOK);
+}
+
+void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
+{
+	int oldfd = IPC_GET_ARG1(*request);
+	int newfd = IPC_GET_ARG2(*request);
+	
+	/* Lookup the file structure corresponding to oldfd. */
+	vfs_file_t *oldfile = vfs_file_get(oldfd);
+	if (!oldfile) {
+		ipc_answer_0(rid, EBADF);
+		return;
+	}
+	
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd) {
+		ipc_answer_1(rid, EOK, newfd);
+		return;
+	}
+	
+	/*
+	 * Lock the open file structure so that no other thread can manipulate
+	 * the same open file at a time.
+	 */
+	fibril_mutex_lock(&oldfile->lock);
+	
+	/* Lookup an open file structure possibly corresponding to newfd. */
+	vfs_file_t *newfile = vfs_file_get(newfd);
+	if (newfile) {
+		/* Close the originally opened file. */
+		int ret = vfs_close_internal(newfile);
+		if (ret != EOK) {
+			ipc_answer_0(rid, ret);
+			return;
+		}
+		
+		ret = vfs_fd_free(newfd);
+		if (ret != EOK) {
+			ipc_answer_0(rid, ret);
+			return;
+		}
+	}
+	
+	/* Assign the old file to newfd. */
+	int ret = vfs_fd_assign(oldfile, newfd);
+	fibril_mutex_unlock(&oldfile->lock);
+	
+	if (ret != EOK)
+		ipc_answer_0(rid, ret);
+	else
+		ipc_answer_1(rid, EOK, newfd);
 }
 
 /**

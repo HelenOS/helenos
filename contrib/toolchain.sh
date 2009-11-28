@@ -91,12 +91,35 @@ unpack_tarball() {
 	check_error $? "Error unpacking ${DESC}."
 }
 
+patch_binutils() {
+	PLATFORM="$1"
+	
+	if [ "${PLATFORM}" == "arm32" ] ; then
+		patch -p1 <<EOF
+diff -Naur binutils-2.20.orig/gas/config/tc-arm.c binutils-2.20/gas/config/tc-arm.c
+--- binutils-2.20.orig/gas/config/tc-arm.c	2009-08-30 00:10:59.000000000 +0200
++++ binutils-2.20/gas/config/tc-arm.c	2009-11-02 14:25:11.000000000 +0100
+@@ -2485,8 +2485,9 @@
+       know (frag->tc_frag_data.first_map == NULL);
+       frag->tc_frag_data.first_map = symbolP;
+     }
+-  if (frag->tc_frag_data.last_map != NULL)
++  if (frag->tc_frag_data.last_map != NULL) {
+     know (S_GET_VALUE (frag->tc_frag_data.last_map) < S_GET_VALUE (symbolP));
++  }
+   frag->tc_frag_data.last_map = symbolP;
+ }
+EOF
+		check_error $? "Error patching binutils"
+	fi
+}
+
 build_target() {
 	PLATFORM="$1"
 	TARGET="$2"
 	
-	BINUTILS_VERSION="2.19.1"
-	GCC_VERSION="4.4.1"
+	BINUTILS_VERSION="2.20"
+	GCC_VERSION="4.4.2"
 	
 	BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
 	GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -118,10 +141,10 @@ build_target() {
 	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
 	
 	echo ">>> Downloading tarballs"
-	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "09a8c5821a2dfdbb20665bc0bd680791"
-	download_check "${GCC_SOURCE}" "${GCC_CORE}" "d19693308aa6b2052e14c071111df59f"
-	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "f7b2a606394036e81433b2f4c3251cba"
-	download_check "${GCC_SOURCE}" "${GCC_CPP}" "d449047b5761348ceec23739f5553e0b"
+	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "ee2d3e996e9a2d669808713360fa96f8"
+	download_check "${GCC_SOURCE}" "${GCC_CORE}" "d50ec5af20508974411d0c83c5f4e396"
+	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "d8d26187d386a0591222a580b5a5b3d3"
+	download_check "${GCC_SOURCE}" "${GCC_CPP}" "43b1e4879eb282dc4b05e4c016d356d7"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"
@@ -141,6 +164,7 @@ build_target() {
 	echo ">>> Compiling and installing binutils"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
+	patch_binutils "${PLATFORM}"
 	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
 	check_error $? "Error configuring binutils."
 	make all install

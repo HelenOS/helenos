@@ -57,6 +57,7 @@ RD_SRVS = \
 RD_APPS = \
 	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getvc/getvc \
+	$(USPACEDIR)/app/redir/redir \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/trace/trace \
@@ -95,11 +96,11 @@ endif
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
 
 clean:
-	-for file in $(RD_SRVS) ; do \
+	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
-	-for file in $(RD_APPS) ; do \
+	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -fr $(TMP)
-	-rm -f $(BASE)/image.iso
+	rm -fr $(TMP)
+	rm -f $(BASE)/image.iso

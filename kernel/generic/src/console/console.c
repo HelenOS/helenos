@@ -318,17 +318,17 @@ unative_t sys_klog(int fd, const void *buf, size_t size)
 	int rc;
 	
 	if (size > PAGE_SIZE)
-		return ELIMIT;
+		return (unative_t) ELIMIT;
 	
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
-			return ENOMEM;
+			return (unative_t) ENOMEM;
 		
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
-			return rc;
+			return (unative_t) rc;
 		}
 		data[size] = 0;
 		

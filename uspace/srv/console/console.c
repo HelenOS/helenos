@@ -39,7 +39,6 @@
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <errno.h>
-#include <keybuffer.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
@@ -54,6 +53,7 @@
 
 #include "console.h"
 #include "gcons.h"
+#include "keybuffer.h"
 #include "screenbuffer.h"
 
 #define NAME  "console"
