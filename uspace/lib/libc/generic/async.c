@@ -527,7 +527,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
-	conn->close_callid = false;
+	conn->close_callid = 0;
 	
 	if (call)
 		conn->call = *call;
