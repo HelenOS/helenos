@@ -55,11 +55,6 @@ typedef struct {
 } tinput_t;
 
 typedef enum {
-	seek_cell,
-	seek_max
-} seek_dist_t;
-
-typedef enum {
 	seek_backward = -1,
 	seek_forward = 1
 } seek_dir_t;
@@ -182,22 +177,61 @@ static void tinput_delete(tinput_t *ti)
 	tinput_backspace(ti);
 }
 
-static void tinput_seek(tinput_t *ti, seek_dir_t dir, seek_dist_t dist)
+static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir)
 {
-	switch (dist) {
-	case seek_cell:
-		ti->pos += dir;
-		break;
-	case seek_max:
-		if (dir == seek_backward)
-			ti->pos = 0;
-		else
-			ti->pos = ti->nc;
-		break;
+	if (dir == seek_forward) {
+		if (ti->pos < ti->nc)
+			ti->pos += 1;
+	} else {
+		if (ti->pos > 0)
+			ti->pos -= 1;
 	}
-		
-	if (ti->pos < 0) ti->pos = 0;
-	if (ti->pos > ti->nc) ti->pos = ti->nc;
+
+	tinput_position_caret(ti);
+}
+
+static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
+{
+	if (dir == seek_forward) {
+		if (ti->pos == ti->nc)
+			return;
+
+		while (1) {
+			ti->pos += 1;
+
+			if (ti->pos == ti->nc)
+				break;
+
+			if (ti->buffer[ti->pos - 1] == ' ' &&
+			    ti->buffer[ti->pos] != ' ')
+				break;
+		}
+	} else {
+		if (ti->pos == 0)
+			return;
+
+		while (1) {
+			ti->pos -= 1;
+
+			if (ti->pos == 0)
+				break;
+
+			if (ti->buffer[ti->pos - 1] == ' ' &&
+			    ti->buffer[ti->pos] != ' ')
+				break;
+		}
+
+	}
+
+	tinput_position_caret(ti);
+}
+
+static void tinput_seek_max(tinput_t *ti, seek_dir_t dir)
+{
+	if (dir == seek_backward)
+		ti->pos = 0;
+	else
+		ti->pos = ti->nc;
 
 	tinput_position_caret(ti);
 }
@@ -225,33 +259,44 @@ static char *tinput_read(tinput_t *ti)
 		if (ev.type != KEY_PRESS)
 			continue;
 
-		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) != 0)
-			continue;
-
-		switch(ev.key) {
-		case KC_ENTER:
-		case KC_NENTER:
-			goto done;
-		case KC_BACKSPACE:
-			tinput_backspace(ti);
-			break;
-		case KC_DELETE:
-			tinput_delete(ti);
-			break;
-		case KC_LEFT:
-			tinput_seek(ti, seek_backward, seek_cell);
-			break;
-		case KC_RIGHT:
-			tinput_seek(ti, seek_forward, seek_cell);
-
-			break;
-		case KC_HOME:
-			tinput_seek(ti, seek_backward, seek_max);
-			break;
-		case KC_END:
-			tinput_seek(ti, seek_forward, seek_max);
-			break;
+		if ((ev.mods & KM_CTRL) != 0 &&
+		    (ev.mods & (KM_ALT | KM_SHIFT)) == 0) {
+			switch (ev.key) {
+			case KC_LEFT:
+				tinput_seek_word(ti, seek_backward);
+				break;
+			case KC_RIGHT:
+				tinput_seek_word(ti, seek_forward);
+				break;
+			}
 		}
+
+		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+			switch (ev.key) {
+			case KC_ENTER:
+			case KC_NENTER:
+				goto done;
+			case KC_BACKSPACE:
+				tinput_backspace(ti);
+				break;
+			case KC_DELETE:
+				tinput_delete(ti);
+				break;
+			case KC_LEFT:
+				tinput_seek_cell(ti, seek_backward);
+				break;
+			case KC_RIGHT:
+				tinput_seek_cell(ti, seek_forward);
+				break;
+			case KC_HOME:
+				tinput_seek_max(ti, seek_backward);
+				break;
+			case KC_END:
+				tinput_seek_max(ti, seek_forward);
+				break;
+			}
+		}
+
 		if (ev.c >= ' ') {
 			tinput_insert_char(ti, ev.c);
 		}
