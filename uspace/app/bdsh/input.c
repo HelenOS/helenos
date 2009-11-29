@@ -37,6 +37,7 @@
 #include <io/style.h>
 #include <vfs/vfs.h>
 #include <errno.h>
+#include <assert.h>
 #include <bool.h>
 
 #include "config.h"
@@ -46,18 +47,19 @@
 #include "errors.h"
 #include "exec.h"
 
+#define HISTORY_LEN 10
+
 typedef struct {
 	wchar_t buffer[INPUT_MAX];
 	int col0, row0;
 	int con_cols, con_rows;
 	int nc;
 	int pos;
-} tinput_t;
 
-typedef enum {
-	seek_cell,
-	seek_max
-} seek_dist_t;
+	char *history[1 + HISTORY_LEN];
+	int hnum;
+	int hpos;
+} tinput_t;
 
 typedef enum {
 	seek_backward = -1,
@@ -129,6 +131,19 @@ static void tinput_display_tail(tinput_t *ti, int start, int pad)
 	fflush(stdout);
 }
 
+static char *tinput_get_str(tinput_t *ti)
+{
+	char *str;
+
+	str = malloc(STR_BOUNDS(ti->nc) + 1);
+	if (str == NULL)
+		return NULL;
+
+	wstr_nstr(str, ti->buffer, STR_BOUNDS(ti->nc) + 1);
+
+	return str;
+}
+
 static void tinput_position_caret(tinput_t *ti)
 {
 	console_goto(fphone(stdout), ti->col0 + ti->pos, ti->row0);
@@ -182,24 +197,122 @@ static void tinput_delete(tinput_t *ti)
 	tinput_backspace(ti);
 }
 
-static void tinput_seek(tinput_t *ti, seek_dir_t dir, seek_dist_t dist)
+static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir)
 {
-	switch (dist) {
-	case seek_cell:
-		ti->pos += dir;
-		break;
-	case seek_max:
-		if (dir == seek_backward)
-			ti->pos = 0;
-		else
-			ti->pos = ti->nc;
-		break;
+	if (dir == seek_forward) {
+		if (ti->pos < ti->nc)
+			ti->pos += 1;
+	} else {
+		if (ti->pos > 0)
+			ti->pos -= 1;
 	}
-		
-	if (ti->pos < 0) ti->pos = 0;
-	if (ti->pos > ti->nc) ti->pos = ti->nc;
 
 	tinput_position_caret(ti);
+}
+
+static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
+{
+	if (dir == seek_forward) {
+		if (ti->pos == ti->nc)
+			return;
+
+		while (1) {
+			ti->pos += 1;
+
+			if (ti->pos == ti->nc)
+				break;
+
+			if (ti->buffer[ti->pos - 1] == ' ' &&
+			    ti->buffer[ti->pos] != ' ')
+				break;
+		}
+	} else {
+		if (ti->pos == 0)
+			return;
+
+		while (1) {
+			ti->pos -= 1;
+
+			if (ti->pos == 0)
+				break;
+
+			if (ti->buffer[ti->pos - 1] == ' ' &&
+			    ti->buffer[ti->pos] != ' ')
+				break;
+		}
+
+	}
+
+	tinput_position_caret(ti);
+}
+
+static void tinput_seek_max(tinput_t *ti, seek_dir_t dir)
+{
+	if (dir == seek_backward)
+		ti->pos = 0;
+	else
+		ti->pos = ti->nc;
+
+	tinput_position_caret(ti);
+}
+
+static void tinput_history_insert(tinput_t *ti, char *str)
+{
+	int i;
+
+	if (ti->hnum < HISTORY_LEN) {
+		ti->hnum += 1;
+	} else {
+		if (ti->history[HISTORY_LEN] != NULL)
+			free(ti->history[HISTORY_LEN]);
+	}
+
+	for (i = ti->hnum; i > 1; --i)
+		ti->history[i] = ti->history[i - 1];
+
+	ti->history[1] = str_dup(str);
+
+	if (ti->history[0] != NULL) {
+		free(ti->history[0]);
+		ti->history[0] = NULL;
+	}
+}
+
+static void tinput_set_str(tinput_t *ti, char *str)
+{
+	str_to_wstr(ti->buffer, INPUT_MAX, str);
+	ti->nc = wstr_length(ti->buffer);
+	ti->pos = ti->nc;
+}
+
+static void tinput_history_seek(tinput_t *ti, int offs)
+{
+	int pad;
+
+	if (ti->hpos + offs < 0 || ti->hpos + offs > ti->hnum)
+		return;
+
+	if (ti->history[ti->hpos] != NULL) {
+		free(ti->history[ti->hpos]);
+		ti->history[ti->hpos] = NULL;
+	}
+
+	ti->history[ti->hpos] = tinput_get_str(ti);
+	ti->hpos += offs;
+
+	pad = ti->nc - str_length(ti->history[ti->hpos]);
+	if (pad < 0) pad = 0;
+
+	tinput_set_str(ti, ti->history[ti->hpos]);
+	tinput_display_tail(ti, 0, pad);
+	tinput_position_caret(ti);
+}
+
+static void tinput_init(tinput_t *ti)
+{
+	ti->hnum = 0;
+	ti->hpos = 0;
+	ti->history[0] = NULL;
 }
 
 static char *tinput_read(tinput_t *ti)
@@ -225,33 +338,50 @@ static char *tinput_read(tinput_t *ti)
 		if (ev.type != KEY_PRESS)
 			continue;
 
-		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) != 0)
-			continue;
-
-		switch(ev.key) {
-		case KC_ENTER:
-		case KC_NENTER:
-			goto done;
-		case KC_BACKSPACE:
-			tinput_backspace(ti);
-			break;
-		case KC_DELETE:
-			tinput_delete(ti);
-			break;
-		case KC_LEFT:
-			tinput_seek(ti, seek_backward, seek_cell);
-			break;
-		case KC_RIGHT:
-			tinput_seek(ti, seek_forward, seek_cell);
-
-			break;
-		case KC_HOME:
-			tinput_seek(ti, seek_backward, seek_max);
-			break;
-		case KC_END:
-			tinput_seek(ti, seek_forward, seek_max);
-			break;
+		if ((ev.mods & KM_CTRL) != 0 &&
+		    (ev.mods & (KM_ALT | KM_SHIFT)) == 0) {
+			switch (ev.key) {
+			case KC_LEFT:
+				tinput_seek_word(ti, seek_backward);
+				break;
+			case KC_RIGHT:
+				tinput_seek_word(ti, seek_forward);
+				break;
+			}
 		}
+
+		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+			switch (ev.key) {
+			case KC_ENTER:
+			case KC_NENTER:
+				goto done;
+			case KC_BACKSPACE:
+				tinput_backspace(ti);
+				break;
+			case KC_DELETE:
+				tinput_delete(ti);
+				break;
+			case KC_LEFT:
+				tinput_seek_cell(ti, seek_backward);
+				break;
+			case KC_RIGHT:
+				tinput_seek_cell(ti, seek_forward);
+				break;
+			case KC_HOME:
+				tinput_seek_max(ti, seek_backward);
+				break;
+			case KC_END:
+				tinput_seek_max(ti, seek_forward);
+				break;
+			case KC_UP:
+				tinput_history_seek(ti, +1);
+				break;
+			case KC_DOWN:
+				tinput_history_seek(ti, -1);
+				break;
+			}
+		}
+
 		if (ev.c >= ' ') {
 			tinput_insert_char(ti, ev.c);
 		}
@@ -260,12 +390,11 @@ static char *tinput_read(tinput_t *ti)
 done:
 	putchar('\n');
 
-	ti->buffer[ti->nc] = '\0';
-	str = malloc(STR_BOUNDS(ti->nc) + 1);
-	if (str == NULL)
-		return NULL;
+	str = tinput_get_str(ti);
+	if (str_cmp(str, "") != 0)
+		tinput_history_insert(ti, str);
 
-	wstr_nstr(str, ti->buffer, STR_BOUNDS(ti->nc) + 1);
+	ti->hpos = 0;
 
 	return str;
 }
@@ -290,4 +419,9 @@ void get_input(cliuser_t *usr)
 
 	usr->line = str;
 	return;
+}
+
+void input_init(void)
+{
+	tinput_init(&tinput);
 }
