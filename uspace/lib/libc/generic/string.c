@@ -582,6 +582,38 @@ void wstr_nstr(char *dst, const wchar_t *src, size_t size)
 		dst[dst_off] = 0;
 }
 
+/** Convert string to wide string.
+ *
+ * Convert string @a src to wide string. The output is written to the
+ * buffer specified by @a dest and @a size, which must have non-zero
+ * size. The output will always be null-terminated.
+ *
+ * @param dest	Destination buffer.
+ * @param dlen	Length of destination buffer (number of wchars).
+ * @param src	Source string.
+ */
+void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
+{
+	size_t offset;
+	size_t di;
+	wchar_t c;
+
+	assert(dlen > 0);
+
+	offset = 0;
+	di = 0;
+
+	do {
+		if (di >= dlen - 1)
+			break;
+
+		c = str_decode(src, &offset, STR_NO_LIMIT);
+		dest[di++] = c;
+	} while (c != '\0');
+
+	dest[dlen - 1] = '\0';
+}
+
 /** Find first occurence of character in string.
  *
  * @param str String to search.
