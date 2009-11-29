@@ -46,7 +46,27 @@
 #include "errors.h"
 #include "exec.h"
 
-static void read_line(char *, int);
+typedef struct {
+	wchar_t buffer[INPUT_MAX];
+	int col0, row0;
+	int con_cols, con_rows;
+	int nc;
+	int pos;
+} tinput_t;
+
+typedef enum {
+	seek_cell,
+	seek_max
+} seek_dist_t;
+
+typedef enum {
+	seek_backward = -1,
+	seek_forward = 1
+} seek_dir_t;
+
+static tinput_t tinput;
+
+static char *tinput_read(tinput_t *ti);
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
@@ -98,54 +118,161 @@ finit:
 	return rc;
 }
 
-static void read_line(char *buffer, int n)
+static void tinput_display_tail(tinput_t *ti, int start, int pad)
+{
+	int i;
+
+	console_goto(fphone(stdout), ti->col0 + start, ti->row0);
+	printf("%ls", ti->buffer + start);
+	for (i = 0; i < pad; ++i)
+		putchar(' ');
+	fflush(stdout);
+}
+
+static void tinput_position_caret(tinput_t *ti)
+{
+	console_goto(fphone(stdout), ti->col0 + ti->pos, ti->row0);
+}
+
+static void tinput_insert_char(tinput_t *ti, wchar_t c)
+{
+	int i;
+
+	if (ti->nc == INPUT_MAX)
+		return;
+
+	if (ti->col0 + ti->nc >= ti->con_cols - 1)
+		return;
+
+	for (i = ti->nc; i > ti->pos; --i)
+		ti->buffer[i] = ti->buffer[i - 1];
+
+	ti->buffer[ti->pos] = c;
+	ti->pos += 1;
+	ti->nc += 1;
+	ti->buffer[ti->nc] = '\0';
+
+	tinput_display_tail(ti, ti->pos - 1, 0);
+	tinput_position_caret(ti);
+}
+
+static void tinput_backspace(tinput_t *ti)
+{
+	int i;
+
+	if (ti->pos == 0)
+		return;
+
+	for (i = ti->pos; i < ti->nc; ++i)
+		ti->buffer[i - 1] = ti->buffer[i];
+	ti->pos -= 1;
+	ti->nc -= 1;
+	ti->buffer[ti->nc] = '\0';
+
+	tinput_display_tail(ti, ti->pos, 1);
+	tinput_position_caret(ti);
+}
+
+static void tinput_delete(tinput_t *ti)
+{
+	if (ti->pos == ti->nc)
+		return;
+
+	ti->pos += 1;
+	tinput_backspace(ti);
+}
+
+static void tinput_seek(tinput_t *ti, seek_dir_t dir, seek_dist_t dist)
+{
+	switch (dist) {
+	case seek_cell:
+		ti->pos += dir;
+		break;
+	case seek_max:
+		if (dir == seek_backward)
+			ti->pos = 0;
+		else
+			ti->pos = ti->nc;
+		break;
+	}
+		
+	if (ti->pos < 0) ti->pos = 0;
+	if (ti->pos > ti->nc) ti->pos = ti->nc;
+
+	tinput_position_caret(ti);
+}
+
+static char *tinput_read(tinput_t *ti)
 {
 	console_event_t ev;
-	size_t offs, otmp;
-	wchar_t dec;
+	char *str;
 
-	offs = 0;
+	fflush(stdout);
+
+	if (console_get_size(fphone(stdin), &ti->con_cols, &ti->con_rows) != EOK)
+		return NULL;
+	if (console_get_pos(fphone(stdin), &ti->col0, &ti->row0) != EOK)
+		return NULL;
+
+	ti->pos = 0;
+	ti->nc = 0;
+
 	while (true) {
 		fflush(stdout);
 		if (!console_get_event(fphone(stdin), &ev))
-			return;
+			return NULL;
 		
 		if (ev.type != KEY_PRESS)
 			continue;
-		
-		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
-			break;
-		if (ev.key == KC_BACKSPACE) {
-			if (offs > 0) {
-				/*
-				 * Back up until we reach valid start of
-				 * character.
-				 */
-				while (offs > 0) {
-					--offs; otmp = offs;
-					dec = str_decode(buffer, &otmp, n);
-					if (dec != U_SPECIAL)
-						break;
-				}
-				putchar('\b');
-			}
+
+		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) != 0)
 			continue;
+
+		switch(ev.key) {
+		case KC_ENTER:
+		case KC_NENTER:
+			goto done;
+		case KC_BACKSPACE:
+			tinput_backspace(ti);
+			break;
+		case KC_DELETE:
+			tinput_delete(ti);
+			break;
+		case KC_LEFT:
+			tinput_seek(ti, seek_backward, seek_cell);
+			break;
+		case KC_RIGHT:
+			tinput_seek(ti, seek_forward, seek_cell);
+
+			break;
+		case KC_HOME:
+			tinput_seek(ti, seek_backward, seek_max);
+			break;
+		case KC_END:
+			tinput_seek(ti, seek_forward, seek_max);
+			break;
 		}
 		if (ev.c >= ' ') {
-			if (chr_encode(ev.c, buffer, &offs, n - 1) == EOK)
-				putchar(ev.c);
+			tinput_insert_char(ti, ev.c);
 		}
 	}
+
+done:
 	putchar('\n');
-	buffer[offs] = '\0';
+
+	ti->buffer[ti->nc] = '\0';
+	str = malloc(STR_BOUNDS(ti->nc) + 1);
+	if (str == NULL)
+		return NULL;
+
+	wstr_nstr(str, ti->buffer, STR_BOUNDS(ti->nc) + 1);
+
+	return str;
 }
 
-/* TODO:
- * Implement something like editline() / readline(), if even
- * just for command history and making arrows work. */
 void get_input(cliuser_t *usr)
 {
-	char line[INPUT_MAX];
+	char *str;
 
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_EMPHASIS);
@@ -153,12 +280,14 @@ void get_input(cliuser_t *usr)
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_NORMAL);
 
-	read_line(line, INPUT_MAX);
-	/* Make sure we don't have rubbish or a C/R happy user */
-	if (str_cmp(line, "") == 0 || str_cmp(line, "\n") == 0)
-		return;
-	usr->line = str_dup(line);
+	str = tinput_read(&tinput);
 
+	/* Check for empty input. */
+	if (str_cmp(str, "") == 0) {
+		free(str);
+		return;
+	}
+
+	usr->line = str;
 	return;
 }
-
