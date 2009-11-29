@@ -26,50 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64
+/** @addtogroup sparc64interrupt
  * @{
  */
-/** @file
- */
-
-#ifndef KERN_sparc64_sun4v_CPU_H_
-#define KERN_sparc64_sun4v_CPU_H_
-
-/** Maximum number of virtual processors. */
-#define MAX_NUM_STRANDS		64
-
-/** Maximum number of logical processors in a processor core */
-#define MAX_CORE_STRANDS	8
-
-#ifndef __ASM__
-
-struct cpu;
-
-/*
-typedef struct {
-	uint64_t exec_unit_id;
-	uint8_t strand_count;
-	uint64_t cpuids[MAX_CORE_STRANDS];
-	struct cpu *cpus[MAX_CORE_STRANDS];
-	atomic_t nrdy;
-	SPINLOCK_DECLARE(proposed_nrdy_lock);
-} exec_unit_t;
-*/
-
-typedef struct cpu_arch {
-	uint64_t id;			/**< virtual processor ID */
-	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
-	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-					     generated when the TICK register
-					     matches this value. */
-	//exec_unit_t *exec_unit;		/**< Physical core. */
-	//unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
-	//				     so that cores are equally balanced. */
-} cpu_arch_t;
-
-#endif	
+#ifndef KERN_sparc64_sun4u_REGWIN_H_
+#define KERN_sparc64_sun4u_REGWIN_H_
 
 #ifdef __ASM__
+
+/*
+ * Macro used to spill userspace window to userspace window buffer.
+ * It can be either triggered from preemptible_handler doing SAVE
+ * at (TL=1) or from normal kernel code doing SAVE when OTHERWIN>0
+ * at (TL=0).
+ */
+.macro SPILL_TO_USPACE_WINDOW_BUFFER
+	stx %l0, [%g7 + L0_OFFSET]	
+	stx %l1, [%g7 + L1_OFFSET]
+	stx %l2, [%g7 + L2_OFFSET]
+	stx %l3, [%g7 + L3_OFFSET]
+	stx %l4, [%g7 + L4_OFFSET]
+	stx %l5, [%g7 + L5_OFFSET]
+	stx %l6, [%g7 + L6_OFFSET]
+	stx %l7, [%g7 + L7_OFFSET]
+	stx %i0, [%g7 + I0_OFFSET]
+	stx %i1, [%g7 + I1_OFFSET]
+	stx %i2, [%g7 + I2_OFFSET]
+	stx %i3, [%g7 + I3_OFFSET]
+	stx %i4, [%g7 + I4_OFFSET]
+	stx %i5, [%g7 + I5_OFFSET]
+	stx %i6, [%g7 + I6_OFFSET]
+	stx %i7, [%g7 + I7_OFFSET]
+	add %g7, STACK_WINDOW_SAVE_AREA_SIZE, %g7
+	saved
+	retry
+.endm
 
 #endif
 

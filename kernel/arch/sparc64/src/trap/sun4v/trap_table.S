@@ -135,8 +135,8 @@ division_by_zero_tl0:
 .org trap_table + TT_DATA_ACCESS_EXCEPTION*ENTRY_SIZE
 .global data_access_exception_tl0
 data_access_exception_tl0:
-	/*wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER data_access_exception*/
+	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
@@ -292,7 +292,7 @@ fast_data_access_mmu_miss_handler_tl0:
 .org trap_table + TT_FAST_DATA_ACCESS_PROTECTION*ENTRY_SIZE
 .global fast_data_access_protection_handler_tl0
 fast_data_access_protection_handler_tl0:
-	/*FAST_DATA_ACCESS_PROTECTION_HANDLER 0*/
+	FAST_DATA_ACCESS_PROTECTION_HANDLER 0
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
@@ -354,9 +354,9 @@ trap_instruction_\cur\()_tl0:
 .org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
 .global instruction_access_exception_tl1
 instruction_access_exception_tl1:
-	/*wrpr %g0, 1, %tl
+	wrpr %g0, 1, %tl
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER instruction_access_exception*/
+	PREEMPTIBLE_HANDLER instruction_access_exception
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -417,7 +417,7 @@ fast_data_access_mmu_miss_handler_tl1:
 .org trap_table + (TT_FAST_DATA_ACCESS_PROTECTION+512)*ENTRY_SIZE
 .global fast_data_access_protection_handler_tl1
 fast_data_access_protection_handler_tl1:
-	/*FAST_DATA_ACCESS_PROTECTION_HANDLER 1*/
+	FAST_DATA_ACCESS_PROTECTION_HANDLER 1
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
@@ -524,6 +524,143 @@ fill_0_normal_tl1:
 	restored
 .endm
 
+#define NOT(x)	((x) == 0)
+
+/*
+ * Perform all the actions of the preemptible trap handler which are common
+ * for trapping from kernel and trapping from userspace, including call of the
+ * higher level service routine.
+ *
+ * Important note:
+ * 	This macro must be inserted between the "2:" and "4:" labels. The
+ *	inserting code must be aware of the usage of all the registers
+ *	contained in this macro.
+ */
+.macro MIDDLE_PART is_syscall
+	/* copy higher level routine's address and its argument */
+	mov %g1, %l0
+.if NOT(\is_syscall)
+	mov %g2, %o0
+.else
+	! store the syscall number on the stack as 7th argument
+	stx %g2, [%sp + STACK_WINDOW_SAVE_AREA_SIZE + STACK_BIAS + STACK_ARG6] 
+.endif
+
+	/*
+	 * Save TSTATE, TPC and TNPC aside.
+	 */
+	rdpr %tstate, %g1
+	rdpr %tpc, %g2
+	rdpr %tnpc, %g3
+
+	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
+	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
+	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
+
+	/*
+	 * Save the Y register.
+	 * This register is deprecated according to SPARC V9 specification
+	 * and is only present for backward compatibility with previous
+	 * versions of the SPARC architecture.
+	 * Surprisingly, gcc makes use of this register without a notice.
+	 */
+	rd %y, %g4
+	stx %g4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y]
+
+	/* switch to TL = 0, explicitly enable FPU */
+	wrpr %g0, 0, %tl
+	wrpr %g0, 0, %gl
+	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
+
+	/* g1 -> l1, ..., g7 -> l7 */
+	SAVE_GLOBALS
+
+.if NOT(\is_syscall)
+	/* call higher-level service routine, pass istate as its 2nd parameter */
+	call %l0
+	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
+.else
+	/* Call the higher-level syscall handler. */
+	!wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT | PSTATE_IE_BIT, %pstate
+	call syscall_handler
+	nop
+	/* copy the value returned by the syscall */
+	mov %o0, %i0
+.endif
+
+	/* l1 -> g1, ..., l7 -> g7 */
+	RESTORE_GLOBALS
+
+	/* we must prserve the PEF bit */
+	rdpr %pstate, %l1
+
+	/* TL := 1, GL := 1 */
+	wrpr %g0, PSTATE_PRIV_BIT, %pstate
+	wrpr %g0, 1, %tl
+	wrpr %g0, 1, %gl
+
+	/* Read TSTATE, TPC and TNPC from saved copy. */
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE], %g1
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC], %g2
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
+
+	/* Copy PSTATE.PEF to the in-register copy of TSTATE. */
+	and %l1, PSTATE_PEF_BIT, %l1
+	sllx %l1, TSTATE_PSTATE_SHIFT, %l1
+	sethi %hi(TSTATE_PEF_BIT), %g4		! reset the PEF bit to 0 ...
+	andn %g1, %g4, %g1
+	or %g1, %l1, %g1			! ... "or" it with saved PEF
+
+	/* Restore TSTATE, TPC and TNPC from saved copies. */
+	wrpr %g1, 0, %tstate
+	wrpr %g2, 0, %tpc
+	wrpr %g3, 0, %tnpc
+
+	/* Restore Y. */
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
+	wr %g4, %y
+	
+	/* If TSTATE.CWP + 1 == CWP, then we do not have to fix CWP. */
+	and %g1, TSTATE_CWP_MASK, %l0
+	inc %l0
+	and %l0, NWINDOWS - 1, %l0	! %l0 mod NWINDOWS
+	rdpr %cwp, %l1
+	cmp %l0, %l1
+	bz 4f				! CWP is ok
+	nop
+
+3:
+	/*
+	 * Fix CWP.
+	 * In order to recapitulate, the input registers in the current
+	 * window are the output registers of the window to which we want
+	 * to restore. Because the fill trap fills only input and local
+	 * registers of a window, we need to preserve those output
+	 * registers manually.
+	 */
+	mov %sp, %g2
+	stx %i0, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0]
+	stx %i1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1]
+	stx %i2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2]
+	stx %i3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3]
+	stx %i4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4]
+	stx %i5, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5]
+	stx %i6, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6]
+	stx %i7, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7]
+	wrpr %l0, 0, %cwp
+	mov %g2, %sp
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0], %i0
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1], %i1
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2], %i2
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3], %i3
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4], %i4
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5], %i5
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6], %i6
+	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7], %i7
+.endm
+
+
+#if 0
 /*
  * Preemptible trap handler for handling traps from kernel.
  */
@@ -681,8 +818,289 @@ fill_0_normal_tl1:
 	retry
 .endm
 
+#endif
 
-#define NOT(x)	((x) == 0)
+/*
+ * Preemptible trap handler for handling traps from kernel.
+ */
+.macro PREEMPTIBLE_HANDLER_KERNEL
+
+	/*
+	 * ASSERT(%tl == 1)
+	 */
+	rdpr %tl, %g3
+	cmp %g3, 1
+	be 1f
+	nop
+0:	ba 0b					! this is for debugging, if we ever get here
+	nop					! it will be easy to find
+
+1:
+	/* prevent unnecessary CLEANWIN exceptions */
+	wrpr %g0, NWINDOWS - 1, %cleanwin
+
+	/*
+	 * Prevent SAVE instruction from causing a spill exception. If the
+	 * CANSAVE register is zero, explicitly spill register window
+	 * at CWP + 2.
+	 */
+
+	rdpr %cansave, %g3
+	brnz %g3, 2f
+	nop
+	INLINE_SPILL %g3, %g4
+
+2:
+	/* ask for new register window */
+	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+
+	MIDDLE_PART 0
+
+4:
+	/*
+	 * Prevent RESTORE instruction from causing a fill exception. If the
+	 * CANRESTORE register is zero, explicitly fill register window
+	 * at CWP - 1.
+	 */
+	rdpr %canrestore, %g1
+	brnz %g1, 5f
+	nop
+	INLINE_FILL %g3, %g4
+
+5:
+	restore
+	retry
+.endm
+
+
+
+/*
+ * Spills the window at CWP + 2 to the userspace window buffer. This macro
+ * is to be used before doing SAVE when the spill trap is undesirable.
+ * 
+ * Parameters:
+ * 	tmpreg1		global register to be used for scratching purposes
+ * 	tmpreg2		global register to be used for scratching purposes
+ * 	tmpreg3		global register to be used for scratching purposes
+ */
+.macro INLINE_SPILL_TO_WBUF tmpreg1, tmpreg2, tmpreg3
+	! CWP := CWP + 2
+	rdpr %cwp, \tmpreg2
+	add \tmpreg2, 2, \tmpreg1
+	and \tmpreg1, NWINDOWS - 1, \tmpreg1		! modulo NWINDOWS
+	wrpr \tmpreg1, %cwp
+	
+	! spill to userspace window buffer
+	SAVE_TO_USPACE_WBUF \tmpreg3, \tmpreg1
+
+	! CWP := CWP - 2
+	wrpr \tmpreg2, %cwp
+
+	saved
+.endm
+
+/*
+ * Preemptible handler for handling traps from userspace.
+ */
+.macro PREEMPTIBLE_HANDLER_USPACE is_syscall
+	/*
+	 * One of the ways this handler can be invoked is after a nested MMU trap from
+	 * either spill_1_normal or fill_1_normal traps. Both of these traps manipulate
+	 * the CWP register. We deal with the situation by simulating the MMU trap
+	 * on TL=1 and restart the respective SAVE or RESTORE instruction once the MMU
+	 * trap is resolved. However, because we are in the wrong window from the
+	 * perspective of the MMU trap, we need to synchronize CWP with CWP from TL=0.
+	 */ 
+.if NOT(\is_syscall)
+	rdpr %tstate, %g3
+	and %g3, TSTATE_CWP_MASK, %g4
+	wrpr %g4, 0, %cwp			! resynchronize CWP
+.endif
+
+	/* prevent unnecessary CLEANWIN exceptions */
+	wrpr %g0, NWINDOWS - 1, %cleanwin
+
+	/*
+	 * Prevent SAVE instruction from causing a spill exception. If the
+	 * CANSAVE register is zero, explicitly spill register window
+	 * at CWP + 2.
+	 */
+	rdpr %cansave, %g3
+	brnz %g3, 2f
+	nop
+	INLINE_SPILL_TO_WBUF %g3, %g4, %g7
+
+2:
+	set SCRATCHPAD_KSTACK, %g4
+	ldxa [%g4] ASI_SCRATCHPAD, %g6
+	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+
+.if \is_syscall
+	/* Copy arguments for the syscall to the new window. */
+	mov %i0, %o0
+	mov %i1, %o1
+	mov %i2, %o2
+	mov %i3, %o3
+	mov %i4, %o4
+	mov %i5, %o5
+.endif
+
+	mov VA_PRIMARY_CONTEXT_REG, %l0 
+	stxa %g0, [%l0] ASI_PRIMARY_CONTEXT_REG
+	rd %pc, %l0
+	flush %l0
+
+	/* Mark the CANRESTORE windows as OTHER windows. */
+	rdpr %canrestore, %l0
+	wrpr %l0, %otherwin
+	wrpr %g0, %canrestore
+
+	/*
+	 * Other window spills will go to the userspace window buffer
+	 * and normal spills will go to the kernel stack.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(0), %wstate
+
+	MIDDLE_PART \is_syscall
+
+4:
+	/*
+	 * Spills and fills will be processed by the {spill,fill}_1_normal
+	 * handlers.
+	 */
+	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
+
+	/*
+	 * Set primary context according to secondary context.
+	 */
+	wr %g0, ASI_SECONDARY_CONTEXT_REG, %asi
+	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
+	wr %g0, ASI_PRIMARY_CONTEXT_REG, %asi
+	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
+	rd %pc, %g1
+	flush %g1
+
+	/* Restoring userspace windows: */
+
+	/* Save address of the userspace window buffer to the %g7 register. */
+	set SCRATCHPAD_WBUF, %g5
+	ldxa [%g5] ASI_SCRATCHPAD, %g7
+
+	rdpr %cwp, %g1
+	rdpr %otherwin, %g2
+
+	/*
+	 * Skip all OTHERWIN windows and descend to the first window
+	 * in the userspace window buffer.
+	 */
+	sub %g1, %g2, %g3
+	dec %g3
+	and %g3, NWINDOWS - 1, %g3
+	wrpr %g3, 0, %cwp
+
+	/*
+	 * CWP is now in the window last saved in the userspace window buffer.
+	 * Fill all windows stored in the buffer.
+	 */
+	clr %g4
+5:	andcc %g7, UWB_ALIGNMENT - 1, %g0	! alignment check
+	bz 6f					! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
+	nop
+
+	add %g7, -STACK_WINDOW_SAVE_AREA_SIZE, %g7
+	ldx [%g7 + L0_OFFSET], %l0
+	ldx [%g7 + L1_OFFSET], %l1
+	ldx [%g7 + L2_OFFSET], %l2
+	ldx [%g7 + L3_OFFSET], %l3
+	ldx [%g7 + L4_OFFSET], %l4
+	ldx [%g7 + L5_OFFSET], %l5
+	ldx [%g7 + L6_OFFSET], %l6
+	ldx [%g7 + L7_OFFSET], %l7
+	ldx [%g7 + I0_OFFSET], %i0
+	ldx [%g7 + I1_OFFSET], %i1
+	ldx [%g7 + I2_OFFSET], %i2
+	ldx [%g7 + I3_OFFSET], %i3
+	ldx [%g7 + I4_OFFSET], %i4
+	ldx [%g7 + I5_OFFSET], %i5
+	ldx [%g7 + I6_OFFSET], %i6
+	ldx [%g7 + I7_OFFSET], %i7
+
+	dec %g3
+	and %g3, NWINDOWS - 1, %g3
+	wrpr %g3, 0, %cwp			! switch to the preceeding window
+
+	ba 5b
+	inc %g4
+
+6:
+	/* Save changes of the address of the userspace window buffer. */
+	stxa %g7, [%g5] ASI_SCRATCHPAD
+
+	/*
+	 * Switch back to the proper current window and adjust
+	 * OTHERWIN, CANRESTORE, CANSAVE and CLEANWIN.
+	 */
+	wrpr %g1, 0, %cwp
+	add %g4, %g2, %g2
+	cmp %g2, NWINDOWS - 2
+	bg 8f					! fix the CANRESTORE=NWINDOWS-1 anomaly
+	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
+	sub %g1, %g2, %g1
+	
+	wrpr %g0, 0, %otherwin
+	wrpr %g1, 0, %cansave			! NWINDOWS - 2 - CANRESTORE
+	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
+	wrpr %g2, 0, %cleanwin			! avoid information leak
+
+7:
+	restore
+
+.if \is_syscall
+	done
+.else
+	retry
+.endif
+
+8:
+	/*
+	 * We got here in order to avoid inconsistency of the window state registers.
+	 * If the:
+	 *
+	 * 	save %g6, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
+	 *
+	 * instruction trapped and spilled a register window into the userspace
+	 * window buffer, we have just restored NWINDOWS - 1 register windows.
+	 * However, CANRESTORE can be only NWINDOW - 2 at most.
+	 *
+	 * The solution is to manually switch to (CWP - 1) mod NWINDOWS
+	 * and set the window state registers so that:
+	 *
+	 * 	CANRESTORE 	= NWINDOWS - 2
+	 *	CLEANWIN	= NWINDOWS - 2
+	 *	CANSAVE 	= 0
+	 *	OTHERWIN	= 0
+	 *
+	 * The RESTORE instruction is therfore to be skipped.
+	 */
+	wrpr %g0, 0, %otherwin
+	wrpr %g0, 0, %cansave
+	wrpr %g1, 0, %canrestore
+	wrpr %g1, 0, %cleanwin
+
+	rdpr %cwp, %g1
+	dec %g1
+	and %g1, NWINDOWS - 1, %g1
+	wrpr %g1, 0, %cwp			! CWP--
+	
+.if \is_syscall
+	done
+.else
+	retry
+.endif
+
+.endm
+
+
 
 /* Preemptible trap handler for TL=1.
  *
@@ -691,7 +1109,19 @@ fill_0_normal_tl1:
  * handlers.
  */
 .macro PREEMPTIBLE_HANDLER_TEMPLATE is_syscall
+	rdpr %tstate, %g3
+	and %g3, TSTATE_PRIV_BIT, %g3
+	brz %g3, 100f			! trapping from userspace
+	nop
+
 	PREEMPTIBLE_HANDLER_KERNEL
+	ba 101f
+	nop
+
+	100:
+	PREEMPTIBLE_HANDLER_USPACE \is_syscall
+
+	101:
 .endm
 
 .global preemptible_handler

@@ -26,52 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64
+/** @addtogroup sparc64	
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_sun4v_CPU_H_
-#define KERN_sparc64_sun4v_CPU_H_
+#ifndef KERN_sparc64_sun4u_ASM_H_
+#define KERN_sparc64_sun4u_ASM_H_
 
-/** Maximum number of virtual processors. */
-#define MAX_NUM_STRANDS		64
+extern uint64_t read_from_ag_g7(void);
+extern void write_to_ag_g6(uint64_t val);
+extern void write_to_ag_g7(uint64_t val);
+extern void write_to_ig_g6(uint64_t val);
 
-/** Maximum number of logical processors in a processor core */
-#define MAX_CORE_STRANDS	8
 
-#ifndef __ASM__
-
-struct cpu;
-
-/*
-typedef struct {
-	uint64_t exec_unit_id;
-	uint8_t strand_count;
-	uint64_t cpuids[MAX_CORE_STRANDS];
-	struct cpu *cpus[MAX_CORE_STRANDS];
-	atomic_t nrdy;
-	SPINLOCK_DECLARE(proposed_nrdy_lock);
-} exec_unit_t;
-*/
-
-typedef struct cpu_arch {
-	uint64_t id;			/**< virtual processor ID */
-	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
-	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-					     generated when the TICK register
-					     matches this value. */
-	//exec_unit_t *exec_unit;		/**< Physical core. */
-	//unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
-	//				     so that cores are equally balanced. */
-} cpu_arch_t;
-
-#endif	
-
-#ifdef __ASM__
-
-#endif
+/** Read Version Register.
+ *
+ * @return Value of VER register.
+ */
+static inline uint64_t ver_read(void)
+{
+	uint64_t v;
+	
+	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	
+	return v;
+}
 
 #endif
 

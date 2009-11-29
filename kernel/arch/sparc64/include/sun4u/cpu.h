@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_CPU_H_
-#define KERN_sparc64_CPU_H_
+#ifndef KERN_sparc64_sun4u_CPU_H_
+#define KERN_sparc64_sun4u_CPU_H_
 
 #define MANUF_FUJITSU		0x04
 #define MANUF_ULTRASPARC	0x17	/**< UltraSPARC I, UltraSPARC II */

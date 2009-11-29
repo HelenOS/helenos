@@ -211,6 +211,7 @@ void itlb_pte_copy(pte_t *t, size_t index)
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 {
+	asm volatile ("sethi 0x41906, %g0");
 	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
 	pte_t *t;
