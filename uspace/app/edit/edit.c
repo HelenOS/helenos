@@ -35,6 +35,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <vfs/vfs.h>
 #include <io/console.h>
@@ -103,9 +104,11 @@ static int scr_rows, scr_columns;
 static void key_handle_unmod(console_event_t const *ev);
 static void key_handle_ctrl(console_event_t const *ev);
 static int file_save(char const *fname);
+static void file_save_as(void);
 static int file_insert(char *fname);
 static int file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
+static char *filename_prompt(char const *prompt, char const *init_value);
 static void pane_text_display(void);
 static void pane_row_display(void);
 static void pane_row_range_display(int r0, int r1);
@@ -149,17 +152,17 @@ int main(int argc, char *argv[])
 	pane.ideal_column = coord.column;
 
 	if (argc == 2) {
-		doc.file_name = argv[1];
+		doc.file_name = str_dup(argv[1]);
 	} else if (argc > 1) {
 		printf("Invalid arguments.\n");
 		return -2;
 	} else {
-		doc.file_name = "/edit.txt";
+		doc.file_name = NULL;
 	}
 
 	new_file = false;
 
-	if (file_insert(doc.file_name) != EOK)
+	if (doc.file_name == NULL || file_insert(doc.file_name) != EOK)
 		new_file = true;
 
 	/* Move to beginning of file. */
@@ -169,8 +172,8 @@ int main(int argc, char *argv[])
 	console_clear(con);
 	pane_text_display();
 	pane_status_display();
-	if (new_file)
-		status_display("File not found. Created empty file.");
+	if (new_file && doc.file_name != NULL)
+		status_display("File not found. Starting empty file.");
 	pane_caret_display();
 
 
@@ -265,13 +268,18 @@ static void key_handle_ctrl(console_event_t const *ev)
 		done = true;
 		break;
 	case KC_S:
-		(void) file_save(doc.file_name);
+		if (doc.file_name != NULL)
+			file_save(doc.file_name);
+		else
+			file_save_as();
+		break;
+	case KC_E:
+		file_save_as();
 		break;
 	default:
 		break;
 	}
 }
-
 
 /** Save the document. */
 static int file_save(char const *fname)
@@ -284,9 +292,111 @@ static int file_save(char const *fname)
 	pt_get_eof(&ep);
 
 	rc = file_save_range(fname, &sp, &ep);
-	status_display("File saved.");
+
+	switch (rc) {
+	case EINVAL:
+		status_display("Error opening file!");
+		break;
+	case EIO:
+		status_display("Error writing data!");
+		break;
+	default:
+		status_display("File saved.");
+		break;
+	}
 
 	return rc;
+}
+
+/** Change document name and save. */
+static void file_save_as(void)
+{
+	char *old_fname, *fname;
+	int rc;
+
+	old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	fname = filename_prompt("Save As", old_fname);
+	if (fname == NULL) {
+		status_display("Save cancelled.");
+		return;
+	}
+
+	rc = file_save(fname);
+	if (rc != EOK)
+		return;
+
+	if (doc.file_name != NULL)
+		free(doc.file_name);
+	doc.file_name = fname;
+}
+
+#define INPUT_MAX_LEN 64
+
+/** Ask for a file name. */
+static char *filename_prompt(char const *prompt, char const *init_value)
+{
+	console_event_t ev;
+	char *str;
+	wchar_t buffer[INPUT_MAX_LEN + 1];
+	int nc;
+	bool done;
+
+	asprintf(&str, "%s: %s", prompt, init_value);
+	status_display(str);
+	console_goto(con, 1 + str_length(str), scr_rows - 1);
+	free(str);
+
+	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
+
+	str_to_wstr(buffer, INPUT_MAX_LEN + 1, init_value);
+	nc = wstr_length(buffer);
+	done = false;
+
+	while (!done) {
+		console_get_event(con, &ev);
+
+		if (ev.type == KEY_PRESS) {
+			/* Handle key press. */
+			if (((ev.mods & KM_ALT) == 0) &&
+			     (ev.mods & KM_CTRL) != 0) {
+				;
+			} else if ((ev.mods & (KM_CTRL | KM_ALT)) == 0) {
+				switch (ev.key) {
+				case KC_ESCAPE:
+					return NULL;
+				case KC_BACKSPACE:
+					if (nc > 0) {
+						putchar('\b');
+						fflush(stdout);
+						--nc;
+					}
+					break;
+				case KC_ENTER:
+					done = true;
+					break;
+				default:
+					if (ev.c >= 32 && nc < INPUT_MAX_LEN) {
+						putchar(ev.c);
+						fflush(stdout);
+						buffer[nc++] = ev.c;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	buffer[nc] = '\0';
+
+	str = malloc(STR_BOUNDS(wstr_length(buffer)) + 1);
+	if (str == NULL)
+		return NULL;
+
+	wstr_nstr(str, buffer, STR_BOUNDS(wstr_length(buffer)) + 1);
+
+	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+
+	return str;
 }
 
 /** Insert file at caret position.
@@ -358,7 +468,8 @@ static int file_save_range(char const *fname, spt_t const *spos,
 		sp = bep;
 	} while (!spt_equal(&bep, epos));
 
-	fclose(f);
+	if (fclose(f) != EOK)
+		return EIO;
 
 	return EOK;
 }
@@ -472,15 +583,18 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
+	char *fname;
 	int n;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
+	fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+
 	console_goto(con, 0, scr_rows - 1);
 	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
-	n = printf(" %d, %d: File '%s'. Ctrl-S Save  Ctrl-Q Quit",
-	    coord.row, coord.column, doc.file_name);
+	n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	    "Ctrl-E Save As", coord.row, coord.column, fname);
 	printf("%*s", scr_columns - 1 - n, "");
 	fflush(stdout);
 	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
