@@ -395,7 +395,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	if (str == NULL)
 		return NULL;
 
-	wstr_nstr(str, buffer, STR_BOUNDS(wstr_length(buffer)) + 1);
+	wstr_to_str(str, STR_BOUNDS(wstr_length(buffer)) + 1, buffer);
 
 	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 

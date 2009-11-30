@@ -139,7 +139,7 @@ static char *tinput_get_str(tinput_t *ti)
 	if (str == NULL)
 		return NULL;
 
-	wstr_nstr(str, ti->buffer, STR_BOUNDS(ti->nc) + 1);
+	wstr_to_str(str, STR_BOUNDS(ti->nc) + 1, ti->buffer);
 
 	return str;
 }
