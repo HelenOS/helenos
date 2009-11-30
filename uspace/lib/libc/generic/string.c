@@ -578,6 +578,55 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest[dest_off] = '\0';
 }
 
+/** Convert wide string to new string.
+ *
+ * Convert wide string @a src to string. Space for the new string is allocated
+ * on the heap.
+ *
+ * @param src	Source wide string.
+ * @return	New string.
+ */
+char *wstr_to_astr(const wchar_t *src)
+{
+	char dbuf[STR_BOUNDS(1)];
+	char *str;
+	wchar_t ch;
+
+	size_t src_idx;
+	size_t dest_off;
+	size_t dest_size;
+
+	/* Compute size of encoded string. */
+
+	src_idx = 0;
+	dest_size = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		dest_off = 0;
+		if (chr_encode(ch, dbuf, &dest_off, STR_BOUNDS(1)) != EOK)
+			break;
+		dest_size += dest_off;
+	}
+
+	str = malloc(dest_size + 1);
+	if (str == NULL)
+		return NULL;
+
+	/* Encode string. */
+
+	src_idx = 0;
+	dest_off = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		if (chr_encode(ch, str, &dest_off, dest_size) != EOK)
+			break;
+	}
+
+	str[dest_size] = '\0';
+	return str;
+}
+
+
 /** Convert string to wide string.
  *
  * Convert string @a src to wide string. The output is written to the

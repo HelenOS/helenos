@@ -390,12 +390,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	}
 
 	buffer[nc] = '\0';
-
-	str = malloc(STR_BOUNDS(wstr_length(buffer)) + 1);
-	if (str == NULL)
-		return NULL;
-
-	wstr_to_str(str, STR_BOUNDS(wstr_length(buffer)) + 1, buffer);
+	str = wstr_to_astr(buffer);
 
 	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 

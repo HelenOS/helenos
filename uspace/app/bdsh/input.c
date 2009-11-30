@@ -133,15 +133,7 @@ static void tinput_display_tail(tinput_t *ti, int start, int pad)
 
 static char *tinput_get_str(tinput_t *ti)
 {
-	char *str;
-
-	str = malloc(STR_BOUNDS(ti->nc) + 1);
-	if (str == NULL)
-		return NULL;
-
-	wstr_to_str(str, STR_BOUNDS(ti->nc) + 1, ti->buffer);
-
-	return str;
+	return wstr_to_astr(ti->buffer);
 }
 
 static void tinput_position_caret(tinput_t *ti)
