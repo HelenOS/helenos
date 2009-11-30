@@ -470,7 +470,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * is at least one byte, the output string will always be well-formed, i.e.
  * null-terminated and containing only complete characters.
  *
- * @param dst   Destination buffer.
+ * @param dest   Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  */
@@ -504,7 +504,7 @@ void str_cpy(char *dest, size_t size, const char *src)
  * No more than @a n bytes are read from the input string, so it does not
  * have to be null-terminated.
  *
- * @param dst   Destination buffer.
+ * @param dest   Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  * @param n	Maximum number of bytes to read from @a src.
@@ -536,7 +536,7 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
  * is at least one byte, the output string will always be well-formed, i.e.
  * null-terminated and containing only complete characters.
  *
- * @param dst   Destination buffer.
+ * @param dest   Destination buffer.
  * @param count Size of the destination buffer.
  * @param src   Source string.
  */
@@ -548,45 +548,90 @@ void str_append(char *dest, size_t size, const char *src)
 	str_cpy(dest + dstr_size, size - dstr_size, src);
 }
 
-/** Copy NULL-terminated wide string to string
+/** Convert wide string to string.
  *
- * Copy source wide string @a src to destination buffer @a dst.
- * No more than @a size bytes are written. NULL-terminator is always
- * written after the last succesfully copied character (i.e. if the
- * destination buffer is has at least 1 byte, it will be always
- * NULL-terminated).
+ * Convert wide string @a src to string. The output is written to the buffer
+ * specified by @a dest and @a size. @a size must be non-zero and the string
+ * written will always be well-formed.
  *
- * @param src   Source wide string.
- * @param dst   Destination buffer.
- * @param count Size of the destination buffer.
- *
+ * @param dest	Destination buffer.
+ * @param size	Size of the destination buffer.
+ * @param src	Source wide string.
  */
-void wstr_nstr(char *dst, const wchar_t *src, size_t size)
+void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 {
-	/* No space for the NULL-terminator in the buffer */
-	if (size == 0)
-		return;
-	
 	wchar_t ch;
-	size_t src_idx = 0;
-	size_t dst_off = 0;
+	size_t src_idx;
+	size_t dest_off;
+
+	/* There must be space for a null terminator in the buffer. */
+	assert(size > 0);
 	
+	src_idx = 0;
+	dest_off = 0;
+
 	while ((ch = src[src_idx++]) != 0) {
-		if (chr_encode(ch, dst, &dst_off, size) != EOK)
+		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-	
-	if (dst_off >= size)
-		dst[size - 1] = 0;
-	else
-		dst[dst_off] = 0;
+
+	dest[dest_off] = '\0';
 }
+
+/** Convert wide string to new string.
+ *
+ * Convert wide string @a src to string. Space for the new string is allocated
+ * on the heap.
+ *
+ * @param src	Source wide string.
+ * @return	New string.
+ */
+char *wstr_to_astr(const wchar_t *src)
+{
+	char dbuf[STR_BOUNDS(1)];
+	char *str;
+	wchar_t ch;
+
+	size_t src_idx;
+	size_t dest_off;
+	size_t dest_size;
+
+	/* Compute size of encoded string. */
+
+	src_idx = 0;
+	dest_size = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		dest_off = 0;
+		if (chr_encode(ch, dbuf, &dest_off, STR_BOUNDS(1)) != EOK)
+			break;
+		dest_size += dest_off;
+	}
+
+	str = malloc(dest_size + 1);
+	if (str == NULL)
+		return NULL;
+
+	/* Encode string. */
+
+	src_idx = 0;
+	dest_off = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		if (chr_encode(ch, str, &dest_off, dest_size) != EOK)
+			break;
+	}
+
+	str[dest_size] = '\0';
+	return str;
+}
+
 
 /** Convert string to wide string.
  *
  * Convert string @a src to wide string. The output is written to the
- * buffer specified by @a dest and @a size, which must have non-zero
- * size. The output will always be null-terminated.
+ * buffer specified by @a dest and @a dlen. @a dlen must be non-zero
+ * and the wide string written will always be null-terminated.
  *
  * @param dest	Destination buffer.
  * @param dlen	Length of destination buffer (number of wchars).

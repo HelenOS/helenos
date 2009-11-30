@@ -101,6 +101,9 @@ static int scr_rows, scr_columns;
 #define TAB_WIDTH 8
 #define ED_INFTY 65536
 
+/** Maximum filename length that can be entered. */
+#define INFNAME_MAX_LEN 128
+
 static void key_handle_unmod(console_event_t const *ev);
 static void key_handle_ctrl(console_event_t const *ev);
 static int file_save(char const *fname);
@@ -330,14 +333,13 @@ static void file_save_as(void)
 	doc.file_name = fname;
 }
 
-#define INPUT_MAX_LEN 64
-
 /** Ask for a file name. */
 static char *filename_prompt(char const *prompt, char const *init_value)
 {
 	console_event_t ev;
 	char *str;
-	wchar_t buffer[INPUT_MAX_LEN + 1];
+	wchar_t buffer[INFNAME_MAX_LEN + 1];
+	int max_len;
 	int nc;
 	bool done;
 
@@ -348,7 +350,8 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 
 	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
 
-	str_to_wstr(buffer, INPUT_MAX_LEN + 1, init_value);
+	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_length(prompt));
+	str_to_wstr(buffer, max_len + 1, init_value);
 	nc = wstr_length(buffer);
 	done = false;
 
@@ -375,7 +378,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 					done = true;
 					break;
 				default:
-					if (ev.c >= 32 && nc < INPUT_MAX_LEN) {
+					if (ev.c >= 32 && nc < max_len) {
 						putchar(ev.c);
 						fflush(stdout);
 						buffer[nc++] = ev.c;
@@ -387,12 +390,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	}
 
 	buffer[nc] = '\0';
-
-	str = malloc(STR_BOUNDS(wstr_length(buffer)) + 1);
-	if (str == NULL)
-		return NULL;
-
-	wstr_nstr(str, buffer, STR_BOUNDS(wstr_length(buffer)) + 1);
+	str = wstr_to_astr(buffer);
 
 	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 

@@ -288,7 +288,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				beg++;
 			
 			char tmp[STR_BOUNDS(MAX_CMDLINE)];
-			wstr_nstr(tmp, current + beg, position - beg + 1);
+			wstr_to_str(tmp, position - beg + 1, current + beg);
 			
 			int found;
 			if (beg == 0) {
@@ -664,7 +664,7 @@ void kconsole(char *prompt, char *msg, bool kcon)
 			continue;
 		
 		char cmdline[STR_BOUNDS(MAX_CMDLINE)];
-		wstr_nstr(cmdline, tmp, STR_BOUNDS(MAX_CMDLINE));
+		wstr_to_str(cmdline, STR_BOUNDS(MAX_CMDLINE), tmp);
 		
 		if ((!kcon) && (len == 4) && (str_lcmp(cmdline, "exit", 4) == 0))
 			break;
