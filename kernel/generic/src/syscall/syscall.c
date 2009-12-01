@@ -117,7 +117,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
-	(syshandler_t) sys_futex_sleep_timeout,
+	(syshandler_t) sys_futex_sleep,
 	(syshandler_t) sys_futex_wakeup,
 	(syshandler_t) sys_smc_coherence,
 	

@@ -51,7 +51,7 @@ typedef struct {
 } futex_t;
 
 extern void futex_init(void);
-extern unative_t sys_futex_sleep_timeout(uintptr_t, uint32_t, int);
+extern unative_t sys_futex_sleep(uintptr_t);
 extern unative_t sys_futex_wakeup(uintptr_t);
 
 extern void futex_cleanup(void);
