@@ -321,6 +321,7 @@ static char *tinput_read(tinput_t *ti)
 
 	ti->pos = 0;
 	ti->nc = 0;
+	ti->buffer[0] = '\0';
 
 	while (true) {
 		fflush(stdout);
