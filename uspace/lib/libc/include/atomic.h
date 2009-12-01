@@ -35,6 +35,8 @@
 #ifndef LIBC_ATOMIC_H_
 #define LIBC_ATOMIC_H_
 
+#include <bool.h>
+
 typedef struct atomic {
 	volatile long count;
 } atomic_t;
@@ -49,6 +51,11 @@ static inline void atomic_set(atomic_t *val, long i)
 static inline long atomic_get(atomic_t *val)
 {
         return val->count;
+}
+
+static inline bool cas(atomic_t *val, long ov, long nv)
+{
+	return __sync_bool_compare_and_swap(&val->count, ov, nv);
 }
 
 #endif
