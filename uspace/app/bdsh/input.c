@@ -38,7 +38,6 @@
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <assert.h>
-#include <macros.h>
 #include <bool.h>
 
 #include "config.h"
@@ -263,10 +262,13 @@ static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
 
 static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir)
 {
-	if (dir == seek_forward)
-		ti->pos = min(ti->pos + ti->con_cols, ti->nc);
-	else 
-		ti->pos = max(0, ti->pos - ti->con_cols);
+	if (dir == seek_forward) {
+		if (ti->pos + ti->con_cols <= ti->nc)
+			ti->pos = ti->pos + ti->con_cols;
+	} else {
+		if (ti->pos - ti->con_cols >= 0)
+			ti->pos = ti->pos - ti->con_cols;
+	}
 
 	tinput_position_caret(ti);
 }
