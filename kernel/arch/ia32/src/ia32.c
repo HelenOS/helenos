@@ -67,6 +67,7 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/boot/boot.h>
+#include <memstr.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>

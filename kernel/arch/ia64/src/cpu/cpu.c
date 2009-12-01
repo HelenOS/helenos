@@ -36,6 +36,7 @@
 #include <arch.h>
 #include <arch/register.h>
 #include <print.h>
+#include <memstr.h>
 
 void cpu_arch_init(void)
 {
