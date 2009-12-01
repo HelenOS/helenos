@@ -38,6 +38,7 @@
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <assert.h>
+#include <macros.h>
 #include <bool.h>
 
 #include "config.h"
@@ -124,7 +125,8 @@ static void tinput_display_tail(tinput_t *ti, int start, int pad)
 {
 	int i;
 
-	console_goto(fphone(stdout), ti->col0 + start, ti->row0);
+	console_goto(fphone(stdout), (ti->col0 + start) % ti->con_cols,
+	    ti->row0 + (ti->col0 + start) / ti->con_cols);
 	printf("%ls", ti->buffer + start);
 	for (i = 0; i < pad; ++i)
 		putchar(' ');
@@ -138,18 +140,38 @@ static char *tinput_get_str(tinput_t *ti)
 
 static void tinput_position_caret(tinput_t *ti)
 {
-	console_goto(fphone(stdout), ti->col0 + ti->pos, ti->row0);
+	console_goto(fphone(stdout), (ti->col0 + ti->pos) % ti->con_cols,
+	    ti->row0 + (ti->col0 + ti->pos) / ti->con_cols);
+}
+
+/** Update row0 in case the screen could have scrolled. */
+static void tinput_update_origin(tinput_t *ti)
+{
+	int width, rows;
+
+	width = ti->col0 + ti->nc;
+	rows = (width / ti->con_cols) + 1;
+ 
+	/* Update row0 if the screen scrolled. */
+	if (ti->row0 + rows > ti->con_rows)
+		ti->row0 = ti->con_rows - rows;	
 }
 
 static void tinput_insert_char(tinput_t *ti, wchar_t c)
 {
 	int i;
+	int new_width, new_height;
 
 	if (ti->nc == INPUT_MAX)
 		return;
 
-	if (ti->col0 + ti->nc >= ti->con_cols - 1)
-		return;
+	new_width = ti->col0 + ti->nc + 1;
+	if (new_width % ti->con_cols == 0) {
+		/* Advancing to new line. */
+		new_height = (new_width / ti->con_cols) + 1;
+		if (new_height >= ti->con_rows)
+			return; /* Disallow text longer than 1 page for now. */
+	}
 
 	for (i = ti->nc; i > ti->pos; --i)
 		ti->buffer[i] = ti->buffer[i - 1];
@@ -160,6 +182,7 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	ti->buffer[ti->nc] = '\0';
 
 	tinput_display_tail(ti, ti->pos - 1, 0);
+	tinput_update_origin(ti);
 	tinput_position_caret(ti);
 }
 
@@ -238,6 +261,16 @@ static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
 	tinput_position_caret(ti);
 }
 
+static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir)
+{
+	if (dir == seek_forward)
+		ti->pos = min(ti->pos + ti->con_cols, ti->nc);
+	else 
+		ti->pos = max(0, ti->pos - ti->con_cols);
+
+	tinput_position_caret(ti);
+}
+
 static void tinput_seek_max(tinput_t *ti, seek_dir_t dir)
 {
 	if (dir == seek_backward)
@@ -297,6 +330,7 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 
 	tinput_set_str(ti, ti->history[ti->hpos]);
 	tinput_display_tail(ti, 0, pad);
+	tinput_update_origin(ti);
 	tinput_position_caret(ti);
 }
 
@@ -321,6 +355,7 @@ static char *tinput_read(tinput_t *ti)
 
 	ti->pos = 0;
 	ti->nc = 0;
+	ti->buffer[0] = '\0';
 
 	while (true) {
 		fflush(stdout);
@@ -338,6 +373,12 @@ static char *tinput_read(tinput_t *ti)
 				break;
 			case KC_RIGHT:
 				tinput_seek_word(ti, seek_forward);
+				break;
+			case KC_UP:
+				tinput_seek_vertical(ti, seek_backward);
+				break;
+			case KC_DOWN:
+				tinput_seek_vertical(ti, seek_forward);
 				break;
 			}
 		}
@@ -380,6 +421,8 @@ static char *tinput_read(tinput_t *ti)
 	}
 
 done:
+	ti->pos = ti->nc;
+	tinput_position_caret(ti);
 	putchar('\n');
 
 	str = tinput_get_str(ti);
