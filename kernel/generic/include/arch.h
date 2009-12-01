@@ -38,6 +38,7 @@
 #include <arch/arch.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <mm/as.h>
 
 #define DEFAULT_CONTEXT		0
 
