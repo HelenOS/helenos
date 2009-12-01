@@ -811,5 +811,12 @@ unative_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 	    sizeof(THREAD->tid));
 }
 
+/** Syscall wrapper for sleeping. */
+unative_t sys_thread_usleep(uint32_t usec)
+{
+	thread_usleep(usec);	
+	return 0;
+}
+
 /** @}
  */

@@ -262,6 +262,7 @@ extern unative_t sys_thread_create(uspace_arg_t *, char *, size_t,
     thread_id_t *);
 extern unative_t sys_thread_exit(int);
 extern unative_t sys_thread_get_id(thread_id_t *);
+extern unative_t sys_thread_usleep(uint32_t);
 
 #endif
 
