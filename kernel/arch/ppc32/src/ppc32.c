@@ -43,6 +43,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/ofw/pci.h>
 #include <userspace.h>
+#include <mm/page.h>
 #include <proc/uarg.h>
 #include <console/console.h>
 #include <ddi/irq.h>

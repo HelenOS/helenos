@@ -54,6 +54,7 @@
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
+#include <mm/as.h>
 
 #define TASK_NAME_BUFLEN	20
 

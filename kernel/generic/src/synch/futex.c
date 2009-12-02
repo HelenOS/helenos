@@ -89,7 +89,7 @@ void futex_init(void)
 
 /** Initialize kernel futex structure.
  *
- * @param futex Kernel futex structure.
+ * @param futex		Kernel futex structure.
  */
 void futex_initialize(futex_t *futex)
 {
@@ -101,15 +101,13 @@ void futex_initialize(futex_t *futex)
 
 /** Sleep in futex wait queue.
  *
- * @param uaddr Userspace address of the futex counter.
- * @param usec If non-zero, number of microseconds this thread is willing to
- *     sleep.
- * @param flags Select mode of operation.
+ * @param uaddr		Userspace address of the futex counter.
  *
- * @return One of ESYNCH_TIMEOUT, ESYNCH_OK_ATOMIC and ESYNCH_OK_BLOCKED. See
- *     synch.h. If there is no physical mapping for uaddr ENOENT is returned.
+ * @return		If there is no physical mapping for uaddr ENOENT is
+ *			returned. Otherwise returns a wait result as defined in
+ *			synch.h.
  */
-unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
+unative_t sys_futex_sleep(uintptr_t uaddr)
 {
 	futex_t *futex;
 	uintptr_t paddr;
@@ -139,9 +137,7 @@ unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_begin();
 #endif
-	rc = waitq_sleep_timeout(&futex->wq, usec, flags |
-	    SYNCH_FLAGS_INTERRUPTIBLE);
-
+	rc = waitq_sleep_timeout(&futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE); 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
@@ -150,9 +146,9 @@ unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags)
 
 /** Wakeup one thread waiting in futex wait queue.
  *
- * @param uaddr Userspace address of the futex counter.
+ * @param uaddr		Userspace address of the futex counter.
  *
- * @return ENOENT if there is no physical mapping for uaddr.
+ * @return		ENOENT if there is no physical mapping for uaddr.
  */
 unative_t sys_futex_wakeup(uintptr_t uaddr)
 {
@@ -189,9 +185,9 @@ unative_t sys_futex_wakeup(uintptr_t uaddr)
  *
  * If the structure does not exist already, a new one is created.
  *
- * @param paddr Physical address of the userspace futex counter.
+ * @param paddr		Physical address of the userspace futex counter.
  *
- * @return Address of the kernel futex structure.
+ * @return		Address of the kernel futex structure.
  */
 futex_t *futex_find(uintptr_t paddr)
 {
@@ -283,10 +279,10 @@ gain_write_access:
 
 /** Compute hash index into futex hash table.
  *
- * @param key Address where the key (i.e. physical address of futex counter) is
- *     stored.
+ * @param key		Address where the key (i.e. physical address of futex
+ *			counter) is stored.
  *
- * @return Index into futex hash table.
+ * @return		Index into futex hash table.
  */
 size_t futex_ht_hash(unative_t *key)
 {
@@ -295,10 +291,10 @@ size_t futex_ht_hash(unative_t *key)
 
 /** Compare futex hash table item with a key.
  *
- * @param key Address where the key (i.e. physical address of futex counter) is
- *     stored.
+ * @param key		Address where the key (i.e. physical address of futex
+ *			counter) is stored.
  *
- * @return True if the item matches the key. False otherwise.
+ * @return		True if the item matches the key. False otherwise.
  */
 bool futex_ht_compare(unative_t *key, size_t keys, link_t *item)
 {
@@ -312,7 +308,7 @@ bool futex_ht_compare(unative_t *key, size_t keys, link_t *item)
 
 /** Callback for removal items from futex hash table.
  *
- * @param item Item removed from the hash table.
+ * @param item		Item removed from the hash table.
  */
 void futex_ht_remove_callback(link_t *item)
 {

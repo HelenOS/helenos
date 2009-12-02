@@ -35,6 +35,7 @@
 
 #include <arch/mm/as.h>
 #include <genarch/mm/as_pt.h>
+#include <genarch/mm/page_pt.h>
 #include <genarch/mm/asid_fifo.h>
 #include <mm/as.h>
 #include <arch.h>

@@ -110,13 +110,14 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_create,
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
+	(syshandler_t) sys_thread_usleep,
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
-	(syshandler_t) sys_futex_sleep_timeout,
+	(syshandler_t) sys_futex_sleep,
 	(syshandler_t) sys_futex_wakeup,
 	(syshandler_t) sys_smc_coherence,
 	
