@@ -38,6 +38,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/setjmp.S
 
+GCC_CFLAGS += -march=pentium
 LFLAGS += -N
 
 ENDIANESS = LE
