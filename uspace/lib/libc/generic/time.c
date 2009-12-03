@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -188,22 +188,22 @@ time_t time(time_t *tloc)
 }
 
 /** Wait unconditionally for specified number of microseconds */
-int usleep(unsigned long usec)
+int usleep(useconds_t usec)
 {
-	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);	
+	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
 	return 0;
 }
 
 /** Wait unconditionally for specified number of seconds */
-unsigned int sleep(unsigned int seconds)
+unsigned int sleep(unsigned int sec)
 {
 	/* Sleep in 1000 second steps to support
 	   full argument range */
-	while (seconds > 0) {
-		unsigned int period = (seconds > 1000) ? 1000 : seconds;
+	while (sec > 0) {
+		unsigned int period = (sec > 1000) ? 1000 : sec;
 	
 		usleep(period * 1000000);
-		seconds -= period;
+		sec -= period;
 	}
 	return 0;
 }
