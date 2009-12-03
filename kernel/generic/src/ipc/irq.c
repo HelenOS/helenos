@@ -417,7 +417,6 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			break;
 		case CMD_ACCEPT:
 			return IRQ_ACCEPT;
-			break;
 		case CMD_DECLINE:
 		default:
 			return IRQ_DECLINE;

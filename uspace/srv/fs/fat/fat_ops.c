@@ -362,11 +362,16 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					return (rc == EOK) ? ENOMEM : rc;
 				}
 				rc = fat_node_get_core(&nodep, idx);
-				assert(rc == EOK);
 				fibril_mutex_unlock(&idx->lock);
-				(void) block_put(b);
+				if (rc != EOK) {
+					(void) block_put(b);
+					return rc;
+				}
 				*rfn = FS_NODE(nodep);
-				return EOK;
+				rc = block_put(b);
+				if (rc != EOK)
+					(void) fat_node_put(*rfn);
+				return rc;
 			}
 		}
 		rc = block_put(b);
@@ -1071,11 +1076,20 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			bytes = min(bytes, nodep->size - pos);
 			rc = fat_block_get(&b, bs, nodep, pos / bps,
 			    BLOCK_FLAGS_NONE);
-			assert(rc == EOK);
+			if (rc != EOK) {
+				fat_node_put(fn);
+				ipc_answer_0(callid, rc);
+				ipc_answer_0(rid, rc);
+				return;
+			}
 			(void) async_data_read_finalize(callid, b->data + pos % bps,
 			    bytes);
 			rc = block_put(b);
-			assert(rc == EOK);
+			if (rc != EOK) {
+				fat_node_put(fn);
+				ipc_answer_0(rid, rc);
+				return;
+			}
 		}
 	} else {
 		unsigned bnum;
@@ -1099,7 +1113,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 
 			rc = fat_block_get(&b, bs, nodep, bnum,
 			    BLOCK_FLAGS_NONE);
-			assert(rc == EOK);
+			if (rc != EOK)
+				goto err;
 			for (o = pos % (bps / sizeof(fat_dentry_t));
 			    o < bps / sizeof(fat_dentry_t);
 			    o++, pos++) {
@@ -1110,32 +1125,42 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 					continue;
 				case FAT_DENTRY_LAST:
 					rc = block_put(b);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto err;
 					goto miss;
 				default:
 				case FAT_DENTRY_VALID:
 					fat_dentry_name_get(d, name);
 					rc = block_put(b);
-					assert(rc == EOK);
+					if (rc != EOK)
+						goto err;
 					goto hit;
 				}
 			}
 			rc = block_put(b);
-			assert(rc == EOK);
+			if (rc != EOK)
+				goto err;
 			bnum++;
 		}
 miss:
-		fat_node_put(fn);
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_1(rid, ENOENT, 0);
+		rc = fat_node_put(fn);
+		ipc_answer_0(callid, rc != EOK ? rc : ENOENT);
+		ipc_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
 		return;
+
+err:
+		(void) fat_node_put(fn);
+		ipc_answer_0(callid, rc);
+		ipc_answer_0(rid, rc);
+		return;
+
 hit:
 		(void) async_data_read_finalize(callid, name, str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 
-	fat_node_put(fn);
-	ipc_answer_1(rid, EOK, (ipcarg_t)bytes);
+	rc = fat_node_put(fn);
+	ipc_answer_1(rid, rc, (ipcarg_t)bytes);
 }
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
@@ -1146,7 +1171,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
-	size_t bytes;
+	size_t bytes, size;
 	block_t *b;
 	uint16_t bps;
 	unsigned spc;
@@ -1169,7 +1194,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
-		fat_node_put(fn);
+		(void) fat_node_put(fn);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -1200,61 +1225,97 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * next block size boundary.
 		 */
 		rc = fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_node_put(fn);
+			ipc_answer_0(callid, rc);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		rc = fat_block_get(&b, bs, nodep, pos / bps, flags);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_node_put(fn);
+			ipc_answer_0(callid, rc);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		(void) async_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_node_put(fn);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		if (pos + bytes > nodep->size) {
 			nodep->size = pos + bytes;
 			nodep->dirty = true;	/* need to sync node */
 		}
-		ipc_answer_2(rid, EOK, bytes, nodep->size);	
-		fat_node_put(fn);
+		size = nodep->size;
+		rc = fat_node_put(fn);
+		ipc_answer_2(rid, rc, bytes, nodep->size);
 		return;
 	} else {
 		/*
 		 * This is the more difficult case. We must allocate new
 		 * clusters for the node and zero them out.
 		 */
-		int status;
 		unsigned nclsts;
 		fat_cluster_t mcl, lcl; 
  
 		nclsts = (ROUND_UP(pos + bytes, bpc) - boundary) / bpc;
 		/* create an independent chain of nclsts clusters in all FATs */
-		status = fat_alloc_clusters(bs, dev_handle, nclsts, &mcl, &lcl);
-		if (status != EOK) {
+		rc = fat_alloc_clusters(bs, dev_handle, nclsts, &mcl, &lcl);
+		if (rc != EOK) {
 			/* could not allocate a chain of nclsts clusters */
-			fat_node_put(fn);
-			ipc_answer_0(callid, status);
-			ipc_answer_0(rid, status);
+			(void) fat_node_put(fn);
+			ipc_answer_0(callid, rc);
+			ipc_answer_0(rid, rc);
 			return;
 		}
 		/* zero fill any gaps */
 		rc = fat_fill_gap(bs, nodep, mcl, pos);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_free_clusters(bs, dev_handle, mcl);
+			(void) fat_node_put(fn);
+			ipc_answer_0(callid, rc);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		rc = _fat_block_get(&b, bs, dev_handle, lcl, (pos / bps) % spc,
 		    flags);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_free_clusters(bs, dev_handle, mcl);
+			(void) fat_node_put(fn);
+			ipc_answer_0(callid, rc);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		(void) async_data_write_finalize(callid, b->data + pos % bps,
 		    bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);
-		assert(rc == EOK);
+		if (rc != EOK) {
+			(void) fat_free_clusters(bs, dev_handle, mcl);
+			(void) fat_node_put(fn);
+			ipc_answer_0(rid, rc);
+			return;
+		}
 		/*
 		 * Append the cluster chain starting in mcl to the end of the
 		 * node's cluster chain.
 		 */
 		rc = fat_append_clusters(bs, nodep, mcl);
-		assert(rc == EOK);
-		nodep->size = pos + bytes;
+		if (rc != EOK) {
+			(void) fat_free_clusters(bs, dev_handle, mcl);
+			(void) fat_node_put(fn);
+			ipc_answer_0(rid, rc);
+			return;
+		}
+		nodep->size = size = pos + bytes;
 		nodep->dirty = true;		/* need to sync node */
-		ipc_answer_2(rid, EOK, bytes, nodep->size);
-		fat_node_put(fn);
+		rc = fat_node_put(fn);
+		ipc_answer_2(rid, rc, bytes, size);
 		return;
 	}
 }

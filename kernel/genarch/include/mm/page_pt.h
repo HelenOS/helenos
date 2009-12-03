@@ -43,9 +43,10 @@
 #ifndef KERN_PAGE_PT_H_
 #define KERN_PAGE_PT_H_
 
-#include <arch/types.h>
 #include <mm/as.h>
 #include <mm/page.h>
+#include <arch/mm/page.h>
+#include <arch/types.h>
 
 /*
  * Number of entries in each level.

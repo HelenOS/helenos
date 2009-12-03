@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,21 +26,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+"""
+Add a source/object file pair to a Stanse jobfile
+"""
 
+import sys
+import os
+import fcntl
 
-## Common names
-#
+def usage(prname):
+	"Print usage syntax"
+	print prname + " <JOBFILE> <SOURCE> <OBJECT> [OPTIONS ...]"
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-RAW = kernel.raw
-BIN = kernel.bin
-MAP = kernel.map
-JOB = kernel.job
-MAP_PREV = $(MAP).prev
-DISASM = kernel.disasm
-DUMP = kernel.dump
-REAL_MAP = generic/src/debug/real_map
+def main():
+	if (len(sys.argv) < 4):
+		usage(sys.argv[0])
+		return
+	
+	jobfname = sys.argv[1]
+	srcfname = sys.argv[2]
+	objfname = sys.argv[3]
+	cwd = os.getcwd()
+	options = " ".join(sys.argv[4:])
+	
+	jobfile = file(jobfname, "a")
+	fcntl.lockf(jobfile, fcntl.LOCK_EX)
+	jobfile.write("{%s},{%s},{%s},{%s}\n" % (srcfname, objfname, cwd, options))
+	fcntl.lockf(jobfile, fcntl.LOCK_UN)
+	jobfile.close()
 
-ARCH_INCLUDE = generic/include/arch
-GENARCH_INCLUDE = generic/include/genarch
+if __name__ == '__main__':
+	main()

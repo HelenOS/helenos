@@ -79,19 +79,6 @@ typedef struct {
 #define PRIx64 "llx"	/**< Format for hexadecimal (u)int64_t. */
 #define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
 
-/** Page Table Entry. */
-typedef struct {
-	unsigned g : 1;			/**< Global bit. */
-	unsigned p : 1;			/**< Present bit. */
-	unsigned d : 1;			/**< Dirty bit. */
-	unsigned cacheable : 1;		/**< Cacheable bit. */
-	unsigned : 1;			/**< Unused. */
-	unsigned soft_valid : 1;	/**< Valid content even if not present. */
-	unsigned pfn : 24;		/**< Physical frame number. */
-	unsigned w : 1;			/**< Page writable bit. */
-	unsigned a : 1;			/**< Accessed bit. */
-} pte_t;
-
 #endif
 
 /** @}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,33 @@
 /** @file
  */
 
-#ifndef LIBC_ATOMIC_H_
-#define LIBC_ATOMIC_H_
+#ifndef LIBC_ATOMICDFLT_H_
+#define LIBC_ATOMICDFLT_H_
 
-#include <libarch/atomic.h>
+#ifndef LIBC_ARCH_ATOMIC_H_
+#error This file cannot be included directly, include atomic.h instead.
+#endif
+
+#include <bool.h>
+
+typedef struct atomic {
+	volatile long count;
+} atomic_t;
+
+static inline void atomic_set(atomic_t *val, long i)
+{
+        val->count = i;
+}
+
+static inline long atomic_get(atomic_t *val)
+{
+        return val->count;
+}
+
+static inline bool cas(atomic_t *val, long ov, long nv)
+{
+	return __sync_bool_compare_and_swap(&val->count, ov, nv);
+}
 
 #endif
 

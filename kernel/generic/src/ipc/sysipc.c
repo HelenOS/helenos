@@ -60,7 +60,7 @@
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
 	if (phoneid > IPC_MAX_PHONES) { \
-		err; \
+		err \
 	} \
 	phone = &TASK->phones[phoneid]; \
 }
@@ -121,7 +121,6 @@ static inline int method_is_immutable(unative_t method)
 	case IPC_M_DATA_WRITE:
 	case IPC_M_DATA_READ:
 		return 1;
-		break;
 	default:
 		return 0;
 	}
@@ -375,7 +374,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	case IPC_M_CONNECTION_CLONE: {
 		phone_t *cloned_phone;
 		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
-		    return ENOENT);
+		    return ENOENT;);
 		phones_lock(cloned_phone, phone);
 		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 		    phone->state != IPC_PHONE_CONNECTED) {
@@ -530,41 +529,44 @@ static int process_request(answerbox_t *box, call_t *call)
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
     unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data)
 {
-	call_t call;
+	call_t *call;
 	phone_t *phone;
 	int res;
 	int rc;
 	
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
 
-	ipc_call_static_init(&call);
-	IPC_SET_METHOD(call.data, method);
-	IPC_SET_ARG1(call.data, arg1);
-	IPC_SET_ARG2(call.data, arg2);
-	IPC_SET_ARG3(call.data, arg3);
+	call = ipc_call_alloc(0);
+	IPC_SET_METHOD(call->data, method);
+	IPC_SET_ARG1(call->data, arg1);
+	IPC_SET_ARG2(call->data, arg2);
+	IPC_SET_ARG3(call->data, arg3);
 	/*
 	 * To achieve deterministic behavior, zero out arguments that are beyond
 	 * the limits of the fast version.
 	 */
-	IPC_SET_ARG4(call.data, 0);
-	IPC_SET_ARG5(call.data, 0);
+	IPC_SET_ARG4(call->data, 0);
+	IPC_SET_ARG5(call->data, 0);
 
-	if (!(res = request_preprocess(&call, phone))) {
+	if (!(res = request_preprocess(call, phone))) {
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_begin();
 #endif
-		rc = ipc_call_sync(phone, &call);
+		rc = ipc_call_sync(phone, call);
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_end();
 #endif
-		if (rc != EOK)
+		if (rc != EOK) {
+			/* The call will be freed by ipc_cleanup(). */
 			return rc;
-		process_answer(&call);
+		}
+		process_answer(call);
 
 	} else {
-		IPC_SET_RETVAL(call.data, res);
+		IPC_SET_RETVAL(call->data, res);
 	}
-	rc = STRUCT_TO_USPACE(&data->args, &call.data.args);
+	rc = STRUCT_TO_USPACE(&data->args, &call->data.args);
+	ipc_call_free(call);
 	if (rc != 0)
 		return rc;
 
@@ -583,34 +585,40 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
     ipc_data_t *reply)
 {
-	call_t call;
+	call_t *call;
 	phone_t *phone;
 	int res;
 	int rc;
 
-	ipc_call_static_init(&call);
-	rc = copy_from_uspace(&call.data.args, &question->args,
-	    sizeof(call.data.args));
-	if (rc != 0)
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
+
+	call = ipc_call_alloc(0);
+	rc = copy_from_uspace(&call->data.args, &question->args,
+	    sizeof(call->data.args));
+	if (rc != 0) {
+		ipc_call_free(call);
 		return (unative_t) rc;
+	}
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
 
-	if (!(res = request_preprocess(&call, phone))) {
+	if (!(res = request_preprocess(call, phone))) {
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_begin();
 #endif
-		rc = ipc_call_sync(phone, &call);
+		rc = ipc_call_sync(phone, call);
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_end();
 #endif
-		if (rc != EOK)
+		if (rc != EOK) {
+			/* The call will be freed by ipc_cleanup(). */
 			return rc;
-		process_answer(&call);
+		}
+		process_answer(call);
 	} else 
-		IPC_SET_RETVAL(call.data, res);
+		IPC_SET_RETVAL(call->data, res);
 
-	rc = STRUCT_TO_USPACE(&reply->args, &call.data.args);
+	rc = STRUCT_TO_USPACE(&reply->args, &call->data.args);
+	ipc_call_free(call);
 	if (rc != 0)
 		return rc;
 
@@ -657,7 +665,7 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
 
 	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -696,7 +704,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL);
+	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &data->args,
@@ -746,7 +754,7 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 	
 	call->flags |= IPC_CALL_FORWARDED;
 
-	GET_CHECK_PHONE(phone, phoneid, { 
+	GET_CHECK_PHONE(phone, phoneid, {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return ENOENT;
@@ -951,7 +959,7 @@ unative_t sys_ipc_hangup(int phoneid)
 {
 	phone_t *phone;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT);
+	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
 
 	if (ipc_phone_hangup(phone))
 		return -1;
@@ -990,8 +998,6 @@ restart:
 		return 0;
 
 	if (call->flags & IPC_CALL_NOTIF) {
-		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
-
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
 		
@@ -1004,8 +1010,6 @@ restart:
 
 	if (call->flags & IPC_CALL_ANSWERED) {
 		process_answer(call);
-
-		ASSERT(! (call->flags & IPC_CALL_STATIC_ALLOC));
 
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);
