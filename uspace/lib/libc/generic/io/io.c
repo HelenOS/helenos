@@ -340,11 +340,16 @@ int fclose(FILE *stream)
  */
 size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left = size * nmemb;
-	size_t done = 0;
-	
+	size_t left, done;
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
 	/* Make sure no data is pending write. */
 	_fflushbuf(stream);
+
+	left = size * nmemb;
+	done = 0;
 	
 	while ((left > 0) && (!stream->error) && (!stream->eof)) {
 		ssize_t rd = read(stream->fd, buf + done, left);
@@ -364,9 +369,15 @@ size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left = size * nmemb;
-	size_t done = 0;
-	
+	size_t left;
+	size_t done;
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
+	left = size * nmemb;
+	done = 0;
+
 	while ((left > 0) && (!stream->error)) {
 		ssize_t wr;
 		
@@ -420,7 +431,10 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	size_t i;
 	uint8_t b;
 	bool need_flush;
-	
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
 	/* If not buffered stream, write out directly. */
 	if (stream->btype == _IONBF) {
 		now = _fwrite(buf, size, nmemb, stream);
