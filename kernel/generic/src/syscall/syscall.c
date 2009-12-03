@@ -61,15 +61,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	unative_t rc;
 
 #ifdef CONFIG_UDEBUG
-	bool debug;
-
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
-	 * test need not be precise in either way.
+	 * test need not be precise in either direction.
 	 */
-	debug = THREAD->udebug.active;
-	
-	if (debug) {
+	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 	}
 #endif
@@ -86,7 +82,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		thread_exit();
 	
 #ifdef CONFIG_UDEBUG
-	if (debug) {
+	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
 	
 		/*
