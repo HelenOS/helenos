@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <align.h>
 #include <macros.h>
+#include <clipboard.h>
 #include <bool.h>
 
 #include "sheet.h"
@@ -118,6 +119,7 @@ static int file_insert(char *fname);
 static int file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *filename_prompt(char const *prompt, char const *init_value);
+static char *range_get_str(spt_t const *spos, spt_t const *epos);
 
 static void pane_text_display(void);
 static void pane_row_display(void);
@@ -132,7 +134,10 @@ static void caret_update(void);
 static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
 
 static bool selection_active(void);
+static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
+static void selection_copy(void);
+static void insert_clipboard_data(void);
 
 static void pt_get_sof(spt_t *pt);
 static void pt_get_eof(spt_t *pt);
@@ -320,6 +325,15 @@ static void key_handle_ctrl(console_event_t const *ev)
 		break;
 	case KC_E:
 		file_save_as();
+		break;
+	case KC_C:
+		selection_copy();
+		break;
+	case KC_V:
+		selection_delete();
+		insert_clipboard_data();
+		pane.rflags |= REDRAW_TEXT;
+		caret_update();
 		break;
 	default:
 		break;
@@ -576,6 +590,42 @@ static int file_save_range(char const *fname, spt_t const *spos,
 		return EIO;
 
 	return EOK;
+}
+
+/** Return contents of range as a new string. */
+static char *range_get_str(spt_t const *spos, spt_t const *epos)
+{
+	char *buf;
+	spt_t sp, bep;
+	size_t bytes;
+	size_t buf_size, bpos;
+
+	buf_size = 1;
+
+	buf = malloc(buf_size);
+	if (buf == NULL)
+		return NULL;
+
+	bpos = 0;
+	sp = *spos;
+
+	while (true) {
+		sheet_copy_out(&doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
+		    &bep);
+		bytes = str_size(&buf[bpos]);
+		bpos += bytes;
+		sp = bep;
+
+		if (spt_equal(&bep, epos))
+			break;
+
+		buf_size *= 2;
+		buf = realloc(buf, buf_size);
+		if (buf == NULL)
+			return NULL;
+	}
+
+	return buf;
 }
 
 static void pane_text_display(void)
@@ -912,6 +962,20 @@ static bool selection_active(void)
 	return (tag_cmp(&pane.caret_pos, &pane.sel_start) != 0);
 }
 
+static void selection_get_points(spt_t *pa, spt_t *pb)
+{
+	spt_t pt;
+
+	tag_get_pt(&pane.sel_start, pa);
+	tag_get_pt(&pane.caret_pos, pb);
+
+	if (spt_cmp(pa, pb) > 0) {
+		pt = *pa;
+		*pa = *pb;
+		*pb = pt;
+	}
+}
+
 /** Delete selected text. */
 static void selection_delete(void)
 {
@@ -937,6 +1001,43 @@ static void selection_delete(void)
 		pane.rflags |= REDRAW_ROW;
 	else
 		pane.rflags |= REDRAW_TEXT;
+}
+
+static void selection_copy(void)
+{
+	spt_t pa, pb;
+	char *str;
+
+	selection_get_points(&pa, &pb);
+	str = range_get_str(&pa, &pb);
+	if (str == NULL || clipboard_put_str(str) != EOK) {
+		status_display("Copying to clipboard failed!");
+	}
+	free(str);
+}
+
+static void insert_clipboard_data(void)
+{
+	char *str;
+	size_t off;
+	wchar_t c;
+	int rc;
+
+	rc = clipboard_get_str(&str);
+	if (rc != EOK || str == NULL)
+		return;
+
+	off = 0;
+
+	while (true) {
+		c = str_decode(str, &off, STR_NO_LIMIT);
+		if (c == '\0')
+			break;
+
+		insert_char(c);
+	}
+
+	free(str);
 }
 
 /** Get start-of-file s-point. */
