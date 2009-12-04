@@ -30,13 +30,27 @@
  * @{
  */
 /** @file
+ * @brief System clipboard API.
+ *
+ * The clipboard data is stored in a file and it is shared by the entire
+ * system.
+ *
+ * @note Synchronization is missing. File locks would be ideal for the job.
  */
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <macros.h>
 #include <errno.h>
+#include <clipboard.h>
 
-static char *clipboard_data = NULL;
+/** File used to store clipboard data */
+#define CLIPBOARD_FILE "/data/clip"
+
+#define CHUNK_SIZE	4096
 
 /** Copy string to clipboard.
  *
@@ -45,20 +59,91 @@ static char *clipboard_data = NULL;
  *
  * @param str	String to put to clipboard or NULL.
  * @return	Zero on success or negative error code.
- *
  */
 int clipboard_put_str(const char *str)
 {
-	if (clipboard_data != NULL)
-		free(clipboard_data);
+	int fd;
+	const char *sp;
+	ssize_t to_write, written, left;
 
-	clipboard_data = str_dup(str);
+	fd = open(CLIPBOARD_FILE, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	if (fd < 0)
+		return EIO;
+
+	left = str_size(str);
+	sp = str;
+
+	while (left > 0) {
+		to_write = min(left, CHUNK_SIZE);
+		written = write(fd, sp, to_write);
+
+		if (written < 0) {
+			close(fd);
+			unlink(CLIPBOARD_FILE);
+			return EIO;
+		}
+
+		sp += written;
+		left -= written;
+	}
+
+	if (close(fd) != EOK) {
+		unlink(CLIPBOARD_FILE);
+		return EIO;
+	}
+
 	return EOK;
 }
 
+/** Get a copy of clipboard contents.
+ *
+ * Returns a new string that can be deallocated with free().
+ *
+ * @param str	Here pointer to the newly allocated string is stored.
+ * @return	Zero on success or negative error code.
+ */
 int clipboard_get_str(char **str)
 {
-	*str = (clipboard_data != NULL) ? str_dup(clipboard_data) : NULL;
+	int fd;
+	char *sbuf, *sp;
+	ssize_t to_read, n_read, left;
+	struct stat cbs;
+
+	if (stat(CLIPBOARD_FILE, &cbs) != EOK)
+		return EIO;
+
+	sbuf = malloc(cbs.size + 1);
+	if (sbuf == NULL)
+		return ENOMEM;
+
+	fd = open(CLIPBOARD_FILE, O_RDONLY);
+	if (fd < 0) {
+		free(sbuf);
+		return EIO;
+	}
+
+	sp = sbuf;
+	left = cbs.size;
+
+	while (left > 0) {
+		to_read = min(left, CHUNK_SIZE);
+		n_read = read(fd, sp, to_read);
+
+		if (n_read < 0) {
+			close(fd);
+			free(sbuf);
+			return EIO;
+		}
+
+		sp += n_read;
+		left -= n_read;
+	}
+
+	close(fd);
+
+	*sp = '\0';
+	*str = sbuf;
+
 	return EOK;
 }
 
