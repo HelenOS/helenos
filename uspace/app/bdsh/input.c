@@ -89,6 +89,7 @@ static char *tinput_read(tinput_t *ti);
 static void tinput_insert_string(tinput_t *ti, const char *str);
 static void tinput_sel_get_bounds(tinput_t *ti, int *sa, int *sb);
 static bool tinput_sel_active(tinput_t *ti);
+static void tinput_sel_all(tinput_t *ti);
 static void tinput_sel_delete(tinput_t *ti);
 static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev);
 static void tinput_key_shift(tinput_t *ti, console_event_t *ev);
@@ -254,7 +255,7 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	wchar_t c;
 	size_t off;
 
-	ilen = min(str_length(str), INPUT_MAX - ti->nc);
+	ilen = min((ssize_t) str_length(str), INPUT_MAX - ti->nc);
 	if (ilen == 0)
 		return;
 
@@ -476,6 +477,14 @@ static bool tinput_sel_active(tinput_t *ti)
 	return ti->sel_start != ti->pos;
 }
 
+static void tinput_sel_all(tinput_t *ti)
+{
+	ti->sel_start = 0;
+	ti->pos = ti->nc;
+	tinput_display_tail(ti, 0, 0);
+	tinput_position_caret(ti);
+}
+
 static void tinput_sel_delete(tinput_t *ti)
 {
 	int sa, sb;
@@ -653,11 +662,18 @@ static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
 	case KC_DOWN:
 		tinput_seek_vertical(ti, seek_forward, false);
 		break;
+	case KC_X:
+		tinput_sel_copy_to_cb(ti);
+		tinput_sel_delete(ti);
+		break;
 	case KC_C:
 		tinput_sel_copy_to_cb(ti);
 		break;
 	case KC_V:
 		tinput_paste_from_cb(ti);
+		break;
+	case KC_A:
+		tinput_sel_all(ti);
 		break;
 	default:
 		break;

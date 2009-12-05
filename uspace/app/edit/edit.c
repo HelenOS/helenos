@@ -134,6 +134,7 @@ static void caret_update(void);
 static void caret_move(int drow, int dcolumn, enum dir_spec align_dir);
 
 static bool selection_active(void);
+static void selection_sel_all(void);
 static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
 static void selection_copy(void);
@@ -334,6 +335,15 @@ static void key_handle_ctrl(console_event_t const *ev)
 		insert_clipboard_data();
 		pane.rflags |= REDRAW_TEXT;
 		caret_update();
+		break;
+	case KC_X:
+		selection_copy();
+		selection_delete();
+		pane.rflags |= REDRAW_TEXT;
+		caret_update();
+		break;
+	case KC_A:
+		selection_sel_all();
 		break;
 	default:
 		break;
@@ -1001,6 +1011,20 @@ static void selection_delete(void)
 		pane.rflags |= REDRAW_ROW;
 	else
 		pane.rflags |= REDRAW_TEXT;
+}
+
+static void selection_sel_all(void)
+{
+	spt_t spt, ept;
+
+	pt_get_sof(&spt);
+	pt_get_eof(&ept);
+	sheet_remove_tag(&doc.sh, &pane.sel_start);
+	sheet_place_tag(&doc.sh, &spt, &pane.sel_start);
+	sheet_remove_tag(&doc.sh, &pane.caret_pos);
+	sheet_place_tag(&doc.sh, &ept, &pane.caret_pos);
+
+	pane.rflags |= REDRAW_TEXT;
 }
 
 static void selection_copy(void)
