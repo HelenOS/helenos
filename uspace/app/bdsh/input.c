@@ -50,20 +50,32 @@
 
 #define HISTORY_LEN 10
 
+/** Text input field. */
 typedef struct {
+	/** Buffer holding text currently being edited */
 	wchar_t buffer[INPUT_MAX];
+	/** Screen coordinates of the top-left corner of the text field */
 	int col0, row0;
+	/** Screen dimensions */
 	int con_cols, con_rows;
+	/** Number of characters in @c buffer */
 	int nc;
+	/** Caret position within buffer */
 	int pos;
+	/** Selection mark position within buffer */
 	int sel_start;
 
+	/** History (dynamically allocated strings) */
 	char *history[1 + HISTORY_LEN];
+	/** Number of entries in @c history, not counting [0] */
 	int hnum;
+	/** Current position in history */
 	int hpos;
+	/** Exit flag */
 	bool done;
 } tinput_t;
 
+/** Seek direction */
 typedef enum {
 	seek_backward = -1,
 	seek_forward = 1
@@ -195,7 +207,7 @@ static void tinput_update_origin(tinput_t *ti)
 
 	width = ti->col0 + ti->nc;
 	rows = (width / ti->con_cols) + 1;
- 
+
 	/* Update row0 if the screen scrolled. */
 	if (ti->row0 + rows > ti->con_rows)
 		ti->row0 = ti->con_rows - rows;	
@@ -239,7 +251,7 @@ static void tinput_backspace(tinput_t *ti)
 		tinput_sel_delete(ti);
 		return;
 	}
-  
+
 	if (ti->pos == 0)
 		return;
 
@@ -460,6 +472,10 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 	tinput_position_caret(ti);
 }
 
+/** Initialize text input field.
+ *
+ * Must be called before using the field. It clears the history.
+ */
 static void tinput_init(tinput_t *ti)
 {
 	ti->hnum = 0;
@@ -467,6 +483,7 @@ static void tinput_init(tinput_t *ti)
 	ti->history[0] = NULL;
 }
 
+/** Read in one line of input. */
 static char *tinput_read(tinput_t *ti)
 {
 	console_event_t ev;
@@ -632,7 +649,6 @@ static void tinput_key_unmod(tinput_t *ti, console_event_t *ev)
 		break;
 	}
 }
-
 
 void get_input(cliuser_t *usr)
 {
