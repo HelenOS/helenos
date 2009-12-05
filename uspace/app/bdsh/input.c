@@ -37,6 +37,7 @@
 #include <io/style.h>
 #include <io/color.h>
 #include <vfs/vfs.h>
+#include <clipboard.h>
 #include <errno.h>
 #include <assert.h>
 #include <bool.h>
@@ -448,6 +449,61 @@ static void tinput_sel_delete(tinput_t *ti)
 	tinput_position_caret(ti);
 }
 
+static void tinput_sel_copy_to_cb(tinput_t *ti)
+{
+	int sa, sb;
+	wchar_t tmp_c;
+	char *str;
+
+	tinput_sel_get_bounds(ti, &sa, &sb);
+
+	if (sb < ti->nc) {
+		tmp_c = ti->buffer[sb];
+		ti->buffer[sb] = '\0';
+	}
+
+	str = wstr_to_astr(ti->buffer + sa);
+
+	if (sb < ti->nc)
+		ti->buffer[sb] = tmp_c;
+
+	if (str == NULL)
+		goto error;
+
+	if (clipboard_put_str(str) != EOK)
+		goto error;
+
+	free(str);
+	return;
+error:
+	return;
+	/* TODO: Give the user some warning. */
+}
+
+static void tinput_paste_from_cb(tinput_t *ti)
+{
+	char *str;
+	size_t off;
+	wchar_t c;
+	int rc;
+
+	rc = clipboard_get_str(&str);
+	if (rc != EOK || str == NULL)
+		return; /* TODO: Give the user some warning. */
+
+	off = 0;
+
+	while (true) {
+		c = str_decode(str, &off, STR_NO_LIMIT);
+		if (c == '\0')
+			break;
+
+		tinput_insert_char(ti, c);
+	}
+
+	free(str);
+}
+
 static void tinput_history_seek(tinput_t *ti, int offs)
 {
 	int pad;
@@ -562,6 +618,12 @@ static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
 		break;
 	case KC_DOWN:
 		tinput_seek_vertical(ti, seek_forward, false);
+		break;
+	case KC_C:
+		tinput_sel_copy_to_cb(ti);
+		break;
+	case KC_V:
+		tinput_paste_from_cb(ti);
 		break;
 	default:
 		break;
