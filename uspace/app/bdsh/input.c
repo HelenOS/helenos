@@ -54,7 +54,7 @@
 /** Text input field. */
 typedef struct {
 	/** Buffer holding text currently being edited */
-	wchar_t buffer[INPUT_MAX];
+	wchar_t buffer[INPUT_MAX + 1];
 	/** Screen coordinates of the top-left corner of the text field */
 	int col0, row0;
 	/** Screen dimensions */
