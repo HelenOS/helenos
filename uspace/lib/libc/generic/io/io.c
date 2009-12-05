@@ -479,7 +479,7 @@ int fputc(wchar_t c, FILE *stream)
 	size_t sz = 0;
 	
 	if (chr_encode(c, buf, &sz, STR_BOUNDS(1)) == EOK) {
-		size_t wr = fwrite(buf, sz, 1, stream);
+		size_t wr = fwrite(buf, 1, sz, stream);
 		
 		if (wr < sz)
 			return EOF;
