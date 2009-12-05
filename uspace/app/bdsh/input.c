@@ -38,6 +38,7 @@
 #include <io/color.h>
 #include <vfs/vfs.h>
 #include <clipboard.h>
+#include <macros.h>
 #include <errno.h>
 #include <assert.h>
 #include <bool.h>
@@ -85,6 +86,7 @@ typedef enum {
 static tinput_t tinput;
 
 static char *tinput_read(tinput_t *ti);
+static void tinput_insert_string(tinput_t *ti, const char *str);
 static void tinput_sel_get_bounds(tinput_t *ti, int *sa, int *sb);
 static bool tinput_sel_active(tinput_t *ti);
 static void tinput_sel_delete(tinput_t *ti);
@@ -240,6 +242,49 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	ti->sel_start = ti->pos;
 
 	tinput_display_tail(ti, ti->pos - 1, 0);
+	tinput_update_origin(ti);
+	tinput_position_caret(ti);
+}
+
+static void tinput_insert_string(tinput_t *ti, const char *str)
+{
+	int i;
+	int new_width, new_height;
+	int ilen;
+	wchar_t c;
+	size_t off;
+
+	ilen = min(str_length(str), INPUT_MAX - ti->nc);
+	if (ilen == 0)
+		return;
+
+	new_width = ti->col0 + ti->nc + ilen;
+	new_height = (new_width / ti->con_cols) + 1;
+	if (new_height >= ti->con_rows)
+		return; /* Disallow text longer than 1 page for now. */
+
+	for (i = ti->nc - 1; i >= ti->pos; --i)
+		ti->buffer[i + ilen] = ti->buffer[i];
+
+	off = 0; i = 0;
+	while (i < ilen) {
+		c = str_decode(str, &off, STR_NO_LIMIT);
+		if (c == '\0')
+			break;
+
+		/* Filter out non-printable chars. */
+		if (c < 32)
+			c = 32;
+
+		ti->buffer[i++] = c;
+	}
+
+	ti->pos += ilen;
+	ti->nc += ilen;
+	ti->buffer[ti->nc] = '\0';
+	ti->sel_start = ti->pos;
+
+	tinput_display_tail(ti, ti->pos - ilen, 0);
 	tinput_update_origin(ti);
 	tinput_position_caret(ti);
 }
@@ -483,24 +528,13 @@ error:
 static void tinput_paste_from_cb(tinput_t *ti)
 {
 	char *str;
-	size_t off;
-	wchar_t c;
 	int rc;
 
 	rc = clipboard_get_str(&str);
 	if (rc != EOK || str == NULL)
 		return; /* TODO: Give the user some warning. */
 
-	off = 0;
-
-	while (true) {
-		c = str_decode(str, &off, STR_NO_LIMIT);
-		if (c == '\0')
-			break;
-
-		tinput_insert_char(ti, c);
-	}
-
+	tinput_insert_string(ti, str);
 	free(str);
 }
 
