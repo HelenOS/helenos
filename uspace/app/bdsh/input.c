@@ -35,6 +35,7 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <io/style.h>
+#include <io/color.h>
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <assert.h>
@@ -55,10 +56,12 @@ typedef struct {
 	int con_cols, con_rows;
 	int nc;
 	int pos;
+	int sel_start;
 
 	char *history[1 + HISTORY_LEN];
 	int hnum;
 	int hpos;
+	bool done;
 } tinput_t;
 
 typedef enum {
@@ -69,6 +72,15 @@ typedef enum {
 static tinput_t tinput;
 
 static char *tinput_read(tinput_t *ti);
+static void tinput_sel_get_bounds(tinput_t *ti, int *sa, int *sb);
+static bool tinput_sel_active(tinput_t *ti);
+static void tinput_sel_delete(tinput_t *ti);
+static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev);
+static void tinput_key_shift(tinput_t *ti, console_event_t *ev);
+static void tinput_key_ctrl_shift(tinput_t *ti, console_event_t *ev);
+static void tinput_key_unmod(tinput_t *ti, console_event_t *ev);
+static void tinput_pre_seek(tinput_t *ti, bool shift_held);
+static void tinput_post_seek(tinput_t *ti, bool shift_held);
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
@@ -122,11 +134,44 @@ finit:
 
 static void tinput_display_tail(tinput_t *ti, int start, int pad)
 {
-	int i;
+	static wchar_t dbuf[INPUT_MAX + 1];
+	int sa, sb;
+	int i, p;
+
+	tinput_sel_get_bounds(ti, &sa, &sb);
 
 	console_goto(fphone(stdout), (ti->col0 + start) % ti->con_cols,
 	    ti->row0 + (ti->col0 + start) / ti->con_cols);
-	printf("%ls", ti->buffer + start);
+	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+
+	p = start;
+	if (p < sa) {
+		memcpy(dbuf, ti->buffer + p, (sa - p) * sizeof(wchar_t));
+		dbuf[sa - p] = '\0';
+		printf("%ls", dbuf);
+		p = sa;
+	}
+
+	if (p < sb) {
+		fflush(stdout);
+		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_RED, 0);
+		memcpy(dbuf, ti->buffer + p,
+		    (sb - p) * sizeof(wchar_t));
+		dbuf[sb - p] = '\0';
+		printf("%ls", dbuf);
+		p = sb;
+	}
+
+	fflush(stdout);
+	console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+
+	if (p < ti->nc) {
+		memcpy(dbuf, ti->buffer + p,
+		    (ti->nc - p) * sizeof(wchar_t));
+		dbuf[ti->nc - p] = '\0';
+		printf("%ls", dbuf);
+	}
+
 	for (i = 0; i < pad; ++i)
 		putchar(' ');
 	fflush(stdout);
@@ -179,6 +224,7 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	ti->pos += 1;
 	ti->nc += 1;
 	ti->buffer[ti->nc] = '\0';
+	ti->sel_start = ti->pos;
 
 	tinput_display_tail(ti, ti->pos - 1, 0);
 	tinput_update_origin(ti);
@@ -189,6 +235,11 @@ static void tinput_backspace(tinput_t *ti)
 {
 	int i;
 
+	if (tinput_sel_active(ti)) {
+		tinput_sel_delete(ti);
+		return;
+	}
+  
 	if (ti->pos == 0)
 		return;
 
@@ -197,6 +248,7 @@ static void tinput_backspace(tinput_t *ti)
 	ti->pos -= 1;
 	ti->nc -= 1;
 	ti->buffer[ti->nc] = '\0';
+	ti->sel_start = ti->pos;
 
 	tinput_display_tail(ti, ti->pos, 1);
 	tinput_position_caret(ti);
@@ -204,15 +256,24 @@ static void tinput_backspace(tinput_t *ti)
 
 static void tinput_delete(tinput_t *ti)
 {
+	if (tinput_sel_active(ti)) {
+		tinput_sel_delete(ti);
+		return;
+	}
+
 	if (ti->pos == ti->nc)
 		return;
 
 	ti->pos += 1;
+	ti->sel_start = ti->pos;
+
 	tinput_backspace(ti);
 }
 
-static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir)
+static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
+	tinput_pre_seek(ti, shift_held);
+
 	if (dir == seek_forward) {
 		if (ti->pos < ti->nc)
 			ti->pos += 1;
@@ -221,11 +282,13 @@ static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir)
 			ti->pos -= 1;
 	}
 
-	tinput_position_caret(ti);
+	tinput_post_seek(ti, shift_held);
 }
 
-static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
+static void tinput_seek_word(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
+	tinput_pre_seek(ti, shift_held);
+
 	if (dir == seek_forward) {
 		if (ti->pos == ti->nc)
 			return;
@@ -257,11 +320,13 @@ static void tinput_seek_word(tinput_t *ti, seek_dir_t dir)
 
 	}
 
-	tinput_position_caret(ti);
+	tinput_post_seek(ti, shift_held);
 }
 
-static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir)
+static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
+	tinput_pre_seek(ti, shift_held);
+
 	if (dir == seek_forward) {
 		if (ti->pos + ti->con_cols <= ti->nc)
 			ti->pos = ti->pos + ti->con_cols;
@@ -270,16 +335,40 @@ static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir)
 			ti->pos = ti->pos - ti->con_cols;
 	}
 
-	tinput_position_caret(ti);
+	tinput_post_seek(ti, shift_held);
 }
 
-static void tinput_seek_max(tinput_t *ti, seek_dir_t dir)
+static void tinput_seek_max(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
+	tinput_pre_seek(ti, shift_held);
+
 	if (dir == seek_backward)
 		ti->pos = 0;
 	else
 		ti->pos = ti->nc;
 
+	tinput_post_seek(ti, shift_held);
+}
+
+static void tinput_pre_seek(tinput_t *ti, bool shift_held)
+{
+	if (tinput_sel_active(ti) && !shift_held) {
+		/* Unselect and redraw. */
+		ti->sel_start = ti->pos;
+		tinput_display_tail(ti, 0, 0);
+		tinput_position_caret(ti);
+	}
+}
+
+static void tinput_post_seek(tinput_t *ti, bool shift_held)
+{
+	if (shift_held) {
+		/* Selecting text. Need redraw. */
+		tinput_display_tail(ti, 0, 0);
+	} else {
+		/* Shift not held. Keep selection empty. */
+		ti->sel_start = ti->pos;
+	}
 	tinput_position_caret(ti);
 }
 
@@ -310,6 +399,41 @@ static void tinput_set_str(tinput_t *ti, char *str)
 	str_to_wstr(ti->buffer, INPUT_MAX, str);
 	ti->nc = wstr_length(ti->buffer);
 	ti->pos = ti->nc;
+	ti->sel_start = ti->pos;
+}
+
+static void tinput_sel_get_bounds(tinput_t *ti, int *sa, int *sb)
+{
+	if (ti->sel_start < ti->pos) {
+		*sa = ti->sel_start;
+		*sb = ti->pos;
+	} else {
+		*sa = ti->pos;
+		*sb = ti->sel_start;
+	}
+}
+
+static bool tinput_sel_active(tinput_t *ti)
+{
+	return ti->sel_start != ti->pos;
+}
+
+static void tinput_sel_delete(tinput_t *ti)
+{
+	int sa, sb;
+
+	tinput_sel_get_bounds(ti, &sa, &sb);
+	if (sa == sb)
+		return;
+
+	memmove(ti->buffer + sa, ti->buffer + sb,
+	    (ti->nc - sb) * sizeof(wchar_t));
+	ti->pos = ti->sel_start = sa;
+	ti->nc -= (sb - sa);
+	ti->buffer[ti->nc] = '\0';
+
+	tinput_display_tail(ti, sa, sb - sa);
+	tinput_position_caret(ti);
 }
 
 static void tinput_history_seek(tinput_t *ti, int offs)
@@ -355,74 +479,45 @@ static char *tinput_read(tinput_t *ti)
 	if (console_get_pos(fphone(stdin), &ti->col0, &ti->row0) != EOK)
 		return NULL;
 
-	ti->pos = 0;
+	ti->pos = ti->sel_start = 0;
 	ti->nc = 0;
 	ti->buffer[0] = '\0';
+	ti->done = false;
 
-	while (true) {
+	while (!ti->done) {
 		fflush(stdout);
 		if (!console_get_event(fphone(stdin), &ev))
 			return NULL;
-		
+
 		if (ev.type != KEY_PRESS)
 			continue;
 
 		if ((ev.mods & KM_CTRL) != 0 &&
 		    (ev.mods & (KM_ALT | KM_SHIFT)) == 0) {
-			switch (ev.key) {
-			case KC_LEFT:
-				tinput_seek_word(ti, seek_backward);
-				break;
-			case KC_RIGHT:
-				tinput_seek_word(ti, seek_forward);
-				break;
-			case KC_UP:
-				tinput_seek_vertical(ti, seek_backward);
-				break;
-			case KC_DOWN:
-				tinput_seek_vertical(ti, seek_forward);
-				break;
-			}
+			tinput_key_ctrl(ti, &ev);
+		}
+
+		if ((ev.mods & KM_SHIFT) != 0 &&
+		    (ev.mods & (KM_CTRL | KM_ALT)) == 0) {
+			tinput_key_shift(ti, &ev);
+		}
+
+		if ((ev.mods & KM_CTRL) != 0 &&
+		    (ev.mods & KM_SHIFT) != 0 &&
+		    (ev.mods & KM_ALT) == 0) {
+			tinput_key_ctrl_shift(ti, &ev);
 		}
 
 		if ((ev.mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-			switch (ev.key) {
-			case KC_ENTER:
-			case KC_NENTER:
-				goto done;
-			case KC_BACKSPACE:
-				tinput_backspace(ti);
-				break;
-			case KC_DELETE:
-				tinput_delete(ti);
-				break;
-			case KC_LEFT:
-				tinput_seek_cell(ti, seek_backward);
-				break;
-			case KC_RIGHT:
-				tinput_seek_cell(ti, seek_forward);
-				break;
-			case KC_HOME:
-				tinput_seek_max(ti, seek_backward);
-				break;
-			case KC_END:
-				tinput_seek_max(ti, seek_forward);
-				break;
-			case KC_UP:
-				tinput_history_seek(ti, +1);
-				break;
-			case KC_DOWN:
-				tinput_history_seek(ti, -1);
-				break;
-			}
+			tinput_key_unmod(ti, &ev);
 		}
 
 		if (ev.c >= ' ') {
+			tinput_sel_delete(ti);
 			tinput_insert_char(ti, ev.c);
 		}
 	}
 
-done:
 	ti->pos = ti->nc;
 	tinput_position_caret(ti);
 	putchar('\n');
@@ -435,6 +530,109 @@ done:
 
 	return str;
 }
+
+static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
+{
+	switch (ev->key) {
+	case KC_LEFT:
+		tinput_seek_word(ti, seek_backward, false);
+		break;
+	case KC_RIGHT:
+		tinput_seek_word(ti, seek_forward, false);
+		break;
+	case KC_UP:
+		tinput_seek_vertical(ti, seek_backward, false);
+		break;
+	case KC_DOWN:
+		tinput_seek_vertical(ti, seek_forward, false);
+		break;
+	default:
+		break;
+	}
+}
+
+static void tinput_key_ctrl_shift(tinput_t *ti, console_event_t *ev)
+{
+	switch (ev->key) {
+	case KC_LEFT:
+		tinput_seek_word(ti, seek_backward, true);
+		break;
+	case KC_RIGHT:
+		tinput_seek_word(ti, seek_forward, true);
+		break;
+	case KC_UP:
+		tinput_seek_vertical(ti, seek_backward, true);
+		break;
+	case KC_DOWN:
+		tinput_seek_vertical(ti, seek_forward, true);
+		break;
+	default:
+		break;
+	}
+}
+
+static void tinput_key_shift(tinput_t *ti, console_event_t *ev)
+{
+	switch (ev->key) {
+	case KC_LEFT:
+		tinput_seek_cell(ti, seek_backward, true);
+		break;
+	case KC_RIGHT:
+		tinput_seek_cell(ti, seek_forward, true);
+		break;
+	case KC_UP:
+		tinput_seek_vertical(ti, seek_backward, true);
+		break;
+	case KC_DOWN:
+		tinput_seek_vertical(ti, seek_forward, true);
+		break;
+	case KC_HOME:
+		tinput_seek_max(ti, seek_backward, true);
+		break;
+	case KC_END:
+		tinput_seek_max(ti, seek_forward, true);
+		break;
+	default:
+		break;
+	}
+}
+
+static void tinput_key_unmod(tinput_t *ti, console_event_t *ev)
+{
+	switch (ev->key) {
+	case KC_ENTER:
+	case KC_NENTER:
+		ti->done = true;
+		break;
+	case KC_BACKSPACE:
+		tinput_backspace(ti);
+		break;
+	case KC_DELETE:
+		tinput_delete(ti);
+		break;
+	case KC_LEFT:
+		tinput_seek_cell(ti, seek_backward, false);
+		break;
+	case KC_RIGHT:
+		tinput_seek_cell(ti, seek_forward, false);
+		break;
+	case KC_HOME:
+		tinput_seek_max(ti, seek_backward, false);
+		break;
+	case KC_END:
+		tinput_seek_max(ti, seek_forward, false);
+		break;
+	case KC_UP:
+		tinput_history_seek(ti, +1);
+		break;
+	case KC_DOWN:
+		tinput_history_seek(ti, -1);
+		break;
+	default:
+		break;
+	}
+}
+
 
 void get_input(cliuser_t *usr)
 {
