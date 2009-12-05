@@ -733,7 +733,7 @@ static void pane_row_range_display(int r0, int r1)
 		console_goto(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
-		s_column = 1;
+		s_column = pane.sh_column;
 		while (pos < size) {
 			if (csel_start.row == rbc.row && csel_start.column == s_column) {
 				fflush(stdout);
@@ -1025,6 +1025,7 @@ static void selection_sel_all(void)
 	sheet_place_tag(&doc.sh, &ept, &pane.caret_pos);
 
 	pane.rflags |= REDRAW_TEXT;
+	caret_update();
 }
 
 static void selection_copy(void)
