@@ -277,7 +277,8 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 		if (c < 32)
 			c = 32;
 
-		ti->buffer[i++] = c;
+		ti->buffer[ti->pos + i] = c;
+		++i;
 	}
 
 	ti->pos += ilen;
@@ -670,6 +671,7 @@ static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
 		tinput_sel_copy_to_cb(ti);
 		break;
 	case KC_V:
+		tinput_sel_delete(ti);
 		tinput_paste_from_cb(ti);
 		break;
 	case KC_A:
