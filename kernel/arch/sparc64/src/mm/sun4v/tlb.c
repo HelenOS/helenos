@@ -59,13 +59,28 @@
 #include <arch/mm/tsb.h>
 #endif
 
-//static void dtlb_pte_copy(pte_t *, size_t, bool);
+void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
-//static void do_fast_data_access_mmu_miss_fault(istate_t *, uint64_t,
-//    const char *);
-//static void do_fast_data_access_protection_fault(istate_t *,
-//    uint64_t, const char *);
+void do_fast_data_access_mmu_miss_fault(istate_t *istate,
+    uint64_t page_and_ctx, const char *str);
+static void do_fast_data_access_protection_fault(istate_t *,
+    uint64_t, const char *);
+
+/*
+ * The assembly language routine passes a 64-bit parameter to the Data Access
+ * MMU Miss and Data Access protection handlers, the parameter encapsulates
+ * a virtual address of the faulting page and the faulting context. The most
+ * significant 51 bits represent the VA of the faulting page and the least
+ * significant 13 vits represent the faulting context. The following macros
+ * extract the page and context out of the 64-bit parameter:
+ */
+
+/* extracts the VA of the faulting page */
+#define DMISS_ADDRESS(page_and_ctx)	(((page_and_ctx) >> 13) << 13)
+
+/* extracts the faulting context */
+#define DMISS_CONTEXT(page_and_ctx)	((page_and_ctx) & 0x1fff)
 
 char *context_encoding[] = {
 	"Primary",
@@ -131,46 +146,35 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 #endif
 }
 
-#if 0
 /** Copy PTE to TLB.
  *
  * @param t 		Page Table Entry to be copied.
- * @param index		Zero if lower 8K-subpage, one if higher 8K-subpage.
  * @param ro		If true, the entry will be created read-only, regardless
  * 			of its w field.
  */
-void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
+void dtlb_pte_copy(pte_t *t, bool ro)
 {
-	tlb_tag_access_reg_t tag;
-	tlb_data_t data;
-	page_address_t pg;
-	frame_address_t fr;
-
-	pg.address = t->page + (index << MMU_PAGE_WIDTH);
-	fr.address = t->frame + (index << MMU_PAGE_WIDTH);
-
-	tag.value = 0;
-	tag.context = t->as->asid;
-	tag.vpn = pg.vpn;
-
-	dtlb_tag_access_write(tag.value);
-
+	tte_data_t data;
+	
 	data.value = 0;
 	data.v = true;
-	data.size = PAGESIZE_8K;
-	data.pfn = fr.pfn;
-	data.l = false;
+	data.nfo = false;
+	data.ra = (t->frame) >> FRAME_WIDTH;
+	data.ie = false;
+	data.e = false;
 	data.cp = t->c;
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	data.cv = t->c;
-#endif /* CONFIG_VIRT_IDX_DCACHE */
-	data.p = t->k;		/* p like privileged */
-	data.w = ro ? false : t->w;
-	data.g = t->g;
-
-	dtlb_data_in_write(data.value);
-}
 #endif
+	data.p = t->k;
+	data.x = false;
+	data.w = ro ? false : t->w;
+	data.size = PAGESIZE_8K;
+	
+	__hypercall_hyperfast(
+		t->page, t->as->asid, data.value, MMU_FLAG_DTLB, 0, MMU_MAP_ADDR);
+}
+
 
 /** Copy PTE to ITLB.
  *
@@ -245,7 +249,6 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
  */
 void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 {
-#if 0
 	pte_t *t;
 	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
@@ -284,22 +287,22 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 			    __func__);
 		}
 	}
-#endif
+	asm volatile ("sethi 0x41941, %g0");
 }
 
 /** DTLB protection fault handler.
  *
- * @param tag		Content of the TLB Tag Access register as it existed
- * 			when the trap happened. This is to prevent confusion
- * 			created by clobbered Tag Access register during a nested
- * 			DTLB miss.
+ * @param page_and_ctx	A 64-bit value describing the fault. The most
+ * 			significant 51 bits of the value contain the virtual
+ * 			address which caused the fault truncated to the page
+ * 			boundary. The least significant 13 bits of the value
+ * 			contain the number of the context in which the fault
+ * 			occurred.
  * @param istate	Interrupted state saved on the stack.
  */
 void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 {
-#if 0
 	pte_t *t;
-
 	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
 	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
 
@@ -325,14 +328,13 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(page_16k, PF_ACCESS_WRITE, istate) ==
-		    AS_PF_FAULT) {
-			do_fast_data_access_protection_fault(istate, tag,
+		if (as_page_fault(va, PF_ACCESS_WRITE, istate) == AS_PF_FAULT) {
+			do_fast_data_access_protection_fault(istate, page_and_ctx,
 			    __func__);
 		}
 	}
-#endif
 }
+
 
 /** Print TLB entry (for debugging purposes).
  *
@@ -356,7 +358,6 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
 	panic("%s.", str);
 }
 
-#if 0
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
@@ -365,12 +366,10 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 		    DMISS_CONTEXT(page_and_ctx));
 	}
 	dump_istate(istate);
-	printf("Faulting page: %p, ASID=%d.\n", va, tag.context);
-	panic("%s.", str);
+	printf("Faulting page: %p, ASID=%d\n", DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
+	panic("%s\n", str);
 }
-#endif
 
-#if 0
 void do_fast_data_access_protection_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
@@ -380,9 +379,8 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	}
 	printf("Faulting page: %p, ASID=%d\n", DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
 	dump_istate(istate);
-	panic("%s.", str);
+	panic("%s\n", str);
 }
-#endif
 
 /**
  * Describes the exact condition which caused the last DMMU fault.
