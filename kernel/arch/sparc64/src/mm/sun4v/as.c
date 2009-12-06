@@ -60,24 +60,24 @@ void as_arch_init(void)
 int as_constructor_arch(as_t *as, int flags)
 {
 #ifdef CONFIG_TSB
-	/*
-	 * The order must be calculated with respect to the emulated
-	 * 16K page size.
-	 */
-	int order = fnzb32(((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t)) >> FRAME_WIDTH);
+	int order = fnzb32(
+		(TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH);
 
-	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags | FRAME_KA);
+	uintptr_t tsb = (uintptr_t) frame_alloc(order, flags);
 
 	if (!tsb)
 		return -1;
 
-	as->arch.itsb = (tsb_entry_t *) tsb;
-	as->arch.dtsb = (tsb_entry_t *) (tsb + ITSB_ENTRY_COUNT *
-	    sizeof(tsb_entry_t));
+	as->arch.tsb_description.page_size = PAGESIZE_8K;
+	as->arch.tsb_description.associativity = 1;
+	as->arch.tsb_description.num_ttes = TSB_ENTRY_COUNT;
+	as->arch.tsb_description.pgsize_mask = 1 << PAGESIZE_8K;
+	as->arch.tsb_description.tsb_base = tsb;
+	as->arch.tsb_description.reserved = 0;
+	as->arch.tsb_description.context = 0;
 
-	memsetb(as->arch.itsb,
-	    (ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) * sizeof(tsb_entry_t), 0);
+	memsetb((void *) PA2KA(as->arch.tsb_description.tsb_base),
+		TSB_ENTRY_COUNT * sizeof(tsb_entry_t), 0);
 #endif
 	return 0;
 }
@@ -85,13 +85,8 @@ int as_constructor_arch(as_t *as, int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
-	/*
-	 * The count must be calculated with respect to the emualted 16K page
-	 * size.
-	 */
-	size_t cnt = ((ITSB_ENTRY_COUNT + DTSB_ENTRY_COUNT) *
-	    sizeof(tsb_entry_t)) >> FRAME_WIDTH;
-	frame_free(KA2PA((uintptr_t) as->arch.itsb));
+	count_t cnt = (TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH;
+	frame_free((uintptr_t) as->arch.tsb_description.tsb_base);
 	return cnt;
 #else
 	return 0;
@@ -115,76 +110,7 @@ int as_create_arch(as_t *as, int flags)
  */
 void as_install_arch(as_t *as)
 {
-#if 0
-	tlb_context_reg_t ctx;
-	
-	/*
-	 * Note that we don't and may not lock the address space. That's ok
-	 * since we only read members that are currently read-only.
-	 *
-	 * Moreover, the as->asid is protected by asidlock, which is being held.
-	 */
-	
-	/*
-	 * Write ASID to secondary context register. The primary context
-	 * register has to be set from TL>0 so it will be filled from the
-	 * secondary context register from the TL=1 code just before switch to
-	 * userspace.
-	 */
-	ctx.v = 0;
-	ctx.context = as->asid;
-	mmu_secondary_context_write(ctx.v);
-
-#ifdef CONFIG_TSB	
-	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-
-	ASSERT(as->arch.itsb && as->arch.dtsb);
-
-	uintptr_t tsb = (uintptr_t) as->arch.itsb;
-		
-	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
-		/*
-		 * TSBs were allocated from memory not covered
-		 * by the locked 4M kernel DTLB entry. We need
-		 * to map both TSBs explicitly.
-		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
-		dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
-	}
-		
-	/*
-	 * Setup TSB Base registers.
-	 */
-	tsb_base_reg_t tsb_base;
-		
-	tsb_base.value = 0;
-	tsb_base.size = TSB_SIZE;
-	tsb_base.split = 0;
-
-	tsb_base.base = ((uintptr_t) as->arch.itsb) >> MMU_PAGE_WIDTH;
-	itsb_base_write(tsb_base.value);
-	tsb_base.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
-	dtsb_base_write(tsb_base.value);
-	
-#if defined (US3)
-	/*
-	 * Clear the extension registers.
-	 * In HelenOS, primary and secondary context registers contain
-	 * equal values and kernel misses (context 0, ie. the nucleus context)
-	 * are excluded from the TSB miss handler, so it makes no sense
-	 * to have separate TSBs for primary, secondary and nucleus contexts.
-	 * Clearing the extension registers will ensure that the value of the
-	 * TSB Base register will be used as an address of TSB, making the code
-	 * compatible with the US port. 
-	 */
-	itsb_primary_extension_write(0);
-	itsb_nucleus_extension_write(0);
-	dtsb_primary_extension_write(0);
-	dtsb_secondary_extension_write(0);
-	dtsb_nucleus_extension_write(0);
-#endif
-#endif
-#endif
+	mmu_secondary_context_write(as->asid);
 }
 
 /** Perform sparc64-specific tasks when an address space is removed from the

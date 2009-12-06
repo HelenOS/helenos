@@ -59,13 +59,13 @@
 #include <arch/mm/tsb.h>
 #endif
 
-static void dtlb_pte_copy(pte_t *, size_t, bool);
-static void itlb_pte_copy(pte_t *, size_t);
+//static void dtlb_pte_copy(pte_t *, size_t, bool);
+static void itlb_pte_copy(pte_t *);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
-static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
-    const char *);
-static void do_fast_data_access_protection_fault(istate_t *,
-    tlb_tag_access_reg_t, const char *);
+//static void do_fast_data_access_mmu_miss_fault(istate_t *, uint64_t,
+//    const char *);
+//static void do_fast_data_access_protection_fault(istate_t *,
+//    uint64_t, const char *);
 
 char *context_encoding[] = {
 	"Primary",
@@ -131,6 +131,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 #endif
 }
 
+#if 0
 /** Copy PTE to TLB.
  *
  * @param t 		Page Table Entry to be copied.
@@ -140,7 +141,6 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
  */
 void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
 {
-#if 0
 	tlb_tag_access_reg_t tag;
 	tlb_data_t data;
 	page_address_t pg;
@@ -169,64 +169,52 @@ void dtlb_pte_copy(pte_t *t, size_t index, bool ro)
 	data.g = t->g;
 
 	dtlb_data_in_write(data.value);
-#endif
 }
+#endif
 
 /** Copy PTE to ITLB.
  *
  * @param t		Page Table Entry to be copied.
- * @param index		Zero if lower 8K-subpage, one if higher 8K-subpage.
  */
-void itlb_pte_copy(pte_t *t, size_t index)
+void itlb_pte_copy(pte_t *t)
 {
-#if 0
-	tlb_tag_access_reg_t tag;
-	tlb_data_t data;
-	page_address_t pg;
-	frame_address_t fr;
-
-	pg.address = t->page + (index << MMU_PAGE_WIDTH);
-	fr.address = t->frame + (index << MMU_PAGE_WIDTH);
-
-	tag.value = 0;
-	tag.context = t->as->asid;
-	tag.vpn = pg.vpn;
-	
-	itlb_tag_access_write(tag.value);
+	tte_data_t data;
 	
 	data.value = 0;
 	data.v = true;
-	data.size = PAGESIZE_8K;
-	data.pfn = fr.pfn;
-	data.l = false;
+	data.nfo = false;
+	data.ra = (t->frame) >> FRAME_WIDTH;
+	data.ie = false;
+	data.e = false;
 	data.cp = t->c;
-	data.p = t->k;		/* p like privileged */
+	data.cv = false;
+	data.p = t->k;
+	data.x = true;
 	data.w = false;
-	data.g = t->g;
+	data.size = PAGESIZE_8K;
 	
-	itlb_data_in_write(data.value);
-#endif
+	__hypercall_hyperfast(
+		t->page, t->as->asid, data.value, MMU_FLAG_ITLB, 0, MMU_MAP_ADDR);
 }
 
 /** ITLB miss handler. */
 void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 {
-	asm volatile ("sethi 0x41906, %g0");
-	uintptr_t page_16k = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
-	size_t index = (istate->tpc >> MMU_PAGE_WIDTH) % MMU_PAGES_PER_PAGE;
+	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	pte_t *t;
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, page_16k);
+	t = page_mapping_find(AS, va);
+
 	if (t && PTE_EXECUTABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into ITLB.
 		 */
 		t->a = true;
-		itlb_pte_copy(t, index);
+		itlb_pte_copy(t);
 #ifdef CONFIG_TSB
-		itsb_pte_copy(t, index);
+		itsb_pte_copy(t);
 #endif
 		page_table_unlock(AS, true);
 	} else {
@@ -235,8 +223,7 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(page_16k, PF_ACCESS_EXEC, istate) ==
-		    AS_PF_FAULT) {
+		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
 			    __func__);
 		}
@@ -248,55 +235,42 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
  * Note that some faults (e.g. kernel faults) were already resolved by the
  * low-level, assembly language part of the fast_data_access_mmu_miss handler.
  *
- * @param tag		Content of the TLB Tag Access register as it existed
- * 			when the trap happened. This is to prevent confusion
- * 			created by clobbered Tag Access register during a nested
- * 			DTLB miss.
+ * @param page_and_ctx	A 64-bit value describing the fault. The most
+ * 			significant 51 bits of the value contain the virtual
+ * 			address which caused the fault truncated to the page
+ * 			boundary. The least significant 13 bits of the value
+ * 			contain the number of the context in which the fault
+ * 			occurred.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
+void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 {
-	uintptr_t page_8k;
-	uintptr_t page_16k;
-	size_t index;
+#if 0
 	pte_t *t;
+	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
+	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
 
-	page_8k = (uint64_t) tag.vpn << MMU_PAGE_WIDTH;
-	page_16k = ALIGN_DOWN(page_8k, PAGE_SIZE);
-	index = tag.vpn % MMU_PAGES_PER_PAGE;
-
-	if (tag.context == ASID_KERNEL) {
-		if (!tag.vpn) {
+	if (ctx == ASID_KERNEL) {
+		if (va == 0) {
 			/* NULL access in kernel */
-			do_fast_data_access_mmu_miss_fault(istate, tag,
+			do_fast_data_access_mmu_miss_fault(istate, page_and_ctx,
 			    __func__);
-//MH
-		} else {
-//		} else if (page_8k >= end_of_identity) {
-			/*
-			 * The kernel is accessing the I/O space.
-			 * We still do identity mapping for I/O,
-			 * but without caching.
-			 */
-			dtlb_insert_mapping(page_8k, KA2PA(page_8k),
-			    PAGESIZE_8K, false, false);
-			return;
 		}
-		do_fast_data_access_mmu_miss_fault(istate, tag, "Unexpected "
+		do_fast_data_access_mmu_miss_fault(istate, page_and_ctx, "Unexpected "
 		    "kernel page fault.");
 	}
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, page_16k);
+	t = page_mapping_find(AS, va);
 	if (t) {
 		/*
 		 * The mapping was found in the software page hash table.
 		 * Insert it into DTLB.
 		 */
 		t->a = true;
-		dtlb_pte_copy(t, index, true);
+		dtlb_pte_copy(t, true);
 #ifdef CONFIG_TSB
-		dtsb_pte_copy(t, index, true);
+		dtsb_pte_copy(t, true);
 #endif
 		page_table_unlock(AS, true);
 	} else {
@@ -305,12 +279,12 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		 * handler.
 		 */		
 		page_table_unlock(AS, true);
-		if (as_page_fault(page_16k, PF_ACCESS_READ, istate) ==
-		    AS_PF_FAULT) {
-			do_fast_data_access_mmu_miss_fault(istate, tag,
+		if (as_page_fault(va, PF_ACCESS_READ, istate) == AS_PF_FAULT) {
+			do_fast_data_access_mmu_miss_fault(istate, page_and_ctx,
 			    __func__);
 		}
 	}
+#endif
 }
 
 /** DTLB protection fault handler.
@@ -321,17 +295,16 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
  * 			DTLB miss.
  * @param istate	Interrupted state saved on the stack.
  */
-void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
+void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 {
-	uintptr_t page_16k;
-	size_t index;
+#if 0
 	pte_t *t;
 
-	page_16k = ALIGN_DOWN((uint64_t) tag.vpn << MMU_PAGE_WIDTH, PAGE_SIZE);
-	index = tag.vpn % MMU_PAGES_PER_PAGE;	/* 16K-page emulation */
+	uintptr_t va = DMISS_ADDRESS(page_and_ctx);
+	uint16_t ctx = DMISS_CONTEXT(page_and_ctx);
 
 	page_table_lock(AS, true);
-	t = page_mapping_find(AS, page_16k);
+	t = page_mapping_find(AS, va);
 	if (t && PTE_WRITABLE(t)) {
 		/*
 		 * The mapping was found in the software page hash table and is
@@ -340,11 +313,10 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 		 */
 		t->a = true;
 		t->d = true;
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY,
-		    page_16k + index * MMU_PAGE_SIZE);
-		dtlb_pte_copy(t, index, false);
+		mmu_demap_page(va, ctx, MMU_FLAG_DTLB);
+		dtlb_pte_copy(t, false);
 #ifdef CONFIG_TSB
-		dtsb_pte_copy(t, index, false);
+		dtsb_pte_copy(t, false);
 #endif
 		page_table_unlock(AS, true);
 	} else {
@@ -359,6 +331,7 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
 			    __func__);
 		}
 	}
+#endif
 }
 
 /** Print TLB entry (for debugging purposes).
@@ -370,87 +343,10 @@ void fast_data_access_protection(tlb_tag_access_reg_t tag, istate_t *istate)
  * @param t		TLB entry tag
  * @param d		TLB entry data 
  */
-static void print_tlb_entry(int i, tlb_tag_read_reg_t t, tlb_data_t d)
-{
-#if 0
-	printf("%d: vpn=%#llx, context=%d, v=%d, size=%d, nfo=%d, "
-	    "ie=%d, soft2=%#x, pfn=%#x, soft=%#x, l=%d, "
-	    "cp=%d, cv=%d, e=%d, p=%d, w=%d, g=%d\n", i, t.vpn,
-	    t.context, d.v, d.size, d.nfo, d.ie, d.soft2,
-	    d.pfn, d.soft, d.l, d.cp, d.cv, d.e, d.p, d.w, d.g);
-#endif
-}
-
-#if defined (US)
-
-/** Print contents of both TLBs. */
 void tlb_print(void)
 {
-	int i;
-	tlb_data_t d;
-	tlb_tag_read_reg_t t;
-	
-	printf("I-TLB contents:\n");
-	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
-		d.value = itlb_data_access_read(i);
-		t.value = itlb_tag_read_read(i);
-		print_tlb_entry(i, t, d);
-	}
-
-	printf("D-TLB contents:\n");
-	for (i = 0; i < DTLB_ENTRY_COUNT; i++) {
-		d.value = dtlb_data_access_read(i);
-		t.value = dtlb_tag_read_read(i);
-		print_tlb_entry(i, t, d);
-	}
+	printf("Operation not possible on Niagara.\n");
 }
-
-#elif defined (US3)
-
-/** Print contents of all TLBs. */
-void tlb_print(void)
-{
-	int i;
-	tlb_data_t d;
-	tlb_tag_read_reg_t t;
-	
-	printf("TLB_ISMALL contents:\n");
-	for (i = 0; i < tlb_ismall_size(); i++) {
-		d.value = dtlb_data_access_read(TLB_ISMALL, i);
-		t.value = dtlb_tag_read_read(TLB_ISMALL, i);
-		print_tlb_entry(i, t, d);
-	}
-	
-	printf("TLB_IBIG contents:\n");
-	for (i = 0; i < tlb_ibig_size(); i++) {
-		d.value = dtlb_data_access_read(TLB_IBIG, i);
-		t.value = dtlb_tag_read_read(TLB_IBIG, i);
-		print_tlb_entry(i, t, d);
-	}
-	
-	printf("TLB_DSMALL contents:\n");
-	for (i = 0; i < tlb_dsmall_size(); i++) {
-		d.value = dtlb_data_access_read(TLB_DSMALL, i);
-		t.value = dtlb_tag_read_read(TLB_DSMALL, i);
-		print_tlb_entry(i, t, d);
-	}
-	
-	printf("TLB_DBIG_1 contents:\n");
-	for (i = 0; i < tlb_dbig_size(); i++) {
-		d.value = dtlb_data_access_read(TLB_DBIG_0, i);
-		t.value = dtlb_tag_read_read(TLB_DBIG_0, i);
-		print_tlb_entry(i, t, d);
-	}
-	
-	printf("TLB_DBIG_2 contents:\n");
-	for (i = 0; i < tlb_dbig_size(); i++) {
-		d.value = dtlb_data_access_read(TLB_DBIG_1, i);
-		t.value = dtlb_tag_read_read(TLB_DBIG_1, i);
-		print_tlb_entry(i, t, d);
-	}
-}
-
-#endif
 
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
     const char *str)
@@ -460,58 +356,58 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
 	panic("%s.", str);
 }
 
+#if 0
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str)
+    uint64_t page_and_ctx, const char *str)
 {
-	uintptr_t va;
-
-	va = tag.vpn << MMU_PAGE_WIDTH;
-	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-		    tag.context);
+	if (DMISS_CONTEXT(page_and_ctx)) {
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, DMISS_ADDRESS(page_and_ctx),
+		    DMISS_CONTEXT(page_and_ctx));
 	}
 	dump_istate(istate);
 	printf("Faulting page: %p, ASID=%d.\n", va, tag.context);
 	panic("%s.", str);
 }
+#endif
 
+#if 0
 void do_fast_data_access_protection_fault(istate_t *istate,
-    tlb_tag_access_reg_t tag, const char *str)
+    uint64_t page_and_ctx, const char *str)
 {
-	uintptr_t va;
-
-	va = tag.vpn << MMU_PAGE_WIDTH;
-
-	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-		    tag.context);
+	if (DMISS_CONTEXT(page_and_ctx)) {
+		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, DMISS_ADDRESS(page_and_ctx),
+		    DMISS_CONTEXT(page_and_ctx));
 	}
-	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
+	printf("Faulting page: %p, ASID=%d\n", DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
 	dump_istate(istate);
 	panic("%s.", str);
 }
-
-void dump_sfsr_and_sfar(void)
-{
-	tlb_sfsr_reg_t sfsr;
-	uintptr_t sfar;
-
-	sfsr.value = dtlb_sfsr_read();
-	sfar = dtlb_sfar_read();
-	
-#if defined (US)
-	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
-	    "fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
-	    sfsr.ow, sfsr.fv);
-#elif defined (US3)
-	printf("DTLB SFSR: nf=%d, asi=%#x, tm=%d, ft=%#x, e=%d, ct=%d, pr=%d, "
-	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
-	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
 #endif
-	    
-	printf("DTLB SFAR: address=%p\n", sfar);
-	
-	dtlb_sfsr_write(0);
+
+/**
+ * Describes the exact condition which caused the last DMMU fault.
+ */
+void describe_dmmu_fault(void)
+{
+#if 0
+	uint64_t myid;
+	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
+
+	ASSERT(mmu_fsas[myid].dft < 16);
+
+	printf("condition which caused the fault: %s\n",
+		fault_types[mmu_fsas[myid].dft]);
+}
+
+/** Invalidate all unlocked ITLB and DTLB entries. */
+void tlb_invalidate_all(void)
+{
+	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
+		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
+	if (errno != EOK) {
+		panic("Error code = %d.\n", errno);
+	}
+#endif
 }
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID

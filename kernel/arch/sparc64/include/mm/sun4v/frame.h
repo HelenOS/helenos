@@ -43,12 +43,7 @@
 #define MMU_FRAME_WIDTH		13	/* 8K */
 #define MMU_FRAME_SIZE		(1 << MMU_FRAME_WIDTH)
 
-/*
- * Page size exported to the generic memory management subsystems.
- * This page size is not directly supported by the MMU, but we can emulate
- * each 16K page with a pair of adjacent 8K pages.
- */
-#define FRAME_WIDTH		14	/* 16K */
+#define FRAME_WIDTH		13
 #define FRAME_SIZE		(1 << FRAME_WIDTH)
 
 #ifdef KERNEL

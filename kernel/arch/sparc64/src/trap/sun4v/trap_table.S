@@ -1091,7 +1091,7 @@ fill_0_normal_tl1:
 	dec %g1
 	and %g1, NWINDOWS - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
-	
+
 .if \is_syscall
 	done
 .else
