@@ -33,7 +33,6 @@
 /** @file
  */
 
-#include <arch/mm/tlb.h>
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/asid.h>
@@ -59,11 +58,11 @@
 #include <arch/mm/tsb.h>
 #endif
 
-void dtlb_pte_copy(pte_t *t, bool ro);
 static void itlb_pte_copy(pte_t *);
+static void dtlb_pte_copy(pte_t *, bool);
 static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
-void do_fast_data_access_mmu_miss_fault(istate_t *istate,
-    uint64_t page_and_ctx, const char *str);
+static void do_fast_data_access_mmu_miss_fault(istate_t *, uint64_t,
+    const char *);
 static void do_fast_data_access_protection_fault(istate_t *,
     uint64_t, const char *);
 
@@ -82,23 +81,38 @@ static void do_fast_data_access_protection_fault(istate_t *,
 /* extracts the faulting context */
 #define DMISS_CONTEXT(page_and_ctx)	((page_and_ctx) & 0x1fff)
 
-char *context_encoding[] = {
-	"Primary",
-	"Secondary",
-	"Nucleus",
-	"Reserved"
-};
+/**
+ * Descriptions of fault types from the MMU Fault status area.
+ *
+ * fault_type[i] contains description of error for which the IFT or DFT
+ * field of the MMU fault status area is i.
+ */
+char *fault_types[] = {
+	"unknown",
+	"fast miss",
+	"fast protection",
+	"MMU miss",
+	"invalid RA",
+	"privileged violation",
+	"protection violation",
+	"NFO access",
+	"so page/NFO side effect",
+	"invalid VA",
+	"invalid ASI",
+	"nc atomic",
+	"privileged action",
+	"unknown",
+	"unaligned access",
+	"invalid page size"
+	};
+	
 
-/** Invalidate all unlocked ITLB and DTLB entries. */
-void tlb_invalidate_all(void)
-{
-	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
-		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
-	if (errno != EOK) {
-		panic("Error code = %d.\n", errno);
-	}
-}
+/** Array of MMU fault status areas. */
+extern mmu_fault_status_area_t mmu_fsas[MAX_NUM_STRANDS];
 
+/*
+ * Invalidate all non-locked DTLB and ITLB entries.
+ */
 void tlb_arch_init(void)
 {
 	tlb_invalidate_all();
@@ -115,35 +129,31 @@ void tlb_arch_init(void)
 void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
     bool locked, bool cacheable)
 {
-#if 0
-	tlb_tag_access_reg_t tag;
-	tlb_data_t data;
-	page_address_t pg;
-	frame_address_t fr;
-
-	pg.address = page;
-	fr.address = frame;
-
-	tag.context = ASID_KERNEL;
-	tag.vpn = pg.vpn;
-
-	dtlb_tag_access_write(tag.value);
-
+	tte_data_t data;
+	
 	data.value = 0;
 	data.v = true;
-	data.size = pagesize;
-	data.pfn = fr.pfn;
-	data.l = locked;
+	data.nfo = false;
+	data.ra = frame >> FRAME_WIDTH;
+	data.ie = false;
+	data.e = false;
 	data.cp = cacheable;
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	data.cv = cacheable;
-#endif /* CONFIG_VIRT_IDX_DCACHE */
-	data.p = true;
-	data.w = true;
-	data.g = false;
-
-	dtlb_data_in_write(data.value);
 #endif
+	data.p = true;
+	data.x = false;
+	data.w = true;
+	data.size = pagesize;
+	
+	if (locked) {
+		__hypercall_fast4(
+			MMU_MAP_PERM_ADDR, page, 0, data.value, MMU_FLAG_DTLB);
+	} else {
+		__hypercall_hyperfast(
+			page, ASID_KERNEL, data.value, MMU_FLAG_DTLB, 0,
+			MMU_MAP_ADDR);
+	}
 }
 
 /** Copy PTE to TLB.
@@ -174,7 +184,6 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	__hypercall_hyperfast(
 		t->page, t->as->asid, data.value, MMU_FLAG_DTLB, 0, MMU_MAP_ADDR);
 }
-
 
 /** Copy PTE to ITLB.
  *
@@ -287,7 +296,6 @@ void fast_data_access_mmu_miss(uint64_t page_and_ctx, istate_t *istate)
 			    __func__);
 		}
 	}
-	asm volatile ("sethi 0x41941, %g0");
 }
 
 /** DTLB protection fault handler.
@@ -335,15 +343,10 @@ void fast_data_access_protection(uint64_t page_and_ctx, istate_t *istate)
 	}
 }
 
-
-/** Print TLB entry (for debugging purposes).
- *
- * The diag field has been left out in order to make this function more generic
- * (there is no diag field in US3 architeture). 
- *
- * @param i		TLB entry number 
- * @param t		TLB entry tag
- * @param d		TLB entry data 
+/*
+ * On Niagara this function does not work, as supervisor software is isolated
+ * from the TLB by the hypervisor and has no chance to investigate the TLB
+ * entries.
  */
 void tlb_print(void)
 {
@@ -387,7 +390,6 @@ void do_fast_data_access_protection_fault(istate_t *istate,
  */
 void describe_dmmu_fault(void)
 {
-#if 0
 	uint64_t myid;
 	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
 
@@ -405,7 +407,6 @@ void tlb_invalidate_all(void)
 	if (errno != EOK) {
 		panic("Error code = %d.\n", errno);
 	}
-#endif
 }
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID
@@ -417,6 +418,7 @@ void tlb_invalidate_asid(asid_t asid)
 {
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
+
 	__hypercall_fast4(MMU_DEMAP_CTX, 0, 0, asid,
 		MMU_FLAG_ITLB | MMU_FLAG_DTLB);
 
