@@ -60,7 +60,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/page_fault.c
+	arch/$(KARCH)/src/mm/page_fault.c \
+	arch/$(KARCH)/src/ras.c
 
 ifeq ($(MACHINE),testarm)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
