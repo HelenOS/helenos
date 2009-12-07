@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32
  * @{
  */
 /** @file
+ *  @brief Kernel part of Restartable Atomic Sequences support.
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#include <arch/ras.h>
+#include <mm/mm.h>
+#include <mm/frame.h>
+#include <mm/page.h>
+#include <mm/tlb.h>
+#include <mm/asid.h>
+#include <interrupt.h>
+#include <arch/exception.h>
+#include <arch.h>
+#include <memstr.h>
+#include <arch/types.h>
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-#error This file cannot be included directly, include atomic.h instead.
-#endif
+uintptr_t *ras_page = NULL;
 
-#include <bool.h>
-
-typedef struct atomic {
-	volatile long count;
-} atomic_t;
-
-static inline void atomic_set(atomic_t *val, long i)
+void ras_init(void)
 {
-        val->count = i;
+	ras_page = frame_alloc(ONE_FRAME, FRAME_KA);
+	memsetb(ras_page, FRAME_SIZE, 0); 
+	ras_page[RAS_START] = 0;
+	ras_page[RAS_END] = 0xffffffff;
+	/*
+	 * Userspace needs to be able to write to this page. The page is 
+	 * cached in TLB as PAGE_KERNEL. Purge it from TLB and map it
+	 * read/write PAGE_USER.
+	 */
+	tlb_invalidate_pages(ASID_KERNEL, (uintptr_t)ras_page, 1);
+	page_table_lock(AS, true);
+	page_mapping_insert(AS, (uintptr_t)ras_page, (uintptr_t)KA2PA(ras_page),
+	    PAGE_READ | PAGE_WRITE | PAGE_USER);
+	page_table_unlock(AS, true);
 }
 
-static inline long atomic_get(atomic_t *val)
+void ras_check(int n, istate_t *istate)
 {
-        return val->count;
+	uintptr_t rewrite_pc = istate->pc;
+
+	if (istate_from_uspace(istate)) {
+		if (ras_page[RAS_START]) {
+			if ((ras_page[RAS_START] < istate->pc) &&
+			    (ras_page[RAS_END] > istate->pc)) {
+				rewrite_pc = ras_page[RAS_START];
+			}
+			ras_page[RAS_START] = 0;
+			ras_page[RAS_END] = 0xffffffff;
+		}	
+	}
+
+	exc_dispatch(n, istate);
+
+	istate->pc = rewrite_pc;
 }
 
-#ifndef CAS 
-static inline bool cas(atomic_t *val, long ov, long nv)
-{
-	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-}
-#endif
-
-#endif
-
-/** @}
- */

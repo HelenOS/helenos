@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup arm32
  * @{
  */
 /** @file
+ *  @brief Declarations related to Restartable Atomic Sequences.
  */
 
-#ifndef LIBC_ATOMICDFLT_H_
-#define LIBC_ATOMICDFLT_H_
+#ifndef KERN_arm32_RAS_H_
+#define KERN_arm32_RAS_H_
 
-#ifndef LIBC_ARCH_ATOMIC_H_
-#error This file cannot be included directly, include atomic.h instead.
-#endif
+#include <arch/exception.h>
+#include <arch/types.h>
 
-#include <bool.h>
+#define RAS_START	0
+#define RAS_END		1
 
-typedef struct atomic {
-	volatile long count;
-} atomic_t;
+extern uintptr_t *ras_page;
 
-static inline void atomic_set(atomic_t *val, long i)
-{
-        val->count = i;
-}
-
-static inline long atomic_get(atomic_t *val)
-{
-        return val->count;
-}
-
-#ifndef CAS 
-static inline bool cas(atomic_t *val, long ov, long nv)
-{
-	return __sync_bool_compare_and_swap(&val->count, ov, nv);
-}
-#endif
+extern void ras_init(void);
+extern void ras_check(int, istate_t *);
 
 #endif
 
