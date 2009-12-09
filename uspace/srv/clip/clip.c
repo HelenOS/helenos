@@ -33,7 +33,7 @@
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <malloc.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <errno.h>
 
 #define NAME  "clip"

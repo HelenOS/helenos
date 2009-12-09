@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <fibril.h>
 #include <async.h>
 #include <async_priv.h>

@@ -49,7 +49,7 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 #include "console.h"
 #include "gcons.h"
