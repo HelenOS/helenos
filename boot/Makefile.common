@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2009 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,54 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+TMP = distroot
+INITRD = initrd
 
-build: $(BASE)/image.iso
+INIT_TASKS = \
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/bd/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs
+ifeq ($(RDFMT),tmpfs)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
+endif
 
-$(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
-	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/ppc
-	cp arch/$(BARCH)/loader/image.boot $(TMP)/boot/image.boot
-	cp arch/$(BARCH)/yaboot/ofboot.b $(TMP)/boot/ofboot.b
-	cp arch/$(BARCH)/yaboot/bootinfo.txt $(TMP)/ppc/bootinfo.txt
-	cp arch/$(BARCH)/yaboot/yaboot $(TMP)/boot/yaboot
-	cp arch/$(BARCH)/yaboot/yaboot.conf $(TMP)/boot/yaboot.conf
-	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
+RD_SRVS = \
+	$(USPACEDIR)/srv/fb/fb \
+	$(USPACEDIR)/srv/kbd/kbd \
+	$(USPACEDIR)/srv/console/console \
+	$(USPACEDIR)/srv/fs/devfs/devfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
-arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader
+RD_APPS = \
+	$(USPACEDIR)/app/edit/edit \
+	$(USPACEDIR)/app/getvc/getvc \
+	$(USPACEDIR)/app/redir/redir \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/trace/trace \
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/bdsh/bdsh
 
-clean: generic_clean
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -fr $(TMP)
-	rm -f $(BASE)/image.iso
+COMPONENTS = \
+	$(KERNELDIR)/kernel.bin \
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/loader/loader \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/bd/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs
+ifeq ($(RDFMT),tmpfs)
+	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
+endif
