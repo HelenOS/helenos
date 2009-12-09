@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
- * @{
- */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
- */
-
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
-
-typedef enum {
-	SERVICE_LOAD = 1,
-	SERVICE_PCI,
-	SERVICE_KEYBOARD,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_FHC,
-	SERVICE_OBIO,
-	SERVICE_CLIPBOARD
-} services_t;
-
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+#ifndef CLIP_MAIN_H_
+#define CLIP_MAIN_H_
 
 #endif
-
-/** @}
- */

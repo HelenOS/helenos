@@ -234,6 +234,7 @@ int main(int argc, char *argv[])
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
 	spawn("/srv/console");
+	spawn("/srv/clip");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
 

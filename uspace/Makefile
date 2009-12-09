@@ -47,6 +47,7 @@ DIRS = \
 	srv/vfs \
 	srv/devmap \
 	srv/part/mbr_part \
+	srv/clip \
 	app/edit \
 	app/tetris \
 	app/tester \

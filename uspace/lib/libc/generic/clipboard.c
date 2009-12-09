@@ -32,119 +32,153 @@
 /** @file
  * @brief System clipboard API.
  *
- * The clipboard data is stored in a file and it is shared by the entire
- * system.
+ * The clipboard data is managed by the clipboard service and it is shared by
+ * the entire system.
  *
- * @note Synchronization is missing. File locks would be ideal for the job.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <macros.h>
-#include <errno.h>
 #include <clipboard.h>
+#include <ipc/services.h>
+#include <ipc/clipboard.h>
+#include <async.h>
+#include <string.h>
+#include <errno.h>
+#include <malloc.h>
 
-/** File used to store clipboard data */
-#define CLIPBOARD_FILE "/data/clip"
+static int clip_phone = -1;
 
-#define CHUNK_SIZE	4096
+/** Connect to clipboard server
+ *
+ */
+static void clip_connect(void)
+{
+	while (clip_phone < 0)
+		clip_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_CLIPBOARD, 0, 0);
+}
 
 /** Copy string to clipboard.
  *
  * Sets the clipboard contents to @a str. Passing an empty string or NULL
- * makes the clipboard empty. 
+ * makes the clipboard empty.
  *
- * @param str	String to put to clipboard or NULL.
- * @return	Zero on success or negative error code.
+ * @param str String to put to clipboard or NULL.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int clipboard_put_str(const char *str)
 {
-	int fd;
-	const char *sp;
-	ssize_t to_write, written, left;
-
-	fd = open(CLIPBOARD_FILE, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-	if (fd < 0)
-		return EIO;
-
-	left = str_size(str);
-	sp = str;
-
-	while (left > 0) {
-		to_write = min(left, CHUNK_SIZE);
-		written = write(fd, sp, to_write);
-
-		if (written < 0) {
-			close(fd);
-			unlink(CLIPBOARD_FILE);
-			return EIO;
+	size_t size = str_size(str);
+	
+	if (size == 0) {
+		async_serialize_start();
+		clip_connect();
+		
+		ipcarg_t rc = async_req_1_0(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_NONE);
+		
+		async_serialize_end();
+		
+		return (int) rc;
+	} else {
+		async_serialize_start();
+		clip_connect();
+		
+		aid_t req = async_send_1(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_BLOB, NULL);
+		ipcarg_t rc = async_data_write_start(clip_phone, (void *) str, size);
+		if (rc != EOK) {
+			ipcarg_t rc_orig;
+			async_wait_for(req, &rc_orig);
+			async_serialize_end();
+			if (rc_orig == EOK)
+				return (int) rc;
+			else
+				return (int) rc_orig;
 		}
-
-		sp += written;
-		left -= written;
+		
+		async_wait_for(req, &rc);
+		async_serialize_end();
+		
+		return (int) rc;
 	}
-
-	if (close(fd) != EOK) {
-		unlink(CLIPBOARD_FILE);
-		return EIO;
-	}
-
-	return EOK;
 }
 
 /** Get a copy of clipboard contents.
  *
  * Returns a new string that can be deallocated with free().
  *
- * @param str	Here pointer to the newly allocated string is stored.
- * @return	Zero on success or negative error code.
+ * @param str Here pointer to the newly allocated string is stored.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
 int clipboard_get_str(char **str)
 {
-	int fd;
-	char *sbuf, *sp;
-	ssize_t to_read, n_read, left;
-	struct stat cbs;
-
-	if (stat(CLIPBOARD_FILE, &cbs) != EOK)
-		return EIO;
-
-	sbuf = malloc(cbs.size + 1);
-	if (sbuf == NULL)
-		return ENOMEM;
-
-	fd = open(CLIPBOARD_FILE, O_RDONLY);
-	if (fd < 0) {
-		free(sbuf);
-		return EIO;
-	}
-
-	sp = sbuf;
-	left = cbs.size;
-
-	while (left > 0) {
-		to_read = min(left, CHUNK_SIZE);
-		n_read = read(fd, sp, to_read);
-
-		if (n_read < 0) {
-			close(fd);
-			free(sbuf);
-			return EIO;
+	/* Loop until clipboard read succesful */
+	while (true) {
+		async_serialize_start();
+		clip_connect();
+		
+		ipcarg_t size;
+		ipcarg_t tag;
+		ipcarg_t rc = async_req_0_2(clip_phone, CLIPBOARD_CONTENT, &size, &tag);
+		
+		async_serialize_end();
+		
+		if (rc != EOK)
+			return (int) rc;
+		
+		char *sbuf;
+		
+		switch (tag) {
+		case CLIPBOARD_TAG_NONE:
+			sbuf = malloc(1);
+			if (sbuf == NULL)
+				return ENOMEM;
+			
+			sbuf[0] = 0;
+			*str = sbuf;
+			return EOK;
+		case CLIPBOARD_TAG_BLOB:
+			sbuf = malloc(size + 1);
+			if (sbuf == NULL)
+				return ENOMEM;
+			
+			async_serialize_start();
+			
+			aid_t req = async_send_1(clip_phone, CLIPBOARD_GET_DATA, tag, NULL);
+			rc = async_data_read_start(clip_phone, (void *) sbuf, size);
+			if (rc == EOVERFLOW) {
+				/*
+				 * The data in the clipboard has changed since
+				 * the last call of CLIPBOARD_CONTENT
+				 */
+				async_serialize_end();
+				break;
+			}
+			
+			if (rc != EOK) {
+				ipcarg_t rc_orig;
+				async_wait_for(req, &rc_orig);
+				async_serialize_end();
+				if (rc_orig == EOK)
+					return (int) rc;
+				else
+					return (int) rc_orig;
+			}
+			
+			async_wait_for(req, &rc);
+			async_serialize_end();
+			
+			if (rc == EOK) {
+				sbuf[size] = 0;
+				*str = sbuf;
+			}
+			
+			return rc;
+		default:
+			return EINVAL;
 		}
-
-		sp += n_read;
-		left -= n_read;
 	}
-
-	close(fd);
-
-	*sp = '\0';
-	*str = sbuf;
-
-	return EOK;
 }
 
 /** @}

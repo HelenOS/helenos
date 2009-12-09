@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,30 +29,24 @@
 /** @addtogroup libcipc
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file
  */
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#ifndef LIBC_IPC_CLIPBOARD_H_
+#define LIBC_IPC_CLIPBOARD_H_
+
+#include <ipc/ipc.h>
 
 typedef enum {
-	SERVICE_LOAD = 1,
-	SERVICE_PCI,
-	SERVICE_KEYBOARD,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_FHC,
-	SERVICE_OBIO,
-	SERVICE_CLIPBOARD
-} services_t;
+	CLIPBOARD_PUT_DATA = IPC_FIRST_USER_METHOD,
+	CLIPBOARD_GET_DATA,
+	CLIPBOARD_CONTENT
+} clipboard_request_t;
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+typedef enum {
+	CLIPBOARD_TAG_NONE,
+	CLIPBOARD_TAG_BLOB
+} clipboard_tag_t;
 
 #endif
 

@@ -26,55 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
-INITRD = initrd
+include Makefile.common
 
-INIT_TASKS = \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
-endif
+.PHONY: all clean
 
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/clip/clip \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
-
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
-endif
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;
