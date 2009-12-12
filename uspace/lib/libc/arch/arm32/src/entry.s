@@ -35,10 +35,22 @@
 ## User-space task entry point
 #
 # r1 contains the PCB pointer
+# r2 contains the RAS page address
 #
 __entry:
+	# Store the RAS page address into the ras_page variable
+	ldr r0, =ras_page
+	str r2, [r0]
+
 	# Pass pcb_ptr to __main as the first argument (in r0)
 	mov r0, r1
 	bl __main
 
 	bl __exit
+
+.data
+
+.global ras_page
+ras_page:
+	.long 0
+

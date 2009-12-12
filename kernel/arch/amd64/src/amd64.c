@@ -66,6 +66,7 @@
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <sysinfo/sysinfo.h>
+#include <memstr.h>
 
 /** Disable I/O on non-privileged levels
  *

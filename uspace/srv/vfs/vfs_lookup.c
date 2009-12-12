@@ -42,7 +42,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <vfs/canonify.h>
 

@@ -49,6 +49,7 @@
 #include <arch/trap/exception.h>
 #include <panic.h>
 #include <arch/asm.h>
+#include <genarch/mm/page_ht.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>

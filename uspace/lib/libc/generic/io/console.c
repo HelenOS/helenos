@@ -93,6 +93,19 @@ void console_kcon_enable(int phone)
 	async_msg_0(phone, CONSOLE_KCON_ENABLE);
 }
 
+int console_get_pos(int phone, int *col, int *row)
+{
+	ipcarg_t col_v;
+	ipcarg_t row_v;
+	int rc;
+
+	rc = async_req_0_2(phone, CONSOLE_GET_POS, &col_v, &row_v);
+
+	*col = (int) col_v;
+	*row = (int) row_v;
+	return rc;
+}
+
 void console_goto(int phone, int col, int row)
 {
 	async_msg_2(phone, CONSOLE_GOTO, col, row);

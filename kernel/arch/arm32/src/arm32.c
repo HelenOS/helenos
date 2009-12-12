@@ -47,6 +47,7 @@
 #include <userspace.h>
 #include <macros.h>
 #include <string.h>
+#include <arch/ras.h>
 
 #ifdef MACHINE_testarm
 	#include <arch/mach/testarm/testarm.h>
@@ -87,6 +88,9 @@ void arch_post_mm_init(void)
 	/* Initialize exception dispatch table */
 	exception_init();
 	interrupt_init();
+
+	/* Initialize Restartable Atomic Sequences support. */
+	ras_init();
 	
 	machine_output_init();
 }
@@ -135,7 +139,6 @@ void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
 	
-	tlb_invalidate_all();
 	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
 	supervisor_sp = (uintptr_t) stck;
 }

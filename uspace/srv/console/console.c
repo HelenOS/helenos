@@ -49,7 +49,7 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 #include "console.h"
 #include "gcons.h"
@@ -599,6 +599,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			if (cons == active_console)
 				curs_goto(IPC_GET_ARG1(call),
 				    IPC_GET_ARG2(call));
+			break;
+		case CONSOLE_GET_POS:
+			arg1 = cons->scr.position_x;
+			arg2 = cons->scr.position_y;
 			break;
 		case CONSOLE_GET_SIZE:
 			arg1 = fb_info.cols;

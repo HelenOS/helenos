@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
+include Makefile.common
 
 build: $(BASE)/image.iso
 

@@ -30,34 +30,17 @@
 ## Common names
 #
 
+include ../../../Makefile.common
+
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
 OUTPUT = image.boot
 
 LINK = _link.ld
 COMPS = _components
-INITRD = initrd
 
 KERNELDIR = ../../../../kernel
 USPACEDIR = ../../../../uspace
-
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
-
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
 
 RD_SRVS_GENERIC = \
 	$(USPACEDIR)/srv/fs/fat/fat \

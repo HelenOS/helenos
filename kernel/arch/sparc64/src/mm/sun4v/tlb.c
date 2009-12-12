@@ -53,6 +53,7 @@
 #include <arch/asm.h>
 #include <arch/cpu.h>
 #include <arch/mm/pagesize.h>
+#include <genarch/mm/page_ht.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>

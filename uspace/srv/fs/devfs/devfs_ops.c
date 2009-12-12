@@ -41,7 +41,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <libfs.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <sys/stat.h>
 #include "devfs.h"

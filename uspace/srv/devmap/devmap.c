@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ipc/devmap.h>
@@ -866,6 +866,6 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-/** 
+/**
  * @}
  */

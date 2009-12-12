@@ -45,7 +45,7 @@
 #include <byteorder.h>
 #include <align.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <mem.h>
 
 /**

@@ -35,11 +35,11 @@
  */
 
 #ifndef LIBBLOCK_LIBBLOCK_H_
-#define	LIBBLOCK_LIBBLOCK_H_ 
+#define LIBBLOCK_LIBBLOCK_H_
 
 #include <stdint.h>
 #include "../../srv/vfs/vfs.h"
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 

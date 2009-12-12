@@ -50,7 +50,7 @@
 #include <async.h>
 #include <align.h>
 #include <async.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <stdio.h>
 #include <devmap.h>
 #include <ipc/bd.h>

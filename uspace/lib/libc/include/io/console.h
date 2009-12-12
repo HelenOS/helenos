@@ -68,6 +68,7 @@ typedef struct {
 extern void console_clear(int phone);
 
 extern int console_get_size(int phone, int *cols, int *rows);
+extern int console_get_pos(int phone, int *col, int *row);
 extern void console_goto(int phone, int col, int row);
 
 extern void console_set_style(int phone, int style);

@@ -47,7 +47,7 @@
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 #include <libc.h>
 
