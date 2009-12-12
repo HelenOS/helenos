@@ -42,3 +42,15 @@ ENDIANESS = BE
 
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
+
+ifeq ($(PROCESSOR),us)
+	DEFS += -DSUN4U
+endif
+
+ifeq ($(PROCESSOR),us3)
+	DEFS += -DSUN4U
+endif
+
+ifeq ($(PROCESSOR),sun4v)
+	DEFS += -DSUN4V
+endif
