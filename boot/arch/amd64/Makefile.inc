@@ -46,7 +46,7 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 	echo "title=HelenOS" >> $(TMP)/boot/grub/menu.lst
 	echo "	root (cd)" >> $(TMP)/boot/grub/menu.lst
 	for module in $(MODULES) $(INITRD).img ; do \
-		if [ $$module == kernel.bin ] ; then \
+		if [ $$module = kernel.bin ] ; then \
 			echo "	kernel /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
 		else \
 			echo "	module /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
