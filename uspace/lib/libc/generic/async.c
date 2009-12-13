@@ -1344,5 +1344,98 @@ int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 	return ipc_data_write_finalize(callid, dst, size);
 }
 
+/** Wrapper for receiving blobs via the async_data_write_*
+ *
+ * This wrapper only makes it more comfortable to use async_data_write_*
+ * functions to receive blobs.
+ *
+ * @param blob     Pointer to data pointer (which should be later disposed
+ *                 by free()). If the operation fails, the pointer is not
+ *                 touched.
+ * @param max_size Maximum size (in bytes) of the blob to receive. 0 means
+ *                 no limit.
+ * @param received If not NULL, the size of the received data is stored here.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
+ */
+int async_data_blob_receive(char **blob, const size_t max_size, size_t *received)
+{
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	if ((max_size > 0) && (size > max_size)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	char *data = (char *) malloc(size);
+	if (data == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		return ENOMEM;
+	}
+	
+	int rc = async_data_write_finalize(callid, data, size);
+	if (rc != EOK) {
+		free(data);
+		return rc;
+	}
+	
+	*blob = data;
+	if (received != NULL)
+		*received = size;
+	
+	return EOK;
+}
+
+/** Wrapper for receiving strings via the async_data_write_*
+ *
+ * This wrapper only makes it more comfortable to use async_data_write_*
+ * functions to receive strings.
+ *
+ * @param str      Pointer to string pointer (which should be later disposed
+ *                 by free()). If the operation fails, the pointer is not
+ *                 touched.
+ * @param max_size Maximum size (in bytes) of the string to receive. 0 means
+ *                 no limit.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
+ */
+int async_data_string_receive(char **str, const size_t max_size)
+{
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	if ((max_size > 0) && (size > max_size)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	char *data = (char *) malloc(size + 1);
+	if (data == NULL) {
+		ipc_answer_0(callid, ENOMEM);
+		return ENOMEM;
+	}
+	
+	int rc = async_data_write_finalize(callid, data, size);
+	if (rc != EOK) {
+		free(data);
+		return rc;
+	}
+	
+	data[size] = 0;
+	*str = data;
+	return EOK;
+}
+
 /** @}
  */
