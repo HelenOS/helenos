@@ -56,9 +56,8 @@
 #include "keybuffer.h"
 #include "screenbuffer.h"
 
-#define NAME  "console"
-
-#define MAX_DEVICE_NAME  32
+#define NAME       "console"
+#define NAMESPACE  "term"
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -68,7 +67,7 @@ struct {
 	int phone;      /**< Framebuffer phone */
 	ipcarg_t cols;  /**< Framebuffer columns */
 	ipcarg_t rows;  /**< Framebuffer rows */
-	int color_cap;	/**< Color capabilities (FB_CCAP_xxx) */
+	int color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
 } fb_info;
 
 typedef struct {
@@ -739,8 +738,8 @@ static bool console_init(void)
 			consoles[i].index = i;
 			consoles[i].refcount = 0;
 			
-			char vc[MAX_DEVICE_NAME];
-			snprintf(vc, MAX_DEVICE_NAME, "vc%u", i);
+			char vc[DEVMAP_NAME_MAXLEN + 1];
+			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%u", NAMESPACE, i);
 			
 			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
 				devmap_hangup_phone(DEVMAP_DRIVER);

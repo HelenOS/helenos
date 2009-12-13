@@ -68,6 +68,7 @@ fs_index_t tmpfs_next_index = 1;
 /* Forward declarations of static functions. */
 static int tmpfs_match(fs_node_t **, fs_node_t *, const char *);
 static int tmpfs_node_get(fs_node_t **, dev_handle_t, fs_index_t);
+static int tmpfs_node_open(fs_node_t *);
 static int tmpfs_node_put(fs_node_t *);
 static int tmpfs_create_node(fs_node_t **, dev_handle_t, int);
 static int tmpfs_destroy_node(fs_node_t *);
@@ -116,11 +117,17 @@ static bool tmpfs_is_file(fs_node_t *fn)
 	return TMPFS_NODE(fn)->type == TMPFS_FILE;
 }
 
+static dev_handle_t tmpfs_device_get(fs_node_t *fn)
+{
+	return 0;
+}
+
 /** libfs operations */
 libfs_ops_t tmpfs_libfs_ops = {
 	.root_get = tmpfs_root_get,
 	.match = tmpfs_match,
 	.node_get = tmpfs_node_get,
+	.node_open = tmpfs_node_open,
 	.node_put = tmpfs_node_put,
 	.create = tmpfs_create_node,
 	.destroy = tmpfs_destroy_node,
@@ -132,7 +139,8 @@ libfs_ops_t tmpfs_libfs_ops = {
 	.lnkcnt_get = tmpfs_lnkcnt_get,
 	.plb_get_char = tmpfs_plb_get_char,
 	.is_directory = tmpfs_is_directory,
-	.is_file = tmpfs_is_file
+	.is_file = tmpfs_is_file,
+	.device_get = tmpfs_device_get
 };
 
 /** Hash table of all TMPFS nodes. */
@@ -240,6 +248,12 @@ int tmpfs_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 		*rfn = NULL;
 	}
 	return EOK;	
+}
+
+int tmpfs_node_open(fs_node_t *fn)
+{
+	/* nothing to do */
+	return EOK;
 }
 
 int tmpfs_node_put(fs_node_t *fn)

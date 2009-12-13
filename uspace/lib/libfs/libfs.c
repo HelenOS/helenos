@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libfs 
+/** @addtogroup libfs
  * @{
- */ 
+ */
 /**
  * @file
- * Glue code which is commonod to all FS implementations. 
+ * Glue code which is common to all FS implementations.
  */
 
-#include "libfs.h" 
+#include "libfs.h"
 #include "../../srv/vfs/vfs.h"
 #include <errno.h>
 #include <async.h>
@@ -66,15 +66,16 @@
  * file system implementations and lets them to reuse this registration glue
  * code.
  *
- * @param vfs_phone	Open phone for communication with VFS.
- * @param reg		File system registration structure. It will be
- * 			initialized by this function.
- * @param info		VFS info structure supplied by the file system
- *			implementation.
- * @param conn		Connection fibril for handling all calls originating in
- *			VFS.
+ * @param vfs_phone Open phone for communication with VFS.
+ * @param reg       File system registration structure. It will be
+ *                  initialized by this function.
+ * @param info      VFS info structure supplied by the file system
+ *                  implementation.
+ * @param conn      Connection fibril for handling all calls originating in
+ *                  VFS.
  *
- * @return		EOK on success or a non-zero error code on errror.
+ * @return EOK on success or a non-zero error code on errror.
+ *
  */
 int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
     async_client_conn_t conn)
@@ -86,7 +87,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	 */
 	ipc_call_t answer;
 	aid_t req = async_send_0(vfs_phone, VFS_IN_REGISTER, &answer);
-
+	
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
@@ -95,12 +96,12 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 		async_wait_for(req, NULL);
 		return rc;
 	}
-
+	
 	/*
 	 * Ask VFS for callback connection.
 	 */
 	ipc_connect_to_me(vfs_phone, 0, 0, 0, &reg->vfs_phonehash);
-
+	
 	/*
 	 * Allocate piece of address space for PLB.
 	 */
@@ -109,7 +110,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 		async_wait_for(req, NULL);
 		return ENOMEM;
 	}
-
+	
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
@@ -135,7 +136,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	 * the same connection fibril as well.
 	 */
 	async_set_client_connection(conn);
-
+	
 	return IPC_GET_RETVAL(answer);
 }
 
@@ -153,20 +154,22 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
 	int res;
 	ipcarg_t rc;
-
+	
 	ipc_call_t call;
 	ipc_callid_t callid;
-
-	/* accept the phone */
+	
+	/* Accept the phone */
 	callid = async_get_call(&call);
 	int mountee_phone = (int)IPC_GET_ARG1(call);
 	if ((IPC_GET_METHOD(call) != IPC_M_CONNECTION_CLONE) ||
-	    mountee_phone < 0) {
+	    (mountee_phone < 0)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-	ipc_answer_0(callid, EOK);	/* acknowledge the mountee_phone */
+	
+	/* Acknowledge the mountee_phone */
+	ipc_answer_0(callid, EOK);
 	
 	res = async_data_write_receive(&callid, NULL);
 	if (!res) {
@@ -175,16 +178,16 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	fs_node_t *fn;
 	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
-	if (res != EOK || !fn) {
+	if ((res != EOK) || (!fn)) {
 		ipc_hangup(mountee_phone);
 		ipc_answer_0(callid, combine_rc(res, ENOENT));
 		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
-
+	
 	if (fn->mp_data.mp_active) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
@@ -192,7 +195,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		ipc_answer_0(rid, EBUSY);
 		return;
 	}
-
+	
 	rc = async_req_0_0(mountee_phone, IPC_M_CONNECT_ME);
 	if (rc != EOK) {
 		ipc_hangup(mountee_phone);
@@ -214,6 +217,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		fn->mp_data.dev_handle = mr_dev_handle;
 		fn->mp_data.phone = mountee_phone;
 	}
+	
 	/*
 	 * Do not release the FS node so that it stays in memory.
 	 */
@@ -237,26 +241,26 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
-	unsigned first = IPC_GET_ARG1(*request);
-	unsigned last = IPC_GET_ARG2(*request);
-	unsigned next = first;
+	unsigned int first = IPC_GET_ARG1(*request);
+	unsigned int last = IPC_GET_ARG2(*request);
+	unsigned int next = first;
 	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
-	fs_index_t index = IPC_GET_ARG5(*request); /* when L_LINK specified */
+	fs_index_t index = IPC_GET_ARG5(*request);
 	char component[NAME_MAX + 1];
 	int len;
 	int rc;
-
+	
 	if (last < next)
 		last += PLB_SIZE;
-
+	
 	fs_node_t *par = NULL;
 	fs_node_t *cur = NULL;
 	fs_node_t *tmp = NULL;
-
+	
 	rc = ops->root_get(&cur, dev_handle);
 	on_error(rc, goto out_with_answer);
-
+	
 	if (cur->mp_data.mp_active) {
 		ipc_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
 		    next, last, cur->mp_data.dev_handle, lflag, index,
@@ -264,44 +268,47 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		(void) ops->node_put(cur);
 		return;
 	}
-
+	
+	/* Eat slash */
 	if (ops->plb_get_char(next) == '/')
-		next++;		/* eat slash */
+		next++;
 	
 	while (next <= last) {
 		bool has_children;
-
+		
 		rc = ops->has_children(&has_children, cur);
 		on_error(rc, goto out_with_answer);
 		if (!has_children)
 			break;
-
-		/* collect the component */
+		
+		/* Collect the component */
 		len = 0;
-		while ((next <= last) &&  (ops->plb_get_char(next) != '/')) {
+		while ((next <= last) && (ops->plb_get_char(next) != '/')) {
 			if (len + 1 == NAME_MAX) {
-				/* component length overflow */
+				/* Component length overflow */
 				ipc_answer_0(rid, ENAMETOOLONG);
 				goto out;
 			}
 			component[len++] = ops->plb_get_char(next);
-			next++;	/* process next character */
+			/* Process next character */
+			next++;
 		}
-
+		
 		assert(len);
 		component[len] = '\0';
-		next++;		/* eat slash */
-
-		/* match the component */
+		/* Eat slash */
+		next++;
+		
+		/* Match the component */
 		rc = ops->match(&tmp, cur, component);
 		on_error(rc, goto out_with_answer);
-
-		if (tmp && tmp->mp_data.mp_active) {
+		
+		if ((tmp) && (tmp->mp_data.mp_active)) {
 			if (next > last)
 				next = last = first;
 			else
 				next--;
-				
+			
 			ipc_forward_slow(rid, tmp->mp_data.phone,
 			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.dev_handle,
 			    lflag, index, IPC_FF_ROUTE_FROM_ME);
@@ -311,21 +318,23 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				(void) ops->node_put(par);
 			return;
 		}
-
-		/* handle miss: match amongst siblings */
+		
+		/* Handle miss: match amongst siblings */
 		if (!tmp) {
 			if (next <= last) {
-				/* there are unprocessed components */
+				/* There are unprocessed components */
 				ipc_answer_0(rid, ENOENT);
 				goto out;
 			}
-			/* miss in the last component */
-			if (lflag & (L_CREATE | L_LINK)) { 
-				/* request to create a new link */
+			
+			/* Miss in the last component */
+			if (lflag & (L_CREATE | L_LINK)) {
+				/* Request to create a new link */
 				if (!ops->is_directory(cur)) {
 					ipc_answer_0(rid, ENOTDIR);
 					goto out;
 				}
+				
 				fs_node_t *fn;
 				if (lflag & L_CREATE)
 					rc = ops->create(&fn, dev_handle,
@@ -334,6 +343,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					rc = ops->node_get(&fn, dev_handle,
 					    index);
 				on_error(rc, goto out_with_answer);
+				
 				if (fn) {
 					rc = ops->link(cur, fn, component);
 					if (rc != EOK) {
@@ -348,66 +358,72 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						    ops->lnkcnt_get(fn));
 						(void) ops->node_put(fn);
 					}
-				} else {
+				} else
 					ipc_answer_0(rid, ENOSPC);
-				}
+				
 				goto out;
-			} 
+			}
+			
 			ipc_answer_0(rid, ENOENT);
 			goto out;
 		}
-
+		
 		if (par) {
 			rc = ops->node_put(par);
 			on_error(rc, goto out_with_answer);
 		}
-
-		/* descend one level */
+		
+		/* Descend one level */
 		par = cur;
 		cur = tmp;
 		tmp = NULL;
 	}
-
-	/* handle miss: excessive components */
+	
+	/* Handle miss: excessive components */
 	if (next <= last) {
 		bool has_children;
-
 		rc = ops->has_children(&has_children, cur);
 		on_error(rc, goto out_with_answer);
+		
 		if (has_children)
 			goto skip_miss;
-
+		
 		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
 				ipc_answer_0(rid, ENOTDIR);
 				goto out;
 			}
-
-			/* collect next component */
+			
+			/* Collect next component */
 			len = 0;
 			while (next <= last) {
 				if (ops->plb_get_char(next) == '/') {
-					/* more than one component */
+					/* More than one component */
 					ipc_answer_0(rid, ENOENT);
 					goto out;
 				}
+				
 				if (len + 1 == NAME_MAX) {
-					/* component length overflow */
+					/* Component length overflow */
 					ipc_answer_0(rid, ENAMETOOLONG);
 					goto out;
 				}
+				
 				component[len++] = ops->plb_get_char(next);
-				next++;	/* process next character */
+				/* Process next character */
+				next++;
 			}
+			
 			assert(len);
 			component[len] = '\0';
-				
+			
 			fs_node_t *fn;
 			if (lflag & L_CREATE)
 				rc = ops->create(&fn, dev_handle, lflag);
 			else
 				rc = ops->node_get(&fn, dev_handle, index);
 			on_error(rc, goto out_with_answer);
+			
 			if (fn) {
 				rc = ops->link(cur, fn, component);
 				if (rc != EOK) {
@@ -422,52 +438,63 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					    ops->lnkcnt_get(fn));
 					(void) ops->node_put(fn);
 				}
-			} else {
+			} else
 				ipc_answer_0(rid, ENOSPC);
-			}
+			
 			goto out;
 		}
+		
 		ipc_answer_0(rid, ENOENT);
 		goto out;
 	}
+	
 skip_miss:
-
-	/* handle hit */
+	
+	/* Handle hit */
 	if (lflag & L_UNLINK) {
-		unsigned old_lnkcnt = ops->lnkcnt_get(cur);
+		unsigned int old_lnkcnt = ops->lnkcnt_get(cur);
 		rc = ops->unlink(par, cur, component);
-		ipc_answer_5(rid, (ipcarg_t)rc, fs_handle, dev_handle,
+		ipc_answer_5(rid, (ipcarg_t) rc, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
 		goto out;
 	}
+	
 	if (((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) ||
 	    (lflag & L_LINK)) {
 		ipc_answer_0(rid, EEXIST);
 		goto out;
 	}
+	
 	if ((lflag & L_FILE) && (ops->is_directory(cur))) {
 		ipc_answer_0(rid, EISDIR);
 		goto out;
 	}
+	
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		ipc_answer_0(rid, ENOTDIR);
 		goto out;
 	}
-
+	
 out_with_answer:
+	
 	if (rc == EOK) {
-		ipc_answer_5(rid, EOK, fs_handle, dev_handle,
+		if (lflag & L_OPEN)
+			rc = ops->node_open(cur);
+		
+		ipc_answer_5(rid, rc, fs_handle, dev_handle,
 		    ops->index_get(cur), ops->size_get(cur),
 		    ops->lnkcnt_get(cur));
-	} else {
+	} else
 		ipc_answer_0(rid, rc);
-	}
-
+	
 out:
+	
 	if (par)
 		(void) ops->node_put(par);
+	
 	if (cur)
 		(void) ops->node_put(cur);
+	
 	if (tmp)
 		(void) ops->node_put(tmp);
 }
@@ -477,41 +504,45 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	
 	fs_node_t *fn;
-	int rc;
-
-	rc = ops->node_get(&fn, dev_handle, index);
+	int rc = ops->node_get(&fn, dev_handle, index);
 	on_error(rc, answer_and_return(rid, rc));
-
+	
 	ipc_callid_t callid;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size) ||
-	    size != sizeof(struct stat)) {
+	if ((!async_data_read_receive(&callid, &size)) ||
+	    (size != sizeof(struct stat))) {
+		ops->node_put(fn);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	struct stat stat;
 	memset(&stat, 0, sizeof(struct stat));
 	
 	stat.fs_handle = fs_handle;
 	stat.dev_handle = dev_handle;
 	stat.index = index;
-	stat.lnkcnt = ops->lnkcnt_get(fn); 
+	stat.lnkcnt = ops->lnkcnt_get(fn);
 	stat.is_file = ops->is_file(fn);
+	stat.is_directory = ops->is_directory(fn);
 	stat.size = ops->size_get(fn);
-
+	stat.device = ops->device_get(fn);
+	
+	ops->node_put(fn);
+	
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
 	ipc_answer_0(rid, EOK);
 }
 
 /** Open VFS triplet.
  *
- * @param ops       libfs operations structure with function pointers to
- *                  file system implementation
- * @param rid       Request ID of the VFS_OUT_OPEN_NODE request.
- * @param request   VFS_OUT_OPEN_NODE request data itself.
+ * @param ops     libfs operations structure with function pointers to
+ *                file system implementation
+ * @param rid     Request ID of the VFS_OUT_OPEN_NODE request.
+ * @param request VFS_OUT_OPEN_NODE request data itself.
  *
  */
 void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
@@ -530,7 +561,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		return;
 	}
 	
-	ipc_answer_3(rid, EOK, ops->size_get(fn), ops->lnkcnt_get(fn),
+	rc = ops->node_open(fn);
+	ipc_answer_3(rid, rc, ops->size_get(fn), ops->lnkcnt_get(fn),
 	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);

@@ -49,7 +49,8 @@
 #include <macros.h>
 #include <task.h>
 
-#define NAME "gxe_bd"
+#define NAME       "gxe_bd"
+#define NAMESPACE  "bd"
 
 enum {
 	CTL_READ_START	= 0,
@@ -140,12 +141,11 @@ static int gxe_bd_init(void)
 	dev = vaddr;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "disk%d", i);
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &dev_handle[i]);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		fibril_mutex_initialize(&dev_lock[i]);

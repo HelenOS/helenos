@@ -57,7 +57,7 @@ static void info_print(void)
 static bool mount_root(const char *fstype)
 {
 	char *opts = "";
-	const char *root_dev = "initrd";
+	const char *root_dev = "bd/initrd";
 	
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
@@ -96,7 +96,7 @@ static bool mount_devfs(void)
 		return false;
 	}
 	
-	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
+	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
 	int rc = mount("devfs", "/dev", null, "", IPC_FLAG_BLOCKING);
 	
 	switch (rc) {
@@ -169,7 +169,7 @@ static void srv_start(char *fname)
 		return;
 	}
 
-	if (texit != TASK_EXIT_NORMAL || retval != 0) {
+	if ((texit != TASK_EXIT_NORMAL) || (retval != 0)) {
 		printf(NAME ": Server %s failed to start (returned %d)\n",
 			fname, retval);
 	}
@@ -205,10 +205,10 @@ static void mount_data(void)
 {
 	int rc;
 
-	printf("Trying to mount disk0 on /data... ");
+	printf("Trying to mount bd/disk0 on /data... ");
 	fflush(stdout);
 
-	rc = mount("fat", "/data", "disk0", "wtcache", 0);
+	rc = mount("fat", "/data", "bd/disk0", "wtcache", 0);
 	if (rc == EOK)
 		printf("OK\n");
 	else
@@ -255,13 +255,13 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 
-	getvc("vc0", "/app/bdsh");
-	getvc("vc1", "/app/bdsh");
-	getvc("vc2", "/app/bdsh");
-	getvc("vc3", "/app/bdsh");
-	getvc("vc4", "/app/bdsh");
-	getvc("vc5", "/app/bdsh");
-	getvc("vc6", "/app/klog");
+	getvc("term/vc0", "/app/bdsh");
+	getvc("term/vc1", "/app/bdsh");
+	getvc("term/vc2", "/app/bdsh");
+	getvc("term/vc3", "/app/bdsh");
+	getvc("term/vc4", "/app/bdsh");
+	getvc("term/vc5", "/app/bdsh");
+	getvc("term/vc6", "/app/klog");
 	
 	return 0;
 }

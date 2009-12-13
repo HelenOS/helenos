@@ -70,6 +70,7 @@ static LIST_INITIALIZE(ffn_head);
 static int fat_root_get(fs_node_t **, dev_handle_t);
 static int fat_match(fs_node_t **, fs_node_t *, const char *);
 static int fat_node_get(fs_node_t **, dev_handle_t, fs_index_t);
+static int fat_node_open(fs_node_t *);
 static int fat_node_put(fs_node_t *);
 static int fat_create_node(fs_node_t **, dev_handle_t, int);
 static int fat_destroy_node(fs_node_t *);
@@ -82,6 +83,7 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static char fat_plb_get_char(unsigned);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
+static dev_handle_t fat_device_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -404,6 +406,15 @@ int fat_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 	if (rc == EOK)
 		*rfn = FS_NODE(nodep);
 	return rc;
+}
+
+int fat_node_open(fs_node_t *fn)
+{
+	/*
+	 * Opening a file is stateless, nothing
+	 * to be done here.
+	 */
+	return EOK;
 }
 
 int fat_node_put(fs_node_t *fn)
@@ -866,11 +877,17 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
+dev_handle_t fat_device_get(fs_node_t *node)
+{
+	return 0;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
 	.match = fat_match,
 	.node_get = fat_node_get,
+	.node_open = fat_node_open,
 	.node_put = fat_node_put,
 	.create = fat_create_node,
 	.destroy = fat_destroy_node,
@@ -880,9 +897,10 @@ libfs_ops_t fat_libfs_ops = {
 	.index_get = fat_index_get,
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
-	.plb_get_char =	fat_plb_get_char,
+	.plb_get_char = fat_plb_get_char,
 	.is_directory = fat_is_directory,
-	.is_file = fat_is_file
+	.is_file = fat_is_file,
+	.device_get = fat_device_get
 };
 
 /*
