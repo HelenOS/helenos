@@ -213,7 +213,7 @@ static void getterm(char *dev, char *app)
 	
 	snprintf(term, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
-	printf(NAME ": Spawning %s with %s\n", APP_GETTERM, term);
+	printf(NAME ": Spawning %s with %s %s\n", APP_GETTERM, term, app);
 	
 	/* Wait for the terminal device to be ready */
 	dev_handle_t handle;
@@ -226,7 +226,8 @@ static void getterm(char *dev, char *app)
 		argv[3] = NULL;
 		
 		if (!task_spawn(APP_GETTERM, argv))
-			printf(NAME ": Error spawning %s with %s\n", APP_GETTERM, term);
+			printf(NAME ": Error spawning %s with %s %s\n", APP_GETTERM,
+			    term, app);
 	} else
 		printf(NAME ": Error waiting on %s\n", term);
 }
