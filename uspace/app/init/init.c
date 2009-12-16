@@ -52,7 +52,7 @@
 #define DEVFS_MOUNT_POINT  "/dev"
 
 #define SRV_CONSOLE  "/srv/console"
-#define APP_GETVC    "/app/getvc"
+#define APP_GETTERM  "/app/getterm"
 
 static void info_print(void)
 {
@@ -205,30 +205,30 @@ static void console(char *dev)
 		printf(NAME ": Error waiting on %s\n", hid_in);
 }
 
-static void getvc(char *dev, char *app)
+static void getterm(char *dev, char *app)
 {
 	char *argv[4];
-	char vc[MAX_DEVICE_NAME];
+	char term[MAX_DEVICE_NAME];
 	int rc;
 	
-	snprintf(vc, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(term, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
-	printf(NAME ": Spawning %s on %s\n", APP_GETVC, vc);
+	printf(NAME ": Spawning %s with %s\n", APP_GETTERM, term);
 	
 	/* Wait for the terminal device to be ready */
 	dev_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	
 	if (rc == EOK) {
-		argv[0] = APP_GETVC;
-		argv[1] = vc;
+		argv[0] = APP_GETTERM;
+		argv[1] = term;
 		argv[2] = app;
 		argv[3] = NULL;
 		
-		if (!task_spawn(APP_GETVC, argv))
-			printf(NAME ": Error spawning %s on %s\n", APP_GETVC, vc);
+		if (!task_spawn(APP_GETTERM, argv))
+			printf(NAME ": Error spawning %s with %s\n", APP_GETTERM, term);
 	} else
-		printf(NAME ": Error waiting on %s\n", vc);
+		printf(NAME ": Error waiting on %s\n", term);
 }
 
 static void mount_data(void)
@@ -286,13 +286,13 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 
-	getvc("term/vc0", "/app/bdsh");
-	getvc("term/vc1", "/app/bdsh");
-	getvc("term/vc2", "/app/bdsh");
-	getvc("term/vc3", "/app/bdsh");
-	getvc("term/vc4", "/app/bdsh");
-	getvc("term/vc5", "/app/bdsh");
-	getvc("term/vc6", "/app/klog");
+	getterm("term/vc0", "/app/bdsh");
+	getterm("term/vc1", "/app/bdsh");
+	getterm("term/vc2", "/app/bdsh");
+	getterm("term/vc3", "/app/bdsh");
+	getterm("term/vc4", "/app/bdsh");
+	getterm("term/vc5", "/app/bdsh");
+	getterm("term/vc6", "/app/klog");
 	
 	return 0;
 }

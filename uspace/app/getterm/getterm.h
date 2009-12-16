@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup getvc
+/** @addtogroup getterm
  * @{
  */
 /**
  * @file
  */
 
-#ifndef GETVC_H__
-#define GETVC_H__
+#ifndef GETTERM_H__
+#define GETTERM_H__
 
 #endif
 

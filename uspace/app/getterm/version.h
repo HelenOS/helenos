@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup getvc
+/** @addtogroup getterm
  * @{
  */
 /**
@@ -36,7 +36,7 @@
 #ifndef VERSION_H__
 #define VERSION_H__
 
-extern void version_print(const char *vc);
+extern void version_print(const char *term);
 
 #endif
 

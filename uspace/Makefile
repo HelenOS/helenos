@@ -54,7 +54,7 @@ DIRS = \
 	app/trace \
 	app/klog \
 	app/init \
-	app/getvc \
+	app/getterm \
 	app/redir \
 	app/bdsh
 

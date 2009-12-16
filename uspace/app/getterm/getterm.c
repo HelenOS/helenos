@@ -26,41 +26,101 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup getvc
+/** @addtogroup getterm GetTerm
+ * @brief Console initialization task.
  * @{
  */
 /**
  * @file
  */
 
+#include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <macros.h>
-#include "getvc.h"
+#include <task.h>
 #include "version.h"
 
-static char *release = STRING(RELEASE);
-static char *name = STRING(NAME);
-static char *arch = STRING(UARCH);
-
-#ifdef REVISION
-	static char *revision = ", revision " STRING(REVISION);
-#else
-	static char *revision = "";
-#endif
-
-#ifdef TIMESTAMP
-	static char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
-#else
-	static char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(const char *vc)
+static void usage(void)
 {
-	printf("HelenOS release %s (%s)%s%s\n", release, name, revision, timestamp);
-	printf("Running on %s (%s)\n", arch, vc);
-	printf("Copyright (c) 2001-2009 HelenOS project\n\n");
+	printf("Usage: getterm <terminal> <path>\n");
+}
+
+static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
+{
+	if (fclose(*stream))
+		return;
+	
+	*stream = NULL;
+	
+	int oldfd = open(path, flags);
+	if (oldfd < 0)
+		return;
+	
+	if (oldfd != fd) {
+		if (dup2(oldfd, fd) != fd)
+			return;
+		
+		if (close(oldfd))
+			return;
+	}
+	
+	*stream = fdopen(fd, mode);
+}
+
+static task_id_t spawn(char *fname)
+{
+	char *args[2];
+	
+	args[0] = fname;
+	args[1] = NULL;
+	
+	task_id_t id = task_spawn(fname, args);
+	
+	if (id == 0)
+		printf("Error spawning %s\n", fname);
+	
+	return id;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc < 3) {
+		usage();
+		return -1;
+	}
+	
+	reopen(&stdin, 0, argv[1], O_RDONLY, "r");
+	reopen(&stdout, 1, argv[1], O_WRONLY, "w");
+	reopen(&stderr, 2, argv[1], O_WRONLY, "w");
+	
+	/*
+	 * FIXME: fdopen() should actually detect that we are opening a console
+	 * and it should set line-buffering mode automatically.
+	 */
+	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+	
+	if (stdin == NULL)
+		return -2;
+	
+	if (stdout == NULL)
+		return -3;
+	
+	if (stderr == NULL)
+		return -4;
+	
+	version_print(argv[1]);
+	task_id_t id = spawn(argv[2]);
+	
+	if (id != 0) {
+		task_exit_t texit;
+		int retval;
+		task_wait(id, &texit, &retval);
+		
+		return 0;
+	}
+	
+	return -5;
 }
 
 /** @}
