@@ -49,15 +49,16 @@
 #include <adt/fifo.h>
 #include <io/console.h>
 #include <io/keycode.h>
+#include <devmap.h>
 
 #include <kbd.h>
 #include <kbd_port.h>
 #include <kbd_ctl.h>
 #include <layout.h>
 
-#define NAME "kbd"
+#define NAME       "kbd"
+#define NAMESPACE  "hid_in"
 
-int cons_connected = 0;
 int phone2cons = -1;
 
 /** Currently active modifiers. */
@@ -171,20 +172,17 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
-	if (cons_connected) {
-		ipc_answer_0(iid, ELIMIT);
-		return;
-	}
-	cons_connected = 1;
 	ipc_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			cons_connected = 0;
-			ipc_hangup(phone2cons);
-			phone2cons = -1;
+			if (phone2cons != -1) {
+				ipc_hangup(phone2cons);
+				phone2cons = -1;
+			}
+			
 			ipc_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
@@ -215,8 +213,6 @@ int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS Keyboard service\n");
 	
-	ipcarg_t phonead;
-	
 	if (sysinfo_value("kbd.cir.fhc") == 1)
 		cir_service = SERVICE_FHC;
 	else if (sysinfo_value("kbd.cir.obio") == 1)
@@ -240,12 +236,22 @@ int main(int argc, char **argv)
 	/* Initialize (reset) layout. */
 	layout[active_layout]->reset();
 	
-	async_set_client_connection(console_connection);
-
-	/* Register service at nameserver. */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_KEYBOARD, 0, 0, &phonead) != 0)
+	/* Register driver */
+	int rc = devmap_driver_register(NAME, console_connection);
+	if (rc < 0) {
+		printf(NAME ": Unable to register driver (%d)\n", rc);
 		return -1;
+	}
 	
+	char kbd[DEVMAP_NAME_MAXLEN + 1];
+	snprintf(kbd, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
+	
+	dev_handle_t dev_handle;
+	if (devmap_device_register(kbd, &dev_handle) != EOK) {
+		printf(NAME ": Unable to register device %s\n", kbd);
+		return -1;
+	}
+
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 

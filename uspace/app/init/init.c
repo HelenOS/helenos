@@ -49,6 +49,11 @@
 #include <devmap.h>
 #include "init.h"
 
+#define DEVFS_MOUNT_POINT  "/dev"
+
+#define SRV_CONSOLE  "/srv/console"
+#define APP_GETVC    "/app/getvc"
+
 static void info_print(void)
 {
 	printf(NAME ": HelenOS init\n");
@@ -97,7 +102,7 @@ static bool mount_devfs(void)
 	}
 	
 	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
-	int rc = mount("devfs", "/dev", null, "", IPC_FLAG_BLOCKING);
+	int rc = mount("devfs", DEVFS_MOUNT_POINT, null, "", IPC_FLAG_BLOCKING);
 	
 	switch (rc) {
 	case EOK:
@@ -175,30 +180,55 @@ static void srv_start(char *fname)
 	}
 }
 
+static void console(char *dev)
+{
+	char *argv[3];
+	char hid_in[MAX_DEVICE_NAME];
+	int rc;
+	
+	snprintf(hid_in, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	
+	printf(NAME ": Spawning %s with %s\n", SRV_CONSOLE, hid_in);
+	
+	/* Wait for the input device to be ready */
+	dev_handle_t handle;
+	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	
+	if (rc == EOK) {
+		argv[0] = SRV_CONSOLE;
+		argv[1] = hid_in;
+		argv[2] = NULL;
+		
+		if (!task_spawn(SRV_CONSOLE, argv))
+			printf(NAME ": Error spawning %s with %s\n", SRV_CONSOLE, hid_in);
+	} else
+		printf(NAME ": Error waiting on %s\n", hid_in);
+}
+
 static void getvc(char *dev, char *app)
 {
 	char *argv[4];
 	char vc[MAX_DEVICE_NAME];
 	int rc;
 	
-	snprintf(vc, MAX_DEVICE_NAME, "/dev/%s", dev);
+	snprintf(vc, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
-	printf(NAME ": Spawning getvc on %s\n", vc);
+	printf(NAME ": Spawning %s on %s\n", APP_GETVC, vc);
 	
+	/* Wait for the terminal device to be ready */
 	dev_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	
 	if (rc == EOK) {
-		argv[0] = "/app/getvc";
+		argv[0] = APP_GETVC;
 		argv[1] = vc;
 		argv[2] = app;
 		argv[3] = NULL;
 		
-		if (!task_spawn("/app/getvc", argv))
-			printf(NAME ": Error spawning getvc on %s\n", vc);
-	} else {
+		if (!task_spawn(APP_GETVC, argv))
+			printf(NAME ": Error spawning %s on %s\n", APP_GETVC, vc);
+	} else
 		printf(NAME ": Error waiting on %s\n", vc);
-	}
 }
 
 static void mount_data(void)
@@ -233,7 +263,8 @@ int main(int argc, char *argv[])
 	
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
-	spawn("/srv/console");
+	console("hid_in/kbd");
+	
 	spawn("/srv/clip");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");

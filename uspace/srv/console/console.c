@@ -49,6 +49,8 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>
+#include <fcntl.h>
+#include <vfs/vfs.h>
 #include <fibril_synch.h>
 
 #include "console.h"
@@ -664,20 +666,25 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static bool console_init(void)
+static bool console_init(char *input)
 {
-	ipcarg_t color_cap;
-
-	/* Connect to keyboard driver */
-	kbd_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_KEYBOARD, 0, 0);
-	if (kbd_phone < 0) {
-		printf(NAME ": Failed to connect to keyboard service\n");
+	/* Connect to input device */
+	int input_fd = open(input, O_RDONLY);
+	if (input_fd < 0) {
+		printf(NAME ": Failed opening %s\n", input);
 		return false;
 	}
 	
+	kbd_phone = fd_phone(input_fd);
+	if (kbd_phone < 0) {
+		printf(NAME ": Failed to connect to input device\n");
+		return false;
+	}
+	
+	/* NB: The callback connection is slotted for removal */
 	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
-		printf(NAME ": Failed to create callback from keyboard service\n");
+		printf(NAME ": Failed to create callback from input device\n");
 		return false;
 	}
 	
@@ -701,6 +708,7 @@ static bool console_init(void)
 	gcons_init(fb_info.phone);
 	
 	/* Synchronize, the gcons could put something in queue */
+	ipcarg_t color_cap;
 	async_req_0_0(fb_info.phone, FB_FLUSH);
 	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
 	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &color_cap);
@@ -770,11 +778,21 @@ static bool console_init(void)
 	return true;
 }
 
+static void usage(void)
+{
+	printf("Usage: console <input>\n");
+}
+
 int main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		usage();
+		return -1;
+	}
+	
 	printf(NAME ": HelenOS Console service\n");
 	
-	if (!console_init())
+	if (!console_init(argv[1]))
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");
