@@ -262,13 +262,14 @@ int main(int argc, char *argv[])
 		return -2;
 	}
 	
+	spawn("/srv/fhc");
+	spawn("/srv/obio");
+
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
 	console("hid_in/kbd");
 	
 	spawn("/srv/clip");
-	spawn("/srv/fhc");
-	spawn("/srv/obio");
 
 	/*
 	 * Start these synchronously so that mount_data() can be
