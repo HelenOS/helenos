@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include "../tester.h"
+#include <stdlib.h>
 
-#ifndef TESTER_H_
-#define TESTER_H_
-
-#include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
-
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
-
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
-
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
-	}
-
-typedef char *(*test_entry_t)(void);
-
-typedef struct {
-	char *name;
-	char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern char *test_thread1(void);
-extern char *test_print1(void);
-extern char *test_print2(void);
-extern char *test_print3(void);
-extern char *test_print4(void);
-extern char *test_console1(void);
-extern char *test_stdio1(void);
-extern char *test_stdio2(void);
-extern char *test_fault1(void);
-extern char *test_fault2(void);
-extern char *test_fault3(void);
-extern char *test_vfs1(void);
-extern char *test_ping_pong(void);
-extern char *test_register(void);
-extern char *test_connect(void);
-extern char *test_loop1(void);
-extern char *test_malloc1(void);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+char *test_fault3(void)
+{
+	abort();
+}
