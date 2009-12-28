@@ -54,6 +54,10 @@ __entry:
 	leal __syscall_fast_func, %eax
 	movl $__syscall_fast, (%eax)
 0:
+	#
+	# Stop stack traces in this function.
+	#
+	xorl %ebp, %ebp
 
 	# Pass the PCB pointer to __main as the first argument
 	pushl %edi
