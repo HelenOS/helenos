@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = i686-pc-linux-gnu
-CLANG_ARCH = i386
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/setjmp.S \
-	arch/$(UARCH)/src/stacktrace.S
+frame_pointer_get:
+	movl %ebp, %eax
+	ret
 
-GCC_CFLAGS += -march=pentium
-LFLAGS += -N
+frame_pointer_prev:
+	movl 4(%esp), %eax
+	movl (%eax), %eax
+	ret
 
-ENDIANESS = LE
+frame_pointer_validate:
+	movl 4(%esp), %eax
+	ret
 
-BFD_NAME = elf32-i386
-BFD_ARCH = i386
+return_address_get:
+	movl 4(%esp), %eax
+	movl 4(%eax), %eax
+	ret
