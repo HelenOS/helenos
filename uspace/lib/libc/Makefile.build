@@ -86,7 +86,8 @@ GENERIC_SOURCES = \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
-	generic/vfs/canonify.c
+	generic/vfs/canonify.c \
+	generic/stacktrace.c
 
 ARCH_SOURCES += \
 	arch/$(UARCH)/src/entry.s \
