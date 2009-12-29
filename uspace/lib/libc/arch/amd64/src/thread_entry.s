@@ -35,6 +35,11 @@
 #
 __thread_entry:
 	#
+	# Stop stack traces in this function.
+	#
+	xorq %rbp, %rbp
+
+	#
 	# RAX contains address of uarg
 	#
 	movq %rax, %rdi

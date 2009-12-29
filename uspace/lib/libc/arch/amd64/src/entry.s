@@ -37,6 +37,11 @@
 # %rdi contains the PCB pointer
 #
 __entry:
+	#
+	# Stop stack traces in this function.
+	#
+	xorq %rbp, %rbp
+	
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __main (no operation)
 	call __main
