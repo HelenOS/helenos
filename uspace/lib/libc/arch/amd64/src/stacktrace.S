@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = amd64-linux-gnu
-CLANG_ARCH = x86_64
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.S
+frame_pointer_get:
+	movq %rbp, %rax
+	ret
 
-GCC_CFLAGS += -fno-omit-frame-pointer
-LFLAGS += -N
+frame_pointer_prev:
+	movq (%rdi), %rax
+	ret
 
-ENDIANESS = LE
+frame_pointer_validate:
+	movq %rdi, %rax
+	ret
 
-BFD_NAME = elf64-x86-64
-BFD_ARCH = i386:x86-64
+return_address_get:
+	movq 8(%rdi), %rax
+	ret
