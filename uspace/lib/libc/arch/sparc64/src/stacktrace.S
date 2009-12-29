@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,39 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
 
-ARCH_SOURCES += arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.S
+frame_pointer_get:
+	# Add the stack bias to %sp to get the actual address.
+	retl
+	add %sp, 0x7ff, %o0
 
-GCC_CFLAGS += -mcpu=ultrasparc -m64
-LFLAGS += -no-check-sections -N
+frame_pointer_prev:
+	save %sp, -176, %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	# Read the %fp from the window save area.
+	ldx [%i0 + 14 * 8], %i0
+	# Add the stack bias to the %fp read from the window save area.
+	add %i0, 0x7ff, %i0
+	ret
+	restore
 
-ENDIANESS = BE
+frame_pointer_validate:
+	# Just return the frame address.
+	retl
+	nop
 
-BFD_NAME = elf64-sparc
-BFD_ARCH = sparc
+return_address_get:
+	save %sp, -176, %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	# Read the %i7 from the window save area.
+	ldx [%i0 + 15 * 8], %i0
+	ret
+	restore
