@@ -36,6 +36,7 @@
 #include <ipc/ipc.h>
 #include <ipc/kbd.h>
 #include <io/keycode.h>
+#include <ipc/mouse.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
 #include <errno.h>
@@ -63,6 +64,9 @@
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
+
+/** Phone to the mouse driver. */
+static int mouse_phone;
 
 /** Information about framebuffer */
 struct {
@@ -425,6 +429,49 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Handler for mouse events */
+static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
+{
+	int button, press;
+	int dx, dy;
+	int newcon;
+
+	/* Ignore parameters, the connection is already opened */
+	while (true) {
+
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		int retval;
+
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			/* TODO: Handle hangup */
+			return;
+		case MEVENT_BUTTON:
+			button = IPC_GET_ARG1(call);
+			press = IPC_GET_ARG2(call);
+			if (button == 1) {
+				newcon = gcons_mouse_btn(press);
+				if (newcon != -1)
+					change_console(&consoles[newcon]);
+			}
+			retval = 0;
+			break;
+		case MEVENT_MOVE:
+			dx = IPC_GET_ARG1(call);
+			dy = IPC_GET_ARG2(call);
+			gcons_mouse_move(dx, dy);
+			retval = 0;
+			break;
+		default:
+			retval = ENOENT;
+		}
+
+		ipc_answer_0(callid, retval);
+	}
+}
+
 static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	ipc_callid_t callid;
@@ -674,21 +721,45 @@ static bool console_init(char *input)
 		printf(NAME ": Failed opening %s\n", input);
 		return false;
 	}
-	
+
 	kbd_phone = fd_phone(input_fd);
 	if (kbd_phone < 0) {
 		printf(NAME ": Failed to connect to input device\n");
 		return false;
 	}
-	
+
 	/* NB: The callback connection is slotted for removal */
 	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return false;
 	}
-	
+
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
+
+	/* Connect to mouse device */
+	mouse_phone = -1;
+	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
+
+	if (mouse_fd < 0) {
+		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
+		goto skip_mouse;
+	}
+
+	mouse_phone = fd_phone(mouse_fd);
+	if (mouse_phone < 0) {
+		printf(NAME ": Failed to connect to mouse device\n");
+		goto skip_mouse;
+	}
+
+	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+		printf(NAME ": Failed to create callback from mouse device\n");
+		mouse_phone = -1;
+		goto skip_mouse;
+	}
+
+	async_new_connection(phonehash, 0, NULL, mouse_events);
+skip_mouse:
 
 	/* Connect to framebuffer driver */
 	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
@@ -696,7 +767,7 @@ static bool console_init(char *input)
 		printf(NAME ": Failed to connect to video service\n");
 		return -1;
 	}
-	
+
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {

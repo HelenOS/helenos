@@ -59,7 +59,7 @@
 #define NAME       "kbd"
 #define NAMESPACE  "hid_in"
 
-int phone2cons = -1;
+int client_phone = -1;
 
 /** Currently active modifiers. */
 static unsigned mods = KM_NUM_LOCK;
@@ -163,10 +163,10 @@ void kbd_push_ev(int type, unsigned int key)
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
-	async_msg_4(phone2cons, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+	async_msg_4(client_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
 
-static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -178,19 +178,19 @@ static void console_connection(ipc_callid_t iid, ipc_call_t *icall)
 		callid = async_get_call(&call);
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			if (phone2cons != -1) {
-				ipc_hangup(phone2cons);
-				phone2cons = -1;
+			if (client_phone != -1) {
+				ipc_hangup(client_phone);
+				client_phone = -1;
 			}
 			
 			ipc_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
-			if (phone2cons != -1) {
+			if (client_phone != -1) {
 				retval = ELIMIT;
 				break;
 			}
-			phone2cons = IPC_GET_ARG5(call);
+			client_phone = IPC_GET_ARG5(call);
 			retval = 0;
 			break;
 		case KBD_YIELD:
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 	layout[active_layout]->reset();
 	
 	/* Register driver */
-	int rc = devmap_driver_register(NAME, console_connection);
+	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
 		printf(NAME ": Unable to register driver (%d)\n", rc);
 		return -1;

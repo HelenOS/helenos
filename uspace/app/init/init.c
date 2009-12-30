@@ -264,6 +264,8 @@ int main(int argc, char *argv[])
 	
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
+	srv_start("/srv/i8042");
+	srv_start("/srv/c_mouse");
 
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
