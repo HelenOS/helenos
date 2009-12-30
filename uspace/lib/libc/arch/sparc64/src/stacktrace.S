@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,46 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/stack.h>
+
 .text
 
-.globl __thread_entry
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
+.global program_counter_get
 
-## User-space thread entry point for all but the first threads.
-#
-#
-__thread_entry:
-	#
-	# Create the first stack frame.
-	#
-	pushq $0
-	movq %rsp, %rbp
+frame_pointer_get:
+	# Add the stack bias to %sp to get the actual address.
+	retl
+	add %sp, STACK_BIAS, %o0
 
-	#
-	# RAX contains address of uarg
-	#
-	movq %rax, %rdi
-	call __thread_main
-	
-.end __thread_entry
+frame_pointer_prev:
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE+STACK_ARG_SAVE_AREA_SIZE), %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	# Read the %fp from the window save area.
+	ldx [%i0 + 14 * 8], %i0
+	# Add the stack bias to the %fp read from the window save area.
+	add %i0, STACK_BIAS, %i0
+	ret
+	restore
+
+frame_pointer_validate:
+	retl
+	nop
+
+return_address_get:
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE+STACK_ARG_SAVE_AREA_SIZE), %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	# Read the %i7 from the window save area.
+	ldx [%i0 + 15 * 8], %i0
+	ret
+	restore
+
+program_counter_get:
+	retl
+	mov %o7, %o0
+

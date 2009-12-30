@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Jakub Jermar
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,22 +28,16 @@
 
 .text
 
-.globl __thread_entry
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
+.global program_counter_get
 
-## User-space thread entry point for all but the first threads.
-#
-#
-__thread_entry:
-	#
-	# Create the first stack frame.
-	#
-	pushq $0
-	movq %rsp, %rbp
-
-	#
-	# RAX contains address of uarg
-	#
-	movq %rax, %rdi
-	call __thread_main
-	
-.end __thread_entry
+frame_pointer_get:
+frame_pointer_prev:
+frame_pointer_validate:
+return_address_get:
+program_counter_get:
+	mov r8 = r0
+	br.ret.sptk.many b0

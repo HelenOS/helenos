@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_FIBRIL_H_
-#define LIBC_sparc64_FIBRIL_H_
-
-#include <libarch/stack.h>
+#include <stacktrace.h>
+#include <stdio.h>
 #include <sys/types.h>
-#include <align.h>
 
-#define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
+void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
+{
+	printf("Printing stack trace:\n");
+	printf("=====================\n");
+	while (frame_pointer_validate(fp)) {
+		printf("%p: %p()\n", fp, pc);
+		pc = return_address_get(fp);
+		fp = frame_pointer_prev(fp);
+	}
+	printf("=====================\n");
+}
 
-#ifdef context_set
-#undef context_set
-#endif
-
-#define context_set(c, _pc, stack, size, ptls) \
-	do { \
-		(c)->pc = ((uintptr_t) _pc) - 8; \
-		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
-		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
-		(c)->fp = -STACK_BIAS; \
-		(c)->tp = ptls; \
-	} while (0)
-	
-/*
- * Save only registers that must be preserved across
- * function calls.
- */
-typedef struct {
-	uintptr_t sp;		/* %o6 */
-	uintptr_t pc;		/* %o7 */
-	uint64_t i0;
-	uint64_t i1;
-	uint64_t i2;
-	uint64_t i3;
-	uint64_t i4;
-	uint64_t i5;
-	uintptr_t fp;		/* %i6 */
-	uintptr_t i7;
-	uint64_t l0;
-	uint64_t l1;
-	uint64_t l2;
-	uint64_t l3;
-	uint64_t l4;
-	uint64_t l5;
-	uint64_t l6;
-	uint64_t l7;
-	uint64_t tp;		/* %g7 */
-} context_t;
-
-#endif
+void stack_trace(void)
+{
+	stack_trace_fp_pc(frame_pointer_get(), program_counter_get());
+}
 
 /** @}
  */
