@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
+.global program_counter_get
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/ddi.c \
-	arch/$(UARCH)/src/stacktrace.S
-
-GCC_CFLAGS += -fno-unwind-tables
-LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
-
-ENDIANESS = LE
-
-BFD_NAME = elf64-ia64-little
-BFD_ARCH = ia64-elf64
+frame_pointer_get:
+frame_pointer_prev:
+frame_pointer_validate:
+return_address_get:
+program_counter_get:
+	mov r8 = r0
+	br.ret.sptk.many b0
