@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
+.set noat
+.set noreorder
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.S
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
+.global program_counter_get
 
-GCC_CFLAGS += -mips3
-
-ENDIANESS = LE
-
-BFD_ARCH = mips
-BFD_NAME = elf32-tradlittlemips
+frame_pointer_get:
+frame_pointer_prev:
+frame_pointer_validate:
+return_address_get:
+program_counter_get:
+	j $ra
+	xor $v0, $v0
