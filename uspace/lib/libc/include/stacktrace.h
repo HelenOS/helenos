@@ -39,7 +39,7 @@
 #include <bool.h>
 
 extern void stack_trace(void);
-extern void stack_trace_fp(uintptr_t);
+extern void stack_trace_fp_pc(uintptr_t, uintptr_t);
 
 /*
  * The following interface is to be implemented by each architecture.
@@ -48,6 +48,7 @@ extern bool frame_pointer_validate(uintptr_t);
 extern uintptr_t frame_pointer_get(void);
 extern uintptr_t frame_pointer_prev(uintptr_t);
 extern uintptr_t return_address_get(uintptr_t);
+extern uintptr_t program_counter_get();
 
 #endif
 

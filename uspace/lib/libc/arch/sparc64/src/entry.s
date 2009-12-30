@@ -39,12 +39,14 @@
 #
 __entry:
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	clr %i7
+	save %sp, -176, %sp
+	flushw
+	add %g0, -0x7ff, %fp
 
 	# Pass pcb_ptr as the first argument to __main()
-	mov %o1, %o0
+	mov %i1, %o0
 	sethi %hi(_gp), %l7
 	call __main
 	or %l7, %lo(_gp), %l7

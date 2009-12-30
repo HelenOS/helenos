@@ -36,20 +36,21 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-void stack_trace_fp(uintptr_t fp)
+void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
 {
-	uintptr_t ra;
-
+	printf("Printing stack trace:\n");
+	printf("=====================\n");
 	while (frame_pointer_validate(fp)) {
-		ra = return_address_get(fp);
-		printf("%p: %p()\n", fp, ra);
+		printf("%p: %p()\n", fp, pc);
+		pc = return_address_get(fp);
 		fp = frame_pointer_prev(fp);
 	}
+	printf("=====================\n");
 }
 
 void stack_trace(void)
 {
-	stack_trace_fp(frame_pointer_get());
+	stack_trace_fp_pc(frame_pointer_get(), program_counter_get());
 }
 
 /** @}

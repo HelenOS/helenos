@@ -35,9 +35,10 @@
 #
 __thread_entry:
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	xorq %rbp, %rbp
+	pushq $0
+	movq %rsp, %rbp
 
 	#
 	# RAX contains address of uarg

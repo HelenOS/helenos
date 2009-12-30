@@ -35,9 +35,11 @@
 #
 __thread_entry:
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	clr %i7
+	save %sp, -176, %sp
+	flushw
+	add %g0, -0x7ff, %fp
 
 	sethi %hi(_gp), %l7
 	call __thread_main		! %o0 contains address of uarg

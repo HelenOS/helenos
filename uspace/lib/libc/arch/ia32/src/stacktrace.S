@@ -32,6 +32,7 @@
 .global frame_pointer_prev
 .global frame_pointer_validate
 .global return_address_get
+.global program_counter_get
 
 frame_pointer_get:
 	movl %ebp, %eax
@@ -49,4 +50,8 @@ frame_pointer_validate:
 return_address_get:
 	movl 4(%esp), %eax
 	movl 4(%eax), %eax
+	ret
+
+program_counter_get:
+	movl (%esp), %eax
 	ret

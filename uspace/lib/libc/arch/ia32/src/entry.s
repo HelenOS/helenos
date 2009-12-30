@@ -55,9 +55,10 @@ __entry:
 	movl $__syscall_fast, (%eax)
 0:
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	xorl %ebp, %ebp
+	pushl $0 
+	movl %esp, %ebp
 
 	# Pass the PCB pointer to __main as the first argument
 	pushl %edi

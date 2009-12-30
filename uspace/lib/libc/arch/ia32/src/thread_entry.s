@@ -41,9 +41,10 @@ __thread_entry:
 	# Do not set %gs, it contains descriptor that can see TLS
 
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	xorl %ebp, %ebp
+	pushl $0
+	mov %esp, %ebp
 
 	#
 	# EAX contains address of uarg.

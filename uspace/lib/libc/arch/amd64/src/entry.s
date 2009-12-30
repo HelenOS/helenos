@@ -38,9 +38,10 @@
 #
 __entry:
 	#
-	# Stop stack traces in this function.
+	# Create the first stack frame.
 	#
-	xorq %rbp, %rbp
+	pushq $0
+	mov %rsp, %rbp
 	
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __main (no operation)

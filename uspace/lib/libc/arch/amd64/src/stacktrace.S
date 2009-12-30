@@ -32,6 +32,7 @@
 .global frame_pointer_prev
 .global frame_pointer_validate
 .global return_address_get
+.global program_counter_get
 
 frame_pointer_get:
 	movq %rbp, %rax
@@ -47,4 +48,8 @@ frame_pointer_validate:
 
 return_address_get:
 	movq 8(%rdi), %rax
+	ret
+
+program_counter_get:
+	movq (%rsp), %rax
 	ret

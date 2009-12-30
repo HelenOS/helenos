@@ -52,7 +52,6 @@
 		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
 		(c)->fp = -STACK_BIAS; \
 		(c)->tp = ptls; \
-		(c)->i7 = 0; \
 	} while (0)
 	
 /*
