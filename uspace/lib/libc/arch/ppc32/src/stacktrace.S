@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
+#include <libarch/regname.h>
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.S
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
+.global program_counter_get
 
-GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -N
-
-ENDIANESS = BE
-
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc:common
+frame_pointer_get:
+frame_pointer_prev:
+frame_pointer_validate:
+return_address_get:
+program_counter_get:
+	li r3, 0
+	blr
