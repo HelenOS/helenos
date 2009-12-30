@@ -34,6 +34,11 @@
 #
 #
 __thread_entry:
+	#
+	# Stop stack traces in this function.
+	#
+	clr %i7
+
 	sethi %hi(_gp), %l7
 	call __thread_main		! %o0 contains address of uarg
 	or %l7, %lo(_gp), %l7

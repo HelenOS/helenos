@@ -38,6 +38,11 @@
 # %o1 contains pcb_ptr
 #
 __entry:
+	#
+	# Stop stack traces in this function.
+	#
+	clr %i7
+
 	# Pass pcb_ptr as the first argument to __main()
 	mov %o1, %o0
 	sethi %hi(_gp), %l7

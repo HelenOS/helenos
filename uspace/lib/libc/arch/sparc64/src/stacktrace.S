@@ -50,9 +50,9 @@ frame_pointer_prev:
 	restore
 
 frame_pointer_validate:
-	# Just return the frame address.
-	retl
-	nop
+	#
+	# Fall through - we detect the last frame in the trace by zero %i7.
+	#
 
 return_address_get:
 	save %sp, -176, %sp
