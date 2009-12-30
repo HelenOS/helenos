@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2007 Michal Kebrt
-# Copyright (c) 2007 Pavel Jancik
+# Copyright (c) 2009 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,22 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
+.global frame_pointer_get
+.global frame_pointer_prev
+.global frame_pointer_validate
+.global return_address_get
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/eabi.S \
-	arch/$(UARCH)/src/stacktrace.S
+frame_pointer_get:
+frame_pointer_prev:
+frame_pointer_validate:
+return_address_get:
+	mov r0, #0
+	mov pc, lr
 
-GCC_CFLAGS += -ffixed-r9 -mtp=soft
-LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
-
-ENDIANESS = LE
-
-BFD_NAME = elf32-littlearm
-BFD_ARCH = arm
