@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,81 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
+include Makefile.common
 
--include ../Makefile.config
+.PHONY: all clean
 
-DIRS = \
-	srv/bd/ata_bd \
-	srv/bd/file_bd \
-	srv/bd/gxe_bd \
-	srv/bd/rd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/char/i8042 \
-	srv/console \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/fs/devfs \
-	srv/mouse/c_mouse \
-	srv/vfs \
-	srv/devmap \
-	srv/part/mbr_part \
-	srv/clip \
-	app/edit \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/getterm \
-	app/redir \
-	app/bdsh
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build
 
-ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
-endif
-
-ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
-endif
-
-ifeq ($(UARCH),sparc64)
-	DIRS += \
-		srv/cir/fhc \
-		srv/cir/obio
-endif
-
-LIBC = lib/libc
-LIBS = \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat
-
-LIBC_BUILD = $(addsuffix .build,$(LIBC))
-LIBS_BUILD = $(addsuffix .build,$(LIBS))
-
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
-
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
-
-all: $(BUILDS)
-
-clean: $(CLEANS)
-
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
-
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -C $(basename $@) all
-
-$(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -C $(basename $@) all
-
-$(LIBC_BUILD):
-	$(MAKE) -C $(basename $@) all
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;

@@ -35,18 +35,25 @@
  * @brief i8042 port driver.
  */
 
-#ifndef KBD_PORT_i8042_H_
-#define KBD_PORT_i8042_H_
+#ifndef i8042_H_
+#define i8042_H_
 
 #include <libarch/ddi.h>
 #include <libarch/types.h>
 
+/** i8042 HW I/O interface */
 struct i8042 {
 	ioport8_t data;
 	uint8_t pad[3];
 	ioport8_t status;
 } __attribute__ ((packed));
 typedef struct i8042 i8042_t;
+
+/** Softstate structure, one for each serial port (primary and aux). */
+typedef struct {
+	dev_handle_t dev_handle;
+	int client_phone;
+} i8042_port_t;
 
 #endif
 
