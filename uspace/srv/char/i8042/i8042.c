@@ -294,7 +294,6 @@ static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	}
 
 	if (i8042_port[devid].client_phone != -1) {
-		if (devid == DEVID_PRI)
 		async_msg_1(i8042_port[devid].client_phone,
 		    IPC_FIRST_USER_METHOD, data);
 	}

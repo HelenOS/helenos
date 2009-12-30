@@ -39,19 +39,11 @@
  */
 
 #include <ipc/ipc.h>
-#include <ipc/services.h>
 #include <ipc/mouse.h>
-#include <sysinfo.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
-#include <adt/fifo.h>
-#include <io/console.h>
-#include <io/keycode.h>
 #include <devmap.h>
 
 #include <c_mouse.h>
