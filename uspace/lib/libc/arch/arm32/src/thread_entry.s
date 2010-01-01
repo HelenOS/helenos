@@ -34,4 +34,12 @@
 #
 #
 __thread_entry:
+	#
+	# Create the first stack frame.
+	#
+	mov fp, #0
+	mov ip, sp
+	push {fp, ip, lr, pc}
+	sub fp, ip, #4
+
         b __thread_main

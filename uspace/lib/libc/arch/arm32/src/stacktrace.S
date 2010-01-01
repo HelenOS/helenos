@@ -35,10 +35,21 @@
 .global program_counter_get
 
 frame_pointer_get:
+	mov r0, fp
+	mov pc, lr
+
 frame_pointer_prev:
+	ldr r0, [r0, #-12]
+	mov pc, lr
+
 frame_pointer_validate:
+	mov pc, lr
+
 return_address_get:
+	ldr r0, [r0, #-4]
+	mov pc, lr
+
 program_counter_get:
-	mov r0, #0
+	mov r0, lr 
 	mov pc, lr
 
