@@ -39,7 +39,7 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/eabi.S \
 	arch/$(UARCH)/src/stacktrace.S
 
-GCC_CFLAGS += -ffixed-r9 -mtp=soft
+GCC_CFLAGS += -ffixed-r9 -mtp=soft -mapcs-frame -fno-omit-frame-pointer
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
 
 ENDIANESS = LE
