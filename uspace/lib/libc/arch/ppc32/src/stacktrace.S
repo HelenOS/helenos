@@ -37,9 +37,20 @@
 .global program_counter_get
 
 frame_pointer_get:
+	mr r3, sp
+	blr
+
 frame_pointer_prev:
+	lwz r3, 0(r3)
+	blr
+
 frame_pointer_validate:
+	blr
+
 return_address_get:
+	lwz r3, 4(r3)
+	blr
+
 program_counter_get:
-	li r3, 0
+	mflr r3
 	blr
