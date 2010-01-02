@@ -44,6 +44,12 @@ ifeq ($(RDFMT),fat)
 endif
 
 RD_SRVS = \
+	$(USPACEDIR)/srv/net/net/net \
+	$(USPACEDIR)/srv/net/netif/lo/lo \
+	$(USPACEDIR)/srv/net/netif/dp8390/dp8390 \
+	$(USPACEDIR)/srv/net/nil/eth/eth \
+	$(USPACEDIR)/srv/net/nil/nildummy/nildummy \
+	$(USPACEDIR)/srv/net/app/echo/echo \
 	$(USPACEDIR)/srv/fb/fb \
 	$(USPACEDIR)/srv/kbd/kbd \
 	$(USPACEDIR)/srv/console/console \
@@ -55,6 +61,10 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/part/mbr_part/mbr_part
 
 RD_APPS = \
+	$(USPACEDIR)/srv/net/net/start/netstart \
+	$(USPACEDIR)/srv/net/app/ping/ping \
+	$(USPACEDIR)/srv/net/app/nettest1/nettest1 \
+	$(USPACEDIR)/srv/net/app/nettest2/nettest2 \
 	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getterm/getterm \
 	$(USPACEDIR)/app/redir/redir \
@@ -78,3 +88,12 @@ endif
 ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
 endif
+
+ifeq ($(NETWORKING), modular)
+	RD_SRVS +=	$(USPACEDIR)/srv/net/il/ip/ip \
+			$(USPACEDIR)/srv/net/il/arp/arp \
+			$(USPACEDIR)/srv/net/tl/udp/udp \
+			$(USPACEDIR)/srv/net/tl/tcp/tcp \
+			$(USPACEDIR)/srv/net/tl/icmp/icmp
+endif
+

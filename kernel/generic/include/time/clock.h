@@ -37,7 +37,7 @@
 
 #include <arch/types.h>
 
-#define HZ		100
+#define HZ		1000
 
 /** Uptime structure */
 typedef struct {

@@ -58,7 +58,8 @@ DIRS = \
 	app/init \
 	app/getterm \
 	app/redir \
-	app/bdsh
+	app/bdsh \
+	srv/net
 
 ifeq ($(UARCH),amd64)
 	DIRS += srv/pci
