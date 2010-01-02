@@ -51,6 +51,11 @@ void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
 void stack_trace(void)
 {
 	stack_trace_fp_pc(frame_pointer_get(), program_counter_get());
+	/*
+	 * Prevent the tail call optimization of the previous call by
+	 * making it a non-tail call.
+	 */
+	(void) frame_pointer_get();
 }
 
 /** @}
