@@ -281,14 +281,14 @@ int main( int argc, char * argv[] ){
 		}
 	}
 
-	socket_id = listening_id;
-
 	if( ERROR_OCCURRED( bind( listening_id, address, addrlen ))){
 		socket_print_error( stderr, ERROR_CODE, "Socket bind: ", "\n" );
 		return ERROR_CODE;
 	}
 
-	if( verbose ) printf( "Listenning at %d\n", port );
+	if( verbose ) printf( "Socket %d listenning at %d\n", listening_id, port );
+
+	socket_id = listening_id;
 
 	while( count ){
 		addrlen = max_length;
@@ -324,7 +324,7 @@ int main( int argc, char * argv[] ){
 							fprintf( stderr, "Received address error %d\n", ERROR_CODE );
 						}else{
 							data[ length ] = '\0';
-							printf( "Received %d bytes from %s:%d\n%s\n", length, address_string, port, data );
+							printf( "Socket %d received %d bytes from %s:%d\n%s\n", socket_id, length, address_string, port, data );
 						}
 					}
 				}
