@@ -657,12 +657,16 @@ int ip_send_msg( int il_phone, device_id_t device_id, packet_t packet, services_
 			}
 			address_in = ( struct sockaddr_in * ) addr;
 			dest = & address_in->sin_addr;
+			if( ! dest->s_addr ){
+				dest->s_addr = IPV4_LOCALHOST_ADDRESS;
+			}
 			break;
 		// TODO IPv6
 /*		case AF_INET6:
 			if( addrlen != sizeof( struct sockaddr_in6 )) return EINVAL;
 			address_in6 = ( struct sockaddr_in6 * ) dest;
 			address_in6.sin6_addr.s6_addr;
+			IPV6_LOCALHOST_ADDRESS;
 */		default:
 			return ip_release_and_return( packet, EAFNOSUPPORT );
 	}
@@ -1478,6 +1482,9 @@ int ip_get_route_req( int ip_phone, ip_protocol_t protocol, const struct sockadd
 			}
 			address_in = ( struct sockaddr_in * ) destination;
 			dest = & address_in->sin_addr;
+			if( ! dest->s_addr ){
+				dest->s_addr = IPV4_LOCALHOST_ADDRESS;
+			}
 			break;
 		// TODO IPv6
 /*		case AF_INET6:
