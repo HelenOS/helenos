@@ -235,9 +235,10 @@ int main( int argc, char * argv[] ){
 		return ERROR_CODE;
 	}
 
-	icmp_phone = icmp_connect_module( SERVICE_ICMP );
+	icmp_phone = icmp_connect_module( SERVICE_ICMP, ICMP_CONNECT_TIMEOUT );
 	if( icmp_phone < 0 ){
 		fprintf( stderr, "ICMP connect error %d\n", icmp_phone );
+		return icmp_phone;
 	}
 
 	printf( "PING %d bytes of data\n", size );

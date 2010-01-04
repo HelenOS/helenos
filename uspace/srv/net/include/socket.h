@@ -61,6 +61,7 @@
  *  @returns EPROTONOSUPPORT if the protocol is not supported.
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the NET_SOCKET message.
+ *  @returns Other error codes as defined for the bind_service_timeout() function.
  */
 int	socket( int domain, int type, int protocol );
 

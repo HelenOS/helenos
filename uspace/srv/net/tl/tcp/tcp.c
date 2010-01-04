@@ -218,10 +218,7 @@ int tcp_initialize( async_client_conn_t client_connection ){
 	assert( client_connection );
 	fibril_rwlock_initialize( & tcp_globals.lock );
 	fibril_rwlock_write_lock( & tcp_globals.lock );
-	tcp_globals.icmp_phone = icmp_connect_module( SERVICE_ICMP );
-	if( tcp_globals.icmp_phone < 0 ){
-		return tcp_globals.icmp_phone;
-	}
+	tcp_globals.icmp_phone = icmp_connect_module( SERVICE_ICMP, ICMP_CONNECT_TIMEOUT );
 	tcp_globals.ip_phone = ip_bind_service( SERVICE_IP, IPPROTO_TCP, SERVICE_TCP, client_connection, tcp_received_msg );
 	if( tcp_globals.ip_phone < 0 ){
 		return tcp_globals.ip_phone;

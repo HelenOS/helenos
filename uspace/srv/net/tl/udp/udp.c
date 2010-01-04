@@ -197,10 +197,7 @@ int udp_initialize( async_client_conn_t client_connection ){
 
 	fibril_rwlock_initialize( & udp_globals.lock );
 	fibril_rwlock_write_lock( & udp_globals.lock );
-	udp_globals.icmp_phone = icmp_connect_module( SERVICE_ICMP );
-	if( udp_globals.icmp_phone < 0 ){
-		return udp_globals.icmp_phone;
-	}
+	udp_globals.icmp_phone = icmp_connect_module( SERVICE_ICMP, ICMP_CONNECT_TIMEOUT );
 	udp_globals.ip_phone = ip_bind_service( SERVICE_IP, IPPROTO_UDP, SERVICE_UDP, client_connection, udp_received_msg );
 	if( udp_globals.ip_phone < 0 ){
 		return udp_globals.ip_phone;

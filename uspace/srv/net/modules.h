@@ -42,6 +42,8 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
+#include <sys/time.h>
+
 /** Converts the data length between different types.
  *	@param[in] type_from The source type.
  *  @param[in] type_to The destination type.
@@ -67,6 +69,14 @@ typedef int connect_module_t( services_t need );
  */
 int connect_to_service( services_t need );
 
+/** Connects to the needed module.
+ *  @param[in] need The needed module service.
+ *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
+ *  @returns The phone of the needed service.
+ *  @returns ETIMEOUT if the connection timeouted.
+ */
+int connect_to_service_timeout( services_t need, suseconds_t timeout );
+
 /** Creates bidirectional connection with the needed module service and registers the message receiver.
  *  @param[in] need The needed module service.
  *  @param[in] arg1 The first parameter.
@@ -77,6 +87,19 @@ int connect_to_service( services_t need );
  *  @returns Other error codes as defined for the ipc_connect_to_me() function.
  */
 int	bind_service( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver );
+
+/** Creates bidirectional connection with the needed module service and registers the message receiver.
+ *  @param[in] need The needed module service.
+ *  @param[in] arg1 The first parameter.
+ *  @param[in] arg2 The second parameter.
+ *  @param[in] arg3 The third parameter.
+ *  @param[in] client_receiver The message receiver.
+ *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
+ *  @returns The phone of the needed service.
+ *  @returns ETIMEOUT if the connection timeouted.
+ *  @returns Other error codes as defined for the ipc_connect_to_me() function.
+ */
+int	bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout );
 
 /** Answers the call.
  *  @param[in] callid The call identifier.

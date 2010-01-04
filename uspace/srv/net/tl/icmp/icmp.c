@@ -44,6 +44,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include "../../err.h"
@@ -507,7 +508,7 @@ int icmp_send_packet( icmp_type_t type, icmp_code_t code, packet_t packet, icmp_
 	return ip_send_msg( icmp_globals.ip_phone, -1, packet, SERVICE_ICMP, error );
 }
 
-int icmp_connect_module( services_t service ){
+int icmp_connect_module( services_t service, suseconds_t timeout ){
 	icmp_echo_ref	echo_data;
 	icmp_param_t	id;
 	int				index;

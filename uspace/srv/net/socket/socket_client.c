@@ -70,6 +70,10 @@
  */
 #define SOCKET_MAX_ACCEPTED_SIZE		0
 
+/** Default timeout for connections in microseconds.
+ */
+#define SOCKET_CONNECT_TIMEOUT	( 1 * 1000 * 1000 )
+
 /** Type definition of the socket specific data.
  *  @see socket
  */
@@ -179,12 +183,14 @@ INT_MAP_IMPLEMENT( sockets, socket_t );
 /** Returns the TCP module phone.
  *  Connects to the TCP module if necessary.
  *  @returns The TCP module phone.
+ *  @returns Other error codes as defined for the bind_service_timeout() function.
  */
 static int	socket_get_tcp_phone( void );
 
 /** Returns the UDP module phone.
  *  Connects to the UDP module if necessary.
  *  @returns The UDP module phone.
+ *  @returns Other error codes as defined for the bind_service_timeout() function.
  */
 static int	socket_get_udp_phone( void );
 
@@ -261,14 +267,14 @@ int	sendto_core( ipcarg_t message, int socket_id, const void * data, size_t data
 
 static int socket_get_tcp_phone( void ){
 	if( socket_globals.tcp_phone < 0 ){
-		socket_globals.tcp_phone = bind_service( SERVICE_TCP, 0, 0, SERVICE_TCP, socket_connection );
+		socket_globals.tcp_phone = bind_service_timeout( SERVICE_TCP, 0, 0, SERVICE_TCP, socket_connection, SOCKET_CONNECT_TIMEOUT );
 	}
 	return socket_globals.tcp_phone;
 }
 
 static int socket_get_udp_phone( void ){
 	if( socket_globals.udp_phone < 0 ){
-		socket_globals.udp_phone = bind_service( SERVICE_UDP, 0, 0, SERVICE_UDP, socket_connection );
+		socket_globals.udp_phone = bind_service_timeout( SERVICE_UDP, 0, 0, SERVICE_UDP, socket_connection, SOCKET_CONNECT_TIMEOUT );
 	}
 	return socket_globals.udp_phone;
 }
@@ -425,6 +431,7 @@ int socket( int domain, int type, int protocol ){
 		default:
 			return EPFNOSUPPORT;
 	}
+	if( phone < 0 ) return phone;
 	// create a new socket structure
 	socket = ( socket_ref ) malloc( sizeof( socket_t ));
 	if( ! socket ) return ENOMEM;

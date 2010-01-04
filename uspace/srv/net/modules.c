@@ -40,33 +40,47 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
+#include <sys/time.h>
+
 #include "err.h"
 #include "modules.h"
 
-/** The time between connect requests.
+/** The time between connect requests in microseconds.
  */
-#define MODULE_WAIT_TIME	10000
+#define MODULE_WAIT_TIME	( 10 * 1000 )
 
 int connect_to_service( services_t need ){
+	return connect_to_service_timeout( need, 0 );
+}
+
+int connect_to_service_timeout( services_t need, suseconds_t timeout ){
 	int	phone;
 	int	res;
 
-	//TODO timeout version?
-	res = async_req_3_5( PHONE_NS, IPC_M_CONNECT_ME_TO, need, 0, 0, NULL, NULL, NULL, NULL, ( ipcarg_t * ) & phone );
-	while(( res < 0 ) || ( phone < 0 )){
-		usleep( MODULE_WAIT_TIME );
+	while( true ){
 		res = async_req_3_5( PHONE_NS, IPC_M_CONNECT_ME_TO, need, 0, 0, NULL, NULL, NULL, NULL, ( ipcarg_t * ) & phone );
+		if(( res >= 0 ) && ( phone >= 0 )){
+			return phone;
+		}
+		if( timeout > 0 ){
+			timeout -= MODULE_WAIT_TIME;
+			if( timeout <= 0 ) return ETIMEOUT;
+		}
+		usleep( MODULE_WAIT_TIME );
 	}
-	return phone;
 }
 
 int bind_service( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver ){
+	return bind_service_timeout( need, arg1, arg2, arg3, client_receiver, 0 );
+}
+
+int bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout ){
 	ERROR_DECLARE;
 
 	int			phone;
 	ipcarg_t	phonehash;
 
-	phone = connect_to_service( need );
+	phone = connect_to_service_timeout( need, timeout );
 	if( phone >= 0 ){
 		if( ERROR_OCCURRED( ipc_connect_to_me( phone, arg1, arg2, arg3, & phonehash ))){
 			async_msg_0( phone, IPC_M_PHONE_HUNGUP );
