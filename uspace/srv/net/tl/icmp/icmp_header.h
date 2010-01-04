@@ -43,6 +43,10 @@
 #include "../../include/in.h"
 #include "../../include/icmp_codes.h"
 
+/** ICMP header size in bytes.
+ */
+#define ICMP_HEADER_SIZE			sizeof( icmp_header_t )
+
 /** Type definition of the echo specific data.
  *  @see icmp_echo
  */

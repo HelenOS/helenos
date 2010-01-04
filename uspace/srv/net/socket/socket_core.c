@@ -34,6 +34,9 @@
  *  Socket common core implementation.
  */
 
+#include <limits.h>
+#include <stdlib.h>
+
 #include "../err.h"
 
 #include "../include/in.h"
@@ -50,6 +53,10 @@
 #include "../modules.h"
 
 #include "socket_core.h"
+
+/** Maximum number of random attempts to find a new socket identifier before switching to the sequence.
+ */
+#define SOCKET_ID_TRIES					100
 
 /** Bound port sockets.
  */
@@ -93,6 +100,14 @@ void	socket_destroy_core( int packet_phone, socket_core_ref socket, socket_cores
  *  @returns ENOMEM if there is not enough memory left.
  */
 int	socket_port_add_core( socket_port_ref socket_port, socket_core_ref socket, const char * key, size_t key_length );
+
+/** Tries to find a new free socket identifier.
+ *  @param[in] local_sockets The local sockets to be searched.
+ *  @param[in] positive A value indicating whether a positive identifier is requested. A negative identifier is requested if set to false.
+ *	@returns The new socket identifier.
+ *  @returns ELIMIT if there is no socket identifier available.
+ */
+static int	socket_generate_new_id( socket_cores_ref local_sockets, int positive );
 
 INT_MAP_IMPLEMENT( socket_cores, socket_core_t );
 
@@ -229,13 +244,57 @@ int socket_bind_insert( socket_ports_ref global_sockets, socket_core_ref socket,
 	return EOK;
 }
 
+
+static int socket_generate_new_id( socket_cores_ref local_sockets, int positive ){
+	int			socket_id;
+	int			count;
+
+	count = 0;
+//	socket_id = socket_globals.last_id;
+	do{
+		if( count < SOCKET_ID_TRIES ){
+			socket_id = rand() % INT_MAX;
+			++ count;
+		}else if( count == SOCKET_ID_TRIES ){
+			socket_id = 1;
+			++ count;
+		// only this branch for last_id
+		}else{
+			if( socket_id < INT_MAX ){
+				++ socket_id;
+/*			}else if( socket_globals.last_id ){
+*				socket_globals.last_id = 0;
+*				socket_id = 1;
+*/			}else{
+				return ELIMIT;
+			}
+		}
+	}while( socket_cores_find( local_sockets, (( positive ? 1 : -1 ) * socket_id )));
+//	last_id = socket_id
+	return socket_id;
+}
+
 int socket_create( socket_cores_ref local_sockets, int app_phone, void * specific_data, int * socket_id ){
 	ERROR_DECLARE;
 
 	socket_core_ref	socket;
 	int				res;
+	int				positive;
 
-	if( ! socket_id ) return EBADMEM;
+	if( ! socket_id ) return EINVAL;
+	// store the socket
+	if( * socket_id <= 0 ){
+		positive = ( * socket_id == 0 );
+		* socket_id = socket_generate_new_id( local_sockets, positive );
+		if( * socket_id <= 0 ){
+			return * socket_id;
+		}
+		if( ! positive ){
+			* socket_id *= -1;
+		}
+	}else if( socket_cores_find( local_sockets, * socket_id )){
+		return EEXIST;
+	}
 	socket = ( socket_core_ref ) malloc( sizeof( * socket ));
 	if( ! socket ) return ENOMEM;
 	// initialize
@@ -253,9 +312,7 @@ int socket_create( socket_cores_ref local_sockets, int app_phone, void * specifi
 		free( socket );
 		return ERROR_CODE;
 	}
-	// get a next free socket number
-	socket->socket_id = socket_cores_count( local_sockets ) + 1;
-	// store the socket
+	socket->socket_id = * socket_id;
 	res = socket_cores_add( local_sockets, socket->socket_id, socket );
 	if( res < 0 ){
 		dyn_fifo_destroy( & socket->received );
@@ -263,8 +320,6 @@ int socket_create( socket_cores_ref local_sockets, int app_phone, void * specifi
 		free( socket );
 		return res;
 	}
-	// return the socket identifier
-	* socket_id = socket->socket_id;
 	return EOK;
 }
 

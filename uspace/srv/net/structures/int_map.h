@@ -81,6 +81,7 @@ void	name##_destroy( name##_ref map );										\
 void	name##_exclude( name##_ref map, int key );								\
 void	name##_exclude_index( name##_ref map, int index );						\
 type *	name##_find( name##_ref map, int key );									\
+int		name##_update( name##_ref map, int key, int new_key );					\
 type *	name##_get_index( name##_ref map, int index );							\
 int		name##_initialize( name##_ref map );									\
 int		name##_is_valid( name##_ref map );										\
@@ -177,6 +178,24 @@ type * name##_find( name##_ref map, int key ){									\
 		}																		\
 	}																			\
 	return NULL;																\
+}																				\
+																				\
+int name##_update( name##_ref map, int key, int new_key ){						\
+	if( name##_is_valid( map )){												\
+		int	index;																\
+																				\
+		for( index = 0; index < map->next; ++ index ){							\
+			if( name##_item_is_valid( &( map->items[ index ] ))){				\
+				if( map->items[ index ].key == new_key ){						\
+					return EEXIST;												\
+				}else if( map->items[ index ].key == key ){						\
+					map->items[ index ].key = new_key;							\
+					return EOK;													\
+				}																\
+			}																	\
+		}																		\
+	}																			\
+	return ENOENT;																\
 }																				\
 																				\
 type * name##_get_index( name##_ref map, int index ){							\

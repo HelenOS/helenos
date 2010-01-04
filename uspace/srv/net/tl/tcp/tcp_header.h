@@ -40,6 +40,10 @@
 
 #include <sys/types.h>
 
+/** TCP header size in bytes.
+ */
+#define TCP_HEADER_SIZE			sizeof( tcp_header_t )
+
 /** Returns the actual TCP header length in bytes.
  *  @param[in] header The TCP packet header.
  */

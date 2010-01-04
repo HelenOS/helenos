@@ -40,6 +40,10 @@
 
 #include <sys/types.h>
 
+/** UDP header size in bytes.
+ */
+#define UDP_HEADER_SIZE			sizeof( udp_header_t )
+
 /** Type definition of the user datagram header.
  *  @see udp_header
  */

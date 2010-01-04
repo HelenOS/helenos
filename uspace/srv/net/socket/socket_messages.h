@@ -141,16 +141,6 @@ typedef enum{
  */
 #define SOCKET_GET_OPT_LEVEL( call )			( int ) IPC_GET_ARG2( call )
 
-/** Sets the address length in the message answer.
- *  @param[out] answer The message answer structure.
- */
-#define SOCKET_SET_ADDRESS_LENGTH( answer )		( socklen_t * ) & IPC_GET_ARG2( answer )
-
-/** Returns the address length message parameter.
- *  @param[in] call The message call structure.
- */
-#define SOCKET_GET_ADDRESS_LENGTH( call )		( socklen_t ) IPC_GET_ARG2( call )
-
 /** Returns the data fragment size message parameter.
  *  @param[in] call The message call structure.
  */
@@ -160,6 +150,16 @@ typedef enum{
  *  @param[out] answer The message answer structure.
  */
 #define SOCKET_SET_DATA_FRAGMENT_SIZE( answer )	( size_t * ) & IPC_GET_ARG2( answer )
+
+/** Sets the address length in the message answer.
+ *  @param[out] answer The message answer structure.
+ */
+#define SOCKET_SET_ADDRESS_LENGTH( answer )		( socklen_t * ) & IPC_GET_ARG3( answer )
+
+/** Returns the address length message parameter.
+ *  @param[in] call The message call structure.
+ */
+#define SOCKET_GET_ADDRESS_LENGTH( call )		( socklen_t ) IPC_GET_ARG3( call )
 
 /** Sets the header size in the message answer.
  *  @param[out] answer The message answer structure.

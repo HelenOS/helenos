@@ -204,8 +204,8 @@ int	tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call );
 int	tcp_listen_message( socket_cores_ref local_sockets, int socket_id, int backlog );
 int	tcp_connect_message( socket_cores_ref local_sockets, int socket_id, struct sockaddr * addr, socklen_t addrlen );
 int	tcp_recvfrom_message( socket_cores_ref local_sockets, int socket_id, int flags, size_t * addrlen );
-int	tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragments, size_t data_fragment_size, int flags );
-int	tcp_accept_message( socket_cores_ref local_sockets, int socket_id, size_t * addrlen );
+int	tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragments, size_t * data_fragment_size, int flags );
+int	tcp_accept_message( socket_cores_ref local_sockets, int socket_id, int new_socket_id, size_t * data_fragment_size, size_t * addrlen );
 int tcp_close_message( socket_cores_ref local_sockets, int socket_id );
 
 /** TCP global data.
@@ -297,7 +297,7 @@ int tcp_process_packet( device_id_t device_id, packet_t packet, services_t error
 	if( length <= 0 ){
 		return tcp_release_and_return( packet, EINVAL );
 	}
-	if( length < sizeof( tcp_header_t ) + offset ){
+	if( length < TCP_HEADER_SIZE + offset ){
 		return tcp_release_and_return( packet, NO_DATA );
 	}
 
@@ -667,6 +667,8 @@ int tcp_process_established( socket_core_ref socket, tcp_socket_data_ref socket_
 int tcp_queue_received_packet( socket_core_ref socket, tcp_socket_data_ref socket_data, packet_t packet, int fragments, size_t total_length ){
 	ERROR_DECLARE;
 
+	packet_dimension_ref	packet_dimension;
+
 	assert( socket );
 	assert( socket_data );
 	assert( socket->specific_data == socket_data );
@@ -675,7 +677,8 @@ int tcp_queue_received_packet( socket_core_ref socket, tcp_socket_data_ref socke
 	assert( socket_data->window > total_length );
 
 	// queue the received packet
-	if( ERROR_OCCURRED( dyn_fifo_push( & socket->received, packet_get_id( packet ), SOCKET_MAX_RECEIVED_SIZE ))){
+	if( ERROR_OCCURRED( dyn_fifo_push( & socket->received, packet_get_id( packet ), SOCKET_MAX_RECEIVED_SIZE ))
+	|| ERROR_OCCURRED( tl_get_ip_packet_dimension( tcp_globals.ip_phone, & tcp_globals.dimensions, socket_data->device_id, & packet_dimension ))){
 		return tcp_release_and_return( packet, ERROR_CODE );
 	}
 
@@ -683,7 +686,7 @@ int tcp_queue_received_packet( socket_core_ref socket, tcp_socket_data_ref socke
 	socket_data->window -= total_length;
 
 	// notify the destination socket
-	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, 0, 0, 0, ( ipcarg_t ) fragments );
+	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, (( packet_dimension->content < socket_data->data_fragment_size ) ? packet_dimension->content : socket_data->data_fragment_size ), 0, 0, ( ipcarg_t ) fragments );
 	return EOK;
 }
 
@@ -782,12 +785,14 @@ int tcp_process_listen( socket_core_ref listening_socket, tcp_socket_data_ref li
 
 //			printf( "addr %p\n", socket_data->addr, socket_data->addrlen );
 			// create a socket
+			socket_id = -1;
 			if( ERROR_OCCURRED( socket_create( socket_data->local_sockets, listening_socket->phone, socket_data, & socket_id ))){
 				free( socket_data->addr );
 				free( socket_data );
 				return tcp_release_and_return( packet, ERROR_CODE );
 			}
 
+			socket_id *= -1;
 			printf("new_sock %d\n", socket_id);
 			socket_data->pseudo_header = listening_socket_data->pseudo_header;
 			socket_data->headerlen = listening_socket_data->headerlen;
@@ -900,7 +905,7 @@ int	tcp_process_syn_received( socket_core_ref socket, tcp_socket_data_ref socket
 			// queue the received packet
 			if( ! ERROR_OCCURRED( dyn_fifo_push( & listening_socket->accepted, socket->socket_id, listening_socket_data->backlog ))){
 				// notify the destination socket
-				async_msg_5( socket->phone, NET_SOCKET_ACCEPTED, ( ipcarg_t ) listening_socket->socket_id, 0, 0, 0, ( ipcarg_t ) socket->socket_id );
+				async_msg_5( socket->phone, NET_SOCKET_ACCEPTED, ( ipcarg_t ) listening_socket->socket_id, socket_data->data_fragment_size, TCP_HEADER_SIZE, 0, ( ipcarg_t ) socket->socket_id );
 				fibril_rwlock_write_unlock( socket_data->local_lock );
 				return EOK;
 			}
@@ -1034,7 +1039,7 @@ void tcp_refresh_socket_data( tcp_socket_data_ref socket_data ){
 
 	bzero( socket_data, sizeof( * socket_data ));
 	socket_data->state = TCP_SOCKET_INITIAL;
-	socket_data->device_id = -1;
+	socket_data->device_id = DEVICE_INVALID_ID;
 	socket_data->window = NET_DEFAULT_TCP_WINDOW;
 	socket_data->treshold = socket_data->window;
 	socket_data->last_outgoing = TCP_INITIAL_SEQUENCE_NUMBER;
@@ -1050,6 +1055,7 @@ void tcp_initialize_socket_data( tcp_socket_data_ref socket_data ){
 	tcp_refresh_socket_data( socket_data );
 	fibril_mutex_initialize( & socket_data->operation.mutex );
 	fibril_condvar_initialize( & socket_data->operation.condvar );
+	socket_data->data_fragment_size = MAX_TCP_FRAGMENT_SIZE;
 }
 
 int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
@@ -1064,6 +1070,7 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	int						answer_count;
 	tcp_socket_data_ref		socket_data;
 	socket_core_ref			socket;
+	packet_dimension_ref	packet_dimension;
 
 	/*
 	 * Accept the connection
@@ -1095,11 +1102,15 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 					socket_data->local_lock = & lock;
 					socket_data->local_sockets = & local_sockets;
 					fibril_rwlock_write_lock( & lock );
+					* SOCKET_SET_SOCKET_ID( answer ) = SOCKET_GET_SOCKET_ID( call );
 					res = socket_create( & local_sockets, app_phone, socket_data, SOCKET_SET_SOCKET_ID( answer ));
 					fibril_rwlock_write_unlock( & lock );
 					if( res == EOK ){
-						* SOCKET_SET_HEADER_SIZE( answer ) = sizeof( tcp_header_t );
-						* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = MAX_TCP_FRAGMENT_SIZE;
+						if( tl_get_ip_packet_dimension( tcp_globals.ip_phone, & tcp_globals.dimensions, DEVICE_INVALID_ID, & packet_dimension ) == EOK ){
+							* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = (( packet_dimension->content < socket_data->data_fragment_size ) ? packet_dimension->content : socket_data->data_fragment_size );
+						}
+//						* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = MAX_TCP_FRAGMENT_SIZE;
+						* SOCKET_SET_HEADER_SIZE( answer ) = TCP_HEADER_SIZE;
 						answer_count = 3;
 					}else{
 						free( socket_data );
@@ -1137,7 +1148,7 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 			case NET_SOCKET_CONNECT:
 				res = data_receive(( void ** ) & addr, & addrlen );
 				if( res == EOK ){
-					// the global lock may released in the tcp_connect_message() function
+					// the global lock may be released in the tcp_connect_message() function
 					fibril_rwlock_write_lock( & tcp_globals.lock );
 					fibril_rwlock_write_lock( & lock );
 					res = tcp_connect_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), addr, addrlen );
@@ -1151,22 +1162,24 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 			case NET_SOCKET_ACCEPT:
 				fibril_rwlock_read_lock( & tcp_globals.lock );
 				fibril_rwlock_write_lock( & lock );
-				res = tcp_accept_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), & addrlen );
+				res = tcp_accept_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), SOCKET_GET_NEW_SOCKET_ID( call ), SOCKET_SET_DATA_FRAGMENT_SIZE( answer ), & addrlen );
 				fibril_rwlock_write_unlock( & lock );
 				fibril_rwlock_read_unlock( & tcp_globals.lock );
 				if( res > 0 ){
 					* SOCKET_SET_SOCKET_ID( answer ) = res;
 					* SOCKET_SET_ADDRESS_LENGTH( answer ) = addrlen;
-					answer_count = 2;
+					answer_count = 3;
 				}
 				break;
 			case NET_SOCKET_SEND:
 				fibril_rwlock_read_lock( & tcp_globals.lock );
 				fibril_rwlock_write_lock( & lock );
-				res = tcp_send_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_GET_DATA_FRAGMENT_SIZE( call ), SOCKET_GET_FLAGS( call ));
+				res = tcp_send_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_SET_DATA_FRAGMENT_SIZE( answer ), SOCKET_GET_FLAGS( call ));
 				if( res != EOK ){
 					fibril_rwlock_write_unlock( & lock );
 					fibril_rwlock_read_unlock( & tcp_globals.lock );
+				}else{
+					answer_count = 2;
 				}
 				break;
 			case NET_SOCKET_SENDTO:
@@ -1174,10 +1187,12 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				if( res == EOK ){
 					fibril_rwlock_read_lock( & tcp_globals.lock );
 					fibril_rwlock_write_lock( & lock );
-					res = tcp_send_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_GET_DATA_FRAGMENT_SIZE( call ), SOCKET_GET_FLAGS( call ));
+					res = tcp_send_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_SET_DATA_FRAGMENT_SIZE( answer ), SOCKET_GET_FLAGS( call ));
 					if( res != EOK ){
 						fibril_rwlock_write_unlock( & lock );
 						fibril_rwlock_read_unlock( & tcp_globals.lock );
+					}else{
+						answer_count = 2;
 					}
 					free( addr );
 				}
@@ -1203,7 +1218,7 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				if( res > 0 ){
 					* SOCKET_SET_READ_DATA_LENGTH( answer ) = res;
 					* SOCKET_SET_ADDRESS_LENGTH( answer ) = addrlen;
-					answer_count = 2;
+					answer_count = 3;
 					res = EOK;
 				}
 				break;
@@ -1724,7 +1739,7 @@ int tcp_recvfrom_message( socket_cores_ref local_sockets, int socket_id, int fla
 	return ( int ) length;
 }
 
-int tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragments, size_t data_fragment_size, int flags ){
+int tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragments, size_t * data_fragment_size, int flags ){
 	ERROR_DECLARE;
 
 	socket_core_ref			socket;
@@ -1737,6 +1752,7 @@ int tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragmen
 	int						result;
 
 	assert( local_sockets );
+	assert( data_fragment_size );
 
 	// find the socket
 	socket = socket_cores_find( local_sockets, socket_id );
@@ -1752,12 +1768,11 @@ int tcp_send_message( socket_cores_ref local_sockets, int socket_id, int fragmen
 
 	ERROR_PROPAGATE( tl_get_ip_packet_dimension( tcp_globals.ip_phone, & tcp_globals.dimensions, socket_data->device_id, & packet_dimension ));
 
-	// TODO return the device_id + data_fragment_size if different - the client should send it again
-	// ( two messages are better than ip fragmentation )
+	* data_fragment_size = (( packet_dimension->content < socket_data->data_fragment_size ) ? packet_dimension->content : socket_data->data_fragment_size );
 
 	for( index = 0; index < fragments; ++ index ){
 		// read the data fragment
-		result = tl_socket_read_packet_data( tcp_globals.net_phone, & packet, sizeof( tcp_header_t ), packet_dimension, socket_data->addr, socket_data->addrlen );
+		result = tl_socket_read_packet_data( tcp_globals.net_phone, & packet, TCP_HEADER_SIZE, packet_dimension, socket_data->addr, socket_data->addrlen );
 		if( result < 0 ) return result;
 		total_length = ( size_t ) result;
 		// prefix the tcp header
@@ -1843,7 +1858,7 @@ int tcp_create_notification_packet( packet_t * packet, socket_core_ref socket, t
 	// get the device packet dimension
 	ERROR_PROPAGATE( tl_get_ip_packet_dimension( tcp_globals.ip_phone, & tcp_globals.dimensions, socket_data->device_id, & packet_dimension ));
 	// get a new packet
-	* packet = packet_get_4( tcp_globals.net_phone, sizeof( tcp_header_t ), packet_dimension->addr_len, packet_dimension->prefix, packet_dimension->suffix );
+	* packet = packet_get_4( tcp_globals.net_phone, TCP_HEADER_SIZE, packet_dimension->addr_len, packet_dimension->prefix, packet_dimension->suffix );
 	if( ! * packet ) return ENOMEM;
 	// allocate space in the packet
 	header = PACKET_SUFFIX( * packet, tcp_header_t );
@@ -1855,14 +1870,16 @@ int tcp_create_notification_packet( packet_t * packet, socket_core_ref socket, t
 	return EOK;
 }
 
-int tcp_accept_message( socket_cores_ref local_sockets, int socket_id, size_t * addrlen ){
+int tcp_accept_message( socket_cores_ref local_sockets, int socket_id, int new_socket_id, size_t * data_fragment_size, size_t * addrlen ){
 	ERROR_DECLARE;
 
 	socket_core_ref		accepted;
 	socket_core_ref		socket;
 	tcp_socket_data_ref	socket_data;
+	packet_dimension_ref	packet_dimension;
 
 	assert( local_sockets );
+	assert( data_fragment_size );
 	assert( addrlen );
 
 	// find the socket
@@ -1886,9 +1903,16 @@ int tcp_accept_message( socket_cores_ref local_sockets, int socket_id, size_t * 
 		// get the socket specific data
 		socket_data = ( tcp_socket_data_ref ) accepted->specific_data;
 		assert( socket_data );
+		// TODO can it be in another state?
 		if( socket_data->state == TCP_SOCKET_ESTABLISHED ){
 			ERROR_PROPAGATE( data_reply( socket_data->addr, socket_data->addrlen ));
+			ERROR_PROPAGATE( tl_get_ip_packet_dimension( tcp_globals.ip_phone, & tcp_globals.dimensions, socket_data->device_id, & packet_dimension ));
 			* addrlen = socket_data->addrlen;
+			* data_fragment_size = (( packet_dimension->content < socket_data->data_fragment_size ) ? packet_dimension->content : socket_data->data_fragment_size );
+			if( new_socket_id > 0 ){
+				ERROR_PROPAGATE( socket_cores_update( local_sockets, accepted->socket_id, new_socket_id ));
+				accepted->socket_id = new_socket_id;
+			}
 		}
 		dyn_fifo_pop( & socket->accepted );
 	}while( socket_data->state != TCP_SOCKET_ESTABLISHED );

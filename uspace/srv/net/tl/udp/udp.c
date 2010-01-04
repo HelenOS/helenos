@@ -96,7 +96,7 @@
 /** Processes the received UDP packet queue.
  *  Is used as an entry point from the underlying IP module.
  *  Locks the global lock and calls udp_process_packet() function.
- *  @param device_id The device identifier. Ignored parameter.
+ *  @param[in] device_id The receiving device identifier.
  *  @param[in,out] packet The received packet queue.
  *  @param receiver The target service. Ignored parameter.
  *  @param[in] error The packet error reporting service. Prefixes the received packet.
@@ -108,6 +108,7 @@ int	udp_received_msg( device_id_t device_id, packet_t packet, services_t receive
 /** Processes the received UDP packet queue.
  *  Notifies the destination socket application.
  *  Releases the packet on error or sends an ICMP error notification..
+ *  @param[in] device_id The receiving device identifier.
  *  @param[in,out] packet The received packet queue.
  *  @param[in] error The packet error reporting service. Prefixes the received packet.
  *  @returns EOK on success.
@@ -119,7 +120,7 @@ int	udp_received_msg( device_id_t device_id, packet_t packet, services_t receive
  *  @returns EADDRNOTAVAIL if the destination socket does not exist.
  *  @returns Other error codes as defined for the ip_client_process_packet() function.
  */
-int udp_process_packet( packet_t packet, services_t error );
+int udp_process_packet( device_id_t device_id, packet_t packet, services_t error );
 
 /** Releases the packet and returns the result.
  *  @param[in] packet The packet queue to be released.
@@ -150,7 +151,7 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call );
  *  @param[in] addr The destination address.
  *  @param[in] addrlen The address length.
  *  @param[in] fragments The number of data fragments.
- *  @param[in] data_fragment_size The data fragment size in bytes.
+ *  @param[out] data_fragment_size The data fragment size in bytes.
  *  @param[in] flags Various send flags.
  *  @returns EOK on success.
  *  @returns EAFNOTSUPPORT if the address family is not supported.
@@ -162,7 +163,7 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call );
  *  @returns Other error codes as defined for the ip_client_prepare_packet() function.
  *  @returns Other error codes as defined for the ip_send_msg() function.
  */
-int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const struct sockaddr * addr, socklen_t addrlen, int fragments, size_t data_fragment_size, int flags );
+int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const struct sockaddr * addr, socklen_t addrlen, int fragments, size_t * data_fragment_size, int flags );
 
 /** Receives data to the socket.
  *  Handles the NET_SOCKET_RECVFROM message.
@@ -234,7 +235,7 @@ int	udp_received_msg( device_id_t device_id, packet_t packet, services_t receive
 	int	result;
 
 	fibril_rwlock_write_lock( & udp_globals.lock );
-	result = udp_process_packet( packet, error );
+	result = udp_process_packet( device_id, packet, error );
 	if( result != EOK ){
 		fibril_rwlock_write_unlock( & udp_globals.lock );
 	}
@@ -242,7 +243,7 @@ int	udp_received_msg( device_id_t device_id, packet_t packet, services_t receive
 	return result;
 }
 
-int udp_process_packet( packet_t packet, services_t error ){
+int udp_process_packet( device_id_t device_id, packet_t packet, services_t error ){
 	ERROR_DECLARE;
 
 	size_t			length;
@@ -260,6 +261,7 @@ int udp_process_packet( packet_t packet, services_t error ){
 	ip_pseudo_header_ref	ip_header;
 	struct sockaddr *		src;
 	struct sockaddr *		dest;
+	packet_dimension_ref	packet_dimension;
 
 	if( error ){
 		switch( error ){
@@ -291,7 +293,7 @@ int udp_process_packet( packet_t packet, services_t error ){
 	if( length <= 0 ){
 		return udp_release_and_return( packet, EINVAL );
 	}
-	if( length < sizeof( udp_header_t ) + offset ){
+	if( length < UDP_HEADER_SIZE + offset ){
 		return udp_release_and_return( packet, NO_DATA );
 	}
 
@@ -379,14 +381,17 @@ int udp_process_packet( packet_t packet, services_t error ){
 	}
 
 	// queue the received packet
-	if( ERROR_OCCURRED( dyn_fifo_push( & socket->received, packet_get_id( packet ), SOCKET_MAX_RECEIVED_SIZE ))){
+	if( ERROR_OCCURRED( dyn_fifo_push( & socket->received, packet_get_id( packet ), SOCKET_MAX_RECEIVED_SIZE ))
+	|| ERROR_OCCURRED( tl_get_ip_packet_dimension( udp_globals.ip_phone, & udp_globals.dimensions, device_id, & packet_dimension ))){
 		return udp_release_and_return( packet, ERROR_CODE );
 	}
 
 	// notify the destination socket
 	fibril_rwlock_write_unlock( & udp_globals.lock );
+	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, packet_dimension->content, 0, 0, ( ipcarg_t ) fragments );
+/*	fibril_rwlock_write_unlock( & udp_globals.lock );
 	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, 0, 0, 0, ( ipcarg_t ) fragments );
-	return EOK;
+*/	return EOK;
 }
 
 int udp_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
@@ -417,6 +422,7 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	fibril_rwlock_t			lock;
 	ipc_call_t				answer;
 	int						answer_count;
+	packet_dimension_ref	packet_dimension;
 
 	/*
 	 * Accept the connection
@@ -443,12 +449,17 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				break;
 			case NET_SOCKET:
 				fibril_rwlock_write_lock( & lock );
+				* SOCKET_SET_SOCKET_ID( answer ) = SOCKET_GET_SOCKET_ID( call );
 				res = socket_create( & local_sockets, app_phone, NULL, SOCKET_SET_SOCKET_ID( answer ));
 				fibril_rwlock_write_unlock( & lock );
-				// TODO max fragment size
-				* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = MAX_UDP_FRAGMENT_SIZE;
-				* SOCKET_SET_HEADER_SIZE( answer ) = sizeof( udp_header_t );
-				answer_count = 3;
+				if( res == EOK ){
+					if( tl_get_ip_packet_dimension( udp_globals.ip_phone, & udp_globals.dimensions, DEVICE_INVALID_ID, & packet_dimension ) == EOK ){
+						* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = packet_dimension->content;
+					}
+//					* SOCKET_SET_DATA_FRAGMENT_SIZE( answer ) = MAX_UDP_FRAGMENT_SIZE;
+					* SOCKET_SET_HEADER_SIZE( answer ) = UDP_HEADER_SIZE;
+					answer_count = 3;
+				}
 				break;
 			case NET_SOCKET_BIND:
 				res = data_receive(( void ** ) & addr, & addrlen );
@@ -466,9 +477,11 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				if( res == EOK ){
 					fibril_rwlock_read_lock( & lock );
 					fibril_rwlock_write_lock( & udp_globals.lock );
-					res = udp_sendto_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), addr, addrlen, SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_GET_DATA_FRAGMENT_SIZE( call ), SOCKET_GET_FLAGS( call ));
+					res = udp_sendto_message( & local_sockets, SOCKET_GET_SOCKET_ID( call ), addr, addrlen, SOCKET_GET_DATA_FRAGMENTS( call ), SOCKET_SET_DATA_FRAGMENT_SIZE( answer ), SOCKET_GET_FLAGS( call ));
 					if( res != EOK ){
 						fibril_rwlock_write_unlock( & udp_globals.lock );
+					}else{
+						answer_count = 2;
 					}
 					fibril_rwlock_read_unlock( & lock );
 					free( addr );
@@ -483,7 +496,7 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				if( res > 0 ){
 					* SOCKET_SET_READ_DATA_LENGTH( answer ) = res;
 					* SOCKET_SET_ADDRESS_LENGTH( answer ) = addrlen;
-					answer_count = 2;
+					answer_count = 3;
 					res = EOK;
 				}
 				break;
@@ -512,7 +525,7 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	return EOK;
 }
 
-int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const struct sockaddr * addr, socklen_t addrlen, int fragments, size_t data_fragment_size, int flags ){
+int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const struct sockaddr * addr, socklen_t addrlen, int fragments, size_t * data_fragment_size, int flags ){
 	ERROR_DECLARE;
 
 	socket_core_ref			socket;
@@ -570,7 +583,7 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 //	}
 
 	// read the first packet fragment
-	result = tl_socket_read_packet_data( udp_globals.net_phone, & packet, sizeof( udp_header_t ), packet_dimension, addr, addrlen );
+	result = tl_socket_read_packet_data( udp_globals.net_phone, & packet, UDP_HEADER_SIZE, packet_dimension, addr, addrlen );
 	if( result < 0 ) return result;
 	total_length = ( size_t ) result;
 	if( udp_globals.checksum_computing ){
@@ -605,7 +618,7 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 //		if( ERROR_OCCURRED( ip_get_route_req( udp_globals.ip_phone, IPPROTO_UDP, addr, addrlen, & device_id, & ip_header, & headerlen ))){
 //			return udp_release_and_return( packet, ERROR_CODE );
 //		}
-		if( ERROR_OCCURRED( ip_client_set_pseudo_header_data_length( ip_header, headerlen, total_length + sizeof( udp_header_t )))){
+		if( ERROR_OCCURRED( ip_client_set_pseudo_header_data_length( ip_header, headerlen, total_length + UDP_HEADER_SIZE))){
 			free( ip_header );
 			return udp_release_and_return( packet, ERROR_CODE );
 		}
@@ -614,7 +627,7 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 		header->checksum = htons( flip_checksum( compact_checksum( checksum )));
 		free( ip_header );
 	}else{
-		device_id = -1;
+		device_id = DEVICE_INVALID_ID;
 	}
 	// prepare the first packet fragment
 	if( ERROR_OCCURRED( ip_client_prepare_packet( packet, IPPROTO_UDP, 0, 0, 0, 0 ))){
@@ -664,7 +677,7 @@ int udp_recvfrom_message( socket_cores_ref local_sockets, int socket_id, int fla
 	ERROR_PROPAGATE( data_reply( addr, * addrlen ));
 
 	// trim the header
-	ERROR_PROPAGATE( packet_trim( packet, sizeof( udp_header_t ), 0 ));
+	ERROR_PROPAGATE( packet_trim( packet, UDP_HEADER_SIZE, 0 ));
 
 	// reply the packets
 	ERROR_PROPAGATE( socket_reply_packets( packet, & length ));

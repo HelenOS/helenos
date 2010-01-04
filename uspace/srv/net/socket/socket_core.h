@@ -176,9 +176,9 @@ int	socket_bind_free_port( socket_ports_ref global_sockets, socket_core_ref sock
  *  @param[in,out] local_sockets The local sockets to be updated.
  *  @param[in] app_phone The application phone.
  *  @param[in] specific_data The socket specific data.
- *  @param[out] socket_id The new socket identifier.
+ *  @param[in,out] socket_id The new socket identifier. A new identifier is chosen if set to zero (0) or negative. A negative identifier is chosen if set to negative.
  *  @returns EOK on success.
- *  @returns EBADMEM if the socket_id parameter is NULL.
+ *  @returns EINVAL if the socket_id parameter is NULL.
  *  @returns ENOMEM if there is not enough memory left.
  */
 int socket_create( socket_cores_ref local_sockets, int app_phone, void * specific_data, int * socket_id );
