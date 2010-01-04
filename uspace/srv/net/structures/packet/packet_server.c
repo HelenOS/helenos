@@ -193,7 +193,7 @@ int	packet_server_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 			IPC_SET_ARG2( * answer, packet->length );
 			return EOK;
 		case NET_PACKET_CREATE_4:
-			packet = packet_get( IPC_GET_ADDR_LEN( call ), IPC_GET_PREFIX( call ), IPC_GET_CONTENT( call ), IPC_GET_SUFFIX( call ));
+			packet = packet_get((( DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN( call )) ? IPC_GET_ADDR_LEN( call ) : DEFAULT_ADDR_LEN ), DEFAULT_PREFIX + IPC_GET_PREFIX( call ), IPC_GET_CONTENT( call ), DEFAULT_SUFFIX + IPC_GET_SUFFIX( call ));
 			if( ! packet ) return ENOMEM;
 			* answer_count = 2;
 			IPC_SET_ARG1( * answer, packet->packet_id );
