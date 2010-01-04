@@ -43,6 +43,7 @@
 #include "../structures/packet/packet.h"
 #include "../structures/packet/packet_client.h"
 
+#include "../include/device.h"
 #include "../include/icmp_interface.h"
 #include "../include/in.h"
 #include "../include/in6.h"
@@ -95,6 +96,25 @@ int tl_get_ip_packet_dimension( int ip_phone, packet_dimensions_ref packet_dimen
 		if( ERROR_CODE < 0 ){
 			free( * packet_dimension );
 			return ERROR_CODE;
+		}
+	}
+	return EOK;
+}
+
+int tl_update_ip_packet_dimension( packet_dimensions_ref packet_dimensions, device_id_t device_id, size_t content ){
+	packet_dimension_ref	packet_dimension;
+
+	packet_dimension = packet_dimensions_find( packet_dimensions, device_id );
+	if( ! packet_dimension ) return ENOENT;
+	packet_dimension->content = content;
+	if( device_id != DEVICE_INVALID_ID ){
+		packet_dimension = packet_dimensions_find( packet_dimensions, DEVICE_INVALID_ID );
+		if( packet_dimension ){
+			if( packet_dimension->content >= content ){
+				packet_dimension->content = content;
+			}else{
+				packet_dimensions_exclude( packet_dimensions, DEVICE_INVALID_ID );
+			}
 		}
 	}
 	return EOK;

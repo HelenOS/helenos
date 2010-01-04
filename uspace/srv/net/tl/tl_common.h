@@ -102,6 +102,15 @@ int	tl_get_address_port( const struct sockaddr * addr, int addrlen, uint16_t * p
  */
 int	tl_get_ip_packet_dimension( int ip_phone, packet_dimensions_ref packet_dimensions, device_id_t device_id, packet_dimension_ref * packet_dimension );
 
+/** Updates IP device packet dimensions cache.
+ *  @param[in,out] packet_dimensions The packet dimensions cache.
+ *  @param[in] device_id The device identifier.
+ *  @param[in] content The new maximum content size.
+ *  @returns EOK on success.
+ *  @returns ENOENT if the packet dimension is not cached.
+ */
+int	tl_update_ip_packet_dimension( packet_dimensions_ref packet_dimensions, device_id_t device_id, size_t content );
+
 /** Sets the address port.
  *  Supports AF_INET and AF_INET6 address families.
  *  @param[in,out] addr The address to be updated.
