@@ -365,7 +365,7 @@ void print_mark( int index ){
 int main( int argc, char * argv[] ){
 	ERROR_DECLARE;
 
-	size_t				size			= 29;
+	size_t				size			= 28;
 	int					verbose			= 0;
 	sock_type_t			type			= SOCK_DGRAM;
 	int					sockets			= 10;
@@ -506,9 +506,12 @@ int main( int argc, char * argv[] ){
 	if( verbose ) printf( "Starting tests\n" );
 
 	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
+
 	if( type == SOCK_STREAM ){
 		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, sockets, address, addrlen ));
 	}
+
+	if( verbose ) printf( "\n" );
 
 	if( ERROR_OCCURRED( gettimeofday( & time_before, NULL ))){
 		fprintf( stderr, "Get time of day error %d\n", ERROR_CODE );
@@ -545,7 +548,7 @@ int main( int argc, char * argv[] ){
 
 	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
 
-	if( verbose ) printf( "Exiting\n" );
+	if( verbose ) printf( "\nExiting\n" );
 
 	return EOK;
 }

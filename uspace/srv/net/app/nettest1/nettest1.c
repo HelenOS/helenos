@@ -243,7 +243,9 @@ int sockets_create( int verbose, int * socket_ids, int sockets, int family, sock
 			socket_print_error( stderr, socket_ids[ index ], "Socket create: ", "\n" );
 			return socket_ids[ index ];
 		}
-		if( verbose ) print_mark( index );
+		if( verbose ){
+			print_mark( index );
+		}
 	}
 	return EOK;
 }
@@ -365,7 +367,7 @@ void print_mark( int index ){
 int main( int argc, char * argv[] ){
 	ERROR_DECLARE;
 
-	size_t				size			= 28;
+	size_t				size			= 27;
 	int					verbose			= 0;
 	sock_type_t			type			= SOCK_DGRAM;
 	int					sockets			= 10;
