@@ -53,7 +53,9 @@ DIRS_ALL = $(DIRS) $(DIRS_MODULAR)
 ifeq ($(NETWORKING), module)
 	BUILDS := $(addsuffix .build,$(DIRS))
 else
+ifeq ($(NETWORKING), modular)
 	BUILDS := $(addsuffix .build,$(DIRS_ALL))
+endif
 endif
 
 CLEANS := $(addsuffix .clean,$(DIRS_ALL))
