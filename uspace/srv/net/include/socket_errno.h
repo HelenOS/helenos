@@ -116,7 +116,12 @@
 //#define EHOSTDOWN		(-10064)
 //#define EHOSTUNREACH	(-10065)
 //#define HOST_NOT_FOUND	(-11001)
-//#define TRY_AGAIN		(-11002)
+
+/** The requested operation was not performed.
+ *  Try again later.
+ */
+#define TRY_AGAIN		(-11002)
+
 //#define NO_RECOVERY		(-11003)
 
 /** No data.

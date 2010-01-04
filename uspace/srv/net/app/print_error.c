@@ -135,6 +135,8 @@ void socket_print_error( FILE * output, int error_code, const char * prefix, con
 				break;
 			case EDESTADDRREQ:
 				fprintf( output, "Destination address required (%d) error", error_code );
+			case TRY_AGAIN:
+				fprintf( output, "Try again (%d) error", error_code );
 			default:
 				fprintf( output, "Other (%d) error", error_code );
 		}
