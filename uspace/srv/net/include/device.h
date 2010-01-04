@@ -47,6 +47,10 @@
  */
 #define DEVICE_MAP_IMPLEMENT	INT_MAP_IMPLEMENT
 
+/** Invalid device identifier.
+ */
+#define DEVICE_INVALID_ID		( -1 )
+
 /** Device identifier type.
  */
 typedef int	device_id_t;
