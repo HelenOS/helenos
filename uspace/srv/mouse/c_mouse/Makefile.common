@@ -36,4 +36,5 @@ LIBS = $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = c_mouse.job
 OUTPUT = c_mouse

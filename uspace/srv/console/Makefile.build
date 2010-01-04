@@ -70,6 +70,9 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 %.o: %.ppm
 	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) $< $@

@@ -33,8 +33,8 @@ include Makefile.common
 
 all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBC_PREFIX)/libc.a
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(LIBBLOCK)
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(LIBBLOCK)
 	find . -name '*.o' -follow -exec rm \{\} \;

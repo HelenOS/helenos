@@ -33,4 +33,5 @@
 LIBC_PREFIX = ../../../lib/libc
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = libpci.job
 LIBPCI = libpci.a

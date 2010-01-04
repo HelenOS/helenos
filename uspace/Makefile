@@ -97,10 +97,10 @@ $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
 $(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBC_BUILD):
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)

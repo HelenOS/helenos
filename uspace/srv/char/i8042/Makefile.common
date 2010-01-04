@@ -36,4 +36,5 @@ LIBS = $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = i8042.job
 OUTPUT = i8042

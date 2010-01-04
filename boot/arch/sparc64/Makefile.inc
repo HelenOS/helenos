@@ -54,7 +54,7 @@ endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
 
 arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader
+	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 
 clean: generic_clean
 	$(MAKE) -C arch/$(BARCH)/loader clean

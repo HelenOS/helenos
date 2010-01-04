@@ -111,12 +111,21 @@ $(LINK): $(LINK).in
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__
+endif
 
 %.o: %.s $(DEPEND)
 	$(AS) $(AFLAGS) $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(AFLAGS)
+endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND): $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
