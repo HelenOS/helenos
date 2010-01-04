@@ -33,6 +33,7 @@ Wrapper for Stanse static checker
 import sys
 import os
 import subprocess
+import jobfile
 
 jobs = [
 	"kernel/kernel.job",
@@ -42,40 +43,6 @@ jobs = [
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <ROOT>"
-
-def parse_arg(record):
-	"Parse jobfile line arguments"
-	
-	arg = []
-	i = 0
-	current = ""
-	nil = True
-	inside = False
-	
-	while (i < len(record)):
-		if (inside):
-			if (record[i] == "}"):
-				inside = False
-			else:
-				current = "%s%s" % (current, record[i])
-		else:
-			if (record[i] == "{"):
-				nil = False
-				inside = True
-			elif (record[i] == ","):
-				arg.append(current)
-				current = ""
-				nil = True
-			else:
-				print "Unexpected '%s'" % record[i]
-				return False
-		
-		i += 1
-	
-	if (not nil):
-		arg.append(current)
-	
-	return arg
 
 def stanse(root, job):
 	"Run Stanse on a jobfile"
@@ -96,7 +63,7 @@ def stanse(root, job):
 	
 	output = []
 	for record in records:
-		arg = parse_arg(record)
+		arg = jobfile.parse_arg(record)
 		if (not arg):
 			return False
 		
