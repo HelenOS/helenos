@@ -45,8 +45,8 @@ USPACEDIR = ../../../../uspace
 
 RD_SRVS_GENERIC = \
 	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/cir/fhc/fhc \
-	$(USPACEDIR)/srv/cir/obio/obio
+	$(USPACEDIR)/srv/hw/cir/fhc/fhc \
+	$(USPACEDIR)/srv/hw/cir/obio/obio
 
 RD_APPS_GENERIC = \
 	$(USPACEDIR)/app/tester/tester

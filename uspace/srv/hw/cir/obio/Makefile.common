@@ -30,11 +30,11 @@
 ## Common names
 #
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+LIBC_PREFIX = ../../../../lib/libc
+SOFTINT_PREFIX = ../../../../lib/softint
 LIBS = $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
-JOB = kbd.job
-OUTPUT = kbd
+JOB = obio.job
+OUTPUT = obio

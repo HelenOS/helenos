@@ -30,11 +30,12 @@
 ## Common names
 #
 
-LIBC_PREFIX = ../../../lib/libc
-SOFTINT_PREFIX = ../../../lib/softint
-LIBS = $(LIBC_PREFIX)/libc.a
+LIBC_PREFIX = ../../../../lib/libc
+SOFTINT_PREFIX = ../../../../lib/softint
+LIBBLOCK_PREFIX = ../../../../lib/libblock
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
-JOB = fhc.job
-OUTPUT = fhc
+JOB = mbr_part.job
+OUTPUT = mbr_part

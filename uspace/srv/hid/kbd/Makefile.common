@@ -30,12 +30,11 @@
 ## Common names
 #
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
-LIBPCI = libpci/libpci.a
-LIBS = $(LIBPCI) $(LIBC_PREFIX)/libc.a
+LIBC_PREFIX = ../../../lib/libc
+SOFTINT_PREFIX = ../../../lib/softint
+LIBS = $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
-JOB = pci.job
-OUTPUT = pci
+JOB = kbd.job
+OUTPUT = kbd

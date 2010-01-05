@@ -48,7 +48,7 @@ SOURCES = \
 
 ifeq ($(UARCH),amd64)
 	SOURCES += \
-		port/i8042.c \
+		port/chardev.c \
 		ctl/pc.c
 endif
 
@@ -80,7 +80,7 @@ endif
 
 ifeq ($(MACHINE),i460GX)
 	SOURCES += \
-		port/i8042.c \
+		port/chardev.c \
 		ctl/pc.c
 endif
 
