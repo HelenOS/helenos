@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2010 Martin Decky
+# Copyright (c) 2010 Ondrej Sery
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,19 +51,31 @@ def cygpath(upath):
 	return subprocess.Popen(['cygpath', '--windows', '--absolute', upath], stdout = subprocess.PIPE).communicate()[0].strip()
 
 def preprocess(srcfname, tmpfname, base, options):
-	"Preprocess source using GCC preprocessor"
+	"Preprocess source using GCC preprocessor and compatibility tweaks"
 	
 	args = ['gcc', '-E']
 	args.extend(options.split())
-	args.extend(['-o', tmpfname, srcfname])
+	args.append(srcfname)
+	
+	# Change working directory
 	
 	cwd = os.getcwd()
 	os.chdir(base)
-	retval = subprocess.Popen(args).wait()
-	os.chdir(cwd)
 	
-	if (retval != 0):
-		return False
+	preproc = subprocess.Popen(args, stdout = subprocess.PIPE).communicate()[0]
+	
+	tmpf = file(tmpfname, "w")
+	
+	for line in preproc.splitlines():
+		# Ignore preprocessor directives
+		if (line.startswith('#')):
+			continue	
+		
+		tmpf.write("%s\n" % line)
+	
+	tmpf.close()
+	
+	os.chdir(cwd)
 	
 	return True
 
