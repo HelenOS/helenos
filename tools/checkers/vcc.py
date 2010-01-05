@@ -44,6 +44,28 @@ def usage(prname):
 	"Print usage syntax"
 	print prname + " <ROOT>"
 
+def cygpath(upath):
+	"Convert Unix (Cygwin) path to Windows path"
+	
+	return subprocess.Popen(['cygpath', '--windows', '--absolute', upath], stdout = subprocess.PIPE).communicate()[0].strip()
+
+def preprocess(srcfname, tmpfname, base, options):
+	"Preprocess source using GCC preprocessor"
+	
+	args = ['gcc', '-E']
+	args.extend(options.split())
+	args.extend(['-o', tmpfname, srcfname])
+	
+	cwd = os.getcwd()
+	os.chdir(base)
+	retval = subprocess.Popen(args).wait()
+	os.chdir(cwd)
+	
+	if (retval != 0):
+		return False
+	
+	return True
+
 def vcc(root, job):
 	"Run Vcc on a jobfile"
 	
@@ -79,18 +101,31 @@ def vcc(root, job):
 			print "Source %s not found" % srcfqname
 			return False
 		
+		tmpfname = "%s.preproc" % srcfname
+		tmpfqname = os.path.join(base, tmpfname)
+		
 		# Only C files are interesting for us
 		if (arg[2] != "cc"):
 			continue
 		
-		# Run Stanse
+		# Preprocess sources
 		
-		retval = subprocess.Popen(['vcc', srcfqname]).wait()
+		if (not preprocess(srcfname, tmpfname, base, options)):
+			return False
+		
+		# Run Vcc
+		
+		retval = subprocess.Popen(['vcc', cygpath(tmpfqname)]).wait()
+		
+		# Cleanup
+		
+		if (os.path.isfile(tmpfqname)):
+			os.remove(tmpfqname)
 		
 		if (retval != 0):
 			return False
 	
-	return False
+	return True
 
 def main():
 	if (len(sys.argv) < 2):
