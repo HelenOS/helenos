@@ -168,8 +168,8 @@ static int i8042_init(void)
 {
 	void *vaddr;
 
-	i8042_physical = sysinfo_value("kbd.address.physical");
-	i8042_kernel = sysinfo_value("kbd.address.kernel");
+	i8042_physical = sysinfo_value("i8042.address.physical");
+	i8042_kernel = sysinfo_value("i8042.address.kernel");
 	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
 		return -1;
 	i8042 = vaddr;
@@ -192,8 +192,8 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(sysinfo_value("mouse.inr"), device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(sysinfo_value("i8042.inr_a"), device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(sysinfo_value("i8042.inr_b"), device_assign_devno(), 0, &i8042_kbd);
 
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
@@ -207,14 +207,11 @@ static int i8042_init(void)
 /** Character device connection handler */
 static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
 	dev_handle_t dh;
-	int flags;
 	int retval;
-	size_t cnt;
 	int dev_id, i;
 
 	printf(NAME ": connection handler\n");
@@ -224,11 +221,12 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
-	for (i = 0; i < MAX_DEVS; i++)
+	for (i = 0; i < MAX_DEVS; i++) {
 		if (i8042_port[i].dev_handle == dh)
 			dev_id = i;
+	}
 
-	if (dev_id < 0/* || disk[dev_id].present == false*/) {
+	if (dev_id < 0) {
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}
