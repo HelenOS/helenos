@@ -38,4 +38,5 @@ LIBS = $(LIBFS_PREFIX)/libfs.a $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = fat.job
 OUTPUT = fat

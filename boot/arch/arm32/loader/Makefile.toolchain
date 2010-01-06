@@ -38,6 +38,8 @@ BFD_ARCH = arm
 TARGET = arm-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
 
+JOBFILE = ../../../../tools/jobfile.py
+
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as

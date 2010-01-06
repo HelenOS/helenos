@@ -32,9 +32,8 @@ include Makefile.common
 
 all: ../version ../Makefile.config ../config.h ../config.defs
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build EXTRA_TOOL=$(EXTRA_TOOL)
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
-	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o.preproc' -follow -exec rm \{\} \;

@@ -32,8 +32,8 @@ include Makefile.common
 
 all: ../../../Makefile.config ../../../config.h ../../../config.defs
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(LIBC) arch/*/_link.ld
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(LIBC) arch/*/_link.ld
 	find generic/ arch/*/ -name '*.o' -follow -exec rm \{\} \;

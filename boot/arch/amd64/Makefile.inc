@@ -29,10 +29,10 @@
 include Makefile.common
 
 RD_SRVS += \
-	$(USPACEDIR)/srv/pci/pci \
 	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/char/i8042/i8042 \
-	$(USPACEDIR)/srv/mouse/c_mouse/c_mouse
+	$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+	$(USPACEDIR)/srv/hw/bus/pci/pci \
+	$(USPACEDIR)/srv/hid/c_mouse/c_mouse
 
 MODULES := $(notdir $(COMPONENTS))
 

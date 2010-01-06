@@ -38,6 +38,8 @@ BFD_ARCH = ia64
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
 
+JOBFILE = ../../../../tools/jobfile.py
+
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as
