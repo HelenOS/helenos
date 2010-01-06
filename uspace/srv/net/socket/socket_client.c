@@ -385,9 +385,7 @@ void socket_connection( ipc_callid_t iid, ipc_call_t * icall ){
 						case NET_SOCKET_ACCEPTED:
 							// push the new socket identifier
 							fibril_mutex_lock( & socket->accept_lock );
-							if( ERROR_OCCURRED( dyn_fifo_push( & socket->accepted, SOCKET_GET_NEW_SOCKET_ID( call ), SOCKET_MAX_ACCEPTED_SIZE ))){
-								sockets_exclude( socket_get_sockets(), SOCKET_GET_NEW_SOCKET_ID( call ));
-							}else{
+							if( ! ERROR_OCCURRED( dyn_fifo_push( & socket->accepted, 1, SOCKET_MAX_ACCEPTED_SIZE ))){
 								// signal the accepted socket
 								fibril_condvar_signal( & socket->accept_signal );
 							}
@@ -405,6 +403,7 @@ void socket_connection( ipc_callid_t iid, ipc_call_t * icall ){
 					}
 				}
 				fibril_rwlock_read_unlock( & socket_globals.lock );
+				break;
 			default:
 				ERROR_CODE = ENOTSUP;
 		}
@@ -419,7 +418,6 @@ int socket( int domain, int type, int protocol ){
 	int			phone;
 	int			socket_id;
 	services_t	service;
-	int			count;
 
 	// find the appropriate service
 	switch( domain ){
@@ -461,7 +459,6 @@ int socket( int domain, int type, int protocol ){
 	socket = ( socket_ref ) malloc( sizeof( socket_t ));
 	if( ! socket ) return ENOMEM;
 	bzero( socket, sizeof( * socket ));
-	count = 0;
 	fibril_rwlock_write_lock( & socket_globals.lock );
 	// request a new socket
 	socket_id = socket_generate_new_id();

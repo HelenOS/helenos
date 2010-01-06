@@ -792,7 +792,6 @@ int tcp_process_listen( socket_core_ref listening_socket, tcp_socket_data_ref li
 				return tcp_release_and_return( packet, ERROR_CODE );
 			}
 
-			socket_id *= -1;
 			printf("new_sock %d\n", socket_id);
 			socket_data->pseudo_header = listening_socket_data->pseudo_header;
 			socket_data->headerlen = listening_socket_data->headerlen;
@@ -903,7 +902,7 @@ int	tcp_process_syn_received( socket_core_ref socket, tcp_socket_data_ref socket
 			assert( listening_socket_data );
 
 			// queue the received packet
-			if( ! ERROR_OCCURRED( dyn_fifo_push( & listening_socket->accepted, socket->socket_id, listening_socket_data->backlog ))){
+			if( ! ERROR_OCCURRED( dyn_fifo_push( & listening_socket->accepted, ( -1 * socket->socket_id ), listening_socket_data->backlog ))){
 				// notify the destination socket
 				async_msg_5( socket->phone, NET_SOCKET_ACCEPTED, ( ipcarg_t ) listening_socket->socket_id, socket_data->data_fragment_size, TCP_HEADER_SIZE, 0, ( ipcarg_t ) socket->socket_id );
 				fibril_rwlock_write_unlock( socket_data->local_lock );
@@ -1897,6 +1896,7 @@ int tcp_accept_message( socket_cores_ref local_sockets, int socket_id, int new_s
 	do{
 		socket_id = dyn_fifo_value( & socket->accepted );
 		if( socket_id < 0 ) return ENOTSOCK;
+		socket_id *= -1;
 
 		accepted = socket_cores_find( local_sockets, socket_id );
 		if( ! accepted ) return ENOTSOCK;
