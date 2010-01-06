@@ -168,8 +168,8 @@ static int i8042_init(void)
 {
 	void *vaddr;
 
-	i8042_physical = sysinfo_value("kbd.address.physical");
-	i8042_kernel = sysinfo_value("kbd.address.kernel");
+	i8042_physical = sysinfo_value("i8042.address.physical");
+	i8042_kernel = sysinfo_value("i8042.address.kernel");
 	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
 		return -1;
 	i8042 = vaddr;
@@ -192,8 +192,8 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(sysinfo_value("mouse.inr"), device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(sysinfo_value("i8042.inr_a"), device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(sysinfo_value("i8042.inr_b"), device_assign_devno(), 0, &i8042_kbd);
 
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
