@@ -240,7 +240,7 @@ void gcons_in_kernel(void)
 }
 
 /** Return x, where left <= x <= right && |a-x| == min(|a-x|) is smallest */
-static inline int limit(size_t a, size_t left, size_t right)
+static inline ssize_t limit(ssize_t a, ssize_t left, ssize_t right)
 {
 	if (a < left)
 		a = left;
