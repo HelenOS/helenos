@@ -260,8 +260,9 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
 	mouse_x = limit(mouse_x + dx, 0, xres);
 	mouse_y = limit(mouse_y + dy, 0, yres);
-	
-	async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
+
+	if (active_console != KERNEL_CONSOLE)
+		async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
 static int gcons_find_conbut(int x, int y)
