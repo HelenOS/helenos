@@ -296,8 +296,9 @@ int main( int argc, char * argv[] ){
 			socket_id = accept( listening_id, address, & addrlen );
 			if( socket_id <= 0 ){
 				socket_print_error( stderr, socket_id, "Socket accept: ", "\n" );
+			}else{
+				if( verbose ) printf( "Socket %d accepted\n", socket_id );
 			}
-			if( verbose ) printf( "Socket %d accepted\n", socket_id );
 		}
 		if( socket_id > 0 ){
 			value = recvfrom( socket_id, data, size, 0, address, & addrlen );
