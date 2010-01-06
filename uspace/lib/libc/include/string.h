@@ -83,6 +83,7 @@ extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
 extern char *str_dup(const char *);
+extern char *str_ndup(const char *, size_t max_size);
 
 /*
  * TODO: Get rid of this.

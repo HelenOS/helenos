@@ -54,6 +54,11 @@ __entry:
 	leal __syscall_fast_func, %eax
 	movl $__syscall_fast, (%eax)
 0:
+	#
+	# Create the first stack frame.
+	#
+	pushl $0 
+	movl %esp, %ebp
 
 	# Pass the PCB pointer to __main as the first argument
 	pushl %edi

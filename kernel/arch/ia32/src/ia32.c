@@ -169,6 +169,7 @@ void arch_post_smp_init(void)
 			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
 			i8042_wire(i8042_instance, kbrd);
 			trap_virtual_enable_irqs(1 << IRQ_KBD);
+			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
 	
@@ -176,11 +177,12 @@ void arch_post_smp_init(void)
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
 	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
 }

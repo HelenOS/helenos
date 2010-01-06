@@ -38,7 +38,7 @@
 #include "vfs.h"
 #include <stdlib.h>
 #include <string.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <assert.h>
 #include <async.h>

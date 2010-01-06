@@ -37,8 +37,14 @@
 
 #include <unistd.h>
 #include <malloc.h>
+#include <stacktrace.h>
 
-#define abort()       _exit(1)
+#define abort() \
+	do { \
+		stack_trace(); \
+		_exit(1); \
+	} while (0)
+
 #define exit(status)  _exit((status))
 
 #define RAND_MAX  714025

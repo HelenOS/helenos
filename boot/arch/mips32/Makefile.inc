@@ -29,7 +29,7 @@
 build: $(BASE)/image.boot
 
 $(BASE)/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader
+	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 	cp arch/$(BARCH)/loader/image.boot $@
 
 clean:

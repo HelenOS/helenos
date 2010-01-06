@@ -72,6 +72,7 @@ extern char *test_stdio1(void);
 extern char *test_stdio2(void);
 extern char *test_fault1(void);
 extern char *test_fault2(void);
+extern char *test_fault3(void);
 extern char *test_vfs1(void);
 extern char *test_ping_pong(void);
 extern char *test_register(void);

@@ -33,4 +33,5 @@
 LIBC_PREFIX = ../libc
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = libblock.job
 LIBBLOCK = libblock.a

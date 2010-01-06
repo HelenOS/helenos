@@ -34,6 +34,7 @@
  */
 
 #include <userspace.h>
+#include <arch/ras.h>
 
 /** Struct for holding all general purpose registers.
  *  
@@ -73,10 +74,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 	/* %r1 is defined to hold pcb_ptr - set it to 0 */
 	ustate.r1 = 0;
 
+	/* pass the RAS page address in %r2 */
+	ustate.r2 = (uintptr_t) ras_page;
+
 	/* clear other registers */
-	ustate.r2 = ustate.r3  = ustate.r4  = ustate.r5 =
-	    ustate.r6  = ustate.r7  = ustate.r8  = ustate.r9 = ustate.r10 = 
-	    ustate.r11 = ustate.r12 = ustate.lr = 0;
+	ustate.r3  = ustate.r4  = ustate.r5 = ustate.r6 = ustate.r7 =
+	    ustate.r8 = ustate.r9 = ustate.r10 = ustate.r11 = ustate.r12 =
+	    ustate.lr = 0;
 
 	/* set user stack */
 	ustate.sp = ((uint32_t)kernel_uarg->uspace_stack) + PAGE_SIZE;

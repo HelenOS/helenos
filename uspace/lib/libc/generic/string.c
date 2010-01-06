@@ -895,6 +895,33 @@ long int strtol(const char *nptr, char **endptr, int base)
 	return (sgn ? -number : number);
 }
 
+char *str_dup(const char *src)
+{
+	size_t size = str_size(src);
+	void *dest = malloc(size + 1);
+	
+	if (dest == NULL)
+		return (char *) NULL;
+	
+	return (char *) memcpy(dest, src, size + 1);
+}
+
+char *str_ndup(const char *src, size_t max_size)
+{
+	size_t size = str_size(src);
+	if (size > max_size)
+		size = max_size;
+	
+	char *dest = (char *) malloc(size + 1);
+	
+	if (dest == NULL)
+		return (char *) NULL;
+	
+	memcpy(dest, src, size);
+	dest[size] = 0;
+	return dest;
+}
+
 
 /** Convert initial part of string to unsigned long according to given base.
  * The number may begin with an arbitrary number of whitespaces followed by
@@ -917,17 +944,6 @@ unsigned long strtoul(const char *nptr, char **endptr, int base)
 	number = _strtoul(nptr, endptr, base, &sgn);
 
 	return (sgn ? -number : number);
-}
-
-char *str_dup(const char *src)
-{
-	size_t size = str_size(src);
-	void *dest = malloc(size + 1);
-
-	if (dest == NULL)
-		return (char *) NULL;
-
-	return (char *) memcpy(dest, src, size + 1);
 }
 
 char *strtok(char *s, const char *delim)

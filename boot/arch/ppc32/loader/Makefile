@@ -33,7 +33,7 @@ include Makefile.common
 
 all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../../../config.defs
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
 	for file in $(RD_SRVS) ; do \
@@ -42,6 +42,6 @@ clean:
 	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.co' -follow -exec rm \{\} \;

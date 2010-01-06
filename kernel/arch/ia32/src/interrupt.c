@@ -97,6 +97,14 @@ static void null_interrupt(int n, istate_t *istate)
 	panic("Unserviced interrupt: %d.", n);
 }
 
+static void de_fault(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "Divide error.");
+
+	decode_istate(istate);
+	panic("Divide error.");
+}
+
 /** General Protection Fault. */
 static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 {
@@ -214,6 +222,7 @@ void interrupt_init(void)
 			exc_register(IVT_IRQBASE + i, "irq", (iroutine) irq_interrupt);
 	}
 	
+	exc_register(0, "de_fault", (iroutine) de_fault);
 	exc_register(7, "nm_fault", (iroutine) nm_fault);
 	exc_register(12, "ss_fault", (iroutine) ss_fault);
 	exc_register(13, "gp_fault", (iroutine) gp_fault);

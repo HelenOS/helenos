@@ -32,6 +32,7 @@
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = libc.job
 LIBC = libc.a
 INCLUDE_KERNEL = include/kernel
 INCLUDE_ARCH = include/arch

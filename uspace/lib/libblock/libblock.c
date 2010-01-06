@@ -46,7 +46,7 @@
 #include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <macros.h>

@@ -41,7 +41,7 @@
 #include <assert.h>
 #include <bool.h>
 #include <fibril.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include "vfs.h"
 
 /**

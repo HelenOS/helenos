@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <unistd.h>
 #include <ctype.h>

@@ -42,7 +42,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {

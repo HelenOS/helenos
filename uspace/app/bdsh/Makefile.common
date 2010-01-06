@@ -37,4 +37,5 @@ LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = bdsh.job
 OUTPUT = bdsh

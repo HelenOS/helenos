@@ -45,7 +45,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>

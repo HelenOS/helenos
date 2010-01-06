@@ -77,6 +77,8 @@ endif
 ## Toolchain configuration
 #
 
+JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
+
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
 	GCC = $(CC)
