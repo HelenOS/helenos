@@ -207,14 +207,11 @@ static int i8042_init(void)
 /** Character device connection handler */
 static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
 	dev_handle_t dh;
-	int flags;
 	int retval;
-	size_t cnt;
 	int dev_id, i;
 
 	printf(NAME ": connection handler\n");
@@ -224,11 +221,12 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
-	for (i = 0; i < MAX_DEVS; i++)
+	for (i = 0; i < MAX_DEVS; i++) {
 		if (i8042_port[i].dev_handle == dh)
 			dev_id = i;
+	}
 
-	if (dev_id < 0/* || disk[dev_id].present == false*/) {
+	if (dev_id < 0) {
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}
