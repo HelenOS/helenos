@@ -1,4 +1,8 @@
-[fnc.devmap_get_phone] ;
-!dm_client.device_get_handle {
-	!dm_client.ipc_m_data_write /* name */
-}
+(
+	[fnc.devmap_get_phone] ;
+	tentative {
+		!devmap_client.device_get_handle {
+			!devmap_client.ipc_m_data_write /* name */
+		}
+	}
+)

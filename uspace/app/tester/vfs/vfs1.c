@@ -84,7 +84,7 @@ char *test_vfs1(void)
 	if (null_id == -1)
 		return "Unable to create null device";
 	
-	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
+	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
 	int rc = mount(FS_TYPE, MOUNT_POINT, null, OPTIONS, FLAGS);
 	switch (rc) {
 	case EOK:

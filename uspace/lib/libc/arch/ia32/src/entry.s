@@ -26,6 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+INTEL_CPUID_STANDARD = 1
+INTEL_SEP = 11
+
 .section .init, "ax"
 
 .org 0
@@ -34,7 +37,7 @@
 
 ## User-space task entry point
 #
-# %ebx contains the PCB pointer
+# %edi contains the PCB pointer
 #
 __entry:
 	mov %ss, %ax
@@ -43,8 +46,22 @@ __entry:
 	mov %ax, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
 
+	# Detect the mechanism used for making syscalls
+	movl $(INTEL_CPUID_STANDARD), %eax
+	cpuid
+	bt $(INTEL_SEP), %edx
+	jnc 0f
+	leal __syscall_fast_func, %eax
+	movl $__syscall_fast, (%eax)
+0:
+	#
+	# Create the first stack frame.
+	#
+	pushl $0 
+	movl %esp, %ebp
+
 	# Pass the PCB pointer to __main as the first argument
-	pushl %ebx
+	pushl %edi
 	call __main
 
 	call __exit

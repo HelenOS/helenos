@@ -1,0 +1,107 @@
+interface console extends service {
+		/* Read characters from console */
+		ipcarg_t read(out_copy stream data);
+		
+		/* Write characters to console */
+		ipcarg_t write(in_copy stream data);
+		
+		/* Get last event from event queue */
+		ipcarg_t get_event(out ipcarg_t type, out ipcarg_t key, out ipcarg_t mods, out ipcarg_t char);
+		
+		/* Flush output buffer */
+		ipcarg_t sync(void);
+		
+		/* Clear console */
+		ipcarg_t clear(void);
+		
+		/* Move cursor to given position */
+		ipcarg_t goto(in ipcarg_t col, in ipcarg_t row);
+		
+		/* Get console dimensions (in character cells) */
+		ipcarg_t get_size(out ipcarg_t cols, in ipcarg_t rows);
+		
+		/* Get color capabilities */
+		ipcarg_t get_color_cap(void);
+		
+		/* Set abstract text style */
+		ipcarg_t set_style(in ipcarg_t style);
+		
+		/* Set EGA-based text color */
+		ipcarg_t set_color(in ipcarg_t fb_color, in ipcarg_t bg_color, in ipcarg_t attr);
+		
+		/* Set RGB-based text color */
+		ipcarg_t set_rgb_color(in ipcarg_t fb_color, in ipcarg_t bg_color);
+		
+		/* Set cursor visibility */
+		ipcarg_t cursor_visibility(in ipcarg_t visible);
+		
+		/* Switch to kernel debugging console (if available) */
+		ipcarg_t kcon_enable(void);
+	protocol:
+		[console.bp]
+};
+
+frame ui_dispatcher {
+	provides:
+		console console;
+		event event;
+	requires:
+		[/uspace/lib/libc/requires]
+		ns ns;
+		devmap_driver devmap_driver;
+		sys_console sys_console;
+		kbd kbd;
+		fb fb;
+	initialization:
+		!ns.ipc_m_connect_me_to /* kbd */ ;
+		!kbd.ipc_m_connect_to_me ;
+		!ns.ipc_m_connect_me_to /* fb */ ;
+		[/uspace/lib/libc/fnc.devmap_driver_register] ;
+		!fb.get_resolution ;
+		(
+			[fnc.vp_create] +
+			[fnc.vp_switch]
+		)* ;
+		[fnc.make_pixmap]* ;
+		[fnc.make_anim] ;
+		[fnc.vp_switch] ;
+		!fb.flush ;
+		!fb.get_csize ;
+		!fb.get_color_cap ;
+		!fb.ipc_m_share_out ;
+		[/uspace/lib/libc/fnc.devmap_device_register]* ;
+		!sys_console.sys_debug_disable_console ;
+		[fnc.gcons_redraw_console] ;
+		[fnc.set_rgb_color] ;
+		[fnc.screen_clear] ;
+		[fnc.curs_goto] ;
+		[fnc.curs_visibility]
+	protocol:
+		[/uspace/lib/libc/protocol]
+};
+
+architecture console {
+	inst ui_dispatcher ui_dispatcher;
+	inst kbd kbd;
+	inst fb fb;
+	
+	bind ui_dispatcher:kbd to kbd:kbd;
+	bind ui_dispatcher:fb to fb:fb;
+	
+	bind kbd:event to ui_dispatcher:event;
+	
+	delegate console to ui_dispatcher:console;
+	delegate kbd to kbd:kbd;
+	delegate fb to fb:fb;
+	
+	[/uspace/lib/libc/subsume%ui_dispatcher]
+	[/uspace/lib/libc/subsume%kbd]
+	[/uspace/lib/libc/subsume%fb]
+	
+	subsume ui_dispatcher:ns to ns;
+	subsume ui_dispatcher:devmap_driver to devmap_driver;
+	subsume ui_dispatcher:sys_console to sys_console;
+	
+	subsume kbd:ns to ns;
+	subsume fb:ns to ns;
+};

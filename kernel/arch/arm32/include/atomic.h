@@ -36,6 +36,8 @@
 #ifndef KERN_arm32_ATOMIC_H_
 #define KERN_arm32_ATOMIC_H_
 
+#include <arch/asm.h>
+
 /** Atomic addition.
  *
  * @param val Where to add.
@@ -46,21 +48,16 @@
  */
 static inline long atomic_add(atomic_t *val, int i)
 {
-	int ret;
-	volatile long *mem = &(val->count);
-	
-	asm volatile (
-		"1:\n"
-			"ldr r2, [%[mem]]\n"
-			"add r3, r2, %[i]\n"
-			"str r3, %[ret]\n"
-			"swp r3, r3, [%[mem]]\n"
-			"cmp r3, r2\n"
-			"bne 1b\n"
-		: [ret] "=m" (ret)
-		: [mem] "r" (mem), [i] "r" (i)
-		: "r3", "r2"
-	);
+	long ret;
+
+	/*
+	 * This implementation is for UP pre-ARMv6 systems where we do not have
+	 * the LDREX and STREX instructions.
+	 */
+	ipl_t ipl = interrupts_disable();
+	val->count += i;
+	ret = val->count;
+	interrupts_restore(ipl);
 	
 	return ret;
 }

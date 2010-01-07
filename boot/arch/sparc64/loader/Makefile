@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,152 +27,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../../version
--include ../../../../Makefile.config
+include Makefile.common
 
-## Toolchain configuration
-#
+.PHONY: all clean
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
-BFD_NAME = elf64-sparc
-BFD_ARCH = sparc
-TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
-
-ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-endif
-
-ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
-endif
-
-CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -I../../../genarch -imacros ../../../../config.h -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mcpu=ultrasparc -m64 -mno-fpu -pipe
-
-SOURCES = \
-	main.c \
-	_components.c \
-	../../../generic/printf.c \
-	../../../generic/string.c \
-	../../../genarch/balloc.c \
-	../../../genarch/ofw.c \
-	../../../genarch/ofw_tree.c \
-	ofwarch.c \
-	asm.S \
-	boot.S
-
-#
-# All components that go to image.boot without the ramdisk.
-#
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
-endif
-
-#
-# Final list of all components that go to image.boot.
-#
-ALL_COMPONENTS = $(COMPONENTS)
-ifeq ($(CONFIG_RD_EXTERNAL),n)
-	ALL_COMPONENTS += ./initrd.img
-endif
-
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
-
-ifeq ($(MACHINE),generic)
-RD_SRVS += \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/cir/fhc/fhc \
-	$(USPACEDIR)/srv/cir/obio/obio
-endif
-
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/bdsh/bdsh \
-	$(USPACEDIR)/app/klog/klog
-
-ifeq ($(MACHINE),generic)
-RD_APPS += \
-	$(USPACEDIR)/app/tester/tester
-endif
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-ALL_COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(ALL_COMPONENTS))))
-
-.PHONY: all clean depend
-
-all: image.boot disasm
-
--include Makefile.depend
-
-image.boot: depend _components.h _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS)
-	$(LD) -Map image.map -no-check-sections -N -T _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS) -o $@
-
-depend:
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
+all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../../../config.defs
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
-	-for file in $(RD_SRVS) ; do \
+	for file in $(RD_SRVS) $(RD_SRVS_GENERIC) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
-	-for file in $(RD_APPS) ; do \
+	for file in $(RD_APPS) $(RD_APPS_GENERIC) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -f _components.h _components.c _link.ld $(ALL_COMPONENT_OBJECTS) $(OBJECTS) initrd.img image.boot image.map image.disasm Makefile.depend
-
-_components.h _components.c _link.ld $(ALL_COMPONENT_OBJECTS): $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
-	for file in $(RD_SRVS) ; do \
-		cp $$file $(USPACEDIR)/dist/srv/ ; \
-	done
-	for file in $(RD_APPS) ; do \
-		cp $$file $(USPACEDIR)/dist/app/ ; \
-	done
-ifeq ($(RDFMT),tmpfs)
-	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
-endif
-ifeq ($(RDFMT),fat)
-	../../../../tools/mkfat.py $(USPACEDIR)/dist/ initrd.fs
-endif
-	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
-	rm initrd.fs
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 1 "unsigned long" $(ALL_COMPONENTS)
-
-%.o: %.S
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
-
-disasm: image.boot
-	$(OBJDUMP) -d image.boot > image.disasm
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
+	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.co' -follow -exec rm \{\} \;

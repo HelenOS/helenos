@@ -29,28 +29,38 @@
 ## Include configuration
 #
 
-.PHONY: all config distclean clean cscope
+CSCOPE = cscope
+CONFIG = tools/config.py
+
+.PHONY: all config config_default distclean clean cscope precheck
 
 all: Makefile.config config.h config.defs
-	$(MAKE) -C kernel
-	$(MAKE) -C uspace
-	$(MAKE) -C boot
+	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
+	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
+	$(MAKE) -C boot PRECHECK=$(PRECHECK)
 
-Makefile.config config.h config.defs: HelenOS.config
-	tools/config.py HelenOS.config default
-
-config:
-	tools/config.py HelenOS.config
-
-distclean: clean
-	rm -f Makefile.config config.h config.defs tools/*.pyc
-
-clean:
-	-$(MAKE) -C kernel clean
-	-$(MAKE) -C uspace clean
-	-$(MAKE) -C boot clean
+precheck: clean
+	$(MAKE) all PRECHECK=y
 
 cscope:
-	find kernel boot uspace -regex '^.*\.[chsS]$$' -print > srclist
-	rm -f cscope.out
-	cscope -bi srclist
+	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
+
+Makefile.config: config_default
+
+config.h: config_default
+
+config.defs: config_default
+
+config_default: HelenOS.config
+	$(CONFIG) HelenOS.config default
+
+config: HelenOS.config
+	$(CONFIG) HelenOS.config
+
+distclean: clean
+	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc
+
+clean:
+	$(MAKE) -C kernel clean
+	$(MAKE) -C uspace clean
+	$(MAKE) -C boot clean

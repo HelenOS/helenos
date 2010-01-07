@@ -1,4 +1,0 @@
-!vfs.VFS_IN_REGISTER ;
-!vfs.IPC_M_DATA_WRITE /* vfs_into_t */ ;
-!vfs.IPC_M_CONNECT_TO_ME ;
-!vfs.IPC_M_SHARE_IN

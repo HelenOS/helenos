@@ -1,0 +1,111 @@
+interface fb extends service {
+		/* Get screen resolution */
+		ipcarg_t get_resolution(out ipcarg_t width, out ipcarg_t height);
+		
+		/* Yield screen */
+		ipcarg_t screen_yield(void);
+		
+		/* Reclaim screen */
+		ipcarg_t screen_reclaim(void);
+		
+		/* Set mouse cursor position on screen */
+		ipcarg_t pointer_move(in ipcarg_t x, in ipcarg_t y);
+		
+		/* Create new viewport */
+		ipcarg_t viewport_create(in ipcarg_t origin, in ipcarg_t dimension);
+		
+		/* Get viewport size in character cells */
+		ipcarg_t get_csize(out ipcarg_t width, out ipcarg_t height);
+		
+		/* Clear viewport character buffer */
+		ipcarg_t clear(void);
+		
+		/* Scroll viewport character buffer */
+		ipcarg_t scroll(in ipcarg_t lines);
+		
+		/* Set active viewport */
+		ipcarg_t viewport_switch(in ipcarg_t index);
+		
+		/* Delete viewport */
+		ipcarg_t viewport_delete(in ipcarg_t index);
+		
+		/* Get color capabilities of the screen */
+		ipcarg_t get_color_cap(void);
+		
+		/* Set abstract text style */
+		ipcarg_t set_style(in ipcarg_t style);
+		
+		/* Set EGA-based text color */
+		ipcarg_t set_color(in ipcarg_t fg_color, in ipcarg_t bg_color, in ipcarg_t atrr);
+		
+		/* Set RGB-based text color */
+		ipcarg_t set_rgb_color(in ipcarg_t fg_color, in ipcarg_t bg_color);
+		
+		/* Put a character to a given position in viewport character buffer */
+		ipcarg_t putchar(in ipcarg_t char, in ipcarg_t col, in ipcarg_t row);
+		
+		/* Set character cursor visibility in viewport */
+		ipcarg_t cursor_visibility(in ipcarg_t visible);
+		
+		/* Set character cursor position in viewport */
+		ipcarg_t cursor_goto(in ipcarg_t col, in ipcarg_t row);
+		
+		/* Prepare memory sharing of bitmaps */
+		ipcarg_t prepare_shm(in ipcarg_t as_area_base);
+		
+		/* Share bitmap or text data */
+		ipcarg_t ipc_m_share_out(in ipcarg_t as_area_base, in ipcarg_t as_area_size, out ipcarg_t dst_as_area);
+		
+		/* Drop memory sharing */
+		ipcarg_t drop_shm(void);
+		
+		/* Draw PPM data from shared memory to viewport */
+		ipcarg_t draw_ppm(in ipcarg_t x, in ipcarg_t y);
+		
+		/* Put characters from shared memory to viewport */
+		ipcarg_t draw_text_data(in ipcarg_t x, in ipcarg_t y, in ipcarg_t width, in ipcarg_t height);
+		
+		/* Convert PPM data from shared memory to pixmap */
+		ipcarg_t shm2pixmap(void);
+		
+		/* Save viewport contents to a pixmap */
+		ipcarg_t vp2pixmap(in ipcarg_t vp_index);
+		
+		/* Draw pixmap to viewport */
+		ipcarg_t vp_draw_pixmap(in ipcarg_t vp_index, in ipcarg_t pm_index);
+		
+		/* Discard pixmap */
+		ipcarg_t drop_pixmap(in ipcarg_t pm_index);
+		
+		/* Create new (empty) animation for a viewport */
+		ipcarg_t anim_create(in ipcarg_t vp_index);
+		
+		/* Append a pixmap to an animation */
+		ipcarg_t anim_addpixmap(in ipcarg_t anim_index, in ipcarg_t pm_index);
+		
+		/* Change a viewport associated with an animation */
+		ipcarg_t anim_chgvp(in ipcarg_t anim_index, in ipcarg_t vp_index);
+		
+		/* Start animation playback */
+		ipcarg_t anim_start(in ipcarg_t anim_index);
+		
+		/* Stop animation playback */
+		ipcarg_t anim_stop(in ipcarg_t anim_index);
+		
+		/* Delete animation */
+		ipcarg_t anim_drop(in ipcarg_t anim_index);
+	protocol:
+		[fb.bp]
+};
+
+frame fb {
+	provides:
+		fb fb;
+	requires:
+		[/uspace/lib/libc/requires]
+		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* fb */
+	protocol:
+		[/uspace/lib/libc/protocol]
+};

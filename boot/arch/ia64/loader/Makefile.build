@@ -1,0 +1,94 @@
+#
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+## Setup toolchain
+#
+
+include ../../../../version
+include ../../../../Makefile.config
+include ../../../../config.defs
+include Makefile.common
+include Makefile.toolchain
+
+## Sources
+#
+
+SOURCES = \
+	main.c \
+	../../../generic/printf.c \
+	../../../generic/string.c \
+	../../../genarch/balloc.c \
+	_components.c \
+	asm.S \
+	boot.S
+
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+COMPONENT_OBJECTS := $(addsuffix .co,$(basename $(notdir $(COMPONENTS)))) $(INITRD).co
+
+.PHONY: all
+
+all: $(OUTPUT)
+
+-include $(DEPEND)
+
+$(OUTPUT): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
+	$(LD) -no-check-sections -N -T $(LINK) $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+	$(MAKE) -C gefi/HelenOS PREFIX=$(GEFI_PREFIX)
+	cp gefi/HelenOS/hello.efi ../../../../
+	cp gefi/HelenOS/image.bin ../../../../
+
+%.o: %.S $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
+
+%.o: %.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
+
+$(DEPEND):
+	for file in $(RD_SRVS) ; do \
+		cp $$file $(USPACEDIR)/dist/srv/ ; \
+	done
+	for file in $(RD_APPS) ; do \
+		cp $$file $(USPACEDIR)/dist/app/ ; \
+	done
+ifeq ($(RDFMT),tmpfs)
+	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ $(INITRD).fs
+endif
+ifeq ($(RDFMT),fat)
+	../../../../tools/mkfat.py $(USPACEDIR)/dist/ $(INITRD).fs
+endif
+	../../../../tools/mkhord.py 16384 $(INITRD).fs $(INITRD).img
+	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned long" $(COMPONENTS) ./$(INITRD).img
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
+	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@

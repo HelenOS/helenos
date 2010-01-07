@@ -1,0 +1,9 @@
+(
+	[/uspace/lib/libc/fnc.devmap_device_connect] ;
+	tentative {
+		!%%.ipc_m_share_out ;
+		tentative {
+			!%%.get_block_size
+		}
+	}
+)

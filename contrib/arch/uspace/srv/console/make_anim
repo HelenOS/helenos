@@ -1,4 +1,0 @@
-!fb.FB_ANIM_CREATE ;
-[make_pixmap]* ;
-!fb.FB_ANIM_ADDPIXMAP ;
-!fb.FB_ANIM_START

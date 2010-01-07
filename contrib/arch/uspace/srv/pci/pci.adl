@@ -1,0 +1,16 @@
+interface pci extends service {
+	protocol:
+		[pci.bp]
+};
+
+frame pci {
+	provides:
+		pci pci;
+	requires:
+		[/uspace/lib/libc/requires]
+		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* pci */
+	protocol:
+		[/uspace/lib/libc/protocol]
+};

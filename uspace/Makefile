@@ -32,60 +32,75 @@
 -include ../Makefile.config
 
 DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
+	app/bdsh \
+	app/edit \
+	app/getterm \
+	app/init \
+	app/klog \
+	app/redir \
+	app/tester \
+	app/tetris \
+	app/trace \
+	srv/clip \
+	srv/devmap \
+	srv/loader \
+	srv/ns \
+	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
+	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
-	srv/vfs \
-	srv/devmap \
-	srv/part/mbr_part \
-	app/edit \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/getvc \
-	app/bdsh
+	srv/hid/console \
+	srv/hid/c_mouse \
+	srv/hid/fb \
+	srv/hid/kbd \
+	srv/hw/char/i8042
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
+	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
+	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/cir/fhc \
-		srv/cir/obio
+		srv/hw/cir/fhc \
+		srv/hw/cir/obio
 endif
 
+LIBC = lib/libc
+LIBS = \
+	lib/libfs \
+	lib/libblock \
+	lib/softint \
+	lib/softfloat
+
+LIBC_BUILD = $(addsuffix .build,$(LIBC))
+LIBS_BUILD = $(addsuffix .build,$(LIBS))
+
 BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-.PHONY: all $(BUILDS) $(CLEANS) clean
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+all: $(BUILDS)
 
 clean: $(CLEANS)
 
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBS_BUILD): $(LIBC_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBC_BUILD):
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)

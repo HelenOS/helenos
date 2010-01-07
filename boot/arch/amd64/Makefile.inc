@@ -26,54 +26,35 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
+include Makefile.common
 
-INIT_TASKS = \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
-endif
-
-RD_SRVS = \
-	$(USPACEDIR)/srv/pci/pci \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
+RD_SRVS += \
 	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
+	$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+	$(USPACEDIR)/srv/hw/bus/pci/pci \
+	$(USPACEDIR)/srv/hid/c_mouse/c_mouse
 
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+MODULES := $(notdir $(COMPONENTS))
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
+$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
 	mkdir -p $(TMP)/boot/grub
 	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
-ifneq ($(RDFMT),tmpfs)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "tmpfs" > $(TMP)/boot/grub/menu.lst
-endif
-ifneq ($(RDFMT),fat)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "fat" > $(TMP)/boot/grub/menu.lst
-endif
+	
+	echo "default 0" > $(TMP)/boot/grub/menu.lst
+	echo "timeout 10" >> $(TMP)/boot/grub/menu.lst
+	echo "" >> $(TMP)/boot/grub/menu.lst
+	echo "title=HelenOS" >> $(TMP)/boot/grub/menu.lst
+	echo "	root (cd)" >> $(TMP)/boot/grub/menu.lst
+	for module in $(MODULES) $(INITRD).img ; do \
+		if [ $$module = kernel.bin ] ; then \
+			echo "	kernel /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
+		else \
+			echo "	module /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
+		fi \
+	done
+	
 	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
 	for task in $(INIT_TASKS) ; do \
 		cp $$task $(TMP)/boot/ ; \
@@ -84,22 +65,23 @@ endif
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
+	
 ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
+	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
 endif
 ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
+	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
 endif
-	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/initrd.fs $(TMP)/boot/initrd.img
-	rm $(TMP)/boot/initrd.fs
+	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/$(INITRD).fs $(TMP)/boot/$(INITRD).img
+	rm $(TMP)/boot/$(INITRD).fs
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
 
 clean:
-	-for file in $(RD_SRVS) ; do \
+	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
-	-for file in $(RD_APPS) ; do \
+	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -fr $(TMP)
-	-rm -f $(BASE)/image.iso
+	rm -fr $(TMP)
+	rm -f $(BASE)/image.iso

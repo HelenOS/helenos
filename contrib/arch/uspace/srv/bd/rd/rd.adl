@@ -1,11 +1,15 @@
+interface rd extends bd;
+
 frame rd {
 	provides:
-		block_device bd;
+		rd rd;
 	requires:
-		naming_service ns;
-		device_mapper_driver dm_driver;
 		[/uspace/lib/libc/requires]
+		ns ns;
+		devmap_driver devmap_driver;
+	initialization:
+		[/uspace/lib/libc/fnc.devmap_driver_register] ;
+		[/uspace/lib/libc/fnc.devmap_device_register]
 	protocol:
-		[/uspace/lib/libc/protocol] +
-		[rd.bp]
+		[/uspace/lib/libc/protocol]
 };

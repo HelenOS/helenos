@@ -1,45 +1,46 @@
-!ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
-[../../../lib/libfs/fs_register] ;
 (
-	?fs.IPC_M_CONNECT_ME_TO ;
+	?ipc_m_connect_me_to ;
 	(
-		?fs.VFS_OUT_MOUNTED {
-			?fs.IPC_M_DATA_WRITE /* mount options */
+		?mounted {
+			?ipc_m_data_write /* mount options */ ;
+			tentative {
+				[fnc.tmpfs_restore]
+			}
 		} +
 		
-		?fs.VFS_OUT_MOUNT {
-			[../../../lib/libfs/libfs_mount]
+		?mount {
+			[/uspace/lib/libfs/fnc.libfs_mount]
 		} +
 		
-		?fs.VFS_OUT_LOOKUP {
-			[../../../lib/libfs/libfs_lookup]
+		?lookup {
+			[/uspace/lib/libfs/fnc.libfs_lookup]
 		} +
 		
-		?fs.VFS_OUT_READ {
-			?fs.IPC_M_DATA_READ /* payload */
+		?open_node {
+			[/uspace/lib/libfs/fnc.libfs_open_node]
 		} +
 		
-		?fs.VFS_OUT_WRITE {
-			?fs.IPC_M_DATA_WRITE /* payload */
+		?read {
+			tentative {
+				?ipc_m_data_read /* payload */
+			}
 		} +
 		
-		?fs.VFS_OUT_TRUNCATE +
-		
-		?fs.VFS_OUT_CLOSE +
-		
-		?fs.VFS_OUT_DESTROY +
-		
-		?fs.VFS_OUT_OPEN_NODE {
-			[../../../lib/libfs/libfs_open_node]
+		?write {
+			tentative {
+				?ipc_m_data_write /* payload */
+			}
 		} +
 		
-		?fs.VFS_OUT_STAT {
-			[../../../lib/libfs/libfs_stat]
+		?stat {
+			[/uspace/lib/libfs/fnc.libfs_stat]
 		} +
 		
-		?fs.VFS_OUT_SYNC
-		
+		?truncate +
+		?close +
+		?destroy +
+		?sync
 	)* ;
-	?fs.IPC_M_PHONE_HUNGUP
+	?ipc_m_phone_hungup
 )* ;
-!vfs.IPC_M_PHONE_HUNGUP
+!vfs.ipc_m_phone_hungup

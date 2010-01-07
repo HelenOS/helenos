@@ -86,7 +86,7 @@ extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
-extern void wstr_nstr(char *dst, const wchar_t *src, size_t size);
+extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 
 extern char *str_chr(const char *str, wchar_t ch);
 

@@ -1,0 +1,26 @@
+interface bd extends service {
+		/* Share out data buffer */
+		ipcarg_t ipc_m_share_out(in ipcarg_t as_area_base, in ipcarg_t as_area_size, in ipcarg_t flags, out ipcarg_t dst_as_area_base);
+		
+		/* Get block size */
+		ipcarg_t get_block_size(out ipcarg_t block_size);
+		
+		/* Read blocks via shared data buffer */
+		ipcarg_t read_blocks(in ipcarg_t index_lower, in ipcarg_t index_upper, in ipcarg_t count);
+		
+		/* Write blocks via shared data buffer */
+		ipcarg_t write_blocks(in ipcarg_t index_lower, in ipcarg_t index_upper, in ipcarg_t count);
+	protocol:
+		[bd.bp]
+};
+
+architecture bd {
+	inst rd rd;
+	
+	[/uspace/lib/libc/subsume%rd]
+	
+	delegate rd to rd:rd;
+	
+	subsume rd:ns to ns;
+	subsume rd:devmap_driver to devmap_driver;
+};

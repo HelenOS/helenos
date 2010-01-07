@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,143 +27,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../../version
--include ../../../../Makefile.config
+include Makefile.common
 
-## Toolchain configuration
-#
+.PHONY: all clean
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
-BFD_ARCH = mips
-TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
-
-ifeq ($(MACHINE),lgxemul)
-	BFD_NAME = elf32-tradlittlemips
-	BFD = ecoff-littlemips
-endif
-ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-tradbigmips
-	BFD = ecoff-bigmips
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb/bin
-	TARGET = mips-linux-gnu
-endif
-ifeq ($(MACHINE),msim)
-	BFD_NAME = elf32-tradlittlemips
-	BFD = binary
-endif
-
-ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-endif
-
-ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
-endif
-
-CFLAGS = -DRELEASE=$(RELEASE) -I. -I../../../generic -imacros ../../../../config.h -nostdinc -nostdlib -fno-builtin -Werror-implicit-function-declaration -Wmissing-prototypes -Werror -O3 -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mhard-float -mips3 -pipe
-
-SOURCES = \
-	main.c \
-	msim.c \
-	_components.c \
-	../../../generic/printf.c \
-	../../../generic/string.c \
-	asm.S \
-	boot.S
-
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
-endif
-
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/bd/gxe_bd/gxe_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
-
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/bdsh/bdsh \
-	$(USPACEDIR)/app/klog/klog
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-COMPONENT_OBJECTS := $(addsuffix .o,$(basename $(notdir $(COMPONENTS))))
-
-.PHONY: all clean depend
-
-all: image.boot
-
--include Makefile.depend
-
-image.boot: image.raw
-	$(OBJCOPY) -O $(BFD) $< $@
-
-image.raw: depend _components.h _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
-	$(LD) -no-check-sections -N -T _link.ld -o $@ $(COMPONENT_OBJECTS) initrd.o $(OBJECTS)
-
-depend:
-	-makedepend -f - -- $(DEFS) $(CFLAGS) -- $(SOURCES) > Makefile.depend 2> /dev/null
+all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../../../config.defs
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
-	-for file in $(RD_SRVS) ; do \
+	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
-	-for file in $(RD_APPS) ; do \
+	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	-rm -f _components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o $(OBJECTS) initrd.img image.raw image.boot Makefile.depend
-
-_components.h _components.c _link.ld $(COMPONENT_OBJECTS) initrd.o: $(COMPONENTS) $(RD_SRVS) $(RD_APPS) _link.ld.in
-	for file in $(RD_SRVS) ; do \
-		cp $$file $(USPACEDIR)/dist/srv/ ; \
-	done
-	for file in $(RD_APPS) ; do \
-		cp $$file $(USPACEDIR)/dist/app/ ; \
-	done
-ifeq ($(RDFMT),tmpfs)
-	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ initrd.fs
-endif
-ifeq ($(RDFMT),fat)
-	../../../../tools/mkfat.py $(USPACEDIR)/dist/ initrd.fs
-endif
-	../../../../tools/mkhord.py 16384 initrd.fs initrd.img
-	rm initrd.fs
-	../../../tools/pack.py $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) 16384 "unsigned int" $(COMPONENTS) ./initrd.img
-
-%.o: %.S
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(RAW) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
+	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.co' -follow -exec rm \{\} \;

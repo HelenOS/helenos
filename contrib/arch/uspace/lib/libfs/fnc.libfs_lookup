@@ -1,0 +1,5 @@
+(
+	alternative (fs; tmpfs_nested; fat_nested; devfs_nested) {
+		!fs.lookup
+	}
+)*

@@ -86,15 +86,6 @@ typedef struct {
 #define PRIx64 "llx"	/**< Format for hexadecimal (u)int64_t. */
 #define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
 
-/** Page table entry.
- *
- *  We have different structs for level 0 and level 1 page table entries.
- *  See page.h for definition of pte_level*_t.
- */
-typedef struct {
-	unsigned dummy : 32;
-} pte_t;
-
 #endif
 
 /** @}

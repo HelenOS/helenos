@@ -1,66 +1,62 @@
-[../../../lib/libc/devmap_get_phone] ;
-!ns.IPC_M_CONNECT_ME_TO /* vfs */ ;
-[../../../lib/libfs/fs_register] ;
 (
-	?fs.IPC_M_CONNECT_ME_TO ;
+	?ipc_m_connect_me_to ;
 	(
-		?fs.VFS_OUT_MOUNTED {
-			?fs.IPC_M_DATA_WRITE /* mount options */
+		?mounted {
+			?ipc_m_data_write /* mount options */
 		} +
 		
-		?fs.VFS_OUT_MOUNT +
-		
-		?fs.VFS_OUT_LOOKUP {
-			(
-				[../../../lib/libc/devmap_device_get_handle] ;
-				[../../../lib/libc/devmap_device_connect]
-			) +
-			NULL
+		?lookup {
+			tentative {
+				[/uspace/lib/libc/fnc.devmap_device_get_handle] ;
+				tentative {
+					[/uspace/lib/libc/fnc.devmap_device_connect]
+				}
+			}
 		} +
 		
-		?fs.VFS_OUT_READ {
-			?fs.IPC_M_DATA_READ /* payload */ {
+		?open_node {
+			tentative {
+				[/uspace/lib/libc/fnc.devmap_device_connect]
+			}
+		} +
+		
+		?read {
+			tentative {
+				?ipc_m_data_read /* payload */ {
+					!device.read {
+						!device.ipc_m_data_read /* forward */
+					}
+				} +
 				(
-					!dev.VFS_OUT_READ ;
-					!dev.IPC_M_DATA_READ /* forwarded */
-				) +
-				(
-					[../../../lib/libc/devmap_device_get_count] ;
-					[../../../lib/libc/devmap_device_get_devices]
+					[/uspace/lib/libc/fnc.devmap_device_get_count] ;
+					[/uspace/lib/libc/fnc.devmap_device_get_devices]
 				)
 			}
 		} +
 		
-		?fs.VFS_OUT_WRITE {
-			?fs.IPC_M_DATA_WRITE /* payload */ {
-				(
-					!dev.VFS_OUT_WRITE ;
-					!dev.IPC_M_DATA_WRITE /* forwarded */
-				)
-			} +
-			NULL
+		?write {
+			tentative {
+				?ipc_m_data_write /* payload */ {
+					!device.write {
+						!device.ipc_m_data_write /* forward */
+					}
+				}
+			}
 		} +
 		
-		?fs.VFS_OUT_TRUNCATE +
-		
-		?fs.VFS_OUT_CLOSE {
-			!dev.IPC_M_PHONE_HUNGUP
+		?stat {
+			?ipc_m_data_read /* struct data */
 		} +
 		
-		?fs.VFS_OUT_DESTROY +
-		
-		?fs.VFS_OUT_OPEN_NODE {
-			[../../../lib/libc/devmap_device_connect] +
-			NULL
+		?close {
+			!device.ipc_m_phone_hungup
 		} +
 		
-		?fs.VFS_OUT_STAT {
-			?IPC_M_DATA_READ /* struct stat */
-		} +
-		
-		?fs.VFS_OUT_SYNC
-		
+		?mount +
+		?truncate +
+		?destroy +
+		?sync
 	)* ;
-	?fs.IPC_M_PHONE_HUNGUP
+	?ipc_m_phone_hungup
 )* ;
-!vfs.IPC_M_PHONE_HUNGUP
+!vfs.ipc_m_phone_hungup

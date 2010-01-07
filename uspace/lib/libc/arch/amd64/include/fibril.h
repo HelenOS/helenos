@@ -43,6 +43,14 @@
  */
 #define SP_DELTA     16
 
+#define context_set(c, _pc, stack, size, ptls) \
+	do { \
+		(c)->pc = (sysarg_t) (_pc); \
+		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+		(c)->tls = (sysarg_t) (ptls); \
+		(c)->rbp = 0; \
+	} while (0)
+
 /* We include only registers that must be preserved
  * during function call
  */

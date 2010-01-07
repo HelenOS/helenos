@@ -352,6 +352,16 @@ loop:
 	return result;
 }
 
+void *calloc(const size_t nmemb, const size_t size)
+{
+	void *block = malloc(nmemb * size);
+	if (block == NULL)
+		return NULL;
+
+	memset(block, 0, nmemb * size);
+	return block;
+}
+
 void *malloc(const size_t size)
 {
 	return malloc_internal(size, BASE_ALIGN);

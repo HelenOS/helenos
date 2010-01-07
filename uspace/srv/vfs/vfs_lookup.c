@@ -42,7 +42,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <vfs/canonify.h>
 
@@ -207,7 +207,6 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	aid_t req = async_send_2(phone, VFS_OUT_OPEN_NODE,
 	    (ipcarg_t) result->triplet.dev_handle,
 	    (ipcarg_t) result->triplet.index, &answer);
-	
 	
 	ipcarg_t rc;
 	async_wait_for(req, &rc);

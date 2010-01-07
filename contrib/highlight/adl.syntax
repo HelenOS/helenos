@@ -17,12 +17,18 @@ context default
 	keyword whole delegate yellow
 	
 	keyword whole ipcarg_t yellow
+	keyword whole string yellow
+	keyword whole stream yellow
 	keyword whole void yellow
 	
 	keyword whole in yellow
+	keyword whole in_copy yellow
 	keyword whole out yellow
+	keyword whole out_copy yellow
 	
 	keyword whole protocol yellow
+	keyword whole initialization yellow
+	keyword whole finalization yellow
 	keyword whole provides yellow
 	keyword whole requires yellow
 	

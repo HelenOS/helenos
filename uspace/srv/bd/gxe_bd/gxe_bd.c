@@ -42,14 +42,15 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <macros.h>
 #include <task.h>
 
-#define NAME "gxe_bd"
+#define NAME       "gxe_bd"
+#define NAMESPACE  "bd"
 
 enum {
 	CTL_READ_START	= 0,
@@ -140,12 +141,11 @@ static int gxe_bd_init(void)
 	dev = vaddr;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "disk%d", i);
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &dev_handle[i]);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		fibril_mutex_initialize(&dev_lock[i]);
@@ -184,7 +184,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
 
-	if (!ipc_share_out_receive(&callid, &comm_size, &flags)) {
+	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
 		ipc_answer_0(callid, EHANGUP);
 		return;
 	}
@@ -200,7 +200,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	(void) ipc_share_out_finalize(callid, fs_va);
+	(void) async_share_out_finalize(callid, fs_va);
 
 	while (1) {
 		callid = async_get_call(&call);

@@ -3,9 +3,8 @@
 
 context default
 	keyword whole NULL yellow
-	keyword whole try yellow
-	keyword whole catch yellow
 	keyword whole tentative yellow
+	keyword whole alternative yellow
 	
 	keyword /\* brown
 	keyword \*/ brown

@@ -34,9 +34,10 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/stacktrace.S
 
-CFLAGS += -mips3
+GCC_CFLAGS += -mips3
 
 ENDIANESS = LE
 

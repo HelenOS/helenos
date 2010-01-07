@@ -46,7 +46,7 @@
 #include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <macros.h>
@@ -167,7 +167,7 @@ int block_init(dev_handle_t dev_handle, size_t comm_size)
 		return dev_phone;
 	}
 
-	rc = ipc_share_out_start(dev_phone, comm_area,
+	rc = async_share_out_start(dev_phone, comm_area,
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
 	    	munmap(comm_area, comm_size);

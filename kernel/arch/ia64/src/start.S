@@ -185,22 +185,12 @@ paging_start:
 	# Initialize gp (Global Pointer) register
 	movl r20 = (VRN_KERNEL << VRN_SHIFT) ;;
 	or r20 = r20, r1 ;;
-	movl r1 = _hardcoded_load_address
+	movl r1 = kernel_image_start
 	
 	/*
-	 * Initialize hardcoded_* variables. Do only BSP
+	 * Initialize bootinfo on BSP.
 	 */
-(p3)	movl r14 = _hardcoded_ktext_size
-(p3)	movl r15 = _hardcoded_kdata_size
-(p3)	movl r16 = _hardcoded_load_address ;;
-(p3)	addl r17 = @gprel(hardcoded_ktext_size), gp
-(p3)	addl r18 = @gprel(hardcoded_kdata_size), gp
-(p3)	addl r19 = @gprel(hardcoded_load_address), gp
-(p3)	addl r21 = @gprel(bootinfo), gp
-		;;
-(p3)	st8 [r17] = r14
-(p3)	st8 [r18] = r15
-(p3)	st8 [r19] = r16
+(p3)	addl r21 = @gprel(bootinfo), gp ;;
 (p3)	st8 [r21] = r20
 	
 	ssm (1 << 19) ;; /* Disable f32 - f127 */

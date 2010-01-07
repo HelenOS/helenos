@@ -44,7 +44,7 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -129,7 +129,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
 
-	if (!ipc_share_out_receive(&callid, &comm_size, &flags)) {
+	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
 		ipc_answer_0(callid, EHANGUP);
 		return;
 	}
@@ -140,7 +140,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	(void) ipc_share_out_finalize(callid, fs_va);
+	(void) async_share_out_finalize(callid, fs_va);
 
 	while (1) {
 		callid = async_get_call(&call);

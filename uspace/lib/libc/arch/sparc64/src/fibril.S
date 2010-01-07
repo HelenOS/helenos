@@ -34,6 +34,10 @@
 .global context_restore
 
 context_save:
+	#
+	# We rely on the kernel to flush our active register windows to memory
+	# should a thread switch occur.
+	#
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0		! context_save_arch returns 1
@@ -41,11 +45,10 @@ context_save:
 context_restore:
 	#
 	# Flush all active windows.
-	# This is essential, because CONTEXT_LOAD overwrites
-	# %sp of CWP - 1 with the value written to %fp of CWP.
-	# Flushing all active windows mitigates this problem
-	# as CWP - 1 becomes the overlap window.
-	#		
+	# This is essential, because CONTEXT_RESTORE_ARCH_CORE overwrites %sp of
+	# CWP - 1 with the value written to %fp of CWP.  Flushing all active
+	# windows mitigates this problem as CWP - 1 becomes the overlap window.
+	#
 	flushw
 	
 	CONTEXT_RESTORE_ARCH_CORE %o0
