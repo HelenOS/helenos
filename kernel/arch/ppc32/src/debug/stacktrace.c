@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,83 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ppc32_EXCEPTION_H_
-#define KERN_ppc32_EXCEPTION_H_
-
+#include <stacktrace.h>
+#include <syscall/copy.h>
 #include <arch/types.h>
-#include <arch/regutils.h>
+#include <typedefs.h>
 
-typedef struct istate {
-	uint32_t r0;
-	uint32_t r2;
-	uint32_t r3;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t r11;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	uint32_t cr;
-	uint32_t pc;
-	uint32_t srr1;
-	uint32_t lr;
-	uint32_t ctr;
-	uint32_t xer;
-	uint32_t dar;
-	uint32_t r12;
-	uint32_t sp;
-} istate_t;
-
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
+bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	istate->pc = retaddr;
+	return false;
 }
 
-/** Return true if exception happened while in userspace */
-static inline int istate_from_uspace(istate_t *istate)
+bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	/* true if privilege level PR (copied from MSR) == 1 */
-	return (istate->srr1 & MSR_PR) != 0;
+	return false;
 }
 
-static inline unative_t istate_get_pc(istate_t *istate)
+bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return istate->pc;
+	return false;
 }
 
-static inline unative_t istate_get_fp(istate_t *istate)
+bool uspace_frame_pointer_validate(uintptr_t fp)
 {
-	return istate->sp;
+	return false;
 }
 
-#endif
+bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+{
+	return false;
+}
+
+bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
+{
+	return false;
+}
 
 /** @}
  */

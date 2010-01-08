@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2010 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc:common
-BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32
+.global frame_pointer_get
+.global program_counter_get
 
-GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -no-check-sections -N
+frame_pointer_get:
+	blr
 
-BITS = 32
-ENDIANESS = BE
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/debug/panic.s \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/fpu_context.S \
-	arch/$(KARCH)/src/boot/boot.S \
-	arch/$(KARCH)/src/ppc32.c \
-	arch/$(KARCH)/src/dummy.s \
-	arch/$(KARCH)/src/exception.S \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/proc/scheduler.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/drivers/pic.c
+program_counter_get:
+	blr
