@@ -26,34 +26,82 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericdebug 
  * @{
  */
 /** @file
  */
 
 #include <stacktrace.h>
-#include <stdio.h>
-#include <sys/types.h>
+#include <interrupt.h>
+#include <arch/types.h>
+#include <symtab.h>
 
-void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
+#define STACK_FRAMES_MAX	20
+
+void
+stack_trace_fp_pc(stack_trace_ops_t *ops, uintptr_t fp, uintptr_t pc)
 {
-	while (frame_pointer_validate(fp)) {
-		printf("%p: %p()\n", fp, pc);
-		pc = return_address_get(fp);
-		fp = frame_pointer_prev(fp);
+	int cnt = 0;
+	char *symbol;
+	uintptr_t offset;
+
+	while (cnt++ < STACK_FRAMES_MAX && ops->frame_pointer_validate(fp)) {
+		if (ops->symbol_resolve &&
+		    ops->symbol_resolve(pc, &symbol, &offset)) {
+		    	if (offset)
+				printf("%p: %s+%p()\n", fp, symbol, offset);
+			else
+				printf("%p: %s()\n", fp, symbol);
+		} else {
+			printf("%p: %p()\n", fp, pc);
+		}
+		if (!ops->return_address_get(fp, &pc))
+			break;
+		if (!ops->frame_pointer_prev(fp, &fp))
+			break;
 	}
 }
 
 void stack_trace(void)
 {
-	stack_trace_fp_pc(frame_pointer_get(), program_counter_get());
+	stack_trace_fp_pc(&kst_ops, frame_pointer_get(), program_counter_get());
+
 	/*
 	 * Prevent the tail call optimization of the previous call by
 	 * making it a non-tail call.
 	 */
 	(void) frame_pointer_get();
 }
+
+void stack_trace_istate(istate_t *istate)
+{
+	if (istate_from_uspace(istate))
+		stack_trace_fp_pc(&ust_ops, istate_get_fp(istate),
+		    istate_get_pc(istate));
+	else
+		stack_trace_fp_pc(&kst_ops, istate_get_fp(istate),
+		    istate_get_pc(istate));
+}
+
+static bool kernel_symbol_resolve(uintptr_t addr, char **sp, uintptr_t *op)
+{
+	return (symtab_name_lookup(addr, sp, op) == 0);
+}
+
+stack_trace_ops_t kst_ops = {
+	.frame_pointer_validate = kernel_frame_pointer_validate,
+	.frame_pointer_prev = kernel_frame_pointer_prev,
+	.return_address_get = kernel_return_address_get,
+	.symbol_resolve = kernel_symbol_resolve
+};
+
+stack_trace_ops_t ust_ops = {
+	.frame_pointer_validate = uspace_frame_pointer_validate,
+	.frame_pointer_prev = uspace_frame_pointer_prev,
+	.return_address_get = uspace_return_address_get,
+	.symbol_resolve = NULL
+};
 
 /** @}
  */

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericdebug 
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ASSERT_H_
-#define LIBC_ASSERT_H_
+#ifndef KERN_STACKTRACE_H_
+#define KERN_STACKTRACE_H_
 
-/** Debugging assert macro
- *
- * If NDEBUG is not set, the assert() macro
- * evaluates expr and if it is false prints 
- * error message and terminate program.
- *
- * @param expr Expression which is expected to be true.
- *
+#include <arch/types.h>
+#include <typedefs.h>
+
+/* Forward declarations. */
+struct istate;
+
+typedef struct {
+	bool (* frame_pointer_validate)(uintptr_t);
+	bool (* frame_pointer_prev)(uintptr_t, uintptr_t *);
+	bool (* return_address_get)(uintptr_t, uintptr_t *);
+	bool (* symbol_resolve)(uintptr_t, char **, uintptr_t *);
+} stack_trace_ops_t;
+
+extern stack_trace_ops_t kst_ops;
+extern stack_trace_ops_t ust_ops;
+
+extern void stack_trace(void);
+extern void stack_trace_istate(struct istate *);
+extern void stack_trace_fp_pc(stack_trace_ops_t *, uintptr_t, uintptr_t);
+
+/*
+ * The following interface is to be implemented by each architecture.
  */
+extern uintptr_t frame_pointer_get(void);
+extern uintptr_t program_counter_get();
 
-#include <stdio.h>
-#include <stdlib.h>
+extern bool kernel_frame_pointer_validate(uintptr_t);
+extern bool kernel_frame_pointer_prev(uintptr_t, uintptr_t *);
+extern bool kernel_return_address_get(uintptr_t, uintptr_t *);
 
-#ifndef NDEBUG
-#	define assert(expr) \
-		do { \
-			if (!(expr)) { \
-				printf("Assertion failed (%s) at file '%s', " \
-				    "line %d.\n", #expr, __FILE__, __LINE__); \
-				abort(); \
-			} \
-		} while (0)
-#else
-#	define assert(expr)
-#endif
+extern bool uspace_frame_pointer_validate(uintptr_t);
+extern bool uspace_frame_pointer_prev(uintptr_t, uintptr_t *);
+extern bool uspace_return_address_get(uintptr_t, uintptr_t *);
 
 #endif
 

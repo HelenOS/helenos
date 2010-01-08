@@ -85,7 +85,7 @@ extern uintptr_t exc_stack;
 
 
 /** Struct representing CPU state saved when an exception occurs. */
-typedef struct {
+typedef struct istate {
 	uint32_t spsr;
 	uint32_t sp;
 	uint32_t lr;
@@ -130,6 +130,11 @@ static inline int istate_from_uspace(istate_t *istate)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
  	return istate->pc;
+}
+
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return istate->r11;
 }
 
 

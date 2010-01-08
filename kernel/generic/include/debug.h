@@ -74,7 +74,7 @@
 #ifdef CONFIG_LOG
 #	define LOG(format, ...) \
 		printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
-			__LINE__, ##__VA_ARGS__);
+		    __LINE__, ##__VA_ARGS__);
 #else
 #	define LOG(format, ...)
 #endif
@@ -91,7 +91,7 @@
 #	define LOG_EXEC(fnc) \
 		{ \
 			printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
-			__LINE__); \
+			    __LINE__); \
 			fnc; \
 		}
 #else

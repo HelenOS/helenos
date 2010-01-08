@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Jakub Jermar, Michal Kebrt
+# Copyright (c) 2010 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,53 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-BFD_NAME = elf32-littlearm
-BFD_ARCH = arm
-BFD = binary
-TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32
+.global frame_pointer_get
+.global program_counter_get
 
-ATSIGN = %
+frame_pointer_get:
+	blr
 
-GCC_CFLAGS += -fno-zero-initialized-in-bss
-
-BITS = 32
-ENDIANESS = LE
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/start.S \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/exc_handler.S \
-	arch/$(KARCH)/src/arm32.c \
-	arch/$(KARCH)/src/machine_func.c \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/dummy.S \
-	arch/$(KARCH)/src/panic.S \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/exception.c \
-	arch/$(KARCH)/src/userspace.c \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/page_fault.c \
-	arch/$(KARCH)/src/ras.c
-
-ifeq ($(MACHINE),testarm)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c
-endif
-
-ifeq ($(MACHINE),integratorcp)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/integratorcp/integratorcp.c
-endif
-
-ifeq ($(CONFIG_PL050),y)
-	ARCH_SOURCES += genarch/src/drivers/pl050/pl050.c
-endif
+program_counter_get:
+	blr

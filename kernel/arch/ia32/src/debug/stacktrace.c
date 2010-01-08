@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,42 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ASSERT_H_
-#define LIBC_ASSERT_H_
+#include <stacktrace.h>
+#include <syscall/copy.h>
+#include <arch/types.h>
+#include <typedefs.h>
 
-/** Debugging assert macro
- *
- * If NDEBUG is not set, the assert() macro
- * evaluates expr and if it is false prints 
- * error message and terminate program.
- *
- * @param expr Expression which is expected to be true.
- *
- */
+#define FRAME_OFFSET_FP_PREV	0
+#define FRAME_OFFSET_RA		1
 
-#include <stdio.h>
-#include <stdlib.h>
+bool kernel_frame_pointer_validate(uintptr_t fp)
+{
+	return fp != 0;
+}
 
-#ifndef NDEBUG
-#	define assert(expr) \
-		do { \
-			if (!(expr)) { \
-				printf("Assertion failed (%s) at file '%s', " \
-				    "line %d.\n", #expr, __FILE__, __LINE__); \
-				abort(); \
-			} \
-		} while (0)
-#else
-#	define assert(expr)
-#endif
+bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+{
+	uint32_t *stack = (void *) fp;
+	*prev = stack[FRAME_OFFSET_FP_PREV];
+	return true;
+}
 
-#endif
+bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
+{
+	uint32_t *stack = (void *) fp;
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
+}
+
+bool uspace_frame_pointer_validate(uintptr_t fp)
+{
+	return fp != 0;
+}
+
+bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+{
+	return !copy_from_uspace((void *) prev,
+	    (uint32_t *) fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
+}
+
+bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
+{
+	return !copy_from_uspace((void *) ra, (uint32_t *) fp + FRAME_OFFSET_RA,
+	    sizeof(*ra));
+}
 
 /** @}
  */

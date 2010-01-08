@@ -77,6 +77,8 @@ CLANG_CFLAGS += $(CMN2)
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/debug/panic.s \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/delay.s \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/proc/scheduler.c \

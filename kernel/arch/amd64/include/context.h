@@ -45,6 +45,13 @@
  */
 #define SP_DELTA     16
 
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = (uintptr_t) (_pc); \
+		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(c)->rbp = 0; \
+	} while (0)
+
 #endif /* KERNEL */
 
 /* We include only registers that must be preserved
