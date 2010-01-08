@@ -44,11 +44,11 @@ struct symtab_entry {
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern int symtab_name_lookup(unative_t addr, char **name);
-extern char *symtab_fmt_name_lookup(unative_t addr);
-extern int symtab_addr_lookup(const char *name, uintptr_t *addr);
-extern void symtab_print_search(const char *name);
-extern int symtab_compl(char *input, size_t size);
+extern int symtab_name_lookup(uintptr_t, char **, uintptr_t *);
+extern char *symtab_fmt_name_lookup(uintptr_t);
+extern int symtab_addr_lookup(const char *, uintptr_t *);
+extern void symtab_print_search(const char *);
+extern int symtab_compl(char *, size_t);
 
 #ifdef CONFIG_SYMTAB
 

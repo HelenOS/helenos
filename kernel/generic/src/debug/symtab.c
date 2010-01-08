@@ -45,14 +45,15 @@
 
 /** Get name of a symbol that seems most likely to correspond to address.
  *
- * @param addr Address.
- * @param name Place to store pointer to the symbol name.
+ * @param addr		Address.
+ * @param name		Place to store pointer to the symbol name.
+ * @param offset	Place to store offset from the symbol address.
  *
  * @return Zero on success or negative error code, ENOENT if not found,
  *         ENOTSUP if symbol table not available.
  *
  */
-int symtab_name_lookup(unative_t addr, char **name)
+int symtab_name_lookup(uintptr_t addr, char **name, uintptr_t *offset)
 {
 #ifdef CONFIG_SYMTAB
 	size_t i;
@@ -64,6 +65,9 @@ int symtab_name_lookup(unative_t addr, char **name)
 	
 	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le)) {
 		*name = symbol_table[i - 1].symbol_name;
+		if (offset)
+			*offset = addr -
+			    uint64_t_le2host(symbol_table[i - 1].address_le);
 		return EOK;
 	}
 	
@@ -87,10 +91,10 @@ int symtab_name_lookup(unative_t addr, char **name)
  * @return Pointer to a human-readable string.
  *
  */
-char *symtab_fmt_name_lookup(unative_t addr)
+char *symtab_fmt_name_lookup(uintptr_t addr)
 {
 	char *name;
-	int rc = symtab_name_lookup(addr, &name);
+	int rc = symtab_name_lookup(addr, &name, NULL);
 	
 	switch (rc) {
 	case EOK:
