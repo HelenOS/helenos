@@ -36,5 +36,5 @@ frame_pointer_get:
 	ret
 
 program_counter_get:
-	mov (%esp), %eax
+	movl (%esp), %eax
 	ret
