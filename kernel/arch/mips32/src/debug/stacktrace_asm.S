@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2010 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-BFD_ARCH = mips
-BFD = binary
-TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32
+.set noat
+.set noreorder
 
-GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
+.global frame_pointer_get
+.global program_counter_get
 
-BITS = 32
+frame_pointer_get:
+	j $ra
+	xor $v0, $v0
 
-## Accepted MACHINEs
-#
-
-ifeq ($(MACHINE),lgxemul)
-	BFD_NAME = elf32-tradlittlemips
-	ENDIANESS = LE
-endif
-ifeq ($(MACHINE),bgxemul)
-	BFD_NAME = elf32-tradbigmips
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb
-	TARGET = mips-linux-gnu
-	ENDIANESS = BE
-	GCC_CFLAGS += -D__BE__
-endif
-ifeq ($(MACHINE),msim)
-	BFD_NAME = elf32-tradlittlemips
-	ENDIANESS = LE
-	GCC_CFLAGS += -mhard-float
-endif
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/start.S \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/panic.S \
-	arch/$(KARCH)/src/mips32.c \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/exception.c \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/cache.c \
-	arch/$(KARCH)/src/debugger.c \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/smp/dorder.c \
-	arch/$(KARCH)/src/smp/smp.c
+program_counter_get:
+	j $ra
+	xor $v0, $v0
