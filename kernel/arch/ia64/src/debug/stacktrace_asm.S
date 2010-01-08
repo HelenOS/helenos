@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2010 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+.text
 
-BFD_NAME = elf64-little
-BFD_ARCH = ia64-elf64
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64
+.global frame_pointer_get
+.global program_counter_get
 
-CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
-GCC_CFLAGS += $(CMN1)
-ICC_CFLAGS += $(CMN1)
+frame_pointer_get:
+	mov r8 = r0
+	br.ret.sptk.many b0
 
-LFLAGS += -EL
-AFLAGS += -mconstant-gp
-
-BITS = 64
-ENDIANESS = LE
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/start.S \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/dummy.s \
-	arch/$(KARCH)/src/ia64.c \
-	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/ivt.S \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/vhpt.c \
-	arch/$(KARCH)/src/proc/scheduler.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/smp/smp.c \
-	arch/$(KARCH)/src/drivers/it.c
-
-ifeq ($(MACHINE),ski)
-	ARCH_SOURCES += arch/$(KARCH)/src/drivers/ski.c
-	BFD = binary
-endif
-
-ifeq ($(MACHINE),i460GX)
-	DEFS += -DI460GX
-	BFD = binary
-endif
+program_counter_get:
+	mov r8 = r0
+	br.ret.sptk.many b0
