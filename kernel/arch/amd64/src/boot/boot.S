@@ -173,6 +173,10 @@ start64:
 	movl grub_ebx, %esi
 	call arch_pre_main
 	
+	# create the first stack frame
+	pushq $0
+	movq %rsp, %rbp
+
 	call main_bsp
 	
 	# not reached

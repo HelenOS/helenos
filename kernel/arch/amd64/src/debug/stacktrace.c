@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,53 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_CONTEXT_H_
-#define KERN_amd64_CONTEXT_H_
-
-#ifdef KERNEL
-
+#include <stacktrace.h>
+#include <syscall/copy.h>
 #include <arch/types.h>
+#include <typedefs.h>
 
-/* According to ABI the stack MUST be aligned on 
- * 16-byte boundary. If it is not, the va_arg calling will
- * panic sooner or later
- */
-#define SP_DELTA     16
+#define FRAME_OFFSET_FP_PREV	0
+#define FRAME_OFFSET_RA		1
 
-#define context_set(c, _pc, stack, size) \
-	do { \
-		(c)->pc = (uintptr_t) (_pc); \
-		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
-		(c)->rbp = 0; \
-	} while (0)
+bool kernel_frame_pointer_validate(uintptr_t fp)
+{
+	return fp != 0;
+}
 
-#endif /* KERNEL */
+bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+{
+	uint64_t *stack = (void *) fp;
+	*prev = stack[FRAME_OFFSET_FP_PREV];
+	return true;
+}
 
-/* We include only registers that must be preserved
- * during function call
- */
-typedef struct {
-    uintptr_t sp;
-    uintptr_t pc;
-    
-    uint64_t rbx;
-    uint64_t rbp;
+bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
+{
+	uint64_t *stack = (void *) fp;
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
+}
 
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
+bool uspace_frame_pointer_validate(uintptr_t fp)
+{
+	return fp != 0;
+}
 
-    ipl_t ipl;
-} __attribute__ ((packed)) context_t;
+bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+{
+	return !copy_from_uspace((void *) prev,
+	    (uint64_t *) fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
+}
 
-#endif
+bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
+{
+	return !copy_from_uspace((void *) ra, (uint64_t *) fp + FRAME_OFFSET_RA,
+	    sizeof(*ra));
+}
 
 /** @}
  */
