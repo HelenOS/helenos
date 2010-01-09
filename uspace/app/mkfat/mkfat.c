@@ -76,6 +76,8 @@ typedef struct fat_params {
 	uint16_t total_clusters;
 } fat_params_t;
 
+static void syntax_print(void);
+
 static int fat_params_compute(struct fat_cfg const *cfg,
     struct fat_params *par);
 static int fat_blocks_write(struct fat_params const *par,
@@ -99,7 +101,8 @@ int main(int argc, char **argv)
 	cfg.root_ent_max = 128;
 
 	if (argc < 2) {
-		printf(NAME ": Bad syntax.\n");
+		printf(NAME ": Error, argument missing.\n");
+		syntax_print();
 		return 1;
 	}
 
@@ -108,13 +111,15 @@ int main(int argc, char **argv)
 	if (str_cmp(*argv, "--size") == 0) {
 		--argc; ++argv;
 		if (*argv == NULL) {
-			printf(NAME ": Bad syntax.\n");
+			printf(NAME ": Error, argument missing.\n");
+			syntax_print();
 			return 1;
 		}
 
 		cfg.total_sectors = strtol(*argv, &endptr, 10);
 		if (*endptr != '\0') {
-			printf(NAME ": Bad syntax.\n");
+			printf(NAME ": Error, invalid argument.\n");
+			syntax_print();
 			return 1;
 		}
 
@@ -122,7 +127,8 @@ int main(int argc, char **argv)
 	}
 
 	if (argc != 1) {
-		printf(NAME ": Bad syntax.\n");
+		printf(NAME ": Error, unexpected argument.\n");
+		syntax_print();
 		return 1;
 	}
 
@@ -130,7 +136,7 @@ int main(int argc, char **argv)
 
 	rc = devmap_device_get_handle(dev_path, &handle, 0);
 	if (rc != EOK) {
-		printf(NAME ": Error resolving device `%s'.\n", argv[1]);
+		printf(NAME ": Error resolving device `%s'.\n", dev_path);
 		return 2;
 	}
 
@@ -182,6 +188,11 @@ int main(int argc, char **argv)
 	printf("Success.\n");
 
 	return 0;
+}
+
+static void syntax_print(void)
+{
+	printf("syntax: mkfat [--size <num_blocks>] <device_name>\n");
 }
 
 /** Derive sizes of different filesystem structures.
