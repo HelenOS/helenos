@@ -353,7 +353,7 @@ def main():
 		print "<PATH> must be a directory"
 		return
 	
-	fat16_clusters = 8192
+	fat16_clusters = 4096
 	
 	sector_size = 512
 	cluster_size = 4096
