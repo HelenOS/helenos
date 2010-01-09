@@ -713,7 +713,7 @@ int block_write_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt,
 	fibril_mutex_lock(&devcon->comm_area_lock);
 
 	memcpy(devcon->comm_area, data, devcon->pblock_size * cnt);
-	rc = read_blocks(devcon, ba, cnt);
+	rc = write_blocks(devcon, ba, cnt);
 
 	fibril_mutex_unlock(&devcon->comm_area_lock);
 

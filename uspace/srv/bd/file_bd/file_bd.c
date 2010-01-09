@@ -212,7 +212,7 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 	fibril_mutex_lock(&dev_lock);
 
 	fseek(img, ba * block_size, SEEK_SET);
-	n_wr = fread(buf, block_size, cnt, img);
+	n_wr = fwrite(buf, block_size, cnt, img);
 
 	if (ferror(img) || n_wr < cnt) {
 		fibril_mutex_unlock(&dev_lock);

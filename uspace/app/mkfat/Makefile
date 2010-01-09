@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,82 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
+include Makefile.common
 
--include ../Makefile.config
+.PHONY: all clean
 
-DIRS = \
-	app/bdsh \
-	app/edit \
-	app/getterm \
-	app/init \
-	app/klog \
-	app/mkfat \
-	app/redir \
-	app/tester \
-	app/tetris \
-	app/trace \
-	srv/clip \
-	srv/devmap \
-	srv/loader \
-	srv/ns \
-	srv/vfs \
-	srv/bd/ata_bd \
-	srv/bd/file_bd \
-	srv/bd/gxe_bd \
-	srv/bd/rd \
-	srv/bd/part/mbr_part \
-	srv/fs/fat \
-	srv/fs/tmpfs \
-	srv/fs/devfs \
-	srv/hid/console \
-	srv/hid/c_mouse \
-	srv/hid/fb \
-	srv/hid/kbd \
-	srv/hw/char/i8042
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
-ifeq ($(UARCH),amd64)
-	DIRS += srv/hw/bus/pci
-endif
-
-ifeq ($(UARCH),ia32)
-	DIRS += srv/hw/bus/pci
-endif
-
-ifeq ($(UARCH),sparc64)
-	DIRS += \
-		srv/hw/cir/fhc \
-		srv/hw/cir/obio
-endif
-
-LIBC = lib/libc
-LIBS = \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat
-
-LIBC_BUILD = $(addsuffix .build,$(LIBC))
-LIBS_BUILD = $(addsuffix .build,$(LIBS))
-
-BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
-
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
-
-all: $(BUILDS)
-
-clean: $(CLEANS)
-
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
-
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
-
-$(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
-
-$(LIBC_BUILD):
-	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;

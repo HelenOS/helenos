@@ -59,6 +59,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/edit/edit \
 	$(USPACEDIR)/app/getterm/getterm \
 	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/mkfat/mkfat \
 	$(USPACEDIR)/app/redir/redir \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
