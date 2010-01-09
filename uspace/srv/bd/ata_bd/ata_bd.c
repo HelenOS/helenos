@@ -295,6 +295,10 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
 			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
+			    UPPER32(disk[disk_id].blocks));
+			continue;
 		default:
 			retval = EINVAL;
 			break;
