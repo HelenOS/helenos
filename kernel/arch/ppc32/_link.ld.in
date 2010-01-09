@@ -50,6 +50,7 @@ SECTIONS {
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
 		
+		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);    /* Symbol table, must be LAST symbol!*/
 		

@@ -43,6 +43,7 @@ SECTIONS {
 		QUAD(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);		/* global variables */
 
+		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
 
