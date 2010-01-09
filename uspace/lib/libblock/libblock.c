@@ -86,6 +86,7 @@ typedef struct {
 static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
 static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
 static int get_block_size(int dev_phone, size_t *bsize);
+static int get_num_blocks(int dev_phone, bn_t *nblocks);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -737,6 +738,23 @@ int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
 	return get_block_size(devcon->dev_phone, bsize);
 }
 
+/** Get number of blocks on device.
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param nblocks	Output number of blocks.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_get_nblocks(dev_handle_t dev_handle, bn_t *nblocks)
+{
+	devcon_t *devcon;
+
+	devcon = devcon_search(dev_handle);
+	assert(devcon);
+	
+	return get_num_blocks(devcon->dev_phone, nblocks);
+}
+
 /** Read blocks from block device.
  *
  * @param devcon	Device connection.
@@ -784,6 +802,20 @@ static int get_block_size(int dev_phone, size_t *bsize)
 	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
 	if (rc == EOK)
 		*bsize = (size_t) bs;
+
+	return rc;
+}
+
+/** Get total number of blocks on block device. */
+static int get_num_blocks(int dev_phone, bn_t *nblocks)
+{
+	ipcarg_t nb_l, nb_h;
+	int rc;
+
+	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
+	if (rc == EOK) {
+		*nblocks = (bn_t) MERGE_LOUP32(nb_l, nb_h);
+	}
 
 	return rc;
 }

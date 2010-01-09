@@ -92,6 +92,7 @@ int main(int argc, char **argv)
 	dev_handle_t handle;
 	size_t block_size;
 	char *endptr;
+	bn_t dev_nblocks;
 
 	cfg.total_sectors = 0;
 	cfg.addt_res_sectors = 0;
@@ -143,6 +144,14 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
+	}
+
+	rc = block_get_nblocks(handle, &dev_nblocks);
+	if (rc != EOK) {
+		printf(NAME ": Warning, failed to obtain block device size.\n");
+	} else {
+		printf(NAME ": Block device has %llu blocks.\n", dev_nblocks);
+		cfg.total_sectors = dev_nblocks;
 	}
 
 	if (block_size != 512) {
@@ -239,7 +248,6 @@ static int fat_blocks_write(struct fat_params const *par, dev_handle_t handle)
 		++addr;
 	}
 
-	printf("fat_sectors=%d\n", par->fat_sectors);
 	/* File allocation tables */
 	for (i = 0; i < fat_count; ++i) {
 		printf("Writing allocation table %d.\n", i + 1);

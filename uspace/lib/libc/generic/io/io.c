@@ -553,6 +553,17 @@ int fseek(FILE *stream, long offset, int origin)
 	return 0;
 }
 
+int ftell(FILE *stream)
+{
+	off_t rc = lseek(stream->fd, 0, SEEK_CUR);
+	if (rc == (off_t) (-1)) {
+		/* errno has been set by lseek. */
+		return -1;
+	}
+
+	return rc;
+}
+
 void rewind(FILE *stream)
 {
 	(void) fseek(stream, 0, SEEK_SET);
