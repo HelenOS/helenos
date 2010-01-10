@@ -594,6 +594,12 @@ int ferror(FILE *stream)
 	return stream->error;
 }
 
+void clearerr(FILE *stream)
+{
+	stream->eof = false;
+	stream->error = false;
+}
+
 int fphone(FILE *stream)
 {
 	if (stream->fd >= 0) {

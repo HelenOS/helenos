@@ -207,6 +207,7 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 
 	fibril_mutex_lock(&dev_lock);
 
+	clearerr(img);
 	fseek(img, ba * block_size, SEEK_SET);
 	n_rd = fread(buf, block_size, cnt, img);
 
@@ -230,6 +231,7 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 
 	fibril_mutex_lock(&dev_lock);
 
+	clearerr(img);
 	fseek(img, ba * block_size, SEEK_SET);
 	n_wr = fwrite(buf, block_size, cnt, img);
 
