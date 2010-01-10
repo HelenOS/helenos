@@ -48,6 +48,12 @@ SOURCES = \
 	asm.S \
 	boot.S
 
+ifeq ($(MACHINE),i460GX)
+	RD_APPS += \
+		$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+		$(USPACEDIR)/srv/hid/c_mouse/c_mouse
+endif
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 COMPONENT_OBJECTS := $(addsuffix .co,$(basename $(notdir $(COMPONENTS)))) $(INITRD).co
 
