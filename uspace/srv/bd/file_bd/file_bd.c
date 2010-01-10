@@ -204,10 +204,17 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 {
 	size_t n_rd;
+	int rc;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, ba * block_size, SEEK_SET);
+	clearerr(img);
+	rc = fseek(img, ba * block_size, SEEK_SET);
+	if (rc < 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
+	}
+
 	n_rd = fread(buf, block_size, cnt, img);
 
 	if (ferror(img)) {
@@ -227,15 +234,27 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 {
 	size_t n_wr;
+	int rc;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, ba * block_size, SEEK_SET);
+	clearerr(img);
+	rc = fseek(img, ba * block_size, SEEK_SET);
+	if (rc < 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
+	}
+
 	n_wr = fwrite(buf, block_size, cnt, img);
 
 	if (ferror(img) || n_wr < cnt) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;	/* Write error */
+	}
+
+	if (fflush(img) != 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
 	}
 
 	fibril_mutex_unlock(&dev_lock);
