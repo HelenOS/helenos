@@ -91,7 +91,7 @@ void set_environment(void)
 	
 		rr.word = rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = RID_KERNEL;
+		rr.map.rid = RID_INVALID;
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
 		srlz_i();
