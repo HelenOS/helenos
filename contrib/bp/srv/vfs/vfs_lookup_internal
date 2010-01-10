@@ -1,3 +1,0 @@
-[vfs_grab_phone] ;
-!fs.VFS_OUT_LOOKUP ;
-[vfs_release_phone]

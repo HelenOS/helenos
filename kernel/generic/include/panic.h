@@ -35,10 +35,18 @@
 #ifndef KERN_PANIC_H_
 #define KERN_PANIC_H_
 
+#include <stacktrace.h>
+#include <print.h>
+
 #ifdef CONFIG_DEBUG
 #	define panic(format, ...) \
-		panic_printf("Kernel panic in %s() at %s:%u: " format "\n", \
-		__func__, __FILE__, __LINE__, ##__VA_ARGS__);
+		do { \
+			printf("Kernel panic in %s() at %s:%u.\n", \
+			    __func__, __FILE__, __LINE__); \
+			stack_trace(); \
+			panic_printf("Panic message: " format "\n", \
+			    ##__VA_ARGS__);\
+		} while (0)
 #else
 #	define panic(format, ...) \
 		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__);

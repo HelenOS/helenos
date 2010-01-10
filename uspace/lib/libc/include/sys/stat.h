@@ -41,17 +41,14 @@
 #include <ipc/devmap.h>
 
 struct stat {
-	fs_handle_t	fs_handle;
-	dev_handle_t	dev_handle;
-	fs_index_t	index;
-	unsigned	lnkcnt;
-	bool		is_file;
-	off_t		size;
-	union {
-		struct {
-			dev_handle_t	device;
-		} devfs_stat;
-	};
+	fs_handle_t fs_handle;
+	dev_handle_t dev_handle;
+	fs_index_t index;
+	unsigned int lnkcnt;
+	bool is_file;
+	bool is_directory;
+	off_t size;
+	dev_handle_t device;
 };
 
 extern int fstat(int, struct stat *);

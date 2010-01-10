@@ -6,10 +6,13 @@
  *
  */
 
+#define LOAD_ADDRESS_V	0xe000000004404000
+#define LOAD_ADDRESS_P	0x0000000004404000
+
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image 0xe000000004404000: AT (0x0000000004404000) { 
+	.image LOAD_ADDRESS_V: AT (LOAD_ADDRESS_P) {
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text)
@@ -20,6 +23,12 @@ SECTIONS {
 		*(.rodata .rodata.*)
 		*(.opd)
 		*(.data .data.*)
+		hardcoded_load_address = .;
+		QUAD(LOAD_ADDRESS_V);
+		hardcoded_ktext_size = .;
+		QUAD(ktext_end - ktext_start);
+		hardcoded_kdata_size = .;
+		QUAD(kdata_end - kdata_start);
 		*(.got .got.*)
 		*(.sdata)
 		*(.sbss)
@@ -27,6 +36,7 @@ SECTIONS {
 		*(.bss)
 		*(COMMON);
 
+		. = ALIGN(8);
                 symbol_table = .;
                 *(symtab.*);            /* Symbol table, must be LAST symbol!*/
 
@@ -36,9 +46,5 @@ SECTIONS {
 	/DISCARD/ : {
 		*(*);
 	}
-
-	_hardcoded_ktext_size = ktext_end - ktext_start;
-	_hardcoded_kdata_size = kdata_end - kdata_start;
-	_hardcoded_load_address = 0xe000000004404000;
 
 }

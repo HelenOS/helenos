@@ -421,6 +421,8 @@ static inline void pk_disable(void)
 {
 	asm volatile (
 		"rsm %[mask]\n"
+		";;\n"
+		"srlz.d\n"
 		:: [mask] "i" (PSR_PK_MASK)
 	);
 }

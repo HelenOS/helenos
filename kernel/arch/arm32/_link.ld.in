@@ -33,6 +33,7 @@ SECTIONS {
 		*(.rodata*);
 		*(.sdata);
 		*(.reginfo);
+		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);
 	}

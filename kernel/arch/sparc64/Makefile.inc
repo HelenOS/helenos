@@ -53,6 +53,8 @@ endif
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/console.c \

@@ -61,15 +61,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	unative_t rc;
 
 #ifdef CONFIG_UDEBUG
-	bool debug;
-
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
-	 * test need not be precise in either way.
+	 * test need not be precise in either direction.
 	 */
-	debug = THREAD->udebug.active;
-	
-	if (debug) {
+	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 	}
 #endif
@@ -86,7 +82,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		thread_exit();
 	
 #ifdef CONFIG_UDEBUG
-	if (debug) {
+	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
 	
 		/*
@@ -110,13 +106,14 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_create,
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
+	(syshandler_t) sys_thread_usleep,
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
-	(syshandler_t) sys_futex_sleep_timeout,
+	(syshandler_t) sys_futex_sleep,
 	(syshandler_t) sys_futex_wakeup,
 	(syshandler_t) sys_smc_coherence,
 	

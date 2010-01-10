@@ -50,7 +50,7 @@
 #include <async.h>
 #include <align.h>
 #include <async.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <stdio.h>
 #include <devmap.h>
 #include <ipc/bd.h>
@@ -101,10 +101,10 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Now we wait for the client to send us its communication as_area.
 	 */
 	int flags;
-	if (ipc_share_out_receive(&callid, &comm_size, &flags)) {
+	if (async_share_out_receive(&callid, &comm_size, &flags)) {
 		fs_va = as_get_mappable_page(comm_size);
 		if (fs_va) {
-			(void) ipc_share_out_finalize(callid, fs_va);
+			(void) async_share_out_finalize(callid, fs_va);
 		} else {
 			ipc_answer_0(callid, EHANGUP);
 			return;		
@@ -151,6 +151,10 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(rd_size / block_size),
+			    UPPER32(rd_size / block_size));
 			continue;
 		default:
 			/*
@@ -227,7 +231,7 @@ static bool rd_init(void)
 	}
 	
 	dev_handle_t dev_handle;
-	if (devmap_device_register("initrd", &dev_handle) != EOK) {
+	if (devmap_device_register("bd/initrd", &dev_handle) != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device\n");
 		return false;

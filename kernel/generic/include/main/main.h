@@ -37,6 +37,9 @@
 
 #include <arch/types.h>
 
+extern size_t hardcoded_kdata_size;
+extern size_t hardcoded_ktext_size;
+extern uintptr_t hardcoded_load_address;
 extern uintptr_t stack_safe;
 
 extern void main_bsp(void);

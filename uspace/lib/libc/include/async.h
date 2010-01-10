@@ -258,6 +258,34 @@ static inline void async_serialize_end(void)
 	fibril_dec_sercount();
 }
 
+/*
+ * User-friendly wrappers for async_share_in_start().
+ */
+#define async_share_in_start_0_0(phoneid, dst, size) \
+	async_share_in_start((phoneid), (dst), (size), 0, NULL)
+#define async_share_in_start_0_1(phoneid, dst, size, flags) \
+	async_share_in_start((phoneid), (dst), (size), 0, (flags))
+#define async_share_in_start_1_0(phoneid, dst, size, arg) \
+	async_share_in_start((phoneid), (dst), (size), (arg), NULL)
+#define async_share_in_start_1_1(phoneid, dst, size, arg, flags) \
+	async_share_in_start((phoneid), (dst), (size), (arg), (flags))
+
+extern int async_share_in_start(int, void *, size_t, ipcarg_t, int *);
+extern int async_share_in_receive(ipc_callid_t *, size_t *);
+extern int async_share_in_finalize(ipc_callid_t, void *, int );
+extern int async_share_out_start(int, void *, int);
+extern int async_share_out_receive(ipc_callid_t *, size_t *, int *);
+extern int async_share_out_finalize(ipc_callid_t, void *);
+extern int async_data_read_start(int, void *, size_t);
+extern int async_data_read_receive(ipc_callid_t *, size_t *);
+extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
+extern int async_data_write_start(int, const void *, size_t);
+extern int async_data_write_receive(ipc_callid_t *, size_t *);
+extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
+
+extern int async_data_blob_receive(char **, const size_t, size_t *);
+extern int async_data_string_receive(char **, const size_t);
+
 #endif
 
 /** @}

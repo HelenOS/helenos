@@ -35,6 +35,9 @@
 #ifndef LIBC_sparc64_ATOMIC_H_
 #define LIBC_sparc64_ATOMIC_H_
 
+#define LIBC_ARCH_ATOMIC_H_
+
+#include <atomicdflt.h>
 #include <sys/types.h>
 
 /** Atomic add operation.

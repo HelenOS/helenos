@@ -44,7 +44,7 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -55,6 +55,7 @@
 #define NAME "file_bd"
 
 static const size_t block_size = 512;
+static bn_t num_blocks;
 static FILE *img;
 
 static dev_handle_t dev_handle;
@@ -98,6 +99,7 @@ int main(int argc, char **argv)
 static int file_bd_init(const char *fname)
 {
 	int rc;
+	long img_size;
 
 	rc = devmap_driver_register(NAME, file_bd_connection);
 	if (rc < 0) {
@@ -108,6 +110,19 @@ static int file_bd_init(const char *fname)
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
+
+	if (fseek(img, 0, SEEK_END) != 0) {
+		fclose(img);
+		return EIO;
+	}
+
+	img_size = ftell(img);
+	if (img_size < 0) {
+		fclose(img);
+		return EIO;
+	}
+
+	num_blocks = img_size / block_size;
 
 	fibril_mutex_initialize(&dev_lock);
 
@@ -129,7 +144,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
 	ipc_answer_0(iid, EOK);
 
-	if (!ipc_share_out_receive(&callid, &comm_size, &flags)) {
+	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
 		ipc_answer_0(callid, EHANGUP);
 		return;
 	}
@@ -140,7 +155,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	(void) ipc_share_out_finalize(callid, fs_va);
+	(void) async_share_out_finalize(callid, fs_va);
 
 	while (1) {
 		callid = async_get_call(&call);
@@ -172,6 +187,10 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(num_blocks),
+			    UPPER32(num_blocks));
 			continue;
 		default:
 			retval = EINVAL;
@@ -212,7 +231,7 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 	fibril_mutex_lock(&dev_lock);
 
 	fseek(img, ba * block_size, SEEK_SET);
-	n_wr = fread(buf, block_size, cnt, img);
+	n_wr = fwrite(buf, block_size, cnt, img);
 
 	if (ferror(img) || n_wr < cnt) {
 		fibril_mutex_unlock(&dev_lock);

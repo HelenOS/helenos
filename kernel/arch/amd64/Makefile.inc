@@ -33,10 +33,11 @@ BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
 TARGET = amd64-linux-gnu
+CLANG_ARCH = x86_64
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables
+CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel
@@ -58,6 +59,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/boot/boot.S \
 	arch/$(KARCH)/src/boot/memmap.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/pm.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/ddi/ddi.c \

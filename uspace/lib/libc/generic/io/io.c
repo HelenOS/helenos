@@ -340,11 +340,16 @@ int fclose(FILE *stream)
  */
 size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left = size * nmemb;
-	size_t done = 0;
-	
+	size_t left, done;
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
 	/* Make sure no data is pending write. */
 	_fflushbuf(stream);
+
+	left = size * nmemb;
+	done = 0;
 	
 	while ((left > 0) && (!stream->error) && (!stream->eof)) {
 		ssize_t rd = read(stream->fd, buf + done, left);
@@ -364,9 +369,15 @@ size_t fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	size_t left = size * nmemb;
-	size_t done = 0;
-	
+	size_t left;
+	size_t done;
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
+	left = size * nmemb;
+	done = 0;
+
 	while ((left > 0) && (!stream->error)) {
 		ssize_t wr;
 		
@@ -420,7 +431,10 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	size_t i;
 	uint8_t b;
 	bool need_flush;
-	
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
 	/* If not buffered stream, write out directly. */
 	if (stream->btype == _IONBF) {
 		now = _fwrite(buf, size, nmemb, stream);
@@ -479,7 +493,7 @@ int fputc(wchar_t c, FILE *stream)
 	size_t sz = 0;
 	
 	if (chr_encode(c, buf, &sz, STR_BOUNDS(1)) == EOK) {
-		size_t wr = fwrite(buf, sz, 1, stream);
+		size_t wr = fwrite(buf, 1, sz, stream);
 		
 		if (wr < sz)
 			return EOF;
@@ -537,6 +551,17 @@ int fseek(FILE *stream, long offset, int origin)
 	stream->eof = false;
 	
 	return 0;
+}
+
+int ftell(FILE *stream)
+{
+	off_t rc = lseek(stream->fd, 0, SEEK_CUR);
+	if (rc == (off_t) (-1)) {
+		/* errno has been set by lseek. */
+		return -1;
+	}
+
+	return rc;
 }
 
 void rewind(FILE *stream)

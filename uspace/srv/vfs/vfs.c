@@ -125,6 +125,8 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_SYNC:
 			vfs_sync(callid, &call);
 			break;
+		case VFS_IN_DUP:
+			vfs_dup(callid, &call);
 		default:
 			ipc_answer_0(callid, ENOTSUP);
 			break;

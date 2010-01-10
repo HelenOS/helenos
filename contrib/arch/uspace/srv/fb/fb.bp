@@ -1,0 +1,39 @@
+?ipc_m_connect_me_to ;
+(
+	(
+		?prepare_shm ;
+		?ipc_m_share_out
+	) +
+	?ipc_m_share_out +
+	?drop_shm +
+	?get_resolution +
+	?screen_yield +
+	?screen_reclaim +
+	?pointer_move +
+	?viewport_create +
+	?get_csize +
+	?clear +
+	?scroll +
+	?viewport_switch +
+	?viewport_delete +
+	?get_color_cap +
+	?set_style +
+	?set_color +
+	?set_rgb_color +
+	?putchar +
+	?cursor_visibility +
+	?cursor_goto +
+	?draw_ppm +
+	?draw_text_data +
+	?shm2pixmap +
+	?vp2pixmap +
+	?vp_draw_pixmap +
+	?drop_pixmap +
+	?anim_create +
+	?anim_addpixmap +
+	?anim_chgvp +
+	?anim_start +
+	?anim_stop +
+	?anim_drop
+)* ;
+?ipc_m_phone_hungup

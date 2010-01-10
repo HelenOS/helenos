@@ -1,0 +1,7 @@
+(
+	!vfs.register {
+		!vfs.ipc_m_data_write /* vfs_into_t */
+	} ;
+	!vfs.ipc_m_connect_to_me ;
+	!vfs.ipc_m_share_in
+)

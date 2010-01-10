@@ -34,6 +34,8 @@
 #include <devmap.h>
 #include <async.h>
 #include <errno.h>
+#include <malloc.h>
+#include <bool.h>
 
 static int devmap_phone_driver = -1;
 static int devmap_phone_client = -1;
@@ -104,8 +106,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAP_DRIVER_REGISTER, 0, 0, &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
-	
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -125,11 +126,12 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 
 /** Register new device.
  *
- * @param name   Device name.
- * @param handle Output: Handle to the created instance of device.
+ * @param namespace Namespace name.
+ * @param fqdn      Fully qualified device name.
+ * @param handle    Output: Handle to the created instance of device.
  *
  */
-int devmap_device_register(const char *name, dev_handle_t *handle)
+int devmap_device_register(const char *fqdn, dev_handle_t *handle)
 {
 	int phone = devmap_get_phone(DEVMAP_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -142,8 +144,7 @@ int devmap_device_register(const char *name, dev_handle_t *handle)
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, 0, 0,
 	    &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
-	
+	ipcarg_t retval = async_data_write_start(phone, fqdn, str_size(fqdn));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -166,7 +167,7 @@ int devmap_device_register(const char *name, dev_handle_t *handle)
 	return retval;
 }
 
-int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned int flags)
+int devmap_device_get_handle(const char *fqdn, dev_handle_t *handle, unsigned int flags)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, flags);
 	
@@ -179,8 +180,7 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 	aid_t req = async_send_2(phone, DEVMAP_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	
-	ipcarg_t retval = ipc_data_write_start(phone, name, str_size(name) + 1);
-	
+	ipcarg_t retval = async_data_write_start(phone, fqdn, str_size(fqdn));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -201,6 +201,57 @@ int devmap_device_get_handle(const char *name, dev_handle_t *handle, unsigned in
 		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
 	
 	return retval;
+}
+
+int devmap_namespace_get_handle(const char *name, dev_handle_t *handle, unsigned int flags)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, flags);
+	
+	if (phone < 0)
+		return phone;
+	
+	async_serialize_start();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAP_NAMESPACE_GET_HANDLE, flags, 0,
+	    &answer);
+	
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	async_serialize_end();
+	
+	if (retval != EOK) {
+		if (handle != NULL)
+			*handle = (dev_handle_t) -1;
+		return retval;
+	}
+	
+	if (handle != NULL)
+		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+	
+	return retval;
+}
+
+devmap_handle_type_t devmap_handle_probe(dev_handle_t handle)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return phone;
+	
+	ipcarg_t type;
+	int retval = async_req_1_1(phone, DEVMAP_HANDLE_PROBE, handle, &type);
+	if (retval != EOK)
+		return DEV_HANDLE_NONE;
+	
+	return (devmap_handle_type_t) type;
 }
 
 int devmap_device_connect(dev_handle_t handle, unsigned int flags)
@@ -226,7 +277,7 @@ int devmap_null_create(void)
 		return -1;
 	
 	ipcarg_t null_id;
-	int retval = async_req_0_1(phone, DEVMAP_DEVICE_NULL_CREATE, &null_id);
+	int retval = async_req_0_1(phone, DEVMAP_NULL_CREATE, &null_id);
 	if (retval != EOK)
 		return -1;
 	
@@ -240,50 +291,149 @@ void devmap_null_destroy(int null_id)
 	if (phone < 0)
 		return;
 	
-	async_req_1_0(phone, DEVMAP_DEVICE_NULL_DESTROY, (ipcarg_t) null_id);
+	async_req_1_0(phone, DEVMAP_NULL_DESTROY, (ipcarg_t) null_id);
 }
 
-ipcarg_t devmap_device_get_count(void)
+static size_t devmap_count_namespaces_internal(int phone)
 {
-	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
-	
-	if (phone < 0)
-		return 0;
-	
 	ipcarg_t count;
-	int retval = async_req_0_1(phone, DEVMAP_DEVICE_GET_COUNT, &count);
+	int retval = async_req_0_1(phone, DEVMAP_GET_NAMESPACE_COUNT, &count);
 	if (retval != EOK)
 		return 0;
 	
 	return count;
 }
 
-ipcarg_t devmap_device_get_devices(ipcarg_t count, dev_desc_t *data)
+static size_t devmap_count_devices_internal(int phone, dev_handle_t ns_handle)
+{
+	ipcarg_t count;
+	int retval = async_req_1_1(phone, DEVMAP_GET_DEVICE_COUNT, ns_handle, &count);
+	if (retval != EOK)
+		return 0;
+	
+	return count;
+}
+
+size_t devmap_count_namespaces(void)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
 	if (phone < 0)
 		return 0;
 	
-	async_serialize_start();
+	return devmap_count_namespaces_internal(phone);
+}
+
+size_t devmap_count_devices(dev_handle_t ns_handle)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
-	ipc_call_t answer;
-	aid_t req = async_send_0(phone, DEVMAP_DEVICE_GET_DEVICES, &answer);
+	if (phone < 0)
+		return 0;
 	
-	ipcarg_t retval = ipc_data_read_start(phone, data, count * sizeof(dev_desc_t));
+	return devmap_count_devices_internal(phone, ns_handle);
+}
+
+size_t devmap_get_namespaces(dev_desc_t **data)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
+	if (phone < 0)
+		return 0;
+	
+	/* Loop until namespaces read succesful */
+	while (true) {
+		size_t count = devmap_count_namespaces_internal(phone);
+		if (count == 0)
+			return 0;
+		
+		dev_desc_t *devs = (dev_desc_t *) calloc(count, sizeof(dev_desc_t));
+		if (devs == NULL)
+			return 0;
+		
+		async_serialize_start();
+		
+		ipc_call_t answer;
+		aid_t req = async_send_0(phone, DEVMAP_GET_NAMESPACES, &answer);
+		
+		int rc = async_data_read_start(phone, devs, count * sizeof(dev_desc_t));
+		if (rc == EOVERFLOW) {
+			/*
+			 * Number of namespaces has changed since
+			 * the last call of DEVMAP_DEVICE_GET_NAMESPACE_COUNT
+			 */
+			async_serialize_end();
+			free(devs);
+			continue;
+		}
+		
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+			async_serialize_end();
+			free(devs);
+			return 0;
+		}
+		
+		ipcarg_t retval;
+		async_wait_for(req, &retval);
 		async_serialize_end();
-		return 0;
+		
+		if (retval != EOK)
+			return 0;
+		
+		*data = devs;
+		return count;
 	}
+}
+
+size_t devmap_get_devices(dev_handle_t ns_handle, dev_desc_t **data)
+{
+	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
-	async_wait_for(req, &retval);
-	
-	async_serialize_end();
-	
-	if (retval != EOK)
+	if (phone < 0)
 		return 0;
 	
-	return IPC_GET_ARG1(answer);
+	/* Loop until namespaces read succesful */
+	while (true) {
+		size_t count = devmap_count_devices_internal(phone, ns_handle);
+		if (count == 0)
+			return 0;
+		
+		dev_desc_t *devs = (dev_desc_t *) calloc(count, sizeof(dev_desc_t));
+		if (devs == NULL)
+			return 0;
+		
+		async_serialize_start();
+		
+		ipc_call_t answer;
+		aid_t req = async_send_1(phone, DEVMAP_GET_DEVICES, ns_handle, &answer);
+		
+		int rc = async_data_read_start(phone, devs, count * sizeof(dev_desc_t));
+		if (rc == EOVERFLOW) {
+			/*
+			 * Number of devices has changed since
+			 * the last call of DEVMAP_DEVICE_GET_DEVICE_COUNT
+			 */
+			async_serialize_end();
+			free(devs);
+			continue;
+		}
+		
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+			async_serialize_end();
+			free(devs);
+			return 0;
+		}
+		
+		ipcarg_t retval;
+		async_wait_for(req, &retval);
+		async_serialize_end();
+		
+		if (retval != EOK)
+			return 0;
+		
+		*data = devs;
+		return count;
+	}
 }

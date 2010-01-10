@@ -1,0 +1,25 @@
+?ipc_m_connect_me_to ;
+?driver_register {
+	tentative {
+		?ipc_m_data_write /* driver name */
+	}
+} ;
+(
+	?device_register {
+		tentative {
+			?ipc_m_data_write /* device name */
+		} ;
+		tentative {
+			?ipc_m_connect_to_me /* callback */
+		}
+	} +
+	
+	?device_get_handle {
+		?ipc_m_data_write /* device name */
+	} +
+	
+	?device_get_name +
+	?device_unregister +
+	?driver_unregister
+)* ;
+?ipc_m_phone_hungup

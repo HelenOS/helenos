@@ -50,6 +50,10 @@
 	#define SEEK_END  2
 #endif
 
+typedef uint32_t useconds_t;
+
+extern int dup2(int oldfd, int newfd);
+
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
 
@@ -65,8 +69,8 @@ extern int rmdir(const char *);
 extern int chdir(const char *);
 
 extern void _exit(int status) __attribute__ ((noreturn));
-extern int usleep(unsigned long usec);
-extern unsigned int sleep(unsigned int seconds);
+extern int usleep(useconds_t uses);
+extern unsigned int sleep(unsigned int se);
 
 #endif
 

@@ -60,11 +60,12 @@ static int cli_init(cliuser_t *usr)
 {
 	usr->line = (char *) NULL;
 	usr->name = "root";
-	usr->home = "/";
 	usr->cwd = (char *) NULL;
 	usr->prompt = (char *) NULL;
-	chdir(usr->home);
 	usr->lasterr = 0;
+
+	input_init();
+
 	return (int) cli_set_prompt(usr);
 }
 

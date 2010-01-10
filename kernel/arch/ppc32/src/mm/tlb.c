@@ -37,6 +37,7 @@
 #include <arch/interrupt.h>
 #include <interrupt.h>
 #include <mm/as.h>
+#include <mm/page.h>
 #include <arch.h>
 #include <print.h>
 #include <macros.h>

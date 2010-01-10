@@ -42,7 +42,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {
@@ -338,16 +338,16 @@ static void fat_index_free(dev_handle_t dev_handle, fs_index_t index)
 	fibril_mutex_unlock(&unused_lock);
 }
 
-static fat_idx_t *fat_idx_create(dev_handle_t dev_handle)
+static int fat_idx_create(fat_idx_t **fidxp, dev_handle_t dev_handle)
 {
 	fat_idx_t *fidx;
 
 	fidx = (fat_idx_t *) malloc(sizeof(fat_idx_t));
 	if (!fidx) 
-		return NULL;
+		return ENOMEM;
 	if (!fat_index_alloc(dev_handle, &fidx->index)) {
 		free(fidx);
-		return NULL;
+		return ENOSPC;
 	}
 		
 	link_initialize(&fidx->uph_link);
@@ -358,18 +358,20 @@ static fat_idx_t *fat_idx_create(dev_handle_t dev_handle)
 	fidx->pdi = 0;
 	fidx->nodep = NULL;
 
-	return fidx;
+	*fidxp = fidx;
+	return EOK;
 }
 
-fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
+int fat_idx_get_new(fat_idx_t **fidxp, dev_handle_t dev_handle)
 {
 	fat_idx_t *fidx;
+	int rc;
 
 	fibril_mutex_lock(&used_lock);
-	fidx = fat_idx_create(dev_handle);
-	if (!fidx) {
+	rc = fat_idx_create(&fidx, dev_handle);
+	if (rc != EOK) {
 		fibril_mutex_unlock(&used_lock);
-		return NULL;
+		return rc;
 	}
 		
 	unsigned long ikey[] = {
@@ -381,7 +383,8 @@ fat_idx_t *fat_idx_get_new(dev_handle_t dev_handle)
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
 
-	return fidx;
+	*fidxp = fidx;
+	return EOK;
 }
 
 fat_idx_t *
@@ -400,8 +403,10 @@ fat_idx_get_by_pos(dev_handle_t dev_handle, fat_cluster_t pfc, unsigned pdi)
 	if (l) {
 		fidx = hash_table_get_instance(l, fat_idx_t, uph_link);
 	} else {
-		fidx = fat_idx_create(dev_handle);
-		if (!fidx) {
+		int rc;
+
+		rc = fat_idx_create(&fidx, dev_handle);
+		if (rc != EOK) {
 			fibril_mutex_unlock(&used_lock);
 			return NULL;
 		}

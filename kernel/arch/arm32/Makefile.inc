@@ -56,11 +56,14 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/page_fault.c
+	arch/$(KARCH)/src/mm/page_fault.c \
+	arch/$(KARCH)/src/ras.c
 
 ifeq ($(MACHINE),testarm)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c

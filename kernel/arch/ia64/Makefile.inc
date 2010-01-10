@@ -52,6 +52,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/ivt.S \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/mm/as.c \

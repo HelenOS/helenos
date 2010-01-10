@@ -30,12 +30,15 @@
 #
 
 TARGET = amd64-linux-gnu
+CLANG_ARCH = x86_64
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/stacktrace.S
 
+GCC_CFLAGS += -fno-omit-frame-pointer
 LFLAGS += -N
 
 ENDIANESS = LE

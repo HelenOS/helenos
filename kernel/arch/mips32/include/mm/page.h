@@ -140,7 +140,21 @@
 #include <mm/mm.h>
 #include <arch/exception.h>
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+/** Page Table Entry. */
+typedef struct {
+	unsigned g : 1;			/**< Global bit. */
+	unsigned p : 1;			/**< Present bit. */
+	unsigned d : 1;			/**< Dirty bit. */
+	unsigned cacheable : 1;		/**< Cacheable bit. */
+	unsigned : 1;			/**< Unused. */
+	unsigned soft_valid : 1;	/**< Valid content even if not present. */
+	unsigned pfn : 24;		/**< Physical frame number. */
+	unsigned w : 1;			/**< Page writable bit. */
+	unsigned a : 1;			/**< Accessed bit. */
+} pte_t;
+
+
+static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	

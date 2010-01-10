@@ -72,7 +72,8 @@ typedef enum {
 	VFS_IN_MKDIR,
 	VFS_IN_UNLINK,
 	VFS_IN_RENAME,
-	VFS_IN_STAT
+	VFS_IN_STAT,
+	VFS_IN_DUP
 } vfs_in_request_t;
 
 typedef enum {

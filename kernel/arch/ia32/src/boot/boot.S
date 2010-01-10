@@ -84,14 +84,6 @@ multiboot_image_start:
 	
 	pse_supported:
 	
-	bt $(INTEL_SEP), %edx
-	jc sep_supported
-	
-		movl $sep_msg, %esi
-		jmp error_halt
-	
-	sep_supported:
-
 #include "vesa_prot.inc"
 
 	# map kernel and turn paging on
@@ -101,6 +93,10 @@ multiboot_image_start:
 	pushl grub_ebx
 	pushl grub_eax
 	call arch_pre_main
+
+	# Create the first stack frame
+	pushl $0
+	movl %esp, %ebp
 	
 	call main_bsp
 	
@@ -224,5 +220,3 @@ grub_ebx:
 pse_msg:
 	.asciz "Page Size Extension not supported. System halted."
 
-sep_msg:
-	.asciz "SYSENTER/SYSEXIT not supported. System halted."

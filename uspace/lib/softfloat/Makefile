@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,57 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Common compiler flags
-#
+include Makefile.common
 
-LIBC_PREFIX = ../libc
+.PHONY: all clean
 
-## Setup toolchain
-#
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -Iinclude -Iarch/$(UARCH)/include/
-
-## Sources
-#
-
-GENERIC_SOURCES = \
-	generic/add.c \
-	generic/common.c \
-	generic/comparison.c \
-	generic/conversion.c \
-	generic/div.c \
-	generic/mul.c \
-	generic/other.c \
-	generic/softfloat.c \
-	generic/sub.c
-
-ARCH_SOURCES =
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-
-.PHONY: all clean depend
-
-all: libsoftfloat.a
-
--include Makefile.depend
+all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBC_PREFIX)/libc.a
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
-	-rm -f libsoftfloat.a Makefile.depend
-	find generic/ -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
-
-libsoftfloat.a: depend $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-	$(AR) rc libsoftfloat.a $(ARCH_OBJECTS) $(GENERIC_OBJECTS)
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(LIBSOFTFLOAT)
+	find . -name '*.o' -follow -exec rm \{\} \;
