@@ -28,6 +28,7 @@
 #
 
 include Makefile.common
+include ../../../../Makefile.config
 
 .PHONY: all clean
 
