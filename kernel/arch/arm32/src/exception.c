@@ -41,6 +41,7 @@
 #include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
+#include <stacktrace.h>
 
 #ifdef MACHINE_testarm
 	#include <arch/mach/testarm/testarm.h>
@@ -188,6 +189,8 @@ void print_istate(istate_t *istate)
 	    istate->r12, istate->sp, istate->lr, istate->spsr);
 	
 	printf(" pc: %x\n", istate->pc);
+
+	stack_trace_istate(istate);
 }
 
 /** @}
