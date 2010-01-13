@@ -180,12 +180,12 @@ void data_abort(int exc_no, istate_t *istate)
 	int ret = as_page_fault(badvaddr, access, istate);
 
 	if (ret == AS_PF_FAULT) {
+		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
 		print_istate(istate);
 		printf("page fault - pc: %x, va: %x, status: %x(%x), "
 		    "access:%d\n", istate->pc, badvaddr, fsr.status, fsr,
 		    access);
 		
-		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
 		panic("Page fault.");
 	}
 }

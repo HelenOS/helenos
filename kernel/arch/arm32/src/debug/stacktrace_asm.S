@@ -32,7 +32,9 @@
 .global program_counter_get
 
 frame_pointer_get:
+	mov r0, fp
 	mov pc, lr
 
 program_counter_get:
+	mov r0, lr
 	mov pc, lr
