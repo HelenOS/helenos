@@ -182,8 +182,8 @@ void print_istate(istate_t *istate)
 	    istate->r0, istate->r1, istate->r2, istate->r3);
 	printf(" r4: %x    r5: %x    r6: %x    r7: %x\n", 
 	    istate->r4, istate->r5, istate->r6, istate->r7);
-	printf(" r8: %x    r8: %x   r10: %x   r11: %x\n", 
-	    istate->r8, istate->r9, istate->r10, istate->r11);
+	printf(" r8: %x    r8: %x   r10: %x    fp: %x\n", 
+	    istate->r8, istate->r9, istate->r10, istate->fp);
 	printf(" r12: %x    sp: %x    lr: %x  spsr: %x\n",
 	    istate->r12, istate->sp, istate->lr, istate->spsr);
 	

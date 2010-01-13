@@ -101,7 +101,7 @@ typedef struct istate {
 	uint32_t r8;
 	uint32_t r9;
 	uint32_t r10;
-	uint32_t r11;
+	uint32_t fp;
 	uint32_t r12;
 
 	uint32_t pc;
@@ -134,7 +134,7 @@ static inline unative_t istate_get_pc(istate_t *istate)
 
 static inline unative_t istate_get_fp(istate_t *istate)
 {
-	return istate->r11;
+	return istate->fp;
 }
 
 
