@@ -37,34 +37,45 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
+#define FRAME_OFFSET_FP_PREV	-3
+#define FRAME_OFFSET_RA		-1
+
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	return false;
+	return fp != 0;
 }
 
 bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return false;
+	uint32_t *stack = (void *) fp;
+
+	*prev = stack[FRAME_OFFSET_FP_PREV];
+	return true;
 }
 
 bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return false;
+	uint32_t *stack = (void *) fp;
+
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
 }
 
 bool uspace_frame_pointer_validate(uintptr_t fp)
 {
-	return false;
+	return fp != 0;
 }
 
 bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return false;
+	return !copy_from_uspace((void *) prev,
+	    (uint32_t *) fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
 }
 
 bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return false;
+	return !copy_from_uspace((void *) ra, (uint32_t *) fp + FRAME_OFFSET_RA,
+	    sizeof(*ra));
 }
 
 /** @}
