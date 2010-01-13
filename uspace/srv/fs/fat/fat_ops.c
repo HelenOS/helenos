@@ -304,14 +304,12 @@ static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
 	unsigned fat_no;
 	int rc;
 
-	printf("fatcnt\n");
 	/* Check number of FATs. */
 	if (bs->fatcnt == 0)
 		return ENOTSUP;
 
 	/* Check total number of sectors. */
 
-	printf("totsec\n");
 	if (bs->totsec16 == 0 && bs->totsec32 == 0)
 		return ENOTSUP;
 
@@ -319,12 +317,10 @@ static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
 	    bs->totsec16 != bs->totsec32) 
 		return ENOTSUP;
 
-	printf("mdesc\n");
 	/* Check media descriptor. Must be between 0xf0 and 0xff. */
 	if ((bs->mdesc & 0xf0) != 0xf0)
 		return ENOTSUP;
 
-	printf("sec_per_fat\n");
 	/* Check number of sectors per FAT. */
 	if (bs->sec_per_fat == 0)
 		return ENOTSUP;
@@ -332,7 +328,6 @@ static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
 	/* Check signature of each FAT. */
 
 	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
-		printf("clst-read\n");
 		rc = fat_get_cluster(bs, dev_handle, fat_no, 0, &e0);
 		if (rc != EOK)
 			return EIO;
@@ -341,12 +336,10 @@ static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
 		if (rc != EOK)
 			return EIO;
 
-		printf("mdesc-fat\n");
 		/* Check that first byte of FAT contains the media descriptor. */
 		if ((e0 & 0xff) != bs->mdesc)
 			return ENOTSUP;
 
-		printf("fat-signat\n");
 		/*
 		 * Check that remaining bits of the first two entries are
 		 * set to one.
@@ -1046,7 +1039,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/* Do some simple sanity checks on the boot blocks. */
+	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, dev_handle);
 	if (rc != EOK) {
 		block_fini(dev_handle);
