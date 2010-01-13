@@ -36,6 +36,7 @@ SECTIONS {
 		*(.bss)
 		*(COMMON);
 
+		. = ALIGN(8);
                 symbol_table = .;
                 *(symtab.*);            /* Symbol table, must be LAST symbol!*/
 

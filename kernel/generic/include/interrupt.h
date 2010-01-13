@@ -41,6 +41,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <ddi/irq.h>
+#include <stacktrace.h>
 
 typedef void (* iroutine)(int n, istate_t *istate);
 
@@ -48,8 +49,10 @@ typedef void (* iroutine)(int n, istate_t *istate);
 { \
 	if (istate_from_uspace(istate)) { \
 		task_t *task = TASK; \
-		printf("Task %s (%" PRIu64 ") killed due to an exception at %p: ", task->name, task->taskid, istate_get_pc(istate)); \
-		printf(fmt "\n", ##__VA_ARGS__); \
+		printf("Task %s (%" PRIu64 ") killed due to an exception at " \
+		    "program counter %p.\n", task->name, task->taskid, istate_get_pc(istate)); \
+		stack_trace_istate(istate); \
+		printf("Kill message: " fmt "\n", ##__VA_ARGS__); \
 		task_kill(task->taskid); \
 		thread_exit(); \
 	} \

@@ -93,6 +93,10 @@ multiboot_image_start:
 	pushl grub_ebx
 	pushl grub_eax
 	call arch_pre_main
+
+	# Create the first stack frame
+	pushl $0
+	movl %esp, %ebp
 	
 	call main_bsp
 	

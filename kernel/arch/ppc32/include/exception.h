@@ -38,7 +38,7 @@
 #include <arch/types.h>
 #include <arch/regutils.h>
 
-typedef struct {
+typedef struct istate {
 	uint32_t r0;
 	uint32_t r2;
 	uint32_t r3;
@@ -95,6 +95,11 @@ static inline int istate_from_uspace(istate_t *istate)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
+}
+
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return istate->sp;
 }
 
 #endif

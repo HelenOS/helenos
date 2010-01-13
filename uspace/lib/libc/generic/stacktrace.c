@@ -38,14 +38,11 @@
 
 void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
 {
-	printf("Printing stack trace:\n");
-	printf("=====================\n");
 	while (frame_pointer_validate(fp)) {
 		printf("%p: %p()\n", fp, pc);
 		pc = return_address_get(fp);
 		fp = frame_pointer_prev(fp);
 	}
-	printf("=====================\n");
 }
 
 void stack_trace(void)
