@@ -542,7 +542,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		
 		if (str_lcmp(hlp->name, cmdline + start,
 		    max(str_length(hlp->name),
-		    str_nlength(cmdline + start, (size_t) (end - start) - 1))) == 0) {
+		    str_nlength(cmdline + start, (size_t) (end - start)))) == 0) {
 			cmd = hlp;
 			break;
 		}
