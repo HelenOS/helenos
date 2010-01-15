@@ -79,9 +79,17 @@ LIBC = lib/libc
 LIBS = \
 	lib/libfs \
 	lib/libblock \
-	lib/libpci \
 	lib/softint \
 	lib/softfloat \
+
+ifeq ($(UARCH),amd64)
+	LIBS += lib/libpci
+endif
+
+ifeq ($(UARCH),ia32)
+	LIBS += lib/libpci
+endif
+
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
