@@ -51,7 +51,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <sys/mman.h>
 #include <align.h>
 
@@ -70,6 +70,7 @@ static LIST_INITIALIZE(ffn_head);
 static int fat_root_get(fs_node_t **, dev_handle_t);
 static int fat_match(fs_node_t **, fs_node_t *, const char *);
 static int fat_node_get(fs_node_t **, dev_handle_t, fs_index_t);
+static int fat_node_open(fs_node_t *);
 static int fat_node_put(fs_node_t *);
 static int fat_create_node(fs_node_t **, dev_handle_t, int);
 static int fat_destroy_node(fs_node_t *);
@@ -82,6 +83,7 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static char fat_plb_get_char(unsigned);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
+static dev_handle_t fat_device_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -290,6 +292,65 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	return EOK;
 }
 
+/** Perform basic sanity checks on the file system.
+ *
+ * Verify if values of boot sector fields are sane. Also verify media
+ * descriptor. This is used to rule out cases when a device obviously
+ * does not contain a fat file system.
+ */
+static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
+{
+	fat_cluster_t e0, e1;
+	unsigned fat_no;
+	int rc;
+
+	/* Check number of FATs. */
+	if (bs->fatcnt == 0)
+		return ENOTSUP;
+
+	/* Check total number of sectors. */
+
+	if (bs->totsec16 == 0 && bs->totsec32 == 0)
+		return ENOTSUP;
+
+	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
+	    bs->totsec16 != bs->totsec32) 
+		return ENOTSUP;
+
+	/* Check media descriptor. Must be between 0xf0 and 0xff. */
+	if ((bs->mdesc & 0xf0) != 0xf0)
+		return ENOTSUP;
+
+	/* Check number of sectors per FAT. */
+	if (bs->sec_per_fat == 0)
+		return ENOTSUP;
+
+	/* Check signature of each FAT. */
+
+	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
+		rc = fat_get_cluster(bs, dev_handle, fat_no, 0, &e0);
+		if (rc != EOK)
+			return EIO;
+
+		rc = fat_get_cluster(bs, dev_handle, fat_no, 1, &e1);
+		if (rc != EOK)
+			return EIO;
+
+		/* Check that first byte of FAT contains the media descriptor. */
+		if ((e0 & 0xff) != bs->mdesc)
+			return ENOTSUP;
+
+		/*
+		 * Check that remaining bits of the first two entries are
+		 * set to one.
+		 */
+		if ((e0 >> 8) != 0xff || e1 != 0xffff)
+			return ENOTSUP;
+	}
+
+	return EOK;
+}
+
 /*
  * FAT libfs operations.
  */
@@ -404,6 +465,15 @@ int fat_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 	if (rc == EOK)
 		*rfn = FS_NODE(nodep);
 	return rc;
+}
+
+int fat_node_open(fs_node_t *fn)
+{
+	/*
+	 * Opening a file is stateless, nothing
+	 * to be done here.
+	 */
+	return EOK;
 }
 
 int fat_node_put(fs_node_t *fn)
@@ -866,11 +936,17 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
+dev_handle_t fat_device_get(fs_node_t *node)
+{
+	return 0;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
 	.match = fat_match,
 	.node_get = fat_node_get,
+	.node_open = fat_node_open,
 	.node_put = fat_node_put,
 	.create = fat_create_node,
 	.destroy = fat_destroy_node,
@@ -880,9 +956,10 @@ libfs_ops_t fat_libfs_ops = {
 	.index_get = fat_index_get,
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
-	.plb_get_char =	fat_plb_get_char,
+	.plb_get_char = fat_plb_get_char,
 	.is_directory = fat_is_directory,
-	.is_file = fat_is_file
+	.is_file = fat_is_file,
+	.device_get = fat_device_get
 };
 
 /*
@@ -956,6 +1033,14 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	/* Initialize the block cache */
 	rc = block_cache_init(dev_handle, bps, 0 /* XXX */, cmode);
+	if (rc != EOK) {
+		block_fini(dev_handle);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
+	/* Do some simple sanity checks on the file system. */
+	rc = fat_sanity_check(bs, dev_handle);
 	if (rc != EOK) {
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);

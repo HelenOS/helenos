@@ -36,6 +36,52 @@
 #ifndef LIBC_arm32_ATOMIC_H_
 #define LIBC_arm32_ATOMIC_H_
 
+#define LIBC_ARCH_ATOMIC_H_
+#define CAS 
+
+#include <atomicdflt.h>
+#include <bool.h>
+#include <sys/types.h>
+
+extern uintptr_t *ras_page;
+
+static inline bool cas(atomic_t *val, long ov, long nv)
+{
+	long ret = 0;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+		"1:\n"
+		"	adr %[ret], 1b\n"
+		"	str %[ret], %[rp0]\n"
+		"	adr %[ret], 2f\n"
+		"	str %[ret], %[rp1]\n"
+		"	ldr %[ret], %[addr]\n"
+		"	cmp %[ret], %[ov]\n"
+		"	streq %[nv], %[addr]\n"
+		"2:\n"
+		"	moveq %[ret], #1\n"
+		"	movne %[ret], #0\n"
+		: [ret] "+&r" (ret),
+		  [rp0] "=m" (ras_page[0]),
+		  [rp1] "=m" (ras_page[1]),
+		  [addr] "+m" (val->count)
+		: [ov] "r" (ov),
+		  [nv] "r" (nv)
+		: "memory"
+	);
+
+	ras_page[0] = 0;
+	asm volatile ("" ::: "memory");	
+	ras_page[1] = 0xffffffff;
+
+	return (bool) ret;
+}
+
 /** Atomic addition.
  *
  * @param val Where to add.
@@ -45,22 +91,33 @@
  */
 static inline long atomic_add(atomic_t *val, int i)
 {
-	int ret;
-	volatile long * mem = &(val->count);
+	long ret = 0;
 
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
 	asm volatile (
-	"1:\n"
-		"ldr r2, [%1]\n"
-		"add r3, r2, %2\n"
-		"str r3, %0\n"
-		"swp r3, r3, [%1]\n"
-		"cmp r3, r2\n"
-		"bne 1b\n"
-
-		: "=m" (ret)
-		: "r" (mem), "r" (i)
-		: "r3", "r2"
+		"1:\n"
+		"	adr %[ret], 1b\n"
+		"	str %[ret], %[rp0]\n"
+		"	adr %[ret], 2f\n"
+		"	str %[ret], %[rp1]\n"
+		"	ldr %[ret], %[addr]\n"
+		"	add %[ret], %[ret], %[imm]\n"
+		"	str %[ret], %[addr]\n"
+		"2:\n"
+		: [ret] "+&r" (ret),
+		  [rp0] "=m" (ras_page[0]),
+		  [rp1] "=m" (ras_page[1]),
+		  [addr] "+m" (val->count)
+		: [imm] "r" (i)
 	);
+
+	ras_page[0] = 0;
+	asm volatile ("" ::: "memory");	
+	ras_page[1] = 0xffffffff;
 
 	return ret;
 }

@@ -48,6 +48,7 @@ SOURCES = \
 	stdio/stdio2.c \
 	fault/fault1.c \
 	fault/fault2.c \
+	fault/fault3.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
 	ipc/register.c \
@@ -71,6 +72,9 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND):
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null

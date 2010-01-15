@@ -51,21 +51,6 @@ SOURCES = \
 	asm.S \
 	boot.S
 
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
-endif
-
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 ifeq ($(CONFIG_RD_EXTERNAL),n)
@@ -91,9 +76,15 @@ $(OUTPUT): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND):
 	for file in $(RD_SRVS) ; do \

@@ -116,7 +116,7 @@ static void vfs_connect(void)
 		vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
 }
 
-int mount(const char *fs_name, const char *mp, const char *dev,
+int mount(const char *fs_name, const char *mp, const char *fqdn,
     const char *opts, unsigned int flags)
 {
 	int res;
@@ -125,7 +125,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 	aid_t req;
 	dev_handle_t dev_handle;
 	
-	res = devmap_device_get_handle(dev, &dev_handle, flags);
+	res = devmap_device_get_handle(fqdn, &dev_handle, flags);
 	if (res != EOK)
 		return res;
 	
@@ -702,10 +702,10 @@ int fd_phone(int fildes)
 
 	rc = fstat(fildes, &stat);
 
-	if (!stat.devfs_stat.device)
+	if (!stat.device)
 		return -1;
 	
-	return devmap_device_connect(stat.devfs_stat.device, 0);
+	return devmap_device_connect(stat.device, 0);
 }
 
 int fd_node(int fildes, fdi_node_t *node)

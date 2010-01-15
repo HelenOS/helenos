@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -899,6 +899,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 			return;
 		}
 		newpos = size + off;
+		file->pos = newpos;
 		fibril_mutex_unlock(&file->lock);
 		ipc_answer_1(rid, EOK, newpos);
 		return;

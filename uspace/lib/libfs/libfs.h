@@ -63,6 +63,7 @@ typedef struct {
 	int (* root_get)(fs_node_t **, dev_handle_t);
 	int (* match)(fs_node_t **, fs_node_t *, const char *);
 	int (* node_get)(fs_node_t **, dev_handle_t, fs_index_t);
+	int (* node_open)(fs_node_t *);
 	int (* node_put)(fs_node_t *);
 	int (* create)(fs_node_t **, dev_handle_t, int);
 	int (* destroy)(fs_node_t *);
@@ -75,10 +76,11 @@ typedef struct {
 	 */
 	fs_index_t (* index_get)(fs_node_t *);
 	size_t (* size_get)(fs_node_t *);
-	unsigned (* lnkcnt_get)(fs_node_t *);
+	unsigned int (* lnkcnt_get)(fs_node_t *);
 	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
+	dev_handle_t (* device_get)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {

@@ -19,6 +19,7 @@
 
 #include "help/entry.h"
 #include "mkdir/entry.h"
+#include "mkfile/entry.h"
 #include "rm/entry.h"
 #include "bdd/entry.h"
 #include "cat/entry.h"
@@ -38,6 +39,7 @@
 module_t modules[] = {
 #include "help/help_def.h"
 #include "mkdir/mkdir_def.h"
+#include "mkfile/mkfile_def.h"
 #include "rm/rm_def.h"
 #include "bdd/bdd_def.h"
 #include "cat/cat_def.h"

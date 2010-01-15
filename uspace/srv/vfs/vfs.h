@@ -35,7 +35,7 @@
 
 #include <ipc/ipc.h>
 #include <adt/list.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <sys/types.h>
 #include <devmap.h>
 #include <bool.h>

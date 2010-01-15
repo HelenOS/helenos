@@ -36,6 +36,7 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/asid.h>
+#include <genarch/mm/page_ht.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>

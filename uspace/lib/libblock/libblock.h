@@ -35,11 +35,11 @@
  */
 
 #ifndef LIBBLOCK_LIBBLOCK_H_
-#define	LIBBLOCK_LIBBLOCK_H_ 
+#define LIBBLOCK_LIBBLOCK_H_
 
 #include <stdint.h>
 #include "../../srv/vfs/vfs.h"
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 
@@ -58,8 +58,6 @@
  * the block, this flag is used to avoid the unnecessary read.
  */
 #define BLOCK_FLAGS_NOREAD	1
-
-typedef uint64_t bn_t;	/**< Block number type. */
 
 typedef struct block {
 	/** Mutex protecting the reference count. */
@@ -109,6 +107,7 @@ extern int block_seqread(dev_handle_t, off_t *, size_t *, off_t *, void *,
     size_t);
 
 extern int block_get_bsize(dev_handle_t, size_t *);
+extern int block_get_nblocks(dev_handle_t, bn_t *);
 extern int block_read_direct(dev_handle_t, bn_t, size_t, void *);
 extern int block_write_direct(dev_handle_t, bn_t, size_t, const void *);
 

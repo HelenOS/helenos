@@ -98,6 +98,8 @@ jump_to_kernel:
 .code64
 start64:
 	movq (ctx), %rsp
+	pushq $0
+	movq %rsp, %rbp
 	call main_ap - AP_BOOT_OFFSET + BOOT_OFFSET   # never returns
 
 #endif /* CONFIG_SMP */

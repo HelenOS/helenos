@@ -42,14 +42,15 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <macros.h>
 #include <task.h>
 
-#define NAME "gxe_bd"
+#define NAME       "gxe_bd"
+#define NAMESPACE  "bd"
 
 enum {
 	CTL_READ_START	= 0,
@@ -140,12 +141,11 @@ static int gxe_bd_init(void)
 	dev = vaddr;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "disk%d", i);
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &dev_handle[i]);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		fibril_mutex_initialize(&dev_lock[i]);
@@ -233,6 +233,9 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
 			continue;
+		case BD_GET_NUM_BLOCKS:
+			retval = ENOTSUP;
+			break;
 		default:
 			retval = EINVAL;
 			break;

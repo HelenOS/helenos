@@ -36,6 +36,10 @@
 #ifndef LIBC_mips32_ATOMIC_H_
 #define LIBC_mips32_ATOMIC_H_
 
+#define LIBC_ARCH_ATOMIC_H_
+
+#include <atomicdflt.h>
+
 #define atomic_inc(x)	((void) atomic_add(x, 1))
 #define atomic_dec(x)	((void) atomic_add(x, -1))
 

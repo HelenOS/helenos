@@ -99,6 +99,8 @@ static void ls_print(const char *name, const char *pathname)
 	
 	if (s.is_file)
 		printf("%-40s\t%llu\n", name, (long long) s.size);
+	else if (s.is_directory)
+		printf("%-40s\t<dir>\n", name);
 	else
 		printf("%-40s\n", name);
 

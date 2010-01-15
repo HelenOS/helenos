@@ -49,13 +49,14 @@ GENERIC_SOURCES = \
 	generic/ddi.c \
 	generic/as.c \
 	generic/cap.c \
+	generic/clipboard.c \
 	generic/devmap.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
 	generic/string.c \
 	generic/fibril.c \
-	generic/fibril_sync.c \
+	generic/fibril_synch.c \
 	generic/pcb.c \
 	generic/smc.c \
 	generic/thread.c \
@@ -85,7 +86,8 @@ GENERIC_SOURCES = \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
-	generic/vfs/canonify.c
+	generic/vfs/canonify.c \
+	generic/stacktrace.c
 
 ARCH_SOURCES += \
 	arch/$(UARCH)/src/entry.s \
@@ -109,12 +111,21 @@ $(LINK): $(LINK).in
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__
+endif
 
 %.o: %.s $(DEPEND)
 	$(AS) $(AFLAGS) $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(AFLAGS)
+endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND): $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null

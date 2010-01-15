@@ -40,6 +40,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
+#include <mm/page.h>
 #include <mm/slab.h>
 #include <align.h>
 #include <panic.h>

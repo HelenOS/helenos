@@ -145,7 +145,23 @@
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
 #define PFERR_CODE_RSVD		(1 << 3)	
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+/** Page Table Entry. */
+typedef struct {
+	unsigned present : 1;
+	unsigned writeable : 1;
+	unsigned uaccessible : 1;
+	unsigned page_write_through : 1;
+	unsigned page_cache_disable : 1;
+	unsigned accessed : 1;
+	unsigned dirty : 1;
+	unsigned pat : 1;
+	unsigned global : 1;
+	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
+	unsigned avl : 2;
+	unsigned frame_address : 20;
+} __attribute__ ((packed)) pte_t;
+
+static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	

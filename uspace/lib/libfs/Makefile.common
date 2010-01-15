@@ -33,4 +33,5 @@
 LIBC_PREFIX = ../libc
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = libfs.job
 LIBFS = libfs.a

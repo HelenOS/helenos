@@ -41,7 +41,7 @@
 #include <assert.h>
 #include <bool.h>
 #include <fibril.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include "vfs.h"
 
 /**
@@ -110,7 +110,7 @@ int vfs_fd_alloc(bool desc)
 			
 			i--;
 		} else {
-			if (i == MAX_OPEN_FILES)
+			if (i == MAX_OPEN_FILES - 1)
 				break;
 			
 			i++;

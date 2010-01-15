@@ -7,5 +7,6 @@
 
 extern void get_input(cliuser_t *);
 extern int tok_input(cliuser_t *);
+extern void input_init(void);
 
 #endif

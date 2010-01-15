@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
+include Makefile.common
 
 build: $(BASE)/image.iso
 
@@ -41,7 +41,7 @@ $(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
 	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
 
 arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader
+	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 
 clean: generic_clean
 	$(MAKE) -C arch/$(BARCH)/loader clean

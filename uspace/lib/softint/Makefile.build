@@ -55,6 +55,9 @@ $(LIBSOFTINT): $(OBJECTS)
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND):
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null

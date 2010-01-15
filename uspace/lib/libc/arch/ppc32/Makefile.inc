@@ -34,7 +34,8 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
 
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c
+	arch/$(UARCH)/src/tls.c \
+	arch/$(UARCH)/src/stacktrace.S
 
 GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32

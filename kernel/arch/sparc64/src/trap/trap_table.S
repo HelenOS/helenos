@@ -651,7 +651,7 @@ fill_0_normal_tl1:
 	 * If OTHERWIN is zero, then all the userspace windows have been
 	 * spilled to kernel memory (i.e. register window buffer). Moreover,
 	 * if the scheduler was called in the meantime, all valid windows
-	 * belonging to other threads were spilled by context_restore().
+	 * belonging to other threads were spilled by context_save().
 	 * If OTHERWIN is non-zero, then some userspace windows are still
 	 * valid. Others might have been spilled. However, the CWP pointer
 	 * needs no fixing because the scheduler had not been called.
