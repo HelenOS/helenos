@@ -27,23 +27,53 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
+## Common rules for building servers.
 #
 
-include Makefile.common
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-## Sources
+# Individual makefiles set:
+#
+#	USPACE_PREFIX	relative path to uspace/ directory
+#	LIBS		libraries to link with (with relative path)
+#	EXTRA_CFLAGS	additional flags to pass to C compiler
+#	JOB		job file name (like appname.job)
+#	OUTPUT		output binary name (like appname)
+#	SOURCES		list of source files
 #
 
-SOURCES = \
-	rd.c
+DEPEND = Makefile.depend
+DEPEND_PREV = $(DEPEND).prev
+
+LIBC_PREFIX = $(USPACE_PREFIX)/lib/libc
+LIBBLOCK_PREFIX = $(USPACE_PREFIX)/lib/libblock
+LIBFS_PREFIX = $(USPACE_PREFIX)/lib/libfs
+LIBPCI_PREFIX = $(USPACE_PREFIX)/lib/libpci
+SOFTINT_PREFIX = $(USPACE_PREFIX)/lib/softint
+
+JOB = $(OUTPUT).job
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
-.PHONY: all
+include $(LIBC_PREFIX)/Makefile.toolchain
 
-all: $(OUTPUT) $(OUTPUT).disasm
+CFLAGS += $(EXTRA_CFLAGS)
+
+.PHONY: all build clean
+
+all: \
+    $(LIBC_PREFIX)/../../../version \
+    $(LIBC_PREFIX)/../../../Makefile.config \
+    $(LIBC_PREFIX)/../../../config.h \
+    $(LIBC_PREFIX)/../../../config.defs \
+    $(LIBS) \
+    \
+    $(OUTPUT) $(OUTPUT).disasm
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
+
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	find . -name '*.o' -follow -exec rm \{\} \;
+
+build: 
 
 -include $(DEPEND)
 

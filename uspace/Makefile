@@ -79,8 +79,9 @@ LIBC = lib/libc
 LIBS = \
 	lib/libfs \
 	lib/libblock \
+	lib/libpci \
 	lib/softint \
-	lib/softfloat
+	lib/softfloat \
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

@@ -27,14 +27,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../..
+LIBS = $(LIBC_PREFIX)/libc.a
 
-.PHONY: all clean
+OUTPUT = tester
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+SOURCES = \
+	tester.c \
+	thread/thread1.c \
+	print/print1.c \
+	print/print2.c \
+	print/print3.c \
+	print/print4.c \
+	console/console1.c \
+	stdio/stdio1.c \
+	stdio/stdio2.c \
+	fault/fault1.c \
+	fault/fault2.c \
+	fault/fault3.c \
+	vfs/vfs1.c \
+	ipc/ping_pong.c \
+	ipc/register.c \
+	ipc/connect.c \
+	loop/loop1.c \
+	mm/malloc1.c
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include ../Makefile.common
