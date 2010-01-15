@@ -399,7 +399,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 			 * with fewer total sectors than how many is inferred
 			 * from the size of the file allocation table.
 			 */
-			if ((cl - 2) * bs->spc + ssa >= ts) {
+			if ((cl >= 2) && ((cl - 2) * bs->spc + ssa >= ts)) {
 				rc = block_put(blk);
 				if (rc != EOK)
 					goto error;
