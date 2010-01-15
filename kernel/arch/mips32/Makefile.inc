@@ -69,6 +69,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/cache.c \
 	arch/$(KARCH)/src/debugger.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \

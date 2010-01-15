@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Add a source/object file pair to a Stanse jobfile
+Add a source/object file pair to a checker jobfile
 """
 
 import sys
@@ -36,22 +36,24 @@ import fcntl
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <JOBFILE> <SOURCE> <OBJECT> [OPTIONS ...]"
+	print prname + " <JOBFILE> <SOURCE> <TARGET> <TOOL> <CATEGORY> [OPTIONS ...]"
 
 def main():
-	if (len(sys.argv) < 4):
+	if (len(sys.argv) < 6):
 		usage(sys.argv[0])
 		return
 	
 	jobfname = sys.argv[1]
 	srcfname = sys.argv[2]
-	objfname = sys.argv[3]
+	tgtfname = sys.argv[3]
+	toolname = sys.argv[4]
+	category = sys.argv[5]
 	cwd = os.getcwd()
-	options = " ".join(sys.argv[4:])
+	options = " ".join(sys.argv[6:])
 	
 	jobfile = file(jobfname, "a")
 	fcntl.lockf(jobfile, fcntl.LOCK_EX)
-	jobfile.write("{%s},{%s},{%s},{%s}\n" % (srcfname, objfname, cwd, options))
+	jobfile.write("{%s},{%s},{%s},{%s},{%s},{%s}\n" % (srcfname, tgtfname, toolname, category, cwd, options))
 	fcntl.lockf(jobfile, fcntl.LOCK_UN)
 	jobfile.close()
 

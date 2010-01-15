@@ -76,9 +76,15 @@ $(OUTPUT): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND):
 	for file in $(RD_SRVS) ; do \

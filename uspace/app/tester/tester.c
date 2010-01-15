@@ -55,6 +55,7 @@ test_t tests[] = {
 #include "stdio/stdio2.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
+#include "fault/fault3.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"
 #include "ipc/register.def"

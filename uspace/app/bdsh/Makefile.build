@@ -41,6 +41,7 @@ CFLAGS += -I$(LIBBLOCK_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
 SOURCES = \
 	cmds/modules/help/help.c \
 	cmds/modules/mkdir/mkdir.c \
+	cmds/modules/mkfile/mkfile.c \
 	cmds/modules/rm/rm.c \
 	cmds/modules/bdd/bdd.c \
 	cmds/modules/cat/cat.c \
@@ -78,6 +79,9 @@ $(OUTPUT): $(OBJECTS) $(LIBS)
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
 
 $(DEPEND):
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null

@@ -37,4 +37,5 @@ LIBS = $(LIBFS_PREFIX)/libfs.a $(LIBC_PREFIX)/libc.a
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = devfs.job
 OUTPUT = devfs

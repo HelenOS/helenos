@@ -35,6 +35,7 @@ include ../../../Makefile.common
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
 RAW = image.raw
+JOB = image.job
 OUTPUT = image.boot
 
 LINK = _link.ld

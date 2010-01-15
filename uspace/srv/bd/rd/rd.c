@@ -152,6 +152,10 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
 			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(rd_size / block_size),
+			    UPPER32(rd_size / block_size));
+			continue;
 		default:
 			/*
 			 * The client doesn't speak the same protocol.
@@ -227,7 +231,7 @@ static bool rd_init(void)
 	}
 	
 	dev_handle_t dev_handle;
-	if (devmap_device_register("initrd", &dev_handle) != EOK) {
+	if (devmap_device_register("bd/initrd", &dev_handle) != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device\n");
 		return false;

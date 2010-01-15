@@ -45,7 +45,8 @@ static FIBRIL_MUTEX_INITIALIZE(clip_mtx);
 
 static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
+	char *data;
+	int rc;
 	size_t size;
 	
 	switch (IPC_GET_ARG1(*request)) {
@@ -63,23 +64,9 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EOK);
 		break;
 	case CLIPBOARD_TAG_BLOB:
-		if (!async_data_write_receive(&callid, &size)) {
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
-			break;
-		}
-		
-		char *data = malloc(size);
-		if (!data) {
-			ipc_answer_0(callid, ENOMEM);
-			ipc_answer_0(rid, ENOMEM);
-			break;
-		}
-		
-		ipcarg_t retval = async_data_write_finalize(callid, data, size);
-		if (retval != EOK) {
-			ipc_answer_0(rid, retval);
-			free(data);
+		rc = async_data_blob_receive(&data, 0, &size);
+		if (rc != EOK) {
+			ipc_answer_0(rid, rc);
 			break;
 		}
 		

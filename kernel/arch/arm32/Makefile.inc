@@ -37,7 +37,7 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-zero-initialized-in-bss
+GCC_CFLAGS += -fno-zero-initialized-in-bss -mapcs-frame
 
 BITS = 32
 ENDIANESS = LE
@@ -56,6 +56,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/exception.c \
 	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

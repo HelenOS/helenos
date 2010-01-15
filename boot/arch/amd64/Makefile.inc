@@ -29,8 +29,10 @@
 include Makefile.common
 
 RD_SRVS += \
-	$(USPACEDIR)/srv/pci/pci \
-	$(USPACEDIR)/srv/bd/ata_bd/ata_bd
+	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
+	$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+	$(USPACEDIR)/srv/hw/bus/pci/pci \
+	$(USPACEDIR)/srv/hid/c_mouse/c_mouse
 
 MODULES := $(notdir $(COMPONENTS))
 
@@ -46,7 +48,7 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 	echo "title=HelenOS" >> $(TMP)/boot/grub/menu.lst
 	echo "	root (cd)" >> $(TMP)/boot/grub/menu.lst
 	for module in $(MODULES) $(INITRD).img ; do \
-		if [ $$module == kernel.bin ] ; then \
+		if [ $$module = kernel.bin ] ; then \
 			echo "	kernel /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
 		else \
 			echo "	module /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \

@@ -48,6 +48,13 @@
  */
 #define SP_DELTA	(8 + STACK_ITEM_SIZE)
 
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = (uintptr_t) (_pc); \
+		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(c)->ebp = 0; \
+	} while (0)
+
 #endif /* KERNEL */
 
 /*

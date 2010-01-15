@@ -246,19 +246,21 @@ int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
  * @return		EOK or a negative error code.
  */
 int
-fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst,
-    fat_cluster_t *value)
+fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
+    fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b;
 	uint16_t bps;
 	uint16_t rscnt;
+	uint16_t sf;
 	fat_cluster_t *cp;
 	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
+	sf = uint16_t_le2host(bs->sec_per_fat);
 
-	rc = block_get(&b, dev_handle, rscnt +
+	rc = block_get(&b, dev_handle, rscnt + sf * fatno +
 	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
@@ -479,7 +481,7 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
-		rc = fat_get_cluster(bs, dev_handle, firstc, &nextc);
+		rc = fat_get_cluster(bs, dev_handle, FAT1, firstc, &nextc);
 		if (rc != EOK)
 			return rc;
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
@@ -559,7 +561,7 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 		fat_cluster_t nextc;
 		unsigned fatno;
 
-		rc = fat_get_cluster(bs, dev_handle, lastc, &nextc);
+		rc = fat_get_cluster(bs, dev_handle, FAT1, lastc, &nextc);
 		if (rc != EOK)
 			return rc;
 

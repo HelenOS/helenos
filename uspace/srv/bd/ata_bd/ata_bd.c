@@ -65,7 +65,8 @@
 
 #include "ata_bd.h"
 
-#define NAME "ata_bd"
+#define NAME       "ata_bd"
+#define NAMESPACE  "bd"
 
 /** Physical block size. Should be always 512. */
 static const size_t block_size = 512;
@@ -134,13 +135,12 @@ int main(int argc, char **argv)
 		/* Skip unattached drives. */
 		if (disk[i].present == false)
 			continue;
-
-		snprintf(name, 16, "disk%d", i);
+		
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &disk[i].dev_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		++n_disks;
@@ -294,6 +294,10 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
+			    UPPER32(disk[disk_id].blocks));
 			continue;
 		default:
 			retval = EINVAL;
