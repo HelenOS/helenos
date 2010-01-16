@@ -27,14 +27,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+-include ../../../Makefile.config
+include arch/$(UARCH)/Makefile.inc
 
-.PHONY: all clean
+USPACE_PREFIX = ../..
+LIBS = $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS += -Iinclude
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+OUTPUT = loader
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm arch/*/_link.ld
-	find . -name '*.o' -follow -exec rm \{\} \;
+GENERIC_SOURCES = \
+	main.c \
+	elf_load.c \
+	interp.s
+
+SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+
+include ../Makefile.common

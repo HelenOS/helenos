@@ -27,38 +27,68 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
+## Common rules for building apps.
 #
 
-include Makefile.common
+# Individual makefiles set:
+#
+#	USPACE_PREFIX	relative path to uspace/ directory
+#	LIBS		libraries to link with (with relative path)
+#	EXTRA_CFLAGS	additional flags to pass to C compiler
+#	JOB		job file name (like appname.job)
+#	OUTPUT		output binary name (like appname)
+#	SOURCES		list of source files
+#
+
+DEPEND = Makefile.depend
+DEPEND_PREV = $(DEPEND).prev
+
+LIBC_PREFIX = $(USPACE_PREFIX)/lib/libc
+
+JOB = $(OUTPUT).job
+
+OBJECTS = $(addsuffix .o,$(basename $(SOURCES)))
+
+-include $(USPACE_PREFIX)/../Makefile.config
 include $(LIBC_PREFIX)/Makefile.toolchain
 
-CFLAGS += -Iinclude -Iarch/$(UARCH)/include/
+CFLAGS += $(EXTRA_CFLAGS)
 
-## Sources
-#
+.PHONY: all build clean
 
-SOURCES = \
-	generic/add.c \
-	generic/common.c \
-	generic/comparison.c \
-	generic/conversion.c \
-	generic/div.c \
-	generic/mul.c \
-	generic/other.c \
-	generic/softfloat.c \
-	generic/sub.c
+all: \
+    $(LIBC_PREFIX)/../../../version \
+    $(LIBC_PREFIX)/../../../Makefile.config \
+    $(LIBC_PREFIX)/../../../config.h \
+    $(LIBC_PREFIX)/../../../config.defs \
+    $(LIBS) \
+    \
+    $(OUTPUT) \
+    $(EXTRA_OUTPUT)
+	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
 
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
+	find . -name '*.o' -follow -exec rm \{\} \;
 
-.PHONY: all
-
-all: $(LIBSOFTFLOAT)
+build: 
 
 -include $(DEPEND)
 
-$(LIBSOFTFLOAT): $(OBJECTS)
+$(OUTPUT): $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
+
+%.o: %.S $(DEPEND)
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__
+endif
+
+%.o: %.s $(DEPEND)
+	$(AS) $(AFLAGS) $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(AFLAGS)
+endif
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
@@ -66,6 +96,6 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
-$(DEPEND):
+$(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
