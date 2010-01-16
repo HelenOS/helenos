@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../Makefile.config
+-include ../../../Makefile.config
 
 USPACE_PREFIX = $(shell pwd)/../..
 #LIBS = $(LIBC_PREFIX)/libc.a
