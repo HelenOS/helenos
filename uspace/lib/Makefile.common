@@ -47,8 +47,9 @@ LIBC_PREFIX = $(USPACE_PREFIX)/lib/libc
 
 JOB = $(OUTPUT).job
 
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+OBJECTS = $(addsuffix .o,$(basename $(SOURCES)))
 
+-include $(USPACE_PREFIX)/../Makefile.config
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += $(EXTRA_CFLAGS)
@@ -62,11 +63,12 @@ all: \
     $(LIBC_PREFIX)/../../../config.defs \
     $(LIBS) \
     \
-    $(OUTPUT)
+    $(OUTPUT) \
+    $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT)
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
 
 build: 
@@ -76,12 +78,24 @@ build:
 $(OUTPUT): $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
 
+%.o: %.S $(DEPEND)
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__
+endif
+
+%.o: %.s $(DEPEND)
+	$(AS) $(AFLAGS) $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(AFLAGS)
+endif
+
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
-$(DEPEND):
+$(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
