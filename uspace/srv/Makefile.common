@@ -49,6 +49,8 @@ LIBFS_PREFIX = $(USPACE_PREFIX)/lib/libfs
 LIBPCI_PREFIX = $(USPACE_PREFIX)/lib/libpci
 SOFTINT_PREFIX = $(USPACE_PREFIX)/lib/softint
 
+LINK_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+
 JOB = $(OUTPUT).job
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
@@ -66,11 +68,12 @@ all: \
     $(LIBC_PREFIX)/../../../config.defs \
     $(LIBS) \
     \
-    $(OUTPUT) $(OUTPUT).disasm
+    $(OUTPUT) $(OUTPUT).disasm \
+    $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm $(EXTRA_OUTPUT)
 	find . -name '*.o' -follow -exec rm \{\} \;
 
 build: 
@@ -81,7 +84,7 @@ $(OUTPUT).disasm: $(OUTPUT)
 	$(OBJDUMP) -d $< > $@
 
 $(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
+	$(LD) -T $(LINK_SCRIPT) $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
