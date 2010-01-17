@@ -33,8 +33,10 @@ include arch/$(UARCH)/Makefile.inc
 USPACE_PREFIX = ../..
 LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS += -Iinclude
+LINK_SCRIPT = arch/$(UARCH)/_link.ld
 
 OUTPUT = loader
+EXTRA_OUTPUT = $(LINK_SCRIPT)
 
 GENERIC_SOURCES = \
 	main.c \
@@ -45,3 +47,6 @@ SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 include ../Makefile.common
+
+$(LINK_SCRIPT): $(LINK_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
