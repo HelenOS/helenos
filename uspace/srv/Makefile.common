@@ -83,7 +83,7 @@ build:
 $(OUTPUT).disasm: $(OUTPUT)
 	$(OBJDUMP) -d $< > $@
 
-$(OUTPUT): $(OBJECTS) $(LIBS)
+$(OUTPUT): $(LINK_SCRIPT) $(OBJECTS) $(LIBS)
 	$(LD) -T $(LINK_SCRIPT) $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
 
 %.o: %.c $(DEPEND)

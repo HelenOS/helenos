@@ -28,7 +28,7 @@
 #
 
 -include ../../../Makefile.config
-include arch/$(UARCH)/Makefile.inc
+-include arch/$(UARCH)/Makefile.inc
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBC_PREFIX)/libc.a
