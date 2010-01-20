@@ -37,7 +37,7 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32
 
 ATSIGN = %
 
-GCC_CFLAGS += -fno-zero-initialized-in-bss
+GCC_CFLAGS += -fno-zero-initialized-in-bss -mapcs-frame
 
 BITS = 32
 ENDIANESS = LE

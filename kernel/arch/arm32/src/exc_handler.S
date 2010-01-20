@@ -122,6 +122,8 @@
 	msr spsr, r2
 	stmfd r13!, {r2}
 2:
+	# Stop stack traces here
+	mov fp, #0
 .endm
 
 .macro LOAD_REGS_FROM_STACK

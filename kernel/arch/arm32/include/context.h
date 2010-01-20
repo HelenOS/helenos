@@ -42,6 +42,13 @@
 /* Put one item onto the stack to support get_stack_base() and align it up. */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = (uintptr_t) (_pc); \
+		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(c)->fp = 0; \
+	} while (0)
+
 #ifndef __ASM__
 
 #include <arch/types.h>
@@ -61,7 +68,7 @@ typedef struct {
 	uint32_t r8;
 	uint32_t r9;
 	uint32_t r10;
-	uint32_t r11;
+	uint32_t fp;	/* r11 */
 	
 	ipl_t ipl;
 } context_t;
