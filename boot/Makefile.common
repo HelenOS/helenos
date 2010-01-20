@@ -47,6 +47,7 @@ endif
 
 RD_SRVS = \
 	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/bd/part/guid_part/g_part \
 	$(USPACEDIR)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACEDIR)/srv/clip/clip \
 	$(USPACEDIR)/srv/hid/fb/fb \
