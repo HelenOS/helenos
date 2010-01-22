@@ -54,6 +54,7 @@ extern char *absolutize(const char *, size_t *);
 
 extern int mount(const char *, const char *, const char *, const char *,
     unsigned int);
+extern int unmount(const char *);
 
 extern void __stdio_init(int filc, fdi_node_t *filv[]);
 extern void __stdio_done(void);

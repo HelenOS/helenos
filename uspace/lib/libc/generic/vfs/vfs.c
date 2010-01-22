@@ -196,6 +196,11 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	return (int) rc;
 }
 
+int unmount(const char *mp)
+{
+	return ENOTSUP;
+}
+
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
 	futex_down(&vfs_phone_futex);
