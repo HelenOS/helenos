@@ -197,6 +197,7 @@ extern void vfs_node_delref(vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
+extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);

@@ -428,6 +428,11 @@ recheck:
 	free(opts);
 }
 
+void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
 	if (!vfs_files_init()) {
