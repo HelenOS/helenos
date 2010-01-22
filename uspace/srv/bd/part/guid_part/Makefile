@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+USPACE_PREFIX = ../../../..
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
 
-## Common names
-#
+# Correct name is 'guid_part' but must use this because of FAT 8.3 names.
+OUTPUT = g_part
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
-LIBS = $(LIBC_PREFIX)/libc.a
+SOURCES = \
+	guid_part.c
 
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-JOB = edit.job
-OUTPUT = edit
+include ../../../Makefile.common
