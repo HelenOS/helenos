@@ -13,6 +13,7 @@
 
 char *mod_aliases[] = {
 	"ren", "mv",
+	"umount", "unmount",
 	NULL, NULL
 };
 
