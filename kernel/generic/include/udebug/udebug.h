@@ -152,6 +152,7 @@ typedef enum {
 #ifdef KERNEL
 
 #include <synch/mutex.h>
+#include <synch/condvar.h>
 #include <arch/interrupt.h>
 #include <atomic.h>
 
@@ -194,6 +195,7 @@ typedef struct {
 	bool go;		/**< thread is GO */
 	bool stoppable;		/**< thread is stoppable */
 	bool active;		/**< thread is in a debugging session */
+	condvar_t active_cv;
 } udebug_thread_t;
 
 struct task;

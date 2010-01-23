@@ -208,9 +208,13 @@ int udebug_begin(call_t *call)
 		t = list_get_instance(cur, thread_t, th_link);
 
 		mutex_lock(&t->udebug.lock);
-		if ((t->flags & THREAD_FLAG_USPACE) != 0)
+		if ((t->flags & THREAD_FLAG_USPACE) != 0) {
 			t->udebug.active = true;
-		mutex_unlock(&t->udebug.lock);
+			mutex_unlock(&t->udebug.lock);
+			condvar_broadcast(&t->udebug.active_cv);
+		} else {
+			mutex_unlock(&t->udebug.lock);
+		}
 	}
 
 	mutex_unlock(&TASK->udebug.lock);

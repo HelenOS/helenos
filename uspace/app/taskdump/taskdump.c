@@ -46,7 +46,6 @@
 
 #define LINE_BYTES 16
 
-
 #define DBUF_SIZE 4096
 static uint8_t data_buf[DBUF_SIZE];
 
@@ -221,7 +220,7 @@ static int threads_dump(void)
 
 	printf("Threads:\n");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%lx)\n", 1+i, thash_buf[i]);
+		printf(" [%d] hash: 0x%lx\n", 1+i, thash_buf[i]);
 	}
 	putchar('\n');
 

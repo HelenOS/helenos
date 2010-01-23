@@ -43,6 +43,10 @@
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/cmd.h>
+#include <ipc/event.h>
+#include <synch/mutex.h>
+#include <time/delay.h>
+#include <macros.h>
 #include <panic.h>
 #include <print.h>
 #include <symtab.h>
@@ -106,6 +110,53 @@ static void exc_undef(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %d.", n);
 	panic("Unhandled exception %d.", n);
+}
+
+/** Terminate thread and task if exception came from userspace. */
+void fault_if_from_uspace(istate_t *istate, char *fmt, ...)
+{
+	task_t *task = TASK;
+	va_list args;
+
+	if (!istate_from_uspace(istate))
+		return;
+
+	printf("Task %s (%" PRIu64 ") killed due to an exception at "
+	    "program counter %p.\n", task->name, task->taskid,
+	    istate_get_pc(istate));
+
+	stack_trace_istate(istate);
+
+	printf("Kill message: ");
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	printf("\n");
+
+	if (event_is_subscribed(EVENT_FAULT)) {
+		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
+		    UPPER32(TASK->taskid), (unative_t) THREAD);
+	}
+
+#ifdef CONFIG_UDEBUG
+	/* Wait until a debugger attends to us. */
+	mutex_lock(&THREAD->udebug.lock);
+	while (!THREAD->udebug.active)
+		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
+	mutex_unlock(&THREAD->udebug.lock);
+
+	udebug_stoppable_begin();
+	udebug_stoppable_end();
+
+	/* Make sure the debugging session is over before proceeding. */
+	mutex_lock(&THREAD->udebug.lock);
+	while (THREAD->udebug.active)
+		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
+	mutex_unlock(&THREAD->udebug.lock);
+#endif
+
+	task_kill(task->taskid);
+	thread_exit();
 }
 
 #ifdef CONFIG_KCONSOLE

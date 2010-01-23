@@ -47,6 +47,7 @@ DIRS = \
 	srv/devmap \
 	srv/loader \
 	srv/ns \
+	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \

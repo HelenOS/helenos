@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
 	}
 	
 	spawn("/srv/devfs");
+	spawn("/srv/taskmon");
 	
 	if (!mount_devfs()) {
 		printf(NAME ": Exiting\n");

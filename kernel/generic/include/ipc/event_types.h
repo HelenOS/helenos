@@ -36,8 +36,12 @@
 #define KERN_EVENT_TYPES_H_
 
 typedef enum event_type {
+	/** New data available in kernel log */
 	EVENT_KLOG = 0,
+	/** Returning from kernel console to userspace */
 	EVENT_KCONSOLE,
+	/** A thread has faulted and will be terminated */
+	EVENT_FAULT,
 	EVENT_END
 } event_type_t;
 
