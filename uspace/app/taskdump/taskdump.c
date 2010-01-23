@@ -65,6 +65,13 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
+	/*
+	 * FIXME: The stdio module cannot currently detect whether we are
+	 * writing to a console or file. This workaround make file output
+	 * faster.
+	 */
+	setvbuf(stdout, NULL, _IOFBF, 32768);
+
 	printf("Task Dump Utility\n");
 	dump_memory = false;
 
