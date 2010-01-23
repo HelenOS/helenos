@@ -68,6 +68,7 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
 	waitq_initialize(&ut->go_wq);
+	condvar_initialize(&ut->active_cv);
 
 	ut->go_call = NULL;
 	ut->uspace_state = NULL;
@@ -445,8 +446,11 @@ int udebug_task_cleanup(struct task *ta)
 				 */
 				waitq_wakeup(&t->udebug.go_wq, WAKEUP_FIRST);
 			}
+			mutex_unlock(&t->udebug.lock);
+			condvar_broadcast(&t->udebug.active_cv);
+		} else {
+			mutex_unlock(&t->udebug.lock);
 		}
-		mutex_unlock(&t->udebug.lock);
 	}
 
 	ta->udebug.dt_state = UDEBUG_TS_INACTIVE;

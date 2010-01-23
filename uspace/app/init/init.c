@@ -232,6 +232,20 @@ static void getterm(char *dev, char *app)
 		printf(NAME ": Error waiting on %s\n", term);
 }
 
+static void mount_scratch(void)
+{
+	int rc;
+
+	printf("Trying to mount null/0 on /scratch... ");
+	fflush(stdout);
+
+	rc = mount("tmpfs", "/scratch", "null/0", "", 0);
+	if (rc == EOK)
+		printf("OK\n");
+	else
+		printf("Failed\n");
+}
+
 static void mount_data(void)
 {
 	int rc;
@@ -254,13 +268,21 @@ int main(int argc, char *argv[])
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
+
+	/* Make sure tmpfs is running. */
+	if (str_cmp(STRING(RDFMT), "tmpfs") != 0) {
+		spawn("/srv/tmpfs");
+	}
 	
 	spawn("/srv/devfs");
+	spawn("/srv/taskmon");
 	
 	if (!mount_devfs()) {
 		printf(NAME ": Exiting\n");
 		return -2;
 	}
+
+	mount_scratch();
 	
 	spawn("/srv/fhc");
 	spawn("/srv/obio");

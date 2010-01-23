@@ -39,6 +39,7 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/taskdump \
 	app/tester \
 	app/tetris \
 	app/trace \
@@ -46,6 +47,7 @@ DIRS = \
 	srv/devmap \
 	srv/loader \
 	srv/ns \
+	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \

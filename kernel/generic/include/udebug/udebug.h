@@ -96,6 +96,20 @@ UDEBUG_M_ARGS_READ,
  */
 UDEBUG_M_THREAD_READ,
 
+/** Read the list of the debugged task's address space areas.
+ *
+ * - ARG2 - destination address in the caller's address space
+ * - ARG3 - size of receiving buffer in bytes
+ *
+ * The kernel fills the buffer with a series of as_area_info_t structures.
+ * Upon answer, the kernel will set:
+ *
+ * - ARG2 - number of bytes that were actually copied
+ * - ARG3 - number of bytes of the complete data
+ *
+ */
+UDEBUG_M_AREAS_READ,
+
 /** Read the debugged tasks's memory.
  *
  * - ARG2 - destination address in the caller's address space
@@ -138,6 +152,7 @@ typedef enum {
 #ifdef KERNEL
 
 #include <synch/mutex.h>
+#include <synch/condvar.h>
 #include <arch/interrupt.h>
 #include <atomic.h>
 
@@ -180,6 +195,7 @@ typedef struct {
 	bool go;		/**< thread is GO */
 	bool stoppable;		/**< thread is stoppable */
 	bool active;		/**< thread is in a debugging session */
+	condvar_t active_cv;
 } udebug_thread_t;
 
 struct task;

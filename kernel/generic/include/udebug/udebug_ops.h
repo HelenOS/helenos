@@ -44,7 +44,8 @@ int udebug_set_evmask(udebug_evmask_t mask);
 int udebug_go(thread_t *t, call_t *call);
 int udebug_stop(thread_t *t, call_t *call);
 
-int udebug_thread_read(void **buffer, size_t buf_size, size_t *n);
+int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
+    size_t *needed);
 int udebug_args_read(thread_t *t, void **buffer);
 
 int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer);
