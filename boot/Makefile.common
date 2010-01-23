@@ -64,6 +64,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/mkfat/mkfat \
 	$(USPACEDIR)/app/redir/redir \
+	$(USPACEDIR)/app/taskdump/taskdump \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace

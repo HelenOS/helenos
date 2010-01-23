@@ -40,6 +40,7 @@
  
 #include <proc/task.h>
 #include <proc/thread.h>
+#include <mm/as.h>
 #include <arch.h>
 #include <errno.h>
 #include <ipc/ipc.h>
@@ -164,12 +165,10 @@ static void udebug_receive_stop(call_t *call)
  */
 static void udebug_receive_thread_read(call_t *call)
 {
-	unative_t uspace_addr;
-	unative_t to_copy;
-	unsigned total_bytes;
-	unsigned buf_size;
+	uintptr_t uspace_addr;
+	size_t buf_size;
 	void *buffer;
-	size_t n;
+	size_t copied, needed;
 	int rc;
 
 	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
@@ -179,19 +178,56 @@ static void udebug_receive_thread_read(call_t *call)
 	 * Read thread list. Variable n will be filled with actual number
 	 * of threads times thread-id size.
 	 */
-	rc = udebug_thread_read(&buffer, buf_size, &n);
+	rc = udebug_thread_read(&buffer, buf_size, &copied, &needed);
 	if (rc < 0) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
-	total_bytes = n;
+	/*
+	 * Make use of call->buffer to transfer data to caller's userspace
+	 */
 
-	/* Copy MAX(buf_size, total_bytes) bytes */
+	IPC_SET_RETVAL(call->data, 0);
+	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
+	   same code in process_answer() can be used 
+	   (no way to distinguish method in answer) */
+	IPC_SET_ARG1(call->data, uspace_addr);
+	IPC_SET_ARG2(call->data, copied);
+	IPC_SET_ARG3(call->data, needed);
+	call->buffer = buffer;
 
-	if (buf_size > total_bytes)
-		to_copy = total_bytes;
+	ipc_answer(&TASK->kb.box, call);
+}
+
+/** Process an AREAS_READ call.
+ *
+ * Returns a list of address space areas in the current task, as an array
+ * of as_area_info_t structures.
+ *
+ * @param call	The call structure.
+ */
+static void udebug_receive_areas_read(call_t *call)
+{
+	unative_t uspace_addr;
+	unative_t to_copy;
+	size_t data_size;
+	size_t buf_size;
+	void *data;
+
+	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
+	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
+
+	/*
+	 * Read area list.
+	 */
+	as_get_area_info(AS, (as_area_info_t **) &data, &data_size);
+
+	/* Copy MAX(buf_size, data_size) bytes */
+
+	if (buf_size > data_size)
+		to_copy = data_size;
 	else
 		to_copy = buf_size;
 
@@ -206,11 +242,12 @@ static void udebug_receive_thread_read(call_t *call)
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, to_copy);
 
-	IPC_SET_ARG3(call->data, total_bytes);
-	call->buffer = buffer;
+	IPC_SET_ARG3(call->data, data_size);
+	call->buffer = data;
 
 	ipc_answer(&TASK->kb.box, call);
 }
+
 
 /** Process an ARGS_READ call.
  *
@@ -329,6 +366,9 @@ void udebug_call_receive(call_t *call)
 		break;
 	case UDEBUG_M_THREAD_READ:
 		udebug_receive_thread_read(call);
+		break;
+	case UDEBUG_M_AREAS_READ:
+		udebug_receive_areas_read(call);
 		break;
 	case UDEBUG_M_ARGS_READ:
 		udebug_receive_args_read(call);

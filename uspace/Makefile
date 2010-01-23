@@ -39,6 +39,7 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/taskdump \
 	app/tester \
 	app/tetris \
 	app/trace \

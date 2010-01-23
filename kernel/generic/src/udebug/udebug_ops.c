@@ -354,8 +354,9 @@ int udebug_stop(thread_t *t, call_t *call)
  * into this buffer.
  *
  * If the sequence is longer than @a buf_size bytes, only as much hashes
- * as can fit are copied. The number of thread hashes copied is stored
- * in @a n.
+ * as can fit are copied. The number of bytes copied is stored in @a stored.
+ * The total number of thread bytes that could have been saved had there been
+ * enough space is stored in @a needed.
  *
  * The rationale for having @a buf_size is that this function is only
  * used for servicing the THREAD_READ message, which always specifies
@@ -363,14 +364,17 @@ int udebug_stop(thread_t *t, call_t *call)
  *
  * @param buffer	The buffer for storing thread hashes.
  * @param buf_size	Buffer size in bytes.
- * @param n		The actual number of hashes copied will be stored here.
+ * @param stored	The actual number of bytes copied will be stored here.
+ * @param needed	Total number of hashes that could have been saved.
  */
-int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
+int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
+    size_t *needed)
 {
 	thread_t *t;
 	link_t *cur;
 	unative_t tid;
-	unsigned copied_ids;
+	size_t copied_ids;
+	size_t extra_ids;
 	ipl_t ipl;
 	unative_t *id_buffer;
 	int flags;
@@ -379,7 +383,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	LOG("udebug_thread_read()");
 
 	/* Allocate a buffer to hold thread IDs */
-	id_buffer = malloc(buf_size, 0);
+	id_buffer = malloc(buf_size + 1, 0);
 
 	mutex_lock(&TASK->udebug.lock);
 
@@ -395,12 +399,10 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 
 	max_ids = buf_size / sizeof(unative_t);
 	copied_ids = 0;
+	extra_ids = 0;
 
 	/* FIXME: make sure the thread isn't past debug shutdown... */
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
-		/* Do not write past end of buffer */
-		if (copied_ids >= max_ids) break;
-
 		t = list_get_instance(cur, thread_t, th_link);
 
 		spinlock_lock(&t->lock);
@@ -408,10 +410,15 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 		spinlock_unlock(&t->lock);
 
 		/* Not interested in kernel threads. */
-		if ((flags & THREAD_FLAG_USPACE) != 0) {
+		if ((flags & THREAD_FLAG_USPACE) == 0)
+			continue;
+
+		if (copied_ids < max_ids) {
 			/* Using thread struct pointer as identification hash */
 			tid = (unative_t) t;
 			id_buffer[copied_ids++] = tid;
+		} else {
+			extra_ids++;
 		}
 	}
 
@@ -421,7 +428,8 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	mutex_unlock(&TASK->udebug.lock);
 
 	*buffer = id_buffer;
-	*n = copied_ids * sizeof(unative_t);
+	*stored = copied_ids * sizeof(unative_t);
+	*needed = (copied_ids + extra_ids) * sizeof(unative_t);
 
 	return 0;
 }
