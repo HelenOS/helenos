@@ -47,9 +47,11 @@
 
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
-	char *argv[5];
+	char *argv[11];
 	char *fname;
+	char *dump_fname;
 	char *s_taskid;
+	char **s;
 
 	task_id_t taskid;
 	uintptr_t thread;
@@ -62,25 +64,39 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
+	if (asprintf(&dump_fname, "/scratch/d%lld.txt", taskid) < 0) {
+		printf("Memory allocation failed.\n");
+		return;
+	}
+
 	printf(NAME ": Task %lld fault in thread 0x%lx.\n", taskid, thread);
 
-	argv[0] = fname = "/app/taskdump";
+	argv[0] = fname = "/app/redir";
+	argv[1] = "-i";
+	argv[2] = "/readme";
+	argv[3] = "-o";
+	argv[4] = dump_fname;
+	argv[5] = "--";
 
 #ifdef CONFIG_VERBOSE_DUMPS
-	argv[1] = "-m";
-	argv[2] = "-t";
-	argv[3] = s_taskid;
-	argv[4] = NULL;
-
-	printf(NAME ": Executing %s %s %s %s\n", argv[0], argv[1], argv[2],
-	    argv[3]);
+	argv[6] = "/app/taskdump";
+	argv[7] = "-m";
+	argv[8] = "-t";
+	argv[9] = s_taskid;
+	argv[10] = NULL;
 #else
-	argv[1] = "-t";
-	argv[2] = s_taskid;
-	argv[3] = NULL;
-
-	printf(NAME ": Executing %s %s %s\n", argv[0], argv[1], argv[2]);
+	argv[6] = "/app/taskdump";
+	argv[7] = "-t";
+	argv[8] = s_taskid;
+	argv[9] = NULL;
 #endif
+	printf(NAME ": Executing");
+        s = argv;
+	while (*s != NULL) {
+		printf(" %s", *s);
+		++s;
+	}
+	putchar('\n');
 
 	if (!task_spawn(fname, argv))
 		printf(NAME ": Error spawning taskdump.\n", fname);
