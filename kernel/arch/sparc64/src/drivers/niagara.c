@@ -84,7 +84,6 @@ static outdev_operations_t niagara_ops = {
  * buffer to its address space and output operation it does is performed using
  * the mapped buffer. The shared buffer definition follows.
  */
-/*
 #define OUTPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
 static volatile struct {
 	uint64_t read_ptr;
@@ -94,7 +93,6 @@ static volatile struct {
 	__attribute__ ((packed))
 	__attribute__ ((aligned(PAGE_SIZE)))
 	output_buffer;
-*/
 
 #if 0
 /** Niagara character device */
@@ -192,13 +190,11 @@ char niagara_getc(void) {
  */
 static void niagara_poll(niagara_instance_t *instance)
 {
-	/*
 	while (output_buffer.read_ptr != output_buffer.write_ptr) {
 		do_putchar(output_buffer.data[output_buffer.read_ptr]);
 		output_buffer.read_ptr =
 			((output_buffer.read_ptr) + 1) % OUTPUT_BUFFER_SIZE;
 	}
-	*/
 
 	uint64_t c;
 
@@ -244,6 +240,26 @@ static void niagara_init(void)
 	}
 
 	instance->srlnin = NULL;
+	sysinfo_set_item_val("fb.kind", NULL, 5);
+
+	/*
+	 * Set sysinfos and pareas so that the userspace counterpart of the
+	 * niagara fb driver can communicate with kernel using a shared buffer.
+ 	 */
+	output_buffer.read_ptr = 0;
+	output_buffer.write_ptr = 0;
+
+	sysinfo_set_item_val("niagara.outbuf.address", NULL,
+		KA2PA(&output_buffer));
+	sysinfo_set_item_val("niagara.outbuf.size", NULL,
+		PAGE_SIZE);
+	sysinfo_set_item_val("niagara.outbuf.datasize", NULL,
+		OUTPUT_BUFFER_SIZE);
+
+	static parea_t outbuf_parea;
+	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
+	outbuf_parea.frames = 1;
+	ddi_parea_register(&outbuf_parea);
 
 	#if 0
 	kbd_type = KBD_SUN4V;
@@ -260,7 +276,6 @@ static void niagara_init(void)
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SUN4V);
 	sysinfo_set_item_val("kbd.devno", NULL, devno);
 	sysinfo_set_item_val("kbd.inr", NULL, FICTIONAL_INR);
-	sysinfo_set_item_val("fb.kind", NULL, 5);
 	#endif
 
 	/*

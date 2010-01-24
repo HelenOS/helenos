@@ -71,9 +71,17 @@ ifeq ($(UARCH),mips32)
 endif
 
 ifeq ($(UARCH),sparc64)
-	SOURCES += sgcn.c \
-		serial_console.c
-	CFLAGS += -DSGCN_ENABLED
+	ifeq ($(PROCESSOR), sun4v)
+		SOURCES += niagara.c \
+			serial_console.c
+		CFLAGS += -DNIAGARA_ENABLED
+	endif
+
+	ifeq ($(MACHINE), serengeti)
+		SOURCES += sgcn.c \
+			serial_console.c
+		CFLAGS += -DSGCN_ENABLED
+	endif
 endif
 
 CFLAGS += -D$(UARCH)
