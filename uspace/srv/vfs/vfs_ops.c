@@ -458,11 +458,12 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	
 	/*
 	 * Make sure that we are called with exactly one of L_FILE and
-	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN.
+	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN or
+	 * L_NOCROSS_LAST_MP.
 	 */
 	if (((lflag & (L_FILE | L_DIRECTORY)) == 0) ||
 	    ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) ||
-	    ((lflag & L_OPEN) != 0)) {
+	    (lflag & L_OPEN) || (lflag & L_NOCROSS_LAST_MP)) {
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}

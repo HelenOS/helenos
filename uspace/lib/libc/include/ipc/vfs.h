@@ -147,6 +147,13 @@ typedef enum {
  */
 #define L_OPEN  64
 
+/**
+ * L_NOCROSS_LAST_MP is used exclusively during the VFS_IN_UNMOUNT operation. It
+ * tells the lookup routine not to cross the last mount point in the lookup
+ * path.
+ */
+#define L_NOCROSS_LAST_MP	128
+
 #endif
 
 /** @}
