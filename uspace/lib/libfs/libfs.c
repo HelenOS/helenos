@@ -303,7 +303,18 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		rc = ops->match(&tmp, cur, component);
 		on_error(rc, goto out_with_answer);
 		
-		if ((tmp) && (tmp->mp_data.mp_active)) {
+		/*
+		 * If the matching component is a mount point, there are two
+		 * legitimate semantics of the lookup operation. The first is
+		 * the commonly used one in which the lookup crosses each mount
+		 * point into the mounted file system. The second semantics is
+		 * used mostly during unmount() and differs from the first one
+		 * only in that the last mount point in the looked up path,
+		 * which is also its last component, is not crossed.
+		 */
+
+		if ((tmp) && (tmp->mp_data.mp_active) &&
+		    (!(lflag & L_NOCROSS_LAST_MP) || (next <= last))) {
 			if (next > last)
 				next = last = first;
 			else

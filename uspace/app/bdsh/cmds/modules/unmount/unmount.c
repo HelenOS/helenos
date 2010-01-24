@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
-
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
-
-#include <sys/types.h>
-#include <ipc/vfs.h>
-#include <ipc/devmap.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <vfs/vfs.h>
+#include <errno.h>
+#include "config.h"
+#include "util.h"
+#include "errors.h"
+#include "entry.h"
+#include "unmount.h"
+#include "cmds.h"
 
-/**
- * This type is a libc version of the VFS triplet.
- * It uniquelly identifies a file system node within a file system instance.
- */
-typedef struct {
-	fs_handle_t fs_handle;
-	dev_handle_t dev_handle;
-	fs_index_t index;
-} fdi_node_t;
+static const char *cmdname = "unmount";
 
-extern char *absolutize(const char *, size_t *);
+/* Dispays help for unmount in various levels */
+void help_cmd_unmount(unsigned int level)
+{
+	if (level == HELP_SHORT) {
+		printf("'%s' unmount a file system.\n", cmdname);
+	} else {
+		help_cmd_unmount(HELP_SHORT);
+		printf("Usage:  %s <mp>\n", cmdname);
+	}
+	return;
+}
 
-extern int mount(const char *, const char *, const char *, const char *,
-    unsigned int);
-extern int unmount(const char *);
+/* Main entry point for unmount, accepts an array of arguments */
+int cmd_unmount(char **argv)
+{
+	unsigned int argc;
+	int rc;
 
-extern void __stdio_init(int filc, fdi_node_t *filv[]);
-extern void __stdio_done(void);
+	argc = cli_count_args(argv);
 
-extern int open_node(fdi_node_t *, int);
-extern int fd_phone(int);
-extern int fd_node(int, fdi_node_t *);
+	if (argc != 2) {
+		printf("%s: invalid number of arguments.\n",
+		    cmdname);
+		return CMD_FAILURE;
+	}
 
-extern FILE *fopen_node(fdi_node_t *, const char *);
-extern int fphone(FILE *);
-extern int fnode(FILE *, fdi_node_t *);
+	rc = unmount(argv[1]);
+	if (rc != EOK) {
+		printf("Unable to unmount %s (rc=%d)\n", argv[1]);
+		return CMD_FAILURE;
+	}
 
-#endif
+	return CMD_SUCCESS;
+}
 
-/** @}
- */

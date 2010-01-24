@@ -85,6 +85,7 @@ typedef enum {
 	VFS_OUT_MOUNT,
 	VFS_OUT_MOUNTED,
 	VFS_OUT_UNMOUNT,
+	VFS_OUT_UNMOUNTED,
 	VFS_OUT_SYNC,
 	VFS_OUT_STAT,
 	VFS_OUT_LOOKUP,
@@ -139,12 +140,19 @@ typedef enum {
 #define L_UNLINK  32
 
 /**
- * L_OPEN is used to indicate that the lookup operation is a part of VFS_OPEN
+ * L_OPEN is used to indicate that the lookup operation is a part of VFS_IN_OPEN
  * call from the client. This means that the server might allocate some
  * resources for the opened file. This flag cannot be passed directly by the
  * client.
  */
 #define L_OPEN  64
+
+/**
+ * L_NOCROSS_LAST_MP is used exclusively during the VFS_IN_UNMOUNT operation. It
+ * tells the lookup routine not to cross the last mount point in the lookup
+ * path.
+ */
+#define L_NOCROSS_LAST_MP	128
 
 #endif
 
