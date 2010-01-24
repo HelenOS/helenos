@@ -140,7 +140,7 @@ typedef enum {
 #define L_UNLINK  32
 
 /**
- * L_OPEN is used to indicate that the lookup operation is a part of VFS_OPEN
+ * L_OPEN is used to indicate that the lookup operation is a part of VFS_IN_OPEN
  * call from the client. This means that the server might allocate some
  * resources for the opened file. This flag cannot be passed directly by the
  * client.
