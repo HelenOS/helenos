@@ -40,6 +40,7 @@
 #include <fibril.h>
 #include <string.h>
 #include <async.h>
+#include <stdio.h>
 
 #ifndef THREAD_INITIAL_STACK_PAGES_NO
 #define THREAD_INITIAL_STACK_PAGES_NO 1
@@ -61,6 +62,8 @@ void __thread_main(uspace_arg_t *uarg)
 	f = fibril_setup();
 	__tcb_set(f->tcb);
 
+	// MH
+	printf("uarg: %lx\n", uarg);
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/* XXX: we cannot free the userspace stack while running on it */
 //	free(uarg->uspace_stack);

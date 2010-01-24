@@ -53,16 +53,6 @@
 
 #define POLL_INTERVAL  10000
 
-/**
- * The driver is polling based, but in order to notify the userspace
- * of a key being pressed, we need to supply the interface with some
- * interrupt number. The interrupt number can be arbitrary as it it
- * will never be used for identifying HW interrupts, but only in
- * notifying the userspace. 
- */
-#define FICTIONAL_INR		1
-
-
 static niagara_instance_t *instance = NULL;
 
 static void niagara_putchar(outdev_t *, const wchar_t, bool);
@@ -94,21 +84,19 @@ static volatile struct {
 	__attribute__ ((aligned(PAGE_SIZE)))
 	output_buffer;
 
-#if 0
-/** Niagara character device */
-chardev_t niagara_io;
-
-/** defined in drivers/kbd.c */
-extern kbd_type_t kbd_type;
-
 /**
- * The character read will be stored here until the (notified) uspace
- * driver picks it up.
+ * Analogous to the output_buffer, see the previous definition.
  */
-static char read_char;
+#define INPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
+static volatile struct {
+	uint64_t write_ptr;
+	uint64_t read_ptr;
+	char data[INPUT_BUFFER_SIZE];
+}
+	__attribute__ ((packed))
+	__attribute__ ((aligned(PAGE_SIZE)))
+	input_buffer;
 
-
-#endif
 
 /** Writes a single character to the standard output. */
 static inline void do_putchar(const char c) {
@@ -125,68 +113,13 @@ static void niagara_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 		do_putchar('\r');
 }
 
-#if 0
-/**
- * Grabs the input for kernel.
- */
-void niagara_grab(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&niagara_irq.lock);
-	niagara_irq.notif_cfg.notify = false;
-	spinlock_unlock(&niagara_irq.lock);
-	interrupts_restore(ipl);
-}
-
-/**
- * Releases the input so that userspace can use it.
- */
-void niagara_release(void)
-{
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&niagara_irq.lock);
-	if (niagara_irq.notif_cfg.answerbox)
-		niagara_irq.notif_cfg.notify = true;
-	spinlock_unlock(&niagara_irq.lock);
-	interrupts_restore(ipl);
-}
-
-/**
- * Default suspend/resume operation for the input device.
- */
-static void niagara_noop(chardev_t *d)
-{
-}
-
-/**
- * Called when actively reading the character.
- */
-static char niagara_read(chardev_t *d)
-{
-	uint64_t c;
-
-	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
-		return (char) c;
-	}
-
-	return '\0';
-}
-
-/**
- * Returns the character last read. This function is called from the
- * pseudocode - the character returned by this function is passed to
- * the userspace keyboard driver.
- */
-char niagara_getc(void) {
-	return read_char;
-}
-
-#endif
-
 /**
  * Function regularly called by the keyboard polling thread. Asks the
  * hypervisor whether there is any unread character. If so, it picks it up
  * and sends it to the upper layers of HelenOS.
+ *
+ * Apart from that, it also checks whether the userspace output driver has
+ * pushed any characters to the output buffer. If so, it prints them.
  */
 static void niagara_poll(niagara_instance_t *instance)
 {
@@ -199,7 +132,13 @@ static void niagara_poll(niagara_instance_t *instance)
 	uint64_t c;
 
 	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
-		indev_push_character(instance->srlnin, c);
+		if (!silent) {
+			indev_push_character(instance->srlnin, c);
+		} else {
+			input_buffer.data[input_buffer.write_ptr] = (char) c;
+			input_buffer.write_ptr =
+				((input_buffer.write_ptr) + 1) % INPUT_BUFFER_SIZE;
+		}
 	}
 
 }
@@ -209,10 +148,7 @@ static void niagara_poll(niagara_instance_t *instance)
  */
 static void kniagarapoll(void *instance) {
 	while (true) {
-		//MH
-		//if (!silent)
-			niagara_poll(instance);
-		
+		niagara_poll(instance);
 		thread_usleep(POLL_INTERVAL);
 	}
 }
@@ -244,10 +180,13 @@ static void niagara_init(void)
 
 	/*
 	 * Set sysinfos and pareas so that the userspace counterpart of the
-	 * niagara fb driver can communicate with kernel using a shared buffer.
+	 * niagara fb and kbd driver can communicate with kernel using shared
+	 * buffers.
  	 */
 	output_buffer.read_ptr = 0;
 	output_buffer.write_ptr = 0;
+	input_buffer.write_ptr = 0;
+	input_buffer.read_ptr = 0;
 
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,
 		KA2PA(&output_buffer));
@@ -256,50 +195,22 @@ static void niagara_init(void)
 	sysinfo_set_item_val("niagara.outbuf.datasize", NULL,
 		OUTPUT_BUFFER_SIZE);
 
-	static parea_t outbuf_parea;
-	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
-	outbuf_parea.frames = 1;
-	ddi_parea_register(&outbuf_parea);
-
-	#if 0
-	kbd_type = KBD_SUN4V;
-
-	devno_t devno = device_assign_devno();
-	irq_initialize(&niagara_irq);
-	niagara_irq.devno = devno;
-	niagara_irq.inr = FICTIONAL_INR;
-	niagara_irq.claim = niagara_claim;
-	niagara_irq.handler = niagara_irq_handler;
-	irq_register(&niagara_irq);
-	
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_SUN4V);
-	sysinfo_set_item_val("kbd.devno", NULL, devno);
-	sysinfo_set_item_val("kbd.inr", NULL, FICTIONAL_INR);
-	#endif
-
-	/*
-	 * Set sysinfos and pareas so that the userspace counterpart of the
-	 * niagara fb driver can communicate with kernel using a shared buffer.
- 	 */
-	//output_buffer.read_ptr = 0;
-	//output_buffer.write_ptr = 0;
-
-	#if 0
-	sysinfo_set_item_val("niagara.outbuf.address", NULL,
-		KA2PA(&output_buffer));
-	sysinfo_set_item_val("niagara.outbuf.size", NULL,
+	sysinfo_set_item_val("niagara.inbuf.address", NULL,
+		KA2PA(&input_buffer));
+	sysinfo_set_item_val("niagara.inbuf.size", NULL,
 		PAGE_SIZE);
-	sysinfo_set_item_val("niagara.outbuf.datasize", NULL,
-		OUTPUT_BUFFER_SIZE);
+	sysinfo_set_item_val("niagara.inbuf.datasize", NULL,
+		INPUT_BUFFER_SIZE);
+
 	static parea_t outbuf_parea;
 	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
-	outbuf_parea.vbase = (uintptr_t) (&output_buffer);
 	outbuf_parea.frames = 1;
-	outbuf_parea.cacheable = false;
 	ddi_parea_register(&outbuf_parea);
 
-	#endif
+	static parea_t inbuf_parea;
+	inbuf_parea.pbase = (uintptr_t) (KA2PA(&input_buffer));
+	inbuf_parea.frames = 1;
+	ddi_parea_register(&inbuf_parea);
 
 	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	outdev_initialize("niagara_dev", niagara_dev, &niagara_ops);

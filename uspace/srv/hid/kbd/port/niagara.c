@@ -46,8 +46,30 @@
 
 #define POLL_INTERVAL		10000
 
+/**
+ * Virtual address mapped to the buffer shared with the kernel counterpart.
+ */
+static uintptr_t input_buffer_addr;
+
+/*
+ * Kernel counterpart of the driver pushes characters (it has read) here.
+ * Keep in sync with the definition from
+ * kernel/arch/sparc64/src/drivers/niagara.c.
+ */
+#define INPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
+typedef volatile struct {
+	uint64_t write_ptr;
+	uint64_t read_ptr;
+	char data[INPUT_BUFFER_SIZE];
+}
+	__attribute__ ((packed))
+	__attribute__ ((aligned(PAGE_SIZE)))
+	*input_buffer_t;
+
+input_buffer_t input_buffer;
+
 static volatile bool polling_disabled = false;
-//static void *niagara_thread_impl(void *arg);
+static void *niagara_thread_impl(void *arg);
 
 /**
  * Initializes the SGCN driver.
@@ -55,8 +77,19 @@ static volatile bool polling_disabled = false;
  */
 int kbd_port_init(void)
 {
-	printf("****************** Niagara keyboard driver **********************\n");
-	/*
+	input_buffer_addr = (uintptr_t) as_get_mappable_page(PAGE_SIZE);
+	int result = physmem_map(
+		(void *) sysinfo_value("niagara.inbuf.address"),
+		(void *) input_buffer_addr,
+		1, AS_AREA_READ | AS_AREA_WRITE);
+
+	if (result != 0) {
+		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
+			result);
+	}
+
+	input_buffer = (input_buffer_t) input_buffer_addr;
+
 	thread_id_t tid;
 	int rc;
 
@@ -64,7 +97,6 @@ int kbd_port_init(void)
 	if (rc != 0) {
 		return rc;
 	}
-	*/
 	return 0;
 }
 
@@ -89,33 +121,19 @@ void kbd_port_write(uint8_t data)
  */
 static void niagara_key_pressed(void)
 {
-	printf("%s\n", "polling");
-/*
 	char c;
 	
-	uint32_t begin = SGCN_BUFFER_HEADER->in_begin;
-	uint32_t end = SGCN_BUFFER_HEADER->in_end;
-	uint32_t size = end - begin;
-	
-	volatile char *buf_ptr = (volatile char *)
-		SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
-	volatile uint32_t *in_wrptr_ptr = &(SGCN_BUFFER_HEADER->in_wrptr);
-	volatile uint32_t *in_rdptr_ptr = &(SGCN_BUFFER_HEADER->in_rdptr);
-	
-	while (*in_rdptr_ptr != *in_wrptr_ptr) {
-		c = *buf_ptr;
-		*in_rdptr_ptr = (((*in_rdptr_ptr) - begin + 1) % size) + begin;
-		buf_ptr = (volatile char *)
-			SGCN_BUFFER(char, SGCN_BUFFER_HEADER->in_rdptr);
+	while (input_buffer->read_ptr != input_buffer->write_ptr) {
+		c = input_buffer->data[input_buffer->read_ptr];
+		input_buffer->read_ptr =
+			((input_buffer->read_ptr) + 1) % INPUT_BUFFER_SIZE;
 		kbd_push_scancode(c);
 	}
-*/
 }
 
 /**
  * Thread to poll SGCN for keypresses.
  */
-/*
 static void *niagara_thread_impl(void *arg)
 {
 	(void) arg;
@@ -127,6 +145,5 @@ static void *niagara_thread_impl(void *arg)
 	}
 	return 0;
 }
-*/
 /** @}
  */
