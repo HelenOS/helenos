@@ -138,6 +138,26 @@ void vfs_node_delref(vfs_node_t *node)
 		free(node);
 }
 
+/** Forget node.
+ *
+ * This function will remove the node from the node hash table and deallocate
+ * its memory, regardless of the node's reference count.
+ *
+ * @param node	Node to be forgotten.
+ */
+void vfs_node_forget(vfs_node_t *node)
+{
+	fibril_mutex_lock(&nodes_mutex);
+	unsigned long key[] = {
+		[KEY_FS_HANDLE] = node->fs_handle,
+		[KEY_DEV_HANDLE] = node->dev_handle,
+		[KEY_INDEX] = node->index
+	};
+	hash_table_remove(&nodes, key, 3);
+	fibril_mutex_unlock(&nodes_mutex);
+	free(node);
+}
+
 /** Find VFS node.
  *
  * This function will try to lookup the given triplet in the VFS node hash
