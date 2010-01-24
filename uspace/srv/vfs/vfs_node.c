@@ -230,6 +230,39 @@ void nodes_remove_callback(link_t *item)
 {
 }
 
+struct refcnt_data {
+	/** Sum of all reference counts for this file system instance. */
+	unsigned refcnt;
+	fs_handle_t fs_handle;
+	dev_handle_t dev_handle;
+};
+
+static void refcnt_visitor(link_t *item, void *arg)
+{
+	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
+	struct refcnt_data *rd = (void *) arg;
+
+	if ((node->fs_handle == rd->fs_handle) &&
+	    (node->dev_handle == rd->dev_handle))
+		rd->refcnt += node->refcnt;
+}
+
+unsigned
+vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, dev_handle_t dev_handle)
+{
+	struct refcnt_data rd = {
+		.refcnt = 0,
+		.fs_handle = fs_handle,
+		.dev_handle = dev_handle
+	};
+
+	fibril_mutex_lock(&nodes_mutex);
+	hash_table_apply(&nodes, refcnt_visitor, &rd);
+	fibril_mutex_unlock(&nodes_mutex);
+
+	return rd.refcnt;
+}
+
 /**
  * @}
  */
