@@ -537,8 +537,8 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		}
 
 		phone = vfs_grab_phone(mp_node->fs_handle);
-		rc = async_req_2_0(phone, VFS_OUT_UNMOUNT, mp_node->fs_handle,
-		    mp_node->dev_handle);
+		rc = async_req_2_0(phone, VFS_OUT_UNMOUNT, mp_node->dev_handle,
+		    mp_node->index);
 		vfs_release_phone(phone);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
