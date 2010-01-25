@@ -1116,6 +1116,16 @@ void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 	libfs_mount(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
 }
 
+void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&fat_libfs_ops, rid, request);
+}
+
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_lookup(&fat_libfs_ops, fat_reg.fs_handle, rid, request);

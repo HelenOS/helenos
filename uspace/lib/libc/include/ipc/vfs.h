@@ -100,44 +100,57 @@ typedef enum {
 /**
  * No lookup flags used.
  */
-#define L_NONE  0
+#define L_NONE			0
 
 /**
  * Lookup will succeed only if the object is a regular file.  If L_CREATE is
  * specified, an empty file will be created. This flag is mutually exclusive
  * with L_DIRECTORY.
  */
-#define L_FILE  1
+#define L_FILE			1
 
 /**
- * Lookup wil succeed only if the object is a directory. If L_CREATE is
+ * Lookup will succeed only if the object is a directory. If L_CREATE is
  * specified, an empty directory will be created. This flag is mutually
  * exclusive with L_FILE.
  */
-#define L_DIRECTORY  2
+#define L_DIRECTORY		2
+
+/**
+ * Lookup will succeed only if the object is a root directory. The flag is
+ * mutually exclusive with L_FILE and L_MP.
+ */
+#define L_ROOT			4
+
+/**
+ * Lookup will succeed only if the object is a mount point. The flag is mutually
+ * exclusive with L_FILE and L_ROOT.
+ */
+#define L_MP			8
+
 
 /**
  * When used with L_CREATE, L_EXCLUSIVE will cause the lookup to fail if the
  * object already exists. L_EXCLUSIVE is implied when L_DIRECTORY is used.
  */
-#define L_EXCLUSIVE  4
+#define L_EXCLUSIVE 		16
 
 /**
  * L_CREATE is used for creating both regular files and directories.
  */
-#define L_CREATE  8
+#define L_CREATE		32
 
 /**
  * L_LINK is used for linking to an already existing nodes.
  */
-#define L_LINK  16
+#define L_LINK			64
 
 /**
  * L_UNLINK is used to remove leaves from the file system namespace. This flag
  * cannot be passed directly by the client, but will be set by VFS during
  * VFS_UNLINK.
  */
-#define L_UNLINK  32
+#define L_UNLINK		128
 
 /**
  * L_OPEN is used to indicate that the lookup operation is a part of VFS_IN_OPEN
@@ -145,14 +158,7 @@ typedef enum {
  * resources for the opened file. This flag cannot be passed directly by the
  * client.
  */
-#define L_OPEN  64
-
-/**
- * L_NOCROSS_LAST_MP is used exclusively during the VFS_IN_UNMOUNT operation. It
- * tells the lookup routine not to cross the last mount point in the lookup
- * path.
- */
-#define L_NOCROSS_LAST_MP	128
+#define L_OPEN			256
 
 #endif
 

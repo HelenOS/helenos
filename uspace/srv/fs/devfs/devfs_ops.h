@@ -40,6 +40,8 @@ extern bool devfs_init(void);
 
 extern void devfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void devfs_mount(ipc_callid_t, ipc_call_t *);
+extern void devfs_unmounted(ipc_callid_t, ipc_call_t *);
+extern void devfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void devfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void devfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void devfs_stat(ipc_callid_t, ipc_call_t *);

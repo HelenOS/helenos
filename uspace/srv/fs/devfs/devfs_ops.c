@@ -433,6 +433,16 @@ void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	libfs_mount(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
 }
 
+void devfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void devfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&devfs_libfs_ops, rid, request);
+}
+
 void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_lookup(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
