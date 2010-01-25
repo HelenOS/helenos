@@ -225,6 +225,11 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	    IPC_GET_ARG3(answer));
 }
 
+void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
 /** Lookup VFS triplet by name in the file system name space.
  *
  * The path passed in the PLB must be in the canonical file system path format

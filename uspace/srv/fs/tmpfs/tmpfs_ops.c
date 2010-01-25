@@ -448,6 +448,16 @@ void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	libfs_mount(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
 }
 
+void tmpfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void tmpfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&tmpfs_libfs_ops, rid, request);
+}
+
 void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_lookup(&tmpfs_libfs_ops, tmpfs_reg.fs_handle, rid, request);
