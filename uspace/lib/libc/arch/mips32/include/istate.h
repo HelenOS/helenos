@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_UDEBUG_H_
-#define LIBC_UDEBUG_H_
+#ifndef LIBC_mips32__ISTATE_H_
+#define LIBC_mips32__ISTATE_H_
 
-#include <kernel/udebug/udebug.h>
 #include <sys/types.h>
-#include <libarch/types.h>
 
-typedef sysarg_t thash_t;
+/** Interrupt context.
+ *
+ * This is a copy of the kernel definition with which it must be kept in sync.
+ */
+typedef struct istate {
+	uint32_t at;
+	uint32_t v0;
+	uint32_t v1;
+	uint32_t a0;
+	uint32_t a1;
+	uint32_t a2;
+	uint32_t a3;
+	uint32_t t0;
+	uint32_t t1;
+	uint32_t t2;
+	uint32_t t3;
+	uint32_t t4;
+	uint32_t t5;
+	uint32_t t6;
+	uint32_t t7;
+	uint32_t t8;
+	uint32_t t9;
+	uint32_t gp;
+	uint32_t sp;
+	uint32_t ra;
 
-int udebug_begin(int phoneid);
-int udebug_end(int phoneid);
-int udebug_set_evmask(int phoneid, udebug_evmask_t mask);
-int udebug_thread_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_areas_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n);
-int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer);
-int udebug_regs_read(int phoneid, thash_t tid, void *buffer);
-int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
-	sysarg_t *val0, sysarg_t *val1);
-int udebug_stop(int phoneid, thash_t tid);
+	uint32_t lo;
+	uint32_t hi;
+
+	uint32_t status; /* cp0_status */
+	uint32_t epc; /* cp0_epc */
+	uint32_t k1; /* We use it as thread-local pointer */
+} istate_t;
+
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->epc;
+}
+
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	/* TODO */
+	return 0;
+}
 
 #endif
 

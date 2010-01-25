@@ -96,6 +96,12 @@ int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer)
 	    tid, (sysarg_t)buffer);
 }
 
+int udebug_regs_read(int phoneid, thash_t tid, void *buffer)
+{
+	return async_req_3_0(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_REGS_READ,
+	    tid, (sysarg_t)buffer);
+}
+
 int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
     sysarg_t *val0, sysarg_t *val1)
 {

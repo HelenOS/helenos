@@ -448,7 +448,10 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
  * Unless the thread is currently blocked in a SYSCALL_B or SYSCALL_E event,
  * this function will fail with an EINVAL error code.
  *
- * @param buffer	The buffer for storing thread hashes.
+ * @param t		Thread where call arguments are to be read.
+ * @param buffer	Place to store pointer to new buffer.
+ * @return		EOK on success, ENOENT if @a t is invalid, EINVAL
+ *			if thread state is not valid for this operation.
  */
 int udebug_args_read(thread_t *t, void **buffer)
 {
@@ -477,6 +480,50 @@ int udebug_args_read(thread_t *t, void **buffer)
 	_thread_op_end(t);
 
 	*buffer = arg_buffer;
+	return 0;
+}
+
+/** Read the register state of the thread.
+ *
+ * The contents of the thread's istate structure are copied to a newly
+ * allocated buffer and a pointer to it is written to @a buffer. The size of
+ * the buffer will be sizeof(istate_t).
+ *
+ * Currently register state cannot be read if the thread is inside a system
+ * call (as opposed to an exception). This is an implementation limit.
+ *
+ * @param t		Thread whose state is to be read.
+ * @param buffer	Place to store pointer to new buffer.
+ * @return		EOK on success, ENOENT if @a t is invalid, EINVAL
+ *			if thread is not in valid state, EBUSY if istate
+ *			is not available.
+ */
+int udebug_regs_read(thread_t *t, void **buffer)
+{
+	istate_t *state, *state_buf;
+	int rc;
+
+	/* Prepare a buffer to hold the data. */
+	state_buf = malloc(sizeof(istate_t), 0);
+
+	/* On success, this will lock t->udebug.lock */
+	rc = _thread_op_begin(t, false);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	state = t->udebug.uspace_state;
+	if (state == NULL) {
+		_thread_op_end(t);
+		return EBUSY;
+	}
+
+	/* Copy to the allocated buffer */
+	memcpy(state_buf, state, sizeof(istate_t));
+
+	_thread_op_end(t);
+
+	*buffer = (void *) state_buf;
 	return 0;
 }
 

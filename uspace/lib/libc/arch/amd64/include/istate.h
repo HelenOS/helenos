@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcamd64
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_UDEBUG_H_
-#define LIBC_UDEBUG_H_
+#ifndef LIBC_amd64_ISTATE_H_
+#define LIBC_amd64_ISTATE_H_
 
-#include <kernel/udebug/udebug.h>
 #include <sys/types.h>
-#include <libarch/types.h>
 
-typedef sysarg_t thash_t;
+/** Interrupt context.
+ *
+ * This is a copy of the kernel definition with which it must be kept in sync.
+ */
+typedef struct istate {
+	uint64_t rax;
+	uint64_t rcx;
+	uint64_t rdx;
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t r8;
+	uint64_t r9;
+	uint64_t r10;
+	uint64_t r11;
+	uint64_t rbp;
+	uint64_t error_word;
+	uint64_t rip;
+	uint64_t cs;
+	uint64_t rflags;
+	uint64_t stack[]; /* Additional data on stack */
+} istate_t;
 
-int udebug_begin(int phoneid);
-int udebug_end(int phoneid);
-int udebug_set_evmask(int phoneid, udebug_evmask_t mask);
-int udebug_thread_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_areas_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n);
-int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer);
-int udebug_regs_read(int phoneid, thash_t tid, void *buffer);
-int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
-	sysarg_t *val0, sysarg_t *val1);
-int udebug_stop(int phoneid, thash_t tid);
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->rip;
+}
+
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->rbp;
+}
 
 #endif
 

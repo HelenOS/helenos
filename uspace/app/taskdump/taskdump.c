@@ -40,6 +40,7 @@
 #include <udebug.h>
 #include <task.h>
 #include <kernel/mm/as.h>
+#include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>
 #include <bool.h>
@@ -57,6 +58,7 @@ static int connect_task(task_id_t task_id);
 static int parse_args(int argc, char *argv[]);
 static void print_syntax();
 static int threads_dump(void);
+static int thread_dump(uintptr_t thash);
 static int areas_dump(void);
 static int area_dump(as_area_info_t *area);
 static void hex_dump(uintptr_t addr, void *buffer, size_t size);
@@ -228,6 +230,8 @@ static int threads_dump(void)
 	printf("Threads:\n");
 	for (i = 0; i < n_threads; i++) {
 		printf(" [%d] hash: 0x%lx\n", 1+i, thash_buf[i]);
+
+		thread_dump(thash_buf[i]);
 	}
 	putchar('\n');
 
@@ -288,6 +292,28 @@ static int areas_dump(void)
 	free(ainfo_buf);
 
 	return 0;
+}
+
+static int thread_dump(uintptr_t thash)
+{
+	istate_t istate;
+	uintptr_t pc, fp;
+	int rc;
+
+	rc = udebug_regs_read(phoneid, thash, &istate);
+	if (rc < 0) {
+		printf("Failed reading registers (%d).\n", rc);
+		return EIO;
+	}
+
+	pc = istate_get_pc(&istate);
+	fp = istate_get_fp(&istate);
+
+	printf("Thread 0x%lx crashed at PC 0x%lx. FP 0x%lx\n", thash, pc, fp);
+	printf("Istate hexdump:\n");
+	hex_dump(0, &istate, (sizeof(istate_t) + 15) & ~15);
+
+	return EOK;
 }
 
 static int area_dump(as_area_info_t *area)

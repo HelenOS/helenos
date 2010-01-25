@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -82,6 +82,17 @@ UDEBUG_M_STOP,
  */
 UDEBUG_M_ARGS_READ,
 
+/** Read thread's userspace register state (istate_t).
+ *
+ * - ARG2 - thread identification
+ * - ARG3 - destination address in the caller's address space
+ *
+ * or, on error, retval will be
+ * - ENOENT - thread does not exist
+ * - EBUSY - register state not available
+ */
+UDEBUG_M_REGS_READ,
+
 /** Read the list of the debugged tasks's threads.
  *
  * - ARG2 - destination address in the caller's address space
@@ -121,7 +132,7 @@ UDEBUG_M_MEM_READ,
 
 } udebug_method_t;
 
-				
+
 typedef enum {
 	UDEBUG_EVENT_FINISHED = 1,	/**< Debuging session has finished */
 	UDEBUG_EVENT_STOP,		/**< Stopped on DEBUG_STOP request */
