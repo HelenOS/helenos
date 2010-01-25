@@ -314,7 +314,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		 */
 
 		if ((tmp) && (tmp->mp_data.mp_active) &&
-		    (!(lflag & L_NOCROSS_LAST_MP) || (next <= last))) {
+		    (!(lflag & L_MP) || (next <= last))) {
 			if (next > last)
 				next = last = first;
 			else
@@ -483,6 +483,11 @@ skip_miss:
 	
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		ipc_answer_0(rid, ENOTDIR);
+		goto out;
+	}
+
+	if ((lflag & L_ROOT) && par) {
+		ipc_answer_0(rid, EINVAL);
 		goto out;
 	}
 	

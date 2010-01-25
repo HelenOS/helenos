@@ -458,7 +458,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Lookup the mounted root and instantiate it.
 	 */
-	rc = vfs_lookup_internal(mp, L_NONE, &mr_res, NULL);
+	rc = vfs_lookup_internal(mp, L_ROOT, &mr_res, NULL);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		free(mp);
@@ -520,11 +520,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		 * file system, so we delegate the operation to it.
 		 */
 
-		/*
-		 * The L_NOCROSS_LAST_MP flag is essential if we really want to
-		 * lookup the mount point and not the mounted root.
-		 */
-		rc = vfs_lookup_internal(mp, L_NOCROSS_LAST_MP, &mp_res, NULL);
+		rc = vfs_lookup_internal(mp, L_MP, &mp_res, NULL);
 		free(mp);
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -594,12 +590,12 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	
 	/*
 	 * Make sure that we are called with exactly one of L_FILE and
-	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN or
-	 * L_NOCROSS_LAST_MP.
+	 * L_DIRECTORY. Make sure that the user does not pass L_OPEN,
+	 * L_ROOT or L_MP.
 	 */
 	if (((lflag & (L_FILE | L_DIRECTORY)) == 0) ||
 	    ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) ||
-	    (lflag & L_OPEN) || (lflag & L_NOCROSS_LAST_MP)) {
+	    (lflag & (L_OPEN | L_ROOT | L_MP))) {
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
