@@ -133,27 +133,22 @@ void fault_if_from_uspace(istate_t *istate, char *fmt, ...)
 	va_end(args);
 	printf("\n");
 
+	/*
+	 * Userspace can subscribe for FAULT events to take action
+	 * whenever a thread faults. (E.g. take a dump, run a debugger).
+	 * The notification is always available, but unless Udebug is enabled,
+	 * that's all you get.
+	 */
 	if (event_is_subscribed(EVENT_FAULT)) {
+		/* Notify the subscriber that a fault occurred. */
 		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
 		    UPPER32(TASK->taskid), (unative_t) THREAD);
-	}
 
 #ifdef CONFIG_UDEBUG
-	/* Wait until a debugger attends to us. */
-	mutex_lock(&THREAD->udebug.lock);
-	while (!THREAD->udebug.active)
-		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
-	mutex_unlock(&THREAD->udebug.lock);
-
-	udebug_stoppable_begin();
-	udebug_stoppable_end();
-
-	/* Make sure the debugging session is over before proceeding. */
-	mutex_lock(&THREAD->udebug.lock);
-	while (THREAD->udebug.active)
-		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
-	mutex_unlock(&THREAD->udebug.lock);
+		/* Wait for a debugging session. */
+		udebug_thread_fault();
 #endif
+	}
 
 	task_kill(task->taskid);
 	thread_exit();
