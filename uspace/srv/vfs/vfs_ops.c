@@ -91,7 +91,7 @@ static void vfs_mount_internal(ipc_callid_t rid, dev_handle_t dev_handle,
 			return;
 		}
 		
-		rc = vfs_lookup_internal(mp, L_DIRECTORY, &mp_res, NULL);
+		rc = vfs_lookup_internal(mp, L_MP, &mp_res, NULL);
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
