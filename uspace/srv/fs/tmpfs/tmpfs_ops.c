@@ -316,7 +316,7 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	};
 	hash_table_remove(&nodes, key, 2);
 
-	if (nodep->type == TMPFS_FILE)
+	if ((nodep->type == TMPFS_FILE) && (nodep->data))
 		free(nodep->data);
 	free(nodep->bp);
 	free(nodep);
