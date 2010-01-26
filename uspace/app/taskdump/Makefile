@@ -28,6 +28,7 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS = -Iinclude
 
 OUTPUT = taskdump
 

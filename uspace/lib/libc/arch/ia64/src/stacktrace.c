@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,38 +27,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcia64 ia64
+ * @ingroup lc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_STACKTRACE_H_
-#define LIBC_STACKTRACE_H_
-
 #include <sys/types.h>
 #include <bool.h>
+#include <errno.h>
 
-typedef struct {
-	void *op_arg;
-	int (*read_uintptr)(void *, uintptr_t, uintptr_t *);
-} stacktrace_t;
+#include <stacktrace.h>
 
-extern void stacktrace_print(void);
-extern void stacktrace_print_fp_pc(uintptr_t, uintptr_t);
+bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
+{
+	(void) st; (void) fp;
+	return false;
+}
 
-/*
- * The following interface is to be implemented by each architecture.
- */
-extern bool stacktrace_fp_valid(stacktrace_t *, uintptr_t);
-extern int stacktrace_fp_prev(stacktrace_t *, uintptr_t, uintptr_t *);
-extern int stacktrace_ra_get(stacktrace_t *, uintptr_t, uintptr_t *);
+int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
+{
+	(void) st; (void) fp; (void) prev;
+	return ENOTSUP;
+}
 
-extern void stacktrace_prepare(void);
-extern uintptr_t stacktrace_fp_get(void);
-extern uintptr_t stacktrace_pc_get();
-
-#endif
+int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
+{
+	(void) st; (void) fp; (void) ra;
+	return ENOTSUP;
+}
 
 /** @}
  */

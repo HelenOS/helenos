@@ -45,6 +45,8 @@
 #include <assert.h>
 #include <bool.h>
 
+#include <stacktrace.h>
+
 #define LINE_BYTES 16
 
 #define DBUF_SIZE 4096
@@ -56,12 +58,13 @@ static bool dump_memory;
 
 static int connect_task(task_id_t task_id);
 static int parse_args(int argc, char *argv[]);
-static void print_syntax();
+static void print_syntax(void);
 static int threads_dump(void);
 static int thread_dump(uintptr_t thash);
 static int areas_dump(void);
 static int area_dump(as_area_info_t *area);
 static void hex_dump(uintptr_t addr, void *buffer, size_t size);
+static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 
 int main(int argc, char *argv[])
 {
@@ -183,7 +186,7 @@ static int parse_args(int argc, char *argv[])
 	return 0;
 }
 
-static void print_syntax()
+static void print_syntax(void)
 {
 	printf("Syntax: taskdump [-m] -t <task_id>\n");
 	printf("\t-m\tDump memory area contents.\n");
@@ -297,7 +300,8 @@ static int areas_dump(void)
 static int thread_dump(uintptr_t thash)
 {
 	istate_t istate;
-	uintptr_t pc, fp;
+	uintptr_t pc, fp, nfp;
+	stacktrace_t st;
 	int rc;
 
 	rc = udebug_regs_read(phoneid, thash, &istate);
@@ -310,8 +314,23 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	printf("Thread 0x%lx crashed at PC 0x%lx. FP 0x%lx\n", thash, pc, fp);
-	printf("Istate hexdump:\n");
-	hex_dump(0, &istate, (sizeof(istate_t) + 15) & ~15);
+
+	st.op_arg = NULL;
+	st.read_uintptr = td_read_uintptr;
+
+	while (stacktrace_fp_valid(&st, fp)) {
+		printf("%p: %p()\n", fp, pc);
+
+		rc = stacktrace_ra_get(&st, fp, &pc);
+		if (rc != EOK)
+			return rc;
+
+		rc = stacktrace_fp_prev(&st, fp, &nfp);
+		if (rc != EOK)
+			return rc;
+
+		fp = nfp;
+	}
 
 	return EOK;
 }
@@ -373,6 +392,23 @@ static void hex_dump(uintptr_t addr, void *buffer, size_t size)
 		putchar('\n');
 		pos += LINE_BYTES;
 	}
+}
+
+static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
+{
+	uintptr_t data;
+	int rc;
+
+	(void) arg;
+
+	rc = udebug_mem_read(phoneid, &data, addr, sizeof(data));
+	if (rc < 0) {
+		printf("Warning: udebug_mem_read() failed.\n");
+		return rc;
+	}
+
+	*value = data;
+	return EOK;
 }
 
 /** @}
