@@ -146,8 +146,8 @@ libfs_ops_t tmpfs_libfs_ops = {
 /** Hash table of all TMPFS nodes. */
 hash_table_t nodes;
 
-#define NODES_KEY_INDEX	0
-#define NODES_KEY_DEV	1
+#define NODES_KEY_DEV	0	
+#define NODES_KEY_INDEX	1
 
 /* Implementation of hash table interface for the nodes hash table. */
 static hash_index_t nodes_hash(unsigned long key[])
@@ -236,8 +236,8 @@ int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 int tmpfs_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 {
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = index,
-		[NODES_KEY_DEV] = dev_handle
+		[NODES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index
 	};
 	link_t *lnk = hash_table_find(&nodes, key);
 	if (lnk) {
@@ -295,8 +295,8 @@ int tmpfs_create_node(fs_node_t **rfn, dev_handle_t dev_handle, int lflag)
 
 	/* Insert the new node into the nodes hash table. */
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = nodep->index,
-		[NODES_KEY_DEV] = nodep->dev_handle
+		[NODES_KEY_DEV] = nodep->dev_handle,
+		[NODES_KEY_INDEX] = nodep->index
 	};
 	hash_table_insert(&nodes, key, &nodep->nh_link);
 	*rfn = FS_NODE(nodep);
@@ -311,8 +311,8 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	assert(list_empty(&nodep->cs_head));
 
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = nodep->index,
-		[NODES_KEY_DEV] = nodep->dev_handle
+		[NODES_KEY_DEV] = nodep->dev_handle,
+		[NODES_KEY_INDEX] = nodep->index
 	};
 	hash_table_remove(&nodes, key, 2);
 
@@ -476,8 +476,8 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = index,
 		[NODES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
@@ -550,8 +550,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = index,
-		[NODES_KEY_DEV] = dev_handle
+		[NODES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
@@ -614,8 +614,8 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = index,
-		[NODES_KEY_DEV] = dev_handle
+		[NODES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
@@ -657,8 +657,8 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 
 	link_t *hlp;
 	unsigned long key[] = {
-		[NODES_KEY_INDEX] = index,
-		[NODES_KEY_DEV] = dev_handle
+		[NODES_KEY_DEV] = dev_handle,
+		[NODES_KEY_INDEX] = index
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
