@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup debug
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
  */
 
-#ifndef LIBC_mips32_TYPES_H_
-#define LIBC_mips32_TYPES_H_
+#ifndef SYMTAB_H_
+#define SYMTAB_H_
 
-#define __32_BITS__
+#include <sys/types.h>
+#include <elf.h>
 
-typedef unsigned int sysarg_t;
+typedef struct {
+	/** Symbol section */
+	elf_symbol_t *sym;
+	size_t sym_size;
+	/** String table */
+	char *strtab;
+	size_t strtab_size;
+} symtab_t;
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef long int int32_t;
-typedef long long int int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned long int uint32_t;
-typedef unsigned long long int uint64_t;
-
-typedef int32_t ssize_t;
-typedef uint32_t size_t;
-
-typedef uint32_t uintptr_t;
+extern int symtab_load(const char *file_name, symtab_t **symtab);
+extern void symtab_delete(symtab_t *st);
+extern int symtab_name_to_addr(symtab_t *st, char *name, uintptr_t *addr);
+extern int symtab_addr_to_name(symtab_t *symtab, uintptr_t addr, char **name,
+    size_t *offs);
 
 #endif
 

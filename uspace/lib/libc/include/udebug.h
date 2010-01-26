@@ -46,6 +46,8 @@ int udebug_end(int phoneid);
 int udebug_set_evmask(int phoneid, udebug_evmask_t mask);
 int udebug_thread_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed);
+int udebug_name_read(int phoneid, void *buffer, size_t n,
+	size_t *copied, size_t *needed);
 int udebug_areas_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed);
 int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n);

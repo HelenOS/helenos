@@ -68,6 +68,21 @@ int udebug_thread_read(int phoneid, void *buffer, size_t n,
 	return rc;
 }
 
+int udebug_name_read(int phoneid, void *buffer, size_t n,
+	size_t *copied, size_t *needed)
+{
+	ipcarg_t a_copied, a_needed;
+	int rc;
+
+	rc = async_req_3_3(phoneid, IPC_M_DEBUG_ALL, UDEBUG_M_NAME_READ,
+		(sysarg_t)buffer, n, NULL, &a_copied, &a_needed);
+
+	*copied = (size_t)a_copied;
+	*needed = (size_t)a_needed;
+
+	return rc;
+}
+
 int udebug_areas_read(int phoneid, void *buffer, size_t n,
 	size_t *copied, size_t *needed)
 {
@@ -82,7 +97,6 @@ int udebug_areas_read(int phoneid, void *buffer, size_t n,
 
 	return rc;
 }
-
 
 int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n)
 {

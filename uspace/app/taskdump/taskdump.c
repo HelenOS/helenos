@@ -45,6 +45,7 @@
 #include <assert.h>
 #include <bool.h>
 
+#include <symtab.h>
 #include <stacktrace.h>
 
 #define LINE_BYTES 16
@@ -55,6 +56,8 @@ static uint8_t data_buf[DBUF_SIZE];
 static int phoneid;
 static task_id_t task_id;
 static bool dump_memory;
+static char *app_name;
+static symtab_t *app_symtab;
 
 static int connect_task(task_id_t task_id);
 static int parse_args(int argc, char *argv[]);
@@ -65,6 +68,10 @@ static int areas_dump(void);
 static int area_dump(as_area_info_t *area);
 static void hex_dump(uintptr_t addr, void *buffer, size_t size);
 static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
+
+static void autoload_syms(void);
+static char *get_app_task_name(void);
+static char *fmt_sym_address(uintptr_t addr);
 
 int main(int argc, char *argv[])
 {
@@ -89,7 +96,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("Dumping task %lld.\n\n", task_id);
+	app_name = get_app_task_name();
+	app_symtab = NULL;
+
+	printf("Dumping task '%s' (task ID %lld).\n", app_name, task_id);
+	autoload_syms();
+	putchar('\n');
 
 	rc = threads_dump();
 	if (rc < 0)
@@ -302,6 +314,7 @@ static int thread_dump(uintptr_t thash)
 	istate_t istate;
 	uintptr_t pc, fp, nfp;
 	stacktrace_t st;
+	char *sym_pc;
 	int rc;
 
 	rc = udebug_regs_read(phoneid, thash, &istate);
@@ -319,7 +332,9 @@ static int thread_dump(uintptr_t thash)
 	st.read_uintptr = td_read_uintptr;
 
 	while (stacktrace_fp_valid(&st, fp)) {
-		printf("%p: %p()\n", fp, pc);
+		sym_pc = fmt_sym_address(pc);
+		printf("  %p: %s()\n", fp, sym_pc);
+		free(sym_pc);
 
 		rc = stacktrace_ra_get(&st, fp, &pc);
 		if (rc != EOK)
@@ -409,6 +424,108 @@ static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 
 	*value = data;
 	return EOK;
+}
+
+/** Attempt to find the right executable file and load the symbol table. */
+static void autoload_syms(void)
+{
+	char *file_name;
+	int rc;
+
+	assert(app_name != NULL);
+	assert(app_symtab == NULL);
+
+	rc = asprintf(&file_name, "/app/%s", app_name);
+	if (rc < 0) {
+		printf("Memory allocation failure.\n");
+		exit(1);
+	}
+
+	rc = symtab_load(file_name, &app_symtab);
+	if (rc == EOK) {
+		printf("Loaded symbol table from %s\n", file_name);
+		free(file_name);
+		return;
+	}
+
+	free(file_name);
+
+	rc = asprintf(&file_name, "/srv/%s", app_name);
+	if (rc < 0) {
+		printf("Memory allocation failure.\n");
+		exit(1);
+	}
+
+	rc = symtab_load("/srv/xyz", &app_symtab);
+	if (rc == EOK) {
+		printf("Loaded symbol table from %s\n", file_name);
+		free(file_name);
+		return;
+	}
+
+	free(file_name);
+	printf("Failed autoloading symbol table.\n");
+}
+
+static char *get_app_task_name(void)
+{
+	char dummy_buf;
+	size_t copied, needed, name_size;
+	char *name;
+	int rc;
+
+	rc = udebug_name_read(phoneid, &dummy_buf, 0, &copied, &needed);
+	if (rc < 0)
+		return NULL;
+
+	name_size = needed;
+	name = malloc(name_size + 1);
+	rc = udebug_name_read(phoneid, name, name_size, &copied, &needed);
+	if (rc < 0) {
+		free(name);
+		return NULL;
+	}
+
+	assert(copied == name_size);
+	assert(copied == needed);
+	name[copied] = '\0';
+
+	return name;
+}
+
+/** Format address in symbolic form.
+ *
+ * Formats address as <symbol_name>+<offset> (<address>), if possible,
+ * otherwise as <address>.
+ *
+ * @param addr	Address to format.
+ * @return	Newly allocated string, address in symbolic form.
+ */
+static char *fmt_sym_address(uintptr_t addr)
+{
+	char *name;
+	size_t offs;
+	int rc;
+	char *str;
+
+	if (app_symtab != NULL) {
+		rc = symtab_addr_to_name(app_symtab, addr, &name, &offs);
+	} else {
+		rc = ENOTSUP;
+	}
+
+	if (rc == EOK) {
+		rc = asprintf(&str, "(%p) %s+%p", addr, name, offs);
+	} else {
+		rc = asprintf(&str, "%p", addr);
+	}
+
+	if (rc < 0) {
+		printf("Memory allocation error.\n");
+		exit(1);
+	}
+
+	return str;
 }
 
 /** @}

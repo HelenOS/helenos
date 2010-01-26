@@ -107,6 +107,19 @@ UDEBUG_M_REGS_READ,
  */
 UDEBUG_M_THREAD_READ,
 
+/** Read the name of the debugged task.
+ *
+ * - ARG2 - destination address in the caller's address space
+ * - ARG3 - size of receiving buffer in bytes
+ *
+ * The kernel fills the buffer with a non-terminated string.
+ *
+ * - ARG2 - number of bytes that were actually copied
+ * - ARG3 - number of bytes of the complete data
+ *
+ */
+UDEBUG_M_NAME_READ,
+
 /** Read the list of the debugged task's address space areas.
  *
  * - ARG2 - destination address in the caller's address space

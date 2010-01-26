@@ -33,6 +33,7 @@ EXTRA_CFLAGS = -Iinclude
 OUTPUT = taskdump
 
 SOURCES = \
-	taskdump.c
+	taskdump.c \
+	symtab.c
 
 include ../Makefile.common

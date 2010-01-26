@@ -45,6 +45,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <print.h>
+#include <string.h>
 #include <syscall/copy.h>
 #include <ipc/ipc.h>
 #include <udebug/udebug.h>
@@ -434,6 +435,29 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	*buffer = id_buffer;
 	*stored = copied_ids * sizeof(unative_t);
 	*needed = (copied_ids + extra_ids) * sizeof(unative_t);
+
+	return 0;
+}
+
+/** Read task name.
+ *
+ * Returns task name as non-terminated string in a newly allocated buffer.
+ * Also returns the size of the data.
+ *
+ * @param data		Place to store pointer to newly allocated block.
+ * @param data_size	Place to store size of the data.
+ *
+ * @returns		EOK.
+ */
+int udebug_name_read(char **data, size_t *data_size)
+{
+	size_t name_size;
+
+	name_size = str_size(TASK->name) + 1;
+	*data = malloc(name_size, 0);
+	*data_size = name_size;
+
+	memcpy(*data, TASK->name, name_size);
 
 	return 0;
 }
