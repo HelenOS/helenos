@@ -423,6 +423,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	/* Initialize TMPFS instance. */
 	if (!tmpfs_instance_init(dev_handle)) {
+		free(opts);
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
@@ -441,6 +442,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_3(rid, EOK, rootp->index, rootp->size,
 		    rootp->lnkcnt);
 	}
+	free(opts);
 }
 
 void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
