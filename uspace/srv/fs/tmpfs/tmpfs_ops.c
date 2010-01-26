@@ -165,6 +165,24 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 
 static void nodes_remove_callback(link_t *item)
 {
+	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
+	    nh_link);
+
+	while (!list_empty(&nodep->cs_head)) {
+		tmpfs_dentry_t *dentryp = list_get_instance(nodep->cs_head.next,
+		    tmpfs_dentry_t, link);
+
+		assert(nodep->type == TMPFS_DIRECTORY);
+		list_remove(&dentryp->link);
+		free(dentryp);
+	}
+
+	if (nodep->data) {
+		assert(nodep->type == TMPFS_FILE);
+		free(nodep->data);
+	}
+	free(nodep->bp);
+	free(nodep);
 }
 
 /** TMPFS nodes hash table operations. */
@@ -316,10 +334,10 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	};
 	hash_table_remove(&nodes, key, 2);
 
-	if ((nodep->type == TMPFS_FILE) && (nodep->data))
-		free(nodep->data);
-	free(nodep->bp);
-	free(nodep);
+	/*
+	 * The nodes_remove_callback() function takes care of the actual
+	 * resource deallocation.
+	 */
 	return EOK;
 }
 
