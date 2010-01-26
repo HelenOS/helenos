@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup debug
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
  */
 
-#ifndef LIBC_mips32_TYPES_H_
-#define LIBC_mips32_TYPES_H_
+#ifndef LIBC_ia32__ISTATE_H_
+#define LIBC_ia32__ISTATE_H_
 
-#define __32_BITS__
+#include <sys/types.h>
 
-typedef unsigned int sysarg_t;
+/** Interrupt context.
+ *
+ * This is a copy of the kernel definition with which it must be kept in sync.
+ */
+typedef struct istate {
+	uint32_t eax;
+	uint32_t ecx;
+	uint32_t edx;
+	uint32_t ebp;
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef long int int32_t;
-typedef long long int int64_t;
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned long int uint32_t;
-typedef unsigned long long int uint64_t;
+	uint32_t error_word;
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t stack[];
+} istate_t;
 
-typedef int32_t ssize_t;
-typedef uint32_t size_t;
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->eip;
+}
 
-typedef uint32_t uintptr_t;
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->ebp;
+}
 
 #endif
 

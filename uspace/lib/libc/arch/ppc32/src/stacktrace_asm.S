@@ -28,30 +28,19 @@
 
 .text
 
-.global frame_pointer_get
-.global frame_pointer_prev
-.global frame_pointer_validate
-.global return_address_get
-.global program_counter_get
+#include <libarch/regname.h>
 
-frame_pointer_get:
-	movl %ebp, %eax
-	ret
+.global stacktrace_prepare
+.global stacktrace_fp_get
+.global stacktrace_pc_get
 
-frame_pointer_prev:
-	movl 4(%esp), %eax
-	movl (%eax), %eax
-	ret
+stacktrace_prepare:
+	blr
 
-frame_pointer_validate:
-	movl 4(%esp), %eax
-	ret
+stacktrace_fp_get:
+	mr r3, sp
+	blr
 
-return_address_get:
-	movl 4(%esp), %eax
-	movl 4(%eax), %eax
-	ret
-
-program_counter_get:
-	movl (%esp), %eax
-	ret
+stacktrace_pc_get:
+	mflr r3
+	blr

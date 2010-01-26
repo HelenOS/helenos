@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
  */
 
-#ifndef LIBC_mips32_TYPES_H_
-#define LIBC_mips32_TYPES_H_
+#ifndef LIBC_mips32__ISTATE_H_
+#define LIBC_mips32__ISTATE_H_
 
-#define __32_BITS__
+#include <sys/types.h>
 
-typedef unsigned int sysarg_t;
+/** Interrupt context.
+ *
+ * This is a copy of the kernel definition with which it must be kept in sync.
+ */
+typedef struct istate {
+	uint32_t at;
+	uint32_t v0;
+	uint32_t v1;
+	uint32_t a0;
+	uint32_t a1;
+	uint32_t a2;
+	uint32_t a3;
+	uint32_t t0;
+	uint32_t t1;
+	uint32_t t2;
+	uint32_t t3;
+	uint32_t t4;
+	uint32_t t5;
+	uint32_t t6;
+	uint32_t t7;
+	uint32_t t8;
+	uint32_t t9;
+	uint32_t gp;
+	uint32_t sp;
+	uint32_t ra;
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef long int int32_t;
-typedef long long int int64_t;
+	uint32_t lo;
+	uint32_t hi;
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned long int uint32_t;
-typedef unsigned long long int uint64_t;
+	uint32_t status; /* cp0_status */
+	uint32_t epc; /* cp0_epc */
+	uint32_t k1; /* We use it as thread-local pointer */
+} istate_t;
 
-typedef int32_t ssize_t;
-typedef uint32_t size_t;
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->epc;
+}
 
-typedef uint32_t uintptr_t;
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	/* TODO */
+	return 0;
+}
 
 #endif
 

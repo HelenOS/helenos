@@ -31,16 +31,12 @@
 .set noat
 .set noreorder
 
-.global frame_pointer_get
-.global frame_pointer_prev
-.global frame_pointer_validate
-.global return_address_get
-.global program_counter_get
+.global stacktrace_prepare
+.global stacktrace_fp_get
+.global stacktrace_pc_get
 
-frame_pointer_get:
-frame_pointer_prev:
-frame_pointer_validate:
-return_address_get:
-program_counter_get:
+stacktrace_prepare:
+stacktrace_fp_get:
+stacktrace_pc_get:
 	j $ra
 	xor $v0, $v0

@@ -41,7 +41,7 @@
 
 #define abort() \
 	do { \
-		stack_trace(); \
+		stacktrace_print(); \
 		_exit(1); \
 	} while (0)
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -82,6 +82,17 @@ UDEBUG_M_STOP,
  */
 UDEBUG_M_ARGS_READ,
 
+/** Read thread's userspace register state (istate_t).
+ *
+ * - ARG2 - thread identification
+ * - ARG3 - destination address in the caller's address space
+ *
+ * or, on error, retval will be
+ * - ENOENT - thread does not exist
+ * - EBUSY - register state not available
+ */
+UDEBUG_M_REGS_READ,
+
 /** Read the list of the debugged tasks's threads.
  *
  * - ARG2 - destination address in the caller's address space
@@ -95,6 +106,19 @@ UDEBUG_M_ARGS_READ,
  *
  */
 UDEBUG_M_THREAD_READ,
+
+/** Read the name of the debugged task.
+ *
+ * - ARG2 - destination address in the caller's address space
+ * - ARG3 - size of receiving buffer in bytes
+ *
+ * The kernel fills the buffer with a non-terminated string.
+ *
+ * - ARG2 - number of bytes that were actually copied
+ * - ARG3 - number of bytes of the complete data
+ *
+ */
+UDEBUG_M_NAME_READ,
 
 /** Read the list of the debugged task's address space areas.
  *
@@ -121,7 +145,7 @@ UDEBUG_M_MEM_READ,
 
 } udebug_method_t;
 
-				
+
 typedef enum {
 	UDEBUG_EVENT_FINISHED = 1,	/**< Debuging session has finished */
 	UDEBUG_EVENT_STOP,		/**< Stopped on DEBUG_STOP request */
@@ -217,6 +241,7 @@ void udebug_stoppable_end(void);
 void udebug_before_thread_runs(void);
 
 int udebug_task_cleanup(struct task *ta);
+void udebug_thread_fault(void);
 
 #endif
 

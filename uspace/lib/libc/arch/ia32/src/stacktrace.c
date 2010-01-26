@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +27,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcia32 ia32
+ * @ingroup lc
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
  */
 
-#ifndef LIBC_mips32_TYPES_H_
-#define LIBC_mips32_TYPES_H_
+#include <sys/types.h>
+#include <bool.h>
 
-#define __32_BITS__
+#include <stacktrace.h>
 
-typedef unsigned int sysarg_t;
+#define FRAME_OFFSET_FP_PREV	0
+#define FRAME_OFFSET_RA		4
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef long int int32_t;
-typedef long long int int64_t;
+bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
+{
+	(void) st;
+	return fp != 0;
+}
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned long int uint32_t;
-typedef unsigned long long int uint64_t;
+int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
+{
+	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_FP_PREV, prev);
+}
 
-typedef int32_t ssize_t;
-typedef uint32_t size_t;
-
-typedef uint32_t uintptr_t;
-
-#endif
+int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
+{
+	return (*st->read_uintptr)(st->op_arg, fp + FRAME_OFFSET_RA, ra);
+}
 
 /** @}
  */

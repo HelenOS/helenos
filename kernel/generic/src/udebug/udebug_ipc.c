@@ -201,6 +201,52 @@ static void udebug_receive_thread_read(call_t *call)
 	ipc_answer(&TASK->kb.box, call);
 }
 
+/** Process a NAME_READ call.
+ *
+ * Returns a string containing the name of the task.
+ *
+ * @param call	The call structure.
+ */
+static void udebug_receive_name_read(call_t *call)
+{
+	unative_t uspace_addr;
+	unative_t to_copy;
+	size_t data_size;
+	size_t buf_size;
+	void *data;
+
+	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
+	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
+
+	/*
+	 * Read task name.
+	 */
+	udebug_name_read((char **) &data, &data_size);
+
+	/* Copy MAX(buf_size, data_size) bytes */
+
+	if (buf_size > data_size)
+		to_copy = data_size;
+	else
+		to_copy = buf_size;
+
+	/*
+	 * Make use of call->buffer to transfer data to caller's userspace
+	 */
+
+	IPC_SET_RETVAL(call->data, 0);
+	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
+	   same code in process_answer() can be used 
+	   (no way to distinguish method in answer) */
+	IPC_SET_ARG1(call->data, uspace_addr);
+	IPC_SET_ARG2(call->data, to_copy);
+
+	IPC_SET_ARG3(call->data, data_size);
+	call->buffer = data;
+
+	ipc_answer(&TASK->kb.box, call);
+}
+
 /** Process an AREAS_READ call.
  *
  * Returns a list of address space areas in the current task, as an array
@@ -287,6 +333,47 @@ static void udebug_receive_args_read(call_t *call)
 	ipc_answer(&TASK->kb.box, call);
 }
 
+/** Receive a REGS_READ call.
+ *
+ * Reads the thread's register state (istate structure).
+ */
+static void udebug_receive_regs_read(call_t *call)
+{
+	thread_t *t;
+	unative_t uspace_addr;
+	unative_t to_copy;
+	void *buffer;
+	int rc;
+
+	t = (thread_t *) IPC_GET_ARG2(call->data);
+
+	rc = udebug_regs_read(t, &buffer);
+	if (rc < 0) {
+		IPC_SET_RETVAL(call->data, rc);
+		ipc_answer(&TASK->kb.box, call);
+		return;
+	}
+
+	/*
+	 * Make use of call->buffer to transfer data to caller's userspace
+	 */
+
+	uspace_addr = IPC_GET_ARG3(call->data);
+	to_copy = sizeof(istate_t);
+
+	IPC_SET_RETVAL(call->data, 0);
+	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
+	   same code in process_answer() can be used 
+	   (no way to distinguish method in answer) */
+	IPC_SET_ARG1(call->data, uspace_addr);
+	IPC_SET_ARG2(call->data, to_copy);
+
+	call->buffer = buffer;
+
+	ipc_answer(&TASK->kb.box, call);
+}
+
+
 /** Process an MEM_READ call.
  *
  * Reads memory of the current (debugged) task.
@@ -367,11 +454,17 @@ void udebug_call_receive(call_t *call)
 	case UDEBUG_M_THREAD_READ:
 		udebug_receive_thread_read(call);
 		break;
+	case UDEBUG_M_NAME_READ:
+		udebug_receive_name_read(call);
+		break;
 	case UDEBUG_M_AREAS_READ:
 		udebug_receive_areas_read(call);
 		break;
 	case UDEBUG_M_ARGS_READ:
 		udebug_receive_args_read(call);
+		break;
+	case UDEBUG_M_REGS_READ:
+		udebug_receive_regs_read(call);
 		break;
 	case UDEBUG_M_MEM_READ:
 		udebug_receive_mem_read(call);

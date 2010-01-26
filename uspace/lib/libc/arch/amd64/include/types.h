@@ -35,6 +35,8 @@
 #ifndef LIBC_amd64_TYPES_H_
 #define LIBC_amd64_TYPES_H_
 
+#define __64_BITS__
+
 typedef unsigned long long sysarg_t;
 
 typedef signed char int8_t;

@@ -28,10 +28,12 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS = -Iinclude
 
 OUTPUT = taskdump
 
 SOURCES = \
-	taskdump.c
+	taskdump.c \
+	symtab.c
 
 include ../Makefile.common

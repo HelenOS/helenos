@@ -28,28 +28,17 @@
 
 .text
 
-.global frame_pointer_get
-.global frame_pointer_prev
-.global frame_pointer_validate
-.global return_address_get
-.global program_counter_get
+.global stacktrace_prepare
+.global stacktrace_fp_get
+.global stacktrace_pc_get
 
-frame_pointer_get:
-	movq %rbp, %rax
-	ret
+stacktrace_prepare:
+	mov pc, lr
 
-frame_pointer_prev:
-	movq (%rdi), %rax
-	ret
+stacktrace_fp_get:
+	mov r0, fp
+	mov pc, lr
 
-frame_pointer_validate:
-	movq %rdi, %rax
-	ret
-
-return_address_get:
-	movq 8(%rdi), %rax
-	ret
-
-program_counter_get:
-	movq (%rsp), %rax
-	ret
+stacktrace_pc_get:
+	mov r0, lr 
+	mov pc, lr

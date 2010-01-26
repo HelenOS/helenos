@@ -26,30 +26,26 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <libarch/stack.h>
+
 .text
 
-.global frame_pointer_get
-.global frame_pointer_prev
-.global frame_pointer_validate
-.global return_address_get
-.global program_counter_get
+.global stacktrace_prepare
+.global stacktrace_fp_get
+.global stacktrace_pc_get
 
-frame_pointer_get:
-	mov r0, fp
-	mov pc, lr
+stacktrace_prepare:
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE+STACK_ARG_SAVE_AREA_SIZE), %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	ret
+	restore
 
-frame_pointer_prev:
-	ldr r0, [r0, #-12]
-	mov pc, lr
+stacktrace_fp_get:
+	# Add the stack bias to %sp to get the actual address.
+	retl
+	add %sp, STACK_BIAS, %o0
 
-frame_pointer_validate:
-	mov pc, lr
-
-return_address_get:
-	ldr r0, [r0, #-4]
-	mov pc, lr
-
-program_counter_get:
-	mov r0, lr 
-	mov pc, lr
-
+stacktrace_pc_get:
+	retl
+	mov %o7, %o0

@@ -28,29 +28,17 @@
 
 .text
 
-#include <libarch/regname.h>
+.global stacktrace_prepare
+.global stacktrace_fp_get
+.global stacktrace_pc_get
 
-.global frame_pointer_get
-.global frame_pointer_prev
-.global frame_pointer_validate
-.global return_address_get
-.global program_counter_get
+stacktrace_prepare:
+	ret
 
-frame_pointer_get:
-	mr r3, sp
-	blr
+stacktrace_fp_get:
+	movq %rbp, %rax
+	ret
 
-frame_pointer_prev:
-	lwz r3, 0(r3)
-	blr
-
-frame_pointer_validate:
-	blr
-
-return_address_get:
-	lwz r3, 4(r3)
-	blr
-
-program_counter_get:
-	mflr r3
-	blr
+stacktrace_pc_get:
+	movq (%rsp), %rax
+	ret

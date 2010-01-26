@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcppc32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb
  */
 
-#ifndef LIBC_mips32_TYPES_H_
-#define LIBC_mips32_TYPES_H_
+#ifndef LIBC_ppc32_ISTATE_H_
+#define LIBC_ppc32_ISTATE_H_
 
-#define __32_BITS__
+#include <sys/types.h>
 
-typedef unsigned int sysarg_t;
+/** Interrupt context.
+ *
+ * This is a copy of the kernel definition with which it must be kept in sync.
+ */
+typedef struct istate {
+	uint32_t r0;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
+	uint32_t r13;
+	uint32_t r14;
+	uint32_t r15;
+	uint32_t r16;
+	uint32_t r17;
+	uint32_t r18;
+	uint32_t r19;
+	uint32_t r20;
+	uint32_t r21;
+	uint32_t r22;
+	uint32_t r23;
+	uint32_t r24;
+	uint32_t r25;
+	uint32_t r26;
+	uint32_t r27;
+	uint32_t r28;
+	uint32_t r29;
+	uint32_t r30;
+	uint32_t r31;
+	uint32_t cr;
+	uint32_t pc;
+	uint32_t srr1;
+	uint32_t lr;
+	uint32_t ctr;
+	uint32_t xer;
+	uint32_t dar;
+	uint32_t r12;
+	uint32_t sp;
+} istate_t;
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef long int int32_t;
-typedef long long int int64_t;
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->pc;
+}
 
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned long int uint32_t;
-typedef unsigned long long int uint64_t;
-
-typedef int32_t ssize_t;
-typedef uint32_t size_t;
-
-typedef uint32_t uintptr_t;
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->sp;
+}
 
 #endif
 
