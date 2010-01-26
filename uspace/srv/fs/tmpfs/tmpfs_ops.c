@@ -232,6 +232,21 @@ static bool tmpfs_instance_init(dev_handle_t dev_handle)
 	return true;
 }
 
+static void tmpfs_instance_done(dev_handle_t dev_handle)
+{
+	unsigned long key[] = {
+		[NODES_KEY_DEV] = dev_handle
+	};
+	/*
+	 * Here we are making use of one special feature of our hash table
+	 * implementation, which allows to remove more items based on a partial
+	 * key match. In the following, we are going to remove all nodes
+	 * matching our device handle. The nodes_remove_callback() function will
+	 * take care of resource deallocation.
+	 */
+	hash_table_remove(&nodes, key, 1);
+}
+
 int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
@@ -470,7 +485,10 @@ void tmpfs_mount(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+
+	tmpfs_instance_done(dev_handle);
+	ipc_answer_0(rid, EOK);
 }
 
 void tmpfs_unmount(ipc_callid_t rid, ipc_call_t *request)
