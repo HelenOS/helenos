@@ -48,6 +48,8 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <fibril_synch.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 
 #include <libc.h>
 
@@ -158,7 +160,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -274,9 +276,9 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%ld", sc_args[0]);
+	if (n > 0) printf("%" PRIdSYSARG, sc_args[0]);
 	for (i = 1; i < n; i++) {
-		printf(", %ld", sc_args[i]);
+		printf(", %" PRIdSYSARG, sc_args[i]);
 	}
 	putchar(')');
 }
@@ -971,11 +973,11 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld.\n", task_id);
+		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
 		return 1;
 	}
 
-	printf("Connected to task %lld.\n", task_id);
+	printf("Connected to task %" PRIdTASKID ".\n", task_id);
 
 	if (task_ldr != NULL)
 		program_run();

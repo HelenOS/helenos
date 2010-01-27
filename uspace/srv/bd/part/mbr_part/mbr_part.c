@@ -63,6 +63,7 @@
 #include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <sys/typefmt.h>
 #include <inttypes.h>
 #include <libblock.h>
 #include <devmap.h>
@@ -247,9 +248,8 @@ static int mbr_init(const char *dev_name)
 
 		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
-		printf(NAME ": Registered device %s: %" PRIu64 " blocks "
-		    "%" PRIu64 " MB.\n",
-		    name, (uint64_t) part->length, size_mb);
+		printf(NAME ": Registered device %s: %" PRIuBN " blocks "
+		    "%" PRIu64 " MB.\n", name, part->length, size_mb);
 
 		part->dev = dev;
 		free(name);
@@ -335,7 +335,8 @@ static int mbr_part_read(void)
 		ba = cp.start_addr;
 		rc = block_read_direct(indev_handle, ba, 1, brb);
 		if (rc != EOK) {
-			printf(NAME ": Failed reading EBR block at %u.\n", ba);
+			printf(NAME ": Failed reading EBR block at %"
+			    PRIu32 ".\n", ba);
 			return rc;
 		}
 

@@ -40,6 +40,8 @@
 #include <udebug.h>
 #include <task.h>
 #include <kernel/mm/as.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 #include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>
@@ -92,14 +94,14 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld.\n", task_id);
+		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
 		return 1;
 	}
 
 	app_name = get_app_task_name();
 	app_symtab = NULL;
 
-	printf("Dumping task '%s' (task ID %lld).\n", app_name, task_id);
+	printf("Dumping task '%s' (task ID %" PRIdTASKID ").\n", app_name, task_id);
 	autoload_syms();
 	putchar('\n');
 
@@ -133,7 +135,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
 		return rc;
 	}
 
