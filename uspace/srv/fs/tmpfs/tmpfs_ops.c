@@ -159,8 +159,16 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	tmpfs_node_t *nodep = hash_table_get_instance(item, tmpfs_node_t,
 	    nh_link);
-	return (nodep->index == key[NODES_KEY_INDEX] &&
-	    nodep->dev_handle == key[NODES_KEY_DEV]);
+	
+	switch (keys) {
+	case 1:
+		return (nodep->dev_handle == key[NODES_KEY_DEV]);
+	case 2:	
+		return ((nodep->dev_handle == key[NODES_KEY_DEV]) &&
+		    (nodep->index == key[NODES_KEY_INDEX]));
+	default:
+		abort();
+	}
 }
 
 static void nodes_remove_callback(link_t *item)
