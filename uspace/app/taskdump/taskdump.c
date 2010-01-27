@@ -326,14 +326,16 @@ static int thread_dump(uintptr_t thash)
 	pc = istate_get_pc(&istate);
 	fp = istate_get_fp(&istate);
 
-	printf("Thread 0x%lx crashed at PC 0x%lx. FP 0x%lx\n", thash, pc, fp);
+	sym_pc = fmt_sym_address(pc);
+	printf("Thread 0x%lx crashed at %s. FP = 0x%lx\n", thash, sym_pc, fp);
+	free(sym_pc);
 
 	st.op_arg = NULL;
 	st.read_uintptr = td_read_uintptr;
 
 	while (stacktrace_fp_valid(&st, fp)) {
 		sym_pc = fmt_sym_address(pc);
-		printf("  %p: %s()\n", fp, sym_pc);
+		printf("  %p: %s\n", fp, sym_pc);
 		free(sym_pc);
 
 		rc = stacktrace_ra_get(&st, fp, &pc);
@@ -389,7 +391,7 @@ static void hex_dump(uintptr_t addr, void *buffer, size_t size)
 	pos = 0;
 
 	while (pos < size) {
-		printf("%08x:", addr + pos);
+		printf("%08lx:", addr + pos);
 		for (i = 0; i < LINE_BYTES; ++i) {
 			if (i % 4 == 0) putchar(' ');
 			printf(" %02x", data[pos + i]);
@@ -456,7 +458,7 @@ static void autoload_syms(void)
 		exit(1);
 	}
 
-	rc = symtab_load("/srv/xyz", &app_symtab);
+	rc = symtab_load(file_name, &app_symtab);
 	if (rc == EOK) {
 		printf("Loaded symbol table from %s\n", file_name);
 		free(file_name);
@@ -515,7 +517,7 @@ static char *fmt_sym_address(uintptr_t addr)
 	}
 
 	if (rc == EOK) {
-		rc = asprintf(&str, "(%p) %s+%p", addr, name, offs);
+		rc = asprintf(&str, "%p (%s+%p)", addr, name, offs);
 	} else {
 		rc = asprintf(&str, "%p", addr);
 	}
