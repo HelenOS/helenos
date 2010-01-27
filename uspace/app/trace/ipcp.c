@@ -278,7 +278,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to 0x%lx: retval=%ld, args = (%lu, %lu, %lu, %lu, %lu)\n",
+		printf("Response to %p: retval=%ld, args = (%lu, %lu, %lu, %lu, %lu)\n",
 			hash, retval, IPC_GET_ARG1(*answer),
 			IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 			IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
@@ -335,7 +335,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash 0x%lx)\n", hash);
+			printf("Not a response (hash %p)\n", hash);
 		}
 		return;
 	}

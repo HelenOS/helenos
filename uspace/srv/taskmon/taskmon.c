@@ -69,7 +69,7 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	printf(NAME ": Task %lld fault in thread 0x%lx.\n", taskid, thread);
+	printf(NAME ": Task %lld fault in thread %p.\n", taskid, thread);
 
 #ifdef CONFIG_VERBOSE_DUMPS
 	argv[0] = "/app/redir";

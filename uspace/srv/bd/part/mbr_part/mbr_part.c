@@ -63,6 +63,7 @@
 #include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <libblock.h>
 #include <devmap.h>
 #include <errno.h>
@@ -246,8 +247,9 @@ static int mbr_init(const char *dev_name)
 
 		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
-		printf(NAME ": Registered device %s: %llu blocks %llu MB.\n",
-		    name, part->length, size_mb);
+		printf(NAME ": Registered device %s: %" PRIu64 " blocks "
+		    "%" PRIu64 " MB.\n",
+		    name, (uint64_t) part->length, size_mb);
 
 		part->dev = dev;
 		free(name);
@@ -273,7 +275,7 @@ static int mbr_part_read(void)
 	brb = malloc(sizeof(br_block_t));
 	if (brb == NULL) {
 		printf(NAME ": Failed allocating memory.\n");
-		return ENOMEM;	
+		return ENOMEM;
 	}
 
 	/*
@@ -288,7 +290,8 @@ static int mbr_part_read(void)
 
 	sgn = uint16_t_le2host(brb->signature);
 	if (sgn != BR_SIGNATURE) {
-		printf(NAME ": Invalid boot record signature 0x%04X.\n", sgn);
+		printf(NAME ": Invalid boot record signature 0x%04" PRIX16
+		    ".\n", sgn);
 		return EINVAL;
 	}
 
@@ -338,8 +341,8 @@ static int mbr_part_read(void)
 
 		sgn = uint16_t_le2host(brb->signature);
 		if (sgn != BR_SIGNATURE) {
-			printf(NAME ": Invalid boot record signature 0x%04X "
-			    " in EBR at %u.\n", sgn, ba);
+			printf(NAME ": Invalid boot record signature 0x%04"
+			    PRIX16 " in EBR at %" PRIu32 ".\n", sgn, ba);
 			return EINVAL;
 		}
 

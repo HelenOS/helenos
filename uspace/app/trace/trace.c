@@ -197,7 +197,7 @@ static int get_thread_list(void)
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%lx)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash %p)", 1+i, thread_hash_buf[i]);
 	}
 	printf("\ntotal of %u threads\n", tb_needed / sizeof(uintptr_t));
 
@@ -221,7 +221,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 
 	case V_HASH:
 	case V_PTR:
-		printf("0x%08lx", val);
+		printf("%p", val);
 		break;
 
 	case V_ERRNO:
@@ -507,7 +507,7 @@ static int trace_loop(void *thread_hash_arg)
 		return ELIMIT;
 	}
 
-	printf("Start tracing thread [%d] (hash 0x%lx).\n", thread_id, thread_hash);
+	printf("Start tracing thread [%d] (hash %p).\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
@@ -551,7 +551,7 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread 0x%lx exited.\n", val0);
+				printf("Thread %p exited.\n", val0);
 				fibril_mutex_lock(&state_lock);
 				abort_trace = true;
 				fibril_condvar_broadcast(&state_cv);

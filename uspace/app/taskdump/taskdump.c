@@ -244,7 +244,7 @@ static int threads_dump(void)
 
 	printf("Threads:\n");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] hash: 0x%lx\n", 1+i, thash_buf[i]);
+		printf(" [%d] hash: %p\n", 1+i, thash_buf[i]);
 
 		thread_dump(thash_buf[i]);
 	}
@@ -288,7 +288,7 @@ static int areas_dump(void)
 
 	printf("Address space areas:\n");
 	for (i = 0; i < n_areas; i++) {
-		printf(" [%d] flags: %c%c%c%c base: 0x%lx size: 0x%lx\n", 1+i,
+		printf(" [%d] flags: %c%c%c%c base: %p size: %p\n", 1+i,
 		    (ainfo_buf[i].flags & AS_AREA_READ) ? 'R' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_WRITE) ? 'W' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_EXEC) ? 'X' : '-',
@@ -327,7 +327,7 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	sym_pc = fmt_sym_address(pc);
-	printf("Thread 0x%lx crashed at %s. FP = 0x%lx\n", thash, sym_pc, fp);
+	printf("Thread %p crashed at %s. FP = %p\n", thash, sym_pc, fp);
 	free(sym_pc);
 
 	st.op_arg = NULL;
