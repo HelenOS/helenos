@@ -40,6 +40,8 @@
 #include <udebug.h>
 #include <task.h>
 #include <kernel/mm/as.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 #include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>
@@ -92,14 +94,14 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld.\n", task_id);
+		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
 		return 1;
 	}
 
 	app_name = get_app_task_name();
 	app_symtab = NULL;
 
-	printf("Dumping task '%s' (task ID %lld).\n", app_name, task_id);
+	printf("Dumping task '%s' (task ID %" PRIdTASKID ").\n", app_name, task_id);
 	autoload_syms();
 	putchar('\n');
 
@@ -133,7 +135,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -244,7 +246,7 @@ static int threads_dump(void)
 
 	printf("Threads:\n");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] hash: 0x%lx\n", 1+i, thash_buf[i]);
+		printf(" [%d] hash: %p\n", 1+i, thash_buf[i]);
 
 		thread_dump(thash_buf[i]);
 	}
@@ -288,7 +290,7 @@ static int areas_dump(void)
 
 	printf("Address space areas:\n");
 	for (i = 0; i < n_areas; i++) {
-		printf(" [%d] flags: %c%c%c%c base: 0x%lx size: 0x%lx\n", 1+i,
+		printf(" [%d] flags: %c%c%c%c base: %p size: %p\n", 1+i,
 		    (ainfo_buf[i].flags & AS_AREA_READ) ? 'R' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_WRITE) ? 'W' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_EXEC) ? 'X' : '-',
@@ -327,7 +329,7 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	sym_pc = fmt_sym_address(pc);
-	printf("Thread 0x%lx crashed at %s. FP = 0x%lx\n", thash, sym_pc, fp);
+	printf("Thread %p crashed at %s. FP = %p\n", thash, sym_pc, fp);
 	free(sym_pc);
 
 	st.op_arg = NULL;
