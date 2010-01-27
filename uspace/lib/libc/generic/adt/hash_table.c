@@ -192,5 +192,25 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	}
 }
 
+/** Apply fucntion to all items in hash table.
+ *
+ * @param h		Hash table.
+ * @param f		Function to be applied.
+ * @param arg		Argument to be passed to the function.
+ */
+void
+hash_table_apply(hash_table_t *h, void (*f)(link_t *, void *), void *arg)
+{
+	hash_index_t bucket;
+	link_t *cur;
+
+	for (bucket = 0; bucket < h->entries; bucket++) {
+		for (cur = h->entry[bucket].next; cur != &h->entry[bucket];
+		    cur = cur->next) {
+			f(cur, arg);
+		}
+	}
+}
+
 /** @}
  */

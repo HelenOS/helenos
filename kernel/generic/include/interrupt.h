@@ -41,20 +41,11 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <ddi/irq.h>
+#include <stacktrace.h>
 
 typedef void (* iroutine)(int n, istate_t *istate);
 
-#define fault_if_from_uspace(istate, fmt, ...) \
-{ \
-	if (istate_from_uspace(istate)) { \
-		task_t *task = TASK; \
-		printf("Task %s (%" PRIu64 ") killed due to an exception at %p: ", task->name, task->taskid, istate_get_pc(istate)); \
-		printf(fmt "\n", ##__VA_ARGS__); \
-		task_kill(task->taskid); \
-		thread_exit(); \
-	} \
-}
-
+extern void fault_if_from_uspace(istate_t *istate, char *fmt, ...);
 extern iroutine exc_register(int n, const char *name, iroutine f);
 extern void exc_dispatch(int n, istate_t *t);
 void exc_init(void);

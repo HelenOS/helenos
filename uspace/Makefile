@@ -37,7 +37,9 @@ DIRS = \
 	app/getterm \
 	app/init \
 	app/klog \
+	app/mkfat \
 	app/redir \
+	app/taskdump \
 	app/tester \
 	app/tetris \
 	app/trace \
@@ -45,11 +47,13 @@ DIRS = \
 	srv/devmap \
 	srv/loader \
 	srv/ns \
+	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
+	srv/bd/part/guid_part \
 	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
@@ -79,7 +83,16 @@ LIBS = \
 	lib/libfs \
 	lib/libblock \
 	lib/softint \
-	lib/softfloat
+	lib/softfloat \
+
+ifeq ($(UARCH),amd64)
+	LIBS += lib/libpci
+endif
+
+ifeq ($(UARCH),ia32)
+	LIBS += lib/libpci
+endif
+
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

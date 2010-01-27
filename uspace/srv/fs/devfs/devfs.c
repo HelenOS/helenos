@@ -74,6 +74,12 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_MOUNT:
 			devfs_mount(callid, &call);
 			break;
+		case VFS_OUT_UNMOUNTED:
+			devfs_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			devfs_unmount(callid, &call);
+			break;
 		case VFS_OUT_LOOKUP:
 			devfs_lookup(callid, &call);
 			break;

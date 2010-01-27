@@ -55,6 +55,7 @@
 #define NAME "file_bd"
 
 static const size_t block_size = 512;
+static bn_t num_blocks;
 static FILE *img;
 
 static dev_handle_t dev_handle;
@@ -98,6 +99,7 @@ int main(int argc, char **argv)
 static int file_bd_init(const char *fname)
 {
 	int rc;
+	long img_size;
 
 	rc = devmap_driver_register(NAME, file_bd_connection);
 	if (rc < 0) {
@@ -108,6 +110,19 @@ static int file_bd_init(const char *fname)
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
+
+	if (fseek(img, 0, SEEK_END) != 0) {
+		fclose(img);
+		return EIO;
+	}
+
+	img_size = ftell(img);
+	if (img_size < 0) {
+		fclose(img);
+		return EIO;
+	}
+
+	num_blocks = img_size / block_size;
 
 	fibril_mutex_initialize(&dev_lock);
 
@@ -173,6 +188,10 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
 			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(num_blocks),
+			    UPPER32(num_blocks));
+			continue;
 		default:
 			retval = EINVAL;
 			break;
@@ -185,10 +204,17 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 {
 	size_t n_rd;
+	int rc;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, ba * block_size, SEEK_SET);
+	clearerr(img);
+	rc = fseek(img, ba * block_size, SEEK_SET);
+	if (rc < 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
+	}
+
 	n_rd = fread(buf, block_size, cnt, img);
 
 	if (ferror(img)) {
@@ -208,15 +234,27 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 {
 	size_t n_wr;
+	int rc;
 
 	fibril_mutex_lock(&dev_lock);
 
-	fseek(img, ba * block_size, SEEK_SET);
-	n_wr = fread(buf, block_size, cnt, img);
+	clearerr(img);
+	rc = fseek(img, ba * block_size, SEEK_SET);
+	if (rc < 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
+	}
+
+	n_wr = fwrite(buf, block_size, cnt, img);
 
 	if (ferror(img) || n_wr < cnt) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;	/* Write error */
+	}
+
+	if (fflush(img) != 0) {
+		fibril_mutex_unlock(&dev_lock);
+		return EIO;
 	}
 
 	fibril_mutex_unlock(&dev_lock);

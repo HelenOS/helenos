@@ -20,7 +20,7 @@
 #include <ipc/services.h>
 #include <errno.h>
 
-#include "libpci/pci.h"
+#include <pci.h>
 
 #define PCI_CONF1	0xcf8
 #define PCI_CONF1_SIZE	8

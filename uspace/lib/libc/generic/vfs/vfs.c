@@ -196,6 +196,44 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	return (int) rc;
 }
 
+int unmount(const char *mp)
+{
+	ipcarg_t rc;
+	ipcarg_t rc_orig;
+	aid_t req;
+	size_t mpa_size;
+	char *mpa;
+	
+	mpa = absolutize(mp, &mpa_size);
+	if (!mpa)
+		return ENOMEM;
+	
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	req = async_send_0(vfs_phone, VFS_IN_UNMOUNT, NULL);
+	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	if (rc != EOK) {
+		async_wait_for(req, &rc_orig);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(mpa);
+		if (rc_orig == EOK)
+			return (int) rc;
+		else
+			return (int) rc_orig;
+	}
+	
+
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	free(mpa);
+	
+	return (int) rc;
+}
+
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
 	futex_down(&vfs_phone_futex);

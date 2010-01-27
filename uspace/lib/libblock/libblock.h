@@ -59,8 +59,6 @@
  */
 #define BLOCK_FLAGS_NOREAD	1
 
-typedef uint64_t bn_t;	/**< Block number type. */
-
 typedef struct block {
 	/** Mutex protecting the reference count. */
 	fibril_mutex_t lock;
@@ -109,6 +107,7 @@ extern int block_seqread(dev_handle_t, off_t *, size_t *, off_t *, void *,
     size_t);
 
 extern int block_get_bsize(dev_handle_t, size_t *);
+extern int block_get_nblocks(dev_handle_t, bn_t *);
 extern int block_read_direct(dev_handle_t, bn_t, size_t, void *);
 extern int block_write_direct(dev_handle_t, bn_t, size_t, const void *);
 

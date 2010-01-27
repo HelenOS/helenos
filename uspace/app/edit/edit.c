@@ -97,6 +97,7 @@ static int con;
 static doc_t doc;
 static bool done;
 static pane_t pane;
+static bool cursor_visible;
 
 static int scr_rows, scr_columns;
 
@@ -107,6 +108,10 @@ static int scr_rows, scr_columns;
 
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
+
+static void cursor_show(void);
+static void cursor_hide(void);
+static void cursor_setvis(bool visible);
 
 static void key_handle_unmod(console_event_t const *ev);
 static void key_handle_ctrl(console_event_t const *ev);
@@ -198,13 +203,16 @@ int main(int argc, char *argv[])
 	sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
 
 	/* Initial display */
+	cursor_visible = true;
+
+	cursor_hide();
 	console_clear(con);
 	pane_text_display();
 	pane_status_display();
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
 	pane_caret_display();
-
+	cursor_show();
 
 	done = false;
 
@@ -229,6 +237,8 @@ int main(int argc, char *argv[])
 
 		/* Redraw as necessary. */
 
+		cursor_hide();
+
 		if (pane.rflags & REDRAW_TEXT)
 			pane_text_display();
 		if (pane.rflags & REDRAW_ROW)
@@ -237,11 +247,31 @@ int main(int argc, char *argv[])
 			pane_status_display();
 		if (pane.rflags & REDRAW_CARET)
 			pane_caret_display();
+
+		cursor_show();
 	}
 
 	console_clear(con);
 
 	return 0;
+}
+
+static void cursor_show(void)
+{
+	cursor_setvis(true);
+}
+
+static void cursor_hide(void)
+{
+	cursor_setvis(false);
+}
+
+static void cursor_setvis(bool visible)
+{
+	if (cursor_visible != visible) {
+		console_cursor_visibility(con, visible);
+		cursor_visible = visible;
+	}
 }
 
 /** Handle key without modifier. */

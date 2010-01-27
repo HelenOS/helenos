@@ -268,6 +268,7 @@ sysenter_handler:
 	pushl %fs
 	pushl %gs
 
+	pushl %ebp
 	pushl %edx
 	pushl %ecx
 	pushl %eax
@@ -277,7 +278,8 @@ sysenter_handler:
 	movw %ax, %ds
 	movw %ax, %es
 
-	cld
+	# stop stack traces here
+	xorl %ebp, %ebp
 
 	pushl %esp          # *istate
 	pushl $(\i)         # intnum
@@ -289,6 +291,7 @@ sysenter_handler:
 	popl %eax
 	popl %ecx
 	popl %edx
+	popl %ebp
 	
 	popl %gs
 	popl %fs

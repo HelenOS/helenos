@@ -180,6 +180,9 @@ extern int vfs_open_node_internal(vfs_lookup_res_t *);
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
+extern void vfs_node_forget(vfs_node_t *);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, dev_handle_t);
+
 
 #define MAX_OPEN_FILES	128
 
@@ -197,6 +200,7 @@ extern void vfs_node_delref(vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
+extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);

@@ -225,6 +225,51 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	    IPC_GET_ARG3(answer));
 }
 
+void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
+	fs_node_t *fn;
+	int res;
+
+	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
+	if ((res != EOK) || (!fn)) {
+		ipc_answer_0(rid, combine_rc(res, ENOENT));
+		return;
+	}
+
+	/*
+	 * We are clearly expecting to find the mount point active.
+	 */
+	if (!fn->mp_data.mp_active) {
+		(void) ops->node_put(fn);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Tell the mounted file system to unmount.
+	 */
+	res = async_req_1_0(fn->mp_data.phone, VFS_OUT_UNMOUNTED,
+	    fn->mp_data.dev_handle);
+
+	/*
+	 * If everything went well, perform the clean-up on our side.
+	 */
+	if (res == EOK) {
+		ipc_hangup(fn->mp_data.phone);
+		fn->mp_data.mp_active = false;
+		fn->mp_data.fs_handle = 0;
+		fn->mp_data.dev_handle = 0;
+		fn->mp_data.phone = 0;
+		/* Drop the reference created in libfs_mount(). */
+		(void) ops->node_put(fn);
+	}
+
+	(void) ops->node_put(fn);
+	ipc_answer_0(rid, res);
+}
+
 /** Lookup VFS triplet by name in the file system name space.
  *
  * The path passed in the PLB must be in the canonical file system path format
@@ -303,7 +348,18 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		rc = ops->match(&tmp, cur, component);
 		on_error(rc, goto out_with_answer);
 		
-		if ((tmp) && (tmp->mp_data.mp_active)) {
+		/*
+		 * If the matching component is a mount point, there are two
+		 * legitimate semantics of the lookup operation. The first is
+		 * the commonly used one in which the lookup crosses each mount
+		 * point into the mounted file system. The second semantics is
+		 * used mostly during unmount() and differs from the first one
+		 * only in that the last mount point in the looked up path,
+		 * which is also its last component, is not crossed.
+		 */
+
+		if ((tmp) && (tmp->mp_data.mp_active) &&
+		    (!(lflag & L_MP) || (next <= last))) {
 			if (next > last)
 				next = last = first;
 			else
@@ -472,6 +528,11 @@ skip_miss:
 	
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		ipc_answer_0(rid, ENOTDIR);
+		goto out;
+	}
+
+	if ((lflag & L_ROOT) && par) {
+		ipc_answer_0(rid, EINVAL);
 		goto out;
 	}
 	

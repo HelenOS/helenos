@@ -30,6 +30,7 @@
 ## Common names
 #
 
+include ../../../../Makefile.config
 include ../../../Makefile.common
 
 DEPEND = Makefile.depend
@@ -43,3 +44,9 @@ COMPS = _components
 
 KERNELDIR = ../../../../kernel
 USPACEDIR = ../../../../uspace
+
+ifeq ($(MACHINE),i460GX)
+	RD_SRVS += \
+		$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+		$(USPACEDIR)/srv/hid/c_mouse/c_mouse
+endif
