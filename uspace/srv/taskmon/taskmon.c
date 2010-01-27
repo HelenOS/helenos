@@ -71,25 +71,26 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 
 	printf(NAME ": Task %lld fault in thread 0x%lx.\n", taskid, thread);
 
-	argv[0] = fname = "/app/redir";
+#ifdef CONFIG_VERBOSE_DUMPS
+	argv[0] = "/app/redir";
 	argv[1] = "-i";
 	argv[2] = "/readme";
 	argv[3] = "-o";
 	argv[4] = dump_fname;
 	argv[5] = "--";
-
-#ifdef CONFIG_VERBOSE_DUMPS
 	argv[6] = "/app/taskdump";
 	argv[7] = "-m";
 	argv[8] = "-t";
 	argv[9] = s_taskid;
 	argv[10] = NULL;
 #else
-	argv[6] = "/app/taskdump";
-	argv[7] = "-t";
-	argv[8] = s_taskid;
-	argv[9] = NULL;
+	argv[0] = "/app/taskdump";
+	argv[1] = "-t";
+	argv[2] = s_taskid;
+	argv[3] = NULL;
 #endif
+	fname = argv[0];
+
 	printf(NAME ": Executing");
         s = argv;
 	while (*s != NULL) {
