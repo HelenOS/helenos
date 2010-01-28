@@ -205,9 +205,14 @@ int symtab_name_to_addr(symtab_t *st, char *name, uintptr_t *addr)
 {
 	size_t i;
 	char *sname;
+	unsigned stype;
 
 	for (i = 0; i < st->sym_size / sizeof(elf_symbol_t); ++i) {
 		if (st->sym[i].st_name == 0)
+			continue;
+
+		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		if (stype != STT_OBJECT && stype != STT_FUNC)
 			continue;
 
 		sname = st->strtab + st->sym[i].st_name;
@@ -239,12 +244,17 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 	size_t i;
 	uintptr_t saddr, best_addr;
 	char *sname, *best_name;
+	unsigned stype;
 
 	best_name = NULL;
 	best_addr = 0;
 
 	for (i = 0; i < st->sym_size / sizeof(elf_symbol_t); ++i) {
 		if (st->sym[i].st_name == 0)
+			continue;
+
+		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		if (stype != STT_OBJECT && stype != STT_FUNC)
 			continue;
 
 		saddr = st->sym[i].st_value;
