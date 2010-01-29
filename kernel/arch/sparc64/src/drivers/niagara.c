@@ -51,8 +51,10 @@
 #include <console/console.h>
 #include <genarch/srln/srln.h>
 
+/* polling interval in miliseconds */
 #define POLL_INTERVAL  10000
 
+/* device instance */
 static niagara_instance_t *instance = NULL;
 
 static void niagara_putchar(outdev_t *, const wchar_t, bool);
@@ -123,6 +125,7 @@ static void niagara_putchar(outdev_t *dev, const wchar_t ch, bool silent)
  */
 static void niagara_poll(niagara_instance_t *instance)
 {
+	/* print any pending characters from the shared buffer to the console */
 	while (output_buffer.read_ptr != output_buffer.write_ptr) {
 		do_putchar(output_buffer.data[output_buffer.read_ptr]);
 		output_buffer.read_ptr =
@@ -131,16 +134,18 @@ static void niagara_poll(niagara_instance_t *instance)
 
 	uint64_t c;
 
+	/* read character from keyboard, send it to upper layers of HelenOS */
 	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
 		if (!silent) {
+			/* kconsole active, send the character to kernel */
 			indev_push_character(instance->srlnin, c);
 		} else {
+			/* kconsole inactive, send the character to uspace driver */
 			input_buffer.data[input_buffer.write_ptr] = (char) c;
 			input_buffer.write_ptr =
 				((input_buffer.write_ptr) + 1) % INPUT_BUFFER_SIZE;
 		}
 	}
-
 }
 
 /**
@@ -176,17 +181,19 @@ static void niagara_init(void)
 	}
 
 	instance->srlnin = NULL;
-	sysinfo_set_item_val("fb.kind", NULL, 5);
+
+	output_buffer.read_ptr = 0;
+	output_buffer.write_ptr = 0;
+	input_buffer.write_ptr = 0;
+	input_buffer.read_ptr = 0;
 
 	/*
 	 * Set sysinfos and pareas so that the userspace counterpart of the
 	 * niagara fb and kbd driver can communicate with kernel using shared
 	 * buffers.
  	 */
-	output_buffer.read_ptr = 0;
-	output_buffer.write_ptr = 0;
-	input_buffer.write_ptr = 0;
-	input_buffer.read_ptr = 0;
+
+	sysinfo_set_item_val("fb.kind", NULL, 5);
 
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,
 		KA2PA(&output_buffer));

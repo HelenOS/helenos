@@ -218,15 +218,12 @@ int main(int argc, char **argv)
 	else if (sysinfo_value("kbd.cir.obio") == 1)
 		cir_service = SERVICE_OBIO;
 	
-/*
 	if (cir_service) {
 		while (cir_phone < 0) {
 			cir_phone = ipc_connect_me_to_blocking(PHONE_NS, cir_service,
 			    0, 0);
 		}
 	}
-*/
-printf("KBD driver!!!\n");
 	
 	/* Initialize port driver. */
 	if (kbd_port_init() != 0)

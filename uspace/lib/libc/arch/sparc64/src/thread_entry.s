@@ -38,7 +38,6 @@ __thread_entry:
 	# Create the first stack frame.
 	#
 
-	# MH
 	#save %sp, -176, %sp
 	#flushw
 	#add %g0, -0x7ff, %fp

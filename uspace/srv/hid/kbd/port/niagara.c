@@ -66,14 +66,15 @@ typedef volatile struct {
 	__attribute__ ((aligned(PAGE_SIZE)))
 	*input_buffer_t;
 
+/* virtual address of the shared buffer */
 input_buffer_t input_buffer;
 
 static volatile bool polling_disabled = false;
 static void *niagara_thread_impl(void *arg);
 
 /**
- * Initializes the SGCN driver.
- * Maps the physical memory (SRAM) and creates the polling thread. 
+ * Initializes the Niagara driver.
+ * Maps the shared buffer and creates the polling thread. 
  */
 int kbd_port_init(void)
 {
@@ -116,8 +117,8 @@ void kbd_port_write(uint8_t data)
 }
 
 /**
- * Handler of the "key pressed" event. Reads codes of all the pressed keys from
- * the buffer. 
+ * Called regularly by the polling thread. Reads codes of all the
+ * pressed keys from the buffer. 
  */
 static void niagara_key_pressed(void)
 {
