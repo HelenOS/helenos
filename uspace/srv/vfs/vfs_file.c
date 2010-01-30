@@ -73,6 +73,24 @@ bool vfs_files_init(void)
 	return true;
 }
 
+/** Cleanup the table of open files. */
+void vfs_files_done(void)
+{
+	int i;
+
+	if (!files)
+		return;
+
+	for (i = 0; i < MAX_OPEN_FILES; i++) {
+		if (files[i]) {
+			(void) vfs_close_internal(files[i]);
+			(void) vfs_fd_free(i);
+		}
+	}
+	
+	free(files);
+}
+
 /** Allocate a file descriptor.
  *
  * @param desc If true, look for an available file descriptor

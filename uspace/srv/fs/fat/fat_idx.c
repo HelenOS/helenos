@@ -530,10 +530,12 @@ int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 		return ENOMEM;
 	unused_initialize(u, dev_handle);
 	fibril_mutex_lock(&unused_lock);
-	if (!unused_find(dev_handle, false))
+	if (!unused_find(dev_handle, false)) {
 		list_append(&u->link, &unused_head);
-	else
+	} else {
+		free(u);
 		rc = EEXIST;
+	}
 	fibril_mutex_unlock(&unused_lock);
 	return rc;
 }

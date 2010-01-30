@@ -816,7 +816,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
-static int vfs_close_internal(vfs_file_t *file)
+int vfs_close_internal(vfs_file_t *file)
 {
 	/*
 	 * Lock the open file structure so that no other thread can manipulate
