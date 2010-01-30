@@ -136,7 +136,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	/* TODO: cleanup after the client */
+	vfs_files_done();
 }
 
 int main(int argc, char **argv)
