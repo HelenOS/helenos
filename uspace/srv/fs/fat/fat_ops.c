@@ -1014,6 +1014,8 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	else
 		cmode = CACHE_MODE_WB;
 
+	free(opts);
+
 	/* initialize libblock */
 	rc = block_init(dev_handle, BS_SIZE);
 	if (rc != EOK) {
