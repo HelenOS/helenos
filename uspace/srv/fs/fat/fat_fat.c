@@ -607,6 +607,76 @@ fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 	return EOK;
 }
 
+/** Perform basic sanity checks on the file system.
+ *
+ * Verify if values of boot sector fields are sane. Also verify media
+ * descriptor. This is used to rule out cases when a device obviously
+ * does not contain a fat file system.
+ */
+int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
+{
+	fat_cluster_t e0, e1;
+	unsigned fat_no;
+	int rc;
+
+	/* Check number of FATs. */
+	if (bs->fatcnt == 0)
+		return ENOTSUP;
+
+	/* Check total number of sectors. */
+
+	if (bs->totsec16 == 0 && bs->totsec32 == 0)
+		return ENOTSUP;
+
+	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
+	    bs->totsec16 != bs->totsec32) 
+		return ENOTSUP;
+
+	/* Check media descriptor. Must be between 0xf0 and 0xff. */
+	if ((bs->mdesc & 0xf0) != 0xf0)
+		return ENOTSUP;
+
+	/* Check number of sectors per FAT. */
+	if (bs->sec_per_fat == 0)
+		return ENOTSUP;
+
+	/*
+	 * Check that the root directory entries take up whole blocks.
+	 * This check is rather strict, but it allows us to treat the root
+	 * directory and non-root directories uniformly in some places.
+	 * It can be removed provided that functions such as fat_read() are
+	 * sanitized to support file systems with this property.
+	 */
+	if ((uint16_t_le2host(bs->root_ent_max) * sizeof(fat_dentry_t)) %
+	    uint16_t_le2host(bs->bps) != 0)
+		return ENOTSUP;
+
+	/* Check signature of each FAT. */
+
+	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
+		rc = fat_get_cluster(bs, dev_handle, fat_no, 0, &e0);
+		if (rc != EOK)
+			return EIO;
+
+		rc = fat_get_cluster(bs, dev_handle, fat_no, 1, &e1);
+		if (rc != EOK)
+			return EIO;
+
+		/* Check that first byte of FAT contains the media descriptor. */
+		if ((e0 & 0xff) != bs->mdesc)
+			return ENOTSUP;
+
+		/*
+		 * Check that remaining bits of the first two entries are
+		 * set to one.
+		 */
+		if ((e0 >> 8) != 0xff || e1 != 0xffff)
+			return ENOTSUP;
+	}
+
+	return EOK;
+}
+
 /**
  * @}
  */ 
