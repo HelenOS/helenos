@@ -438,6 +438,7 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *rootfn;
 	int rc;
 
 	/* accept the mount options */
@@ -462,6 +463,17 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 	opts[size] = '\0';
 
+	/*
+	 * Check if this device is not already mounted.
+	 */
+	rc = tmpfs_root_get(&rootfn, dev_handle);
+	if ((rc == EOK) && (rootfn)) {
+		(void) tmpfs_node_put(&rootfn);
+		free(opts);
+		ipc_answer_0(rid, EEXIST);
+		return;
+	}
+
 	/* Initialize TMPFS instance. */
 	if (!tmpfs_instance_init(dev_handle)) {
 		free(opts);
@@ -469,7 +481,6 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	fs_node_t *rootfn;
 	rc = tmpfs_root_get(&rootfn, dev_handle);
 	assert(rc == EOK);
 	tmpfs_node_t *rootp = TMPFS_NODE(rootfn);
