@@ -36,7 +36,7 @@
 
 #include <stdio.h>
 #include <mouse_proto.h>
-#include <c_mouse.h>
+#include <char_mouse.h>
 
 #define BUFSIZE 3
 

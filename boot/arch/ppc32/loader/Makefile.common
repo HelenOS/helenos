@@ -43,4 +43,6 @@ COMPS = _components
 KERNELDIR = ../../../../kernel
 USPACEDIR = ../../../../uspace
 
-RD_SRVS += $(USPACEDIR)/srv/hw/bus/cuda_adb/cuda_adb
+RD_SRVS += \
+	$(USPACEDIR)/srv/hid/adb_mouse/adb_ms \
+	$(USPACEDIR)/srv/hw/bus/cuda_adb/cuda_adb

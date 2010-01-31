@@ -288,7 +288,8 @@ int main(int argc, char *argv[])
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
-	srv_start("/srv/c_mouse");
+	srv_start("/srv/adb_ms");
+	srv_start("/srv/char_ms");
 
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
@@ -313,14 +314,14 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 
-	getterm("term/vc0", "/app/klog");
+	getterm("term/vc0", "/app/bdsh");
 	getterm("term/vc1", "/app/bdsh");
 	getterm("term/vc2", "/app/bdsh");
 	getterm("term/vc3", "/app/bdsh");
 	getterm("term/vc4", "/app/bdsh");
 	getterm("term/vc5", "/app/bdsh");
-/*	getterm("term/vc6", "/app/klog");*/
-	
+	getterm("term/vc6", "/app/klog");
+
 	return 0;
 }
 

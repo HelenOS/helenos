@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,12 +33,15 @@
 /** @file
  */
 
-#ifndef C_MOUSE_H_
-#define C_MOUSE_H_
+#ifndef ADB_MOUSE_H_
+#define ADB_MOUSE_H_
 
-extern void mouse_handle_byte(int);
-extern void mouse_ev_btn(int button, int press);
-extern void mouse_ev_move(int dx, int dy);
+#include <sys/types.h>
+
+#define NAME       "adb_ms"
+#define NAMESPACE  "hid_in"
+
+extern void mouse_handle_data(uint16_t);
 
 #endif
 

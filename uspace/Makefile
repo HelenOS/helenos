@@ -58,8 +58,9 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
+	srv/hid/adb_mouse \
 	srv/hid/console \
-	srv/hid/c_mouse \
+	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042

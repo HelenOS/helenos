@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,24 +34,22 @@
  */
 
 #include <ipc/ipc.h>
-#include <ipc/char.h>
+#include <ipc/adb.h>
 #include <async.h>
 #include <vfs/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
 
-#include <c_mouse.h>
-#include <mouse_port.h>
+#include "adb_mouse.h"
+#include "adb_dev.h"
 
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall);
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall);
 
 static int dev_phone;
 
-#define NAME "kbd"
-
-int mouse_port_init(void)
+int adb_dev_init(void)
 {
-	char *input = "/dev/char/ps2b";
+	char *input = "/dev/adb/mouse";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);
@@ -75,25 +73,12 @@ int mouse_port_init(void)
 		return false;
 	}
 
-	async_new_connection(phonehash, 0, NULL, chardev_events);
+	async_new_connection(phonehash, 0, NULL, adb_dev_events);
 
 	return 0;
 }
 
-void mouse_port_yield(void)
-{
-}
-
-void mouse_port_reclaim(void)
-{
-}
-
-void mouse_port_write(uint8_t data)
-{
-	async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
-}
-
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
@@ -108,7 +93,7 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
 			/* TODO: Handle hangup */
 			return;
 		case IPC_FIRST_USER_METHOD:
-			mouse_handle_byte(IPC_GET_ARG1(call));
+			mouse_handle_data(IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;
