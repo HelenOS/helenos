@@ -27,18 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../../..
+LIBS = $(LIBPCI_PREFIX)/libpci.a $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS = -I$(LIBPCI_PREFIX)
 
-.PHONY: all clean
+OUTPUT = pci
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+SOURCES = \
+	pci.c
 
-$(LIBPCI):
-	$(MAKE) -C libpci PRECHECK=$(PRECHECK)
-
-clean:
-	$(MAKE) -C libpci clean
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include ../../../Makefile.common

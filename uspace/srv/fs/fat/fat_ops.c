@@ -325,6 +325,17 @@ static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
 	if (bs->sec_per_fat == 0)
 		return ENOTSUP;
 
+	/*
+	 * Check that the root directory entries take up whole blocks.
+	 * This check is rather strict, but it allows us to treat the root
+	 * directory and non-root directories uniformly in some places.
+	 * It can be removed provided that functions such as fat_read() are
+	 * sanitized to support file systems with this property.
+	 */
+	if ((uint16_t_le2host(bs->root_ent_max) * sizeof(fat_dentry_t)) %
+	    uint16_t_le2host(bs->bps) != 0)
+		return ENOTSUP;
+
 	/* Check signature of each FAT. */
 
 	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
