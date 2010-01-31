@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,85 +26,82 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup mouse
  * @{
- */
+ */ 
 /** @file
+ * @brief
  */
 
-#include <arch.h>
-#include <arch/types.h>
-#include <arch/context.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
+#include <ipc/ipc.h>
+#include <ipc/adb.h>
+#include <async.h>
+#include <vfs/vfs.h>
+#include <fcntl.h>
+#include <errno.h>
 
-#include <config.h>
-#include <interrupt.h>
-#include <ddi/irq.h>
-#include <proc/thread.h>
-#include <syscall/syscall.h>
-#include <console/console.h>
-#include <sysinfo/sysinfo.h>
-#include <memstr.h>
+#include "adb_mouse.h"
+#include "adb_dev.h"
 
-void arch_pre_mm_init(void)
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall);
+
+static int dev_phone;
+
+int adb_dev_init(void)
 {
-}
+	char *input = "/dev/adb/mouse";
+	int input_fd;
 
-void arch_post_mm_init(void)
-{
-	if (config.cpu_active == 1) {
-		/* Initialize IRQ routing */
-		irq_init(0, 0);
-		
-		/* Merge all memory zones to 1 big zone */
-		zone_merge_all();
+	printf(NAME ": open %s\n", input);
+
+	input_fd = open(input, O_RDONLY);
+	if (input_fd < 0) {
+		printf(NAME ": Failed opening %s (%d)\n", input, input_fd);
+		return false;
 	}
-}
 
-void arch_post_cpu_init()
-{
-}
+	dev_phone = fd_phone(input_fd);
+	if (dev_phone < 0) {
+		printf(NAME ": Failed to connect to device\n");
+		return false;
+	}
 
-void arch_pre_smp_init(void)
-{
-}
+	/* NB: The callback connection is slotted for removal */
+	ipcarg_t phonehash;
+	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
+		printf(NAME ": Failed to create callback from device\n");
+		return false;
+	}
 
-void arch_post_smp_init(void)
-{
-}
+	async_new_connection(phonehash, 0, NULL, adb_dev_events);
 
-void calibrate_delay_loop(void)
-{
-}
-
-unative_t sys_tls_set(unative_t addr)
-{
 	return 0;
 }
 
-/** Construct function pointer
- *
- * @param fptr   function pointer structure
- * @param addr   function address
- * @param caller calling function address
- *
- * @return address of the function pointer
- *
- */
-void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
+static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall)
 {
-	return addr;
+	/* Ignore parameters, the connection is already opened */
+	while (true) {
+
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+
+		int retval;
+
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			/* TODO: Handle hangup */
+			return;
+		case IPC_FIRST_USER_METHOD:
+			mouse_handle_data(IPC_GET_ARG1(call));
+			break;
+		default:
+			retval = ENOENT;
+		}
+		ipc_answer_0(callid, retval);
+	}
 }
 
-void arch_reboot(void)
-{
-}
-
-void irq_initialize_arch(irq_t *irq)
-{
-	(void) irq;
-}
-
-/** @}
+/**
+ * @}
  */
