@@ -391,7 +391,7 @@ static void ldr_run(ipc_callid_t rid, ipc_call_t *request)
 	if (is_dyn_linked == true) {
 		/* Dynamically linked program */
 		DPRINTF("Run ELF interpreter.\n");
-		DPRINTF("Entry point: 0x%lx\n", interp_info.entry);
+		DPRINTF("Entry point: %p\n", interp_info.entry);
 		
 		ipc_answer_0(rid, EOK);
 		elf_run(&interp_info, &pcb);

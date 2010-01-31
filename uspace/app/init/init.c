@@ -232,6 +232,20 @@ static void getterm(char *dev, char *app)
 		printf(NAME ": Error waiting on %s\n", term);
 }
 
+static void mount_scratch(void)
+{
+	int rc;
+
+	printf("Trying to mount null/0 on /scratch... ");
+	fflush(stdout);
+
+	rc = mount("tmpfs", "/scratch", "null/0", "", 0);
+	if (rc == EOK)
+		printf("OK\n");
+	else
+		printf("Failed\n");
+}
+
 static void mount_data(void)
 {
 	int rc;
@@ -254,18 +268,28 @@ int main(int argc, char *argv[])
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
+
+	/* Make sure tmpfs is running. */
+	if (str_cmp(STRING(RDFMT), "tmpfs") != 0) {
+		spawn("/srv/tmpfs");
+	}
 	
 	spawn("/srv/devfs");
+	spawn("/srv/taskmon");
 	
 	if (!mount_devfs()) {
 		printf(NAME ": Exiting\n");
 		return -2;
 	}
+
+	mount_scratch();
 	
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
+	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
-	srv_start("/srv/c_mouse");
+	srv_start("/srv/adb_ms");
+	srv_start("/srv/char_ms");
 
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
@@ -297,7 +321,7 @@ int main(int argc, char *argv[])
 	getterm("term/vc4", "/app/bdsh");
 	getterm("term/vc5", "/app/bdsh");
 	getterm("term/vc6", "/app/klog");
-	
+
 	return 0;
 }
 

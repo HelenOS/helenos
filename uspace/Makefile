@@ -39,6 +39,7 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/taskdump \
 	app/tester \
 	app/tetris \
 	app/trace \
@@ -46,6 +47,7 @@ DIRS = \
 	srv/devmap \
 	srv/loader \
 	srv/ns \
+	srv/taskmon \
 	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
@@ -56,8 +58,9 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
+	srv/hid/adb_mouse \
 	srv/hid/console \
-	srv/hid/c_mouse \
+	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042
@@ -68,6 +71,10 @@ endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += srv/hw/bus/pci
+endif
+
+ifeq ($(UARCH),ppc32)
+	DIRS += srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)

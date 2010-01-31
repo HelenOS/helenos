@@ -211,10 +211,12 @@ int ipc_call_sync(phone_t *phone, call_t *request)
 /** Answer a message which was not dispatched and is not listed in any queue.
  *
  * @param call		Call structure to be answered.
+ * @param selflocked	If true, then TASK->answebox is locked.
  */
-static void _ipc_answer_free_call(call_t *call)
+static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
 	answerbox_t *callerbox = call->callerbox;
+	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
 
 	call->flags |= IPC_CALL_ANSWERED;
 
@@ -225,9 +227,11 @@ static void _ipc_answer_free_call(call_t *call)
 		}
 	}
 
-	spinlock_lock(&callerbox->lock);
+	if (do_lock)
+		spinlock_lock(&callerbox->lock);
 	list_append(&call->link, &callerbox->answers);
-	spinlock_unlock(&callerbox->lock);
+	if (do_lock)
+		spinlock_unlock(&callerbox->lock);
 	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
 }
 
@@ -243,7 +247,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
 	list_remove(&call->link);
 	spinlock_unlock(&box->lock);
 	/* Send back answer */
-	_ipc_answer_free_call(call);
+	_ipc_answer_free_call(call, false);
 }
 
 /** Simulate sending back a message.
@@ -260,7 +264,7 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
 	IPC_SET_RETVAL(call->data, err);
-	_ipc_answer_free_call(call);
+	_ipc_answer_free_call(call, false);
 }
 
 /** Unsafe unchecking version of ipc_call.
@@ -299,7 +303,7 @@ int ipc_call(phone_t *phone, call_t *call)
 		mutex_unlock(&phone->lock);
 		if (call->flags & IPC_CALL_FORWARDED) {
 			IPC_SET_RETVAL(call->data, EFORWARD);
-			_ipc_answer_free_call(call);
+			_ipc_answer_free_call(call, false);
 		} else {
 			if (phone->state == IPC_PHONE_HUNGUP)
 				ipc_backsend_err(phone, call, EHANGUP);
@@ -454,7 +458,7 @@ void ipc_cleanup_call_list(link_t *lst)
 		list_remove(&call->link);
 
 		IPC_SET_RETVAL(call->data, EHANGUP);
-		_ipc_answer_free_call(call);
+		_ipc_answer_free_call(call, true);
 	}
 }
 

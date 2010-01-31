@@ -178,5 +178,10 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	return addr;
 }
 
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
+}
+
 /** @}
  */

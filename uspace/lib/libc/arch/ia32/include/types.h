@@ -35,6 +35,8 @@
 #ifndef LIBC_ia32_TYPES_H_
 #define LIBC_ia32_TYPES_H_
 
+#define __32_BITS__
+
 typedef unsigned int sysarg_t;
 
 typedef char int8_t;
