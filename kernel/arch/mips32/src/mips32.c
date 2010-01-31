@@ -45,6 +45,7 @@
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 #include <console/chardev.h>
 #include <arch/barrier.h>
 #include <arch/debugger.h>
@@ -254,6 +255,11 @@ void arch_reboot(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

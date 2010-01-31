@@ -124,8 +124,8 @@ endif
 
 ifeq ($(UARCH),ppc32)
 	SOURCES += \
-		port/dummy.c \
-		ctl/stty.c
+		port/adb.c \
+		ctl/apple.c
 endif
 
 ifeq ($(UARCH),sparc64)

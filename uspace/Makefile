@@ -72,6 +72,10 @@ ifeq ($(UARCH),ia32)
 	DIRS += srv/hw/bus/pci
 endif
 
+ifeq ($(UARCH),ppc32)
+	DIRS += srv/hw/bus/cuda_adb
+endif
+
 ifeq ($(UARCH),sparc64)
 	DIRS += \
 		srv/hw/cir/fhc \
