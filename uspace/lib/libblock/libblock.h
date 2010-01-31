@@ -99,6 +99,7 @@ extern int block_bb_read(dev_handle_t, bn_t);
 extern void *block_bb_get(dev_handle_t);
 
 extern int block_cache_init(dev_handle_t, size_t, unsigned, enum cache_mode);
+extern int block_cache_fini(dev_handle_t);
 
 extern int block_get(block_t **, dev_handle_t, bn_t, int);
 extern int block_put(block_t *);

@@ -138,6 +138,65 @@ static int fat_node_sync(fat_node_t *node)
 	return rc;
 }
 
+static int fat_node_fini_by_dev_handle(dev_handle_t dev_handle)
+{
+	link_t *lnk;
+	fat_node_t *nodep;
+	int rc;
+
+	/*
+	 * We are called from fat_unmounted() and assume that there are already
+	 * no nodes belonging to this instance with non-zero refcount. Therefore
+	 * it is sufficient to clean up only the FAT free node list.
+	 */
+
+restart:
+	fibril_mutex_lock(&ffn_mutex);
+	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
+		if (!fibril_mutex_trylock(&nodep->lock)) {
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (!fibril_mutex_trylock(&nodep->idx->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (nodep->idx->dev_handle != dev_handle) {
+			fibril_mutex_unlock(&nodep->idx->lock);
+			fibril_mutex_unlock(&nodep->lock);
+			continue;
+		}
+
+		list_remove(&nodep->ffn_link);
+		fibril_mutex_unlock(&ffn_mutex);
+
+		/*
+		 * We can unlock the node and its index structure because we are
+		 * the last player on this playground and VFS is preventing new
+		 * players from entering.
+		 */
+		fibril_mutex_unlock(&nodep->idx->lock);
+		fibril_mutex_unlock(&nodep->lock);
+
+		if (nodep->dirty) {
+			rc = fat_node_sync(nodep);
+			if (rc != EOK)
+				return rc;
+		}
+		nodep->idx->nodep = NULL;
+		free(nodep->bp);
+		free(nodep);
+
+		/* Need to restart because we changed the ffn_head list. */
+		goto restart;
+	}
+	fibril_mutex_unlock(&ffn_mutex);
+
+	return EOK;
+}
+
 static int fat_node_get_new(fat_node_t **nodepp)
 {
 	fs_node_t *fn;
@@ -985,6 +1044,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, dev_handle);
 	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
@@ -992,6 +1052,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
@@ -1000,6 +1061,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1009,6 +1071,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
 		free(rfn);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1020,6 +1083,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (!ridxp) {
 		free(rfn);
 		free(rootp);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1050,7 +1114,45 @@ void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *fn;
+	fat_node_t *nodep;
+	int rc;
+
+	rc = fat_root_get(&fn, dev_handle);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	nodep = FAT_NODE(fn);
+
+	/*
+	 * We expect exactly two references on the root node. One for the
+	 * fat_root_get() above and one created in fat_mounted().
+	 */
+	if (nodep->refcnt != 2) {
+		(void) fat_node_put(fn);
+		ipc_answer_0(rid, EBUSY);
+		return;
+	}
+	
+	/*
+	 * Put the root node and force it to the FAT free node list.
+	 */
+	(void) fat_node_put(fn);
+	(void) fat_node_put(fn);
+
+	/*
+	 * Perform cleanup of the node structures, index structures and
+	 * associated data. Write back this file system's dirty blocks and
+	 * stop using libblock for this instance.
+	 */
+	(void) fat_node_fini_by_dev_handle(dev_handle);
+	fat_idx_fini_by_dev_handle(dev_handle);
+	(void) block_cache_fini(dev_handle);
+	block_fini(dev_handle);
+
+	ipc_answer_0(rid, EOK);
 }
 
 void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
