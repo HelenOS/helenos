@@ -167,7 +167,7 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 		return ((nodep->dev_handle == key[NODES_KEY_DEV]) &&
 		    (nodep->index == key[NODES_KEY_INDEX]));
 	default:
-		abort();
+		assert((keys == 1) || (keys == 2));
 	}
 }
 
