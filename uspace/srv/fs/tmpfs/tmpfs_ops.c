@@ -169,6 +169,8 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	default:
 		assert((keys == 1) || (keys == 2));
 	}
+
+	return 0;
 }
 
 static void nodes_remove_callback(link_t *item)
@@ -468,7 +470,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	rc = tmpfs_root_get(&rootfn, dev_handle);
 	if ((rc == EOK) && (rootfn)) {
-		(void) tmpfs_node_put(&rootfn);
+		(void) tmpfs_node_put(rootfn);
 		free(opts);
 		ipc_answer_0(rid, EEXIST);
 		return;
