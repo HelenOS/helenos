@@ -229,9 +229,9 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
-	void *buf;
+	fdi_node_t *buf;
 	size_t buf_size;
-	int rc = async_data_receive(&buf, 0, sizeof(fdi_node_t), &buf_size);
+	int rc = async_data_receive(&buf, 0, 0, sizeof(fdi_node_t), &buf_size);
 	
 	if (rc == EOK) {
 		int count = buf_size / sizeof(fdi_node_t);
@@ -251,7 +251,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		int i;
 		for (i = 0; i < count; i++)
-			_filv[i] = &((fdi_node_t *) buf)[i];
+			_filv[i] = &buf[i];
 		
 		_filv[count] = NULL;
 		
@@ -265,7 +265,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 			free(filv);
 		
 		filc = count;
-		fil_buf = (fdi_node_t *) buf;
+		fil_buf = buf;
 		filv = _filv;
 	}
 	

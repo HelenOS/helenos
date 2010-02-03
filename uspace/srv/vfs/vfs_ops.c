@@ -793,22 +793,6 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	}
 	
 	/*
-	 * Now we need to receive a call with client's
-	 * IPC_M_DATA_READ/IPC_M_DATA_WRITE request.
-	 */
-	ipc_callid_t callid;
-	int res;
-	if (read)
-		res = async_data_read_receive(&callid, NULL);
-	else 
-		res = async_data_write_receive(&callid, NULL);
-	if (!res) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	/*
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
@@ -832,32 +816,34 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
 	
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
-	
-	/* Make a VFS_READ/VFS_WRITE request at the destination FS server. */
-	aid_t msg;
-	ipc_call_t answer;
-	if (!read && file->append)
-		file->pos = file->node->size;
-	msg = async_send_3(fs_phone, read ? VFS_OUT_READ : VFS_OUT_WRITE,
-	    file->node->dev_handle, file->node->index, file->pos, &answer);
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
 	/*
-	 * Forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
+	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
+	 * and forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
 	 * destination FS server. The call will be routed as if sent by
 	 * ourselves. Note that call arguments are immutable in this case so we
 	 * don't have to bother.
 	 */
-	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-
-	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
-	async_wait_for(msg, &rc);
+	ipc_call_t answer;
+	if (read) {
+		if (file->append)
+			file->pos = file->node->size;
+		
+		rc = async_data_read_forward_3_1(fs_phone, VFS_OUT_READ,
+		    file->node->dev_handle, file->node->index, file->pos,
+		    &answer);
+	} else {
+		rc = async_data_forward_3_1(fs_phone, VFS_OUT_WRITE,
+		    file->node->dev_handle, file->node->index, file->pos,
+		    &answer);
+	}
 	
 	vfs_release_phone(fs_phone);
 	
 	size_t bytes = IPC_GET_ARG1(answer);
-
+	
 	if (file->node->type == VFS_NODE_DIRECTORY)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 	

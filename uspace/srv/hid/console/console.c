@@ -476,7 +476,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	void *buf;
 	size_t size;
-	int rc = async_data_receive(&buf, 0, 0, &size);
+	int rc = async_data_receive(&buf, 0, 0, 0, &size);
 	
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);

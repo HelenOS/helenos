@@ -64,7 +64,7 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EOK);
 		break;
 	case CLIPBOARD_TAG_DATA:
-		rc = async_data_receive(&data, 0, 0, &size);
+		rc = async_data_receive(&data, 0, 0, 0, &size);
 		if (rc != EOK) {
 			ipc_answer_0(rid, rc);
 			break;

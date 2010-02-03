@@ -109,80 +109,45 @@ static bool vfs_info_sane(vfs_info_t *info)
  */
 void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
-	ipc_call_t call;
-	int rc;
-	size_t size;
-
 	dprintf("Processing VFS_REGISTER request received from %p.\n",
 	    request->in_phone_hash);
-
-	/*
-	 * The first call has to be IPC_M_DATA_SEND in which we receive the
-	 * VFS info structure from the client FS.
-	 */
-	if (!async_data_write_receive(&callid, &size)) {
-		/*
-		 * The client doesn't obey the same protocol as we do.
-		 */
-		dprintf("Receiving of VFS info failed.\n");
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
 	
-	dprintf("VFS info received, size = %d\n", size);
+	vfs_info_t *vfs_info;
+	int rc = async_data_receive(&vfs_info, sizeof(vfs_info_t),
+	    sizeof(vfs_info_t), 0, NULL);
 	
-	/*
-	 * We know the size of the VFS info structure. See if the client
-	 * understands this easy concept too.
-	 */
-	if (size != sizeof(vfs_info_t)) {
-		/*
-		 * The client is sending us something, which cannot be
-		 * the info structure.
-		 */
-		dprintf("Received VFS info has bad size.\n");
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	/*
-	 * Allocate and initialize a buffer for the fs_info structure.
-	 */
-	fs_info_t *fs_info;
-	fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
-	if (!fs_info) {
-		dprintf("Could not allocate memory for FS info.\n");
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	link_initialize(&fs_info->fs_link);
-	fibril_mutex_initialize(&fs_info->phone_lock);
-		
-	rc = async_data_write_finalize(callid, &fs_info->vfs_info, size);
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
-		free(fs_info);
-		ipc_answer_0(callid, rc);
 		ipc_answer_0(rid, rc);
 		return;
 	}
-
+	
+	/*
+	 * Allocate and initialize a buffer for the fs_info structure.
+	 */
+	fs_info_t *fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
+	if (!fs_info) {
+		dprintf("Could not allocate memory for FS info.\n");
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	link_initialize(&fs_info->fs_link);
+	fibril_mutex_initialize(&fs_info->phone_lock);
+	fs_info->vfs_info = *vfs_info;
+	free(vfs_info);
+	
 	dprintf("VFS info delivered.\n");
-		
+	
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
-		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-		
+	
 	fibril_mutex_lock(&fs_head_lock);
-
+	
 	/*
 	 * Check for duplicit registrations.
 	 */
@@ -193,11 +158,10 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
-		ipc_answer_0(callid, EEXISTS);
 		ipc_answer_0(rid, EEXISTS);
 		return;
 	}
-
+	
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */
@@ -209,7 +173,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * that a callback connection is created and we have a phone through
 	 * which to forward VFS requests to it.
 	 */
-	callid = async_get_call(&call);
+	ipc_call_t call;
+	ipc_callid_t callid = async_get_call(&call);
 	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
@@ -221,13 +186,14 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 	fs_info->phone = IPC_GET_ARG5(call);
 	ipc_answer_0(callid, EOK);
-
+	
 	dprintf("Callback connection to FS created.\n");
-
+	
 	/*
 	 * The client will want us to send him the address space area with PLB.
 	 */
-
+	
+	size_t size;
 	if (!async_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
 		list_remove(&fs_info->fs_link);
@@ -252,15 +218,15 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-
+	
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
 	(void) async_share_in_finalize(callid, plb,
 	    AS_AREA_READ | AS_AREA_CACHEABLE);
-
+	
 	dprintf("Sharing PLB.\n");
-
+	
 	/*
 	 * That was it. The FS has been registered.
 	 * In reply to the VFS_REGISTER request, we assign the client file
