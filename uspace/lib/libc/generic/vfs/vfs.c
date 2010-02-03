@@ -119,11 +119,6 @@ static void vfs_connect(void)
 int mount(const char *fs_name, const char *mp, const char *fqdn,
     const char *opts, unsigned int flags)
 {
-	int res;
-	ipcarg_t rc;
-	ipcarg_t rc_orig;
-	aid_t req;
-	dev_handle_t dev_handle;
 	int null_id = -1;
 	char null[DEVMAP_NAME_MAXLEN];
 	
@@ -139,7 +134,8 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		fqdn = null;
 	}
 	
-	res = devmap_device_get_handle(fqdn, &dev_handle, flags);
+	dev_handle_t dev_handle;
+	int res = devmap_device_get_handle(fqdn, &dev_handle, flags);
 	if (res != EOK) {
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -160,8 +156,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	async_serialize_start();
 	vfs_connect();
 	
-	req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
-	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	ipcarg_t rc_orig;
+	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
+	ipcarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();

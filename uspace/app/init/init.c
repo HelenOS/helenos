@@ -170,10 +170,10 @@ static void srv_start(char *fname)
 static void console(char *dev)
 {
 	char *argv[3];
-	char hid_in[MAX_DEVICE_NAME];
+	char hid_in[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(hid_in, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(hid_in, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
 	printf(NAME ": Spawning %s with %s\n", SRV_CONSOLE, hid_in);
 	
@@ -195,10 +195,10 @@ static void console(char *dev)
 static void getterm(char *dev, char *app)
 {
 	char *argv[4];
-	char term[MAX_DEVICE_NAME];
+	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(term, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(term, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
 	printf(NAME ": Spawning %s with %s %s\n", APP_GETTERM, term, app);
 	
