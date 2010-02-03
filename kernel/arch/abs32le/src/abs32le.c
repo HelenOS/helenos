@@ -106,5 +106,26 @@ void irq_initialize_arch(irq_t *irq)
 	(void) irq;
 }
 
+void memsetb(void *dst, size_t cnt, uint8_t val)
+{
+	_memsetb(dst, cnt, val);
+}
+
+void memsetw(void *dst, size_t cnt, uint16_t val)
+{
+	_memsetw(dst, cnt, val);
+}
+
+void panic_printf(char *fmt, ...)
+{
+	va_list args;
+	
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	
+	halt();
+}
+
 /** @}
  */
