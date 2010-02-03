@@ -438,29 +438,15 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
-	int rc;
-
-	/* accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	
+	/* Accept the mount options */
+	char *opts;
+	int rc = async_string_receive(&opts, 0, NULL);
+	
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
 
 	/* Initialize TMPFS instance. */
 	if (!tmpfs_instance_init(dev_handle)) {

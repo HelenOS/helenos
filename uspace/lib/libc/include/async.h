@@ -283,8 +283,8 @@ extern int async_data_write_start(int, const void *, size_t);
 extern int async_data_write_receive(ipc_callid_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 
-extern int async_data_blob_receive(char **, const size_t, size_t *);
-extern int async_data_string_receive(char **, const size_t);
+extern int async_data_receive(void **, const size_t, const size_t, size_t *);
+extern int async_string_receive(char **, const size_t, size_t *);
 
 #endif
 

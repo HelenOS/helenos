@@ -83,7 +83,7 @@ int clipboard_put_str(const char *str)
 		async_serialize_start();
 		clip_connect();
 		
-		aid_t req = async_send_1(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_BLOB, NULL);
+		aid_t req = async_send_1(clip_phone, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA, NULL);
 		ipcarg_t rc = async_data_write_start(clip_phone, (void *) str, size);
 		if (rc != EOK) {
 			ipcarg_t rc_orig;
@@ -138,7 +138,7 @@ int clipboard_get_str(char **str)
 			sbuf[0] = 0;
 			*str = sbuf;
 			return EOK;
-		case CLIPBOARD_TAG_BLOB:
+		case CLIPBOARD_TAG_DATA:
 			sbuf = malloc(size + 1);
 			if (sbuf == NULL)
 				return ENOMEM;

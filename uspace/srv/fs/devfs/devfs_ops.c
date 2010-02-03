@@ -418,7 +418,7 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	
 	/* Accept the mount options */
-	ipcarg_t retval = async_data_string_receive(&opts, 0);
+	ipcarg_t retval = async_string_receive(&opts, 0, NULL);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		return;

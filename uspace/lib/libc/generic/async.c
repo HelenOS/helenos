@@ -1344,22 +1344,25 @@ int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 	return ipc_data_write_finalize(callid, dst, size);
 }
 
-/** Wrapper for receiving blobs via the async_data_write_*
+/** Wrapper for receiving binary data via the async_data_write_*
  *
  * This wrapper only makes it more comfortable to use async_data_write_*
  * functions to receive blobs.
  *
- * @param blob     Pointer to data pointer (which should be later disposed
- *                 by free()). If the operation fails, the pointer is not
- *                 touched.
- * @param max_size Maximum size (in bytes) of the blob to receive. 0 means
- *                 no limit.
- * @param received If not NULL, the size of the received data is stored here.
+ * @param data       Pointer to data pointer (which should be later disposed
+ *                   by free()). If the operation fails, the pointer is not
+ *                   touched.
+ * @param max_size   Maximum size (in bytes) of the data to receive. 0 means
+ *                   no limit.
+ * @param granulariy If non-zero, then the size of the received data has to
+ *                   be divisible by this value.
+ * @param received   If not NULL, the size of the received data is stored here.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_blob_receive(char **blob, const size_t max_size, size_t *received)
+int async_data_receive(void **data, const size_t max_size,
+    const size_t granularity, size_t *received)
 {
 	ipc_callid_t callid;
 	size_t size;
@@ -1373,19 +1376,24 @@ int async_data_blob_receive(char **blob, const size_t max_size, size_t *received
 		return EINVAL;
 	}
 	
-	char *data = (char *) malloc(size);
-	if (data == NULL) {
+	if ((granularity > 0) && ((size % granularity) != 0)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	void *_data = malloc(size);
+	if (_data == NULL) {
 		ipc_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_finalize(callid, data, size);
+	int rc = async_data_write_finalize(callid, _data, size);
 	if (rc != EOK) {
-		free(data);
+		free(_data);
 		return rc;
 	}
 	
-	*blob = data;
+	*data = _data;
 	if (received != NULL)
 		*received = size;
 	
@@ -1402,11 +1410,12 @@ int async_data_blob_receive(char **blob, const size_t max_size, size_t *received
  *                 touched.
  * @param max_size Maximum size (in bytes) of the string to receive. 0 means
  *                 no limit.
+ * @param received If not NULL, the size of the received data is stored here.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_string_receive(char **str, const size_t max_size)
+int async_string_receive(char **str, const size_t max_size, size_t *received)
 {
 	ipc_callid_t callid;
 	size_t size;
@@ -1434,6 +1443,9 @@ int async_data_string_receive(char **str, const size_t max_size)
 	
 	data[size] = 0;
 	*str = data;
+	if (received != NULL)
+		*received = size;
+	
 	return EOK;
 }
 
