@@ -154,14 +154,15 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	machine_cpu_halt();
+	while (true)
+		machine_cpu_halt();
 }
 
 /** Reboot. */
 void arch_reboot()
 {
 	/* not implemented */
-	while (1);
+	while (true);
 }
 
 /** Construct function pointer
