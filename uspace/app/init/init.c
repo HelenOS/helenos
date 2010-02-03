@@ -93,16 +93,7 @@ static bool mount_root(const char *fstype)
 
 static bool mount_devfs(void)
 {
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1) {
-		printf(NAME ": Unable to create null device\n");
-		return false;
-	}
-	
-	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
-	int rc = mount("devfs", DEVFS_MOUNT_POINT, null, "", IPC_FLAG_BLOCKING);
+	int rc = mount("devfs", DEVFS_MOUNT_POINT, "", "", IPC_FLAG_BLOCKING);
 	
 	switch (rc) {
 	case EOK:
@@ -110,19 +101,15 @@ static bool mount_devfs(void)
 		break;
 	case EBUSY:
 		printf(NAME ": Device filesystem already mounted\n");
-		devmap_null_destroy(null_id);
 		return false;
 	case ELIMIT:
 		printf(NAME ": Unable to mount device filesystem\n");
-		devmap_null_destroy(null_id);
 		return false;
 	case ENOENT:
 		printf(NAME ": Unknown filesystem type (devfs)\n");
-		devmap_null_destroy(null_id);
 		return false;
 	default:
 		printf(NAME ": Error mounting device filesystem (%d)\n", rc);
-		devmap_null_destroy(null_id);
 		return false;
 	}
 	
