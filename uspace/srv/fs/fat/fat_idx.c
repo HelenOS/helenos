@@ -163,6 +163,8 @@ static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	default:
 		assert((keys == 1) || (keys == 3));
 	}
+
+	return 0;
 }
 
 static void pos_remove_callback(link_t *item)
@@ -218,6 +220,8 @@ static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	default:
 		assert((keys == 1) || (keys == 2));
 	}
+
+	return 0;
 }
 
 static void idx_remove_callback(link_t *item)

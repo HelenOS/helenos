@@ -167,8 +167,10 @@ static int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 		return ((nodep->dev_handle == key[NODES_KEY_DEV]) &&
 		    (nodep->index == key[NODES_KEY_INDEX]));
 	default:
-		abort();
+		assert((keys == 1) || (keys == 2));
 	}
+
+	return 0;
 }
 
 static void nodes_remove_callback(link_t *item)
@@ -438,13 +440,23 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *rootfn;
+	int rc;
 	
-	/* Accept the mount options */
+	/* Accept the mount options. */
 	char *opts;
-	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-	
+	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
+		return;
+	}
+
+	/* Check if this device is not already mounted. */
+	rc = tmpfs_root_get(&rootfn, dev_handle);
+	if ((rc == EOK) && (rootfn)) {
+		(void) tmpfs_node_put(rootfn);
+		free(opts);
+		ipc_answer_0(rid, EEXIST);
 		return;
 	}
 
@@ -455,7 +467,6 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	fs_node_t *rootfn;
 	rc = tmpfs_root_get(&rootfn, dev_handle);
 	assert(rc == EOK);
 	tmpfs_node_t *rootp = TMPFS_NODE(rootfn);
