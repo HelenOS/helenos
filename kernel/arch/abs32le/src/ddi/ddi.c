@@ -26,117 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup abs32leddi
  * @{
  */
 /** @file
+ *  @brief DDI.
  */
 
-#include <arch.h>
+#include <ddi/ddi.h>
+#include <proc/task.h>
 #include <arch/types.h>
-#include <arch/context.h>
-#include <arch/interrupt.h>
-#include <arch/asm.h>
 
-#include <func.h>
-#include <config.h>
-#include <context.h>
-#include <interrupt.h>
-#include <ddi/irq.h>
-#include <proc/thread.h>
-#include <syscall/syscall.h>
-#include <console/console.h>
-#include <sysinfo/sysinfo.h>
-#include <memstr.h>
-
-void arch_pre_mm_init(void)
-{
-}
-
-void arch_post_mm_init(void)
-{
-	if (config.cpu_active == 1) {
-		/* Initialize IRQ routing */
-		irq_init(0, 0);
-		
-		/* Merge all memory zones to 1 big zone */
-		zone_merge_all();
-	}
-}
-
-void arch_post_cpu_init()
-{
-}
-
-void arch_pre_smp_init(void)
-{
-}
-
-void arch_post_smp_init(void)
-{
-}
-
-void calibrate_delay_loop(void)
-{
-}
-
-unative_t sys_tls_set(unative_t addr)
+/** Enable I/O space range for task.
+ *
+ */
+int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	return 0;
-}
-
-/** Construct function pointer
- *
- * @param fptr   function pointer structure
- * @param addr   function address
- * @param caller calling function address
- *
- * @return address of the function pointer
- *
- */
-void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
-{
-	return addr;
-}
-
-void arch_reboot(void)
-{
-}
-
-void irq_initialize_arch(irq_t *irq)
-{
-	(void) irq;
-}
-
-void memsetb(void *dst, size_t cnt, uint8_t val)
-{
-	_memsetb(dst, cnt, val);
-}
-
-void memsetw(void *dst, size_t cnt, uint16_t val)
-{
-	_memsetw(dst, cnt, val);
-}
-
-void panic_printf(char *fmt, ...)
-{
-	va_list args;
-	
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	
-	halt();
-}
-
-int context_save_arch(context_t *ctx)
-{
-	return 1;
-}
-
-void context_restore_arch(context_t *ctx)
-{
-	while (true);
 }
 
 /** @}

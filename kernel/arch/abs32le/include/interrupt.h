@@ -40,6 +40,8 @@
 #define IVT_ITEMS  0
 #define IVT_FIRST  0
 
+#define VECTOR_TLB_SHOOTDOWN_IPI  0
+
 /*
  * On real hardware this stores the registers which
  * need to be preserved during interupts.

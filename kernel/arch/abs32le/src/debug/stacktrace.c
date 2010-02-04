@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
+/** @addtogroup abs32le
  * @{
  */
 /** @file
@@ -37,43 +37,44 @@
 #include <arch/types.h>
 #include <typedefs.h>
 
-#define FRAME_OFFSET_FP_PREV	0
-#define FRAME_OFFSET_RA		1
-
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	return fp != 0;
+	return true;;
 }
 
 bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	uint32_t *stack = (void *) fp;
-	*prev = stack[FRAME_OFFSET_FP_PREV];
 	return true;
 }
 
 bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	uint32_t *stack = (void *) fp;
-	*ra = stack[FRAME_OFFSET_RA];
 	return true;
 }
 
 bool uspace_frame_pointer_validate(uintptr_t fp)
 {
-	return fp != 0;
+	return true;
 }
 
 bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return !copy_from_uspace((void *) prev,
-	    (uint32_t *) fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
+	return true;
 }
 
 bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return !copy_from_uspace((void *) ra, (uint32_t *) fp + FRAME_OFFSET_RA,
-	    sizeof(*ra));
+	return true;
+}
+
+uintptr_t frame_pointer_get(void)
+{
+	return 0;
+}
+
+uintptr_t program_counter_get(void)
+{
+	return 0;
 }
 
 /** @}
