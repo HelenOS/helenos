@@ -395,7 +395,8 @@ static devmap_driver_t *devmap_driver_register(void)
 	/*
 	 * Get driver name
 	 */
-	int rc = async_string_receive(&driver->name, DEVMAP_NAME_MAXLEN, NULL);
+	int rc = async_data_write_accept((char **) &driver->name, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		free(driver);
 		ipc_answer_0(iid, rc);
@@ -509,7 +510,8 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	
 	/* Get fqdn */
 	char *fqdn;
-	int rc = async_string_receive(&fqdn, DEVMAP_NAME_MAXLEN, NULL);
+	int rc = async_data_write_accept((char **) &fqdn, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		free(device);
 		ipc_answer_0(iid, rc);
@@ -621,7 +623,8 @@ static void devmap_device_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	char *fqdn;
 	
 	/* Get fqdn */
-	int rc = async_string_receive(&fqdn, DEVMAP_NAME_MAXLEN, NULL);
+	int rc = async_data_write_accept((char **) &fqdn, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(iid, rc);
 		return;
@@ -682,7 +685,8 @@ static void devmap_namespace_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	char *name;
 	
 	/* Get device name */
-	int rc = async_string_receive(&name, DEVMAP_NAME_MAXLEN, NULL);
+	int rc = async_data_write_accept((char **) &name, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(iid, rc);
 		return;

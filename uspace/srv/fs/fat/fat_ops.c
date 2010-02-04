@@ -976,7 +976,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Accept the mount options */
 	char *opts;
-	int rc = async_string_receive(&opts, 0, NULL);
+	int rc = async_data_write_accept((char **) &opts, true, 0, 0, 0, NULL);
 	
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);

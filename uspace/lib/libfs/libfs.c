@@ -175,7 +175,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
 		ipc_hangup(mountee_phone);
-		async_data_void(combine_rc(res, ENOENT));
+		async_data_write_void(combine_rc(res, ENOENT));
 		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
@@ -183,7 +183,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (fn->mp_data.mp_active) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		async_data_void(EBUSY);
+		async_data_write_void(EBUSY);
 		ipc_answer_0(rid, EBUSY);
 		return;
 	}
@@ -192,14 +192,14 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (rc != EOK) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		async_data_void(rc);
+		async_data_write_void(rc);
 		ipc_answer_0(rid, rc);
 		return;
 	}
 	
 	ipc_call_t answer;
-	rc = async_data_forward_1_1(mountee_phone, VFS_OUT_MOUNTED, mr_dev_handle,
-	    &answer);
+	rc = async_data_write_forward_1_1(mountee_phone, VFS_OUT_MOUNTED,
+	    mr_dev_handle, &answer);
 	
 	if (rc == EOK) {
 		fn->mp_data.mp_active = true;

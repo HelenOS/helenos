@@ -266,7 +266,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* We want the client to send us the mount point. */
 	char *mp;
-	int rc = async_string_receive(&mp, MAX_PATH_LEN, NULL);
+	int rc = async_data_write_accept((char **) &mp, true, 0, MAX_PATH_LEN,
+	    0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -274,7 +275,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Now we expect to receive the mount options. */
 	char *opts;
-	rc = async_string_receive(&opts, MAX_MNTOPTS_LEN, NULL);
+	rc = async_data_write_accept((char **) &opts, true, 0, MAX_MNTOPTS_LEN,
+	    0, NULL);
 	if (rc != EOK) {
 		free(mp);
 		ipc_answer_0(rid, rc);
@@ -286,7 +288,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 * system.
 	 */
 	char *fs_name;
-	rc = async_string_receive(&fs_name, FS_NAME_MAXLEN, NULL);
+	rc = async_data_write_accept((char **) &fs_name, true, 0, FS_NAME_MAXLEN,
+	    0, NULL);
 	if (rc != EOK) {
 		free(mp);
 		free(opts);
@@ -356,7 +359,8 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Receive the mount point path.
 	 */
-	rc = async_string_receive(&mp, MAX_PATH_LEN, NULL);
+	rc = async_data_write_accept((char **) &mp, true, 0, MAX_PATH_LEN,
+	    0, NULL);
 	if (rc != EOK)
 		ipc_answer_0(rid, rc);
 
@@ -521,7 +525,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		lflag |= L_EXCLUSIVE;
 	
 	char *path;
-	int rc = async_string_receive(&path, 0, NULL);
+	int rc = async_data_write_accept((char **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -835,7 +839,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		    file->node->dev_handle, file->node->index, file->pos,
 		    &answer);
 	} else {
-		rc = async_data_forward_3_1(fs_phone, VFS_OUT_WRITE,
+		rc = async_data_write_forward_3_1(fs_phone, VFS_OUT_WRITE,
 		    file->node->dev_handle, file->node->index, file->pos,
 		    &answer);
 	}
@@ -1006,7 +1010,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *path;
-	int rc = async_string_receive(&path, 0, NULL);
+	int rc = async_data_write_accept((char **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -1060,7 +1064,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	int mode = IPC_GET_ARG1(*request);
 	
 	char *path;
-	int rc = async_string_receive(&path, 0, NULL);
+	int rc = async_data_write_accept((char **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -1082,7 +1086,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	int lflag = IPC_GET_ARG1(*request);
 	
 	char *path;
-	int rc = async_string_receive(&path, 0, NULL);
+	int rc = async_data_write_accept((char **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -1117,7 +1121,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 {
 	/* Retrieve the old path. */
 	char *old;
-	int rc = async_string_receive(&old, 0, NULL);
+	int rc = async_data_write_accept((char **) &old, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
 		return;
@@ -1125,7 +1129,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Retrieve the new path. */
 	char *new;
-	rc = async_string_receive(&new, 0, NULL);
+	rc = async_data_write_accept((char **) &new, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		free(old);
 		ipc_answer_0(rid, rc);

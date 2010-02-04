@@ -1382,26 +1382,30 @@ int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 	return ipc_data_write_finalize(callid, dst, size);
 }
 
-/** Wrapper for receiving binary data
+/** Wrapper for receiving binary data or strings
  *
  * This wrapper only makes it more comfortable to use async_data_write_*
- * functions to receive binary data.
+ * functions to receive binary data or strings.
  *
  * @param data       Pointer to data pointer (which should be later disposed
  *                   by free()). If the operation fails, the pointer is not
  *                   touched.
+ * @param nullterm   If true then the received data is always zero terminated.
+ *                   This also causes to allocate one extra byte beyond the
+ *                   raw transmitted data.
  * @param min_size   Minimum size (in bytes) of the data to receive.
  * @param max_size   Maximum size (in bytes) of the data to receive. 0 means
  *                   no limit.
- * @param granulariy If non-zero, then the size of the received data has to
+ * @param granulariy If non-zero then the size of the received data has to
  *                   be divisible by this value.
  * @param received   If not NULL, the size of the received data is stored here.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_receive(void **data, const size_t min_size,
-    const size_t max_size, const size_t granularity, size_t *received)
+int async_data_write_accept(void **data, const bool nullterm,
+    const size_t min_size, const size_t max_size, const size_t granularity,
+    size_t *received)
 {
 	ipc_callid_t callid;
 	size_t size;
@@ -1425,7 +1429,13 @@ int async_data_receive(void **data, const size_t min_size,
 		return EINVAL;
 	}
 	
-	void *_data = malloc(size);
+	void *_data;
+	
+	if (nullterm)
+		_data = malloc(size + 1);
+	else
+		_data = malloc(size);
+	
 	if (_data == NULL) {
 		ipc_answer_0(callid, ENOMEM);
 		return ENOMEM;
@@ -1437,56 +1447,10 @@ int async_data_receive(void **data, const size_t min_size,
 		return rc;
 	}
 	
+	if (nullterm)
+		((char *) _data)[size] = 0;
+	
 	*data = _data;
-	if (received != NULL)
-		*received = size;
-	
-	return EOK;
-}
-
-/** Wrapper for receiving strings
- *
- * This wrapper only makes it more comfortable to use async_data_write_*
- * functions to receive strings.
- *
- * @param str      Pointer to string pointer (which should be later disposed
- *                 by free()). If the operation fails, the pointer is not
- *                 touched.
- * @param max_size Maximum size (in bytes) of the string to receive. 0 means
- *                 no limit.
- * @param received If not NULL, the size of the received data is stored here.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-int async_string_receive(char **str, const size_t max_size, size_t *received)
-{
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		return EINVAL;
-	}
-	
-	if ((max_size > 0) && (size > max_size)) {
-		ipc_answer_0(callid, EINVAL);
-		return EINVAL;
-	}
-	
-	char *data = (char *) malloc(size + 1);
-	if (data == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		return ENOMEM;
-	}
-	
-	int rc = async_data_write_finalize(callid, data, size);
-	if (rc != EOK) {
-		free(data);
-		return rc;
-	}
-	
-	data[size] = 0;
-	*str = data;
 	if (received != NULL)
 		*received = size;
 	
@@ -1500,7 +1464,7 @@ int async_string_receive(char **str, const size_t max_size, size_t *received)
  * @param retval Error value from @ref errno.h to be returned to the caller.
  *
  */
-void async_data_void(const int retval)
+void async_data_write_void(const int retval)
 {
 	ipc_callid_t callid;
 	async_data_write_receive(&callid, NULL);
@@ -1511,7 +1475,7 @@ void async_data_void(const int retval)
  *
  *
  */
-int async_data_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+int async_data_write_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
     ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
 {
 	ipc_callid_t callid;
