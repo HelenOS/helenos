@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -41,12 +41,14 @@
 /*
  * Put one item onto the stack to support get_stack_base() and align it up.
  */
-#define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
+#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #ifndef __ASM__
 
 #include <arch/types.h>
+
+#define context_set(ctx, pc, stack, size) \
+    context_set_generic(ctx, pc, stack, size)
 
 /*
  * Only save registers that must be preserved across
