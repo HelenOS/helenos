@@ -38,6 +38,7 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include <ipc/services.h>
+#include <sys/typefmt.h>
 #include <task.h>
 #include <event.h>
 #include <macros.h>
@@ -59,17 +60,17 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 	taskid = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	thread = IPC_GET_ARG3(*call);
 
-	if (asprintf(&s_taskid, "%lld", taskid) < 0) {
+	if (asprintf(&s_taskid, "%" PRIuTASKID, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	if (asprintf(&dump_fname, "/scratch/d%lld.txt", taskid) < 0) {
+	if (asprintf(&dump_fname, "/scratch/d" PRIuTASKID ".txt", taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	printf(NAME ": Task %lld fault in thread 0x%lx.\n", taskid, thread);
+	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
 
 #ifdef CONFIG_VERBOSE_DUMPS
 	argv[0] = "/app/redir";

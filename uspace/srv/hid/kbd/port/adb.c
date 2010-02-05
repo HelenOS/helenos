@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
+/** @addtogroup kbd_port
+ * @ingroup kbd
  * @{
  */ 
 /** @file
- * @brief
+ * @brief ADB keyboard port driver.
  */
 
 #include <ipc/ipc.h>
-#include <ipc/char.h>
+#include <ipc/adb.h>
 #include <async.h>
+#include <kbd_port.h>
+#include <kbd.h>
 #include <vfs/vfs.h>
 #include <fcntl.h>
 #include <errno.h>
 
-#include <c_mouse.h>
-#include <mouse_port.h>
-
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall);
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall);
+static void adb_kbd_reg0_data(uint16_t data);
 
 static int dev_phone;
 
 #define NAME "kbd"
 
-int mouse_port_init(void)
+int kbd_port_init(void)
 {
-	char *input = "/dev/char/ps2b";
+	char *input = "/dev/adb/kbd";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);
@@ -75,25 +76,25 @@ int mouse_port_init(void)
 		return false;
 	}
 
-	async_new_connection(phonehash, 0, NULL, chardev_events);
+	async_new_connection(phonehash, 0, NULL, kbd_port_events);
 
 	return 0;
 }
 
-void mouse_port_yield(void)
+void kbd_port_yield(void)
 {
 }
 
-void mouse_port_reclaim(void)
+void kbd_port_reclaim(void)
 {
 }
 
-void mouse_port_write(uint8_t data)
+void kbd_port_write(uint8_t data)
 {
-	async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);
+	/*async_msg_1(dev_phone, CHAR_WRITE_BYTE, data);*/
 }
 
-static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
+static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
@@ -107,14 +108,27 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
-		case IPC_FIRST_USER_METHOD:
-			mouse_handle_byte(IPC_GET_ARG1(call));
+		case ADB_REG_NOTIF:
+			adb_kbd_reg0_data(IPC_GET_ARG1(call));
 			break;
 		default:
 			retval = ENOENT;
 		}
 		ipc_answer_0(callid, retval);
 	}
+}
+
+static void adb_kbd_reg0_data(uint16_t data)
+{
+	uint8_t b0, b1;
+
+	b0 = (data >> 8) & 0xff;
+	b1 = data & 0xff;
+
+	if (b0 != 0xff)
+		kbd_push_scancode(b0);
+	if (b1 != 0xff)
+		kbd_push_scancode(b1);
 }
 
 /**

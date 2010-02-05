@@ -58,7 +58,7 @@ config: HelenOS.config
 	$(CONFIG) HelenOS.config
 
 distclean: clean
-	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc
+	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc tools/checkers/*.pyc
 
 clean:
 	$(MAKE) -C kernel clean

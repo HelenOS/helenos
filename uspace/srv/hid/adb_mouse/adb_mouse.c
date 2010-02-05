@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,10 @@
 
 /**
  * @addtogroup mouse
- * @brief Chardev mouse driver.
+ * @brief ADB Apple classic mouse driver.
  *
- * This is a common driver for mice attached to simple character devices
- * (PS/2 mice, serial mice).
+ * This driver handles a mouse connected to Apple Desktop Bus speaking
+ * the Apple classic protocol. It connects to an ADB driver.
  *
  * @{
  */
@@ -46,34 +46,49 @@
 #include <errno.h>
 #include <devmap.h>
 
-#include <c_mouse.h>
-#include <mouse_port.h>
-#include <mouse_proto.h>
+#include "adb_mouse.h"
+#include "adb_dev.h"
 
-#define NAME       "mouse"
-#define NAMESPACE  "hid_in"
+static void client_connection(ipc_callid_t iid, ipc_call_t *icall);
+static void mouse_ev_btn(int button, int press);
+static void mouse_ev_move(int dx, int dy);
 
-int client_phone = -1;
+static int client_phone = -1;
+static bool b1_pressed, b2_pressed;
 
-void mouse_handle_byte(int byte)
+int main(int argc, char **argv)
 {
-/*	printf("mouse byte: 0x%x\n", byte);*/
-	mouse_proto_parse_byte(byte);
-}
+	printf(NAME ": Chardev mouse driver\n");
 
-void mouse_ev_btn(int button, int press)
-{
-/*	printf("ev_btn: button %d, press %d\n", button, press);*/
-	if (client_phone != -1) {
-		async_msg_2(client_phone, MEVENT_BUTTON, button, press);
+	/* Initialize device. */
+	if (adb_dev_init() != 0)
+		return -1;
+
+	b1_pressed = false;
+	b2_pressed = false; 
+
+	/* Register driver */
+	int rc = devmap_driver_register(NAME, client_connection);
+	if (rc < 0) {
+		printf(NAME ": Unable to register driver (%d)\n", rc);
+		return -1;
 	}
-}
 
-void mouse_ev_move(int dx, int dy)
-{
-/*	printf("ev_move: dx %d, dy %d\n", dx, dy);*/
-	if (client_phone != -1)
-		async_msg_2(client_phone, MEVENT_MOVE, dx, dy);
+	char dev_path[DEVMAP_NAME_MAXLEN + 1];
+	snprintf(dev_path, DEVMAP_NAME_MAXLEN, "%s/mouse", NAMESPACE);
+
+	dev_handle_t dev_handle;
+	if (devmap_device_register(dev_path, &dev_handle) != EOK) {
+		printf(NAME ": Unable to register device %s\n", dev_path);
+		return -1;
+	}
+
+	printf(NAME ": Accepting connections\n");
+	task_retval(0);
+	async_manager();
+
+	/* Not reached. */
+	return 0;
 }
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -110,41 +125,47 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-
-int main(int argc, char **argv)
+void mouse_handle_data(uint16_t data)
 {
-	printf(NAME ": Chardev mouse driver\n");
+	bool b1, b2;
+	uint16_t udx, udy;
+	int dx, dy;
 
-	/* Initialize port. */
-	if (mouse_port_init() != 0)
-		return -1;
+	/* Extract fields. */
+	b1 = ((data >> 15) & 1) == 0;
+	udy = (data >> 8) & 0x7f;
+	b2 = ((data >> 7) & 1) == 0;
+	udx = data & 0x7f;
 
-	/* Initialize protocol driver. */
-	if (mouse_proto_init() != 0)
-		return -1;
+	/* Decode 7-bit two's complement signed values. */
+	dx = (udx & 0x40) ? (udx - 0x80) : udx;
+	dy = (udy & 0x40) ? (udy - 0x80) : udy;
 
-	/* Register driver */
-	int rc = devmap_driver_register(NAME, client_connection);
-	if (rc < 0) {
-		printf(NAME ": Unable to register driver (%d)\n", rc);
-		return -1;
+	if (b1 != b1_pressed) {
+		mouse_ev_btn(1, b1);
+		b1_pressed = b1;
 	}
 
-	char dev_path[DEVMAP_NAME_MAXLEN + 1];
-	snprintf(dev_path, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
-
-	dev_handle_t dev_handle;
-	if (devmap_device_register(dev_path, &dev_handle) != EOK) {
-		printf(NAME ": Unable to register device %s\n", dev_path);
-		return -1;
+	if (b2 != b2_pressed) {
+		mouse_ev_btn(2, b2);
+		b1_pressed = b1;
 	}
 
-	printf(NAME ": Accepting connections\n");
-	task_retval(0);
-	async_manager();
+	if (dx != 0 || dy != 0)
+		mouse_ev_move(dx, dy);
+}
 
-	/* Not reached. */
-	return 0;
+static void mouse_ev_btn(int button, int press)
+{
+	if (client_phone != -1) {
+		async_msg_2(client_phone, MEVENT_BUTTON, button, press);
+	}
+}
+
+static void mouse_ev_move(int dx, int dy)
+{
+	if (client_phone != -1)
+		async_msg_2(client_phone, MEVENT_MOVE, dx, dy);
 }
 
 /**

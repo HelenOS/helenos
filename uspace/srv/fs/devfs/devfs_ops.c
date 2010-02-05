@@ -418,7 +418,8 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	
 	/* Accept the mount options */
-	ipcarg_t retval = async_data_string_receive(&opts, 0);
+	ipcarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
+	    0, NULL);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
 		return;
@@ -431,6 +432,16 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_mount(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+}
+
+void devfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	ipc_answer_0(rid, ENOTSUP);
+}
+
+void devfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&devfs_libfs_ops, rid, request);
 }
 
 void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)

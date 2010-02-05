@@ -141,7 +141,7 @@ build_target() {
 	TARGET="$2"
 	
 	BINUTILS_VERSION="2.20"
-	GCC_VERSION="4.4.2"
+	GCC_VERSION="4.4.3"
 	
 	BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
 	GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -164,9 +164,9 @@ build_target() {
 	
 	echo ">>> Downloading tarballs"
 	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "ee2d3e996e9a2d669808713360fa96f8"
-	download_check "${GCC_SOURCE}" "${GCC_CORE}" "d50ec5af20508974411d0c83c5f4e396"
-	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "d8d26187d386a0591222a580b5a5b3d3"
-	download_check "${GCC_SOURCE}" "${GCC_CPP}" "43b1e4879eb282dc4b05e4c016d356d7"
+	download_check "${GCC_SOURCE}" "${GCC_CORE}" "054b66f315b3d04ad06544ce26e72365"
+	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "34711c4de46eaf79aa018206dbec4389"
+	download_check "${GCC_SOURCE}" "${GCC_CPP}" "cd179ec4f05ee17ce76464da25a2674c"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"

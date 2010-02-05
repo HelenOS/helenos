@@ -138,6 +138,65 @@ static int fat_node_sync(fat_node_t *node)
 	return rc;
 }
 
+static int fat_node_fini_by_dev_handle(dev_handle_t dev_handle)
+{
+	link_t *lnk;
+	fat_node_t *nodep;
+	int rc;
+
+	/*
+	 * We are called from fat_unmounted() and assume that there are already
+	 * no nodes belonging to this instance with non-zero refcount. Therefore
+	 * it is sufficient to clean up only the FAT free node list.
+	 */
+
+restart:
+	fibril_mutex_lock(&ffn_mutex);
+	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
+		if (!fibril_mutex_trylock(&nodep->lock)) {
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (!fibril_mutex_trylock(&nodep->idx->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (nodep->idx->dev_handle != dev_handle) {
+			fibril_mutex_unlock(&nodep->idx->lock);
+			fibril_mutex_unlock(&nodep->lock);
+			continue;
+		}
+
+		list_remove(&nodep->ffn_link);
+		fibril_mutex_unlock(&ffn_mutex);
+
+		/*
+		 * We can unlock the node and its index structure because we are
+		 * the last player on this playground and VFS is preventing new
+		 * players from entering.
+		 */
+		fibril_mutex_unlock(&nodep->idx->lock);
+		fibril_mutex_unlock(&nodep->lock);
+
+		if (nodep->dirty) {
+			rc = fat_node_sync(nodep);
+			if (rc != EOK)
+				return rc;
+		}
+		nodep->idx->nodep = NULL;
+		free(nodep->bp);
+		free(nodep);
+
+		/* Need to restart because we changed the ffn_head list. */
+		goto restart;
+	}
+	fibril_mutex_unlock(&ffn_mutex);
+
+	return EOK;
+}
+
 static int fat_node_get_new(fat_node_t **nodepp)
 {
 	fs_node_t *fn;
@@ -289,76 +348,6 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	idxp->nodep = nodep;
 
 	*nodepp = nodep;
-	return EOK;
-}
-
-/** Perform basic sanity checks on the file system.
- *
- * Verify if values of boot sector fields are sane. Also verify media
- * descriptor. This is used to rule out cases when a device obviously
- * does not contain a fat file system.
- */
-static int fat_sanity_check(fat_bs_t *bs, dev_handle_t dev_handle)
-{
-	fat_cluster_t e0, e1;
-	unsigned fat_no;
-	int rc;
-
-	/* Check number of FATs. */
-	if (bs->fatcnt == 0)
-		return ENOTSUP;
-
-	/* Check total number of sectors. */
-
-	if (bs->totsec16 == 0 && bs->totsec32 == 0)
-		return ENOTSUP;
-
-	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
-	    bs->totsec16 != bs->totsec32) 
-		return ENOTSUP;
-
-	/* Check media descriptor. Must be between 0xf0 and 0xff. */
-	if ((bs->mdesc & 0xf0) != 0xf0)
-		return ENOTSUP;
-
-	/* Check number of sectors per FAT. */
-	if (bs->sec_per_fat == 0)
-		return ENOTSUP;
-
-	/*
-	 * Check that the root directory entries take up whole blocks.
-	 * This check is rather strict, but it allows us to treat the root
-	 * directory and non-root directories uniformly in some places.
-	 * It can be removed provided that functions such as fat_read() are
-	 * sanitized to support file systems with this property.
-	 */
-	if ((uint16_t_le2host(bs->root_ent_max) * sizeof(fat_dentry_t)) %
-	    uint16_t_le2host(bs->bps) != 0)
-		return ENOTSUP;
-
-	/* Check signature of each FAT. */
-
-	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
-		rc = fat_get_cluster(bs, dev_handle, fat_no, 0, &e0);
-		if (rc != EOK)
-			return EIO;
-
-		rc = fat_get_cluster(bs, dev_handle, fat_no, 1, &e1);
-		if (rc != EOK)
-			return EIO;
-
-		/* Check that first byte of FAT contains the media descriptor. */
-		if ((e0 & 0xff) != bs->mdesc)
-			return ENOTSUP;
-
-		/*
-		 * Check that remaining bits of the first two entries are
-		 * set to one.
-		 */
-		if ((e0 >> 8) != 0xff || e1 != 0xffff)
-			return ENOTSUP;
-	}
-
 	return EOK;
 }
 
@@ -984,35 +973,23 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_bs_t *bs;
 	uint16_t bps;
 	uint16_t rde;
-	int rc;
-
-	/* accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	
+	/* Accept the mount options */
+	char *opts;
+	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
+	
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
 
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
 		cmode = CACHE_MODE_WT;
 	else
 		cmode = CACHE_MODE_WB;
+
+	free(opts);
 
 	/* initialize libblock */
 	rc = block_init(dev_handle, BS_SIZE);
@@ -1053,6 +1030,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, dev_handle);
 	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
@@ -1060,6 +1038,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
@@ -1068,6 +1047,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1077,6 +1057,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
 		free(rfn);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1088,6 +1069,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (!ridxp) {
 		free(rfn);
 		free(rootp);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1114,6 +1096,54 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_mount(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
+}
+
+void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *fn;
+	fat_node_t *nodep;
+	int rc;
+
+	rc = fat_root_get(&fn, dev_handle);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	nodep = FAT_NODE(fn);
+
+	/*
+	 * We expect exactly two references on the root node. One for the
+	 * fat_root_get() above and one created in fat_mounted().
+	 */
+	if (nodep->refcnt != 2) {
+		(void) fat_node_put(fn);
+		ipc_answer_0(rid, EBUSY);
+		return;
+	}
+	
+	/*
+	 * Put the root node and force it to the FAT free node list.
+	 */
+	(void) fat_node_put(fn);
+	(void) fat_node_put(fn);
+
+	/*
+	 * Perform cleanup of the node structures, index structures and
+	 * associated data. Write back this file system's dirty blocks and
+	 * stop using libblock for this instance.
+	 */
+	(void) fat_node_fini_by_dev_handle(dev_handle);
+	fat_idx_fini_by_dev_handle(dev_handle);
+	(void) block_cache_fini(dev_handle);
+	block_fini(dev_handle);
+
+	ipc_answer_0(rid, EOK);
+}
+
+void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&fat_libfs_ops, rid, request);
 }
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)

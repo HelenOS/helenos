@@ -341,8 +341,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr 0x%x, size 0x%x\n", seg_addr,
-		entry->p_memsz);	
+	DPRINTF("Load segment at addr %p, size 0x%x\n", seg_addr,
+		entry->p_memsz);
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
@@ -369,7 +369,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-	DPRINTF("Map to seg_addr=0x%x-0x%x.\n", seg_addr,
+	DPRINTF("Map to seg_addr=%p-%p.\n", seg_addr,
 	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
 
 	/*
@@ -383,7 +383,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		return EE_MEMORY;
 	}
 
-	DPRINTF("as_area_create(0x%lx, 0x%x, %d) -> 0x%lx\n",
+	DPRINTF("as_area_create(%p, 0x%x, %d) -> 0x%lx\n",
 		base + bias, mem_sz, flags, (uintptr_t)a);
 
 	/*
@@ -460,7 +460,7 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
 		/* Record pointer to dynamic section into info structure */
 		elf->info->dynamic =
 		    (void *)((uint8_t *)entry->sh_addr + elf->bias);
-		DPRINTF("Dynamic section found at 0x%x.\n",
+		DPRINTF("Dynamic section found at %p.\n",
 			(uintptr_t)elf->info->dynamic);
 		break;
 	default:

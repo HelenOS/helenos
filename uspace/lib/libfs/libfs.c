@@ -160,7 +160,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	/* Accept the phone */
 	callid = async_get_call(&call);
-	int mountee_phone = (int)IPC_GET_ARG1(call);
+	int mountee_phone = (int) IPC_GET_ARG1(call);
 	if ((IPC_GET_METHOD(call) != IPC_M_CONNECTION_CLONE) ||
 	    (mountee_phone < 0)) {
 		ipc_answer_0(callid, EINVAL);
@@ -171,19 +171,11 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* Acknowledge the mountee_phone */
 	ipc_answer_0(callid, EOK);
 	
-	res = async_data_write_receive(&callid, NULL);
-	if (!res) {
-		ipc_hangup(mountee_phone);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
 	fs_node_t *fn;
 	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
 		ipc_hangup(mountee_phone);
-		ipc_answer_0(callid, combine_rc(res, ENOENT));
+		async_data_write_void(combine_rc(res, ENOENT));
 		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
@@ -191,7 +183,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (fn->mp_data.mp_active) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		ipc_answer_0(callid, EBUSY);
+		async_data_write_void(EBUSY);
 		ipc_answer_0(rid, EBUSY);
 		return;
 	}
@@ -200,16 +192,14 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (rc != EOK) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		ipc_answer_0(callid, rc);
+		async_data_write_void(rc);
 		ipc_answer_0(rid, rc);
 		return;
 	}
 	
 	ipc_call_t answer;
-	aid_t msg = async_send_1(mountee_phone, VFS_OUT_MOUNTED, mr_dev_handle,
-	    &answer);
-	ipc_forward_fast(callid, mountee_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-	async_wait_for(msg, &rc);
+	rc = async_data_write_forward_1_1(mountee_phone, VFS_OUT_MOUNTED,
+	    mr_dev_handle, &answer);
 	
 	if (rc == EOK) {
 		fn->mp_data.mp_active = true;
@@ -223,6 +213,51 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	 */
 	ipc_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
 	    IPC_GET_ARG3(answer));
+}
+
+void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
+	fs_node_t *fn;
+	int res;
+
+	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
+	if ((res != EOK) || (!fn)) {
+		ipc_answer_0(rid, combine_rc(res, ENOENT));
+		return;
+	}
+
+	/*
+	 * We are clearly expecting to find the mount point active.
+	 */
+	if (!fn->mp_data.mp_active) {
+		(void) ops->node_put(fn);
+		ipc_answer_0(rid, EINVAL);
+		return;
+	}
+
+	/*
+	 * Tell the mounted file system to unmount.
+	 */
+	res = async_req_1_0(fn->mp_data.phone, VFS_OUT_UNMOUNTED,
+	    fn->mp_data.dev_handle);
+
+	/*
+	 * If everything went well, perform the clean-up on our side.
+	 */
+	if (res == EOK) {
+		ipc_hangup(fn->mp_data.phone);
+		fn->mp_data.mp_active = false;
+		fn->mp_data.fs_handle = 0;
+		fn->mp_data.dev_handle = 0;
+		fn->mp_data.phone = 0;
+		/* Drop the reference created in libfs_mount(). */
+		(void) ops->node_put(fn);
+	}
+
+	(void) ops->node_put(fn);
+	ipc_answer_0(rid, res);
 }
 
 /** Lookup VFS triplet by name in the file system name space.
@@ -303,7 +338,18 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		rc = ops->match(&tmp, cur, component);
 		on_error(rc, goto out_with_answer);
 		
-		if ((tmp) && (tmp->mp_data.mp_active)) {
+		/*
+		 * If the matching component is a mount point, there are two
+		 * legitimate semantics of the lookup operation. The first is
+		 * the commonly used one in which the lookup crosses each mount
+		 * point into the mounted file system. The second semantics is
+		 * used mostly during unmount() and differs from the first one
+		 * only in that the last mount point in the looked up path,
+		 * which is also its last component, is not crossed.
+		 */
+
+		if ((tmp) && (tmp->mp_data.mp_active) &&
+		    (!(lflag & L_MP) || (next <= last))) {
 			if (next > last)
 				next = last = first;
 			else
@@ -472,6 +518,11 @@ skip_miss:
 	
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		ipc_answer_0(rid, ENOTDIR);
+		goto out;
+	}
+
+	if ((lflag & L_ROOT) && par) {
+		ipc_answer_0(rid, EINVAL);
 		goto out;
 	}
 	

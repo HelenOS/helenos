@@ -197,15 +197,13 @@ void block_fini(dev_handle_t dev_handle)
 	devcon_t *devcon = devcon_search(dev_handle);
 	assert(devcon);
 	
+	if (devcon->cache)
+		(void) block_cache_fini(dev_handle);
+
 	devcon_remove(devcon);
 
 	if (devcon->bb_buf)
 		free(devcon->bb_buf);
-
-	if (devcon->cache) {
-		hash_table_destroy(&devcon->cache->block_hash);
-		free(devcon->cache);
-	}
 
 	munmap(devcon->comm_area, devcon->comm_size);
 	ipc_hangup(devcon->dev_phone);
@@ -301,6 +299,49 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	}
 
 	devcon->cache = cache;
+	return EOK;
+}
+
+int block_cache_fini(dev_handle_t dev_handle)
+{
+	devcon_t *devcon = devcon_search(dev_handle);
+	cache_t *cache;
+	int rc;
+
+	if (!devcon)
+		return ENOENT;
+	if (!devcon->cache)
+		return EOK;
+	cache = devcon->cache;
+	
+	/*
+	 * We are expecting to find all blocks for this device handle on the
+	 * free list, i.e. the block reference count should be zero. Do not
+	 * bother with the cache and block locks because we are single-threaded.
+	 */
+	while (!list_empty(&cache->free_head)) {
+		block_t *b = list_get_instance(cache->free_head.next,
+		    block_t, free_link);
+
+		list_remove(&b->free_link);
+		if (b->dirty) {
+			memcpy(devcon->comm_area, b->data, b->size);
+			rc = write_blocks(devcon, b->boff, 1);
+			if (rc != EOK)
+				return rc;
+		}
+
+		long key = b->boff;
+		hash_table_remove(&cache->block_hash, &key, 1);
+		
+		free(b->data);
+		free(b);
+	}
+
+	hash_table_destroy(&cache->block_hash);
+	devcon->cache = NULL;
+	free(cache);
+
 	return EOK;
 }
 
