@@ -39,6 +39,7 @@
 
 typedef long off_t;
 typedef int mode_t;
+typedef uint64_t bn_t;	/**< Block number type. */
 
 typedef int32_t wchar_t;
 

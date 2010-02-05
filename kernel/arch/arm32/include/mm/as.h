@@ -53,7 +53,6 @@ typedef struct {
 #define as_constructor_arch(as, flags)		(as != as)
 #define as_destructor_arch(as)			(as != as)
 #define as_create_arch(as, flags)		(as != as)
-#define as_install_arch(as)
 #define as_deinstall_arch(as)
 #define as_invalidate_translation_cache(as, page, cnt)
 

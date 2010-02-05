@@ -43,6 +43,7 @@
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
 #include <userspace.h>
@@ -202,12 +203,12 @@ void arch_post_smp_init(void)
 		}
 	}
 	
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
 	
@@ -277,6 +278,11 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	fptr->gp = ((unative_t *) caller)[1];
 	
 	return (void *) fptr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

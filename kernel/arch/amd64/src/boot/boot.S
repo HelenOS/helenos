@@ -173,6 +173,10 @@ start64:
 	movl grub_ebx, %esi
 	call arch_pre_main
 	
+	# create the first stack frame
+	pushq $0
+	movq %rsp, %rbp
+
 	call main_bsp
 	
 	# not reached
@@ -328,12 +332,12 @@ grub_ebx:
 	.long 0
 
 extended_cpuid_msg:
-	.asciz "Extended CPUID not supported. System halted."
+	.asciz "Error: Extended CPUID not supported -- CPU is not 64-bit. System halted."
 long_mode_msg:
-	.asciz "64 bit long mode not supported. System halted."
+	.asciz "Error: 64-bit long mode not supported. System halted."
 noexecute_msg:
-	.asciz "No-execute pages not supported. System halted."
+	.asciz "Error: No-execute pages not supported. System halted."
 fx_msg:
-	.asciz "FXSAVE/FXRESTORE instructions not supported. System halted."
+	.asciz "Error: FXSAVE/FXRESTORE instructions not supported. System halted."
 sse2_msg:
-	.asciz "SSE2 instructions not supported. System halted."
+	.asciz "Error: SSE2 instructions not supported. System halted."

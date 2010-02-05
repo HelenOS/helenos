@@ -46,7 +46,7 @@
 #include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <macros.h>
@@ -86,6 +86,7 @@ typedef struct {
 static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
 static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
 static int get_block_size(int dev_phone, size_t *bsize);
+static int get_num_blocks(int dev_phone, bn_t *nblocks);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -196,15 +197,13 @@ void block_fini(dev_handle_t dev_handle)
 	devcon_t *devcon = devcon_search(dev_handle);
 	assert(devcon);
 	
+	if (devcon->cache)
+		(void) block_cache_fini(dev_handle);
+
 	devcon_remove(devcon);
 
 	if (devcon->bb_buf)
 		free(devcon->bb_buf);
-
-	if (devcon->cache) {
-		hash_table_destroy(&devcon->cache->block_hash);
-		free(devcon->cache);
-	}
 
 	munmap(devcon->comm_area, devcon->comm_size);
 	ipc_hangup(devcon->dev_phone);
@@ -300,6 +299,49 @@ int block_cache_init(dev_handle_t dev_handle, size_t size, unsigned blocks,
 	}
 
 	devcon->cache = cache;
+	return EOK;
+}
+
+int block_cache_fini(dev_handle_t dev_handle)
+{
+	devcon_t *devcon = devcon_search(dev_handle);
+	cache_t *cache;
+	int rc;
+
+	if (!devcon)
+		return ENOENT;
+	if (!devcon->cache)
+		return EOK;
+	cache = devcon->cache;
+	
+	/*
+	 * We are expecting to find all blocks for this device handle on the
+	 * free list, i.e. the block reference count should be zero. Do not
+	 * bother with the cache and block locks because we are single-threaded.
+	 */
+	while (!list_empty(&cache->free_head)) {
+		block_t *b = list_get_instance(cache->free_head.next,
+		    block_t, free_link);
+
+		list_remove(&b->free_link);
+		if (b->dirty) {
+			memcpy(devcon->comm_area, b->data, b->size);
+			rc = write_blocks(devcon, b->boff, 1);
+			if (rc != EOK)
+				return rc;
+		}
+
+		long key = b->boff;
+		hash_table_remove(&cache->block_hash, &key, 1);
+		
+		free(b->data);
+		free(b);
+	}
+
+	hash_table_destroy(&cache->block_hash);
+	devcon->cache = NULL;
+	free(cache);
+
 	return EOK;
 }
 
@@ -713,7 +755,7 @@ int block_write_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt,
 	fibril_mutex_lock(&devcon->comm_area_lock);
 
 	memcpy(devcon->comm_area, data, devcon->pblock_size * cnt);
-	rc = read_blocks(devcon, ba, cnt);
+	rc = write_blocks(devcon, ba, cnt);
 
 	fibril_mutex_unlock(&devcon->comm_area_lock);
 
@@ -735,6 +777,23 @@ int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
 	assert(devcon);
 	
 	return get_block_size(devcon->dev_phone, bsize);
+}
+
+/** Get number of blocks on device.
+ *
+ * @param dev_handle	Device handle of the block device.
+ * @param nblocks	Output number of blocks.
+ *
+ * @return		EOK on success or negative error code on failure.
+ */
+int block_get_nblocks(dev_handle_t dev_handle, bn_t *nblocks)
+{
+	devcon_t *devcon;
+
+	devcon = devcon_search(dev_handle);
+	assert(devcon);
+	
+	return get_num_blocks(devcon->dev_phone, nblocks);
 }
 
 /** Read blocks from block device.
@@ -784,6 +843,20 @@ static int get_block_size(int dev_phone, size_t *bsize)
 	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
 	if (rc == EOK)
 		*bsize = (size_t) bs;
+
+	return rc;
+}
+
+/** Get total number of blocks on block device. */
+static int get_num_blocks(int dev_phone, bn_t *nblocks)
+{
+	ipcarg_t nb_l, nb_h;
+	int rc;
+
+	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
+	if (rc == EOK) {
+		*nblocks = (bn_t) MERGE_LOUP32(nb_l, nb_h);
+	}
 
 	return rc;
 }

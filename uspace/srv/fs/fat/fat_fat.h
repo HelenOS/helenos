@@ -79,13 +79,14 @@ extern int fat_alloc_clusters(struct fat_bs *, dev_handle_t, unsigned,
 extern int fat_free_clusters(struct fat_bs *, dev_handle_t, fat_cluster_t);
 extern int fat_alloc_shadow_clusters(struct fat_bs *, dev_handle_t,
     fat_cluster_t *, unsigned);
-extern int fat_get_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t,
-    fat_cluster_t *);
+extern int fat_get_cluster(struct fat_bs *, dev_handle_t, unsigned,
+    fat_cluster_t, fat_cluster_t *);
 extern int fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
     off_t);
 extern int fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
+extern int fat_sanity_check(struct fat_bs *, dev_handle_t);
 
 #endif
 

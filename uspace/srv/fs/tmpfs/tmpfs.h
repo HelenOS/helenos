@@ -82,6 +82,8 @@ extern bool tmpfs_init(void);
 
 extern void tmpfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_mount(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_unmounted(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_write(ipc_callid_t, ipc_call_t *);

@@ -35,7 +35,7 @@
 
 #include "fat_fat.h"
 #include <ipc/ipc.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
@@ -203,6 +203,8 @@ extern fs_reg_t fat_reg;
 
 extern void fat_mounted(ipc_callid_t, ipc_call_t *);
 extern void fat_mount(ipc_callid_t, ipc_call_t *);
+extern void fat_unmounted(ipc_callid_t, ipc_call_t *);
+extern void fat_unmount(ipc_callid_t, ipc_call_t *);
 extern void fat_lookup(ipc_callid_t, ipc_call_t *);
 extern void fat_read(ipc_callid_t, ipc_call_t *);
 extern void fat_write(ipc_callid_t, ipc_call_t *);

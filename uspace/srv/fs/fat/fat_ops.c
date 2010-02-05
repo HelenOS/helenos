@@ -51,7 +51,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <sys/mman.h>
 #include <align.h>
 
@@ -70,6 +70,7 @@ static LIST_INITIALIZE(ffn_head);
 static int fat_root_get(fs_node_t **, dev_handle_t);
 static int fat_match(fs_node_t **, fs_node_t *, const char *);
 static int fat_node_get(fs_node_t **, dev_handle_t, fs_index_t);
+static int fat_node_open(fs_node_t *);
 static int fat_node_put(fs_node_t *);
 static int fat_create_node(fs_node_t **, dev_handle_t, int);
 static int fat_destroy_node(fs_node_t *);
@@ -82,6 +83,7 @@ static unsigned fat_lnkcnt_get(fs_node_t *);
 static char fat_plb_get_char(unsigned);
 static bool fat_is_directory(fs_node_t *);
 static bool fat_is_file(fs_node_t *node);
+static dev_handle_t fat_device_get(fs_node_t *node);
 
 /*
  * Helper functions.
@@ -134,6 +136,65 @@ static int fat_node_sync(fat_node_t *node)
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
 	return rc;
+}
+
+static int fat_node_fini_by_dev_handle(dev_handle_t dev_handle)
+{
+	link_t *lnk;
+	fat_node_t *nodep;
+	int rc;
+
+	/*
+	 * We are called from fat_unmounted() and assume that there are already
+	 * no nodes belonging to this instance with non-zero refcount. Therefore
+	 * it is sufficient to clean up only the FAT free node list.
+	 */
+
+restart:
+	fibril_mutex_lock(&ffn_mutex);
+	for (lnk = ffn_head.next; lnk != &ffn_head; lnk = lnk->next) {
+		nodep = list_get_instance(lnk, fat_node_t, ffn_link);
+		if (!fibril_mutex_trylock(&nodep->lock)) {
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (!fibril_mutex_trylock(&nodep->idx->lock)) {
+			fibril_mutex_unlock(&nodep->lock);
+			fibril_mutex_unlock(&ffn_mutex);
+			goto restart;
+		}
+		if (nodep->idx->dev_handle != dev_handle) {
+			fibril_mutex_unlock(&nodep->idx->lock);
+			fibril_mutex_unlock(&nodep->lock);
+			continue;
+		}
+
+		list_remove(&nodep->ffn_link);
+		fibril_mutex_unlock(&ffn_mutex);
+
+		/*
+		 * We can unlock the node and its index structure because we are
+		 * the last player on this playground and VFS is preventing new
+		 * players from entering.
+		 */
+		fibril_mutex_unlock(&nodep->idx->lock);
+		fibril_mutex_unlock(&nodep->lock);
+
+		if (nodep->dirty) {
+			rc = fat_node_sync(nodep);
+			if (rc != EOK)
+				return rc;
+		}
+		nodep->idx->nodep = NULL;
+		free(nodep->bp);
+		free(nodep);
+
+		/* Need to restart because we changed the ffn_head list. */
+		goto restart;
+	}
+	fibril_mutex_unlock(&ffn_mutex);
+
+	return EOK;
 }
 
 static int fat_node_get_new(fat_node_t **nodepp)
@@ -404,6 +465,15 @@ int fat_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
 	if (rc == EOK)
 		*rfn = FS_NODE(nodep);
 	return rc;
+}
+
+int fat_node_open(fs_node_t *fn)
+{
+	/*
+	 * Opening a file is stateless, nothing
+	 * to be done here.
+	 */
+	return EOK;
 }
 
 int fat_node_put(fs_node_t *fn)
@@ -866,11 +936,17 @@ bool fat_is_file(fs_node_t *fn)
 	return FAT_NODE(fn)->type == FAT_FILE;
 }
 
+dev_handle_t fat_device_get(fs_node_t *node)
+{
+	return 0;
+}
+
 /** libfs operations */
 libfs_ops_t fat_libfs_ops = {
 	.root_get = fat_root_get,
 	.match = fat_match,
 	.node_get = fat_node_get,
+	.node_open = fat_node_open,
 	.node_put = fat_node_put,
 	.create = fat_create_node,
 	.destroy = fat_destroy_node,
@@ -880,9 +956,10 @@ libfs_ops_t fat_libfs_ops = {
 	.index_get = fat_index_get,
 	.size_get = fat_size_get,
 	.lnkcnt_get = fat_lnkcnt_get,
-	.plb_get_char =	fat_plb_get_char,
+	.plb_get_char = fat_plb_get_char,
 	.is_directory = fat_is_directory,
-	.is_file = fat_is_file
+	.is_file = fat_is_file,
+	.device_get = fat_device_get
 };
 
 /*
@@ -896,35 +973,23 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_bs_t *bs;
 	uint16_t bps;
 	uint16_t rde;
-	int rc;
-
-	/* accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	
+	/* Accept the mount options */
+	char *opts;
+	int rc = async_string_receive(&opts, 0, NULL);
+	
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
 
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
 		cmode = CACHE_MODE_WT;
 	else
 		cmode = CACHE_MODE_WB;
+
+	free(opts);
 
 	/* initialize libblock */
 	rc = block_init(dev_handle, BS_SIZE);
@@ -962,8 +1027,18 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+	/* Do some simple sanity checks on the file system. */
+	rc = fat_sanity_check(bs, dev_handle);
+	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
+		block_fini(dev_handle);
+		ipc_answer_0(rid, rc);
+		return;
+	}
+
 	rc = fat_idx_init_by_dev_handle(dev_handle);
 	if (rc != EOK) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		ipc_answer_0(rid, rc);
 		return;
@@ -972,6 +1047,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Initialize the root node. */
 	fs_node_t *rfn = (fs_node_t *)malloc(sizeof(fs_node_t));
 	if (!rfn) {
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -981,6 +1057,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_node_t *rootp = (fat_node_t *)malloc(sizeof(fat_node_t));
 	if (!rootp) {
 		free(rfn);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -992,6 +1069,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (!ridxp) {
 		free(rfn);
 		free(rootp);
+		(void) block_cache_fini(dev_handle);
 		block_fini(dev_handle);
 		fat_idx_fini_by_dev_handle(dev_handle);
 		ipc_answer_0(rid, ENOMEM);
@@ -1018,6 +1096,54 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_mount(&fat_libfs_ops, fat_reg.fs_handle, rid, request);
+}
+
+void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_node_t *fn;
+	fat_node_t *nodep;
+	int rc;
+
+	rc = fat_root_get(&fn, dev_handle);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	nodep = FAT_NODE(fn);
+
+	/*
+	 * We expect exactly two references on the root node. One for the
+	 * fat_root_get() above and one created in fat_mounted().
+	 */
+	if (nodep->refcnt != 2) {
+		(void) fat_node_put(fn);
+		ipc_answer_0(rid, EBUSY);
+		return;
+	}
+	
+	/*
+	 * Put the root node and force it to the FAT free node list.
+	 */
+	(void) fat_node_put(fn);
+	(void) fat_node_put(fn);
+
+	/*
+	 * Perform cleanup of the node structures, index structures and
+	 * associated data. Write back this file system's dirty blocks and
+	 * stop using libblock for this instance.
+	 */
+	(void) fat_node_fini_by_dev_handle(dev_handle);
+	fat_idx_fini_by_dev_handle(dev_handle);
+	(void) block_cache_fini(dev_handle);
+	block_fini(dev_handle);
+
+	ipc_answer_0(rid, EOK);
+}
+
+void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&fat_libfs_ops, rid, request);
 }
 
 void fat_lookup(ipc_callid_t rid, ipc_call_t *request)

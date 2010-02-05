@@ -38,6 +38,8 @@ BFD_ARCH = sparc
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
 
+JOBFILE = ../../../../tools/jobfile.py
+
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as

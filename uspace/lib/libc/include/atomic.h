@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,21 +35,7 @@
 #ifndef LIBC_ATOMIC_H_
 #define LIBC_ATOMIC_H_
 
-typedef struct atomic {
-	volatile long count;
-} atomic_t;
-
 #include <libarch/atomic.h>
-
-static inline void atomic_set(atomic_t *val, long i)
-{
-        val->count = i;
-}
-
-static inline long atomic_get(atomic_t *val)
-{
-        return val->count;
-}
 
 #endif
 

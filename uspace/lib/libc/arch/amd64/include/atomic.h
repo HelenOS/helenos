@@ -37,6 +37,10 @@
 #ifndef LIBC_amd64_ATOMIC_H_
 #define LIBC_amd64_ATOMIC_H_
 
+#define LIBC_ARCH_ATOMIC_H_
+
+#include <atomicdflt.h>
+
 static inline void atomic_inc(atomic_t *val) {
 	asm volatile ("lock incq %0\n" : "+m" (val->count));
 }

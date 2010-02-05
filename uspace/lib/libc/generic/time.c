@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -39,9 +39,9 @@
 #include <arch/barrier.h>
 #include <unistd.h>
 #include <atomic.h>
-#include <futex.h>
 #include <sysinfo.h>
 #include <ipc/services.h>
+#include <libc.h>
 
 #include <sysinfo.h>
 #include <as.h>
@@ -188,29 +188,22 @@ time_t time(time_t *tloc)
 }
 
 /** Wait unconditionally for specified number of microseconds */
-int usleep(unsigned long usec)
+int usleep(useconds_t usec)
 {
-	atomic_t futex = FUTEX_INITIALIZER;
-
-	futex_initialize(&futex, 0);
-	futex_down_timeout(&futex, usec, 0);
+	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
 	return 0;
 }
 
 /** Wait unconditionally for specified number of seconds */
-unsigned int sleep(unsigned int seconds)
+unsigned int sleep(unsigned int sec)
 {
-	atomic_t futex = FUTEX_INITIALIZER;
-
-	futex_initialize(&futex, 0);
-	
 	/* Sleep in 1000 second steps to support
 	   full argument range */
-	while (seconds > 0) {
-		unsigned int period = (seconds > 1000) ? 1000 : seconds;
+	while (sec > 0) {
+		unsigned int period = (sec > 1000) ? 1000 : sec;
 	
-		futex_down_timeout(&futex, period * 1000000, 0);
-		seconds -= period;
+		usleep(period * 1000000);
+		sec -= period;
 	}
 	return 0;
 }

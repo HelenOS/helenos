@@ -53,6 +53,7 @@
 #include <errno.h>
 #include <func.h>
 #include <string.h>
+#include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
 #include <ipc/event.h>
@@ -74,14 +75,19 @@ avltree_t tasks_tree;
 
 static task_id_t task_counter = 0;
 
+static slab_cache_t *task_slab;
+
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
+static int tsk_constructor(void *, int);
 
 /** Initialize kernel tasks support. */
 void task_init(void)
 {
 	TASK = NULL;
 	avltree_create(&tasks_tree);
+	task_slab = slab_cache_create("task_slab", sizeof(task_t), 0,
+	    tsk_constructor, NULL, 0);
 }
 
 /*
@@ -127,6 +133,35 @@ void task_done(void)
 	} while (tasks_left);
 }
 
+int tsk_constructor(void *obj, int kmflags)
+{
+	task_t *ta = obj;
+	int i;
+
+	atomic_set(&ta->refcount, 0);
+	atomic_set(&ta->lifecount, 0);
+	atomic_set(&ta->active_calls, 0);
+
+	spinlock_initialize(&ta->lock, "task_ta_lock");
+	mutex_initialize(&ta->futexes_lock, MUTEX_PASSIVE);
+
+	list_initialize(&ta->th_head);
+	list_initialize(&ta->sync_box_head);
+
+	ipc_answerbox_init(&ta->answerbox, ta);
+	for (i = 0; i < IPC_MAX_PHONES; i++)
+		ipc_phone_init(&ta->phones[i]);
+
+#ifdef CONFIG_UDEBUG
+	/* Init kbox stuff */
+	ta->kb.thread = NULL;
+	ipc_answerbox_init(&ta->kb.box, ta);
+	mutex_initialize(&ta->kb.cleanup_lock, MUTEX_PASSIVE);
+#endif
+
+	return 0;
+}
+
 /** Create new task with no threads.
  *
  * @param as		Task's address space.
@@ -139,23 +174,14 @@ task_t *task_create(as_t *as, char *name)
 {
 	ipl_t ipl;
 	task_t *ta;
-	int i;
 	
-	ta = (task_t *) malloc(sizeof(task_t), 0);
-
+	ta = (task_t *) slab_alloc(task_slab, 0);
 	task_create_arch(ta);
-
-	spinlock_initialize(&ta->lock, "task_ta_lock");
-	list_initialize(&ta->th_head);
 	ta->as = as;
-
 	memcpy(ta->name, name, TASK_NAME_BUFLEN);
 	ta->name[TASK_NAME_BUFLEN - 1] = 0;
 
-	atomic_set(&ta->refcount, 0);
-	atomic_set(&ta->lifecount, 0);
 	ta->context = CONTEXT;
-
 	ta->capabilities = 0;
 	ta->cycles = 0;
 
@@ -164,30 +190,17 @@ task_t *task_create(as_t *as, char *name)
 	udebug_task_init(&ta->udebug);
 
 	/* Init kbox stuff */
-	ipc_answerbox_init(&ta->kb.box, ta);
-	ta->kb.thread = NULL;
-	mutex_initialize(&ta->kb.cleanup_lock, MUTEX_PASSIVE);
 	ta->kb.finished = false;
 #endif
 
-	ipc_answerbox_init(&ta->answerbox, ta);
-	for (i = 0; i < IPC_MAX_PHONES; i++)
-		ipc_phone_init(&ta->phones[i]);
-	if ((ipc_phone_0) && (context_check(ipc_phone_0->task->context,
-	    ta->context)))
+	if ((ipc_phone_0) &&
+	    (context_check(ipc_phone_0->task->context, ta->context)))
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
-	atomic_set(&ta->active_calls, 0);
 
-	mutex_initialize(&ta->futexes_lock, MUTEX_PASSIVE);
 	btree_create(&ta->futexes);
 	
 	ipl = interrupts_disable();
-
-	/*
-	 * Increment address space reference count.
-	 */
 	atomic_inc(&as->refcount);
-
 	spinlock_lock(&tasks_lock);
 	ta->taskid = ++task_counter;
 	avltree_node_initialize(&ta->tasks_tree_node);
@@ -228,7 +241,7 @@ void task_destroy(task_t *t)
 	if (atomic_predec(&t->as->refcount) == 0) 
 		as_destroy(t->as);
 	
-	free(t);
+	slab_free(task_slab, t);
 	TASK = NULL;
 }
 

@@ -36,16 +36,16 @@
 #define __ATA_BD_H__
 
 #include <sys/types.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <string.h>
 
 enum {
-	CTL_READ_START	= 0,
+	CTL_READ_START  = 0,
 	CTL_WRITE_START = 1,
 };
 
 enum {
-	STATUS_FAILURE	= 0
+	STATUS_FAILURE = 0
 };
 
 enum {

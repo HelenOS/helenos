@@ -42,7 +42,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {
@@ -148,12 +148,21 @@ static hash_index_t pos_hash(unsigned long key[])
 static int pos_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	dev_handle_t dev_handle = (dev_handle_t)key[UPH_DH_KEY];
-	fat_cluster_t pfc = (fat_cluster_t)key[UPH_PFC_KEY];
-	unsigned pdi = (unsigned)key[UPH_PDI_KEY];
+	fat_cluster_t pfc;
+	unsigned pdi;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uph_link);
 
-	return (dev_handle == fidx->dev_handle) && (pfc == fidx->pfc) &&
-	    (pdi == fidx->pdi);
+	switch (keys) {
+	case 1:
+		return (dev_handle == fidx->dev_handle);
+	case 3:
+		pfc = (fat_cluster_t) key[UPH_PFC_KEY];
+		pdi = (unsigned) key[UPH_PDI_KEY];
+		return (dev_handle == fidx->dev_handle) && (pfc == fidx->pfc) &&
+		    (pdi == fidx->pdi);
+	default:
+		assert((keys == 1) || (keys == 3));
+	}
 }
 
 static void pos_remove_callback(link_t *item)
@@ -196,15 +205,26 @@ static hash_index_t idx_hash(unsigned long key[])
 static int idx_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	dev_handle_t dev_handle = (dev_handle_t)key[UIH_DH_KEY];
-	fs_index_t index = (fs_index_t)key[UIH_INDEX_KEY];
+	fs_index_t index;
 	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
 
-	return (dev_handle == fidx->dev_handle) && (index == fidx->index);
+	switch (keys) {
+	case 1:
+		return (dev_handle == fidx->dev_handle);
+	case 2:
+		index = (fs_index_t) key[UIH_INDEX_KEY];
+		return (dev_handle == fidx->dev_handle) &&
+		    (index == fidx->index);
+	default:
+		assert((keys == 1) || (keys == 2));
+	}
 }
 
 static void idx_remove_callback(link_t *item)
 {
-	/* nothing to do */
+	fat_idx_t *fidx = list_get_instance(item, fat_idx_t, uih_link);
+
+	free(fidx);
 }
 
 static hash_table_operations_t uih_ops = {
@@ -485,6 +505,8 @@ void fat_idx_destroy(fat_idx_t *idx)
 		[UIH_DH_KEY] = idx->dev_handle,
 		[UIH_INDEX_KEY] = idx->index,
 	};
+	dev_handle_t dev_handle = idx->dev_handle;
+	fs_index_t index = idx->index;
 
 	assert(idx->pfc == FAT_CLST_RES0);
 
@@ -497,9 +519,8 @@ void fat_idx_destroy(fat_idx_t *idx)
 	hash_table_remove(&ui_hash, ikey, 2);
 	fibril_mutex_unlock(&used_lock);
 	/* Release the VFS index. */
-	fat_index_free(idx->dev_handle, idx->index);
-	/* Deallocate the structure. */
-	free(idx);
+	fat_index_free(dev_handle, index);
+	/* The index structure itself is freed in idx_remove_callback(). */
 }
 
 int fat_idx_init(void)
@@ -530,19 +551,39 @@ int fat_idx_init_by_dev_handle(dev_handle_t dev_handle)
 		return ENOMEM;
 	unused_initialize(u, dev_handle);
 	fibril_mutex_lock(&unused_lock);
-	if (!unused_find(dev_handle, false))
+	if (!unused_find(dev_handle, false)) {
 		list_append(&u->link, &unused_head);
-	else
+	} else {
+		free(u);
 		rc = EEXIST;
+	}
 	fibril_mutex_unlock(&unused_lock);
 	return rc;
 }
 
 void fat_idx_fini_by_dev_handle(dev_handle_t dev_handle)
 {
-	unused_t *u;
+	unsigned long ikey[] = {
+		[UIH_DH_KEY] = dev_handle
+	};
+	unsigned long pkey[] = {
+		[UPH_DH_KEY] = dev_handle
+	};
 
-	u = unused_find(dev_handle, true);
+	/*
+	 * Remove this instance's index structure from up_hash and ui_hash.
+	 * Process up_hash first and ui_hash second because the index structure
+	 * is actually removed in idx_remove_callback(). 
+	 */
+	fibril_mutex_lock(&used_lock);
+	hash_table_remove(&up_hash, pkey, 1);
+	hash_table_remove(&ui_hash, ikey, 1);
+	fibril_mutex_unlock(&used_lock);
+
+	/*
+	 * Free the unused and freed structures for this instance.
+	 */
+	unused_t *u = unused_find(dev_handle, true);
 	assert(u);
 	list_remove(&u->link);
 	fibril_mutex_unlock(&unused_lock);

@@ -41,7 +41,7 @@
 #include <assert.h>
 #include <bool.h>
 #include <fibril.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include "vfs.h"
 
 /**
@@ -71,6 +71,24 @@ bool vfs_files_init(void)
 		memset(files, 0, MAX_OPEN_FILES * sizeof(vfs_file_t *));
 	}
 	return true;
+}
+
+/** Cleanup the table of open files. */
+void vfs_files_done(void)
+{
+	int i;
+
+	if (!files)
+		return;
+
+	for (i = 0; i < MAX_OPEN_FILES; i++) {
+		if (files[i]) {
+			(void) vfs_close_internal(files[i]);
+			(void) vfs_fd_free(i);
+		}
+	}
+	
+	free(files);
 }
 
 /** Allocate a file descriptor.

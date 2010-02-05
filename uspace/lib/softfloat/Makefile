@@ -27,14 +27,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../..
+LIBS = $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS += -Iinclude -Iarch/$(UARCH)/include/
 
-.PHONY: all clean
+OUTPUT = libsoftfloat.a
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBC_PREFIX)/libc.a
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+SOURCES = \
+	generic/add.c \
+	generic/common.c \
+	generic/comparison.c \
+	generic/conversion.c \
+	generic/div.c \
+	generic/mul.c \
+	generic/other.c \
+	generic/softfloat.c \
+	generic/sub.c
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(LIBSOFTFLOAT)
-	find . -name '*.o' -follow -exec rm \{\} \;
+include ../Makefile.common

@@ -38,6 +38,8 @@ BFD_ARCH = powerpc:common
 TARGET = ppc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32/bin
 
+JOBFILE = ../../../../tools/jobfile.py
+
 ifeq ($(COMPILER),gcc_native)
 	CC = gcc
 	AS = as

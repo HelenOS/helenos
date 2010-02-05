@@ -57,11 +57,13 @@
  *  @param size  Stack size.
  *  @param ptls  Pointer to the TCB.
  */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET;
-
+#define context_set(c, _pc, stack, size, ptls) \
+	do { \
+		(c)->pc = (sysarg_t) (_pc); \
+		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
+ 		(c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET; \
+		(c)->fp = 0; \
+	} while (0)
 
 /** Fibril context. 
  *
@@ -78,9 +80,9 @@ typedef struct  {
 	uint32_t r6;
 	uint32_t r7;
 	uint32_t r8;
-	uint32_t tls;
+	uint32_t tls;	/* r9 */
 	uint32_t r10;
-	uint32_t r11;
+	uint32_t fp;	/* r11 */
 } context_t;
 
 

@@ -58,9 +58,9 @@ endif
 ## Setup platform configuration
 #
 
-include $(LIBC_PREFIX)/../../../Makefile.config
-include $(LIBC_PREFIX)/../../../config.defs
-include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
+-include $(LIBC_PREFIX)/../../../Makefile.config
+-include $(LIBC_PREFIX)/../../../config.defs
+-include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
 
 ## Simple detection of the host system
 #
@@ -76,6 +76,8 @@ endif
 
 ## Toolchain configuration
 #
+
+JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(COMPILER),gcc_cross)
 	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc

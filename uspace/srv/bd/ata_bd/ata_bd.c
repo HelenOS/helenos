@@ -54,10 +54,11 @@
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <string.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
@@ -65,7 +66,8 @@
 
 #include "ata_bd.h"
 
-#define NAME "ata_bd"
+#define NAME       "ata_bd"
+#define NAMESPACE  "bd"
 
 /** Physical block size. Should be always 512. */
 static const size_t block_size = 512;
@@ -110,7 +112,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address 0x%p/0x%p\n", ctl_physical, cmd_physical);
+	printf("I/O address %p/%p\n", ctl_physical, cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -134,13 +136,12 @@ int main(int argc, char **argv)
 		/* Skip unattached drives. */
 		if (disk[i].present == false)
 			continue;
-
-		snprintf(name, 16, "disk%d", i);
+		
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &disk[i].dev_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		++n_disks;
@@ -179,11 +180,11 @@ static void disk_print_summary(disk_t *d)
 		break;
 	}
 
-	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
+	printf(" %" PRIu64 " blocks", d->blocks, d->blocks / (2 * 1024));
 
 	mbytes = d->blocks / (2 * 1024);
 	if (mbytes > 0)
-		printf(" %llu MB.", mbytes);
+		printf(" %" PRIu64 " MB.", mbytes);
 
 	printf("\n");
 }
@@ -294,6 +295,10 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
+			    UPPER32(disk[disk_id].blocks));
 			continue;
 		default:
 			retval = EINVAL;

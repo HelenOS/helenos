@@ -116,35 +116,58 @@ static void vfs_connect(void)
 		vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
 }
 
-int mount(const char *fs_name, const char *mp, const char *dev,
+int mount(const char *fs_name, const char *mp, const char *fqdn,
     const char *opts, unsigned int flags)
 {
-	int res;
-	ipcarg_t rc;
-	ipcarg_t rc_orig;
-	aid_t req;
-	dev_handle_t dev_handle;
+	int null_id = -1;
+	char null[DEVMAP_NAME_MAXLEN];
 	
-	res = devmap_device_get_handle(dev, &dev_handle, flags);
-	if (res != EOK)
+	if (str_cmp(fqdn, "") == 0) {
+		/* No device specified, create a fresh
+		   null/%d device instead */
+		null_id = devmap_null_create();
+		
+		if (null_id == -1)
+			return ENOMEM;
+		
+		snprintf(null, DEVMAP_NAME_MAXLEN, "null/%d", null_id);
+		fqdn = null;
+	}
+	
+	dev_handle_t dev_handle;
+	int res = devmap_device_get_handle(fqdn, &dev_handle, flags);
+	if (res != EOK) {
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
 		return res;
+	}
 	
 	size_t mpa_size;
 	char *mpa = absolutize(mp, &mpa_size);
-	if (!mpa)
+	if (!mpa) {
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
 		return ENOMEM;
+	}
 	
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
 	vfs_connect();
 	
-	req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
-	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	ipcarg_t rc_orig;
+	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
+	ipcarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
 		futex_up(&vfs_phone_futex);
 		free(mpa);
+		
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
@@ -157,26 +180,78 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 		async_serialize_end();
 		futex_up(&vfs_phone_futex);
 		free(mpa);
+		
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-
+	
 	rc = async_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
 		futex_up(&vfs_phone_futex);
 		free(mpa);
+		
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-
+	
 	/* Ask VFS whether it likes fs_name. */
 	rc = async_req_0_0(vfs_phone, IPC_M_PING);
+	if (rc != EOK) {
+		async_wait_for(req, &rc_orig);
+		async_serialize_end();
+		futex_up(&vfs_phone_futex);
+		free(mpa);
+		
+		if (null_id != -1)
+			devmap_null_destroy(null_id);
+		
+		if (rc_orig == EOK)
+			return (int) rc;
+		else
+			return (int) rc_orig;
+	}
+	
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	futex_up(&vfs_phone_futex);
+	free(mpa);
+	
+	if ((rc != EOK) && (null_id != -1))
+		devmap_null_destroy(null_id);
+	
+	return (int) rc;
+}
+
+int unmount(const char *mp)
+{
+	ipcarg_t rc;
+	ipcarg_t rc_orig;
+	aid_t req;
+	size_t mpa_size;
+	char *mpa;
+	
+	mpa = absolutize(mp, &mpa_size);
+	if (!mpa)
+		return ENOMEM;
+	
+	futex_down(&vfs_phone_futex);
+	async_serialize_start();
+	vfs_connect();
+	
+	req = async_send_0(vfs_phone, VFS_IN_UNMOUNT, NULL);
+	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -188,6 +263,7 @@ int mount(const char *fs_name, const char *mp, const char *dev,
 			return (int) rc_orig;
 	}
 	
+
 	async_wait_for(req, &rc);
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
@@ -702,10 +778,10 @@ int fd_phone(int fildes)
 
 	rc = fstat(fildes, &stat);
 
-	if (!stat.devfs_stat.device)
+	if (!stat.device)
 		return -1;
 	
-	return devmap_device_connect(stat.devfs_stat.device, 0);
+	return devmap_device_connect(stat.device, 0);
 }
 
 int fd_node(int fildes, fdi_node_t *node)

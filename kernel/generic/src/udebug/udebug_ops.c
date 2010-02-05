@@ -45,10 +45,12 @@
 #include <arch.h>
 #include <errno.h>
 #include <print.h>
+#include <string.h>
 #include <syscall/copy.h>
 #include <ipc/ipc.h>
 #include <udebug/udebug.h>
 #include <udebug/udebug_ops.h>
+#include <memstr.h>
 
 /**
  * Prepare a thread for a debugging operation.
@@ -207,9 +209,13 @@ int udebug_begin(call_t *call)
 		t = list_get_instance(cur, thread_t, th_link);
 
 		mutex_lock(&t->udebug.lock);
-		if ((t->flags & THREAD_FLAG_USPACE) != 0)
+		if ((t->flags & THREAD_FLAG_USPACE) != 0) {
 			t->udebug.active = true;
-		mutex_unlock(&t->udebug.lock);
+			mutex_unlock(&t->udebug.lock);
+			condvar_broadcast(&t->udebug.active_cv);
+		} else {
+			mutex_unlock(&t->udebug.lock);
+		}
 	}
 
 	mutex_unlock(&TASK->udebug.lock);
@@ -353,8 +359,9 @@ int udebug_stop(thread_t *t, call_t *call)
  * into this buffer.
  *
  * If the sequence is longer than @a buf_size bytes, only as much hashes
- * as can fit are copied. The number of thread hashes copied is stored
- * in @a n.
+ * as can fit are copied. The number of bytes copied is stored in @a stored.
+ * The total number of thread bytes that could have been saved had there been
+ * enough space is stored in @a needed.
  *
  * The rationale for having @a buf_size is that this function is only
  * used for servicing the THREAD_READ message, which always specifies
@@ -362,14 +369,17 @@ int udebug_stop(thread_t *t, call_t *call)
  *
  * @param buffer	The buffer for storing thread hashes.
  * @param buf_size	Buffer size in bytes.
- * @param n		The actual number of hashes copied will be stored here.
+ * @param stored	The actual number of bytes copied will be stored here.
+ * @param needed	Total number of hashes that could have been saved.
  */
-int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
+int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
+    size_t *needed)
 {
 	thread_t *t;
 	link_t *cur;
 	unative_t tid;
-	unsigned copied_ids;
+	size_t copied_ids;
+	size_t extra_ids;
 	ipl_t ipl;
 	unative_t *id_buffer;
 	int flags;
@@ -378,7 +388,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	LOG("udebug_thread_read()");
 
 	/* Allocate a buffer to hold thread IDs */
-	id_buffer = malloc(buf_size, 0);
+	id_buffer = malloc(buf_size + 1, 0);
 
 	mutex_lock(&TASK->udebug.lock);
 
@@ -394,12 +404,10 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 
 	max_ids = buf_size / sizeof(unative_t);
 	copied_ids = 0;
+	extra_ids = 0;
 
 	/* FIXME: make sure the thread isn't past debug shutdown... */
 	for (cur = TASK->th_head.next; cur != &TASK->th_head; cur = cur->next) {
-		/* Do not write past end of buffer */
-		if (copied_ids >= max_ids) break;
-
 		t = list_get_instance(cur, thread_t, th_link);
 
 		spinlock_lock(&t->lock);
@@ -407,10 +415,15 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 		spinlock_unlock(&t->lock);
 
 		/* Not interested in kernel threads. */
-		if ((flags & THREAD_FLAG_USPACE) != 0) {
+		if ((flags & THREAD_FLAG_USPACE) == 0)
+			continue;
+
+		if (copied_ids < max_ids) {
 			/* Using thread struct pointer as identification hash */
 			tid = (unative_t) t;
 			id_buffer[copied_ids++] = tid;
+		} else {
+			extra_ids++;
 		}
 	}
 
@@ -420,7 +433,31 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
 	mutex_unlock(&TASK->udebug.lock);
 
 	*buffer = id_buffer;
-	*n = copied_ids * sizeof(unative_t);
+	*stored = copied_ids * sizeof(unative_t);
+	*needed = (copied_ids + extra_ids) * sizeof(unative_t);
+
+	return 0;
+}
+
+/** Read task name.
+ *
+ * Returns task name as non-terminated string in a newly allocated buffer.
+ * Also returns the size of the data.
+ *
+ * @param data		Place to store pointer to newly allocated block.
+ * @param data_size	Place to store size of the data.
+ *
+ * @returns		EOK.
+ */
+int udebug_name_read(char **data, size_t *data_size)
+{
+	size_t name_size;
+
+	name_size = str_size(TASK->name) + 1;
+	*data = malloc(name_size, 0);
+	*data_size = name_size;
+
+	memcpy(*data, TASK->name, name_size);
 
 	return 0;
 }
@@ -435,7 +472,10 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *n)
  * Unless the thread is currently blocked in a SYSCALL_B or SYSCALL_E event,
  * this function will fail with an EINVAL error code.
  *
- * @param buffer	The buffer for storing thread hashes.
+ * @param t		Thread where call arguments are to be read.
+ * @param buffer	Place to store pointer to new buffer.
+ * @return		EOK on success, ENOENT if @a t is invalid, EINVAL
+ *			if thread state is not valid for this operation.
  */
 int udebug_args_read(thread_t *t, void **buffer)
 {
@@ -464,6 +504,50 @@ int udebug_args_read(thread_t *t, void **buffer)
 	_thread_op_end(t);
 
 	*buffer = arg_buffer;
+	return 0;
+}
+
+/** Read the register state of the thread.
+ *
+ * The contents of the thread's istate structure are copied to a newly
+ * allocated buffer and a pointer to it is written to @a buffer. The size of
+ * the buffer will be sizeof(istate_t).
+ *
+ * Currently register state cannot be read if the thread is inside a system
+ * call (as opposed to an exception). This is an implementation limit.
+ *
+ * @param t		Thread whose state is to be read.
+ * @param buffer	Place to store pointer to new buffer.
+ * @return		EOK on success, ENOENT if @a t is invalid, EINVAL
+ *			if thread is not in valid state, EBUSY if istate
+ *			is not available.
+ */
+int udebug_regs_read(thread_t *t, void **buffer)
+{
+	istate_t *state, *state_buf;
+	int rc;
+
+	/* Prepare a buffer to hold the data. */
+	state_buf = malloc(sizeof(istate_t), 0);
+
+	/* On success, this will lock t->udebug.lock */
+	rc = _thread_op_begin(t, false);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	state = t->udebug.uspace_state;
+	if (state == NULL) {
+		_thread_op_end(t);
+		return EBUSY;
+	}
+
+	/* Copy to the allocated buffer */
+	memcpy(state_buf, state, sizeof(istate_t));
+
+	_thread_op_end(t);
+
+	*buffer = (void *) state_buf;
 	return 0;
 }
 

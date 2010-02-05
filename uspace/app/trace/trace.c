@@ -47,7 +47,9 @@
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 
 #include <libc.h>
 
@@ -158,7 +160,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -197,7 +199,7 @@ static int get_thread_list(void)
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%lx)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash %p)", 1+i, thread_hash_buf[i]);
 	}
 	printf("\ntotal of %u threads\n", tb_needed / sizeof(uintptr_t));
 
@@ -221,7 +223,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 
 	case V_HASH:
 	case V_PTR:
-		printf("0x%08lx", val);
+		printf("%p", val);
 		break;
 
 	case V_ERRNO:
@@ -274,9 +276,9 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%ld", sc_args[0]);
+	if (n > 0) printf("%" PRIdSYSARG, sc_args[0]);
 	for (i = 1; i < n; i++) {
-		printf(", %ld", sc_args[i]);
+		printf(", %" PRIdSYSARG, sc_args[i]);
 	}
 	putchar(')');
 }
@@ -507,7 +509,7 @@ static int trace_loop(void *thread_hash_arg)
 		return ELIMIT;
 	}
 
-	printf("Start tracing thread [%d] (hash 0x%lx).\n", thread_id, thread_hash);
+	printf("Start tracing thread [%d] (hash %p).\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
@@ -551,7 +553,7 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread 0x%lx exited.\n", val0);
+				printf("Thread %p exited.\n", val0);
 				fibril_mutex_lock(&state_lock);
 				abort_trace = true;
 				fibril_condvar_broadcast(&state_cv);
@@ -971,11 +973,11 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld.\n", task_id);
+		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
 		return 1;
 	}
 
-	printf("Connected to task %lld.\n", task_id);
+	printf("Connected to task %" PRIdTASKID ".\n", task_id);
 
 	if (task_ldr != NULL)
 		program_run();
