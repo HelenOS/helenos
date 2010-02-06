@@ -48,7 +48,7 @@
 
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
-	char *argv[11];
+	char *argv[6];
 	char *fname;
 	char *dump_fname;
 	char *s_taskid;
@@ -65,25 +65,20 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	if (asprintf(&dump_fname, "/scratch/d" PRIuTASKID ".txt", taskid) < 0) {
+	if (asprintf(&dump_fname, "/data/core" PRIuTASKID, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
 	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
 
-#ifdef CONFIG_VERBOSE_DUMPS
-	argv[0] = "/app/redir";
-	argv[1] = "-i";
-	argv[2] = "/readme";
-	argv[3] = "-o";
-	argv[4] = dump_fname;
-	argv[5] = "--";
-	argv[6] = "/app/taskdump";
-	argv[7] = "-m";
-	argv[8] = "-t";
-	argv[9] = s_taskid;
-	argv[10] = NULL;
+#ifdef CONFIG_WRITE_CORE_FILES
+	argv[0] = "/app/taskdump";
+	argv[1] = "-c";
+	argv[2] = dump_fname;
+	argv[3] = "-t";
+	argv[4] = s_taskid;
+	argv[5] = NULL;
 #else
 	argv[0] = "/app/taskdump";
 	argv[1] = "-t";

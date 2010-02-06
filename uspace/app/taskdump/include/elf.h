@@ -147,6 +147,11 @@
 #define SHF_TLS			0x400
 #define SHF_MASKPROC		0xf0000000
 
+/** Macros for decomposing elf_symbol.st_info into binging and type */
+#define ELF_ST_BIND(i)		((i) >> 4)
+#define ELF_ST_TYPE(i)		((i) & 0x0f)
+#define ELF_ST_INFO(b, t)	(((b) << 4) + ((t) & 0x0f))
+
 /**
  * Symbol binding
  */
