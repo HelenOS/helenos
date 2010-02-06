@@ -360,7 +360,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	uint16_t bps;
 	uint16_t rscnt;
 	uint16_t sf;
-	uint16_t ts;
+	uint32_t ts;
 	unsigned rde;
 	unsigned rds;
 	unsigned ssa;
@@ -378,7 +378,9 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	rscnt = uint16_t_le2host(bs->rscnt);
 	sf = uint16_t_le2host(bs->sec_per_fat);
 	rde = uint16_t_le2host(bs->root_ent_max);
-	ts = uint16_t_le2host(bs->totsec16);
+	ts = (uint32_t) uint16_t_le2host(bs->totsec16);
+	if (ts == 0)
+		ts = uint32_t_le2host(bs->totsec32);
 
 	rds = (sizeof(fat_dentry_t) * rde) / bps;
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
