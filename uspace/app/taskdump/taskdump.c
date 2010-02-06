@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
-#include <kernel/mm/as.h>
+#include <as.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <libarch/istate.h>
@@ -48,6 +48,7 @@
 #include <bool.h>
 
 #include <symtab.h>
+#include <elf_core.h>
 #include <stacktrace.h>
 
 #define LINE_BYTES 16
@@ -57,7 +58,8 @@ static uint8_t data_buf[DBUF_SIZE];
 
 static int phoneid;
 static task_id_t task_id;
-static bool dump_memory;
+static bool write_core_file;
+static char *core_file_name;
 static char *app_name;
 static symtab_t *app_symtab;
 
@@ -79,15 +81,8 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	/*
-	 * FIXME: The stdio module cannot currently detect whether we are
-	 * writing to a console or file. This workaround make file output
-	 * faster.
-	 */
-	setvbuf(stdout, NULL, _IOFBF, 32768);
-
 	printf("Task Dump Utility\n");
-	dump_memory = false;
+	write_core_file = false;
 
 	if (parse_args(argc, argv) < 0)
 		return 1;
@@ -171,8 +166,11 @@ static int parse_args(int argc, char *argv[])
 					print_syntax();
 					return -1;
 				}
-			} else if (arg[1] == 'm' && arg[2] == '\0') {
-				dump_memory = true;
+			} else if (arg[1] == 'c' && arg[2] == '\0') {
+				write_core_file = true;
+
+				--argc; ++argv;
+				core_file_name = *argv;
 			} else {
 				printf("Uknown option '%s'\n", arg[0]);
 				print_syntax();
@@ -202,8 +200,8 @@ static int parse_args(int argc, char *argv[])
 
 static void print_syntax(void)
 {
-	printf("Syntax: taskdump [-m] -t <task_id>\n");
-	printf("\t-m\tDump memory area contents.\n");
+	printf("Syntax: taskdump [-c <core_file>] -t <task_id>\n");
+	printf("\t-c <core_file_id>\tName of core file to write.\n");
 	printf("\t-t <task_id>\tWhich task to dump.\n");
 }
 
@@ -296,15 +294,18 @@ static int areas_dump(void)
 		    (ainfo_buf[i].flags & AS_AREA_EXEC) ? 'X' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_CACHEABLE) ? 'C' : '-',
 		    ainfo_buf[i].start_addr, ainfo_buf[i].size);
-
-		if (dump_memory) {
-			putchar('\n');
-			area_dump(&ainfo_buf[i]);
-			putchar('\n');
-		}
 	}
 
 	putchar('\n');
+
+	if (write_core_file) {
+		printf("Writing core file '%s'\n", core_file_name);
+		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, phoneid);
+		if (rc != EOK) {
+			printf("Failed writing core file.\n");
+			return EIO;
+		}
+	}
 
 	free(ainfo_buf);
 
