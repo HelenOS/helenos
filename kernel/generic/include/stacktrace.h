@@ -59,7 +59,7 @@ extern void stack_trace_fp_pc(stack_trace_ops_t *, uintptr_t, uintptr_t);
  * The following interface is to be implemented by each architecture.
  */
 extern uintptr_t frame_pointer_get(void);
-extern uintptr_t program_counter_get();
+extern uintptr_t program_counter_get(void);
 
 extern bool kernel_frame_pointer_validate(uintptr_t);
 extern bool kernel_frame_pointer_prev(uintptr_t, uintptr_t *);

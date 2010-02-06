@@ -45,7 +45,7 @@ typedef enum {
 
 typedef enum {
 	CLIPBOARD_TAG_NONE,
-	CLIPBOARD_TAG_BLOB
+	CLIPBOARD_TAG_DATA
 } clipboard_tag_t;
 
 #endif

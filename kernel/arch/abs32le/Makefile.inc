@@ -40,6 +40,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/abs32le.c \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

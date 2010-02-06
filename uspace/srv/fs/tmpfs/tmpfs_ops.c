@@ -442,32 +442,16 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
 	fs_node_t *rootfn;
 	int rc;
+	
+	/* Accept the mount options. */
+	char *opts;
+	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
 
-	/* accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
-
-	/*
-	 * Check if this device is not already mounted.
-	 */
+	/* Check if this device is not already mounted. */
 	rc = tmpfs_root_get(&rootfn, dev_handle);
 	if ((rc == EOK) && (rootfn)) {
 		(void) tmpfs_node_put(rootfn);

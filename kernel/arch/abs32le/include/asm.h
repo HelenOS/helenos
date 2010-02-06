@@ -48,7 +48,7 @@ extern void asm_delay_loop(uint32_t);
 extern void asm_fake_loop(uint32_t);
 
 
-static inline void cpu_halt(void)
+static inline __attribute__((noreturn)) void cpu_halt(void)
 {
 	/* On real hardware this should stop processing further
 	   instructions on the CPU (and possibly putting it into

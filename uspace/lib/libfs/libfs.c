@@ -160,7 +160,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	/* Accept the phone */
 	callid = async_get_call(&call);
-	int mountee_phone = (int)IPC_GET_ARG1(call);
+	int mountee_phone = (int) IPC_GET_ARG1(call);
 	if ((IPC_GET_METHOD(call) != IPC_M_CONNECTION_CLONE) ||
 	    (mountee_phone < 0)) {
 		ipc_answer_0(callid, EINVAL);
@@ -171,19 +171,11 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* Acknowledge the mountee_phone */
 	ipc_answer_0(callid, EOK);
 	
-	res = async_data_write_receive(&callid, NULL);
-	if (!res) {
-		ipc_hangup(mountee_phone);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
 	fs_node_t *fn;
 	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
 		ipc_hangup(mountee_phone);
-		ipc_answer_0(callid, combine_rc(res, ENOENT));
+		async_data_write_void(combine_rc(res, ENOENT));
 		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
@@ -191,7 +183,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (fn->mp_data.mp_active) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		ipc_answer_0(callid, EBUSY);
+		async_data_write_void(EBUSY);
 		ipc_answer_0(rid, EBUSY);
 		return;
 	}
@@ -200,16 +192,14 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if (rc != EOK) {
 		ipc_hangup(mountee_phone);
 		(void) ops->node_put(fn);
-		ipc_answer_0(callid, rc);
+		async_data_write_void(rc);
 		ipc_answer_0(rid, rc);
 		return;
 	}
 	
 	ipc_call_t answer;
-	aid_t msg = async_send_1(mountee_phone, VFS_OUT_MOUNTED, mr_dev_handle,
-	    &answer);
-	ipc_forward_fast(callid, mountee_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-	async_wait_for(msg, &rc);
+	rc = async_data_write_forward_1_1(mountee_phone, VFS_OUT_MOUNTED,
+	    mr_dev_handle, &answer);
 	
 	if (rc == EOK) {
 		fn->mp_data.mp_active = true;

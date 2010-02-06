@@ -39,15 +39,13 @@
 #include <adt/list.h>
 #include <libarch/tls.h>
 
-#ifndef context_set
-#define context_set(c, _pc, stack, size, ptls) \
+#define context_set_generic(c, _pc, stack, size, ptls) \
 	(c)->pc = (sysarg_t) (_pc); \
 	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
 	(c)->tls = (sysarg_t) (ptls);
-#endif /* context_set */
 
-#define FIBRIL_SERIALIZED	1
-#define FIBRIL_WRITER 		2
+#define FIBRIL_SERIALIZED  1
+#define FIBRIL_WRITER      2
 
 typedef enum {
 	FIBRIL_PREEMPT,
@@ -58,7 +56,7 @@ typedef enum {
 
 typedef sysarg_t fid_t;
 
-struct fibril {
+typedef struct fibril {
 	link_t link;
 	context_t ctx;
 	void *stack;
@@ -69,14 +67,13 @@ struct fibril {
 	struct fibril *clean_after_me;
 	int retval;
 	int flags;
-};
-typedef struct fibril fibril_t;
+} fibril_t;
 
 /** Fibril-local variable specifier */
 #define fibril_local __thread
 
-extern int context_save(context_t *c) __attribute__ ((returns_twice));
-extern void context_restore(context_t *c) __attribute__ ((noreturn));
+extern int context_save(context_t *ctx) __attribute__((returns_twice));
+extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
 extern fid_t fibril_create(int (*func)(void *), void *arg);
 extern fibril_t *fibril_setup(void);
@@ -89,7 +86,8 @@ extern fid_t fibril_get_id(void);
 extern void fibril_inc_sercount(void);
 extern void fibril_dec_sercount(void);
 
-static inline int fibril_yield(void) {
+static inline int fibril_yield(void)
+{
 	return fibril_switch(FIBRIL_PREEMPT);
 }
 

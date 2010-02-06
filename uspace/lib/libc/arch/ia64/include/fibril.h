@@ -52,10 +52,6 @@
 /* Stack is divided into two equal parts (for memory stack and register stack). */
 #define PSTHREAD_INITIAL_STACK_DIVISION 2  
 
-#ifdef context_set
-#undef context_set
-#endif
-
 #define context_set(c, _pc, stack, size, tls) 								\
 	do {												\
 		(c)->pc = (uint64_t) _pc;								\

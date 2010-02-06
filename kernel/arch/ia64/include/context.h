@@ -48,10 +48,6 @@
  */
 #define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
-#ifdef context_set
-#undef context_set
-#endif
-
 /* RSE stack starts at the bottom of memory stack. */
 #define context_set(c, _pc, stack, size)								\
 	do {												\

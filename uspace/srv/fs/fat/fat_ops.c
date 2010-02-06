@@ -973,29 +973,15 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	fat_bs_t *bs;
 	uint16_t bps;
 	uint16_t rde;
-	int rc;
-
-	/* accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	
+	/* Accept the mount options */
+	char *opts;
+	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
+	
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	ipcarg_t retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
 
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
