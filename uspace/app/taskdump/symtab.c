@@ -254,11 +254,17 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 			continue;
 
 		stype = ELF_ST_TYPE(st->sym[i].st_info);
-		if (stype != STT_OBJECT && stype != STT_FUNC)
+		if (stype != STT_OBJECT && stype != STT_FUNC &&
+		    stype != STT_NOTYPE) {
 			continue;
+		}
 
 		saddr = st->sym[i].st_value;
 		sname = st->strtab + st->sym[i].st_name;
+
+		/* An ugly hack to filter out some special ARM symbols. */
+		if (sname[0] == '$')
+			continue;
 
 		if (best_name == NULL || (saddr <= addr && saddr > best_addr)) {
 			best_name = sname;
