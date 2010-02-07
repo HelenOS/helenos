@@ -65,7 +65,7 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	if (asprintf(&dump_fname, "/data/core" PRIuTASKID, taskid) < 0) {
+	if (asprintf(&dump_fname, "/data/core%" PRIuTASKID, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
