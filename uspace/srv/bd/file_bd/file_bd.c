@@ -248,7 +248,7 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > num_blocks) {
 		printf(NAME ": Accessed blocks %" PRIuBN "-%" PRIuBN ", while "
-		    "max block numeber is %" PRIuBN ".\n", ba, ba + cnt - 1,
+		    "max block number is %" PRIuBN ".\n", ba, ba + cnt - 1,
 		    num_blocks - 1);
 		return ELIMIT;
 	}
