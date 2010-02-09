@@ -68,6 +68,7 @@ void udebug_thread_initialize(udebug_thread_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
 	waitq_initialize(&ut->go_wq);
+	condvar_initialize(&ut->active_cv);
 
 	ut->go_call = NULL;
 	ut->uspace_state = NULL;
@@ -445,8 +446,11 @@ int udebug_task_cleanup(struct task *ta)
 				 */
 				waitq_wakeup(&t->udebug.go_wq, WAKEUP_FIRST);
 			}
+			mutex_unlock(&t->udebug.lock);
+			condvar_broadcast(&t->udebug.active_cv);
+		} else {
+			mutex_unlock(&t->udebug.lock);
 		}
-		mutex_unlock(&t->udebug.lock);
 	}
 
 	ta->udebug.dt_state = UDEBUG_TS_INACTIVE;
@@ -455,6 +459,31 @@ int udebug_task_cleanup(struct task *ta)
 	return 0;
 }
 
+/** Wait for debugger to handle a fault in this thread.
+ *
+ * When a thread faults and someone is subscribed to the FAULT kernel event,
+ * this function is called to wait for a debugging session to give userspace
+ * a chance to examine the faulting thead/task. When the debugging session
+ * is over, this function returns (so that thread/task cleanup can continue).
+ */
+void udebug_thread_fault(void)
+{
+	udebug_stoppable_begin();
+
+	/* Wait until a debugger attends to us. */
+	mutex_lock(&THREAD->udebug.lock);
+	while (!THREAD->udebug.active)
+		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
+	mutex_unlock(&THREAD->udebug.lock);
+
+	/* Make sure the debugging session is over before proceeding. */
+	mutex_lock(&THREAD->udebug.lock);
+	while (THREAD->udebug.active)
+		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
+	mutex_unlock(&THREAD->udebug.lock);
+
+	udebug_stoppable_end();
+}
 
 /** @}
  */

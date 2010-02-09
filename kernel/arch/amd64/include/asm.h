@@ -67,13 +67,13 @@ static inline void cpu_sleep(void)
 	asm volatile ("hlt\n");
 }
 
-static inline void cpu_halt(void)
+static inline void __attribute__((noreturn)) cpu_halt(void)
 {
-	asm volatile (
-		"0:\n"
-		"	hlt\n"
-		"	jmp 0b\n"
-	);
+	while (true) {
+		asm volatile (
+			"hlt\n"
+		);
+	}
 }
 
 

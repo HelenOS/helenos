@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,17 +39,24 @@
 #include <sys/types.h>
 #include <bool.h>
 
-extern void stack_trace(void);
-extern void stack_trace_fp_pc(uintptr_t, uintptr_t);
+typedef struct {
+	void *op_arg;
+	int (*read_uintptr)(void *, uintptr_t, uintptr_t *);
+} stacktrace_t;
+
+extern void stacktrace_print(void);
+extern void stacktrace_print_fp_pc(uintptr_t, uintptr_t);
 
 /*
  * The following interface is to be implemented by each architecture.
  */
-extern bool frame_pointer_validate(uintptr_t);
-extern uintptr_t frame_pointer_get(void);
-extern uintptr_t frame_pointer_prev(uintptr_t);
-extern uintptr_t return_address_get(uintptr_t);
-extern uintptr_t program_counter_get();
+extern bool stacktrace_fp_valid(stacktrace_t *, uintptr_t);
+extern int stacktrace_fp_prev(stacktrace_t *, uintptr_t, uintptr_t *);
+extern int stacktrace_ra_get(stacktrace_t *, uintptr_t, uintptr_t *);
+
+extern void stacktrace_prepare(void);
+extern uintptr_t stacktrace_fp_get(void);
+extern uintptr_t stacktrace_pc_get();
 
 #endif
 

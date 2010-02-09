@@ -87,6 +87,8 @@ extern void hash_table_insert(hash_table_t *, unsigned long [], link_t *);
 extern link_t *hash_table_find(hash_table_t *, unsigned long []);
 extern void hash_table_remove(hash_table_t *, unsigned long [], hash_count_t);
 extern void hash_table_destroy(hash_table_t *);
+extern void hash_table_apply(hash_table_t *, void (*)(link_t *, void *),
+    void *);
 
 #endif
 

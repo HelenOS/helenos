@@ -41,10 +41,6 @@
 
 #define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
-#ifdef context_set
-#undef context_set
-#endif
-
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \
 		(c)->pc = ((uintptr_t) _pc) - 8; \

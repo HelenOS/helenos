@@ -154,14 +154,15 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	machine_cpu_halt();
+	while (true)
+		machine_cpu_halt();
 }
 
 /** Reboot. */
 void arch_reboot()
 {
 	/* not implemented */
-	while (1);
+	while (true);
 }
 
 /** Construct function pointer
@@ -176,6 +177,11 @@ void arch_reboot()
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

@@ -43,6 +43,9 @@
 #include <mem.h>
 #include <devmap.h>
 #include <byteorder.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
+#include <inttypes.h>
 #include <errno.h>
 #include "fat.h"
 
@@ -156,7 +159,8 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
-		printf(NAME ": Block device has %llu blocks.\n", dev_nblocks);
+		printf(NAME ": Block device has %" PRIuBN " blocks.\n",
+		    dev_nblocks);
 		cfg.total_sectors = dev_nblocks;
 	}
 

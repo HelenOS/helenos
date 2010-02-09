@@ -95,7 +95,7 @@ static inline uintptr_t get_stack_base(void)
 	return v;
 }
 
-extern void cpu_halt(void);
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void asm_delay_loop(uint32_t t);
 extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
     uintptr_t entry);

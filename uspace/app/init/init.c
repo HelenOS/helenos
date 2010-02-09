@@ -93,16 +93,7 @@ static bool mount_root(const char *fstype)
 
 static bool mount_devfs(void)
 {
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1) {
-		printf(NAME ": Unable to create null device\n");
-		return false;
-	}
-	
-	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
-	int rc = mount("devfs", DEVFS_MOUNT_POINT, null, "", IPC_FLAG_BLOCKING);
+	int rc = mount("devfs", DEVFS_MOUNT_POINT, "", "", IPC_FLAG_BLOCKING);
 	
 	switch (rc) {
 	case EOK:
@@ -110,19 +101,15 @@ static bool mount_devfs(void)
 		break;
 	case EBUSY:
 		printf(NAME ": Device filesystem already mounted\n");
-		devmap_null_destroy(null_id);
 		return false;
 	case ELIMIT:
 		printf(NAME ": Unable to mount device filesystem\n");
-		devmap_null_destroy(null_id);
 		return false;
 	case ENOENT:
 		printf(NAME ": Unknown filesystem type (devfs)\n");
-		devmap_null_destroy(null_id);
 		return false;
 	default:
 		printf(NAME ": Error mounting device filesystem (%d)\n", rc);
-		devmap_null_destroy(null_id);
 		return false;
 	}
 	
@@ -183,10 +170,10 @@ static void srv_start(char *fname)
 static void console(char *dev)
 {
 	char *argv[3];
-	char hid_in[MAX_DEVICE_NAME];
+	char hid_in[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(hid_in, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(hid_in, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
 	printf(NAME ": Spawning %s with %s\n", SRV_CONSOLE, hid_in);
 	
@@ -208,10 +195,10 @@ static void console(char *dev)
 static void getterm(char *dev, char *app)
 {
 	char *argv[4];
-	char term[MAX_DEVICE_NAME];
+	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(term, MAX_DEVICE_NAME, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	snprintf(term, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
 	printf(NAME ": Spawning %s with %s %s\n", APP_GETTERM, term, app);
 	
@@ -230,6 +217,20 @@ static void getterm(char *dev, char *app)
 			    term, app);
 	} else
 		printf(NAME ": Error waiting on %s\n", term);
+}
+
+static void mount_scratch(void)
+{
+	int rc;
+
+	printf("Trying to mount null/0 on /scratch... ");
+	fflush(stdout);
+
+	rc = mount("tmpfs", "/scratch", "null/0", "", 0);
+	if (rc == EOK)
+		printf("OK\n");
+	else
+		printf("Failed\n");
 }
 
 static void mount_data(void)
@@ -254,18 +255,28 @@ int main(int argc, char *argv[])
 		printf(NAME ": Exiting\n");
 		return -1;
 	}
+
+	/* Make sure tmpfs is running. */
+	if (str_cmp(STRING(RDFMT), "tmpfs") != 0) {
+		spawn("/srv/tmpfs");
+	}
 	
 	spawn("/srv/devfs");
+	spawn("/srv/taskmon");
 	
 	if (!mount_devfs()) {
 		printf(NAME ": Exiting\n");
 		return -2;
 	}
+
+	mount_scratch();
 	
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
+	srv_start("/srv/cuda_adb");
 	srv_start("/srv/i8042");
-	srv_start("/srv/c_mouse");
+	srv_start("/srv/adb_ms");
+	srv_start("/srv/char_ms");
 
 	spawn("/srv/fb");
 	spawn("/srv/kbd");
@@ -297,7 +308,7 @@ int main(int argc, char *argv[])
 	getterm("term/vc4", "/app/bdsh");
 	getterm("term/vc5", "/app/bdsh");
 	getterm("term/vc6", "/app/klog");
-	
+
 	return 0;
 }
 

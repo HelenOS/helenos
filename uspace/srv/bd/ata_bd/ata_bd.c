@@ -58,6 +58,7 @@
 #include <string.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address 0x%p/0x%p\n", ctl_physical, cmd_physical);
+	printf("I/O address %p/%p\n", ctl_physical, cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -179,11 +180,11 @@ static void disk_print_summary(disk_t *d)
 		break;
 	}
 
-	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
+	printf(" %" PRIu64 " blocks", d->blocks, d->blocks / (2 * 1024));
 
 	mbytes = d->blocks / (2 * 1024);
 	if (mbytes > 0)
-		printf(" %llu MB.", mbytes);
+		printf(" %" PRIu64 " MB.", mbytes);
 
 	printf("\n");
 }

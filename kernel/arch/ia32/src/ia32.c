@@ -233,5 +233,10 @@ void arch_reboot(void)
 #endif
 }
 
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
+}
+
 /** @}
  */
