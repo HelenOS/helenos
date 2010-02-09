@@ -33,6 +33,7 @@ EXTRA_CFLAGS = -Iinclude
 OUTPUT = taskdump
 
 SOURCES = \
+	elf_core.c \
 	taskdump.c \
 	symtab.c
 
