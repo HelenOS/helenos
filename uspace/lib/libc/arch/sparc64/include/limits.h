@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
@@ -39,6 +39,11 @@
 #define LONG_MAX MAX_INT64
 #define ULONG_MIN MIN_UINT64
 #define ULONG_MAX MAX_UINT64
+
+#define SIZE_MIN MIN_UINT64
+#define SIZE_MAX MAX_UINT64
+#define SSIZE_MIN MIN_INT64
+#define SSIZE_MAX MAX_INT64
 
 #endif
 

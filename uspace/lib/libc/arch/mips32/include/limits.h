@@ -26,20 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
+ * @ingroup libcmips32eb
  */
 
 #ifndef LIBC_mips32__LIMITS_H_
 #define LIBC_mips32__LIMITS_H_
 
-# define LONG_MIN MIN_INT32
-# define LONG_MAX MAX_INT32
-# define ULONG_MIN MIN_UINT32
-# define ULONG_MAX MAX_UINT32
+#define LONG_MIN MIN_INT32
+#define LONG_MAX MAX_INT32
+#define ULONG_MIN MIN_UINT32
+#define ULONG_MAX MAX_UINT32
+
+#define SIZE_MIN MIN_UINT32
+#define SIZE_MAX MAX_UINT32
+#define SSIZE_MIN MIN_INT32
+#define SSIZE_MAX MAX_INT32
 
 #endif
 
