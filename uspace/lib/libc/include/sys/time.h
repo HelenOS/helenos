@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_SYS_TIME_H_
 #define LIBC_SYS_TIME_H_
@@ -43,13 +43,13 @@ typedef long time_t;
 typedef long suseconds_t;
 
 struct timeval {
-	time_t         tv_sec;        /* seconds */
-	suseconds_t    tv_usec;  /* microseconds */
+	time_t tv_sec;        /* seconds */
+	suseconds_t tv_usec;  /* microseconds */
 };
 
 struct timezone {
-	int  tz_minuteswest; /* minutes W of Greenwich */
-	int  tz_dsttime;     /* type of dst correction */
+	int tz_minuteswest;  /* minutes W of Greenwich */
+	int tz_dsttime;      /* type of dst correction */
 };
 
 extern void tv_add(struct timeval *tv, suseconds_t usecs);
