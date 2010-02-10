@@ -30,13 +30,13 @@ GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../confi
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -pipe -g -D__$(ENDIANESS)__
+	-Werror-implicit-function-declaration -Werror -pipe -g -D__$(ENDIANESS)__
 
 ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -pipe -g -D__$(ENDIANESS)__
+	-Werror-implicit-function-declaration -Werror -pipe -g -D__$(ENDIANESS)__
 
 CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
