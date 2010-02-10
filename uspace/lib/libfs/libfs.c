@@ -36,6 +36,7 @@
 
 #include "libfs.h"
 #include "../../srv/vfs/vfs.h"
+#include <macros.h>
 #include <errno.h>
 #include <async.h>
 #include <ipc/ipc.h>
@@ -397,10 +398,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 							(void) ops->destroy(fn);
 						ipc_answer_0(rid, rc);
 					} else {
-						ipc_answer_5(rid, EOK,
-						    fs_handle, dev_handle,
+						aoff64_t size = ops->size_get(fn);
+						ipc_answer_5(rid, fs_handle,
+						    dev_handle,
 						    ops->index_get(fn),
-						    ops->size_get(fn),
+						    LOWER32(size),
+						    UPPER32(size),
 						    ops->lnkcnt_get(fn));
 						(void) ops->node_put(fn);
 					}
@@ -477,10 +480,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						(void) ops->destroy(fn);
 					ipc_answer_0(rid, rc);
 				} else {
-					ipc_answer_5(rid, EOK,
-					    fs_handle, dev_handle,
+					aoff64_t size = ops->size_get(fn);
+					ipc_answer_5(rid, fs_handle,
+					    dev_handle,
 					    ops->index_get(fn),
-					    ops->size_get(fn),
+					    LOWER32(size),
+					    UPPER32(size),
 					    ops->lnkcnt_get(fn));
 					(void) ops->node_put(fn);
 				}
@@ -500,8 +505,15 @@ skip_miss:
 	if (lflag & L_UNLINK) {
 		unsigned int old_lnkcnt = ops->lnkcnt_get(cur);
 		rc = ops->unlink(par, cur, component);
-		ipc_answer_5(rid, (ipcarg_t) rc, fs_handle, dev_handle,
-		    ops->index_get(cur), ops->size_get(cur), old_lnkcnt);
+		
+		if (rc == EOK) {
+			aoff64_t size = ops->size_get(cur);
+			ipc_answer_5(rid, fs_handle, dev_handle,
+			    ops->index_get(cur), LOWER32(size), UPPER32(size),
+			    old_lnkcnt);
+		} else
+			ipc_answer_0(rid, rc);
+		
 		goto out;
 	}
 	
@@ -532,9 +544,14 @@ out_with_answer:
 		if (lflag & L_OPEN)
 			rc = ops->node_open(cur);
 		
-		ipc_answer_5(rid, rc, fs_handle, dev_handle,
-		    ops->index_get(cur), ops->size_get(cur),
-		    ops->lnkcnt_get(cur));
+		if (rc == EOK) {
+			aoff64_t size = ops->size_get(cur);
+			ipc_answer_5(rid, fs_handle, dev_handle,
+			    ops->index_get(cur), LOWER32(size), UPPER32(size),
+			    ops->lnkcnt_get(cur));
+		} else
+			ipc_answer_0(rid, rc);
+		
 	} else
 		ipc_answer_0(rid, rc);
 	
@@ -601,10 +618,9 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	dev_handle_t dev_handle = IPC_GET_ARG1(*request);
 	fs_index_t index = IPC_GET_ARG2(*request);
-	fs_node_t *fn;
-	int rc;
 	
-	rc = ops->node_get(&fn, dev_handle, index);
+	fs_node_t *fn;
+	int rc = ops->node_get(&fn, dev_handle, index);
 	on_error(rc, answer_and_return(rid, rc));
 	
 	if (fn == NULL) {
@@ -613,7 +629,8 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 	
 	rc = ops->node_open(fn);
-	ipc_answer_3(rid, rc, ops->size_get(fn), ops->lnkcnt_get(fn),
+	aoff64_t size = ops->size_get(fn);
+	ipc_answer_4(rid, rc, LOWER32(size), UPPER32(size), ops->lnkcnt_get(fn),
 	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);

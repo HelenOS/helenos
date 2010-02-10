@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
- * Copyright (c) 2008 Martin Decky 
+ * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,15 +80,15 @@ typedef struct {
 	void *comm_area;
 	size_t comm_size;
 	void *bb_buf;
-	bn_t bb_addr;
+	aoff64_t bb_addr;
 	size_t pblock_size;		/**< Physical block size. */
 	cache_t *cache;
 } devcon_t;
 
-static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
-static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt);
+static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
+static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
 static int get_block_size(int dev_phone, size_t *bsize);
-static int get_num_blocks(int dev_phone, bn_t *nblocks);
+static int get_num_blocks(int dev_phone, aoff64_t *nblocks);
 
 static devcon_t *devcon_search(dev_handle_t dev_handle)
 {
@@ -213,7 +213,7 @@ void block_fini(dev_handle_t dev_handle)
 	free(devcon);	
 }
 
-int block_bb_read(dev_handle_t dev_handle, bn_t ba)
+int block_bb_read(dev_handle_t dev_handle, aoff64_t ba)
 {
 	void *bb_buf;
 	int rc;
@@ -333,7 +333,7 @@ int block_cache_fini(dev_handle_t dev_handle)
 				return rc;
 		}
 
-		long key = b->boff;
+		unsigned long key = b->boff;
 		hash_table_remove(&cache->block_hash, &key, 1);
 		
 		free(b->data);
@@ -381,7 +381,7 @@ static void block_initialize(block_t *b)
  *
  * @return			EOK on success or a negative error code.
  */
-int block_get(block_t **block, dev_handle_t dev_handle, bn_t boff, int flags)
+int block_get(block_t **block, dev_handle_t dev_handle, aoff64_t boff, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
@@ -656,10 +656,10 @@ retry:
  *
  * @return		EOK on success or a negative return code on failure.
  */
-int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
-    off_t *pos, void *dst, size_t size)
+int block_seqread(dev_handle_t dev_handle, size_t *bufpos, size_t *buflen,
+    aoff64_t *pos, void *dst, size_t size)
 {
-	off_t offset = 0;
+	size_t offset = 0;
 	size_t left = size;
 	size_t block_size;
 	devcon_t *devcon;
@@ -689,7 +689,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
 			left -= rd;
 		}
 		
-		if (*bufpos == (off_t) *buflen) {
+		if (*bufpos == *buflen) {
 			/* Refill the communication buffer with a new block. */
 			int rc;
 
@@ -717,7 +717,7 @@ int block_seqread(dev_handle_t dev_handle, off_t *bufpos, size_t *buflen,
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_read_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt, void *buf)
+int block_read_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt, void *buf)
 {
 	devcon_t *devcon;
 	int rc;
@@ -745,7 +745,7 @@ int block_read_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt, void *buf)
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_write_direct(dev_handle_t dev_handle, bn_t ba, size_t cnt,
+int block_write_direct(dev_handle_t dev_handle, aoff64_t ba, size_t cnt,
     const void *data)
 {
 	devcon_t *devcon;
@@ -788,7 +788,7 @@ int block_get_bsize(dev_handle_t dev_handle, size_t *bsize)
  *
  * @return		EOK on success or negative error code on failure.
  */
-int block_get_nblocks(dev_handle_t dev_handle, bn_t *nblocks)
+int block_get_nblocks(dev_handle_t dev_handle, aoff64_t *nblocks)
 {
 	devcon_t *devcon;
 
@@ -807,7 +807,7 @@ int block_get_nblocks(dev_handle_t dev_handle, bn_t *nblocks)
  *
  * @return		EOK on success or negative error code on failure.
  */
-static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
+static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 {
 	int rc;
 
@@ -815,7 +815,7 @@ static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d reading %d blocks starting at block %" PRIuBN
+		printf("Error %d reading %d blocks starting at block %" PRIuOFF64
 		    " from device handle %d\n", rc, cnt, ba,
 		    devcon->dev_handle);
 #ifndef NDEBUG
@@ -834,7 +834,7 @@ static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
  *
  * @return		EOK on success or negative error code on failure.
  */
-static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
+static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 {
 	int rc;
 
@@ -842,7 +842,7 @@ static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d writing %d blocks starting at block %" PRIuBN
+		printf("Error %d writing %d blocks starting at block %" PRIuOFF64
 		    " to device handle %d\n", rc, cnt, ba, devcon->dev_handle);
 #ifndef NDEBUG
 		stacktrace_print();
@@ -865,14 +865,14 @@ static int get_block_size(int dev_phone, size_t *bsize)
 }
 
 /** Get total number of blocks on block device. */
-static int get_num_blocks(int dev_phone, bn_t *nblocks)
+static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 {
 	ipcarg_t nb_l, nb_h;
 	int rc;
 
 	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);
 	if (rc == EOK) {
-		*nblocks = (bn_t) MERGE_LOUP32(nb_l, nb_h);
+		*nblocks = (aoff64_t) MERGE_LOUP32(nb_l, nb_h);
 	}
 
 	return rc;

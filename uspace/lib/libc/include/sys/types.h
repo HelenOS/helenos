@@ -37,10 +37,15 @@
 
 #include <libarch/types.h>
 
-typedef long off_t;
-typedef int mode_t;
-typedef uint64_t bn_t;	/**< Block number type. */
+typedef unsigned int mode_t;
 
+/** Relative offset */
+typedef int64_t off64_t;
+
+/** Absolute offset */
+typedef uint64_t aoff64_t;
+
+/** Unicode code point */
 typedef int32_t wchar_t;
 
 typedef volatile uint8_t ioport8_t;

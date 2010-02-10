@@ -38,17 +38,11 @@
 
 #include <inttypes.h>
 
-/* off_t */
-#define PRIdOFF "ld"
-#define PRIuOFF "lu"
-#define PRIxOFF "lx"
-#define PRIXOFF "lX"
-
-/* bn_t */
-#define PRIdBN PRId64
-#define PRIuBN PRIu64
-#define PRIxBN PRIx64
-#define PRIXBN PRIX64
+/* off64_t */
+#define PRIdOFF64 PRId64
+#define PRIuOFF64 PRIu64
+#define PRIxOFF64 PRIx64
+#define PRIXOFF64 PRIX64
 
 /* (s)size_t */
 #define PRIdSIZE PRIdPTR

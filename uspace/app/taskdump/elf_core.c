@@ -61,7 +61,7 @@
 #include <elf.h>
 #include "include/elf_core.h"
 
-static off_t align_foff_up(off_t foff, uintptr_t vaddr, size_t page_size);
+static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size);
 static int write_all(int fd, void *data, size_t len);
 static int write_mem_area(int fd, as_area_info_t *area, int phoneid);
 
@@ -78,17 +78,17 @@ static uint8_t buffer[BUFFER_SIZE];
  * @return		EOK on sucess, ENOENT if file cannot be created,
  *			ENOMEM on out of memory, EIO on write error.
  */
-int elf_core_save(const char *file_name, as_area_info_t *ainfo, int n, int phoneid)
+int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n, int phoneid)
 {
 	elf_header_t elf_hdr;
-	off_t foff;
+	off64_t foff;
 	size_t n_ph;
 	elf_word flags;
 	elf_segment_header_t *p_hdr;
 
 	int fd;
 	int rc;
-	int i;
+	unsigned int i;
 
 	n_ph = n;
 
@@ -183,7 +183,7 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, int n, int phone
 	}
 
 	for (i = 0; i < n_ph; ++i) {
-		if (lseek(fd, p_hdr[i].p_offset, SEEK_SET) == (off_t) -1) {
+		if (lseek(fd, p_hdr[i].p_offset, SEEK_SET) == (off64_t) -1) {
 			printf("Failed writing memory data.\n");
 			free(p_hdr);
 			return EIO;
@@ -201,16 +201,15 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, int n, int phone
 }
 
 /** Align file offset up to be congruent with vaddr modulo page size. */
-static off_t align_foff_up(off_t foff, uintptr_t vaddr, size_t page_size)
+static off64_t align_foff_up(off64_t foff, uintptr_t vaddr, size_t page_size)
 {
-	off_t rfo, rva;
-	off_t advance;
-
-	rva = vaddr % page_size;
-	rfo = foff % page_size;
-
-	advance = (rva >= rfo) ? rva - rfo : (page_size + rva - rfo);
-	return foff + advance;
+	off64_t rva = vaddr % page_size;
+	off64_t rfo = foff % page_size;
+	
+	if (rva >= rfo)
+		return (foff + (rva - rfo));
+	
+	return (foff + (page_size + (rva - rfo)));
 }
 
 /** Write memory area from application to core file.

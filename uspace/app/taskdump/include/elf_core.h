@@ -35,7 +35,7 @@
 #ifndef ELF_CORE_H_
 #define ELF_CORE_H_
 
-int elf_core_save(const char *file_name, as_area_info_t *ainfo, int n, int phoneid);
+int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n, int phoneid);
 
 #endif
 

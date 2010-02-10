@@ -36,6 +36,7 @@
  */
 
 #include <ipc/ipc.h>
+#include <macros.h>
 #include <bool.h>
 #include <errno.h>
 #include <malloc.h>
@@ -336,7 +337,7 @@ static fs_index_t devfs_index_get(fs_node_t *fn)
 	return node->handle;
 }
 
-static size_t devfs_size_get(fs_node_t *fn)
+static aoff64_t devfs_size_get(fs_node_t *fn)
 {
 	return 0;
 }
@@ -462,7 +463,8 @@ void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	off_t pos = (off_t) IPC_GET_ARG3(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
 	if (index == 0) {
 		ipc_callid_t callid;
@@ -596,8 +598,6 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	off_t pos = (off_t) IPC_GET_ARG3(*request);
-	
 	if (index == 0) {
 		ipc_answer_0(rid, ENOTSUP);
 		return;

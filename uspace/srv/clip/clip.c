@@ -144,7 +144,7 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	clipboard_tag_t tag = clip_tag;
 	
 	fibril_mutex_unlock(&clip_mtx);
-	ipc_answer_2(rid, EOK, (ipcarg_t) size, (ipcarg_t) clip_tag);
+	ipc_answer_2(rid, EOK, (ipcarg_t) size, (ipcarg_t) tag);
 }
 
 static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)

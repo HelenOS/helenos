@@ -41,10 +41,9 @@
 #include <bool.h>
 #include <ipc/vfs.h>
 
-// FIXME: according to CONFIG_DEBUG
-// #define dprintf(...)  printf(__VA_ARGS__)
-
-#define dprintf(...)
+#ifndef dprintf
+	#define dprintf(...)
+#endif
 
 /**
  * A structure like this will be allocated for each registered file system.
@@ -92,8 +91,8 @@ typedef enum vfs_node_type {
 typedef struct {
 	vfs_triplet_t triplet;
 	vfs_node_type_t type;
-	size_t size;
-	unsigned lnkcnt;
+	aoff64_t size;
+	unsigned int lnkcnt;
 } vfs_lookup_res_t;
 
 /**
@@ -116,7 +115,7 @@ typedef struct {
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
 
-	size_t size;		/**< Cached size if the node is a file. */
+	aoff64_t size;		/**< Cached size if the node is a file. */
 
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
@@ -140,8 +139,8 @@ typedef struct {
 	/** Append on write. */
 	bool append;
 
-	/** Current position in the file. */
-	off_t pos;
+	/** Current absolute position in the file. */
+	aoff64_t pos;
 } vfs_file_t;
 
 extern fibril_mutex_t nodes_mutex;
@@ -212,7 +211,6 @@ extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
-extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
 extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
 extern void vfs_stat(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);

@@ -75,7 +75,7 @@ typedef struct {
 	 * an integer error code.
 	 */
 	fs_index_t (* index_get)(fs_node_t *);
-	size_t (* size_get)(fs_node_t *);
+	aoff64_t (* size_get)(fs_node_t *);
 	unsigned int (* lnkcnt_get)(fs_node_t *);
 	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);

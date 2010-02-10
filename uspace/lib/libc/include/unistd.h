@@ -46,7 +46,13 @@
 
 #ifndef SEEK_SET
 	#define SEEK_SET  0
+#endif
+
+#ifndef SEEK_CUR
 	#define SEEK_CUR  1
+#endif
+
+#ifndef SEEK_END
 	#define SEEK_END  2
 #endif
 
@@ -57,8 +63,8 @@ extern int dup2(int oldfd, int newfd);
 extern ssize_t write(int, const void *, size_t);
 extern ssize_t read(int, void *, size_t);
 
-extern off_t lseek(int, off_t, int);
-extern int ftruncate(int, off_t);
+extern off64_t lseek(int, off64_t, int);
+extern int ftruncate(int, aoff64_t);
 
 extern int close(int);
 extern int fsync(int);
@@ -68,9 +74,9 @@ extern char *getcwd(char *buf, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
 
-extern void _exit(int status) __attribute__ ((noreturn));
-extern int usleep(useconds_t uses);
-extern unsigned int sleep(unsigned int se);
+extern void _exit(int) __attribute__((noreturn));
+extern int usleep(useconds_t);
+extern unsigned int sleep(unsigned int);
 
 #endif
 

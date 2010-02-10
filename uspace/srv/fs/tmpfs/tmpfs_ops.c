@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	tmpfs_ops.c
@@ -39,6 +39,8 @@
 #include "tmpfs.h"
 #include "../../vfs/vfs.h"
 #include <ipc/ipc.h>
+#include <macros.h>
+#include <limits.h>
 #include <async.h>
 #include <errno.h>
 #include <atomic.h>
@@ -92,7 +94,7 @@ static fs_index_t tmpfs_index_get(fs_node_t *fn)
 	return TMPFS_NODE(fn)->index;
 }
 
-static size_t tmpfs_size_get(fs_node_t *fn)
+static aoff64_t tmpfs_size_get(fs_node_t *fn)
 {
 	return TMPFS_NODE(fn)->size;
 }
@@ -508,10 +510,11 @@ void tmpfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	off_t pos = (off_t)IPC_GET_ARG3(*request);
-
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
+	
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
@@ -527,27 +530,27 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
 	    nh_link);
-
+	
 	/*
 	 * Receive the read request.
 	 */
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);	
+		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
 
 	size_t bytes;
 	if (nodep->type == TMPFS_FILE) {
-		bytes = max(0, min(nodep->size - pos, size));
+		bytes = min(nodep->size - pos, size);
 		(void) async_data_read_finalize(callid, nodep->data + pos,
 		    bytes);
 	} else {
 		tmpfs_dentry_t *dentryp;
 		link_t *lnk;
-		int i;
+		aoff64_t i;
 		
 		assert(nodep->type == TMPFS_DIRECTORY);
 		
@@ -557,7 +560,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 		 * hash table.
 		 */
 		for (i = 0, lnk = nodep->cs_head.next;
-		    i < pos && lnk != &nodep->cs_head;
+		    (i < pos) && (lnk != &nodep->cs_head);
 		    i++, lnk = lnk->next)
 			;
 
@@ -582,10 +585,11 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	off_t pos = (off_t)IPC_GET_ARG3(*request);
-
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
+	
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
@@ -646,40 +650,47 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	size_t size = (off_t)IPC_GET_ARG3(*request);
-
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t size =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
+	
 	/*
 	 * Lookup the respective TMPFS node.
 	 */
-	link_t *hlp;
 	unsigned long key[] = {
 		[NODES_KEY_DEV] = dev_handle,
 		[NODES_KEY_INDEX] = index
 	};
-	hlp = hash_table_find(&nodes, key);
+	link_t *hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
 	    nh_link);
-
+	
 	if (size == nodep->size) {
 		ipc_answer_0(rid, EOK);
 		return;
 	}
-
+	
+	if (size > SIZE_MAX) {
+		ipc_answer_0(rid, ENOMEM);
+		return;
+	}
+	
 	void *newdata = realloc(nodep->data, size);
 	if (!newdata) {
 		ipc_answer_0(rid, ENOMEM);
 		return;
 	}
+	
 	if (size > nodep->size) {
 		size_t delta = size - nodep->size;
 		memset(newdata + nodep->size, 0, delta);
 	}
+	
 	nodep->size = size;
 	nodep->data = newdata;
 	ipc_answer_0(rid, EOK);

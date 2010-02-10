@@ -81,7 +81,8 @@ int fat_dentry_namecmp(char *name, const char *component)
 
 bool fat_dentry_name_verify(const char *name)
 {
-	unsigned i, dot;
+	unsigned int i;
+	unsigned int dot = 0;
 	bool dot_found = false;
 	
 
