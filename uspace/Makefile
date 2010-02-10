@@ -47,6 +47,7 @@ DIRS = \
 	app/trace \
 	srv/clip \
 	srv/devmap \
+	srv/devman \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
