@@ -447,19 +447,19 @@ static void make_anim(void)
 		return;
 	
 	int pm = make_pixmap(_binary_gfx_anim_1_ppm_start,
-	    (int) &_binary_gfx_anim_1_ppm_size);
+	    (size_t) &_binary_gfx_anim_1_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_2_ppm_start,
-	    (int) &_binary_gfx_anim_2_ppm_size);
+	    (size_t) &_binary_gfx_anim_2_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_3_ppm_start,
-	    (int) &_binary_gfx_anim_3_ppm_size);
+	    (size_t) &_binary_gfx_anim_3_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_4_ppm_start,
-	    (int) &_binary_gfx_anim_4_ppm_size);
+	    (size_t) &_binary_gfx_anim_4_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	async_msg_1(fbphone, FB_ANIM_START, an);

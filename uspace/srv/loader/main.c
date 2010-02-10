@@ -240,7 +240,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * Allocate new filv
 		 */
-		fdi_node_t **_filv = (fdi_node_t *) malloc((count + 1) * sizeof(fdi_node_t *));
+		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
 		if (_filv == NULL) {
 			free(buf);
 			ipc_answer_0(rid, ENOMEM);

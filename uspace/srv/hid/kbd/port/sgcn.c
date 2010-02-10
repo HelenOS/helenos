@@ -91,7 +91,7 @@ static uintptr_t sram_virt_addr;
 static uintptr_t sram_buffer_offset;
 
 /* polling thread */
-static void *sgcn_thread_impl(void *arg);
+static void sgcn_thread_impl(void *arg);
 
 static volatile bool polling_disabled = false;
 
@@ -166,7 +166,7 @@ static void sgcn_key_pressed(void)
 /**
  * Thread to poll SGCN for keypresses.
  */
-static void *sgcn_thread_impl(void *arg)
+static void sgcn_thread_impl(void *arg)
 {
 	(void) arg;
 

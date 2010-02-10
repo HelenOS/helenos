@@ -54,7 +54,6 @@
 
 static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall);
 static int cuda_init(void);
-static int cuda_claim(void);
 static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 static void cuda_irq_listen(void);

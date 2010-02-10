@@ -47,7 +47,7 @@
 		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
 		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
 		(c)->fp = -STACK_BIAS; \
-		(c)->tp = ptls; \
+		(c)->tp = (uint64_t) ptls; \
 	} while (0)
 	
 /*

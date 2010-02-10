@@ -717,7 +717,7 @@ static void pane_row_range_display(int r0, int r1)
 	char row_buf[ROW_BUF_SIZE];
 	wchar_t c;
 	size_t pos, size;
-	unsigned s_column;
+	int s_column;
 	coord_t csel_start, csel_end, ctmp;
 
 	/* Determine selection start and end. */
@@ -765,13 +765,13 @@ static void pane_row_range_display(int r0, int r1)
 		pos = 0;
 		s_column = pane.sh_column;
 		while (pos < size) {
-			if (csel_start.row == rbc.row && csel_start.column == s_column) {
+			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
 				fflush(stdout);
 				console_set_color(con, COLOR_BLACK, COLOR_RED, 0);
 				fflush(stdout);
 			}
 	
-			if (csel_end.row == rbc.row && csel_end.column == s_column) {
+			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 				fflush(stdout);
 				console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 				fflush(stdout);
@@ -791,7 +791,7 @@ static void pane_row_range_display(int r0, int r1)
 			}
 		}
 
-		if (csel_end.row == rbc.row && csel_end.column == s_column) {
+		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 			fflush(stdout);
 			console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 			fflush(stdout);

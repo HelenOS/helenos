@@ -147,7 +147,7 @@ int clipboard_get_str(char **str)
 			
 			aid_t req = async_send_1(clip_phone, CLIPBOARD_GET_DATA, tag, NULL);
 			rc = async_data_read_start(clip_phone, (void *) sbuf, size);
-			if (rc == EOVERFLOW) {
+			if ((int) rc == EOVERFLOW) {
 				/*
 				 * The data in the clipboard has changed since
 				 * the last call of CLIPBOARD_CONTENT

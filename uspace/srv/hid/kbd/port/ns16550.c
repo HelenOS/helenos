@@ -106,14 +106,6 @@ int ns16550_port_init(void)
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }
 
-void ns16550_port_yield(void)
-{
-}
-
-void ns16550_port_reclaim(void)
-{
-}
-
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	int scan_code = IPC_GET_ARG2(*call);

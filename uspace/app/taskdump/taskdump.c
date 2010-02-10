@@ -355,7 +355,7 @@ static int thread_dump(uintptr_t thash)
 	return EOK;
 }
 
-static int area_dump(as_area_info_t *area)
+static __attribute__((unused)) int area_dump(as_area_info_t *area)
 {
 	size_t to_copy;
 	size_t total;
