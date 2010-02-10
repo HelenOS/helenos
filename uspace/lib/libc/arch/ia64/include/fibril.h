@@ -105,27 +105,27 @@ typedef struct context {
 	 */
 	uint64_t pr;
 
-	__r128 f2 __attribute__ ((aligned(16)));
-	__r128 f3;
-	__r128 f4;
-	__r128 f5;
+	uint128_t f2 __attribute__ ((aligned(16)));
+	uint128_t f3;
+	uint128_t f4;
+	uint128_t f5;
 
-	__r128 f16;
-	__r128 f17;
-	__r128 f18;
-	__r128 f19;
-	__r128 f20;
-	__r128 f21;
-	__r128 f22;
-	__r128 f23;
-	__r128 f24;
-	__r128 f25;
-	__r128 f26;
-	__r128 f27;
-	__r128 f28;
-	__r128 f29;
-	__r128 f30;
-	__r128 f31;
+	uint128_t f16;
+	uint128_t f17;
+	uint128_t f18;
+	uint128_t f19;
+	uint128_t f20;
+	uint128_t f21;
+	uint128_t f22;
+	uint128_t f23;
+	uint128_t f24;
+	uint128_t f25;
+	uint128_t f26;
+	uint128_t f27;
+	uint128_t f28;
+	uint128_t f29;
+	uint128_t f30;
+	uint128_t f31;
 
 } context_t;
 
