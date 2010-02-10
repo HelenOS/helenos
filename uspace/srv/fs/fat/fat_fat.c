@@ -147,6 +147,12 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
 	fat_cluster_t lastc;
 	int rc;
 
+	/*
+	 * This function can only operate on non-zero length files.
+	 */
+	if (firstc == FAT_CLST_RES0)
+		return ELIMIT;
+
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
 	rde = uint16_t_le2host(bs->root_ent_max);
