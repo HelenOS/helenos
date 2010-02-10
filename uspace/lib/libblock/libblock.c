@@ -51,6 +51,8 @@
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <mem.h>
+#include <sys/typefmt.h>
+#include <stacktrace.h>
 
 /** Lock protecting the device connection list */
 static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
@@ -812,6 +814,14 @@ static int read_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 	assert(devcon);
 	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
+	if (rc != EOK) {
+		printf("Error %d reading %d blocks starting at block %" PRIuBN
+		    " from device handle %d\n", rc, cnt, ba,
+		    devcon->dev_handle);
+#ifndef NDEBUG
+		stacktrace_print();
+#endif
+	}
 	return rc;
 }
 
@@ -831,6 +841,13 @@ static int write_blocks(devcon_t *devcon, bn_t ba, size_t cnt)
 	assert(devcon);
 	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
+	if (rc != EOK) {
+		printf("Error %d writing %d blocks starting at block %" PRIuBN
+		    " to device handle %d\n", rc, cnt, ba, devcon->dev_handle);
+#ifndef NDEBUG
+		stacktrace_print();
+#endif
+	}
 	return rc;
 }
 
