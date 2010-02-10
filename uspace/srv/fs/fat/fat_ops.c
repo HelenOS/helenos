@@ -721,48 +721,51 @@ hit:
 
 	fibril_mutex_lock(&childp->idx->lock);
 	
-	/*
-	 * If possible, create the Sub-directory Identifier Entry and the
-	 * Sub-directory Parent Pointer Entry (i.e. "." and ".."). These entries
-	 * are not mandatory according to Standard ECMA-107 and HelenOS VFS does
-	 * not use them anyway, so this is rather a sign of our good will.
-	 */
-	rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
+	if (childp->type == FAT_DIRECTORY) {
 		/*
-		 * Rather than returning an error, simply skip the creation of
-		 * these two entries.
+		 * If possible, create the Sub-directory Identifier Entry and
+		 * the Sub-directory Parent Pointer Entry (i.e. "." and "..").
+		 * These entries are not mandatory according to Standard
+		 * ECMA-107 and HelenOS VFS does not use them anyway, so this is
+		 * rather a sign of our good will.
 		 */
-		goto skip_dots;
+		rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			/*
+			 * Rather than returning an error, simply skip the
+			 * creation of these two entries.
+			 */
+			goto skip_dots;
+		}
+		d = (fat_dentry_t *)b->data;
+		if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
+		    str_cmp(d->name, FAT_NAME_DOT) == 0) {
+			memset(d, 0, sizeof(fat_dentry_t));
+			str_cpy(d->name, 8, FAT_NAME_DOT);
+			str_cpy(d->ext, 3, FAT_EXT_PAD);
+			d->attr = FAT_ATTR_SUBDIR;
+			d->firstc = host2uint16_t_le(childp->firstc);
+			/* TODO: initialize also the date/time members. */
+		}
+		d++;
+		if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
+		    str_cmp(d->name, FAT_NAME_DOT_DOT) == 0) {
+			memset(d, 0, sizeof(fat_dentry_t));
+			str_cpy(d->name, 8, FAT_NAME_DOT_DOT);
+			str_cpy(d->ext, 3, FAT_EXT_PAD);
+			d->attr = FAT_ATTR_SUBDIR;
+			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
+			    host2uint16_t_le(FAT_CLST_RES0) :
+			    host2uint16_t_le(parentp->firstc);
+			/* TODO: initialize also the date/time members. */
+		}
+		b->dirty = true;		/* need to sync block */
+		/*
+		 * Ignore the return value as we would have fallen through on error
+		 * anyway.
+		 */
+		(void) block_put(b);
 	}
-	d = (fat_dentry_t *)b->data;
-	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
-	   	memset(d, 0, sizeof(fat_dentry_t));
-	   	str_cpy(d->name, 8, FAT_NAME_DOT);
-		str_cpy(d->ext, 3, FAT_EXT_PAD);
-		d->attr = FAT_ATTR_SUBDIR;
-		d->firstc = host2uint16_t_le(childp->firstc);
-		/* TODO: initialize also the date/time members. */
-	}
-	d++;
-	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    str_cmp(d->name, FAT_NAME_DOT_DOT) == 0) {
-		memset(d, 0, sizeof(fat_dentry_t));
-		str_cpy(d->name, 8, FAT_NAME_DOT_DOT);
-		str_cpy(d->ext, 3, FAT_EXT_PAD);
-		d->attr = FAT_ATTR_SUBDIR;
-		d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
-		    host2uint16_t_le(FAT_CLST_RES0) :
-		    host2uint16_t_le(parentp->firstc);
-		/* TODO: initialize also the date/time members. */
-	}
-	b->dirty = true;		/* need to sync block */
-	/*
-	 * Ignore the return value as we would have fallen through on error
-	 * anyway.
-	 */
-	(void) block_put(b);
 skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
