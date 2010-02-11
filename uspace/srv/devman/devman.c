@@ -47,6 +47,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <ctype.h>
 //#include <ipc/devman.h>
 
@@ -88,8 +89,9 @@ static bool get_driver_info(const char *base_path, const char *name, driver_t *d
 static int lookup_available_drivers(const char *dir_path);
 static inline node_t * create_dev_node();
 static node_t * create_root_node();
-static void init_device_tree(dev_tree_t *tree);
+static bool init_device_tree(dev_tree_t *tree);
 static bool devman_init();
+static int get_match_score(driver_t *drv, node_t *dev);
 
 
 
@@ -143,6 +145,8 @@ struct driver {
 	const char *binary_path;
 	/** List of device ids for device-to-driver matching.*/
 	match_id_list_t match_ids;
+	/** Pointer to the linked list of devices controlled by this driver */
+	link_t devices;
 };
 
 /** Representation of a node in the device tree.*/
@@ -153,10 +157,13 @@ struct node {
 	link_t sibling;	
 	/** List of child device nodes. */
 	link_t children;
-
-
 	/** List of device ids for device-to-driver matching.*/
-	match_id_list_t match_ids;
+	match_id_list_t match_ids;	
+	/** Driver of this device.*/
+	driver_t *drv;	
+	/** Pointer to the previous and next device in the list of devices
+	    owned by one driver */
+	link_t driver_devices;	
 };
 
 static driver_t * create_driver() 
@@ -174,6 +181,7 @@ static inline void init_driver(driver_t *drv)
 	
 	memset(drv, 0, sizeof(driver_t));	
 	list_initialize(&drv->match_ids.ids);
+	list_initialize(&drv->devices);
 }
 
 static inline void clean_driver(driver_t *drv) 
@@ -408,6 +416,18 @@ static bool get_driver_info(const char *base_path, const char *name, driver_t *d
 	}	
 	str_cpy(drv->name, name_size, name);
 	
+	// initialize path with driver's binary
+	if (NULL == (drv->binary_path = get_abs_path(base_path, name, ""))) {
+		goto cleanup;
+	}
+	
+	// check whether the driver's binary exists
+	struct stat s;
+	if (stat(drv->binary_path, &s) == ENOENT) {
+		printf(NAME ": driver not found at path %s.", drv->binary_path);
+		goto cleanup;
+	}
+	
 	suc = true;
 	
 cleanup:
@@ -461,10 +481,10 @@ static inline node_t * create_dev_node()
 
 static inline void init_dev_node(node_t *node, node_t *parent) 
 {
-	assert(node != NULL);
+	assert(NULL != node);
 	
 	node->parent = parent;
-	if (parent != NULL) {
+	if (NULL != parent) {
 		list_append(&node->sibling, &parent->children);
 	}
 	
@@ -476,16 +496,152 @@ static inline void init_dev_node(node_t *node, node_t *parent)
 static node_t * create_root_node()
 {
 	node_t *node = create_dev_node();
-	
+	if (node) {
+		init_dev_node(node, NULL);
+		match_id_t *id = create_match_id();
+		id->id = "root";
+		id->score = 100;
+		add_match_id(&node->match_ids, id);
+	}
+	return node;	
 }
 
-static void init_device_tree(dev_tree_t *tree)
+static int get_match_score(driver_t *drv, node_t *dev)
+{	
+	link_t* drv_head = &drv->match_ids.ids;	
+	link_t* dev_head = &dev->match_ids.ids;
+	
+	if (list_empty(drv_head) || list_empty(dev_head)) {
+		return 0;
+	}
+	
+	link_t* drv_link = drv->match_ids.ids.next;
+	link_t* dev_link = dev->match_ids.ids.next;
+	
+	match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
+	match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
+	
+	int score_next_drv = 0;
+	int score_next_dev = 0;
+	
+	do {
+		if (0 == str_cmp(drv_id->id, dev_id->id)) { 	// we found a match	
+			// return the score of the match
+			return drv_id->score * dev_id->score;
+		}
+		
+		// compute the next score we get, if we advance in the driver's list of match ids 
+		if (drv_head != drv_link->next) {
+			score_next_drv = dev_id->score * list_get_instance(drv_link->next, match_id_t, link)->score;			
+		} else {
+			score_next_drv = 0;
+		}
+		
+		// compute the next score we get, if we advance in the device's list of match ids 
+		if (dev_head != dev_link->next) {
+			score_next_dev = drv_id->score * list_get_instance(dev_link->next, match_id_t, link)->score;			
+		} else {
+			score_next_dev = 0;
+		}
+		
+		// advance in one of the two lists, so we get the next highest score
+		if (score_next_drv > score_next_dev) {
+			drv_link = drv_link->next;
+			drv_id = list_get_instance(drv_link, match_id_t, link);
+		} else {
+			dev_link = dev_link->next;
+			dev_id = list_get_instance(dev_link, match_id_t, link);
+		}
+		
+	} while (drv_head != drv_link->next && dev_head != dev_link->next);
+	
+	return 0;
+}
+
+static driver_t * find_best_match_driver(node_t *node)
+{
+	driver_t *best_drv = NULL, *drv = NULL;
+	int best_score = 0, score = 0;
+	link_t *link = drivers_list.next;	
+	
+	while (link != &drivers_list) {
+		drv = list_get_instance(link, driver_t, drivers);
+		score = get_match_score(drv, node);
+		if (score > best_score) {
+			best_score = score;
+			best_drv = drv;
+		}		
+	}	
+	
+	return best_drv;	
+}
+
+static void attach_driver(node_t *node, driver_t *drv) 
+{
+	node->drv = drv;
+	list_append(&node->driver_devices, &drv->devices);
+}
+
+static bool start_driver(driver_t *drv)
+{
+	char *argv[2];
+	
+	printf(NAME ": spawning driver %s\n", drv->name);
+	
+	argv[0] = drv->name;
+	argv[1] = NULL;
+	
+	if (!task_spawn(drv->binary_path, argv)) {
+		printf(NAME ": error spawning %s\n", drv->name);
+		return false;
+	}
+	
+	return true;
+}
+
+static bool add_device(driver_t *drv, node_t *node)
+{
+	// TODO
+	
+	// pass a new device to the running driver, which was previously assigned to it
+		// send the phone of the parent's driver and device's handle within the parent's driver to the driver 
+		// let the driver to probe the device and specify whether the device is actually present
+		// if the device is present, remember its handle within the driver
+	
+	return true;
+}
+
+static bool assign_driver(node_t *node) 
+{
+	// find the driver which is the most suitable for handling this device
+	driver_t *drv = find_best_match_driver(node);
+	if (NULL == drv) {
+		return false;		
+	}
+	
+	// attach the driver to the device
+	attach_driver(node, drv);
+	
+	if (!drv->running) {
+		// start driver
+		start_driver(drv);
+	} else {
+		// notify driver about new device
+		add_device(drv, node);		
+	}
+	
+	return true;
+}
+
+static bool init_device_tree(dev_tree_t *tree)
 {
 	// create root node and add it to the device tree
-	tree->root_node = create_root_node();
-	
+	if (NULL == (tree->root_node = create_root_node())) {
+		return false;
+	}
 
 	// find suitable driver and start it
+	return assign_driver(tree->root_node);
 }
 
 /** Initialize device manager internal structures.
@@ -493,12 +649,36 @@ static void init_device_tree(dev_tree_t *tree)
 static bool devman_init()
 {
 	// initialize list of available drivers
-	lookup_available_drivers(DRIVER_DEFAULT_STORE);
+	if (0 == lookup_available_drivers(DRIVER_DEFAULT_STORE)) {
+		printf(NAME " no drivers found.");
+		return false;
+	}
 
 	// create root device node 
-	init_device_tree(&device_tree);
+	if (!init_device_tree(&device_tree)) {
+		printf(NAME " failed to initialize device tree.");
+		return false;		
+	}
 
 	return true;
+}
+
+
+/** Function for handling connections to device manager.
+ *
+ */
+static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	/* Select interface */
+	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	/*case DEVMAN_DRIVER:
+		devmap_connection_driver(iid, icall);
+		break;*/
+
+	default:
+		/* No such interface */
+		ipc_answer_0(iid, ENOENT);
+	}
 }
 
 /**
