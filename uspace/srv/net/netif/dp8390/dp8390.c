@@ -819,7 +819,8 @@ static void dp_recv(dep)
 dpeth_t *dep;
 {
 	dp_rcvhdr_t header;
-	unsigned pageno, curr, next;
+	//unsigned pageno, curr, next;
+	int pageno, curr, next;
 	vir_bytes length;
 	int packet_processed, r;
 	u16_t eth_type;
@@ -1065,7 +1066,9 @@ int nic_addr;
 vir_bytes count;
 {
 	vir_bytes vir_hw;//, vir_user;
-	int bytes, i, r;
+	//int bytes, i, r;
+	int i, r;
+	vir_bytes bytes;
 
 	vir_hw = (vir_bytes)dep->de_locmem + nic_addr;
 
@@ -1113,7 +1116,8 @@ int nic_addr;
 vir_bytes count;
 {
 //	phys_bytes phys_user;
-	int bytes, i;
+	int i;
+	vir_bytes bytes;
 
 	outb_reg0(dep, DP_ISR, ISR_RDC);
 
@@ -1173,8 +1177,10 @@ vir_bytes count;
 {
 	vir_bytes vir_user;
 	vir_bytes ecount;
-	int i, r, bytes, user_proc;
-	u8_t two_bytes[2];
+	int i, r, user_proc;
+	vir_bytes bytes;
+	//u8_t two_bytes[2];
+	u16_t two_bytes;
 	int odd_byte;
 
 	ecount= (count+1) & ~1;
@@ -1212,14 +1218,16 @@ vir_bytes count;
 		if (odd_byte)
 		{
 			r= sys_vircopy(user_proc, D, vir_user, 
-				SELF, D, (vir_bytes)&two_bytes[1], 1);
+			//	SELF, D, (vir_bytes)&two_bytes[1], 1);
+				SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[1]), 1);
 			if (r != OK)
 			{
 				panic("DP8390",
 					"dp_pio16_user2nic: sys_vircopy failed",
 					r);
 			}
-			outw(dep->de_data_port, *(u16_t *)two_bytes);
+			//outw(dep->de_data_port, *(u16_t *)two_bytes);
+			outw(dep->de_data_port, two_bytes);
 			count--;
 			offset++;
 			bytes--;
@@ -1242,7 +1250,8 @@ vir_bytes count;
 		{
 			assert(bytes == 1);
 			r= sys_vircopy(user_proc, D, vir_user, 
-				SELF, D, (vir_bytes)&two_bytes[0], 1);
+			//	SELF, D, (vir_bytes)&two_bytes[0], 1);
+				SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[0]), 1);
 			if (r != OK)
 			{
 				panic("DP8390",
@@ -1259,7 +1268,8 @@ vir_bytes count;
 	assert(count == 0);
 
 	if (odd_byte)
-		outw(dep->de_data_port, *(u16_t *)two_bytes);
+		//outw(dep->de_data_port, *(u16_t *)two_bytes);
+		outw(dep->de_data_port, two_bytes);
 
 	for (i= 0; i<100; i++)
 	{
@@ -1283,7 +1293,8 @@ vir_bytes offset;
 vir_bytes count;
 {
 	vir_bytes vir_hw;//, vir_user;
-	int bytes, i, r;
+	vir_bytes bytes;
+	int i, r;
 
 	vir_hw = (vir_bytes)dep->de_locmem + nic_addr;
 
@@ -1331,7 +1342,8 @@ vir_bytes offset;
 vir_bytes count;
 {
 //	phys_bytes phys_user;
-	int bytes, i;
+	int i;
+	vir_bytes bytes;
 
 	outb_reg0(dep, DP_RBCR0, count & 0xFF);
 	outb_reg0(dep, DP_RBCR1, count >> 8);
@@ -1379,8 +1391,10 @@ vir_bytes count;
 {
 	vir_bytes vir_user;
 	vir_bytes ecount;
-	int i, r, bytes, user_proc;
-	u8_t two_bytes[2];
+	int i, r, user_proc;
+	vir_bytes bytes;
+	//u8_t two_bytes[2];
+	u16_t two_bytes;
 	int odd_byte;
 
 	ecount= (count+1) & ~1;
@@ -1416,7 +1430,8 @@ vir_bytes count;
 		vir_user= iovp->iod_iovec[i].iov_addr + offset;
 		if (odd_byte)
 		{
-			r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[1],
+			//r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[1],
+			r= sys_vircopy(SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[1]),
 				user_proc, D, vir_user,  1);
 			if (r != OK)
 			{
@@ -1445,8 +1460,10 @@ vir_bytes count;
 		if (bytes)
 		{
 			assert(bytes == 1);
-			*(u16_t *)two_bytes= inw(dep->de_data_port);
-			r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[0],
+			//*(u16_t *)two_bytes= inw(dep->de_data_port);
+			two_bytes= inw(dep->de_data_port);
+			//r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[0],
+			r= sys_vircopy(SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[0]),
 				user_proc, D, vir_user,  1);
 			if (r != OK)
 			{
