@@ -62,7 +62,7 @@ int ip_client_prepare_packet( packet_t packet, ip_protocol_t protocol, ip_ttl_t 
 	while( padding -- ) data[ sizeof( ip_header_t ) + padding ] = IPOPT_NOOP;
 	header = ( ip_header_ref ) data;
 	header->header_length = IP_COMPUTE_HEADER_LENGTH( sizeof( ip_header_t ) + ipopt_length );
-	header->ttl = ttl ? (( ttl <= MAXTTL ) ? ttl : MAXTTL ) : IPDEFTTL;
+	header->ttl = ( ttl ? ttl : IPDEFTTL ); //((( ttl ) <= MAXTTL ) ? ttl : MAXTTL ) : IPDEFTTL;
 	header->tos = tos;
 	header->protocol = protocol;
 	if( dont_fragment ) header->flags = IPFLAG_DONT_FRAGMENT;
