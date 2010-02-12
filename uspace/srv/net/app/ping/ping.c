@@ -263,7 +263,7 @@ int main( int argc, char * argv[] ){
 				printf( "Ping round trip time %d miliseconds\n", tv_sub( & time_after, & time_before ) / 1000 );
 				break;
 			case ETIMEOUT:
-				printf( "Timeouted.\n" );
+				printf( "Timed out.\n" );
 				break;
 			default:
 				print_error( stdout, result, NULL, "\n" );
