@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup devman
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
- */
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#include <stdlib.h>
+#include <string.h> 
+ 
+#include "util.h"
+ 
 
-typedef enum {
-	SERVICE_LOAD = 1,
-	SERVICE_PCI,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_DEVMAN,
-	SERVICE_FHC,
-	SERVICE_OBIO,
-	SERVICE_CLIPBOARD
-} services_t;
-
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
-
-#endif
-
-/** @}
- */
+char * get_abs_path(const char *base_path, const char *name, const char *ext) 
+{
+	char *res;
+	int base_len = str_size(base_path);
+	int size = base_len + str_size(name) + str_size(ext) + 3;	
+	
+	res = malloc(size);
+	
+	if (res) {
+		str_cpy(res, size, base_path);
+		if(base_path[base_len - 1] != '/') { 
+			str_append(res, size, "/");			
+		}
+		str_append(res, size, name);
+		if(ext[0] != '.') {
+			str_append(res, size, ".");
+		}
+		str_append(res, size, ext);		
+	}
+	
+	return res;
+}

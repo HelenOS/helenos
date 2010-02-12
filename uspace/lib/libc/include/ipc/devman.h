@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup devman
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
- */
+ 
+#ifndef LIBC_IPC_DEVMAN_H_
+#define LIBC_IPC_DEVMAN_H_
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#include <ipc/ipc.h>
+
 
 typedef enum {
-	SERVICE_LOAD = 1,
-	SERVICE_PCI,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_DEVMAN,
-	SERVICE_FHC,
-	SERVICE_OBIO,
-	SERVICE_CLIPBOARD
-} services_t;
+	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
+	DEVMAN_ADD_CHILD_DEVICE
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+} devman_request_t;
+
+
+
+
+
+
+
+
 
 #endif
-
-/** @}
- */

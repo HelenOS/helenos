@@ -26,147 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup devman Device manager.
- * @brief HelenOS device manager.
+/** @addtogroup devman
  * @{
  */
 
-/** @file
- */
-
-#include <assert.h>
-#include <ipc/services.h>
-#include <ipc/ns.h>
-#include <async.h>
-#include <stdio.h>
 #include <errno.h>
-#include <bool.h>
-#include <fibril_synch.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <ctype.h>
-//#include <ipc/devman.h>
 
-#define NAME          "devman"
-
-#define DRIVER_DEFAULT_STORE  "/srv/drivers"
-#define MATCH_EXT ".ma"
-
-#define MAX_ID_LEN 256
+#include "devman.h"
+#include "util.h"
 
 
-struct driver;
-struct match_id;
-struct match_id_list;
-struct node;
-struct dev_tree;
-
-
-typedef struct driver driver_t;
-typedef struct match_id match_id_t;
-typedef struct match_id_list match_id_list_t;
-typedef struct node node_t;
-typedef struct dev_tree dev_tree_t;
-
-
-static driver_t * create_driver();
-static inline void init_driver(driver_t *drv);
-static inline void clean_driver(driver_t *drv);
-static inline void delete_driver(driver_t *drv);
-static inline void add_driver(driver_t *drv);
-static char * get_abs_path(const char *base_path, const char *name, const char *ext);
-static bool parse_match_ids(const char *buf, match_id_list_t *ids);
-static bool read_match_ids(const char *conf_path, match_id_list_t *ids);
-static void clean_match_ids(match_id_list_t *ids);
-static inline match_id_t * create_match_id();
-static inline void delete_match_id(match_id_t *id);
-static void add_match_id(match_id_list_t *ids, match_id_t *id);
-static bool get_driver_info(const char *base_path, const char *name, driver_t *drv);
-static int lookup_available_drivers(const char *dir_path);
-static inline node_t * create_dev_node();
-static node_t * create_root_node();
-static bool init_device_tree(dev_tree_t *tree);
-static bool devman_init();
-static int get_match_score(driver_t *drv, node_t *dev);
-
-
-
-LIST_INITIALIZE(drivers_list);
-
-
-
-/** Represents device tree.
- */
-struct dev_tree {
-	node_t *root_node;
-};
-
-static dev_tree_t device_tree;
-
-/** Ids of device models used for device-to-driver matching.
- */
-struct match_id {
-	/** Pointers to next and previous ids.
-	 */
-	link_t link;
-	/** Id of device model.
-	 */
-	const char *id;
-	/** Relevancy of device-to-driver match.
-	 * The higher is the product of scores specified for the device by the bus driver and by the leaf driver,
-	 * the more suitable is the leaf driver for handling the device.
-	 */
-	unsigned int score;
-};
-
-/** List of ids for matching devices to drivers sorted
- * according to match scores in descending order.
- */
-struct match_id_list {
-	link_t ids;
-};
-
-/** Representation of device driver.
- */
-struct driver {
-	/** Pointers to previous and next drivers in a linked list */
-	link_t drivers;
-	/** Specifies whether the driver has been started.*/
-	bool running;
-	/** Phone asociated with this driver */
-	ipcarg_t phone;
-	/** Name of the device driver */
-	char *name;
-	/** Path to the driver's binary */
-	const char *binary_path;
-	/** List of device ids for device-to-driver matching.*/
-	match_id_list_t match_ids;
-	/** Pointer to the linked list of devices controlled by this driver */
-	link_t devices;
-};
-
-/** Representation of a node in the device tree.*/
-struct node {
-	/** The node of the parent device. */
-	node_t *parent;
-	/** Pointers to previous and next child devices in the linked list of parent device's node.*/
-	link_t sibling;	
-	/** List of child device nodes. */
-	link_t children;
-	/** List of device ids for device-to-driver matching.*/
-	match_id_list_t match_ids;	
-	/** Driver of this device.*/
-	driver_t *drv;	
-	/** Pointer to the previous and next device in the list of devices
-	    owned by one driver */
-	link_t driver_devices;	
-};
-
-static driver_t * create_driver() 
+driver_t * create_driver() 
 {
 	driver_t *res = malloc(sizeof(driver_t));
 	if(res != NULL) {
@@ -175,126 +47,10 @@ static driver_t * create_driver()
 	return res;
 }
 
-static inline void init_driver(driver_t *drv) 
-{
-	assert(drv != NULL);	
-	
-	memset(drv, 0, sizeof(driver_t));	
-	list_initialize(&drv->match_ids.ids);
-	list_initialize(&drv->devices);
-}
-
-static inline void clean_driver(driver_t *drv) 
-{
-	assert(drv != NULL);
-	
-	free(drv->name);
-	free(drv->binary_path);
-	
-	clean_match_ids(&drv->match_ids);
-	
-	init_driver(drv);	
-}
-
-static void clean_match_ids(match_id_list_t *ids)
-{
-	link_t *link = NULL;
-	match_id_t *id;
-	
-	while(!list_empty(&ids->ids)) {
-		link = ids->ids.next;
-		list_remove(link);		
-		id = list_get_instance(link, match_id_t, link);
-		delete_match_id(id);		
-	}	
-}
-
-static inline match_id_t * create_match_id() 
-{
-	match_id_t *id = malloc(sizeof(match_id_t));
-	memset(id, 0, sizeof(match_id_t));
-	return id;	
-}
-
-static inline void delete_match_id(match_id_t *id) 
-{
-	free(id->id);
-	free(id);
-}
-
-static void add_match_id(match_id_list_t *ids, match_id_t *id) 
-{
-	match_id_t *mid = NULL;
-	link_t *link = ids->ids.next;	
-	
-	while (link != &ids->ids) {
-		mid = list_get_instance(link, match_id_t,link);
-		if (mid->score < id->score) {
-			break;
-		}	
-		link = link->next;
-	}
-	
-	list_insert_before(&id->link, link);	
-}
-
-static inline void delete_driver(driver_t *drv) 
-{
-	clean_driver(drv);
-	free(drv);
-}
-
-static inline void add_driver(driver_t *drv)
-{
-	list_prepend(&drv->drivers, &drivers_list);
-	printf(NAME": the '%s' driver was added to the list of available drivers.\n", drv->name);	
-}
-
-static char * get_abs_path(const char *base_path, const char *name, const char *ext) 
-{
-	char *res;
-	int base_len = str_size(base_path);
-	int size = base_len + str_size(name) + str_size(ext) + 3;	
-	
-	res = malloc(size);
-	
-	if (res) {
-		str_cpy(res, size, base_path);
-		if(base_path[base_len - 1] != '/') { 
-			str_append(res, size, "/");			
-		}
-		str_append(res, size, name);
-		if(ext[0] != '.') {
-			str_append(res, size, ".");
-		}
-		str_append(res, size, ext);		
-	}
-	
-	return res;
-}
-
-static inline bool skip_spaces(const char **buf) 
-{
-	while (isspace(**buf)) {
-		(*buf)++;		
-	}
-	return *buf != 0;	
-}
-
-static inline size_t get_id_len(const char *str) 
-{
-	size_t len = 0;
-	while(*str != 0 && !isspace(*str)) {
-		len++;
-		str++;
-	}
-	return len;
-}
-
-static char * read_id(const char **buf) 
+char * read_id(const char **buf) 
 {
 	char *res = NULL;
-	size_t len = get_id_len(*buf);
+	size_t len = get_nonspace_len(*buf);
 	if (len > 0) {
 		res = malloc(len + 1);
 		if (res != NULL) {
@@ -305,7 +61,7 @@ static char * read_id(const char **buf)
 	return res;
 }
 
-static bool parse_match_ids(const char *buf, match_id_list_t *ids)
+bool parse_match_ids(const char *buf, match_id_list_t *ids)
 {
 	int score = 0;
 	char *id = NULL;
@@ -343,7 +99,7 @@ static bool parse_match_ids(const char *buf, match_id_list_t *ids)
 	return ids_read > 0;
 }
 
-static bool read_match_ids(const char *conf_path, match_id_list_t *ids) 
+bool read_match_ids(const char *conf_path, match_id_list_t *ids) 
 {	
 	bool suc = false;	
 	char *buf = NULL;
@@ -391,7 +147,7 @@ cleanup:
 }
 
 
-static bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
+bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
 	assert(base_path != NULL && name != NULL && drv != NULL);
 	
@@ -446,9 +202,10 @@ cleanup:
 
 /** Lookup drivers in the directory.
  * 
- * @param dir_path the path to the directory where we search for drivers. * 
+ * @param drivers_list the list of available drivers.
+ * @param dir_path the path to the directory where we search for drivers. 
  */ 
-static int lookup_available_drivers(const char *dir_path)
+int lookup_available_drivers(link_t *drivers_list, const char *dir_path)
 {
 	int drv_cnt = 0;
 	DIR *dir = NULL;
@@ -459,7 +216,7 @@ static int lookup_available_drivers(const char *dir_path)
 		driver_t *drv = create_driver();
 		while ((diren = readdir(dir))) {			
 			if (get_driver_info(dir_path, diren->d_name, drv)) {
-				add_driver(drv);
+				add_driver(drivers_list, drv);
 				drv = create_driver();
 			}	
 		}
@@ -470,30 +227,7 @@ static int lookup_available_drivers(const char *dir_path)
 	return drv_cnt;
 }
 
-static inline node_t * create_dev_node()
-{
-	node_t *res = malloc(sizeof(node_t));
-	if (res != NULL) {
-		memset(res, 0, sizeof(node_t));	
-	}
-	return res;
-}
-
-static inline void init_dev_node(node_t *node, node_t *parent) 
-{
-	assert(NULL != node);
-	
-	node->parent = parent;
-	if (NULL != parent) {
-		list_append(&node->sibling, &parent->children);
-	}
-	
-	list_initialize(&node->children);
-	
-	list_initialize(&node->match_ids.ids);	
-}
-
-static node_t * create_root_node()
+node_t * create_root_node()
 {
 	node_t *node = create_dev_node();
 	if (node) {
@@ -506,65 +240,13 @@ static node_t * create_root_node()
 	return node;	
 }
 
-static int get_match_score(driver_t *drv, node_t *dev)
-{	
-	link_t* drv_head = &drv->match_ids.ids;	
-	link_t* dev_head = &dev->match_ids.ids;
-	
-	if (list_empty(drv_head) || list_empty(dev_head)) {
-		return 0;
-	}
-	
-	link_t* drv_link = drv->match_ids.ids.next;
-	link_t* dev_link = dev->match_ids.ids.next;
-	
-	match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
-	match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
-	
-	int score_next_drv = 0;
-	int score_next_dev = 0;
-	
-	do {
-		if (0 == str_cmp(drv_id->id, dev_id->id)) { 	// we found a match	
-			// return the score of the match
-			return drv_id->score * dev_id->score;
-		}
-		
-		// compute the next score we get, if we advance in the driver's list of match ids 
-		if (drv_head != drv_link->next) {
-			score_next_drv = dev_id->score * list_get_instance(drv_link->next, match_id_t, link)->score;			
-		} else {
-			score_next_drv = 0;
-		}
-		
-		// compute the next score we get, if we advance in the device's list of match ids 
-		if (dev_head != dev_link->next) {
-			score_next_dev = drv_id->score * list_get_instance(dev_link->next, match_id_t, link)->score;			
-		} else {
-			score_next_dev = 0;
-		}
-		
-		// advance in one of the two lists, so we get the next highest score
-		if (score_next_drv > score_next_dev) {
-			drv_link = drv_link->next;
-			drv_id = list_get_instance(drv_link, match_id_t, link);
-		} else {
-			dev_link = dev_link->next;
-			dev_id = list_get_instance(dev_link, match_id_t, link);
-		}
-		
-	} while (drv_head != drv_link->next && dev_head != dev_link->next);
-	
-	return 0;
-}
-
-static driver_t * find_best_match_driver(node_t *node)
+driver_t * find_best_match_driver(link_t *drivers_list, node_t *node)
 {
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
-	link_t *link = drivers_list.next;	
+	link_t *link = drivers_list->next;	
 	
-	while (link != &drivers_list) {
+	while (link != drivers_list) {
 		drv = list_get_instance(link, driver_t, drivers);
 		score = get_match_score(drv, node);
 		if (score > best_score) {
@@ -576,13 +258,13 @@ static driver_t * find_best_match_driver(node_t *node)
 	return best_drv;	
 }
 
-static void attach_driver(node_t *node, driver_t *drv) 
+void attach_driver(node_t *node, driver_t *drv) 
 {
 	node->drv = drv;
 	list_append(&node->driver_devices, &drv->devices);
 }
 
-static bool start_driver(driver_t *drv)
+bool start_driver(driver_t *drv)
 {
 	char *argv[2];
 	
@@ -599,7 +281,7 @@ static bool start_driver(driver_t *drv)
 	return true;
 }
 
-static bool add_device(driver_t *drv, node_t *node)
+bool add_device(driver_t *drv, node_t *node)
 {
 	// TODO
 	
@@ -611,10 +293,10 @@ static bool add_device(driver_t *drv, node_t *node)
 	return true;
 }
 
-static bool assign_driver(node_t *node) 
+bool assign_driver(node_t *node, link_t *drivers_list) 
 {
 	// find the driver which is the most suitable for handling this device
-	driver_t *drv = find_best_match_driver(node);
+	driver_t *drv = find_best_match_driver(drivers_list, node);
 	if (NULL == drv) {
 		return false;		
 	}
@@ -633,7 +315,7 @@ static bool assign_driver(node_t *node)
 	return true;
 }
 
-static bool init_device_tree(dev_tree_t *tree)
+bool init_device_tree(dev_tree_t *tree, link_t *drivers_list)
 {
 	// create root node and add it to the device tree
 	if (NULL == (tree->root_node = create_root_node())) {
@@ -641,70 +323,6 @@ static bool init_device_tree(dev_tree_t *tree)
 	}
 
 	// find suitable driver and start it
-	return assign_driver(tree->root_node);
+	return assign_driver(tree->root_node, drivers_list);
 }
 
-/** Initialize device manager internal structures.
- */
-static bool devman_init()
-{
-	// initialize list of available drivers
-	if (0 == lookup_available_drivers(DRIVER_DEFAULT_STORE)) {
-		printf(NAME " no drivers found.");
-		return false;
-	}
-
-	// create root device node 
-	if (!init_device_tree(&device_tree)) {
-		printf(NAME " failed to initialize device tree.");
-		return false;		
-	}
-
-	return true;
-}
-
-
-/** Function for handling connections to device manager.
- *
- */
-static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
-	/*case DEVMAN_DRIVER:
-		devmap_connection_driver(iid, icall);
-		break;*/
-
-	default:
-		/* No such interface */
-		ipc_answer_0(iid, ENOENT);
-	}
-}
-
-/**
- *
- */
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS Device Manager\n");
-
-	if (!devman_init()) {
-		printf(NAME ": Error while initializing service\n");
-		return -1;
-	}
-
-	/*
-	// Set a handler of incomming connections
-	async_set_client_connection(devman_connection);
-
-	// Register device manager at naming service
-	ipcarg_t phonead;
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAN, 0, 0, &phonead) != 0)
-		return -1;
-
-	printf(NAME ": Accepting connections\n");
-	async_manager();*/
-
-	// Never reached
-	return 0;
-}

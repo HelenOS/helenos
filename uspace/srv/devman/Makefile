@@ -33,6 +33,9 @@ LIBS = $(LIBC_PREFIX)/libc.a
 OUTPUT = devman
 
 SOURCES = \
-	devman.c
+	main.c \
+	devman.c \
+	match.c \
+	util.c
 
 include ../Makefile.common

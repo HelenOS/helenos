@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup devman
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
- */
+ 
+#ifndef DEVMAN_UTIL_H_
+#define DEVMAN_UTIL_H_
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#include <ctype.h>
 
-typedef enum {
-	SERVICE_LOAD = 1,
-	SERVICE_PCI,
-	SERVICE_VIDEO,
-	SERVICE_CONSOLE,
-	SERVICE_VFS,
-	SERVICE_DEVMAP,
-	SERVICE_DEVMAN,
-	SERVICE_FHC,
-	SERVICE_OBIO,
-	SERVICE_CLIPBOARD
-} services_t;
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+char * get_abs_path(const char *base_path, const char *name, const char *ext);
+
+static inline bool skip_spaces(const char **buf) 
+{
+	while (isspace(**buf)) {
+		(*buf)++;		
+	}
+	return *buf != 0;	
+}
+
+static inline size_t get_nonspace_len(const char *str) 
+{
+	size_t len = 0;
+	while(*str != 0 && !isspace(*str)) {
+		len++;
+		str++;
+	}
+	return len;
+}
 
 #endif
-
-/** @}
- */
