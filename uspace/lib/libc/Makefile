@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,14 +27,89 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+-include ../../../Makefile.config
 
-.PHONY: all clean
+USPACE_PREFIX = $(shell pwd)/../..
+#LIBS = $(LIBC_PREFIX)/libc.a
+LIBS =
 
-all: ../../../Makefile.config ../../../config.h ../../../config.defs
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+LINK = arch/$(UARCH)/_link.ld
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(LIBC) arch/*/_link.ld
-	find generic/ arch/*/ -name '*.o' -follow -exec rm \{\} \;
+PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
+EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
+EXTRA_OUTPUT = $(LINK)
+
+INCLUDE_KERNEL = include/kernel
+INCLUDE_ARCH = include/arch
+INCLUDE_LIBARCH = include/libarch
+
+OUTPUT = libc.a
+
+GENERIC_SOURCES = \
+	generic/libc.c \
+	generic/ddi.c \
+	generic/as.c \
+	generic/cap.c \
+	generic/clipboard.c \
+	generic/devmap.c \
+	generic/event.c \
+	generic/errno.c \
+	generic/mem.c \
+	generic/string.c \
+	generic/fibril.c \
+	generic/fibril_synch.c \
+	generic/pcb.c \
+	generic/smc.c \
+	generic/thread.c \
+	generic/tls.c \
+	generic/task.c \
+	generic/futex.c \
+	generic/io/asprintf.c \
+	generic/io/io.c \
+	generic/io/printf.c \
+	generic/io/klog.c \
+	generic/io/snprintf.c \
+	generic/io/vprintf.c \
+	generic/io/vsnprintf.c \
+	generic/io/printf_core.c \
+	generic/io/console.c \
+	generic/malloc.c \
+	generic/sysinfo.c \
+	generic/ipc.c \
+	generic/async.c \
+	generic/loader.c \
+	generic/getopt.c \
+	generic/adt/list.o \
+	generic/adt/hash_table.o \
+	generic/time.c \
+	generic/err.c \
+	generic/stdlib.c \
+	generic/mman.c \
+	generic/udebug.c \
+	generic/vfs/vfs.c \
+	generic/vfs/canonify.c \
+	generic/stacktrace.c
+
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s
+
+SOURCES = \
+	$(GENERIC_SOURCES) \
+	$(ARCH_SOURCES)
+
+include ../Makefile.common
+
+$(INCLUDE_ARCH): $(INCLUDE_KERNEL) $(INCLUDE_KERNEL)/arch
+	ln -sfn kernel/arch $@
+
+$(INCLUDE_LIBARCH): arch/$(UARCH)/include
+	ln -sfn ../$< $@
+
+$(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
+
+$(INCLUDE_KERNEL): ../../../kernel/generic/include/
+	ln -sfn ../$< $@
+
+$(LINK): $(LINK).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

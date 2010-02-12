@@ -38,7 +38,7 @@
 #include <sys/types.h>
 #include <libarch/types.h>
 
-#define IO_SPACE_BOUNDARY	(64 * 1024)
+#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
 
 uint64_t get_ia64_iospace_address(void);
 

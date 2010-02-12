@@ -40,7 +40,7 @@
 
 extern atomic_t haltstate;
 
-extern void halt(void);
+extern void halt(void) __attribute__((noreturn));
 extern unative_t atoi(const char *text);
 extern void order(const uint64_t val, uint64_t *rv, char *suffix);
 

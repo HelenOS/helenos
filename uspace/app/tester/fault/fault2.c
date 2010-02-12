@@ -29,12 +29,14 @@
 
 #include "../tester.h"
 
+typedef int __attribute__((may_alias)) aliasing_int;
+
 char *test_fault2(void)
 {
 	volatile long long var;
 	volatile int var1;
 	
-	var1 = *((int *) (((char *) (&var)) + 1));
+	var1 = *((aliasing_int *) (((char *) (&var)) + 1));
 	
 	return "Survived unaligned read";
 }

@@ -58,6 +58,7 @@
 #include <string.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address 0x%p/0x%p\n", ctl_physical, cmd_physical);
+	printf("I/O address %p/%p\n", ctl_physical, cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -179,11 +180,11 @@ static void disk_print_summary(disk_t *d)
 		break;
 	}
 
-	printf(" %llu blocks", d->blocks, d->blocks / (2 * 1024));
+	printf(" %" PRIu64 " blocks", d->blocks, d->blocks / (2 * 1024));
 
 	mbytes = d->blocks / (2 * 1024);
 	if (mbytes > 0)
-		printf(" %llu MB.", mbytes);
+		printf(" %" PRIu64 " MB.", mbytes);
 
 	printf("\n");
 }
@@ -294,6 +295,10 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case BD_GET_BLOCK_SIZE:
 			ipc_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			ipc_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
+			    UPPER32(disk[disk_id].blocks));
 			continue;
 		default:
 			retval = EINVAL;
@@ -494,7 +499,9 @@ static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)
@@ -568,7 +575,9 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)

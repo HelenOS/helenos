@@ -49,7 +49,7 @@ enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI
 };		
 
-typedef struct {
+typedef struct istate {
 	uint64_t	tnpc;
 	uint64_t	tpc;
 	uint64_t	tstate;
@@ -68,6 +68,11 @@ static inline int istate_from_uspace(istate_t *istate)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->tpc;
+}
+
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return 0;	/* TODO */
 }
 
 #endif

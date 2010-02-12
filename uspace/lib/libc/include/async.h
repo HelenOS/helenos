@@ -276,15 +276,84 @@ extern int async_share_in_finalize(ipc_callid_t, void *, int );
 extern int async_share_out_start(int, void *, int);
 extern int async_share_out_receive(ipc_callid_t *, size_t *, int *);
 extern int async_share_out_finalize(ipc_callid_t, void *);
+
+/*
+ * User-friendly wrappers for async_data_read_forward_fast().
+ */
+#define async_data_read_forward_0_0(phoneid, method, answer) \
+	async_data_read_forward_fast((phoneid), (method), 0, 0, 0, 0, NULL)
+#define async_data_read_forward_0_1(phoneid, method, answer) \
+	async_data_read_forward_fast((phoneid), (method), 0, 0, 0, 0, (answer))
+#define async_data_read_forward_1_0(phoneid, method, arg1, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), 0, 0, 0, NULL)
+#define async_data_read_forward_1_1(phoneid, method, arg1, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), 0, 0, 0, (answer))
+#define async_data_read_forward_2_0(phoneid, method, arg1, arg2, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), 0, 0, NULL)
+#define async_data_read_forward_2_1(phoneid, method, arg1, arg2, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
+	    (answer))
+#define async_data_read_forward_3_0(phoneid, method, arg1, arg2, arg3, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, \
+	    NULL)
+#define async_data_read_forward_3_1(phoneid, method, arg1, arg2, arg3, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), 0, \
+	    (answer))
+#define async_data_read_forward_4_0(phoneid, method, arg1, arg2, arg3, arg4, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), NULL)
+#define async_data_read_forward_4_1(phoneid, method, arg1, arg2, arg3, arg4, answer) \
+	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (answer))
+
 extern int async_data_read_start(int, void *, size_t);
 extern int async_data_read_receive(ipc_callid_t *, size_t *);
 extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
+
+extern int async_data_read_forward_fast(int, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, ipc_call_t *);
+
+/*
+ * User-friendly wrappers for async_data_write_forward_fast().
+ */
+#define async_data_write_forward_0_0(phoneid, method, answer) \
+	async_data_write_forward_fast((phoneid), (method), 0, 0, 0, 0, NULL)
+#define async_data_write_forward_0_1(phoneid, method, answer) \
+	async_data_write_forward_fast((phoneid), (method), 0, 0, 0, 0, (answer))
+#define async_data_write_forward_1_0(phoneid, method, arg1, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), 0, 0, 0, NULL)
+#define async_data_write_forward_1_1(phoneid, method, arg1, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), 0, 0, 0, \
+	    (answer))
+#define async_data_write_forward_2_0(phoneid, method, arg1, arg2, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
+	    NULL)
+#define async_data_write_forward_2_1(phoneid, method, arg1, arg2, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), 0, 0, \
+	    (answer))
+#define async_data_write_forward_3_0(phoneid, method, arg1, arg2, arg3, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    0, NULL)
+#define async_data_write_forward_3_1(phoneid, method, arg1, arg2, arg3, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    0, (answer))
+#define async_data_write_forward_4_0(phoneid, method, arg1, arg2, arg3, arg4, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), NULL)
+#define async_data_write_forward_4_1(phoneid, method, arg1, arg2, arg3, arg4, answer) \
+	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
+	    (arg4), (answer))
+
 extern int async_data_write_start(int, const void *, size_t);
 extern int async_data_write_receive(ipc_callid_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 
-extern int async_data_blob_receive(char **, const size_t, size_t *);
-extern int async_data_string_receive(char **, const size_t);
+extern int async_data_write_accept(void **, const bool, const size_t,
+    const size_t, const size_t, size_t *);
+extern void async_data_write_void(const int);
+
+extern int async_data_write_forward_fast(int, ipcarg_t, ipcarg_t, ipcarg_t,
+    ipcarg_t, ipcarg_t, ipc_call_t *);
 
 #endif
 

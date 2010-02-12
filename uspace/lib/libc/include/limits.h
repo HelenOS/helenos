@@ -45,11 +45,11 @@
 #define UCHAR_MAX MAX_UINT8
 
 #ifdef __CHAR_UNSIGNED__
-# define CHAR_MIN UCHAR_MIN
-# define CHAR_MAX UCHAR_MAX
+	#define CHAR_MIN UCHAR_MIN
+	#define CHAR_MAX UCHAR_MAX
 #else
-# define CHAR_MIN SCHAR_MIN
-# define CHAR_MAX SCHAR_MAX
+	#define CHAR_MIN SCHAR_MIN
+	#define CHAR_MAX SCHAR_MAX
 #endif
 
 /* short int */
@@ -58,15 +58,25 @@
 #define USHRT_MIN MIN_UINT16
 #define USHRT_MAX MAX_UINT16
 
+/* int */
 #define INT_MIN MIN_INT32
 #define INT_MAX MAX_INT32
 #define UINT_MIN MIN_UINT32
 #define UINT_MAX MAX_UINT32
 
+/* long long int */
 #define LLONG_MIN MIN_INT64
 #define LLONG_MAX MAX_INT64
 #define ULLONG_MIN MIN_UINT64
 #define ULLONG_MAX MAX_UINT64
+
+/* off64_t */
+#define OFF64_MIN MIN_INT64
+#define OFF64_MAX MAX_INT64
+
+/* aoff64_t */
+#define AOFF64_MIN MIN_UINT64
+#define AOFF64_MAX MAX_UINT64
 
 #endif
 

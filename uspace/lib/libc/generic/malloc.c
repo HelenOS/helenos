@@ -164,6 +164,9 @@ static bool grow_heap(size_t size)
 {
 	if (size == 0)
 		return false;
+
+	if ((heap_start + size < heap_start) || (heap_end + size < heap_end))
+		return false;
 	
 	size_t heap_size = (size_t) (heap_end - heap_start);
 	

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define IREGISTER_SPACE	72 
+#define IREGISTER_SPACE	80
 
 #define IOFFSET_RAX	0x0
 #define IOFFSET_RCX	0x8
@@ -37,6 +37,7 @@
 #define IOFFSET_R9	0x30
 #define IOFFSET_R10	0x38
 #define IOFFSET_R11	0x40
+#define IOFFSET_RBP	0x48
 
 #  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
 # and 1 means interrupt with error word
@@ -178,6 +179,7 @@ read_efer_flag:
 	movq %r9, IOFFSET_R9(%rsp)
 	movq %r10, IOFFSET_R10(%rsp)
 	movq %r11, IOFFSET_R11(%rsp)
+	movq %rbp, IOFFSET_RBP(%rsp)
 .endm
 
 .macro restore_all_gpr
@@ -190,6 +192,7 @@ read_efer_flag:
 	movq IOFFSET_R9(%rsp), %r9
 	movq IOFFSET_R10(%rsp), %r10
 	movq IOFFSET_R11(%rsp), %r11
+	movq IOFFSET_RBP(%rsp), %rbp
 .endm
 
 #define INTERRUPT_ALIGN 128
@@ -233,6 +236,9 @@ read_efer_flag:
 
 	save_all_gpr
 	cld
+
+	# Stop stack traces here
+	xorq %rbp, %rbp
 
 	movq $(\i), %rdi   	# %rdi - first parameter
 	movq %rsp, %rsi   	# %rsi - pointer to istate

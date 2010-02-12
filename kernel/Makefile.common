@@ -43,3 +43,6 @@ REAL_MAP = generic/src/debug/real_map
 
 ARCH_INCLUDE = generic/include/arch
 GENARCH_INCLUDE = generic/include/genarch
+
+GENMAP = tools/genmap.py
+JOBFILE = ../tools/jobfile.py

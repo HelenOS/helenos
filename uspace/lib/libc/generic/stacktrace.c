@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,22 +36,42 @@
 #include <stacktrace.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <errno.h>
 
-void stack_trace_fp_pc(uintptr_t fp, uintptr_t pc)
+static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
+
+void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
 {
-	printf("Printing stack trace:\n");
-	printf("=====================\n");
-	while (frame_pointer_validate(fp)) {
+	stacktrace_t st;
+	uintptr_t nfp;
+
+	st.op_arg = NULL;
+	st.read_uintptr = stacktrace_read_uintptr;
+
+	while (stacktrace_fp_valid(&st, fp)) {
 		printf("%p: %p()\n", fp, pc);
-		pc = return_address_get(fp);
-		fp = frame_pointer_prev(fp);
+		(void) stacktrace_ra_get(&st, fp, &pc);
+		(void) stacktrace_fp_prev(&st, fp, &nfp);
+		fp = nfp;
 	}
-	printf("=====================\n");
 }
 
-void stack_trace(void)
+void stacktrace_print(void)
 {
-	stack_trace_fp_pc(frame_pointer_get(), program_counter_get());
+	stacktrace_prepare();
+	stacktrace_print_fp_pc(stacktrace_fp_get(), stacktrace_pc_get());
+	/*
+	 * Prevent the tail call optimization of the previous call by
+	 * making it a non-tail call.
+	 */
+	(void) stacktrace_fp_get();
+}
+
+static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)
+{
+	(void) arg;
+	*data = *((uintptr_t *) addr);
+	return EOK;
 }
 
 /** @}

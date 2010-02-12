@@ -36,7 +36,8 @@ ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/ddi.c \
-	arch/$(UARCH)/src/stacktrace.S
+	arch/$(UARCH)/src/stacktrace.c \
+	arch/$(UARCH)/src/stacktrace_asm.S
 
 GCC_CFLAGS += -fno-unwind-tables
 LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a

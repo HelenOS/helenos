@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64	
+/** @addtogroup libcsparc64
  * @{
  */
 /** @file
@@ -34,6 +34,8 @@
 
 #ifndef LIBC_sparc64_TYPES_H_
 #define LIBC_sparc64_TYPES_H_
+
+#define __64_BITS__
 
 typedef unsigned long sysarg_t;
 

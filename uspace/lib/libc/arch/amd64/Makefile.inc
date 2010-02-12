@@ -36,7 +36,8 @@ TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
 ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.S
+	arch/$(UARCH)/src/stacktrace.c \
+	arch/$(UARCH)/src/stacktrace_asm.S
 
 GCC_CFLAGS += -fno-omit-frame-pointer
 LFLAGS += -N

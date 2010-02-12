@@ -40,6 +40,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <arch/barrier.h>
 #include <libarch/faddr.h>
 #include <futex.h>
 #include <assert.h>
@@ -132,28 +133,29 @@ void fibril_main(void)
  */
 int fibril_switch(fibril_switch_type_t stype)
 {
-	fibril_t *srcf, *dstf;
 	int retval = 0;
 	
 	futex_down(&fibril_futex);
-
+	
 	if (stype == FIBRIL_PREEMPT && list_empty(&ready_list))
 		goto ret_0;
-
+	
 	if (stype == FIBRIL_FROM_MANAGER) {
-		if (list_empty(&ready_list) && list_empty(&serialized_list))
+		if ((list_empty(&ready_list)) && (list_empty(&serialized_list)))
 			goto ret_0;
+		
 		/*
 		 * Do not preempt if there is not enough threads to run the
 		 * ready fibrils which are not serialized.
 		 */
-		if (list_empty(&serialized_list) &&
-		    threads_in_manager <= serialized_threads) {
+		if ((list_empty(&serialized_list)) &&
+		    (threads_in_manager <= serialized_threads)) {
 			goto ret_0;
 		}
 	}
+	
 	/* If we are going to manager and none exists, create it */
-	if (stype == FIBRIL_TO_MANAGER || stype == FIBRIL_FROM_DEAD) {
+	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
 		while (list_empty(&manager_list)) {
 			futex_up(&fibril_futex);
 			async_create_manager();
@@ -161,18 +163,20 @@ int fibril_switch(fibril_switch_type_t stype)
 		}
 	}
 	
-	srcf = __tcb_get()->fibril_data;
+	fibril_t *srcf = __tcb_get()->fibril_data;
 	if (stype != FIBRIL_FROM_DEAD) {
+		
 		/* Save current state */
 		if (!context_save(&srcf->ctx)) {
 			if (serialization_count)
 				srcf->flags &= ~FIBRIL_SERIALIZED;
+			
 			if (srcf->clean_after_me) {
 				/*
 				 * Cleanup after the dead fibril from which we
 				 * restored context here.
 				 */
-				void *stack = srcf->clean_after_me->stack; 
+				void *stack = srcf->clean_after_me->stack;
 				if (stack) {
 					/*
 					 * This check is necessary because a
@@ -187,16 +191,17 @@ int fibril_switch(fibril_switch_type_t stype)
 				fibril_teardown(srcf->clean_after_me);
 				srcf->clean_after_me = NULL;
 			}
+			
 			return 1;	/* futex_up already done here */
 		}
-
+		
 		/* Save myself to the correct run list */
 		if (stype == FIBRIL_PREEMPT)
 			list_append(&srcf->link, &ready_list);
 		else if (stype == FIBRIL_FROM_MANAGER) {
 			list_append(&srcf->link, &manager_list);
 			threads_in_manager--;
-		} else {	
+		} else {
 			/*
 			 * If stype == FIBRIL_TO_MANAGER, don't put ourselves to
 			 * any list, we should already be somewhere, or we will
@@ -205,15 +210,19 @@ int fibril_switch(fibril_switch_type_t stype)
 		}
 	}
 	
+	/* Avoid srcf being clobbered by context_save() */
+	srcf = __tcb_get()->fibril_data;
+	
 	/* Choose a new fibril to run */
-	if (stype == FIBRIL_TO_MANAGER || stype == FIBRIL_FROM_DEAD) {
+	fibril_t *dstf;
+	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {
 		dstf = list_get_instance(manager_list.next, fibril_t, link);
 		if (serialization_count && stype == FIBRIL_TO_MANAGER) {
 			serialized_threads++;
 			srcf->flags |= FIBRIL_SERIALIZED;
 		}
 		threads_in_manager++;
-
+		
 		if (stype == FIBRIL_FROM_DEAD) 
 			dstf->clean_after_me = srcf;
 	} else {
@@ -227,11 +236,11 @@ int fibril_switch(fibril_switch_type_t stype)
 		}
 	}
 	list_remove(&dstf->link);
-
+	
 	futex_up(&fibril_futex);
 	context_restore(&dstf->ctx);
 	/* not reached */
-
+	
 ret_0:
 	futex_up(&fibril_futex);
 	return retval;

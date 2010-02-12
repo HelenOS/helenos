@@ -34,6 +34,7 @@ include ../../../Makefile.common
 
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = image.job
 OUTPUT = image.boot
 
 LINK = _link.ld
@@ -41,3 +42,7 @@ COMPS = _components
 
 KERNELDIR = ../../../../kernel
 USPACEDIR = ../../../../uspace
+
+RD_SRVS += \
+	$(USPACEDIR)/srv/hid/adb_mouse/adb_ms \
+	$(USPACEDIR)/srv/hw/bus/cuda_adb/cuda_adb

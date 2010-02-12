@@ -37,6 +37,8 @@ BFD_ARCH = mips
 TARGET = mipsel-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
 
+JOBFILE = ../../../../tools/jobfile.py
+
 ifeq ($(MACHINE),lgxemul)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = ecoff-littlemips

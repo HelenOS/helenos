@@ -52,6 +52,7 @@
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <symtab.h>
+#include <stacktrace.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -78,6 +79,8 @@ void decode_istate(istate_t *istate)
 	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
 	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
 	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
+
+	stack_trace_istate(istate);
 }
 
 static void trap_virtual_eoi(void)

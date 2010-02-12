@@ -27,14 +27,26 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+-include ../../../Makefile.config
+-include arch/$(UARCH)/Makefile.inc
 
-.PHONY: all clean
+USPACE_PREFIX = ../..
+LIBS = $(LIBC_PREFIX)/libc.a
+EXTRA_CFLAGS += -Iinclude
+LINK_SCRIPT = arch/$(UARCH)/_link.ld
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+OUTPUT = loader
+EXTRA_OUTPUT = $(LINK_SCRIPT)
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm arch/*/_link.ld
-	find . -name '*.o' -follow -exec rm \{\} \;
+GENERIC_SOURCES = \
+	main.c \
+	elf_load.c \
+	interp.s
+
+SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+
+include ../Makefile.common
+
+$(LINK_SCRIPT): $(LINK_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

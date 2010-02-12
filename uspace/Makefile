@@ -32,47 +32,56 @@
 -include ../Makefile.config
 
 DIRS = \
+	app/bdsh \
+	app/edit \
+	app/getterm \
+	app/init \
+	app/klog \
+	app/mkfat \
+	app/redir \
+	app/taskdump \
+	app/tester \
+	app/tetris \
+	app/trace \
+	srv/clip \
+	srv/devmap \
+	srv/loader \
+	srv/ns \
+	srv/taskmon \
+	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/char/i8042 \
-	srv/console \
+	srv/bd/part/guid_part \
+	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
-	srv/mouse/c_mouse \
-	srv/vfs \
-	srv/devmap \
-	srv/part/mbr_part \
-	srv/clip \
-	app/edit \
-	app/tetris \
-	app/tester \
-	app/trace \
-	app/klog \
-	app/init \
-	app/getterm \
-	app/redir \
-	app/bdsh \
+	srv/hid/adb_mouse \
+	srv/hid/console \
+	srv/hid/char_mouse \
+	srv/hid/fb \
+	srv/hid/kbd \
+	srv/hw/char/i8042 \
 	srv/net
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
+	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
+	DIRS += srv/hw/bus/pci
+endif
+
+ifeq ($(UARCH),ppc32)
+	DIRS += srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/cir/fhc \
-		srv/cir/obio
+		srv/hw/cir/fhc \
+		srv/hw/cir/obio
 endif
 
 LIBC = lib/libc
@@ -80,7 +89,16 @@ LIBS = \
 	lib/libfs \
 	lib/libblock \
 	lib/softint \
-	lib/softfloat
+	lib/softfloat \
+
+ifeq ($(UARCH),amd64)
+	LIBS += lib/libpci
+endif
+
+ifeq ($(UARCH),ia32)
+	LIBS += lib/libpci
+endif
+
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
@@ -98,10 +116,10 @@ $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
 $(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBC_BUILD):
-	$(MAKE) -C $(basename $@) all
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)

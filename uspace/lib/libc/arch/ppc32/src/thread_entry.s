@@ -34,6 +34,13 @@
 #
 #
 __thread_entry:
+	#
+	# Create the first stack frame.
+	#
+	li %r4, 0
+	stw %r4, 0(%r1)
+	stwu %r1, -16(%r1)
+
 	b __thread_main
 
 .end __thread_entry

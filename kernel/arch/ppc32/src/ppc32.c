@@ -38,6 +38,7 @@
 #include <genarch/drivers/via-cuda/cuda.h>
 #include <genarch/kbrd/kbrd.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 #include <genarch/fb/fb.h>
 #include <genarch/fb/visuals.h>
 #include <genarch/ofw/ofw_tree.h>
@@ -46,6 +47,7 @@
 #include <mm/page.h>
 #include <proc/uarg.h>
 #include <console/console.h>
+#include <sysinfo/sysinfo.h>
 #include <ddi/irq.h>
 #include <arch/drivers/pic.h>
 #include <align.h>
@@ -57,6 +59,9 @@
 #define IRQ_CUDA   10
 
 bootinfo_t bootinfo;
+
+static cir_t pic_cir;
+static void *pic_cir_arg;
 
 /** Performs ppc32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
@@ -185,10 +190,9 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 	
 	if (assigned_address) {
 		/* Initialize PIC */
-		cir_t cir;
-		void *cir_arg;
-		pic_init(assigned_address[0].addr, PAGE_SIZE, &cir, &cir_arg);
-		
+		pic_init(assigned_address[0].addr, PAGE_SIZE, &pic_cir,
+		    &pic_cir_arg);
+
 #ifdef CONFIG_MAC_KBD
 		uintptr_t pa = assigned_address[0].addr + 0x16000;
 		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
@@ -200,7 +204,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		
 		/* Initialize I/O controller */
 		cuda_instance_t *cuda_instance =
-		    cuda_init(cuda, IRQ_CUDA, cir, cir_arg);
+		    cuda_init(cuda, IRQ_CUDA, pic_cir, pic_cir_arg);
 		if (cuda_instance) {
 			kbrd_instance_t *kbrd_instance = kbrd_init();
 			if (kbrd_instance) {
@@ -210,11 +214,28 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 				pic_enable_interrupt(IRQ_CUDA);
 			}
 		}
+
+		/*
+		 * This is the necessary evil until the userspace driver is entirely
+		 * self-sufficient.
+		 */
+		sysinfo_set_item_val("cuda", NULL, true);
+		sysinfo_set_item_val("cuda.inr", NULL, IRQ_CUDA);
+		sysinfo_set_item_val("cuda.address.physical", NULL, pa);
+		sysinfo_set_item_val("cuda.address.kernel", NULL,
+		    (uintptr_t) cuda);
 #endif
 	}
 	
 	/* Consider only a single device for now */
 	return false;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	irq->cir = pic_cir;
+	irq->cir_arg = pic_cir_arg;
+	irq->preack = true;
 }
 
 void arch_post_smp_init(void)

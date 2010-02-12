@@ -69,7 +69,7 @@
 #define VECTOR_DEBUG_IPI		(IVT_FREEBASE + 2)
 
 /** This is passed to interrupt handlers */
-typedef struct {
+typedef struct istate {
 	uint64_t rax;
 	uint64_t rcx;
 	uint64_t rdx;
@@ -79,6 +79,7 @@ typedef struct {
 	uint64_t r9;
 	uint64_t r10;
 	uint64_t r11;
+	uint64_t rbp;
 	uint64_t error_word;
 	uint64_t rip;
 	uint64_t cs;
@@ -99,6 +100,10 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->rip;
+}
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return istate->rbp;
 }
 
 extern void (* disable_irqs_function)(uint16_t irqmask);

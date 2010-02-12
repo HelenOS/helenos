@@ -54,12 +54,12 @@ DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(E
 GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -Werror \
-	-pipe
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Werror -pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
-	-Werror -wd170
+	-Werror-implicit-function-declaration -Werror -wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
@@ -185,6 +185,7 @@ GENERIC_SOURCES = \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
+	generic/src/debug/stacktrace.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
@@ -374,9 +375,15 @@ $(LINK): $(LINK).in $(DEPEND)
 
 %.o: %.S $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(GCC_CFLAGS) -D__ASM__
+endif
 
 %.o: %.s $(DEPEND)
 	$(AS) $(AFLAGS) $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
+endif
 
 #
 # The FPU tests are the only objects for which we allow the compiler to generate
@@ -384,8 +391,8 @@ $(LINK): $(LINK).in $(DEPEND)
 #
 test/fpu/%.o: test/fpu/%.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
-ifeq ($(EXTRA_TOOL),stanse)
-	../tools/jobfile.py $(JOB) $< $@ $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc test $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
 
 #
@@ -393,8 +400,8 @@ endif
 #
 %.o: %.c $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c $< -o $@
-ifeq ($(EXTRA_TOOL),stanse)
-	../tools/jobfile.py $(JOB) $< $@ $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
 endif
 
 $(REAL_MAP).o: $(REAL_MAP).bin
@@ -404,7 +411,7 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
 	$(LD) -T $(LINK) $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP) -o $@ -Map $(MAP_PREV)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
-	tools/genmap.py $(MAP_PREV) $(DUMP) $@
+	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 	
 	# Do it once again, this time to get correct even the symbols
 	# on architectures that have bss after symtab
@@ -412,7 +419,7 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
 	$(LD) -T $(LINK) $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP) -o $@ -Map $(MAP_PREV)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
-	tools/genmap.py $(MAP_PREV) $(DUMP) $@
+	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
 $(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null

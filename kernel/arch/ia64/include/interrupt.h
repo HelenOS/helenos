@@ -71,7 +71,7 @@
 
 #define EOI  0  /**< The actual value doesn't matter. */
 
-typedef struct {
+typedef struct istate {
 	uint128_t f2;
 	uint128_t f3;
 	uint128_t f4;
@@ -140,6 +140,11 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->cr_iip;
+}
+
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return 0;	/* FIXME */
 }
 
 static inline int istate_from_uspace(istate_t *istate)

@@ -36,9 +36,12 @@
 #include <sys/types.h>
 #include <libarch/types.h>
 
-static inline memory_barrier(void)
+static inline void memory_barrier(void)
 {
-	asm volatile ("membar #LoadLoad | #StoreStore\n" ::: "memory");
+	asm volatile (
+		"membar #LoadLoad | #StoreStore\n"
+		::: "memory"
+	);
 }
 
 static inline void pio_write_8(ioport8_t *port, uint8_t v)

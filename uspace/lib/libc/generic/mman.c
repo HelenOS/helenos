@@ -38,7 +38,7 @@
 #include <unistd.h>
 
 void *mmap(void *start, size_t length, int prot, int flags, int fd,
-    off_t offset)
+    aoff64_t offset)
 {
 	if (!start)
 		start = as_get_mappable_page(length);
