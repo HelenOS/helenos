@@ -616,7 +616,7 @@ int icmp_process_packet( packet_t packet, services_t error ){
 	header = ( icmp_header_ref ) data;
 	// checksum
 	if( header->checksum ){
-		while( ICMP_CHECKSUM( header, length )){
+		while( ICMP_CHECKSUM( header, length ) != IP_CHECKSUM_ZERO ){
 			// set the original message type on error notification
 			// type swap observed in Qemu
 			if( error ){

@@ -1203,7 +1203,7 @@ int ip_process_packet( device_id_t device_id, packet_t packet ){
 		return ip_release_and_return( packet, ENOMEM );
 	}
 	// checksum
-	if(( header->header_checksum ) && ( IP_HEADER_CHECKSUM( header ))){
+	if(( header->header_checksum ) && ( IP_HEADER_CHECKSUM( header ) != IP_CHECKSUM_ZERO )){
 		phone = ip_prepare_icmp_and_get_phone( 0, packet, header );
 		if( phone >= 0 ){
 			// checksum error ICMP

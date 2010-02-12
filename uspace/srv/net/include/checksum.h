@@ -41,6 +41,11 @@
 
 #include <sys/types.h>
 
+/** IP checksum value for computed zero checksum.
+ *  Zero is returned as 0xFFFF (not flipped)
+ */
+#define IP_CHECKSUM_ZERO			0xFFFFu
+
 /**	Computes CRC32 value.
  *  @param[in] seed Initial value. Often used as 0 or ~0.
  *  @param[in] data Pointer to the beginning of data to process.

@@ -46,11 +46,6 @@
  */
 #define CRC_DIVIDER_LE	0xEDB88320
 
-/** IP checksum value for computed zero checksum.
- *  Zero is returned as 0xFFFF (not flipped)
- */
-#define IP_CHECKSUM_ZERO			0xFFFFu
-
 uint32_t compute_crc32_le( uint32_t seed, uint8_t * data, size_t length ){
 	size_t	index;
 
@@ -134,7 +129,8 @@ uint16_t compact_checksum( uint32_t sum ){
 
 uint16_t flip_checksum( uint16_t checksum ){
 	// flip, zero is returned as 0xFFFF (not flipped)
-	return ( ~ checksum ) ? ( uint16_t ) ( ~ checksum ) : IP_CHECKSUM_ZERO;
+	checksum = ~ checksum;
+	return checksum ? checksum : IP_CHECKSUM_ZERO;
 }
 
 uint16_t ip_checksum( uint8_t * data, size_t length ){

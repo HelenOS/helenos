@@ -381,7 +381,7 @@ int tcp_process_packet( device_id_t device_id, packet_t packet, services_t error
 			return tcp_release_and_return( packet, ERROR_CODE );
 		}
 		checksum = compute_checksum( checksum, socket_data->pseudo_header, socket_data->headerlen );
-		if( flip_checksum( compact_checksum( checksum ))){
+		if( flip_checksum( compact_checksum( checksum )) != IP_CHECKSUM_ZERO ){
 			printf( "checksum err %x -> %x\n", header->checksum, flip_checksum( compact_checksum( checksum )));
 			fibril_rwlock_write_unlock( socket_data->local_lock );
 			if( ! ERROR_OCCURRED( tl_prepare_icmp_packet( tcp_globals.net_phone, tcp_globals.icmp_phone, packet, error ))){

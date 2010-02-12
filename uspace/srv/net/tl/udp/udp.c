@@ -371,7 +371,7 @@ int udp_process_packet( device_id_t device_id, packet_t packet, services_t error
 
 	// check checksum
 	if( header->checksum ){
-		if( flip_checksum( compact_checksum( checksum ))){
+		if( flip_checksum( compact_checksum( checksum )) != IP_CHECKSUM_ZERO ){
 			if( tl_prepare_icmp_packet( udp_globals.net_phone, udp_globals.icmp_phone, packet, error ) == EOK ){
 				// checksum error ICMP
 				icmp_parameter_problem_msg( udp_globals.icmp_phone, ICMP_PARAM_POINTER, (( size_t ) (( void * ) & header->checksum )) - (( size_t ) (( void * ) header )), packet );
