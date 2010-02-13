@@ -161,7 +161,8 @@ void data_access_exception(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	dump_istate(istate);
-	dump_sfsr_and_sfar();
+//MH
+//	dump_sfsr_and_sfar();
 	panic("%s.", __func__);
 }
 

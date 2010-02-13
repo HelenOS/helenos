@@ -40,6 +40,7 @@
 #include "msim.h"
 #include "ski.h"
 #include "sgcn.h"
+#include "niagara.h"
 #include "main.h"
 
 #define NAME "fb"
@@ -84,6 +85,12 @@ int main(int argc, char *argv[])
 #ifdef SGCN_ENABLED
 	if ((!initialized) && (sysinfo_value("fb.kind") == 4)) {
 		if (sgcn_init() == 0)
+			initialized = true;
+	}
+#endif
+#ifdef NIAGARA_ENABLED
+	if ((!initialized) && (sysinfo_value("fb.kind") == 5)) {
+		if (niagara_init() == 0)
 			initialized = true;
 	}
 #endif

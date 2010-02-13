@@ -56,8 +56,13 @@
 #define ENOTSUP		-11	/* Not supported */
 #define EADDRNOTAVAIL	-12	/* Address not available. */
 #define ETIMEOUT        -13     /* Timeout expired */
+//MH
+#ifndef EINVAL
 #define EINVAL          -14     /* Invalid value */
+#endif
+#ifndef EBUSY
 #define EBUSY           -15     /* Resource is busy */
+#endif
 #define EOVERFLOW	-16	/* The result does not fit its size. */
 #define EINTR		-17	/* Operation was interrupted. */
 
