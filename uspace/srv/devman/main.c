@@ -91,11 +91,14 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 static bool devman_init()
 {
+	printf(NAME ": devman_init - looking for available drivers. \n");
+	
 	// initialize list of available drivers
 	if (0 == lookup_available_drivers(&drivers_list, DRIVER_DEFAULT_STORE)) {
 		printf(NAME " no drivers found.");
 		return false;
 	}
+	printf(NAME ": devman_init  - list of drivers has been initialized. \n");
 
 	// create root device node 
 	if (!init_device_tree(&device_tree, &drivers_list)) {

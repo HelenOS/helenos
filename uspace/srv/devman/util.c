@@ -40,7 +40,7 @@ char * get_abs_path(const char *base_path, const char *name, const char *ext)
 {
 	char *res;
 	int base_len = str_size(base_path);
-	int size = base_len + str_size(name) + str_size(ext) + 3;	
+	int size = base_len + 2*str_size(name) + str_size(ext) + 3;	
 	
 	res = malloc(size);
 	
@@ -49,6 +49,8 @@ char * get_abs_path(const char *base_path, const char *name, const char *ext)
 		if(base_path[base_len - 1] != '/') { 
 			str_append(res, size, "/");			
 		}
+		str_append(res, size, name);
+		str_append(res, size, "/");
 		str_append(res, size, name);
 		if(ext[0] != '.') {
 			str_append(res, size, ".");

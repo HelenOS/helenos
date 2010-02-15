@@ -314,7 +314,9 @@ int main(int argc, char *argv[])
 	getterm("term/vc6", "/app/klog");
 
 	usleep(1000000);
-	spawn("/srv/dd");
+	//spawn("/srv/dd");
+	
+	srv_start("/srv/devman");	
 	
 	return 0;
 }

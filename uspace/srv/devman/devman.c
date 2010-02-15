@@ -40,9 +40,11 @@
 
 driver_t * create_driver() 
 {
+	printf(NAME ": create_driver\n");
+	
 	driver_t *res = malloc(sizeof(driver_t));
 	if(res != NULL) {
-		clean_driver(res);
+		init_driver(res);
 	}
 	return res;
 }
@@ -101,6 +103,8 @@ bool parse_match_ids(const char *buf, match_id_list_t *ids)
 
 bool read_match_ids(const char *conf_path, match_id_list_t *ids) 
 {	
+	printf(NAME ": read_match_ids conf_path = %s.\n", conf_path);
+	
 	bool suc = false;	
 	char *buf = NULL;
 	bool opened = false;
@@ -149,6 +153,8 @@ cleanup:
 
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
+	printf(NAME ": get_driver_info base_path = %s, name = %s.\n", base_path, name);
+	
 	assert(base_path != NULL && name != NULL && drv != NULL);
 	
 	bool suc = false;
@@ -159,6 +165,8 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 	if (NULL == (match_path = get_abs_path(base_path, name, MATCH_EXT))) {
 		goto cleanup;
 	}	
+	
+	printf(NAME ": get_driver_info - path to match id list = %s.\n", match_path);
 	
 	if (!read_match_ids(match_path, &drv->match_ids)) {
 		goto cleanup;
@@ -207,16 +215,22 @@ cleanup:
  */ 
 int lookup_available_drivers(link_t *drivers_list, const char *dir_path)
 {
+	printf(NAME ": lookup_available_drivers \n");
+	
 	int drv_cnt = 0;
 	DIR *dir = NULL;
 	struct dirent *diren;
 
 	dir = opendir(dir_path);
+	printf(NAME ": lookup_available_drivers has opened directory %s for driver search.\n", dir_path);
+	
 	if (dir != NULL) {
 		driver_t *drv = create_driver();
+		printf(NAME ": lookup_available_drivers has created driver structure.\n");
 		while ((diren = readdir(dir))) {			
 			if (get_driver_info(dir_path, diren->d_name, drv)) {
 				add_driver(drivers_list, drv);
+				drv_cnt++;
 				drv = create_driver();
 			}	
 		}
@@ -317,6 +331,7 @@ bool assign_driver(node_t *node, link_t *drivers_list)
 
 bool init_device_tree(dev_tree_t *tree, link_t *drivers_list)
 {
+	printf(NAME ": init_device_tree.");
 	// create root node and add it to the device tree
 	if (NULL == (tree->root_node = create_root_node())) {
 		return false;

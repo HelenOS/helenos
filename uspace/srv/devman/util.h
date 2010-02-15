@@ -56,4 +56,11 @@ static inline size_t get_nonspace_len(const char *str)
 	return len;
 }
 
+static inline void free_not_null(void *ptr)
+{
+	if (NULL != ptr) {
+		free(ptr);
+	}
+}
+
 #endif

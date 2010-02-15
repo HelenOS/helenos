@@ -46,6 +46,7 @@ ifeq ($(RDFMT),fat)
 endif
 
 RD_SRVS = \
+	$(USPACEDIR)/srv/devman/devman \
 	$(USPACEDIR)/srv/bd/file_bd/file_bd \
 	$(USPACEDIR)/srv/bd/part/guid_part/g_part \
 	$(USPACEDIR)/srv/bd/part/mbr_part/mbr_part \

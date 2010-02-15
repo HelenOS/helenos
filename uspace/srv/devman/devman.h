@@ -29,7 +29,7 @@
 /** @addtogroup devman
  * @{
  */
- 
+
 #ifndef DEVMAN_H_
 #define DEVMAN_H_
 
@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 
+#include "util.h"
 
 #define NAME "devman"
 
@@ -96,16 +97,16 @@ struct node {
 	/** The node of the parent device. */
 	node_t *parent;
 	/** Pointers to previous and next child devices in the linked list of parent device's node.*/
-	link_t sibling;	
+	link_t sibling;
 	/** List of child device nodes. */
 	link_t children;
 	/** List of device ids for device-to-driver matching.*/
-	match_id_list_t match_ids;	
+	match_id_list_t match_ids;
 	/** Driver of this device.*/
-	driver_t *drv;	
+	driver_t *drv;
 	/** Pointer to the previous and next device in the list of devices
 	    owned by one driver */
-	link_t driver_devices;	
+	link_t driver_devices;
 };
 
 /** Represents device tree.
@@ -129,17 +130,19 @@ void add_match_id(match_id_list_t *ids, match_id_t *id);
 void clean_match_ids(match_id_list_t *ids);
 
 
-static inline match_id_t * create_match_id() 
+static inline match_id_t * create_match_id()
 {
 	match_id_t *id = malloc(sizeof(match_id_t));
 	memset(id, 0, sizeof(match_id_t));
-	return id;	
+	return id;
 }
 
-static inline void delete_match_id(match_id_t *id) 
+static inline void delete_match_id(match_id_t *id)
 {
-	free(id->id);
-	free(id);
+	if (id) {
+		free_not_null(id->id);
+		free(id);
+	}
 }
 
 // Drivers
@@ -151,34 +154,39 @@ int lookup_available_drivers(link_t *drivers_list, const char *dir_path);
 driver_t * find_best_match_driver(link_t *drivers_list, node_t *node);
 bool assign_driver(node_t *node, link_t *drivers_list);
 
-void attach_driver(node_t *node, driver_t *drv); 
+void attach_driver(node_t *node, driver_t *drv);
 bool add_device(driver_t *drv, node_t *node);
 bool start_driver(driver_t *drv);
 
 
-static inline void init_driver(driver_t *drv) 
+static inline void init_driver(driver_t *drv)
 {
-	assert(drv != NULL);	
-	
-	memset(drv, 0, sizeof(driver_t));	
+	printf(NAME ": init_driver\n");
+	assert(drv != NULL);
+
+	memset(drv, 0, sizeof(driver_t));
 	list_initialize(&drv->match_ids.ids);
 	list_initialize(&drv->devices);
 }
 
-static inline void clean_driver(driver_t *drv) 
+static inline void clean_driver(driver_t *drv)
 {
+	printf(NAME ": clean_driver\n");
 	assert(drv != NULL);
-	
-	free(drv->name);
-	free(drv->binary_path);
-	
+
+	free_not_null(drv->name);
+	free_not_null(drv->binary_path); 
+
 	clean_match_ids(&drv->match_ids);
-	
-	init_driver(drv);	
+
+	init_driver(drv);
 }
 
-static inline void delete_driver(driver_t *drv) 
+static inline void delete_driver(driver_t *drv)
 {
+	printf(NAME ": delete_driver\n");
+	assert(NULL != drv);
+	
 	clean_driver(drv);
 	free(drv);
 }
@@ -186,7 +194,7 @@ static inline void delete_driver(driver_t *drv)
 static inline void add_driver(link_t *drivers_list, driver_t *drv)
 {
 	list_prepend(&drv->drivers, drivers_list);
-	printf(NAME": the '%s' driver was added to the list of available drivers.\n", drv->name);	
+	printf(NAME": the '%s' driver was added to the list of available drivers.\n", drv->name);
 }
 
 
@@ -197,23 +205,23 @@ static inline node_t * create_dev_node()
 {
 	node_t *res = malloc(sizeof(node_t));
 	if (res != NULL) {
-		memset(res, 0, sizeof(node_t));	
+		memset(res, 0, sizeof(node_t));
 	}
 	return res;
 }
 
-static inline void init_dev_node(node_t *node, node_t *parent) 
+static inline void init_dev_node(node_t *node, node_t *parent)
 {
 	assert(NULL != node);
-	
+
 	node->parent = parent;
 	if (NULL != parent) {
 		list_append(&node->sibling, &parent->children);
 	}
-	
+
 	list_initialize(&node->children);
-	
-	list_initialize(&node->match_ids.ids);	
+
+	list_initialize(&node->match_ids.ids);
 }
 
 
