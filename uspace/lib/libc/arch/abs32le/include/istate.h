@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup debug
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le__ISTATE_H_
+#define LIBC_abs32le__ISTATE_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
+#include <sys/types.h>
+
+/** Interrupt context.
+ *
+ * On real hardware this stores the registers which
+ * need to be preserved during interupts.
  */
+typedef struct istate {
+	uintptr_t ip;
+	uintptr_t fp;
+	uint32_t stack[];
+} istate_t;
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->ip;
+}
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->fp;
+}
 
 #endif
 

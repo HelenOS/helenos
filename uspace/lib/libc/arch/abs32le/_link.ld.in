@@ -1,0 +1,47 @@
+STARTUP(LIBC_PREFIX/arch/UARCH/src/entry.o)
+ENTRY(__entry)
+
+PHDRS {
+	text PT_LOAD FLAGS(5);
+	data PT_LOAD FLAGS(6);
+}
+
+SECTIONS {
+	. = 0x1000 + SIZEOF_HEADERS;
+	
+	.text : {
+		*(.text);
+		*(.rodata*);
+	} :text
+	
+	. = . + 0x1000;
+	
+	.data : {
+		*(.data);
+	} :data
+	
+	.tdata : {
+		_tdata_start = .;
+		*(.tdata);
+		*(.gnu.linkonce.tb.*);
+		_tdata_end = .;
+		_tbss_start = .;
+		*(.tbss);
+		_tbss_end = .;
+	} :data
+	
+	_tls_alignment = ALIGNOF(.tdata);
+	
+	.bss : {
+		*(COMMON);
+		*(.bss);
+	} :data
+	
+	. = ALIGN(0x1000);
+	
+	_heap = .;
+	
+	/DISCARD/ : {
+		*(*);
+	}
+}

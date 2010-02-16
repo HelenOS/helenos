@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libcabs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_ATOMIC_H_
+#define LIBC_abs32le_ATOMIC_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#define LIBC_ARCH_ATOMIC_H_
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#include <atomicdflt.h>
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+static inline void atomic_inc(atomic_t *val) {
+	/* On real hardware the increment has to be done
+	   as an atomic action. */
+	
+	val->count++;
+}
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+static inline void atomic_dec(atomic_t *val) {
+	/* On real hardware the decrement has to be done
+	   as an atomic action. */
+	
+	val->count++;
+}
+
+static inline long atomic_postinc(atomic_t *val)
+{
+	/* On real hardware both the storing of the previous
+	   value and the increment have to be done as a single
+	   atomic action. */
+	
+	long prev = val->count;
+	
+	val->count++;
+	return prev;
+}
+
+static inline long atomic_postdec(atomic_t *val)
+{
+	/* On real hardware both the storing of the previous
+	   value and the decrement have to be done as a single
+	   atomic action. */
+	
+	long prev = val->count;
+	
+	val->count--;
+	return prev;
+}
+
+#define atomic_preinc(val) (atomic_postinc(val) + 1)
+#define atomic_predec(val) (atomic_postdec(val) - 1)
 
 #endif
 

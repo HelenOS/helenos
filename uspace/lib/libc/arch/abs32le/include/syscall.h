@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libc
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_SYSCALL_H_
+#define LIBC_abs32le_SYSCALL_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#include <sys/types.h>
+#include <kernel/syscall/syscall.h>
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#define __syscall0  __syscall
+#define __syscall1  __syscall
+#define __syscall2  __syscall
+#define __syscall3  __syscall
+#define __syscall4  __syscall
+#define __syscall5  __syscall
+#define __syscall6  __syscall
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+extern sysarg_t __syscall(const sysarg_t, const sysarg_t, const sysarg_t,
+    const sysarg_t, const sysarg_t, const sysarg_t, const syscall_t);
 
 #endif
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Martin Decky
+# Copyright (c) 2008 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,4 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-BFD = binary
-
-BITS = 32
-ENDIANESS = LE
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/proc/scheduler.c \
-	arch/$(KARCH)/src/proc/task.c \
-	arch/$(KARCH)/src/proc/thread.c \
-	arch/$(KARCH)/src/abs32le.c \
-	arch/$(KARCH)/src/userspace.c \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/smp/smp.c \
-	arch/$(KARCH)/src/smp/ipi.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c
+ARCH_SOURCES := arch/$(UARCH)/abs32le.c

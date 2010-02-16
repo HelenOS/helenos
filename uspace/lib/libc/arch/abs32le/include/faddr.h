@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libabs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_FADDR_H_
+#define LIBC_abs32le_FADDR_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#include <libarch/types.h>
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

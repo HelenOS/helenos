@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#include <tls.h>
+#include <sys/types.h>
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+tcb_t * __alloc_tls(void **data, size_t size)
+{
+	return tls_alloc_variant_2(data, size);
+}
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
-
-#endif
+void __free_tls_arch(tcb_t *tcb, size_t size)
+{
+	tls_free_variant_2(tcb, size);
+}
 
 /** @}
  */

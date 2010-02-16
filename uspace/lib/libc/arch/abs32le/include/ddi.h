@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_DDI_H_
+#define LIBC_abs32le_DDI_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+static inline void pio_write_8(ioport8_t *port, uint8_t v)
+{
+	*port = v;
+}
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+static inline void pio_write_16(ioport16_t *port, uint16_t v)
+{
+	*port = v;
+}
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+}
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+static inline uint8_t pio_read_8(ioport8_t *port)
+{
+	return *port;
+}
+
+static inline uint16_t pio_read_16(ioport16_t *port)
+{
+	return *port;
+}
+
+static inline uint32_t pio_read_32(ioport32_t *port)
+{
+	return *port;
+}
 
 #endif
-
-/** @}
- */

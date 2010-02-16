@@ -80,41 +80,18 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_preinc(val)  (atomic_postinc(val) + 1)
 #define atomic_predec(val)  (atomic_postdec(val) - 1)
 
-static inline uint32_t test_and_set(atomic_t *val) {
-	uint32_t v;
-	
-	asm volatile (
-		"movl $1, %[v]\n"
-		"xchgl %[v], %[count]\n"
-		: [v] "=r" (v), [count] "+m" (val->count)
-	);
-	
-	return v;
+static inline uint32_t test_and_set(atomic_t *val)
+{
+	uint32_t prev = val->count;
+	val->count = 1;
+	return prev;
 }
 
-/** ia32 specific fast spinlock */
 static inline void atomic_lock_arch(atomic_t *val)
 {
-	uint32_t tmp;
-	
-	preemption_disable();
-	asm volatile (
-		"0:\n"
-		"pause\n"        /* Pentium 4's HT love this instruction */
-		"mov %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"       /* lightweight looping on locked spinlock */
-		
-		"incl %[tmp]\n"  /* now use the atomic operation */
-		"xchgl %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"
-		: [count] "+m" (val->count), [tmp] "=&r" (tmp)
-	);
-	/*
-	 * Prevent critical section code from bleeding out this way up.
-	 */
-	CS_ENTER_BARRIER();
+	do {
+		while (val->count);
+	} while (test_and_set(val));
 }
 
 #endif

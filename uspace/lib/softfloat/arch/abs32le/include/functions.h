@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup softfloatabs32le abs32le
+ * @ingroup sfl
+ * @brief softfloat architecture dependent definitions
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef __SOFTFLOAT_FUNCTIONS_H__
+#define __SOFTFLOAT_FUNCTIONS_H__
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#define float32_to_int(X) float32_to_int32(X);
+#define float32_to_long(X) float32_to_int32(X);
+#define float32_to_longlong(X) float32_to_int64(X);
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#define float64_to_int(X) float64_to_int32(X);
+#define float64_to_long(X) float64_to_int32(X);
+#define float64_to_longlong(X) float64_to_int64(X);
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+#define float32_to_uint(X) float32_to_uint32(X);
+#define float32_to_ulong(X) float32_to_uint32(X);
+#define float32_to_ulonglong(X) float32_to_uint64(X);
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+#define float64_to_uint(X) float64_to_uint32(X);
+#define float64_to_ulong(X) float64_to_uint32(X);
+#define float64_to_ulonglong(X) float64_to_uint64(X);
+
+#define int_to_float32(X) int32_to_float32(X);
+#define long_to_float32(X) int32_to_float32(X);
+#define longlong_to_float32(X) int64_to_float32(X);
+
+#define int_to_float64(X) int32_to_float64(X);
+#define long_to_float64(X) int32_to_float64(X);
+#define longlong_to_float64(X) int64_to_float64(X);
+
+#define uint_to_float32(X) uint32_to_float32(X);
+#define ulong_to_float32(X) uint32_to_float32(X);
+#define ulonglong_to_float32(X) uint64_to_float32(X);
+
+#define uint_to_float64(X) uint32_to_float64(X);
+#define ulong_to_float64(X) uint32_to_float64(X);
+#define ulonglong_to_float64(X) uint64_to_float64(X);
 
 #endif
 

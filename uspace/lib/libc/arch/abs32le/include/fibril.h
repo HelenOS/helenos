@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libcabs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_FIBRIL_H_
+#define LIBC_abs32le_FIBRIL_H_
+
+#include <sys/types.h>
+
+#define SP_DELTA  0
+
+#define context_set(ctx, _pc, stack, size, ptls) \
+	do { \
+		(ctx)->pc = (uintptr_t) (_pc); \
+		(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(ctx)->tls = ((uintptr_t) (ptls)) + sizeof(tcb_t); \
+	} while (0)
 
 /*
- * Provisions are made to prevent compiler from reordering instructions itself.
+ * On real hardware this stores the registers which
+ * need to be preserved across function calls.
  */
-
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+typedef struct {
+	uintptr_t sp;
+	uintptr_t pc;
+	uintptr_t tls;
+} context_t;
 
 #endif
 

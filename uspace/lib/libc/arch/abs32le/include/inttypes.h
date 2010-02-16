@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libcabs32le
  * @{
  */
-/** @file
- */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_INTTYPES_H_
+#define LIBC_abs32le_INTTYPES_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#define PRId8 "d"
+#define PRId16 "d"
+#define PRId32 "d"
+#define PRId64 "lld"
+#define PRIdPTR "d"
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#define PRIo8 "o"
+#define PRIo16 "o"
+#define PRIo32 "o"
+#define PRIo64 "llo"
+#define PRIoPTR "o"
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+#define PRIu8 "u"
+#define PRIu16 "u"
+#define PRIu32 "u"
+#define PRIu64 "llu"
+#define PRIuPTR "u"
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+#define PRIx8 "x"
+#define PRIx16 "x"
+#define PRIx32 "x"
+#define PRIx64 "llx"
+#define PRIxPTR "x"
+
+#define PRIX8 "X"
+#define PRIX16 "X"
+#define PRIX32 "X"
+#define PRIX64 "llX"
+#define PRIXPTR "X"
 
 #endif
 

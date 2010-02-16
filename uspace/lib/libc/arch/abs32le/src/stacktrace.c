@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#include <sys/types.h>
+#include <unistd.h>
+#include <bool.h>
+#include <stacktrace.h>
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
+{
+	return true;
+}
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
+{
+	return 0;
+}
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
+{
+	return 0;
+}
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+void stacktrace_prepare(void)
+{
+}
 
-#endif
+uintptr_t stacktrace_fp_get(void)
+{
+	return NULL;
+}
+
+uintptr_t stacktrace_pc_get(void)
+{
+	return NULL;
+}
 
 /** @}
  */

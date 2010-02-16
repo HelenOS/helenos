@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libcabs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_TLS_H_
+#define LIBC_abs32le_TLS_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#define CONFIG_TLS_VARIANT_2
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+#include <libc.h>
+#include <unistd.h>
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+typedef struct {
+	void *self;
+	void *fibril_data;
+} tcb_t;
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+static inline void __tcb_set(tcb_t *tcb)
+{
+}
+
+static inline tcb_t *__tcb_get(void)
+{
+	return NULL;
+}
 
 #endif
 

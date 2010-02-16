@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#include <fibril.h>
+#include <bool.h>
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+int context_save(context_t *ctx)
+{
+	return 1;
+}
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
-
-#endif
+void context_restore(context_t *ctx)
+{
+	while (true);
+}
 
 /** @}
  */

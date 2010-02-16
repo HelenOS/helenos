@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,24 +32,15 @@
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifdef CONFIG_SMP
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#include <smp/ipi.h>
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+void ipi_broadcast_arch(int ipi)
+{
+}
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
-
-#endif
+#endif /* CONFIG_SMP */
 
 /** @}
  */

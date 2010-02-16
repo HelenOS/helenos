@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup libcabs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+#ifndef LIBC_abs32le_TYPES_H_
+#define LIBC_abs32le_TYPES_H_
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
+#define __32_BITS__
 
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
+typedef unsigned int sysarg_t;
 
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
+typedef char int8_t;
+typedef short int int16_t;
+typedef int int32_t;
+typedef long long int int64_t;
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+typedef unsigned char uint8_t;
+typedef unsigned short int uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long int uint64_t;
+
+typedef int32_t ssize_t;
+typedef uint32_t size_t;
+
+typedef uint32_t uintptr_t;
 
 #endif
 
