@@ -38,7 +38,7 @@ MODULES := $(notdir $(COMPONENTS))
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
+$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
 	mkdir -p $(TMP)/boot/grub
 	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
 	
@@ -55,6 +55,10 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 		fi \
 	done
 	
+	rm -f $(USPACEDIR)/dist/srv/*
+	rm -f $(USPACEDIR)/dist/app/*
+	rm -f $(USPACEDIR)/dist/cfg/net/*
+	
 	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
 	for task in $(INIT_TASKS) ; do \
 		cp $$task $(TMP)/boot/ ; \
@@ -64,6 +68,9 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
+	done
+	for file in $(NET_CFG) ; do \
+		cp $$file $(USPACEDIR)/dist/cfg/net/ ; \
 	done
 	
 ifeq ($(RDFMT),tmpfs)
@@ -77,11 +84,18 @@ endif
 	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
 
 clean:
+	rm -f $(USPACEDIR)/dist/srv/*
+	rm -f $(USPACEDIR)/dist/app/*
+	rm -f $(USPACEDIR)/dist/cfg/net/*
+
 	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
 	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
+	done
+	for file in $(NET_CFG) ; do \
+		rm -f $(USPACEDIR)/dist/cfg/net/`basename $$file` ; \
 	done
 	rm -fr $(TMP)
 	rm -f $(BASE)/image.iso

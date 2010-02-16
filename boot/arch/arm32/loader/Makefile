@@ -36,11 +36,18 @@ all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../
 	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
+	rm -f $(USPACEDIR)/dist/srv/*
+	rm -f $(USPACEDIR)/dist/app/*
+	rm -f $(USPACEDIR)/dist/cfg/net/*
+
 	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
 	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
+	done
+	for file in $(NET_CFG) ; do \
+		rm -f $(USPACEDIR)/dist/cfg/net/`basename $$file` ; \
 	done
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
 	find . -name '*.o' -follow -exec rm \{\} \;
