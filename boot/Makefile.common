@@ -101,10 +101,12 @@ NET_APPS = \
 	$(USPACEDIR)/srv/net/app/nettest1/nettest1 \
 	$(USPACEDIR)/srv/net/app/nettest2/nettest2
 
+ifneq ($(NETWORKING), none)
 NET_CFG = \
 	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/general \
 	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/lo \
 	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/ne2k
+endif
 
 ifeq ($(NETWORKING), module)
 	RD_APPS +=	$(NET_APPS)
