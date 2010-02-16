@@ -64,7 +64,7 @@ int packet_return( int phone, packet_ref packet, packet_id_t packet_id, size_t s
 int packet_translate( int phone, packet_ref packet, packet_id_t packet_id ){
 	ERROR_DECLARE;
 
-	unsigned int		size;
+	ipcarg_t			size;
 	packet_t			next;
 
 	if( ! packet ) return EINVAL;
@@ -101,7 +101,7 @@ packet_t packet_get_4( int phone, size_t max_content, size_t addr_len, size_t ma
 	ERROR_DECLARE;
 
 	packet_id_t	packet_id;
-	unsigned int size;
+	ipcarg_t size;
 	packet_t packet;
 
 	if( ERROR_OCCURRED( async_req_4_2( phone, NET_PACKET_CREATE_4, max_content, addr_len, max_prefix, max_suffix, ( ipcarg_t * ) & packet_id, & size ))){
@@ -120,7 +120,7 @@ packet_t packet_get_1( int phone, size_t content ){
 	ERROR_DECLARE;
 
 	packet_id_t	packet_id;
-	unsigned int	size;
+	ipcarg_t	size;
 	packet_t	packet;
 
 	if( ERROR_OCCURRED( async_req_1_2( phone, NET_PACKET_CREATE_1, content, ( ipcarg_t * ) & packet_id, & size ))){
