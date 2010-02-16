@@ -32,7 +32,10 @@
 TARGET = ia64-pc-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/ddi.c \

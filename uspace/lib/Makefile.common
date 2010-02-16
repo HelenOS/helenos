@@ -32,12 +32,12 @@
 
 # Individual makefiles set:
 #
-#	USPACE_PREFIX	relative path to uspace/ directory
-#	LIBS		libraries to link with (with relative path)
-#	EXTRA_CFLAGS	additional flags to pass to C compiler
-#	JOB		job file name (like appname.job)
-#	OUTPUT		output binary name (like appname)
-#	SOURCES		list of source files
+#   USPACE_PREFIX  relative path to uspace/ directory
+#   LIBS           libraries to link with (with relative path)
+#   EXTRA_CFLAGS   additional flags to pass to C compiler
+#   JOB            job file name (like appname.job)
+#   OUTPUT         output binary name (like appname)
+#   SOURCES        list of source files
 #
 
 DEPEND = Makefile.depend
@@ -71,7 +71,7 @@ clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
 
-build: 
+build:
 
 -include $(DEPEND)
 
