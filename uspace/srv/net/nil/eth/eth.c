@@ -585,12 +585,6 @@ int eth_prepare_packet( int flags, packet_t packet, uint8_t * src_addr, int ethe
 		if( ! padding ) return ENOMEM;
 		bzero( padding, ETH_MIN_TAGGED_CONTENT( flags ) - length );
 	}
-	if( IS_DUMMY( flags )){
-		preamble = PACKET_PREFIX( packet, eth_preamble_t );
-		if( ! preamble ) return ENOMEM;
-		for( i = 0; i < 7; ++ i ) preamble->preamble[ i ] = ETH_PREAMBLE;
-		preamble->sfd = ETH_SFD;
-	}
 	if( IS_DIX( flags )){
 		header_dix = PACKET_PREFIX( packet, eth_header_t );
 		if( ! header_dix ) return ENOMEM;
@@ -622,6 +616,10 @@ int eth_prepare_packet( int flags, packet_t packet, uint8_t * src_addr, int ethe
 		src = & header->header.destination_address[ 0 ];
 	}
 	if( IS_DUMMY( flags )){
+		preamble = PACKET_PREFIX( packet, eth_preamble_t );
+		if( ! preamble ) return ENOMEM;
+		for( i = 0; i < 7; ++ i ) preamble->preamble[ i ] = ETH_PREAMBLE;
+		preamble->sfd = ETH_SFD;
 		fcs = PACKET_SUFFIX( packet, eth_fcs_t );
 		if( ! fcs ) return ENOMEM;
 		* fcs = htonl( ~ compute_crc32( ~ 0u, src, length * 8 ));
