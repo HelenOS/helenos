@@ -30,6 +30,8 @@
 #
 
 BFD = binary
+TARGET = i686-pc-linux-gnu
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32
 
 BITS = 32
 ENDIANESS = LE

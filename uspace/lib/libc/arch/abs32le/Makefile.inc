@@ -29,6 +29,9 @@
 ## Toolchain configuration
 #
 
+TARGET = i686-pc-linux-gnu
+TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
+
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.c \
 	arch/$(UARCH)/src/thread_entry.c \
