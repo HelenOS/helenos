@@ -127,6 +127,14 @@
 
 /*@}*/
 
+/** Configuration directory.
+ */
+#define CONF_DIR			"/cfg/net"
+
+/** General configuration file.
+ */
+#define CONF_GENERAL_FILE	"general"
+
 /** Type definition of the network interface specific data.
  *  @see netif
  */
@@ -233,14 +241,6 @@ int	net_initialize_build( async_client_conn_t client_connection );
  *  @returns Other error codes as defined for each bundled module message function.
  */
 int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
-
-/** Reads the network interface specific configuration for the chosen subsystem build type.
- *  @param[in] name The network interface name.
- *  @param[in,out] netif The network interface structure.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the add_configuration() function.
- */
-int	read_netif_configuration_build( char * name, netif_ref netif );
 
 #endif
 

@@ -74,16 +74,5 @@ int net_initialize_build( async_client_conn_t client_connection ){
 	return EOK;
 }
 
-int read_netif_configuration_build( char * name, netif_ref netif ){
-	ERROR_DECLARE;
-
-	if( str_lcmp( name, "lo", 2 ) == 0 ){
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NIL", NILDUMMY_NAME ));
-	}else if( str_lcmp( name, "ne2k", 4 ) == 0 ){
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NIL", ETHERNET_NAME ));
-	}
-	return EOK;
-}
-
 /** @}
  */

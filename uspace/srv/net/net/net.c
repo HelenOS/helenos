@@ -69,6 +69,10 @@
  */
 #define NAME	"Networking"
 
+/** File read buffer size.
+ */
+#define BUFFER_SIZE	256
+
 /** Prints the module name.
  *  @see NAME
  */
@@ -83,7 +87,13 @@ void	module_print_name( void );
  */
 int module_start( async_client_conn_t client_connection );
 
-//int		parse_line( measured_strings_ref configuration, char * line );
+/** \todo
+ */
+int	read_configuration_file( const char * directory, const char * filename, measured_strings_ref configuration );
+
+/** \todo
+ */
+int	parse_line( measured_strings_ref configuration, char * line );
 
 /** Reads the networking subsystem global configuration.
  *  @returns EOK on success.
@@ -273,18 +283,74 @@ int net_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, in
 	return ENOTSUP;
 }
 
-/*
+int read_configuration_file( const char * directory, const char * filename, measured_strings_ref configuration ){
+	ERROR_DECLARE;
+
+	size_t	index = 0;
+	char	line[ BUFFER_SIZE ];
+	FILE *	cfg;
+	int		read;
+	int		line_number = 0;
+
+	// construct the full filename
+	printf( "Reading file %s/%s\n", directory, filename );
+	if( snprintf( line, BUFFER_SIZE, "%s/%s", directory, filename ) > BUFFER_SIZE ){
+		return EOVERFLOW;
+	}
+	// open the file
+	cfg = fopen( line, "r" );
+	if( ! cfg ){
+		return ENOENT;
+	}
+
+	// read the configuration line by line
+	// until an error or the end of file
+	while(( ! ferror( cfg )) && ( ! feof( cfg ))){
+		read = fgetc( cfg );
+		if(( read > 0 ) && ( read != '\n' ) && ( read != '\r' )){
+			if( index >= BUFFER_SIZE ){
+				line[ BUFFER_SIZE - 1 ] = '\0';
+				printf( "line %d too long: %s\n", line_number, line );
+				// no space left in the line buffer
+				return EOVERFLOW;
+			}else{
+				// append the character
+				line[ index ] = (char) read;
+				++ index;
+			}
+		}else{
+			// on error or new line
+			line[ index ] = '\0';
+			++ line_number;
+			if( ERROR_OCCURRED( parse_line( configuration, line ))){
+				printf( "error on line %d: %s\n", line_number, line );
+				//fclose( cfg );
+				//return ERROR_CODE;
+			}
+			index = 0;
+		}
+	}
+	fclose( cfg );
+	return EOK;
+}
+
 int parse_line( measured_strings_ref configuration, char * line ){
 	ERROR_DECLARE;
 
 	measured_string_ref	setting;
-	char *			name;
-	char *			value;
+	char *				name;
+	char *				value;
 
 	// from the beginning
 	name = line;
+
+	// skip comments and blank lines
+	if(( * name == '#' ) || ( * name == '\0' )){
+		return EOK;
+	}
 	// skip spaces
 	while( isspace( * name )) ++ name;
+
 	// remember the name start
 	value = name;
 	// skip the name
@@ -293,6 +359,7 @@ int parse_line( measured_strings_ref configuration, char * line ){
 //		* value = toupper( * value );
 		++ value;
 	}
+
 	if( * value == '=' ){
 		// terminate the name
 		* value = '\0';
@@ -305,12 +372,14 @@ int parse_line( measured_strings_ref configuration, char * line ){
 		// not found?
 		if( * value != '=' ) return EINVAL;
 	}
+
 	++ value;
 	// skip spaces
 	while( isspace( * value )) ++ value;
 	// create a bulk measured string till the end
-	setting = measured_string_create_bulk( value, -1 );
+	setting = measured_string_create_bulk( value, 0 );
 	if( ! setting ) return ENOMEM;
+
 	// add the configuration setting
 	if( ERROR_OCCURRED( measured_strings_add( configuration, name, 0, setting ))){
 		free( setting );
@@ -318,7 +387,6 @@ int parse_line( measured_strings_ref configuration, char * line ){
 	}
 	return EOK;
 }
-*/
 
 int add_configuration( measured_strings_ref configuration, const char * name, const char * value ){
 	ERROR_DECLARE;
@@ -340,48 +408,13 @@ device_id_t generate_new_device_id( void ){
 }
 
 int read_configuration( void ){
-	ERROR_DECLARE;
-
-	// read general configuration
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "IPV", "4" ));
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "IP_ROUTING", "no" ));
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "MTU", "1500" ));
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "ICMP_ERROR_REPORTING", "yes" ));  //anything else not starting with 'y'
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "ICMP_ECHO_REPLYING", "yes" ));  //anything else not starting with 'y'
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "UDP_CHECKSUM_COMPUTING", "yes" ));  //anything else not starting with 'y'
-	ERROR_PROPAGATE( add_configuration( & net_globals.configuration, "UDP_AUTOBINDING", "yes" ));  //anything else not starting with 'y'
-	return EOK;
+	// read the general configuration file
+	return read_configuration_file( CONF_DIR, CONF_GENERAL_FILE, & net_globals.configuration );
 }
 
 int read_netif_configuration( char * name, netif_ref netif ){
-	ERROR_DECLARE;
-
-	if( str_lcmp( name, "lo", 2 ) == 0 ){
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NAME", LO_NAME ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NETIF", LO_NAME ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IL", IP_NAME ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_CONFIG", "static" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_ADDR", "127.0.0.1" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_NETMASK", "255.0.0.0" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "MTU", "15535" ));
-	}else if( str_lcmp( name, "ne2k", 4 ) == 0 ){
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NAME", "eth0" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "NETIF", DP8390_NAME ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "ETH_MODE", "DIX" )); //8023_2_LSAP( not supported ), 8023_2_SNAP
-//		ERROR_PROPAGATE( add_configuration( & netif->configuration, "ETH_DUMMY", "yes" )); //anything else not starting with 'y'
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IL", IP_NAME ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IRQ", "9" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IO", "300" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "MTU", "1492" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_CONFIG", "static" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_ADDR", "10.0.2.15" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_ROUTING", "yes" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_NETMASK", "255.255.255.240" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_BROADCAST", "10.0.2.255" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "IP_GATEWAY", "10.0.2.2" ));
-		ERROR_PROPAGATE( add_configuration( & netif->configuration, "ARP", "arp" ));
-	}
-	return read_netif_configuration_build( name, netif );
+	// read the netif configuration file
+	return read_configuration_file( CONF_DIR, name, & netif->configuration );
 }
 
 int start_device( netif_ref netif ){
@@ -450,7 +483,12 @@ int start_device( netif_ref netif ){
 int startup( void ){
 	ERROR_DECLARE;
 
+#ifdef CONFIG_NETIF_DP8390
 	char *		conf_files[] = { "lo", "ne2k" };
+#else
+	char *		conf_files[] = { "lo" };
+#endif
+
 	int			count = sizeof( conf_files ) / sizeof( char * );
 	int			index;
 	netif_ref	netif;
