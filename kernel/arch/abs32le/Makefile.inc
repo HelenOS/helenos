@@ -30,8 +30,12 @@
 #
 
 BFD = binary
-TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32
+
+ifeq ($(COMPILER),gcc_cross)
+	TARGET = i686-pc-linux-gnu
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32
+	GCC_CFLAGS += -march=pentium
+endif
 
 BITS = 32
 ENDIANESS = LE

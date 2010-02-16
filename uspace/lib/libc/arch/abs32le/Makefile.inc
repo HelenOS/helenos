@@ -29,8 +29,11 @@
 ## Toolchain configuration
 #
 
-TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
+ifeq ($(COMPILER),gcc_cross)
+	TARGET = i686-pc-linux-gnu
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
+	GCC_CFLAGS += -march=pentium
+endif
 
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.c \
