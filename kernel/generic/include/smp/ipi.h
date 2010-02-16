@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -36,10 +36,14 @@
 #define KERN_IPI_H_
 
 #ifdef CONFIG_SMP
-extern void ipi_broadcast(int ipi);
-extern void ipi_broadcast_arch(int ipi);
+
+extern void ipi_broadcast(int);
+extern void ipi_broadcast_arch(int);
+
 #else
-#define ipi_broadcast(x)	;
+
+	#define ipi_broadcast(ipi)
+
 #endif /* CONFIG_SMP */
 
 #endif
