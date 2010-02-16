@@ -62,7 +62,8 @@ DIRS = \
 	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
-	srv/hw/char/i8042
+	srv/hw/char/i8042 \
+	srv/net
 
 ifneq ($(UARCH),abs32le)
 	DIRS += srv/hid/console
