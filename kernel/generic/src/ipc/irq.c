@@ -201,8 +201,6 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	spinlock_unlock(&irq_uspace_hash_table_lock);
 	
 	interrupts_restore(ipl);
-//	explicitly enable irq
-	trap_virtual_enable_irqs( 1 << irq->inr );
 	return EOK;
 }
 
