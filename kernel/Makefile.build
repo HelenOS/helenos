@@ -90,11 +90,7 @@ ATSIGN ?= @
 
 ## Cross-platform assembly to start a symtab.data section
 #
-ifeq ($(KARCH),abs32le)
-	SYMTAB_SECTION = ".section symtab.data, \"a\";"
-else
-	SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
-endif
+SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
 
 ## Simple detection for the type of the host system
 #
