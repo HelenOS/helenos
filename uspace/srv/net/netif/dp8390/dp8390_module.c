@@ -207,7 +207,7 @@ void irq_handler( ipc_callid_t iid, ipc_call_t * call )
 	ipc_answer_0( iid, EOK );
 }
 
-int netif_probe_message( device_id_t device_id, int irq, int io ){
+int netif_probe_message( device_id_t device_id, int irq, uintptr_t io ){
 	ERROR_DECLARE;
 
 	device_ref	device;
