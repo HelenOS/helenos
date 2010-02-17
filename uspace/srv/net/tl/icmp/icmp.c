@@ -114,29 +114,6 @@
  */
 #define ICMP_GET_REPLY_KEY( id, sequence )	((( id ) << 16 ) | ( sequence & 0xFFFF ))
 
-/** Type definition of the ICMP reply timeout.
- *  @see icmp_reply_timeout
- */
-typedef struct icmp_reply_timeout	icmp_reply_timeout_t;
-
-/** Type definition of the ICMP reply timeout pointer.
- *  @see icmp_reply_timeout
- */
-typedef icmp_reply_timeout_t *	icmp_reply_timeout_ref;
-
-/** ICMP reply timeout data.
- *  Used as a timeouting fibril argument.
- *  @see icmp_timeout_for_reply()
- */
-struct icmp_reply_timeout{
-	/** Reply data key.
-	 */
-	int			reply_key;
-	/** Timeout in microseconds.
-	 */
-	suseconds_t	timeout;
-};
-
 /** Processes the received ICMP packet.
  *  Is used as an entry point from the underlying IP module.
  *  Releases the packet on error.
@@ -254,17 +231,6 @@ int	icmp_send_packet( icmp_type_t type, icmp_code_t code, packet_t packet, icmp_
  */
 int	icmp_process_echo_reply( packet_t packet, icmp_header_ref header, icmp_type_t type, icmp_code_t code );
 
-/** Tries to set the pending reply result as timeouted.
- *  Sleeps the timeout period of time and then tries to obtain and set the pending reply result as timeouted and signals the reply result.
- *  If the reply data are still present, the reply timeouted and the parent fibril is awaken.
- *  The global lock is not released in this case to be reused by the parent fibril.
- *  Should run in a searate fibril.
- *  @param[in] data The icmp_reply_timeout structure.
- *  @returns EOK on success.
- *  @returns EINVAL if the data parameter is NULL.
- */
-int	icmp_timeout_for_reply( void * data );
-
 /** Assigns a new identifier for the connection.
  *  Fills the echo data parameter with the assigned values.
  *  @param[in,out] echo_data The echo data to be bound.
@@ -303,33 +269,6 @@ int icmp_echo_msg( int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl
 	return res;
 }
 
-int icmp_timeout_for_reply( void * data ){
-	icmp_reply_ref			reply;
-	icmp_reply_timeout_ref	timeout = data;
-
-	if( ! timeout ){
-		return EINVAL;
-	}
-	// sleep the given timeout
-	async_usleep( timeout->timeout );
-	// lock the globals
-	fibril_rwlock_write_lock( & icmp_globals.lock );
-	// find the pending reply
-	reply = icmp_replies_find( & icmp_globals.replies, timeout->reply_key );
-	if( reply ){
-		// set the timeout result
-		reply->result = ETIMEOUT;
-		// notify the main fibril
-		fibril_condvar_signal( & reply->condvar );
-	}else{
-		// unlock only if no reply
-		fibril_rwlock_write_unlock( & icmp_globals.lock );
-	}
-	// release the timeout structure
-	free( timeout );
-	return EOK;
-}
-
 int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen ){
 	ERROR_DECLARE;
 
@@ -338,10 +277,9 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 	size_t			length;
 	uint8_t *		data;
 	icmp_reply_ref			reply;
-	icmp_reply_timeout_ref	reply_timeout;
+	int				reply_key;
 	int				result;
 	int				index;
-	fid_t			fibril;
 
 	if( addrlen <= 0 ){
 		return EINVAL;
@@ -378,32 +316,16 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 	header->un.echo.identifier = id;
 	header->un.echo.sequence_number = sequence;
 
-	// prepare the reply and the reply timeout structures
-	reply_timeout = malloc( sizeof( * reply_timeout ));
-	if( ! reply_timeout ){
-		return icmp_release_and_return( packet, ENOMEM );
-	}
+	// prepare the reply structure
 	reply = malloc( sizeof( * reply ));
 	if( ! reply ){
-		free( reply_timeout );
 		return icmp_release_and_return( packet, ENOMEM );
 	}
-	// prepare the timeouting thread
-	fibril = fibril_create( icmp_timeout_for_reply, reply_timeout );
-	if( ! fibril ){
-		free( reply );
-		free( reply_timeout );
-		return icmp_release_and_return( packet, EPARTY );
-	}
-	reply_timeout->reply_key = ICMP_GET_REPLY_KEY( header->un.echo.identifier, header->un.echo.sequence_number );
-	// timeout in microseconds
-	reply_timeout->timeout = timeout * 1000;
 	fibril_mutex_initialize( & reply->mutex );
 	fibril_mutex_lock( & reply->mutex );
 	fibril_condvar_initialize( & reply->condvar );
-	// start the timeouting fibril
-	fibril_add_ready( fibril );
-	index = icmp_replies_add( & icmp_globals.replies, reply_timeout->reply_key, reply );
+	reply_key = ICMP_GET_REPLY_KEY( header->un.echo.identifier, header->un.echo.sequence_number );
+	index = icmp_replies_add( & icmp_globals.replies, reply_key, reply );
 	if( index < 0 ){
 		free( reply );
 		return icmp_release_and_return( packet, index );
@@ -416,13 +338,21 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 	icmp_send_packet( ICMP_ECHO, 0, packet, header, 0, ttl, tos, dont_fragment );
 
 	// wait for a reply
-	fibril_condvar_wait( & reply->condvar, & reply->mutex );
+	// timeout in microseconds
+	if( ERROR_OCCURRED( fibril_condvar_wait_timeout( & reply->condvar, & reply->mutex, timeout * 1000 ))){
+		result = ERROR_CODE;
 
-	// read the result
-	result = reply->result;
+		// lock the globals again and clean up
+		fibril_rwlock_write_lock( & icmp_globals.lock );
+	}else{
+		// read the result
+		result = reply->result;
+
+		// release the reply structure
+		fibril_mutex_unlock( & reply->mutex );
+	}
 
 	// destroy the reply structure
-	fibril_mutex_unlock( & reply->mutex );
 	icmp_replies_exclude_index( & icmp_globals.replies, index );
 	return result;
 }
