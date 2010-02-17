@@ -30,9 +30,19 @@
 #
 
 ifeq ($(COMPILER),gcc_cross)
-	TARGET = i686-pc-linux-gnu
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
-	GCC_CFLAGS += -march=pentium
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/$(CROSS_TARGET)/bin
+	
+	ifeq ($(CROSS_TARGET),arm32)
+		TARGET = arm-linux-gnu
+	endif
+	
+	ifeq ($(CROSS_TARGET),ia32)
+		TARGET = i686-pc-linux-gnu
+	endif
+	
+	ifeq ($(CROSS_TARGET),mips32)
+		TARGET = mipsel-linux-gnu
+	endif
 endif
 
 ARCH_SOURCES = \

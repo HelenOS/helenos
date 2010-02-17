@@ -54,6 +54,8 @@ static inline tcb_t *__tcb_get(void)
 	return NULL;
 }
 
+extern uintptr_t __aeabi_read_tp(void);
+
 #endif
 
 /** @}

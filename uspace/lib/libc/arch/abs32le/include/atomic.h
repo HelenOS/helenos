@@ -35,9 +35,22 @@
 #ifndef LIBC_abs32le_ATOMIC_H_
 #define LIBC_abs32le_ATOMIC_H_
 
+#include <bool.h>
+
 #define LIBC_ARCH_ATOMIC_H_
+#define CAS
 
 #include <atomicdflt.h>
+
+static inline bool cas(atomic_t *val, long ov, long nv)
+{
+	if (val->count == ov) {
+		val->count = nv;
+		return true;
+	}
+	
+	return false;
+}
 
 static inline void atomic_inc(atomic_t *val) {
 	/* On real hardware the increment has to be done

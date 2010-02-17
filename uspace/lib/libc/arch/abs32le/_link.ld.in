@@ -18,6 +18,7 @@ SECTIONS {
 	
 	.data : {
 		*(.data);
+		*(.data.rel*);
 	} :data
 	
 	.tdata : {
@@ -31,6 +32,11 @@ SECTIONS {
 	} :data
 	
 	_tls_alignment = ALIGNOF(.tdata);
+	
+	.sbss : {
+		*(.scommon);
+		*(.sbss);
+	}
 	
 	.bss : {
 		*(COMMON);

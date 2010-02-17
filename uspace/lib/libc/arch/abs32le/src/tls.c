@@ -31,6 +31,7 @@
 
 #include <tls.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 tcb_t * __alloc_tls(void **data, size_t size)
 {
@@ -40,6 +41,11 @@ tcb_t * __alloc_tls(void **data, size_t size)
 void __free_tls_arch(tcb_t *tcb, size_t size)
 {
 	tls_free_variant_2(tcb, size);
+}
+
+uintptr_t __aeabi_read_tp(void)
+{
+	return NULL;
 }
 
 /** @}

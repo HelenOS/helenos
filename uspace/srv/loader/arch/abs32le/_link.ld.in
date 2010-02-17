@@ -25,6 +25,7 @@ SECTIONS {
 	
 	.data ALIGN(0x1000) : SUBALIGN(0x1000) {
 		*(.data);
+		*(.data.rel*);
 	} :data
 	
 	.tdata : {
@@ -41,6 +42,11 @@ SECTIONS {
 	} :data
 	
 	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
+	
+	.sbss : {
+		*(.scommon);
+		*(.sbss);
+	}
 	
 	.bss : {
 		*(COMMON);

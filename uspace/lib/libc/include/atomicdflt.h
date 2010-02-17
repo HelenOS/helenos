@@ -55,7 +55,7 @@ static inline long atomic_get(atomic_t *val)
         return val->count;
 }
 
-#ifndef CAS 
+#ifndef CAS
 static inline bool cas(atomic_t *val, long ov, long nv)
 {
 	return __sync_bool_compare_and_swap(&val->count, ov, nv);
