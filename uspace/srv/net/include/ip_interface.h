@@ -136,19 +136,15 @@ int	ip_add_route_req( int ip_phone, device_id_t device_id, in_addr_t address, in
  */
 int	ip_set_gateway_req( int ip_phone, device_id_t device_id, in_addr_t gateway );
 
-/** Returns the device packet dimensions for sending.
+/** Returns the device packet dimension for sending.
  *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
  *  @param[in] device_id The device identifier.
- *  @param[out] addr_len The minimum reserved address length.
- *  @param[out] prefix The minimum reserved prefix size.
- *  @param[out] content The maximum content size.
- *  @param[out] suffix The minimum reserved suffix size.
+ *  @param[out] packet_dimension The packet dimension.
  *  @returns EOK on success.
- *  @returns EBADMEM if either one of the parameters is NULL.
  *  @returns ENOENT if there is no such device.
  *  @returns Other error codes as defined for the generic_packet_size_req() function.
  */
-int	ip_packet_size_req( int ip_phone, device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix );
+int	ip_packet_size_req( int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension );
 
 /** Notifies the IP module about the received error notification packet.
  *  @param[in] ip_phone The IP module phone used for (semi)remote calls.

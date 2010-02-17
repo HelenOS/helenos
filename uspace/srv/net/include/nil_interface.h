@@ -97,20 +97,16 @@
 #define nil_send_msg( nil_phone, device_id, packet, sender )	\
 	generic_send_msg( nil_phone, NET_NIL_SEND, device_id, packet_get_id( packet ), sender, 0 )
 
-/** Returns the device packet dimensions for sending.
+/** Returns the device packet dimension for sending.
  *  @param[in] nil_phone The network interface layer phone.
  *  @param[in] device_id The device identifier.
- *  @param[out] addr_len The minimum reserved address length.
- *  @param[out] prefix The minimum reserved prefix size.
- *  @param[out] content The maximum content size.
- *  @param[out] suffix The minimum reserved suffix size.
+ *  @param[out] packet_dimension The packet dimensions.
  *  @returns EOK on success.
- *  @returns EBADMEM if either one of the parameters is NULL.
  *  @returns ENOENT if there is no such device.
  *  @returns Other error codes as defined for the generic_packet_size_req() function.
  */
-#define nil_packet_size_req( nil_phone, device_id, addr_len, prefix, content, suffix )	\
-	generic_packet_size_req( nil_phone, NET_NIL_PACKET_SPACE, device_id, addr_len, prefix, content, suffix )
+#define nil_packet_size_req( nil_phone, device_id, packet_dimension )	\
+	generic_packet_size_req( nil_phone, NET_NIL_PACKET_SPACE, device_id, packet_dimension )
 
 /** Registers new device or updates the MTU of an existing one.
  *  @param[in] nil_phone The network interface layer phone.

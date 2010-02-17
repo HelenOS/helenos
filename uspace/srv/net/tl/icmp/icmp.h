@@ -93,18 +93,9 @@ struct	icmp_globals{
 	/** IP module phone.
 	 */
 	int				ip_phone;
-	/** Reserved packet prefix length.
+	/** Packet dimension.
 	 */
-	size_t			prefix;
-	/** Maximal packet content length.
-	 */
-	size_t			content;
-	/** Reserved packet suffix length.
-	 */
-	size_t			suffix;
-	/** Packet address length.
-	 */
-	size_t			addr_len;
+	packet_dimension_t	packet_dimension;
 	/** Networking module phone.
 	 */
 	int				net_phone;

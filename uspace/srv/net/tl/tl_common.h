@@ -43,33 +43,6 @@
 #include "../include/inet.h"
 #include "../include/socket_codes.h"
 
-/** Type definition of the packet dimension.
- *  @see packet_dimension
- */
-typedef struct packet_dimension	packet_dimension_t;
-
-/** Type definition of the packet dimension pointer.
- *  @see packet_dimension
- */
-typedef packet_dimension_t *	packet_dimension_ref;
-
-/** Packet dimension.
- */
-struct packet_dimension{
-	/** Reserved packet prefix length.
-	 */
-	size_t			prefix;
-	/** Maximal packet content length.
-	 */
-	size_t			content;
-	/** Reserved packet suffix length.
-	 */
-	size_t			suffix;
-	/** Maximal packet address length.
-	 */
-	size_t			addr_len;
-};
-
 /** Device packet dimensions.
  *  Maps devices to the packet dimensions.
  *  @see device.h

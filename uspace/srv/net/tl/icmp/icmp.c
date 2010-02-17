@@ -286,8 +286,8 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 	}
 	length = ( size_t ) addrlen;
 	// TODO do not ask all the time
-	ERROR_PROPAGATE( ip_packet_size_req( icmp_globals.ip_phone, -1, & icmp_globals.addr_len, & icmp_globals.prefix, & icmp_globals.content, & icmp_globals.suffix ));
-	packet = packet_get_4( icmp_globals.net_phone, size, icmp_globals.addr_len, ICMP_HEADER_SIZE + icmp_globals.prefix, icmp_globals.suffix );
+	ERROR_PROPAGATE( ip_packet_size_req( icmp_globals.ip_phone, -1, & icmp_globals.packet_dimension ));
+	packet = packet_get_4( icmp_globals.net_phone, size, icmp_globals.packet_dimension.addr_len, ICMP_HEADER_SIZE + icmp_globals.packet_dimension.prefix, icmp_globals.packet_dimension.suffix );
 	if( ! packet ) return ENOMEM;
 
 	// prepare the requesting packet
@@ -476,9 +476,9 @@ int icmp_initialize( async_client_conn_t client_connection ){
 	if( icmp_globals.ip_phone < 0 ){
 		return icmp_globals.ip_phone;
 	}
-	ERROR_PROPAGATE( ip_packet_size_req( icmp_globals.ip_phone, -1, & icmp_globals.addr_len, & icmp_globals.prefix, & icmp_globals.content, & icmp_globals.suffix ));
-	icmp_globals.prefix += ICMP_HEADER_SIZE;
-	icmp_globals.content -= ICMP_HEADER_SIZE;
+	ERROR_PROPAGATE( ip_packet_size_req( icmp_globals.ip_phone, -1, & icmp_globals.packet_dimension ));
+	icmp_globals.packet_dimension.prefix += ICMP_HEADER_SIZE;
+	icmp_globals.packet_dimension.content -= ICMP_HEADER_SIZE;
 	// get configuration
 	icmp_globals.error_reporting = NET_DEFAULT_ICMP_ERROR_REPORTING;
 	icmp_globals.echo_replying = NET_DEFAULT_ICMP_ECHO_REPLYING;

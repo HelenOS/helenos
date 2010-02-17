@@ -204,7 +204,7 @@ int udp_initialize( async_client_conn_t client_connection ){
 		return udp_globals.ip_phone;
 	}
 	// read default packet dimensions
-	ERROR_PROPAGATE( ip_packet_size_req( udp_globals.ip_phone, -1, & udp_globals.packet_dimension.addr_len, & udp_globals.packet_dimension.prefix, & udp_globals.packet_dimension.content, & udp_globals.packet_dimension.suffix ));
+	ERROR_PROPAGATE( ip_packet_size_req( udp_globals.ip_phone, -1, & udp_globals.packet_dimension ));
 	ERROR_PROPAGATE( socket_ports_initialize( & udp_globals.sockets ));
 	if( ERROR_OCCURRED( packet_dimensions_initialize( & udp_globals.dimensions ))){
 		socket_ports_destroy( & udp_globals.sockets );
@@ -578,7 +578,7 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 	}
 //	}else{
 		// do not ask all the time
-		ERROR_PROPAGATE( ip_packet_size_req( udp_globals.ip_phone, -1, & udp_globals.packet_dimension.addr_len, & udp_globals.packet_dimension.prefix, & udp_globals.packet_dimension.content, & udp_globals.packet_dimension.suffix ));
+		ERROR_PROPAGATE( ip_packet_size_req( udp_globals.ip_phone, -1, & udp_globals.packet_dimension ));
 		packet_dimension = & udp_globals.packet_dimension;
 //	}
 

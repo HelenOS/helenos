@@ -458,19 +458,29 @@ static inline int	generic_send_msg( int phone, int message, device_id_t device_i
 	return EOK;
 }
 
-/** Returns the device packet dimensions for sending.
+/** Returns the device packet dimension for sending.
  *  @param[in] phone The service module phone.
  *  @param[in] message The service specific message.
  *  @param[in] device_id The device identifier.
- *  @param[out] addr_len The minimum reserved address length.
- *  @param[out] prefix The minimum reserved prefix size.
- *  @param[out] content The maximum content size.
- *  @param[out] suffix The minimum reserved suffix size.
+ *  @param[out] packet_dimension The packet dimension.
  *  @returns EOK on success.
+ *  @returns EBADMEM if the packet_dimension parameter is NULL.
  *  @returns Other error codes as defined for the specific service message.
  */
-static inline int	generic_packet_size_req( int phone, int message, device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix ){
-	return ( int ) async_req_1_4( phone, ( ipcarg_t ) message, ( ipcarg_t ) device_id, ( ipcarg_t * ) addr_len, ( ipcarg_t * ) prefix, ( ipcarg_t * ) content, ( ipcarg_t * ) suffix );
+static inline int	generic_packet_size_req( int phone, int message, device_id_t device_id, packet_dimension_ref packet_dimension ){
+	ipcarg_t	result;
+	ipcarg_t	prefix;
+	ipcarg_t	content;
+	ipcarg_t	suffix;
+	ipcarg_t	addr_len;
+
+	if( ! packet_dimension ) return EBADMEM;
+	result = async_req_1_4( phone, ( ipcarg_t ) message, ( ipcarg_t ) device_id, & addr_len, & prefix, & content, & suffix );
+	packet_dimension->prefix = ( size_t ) prefix;
+	packet_dimension->content = ( size_t ) content;
+	packet_dimension->suffix = ( size_t ) suffix;
+	packet_dimension->addr_len = ( size_t ) addr_len;
+	return ( int ) result;
 }
 
 /** Notifies the module about the device state change.
