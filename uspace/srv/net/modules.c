@@ -54,12 +54,12 @@ int connect_to_service( services_t need ){
 }
 
 int connect_to_service_timeout( services_t need, suseconds_t timeout ){
-	int	phone;
-	int	res;
+	ipcarg_t phone;
+	int res;
 
 	while( true ){
-		res = async_req_3_5( PHONE_NS, IPC_M_CONNECT_ME_TO, need, 0, 0, NULL, NULL, NULL, NULL, ( ipcarg_t * ) & phone );
-		if(( res >= 0 ) && ( phone >= 0 )){
+		res = async_req_3_5( PHONE_NS, IPC_M_CONNECT_ME_TO, need, 0, 0, NULL, NULL, NULL, NULL, & phone );
+		if( res >= 0 ){
 			return phone;
 		}
 		if( timeout > 0 ){
