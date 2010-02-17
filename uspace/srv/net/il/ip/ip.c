@@ -379,6 +379,7 @@ int	ip_get_icmp_phone( void );
  *  @returns EINVAL if the packet is a fragment.
  *  @returns ENOMEM if the packet is too short to contain the IP header.
  *  @returns EAFNOSUPPORT if the address family is not supported.
+ *  @returns EPERM if the protocol is not allowed to send ICMP notifications. The ICMP protocol itself.
  *  @returns Other error codes as defined for the packet_set_addr().
  */
 int	ip_prepare_icmp( packet_t packet, ip_header_ref header );
@@ -1414,6 +1415,10 @@ int ip_prepare_icmp( packet_t packet, ip_header_ref header ){
 	}
 	// only for the first fragment
 	if( IP_FRAGMENT_OFFSET( header )) return EINVAL;
+	// not for the ICMP protocol
+	if( header->protocol == IPPROTO_ICMP ){
+		return EPERM;
+	}
 	// set the destination address
 	switch( header->version ){
 		case IPVERSION:
