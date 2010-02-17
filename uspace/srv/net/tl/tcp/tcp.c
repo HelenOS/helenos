@@ -612,13 +612,11 @@ int tcp_process_established( socket_core_ref socket, tcp_socket_data_ref socket_
 
 		next_packet = pq_detach( packet );
 		length = packet_get_data_length( packet );
-		tmp_packet = pq_add( socket_data->incoming, packet, new_sequence_number, length );
-		if( ! tmp_packet ){
+		if( ERROR_OCCURRED( pq_add( & socket_data->incoming, packet, new_sequence_number, length ))){
 			// remove the corrupted packets
 			pq_release( tcp_globals.net_phone, packet_get_id( packet ));
 			pq_release( tcp_globals.net_phone, packet_get_id( next_packet ));
 		}else{
-			socket_data->incoming = tmp_packet;
 			while( next_packet ){
 				new_sequence_number += length;
 				tmp_packet = pq_detach( next_packet );
@@ -938,7 +936,6 @@ void tcp_process_acknowledgement( socket_core_ref socket, tcp_socket_data_ref so
 	packet_t	packet;
 	packet_t	next;
 	packet_t	acknowledged = NULL;
-	packet_t	first;
 	uint32_t	old;
 
 	assert( socket );
@@ -980,10 +977,7 @@ void tcp_process_acknowledgement( socket_core_ref socket, tcp_socket_data_ref so
 						socket_data->outgoing = next;
 					}
 					// add to acknowledged or release
-					first = pq_add( acknowledged, packet, 0, 0 );
-					if( first ){
-						acknowledged = first;
-					}else{
+					if( pq_add( & acknowledged, packet, 0, 0 ) != EOK ){
 						pq_release( tcp_globals.net_phone, packet_get_id( packet ));
 					}
 					packet = next;
@@ -1507,7 +1501,6 @@ int tcp_queue_prepare_packet( socket_core_ref socket, tcp_socket_data_ref socket
 
 int	tcp_queue_packet( socket_core_ref socket, tcp_socket_data_ref socket_data, packet_t packet, size_t data_length ){
 	ERROR_DECLARE;
-	packet_t		first;
 
 	assert( socket );
 	assert( socket_data );
@@ -1515,11 +1508,9 @@ int	tcp_queue_packet( socket_core_ref socket, tcp_socket_data_ref socket_data, p
 
 	ERROR_PROPAGATE( tcp_queue_prepare_packet( socket, socket_data, packet, data_length ));
 
-	first = pq_add( socket_data->outgoing, packet, socket_data->next_outgoing, data_length );
-	if( ! first ){
-		return tcp_release_and_return( packet, EINVAL );
+	if( ERROR_OCCURRED( pq_add( & socket_data->outgoing, packet, socket_data->next_outgoing, data_length ))){
+		return tcp_release_and_return( packet, ERROR_CODE );
 	}
-	socket_data->outgoing = first;
 	socket_data->next_outgoing += data_length;
 	return EOK;
 }

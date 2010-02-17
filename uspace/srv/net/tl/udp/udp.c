@@ -603,7 +603,9 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 		if( result < 0 ){
 			return udp_release_and_return( packet, result );
 		}
-		packet = pq_add( packet, next_packet, index, 0 );
+		if( ERROR_OCCURRED( pq_add( & packet, next_packet, index, 0 ))){
+			return udp_release_and_return( packet, ERROR_CODE );
+		}
 		total_length += ( size_t ) result;
 		if( udp_globals.checksum_computing ){
 			checksum = compute_checksum( checksum, packet_get_data( next_packet ), packet_get_data_length( next_packet ));

@@ -85,14 +85,15 @@ void	pm_destroy( void );
 /** Add packet to the sorted queue.
  *  The queue is sorted in the ascending order.
  *  The packet is inserted right before the packets of the same order value.
- *  @param[in] first The first packet of the queue. May be NULL.
+ *  @param[in,out] first The first packet of the queue. Sets the first packet of the queue. The original first packet may be shifted by the new packet.
  *  @param[in] packet The packet to be added.
  *  @param[in] order The packet order value.
  *  @param[in] metric The metric value of the packet.
- *  @returns The first packet of the queue. The original first packet may be shifted by the new packet.
- *  @returns NULL if the packet is not valid.
+ *  @returns EOK on success.
+ *  @returns EINVAL if the first parameter is NULL.
+ *  @returns EINVAL if the packet is not valid.
  */
-packet_t	pq_add( packet_t first, packet_t packet, size_t order, size_t metric );
+int	pq_add( packet_t * first, packet_t packet, size_t order, size_t metric );
 
 /** Finds the packet with the given order.
  *  @param[in] first The first packet of the queue.
