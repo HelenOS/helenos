@@ -38,66 +38,32 @@
 #define __NET_BYTEORDER_H__
 
 #include <byteorder.h>
-
 #include <sys/types.h>
 
-#ifdef ARCH_IS_BIG_ENDIAN
 
-// Already in the network byte order.
+/** Converts the given short number ( 16 bit ) from the host byte order to the network byte order ( big endian ).
+ *  @param[in] number The number in the host byte order to be converted.
+ *  @returns The number in the network byte order.
+ */
+#define htons( number )		host2uint16_t_be( number )
 
-	/** Converts the given short number ( 16 bit ) from the host byte order to the network byte order ( big endian ).
-	 *  @param[in] number The number in the host byte order to be converted.
-	 *  @returns The number in the network byte order.
-	 */
-	#define htons( number )		( number )
+/** Converts the given long number ( 32 bit ) from the host byte order to the network byte order ( big endian ).
+ *  @param[in] number The number in the host byte order to be converted.
+ *  @returns The number in the network byte order.
+ */
+#define htonl( number )		host2uint32_t_be( number )
 
-	/** Converts the given long number ( 32 bit ) from the host byte order to the network byte order ( big endian ).
-	 *  @param[in] number The number in the host byte order to be converted.
-	 *  @returns The number in the network byte order.
-	 */
-	#define htonl( number )		( number )
+/** Converts the given short number ( 16 bit ) from the network byte order ( big endian ) to the host byte order.
+ *  @param[in] number The number in the network byte order to be converted.
+ *  @returns The number in the host byte order.
+ */
+#define ntohs( number ) 	uint16_t_be2host( number )
 
-	/** Converts the given short number ( 16 bit ) from the network byte order ( big endian ) to the host byte order.
-	 *  @param[in] number The number in the network byte order to be converted.
-	 *  @returns The number in the host byte order.
-	 */
-	#define ntohs( number ) 	( number )
-
-	/** Converts the given long number ( 32 bit ) from the network byte order ( big endian ) to the host byte order.
-	 *  @param[in] number The number in the network byte order to be converted.
-	 *  @returns The number in the host byte order.
-	 */
-	#define ntohl( number )		( number )
-
-#else
-
-// Has to be swapped.
-
-	/** Converts the given short number ( 16 bit ) from the host byte order to the network byte order ( big endian ).
-	 *  @param[in] number The number in the host byte order to be converted.
-	 *  @returns The number in the network byte order.
-	 */
-	#define htons( number )		uint16_t_byteorder_swap(( uint16_t )( number ))
-
-	/** Converts the given long number ( 32 bit ) from the host byte order to the network byte order ( big endian ).
-	 *  @param[in] number The number in the host byte order to be converted.
-	 *  @returns The number in the network byte order.
-	 */
-	#define htonl( number )		uint32_t_byteorder_swap( number )
-
-	/** Converts the given short number ( 16 bit ) from the network byte order ( big endian ) to the host byte order.
-	 *  @param[in] number The number in the network byte order to be converted.
-	 *  @returns The number in the host byte order.
-	 */
-	#define ntohs( number ) 	uint16_t_byteorder_swap(( uint16_t )( number ))
-
-	/** Converts the given long number ( 32 bit ) from the network byte order ( big endian ) to the host byte order.
-	 *  @param[in] number The number in the network byte order to be converted.
-	 *  @returns The number in the host byte order.
-	 */
-	#define ntohl( number )		uint32_t_byteorder_swap( number )
-
-#endif
+/** Converts the given long number ( 32 bit ) from the network byte order ( big endian ) to the host byte order.
+ *  @param[in] number The number in the network byte order to be converted.
+ *  @returns The number in the host byte order.
+ */
+#define ntohl( number )		uint32_t_be2host( number )
 
 #endif
 
