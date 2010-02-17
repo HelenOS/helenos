@@ -36,7 +36,6 @@
 #include <mm/tlb.h>
 #include <mm/as.h>
 #include <mm/asid.h>
-#include <genarch/mm/page_ht.h>
 #include <arch/mm/frame.h>
 #include <arch/mm/page.h>
 #include <arch/mm/mmu.h>
@@ -50,6 +49,7 @@
 #include <arch/trap/exception.h>
 #include <panic.h>
 #include <arch/asm.h>
+#include <genarch/mm/page_ht.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>

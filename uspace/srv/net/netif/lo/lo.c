@@ -164,7 +164,7 @@ void module_print_name( void ){
 	printf( "%s", NAME );
 }
 
-int netif_probe_message( device_id_t device_id, int irq, int io ){
+int netif_probe_message( device_id_t device_id, int irq, uintptr_t io ){
 	ERROR_DECLARE;
 
 	device_ref			device;

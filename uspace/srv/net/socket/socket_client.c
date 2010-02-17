@@ -540,7 +540,8 @@ int accept( int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen ){
 	socket_ref		socket;
 	socket_ref		new_socket;
 	aid_t			message_id;
-	int				result;
+	ipcarg_t		ipc_result;
+	int			result;
 	ipc_call_t		answer;
 
 	if(( ! cliaddr ) || ( ! addrlen )) return EBADMEM;
@@ -591,7 +592,8 @@ int accept( int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen ){
 	// read address
 	ipc_data_read_start( socket->phone, cliaddr, * addrlen );
 	fibril_rwlock_write_unlock( & socket_globals.lock );
-	async_wait_for( message_id, ( ipcarg_t * ) & result );
+	async_wait_for( message_id, & ipc_result );
+	result = (int) ipc_result;
 	if( result > 0 ){
 		if( result != socket_id ){
 			result = EINVAL;
@@ -733,7 +735,8 @@ int recvfrom( int socket_id, void * data, size_t datalength, int flags, struct s
 int recvfrom_core( ipcarg_t message, int socket_id, void * data, size_t datalength, int flags, struct sockaddr * fromaddr, socklen_t * addrlen ){
 	socket_ref		socket;
 	aid_t			message_id;
-	int				result;
+	ipcarg_t		ipc_result;
+	int			result;
 	size_t			fragments;
 	size_t *		lengths;
 	size_t			index;
@@ -792,7 +795,8 @@ int recvfrom_core( ipcarg_t message, int socket_id, void * data, size_t dataleng
 			async_data_read_start( socket->phone, data, datalength );
 		}
 	}
-	async_wait_for( message_id, ( ipcarg_t * ) & result );
+	async_wait_for( message_id, & ipc_result );
+	result = (int) ipc_result;
 	// if successful
 	if( result == EOK ){
 		// dequeue the received packet

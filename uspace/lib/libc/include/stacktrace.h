@@ -56,7 +56,7 @@ extern int stacktrace_ra_get(stacktrace_t *, uintptr_t, uintptr_t *);
 
 extern void stacktrace_prepare(void);
 extern uintptr_t stacktrace_fp_get(void);
-extern uintptr_t stacktrace_pc_get();
+extern uintptr_t stacktrace_pc_get(void);
 
 #endif
 

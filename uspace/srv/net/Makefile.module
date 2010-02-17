@@ -34,6 +34,7 @@ SOFTINT_PREFIX = $(NET_BASE)../../lib/softint
 include $(LIBC_PREFIX)/Makefile.toolchain
 
 CFLAGS += -Iinclude -I../libadt/include
+CFLAGS += -Wno-strict-aliasing
 
 CHECK_CFLAGS = -fsyntax-only -Wextra -Wno-div-by-zero -Wsystem-headers -Wfloat-equal -Wdeclaration-after-statement -Wundef -Wno-endif-labels -Wshadow -Wlarger-than-1500 -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Wsign-compare -Waggregate-return -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wmissing-field-initializers -Wmissing-noreturn -Wmissing-format-attribute -Wno-multichar -Wno-deprecated-declarations -Wpacked -Wpadded -Wredundant-decls -Wnested-externs -Wunreachable-code -Winline -Winvalid-pch -Wlong-long -Wvariadic-macros -Wdisabled-optimization -Wno-pointer-sign
 #-Wtraditional

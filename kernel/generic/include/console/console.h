@@ -40,7 +40,6 @@
 
 extern indev_t *stdin;
 extern outdev_t *stdout;
-extern bool silent;
 
 extern indev_t *stdin_wire(void);
 extern void stdout_wire(outdev_t *outdev);

@@ -114,6 +114,7 @@ jump_to_kernel:
 	 * 3. Flush instruction pipeline.
 	 */
 	
+#if defined (SUN4U)
 	/*
 	 * US3 processors have a write-invalidate cache, so explicitly
 	 * invalidating it is not required. Whether to invalidate I-cache
@@ -127,7 +128,7 @@ jump_to_kernel:
 	0:
 		call icache_flush
 		nop
-	
+#endif	
 	1:
 		membar #StoreStore
 	

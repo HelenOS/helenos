@@ -207,7 +207,7 @@ void irq_handler( ipc_callid_t iid, ipc_call_t * call )
 	ipc_answer_0( iid, EOK );
 }
 
-int netif_probe_message( device_id_t device_id, int irq, int io ){
+int netif_probe_message( device_id_t device_id, int irq, uintptr_t io ){
 	ERROR_DECLARE;
 
 	device_ref	device;
@@ -279,7 +279,7 @@ int	netif_start_message( device_ref device ){
 
 	if( device->state != NETIF_ACTIVE ){
 		dep = ( dpeth_t * ) device->specific;
-		dp8390_cmds[ 0 ].addr = ( void * ) ( uint32_t ) ( dep->de_dp8390_port + DP_ISR );
+		dp8390_cmds[ 0 ].addr = ( void * ) ( uintptr_t ) ( dep->de_dp8390_port + DP_ISR );
 		dp8390_cmds[ 2 ].addr = dp8390_cmds[ 0 ].addr;
 		ERROR_PROPAGATE( ipc_register_irq( dep->de_irq, device->device_id, device->device_id, & dp8390_code ));
 		if( ERROR_OCCURRED( do_init( dep, DL_BROAD_REQ ))){

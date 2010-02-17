@@ -200,9 +200,7 @@ int breakpoint_add(const void *where, const int flags, int curidx)
 	interrupts_restore(ipl);
 
 	/* Send IPI */
-#ifdef CONFIG_SMP
 //	ipi_broadcast(VECTOR_DEBUG_IPI);
-#endif	
 
 	return curidx;
 }
@@ -261,9 +259,7 @@ void breakpoint_del(int slot)
 
 	spinlock_unlock(&bkpoint_lock);
 	interrupts_restore(ipl);
-#ifdef CONFIG_SMP
-//	ipi_broadcast(VECTOR_DEBUG_IPI);	
-#endif
+//	ipi_broadcast(VECTOR_DEBUG_IPI);
 }
 
 

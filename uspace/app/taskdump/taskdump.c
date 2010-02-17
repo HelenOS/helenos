@@ -53,9 +53,6 @@
 
 #define LINE_BYTES 16
 
-#define DBUF_SIZE 4096
-static uint8_t data_buf[DBUF_SIZE];
-
 static int phoneid;
 static task_id_t task_id;
 static bool write_core_file;
@@ -69,8 +66,6 @@ static void print_syntax(void);
 static int threads_dump(void);
 static int thread_dump(uintptr_t thash);
 static int areas_dump(void);
-static int area_dump(as_area_info_t *area);
-static void hex_dump(uintptr_t addr, void *buffer, size_t size);
 static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 
 static void autoload_syms(void);
@@ -353,65 +348,6 @@ static int thread_dump(uintptr_t thash)
 	}
 
 	return EOK;
-}
-
-static __attribute__((unused)) int area_dump(as_area_info_t *area)
-{
-	size_t to_copy;
-	size_t total;
-	uintptr_t addr;
-	int rc;
-
-	addr = area->start_addr;
-	total = 0;
-
-	while (total < area->size) {
-		to_copy = min(area->size - total, DBUF_SIZE);
-		rc = udebug_mem_read(phoneid, data_buf, addr, to_copy);
-		if (rc < 0) {
-			printf("udebug_mem_read() failed.\n");
-			return rc;
-		}
-
-		hex_dump(addr, data_buf, to_copy);
-
-		addr += to_copy;
-		total += to_copy;
-	}
-
-	return EOK;
-}
-
-static void hex_dump(uintptr_t addr, void *buffer, size_t size)
-{
-	uint8_t *data = (uint8_t *) buffer;
-	uint8_t b;
-	size_t pos, i;
-
-	assert(addr % LINE_BYTES == 0);
-	assert(size % LINE_BYTES == 0);
-
-	pos = 0;
-
-	while (pos < size) {
-		printf("%08lx:", addr + pos);
-		for (i = 0; i < LINE_BYTES; ++i) {
-			if (i % 4 == 0) putchar(' ');
-			printf(" %02x", data[pos + i]);
-		}
-		putchar('\t');
-
-		for (i = 0; i < LINE_BYTES; ++i) {
-			b = data[pos + i];
-			if (b >= 32 && b < 127) {
-				putchar(b);
-			} else {
-				putchar(' ');
-			}
-		}
-		putchar('\n');
-		pos += LINE_BYTES;
-	}
 }
 
 static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)

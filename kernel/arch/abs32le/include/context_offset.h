@@ -36,12 +36,7 @@
 #define KERN_abs32le_CONTEXT_OFFSET_H_
 
 #define OFFSET_PC  0x00
-
-#ifdef KERNEL
-	#define OFFSET_IPL 0x04
-#else
-	#define OFFSET_TLS 0x04
-#endif
+#define OFFSET_IPL 0x04
 
 #endif
 

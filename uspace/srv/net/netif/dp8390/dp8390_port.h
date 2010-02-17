@@ -168,7 +168,7 @@ typedef uint16_t u16_t;
 //typedef u16_t port_t;
 /** Type definition of a port.
  */
-typedef int port_t;
+typedef long port_t;
 
 /* dl_eth.h */
 /** Ethernet statistics.
@@ -255,7 +255,7 @@ typedef unsigned long phys_bytes;
 
 /** Type definition of the virtual addresses and lengths in bytes.
  */
-typedef unsigned int vir_bytes;
+typedef unsigned long vir_bytes;
 
 /** Type definition of the input/output vector.
  */

@@ -59,7 +59,7 @@ int	netif_initialize( void );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_probe_message( device_id_t device_id, int irq, int io );
+int	netif_probe_message( device_id_t device_id, int irq, uintptr_t io );
 
 /** Sends the packet queue.
  *  @param[in] device_id The device identifier.

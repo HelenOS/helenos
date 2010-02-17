@@ -210,9 +210,6 @@ int fibril_switch(fibril_switch_type_t stype)
 		}
 	}
 	
-	/* Avoid srcf being clobbered by context_save() */
-	srcf = __tcb_get()->fibril_data;
-	
 	/* Choose a new fibril to run */
 	fibril_t *dstf;
 	if ((stype == FIBRIL_TO_MANAGER) || (stype == FIBRIL_FROM_DEAD)) {

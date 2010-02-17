@@ -32,7 +32,10 @@
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/fibril.S \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
@@ -44,3 +47,15 @@ ENDIANESS = BE
 
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
+
+ifeq ($(PROCESSOR),us)
+	DEFS += -DSUN4U
+endif
+
+ifeq ($(PROCESSOR),us3)
+	DEFS += -DSUN4U
+endif
+
+ifeq ($(PROCESSOR),sun4v)
+	DEFS += -DSUN4V
+endif

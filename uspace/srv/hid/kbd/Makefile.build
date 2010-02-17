@@ -129,17 +129,30 @@ ifeq ($(UARCH),ppc32)
 endif
 
 ifeq ($(UARCH),sparc64)
-	ifeq ($(MACHINE),serengeti)
+	ifeq ($(PROCESSOR),sun4v)
 		SOURCES += \
-			port/sgcn.c \
+			port/niagara.c \
 			ctl/stty.c
 	else
-		SOURCES += \
+		ifeq ($(MACHINE),serengeti)
+			SOURCES += \
+				port/sgcn.c \
+				ctl/stty.c
+		endif
+		ifeq ($(MACHINE),generic)
+			SOURCES += \
 			port/sun.c \
 			port/z8530.c \
 			port/ns16550.c \
 			ctl/sun.c
+		endif
 	endif
+endif
+
+ifeq ($(UARCH),abs32le)
+	SOURCES += \
+		port/dummy.c \
+		ctl/pc.c
 endif
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))

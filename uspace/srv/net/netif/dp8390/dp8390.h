@@ -352,7 +352,7 @@ typedef struct dpeth
 	port_t de_dp8390_port;
 	port_t de_data_port;
 	int de_16bit;
-	int de_ramsize;
+	long de_ramsize;
 	int de_offset_page;
 	int de_startpage;
 	int de_stoppage;

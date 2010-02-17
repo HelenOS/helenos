@@ -32,7 +32,10 @@
 TARGET = mips-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.c \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/stacktrace.c \
