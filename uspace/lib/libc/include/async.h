@@ -258,6 +258,9 @@ static inline void async_serialize_end(void)
 	fibril_dec_sercount();
 }
 
+extern int async_connect_me_to(int, ipcarg_t, ipcarg_t, ipcarg_t);
+extern int async_connect_me_to_blocking(int, ipcarg_t, ipcarg_t, ipcarg_t);
+
 /*
  * User-friendly wrappers for async_share_in_start().
  */

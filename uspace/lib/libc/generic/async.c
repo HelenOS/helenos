@@ -1100,6 +1100,60 @@ ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
 	return rc;
 }
 
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ * 
+ * Ask through phone for a new connection to some service.
+ *
+ * @param phoneid	Phone handle used for contacting the other side.
+ * @param arg1		User defined argument.
+ * @param arg2		User defined argument.
+ * @param arg3		User defined argument.
+ *
+ * @return		New phone handle on success or a negative error code.
+ */
+int
+async_connect_me_to(int phoneid, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3)
+{
+	int rc;
+	ipcarg_t newphid;
+
+	rc = async_req_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, NULL,
+	    NULL, NULL, NULL, &newphid);
+	
+	if (rc != EOK)	
+		return rc;
+
+	return newphid;
+}
+
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ * 
+ * Ask through phone for a new connection to some service and block until
+ * success.
+ *
+ * @param phoneid	Phone handle used for contacting the other side.
+ * @param arg1		User defined argument.
+ * @param arg2		User defined argument.
+ * @param arg3		User defined argument.
+ *
+ * @return		New phone handle on success or a negative error code.
+ */
+int
+async_connect_me_to_blocking(int phoneid, ipcarg_t arg1, ipcarg_t arg2,
+    ipcarg_t arg3)
+{
+	int rc;
+	ipcarg_t newphid;
+
+	rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
+	
+	if (rc != EOK)	
+		return rc;
+
+	return newphid;
+}
+
 /** Wrapper for making IPC_M_SHARE_IN calls using the async framework.
  *
  * @param phoneid	Phone that will be used to contact the receiving side.
