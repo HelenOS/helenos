@@ -83,7 +83,7 @@ int bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_
 	phone = connect_to_service_timeout( need, timeout );
 	if( phone >= 0 ){
 		if( ERROR_OCCURRED( ipc_connect_to_me( phone, arg1, arg2, arg3, & phonehash ))){
-			async_msg_0( phone, IPC_M_PHONE_HUNGUP );
+			ipc_hangup( phone );
 			return ERROR_CODE;
 		}
 		async_new_connection( phonehash, 0, NULL, client_receiver );
