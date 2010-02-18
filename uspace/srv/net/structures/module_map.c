@@ -87,23 +87,12 @@ module_ref get_running_module( modules_ref modules, char * name ){
 
 task_id_t spawn( char * fname ){
 	char * argv[ 2 ];
-//	char * argv[ 4 ];
 	task_id_t	res;
 
-//	printf( "Spawning %s\n", fname );
 	argv[ 0 ] = fname;
 	argv[ 1 ] = NULL;
 	res = task_spawn( fname, argv );
-/*	argv[ 0 ] = "/app/trace";
-	argv[ 1 ] = "+ti";
-	argv[ 2 ] = fname;
-	argv[ 3 ] = NULL;
-	res = task_spawn( "/app/trace", argv );
-*/
-	if( res != 0 ){
-		/* Success */
-		usleep( 10000 );
-	}
+
 	return res;
 }
 

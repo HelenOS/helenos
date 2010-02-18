@@ -100,14 +100,10 @@ task_id_t spawn( char * fname ){
 	char *	argv[ 2 ];
 	task_id_t	res;
 
-//	printf( "Spawning %s\n", fname );
 	argv[ 0 ] = fname;
 	argv[ 1 ] = NULL;
 	res = task_spawn( fname, argv );
-	if( res != 0 ){
-		/* Success */
-		usleep( 50000 );
-	}
+	
 	return res;
 }
 
