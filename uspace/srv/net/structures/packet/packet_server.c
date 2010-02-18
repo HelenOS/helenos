@@ -228,12 +228,13 @@ int packet_release_wrapper( packet_id_t packet_id ){
 
 void packet_release( packet_t packet ){
 	int index;
+	int result;
 
 	// remove debug dump
 //	printf( "packet %d released\n", packet->packet_id );
 	for( index = 0; ( index < FREE_QUEUES_COUNT - 1 ) && ( packet->length > ps_globals.sizes[ index ] ); ++ index );
-	ps_globals.free[ index ] = pq_add( ps_globals.free[ index ], packet, packet->length, packet->length );
-	assert( ps_globals.free[ index ] );
+	result = pq_add( & ps_globals.free[ index ], packet, packet->length, packet->length );
+	assert( result == EOK );
 }
 
 packet_t packet_get( size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix ){

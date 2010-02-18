@@ -349,7 +349,7 @@ int queue_packet( dpeth_t * dep, packet_t packet ){
 	while( pq_next( tmp )){
 		tmp = pq_next( tmp );
 	}
-	if( ! pq_add( tmp, packet, 0, 0 )){
+	if( pq_add( & tmp, packet, 0, 0 ) != EOK ){
 		return EINVAL;
 	}
 	if( ! dep->packet_count ){
@@ -1005,7 +1005,6 @@ int page, length;
 {
 	int last, count;
 	packet_t	packet;
-	packet_t	queue;
 
 //	if (!(dep->de_flags & DEF_READING))
 //		return EGENERIC;
@@ -1044,9 +1043,7 @@ int page, length;
 		netif_pq_release( packet_get_id( packet ));
 		return ELIMIT;
 	}else{
-		queue = pq_add( dep->received_queue, packet, 0, 0 );
-		if( queue ){
-			dep->received_queue = queue;
+		if( pq_add( & dep->received_queue, packet, 0, 0 ) == EOK ){
 			++ dep->received_count;
 		}else{
 			netif_pq_release( packet_get_id( packet ));

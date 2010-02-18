@@ -151,6 +151,18 @@ int	ip_mtu_changed_message( device_id_t device_id, size_t mtu );
  */
 int	ip_device_state_message( device_id_t device_id, device_state_t state );
 
+/** Returns the device packet dimensions for sending.
+ *  @param[in] phone The service module phone.
+ *  @param[in] message The service specific message.
+ *  @param[in] device_id The device identifier.
+ *  @param[out] addr_len The minimum reserved address length.
+ *  @param[out] prefix The minimum reserved prefix size.
+ *  @param[out] content The maximum content size.
+ *  @param[out] suffix The minimum reserved suffix size.
+ *  @returns EOK on success.
+ */
+int	ip_packet_size_message( device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix );
+
 /** Registers the transport layer protocol.
  *  The traffic of this protocol will be supplied using either the receive function or IPC message.
  *  @param[in] protocol The transport layer module protocol.
@@ -379,6 +391,7 @@ int	ip_get_icmp_phone( void );
  *  @returns EINVAL if the packet is a fragment.
  *  @returns ENOMEM if the packet is too short to contain the IP header.
  *  @returns EAFNOSUPPORT if the address family is not supported.
+ *  @returns EPERM if the protocol is not allowed to send ICMP notifications. The ICMP protocol itself.
  *  @returns Other error codes as defined for the packet_set_addr().
  */
 int	ip_prepare_icmp( packet_t packet, ip_header_ref header );
@@ -549,10 +562,10 @@ int ip_netif_initialize( ip_netif_ref ip_netif ){
 		}
 	}
 	// get packet dimensions
-	ERROR_PROPAGATE( nil_packet_size_req( ip_netif->phone, ip_netif->device_id, & ip_netif->addr_len, & ip_netif->prefix, & ip_netif->content, & ip_netif->suffix ));
-	if( ip_netif->content < IP_MIN_CONTENT ){
-		printf( "Maximum transmission unit %d bytes is too small, at least %d bytes are needed\n", ip_netif->content, IP_MIN_CONTENT );
-		ip_netif->content = IP_MIN_CONTENT;
+	ERROR_PROPAGATE( nil_packet_size_req( ip_netif->phone, ip_netif->device_id, & ip_netif->packet_dimension ));
+	if( ip_netif->packet_dimension.content < IP_MIN_CONTENT ){
+		printf( "Maximum transmission unit %d bytes is too small, at least %d bytes are needed\n", ip_netif->packet_dimension.content, IP_MIN_CONTENT );
+		ip_netif->packet_dimension.content = IP_MIN_CONTENT;
 	}
 	index = ip_netifs_add( & ip_globals.netifs, ip_netif->device_id, ip_netif );
 	if( index < 0 ) return index;
@@ -575,7 +588,7 @@ int ip_mtu_changed_message( device_id_t device_id, size_t mtu ){
 		fibril_rwlock_write_unlock( & ip_globals.netifs_lock );
 		return ENOENT;
 	}
-	netif->content = mtu;
+	netif->packet_dimension.content = mtu;
 	printf( "ip - device %d changed mtu to %d\n\n", device_id, mtu );
 	fibril_rwlock_write_unlock( & ip_globals.netifs_lock );
 	return EOK;
@@ -766,7 +779,7 @@ int ip_send_route( packet_t packet, ip_netif_ref netif, ip_route_ref route, in_a
 	if( ERROR_OCCURRED( ip_prepare_packet( src, dest, packet, translation ))){
 		pq_release( ip_globals.net_phone, packet_get_id( packet ));
 	}else{
-		packet = ip_split_packet( packet, netif->prefix, netif->content, netif->suffix, netif->addr_len, error );
+		packet = ip_split_packet( packet, netif->packet_dimension.prefix, netif->packet_dimension.content, netif->packet_dimension.suffix, netif->packet_dimension.addr_len, error );
 		if( packet ){
 			nil_send_msg( netif->phone, netif->device_id, packet, SERVICE_IP );
 		}
@@ -889,7 +902,7 @@ int ip_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 			free( header );
 			return ERROR_CODE;
 		case NET_IL_PACKET_SPACE:
-			ERROR_PROPAGATE( ip_packet_size_req( 0, IPC_GET_DEVICE( call ), IPC_SET_ADDR( answer ), IPC_SET_PREFIX( answer ), IPC_SET_CONTENT( answer ), IPC_SET_SUFFIX( answer )));
+			ERROR_PROPAGATE( ip_packet_size_message( IPC_GET_DEVICE( call ), IPC_SET_ADDR( answer ), IPC_SET_PREFIX( answer ), IPC_SET_CONTENT( answer ), IPC_SET_SUFFIX( answer )));
 			* answer_count = 3;
 			return EOK;
 		case NET_IL_MTU_CHANGED:
@@ -898,7 +911,12 @@ int ip_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 	return ENOTSUP;
 }
 
-int ip_packet_size_req( int ip_phone, device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix ){
+int ip_packet_size_req( int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension ){
+	if( ! packet_dimension ) return EBADMEM;
+	return ip_packet_size_message( device_id, & packet_dimension->addr_len, & packet_dimension->prefix, & packet_dimension->content, & packet_dimension->suffix );
+}
+
+int ip_packet_size_message( device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix ){
 	ip_netif_ref	netif;
 	int				index;
 
@@ -912,9 +930,9 @@ int ip_packet_size_req( int ip_phone, device_id_t device_id, size_t * addr_len, 
 		for( index = ip_netifs_count( & ip_globals.netifs ) - 1; index >= 0; -- index ){
 			netif = ip_netifs_get_index( & ip_globals.netifs, index );
 			if( netif ){
-				if( netif->addr_len > * addr_len ) * addr_len = netif->addr_len;
-				if( netif->prefix > * prefix ) * prefix = netif->prefix;
-				if( netif->suffix > * suffix ) * suffix = netif->suffix;
+				if( netif->packet_dimension.addr_len > * addr_len ) * addr_len = netif->packet_dimension.addr_len;
+				if( netif->packet_dimension.prefix > * prefix ) * prefix = netif->packet_dimension.prefix;
+				if( netif->packet_dimension.suffix > * suffix ) * suffix = netif->packet_dimension.suffix;
 			}
 		}
 		* prefix = * prefix + IP_PREFIX;
@@ -925,9 +943,9 @@ int ip_packet_size_req( int ip_phone, device_id_t device_id, size_t * addr_len, 
 			fibril_rwlock_read_unlock( & ip_globals.netifs_lock );
 			return ENOENT;
 		}
-		* addr_len = ( netif->addr_len > IP_ADDR ) ? netif->addr_len : IP_ADDR;
-		* prefix = netif->prefix + IP_PREFIX;
-		* suffix = netif->suffix + IP_SUFFIX;
+		* addr_len = ( netif->packet_dimension.addr_len > IP_ADDR ) ? netif->packet_dimension.addr_len : IP_ADDR;
+		* prefix = netif->packet_dimension.prefix + IP_PREFIX;
+		* suffix = netif->packet_dimension.suffix + IP_SUFFIX;
 	}
 	fibril_rwlock_read_unlock( & ip_globals.netifs_lock );
 	return EOK;
@@ -1414,6 +1432,10 @@ int ip_prepare_icmp( packet_t packet, ip_header_ref header ){
 	}
 	// only for the first fragment
 	if( IP_FRAGMENT_OFFSET( header )) return EINVAL;
+	// not for the ICMP protocol
+	if( header->protocol == IPPROTO_ICMP ){
+		return EPERM;
+	}
 	// set the destination address
 	switch( header->version ){
 		case IPVERSION:

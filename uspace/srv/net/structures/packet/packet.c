@@ -183,13 +183,13 @@ void pm_destroy( void ){
 	// leave locked
 }
 
-packet_t pq_add( packet_t first, packet_t packet, size_t order, size_t metric ){
+int pq_add( packet_t * first, packet_t packet, size_t order, size_t metric ){
 	packet_t	item;
 
-	if( ! packet_is_valid( packet )) return NULL;
+	if(( ! first ) || ( ! packet_is_valid( packet ))) return EINVAL;
 	pq_set_order( packet, order, metric );
-	if( packet_is_valid( first )){
-		item = first;
+	if( packet_is_valid( * first )){
+		item = * first;
 		do{
 			if( item->order < order ){
 				if( item->next ){
@@ -197,19 +197,24 @@ packet_t pq_add( packet_t first, packet_t packet, size_t order, size_t metric ){
 				}else{
 					item->next = packet->packet_id;
 					packet->previous = item->packet_id;
-					return first;
+					return EOK;
 				}
 			}else{
 				packet->previous = item->previous;
 				packet->next = item->packet_id;
 				item->previous = packet->packet_id;
 				item = pm_find( packet->previous );
-				if( item ) item->next = packet->packet_id;
-				return item ? first : packet;
+				if( item ){
+					item->next = packet->packet_id;
+				}else{
+					* first = packet;
+				}
+				return EOK;
 			}
 		}while( packet_is_valid( item ));
 	}
-	return packet;
+	* first = packet;
+	return EOK;
 }
 
 packet_t pq_find( packet_t packet, size_t order ){

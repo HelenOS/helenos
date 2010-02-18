@@ -136,19 +136,9 @@ struct	ip_netif{
 	/** Routing table.
 	 */
 	ip_routes_t	routes;
-	/** Reserved packet prefix length.
+	/** Packet dimension.
 	 */
-	size_t				prefix;
-	/** Maximal packet content length.
-	 */
-	size_t				content;
-	/** Reserved packet suffix length.
-	 */
-	size_t				suffix;
-	/** Packet address length.
-	 *  The hardware address length is used.
-	 */
-	size_t				addr_len;
+	packet_dimension_t	packet_dimension;
 };
 
 /** IP protocol specific data.

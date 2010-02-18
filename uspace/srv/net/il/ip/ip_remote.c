@@ -71,8 +71,8 @@ int ip_set_gateway_req( int ip_phone, device_id_t device_id, in_addr_t gateway )
 	return ( int ) async_req_2_0( ip_phone, NET_IP_SET_GATEWAY, ( ipcarg_t ) device_id, ( ipcarg_t ) gateway.s_addr );
 }
 
-int ip_packet_size_req( int ip_phone, device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix ){
-	return generic_packet_size_req( ip_phone, NET_IL_PACKET_SPACE, device_id, addr_len, prefix, content, suffix );
+int ip_packet_size_req( int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension ){
+	return generic_packet_size_req( ip_phone, NET_IL_PACKET_SPACE, device_id, packet_dimension );
 }
 
 int ip_bind_service( services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t tl_received_msg ){

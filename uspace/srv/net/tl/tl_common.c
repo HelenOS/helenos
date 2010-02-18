@@ -88,7 +88,7 @@ int tl_get_ip_packet_dimension( int ip_phone, packet_dimensions_ref packet_dimen
 		// ask for and remember them if not found
 		* packet_dimension = malloc( sizeof( ** packet_dimension ));
 		if( ! * packet_dimension ) return ENOMEM;
-		if( ERROR_OCCURRED( ip_packet_size_req( ip_phone, device_id, & ( ** packet_dimension ).addr_len, & ( ** packet_dimension ).prefix, & ( ** packet_dimension ).content, & ( ** packet_dimension ).suffix ))){
+		if( ERROR_OCCURRED( ip_packet_size_req( ip_phone, device_id, * packet_dimension ))){
 			free( * packet_dimension );
 			return ERROR_CODE;
 		}

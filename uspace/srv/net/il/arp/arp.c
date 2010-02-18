@@ -336,7 +336,7 @@ int arp_device_message( device_id_t device_id, services_t service, services_t pr
 			return EREFUSED;
 		}
 		// get packet dimensions
-		if( ERROR_OCCURRED( nil_packet_size_req( device->phone, device_id, & device->addr_len, & device->prefix, & device->content, & device->suffix ))){
+		if( ERROR_OCCURRED( nil_packet_size_req( device->phone, device_id, & device->packet_dimension ))){
 			fibril_rwlock_write_unlock( & arp_globals.lock );
 			arp_protos_destroy( & device->protos );
 			free( device );
@@ -391,8 +391,8 @@ measured_string_ref arp_translate_message( device_id_t device_id, services_t pro
 	if( addr ) return addr;
 	// ARP packet content size = header + ( address + translation ) * 2
 	length = 8 + ( CONVERT_SIZE( char, uint8_t, proto->addr->length ) + CONVERT_SIZE( char, uint8_t, device->addr->length )) * 2;
-	if( length > device->content ) return NULL;
-	packet = packet_get_4( arp_globals.net_phone, device->addr_len, device->prefix, length, device->suffix );
+	if( length > device->packet_dimension.content ) return NULL;
+	packet = packet_get_4( arp_globals.net_phone, device->packet_dimension.addr_len, device->packet_dimension.prefix, length, device->packet_dimension.suffix );
 	if( ! packet ) return NULL;
 	header = ( arp_header_ref ) packet_suffix( packet, length );
 	if( ! header ){
@@ -471,7 +471,7 @@ int arp_receive_message( device_id_t device_id, packet_t packet ){
 			header->operation = htons( ARPOP_REPLY );
 			memcpy( des_proto, src_proto, header->protocol_length );
 			memcpy( src_proto, proto->addr->value, header->protocol_length );
-			memcpy( src_hw, device->addr->value, device->addr_len );
+			memcpy( src_hw, device->addr->value, device->packet_dimension.addr_len );
 			memcpy( des_hw, hw_source->value, header->hardware_length );
 			ERROR_PROPAGATE( packet_set_addr( packet, src_hw, des_hw, header->hardware_length ));
 			nil_send_msg( device->phone, device_id, packet, SERVICE_ARP );
@@ -510,7 +510,7 @@ int arp_mtu_changed_message( device_id_t device_id, size_t mtu ){
 		fibril_rwlock_write_unlock( & arp_globals.lock );
 		return ENOENT;
 	}
-	device->content = mtu;
+	device->packet_dimension.content = mtu;
 	printf( "arp - device %d changed mtu to %d\n\n", device_id, mtu );
 	fibril_rwlock_write_unlock( & arp_globals.lock );
 	return EOK;

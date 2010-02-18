@@ -52,6 +52,33 @@ typedef struct packet *	packet_t;
  */
 typedef packet_t *		packet_ref;
 
+/** Type definition of the packet dimension.
+ *  @see packet_dimension
+ */
+typedef struct packet_dimension	packet_dimension_t;
+
+/** Type definition of the packet dimension pointer.
+ *  @see packet_dimension
+ */
+typedef packet_dimension_t *	packet_dimension_ref;
+
+/** Packet dimension.
+ */
+struct packet_dimension{
+	/** Reserved packet prefix length.
+	 */
+	size_t			prefix;
+	/** Maximal packet content length.
+	 */
+	size_t			content;
+	/** Reserved packet suffix length.
+	 */
+	size_t			suffix;
+	/** Maximal packet address length.
+	 */
+	size_t			addr_len;
+};
+
 /** @name Packet management system interface
  */
 /*@{*/
@@ -85,14 +112,15 @@ void	pm_destroy( void );
 /** Add packet to the sorted queue.
  *  The queue is sorted in the ascending order.
  *  The packet is inserted right before the packets of the same order value.
- *  @param[in] first The first packet of the queue. May be NULL.
+ *  @param[in,out] first The first packet of the queue. Sets the first packet of the queue. The original first packet may be shifted by the new packet.
  *  @param[in] packet The packet to be added.
  *  @param[in] order The packet order value.
  *  @param[in] metric The metric value of the packet.
- *  @returns The first packet of the queue. The original first packet may be shifted by the new packet.
- *  @returns NULL if the packet is not valid.
+ *  @returns EOK on success.
+ *  @returns EINVAL if the first parameter is NULL.
+ *  @returns EINVAL if the packet is not valid.
  */
-packet_t	pq_add( packet_t first, packet_t packet, size_t order, size_t metric );
+int	pq_add( packet_t * first, packet_t packet, size_t order, size_t metric );
 
 /** Finds the packet with the given order.
  *  @param[in] first The first packet of the queue.
