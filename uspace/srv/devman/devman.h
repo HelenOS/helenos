@@ -39,6 +39,7 @@
 #include <string.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
+#include <fibril_synch.h>
 
 #include "util.h"
 
@@ -73,13 +74,22 @@ typedef struct match_id_list {
 	link_t ids;
 } match_id_list_t;
 
+typedef enum {
+	/** driver has not been started */
+	DRIVER_NOT_STARTED = 0,
+	/** driver has been started, but has not registered as running and ready to receive requests */
+	DRIVER_STARTING,
+	/** driver is running and prepared to serve incomming requests */
+	DRIVER_RUNNING
+} driver_state_t;
+
 /** Representation of device driver.
  */
 typedef struct driver {
 	/** Pointers to previous and next drivers in a linked list */
 	link_t drivers;
-	/** Specifies whether the driver has been started.*/
-	bool running;
+	/** Specifies whether the driver has been started and wheter is running and prepared to receive requests.*/
+	int state;
 	/** Phone asociated with this driver */
 	ipcarg_t phone;
 	/** Name of the device driver */
@@ -90,7 +100,17 @@ typedef struct driver {
 	match_id_list_t match_ids;
 	/** Pointer to the linked list of devices controlled by this driver */
 	link_t devices;
+	/** Fibril mutex for this driver - driver state, list of devices, phone.*/
+	fibril_mutex_t driver_mutex;
 } driver_t;
+
+/** The list of drivers. */
+typedef struct driver_list {
+	/** List of drivers */
+	link_t drivers;
+	/** Fibril mutex for list of drivers. */
+	fibril_mutex_t drivers_mutex;	
+} driver_list_t;
 
 /** Representation of a node in the device tree.*/
 struct node {
@@ -100,6 +120,8 @@ struct node {
 	link_t sibling;
 	/** List of child device nodes. */
 	link_t children;
+	/** Fibril mutex for the list of child device nodes of this node. */
+	fibril_mutex_t children_mutex;
 	/** List of device ids for device-to-driver matching.*/
 	match_id_list_t match_ids;
 	/** Driver of this device.*/

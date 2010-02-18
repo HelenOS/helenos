@@ -243,6 +243,7 @@ int lookup_available_drivers(link_t *drivers_list, const char *dir_path)
 
 node_t * create_root_node()
 {
+	printf(NAME ": create_root_node\n");
 	node_t *node = create_dev_node();
 	if (node) {
 		init_dev_node(node, NULL);
@@ -256,6 +257,7 @@ node_t * create_root_node()
 
 driver_t * find_best_match_driver(link_t *drivers_list, node_t *node)
 {
+	printf(NAME ": find_best_match_driver\n");
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
 	link_t *link = drivers_list->next;	
@@ -266,7 +268,8 @@ driver_t * find_best_match_driver(link_t *drivers_list, node_t *node)
 		if (score > best_score) {
 			best_score = score;
 			best_drv = drv;
-		}		
+		}	
+		link = link->next;
 	}	
 	
 	return best_drv;	
@@ -280,6 +283,8 @@ void attach_driver(node_t *node, driver_t *drv)
 
 bool start_driver(driver_t *drv)
 {
+	printf(NAME ": start_driver\n");
+	
 	char *argv[2];
 	
 	printf(NAME ": spawning driver %s\n", drv->name);
@@ -292,11 +297,14 @@ bool start_driver(driver_t *drv)
 		return false;
 	}
 	
+	drv->state = DRIVER_STARTING;
 	return true;
 }
 
 bool add_device(driver_t *drv, node_t *node)
 {
+	printf(NAME ": add_device\n");
+	
 	// TODO
 	
 	// pass a new device to the running driver, which was previously assigned to it
@@ -309,19 +317,24 @@ bool add_device(driver_t *drv, node_t *node)
 
 bool assign_driver(node_t *node, link_t *drivers_list) 
 {
+	printf(NAME ": assign_driver\n");
+	
 	// find the driver which is the most suitable for handling this device
 	driver_t *drv = find_best_match_driver(drivers_list, node);
 	if (NULL == drv) {
+		printf(NAME ": no driver found for device.\n"); 
 		return false;		
 	}
 	
 	// attach the driver to the device
 	attach_driver(node, drv);
 	
-	if (!drv->running) {
+	if (DRIVER_NOT_STARTED == drv->state) {
 		// start driver
 		start_driver(drv);
-	} else {
+	} 
+	
+	if (DRIVER_RUNNING == drv->state) {
 		// notify driver about new device
 		add_device(drv, node);		
 	}
@@ -331,7 +344,7 @@ bool assign_driver(node_t *node, link_t *drivers_list)
 
 bool init_device_tree(dev_tree_t *tree, link_t *drivers_list)
 {
-	printf(NAME ": init_device_tree.");
+	printf(NAME ": init_device_tree.\n");
 	// create root node and add it to the device tree
 	if (NULL == (tree->root_node = create_root_node())) {
 		return false;
