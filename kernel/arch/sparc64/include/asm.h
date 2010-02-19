@@ -429,7 +429,7 @@ static inline void nucleus_leave(void)
 	asm volatile ("wrpr %g0, %g0, %tl\n");
 }
 
-extern void cpu_halt(void);
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(const uint32_t usec);
 

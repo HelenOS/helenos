@@ -47,6 +47,7 @@ endif
 
 RD_SRVS = \
 	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/bd/part/guid_part/g_part \
 	$(USPACEDIR)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACEDIR)/srv/clip/clip \
 	$(USPACEDIR)/srv/hid/fb/fb \
@@ -54,7 +55,8 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/hid/console/console \
 	$(USPACEDIR)/srv/fs/devfs/devfs \
 	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/taskmon/taskmon
 
 RD_APPS = \
 	$(USPACEDIR)/app/bdsh/bdsh \
@@ -63,6 +65,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/mkfat/mkfat \
 	$(USPACEDIR)/app/redir/redir \
+	$(USPACEDIR)/app/taskdump/taskdump \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace

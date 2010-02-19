@@ -44,6 +44,7 @@
 #include <arch/asm.h>
 #include <arch/mm/page.h>
 #include <arch/stack.h>
+#include <interrupt.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
 #include <ddi/irq.h>
@@ -163,6 +164,11 @@ void arch_reboot(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

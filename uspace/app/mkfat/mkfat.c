@@ -43,6 +43,9 @@
 #include <mem.h>
 #include <devmap.h>
 #include <byteorder.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
+#include <inttypes.h>
 #include <errno.h>
 #include "fat.h"
 
@@ -94,7 +97,7 @@ int main(int argc, char **argv)
 	dev_handle_t handle;
 	size_t block_size;
 	char *endptr;
-	bn_t dev_nblocks;
+	aoff64_t dev_nblocks;
 
 	cfg.total_sectors = 0;
 	cfg.addt_res_sectors = 0;
@@ -156,7 +159,8 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
-		printf(NAME ": Block device has %llu blocks.\n", dev_nblocks);
+		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
+		    dev_nblocks);
 		cfg.total_sectors = dev_nblocks;
 	}
 
@@ -231,7 +235,7 @@ static int fat_params_compute(struct fat_cfg const *cfg, struct fat_params *par)
 /** Create file system with the given parameters. */
 static int fat_blocks_write(struct fat_params const *par, dev_handle_t handle)
 {
-	bn_t addr;
+	aoff64_t addr;
 	uint8_t *buffer;
 	int i;
 	uint32_t j;

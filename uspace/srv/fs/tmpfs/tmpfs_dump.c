@@ -54,8 +54,8 @@ struct rdentry {
 } __attribute__((packed));
 
 static bool
-tmpfs_restore_recursion(dev_handle_t dev, off_t *bufpos, size_t *buflen,
-    off_t *pos, fs_node_t *pfn)
+tmpfs_restore_recursion(dev_handle_t dev, size_t *bufpos, size_t *buflen,
+    aoff64_t *pos, fs_node_t *pfn)
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
@@ -170,9 +170,9 @@ bool tmpfs_restore(dev_handle_t dev)
 	if (rc != EOK)
 		return false; 
 	
-	off_t bufpos = 0;
+	size_t bufpos = 0;
 	size_t buflen = 0;
-	off_t pos = 0;
+	aoff64_t pos = 0;
 	
 	char tag[6];
 	if (block_seqread(dev, &bufpos, &buflen, &pos, tag, 5) != EOK)

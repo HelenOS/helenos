@@ -75,7 +75,7 @@ typedef struct {
 	 * an integer error code.
 	 */
 	fs_index_t (* index_get)(fs_node_t *);
-	size_t (* size_get)(fs_node_t *);
+	aoff64_t (* size_get)(fs_node_t *);
 	unsigned int (* lnkcnt_get)(fs_node_t *);
 	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
@@ -94,6 +94,7 @@ extern int fs_register(int, fs_reg_t *, vfs_info_t *, async_client_conn_t);
 extern void fs_node_initialize(fs_node_t *);
 
 extern void libfs_mount(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
+extern void libfs_unmount(libfs_ops_t *, ipc_callid_t, ipc_call_t *);
 extern void libfs_lookup(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 extern void libfs_stat(libfs_ops_t *, fs_handle_t, ipc_callid_t, ipc_call_t *);
 extern void libfs_open_node(libfs_ops_t *, fs_handle_t, ipc_callid_t,

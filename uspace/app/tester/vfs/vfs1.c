@@ -78,17 +78,10 @@ char *test_vfs1(void)
 		return "mkdir() failed";
 	TPRINTF("Created directory %s\n", MOUNT_POINT);
 	
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1)
-		return "Unable to create null device";
-	
-	snprintf(null, MAX_DEVICE_NAME, "null/%d", null_id);
-	int rc = mount(FS_TYPE, MOUNT_POINT, null, OPTIONS, FLAGS);
+	int rc = mount(FS_TYPE, MOUNT_POINT, "", OPTIONS, FLAGS);
 	switch (rc) {
 	case EOK:
-		TPRINTF("Mounted /dev/%s as %s on %s\n", null, FS_TYPE, MOUNT_POINT);
+		TPRINTF("Mounted %s on %s\n", FS_TYPE, MOUNT_POINT);
 		break;
 	case EBUSY:
 		TPRINTF("(INFO) Filesystem already mounted on %s\n", MOUNT_POINT);

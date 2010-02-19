@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_SYS_STAT_H_
 #define LIBC_SYS_STAT_H_
@@ -47,7 +47,7 @@ struct stat {
 	unsigned int lnkcnt;
 	bool is_file;
 	bool is_directory;
-	off_t size;
+	aoff64_t size;
 	dev_handle_t device;
 };
 

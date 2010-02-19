@@ -540,11 +540,11 @@ int getchar(void)
 	return fgetc(stdin);
 }
 
-int fseek(FILE *stream, long offset, int origin)
+int fseek(FILE *stream, off64_t offset, int whence)
 {
-	off_t rc = lseek(stream->fd, offset, origin);
-	if (rc == (off_t) (-1)) {
-		/* errno has been set by lseek. */
+	off64_t rc = lseek(stream->fd, offset, whence);
+	if (rc == (off64_t) (-1)) {
+		/* errno has been set by lseek64. */
 		return -1;
 	}
 	
@@ -553,15 +553,9 @@ int fseek(FILE *stream, long offset, int origin)
 	return 0;
 }
 
-int ftell(FILE *stream)
+off64_t ftell(FILE *stream)
 {
-	off_t rc = lseek(stream->fd, 0, SEEK_CUR);
-	if (rc == (off_t) (-1)) {
-		/* errno has been set by lseek. */
-		return -1;
-	}
-
-	return rc;
+	return lseek(stream->fd, 0, SEEK_CUR);
 }
 
 void rewind(FILE *stream)

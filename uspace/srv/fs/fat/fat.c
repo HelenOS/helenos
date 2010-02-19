@@ -99,6 +99,12 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_MOUNT:
 			fat_mount(callid, &call);
 			break;
+		case VFS_OUT_UNMOUNTED:
+			fat_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			fat_unmount(callid, &call);
+			break;
 		case VFS_OUT_LOOKUP:
 			fat_lookup(callid, &call);
 			break;

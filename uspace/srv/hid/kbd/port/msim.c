@@ -63,7 +63,7 @@ static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 int kbd_port_init(void)
 {
 	async_set_interrupt_received(msim_irq_handler);
-	msim_cmds[0].addr = sysinfo_value("kbd.address.virtual");
+	msim_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
 	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
 	    0, &msim_kbd);
 	return 0;

@@ -56,8 +56,8 @@
 static void serial_sgr(const unsigned int mode);
 void serial_putchar(wchar_t ch);
 
-static int scr_width;
-static int scr_height;
+static unsigned int scr_width;
+static unsigned int scr_height;
 static bool color = true;	/** True if producing color output. */
 static bool utf8 = false;	/** True if producing UTF8 output. */
 static putc_function_t putc_function;
@@ -107,7 +107,7 @@ void serial_puts(char *str)
 
 void serial_putchar(wchar_t ch)
 {
-	uint8_t buf[STR_BOUNDS(1)];
+	char buf[STR_BOUNDS(1)];
 	size_t offs;
 	size_t i;
 
@@ -293,8 +293,8 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 	}
 }
 
-int lastcol = 0;
-int lastrow = 0;
+unsigned int lastcol = 0;
+unsigned int lastrow = 0;
 
 /**
  * Main function of the thread serving client connections.
@@ -308,7 +308,10 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	size_t intersize = 0;
 
 	wchar_t c;
-	int col, row, w, h;
+	unsigned int col;
+	unsigned int row;
+	unsigned int w;
+	unsigned int h;
 	int i;
 
 	attrs_t cur_attr;
@@ -357,7 +360,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			if (col + w > scr_width || row + h > scr_height) {
+			if ((col + w > scr_width) || (row + h > scr_height)) {
 				retval = EINVAL;
 				break;
 			}
@@ -423,7 +426,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case FB_SCROLL:
 			i = IPC_GET_ARG1(call);
-			if ((i > scr_height) || (i < -scr_height)) {
+			if ((i > (int) scr_height) || (i < -((int) scr_height))) {
 				retval = EINVAL;
 				break;
 			}

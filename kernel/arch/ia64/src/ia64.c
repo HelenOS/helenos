@@ -43,6 +43,7 @@
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
 #include <userspace.h>
@@ -277,6 +278,11 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	fptr->gp = ((unative_t *) caller)[1];
 	
 	return (void *) fptr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

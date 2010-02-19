@@ -40,17 +40,17 @@
 
 #define MAP_FAILED  ((void *) -1)
 
-#define MAP_SHARED       (1 << 0)
-#define MAP_PRIVATE      (1 << 1)
-#define MAP_FIXED        (1 << 2)
-#define MAP_ANONYMOUS    (1 << 3)
+#define MAP_SHARED     (1 << 0)
+#define MAP_PRIVATE    (1 << 1)
+#define MAP_FIXED      (1 << 2)
+#define MAP_ANONYMOUS  (1 << 3)
 
 #define PROTO_READ   AS_AREA_READ
 #define PROTO_WRITE  AS_AREA_WRITE
 #define PROTO_EXEC   AS_AREA_EXEC
 
-extern void *mmap(void  *start, size_t length, int prot, int flags, int fd,
-    off_t offset);
+extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
+    aoff64_t offset);
 extern int munmap(void *start, size_t length);
 
 #endif

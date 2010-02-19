@@ -70,7 +70,7 @@ typedef volatile struct {
 input_buffer_t input_buffer;
 
 static volatile bool polling_disabled = false;
-static void *niagara_thread_impl(void *arg);
+static void niagara_thread_impl(void *arg);
 
 /**
  * Initializes the Niagara driver.
@@ -135,7 +135,7 @@ static void niagara_key_pressed(void)
 /**
  * Thread to poll SGCN for keypresses.
  */
-static void *niagara_thread_impl(void *arg)
+static void niagara_thread_impl(void *arg)
 {
 	(void) arg;
 
@@ -144,7 +144,6 @@ static void *niagara_thread_impl(void *arg)
 			niagara_key_pressed();
 		usleep(POLL_INTERVAL);
 	}
-	return 0;
 }
 /** @}
  */

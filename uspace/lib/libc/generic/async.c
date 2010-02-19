@@ -1286,13 +1286,48 @@ int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 	return ipc_data_read_finalize(callid, src, size);
 }
 
+/** Wrapper for forwarding any read request
+ *
+ *
+ */
+int async_data_read_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
+{
+	ipc_callid_t callid;
+	if (!async_data_read_receive(&callid, NULL)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	aid_t msg = async_send_fast(phoneid, method, arg1, arg2, arg3, arg4,
+	    dataptr);
+	if (msg == 0) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	int retval = ipc_forward_fast(callid, phoneid, 0, 0, 0,
+	    IPC_FF_ROUTE_FROM_ME);
+	if (retval != EOK) {
+		async_wait_for(msg, NULL);
+		ipc_answer_0(callid, retval);
+		return retval;
+	}
+	
+	ipcarg_t rc;
+	async_wait_for(msg, &rc);
+	
+	return (int) rc;
+}
+
 /** Wrapper for making IPC_M_DATA_WRITE calls using the async framework.
  *
- * @param phoneid	Phone that will be used to contact the receiving side.
- * @param src		Address of the beginning of the source buffer.
- * @param size		Size of the source buffer.
+ * @param phoneid Phone that will be used to contact the receiving side.
+ * @param src     Address of the beginning of the source buffer.
+ * @param size    Size of the source buffer.
  *
- * @return		Zero on success or a negative error code from errno.h.
+ * @return Zero on success or a negative error code from errno.h.
+ *
  */
 int async_data_write_start(int phoneid, const void *src, size_t size)
 {
@@ -1307,24 +1342,27 @@ int async_data_write_start(int phoneid, const void *src, size_t size)
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid	Storage where the hash of the IPC_M_DATA_WRITE call will
- * 			be stored.
- * @param size		Storage where the suggested size will be stored. May be
- *			NULL
+ * @param callid Storage where the hash of the IPC_M_DATA_WRITE call will
+ *               be stored.
+ * @param size   Storage where the suggested size will be stored. May be
+ *               NULL
  *
- * @return		Non-zero on success, zero on failure.
+ * @return Non-zero on success, zero on failure.
+ *
  */
 int async_data_write_receive(ipc_callid_t *callid, size_t *size)
 {
 	ipc_call_t data;
 	
 	assert(callid);
-
+	
 	*callid = async_get_call(&data);
 	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
 		return 0;
+	
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(data);
+	
 	return 1;
 }
 
@@ -1333,37 +1371,51 @@ int async_data_write_receive(ipc_callid_t *callid, size_t *size)
  * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE calls
  * so that the user doesn't have to remember the meaning of each IPC argument.
  *
- * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst		Final destination address for the IPC_M_DATA_WRITE call.
- * @param size		Final size for the IPC_M_DATA_WRITE call.
+ * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst    Final destination address for the IPC_M_DATA_WRITE call.
+ * @param size   Final size for the IPC_M_DATA_WRITE call.
  *
- * @return		Zero on success or a value from @ref errno.h on failure.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int async_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 {
 	return ipc_data_write_finalize(callid, dst, size);
 }
 
-/** Wrapper for receiving blobs via the async_data_write_*
+/** Wrapper for receiving binary data or strings
  *
  * This wrapper only makes it more comfortable to use async_data_write_*
- * functions to receive blobs.
+ * functions to receive binary data or strings.
  *
- * @param blob     Pointer to data pointer (which should be later disposed
- *                 by free()). If the operation fails, the pointer is not
- *                 touched.
- * @param max_size Maximum size (in bytes) of the blob to receive. 0 means
- *                 no limit.
- * @param received If not NULL, the size of the received data is stored here.
+ * @param data       Pointer to data pointer (which should be later disposed
+ *                   by free()). If the operation fails, the pointer is not
+ *                   touched.
+ * @param nullterm   If true then the received data is always zero terminated.
+ *                   This also causes to allocate one extra byte beyond the
+ *                   raw transmitted data.
+ * @param min_size   Minimum size (in bytes) of the data to receive.
+ * @param max_size   Maximum size (in bytes) of the data to receive. 0 means
+ *                   no limit.
+ * @param granulariy If non-zero then the size of the received data has to
+ *                   be divisible by this value.
+ * @param received   If not NULL, the size of the received data is stored here.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-int async_data_blob_receive(char **blob, const size_t max_size, size_t *received)
+int async_data_write_accept(void **data, const bool nullterm,
+    const size_t min_size, const size_t max_size, const size_t granularity,
+    size_t *received)
 {
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	if (size < min_size) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
@@ -1373,68 +1425,85 @@ int async_data_blob_receive(char **blob, const size_t max_size, size_t *received
 		return EINVAL;
 	}
 	
-	char *data = (char *) malloc(size);
-	if (data == NULL) {
+	if ((granularity > 0) && ((size % granularity) != 0)) {
+		ipc_answer_0(callid, EINVAL);
+		return EINVAL;
+	}
+	
+	void *_data;
+	
+	if (nullterm)
+		_data = malloc(size + 1);
+	else
+		_data = malloc(size);
+	
+	if (_data == NULL) {
 		ipc_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_finalize(callid, data, size);
+	int rc = async_data_write_finalize(callid, _data, size);
 	if (rc != EOK) {
-		free(data);
+		free(_data);
 		return rc;
 	}
 	
-	*blob = data;
+	if (nullterm)
+		((char *) _data)[size] = 0;
+	
+	*data = _data;
 	if (received != NULL)
 		*received = size;
 	
 	return EOK;
 }
 
-/** Wrapper for receiving strings via the async_data_write_*
+/** Wrapper for voiding any data that is about to be received
  *
- * This wrapper only makes it more comfortable to use async_data_write_*
- * functions to receive strings.
+ * This wrapper can be used to void any pending data
  *
- * @param str      Pointer to string pointer (which should be later disposed
- *                 by free()). If the operation fails, the pointer is not
- *                 touched.
- * @param max_size Maximum size (in bytes) of the string to receive. 0 means
- *                 no limit.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
+ * @param retval Error value from @ref errno.h to be returned to the caller.
  *
  */
-int async_data_string_receive(char **str, const size_t max_size)
+void async_data_write_void(const int retval)
 {
 	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
+	async_data_write_receive(&callid, NULL);
+	ipc_answer_0(callid, retval);
+}
+
+/** Wrapper for forwarding any data that is about to be received
+ *
+ *
+ */
+int async_data_write_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
+    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
+{
+	ipc_callid_t callid;
+	if (!async_data_write_receive(&callid, NULL)) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	if ((max_size > 0) && (size > max_size)) {
+	aid_t msg = async_send_fast(phoneid, method, arg1, arg2, arg3, arg4,
+	    dataptr);
+	if (msg == 0) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 	
-	char *data = (char *) malloc(size + 1);
-	if (data == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		return ENOMEM;
+	int retval = ipc_forward_fast(callid, phoneid, 0, 0, 0,
+	    IPC_FF_ROUTE_FROM_ME);
+	if (retval != EOK) {
+		async_wait_for(msg, NULL);
+		ipc_answer_0(callid, retval);
+		return retval;
 	}
 	
-	int rc = async_data_write_finalize(callid, data, size);
-	if (rc != EOK) {
-		free(data);
-		return rc;
-	}
+	ipcarg_t rc;
+	async_wait_for(msg, &rc);
 	
-	data[size] = 0;
-	*str = data;
-	return EOK;
+	return (int) rc;
 }
 
 /** @}

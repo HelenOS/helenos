@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <adt/hash_table.h>
+#include <sys/typefmt.h>
 
 #include "ipc_desc.h"
 #include "proto.h"
@@ -199,10 +200,11 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: 0x%lx, phone: %d, proto: %s, method: ", hash,
+		printf("Call ID: %p, phone: %d, proto: %s, method: ", hash,
 			phone, (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_METHOD(*call));
-		printf(" args: (%lu, %lu, %lu, %lu, %lu)\n", args[1], args[2],
+		printf(" args: (%" PRIuIPCARG ", %" PRIuIPCARG ", %" PRIuIPCARG
+		    ", %" PRIuIPCARG ", %" PRIuIPCARG ")\n", args[1], args[2],
 		    args[3], args[4], args[5]);
 	}
 
@@ -278,10 +280,12 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to 0x%lx: retval=%ld, args = (%lu, %lu, %lu, %lu, %lu)\n",
-			hash, retval, IPC_GET_ARG1(*answer),
-			IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
-			IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
+		printf("Response to %p: retval=%ld, args = (%" PRIuIPCARG
+		    ", %" PRIuIPCARG ", %" PRIuIPCARG ", %" PRIuIPCARG
+		    ", %" PRIuIPCARG ")\n",
+		    hash, retval, IPC_GET_ARG1(*answer),
+		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
+		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
 
 	if ((display_mask & DM_USER) != 0) {
@@ -335,7 +339,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash 0x%lx)\n", hash);
+			printf("Not a response (hash %p)\n", hash);
 		}
 		return;
 	}

@@ -73,7 +73,7 @@ typedef struct block {
 	/** Handle of the device where the block resides. */
 	dev_handle_t dev_handle;
 	/** Block offset on the block device. Counted in 'size'-byte blocks. */
-	bn_t boff;
+	aoff64_t boff;
 	/** Size of the block. */
 	size_t size;
 	/** Link for placing the block into the free block list. */
@@ -95,21 +95,22 @@ enum cache_mode {
 extern int block_init(dev_handle_t, size_t);
 extern void block_fini(dev_handle_t);
 
-extern int block_bb_read(dev_handle_t, bn_t);
+extern int block_bb_read(dev_handle_t, aoff64_t);
 extern void *block_bb_get(dev_handle_t);
 
 extern int block_cache_init(dev_handle_t, size_t, unsigned, enum cache_mode);
+extern int block_cache_fini(dev_handle_t);
 
-extern int block_get(block_t **, dev_handle_t, bn_t, int);
+extern int block_get(block_t **, dev_handle_t, aoff64_t, int);
 extern int block_put(block_t *);
 
-extern int block_seqread(dev_handle_t, off_t *, size_t *, off_t *, void *,
+extern int block_seqread(dev_handle_t, size_t *, size_t *, aoff64_t *, void *,
     size_t);
 
 extern int block_get_bsize(dev_handle_t, size_t *);
-extern int block_get_nblocks(dev_handle_t, bn_t *);
-extern int block_read_direct(dev_handle_t, bn_t, size_t, void *);
-extern int block_write_direct(dev_handle_t, bn_t, size_t, const void *);
+extern int block_get_nblocks(dev_handle_t, aoff64_t *);
+extern int block_read_direct(dev_handle_t, aoff64_t, size_t, void *);
+extern int block_write_direct(dev_handle_t, aoff64_t, size_t, const void *);
 
 #endif
 

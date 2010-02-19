@@ -105,6 +105,12 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_MOUNT:
 			tmpfs_mount(callid, &call);
 			break;
+		case VFS_OUT_UNMOUNTED:
+			tmpfs_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			tmpfs_unmount(callid, &call);
+			break;
 		case VFS_OUT_LOOKUP:
 			tmpfs_lookup(callid, &call);
 			break;
