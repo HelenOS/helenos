@@ -55,7 +55,7 @@
 
 #define DRIVER_DEFAULT_STORE  "/srv/drivers"
 
-LIST_INITIALIZE(drivers_list);
+static driver_list_t drivers_list;
 static dev_tree_t device_tree;
 
 
@@ -91,9 +91,10 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 static bool devman_init()
 {
-	printf(NAME ": devman_init - looking for available drivers. \n");
+	printf(NAME ": devman_init - looking for available drivers. \n");	
 	
 	// initialize list of available drivers
+	init_driver_list(&drivers_list);
 	if (0 == lookup_available_drivers(&drivers_list, DRIVER_DEFAULT_STORE)) {
 		printf(NAME " no drivers found.");
 		return false;
@@ -109,9 +110,6 @@ static bool devman_init()
 	return true;
 }
 
-/**
- *
- */
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Device Manager\n");

@@ -37,7 +37,10 @@
 #include "devman.h"
 #include "util.h"
 
-
+/** Allocate and initialize a new driver structure.
+ * 
+ * @return driver structure.
+ */
 driver_t * create_driver() 
 {
 	printf(NAME ": create_driver\n");
@@ -49,7 +52,28 @@ driver_t * create_driver()
 	return res;
 }
 
-char * read_id(const char **buf) 
+/** Add a driver to the list of drivers.
+ * 
+ * @param drivers_list the list of drivers.
+ * @param drv the driver's structure.
+ */
+void add_driver(driver_list_t *drivers_list, driver_t *drv)
+{
+	fibril_mutex_lock(&drivers_list->drivers_mutex);
+	list_prepend(&drv->drivers, &drivers_list->drivers);
+	fibril_mutex_unlock(&drivers_list->drivers_mutex);
+	
+	printf(NAME": the '%s' driver was added to the list of available drivers.\n", drv->name);
+}
+
+/** Read match id at the specified position of a string and set 
+ * the position in the string to the first character following the id.
+ * 
+ * @param buf the position in the input string.
+ * 
+ * @return the match id. 
+ */
+char * read_match_id(const char **buf) 
 {
 	char *res = NULL;
 	size_t len = get_nonspace_len(*buf);
@@ -63,6 +87,18 @@ char * read_id(const char **buf)
 	return res;
 }
 
+/**
+ * Read match ids and associated match scores from a string.
+ * 
+ * Each match score in the string is followed by its match id. 
+ * The match ids and match scores are separated by whitespaces. 
+ * Neither match ids nor match scores can contain whitespaces. 
+ * 
+ * @param buf the string from which the match ids are read.
+ * @param ids the list of match ids into which the match ids and scores are added.
+ * 
+ * @return true if at least one match id and associated match score was successfully read, false otherwise.
+ */
 bool parse_match_ids(const char *buf, match_id_list_t *ids)
 {
 	int score = 0;
@@ -83,7 +119,7 @@ bool parse_match_ids(const char *buf, match_id_list_t *ids)
 		}
 		
 		// read id
-		if (NULL == (id = read_id(&buf))) {
+		if (NULL == (id = read_match_id(&buf))) {
 			break;			
 		}
 		
@@ -101,6 +137,18 @@ bool parse_match_ids(const char *buf, match_id_list_t *ids)
 	return ids_read > 0;
 }
 
+/**
+ * Read match ids and associated match scores from a file.
+ * 
+ * Each match score in the file is followed by its match id. 
+ * The match ids and match scores are separated by whitespaces. 
+ * Neither match ids nor match scores can contain whitespaces. 
+ * 
+ * @param buf the path to the file from which the match ids are read.
+ * @param ids the list of match ids into which the match ids and scores are added.
+ * 
+ * @return true if at least one match id and associated match score was successfully read, false otherwise.
+ */
 bool read_match_ids(const char *conf_path, match_id_list_t *ids) 
 {	
 	printf(NAME ": read_match_ids conf_path = %s.\n", conf_path);
@@ -150,7 +198,25 @@ cleanup:
 	return suc;
 }
 
-
+/**
+ * Get information about a driver.
+ * 
+ * Each driver has its own directory in the base directory. 
+ * The name of the driver's directory is the same as the name of the driver.
+ * The driver's directory contains driver's binary (named as the driver without extension)
+ * and the configuration file with match ids for device-to-driver matching 
+ * (named as the driver with a special extension).
+ * 
+ * This function searches for the driver's directory and containing configuration files.
+ * If all the files needed are found, they are parsed and 
+ * the information about the driver is stored to the driver's structure.
+ * 
+ * @param base_path the base directory, in which we look for driver's subdirectory.
+ * @param name the name of the driver.
+ * @param drv the driver structure to fill information in.
+ * 
+ * @return true on success, false otherwise.
+ */
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
 	printf(NAME ": get_driver_info base_path = %s, name = %s.\n", base_path, name);
@@ -212,8 +278,10 @@ cleanup:
  * 
  * @param drivers_list the list of available drivers.
  * @param dir_path the path to the directory where we search for drivers. 
+ * 
+ * @return number of drivers which were found.
  */ 
-int lookup_available_drivers(link_t *drivers_list, const char *dir_path)
+int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
 	printf(NAME ": lookup_available_drivers \n");
 	
@@ -241,6 +309,10 @@ int lookup_available_drivers(link_t *drivers_list, const char *dir_path)
 	return drv_cnt;
 }
 
+/** Create root device node of the device tree.
+ * 
+ * @return root device node.
+ */
 node_t * create_root_node()
 {
 	printf(NAME ": create_root_node\n");
@@ -255,14 +327,28 @@ node_t * create_root_node()
 	return node;	
 }
 
-driver_t * find_best_match_driver(link_t *drivers_list, node_t *node)
+/** Lookup the best matching driver for the specified device in the list of drivers.
+ * 
+ * A match between a device and a driver is found 
+ * if one of the driver's match ids match one of the device's match ids.
+ * The score of the match is the product of the driver's and device's score associated with the matching id.
+ * The best matching driver for a device is the driver
+ * with the highest score of the match between the device and the driver.
+ * 
+ * @param drivers_list the list of drivers, where we look for the driver suitable for handling the device.
+ * @param node the device node structure of the device.
+ *
+ * @return the best matching driver or NULL if no matching driver is found.
+ */
+driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
 {
 	printf(NAME ": find_best_match_driver\n");
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
-	link_t *link = drivers_list->next;	
 	
-	while (link != drivers_list) {
+	fibril_mutex_lock(&drivers_list->drivers_mutex);
+	link_t *link = drivers_list->drivers.next;		
+	while (link != &drivers_list->drivers) {
 		drv = list_get_instance(link, driver_t, drivers);
 		score = get_match_score(drv, node);
 		if (score > best_score) {
@@ -270,17 +356,35 @@ driver_t * find_best_match_driver(link_t *drivers_list, node_t *node)
 			best_drv = drv;
 		}	
 		link = link->next;
-	}	
+	}
+	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 	
 	return best_drv;	
 }
 
+/**
+ * Assign a driver to a device.
+ * 
+ * @param node the device's node in the device tree.
+ * @param drv the driver.
+ */
 void attach_driver(node_t *node, driver_t *drv) 
 {
+	fibril_mutex_lock(&drv->driver_mutex);
+	
 	node->drv = drv;
 	list_append(&node->driver_devices, &drv->devices);
+	
+	fibril_mutex_unlock(&drv->driver_mutex);
 }
 
+/** Start a driver.
+ * 
+ * The driver's mutex is assumed to be locked.
+ * 
+ * @param drv the driver's structure.
+ * @return true if the driver's task is successfully spawned, false otherwise.
+ */
 bool start_driver(driver_t *drv)
 {
 	printf(NAME ": start_driver\n");
@@ -301,6 +405,13 @@ bool start_driver(driver_t *drv)
 	return true;
 }
 
+/** Pass a device to running driver.
+ * 
+ * @param drv the driver's structure.
+ * @param node the device's node in the device tree.
+ * 
+ * @return true on success, false otherwise.
+ */
 bool add_device(driver_t *drv, node_t *node)
 {
 	printf(NAME ": add_device\n");
@@ -315,7 +426,15 @@ bool add_device(driver_t *drv, node_t *node)
 	return true;
 }
 
-bool assign_driver(node_t *node, link_t *drivers_list) 
+/**
+ * Find suitable driver for a device and assign the driver to it.
+ * 
+ * @param node the device node of the device in the device tree.
+ * @param drivers_list the list of available drivers.
+ * 
+ * @return true if the suitable driver is found and successfully assigned to the device, false otherwise. 
+ */
+bool assign_driver(node_t *node, driver_list_t *drivers_list) 
 {
 	printf(NAME ": assign_driver\n");
 	
@@ -342,9 +461,19 @@ bool assign_driver(node_t *node, link_t *drivers_list)
 	return true;
 }
 
-bool init_device_tree(dev_tree_t *tree, link_t *drivers_list)
+/**
+ * Initialize the device tree.
+ * 
+ * Create root device node of the tree and assign driver to it.
+ * 
+ * @param tree the device tree.
+ * @param the list of available drivers.
+ * @return true on success, false otherwise.
+ */
+bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
 	printf(NAME ": init_device_tree.\n");
+	
 	// create root node and add it to the device tree
 	if (NULL == (tree->root_node = create_root_node())) {
 		return false;
