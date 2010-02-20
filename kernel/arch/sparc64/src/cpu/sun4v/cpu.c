@@ -50,8 +50,7 @@ void cpu_arch_init(void)
 	uint64_t myid;
 	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
 
-	//MH
-	//CPU->arch.id = myid;
+	CPU->arch.id = myid;
 
 	md_node_t node = md_get_root();
 

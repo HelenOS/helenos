@@ -49,8 +49,6 @@
 #include <userspace.h>
 #include <ddi/irq.h>
 #include <string.h>
-
-//MH
 #include <arch/drivers/niagara.h>
 
 bootinfo_t bootinfo;
