@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_mips32_DORDER_H_
-#define KERN_mips32_DORDER_H_
+/** @addtogroup libabs32le
+ * @{
+ */
+/** @file
+ */
 
-extern void ipi_broadcast_arch(int ipi);
+#ifndef LIBC_abs32le_FADDR_H_
+#define LIBC_abs32le_FADDR_H_
+
+#include <libarch/types.h>
+
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
+
+/** @}
+ */

@@ -124,7 +124,8 @@ static void pi(void *data)
 
 char *test_fpu1(void)
 {
-	unsigned int i, total = 0;
+	unsigned int i;
+	atomic_count_t total = 0;
 	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
@@ -155,7 +156,7 @@ char *test_fpu1(void)
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-	while (atomic_get(&threads_ok) != (long) total) {
+	while (atomic_get(&threads_ok) != total) {
 		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}

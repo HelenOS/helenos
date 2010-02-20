@@ -42,13 +42,8 @@
 
 #ifdef KERNEL
 
-#ifndef __ASM__
-	#define KA2PA(x)  (((uintptr_t) (x)) - 0x80000000)
-	#define PA2KA(x)  (((uintptr_t) (x)) + 0x80000000)
-#else
-	#define KA2PA(x)  ((x) - 0x80000000)
-	#define PA2KA(x)  ((x) + 0x80000000)
-#endif
+#define KA2PA(x)  (((uintptr_t) (x)) - 0x80000000)
+#define PA2KA(x)  (((uintptr_t) (x)) + 0x80000000)
 
 /*
  * This is an example of 2-level page tables (PTL1 and PTL2 are left out)
@@ -121,44 +116,28 @@
 	((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)  1
 
-#ifndef __ASM__
-
 #include <mm/mm.h>
 #include <arch/interrupt.h>
 #include <arch/types.h>
 #include <typedefs.h>
 
-/* Page fault error codes. */
-
-/** When bit on this position is 0, the page fault was caused by a not-present
- * page.
- */
-#define PFERR_CODE_P		(1 << 0)
-
-/** When bit on this position is 1, the page fault was caused by a write. */
-#define PFERR_CODE_RW		(1 << 1)
-
-/** When bit on this position is 1, the page fault was caused in user mode. */
-#define PFERR_CODE_US		(1 << 2)
-
-/** When bit on this position is 1, a reserved bit was set in page directory. */ 
-#define PFERR_CODE_RSVD		(1 << 3)	
-
 /** Page Table Entry. */
 typedef struct {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned pat : 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
-	unsigned avl : 2;
-	unsigned frame_address : 20;
-} __attribute__ ((packed)) pte_t;
+	unsigned int present : 1;
+	unsigned int writeable : 1;
+	unsigned int uaccessible : 1;
+	unsigned int page_write_through : 1;
+	unsigned int page_cache_disable : 1;
+	unsigned int accessed : 1;
+	unsigned int dirty : 1;
+	unsigned int pat : 1;
+	unsigned int global : 1;
+	
+	/** Valid content even if the present bit is not set. */
+	unsigned int soft_valid : 1;
+	unsigned int avl : 2;
+	unsigned int frame_address : 20;
+} __attribute__((packed)) pte_t;
 
 static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
@@ -191,9 +170,7 @@ static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 }
 
 extern void page_arch_init(void);
-extern void page_fault(int n, istate_t *istate);
-
-#endif /* __ASM__ */
+extern void page_fault(int, istate_t *);
 
 #endif /* KERNEL */
 

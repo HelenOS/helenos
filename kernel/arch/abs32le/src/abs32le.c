@@ -34,20 +34,25 @@
 
 #include <arch.h>
 #include <arch/types.h>
-#include <arch/context.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 
 #include <func.h>
 #include <config.h>
+#include <errno.h>
 #include <context.h>
+#include <fpu_context.h>
 #include <interrupt.h>
+#include <syscall/copy.h>
 #include <ddi/irq.h>
 #include <proc/thread.h>
 #include <syscall/syscall.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <memstr.h>
+
+char memcpy_from_uspace_failover_address;
+char memcpy_to_uspace_failover_address;
 
 void arch_pre_mm_init(void)
 {
@@ -82,7 +87,7 @@ void calibrate_delay_loop(void)
 
 unative_t sys_tls_set(unative_t addr)
 {
-	return 0;
+	return EOK;
 }
 
 /** Construct function pointer
@@ -108,16 +113,6 @@ void irq_initialize_arch(irq_t *irq)
 	(void) irq;
 }
 
-void memsetb(void *dst, size_t cnt, uint8_t val)
-{
-	_memsetb(dst, cnt, val);
-}
-
-void memsetw(void *dst, size_t cnt, uint16_t val)
-{
-	_memsetw(dst, cnt, val);
-}
-
 void panic_printf(char *fmt, ...)
 {
 	va_list args;
@@ -137,6 +132,28 @@ int context_save_arch(context_t *ctx)
 void context_restore_arch(context_t *ctx)
 {
 	while (true);
+}
+
+void fpu_init(void)
+{
+}
+
+void fpu_context_save(fpu_context_t *ctx)
+{
+}
+
+void fpu_context_restore(fpu_context_t *ctx)
+{
+}
+
+int memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
+{
+	return EOK;
+}
+
+int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
+{
+	return EOK;
 }
 
 /** @}

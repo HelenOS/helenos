@@ -44,6 +44,7 @@
 #include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
+#include <panic.h>
 #include <print.h>
 #include <putchar.h>
 #include <atomic.h>

@@ -33,7 +33,10 @@ TARGET = i686-pc-linux-gnu
 CLANG_ARCH = i386
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/setjmp.S \

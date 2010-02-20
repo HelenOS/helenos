@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -37,9 +37,9 @@
 #define KERN_arm32_TYPES_H_
 
 #ifndef DOXYGEN
-#	define ATTRIBUTE_PACKED __attribute__ ((packed))
+	#define ATTRIBUTE_PACKED __attribute__((packed))
 #else
-#	define ATTRIBUTE_PACKED
+	#define ATTRIBUTE_PACKED
 #endif
 
 typedef signed char int8_t;
@@ -61,6 +61,7 @@ typedef uint32_t ipl_t;
 
 typedef uint32_t unative_t;
 typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;

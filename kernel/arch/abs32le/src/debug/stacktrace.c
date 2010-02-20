@@ -39,7 +39,7 @@
 
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	return true;;
+	return true;
 }
 
 bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)

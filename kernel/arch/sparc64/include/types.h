@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -54,6 +54,7 @@ typedef uint64_t ipl_t;
 
 typedef uint64_t unative_t;
 typedef int64_t native_t;
+typedef uint64_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;

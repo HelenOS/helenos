@@ -32,7 +32,10 @@
 TARGET = sparc64-linux-gnu
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/fibril.S \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S

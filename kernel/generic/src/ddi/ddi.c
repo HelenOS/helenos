@@ -145,15 +145,17 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 		parea_t *parea = (parea_t *) btree_search(&parea_btree,
 		    (btree_key_t) pf, &nodep);
 		
-		if ((!parea) || (parea->frames < pages))
+		if ((!parea) || (parea->frames < pages)) {
+			spinlock_unlock(&parea_lock);
 			goto err;
+		}
 		
 		spinlock_unlock(&parea_lock);
 		goto map;
 	}
 	
-err:
 	spinlock_unlock(&zones.lock);
+err:
 	interrupts_restore(ipl);
 	return ENOENT;
 	

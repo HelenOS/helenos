@@ -149,6 +149,12 @@ ifeq ($(UARCH),sparc64)
 	endif
 endif
 
+ifeq ($(UARCH),abs32le)
+	SOURCES += \
+		port/dummy.c \
+		ctl/pc.c
+endif
+
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 .PHONY: all

@@ -69,7 +69,8 @@ static void reader(void *arg)
 char *test_rwlock5(void)
 {
 	int i, j, k;
-	long readers, writers;
+	atomic_count_t readers;
+	atomic_count_t writers;
 	
 	waitq_initialize(&can_start);
 	rwlock_initialize(&rwlock);

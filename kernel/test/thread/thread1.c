@@ -54,12 +54,13 @@ static void threadtest(void *data)
 
 char *test_thread1(void)
 {
-	unsigned int i, total = 0;
+	unsigned int i;
+	atomic_count_t total = 0;
 	
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);
 	
-	for (i = 0; i < THREADS; i++) {  
+	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		if (!(t = thread_create(threadtest, NULL, TASK, 0, "threadtest", false))) {
 			TPRINTF("Could not create thread %d\n", i);
@@ -73,7 +74,7 @@ char *test_thread1(void)
 	thread_sleep(10);
 	
 	atomic_set(&finish, 0);
-	while (atomic_get(&threads_finished) < ((long) total)) {
+	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_finished));
 		thread_sleep(1);
 	}

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32	
+/** @addtogroup libcarm32
  * @{
  */
 /** @file
@@ -37,7 +37,7 @@
 #define LIBC_arm32_ATOMIC_H_
 
 #define LIBC_ARCH_ATOMIC_H_
-#define CAS 
+#define CAS
 
 #include <atomicdflt.h>
 #include <bool.h>
@@ -45,10 +45,10 @@
 
 extern uintptr_t *ras_page;
 
-static inline bool cas(atomic_t *val, long ov, long nv)
+static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 {
-	long ret = 0;
-
+	atomic_count_t ret = 0;
+	
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
 	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
@@ -74,11 +74,13 @@ static inline bool cas(atomic_t *val, long ov, long nv)
 		  [nv] "r" (nv)
 		: "memory"
 	);
-
+	
 	ras_page[0] = 0;
-	asm volatile ("" ::: "memory");	
+	asm volatile (
+		"" ::: "memory"
+	);
 	ras_page[1] = 0xffffffff;
-
+	
 	return (bool) ret;
 }
 
@@ -88,11 +90,12 @@ static inline bool cas(atomic_t *val, long ov, long nv)
  * @param i   Value to be added.
  *
  * @return Value after addition.
+ *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	long ret = 0;
-
+	atomic_count_t ret = 0;
+	
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
 	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
@@ -114,11 +117,13 @@ static inline long atomic_add(atomic_t *val, int i)
 		  [addr] "+m" (val->count)
 		: [imm] "r" (i)
 	);
-
+	
 	ras_page[0] = 0;
-	asm volatile ("" ::: "memory");	
+	asm volatile (
+		"" ::: "memory"
+	);
 	ras_page[1] = 0xffffffff;
-
+	
 	return ret;
 }
 
@@ -126,6 +131,7 @@ static inline long atomic_add(atomic_t *val, int i)
 /** Atomic increment.
  *
  * @param val Variable to be incremented.
+ *
  */
 static inline void atomic_inc(atomic_t *val)
 {
@@ -136,6 +142,7 @@ static inline void atomic_inc(atomic_t *val)
 /** Atomic decrement.
  *
  * @param val Variable to be decremented.
+ *
  */
 static inline void atomic_dec(atomic_t *val)
 {
@@ -147,8 +154,9 @@ static inline void atomic_dec(atomic_t *val)
  *
  * @param val Variable to be incremented.
  * @return    Value after incrementation.
+ *
  */
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
@@ -158,8 +166,9 @@ static inline long atomic_preinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value after decrementation.
+ *
  */
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -169,8 +178,9 @@ static inline long atomic_predec(atomic_t *val)
  *
  * @param val Variable to be incremented.
  * @return    Value before incrementation.
+ *
  */
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1) - 1;
 }
@@ -180,8 +190,9 @@ static inline long atomic_postinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value before decrementation.
+ *
  */
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1) + 1;
 }
