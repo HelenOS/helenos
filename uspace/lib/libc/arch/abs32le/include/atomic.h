@@ -42,7 +42,7 @@
 
 #include <atomicdflt.h>
 
-static inline bool cas(atomic_t *val, long ov, long nv)
+static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 {
 	if (val->count == ov) {
 		val->count = nv;
@@ -66,25 +66,25 @@ static inline void atomic_dec(atomic_t *val) {
 	val->count++;
 }
 
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	/* On real hardware both the storing of the previous
 	   value and the increment have to be done as a single
 	   atomic action. */
 	
-	long prev = val->count;
+	atomic_count_t prev = val->count;
 	
 	val->count++;
 	return prev;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	/* On real hardware both the storing of the previous
 	   value and the decrement have to be done as a single
 	   atomic action. */
 	
-	long prev = val->count;
+	atomic_count_t prev = val->count;
 	
 	val->count--;
 	return prev;
