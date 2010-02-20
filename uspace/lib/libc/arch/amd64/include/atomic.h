@@ -41,42 +41,50 @@
 
 #include <atomicdflt.h>
 
-static inline void atomic_inc(atomic_t *val) {
-	asm volatile ("lock incq %0\n" : "+m" (val->count));
-}
-
-static inline void atomic_dec(atomic_t *val) {
-	asm volatile ("lock decq %0\n" : "+m" (val->count));
-}
-
-static inline long atomic_postinc(atomic_t *val) 
+static inline void atomic_inc(atomic_t *val)
 {
-	long r;
-
 	asm volatile (
-		"movq $1, %0\n"
-		"lock xaddq %0, %1\n"
-		: "=r" (r), "+m" (val->count)
+		"lock incq %[count]\n"
+		: [count] "+m" (val->count)
 	);
-
-	return r;
 }
 
-static inline long atomic_postdec(atomic_t *val) 
+static inline void atomic_dec(atomic_t *val)
 {
-	long r;
+	asm volatile (
+		"lock decq %[count]\n"
+		: [count] "+m" (val->count)
+	);
+}
+
+static inline atomic_count_t atomic_postinc(atomic_t *val)
+{
+	atomic_count_t r = 1;
 	
 	asm volatile (
-		"movq $-1, %0\n"
-		"lock xaddq %0, %1\n"
-		: "=r" (r), "+m" (val->count)
+		"lock xaddq %[r], %[count]\n"
+		: [count] "+m" (val->count),
+		  [r] "+r" (r)
 	);
 	
 	return r;
 }
 
-#define atomic_preinc(val) (atomic_postinc(val) + 1)
-#define atomic_predec(val) (atomic_postdec(val) - 1)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
+{
+	atomic_count_t r = -1;
+	
+	asm volatile (
+		"lock xaddq %[r], %[count]\n"
+		: [count] "+m" (val->count),
+		  [r] "+r" (r)
+	);
+	
+	return r;
+}
+
+#define atomic_preinc(val)  (atomic_postinc(val) + 1)
+#define atomic_predec(val)  (atomic_postdec(val) - 1)
 
 #endif
 

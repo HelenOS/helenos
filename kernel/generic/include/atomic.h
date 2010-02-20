@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,18 +35,20 @@
 #ifndef KERN_ATOMIC_H_
 #define KERN_ATOMIC_H_
 
+#include <arch/types.h>
+
 typedef struct atomic {
-	volatile long count;
+	volatile atomic_count_t count;
 } atomic_t;
 
 #include <arch/atomic.h>
 
-static inline void atomic_set(atomic_t *val, long i)
+static inline void atomic_set(atomic_t *val, atomic_count_t i)
 {
 	val->count = i;
 }
 
-static inline long atomic_get(atomic_t *val)
+static inline atomic_count_t atomic_get(atomic_t *val)
 {
 	return val->count;
 }

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
@@ -54,6 +54,8 @@ typedef int32_t ssize_t;
 typedef uint32_t size_t;
 
 typedef uint32_t uintptr_t;
+typedef uint32_t atomic_count_t;
+typedef int32_t atomic_signed_t;
 
 #endif
 

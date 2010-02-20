@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup libcmips32
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
+ * @ingroup libcmips32eb
  */
 
 #ifndef LIBC_mips32_ATOMIC_H_
@@ -40,26 +40,28 @@
 
 #include <atomicdflt.h>
 
-#define atomic_inc(x)	((void) atomic_add(x, 1))
-#define atomic_dec(x)	((void) atomic_add(x, -1))
+#define atomic_inc(x)  ((void) atomic_add(x, 1))
+#define atomic_dec(x)  ((void) atomic_add(x, -1))
 
-#define atomic_postinc(x) (atomic_add(x, 1) - 1)
-#define atomic_postdec(x) (atomic_add(x, -1) + 1)
+#define atomic_postinc(x)  (atomic_add(x, 1) - 1)
+#define atomic_postdec(x)  (atomic_add(x, -1) + 1)
 
-#define atomic_preinc(x) atomic_add(x, 1)
-#define atomic_predec(x) atomic_add(x, -1)
+#define atomic_preinc(x)  atomic_add(x, 1)
+#define atomic_predec(x)  atomic_add(x, -1)
 
 /* Atomic addition of immediate value.
  *
  * @param val Memory location to which will be the immediate value added.
- * @param i Signed immediate that will be added to *val.
+ * @param i   Signed immediate that will be added to *val.
  *
  * @return Value after addition.
+ *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	long tmp, v;
-
+	atomic_count_t tmp;
+	atomic_count_t v;
+	
 	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
@@ -69,10 +71,13 @@ static inline long atomic_add(atomic_t *val, int i)
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
 		/*	nop	*/		/* nop is inserted automatically by compiler */
 		"	nop\n"
-		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
-		: "r" (i), "i" (0)
-		);
-
+		: "=&r" (tmp),
+		  "+m" (val->count),
+		  "=&r" (v)
+		: "r" (i),
+		  "i" (0)
+	);
+	
 	return v;
 }
 
