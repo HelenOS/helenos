@@ -100,12 +100,11 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 
 static inline atomic_count_t test_and_set(atomic_t *val)
 {
-	atomic_count_t v;
+	atomic_count_t v = 1;
 	
 	asm volatile (
-		"movl $1, %[v]\n"
 		"xchgl %[v], %[count]\n"
-		: [v] "=r" (v),
+		: [v] "+r" (v),
 		  [count] "+m" (val->count)
 	);
 	
