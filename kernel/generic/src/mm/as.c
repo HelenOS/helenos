@@ -951,11 +951,12 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	
 	if (!THREAD)
 		return AS_PF_FAULT;
-		
-	ASSERT(AS);
-
+	
+	if (!AS)
+		return AS_PF_FAULT;
+	
 	mutex_lock(&AS->lock);
-	area = find_area_and_lock(AS, page);	
+	area = find_area_and_lock(AS, page);
 	if (!area) {
 		/*
 		 * No area contained mapping for 'page'.
