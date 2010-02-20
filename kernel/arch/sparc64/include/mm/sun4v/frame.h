@@ -32,14 +32,9 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_SUN4V_FRAME_H_
-#define KERN_sparc64_SUN4V_FRAME_H_
+#ifndef KERN_sparc64_sun4v_FRAME_H_
+#define KERN_sparc64_sun4v_FRAME_H_
 
-/*
- * Page size supported by the MMU.
- * For 8K there is the nasty illegal virtual aliasing problem.
- * Therefore, the kernel uses 8K only internally on the TLB and TSB levels.
- */
 #define MMU_FRAME_WIDTH		13	/* 8K */
 #define MMU_FRAME_SIZE		(1 << MMU_FRAME_WIDTH)
 
@@ -51,22 +46,7 @@
 
 #include <arch/types.h>
 
-union frame_address {
-	uintptr_t address;
-	struct {
-#if defined (US)
-		unsigned : 23;
-		uint64_t pfn : 28;		/**< Physical Frame Number. */
-#elif defined (US3)
-		unsigned : 21;
-		uint64_t pfn : 30;		/**< Physical Frame Number. */
-#endif
-		unsigned offset : 13;		/**< Offset. */
-	} __attribute__ ((packed));
-};
-
-typedef union frame_address frame_address_t;
-
+extern uintptr_t last_frame;
 extern void frame_arch_init(void);
 #define physmem_print()
 

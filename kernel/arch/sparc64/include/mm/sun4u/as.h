@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
- * Copyright (c) 2009 Pavel Rimsky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,48 +32,63 @@
 /** @file
  */
 
-#ifndef KERN_sparc64_sun4v_TSB_H_
-#define KERN_sparc64_sun4v_TSB_H_
+#ifndef KERN_sparc64_sun4u_AS_H_
+#define KERN_sparc64_sun4u_AS_H_
 
-/*
- * TSB will claim 64K of memory, which
- * is a nice number considered that it is one of
- * the page sizes supported by hardware, which,
- * again, is nice because TSBs need to be locked
- * in TLBs - only one TLB entry will do.
- */
-#define TSB_SIZE			3	/* when changing this, change
-						 * as.c as well */
-#define TSB_ENTRY_COUNT			(512 * (1 << TSB_SIZE))
-
-#ifndef __ASM__
-
-#include <typedefs.h>
 #include <arch/mm/tte.h>
-#include <arch/mm/mmu.h>
-#include <arch/types.h>
 
-/** TSB description, used in hypercalls */
-typedef struct tsb_descr {
-	uint16_t page_size;	/**< Page size (0 = 8K, 1 = 64K,...). */
-	uint16_t associativity;	/**< TSB associativity (will be 1). */
-	uint32_t num_ttes;	/**< Number of TTEs. */
-	uint32_t context;	/**< Context number. */
-	uint32_t pgsize_mask;	/**< Equals "1 << page_size". */
-	uint64_t tsb_base;	/**< Real address of TSB base. */
-	uint64_t reserved;
-} __attribute__ ((packed)) tsb_descr_t;
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	1
 
+#define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
+#define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
+#define USER_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x0000000000000000
+#define USER_ADDRESS_SPACE_END_ARCH		(unsigned long) 0xffffffffffffffff
 
-/* Forward declarations. */
-struct as;
-struct pte;
+#define USTACK_ADDRESS_ARCH	(0xffffffffffffffffULL - (PAGE_SIZE - 1))
 
-extern void tsb_invalidate(struct as *as, uintptr_t page, uint64_t pages);
-extern void itsb_pte_copy(struct pte *t);
-extern void dtsb_pte_copy(struct pte *t, bool ro);
+#ifdef CONFIG_TSB
 
-#endif /* !def __ASM__ */
+/** TSB Tag Target register. */
+typedef union tsb_tag_target {
+	uint64_t value;
+	struct {
+		unsigned invalid : 1;	/**< Invalidated by software. */
+		unsigned : 2;
+		unsigned context : 13;	/**< Software ASID. */
+		unsigned : 6;
+		uint64_t va_tag : 42;	/**< Virtual address bits <63:22>. */
+	} __attribute__ ((packed));
+} tsb_tag_target_t;
+
+/** TSB entry. */
+typedef struct tsb_entry {
+	tsb_tag_target_t tag;
+	tte_data_t data;
+} __attribute__ ((packed)) tsb_entry_t;
+
+typedef struct {
+	tsb_entry_t *itsb;
+	tsb_entry_t *dtsb;
+} as_arch_t;
+
+#else
+
+typedef struct {
+} as_arch_t;
+
+#endif /* CONFIG_TSB */
+
+#include <genarch/mm/as_ht.h>
+
+#ifdef CONFIG_TSB
+#include <arch/mm/tsb.h>
+#define as_invalidate_translation_cache(as, page, cnt) \
+	tsb_invalidate((as), (page), (cnt))
+#else
+#define as_invalidate_translation_cache(as, page, cnt)
+#endif
+
+extern void as_arch_init(void);
 
 #endif
 

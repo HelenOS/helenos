@@ -35,8 +35,8 @@
  * @brief This file contains fast MMU trap handlers.
  */
 
-#ifndef KERN_sparc64_SUN4V_MMU_TRAP_H_
-#define KERN_sparc64_SUN4V_MMU_TRAP_H_
+#ifndef KERN_sparc64_sun4v_MMU_TRAP_H_
+#define KERN_sparc64_sun4v_MMU_TRAP_H_
 
 #include <arch/stack.h>
 #include <arch/regdef.h>
@@ -120,10 +120,9 @@
 	 * caused the spill/fill trap is restarted, the spill/fill trap occurs,
 	 * but this time its handler accesse memory which IS mapped.
 	 */
-0:
-.if (\tl > 0)
-	wrpr %g0, 1, %tl
-.endif
+	.if (\tl > 0)
+		wrpr %g0, 1, %tl
+	.endif
 
 	/*
 	 * Save the faulting virtual page and faulting context to the %g2

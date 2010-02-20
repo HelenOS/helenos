@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
