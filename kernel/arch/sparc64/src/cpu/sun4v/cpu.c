@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,8 +51,7 @@ void cpu_arch_init(void)
 	uint64_t myid;
 	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
 
-	//MH
-	//CPU->arch.id = myid;
+	CPU->arch.id = myid;
 
 	md_node_t node = md_get_root();
 

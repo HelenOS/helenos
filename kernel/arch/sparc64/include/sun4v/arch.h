@@ -57,11 +57,6 @@
 /* register where the userspace window buffer address will be stored */
 #define SCRATCHPAD_WBUF		0x18
 
-//MH - remove when cpu.h is forked
-#define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
-#define ASI_DCACHE_TAG		0x47	/** ASI D-Cache Tag. */
-#define ASI_ICBUS_CONFIG	0x4a	/** ASI of the UPA_CONFIG/FIREPLANE_CONFIG register. */
-
 #endif
 
 /** @}

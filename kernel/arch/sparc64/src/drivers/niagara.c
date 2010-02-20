@@ -110,6 +110,9 @@ static inline void do_putchar(const char c) {
 /** Writes a single character to the standard output. */
 static void niagara_putchar(outdev_t *dev, const wchar_t ch, bool silent)
 {
+        if (silent)
+            return;
+
 	do_putchar(ch);
 	if (ch == '\n')
 		do_putchar('\r');

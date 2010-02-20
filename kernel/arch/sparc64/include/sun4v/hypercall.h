@@ -80,7 +80,7 @@
 #define ENOINTR		3	/**< Invalid interrupt id */
 #define EBADPGSZ	4	/**< Invalid pagesize encoding */
 #define EBADTSB		5	/**< Invalid TSB description */
-#define	EINVAL		6	/**< Invalid argument */
+#define	HV_EINVAL	6	/**< Invalid argument */
 #define EBADTRAP	7	/**< Invalid function number */
 #define EBADALIGN	8	/**< Invalid address alignment */
 #define EWOULDBLOCK	9	/**< Cannot complete operation without blocking */
@@ -91,7 +91,7 @@
 #define ENOMAP		14	/**< No mapping found */
 #define ETOOMANY	15	/**< Too many items specified / limit reached */
 #define ECHANNEL	16	/**< Invalid LDC channel */
-#define EBUSY		17	/**< Operation failed as resource is otherwise busy */
+#define HV_EBUSY	17	/**< Operation failed as resource is otherwise busy */
 
 
 /**

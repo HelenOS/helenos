@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,11 +34,13 @@
  */
 
 #include <arch/mm/as.h>
+#include <arch/mm/pagesize.h>
 #include <arch/mm/tlb.h>
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
 #include <debug.h>
 #include <config.h>
+#include <arch/sun4v/hypercall.h>
 
 #ifdef CONFIG_TSB
 #include <arch/mm/tsb.h>
@@ -85,7 +88,7 @@ int as_constructor_arch(as_t *as, int flags)
 int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
-	count_t cnt = (TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH;
+	size_t cnt = (TSB_ENTRY_COUNT * sizeof(tsb_entry_t)) >> FRAME_WIDTH;
 	frame_free((uintptr_t) as->arch.tsb_description.tsb_base);
 	return cnt;
 #else
@@ -111,6 +114,25 @@ int as_create_arch(as_t *as, int flags)
 void as_install_arch(as_t *as)
 {
 	mmu_secondary_context_write(as->asid);
+#ifdef CONFIG_TSB	
+	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
+
+	ASSERT(as->arch.tsb_description.tsb_base);
+	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
+		
+	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
+		/*
+		 * TSBs were allocated from memory not covered
+		 * by the locked 4M kernel DTLB entry. We need
+		 * to map both TSBs explicitly.
+		 */
+		mmu_demap_page(tsb, 0, MMU_FLAG_DTLB);
+		dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
+	}
+
+	__hypercall_fast2(MMU_TSB_CTXNON0, 1, KA2PA(&(as->arch.tsb_description)));
+	
+#endif
 }
 
 /** Perform sparc64-specific tasks when an address space is removed from the
@@ -133,9 +155,9 @@ void as_deinstall_arch(as_t *as)
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 
-	ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.tsb_description.tsb_base);
 
-	uintptr_t tsb = (uintptr_t) as->arch.itsb;
+	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
 		
 	if (!overlaps(tsb, 8 * MMU_PAGE_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
@@ -143,7 +165,7 @@ void as_deinstall_arch(as_t *as)
 		 * by the locked 4M kernel DTLB entry. We need
 		 * to demap the entry installed by as_install_arch().
 		 */
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
+		__hypercall_fast3(MMU_UNMAP_PERM_ADDR, tsb, 0, MMU_FLAG_DTLB);
 	}
 #endif
 }

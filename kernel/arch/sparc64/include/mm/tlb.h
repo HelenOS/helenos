@@ -35,6 +35,7 @@
 #ifndef KERN_sparc64_TLB_H_
 #define KERN_sparc64_TLB_H_
 
+
 #if defined (SUN4U)
 #include <arch/mm/sun4u/tlb.h>
 #elif defined (SUN4V)

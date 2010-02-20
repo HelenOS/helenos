@@ -40,8 +40,6 @@
 #include <align.h>
 #include <macros.h>
 
-uintptr_t last_frame = NULL;
-
 /** Create memory zones according to information stored in bootinfo.
  *
  * Walk the bootinfo memory map and create frame zones according to it.
@@ -67,8 +65,6 @@ void frame_arch_init(void)
 			zone_create(ADDR2PFN(start),
 			    SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),
 			    confdata, 0);
-			last_frame = max(last_frame, start + ALIGN_UP(size,
-			    FRAME_SIZE));
 		}
 
 		/*
@@ -79,9 +75,6 @@ void frame_arch_init(void)
 		 */
 		frame_mark_unavailable(ADDR2PFN(KA2PA(PFN2ADDR(0))), 1);
 	}
-
-//MH
-//	end_of_identity = PA2KA(last_frame);
 }
 
 /** @}
