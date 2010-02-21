@@ -40,6 +40,7 @@
 #include <print.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/hypercall.h>
+#include <arch/trap/sun4v/interrupt.h>
 
 //#include <arch/trap/sun4v/interrupt.h>
 
@@ -73,8 +74,8 @@ void cpu_arch_init(void)
 	}
 		
 	tick_init();
-    	//MH - uncomment later
-	//sun4v_ipi_init();
+
+	sun4v_ipi_init();
 }
 
 /**

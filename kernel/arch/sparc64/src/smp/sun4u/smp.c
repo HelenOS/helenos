@@ -35,7 +35,7 @@
 #include <smp/smp.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <cpu.h>
-#include <arch/cpu_family.h>
+#include <arch/sun4u/cpu_family.h>
 #include <arch/cpu.h>
 #include <arch.h>
 #include <config.h>
@@ -44,7 +44,7 @@
 #include <synch/synch.h>
 #include <synch/waitq.h>
 #include <print.h>
-#include <arch/cpu_node.h>
+#include <arch/sun4u/cpu_node.h>
 
 /**
  * This global variable is used to pick-up application processors
@@ -61,7 +61,7 @@ volatile uint64_t waking_up_mid = (uint64_t) -1;
 void smp_init(void)
 {
 	ofw_tree_node_t *node;
-	size_t cnt = 0;
+	count_t cnt = 0;
 	
 	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");

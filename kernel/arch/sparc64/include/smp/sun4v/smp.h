@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64interrupt
+/** @addtogroup sparc64	
  * @{
  */
-/** 
+/**
  * @file
- * @brief This file contains level N interrupt and inter-processor interrupt
- * trap handler.
+ * @brief	sun4v smp functions
  */
-#ifndef KERN_sparc64_INTERRUPT_TRAP_H_
-#define KERN_sparc64_INTERRUPT_TRAP_H_
 
-#define TT_INTERRUPT_LEVEL_1			0x41
-#define TT_INTERRUPT_LEVEL_2			0x42
-#define TT_INTERRUPT_LEVEL_3			0x43
-#define TT_INTERRUPT_LEVEL_4			0x44
-#define TT_INTERRUPT_LEVEL_5			0x45
-#define TT_INTERRUPT_LEVEL_6			0x46
-#define TT_INTERRUPT_LEVEL_7			0x47
-#define TT_INTERRUPT_LEVEL_8			0x48
-#define TT_INTERRUPT_LEVEL_9			0x49
-#define TT_INTERRUPT_LEVEL_10			0x4a
-#define TT_INTERRUPT_LEVEL_11			0x4b
-#define TT_INTERRUPT_LEVEL_12			0x4c
-#define TT_INTERRUPT_LEVEL_13			0x4d
-#define TT_INTERRUPT_LEVEL_14			0x4e
-#define TT_INTERRUPT_LEVEL_15			0x4f
+#ifndef KERN_sparc64_sun4v_SMP_H_
+#define KERN_sparc64_sun4v_SMP_H_
 
-#define INTERRUPT_LEVEL_N_HANDLER_SIZE		TRAP_TABLE_ENTRY_SIZE
-
-/* IMAP register bits */
-#define IGN_MASK	0x7c0
-#define INO_MASK	0x1f
-#define IMAP_V_MASK	(1ULL << 31)
-
-#define IGN_SHIFT	6
-
-
-#ifdef __ASM__
-.macro INTERRUPT_LEVEL_N_HANDLER n
-	mov \n - 1, %g2
-	PREEMPTIBLE_HANDLER exc_dispatch
-.endm
-#endif
-
-#ifndef __ASM__
-
-#include <arch/interrupt.h>
-
-extern void interrupt(int n, istate_t *istate);
-#endif /* !def __ASM__ */
-
-
-#if defined (SUN4U)
-#include <arch/trap/sun4u/interrupt.h>
-#elif defined (SUN4V)
-#include <arch/trap/sun4v/interrupt.h>
-#endif
+bool calculate_optimal_nrdy(exec_unit_t *exec_unit);
 
 #endif
 

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
- * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +33,8 @@
  */
 
 #include <arch/interrupt.h>
-#include <arch/trap/interrupt.h>
 #include <arch/sparc64.h>
+#include <arch/trap/interrupt.h>
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <arch/types.h>
@@ -48,17 +47,65 @@
 #include <config.h>
 #include <synch/spinlock.h>
 
-/** Register Interrupt Level Handler.
+/** Process hardware interrupt.
  *
- * @param n Interrupt Level (1 - 15).
- * @param name Short descriptive string.
- * @param f Handler.
+ * @param n Ignored.
+ * @param istate Ignored.
  */
-void interrupt_register(int n, const char *name, iroutine f)
+void interrupt(int n, istate_t *istate)
 {
-	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
-	
-	exc_register(n - 1, name, f);
+	uint64_t status;
+	uint64_t intrcv;
+	uint64_t data0;
+	status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
+	if (status & (!INTR_DISPATCH_STATUS_BUSY))
+		panic("Interrupt Dispatch Status busy bit not set\n");
+
+	intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
+#if defined (US)
+	data0 = asi_u64_read(ASI_INTR_R, ASI_UDB_INTR_R_DATA_0);
+#elif defined (US3)
+	data0 = asi_u64_read(ASI_INTR_R, VA_INTR_R_DATA_0);
+#endif
+
+	irq_t *irq = irq_dispatch_and_lock(data0);
+	if (irq) {
+		/*
+		 * The IRQ handler was found.
+		 */
+		irq->handler(irq);
+		/*
+		 * See if there is a clear-interrupt-routine and call it.
+		 */
+		if (irq->cir) {
+			irq->cir(irq->cir_arg, irq->inr);
+		}
+		spinlock_unlock(&irq->lock);
+	} else if (data0 > config.base) {
+		/*
+		 * This is a cross-call.
+		 * data0 contains address of the kernel function.
+		 * We call the function only after we verify
+		 * it is one of the supported ones.
+		 */
+#ifdef CONFIG_SMP
+		if (data0 == (uintptr_t) tlb_shootdown_ipi_recv) {
+			tlb_shootdown_ipi_recv();
+		}
+#endif
+	} else {
+		/*
+		 * Spurious interrupt.
+		 */
+#ifdef CONFIG_DEBUG
+		printf("cpu%u: spurious interrupt (intrcv=%#" PRIx64
+		    ", data0=%#" PRIx64 ")\n", CPU->id, intrcv, data0);
+#endif
+	}
+
+	membar();
+	asi_u64_write(ASI_INTR_RECEIVE, 0, 0);
 }
+
 /** @}
  */
