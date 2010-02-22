@@ -200,7 +200,6 @@ loop:
 		 * In such case, the CPU will continue to go to sleep
 		 * even though there is a runnable thread.
 		 */
-
 		 cpu_sleep();
 		 goto loop;
 	}
