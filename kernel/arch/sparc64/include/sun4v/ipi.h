@@ -37,9 +37,10 @@
 #ifndef KERN_sparc64_sun4v_IPI_H_
 #define KERN_sparc64_sun4v_IPI_H_
 
-uint64_t ipi_brodcast_to(void (*func)(void), uint16_t cpu_list[MAX_NUM_STRANDS],
-		uint64_t list_size);
-uint64_t ipi_unicast_to(void (*func)(void), uint16_t cpu_id);
+#include <arch/types.h>
+
+extern uint64_t ipi_brodcast_to(void (*)(void), uint16_t cpu_list[], uint64_t);
+extern uint64_t ipi_unicast_to(void (*)(void), uint16_t);
 
 #endif
 

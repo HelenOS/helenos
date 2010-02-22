@@ -40,8 +40,7 @@
 #include <print.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/hypercall.h>
-
-//#include <arch/trap/sun4v/interrupt.h>
+#include <arch/trap/sun4v/interrupt.h>
 
 /** Perform sparc64 specific initialization of the processor structure for the
  * current processor.
@@ -73,8 +72,8 @@ void cpu_arch_init(void)
 	}
 		
 	tick_init();
-    	//MH - uncomment later
-	//sun4v_ipi_init();
+
+	sun4v_ipi_init();
 }
 
 /**
@@ -95,7 +94,7 @@ void cpu_identify(void)
 void cpu_print_report(cpu_t *m)
 {
 	printf("cpu%d: Niagara (%d MHz)\n", m->id,
-		m->arch.clock_frequency / 1000000);
+	    m->arch.clock_frequency / 1000000);
 }
 
 /** @}

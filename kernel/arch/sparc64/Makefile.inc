@@ -91,7 +91,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/sgcn.c \
 	arch/$(KARCH)/src/drivers/pci.c \
-	arch/$(KARCH)/src/drivers/fhc.c
+	arch/$(KARCH)/src/drivers/fhc.c \
+	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
 
 ifeq ($(USARCH),sun4u)
 	ARCH_SOURCES += \
@@ -111,8 +112,8 @@ endif
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/smp/ipi.c \
-		arch/$(KARCH)/src/smp/smp.c
+		arch/$(KARCH)/src/smp/$(USARCH)/smp.c \
+		arch/$(KARCH)/src/smp/$(USARCH)/ipi.c
 endif
 
 ifeq ($(CONFIG_TSB),y)

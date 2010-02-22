@@ -343,7 +343,7 @@ fast_data_access_protection_handler_tl0:
 .org trap_table + TT_CPU_MONDO*ENTRY_SIZE
 .global cpu_mondo_handler_tl0
 cpu_mondo_handler_tl0:
-/* PREEMPTIBLE_HANDLER cpu_mondo */
+PREEMPTIBLE_HANDLER cpu_mondo
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
@@ -532,7 +532,7 @@ fast_data_access_protection_handler_tl1:
 .global cpu_mondo_handler_tl1
 cpu_mondo_handler_tl1:
 	wrpr %g0, %tl
-/*	PREEMPTIBLE_HANDLER cpu_mondo */
+	PREEMPTIBLE_HANDLER cpu_mondo
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
