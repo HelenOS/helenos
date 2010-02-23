@@ -60,6 +60,7 @@
  *  @returns ESOCKNOTSUPPORT if the socket type is not supported.
  *  @returns EPROTONOSUPPORT if the protocol is not supported.
  *  @returns ENOMEM if there is not enough memory left.
+ *  @returns ELIMIT if there was not a free socket identifier found this time.
  *  @returns Other error codes as defined for the NET_SOCKET message.
  *  @returns Other error codes as defined for the bind_service_timeout() function.
  */
