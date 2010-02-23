@@ -189,13 +189,27 @@ __hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 static inline uint64_t
 __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t function_number,
-    uint64_t * const ret1)
+    uint64_t *ret1)
 {
-	uint64_t errno = __hypercall_fast(p1, p2, p3, p4, p5, function_number);
-	if (ret1 != NULL) {
-		asm volatile ("mov %%o1, %0\n" : "=r" (*ret1));
-	}
-	return errno;
+	register uint64_t a6 asm("o5") = function_number;
+	register uint64_t a1 asm("o0") = p1;
+	register uint64_t a2 asm("o1") = p2;
+	register uint64_t a3 asm("o2") = p3;
+	register uint64_t a4 asm("o3") = p4;
+	register uint64_t a5 asm("o4") = p5;
+	
+	asm volatile (
+		"ta %8\n"
+		: "=r" (a1), "=r" (a2)
+		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+		  "i" (FAST_TRAP)
+		: "memory"
+	);
+
+	if (ret1)
+		*ret1 = a2;
+
+	return a1;
 }
 
 /**
