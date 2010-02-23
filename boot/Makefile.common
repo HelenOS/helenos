@@ -64,6 +64,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/getterm/getterm \
 	$(USPACEDIR)/app/klog/klog \
 	$(USPACEDIR)/app/mkfat/mkfat \
+	$(USPACEDIR)/app/sbi/sbi \
 	$(USPACEDIR)/app/redir/redir \
 	$(USPACEDIR)/app/taskdump/taskdump \
 	$(USPACEDIR)/app/tester/tester \

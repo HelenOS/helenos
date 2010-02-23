@@ -1,0 +1,5 @@
+class HelloWorld is
+	fun main() is
+		Builtin.WriteLine("Hello world!");
+	end
+end

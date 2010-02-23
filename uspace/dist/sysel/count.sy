@@ -1,0 +1,18 @@
+class Counter is
+	fun count(a : Int; b : Int) is
+		var i : Int;
+
+		i = a;
+		while i < b do
+			Builtin.WriteLine(i);
+			i = i + 1;
+		end
+
+	end
+end
+
+class HelloWorld is
+	fun main() is
+		Counter.count(0, 10);
+	end
+end
