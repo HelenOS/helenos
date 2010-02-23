@@ -389,9 +389,7 @@ int udp_process_packet( device_id_t device_id, packet_t packet, services_t error
 	// notify the destination socket
 	fibril_rwlock_write_unlock( & udp_globals.lock );
 	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, packet_dimension->content, 0, 0, ( ipcarg_t ) fragments );
-/*	fibril_rwlock_write_unlock( & udp_globals.lock );
-	async_msg_5( socket->phone, NET_SOCKET_RECEIVED, ( ipcarg_t ) socket->socket_id, 0, 0, 0, ( ipcarg_t ) fragments );
-*/	return EOK;
+	return EOK;
 }
 
 int udp_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
@@ -428,7 +426,8 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	 * Accept the connection
 	 *  - Answer the first IPC_M_CONNECT_TO_ME call.
 	 */
-	ipc_answer_0( callid, EOK );
+	res = EOK;
+	answer_count = 0;
 
 	// The client connection is only in one fibril and therefore no additional locks are needed.
 
@@ -436,16 +435,21 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	fibril_rwlock_initialize( & lock );
 
 	while( keep_on_going ){
+
+		// answer the call
+		answer_call( callid, res, & answer, answer_count );
+
 		// refresh data
 		refresh_answer( & answer, & answer_count );
 
+		// get the next call
 		callid = async_get_call( & call );
-//		printf( "message %d\n", IPC_GET_METHOD( * call ));
 
+		// process the call
 		switch( IPC_GET_METHOD( call )){
 			case IPC_M_PHONE_HUNGUP:
 				keep_on_going = false;
-				res = EOK;
+				res = EHANGUP;
 				break;
 			case NET_SOCKET:
 				fibril_rwlock_write_lock( & lock );
@@ -513,16 +517,12 @@ int udp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				res = ENOTSUP;
 				break;
 		}
-
-//		printf( "res = %d\n", res );
-
-		answer_call( callid, res, & answer, answer_count );
 	}
 
 	// release all local sockets
 	socket_cores_release( udp_globals.net_phone, & local_sockets, & udp_globals.sockets, NULL );
 
-	return EOK;
+	return res;
 }
 
 int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const struct sockaddr * addr, socklen_t addrlen, int fragments, size_t * data_fragment_size, int flags ){
@@ -617,13 +617,12 @@ int udp_sendto_message( socket_cores_ref local_sockets, int socket_id, const str
 	header->total_length = htons( total_length + sizeof( * header ));
 	header->checksum = 0;
 	if( udp_globals.checksum_computing ){
-//		if( ERROR_OCCURRED( ip_get_route_req( udp_globals.ip_phone, IPPROTO_UDP, addr, addrlen, & device_id, & ip_header, & headerlen ))){
-//			return udp_release_and_return( packet, ERROR_CODE );
-//		}
-		if( ERROR_OCCURRED( ip_client_set_pseudo_header_data_length( ip_header, headerlen, total_length + UDP_HEADER_SIZE))){
+		// update the pseudo header
+		if( ERROR_OCCURRED( ip_client_set_pseudo_header_data_length( ip_header, headerlen, total_length + UDP_HEADER_SIZE ))){
 			free( ip_header );
 			return udp_release_and_return( packet, ERROR_CODE );
 		}
+		// finish the checksum computation
 		checksum = compute_checksum( checksum, ip_header, headerlen );
 		checksum = compute_checksum( checksum, ( uint8_t * ) header, sizeof( * header ));
 		header->checksum = htons( flip_checksum( compact_checksum( checksum )));

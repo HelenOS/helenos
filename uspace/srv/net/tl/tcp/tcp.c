@@ -1069,22 +1069,28 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	 * Accept the connection
 	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0( callid, EOK );
+	res = EOK;
+	answer_count = 0;
 
 	socket_cores_initialize( & local_sockets );
 	fibril_rwlock_initialize( & lock );
 
 	while( keep_on_going ){
+
+		// answer the call
+		answer_call( callid, res, & answer, answer_count );
+
 		// refresh data
 		refresh_answer( & answer, & answer_count );
 
+		// get the next call
 		callid = async_get_call( & call );
-//		printf( "message %d\n", IPC_GET_METHOD( * call ));
 
+		// process the call
 		switch( IPC_GET_METHOD( call )){
 			case IPC_M_PHONE_HUNGUP:
 				keep_on_going = false;
-				res = EOK;
+				res = EHANGUP;
 				break;
 			case NET_SOCKET:
 				socket_data = ( tcp_socket_data_ref ) malloc( sizeof( * socket_data ));
@@ -1230,10 +1236,6 @@ int tcp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 				res = ENOTSUP;
 				break;
 		}
-
-//		printf( "res = %d\n", res );
-
-		answer_call( callid, res, & answer, answer_count );
 	}
 
 	printf("release\n");
@@ -1272,10 +1274,10 @@ int tcp_timeout( void * data ){
 				if( socket_data->timeout_count == TCP_MAX_TIMEOUTS ){
 					// TODO release as connection lost
 					//tcp_refresh_socket_data( socket_data );
+				}else{
+					// retransmit
+					tcp_retransmit_packet( socket, socket_data, timeout->sequence_number );
 				}
-				// retransmit
-				// TODO enable retransmit
-				//tcp_retransmit_packet( socket, socket_data, timeout->sequence_number );
 				fibril_rwlock_write_unlock( socket_data->local_lock );
 			}else{
 				fibril_mutex_lock( & socket_data->operation.mutex );

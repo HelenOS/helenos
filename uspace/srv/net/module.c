@@ -109,7 +109,9 @@ void client_connection( ipc_callid_t iid, ipc_call_t * icall ){
 		callid = async_get_call( & call );
 		res = module_message( callid, & call, & answer, & answer_count );
 
-		if( IPC_GET_METHOD( call ) == IPC_M_PHONE_HUNGUP ) return;
+		if(( IPC_GET_METHOD( call ) == IPC_M_PHONE_HUNGUP ) || ( res == EHANGUP )){
+			return;
+		}
 
 		answer_call( callid, res, & answer, answer_count );
 	}

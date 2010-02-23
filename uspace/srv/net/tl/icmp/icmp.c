@@ -657,48 +657,58 @@ int icmp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 	struct sockaddr *		addr;
 	ipc_callid_t			data_callid;
 	icmp_echo_ref			echo_data;
+	int						res;
 
 	/*
 	 * Accept the connection
 	 *  - Answer the first NET_ICMP_INIT call.
 	 */
-	ipc_answer_0( callid, EOK );
+	res = EOK;
+	answer_count = 0;
 
 //	fibril_rwlock_initialize( & lock );
 
 	echo_data = ( icmp_echo_ref ) malloc( sizeof( * echo_data ));
 	if( ! echo_data ) return ENOMEM;
+
 	// assign a new identifier
 	fibril_rwlock_write_lock( & icmp_globals.lock );
-	ERROR_CODE = icmp_bind_free_id( echo_data );
+	res = icmp_bind_free_id( echo_data );
 	fibril_rwlock_write_unlock( & icmp_globals.lock );
-	if( ERROR_CODE < 0 ){
+	if( res < 0 ){
 		free( echo_data );
-		return ERROR_CODE;
+		return res;
 	}
 
 	while( keep_on_going ){
+
+		// answer the call
+		answer_call( callid, res, & answer, answer_count );
+
+		// refresh data
 		refresh_answer( & answer, & answer_count );
 
+		// get the next call
 		callid = async_get_call( & call );
 
+		// process the call
 		switch( IPC_GET_METHOD( call )){
 			case IPC_M_PHONE_HUNGUP:
 				keep_on_going = false;
-				ERROR_CODE = EOK;
+				res = EHANGUP;
 				break;
 			case NET_ICMP_ECHO:
 //				fibril_rwlock_write_lock( & lock );
 				if( ! async_data_write_receive( & data_callid, & length )){
-					ERROR_CODE = EINVAL;
+					res = EINVAL;
 				}else{
 					addr = malloc( length );
 					if( ! addr ){
-						ERROR_CODE = ENOMEM;
+						res = ENOMEM;
 					}else{
 						if( ! ERROR_OCCURRED( async_data_write_finalize( data_callid, addr, length ))){
 							fibril_rwlock_write_lock( & icmp_globals.lock );
-							ERROR_CODE = icmp_echo( echo_data->identifier, echo_data->sequence_number, ICMP_GET_SIZE( call ), ICMP_GET_TIMEOUT( call ), ICMP_GET_TTL( call ), ICMP_GET_TOS( call ), ICMP_GET_DONT_FRAGMENT( call ), addr, ( socklen_t ) length );
+							res = icmp_echo( echo_data->identifier, echo_data->sequence_number, ICMP_GET_SIZE( call ), ICMP_GET_TIMEOUT( call ), ICMP_GET_TTL( call ), ICMP_GET_TOS( call ), ICMP_GET_DONT_FRAGMENT( call ), addr, ( socklen_t ) length );
 							fibril_rwlock_write_unlock( & icmp_globals.lock );
 							free( addr );
 							if( echo_data->sequence_number < MAX_UINT16 ){
@@ -706,23 +716,23 @@ int icmp_process_client_messages( ipc_callid_t callid, ipc_call_t call ){
 							}else{
 								echo_data->sequence_number = 0;
 							}
+						}else{
+							res = ERROR_CODE;
 						}
 					}
 				}
 //				fibril_rwlock_write_unlock( & lock );
 				break;
 			default:
-				ERROR_CODE = icmp_process_message( & call );
+				res = icmp_process_message( & call );
 		}
-
-		answer_call( callid, ERROR_CODE, & answer, answer_count );
 	}
 
 	// release the identifier
 	fibril_rwlock_write_lock( & icmp_globals.lock );
 	icmp_echo_data_exclude( & icmp_globals.echo_data, echo_data->identifier );
 	fibril_rwlock_write_unlock( & icmp_globals.lock );
-	return EOK;
+	return res;
 }
 
 int icmp_process_message( ipc_call_t * call ){
