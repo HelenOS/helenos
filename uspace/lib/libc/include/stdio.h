@@ -109,7 +109,7 @@ extern FILE *stderr;
 
 /* Character and string input functions */
 extern int fgetc(FILE *);
-extern char *fgets(char *, size_t, FILE *);
+extern char *fgets(char *, int, FILE *);
 
 extern int getchar(void);
 extern char *gets(char *, size_t);

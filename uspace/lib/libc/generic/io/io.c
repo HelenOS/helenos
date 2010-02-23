@@ -535,6 +535,33 @@ int fgetc(FILE *stream)
 	return (int) c;
 }
 
+char *fgets(char *str, int size, FILE *stream)
+{
+	char c;
+	int idx;
+
+	idx = 0;
+	while (idx < size - 1) {
+		c = fgetc(stream);
+		if (c == EOF)
+			break;
+
+		str[idx++] = c;
+
+		if (c == '\n')
+			break;
+	}
+
+	if (ferror(stream))
+		return NULL;
+
+	if (idx == 0)
+		return NULL;
+
+	str[idx] = '\0';
+	return str;
+}
+
 int getchar(void)
 {
 	return fgetc(stdin);
