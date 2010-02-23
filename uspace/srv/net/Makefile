@@ -30,7 +30,6 @@ include ../../../Makefile.config
 
 DIRS = \
 	netif/lo \
-	netif/dp8390 \
 	nil/eth \
 	nil/nildummy \
 	net \
@@ -47,6 +46,10 @@ DIRS_MODULAR = \
 		tl/icmp \
 		tl/udp \
 		tl/tcp \
+
+ifeq ($(CONFIG_NETIF_DP8390),y)
+	DIRS += netif/dp8390
+endif
 
 DIRS_ALL = $(DIRS) $(DIRS_MODULAR)
 
