@@ -103,8 +103,8 @@ static uint8_t mach_desc[MD_MAX_SIZE]
 /** returns pointer to the element at the given index */
 static md_element_t *get_element(element_idx_t idx)
 {
-	return (md_element_t *) (
-		mach_desc + sizeof(md_header_t) + idx * sizeof(md_element_t));
+	return (md_element_t *) (mach_desc +
+	    sizeof(md_header_t) + idx * sizeof(md_element_t));
 }
 
 /** returns the name of the element represented by the index */
@@ -113,7 +113,7 @@ static const char *get_element_name(element_idx_t idx)
 	md_header_t *md_header = (md_header_t *) mach_desc;
 	uintptr_t name_offset = get_element(idx)->name_offset;
 	return (char *) mach_desc + sizeof(md_header_t) +
-		md_header->node_blk_sz + name_offset;
+	    md_header->node_blk_sz + name_offset;
 }
 
 /** finds the name of the node represented by "node" */
@@ -136,7 +136,7 @@ bool md_get_integer_property(md_node_t node, const char *key,
 		idx++;
 		md_element_t *element = get_element(idx);
 		if (element->tag == PROP_VAL &&
-				str_cmp(key, get_element_name(idx)) == 0) {
+		    str_cmp(key, get_element_name(idx)) == 0) {
 			*result = element->d.val;
 			return true;
 		}
@@ -160,10 +160,10 @@ bool md_get_string_property(md_node_t node, const char *key,
 		idx++;
 		md_element_t *element = get_element(idx);
 		if (element->tag == PROP_DATA &&
-				str_cmp(key, get_element_name(idx)) == 0) {
+		    str_cmp(key, get_element_name(idx)) == 0) {
 			*result = (char *) mach_desc + sizeof(md_header_t) +
-				md_header->node_blk_sz + md_header->name_blk_sz +
-				element->d.y.data_offset;
+			    md_header->node_blk_sz + md_header->name_blk_sz +
+			    element->d.y.data_offset;
 			return true;
 		}
 	}
@@ -185,7 +185,7 @@ bool md_next_child(md_child_iter_t *it)
 		(*it)++;
 		md_element_t *element = get_element(*it);
 		if (element->tag == PROP_ARC &&
-				str_cmp("fwd", get_element_name(*it)) == 0) {
+		    str_cmp("fwd", get_element_name(*it)) == 0) {
 			return true;
 		}
 	}
@@ -288,7 +288,7 @@ bool md_next_node(md_node_t *node, const char *name)
 		element = get_element(*node);
 
 		if (element->tag == NODE &&
-				str_cmp(name, get_element_name(*node)) == 0) {
+		    str_cmp(name, get_element_name(*node)) == 0) {
 			return true;
 		}
 		
@@ -305,12 +305,12 @@ bool md_next_node(md_node_t *node, const char *name)
 void md_init(void)
 {
 	uint64_t retval = __hypercall_fast2(MACH_DESC, KA2PA(mach_desc),
-		MD_MAX_SIZE);
+	    MD_MAX_SIZE);
 
 	retval = retval;
-	if (retval != EOK) {
+	if (retval != HV_EOK) {
 		printf("Could not retrieve machine description, error = %d.\n",
-			retval);
+		    retval);
 	}
 }
 

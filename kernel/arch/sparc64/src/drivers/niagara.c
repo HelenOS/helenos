@@ -103,7 +103,7 @@ static volatile struct {
 /** Writes a single character to the standard output. */
 static inline void do_putchar(const char c) {
 	/* repeat until the buffer is non-full */
-	while (__hypercall_fast1(CONS_PUTCHAR, c) == EWOULDBLOCK)
+	while (__hypercall_fast1(CONS_PUTCHAR, c) == HV_EWOULDBLOCK)
 		;
 }
 
@@ -138,7 +138,7 @@ static void niagara_poll(niagara_instance_t *instance)
 	uint64_t c;
 
 	/* read character from keyboard, send it to upper layers of HelenOS */
-	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == EOK) {
+	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == HV_EOK) {
 		if (!silent) {
 			/* kconsole active, send the character to kernel */
 			indev_push_character(instance->srlnin, c);

@@ -74,24 +74,24 @@
 
 
 /* return codes */
-#define EOK		0	/**< Successful return */
-#define ENOCPU		1	/**< Invalid CPU id */
-#define ENORADDR	2	/**< Invalid real address */
-#define ENOINTR		3	/**< Invalid interrupt id */
-#define EBADPGSZ	4	/**< Invalid pagesize encoding */
-#define EBADTSB		5	/**< Invalid TSB description */
-#define	HV_EINVAL	6	/**< Invalid argument */
-#define EBADTRAP	7	/**< Invalid function number */
-#define EBADALIGN	8	/**< Invalid address alignment */
-#define EWOULDBLOCK	9	/**< Cannot complete operation without blocking */
-#define ENOACCESS	10	/**< No access to specified resource */
-#define EIO		11	/**< I/O Error */
-#define ECPUERROR	12	/**< CPU is in error state */
-#define ENOTSUPPORTED	13	/**< Function not supported */
-#define ENOMAP		14	/**< No mapping found */
-#define ETOOMANY	15	/**< Too many items specified / limit reached */
-#define ECHANNEL	16	/**< Invalid LDC channel */
-#define HV_EBUSY	17	/**< Operation failed as resource is otherwise busy */
+#define HV_EOK			0	/**< Successful return */
+#define HV_ENOCPU		1	/**< Invalid CPU id */
+#define HV_ENORADDR		2	/**< Invalid real address */
+#define HV_ENOINTR		3	/**< Invalid interrupt id */
+#define HV_EBADPGSZ		4	/**< Invalid pagesize encoding */
+#define HV_EBADTSB		5	/**< Invalid TSB description */
+#define	HV_EINVAL		6	/**< Invalid argument */
+#define HV_EBADTRAP		7	/**< Invalid function number */
+#define HV_EBADALIGN		8	/**< Invalid address alignment */
+#define HV_EWOULDBLOCK		9	/**< Cannot complete operation without blocking */
+#define HV_ENOACCESS		10	/**< No access to specified resource */
+#define HV_EIO			11	/**< I/O Error */
+#define HV_ECPUERROR		12	/**< CPU is in error state */
+#define HV_ENOTSUPPORTED	13	/**< Function not supported */
+#define HV_ENOMAP		14	/**< No mapping found */
+#define HV_ETOOMANY		15	/**< Too many items specified / limit reached */
+#define HV_ECHANNEL		16	/**< Invalid LDC channel */
+#define HV_EBUSY		17	/**< Operation failed as resource is otherwise busy */
 
 
 /**

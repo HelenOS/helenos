@@ -405,7 +405,7 @@ void tlb_invalidate_all(void)
 {
 	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
 		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
-	if (errno != EOK) {
+	if (errno != HV_EOK) {
 		panic("Error code = %d.\n", errno);
 	}
 }
