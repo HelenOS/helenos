@@ -26,72 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
+/** @addtogroup abs32le
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_BARRIER_H_
-#define KERN_ia32_BARRIER_H_
-
-/*
- * NOTE:
- * No barriers for critical section (i.e. spinlock) on IA-32 are needed:
- * - spinlock_lock() and spinlock_trylock() use serializing XCHG instruction
- * - writes cannot pass reads on IA-32 => spinlock_unlock() needs no barriers
- */
+#ifndef KERN_abs32le_BARRIER_H_
+#define KERN_abs32le_BARRIER_H_
 
 /*
  * Provisions are made to prevent compiler from reordering instructions itself.
  */
 
-#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
+#define CS_ENTER_BARRIER()
+#define CS_LEAVE_BARRIER()
 
-static inline void cpuid_serialization(void)
-{
-	asm volatile (
-		"xorl %%eax, %%eax\n"
-		"cpuid\n"
-		::: "eax", "ebx", "ecx", "edx", "memory"
-	);
-}
+#define memory_barrier()
+#define read_barrier()
+#define write_barrier()
 
-#if defined(CONFIG_FENCES_P4)
-	#define memory_barrier()  asm volatile ("mfence\n" ::: "memory")
-	#define read_barrier()    asm volatile ("lfence\n" ::: "memory")
-	#ifdef CONFIG_WEAK_MEMORY
-		#define write_barrier()  asm volatile ("sfence\n" ::: "memory")
-	#else
-		#define write_barrier()  asm volatile ("" ::: "memory");
-	#endif
-#elif defined(CONFIG_FENCES_P3)
-	#define memory_barrier()  cpuid_serialization()
-	#define read_barrier()    cpuid_serialization()
-	#ifdef CONFIG_WEAK_MEMORY
-		#define write_barrier()  asm volatile ("sfence\n" ::: "memory")
-	#else
-		#define write_barrier()  asm volatile ("" ::: "memory");
-	#endif
-#else
-	#define memory_barrier()  cpuid_serialization()
-	#define read_barrier()    cpuid_serialization()
-	#ifdef CONFIG_WEAK_MEMORY
-		#define write_barrier()  cpuid_serialization()
-	#else
-		#define write_barrier()  asm volatile ("" ::: "memory");
-	#endif
-#endif
-
-/*
- * On ia32, the hardware takes care about instruction and data cache coherence,
- * even on SMP systems.  We issue a write barrier to be sure that writes
- * queueing in the store buffer drain to the memory (even though it would be
- * sufficient for them to drain to the D-cache).
- */
-#define smc_coherence(a)           write_barrier()
-#define smc_coherence_block(a, l)  write_barrier()
+#define smc_coherence(addr)
+#define smc_coherence_block(addr, size)
 
 #endif
 

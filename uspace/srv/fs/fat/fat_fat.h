@@ -68,8 +68,8 @@ extern int fat_cluster_walk(struct fat_bs *, dev_handle_t, fat_cluster_t,
     (flags))
 
 extern int _fat_block_get(block_t **, struct fat_bs *, dev_handle_t,
-    fat_cluster_t, bn_t, int);
-  
+    fat_cluster_t, aoff64_t, int);
+
 extern int fat_append_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);
 extern int fat_chop_clusters(struct fat_bs *, struct fat_node *,
@@ -84,8 +84,9 @@ extern int fat_get_cluster(struct fat_bs *, dev_handle_t, unsigned,
 extern int fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
-    off_t);
+    aoff64_t);
 extern int fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
+extern int fat_sanity_check(struct fat_bs *, dev_handle_t);
 
 #endif
 

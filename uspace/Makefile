@@ -58,11 +58,16 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
-	srv/hid/console \
-	srv/hid/c_mouse \
+	srv/hid/adb_mouse \
+	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
-	srv/hw/char/i8042
+	srv/hw/char/i8042 \
+	srv/net
+
+ifneq ($(UARCH),abs32le)
+	DIRS += srv/hid/console
+endif
 
 ifeq ($(UARCH),amd64)
 	DIRS += srv/hw/bus/pci
@@ -70,6 +75,10 @@ endif
 
 ifeq ($(UARCH),ia32)
 	DIRS += srv/hw/bus/pci
+endif
+
+ifeq ($(UARCH),ppc32)
+	DIRS += srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)

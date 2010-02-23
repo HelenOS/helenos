@@ -37,11 +37,14 @@
 #ifndef KERN_sparc64_ARCH_H_
 #define KERN_sparc64_ARCH_H_
 
+#if defined (SUN4U)
+#include <arch/sun4u/arch.h>
+#elif defined (SUN4V)
+#include <arch/sun4v/arch.h>
+#endif
+
 #define ASI_AIUP		0x10	/** Access to primary context with user privileges. */
 #define ASI_AIUS		0x11	/** Access to secondary context with user privileges. */
-#define ASI_NUCLEUS_QUAD_LDD	0x24	/** ASI for 16-byte atomic loads. */
-#define ASI_DCACHE_TAG		0x47	/** ASI D-Cache Tag. */
-#define ASI_ICBUS_CONFIG		0x4a	/** ASI of the UPA_CONFIG/FIREPLANE_CONFIG register. */
 
 #define NWINDOWS		8	/** Number of register window sets. */
 
@@ -50,6 +53,7 @@
 extern void arch_pre_main(void);
 
 #endif /* __ASM__ */
+
 
 #endif
 

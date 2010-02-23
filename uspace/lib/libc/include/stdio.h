@@ -45,7 +45,7 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-#define DEBUG(fmt, ...) \
+#define DEBUG(fmt, ...)se\
 	{ \
 		char _buf[256]; \
 		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
@@ -55,7 +55,13 @@
 
 #ifndef SEEK_SET
 	#define SEEK_SET  0
+#endif
+
+#ifndef SEEK_CUR
 	#define SEEK_CUR  1
+#endif
+
+#ifndef SEEK_END
 	#define SEEK_END  2
 #endif
 
@@ -134,9 +140,9 @@ extern int fclose(FILE *);
 extern size_t fread(void *, size_t, size_t, FILE *);
 extern size_t fwrite(const void *, size_t, size_t, FILE *);
 
-extern int fseek(FILE *, long, int);
+extern int fseek(FILE *, off64_t, int);
 extern void rewind(FILE *);
-extern int ftell(FILE *);
+extern off64_t ftell(FILE *);
 extern int feof(FILE *);
 
 extern int fflush(FILE *);

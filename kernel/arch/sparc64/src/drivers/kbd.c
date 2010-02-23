@@ -38,6 +38,7 @@
 #include <genarch/ofw/ebus.h>
 #include <console/console.h>
 #include <ddi/irq.h>
+#include <mm/page.h>
 #include <arch/mm/page.h>
 #include <arch/types.h>
 #include <align.h>

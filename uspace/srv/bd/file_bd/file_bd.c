@@ -47,6 +47,7 @@
 #include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
+#include <sys/typefmt.h>
 #include <errno.h>
 #include <bool.h>
 #include <task.h>
@@ -55,7 +56,7 @@
 #define NAME "file_bd"
 
 static const size_t block_size = 512;
-static bn_t num_blocks;
+static aoff64_t num_blocks;
 static FILE *img;
 
 static dev_handle_t dev_handle;
@@ -206,6 +207,14 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 	size_t n_rd;
 	int rc;
 
+	/* Check whether access is within device address bounds. */
+	if (ba + cnt > num_blocks) {
+		printf(NAME ": Accessed blocks %" PRIuOFF64 "-%" PRIuOFF64 ", while "
+		    "max block number is %" PRIuOFF64 ".\n", ba, ba + cnt - 1,
+		    num_blocks - 1);
+		return ELIMIT;
+	}
+
 	fibril_mutex_lock(&dev_lock);
 
 	clearerr(img);
@@ -235,6 +244,14 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 {
 	size_t n_wr;
 	int rc;
+
+	/* Check whether access is within device address bounds. */
+	if (ba + cnt > num_blocks) {
+		printf(NAME ": Accessed blocks %" PRIuOFF64 "-%" PRIuOFF64 ", while "
+		    "max block number is %" PRIuOFF64 ".\n", ba, ba + cnt - 1,
+		    num_blocks - 1);
+		return ELIMIT;
+	}
 
 	fibril_mutex_lock(&dev_lock);
 

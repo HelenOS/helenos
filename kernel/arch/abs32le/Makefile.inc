@@ -29,6 +29,30 @@
 ## Toolchain configuration
 #
 
+BFD = binary
+
+ifeq ($(COMPILER),gcc_cross)
+	TOOLCHAIN_DIR = $(CROSS_PREFIX)/$(CROSS_TARGET)
+	
+	ifeq ($(CROSS_TARGET),arm32)
+		TARGET = arm-linux-gnu
+		ATSIGN = %
+	endif
+	
+	ifeq ($(CROSS_TARGET),ia32)
+		TARGET = i686-pc-linux-gnu
+	endif
+	
+	ifeq ($(CROSS_TARGET),mips32)
+		TARGET = mipsel-linux-gnu
+		GCC_CFLAGS += -mno-abicalls
+	endif
+endif
+
+ifeq ($(COMPILER),clang)
+	CLANG_ARCH = i386
+endif
+
 BITS = 32
 ENDIANESS = LE
 
@@ -40,6 +64,9 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/abs32le.c \
 	arch/$(KARCH)/src/userspace.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/smp/ipi.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

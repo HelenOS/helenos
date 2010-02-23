@@ -72,9 +72,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		fs_handle_t fs_handle;
-		int phone;
-		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
@@ -136,7 +133,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	/* TODO: cleanup after the client */
+	vfs_files_done();
 }
 
 int main(int argc, char **argv)

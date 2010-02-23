@@ -59,13 +59,13 @@ extern void asm_fake_loop(uint32_t t);
  * Halt the current CPU.
  *
  */
-static inline void cpu_halt(void)
+static inline __attribute__((noreturn)) void cpu_halt(void)
 {
-	asm volatile (
-		"0:\n"
-		"	hlt\n"
-		"	jmp 0b\n"
-	);
+	while (true) {
+		asm volatile (
+			"hlt\n"
+		);
+	}
 }
 
 static inline void cpu_sleep(void)

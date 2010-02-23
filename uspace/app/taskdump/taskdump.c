@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
-#include <kernel/mm/as.h>
+#include <as.h>
 #include <sys/types.h>
 #include <sys/typefmt.h>
 #include <libarch/istate.h>
@@ -48,16 +48,15 @@
 #include <bool.h>
 
 #include <symtab.h>
+#include <elf_core.h>
 #include <stacktrace.h>
 
 #define LINE_BYTES 16
 
-#define DBUF_SIZE 4096
-static uint8_t data_buf[DBUF_SIZE];
-
 static int phoneid;
 static task_id_t task_id;
-static bool dump_memory;
+static bool write_core_file;
+static char *core_file_name;
 static char *app_name;
 static symtab_t *app_symtab;
 
@@ -67,8 +66,6 @@ static void print_syntax(void);
 static int threads_dump(void);
 static int thread_dump(uintptr_t thash);
 static int areas_dump(void);
-static int area_dump(as_area_info_t *area);
-static void hex_dump(uintptr_t addr, void *buffer, size_t size);
 static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value);
 
 static void autoload_syms(void);
@@ -79,15 +76,8 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	/*
-	 * FIXME: The stdio module cannot currently detect whether we are
-	 * writing to a console or file. This workaround make file output
-	 * faster.
-	 */
-	setvbuf(stdout, NULL, _IOFBF, 32768);
-
 	printf("Task Dump Utility\n");
-	dump_memory = false;
+	write_core_file = false;
 
 	if (parse_args(argc, argv) < 0)
 		return 1;
@@ -171,8 +161,11 @@ static int parse_args(int argc, char *argv[])
 					print_syntax();
 					return -1;
 				}
-			} else if (arg[1] == 'm' && arg[2] == '\0') {
-				dump_memory = true;
+			} else if (arg[1] == 'c' && arg[2] == '\0') {
+				write_core_file = true;
+
+				--argc; ++argv;
+				core_file_name = *argv;
 			} else {
 				printf("Uknown option '%s'\n", arg[0]);
 				print_syntax();
@@ -202,8 +195,8 @@ static int parse_args(int argc, char *argv[])
 
 static void print_syntax(void)
 {
-	printf("Syntax: taskdump [-m] -t <task_id>\n");
-	printf("\t-m\tDump memory area contents.\n");
+	printf("Syntax: taskdump [-c <core_file>] -t <task_id>\n");
+	printf("\t-c <core_file_id>\tName of core file to write.\n");
 	printf("\t-t <task_id>\tWhich task to dump.\n");
 }
 
@@ -296,15 +289,18 @@ static int areas_dump(void)
 		    (ainfo_buf[i].flags & AS_AREA_EXEC) ? 'X' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_CACHEABLE) ? 'C' : '-',
 		    ainfo_buf[i].start_addr, ainfo_buf[i].size);
-
-		if (dump_memory) {
-			putchar('\n');
-			area_dump(&ainfo_buf[i]);
-			putchar('\n');
-		}
 	}
 
 	putchar('\n');
+
+	if (write_core_file) {
+		printf("Writing core file '%s'\n", core_file_name);
+		rc = elf_core_save(core_file_name, ainfo_buf, n_areas, phoneid);
+		if (rc != EOK) {
+			printf("Failed writing core file.\n");
+			return EIO;
+		}
+	}
 
 	free(ainfo_buf);
 
@@ -352,65 +348,6 @@ static int thread_dump(uintptr_t thash)
 	}
 
 	return EOK;
-}
-
-static int area_dump(as_area_info_t *area)
-{
-	size_t to_copy;
-	size_t total;
-	uintptr_t addr;
-	int rc;
-
-	addr = area->start_addr;
-	total = 0;
-
-	while (total < area->size) {
-		to_copy = min(area->size - total, DBUF_SIZE);
-		rc = udebug_mem_read(phoneid, data_buf, addr, to_copy);
-		if (rc < 0) {
-			printf("udebug_mem_read() failed.\n");
-			return rc;
-		}
-
-		hex_dump(addr, data_buf, to_copy);
-
-		addr += to_copy;
-		total += to_copy;
-	}
-
-	return EOK;
-}
-
-static void hex_dump(uintptr_t addr, void *buffer, size_t size)
-{
-	uint8_t *data = (uint8_t *) buffer;
-	uint8_t b;
-	size_t pos, i;
-
-	assert(addr % LINE_BYTES == 0);
-	assert(size % LINE_BYTES == 0);
-
-	pos = 0;
-
-	while (pos < size) {
-		printf("%08lx:", addr + pos);
-		for (i = 0; i < LINE_BYTES; ++i) {
-			if (i % 4 == 0) putchar(' ');
-			printf(" %02x", data[pos + i]);
-		}
-		putchar('\t');
-
-		for (i = 0; i < LINE_BYTES; ++i) {
-			b = data[pos + i];
-			if (b >= 32 && b < 127) {
-				putchar(b);
-			} else {
-				putchar(' ');
-			}
-		}
-		putchar('\n');
-		pos += LINE_BYTES;
-	}
 }
 
 static int td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)

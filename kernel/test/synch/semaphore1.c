@@ -72,7 +72,8 @@ static void consumer(void *arg)
 char *test_semaphore1(void)
 {
 	int i, j, k;
-	int consumers, producers;
+	atomic_count_t consumers;
+	atomic_count_t producers;
 	
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);

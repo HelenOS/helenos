@@ -30,7 +30,6 @@
 -include ../../../Makefile.config
 
 USPACE_PREFIX = $(shell pwd)/../..
-#LIBS = $(LIBC_PREFIX)/libc.a
 LIBS =
 
 LINK = arch/$(UARCH)/_link.ld
@@ -89,10 +88,6 @@ GENERIC_SOURCES = \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/stacktrace.c
-
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entry.s \
-	arch/$(UARCH)/src/thread_entry.s
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

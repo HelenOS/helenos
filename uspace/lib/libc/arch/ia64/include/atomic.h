@@ -41,7 +41,7 @@
 
 static inline void atomic_inc(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
@@ -52,7 +52,7 @@ static inline void atomic_inc(atomic_t *val)
 
 static inline void atomic_dec(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"
@@ -61,9 +61,9 @@ static inline void atomic_dec(atomic_t *val)
 	);
 }
 
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
@@ -74,9 +74,9 @@ static inline long atomic_preinc(atomic_t *val)
 	return (v + 1);
 }
 
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"
@@ -87,9 +87,9 @@ static inline long atomic_predec(atomic_t *val)
 	return (v - 1);
 }
 
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
@@ -100,9 +100,9 @@ static inline long atomic_postinc(atomic_t *val)
 	return v;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
-	long v;
+	atomic_count_t v;
 	
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"

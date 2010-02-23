@@ -36,7 +36,7 @@
 #ifndef LOADER_ARCH_H_
 #define LOADER_ARCH_H_
 
-void program_run(void *entry_point, void *pcb);
+extern void program_run(void *entry_point, void *pcb);
 
 #endif
 

@@ -75,11 +75,18 @@ ifeq ($(PRECHECK),y)
 endif
 
 $(DEPEND):
+	rm -f $(USPACEDIR)/dist/srv/*
+	rm -f $(USPACEDIR)/dist/app/*
+	rm -f $(USPACEDIR)/dist/cfg/net/*
+
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
 	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
+	done
+	for file in $(NET_CFG) ; do \
+		cp $$file $(USPACEDIR)/dist/cfg/net/ ; \
 	done
 ifeq ($(RDFMT),tmpfs)
 	../../../../tools/mktmpfs.py $(USPACEDIR)/dist/ $(INITRD).fs

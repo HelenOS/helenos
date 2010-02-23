@@ -43,6 +43,7 @@
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
 #include <userspace.h>
@@ -210,7 +211,11 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
-	
+
+#ifdef CONFIG_NETIF_DP8390
+	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+#endif
+
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
@@ -277,6 +282,11 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	fptr->gp = ((unative_t *) caller)[1];
 	
 	return (void *) fptr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

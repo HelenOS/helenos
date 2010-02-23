@@ -727,12 +727,13 @@ int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
 int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
     int *flags)
 {
-	int res;
-	sysarg_t tmp_flags;
-	res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
+	sysarg_t tmp_flags = 0;
+	int res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
 	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	
 	if (flags)
 		*flags = tmp_flags;
+	
 	return res;
 }
 

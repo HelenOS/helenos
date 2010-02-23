@@ -41,17 +41,13 @@
 
 #define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
 
-#ifdef context_set
-#undef context_set
-#endif
-
 #define context_set(c, _pc, stack, size, ptls) \
 	do { \
 		(c)->pc = ((uintptr_t) _pc) - 8; \
 		(c)->sp = ((uintptr_t) stack) + ALIGN_UP((size), \
 		    STACK_ALIGNMENT) - (STACK_BIAS + SP_DELTA); \
 		(c)->fp = -STACK_BIAS; \
-		(c)->tp = ptls; \
+		(c)->tp = (uint64_t) ptls; \
 	} while (0)
 	
 /*

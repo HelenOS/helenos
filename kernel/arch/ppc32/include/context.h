@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -37,7 +37,10 @@
 
 #include <arch/types.h>
 
-#define SP_DELTA	16
+#define SP_DELTA  16
+
+#define context_set(ctx, pc, stack, size) \
+    context_set_generic(ctx, pc, stack, size)
 
 typedef struct {
 	uintptr_t sp;
@@ -67,7 +70,7 @@ typedef struct {
 	uint32_t cr;
 	
 	ipl_t ipl;
-} __attribute__ ((packed)) context_t;
+} __attribute__((packed)) context_t;
 
 #endif
 

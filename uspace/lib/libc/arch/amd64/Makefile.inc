@@ -33,7 +33,10 @@ TARGET = amd64-linux-gnu
 CLANG_ARCH = x86_64
 TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
 
-ARCH_SOURCES += arch/$(UARCH)/src/syscall.S \
+ARCH_SOURCES = \
+	arch/$(UARCH)/src/entry.s \
+	arch/$(UARCH)/src/thread_entry.s \
+	arch/$(UARCH)/src/syscall.S \
 	arch/$(UARCH)/src/fibril.S \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/stacktrace.c \

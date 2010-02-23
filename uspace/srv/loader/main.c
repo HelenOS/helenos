@@ -124,26 +124,17 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
-	size_t len;
+	char *buf;
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
 	
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
+	if (rc == EOK) {
+		if (cwd != NULL)
+			free(cwd);
+		
+		cwd = buf;
 	}
 	
-	cwd = malloc(len + 1);
-	if (!cwd) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	async_data_write_finalize(callid, cwd, len);
-	cwd[len] = '\0';
-	
-	ipc_answer_0(rid, EOK);
+	ipc_answer_0(rid, rc);
 }
 
 /** Receive a call setting pathname of the program to execute.
@@ -153,33 +144,17 @@ static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
-	size_t len;
-	char *name_buf;
+	char *buf;
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
 	
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
+	if (rc == EOK) {
+		if (pathname != NULL)
+			free(pathname);
+		
+		pathname = buf;
 	}
 	
-	name_buf = malloc(len + 1);
-	if (!name_buf) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	async_data_write_finalize(callid, name_buf, len);
-	ipc_answer_0(rid, EOK);
-	
-	if (pathname != NULL) {
-		free(pathname);
-		pathname = NULL;
-	}
-	
-	name_buf[len] = '\0';
-	pathname = name_buf;
+	ipc_answer_0(rid, rc);
 }
 
 /** Receive a call setting arguments of the program to execute.
@@ -189,75 +164,62 @@ static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
-	size_t buf_size, arg_size;
-	char *p;
-	int n;
+	char *buf;
+	size_t buf_size;
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, &buf_size);
 	
-	if (!async_data_write_receive(&callid, &buf_size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	if (arg_buf != NULL) {
-		free(arg_buf);
-		arg_buf = NULL;
-	}
-	
-	if (argv != NULL) {
-		free(argv);
-		argv = NULL;
-	}
-	
-	arg_buf = malloc(buf_size + 1);
-	if (!arg_buf) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	async_data_write_finalize(callid, arg_buf, buf_size);
-	
-	arg_buf[buf_size] = '\0';
-	
-	/*
-	 * Count number of arguments
-	 */
-	p = arg_buf;
-	n = 0;
-	while (p < arg_buf + buf_size) {
-		arg_size = str_size(p);
-		p = p + arg_size + 1;
-		++n;
-	}
-	
-	/* Allocate argv */
-	argv = malloc((n + 1) * sizeof(char *));
-	
-	if (argv == NULL) {
-		free(arg_buf);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-
-	/*
-	 * Fill argv with argument pointers
-	 */
-	p = arg_buf;
-	n = 0;
-	while (p < arg_buf + buf_size) {
-		argv[n] = p;
+	if (rc == EOK) {
+		/*
+		 * Count number of arguments
+		 */
+		char *cur = buf;
+		int count = 0;
 		
-		arg_size = str_size(p);
-		p = p + arg_size + 1;
-		++n;
+		while (cur < buf + buf_size) {
+			size_t arg_size = str_size(cur);
+			cur += arg_size + 1;
+			count++;
+		}
+		
+		/*
+		 * Allocate new argv
+		 */
+		char **_argv = (char **) malloc((count + 1) * sizeof(char *));
+		if (_argv == NULL) {
+			free(buf);
+			ipc_answer_0(rid, ENOMEM);
+			return;
+		}
+		
+		/*
+		 * Fill the new argv with argument pointers
+		 */
+		cur = buf;
+		count = 0;
+		while (cur < buf + buf_size) {
+			_argv[count] = cur;
+			
+			size_t arg_size = str_size(cur);
+			cur += arg_size + 1;
+			count++;
+		}
+		_argv[count] = NULL;
+		
+		/*
+		 * Copy temporary data to global variables
+		 */
+		if (arg_buf != NULL)
+			free(arg_buf);
+		
+		if (argv != NULL)
+			free(argv);
+		
+		argc = count;
+		arg_buf = buf;
+		argv = _argv;
 	}
 	
-	argc = n;
-	argv[n] = NULL;
-
-	ipc_answer_0(rid, EOK);
+	ipc_answer_0(rid, rc);
 }
 
 /** Receive a call setting preset files of the program to execute.
@@ -267,59 +229,46 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
  */
 static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
+	fdi_node_t *buf;
 	size_t buf_size;
-	if (!async_data_write_receive(&callid, &buf_size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
+	int rc = async_data_write_accept((void **) &buf, false, 0, 0,
+	    sizeof(fdi_node_t), &buf_size);
+	
+	if (rc == EOK) {
+		int count = buf_size / sizeof(fdi_node_t);
+		
+		/*
+		 * Allocate new filv
+		 */
+		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
+		if (_filv == NULL) {
+			free(buf);
+			ipc_answer_0(rid, ENOMEM);
+			return;
+		}
+		
+		/*
+		 * Fill the new filv with argument pointers
+		 */
+		int i;
+		for (i = 0; i < count; i++)
+			_filv[i] = &buf[i];
+		
+		_filv[count] = NULL;
+		
+		/*
+		 * Copy temporary data to global variables
+		 */
+		if (fil_buf != NULL)
+			free(fil_buf);
+		
+		if (filv != NULL)
+			free(filv);
+		
+		filc = count;
+		fil_buf = buf;
+		filv = _filv;
 	}
-	
-	if ((buf_size % sizeof(fdi_node_t)) != 0) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	if (fil_buf != NULL) {
-		free(fil_buf);
-		fil_buf = NULL;
-	}
-	
-	if (filv != NULL) {
-		free(filv);
-		filv = NULL;
-	}
-	
-	fil_buf = malloc(buf_size);
-	if (!fil_buf) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	async_data_write_finalize(callid, fil_buf, buf_size);
-	
-	int count = buf_size / sizeof(fdi_node_t);
-	
-	/* Allocate filvv */
-	filv = malloc((count + 1) * sizeof(fdi_node_t *));
-	
-	if (filv == NULL) {
-		free(fil_buf);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	/*
-	 * Fill filv with argument pointers
-	 */
-	int i;
-	for (i = 0; i < count; i++)
-		filv[i] = &fil_buf[i];
-	
-	filc = count;
-	filv[count] = NULL;
 	
 	ipc_answer_0(rid, EOK);
 }

@@ -474,22 +474,14 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 
 static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
+	void *buf;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
+	
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	
-	char *buf = (char *) malloc(size);
-	if (buf == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	(void) async_data_write_finalize(callid, buf, size);
 	
 	async_serialize_start();
 	

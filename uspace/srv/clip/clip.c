@@ -63,8 +63,8 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		fibril_mutex_unlock(&clip_mtx);
 		ipc_answer_0(rid, EOK);
 		break;
-	case CLIPBOARD_TAG_BLOB:
-		rc = async_data_blob_receive(&data, 0, &size);
+	case CLIPBOARD_TAG_DATA:
+		rc = async_data_write_accept((void **) &data, false, 0, 0, 0, &size);
 		if (rc != EOK) {
 			ipc_answer_0(rid, rc);
 			break;
@@ -77,7 +77,7 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		
 		clip_data = data;
 		clip_size = size;
-		clip_tag = CLIPBOARD_TAG_BLOB;
+		clip_tag = CLIPBOARD_TAG_DATA;
 		
 		fibril_mutex_unlock(&clip_mtx);
 		ipc_answer_0(rid, EOK);
@@ -96,15 +96,15 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Check for clipboard data tag compatibility */
 	switch (IPC_GET_ARG1(*request)) {
-	case CLIPBOARD_TAG_BLOB:
+	case CLIPBOARD_TAG_DATA:
 		if (!async_data_read_receive(&callid, &size)) {
 			ipc_answer_0(callid, EINVAL);
 			ipc_answer_0(rid, EINVAL);
 			break;
 		}
 		
-		if (clip_tag != CLIPBOARD_TAG_BLOB) {
-			/* So far we only understand BLOB */
+		if (clip_tag != CLIPBOARD_TAG_DATA) {
+			/* So far we only understand binary data */
 			ipc_answer_0(callid, EOVERFLOW);
 			ipc_answer_0(rid, EOVERFLOW);
 			break;
@@ -144,7 +144,7 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	clipboard_tag_t tag = clip_tag;
 	
 	fibril_mutex_unlock(&clip_mtx);
-	ipc_answer_2(rid, EOK, (ipcarg_t) size, (ipcarg_t) clip_tag);
+	ipc_answer_2(rid, EOK, (ipcarg_t) size, (ipcarg_t) tag);
 }
 
 static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)

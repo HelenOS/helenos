@@ -45,41 +45,49 @@
  * Use atomic compare and swap operation to atomically add signed value.
  *
  * @param val Atomic variable.
- * @param i Signed value to be added.
+ * @param i   Signed value to be added.
  *
  * @return Value of the atomic variable as it existed before addition.
+ *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	uint64_t a, b;
-
+	atomic_count_t a;
+	atomic_count_t b;
+	
 	do {
-		volatile uintptr_t x = (uint64_t) &val->count;
-
-		a = *((uint64_t *) x);
+		volatile uintptr_t ptr = (uintptr_t) &val->count;
+		
+		a = *((atomic_count_t *) ptr);
 		b = a + i;
-		asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *)x)), "+r" (b) : "r" (a));
+		
+		asm volatile (
+			"casx %0, %2, %1\n"
+			: "+m" (*((atomic_count_t *) ptr)),
+			  "+r" (b)
+			: "r" (a)
+		);
 	} while (a != b);
-
+	
 	return a;
 }
 
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1) + 1;
 }
 
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
 
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1) - 1;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }

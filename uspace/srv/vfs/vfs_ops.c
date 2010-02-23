@@ -37,6 +37,8 @@
 
 #include "vfs.h"
 #include <ipc/ipc.h>
+#include <macros.h>
+#include <limits.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
@@ -52,7 +54,7 @@
 #include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
-static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, size_t);
+static int vfs_truncate_internal(fs_handle_t, dev_handle_t, fs_index_t, aoff64_t);
 
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
@@ -265,126 +267,44 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	
 	/* We want the client to send us the mount point. */
-	ipc_callid_t callid;
-	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	char *mp;
+	int rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
+	    0, NULL);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
 		return;
 	}
-	
-	/* Check whether size is reasonable wrt. the mount point. */
-	if ((size < 1) || (size > MAX_PATH_LEN)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	/* Allocate buffer for the mount point data being received. */
-	char *mp = malloc(size + 1);
-	if (!mp) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	/* Deliver the mount point. */
-	ipcarg_t retval = async_data_write_finalize(callid, mp, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(mp);
-		return;
-	}
-	mp[size] = '\0';
 	
 	/* Now we expect to receive the mount options. */
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	char *opts;
+	rc = async_data_write_accept((void **) &opts, true, 0, MAX_MNTOPTS_LEN,
+	    0, NULL);
+	if (rc != EOK) {
 		free(mp);
+		ipc_answer_0(rid, rc);
 		return;
 	}
-
-	/* Check the offered options size. */
-	if (size > MAX_MNTOPTS_LEN) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		free(mp);
-		return;
-	}
-
-	/* Allocate buffer for the mount options. */
-	char *opts = (char *) malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		free(mp);
-		return;
-	}
-
-	/* Deliver the mount options. */
-	retval = async_data_write_finalize(callid, opts, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(mp);
-		free(opts);
-		return;
-	}
-	opts[size] = '\0';
 	
 	/*
 	 * Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
-	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	char *fs_name;
+	rc = async_data_write_accept((void **) &fs_name, true, 0, FS_NAME_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
 		free(mp);
 		free(opts);
+		ipc_answer_0(rid, rc);
 		return;
 	}
 	
-	/*
-	 * Don't receive more than is necessary for storing a full file system
-	 * name.
-	 */
-	if ((size < 1) || (size > FS_NAME_MAXLEN)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		free(mp);
-		free(opts);
-		return;
-	}
-	
-	/*
-	 * Allocate buffer for file system name.
-	 */
-	char *fs_name = (char *) malloc(size + 1);
-	if (fs_name == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		free(mp);
-		free(opts);
-		return;
-	}
-	
-	/* Deliver the file system name. */
-	retval = async_data_write_finalize(callid, fs_name, size);
-	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(mp);
-		free(opts);
-		free(fs_name);
-		return;
-	}
-	fs_name[size] = '\0';
-
 	/*
 	 * Wait for IPC_M_PING so that we can return an error if we don't know
 	 * fs_name.
 	 */
 	ipc_call_t data;
-	callid = async_get_call(&data);
+	ipc_callid_t callid = async_get_call(&data);
 	if (IPC_GET_METHOD(data) != IPC_M_PING) {
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(rid, ENOTSUP);
@@ -434,14 +354,14 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	char *mp;
 	vfs_lookup_res_t mp_res;
 	vfs_lookup_res_t mr_res;
-	vfs_node_t *mp_node;
 	vfs_node_t *mr_node;
 	int phone;
 
 	/*
 	 * Receive the mount point path.
 	 */
-	rc = async_data_string_receive(&mp, MAX_PATH_LEN);
+	rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
+	    0, NULL);
 	if (rc != EOK)
 		ipc_answer_0(rid, rc);
 
@@ -583,7 +503,6 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int lflag = IPC_GET_ARG1(*request);
 	int oflag = IPC_GET_ARG2(*request);
 	int mode = IPC_GET_ARG3(*request);
-	size_t len;
 
 	/* Ignore mode for now. */
 	(void) mode;
@@ -605,27 +524,12 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	if (oflag & O_EXCL)
 		lflag |= L_EXCLUSIVE;
 	
-	ipc_callid_t callid;
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	char *path = malloc(len + 1);
-	if (!path) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	int rc;
-	if ((rc = async_data_write_finalize(callid, path, len))) {
+	char *path;
+	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
-		free(path);
 		return;
 	}
-	path[len] = '\0';
 	
 	/*
 	 * Avoid the race condition in which the file can be deleted before we
@@ -816,7 +720,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	ipc_answer_0(rid, rc);
 }
 
-static int vfs_close_internal(vfs_file_t *file)
+int vfs_close_internal(vfs_file_t *file)
 {
 	/*
 	 * Lock the open file structure so that no other thread can manipulate
@@ -893,22 +797,6 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	}
 	
 	/*
-	 * Now we need to receive a call with client's
-	 * IPC_M_DATA_READ/IPC_M_DATA_WRITE request.
-	 */
-	ipc_callid_t callid;
-	int res;
-	if (read)
-		res = async_data_read_receive(&callid, NULL);
-	else 
-		res = async_data_write_receive(&callid, NULL);
-	if (!res) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	/*
 	 * Lock the open file structure so that no other thread can manipulate
 	 * the same open file at a time.
 	 */
@@ -932,32 +820,34 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
 	
-	int fs_phone = vfs_grab_phone(file->node->fs_handle);	
-	
-	/* Make a VFS_READ/VFS_WRITE request at the destination FS server. */
-	aid_t msg;
-	ipc_call_t answer;
-	if (!read && file->append)
-		file->pos = file->node->size;
-	msg = async_send_3(fs_phone, read ? VFS_OUT_READ : VFS_OUT_WRITE,
-	    file->node->dev_handle, file->node->index, file->pos, &answer);
+	int fs_phone = vfs_grab_phone(file->node->fs_handle);
 	
 	/*
-	 * Forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
+	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
+	 * and forward the IPC_M_DATA_READ/IPC_M_DATA_WRITE request to the
 	 * destination FS server. The call will be routed as if sent by
 	 * ourselves. Note that call arguments are immutable in this case so we
 	 * don't have to bother.
 	 */
-	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-
-	/* Wait for reply from the FS server. */
 	ipcarg_t rc;
-	async_wait_for(msg, &rc);
+	ipc_call_t answer;
+	if (read) {
+		if (file->append)
+			file->pos = file->node->size;
+		
+		rc = async_data_read_forward_3_1(fs_phone, VFS_OUT_READ,
+		    file->node->dev_handle, file->node->index, file->pos,
+		    &answer);
+	} else {
+		rc = async_data_write_forward_3_1(fs_phone, VFS_OUT_WRITE,
+		    file->node->dev_handle, file->node->index, file->pos,
+		    &answer);
+	}
 	
 	vfs_release_phone(fs_phone);
 	
 	size_t bytes = IPC_GET_ARG1(answer);
-
+	
 	if (file->node->type == VFS_NODE_DIRECTORY)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 	
@@ -996,66 +886,88 @@ void vfs_write(ipc_callid_t rid, ipc_call_t *request)
 void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = (int) IPC_GET_ARG1(*request);
-	off_t off = (off_t) IPC_GET_ARG2(*request);
-	int whence = (int) IPC_GET_ARG3(*request);
-
-
+	off64_t off =
+	    (off64_t) MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
+	int whence = (int) IPC_GET_ARG4(*request);
+	
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
 		ipc_answer_0(rid, ENOENT);
 		return;
 	}
-
-	off_t newpos;
+	
 	fibril_mutex_lock(&file->lock);
-	if (whence == SEEK_SET) {
-		file->pos = off;
-		fibril_mutex_unlock(&file->lock);
-		ipc_answer_1(rid, EOK, off);
-		return;
-	}
-	if (whence == SEEK_CUR) {
-		if (file->pos + off < file->pos) {
+	
+	off64_t newoff;
+	switch (whence) {
+		case SEEK_SET:
+			if (off >= 0) {
+				file->pos = (aoff64_t) off;
+				fibril_mutex_unlock(&file->lock);
+				ipc_answer_1(rid, EOK, off);
+				return;
+			}
+			break;
+		case SEEK_CUR:
+			if ((off >= 0) && (file->pos + off < file->pos)) {
+				fibril_mutex_unlock(&file->lock);
+				ipc_answer_0(rid, EOVERFLOW);
+				return;
+			}
+			
+			if ((off < 0) && (file->pos < (aoff64_t) -off)) {
+				fibril_mutex_unlock(&file->lock);
+				ipc_answer_0(rid, EOVERFLOW);
+				return;
+			}
+			
+			file->pos += off;
+			newoff = (file->pos > OFF64_MAX) ? OFF64_MAX : file->pos;
+			
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			ipc_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
 			return;
-		}
-		file->pos += off;
-		newpos = file->pos;
-		fibril_mutex_unlock(&file->lock);
-		ipc_answer_1(rid, EOK, newpos);
-		return;
-	}
-	if (whence == SEEK_END) {
-		fibril_rwlock_read_lock(&file->node->contents_rwlock);
-		size_t size = file->node->size;
-		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
-		if (size + off < size) {
+		case SEEK_END:
+			fibril_rwlock_read_lock(&file->node->contents_rwlock);
+			aoff64_t size = file->node->size;
+			
+			if ((off >= 0) && (size + off < size)) {
+				fibril_rwlock_read_unlock(&file->node->contents_rwlock);
+				fibril_mutex_unlock(&file->lock);
+				ipc_answer_0(rid, EOVERFLOW);
+				return;
+			}
+			
+			if ((off < 0) && (size < (aoff64_t) -off)) {
+				fibril_rwlock_read_unlock(&file->node->contents_rwlock);
+				fibril_mutex_unlock(&file->lock);
+				ipc_answer_0(rid, EOVERFLOW);
+				return;
+			}
+			
+			file->pos = size + off;
+			newoff = (file->pos > OFF64_MAX) ? OFF64_MAX : file->pos;
+			
+			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			ipc_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
 			return;
-		}
-		newpos = size + off;
-		file->pos = newpos;
-		fibril_mutex_unlock(&file->lock);
-		ipc_answer_1(rid, EOK, newpos);
-		return;
 	}
+	
 	fibril_mutex_unlock(&file->lock);
 	ipc_answer_0(rid, EINVAL);
 }
 
-int
-vfs_truncate_internal(fs_handle_t fs_handle, dev_handle_t dev_handle,
-    fs_index_t index, size_t size)
+int vfs_truncate_internal(fs_handle_t fs_handle, dev_handle_t dev_handle,
+    fs_index_t index, aoff64_t size)
 {
 	ipcarg_t rc;
 	int fs_phone;
 	
 	fs_phone = vfs_grab_phone(fs_handle);
-	rc = async_req_3_0(fs_phone, VFS_OUT_TRUNCATE, (ipcarg_t)dev_handle,
-	    (ipcarg_t)index, (ipcarg_t)size);
+	rc = async_req_4_0(fs_phone, VFS_OUT_TRUNCATE, (ipcarg_t) dev_handle,
+	    (ipcarg_t) index, LOWER32(size), UPPER32(size));
 	vfs_release_phone(fs_phone);
 	return (int)rc;
 }
@@ -1063,7 +975,8 @@ vfs_truncate_internal(fs_handle_t fs_handle, dev_handle_t dev_handle,
 void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	size_t size = IPC_GET_ARG2(*request);
+	aoff64_t size =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
 	int rc;
 
 	vfs_file_t *file = vfs_file_get(fd);
@@ -1119,28 +1032,14 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	size_t len;
-	ipc_callid_t callid;
-
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	char *path = malloc(len + 1);
-	if (!path) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	int rc;
-	if ((rc = async_data_write_finalize(callid, path, len))) {
+	char *path;
+	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
-		free(path);
 		return;
 	}
-	path[len] = '\0';
-
+	
+	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
 		free(path);
 		ipc_answer_0(callid, EINVAL);
@@ -1186,29 +1085,14 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 {
 	int mode = IPC_GET_ARG1(*request);
-
-	size_t len;
-	ipc_callid_t callid;
-
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	char *path = malloc(len + 1);
-	if (!path) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	int rc;
-	if ((rc = async_data_write_finalize(callid, path, len))) {
+	
+	char *path;
+	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
-		free(path);
 		return;
 	}
-	path[len] = '\0';
-
+	
 	/* Ignore mode for now. */
 	(void) mode;
 	
@@ -1223,28 +1107,13 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 {
 	int lflag = IPC_GET_ARG1(*request);
-
-	size_t len;
-	ipc_callid_t callid;
-
-	if (!async_data_write_receive(&callid, &len)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	char *path = malloc(len + 1);
-	if (!path) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	int rc;
-	if ((rc = async_data_write_finalize(callid, path, len))) {
+	
+	char *path;
+	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
-		free(path);
 		return;
 	}
-	path[len] = '\0';
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
 	lflag &= L_DIRECTORY;	/* sanitize lflag */
@@ -1273,61 +1142,38 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 {
-	size_t olen, nlen;
-	ipc_callid_t callid;
-	int rc;
-
 	/* Retrieve the old path. */
-	if (!async_data_write_receive(&callid, &olen)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	char *old = malloc(olen + 1);
-	if (!old) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	if ((rc = async_data_write_finalize(callid, old, olen))) {
+	char *old;
+	int rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
-		free(old);
 		return;
 	}
-	old[olen] = '\0';
 	
 	/* Retrieve the new path. */
-	if (!async_data_write_receive(&callid, &nlen)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+	char *new;
+	rc = async_data_write_accept((void **) &new, true, 0, 0, 0, NULL);
+	if (rc != EOK) {
 		free(old);
-		return;
-	}
-	char *new = malloc(nlen + 1);
-	if (!new) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		free(old);
-		return;
-	}
-	if ((rc = async_data_write_finalize(callid, new, nlen))) {
 		ipc_answer_0(rid, rc);
-		free(old);
-		free(new);
 		return;
 	}
-	new[nlen] = '\0';
-
+	
+	size_t olen;
+	size_t nlen;
 	char *oldc = canonify(old, &olen);
 	char *newc = canonify(new, &nlen);
-	if (!oldc || !newc) {
+	
+	if ((!oldc) || (!newc)) {
 		ipc_answer_0(rid, EINVAL);
 		free(old);
 		free(new);
 		return;
 	}
+	
 	oldc[olen] = '\0';
 	newc[nlen] = '\0';
+	
 	if ((!str_lcmp(newc, oldc, str_length(oldc))) &&
 	    ((newc[str_length(oldc)] == '/') ||
 	    (str_length(oldc) == 1) ||
@@ -1348,6 +1194,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	vfs_lookup_res_t new_lr;
 	vfs_lookup_res_t new_par_lr;
 	fibril_rwlock_write_lock(&namespace_rwlock);
+	
 	/* Lookup the node belonging to the old file name. */
 	rc = vfs_lookup_internal(oldc, L_NONE, &old_lr, NULL);
 	if (rc != EOK) {
@@ -1357,6 +1204,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	vfs_node_t *old_node = vfs_node_get(&old_lr);
 	if (!old_node) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
@@ -1365,6 +1213,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	/* Determine the path to the parent of the node with the new name. */
 	char *parentc = str_dup(newc);
 	if (!parentc) {
@@ -1374,11 +1223,13 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	char *lastsl = str_rchr(parentc + 1, '/');
 	if (lastsl)
 		*lastsl = '\0';
 	else
 		parentc[1] = '\0';
+	
 	/* Lookup parent of the new file name. */
 	rc = vfs_lookup_internal(parentc, L_NONE, &new_par_lr, NULL);
 	free(parentc);	/* not needed anymore */
@@ -1389,6 +1240,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	/* Check whether linking to the same file system instance. */
 	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
 	    (old_node->dev_handle != new_par_lr.triplet.dev_handle)) {
@@ -1398,9 +1250,11 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	/* Destroy the old link for the new name. */
 	vfs_node_t *new_node = NULL;
 	rc = vfs_lookup_internal(newc, L_UNLINK, &new_lr, NULL);
+	
 	switch (rc) {
 	case ENOENT:
 		/* simply not in our way */
@@ -1425,6 +1279,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	/* Create the new link for the new name. */
 	rc = vfs_lookup_internal(newc, L_LINK, NULL, NULL, old_node->index);
 	if (rc != EOK) {
@@ -1436,9 +1291,11 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	fibril_mutex_lock(&nodes_mutex);
 	old_node->lnkcnt++;
 	fibril_mutex_unlock(&nodes_mutex);
+	
 	/* Destroy the link for the old name. */
 	rc = vfs_lookup_internal(oldc, L_UNLINK, NULL, NULL);
 	if (rc != EOK) {
@@ -1451,13 +1308,16 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		free(new);
 		return;
 	}
+	
 	fibril_mutex_lock(&nodes_mutex);
 	old_node->lnkcnt--;
 	fibril_mutex_unlock(&nodes_mutex);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(old_node);
+	
 	if (new_node)
 		vfs_node_put(new_node);
+	
 	free(old);
 	free(new);
 	ipc_answer_0(rid, EOK);

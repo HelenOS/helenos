@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef TMPFS_TMPFS_H_
 #define TMPFS_TMPFS_H_
@@ -39,10 +39,6 @@
 #include <sys/types.h>
 #include <bool.h>
 #include <adt/hash_table.h>
-
-#ifndef dprintf
-#define dprintf(...)	printf(__VA_ARGS__)
-#endif
 
 #define TMPFS_NODE(node)	((node) ? (tmpfs_node_t *)(node)->data : NULL)
 #define FS_NODE(node)		((node) ? (node)->bp : NULL)

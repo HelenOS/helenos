@@ -427,7 +427,7 @@ static inline void pk_disable(void)
 	);
 }
 
-extern void cpu_halt(void);
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(uint32_t t);
 
