@@ -35,12 +35,22 @@
 
 #include <ipc/ipc.h>
 
+typedef enum {
+	DEVMAN_DRIVER = 1,
+	DEVMAN_CLIENT,
+	DEVMAN_CONNECT_TO_DEVICE
+} devman_interface_t;
 
 typedef enum {
 	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
 	DEVMAN_ADD_CHILD_DEVICE
 
-} devman_request_t;
+} driver_to_devman_t;
+
+typedef enum {
+	DRIVER_ADD_DEVICE = IPC_FIRST_USER_METHOD
+
+} devman_to_driver_t;
 
 
 

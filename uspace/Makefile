@@ -48,6 +48,7 @@ DIRS = \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
+	srv/drivers/root \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \

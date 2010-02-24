@@ -200,6 +200,7 @@ static inline void init_driver(driver_t *drv)
 	memset(drv, 0, sizeof(driver_t));
 	list_initialize(&drv->match_ids.ids);
 	list_initialize(&drv->devices);
+	fibril_mutex_initialize(&drv->driver_mutex);	
 }
 
 static inline void clean_driver(driver_t *drv)

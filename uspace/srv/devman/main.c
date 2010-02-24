@@ -62,7 +62,7 @@ static dev_tree_t device_tree;
 /** Function for handling connections to device manager.
  *
  */
-static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -84,6 +84,29 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_0(callid, EINVAL); 
 			break;
 		}
+	}
+}
+
+/** Function for handling connections to device manager.
+ *
+ */
+static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	// Select interface 
+	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	case DEVMAN_DRIVER:
+		devman_connection_driver(iid, icall);
+		break;
+	/*case DEVMAN_CLIENT:
+		devmap_connection_client(iid, icall);
+		break;
+	case DEVMAN_CONNECT_TO_DEVICE:
+		// Connect client to selected device
+		devmap_forward(iid, icall);
+		break;*/
+	default:
+		/* No such interface */
+		ipc_answer_0(iid, ENOENT);
 	}
 }
 
