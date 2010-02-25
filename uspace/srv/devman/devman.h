@@ -167,7 +167,11 @@ static inline void delete_match_id(match_id_t *id)
 	}
 }
 
-// Driver list
+
+
+
+
+// Drivers
 
 static inline void init_driver_list(driver_list_t *drv_list) 
 {
@@ -176,8 +180,6 @@ static inline void init_driver_list(driver_list_t *drv_list)
 	list_initialize(&drv_list->drivers);
 	fibril_mutex_initialize(&drv_list->drivers_mutex);	
 }
-
-// Drivers
 
 driver_t * create_driver();
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv);
@@ -190,6 +192,8 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv);
 void attach_driver(node_t *node, driver_t *drv);
 bool add_device(driver_t *drv, node_t *node);
 bool start_driver(driver_t *drv);
+
+driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
 
 
 static inline void init_driver(driver_t *drv)

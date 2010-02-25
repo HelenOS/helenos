@@ -47,6 +47,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <devman.h>
 #include <ipc/devman.h>
 
 
@@ -148,72 +149,6 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
-// TODO put this to library (like in device mapper)
-static int devman_phone_driver = -1;
-static int devman_phone_client = -1;
-
-int devman_get_phone(devman_interface_t iface, unsigned int flags)
-{
-	switch (iface) {
-	case DEVMAN_DRIVER:
-		if (devman_phone_driver >= 0)
-			return devman_phone_driver;
-		
-		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
-		else
-			devman_phone_driver = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
-		
-		return devman_phone_driver;
-	case DEVMAN_CLIENT:
-		if (devman_phone_client >= 0)
-			return devman_phone_client;
-		
-		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		else
-			devman_phone_client = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		
-		return devman_phone_client;
-	default:
-		return -1;
-	}
-}
-
-/** Register new driver with device manager. */
-int devman_driver_register(const char *name, async_client_conn_t conn)
-{
-	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
-	
-	if (phone < 0)
-		return phone;
-	
-	async_serialize_start();
-	
-	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
-	
-	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		async_serialize_end();
-		return -1;
-	}
-	
-	async_set_client_connection(conn);
-	
-	ipcarg_t callback_phonehash;
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
-	async_wait_for(req, &retval);
-	
-	async_serialize_end();
-	
-	return retval;
-}
 
 int driver_main(driver_t *drv) 
 {
@@ -221,6 +156,7 @@ int driver_main(driver_t *drv)
 	driver = drv;
 	
 	// register driver by device manager with generic handler for incoming connections
+	printf("%s: sending registration request to devman.\n", driver->name);
 	devman_driver_register(driver->name, driver_connection);		
 
 	async_manager();
@@ -236,29 +172,36 @@ int driver_main(driver_t *drv)
 
 #define NAME "root"
 
-static driver_t root_driver;
+
 
 bool root_add_device(device_t *dev) 
 {
-	// TODO
+	// TODO add root device and register its children
 	return true;
 }
 
-bool root_init(driver_t *drv, const char *name) 
+static driver_ops_t root_ops = {
+	.add_device = &root_add_device
+};
+
+static driver_t root_driver = {
+	.name = NAME,
+	.driver_ops = &root_ops
+};
+
+bool root_init() 
 {
-	// TODO  initialize driver structure
-	
+	// TODO  driver initialization	
 	return true;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");
-	if (!root_init(&root_driver, argv[0])) {
-		printf(NAME ": Error while initializing driver\n");
+	if (!root_init()) {
+		printf(NAME ": Error while initializing driver.\n");
 		return -1;
 	}
 	
 	return driver_main(&root_driver);
-
 }

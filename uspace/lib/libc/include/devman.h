@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Lenka Trochtova * 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +27,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devman
+/** @addtogroup libc
  * @{
  */
- 
-#ifndef DEVMAN_UTIL_H_
-#define DEVMAN_UTIL_H_
+/** @file
+ */
 
-#include <ctype.h>
+#ifndef LIBC_DEVMAN_H_
+#define LIBC_DEVMAN_H_
 
+#include <ipc/devman.h>
+#include <async.h>
+#include <bool.h>
 
-char * get_abs_path(const char *base_path, const char *name, const char *ext);
+extern int devman_get_phone(devman_interface_t, unsigned int);
+extern void devman_hangup_phone(devman_interface_t iface);
 
-static inline bool skip_spaces(const char **buf) 
-{
-	while (isspace(**buf)) {
-		(*buf)++;		
-	}
-	return *buf != 0;	
-}
+extern int devman_driver_register(const char *, async_client_conn_t);
 
-static inline size_t get_nonspace_len(const char *str) 
-{
-	size_t len = 0;
-	while(*str != 0 && !isspace(*str)) {
-		len++;
-		str++;
-	}
-	return len;
-}
-
-static inline void free_not_null(const void *ptr)
-{
-	if (NULL != ptr) {
-		free(ptr);
-	}
-}
 
 #endif
+
+/** @}
+ */

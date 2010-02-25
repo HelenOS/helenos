@@ -58,25 +58,115 @@
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;
 
+/**
+ * 
+ * 
+ * Driver's mutex must be locked.
+ */
+static void pass_devices_to_driver(driver_t *driver)
+{
+	
+
+	
+	
+}
+
+static void init_running_driver(driver_t *driver) 
+{
+	fibril_mutex_lock(&driver->driver_mutex);
+	
+	// pass devices which have been already assigned to the driver to the driver
+	pass_devices_to_driver(driver);	
+	
+	// change driver's state to running
+	driver->state = DRIVER_RUNNING;	
+	
+	fibril_mutex_unlock(&driver->driver_mutex);
+}
+
+/**
+ * Register running driver.
+ */
+static driver_t * devman_driver_register(void)
+{	
+	printf(NAME ": devman_driver_register \n");
+	
+	ipc_call_t icall;
+	ipc_callid_t iid = async_get_call(&icall);
+	driver_t *driver = NULL;
+	
+	if (IPC_GET_METHOD(icall) != DEVMAN_DRIVER_REGISTER) {
+		ipc_answer_0(iid, EREFUSED);
+		return NULL;
+	}
+	
+	char drv_name[DEVMAN_NAME_MAXLEN];
+	
+	// Get driver name
+	int rc = async_string_receive(drv_name, DEVMAN_NAME_MAXLEN, NULL);	
+	if (rc != EOK) {
+		ipc_answer_0(iid, rc);
+		return NULL;
+	}
+	printf(NAME ": the %s driver is trying to register by the service.\n", drv_name);
+	
+	// Find driver structure
+	driver = find_driver(&drivers_list, drv_name);
+	if (NULL == driver) {
+		printf(NAME ": no driver named %s was found.\n", drv_name);
+		ipc_answer_0(iid, ENOENT);
+		return NULL;
+	}
+	printf(NAME ": registering the running instance of the %s driver.\n", driver->name);
+	
+	// Create connection to the driver
+	printf(NAME ":  creating connection to the %s driver.\n", driver->name);	
+	ipc_call_t call;
+	ipc_callid_t callid = async_get_call(&call);		
+	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(iid, ENOTSUP);
+		return NULL;
+	}
+	
+	fibril_mutex_lock(&driver->driver_mutex);
+	assert(DRIVER_STARTING == driver->state);
+	driver->phone = IPC_GET_ARG5(call);	
+	fibril_mutex_unlock(&driver->driver_mutex);	
+	
+	printf(NAME ":  the %s driver was successfully registered as running.\n", driver->name);
+	
+	ipc_answer_0(callid, EOK);	
+	
+	ipc_answer_0(iid, EOK);
+	
+	return driver;
+}
 
 /** Function for handling connections to device manager.
  *
  */
 static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
-{
-	ipc_callid_t callid;
-	ipc_call_t call;
-	
+{	
 	/* Accept the connection */
 	ipc_answer_0(iid, EOK);
 	
-	while (1) {
+	driver_t *driver = devman_driver_register();
+	if (driver == NULL)
+		return;
+		
+	init_running_driver(driver);
+	
+	ipc_callid_t callid;
+	ipc_call_t call;
+	bool cont = true;
+	while (cont) {
 		callid = async_get_call(&call);
 		
 		switch (IPC_GET_METHOD(call)) {
-		case DEVMAN_DRIVER_REGISTER:
-			// TODO register running driver instance - remember driver's phone and lookup devices to which it has been assigned
-			break;
+		case IPC_M_PHONE_HUNGUP:
+			cont = false;
+			continue;
 		case DEVMAN_ADD_CHILD_DEVICE:
 			// TODO add new device node to the device tree
 			break;

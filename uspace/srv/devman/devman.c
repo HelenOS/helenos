@@ -347,6 +347,7 @@ driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
 	int best_score = 0, score = 0;
 	
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
+	
 	link_t *link = drivers_list->drivers.next;		
 	while (link != &drivers_list->drivers) {
 		drv = list_get_instance(link, driver_t, drivers);
@@ -357,6 +358,7 @@ driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
 		}	
 		link = link->next;
 	}
+	
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 	
 	return best_drv;	
@@ -403,6 +405,28 @@ bool start_driver(driver_t *drv)
 	
 	drv->state = DRIVER_STARTING;
 	return true;
+}
+
+driver_t * find_driver(driver_list_t *drv_list, const char *drv_name) 
+{	
+	driver_t *res = NULL;
+	
+	fibril_mutex_lock(&drv_list->drivers_mutex);	
+	
+	driver_t *drv = NULL;
+	link_t *link = drv_list->drivers.next; 	
+	while (link !=  &drv_list->drivers) {
+		drv = list_get_instance(link, driver_t, drivers);
+		if (0 == str_cmp(drv->name, drv_name)) {
+			res = drv;
+			break;
+		}		
+		link = link->next;
+	}	
+	
+	fibril_mutex_unlock(&drv_list->drivers_mutex);
+	
+	return res;
 }
 
 /** Pass a device to running driver.

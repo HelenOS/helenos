@@ -52,6 +52,7 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/clipboard.c \
 	generic/devmap.c \
+	generic/devman.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \

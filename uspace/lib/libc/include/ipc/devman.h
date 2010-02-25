@@ -35,6 +35,8 @@
 
 #include <ipc/ipc.h>
 
+#define DEVMAN_NAME_MAXLEN 256
+
 typedef enum {
 	DEVMAN_DRIVER = 1,
 	DEVMAN_CLIENT,
