@@ -198,7 +198,6 @@ driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
 
 static inline void init_driver(driver_t *drv)
 {
-	printf(NAME ": init_driver\n");
 	assert(drv != NULL);
 
 	memset(drv, 0, sizeof(driver_t));
@@ -209,7 +208,6 @@ static inline void init_driver(driver_t *drv)
 
 static inline void clean_driver(driver_t *drv)
 {
-	printf(NAME ": clean_driver\n");
 	assert(drv != NULL);
 
 	free_not_null(drv->name);
@@ -222,7 +220,6 @@ static inline void clean_driver(driver_t *drv)
 
 static inline void delete_driver(driver_t *drv)
 {
-	printf(NAME ": delete_driver\n");
 	assert(NULL != drv);
 	
 	clean_driver(drv);

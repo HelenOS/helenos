@@ -100,10 +100,10 @@ static driver_t * devman_driver_register(void)
 		return NULL;
 	}
 	
-	char drv_name[DEVMAN_NAME_MAXLEN];
+	char *drv_name = NULL;
 	
 	// Get driver name
-	int rc = async_string_receive(drv_name, DEVMAN_NAME_MAXLEN, NULL);	
+	int rc = async_string_receive(&drv_name, DEVMAN_NAME_MAXLEN, NULL);	
 	if (rc != EOK) {
 		ipc_answer_0(iid, rc);
 		return NULL;
@@ -112,6 +112,10 @@ static driver_t * devman_driver_register(void)
 	
 	// Find driver structure
 	driver = find_driver(&drivers_list, drv_name);
+	
+	free(drv_name);
+	drv_name = NULL;
+	
 	if (NULL == driver) {
 		printf(NAME ": no driver named %s was found.\n", drv_name);
 		ipc_answer_0(iid, ENOENT);

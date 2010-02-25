@@ -42,9 +42,7 @@
  * @return driver structure.
  */
 driver_t * create_driver() 
-{
-	printf(NAME ": create_driver\n");
-	
+{	
 	driver_t *res = malloc(sizeof(driver_t));
 	if(res != NULL) {
 		init_driver(res);
