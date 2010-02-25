@@ -537,7 +537,7 @@ int fgetc(FILE *stream)
 
 char *fgets(char *str, int size, FILE *stream)
 {
-	char c;
+	int c;
 	int idx;
 
 	idx = 0;
