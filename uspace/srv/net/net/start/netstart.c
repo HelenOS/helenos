@@ -68,7 +68,7 @@ int		main( int argc, char * argv[] );
  *  @returns The started module task identifier.
  *  @returns Other error codes as defined for the task_spawn() function.
  */
-task_id_t	spawn( char * fname );
+task_id_t	spawn( const char * fname );
 
 int main( int argc, char * argv[] ){
 	ERROR_DECLARE;
@@ -96,8 +96,8 @@ int main( int argc, char * argv[] ){
 	return EOK;
 }
 
-task_id_t spawn( char * fname ){
-	char *	argv[ 2 ];
+task_id_t spawn( const char * fname ){
+	const char *	argv[ 2 ];
 	task_id_t	res;
 
 	argv[ 0 ] = fname;

@@ -39,7 +39,7 @@
 #include <sysinfo.h>
 #include <string.h>
 
-sysarg_t sysinfo_value(char *name);
+sysarg_t sysinfo_value(const char *name);
 
 #endif
 

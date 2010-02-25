@@ -182,13 +182,13 @@ int loader_set_pathname(loader_t *ldr, const char *path)
  * @return Zero on success or negative error code.
  *
  */
-int loader_set_args(loader_t *ldr, char *const argv[])
+int loader_set_args(loader_t *ldr, const char *const argv[])
 {
 	/*
 	 * Serialize the arguments into a single array. First
 	 * compute size of the buffer needed.
 	 */
-	char *const *ap = argv;
+	const char *const *ap = argv;
 	size_t buffer_size = 0;
 	while (*ap != NULL) {
 		buffer_size += str_size(*ap) + 1;

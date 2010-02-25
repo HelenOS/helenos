@@ -47,7 +47,7 @@
 #include <macros.h>
 #include <arch.h>
 
-static char *error_codes[] = {
+static const char *error_codes[] = {
 	"no error",
 	"invalid image",
 	"address space error",
@@ -136,7 +136,7 @@ unsigned int elf_load(elf_header_t *header, as_t * as, int flags)
  *
  * @return NULL terminated description of error.
  */
-char *elf_error(unsigned int rc)
+const char *elf_error(unsigned int rc)
 {
 	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
 

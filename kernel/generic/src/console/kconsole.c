@@ -642,7 +642,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
  *               and never exit.
  *
  */
-void kconsole(char *prompt, char *msg, bool kcon)
+void kconsole(const char *prompt, const char *msg, bool kcon)
 {
 	if (!stdin) {
 		LOG("No stdin for kernel console");

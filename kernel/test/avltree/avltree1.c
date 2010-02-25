@@ -264,7 +264,7 @@ static void test_tree_delmin(avltree_t *tree, size_t node_count)
 	TPRINTF("done.\n");
 }
 
-char *test_avltree1(void)
+const char *test_avltree1(void)
 {
 	alloc_avltree_node_prepare();
 	test_tree_insert(&avltree, NODE_COUNT);

@@ -224,7 +224,7 @@ void sysinfo_dump(sysinfo_item_t **proot, int depth)
 	while (root != NULL) {
 		int i;
 		unative_t val = 0;
-		char *vtype = NULL;
+		const char *vtype = NULL;
 		
 		
 		for (i = 0; i < depth; i++)

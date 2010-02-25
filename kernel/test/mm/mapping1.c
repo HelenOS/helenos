@@ -41,7 +41,7 @@
 #define VALUE0  0x01234567
 #define VALUE1  0x89abcdef
 
-char *test_mapping1(void)
+const char *test_mapping1(void)
 {
 	uintptr_t frame0, frame1;
 	uint32_t v0, v1;

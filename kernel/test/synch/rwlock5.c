@@ -66,7 +66,7 @@ static void reader(void *arg)
 	rwlock_read_unlock(&rwlock);
 }
 
-char *test_rwlock5(void)
+const char *test_rwlock5(void)
 {
 	int i, j, k;
 	atomic_count_t readers;

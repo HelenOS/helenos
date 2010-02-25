@@ -182,9 +182,8 @@ void kinit(void *arg)
 		 */
 		
 		char namebuf[TASK_NAME_BUFLEN];
-		char *name;
 		
-		name = init.tasks[i].name;
+		const char *name = init.tasks[i].name;
 		if (name[0] == 0)
 			name = "<unknown>";
 		

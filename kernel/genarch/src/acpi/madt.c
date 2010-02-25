@@ -71,7 +71,7 @@ size_t cpu_count = 0;
 struct madt_apic_header * * madt_entries_index = NULL;
 unsigned int madt_entries_index_cnt = 0;
 
-char *entry[] = {
+const char *entry[] = {
 	"L_APIC",
 	"IO_APIC",
 	"INTR_SRC_OVRD",

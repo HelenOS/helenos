@@ -78,10 +78,10 @@ struct	module_struct{
 	int			usage;
 	/** Module name.
 	 */
-	char *		name;
+	const char *		name;
 	/** Module full path filename.
 	 */
-	char *		filename;
+	const char *		filename;
 	/** Connecting function.
 	 */
 	connect_module_t *	connect_module;
@@ -98,7 +98,7 @@ struct	module_struct{
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	add_module( module_ref * module, modules_ref modules, char * name, char * filename, services_t service, task_id_t task_id, connect_module_t * connect_module );
+int	add_module( module_ref * module, modules_ref modules, const char * name, const char * filename, services_t service, task_id_t task_id, connect_module_t * connect_module );
 
 /** Searches and returns the specified module.
  *  If the module is not running, the module filaname is spawned.
@@ -115,7 +115,7 @@ module_ref	get_running_module( modules_ref modules, char * name );
  *  @returns The new module task identifier on success.
  *  @returns 0 if there is no such module.
  */
-task_id_t	spawn( char * fname );
+task_id_t	spawn( const char * fname );
 
 #endif
 

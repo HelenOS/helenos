@@ -35,7 +35,7 @@
 #include <async.h>
 #include "../tester.h"
 
-const char *color_name[] = {
+static const char *color_name[] = {
 	[COLOR_BLACK] = "black",
 	[COLOR_BLUE] = "blue",
 	[COLOR_GREEN] = "green",
@@ -46,7 +46,7 @@ const char *color_name[] = {
 	[COLOR_WHITE] = "white"
 };
 
-char *test_console1(void)
+const char *test_console1(void)
 {
 	if (!test_quiet) {
 		printf("Style test: ");

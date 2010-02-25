@@ -63,7 +63,7 @@ enum vendor {
 	VendorIntel
 };
 
-static char *vendor_str[] = {
+static const char *vendor_str[] = {
 	"Unknown Vendor",
 	"AMD",
 	"Intel"

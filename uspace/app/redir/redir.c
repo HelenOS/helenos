@@ -71,7 +71,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 
 static task_id_t spawn(int argc, char *argv[])
 {
-	char **args = (char **) calloc(argc + 1, sizeof(char *));
+	const char **args = (const char **) calloc(argc + 1, sizeof(char *));
 	if (!args) {
 		printf("No memory available\n");
 		return 0;

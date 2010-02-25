@@ -584,13 +584,13 @@ void thread_trace_start(uintptr_t thread_hash)
 	fibril_add_ready(fid);
 }
 
-static loader_t *preload_task(const char *path, char *const argv[],
+static loader_t *preload_task(const char *path, char **argv,
     task_id_t *task_id)
 {
 	loader_t *ldr;
 	int rc;
 
-	/* Spawn a program loader */	
+	/* Spawn a program loader */
 	ldr = loader_connect();
 	if (ldr == NULL)
 		return 0;
@@ -606,7 +606,7 @@ static loader_t *preload_task(const char *path, char *const argv[],
 		goto error;
 
 	/* Send arguments */
-	rc = loader_set_args(ldr, argv);
+	rc = loader_set_args(ldr, (const char **) argv);
 	if (rc != EOK)
 		goto error;
 
@@ -869,47 +869,54 @@ static void print_syntax()
 	printf("\ttrace +tsip -t 12\n");
 }
 
-static display_mask_t parse_display_mask(char *text)
+static display_mask_t parse_display_mask(const char *text)
 {
 	display_mask_t dm;
-	char *c;
-
-	c = text;
-
+	const char *c = text;
+	
 	while (*c) {
 		switch (*c) {
-		case 't': dm = dm | DM_THREAD; break;
-		case 's': dm = dm | DM_SYSCALL; break;
-		case 'i': dm = dm | DM_IPC; break;
-		case 'p': dm = dm | DM_SYSTEM | DM_USER; break;
+		case 't':
+			dm = dm | DM_THREAD;
+			break;
+		case 's':
+			dm = dm | DM_SYSCALL;
+			break;
+		case 'i':
+			dm = dm | DM_IPC;
+			break;
+		case 'p':
+			dm = dm | DM_SYSTEM | DM_USER;
+			break;
 		default:
 			printf("Unexpected event type '%c'.\n", *c);
 			exit(1);
 		}
-
+		
 		++c;
 	}
-
+	
 	return dm;
 }
 
 static int parse_args(int argc, char *argv[])
 {
-	char *arg;
 	char *err_p;
 
 	task_id = 0;
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	while (argc > 0) {
-		arg = *argv;
+		char *arg = *argv;
 		if (arg[0] == '+') {
 			display_mask = parse_display_mask(&arg[1]);
 		} else if (arg[0] == '-') {
 			if (arg[1] == 't') {
 				/* Trace an already running task */
-				--argc; ++argv;
+				--argc;
+				++argv;
 				task_id = strtol(*argv, &err_p, 10);
 				task_ldr = NULL;
 				task_wait_for = false;
@@ -926,12 +933,14 @@ static int parse_args(int argc, char *argv[])
 		} else {
 			break;
 		}
-
-		--argc; ++argv;
+		
+		--argc;
+		++argv;
 	}
 
 	if (task_id != 0) {
-		if (argc == 0) return 0;
+		if (argc == 0)
+			return 0;
 		printf("Extra arguments\n");
 		print_syntax();
 		return -1;
@@ -945,10 +954,11 @@ static int parse_args(int argc, char *argv[])
 
 	/* Preload the specified program file. */
 	printf("Spawning '%s' with arguments:\n", *argv);
-	{
-		char **cp = argv;
-		while (*cp) printf("'%s'\n", *cp++);
-	}
+	
+	char **cp = argv;
+	while (*cp)
+		printf("'%s'\n", *cp++);
+	
 	task_ldr = preload_task(*argv, argv, &task_id);
 	task_wait_for = true;
 

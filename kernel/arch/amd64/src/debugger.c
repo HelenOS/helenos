@@ -338,7 +338,6 @@ void debugger_init()
 int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 	unsigned int i;
-	char *symbol;
 
 #ifdef __32_BITS__
 	printf("#  Count Address    In symbol\n");
@@ -352,7 +351,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
-			symbol = symtab_fmt_name_lookup(
+			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
 
 #ifdef __32_BITS__

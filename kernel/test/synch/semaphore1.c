@@ -69,7 +69,7 @@ static void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-char *test_semaphore1(void)
+const char *test_semaphore1(void)
 {
 	int i, j, k;
 	atomic_count_t consumers;

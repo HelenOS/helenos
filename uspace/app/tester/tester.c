@@ -68,7 +68,7 @@ test_t tests[] = {
 static bool run_test(test_t *test)
 {
 	/* Execute the test */
-	char *ret = test->entry();
+	const char *ret = test->entry();
 	
 	if (ret == NULL) {
 		printf("\nTest passed\n");

@@ -61,7 +61,7 @@ static void info_print(void)
 
 static bool mount_root(const char *fstype)
 {
-	char *opts = "";
+	const char *opts = "";
 	const char *root_dev = "bd/initrd";
 	
 	if (str_cmp(fstype, "tmpfs") == 0)
@@ -116,9 +116,9 @@ static bool mount_devfs(void)
 	return true;
 }
 
-static void spawn(char *fname)
+static void spawn(const char *fname)
 {
-	char *argv[2];
+	const char *argv[2];
 	struct stat s;
 	
 	if (stat(fname, &s) == ENOENT)
@@ -133,9 +133,9 @@ static void spawn(char *fname)
 		printf(NAME ": Error spawning %s\n", fname);
 }
 
-static void srv_start(char *fname)
+static void srv_start(const char *fname)
 {
-	char *argv[2];
+	const char *argv[2];
 	task_id_t id;
 	task_exit_t texit;
 	int rc, retval;
@@ -167,9 +167,9 @@ static void srv_start(char *fname)
 	}
 }
 
-static void console(char *dev)
+static void console(const char *dev)
 {
-	char *argv[3];
+	const char *argv[3];
 	char hid_in[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
@@ -192,9 +192,9 @@ static void console(char *dev)
 		printf(NAME ": Error waiting on %s\n", hid_in);
 }
 
-static void getterm(char *dev, char *app)
+static void getterm(const char *dev, const char *app)
 {
-	char *argv[4];
+	const char *argv[4];
 	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
 	

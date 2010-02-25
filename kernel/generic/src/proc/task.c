@@ -170,7 +170,7 @@ int tsk_constructor(void *obj, int kmflags)
  * @return		New task's structure.
  *
  */
-task_t *task_create(as_t *as, char *name)
+task_t *task_create(as_t *as, const char *name)
 {
 	ipl_t ipl;
 	task_t *ta;

@@ -320,10 +320,8 @@ fail:
 
 void tlb_refill_fail(istate_t *istate)
 {
-	char *symbol, *sym2;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-	sym2 = symtab_fmt_name_lookup(istate->ra);
+	const char *symbol = symtab_fmt_name_lookup(istate->epc);
+	const char *sym2 = symtab_fmt_name_lookup(istate->ra);
 	
 	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
 	    cp0_badvaddr_read());
@@ -334,10 +332,8 @@ void tlb_refill_fail(istate_t *istate)
 
 void tlb_invalid_fail(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->epc);
+	
 	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
 	    cp0_badvaddr_read());
 	panic("%x: TLB Invalid Exception at %x (%s).", cp0_badvaddr_read(),
@@ -346,10 +342,8 @@ void tlb_invalid_fail(istate_t *istate)
 
 void tlb_modified_fail(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->epc);
+	
 	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
 	    cp0_badvaddr_read());
 	panic("%x: TLB Modified Exception at %x (%s).", cp0_badvaddr_read(),

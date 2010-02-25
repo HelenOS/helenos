@@ -101,7 +101,7 @@ int netif_specific_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t *
 
 int netif_get_addr_message( device_id_t device_id, measured_string_ref address ){
 	if( ! address ) return EBADMEM;
-	address->value = DEFAULT_ADDR;
+	address->value = str_dup(DEFAULT_ADDR);
 	address->length = DEFAULT_ADDR_LEN;
 	return EOK;
 }

@@ -108,7 +108,7 @@ static void testit2(void *data)
 }
 
 
-char *test_mips2(void)
+const char *test_mips2(void)
 {
 	unsigned int i;
 	atomic_count_t total = 0;

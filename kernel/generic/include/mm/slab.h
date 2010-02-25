@@ -85,7 +85,7 @@ typedef struct {
 
 
 typedef struct {
-	char *name;
+	const char *name;
 	
 	link_t link;
 	
@@ -122,7 +122,7 @@ typedef struct {
 	slab_mag_cache_t *mag_cache;
 } slab_cache_t;
 
-extern slab_cache_t *slab_cache_create(char *, size_t, size_t,
+extern slab_cache_t *slab_cache_create(const char *, size_t, size_t,
     int (*)(void *, int), int (*)(void *), int);
 extern void slab_cache_destroy(slab_cache_t *);
 

@@ -42,7 +42,7 @@
 
 typedef void (*putc_function_t)(char);
 
-void serial_puts(char *str);
+void serial_puts(const char *str);
 void serial_goto(const unsigned int col, const unsigned int row);
 void serial_clrscr(void);
 void serial_scroll(int i);

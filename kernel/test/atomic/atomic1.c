@@ -31,7 +31,7 @@
 #include <atomic.h>
 #include <debug.h>
 
-char *test_atomic1(void)
+const char *test_atomic1(void)
 {
 	atomic_t a;
 	

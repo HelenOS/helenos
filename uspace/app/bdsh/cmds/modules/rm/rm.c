@@ -44,7 +44,7 @@
 #include "rm.h"
 #include "cmds.h"
 
-static char *cmdname = "rm";
+static const char *cmdname = "rm";
 #define RM_VERSION "0.0.1"
 
 static rm_job_t rm;

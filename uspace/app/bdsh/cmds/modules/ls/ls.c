@@ -48,7 +48,7 @@
 #include "ls.h"
 #include "cmds.h"
 
-static char *cmdname = "ls";
+static const char *cmdname = "ls";
 
 static void ls_scan_dir(const char *d, DIR *dirp)
 {

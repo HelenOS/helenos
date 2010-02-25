@@ -463,7 +463,7 @@ int icmp_connect_module( services_t service, suseconds_t timeout ){
 int icmp_initialize( async_client_conn_t client_connection ){
 	ERROR_DECLARE;
 
-	measured_string_t	names[] = {{ "ICMP_ERROR_REPORTING", 20 }, { "ICMP_ECHO_REPLYING", 18 }};
+	measured_string_t	names[] = {{ str_dup("ICMP_ERROR_REPORTING"), 20 }, { str_dup("ICMP_ECHO_REPLYING"), 18 }};
 	measured_string_ref	configuration;
 	size_t				count = sizeof( names ) / sizeof( measured_string_t );
 	char *				data;

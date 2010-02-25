@@ -55,7 +55,8 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Werror -pipe
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-Werror -pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
@@ -68,8 +69,9 @@ SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes -pipe \
-	-arch $(CLANG_ARCH)
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-pipe -arch $(CLANG_ARCH)
 
 LFLAGS = -M
 AFLAGS =

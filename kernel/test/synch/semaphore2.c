@@ -81,7 +81,7 @@ static void consumer(void *arg)
 	TPRINTF("cpu%u, tid %" PRIu64 " up\n", CPU->id, THREAD->tid);
 }
 
-char *test_semaphore2(void)
+const char *test_semaphore2(void)
 {
 	uint32_t i, k;
 	

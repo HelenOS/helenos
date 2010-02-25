@@ -31,7 +31,7 @@
 
 typedef int __attribute__((may_alias)) aliasing_int;
 
-char *test_fault2(void)
+const char *test_fault2(void)
 {
 	volatile long long var;
 	volatile int var1;

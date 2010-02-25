@@ -49,7 +49,7 @@ static int dev_phone;
 
 int adb_dev_init(void)
 {
-	char *input = "/dev/adb/mouse";
+	const char *input = "/dev/adb/mouse";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);

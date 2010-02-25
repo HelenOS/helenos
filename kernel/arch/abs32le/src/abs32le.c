@@ -113,7 +113,7 @@ void irq_initialize_arch(irq_t *irq)
 	(void) irq;
 }
 
-void panic_printf(char *fmt, ...)
+void panic_printf(const char *fmt, ...)
 {
 	va_list args;
 	

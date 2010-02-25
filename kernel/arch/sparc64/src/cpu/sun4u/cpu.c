@@ -128,7 +128,8 @@ void cpu_identify(void)
  */
 void cpu_print_report(cpu_t *m)
 {
-	char *manuf, *impl;
+	const char *manuf;
+	const char *impl;
 
 	switch (m->arch.ver.manuf) {
 	case MANUF_FUJITSU:

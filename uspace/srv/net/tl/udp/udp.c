@@ -191,7 +191,7 @@ udp_globals_t	udp_globals;
 int udp_initialize( async_client_conn_t client_connection ){
 	ERROR_DECLARE;
 
-	measured_string_t	names[] = {{ "UDP_CHECKSUM_COMPUTING", 22 }, { "UDP_AUTOBINDING", 15 }};
+	measured_string_t	names[] = {{ str_dup("UDP_CHECKSUM_COMPUTING"), 22 }, { str_dup("UDP_AUTOBINDING"), 15 }};
 	measured_string_ref	configuration;
 	size_t				count = sizeof( names ) / sizeof( measured_string_t );
 	char *				data;

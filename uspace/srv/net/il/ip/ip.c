@@ -478,7 +478,7 @@ int ip_device_req( int il_phone, device_id_t device_id, services_t netif ){
 int ip_netif_initialize( ip_netif_ref ip_netif ){
 	ERROR_DECLARE;
 
-	measured_string_t	names[] = {{ "IPV", 3 }, { "IP_CONFIG", 9 }, { "IP_ADDR", 7 }, { "IP_NETMASK", 10 }, { "IP_GATEWAY", 10 }, { "IP_BROADCAST", 12 }, { "ARP", 3 }, { "IP_ROUTING", 10 }};
+	measured_string_t	names[] = {{ str_dup("IPV"), 3 }, { str_dup("IP_CONFIG"), 9 }, { str_dup("IP_ADDR"), 7 }, { str_dup("IP_NETMASK"), 10 }, { str_dup("IP_GATEWAY"), 10 }, { str_dup("IP_BROADCAST"), 12 }, { str_dup("ARP"), 3 }, { str_dup("IP_ROUTING"), 10 }};
 	measured_string_ref	configuration;
 	size_t				count = sizeof( names ) / sizeof( measured_string_t );
 	char *				data;

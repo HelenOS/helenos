@@ -45,7 +45,7 @@ typedef struct {
 	bool (* frame_pointer_validate)(uintptr_t);
 	bool (* frame_pointer_prev)(uintptr_t, uintptr_t *);
 	bool (* return_address_get)(uintptr_t, uintptr_t *);
-	bool (* symbol_resolve)(uintptr_t, char **, uintptr_t *);
+	bool (* symbol_resolve)(uintptr_t, const char **, uintptr_t *);
 } stack_trace_ops_t;
 
 extern stack_trace_ops_t kst_ops;

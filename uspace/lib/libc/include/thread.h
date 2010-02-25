@@ -44,7 +44,7 @@ typedef uint64_t thread_id_t;
 extern void __thread_entry(void);
 extern void __thread_main(uspace_arg_t *);
 
-extern int thread_create(void (*)(void *), void *, char *, thread_id_t *);
+extern int thread_create(void (*)(void *), void *, const char *, thread_id_t *);
 extern void thread_exit(int) __attribute__ ((noreturn));
 extern void thread_detach(thread_id_t);
 extern int thread_join(thread_id_t);

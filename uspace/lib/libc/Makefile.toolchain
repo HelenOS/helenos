@@ -26,24 +26,28 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
+OPTIMIZATION = 3
+
+GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Werror -pipe -g -D__$(ENDIANESS)__
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-Werror -pipe -g -D__$(ENDIANESS)__
 
-ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
+ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(LIBC_PREFIX)/../../../config.h \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-Werror -pipe -g -D__$(ENDIANESS)__
+
+CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(LIBC_PREFIX)/../../../config.h \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Werror -pipe -g -D__$(ENDIANESS)__
-
-CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O3 -imacros $(LIBC_PREFIX)/../../../config.h \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
-	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -pipe -g -arch $(CLANG_ARCH) \
-	-D__$(ENDIANESS)__
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
 
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
