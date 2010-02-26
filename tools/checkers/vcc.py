@@ -69,7 +69,7 @@ def preprocess(srcfname, tmpfname, base, options):
 	for line in preproc.splitlines():
 		# Ignore preprocessor directives
 		if (line.startswith('#')):
-			continue	
+			continue
 		
 		tmpf.write("%s\n" % line)
 	
@@ -106,6 +106,8 @@ def vcc(root, job):
 		
 		srcfname = arg[0]
 		tgtfname = arg[1]
+		tool = arg[2]
+		category = arg[3]
 		base = arg[4]
 		options = arg[5]
 		
@@ -118,7 +120,7 @@ def vcc(root, job):
 		tmpfqname = os.path.join(base, tmpfname)
 		
 		# Only C files are interesting for us
-		if (arg[2] != "cc"):
+		if (tool != "cc"):
 			continue
 		
 		# Preprocess sources
