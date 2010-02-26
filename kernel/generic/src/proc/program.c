@@ -33,7 +33,7 @@
 
 /**
  * @file
- * @brief	Running userspace programs.
+ * @brief Running userspace programs.
  */
 
 #include <main/uinit.h>
@@ -65,16 +65,18 @@ void *program_loader = NULL;
 
 /** Create a program using an existing address space.
  *
- * @param as		Address space containing a binary program image.
- * @param entry_addr	Program entry-point address in program address space.
- * @param name		Name to set for the program's task.
- * @param p		Buffer for storing program information.
+ * @param as         Address space containing a binary program image.
+ * @param entry_addr Program entry-point address in program address space.
+ * @param name       Name to set for the program's task.
+ * @param prg        Buffer for storing program information.
+ *
+ * @return EOK on success or negative error code.
+ *
  */
-void program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *p)
+int program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 {
-	as_area_t *a;
 	uspace_arg_t *kernel_uarg;
-
+	
 	kernel_uarg = (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
 	kernel_uarg->uspace_entry = (void *) entry_addr;
 	kernel_uarg->uspace_stack = (void *) USTACK_ADDRESS;
@@ -82,22 +84,29 @@ void program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *p)
 	kernel_uarg->uspace_thread_arg = NULL;
 	kernel_uarg->uspace_uarg = NULL;
 	
-	p->task = task_create(as, name);
-	ASSERT(p->task);
-
+	prg->task = task_create(as, name);
+	if (!prg->task)
+		return ELIMIT;
+	
 	/*
-	 * Create the data as_area.
+	 * Create the data address space area.
 	 */
-	a = as_area_create(as, AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
+	as_area_t *area = as_area_create(as,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
 	    LOADED_PROG_STACK_PAGES_NO * PAGE_SIZE, USTACK_ADDRESS,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL);
-
+	if (!area)
+		return ENOMEM;
+	
 	/*
 	 * Create the main thread.
 	 */
-	p->main_thread = thread_create(uinit, kernel_uarg, p->task,
+	prg->main_thread = thread_create(uinit, kernel_uarg, prg->task,
 	    THREAD_FLAG_USPACE, "uinit", false);
-	ASSERT(p->main_thread);
+	if (!prg->main_thread)
+		return ELIMIT;
+	
+	return EOK;
 }
 
 /** Parse an executable image in the kernel memory.
@@ -106,86 +115,86 @@ void program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *p)
  * (and *task is set to NULL). Otherwise a task is created from the
  * executable image. The task is returned in *task.
  *
- * @param image_addr	Address of an executable program image.
- * @param name		Name to set for the program's task.
- * @param p		Buffer for storing program info. If image_addr
- *			points to a loader image, p->task will be set to
- *			NULL and EOK will be returned.
+ * @param image_addr Address of an executable program image.
+ * @param name       Name to set for the program's task.
+ * @param prg        Buffer for storing program info. If image_addr
+ *                   points to a loader image, p->task will be set to
+ *                   NULL and EOK will be returned.
  *
  * @return EOK on success or negative error code.
+ *
  */
-int program_create_from_image(void *image_addr, char *name, program_t *p)
+int program_create_from_image(void *image_addr, char *name, program_t *prg)
 {
-	as_t *as;
-	unsigned int rc;
-
-	as = as_create(0);
-	ASSERT(as);
-
-	rc = elf_load((elf_header_t *) image_addr, as, 0);
+	as_t *as = as_create(0);
+	if (!as)
+		return ENOMEM;
+	
+	unsigned int rc = elf_load((elf_header_t *) image_addr, as, 0);
 	if (rc != EE_OK) {
 		as_destroy(as);
-		p->task = NULL;
-		p->main_thread = NULL;
+		prg->task = NULL;
+		prg->main_thread = NULL;
+		
 		if (rc != EE_LOADER)
 			return ENOTSUP;
 		
 		/* Register image as the program loader */
-		ASSERT(program_loader == NULL);
+		if (program_loader != NULL)
+			return ELIMIT;
+		
 		program_loader = image_addr;
 		LOG("Registered program loader at 0x%" PRIp "\n",
 		    image_addr);
+		
 		return EOK;
 	}
-
-	program_create(as, ((elf_header_t *) image_addr)->e_entry, name, p);
-
-	return EOK;
+	
+	return program_create(as, ((elf_header_t *) image_addr)->e_entry,
+	    name, prg);
 }
 
 /** Create a task from the program loader image.
  *
- * @param p	Buffer for storing program info.
- * @param name	Name to set for the program's task.
+ * @param prg  Buffer for storing program info.
+ * @param name Name to set for the program's task.
  *
  * @return EOK on success or negative error code.
+ *
  */
-int program_create_loader(program_t *p, char *name)
+int program_create_loader(program_t *prg, char *name)
 {
-	as_t *as;
-	unsigned int rc;
-	void *loader;
-
-	as = as_create(0);
-	ASSERT(as);
-
-	loader = program_loader;
+	as_t *as = as_create(0);
+	if (!as)
+		return ENOMEM;
+	
+	void *loader = program_loader;
 	if (!loader) {
 		printf("Cannot spawn loader as none was registered\n");
 		return ENOENT;
 	}
-
-	rc = elf_load((elf_header_t *) program_loader, as, ELD_F_LOADER);
+	
+	unsigned int rc = elf_load((elf_header_t *) program_loader, as,
+	    ELD_F_LOADER);
 	if (rc != EE_OK) {
 		as_destroy(as);
 		return ENOENT;
 	}
-
-	program_create(as, ((elf_header_t *) program_loader)->e_entry,
-	    name, p);
-
-	return EOK;
+	
+	return program_create(as, ((elf_header_t *) program_loader)->e_entry,
+	    name, prg);
 }
 
 /** Make program ready.
  *
  * Switch program's main thread to the ready state.
  *
- * @param p Program to make ready.
+ * @param prg Program to make ready.
+ *
  */
-void program_ready(program_t *p)
+void program_ready(program_t *prg)
 {
-	thread_ready(p->main_thread);
+	thread_ready(prg->main_thread);
 }
 
 /** Syscall for creating a new loader instance from userspace.
@@ -193,39 +202,36 @@ void program_ready(program_t *p)
  * Creates a new task from the program loader image and sets
  * the task name.
  *
- * @param name			Name to set on the new task (typically the same
- *				as the command used to execute it).
+ * @param uspace_name Name to set on the new task (typically the same
+ *                    as the command used to execute it).
+ * @param name_len    Length of the name.
  *
- * @return 0 on success or an error code from @ref errno.h.
+ * @return EOK on success or an error code from @ref errno.h.
+ *
  */
 unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 {
-	program_t p;
-	int rc;
-	char namebuf[TASK_NAME_BUFLEN];
-
 	/* Cap length of name and copy it from userspace. */
-
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
-
-	rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	
+	char namebuf[TASK_NAME_BUFLEN];
+	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
 		return (unative_t) rc;
-
+	
 	namebuf[name_len] = 0;
-
+	
 	/* Spawn the new task. */
-
-	rc = program_create_loader(&p, namebuf);
+	program_t prg;
+	rc = program_create_loader(&prg, namebuf);
 	if (rc != 0)
 		return rc;
-
+	
 	// FIXME: control the capabilities
-	cap_set(p.task, cap_get(TASK));
-
-	program_ready(&p);
-
+	cap_set(prg.task, cap_get(TASK));
+	program_ready(&prg);
+	
 	return EOK;
 }
 
