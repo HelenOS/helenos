@@ -154,8 +154,6 @@ const char *elf_error(unsigned int rc)
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
     as_t *as, int flags)
 {
-	char *interp;
-
 	switch (entry->p_type) {
 	case PT_NULL:
 	case PT_PHDR:
@@ -164,12 +162,13 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		return load_segment(entry, elf, as);
 	case PT_DYNAMIC:
 	case PT_INTERP:
-		interp = (char *)elf + entry->p_offset;
-		/* FIXME */
-		/*if (memcmp((uintptr_t)interp, (uintptr_t)ELF_INTERP_ZSTR,
+		// FIXME
+		/*
+		char *interp = (char *) elf + entry->p_offset;
+		if (memcmp((uintptr_t) interp, (uintptr_t) ELF_INTERP_ZSTR,
 		    ELF_INTERP_ZLEN) != 0) {
 			return EE_UNSUPPORTED;
-		}*/
+		} */
 		if ((flags & ELD_F_LOADER) == 0) {
 			return EE_LOADER;
 		}

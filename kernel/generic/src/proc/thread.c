@@ -263,6 +263,7 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&r->lock);
 
 	atomic_inc(&nrdy);
+	// FIXME: Why is the avg value never read?
 	avg = atomic_get(&nrdy) / config.cpu_active;
 	atomic_inc(&cpu->nrdy);
 

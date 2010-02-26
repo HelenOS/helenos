@@ -45,7 +45,7 @@ static sysinfo_item_t *sysinfo_find_item(const char *name, sysinfo_item_t *subtr
 	if (subtree == NULL)
 		return NULL;
 	
-	while (subtree != NULL)	{
+	while (subtree != NULL) {
 		int i = 0;
 		char *a = (char *) name;
 		char *b = subtree->name;
@@ -67,7 +67,6 @@ static sysinfo_item_t *sysinfo_find_item(const char *name, sysinfo_item_t *subtr
 		}
 		/* No matches try next */
 		subtree = subtree->next;
-		i = 0;
 	}
 	return NULL;
 }
@@ -158,10 +157,8 @@ static sysinfo_item_t *sysinfo_create_path(const char *name, sysinfo_item_t **ps
 			}
 			item->subinfo_type = SYSINFO_SUBINFO_NONE;
 			return item;
-		} else {
+		} else
 			subtree = subtree->next;
-			i = 0;
-		}	
 	}
 
 	panic("Not reached.");

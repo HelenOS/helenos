@@ -783,7 +783,6 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 {
 	as_area_t *area;
-	uintptr_t base;
 	link_t *cur;
 	ipl_t ipl;
 	int page_flags;
@@ -812,8 +811,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
-
-	base = area->base;
 
 	/*
 	 * Compute total number of used pages in the used_space B+tree

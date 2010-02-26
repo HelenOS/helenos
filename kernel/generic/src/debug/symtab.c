@@ -238,7 +238,7 @@ int symtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = 0;
-		while ((hint = symtab_search_one(name, &pos))) {
+		while (symtab_search_one(name, &pos)) {
 			printf("%s\n", symbol_table[pos].symbol_name);
 			pos++;
 		}
