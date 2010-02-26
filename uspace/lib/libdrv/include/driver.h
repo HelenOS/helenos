@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup devman
+/** @addtogroup libdrv
  * @{
  */
- 
-#ifndef LIBC_IPC_DEVMAN_H_
-#define LIBC_IPC_DEVMAN_H_
+/** @file
+ */
 
-#include <ipc/ipc.h>
-
-#define DEVMAN_NAME_MAXLEN 256
+#ifndef LIBDRV_DRIVER_H_
+#define LIBDRV_DRIVER_H_
 
 typedef enum {
-	DEVMAN_DRIVER = 1,
-	DEVMAN_CLIENT,
-	DEVMAN_CONNECT_TO_DEVICE
-} devman_interface_t;
+	DRIVER_DEVMAN = 1,
+	DRIVER_CLIENT,
+	DRIVER_DRIVER
+} driver_interface_t;
 
-typedef enum {
-	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAN_ADD_CHILD_DEVICE
+typedef struct device {
+	int parent_handle;
+	ipcarg_t parent_phone;	
+	// TODO add more items - parent bus type etc.
+	int handle;	
+} device_t;
 
-} driver_to_devman_t;
+typedef struct driver_ops {	
+	bool (*add_device)(device_t *dev);
+	// TODO add other generic driver operations
+} driver_ops_t;
 
-typedef enum {
-	DRIVER_ADD_DEVICE = IPC_FIRST_USER_METHOD
+typedef struct driver {
+	const char *name;
+	driver_ops_t *driver_ops;
+} driver_t;
 
-} devman_to_driver_t;
+int driver_main(driver_t *drv);
 
 #endif
 
-/** @}
+/**
+ * @}
  */

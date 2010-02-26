@@ -190,10 +190,12 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list);
 
 void add_driver(driver_list_t *drivers_list, driver_t *drv);
 void attach_driver(node_t *node, driver_t *drv);
-bool add_device(driver_t *drv, node_t *node);
+void add_device(driver_t *drv, node_t *node);
 bool start_driver(driver_t *drv);
 
 driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
+void set_driver_phone(driver_t *driver, ipcarg_t phone);
+void initialize_running_driver(driver_t *driver);
 
 
 static inline void init_driver(driver_t *drv)
@@ -259,3 +261,6 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list);
 
 
 #endif
+
+/** @}
+ */

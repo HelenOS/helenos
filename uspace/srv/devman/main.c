@@ -59,32 +59,6 @@ static driver_list_t drivers_list;
 static dev_tree_t device_tree;
 
 /**
- * 
- * 
- * Driver's mutex must be locked.
- */
-static void pass_devices_to_driver(driver_t *driver)
-{
-	
-
-	
-	
-}
-
-static void init_running_driver(driver_t *driver) 
-{
-	fibril_mutex_lock(&driver->driver_mutex);
-	
-	// pass devices which have been already assigned to the driver to the driver
-	pass_devices_to_driver(driver);	
-	
-	// change driver's state to running
-	driver->state = DRIVER_RUNNING;	
-	
-	fibril_mutex_unlock(&driver->driver_mutex);
-}
-
-/**
  * Register running driver.
  */
 static driver_t * devman_driver_register(void)
@@ -133,10 +107,8 @@ static driver_t * devman_driver_register(void)
 		return NULL;
 	}
 	
-	fibril_mutex_lock(&driver->driver_mutex);
-	assert(DRIVER_STARTING == driver->state);
-	driver->phone = IPC_GET_ARG5(call);	
-	fibril_mutex_unlock(&driver->driver_mutex);	
+	// remember driver's phone
+	set_driver_phone(driver, IPC_GET_ARG5(call));
 	
 	printf(NAME ":  the %s driver was successfully registered as running.\n", driver->name);
 	
@@ -159,7 +131,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	if (driver == NULL)
 		return;
 		
-	init_running_driver(driver);
+	initialize_running_driver(driver);
 	
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -250,3 +222,6 @@ int main(int argc, char *argv[])
 	// Never reached
 	return 0;
 }
+
+/** @}
+ */

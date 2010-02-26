@@ -96,6 +96,7 @@ LIBS = \
 	lib/libblock \
 	lib/softint \
 	lib/softfloat \
+	lib/libdrv
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/libpci
