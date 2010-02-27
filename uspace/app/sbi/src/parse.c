@@ -67,6 +67,7 @@ static stree_if_t *parse_if(parse_t *parse);
 static stree_while_t *parse_while(parse_t *parse);
 static stree_for_t *parse_for(parse_t *parse);
 static stree_raise_t *parse_raise(parse_t *parse);
+static stree_return_t *parse_return(parse_t *parse);
 static stree_wef_t *parse_wef(parse_t *parse);
 static stree_exps_t *parse_exps(parse_t *parse);
 
@@ -341,6 +342,7 @@ static stree_stat_t *parse_stat(parse_t *parse)
 	stree_while_t *while_s;
 	stree_for_t *for_s;
 	stree_raise_t *raise_s;
+	stree_return_t *return_s;
 	stree_wef_t *wef_s;
 	stree_exps_t *exp_s;
 
@@ -369,6 +371,11 @@ static stree_stat_t *parse_stat(parse_t *parse)
 		raise_s = parse_raise(parse);
 		stat = stree_stat_new(st_raise);
 		stat->u.raise_s = raise_s;
+		break;
+	case lc_return:
+		return_s = parse_return(parse);
+		stat = stree_stat_new(st_return);
+		stat->u.return_s = return_s;
 		break;
 	case lc_with:
 		wef_s = parse_wef(parse);
@@ -482,6 +489,20 @@ static stree_raise_t *parse_raise(parse_t *parse)
 	lmatch(parse, lc_scolon);
 
 	return stree_raise_new();
+}
+
+/** Parse @c return statement. */
+static stree_return_t *parse_return(parse_t *parse)
+{
+	stree_return_t *return_s;
+
+	return_s = stree_return_new();
+
+	lmatch(parse, lc_return);
+	return_s->expr = parse_expr(parse);
+	lmatch(parse, lc_scolon);
+
+	return return_s;
 }
 
 /* Parse @c with-except-finally statement. */

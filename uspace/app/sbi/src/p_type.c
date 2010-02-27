@@ -41,6 +41,7 @@
 static stree_texpr_t *parse_tapply(parse_t *parse);
 static stree_texpr_t *parse_tpostfix(parse_t *parse);
 static stree_texpr_t *parse_tprimitive(parse_t *parse);
+static stree_tliteral_t *parse_tliteral(parse_t *parse);
 static stree_tnameref_t *parse_tnameref(parse_t *parse);
 
 /** Parse type expression. */
@@ -103,11 +104,45 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 {
 	stree_texpr_t *texpr;
 
-	lcheck(parse, lc_ident);
-	texpr = stree_texpr_new(tc_tnameref);
-	texpr->u.tnameref = parse_tnameref(parse);
+	switch (lcur_lc(parse)) {
+	case lc_ident:
+		texpr = stree_texpr_new(tc_tnameref);
+		texpr->u.tnameref = parse_tnameref(parse);
+		break;
+	case lc_int:
+	case lc_string:
+		texpr = stree_texpr_new(tc_tliteral);
+		texpr->u.tliteral = parse_tliteral(parse);
+		break;
+	default:
+		lunexpected_error(parse);
+		exit(1);
+	}
 
 	return texpr;
+}
+
+/** Parse type literal. */
+static stree_tliteral_t *parse_tliteral(parse_t *parse)
+{
+	stree_tliteral_t *tliteral;
+
+	tliteral = stree_tliteral_new();
+
+	switch (lcur_lc(parse)) {
+	case lc_int:
+		tliteral->tlc = tlc_int;
+		break;
+	case lc_string:
+		tliteral->tlc = tlc_string;
+		break;
+	default:
+		assert(b_false);
+	}
+
+	lskip(parse);
+
+	return tliteral;
 }
 
 /** Parse type identifier. */

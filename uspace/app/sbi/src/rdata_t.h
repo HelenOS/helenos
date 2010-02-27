@@ -73,7 +73,7 @@ typedef struct {
 	struct stree_symbol *class_sym;
 
 	/** Map field name SID to field data */
-	intmap_t *fields; /* of (rdata_var_t *) */
+	intmap_t fields; /* of (rdata_var_t *) */
 } rdata_object_t;
 
 typedef enum var_class {
@@ -140,7 +140,7 @@ typedef enum {
  * item (a.k.a. R-value). This model is used to accomodate semantics of the
  * assignment operator.
  */
-typedef struct {
+typedef struct rdata_item {
 	item_class_t ic;
 
 	union {

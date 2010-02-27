@@ -35,11 +35,20 @@ rdata_item_t *rdata_item_new(item_class_t ic);
 rdata_address_t *rdata_address_new(void);
 rdata_value_t *rdata_value_new(void);
 rdata_var_t *rdata_var_new(var_class_t vc);
+rdata_ref_t *rdata_ref_new(void);
 rdata_deleg_t *rdata_deleg_new(void);
+rdata_object_t *rdata_object_new(void);
 rdata_int_t *rdata_int_new(void);
 rdata_string_t *rdata_string_new(void);
 
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);
+
+void rdata_cvt_value_item(rdata_item_t *item, rdata_item_t **ritem);
+void rdata_reference(rdata_var_t *var, rdata_item_t **res);
+void rdata_dereference(rdata_item_t *ref, rdata_item_t **ritem);
+void rdata_address_read(rdata_address_t *address, rdata_item_t **ritem);
+void rdata_address_write(rdata_address_t *address, rdata_value_t *value);
+
 void rdata_item_print(rdata_item_t *item);
 
 #endif

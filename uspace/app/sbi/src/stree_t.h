@@ -47,9 +47,17 @@ typedef struct {
 	stree_ident_t *name;
 } stree_nameref_t;
 
+/** Reference to currently active object. */
+typedef struct {
+} stree_self_ref_t;
+
 typedef struct {
 	int value;
 } stree_lit_int_t;
+
+/** Reference literal (there is only one: @c nil). */
+typedef struct {
+} stree_lit_ref_t;
 
 typedef struct {
 	char *value;
@@ -57,6 +65,7 @@ typedef struct {
 
 typedef enum {
 	ltc_int,
+	ltc_ref,
 	ltc_string
 } literal_class_t;
 
@@ -65,6 +74,7 @@ typedef struct {
 	literal_class_t ltc;
 	union {
 		stree_lit_int_t lit_int;
+		stree_lit_ref_t lit_ref;
 		stree_lit_string_t lit_string;
 	} u;
 } stree_literal_t;
@@ -106,6 +116,12 @@ typedef struct {
 	struct stree_expr *arg;
 } stree_unop_t;
 
+/** New operation */
+typedef struct {
+	/** Type of object to construct. */
+	struct stree_texpr *texpr;
+} stree_new_t;
+
 /** Member access operation */
 typedef struct {
 	/** Argument */
@@ -138,8 +154,10 @@ typedef struct {
 typedef enum {
 	ec_nameref,
 	ec_literal,
+	ec_self_ref,
 	ec_binop,
 	ec_unop,
+	ec_new,
 	ec_access,
 	ec_call,
 	ec_assign
@@ -152,8 +170,10 @@ typedef struct stree_expr {
 	union {
 		stree_nameref_t *nameref;
 		stree_literal_t *literal;
+		stree_self_ref_t *self_ref;
 		stree_binop_t *binop;
 		stree_unop_t *unop;
+		stree_new_t *new_op;
 		stree_access_t *access;
 		stree_call_t *call;
 		stree_assign_t *assign;
@@ -165,6 +185,17 @@ typedef struct stree_expr {
  */
 
 struct stree_texpr;
+
+/** Type literal class */
+typedef enum {
+	tlc_int,
+	tlc_string
+} tliteral_class_t;
+
+/** Type literal */
+typedef struct {
+	tliteral_class_t tlc;
+} stree_tliteral_t;
 
 /** Type name reference */
 typedef struct {
@@ -187,6 +218,7 @@ typedef struct {
 
 /** Type expression class */
 typedef enum {
+	tc_tliteral,
 	tc_tnameref,
 	tc_taccess,
 	tc_tapply
@@ -197,6 +229,7 @@ typedef struct stree_texpr {
 	texpr_class_t tc;
 
 	union {
+		stree_tliteral_t *tliteral;
 		stree_tnameref_t *tnameref;
 		stree_taccess_t *taccess;
 		stree_tapply_t *tapply;
@@ -241,6 +274,11 @@ typedef struct {
 typedef struct {
 } stree_raise_t;
 
+/** Return statement */
+typedef struct {
+	stree_expr_t *expr;
+} stree_return_t;
+
 /** Expression statement */
 typedef struct {
 	stree_expr_t *expr;
@@ -260,6 +298,7 @@ typedef enum {
 	st_while,
 	st_for,
 	st_raise,
+	st_return,
 	st_exps,
 	st_wef
 } stat_class_t;
@@ -274,6 +313,7 @@ typedef struct {
 		stree_while_t *while_s;
 		stree_for_t *for_s;
 		stree_raise_t *raise_s;
+		stree_return_t *return_s;
 		stree_exps_t *exp_s;
 		stree_wef_t *wef_s;
 	} u;

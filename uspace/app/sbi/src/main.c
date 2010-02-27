@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
 	rc = input_new(&input, argv[1]);
 	if (rc != EOK) {
-		printf("Failed initializing input.\n");
+		printf("Failed opening source file '%s'.\n", argv[1]);
 		exit(1);
 	}
 

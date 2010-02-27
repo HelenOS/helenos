@@ -42,25 +42,50 @@ typedef struct run_block_ar {
 	intmap_t vars; /* of rdata_var_t */
 } run_block_ar_t;
 
+
 /** Function activation record
  *
  * One is created whenever a function is invoked.
  */
 typedef struct run_fun_ar {
+	/** Object on which the member function is being invoked or @c NULL. */
+	struct rdata_var *obj;
+
 	/** Definition of function being invoked */
 	struct stree_symbol *fun_sym;
 
 	/** Block activation records */
 	list_t block_ar; /* of run_block_ar_t */
+
+	/** Function return value or @c NULL if not set. */
+	struct rdata_item *retval;
 } run_fun_ar_t;
+
+/** Bailout mode
+ *
+ * Determines whether control is bailing out of a statement, function, etc.
+ */
+typedef enum {
+	/** Normal execution */
+	bm_none,
+
+	/** Break from statement */
+	bm_stat,
+
+	/** Return from function */
+	bm_fun
+} run_bailout_mode;
 
 /** Thread activation record
  *
  * We can walk the list of function ARs to get a function call backtrace.
  */
 typedef struct run_thread_ar {
-	/** Function activation records. */
+	/** Function activation records */
 	list_t fun_ar; /* of run_fun_ar_t */
+
+	/** Bailout mode */
+	run_bailout_mode bo_mode;
 } run_thread_ar_t;
 
 /** Runner state object */

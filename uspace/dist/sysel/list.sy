@@ -1,0 +1,81 @@
+
+class ListNode is
+	var value : int;
+
+	var prev : ListNode;
+	var next : ListNode;
+	var head : ListNode;
+
+	fun GetNext() : ListNode is
+		if next != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+
+	fun GetPrev() : ListNode is
+		if prev != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+
+	fun GetValue() : int is
+		return value;
+	end
+end
+
+class List is
+	var head : ListNode;
+
+	fun Init() is
+		head = new ListNode();
+		head.prev = head;
+		head.next = head;
+	end
+
+	fun Append(data : int) is
+		var n : ListNode;
+		var ntl : ListNode;
+
+		ntl = head.prev;
+
+		n = new ListNode();
+		n.value = data;
+
+		n.prev = ntl;
+		n.next = head;
+		n.head = head;
+
+		ntl.next = n;
+		head.prev = n;
+	end
+
+	fun GetFirst() : ListNode is
+		return head.next;
+	end
+end
+
+class ListDemo is
+	fun Main() is
+		var list : List;
+
+		list = new List();
+		list.Init();
+
+		list.Append(5);
+		list.Append(6);
+		list.Append(7);
+		list.Append(8);
+
+		var n : ListNode;
+
+		n = list.GetFirst();
+		while n != nil do
+			Builtin.WriteLine(n.value);
+			n = n.GetNext();
+		end
+	end
+end

@@ -39,6 +39,8 @@
 
 static stree_symbol_t *symbol_search_global(stree_program_t *prog,
     stree_ident_t *name);
+static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
+    stree_ident_t *name, stree_csi_t *csi);
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol);
 
 /** Lookup symbol in CSI using a type expression. */
@@ -91,7 +93,7 @@ stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 		symbol = symbol_search_global(prog, name);
 
 	if (symbol == NULL) {
-		printf("Error: Symbol '%s' not found\n", strtab_get_str(name->sid));
+		printf("Error: Symbol '%s' not found.\n", strtab_get_str(name->sid));
 		exit(1);
 	}
 
@@ -110,6 +112,12 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *symbol;
 	stree_ident_t *mbr_name;
+	stree_symbol_t *base_csi_sym;
+	stree_csi_t *base_csi;
+
+	(void) prog;
+
+	/* Look in new members in this class. */
 
 	node = list_first(&scope->members);
 	while (node != NULL) {
@@ -145,6 +153,17 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 		node = list_next(&scope->members, node);
 	}
 
+	/* Try inherited members. */
+	if (scope->base_csi_ref != NULL) {
+		base_csi_sym = symbol_xlookup_in_csi(prog,
+		    csi_to_symbol(scope)->outer_csi, scope->base_csi_ref);
+		base_csi = symbol_to_csi(base_csi_sym);
+		assert(base_csi != NULL);
+
+		return symbol_search_csi(prog, base_csi, name);
+	}
+
+	/* No match */
 	return NULL;
 }
 
@@ -173,6 +192,76 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 	}
 
 	return NULL;
+}
+
+/** Find entry point. */
+stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name)
+{
+	list_node_t *node;
+	stree_modm_t *modm;
+	stree_symbol_t *entry, *etmp;
+
+	entry = NULL;
+
+	node = list_first(&prog->module->members);
+	while (node != NULL) {
+		modm = list_node_data(node, stree_modm_t *);
+		if (modm->mc == mc_csi) {
+			etmp = symbol_find_epoint_rec(prog, name, modm->u.csi);
+			if (etmp != NULL) {
+				if (entry != NULL) {
+					printf("Error: Duplicate entry point.\n");
+					exit(1);
+				}
+				entry = etmp;
+			}
+		}
+	    	node = list_next(&prog->module->members, node);
+	}
+
+	return entry;
+}
+
+static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
+    stree_ident_t *name, stree_csi_t *csi)
+{
+	list_node_t *node;
+	stree_csimbr_t *csimbr;
+	stree_symbol_t *entry, *etmp;
+
+	entry = NULL;
+
+	node = list_first(&csi->members);
+	while (node != NULL) {
+		csimbr = list_node_data(node, stree_csimbr_t *);
+
+		switch (csimbr->cc) {
+		case csimbr_csi:
+			etmp = symbol_find_epoint_rec(prog, name, csimbr->u.csi);
+			if (etmp != NULL) {
+				if (entry != NULL) {
+					printf("Error: Duplicate entry point.\n");
+					exit(1);
+				}
+				entry = etmp;
+			}
+			break;
+		case csimbr_fun:
+			if (csimbr->u.fun->name->sid == name->sid) {
+				if (entry != NULL) {
+					printf("Error: Duplicate entry point.\n");
+					exit(1);
+				}
+				entry = fun_to_symbol(csimbr->u.fun);
+			}
+		default:
+			break;
+		}
+
+	    	node = list_next(&csi->members, node);
+	}
+
+	return entry;
 }
 
 stree_csi_t *symbol_to_csi(stree_symbol_t *symbol)

@@ -63,8 +63,10 @@ static int input_init(input_t *input, char *fname)
 		return ENOENT;
 
 	input->buffer = malloc(INPUT_BUFFER_SIZE);
-	if (input->buffer == NULL)
-		return ENOMEM;
+	if (input->buffer == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
 
 	input->line_no = 0;
 	input->fin = f;

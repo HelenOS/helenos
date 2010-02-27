@@ -33,13 +33,18 @@
 
 void run_init(run_t *run);
 void run_program(run_t *run, stree_program_t *prog);
-void run_fun(run_t *run, stree_fun_t *fun, list_t *args);
+void run_fun(run_t *run, run_fun_ar_t *fun_ar, rdata_item_t **res);
 
 void run_print_fun_bt(run_t *run);
 
 rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name);
 run_fun_ar_t *run_get_current_fun_ar(run_t *run);
 run_block_ar_t *run_get_current_block_ar(run_t *run);
+
+void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var);
+void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args);
+void run_fun_ar_create(run_t *run, rdata_var_t *obj, stree_fun_t *fun,
+    run_fun_ar_t **rfun_ar);
 
 run_thread_ar_t *run_thread_ar_new(void);
 run_fun_ar_t *run_fun_ar_new(void);

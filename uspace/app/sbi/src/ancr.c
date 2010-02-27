@@ -71,6 +71,7 @@ void ancr_module_process(stree_program_t *prog, stree_module_t *module)
 	list_node_t *node;
 	stree_modm_t *modm;
 
+	(void) module;
 	node = list_first(&prog->module->members);
 
 	while (node != NULL) {

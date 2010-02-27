@@ -47,6 +47,7 @@ stree_if_t *stree_if_new(void);
 stree_while_t *stree_while_new(void);
 stree_for_t *stree_for_new(void);
 stree_raise_t *stree_raise_new(void);
+stree_return_t *stree_return_new(void);
 stree_wef_t *stree_wef_new(void);
 stree_exps_t *stree_exps_new(void);
 stree_block_t *stree_block_new(void);
@@ -54,16 +55,19 @@ stree_block_t *stree_block_new(void);
 stree_expr_t *stree_expr_new(expr_class_t ec);
 stree_assign_t *stree_assign_new(assign_class_t ac);
 stree_binop_t *stree_binop_new(binop_class_t bc);
+stree_new_t *stree_new_new(void);
 stree_access_t *stree_access_new(void);
 stree_call_t *stree_call_new(void);
 stree_nameref_t *stree_nameref_new(void);
 
 stree_ident_t *stree_ident_new(void);
 stree_literal_t *stree_literal_new(literal_class_t ltc);
+stree_self_ref_t *stree_self_ref_new(void);
 
 stree_texpr_t *stree_texpr_new(texpr_class_t tc);
 stree_tapply_t *stree_tapply_new(void);
 stree_taccess_t *stree_taccess_new(void);
+stree_tliteral_t *stree_tliteral_new(void);
 stree_tnameref_t *stree_tnameref_new(void);
 
 stree_symbol_t *stree_symbol_new(symbol_class_t sc);

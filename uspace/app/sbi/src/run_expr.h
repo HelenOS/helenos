@@ -33,8 +33,6 @@
 
 void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res);
 
-void run_cvt_value_item(run_t *run, rdata_item_t *item,
-    rdata_item_t **ritem);
 bool_t run_item_boolean_value(run_t *run, rdata_item_t *item);
 
 

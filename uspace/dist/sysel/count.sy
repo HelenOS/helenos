@@ -1,6 +1,6 @@
-class Counter is
-	fun count(a : Int; b : Int) is
-		var i : Int;
+class CountDemo is
+	fun Count(a : int; b : int) is
+		var i : int;
 
 		i = a;
 		while i < b do
@@ -9,10 +9,8 @@ class Counter is
 		end
 
 	end
-end
 
-class HelloWorld is
-	fun main() is
-		Counter.count(0, 10);
+	fun Main() is
+		Count(0, 10);
 	end
 end

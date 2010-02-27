@@ -33,6 +33,7 @@
 #include "lex.h"
 #include "list.h"
 #include "mytypes.h"
+#include "p_type.h"
 #include "parse.h"
 #include "stree.h"
 
@@ -41,13 +42,17 @@
 static stree_expr_t *parse_assign(parse_t *parse);
 static stree_expr_t *parse_comparative(parse_t *parse);
 static stree_expr_t *parse_additive(parse_t *parse);
+static stree_expr_t *parse_prefix(parse_t *parse);
+static stree_expr_t *parse_prefix_new(parse_t *parse);
 static stree_expr_t *parse_postfix(parse_t *parse);
 static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_primitive(parse_t *parse);
 static stree_expr_t *parse_nameref(parse_t *parse);
 static stree_expr_t *parse_lit_int(parse_t *parse);
+static stree_expr_t *parse_lit_ref(parse_t *parse);
 static stree_expr_t *parse_lit_string(parse_t *parse);
+static stree_expr_t *parse_self_ref(parse_t *parse);
 
 /** Parse expression. */
 stree_expr_t *parse_expr(parse_t *parse)
@@ -129,10 +134,10 @@ static stree_expr_t *parse_additive(parse_t *parse)
 	stree_expr_t *a, *b, *tmp;
 	stree_binop_t *binop;
 
-	a = parse_postfix(parse);
+	a = parse_prefix(parse);
 	while (lcur_lc(parse) == lc_plus) {
 		lskip(parse);
-		b = parse_postfix(parse);
+		b = parse_prefix(parse);
 
 		binop = stree_binop_new(bo_plus);
 		binop->arg1 = a;
@@ -144,6 +149,46 @@ static stree_expr_t *parse_additive(parse_t *parse)
 	}
 
 	return a;
+}
+
+/** Parse prefix expression. */
+static stree_expr_t *parse_prefix(parse_t *parse)
+{
+	stree_expr_t *a;
+
+	switch (lcur_lc(parse)) {
+	case lc_plus:
+		printf("Unimplemented: Unary plus.\n");
+		exit(1);
+	case lc_new:
+		a = parse_prefix_new(parse);
+		break;
+	default:
+		a = parse_postfix(parse);
+		break;
+	}
+
+	return a;
+}
+
+/** Parse @c new operator. */
+static stree_expr_t *parse_prefix_new(parse_t *parse)
+{
+	stree_texpr_t *texpr;
+	stree_new_t *new_op;
+	stree_expr_t *expr;
+
+	lmatch(parse, lc_new);
+	texpr = parse_texpr(parse);
+	lmatch(parse, lc_lparen);
+	lmatch(parse, lc_rparen);
+
+	new_op = stree_new_new();
+	new_op->texpr = texpr;
+	expr = stree_expr_new(ec_new);
+	expr->u.new_op = new_op;
+
+	return expr;
 }
 
 /** Parse postfix expression. */
@@ -239,8 +284,14 @@ static stree_expr_t *parse_primitive(parse_t *parse)
 	case lc_lit_int:
 		expr = parse_lit_int(parse);
 		break;
+	case lc_nil:
+		expr = parse_lit_ref(parse);
+		break;
 	case lc_lit_string:
 		expr = parse_lit_string(parse);
+		break;
+	case lc_self:
+		expr = parse_self_ref(parse);
 		break;
 	default:
 		lunexpected_error(parse);
@@ -283,6 +334,22 @@ static stree_expr_t *parse_lit_int(parse_t *parse)
 	return expr;
 }
 
+/** Parse reference literal (@c nil). */
+static stree_expr_t *parse_lit_ref(parse_t *parse)
+{
+	stree_literal_t *literal;
+	stree_expr_t *expr;
+
+	lmatch(parse, lc_nil);
+
+	literal = stree_literal_new(ltc_ref);
+
+	expr = stree_expr_new(ec_literal);
+	expr->u.literal = literal;
+
+	return expr;
+}
+
 /** Parse string literal. */
 static stree_expr_t *parse_lit_string(parse_t *parse)
 {
@@ -298,6 +365,22 @@ static stree_expr_t *parse_lit_string(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+
+	return expr;
+}
+
+/** Parse @c self keyword. */
+static stree_expr_t *parse_self_ref(parse_t *parse)
+{
+	stree_self_ref_t *self_ref;
+	stree_expr_t *expr;
+
+	lmatch(parse, lc_self);
+
+	self_ref = stree_self_ref_new();
+
+	expr = stree_expr_new(ec_self_ref);
+	expr->u.self_ref = self_ref;
 
 	return expr;
 }

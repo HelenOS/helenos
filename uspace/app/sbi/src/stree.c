@@ -227,6 +227,19 @@ stree_raise_t *stree_raise_new(void)
 	return raise_s;
 }
 
+stree_return_t *stree_return_new(void)
+{
+	stree_return_t *return_s;
+
+	return_s = calloc(1, sizeof(stree_return_t));
+	if (return_s == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return return_s;
+}
+
 stree_wef_t *stree_wef_new(void)
 {
 	stree_wef_t *wef_s;
@@ -308,6 +321,19 @@ stree_binop_t *stree_binop_new(binop_class_t bc)
 	return binop;
 }
 
+stree_new_t *stree_new_new(void)
+{
+	stree_new_t *new_op;
+
+	new_op = calloc(1, sizeof(stree_new_t));
+	if (new_op == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return new_op;
+}
+
 stree_access_t *stree_access_new(void)
 {
 	stree_access_t *access;
@@ -374,6 +400,19 @@ stree_literal_t *stree_literal_new(literal_class_t ltc)
 	return literal;
 }
 
+stree_self_ref_t *stree_self_ref_new(void)
+{
+	stree_self_ref_t *self_ref;
+
+	self_ref = calloc(1, sizeof(stree_self_ref_t));
+	if (self_ref == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return self_ref;
+}
+
 stree_texpr_t *stree_texpr_new(texpr_class_t tc)
 {
 	stree_texpr_t *texpr;
@@ -412,6 +451,19 @@ stree_taccess_t *stree_taccess_new(void)
 	}
 
 	return taccess;
+}
+
+stree_tliteral_t *stree_tliteral_new(void)
+{
+	stree_tliteral_t *tliteral;
+
+	tliteral = calloc(1, sizeof(stree_tliteral_t));
+	if (tliteral == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tliteral;
 }
 
 stree_tnameref_t *stree_tnameref_new(void)

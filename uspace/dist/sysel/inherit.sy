@@ -1,0 +1,29 @@
+class A is
+	fun Foo() is
+		Builtin.WriteLine("A.Foo()");
+	end
+end
+
+class B : A is
+	fun Foo() is
+		Builtin.WriteLine("B.Foo()");
+	end
+end
+
+class C : A is
+end
+
+class InheritanceDemo is
+	fun Main() is
+		var a : A;
+
+		a = new A();
+		a.Foo();
+
+		a = new B();
+		a.Foo();
+
+		a = new C();
+		a.Foo();
+	end
+end
