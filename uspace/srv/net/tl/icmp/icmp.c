@@ -342,6 +342,8 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 	if( ERROR_OCCURRED( fibril_condvar_wait_timeout( & reply->condvar, & reply->mutex, timeout * 1000 ))){
 		result = ERROR_CODE;
 
+		// drop the reply mutex
+		fibril_mutex_unlock( & reply->mutex );
 		// lock the globals again and clean up
 		fibril_rwlock_write_lock( & icmp_globals.lock );
 	}else{
