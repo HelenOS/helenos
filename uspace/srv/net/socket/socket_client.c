@@ -761,7 +761,10 @@ int recvfrom_core( ipcarg_t message, int socket_id, void * data, size_t dataleng
 	while(( result = dyn_fifo_value( & socket->received )) <= 0 ){
 		fibril_rwlock_read_unlock( & socket_globals.lock );
 		fibril_condvar_wait( & socket->receive_signal, & socket->receive_lock );
+		// drop the receive lock to avoid deadlock
+		fibril_mutex_unlock( & socket->receive_lock );
 		fibril_rwlock_read_lock( & socket_globals.lock );
+		fibril_mutex_lock( & socket->receive_lock );
 	}
 	-- socket->blocked;
 	fragments = ( size_t ) result;
