@@ -174,7 +174,7 @@ int	icmp_release_and_return( packet_t packet, int result );
 
 /** Requests an echo message.
  *  Sends a packet with specified parameters to the target host and waits for the reply upto the given timeout.
- *  Blocks the caller until the reply or the timeout occurres.
+ *  Blocks the caller until the reply or the timeout occurs.
  *  @param[in] id The message identifier.
  *  @param[in] sequence The message sequence parameter.
  *  @param[in] size The message data length in bytes.
@@ -220,8 +220,8 @@ icmp_header_ref	icmp_prepare_packet( packet_t packet );
 int	icmp_send_packet( icmp_type_t type, icmp_code_t code, packet_t packet, icmp_header_ref header, services_t error, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment );
 
 /** Tries to set the pending reply result as the received message type.
- *  If the reply data are still present, the reply timeouted and the parent fibril is awaken.
- *  The global lock is not released in this case to be reused by the parent fibril.
+ *  If the reply data is not present, the reply timed out and the other fibril
+ *  is already awake.
  *  Releases the packet.
  *  @param[in] packet The received reply message.
  *  @param[in] header The ICMP message header.
@@ -331,28 +331,24 @@ int icmp_echo( icmp_param_t id, icmp_param_t sequence, size_t size, mseconds_t t
 		return icmp_release_and_return( packet, index );
 	}
 
-	// unlock the globals and wait for a reply
+	// unlock the globals so that we can wait for the reply
 	fibril_rwlock_write_unlock( & icmp_globals.lock );
 
 	// send the request
 	icmp_send_packet( ICMP_ECHO, 0, packet, header, 0, ttl, tos, dont_fragment );
 
-	// wait for a reply
+	// wait for the reply
 	// timeout in microseconds
 	if( ERROR_OCCURRED( fibril_condvar_wait_timeout( & reply->condvar, & reply->mutex, timeout * 1000 ))){
 		result = ERROR_CODE;
-
-		// drop the reply mutex
-		fibril_mutex_unlock( & reply->mutex );
-		// lock the globals again and clean up
-		fibril_rwlock_write_lock( & icmp_globals.lock );
 	}else{
 		// read the result
 		result = reply->result;
-
-		// release the reply structure
-		fibril_mutex_unlock( & reply->mutex );
 	}
+
+	// drop the reply mutex before locking the globals again
+	fibril_mutex_unlock( & reply->mutex );
+	fibril_rwlock_write_lock( & icmp_globals.lock );
 
 	// destroy the reply structure
 	icmp_replies_exclude_index( & icmp_globals.replies, index );
@@ -619,12 +615,10 @@ int icmp_process_echo_reply( packet_t packet, icmp_header_ref header, icmp_type_
 	if( reply ){
 		// set the result
 		reply->result = type;
-		// notify the main fibril
+		// notify the waiting fibril
 		fibril_condvar_signal( & reply->condvar );
-	}else{
-		// unlock only if no reply
-		fibril_rwlock_write_unlock( & icmp_globals.lock );
 	}
+	fibril_rwlock_write_unlock( & icmp_globals.lock );
 	return EOK;
 }
 
