@@ -26,7 +26,7 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a $(LIBDRV_PREFIX)/libdrv.a
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBC_PREFIX)/libc.a
 
 OUTPUT = root
 
