@@ -149,13 +149,13 @@ enum tcp_socket_state{
 struct tcp_operation{
 	/** Operation result.
 	 */
-	int					result;
+	int result;
 	/** Safety lock.
 	 */
-	fibril_mutex_t		mutex;
+	fibril_mutex_t mutex;
 	/** Operation result signaling.
 	 */
-	fibril_condvar_t	condvar;
+	fibril_condvar_t condvar;
 };
 
 /** TCP socket specific data.
@@ -163,93 +163,93 @@ struct tcp_operation{
 struct tcp_socket_data{
 	/** TCP socket state.
 	 */
-	tcp_socket_state_t	state;
+	tcp_socket_state_t state;
 	/** Data fragment size.
 	 *  Sending optimalization.
 	 */
-	size_t			data_fragment_size;
+	size_t data_fragment_size;
 	/** Device identifier.
 	 */
-	device_id_t		device_id;
+	device_id_t device_id;
 	/** Listening backlog.
 	 *  The maximal number of connected but not yet accepted sockets.
 	 */
-	int				backlog;
+	int backlog;
 //	/** Segment size.
 //	 */
 //	size_t			segment_size;
 	/** Parent listening socket identifier.
 	 *  Set if this socket is an accepted one.
 	 */
-	int				listening_socket_id;
+	int listening_socket_id;
 	/** Treshold size in bytes.
 	 */
-	size_t			treshold;
+	size_t treshold;
 	/** Window size in bytes.
 	 */
-	size_t			window;
+	size_t window;
 	/** Acknowledgement timeout.
 	 */
-	suseconds_t		timeout;
+	suseconds_t timeout;
 	/** Last acknowledged byte.
 	 */
-	uint32_t		acknowledged;
+	uint32_t acknowledged;
 	/** Next incoming sequence number.
 	 */
-	uint32_t		next_incoming;
+	uint32_t next_incoming;
 	/** Incoming FIN.
 	 */
-	uint32_t		fin_incoming;
+	uint32_t fin_incoming;
 	/** Next outgoing sequence number.
 	 */
-	uint32_t		next_outgoing;
+	uint32_t next_outgoing;
 	/** Last outgoing sequence number.
 	 */
-	uint32_t		last_outgoing;
+	uint32_t last_outgoing;
 	/** Outgoing FIN.
 	 */
-	uint32_t		fin_outgoing;
+	uint32_t fin_outgoing;
 	/** Expected sequence number by the remote host.
 	 *  The sequence number the other host expects.
 	 *  The notification is sent only upon a packet reecival.
 	 */
-	uint32_t		expected;
+	uint32_t expected;
 	/** Expected sequence number counter.
 	 *  Counts the number of received notifications for the same sequence number.
 	 */
-	int				expected_count;
+	int expected_count;
 	/** Incoming packet queue.
 	 *  Packets are buffered until received in the right order.
 	 *  The packets are excluded after successfully read.
 	 *  Packets are sorted by their starting byte.
 	 *  Packets metric is set as their data length.
 	 */
-	packet_t		incoming;
+	packet_t incoming;
 	/** Outgoing packet queue.
 	 *  Packets are buffered until acknowledged by the remote host in the right order.
 	 *  The packets are excluded after acknowledged.
 	 *  Packets are sorted by their starting byte.
 	 *  Packets metric is set as their data length.
 	 */
-	packet_t		outgoing;
+	packet_t outgoing;
 	/** IP pseudo header.
 	 */
-	ip_pseudo_header_ref	pseudo_header;
+	ip_pseudo_header_ref pseudo_header;
 	/** IP pseudo header length.
 	 */
-	size_t			headerlen;
+	size_t headerlen;
 	/** Remote host address.
 	 */
-	struct sockaddr *	addr;
+	struct sockaddr * addr;
 	/** Remote host address length.
 	 */
-	socklen_t			addrlen;
+	socklen_t addrlen;
 	/** Remote host port.
 	 */
-	uint16_t			dest_port;
+	uint16_t dest_port;
 	/** Parent local sockets.
 	 */
-	socket_cores_ref	local_sockets;
+	socket_cores_ref local_sockets;
 	/** Local sockets safety lock.
 	 *  May be locked for writing while holding the global lock for reading when changing the local sockets only.
 	 *  The global lock may to be locked only before locking the local lock.
@@ -257,14 +257,14 @@ struct tcp_socket_data{
 	 *  The global lock may be released before releasing the local lock.
 	 *  @see tcp_globals:lock
 	 */
-	fibril_rwlock_t *	local_lock;
+	fibril_rwlock_t * local_lock;
 	/** Pending operation data.
 	 */
-	tcp_operation_t		operation;
+	tcp_operation_t operation;
 	/** Timeouts in a row counter.
 	 *  If TCP_MAX_TIMEOUTS is reached, the connection is lost.
 	 */
-	int					timeout_count;
+	int timeout_count;
 };
 
 /** TCP global data.
@@ -272,26 +272,26 @@ struct tcp_socket_data{
 struct	tcp_globals{
 	/** Networking module phone.
 	 */
-	int				net_phone;
+	int net_phone;
 	/** IP module phone.
 	 */
-	int				ip_phone;
+	int ip_phone;
 	/** ICMP module phone.
 	 */
-	int				icmp_phone;
+	int icmp_phone;
 	/** Last used free port.
 	 */
-	int				last_used_port;
+	int last_used_port;
 	/** Active sockets.
 	 */
-	socket_ports_t	sockets;
+	socket_ports_t sockets;
 	/** Device packet dimensions.
 	 */
-	packet_dimensions_t	dimensions;
+	packet_dimensions_t dimensions;
 	/** Safety lock.
 	 *  Write lock is used only for adding or removing socket ports.
 	 */
-	fibril_rwlock_t	lock;
+	fibril_rwlock_t lock;
 };
 
 #endif

@@ -49,7 +49,7 @@
 
 /** Initializes the specific module.
  */
-int	netif_initialize( void );
+int netif_initialize(void);
 
 /** Probes the existence of the device.
  *  @param[in] device_id The device identifier.
@@ -59,7 +59,7 @@ int	netif_initialize( void );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_probe_message( device_id_t device_id, int irq, uintptr_t io );
+int netif_probe_message(device_id_t device_id, int irq, uintptr_t io);
 
 /** Sends the packet queue.
  *  @param[in] device_id The device identifier.
@@ -70,7 +70,7 @@ int	netif_probe_message( device_id_t device_id, int irq, uintptr_t io );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_send_message( device_id_t device_id, packet_t packet, services_t sender );
+int netif_send_message(device_id_t device_id, packet_t packet, services_t sender);
 
 /** Starts the device.
  *  @param[in] device The device structure.
@@ -78,7 +78,7 @@ int	netif_send_message( device_id_t device_id, packet_t packet, services_t sende
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_start_message( device_ref device );
+int netif_start_message(device_ref device);
 
 /** Stops the device.
  *  @param[in] device The device structure.
@@ -86,7 +86,7 @@ int	netif_start_message( device_ref device );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_stop_message( device_ref device );
+int netif_stop_message(device_ref device);
 
 /** Returns the device local hardware address.
  *  @param[in] device_id The device identifier.
@@ -97,7 +97,7 @@ int	netif_stop_message( device_ref device );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_get_addr_message( device_id_t device_id, measured_string_ref address );
+int netif_get_addr_message(device_id_t device_id, measured_string_ref address);
 
 /** Processes the netif driver specific message.
  *  This function is called for uncommon messages received by the netif skeleton.
@@ -109,7 +109,7 @@ int	netif_get_addr_message( device_id_t device_id, measured_string_ref address )
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_specific_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Returns the device usage statistics.
  *  @param[in] device_id The device identifier.
@@ -118,7 +118,7 @@ int	netif_specific_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t *
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the specific module message implementation.
  */
-int	netif_get_device_stats( device_id_t device_id, device_stats_ref stats );
+int netif_get_device_stats(device_id_t device_id, device_stats_ref stats);
 
 #endif
 

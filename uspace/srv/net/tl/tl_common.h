@@ -47,7 +47,7 @@
  *  Maps devices to the packet dimensions.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( packet_dimensions, packet_dimension_t );
+DEVICE_MAP_DECLARE(packet_dimensions, packet_dimension_t);
 
 /** Gets the address port.
  *  Supports AF_INET and AF_INET6 address families.
@@ -58,7 +58,7 @@ DEVICE_MAP_DECLARE( packet_dimensions, packet_dimension_t );
  *  @returns EINVAL if the address length does not match the address family.
  *  @returns EAFNOSUPPORT if the address family is not supported.
  */
-int	tl_get_address_port( const struct sockaddr * addr, int addrlen, uint16_t * port );
+int tl_get_address_port(const struct sockaddr * addr, int addrlen, uint16_t * port);
 
 /** Gets IP packet dimensions.
  *  Tries to search a cache and queries the IP module if not found.
@@ -73,7 +73,7 @@ int	tl_get_address_port( const struct sockaddr * addr, int addrlen, uint16_t * p
  *  @returns EINVAL if the packet_dimensions cache is not valid.
  *  @returns Other codes as defined for the ip_packet_size_req() function.
  */
-int	tl_get_ip_packet_dimension( int ip_phone, packet_dimensions_ref packet_dimensions, device_id_t device_id, packet_dimension_ref * packet_dimension );
+int tl_get_ip_packet_dimension(int ip_phone, packet_dimensions_ref packet_dimensions, device_id_t device_id, packet_dimension_ref * packet_dimension);
 
 /** Updates IP device packet dimensions cache.
  *  @param[in,out] packet_dimensions The packet dimensions cache.
@@ -82,7 +82,7 @@ int	tl_get_ip_packet_dimension( int ip_phone, packet_dimensions_ref packet_dimen
  *  @returns EOK on success.
  *  @returns ENOENT if the packet dimension is not cached.
  */
-int	tl_update_ip_packet_dimension( packet_dimensions_ref packet_dimensions, device_id_t device_id, size_t content );
+int tl_update_ip_packet_dimension(packet_dimensions_ref packet_dimensions, device_id_t device_id, size_t content);
 
 /** Sets the address port.
  *  Supports AF_INET and AF_INET6 address families.
@@ -93,7 +93,7 @@ int	tl_update_ip_packet_dimension( packet_dimensions_ref packet_dimensions, devi
  *  @returns EINVAL if the address length does not match the address family.
  *  @returns EAFNOSUPPORT if the address family is not supported.
  */
-int	tl_set_address_port( struct sockaddr * addr, int addrlen, uint16_t port );
+int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port);
 
 /** Prepares the packet for ICMP error notification.
  *  Keeps the first packet and releases all the others.
@@ -105,7 +105,7 @@ int	tl_set_address_port( struct sockaddr * addr, int addrlen, uint16_t port );
  *  @returns EOK on success.
  *  @returns ENOENT if no packet may be sent.
  */
-int	tl_prepare_icmp_packet( int packet_phone, int icmp_phone, packet_t packet, services_t error );
+int tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet, services_t error);
 
 /** Receives data from the socket into a packet.
  *  @param[in] packet_phone The packet server module phone.
@@ -119,7 +119,7 @@ int	tl_prepare_icmp_packet( int packet_phone, int icmp_phone, packet_t packet, s
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the async_data_read_finalize() function.
  */
-int	tl_socket_read_packet_data( int packet_phone, packet_ref packet, size_t prefix, const packet_dimension_ref dimension, const struct sockaddr * addr, socklen_t addrlen );
+int tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix, const packet_dimension_ref dimension, const struct sockaddr * addr, socklen_t addrlen);
 
 #endif
 

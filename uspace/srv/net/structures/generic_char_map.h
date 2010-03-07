@@ -53,100 +53,106 @@
  *  @param[in] name Name of the map.
  *  @param[in] type Inner object type.
  */
-#define GENERIC_CHAR_MAP_DECLARE( name, type )									\
+#define GENERIC_CHAR_MAP_DECLARE(name, type)									\
 																				\
-GENERIC_FIELD_DECLARE( name##_items, type )										\
+GENERIC_FIELD_DECLARE(name##_items, type)										\
 																				\
 typedef	struct name		name##_t;												\
 typedef	name##_t *		name##_ref;												\
 																				\
 struct	name{																	\
-	char_map_t		names;														\
-	name##_items_t	values;														\
-	int				magic;														\
+	char_map_t names;														\
+	name##_items_t values;														\
+	int magic;														\
 };																				\
 																				\
-int	name##_add( name##_ref map, const char * name, const size_t length, type * value );	\
-int	name##_count( name##_ref map );												\
-void	name##_destroy( name##_ref map );										\
-void	name##_exclude( name##_ref map, const char * name, const size_t length );	\
-type *	name##_find( name##_ref map, const char * name, const size_t length );	\
-int	name##_initialize( name##_ref map );										\
-int	name##_is_valid( name##_ref map );
+int name##_add(name##_ref map, const char * name, const size_t length, type * value);	\
+int name##_count(name##_ref map);												\
+void name##_destroy(name##_ref map);											\
+void name##_exclude(name##_ref map, const char * name, const size_t length);	\
+type * name##_find(name##_ref map, const char * name, const size_t length);		\
+int name##_initialize(name##_ref map);											\
+int name##_is_valid(name##_ref map);
 
 /** Character string to generic type map implementation.
  *  Should follow declaration with the same parameters.
  *  @param[in] name Name of the map.
  *  @param[in] type Inner object type.
  */
-#define GENERIC_CHAR_MAP_IMPLEMENT( name, type )								\
+#define GENERIC_CHAR_MAP_IMPLEMENT(name, type)									\
 																				\
-GENERIC_FIELD_IMPLEMENT( name##_items, type )									\
+GENERIC_FIELD_IMPLEMENT(name##_items, type)										\
 																				\
-int name##_add( name##_ref map, const char * name, const size_t length, type * value ){	\
+int name##_add(name##_ref map, const char * name, const size_t length, type * value){	\
 	ERROR_DECLARE;																\
 																				\
-	int	index;																	\
+	int index;																	\
 																				\
-	if( ! name##_is_valid( map )) return EINVAL;								\
-	index = name##_items_add( & map->values, value );							\
-	if( index < 0 ) return index;												\
-	if( ERROR_OCCURRED( char_map_add( & map->names, name, length, index ))){		\
-		name##_items_exclude_index( & map->values, index );						\
+	if(! name##_is_valid(map)){													\
+		return EINVAL;															\
+	}																			\
+	index = name##_items_add(&map->values, value);								\
+	if(index < 0){																\
+		return index;															\
+	}																			\
+	if(ERROR_OCCURRED(char_map_add(&map->names, name, length, index))){			\
+		name##_items_exclude_index(&map->values, index);						\
 		return ERROR_CODE;														\
 	}																			\
 	return EOK;																	\
 }																				\
 																				\
-int name##_count( name##_ref map ){												\
-	return name##_is_valid( map ) ? name##_items_count( & map->values ) : -1;	\
+int name##_count(name##_ref map){												\
+	return name##_is_valid(map) ? name##_items_count(&map->values) : -1;		\
 }																				\
 																				\
-void name##_destroy( name##_ref map ){											\
-	if( name##_is_valid( map )){												\
-		char_map_destroy( & map->names );										\
-		name##_items_destroy( & map->values );									\
+void name##_destroy(name##_ref map){											\
+	if(name##_is_valid(map)){													\
+		char_map_destroy(&map->names);											\
+		name##_items_destroy(&map->values);										\
 	}																			\
 }																				\
 																				\
-void name##_exclude( name##_ref map, const char * name, const size_t length ){	\
-	if( name##_is_valid( map )){												\
-		int	index;																\
+void name##_exclude(name##_ref map, const char * name, const size_t length){	\
+	if(name##_is_valid(map)){													\
+		int index;																\
 																				\
-		index = char_map_exclude( & map->names, name, length );					\
-		if( index != CHAR_MAP_NULL ){											\
-			name##_items_exclude_index( & map->values, index );					\
+		index = char_map_exclude(&map->names, name, length);					\
+		if(index != CHAR_MAP_NULL){												\
+			name##_items_exclude_index(&map->values, index);					\
 		}																		\
 	}																			\
 }																				\
 																				\
-type * name##_find( name##_ref map, const char * name, const size_t length ){	\
-	if( name##_is_valid( map )){												\
-		int	index;																\
+type * name##_find(name##_ref map, const char * name, const size_t length){		\
+	if(name##_is_valid(map)){													\
+		int index;																\
 																				\
-		index = char_map_find( & map->names, name, length );					\
-		if( index != CHAR_MAP_NULL ){											\
-			return name##_items_get_index( & map->values, index );				\
+		index = char_map_find(&map->names, name, length);						\
+		if(index != CHAR_MAP_NULL){												\
+			return name##_items_get_index(&map->values, index);					\
 		}																		\
 	}																			\
 	return NULL;																\
 }																				\
 																				\
-int name##_initialize( name##_ref map ){										\
+int name##_initialize(name##_ref map){											\
 	ERROR_DECLARE;																\
 																				\
-	if( ! map ) return EINVAL;													\
-	ERROR_PROPAGATE( char_map_initialize( & map->names ));						\
-	if( ERROR_OCCURRED( name##_items_initialize( & map->values ))){				\
-		char_map_destroy( & map->names );										\
+	if(! map){																	\
+		return EINVAL;															\
+	}																			\
+	ERROR_PROPAGATE(char_map_initialize(&map->names));							\
+	if(ERROR_OCCURRED(name##_items_initialize(&map->values))){					\
+		char_map_destroy(&map->names);											\
 		return ERROR_CODE;														\
 	}																			\
 	map->magic = GENERIC_CHAR_MAP_MAGIC_VALUE;									\
 	return EOK;																	\
 }																				\
 																				\
-int name##_is_valid( name##_ref map ){											\
-	return map && ( map->magic == GENERIC_CHAR_MAP_MAGIC_VALUE );				\
+int name##_is_valid(name##_ref map){											\
+	return map && (map->magic == GENERIC_CHAR_MAP_MAGIC_VALUE);					\
 }
 
 #endif

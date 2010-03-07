@@ -46,14 +46,14 @@
  */
 #define CRC_DIVIDER_LE	0xEDB88320
 
-uint32_t compute_crc32_le( uint32_t seed, uint8_t * data, size_t length ){
-	size_t	index;
+uint32_t compute_crc32_le(uint32_t seed, uint8_t * data, size_t length){
+	size_t index;
 
-	while( length >= 8 ){
-		seed ^= ( * data );
-		for( index = 0; index < 8; ++ index ){
-			if( seed & 1 ){
-				seed = ( seed >> 1 ) ^ (( uint32_t ) CRC_DIVIDER_LE );
+	while(length >= 8){
+		seed ^= (*data);
+		for(index = 0; index < 8; ++ index){
+			if(seed &1){
+				seed = (seed >> 1) ^ ((uint32_t) CRC_DIVIDER_LE);
 			}else{
 				seed >>= 1;
 			}
@@ -61,11 +61,11 @@ uint32_t compute_crc32_le( uint32_t seed, uint8_t * data, size_t length ){
 		++ data;
 		length -= 8;
 	}
-	if( length > 0 ){
-		seed ^= ( * data ) >> ( 8 - length );
-		for( index = 0; index < length; ++ index ){
-			if( seed & 1 ){
-				seed = ( seed >> 1 ) ^ (( uint32_t ) CRC_DIVIDER_LE );
+	if(length > 0){
+		seed ^= (*data) >> (8 - length);
+		for(index = 0; index < length; ++ index){
+			if(seed &1){
+				seed = (seed >> 1) ^ ((uint32_t) CRC_DIVIDER_LE);
 			}else{
 				seed >>= 1;
 			}
@@ -75,14 +75,14 @@ uint32_t compute_crc32_le( uint32_t seed, uint8_t * data, size_t length ){
 	return seed;
 }
 
-uint32_t compute_crc32_be( uint32_t seed, uint8_t * data, size_t length ){
-	size_t	index;
+uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length){
+	size_t index;
 
-	while( length >= 8 ){
-		seed ^= ( * data ) << 24;
-		for( index = 0; index < 8; ++ index ){
-			if( seed & 0x80000000 ){
-				seed = ( seed << 1 ) ^ (( uint32_t ) CRC_DIVIDER_BE );
+	while(length >= 8){
+		seed ^= (*data) << 24;
+		for(index = 0; index < 8; ++ index){
+			if(seed &0x80000000){
+				seed = (seed << 1) ^ ((uint32_t) CRC_DIVIDER_BE);
 			}else{
 				seed <<= 1;
 			}
@@ -90,11 +90,11 @@ uint32_t compute_crc32_be( uint32_t seed, uint8_t * data, size_t length ){
 		++ data;
 		length -= 8;
 	}
-	if( length > 0 ){
-		seed ^= (( * data ) & ( 0xFF << ( 8 - length ))) << 24;
-		for( index = 0; index < length; ++ index ){
-			if( seed & 0x80000000 ){
-				seed = ( seed << 1 ) ^ (( uint32_t ) CRC_DIVIDER_BE );
+	if(length > 0){
+		seed ^= ((*data) &(0xFF << (8 - length))) << 24;
+		for(index = 0; index < length; ++ index){
+			if(seed &0x80000000){
+				seed = (seed << 1) ^ ((uint32_t) CRC_DIVIDER_BE);
 			}else{
 				seed <<= 1;
 			}
@@ -104,37 +104,39 @@ uint32_t compute_crc32_be( uint32_t seed, uint8_t * data, size_t length ){
 	return seed;
 }
 
-uint32_t compute_checksum( uint32_t seed, uint8_t * data, size_t length ){
-	size_t	index;
+uint32_t compute_checksum(uint32_t seed, uint8_t * data, size_t length){
+	size_t index;
 
 	// sum all the 16 bit fields
-	for( index = 0; index + 1 < length; index += 2 ){
-		seed += ( data[ index ] << 8 ) + data[ index + 1 ];
+	for(index = 0; index + 1 < length; index += 2){
+		seed += (data[index] << 8) + data[index + 1];
 	}
 
 	// last odd byte with zero padding
-	if( index + 1 == length ){
-		seed += data[ index ] << 8;
+	if(index + 1 == length){
+		seed += data[index] << 8;
 	}
 
 	return seed;
 }
 
-uint16_t compact_checksum( uint32_t sum ){
+uint16_t compact_checksum(uint32_t sum){
 	// shorten to the 16 bits
-	while( sum >> 16 ) sum = ( sum & 0xFFFF ) + ( sum >> 16 );
+	while(sum >> 16){
+		sum = (sum &0xFFFF) + (sum >> 16);
+	}
 
-	return ( uint16_t ) sum;
+	return (uint16_t) sum;
 }
 
-uint16_t flip_checksum( uint16_t checksum ){
+uint16_t flip_checksum(uint16_t checksum){
 	// flip, zero is returned as 0xFFFF (not flipped)
 	checksum = ~ checksum;
 	return checksum ? checksum : IP_CHECKSUM_ZERO;
 }
 
-uint16_t ip_checksum( uint8_t * data, size_t length ){
-	return flip_checksum( compact_checksum( compute_checksum( 0, data, length )));
+uint16_t ip_checksum(uint8_t * data, size_t length){
+	return flip_checksum(compact_checksum(compute_checksum(0, data, length)));
 }
 
 /** @}

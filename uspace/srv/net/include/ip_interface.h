@@ -69,7 +69,7 @@ typedef void *		ip_pseudo_header_ref;
  *  @param[in] error The packet error reporting service. Prefixes the received packet.
  *  @returns EOK on success.
  */
-typedef int	( * tl_received_msg_t )( device_id_t device_id, packet_t packet, services_t receiver, services_t error );
+typedef int	(*tl_received_msg_t)(device_id_t device_id, packet_t packet, services_t receiver, services_t error);
 
 /** Creates bidirectional connection with the ip module service and registers the message receiver.
  *  @param[in] service The IP module service.
@@ -81,7 +81,7 @@ typedef int	( * tl_received_msg_t )( device_id_t device_id, packet_t packet, ser
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the bind_service() function.
  */
-int	ip_bind_service( services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t tl_received_msg );
+int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t tl_received_msg);
 
 /** Registers the new device.
  *  Registers itself as the ip packet receiver.
@@ -97,7 +97,7 @@ int	ip_bind_service( services_t service, int protocol, services_t me, async_clie
  *  @returns Other error codes as defined for the net_get_device_conf_req() function.
  *  @returns Other error codes as defined for the arp_device_req() function.
  */
-int	ip_device_req( int ip_phone, device_id_t device_id, services_t netif );
+int ip_device_req(int ip_phone, device_id_t device_id, services_t netif);
 
 /** Sends the packet queue.
  *  The packets may get fragmented if needed.
@@ -109,14 +109,14 @@ int	ip_device_req( int ip_phone, device_id_t device_id, services_t netif );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the generic_send_msg() function.
  */
-int	ip_send_msg( int ip_phone, device_id_t device_id, packet_t packet, services_t sender, services_t error );
+int ip_send_msg(int ip_phone, device_id_t device_id, packet_t packet, services_t sender, services_t error);
 
 /** Connects to the IP module.
  *  @param service The IP module service. Ignored parameter.
  *  @returns The IP module phone on success.
  *  @returns 0 if called by the bundle module.
  */
-int	ip_connect_module( services_t service );
+int ip_connect_module(services_t service);
 
 /** Adds a route to the device routing table.
  *  The target network is routed using this device.
@@ -126,7 +126,7 @@ int	ip_connect_module( services_t service );
  *  @param[in] netmask The target network mask.
  *  @param[in] gateway The target network gateway. Not used if zero.
  */
-int	ip_add_route_req( int ip_phone, device_id_t device_id, in_addr_t address, in_addr_t netmask, in_addr_t gateway );
+int ip_add_route_req(int ip_phone, device_id_t device_id, in_addr_t address, in_addr_t netmask, in_addr_t gateway);
 
 /** Sets the default gateway.
  *  This gateway is used if no other route is found.
@@ -134,7 +134,7 @@ int	ip_add_route_req( int ip_phone, device_id_t device_id, in_addr_t address, in
  *  @param[in] device_id The device identifier.
  *  @param[in] gateway The default gateway.
  */
-int	ip_set_gateway_req( int ip_phone, device_id_t device_id, in_addr_t gateway );
+int ip_set_gateway_req(int ip_phone, device_id_t device_id, in_addr_t gateway);
 
 /** Returns the device packet dimension for sending.
  *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
@@ -144,7 +144,7 @@ int	ip_set_gateway_req( int ip_phone, device_id_t device_id, in_addr_t gateway )
  *  @returns ENOENT if there is no such device.
  *  @returns Other error codes as defined for the generic_packet_size_req() function.
  */
-int	ip_packet_size_req( int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension );
+int ip_packet_size_req(int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension);
 
 /** Notifies the IP module about the received error notification packet.
  *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
@@ -154,7 +154,7 @@ int	ip_packet_size_req( int ip_phone, device_id_t device_id, packet_dimension_re
  *  @param[in] error The packet error reporting service. Prefixes the received packet.
  *  @returns EOK on success.
  */
-int	ip_received_error_msg( int ip_phone, device_id_t device_id, packet_t packet, services_t target, services_t error );
+int ip_received_error_msg(int ip_phone, device_id_t device_id, packet_t packet, services_t target, services_t error);
 
 /** Returns the device identifier and the IP pseudo header based on the destination address.
  *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
@@ -165,7 +165,7 @@ int	ip_received_error_msg( int ip_phone, device_id_t device_id, packet_t packet,
  *  @param[out] header The constructed IP pseudo header.
  *  @param[out] headerlen The IP pseudo header length.
  */
-int	ip_get_route_req( int ip_phone, ip_protocol_t protocol, const struct sockaddr * destination, socklen_t addrlen, device_id_t * device_id, ip_pseudo_header_ref * header, size_t * headerlen );
+int ip_get_route_req(int ip_phone, ip_protocol_t protocol, const struct sockaddr * destination, socklen_t addrlen, device_id_t * device_id, ip_pseudo_header_ref * header, size_t * headerlen);
 
 /*@}*/
 

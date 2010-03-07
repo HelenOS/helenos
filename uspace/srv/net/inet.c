@@ -44,18 +44,20 @@
 #include "include/inet.h"
 #include "include/socket_codes.h"
 
-int inet_pton( uint16_t family, const char * address, uint8_t * data ){
-	const char *	next;
-	char *			last;
-	int				index;
-	int				count;
-	int				base;
-	size_t			bytes;
-	size_t			shift;
-	unsigned long	value;
+int inet_pton(uint16_t family, const char * address, uint8_t * data){
+	const char * next;
+	char * last;
+	int index;
+	int count;
+	int base;
+	size_t bytes;
+	size_t shift;
+	unsigned long value;
 
-	if( ! data ) return EINVAL;
-	switch( family ){
+	if(! data){
+		return EINVAL;
+	}
+	switch(family){
 		case AF_INET:
 			count = 4;
 			base = 10;
@@ -69,42 +71,53 @@ int inet_pton( uint16_t family, const char * address, uint8_t * data ){
 		default:
 			return ENOTSUP;
 	}
-	if( ! address ){
-		bzero( data, count );
+	if(! address){
+		bzero(data, count);
 		return ENOENT;
 	}
 	next = address;
 	index = 0;
 	do{
-		if( next && ( * next )){
-			if( index ) ++ next;
-			value = strtoul( next, & last, base );
+		if(next && (*next)){
+			if(index){
+				++ next;
+			}
+			value = strtoul(next, &last, base);
 			next = last;
 			shift = bytes - 1;
 			do{
 				// like little endian
-				data[ index + shift ] = value;
+				data[index + shift] = value;
 				value >>= 8;
-			}while( shift -- );
+			}while(shift --);
 			index += bytes;
 		}else{
-			bzero( data + index, count - index );
+			bzero(data + index, count - index);
 			return EOK;
 		}
-	}while( index < count );
+	}while(index < count);
 	return EOK;
 }
 
-int inet_ntop( uint16_t family, const uint8_t * data, char * address, size_t length ){
-	if(( ! data ) || ( ! address ))	return EINVAL;
-	switch( family ){
-		case AF_INET:	if( length < INET_ADDRSTRLEN ) return ENOMEM;
-						snprintf( address, length, "%hhu.%hhu.%hhu.%hhu", data[ 0 ], data[ 1 ], data[ 2 ], data[ 3 ] );
-						return EOK;
-		case AF_INET6:	if( length < INET6_ADDRSTRLEN ) return ENOMEM;
-						snprintf( address, length, "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx", data[ 0 ], data[ 1 ], data[ 2 ], data[ 3 ], data[ 4 ], data[ 5 ], data[ 6 ], data[ 7 ], data[ 8 ], data[ 9 ], data[ 10 ], data[ 11 ], data[ 12 ], data[ 13 ], data[ 14 ], data[ 15 ] );
-						return EOK;
-		default:		return ENOTSUP;
+int inet_ntop(uint16_t family, const uint8_t * data, char * address, size_t length){
+	if((! data) || (! address)){
+		return EINVAL;
+	}
+	switch(family){
+		case AF_INET:
+			if(length < INET_ADDRSTRLEN){
+				return ENOMEM;
+			}
+			snprintf(address, length, "%hhu.%hhu.%hhu.%hhu", data[0], data[1], data[2], data[3]);
+			return EOK;
+		case AF_INET6:
+			if(length < INET6_ADDRSTRLEN){
+				return ENOMEM;
+			}
+			snprintf(address, length, "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+			return EOK;
+		default:
+			return ENOTSUP;
 	}
 }
 

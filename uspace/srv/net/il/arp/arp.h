@@ -79,54 +79,54 @@ typedef arp_proto_t *		arp_proto_ref;
  *  Maps devices to the ARP device specific data.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( arp_cache, arp_device_t )
+DEVICE_MAP_DECLARE(arp_cache, arp_device_t)
 
 /** ARP protocol map.
  *  Maps protocol identifiers to the ARP protocol specific data.
  *  @see int_map.h
  */
-INT_MAP_DECLARE( arp_protos, arp_proto_t )
+INT_MAP_DECLARE(arp_protos, arp_proto_t)
 
 /** ARP address map.
  *  Translates addresses.
  *  @see generic_char_map.h
  */
-GENERIC_CHAR_MAP_DECLARE( arp_addr, measured_string_t )
+GENERIC_CHAR_MAP_DECLARE(arp_addr, measured_string_t)
 
 /** ARP device specific data.
  */
 struct arp_device{
 	/** Device identifier.
 	 */
-	device_id_t			device_id;
+	device_id_t device_id;
 	/** Hardware type.
 	 */
-	hw_type_t			hardware;
+	hw_type_t hardware;
 	/** Packet dimension.
 	 */
-	packet_dimension_t	packet_dimension;
+	packet_dimension_t packet_dimension;
 	/** Actual device hardware address.
 	 */
-	measured_string_ref	addr;
+	measured_string_ref addr;
 	/** Actual device hardware address data.
 	 */
-	char *				addr_data;
+	char * addr_data;
 	/** Broadcast device hardware address.
 	 */
-	measured_string_ref	broadcast_addr;
+	measured_string_ref broadcast_addr;
 	/** Broadcast device hardware address data.
 	 */
-	char *				broadcast_data;
+	char * broadcast_data;
 	/** Device module service.
 	 */
-	services_t			service;
+	services_t service;
 	/** Device module phone.
 	 */
-	int					phone;
+	int phone;
 	/** Protocol map.
 	 *  Address map for each protocol.
 	 */
-	arp_protos_t		protos;
+	arp_protos_t protos;
 };
 
 /** ARP protocol specific data.
@@ -134,16 +134,16 @@ struct arp_device{
 struct arp_proto{
 	/** Protocol service.
 	 */
-	services_t			service;
+	services_t service;
 	/** Actual device protocol address.
 	 */
-	measured_string_ref	addr;
+	measured_string_ref addr;
 	/** Actual device protocol address data.
 	 */
-	char *				addr_data;
+	char * addr_data;
 	/** Address map.
 	 */
-	arp_addr_t			addresses;
+	arp_addr_t addresses;
 };
 
 /** ARP global data.
@@ -151,13 +151,13 @@ struct arp_proto{
 struct	arp_globals{
 	/** Networking module phone.
 	 */
-	int			net_phone;
+	int net_phone;
 	/** Safety lock.
 	 */
-	fibril_rwlock_t		lock;
+	fibril_rwlock_t lock;
 	/** ARP address cache.
 	 */
-	arp_cache_t	cache;
+	arp_cache_t cache;
 	/** The client connection processing function.
 	 *  The module skeleton propagates its own one.
 	 */

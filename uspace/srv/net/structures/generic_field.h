@@ -50,99 +50,107 @@
  *  @param[in] name Name of the field.
  *  @param[in] type Inner object type.
  */
-#define GENERIC_FIELD_DECLARE( name, type )					\
-										\
-typedef	struct name		name##_t;					\
-typedef	name##_t *		name##_ref;					\
-										\
-struct	name{									\
-	int	size;								\
-	int	next;								\
-	type **	items;								\
-	int	magic;								\
-};										\
-										\
-int	name##_add( name##_ref field, type * value );				\
-int	name##_count( name##_ref field );					\
-void	name##_destroy( name##_ref field );					\
-void	name##_exclude_index( name##_ref field, int index );			\
-type **	name##_get_field( name##_ref field );					\
-type *	name##_get_index( name##_ref field, int index );			\
-int	name##_initialize( name##_ref field );					\
-int	name##_is_valid( name##_ref field );
+#define GENERIC_FIELD_DECLARE(name, type)										\
+																				\
+typedef	struct name		name##_t;												\
+typedef	name##_t *		name##_ref;												\
+																				\
+struct	name{																	\
+	int size;																	\
+	int next;																	\
+	type **	items;																\
+	int magic;																	\
+};																				\
+																				\
+int name##_add(name##_ref field, type * value);									\
+int name##_count(name##_ref field);												\
+void name##_destroy(name##_ref field);											\
+void name##_exclude_index(name##_ref field, int index);							\
+type ** name##_get_field(name##_ref field);										\
+type * name##_get_index(name##_ref field, int index);							\
+int name##_initialize(name##_ref field);										\
+int name##_is_valid(name##_ref field);
 
 /** Generic type field implementation.
  *  Should follow declaration with the same parameters.
  *  @param[in] name Name of the field.
  *  @param[in] type Inner object type.
  */
-#define GENERIC_FIELD_IMPLEMENT( name, type )					\
-										\
-int name##_add( name##_ref field, type * value ){				\
-	if( name##_is_valid( field )){						\
-		if( field->next == ( field->size - 1 )){			\
-			type **	tmp;					\
-										\
-			tmp = ( type ** ) realloc( field->items, sizeof( type * ) * 2 * field->size );	\
-			if( ! tmp ) return ENOMEM;				\
-			field->size *= 2;					\
-			field->items = tmp;					\
-		}								\
-		field->items[ field->next ] = value;				\
-		++ field->next;							\
-		field->items[ field->next ] = NULL;				\
-		return field->next - 1;						\
-	}									\
-	return EINVAL;								\
-}										\
-										\
-int name##_count( name##_ref field ){						\
-	return name##_is_valid( field ) ? field->next : -1;			\
-}										\
-										\
-void name##_destroy( name##_ref field ){					\
-	if( name##_is_valid( field )){						\
-		int	index;							\
-										\
-		field->magic = 0;						\
-		for( index = 0; index < field->next; ++ index ){		\
-			if( field->items[ index ] ) free( field->items[ index ] );				\
-		}								\
-		free( field->items );						\
-	}									\
-}										\
-										\
-void name##_exclude_index( name##_ref field, int index ){			\
-	if( name##_is_valid( field ) && ( index >= 0 ) && ( index < field->next ) && ( field->items[ index ] )){	\
-		free( field->items[ index ] );					\
-		field->items[ index ] = NULL;					\
-	}									\
-}										\
-										\
-type * name##_get_index( name##_ref field, int index ){				\
-	if( name##_is_valid( field ) && ( index >= 0 ) && ( index < field->next ) && ( field->items[ index ] )){	\
-		return field->items[ index ];					\
-	}									\
-	return NULL;								\
-}										\
-										\
-type ** name##_get_field( name##_ref field ){					\
-	return name##_is_valid( field ) ? field->items : NULL;			\
-}										\
-										\
-int name##_initialize( name##_ref field ){					\
-	if( ! field ) return EINVAL;						\
-	field->size = 2;							\
-	field->next = 0;							\
-	field->items = ( type ** ) malloc( sizeof( type * ) * field->size );	\
-	if( ! field->items ) return ENOMEM;					\
-	field->items[ field->next ] = NULL;					\
-	field->magic = GENERIC_FIELD_MAGIC_VALUE;					\
-	return EOK;								\
-}										\
-										\
-int name##_is_valid( name##_ref field ){					\
-	return field && ( field->magic == GENERIC_FIELD_MAGIC_VALUE );		\
+#define GENERIC_FIELD_IMPLEMENT(name, type)										\
+																				\
+int name##_add(name##_ref field, type * value){									\
+	if(name##_is_valid(field)){													\
+		if(field->next == (field->size - 1)){									\
+			type **	tmp;														\
+																				\
+			tmp = (type **) realloc(field->items, sizeof(type *) * 2 * field->size);	\
+			if(! tmp){															\
+				return ENOMEM;													\
+			}																	\
+			field->size *= 2;													\
+			field->items = tmp;													\
+		}																		\
+		field->items[field->next] = value;										\
+		++ field->next;															\
+		field->items[field->next] = NULL;										\
+		return field->next - 1;													\
+	}																			\
+	return EINVAL;																\
+}																				\
+																				\
+int name##_count(name##_ref field){												\
+	return name##_is_valid(field) ? field->next : -1;							\
+}																				\
+																				\
+void name##_destroy(name##_ref field){											\
+	if(name##_is_valid(field)){													\
+		int index;																\
+																				\
+		field->magic = 0;														\
+		for(index = 0; index < field->next; ++ index){							\
+			if(field->items[index]){											\
+				free(field->items[index]);										\
+			}																	\
+		}																		\
+		free(field->items);														\
+	}																			\
+}																				\
+																				\
+void name##_exclude_index(name##_ref field, int index){							\
+	if(name##_is_valid(field) && (index >= 0) && (index < field->next) && (field->items[index])){	\
+		free(field->items[index]);												\
+		field->items[index] = NULL;												\
+	}																			\
+}																				\
+																				\
+type * name##_get_index(name##_ref field, int index){							\
+	if(name##_is_valid(field) && (index >= 0) && (index < field->next) && (field->items[index])){	\
+		return field->items[index];												\
+	}																			\
+	return NULL;																\
+}																				\
+																				\
+type ** name##_get_field(name##_ref field){										\
+	return name##_is_valid(field) ? field->items : NULL;						\
+}																				\
+																				\
+int name##_initialize(name##_ref field){										\
+	if(! field){																\
+		return EINVAL;															\
+	}																			\
+	field->size = 2;															\
+	field->next = 0;															\
+	field->items = (type **) malloc(sizeof(type *) * field->size);				\
+	if(! field->items){															\
+		return ENOMEM;															\
+	}																			\
+	field->items[field->next] = NULL;											\
+	field->magic = GENERIC_FIELD_MAGIC_VALUE;									\
+	return EOK;																	\
+}																				\
+																				\
+int name##_is_valid(name##_ref field){											\
+	return field && (field->magic == GENERIC_FIELD_MAGIC_VALUE);				\
 }
 
 #endif

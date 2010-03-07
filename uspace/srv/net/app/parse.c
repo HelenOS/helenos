@@ -41,54 +41,54 @@
 
 #include "parse.h"
 
-int parse_parameter_int( int argc, char ** argv, int * index, int * value, const char * name, int offset ){
-	char *	rest;
+int parse_parameter_int(int argc, char ** argv, int * index, int * value, const char * name, int offset){
+	char * rest;
 
-	if( offset ){
-		* value = strtol( argv[ * index ] + offset, & rest, 10 );
-	}else if(( * index ) + 1 < argc ){
-		++ ( * index );
-		* value = strtol( argv[ * index ], & rest, 10 );
+	if(offset){
+		*value = strtol(argv[*index] + offset, &rest, 10);
+	}else if((*index) + 1 < argc){
+		++ (*index);
+		*value = strtol(argv[*index], &rest, 10);
 	}else{
-		fprintf( stderr, "Command line error: missing %s\n", name );
+		fprintf(stderr, "Command line error: missing %s\n", name);
 		return EINVAL;
 	}
-	if( rest && ( * rest )){
-		fprintf( stderr, "Command line error: %s unrecognized (%d: %s)\n", name, * index, argv[ * index ] );
+	if(rest && (*rest)){
+		fprintf(stderr, "Command line error: %s unrecognized (%d: %s)\n", name, * index, argv[*index]);
 		return EINVAL;
 	}
 	return EOK;
 }
 
-int parse_parameter_string( int argc, char ** argv, int * index, char ** value, const char * name, int offset ){
-	if( offset ){
-		* value = argv[ * index ] + offset;
-	}else if(( * index ) + 1 < argc ){
-		++ ( * index );
-		* value = argv[ * index ];
+int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset){
+	if(offset){
+		*value = argv[*index] + offset;
+	}else if((*index) + 1 < argc){
+		++ (*index);
+		*value = argv[*index];
 	}else{
-		fprintf( stderr, "Command line error: missing %s\n", name );
+		fprintf(stderr, "Command line error: missing %s\n", name);
 		return EINVAL;
 	}
 	return EOK;
 }
 
-int parse_parameter_name_int( int argc, char ** argv, int * index, int * value, const char * name, int offset, int ( * parse_value )( const char * value )){
+int parse_parameter_name_int(int argc, char ** argv, int * index, int * value, const char * name, int offset, int (*parse_value)(const char * value)){
 	ERROR_DECLARE;
 
-	char *	parameter;
+	char * parameter;
 
-	ERROR_PROPAGATE( parse_parameter_string( argc, argv, index, & parameter, name, offset ));
-	* value = ( * parse_value )( parameter );
-	if(( * value ) == ENOENT ){
-		fprintf( stderr, "Command line error: unrecognized %s value (%d: %s)\n", name, * index, parameter );
+	ERROR_PROPAGATE(parse_parameter_string(argc, argv, index, &parameter, name, offset));
+	*value = (*parse_value)(parameter);
+	if((*value) == ENOENT){
+		fprintf(stderr, "Command line error: unrecognized %s value (%d: %s)\n", name, * index, parameter);
 		return ENOENT;
 	}
 	return EOK;
 }
 
-void print_unrecognized( int index, const char * parameter ){
-	fprintf( stderr, "Command line error - unrecognized parameter (%d: %s)\n", index, parameter );
+void print_unrecognized(int index, const char * parameter){
+	fprintf(stderr, "Command line error - unrecognized parameter (%d: %s)\n", index, parameter);
 }
 
 /** @}

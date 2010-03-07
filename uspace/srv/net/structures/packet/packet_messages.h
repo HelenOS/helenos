@@ -68,27 +68,27 @@ typedef enum {
 
 /** Returns the protocol service message parameter.
  */
-#define ARP_GET_PROTO( call )		( services_t ) IPC_GET_ARG2( * call )
+#define ARP_GET_PROTO(call)		(services_t) IPC_GET_ARG2(*call)
 
 /** Returns the packet identifier message parameter.
  */
-#define IPC_GET_ID( call )			( packet_id_t ) IPC_GET_ARG1( * call )
+#define IPC_GET_ID(call)			(packet_id_t) IPC_GET_ARG1(*call)
 
 /** Returns the maximal content length message parameter.
  */
-#define IPC_GET_CONTENT( call )		( size_t ) IPC_GET_ARG1( * call )
+#define IPC_GET_CONTENT(call)		(size_t) IPC_GET_ARG1(*call)
 
 /** Returns the maximal address length message parameter.
  */
-#define IPC_GET_ADDR_LEN( call )	( size_t ) IPC_GET_ARG2( * call )
+#define IPC_GET_ADDR_LEN(call)	(size_t) IPC_GET_ARG2(*call)
 
 /** Returns the maximal prefix length message parameter.
  */
-#define IPC_GET_PREFIX( call )		( size_t ) IPC_GET_ARG3( * call )
+#define IPC_GET_PREFIX(call)		(size_t) IPC_GET_ARG3(*call)
 
 /** Returns the maximal suffix length message parameter.
  */
-#define IPC_GET_SUFFIX( call )		( size_t ) IPC_GET_ARG4( * call )
+#define IPC_GET_SUFFIX(call)		(size_t) IPC_GET_ARG4(*call)
 
 #endif
 

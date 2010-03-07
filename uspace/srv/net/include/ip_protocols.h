@@ -609,7 +609,7 @@ using Kryptonet key management internet protocol number.
 
 /** Maximum internet protocol number.
  */
-#define IPPROTO_MAX		( IPPROTO_RAW + 1 )
+#define IPPROTO_MAX		(IPPROTO_RAW + 1)
 
 /*@}*/
 

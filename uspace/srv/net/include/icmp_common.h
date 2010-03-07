@@ -43,7 +43,7 @@
 
 /** Default timeout for incoming connections in microseconds.
  */
-#define ICMP_CONNECT_TIMEOUT	( 1 * 1000 * 1000 )
+#define ICMP_CONNECT_TIMEOUT	(1 * 1000 * 1000)
 
 /** Connects to the ICMP module.
  *  @param service The ICMP module service. Ignored parameter.
@@ -52,7 +52,7 @@
  *  @returns The ICMP socket identifier if called by the bundle module.
  *  @returns ETIMEOUT if the connection timeouted.
  */
-int	icmp_connect_module( services_t service, suseconds_t timeout );
+int icmp_connect_module(services_t service, suseconds_t timeout);
 
 #endif
 
