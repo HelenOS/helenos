@@ -231,16 +231,13 @@ packet_t pq_find(packet_t packet, size_t order){
 	if(! packet_is_valid(packet)){
 		return NULL;
 	}
-	if(packet->order == order){
-		return packet;
-	}
-	item = pm_find(packet->next);
-	while(item && (item != packet)){
-		item = pm_find(item->next);
+	item = packet;
+	do{
 		if(item->order == order){
 			return item;
 		}
-	}
+		item = pm_find(item->next);
+	}while(item && (item != packet) && packet_is_valid(item));
 	return NULL;
 }
 
