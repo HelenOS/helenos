@@ -695,6 +695,8 @@ int ip_send_msg(int il_phone, device_id_t device_id, packet_t packet, services_t
 */		default:
 			return ip_release_and_return(packet, EAFNOSUPPORT);
 	}
+	netif = NULL;
+	route = NULL;
 	fibril_rwlock_read_lock(&ip_globals.netifs_lock);
 	// device specified?
 	if(device_id > 0){
@@ -703,7 +705,8 @@ int ip_send_msg(int il_phone, device_id_t device_id, packet_t packet, services_t
 		if(netif && (! route) && (ip_globals.gateway.netif == netif)){
 			route = &ip_globals.gateway;
 		}
-	}else{
+	}
+	if(! route){
 		route = ip_find_route(*dest);
 		netif = route ? route->netif : NULL;
 	}
@@ -725,7 +728,9 @@ int ip_send_msg(int il_phone, device_id_t device_id, packet_t packet, services_t
 			return ip_release_and_return(packet, EINVAL);
 		}
 	}
-	if(route->address.s_addr == dest->s_addr){
+	// if the local host is the destination
+	if((route->address.s_addr == dest->s_addr)
+		&& (dest->s_addr != IPV4_LOCALHOST_ADDRESS)){
 		// find the loopback device to deliver
 		dest->s_addr = IPV4_LOCALHOST_ADDRESS;
 		route = ip_find_route(*dest);
@@ -1580,6 +1585,13 @@ int ip_get_route_req(int ip_phone, ip_protocol_t protocol, const struct sockaddr
 	}
 	fibril_rwlock_read_lock(&ip_globals.lock);
 	route = ip_find_route(*dest);
+	// if the local host is the destination
+	if(route && (route->address.s_addr == dest->s_addr)
+		&& (dest->s_addr != IPV4_LOCALHOST_ADDRESS)){
+		// find the loopback device to deliver
+		dest->s_addr = IPV4_LOCALHOST_ADDRESS;
+		route = ip_find_route(*dest);
+	}
 	if(!(route && route->netif)){
 		fibril_rwlock_read_unlock(&ip_globals.lock);
 		return ENOENT;
