@@ -67,6 +67,21 @@ typedef struct {
 	struct stree_symbol *sym;
 } rdata_deleg_t;
 
+/** Array variable */
+typedef struct {
+	/** Rank */
+	int rank;
+
+	/** Extents (@c rank entries) */
+	int *extent;
+
+	/**
+	 * Elements (extent[0] * extent[1] * ... extent[rank - 1] entries)
+	 * stored in lexicographical order. Each element is (rdata_var_t *).
+	 */
+	struct rdata_var **element;
+} rdata_array_t;
+
 /** Object variable */
 typedef struct {
 	/** Class of this object (symbol) */
@@ -89,6 +104,9 @@ typedef enum var_class {
 	/** Delegate */
 	vc_deleg,
 
+	/** Array */
+	vc_array,
+
 	/** Object */
 	vc_object
 } var_class_t;
@@ -107,18 +125,19 @@ typedef struct rdata_var {
 		rdata_string_t *string_v;
 		rdata_ref_t *ref_v;
 		rdata_deleg_t *deleg_v;
+		rdata_array_t *array_v;
 		rdata_object_t *object_v;
 	} u;
 } rdata_var_t;
 
 /** Address item. */
-typedef struct {
+typedef struct rdata_address {
 	/** Targeted variable */
 	rdata_var_t *vref;
 } rdata_address_t;
 
 /** Value item. */
-typedef struct {
+typedef struct rdata_value {
 	/**
 	 * Read-only Variable holding a copy of the data. The same @c var
 	 * can be shared between different instances of @c rdata_value_t.
@@ -148,5 +167,49 @@ typedef struct rdata_item {
 		rdata_value_t *value;
 	} u;
 } rdata_item_t;
+
+/** Primitive type. */
+typedef struct {
+} rdata_tprimitive_t;
+
+/** Class, struct or interface type. */
+typedef struct {
+	struct stree_csi *csi;
+} rdata_tcsi_t;
+
+/** Array type. */
+typedef struct {
+	/** Base type item */
+	struct rdata_titem *base_ti;
+
+	/** Rank */
+	int rank;
+
+	/** Extents */
+	list_t extents; /* of stree_expr_t */
+} rdata_tarray_t;
+
+/** Generic type. */
+typedef struct {
+} rdata_tgeneric_t;
+
+typedef enum {
+	tic_tprimitive,
+	tic_tcsi,
+	tic_tarray,
+	tic_tgeneric
+} titem_class_t;
+
+/** Type item, the result of evaluating a type expression. */
+typedef struct rdata_titem {
+	titem_class_t tic;
+
+	union {
+		rdata_tprimitive_t *tprimitive;
+		rdata_tcsi_t *tcsi;
+		rdata_tarray_t *tarray;
+		rdata_tgeneric_t *tgeneric;
+	} u;
+} rdata_titem_t;
 
 #endif

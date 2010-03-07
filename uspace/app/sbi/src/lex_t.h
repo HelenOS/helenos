@@ -57,6 +57,7 @@ typedef enum {
 	lc_is,
 	lc_nil,
 	lc_override,
+	lc_packed,
 	lc_private,
 	lc_prop,
 	lc_protected,

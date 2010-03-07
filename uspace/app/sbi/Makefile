@@ -33,6 +33,7 @@ EXTRA_CFLAGS = -D__HELENOS__
 OUTPUT = sbi
 
 SOURCES = \
+	src/os/helenos.c \
 	src/ancr.c \
 	src/builtin.c \
 	src/input.c \
@@ -46,6 +47,7 @@ SOURCES = \
 	src/rdata.c \
 	src/run.c \
 	src/run_expr.c \
+	src/run_texpr.c \
 	src/stree.c \
 	src/strtab.c \
 	src/symbol.c

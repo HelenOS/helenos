@@ -38,6 +38,7 @@
 #include "mytypes.h"
 #include "rdata.h"
 #include "run_expr.h"
+#include "run_texpr.h"
 #include "stree.h"
 #include "strtab.h"
 #include "symbol.h"
@@ -50,7 +51,11 @@ static void run_exps(run_t *run, stree_exps_t *exps);
 static void run_vdecl(run_t *run, stree_vdecl_t *vdecl);
 static void run_if(run_t *run, stree_if_t *if_s);
 static void run_while(run_t *run, stree_while_t *while_s);
+static void run_raise(run_t *run, stree_raise_t *raise_s);
 static void run_return(run_t *run, stree_return_t *return_s);
+static void run_wef(run_t *run, stree_wef_t *wef_s);
+
+static bool_t run_exc_match(run_t *run, stree_except_t *except_c);
 
 /** Initialize runner instance. */
 void run_init(run_t *run)
@@ -100,6 +105,13 @@ void run_program(run_t *run, stree_program_t *prog)
 	run_fun_ar_create(run, NULL, main_fun, &fun_ar);
 	run_fun_ar_set_args(run, fun_ar, &main_args);
 	run_fun(run, fun_ar, &res);
+
+	/* Check for unhandled exceptions. */
+	if (run->thread_ar->bo_mode != bm_none) {
+		assert(run->thread_ar->bo_mode == bm_exc);
+		printf("Error: Unhandled exception.\n");
+		exit(1);
+	}
 }
 
 /** Run member function */
@@ -216,12 +228,16 @@ static void run_stat(run_t *run, stree_stat_t *stat)
 	case st_while:
 		run_while(run, stat->u.while_s);
 		break;
+	case st_raise:
+		run_raise(run, stat->u.raise_s);
+		break;
 	case st_return:
 		run_return(run, stat->u.return_s);
 		break;
-	case st_for:
-	case st_raise:
 	case st_wef:
+		run_wef(run, stat->u.wef_s);
+		break;
+	case st_for:
 		printf("Ignoring unimplemented statement type %d.\n", stat->sc);
 		break;
 	default:
@@ -330,6 +346,25 @@ static void run_while(run_t *run, stree_while_t *while_s)
 #endif
 }
 
+/** Run @c raise statement. */
+static void run_raise(run_t *run, stree_raise_t *raise_s)
+{
+	rdata_item_t *rexpr;
+	rdata_item_t *rexpr_vi;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Executing raise statement.\n");
+#endif
+	run_expr(run, raise_s->expr, &rexpr);
+	rdata_cvt_value_item(rexpr, &rexpr_vi);
+
+	/* Store expression result in thread AR. */
+	run->thread_ar->exc_payload = rexpr_vi->u.value;
+
+	/* Start exception bailout. */
+	run->thread_ar->bo_mode = bm_exc;
+}
+
 /** Run @c return statement. */
 static void run_return(run_t *run, stree_return_t *return_s)
 {
@@ -348,6 +383,118 @@ static void run_return(run_t *run, stree_return_t *return_s)
 	/* Force control to ascend and leave the function. */
 	if (run->thread_ar->bo_mode == bm_none)
 		run->thread_ar->bo_mode = bm_fun;
+}
+
+/** Run @c with-except-finally statement. */
+static void run_wef(run_t *run, stree_wef_t *wef_s)
+{
+	list_node_t *except_n;
+	stree_except_t *except_c;
+	rdata_value_t *exc_payload;
+	run_bailout_mode_t bo_mode;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Executing with-except-finally statement.\n");
+#endif
+	run_block(run, wef_s->with_block);
+
+	if (run->thread_ar->bo_mode == bm_exc) {
+#ifdef DEBUG_RUN_TRACE
+		printf("With statement detected exception.\n");
+#endif
+		/* Reset to normal execution. */
+		run->thread_ar->bo_mode = bm_none;
+
+		/* Look for an except block. */
+		except_n = list_first(&wef_s->except_clauses);
+		while (except_n != NULL) {
+			except_c = list_node_data(except_n, stree_except_t *);
+			if (run_exc_match(run, except_c))
+				break;
+
+			except_n = list_next(&wef_s->except_clauses, except_n);
+		}
+
+		/* If one was found, execute it. */
+		if (except_n != NULL)
+			run_block(run, except_c->block);
+
+		/* Execute finally block */
+		if (wef_s->finally_block != NULL) {
+			/* Put exception on the side temporarily. */
+			bo_mode = run->thread_ar->bo_mode;
+			exc_payload = run->thread_ar->exc_payload;
+
+			run->thread_ar->bo_mode = bm_none;
+			run->thread_ar->exc_payload = NULL;
+
+			run_block(run, wef_s->finally_block);
+
+			if (bo_mode == bm_exc) {
+				/*
+				 * Restore the original exception. If another
+				 * exception occured in the finally block (i.e.
+				 * double fault), it is forgotten.
+				 */
+				run->thread_ar->bo_mode = bm_exc;
+				run->thread_ar->exc_payload = exc_payload;
+			}
+		}
+	}
+
+#ifdef DEBUG_RUN_TRACE
+	printf("With-except-finally statement terminated.\n");
+#endif
+}
+
+/** Determine whether currently active exception matches @c except clause.
+ *
+ * Checks if the currently active exception in the runner object @c run
+ * matches except clause @c except_c. Generates an error if the exception
+ * payload has invalid type (i.e. not an object).
+ *
+ * @param run		Runner object.
+ * @param except_c	@c except clause.
+ * @return		@c b_true if there is a match, @c b_false otherwise.
+ */
+static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
+{
+	rdata_value_t *payload;
+	rdata_var_t *payload_v;
+	rdata_object_t *payload_o;
+	rdata_titem_t *etype;
+
+	payload = run->thread_ar->exc_payload;
+	assert(payload != NULL);
+
+	if (payload->var->vc != vc_ref) {
+		printf("Error: Exception payload must be an object "
+		    "(found type %d).\n", payload->var->vc);
+		exit(1);
+	}
+
+	payload_v = payload->var->u.ref_v->vref;
+	if (payload_v->vc != vc_object) {
+		printf("Error: Exception payload must be an object "
+		    "(found type %d).\n", payload_v->vc);
+		exit(1);
+	}
+
+	payload_o = payload_v->u.object_v;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Active exception: '");
+	symbol_print_fqn(run->program, payload_o->class_sym);
+	printf("'.\n");
+#endif
+	assert(payload_o->class_sym != NULL);
+	assert(payload_o->class_sym->sc == sc_csi);
+
+	/* Evaluate type expression in except clause. */
+	run_texpr(run, except_c->etype, &etype);
+
+	return rdata_is_csi_derived_from_ti(payload_o->class_sym->u.csi,
+	    etype);
 }
 
 /** Find a local variable in the currently active function. */
@@ -394,6 +541,15 @@ run_block_ar_t *run_get_current_block_ar(run_t *run)
 
 	node = list_last(&fun_ar->block_ar);
 	return list_node_data(node, run_block_ar_t *);
+}
+
+/** Get current CSI. */
+stree_csi_t *run_get_current_csi(run_t *run)
+{
+	run_fun_ar_t *fun_ar;
+
+	fun_ar = run_get_current_fun_ar(run);
+	return fun_ar->fun_sym->outer_csi;
 }
 
 /** Construct variable from a value item.
@@ -467,9 +623,14 @@ void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
 	stree_fun_t *fun;
 	run_block_ar_t *block_ar;
 	list_node_t *rarg_n, *farg_n;
+	list_node_t *cn;
 	rdata_item_t *rarg;
 	stree_fun_arg_t *farg;
 	rdata_var_t *var;
+	rdata_var_t *ref_var;
+	rdata_ref_t *ref;
+	rdata_array_t *array;
+	int n_vargs, idx;
 
 	/* AR should have been created with run_fun_ar_create(). */
 	assert(fun_ar->fun_sym != NULL);
@@ -508,6 +669,47 @@ void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
 
 		rarg_n = list_next(args, rarg_n);
 		farg_n = list_next(&fun->args, farg_n);
+	}
+
+	if (fun->varg != NULL) {
+		/* Function is variadic. Count number of variadic arguments. */
+		cn = rarg_n;
+		n_vargs = 0;
+		while (cn != NULL) {
+			n_vargs += 1;
+			cn = list_next(args, cn);
+		}
+
+		/* Prepare array to store variadic arguments. */
+		array = rdata_array_new(1);
+		array->extent[0] = n_vargs;
+		rdata_array_alloc_element(array);
+
+		/* Read variadic arguments. */
+
+		idx = 0;
+		while (rarg_n != NULL) {
+			rarg = list_node_data(rarg_n, rdata_item_t *);
+			assert(rarg->ic == ic_value);
+
+			rdata_var_write(array->element[idx], rarg->u.value);
+
+			rarg_n = list_next(args, rarg_n);
+			idx += 1;
+		}
+
+		var = rdata_var_new(vc_array);
+		var->u.array_v = array;
+
+		/* Create reference to the new array. */
+		ref_var = rdata_var_new(vc_ref);
+		ref = rdata_ref_new();
+		ref_var->u.ref_v = ref;
+		ref->vref = var;
+
+		/* Declare variable using name of formal argument. */
+		intmap_set(&block_ar->vars, fun->varg->name->sid,
+		    ref_var);
 	}
 
 	/* Check for excess real parameters. */

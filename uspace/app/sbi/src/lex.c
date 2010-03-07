@@ -34,15 +34,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "compat.h"
 #include "mytypes.h"
 #include "input.h"
+#include "os/os.h"
 #include "strtab.h"
 
 #include "lex.h"
 
 #define TAB_WIDTH 8
 
+static bool_t lex_next_try(lex_t *lex);
+
+static void lex_skip_comment(lex_t *lex);
 static void lex_skip_ws(lex_t *lex);
 static bool_t is_wstart(char c);
 static bool_t is_wcont(char c);
@@ -86,6 +89,7 @@ static struct lc_name keywords[] = {
 	{ lc_new,	"new" },
 	{ lc_nil,	"nil" },
 	{ lc_override,	"override" },
+	{ lc_packed,	"packed" },
 	{ lc_private,	"private" },
 	{ lc_prop,	"prop" },
 	{ lc_protected,	"protected" },
@@ -221,6 +225,19 @@ void lex_init(lex_t *lex, struct input *input)
 /** Read next lexical element. */
 void lex_next(lex_t *lex)
 {
+	bool_t got_lem;
+
+	do {
+		got_lem = lex_next_try(lex);
+	} while (got_lem == b_false);
+}
+
+/** Try reading next lexical element.
+ *
+ * @return @c b_true on success or @c b_false if it needs restarting.
+ */
+static bool_t lex_next_try(lex_t *lex)
+{
 	char *bp;
 
 	lex_skip_ws(lex);
@@ -239,22 +256,27 @@ void lex_next(lex_t *lex)
 	if (bp[0] == '\0') {
 		/* End of input */
 		lex->current.lclass = lc_eof;
-		return;
+		return b_true;
 	}
 
 	if (is_wstart(bp[0])) {
 		lex_word(lex);
-		return;
+		return b_true;
 	}
 
 	if (is_digit(bp[0])) {
 		lex_number(lex);
-		return;
+		return b_true;
 	}
 
 	if (bp[0] == '"') {
 		lex_string(lex);
-		return;
+		return b_true;
+	}
+
+	if (bp[0] == '-' && bp[1] == '-') {
+		lex_skip_comment(lex);
+		return b_false;
 	}
 
 	switch (bp[0]) {
@@ -304,12 +326,14 @@ void lex_next(lex_t *lex)
 	}
 
 	lex->ibp = bp;
-	return;
+	return b_true;
 
 invalid:
 	lex->current.lclass = lc_invalid;
 	++bp;
 	lex->ibp = bp;
+
+	return b_true;
 }
 
 /** Lex a word (identifier or keyword). */
@@ -339,7 +363,7 @@ static void lex_word(lex_t *lex)
 
 	dp = keywords;
 	while (dp->name != NULL) {
-		if (strcmp(ident_buf, dp->name) == 0) {
+		if (os_str_cmp(ident_buf, dp->name) == 0) {
 			/* Match */
 			lex->current.lclass = dp->lclass;
 			return;
@@ -401,9 +425,22 @@ static void lex_string(lex_t *lex)
 	strlit_buf[idx] = '\0';
 
 	lex->current.lclass = lc_lit_string;
-	lex->current.u.lit_string.value = strdup(strlit_buf);
+	lex->current.u.lit_string.value = os_str_dup(strlit_buf);
 }
 
+/** Lex a single-line comment. */
+static void lex_skip_comment(lex_t *lex)
+{
+	char *bp;
+
+	bp = lex->ibp + 2;
+
+	while (*bp != '\n' && *bp != '\0') {
+		++bp;
+	}
+
+	lex->ibp = bp;
+}
 
 /** Skip whitespace characters. */
 static void lex_skip_ws(lex_t *lex)

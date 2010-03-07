@@ -26,39 +26,85 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef RDATA_H_
-#define RDATA_H_
+/** @file POSIX-specific code. */
 
-#include "mytypes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <errno.h>
+#include "../mytypes.h"
 
-rdata_item_t *rdata_item_new(item_class_t ic);
-rdata_address_t *rdata_address_new(void);
-rdata_value_t *rdata_value_new(void);
-rdata_var_t *rdata_var_new(var_class_t vc);
-rdata_ref_t *rdata_ref_new(void);
-rdata_deleg_t *rdata_deleg_new(void);
-rdata_array_t *rdata_array_new(int rank);
-rdata_object_t *rdata_object_new(void);
-rdata_int_t *rdata_int_new(void);
-rdata_string_t *rdata_string_new(void);
+#include "os.h"
 
-rdata_titem_t *rdata_titem_new(titem_class_t tic);
-rdata_tarray_t *rdata_tarray_new(void);
-rdata_tcsi_t *rdata_tcsi_new(void);
-rdata_tprimitive_t *rdata_tprimitive_new(void);
+/*
+ * The string functions are in fact standard C, but would not work under
+ * HelenOS.
+ */
 
-void rdata_array_alloc_element(rdata_array_t *array);
-void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);
+/** Concatenate two strings. */
+char *os_str_acat(const char *a, const char *b)
+{
+	int a_len, b_len;
+	char *str;
 
-void rdata_cvt_value_item(rdata_item_t *item, rdata_item_t **ritem);
-void rdata_reference(rdata_var_t *var, rdata_item_t **res);
-void rdata_dereference(rdata_item_t *ref, rdata_item_t **ritem);
-void rdata_address_read(rdata_address_t *address, rdata_item_t **ritem);
-void rdata_address_write(rdata_address_t *address, rdata_value_t *value);
-void rdata_var_write(rdata_var_t *var, rdata_value_t *value);
+	a_len = strlen(a);
+	b_len = strlen(b);
 
-bool_t rdata_is_csi_derived_from_ti(stree_csi_t *a, rdata_titem_t *tb);
+	str = malloc(a_len + b_len + 1);
+	if (str == NULL) {
+		printf("Memory allocation error.\n");
+		exit(1);
+	}
 
-void rdata_item_print(rdata_item_t *item);
+	memcpy(str, a, a_len);
+	memcpy(str + a_len, b, b_len);
+	str[a_len + b_len] = '\0';
 
-#endif
+	return str;
+}
+
+/** Compare two strings. */
+int os_str_cmp(const char *a, const char *b)
+{
+	return strcmp(a, b);
+}
+
+/** Duplicate string. */
+char *os_str_dup(const char *str)
+{
+	return strdup(str);
+}
+
+/** Simple command execution. */
+int os_exec(char *const cmd[])
+{
+	pid_t pid;
+	int status;
+
+	pid = vfork();
+
+	if (pid == 0) {
+		execvp(cmd[0], cmd);
+		/* If we get here, exec failed. */
+		exit(1);
+	} else if (pid == -1) {
+		/* fork() failed */
+		return EBUSY;
+	}
+
+	if (waitpid(pid, &status, 0) == -1) {
+		/* waitpid() failed */
+		printf("Error: Waitpid failed.\n");
+		exit(1);
+	}
+
+	if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+		printf("Error: Exec failed or child returned non-zero "
+		    "exit status.\n");
+	}
+
+	return EOK;
+}

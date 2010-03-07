@@ -73,8 +73,11 @@ typedef enum {
 	bm_stat,
 
 	/** Return from function */
-	bm_fun
-} run_bailout_mode;
+	bm_fun,
+
+	/** Exception */
+	bm_exc
+} run_bailout_mode_t;
 
 /** Thread activation record
  *
@@ -85,7 +88,10 @@ typedef struct run_thread_ar {
 	list_t fun_ar; /* of run_fun_ar_t */
 
 	/** Bailout mode */
-	run_bailout_mode bo_mode;
+	run_bailout_mode_t bo_mode;
+
+	/** Exception payload */
+	struct rdata_value *exc_payload;
 } run_thread_ar_t;
 
 /** Runner state object */

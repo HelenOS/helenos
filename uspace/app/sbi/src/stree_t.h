@@ -150,6 +150,15 @@ typedef struct {
 	struct stree_expr *dest, *src;
 } stree_assign_t;
 
+/** Indexing operation */
+typedef struct {
+	/** Base */
+	struct stree_expr *base;
+
+	/** Arguments (indices) */
+	list_t args; /* of stree_expr_t */
+} stree_index_t;
+
 /** Arithmetic expression class */
 typedef enum {
 	ec_nameref,
@@ -160,7 +169,8 @@ typedef enum {
 	ec_new,
 	ec_access,
 	ec_call,
-	ec_assign
+	ec_assign,
+	ec_index
 } expr_class_t;
 
 /** Arithmetic expression */
@@ -176,6 +186,7 @@ typedef struct stree_expr {
 		stree_new_t *new_op;
 		stree_access_t *access;
 		stree_call_t *call;
+		stree_index_t *index;
 		stree_assign_t *assign;
 	} u;
 } stree_expr_t;
@@ -216,12 +227,28 @@ typedef struct {
 	struct stree_texpr *gtype, *targ;
 } stree_tapply_t;
 
+/** Type index operation */
+typedef struct {
+	/** Base type */
+	struct stree_texpr *base_type;
+
+	/**
+	 * Number of arguments (rank). Needed when only rank is specified
+	 * and @c args are not used.
+	 */
+	int n_args;
+
+	/** Arguments (extents) */
+	list_t args; /* of stree_expr_t */
+} stree_tindex_t;
+
 /** Type expression class */
 typedef enum {
 	tc_tliteral,
 	tc_tnameref,
 	tc_taccess,
-	tc_tapply
+	tc_tapply,
+	tc_tindex
 } texpr_class_t;
 
 /** Arithmetic expression */
@@ -233,6 +260,7 @@ typedef struct stree_texpr {
 		stree_tnameref_t *tnameref;
 		stree_taccess_t *taccess;
 		stree_tapply_t *tapply;
+		stree_tindex_t *tindex;
 	} u;
 } stree_texpr_t;
 
@@ -251,6 +279,13 @@ typedef struct {
 	stree_ident_t *name;
 	stree_texpr_t *type;
 } stree_vdecl_t;
+
+/** @c except clause */
+typedef struct {
+	stree_ident_t *evar;
+	stree_texpr_t *etype;
+	stree_block_t *block;
+} stree_except_t;
 
 /** If statement */
 typedef struct {
@@ -272,6 +307,7 @@ typedef struct {
 
 /** Raise statement */
 typedef struct {
+	stree_expr_t *expr;
 } stree_raise_t;
 
 /** Return statement */
@@ -287,9 +323,10 @@ typedef struct {
 /** With-try-except-finally statement (WEF) */
 typedef struct {
 	stree_block_t *with_block;
-	list_t except_blocks; /* of stree_block_t */
+	list_t except_clauses; /* of stree_except_t */
 	stree_block_t *finally_block;
 } stree_wef_t;
+
 
 /** Statement class */
 typedef enum {
@@ -319,6 +356,17 @@ typedef struct {
 	} u;
 } stree_stat_t;
 
+/** Argument attribute class */
+typedef enum {
+	/** Packed argument (for variadic functions) */
+	aac_packed
+} arg_attr_class_t;
+
+/** Argument atribute */
+typedef struct {
+	arg_attr_class_t aac;
+} stree_arg_attr_t;
+
 /** Formal function parameter */
 typedef struct {
 	/* Argument name */
@@ -326,6 +374,9 @@ typedef struct {
 
 	/* Argument type */
 	stree_texpr_t *type;
+
+	/* Attributes */
+	list_t attr; /* of stree_arg_attr_t */
 } stree_fun_arg_t;
 
 /** Member function declaration */
@@ -338,6 +389,9 @@ typedef struct {
 
 	/** Formal parameters */
 	list_t args; /* of stree_fun_arg_t */
+
+	/** Variadic argument or @c NULL if none. */
+	stree_fun_arg_t *varg;
 
 	/** Return type */
 	stree_texpr_t *rtype;
@@ -398,6 +452,9 @@ typedef struct stree_csi {
 
 	/** Type expression referencing base CSI. */
 	stree_texpr_t *base_csi_ref;
+
+	/** Base CSI. Only available when ancr_state == ws_visited. */
+	struct stree_csi *base_csi;
 
 	/** Node state for ancr walks. */
 	walk_state_t ancr_state;

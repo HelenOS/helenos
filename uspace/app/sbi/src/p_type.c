@@ -1,4 +1,4 @@
-/*
+/*                              YI
  * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
@@ -34,12 +34,15 @@
 #include "list.h"
 #include "mytypes.h"
 #include "parse.h"
+#include "p_expr.h"
 #include "stree.h"
 
 #include "p_type.h"
 
 static stree_texpr_t *parse_tapply(parse_t *parse);
 static stree_texpr_t *parse_tpostfix(parse_t *parse);
+static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a);
+static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a);
 static stree_texpr_t *parse_tprimitive(parse_t *parse);
 static stree_tliteral_t *parse_tliteral(parse_t *parse);
 static stree_tnameref_t *parse_tnameref(parse_t *parse);
@@ -77,26 +80,90 @@ static stree_texpr_t *parse_tapply(parse_t *parse)
 static stree_texpr_t *parse_tpostfix(parse_t *parse)
 {
 	stree_texpr_t *a;
-	stree_ident_t *ident;
 	stree_texpr_t *tmp;
-	stree_taccess_t *taccess;
 
 	a = parse_tprimitive(parse);
 
-	while (lcur_lc(parse) == lc_period) {
-		lskip(parse);
-		ident = parse_ident(parse);
+	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lsbr) {
 
-		taccess = stree_taccess_new();
-		taccess->arg = a;
-		taccess->member_name = ident;
+		switch (lcur_lc(parse)) {
+		case lc_period:
+			tmp = parse_pf_taccess(parse, a);
+			break;
+		case lc_lsbr:
+			tmp = parse_pf_tindex(parse, a);
+			break;
+		default:
+			lunexpected_error(parse);
+			exit(1);
+		}
 
-		tmp = stree_texpr_new(tc_taccess);
-		tmp->u.taccess = taccess;
 		a = tmp;
 	}
 
 	return a;
+}
+
+/** Parse access type expression. */
+static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a)
+{
+	stree_texpr_t *texpr;
+	stree_ident_t *ident;
+	stree_taccess_t *taccess;
+
+	lmatch(parse, lc_period);
+	ident = parse_ident(parse);
+
+	taccess = stree_taccess_new();
+	taccess->arg = a;
+	taccess->member_name = ident;
+
+	texpr = stree_texpr_new(tc_taccess);
+	texpr->u.taccess = taccess;
+
+	return texpr;
+}
+
+/** Parse index type expression. */
+static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
+{
+	stree_texpr_t *texpr;
+	stree_tindex_t *tindex;
+	stree_expr_t *expr;
+
+	tindex = stree_tindex_new();
+	tindex->base_type = a;
+
+	tindex->n_args = 0;
+	list_init(&tindex->args);
+
+	lmatch(parse, lc_lsbr);
+
+	if (lcur_lc(parse) != lc_rsbr && lcur_lc(parse) != lc_comma) {
+		while (b_true) {
+			expr = parse_expr(parse);
+			tindex->n_args += 1;
+			list_append(&tindex->args, expr);
+
+			if (lcur_lc(parse) == lc_rsbr)
+				break;
+
+			lmatch(parse, lc_comma);
+		}
+	} else {
+		tindex->n_args = 1;
+		while (lcur_lc(parse) == lc_comma) {
+			lskip(parse);
+			tindex->n_args += 1;
+		}
+	}
+
+	lmatch(parse, lc_rsbr);
+
+	texpr = stree_texpr_new(tc_tindex);
+	texpr->u.tindex = tindex;
+
+	return texpr;
 }
 
 /** Parse primitive type expression. */

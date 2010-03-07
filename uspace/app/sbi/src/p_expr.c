@@ -47,6 +47,7 @@ static stree_expr_t *parse_prefix_new(parse_t *parse);
 static stree_expr_t *parse_postfix(parse_t *parse);
 static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a);
+static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_primitive(parse_t *parse);
 static stree_expr_t *parse_nameref(parse_t *parse);
 static stree_expr_t *parse_lit_int(parse_t *parse);
@@ -180,8 +181,12 @@ static stree_expr_t *parse_prefix_new(parse_t *parse)
 
 	lmatch(parse, lc_new);
 	texpr = parse_texpr(parse);
-	lmatch(parse, lc_lparen);
-	lmatch(parse, lc_rparen);
+
+	/* Parenthesis should be present except for arrays. */
+	if (texpr->tc != tc_tindex) {
+		lmatch(parse, lc_lparen);
+		lmatch(parse, lc_rparen);
+	}
 
 	new_op = stree_new_new();
 	new_op->texpr = texpr;
@@ -199,7 +204,8 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 
 	a = parse_primitive(parse);
 
-	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lparen) {
+	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lparen ||
+	    lcur_lc(parse) == lc_lsbr) {
 
 		switch (lcur_lc(parse)) {
 		case lc_period:
@@ -207,6 +213,9 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 			break;
 		case lc_lparen:
 			tmp = parse_pf_call(parse, a);
+			break;
+		case lc_lsbr:
+			tmp = parse_pf_index(parse, a);
 			break;
 		default:
 			assert(b_false);
@@ -268,6 +277,40 @@ static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 
 	expr = stree_expr_new(ec_call);
 	expr->u.call = call;
+
+	return expr;
+}
+
+/** Parse index expression. */
+static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
+{
+	stree_expr_t *expr;
+	stree_index_t *index;
+	stree_expr_t *arg;
+
+	lmatch(parse, lc_lsbr);
+
+	index = stree_index_new();
+	index->base = a;
+	list_init(&index->args);
+
+	/* Parse indices */
+
+	if (lcur_lc(parse) != lc_rsbr) {
+		while (b_true) {
+			arg = parse_expr(parse);
+			list_append(&index->args, arg);
+
+			if (lcur_lc(parse) == lc_rsbr)
+				break;
+			lmatch(parse, lc_comma);
+		}
+	}
+
+	lmatch(parse, lc_rsbr);
+
+	expr = stree_expr_new(ec_index);
+	expr->u.index = index;
 
 	return expr;
 }

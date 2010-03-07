@@ -44,12 +44,6 @@
 #define list_prepend sbi_list_prepend
 #define list_remove sbi_list_remove
 
-/*
- * These functions can be simply mapped to HelenOS string API.
- */
-#define strcmp str_cmp
-#define strdup str_dup
-
 #endif
 
 #endif

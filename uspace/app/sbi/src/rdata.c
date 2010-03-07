@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "mytypes.h"
+#include "stree.h"
 
 #include "rdata.h"
 
@@ -38,7 +39,10 @@ static void rdata_int_copy(rdata_int_t *src, rdata_int_t **dest);
 static void rdata_string_copy(rdata_string_t *src, rdata_string_t **dest);
 static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest);
 static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest);
+static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest);
 static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest);
+
+static int rdata_array_get_dim(rdata_array_t *array);
 
 static void rdata_address_print(rdata_address_t *address);
 static void rdata_value_print(rdata_value_t *value);
@@ -125,6 +129,26 @@ rdata_deleg_t *rdata_deleg_new(void)
 	return deleg;
 }
 
+rdata_array_t *rdata_array_new(int rank)
+{
+	rdata_array_t *array;
+
+	array = calloc(1, sizeof(rdata_array_t));
+	if (array == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	array->rank = rank;
+	array->extent = calloc(rank, sizeof(int));
+	if (array == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return array;
+}
+
 rdata_object_t *rdata_object_new(void)
 {
 	rdata_object_t *object;
@@ -164,6 +188,96 @@ rdata_string_t *rdata_string_new(void)
 	return string_v;
 }
 
+rdata_titem_t *rdata_titem_new(titem_class_t tic)
+{
+	rdata_titem_t *titem;
+
+	titem = calloc(1, sizeof(rdata_titem_t));
+	if (titem == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	titem->tic = tic;
+	return titem;
+}
+
+rdata_tarray_t *rdata_tarray_new(void)
+{
+	rdata_tarray_t *tarray;
+
+	tarray = calloc(1, sizeof(rdata_tarray_t));
+	if (tarray == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tarray;
+}
+
+rdata_tcsi_t *rdata_tcsi_new(void)
+{
+	rdata_tcsi_t *tcsi;
+
+	tcsi = calloc(1, sizeof(rdata_tcsi_t));
+	if (tcsi == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tcsi;
+}
+
+rdata_tprimitive_t *rdata_tprimitive_new(void)
+{
+	rdata_tprimitive_t *tprimitive;
+
+	tprimitive = calloc(1, sizeof(rdata_tprimitive_t));
+	if (tprimitive == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tprimitive;
+}
+
+void rdata_array_alloc_element(rdata_array_t *array)
+{
+	int dim, idx;
+
+	dim = rdata_array_get_dim(array);
+
+	array->element = calloc(dim, sizeof(rdata_var_t *));
+	if (array->element == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	for (idx = 0; idx < dim; ++idx) {
+		array->element[idx] = calloc(1, sizeof(rdata_var_t));
+		if (array->element[idx] == NULL) {
+			printf("Memory allocation failed.\n");
+			exit(1);
+		}
+	}
+}
+
+/** Get array dimension.
+ *
+ * Dimension is the total number of elements in an array, in other words,
+ * the product of all extents.
+ */
+static int rdata_array_get_dim(rdata_array_t *array)
+{
+	int didx, dim;
+
+	dim = 1;
+	for (didx = 0; didx < array->rank; ++didx)
+		dim = dim * array->extent[didx];
+
+	return dim;
+}
+
 /** Make copy of a variable. */
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 {
@@ -183,6 +297,9 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 		break;
 	case vc_deleg:
 		rdata_deleg_copy(src->u.deleg_v, &nvar->u.deleg_v);
+		break;
+	case vc_array:
+		rdata_array_copy(src->u.array_v, &nvar->u.array_v);
 		break;
 	case vc_object:
 		rdata_object_copy(src->u.object_v, &nvar->u.object_v);
@@ -214,6 +331,13 @@ static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest)
 {
 	(void) src; (void) dest;
 	printf("Unimplemented: Copy delegate.\n");
+	exit(1);
+}
+
+static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest)
+{
+	(void) src; (void) dest;
+	printf("Unimplemented: Copy array.\n");
 	exit(1);
 }
 
@@ -338,25 +462,50 @@ void rdata_address_read(rdata_address_t *address, rdata_item_t **ritem)
  */
 void rdata_address_write(rdata_address_t *address, rdata_value_t *value)
 {
+	rdata_var_write(address->vref, value);
+}
+
+/** Write data to a variable.
+ *
+ * Store @a value to variable @a var.
+ */
+void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
+{
 	rdata_var_t *nvar;
-	rdata_var_t *orig_var;
 
 	/* Perform a shallow copy of @c value->var. */
 	rdata_var_copy(value->var, &nvar);
-	orig_var = address->vref;
 
 	/* XXX do this in a prettier way. */
 
-	orig_var->vc = nvar->vc;
+	var->vc = nvar->vc;
 	switch (nvar->vc) {
-	case vc_int: orig_var->u.int_v = nvar->u.int_v; break;
-	case vc_ref: orig_var->u.ref_v = nvar->u.ref_v; break;
-	case vc_deleg: orig_var->u.deleg_v = nvar->u.deleg_v; break;
-	case vc_object: orig_var->u.object_v = nvar->u.object_v; break;
-	default: assert(b_false);
+	case vc_int: var->u.int_v = nvar->u.int_v; break;
+	case vc_string: var->u.string_v = nvar->u.string_v; break;
+	case vc_ref: var->u.ref_v = nvar->u.ref_v; break;
+	case vc_deleg: var->u.deleg_v = nvar->u.deleg_v; break;
+	case vc_array: var->u.array_v = nvar->u.array_v; break;
+	case vc_object: var->u.object_v = nvar->u.object_v; break;
 	}
 
 	/* XXX We should free some stuff around here. */
+}
+
+/** Determine if CSI @a a is derived from CSI described by type item @a tb. */
+bool_t rdata_is_csi_derived_from_ti(stree_csi_t *a, rdata_titem_t *tb)
+{
+	bool_t res;
+
+	switch (tb->tic) {
+	case tic_tcsi:
+		res = stree_is_csi_derived_from_csi(a, tb->u.tcsi->csi);
+		break;
+	default:
+		printf("Error: Base type is not a CSI.\n");
+		exit(1);
+	}
+
+	return res;
 }
 
 void rdata_item_print(rdata_item_t *item)

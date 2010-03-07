@@ -40,6 +40,7 @@ stree_var_t *stree_var_new(void);
 stree_prop_t *stree_prop_new(void);
 
 stree_fun_arg_t *stree_fun_arg_new(void);
+stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac);
 
 stree_stat_t *stree_stat_new(stat_class_t sc);
 stree_vdecl_t *stree_vdecl_new(void);
@@ -50,6 +51,8 @@ stree_raise_t *stree_raise_new(void);
 stree_return_t *stree_return_new(void);
 stree_wef_t *stree_wef_new(void);
 stree_exps_t *stree_exps_new(void);
+
+stree_except_t *stree_except_new(void);
 stree_block_t *stree_block_new(void);
 
 stree_expr_t *stree_expr_new(expr_class_t ec);
@@ -58,6 +61,7 @@ stree_binop_t *stree_binop_new(binop_class_t bc);
 stree_new_t *stree_new_new(void);
 stree_access_t *stree_access_new(void);
 stree_call_t *stree_call_new(void);
+stree_index_t *stree_index_new(void);
 stree_nameref_t *stree_nameref_new(void);
 
 stree_ident_t *stree_ident_new(void);
@@ -65,12 +69,16 @@ stree_literal_t *stree_literal_new(literal_class_t ltc);
 stree_self_ref_t *stree_self_ref_new(void);
 
 stree_texpr_t *stree_texpr_new(texpr_class_t tc);
-stree_tapply_t *stree_tapply_new(void);
 stree_taccess_t *stree_taccess_new(void);
+stree_tapply_t *stree_tapply_new(void);
+stree_tindex_t *stree_tindex_new(void);
 stree_tliteral_t *stree_tliteral_new(void);
 stree_tnameref_t *stree_tnameref_new(void);
 
 stree_symbol_t *stree_symbol_new(symbol_class_t sc);
 stree_program_t *stree_program_new(void);
+
+bool_t stree_arg_has_attr(stree_fun_arg_t *arg, arg_attr_class_t aac);
+bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b);
 
 #endif

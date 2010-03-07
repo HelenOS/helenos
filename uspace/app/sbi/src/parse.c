@@ -55,6 +55,7 @@ static stree_var_t *parse_var(parse_t *parse);
 static stree_prop_t *parse_prop(parse_t *parse);
 
 static stree_fun_arg_t *parse_fun_arg(parse_t *parse);
+static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
 
 /*
  * Statements
@@ -71,6 +72,8 @@ static stree_return_t *parse_return(parse_t *parse);
 static stree_wef_t *parse_wef(parse_t *parse);
 static stree_exps_t *parse_exps(parse_t *parse);
 
+static stree_except_t *parse_except(parse_t *parse);
+
 void parse_init(parse_t *parse, stree_program_t *prog, struct lex *lex)
 {
 	parse->program = prog;
@@ -86,12 +89,6 @@ void parse_module(parse_t *parse)
 	stree_modm_t *modm;
 	stree_symbol_t *symbol;
 
-/*	do {
-		lex_next(parse->lex);
-		printf("Read token: "); lem_print(&parse->lex->current);
-		putchar('\n');
-	} while (parse->lex->current.lclass != lc_eof);
-*/
 	while (lcur_lc(parse) != lc_eof) {
 		switch (lcur_lc(parse)) {
 		case lc_class:
@@ -244,7 +241,12 @@ static stree_fun_t *parse_fun(parse_t *parse)
 		/* Parse formal parameters. */
 		while (b_true) {
 			arg = parse_fun_arg(parse);
-			list_append(&fun->args, arg);
+			if (stree_arg_has_attr(arg, aac_packed)) {
+				fun->varg = arg;
+				break;
+			} else {
+				list_append(&fun->args, arg);
+			}
 
 			if (lcur_lc(parse) == lc_rparen)
 				break;
@@ -306,13 +308,41 @@ static stree_prop_t *parse_prop(parse_t *parse)
 static stree_fun_arg_t *parse_fun_arg(parse_t *parse)
 {
 	stree_fun_arg_t *arg;
+	stree_arg_attr_t *attr;
 
 	arg = stree_fun_arg_new();
 	arg->name = parse_ident(parse);
 	lmatch(parse, lc_colon);
 	arg->type = parse_texpr(parse);
 
+	list_init(&arg->attr);
+
+	/* Parse attributes. */
+	while (lcur_lc(parse) == lc_comma) {
+		lskip(parse);
+		attr = parse_arg_attr(parse);
+		list_append(&arg->attr, attr);
+	}
+
 	return arg;
+}
+
+/** Parse argument attribute. */
+static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
+{
+	stree_arg_attr_t *attr;
+
+	if (lcur_lc(parse) != lc_packed) {
+		printf("Error: Unexpected attribute '");
+		lem_print(lcur(parse));
+		printf("'.\n");
+		exit(1);
+	}
+
+	lskip(parse);
+
+	attr = stree_arg_attr_new(aac_packed);
+	return attr;
 }
 
 /** Parse statement block. */
@@ -377,6 +407,7 @@ static stree_stat_t *parse_stat(parse_t *parse)
 		stat = stree_stat_new(st_return);
 		stat->u.return_s = return_s;
 		break;
+	case lc_do:
 	case lc_with:
 		wef_s = parse_wef(parse);
 		stat = stree_stat_new(st_wef);
@@ -484,11 +515,14 @@ static stree_for_t *parse_for(parse_t *parse)
 /** Parse @c raise statement. */
 static stree_raise_t *parse_raise(parse_t *parse)
 {
+	stree_raise_t *raise_s;
+
+	raise_s = stree_raise_new();
 	lmatch(parse, lc_raise);
-	(void) parse_expr(parse);
+	raise_s->expr = parse_expr(parse);
 	lmatch(parse, lc_scolon);
 
-	return stree_raise_new();
+	return raise_s;
 }
 
 /** Parse @c return statement. */
@@ -509,34 +543,36 @@ static stree_return_t *parse_return(parse_t *parse)
 static stree_wef_t *parse_wef(parse_t *parse)
 {
 	stree_wef_t *wef_s;
-	stree_block_t *block;
+	stree_except_t *except_c;
 
 	wef_s = stree_wef_new();
-	list_init(&wef_s->except_blocks);
+	list_init(&wef_s->except_clauses);
 
-	lmatch(parse, lc_with);
-	lmatch(parse, lc_ident);
-	lmatch(parse, lc_colon);
-	(void) parse_texpr(parse);
-	lmatch(parse, lc_assign);
-	(void) parse_expr(parse);
+	if (lcur_lc(parse) == lc_with) {
+		lmatch(parse, lc_with);
+		lmatch(parse, lc_ident);
+		lmatch(parse, lc_colon);
+		(void) parse_texpr(parse);
+		lmatch(parse, lc_assign);
+		(void) parse_expr(parse);
+	}
+
 	lmatch(parse, lc_do);
 	wef_s->with_block = parse_block(parse);
 
 	while (lcur_lc(parse) == lc_except) {
-		lmatch(parse, lc_except);
-		lmatch(parse, lc_ident);
-		lmatch(parse, lc_colon);
-		(void) parse_texpr(parse);
-		lmatch(parse, lc_do);
-
-		block = parse_block(parse);
-		list_append(&wef_s->except_blocks, block);
+		except_c = parse_except(parse);
+		list_append(&wef_s->except_clauses, except_c);
 	}
 
-	lmatch(parse, lc_finally);
-	lmatch(parse, lc_do);
-	wef_s->finally_block = parse_block(parse);
+	if (lcur_lc(parse) == lc_finally) {
+		lmatch(parse, lc_finally);
+		lmatch(parse, lc_do);
+		wef_s->finally_block = parse_block(parse);
+	} else {
+		wef_s->finally_block = NULL;
+	}
+
 	lmatch(parse, lc_end);
 
 	return wef_s;
@@ -555,6 +591,24 @@ static stree_exps_t *parse_exps(parse_t *parse)
 	exps->expr = expr;
 
 	return exps;
+}
+
+/* Parse @c except clause. */
+static stree_except_t *parse_except(parse_t *parse)
+{
+	stree_except_t *except_c;
+
+	except_c = stree_except_new();
+
+	lmatch(parse, lc_except);
+	except_c->evar = parse_ident(parse);
+	lmatch(parse, lc_colon);
+	except_c->etype = parse_texpr(parse);
+	lmatch(parse, lc_do);
+
+	except_c->block = parse_block(parse);
+
+	return except_c;
 }
 
 /** Parse identifier. */

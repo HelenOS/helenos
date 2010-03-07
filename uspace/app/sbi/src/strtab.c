@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mytypes.h"
-#include "compat.h"
+#include "os/os.h"
 #include "list.h"
 
 #include "strtab.h"
@@ -58,14 +58,14 @@ sid_t strtab_get_sid(char *str)
 
 	while (node != NULL) {
 		++sid;
-		if (strcmp(str, list_node_data(node, char *)) == 0)
+		if (os_str_cmp(str, list_node_data(node, char *)) == 0)
 			return sid;
 
 		node = list_next(&str_list, node);
 	}
 
 	++sid;
-	list_append(&str_list, strdup(str));
+	list_append(&str_list, os_str_dup(str));
 
 	return sid;
 }
@@ -84,7 +84,7 @@ char *strtab_get_str(sid_t sid)
 
 	if (node == NULL) {
 		printf("Internal error: Invalid SID %d", sid);
-		exit(1);
+		abort();
 	}
 
 	return list_node_data(node, char *);

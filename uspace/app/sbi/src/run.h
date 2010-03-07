@@ -40,6 +40,7 @@ void run_print_fun_bt(run_t *run);
 rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name);
 run_fun_ar_t *run_get_current_fun_ar(run_t *run);
 run_block_ar_t *run_get_current_block_ar(run_t *run);
+stree_csi_t *run_get_current_csi(run_t *run);
 
 void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var);
 void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args);

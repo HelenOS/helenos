@@ -150,9 +150,13 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 
 		/* Process base CSI. */
 		ancr_csi_process(prog, base_csi);
+	} else {
+		base_csi = NULL;
 	}
 
+	/* Store base CSI and update node state. */
 	node->ancr_state = ws_visited;
+	node->base_csi = base_csi;
 }
 
 /** Print loop in CSI ancestry.

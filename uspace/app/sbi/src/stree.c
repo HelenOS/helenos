@@ -148,6 +148,20 @@ stree_fun_arg_t *stree_fun_arg_new(void)
 	return fun_arg;
 }
 
+stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac)
+{
+	stree_arg_attr_t *arg_attr;
+
+	arg_attr = calloc(1, sizeof(stree_arg_attr_t));
+	if (arg_attr == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	arg_attr->aac = aac;
+	return arg_attr;
+}
+
 stree_stat_t *stree_stat_new(stat_class_t sc)
 {
 	stree_stat_t *stat;
@@ -266,6 +280,19 @@ stree_exps_t *stree_exps_new(void)
 	return exp_s;
 }
 
+stree_except_t *stree_except_new(void)
+{
+	stree_except_t *except_c;
+
+	except_c = calloc(1, sizeof(stree_except_t));
+	if (except_c == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return except_c;
+}
+
 stree_block_t *stree_block_new(void)
 {
 	stree_block_t *block;
@@ -360,6 +387,19 @@ stree_call_t *stree_call_new(void)
 	return call;
 }
 
+stree_index_t *stree_index_new(void)
+{
+	stree_index_t *index;
+
+	index = calloc(1, sizeof(stree_index_t));
+	if (index == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return index;
+}
+
 stree_nameref_t *stree_nameref_new(void)
 {
 	stree_nameref_t *nameref;
@@ -427,6 +467,19 @@ stree_texpr_t *stree_texpr_new(texpr_class_t tc)
 	return texpr;
 }
 
+stree_taccess_t *stree_taccess_new(void)
+{
+	stree_taccess_t *taccess;
+
+	taccess = calloc(1, sizeof(stree_taccess_t));
+	if (taccess == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return taccess;
+}
+
 stree_tapply_t *stree_tapply_new(void)
 {
 	stree_tapply_t *tapply;
@@ -440,17 +493,17 @@ stree_tapply_t *stree_tapply_new(void)
 	return tapply;
 }
 
-stree_taccess_t *stree_taccess_new(void)
+stree_tindex_t *stree_tindex_new(void)
 {
-	stree_taccess_t *taccess;
+	stree_tindex_t *tindex;
 
-	taccess = calloc(1, sizeof(stree_taccess_t));
-	if (taccess == NULL) {
+	tindex = calloc(1, sizeof(stree_tindex_t));
+	if (tindex == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(1);
 	}
 
-	return taccess;
+	return tindex;
 }
 
 stree_tliteral_t *stree_tliteral_new(void)
@@ -504,4 +557,45 @@ stree_program_t *stree_program_new(void)
 	}
 
 	return program;
+}
+
+/** Determine if argument @a arg has attribute of class @a aac. */
+bool_t stree_arg_has_attr(stree_fun_arg_t *arg, arg_attr_class_t aac)
+{
+	list_node_t *node;
+	stree_arg_attr_t *attr;
+
+	node = list_first(&arg->attr);
+	while (node != NULL) {
+		attr = list_node_data(node, stree_arg_attr_t *);
+		if (attr->aac == aac)
+			return b_true;
+
+		node = list_next(&arg->attr, node);
+	}
+
+	return b_false;
+}
+
+/** Determine wheter @a a is derived (transitively) from @a b.
+ *
+ * @param a	Derived CSI.
+ * @param b	Base CSI.
+ * @return	@c b_true if @a a is equal to or directly or indirectly
+ *		derived from @a b.
+ */
+bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b)
+{
+	stree_csi_t *csi;
+
+	csi = a;
+	while (csi != NULL) {
+		if (csi == b)
+			return b_true;
+
+		csi = csi->base_csi;
+	}
+
+	/* We went all the way to the root and did not find b. */
+	return b_false;
 }

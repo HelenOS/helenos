@@ -35,8 +35,10 @@
 #include "intmap.h"
 #include "list.h"
 #include "mytypes.h"
+#include "os/os.h"
 #include "rdata.h"
 #include "run.h"
+#include "run_texpr.h"
 #include "symbol.h"
 #include "strtab.h"
 
@@ -60,11 +62,17 @@ static void run_self_ref(run_t *run, stree_self_ref_t *self_ref,
 static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res);
 static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res);
+static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res);
 static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res);
 
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res);
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res);
+static void run_new_array(run_t *run, stree_new_t *new_op,
+    rdata_titem_t *titem, rdata_item_t **res);
+static void run_new_object(run_t *run, stree_new_t *new_op,
+    rdata_titem_t *titem, rdata_item_t **res);
 
 static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res);
 static void run_access_item(run_t *run, stree_access_t *access,
@@ -77,6 +85,7 @@ static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
 
 static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res);
+static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res);
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res);
 
 /** Evaluate expression. */
@@ -110,6 +119,9 @@ void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
 		break;
 	case ec_call:
 		run_call(run, expr->u.call, res);
+		break;
+	case ec_index:
+		run_index(run, expr->u.index, res);
 		break;
 	case ec_assign:
 		run_assign(run, expr->u.assign, res);
@@ -441,6 +453,9 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	case vc_int:
 		run_binop_int(run, binop, v1, v2, res);
 		break;
+	case vc_string:
+		run_binop_string(run, binop, v1, v2, res);
+		break;
 	case vc_ref:
 		run_binop_ref(run, binop, v1, v2, res);
 		break;
@@ -507,6 +522,45 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	*res = item;
 }
 
+/** Evaluate binary operation on string arguments. */
+static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_string_t *string_v;
+
+	char *s1, *s2;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_string);
+	string_v = rdata_string_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.string_v = string_v;
+
+	s1 = v1->var->u.string_v->value;
+	s2 = v2->var->u.string_v->value;
+
+	switch (binop->bc) {
+	case bo_plus:
+		/* Concatenate strings. */
+		string_v->value = os_str_acat(s1, s2);
+		break;
+	default:
+		printf("Error: Invalid binary operation on string "
+		    "arguments (%d).\n", binop->bc);
+		assert(b_false);
+	}
+
+	*res = item;
+}
+
 /** Evaluate binary operation on ref arguments. */
 static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
@@ -565,6 +619,120 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 /** Evaluate @c new operation. */
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 {
+	rdata_titem_t *titem;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run 'new' operation.\n");
+#endif
+	/* Evaluate type expression */
+	run_texpr(run, new_op->texpr, &titem);
+
+	switch (titem->tic) {
+	case tic_tarray:
+		run_new_array(run, new_op, titem, res);
+		break;
+	case tic_tcsi:
+		run_new_object(run, new_op, titem, res);
+		break;
+	default:
+		printf("Error: Invalid argument to operator 'new', "
+		    "expected object.\n");
+		exit(1);
+	}
+}
+
+/** Create new array. */
+static void run_new_array(run_t *run, stree_new_t *new_op,
+    rdata_titem_t *titem, rdata_item_t **res)
+{
+	rdata_tarray_t *tarray;
+	rdata_array_t *array;
+	rdata_var_t *array_var;
+	rdata_var_t *elem_var;
+
+	rdata_item_t *rexpr, *rexpr_vi;
+	rdata_var_t *rexpr_var;
+
+	stree_expr_t *expr;
+
+	list_node_t *node;
+	int length;
+	int i;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Create new array.\n");
+#endif
+	(void) run;
+	(void) new_op;
+
+	assert(titem->tic == tic_tarray);
+	tarray = titem->u.tarray;
+
+	/* Create the array. */
+	assert(titem->u.tarray->rank > 0);
+	array = rdata_array_new(titem->u.tarray->rank);
+
+	/* Compute extents. */
+	node = list_first(&tarray->extents);
+	if (node == NULL) {
+		printf("Error: Extents must be specified when constructing "
+		    "an array with 'new'.\n");
+		exit(1);
+	}
+
+	i = 0; length = 1;
+	while (node != NULL) {
+		expr = list_node_data(node, stree_expr_t *);
+
+		/* Evaluate extent argument. */
+		run_expr(run, expr, &rexpr);
+		rdata_cvt_value_item(rexpr, &rexpr_vi);
+		assert(rexpr_vi->ic == ic_value);
+		rexpr_var = rexpr_vi->u.value->var;
+
+		if (rexpr_var->vc != vc_int) {
+			printf("Error: Array extent must be an integer.\n");
+			exit(1);
+		}
+
+#ifdef DEBUG_RUN_TRACE
+		printf("Array extent: %d.\n", rexpr_var->u.int_v->value);
+#endif
+		array->extent[i] = rexpr_var->u.int_v->value;
+		length = length * array->extent[i];
+
+		node = list_next(&tarray->extents, node);
+		i += 1;
+	}
+
+	array->element = calloc(length, sizeof(rdata_var_t *));
+	if (array->element == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	/* Create member variables */
+	for (i = 0; i < length; ++i) {
+		/* XXX Depends on member variable type. */
+		elem_var = rdata_var_new(vc_int);
+		elem_var->u.int_v = rdata_int_new();
+		elem_var->u.int_v->value = 0;
+
+		array->element[i] = elem_var;
+	}
+
+	/* Create array variable. */
+	array_var = rdata_var_new(vc_array);
+	array_var->u.array_v = array;
+
+	/* Create reference to the new array. */
+	rdata_reference(array_var, res);
+}
+
+/** Create new object. */
+static void run_new_object(run_t *run, stree_new_t *new_op,
+    rdata_titem_t *titem, rdata_item_t **res)
+{
 	rdata_object_t *obj;
 	rdata_var_t *obj_var;
 
@@ -577,18 +745,15 @@ static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 	list_node_t *node;
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Run 'new' operation.\n");
+	printf("Create new object.\n");
 #endif
+	(void) run;
+	(void) new_op;
+
 	/* Lookup object CSI. */
-	/* XXX Should start in the current CSI. */
-	csi_sym = symbol_xlookup_in_csi(run->program, NULL, new_op->texpr);
-	csi = symbol_to_csi(csi_sym);
-	if (csi == NULL) {
-		printf("Error: Symbol '");
-		symbol_print_fqn(run->program, csi_sym);
-		printf("' is not a CSI. CSI required for 'new' operator.\n");
-		exit(1);
-	}
+	assert(titem->tic == tic_tcsi);
+	csi = titem->u.tcsi->csi;
+	csi_sym = csi_to_symbol(csi);
 
 	/* Create the object. */
 	obj = rdata_object_new();
@@ -872,6 +1037,113 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Returned from function call.\n");
 #endif
+}
+
+/** Run index operation. */
+static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
+{
+	rdata_item_t *rbase;
+	rdata_item_t *base_i;
+	list_node_t *node;
+	stree_expr_t *arg;
+	rdata_item_t *rarg_i, *rarg_vi;
+	rdata_array_t *array;
+	var_class_t vc;
+
+	int i;
+	int elem_index;
+	int arg_val;
+
+	rdata_item_t *ritem;
+	rdata_address_t *address;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run index operation.\n");
+#endif
+	run_expr(run, index->base, &rbase);
+
+	switch (rbase->ic) {
+	case ic_value:
+		vc = rbase->u.value->var->vc;
+		break;
+	case ic_address:
+		vc = rbase->u.address->vref->vc;
+		break;
+	default:
+		/* Silence warning. */
+		abort();
+	}
+
+	if (vc != vc_ref) {
+		printf("Error: Base of index operation is not a reference.\n");
+		exit(1);
+	}
+
+	rdata_dereference(rbase, &base_i);
+	assert(base_i->ic == ic_address);
+
+	if (base_i->u.value->var->vc != vc_array) {
+		printf("Error: Indexing something which is not an array.\n");
+		exit(1);
+	}
+
+	array = base_i->u.value->var->u.array_v;
+
+	/* Evaluate arguments (indices). */
+	node = list_first(&index->args);
+
+	/*
+	 * Linear index of the desired element. Elements are stored in
+	 * lexicographic order with the last index changing the fastest.
+	 */
+	elem_index = 0;
+
+	i = 0;
+	while (node != NULL) {
+		if (i >= array->rank) {
+			printf("Error: Too many indices for array of rank %d",
+			    array->rank);
+			exit(1);
+		}
+
+		arg = list_node_data(node, stree_expr_t *);
+		run_expr(run, arg, &rarg_i);
+		rdata_cvt_value_item(rarg_i, &rarg_vi);
+		assert(rarg_vi->ic == ic_value);
+
+		if (rarg_vi->u.value->var->vc != vc_int) {
+			printf("Error: Array index is not an integer.\n");
+			exit(1);
+		}
+
+		arg_val = rarg_vi->u.value->var->u.int_v->value;
+
+		if (arg_val < 0 || arg_val >= array->extent[i]) {
+			printf("Error: Array index (value: %d) is out of range.\n",
+			    arg_val);
+			exit(1);
+		}
+
+		elem_index = elem_index * array->extent[i] + arg_val;
+
+		node = list_next(&index->args, node);
+		i += 1;
+	}
+
+	if (i < array->rank) {
+		printf("Error: Too few indices for array of rank %d",
+		    array->rank);
+		exit(1);
+	}
+
+	/* Construct variable address item. */
+	ritem = rdata_item_new(ic_address);
+	address = rdata_address_new();
+	ritem->u.address = address;
+
+	address->vref = array->element[elem_index];
+
+	*res = ritem;
 }
 
 /** Execute assignment. */
