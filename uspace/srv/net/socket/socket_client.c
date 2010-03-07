@@ -579,7 +579,10 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen){
 	while(dyn_fifo_value(&socket->accepted) <= 0){
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		fibril_condvar_wait(&socket->accept_signal, &socket->accept_lock);
+		// drop the accept lock to avoid deadlock
+		fibril_mutex_unlock(&socket->accept_lock);
 		fibril_rwlock_write_lock(&socket_globals.lock);
+		fibril_mutex_lock(&socket->accept_lock);
 	}
 	-- socket->blocked;
 
@@ -800,7 +803,10 @@ int recvfrom_core(ipcarg_t message, int socket_id, void * data, size_t datalengt
 	while((result = dyn_fifo_value(&socket->received)) <= 0){
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		fibril_condvar_wait(&socket->receive_signal, &socket->receive_lock);
+		// drop the receive lock to avoid deadlock
+		fibril_mutex_unlock(&socket->receive_lock);
 		fibril_rwlock_read_lock(&socket_globals.lock);
+		fibril_mutex_lock(&socket->receive_lock);
 	}
 	-- socket->blocked;
 	fragments = (size_t) result;

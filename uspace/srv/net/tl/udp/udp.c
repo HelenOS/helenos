@@ -417,7 +417,6 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	int app_phone = IPC_GET_PHONE(&call);
 	struct sockaddr * addr;
 	size_t addrlen;
-	fibril_rwlock_t lock;
 	ipc_call_t answer;
 	int answer_count;
 	packet_dimension_ref packet_dimension;
@@ -432,7 +431,6 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	// The client connection is only in one fibril and therefore no additional locks are needed.
 
 	socket_cores_initialize(&local_sockets);
-	fibril_rwlock_initialize(&lock);
 
 	while(keep_on_going){
 
@@ -452,10 +450,8 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				res = EHANGUP;
 				break;
 			case NET_SOCKET:
-				fibril_rwlock_write_lock(&lock);
 				*SOCKET_SET_SOCKET_ID(answer) = SOCKET_GET_SOCKET_ID(call);
 				res = socket_create(&local_sockets, app_phone, NULL, SOCKET_SET_SOCKET_ID(answer));
-				fibril_rwlock_write_unlock(&lock);
 				if(res == EOK){
 					if(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
 						*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = packet_dimension->content;
@@ -468,18 +464,15 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 			case NET_SOCKET_BIND:
 				res = data_receive((void **) &addr, &addrlen);
 				if(res == EOK){
-					fibril_rwlock_read_lock(&lock);
 					fibril_rwlock_write_lock(&udp_globals.lock);
 					res = socket_bind(&local_sockets, &udp_globals.sockets, SOCKET_GET_SOCKET_ID(call), addr, addrlen, UDP_FREE_PORTS_START, UDP_FREE_PORTS_END, udp_globals.last_used_port);
 					fibril_rwlock_write_unlock(&udp_globals.lock);
-					fibril_rwlock_read_unlock(&lock);
 					free(addr);
 				}
 				break;
 			case NET_SOCKET_SENDTO:
 				res = data_receive((void **) &addr, &addrlen);
 				if(res == EOK){
-					fibril_rwlock_read_lock(&lock);
 					fibril_rwlock_write_lock(&udp_globals.lock);
 					res = udp_sendto_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), addr, addrlen, SOCKET_GET_DATA_FRAGMENTS(call), SOCKET_SET_DATA_FRAGMENT_SIZE(answer), SOCKET_GET_FLAGS(call));
 					if(res != EOK){
@@ -487,16 +480,13 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 					}else{
 						answer_count = 2;
 					}
-					fibril_rwlock_read_unlock(&lock);
 					free(addr);
 				}
 				break;
 			case NET_SOCKET_RECVFROM:
-				fibril_rwlock_read_lock(&lock);
 				fibril_rwlock_write_lock(&udp_globals.lock);
 				res = udp_recvfrom_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_FLAGS(call), &addrlen);
 				fibril_rwlock_write_unlock(&udp_globals.lock);
-				fibril_rwlock_read_unlock(&lock);
 				if(res > 0){
 					*SOCKET_SET_READ_DATA_LENGTH(answer) = res;
 					*SOCKET_SET_ADDRESS_LENGTH(answer) = addrlen;
@@ -505,11 +495,9 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				}
 				break;
 			case NET_SOCKET_CLOSE:
-				fibril_rwlock_write_lock(&lock);
 				fibril_rwlock_write_lock(&udp_globals.lock);
 				res = socket_destroy(udp_globals.net_phone, SOCKET_GET_SOCKET_ID(call), &local_sockets, &udp_globals.sockets, NULL);
 				fibril_rwlock_write_unlock(&udp_globals.lock);
-				fibril_rwlock_write_unlock(&lock);
 				break;
 			case NET_SOCKET_GETSOCKOPT:
 			case NET_SOCKET_SETSOCKOPT:
