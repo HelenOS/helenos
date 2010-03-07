@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 typedef struct {
-	char *name;
+	const char *name;
 	char *line;
 	char *cwd;
 	char *prompt;

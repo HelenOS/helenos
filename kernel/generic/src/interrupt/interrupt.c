@@ -113,7 +113,7 @@ static void exc_undef(int n, istate_t *istate)
 }
 
 /** Terminate thread and task if exception came from userspace. */
-void fault_if_from_uspace(istate_t *istate, char *fmt, ...)
+void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 {
 	task_t *task = TASK;
 	va_list args;
@@ -161,7 +161,6 @@ static int cmd_exc_print(cmd_arg_t *argv)
 {
 #if (IVT_ITEMS > 0)
 	unsigned int i;
-	char *symbol;
 
 	spinlock_lock(&exctbl_lock);
 
@@ -176,7 +175,7 @@ static int cmd_exc_print(cmd_arg_t *argv)
 #endif
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
-		symbol = symtab_fmt_name_lookup((unative_t) exc_table[i].f);
+		const char *symbol = symtab_fmt_name_lookup((unative_t) exc_table[i].f);
 
 #ifdef __32_BITS__
 		printf("%-3u %-20s %10p %s\n", i + IVT_FIRST, exc_table[i].name,

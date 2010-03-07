@@ -40,7 +40,7 @@
 #include "cmds.h"
 #include "cd.h"
 
-static char * cmdname = "cd";
+static const char *cmdname = "cd";
 
 void help_cmd_cd(unsigned int level)
 {

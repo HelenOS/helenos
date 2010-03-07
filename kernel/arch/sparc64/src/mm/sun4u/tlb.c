@@ -63,7 +63,7 @@ static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
 static void do_fast_data_access_protection_fault(istate_t *,
     tlb_tag_access_reg_t, const char *);
 
-char *context_encoding[] = {
+const char *context_encoding[] = {
 	"Primary",
 	"Secondary",
 	"Nucleus",
@@ -473,6 +473,29 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
 	dump_istate(istate);
 	panic("%s.", str);
+}
+
+void describe_dmmu_fault(void)
+{
+	tlb_sfsr_reg_t sfsr;
+	uintptr_t sfar;
+
+	sfsr.value = dtlb_sfsr_read();
+	sfar = dtlb_sfar_read();
+	
+#if defined (US)
+	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
+	    "fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
+	    sfsr.ow, sfsr.fv);
+#elif defined (US3)
+	printf("DTLB SFSR: nf=%d, asi=%#x, tm=%d, ft=%#x, e=%d, ct=%d, pr=%d, "
+	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
+	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
+#endif
+	    
+	printf("DTLB SFAR: address=%p\n", sfar);
+	
+	dtlb_sfsr_write(0);
 }
 
 void dump_sfsr_and_sfar(void)

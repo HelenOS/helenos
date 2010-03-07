@@ -54,18 +54,19 @@ int connect_to_service( services_t need ){
 }
 
 int connect_to_service_timeout( services_t need, suseconds_t timeout ){
-	ipcarg_t phone;
-	int res;
-
+	if (timeout <= 0)
+		return async_connect_me_to_blocking( PHONE_NS, need, 0, 0);
+	
 	while( true ){
-		res = async_req_3_5( PHONE_NS, IPC_M_CONNECT_ME_TO, need, 0, 0, NULL, NULL, NULL, NULL, & phone );
-		if( res >= 0 ){
+		int phone;
+
+		phone = async_connect_me_to( PHONE_NS, need, 0, 0);
+		if( (phone >= 0) || (phone != ENOENT) )
 			return phone;
-		}
-		if( timeout > 0 ){
-			timeout -= MODULE_WAIT_TIME;
-			if( timeout <= 0 ) return ETIMEOUT;
-		}
+	
+		timeout -= MODULE_WAIT_TIME;
+		if( timeout <= 0 ) return ETIMEOUT;
+
 		usleep( MODULE_WAIT_TIME );
 	}
 }
@@ -83,7 +84,7 @@ int bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_
 	phone = connect_to_service_timeout( need, timeout );
 	if( phone >= 0 ){
 		if( ERROR_OCCURRED( ipc_connect_to_me( phone, arg1, arg2, arg3, & phonehash ))){
-			async_msg_0( phone, IPC_M_PHONE_HUNGUP );
+			ipc_hangup( phone );
 			return ERROR_CODE;
 		}
 		async_new_connection( phonehash, 0, NULL, client_receiver );

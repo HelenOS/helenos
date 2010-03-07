@@ -51,7 +51,7 @@
  * @param sl Pointer to spinlock_t structure.
  *
  */
-void spinlock_initialize(spinlock_t *lock, char *name)
+void spinlock_initialize(spinlock_t *lock, const char *name)
 {
 	atomic_set(&lock->val, 0);
 #ifdef CONFIG_DEBUG_SPINLOCK

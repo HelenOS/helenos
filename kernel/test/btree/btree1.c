@@ -33,7 +33,7 @@
 
 static void *data = (void *) 0xdeadbeef;
 
-char *test_btree1(void)
+const char *test_btree1(void)
 {
 	btree_t t;
 	int i;

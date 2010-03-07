@@ -43,9 +43,11 @@
 
 #ifndef __ASM__
 
+#include <atomic.h>
+#include <synch/spinlock.h>
+
 struct cpu;
 
-/*
 typedef struct {
 	uint64_t exec_unit_id;
 	uint8_t strand_count;
@@ -54,7 +56,6 @@ typedef struct {
 	atomic_t nrdy;
 	SPINLOCK_DECLARE(proposed_nrdy_lock);
 } exec_unit_t;
-*/
 
 typedef struct cpu_arch {
 	uint64_t id;			/**< virtual processor ID */
@@ -62,9 +63,9 @@ typedef struct cpu_arch {
 	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
 					     generated when the TICK register
 					     matches this value. */
-	//exec_unit_t *exec_unit;		/**< Physical core. */
-	//unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
-	//				     so that cores are equally balanced. */
+	exec_unit_t *exec_unit;		/**< Physical core. */
+	unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
+					     so that cores are equally balanced. */
 } cpu_arch_t;
 
 #endif	

@@ -88,7 +88,7 @@ static void do_fast_data_access_protection_fault(istate_t *,
  * fault_type[i] contains description of error for which the IFT or DFT
  * field of the MMU fault status area is i.
  */
-char *fault_types[] = {
+static const char *fault_types[] = {
 	"unknown",
 	"fast miss",
 	"fast protection",
@@ -106,7 +106,6 @@ char *fault_types[] = {
 	"unaligned access",
 	"invalid page size"
 	};
-	
 
 /** Array of MMU fault status areas. */
 extern mmu_fault_status_area_t mmu_fsas[MAX_NUM_STRANDS];
@@ -405,7 +404,7 @@ void tlb_invalidate_all(void)
 {
 	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
 		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
-	if (errno != EOK) {
+	if (errno != HV_EOK) {
 		panic("Error code = %d.\n", errno);
 	}
 }

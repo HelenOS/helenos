@@ -59,7 +59,7 @@
 
 extern bool silent;
 
-extern void panic_printf(char *fmt, ...) __attribute__((noreturn));
+extern void panic_printf(const char *fmt, ...) __attribute__((noreturn));
 
 #endif
 

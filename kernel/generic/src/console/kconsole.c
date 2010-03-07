@@ -223,7 +223,7 @@ static int cmdtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
-		while ((hint = cmdtab_search_one(name, &pos))) {
+		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
 			printf("%s (%s)\n", hlp->name, hlp->description);
 			pos = pos->next;
@@ -642,7 +642,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
  *               and never exit.
  *
  */
-void kconsole(char *prompt, char *msg, bool kcon)
+void kconsole(const char *prompt, const char *msg, bool kcon)
 {
 	if (!stdin) {
 		LOG("No stdin for kernel console");

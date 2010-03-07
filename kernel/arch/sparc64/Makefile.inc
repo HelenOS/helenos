@@ -74,7 +74,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.s \
 	arch/$(KARCH)/src/mm/$(USARCH)/as.c \
-	arch/$(KARCH)/src/mm/cache.S \
 	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/$(USARCH)/tlb.c \
@@ -92,7 +91,13 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/sgcn.c \
 	arch/$(KARCH)/src/drivers/pci.c \
-	arch/$(KARCH)/src/drivers/fhc.c
+	arch/$(KARCH)/src/drivers/fhc.c \
+	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
+
+ifeq ($(USARCH),sun4u)
+	ARCH_SOURCES += \
+	        arch/$(KARCH)/src/mm/cache.S
+endif
 
 ifeq ($(USARCH),sun4v)
 	ARCH_SOURCES += \
@@ -107,8 +112,8 @@ endif
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/smp/ipi.c \
-		arch/$(KARCH)/src/smp/smp.c
+		arch/$(KARCH)/src/smp/$(USARCH)/smp.c \
+		arch/$(KARCH)/src/smp/$(USARCH)/ipi.c
 endif
 
 ifeq ($(CONFIG_TSB),y)

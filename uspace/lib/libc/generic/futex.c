@@ -67,7 +67,7 @@ int futex_trydown(futex_t *futex)
  */
 int futex_down(futex_t *futex)
 {
-	if (atomic_predec(futex) < 0)
+	if ((atomic_signed_t) atomic_predec(futex) < 0)
 		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count);
 
 	return 0;
@@ -81,7 +81,7 @@ int futex_down(futex_t *futex)
  */
 int futex_up(futex_t *futex)
 {
-	if (atomic_postinc(futex) < 0)
+	if ((atomic_signed_t) atomic_postinc(futex) < 0)
 		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
 		
 	return 0;

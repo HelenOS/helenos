@@ -153,7 +153,7 @@ int	net_initialize( async_client_conn_t client_connection );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the add_configuration() function.
  */
-int	read_netif_configuration( char * name, netif_ref netif );
+int	read_netif_configuration( const char * name, netif_ref netif );
 
 /** Networking module global data.
  */
@@ -412,7 +412,7 @@ int read_configuration( void ){
 	return read_configuration_file( CONF_DIR, CONF_GENERAL_FILE, & net_globals.configuration );
 }
 
-int read_netif_configuration( char * name, netif_ref netif ){
+int read_netif_configuration( const char * name, netif_ref netif ){
 	// read the netif configuration file
 	return read_configuration_file( CONF_DIR, name, & netif->configuration );
 }
@@ -484,9 +484,9 @@ int startup( void ){
 	ERROR_DECLARE;
 
 #ifdef CONFIG_NETIF_DP8390
-	char *		conf_files[] = { "lo", "ne2k" };
+	const char *		conf_files[] = { "lo", "ne2k" };
 #else
-	char *		conf_files[] = { "lo" };
+	const char *		conf_files[] = { "lo" };
 #endif
 
 	int			count = sizeof( conf_files ) / sizeof( char * );

@@ -49,6 +49,10 @@ ifeq ($(COMPILER),gcc_cross)
 	endif
 endif
 
+ifeq ($(COMPILER),clang)
+	CLANG_ARCH = i386
+endif
+
 BITS = 32
 ENDIANESS = LE
 

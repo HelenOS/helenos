@@ -52,7 +52,7 @@ typedef struct {
 
 /** Character input device. */
 typedef struct indev {
-	char *name;
+	const char *name;
 	waitq_t wq;
 	
 	/** Protects everything below. */
@@ -80,7 +80,7 @@ typedef struct {
 
 /** Character output device. */
 typedef struct outdev {
-	char *name;
+	const char *name;
 	
 	/** Protects everything below. */
 	SPINLOCK_DECLARE(lock);
@@ -94,12 +94,12 @@ typedef struct outdev {
 	void *data;
 } outdev_t;
 
-extern void indev_initialize(char *name, indev_t *indev,
+extern void indev_initialize(const char *name, indev_t *indev,
     indev_operations_t *op);
 extern void indev_push_character(indev_t *indev, wchar_t ch);
 extern wchar_t indev_pop_character(indev_t *indev);
 
-extern void outdev_initialize(char *name, outdev_t *outdev,
+extern void outdev_initialize(const char *name, outdev_t *outdev,
     outdev_operations_t *op);
 
 extern bool check_poll(indev_t *indev);

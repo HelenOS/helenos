@@ -85,7 +85,7 @@ void __thread_main(uspace_arg_t *uarg)
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
-int thread_create(void (* function)(void *), void *arg, char *name,
+int thread_create(void (* function)(void *), void *arg, const char *name,
     thread_id_t *tid)
 {
 	char *stack;

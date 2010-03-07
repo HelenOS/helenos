@@ -47,7 +47,7 @@
  *
  * There is one structure like this for every processor.
  */
-typedef struct {
+typedef struct cpu {
 	SPINLOCK_DECLARE(lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];

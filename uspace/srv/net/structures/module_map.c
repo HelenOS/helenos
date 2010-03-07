@@ -48,7 +48,7 @@
 
 GENERIC_CHAR_MAP_IMPLEMENT( modules, module_t )
 
-int add_module( module_ref * module, modules_ref modules, char * name, char * filename, services_t service, task_id_t task_id, connect_module_t connect_module ){
+int add_module( module_ref * module, modules_ref modules, const char * name, const char * filename, services_t service, task_id_t task_id, connect_module_t connect_module ){
 	ERROR_DECLARE;
 
 	module_ref	tmp_module;
@@ -85,25 +85,14 @@ module_ref get_running_module( modules_ref modules, char * name ){
 	return module;
 }
 
-task_id_t spawn( char * fname ){
-	char * argv[ 2 ];
-//	char * argv[ 4 ];
+task_id_t spawn( const char * fname ){
+	const char * argv[ 2 ];
 	task_id_t	res;
 
-//	printf( "Spawning %s\n", fname );
 	argv[ 0 ] = fname;
 	argv[ 1 ] = NULL;
 	res = task_spawn( fname, argv );
-/*	argv[ 0 ] = "/app/trace";
-	argv[ 1 ] = "+ti";
-	argv[ 2 ] = fname;
-	argv[ 3 ] = NULL;
-	res = task_spawn( "/app/trace", argv );
-*/
-	if( res != 0 ){
-		/* Success */
-		usleep( 10000 );
-	}
+
 	return res;
 }
 

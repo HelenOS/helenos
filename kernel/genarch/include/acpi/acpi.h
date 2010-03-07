@@ -66,7 +66,7 @@ struct acpi_sdt_header {
 struct acpi_signature_map {
 	uint8_t *signature;
 	struct acpi_sdt_header **sdt_ptr;
-	char *description;
+	const char *description;
 };
 
 /* Root System Description Table */

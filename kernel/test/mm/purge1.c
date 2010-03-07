@@ -39,7 +39,7 @@
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, size_t cnt);
 
-char *test_purge1(void)
+const char *test_purge1(void)
 {
 	tlb_entry_t entryi;
 	tlb_entry_t entryd;

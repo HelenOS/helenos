@@ -307,7 +307,7 @@ int eth_device_message( device_id_t device_id, services_t service, size_t mtu ){
 
 	eth_device_ref	device;
 	int				index;
-	measured_string_t	names[ 2 ] = {{ "ETH_MODE", 8 }, { "ETH_DUMMY", 9 }};
+	measured_string_t	names[ 2 ] = {{ str_dup("ETH_MODE"), 8 }, { str_dup("ETH_DUMMY"), 9 }};
 	measured_string_ref	configuration;
 	size_t				count = sizeof( names ) / sizeof( measured_string_t );
 	char *				data;

@@ -47,6 +47,8 @@
 #include <arch/mm/page.h>
 #include <arch/stack.h>
 #include <arch/sun4v/regdef.h>
+#include <arch/sun4v/arch.h>
+#include <arch/sun4v/cpu.h>
 
 #define TABLE_SIZE	TRAP_TABLE_SIZE
 #define ENTRY_SIZE	TRAP_TABLE_ENTRY_SIZE
@@ -59,17 +61,35 @@
 trap_table:
 
 /* TT = 0x08, TL = 0, instruction_access_exception */
+/* TT = 0x08, TL = 0, IAE_privilege_violation on UltraSPARC T2 */
 .org trap_table + TT_INSTRUCTION_ACCESS_EXCEPTION*ENTRY_SIZE
 .global instruction_access_exception_tl0
 instruction_access_exception_tl0:
-	/*wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER instruction_access_exception*/
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x09, TL = 0, instruction_access_mmu_miss */
+.org trap_table + TT_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
+.global instruction_access_mmu_miss_handler_tl0
+	ba fast_instruction_access_mmu_miss_handler_tl0
+	nop
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
 .org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
 .global instruction_access_error_tl0
 instruction_access_error_tl0:
 	PREEMPTIBLE_HANDLER instruction_access_error
+
+/* TT = 0x0b, TL = 0, IAE_unauth_access */
+.org trap_table + TT_IAE_UNAUTH_ACCESS*ENTRY_SIZE
+.global iae_unauth_access_tl0
+iae_unauth_access_tl0:
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x0c, TL = 0, IAE_nfo_page */
+.org trap_table + TT_IAE_NFO_PAGE*ENTRY_SIZE
+.global iae_nfo_page_tl0
+iae_nfo_page_tl0:
+	PREEMPTIBLE_HANDLER instruction_access_exception
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
@@ -94,6 +114,30 @@ unimplemented_LDD_tl0:
 .global unimplemented_STD_tl0
 unimplemented_STD_tl0:
 	PREEMPTIBLE_HANDLER unimplemented_STD
+
+/* TT = 0x14, TL = 0, DAE_invalid_asi */
+.org trap_table + TT_DAE_INVALID_ASI*ENTRY_SIZE
+.global dae_invalid_asi_tl0
+dae_invalid_asi_tl0:
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x15, TL = 0, DAE_privilege_violation */
+.org trap_table + TT_DAE_PRIVILEGE_VIOLATION*ENTRY_SIZE
+.global dae_privilege_violation_tl0
+dae_privilege_violation_tl0:
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x16, TL = 0, DAE_nc_page */
+.org trap_table + TT_DAE_NC_PAGE*ENTRY_SIZE
+.global dae_nc_page_tl0
+dae_nc_page_tl0:
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x17, TL = 0, DAE_nfo_page */
+.org trap_table + TT_DAE_NFO_PAGE*ENTRY_SIZE
+.global dae_nfo_page_tl0
+dae_nfo_page_tl0:
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x20, TL = 0, fb_disabled handler */
 .org trap_table + TT_FP_DISABLED*ENTRY_SIZE
@@ -132,11 +176,18 @@ division_by_zero_tl0:
 	PREEMPTIBLE_HANDLER division_by_zero
 
 /* TT = 0x30, TL = 0, data_access_exception */
+/* TT = 0x30, TL = 0, DAE_side_effect_page for UltraPSARC T2 */
 .org trap_table + TT_DATA_ACCESS_EXCEPTION*ENTRY_SIZE
 .global data_access_exception_tl0
 data_access_exception_tl0:
-	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x31, TL = 0, data_access_mmu_miss */
+.org trap_table + TT_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
+.global data_access_mmu_miss_tl0
+data_access_mmu_miss_tl0:
+	ba fast_data_access_mmu_miss_handler_tl0
+	nop
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
@@ -270,12 +321,6 @@ interrupt_level_14_handler_tl0:
 interrupt_level_15_handler_tl0:
 	INTERRUPT_LEVEL_N_HANDLER 15
 
-/* TT = 0x60, TL = 0, interrupt_vector_trap handler */
-.org trap_table + TT_INTERRUPT_VECTOR_TRAP*ENTRY_SIZE
-.global interrupt_vector_trap_handler_tl0
-interrupt_vector_trap_handler_tl0:
-	INTERRUPT_VECTOR_TRAP_HANDLER
-
 /* TT = 0x64, TL = 0, fast_instruction_access_MMU_miss */
 .org trap_table + TT_FAST_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
 .global fast_instruction_access_mmu_miss_handler_tl0
@@ -293,6 +338,12 @@ fast_data_access_mmu_miss_handler_tl0:
 .global fast_data_access_protection_handler_tl0
 fast_data_access_protection_handler_tl0:
 	FAST_DATA_ACCESS_PROTECTION_HANDLER 0
+
+/* TT = 0x7c, TL = 0, cpu_mondo */
+.org trap_table + TT_CPU_MONDO*ENTRY_SIZE
+.global cpu_mondo_handler_tl0
+cpu_mondo_handler_tl0:
+PREEMPTIBLE_HANDLER cpu_mondo
 
 /* TT = 0x80, TL = 0, spill_0_normal handler */
 .org trap_table + TT_SPILL_0_NORMAL*ENTRY_SIZE
@@ -351,12 +402,19 @@ trap_instruction_\cur\()_tl0:
  */
 
 /* TT = 0x08, TL > 0, instruction_access_exception */
+/* TT = 0x08, TL > 0, IAE_privilege_violation on UltraSPARC T2 */
 .org trap_table + (TT_INSTRUCTION_ACCESS_EXCEPTION+512)*ENTRY_SIZE
 .global instruction_access_exception_tl1
 instruction_access_exception_tl1:
 	wrpr %g0, 1, %tl
-	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x09, TL > 0, instruction_access_mmu_miss */
+.org trap_table + (TT_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
+.global instruction_access_mmu_miss_handler_tl1
+	wrpr %g0, 1, %tl
+	ba fast_instruction_access_mmu_miss_handler_tl0
+	nop
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -365,12 +423,54 @@ instruction_access_error_tl1:
 	wrpr %g0, 1, %tl
 	PREEMPTIBLE_HANDLER instruction_access_error
 
+/* TT = 0x0b, TL > 0, IAE_unauth_access */
+.org trap_table + (TT_IAE_UNAUTH_ACCESS+512)*ENTRY_SIZE
+.global iae_unauth_access_tl1
+iae_unauth_access_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
+/* TT = 0x0c, TL > 0, IAE_nfo_page */
+.org trap_table + (TT_IAE_NFO_PAGE+512)*ENTRY_SIZE
+.global iae_nfo_page_tl1
+iae_nfo_page_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER instruction_access_exception
+
 /* TT = 0x10, TL > 0, illegal_instruction */
 .org trap_table + (TT_ILLEGAL_INSTRUCTION+512)*ENTRY_SIZE
 .global illegal_instruction_tl1
 illegal_instruction_tl1:
 	wrpr %g0, 1, %tl
 	PREEMPTIBLE_HANDLER illegal_instruction
+
+/* TT = 0x14, TL > 0, DAE_invalid_asi */
+.org trap_table + (TT_DAE_INVALID_ASI+512)*ENTRY_SIZE
+.global dae_invalid_asi_tl1
+dae_invalid_asi_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x15, TL > 0, DAE_privilege_violation */
+.org trap_table + (TT_DAE_PRIVILEGE_VIOLATION+512)*ENTRY_SIZE
+.global dae_privilege_violation_tl1
+dae_privilege_violation_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x16, TL > 0, DAE_nc_page */
+.org trap_table + (TT_DAE_NC_PAGE+512)*ENTRY_SIZE
+.global dae_nc_page_tl1
+dae_nc_page_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER data_access_exception
+
+/* TT = 0x17, TL > 0, DAE_nfo_page */
+.org trap_table + (TT_DAE_NFO_PAGE+512)*ENTRY_SIZE
+.global dae_nfo_page_tl1
+dae_nfo_page_tl1:
+	wrpr %g0, 1, %tl
+	PREEMPTIBLE_HANDLER data_access_exception
 
 /* TT = 0x24, TL > 0, clean_window handler */
 .org trap_table + (TT_CLEAN_WINDOW+512)*ENTRY_SIZE
@@ -389,9 +489,17 @@ division_by_zero_tl1:
 .org trap_table + (TT_DATA_ACCESS_EXCEPTION+512)*ENTRY_SIZE
 .global data_access_exception_tl1
 data_access_exception_tl1:
-	wrpr %g0, 1, %tl
+	/*wrpr %g0, 1, %tl
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
-	PREEMPTIBLE_HANDLER data_access_exception
+	PREEMPTIBLE_HANDLER data_access_exception*/
+
+/* TT = 0x31, TL > 0, data_access_mmu_miss */
+.org trap_table + (TT_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
+.global data_access_mmu_miss_tl1
+data_access_mmu_miss_tl1:
+	ba fast_data_access_mmu_miss_handler_tl1
+	nop
+
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -418,6 +526,13 @@ fast_data_access_mmu_miss_handler_tl1:
 .global fast_data_access_protection_handler_tl1
 fast_data_access_protection_handler_tl1:
 	FAST_DATA_ACCESS_PROTECTION_HANDLER 1
+
+/* TT = 0x7c, TL > 0, cpu_mondo */
+.org trap_table + (TT_CPU_MONDO+512)*ENTRY_SIZE
+.global cpu_mondo_handler_tl1
+cpu_mondo_handler_tl1:
+	wrpr %g0, %tl
+	PREEMPTIBLE_HANDLER cpu_mondo
 
 /* TT = 0x80, TL > 0, spill_0_normal handler */
 .org trap_table + (TT_SPILL_0_NORMAL+512)*ENTRY_SIZE
@@ -659,167 +774,6 @@ fill_0_normal_tl1:
 	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7], %i7
 .endm
 
-
-#if 0
-/*
- * Preemptible trap handler for handling traps from kernel.
- */
-.macro PREEMPTIBLE_HANDLER_KERNEL
-
-	/*
-	 * ASSERT(%tl == 1)
-	 */
-	rdpr %tl, %g3
-	cmp %g3, 1
-	be 1f
-	nop
-0:	ba 0b					! this is for debugging, if we ever get here
-	nop					! it will be easy to find
-
-	/* prevent unnecessary CLEANWIN exceptions */
-	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(0), %wstate
-1:
-	/*
-	 * Prevent SAVE instruction from causing a spill exception. If the
-	 * CANSAVE register is zero, explicitly spill register window
-	 * at CWP + 2.
-	 */
-
-	rdpr %cansave, %g3
-	brnz %g3, 2f
-	nop
-	INLINE_SPILL %g3, %g4
-
-2:
-	/* ask for new register window */
-	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
-
-	/* copy higher level routine's address and its argument */
-	mov %g1, %l0
-	mov %g2, %o0
-
-	/*
-	 * Save TSTATE, TPC and TNPC aside.
-	 */
-	rdpr %tstate, %g1
-	rdpr %tpc, %g2
-	rdpr %tnpc, %g3
-
-	stx %g1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE]
-	stx %g2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC]
-	stx %g3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC]
-
-	/*
-	 * Save the Y register.
-	 * This register is deprecated according to SPARC V9 specification
-	 * and is only present for backward compatibility with previous
-	 * versions of the SPARC architecture.
-	 * Surprisingly, gcc makes use of this register without a notice.
-	 */
-	rd %y, %g4
-	stx %g4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y]
-
-	/* switch to TL = 0, explicitly enable FPU */
-	wrpr %g0, 0, %tl
-	wrpr %g0, 0, %gl
-	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
-
-	/* g1 -> l1, ..., g7 -> l7 */
-	SAVE_GLOBALS
-
-	/* call higher-level service routine, pass istate as its 2nd parameter */
-	call %l0
-	add %sp, PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC, %o1
-
-	/* l1 -> g1, ..., l7 -> g7 */
-	RESTORE_GLOBALS
-
-	/* we must prserve the PEF bit */
-	rdpr %pstate, %l1
-
-	/* TL := 1, GL := 1 */
-	wrpr %g0, PSTATE_PRIV_BIT, %pstate
-	wrpr %g0, 1, %tl
-	wrpr %g0, 1, %gl
-
-	/* Read TSTATE, TPC and TNPC from saved copy. */
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TSTATE], %g1
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TPC], %g2
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_TNPC], %g3
-
-	/* Copy PSTATE.PEF to the in-register copy of TSTATE. */
-	and %l1, PSTATE_PEF_BIT, %l1
-	sllx %l1, TSTATE_PSTATE_SHIFT, %l1
-	sethi %hi(TSTATE_PEF_BIT), %g4		! reset the PEF bit to 0 ...
-	andn %g1, %g4, %g1
-	or %g1, %l1, %g1			! ... "or" it with saved PEF
-
-	/* Restore TSTATE, TPC and TNPC from saved copies. */
-	wrpr %g1, 0, %tstate
-	wrpr %g2, 0, %tpc
-	wrpr %g3, 0, %tnpc
-
-	/* Restore Y. */
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_Y], %g4
-	wr %g4, %y
-	
-	/* If TSTATE.CWP + 1 == CWP, then we do not have to fix CWP. */
-	and %g1, TSTATE_CWP_MASK, %l0
-	inc %l0
-	and %l0, NWINDOWS - 1, %l0	! %l0 mod NWINDOWS
-	rdpr %cwp, %l1
-	cmp %l0, %l1
-	bz 4f				! CWP is ok
-	nop
-
-3:
-	/*
-	 * Fix CWP.
-	 * In order to recapitulate, the input registers in the current
-	 * window are the output registers of the window to which we want
-	 * to restore. Because the fill trap fills only input and local
-	 * registers of a window, we need to preserve those output
-	 * registers manually.
-	 */
-	mov %sp, %g2
-	stx %i0, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0]
-	stx %i1, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1]
-	stx %i2, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2]
-	stx %i3, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3]
-	stx %i4, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4]
-	stx %i5, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5]
-	stx %i6, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6]
-	stx %i7, [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7]
-	wrpr %l0, 0, %cwp
-	mov %g2, %sp
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I0], %i0
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I1], %i1
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I2], %i2
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I3], %i3
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I4], %i4
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I5], %i5
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I6], %i6
-	ldx [%sp + PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE + STACK_BIAS + SAVED_I7], %i7
-
-4:
-	/*
-	 * Prevent RESTORE instruction from causing a fill exception. If the
-	 * CANRESTORE register is zero, explicitly fill register window
-	 * at CWP - 1.
-	 */
-	rdpr %canrestore, %g1
-	brnz %g1, 5f
-	nop
-	INLINE_FILL %g3, %g4
-
-5:
-	restore
-
-	retry
-.endm
-
-#endif
-
 /*
  * Preemptible trap handler for handling traps from kernel.
  */
@@ -871,8 +825,6 @@ fill_0_normal_tl1:
 	restore
 	retry
 .endm
-
-
 
 /*
  * Spills the window at CWP + 2 to the userspace window buffer. This macro
@@ -1091,7 +1043,7 @@ fill_0_normal_tl1:
 	dec %g1
 	and %g1, NWINDOWS - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
-
+	
 .if \is_syscall
 	done
 .else
@@ -1099,8 +1051,6 @@ fill_0_normal_tl1:
 .endif
 
 .endm
-
-
 
 /* Preemptible trap handler for TL=1.
  *
@@ -1131,4 +1081,3 @@ preemptible_handler:
 .global trap_instruction_handler
 trap_instruction_handler:
 	PREEMPTIBLE_HANDLER_TEMPLATE 1
-

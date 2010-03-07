@@ -38,7 +38,7 @@
 #include "cmds.h"
 #include "pwd.h"
 
-static char * cmdname = "pwd";
+static const char *cmdname = "pwd";
 
 void help_cmd_pwd(unsigned int level)
 {

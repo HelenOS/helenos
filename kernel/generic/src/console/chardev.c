@@ -46,7 +46,7 @@
  * @param op    Implementation of input character device operations.
  *
  */
-void indev_initialize(char *name, indev_t *indev,
+void indev_initialize(const char *name, indev_t *indev,
     indev_operations_t *op)
 {
 	indev->name = name;
@@ -129,7 +129,7 @@ wchar_t indev_pop_character(indev_t *indev)
  * @param op     Implementation of output character device operations.
  *
  */
-void outdev_initialize(char *name, outdev_t *outdev,
+void outdev_initialize(const char *name, outdev_t *outdev,
     outdev_operations_t *op)
 {
 	outdev->name = name;

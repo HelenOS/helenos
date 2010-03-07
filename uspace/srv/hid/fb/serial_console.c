@@ -99,7 +99,7 @@ static int color_map[] = {
 	[COLOR_WHITE]	= CI_WHITE
 };
 
-void serial_puts(char *str)
+void serial_puts(const char *str)
 {
 	while (*str)
 		putc_function(*(str++));

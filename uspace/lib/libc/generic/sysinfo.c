@@ -36,9 +36,9 @@
 #include <sysinfo.h>
 #include <string.h>
 
-sysarg_t sysinfo_value(char *name)
+sysarg_t sysinfo_value(const char *name)
 {
-	return __SYSCALL2(SYS_SYSINFO_VALUE, (sysarg_t ) name,
+	return __SYSCALL2(SYS_SYSINFO_VALUE, (sysarg_t) name,
 	    (sysarg_t) str_size(name));
 }
 

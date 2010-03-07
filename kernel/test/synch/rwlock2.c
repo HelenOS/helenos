@@ -52,7 +52,7 @@ static void writer(void *arg)
 	rwlock_read_unlock(&rwlock);
 }
 
-char *test_rwlock2(void)
+const char *test_rwlock2(void)
 {
 	thread_t *thrd;
 	

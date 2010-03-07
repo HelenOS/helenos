@@ -59,7 +59,7 @@
 
 #define DPRINTF(...)
 
-static char *error_codes[] = {
+static const char *error_codes[] = {
 	"no error",
 	"invalid image",
 	"address space error",
@@ -94,14 +94,15 @@ static int my_read(int fd, void *buf, size_t len)
  * extracted from the binary is stored in a elf_info_t structure
  * pointed to by @a info.
  *
- * @param file_name	Path to the ELF file.
- * @param so_bias	Bias to use if the file is a shared object.
- * @param info		Pointer to a structure for storing information
- *			extracted from the binary.
+ * @param file_name Path to the ELF file.
+ * @param so_bias   Bias to use if the file is a shared object.
+ * @param info      Pointer to a structure for storing information
+ *                  extracted from the binary.
  *
  * @return EOK on success or negative error code.
+ *
  */
-int elf_load_file(char *file_name, size_t so_bias, elf_info_t *info)
+int elf_load_file(const char *file_name, size_t so_bias, elf_info_t *info)
 {
 	elf_ld_t elf;
 
@@ -129,7 +130,8 @@ int elf_load_file(char *file_name, size_t so_bias, elf_info_t *info)
  * Transfers control to the entry point of an ELF executable loaded
  * earlier with elf_load_file(). This function does not return.
  *
- * @param info	Info structure filled earlier by elf_load_file()
+ * @param info Info structure filled earlier by elf_load_file()
+ *
  */
 void elf_run(elf_info_t *info, pcb_t *pcb)
 {
@@ -279,7 +281,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
  *
  * @return NULL terminated description of error.
  */
-char *elf_error(unsigned int rc)
+const char *elf_error(unsigned int rc)
 {
 	assert(rc < sizeof(error_codes) / sizeof(char *));
 

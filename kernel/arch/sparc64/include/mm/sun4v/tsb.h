@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -70,7 +70,7 @@ typedef struct tsb_descr {
 struct as;
 struct pte;
 
-extern void tsb_invalidate(struct as *as, uintptr_t page, count_t pages);
+extern void tsb_invalidate(struct as *as, uintptr_t page, uint64_t pages);
 extern void itsb_pte_copy(struct pte *t);
 extern void dtsb_pte_copy(struct pte *t, bool ro);
 

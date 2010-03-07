@@ -113,12 +113,9 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
-	char *symbol;
-	char *sym2;
-
-	symbol = symtab_fmt_name_lookup(istate->pc);
-	sym2 = symtab_fmt_name_lookup(istate->lr);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->pc);
+	const char *sym2 = symtab_fmt_name_lookup(istate->lr);
+	
 	fault_if_from_uspace(istate,
 	    "PHT Refill Exception on %p.", badvaddr);
 	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,

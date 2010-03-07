@@ -48,7 +48,7 @@
 
 #define MKDIR_VERSION "0.0.1"
 
-static char *cmdname = "mkdir";
+static const char *cmdname = "mkdir";
 
 static struct option const long_options[] = {
 	{"parents", no_argument, 0, 'p'},

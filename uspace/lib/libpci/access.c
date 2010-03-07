@@ -50,7 +50,7 @@ void pci_mfree(void *x)
 		free(x);
 }
 
-static void pci_generic_error(char *msg, ...)
+static void pci_generic_error(const char *msg, ...)
 {
 	va_list args;
 
@@ -61,7 +61,7 @@ static void pci_generic_error(char *msg, ...)
 	exit(1);
 }
 
-static void pci_generic_warn(char *msg, ...)
+static void pci_generic_warn(const char *msg, ...)
 {
 	va_list args;
 
@@ -71,7 +71,7 @@ static void pci_generic_warn(char *msg, ...)
 	putchar('\n');
 }
 
-static void pci_generic_debug(char *msg, ...)
+static void pci_generic_debug(const char *msg, ...)
 {
 	va_list args;
 
@@ -80,7 +80,7 @@ static void pci_generic_debug(char *msg, ...)
 	va_end(args);
 }
 
-static void pci_null_debug(char *msg UNUSED, ...)
+static void pci_null_debug(const char *msg UNUSED, ...)
 {
 }
 

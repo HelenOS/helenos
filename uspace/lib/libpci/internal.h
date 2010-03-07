@@ -12,7 +12,7 @@
 #include "sysdep.h"
 
 struct pci_methods {
-	char *name;
+	const char *name;
 	void (*config) (struct pci_access *);
 	int (*detect) (struct pci_access *);
 	void (*init) (struct pci_access *);

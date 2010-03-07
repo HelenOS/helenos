@@ -103,7 +103,7 @@ cleanup:
 	atomic_dec(&thread_count);
 }
 
-char *test_falloc2(void)
+const char *test_falloc2(void)
 {
 	unsigned int i;
 	

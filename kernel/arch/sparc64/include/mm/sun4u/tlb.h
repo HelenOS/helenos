@@ -683,6 +683,7 @@ extern void fast_data_access_protection(tlb_tag_access_reg_t , istate_t *);
 extern void dtlb_insert_mapping(uintptr_t, uintptr_t, int, bool, bool);
 
 extern void dump_sfsr_and_sfar(void);
+extern void describe_dmmu_fault(void);
 
 #endif /* !def __ASM__ */
 

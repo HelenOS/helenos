@@ -75,7 +75,7 @@ int task_set_name(const char *name)
  * @return ID of the newly created task or zero on error.
  *
  */
-task_id_t task_spawn(const char *path, char *const args[])
+task_id_t task_spawn(const char *path, const char *const args[])
 {
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();

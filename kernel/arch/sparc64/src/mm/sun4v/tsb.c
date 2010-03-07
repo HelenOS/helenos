@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@
  */
 
 #include <arch/mm/tsb.h>
+#include <arch/mm/pagesize.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
@@ -48,53 +50,46 @@
  * We assume that the address space is already locked. Note that respective
  * portions of both TSBs are invalidated at a time.
  *
- * @param as Address space.
- * @param page First page to invalidate in TSB.
- * @param pages Number of pages to invalidate. Value of (size_t) -1 means the
- * 	whole TSB.
+ * @param as	Address space.
+ * @param page 	First page to invalidate in TSB.
+ * @param pages Number of pages to invalidate. Value of (count_t) -1 means the
+ * 		whole TSB.
  */
 void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 {
-	size_t i0;
-	size_t i;
+	size_t i0, i;
 	size_t cnt;
 	
-	ASSERT(as->arch.itsb && as->arch.dtsb);
+	ASSERT(as->arch.tsb_description.tsb_base);
 	
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK;
-	ASSERT(i0 < ITSB_ENTRY_COUNT && i0 < DTSB_ENTRY_COUNT);
+	ASSERT(i0 < TSB_ENTRY_COUNT);
 
-	if (pages == (size_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
-		cnt = ITSB_ENTRY_COUNT;
+	if (pages == (size_t) - 1 || (pages) > TSB_ENTRY_COUNT)
+		cnt = TSB_ENTRY_COUNT;
 	else
-		cnt = pages * 2;
+		cnt = pages;
 	
 	for (i = 0; i < cnt; i++) {
-		as->arch.itsb[(i0 + i) & (ITSB_ENTRY_COUNT - 1)].tag.invalid =
-		    true;
-		as->arch.dtsb[(i0 + i) & (DTSB_ENTRY_COUNT - 1)].tag.invalid =
-		    true;
+		((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[
+			(i0 + i) & (TSB_ENTRY_COUNT - 1)].data.v = false;
 	}
 }
 
 /** Copy software PTE to ITSB.
  *
  * @param t 	Software PTE.
- * @param index	Zero if lower 8K-subpage, one if higher 8K subpage.
  */
-void itsb_pte_copy(pte_t *t, size_t index)
+void itsb_pte_copy(pte_t *t)
 {
-#if 0
 	as_t *as;
 	tsb_entry_t *tsb;
 	size_t entry;
 
-	ASSERT(index <= 1);
-	
 	as = t->as;
-	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK; 
-	ASSERT(entry < ITSB_ENTRY_COUNT);
-	tsb = &as->arch.itsb[entry];
+	entry = (t->page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK; 
+	ASSERT(entry < TSB_ENTRY_COUNT);
+	tsb = &((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -102,47 +97,44 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = true;	/* invalidate the entry
-					 * (tag target has this
-					 * set to 0) */
+	tsb->data.v = false;
 
 	write_barrier();
 
-	tsb->tag.context = as->asid;
-	/* the shift is bigger than PAGE_WIDTH, do not bother with index  */
 	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+
 	tsb->data.value = 0;
-	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
+	tsb->data.nfo = false;
+	tsb->data.ra = t->frame >> MMU_FRAME_WIDTH;
+	tsb->data.ie = false;
+	tsb->data.e = false;
 	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
+	tsb->data.cv = false;
 	tsb->data.p = t->k;	/* p as privileged, k as kernel */
-	tsb->data.v = t->p;	/* v as valid, p as present */
+	tsb->data.x = true;
+	tsb->data.w = false;
+	tsb->data.size = PAGESIZE_8K;
 	
 	write_barrier();
 	
-	tsb->tag.invalid = false;	/* mark the entry as valid */
-#endif
+	tsb->data.v = t->p;	/* v as valid, p as present */
 }
 
 /** Copy software PTE to DTSB.
  *
  * @param t	Software PTE.
- * @param index	Zero if lower 8K-subpage, one if higher 8K-subpage.
  * @param ro	If true, the mapping is copied read-only.
  */
-void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
+void dtsb_pte_copy(pte_t *t, bool ro)
 {
-#if 0
 	as_t *as;
 	tsb_entry_t *tsb;
 	size_t entry;
-	
-	ASSERT(index <= 1);
 
 	as = t->as;
-	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & TSB_INDEX_MASK;
-	ASSERT(entry < DTSB_ENTRY_COUNT);
-	tsb = &as->arch.dtsb[entry];
+	entry = (t->page >> MMU_PAGE_WIDTH) & TSB_INDEX_MASK; 
+	ASSERT(entry < TSB_ENTRY_COUNT);
+	tsb = &((tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base))[entry];
 
 	/*
 	 * We use write barriers to make sure that the TSB load
@@ -150,32 +142,30 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	 * be repeated.
 	 */
 
-	tsb->tag.invalid = true;	/* invalidate the entry
-					 * (tag target has this
-					 * set to 0) */
+	tsb->data.v = false;
 
 	write_barrier();
 
-	tsb->tag.context = as->asid;
-	/* the shift is bigger than PAGE_WIDTH, do not bother with index */
 	tsb->tag.va_tag = t->page >> VA_TAG_PAGE_SHIFT;
+
 	tsb->data.value = 0;
-	tsb->data.size = PAGESIZE_8K;
-	tsb->data.pfn = (t->frame >> MMU_FRAME_WIDTH) + index;
-	tsb->data.cp = t->c;
+	tsb->data.nfo = false;
+	tsb->data.ra = t->frame >> MMU_FRAME_WIDTH;
+	tsb->data.ie = false;
+	tsb->data.e = false;
+	tsb->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
 #ifdef CONFIG_VIRT_IDX_DCACHE
 	tsb->data.cv = t->c;
 #endif /* CONFIG_VIRT_IDX_DCACHE */
-	tsb->data.p = t->k;		/* p as privileged */
+	tsb->data.p = t->k;	/* p as privileged, k as kernel */
+	tsb->data.x = true;
 	tsb->data.w = ro ? false : t->w;
-	tsb->data.v = t->p;
+	tsb->data.size = PAGESIZE_8K;
 	
 	write_barrier();
 	
-	tsb->tag.invalid = false;	/* mark the entry as valid */
-#endif
+	tsb->data.v = t->p;	/* v as valid, p as present */
 }
 
 /** @}
  */
-

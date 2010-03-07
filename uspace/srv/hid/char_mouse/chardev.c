@@ -51,7 +51,7 @@ static int dev_phone;
 
 int mouse_port_init(void)
 {
-	char *input = "/dev/char/ps2b";
+	const char *input = "/dev/char/ps2b";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);
