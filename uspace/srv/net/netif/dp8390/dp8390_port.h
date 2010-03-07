@@ -47,7 +47,7 @@
  *  @param[in] function The function type and name definition.
  *  @param[in] params The function parameters definition.
  */
-#define _PROTOTYPE( function, params ) function params
+#define _PROTOTYPE(function, params) function params
 
 /** Success error code.
  */
@@ -69,36 +69,36 @@ typedef uint16_t u16_t;
  *  @returns -1 if the first is greater than the second.
  *  @returns 1 if the second is greater than the first.
  */
-#define memcmp( first, second, size )	bcmp(( char * ) ( first ), ( char * ) ( second ), ( size ))
+#define memcmp(first, second, size)	bcmp((char *) (first), (char *) (second), (size))
 
 /** Reads 1 byte.
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inb( port )	pio_read_8(( ioport8_t * ) ( port ))
+#define inb(port)	pio_read_8((ioport8_t *) (port))
 
 /** Reads 1 word (2 bytes).
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inw( port )	pio_read_16(( ioport16_t * ) ( port ))
+#define inw(port)	pio_read_16((ioport16_t *) (port))
 
 /** Writes 1 byte.
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outb( port, value )	pio_write_8(( ioport8_t * ) ( port ), ( value ))
+#define outb(port, value)	pio_write_8((ioport8_t *) (port), (value))
 
 /** Writes 1 word (2 bytes).
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outw( port, value )	pio_write_16(( ioport16_t * ) ( port ), ( value ))
+#define outw(port, value)	pio_write_16((ioport16_t *) (port), (value))
 
 /** Prints out the driver critical error.
  *  Does not call the system panic().
  */
-#define panic( ... )	printf( "%s%s%d", __VA_ARGS__ )
+#define panic(...)	printf("%s%s%d", __VA_ARGS__)
 
 /** Copies a memory block.
  *  @param proc The source process. Ignored parameter.
@@ -110,7 +110,7 @@ typedef uint16_t u16_t;
  *  @param[in] bytes The block size in bytes.
  *  @returns EOK.
  */
-#define sys_vircopy( proc, src_s, src, me, dst_s, dst, bytes )	({ memcpy(( void * )( dst ), ( void * )( src ), ( bytes )); EOK; })
+#define sys_vircopy(proc, src_s, src, me, dst_s, dst, bytes)	({memcpy((void *)(dst), (void *)(src), (bytes)); EOK;})
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The address to be written.
@@ -118,7 +118,7 @@ typedef uint16_t u16_t;
  *  @param[in] dst The destination address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_insb( port, proc, dst, bytes )	insb(( port ), ( void * )( dst ), ( bytes ))
+#define do_vir_insb(port, proc, dst, bytes)	insb((port), (void *)(dst), (bytes))
 
 /** Reads a memory block word by word (2 bytes).
  *  @param[in] port The address to be written.
@@ -126,7 +126,7 @@ typedef uint16_t u16_t;
  *  @param[in] dst The destination address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_insw( port, proc, dst, bytes )	insw(( port ), ( void * )( dst ), ( bytes ))
+#define do_vir_insw(port, proc, dst, bytes)	insw((port), (void *)(dst), (bytes))
 
 /** Writes a memory block byte by byte.
  *  @param[in] port The address to be written.
@@ -134,7 +134,7 @@ typedef uint16_t u16_t;
  *  @param[in] src The source address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_outsb( port, proc, src, bytes )	outsb(( port ), ( void * )( src ), ( bytes ))
+#define do_vir_outsb(port, proc, src, bytes)	outsb((port), (void *)(src), (bytes))
 
 /** Writes a memory block word by word (2 bytes).
  *  @param[in] port The address to be written.
@@ -142,7 +142,7 @@ typedef uint16_t u16_t;
  *  @param[in] src The source address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_outsw( port, proc, src, bytes )	outsw(( port ), ( void * )( src ), ( bytes ))
+#define do_vir_outsw(port, proc, src, bytes)	outsw((port), (void *)(src), (bytes))
 
 /* com.h */
 /* Bits in 'DL_MODE' field of DL requests. */

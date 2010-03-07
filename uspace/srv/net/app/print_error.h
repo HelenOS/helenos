@@ -41,13 +41,13 @@
  *  @param[in] error_code The error code.
  *  @returns A value indicating whether the error code may be an ICMP error code.
  */
-#define IS_ICMP_ERROR( error_code )		(( error_code ) > 0 )
+#define IS_ICMP_ERROR(error_code)		((error_code) > 0)
 
 /** Returns whether the error code may be socket error code.
  *  @param[in] error_code The error code.
  *  @returns A value indicating whether the error code may be a socket error code.
  */
-#define IS_SOCKET_ERROR( error_code )	(( error_code ) < 0 )
+#define IS_SOCKET_ERROR(error_code)	((error_code) < 0)
 
 /** Prints the error description.
  *  Supports ICMP and socket error codes.
@@ -56,7 +56,7 @@
  *  @param[in] prefix The error description prefix. May be NULL.
  *  @param[in] suffix The error description suffix. May be NULL.
  */
-void print_error( FILE * output, int error_code, const char * prefix, const char * suffix );
+void print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
 
 /** Prints the specific ICMP error description.
  *  @param[in] output The description output stream. May be NULL.
@@ -64,7 +64,7 @@ void print_error( FILE * output, int error_code, const char * prefix, const char
  *  @param[in] prefix The error description prefix. May be NULL.
  *  @param[in] suffix The error description suffix. May be NULL.
  */
-void icmp_print_error( FILE * output, int error_code, const char * prefix, const char * suffix );
+void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
 
 /** Prints the specific socket error description.
  *  @param[in] output The description output stream. May be NULL.
@@ -72,7 +72,7 @@ void icmp_print_error( FILE * output, int error_code, const char * prefix, const
  *  @param[in] prefix The error description prefix. May be NULL.
  *  @param[in] suffix The error description suffix. May be NULL.
  */
-void socket_print_error( FILE * output, int error_code, const char * prefix, const char * suffix );
+void socket_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
 
 #endif
 

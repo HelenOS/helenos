@@ -64,7 +64,7 @@
  *  @returns Other error codes as defined for the NET_SOCKET message.
  *  @returns Other error codes as defined for the bind_service_timeout() function.
  */
-int	socket( int domain, int type, int protocol );
+int socket(int domain, int type, int protocol);
 
 /** Binds the socket to a port address.
  *  @param[in] socket_id Socket identifier.
@@ -76,7 +76,7 @@ int	socket( int domain, int type, int protocol );
  *  @returns NO_DATA if the addlen parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_BIND message.
  */
-int	bind( int socket_id, const struct sockaddr * my_addr, socklen_t addrlen );
+int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen);
 
 /** Sets the number of connections waiting to be accepted.
  *  @param[in] socket_id Socket identifier.
@@ -86,7 +86,7 @@ int	bind( int socket_id, const struct sockaddr * my_addr, socklen_t addrlen );
  *  @returns ENOTSOCK if the socket is not found.
  *  @returns Other error codes as defined for the NET_SOCKET_LISTEN message.
  */
-int	listen( int socket_id, int backlog );
+int listen(int socket_id, int backlog);
 
 /** Accepts waiting socket.
  *  Blocks until such a socket exists.
@@ -99,7 +99,7 @@ int	listen( int socket_id, int backlog );
  *  @returns ENOTSOCK if the socket is not found.
  *  @returns Other error codes as defined for the NET_SOCKET_ACCEPT message.
  */
-int	accept( int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen );
+int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen);
 
 /** Connects socket to the remote server.
  *  @param[in] socket_id Socket identifier.
@@ -111,7 +111,7 @@ int	accept( int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen );
  *  @returns ENOTSOCK if the socket is not found.
  *  @returns Other error codes as defined for the NET_SOCKET_CONNECT message.
  */
-int	connect( int socket_id, const struct sockaddr * serv_addr, socklen_t addrlen );
+int connect(int socket_id, const struct sockaddr * serv_addr, socklen_t addrlen);
 
 /** Closes the socket.
  *  @param[in] socket_id Socket identifier.
@@ -120,7 +120,7 @@ int	connect( int socket_id, const struct sockaddr * serv_addr, socklen_t addrlen
  *  @returns EINPROGRESS if there is another blocking function in progress.
  *  @returns Other error codes as defined for the NET_SOCKET_CLOSE message.
  */
-int	closesocket( int socket_id );
+int closesocket(int socket_id);
 
 /** Sends data via the socket.
  *  @param[in] socket_id Socket identifier.
@@ -133,7 +133,7 @@ int	closesocket( int socket_id );
  *  @returns NO_DATA if the datalength parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_SEND message.
  */
-int send( int socket_id, void * data, size_t datalength, int flags );
+int send(int socket_id, void * data, size_t datalength, int flags);
 
 /** Sends data via the socket to the remote address.
  *  Binds the socket to a free port if not already connected/bound.
@@ -149,7 +149,7 @@ int send( int socket_id, void * data, size_t datalength, int flags );
  *  @returns NO_DATA if the datalength or the addrlen parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_SENDTO message.
  */
-int sendto( int socket_id, const void * data, size_t datalength, int flags, const struct sockaddr * toaddr, socklen_t addrlen );
+int sendto(int socket_id, const void * data, size_t datalength, int flags, const struct sockaddr * toaddr, socklen_t addrlen);
 
 /** Receives data via the socket.
  *  @param[in] socket_id Socket identifier.
@@ -162,7 +162,7 @@ int sendto( int socket_id, const void * data, size_t datalength, int flags, cons
  *  @returns NO_DATA if the datalength parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_RECV message.
  */
-int recv( int socket_id, void * data, size_t datalength, int flags );
+int recv(int socket_id, void * data, size_t datalength, int flags);
 
 /** Receives data via the socket.
  *  @param[in] socket_id Socket identifier.
@@ -177,7 +177,7 @@ int recv( int socket_id, void * data, size_t datalength, int flags );
  *  @returns NO_DATA if the datalength or addrlen parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_RECVFROM message.
  */
-int recvfrom( int socket_id, void * data, size_t datalength, int flags, struct sockaddr * fromaddr, socklen_t * addrlen );
+int recvfrom(int socket_id, void * data, size_t datalength, int flags, struct sockaddr * fromaddr, socklen_t * addrlen);
 
 /** Gets socket option.
  *  @param[in] socket_id Socket identifier.
@@ -191,7 +191,7 @@ int recvfrom( int socket_id, void * data, size_t datalength, int flags, struct s
  *  @returns NO_DATA if the optlen parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_GETSOCKOPT message.
  */
-int	getsockopt( int socket_id, int level, int optname, void * value, size_t * optlen );
+int getsockopt(int socket_id, int level, int optname, void * value, size_t * optlen);
 
 /** Sets socket option.
  *  @param[in] socket_id Socket identifier.
@@ -205,7 +205,7 @@ int	getsockopt( int socket_id, int level, int optname, void * value, size_t * op
  *  @returns NO_DATA if the optlen parameter is zero (0).
  *  @returns Other error codes as defined for the NET_SOCKET_SETSOCKOPT message.
  */
-int	setsockopt( int socket_id, int level, int optname, const void * value, size_t optlen );
+int setsockopt(int socket_id, int level, int optname, const void * value, size_t optlen);
 
 /*@}*/
 

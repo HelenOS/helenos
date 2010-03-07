@@ -60,7 +60,7 @@ extern netif_globals_t netif_globals;
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Starts the bundle network interface module.
  *  Initializes the client connection serving function, initializes both module parts, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -68,21 +68,21 @@ int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer,
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	module_start( async_client_conn_t client_connection );
+int module_start(async_client_conn_t client_connection);
 
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
-	if( IS_NET_NIL_MESSAGE( call ) || ( IPC_GET_METHOD( * call ) == IPC_M_CONNECT_TO_ME )){
-		return nil_message( callid, call, answer, answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	if(IS_NET_NIL_MESSAGE(call) || (IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME)){
+		return nil_message(callid, call, answer, answer_count);
 	}else{
-		return netif_message( callid, call, answer, answer_count );
+		return netif_message(callid, call, answer, answer_count);
 	}
 }
 
-int	module_start( async_client_conn_t client_connection ){
+int module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	ERROR_PROPAGATE( netif_init_module( client_connection ));
-	if( ERROR_OCCURRED( nil_initialize( netif_globals.net_phone ))){
+	ERROR_PROPAGATE(netif_init_module(client_connection));
+	if(ERROR_OCCURRED(nil_initialize(netif_globals.net_phone))){
 		pm_destroy();
 		return ERROR_CODE;
 	}

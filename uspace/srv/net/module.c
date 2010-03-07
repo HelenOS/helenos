@@ -59,20 +59,20 @@
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each specific module message function.
  */
-extern int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+extern int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** External function to print the module name.
  *  Should print the module name.
  *  The function has to be defined in each module.
  */
-extern void	module_print_name( void );
+extern void module_print_name(void);
 
 /** External module startup function.
  *  Should start and initialize the module and register the given client connection function.
  *  The function has to be defined in each module.
  *  @param[in] client_connection The client connection function to be registered.
  */
-extern int	module_start( async_client_conn_t client_connection );
+extern int module_start(async_client_conn_t client_connection);
 
 /*@}*/
 
@@ -80,7 +80,7 @@ extern int	module_start( async_client_conn_t client_connection );
  *  @param[in] iid The initial message identifier.
  *  @param[in] icall The initial message call structure.
  */
-void	client_connection( ipc_callid_t iid, ipc_call_t * icall );
+void client_connection(ipc_callid_t iid, ipc_call_t * icall);
 
 /**	Starts the module.
  *  @param argc The count of the command line arguments. Ignored parameter.
@@ -88,43 +88,43 @@ void	client_connection( ipc_callid_t iid, ipc_call_t * icall );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module start function.
  */
-int	main( int argc, char * argv[] );
+int main(int argc, char * argv[]);
 
-void client_connection( ipc_callid_t iid, ipc_call_t * icall ){
-	ipc_callid_t	callid;
-	ipc_call_t		call;
-	ipc_call_t		answer;
-	int				answer_count;
-	int				res;
+void client_connection(ipc_callid_t iid, ipc_call_t * icall){
+	ipc_callid_t callid;
+	ipc_call_t call;
+	ipc_call_t answer;
+	int answer_count;
+	int res;
 
 	/*
 	 * Accept the connection
 	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0( iid, EOK );
+	ipc_answer_0(iid, EOK);
 
-	while( true ){
-		refresh_answer( & answer, & answer_count );
+	while(true){
+		refresh_answer(&answer, &answer_count);
 
-		callid = async_get_call( & call );
-		res = module_message( callid, & call, & answer, & answer_count );
+		callid = async_get_call(&call);
+		res = module_message(callid, &call, &answer, &answer_count);
 
-		if(( IPC_GET_METHOD( call ) == IPC_M_PHONE_HUNGUP ) || ( res == EHANGUP )){
+		if((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP)){
 			return;
 		}
 
-		answer_call( callid, res, & answer, answer_count );
+		answer_call(callid, res, &answer, answer_count);
 	}
 }
 
-int main( int argc, char * argv[] ){
+int main(int argc, char * argv[]){
 	ERROR_DECLARE;
 
 	printf("Task %d - ", task_get_id());
 	module_print_name();
-	printf( "\n" );
-	if( ERROR_OCCURRED( module_start( client_connection ))){
-		printf( " - ERROR %i\n", ERROR_CODE );
+	printf("\n");
+	if(ERROR_OCCURRED(module_start(client_connection))){
+		printf(" - ERROR %i\n", ERROR_CODE);
 		return ERROR_CODE;
 	}
 	return EOK;

@@ -49,24 +49,30 @@
  *  @param[in] fifo The dynamic queue.
  *  @param[in] index The actual index to be shifted.
  */
-#define NEXT_INDEX( fifo, index )	((( index ) + 1 ) % (( fifo )->size + 1 ))
+#define NEXT_INDEX(fifo, index)	(((index) + 1) % ((fifo)->size + 1))
 
 /** Checks if the queue is valid.
  *  @param[in] fifo The dynamic queue.
  *  @returns TRUE if the queue is valid.
  *  @returns FALSE otherwise.
  */
-int	dyn_fifo_is_valid( dyn_fifo_ref fifo );
+int dyn_fifo_is_valid(dyn_fifo_ref fifo);
 
-int dyn_fifo_is_valid( dyn_fifo_ref fifo ){
-	return fifo && ( fifo->magic_value == DYN_FIFO_MAGIC_VALUE );
+int dyn_fifo_is_valid(dyn_fifo_ref fifo){
+	return fifo && (fifo->magic_value == DYN_FIFO_MAGIC_VALUE);
 }
 
-int dyn_fifo_initialize( dyn_fifo_ref fifo, int size ){
-	if( ! fifo ) return EBADMEM;
-	if( size <= 0 ) return EINVAL;
-	fifo->items = ( int * ) malloc( sizeof( int ) * size + 1 );
-	if( ! fifo->items ) return ENOMEM;
+int dyn_fifo_initialize(dyn_fifo_ref fifo, int size){
+	if(! fifo){
+		return EBADMEM;
+	}
+	if(size <= 0){
+		return EINVAL;
+	}
+	fifo->items = (int *) malloc(sizeof(int) * size + 1);
+	if(! fifo->items){
+		return ENOMEM;
+	}
 	fifo->size = size;
 	fifo->head = 0;
 	fifo->tail = 0;
@@ -74,55 +80,71 @@ int dyn_fifo_initialize( dyn_fifo_ref fifo, int size ){
 	return EOK;
 }
 
-int	dyn_fifo_push( dyn_fifo_ref fifo, int value, int max_size ){
-	int *	new_items;
+int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size){
+	int * new_items;
 
-	if( ! dyn_fifo_is_valid( fifo )) return EINVAL;
-	if( NEXT_INDEX( fifo, fifo->tail ) == fifo->head ){
-		if(( max_size > 0 ) && (( fifo->size * 2 ) > max_size )){
-			if( fifo->size >= max_size ) return ENOMEM;
+	if(! dyn_fifo_is_valid(fifo)){
+		return EINVAL;
+	}
+	if(NEXT_INDEX(fifo, fifo->tail) == fifo->head){
+		if((max_size > 0) && ((fifo->size * 2) > max_size)){
+			if(fifo->size >= max_size){
+				return ENOMEM;
+			}
 		}else{
 			max_size = fifo->size * 2;
 		}
-		new_items = realloc( fifo->items, sizeof( int ) * max_size + 1 );
-		if( ! new_items ) return ENOMEM;
+		new_items = realloc(fifo->items, sizeof(int) * max_size + 1);
+		if(! new_items){
+			return ENOMEM;
+		}
 		fifo->items = new_items;
-		if( fifo->tail < fifo->head ){
-			if( fifo->tail < max_size - fifo->size ){
-				memcpy( fifo->items + fifo->size + 1, fifo->items, fifo->tail * sizeof( int ));
+		if(fifo->tail < fifo->head){
+			if(fifo->tail < max_size - fifo->size){
+				memcpy(fifo->items + fifo->size + 1, fifo->items, fifo->tail * sizeof(int));
 				fifo->tail += fifo->size + 1;
 			}else{
-				memcpy( fifo->items + fifo->size + 1, fifo->items, ( max_size - fifo->size ) * sizeof( int ));
-				memcpy( fifo->items, fifo->items + max_size - fifo->size, fifo->tail - max_size + fifo->size );
+				memcpy(fifo->items + fifo->size + 1, fifo->items, (max_size - fifo->size) * sizeof(int));
+				memcpy(fifo->items, fifo->items + max_size - fifo->size, fifo->tail - max_size + fifo->size);
 				fifo->tail -= max_size - fifo->size;
 			}
 		}
 		fifo->size = max_size;
 	}
-	fifo->items[ fifo->tail ] = value;
-	fifo->tail = NEXT_INDEX( fifo, fifo->tail );
+	fifo->items[fifo->tail] = value;
+	fifo->tail = NEXT_INDEX(fifo, fifo->tail);
 	return EOK;
 }
 
-int dyn_fifo_pop( dyn_fifo_ref fifo ){
-	int	value;
+int dyn_fifo_pop(dyn_fifo_ref fifo){
+	int value;
 
-	if( ! dyn_fifo_is_valid( fifo )) return EINVAL;
-	if( fifo->head == fifo->tail ) return ENOENT;
-	value = fifo->items[ fifo->head ];
-	fifo->head = NEXT_INDEX( fifo, fifo->head );
+	if(! dyn_fifo_is_valid(fifo)){
+		return EINVAL;
+	}
+	if(fifo->head == fifo->tail){
+		return ENOENT;
+	}
+	value = fifo->items[fifo->head];
+	fifo->head = NEXT_INDEX(fifo, fifo->head);
 	return value;
 }
 
-int dyn_fifo_value( dyn_fifo_ref fifo ){
-	if( ! dyn_fifo_is_valid( fifo )) return EINVAL;
-	if( fifo->head == fifo->tail ) return ENOENT;
-	return fifo->items[ fifo->head ];
+int dyn_fifo_value(dyn_fifo_ref fifo){
+	if(! dyn_fifo_is_valid(fifo)){
+		return EINVAL;
+	}
+	if(fifo->head == fifo->tail){
+		return ENOENT;
+	}
+	return fifo->items[fifo->head];
 }
 
-int dyn_fifo_destroy( dyn_fifo_ref fifo ){
-	if( ! dyn_fifo_is_valid( fifo )) return EINVAL;
-	free( fifo->items );
+int dyn_fifo_destroy(dyn_fifo_ref fifo){
+	if(! dyn_fifo_is_valid(fifo)){
+		return EINVAL;
+	}
+	free(fifo->items);
 	fifo->magic_value = 0;
 	return EOK;
 }

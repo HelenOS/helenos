@@ -64,32 +64,32 @@
  *  @param[in] argv The command line parameters.
  *  @returns EOK on success.
  */
-int		main( int argc, char * argv[] );
+int main(int argc, char * argv[]);
 
 /** Prints the application help.
  */
-void	print_help( void );
+void print_help(void);
 
 /** Translates the character string to the protocol family number.
  *  @param[in] name The protocol family name.
  *  @returns The corresponding protocol family number.
  *  @returns EPFNOSUPPORTED if the protocol family is not supported.
  */
-int		parse_protocol_family( const char * name );
+int parse_protocol_family(const char * name);
 
 /** Translates the character string to the socket type number.
  *  @param[in] name The socket type name.
  *  @returns The corresponding socket type number.
  *  @returns ESOCKNOSUPPORTED if the socket type is not supported.
  */
-int		parse_socket_type( const char * name );
+int parse_socket_type(const char * name);
 
 /** Refreshes the data.
  *  Fills the data block with the NETTEST1_TEXT pattern.
  *  @param[out] data The data block.
  *  @param[in] size The data block size in bytes.
  */
-void	refresh_data( char * data, size_t size );
+void refresh_data(char * data, size_t size);
 
 /** Creates new sockets.
  *  @param[in] verbose A value indicating whether to print out verbose information.
@@ -100,7 +100,7 @@ void	refresh_data( char * data, size_t size );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the socket() function.
  */
-int	sockets_create( int verbose, int * socket_ids, int sockets, int family, sock_type_t type );
+int sockets_create(int verbose, int * socket_ids, int sockets, int family, sock_type_t type);
 
 /** Closes sockets.
  *  @param[in] verbose A value indicating whether to print out verbose information.
@@ -109,7 +109,7 @@ int	sockets_create( int verbose, int * socket_ids, int sockets, int family, sock
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the closesocket() function.
  */
-int	sockets_close( int verbose, int * socket_ids, int sockets );
+int sockets_close(int verbose, int * socket_ids, int sockets);
 
 /** Connects sockets.
  *  @param[in] verbose A value indicating whether to print out verbose information.
@@ -120,7 +120,7 @@ int	sockets_close( int verbose, int * socket_ids, int sockets );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the connect() function.
  */
-int	sockets_connect( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen );
+int sockets_connect(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen);
 
 /** Sends data via sockets.
  *  @param[in] verbose A value indicating whether to print out verbose information.
@@ -134,7 +134,7 @@ int	sockets_connect( int verbose, int * socket_ids, int sockets, struct sockaddr
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the sendto() function.
  */
-int	sockets_sendto( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen, char * data, int size, int messages );
+int sockets_sendto(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen, char * data, int size, int messages);
 
 /** Receives data via sockets.
  *  @param[in] verbose A value indicating whether to print out verbose information.
@@ -148,7 +148,7 @@ int	sockets_sendto( int verbose, int * socket_ids, int sockets, struct sockaddr 
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the recvfrom() function.
  */
-int	sockets_recvfrom( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages );
+int sockets_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages);
 
 /** Sends and receives data via sockets.
  *  Each datagram is sent and a reply read consequently.
@@ -164,15 +164,15 @@ int	sockets_recvfrom( int verbose, int * socket_ids, int sockets, struct sockadd
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the recvfrom() function.
  */
-int	sockets_sendto_recvfrom( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages );
+int sockets_sendto_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages);
 
 /** Prints a mark.
  *  If the index is a multiple of ten, a different mark is printed.
  *  @param[in] index The index of the mark to be printed.
  */
-void	print_mark( int index );
+void print_mark(int index);
 
-void print_help( void ){
+void print_help(void){
 	printf(
 		"Network Networking test 1 aplication - sockets\n" \
 		"Usage: echo [options] numeric_address\n" \
@@ -200,411 +200,474 @@ void print_help( void ){
 	);
 }
 
-int parse_protocol_family( const char * name ){
-	if( str_lcmp( name, "PF_INET", 7 ) == 0 ){
+int parse_protocol_family(const char * name){
+	if(str_lcmp(name, "PF_INET", 7) == 0){
 		return PF_INET;
-	}else if( str_lcmp( name, "PF_INET6", 8 ) == 0 ){
+	}else if(str_lcmp(name, "PF_INET6", 8) == 0){
 		return PF_INET6;
 	}
 	return EPFNOSUPPORT;
 }
 
-int parse_socket_type( const char * name ){
-	if( str_lcmp( name, "SOCK_DGRAM", 11 ) == 0 ){
+int parse_socket_type(const char * name){
+	if(str_lcmp(name, "SOCK_DGRAM", 11) == 0){
 		return SOCK_DGRAM;
-	}else if( str_lcmp( name, "SOCK_STREAM", 12 ) == 0 ){
+	}else if(str_lcmp(name, "SOCK_STREAM", 12) == 0){
 		return SOCK_STREAM;
 	}
 	return ESOCKTNOSUPPORT;
 }
 
-void refresh_data( char * data, size_t size ){
-	size_t	length;
+void refresh_data(char * data, size_t size){
+	size_t length;
 
 	// fill the data
 	length = 0;
-	while( size > length + sizeof( NETTEST1_TEXT ) - 1 ){
-		memcpy( data + length, NETTEST1_TEXT, sizeof( NETTEST1_TEXT ) - 1 );
-		length += sizeof( NETTEST1_TEXT ) - 1;
+	while(size > length + sizeof(NETTEST1_TEXT) - 1){
+		memcpy(data + length, NETTEST1_TEXT, sizeof(NETTEST1_TEXT) - 1);
+		length += sizeof(NETTEST1_TEXT) - 1;
 	}
-	memcpy( data + length, NETTEST1_TEXT, size - length );
-	data[ size ] = '\0';
+	memcpy(data + length, NETTEST1_TEXT, size - length);
+	data[size] = '\0';
 }
 
-int sockets_create( int verbose, int * socket_ids, int sockets, int family, sock_type_t type ){
-	int	index;
+int sockets_create(int verbose, int * socket_ids, int sockets, int family, sock_type_t type){
+	int index;
 
-	if( verbose ) printf( "Create\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		socket_ids[ index ] = socket( family, type, 0 );
-		if( socket_ids[ index ] < 0 ){
-			printf( "Socket %d (%d) error:\n", index, socket_ids[ index ] );
-			socket_print_error( stderr, socket_ids[ index ], "Socket create: ", "\n" );
-			return socket_ids[ index ];
+	if(verbose){
+		printf("Create\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		socket_ids[index] = socket(family, type, 0);
+		if(socket_ids[index] < 0){
+			printf("Socket %d (%d) error:\n", index, socket_ids[index]);
+			socket_print_error(stderr, socket_ids[index], "Socket create: ", "\n");
+			return socket_ids[index];
 		}
-		if( verbose ){
-			print_mark( index );
+		if(verbose){
+			print_mark(index);
 		}
 	}
 	return EOK;
 }
 
-int sockets_close( int verbose, int * socket_ids, int sockets ){
+int sockets_close(int verbose, int * socket_ids, int sockets){
 	ERROR_DECLARE;
 
-	int	index;
+	int index;
 
-	if( verbose ) printf( "\tClose\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		if( ERROR_OCCURRED( closesocket( socket_ids[ index ] ))){
-			printf( "Socket %d (%d) error:\n", index, socket_ids[ index ] );
-			socket_print_error( stderr, ERROR_CODE, "Socket close: ", "\n" );
+	if(verbose){
+		printf("\tClose\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		if(ERROR_OCCURRED(closesocket(socket_ids[index]))){
+			printf("Socket %d (%d) error:\n", index, socket_ids[index]);
+			socket_print_error(stderr, ERROR_CODE, "Socket close: ", "\n");
 			return ERROR_CODE;
 		}
-		if( verbose ) print_mark( index );
+		if(verbose){
+			print_mark(index);
+		}
 	}
 	return EOK;
 }
 
-int sockets_connect( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen ){
+int sockets_connect(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen){
 	ERROR_DECLARE;
 
-	int	index;
+	int index;
 
-	if( verbose ) printf( "\tConnect\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		if( ERROR_OCCURRED( connect( socket_ids[ index ], address, addrlen ))){
-			socket_print_error( stderr, ERROR_CODE, "Socket connect: ", "\n" );
+	if(verbose){
+		printf("\tConnect\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		if(ERROR_OCCURRED(connect(socket_ids[index], address, addrlen))){
+			socket_print_error(stderr, ERROR_CODE, "Socket connect: ", "\n");
 			return ERROR_CODE;
 		}
-		if( verbose ) print_mark( index );
+		if(verbose){
+			print_mark(index);
+		}
 	}
 	return EOK;
 }
 
-int sockets_sendto( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen, char * data, int size, int messages ){
+int sockets_sendto(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t addrlen, char * data, int size, int messages){
 	ERROR_DECLARE;
 
-	int	index;
-	int	message;
+	int index;
+	int message;
 
-	if( verbose ) printf( "\tSendto\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		for( message = 0; message < messages; ++ message ){
-			if( ERROR_OCCURRED( sendto( socket_ids[ index ], data, size, 0, address, addrlen ))){
-				printf( "Socket %d (%d), message %d error:\n", index, socket_ids[ index ], message );
-				socket_print_error( stderr, ERROR_CODE, "Socket send: ", "\n" );
+	if(verbose){
+		printf("\tSendto\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		for(message = 0; message < messages; ++ message){
+			if(ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, addrlen))){
+				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
+				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
 				return ERROR_CODE;
 			}
 		}
-		if( verbose ) print_mark( index );
+		if(verbose){
+			print_mark(index);
+		}
 	}
 	return EOK;
 }
 
-int sockets_recvfrom( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages ){
-	int	value;
-	int	index;
-	int	message;
+int sockets_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages){
+	int value;
+	int index;
+	int message;
 
-	if( verbose ) printf( "\tRecvfrom\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		for( message = 0; message < messages; ++ message ){
-			value = recvfrom( socket_ids[ index ], data, size, 0, address, addrlen );
-			if( value < 0 ){
-				printf( "Socket %d (%d), message %d error:\n", index, socket_ids[ index ], message );
-				socket_print_error( stderr, value, "Socket receive: ", "\n" );
+	if(verbose){
+		printf("\tRecvfrom\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		for(message = 0; message < messages; ++ message){
+			value = recvfrom(socket_ids[index], data, size, 0, address, addrlen);
+			if(value < 0){
+				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
+				socket_print_error(stderr, value, "Socket receive: ", "\n");
 				return value;
 			}
 		}
-		if( verbose ) print_mark( index );
+		if(verbose){
+			print_mark(index);
+		}
 	}
 	return EOK;
 }
 
-int sockets_sendto_recvfrom( int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages ){
+int sockets_sendto_recvfrom(int verbose, int * socket_ids, int sockets, struct sockaddr * address, socklen_t * addrlen, char * data, int size, int messages){
 	ERROR_DECLARE;
 
-	int	value;
-	int	index;
-	int	message;
+	int value;
+	int index;
+	int message;
 
-	if( verbose ) printf( "\tSendto and recvfrom\t" );
-	fflush( stdout );
-	for( index = 0; index < sockets; ++ index ){
-		for( message = 0; message < messages; ++ message ){
-			if( ERROR_OCCURRED( sendto( socket_ids[ index ], data, size, 0, address, * addrlen ))){
-				printf( "Socket %d (%d), message %d error:\n", index, socket_ids[ index ], message );
-				socket_print_error( stderr, ERROR_CODE, "Socket send: ", "\n" );
+	if(verbose){
+		printf("\tSendto and recvfrom\t");
+	}
+	fflush(stdout);
+	for(index = 0; index < sockets; ++ index){
+		for(message = 0; message < messages; ++ message){
+			if(ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, * addrlen))){
+				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
+				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
 				return ERROR_CODE;
 			}
-			value = recvfrom( socket_ids[ index ], data, size, 0, address, addrlen );
-			if( value < 0 ){
-				printf( "Socket %d (%d), message %d error:\n", index, socket_ids[ index ], message );
-				socket_print_error( stderr, value, "Socket receive: ", "\n" );
+			value = recvfrom(socket_ids[index], data, size, 0, address, addrlen);
+			if(value < 0){
+				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
+				socket_print_error(stderr, value, "Socket receive: ", "\n");
 				return value;
 			}
 		}
-		if( verbose ) print_mark( index );
+		if(verbose){
+			print_mark(index);
+		}
 	}
 	return EOK;
 }
 
-void print_mark( int index ){
-	if(( index + 1 ) % 10 ){
-		printf( "*" );
+void print_mark(int index){
+	if((index + 1) % 10){
+		printf("*");
 	}else{
-		printf( "|" );
+		printf("|");
 	}
-	fflush( stdout );
+	fflush(stdout);
 }
 
-int main( int argc, char * argv[] ){
+int main(int argc, char * argv[]){
 	ERROR_DECLARE;
 
-	size_t				size			= 27;
-	int					verbose			= 0;
-	sock_type_t			type			= SOCK_DGRAM;
-	int					sockets			= 10;
-	int					messages		= 10;
-	int					family			= PF_INET;
-	uint16_t			port			= 7;
+	size_t size			= 27;
+	int verbose			= 0;
+	sock_type_t type			= SOCK_DGRAM;
+	int sockets			= 10;
+	int messages		= 10;
+	int family			= PF_INET;
+	uint16_t port			= 7;
 
-	socklen_t			max_length		= sizeof( struct sockaddr_in6 );
-	uint8_t				address_data[ max_length ];
-	struct sockaddr *		address		= ( struct sockaddr * ) address_data;
-	struct sockaddr_in *	address_in		= ( struct sockaddr_in * ) address;
-	struct sockaddr_in6 *	address_in6	= ( struct sockaddr_in6 * ) address;
-	socklen_t			addrlen;
-//	char				address_string[ INET6_ADDRSTRLEN ];
-	uint8_t *			address_start;
+	socklen_t max_length		= sizeof(struct sockaddr_in6);
+	uint8_t address_data[max_length];
+	struct sockaddr * address		= (struct sockaddr *) address_data;
+	struct sockaddr_in * address_in		= (struct sockaddr_in *) address;
+	struct sockaddr_in6 * address_in6	= (struct sockaddr_in6 *) address;
+	socklen_t addrlen;
+//	char				address_string[INET6_ADDRSTRLEN];
+	uint8_t * address_start;
 
-	int *				socket_ids;
+	int * socket_ids;
 	char * 				data;
-	int					value;
-	int					index;
-	struct timeval		time_before;
-	struct timeval		time_after;
+	int value;
+	int index;
+	struct timeval time_before;
+	struct timeval time_after;
 
-	printf( "Task %d - ", task_get_id());
-	printf( "%s\n", NAME );
+	printf("Task %d - ", task_get_id());
+	printf("%s\n", NAME);
 
-	if( argc <= 1 ){
+	if(argc <= 1){
 		print_help();
 		return EINVAL;
 	}
 
-	for( index = 1; ( index < argc - 1 ) || (( index == argc ) && ( argv[ index ][ 0 ] == '-' )); ++ index ){
-		if( argv[ index ][ 0 ] == '-' ){
-			switch( argv[ index ][ 1 ] ){
-				case 'f':	ERROR_PROPAGATE( parse_parameter_name_int( argc, argv, & index, & family, "protocol family", 0, parse_protocol_family ));
-							break;
-				case 'h':	print_help();
-							return EOK;
-							break;
-				case 'm':	ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & messages, "message count", 0 ));
-							break;
-				case 'n':	ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & sockets, "socket count", 0 ));
-							break;
-				case 'p':	ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & value, "port number", 0 ));
-							port = ( uint16_t ) value;
-							break;
-				case 's':	ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & value, "packet size", 0 ));
-							size = (value >= 0 ) ? ( size_t ) value : 0;
-							break;
-				case 't':	ERROR_PROPAGATE( parse_parameter_name_int( argc, argv, & index, & value, "socket type", 0, parse_socket_type ));
-							type = ( sock_type_t ) value;
-							break;
-				case 'v':	verbose = 1;
-							break;
-				case '-':	if( str_lcmp( argv[ index ] + 2, "family=", 7 ) == 0 ){
-								ERROR_PROPAGATE( parse_parameter_name_int( argc, argv, & index, & family, "protocol family", 9, parse_protocol_family ));
-							}else if( str_lcmp( argv[ index ] + 2, "help", 5 ) == 0 ){
-								print_help();
-								return EOK;
-							}else if( str_lcmp( argv[ index ] + 2, "messages=", 6 ) == 0 ){
-								ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & messages, "message count", 8 ));
-							}else if( str_lcmp( argv[ index ] + 2, "sockets=", 6 ) == 0 ){
-								ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & sockets, "socket count", 8 ));
-							}else if( str_lcmp( argv[ index ] + 2, "port=", 5 ) == 0 ){
-								ERROR_PROPAGATE( parse_parameter_int( argc, argv, & index, & value, "port number", 7 ));
-								port = ( uint16_t ) value;
-							}else if( str_lcmp( argv[ index ] + 2, "type=", 5 ) == 0 ){
-								ERROR_PROPAGATE( parse_parameter_name_int( argc, argv, & index, & value, "socket type", 7, parse_socket_type ));
-								type = ( sock_type_t ) value;
-							}else if( str_lcmp( argv[ index ] + 2, "verbose", 8 ) == 0 ){
-								verbose = 1;
-							}else{
-								print_unrecognized( index, argv[ index ] + 2 );
-								print_help();
-								return EINVAL;
-							}
-							break;
+	for(index = 1; (index < argc - 1) || ((index == argc) && (argv[index][0] == '-')); ++ index){
+		if(argv[index][0] == '-'){
+			switch(argv[index][1]){
+				case 'f':
+					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 0, parse_protocol_family));
+					break;
+				case 'h':
+					print_help();
+					return EOK;
+					break;
+				case 'm':
+					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &messages, "message count", 0));
+					break;
+				case 'n':
+					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &sockets, "socket count", 0));
+					break;
+				case 'p':
+					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 0));
+					port = (uint16_t) value;
+					break;
+				case 's':
+					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "packet size", 0));
+					size = (value >= 0) ? (size_t) value : 0;
+					break;
+				case 't':
+					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 0, parse_socket_type));
+					type = (sock_type_t) value;
+					break;
+				case 'v':
+					verbose = 1;
+					break;
+				case '-':
+					if(str_lcmp(argv[index] + 2, "family=", 7) == 0){
+						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 9, parse_protocol_family));
+					}else if(str_lcmp(argv[index] + 2, "help", 5) == 0){
+						print_help();
+						return EOK;
+					}else if(str_lcmp(argv[index] + 2, "messages=", 6) == 0){
+						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &messages, "message count", 8));
+					}else if(str_lcmp(argv[index] + 2, "sockets=", 6) == 0){
+						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &sockets, "socket count", 8));
+					}else if(str_lcmp(argv[index] + 2, "port=", 5) == 0){
+						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 7));
+						port = (uint16_t) value;
+					}else if(str_lcmp(argv[index] + 2, "type=", 5) == 0){
+						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 7, parse_socket_type));
+						type = (sock_type_t) value;
+					}else if(str_lcmp(argv[index] + 2, "verbose", 8) == 0){
+						verbose = 1;
+					}else{
+						print_unrecognized(index, argv[index] + 2);
+						print_help();
+						return EINVAL;
+					}
+					break;
 				default:
-					print_unrecognized( index, argv[ index ] + 1 );
+					print_unrecognized(index, argv[index] + 1);
 					print_help();
 					return EINVAL;
 			}
 		}else{
-			print_unrecognized( index, argv[ index ] );
+			print_unrecognized(index, argv[index]);
 			print_help();
 			return EINVAL;
 		}
 	}
 
-	bzero( address_data, max_length );
-	switch( family ){
+	bzero(address_data, max_length);
+	switch(family){
 		case PF_INET:
 			address_in->sin_family = AF_INET;
-			address_in->sin_port = htons( port );
-			address_start = ( uint8_t * ) & address_in->sin_addr.s_addr;
-			addrlen = sizeof( struct sockaddr_in );
+			address_in->sin_port = htons(port);
+			address_start = (uint8_t *) &address_in->sin_addr.s_addr;
+			addrlen = sizeof(struct sockaddr_in);
 			break;
 		case PF_INET6:
 			address_in6->sin6_family = AF_INET6;
-			address_in6->sin6_port = htons( port );
-			address_start = ( uint8_t * ) & address_in6->sin6_addr.s6_addr;
-			addrlen = sizeof( struct sockaddr_in6 );
+			address_in6->sin6_port = htons(port);
+			address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
+			addrlen = sizeof(struct sockaddr_in6);
 			break;
 		default:
-			fprintf( stderr, "Address family is not supported\n" );
+			fprintf(stderr, "Address family is not supported\n");
 			return EAFNOSUPPORT;
 	}
 
-	if( ERROR_OCCURRED( inet_pton( family, argv[ argc - 1 ], address_start ))){
-		fprintf( stderr, "Address parse error %d\n", ERROR_CODE );
+	if(ERROR_OCCURRED(inet_pton(family, argv[argc - 1], address_start))){
+		fprintf(stderr, "Address parse error %d\n", ERROR_CODE);
 		return ERROR_CODE;
 	}
 
-	if( size <= 0 ){
-		fprintf( stderr, "Data buffer size too small (%d). Using 1024 bytes instead.\n", size );
+	if(size <= 0){
+		fprintf(stderr, "Data buffer size too small (%d). Using 1024 bytes instead.\n", size);
 		size = 1024;
 	}
 	// size plus terminating null (\0)
-	data = ( char * ) malloc( size + 1 );
-	if( ! data ){
-		fprintf( stderr, "Failed to allocate data buffer.\n" );
+	data = (char *) malloc(size + 1);
+	if(! data){
+		fprintf(stderr, "Failed to allocate data buffer.\n");
 		return ENOMEM;
 	}
-	refresh_data( data, size );
+	refresh_data(data, size);
 
-	if( sockets <= 0 ){
-		fprintf( stderr, "Socket count too small (%d). Using 2 instead.\n", sockets );
+	if(sockets <= 0){
+		fprintf(stderr, "Socket count too small (%d). Using 2 instead.\n", sockets);
 		sockets = 2;
 	}
 	// count plus terminating null (\0)
-	socket_ids = ( int * ) malloc( sizeof( int ) * ( sockets + 1 ));
-	if( ! socket_ids ){
-		fprintf( stderr, "Failed to allocate receive buffer.\n" );
+	socket_ids = (int *) malloc(sizeof(int) * (sockets + 1));
+	if(! socket_ids){
+		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
-	socket_ids[ sockets ] = NULL;
+	socket_ids[sockets] = NULL;
 
-	if( verbose ) printf( "Starting tests\n" );
+	if(verbose){
+		printf("Starting tests\n");
+	}
 
-	if( verbose ) printf( "1 socket, 1 message\n" );
+	if(verbose){
+		printf("1 socket, 1 message\n");
+	}
 
-	if( ERROR_OCCURRED( gettimeofday( & time_before, NULL ))){
-		fprintf( stderr, "Get time of day error %d\n", ERROR_CODE );
+	if(ERROR_OCCURRED(gettimeofday(&time_before, NULL))){
+		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
 		return ERROR_CODE;
 	}
 
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, 1, family, type ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, 1 ));
-	if( verbose ) printf( "\tOK\n" );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, 1, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, 1, address, addrlen ));
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
+	if(verbose){
+		printf("\tOK\n");
 	}
-	ERROR_PROPAGATE( sockets_sendto_recvfrom( verbose, socket_ids, 1, address, & addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, 1 ));
-	if( verbose ) printf( "\tOK\n" );
 
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, 1, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, 1, address, addrlen ));
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
 	}
-	ERROR_PROPAGATE( sockets_sendto( verbose, socket_ids, 1, address, addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_recvfrom( verbose, socket_ids, 1, address, & addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, 1 ));
-	if( verbose ) printf( "\tOK\n" );
-
-	if( verbose ) printf( "1 socket, %d messages\n", messages );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, 1, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, 1, address, addrlen ));
+	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
+	if(verbose){
+		printf("\tOK\n");
 	}
-	ERROR_PROPAGATE( sockets_sendto_recvfrom( verbose, socket_ids, 1, address, & addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, 1 ));
-	if( verbose ) printf( "\tOK\n" );
 
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, 1, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, 1, address, addrlen ));
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
 	}
-	ERROR_PROPAGATE( sockets_sendto( verbose, socket_ids, 1, address, addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_recvfrom( verbose, socket_ids, 1, address, & addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, 1 ));
-	if( verbose ) printf( "\tOK\n" );
-
-	if( verbose ) printf( "%d sockets, 1 message\n", sockets );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
-	if( verbose ) printf( "\tOK\n" );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, sockets, address, addrlen ));
+	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, 1, address, addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
+	if(verbose){
+		printf("\tOK\n");
 	}
-	ERROR_PROPAGATE( sockets_sendto_recvfrom( verbose, socket_ids, sockets, address, & addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
-	if( verbose ) printf( "\tOK\n" );
 
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, sockets, address, addrlen ));
+	if(verbose){
+		printf("1 socket, %d messages\n", messages);
 	}
-	ERROR_PROPAGATE( sockets_sendto( verbose, socket_ids, sockets, address, addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_recvfrom( verbose, socket_ids, sockets, address, & addrlen, data, size, 1 ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
-	if( verbose ) printf( "\tOK\n" );
 
-	if( verbose ) printf( "%d sockets, %d messages\n", sockets, messages );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, sockets, address, addrlen ));
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
 	}
-	ERROR_PROPAGATE( sockets_sendto_recvfrom( verbose, socket_ids, sockets, address, & addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
-	if( verbose ) printf( "\tOK\n" );
-
-	ERROR_PROPAGATE( sockets_create( verbose, socket_ids, sockets, family, type ));
-	if( type == SOCK_STREAM ){
-		ERROR_PROPAGATE( sockets_connect( verbose, socket_ids, sockets, address, addrlen ));
+	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
+	if(verbose){
+		printf("\tOK\n");
 	}
-	ERROR_PROPAGATE( sockets_sendto( verbose, socket_ids, sockets, address, addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_recvfrom( verbose, socket_ids, sockets, address, & addrlen, data, size, messages ));
-	ERROR_PROPAGATE( sockets_close( verbose, socket_ids, sockets ));
 
-	if( ERROR_OCCURRED( gettimeofday( & time_after, NULL ))){
-		fprintf( stderr, "Get time of day error %d\n", ERROR_CODE );
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
+	}
+	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, 1, address, addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
+	if(verbose){
+		printf("\tOK\n");
+	}
+
+	if(verbose){
+		printf("%d sockets, 1 message\n", sockets);
+	}
+
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+	if(verbose){
+		printf("\tOK\n");
+	}
+
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
+	}
+	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+	if(verbose){
+		printf("\tOK\n");
+	}
+
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
+	}
+	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, 1));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+	if(verbose){
+		printf("\tOK\n");
+	}
+
+	if(verbose){
+		printf("%d sockets, %d messages\n", sockets, messages);
+	}
+
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
+	}
+	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+	if(verbose){
+		printf("\tOK\n");
+	}
+
+	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	if(type == SOCK_STREAM){
+		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
+	}
+	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
+	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+
+	if(ERROR_OCCURRED(gettimeofday(&time_after, NULL))){
+		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
 		return ERROR_CODE;
 	}
 
-	if( verbose ) printf( "\tOK\n" );
+	if(verbose){
+		printf("\tOK\n");
+	}
 
-	printf( "Tested in %d microseconds\n", tv_sub( & time_after, & time_before ));
+	printf("Tested in %d microseconds\n", tv_sub(&time_after, &time_before));
 
-	if( verbose ) printf( "Exiting\n" );
+	if(verbose){
+		printf("Exiting\n");
+	}
 
 	return EOK;
 }

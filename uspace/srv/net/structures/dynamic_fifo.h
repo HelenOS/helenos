@@ -55,19 +55,19 @@ typedef dyn_fifo_t *	dyn_fifo_ref;
 struct dyn_fifo{
 	/** Stored item field.
 	 */
-	int	*	items;
+	int *	items;
 	/** Actual field size.
 	 */
-	int		size;
+	int size;
 	/** First item in the queue index.
 	 */
-	int		head;
+	int head;
 	/** Last item in the queue index.
 	 */
-	int		tail;
+	int tail;
 	/** Consistency check magic value.
 	 */
-	int		magic_value;
+	int magic_value;
 };
 
 /** Initializes the dynamic queue.
@@ -78,7 +78,7 @@ struct dyn_fifo{
  *  @returns EBADMEM if the fifo parameter is NULL.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	dyn_fifo_initialize( dyn_fifo_ref fifo, int size );
+int dyn_fifo_initialize(dyn_fifo_ref fifo, int size);
 
 /** Appends a new item to the queue end.
  *  @param[in,out] fifo The dynamic queue.
@@ -88,7 +88,7 @@ int	dyn_fifo_initialize( dyn_fifo_ref fifo, int size );
  *  @returns EINVAL if the queue is not valid.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	dyn_fifo_push( dyn_fifo_ref fifo, int value, int max_size );
+int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size);
 
 /** Returns and excludes the first item in the queue.
  *  @param[in,out] fifo The dynamic queue.
@@ -96,7 +96,7 @@ int	dyn_fifo_push( dyn_fifo_ref fifo, int value, int max_size );
  *  @returns EINVAL if the queue is not valid.
  *  @returns ENOENT if the queue is empty.
  */
-int	dyn_fifo_pop( dyn_fifo_ref fifo );
+int dyn_fifo_pop(dyn_fifo_ref fifo);
 
 /** Returns and keeps the first item in the queue.
  *  @param[in,out] fifo The dynamic queue.
@@ -104,14 +104,14 @@ int	dyn_fifo_pop( dyn_fifo_ref fifo );
  *  @returns EINVAL if the queue is not valid.
  *  @returns ENOENT if the queue is empty.
  */
-int	dyn_fifo_value( dyn_fifo_ref fifo );
+int dyn_fifo_value(dyn_fifo_ref fifo);
 
 /** Clears and destroys the queue.
  *  @param[in,out] fifo The dynamic queue.
  *  @returns EOK on success.
  *  @returns EINVAL if the queue is not valid.
  */
-int dyn_fifo_destroy( dyn_fifo_ref fifo );
+int dyn_fifo_destroy(dyn_fifo_ref fifo);
 
 #endif
 

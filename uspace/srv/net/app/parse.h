@@ -41,7 +41,7 @@
  *  @param[in] index The index of the parameter.
  *  @param[in] parameter The parameter name.
  */
-void	print_unrecognized( int index, const char * parameter );
+void print_unrecognized(int index, const char * parameter);
 
 /** Parses the next parameter as an integral number.
  *  The actual parameter is pointed by the index.
@@ -56,7 +56,7 @@ void	print_unrecognized( int index, const char * parameter );
  *  @returns EINVAL if the parameter is missing.
  *  @returns EINVAL if the parameter is in wrong format.
  */
-int	parse_parameter_int( int argc, char ** argv, int * index, int * value, const char * name, int offset );
+int parse_parameter_int(int argc, char ** argv, int * index, int * value, const char * name, int offset);
 
 /** Parses the next parameter as a character string.
  *  The actual parameter is pointed by the index.
@@ -71,7 +71,7 @@ int	parse_parameter_int( int argc, char ** argv, int * index, int * value, const
  *  @returns EOK on success.
  *  @returns EINVAL if the parameter is missing.
  */
-int	parse_parameter_string( int argc, char ** argv, int * index, char ** value, const char * name, int offset );
+int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset);
 
 /** Parses the next named parameter as an integral number.
  *  The actual parameter is pointed by the index.
@@ -89,7 +89,7 @@ int	parse_parameter_string( int argc, char ** argv, int * index, char ** value, 
  *  @returns EINVAL if the parameter is missing.
  *  @returns ENOENT if the parameter name has not been found.
  */
-int	parse_parameter_name_int( int argc, char ** argv, int * index, int * value, const char * name, int offset, int ( * parse_value )( const char * value ));
+int parse_parameter_name_int(int argc, char ** argv, int * index, int * value, const char * name, int offset, int (*parse_value)(const char * value));
 
 #endif
 

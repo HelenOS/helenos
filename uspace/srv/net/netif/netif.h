@@ -68,23 +68,23 @@ typedef device_t *			device_ref;
  *  Maps device identifiers to the network interface device specific data.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( device_map, device_t );
+DEVICE_MAP_DECLARE(device_map, device_t);
 
 /** Network interface device specific data.
  */
 struct	netif_device{
 	/** Device identifier.
 	 */
-	device_id_t	device_id;
+	device_id_t device_id;
 	/** Receiving network interface layer phone.
 	 */
-	int		nil_phone;
+	int nil_phone;
 	/** Actual device state.
 	 */
-	device_state_t	state;
+	device_state_t state;
 	/** Driver specific data.
 	 */
-	void *		specific;
+	void * specific;
 };
 
 /** Network interface module skeleton global data.
@@ -92,13 +92,13 @@ struct	netif_device{
 struct	netif_globals{
 	/** Networking module phone.
 	 */
-	int		net_phone;
+	int net_phone;
 	/**	Device map.
 	 */
-	device_map_t	device_map;
+	device_map_t device_map;
 	/** Safety lock.
 	 */
-	fibril_rwlock_t	lock;
+	fibril_rwlock_t lock;
 };
 
 /**	Finds the device specific data.
@@ -108,25 +108,25 @@ struct	netif_globals{
  *  @returns ENOENT if device is not found.
  *  @returns EPERM if the device is not initialized.
  */
-int	find_device( device_id_t device_id, device_ref * device );
+int find_device(device_id_t device_id, device_ref * device);
 
 /** Clears the usage statistics.
  *  @param[in] stats The usage statistics.
  */
-void	null_device_stats( device_stats_ref stats );
+void null_device_stats(device_stats_ref stats);
 
 // prepared for future optimalizations
 /** Releases the given packet.
  *  @param[in] packet_id The packet identifier.
  */
-void	netif_pq_release( packet_id_t packet_id );
+void netif_pq_release(packet_id_t packet_id);
 
 /** Allocates new packet to handle the given content size.
  *  @param[in] content The minimum content size.
  *  @returns The allocated packet.
  *  @returns NULL if there is an error.
  */
-packet_t netif_packet_get_1( size_t content );
+packet_t netif_packet_get_1(size_t content);
 
 /** Processes the netif module messages.
  *  @param[in] callid The message identifier.
@@ -139,7 +139,7 @@ packet_t netif_packet_get_1( size_t content );
  *  @see netif_interface.h
  *  @see IS_NET_NETIF_MESSAGE()
  */
-int	netif_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int netif_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Initializes the netif module.
  *  The function has to be defined in each module.
@@ -147,12 +147,12 @@ int	netif_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, 
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	netif_init_module( async_client_conn_t client_connection );
+int netif_init_module(async_client_conn_t client_connection);
 
 /** Starts and maintains the netif module until terminated.
  *  @returns EOK after the module is terminated.
  */
-int netif_run_module( void );
+int netif_run_module(void);
 
 #endif
 

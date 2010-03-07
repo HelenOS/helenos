@@ -44,7 +44,7 @@
 
 /** INET6 string address maximum length.
  */
-#define INET6_ADDRSTRLEN	( 8 * 4 + 7 + 1 )
+#define INET6_ADDRSTRLEN	(8 * 4 + 7 + 1)
 
 /** Type definition of the INET6 address.
  *  @see in6_addr
@@ -61,7 +61,7 @@ typedef struct sockaddr_in6	sockaddr_in6_t;
 struct in6_addr{
 	/** 16 byte IPv6 address.
 	 */
-	unsigned char	s6_addr[ 16 ];
+	unsigned char s6_addr[16];
 };
 
 /** INET6 socket address.
@@ -71,19 +71,19 @@ struct sockaddr_in6{
 	/** Address family.
 	 *  Should be AF_INET6.
 	 */
-	uint16_t		sin6_family;
+	uint16_t sin6_family;
 	/** Port number.
 	 */
-	uint16_t		sin6_port;
+	uint16_t sin6_port;
 	/** IPv6 flow information.
 	 */
-	uint32_t		sin6_flowinfo;
+	uint32_t sin6_flowinfo;
 	/** IPv6 address.
 	 */
-	struct in6_addr	sin6_addr;
+	struct in6_addr sin6_addr;
 	/** Scope identifier.
 	 */
-	uint32_t		sin6_scope_id;
+	uint32_t sin6_scope_id;
 };
 
 #endif

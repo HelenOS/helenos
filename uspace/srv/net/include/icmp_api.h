@@ -78,7 +78,7 @@ typedef size_t	mseconds_t;
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns EPARTY if there was an internal error.
  */
-int	icmp_echo_msg( int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen );
+int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen);
 
 /*@}*/
 

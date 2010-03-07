@@ -61,11 +61,11 @@
  */
 #ifdef CONFIG_DEBUG
 
-#define ERROR_OCCURRED( value )		((( ERROR_CODE = ( value )) != EOK ) && ({ printf( "error at %s:%d %d\n", __FILE__, __LINE__, ERROR_CODE ); 1; }))
+#define ERROR_OCCURRED(value)		(((ERROR_CODE = (value)) != EOK) && ({printf("error at %s:%d %d\n", __FILE__, __LINE__, ERROR_CODE); 1;}))
 
 #else
 
-#define ERROR_OCCURRED( value )		(( ERROR_CODE = ( value )) != EOK )
+#define ERROR_OCCURRED(value)		((ERROR_CODE = (value)) != EOK)
 
 #endif
 
@@ -73,7 +73,7 @@
  *  @param[in] value The value to be checked. May be a function call.
  */
 
-#define ERROR_PROPAGATE( value )	if( ERROR_OCCURRED( value )) return ERROR_CODE
+#define ERROR_PROPAGATE(value)	if(ERROR_OCCURRED(value)) return ERROR_CODE
 
 #endif
 

@@ -58,7 +58,7 @@
  *  @returns NULL if the packet is not valid.
  *  @returns NULL if there is not enough memory left.
  */
-#define PACKET_PREFIX( packet, type )	( type * ) packet_prefix(( packet ), sizeof( type ))
+#define PACKET_PREFIX(packet, type)	(type *) packet_prefix((packet), sizeof(type))
 
 /** Allocates the specified type right after the actual packet content and returns its pointer.
  *  The wrapper of the packet_append() function.
@@ -68,7 +68,7 @@
  *  @returns NULL if the packet is not valid.
  *  @returns NULL if there is not enough memory left.
  */
-#define PACKET_SUFFIX( packet, type )	( type * ) packet_suffix(( packet ), sizeof( type ))
+#define PACKET_SUFFIX(packet, type)	(type *) packet_suffix((packet), sizeof(type))
 
 /** Trims the actual packet content by the specified prefix and suffix types.
  *  The wrapper of the packet_trim() function.
@@ -79,7 +79,7 @@
  *  @returns EINVAL if the packet is not valid.
  *  @returns ENOMEM if there is not enough memory left.
  */
-#define PACKET_TRIM( packet, prefix, suffix )	packet_trim(( packet ), sizeof( prefix ), sizeof( suffix ))
+#define PACKET_TRIM(packet, prefix, suffix)	packet_trim((packet), sizeof(prefix), sizeof(suffix))
 
 /** Allocates the specified space right before the actual packet content and returns its pointer.
  *  @param[in] packet The packet to be used.
@@ -87,7 +87,7 @@
  *  @returns The pointer to the allocated memory.
  *  @returns NULL if there is not enough memory left.
  */
-void *	packet_prefix( packet_t packet, size_t length );
+void * packet_prefix(packet_t packet, size_t length);
 
 /** Allocates the specified space right after the actual packet content and returns its pointer.
  *  @param[in] packet The packet to be used.
@@ -95,7 +95,7 @@ void *	packet_prefix( packet_t packet, size_t length );
  *  @returns The pointer to the allocated memory.
  *  @returns NULL if there is not enough memory left.
  */
-void *	packet_suffix( packet_t packet, size_t length );
+void * packet_suffix(packet_t packet, size_t length);
 
 /** Trims the actual packet content by the specified prefix and suffix lengths.
  *  @param[in] packet The packet to be trimmed.
@@ -105,7 +105,7 @@ void *	packet_suffix( packet_t packet, size_t length );
  *  @returns EINVAL if the packet is not valid.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	packet_trim( packet_t packet, size_t prefix, size_t suffix );
+int packet_trim(packet_t packet, size_t prefix, size_t suffix);
 
 /** Copies the specified data to the beginning of the actual packet content.
  *  Pushes the content end if needed.
@@ -116,28 +116,28 @@ int	packet_trim( packet_t packet, size_t prefix, size_t suffix );
  *  @returns EINVAL if the packet is not valid.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	packet_copy_data( packet_t packet, const void * data, size_t length );
+int packet_copy_data(packet_t packet, const void * data, size_t length);
 
 /** Returns the packet identifier.
  *  @param[in] packet The packet.
  *  @returns The packet identifier.
  *  @returns Zero (0) if the packet is not valid.
  */
-packet_id_t packet_get_id( const packet_t packet );
+packet_id_t packet_get_id(const packet_t packet);
 
 /** Returns the packet content length.
  *  @param[in] packet The packet.
  *  @returns The packet content length in bytes.
  *  @returns Zero (0) if the packet is not valid.
  */
-size_t	packet_get_data_length( const packet_t packet );
+size_t packet_get_data_length(const packet_t packet);
 
 /** Returns the pointer to the beginning of the packet content.
  *  @param[in] packet The packet.
  *  @returns The pointer to the beginning of the packet content.
  *  @returns NULL if the packet is not valid.
  */
-void *	packet_get_data( const packet_t packet );
+void * packet_get_data(const packet_t packet);
 
 /** Returns the stored packet addresses and their length.
  *  @param[in] packet The packet.
@@ -147,7 +147,7 @@ void *	packet_get_data( const packet_t packet );
  *  @returns Zero (0) if the addresses are not present.
  *  @returns EINVAL if the packet is not valid.
  */
-int	packet_get_addr( const packet_t packet, uint8_t ** src, uint8_t ** dest );
+int packet_get_addr(const packet_t packet, uint8_t ** src, uint8_t ** dest);
 
 /** Sets the packet addresses.
  *  @param[in] packet The packet.
@@ -158,7 +158,7 @@ int	packet_get_addr( const packet_t packet, uint8_t ** src, uint8_t ** dest );
  *  @returns EINVAL if the packet is not valid.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	packet_set_addr( packet_t packet, const uint8_t * src, const uint8_t * dest, size_t addr_len );
+int packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest, size_t addr_len);
 
 /** Translates the packet identifier to the packet reference.
  *  Tries to find mapping first.
@@ -171,7 +171,7 @@ int	packet_set_addr( packet_t packet, const uint8_t * src, const uint8_t * dest,
  *  @returns Other error codes as defined for the NET_PACKET_GET_SIZE message.
  *  @returns Other error codes as defined for the packet_return() function.
  */
-int packet_translate( int phone, packet_ref packet, packet_id_t packet_id );
+int packet_translate(int phone, packet_ref packet, packet_id_t packet_id);
 
 /** Obtains the packet of the given dimensions.
  *  Contacts the packet server to return the appropriate packet.
@@ -183,7 +183,7 @@ int packet_translate( int phone, packet_ref packet, packet_id_t packet_id );
  *  @returns The packet reference.
  *  @returns NULL on error.
  */
-packet_t packet_get_4( int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix );
+packet_t packet_get_4(int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix);
 
 /** Obtains the packet of the given content size.
  *  Contacts the packet server to return the appropriate packet.
@@ -192,7 +192,7 @@ packet_t packet_get_4( int phone, size_t max_content, size_t addr_len, size_t ma
  *  @returns The packet reference.
  *  @returns NULL on error.
  */
-packet_t packet_get_1( int phone, size_t content );
+packet_t packet_get_1(int phone, size_t content);
 
 /** Releases the packet queue.
  *  All packets in the queue are marked as free for use.
@@ -201,7 +201,7 @@ packet_t packet_get_1( int phone, size_t content );
  *  @param[in] phone The packet server module phone.
  *  @param[in] packet_id The packet identifier.
  */
-void pq_release( int phone, packet_id_t packet_id );
+void pq_release(int phone, packet_id_t packet_id);
 
 /** Returns the packet copy.
  *  Copies the addresses, data, order and metric values.
@@ -211,7 +211,7 @@ void pq_release( int phone, packet_id_t packet_id );
  *  @returns The packet copy.
  *  @returns NULL on error.
  */
-packet_t	packet_get_copy( int phone, packet_t packet );
+packet_t packet_get_copy(int phone, packet_t packet);
 
 /*@}*/
 

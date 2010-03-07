@@ -154,35 +154,35 @@ typedef struct net_globals	net_globals_t;
  *  Maps devices to the networking device specific data.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( netifs, netif_t )
+DEVICE_MAP_DECLARE(netifs, netif_t)
 
 /** Configuration settings.
  *  Maps setting names to the values.
  *  @see generic_char_map.h
  */
-GENERIC_CHAR_MAP_DECLARE( measured_strings, measured_string_t )
+GENERIC_CHAR_MAP_DECLARE(measured_strings, measured_string_t)
 
 /** Present network interface device.
  */
 struct netif{
 	/** System-unique network interface identifier.
 	 */
-	device_id_t		id;
+	device_id_t id;
 	/** Serving network interface driver module index.
 	 */
-	module_ref		driver;
+	module_ref driver;
 	/** Serving link layer module index.
 	 */
-	module_ref		nil;
+	module_ref nil;
 	/** Serving internet layer module index.
 	 */
-	module_ref		il;
+	module_ref il;
 	/** System-unique network interface name.
 	 */
-	char *			name;
+	char * name;
 	/** Configuration.
 	 */
-	measured_strings_t	configuration;
+	measured_strings_t configuration;
 };
 
 /** Networking module global variables.
@@ -190,16 +190,16 @@ struct netif{
 struct net_globals{
 	/** Present network interfaces.
 	 */
-	netifs_t		netifs;
+	netifs_t netifs;
 	/** Network interface structure indices by names.
 	 */
-	char_map_t		netif_names;
+	char_map_t netif_names;
 	/** Available modules.
 	 */
-	modules_t		modules;
+	modules_t modules;
 	/** Global configuration.
 	 */
-	measured_strings_t	configuration;
+	measured_strings_t configuration;
 };
 
 /** Adds the configured setting to the configuration map.
@@ -209,7 +209,7 @@ struct net_globals{
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	add_configuration( measured_strings_ref configuration, const char * name, const char * value );
+int add_configuration(measured_strings_ref configuration, const char * name, const char * value);
 
 /** Processes the networking message.
  *  @param[in] callid The message identifier.
@@ -221,14 +221,14 @@ int	add_configuration( measured_strings_ref configuration, const char * name, co
  *  @see net_interface.h
  *  @see IS_NET_NET_MESSAGE()
  */
-int net_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int net_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Initializes the networking module for the chosen subsystem build type.
  *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	net_initialize_build( async_client_conn_t client_connection );
+int net_initialize_build(async_client_conn_t client_connection);
 
 /** Processes the module message.
  *  Distributes the message to the right bundled module.
@@ -240,7 +240,7 @@ int	net_initialize_build( async_client_conn_t client_connection );
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each bundled module message function.
  */
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

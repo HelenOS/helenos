@@ -52,25 +52,33 @@
  */
 extern net_globals_t	net_globals;
 
-int module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
-	if( IS_NET_PACKET_MESSAGE( call )){
-		return packet_server_message( callid, call, answer, answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	if(IS_NET_PACKET_MESSAGE(call)){
+		return packet_server_message(callid, call, answer, answer_count);
 	}else{
-		return net_message( callid, call, answer, answer_count );
+		return net_message(callid, call, answer, answer_count);
 	}
 }
 
-int net_initialize_build( async_client_conn_t client_connection ){
+int net_initialize_build(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	task_id_t	task_id;
+	task_id_t task_id;
 
-	task_id = spawn( "/srv/ip" );
-	if( ! task_id ) return EINVAL;
-	ERROR_PROPAGATE( add_module( NULL, & net_globals.modules, IP_NAME, IP_FILENAME, SERVICE_IP, task_id, ip_connect_module ));
-	if( ! spawn( "/srv/icmp" )) return EINVAL;
-	if( ! spawn( "/srv/udp" )) return EINVAL;
-	if( ! spawn( "/srv/tcp" )) return EINVAL;
+	task_id = spawn("/srv/ip");
+	if(! task_id){
+		return EINVAL;
+	}
+	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules, IP_NAME, IP_FILENAME, SERVICE_IP, task_id, ip_connect_module));
+	if(! spawn("/srv/icmp")){
+		return EINVAL;
+	}
+	if(! spawn("/srv/udp")){
+		return EINVAL;
+	}
+	if(! spawn("/srv/tcp")){
+		return EINVAL;
+	}
 	return EOK;
 }
 

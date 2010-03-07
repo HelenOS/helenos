@@ -59,32 +59,32 @@ typedef module_t *				module_ref;
  *  Sorted by module names.
  *  @see generic_char_map.h
  */
-GENERIC_CHAR_MAP_DECLARE( modules, module_t )
+GENERIC_CHAR_MAP_DECLARE(modules, module_t)
 
 /** Module structure.
  */
 struct	module_struct{
 	/** Module task identifier if running.
 	 */
-	task_id_t	task_id;
+	task_id_t task_id;
 	/** Module service identifier.
 	 */
-	services_t	service;
+	services_t service;
 	/** Module phone if running and connected.
 	 */
-	int			phone;
+	int phone;
 	/** Usage counter.
 	 */
-	int			usage;
+	int usage;
 	/** Module name.
 	 */
-	const char *		name;
+	const char * name;
 	/** Module full path filename.
 	 */
-	const char *		filename;
+	const char * filename;
 	/** Connecting function.
 	 */
-	connect_module_t *	connect_module;
+	connect_module_t * connect_module;
 };
 
 /** Adds module to the module map.
@@ -98,7 +98,7 @@ struct	module_struct{
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	add_module( module_ref * module, modules_ref modules, const char * name, const char * filename, services_t service, task_id_t task_id, connect_module_t * connect_module );
+int add_module(module_ref * module, modules_ref modules, const char * name, const char * filename, services_t service, task_id_t task_id, connect_module_t * connect_module);
 
 /** Searches and returns the specified module.
  *  If the module is not running, the module filaname is spawned.
@@ -108,14 +108,14 @@ int	add_module( module_ref * module, modules_ref modules, const char * name, con
  *  @returns The running module found. It does not have to be connected.
  *  @returns NULL if there is no such module.
  */
-module_ref	get_running_module( modules_ref modules, char * name );
+module_ref get_running_module(modules_ref modules, char * name);
 
 /** Starts the given module.
  *  @param[in] fname The module full or relative path filename.
  *  @returns The new module task identifier on success.
  *  @returns 0 if there is no such module.
  */
-task_id_t	spawn( const char * fname );
+task_id_t spawn(const char * fname);
 
 #endif
 

@@ -58,7 +58,7 @@
 
 /** Prints the module name.
  */
-void	module_print_name( void );
+void module_print_name(void);
 
 /** Starts the dummy nil module.
  *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -68,7 +68,7 @@ void	module_print_name( void );
  *  @returns Other error codes as defined for the nil_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int	module_start( async_client_conn_t client_connection );
+int module_start(async_client_conn_t client_connection);
 
 /** Passes the parameters to the module specific nil_message() function.
  *  @param[in] callid The message identifier.
@@ -79,23 +79,23 @@ int	module_start( async_client_conn_t client_connection );
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
-void module_print_name( void ){
-	printf( "%s", NAME );
+void module_print_name(void){
+	printf("%s", NAME);
 }
 
-int module_start( async_client_conn_t client_connection ){
+int module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	ipcarg_t	phonehash;
-	int			net_phone;
+	ipcarg_t phonehash;
+	int net_phone;
 
-	async_set_client_connection( client_connection );
-	net_phone = net_connect_module( SERVICE_NETWORKING );
-	ERROR_PROPAGATE( pm_init());
-	if( ERROR_OCCURRED( nil_initialize( net_phone ))
-	|| ERROR_OCCURRED( REGISTER_ME( SERVICE_NILDUMMY, & phonehash ))){
+	async_set_client_connection(client_connection);
+	net_phone = net_connect_module(SERVICE_NETWORKING);
+	ERROR_PROPAGATE(pm_init());
+	if(ERROR_OCCURRED(nil_initialize(net_phone))
+		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_NILDUMMY, &phonehash))){
 		pm_destroy();
 		return ERROR_CODE;
 	}
@@ -106,8 +106,8 @@ int module_start( async_client_conn_t client_connection ){
 	return EOK;
 }
 
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
-	return nil_message( callid, call, answer, answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return nil_message(callid, call, answer, answer_count);
 }
 
 /** @}

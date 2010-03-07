@@ -44,12 +44,12 @@
 
 #include "icmp_messages.h"
 
-int icmp_connect_module( services_t service, suseconds_t timeout ){
-	int	phone;
+int icmp_connect_module(services_t service, suseconds_t timeout){
+	int phone;
 
-	phone = connect_to_service_timeout( SERVICE_ICMP, timeout );
-	if( phone >= 0 ){
-		async_req_0_0( phone, NET_ICMP_INIT );
+	phone = connect_to_service_timeout(SERVICE_ICMP, timeout);
+	if(phone >= 0){
+		async_req_0_0(phone, NET_ICMP_INIT);
 	}
 	return phone;
 }

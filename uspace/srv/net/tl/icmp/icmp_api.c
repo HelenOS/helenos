@@ -51,20 +51,20 @@
 
 #include "icmp_messages.h"
 
-int icmp_echo_msg( int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen ){
-	aid_t			message_id;
-	ipcarg_t		result;
+int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen){
+	aid_t message_id;
+	ipcarg_t result;
 
-	if( addrlen <= 0 ){
+	if(addrlen <= 0){
 		return EINVAL;
 	}
-	message_id = async_send_5( icmp_phone, NET_ICMP_ECHO, size, timeout, ttl, tos, ( ipcarg_t ) dont_fragment, NULL );
+	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl, tos, (ipcarg_t) dont_fragment, NULL);
 	// send the address
-	async_data_write_start( icmp_phone, addr, ( size_t ) addrlen );
+	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
 	// timeout version may cause inconsistency - there is also an inner timer
-	// return async_wait_timeout( message_id, & result, timeout );
-	async_wait_for( message_id, & result );
-	return ( int ) result;
+	// return async_wait_timeout(message_id, &result, timeout);
+	async_wait_for(message_id, &result);
+	return (int) result;
 }
 
 /** @}

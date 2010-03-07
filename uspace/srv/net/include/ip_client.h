@@ -56,7 +56,7 @@
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left in the packet.
  */
-int	ip_client_prepare_packet( packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, size_t ipopt_length );
+int ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, size_t ipopt_length);
 
 /** Processes the received IP packet.
  *  Fills set header fields.
@@ -70,14 +70,14 @@ int	ip_client_prepare_packet( packet_t packet, ip_protocol_t protocol, ip_ttl_t 
  *  @returns The prefixed IP header length in bytes on success.
  *  @returns ENOMEM if the packet is too short to contain the IP header.
  */
-int	ip_client_process_packet( packet_t packet, ip_protocol_t * protocol, ip_ttl_t * ttl, ip_tos_t * tos, int * dont_fragment, size_t * ipopt_length );
+int ip_client_process_packet(packet_t packet, ip_protocol_t * protocol, ip_ttl_t * ttl, ip_tos_t * tos, int * dont_fragment, size_t * ipopt_length);
 
 /** Returns the IP header length.
  *  @param[in] packet The packet.
  *  @returns The IP header length in bytes.
  *  @returns Zero (0) if there is no IP header.
  */
-size_t	ip_client_header_length( packet_t packet );
+size_t ip_client_header_length(packet_t packet);
 
 /** Updates the IPv4 pseudo header data length field.
  *  @param[in,out] header The IPv4 pseudo header to be updated.
@@ -87,7 +87,7 @@ size_t	ip_client_header_length( packet_t packet );
  *  @returns EBADMEM if the header parameter is NULL.
  *  @returns EINVAL if the headerlen parameter is not IPv4 pseudo header length.
  */
-int	ip_client_set_pseudo_header_data_length( ip_pseudo_header_ref header, size_t headerlen, size_t data_length );
+int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, size_t headerlen, size_t data_length);
 
 /** Constructs the IPv4 pseudo header.
  *  @param[in] protocol The transport protocol.
@@ -107,7 +107,7 @@ int	ip_client_set_pseudo_header_data_length( ip_pseudo_header_ref header, size_t
  *  @returns EAFNOSUPPORT if the address family is not supported.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	ip_client_get_pseudo_header( ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, ip_pseudo_header_ref * header, size_t * headerlen );
+int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, ip_pseudo_header_ref * header, size_t * headerlen);
 
 // TODO ipopt manipulation
 
