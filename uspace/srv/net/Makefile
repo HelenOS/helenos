@@ -28,7 +28,16 @@
 
 include ../../../Makefile.config
 
-DIRS = \
+# keep netif drivers before nil modules
+# in order to support networking architectures build
+
+ifeq ($(CONFIG_NETIF_DP8390),y)
+	DIRS = netif/dp8390
+else
+	DIRS =
+endif
+
+DIRS += \
 	netif/lo \
 	nil/eth \
 	nil/nildummy \
@@ -46,10 +55,6 @@ DIRS_MODULAR = \
 		tl/icmp \
 		tl/udp \
 		tl/tcp \
-
-ifeq ($(CONFIG_NETIF_DP8390),y)
-	DIRS += netif/dp8390
-endif
 
 DIRS_ALL = $(DIRS) $(DIRS_MODULAR)
 
