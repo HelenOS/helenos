@@ -105,57 +105,57 @@ GENERIC_FIELD_DECLARE(ip_routes, ip_route_t)
 /** IP network interface specific data.
  */
 struct	ip_netif{
-	/** Device identifier.
-	 */
-	device_id_t device_id;
-	/** Netif module service.
-	 */
-	services_t service;
-	/** Netif module phone.
-	 */
-	int phone;
 	/** ARP module.
 	 *  Assigned if using ARP.
 	 */
 	module_ref arp;
-	/** IP version.
-	 */
-	int ipv;
-	/** Indicates whether using DHCP.
-	 */
-	int dhcp;
-	/** Indicates whether IP routing is enabled.
-	 */
-	int routing;
-	/** Device state.
-	 */
-	device_state_t state;
 	/** Broadcast address.
 	 */
 	in_addr_t broadcast;
-	/** Routing table.
+	/** Device identifier.
 	 */
-	ip_routes_t routes;
+	device_id_t device_id;
+	/** Indicates whether using DHCP.
+	 */
+	int dhcp;
+	/** IP version.
+	 */
+	int ipv;
 	/** Packet dimension.
 	 */
 	packet_dimension_t packet_dimension;
+	/** Netif module phone.
+	 */
+	int phone;
+	/** Routing table.
+	 */
+	ip_routes_t routes;
+	/** Indicates whether IP routing is enabled.
+	 */
+	int routing;
+	/** Netif module service.
+	 */
+	services_t service;
+	/** Device state.
+	 */
+	device_state_t state;
 };
 
 /** IP protocol specific data.
  */
 struct ip_proto{
-	/** Protocol number.
-	 */
-	int protocol;
-	/** Protocol module service.
-	 */
-	services_t service;
 	/** Protocol module phone.
 	 */
 	int phone;
+	/** Protocol number.
+	 */
+	int protocol;
 	/** Protocol packet receiving function.
 	 */
 	tl_received_msg_t received_msg;
+	/** Protocol module service.
+	 */
+	services_t service;
 };
 
 /** IP route specific data.
@@ -164,20 +164,32 @@ struct ip_route{
 	/** Target address.
 	 */
 	in_addr_t address;
-	/** Target network mask.
-	 */
-	in_addr_t netmask;
 	/** Gateway.
 	 */
 	in_addr_t gateway;
 	/** Parent netif.
 	 */
 	ip_netif_ref netif;
+	/** Target network mask.
+	 */
+	in_addr_t netmask;
 };
 
 /** IP global data.
  */
 struct	ip_globals{
+	/** Default client connection function for support modules.
+	 */
+	async_client_conn_t client_connection;
+	/** Default gateway.
+	 */
+	ip_route_t gateway;
+	/** Safety lock.
+	 */
+	fibril_rwlock_t lock;
+	/** Known support modules.
+	 */
+	modules_t modules;
 	/** Networking module phone.
 	 */
 	int net_phone;
@@ -187,27 +199,15 @@ struct	ip_globals{
 	/** Netifs safeyt lock.
 	 */
 	fibril_rwlock_t netifs_lock;
+	/** Packet counter.
+	 */
+	uint16_t packet_counter;
 	/** Registered protocols.
 	 */
 	ip_protos_t protos;
 	/** Protocols safety lock.
 	 */
 	fibril_rwlock_t protos_lock;
-	/** Default gateway.
-	 */
-	ip_route_t gateway;
-	/** Known support modules.
-	 */
-	modules_t modules;
-	/** Default client connection function for support modules.
-	 */
-	async_client_conn_t client_connection;
-	/** Packet counter.
-	 */
-	uint16_t packet_counter;
-	/** Safety lock.
-	 */
-	fibril_rwlock_t lock;
 };
 
 #endif

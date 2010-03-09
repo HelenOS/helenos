@@ -47,25 +47,28 @@
 #include "structures/measured_strings.h"
 #include "structures/packet/packet.h"
 
+/** Returns a value indicating whether the value is in the interval.
+ *  @param[in] item The value to be checked.
+ *  @param[in] first_inclusive The first value in the interval inclusive.
+ *  @param[in] last_exclusive The first value after the interval.
+ */
+#define IS_IN_INTERVAL(item, first_inclusive, last_exclusive)	(((item) >= (first_inclusive)) && ((item) < (last_exclusive)))
+
 /** @name Networking message counts
  */
 /*@{*/
 
-/** The number of network interface driver messages.
+/** The number of ARP messages.
  */
-#define NET_NETIF_COUNT		6
-
-/** The number of general networking messages.
- */
-#define NET_NET_COUNT		3
-
-/** The number of network interface layer messages.
- */
-#define NET_NIL_COUNT		7
+#define NET_ARP_COUNT		5
 
 /** The number of Ethernet messages.
  */
 #define NET_ETH_COUNT		0
+
+/** The number of ICMP messages.
+ */
+#define NET_ICMP_COUNT		6
 
 /** The number of inter-network messages.
  */
@@ -75,25 +78,17 @@
  */
 #define NET_IP_COUNT		4
 
-/** The number of ARP messages.
+/** The number of general networking messages.
  */
-#define NET_ARP_COUNT		5
+#define NET_NET_COUNT		3
 
-/** The number of ICMP messages.
+/** The number of network interface driver messages.
  */
-#define NET_ICMP_COUNT		6
+#define NET_NETIF_COUNT		6
 
-/** The number of transport layer messages.
+/** The number of network interface layer messages.
  */
-#define NET_TL_COUNT		1
-
-/** The number of UDP messages.
- */
-#define NET_UDP_COUNT		0
-
-/** The number of TCP messages.
- */
-#define NET_TCP_COUNT		0
+#define NET_NIL_COUNT		7
 
 /** The number of packet management system messages.
  */
@@ -102,6 +97,18 @@
 /** The number of socket messages.
  */
 #define NET_SOCKET_COUNT	14
+
+/** The number of TCP messages.
+ */
+#define NET_TCP_COUNT		0
+
+/** The number of transport layer messages.
+ */
+#define NET_TL_COUNT		1
+
+/** The number of UDP messages.
+ */
+#define NET_UDP_COUNT		0
 
 /*@}*/
 
@@ -225,32 +232,25 @@
  */
 #define NET_COUNT			(NET_LAST - NET_FIRST)
 
-/** Returns a value indicating whether the value is in the interval.
- *  @param[in] item The value to be checked.
- *  @param[in] first_inclusive The first value in the interval inclusive.
- *  @param[in] last_exclusive The first value after the interval.
- */
-#define IS_IN_INTERVAL(item, first_inclusive, last_exclusive)	(((item) >= (first_inclusive)) && ((item) < (last_exclusive)))
-
 /** Returns a value indicating whether the IPC call is a generic networking message.
  *  @param[in] call The IPC call to be checked.
  */
 #define IS_NET_MESSAGE(call)			IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_FIRST, NET_LAST)
 
-/** Returns a value indicating whether the IPC call is a generic networking message.
+/** Returns a value indicating whether the IPC call is an ARP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_NET_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NET_FIRST, NET_NET_LAST)
-
-/** Returns a value indicating whether the IPC call is a network interface layer message.
- *  @param[in] call The IPC call to be checked.
- */
-#define IS_NET_NIL_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
+#define IS_NET_ARP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
 
 /** Returns a value indicating whether the IPC call is an Ethernet message.
  *  @param[in] call The IPC call to be checked.
  */
 #define IS_NET_ETH_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ETH_FIRST, NET_ETH_LAST)
+
+/** Returns a value indicating whether the IPC call is an ICMP message.
+ *  @param[in] call The IPC call to be checked.
+ */
+#define IS_NET_ICMP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
 
 /** Returns a value indicating whether the IPC call is an inter-network layer message.
  *  @param[in] call The IPC call to be checked.
@@ -262,15 +262,30 @@
  */
 #define IS_NET_IP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IP_FIRST, NET_IP_LAST)
 
-/** Returns a value indicating whether the IPC call is an ARP message.
+/** Returns a value indicating whether the IPC call is a generic networking message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_ARP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
+#define IS_NET_NET_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NET_FIRST, NET_NET_LAST)
 
-/** Returns a value indicating whether the IPC call is an ICMP message.
+/** Returns a value indicating whether the IPC call is a network interface layer message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_ICMP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
+#define IS_NET_NIL_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
+
+/** Returns a value indicating whether the IPC call is a packet manaagement system message.
+ *  @param[in] call The IPC call to be checked.
+ */
+#define IS_NET_PACKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
+
+/** Returns a value indicating whether the IPC call is a socket message.
+ *  @param[in] call The IPC call to be checked.
+ */
+#define IS_NET_SOCKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
+
+/** Returns a value indicating whether the IPC call is a TCP message.
+ *  @param[in] call The IPC call to be checked.
+ */
+#define IS_NET_TCP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
 
 /** Returns a value indicating whether the IPC call is a transport layer message.
  *  @param[in] call The IPC call to be checked.
@@ -282,76 +297,95 @@
  */
 #define IS_NET_UDP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
 
-/** Returns a value indicating whether the IPC call is a TCP message.
- *  @param[in] call The IPC call to be checked.
- */
-#define IS_NET_TCP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
-
-/** Returns a value indicating whether the IPC call is a socket message.
- *  @param[in] call The IPC call to be checked.
- */
-#define IS_NET_SOCKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
-
-/** Returns a value indicating whether the IPC call is a packet manaagement system message.
- *  @param[in] call The IPC call to be checked.
- */
-#define IS_NET_PACKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
-
 /*@}*/
 
-/** @name Networking specific message parameters definitions
+/** @name Networking specific message arguments definitions
  */
 /*@{*/
 
-/** Returns the device identifier message parameter.
+/** @name First arguments
+ */
+/*@{*/
+
+/** Returns the device identifier message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_DEVICE(call)		(device_id_t) IPC_GET_ARG1(*call)
 
-/** Returns the packet identifier message parameter.
+/*@}*/
+
+/** @name Second arguments
+ */
+/*@{*/
+
+/** Returns the packet identifier message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_PACKET(call)		(packet_id_t) IPC_GET_ARG2(*call)
 
-/** Returns the count message parameter.
+/** Returns the count message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_COUNT(call)		(size_t) IPC_GET_ARG2(*call)
 
-/** Returns the device state message parameter.
+/** Returns the device state message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_STATE(call)		(device_state_t) IPC_GET_ARG2(*call)
 
-/** Returns the maximum transmission unit message parameter.
+/** Returns the maximum transmission unit message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_MTU(call)			(size_t) IPC_GET_ARG2(*call)
 
-/** Returns the device driver service message parameter.
+/*@}*/
+
+/** @name Third arguments
+ */
+/*@{*/
+
+/** Returns the device driver service message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_SERVICE(call)		(services_t) IPC_GET_ARG3(*call)
 
-/** Returns the target service message parameter.
+/** Returns the target service message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_TARGET(call)		(services_t) IPC_GET_ARG3(*call)
 
-/** Returns the sender service message parameter.
+/** Returns the sender service message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_SENDER(call)		(services_t) IPC_GET_ARG3(*call)
 
-/** Returns the error service message parameter.
+/*@}*/
+
+/** @name Fourth arguments
+ */
+/*@{*/
+
+/** Returns the error service message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_ERROR(call)		(services_t) IPC_GET_ARG4(*call)
 
-/** Returns the phone message parameter.
+/*@}*/
+
+/** @name Fifth arguments
+ */
+/*@{*/
+
+/** Returns the phone message argument.
  *  @param[in] call The message call structure.
  */
 #define IPC_GET_PHONE(call)		(int) IPC_GET_ARG5(*call)
+
+/*@}*/
+
+/** @name First answers
+ */
+/*@{*/
 
 /** Sets the device identifier in the message answer.
  *  @param[out] answer The message answer structure.
@@ -363,15 +397,33 @@
  */
 #define IPC_SET_ADDR(answer)		((size_t *) &IPC_GET_ARG1(*answer))
 
+/*@}*/
+
+/** @name Second answers
+ */
+/*@{*/
+
 /** Sets the minimum prefix size in the message answer.
  *  @param[out] answer The message answer structure.
  */
 #define IPC_SET_PREFIX(answer)	((size_t *) &IPC_GET_ARG2(*answer))
 
+/*@}*/
+
+/** @name Third answers
+ */
+/*@{*/
+
 /** Sets the maximum content size in the message answer.
  *  @param[out] answer The message answer structure.
  */
 #define IPC_SET_CONTENT(answer)	((size_t *) &IPC_GET_ARG3(*answer))
+
+/*@}*/
+
+/** @name Fourth answers
+ */
+/*@{*/
 
 /** Sets the minimum suffix size in the message answer.
  *  @param[out] answer The message answer structure.
@@ -379,6 +431,34 @@
 #define IPC_SET_SUFFIX(answer)	((size_t *) &IPC_GET_ARG4(*answer))
 
 /*@}*/
+
+/*@}*/
+
+/** Notifies the module about the device state change.
+ *  @param[in] phone The service module phone.
+ *  @param[in] message The service specific message.
+ *  @param[in] device_id The device identifier.
+ *  @param[in] state The new device state.
+ *  @param[in] target The target module service.
+ *  @returns EOK on success.
+ */
+static inline int generic_device_state_msg(int phone, int message, device_id_t device_id, int state, services_t target){
+	async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) state, target);
+	return EOK;
+}
+
+/** Notifies a module about the device.
+ *  @param[in] phone The service module phone.
+ *  @param[in] message The service specific message.
+ *  @param[in] device_id The device identifier.
+ *  @param[in] arg2 The second argument of the message.
+ *  @param[in] service The device module service.
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for the specific service message.
+ */
+static inline int generic_device_req(int phone, int message, device_id_t device_id, int arg2, services_t service){
+	return (int) async_req_3_0(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) arg2, (ipcarg_t) service);
+}
 
 /** Returns the address.
  *  @param[in] phone The service module phone.
@@ -398,70 +478,19 @@ static inline int generic_get_addr_req(int phone, int message, device_id_t devic
 	if(!(address && data)){
 		return EBADMEM;
 	}
+
+	// request the address
 	message_id = async_send_1(phone, (ipcarg_t) message, (ipcarg_t) device_id, NULL);
 	string = measured_strings_return(phone, address, data, 1);
 	async_wait_for(message_id, &result);
+
+	// if not successful
 	if((string == EOK) && (result != EOK)){
+		// clear the data
 		free(*address);
 		free(*data);
 	}
 	return (int) result;
-}
-
-/** Translates the given strings.
- *  Allocates and returns the needed memory block as the data parameter.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] service The module service.
- *  @param[in] configuration The key strings.
- *  @param[in] count The number of configuration keys.
- *  @param[out] translation The translated values.
- *  @param[out] data The translation data container.
- *  @returns EOK on success.
- *  @returns EINVAL if the configuration parameter is NULL.
- *  @returns EINVAL if the count parameter is zero (0).
- *  @returns EBADMEM if the translation or the data parameters are NULL.
- *  @returns Other error codes as defined for the specific service message.
- */
-static inline int generic_translate_req(int phone, int message, device_id_t device_id, services_t service, measured_string_ref configuration, size_t count, measured_string_ref * translation, char ** data){
-	aid_t message_id;
-	ipcarg_t result;
-	int string;
-
-	if(!(configuration && (count > 0))){
-		return EINVAL;
-	}
-	if(!(translation && data)){
-		return EBADMEM;
-	}
-	message_id = async_send_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) count, (ipcarg_t) service, NULL);
-	measured_strings_send(phone, configuration, count);
-	string = measured_strings_return(phone, translation, data, count);
-	async_wait_for(message_id, &result);
-	if((string == EOK) && (result != EOK)){
-		free(*translation);
-		free(*data);
-	}
-	return (int) result;
-}
-
-/** Sends the packet queue.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet_id The packet or the packet queue identifier.
- *  @param[in] sender The sending module service.
- *  @param[in] error The error module service.
- *  @returns EOK on success.
- */
-static inline int generic_send_msg(int phone, int message, device_id_t device_id, packet_id_t packet_id, services_t sender, services_t error){
-	if(error){
-		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender, (ipcarg_t) error);
-	}else{
-		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender);
-	}
-	return EOK;
 }
 
 /** Returns the device packet dimension for sending.
@@ -491,19 +520,6 @@ static inline int generic_packet_size_req(int phone, int message, device_id_t de
 	return (int) result;
 }
 
-/** Notifies the module about the device state change.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] state The new device state.
- *  @param[in] target The target module service.
- *  @returns EOK on success.
- */
-static inline int generic_device_state_msg(int phone, int message, device_id_t device_id, int state, services_t target){
-	async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) state, target);
-	return EOK;
-}
-
 /** Passes the packet queue to the module.
  *  @param[in] phone The service module phone.
  *  @param[in] message The service specific message.
@@ -522,17 +538,66 @@ static inline int generic_received_msg(int phone, int message, device_id_t devic
 	return EOK;
 }
 
-/** Notifies a module about the device.
+/** Sends the packet queue.
  *  @param[in] phone The service module phone.
  *  @param[in] message The service specific message.
  *  @param[in] device_id The device identifier.
- *  @param[in] arg2 The second argument of the message.
- *  @param[in] service The device module service.
+ *  @param[in] packet_id The packet or the packet queue identifier.
+ *  @param[in] sender The sending module service.
+ *  @param[in] error The error module service.
  *  @returns EOK on success.
+ */
+static inline int generic_send_msg(int phone, int message, device_id_t device_id, packet_id_t packet_id, services_t sender, services_t error){
+	if(error){
+		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender, (ipcarg_t) error);
+	}else{
+		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender);
+	}
+	return EOK;
+}
+
+/** Translates the given strings.
+ *  Allocates and returns the needed memory block as the data parameter.
+ *  @param[in] phone The service module phone.
+ *  @param[in] message The service specific message.
+ *  @param[in] device_id The device identifier.
+ *  @param[in] service The module service.
+ *  @param[in] configuration The key strings.
+ *  @param[in] count The number of configuration keys.
+ *  @param[out] translation The translated values.
+ *  @param[out] data The translation data container.
+ *  @returns EOK on success.
+ *  @returns EINVAL if the configuration parameter is NULL.
+ *  @returns EINVAL if the count parameter is zero (0).
+ *  @returns EBADMEM if the translation or the data parameters are NULL.
  *  @returns Other error codes as defined for the specific service message.
  */
-static inline int generic_device_req(int phone, int message, device_id_t device_id, int arg2, services_t service){
-	return (int) async_req_3_0(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) arg2, (ipcarg_t) service);
+static inline int generic_translate_req(int phone, int message, device_id_t device_id, services_t service, measured_string_ref configuration, size_t count, measured_string_ref * translation, char ** data){
+	aid_t message_id;
+	ipcarg_t result;
+	int string;
+
+	if(!(configuration && (count > 0))){
+		return EINVAL;
+	}
+	if(!(translation && data)){
+		return EBADMEM;
+	}
+
+	// request the translation
+	message_id = async_send_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) count, (ipcarg_t) service, NULL);
+	measured_strings_send(phone, configuration, count);
+	string = measured_strings_return(phone, translation, data, count);
+	async_wait_for(message_id, &result);
+
+	// if not successful
+	if((string == EOK) && (result != EOK)){
+		// clear the data
+		free(*translation);
+		free(*data);
+	}
+
+	return (int) result;
 }
 
 #endif

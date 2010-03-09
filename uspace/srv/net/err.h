@@ -61,7 +61,9 @@
  */
 #ifdef CONFIG_DEBUG
 
-#define ERROR_OCCURRED(value)		(((ERROR_CODE = (value)) != EOK) && ({printf("error at %s:%d %d\n", __FILE__, __LINE__, ERROR_CODE); 1;}))
+#define ERROR_OCCURRED(value)												\
+	(((ERROR_CODE = (value)) != EOK)										\
+	&& ({printf("error at %s:%d %d\n", __FILE__, __LINE__, ERROR_CODE); 1;}))
 
 #else
 

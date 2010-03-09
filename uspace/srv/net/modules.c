@@ -50,6 +50,7 @@
 #define MODULE_WAIT_TIME	(10 * 1000)
 
 void answer_call(ipc_callid_t callid, int result, ipc_call_t * answer, int answer_count){
+	// choose the most efficient answer function
 	if(answer || (! answer_count)){
 		switch(answer_count){
 			case 0:
@@ -85,8 +86,11 @@ int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t
 	int phone;
 	ipcarg_t phonehash;
 
+	// connect to the needed service
 	phone = connect_to_service_timeout(need, timeout);
+	// if connected
 	if(phone >= 0){
+		// request the bidirectional connection
 		if(ERROR_OCCURRED(ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash))){
 			ipc_hangup(phone);
 			return ERROR_CODE;
@@ -101,22 +105,27 @@ int connect_to_service(services_t need){
 }
 
 int connect_to_service_timeout(services_t need, suseconds_t timeout){
-	if (timeout <= 0)
-		return async_connect_me_to_blocking(PHONE_NS, need, 0, 0);
-	
-	while(true){
-		int phone;
+	int phone;
 
+	// if no timeout is set
+	if (timeout <= 0){
+		return async_connect_me_to_blocking(PHONE_NS, need, 0, 0);
+	}
+
+	while(true){
 		phone = async_connect_me_to(PHONE_NS, need, 0, 0);
-		if((phone >= 0) || (phone != ENOENT))
+		if((phone >= 0) || (phone != ENOENT)){
 			return phone;
-	
-		timeout -= MODULE_WAIT_TIME;
+		}
+
+		// end if no time is left
 		if(timeout <= 0){
 			return ETIMEOUT;
 		}
 
-		usleep(MODULE_WAIT_TIME);
+		// wait the minimum of the module wait time and the timeout
+		usleep((timeout <= MODULE_WAIT_TIME) ? timeout : MODULE_WAIT_TIME);
+		timeout -= MODULE_WAIT_TIME;
 	}
 }
 
@@ -128,13 +137,19 @@ int data_receive(void ** data, size_t * length){
 	if(!(data && length)){
 		return EBADMEM;
 	}
+
+	// fetch the request
 	if(! async_data_write_receive(&callid, length)){
 		return EINVAL;
 	}
+
+	// allocate the buffer
 	*data = malloc(*length);
 	if(!(*data)){
 		return ENOMEM;
 	}
+
+	// fetch the data
 	if(ERROR_OCCURRED(async_data_write_finalize(callid, * data, * length))){
 		free(data);
 		return ERROR_CODE;
@@ -146,20 +161,27 @@ int data_reply(void * data, size_t data_length){
 	size_t length;
 	ipc_callid_t callid;
 
+	// fetch the request
 	if(! async_data_read_receive(&callid, &length)){
 		return EINVAL;
 	}
+
+	// check the requested data size
 	if(length < data_length){
 		async_data_read_finalize(callid, data, length);
 		return EOVERFLOW;
 	}
+
+	// send the data
 	return async_data_read_finalize(callid, data, data_length);
 }
 
 void refresh_answer(ipc_call_t * answer, int * answer_count){
+
 	if(answer_count){
 		*answer_count = 0;
 	}
+
 	if(answer){
 		IPC_SET_RETVAL(*answer, 0);
 		// just to be precize

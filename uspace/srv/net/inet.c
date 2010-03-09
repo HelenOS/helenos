@@ -44,19 +44,55 @@
 #include "include/inet.h"
 #include "include/socket_codes.h"
 
+int inet_ntop(uint16_t family, const uint8_t * data, char * address, size_t length){
+	if((! data) || (! address)){
+		return EINVAL;
+	}
+
+	switch(family){
+		case AF_INET:
+			// check the output buffer size
+			if(length < INET_ADDRSTRLEN){
+				return ENOMEM;
+			}
+			// fill the buffer with the IPv4 address
+			snprintf(address, length, "%hhu.%hhu.%hhu.%hhu", data[0], data[1], data[2], data[3]);
+			return EOK;
+		case AF_INET6:
+			// check the output buffer size
+			if(length < INET6_ADDRSTRLEN){
+				return ENOMEM;
+			}
+			// fill the buffer with the IPv6 address
+			snprintf(address, length, "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+			return EOK;
+		default:
+			return ENOTSUP;
+	}
+}
+
 int inet_pton(uint16_t family, const char * address, uint8_t * data){
+	/** The base number of the values.
+	 */
+	int base;
+	/** The number of bytes per a section.
+	 */
+	size_t bytes;
+	/** The number of bytes of the address data.
+	 */
+	int count;
+
 	const char * next;
 	char * last;
 	int index;
-	int count;
-	int base;
-	size_t bytes;
 	size_t shift;
 	unsigned long value;
 
 	if(! data){
 		return EINVAL;
 	}
+
+	// set the processing parameters
 	switch(family){
 		case AF_INET:
 			count = 4;
@@ -71,54 +107,49 @@ int inet_pton(uint16_t family, const char * address, uint8_t * data){
 		default:
 			return ENOTSUP;
 	}
+
+	// erase if no address
 	if(! address){
 		bzero(data, count);
 		return ENOENT;
 	}
+
+	// process the string from the beginning
 	next = address;
 	index = 0;
 	do{
+		// if the actual character is set
 		if(next && (*next)){
+
+			// if not on the first character
 			if(index){
+				// move to the next character
 				++ next;
 			}
+
+			// parse the actual integral value
 			value = strtoul(next, &last, base);
+			// remember the last problematic character
+			// should be either '.' or ':' but is ignored to be more generic
 			next = last;
+
+			// fill the address data byte by byte
 			shift = bytes - 1;
 			do{
 				// like little endian
 				data[index + shift] = value;
 				value >>= 8;
 			}while(shift --);
+
 			index += bytes;
 		}else{
+			// erase the rest of the address
 			bzero(data + index, count - index);
 			return EOK;
 		}
 	}while(index < count);
-	return EOK;
-}
 
-int inet_ntop(uint16_t family, const uint8_t * data, char * address, size_t length){
-	if((! data) || (! address)){
-		return EINVAL;
-	}
-	switch(family){
-		case AF_INET:
-			if(length < INET_ADDRSTRLEN){
-				return ENOMEM;
-			}
-			snprintf(address, length, "%hhu.%hhu.%hhu.%hhu", data[0], data[1], data[2], data[3]);
-			return EOK;
-		case AF_INET6:
-			if(length < INET6_ADDRSTRLEN){
-				return ENOMEM;
-			}
-			snprintf(address, length, "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-			return EOK;
-		default:
-			return ENOTSUP;
-	}
+	return EOK;
 }
 
 /** @}

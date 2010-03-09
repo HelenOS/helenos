@@ -56,21 +56,21 @@
  *  @param[in] function_call The function to be called and checked.
  *  @param[in] result The expected result.
  */
-#define TEST(name, function_call, result);	{	\
-	printf("\n\t%s", (name)); 					\
-	if((function_call) != (result)){			\
-		printf("\tERROR\n");						\
-		error = 1;									\
-	}else{											\
-		printf("\tOK\n");							\
-	}												\
+#define TEST(name, function_call, result);	{								\
+	printf("\n\t%s", (name)); 												\
+	if((function_call) != (result)){										\
+		printf("\tERROR\n");												\
+		error = 1;															\
+	}else{																	\
+		printf("\tOK\n");													\
+	}																		\
 }
 
-#if NET_SELF_TEST_INT_MAP
+#if NET_SELF_TEST_GENERIC_CHAR_MAP
 
-	INT_MAP_DECLARE(int_map, int);
+	GENERIC_CHAR_MAP_DECLARE(int_char_map, int)
 
-	INT_MAP_IMPLEMENT(int_map, int);
+	GENERIC_CHAR_MAP_IMPLEMENT(int_char_map, int)
 
 #endif
 
@@ -82,11 +82,11 @@
 
 #endif
 
-#if NET_SELF_TEST_GENERIC_CHAR_MAP
+#if NET_SELF_TEST_INT_MAP
 
-	GENERIC_CHAR_MAP_DECLARE(int_char_map, int)
+	INT_MAP_DECLARE(int_map, int);
 
-	GENERIC_CHAR_MAP_IMPLEMENT(int_char_map, int)
+	INT_MAP_IMPLEMENT(int_map, int);
 
 #endif
 
@@ -100,15 +100,6 @@ int self_test(void){
 	int * w;
 
 	error = 0;
-
-#if NET_SELF_TEST_MEASURED_STRINGS
-	measured_string_ref string;
-
-	printf("\nMeasured strings test");
-	string = measured_string_create_bulk("I am a measured string!", 0);
-	printf("\n%x, %s at %x of %d", string, string->value, string->value, string->length);
-	printf("\nOK");
-#endif
 
 #if NET_SELF_TEST_CHAR_MAP
 	char_map_t cm;
@@ -151,160 +142,6 @@ int self_test(void){
 	printf("\n\tdestroy");
 	char_map_destroy(&cm);
 	TEST("update ucho 3 einval", char_map_update(&cm, "ucho", 0, 3), EINVAL);
-	printf("\nOK");
-
-	if(error){
-		return EINVAL;
-	}
-
-#endif
-
-#if NET_SELF_TEST_INT_MAP
-	int_map_t im;
-
-	x = (int *) malloc(sizeof(int));
-	y = (int *) malloc(sizeof(int));
-	z = (int *) malloc(sizeof(int));
-	u = (int *) malloc(sizeof(int));
-	v = (int *) malloc(sizeof(int));
-	w = (int *) malloc(sizeof(int));
-
-	im.magic = 0;
-	printf("\nInt map test");
-	TEST("add 1 x einval", int_map_add(&im, 1, x), EINVAL);
-	TEST("count -1", int_map_count(&im), -1);
-	TEST("initialize", int_map_initialize(&im), EOK);
-	TEST("count 0", int_map_count(&im), 0);
-	TEST("find 1 null", int_map_find(&im, 1), NULL);
-	TEST("add 1 x 0", int_map_add(&im, 1, x), 0);
-	TEST("find 1 x", int_map_find(&im, 1), x);
-	int_map_exclude(&im, 1);
-	TEST("find 1 null", int_map_find(&im, 1), NULL);
-	TEST("add 1 y 1", int_map_add(&im, 1, y), 1);
-	TEST("find 1 y", int_map_find(&im, 1), y);
-	TEST("add 4 z 2", int_map_add(&im, 4, z), 2);
-	TEST("get 2 z", int_map_get_index(&im, 2), z);
-	TEST("find 4 z", int_map_find(&im, 4), z);
-	TEST("find 1 y", int_map_find(&im, 1), y);
-	TEST("count 3", int_map_count(&im), 3);
-	TEST("add 2 u 3", int_map_add(&im, 2, u), 3);
-	TEST("find 2 u", int_map_find(&im, 2), u);
-	TEST("add 3 v 4", int_map_add(&im, 3, v), 4);
-	TEST("find 3 v", int_map_find(&im, 3), v);
-	TEST("get 4 v", int_map_get_index(&im, 4), v);
-	TEST("add 6 w 5", int_map_add(&im, 6, w), 5);
-	TEST("find 6 w", int_map_find(&im, 6), w);
-	TEST("count 6", int_map_count(&im), 6);
-	int_map_exclude(&im, 1);
-	TEST("find 1 null", int_map_find(&im, 1), NULL);
-	TEST("find 2 u", int_map_find(&im, 2), u);
-	int_map_exclude(&im, 7);
-	TEST("find 2 u", int_map_find(&im, 2), u);
-	TEST("find 6 w", int_map_find(&im, 6), w);
-	int_map_exclude_index(&im, 4);
-	TEST("get 4 null", int_map_get_index(&im, 4), NULL);
-	TEST("find 3 null", int_map_find(&im, 3), NULL);
-	printf("\n\tdestroy");
-	int_map_destroy(&im);
-	TEST("count -1", int_map_count(&im), -1);
-	printf("\nOK");
-
-	if(error){
-		return EINVAL;
-	}
-
-#endif
-
-#if NET_SELF_TEST_GENERIC_FIELD
-	int_field_t gf;
-
-	x = (int *) malloc(sizeof(int));
-	y = (int *) malloc(sizeof(int));
-	z = (int *) malloc(sizeof(int));
-	u = (int *) malloc(sizeof(int));
-	v = (int *) malloc(sizeof(int));
-	w = (int *) malloc(sizeof(int));
-
-	gf.magic = 0;
-	printf("\nGeneric field test");
-	TEST("add x einval", int_field_add(&gf, x), EINVAL);
-	TEST("count -1", int_field_count(&gf), -1);
-	TEST("initialize", int_field_initialize(&gf), EOK);
-	TEST("count 0", int_field_count(&gf), 0);
-	TEST("get 1 null", int_field_get_index(&gf, 1), NULL);
-	TEST("add x 0", int_field_add(&gf, x), 0);
-	TEST("get 0 x", int_field_get_index(&gf, 0), x);
-	int_field_exclude_index(&gf, 0);
-	TEST("get 0 null", int_field_get_index(&gf, 0), NULL);
-	TEST("add y 1", int_field_add(&gf, y), 1);
-	TEST("get 1 y", int_field_get_index(&gf, 1), y);
-	TEST("add z 2", int_field_add(&gf, z), 2);
-	TEST("get 2 z", int_field_get_index(&gf, 2), z);
-	TEST("get 1 y", int_field_get_index(&gf, 1), y);
-	TEST("count 3", int_field_count(&gf), 3);
-	TEST("add u 3", int_field_add(&gf, u), 3);
-	TEST("get 3 u", int_field_get_index(&gf, 3), u);
-	TEST("add v 4", int_field_add(&gf, v), 4);
-	TEST("get 4 v", int_field_get_index(&gf, 4), v);
-	TEST("add w 5", int_field_add(&gf, w), 5);
-	TEST("get 5 w", int_field_get_index(&gf, 5), w);
-	TEST("count 6", int_field_count(&gf), 6);
-	int_field_exclude_index(&gf, 1);
-	TEST("get 1 null", int_field_get_index(&gf, 1), NULL);
-	TEST("get 3 u", int_field_get_index(&gf, 3), u);
-	int_field_exclude_index(&gf, 7);
-	TEST("get 3 u", int_field_get_index(&gf, 3), u);
-	TEST("get 5 w", int_field_get_index(&gf, 5), w);
-	int_field_exclude_index(&gf, 4);
-	TEST("get 4 null", int_field_get_index(&gf, 4), NULL);
-	printf("\n\tdestroy");
-	int_field_destroy(&gf);
-	TEST("count -1", int_field_count(&gf), -1);
-	printf("\nOK");
-
-	if(error){
-		return EINVAL;
-	}
-
-#endif
-
-#if NET_SELF_TEST_GENERIC_CHAR_MAP
-	int_char_map_t icm;
-
-	x = (int *) malloc(sizeof(int));
-	y = (int *) malloc(sizeof(int));
-	z = (int *) malloc(sizeof(int));
-	u = (int *) malloc(sizeof(int));
-	v = (int *) malloc(sizeof(int));
-	w = (int *) malloc(sizeof(int));
-
-	icm.magic = 0;
-	printf("\nGeneric char map test");
-	TEST("add ucho z einval", int_char_map_add(&icm, "ucho", 0, z), EINVAL);
-	TEST("initialize", int_char_map_initialize(&icm), EOK);
-	printf("\n\texclude bla null");
-	int_char_map_exclude(&icm, "bla", 0);
-	TEST("find bla null", int_char_map_find(&icm, "bla", 0), NULL);
-	TEST("add bla x eok", int_char_map_add(&icm, "bla", 0, x), EOK);
-	TEST("find bla x", int_char_map_find(&icm, "bla", 0), x);
-	TEST("add bla y eexists", int_char_map_add(&icm, "bla", 0, y), EEXISTS);
-	printf("\n\texclude bla y");
-	int_char_map_exclude(&icm, "bla", 0);
-	printf("\n\texclude bla null");
-	int_char_map_exclude(&icm, "bla", 0);
-	TEST("add blabla v eok", int_char_map_add(&icm, "blabla", 0, v), EOK);
-	TEST("find blabla v", int_char_map_find(&icm, "blabla", 0), v);
-	TEST("add bla w eok", int_char_map_add(&icm, "bla", 0, w), EOK);
-	TEST("find bla w", int_char_map_find(&icm, "bla", 0), w);
-	printf("\n\texclude bla");
-	int_char_map_exclude(&icm, "bla", 0);
-	TEST("find bla null", int_char_map_find(&icm, "bla", 0), NULL);
-	TEST("find blabla v", int_char_map_find(&icm, "blabla", 0), v);
-	TEST("add auto u eok", int_char_map_add(&icm, "auto", 0, u), EOK);
-	TEST("find auto u", int_char_map_find(&icm, "auto", 0), u);
-	printf("\n\tdestroy");
-	int_char_map_destroy(&icm);
-	TEST("add ucho z einval", int_char_map_add(&icm, "ucho", 0, z), EINVAL);
 	printf("\nOK");
 
 	if(error){
@@ -389,6 +226,169 @@ int self_test(void){
 		return EINVAL;
 	}
 
+#endif
+
+#if NET_SELF_TEST_GENERIC_CHAR_MAP
+	int_char_map_t icm;
+
+	x = (int *) malloc(sizeof(int));
+	y = (int *) malloc(sizeof(int));
+	z = (int *) malloc(sizeof(int));
+	u = (int *) malloc(sizeof(int));
+	v = (int *) malloc(sizeof(int));
+	w = (int *) malloc(sizeof(int));
+
+	icm.magic = 0;
+	printf("\nGeneric char map test");
+	TEST("add ucho z einval", int_char_map_add(&icm, "ucho", 0, z), EINVAL);
+	TEST("initialize", int_char_map_initialize(&icm), EOK);
+	printf("\n\texclude bla null");
+	int_char_map_exclude(&icm, "bla", 0);
+	TEST("find bla null", int_char_map_find(&icm, "bla", 0), NULL);
+	TEST("add bla x eok", int_char_map_add(&icm, "bla", 0, x), EOK);
+	TEST("find bla x", int_char_map_find(&icm, "bla", 0), x);
+	TEST("add bla y eexists", int_char_map_add(&icm, "bla", 0, y), EEXISTS);
+	printf("\n\texclude bla y");
+	int_char_map_exclude(&icm, "bla", 0);
+	printf("\n\texclude bla null");
+	int_char_map_exclude(&icm, "bla", 0);
+	TEST("add blabla v eok", int_char_map_add(&icm, "blabla", 0, v), EOK);
+	TEST("find blabla v", int_char_map_find(&icm, "blabla", 0), v);
+	TEST("add bla w eok", int_char_map_add(&icm, "bla", 0, w), EOK);
+	TEST("find bla w", int_char_map_find(&icm, "bla", 0), w);
+	printf("\n\texclude bla");
+	int_char_map_exclude(&icm, "bla", 0);
+	TEST("find bla null", int_char_map_find(&icm, "bla", 0), NULL);
+	TEST("find blabla v", int_char_map_find(&icm, "blabla", 0), v);
+	TEST("add auto u eok", int_char_map_add(&icm, "auto", 0, u), EOK);
+	TEST("find auto u", int_char_map_find(&icm, "auto", 0), u);
+	printf("\n\tdestroy");
+	int_char_map_destroy(&icm);
+	TEST("add ucho z einval", int_char_map_add(&icm, "ucho", 0, z), EINVAL);
+	printf("\nOK");
+
+	if(error){
+		return EINVAL;
+	}
+
+#endif
+
+#if NET_SELF_TEST_GENERIC_FIELD
+	int_field_t gf;
+
+	x = (int *) malloc(sizeof(int));
+	y = (int *) malloc(sizeof(int));
+	z = (int *) malloc(sizeof(int));
+	u = (int *) malloc(sizeof(int));
+	v = (int *) malloc(sizeof(int));
+	w = (int *) malloc(sizeof(int));
+
+	gf.magic = 0;
+	printf("\nGeneric field test");
+	TEST("add x einval", int_field_add(&gf, x), EINVAL);
+	TEST("count -1", int_field_count(&gf), -1);
+	TEST("initialize", int_field_initialize(&gf), EOK);
+	TEST("count 0", int_field_count(&gf), 0);
+	TEST("get 1 null", int_field_get_index(&gf, 1), NULL);
+	TEST("add x 0", int_field_add(&gf, x), 0);
+	TEST("get 0 x", int_field_get_index(&gf, 0), x);
+	int_field_exclude_index(&gf, 0);
+	TEST("get 0 null", int_field_get_index(&gf, 0), NULL);
+	TEST("add y 1", int_field_add(&gf, y), 1);
+	TEST("get 1 y", int_field_get_index(&gf, 1), y);
+	TEST("add z 2", int_field_add(&gf, z), 2);
+	TEST("get 2 z", int_field_get_index(&gf, 2), z);
+	TEST("get 1 y", int_field_get_index(&gf, 1), y);
+	TEST("count 3", int_field_count(&gf), 3);
+	TEST("add u 3", int_field_add(&gf, u), 3);
+	TEST("get 3 u", int_field_get_index(&gf, 3), u);
+	TEST("add v 4", int_field_add(&gf, v), 4);
+	TEST("get 4 v", int_field_get_index(&gf, 4), v);
+	TEST("add w 5", int_field_add(&gf, w), 5);
+	TEST("get 5 w", int_field_get_index(&gf, 5), w);
+	TEST("count 6", int_field_count(&gf), 6);
+	int_field_exclude_index(&gf, 1);
+	TEST("get 1 null", int_field_get_index(&gf, 1), NULL);
+	TEST("get 3 u", int_field_get_index(&gf, 3), u);
+	int_field_exclude_index(&gf, 7);
+	TEST("get 3 u", int_field_get_index(&gf, 3), u);
+	TEST("get 5 w", int_field_get_index(&gf, 5), w);
+	int_field_exclude_index(&gf, 4);
+	TEST("get 4 null", int_field_get_index(&gf, 4), NULL);
+	printf("\n\tdestroy");
+	int_field_destroy(&gf);
+	TEST("count -1", int_field_count(&gf), -1);
+	printf("\nOK");
+
+	if(error){
+		return EINVAL;
+	}
+
+#endif
+
+#if NET_SELF_TEST_INT_MAP
+	int_map_t im;
+
+	x = (int *) malloc(sizeof(int));
+	y = (int *) malloc(sizeof(int));
+	z = (int *) malloc(sizeof(int));
+	u = (int *) malloc(sizeof(int));
+	v = (int *) malloc(sizeof(int));
+	w = (int *) malloc(sizeof(int));
+
+	im.magic = 0;
+	printf("\nInt map test");
+	TEST("add 1 x einval", int_map_add(&im, 1, x), EINVAL);
+	TEST("count -1", int_map_count(&im), -1);
+	TEST("initialize", int_map_initialize(&im), EOK);
+	TEST("count 0", int_map_count(&im), 0);
+	TEST("find 1 null", int_map_find(&im, 1), NULL);
+	TEST("add 1 x 0", int_map_add(&im, 1, x), 0);
+	TEST("find 1 x", int_map_find(&im, 1), x);
+	int_map_exclude(&im, 1);
+	TEST("find 1 null", int_map_find(&im, 1), NULL);
+	TEST("add 1 y 1", int_map_add(&im, 1, y), 1);
+	TEST("find 1 y", int_map_find(&im, 1), y);
+	TEST("add 4 z 2", int_map_add(&im, 4, z), 2);
+	TEST("get 2 z", int_map_get_index(&im, 2), z);
+	TEST("find 4 z", int_map_find(&im, 4), z);
+	TEST("find 1 y", int_map_find(&im, 1), y);
+	TEST("count 3", int_map_count(&im), 3);
+	TEST("add 2 u 3", int_map_add(&im, 2, u), 3);
+	TEST("find 2 u", int_map_find(&im, 2), u);
+	TEST("add 3 v 4", int_map_add(&im, 3, v), 4);
+	TEST("find 3 v", int_map_find(&im, 3), v);
+	TEST("get 4 v", int_map_get_index(&im, 4), v);
+	TEST("add 6 w 5", int_map_add(&im, 6, w), 5);
+	TEST("find 6 w", int_map_find(&im, 6), w);
+	TEST("count 6", int_map_count(&im), 6);
+	int_map_exclude(&im, 1);
+	TEST("find 1 null", int_map_find(&im, 1), NULL);
+	TEST("find 2 u", int_map_find(&im, 2), u);
+	int_map_exclude(&im, 7);
+	TEST("find 2 u", int_map_find(&im, 2), u);
+	TEST("find 6 w", int_map_find(&im, 6), w);
+	int_map_exclude_index(&im, 4);
+	TEST("get 4 null", int_map_get_index(&im, 4), NULL);
+	TEST("find 3 null", int_map_find(&im, 3), NULL);
+	printf("\n\tdestroy");
+	int_map_destroy(&im);
+	TEST("count -1", int_map_count(&im), -1);
+	printf("\nOK");
+
+	if(error){
+		return EINVAL;
+	}
+
+#endif
+
+#if NET_SELF_TEST_MEASURED_STRINGS
+	measured_string_ref string;
+
+	printf("\nMeasured strings test");
+	string = measured_string_create_bulk("I am a measured string!", 0);
+	printf("\n%x, %s at %x of %d", string, string->value, string->value, string->length);
+	printf("\nOK");
 #endif
 
 	return EOK;

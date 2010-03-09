@@ -52,6 +52,14 @@ typedef enum{
 	 *  @see il_device_state_msg()
 	 */
 	NET_IL_DEVICE_STATE,
+	/** Device MTU changed message.
+	 *  @see il_mtu_changed_msg()
+	 */
+	NET_IL_MTU_CHANGED,
+	/** Packet size message.
+	 *  @see il_packet_size_req()
+	 */
+	NET_IL_PACKET_SPACE,
 	/** Packet received message.
 	 *  @see il_received_msg()
 	 */
@@ -59,15 +67,7 @@ typedef enum{
 	/** Packet send message.
 	 *  @see il_send_msg()
 	 */
-	NET_IL_SEND,
-	/** Packet size message.
-	 *  @see il_packet_size_req()
-	 */
-	NET_IL_PACKET_SPACE,
-	/** Device MTU changed message.
-	 *  @see il_mtu_changed_msg()
-	 */
-	NET_IL_MTU_CHANGED
+	NET_IL_SEND
 } il_messages;
 
 /** @name Internetwork layer specific message parameters definitions
@@ -82,7 +82,7 @@ typedef enum{
 /** Returns the registering service message parameter.
  *  @param[in] call The message call structure.
  */
-#define IL_GET_SERVICE(call)		(services_t) IPC_GET_ARG2(*call)
+#define IL_GET_SERVICE(call)	(services_t) IPC_GET_ARG2(*call)
 
 /*@}*/
 

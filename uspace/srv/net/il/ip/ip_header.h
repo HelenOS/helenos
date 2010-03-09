@@ -41,36 +41,6 @@
 #include <byteorder.h>
 #include <sys/types.h>
 
-/** Returns the actual IP header length in bytes.
- *  @param[in] header The IP packet header.
- */
-#define IP_HEADER_LENGTH(header)		((header)->header_length * 4u)
-
-/** Returns the IP header length.
- *  @param[in] length The IP header length in bytes.
- */
-#define IP_COMPUTE_HEADER_LENGTH(length)		((uint8_t) ((length) / 4u))
-
-/** Returns the actual IP packet total length.
- *  @param[in] header The IP packet header.
- */
-#define IP_TOTAL_LENGTH(header)		ntohs((header)->total_length)
-
-/** Returns the actual IP packet data length.
- *  @param[in] header The IP packet header.
- */
-#define IP_HEADER_DATA_LENGTH(header)	(IP_TOTAL_LENGTH(header) - IP_HEADER_LENGTH(header))
-
-/** Returns the IP packet header checksum.
- *  @param[in] header The IP packet header.
- */
-#define IP_HEADER_CHECKSUM(header)	(htons(ip_checksum((uint8_t *)(header), IP_HEADER_LENGTH(header))))
-
-/** Returns the fragment offest.
- *  @param[in] header The IP packet header.
- */
-#define IP_FRAGMENT_OFFSET(header) ((((header)->fragment_offset_high << 8) + (header)->fragment_offset_low) * 8u)
-
 /** Returns the fragment offest high bits.
  *  @param[in] length The prefixed data total length.
  */
@@ -81,6 +51,70 @@
  */
 #define IP_COMPUTE_FRAGMENT_OFFSET_LOW(length) (((length) / 8u) &0xFF)
 
+/** Returns the IP header length.
+ *  @param[in] length The IP header length in bytes.
+ */
+#define IP_COMPUTE_HEADER_LENGTH(length)		((uint8_t) ((length) / 4u))
+
+/** Returns the fragment offest.
+ *  @param[in] header The IP packet header.
+ */
+#define IP_FRAGMENT_OFFSET(header) ((((header)->fragment_offset_high << 8) + (header)->fragment_offset_low) * 8u)
+
+/** Returns the IP packet header checksum.
+ *  @param[in] header The IP packet header.
+ */
+#define IP_HEADER_CHECKSUM(header)	(htons(ip_checksum((uint8_t *)(header), IP_HEADER_LENGTH(header))))
+
+/** Returns the actual IP packet data length.
+ *  @param[in] header The IP packet header.
+ */
+#define IP_HEADER_DATA_LENGTH(header)	(IP_TOTAL_LENGTH(header) - IP_HEADER_LENGTH(header))
+
+/** Returns the actual IP header length in bytes.
+ *  @param[in] header The IP packet header.
+ */
+#define IP_HEADER_LENGTH(header)		((header)->header_length * 4u)
+
+/** Returns the actual IP packet total length.
+ *  @param[in] header The IP packet header.
+ */
+#define IP_TOTAL_LENGTH(header)		ntohs((header)->total_length)
+
+/** @name IP flags definitions
+ */
+/*@{*/
+
+/** Fragment flag field shift.
+ */
+#define IPFLAG_FRAGMENT_SHIFT		1
+
+/** Fragmented flag field shift.
+ */
+#define IPFLAG_FRAGMENTED_SHIFT		0
+
+/** Don't fragment flag value.
+ *  Permits the packet fragmentation.
+ */
+#define IPFLAG_DONT_FRAGMENT		(0x1 << IPFLAG_FRAGMENT_SHIFT)
+
+/** Last fragment flag value.
+ *  Indicates the last packet fragment.
+ */
+#define IPFLAG_LAST_FRAGMENT		(0x0 << IPFLAG_FRAGMENTED_SHIFT)
+
+/** May fragment flag value.
+ *  Allows the packet fragmentation.
+ */
+#define IPFLAG_MAY_FRAGMENT			(0x0 << IPFLAG_FRAGMENT_SHIFT)
+
+/** More fragments flag value.
+ *  Indicates that more packet fragments follow.
+ */
+#define IPFLAG_MORE_FRAGMENTS		(0x1 << IPFLAG_FRAGMENTED_SHIFT)
+
+/*@}*/
+
 /** Type definition of the internet header.
  *  @see ip_header
  */
@@ -90,6 +124,26 @@ typedef struct ip_header	ip_header_t;
  *  @see ip_header
  */
 typedef ip_header_t *		ip_header_ref;
+
+/** Type definition of the internet option header.
+ *  @see ip_header
+ */
+typedef struct ip_option	ip_option_t;
+
+/** Type definition of the internet option header pointer.
+ *  @see ip_header
+ */
+typedef ip_option_t *		ip_option_ref;
+
+/** Type definition of the internet version 4 pseudo header.
+ *  @see ipv4_pseudo_header
+ */
+typedef struct ipv4_pseudo_header	ipv4_pseudo_header_t;
+
+/** Type definition of the internet version 4 pseudo header pointer.
+ *  @see ipv4_pseudo_header
+ */
+typedef ipv4_pseudo_header_t *		ipv4_pseudo_header_ref;
 
 /** Internet header.
  *  The variable options should be included after the header itself and indicated by the increased header length value.
@@ -170,16 +224,6 @@ struct ip_header{
 	uint32_t destination_address;
 } __attribute__ ((packed));
 
-/** Type definition of the internet option header.
- *  @see ip_header
- */
-typedef struct ip_option	ip_option_t;
-
-/** Type definition of the internet option header pointer.
- *  @see ip_header
- */
-typedef ip_option_t *		ip_option_ref;
-
 /** Internet option header.
  *  Only type field is always valid.
  *  Other fields' validity depends on the option type.
@@ -210,50 +254,6 @@ struct ip_option{
 	uint8_t overflow:4;
 #endif
 } __attribute__ ((packed));
-
-/** @name IP flags definitions
- */
-/*@{*/
-
-/** Fragment flag field shift.
- */
-#define IPFLAG_FRAGMENT_SHIFT		1
-
-/** Fragmented flag field shift.
- */
-#define IPFLAG_FRAGMENTED_SHIFT		0
-
-/** May fragment flag value.
- *  Allows the packet fragmentation.
- */
-#define IPFLAG_MAY_FRAGMENT			(0x0 << IPFLAG_FRAGMENT_SHIFT)
-
-/** Don't fragment flag value.
- *  Permits the packet fragmentation.
- */
-#define IPFLAG_DONT_FRAGMENT		(0x1 << IPFLAG_FRAGMENT_SHIFT)
-
-/** Last fragment flag value.
- *  Indicates the last packet fragment.
- */
-#define IPFLAG_LAST_FRAGMENT		(0x0 << IPFLAG_FRAGMENTED_SHIFT)
-
-/** More fragments flag value.
- *  Indicates that more packet fragments follow.
- */
-#define IPFLAG_MORE_FRAGMENTS		(0x1 << IPFLAG_FRAGMENTED_SHIFT)
-
-/*@}*/
-
-/** Type definition of the internet version 4 pseudo header.
- *  @see ipv4_pseudo_header
- */
-typedef struct ipv4_pseudo_header	ipv4_pseudo_header_t;
-
-/** Type definition of the internet version 4 pseudo header pointer.
- *  @see ipv4_pseudo_header
- */
-typedef ipv4_pseudo_header_t *		ipv4_pseudo_header_ref;
 
 /** Internet version 4 pseudo header.
  */

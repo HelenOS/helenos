@@ -52,14 +52,6 @@
  */
 extern net_globals_t	net_globals;
 
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	if(IS_NET_PACKET_MESSAGE(call)){
-		return packet_server_message(callid, call, answer, answer_count);
-	}else{
-		return net_message(callid, call, answer, answer_count);
-	}
-}
-
 int net_initialize_build(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
@@ -80,6 +72,14 @@ int net_initialize_build(async_client_conn_t client_connection){
 		return EINVAL;
 	}
 	return EOK;
+}
+
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	if(IS_NET_PACKET_MESSAGE(call)){
+		return packet_server_message(callid, call, answer, answer_count);
+	}else{
+		return net_message(callid, call, answer, answer_count);
+	}
 }
 
 /** @}

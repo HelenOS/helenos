@@ -103,16 +103,24 @@ void client_connection(ipc_callid_t iid, ipc_call_t * icall){
 	 */
 	ipc_answer_0(iid, EOK);
 
+	// process additional messages
 	while(true){
+
+		// clear the answer structure
 		refresh_answer(&answer, &answer_count);
 
+		// fetch the next message
 		callid = async_get_call(&call);
+
+		// process the message
 		res = module_message(callid, &call, &answer, &answer_count);
 
+		// end if said to either by the message or the processing result
 		if((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP)){
 			return;
 		}
 
+		// answer the message
 		answer_call(callid, res, &answer, answer_count);
 	}
 }
@@ -120,13 +128,17 @@ void client_connection(ipc_callid_t iid, ipc_call_t * icall){
 int main(int argc, char * argv[]){
 	ERROR_DECLARE;
 
+	// print the module label
 	printf("Task %d - ", task_get_id());
 	module_print_name();
 	printf("\n");
+
+	// start the module
 	if(ERROR_OCCURRED(module_start(client_connection))){
 		printf(" - ERROR %i\n", ERROR_CODE);
 		return ERROR_CODE;
 	}
+
 	return EOK;
 }
 

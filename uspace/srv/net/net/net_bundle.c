@@ -59,6 +59,25 @@
  */
 extern net_globals_t	net_globals;
 
+int net_initialize_build(async_client_conn_t client_connection){
+	ERROR_DECLARE;
+
+	ipcarg_t phonehash;
+
+	ERROR_PROPAGATE(REGISTER_ME(SERVICE_IP, &phonehash));
+	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules, IP_NAME, IP_FILENAME, SERVICE_IP, task_get_id(), ip_connect_module));
+	ERROR_PROPAGATE(ip_initialize(client_connection));
+	ERROR_PROPAGATE(REGISTER_ME(SERVICE_ARP, &phonehash));
+	ERROR_PROPAGATE(arp_initialize(client_connection));
+	ERROR_PROPAGATE(REGISTER_ME(SERVICE_ICMP, &phonehash));
+	ERROR_PROPAGATE(icmp_initialize(client_connection));
+	ERROR_PROPAGATE(REGISTER_ME(SERVICE_UDP, &phonehash));
+	ERROR_PROPAGATE(udp_initialize(client_connection));
+	ERROR_PROPAGATE(REGISTER_ME(SERVICE_TCP, &phonehash));
+	ERROR_PROPAGATE(tcp_initialize(client_connection));
+	return EOK;
+}
+
 int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	if((IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME)
 		|| IS_NET_IL_MESSAGE(call)
@@ -95,25 +114,6 @@ int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, 
 			return net_message(callid, call, answer, answer_count);
 		}
 	}
-}
-
-int net_initialize_build(async_client_conn_t client_connection){
-	ERROR_DECLARE;
-
-	ipcarg_t phonehash;
-
-	ERROR_PROPAGATE(REGISTER_ME(SERVICE_IP, &phonehash));
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules, IP_NAME, IP_FILENAME, SERVICE_IP, task_get_id(), ip_connect_module));
-	ERROR_PROPAGATE(ip_initialize(client_connection));
-	ERROR_PROPAGATE(REGISTER_ME(SERVICE_ARP, &phonehash));
-	ERROR_PROPAGATE(arp_initialize(client_connection));
-	ERROR_PROPAGATE(REGISTER_ME(SERVICE_ICMP, &phonehash));
-	ERROR_PROPAGATE(icmp_initialize(client_connection));
-	ERROR_PROPAGATE(REGISTER_ME(SERVICE_UDP, &phonehash));
-	ERROR_PROPAGATE(udp_initialize(client_connection));
-	ERROR_PROPAGATE(REGISTER_ME(SERVICE_TCP, &phonehash));
-	ERROR_PROPAGATE(tcp_initialize(client_connection));
-	return EOK;
 }
 
 /** @}
