@@ -37,11 +37,14 @@
 #ifndef __NET_APP_PARSE__
 #define __NET_APP_PARSE__
 
-/** Prints the parameter unrecognized message and the application help.
- *  @param[in] index The index of the parameter.
- *  @param[in] parameter The parameter name.
+#include "../include/socket.h"
+
+/** Translates the character string to the address family number.
+ *  @param[in] name The address family name.
+ *  @returns The corresponding address family number.
+ *  @returns EAFNOSUPPORTED if the address family is not supported.
  */
-void print_unrecognized(int index, const char * parameter);
+int parse_address_family(const char * name);
 
 /** Parses the next parameter as an integral number.
  *  The actual parameter is pointed by the index.
@@ -57,21 +60,6 @@ void print_unrecognized(int index, const char * parameter);
  *  @returns EINVAL if the parameter is in wrong format.
  */
 int parse_parameter_int(int argc, char ** argv, int * index, int * value, const char * name, int offset);
-
-/** Parses the next parameter as a character string.
- *  The actual parameter is pointed by the index.
- *  Uses the offseted actual parameter value if the offset is set or the next one if not.
- *  Increments the actual index by the number of processed parameters.
- *  @param[in] argc The total number of the parameters.
- *  @param[in] argv The parameters.
- *  @param[in,out] index The actual parameter index. The index is incremented by the number of processed parameters.
- *  @param[out] value The parsed parameter value.
- *  @param[in] name The parameter name to be printed on errors.
- *  @param[in] offset The value offset in the actual parameter. If not set, the next parameter is parsed instead.
- *  @returns EOK on success.
- *  @returns EINVAL if the parameter is missing.
- */
-int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset);
 
 /** Parses the next named parameter as an integral number.
  *  The actual parameter is pointed by the index.
@@ -90,6 +78,41 @@ int parse_parameter_string(int argc, char ** argv, int * index, char ** value, c
  *  @returns ENOENT if the parameter name has not been found.
  */
 int parse_parameter_name_int(int argc, char ** argv, int * index, int * value, const char * name, int offset, int (*parse_value)(const char * value));
+
+/** Parses the next parameter as a character string.
+ *  The actual parameter is pointed by the index.
+ *  Uses the offseted actual parameter value if the offset is set or the next one if not.
+ *  Increments the actual index by the number of processed parameters.
+ *  @param[in] argc The total number of the parameters.
+ *  @param[in] argv The parameters.
+ *  @param[in,out] index The actual parameter index. The index is incremented by the number of processed parameters.
+ *  @param[out] value The parsed parameter value.
+ *  @param[in] name The parameter name to be printed on errors.
+ *  @param[in] offset The value offset in the actual parameter. If not set, the next parameter is parsed instead.
+ *  @returns EOK on success.
+ *  @returns EINVAL if the parameter is missing.
+ */
+int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset);
+
+/** Translates the character string to the protocol family number.
+ *  @param[in] name The protocol family name.
+ *  @returns The corresponding protocol family number.
+ *  @returns EPFNOSUPPORTED if the protocol family is not supported.
+ */
+int parse_protocol_family(const char * name);
+
+/** Translates the character string to the socket type number.
+ *  @param[in] name The socket type name.
+ *  @returns The corresponding socket type number.
+ *  @returns ESOCKNOSUPPORTED if the socket type is not supported.
+ */
+int parse_socket_type(const char * name);
+
+/** Prints the parameter unrecognized message and the application help.
+ *  @param[in] index The index of the parameter.
+ *  @param[in] parameter The parameter name.
+ */
+void print_unrecognized(int index, const char * parameter);
 
 #endif
 

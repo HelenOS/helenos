@@ -49,6 +49,14 @@
  */
 #define IS_SOCKET_ERROR(error_code)	((error_code) < 0)
 
+/** Prints the specific ICMP error description.
+ *  @param[in] output The description output stream. May be NULL.
+ *  @param[in] error_code The ICMP error code.
+ *  @param[in] prefix The error description prefix. May be NULL.
+ *  @param[in] suffix The error description suffix. May be NULL.
+ */
+void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
+
 /** Prints the error description.
  *  Supports ICMP and socket error codes.
  *  @param[in] output The description output stream. May be NULL.
@@ -57,14 +65,6 @@
  *  @param[in] suffix The error description suffix. May be NULL.
  */
 void print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
-
-/** Prints the specific ICMP error description.
- *  @param[in] output The description output stream. May be NULL.
- *  @param[in] error_code The ICMP error code.
- *  @param[in] prefix The error description prefix. May be NULL.
- *  @param[in] suffix The error description suffix. May be NULL.
- */
-void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
 
 /** Prints the specific socket error description.
  *  @param[in] output The description output stream. May be NULL.

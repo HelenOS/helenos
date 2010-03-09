@@ -39,6 +39,7 @@ include ../../../../../Makefile.config
 OUTPUT = $(NAME)
 SOURCES = \
 	$(NAME).c \
+	$(NET_BASE)app/nettest.c \
 	$(NET_BASE)app/parse.c \
 	$(NET_BASE)app/print_error.c
 
