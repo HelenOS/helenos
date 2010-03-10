@@ -75,16 +75,20 @@ int main(int argc, char * argv[]){
 
 	int net_phone;
 
+	// print the module label
 	printf("Task %d - ", task_get_id());
 	printf("%s\n", NAME);
+
 	// run self tests
 	ERROR_PROPAGATE(self_test());
-	// start net service
+
+	// start the networking service
 	if(! spawn("/srv/net")){
 		fprintf(stderr, "Could not spawn net\n");
 		return EINVAL;
 	}
-	// start net
+
+	// start the networking
 	net_phone = connect_to_service(SERVICE_NETWORKING);
 	if(ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))){
 		printf("ERROR %d\n", ERROR_CODE);

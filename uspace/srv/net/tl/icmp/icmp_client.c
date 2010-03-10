@@ -36,7 +36,10 @@
  */
 
 #include <errno.h>
-//#include <stdio.h>
+
+#ifdef CONFIG_DEBUG
+	#include <stdio.h>
+#endif
 
 #include <sys/types.h>
 
@@ -69,7 +72,9 @@ int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t 
 		*mtu = header->un.frag.mtu;
 	}
 	// remove debug dump
-//	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code, packet_get_id(packet));
+#ifdef CONFIG_DEBUG
+	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code, packet_get_id(packet));
+#endif
 	return sizeof(icmp_header_t);
 }
 

@@ -507,6 +507,9 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 		}
 	}
 
+	// release the application phone
+	ipc_hangup(app_phone);
+
 	// release all local sockets
 	socket_cores_release(udp_globals.net_phone, &local_sockets, &udp_globals.sockets, NULL);
 

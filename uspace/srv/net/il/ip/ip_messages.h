@@ -50,33 +50,38 @@ typedef enum{
 	 *  @see ip_add_route()
 	 */
 	NET_IP_ADD_ROUTE = NET_IP_FIRST,
-	/** Sets the default gateway.
-	 *  @see ip_set_default_gateway()
+	/** Gets the actual route information.
+	 *  @see ip_get_route()
 	 */
-	NET_IP_SET_GATEWAY,
+	NET_IP_GET_ROUTE,
 	/** Processes the received error notification.
 	 *  @see ip_received_error_msg()
 	 */
 	NET_IP_RECEIVED_ERROR,
-	/** Gets the actual route information.
-	 *  @see ip_get_route()
+	/** Sets the default gateway.
+	 *  @see ip_set_default_gateway()
 	 */
-	NET_IP_GET_ROUTE
+	NET_IP_SET_GATEWAY
 } ip_messages;
 
 /** @name IP specific message parameters definitions
  */
 /*@{*/
 
+/** Returns the address message parameter.
+ *  @param[in] call The message call structure.
+ */
+#define IP_GET_ADDRESS(call)		({in_addr_t addr; addr.s_addr = IPC_GET_ARG3(*call); addr;})
+
 /** Returns the gateway message parameter.
  *  @param[in] call The message call structure.
  */
 #define IP_GET_GATEWAY(call)		({in_addr_t addr; addr.s_addr = IPC_GET_ARG2(*call); addr;})
 
-/** Returns the address message parameter.
- *  @param[in] call The message call structure.
+/** Sets the header length in the message answer.
+ *  @param[out] answer The message answer structure.
  */
-#define IP_GET_ADDRESS(call)		({in_addr_t addr; addr.s_addr = IPC_GET_ARG3(*call); addr;})
+#define IP_SET_HEADERLEN(answer)	((size_t *) &IPC_GET_ARG2(*answer))
 
 /** Returns the network mask message parameter.
  *  @param[in] call The message call structure.
@@ -87,11 +92,6 @@ typedef enum{
  *  @param[in] call The message call structure.
  */
 #define IP_GET_PROTOCOL(call)		((ip_protocol_t) IPC_GET_ARG1(*call))
-
-/** Sets the header length in the message answer.
- *  @param[out] answer The message answer structure.
- */
-#define IP_SET_HEADERLEN(answer)	((size_t *) &IPC_GET_ARG2(*answer))
 
 /*@}*/
 

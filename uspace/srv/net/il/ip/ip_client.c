@@ -47,62 +47,6 @@
 
 #include "ip_header.h"
 
-int ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, size_t ipopt_length){
-	ip_header_ref header;
-	uint8_t * data;
-	size_t padding;
-
-	padding =  ipopt_length % 4;
-	if(padding){
-		padding = 4 - padding;
-		ipopt_length += padding;
-	}
-	data = (uint8_t *) packet_prefix(packet, sizeof(ip_header_t) + padding);
-	if(! data){
-		return ENOMEM;
-	}
-	while(padding --){
-		data[sizeof(ip_header_t) + padding] = IPOPT_NOOP;
-	}
-	header = (ip_header_ref) data;
-	header->header_length = IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) + ipopt_length);
-	header->ttl = (ttl ? ttl : IPDEFTTL); //(((ttl) <= MAXTTL) ? ttl : MAXTTL) : IPDEFTTL;
-	header->tos = tos;
-	header->protocol = protocol;
-	if(dont_fragment){
-		header->flags = IPFLAG_DONT_FRAGMENT;
-	}
-	return EOK;
-}
-
-int ip_client_process_packet(packet_t packet, ip_protocol_t * protocol, ip_ttl_t * ttl, ip_tos_t * tos, int * dont_fragment, size_t * ipopt_length){
-	ip_header_ref header;
-
-	header = (ip_header_ref) packet_get_data(packet);
-	if((! header)
-		|| (packet_get_data_length(packet) < sizeof(ip_header_t))){
-		return ENOMEM;
-	}
-	if(protocol){
-		*protocol = header->protocol;
-	}
-	if(ttl){
-		*ttl = header->ttl;
-	}
-	if(tos){
-		*tos = header->tos;
-	}
-	if(dont_fragment){
-		*dont_fragment = header->flags &IPFLAG_DONT_FRAGMENT;
-	}
-	if(ipopt_length){
-		*ipopt_length = IP_HEADER_LENGTH(header) - sizeof(ip_header_t);
-		return sizeof(ip_header_t);
-	}else{
-		return IP_HEADER_LENGTH(header);
-	}
-}
-
 size_t ip_client_header_length(packet_t packet){
 	ip_header_ref header;
 
@@ -112,21 +56,6 @@ size_t ip_client_header_length(packet_t packet){
 		return 0;
 	}
 	return IP_HEADER_LENGTH(header);
-}
-
-int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, size_t headerlen, size_t data_length){
-	ipv4_pseudo_header_ref header_in;
-
-	if(! header){
-		return EBADMEM;
-	}
-	if(headerlen == sizeof(ipv4_pseudo_header_t)){
-		header_in = (ipv4_pseudo_header_ref) header;
-		header_in->data_length = htons(data_length);
-		return EOK;
-	}else{
-		return EINVAL;
-	}
 }
 
 int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, ip_pseudo_header_ref * header, size_t * headerlen){
@@ -139,6 +68,7 @@ int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, s
 	if(!(src && dest && (srclen > 0) && ((size_t) srclen >= sizeof(struct sockaddr)) && (srclen == destlen) && (src->sa_family == dest->sa_family))){
 		return EINVAL;
 	}
+
 	switch(src->sa_family){
 		case AF_INET:
 			if(srclen != sizeof(struct sockaddr_in)){
@@ -167,6 +97,89 @@ int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, s
 			return EOK;
 */		default:
 			return EAFNOSUPPORT;
+	}
+}
+
+int ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, size_t ipopt_length){
+	ip_header_ref header;
+	uint8_t * data;
+	size_t padding;
+
+	// compute the padding if IP options are set
+	// multiple of 4 bytes
+	padding =  ipopt_length % 4;
+	if(padding){
+		padding = 4 - padding;
+		ipopt_length += padding;
+	}
+
+	// prefix the header
+	data = (uint8_t *) packet_prefix(packet, sizeof(ip_header_t) + padding);
+	if(! data){
+		return ENOMEM;
+	}
+
+	// add the padding
+	while(padding --){
+		data[sizeof(ip_header_t) + padding] = IPOPT_NOOP;
+	}
+
+	// set the header
+	header = (ip_header_ref) data;
+	header->header_length = IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) + ipopt_length);
+	header->ttl = (ttl ? ttl : IPDEFTTL); //(((ttl) <= MAXTTL) ? ttl : MAXTTL) : IPDEFTTL;
+	header->tos = tos;
+	header->protocol = protocol;
+
+	if(dont_fragment){
+		header->flags = IPFLAG_DONT_FRAGMENT;
+	}
+	return EOK;
+}
+
+int ip_client_process_packet(packet_t packet, ip_protocol_t * protocol, ip_ttl_t * ttl, ip_tos_t * tos, int * dont_fragment, size_t * ipopt_length){
+	ip_header_ref header;
+
+	header = (ip_header_ref) packet_get_data(packet);
+	if((! header)
+		|| (packet_get_data_length(packet) < sizeof(ip_header_t))){
+		return ENOMEM;
+	}
+
+	if(protocol){
+		*protocol = header->protocol;
+	}
+	if(ttl){
+		*ttl = header->ttl;
+	}
+	if(tos){
+		*tos = header->tos;
+	}
+	if(dont_fragment){
+		*dont_fragment = header->flags &IPFLAG_DONT_FRAGMENT;
+	}
+	if(ipopt_length){
+		*ipopt_length = IP_HEADER_LENGTH(header) - sizeof(ip_header_t);
+		return sizeof(ip_header_t);
+	}else{
+		return IP_HEADER_LENGTH(header);
+	}
+}
+
+int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, size_t headerlen, size_t data_length){
+	ipv4_pseudo_header_ref header_in;
+
+	if(! header){
+		return EBADMEM;
+	}
+
+	if(headerlen == sizeof(ipv4_pseudo_header_t)){
+		header_in = (ipv4_pseudo_header_ref) header;
+		header_in->data_length = htons(data_length);
+		return EOK;
+	// TODO IPv6
+	}else{
+		return EINVAL;
 	}
 }
 

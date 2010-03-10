@@ -41,14 +41,6 @@
 
 #include "print_error.h"
 
-void print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
-	if(IS_ICMP_ERROR(error_code)){
-		icmp_print_error(output, error_code, prefix, suffix);
-	}else if(IS_SOCKET_ERROR(error_code)){
-		socket_print_error(output, error_code, prefix, suffix);
-	}
-}
-
 void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
 	if(output){
 		if(prefix){
@@ -97,6 +89,14 @@ void icmp_print_error(FILE * output, int error_code, const char * prefix, const 
 		if(suffix){
 			fprintf(output, "%s", suffix);
 		}
+	}
+}
+
+void print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
+	if(IS_ICMP_ERROR(error_code)){
+		icmp_print_error(output, error_code, prefix, suffix);
+	}else if(IS_SOCKET_ERROR(error_code)){
+		socket_print_error(output, error_code, prefix, suffix);
 	}
 }
 

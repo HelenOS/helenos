@@ -43,83 +43,83 @@
 
 /** REQUEST operation code.
  */
-#define ARPOP_REQUEST		1
+#define ARPOP_REQUEST					1
 
 /** REPLY operation code.
  */
-#define ARPOP_REPLY		2
+#define ARPOP_REPLY						2
 
 /** Reverse request operation code.
  */
-#define ARPOP_RREQUEST		3
+#define ARPOP_RREQUEST					3
 
 /** Reverse reply operation code.
  */
-#define ARPOP_RREPLY		4
+#define ARPOP_RREPLY					4
 
 /** DRARP-Request operation code.
  */
-#define ARPOP_DRARP_Request		5
+#define ARPOP_DRARP_Request				5
 
 /** DRARP-Reply operation code.
  */
-#define ARPOP_DRARP_Reply		6
+#define ARPOP_DRARP_Reply				6
 
 /** DRARP-Error operation code.
  */
-#define ARPOP_DRARP_Error		7
+#define ARPOP_DRARP_Error				7
 
 /** InARP-Request operation code.
  */
-#define ARPOP_InREQUEST		8
+#define ARPOP_InREQUEST					8
 
 /** InARP-Reply operation code.
  */
-#define ARPOP_InREPLY		9
+#define ARPOP_InREPLY					9
 
 /** ARP-NAK operation code.
  */
-#define ARPOP_NAK		10
+#define ARPOP_NAK						10
 
 /** MARS-Request operation code.
  */
-#define ARPOP_MARS_Request		11
+#define ARPOP_MARS_Request				11
 
 /** MARS-Multi operation code.
  */
-#define ARPOP_MARS_Multi		12
+#define ARPOP_MARS_Multi				12
 
 /** MARS-MServ operation code.
  */
-#define ARPOP_MARS_MServ		13
+#define ARPOP_MARS_MServ				13
 
 /** MARS-Join operation code.
  */
-#define ARPOP_MARS_Join		14
+#define ARPOP_MARS_Join					14
 
 /** MARS-Leave operation code.
  */
-#define ARPOP_MARS_Leave		15
+#define ARPOP_MARS_Leave				15
 
 /** MARS-NAK operation code.
  */
-#define ARPOP_MARS_NAK		16
+#define ARPOP_MARS_NAK					16
 
 /** MARS-Unserv operation code.
  */
-#define ARPOP_MARS_Unserv		17
+#define ARPOP_MARS_Unserv				17
 
 /** MARS-SJoin operation code.
  */
-#define ARPOP_MARS_SJoin		18
+#define ARPOP_MARS_SJoin				18
 
 /** MARS-SLeave operation code.
  */
-#define ARPOP_MARS_SLeave		19
+#define ARPOP_MARS_SLeave				19
 
 /** MARS-Grouplist-Request operation code.
  */
-#define ARPOP_MARS_Grouplist_Request		20
+#define ARPOP_MARS_Grouplist_Request	20
 
 /** MARS-Grouplist-Reply operation code.
  */
@@ -127,11 +127,11 @@
 
 /** MARS-Redirect-Map operation code.
  */
-#define ARPOP_MARS_Redirect_Map		22
+#define ARPOP_MARS_Redirect_Map			22
 
 /** MAPOS-UNARP operation code.
  */
-#define ARPOP_MAPOS_UNARP		23
+#define ARPOP_MAPOS_UNARP				23
 
 /*@}*/
 

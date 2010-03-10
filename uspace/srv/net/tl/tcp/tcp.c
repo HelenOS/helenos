@@ -1240,6 +1240,9 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 		}
 	}
 
+	// release the application phone
+	ipc_hangup(app_phone);
+
 	printf("release\n");
 	// release all local sockets
 	socket_cores_release(tcp_globals.net_phone, &local_sockets, &tcp_globals.sockets, tcp_free_socket_data);
@@ -1276,11 +1279,12 @@ int tcp_timeout(void * data){
 				if(socket_data->timeout_count == TCP_MAX_TIMEOUTS){
 					// TODO release as connection lost
 					//tcp_refresh_socket_data(socket_data);
+					fibril_rwlock_write_unlock(socket_data->local_lock);
 				}else{
 					// retransmit
-					tcp_retransmit_packet(socket, socket_data, timeout->sequence_number);
+//					tcp_retransmit_packet(socket, socket_data, timeout->sequence_number);
+					fibril_rwlock_write_unlock(socket_data->local_lock);
 				}
-				fibril_rwlock_write_unlock(socket_data->local_lock);
 			}else{
 				fibril_mutex_lock(&socket_data->operation.mutex);
 				// set the timeout operation result if state not changed

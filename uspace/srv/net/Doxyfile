@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "Networking and TCP/IP stack for HelenOS system"
-PROJECT_NUMBER         = "Master thesis 2009"
+PROJECT_NUMBER         = ""
 OUTPUT_DIRECTORY       = doc/
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = English

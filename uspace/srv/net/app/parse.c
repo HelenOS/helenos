@@ -37,9 +37,20 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../include/socket.h"
+
 #include "../err.h"
 
 #include "parse.h"
+
+int parse_address_family(const char * name){
+	if(str_lcmp(name, "AF_INET", 7) == 0){
+		return AF_INET;
+	}else if(str_lcmp(name, "AF_INET6", 8) == 0){
+		return AF_INET6;
+	}
+	return EAFNOSUPPORT;
+}
 
 int parse_parameter_int(int argc, char ** argv, int * index, int * value, const char * name, int offset){
 	char * rest;
@@ -60,19 +71,6 @@ int parse_parameter_int(int argc, char ** argv, int * index, int * value, const 
 	return EOK;
 }
 
-int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset){
-	if(offset){
-		*value = argv[*index] + offset;
-	}else if((*index) + 1 < argc){
-		++ (*index);
-		*value = argv[*index];
-	}else{
-		fprintf(stderr, "Command line error: missing %s\n", name);
-		return EINVAL;
-	}
-	return EOK;
-}
-
 int parse_parameter_name_int(int argc, char ** argv, int * index, int * value, const char * name, int offset, int (*parse_value)(const char * value)){
 	ERROR_DECLARE;
 
@@ -87,8 +85,39 @@ int parse_parameter_name_int(int argc, char ** argv, int * index, int * value, c
 	return EOK;
 }
 
+int parse_parameter_string(int argc, char ** argv, int * index, char ** value, const char * name, int offset){
+	if(offset){
+		*value = argv[*index] + offset;
+	}else if((*index) + 1 < argc){
+		++ (*index);
+		*value = argv[*index];
+	}else{
+		fprintf(stderr, "Command line error: missing %s\n", name);
+		return EINVAL;
+	}
+	return EOK;
+}
+
+int parse_protocol_family(const char * name){
+	if(str_lcmp(name, "PF_INET", 7) == 0){
+		return PF_INET;
+	}else if(str_lcmp(name, "PF_INET6", 8) == 0){
+		return PF_INET6;
+	}
+	return EPFNOSUPPORT;
+}
+
+int parse_socket_type(const char * name){
+	if(str_lcmp(name, "SOCK_DGRAM", 11) == 0){
+		return SOCK_DGRAM;
+	}else if(str_lcmp(name, "SOCK_STREAM", 12) == 0){
+		return SOCK_STREAM;
+	}
+	return ESOCKTNOSUPPORT;
+}
+
 void print_unrecognized(int index, const char * parameter){
-	fprintf(stderr, "Command line error - unrecognized parameter (%d: %s)\n", index, parameter);
+	fprintf(stderr, "Command line error: unrecognized argument (%d: %s)\n", index, parameter);
 }
 
 /** @}

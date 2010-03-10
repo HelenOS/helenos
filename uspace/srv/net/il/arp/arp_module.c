@@ -57,6 +57,20 @@
  */
 #define NAME	"ARP protocol"
 
+/** ARP module global data.
+ */
+extern arp_globals_t	arp_globals;
+
+/** Processes the ARP message.
+ *  @param[in] callid The message identifier.
+ *  @param[in] call The message parameters.
+ *  @param[out] answer The message answer parameters.
+ *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for the arp_message() function.
+ */
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+
 /** Prints the module name.
  *  @see NAME
  */
@@ -71,19 +85,9 @@ void module_print_name(void);
  */
 int module_start(async_client_conn_t client_connection);
 
-/** Processes the ARP message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the arp_message() function.
- */
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
-
-/** ARP module global data.
- */
-extern arp_globals_t	arp_globals;
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return arp_message(callid, call, answer, answer_count);
+}
 
 void module_print_name(void){
 	printf("%s", NAME);
@@ -107,10 +111,6 @@ int module_start(async_client_conn_t client_connection){
 
 	pm_destroy();
 	return EOK;
-}
-
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return arp_message(callid, call, answer, answer_count);
 }
 
 /** @}

@@ -45,29 +45,23 @@
  */
 /*@{*/
 
-/** Activates the measured strings self test.
- *  The NET_SELF_TEST has to be activated.
- *  @see measured_strings.h
- */
-#define NET_SELF_TEST_MEASURED_STRINGS	1
-
 /** Activates the char map self test.
  *  The NET_SELF_TEST has to be activated.
  *  @see char_map.h
  */
 #define NET_SELF_TEST_CHAR_MAP			1
 
-/** Activates the integral map self test.
+/** Activates the CRC computation self test.
  *  The NET_SELF_TEST has to be activated.
- *  @see int_map.h
+ *  @see crc.h
  */
-#define NET_SELF_TEST_INT_MAP			1
+#define NET_SELF_TEST_CRC				1
 
-/** Activates the generic field self test.
+/** Activates the dynamic fifo self test.
  *  The NET_SELF_TEST has to be activated.
- *  @see generic_field.h
+ *  @see dynamic_fifo.h
  */
-#define NET_SELF_TEST_GENERIC_FIELD		1
+#define NET_SELF_TEST_DYNAMIC_FIFO		1
 
 /** Activates the generic char map self test.
  *  The NET_SELF_TEST has to be activated.
@@ -75,17 +69,23 @@
  */
 #define NET_SELF_TEST_GENERIC_CHAR_MAP	1
 
-/** Activates the CRC computation self test.
+/** Activates the generic field self test.
  *  The NET_SELF_TEST has to be activated.
- *  @see crc.h
+ *  @see generic_field.h
  */
-#define NET_SELF_TEST_CRC	1
+#define NET_SELF_TEST_GENERIC_FIELD		1
 
-/** Activates the dynamic fifo self test.
+/** Activates the integral map self test.
  *  The NET_SELF_TEST has to be activated.
- *  @see dynamic_fifo.h
+ *  @see int_map.h
  */
-#define NET_SELF_TEST_DYNAMIC_FIFO	1
+#define NET_SELF_TEST_INT_MAP			1
+
+/** Activates the measured strings self test.
+ *  The NET_SELF_TEST has to be activated.
+ *  @see measured_strings.h
+ */
+#define NET_SELF_TEST_MEASURED_STRINGS	1
 
 /*@}*/
 
