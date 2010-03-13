@@ -40,6 +40,7 @@
 #include "run.h"
 #include "run_texpr.h"
 #include "symbol.h"
+#include "stree.h"
 #include "strtab.h"
 
 #include "run_expr.h"
@@ -86,6 +87,12 @@ static void run_access_object(run_t *run, stree_access_t *access,
 
 static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res);
 static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res);
+static void run_index_array(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res);
+static void run_index_object(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res);
+static void run_index_string(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res);
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res);
 
 /** Evaluate expression. */
@@ -142,11 +149,12 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	stree_symbol_t *sym;
 	rdata_item_t *item;
 	rdata_address_t *address;
+	rdata_addr_var_t *addr_var;
 	rdata_value_t *value;
 	rdata_var_t *var;
 	rdata_deleg_t *deleg_v;
 
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 	stree_symbol_t *csi_sym;
 	stree_csi_t *csi;
 	rdata_object_t *obj;
@@ -163,10 +171,12 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	if (var != NULL) {
 		/* Found a local variable. */
 		item = rdata_item_new(ic_address);
-		address = rdata_address_new();
+		address = rdata_address_new(ac_var);
+		addr_var = rdata_addr_var_new();
 
 		item->u.address = address;
-		address->vref = var;
+		address->u.var_a = addr_var;
+		addr_var->vref = var;
 
 		*res = item;
 #ifdef DEBUG_RUN_TRACE
@@ -180,15 +190,15 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	 */
 
 	/* Determine currently active object or CSI. */
-	fun_ar = run_get_current_fun_ar(run);
-	if (fun_ar->obj != NULL) {
-		assert(fun_ar->obj->vc == vc_object);
-		obj = fun_ar->obj->u.object_v;
+	proc_ar = run_get_current_proc_ar(run);
+	if (proc_ar->obj != NULL) {
+		assert(proc_ar->obj->vc == vc_object);
+		obj = proc_ar->obj->u.object_v;
 		csi_sym = obj->class_sym;
 		csi = symbol_to_csi(csi_sym);
 		assert(csi != NULL);
 	} else {
-		csi = fun_ar->fun_sym->outer_csi;
+		csi = proc_ar->proc_sym->outer_csi;
 		obj = NULL;
 	}
 
@@ -237,7 +247,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		value->var = var;
 		var->u.deleg_v = deleg_v;
 
-		deleg_v->obj = fun_ar->obj;
+		deleg_v->obj = proc_ar->obj;
 		deleg_v->sym = sym;
 
 		*res = item;
@@ -269,10 +279,12 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 
 		/* Return address of the variable. */
 		item = rdata_item_new(ic_address);
-		address = rdata_address_new();
+		address = rdata_address_new(ac_var);
+		addr_var = rdata_addr_var_new();
 
 		item->u.address = address;
-		address->vref = member_var;
+		address->u.var_a = addr_var;
+		addr_var->vref = member_var;
 
 		*res = item;
 		break;
@@ -392,16 +404,16 @@ static void run_lit_string(run_t *run, stree_lit_string_t *lit_string,
 static void run_self_ref(run_t *run, stree_self_ref_t *self_ref,
     rdata_item_t **res)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run self reference.\n");
 #endif
 	(void) self_ref;
-	fun_ar = run_get_current_fun_ar(run);
+	proc_ar = run_get_current_proc_ar(run);
 
 	/* Return reference to the currently active object. */
-	rdata_reference(fun_ar->obj, res);
+	run_reference(run, proc_ar->obj, res);
 }
 
 /** Evaluate binary operation. */
@@ -437,8 +449,8 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	printf("Check binop argument results.\n");
 #endif
 
-	rdata_cvt_value_item(rarg1_i, &rarg1_vi);
-	rdata_cvt_value_item(rarg2_i, &rarg2_vi);
+	run_cvt_value_item(run, rarg1_i, &rarg1_vi);
+	run_cvt_value_item(run, rarg2_i, &rarg2_vi);
 
 	v1 = rarg1_vi->u.value;
 	v2 = rarg2_vi->u.value;
@@ -686,7 +698,7 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 
 		/* Evaluate extent argument. */
 		run_expr(run, expr, &rexpr);
-		rdata_cvt_value_item(rexpr, &rexpr_vi);
+		run_cvt_value_item(run, rexpr, &rexpr_vi);
 		assert(rexpr_vi->ic == ic_value);
 		rexpr_var = rexpr_vi->u.value->var;
 
@@ -726,7 +738,7 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 	array_var->u.array_v = array;
 
 	/* Create reference to the new array. */
-	rdata_reference(array_var, res);
+	run_reference(run, array_var, res);
 }
 
 /** Create new object. */
@@ -781,7 +793,7 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	}
 
 	/* Create reference to the new object. */
-	rdata_reference(obj_var, res);
+	run_reference(run, obj_var, res);
 }
 
 /** Evaluate member acccess. */
@@ -810,17 +822,7 @@ static void run_access_item(run_t *run, stree_access_t *access,
 #ifdef DEBUG_RUN_TRACE
 	printf("Run access operation on pre-evaluated base.\n");
 #endif
-	switch (arg->ic) {
-	case ic_value:
-		vc = arg->u.value->var->vc;
-		break;
-	case ic_address:
-		vc = arg->u.address->vref->vc;
-		break;
-	default:
-		/* Silence warning. */
-		abort();
-	}
+	vc = rdata_item_get_vc(arg);
 
 	switch (vc) {
 	case vc_ref:
@@ -846,7 +848,7 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 	rdata_item_t *darg;
 
 	/* Implicitly dereference. */
-	rdata_dereference(arg, &darg);
+	run_dereference(run, arg, &darg);
 
 	/* Try again. */
 	run_access_item(run, access, darg, res);
@@ -864,7 +866,7 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
 #ifdef DEBUG_RUN_TRACE
 	printf("Run delegate access operation.\n");
 #endif
-	rdata_cvt_value_item(arg, &arg_vi);
+	run_cvt_value_item(run, arg, &arg_vi);
 	arg_val = arg_vi->u.value;
 	assert(arg_val->var->vc == vc_deleg);
 
@@ -905,9 +907,14 @@ static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
 	stree_symbol_t *member;
+	rdata_var_t *object_var;
 	rdata_object_t *object;
 	rdata_item_t *ritem;
 	rdata_address_t *address;
+	rdata_addr_var_t *addr_var;
+	rdata_addr_prop_t *addr_prop;
+	rdata_aprop_named_t *aprop_named;
+	rdata_deleg_t *deleg_p;
 
 	rdata_value_t *value;
 	rdata_deleg_t *deleg_v;
@@ -917,9 +924,11 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	printf("Run object access operation.\n");
 #endif
 	assert(arg->ic == ic_address);
-	assert(arg->u.value->var->vc == vc_object);
+	assert(arg->u.address->ac == ac_var);
+	assert(arg->u.address->u.var_a->vref->vc == vc_object);
 
-	object = arg->u.value->var->u.object_v;
+	object_var = arg->u.address->u.var_a->vref;
+	object = object_var->u.object_v;
 
 	member = symbol_search_csi(run->program, object->class_sym->u.csi,
 	    access->member_name);
@@ -952,22 +961,36 @@ static void run_access_object(run_t *run, stree_access_t *access,
 		deleg_v = rdata_deleg_new();
 		var->u.deleg_v = deleg_v;
 
-		deleg_v->obj = arg->u.value->var;
+		deleg_v->obj = arg->u.address->u.var_a->vref;
 		deleg_v->sym = member;
 		break;
 	case sc_var:
 		/* Construct variable address item. */
 		ritem = rdata_item_new(ic_address);
-		address = rdata_address_new();
+		address = rdata_address_new(ac_var);
+		addr_var = rdata_addr_var_new();
 		ritem->u.address = address;
+		address->u.var_a = addr_var;
 
-		address->vref = intmap_get(&object->fields,
+		addr_var->vref = intmap_get(&object->fields,
 		    access->member_name->sid);
-		assert(address->vref != NULL);
+		assert(addr_var->vref != NULL);
 		break;
 	case sc_prop:
-		printf("Unimplemented: Accessing object property.\n");
-		exit(1);
+		/* Construct named property address. */
+		ritem = rdata_item_new(ic_address);
+		address = rdata_address_new(ac_prop);
+		addr_prop = rdata_addr_prop_new(apc_named);
+		aprop_named = rdata_aprop_named_new();
+		ritem->u.address = address;
+		address->u.prop_a = addr_prop;
+		addr_prop->u.named = aprop_named;
+
+		deleg_p = rdata_deleg_new();
+		deleg_p->obj = object_var;
+		deleg_p->sym = member;
+		addr_prop->u.named->prop_d = deleg_p;
+		break;
 	}
 
 	*res = ritem;
@@ -984,7 +1007,7 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	rdata_item_t *rarg_i, *rarg_vi;
 
 	stree_fun_t *fun;
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run call operation.\n");
@@ -1016,7 +1039,7 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	while (node != NULL) {
 		arg = list_node_data(node, stree_expr_t *);
 		run_expr(run, arg, &rarg_i);
-		rdata_cvt_value_item(rarg_i, &rarg_vi);
+		run_cvt_value_item(run, rarg_i, &rarg_vi);
 
 		list_append(&arg_vals, rarg_vi);
 		node = list_next(&call->args, node);
@@ -1025,14 +1048,15 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	fun = symbol_to_fun(deleg_v->sym);
 	assert(fun != NULL);
 
-	/* Create function activation record. */
-	run_fun_ar_create(run, deleg_v->obj, fun, &fun_ar);
+	/* Create procedure activation record. */
+	run_proc_ar_create(run, deleg_v->obj, deleg_v->sym, fun->body,
+	    &proc_ar);
 
 	/* Fill in argument values. */
-	run_fun_ar_set_args(run, fun_ar, &arg_vals);
+	run_proc_ar_set_args(run, proc_ar, &arg_vals);
 
 	/* Run the function. */
-	run_fun(run, fun_ar, res);
+	run_proc(run, proc_ar, res);
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Returned from function call.\n");
@@ -1047,8 +1071,62 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	list_node_t *node;
 	stree_expr_t *arg;
 	rdata_item_t *rarg_i, *rarg_vi;
-	rdata_array_t *array;
 	var_class_t vc;
+	list_t arg_vals;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run index operation.\n");
+#endif
+	run_expr(run, index->base, &rbase);
+
+	vc = rdata_item_get_vc(rbase);
+
+	/* Implicitly dereference. */
+	if (vc == vc_ref) {
+		run_dereference(run, rbase, &base_i);
+	} else {
+		base_i = rbase;
+	}
+
+	vc = rdata_item_get_vc(base_i);
+
+	/* Evaluate arguments (indices). */
+	node = list_first(&index->args);
+	list_init(&arg_vals);
+
+	while (node != NULL) {
+		arg = list_node_data(node, stree_expr_t *);
+		run_expr(run, arg, &rarg_i);
+		run_cvt_value_item(run, rarg_i, &rarg_vi);
+
+		list_append(&arg_vals, rarg_vi);
+
+		node = list_next(&index->args, node);
+	}
+
+	switch (vc) {
+	case vc_array:
+		run_index_array(run, index, base_i, &arg_vals, res);
+		break;
+	case vc_object:
+		run_index_object(run, index, base_i, &arg_vals, res);
+		break;
+	case vc_string:
+		run_index_string(run, index, base_i, &arg_vals, res);
+		break;
+	default:
+		printf("Error: Indexing object of bad type (%d).\n", vc);
+		exit(1);
+	}
+}
+
+/** Run index operation on array. */
+static void run_index_array(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res)
+{
+	list_node_t *node;
+	rdata_array_t *array;
+	rdata_item_t *arg;
 
 	int i;
 	int elem_index;
@@ -1056,41 +1134,18 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 
 	rdata_item_t *ritem;
 	rdata_address_t *address;
+	rdata_addr_var_t *addr_var;
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Run index operation.\n");
+	printf("Run array index operation.\n");
 #endif
-	run_expr(run, index->base, &rbase);
+	(void) run;
+	(void) index;
 
-	switch (rbase->ic) {
-	case ic_value:
-		vc = rbase->u.value->var->vc;
-		break;
-	case ic_address:
-		vc = rbase->u.address->vref->vc;
-		break;
-	default:
-		/* Silence warning. */
-		abort();
-	}
-
-	if (vc != vc_ref) {
-		printf("Error: Base of index operation is not a reference.\n");
-		exit(1);
-	}
-
-	rdata_dereference(rbase, &base_i);
-	assert(base_i->ic == ic_address);
-
-	if (base_i->u.value->var->vc != vc_array) {
-		printf("Error: Indexing something which is not an array.\n");
-		exit(1);
-	}
-
-	array = base_i->u.value->var->u.array_v;
-
-	/* Evaluate arguments (indices). */
-	node = list_first(&index->args);
+	assert(base->ic == ic_address);
+	assert(base->u.address->ac == ac_var);
+	assert(base->u.address->u.var_a->vref->vc == vc_array);
+	array = base->u.address->u.var_a->vref->u.array_v;
 
 	/*
 	 * Linear index of the desired element. Elements are stored in
@@ -1098,7 +1153,9 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	 */
 	elem_index = 0;
 
+	node = list_first(args);
 	i = 0;
+
 	while (node != NULL) {
 		if (i >= array->rank) {
 			printf("Error: Too many indices for array of rank %d",
@@ -1106,17 +1163,15 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 			exit(1);
 		}
 
-		arg = list_node_data(node, stree_expr_t *);
-		run_expr(run, arg, &rarg_i);
-		rdata_cvt_value_item(rarg_i, &rarg_vi);
-		assert(rarg_vi->ic == ic_value);
+		arg = list_node_data(node, rdata_item_t *);
+		assert(arg->ic == ic_value);
 
-		if (rarg_vi->u.value->var->vc != vc_int) {
+		if (arg->u.value->var->vc != vc_int) {
 			printf("Error: Array index is not an integer.\n");
 			exit(1);
 		}
 
-		arg_val = rarg_vi->u.value->var->u.int_v->value;
+		arg_val = arg->u.value->var->u.int_v->value;
 
 		if (arg_val < 0 || arg_val >= array->extent[i]) {
 			printf("Error: Array index (value: %d) is out of range.\n",
@@ -1126,7 +1181,7 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 
 		elem_index = elem_index * array->extent[i] + arg_val;
 
-		node = list_next(&index->args, node);
+		node = list_next(args, node);
 		i += 1;
 	}
 
@@ -1138,13 +1193,166 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 
 	/* Construct variable address item. */
 	ritem = rdata_item_new(ic_address);
-	address = rdata_address_new();
+	address = rdata_address_new(ac_var);
+	addr_var = rdata_addr_var_new();
 	ritem->u.address = address;
+	address->u.var_a = addr_var;
 
-	address->vref = array->element[elem_index];
+	addr_var->vref = array->element[elem_index];
 
 	*res = ritem;
 }
+
+/** Index an object (via its indexer). */
+static void run_index_object(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res)
+{
+	rdata_item_t *ritem;
+	rdata_address_t *address;
+	rdata_addr_prop_t *addr_prop;
+	rdata_aprop_indexed_t *aprop_indexed;
+	rdata_var_t *obj_var;
+	stree_csi_t *obj_csi;
+	rdata_deleg_t *object_d;
+	stree_symbol_t *indexer_sym;
+	stree_ident_t *indexer_ident;
+
+	list_node_t *node;
+	rdata_item_t *arg;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run object index operation.\n");
+#endif
+	(void) run;
+	(void) index;
+
+	/* Construct property address item. */
+	ritem = rdata_item_new(ic_address);
+	address = rdata_address_new(ac_prop);
+	addr_prop = rdata_addr_prop_new(apc_indexed);
+	aprop_indexed = rdata_aprop_indexed_new();
+	ritem->u.address = address;
+	address->u.prop_a = addr_prop;
+	addr_prop->u.indexed = aprop_indexed;
+
+	if (base->ic != ic_address || base->u.address->ac != ac_var) {
+		/* XXX Several other cases can occur. */
+		printf("Unimplemented: Indexing object varclass via something "
+		    "which is not a simple variable reference.\n");
+		exit(1);
+	}
+
+	/* Find indexer symbol. */
+	obj_var = base->u.address->u.var_a->vref;
+	assert(obj_var->vc == vc_object);
+	indexer_ident = stree_ident_new();
+	indexer_ident->sid = strtab_get_sid(INDEXER_IDENT);
+	obj_csi = symbol_to_csi(obj_var->u.object_v->class_sym);
+	assert(obj_csi != NULL);
+	indexer_sym = symbol_search_csi(run->program, obj_csi, indexer_ident);
+
+	/* Construct delegate. */
+	object_d = rdata_deleg_new();
+	object_d->obj = obj_var;
+	object_d->sym = indexer_sym;
+	aprop_indexed->object_d = object_d;
+
+	/* Copy list of argument values. */
+	list_init(&aprop_indexed->args);
+
+	node = list_first(args);
+	while (node != NULL) {
+		arg = list_node_data(node, rdata_item_t *);
+		list_append(&aprop_indexed->args, arg);
+		node = list_next(args, node);
+	}
+
+	*res = ritem;
+}
+
+/** Run index operation on string. */
+static void run_index_string(run_t *run, stree_index_t *index,
+    rdata_item_t *base, list_t *args, rdata_item_t **res)
+{
+	list_node_t *node;
+	rdata_string_t *string;
+	rdata_item_t *base_vi;
+	rdata_item_t *arg;
+
+	int i;
+	int elem_index;
+	int arg_val;
+	int rc;
+
+	rdata_value_t *value;
+	rdata_var_t *cvar;
+	rdata_item_t *ritem;
+	int cval;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run string index operation.\n");
+#endif
+	(void) run;
+	(void) index;
+
+	run_cvt_value_item(run, base, &base_vi);
+	assert(base_vi->u.value->var->vc == vc_string);
+	string = base->u.value->var->u.string_v;
+
+	/*
+	 * Linear index of the desired element. Elements are stored in
+	 * lexicographic order with the last index changing the fastest.
+	 */
+	node = list_first(args);
+	elem_index = 0;
+
+	i = 0;
+	while (node != NULL) {
+		if (i >= 1) {
+			printf("Error: Too many indices string.\n");
+			exit(1);
+		}
+
+		arg = list_node_data(node, rdata_item_t *);
+		assert(arg->ic == ic_value);
+
+		if (arg->u.value->var->vc != vc_int) {
+			printf("Error: String index is not an integer.\n");
+			exit(1);
+		}
+
+		arg_val = arg->u.value->var->u.int_v->value;
+		elem_index = arg_val;
+
+		node = list_next(args, node);
+		i += 1;
+	}
+
+	if (i < 1) {
+		printf("Error: Too few indices for string.\n");
+		exit(1);
+	}
+
+	rc = os_str_get_char(string->value, elem_index, &cval);
+	if (rc != EOK) {
+		printf("Error: String index (value: %d) is out of range.\n",
+		    arg_val);
+		exit(1);
+	}
+
+	/* Construct character value. */
+	ritem = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	ritem->u.value = value;
+
+	cvar = rdata_var_new(vc_int);
+	cvar->u.int_v = rdata_int_new();
+	cvar->u.int_v->value = cval;
+	value->var = cvar;
+
+	*res = ritem;
+}
+
 
 /** Execute assignment. */
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
@@ -1159,7 +1367,8 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 	run_expr(run, assign->dest, &rdest_i);
 	run_expr(run, assign->src, &rsrc_i);
 
-	rdata_cvt_value_item(rsrc_i, &rsrc_vi);
+	run_cvt_value_item(run, rsrc_i, &rsrc_vi);
+	assert(rsrc_vi->ic == ic_value);
 	src_val = rsrc_vi->u.value;
 
 	if (rdest_i->ic != ic_address) {
@@ -1168,7 +1377,7 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 		exit(1);
 	}
 
-	rdata_address_write(rdest_i->u.address, rsrc_vi->u.value);
+	run_address_write(run, rdest_i->u.address, rsrc_vi->u.value);
 
 	*res = NULL;
 }
@@ -1186,7 +1395,7 @@ bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 	rdata_var_t *var;
 
 	(void) run;
-	rdata_cvt_value_item(item, &vitem);
+	run_cvt_value_item(run, item, &vitem);
 
 	assert(vitem->ic == ic_value);
 	var = vitem->u.value->var;

@@ -32,8 +32,13 @@
 #include "mytypes.h"
 
 rdata_item_t *rdata_item_new(item_class_t ic);
-rdata_address_t *rdata_address_new(void);
+rdata_addr_var_t *rdata_addr_var_new(void);
+rdata_aprop_named_t *rdata_aprop_named_new(void);
+rdata_aprop_indexed_t *rdata_aprop_indexed_new(void);
+rdata_addr_prop_t *rdata_addr_prop_new(aprop_class_t apc);
+rdata_address_t *rdata_address_new(address_class_t ac);
 rdata_value_t *rdata_value_new(void);
+
 rdata_var_t *rdata_var_new(var_class_t vc);
 rdata_ref_t *rdata_ref_new(void);
 rdata_deleg_t *rdata_deleg_new(void);
@@ -50,13 +55,10 @@ rdata_tprimitive_t *rdata_tprimitive_new(void);
 void rdata_array_alloc_element(rdata_array_t *array);
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);
 
-void rdata_cvt_value_item(rdata_item_t *item, rdata_item_t **ritem);
-void rdata_reference(rdata_var_t *var, rdata_item_t **res);
-void rdata_dereference(rdata_item_t *ref, rdata_item_t **ritem);
-void rdata_address_read(rdata_address_t *address, rdata_item_t **ritem);
-void rdata_address_write(rdata_address_t *address, rdata_value_t *value);
+void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem);
 void rdata_var_write(rdata_var_t *var, rdata_value_t *value);
 
+var_class_t rdata_item_get_vc(rdata_item_t *item);
 bool_t rdata_is_csi_derived_from_ti(stree_csi_t *a, rdata_titem_t *tb);
 
 void rdata_item_print(rdata_item_t *item);

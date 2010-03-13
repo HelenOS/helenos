@@ -48,7 +48,7 @@ void strtab_init(void)
 	list_init(&str_list);
 }
 
-sid_t strtab_get_sid(char *str)
+sid_t strtab_get_sid(const char *str)
 {
 	list_node_t *node;
 	sid_t sid;

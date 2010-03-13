@@ -57,6 +57,11 @@ static void run_wef(run_t *run, stree_wef_t *wef_s);
 
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c);
 
+static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
+    rdata_item_t **ritem);
+static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
+    rdata_value_t *value);
+
 /** Initialize runner instance. */
 void run_init(run_t *run)
 {
@@ -70,7 +75,7 @@ void run_program(run_t *run, stree_program_t *prog)
 	stree_fun_t *main_fun;
 	stree_ident_t *fake_ident;
 	list_t main_args;
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 	rdata_item_t *res;
 
 	/* Note down link to program code. */
@@ -78,7 +83,7 @@ void run_program(run_t *run, stree_program_t *prog)
 
 	/* Initialize thread activation record. */
 	run->thread_ar = run_thread_ar_new();
-	list_init(&run->thread_ar->fun_ar);
+	list_init(&run->thread_ar->proc_ar);
 	run->thread_ar->bo_mode = bm_none;
 
 	/*
@@ -102,9 +107,9 @@ void run_program(run_t *run, stree_program_t *prog)
 
 	/* Run function @c main. */
 	list_init(&main_args);
-	run_fun_ar_create(run, NULL, main_fun, &fun_ar);
-	run_fun_ar_set_args(run, fun_ar, &main_args);
-	run_fun(run, fun_ar, &res);
+	run_proc_ar_create(run, NULL, main_fun_sym, main_fun->body, &proc_ar);
+	run_proc_ar_set_args(run, proc_ar, &main_args);
+	run_proc(run, proc_ar, &res);
 
 	/* Check for unhandled exceptions. */
 	if (run->thread_ar->bo_mode != bm_none) {
@@ -114,30 +119,27 @@ void run_program(run_t *run, stree_program_t *prog)
 	}
 }
 
-/** Run member function */
-void run_fun(run_t *run, run_fun_ar_t *fun_ar, rdata_item_t **res)
+/** Run procedure. */
+void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 {
-	stree_symbol_t *fun_sym;
-	stree_fun_t *fun;
+	stree_symbol_t *proc_sym;
 	list_node_t *node;
 
-	fun_sym = fun_ar->fun_sym;
-	fun = symbol_to_fun(fun_sym);
-	assert(fun != NULL);
+	proc_sym = proc_ar->proc_sym;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Start executing function '");
-	symbol_print_fqn(run->program, fun_sym);
+	symbol_print_fqn(run->program, proc_sym);
 	printf("'.\n");
 #endif
-	/* Add function AR to the stack. */
-	list_append(&run->thread_ar->fun_ar, fun_ar);
+	/* Add procedure AR to the stack. */
+	list_append(&run->thread_ar->proc_ar, proc_ar);
 
-	/* Run main function block. */
-	if (fun->body != NULL) {
-		run_block(run, fun->body);
+	/* Run main procedure block. */
+	if (proc_ar->proc_block != NULL) {
+		run_block(run, proc_ar->proc_block);
 	} else {
-		builtin_run_fun(run, fun_sym);
+		builtin_run_proc(run, proc_sym);
 	}
 
 	/* Handle bailout. */
@@ -145,7 +147,7 @@ void run_fun(run_t *run, run_fun_ar_t *fun_ar, rdata_item_t **res)
 	case bm_stat:
 		printf("Error: Misplaced 'break' statement.\n");
 		exit(1);
-	case bm_fun:
+	case bm_proc:
 		run->thread_ar->bo_mode = bm_none;
 		break;
 	default:
@@ -153,24 +155,26 @@ void run_fun(run_t *run, run_fun_ar_t *fun_ar, rdata_item_t **res)
 	}
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Done executing function '");
-	symbol_print_fqn(run->program, fun_sym);
+	printf("Done executing procedure '");
+	symbol_print_fqn(run->program, proc_sym);
 	printf("'.\n");
 
 	run_print_fun_bt(run);
 #endif
-	/* Remove function activation record from the stack. */
-	node = list_last(&run->thread_ar->fun_ar);
-	assert(list_node_data(node, run_fun_ar_t *) == fun_ar);
-	list_remove(&run->thread_ar->fun_ar, node);
+	/* Remove procedure activation record from the stack. */
+	node = list_last(&run->thread_ar->proc_ar);
+	assert(list_node_data(node, run_proc_ar_t *) == proc_ar);
+	list_remove(&run->thread_ar->proc_ar, node);
 
-	*res = fun_ar->retval;
+	/* Procedure should not return an address. */
+	assert(proc_ar->retval == NULL || proc_ar->retval->ic == ic_value);
+	*res = proc_ar->retval;
 }
 
 /** Run code block */
 static void run_block(run_t *run, stree_block_t *block)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 	run_block_ar_t *block_ar;
 	list_node_t *node;
 	stree_stat_t *stat;
@@ -184,8 +188,8 @@ static void run_block(run_t *run, stree_block_t *block)
 	intmap_init(&block_ar->vars);
 
 	/* Add block activation record to the stack. */
-	fun_ar = run_get_current_fun_ar(run);
-	list_append(&fun_ar->block_ar, block_ar);
+	proc_ar = run_get_current_proc_ar(run);
+	list_append(&proc_ar->block_ar, block_ar);
 
 	node = list_first(&block->stats);
 	while (node != NULL) {
@@ -203,9 +207,9 @@ static void run_block(run_t *run, stree_block_t *block)
 #endif
 
 	/* Remove block activation record from the stack. */
-	node = list_last(&fun_ar->block_ar);
+	node = list_last(&proc_ar->block_ar);
 	assert(list_node_data(node, run_block_ar_t *) == block_ar);
-	list_remove(&fun_ar->block_ar, node);
+	list_remove(&proc_ar->block_ar, node);
 }
 
 /** Run statement. */
@@ -356,7 +360,7 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 	printf("Executing raise statement.\n");
 #endif
 	run_expr(run, raise_s->expr, &rexpr);
-	rdata_cvt_value_item(rexpr, &rexpr_vi);
+	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
 	/* Store expression result in thread AR. */
 	run->thread_ar->exc_payload = rexpr_vi->u.value;
@@ -369,20 +373,22 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 static void run_return(run_t *run, stree_return_t *return_s)
 {
 	rdata_item_t *rexpr;
-	run_fun_ar_t *fun_ar;
+	rdata_item_t *rexpr_vi;
+	run_proc_ar_t *proc_ar;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing return statement.\n");
 #endif
 	run_expr(run, return_s->expr, &rexpr);
+	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
 	/* Store expression result in function AR. */
-	fun_ar = run_get_current_fun_ar(run);
-	fun_ar->retval = rexpr;
+	proc_ar = run_get_current_proc_ar(run);
+	proc_ar->retval = rexpr_vi;
 
-	/* Force control to ascend and leave the function. */
+	/* Force control to ascend and leave the procedure. */
 	if (run->thread_ar->bo_mode == bm_none)
-		run->thread_ar->bo_mode = bm_fun;
+		run->thread_ar->bo_mode = bm_proc;
 }
 
 /** Run @c with-except-finally statement. */
@@ -500,13 +506,13 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 /** Find a local variable in the currently active function. */
 rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 	run_block_ar_t *block_ar;
 	rdata_var_t *var;
 	list_node_t *node;
 
-	fun_ar = run_get_current_fun_ar(run);
-	node = list_last(&fun_ar->block_ar);
+	proc_ar = run_get_current_proc_ar(run);
+	node = list_last(&proc_ar->block_ar);
 
 	/* Walk through all block activation records. */
 	while (node != NULL) {
@@ -515,7 +521,7 @@ rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name)
 		if (var != NULL)
 			return var;
 
-		node = list_prev(&fun_ar->block_ar, node);
+		node = list_prev(&proc_ar->block_ar, node);
 	}
 
 	/* No match */
@@ -523,33 +529,33 @@ rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name)
 }
 
 /** Get current function activation record. */
-run_fun_ar_t *run_get_current_fun_ar(run_t *run)
+run_proc_ar_t *run_get_current_proc_ar(run_t *run)
 {
 	list_node_t *node;
 
-	node = list_last(&run->thread_ar->fun_ar);
-	return list_node_data(node, run_fun_ar_t *);
+	node = list_last(&run->thread_ar->proc_ar);
+	return list_node_data(node, run_proc_ar_t *);
 }
 
 /** Get current block activation record. */
 run_block_ar_t *run_get_current_block_ar(run_t *run)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 	list_node_t *node;
 
-	fun_ar = run_get_current_fun_ar(run);
+	proc_ar = run_get_current_proc_ar(run);
 
-	node = list_last(&fun_ar->block_ar);
+	node = list_last(&proc_ar->block_ar);
 	return list_node_data(node, run_block_ar_t *);
 }
 
 /** Get current CSI. */
 stree_csi_t *run_get_current_csi(run_t *run)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 
-	fun_ar = run_get_current_fun_ar(run);
-	return fun_ar->fun_sym->outer_csi;
+	proc_ar = run_get_current_proc_ar(run);
+	return proc_ar->proc_sym->outer_csi;
 }
 
 /** Construct variable from a value item.
@@ -599,65 +605,96 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 }
 
 /** Construct a function AR. */
-void run_fun_ar_create(run_t *run, rdata_var_t *obj, stree_fun_t *fun,
-    run_fun_ar_t **rfun_ar)
+void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_symbol_t *proc_sym,
+    stree_block_t *proc_block, run_proc_ar_t **rproc_ar)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
+	run_block_ar_t *block_ar;
 
 	(void) run;
 
 	/* Create function activation record. */
-	fun_ar = run_fun_ar_new();
-	fun_ar->obj = obj;
-	fun_ar->fun_sym = fun_to_symbol(fun);
-	list_init(&fun_ar->block_ar);
+	proc_ar = run_proc_ar_new();
+	proc_ar->obj = obj;
+	proc_ar->proc_sym = proc_sym;
+	proc_ar->proc_block = proc_block;
+	list_init(&proc_ar->block_ar);
 
-	fun_ar->retval = NULL;
+	proc_ar->retval = NULL;
 
-	*rfun_ar = fun_ar;
+	/* Create special block activation record to hold function arguments. */
+	block_ar = run_block_ar_new();
+	intmap_init(&block_ar->vars);
+	list_append(&proc_ar->block_ar, block_ar);
+
+	*rproc_ar = proc_ar;
 }
 
-/** Fill arguments in a function AR. */
-void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
+/** Fill arguments in a procedure AR.
+ *
+ * When invoking a procedure this is used to store the argument values
+ * in the activation record.
+ */
+void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 {
 	stree_fun_t *fun;
+	stree_prop_t *prop;
+	list_t *args;
+	stree_proc_arg_t *varg;
+
 	run_block_ar_t *block_ar;
-	list_node_t *rarg_n, *farg_n;
+	list_node_t *block_ar_n;
+	list_node_t *rarg_n, *parg_n;
 	list_node_t *cn;
 	rdata_item_t *rarg;
-	stree_fun_arg_t *farg;
+	stree_proc_arg_t *parg;
 	rdata_var_t *var;
 	rdata_var_t *ref_var;
 	rdata_ref_t *ref;
 	rdata_array_t *array;
 	int n_vargs, idx;
 
-	/* AR should have been created with run_fun_ar_create(). */
-	assert(fun_ar->fun_sym != NULL);
-	assert(list_is_empty(&fun_ar->block_ar));
+	/* AR should have been created with run_proc_ar_create(). */
+	assert(proc_ar->proc_sym != NULL);
 
-	fun = symbol_to_fun(fun_ar->fun_sym);
-	assert(fun != NULL);
+	/*
+	 * The procedure being activated should be a member function or
+	 * property getter/setter.
+	 */
+	switch (proc_ar->proc_sym->sc) {
+	case sc_fun:
+		fun = symbol_to_fun(proc_ar->proc_sym);
+		args = &fun->args;
+		varg = fun->varg;
+		break;
+	case sc_prop:
+		prop = symbol_to_prop(proc_ar->proc_sym);
+		args = &prop->args;
+		varg = prop->varg;
+		break;
+	default:
+		assert(b_false);
+	}
 
-	/* Create special block activation record to hold function arguments. */
-	block_ar = run_block_ar_new();
-	intmap_init(&block_ar->vars);
-	list_append(&fun_ar->block_ar, block_ar);
+	/* Fetch first block activation record. */
+	block_ar_n = list_first(&proc_ar->block_ar);
+	assert(block_ar_n != NULL);
+	block_ar = list_node_data(block_ar_n, run_block_ar_t *);
 
 	/* Declare local variables to hold argument values. */
-	rarg_n = list_first(args);
-	farg_n = list_first(&fun->args);
+	rarg_n = list_first(arg_vals);
+	parg_n = list_first(args);
 
-	while (farg_n != NULL) {
+	while (parg_n != NULL) {
 		if (rarg_n == NULL) {
 			printf("Error: Too few arguments to function '");
-			symbol_print_fqn(run->program, fun_ar->fun_sym);
+			symbol_print_fqn(run->program, proc_ar->proc_sym);
 			printf("'.\n");
 			exit(1);
 		}
 
 		rarg = list_node_data(rarg_n, rdata_item_t *);
-		farg = list_node_data(farg_n, stree_fun_arg_t *);
+		parg = list_node_data(parg_n, stree_proc_arg_t *);
 
 		assert(rarg->ic == ic_value);
 
@@ -665,19 +702,19 @@ void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
 		run_value_item_to_var(rarg, &var);
 
 		/* Declare variable using name of formal argument. */
-		intmap_set(&block_ar->vars, farg->name->sid, var);
+		intmap_set(&block_ar->vars, parg->name->sid, var);
 
-		rarg_n = list_next(args, rarg_n);
-		farg_n = list_next(&fun->args, farg_n);
+		rarg_n = list_next(arg_vals, rarg_n);
+		parg_n = list_next(args, parg_n);
 	}
 
-	if (fun->varg != NULL) {
+	if (varg != NULL) {
 		/* Function is variadic. Count number of variadic arguments. */
 		cn = rarg_n;
 		n_vargs = 0;
 		while (cn != NULL) {
 			n_vargs += 1;
-			cn = list_next(args, cn);
+			cn = list_next(arg_vals, cn);
 		}
 
 		/* Prepare array to store variadic arguments. */
@@ -694,7 +731,7 @@ void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
 
 			rdata_var_write(array->element[idx], rarg->u.value);
 
-			rarg_n = list_next(args, rarg_n);
+			rarg_n = list_next(arg_vals, rarg_n);
 			idx += 1;
 		}
 
@@ -708,36 +745,328 @@ void run_fun_ar_set_args(run_t *run, run_fun_ar_t *fun_ar, list_t *args)
 		ref->vref = var;
 
 		/* Declare variable using name of formal argument. */
-		intmap_set(&block_ar->vars, fun->varg->name->sid,
+		intmap_set(&block_ar->vars, varg->name->sid,
 		    ref_var);
 	}
 
 	/* Check for excess real parameters. */
 	if (rarg_n != NULL) {
 		printf("Error: Too many arguments to function '");
-		symbol_print_fqn(run->program, fun_ar->fun_sym);
+		symbol_print_fqn(run->program, proc_ar->proc_sym);
 		printf("'.\n");
 		exit(1);
 	}
+}
+
+/** Fill setter argument in a procedure AR.
+ *
+ * When invoking a setter this is used to store its argument value in its
+ * procedure activation record.
+ */
+void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
+    rdata_item_t *arg_val)
+{
+	stree_prop_t *prop;
+	run_block_ar_t *block_ar;
+	list_node_t *block_ar_n;
+	rdata_var_t *var;
+
+	(void) run;
+
+	/* AR should have been created with run_proc_ar_create(). */
+	assert(proc_ar->proc_sym != NULL);
+
+	/* The procedure being activated should be a property setter. */
+	prop = symbol_to_prop(proc_ar->proc_sym);
+	assert(prop != NULL);
+
+	/* Fetch first block activation record. */
+	block_ar_n = list_first(&proc_ar->block_ar);
+	assert(block_ar_n != NULL);
+	block_ar = list_node_data(block_ar_n, run_block_ar_t *);
+
+	assert(arg_val->ic == ic_value);
+
+	/* Construct a variable from the argument value. */
+	run_value_item_to_var(arg_val, &var);
+
+	/* Declare variable using name of formal argument. */
+	intmap_set(&block_ar->vars, prop->setter_arg_name->sid, var);
 }
 
 /** Print function activation backtrace. */
 void run_print_fun_bt(run_t *run)
 {
 	list_node_t *node;
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 
 	printf("Backtrace:\n");
-	node = list_last(&run->thread_ar->fun_ar);
+	node = list_last(&run->thread_ar->proc_ar);
 	while (node != NULL) {
 		printf(" * ");
-		fun_ar = list_node_data(node, run_fun_ar_t *);
-		symbol_print_fqn(run->program, fun_ar->fun_sym);
+		proc_ar = list_node_data(node, run_proc_ar_t *);
+		symbol_print_fqn(run->program, proc_ar->proc_sym);
 		printf("\n");
 
-		node = list_prev(&run->thread_ar->fun_ar, node);
+		node = list_prev(&run->thread_ar->proc_ar, node);
 	}
 }
+
+/** Convert item to value item.
+ *
+ * If @a item is a value, we just return a copy. If @a item is an address,
+ * we read from the address.
+ */
+void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
+{
+	rdata_value_t *value;
+
+	/* 
+	 * This can happen when trying to use output of a function which
+	 * does not return a value.
+	 */
+	if (item == NULL) {
+		printf("Error: Sub-expression has no value.\n");
+		exit(1);
+	}
+
+	/* Address item. Perform read operation. */
+	if (item->ic == ic_address) {
+		run_address_read(run, item->u.address, ritem);
+		return;
+	}
+
+	/* It already is a value, we can share the @c var. */
+	value = rdata_value_new();
+	value->var = item->u.value->var;
+	*ritem = rdata_item_new(ic_value);
+	(*ritem)->u.value = value;
+}
+
+
+/** Read data from an address.
+ *
+ * Return value stored in a variable at the specified address.
+ */
+void run_address_read(run_t *run, rdata_address_t *address,
+    rdata_item_t **ritem)
+{
+	(void) run;
+
+	switch (address->ac) {
+	case ac_var:
+		rdata_var_read(address->u.var_a->vref, ritem);
+		break;
+	case ac_prop:
+		run_aprop_read(run, address->u.prop_a, ritem);
+		break;
+	}
+
+	assert((*ritem)->ic == ic_value);
+}
+
+/** Write data to an address.
+ *
+ * Store @a value to the variable at @a address.
+ */
+void run_address_write(run_t *run, rdata_address_t *address,
+    rdata_value_t *value)
+{
+	(void) run;
+
+	switch (address->ac) {
+	case ac_var:
+		rdata_var_write(address->u.var_a->vref, value);
+		break;
+	case ac_prop:
+		run_aprop_write(run, address->u.prop_a, value);
+		break;
+	}
+}
+
+static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
+    rdata_item_t **ritem)
+{
+	rdata_deleg_t *deleg;
+	rdata_var_t *obj;
+	stree_symbol_t *prop_sym;
+	stree_prop_t *prop;
+
+	run_proc_ar_t *proc_ar;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Read from property.\n");
+#endif
+	/*
+	 * If @c tvalue is present, we need to use the relevant part from that
+	 * instead of re-reading the whole thing.
+	 */
+	if (addr_prop->tvalue != NULL) {
+		printf("Unimplemented: Property field access.\n");
+		exit(1);
+	}
+
+	if (addr_prop->apc == apc_named)
+		deleg = addr_prop->u.named->prop_d;
+	else
+		deleg = addr_prop->u.indexed->object_d;
+
+	obj = deleg->obj;
+	prop_sym = deleg->sym;
+	prop = symbol_to_prop(prop_sym);
+	assert(prop != NULL);
+
+	if (prop->getter_body == NULL) {
+		printf("Error: Property is not readable.\n");
+		exit(1);
+	}
+
+	/* Create procedure activation record. */
+	run_proc_ar_create(run, obj, prop_sym, prop->getter_body, &proc_ar);
+
+	/* Fill in arguments (indices). */
+	if (addr_prop->apc == apc_indexed) {
+		run_proc_ar_set_args(run, proc_ar,
+		    &addr_prop->u.indexed->args);
+	}
+
+	/* Run getter. */
+	run_proc(run, proc_ar, ritem);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Getter returns ");
+	rdata_item_print(*ritem);
+	printf(".\n");
+	printf("Done reading from property.\n");
+#endif
+}
+
+static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
+    rdata_value_t *value)
+{
+	rdata_deleg_t *deleg;
+	rdata_var_t *obj;
+	stree_symbol_t *prop_sym;
+	stree_prop_t *prop;
+
+	run_proc_ar_t *proc_ar;
+	rdata_item_t *vitem;
+	rdata_item_t *ritem;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Write to property.\n");
+#endif
+	/* If @c tvalue is present, we need to modify it and write it back. */
+	if (addr_prop->tvalue != NULL) {
+		printf("Unimplemented: Read-modify-write property access.\n");
+		exit(1);
+	}
+
+	if (addr_prop->apc == apc_named)
+		deleg = addr_prop->u.named->prop_d;
+	else
+		deleg = addr_prop->u.indexed->object_d;
+
+	obj = deleg->obj;
+	prop_sym = deleg->sym;
+	prop = symbol_to_prop(prop_sym);
+	assert(prop != NULL);
+
+	if (prop->setter_body == NULL) {
+		printf("Error: Property is not writable.\n");
+		exit(1);
+	}
+
+	vitem = rdata_item_new(ic_value);
+	vitem->u.value = value;
+
+	/* Create procedure activation record. */
+	run_proc_ar_create(run, obj, prop_sym, prop->setter_body, &proc_ar);
+
+	/* Fill in arguments (indices). */
+	if (addr_prop->apc == apc_indexed) {
+		run_proc_ar_set_args(run, proc_ar,
+		    &addr_prop->u.indexed->args);
+	}
+
+	/* Fill in value argument for setter. */
+	run_proc_ar_set_setter_arg(run, proc_ar, vitem);
+
+	/* Run setter. */
+	run_proc(run, proc_ar, &ritem);
+
+	/* Setter should not return a value. */
+	assert(ritem == NULL);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Done writing to property.\n");
+#endif
+}
+
+/** Return reference to a variable.
+ *
+ * Constructs a reference (value item) pointing to @a var.
+ */
+void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res)
+{
+	rdata_ref_t *ref;
+	rdata_var_t *ref_var;
+	rdata_value_t *ref_value;
+	rdata_item_t *ref_item;
+
+	(void) run;
+
+	/* Create reference to the variable. */
+	ref = rdata_ref_new();
+	ref_var = rdata_var_new(vc_ref);
+	ref->vref = var;
+	ref_var->u.ref_v = ref;
+
+	/* Construct value of the reference to return. */
+	ref_item = rdata_item_new(ic_value);
+	ref_value = rdata_value_new();
+	ref_item->u.value = ref_value;
+	ref_value->var = ref_var;
+
+	*res = ref_item;
+}
+
+/** Return address of reference target.
+ *
+ * Takes a reference (address or value) and returns the address (item) of
+ * the target of the reference.
+ */
+void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
+{
+	rdata_item_t *ref_val;
+	rdata_item_t *item;
+	rdata_address_t *address;
+	rdata_addr_var_t *addr_var;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("run_dereference()\n");
+#endif
+	run_cvt_value_item(run, ref, &ref_val);
+	assert(ref_val->u.value->var->vc == vc_ref);
+
+	item = rdata_item_new(ic_address);
+	address = rdata_address_new(ac_var);
+	addr_var = rdata_addr_var_new();
+	item->u.address = address;
+	address->u.var_a = addr_var;
+	addr_var->vref = ref_val->u.value->var->u.ref_v->vref;
+
+	if (addr_var->vref == NULL) {
+		printf("Error: Accessing null reference.\n");
+		exit(1);
+	}
+
+#ifdef DEBUG_RUN_TRACE
+	printf("vref set to %p\n", addr_var->vref);
+#endif
+	*ritem = item;
+}
+
 
 run_thread_ar_t *run_thread_ar_new(void)
 {
@@ -752,17 +1081,17 @@ run_thread_ar_t *run_thread_ar_new(void)
 	return thread_ar;
 }
 
-run_fun_ar_t *run_fun_ar_new(void)
+run_proc_ar_t *run_proc_ar_new(void)
 {
-	run_fun_ar_t *fun_ar;
+	run_proc_ar_t *proc_ar;
 
-	fun_ar = calloc(1, sizeof(run_fun_ar_t));
-	if (fun_ar == NULL) {
+	proc_ar = calloc(1, sizeof(run_proc_ar_t));
+	if (proc_ar == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(1);
 	}
 
-	return fun_ar;
+	return proc_ar;
 }
 
 run_block_ar_t *run_block_ar_new(void)

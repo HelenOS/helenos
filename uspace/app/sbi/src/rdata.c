@@ -63,7 +63,60 @@ rdata_item_t *rdata_item_new(item_class_t ic)
 	return item;
 }
 
-rdata_address_t *rdata_address_new(void)
+rdata_addr_var_t *rdata_addr_var_new(void)
+{
+	rdata_addr_var_t *addr_var;
+
+	addr_var = calloc(1, sizeof(rdata_addr_var_t));
+	if (addr_var == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return addr_var;
+}
+
+rdata_aprop_named_t *rdata_aprop_named_new(void)
+{
+	rdata_aprop_named_t *aprop_named;
+
+	aprop_named = calloc(1, sizeof(rdata_aprop_named_t));
+	if (aprop_named == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return aprop_named;
+}
+
+rdata_aprop_indexed_t *rdata_aprop_indexed_new(void)
+{
+	rdata_aprop_indexed_t *aprop_indexed;
+
+	aprop_indexed = calloc(1, sizeof(rdata_aprop_indexed_t));
+	if (aprop_indexed == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return aprop_indexed;
+}
+
+rdata_addr_prop_t *rdata_addr_prop_new(aprop_class_t apc)
+{
+	rdata_addr_prop_t *addr_prop;
+
+	addr_prop = calloc(1, sizeof(rdata_addr_prop_t));
+	if (addr_prop == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	addr_prop->apc = apc;
+	return addr_prop;
+}
+
+rdata_address_t *rdata_address_new(address_class_t ac)
 {
 	rdata_address_t *address;
 
@@ -73,6 +126,7 @@ rdata_address_t *rdata_address_new(void)
 		exit(1);
 	}
 
+	address->ac = ac;
 	return address;
 }
 
@@ -348,121 +402,22 @@ static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 	exit(1);
 }
 
-/** Convert item to value item.
+/** Read data from a variable.
  *
- * If @a item is a value, we just return a copy. If @a item is an address,
- * we read from the address.
+ * Return value stored in variable @a var.
  */
-void rdata_cvt_value_item(rdata_item_t *item, rdata_item_t **ritem)
-{
-	rdata_value_t *value;
-
-	/* 
-	 * This can happen when trying to use output of a function which
-	 * does not return a value.
-	 */
-	if (item == NULL) {
-		printf("Error: Sub-expression has no value.\n");
-		exit(1);
-	}
-
-	/* Address item. Perform read operation. */
-	if (item->ic == ic_address) {
-		rdata_address_read(item->u.address, ritem);
-		return;
-	}
-
-	/* It already is a value, we can share the @c var. */
-	value = rdata_value_new();
-	value->var = item->u.value->var;
-	*ritem = rdata_item_new(ic_value);
-	(*ritem)->u.value = value;
-}
-
-/** Return reference to a variable.
- *
- * Constructs a reference (value item) pointing to @a var.
- */
-void rdata_reference(rdata_var_t *var, rdata_item_t **res)
-{
-	rdata_ref_t *ref;
-	rdata_var_t *ref_var;
-	rdata_value_t *ref_value;
-	rdata_item_t *ref_item;
-
-	/* Create reference to the variable. */
-	ref = rdata_ref_new();
-	ref_var = rdata_var_new(vc_ref);
-	ref->vref = var;
-	ref_var->u.ref_v = ref;
-
-	/* Construct value of the reference to return. */
-	ref_item = rdata_item_new(ic_value);
-	ref_value = rdata_value_new();
-	ref_item->u.value = ref_value;
-	ref_value->var = ref_var;
-
-	*res = ref_item;
-}
-
-/** Return address of reference target.
- *
- * Takes a reference (address or value) and returns the address (item) of
- * the target of the reference.
- */
-void rdata_dereference(rdata_item_t *ref, rdata_item_t **ritem)
-{
-	rdata_item_t *ref_val;
-	rdata_item_t *item;
-	rdata_address_t *address;
-
-#ifdef DEBUG_RUN_TRACE
-	printf("run_dereference()\n");
-#endif
-	rdata_cvt_value_item(ref, &ref_val);
-	assert(ref_val->u.value->var->vc == vc_ref);
-
-	item = rdata_item_new(ic_address);
-	address = rdata_address_new();
-	item->u.address = address;
-	address->vref = ref_val->u.value->var->u.ref_v->vref;
-
-	if (address->vref == NULL) {
-		printf("Error: Accessing null reference.\n");
-		exit(1);
-	}
-
-#ifdef DEBUG_RUN_TRACE
-	printf("vref set to %p\n", address->vref);
-#endif
-	*ritem = item;
-}
-
-/** Read data from an address.
- *
- * Return value stored in a variable at the specified address.
- */
-void rdata_address_read(rdata_address_t *address, rdata_item_t **ritem)
+void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem)
 {
 	rdata_value_t *value;
 	rdata_var_t *rvar;
 
-	/* Perform a shallow copy of @c var. */
-	rdata_var_copy(address->vref, &rvar);
+	/* Perform a shallow copy of @a var. */
+	rdata_var_copy(var, &rvar);
 
 	value = rdata_value_new();
 	value->var = rvar;
 	*ritem = rdata_item_new(ic_value);
 	(*ritem)->u.value = value;
-}
-
-/** Write data to an address.
- *
- * Store @a value to the variable at @a address.
- */
-void rdata_address_write(rdata_address_t *address, rdata_value_t *value)
-{
-	rdata_var_write(address->vref, value);
 }
 
 /** Write data to a variable.
@@ -489,6 +444,39 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 	}
 
 	/* XXX We should free some stuff around here. */
+}
+
+/** Get item var-class.
+ *
+ * Get var-class of @a item, regardless whether it is a value or address.
+ * (I.e. the var class of the value or variable at the given address).
+ */
+var_class_t rdata_item_get_vc(rdata_item_t *item)
+{
+	var_class_t vc;
+
+	switch (item->ic) {
+	case ic_value:
+		vc = item->u.value->var->vc;
+		break;
+	case ic_address:
+		switch (item->u.address->ac) {
+		case ac_var:
+			vc = item->u.address->u.var_a->vref->vc;
+			break;
+		case ac_prop:
+			printf("Unimplemented: Get property address "
+			    "varclass.\n");
+			exit(1);
+		default:
+			assert(b_false);
+		}
+		break;
+	default:
+		assert(b_false);
+	}
+
+	return vc;
 }
 
 /** Determine if CSI @a a is derived from CSI described by type item @a tb. */
@@ -529,7 +517,14 @@ void rdata_item_print(rdata_item_t *item)
 
 static void rdata_address_print(rdata_address_t *address)
 {
-	rdata_var_print(address->vref);
+	switch (address->ac) {
+	case ac_var:
+		rdata_var_print(address->u.var_a->vref);
+		break;
+	case ac_prop:
+		printf("Warning: Unimplemented: Print property address.\n");
+		break;
+	}
 }
 
 static void rdata_value_print(rdata_value_t *value)

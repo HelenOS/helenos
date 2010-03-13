@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Builtin functions. */
+/** @file Builtin procedures. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,9 +41,9 @@
 
 #include "builtin.h"
 
-static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, char *name);
-static void builtin_fun_add_arg(stree_symbol_t *fun_sym, char *name);
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, char *name);
+static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name);
+static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name);
+static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name);
 
 static void builtin_write_line(run_t *run);
 static void builtin_exec(run_t *run);
@@ -53,7 +53,7 @@ static stree_symbol_t *bi_exec;
 
 /** Declare builtin symbols in the program.
  *
- * Declares symbols that will be hooked to builtin interpreter functions.
+ * Declares symbols that will be hooked to builtin interpreter procedures.
  */
 void builtin_declare(stree_program_t *program)
 {
@@ -79,7 +79,7 @@ void builtin_declare(stree_program_t *program)
 
 	list_append(&program->module->members, modm);
 
-	/* Declare builtin functions. */
+	/* Declare builtin procedures. */
 
 	bi_write_line = builtin_declare_fun(csi, "WriteLine");
 	builtin_fun_add_arg(bi_write_line, "arg");
@@ -88,14 +88,14 @@ void builtin_declare(stree_program_t *program)
 	builtin_fun_add_vararg(bi_exec, "args");
 }
 
-void builtin_run_fun(run_t *run, stree_symbol_t *fun_sym)
+void builtin_run_proc(run_t *run, stree_symbol_t *proc_sym)
 {
 #ifdef DEBUG_RUN_TRACE
-	printf("Run builtin function.\n");
+	printf("Run builtin procedure.\n");
 #endif
-	if (fun_sym == bi_write_line) {
+	if (proc_sym == bi_write_line) {
 		builtin_write_line(run);
-	} else if (fun_sym == bi_exec) {
+	} else if (proc_sym == bi_exec) {
 		builtin_exec(run);
 	} else {
 		assert(b_false);
@@ -103,7 +103,7 @@ void builtin_run_fun(run_t *run, stree_symbol_t *fun_sym)
 }
 
 /** Declare a builtin function in @a csi. */
-static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, char *name)
+static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 {
 	stree_ident_t *ident;
 	stree_fun_t *fun;
@@ -132,37 +132,37 @@ static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, char *name)
 }
 
 /** Add one formal parameter to function. */
-static void builtin_fun_add_arg(stree_symbol_t *fun_sym, char *name)
+static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 {
-	stree_fun_arg_t *fun_arg;
+	stree_proc_arg_t *proc_arg;
 	stree_fun_t *fun;
 
 	fun = symbol_to_fun(fun_sym);
 	assert(fun != NULL);
 
-	fun_arg = stree_fun_arg_new();
-	fun_arg->name = stree_ident_new();
-	fun_arg->name->sid = strtab_get_sid(name);
-	fun_arg->type = NULL; /* XXX */
+	proc_arg = stree_proc_arg_new();
+	proc_arg->name = stree_ident_new();
+	proc_arg->name->sid = strtab_get_sid(name);
+	proc_arg->type = NULL; /* XXX */
 
-	list_append(&fun->args, fun_arg);
+	list_append(&fun->args, proc_arg);
 }
 
 /** Add variadic formal parameter to function. */
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, char *name)
+static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name)
 {
-	stree_fun_arg_t *fun_arg;
+	stree_proc_arg_t *proc_arg;
 	stree_fun_t *fun;
 
 	fun = symbol_to_fun(fun_sym);
 	assert(fun != NULL);
 
-	fun_arg = stree_fun_arg_new();
-	fun_arg->name = stree_ident_new();
-	fun_arg->name->sid = strtab_get_sid(name);
-	fun_arg->type = NULL; /* XXX */
+	proc_arg = stree_proc_arg_new();
+	proc_arg->name = stree_ident_new();
+	proc_arg->name->sid = strtab_get_sid(name);
+	proc_arg->type = NULL; /* XXX */
 
-	fun->varg = fun_arg;
+	fun->varg = proc_arg;
 }
 
 static void builtin_write_line(run_t *run)

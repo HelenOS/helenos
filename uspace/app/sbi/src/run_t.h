@@ -43,23 +43,28 @@ typedef struct run_block_ar {
 } run_block_ar_t;
 
 
-/** Function activation record
+/** Procedure activation record
  *
- * One is created whenever a function is invoked.
+ * A procedure can be a member function, a named property or an indexed
+ * property. A procedure activation record is created whenever a procedure
+ * is invoked.
  */
-typedef struct run_fun_ar {
-	/** Object on which the member function is being invoked or @c NULL. */
+typedef struct run_proc_ar {
+	/** Object on which the procedure is being invoked or @c NULL. */
 	struct rdata_var *obj;
 
-	/** Definition of function being invoked */
-	struct stree_symbol *fun_sym;
+	/** Definition of function or property being invoked */
+	struct stree_symbol *proc_sym;
+
+	/** Main block of procedure being invoked */
+	struct stree_block *proc_block;
 
 	/** Block activation records */
 	list_t block_ar; /* of run_block_ar_t */
 
-	/** Function return value or @c NULL if not set. */
+	/** Procedure return value or @c NULL if not set. */
 	struct rdata_item *retval;
-} run_fun_ar_t;
+} run_proc_ar_t;
 
 /** Bailout mode
  *
@@ -72,8 +77,8 @@ typedef enum {
 	/** Break from statement */
 	bm_stat,
 
-	/** Return from function */
-	bm_fun,
+	/** Return from procedure */
+	bm_proc,
 
 	/** Exception */
 	bm_exc
@@ -85,7 +90,7 @@ typedef enum {
  */
 typedef struct run_thread_ar {
 	/** Function activation records */
-	list_t fun_ar; /* of run_fun_ar_t */
+	list_t proc_ar; /* of run_proc_ar_t */
 
 	/** Bailout mode */
 	run_bailout_mode_t bo_mode;

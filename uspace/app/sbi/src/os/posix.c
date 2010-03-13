@@ -78,6 +78,19 @@ char *os_str_dup(const char *str)
 	return strdup(str);
 }
 
+/** Get character from string at the given index. */
+int os_str_get_char(const char *str, int index, int *out_char)
+{
+	size_t len;
+
+	len = strlen(str);
+	if (index < 0 || (size_t) index >= len)
+		return EINVAL;
+
+	*out_char = str[index];
+	return EOK;
+}
+
 /** Simple command execution. */
 int os_exec(char *const cmd[])
 {

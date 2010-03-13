@@ -32,6 +32,7 @@
 char *os_str_acat(const char *a, const char *b);
 int os_str_cmp(const char *a, const char *b);
 char *os_str_dup(const char *str);
+int os_str_get_char(const char *str, int index, int *out_char);
 int os_exec(char *const cmd[]);
 
 

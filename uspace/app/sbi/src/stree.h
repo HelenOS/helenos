@@ -39,7 +39,7 @@ stree_fun_t *stree_fun_new(void);
 stree_var_t *stree_var_new(void);
 stree_prop_t *stree_prop_new(void);
 
-stree_fun_arg_t *stree_fun_arg_new(void);
+stree_proc_arg_t *stree_proc_arg_new(void);
 stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac);
 
 stree_stat_t *stree_stat_new(stat_class_t sc);
@@ -78,7 +78,7 @@ stree_tnameref_t *stree_tnameref_new(void);
 stree_symbol_t *stree_symbol_new(symbol_class_t sc);
 stree_program_t *stree_program_new(void);
 
-bool_t stree_arg_has_attr(stree_fun_arg_t *arg, arg_attr_class_t aac);
+bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac);
 bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b);
 
 #endif

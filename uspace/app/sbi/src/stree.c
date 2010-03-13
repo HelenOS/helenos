@@ -135,17 +135,17 @@ stree_prop_t *stree_prop_new(void)
 	return prop;
 }
 
-stree_fun_arg_t *stree_fun_arg_new(void)
+stree_proc_arg_t *stree_proc_arg_new(void)
 {
-	stree_fun_arg_t *fun_arg;
+	stree_proc_arg_t *proc_arg;
 
-	fun_arg = calloc(1, sizeof(stree_fun_arg_t));
-	if (fun_arg == NULL) {
+	proc_arg = calloc(1, sizeof(stree_proc_arg_t));
+	if (proc_arg == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(1);
 	}
 
-	return fun_arg;
+	return proc_arg;
 }
 
 stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac)
@@ -560,7 +560,7 @@ stree_program_t *stree_program_new(void)
 }
 
 /** Determine if argument @a arg has attribute of class @a aac. */
-bool_t stree_arg_has_attr(stree_fun_arg_t *arg, arg_attr_class_t aac)
+bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac)
 {
 	list_node_t *node;
 	stree_arg_attr_t *attr;

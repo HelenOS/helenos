@@ -54,7 +54,7 @@ static stree_fun_t *parse_fun(parse_t *parse);
 static stree_var_t *parse_var(parse_t *parse);
 static stree_prop_t *parse_prop(parse_t *parse);
 
-static stree_fun_arg_t *parse_fun_arg(parse_t *parse);
+static stree_proc_arg_t *parse_proc_arg(parse_t *parse);
 static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
 
 /*
@@ -226,7 +226,7 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 static stree_fun_t *parse_fun(parse_t *parse)
 {
 	stree_fun_t *fun;
-	stree_fun_arg_t *arg;
+	stree_proc_arg_t *arg;
 
 	fun = stree_fun_new();
 
@@ -240,7 +240,7 @@ static stree_fun_t *parse_fun(parse_t *parse)
 
 		/* Parse formal parameters. */
 		while (b_true) {
-			arg = parse_fun_arg(parse);
+			arg = parse_proc_arg(parse);
 			if (stree_arg_has_attr(arg, aac_packed)) {
 				fun->varg = arg;
 				break;
@@ -291,26 +291,91 @@ static stree_var_t *parse_var(parse_t *parse)
 static stree_prop_t *parse_prop(parse_t *parse)
 {
 	stree_prop_t *prop;
+	stree_ident_t *ident;
+	stree_proc_arg_t *arg;
 
 	prop = stree_prop_new();
+	list_init(&prop->args);
 
 	lmatch(parse, lc_prop);
-	prop->name = parse_ident(parse);
+
+	if (lcur_lc(parse) == lc_self) {
+		/* Indexed property set */
+
+		/* Use some name that is impossible as identifier. */
+		ident = stree_ident_new();
+		ident->sid = strtab_get_sid(INDEXER_IDENT);
+		prop->name = ident;
+
+		lskip(parse);
+		lmatch(parse, lc_lsbr);
+
+		/* Parse formal parameters. */
+		while (b_true) {
+			arg = parse_proc_arg(parse);
+			if (stree_arg_has_attr(arg, aac_packed)) {
+				prop->varg = arg;
+				break;
+			} else {
+				list_append(&prop->args, arg);
+			}
+
+			if (lcur_lc(parse) == lc_rsbr)
+				break;
+
+			lmatch(parse, lc_scolon);
+		}
+
+		lmatch(parse, lc_rsbr);
+	} else {
+		/* Named property */
+		prop->name = parse_ident(parse);
+	}
+
 	lmatch(parse, lc_colon);
 	prop->type = parse_texpr(parse);
 	lmatch(parse, lc_is);
+
+	while (lcur_lc(parse) != lc_end) {
+		switch (lcur_lc(parse)) {
+		case lc_get:
+			lskip(parse);
+			lmatch(parse, lc_is);
+			if (prop->getter_body != NULL) {
+				printf("Error: Duplicate getter.\n");
+				exit(1);
+			}
+			prop->getter_body = parse_block(parse);
+			lmatch(parse, lc_end);
+			break;
+		case lc_set:
+			lskip(parse);
+			prop->setter_arg_name = parse_ident(parse);
+			lmatch(parse, lc_is);
+			if (prop->setter_body != NULL) {
+				printf("Error: Duplicate setter.\n");
+				exit(1);
+			}
+			prop->setter_body = parse_block(parse);
+			lmatch(parse, lc_end);
+			break;
+		default:
+			lunexpected_error(parse);
+		}
+	}
+
 	lmatch(parse, lc_end);
 
 	return prop;
 }
 
 /** Parse formal function argument. */
-static stree_fun_arg_t *parse_fun_arg(parse_t *parse)
+static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 {
-	stree_fun_arg_t *arg;
+	stree_proc_arg_t *arg;
 	stree_arg_attr_t *attr;
 
-	arg = stree_fun_arg_new();
+	arg = stree_proc_arg_new();
 	arg->name = parse_ident(parse);
 	lmatch(parse, lc_colon);
 	arg->type = parse_texpr(parse);

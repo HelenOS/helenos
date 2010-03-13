@@ -269,7 +269,7 @@ typedef struct stree_texpr {
  */
 
 /** Statement block */
-typedef struct {
+typedef struct stree_block {
 	/** List of statements in the block */
 	list_t stats; /* of stree_stat_t */
 } stree_block_t;
@@ -327,7 +327,6 @@ typedef struct {
 	stree_block_t *finally_block;
 } stree_wef_t;
 
-
 /** Statement class */
 typedef enum {
 	st_vdecl,
@@ -377,7 +376,7 @@ typedef struct {
 
 	/* Attributes */
 	list_t attr; /* of stree_arg_attr_t */
-} stree_fun_arg_t;
+} stree_proc_arg_t;
 
 /** Member function declaration */
 typedef struct {
@@ -388,10 +387,10 @@ typedef struct {
 	struct stree_symbol *symbol;
 
 	/** Formal parameters */
-	list_t args; /* of stree_fun_arg_t */
+	list_t args; /* of stree_proc_arg_t */
 
 	/** Variadic argument or @c NULL if none. */
-	stree_fun_arg_t *varg;
+	stree_proc_arg_t *varg;
 
 	/** Return type */
 	stree_texpr_t *rtype;
@@ -412,7 +411,22 @@ typedef struct {
 	stree_ident_t *name;
 	struct stree_symbol *symbol;
 	stree_texpr_t *type;
+
+	stree_block_t *getter_body;
+	stree_ident_t *setter_arg_name;
+	stree_block_t *setter_body;
+
+	/** Formal parameters (for indexed properties) */
+	list_t args; /* of stree_proc_arg_t */
+
+	/** Variadic argument or @c NULL if none. */
+	stree_proc_arg_t *varg;
 } stree_prop_t;
+
+/**
+ * Fake identifier used with indexed properties. (Mostly for error messages.)
+ */
+#define INDEXER_IDENT "$indexer"
 
 typedef enum {
 	csimbr_csi,

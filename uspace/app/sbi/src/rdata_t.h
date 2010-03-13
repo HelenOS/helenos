@@ -130,10 +130,77 @@ typedef struct rdata_var {
 	} u;
 } rdata_var_t;
 
-/** Address item. */
-typedef struct rdata_address {
+/** Address class */
+typedef enum {
+	/** Variable address */
+	ac_var,
+
+	/** Property address */
+	ac_prop
+} address_class_t;
+
+/** Variable address */
+typedef struct {
 	/** Targeted variable */
 	rdata_var_t *vref;
+} rdata_addr_var_t;
+
+/** Named property address */
+typedef struct {
+	/** Delegate to the property */
+	rdata_deleg_t *prop_d;
+} rdata_aprop_named_t;
+
+/** Indexed property address */
+typedef struct {
+	/** Delegate to the object (or CSI) which is being indexed. */
+	rdata_deleg_t *object_d;
+
+	/** Arguments (indices) */
+	list_t args; /* of rdata_item_t */
+} rdata_aprop_indexed_t;
+
+typedef enum {
+	/* Named property address */
+	apc_named,
+
+	/* Indexed property address */
+	apc_indexed
+} aprop_class_t;
+
+/** Property address.
+ *
+ * When accessing part of a property that is non-scalar and mutable,
+ * a read-modify-write (or get-modify-set) operation is necessary.
+ * To accomodate this, the address item must hold a temporary copy of the
+ * property value.
+ */
+typedef struct {
+	aprop_class_t apc;
+
+	/** Temporary copy of property value or @c NULL when not used. */
+	struct rdata_value *tvalue;
+
+	/**
+	 * Points to the specific var node within @c tvalue that is addressed
+	 * or @c NULL when @c tvalue is not used.
+	 */
+	rdata_var_t *tpos;
+
+	union {
+		rdata_aprop_named_t *named;
+		rdata_aprop_indexed_t *indexed;
+	} u;
+} rdata_addr_prop_t;
+
+/** Address item */
+typedef struct rdata_address {
+	address_class_t ac;
+
+	union {
+		rdata_addr_var_t *var_a;
+		rdata_addr_prop_t *prop_a;
+	} u;
 } rdata_address_t;
 
 /** Value item. */
