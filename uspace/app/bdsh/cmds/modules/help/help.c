@@ -41,7 +41,7 @@
 #include "errors.h"
 #include "util.h"
 
-static char *cmdname = "help";
+static const char *cmdname = "help";
 extern const char *progname;
 
 #define HELP_IS_MODULE   1

@@ -32,7 +32,7 @@
 #include <test.h>
 #include <sysinfo/sysinfo.h>
 
-char *test_sysinfo1(void)
+const char *test_sysinfo1(void)
 {
 	if (!test_quiet)
 		sysinfo_dump(NULL, 0);

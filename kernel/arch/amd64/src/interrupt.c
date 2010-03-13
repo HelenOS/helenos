@@ -64,10 +64,8 @@ void (* eoi_function)(void) = NULL;
 
 void decode_istate(int n, istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->rip);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->rip);
+	
 	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n", n, __func__);
 	printf("%%rip: %#llx (%s)\n", istate->rip, symbol);
 	printf("ERROR_WORD=%#llx\n", istate->error_word);

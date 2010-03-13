@@ -66,21 +66,21 @@
  *  @returns EOK on success.
  *  @returns EINVAL 
  */
-int	queue_packet( dpeth_t * dep, packet_t packet );
+int queue_packet(dpeth_t * dep, packet_t packet);
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The source address.
  *  @param[out] buf The destination buffer.
  *  @param[in] size The memory block size in bytes.
  */
-static void outsb( port_t port, void * buf, size_t size );
+static void outsb(port_t port, void * buf, size_t size);
 
 /** Reads a memory block word by word.
  *  @param[in] port The source address.
  *  @param[out] buf The destination buffer.
  *  @param[in] size The memory block size in bytes.
  */
-static void outsw( port_t port, void * buf, size_t size );
+static void outsw(port_t port, void * buf, size_t size);
 
 //static u16_t eth_ign_proto;
 //static char *progname;
@@ -97,9 +97,9 @@ static void outsw( port_t port, void * buf, size_t size );
 //dp_conf_t dp_conf[]=	/* Card addresses */
 //{
 	/* I/O port, IRQ,  Buffer address,  Env. var. */
-/*	{  0x280,     3,    0xD0000,        "DPETH0"	},
-	{  0x300,     5,    0xC8000,        "DPETH1"	},
-	{  0x380,    10,    0xD8000,        "DPETH2"	},
+/*	{ 0x280,     3,    0xD0000,        "DPETH0"	},
+	{ 0x300,     5,    0xC8000,        "DPETH1"	},
+	{ 0x380,    10,    0xD8000,        "DPETH2"	},
 };
 */
 /* Test if dp_conf has exactly DE_PORT_NR entries.  If not then you will see
@@ -125,95 +125,95 @@ static void outsw( port_t port, void * buf, size_t size );
 #define CR_EXTRA	CR_STA
 
 //#if ENABLE_PCI
-//_PROTOTYPE( static void pci_conf, (void)				);
+//_PROTOTYPE(static void pci_conf, (void)				);
 //#endif
-//_PROTOTYPE( static void do_vwrite, (message *mp, int from_int,
+//_PROTOTYPE(static void do_vwrite, (message *mp, int from_int,
 //							int vectored)	);
-//_PROTOTYPE( static void do_vwrite_s, (message *mp, int from_int)	);
-//_PROTOTYPE( static void do_vread, (message *mp, int vectored)		);
-//_PROTOTYPE( static void do_vread_s, (message *mp)			);
-//_PROTOTYPE( static void do_init, (message *mp)				);
-//_PROTOTYPE( static void do_int, (dpeth_t *dep)				);
-//_PROTOTYPE( static void do_getstat, (message *mp)			);
-//_PROTOTYPE( static void do_getstat_s, (message *mp)			);
-//_PROTOTYPE( static void do_getname, (message *mp)			);
-//_PROTOTYPE( static void do_stop, (message *mp)				);
-_PROTOTYPE( static void dp_init, (dpeth_t *dep)				);
-//_PROTOTYPE( static void dp_confaddr, (dpeth_t *dep)			);
-_PROTOTYPE( static void dp_reinit, (dpeth_t *dep)			);
-_PROTOTYPE( static void dp_reset, (dpeth_t *dep)			);
-//_PROTOTYPE( static void dp_check_ints, (dpeth_t *dep)			);
-_PROTOTYPE( static void dp_recv, (dpeth_t *dep)				);
-_PROTOTYPE( static void dp_send, (dpeth_t *dep)				);
-//_PROTOTYPE( static void dp8390_stop, (void)				);
-_PROTOTYPE( static void dp_getblock, (dpeth_t *dep, int page,
+//_PROTOTYPE(static void do_vwrite_s, (message *mp, int from_int)	);
+//_PROTOTYPE(static void do_vread, (message *mp, int vectored)		);
+//_PROTOTYPE(static void do_vread_s, (message *mp)			);
+//_PROTOTYPE(static void do_init, (message *mp)				);
+//_PROTOTYPE(static void do_int, (dpeth_t *dep)				);
+//_PROTOTYPE(static void do_getstat, (message *mp)			);
+//_PROTOTYPE(static void do_getstat_s, (message *mp)			);
+//_PROTOTYPE(static void do_getname, (message *mp)			);
+//_PROTOTYPE(static void do_stop, (message *mp)				);
+_PROTOTYPE(static void dp_init, (dpeth_t *dep)				);
+//_PROTOTYPE(static void dp_confaddr, (dpeth_t *dep)			);
+_PROTOTYPE(static void dp_reinit, (dpeth_t *dep)			);
+_PROTOTYPE(static void dp_reset, (dpeth_t *dep)			);
+//_PROTOTYPE(static void dp_check_ints, (dpeth_t *dep)			);
+_PROTOTYPE(static void dp_recv, (dpeth_t *dep)				);
+_PROTOTYPE(static void dp_send, (dpeth_t *dep)				);
+//_PROTOTYPE(static void dp8390_stop, (void)				);
+_PROTOTYPE(static void dp_getblock, (dpeth_t *dep, int page,
 				size_t offset, size_t size, void *dst)	);
-_PROTOTYPE( static void dp_pio8_getblock, (dpeth_t *dep, int page,
+_PROTOTYPE(static void dp_pio8_getblock, (dpeth_t *dep, int page,
 				size_t offset, size_t size, void *dst)	);
-_PROTOTYPE( static void dp_pio16_getblock, (dpeth_t *dep, int page,
+_PROTOTYPE(static void dp_pio16_getblock, (dpeth_t *dep, int page,
 				size_t offset, size_t size, void *dst)	);
-_PROTOTYPE( static int dp_pkt2user, (dpeth_t *dep, int page,
-							int length)	);
-//_PROTOTYPE( static int dp_pkt2user_s, (dpeth_t *dep, int page,
+_PROTOTYPE(static int dp_pkt2user, (dpeth_t *dep, int page,
+							int length) );
+//_PROTOTYPE(static int dp_pkt2user_s, (dpeth_t *dep, int page,
 //							int length)	);
-_PROTOTYPE( static void dp_user2nic, (dpeth_t *dep, iovec_dat_t *iovp, 
-		vir_bytes offset, int nic_addr, vir_bytes count)	);
-//_PROTOTYPE( static void dp_user2nic_s, (dpeth_t *dep, iovec_dat_s_t *iovp, 
+_PROTOTYPE(static void dp_user2nic, (dpeth_t *dep, iovec_dat_t *iovp, 
+		vir_bytes offset, int nic_addr, vir_bytes count) );
+//_PROTOTYPE(static void dp_user2nic_s, (dpeth_t *dep, iovec_dat_s_t *iovp, 
 //		vir_bytes offset, int nic_addr, vir_bytes count)	);
-_PROTOTYPE( static void dp_pio8_user2nic, (dpeth_t *dep,
+_PROTOTYPE(static void dp_pio8_user2nic, (dpeth_t *dep,
 				iovec_dat_t *iovp, vir_bytes offset,
-				int nic_addr, vir_bytes count)		);
-//_PROTOTYPE( static void dp_pio8_user2nic_s, (dpeth_t *dep,
+				int nic_addr, vir_bytes count) );
+//_PROTOTYPE(static void dp_pio8_user2nic_s, (dpeth_t *dep,
 //				iovec_dat_s_t *iovp, vir_bytes offset,
 //				int nic_addr, vir_bytes count)		);
-_PROTOTYPE( static void dp_pio16_user2nic, (dpeth_t *dep,
+_PROTOTYPE(static void dp_pio16_user2nic, (dpeth_t *dep,
 				iovec_dat_t *iovp, vir_bytes offset,
-				int nic_addr, vir_bytes count)		);
-//_PROTOTYPE( static void dp_pio16_user2nic_s, (dpeth_t *dep,
+				int nic_addr, vir_bytes count) );
+//_PROTOTYPE(static void dp_pio16_user2nic_s, (dpeth_t *dep,
 //				iovec_dat_s_t *iovp, vir_bytes offset,
 //				int nic_addr, vir_bytes count)		);
-_PROTOTYPE( static void dp_nic2user, (dpeth_t *dep, int nic_addr, 
+_PROTOTYPE(static void dp_nic2user, (dpeth_t *dep, int nic_addr, 
 		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE( static void dp_nic2user_s, (dpeth_t *dep, int nic_addr, 
+//_PROTOTYPE(static void dp_nic2user_s, (dpeth_t *dep, int nic_addr, 
 //		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
-_PROTOTYPE( static void dp_pio8_nic2user, (dpeth_t *dep, int nic_addr, 
+_PROTOTYPE(static void dp_pio8_nic2user, (dpeth_t *dep, int nic_addr, 
 		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE( static void dp_pio8_nic2user_s, (dpeth_t *dep, int nic_addr, 
+//_PROTOTYPE(static void dp_pio8_nic2user_s, (dpeth_t *dep, int nic_addr, 
 //		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
-_PROTOTYPE( static void dp_pio16_nic2user, (dpeth_t *dep, int nic_addr, 
+_PROTOTYPE(static void dp_pio16_nic2user, (dpeth_t *dep, int nic_addr, 
 		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE( static void dp_pio16_nic2user_s, (dpeth_t *dep, int nic_addr, 
+//_PROTOTYPE(static void dp_pio16_nic2user_s, (dpeth_t *dep, int nic_addr, 
 //		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
-_PROTOTYPE( static void dp_next_iovec, (iovec_dat_t *iovp)		);
-//_PROTOTYPE( static void dp_next_iovec_s, (iovec_dat_s_t *iovp)		);
-_PROTOTYPE( static void conf_hw, (dpeth_t *dep)				);
-//_PROTOTYPE( static void update_conf, (dpeth_t *dep, dp_conf_t *dcp)	);
-_PROTOTYPE( static void map_hw_buffer, (dpeth_t *dep)			);
-//_PROTOTYPE( static int calc_iovec_size, (iovec_dat_t *iovp)		);
-//_PROTOTYPE( static int calc_iovec_size_s, (iovec_dat_s_t *iovp)		);
-_PROTOTYPE( static void reply, (dpeth_t *dep, int err, int may_block)	);
-//_PROTOTYPE( static void mess_reply, (message *req, message *reply)	);
-_PROTOTYPE( static void get_userdata, (int user_proc,
+_PROTOTYPE(static void dp_next_iovec, (iovec_dat_t *iovp)		);
+//_PROTOTYPE(static void dp_next_iovec_s, (iovec_dat_s_t *iovp)		);
+_PROTOTYPE(static void conf_hw, (dpeth_t *dep)				);
+//_PROTOTYPE(static void update_conf, (dpeth_t *dep, dp_conf_t *dcp)	);
+_PROTOTYPE(static void map_hw_buffer, (dpeth_t *dep)			);
+//_PROTOTYPE(static int calc_iovec_size, (iovec_dat_t *iovp)		);
+//_PROTOTYPE(static int calc_iovec_size_s, (iovec_dat_s_t *iovp)		);
+_PROTOTYPE(static void reply, (dpeth_t *dep, int err, int may_block)	);
+//_PROTOTYPE(static void mess_reply, (message *req, message *reply)	);
+_PROTOTYPE(static void get_userdata, (int user_proc,
 		vir_bytes user_addr, vir_bytes count, void *loc_addr)	);
-//_PROTOTYPE( static void get_userdata_s, (int user_proc,
+//_PROTOTYPE(static void get_userdata_s, (int user_proc,
 //		cp_grant_id_t grant, vir_bytes offset, vir_bytes count,
 //		void *loc_addr)	);
-//_PROTOTYPE( static void put_userdata, (int user_proc,
+//_PROTOTYPE(static void put_userdata, (int user_proc,
 //		vir_bytes user_addr, vir_bytes count, void *loc_addr)	);
-//_PROTOTYPE( static void put_userdata_s, (int user_proc,
+//_PROTOTYPE(static void put_userdata_s, (int user_proc,
 //		cp_grant_id_t grant, size_t count, void *loc_addr)	);
-_PROTOTYPE( static void insb, (port_t port, void *buf, size_t size)				);
-_PROTOTYPE( static void insw, (port_t port, void *buf, size_t size)				);
-//_PROTOTYPE( static void do_vir_insb, (port_t port, int proc,
+_PROTOTYPE(static void insb, (port_t port, void *buf, size_t size)				);
+_PROTOTYPE(static void insw, (port_t port, void *buf, size_t size)				);
+//_PROTOTYPE(static void do_vir_insb, (port_t port, int proc,
 //					vir_bytes buf, size_t size)	);
-//_PROTOTYPE( static void do_vir_insw, (port_t port, int proc,
+//_PROTOTYPE(static void do_vir_insw, (port_t port, int proc,
 //					vir_bytes buf, size_t size)	);
-//_PROTOTYPE( static void do_vir_outsb, (port_t port, int proc,
+//_PROTOTYPE(static void do_vir_outsb, (port_t port, int proc,
 //					vir_bytes buf, size_t size)	);
-//_PROTOTYPE( static void do_vir_outsw, (port_t port, int proc,
+//_PROTOTYPE(static void do_vir_outsw, (port_t port, int proc,
 //					vir_bytes buf, size_t size)	);
 
-int do_probe( dpeth_t * dep ){
+int do_probe(dpeth_t * dep){
 	/* This is the default, try to (re)locate the device. */
 	conf_hw(dep);
 	if (dep->de_mode == DEM_DISABLED)
@@ -229,7 +229,7 @@ int do_probe( dpeth_t * dep ){
 /*===========================================================================*
  *				dp8390_dump				     *
  *===========================================================================*/
-void dp8390_dump( dpeth_t * dep )
+void dp8390_dump(dpeth_t * dep)
 {
 //	dpeth_t *dep;
 	int /*i,*/ isr;
@@ -281,7 +281,7 @@ void dp8390_dump( dpeth_t * dep )
 /*===========================================================================*
  *				do_init					     *
  *===========================================================================*/
-int do_init( dpeth_t * dep, int mode ){
+int do_init(dpeth_t * dep, int mode){
 	if (dep->de_mode == DEM_DISABLED)
 	{
 		// might call do_probe()
@@ -302,15 +302,15 @@ int do_init( dpeth_t * dep, int mode ){
 		return EOK;
 	}
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
+	assert(dep->de_flags &DEF_ENABLED);
 
 	dep->de_flags &= ~(DEF_PROMISC | DEF_MULTI | DEF_BROAD);
 
-	if (mode & DL_PROMISC_REQ)
+	if (mode &DL_PROMISC_REQ)
 		dep->de_flags |= DEF_PROMISC | DEF_MULTI | DEF_BROAD;
-	if (mode & DL_MULTI_REQ)
+	if (mode &DL_MULTI_REQ)
 		dep->de_flags |= DEF_MULTI;
-	if (mode & DL_BROAD_REQ)
+	if (mode &DL_BROAD_REQ)
 		dep->de_flags |= DEF_BROAD;
 
 //	dep->de_client = mp->m_source;
@@ -328,31 +328,31 @@ int do_init( dpeth_t * dep, int mode ){
 /*===========================================================================*
  *				do_stop					     *
  *===========================================================================*/
-void do_stop( dpeth_t * dep ){
-	if(( dep->de_mode != DEM_SINK ) && ( dep->de_mode == DEM_ENABLED ) && ( dep->de_flags & DEF_ENABLED )){
-		outb_reg0( dep, DP_CR, CR_STP | CR_DM_ABORT );
-		( dep->de_stopf )( dep );
+void do_stop(dpeth_t * dep){
+	if((dep->de_mode != DEM_SINK) && (dep->de_mode == DEM_ENABLED) && (dep->de_flags &DEF_ENABLED)){
+		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
+		(dep->de_stopf)(dep);
 
 		dep->de_flags = DEF_EMPTY;
 	}
 }
 
-int queue_packet( dpeth_t * dep, packet_t packet ){
-	packet_t	tmp;
+int queue_packet(dpeth_t * dep, packet_t packet){
+	packet_t tmp;
 
-	if( dep->packet_count >= MAX_PACKETS ){
-		netif_pq_release( packet_get_id( packet ));
+	if(dep->packet_count >= MAX_PACKETS){
+		netif_pq_release(packet_get_id(packet));
 		return ELIMIT;
 	}
 
 	tmp = dep->packet_queue;
-	while( pq_next( tmp )){
-		tmp = pq_next( tmp );
+	while(pq_next(tmp)){
+		tmp = pq_next(tmp);
 	}
-	if( pq_add( & tmp, packet, 0, 0 ) != EOK ){
+	if(pq_add(&tmp, packet, 0, 0) != EOK){
 		return EINVAL;
 	}
-	if( ! dep->packet_count ){
+	if(! dep->packet_count){
 		dep->packet_queue = packet;
 	}
 	++ dep->packet_count;
@@ -362,7 +362,7 @@ int queue_packet( dpeth_t * dep, packet_t packet ){
 /*===========================================================================*
  *			based on	do_vwrite				     *
  *===========================================================================*/
-int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
+int do_pwrite(dpeth_t * dep, packet_t packet, int from_int)
 {
 //	int port, count, size;
 	int size;
@@ -385,11 +385,11 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 		return EOK;
 	}
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
-	if( dep->packet_queue && ( ! from_int )){
-//	if (dep->de_flags & DEF_SEND_AVAIL){
+	assert(dep->de_flags &DEF_ENABLED);
+	if(dep->packet_queue && (! from_int)){
+//	if (dep->de_flags &DEF_SEND_AVAIL){
 //		panic("", "dp8390: send already in progress", NO_NUM);
-		return queue_packet( dep, packet );
+		return queue_packet(dep, packet);
 	}
 
 	sendq_head= dep->de_sendq_head;
@@ -401,9 +401,9 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 //		dep->de_flags |= DEF_SEND_AVAIL;
 //		reply(dep, OK, FALSE);
 //		return;
-//		return queue_packet( dep, packet );
+//		return queue_packet(dep, packet);
 //	}
-//	assert(!(dep->de_flags & DEF_PACK_SEND));
+//	assert(!(dep->de_flags &DEF_PACK_SEND));
 
 /*	if (vectored)
 	{
@@ -418,7 +418,7 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 		size = calc_iovec_size(&dep->de_tmp_iovec);
 	}
 	else
-	{  
+	{ 
 		dep->de_write_iovec.iod_iovec[0].iov_addr =
 			(vir_bytes) mp->DL_ADDR;
 		dep->de_write_iovec.iod_iovec[0].iov_size =
@@ -429,8 +429,8 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 		size= mp->DL_COUNT;
 	}
 */
-	size = packet_get_data_length( packet );
-	dep->de_write_iovec.iod_iovec[0].iov_addr = ( vir_bytes ) packet_get_data( packet );
+	size = packet_get_data_length(packet);
+	dep->de_write_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_get_data(packet);
 	dep->de_write_iovec.iod_iovec[0].iov_size = size;
 	dep->de_write_iovec.iod_iovec_s = 1;
 	dep->de_write_iovec.iod_iovec_addr = NULL;
@@ -448,7 +448,7 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 	{
 		outb_reg0(dep, DP_TPSR, dep->de_sendq[sendq_head].sq_sendpage);
 		outb_reg0(dep, DP_TBCR1, size >> 8);
-		outb_reg0(dep, DP_TBCR0, size & 0xff);
+		outb_reg0(dep, DP_TBCR0, size &0xff);
 		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);/* there it goes.. */
 	}
 	else
@@ -469,7 +469,7 @@ int do_pwrite( dpeth_t * dep, packet_t packet, int from_int )
 	reply(dep, OK, FALSE);
 
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
+	assert(dep->de_flags &DEF_ENABLED);
 	return EOK;
 }
 
@@ -515,11 +515,11 @@ dpeth_t *dep;
 	outb_reg0(dep, DP_RBCR1, 0);
 	/* Step 4: */
 	dp_rcr_reg = 0;
-	if (dep->de_flags & DEF_PROMISC)
+	if (dep->de_flags &DEF_PROMISC)
 		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	if (dep->de_flags & DEF_BROAD)
+	if (dep->de_flags &DEF_BROAD)
 		dp_rcr_reg |= RCR_AB;
-	if (dep->de_flags & DEF_MULTI)
+	if (dep->de_flags &DEF_MULTI)
 		dp_rcr_reg |= RCR_AM;
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 	/* Step 5: */
@@ -620,11 +620,11 @@ dpeth_t *dep;
 	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
 
 	dp_rcr_reg = 0;
-	if (dep->de_flags & DEF_PROMISC)
+	if (dep->de_flags &DEF_PROMISC)
 		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	if (dep->de_flags & DEF_BROAD)
+	if (dep->de_flags &DEF_BROAD)
 		dp_rcr_reg |= RCR_AB;
-	if (dep->de_flags & DEF_MULTI)
+	if (dep->de_flags &DEF_MULTI)
 		dp_rcr_reg |= RCR_AM;
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 }
@@ -641,16 +641,16 @@ dpeth_t *dep;
 	outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 	outb_reg0(dep, DP_RBCR0, 0);
 	outb_reg0(dep, DP_RBCR1, 0);
-	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
+	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RST) == 0); i++)
 		; /* Do nothing */
 	outb_reg0(dep, DP_TCR, TCR_1EXTERNAL|TCR_OFST);
 	outb_reg0(dep, DP_CR, CR_STA|CR_DM_ABORT);
 	outb_reg0(dep, DP_TCR, TCR_NORMAL);
 
 	/* Acknowledge the ISR_RDC (remote dma) interrupt. */
-	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RDC) == 0); i++)
+	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RDC) == 0); i++)
 		; /* Do nothing */
-	outb_reg0(dep, DP_ISR, inb_reg0(dep, DP_ISR) & ~ISR_RDC);
+	outb_reg0(dep, DP_ISR, inb_reg0(dep, DP_ISR) &~ISR_RDC);
 
 	/* Reset the transmit ring. If we were transmitting a packet, we
 	 * pretend that the packet is processed. Higher layers will
@@ -673,7 +673,7 @@ int isr;
 	int /*isr,*/ tsr;
 	int size, sendq_tail;
 
-	if (!(dep->de_flags & DEF_ENABLED))
+	if (!(dep->de_flags &DEF_ENABLED))
 		panic("", "dp8390: got premature interrupt", NO_NUM);
 
 	for(;;)
@@ -682,12 +682,12 @@ int isr;
 		if (!isr)
 			break;
 		outb_reg0(dep, DP_ISR, isr);
-		if (isr & (ISR_PTX|ISR_TXE))
+		if (isr &(ISR_PTX|ISR_TXE))
 		{
-			if (isr & ISR_TXE)
+			if (isr &ISR_TXE)
 			{
 #if DEBUG
- { printf("%s: got send Error\n", dep->de_name); }
+ {printf("%s: got send Error\n", dep->de_name);}
 #endif
 				dep->de_stat.ets_sendErr++;
 			}
@@ -695,9 +695,9 @@ int isr;
 			{
 				tsr = inb_reg0(dep, DP_TSR);
 
-				if (tsr & TSR_PTX) dep->de_stat.ets_packetT++;
+				if (tsr &TSR_PTX) dep->de_stat.ets_packetT++;
 #if 0	/* Reserved in later manuals, should be ignored */
-				if (!(tsr & TSR_DFR))
+				if (!(tsr &TSR_DFR))
 				{
 					/* In most (all?) implementations of
 					 * the dp8390, this bit is set
@@ -706,22 +706,22 @@ int isr;
 					dep->de_stat.ets_transDef++;
 				}
 #endif
-				if (tsr & TSR_COL) dep->de_stat.ets_collision++;
-				if (tsr & TSR_ABT) dep->de_stat.ets_transAb++;
-				if (tsr & TSR_CRS) dep->de_stat.ets_carrSense++;
-				if (tsr & TSR_FU
+				if (tsr &TSR_COL) dep->de_stat.ets_collision++;
+				if (tsr &TSR_ABT) dep->de_stat.ets_transAb++;
+				if (tsr &TSR_CRS) dep->de_stat.ets_carrSense++;
+				if (tsr &TSR_FU
 					&& ++dep->de_stat.ets_fifoUnder <= 10)
 				{
 					printf("%s: fifo underrun\n",
 						dep->de_name);
 				}
-				if (tsr & TSR_CDH
+				if (tsr &TSR_CDH
 					&& ++dep->de_stat.ets_CDheartbeat <= 10)
 				{
 					printf("%s: CD heart beat failure\n",
 						dep->de_name);
 				}
-				if (tsr & TSR_OWC) dep->de_stat.ets_OWC++;
+				if (tsr &TSR_OWC) dep->de_stat.ets_OWC++;
 			}
 			sendq_tail= dep->de_sendq_tail;
 
@@ -746,46 +746,46 @@ int isr;
 				outb_reg0(dep, DP_TPSR,
 					dep->de_sendq[sendq_tail].sq_sendpage);
 				outb_reg0(dep, DP_TBCR1, size >> 8);
-				outb_reg0(dep, DP_TBCR0, size & 0xff);
+				outb_reg0(dep, DP_TBCR0, size &0xff);
 				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
 			}
-//			if (dep->de_flags & DEF_SEND_AVAIL)
+//			if (dep->de_flags &DEF_SEND_AVAIL)
 				dp_send(dep);
 		}
 
-		if (isr & ISR_PRX)
+		if (isr &ISR_PRX)
 		{
 			/* Only call dp_recv if there is a read request */
-//			if (dep->de_flags) & DEF_READING)
+//			if (dep->de_flags) &DEF_READING)
 				dp_recv(dep);
 		}
 		
-		if (isr & ISR_RXE) dep->de_stat.ets_recvErr++;
-		if (isr & ISR_CNT)
+		if (isr &ISR_RXE) dep->de_stat.ets_recvErr++;
+		if (isr &ISR_CNT)
 		{
 			dep->de_stat.ets_CRCerr += inb_reg0(dep, DP_CNTR0);
 			dep->de_stat.ets_frameAll += inb_reg0(dep, DP_CNTR1);
 			dep->de_stat.ets_missedP += inb_reg0(dep, DP_CNTR2);
 		}
-		if (isr & ISR_OVW)
+		if (isr &ISR_OVW)
 		{
 			dep->de_stat.ets_OVW++;
 #if 0
-			{ printW(); printf(
-				"%s: got overwrite warning\n", dep->de_name); }
+			{printW(); printf(
+				"%s: got overwrite warning\n", dep->de_name);}
 #endif
-/*			if (dep->de_flags & DEF_READING)
+/*			if (dep->de_flags &DEF_READING)
 			{
 				printf(
 "dp_check_ints: strange: overwrite warning and pending read request\n");
 				dp_recv(dep);
 			}
 */		}
-		if (isr & ISR_RDC)
+		if (isr &ISR_RDC)
 		{
 			/* Nothing to do */
 		}
-		if (isr & ISR_RST)
+		if (isr &ISR_RST)
 		{
 			/* this means we got an interrupt but the ethernet 
 			 * chip is shutdown. We set the flag DEF_STOPPED,
@@ -793,17 +793,17 @@ int isr;
 			 * receive buffer is empty, we reset the dp8390.
 			 */
 #if 0
-			 { printW(); printf(
-				"%s: NIC stopped\n", dep->de_name); }
+			 {printW(); printf(
+				"%s: NIC stopped\n", dep->de_name);}
 #endif
 			dep->de_flags |= DEF_STOPPED;
 			break;
 		}
 		isr = inb_reg0(dep, DP_ISR);
 	}
-//	if ((dep->de_flags & (DEF_READING|DEF_STOPPED)) == 
+//	if ((dep->de_flags &(DEF_READING|DEF_STOPPED)) == 
 //						(DEF_READING|DEF_STOPPED))
-	if ((dep->de_flags & DEF_STOPPED) == DEF_STOPPED )
+	if ((dep->de_flags &DEF_STOPPED) == DEF_STOPPED)
 	{
 		/* The chip is stopped, and all arrived packets are 
 		 * delivered.
@@ -873,7 +873,7 @@ dpeth_t *dep;
 			}
 			dep->de_stat.ets_packetR++;
 		}
-*/		else if (header.dr_status & RSR_FO)
+*/		else if (header.dr_status &RSR_FO)
 		{
 			/* This is very serious, so we issue a warning and
 			 * reset the buffers */
@@ -882,8 +882,8 @@ dpeth_t *dep;
 			dep->de_stat.ets_fifoOver++;
 			next = curr;
 		}
-		else if ((header.dr_status & RSR_PRX) &&
-					   (dep->de_flags & DEF_ENABLED))
+		else if ((header.dr_status &RSR_PRX) && 
+					   (dep->de_flags &DEF_ENABLED))
 		{
 //			if (dep->de_safecopy_read)
 //				r = dp_pkt2user_s(dep, pageno, length);
@@ -913,17 +913,17 @@ dpeth_t *dep;
 {
 	packet_t packet;
 
-//	if (!(dep->de_flags & DEF_SEND_AVAIL))
+//	if (!(dep->de_flags &DEF_SEND_AVAIL))
 //		return;
 
-	if( dep->packet_queue ){
+	if(dep->packet_queue){
 		packet = dep->packet_queue;
-		dep->packet_queue = pq_detach( packet );
-		do_pwrite( dep, packet, TRUE );
-		netif_pq_release( packet_get_id( packet ));
+		dep->packet_queue = pq_detach(packet);
+		do_pwrite(dep, packet, TRUE);
+		netif_pq_release(packet_get_id(packet));
 		-- dep->packet_count;
 	}
-//	if( ! dep->packet_queue ){
+//	if(! dep->packet_queue){
 //		dep->de_flags &= ~DEF_SEND_AVAIL;
 //	}
 /*	switch(dep->de_sendmsg.m_type)
@@ -966,9 +966,9 @@ size_t size;
 void *dst;
 {
 	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
+	outb_reg0(dep, DP_RBCR0, size &0xFF);
 	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset & 0xFF);
+	outb_reg0(dep, DP_RSAR0, offset &0xFF);
 	outb_reg0(dep, DP_RSAR1, offset >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 
@@ -986,13 +986,13 @@ size_t size;
 void *dst;
 {
 	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
+	outb_reg0(dep, DP_RBCR0, size &0xFF);
 	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset & 0xFF);
+	outb_reg0(dep, DP_RSAR0, offset &0xFF);
 	outb_reg0(dep, DP_RSAR1, offset >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 
-	assert (!(size & 1));
+	assert (!(size &1));
 	insw(dep->de_data_port, dst, size);
 }
 
@@ -1004,14 +1004,16 @@ dpeth_t *dep;
 int page, length;
 {
 	int last, count;
-	packet_t	packet;
+	packet_t packet;
 
-//	if (!(dep->de_flags & DEF_READING))
+//	if (!(dep->de_flags &DEF_READING))
 //		return EGENERIC;
 
-	packet = netif_packet_get_1( length );
-	if( ! packet ) return ENOMEM;
-	dep->de_read_iovec.iod_iovec[0].iov_addr = ( vir_bytes ) packet_suffix( packet, length );
+	packet = netif_packet_get_1(length);
+	if(! packet){
+		return ENOMEM;
+	}
+	dep->de_read_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_suffix(packet, length);
 	dep->de_read_iovec.iod_iovec[0].iov_size = length;
 	dep->de_read_iovec.iod_iovec_s = 1;
 	dep->de_read_iovec.iod_iovec_addr = NULL;
@@ -1027,7 +1029,7 @@ int page, length;
 		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
 			sizeof(dp_rcvhdr_t), &dep->de_tmp_iovec, 0, count);
 		(dep->de_nic2userf)(dep, dep->de_startpage * DP_PAGESIZE, 
-				&dep->de_read_iovec, count, length - count);
+			&dep->de_read_iovec, count, length - count);
 	}
 	else
 	{
@@ -1039,14 +1041,14 @@ int page, length;
 	dep->de_flags |= DEF_PACK_RECV;
 //	dep->de_flags &= ~DEF_READING;
 
-	if( dep->received_count >= MAX_PACKETS ){
-		netif_pq_release( packet_get_id( packet ));
+	if(dep->received_count >= MAX_PACKETS){
+		netif_pq_release(packet_get_id(packet));
 		return ELIMIT;
 	}else{
-		if( pq_add( & dep->received_queue, packet, 0, 0 ) == EOK ){
+		if(pq_add(&dep->received_queue, packet, 0, 0) == EOK){
 			++ dep->received_count;
 		}else{
-			netif_pq_release( packet_get_id( packet ));
+			netif_pq_release(packet_get_id(packet));
 		}
 	}
 	return OK;
@@ -1118,9 +1120,9 @@ vir_bytes count;
 
 	outb_reg0(dep, DP_ISR, ISR_RDC);
 
-	outb_reg0(dep, DP_RBCR0, count & 0xFF);
+	outb_reg0(dep, DP_RBCR0, count &0xFF);
 	outb_reg0(dep, DP_RBCR1, count >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
+	outb_reg0(dep, DP_RSAR0, nic_addr &0xFF);
 	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 
@@ -1153,7 +1155,7 @@ vir_bytes count;
 
 	for (i= 0; i<100; i++)
 	{
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
 			break;
 	}
 	if (i == 100)
@@ -1180,13 +1182,13 @@ vir_bytes count;
 	u16_t two_bytes;
 	int odd_byte;
 
-	ecount= (count+1) & ~1;
+	ecount= (count+1) &~1;
 	odd_byte= 0;
 
 	outb_reg0(dep, DP_ISR, ISR_RDC);
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
+	outb_reg0(dep, DP_RBCR0, ecount &0xFF);
 	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
+	outb_reg0(dep, DP_RSAR0, nic_addr &0xFF);
 	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 
@@ -1233,7 +1235,7 @@ vir_bytes count;
 			if (!bytes)
 				continue;
 		}
-		ecount= bytes & ~1;
+		ecount= bytes &~1;
 		if (ecount != 0)
 		{
 			do_vir_outsw(dep->de_data_port, user_proc, vir_user,
@@ -1270,7 +1272,7 @@ vir_bytes count;
 
 	for (i= 0; i<100; i++)
 	{
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
 			break;
 	}
 	if (i == 100)
@@ -1342,9 +1344,9 @@ vir_bytes count;
 	int i;
 	vir_bytes bytes;
 
-	outb_reg0(dep, DP_RBCR0, count & 0xFF);
+	outb_reg0(dep, DP_RBCR0, count &0xFF);
 	outb_reg0(dep, DP_RBCR1, count >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
+	outb_reg0(dep, DP_RSAR0, nic_addr &0xFF);
 	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 
@@ -1394,12 +1396,12 @@ vir_bytes count;
 	u16_t two_bytes;
 	int odd_byte;
 
-	ecount= (count+1) & ~1;
+	ecount= (count+1) &~1;
 	odd_byte= 0;
 
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
+	outb_reg0(dep, DP_RBCR0, ecount &0xFF);
 	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
+	outb_reg0(dep, DP_RSAR0, nic_addr &0xFF);
 	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 
@@ -1444,7 +1446,7 @@ vir_bytes count;
 			if (!bytes)
 				continue;
 		}
-		ecount= bytes & ~1;
+		ecount= bytes &~1;
 		if (ecount != 0)
 		{
 			do_vir_insw(dep->de_data_port, user_proc, vir_user,
@@ -1501,7 +1503,7 @@ iovec_dat_t *iovp;
 static void conf_hw(dep)
 dpeth_t *dep;
 {
-//	static eth_stat_t empty_stat = {0, 0, 0, 0, 0, 0 	/* ,... */ };
+//	static eth_stat_t empty_stat = {0, 0, 0, 0, 0, 0 	/* ,... */};
 
 //	int ifnr;
 //	dp_conf_t *dcp;
@@ -1550,7 +1552,7 @@ dpeth_t *dep;
 		dep->de_locmem = (char *)-dep->de_ramsize; /* trap errors */
 		return;
 	}else{
-		printf( "map_hw_buffer: no buffer!\n" );
+		printf("map_hw_buffer: no buffer!\n");
 	}
 
 //	size = dep->de_ramsize + PAGE_SIZE;	/* Add PAGE_SIZE for
@@ -1583,9 +1585,9 @@ int may_block;
 	int r;
 
 	status = 0;
-	if (dep->de_flags & DEF_PACK_SEND)
+	if (dep->de_flags &DEF_PACK_SEND)
 		status |= DL_PACK_SEND;
-	if (dep->de_flags & DEF_PACK_RECV)
+	if (dep->de_flags &DEF_PACK_RECV)
 		status |= DL_PACK_RECV;
 
 	reply.m_type = DL_TASK_REPLY;
@@ -1632,8 +1634,8 @@ static void insb(port_t port, void *buf, size_t size)
 {
 	size_t i;
 
-	for( i = 0; i < size; ++ i ){
-		*(( uint8_t * ) buf + i ) = inb( port );
+	for(i = 0; i < size; ++ i){
+		*((uint8_t *) buf + i) = inb(port);
 	}
 }
 
@@ -1641,8 +1643,8 @@ static void insw(port_t port, void *buf, size_t size)
 {
 	size_t i;
 
-	for( i = 0; i * 2 < size; ++ i ){
-		*(( uint16_t * ) buf + i ) = inw( port );
+	for(i = 0; i * 2 < size; ++ i){
+		*((uint16_t *) buf + i) = inw(port);
 	}
 }
 
@@ -1650,8 +1652,8 @@ static void outsb(port_t port, void *buf, size_t size)
 {
 	size_t i;
 
-	for( i = 0; i < size; ++ i ){
-		outb( port, *(( uint8_t * ) buf + i ));
+	for(i = 0; i < size; ++ i){
+		outb(port, *((uint8_t *) buf + i));
 	}
 }
 
@@ -1659,8 +1661,8 @@ static void outsw(port_t port, void *buf, size_t size)
 {
 	size_t i;
 
-	for( i = 0; i * 2 < size; ++ i ){
-		outw( port, *(( uint16_t * ) buf + i ));
+	for(i = 0; i * 2 < size; ++ i){
+		outw(port, *((uint16_t *) buf + i));
 	}
 }
 

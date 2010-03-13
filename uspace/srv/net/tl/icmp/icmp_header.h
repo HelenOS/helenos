@@ -45,7 +45,7 @@
 
 /** ICMP header size in bytes.
  */
-#define ICMP_HEADER_SIZE			sizeof( icmp_header_t )
+#define ICMP_HEADER_SIZE			sizeof(icmp_header_t)
 
 /** Type definition of the echo specific data.
  *  @see icmp_echo
@@ -62,10 +62,10 @@ typedef icmp_echo_t *		icmp_echo_ref;
 struct icmp_echo{
 	/** Message idintifier.
 	 */
-	icmp_param_t	identifier;
+	icmp_param_t identifier;
 	/** Message sequence number.
 	 */
-	icmp_param_t	sequence_number;
+	icmp_param_t sequence_number;
 } __attribute__ ((packed));
 
 /** Type definition of the internet control message header.
@@ -83,46 +83,46 @@ typedef icmp_header_t *		icmp_header_ref;
 struct icmp_header{
 	/** The type of the message.
 	 */
-	uint8_t	type;
+	uint8_t type;
 	/** The error code for the datagram reported by the ICMP message.
 	 *  The interpretation is dependent on the message type.
 	 */
-	uint8_t	code;
+	uint8_t code;
 	/** The checksum is the 16-bit ones's complement of the one's complement sum of the ICMP message starting with the ICMP Type.
      *  For computing the checksum, the checksum field should be zero.
 	 *  If the checksum does not match the contents, the datagram is discarded.
 	 */
-	uint16_t	checksum;
+	uint16_t checksum;
 	/** Message specific data.
 	 */
 	union{
 		/** Echo specific data.
 		 */
-		icmp_echo_t 		echo;
+		icmp_echo_t  echo;
 		/** Proposed gateway value.
 		 */
-		in_addr_t			gateway;
+		in_addr_t gateway;
 		/** Fragmentation needed specific data.
 		 */
 		struct{
 			/** Reserved field.
 			 *  Must be zero.
 			 */
-			icmp_param_t	reserved;
+			icmp_param_t reserved;
 			/** Proposed MTU.
 			 */
-			icmp_param_t	mtu;
+			icmp_param_t mtu;
 		} frag;
 		/** Parameter problem specific data.
 		 */
 		struct{
 			/** Problem pointer.
 			 */
-			icmp_param_t	pointer;
+			icmp_param_t pointer;
 			/** Reserved field.
 			 *  Must be zero.
 			 */
-			icmp_param_t	reserved;
+			icmp_param_t reserved;
 		} param;
 	} un;
 } __attribute__ ((packed));

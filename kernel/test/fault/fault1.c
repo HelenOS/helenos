@@ -36,7 +36,7 @@
 
 #include <arch.h>
 
-char *test_fault1(void)
+const char *test_fault1(void)
 {
 	((int *)(0))[1] = 0;
 	

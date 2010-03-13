@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include "../tester.h"
 
-char *test_loop1(void)
+const char *test_loop1(void)
 {
 	TPRINTF("Looping...");
 	while (true);

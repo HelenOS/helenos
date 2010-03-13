@@ -75,7 +75,7 @@
 
 
 /** Thread states */
-char *thread_states[] = {
+const char *thread_states[] = {
 	"Invalid",
 	"Running",
 	"Sleeping",
@@ -263,6 +263,7 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&r->lock);
 
 	atomic_inc(&nrdy);
+	// FIXME: Why is the avg value never read?
 	avg = atomic_get(&nrdy) / config.cpu_active;
 	atomic_inc(&cpu->nrdy);
 
@@ -287,7 +288,7 @@ void thread_ready(thread_t *t)
  *
  */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
-    int flags, char *name, bool uncounted)
+    int flags, const char *name, bool uncounted)
 {
 	thread_t *t;
 	ipl_t ipl;

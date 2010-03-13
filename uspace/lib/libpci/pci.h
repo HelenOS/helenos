@@ -39,9 +39,9 @@ struct pci_access {
 	int debugging;		/* Turn on debugging messages */
 
 	/* Functions you can override: */
-	void (*error) (char *msg, ...);	/* Write error message and quit */
-	void (*warning) (char *msg, ...);	/* Write a warning message */
-	void (*debug) (char *msg, ...);	/* Write a debugging message */
+	void (*error) (const char *msg, ...);	/* Write error message and quit */
+	void (*warning) (const char *msg, ...);	/* Write a warning message */
+	void (*debug) (const char *msg, ...);	/* Write a debugging message */
 
 	struct pci_dev *devices;	/* Devices found on this bus */
 
@@ -127,8 +127,8 @@ void pci_setup_cache(struct pci_dev *, u8 * cache, int len);
  *	PROGIF				(classID, progif) -> programming interface
  */
 
-char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
-		      ...);
+const char *pci_lookup_name(struct pci_access *a, char *buf, int size,
+    int flags, ...);
 
 int pci_load_name_list(struct pci_access *a);	/* Called automatically by pci_lookup_*() when needed; returns success */
 void pci_free_name_list(struct pci_access *a);	/* Called automatically by pci_cleanup() */

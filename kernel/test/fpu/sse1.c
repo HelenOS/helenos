@@ -106,7 +106,7 @@ static void testit2(void *data)
 	atomic_inc(&threads_ok);
 }
 
-char *test_sse1(void)
+const char *test_sse1(void)
 {
 	unsigned int i;
 	atomic_count_t total = 0;

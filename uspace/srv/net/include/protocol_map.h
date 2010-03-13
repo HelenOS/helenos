@@ -49,11 +49,11 @@
  *  @returns Network interface layer type of the internetworking layer service.
  *  @returns 0 if mapping is not found.
  */
-static inline eth_type_t protocol_map( services_t nil, services_t il ){
-	switch( nil ){
+static inline eth_type_t protocol_map(services_t nil, services_t il){
+	switch(nil){
 		case SERVICE_ETHERNET:
 		case SERVICE_DP8390:
-			switch( il ){
+			switch(il){
 				case SERVICE_IP:
 					return ETH_P_IP;
 				case SERVICE_ARP:
@@ -72,11 +72,11 @@ static inline eth_type_t protocol_map( services_t nil, services_t il ){
  *  @returns Internetwork layer service of the network interface layer type.
  *  @returns 0 if mapping is not found.
  */
-static inline services_t protocol_unmap( services_t nil, int protocol ){
-	switch( nil ){
+static inline services_t protocol_unmap(services_t nil, int protocol){
+	switch(nil){
 		case SERVICE_ETHERNET:
 		case SERVICE_DP8390:
-			switch( protocol ){
+			switch(protocol){
 				case ETH_P_IP:
 					return SERVICE_IP;
 				case ETH_P_ARP:
@@ -94,8 +94,8 @@ static inline services_t protocol_unmap( services_t nil, int protocol ){
  *  @returns Ethernet protocol identifier of the link service access point identifier.
  *  @returns ETH_LSAP_NULL if mapping is not found.
  */
-static inline eth_type_t lsap_map( eth_lsap_t lsap ){
-	switch( lsap ){
+static inline eth_type_t lsap_map(eth_lsap_t lsap){
+	switch(lsap){
 		case ETH_LSAP_IP:
 			return ETH_P_IP;
 		case ETH_LSAP_ARP:
@@ -110,8 +110,8 @@ static inline eth_type_t lsap_map( eth_lsap_t lsap ){
  *  @returns Link service access point identifier.
  *  @returns 0 if mapping is not found.
  */
-static inline eth_lsap_t lsap_unmap( eth_type_t ethertype ){
-	switch( ethertype ){
+static inline eth_lsap_t lsap_unmap(eth_type_t ethertype){
+	switch(ethertype){
 		case ETH_P_IP:
 			return ETH_LSAP_IP;
 		case ETH_P_ARP:
@@ -126,8 +126,8 @@ static inline eth_lsap_t lsap_unmap( eth_type_t ethertype ){
  *  @returns The hardware type of the network interface service.
  *  @returns 0 if mapping is not found.
  */
-static inline hw_type_t hardware_map( services_t nil ){
-	switch( nil ){
+static inline hw_type_t hardware_map(services_t nil){
+	switch(nil){
 		case SERVICE_ETHERNET:
 		case SERVICE_DP8390:
 			return HW_ETHER;

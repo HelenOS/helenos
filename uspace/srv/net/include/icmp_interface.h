@@ -70,7 +70,7 @@
  *  @returns EPERM if the ICMP error notifications are disabled.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int icmp_destination_unreachable_msg( int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet );
+int icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet);
 
 /** Sends the Source Quench error notification packet.
  *  Beginning of the packet is sent as the notification packet data.
@@ -81,7 +81,7 @@ int icmp_destination_unreachable_msg( int icmp_phone, icmp_code_t code, icmp_par
  *  @returns EPERM if the ICMP error notifications are disabled.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int icmp_source_quench_msg( int icmp_phone, packet_t packet );
+int icmp_source_quench_msg(int icmp_phone, packet_t packet);
 
 /** Sends the Time Exceeded error notification packet.
  *  Beginning of the packet is sent as the notification packet data.
@@ -93,7 +93,7 @@ int icmp_source_quench_msg( int icmp_phone, packet_t packet );
  *  @returns EPERM if the ICMP error notifications are disabled.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int icmp_time_exceeded_msg( int icmp_phone, icmp_code_t code, packet_t packet );
+int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet);
 
 /** Sends the Parameter Problem error notification packet.
  *  Beginning of the packet is sent as the notification packet data.
@@ -106,7 +106,7 @@ int icmp_time_exceeded_msg( int icmp_phone, icmp_code_t code, packet_t packet );
  *  @returns EPERM if the ICMP error notifications are disabled.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int icmp_parameter_problem_msg( int icmp_phone, icmp_code_t code, icmp_param_t pointer, packet_t packet );
+int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code, icmp_param_t pointer, packet_t packet);
 
 /*@}*/
 

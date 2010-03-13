@@ -63,7 +63,7 @@
  */
 extern netif_globals_t netif_globals;
 
-DEVICE_MAP_IMPLEMENT( device_map, device_t )
+DEVICE_MAP_IMPLEMENT(device_map, device_t)
 
 /** @name Message processing functions
  */
@@ -76,208 +76,216 @@ DEVICE_MAP_IMPLEMENT( device_map, device_t )
  *  @returns ENOENT if there is no such device.
  *  @returns ELIMIT if there is another module registered.
  */
-int	register_message( device_id_t device_id, int phone );
+int register_message(device_id_t device_id, int phone);
 
 /*@}*/
 
-int	netif_probe_req( int netif_phone, device_id_t device_id, int irq, int io ){
-	int	result;
+int netif_probe_req(int netif_phone, device_id_t device_id, int irq, int io){
+	int result;
 
-	fibril_rwlock_write_lock( & netif_globals.lock );
-	result = netif_probe_message( device_id, irq, io );
-	fibril_rwlock_write_unlock( & netif_globals.lock );
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	result = netif_probe_message(device_id, irq, io);
+	fibril_rwlock_write_unlock(&netif_globals.lock);
 	return result;
 }
 
-int	netif_send_msg( int netif_phone, device_id_t device_id, packet_t packet, services_t sender ){
-	int	result;
+int netif_send_msg(int netif_phone, device_id_t device_id, packet_t packet, services_t sender){
+	int result;
 
-	fibril_rwlock_write_lock( & netif_globals.lock );
-	result = netif_send_message( device_id, packet, sender );
-	fibril_rwlock_write_unlock( & netif_globals.lock );
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	result = netif_send_message(device_id, packet, sender);
+	fibril_rwlock_write_unlock(&netif_globals.lock);
 	return result;
 }
 
-int	netif_start_req( int netif_phone, device_id_t device_id ){
+int netif_start_req(int netif_phone, device_id_t device_id){
 	ERROR_DECLARE;
 
-	device_ref	device;
-	int	result;
-	int	phone;
+	device_ref device;
+	int result;
+	int phone;
 
-	fibril_rwlock_write_lock( & netif_globals.lock );
-	if( ERROR_OCCURRED( find_device( device_id, & device ))){
-		fibril_rwlock_write_unlock( & netif_globals.lock );
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	if(ERROR_OCCURRED(find_device(device_id, &device))){
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return ERROR_CODE;
 	}
-	result = netif_start_message( device );
-	if( result > NETIF_NULL ){
+	result = netif_start_message(device);
+	if(result > NETIF_NULL){
 		phone = device->nil_phone;
-		fibril_rwlock_write_unlock( & netif_globals.lock );
-		nil_device_state_msg( phone, device_id, result );
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		nil_device_state_msg(phone, device_id, result);
 		return EOK;
 	}else{
-		fibril_rwlock_write_unlock( & netif_globals.lock );
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}
 	return result;
 }
 
-int	netif_stop_req( int netif_phone, device_id_t device_id ){
+int netif_stop_req(int netif_phone, device_id_t device_id){
 	ERROR_DECLARE;
 
-	device_ref	device;
-	int	result;
-	int	phone;
+	device_ref device;
+	int result;
+	int phone;
 
-	fibril_rwlock_write_lock( & netif_globals.lock );
-	if( ERROR_OCCURRED( find_device( device_id, & device ))){
-		fibril_rwlock_write_unlock( & netif_globals.lock );
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	if(ERROR_OCCURRED(find_device(device_id, &device))){
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return ERROR_CODE;
 	}
-	result = netif_stop_message( device );
-	if( result > NETIF_NULL ){
+	result = netif_stop_message(device);
+	if(result > NETIF_NULL){
 		phone = device->nil_phone;
-		fibril_rwlock_write_unlock( & netif_globals.lock );
-		nil_device_state_msg( phone, device_id, result );
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		nil_device_state_msg(phone, device_id, result);
 		return EOK;
 	}else{
-		fibril_rwlock_write_unlock( & netif_globals.lock );
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}
 	return result;
 }
 
-int	netif_stats_req( int netif_phone, device_id_t device_id, device_stats_ref stats ){
+int netif_stats_req(int netif_phone, device_id_t device_id, device_stats_ref stats){
 	int res;
 
-	fibril_rwlock_read_lock( & netif_globals.lock );
-	res = netif_get_device_stats( device_id, stats );
-	fibril_rwlock_read_unlock( & netif_globals.lock );
+	fibril_rwlock_read_lock(&netif_globals.lock);
+	res = netif_get_device_stats(device_id, stats);
+	fibril_rwlock_read_unlock(&netif_globals.lock);
 	return res;
 }
 
-int	netif_get_addr_req( int netif_phone, device_id_t device_id, measured_string_ref * address, char ** data ){
+int netif_get_addr_req(int netif_phone, device_id_t device_id, measured_string_ref * address, char ** data){
 	ERROR_DECLARE;
 
-	measured_string_t	translation;
+	measured_string_t translation;
 
-	if( !( address && data )) return EBADMEM;
-	fibril_rwlock_read_lock( & netif_globals.lock );
-	if( ! ERROR_OCCURRED( netif_get_addr_message( device_id, & translation ))){
-		* address = measured_string_copy( & translation );
-		ERROR_CODE = ( * address ) ? EOK : ENOMEM;
+	if(!(address && data)){
+		return EBADMEM;
 	}
-	fibril_rwlock_read_unlock( & netif_globals.lock );
-	* data = ( ** address ).value;
+	fibril_rwlock_read_lock(&netif_globals.lock);
+	if(! ERROR_OCCURRED(netif_get_addr_message(device_id, &translation))){
+		*address = measured_string_copy(&translation);
+		ERROR_CODE = (*address) ? EOK : ENOMEM;
+	}
+	fibril_rwlock_read_unlock(&netif_globals.lock);
+	*data = (** address).value;
 	return ERROR_CODE;
 }
 
-int netif_bind_service( services_t service, device_id_t device_id, services_t me, async_client_conn_t receiver ){
+int netif_bind_service(services_t service, device_id_t device_id, services_t me, async_client_conn_t receiver){
 	return EOK;
 }
 
-int find_device( device_id_t device_id, device_ref * device ){
-	if( ! device ) return EBADMEM;
-	* device = device_map_find( & netif_globals.device_map, device_id );
-	if( ! * device ) return ENOENT;
-	if(( ** device ).state == NETIF_NULL ) return EPERM;
+int find_device(device_id_t device_id, device_ref * device){
+	if(! device){
+		return EBADMEM;
+	}
+	*device = device_map_find(&netif_globals.device_map, device_id);
+	if(! * device){
+		return ENOENT;
+	}
+	if((** device).state == NETIF_NULL) return EPERM;
 	return EOK;
 }
 
-void null_device_stats( device_stats_ref stats ){
-	bzero( stats, sizeof( device_stats_t ));
+void null_device_stats(device_stats_ref stats){
+	bzero(stats, sizeof(device_stats_t));
 }
 
-int register_message( device_id_t device_id, int phone ){
+int register_message(device_id_t device_id, int phone){
 	ERROR_DECLARE;
 
-	device_ref	device;
+	device_ref device;
 
-	ERROR_PROPAGATE( find_device( device_id, & device ));
-	if( device->nil_phone > 0 ) return ELIMIT;
+	ERROR_PROPAGATE(find_device(device_id, &device));
+	if(device->nil_phone > 0){
+		return ELIMIT;
+	}
 	device->nil_phone = phone;
-	printf( "New receiver of the device %d registered:\n\tphone\t= %d\n", device->device_id, device->nil_phone );
+	printf("New receiver of the device %d registered:\n\tphone\t= %d\n", device->device_id, device->nil_phone);
 	return EOK;
 }
 
-int netif_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
+int netif_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	ERROR_DECLARE;
 
-	size_t				length;
-	device_stats_t		stats;
-	packet_t			packet;
-	measured_string_t	address;
+	size_t length;
+	device_stats_t stats;
+	packet_t packet;
+	measured_string_t address;
 
-//	printf( "message %d - %d\n", IPC_GET_METHOD( * call ), NET_NETIF_FIRST );
-	* answer_count = 0;
-	switch( IPC_GET_METHOD( * call )){
+//	printf("message %d - %d\n", IPC_GET_METHOD(*call), NET_NETIF_FIRST);
+	*answer_count = 0;
+	switch(IPC_GET_METHOD(*call)){
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_NETIF_PROBE:
-			return netif_probe_req( 0, IPC_GET_DEVICE( call ), NETIF_GET_IRQ( call ), NETIF_GET_IO( call ));
+			return netif_probe_req(0, IPC_GET_DEVICE(call), NETIF_GET_IRQ(call), NETIF_GET_IO(call));
 		case IPC_M_CONNECT_TO_ME:
-			fibril_rwlock_write_lock( & netif_globals.lock );
-			ERROR_CODE = register_message( IPC_GET_DEVICE( call ), IPC_GET_PHONE( call ));
-			fibril_rwlock_write_unlock( & netif_globals.lock );
+			fibril_rwlock_write_lock(&netif_globals.lock);
+			ERROR_CODE = register_message(IPC_GET_DEVICE(call), IPC_GET_PHONE(call));
+			fibril_rwlock_write_unlock(&netif_globals.lock);
 			return ERROR_CODE;
 		case NET_NETIF_SEND:
-			ERROR_PROPAGATE( packet_translate( netif_globals.net_phone, & packet, IPC_GET_PACKET( call )));
-			return netif_send_msg( 0, IPC_GET_DEVICE( call ), packet, IPC_GET_SENDER( call ));
+			ERROR_PROPAGATE(packet_translate(netif_globals.net_phone, &packet, IPC_GET_PACKET(call)));
+			return netif_send_msg(0, IPC_GET_DEVICE(call), packet, IPC_GET_SENDER(call));
 		case NET_NETIF_START:
-			return netif_start_req( 0, IPC_GET_DEVICE( call ));
+			return netif_start_req(0, IPC_GET_DEVICE(call));
 		case NET_NETIF_STATS:
-			fibril_rwlock_read_lock( & netif_globals.lock );
-			if( ! ERROR_OCCURRED( async_data_read_receive( & callid, & length ))){
-				if( length < sizeof( device_stats_t )){
+			fibril_rwlock_read_lock(&netif_globals.lock);
+			if(! ERROR_OCCURRED(async_data_read_receive(&callid, &length))){
+				if(length < sizeof(device_stats_t)){
 					ERROR_CODE = EOVERFLOW;
 				}else{
-					if( ! ERROR_OCCURRED( netif_get_device_stats( IPC_GET_DEVICE( call ), & stats ))){
-						ERROR_CODE = async_data_read_finalize( callid, & stats, sizeof( device_stats_t ));
+					if(! ERROR_OCCURRED(netif_get_device_stats(IPC_GET_DEVICE(call), &stats))){
+						ERROR_CODE = async_data_read_finalize(callid, &stats, sizeof(device_stats_t));
 					}
 				}
 			}
-			fibril_rwlock_read_unlock( & netif_globals.lock );
+			fibril_rwlock_read_unlock(&netif_globals.lock);
 			return ERROR_CODE;
 		case NET_NETIF_STOP:
-			return netif_stop_req( 0, IPC_GET_DEVICE( call ));
+			return netif_stop_req(0, IPC_GET_DEVICE(call));
 		case NET_NETIF_GET_ADDR:
-			fibril_rwlock_read_lock( & netif_globals.lock );
-			if( ! ERROR_OCCURRED( netif_get_addr_message( IPC_GET_DEVICE( call ), & address ))){
-				ERROR_CODE = measured_strings_reply( & address, 1 );
+			fibril_rwlock_read_lock(&netif_globals.lock);
+			if(! ERROR_OCCURRED(netif_get_addr_message(IPC_GET_DEVICE(call), &address))){
+				ERROR_CODE = measured_strings_reply(&address, 1);
 			}
-			fibril_rwlock_read_unlock( & netif_globals.lock );
+			fibril_rwlock_read_unlock(&netif_globals.lock);
 			return ERROR_CODE;
 	}
-	return netif_specific_message( callid, call, answer, answer_count );
+	return netif_specific_message(callid, call, answer, answer_count);
 }
 
-int netif_init_module( async_client_conn_t client_connection ){
+int netif_init_module(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	async_set_client_connection( client_connection );
-	netif_globals.net_phone = connect_to_service( SERVICE_NETWORKING );
-	device_map_initialize( & netif_globals.device_map );
-	ERROR_PROPAGATE( pm_init());
-	fibril_rwlock_initialize( & netif_globals.lock );
-	if( ERROR_OCCURRED( netif_initialize())){
+	async_set_client_connection(client_connection);
+	netif_globals.net_phone = connect_to_service(SERVICE_NETWORKING);
+	device_map_initialize(&netif_globals.device_map);
+	ERROR_PROPAGATE(pm_init());
+	fibril_rwlock_initialize(&netif_globals.lock);
+	if(ERROR_OCCURRED(netif_initialize())){
 		pm_destroy();
 		return ERROR_CODE;
 	}
 	return EOK;
 }
 
-int netif_run_module( void ){
+int netif_run_module(void){
 	async_manager();
 
 	pm_destroy();
 	return EOK;
 }
 
-void netif_pq_release( packet_id_t packet_id ){
-	pq_release( netif_globals.net_phone, packet_id );
+void netif_pq_release(packet_id_t packet_id){
+	pq_release(netif_globals.net_phone, packet_id);
 }
 
-packet_t netif_packet_get_1( size_t content ){
-	return packet_get_1( netif_globals.net_phone, content );
+packet_t netif_packet_get_1(size_t content){
+	return packet_get_1(netif_globals.net_phone, content);
 }
 
 /** @}

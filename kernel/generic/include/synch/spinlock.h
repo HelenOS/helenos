@@ -47,7 +47,7 @@ typedef struct {
 	atomic_t val;
 	
 #ifdef CONFIG_DEBUG_SPINLOCK
-	char *name;
+	const char *name;
 #endif
 } spinlock_t;
 
@@ -100,7 +100,7 @@ typedef struct {
 #define SPINLOCK_STATIC_INITIALIZE(lock_name) \
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
-extern void spinlock_initialize(spinlock_t *lock, char *name);
+extern void spinlock_initialize(spinlock_t *lock, const char *name);
 extern int spinlock_trylock(spinlock_t *lock);
 extern void spinlock_lock_debug(spinlock_t *lock);
 

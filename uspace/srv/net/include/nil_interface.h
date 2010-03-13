@@ -70,8 +70,8 @@
  *  @returns ENOENT if there no such device.
  *  @returns Other error codes as defined for the generic_get_addr_req() function.
  */
-#define nil_get_addr_req( nil_phone, device_id, address, data )	\
-	generic_get_addr_req( nil_phone, NET_NIL_ADDR, device_id, address, data )
+#define nil_get_addr_req(nil_phone, device_id, address, data)	\
+	generic_get_addr_req(nil_phone, NET_NIL_ADDR, device_id, address, data)
 
 /** Returns the device broadcast hardware address.
  *  @param[in] nil_phone The network interface layer phone.
@@ -83,8 +83,8 @@
  *  @returns ENOENT if there no such device.
  *  @returns Other error codes as defined for the generic_get_addr_req() function.
  */
-#define nil_get_broadcast_addr_req( nil_phone, device_id, address, data )	\
-	generic_get_addr_req( nil_phone, NET_NIL_BROADCAST_ADDR, device_id, address, data )
+#define nil_get_broadcast_addr_req(nil_phone, device_id, address, data)	\
+	generic_get_addr_req(nil_phone, NET_NIL_BROADCAST_ADDR, device_id, address, data)
 
 /** Sends the packet queue.
  *  @param[in] nil_phone The network interface layer phone.
@@ -94,8 +94,8 @@
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the generic_send_msg() function.
  */
-#define nil_send_msg( nil_phone, device_id, packet, sender )	\
-	generic_send_msg( nil_phone, NET_NIL_SEND, device_id, packet_get_id( packet ), sender, 0 )
+#define nil_send_msg(nil_phone, device_id, packet, sender)	\
+	generic_send_msg(nil_phone, NET_NIL_SEND, device_id, packet_get_id(packet), sender, 0)
 
 /** Returns the device packet dimension for sending.
  *  @param[in] nil_phone The network interface layer phone.
@@ -105,8 +105,8 @@
  *  @returns ENOENT if there is no such device.
  *  @returns Other error codes as defined for the generic_packet_size_req() function.
  */
-#define nil_packet_size_req( nil_phone, device_id, packet_dimension )	\
-	generic_packet_size_req( nil_phone, NET_NIL_PACKET_SPACE, device_id, packet_dimension )
+#define nil_packet_size_req(nil_phone, device_id, packet_dimension)	\
+	generic_packet_size_req(nil_phone, NET_NIL_PACKET_SPACE, device_id, packet_dimension)
 
 /** Registers new device or updates the MTU of an existing one.
  *  @param[in] nil_phone The network interface layer phone.
@@ -118,8 +118,8 @@
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the generic_device_req() function.
  */
-#define nil_device_req( nil_phone, device_id, mtu, netif_service )	\
-	generic_device_req( nil_phone, NET_NIL_DEVICE, device_id, mtu, netif_service )
+#define nil_device_req(nil_phone, device_id, mtu, netif_service)	\
+	generic_device_req(nil_phone, NET_NIL_DEVICE, device_id, mtu, netif_service)
 
 /** Notifies the network interface layer about the device state change.
  *  @param[in] nil_phone The network interface layer phone.
@@ -128,7 +128,7 @@
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module device state function.
  */
-int nil_device_state_msg( int nil_phone, device_id_t device_id, int state );
+int nil_device_state_msg(int nil_phone, device_id_t device_id, int state);
 
 /** Passes the packet queue to the network interface layer.
  *  Processes and redistributes the received packet queue to the registered upper layers.
@@ -139,7 +139,7 @@ int nil_device_state_msg( int nil_phone, device_id_t device_id, int state );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module received function.
  */
-int nil_received_msg( int nil_phone, device_id_t device_id, packet_t packet, services_t target );
+int nil_received_msg(int nil_phone, device_id_t device_id, packet_t packet, services_t target);
 
 /** Creates bidirectional connection with the network interface layer module and registers the message receiver.
  *  @param[in] service The network interface layer module service.
@@ -150,8 +150,8 @@ int nil_received_msg( int nil_phone, device_id_t device_id, packet_t packet, ser
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the bind_service() function.
  */
-#define	nil_bind_service( service, device_id, me, receiver )	\
-	bind_service( service, device_id, me, 0, receiver );
+#define	nil_bind_service(service, device_id, me, receiver)	\
+	bind_service(service, device_id, me, 0, receiver);
 /*@}*/
 
 #endif

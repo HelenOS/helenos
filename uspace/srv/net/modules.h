@@ -49,57 +49,19 @@
  *  @param[in] type_to The destination type.
  *  @param[in] count The number units of the source type size.
  */
-#define CONVERT_SIZE( type_from, type_to, count )	(( sizeof( type_from ) / sizeof( type_to )) * ( count ))
+#define CONVERT_SIZE(type_from, type_to, count)	((sizeof(type_from) / sizeof(type_to)) * (count))
 
 /** Registers the module service at the name server.
  *  @param[in] me The module service.
  *  @param[out] phonehash The created phone hash.
  */
-#define REGISTER_ME( me, phonehash )	ipc_connect_to_me( PHONE_NS, ( me ), 0, 0, ( phonehash ))
+#define REGISTER_ME(me, phonehash)	ipc_connect_to_me(PHONE_NS, (me), 0, 0, (phonehash))
 
 /** Connect to the needed module function type definition.
  *  @param[in] need The needed module service.
  *  @returns The phone of the needed service.
  */
-typedef int connect_module_t( services_t need );
-
-/** Connects to the needed module.
- *  @param[in] need The needed module service.
- *  @returns The phone of the needed service.
- */
-int connect_to_service( services_t need );
-
-/** Connects to the needed module.
- *  @param[in] need The needed module service.
- *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
- *  @returns The phone of the needed service.
- *  @returns ETIMEOUT if the connection timeouted.
- */
-int connect_to_service_timeout( services_t need, suseconds_t timeout );
-
-/** Creates bidirectional connection with the needed module service and registers the message receiver.
- *  @param[in] need The needed module service.
- *  @param[in] arg1 The first parameter.
- *  @param[in] arg2 The second parameter.
- *  @param[in] arg3 The third parameter.
- *  @param[in] client_receiver The message receiver.
- *  @returns The phone of the needed service.
- *  @returns Other error codes as defined for the ipc_connect_to_me() function.
- */
-int	bind_service( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver );
-
-/** Creates bidirectional connection with the needed module service and registers the message receiver.
- *  @param[in] need The needed module service.
- *  @param[in] arg1 The first parameter.
- *  @param[in] arg2 The second parameter.
- *  @param[in] arg3 The third parameter.
- *  @param[in] client_receiver The message receiver.
- *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
- *  @returns The phone of the needed service.
- *  @returns ETIMEOUT if the connection timeouted.
- *  @returns Other error codes as defined for the ipc_connect_to_me() function.
- */
-int	bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout );
+typedef int connect_module_t(services_t need);
 
 /** Answers the call.
  *  @param[in] callid The call identifier.
@@ -107,14 +69,45 @@ int	bind_service_timeout( services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_
  *  @param[in] answer The message processing answer.
  *  @param[in] answer_count The number of answer parameters.
  */
-void	answer_call( ipc_callid_t callid, int result, ipc_call_t * answer, int answer_count );
+void answer_call(ipc_callid_t callid, int result, ipc_call_t * answer, int answer_count);
 
-/** Refreshes answer structure and parameters count.
- *  Erases all attributes.
- *  @param[in,out] answer The message processing answer structure.
- *  @param[in,out] answer_count The number of answer parameters.
+/** Creates bidirectional connection with the needed module service and registers the message receiver.
+ *  @param[in] need The needed module service.
+ *  @param[in] arg1 The first parameter.
+ *  @param[in] arg2 The second parameter.
+ *  @param[in] arg3 The third parameter.
+ *  @param[in] client_receiver The message receiver.
+ *  @returns The phone of the needed service.
+ *  @returns Other error codes as defined for the ipc_connect_to_me() function.
  */
-void	refresh_answer( ipc_call_t * answer, int * answer_count );
+int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver);
+
+/** Creates bidirectional connection with the needed module service and registers the message receiver.
+ *  @param[in] need The needed module service.
+ *  @param[in] arg1 The first parameter.
+ *  @param[in] arg2 The second parameter.
+ *  @param[in] arg3 The third parameter.
+ *  @param[in] client_receiver The message receiver.
+ *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
+ *  @returns The phone of the needed service.
+ *  @returns ETIMEOUT if the connection timeouted.
+ *  @returns Other error codes as defined for the ipc_connect_to_me() function.
+ */
+int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout);
+
+/** Connects to the needed module.
+ *  @param[in] need The needed module service.
+ *  @returns The phone of the needed service.
+ */
+int connect_to_service(services_t need);
+
+/** Connects to the needed module.
+ *  @param[in] need The needed module service.
+ *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
+ *  @returns The phone of the needed service.
+ *  @returns ETIMEOUT if the connection timeouted.
+ */
+int connect_to_service_timeout(services_t need, suseconds_t timeout);
 
 /** Receives data from the other party.
  *  The received data buffer is allocated and returned.
@@ -126,7 +119,7 @@ void	refresh_answer( ipc_call_t * answer, int * answer_count );
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the async_data_write_finalize() function.
  */
-int data_receive( void ** data, size_t * length );
+int data_receive(void ** data, size_t * length);
 
 /** Replies the data to the other party.
  *  @param[in] data The data buffer to be sent.
@@ -136,7 +129,14 @@ int data_receive( void ** data, size_t * length );
  *  @returns EOVERFLOW if the client does not expect all the data. Only partial data are transfered.
  *  @returns Other error codes as defined for the async_data_read_finalize() function.
  */
-int data_reply( void * data, size_t data_length );
+int data_reply(void * data, size_t data_length);
+
+/** Refreshes answer structure and parameters count.
+ *  Erases all attributes.
+ *  @param[in,out] answer The message processing answer structure.
+ *  @param[in,out] answer_count The number of answer parameters.
+ */
+void refresh_answer(ipc_call_t * answer, int * answer_count);
 
 #endif
 

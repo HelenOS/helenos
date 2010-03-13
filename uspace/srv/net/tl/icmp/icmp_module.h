@@ -46,7 +46,7 @@
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	icmp_initialize( async_client_conn_t client_connection );
+int icmp_initialize(async_client_conn_t client_connection);
 
 /** Processes the ICMP message.
  *  @param[in] callid The message identifier.
@@ -58,7 +58,7 @@ int	icmp_initialize( async_client_conn_t client_connection );
  *  @see icmp_interface.h
  *  @see IS_NET_ICMP_MESSAGE()
  */
-int	icmp_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int icmp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

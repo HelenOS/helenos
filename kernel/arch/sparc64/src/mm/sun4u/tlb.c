@@ -63,7 +63,7 @@ static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
 static void do_fast_data_access_protection_fault(istate_t *,
     tlb_tag_access_reg_t, const char *);
 
-char *context_encoding[] = {
+const char *context_encoding[] = {
 	"Primary",
 	"Secondary",
 	"Nucleus",

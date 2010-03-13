@@ -45,22 +45,22 @@
 struct	hostent {
 	/** Official host name.
 	 */
-	char *	h_name;
+	char * h_name;
 	/** Alias list.
 	 */
 	char **	h_aliases;
 	/** Host address type.
 	 */
-	int		h_addrtype;
+	int h_addrtype;
 	/** Address length.
 	 */
-	int		h_length;
+	int h_length;
 	/** List of addresses from name server.
 	 */
 	char **	h_addr_list;
 	/** Address, for backward compatiblity.
 	 */
-#define	h_addr	h_addr_list[ 0 ]
+#define	h_addr	h_addr_list[0]
 };
 
 /** @name Host entry address types definitions.
@@ -95,13 +95,13 @@ struct	hostent {
  *  @param[in] type The address type.
  *  @returns Host entry information.
  */
-//struct hostent *	gethostbyaddr( const void * address, int len, int type );
+//struct hostent *	gethostbyaddr(const void * address, int len, int type);
 
 /** Returns host entry by the host name.
  *  @param[in] name The host name.
  *  @returns Host entry information.
  */
-//struct hostent *	gethostbyname( const char * name );
+//struct hostent *	gethostbyname(const char * name);
 
 #endif
 

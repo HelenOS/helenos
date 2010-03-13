@@ -32,7 +32,7 @@
 
 #define BUFFER_SIZE  32
 
-char *test_print3(void)
+const char *test_print3(void)
 {
 	char buffer[BUFFER_SIZE];
 	int retval;

@@ -51,7 +51,7 @@
 #define THREAD_STACK_SIZE	STACK_SIZE
 #define THREAD_NAME_BUFLEN	20
 
-extern char *thread_states[];
+extern const char *thread_states[];
 
 /* Thread flags */
 
@@ -224,8 +224,8 @@ SPINLOCK_EXTERN(threads_lock);
 extern avltree_t threads_tree;
 
 extern void thread_init(void);
-extern thread_t *thread_create(void (*)(void *), void *, task_t *, int, char *,
-    bool);
+extern thread_t *thread_create(void (*)(void *), void *, task_t *, int,
+    const char *, bool);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));

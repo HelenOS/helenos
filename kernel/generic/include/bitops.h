@@ -64,10 +64,8 @@ static inline int fnzb32(uint32_t arg)
 		n += 2;
 	}
 	
-	if (arg >> 1) {
-		arg >>= 1;
+	if (arg >> 1)
 		n += 1;
-	}
 	
 	return n;
 }

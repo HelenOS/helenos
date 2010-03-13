@@ -298,7 +298,7 @@ static struct id_entry *id_lookup_subsys(struct pci_access *a, int iv,
 	return d;
 }
 
-char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
+const char *pci_lookup_name(struct pci_access *a, char *buf, int size, int flags,
 		      ...)
 {
 	va_list args;

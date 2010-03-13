@@ -104,7 +104,7 @@ int os_exec(char *const cmd[])
 	task_exit_t texit;
 	int retval;
 
-	tid = task_spawn(cmd[0], cmd);
+	tid = task_spawn(cmd[0], (char const * const *) cmd);
 	if (tid == 0) {
 		printf("Error: Failed spawning '%s'.\n", cmd[0]);
 		exit(1);

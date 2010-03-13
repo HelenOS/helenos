@@ -474,17 +474,16 @@ static int file_save(char const *fname)
 /** Change document name and save. */
 static void file_save_as(void)
 {
-	char *old_fname, *fname;
-	int rc;
-
-	old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	char *fname;
+	
 	fname = filename_prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
 	}
 
-	rc = file_save(fname);
+	int rc = file_save(fname);
 	if (rc != EOK)
 		return;
 
@@ -818,17 +817,15 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
-	char *fname;
-	int n;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
-	fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
 
 	console_goto(con, 0, scr_rows - 1);
 	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
-	n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 	    "Ctrl-E Save As", coord.row, coord.column, fname);
 	printf("%*s", scr_columns - 1 - n, "");
 	fflush(stdout);

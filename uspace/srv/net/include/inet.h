@@ -61,7 +61,7 @@ typedef struct addrinfo		addrinfo_t;
  *  @returns ENOMEM if the character buffer is not long enough.
  *  @returns ENOTSUP if the address family is not supported.
  */
-int	inet_ntop( uint16_t family, const uint8_t * data, char * address, size_t length );
+int inet_ntop(uint16_t family, const uint8_t * data, char * address, size_t length);
 
 /** Parses the character string into the address.
  *  If the string is shorter than the full address, zero bytes are added.
@@ -73,7 +73,7 @@ int	inet_ntop( uint16_t family, const uint8_t * data, char * address, size_t len
  *  @returns ENOENT if the address parameter is NULL.
  *  @returns ENOTSUP if the address family is not supported.
  */
-int	inet_pton( uint16_t family, const char * address, uint8_t * data );
+int inet_pton(uint16_t family, const char * address, uint8_t * data);
 
 /** Socket address.
  */
@@ -81,10 +81,10 @@ struct sockaddr{
 	/** Address family.
 	 *  @see socket.h
 	 */
-	uint16_t		sa_family;
+	uint16_t sa_family;
 	/** 14 byte protocol address.
 	 */
-	uint8_t			sa_data[ 14 ];
+	uint8_t sa_data[14];
 };
 
 // TODO define address information

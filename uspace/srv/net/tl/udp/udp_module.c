@@ -60,7 +60,7 @@
 /** Prints the module name.
  *  @see NAME
  */
-void	module_print_name( void );
+void module_print_name(void);
 
 /** Starts the UDP module.
  *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -69,7 +69,7 @@ void	module_print_name( void );
  *  @returns Other error codes as defined for the udp_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int	module_start( async_client_conn_t client_connection );
+int module_start(async_client_conn_t client_connection);
 
 /** Processes the UDP message.
  *  @param[in] callid The message identifier.
@@ -79,29 +79,29 @@ int	module_start( async_client_conn_t client_connection );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the udp_message() function.
  */
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** UDP module global data.
  */
 extern udp_globals_t	udp_globals;
 
-void module_print_name( void ){
-	printf( "%s", NAME );
+void module_print_name(void){
+	printf("%s", NAME);
 }
 
-int module_start( async_client_conn_t client_connection ){
+int module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	ipcarg_t	phonehash;
+	ipcarg_t phonehash;
 
-	async_set_client_connection( client_connection );
-	udp_globals.net_phone = net_connect_module( SERVICE_NETWORKING );
-	if( udp_globals.net_phone < 0 ){
+	async_set_client_connection(client_connection);
+	udp_globals.net_phone = net_connect_module(SERVICE_NETWORKING);
+	if(udp_globals.net_phone < 0){
 		return udp_globals.net_phone;
 	}
-	ERROR_PROPAGATE( pm_init());
-	if( ERROR_OCCURRED( udp_initialize( client_connection ))
-	|| ERROR_OCCURRED( REGISTER_ME( SERVICE_UDP, & phonehash ))){
+	ERROR_PROPAGATE(pm_init());
+	if(ERROR_OCCURRED(udp_initialize(client_connection))
+		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_UDP, &phonehash))){
 		pm_destroy();
 		return ERROR_CODE;
 	}
@@ -112,8 +112,8 @@ int module_start( async_client_conn_t client_connection ){
 	return EOK;
 }
 
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
-	return udp_message( callid, call, answer, answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return udp_message(callid, call, answer, answer_count);
 }
 
 /** @}

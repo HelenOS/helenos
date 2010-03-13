@@ -336,7 +336,7 @@ typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
 #endif
 
-extern char *elf_error(unsigned int rc);
+extern const char *elf_error(unsigned int rc);
 
 #endif
 

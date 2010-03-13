@@ -42,11 +42,11 @@
 #include "cat.h"
 #include "cmds.h"
 
-static char *cmdname = "cat";
+static const char *cmdname = "cat";
 #define CAT_VERSION "0.0.1"
 #define CAT_DEFAULT_BUFLEN 1024
 
-static char *cat_oops = "That option is not yet supported\n";
+static const char *cat_oops = "That option is not yet supported\n";
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },

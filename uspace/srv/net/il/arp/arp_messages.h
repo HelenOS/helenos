@@ -45,26 +45,26 @@
 /** ARP module messages.
  */
 typedef enum{
-	/** New device message.
-	 *  @see arp_device_req()
+	/** Clean cache message.
+	 *  @see arp_clean_cache()
 	 */
-	NET_ARP_DEVICE = NET_ARP_FIRST,
-	/** Address translation message.
-	 *  @see arp_translate_req()
-	 */
-	NET_ARP_TRANSLATE,
-	/** Clear device cache message.
-	 *  @see arp_clear_device_req()
-	 */
-	NET_ARP_CLEAR_DEVICE,
+	NET_ARP_CLEAN_CACHE = NET_ARP_FIRST,
 	/** Clear address cache message.
 	 *  @see arp_clear_address_msg()
 	 */
 	NET_ARP_CLEAR_ADDRESS,
-	/** Clean cache message.
-	 *  @see arp_clean_cache()
+	/** Clear device cache message.
+	 *  @see arp_clear_device_req()
 	 */
-	NET_ARP_CLEAN_CACHE,
+	NET_ARP_CLEAR_DEVICE,
+	/** New device message.
+	 *  @see arp_device_req()
+	 */
+	NET_ARP_DEVICE,
+	/** Address translation message.
+	 *  @see arp_translate_req()
+	 */
+	NET_ARP_TRANSLATE
 } arp_messages;
 
 /** @name ARP specific message parameters definitions
@@ -74,7 +74,7 @@ typedef enum{
 /** Returns the protocol service message parameter.
  *  @param[in] call The message call structure.
  */
-#define ARP_GET_NETIF( call )		( services_t ) IPC_GET_ARG2( * call )
+#define ARP_GET_NETIF(call)		(services_t) IPC_GET_ARG2(*call)
 
 /*@}*/
 

@@ -46,7 +46,7 @@
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module initialize function.
  */
-int	nil_initialize( int net_phone );
+int nil_initialize(int net_phone);
 
 /** Message processing function.
  *  @param[in] callid The message identifier.
@@ -59,7 +59,7 @@ int	nil_initialize( int net_phone );
  *  @see nil_interface.h
  *  @see IS_NET_NIL_MESSAGE()
  */
-int	nil_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

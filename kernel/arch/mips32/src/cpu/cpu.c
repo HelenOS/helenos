@@ -39,8 +39,8 @@
 #include <print.h>	
 
 struct data_t {
-	char *vendor;
-	char *model;
+	const char *vendor;
+	const char *model;
 };
 
 static struct data_t imp_data[] = {

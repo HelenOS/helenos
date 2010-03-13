@@ -65,7 +65,7 @@ struct dpeth;
  *  @returns 1 if the NE2000 network interface is present.
  *  @returns 0 otherwise.
  */
-//_PROTOTYPE( int el2_probe, (struct dpeth* dep)				);
+//_PROTOTYPE(int el2_probe, (struct dpeth*dep)				);
 
 /* ne2000.c */
 /** Probes a NE2000 or NE1000 network interface.
@@ -73,9 +73,9 @@ struct dpeth;
  *  @returns 1 if the NE2000 network interface is present.
  *  @returns 0 otherwise.
  */
-int	ne_probe( struct dpeth * dep );
-//_PROTOTYPE( int ne_probe, (struct dpeth *dep)				);
-//_PROTOTYPE( void ne_init, (struct dpeth *dep)				);
+int ne_probe(struct dpeth * dep);
+//_PROTOTYPE(int ne_probe, (struct dpeth *dep)				);
+//_PROTOTYPE(void ne_init, (struct dpeth *dep)				);
 
 /* rtl8029.c */
 /* * Probes a RTL8029 network interface.
@@ -83,7 +83,7 @@ int	ne_probe( struct dpeth * dep );
  *  @returns 1 if the NE2000 network interface is present.
  *  @returns 0 otherwise.
  */
-//_PROTOTYPE( int rtl_probe, (struct dpeth *dep)				);
+//_PROTOTYPE(int rtl_probe, (struct dpeth *dep)				);
 
 /* wdeth.c */
 /* * Probes a WDETH network interface.
@@ -91,7 +91,7 @@ int	ne_probe( struct dpeth * dep );
  *  @returns 1 if the NE2000 network interface is present.
  *  @returns 0 otherwise.
  */
-//_PROTOTYPE( int wdeth_probe, (struct dpeth* dep)				);
+//_PROTOTYPE(int wdeth_probe, (struct dpeth*dep)				);
 
 #endif
 

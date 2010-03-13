@@ -46,7 +46,7 @@
 #include "touch.h"
 #include "cmds.h"
 
-static char *cmdname = "touch";
+static const char *cmdname = "touch";
 
 /* Dispays help for touch in various levels */
 void help_cmd_touch(unsigned int level)

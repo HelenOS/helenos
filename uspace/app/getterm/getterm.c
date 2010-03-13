@@ -68,9 +68,9 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 	*stream = fdopen(fd, mode);
 }
 
-static task_id_t spawn(char *fname)
+static task_id_t spawn(const char *fname)
 {
-	char *args[2];
+	const char *args[2];
 	
 	args[0] = fname;
 	args[1] = NULL;

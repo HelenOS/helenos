@@ -93,7 +93,7 @@ extern link_t cmd_head;
 extern void kconsole_init(void);
 extern void kconsole_notify_init(void);
 extern bool kconsole_check_poll(void);
-extern void kconsole(char *prompt, char *msg, bool kcon);
+extern void kconsole(const char *prompt, const char *msg, bool kcon);
 extern void kconsole_thread(void *data);
 
 extern bool cmd_register(cmd_info_t *cmd);

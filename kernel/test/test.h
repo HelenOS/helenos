@@ -47,42 +47,42 @@ extern bool test_quiet;
 		} \
 	}
 
-typedef char *(*test_entry_t)(void);
+typedef const char *(*test_entry_t)(void);
 
 typedef struct {
-	char *name;
-	char *desc;
+	const char *name;
+	const char *desc;
 	test_entry_t entry;
 	bool safe;
 } test_t;
 
-extern char *test_atomic1(void);
-extern char *test_avltree1(void);
-extern char *test_btree1(void);
-extern char *test_mips1(void);
-extern char *test_fault1(void);
-extern char *test_fpu1(void);
-extern char *test_sse1(void);
-extern char *test_mips2(void);
-extern char *test_falloc1(void);
-extern char *test_falloc2(void);
-extern char *test_mapping1(void);
-extern char *test_purge1(void);
-extern char *test_slab1(void);
-extern char *test_slab2(void);
-extern char *test_rwlock1(void);
-extern char *test_rwlock2(void);
-extern char *test_rwlock3(void);
-extern char *test_rwlock4(void);
-extern char *test_rwlock5(void);
-extern char *test_semaphore1(void);
-extern char *test_semaphore2(void);
-extern char *test_print1(void);
-extern char *test_print2(void);
-extern char *test_print3(void);
-extern char *test_print4(void);
-extern char *test_thread1(void);
-extern char *test_sysinfo1(void);
+extern const char *test_atomic1(void);
+extern const char *test_avltree1(void);
+extern const char *test_btree1(void);
+extern const char *test_mips1(void);
+extern const char *test_fault1(void);
+extern const char *test_fpu1(void);
+extern const char *test_sse1(void);
+extern const char *test_mips2(void);
+extern const char *test_falloc1(void);
+extern const char *test_falloc2(void);
+extern const char *test_mapping1(void);
+extern const char *test_purge1(void);
+extern const char *test_slab1(void);
+extern const char *test_slab2(void);
+extern const char *test_rwlock1(void);
+extern const char *test_rwlock2(void);
+extern const char *test_rwlock3(void);
+extern const char *test_rwlock4(void);
+extern const char *test_rwlock5(void);
+extern const char *test_semaphore1(void);
+extern const char *test_semaphore2(void);
+extern const char *test_print1(void);
+extern const char *test_print2(void);
+extern const char *test_print3(void);
+extern const char *test_print4(void);
+extern const char *test_thread1(void);
+extern const char *test_sysinfo1(void);
 
 extern test_t tests[];
 

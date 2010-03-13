@@ -36,7 +36,10 @@
  */
 
 #include <errno.h>
-//#include <stdio.h>
+
+#ifdef CONFIG_DEBUG
+	#include <stdio.h>
+#endif
 
 #include <sys/types.h>
 
@@ -48,28 +51,38 @@
 
 #include "icmp_header.h"
 
-int	icmp_client_process_packet( packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu ){
-	icmp_header_ref	header;
+int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu){
+	icmp_header_ref header;
 
-	header = ( icmp_header_ref ) packet_get_data( packet );
-	if(( ! header )
-	|| ( packet_get_data_length( packet ) < sizeof( icmp_header_t ))){
+	header = (icmp_header_ref) packet_get_data(packet);
+	if((! header)
+		|| (packet_get_data_length(packet) < sizeof(icmp_header_t))){
 		return 0;
 	}
-	if( type ) * type = header->type;
-	if( code ) * code = header->code;
-	if( pointer ) * pointer = header->un.param.pointer;
-	if( mtu ) * mtu = header->un.frag.mtu;
+	if(type){
+		*type = header->type;
+	}
+	if(code){
+		*code = header->code;
+	}
+	if(pointer){
+		*pointer = header->un.param.pointer;
+	}
+	if(mtu){
+		*mtu = header->un.frag.mtu;
+	}
 	// remove debug dump
-//	printf( "ICMP error %d (%d) in packet %d\n", header->type, header->code, packet_get_id( packet ));
-	return sizeof( icmp_header_t );
+#ifdef CONFIG_DEBUG
+	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code, packet_get_id(packet));
+#endif
+	return sizeof(icmp_header_t);
 }
 
-size_t icmp_client_header_length( packet_t packet ){
-	if( packet_get_data_length( packet ) < sizeof( icmp_header_t )){
+size_t icmp_client_header_length(packet_t packet){
+	if(packet_get_data_length(packet) < sizeof(icmp_header_t)){
 		return 0;
 	}
-	return sizeof( icmp_header_t );
+	return sizeof(icmp_header_t);
 }
 
 /** @}

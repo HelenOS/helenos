@@ -93,35 +93,35 @@ typedef uint8_t	ip_protocol_t;
 
 /** Normal delay.
  */
-#define IPTOS_NORMALDELAY			( 0x0 << IPTOS_DELAY_SHIFT )
+#define IPTOS_NORMALDELAY			(0x0 << IPTOS_DELAY_SHIFT)
 
 /** Low delay.
  */
-#define IPTOS_LOWDELAY				( 0x1 << IPTOS_DELAY_SHIFT )
+#define IPTOS_LOWDELAY				(0x1 << IPTOS_DELAY_SHIFT)
 
 /** Normal throughput.
  */
-#define IPTOS_NORMALTHROUGHPUT		( 0x0 << IPTOS_THROUGHPUT_SHIFT )
+#define IPTOS_NORMALTHROUGHPUT		(0x0 << IPTOS_THROUGHPUT_SHIFT)
 
 /** Throughput.
  */
-#define IPTOS_THROUGHPUT			( 0x1 << IPTOS_THROUGHPUT_SHIFT )
+#define IPTOS_THROUGHPUT			(0x1 << IPTOS_THROUGHPUT_SHIFT)
 
 /** Normal reliability.
  */
-#define IPTOS_NORMALRELIABILITY		( 0x0 << IPTOS_RELIABILITY_SHIFT )
+#define IPTOS_NORMALRELIABILITY		(0x0 << IPTOS_RELIABILITY_SHIFT)
 
 /** Reliability.
  */
-#define IPTOS_RELIABILITY			( 0x1 << IPTOS_RELIABILITY_SHIFT )
+#define IPTOS_RELIABILITY			(0x1 << IPTOS_RELIABILITY_SHIFT)
 
 /** Normal cost.
  */
-#define IPTOS_NORMALCOST			( 0x0 << IPTOS_COST_SHIFT )
+#define IPTOS_NORMALCOST			(0x0 << IPTOS_COST_SHIFT)
 
 /** Minimum cost.
  */
-#define IPTOS_MICNCOST				( 0x1 << IPTOS_COST_SHIFT )
+#define IPTOS_MICNCOST				(0x1 << IPTOS_COST_SHIFT)
 
 /*@}*/
 
@@ -136,35 +136,35 @@ typedef uint8_t	ip_protocol_t;
 
 /** Routine precedence.
  */
-#define IPTOS_PREC_ROUTINE			( 0x0 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_ROUTINE			(0x0 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Priority precedence.
  */
-#define IPTOS_PREC_PRIORITY			( 0x1 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_PRIORITY			(0x1 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Immediate precedence.
  */
-#define IPTOS_PREC_IMMEDIATE		( 0x2 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_IMMEDIATE		(0x2 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Flash precedence.
  */
-#define IPTOS_PREC_FLASH			( 0x3 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_FLASH			(0x3 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Flash override precedence.
  */
-#define IPTOS_PREC_FLASHOVERRIDE	( 0x4 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_FLASHOVERRIDE	(0x4 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Critical precedence.
  */
-#define IPTOS_PREC_CRITIC_ECP		( 0x5 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_CRITIC_ECP		(0x5 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Inter-network control precedence.
  */
-#define IPTOS_PREC_INTERNETCONTROL	( 0x6 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_INTERNETCONTROL	(0x6 << IPTOS_PRECEDENCE_SHIFT)
 
 /** Network control precedence.
  */
-#define IPTOS_PREC_NETCONTROL		( 0x7 << IPTOS_PRECEDENCE_SHIFT )
+#define IPTOS_PREC_NETCONTROL		(0x7 << IPTOS_PRECEDENCE_SHIFT)
 
 /*@}*/
 
@@ -194,29 +194,29 @@ typedef uint8_t	ip_protocol_t;
 
 /** Copy flag.
  */
-#define IPOPT_COPY					( 1 << IPOPT_COPY_SHIFT )
+#define IPOPT_COPY					(1 << IPOPT_COPY_SHIFT)
 
 /** Returns IP option type.
  *  @param[in] copy The value indication whether the IP option should be copied.
  *  @param[in] class The IP option class.
  *  @param[in] number The IP option number.
  */
-#define IPOPT_TYPE( copy, class, number )	((( copy ) & IPOPT_COPY ) | (( class ) & IPOPT_CLASS_MASK ) | (( number << IPOPT_NUMBER_SHIFT ) & IPOPT_NUMBER_MASK ))
+#define IPOPT_TYPE(copy, class, number)	(((copy) &IPOPT_COPY) | ((class) &IPOPT_CLASS_MASK) | ((number << IPOPT_NUMBER_SHIFT) &IPOPT_NUMBER_MASK))
 
 /** Returns a value indicating whether the IP option should be copied.
  *  @param[in] o The IP option.
  */
-#define	IPOPT_COPIED( o )			(( o ) & IPOPT_COPY )
+#define	IPOPT_COPIED(o)			((o) &IPOPT_COPY)
 
 /** Returns an IP option class.
  *  @param[in] o The IP option.
  */
-#define	IPOPT_CLASS( o )			(( o ) & IPOPT_CLASS_MASK )
+#define	IPOPT_CLASS(o)			((o) &IPOPT_CLASS_MASK)
 
 /** Returns an IP option number.
  *  @param[in] o The IP option.
  */
-#define	IPOPT_NUMBER( o )			(( o ) & IPOPT_NUMBER_MASK )
+#define	IPOPT_NUMBER(o)			((o) &IPOPT_NUMBER_MASK)
 
 /*@}*/
 
@@ -226,19 +226,19 @@ typedef uint8_t	ip_protocol_t;
 
 /** Control class.
  */
-#define	IPOPT_CONTROL				( 0 << IPOPT_CLASS_SHIFT )
+#define	IPOPT_CONTROL				(0 << IPOPT_CLASS_SHIFT)
 
 /** Reserved class 1.
  */
-#define	IPOPT_RESERVED1				( 1 << IPOPT_CLASS_SHIFT )
+#define	IPOPT_RESERVED1				(1 << IPOPT_CLASS_SHIFT)
 
 /** Measurement class.
  */
-#define	IPOPT_MEASUREMENT			( 2 << IPOPT_CLASS_SHIFT )
+#define	IPOPT_MEASUREMENT			(2 << IPOPT_CLASS_SHIFT)
 
 /** Reserved class 2.
  */
-#define	IPOPT_RESERVED2				( 3 << IPOPT_CLASS_SHIFT )
+#define	IPOPT_RESERVED2				(3 << IPOPT_CLASS_SHIFT)
 
 /*@}*/
 
@@ -249,37 +249,37 @@ typedef uint8_t	ip_protocol_t;
 /** End of list.
  */
 //#define IPOPT_END_OF_LIST			0x0
-#define IPOPT_END					IPOPT_TYPE( 0, IPOPT_CONTROL, 0 )
+#define IPOPT_END					IPOPT_TYPE(0, IPOPT_CONTROL, 0)
 
 /** No operation.
  */
 //#define IPOPT_NO_OPERATION		0x1
-#define IPOPT_NOOP					IPOPT_TYPE( 0, IPOPT_CONTROL, 1 )
+#define IPOPT_NOOP					IPOPT_TYPE(0, IPOPT_CONTROL, 1)
 
 /** Security.
  */
 //#define IPOPT_SECURITY			0x82
-#define IPOPT_SEC					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 2 )
+#define IPOPT_SEC					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 2)
 
 /** Loose source.
  */
 //#define IPOPT_LOOSE_SOURCE		0x83
-#define IPOPT_LSRR					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 3 )
+#define IPOPT_LSRR					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 3)
 
 /** Strict route.
  */
 //#define IPOPT_STRICT_SOURCE		0x89
-#define IPOPT_SSRR					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 9 )
+#define IPOPT_SSRR					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 9)
 
 /** Record route.
  */
 //#define IPOPT_RECORD_ROUTE		0x07
-#define IPOPT_RR					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 7 )
+#define IPOPT_RR					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 7)
 
 /** Stream identifier.
  */
 //#define IPOPT_STREAM_IDENTIFIER	0x88
-#define IPOPT_SID					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 8 )
+#define IPOPT_SID					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 8)
 
 /** Stream identifier length.
  */
@@ -288,11 +288,11 @@ typedef uint8_t	ip_protocol_t;
 /** Internet timestamp.
  */
 //#define IPOPT_INTERNET_TIMESTAMP	0x44
-#define IPOPT_TIMESTAMP				IPOPT_TYPE( IPOPT_COPY, IPOPT_MEASUREMENT, 4 )
+#define IPOPT_TIMESTAMP				IPOPT_TYPE(IPOPT_COPY, IPOPT_MEASUREMENT, 4)
 
 /** Commercial IP security option.
  */
-#define IPOPT_CIPSO					IPOPT_TYPE( IPOPT_COPY, IPOPT_CONTROL, 5 )
+#define IPOPT_CIPSO					IPOPT_TYPE(IPOPT_COPY, IPOPT_CONTROL, 5)
 
 /** No operation variant.
  */

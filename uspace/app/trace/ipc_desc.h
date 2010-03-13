@@ -37,7 +37,7 @@
 
 typedef struct {
 	int number;
-	char *name;
+	const char *name;
 } ipc_m_desc_t;
 
 extern ipc_m_desc_t ipc_methods[];

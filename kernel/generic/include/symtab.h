@@ -44,8 +44,8 @@ struct symtab_entry {
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern int symtab_name_lookup(uintptr_t, char **, uintptr_t *);
-extern char *symtab_fmt_name_lookup(uintptr_t);
+extern int symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
+extern const char *symtab_fmt_name_lookup(uintptr_t);
 extern int symtab_addr_lookup(const char *, uintptr_t *);
 extern void symtab_print_search(const char *);
 extern int symtab_compl(char *, size_t);

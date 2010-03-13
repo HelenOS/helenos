@@ -61,48 +61,52 @@
  *  @returns Other error codes as defined for the self_test() function.
  *  @returns Other error codes as defined for the NET_NET_STARTUP message.
  */
-int		main( int argc, char * argv[] );
+int main(int argc, char * argv[]);
 
 /** Starts the module.
  *  @param[in] fname The module absolute name.
  *  @returns The started module task identifier.
  *  @returns Other error codes as defined for the task_spawn() function.
  */
-task_id_t	spawn( char * fname );
+task_id_t spawn(const char * fname);
 
-int main( int argc, char * argv[] ){
+int main(int argc, char * argv[]){
 	ERROR_DECLARE;
 
-	int		net_phone;
+	int net_phone;
 
-	printf( "Task %d - ", task_get_id());
-	printf( "%s\n", NAME );
+	// print the module label
+	printf("Task %d - ", task_get_id());
+	printf("%s\n", NAME);
+
 	// run self tests
-	ERROR_PROPAGATE( self_test());
-	// start net service
-	if( ! spawn( "/srv/net" )){
-		fprintf( stderr, "Could not spawn net\n" );
+	ERROR_PROPAGATE(self_test());
+
+	// start the networking service
+	if(! spawn("/srv/net")){
+		fprintf(stderr, "Could not spawn net\n");
 		return EINVAL;
 	}
-	// start net
-	net_phone = connect_to_service( SERVICE_NETWORKING );
-	if( ERROR_OCCURRED( ipc_call_sync_0_0( net_phone, NET_NET_STARTUP ))){
-		printf( "ERROR %d\n", ERROR_CODE );
+
+	// start the networking
+	net_phone = connect_to_service(SERVICE_NETWORKING);
+	if(ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))){
+		printf("ERROR %d\n", ERROR_CODE);
 		return ERROR_CODE;
 	}else{
-		printf( "OK\n" );
+		printf("OK\n");
 	}
 
 	return EOK;
 }
 
-task_id_t spawn( char * fname ){
-	char *	argv[ 2 ];
-	task_id_t	res;
+task_id_t spawn(const char * fname){
+	const char * argv[2];
+	task_id_t res;
 
-	argv[ 0 ] = fname;
-	argv[ 1 ] = NULL;
-	res = task_spawn( fname, argv );
+	argv[0] = fname;
+	argv[1] = NULL;
+	res = task_spawn(fname, argv);
 	
 	return res;
 }

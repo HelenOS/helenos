@@ -55,7 +55,7 @@
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for the packet_release_wrapper() function.
  */
-int	packet_server_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

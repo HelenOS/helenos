@@ -131,7 +131,7 @@ static void reader(void *arg)
 	atomic_dec(&thread_count);
 }
 
-char *test_rwlock4(void)
+const char *test_rwlock4(void)
 {
 	context_t ctx;
 	uint32_t i;

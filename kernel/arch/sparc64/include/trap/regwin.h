@@ -182,6 +182,7 @@
 	rdpr %cleanwin, %l0
 	add %l0, 1, %l0
 	wrpr %l0, 0, %cleanwin
+#if defined(SUN4U)
 	mov %r0, %l0
 	mov %r0, %l1
 	mov %r0, %l2
@@ -198,13 +199,14 @@
 	mov %r0, %o5
 	mov %r0, %o6
 	mov %r0, %o7
+#endif
 	retry
 .endm
 #endif /* __ASM__ */
 
-#if defined (SUN4U)
+#if defined(SUN4U)
 #include <arch/trap/sun4u/regwin.h>
-#elif defined (SUN4V)
+#elif defined(SUN4V)
 #include <arch/trap/sun4v/regwin.h>
 #endif
 

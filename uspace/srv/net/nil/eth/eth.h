@@ -72,40 +72,40 @@ typedef eth_proto_t *		eth_proto_ref;
  *  Maps devices to the Ethernet device specific data.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( eth_devices, eth_device_t )
+DEVICE_MAP_DECLARE(eth_devices, eth_device_t)
 
 /** Ethernet protocol map.
  *  Maps protocol identifiers to the Ethernet protocol specific data.
  *  @see int_map.h
  */
-INT_MAP_DECLARE( eth_protos, eth_proto_t )
+INT_MAP_DECLARE(eth_protos, eth_proto_t)
 
 /** Ethernet device specific data.
  */
 struct	eth_device{
 	/** Device identifier.
 	 */
-	device_id_t			device_id;
+	device_id_t device_id;
 	/** Device driver service.
 	 */
-	services_t			service;
+	services_t service;
 	/** Driver phone.
 	 */
-	int					phone;
+	int phone;
 	/** Maximal transmission unit.
 	 */
-	size_t				mtu;
+	size_t mtu;
 	/** Various device flags.
 	 *  @see ETH_DUMMY
 	 *  @see ETH_MODE_MASK
 	 */
-	int					flags;
+	int flags;
 	/** Actual device hardware address.
 	 */
-	measured_string_ref	addr;
+	measured_string_ref addr;
 	/** Actual device hardware address data.
 	 */
-	char *				addr_data;
+	char * addr_data;
 };
 
 /** Ethernet protocol specific data.
@@ -113,13 +113,13 @@ struct	eth_device{
 struct eth_proto{
 	/** Protocol service.
 	 */
-	services_t	service;
+	services_t service;
 	/** Protocol identifier.
 	 */
-	int			protocol;
+	int protocol;
 	/** Protocol module phone.
 	 */
-	int			phone;
+	int phone;
 };
 
 /** Ethernet global data.
@@ -127,23 +127,23 @@ struct eth_proto{
 struct	eth_globals{
 	/** Networking module phone.
 	 */
-	int				net_phone;
+	int net_phone;
 	/** Safety lock for devices.
 	 */
-	fibril_rwlock_t		devices_lock;
+	fibril_rwlock_t devices_lock;
 	/** All known Ethernet devices.
 	 */
-	eth_devices_t	devices;
+	eth_devices_t devices;
 	/** Safety lock for protocols.
 	 */
-	fibril_rwlock_t		protos_lock;
+	fibril_rwlock_t protos_lock;
 	/** Protocol map.
 	 *  Service phone map for each protocol.
 	 */
-	eth_protos_t	protos;
+	eth_protos_t protos;
 	/** Broadcast device hardware address.
 	 */
-	measured_string_ref	broadcast_addr;
+	measured_string_ref broadcast_addr;
 };
 
 #endif

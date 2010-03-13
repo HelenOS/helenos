@@ -53,7 +53,7 @@
 
 static char text[] = "Lorem ipsum dolor sit amet, consectetur adipisicing elit";
 
-static char *read_root(void)
+static const char *read_root(void)
 {
 	TPRINTF("Opening the root directory...");
 	
@@ -72,7 +72,7 @@ static char *read_root(void)
 	return NULL;
 }
 
-char *test_vfs1(void)
+const char *test_vfs1(void)
 {
 	if (mkdir(MOUNT_POINT, 0) != 0)
 		return "mkdir() failed";
@@ -120,7 +120,7 @@ char *test_vfs1(void)
 	
 	close(fd0);
 	
-	char *rv = read_root();
+	const char *rv = read_root();
 	if (rv != NULL)
 		return rv;
 	

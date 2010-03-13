@@ -72,29 +72,29 @@ typedef nildummy_proto_t *		nildummy_proto_ref;
  *  Maps devices to the dummy nil device specific data.
  *  @see device.h
  */
-DEVICE_MAP_DECLARE( nildummy_devices, nildummy_device_t )
+DEVICE_MAP_DECLARE(nildummy_devices, nildummy_device_t)
 
 /** Dummy nil device specific data.
  */
 struct	nildummy_device{
 	/** Device identifier.
 	 */
-	device_id_t			device_id;
+	device_id_t device_id;
 	/** Device driver service.
 	 */
-	services_t			service;
+	services_t service;
 	/** Driver phone.
 	 */
-	int					phone;
+	int phone;
 	/** Maximal transmission unit.
 	 */
-	size_t				mtu;
+	size_t mtu;
 	/** Actual device hardware address.
 	 */
-	measured_string_ref	addr;
+	measured_string_ref addr;
 	/** Actual device hardware address data.
 	 */
-	char *				addr_data;
+	char * addr_data;
 };
 
 /** Dummy nil protocol specific data.
@@ -102,10 +102,10 @@ struct	nildummy_device{
 struct nildummy_proto{
 	/** Protocol service.
 	 */
-	services_t	service;
+	services_t service;
 	/** Protocol module phone.
 	 */
-	int			phone;
+	int phone;
 };
 
 /** Dummy nil global data.
@@ -113,19 +113,19 @@ struct nildummy_proto{
 struct	nildummy_globals{
 	/** Networking module phone.
 	 */
-	int				net_phone;
+	int net_phone;
 	/** Safety lock for devices.
 	 */
-	fibril_rwlock_t		devices_lock;
+	fibril_rwlock_t devices_lock;
 	/** All known Ethernet devices.
 	 */
-	nildummy_devices_t	devices;
+	nildummy_devices_t devices;
 	/** Safety lock for protocols.
 	 */
-	fibril_rwlock_t		protos_lock;
+	fibril_rwlock_t protos_lock;
 	/** Default protocol.
 	 */
-	nildummy_proto_t	proto;
+	nildummy_proto_t proto;
 };
 
 #endif

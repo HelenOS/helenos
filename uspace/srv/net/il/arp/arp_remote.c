@@ -51,45 +51,47 @@
 
 #include "arp_messages.h"
 
-int arp_device_req( int arp_phone, device_id_t device_id, services_t protocol, services_t netif, measured_string_ref address ){
-	aid_t			message_id;
-	ipcarg_t		result;
-
-	message_id = async_send_3( arp_phone, NET_ARP_DEVICE, ( ipcarg_t ) device_id, protocol, netif, NULL );
-	measured_strings_send( arp_phone, address, 1 );
-	async_wait_for( message_id, & result );
-	return ( int ) result;
+int arp_connect_module(services_t service){
+	if(service != SERVICE_ARP){
+		return EINVAL;
+	}
+	return connect_to_service(SERVICE_ARP);
 }
 
-int arp_translate_req( int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data ){
-	return generic_translate_req( arp_phone, NET_ARP_TRANSLATE, device_id, protocol, address, 1, translation, data );
+int arp_clean_cache_req(int arp_phone){
+	return (int) async_req_0_0(arp_phone, NET_ARP_CLEAN_CACHE);
 }
 
-int arp_clear_device_req( int arp_phone, device_id_t device_id ){
-	return ( int ) async_req_1_0( arp_phone, NET_ARP_CLEAR_DEVICE, ( ipcarg_t ) device_id );
+int arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address){
+	aid_t message_id;
+	ipcarg_t result;
+
+	message_id = async_send_2(arp_phone, NET_ARP_CLEAR_ADDRESS, (ipcarg_t) device_id, protocol, NULL);
+	measured_strings_send(arp_phone, address, 1);
+	async_wait_for(message_id, &result);
+	return (int) result;
 }
 
-int arp_clear_address_req( int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address ){
-	aid_t			message_id;
-	ipcarg_t		result;
-
-	message_id = async_send_2( arp_phone, NET_ARP_CLEAR_ADDRESS, ( ipcarg_t ) device_id, protocol, NULL );
-	measured_strings_send( arp_phone, address, 1 );
-	async_wait_for( message_id, & result );
-	return ( int ) result;
+int arp_clear_device_req(int arp_phone, device_id_t device_id){
+	return (int) async_req_1_0(arp_phone, NET_ARP_CLEAR_DEVICE, (ipcarg_t) device_id);
 }
 
-int arp_clean_cache_req( int arp_phone ){
-	return ( int ) async_req_0_0( arp_phone, NET_ARP_CLEAN_CACHE );
+int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol, services_t netif, measured_string_ref address){
+	aid_t message_id;
+	ipcarg_t result;
+
+	message_id = async_send_3(arp_phone, NET_ARP_DEVICE, (ipcarg_t) device_id, protocol, netif, NULL);
+	measured_strings_send(arp_phone, address, 1);
+	async_wait_for(message_id, &result);
+	return (int) result;
 }
 
-int arp_connect_module( services_t service ){
-	if( service != SERVICE_ARP ) return EINVAL;
-	return connect_to_service( SERVICE_ARP );
-}
-
-task_id_t arp_task_get_id( void ){
+task_id_t arp_task_get_id(void){
 	return 0;
+}
+
+int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data){
+	return generic_translate_req(arp_phone, NET_ARP_TRANSLATE, device_id, protocol, address, 1, translation, data);
 }
 
 /** @}

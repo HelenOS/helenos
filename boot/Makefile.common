@@ -91,7 +91,6 @@ CFG =
 NET_SRVS = \
 	$(USPACEDIR)/srv/net/net/net \
 	$(USPACEDIR)/srv/net/netif/lo/lo \
-	$(USPACEDIR)/srv/net/netif/dp8390/dp8390 \
 	$(USPACEDIR)/srv/net/nil/eth/eth \
 	$(USPACEDIR)/srv/net/nil/nildummy/nildummy \
 	$(USPACEDIR)/srv/net/app/echo/echo
@@ -105,8 +104,12 @@ NET_APPS = \
 ifneq ($(NETWORKING), none)
 NET_CFG = \
 	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/general \
-	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/lo \
-	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/ne2k
+	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/lo
+
+ifeq ($(CONFIG_NETIF_DP8390),y)
+	NET_SRVS	+=	$(USPACEDIR)/srv/net/netif/dp8390/dp8390
+
+	NET_CFG	+=	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/ne2k
 endif
 
 ifeq ($(NETWORKING), module)
@@ -130,4 +133,4 @@ ifeq ($(NETWORKING), modular)
 	CFG		+=	$(NET_CFG)
 endif
 endif
-
+endif

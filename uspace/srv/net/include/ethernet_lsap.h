@@ -71,7 +71,7 @@ typedef uint8_t	eth_lsap_t;
 /** SNA LSAP identifier.
  */
 #define ETH_LSAP_SNA2	0x0C
-/** PROWAY (IEC955) Network Management & Initialization LSAP identifier.
+/** PROWAY (IEC955) Network Management &Initialization LSAP identifier.
  */
 #define ETH_LSAP_PROWAY_NMI	0x0E
 /** Texas Instruments LSAP identifier.

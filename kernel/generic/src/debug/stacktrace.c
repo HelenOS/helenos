@@ -43,9 +43,9 @@ void
 stack_trace_fp_pc(stack_trace_ops_t *ops, uintptr_t fp, uintptr_t pc)
 {
 	int cnt = 0;
-	char *symbol;
+	const char *symbol;
 	uintptr_t offset;
-
+	
 	while (cnt++ < STACK_FRAMES_MAX && ops->frame_pointer_validate(fp)) {
 		if (ops->symbol_resolve &&
 		    ops->symbol_resolve(pc, &symbol, &offset)) {
@@ -84,7 +84,7 @@ void stack_trace_istate(istate_t *istate)
 		    istate_get_pc(istate));
 }
 
-static bool kernel_symbol_resolve(uintptr_t addr, char **sp, uintptr_t *op)
+static bool kernel_symbol_resolve(uintptr_t addr, const char **sp, uintptr_t *op)
 {
 	return (symtab_name_lookup(addr, sp, op) == 0);
 }

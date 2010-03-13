@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2010 Martin Decky
-# Copyright (c) 2010 Ondrej Sery
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-Wrapper for Vcc checker
+Wrapper for Clang static analyzer
 """
 
 import sys
@@ -37,52 +36,15 @@ import subprocess
 import jobfile
 
 jobs = [
-	"kernel/kernel.job",
-	"uspace/srv/clip/clip.job"
+	"kernel/kernel.job"
 ]
 
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <ROOT>"
 
-def cygpath(upath):
-	"Convert Unix (Cygwin) path to Windows path"
-	
-	return subprocess.Popen(['cygpath', '--windows', '--absolute', upath], stdout = subprocess.PIPE).communicate()[0].strip()
-
-def preprocess(srcfname, tmpfname, base, options):
-	"Preprocess source using GCC preprocessor and compatibility tweaks"
-	
-	args = ['gcc', '-E']
-	args.extend(options.split())
-	args.append(srcfname)
-	
-	# Change working directory
-	
-	cwd = os.getcwd()
-	os.chdir(base)
-	
-	preproc = subprocess.Popen(args, stdout = subprocess.PIPE).communicate()[0]
-	
-	tmpf = file(tmpfname, "w")
-	
-	for line in preproc.splitlines():
-		# Ignore preprocessor directives
-		if (line.startswith('#')):
-			continue
-		
-		tmpf.write("%s\n" % line)
-	
-	tmpf.close()
-	
-	os.chdir(cwd)
-	
-	return True
-
-def vcc(root, job):
-	"Run Vcc on a jobfile"
-	
-	# Parse jobfile
+def clang(root, job):
+	"Run Clang on a jobfile"
 	
 	inname = os.path.join(root, job)
 	
@@ -109,37 +71,31 @@ def vcc(root, job):
 		tool = arg[2]
 		category = arg[3]
 		base = arg[4]
-		options = arg[5]
+		options = arg[5].split()
 		
 		srcfqname = os.path.join(base, srcfname)
 		if (not os.path.isfile(srcfqname)):
 			print "Source %s not found" % srcfqname
 			return False
 		
-		tmpfname = "%s.preproc" % srcfname
-		tmpfqname = os.path.join(base, tmpfname)
-		
 		# Only C files are interesting for us
 		if (tool != "cc"):
 			continue
 		
-		# Preprocess sources
+		args = ['clang', '-Qunused-arguments', '--analyze',
+			'-Xanalyzer', '-analyzer-opt-analyze-headers',
+			'-Xanalyzer', '-checker-cfref']
+		args.extend(options)
+		args.extend(['-o', tgtfname, srcfname])
 		
-		if (not preprocess(srcfname, tmpfname, base, options)):
-			return False
-		
-		# Run Vcc
-		
-		retval = subprocess.Popen(['vcc', cygpath(tmpfqname)]).wait()
-		
-		# Cleanup
-		
-		if (os.path.isfile(tmpfqname)):
-			os.remove(tmpfqname)
+		cwd = os.getcwd()
+		os.chdir(base)
+		retval = subprocess.Popen(args).wait()
+		os.chdir(cwd)
 		
 		if (retval != 0):
 			return False
-	
+		
 	return True
 
 def main():
@@ -156,7 +112,7 @@ def main():
 		return
 	
 	for job in jobs:
-		if (not vcc(rootdir, job)):
+		if (not clang(rootdir, job)):
 			print
 			print "Failed job: %s" % job
 			return
