@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup root Root device driver.
- * @brief HelenOS root device driver.
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <errno.h>
-#include <bool.h>
-#include <fibril_synch.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#ifndef IPC_DRIVER_H_
+#define IPC_DRIVER_H_
 
-#include <driver.h>
-#include <devman.h>
-#include <ipc/devman.h>
+typedef enum {
+	DRIVER_DEVMAN = 1,
+	DRIVER_CLIENT,
+	DRIVER_DRIVER
+} driver_interface_t;
 
-#define NAME "root"
 
-static bool root_add_device(device_t *dev);
-static bool root_init();
+#endif
 
-static driver_ops_t root_ops = {
-	.add_device = &root_add_device
-};
-
-static driver_t root_driver = {
-	.name = NAME,
-	.driver_ops = &root_ops
-};
-
-static bool root_add_device(device_t *dev) 
-{
-	printf(NAME ": root_add_device, device handle = %s", dev->handle);
-	// TODO add root device and register its children
-	return true;
-}
-
-static bool root_init() 
-{
-	// TODO  driver initialization	
-	return true;
-}
-
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS root device driver\n");
-	if (!root_init()) {
-		printf(NAME ": Error while initializing driver.\n");
-		return -1;
-	}
-	
-	return driver_main(&root_driver);
-}
 
 /**
  * @}

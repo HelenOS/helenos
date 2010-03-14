@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <fibril_synch.h>
+#include <atomic.h>
 
 #include "util.h"
 
@@ -114,6 +115,8 @@ typedef struct driver_list {
 
 /** Representation of a node in the device tree.*/
 struct node {
+	/** The global unique identifier of the device.*/
+	long handle;
 	/** The node of the parent device. */
 	node_t *parent;
 	/** Pointers to previous and next child devices in the linked list of parent device's node.*/
@@ -136,6 +139,7 @@ struct node {
 typedef struct dev_tree {
 	/** Root device node. */
 	node_t *root_node;
+	atomic_t current_handle;
 } dev_tree_t;
 
 
@@ -190,7 +194,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list);
 
 void add_driver(driver_list_t *drivers_list, driver_t *drv);
 void attach_driver(node_t *node, driver_t *drv);
-void add_device(driver_t *drv, node_t *node);
+void add_device(int phone, driver_t *drv, node_t *node);
 bool start_driver(driver_t *drv);
 
 driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
@@ -229,7 +233,6 @@ static inline void delete_driver(driver_t *drv)
 }
 
 // Device nodes
-node_t * create_root_node();
 
 static inline node_t * create_dev_node()
 {
@@ -237,27 +240,32 @@ static inline node_t * create_dev_node()
 	if (res != NULL) {
 		memset(res, 0, sizeof(node_t));
 	}
+	
+	list_initialize(&res->children);
+	list_initialize(&res->match_ids.ids);
+	
 	return res;
 }
 
-static inline void init_dev_node(node_t *node, node_t *parent)
+static inline void insert_dev_node(dev_tree_t *tree, node_t *node, node_t *parent)
 {
-	assert(NULL != node);
+	assert(NULL != node && NULL != tree);
+	
+	node->handle = atomic_postinc(&tree->current_handle);
 
 	node->parent = parent;
 	if (NULL != parent) {
+		fibril_mutex_lock(&parent->children_mutex);
 		list_append(&node->sibling, &parent->children);
+		fibril_mutex_unlock(&parent->children_mutex);
 	}
-
-	list_initialize(&node->children);
-
-	list_initialize(&node->match_ids.ids);
 }
 
 
 // Device tree
 
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list);
+bool create_root_node(dev_tree_t *tree);
 
 
 #endif

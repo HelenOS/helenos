@@ -49,13 +49,46 @@
 
 #include <devman.h>
 #include <ipc/devman.h>
+#include <ipc/driver.h>
 
 #include "driver.h"
 
 static driver_t *driver;
+LIST_INITIALIZE(devices);
+
+static device_t* driver_create_device()
+{
+	device_t *dev = (device_t *)malloc(sizeof(device_t));
+	if (NULL != dev) {
+		memset(dev, 0, sizeof(device_t));		
+	}	
+	return dev;	
+}
+
+static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall) 
+{
+	printf("%s: driver_add_device\n", driver->name);
+	
+	// result of the operation - device was added, device is not present etc.
+	ipcarg_t ret = 0;	
+	ipcarg_t dev_handle =  IPC_GET_ARG1(*icall);
+	
+	printf("%s: adding device with handle = %x \n", driver->name, dev_handle);
+	
+	device_t *dev = driver_create_device();
+	dev->handle = dev_handle;
+	if (driver->driver_ops->add_device(dev)) {
+		list_append(&dev->link, &devices);
+		// TODO set return value
+	}
+	
+	ipc_answer_1(iid, EOK, ret);
+}
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 {
+	printf("%s: driver_connection_devman \n", driver->name);
+	
 	/* Accept connection */
 	ipc_answer_0(iid, EOK);
 	
@@ -69,7 +102,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			cont = false;
 			continue;
 		case DRIVER_ADD_DEVICE:
-			// TODO
+			driver_add_device(callid, &call);
 			break;
 		default:
 			if (!(callid & IPC_CALLID_NOTIFICATION))

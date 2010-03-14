@@ -31,21 +31,21 @@
  */
 /** @file
  */
-
 #ifndef LIBDRV_DRIVER_H_
 #define LIBDRV_DRIVER_H_
 
-typedef enum {
-	DRIVER_DEVMAN = 1,
-	DRIVER_CLIENT,
-	DRIVER_DRIVER
-} driver_interface_t;
+
+#include <adt/list.h>
+
+
 
 typedef struct device {
-	int parent_handle;
+	long handle;
 	ipcarg_t parent_phone;	
+	
 	// TODO add more items - parent bus type etc.
-	int handle;	
+	
+	link_t link;
 } device_t;
 
 typedef struct driver_ops {	

@@ -33,6 +33,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <ipc/driver.h>
+#include <ipc/devman.h>
 
 #include "devman.h"
 #include "util.h"
@@ -307,22 +309,24 @@ int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 	return drv_cnt;
 }
 
-/** Create root device node of the device tree.
+/** Create root device node in the device tree.
  * 
- * @return root device node.
+ * @param tree the device tree.
+ * @return true on success, false otherwise.
  */
-node_t * create_root_node()
+bool create_root_node(dev_tree_t *tree)
 {
 	printf(NAME ": create_root_node\n");
 	node_t *node = create_dev_node();
 	if (node) {
-		init_dev_node(node, NULL);
+		insert_dev_node(tree, node, NULL);
 		match_id_t *id = create_match_id();
 		id->id = "root";
 		id->score = 100;
 		add_match_id(&node->match_ids, id);
+		tree->root_node = node;
 	}
-	return node;	
+	return node != NULL;	
 }
 
 /** Lookup the best matching driver for the specified device in the list of drivers.
@@ -447,12 +451,19 @@ static void pass_devices_to_driver(driver_t *driver)
 	node_t *dev;
 	link_t *link;
 	
-	link = driver->devices.next;
-	while (link != &driver->devices) {
-		dev = list_get_instance(link, node_t, driver_devices);
-		add_device(driver, dev);
-		link = link->next;
-	}	
+	int phone = ipc_connect_me_to(driver->phone, DRIVER_DEVMAN, 0, 0);
+	
+	if (0 < phone) {
+		
+		link = driver->devices.next;
+		while (link != &driver->devices) {
+			dev = list_get_instance(link, node_t, driver_devices);
+			add_device(phone, driver, dev);
+			link = link->next;
+		}
+		
+		ipc_hangup(phone);
+	}
 }
 
 /** Finish the initialization of a driver after it has succesfully started and registered itself by the device manager.
@@ -462,7 +473,7 @@ static void pass_devices_to_driver(driver_t *driver)
  * @param driver the driver which registered itself as running by the device manager.
  */
 void initialize_running_driver(driver_t *driver) 
-{
+{	
 	fibril_mutex_lock(&driver->driver_mutex);
 	
 	// pass devices which have been already assigned to the driver to the driver
@@ -479,21 +490,23 @@ void initialize_running_driver(driver_t *driver)
  * @param drv the driver's structure.
  * @param node the device's node in the device tree.
  */
-void add_device(driver_t *drv, node_t *node)
+void add_device(int phone, driver_t *drv, node_t *node)
 {
 	printf(NAME ": add_device\n");
+
+	ipcarg_t ret;
+	ipcarg_t rc = async_req_1_1(phone, DRIVER_ADD_DEVICE, node->handle, &ret);
+	if (rc != EOK) {
+		// TODO handle error
+		return false;
+	}
 	
-	// TODO
-	
-	// pass a new device to the running driver, which was previously assigned to it
-		// send the phone of the parent's driver and device's handle within the parent's driver to the driver 
-		// let the driver to probe the device and specify whether the device is actually present
-		// if the device is present, remember its handle within the driver
+	// TODO inspect return value (ret) to find out whether the device was successfully probed and added
 	
 	return true;
 }
 
-/**
+/** 
  * Find suitable driver for a device and assign the driver to it.
  * 
  * @param node the device node of the device in the device tree.
@@ -522,7 +535,11 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list)
 	
 	if (DRIVER_RUNNING == drv->state) {
 		// notify driver about new device
-		add_device(drv, node);		
+		int phone = ipc_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
+		if (phone > 0) {
+			add_device(phone, drv, node);		
+			ipc_hangup(phone);
+		}
 	}
 	
 	return true;
@@ -541,8 +558,10 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
 	printf(NAME ": init_device_tree.\n");
 	
+	atomic_set(&tree->current_handle, 0);
+	
 	// create root node and add it to the device tree
-	if (NULL == (tree->root_node = create_root_node())) {
+	if (!create_root_node(tree)) {
 		return false;
 	}
 
