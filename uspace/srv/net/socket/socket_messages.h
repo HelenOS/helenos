@@ -114,32 +114,32 @@ typedef enum{
 /** Sets the socket identifier in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define SOCKET_SET_SOCKET_ID(answer)			(int *) &IPC_GET_ARG1(answer)
+#define SOCKET_SET_SOCKET_ID(answer)		&IPC_GET_ARG1(answer)
 
 /** Returns the socket identifier message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_SOCKET_ID(call)			(int) IPC_GET_ARG1(call)
+#define SOCKET_GET_SOCKET_ID(call)		(int) IPC_GET_ARG1(call)
 
 /** Sets the read data length in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define SOCKET_SET_READ_DATA_LENGTH(answer)	(int *) &IPC_GET_ARG1(answer)
+#define SOCKET_SET_READ_DATA_LENGTH(answer)	&IPC_GET_ARG1(answer)
 
 /** Returns the read data length message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_READ_DATA_LENGTH(call)		(int) IPC_GET_ARG1(call)
+#define SOCKET_GET_READ_DATA_LENGTH(call)	(int) IPC_GET_ARG1(call)
 
 /** Returns the backlog message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_BACKLOG(call)				(int) IPC_GET_ARG2(call)
+#define SOCKET_GET_BACKLOG(call)		(int) IPC_GET_ARG2(call)
 
 /** Returns the option level message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_OPT_LEVEL(call)			(int) IPC_GET_ARG2(call)
+#define SOCKET_GET_OPT_LEVEL(call)		(int) IPC_GET_ARG2(call)
 
 /** Returns the data fragment size message parameter.
  *  @param[in] call The message call structure.
@@ -149,12 +149,12 @@ typedef enum{
 /** Sets the data fragment size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define SOCKET_SET_DATA_FRAGMENT_SIZE(answer)	(size_t *) &IPC_GET_ARG2(answer)
+#define SOCKET_SET_DATA_FRAGMENT_SIZE(answer)	&IPC_GET_ARG2(answer)
 
 /** Sets the address length in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define SOCKET_SET_ADDRESS_LENGTH(answer)		(socklen_t *) &IPC_GET_ARG3(answer)
+#define SOCKET_SET_ADDRESS_LENGTH(answer)	&IPC_GET_ARG3(answer)
 
 /** Returns the address length message parameter.
  *  @param[in] call The message call structure.
@@ -164,22 +164,22 @@ typedef enum{
 /** Sets the header size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define SOCKET_SET_HEADER_SIZE(answer)		(int *) &IPC_GET_ARG3(answer)
+#define SOCKET_SET_HEADER_SIZE(answer)		&IPC_GET_ARG3(answer)
 
 /** Returns the header size message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_HEADER_SIZE(call)			(int) IPC_GET_ARG3(call)
+#define SOCKET_GET_HEADER_SIZE(call)		(size_t) IPC_GET_ARG3(call)
 
 /** Returns the flags message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_FLAGS(call)				(int) IPC_GET_ARG4(call)
+#define SOCKET_GET_FLAGS(call)			(int) IPC_GET_ARG4(call)
 
 /** Returns the option name message parameter.
  *  @param[in] call The message call structure.
  */
-#define SOCKET_GET_OPT_NAME(call)				(int) IPC_GET_ARG4(call)
+#define SOCKET_GET_OPT_NAME(call)		(int) IPC_GET_ARG4(call)
 
 /** Returns the data fragments message parameter.
  *  @param[in] call The message call structure.
