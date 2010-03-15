@@ -81,7 +81,7 @@ typedef enum{
 /** Sets the header length in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IP_SET_HEADERLEN(answer)	((size_t *) &IPC_GET_ARG2(*answer))
+#define IP_SET_HEADERLEN(answer)	(&IPC_GET_ARG2(*answer))
 
 /** Returns the network mask message parameter.
  *  @param[in] call The message call structure.
