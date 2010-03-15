@@ -47,103 +47,139 @@
 #include "packet_header.h"
 #include "packet_client.h"
 
-int packet_copy_data( packet_t packet, const void * data, size_t length ){
-	if( ! packet_is_valid( packet )) return EINVAL;
-	if( packet->data_start + length >= packet->length ) return ENOMEM;
-	memcpy(( void * ) packet + packet->data_start, data, length );
-	if( packet->data_start + length > packet->data_end ){
+int packet_copy_data(packet_t packet, const void * data, size_t length){
+	if(! packet_is_valid(packet)){
+		return EINVAL;
+	}
+	if(packet->data_start + length >= packet->length){
+		return ENOMEM;
+	}
+	memcpy((void *) packet + packet->data_start, data, length);
+	if(packet->data_start + length > packet->data_end){
 		packet->data_end = packet->data_start + length;
 	}
 	return EOK;
 }
 
-void * packet_prefix( packet_t packet, size_t length ){
-	if(( ! packet_is_valid( packet )) || ( packet->data_start - sizeof( struct packet ) - 2 * ( packet->dest_addr - packet->src_addr ) < length )) return NULL;
+void * packet_prefix(packet_t packet, size_t length){
+	if((! packet_is_valid(packet)) || (packet->data_start - sizeof(struct packet) - 2 * (packet->dest_addr - packet->src_addr) < length)){
+		return NULL;
+	}
 	packet->data_start -= length;
-	return ( void * ) packet + packet->data_start;
+	return (void *) packet + packet->data_start;
 }
 
-void * packet_suffix( packet_t packet, size_t length ){
-	if(( ! packet_is_valid( packet )) || ( packet->data_end + length >= packet->length )) return NULL;
+void * packet_suffix(packet_t packet, size_t length){
+	if((! packet_is_valid(packet)) || (packet->data_end + length >= packet->length)){
+		return NULL;
+	}
 	packet->data_end += length;
-	return ( void * ) packet + packet->data_end - length;
+	return (void *) packet + packet->data_end - length;
 }
 
-int packet_trim( packet_t packet, size_t prefix, size_t suffix ){
-	if( ! packet_is_valid( packet )) return EINVAL;
-	if( prefix + suffix > PACKET_DATA_LENGTH( packet )) return ENOMEM;
+int packet_trim(packet_t packet, size_t prefix, size_t suffix){
+	if(! packet_is_valid(packet)){
+		return EINVAL;
+	}
+	if(prefix + suffix > PACKET_DATA_LENGTH(packet)){
+		return ENOMEM;
+	}
 	packet->data_start += prefix;
 	packet->data_end -= suffix;
 	return EOK;
 }
 
-packet_id_t packet_get_id( const packet_t packet ){
-	return packet_is_valid( packet ) ? packet->packet_id : 0;
+packet_id_t packet_get_id(const packet_t packet){
+	return packet_is_valid(packet) ? packet->packet_id : 0;
 }
 
-int packet_get_addr( const packet_t packet, uint8_t ** src, uint8_t ** dest ){
-	if( ! packet_is_valid( packet )) return EINVAL;
-	if( ! packet->addr_len ) return 0;
-	if( src ) * src = ( void * ) packet + packet->src_addr;
-	if( dest ) * dest = ( void * ) packet + packet->dest_addr;
+int packet_get_addr(const packet_t packet, uint8_t ** src, uint8_t ** dest){
+	if(! packet_is_valid(packet)){
+		return EINVAL;
+	}
+	if(! packet->addr_len){
+		return 0;
+	}
+	if(src){
+		*src = (void *) packet + packet->src_addr;
+	}
+	if(dest){
+		*dest = (void *) packet + packet->dest_addr;
+	}
 	return packet->addr_len;
 }
 
-size_t packet_get_data_length( const packet_t packet ){
-	if( ! packet_is_valid( packet )) return 0;
-	return PACKET_DATA_LENGTH( packet );
+size_t packet_get_data_length(const packet_t packet){
+	if(! packet_is_valid(packet)){
+		return 0;
+	}
+	return PACKET_DATA_LENGTH(packet);
 }
 
-void * packet_get_data( const packet_t packet ){
-	if( ! packet_is_valid( packet )) return NULL;
-	return ( void * ) packet + packet->data_start;
+void * packet_get_data(const packet_t packet){
+	if(! packet_is_valid(packet)){
+		return NULL;
+	}
+	return (void *) packet + packet->data_start;
 }
 
-int packet_set_addr( packet_t packet, const uint8_t * src, const uint8_t * dest, size_t addr_len ){
-	size_t	padding;
-	size_t	allocated;
+int packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest, size_t addr_len){
+	size_t padding;
+	size_t allocated;
 
-	if( ! packet_is_valid( packet )) return EINVAL;
-	allocated = PACKET_MAX_ADDRESS_LENGTH( packet );
-	if( allocated < addr_len ) return ENOMEM;
+	if(! packet_is_valid(packet)){
+		return EINVAL;
+	}
+	allocated = PACKET_MAX_ADDRESS_LENGTH(packet);
+	if(allocated < addr_len){
+		return ENOMEM;
+	}
 	padding = allocated - addr_len;
 	packet->addr_len = addr_len;
-	if( src ){
-		memcpy(( void * ) packet + packet->src_addr, src, addr_len );
-		if( padding ) bzero(( void * ) packet + packet->src_addr + addr_len, padding );
+	if(src){
+		memcpy((void *) packet + packet->src_addr, src, addr_len);
+		if(padding){
+			bzero((void *) packet + packet->src_addr + addr_len, padding);
+		}
 	}else{
-		bzero(( void * ) packet + packet->src_addr, allocated );
+		bzero((void *) packet + packet->src_addr, allocated);
 	}
-	if( dest ){
-		memcpy(( void * ) packet + packet->dest_addr, dest, addr_len );
-		if( padding ) bzero(( void * ) packet + packet->dest_addr + addr_len, padding );
+	if(dest){
+		memcpy((void *) packet + packet->dest_addr, dest, addr_len);
+		if(padding){
+			bzero((void *) packet + packet->dest_addr + addr_len, padding);
+		}
 	}else{
-		bzero(( void * ) packet + packet->dest_addr, allocated );
+		bzero((void *) packet + packet->dest_addr, allocated);
 	}
 	return EOK;
 }
 
-packet_t packet_get_copy( int phone, packet_t packet ){
-	packet_t	copy;
-	uint8_t *	src;
-	uint8_t *	dest;
-	size_t		addrlen;
+packet_t packet_get_copy(int phone, packet_t packet){
+	packet_t copy;
+	uint8_t * src;
+	uint8_t * dest;
+	size_t addrlen;
 
-	if( ! packet_is_valid( packet )) return NULL;
+	if(! packet_is_valid(packet)){
+		return NULL;
+	}
 	// get a new packet
-	copy = packet_get_4( phone, PACKET_DATA_LENGTH( packet ), PACKET_MAX_ADDRESS_LENGTH( packet ), packet->max_prefix, PACKET_MIN_SUFFIX( packet ));
-	if( ! copy ) return NULL;
+	copy = packet_get_4(phone, PACKET_DATA_LENGTH(packet), PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix, PACKET_MIN_SUFFIX(packet));
+	if(! copy){
+		return NULL;
+	}
 	// get addresses
-	addrlen = packet_get_addr( packet, & src, & dest );
+	addrlen = packet_get_addr(packet, &src, &dest);
 	// copy data
-	if(( packet_copy_data( copy, packet_get_data( packet ), PACKET_DATA_LENGTH( packet )) == EOK )
+	if((packet_copy_data(copy, packet_get_data(packet), PACKET_DATA_LENGTH(packet)) == EOK)
 	// copy addresses if present
-	&& (( addrlen <= 0 ) || ( packet_set_addr( copy, src, dest, addrlen ) == EOK ))){
+		&& ((addrlen <= 0) || (packet_set_addr(copy, src, dest, addrlen) == EOK))){
 		copy->order = packet->order;
 		copy->metric = packet->metric;
 		return copy;
 	}else{
-		pq_release( phone, copy->packet_id );
+		pq_release(phone, copy->packet_id);
 		return NULL;
 	}
 }

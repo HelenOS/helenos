@@ -92,44 +92,44 @@ typedef socket_port_t *	socket_port_ref;
 struct socket_core{
 	/** Socket identifier.
 	 */
-	int				socket_id;
+	int socket_id;
 	/** Client application phone.
 	 */
-	int				phone;
+	int phone;
 	/** Bound port.
 	 */
-	int				port;
+	int port;
 	/** Received packets queue.
 	 */
-	dyn_fifo_t		received;
+	dyn_fifo_t received;
 	/** Sockets for acceptance queue.
 	 */
-	dyn_fifo_t		accepted;
+	dyn_fifo_t accepted;
 	/** Protocol specific data.
 	 */
-	void *			specific_data;
+	void * specific_data;
 	/** Socket ports map key.
 	 */
-	const char *	key;
+	const char * key;
 	/** Length of the Socket ports map key.
 	 */
-	size_t			key_length;
+	size_t key_length;
 };
 
 /** Sockets map.
  *  The key is the socket identifier.
  */
-INT_MAP_DECLARE( socket_cores, socket_core_t );
+INT_MAP_DECLARE(socket_cores, socket_core_t);
 
 /** Bount port sockets map.
  *  The listening socket has the SOCKET_MAP_KEY_LISTENING key identifier whereas the other use the remote addresses.
  */
-GENERIC_CHAR_MAP_DECLARE( socket_port_map, socket_core_ref );
+GENERIC_CHAR_MAP_DECLARE(socket_port_map, socket_core_ref);
 
 /** Ports map.
  *  The key is the port number.
  */
-INT_MAP_DECLARE( socket_ports, socket_port_t );
+INT_MAP_DECLARE(socket_ports, socket_port_t);
 
 /** Destroys local sockets.
  *  Releases all buffered packets and calls the release function for each of the sockets.
@@ -138,7 +138,7 @@ INT_MAP_DECLARE( socket_ports, socket_port_t );
  *  @param[in,out] global_sockets The global sockets to be updated.
  *  @param[in] socket_release The client release callback function.
  */
-void	socket_cores_release( int packet_phone, socket_cores_ref local_sockets, socket_ports_ref global_sockets, void ( * socket_release )( socket_core_ref socket ));
+void socket_cores_release(int packet_phone, socket_cores_ref local_sockets, socket_ports_ref global_sockets, void (*socket_release)(socket_core_ref socket));
 
 /** Binds the socket to the port.
  *  The address port is used if set, a free port is used if not.
@@ -157,7 +157,7 @@ void	socket_cores_release( int packet_phone, socket_cores_ref local_sockets, soc
  *  @returns Other error codes as defined for the socket_bind_free_port() function.
  *  @returns Other error codes as defined for the socket_bind_insert() function.
  */
-int socket_bind( socket_cores_ref local_sockets, socket_ports_ref global_sockets, int socket_id, void * addr, size_t addrlen, int free_ports_start, int free_ports_end, int last_used_port );
+int socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets, int socket_id, void * addr, size_t addrlen, int free_ports_start, int free_ports_end, int last_used_port);
 
 /** Binds the socket to a free port.
  *  The first free port is used.
@@ -170,7 +170,7 @@ int socket_bind( socket_cores_ref local_sockets, socket_ports_ref global_sockets
  *  @returns ENOTCONN if no free port was found.
  *  @returns Other error codes as defined for the socket_bind_insert() function.
  */
-int	socket_bind_free_port( socket_ports_ref global_sockets, socket_core_ref socket, int free_ports_start, int free_ports_end, int last_used_port );
+int socket_bind_free_port(socket_ports_ref global_sockets, socket_core_ref socket, int free_ports_start, int free_ports_end, int last_used_port);
 
 /** Creates a new socket.
  *  @param[in,out] local_sockets The local sockets to be updated.
@@ -181,7 +181,7 @@ int	socket_bind_free_port( socket_ports_ref global_sockets, socket_core_ref sock
  *  @returns EINVAL if the socket_id parameter is NULL.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int socket_create( socket_cores_ref local_sockets, int app_phone, void * specific_data, int * socket_id );
+int socket_create(socket_cores_ref local_sockets, int app_phone, void * specific_data, int * socket_id);
 
 /** Destroys the socket.
  *  If the socket is bound, the port is released.
@@ -194,7 +194,7 @@ int socket_create( socket_cores_ref local_sockets, int app_phone, void * specifi
  *  @returns EOK on success.
  *  @returns ENOTSOCK if the socket is not found.
  */
-int socket_destroy( int packet_phone, int socket_id, socket_cores_ref local_sockets, socket_ports_ref global_sockets, void ( * socket_release )( socket_core_ref socket ));
+int socket_destroy(int packet_phone, int socket_id, socket_cores_ref local_sockets, socket_ports_ref global_sockets, void (*socket_release)(socket_core_ref socket));
 
 /** Replies the packet or the packet queue data to the application via the socket.
  *  Uses the current message processing fibril.
@@ -205,7 +205,7 @@ int socket_destroy( int packet_phone, int socket_id, socket_cores_ref local_sock
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the data_reply() function.
  */
-int	socket_reply_packets( packet_t packet, size_t * length );
+int socket_reply_packets(packet_t packet, size_t * length);
 
 /** Finds the bound port socket.
  *  @param[in] global_sockets The global sockets to be searched.
@@ -215,7 +215,7 @@ int	socket_reply_packets( packet_t packet, size_t * length );
  *  @returns The found socket.
  *  @returns NULL if no socket was found.
  */
-socket_core_ref	socket_port_find( socket_ports_ref global_sockets, int port, const char * key, size_t key_length );
+socket_core_ref socket_port_find(socket_ports_ref global_sockets, int port, const char * key, size_t key_length);
 
 /** Releases the socket port.
  *  If the socket is bound the port entry is released.
@@ -223,7 +223,7 @@ socket_core_ref	socket_port_find( socket_ports_ref global_sockets, int port, con
  *  @param[in] global_sockets The global sockets to be updated.
  *  @param[in] socket The socket to be unbound.
  */
-void	socket_port_release( socket_ports_ref global_sockets, socket_core_ref socket );
+void socket_port_release(socket_ports_ref global_sockets, socket_core_ref socket);
 
 /** Adds the socket to an already bound port.
  *  @param[in] global_sockets The global sockets to be updated.
@@ -235,7 +235,7 @@ void	socket_port_release( socket_ports_ref global_sockets, socket_core_ref socke
  *  @returns ENOENT if the port is not already used.
  *  @returns Other error codes as defined for the socket_port_add_core() function.
  */
-int	socket_port_add( socket_ports_ref global_sockets, int port, socket_core_ref socket, const char * key, size_t key_length );
+int socket_port_add(socket_ports_ref global_sockets, int port, socket_core_ref socket, const char * key, size_t key_length);
 
 #endif
 

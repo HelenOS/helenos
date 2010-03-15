@@ -120,17 +120,17 @@ typedef eth_header_t *		eth_header_ref;
  */
 struct eth_ieee_lsap{
 	/** Destination Service Access Point identifier.
-	 *	The possible values are assigned by an IEEE committee.
+	 * The possible values are assigned by an IEEE committee.
 	 */
-	uint8_t		dsap;
+	uint8_t dsap;
 	/** Source Service Access Point identifier.
-	 *	The possible values are assigned by an IEEE committee.
+	 * The possible values are assigned by an IEEE committee.
 	 */
-	uint8_t		ssap;
+	uint8_t ssap;
 	/** Control parameter.
-	 *	The possible values are assigned by an IEEE committee.
+	 * The possible values are assigned by an IEEE committee.
 	 */
-	uint8_t		ctrl;
+	uint8_t ctrl;
 } __attribute__ ((packed));
 
 /** Ethernet header SNAP extension.
@@ -138,11 +138,11 @@ struct eth_ieee_lsap{
 struct eth_snap{
 	/** Protocol identifier or organization code.
 	 */
-	uint8_t		protocol[ 3 ];
+	uint8_t protocol[3];
 	/** Ethernet protocol identifier in the network byte order (big endian).
 	 *  @see ethernet_protocols.h
 	 */
-	uint16_t	ethertype;
+	uint16_t ethertype;
 } __attribute__ ((packed));
 
 /** Ethernet header preamble.
@@ -152,11 +152,11 @@ struct eth_preamble{
 	/** Controlling preamble used for the frame transmission synchronization.
 	 *  All should be set to ETH_PREAMBLE.
 	 */
-	uint8_t		preamble[ 7 ];
+	uint8_t preamble[7];
 	/** Start of Frame Delimiter used for the frame transmission synchronization.
 	 *  Should be set to ETH_SFD.
 	 */
-	uint8_t		sfd;
+	uint8_t sfd;
 } __attribute__ ((packed));
 
 /** Ethernet header.
@@ -164,14 +164,14 @@ struct eth_preamble{
 struct eth_header{
 	/** Destination host Ethernet address (MAC address).
 	 */
-	uint8_t		destination_address[ ETH_ADDR ];
+	uint8_t destination_address[ETH_ADDR];
 	/** Source host Ethernet address (MAC address).
 	 */
-	uint8_t		source_address[ ETH_ADDR ];
+	uint8_t source_address[ETH_ADDR];
 	/** Ethernet protocol identifier in the network byte order (big endian).
 	 *  @see ethernet_protocols.h
 	 */
-	uint16_t	ethertype;
+	uint16_t ethertype;
 } __attribute__ ((packed));
 
 /** Ethernet header IEEE 802.3 + 802.2 extension.
@@ -179,12 +179,12 @@ struct eth_header{
 struct eth_header_lsap{
 	/** Ethernet header.
 	 */
-	eth_header_t		header;
+	eth_header_t header;
 	/** LSAP extension.
 	 *  If DSAP and SSAP are set to ETH_LSAP_SNAP the SNAP extension is being used.
 	 *  If DSAP and SSAP fields are equal to ETH_RAW the raw Ethernet packet without any extensions is being used and the frame content starts rigth after the two fields.
 	 */
-	eth_ieee_lsap_t		lsap;
+	eth_ieee_lsap_t lsap;
 } __attribute__ ((packed));
 
 /** Ethernet header IEEE 802.3 + 802.2 + SNAP extensions.
@@ -192,15 +192,15 @@ struct eth_header_lsap{
 struct eth_header_snap{
 	/** Ethernet header.
 	 */
-	eth_header_t		header;
+	eth_header_t header;
 	/** LSAP extension.
 	 *  If DSAP and SSAP are set to ETH_LSAP_SNAP the SNAP extension is being used.
 	 *  If DSAP and SSAP fields are equal to ETH_RAW the raw Ethernet packet without any extensions is being used and the frame content starts rigth after the two fields.
 	 */
-	eth_ieee_lsap_t		lsap;
+	eth_ieee_lsap_t lsap;
 	/** SNAP extension.
 	 */
-	eth_snap_t			snap;
+	eth_snap_t snap;
 } __attribute__ ((packed));
 
 /** Ethernet Frame Check Sequence.

@@ -44,7 +44,7 @@
 
 /** INET string address maximum length.
  */
-#define INET_ADDRSTRLEN		( 4 * 3 + 3 + 1 )
+#define INET_ADDRSTRLEN		(4 * 3 + 3 + 1)
 
 /** Type definition of the INET address.
  *  @see in_addr
@@ -61,7 +61,7 @@ typedef struct sockaddr_in	sockaddr_in_t;
 struct in_addr{
 	/** 4 byte IP address.
 	 */
-	uint32_t		s_addr;
+	uint32_t s_addr;
 };
 
 /** INET socket address.
@@ -71,16 +71,16 @@ struct sockaddr_in{
 	/** Address family.
 	 *  Should be AF_INET.
 	 */
-	uint16_t		sin_family;
+	uint16_t sin_family;
 	/** Port number.
 	 */
-	uint16_t		sin_port;
+	uint16_t sin_port;
 	/** Internet address.
 	 */
-	struct in_addr	sin_addr;
+	struct in_addr sin_addr;
 	/** Padding to meet the sockaddr size.
 	 */
-	uint8_t			sin_zero[ 8 ];
+	uint8_t sin_zero[8];
 };
 
 #endif

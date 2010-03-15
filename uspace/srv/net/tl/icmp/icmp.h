@@ -65,26 +65,26 @@ typedef struct icmp_globals	icmp_globals_t;
  *  Sending fibril waits for its associated reply event.
  *  Receiving fibril sets the associated reply with the return value and signals the event.
  */
-INT_MAP_DECLARE( icmp_replies, icmp_reply_t );
+INT_MAP_DECLARE(icmp_replies, icmp_reply_t);
 
 /** Echo specific data map.
  *  The bundle module gets an identifier of the assigned echo specific data while connecting.
  *  The identifier is used in the future semi-remote calls instead of the ICMP phone.
  */
-INT_MAP_DECLARE( icmp_echo_data, icmp_echo_t );
+INT_MAP_DECLARE(icmp_echo_data, icmp_echo_t);
 
 /** ICMP reply data.
  */
 struct icmp_reply{
 	/** Reply result.
 	 */
-	int					result;
+	int result;
 	/** Safety lock.
 	 */
-	fibril_mutex_t		mutex;
+	fibril_mutex_t mutex;
 	/** Received or timeouted reply signaling.
 	 */
-	fibril_condvar_t	condvar;
+	fibril_condvar_t condvar;
 };
 
 /** ICMP global data.
@@ -92,31 +92,31 @@ struct icmp_reply{
 struct	icmp_globals{
 	/** IP module phone.
 	 */
-	int				ip_phone;
+	int ip_phone;
 	/** Packet dimension.
 	 */
-	packet_dimension_t	packet_dimension;
+	packet_dimension_t packet_dimension;
 	/** Networking module phone.
 	 */
-	int				net_phone;
+	int net_phone;
 	/** Indicates whether ICMP error reporting is enabled.
 	 */
-	int				error_reporting;
+	int error_reporting;
 	/** Indicates whether ICMP echo replying (ping) is enabled.
 	 */
-	int				echo_replying;
+	int echo_replying;
 	/** The last used identifier number.
 	 */
-	icmp_param_t	last_used_id;
+	icmp_param_t last_used_id;
 	/** The budled modules assigned echo specific data.
 	 */
-	icmp_echo_data_t	echo_data;
+	icmp_echo_data_t echo_data;
 	/** Echo timeout locks.
 	 */
-	icmp_replies_t	replies;
+	icmp_replies_t replies;
 	/** Safety lock.
 	 */
-	fibril_rwlock_t	lock;
+	fibril_rwlock_t lock;
 };
 
 #endif

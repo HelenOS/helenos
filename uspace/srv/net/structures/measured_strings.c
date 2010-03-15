@@ -53,212 +53,232 @@
  *  @returns The computed sizes array.
  *  @returns NULL if there is not enough memory left.
  */
-size_t *	prepare_lengths( const measured_string_ref strings, size_t count );
+size_t * prepare_lengths(const measured_string_ref strings, size_t count);
 
-measured_string_ref measured_string_create_bulk( const char * string, size_t length ){
-	measured_string_ref	new;
+measured_string_ref measured_string_create_bulk(const char * string, size_t length){
+	measured_string_ref new;
 
-	if( length == 0 ){
-		while( string[ length ] ) ++ length;
+	if(length == 0){
+		while(string[length]){
+			++ length;
+		}
 	}
-	new = ( measured_string_ref ) malloc( sizeof( measured_string_t ) + ( sizeof( char ) * ( length + 1 )));
-	if( ! new ) return NULL;
+	new = (measured_string_ref) malloc(sizeof(measured_string_t) + (sizeof(char) * (length + 1)));
+	if(! new){
+		return NULL;
+	}
 	new->length = length;
-	new->value = (( char * ) new ) + sizeof( measured_string_t );
+	new->value = ((char *) new) + sizeof(measured_string_t);
 	// append terminating zero explicitly - to be safe
-	memcpy( new->value, string, new->length );
-	new->value[ new->length ] = '\0';
+	memcpy(new->value, string, new->length);
+	new->value[new->length] = '\0';
 	return new;
 }
 
-measured_string_ref measured_string_copy( measured_string_ref source ){
-	measured_string_ref	new;
+measured_string_ref measured_string_copy(measured_string_ref source){
+	measured_string_ref new;
 
-	if( ! source ) return NULL;
-	new = ( measured_string_ref ) malloc( sizeof( measured_string_t ));
-	if( new ){
-		new->value = ( char * ) malloc( source->length + 1 );
-		if( new->value ){
+	if(! source){
+		return NULL;
+	}
+	new = (measured_string_ref) malloc(sizeof(measured_string_t));
+	if(new){
+		new->value = (char *) malloc(source->length + 1);
+		if(new->value){
 			new->length = source->length;
-			memcpy( new->value, source->value, new->length );
-			new->value[ new->length ] = '\0';
+			memcpy(new->value, source->value, new->length);
+			new->value[new->length] = '\0';
 			return new;
 		}else{
-			free( new );
+			free(new);
 		}
 	}
 	return NULL;
 }
 
-int measured_strings_receive( measured_string_ref * strings, char ** data, size_t count ){
+int measured_strings_receive(measured_string_ref * strings, char ** data, size_t count){
 	ERROR_DECLARE;
 
-	size_t *		lengths;
-	size_t			index;
-	size_t			length;
-	char *			next;
-	ipc_callid_t	callid;
+	size_t * lengths;
+	size_t index;
+	size_t length;
+	char * next;
+	ipc_callid_t callid;
 
-	if(( ! strings ) || ( ! data ) || ( count <= 0 )){
+	if((! strings) || (! data) || (count <= 0)){
 		return EINVAL;
 	}
-	lengths = ( size_t * ) malloc( sizeof( size_t ) * ( count + 1 ));
-	if( ! lengths ) return ENOMEM;
-	if(( ! async_data_write_receive( & callid, & length ))
-	|| ( length != sizeof( size_t ) * ( count + 1 ))){
-		free( lengths );
+	lengths = (size_t *) malloc(sizeof(size_t) * (count + 1));
+	if(! lengths){
+		return ENOMEM;
+	}
+	if((! async_data_write_receive(&callid, &length))
+		|| (length != sizeof(size_t) * (count + 1))){
+		free(lengths);
 		return EINVAL;
 	}
-	if( ERROR_OCCURRED( async_data_write_finalize( callid, lengths, sizeof( size_t ) * ( count + 1 )))){
-		free( lengths );
+	if(ERROR_OCCURRED(async_data_write_finalize(callid, lengths, sizeof(size_t) * (count + 1)))){
+		free(lengths);
 		return ERROR_CODE;
 	}
-	* data = malloc( lengths[ count ] );
-	if( !( * data )) return ENOMEM;
-	( * data )[ lengths[ count ] - 1 ] = '\0';
-	* strings = ( measured_string_ref ) malloc( sizeof( measured_string_t ) * count );
-	if( !( * strings )){
-		free( lengths );
-		free( * data );
+	*data = malloc(lengths[count]);
+	if(!(*data)){
+		return ENOMEM;
+	}
+	(*data)[lengths[count] - 1] = '\0';
+	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) * count);
+	if(!(*strings)){
+		free(lengths);
+		free(*data);
 		return ENOMEM;
 	}
 	next = * data;
-	for( index = 0; index < count; ++ index ){
-		( * strings)[ index ].length = lengths[ index ];
-		if( lengths[ index ] > 0 ){
-			if(( ! async_data_write_receive( & callid, & length ))
-			|| ( length != lengths[ index ] )){
-				free( * data );
-				free( * strings );
-				free( lengths );
+	for(index = 0; index < count; ++ index){
+		(*strings)[index].length = lengths[index];
+		if(lengths[index] > 0){
+			if((! async_data_write_receive(&callid, &length))
+				|| (length != lengths[index])){
+				free(*data);
+				free(*strings);
+				free(lengths);
 				return EINVAL;
 			}
-			ERROR_PROPAGATE( async_data_write_finalize( callid, next, lengths[ index ] ));
-			( * strings)[ index ].value = next;
-			next += lengths[ index ];
-			* next = '\0';
+			ERROR_PROPAGATE(async_data_write_finalize(callid, next, lengths[index]));
+			(*strings)[index].value = next;
+			next += lengths[index];
+			*next = '\0';
 			++ next;
 		}else{
-			( * strings )[ index ].value = NULL;
+			(*strings)[index].value = NULL;
 		}
 	}
-	free( lengths );
+	free(lengths);
 	return EOK;
 }
 
-int measured_strings_reply( const measured_string_ref strings, size_t count ){
+int measured_strings_reply(const measured_string_ref strings, size_t count){
 	ERROR_DECLARE;
 
-	size_t *		lengths;
-	size_t			index;
-	size_t			length;
-	ipc_callid_t	callid;
+	size_t * lengths;
+	size_t index;
+	size_t length;
+	ipc_callid_t callid;
 
-	if(( ! strings ) || ( count <= 0 )){
+	if((! strings) || (count <= 0)){
 		return EINVAL;
 	}
-	lengths = prepare_lengths( strings, count );
-	if( ! lengths ) return ENOMEM;
-	if(( ! async_data_read_receive( & callid, & length ))
-	|| ( length != sizeof( size_t ) * ( count + 1 ))){
-		free( lengths );
+	lengths = prepare_lengths(strings, count);
+	if(! lengths){
+		return ENOMEM;
+	}
+	if((! async_data_read_receive(&callid, &length))
+		|| (length != sizeof(size_t) * (count + 1))){
+		free(lengths);
 		return EINVAL;
 	}
-	if( ERROR_OCCURRED( async_data_read_finalize( callid, lengths, sizeof( size_t ) * ( count + 1 )))){
-		free( lengths );
+	if(ERROR_OCCURRED(async_data_read_finalize(callid, lengths, sizeof(size_t) * (count + 1)))){
+		free(lengths);
 		return ERROR_CODE;
 	}
-	free( lengths );
-	for( index = 0; index < count; ++ index ){
-		if( strings[ index ].length > 0 ){
-			if(( ! async_data_read_receive( & callid, & length ))
-			|| ( length != strings[ index ].length )){
+	free(lengths);
+	for(index = 0; index < count; ++ index){
+		if(strings[index].length > 0){
+			if((! async_data_read_receive(&callid, &length))
+				|| (length != strings[index].length)){
 				return EINVAL;
 			}
-			ERROR_PROPAGATE( async_data_read_finalize( callid, strings[ index ].value, strings[ index ].length ));
+			ERROR_PROPAGATE(async_data_read_finalize(callid, strings[index].value, strings[index].length));
 		}
 	}
 	return EOK;
 }
 
-int measured_strings_return( int phone, measured_string_ref * strings, char ** data, size_t count ){
+int measured_strings_return(int phone, measured_string_ref * strings, char ** data, size_t count){
 	ERROR_DECLARE;
 
-	size_t *	lengths;
-	size_t		index;
-	char *		next;
+	size_t * lengths;
+	size_t index;
+	char * next;
 
-	if(( phone <= 0 ) || ( ! strings ) || ( ! data ) || ( count <= 0 )){
+	if((phone <= 0) || (! strings) || (! data) || (count <= 0)){
 		return EINVAL;
 	}
-	lengths = ( size_t * ) malloc( sizeof( size_t ) * ( count + 1 ));
-	if( ! lengths ) return ENOMEM;
-	if( ERROR_OCCURRED( async_data_read_start( phone, lengths, sizeof( size_t ) * ( count + 1 )))){
-		free( lengths );
+	lengths = (size_t *) malloc(sizeof(size_t) * (count + 1));
+	if(! lengths){
+		return ENOMEM;
+	}
+	if(ERROR_OCCURRED(async_data_read_start(phone, lengths, sizeof(size_t) * (count + 1)))){
+		free(lengths);
 		return ERROR_CODE;
 	}
-	* data = malloc( lengths[ count ] );
-	if( !( * data )) return ENOMEM;
-	* strings = ( measured_string_ref ) malloc( sizeof( measured_string_t ) * count );
-	if( !( * strings )){
-		free( lengths );
-		free( * data );
+	*data = malloc(lengths[count]);
+	if(!(*data)){
+		return ENOMEM;
+	}
+	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) * count);
+	if(!(*strings)){
+		free(lengths);
+		free(*data);
 		return ENOMEM;
 	}
 	next = * data;
-	for( index = 0; index < count; ++ index ){
-		( * strings )[ index ].length = lengths[ index ];
-		if( lengths[ index ] > 0 ){
-			ERROR_PROPAGATE( async_data_read_start( phone, next, lengths[ index ] ));
-			( * strings )[ index ].value = next;
-			next += lengths[ index ];
-			* next = '\0';
+	for(index = 0; index < count; ++ index){
+		(*strings)[index].length = lengths[index];
+		if(lengths[index] > 0){
+			ERROR_PROPAGATE(async_data_read_start(phone, next, lengths[index]));
+			(*strings)[index].value = next;
+			next += lengths[index];
+			*next = '\0';
 			++ next;
 		}else{
-			( * strings )[ index ].value = NULL;
+			(*strings)[index].value = NULL;
 		}
 	}
-	free( lengths );
+	free(lengths);
 	return EOK;
 }
 
-int measured_strings_send( int phone, const measured_string_ref strings, size_t count ){
+int measured_strings_send(int phone, const measured_string_ref strings, size_t count){
 	ERROR_DECLARE;
 
-	size_t *	lengths;
-	size_t		index;
+	size_t * lengths;
+	size_t index;
 
-	if(( phone <= 0 ) || ( ! strings ) || ( count <= 0 )){
+	if((phone <= 0) || (! strings) || (count <= 0)){
 		return EINVAL;
 	}
-	lengths = prepare_lengths( strings, count );
-	if( ! lengths ) return ENOMEM;
-	if( ERROR_OCCURRED( async_data_write_start( phone, lengths, sizeof( size_t ) * ( count + 1 )))){
-		free( lengths );
+	lengths = prepare_lengths(strings, count);
+	if(! lengths){
+		return ENOMEM;
+	}
+	if(ERROR_OCCURRED(async_data_write_start(phone, lengths, sizeof(size_t) * (count + 1)))){
+		free(lengths);
 		return ERROR_CODE;
 	}
-	free( lengths );
-	for( index = 0; index < count; ++ index ){
-		if( strings[ index ].length > 0 ){
-			ERROR_PROPAGATE( async_data_write_start( phone, strings[ index ].value, strings[ index ].length ));
+	free(lengths);
+	for(index = 0; index < count; ++ index){
+		if(strings[index].length > 0){
+			ERROR_PROPAGATE(async_data_write_start(phone, strings[index].value, strings[index].length));
 		}
 	}
 	return EOK;
 }
 
-size_t * prepare_lengths( const measured_string_ref strings, size_t count ){
-	size_t *	lengths;
-	size_t		index;
-	size_t		length;
+size_t * prepare_lengths(const measured_string_ref strings, size_t count){
+	size_t * lengths;
+	size_t index;
+	size_t length;
 
-	lengths = ( size_t * ) malloc( sizeof( size_t ) * ( count + 1 ));
-	if( ! lengths ) return NULL;
+	lengths = (size_t *) malloc(sizeof(size_t) * (count + 1));
+	if(! lengths){
+		return NULL;
+	}
 	length = 0;
-	for( index = 0; index < count; ++ index ){
-		lengths[ index ] = strings[ index ].length;
-		length += lengths[ index ] + 1;
+	for(index = 0; index < count; ++ index){
+		lengths[index] = strings[index].length;
+		length += lengths[index] + 1;
 	}
-	lengths[ count ] = length;
+	lengths[count] = length;
 	return lengths;
 }
 

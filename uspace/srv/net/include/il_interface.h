@@ -63,8 +63,8 @@
  *  @param[in] target The target internetwork module service to be delivered to.
  *  @returns EOK on success.
  */
-static inline int	il_device_state_msg( int il_phone, device_id_t device_id, device_state_t state, services_t target ){
-	return generic_device_state_msg( il_phone, NET_IL_DEVICE_STATE, device_id, state, target );
+static inline int il_device_state_msg(int il_phone, device_id_t device_id, device_state_t state, services_t target){
+	return generic_device_state_msg(il_phone, NET_IL_DEVICE_STATE, device_id, state, target);
 }
 
 /** Notifies the internetwork layer modules about the received packet/s.
@@ -74,8 +74,8 @@ static inline int	il_device_state_msg( int il_phone, device_id_t device_id, devi
  *  @param[in] target The target internetwork module service to be delivered to.
  *  @returns EOK on success.
  */
-inline static int	il_received_msg( int il_phone, device_id_t device_id, packet_t packet, services_t target ){
-	return generic_received_msg( il_phone, NET_IL_RECEIVED, device_id, packet_get_id( packet ), target, 0 );
+inline static int il_received_msg(int il_phone, device_id_t device_id, packet_t packet, services_t target){
+	return generic_received_msg(il_phone, NET_IL_RECEIVED, device_id, packet_get_id(packet), target, 0);
 }
 
 /** Notifies the internetwork layer modules about the mtu change.
@@ -85,8 +85,8 @@ inline static int	il_received_msg( int il_phone, device_id_t device_id, packet_t
  *  @param[in] target The target internetwork module service to be delivered to.
  *  @returns EOK on success.
  */
-inline static int	il_mtu_changed_msg( int il_phone, device_id_t device_id, size_t mtu, services_t target ){
-	return generic_device_state_msg( il_phone, NET_IL_MTU_CHANGED, device_id, ( int ) mtu, target );
+inline static int il_mtu_changed_msg(int il_phone, device_id_t device_id, size_t mtu, services_t target){
+	return generic_device_state_msg(il_phone, NET_IL_MTU_CHANGED, device_id, (int) mtu, target);
 }
 
 /*@}*/

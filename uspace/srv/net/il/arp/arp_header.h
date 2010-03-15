@@ -56,20 +56,20 @@ struct arp_header{
 	/** Hardware type identifier.
 	 *  @see hardware.h
 	 */
-	uint16_t	hardware;
+	uint16_t hardware;
 	/** Protocol identifier.
 	 */
-	uint16_t	protocol;
+	uint16_t protocol;
 	/** Hardware address length in bytes.
 	 */
-	uint8_t		hardware_length;
+	uint8_t hardware_length;
 	/** Protocol address length in bytes.
 	 */
-	uint8_t		protocol_length;
+	uint8_t protocol_length;
 	/** ARP packet type.
 	 *  @see arp_oc.h
 	 */
-	uint16_t	operation;
+	uint16_t operation;
 } __attribute__ ((packed));
 
 #endif

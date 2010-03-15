@@ -45,7 +45,7 @@
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	arp_initialize( async_client_conn_t client_connection );
+int arp_initialize(async_client_conn_t client_connection);
 
 /** Processes the ARP message.
  *  @param[in] callid The message identifier.
@@ -57,7 +57,7 @@ int	arp_initialize( async_client_conn_t client_connection );
  *  @see arp_interface.h
  *  @see IS_NET_ARP_MESSAGE()
  */
-int	arp_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int arp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

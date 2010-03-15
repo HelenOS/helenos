@@ -42,7 +42,7 @@
 
 /** UDP header size in bytes.
  */
-#define UDP_HEADER_SIZE			sizeof( udp_header_t )
+#define UDP_HEADER_SIZE			sizeof(udp_header_t)
 
 /** Type definition of the user datagram header.
  *  @see udp_header
@@ -60,21 +60,21 @@ struct udp_header{
 	/** Source Port is an optional field, when meaningful, it indicates the port of the sending process, and may be assumed to be the port to which a reply should be addressed in the absence of any other information.
 	 *  If not used, a value of zero is inserted.
 	 */
-	uint16_t	source_port;
+	uint16_t source_port;
 	/** Destination port has a meaning within the context of a particular internet destination address.
 	 */
-	uint16_t	destination_port;
+	uint16_t destination_port;
 	/** Length is the length in octets of this user datagram including this header and the data.
 	 *  This means the minimum value of the length is eight.
 	 */
-	uint16_t	total_length;
+	uint16_t total_length;
 	/** Checksum is the 16-bit one's complement of the one's complement sum of a pseudo header of information from the IP header, the UDP header, and the data, padded with zero octets at the end (if necessary) to make a multiple of two octets.
 	 *  The pseudo header conceptually prefixed to the UDP header contains the source address, the destination address, the protocol, and the UDP length.
 	 *  This information gives protection against misrouted datagrams.
 	 *  If the computed checksum is zero, it is transmitted as all ones (the equivalent in one's complement arithmetic).
 	 *  An all zero transmitted checksum value means that the transmitter generated no checksum (for debugging or for higher level protocols that don't care).
 	 */
-	uint16_t	checksum;
+	uint16_t checksum;
 } __attribute__ ((packed));
 
 #endif

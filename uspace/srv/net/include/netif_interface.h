@@ -64,7 +64,7 @@
  *  @returns ENOENT if there no such device.
  *  @returns Other error codes as defined for the netif_get_addr_message() function.
  */
-int	netif_get_addr_req( int netif_phone, device_id_t device_id, measured_string_ref * address, char ** data );
+int netif_get_addr_req(int netif_phone, device_id_t device_id, measured_string_ref * address, char ** data);
 
 /** Probes the existence of the device.
  *  @param[in] netif_phone The network interface phone.
@@ -74,7 +74,7 @@ int	netif_get_addr_req( int netif_phone, device_id_t device_id, measured_string_
  *  @returns EOK on success.
  *  @returns Other errro codes as defined for the netif_probe_message().
  */
-int	netif_probe_req( int netif_phone, device_id_t device_id, int irq, int io );
+int netif_probe_req(int netif_phone, device_id_t device_id, int irq, int io);
 
 /** Sends the packet queue.
  *  @param[in] netif_phone The network interface phone.
@@ -84,7 +84,7 @@ int	netif_probe_req( int netif_phone, device_id_t device_id, int irq, int io );
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the generic_send_msg() function.
  */
-int	netif_send_msg( int netif_phone, device_id_t device_id, packet_t packet, services_t sender );
+int netif_send_msg(int netif_phone, device_id_t device_id, packet_t packet, services_t sender);
 
 /** Starts the device.
  *  @param[in] netif_phone The network interface phone.
@@ -93,7 +93,7 @@ int	netif_send_msg( int netif_phone, device_id_t device_id, packet_t packet, ser
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the netif_start_message() function.
  */
-int	netif_start_req( int netif_phone, device_id_t device_id );
+int netif_start_req(int netif_phone, device_id_t device_id);
 
 /** Stops the device.
  *  @param[in] netif_phone The network interface phone.
@@ -102,7 +102,7 @@ int	netif_start_req( int netif_phone, device_id_t device_id );
  *  @returns Other error codes as defined for the find_device() function.
  *  @returns Other error codes as defined for the netif_stop_message() function.
  */
-int	netif_stop_req( int netif_phone, device_id_t device_id );
+int netif_stop_req(int netif_phone, device_id_t device_id);
 
 /** Returns the device usage statistics.
  *  @param[in] netif_phone The network interface phone.
@@ -110,7 +110,7 @@ int	netif_stop_req( int netif_phone, device_id_t device_id );
  *  @param[out] stats The device usage statistics.
  *  @returns EOK on success.
  */
-int	netif_stats_req( int netif_phone, device_id_t device_id, device_stats_ref stats );
+int netif_stats_req(int netif_phone, device_id_t device_id, device_stats_ref stats);
 
 /** Creates bidirectional connection with the network interface module and registers the message receiver.
  *  @param[in] service The network interface module service.
@@ -121,7 +121,7 @@ int	netif_stats_req( int netif_phone, device_id_t device_id, device_stats_ref st
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the bind_service() function.
  */
-int	netif_bind_service( services_t service, device_id_t device_id, services_t me, async_client_conn_t receiver );
+int netif_bind_service(services_t service, device_id_t device_id, services_t me, async_client_conn_t receiver);
 
 /*@}*/
 

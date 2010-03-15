@@ -49,7 +49,7 @@
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Starts the network interface module.
  *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -57,16 +57,16 @@ int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer,
  *  @returns EOK on success.
  *  @returns Other error codes as defined for each specific module message function.
  */
-int	module_start( async_client_conn_t client_connection );
+int module_start(async_client_conn_t client_connection);
 
-int	module_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
-	return netif_message( callid, call, answer, answer_count );
+int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return netif_message(callid, call, answer, answer_count);
 }
 
-int	module_start( async_client_conn_t client_connection ){
+int module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
-	ERROR_PROPAGATE( netif_init_module( client_connection ));
+	ERROR_PROPAGATE(netif_init_module(client_connection));
 	return netif_run_module();
 }
 

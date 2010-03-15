@@ -49,13 +49,13 @@
  *  @returns The ICMP header length.
  *  @returns Zero (0) if the packet contains no data.
  */
-int	icmp_client_process_packet( packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu );
+int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu);
 
 /** Returns the ICMP header length.
  *  @param[in] packet The packet.
  *  @returns The ICMP header length in bytes.
  */
-size_t	icmp_client_header_length( packet_t packet );
+size_t icmp_client_header_length(packet_t packet);
 
 #endif
 

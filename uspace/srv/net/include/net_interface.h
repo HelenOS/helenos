@@ -65,7 +65,7 @@
  *  @returns EINVAL if the count is zero (0).
  *  @returns Other error codes as defined for the generic_translate_req() function.
  */
-int	net_get_device_conf_req( int net_phone, device_id_t device_id, measured_string_ref * configuration, size_t count, char ** data );
+int net_get_device_conf_req(int net_phone, device_id_t device_id, measured_string_ref * configuration, size_t count, char ** data);
 
 /** Returns the global configuration.
  *  The configuration names are read and the appropriate settings are set instead.
@@ -79,7 +79,7 @@ int	net_get_device_conf_req( int net_phone, device_id_t device_id, measured_stri
  *  @returns EINVAL if the count is zero (0).
  *  @returns Other error codes as defined for the generic_translate_req() function.
  */
-int	net_get_conf_req( int net_phone, measured_string_ref * configuration, size_t count, char ** data );
+int net_get_conf_req(int net_phone, measured_string_ref * configuration, size_t count, char ** data);
 
 /** Frees the received settings.
  *  @param[in] settings The received settings.
@@ -87,14 +87,14 @@ int	net_get_conf_req( int net_phone, measured_string_ref * configuration, size_t
  *  @see net_get_device_conf_req()
  *  @see net_get_conf_req()
  */
-void	net_free_settings( measured_string_ref settings, char * data );
+void net_free_settings(measured_string_ref settings, char * data);
 
 /** Connects to the networking module.
  *  @param service The networking module service. Ignored parameter.
  *  @returns The networking module phone on success.
  *  @returns 0 if called by the bundle module.
  */
-int	net_connect_module( services_t service );
+int net_connect_module(services_t service);
 
 /*@}*/
 

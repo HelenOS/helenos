@@ -75,12 +75,12 @@ static struct{
 	fibril_mutex_t lock;
 	/** Free packet queues.
 	 */
-	packet_t free[ FREE_QUEUES_COUNT ];
+	packet_t free[FREE_QUEUES_COUNT];
 	/** Packet length upper bounds of the free packet queues.
 	 *  The maximal lengths of packets in each queue in the ascending order.
 	 *  The last queue is not limited.
 	 */
-	size_t sizes[ FREE_QUEUES_COUNT ];
+	size_t sizes[FREE_QUEUES_COUNT];
 	/** Total packets allocated.
 	 */
 	unsigned int count;
@@ -88,12 +88,12 @@ static struct{
 	.lock = {
 		.counter = 1,
 		.waiters = {
-			.prev = & ps_globals.lock.waiters,
-			.next = & ps_globals.lock.waiters,
+			.prev = &ps_globals.lock.waiters,
+			.next = &ps_globals.lock.waiters,
 		}
 	},
-	.free = { NULL, NULL, NULL, NULL, NULL, NULL, NULL },
-	.sizes = { PAGE_SIZE, PAGE_SIZE * 2, PAGE_SIZE * 4, PAGE_SIZE * 8, PAGE_SIZE * 16, PAGE_SIZE * 32, PAGE_SIZE * 64 },
+	.free = {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+	.sizes = {PAGE_SIZE, PAGE_SIZE * 2, PAGE_SIZE * 4, PAGE_SIZE * 8, PAGE_SIZE * 16, PAGE_SIZE * 32, PAGE_SIZE * 64},
 	.count = 0
 };
 
@@ -112,20 +112,20 @@ static struct{
  *  @returns The packet of dimensions at least as given.
  *  @returns NULL if there is not enough memory left.
  */
-packet_t	packet_get( size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix );
+packet_t packet_get(size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix);
 
 /** Releases the packet queue.
  *  @param[in] packet_id The first packet identifier.
  *  @returns EOK on success.
  *  @returns ENOENT if there is no such packet.
  */
-int	packet_release_wrapper( packet_id_t packet_id );
+int packet_release_wrapper(packet_id_t packet_id);
 
 /** Releases the packet and returns it to the appropriate free packet queue.
  *  Should be used only when the global data are locked.
  *  @param[in] packet The packet to be released.
  */
-void packet_release( packet_t packet );
+void packet_release(packet_t packet);
 
 /** Creates a&nbsp;new packet of dimensions at least as given.
  *  Should be used only when the global data are locked.
@@ -137,7 +137,7 @@ void packet_release( packet_t packet );
  *  @returns The packet of dimensions at least as given.
  *  @returns NULL if there is not enough memory left.
  */
-packet_t	packet_create( size_t length, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix );
+packet_t packet_create(size_t length, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix);
 
 /** Clears and initializes the packet according to the given dimensions.
  *  @param[in] packet The packet to be initialized.
@@ -146,7 +146,7 @@ packet_t	packet_create( size_t length, size_t addr_len, size_t max_prefix, size_
  *  @param[in] max_content The maximal content length in bytes.
  *  @param[in] max_suffix The maximal suffix length in bytes.
  */
-void	packet_init( packet_t packet, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix );
+void packet_init(packet_t packet, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix);
 
 /** Shares the packet memory block.
  *  @param[in] packet The packet to be shared.
@@ -156,151 +156,165 @@ void	packet_init( packet_t packet, size_t addr_len, size_t max_prefix, size_t ma
  *  @returns ENOMEM if the desired and actual sizes differ.
  *  @returns Other error codes as defined for the async_share_in_finalize() function.
  */
-int packet_reply( const packet_t packet );
+int packet_reply(const packet_t packet);
 
 /*@}*/
 
-int packet_translate( int phone, packet_ref packet, packet_id_t packet_id ){
-	if( ! packet ) return EINVAL;
-	* packet = pm_find( packet_id );
-	return ( * packet ) ? EOK : ENOENT;
+int packet_translate(int phone, packet_ref packet, packet_id_t packet_id){
+	if(! packet){
+		return EINVAL;
+	}
+	*packet = pm_find(packet_id);
+	return (*packet) ? EOK : ENOENT;
 }
 
-packet_t packet_get_4( int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix ){
-	return packet_get( addr_len, max_prefix, max_content, max_suffix );
+packet_t packet_get_4(int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix){
+	return packet_get(addr_len, max_prefix, max_content, max_suffix);
 }
 
-packet_t packet_get_1( int phone, size_t content ){
-	return packet_get( DEFAULT_ADDR_LEN, DEFAULT_PREFIX, content, DEFAULT_SUFFIX );
+packet_t packet_get_1(int phone, size_t content){
+	return packet_get(DEFAULT_ADDR_LEN, DEFAULT_PREFIX, content, DEFAULT_SUFFIX);
 }
 
-void pq_release( int phone, packet_id_t packet_id ){
-	( void ) packet_release_wrapper( packet_id );
+void pq_release(int phone, packet_id_t packet_id){
+	(void) packet_release_wrapper(packet_id);
 }
 
-int	packet_server_message( ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count ){
+int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	packet_t packet;
 
-	* answer_count = 0;
-	switch( IPC_GET_METHOD( * call )){
+	*answer_count = 0;
+	switch(IPC_GET_METHOD(*call)){
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_PACKET_CREATE_1:
-			packet = packet_get( DEFAULT_ADDR_LEN, DEFAULT_PREFIX, IPC_GET_CONTENT( call ), DEFAULT_SUFFIX );
-			if( ! packet ) return ENOMEM;
-			* answer_count = 2;
-			IPC_SET_ARG1( * answer, packet->packet_id );
-			IPC_SET_ARG2( * answer, packet->length );
+			packet = packet_get(DEFAULT_ADDR_LEN, DEFAULT_PREFIX, IPC_GET_CONTENT(call), DEFAULT_SUFFIX);
+			if(! packet){
+				return ENOMEM;
+			}
+			*answer_count = 2;
+			IPC_SET_ARG1(*answer, packet->packet_id);
+			IPC_SET_ARG2(*answer, packet->length);
 			return EOK;
 		case NET_PACKET_CREATE_4:
-			packet = packet_get((( DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN( call )) ? IPC_GET_ADDR_LEN( call ) : DEFAULT_ADDR_LEN ), DEFAULT_PREFIX + IPC_GET_PREFIX( call ), IPC_GET_CONTENT( call ), DEFAULT_SUFFIX + IPC_GET_SUFFIX( call ));
-			if( ! packet ) return ENOMEM;
-			* answer_count = 2;
-			IPC_SET_ARG1( * answer, packet->packet_id );
-			IPC_SET_ARG2( * answer, packet->length );
+			packet = packet_get(((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(call)) ? IPC_GET_ADDR_LEN(call) : DEFAULT_ADDR_LEN), DEFAULT_PREFIX + IPC_GET_PREFIX(call), IPC_GET_CONTENT(call), DEFAULT_SUFFIX + IPC_GET_SUFFIX(call));
+			if(! packet){
+				return ENOMEM;
+			}
+			*answer_count = 2;
+			IPC_SET_ARG1(*answer, packet->packet_id);
+			IPC_SET_ARG2(*answer, packet->length);
 			return EOK;
 		case NET_PACKET_GET:
-			packet = pm_find( IPC_GET_ID( call ));
-			if( ! packet_is_valid( packet )) return ENOENT;
-			return packet_reply( packet );
+			packet = pm_find(IPC_GET_ID(call));
+			if(! packet_is_valid(packet)){
+				return ENOENT;
+			}
+			return packet_reply(packet);
 		case NET_PACKET_GET_SIZE:
-			packet = pm_find( IPC_GET_ID( call ));
-			if( ! packet_is_valid( packet )) return ENOENT;
-			IPC_SET_ARG1( * answer, packet->length );
-			* answer_count = 1;
+			packet = pm_find(IPC_GET_ID(call));
+			if(! packet_is_valid(packet)){
+				return ENOENT;
+			}
+			IPC_SET_ARG1(*answer, packet->length);
+			*answer_count = 1;
 			return EOK;
 		case NET_PACKET_RELEASE:
-			return packet_release_wrapper( IPC_GET_ID( call ));
+			return packet_release_wrapper(IPC_GET_ID(call));
 	}
 	return ENOTSUP;
 }
 
-int packet_release_wrapper( packet_id_t packet_id ){
-	packet_t	packet;
+int packet_release_wrapper(packet_id_t packet_id){
+	packet_t packet;
 
-	packet = pm_find( packet_id );
-	if( ! packet_is_valid( packet )) return ENOENT;
-	fibril_mutex_lock( & ps_globals.lock );
-	pq_destroy( packet, packet_release );
-	fibril_mutex_unlock( & ps_globals.lock );
+	packet = pm_find(packet_id);
+	if(! packet_is_valid(packet)){
+		return ENOENT;
+	}
+	fibril_mutex_lock(&ps_globals.lock);
+	pq_destroy(packet, packet_release);
+	fibril_mutex_unlock(&ps_globals.lock);
 	return EOK;
 }
 
-void packet_release( packet_t packet ){
+void packet_release(packet_t packet){
 	int index;
 	int result;
 
 	// remove debug dump
-//	printf( "packet %d released\n", packet->packet_id );
-	for( index = 0; ( index < FREE_QUEUES_COUNT - 1 ) && ( packet->length > ps_globals.sizes[ index ] ); ++ index );
-	result = pq_add( & ps_globals.free[ index ], packet, packet->length, packet->length );
-	assert( result == EOK );
+//	printf("packet %d released\n", packet->packet_id);
+	for(index = 0; (index < FREE_QUEUES_COUNT - 1) && (packet->length > ps_globals.sizes[index]); ++ index);
+	result = pq_add(&ps_globals.free[index], packet, packet->length, packet->length);
+	assert(result == EOK);
 }
 
-packet_t packet_get( size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix ){
+packet_t packet_get(size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix){
 	int index;
 	packet_t packet;
 	size_t length;
 
-	length = ALIGN_UP( sizeof( struct packet ) + 2 * addr_len + max_prefix + max_content + max_suffix, PAGE_SIZE );
-	fibril_mutex_lock( & ps_globals.lock );
-	for( index = 0; index < FREE_QUEUES_COUNT - 1; ++ index ){
-		if( length <= ps_globals.sizes[ index ] ){
-			packet = ps_globals.free[ index ];
-			while( packet_is_valid( packet ) && ( packet->length < length )){
-				packet = pm_find( packet->next );
+	length = ALIGN_UP(sizeof(struct packet) + 2 * addr_len + max_prefix + max_content + max_suffix, PAGE_SIZE);
+	fibril_mutex_lock(&ps_globals.lock);
+	for(index = 0; index < FREE_QUEUES_COUNT - 1; ++ index){
+		if(length <= ps_globals.sizes[index]){
+			packet = ps_globals.free[index];
+			while(packet_is_valid(packet) && (packet->length < length)){
+				packet = pm_find(packet->next);
 			}
-			if( packet_is_valid( packet )){
-				if( packet == ps_globals.free[ index ] ){
-					ps_globals.free[ index ] = pq_detach( packet );
+			if(packet_is_valid(packet)){
+				if(packet == ps_globals.free[index]){
+					ps_globals.free[index] = pq_detach(packet);
 				}else{
-					pq_detach( packet );
+					pq_detach(packet);
 				}
-				packet_init( packet, addr_len, max_prefix, max_content, max_suffix );
-				fibril_mutex_unlock( & ps_globals.lock );
+				packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
+				fibril_mutex_unlock(&ps_globals.lock);
 				// remove debug dump
-//				printf( "packet %d got\n", packet->packet_id );
+//				printf("packet %d got\n", packet->packet_id);
 				return packet;
 			}
 		}
 	}
-	packet = packet_create( length, addr_len, max_prefix, max_content, max_suffix );
-	fibril_mutex_unlock( & ps_globals.lock );
+	packet = packet_create(length, addr_len, max_prefix, max_content, max_suffix);
+	fibril_mutex_unlock(&ps_globals.lock);
 	// remove debug dump
-//	printf( "packet %d created\n", packet->packet_id );
+//	printf("packet %d created\n", packet->packet_id);
 	return packet;
 }
 
-packet_t packet_create( size_t length, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix ){
+packet_t packet_create(size_t length, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix){
 	ERROR_DECLARE;
 
-	packet_t	packet;
+	packet_t packet;
 
 	// already locked
-	packet = ( packet_t ) mmap( NULL, length, PROTO_READ | PROTO_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0 );
-	if( packet == MAP_FAILED ) return NULL;
+	packet = (packet_t) mmap(NULL, length, PROTO_READ | PROTO_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0);
+	if(packet == MAP_FAILED){
+		return NULL;
+	}
 	++ ps_globals.count;
 	packet->packet_id = ps_globals.count;
 	packet->length = length;
-	packet_init( packet, addr_len, max_prefix, max_content, max_suffix );
+	packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
 	packet->magic_value = PACKET_MAGIC_VALUE;
-	if( ERROR_OCCURRED( pm_add( packet ))){
-		munmap( packet, packet->length );
+	if(ERROR_OCCURRED(pm_add(packet))){
+		munmap(packet, packet->length);
 		return NULL;
 	}
 	return packet;
 }
 
-void packet_init( packet_t packet, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix ){
+void packet_init(packet_t packet, size_t addr_len, size_t max_prefix, size_t max_content, size_t max_suffix){
 	// clear the packet content
-	bzero((( void * ) packet ) + sizeof( struct packet ), packet->length - sizeof( struct packet ));
+	bzero(((void *) packet) + sizeof(struct packet), packet->length - sizeof(struct packet));
 	// clear the packet header
 	packet->order = 0;
 	packet->metric = 0;
 	packet->previous = 0;
 	packet->next = 0;
 	packet->addr_len = 0;
-	packet->src_addr = sizeof( struct packet );
+	packet->src_addr = sizeof(struct packet);
 	packet->dest_addr = packet->src_addr + addr_len;
 	packet->max_prefix = max_prefix;
 	packet->max_content = max_content;
@@ -308,14 +322,18 @@ void packet_init( packet_t packet, size_t addr_len, size_t max_prefix, size_t ma
 	packet->data_end = packet->data_start;
 }
 
-int packet_reply( const packet_t packet ){
-	ipc_callid_t	callid;
-	size_t			size;
+int packet_reply(const packet_t packet){
+	ipc_callid_t callid;
+	size_t size;
 
-	if( ! packet_is_valid( packet )) return EINVAL;
-	if( async_share_in_receive( & callid, & size ) <= 0 ) return EINVAL;
-	if( size != packet->length ) return ENOMEM;
-	return async_share_in_finalize( callid, packet, PROTO_READ | PROTO_WRITE );
+	if(! packet_is_valid(packet)){
+		return EINVAL;
+	}
+	if(async_share_in_receive(&callid, &size) <= 0) return EINVAL;
+	if(size != packet->length){
+		return ENOMEM;
+	}
+	return async_share_in_finalize(callid, packet, PROTO_READ | PROTO_WRITE);
 }
 
 /** @}

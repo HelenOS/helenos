@@ -53,34 +53,34 @@ typedef struct udp_globals	udp_globals_t;
 struct	udp_globals{
 	/** Networking module phone.
 	 */
-	int				net_phone;
+	int net_phone;
 	/** IP module phone.
 	 */
-	int				ip_phone;
+	int ip_phone;
 	/** ICMP module phone.
 	 */
-	int				icmp_phone;
+	int icmp_phone;
 	/** Packet dimension.
 	 */
-	packet_dimension_t	packet_dimension;
+	packet_dimension_t packet_dimension;
 	/** Indicates whether UDP checksum computing is enabled.
 	 */
-	int				checksum_computing;
+	int checksum_computing;
 	/** Indicates whether UDP autobnding on send is enabled.
 	 */
-	int				autobinding;
+	int autobinding;
 	/** Last used free port.
 	 */
-	int				last_used_port;
+	int last_used_port;
 	/** Active sockets.
 	 */
-	socket_ports_t	sockets;
+	socket_ports_t sockets;
 	/** Device packet dimensions.
 	 */
-	packet_dimensions_t	dimensions;
+	packet_dimensions_t dimensions;
 	/** Safety lock.
 	 */
-	fibril_rwlock_t	lock;
+	fibril_rwlock_t lock;
 };
 
 #endif

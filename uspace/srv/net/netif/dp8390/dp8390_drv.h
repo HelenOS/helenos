@@ -63,7 +63,7 @@ void dp_check_ints(dpeth_t *dep, int isr);
  *  @returns EOK on success.
  *  @returns EXDEV if the network interface was not recognized.
  */
-int	do_probe( dpeth_t * dep );
+int do_probe(dpeth_t * dep);
 
 /** Sends a packet.
  *  @param[in,out] dep The network interface structure.
@@ -71,12 +71,12 @@ int	do_probe( dpeth_t * dep );
  *  @param[in] from_int The value indicating whether the sending is initialized from the interrupt handler.
  *  @returns 
  */
-int	do_pwrite( dpeth_t * dep, packet_t packet, int from_int );
+int do_pwrite(dpeth_t * dep, packet_t packet, int from_int);
 
 /** Prints out network interface information.
  *  @param[in] dep The network interface structure.
  */
-void	dp8390_dump( dpeth_t * dep );
+void dp8390_dump(dpeth_t * dep);
 
 #endif
 

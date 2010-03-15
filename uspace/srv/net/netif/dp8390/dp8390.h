@@ -254,25 +254,25 @@ typedef struct dp_rcvhdr
 struct dpeth;
 struct iovec_dat;
 //struct iovec_dat_s;
-_PROTOTYPE( typedef void (*dp_initf_t), (struct dpeth *dep)		);
-_PROTOTYPE( typedef void (*dp_stopf_t), (struct dpeth *dep)		);
-_PROTOTYPE( typedef void (*dp_user2nicf_t), (struct dpeth *dep,
+_PROTOTYPE(typedef void (*dp_initf_t), (struct dpeth *dep)		);
+_PROTOTYPE(typedef void (*dp_stopf_t), (struct dpeth *dep)		);
+_PROTOTYPE(typedef void (*dp_user2nicf_t), (struct dpeth *dep,
 			struct iovec_dat *iovp, vir_bytes offset,
-			int nic_addr, vir_bytes count)			);
-//_PROTOTYPE( typedef void (*dp_user2nicf_s_t), (struct dpeth *dep,
+			int nic_addr, vir_bytes count) );
+//_PROTOTYPE(typedef void (*dp_user2nicf_s_t), (struct dpeth *dep,
 //			struct iovec_dat_s *iovp, vir_bytes offset,
 //			int nic_addr, vir_bytes count)			);
-_PROTOTYPE( typedef void (*dp_nic2userf_t), (struct dpeth *dep,
+_PROTOTYPE(typedef void (*dp_nic2userf_t), (struct dpeth *dep,
 			int nic_addr, struct iovec_dat *iovp,
-			vir_bytes offset, vir_bytes count)		);
-//_PROTOTYPE( typedef void (*dp_nic2userf_s_t), (struct dpeth *dep,
+			vir_bytes offset, vir_bytes count) );
+//_PROTOTYPE(typedef void (*dp_nic2userf_s_t), (struct dpeth *dep,
 //			int nic_addr, struct iovec_dat_s *iovp,
 //			vir_bytes offset, vir_bytes count)		);
 //#if 0
-//_PROTOTYPE( typedef void (*dp_getheaderf_t), (struct dpeth *dep,
+//_PROTOTYPE(typedef void (*dp_getheaderf_t), (struct dpeth *dep,
 //			int page, struct dp_rcvhdr *h, u16_t *eth_type)	);
 //#endif
-_PROTOTYPE( typedef void (*dp_getblock_t), (struct dpeth *dep,
+_PROTOTYPE(typedef void (*dp_getblock_t), (struct dpeth *dep,
 		int page, size_t offset, size_t size, void *dst)	);
 
 /* iovectors are handled IOVEC_NR entries at a time. */
@@ -312,17 +312,17 @@ typedef struct dpeth
 {
 	/** Outgoing packets queue.
 	 */
-	packet_t	packet_queue;
+	packet_t packet_queue;
 	/** Outgoing packets count.
 	 */
-	int			packet_count;
+	int packet_count;
 
 	/** Received packets queue.
 	 */
-	packet_t	received_queue;
+	packet_t received_queue;
 	/** Received packets count.
 	 */
-	int			received_count;
+	int received_count;
 
 	/* The de_base_port field is the starting point of the probe.
 	 * The conf routine also fills de_linmem and de_irq. If the probe

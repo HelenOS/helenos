@@ -48,7 +48,7 @@
  */
 #if NET_SELF_TEST
 
-int	self_test( void );
+int self_test(void);
 
 #else
 

@@ -39,7 +39,7 @@
 
 /** Invalid assigned value used also if an&nbsp;entry does not exist.
  */
-#define CHAR_MAP_NULL	( -1 )
+#define CHAR_MAP_NULL	(-1)
 
 /** Type definition of the character string to integer map.
  *  @see char_map
@@ -58,22 +58,22 @@ typedef char_map_t *	char_map_ref;
 struct	char_map{
 	/** Actually mapped character.
 	 */
-	char			c;
+	char c;
 	/** Stored integral value.
 	 */
-	int				value;
+	int value;
 	/** Next character array size.
 	 */
-	int				size;
+	int size;
 	/** First free position in the next character array.
 	 */
-	int				next;
+	int next;
 	/** Next character array.
 	 */
-	char_map_ref *	items;
+	char_map_ref * items;
 	/** Consistency check magic value.
 	 */
-	int				magic;
+	int magic;
 };
 
 /** Adds the value with the key to the map.
@@ -88,12 +88,12 @@ struct	char_map{
  *  @returns EEXIST if the key character string is already used.
  *  @returns Other error codes as defined for the char_map_add_item() function.
  */
-int	char_map_add( char_map_ref map, const char * identifier, size_t length, const int value );
+int char_map_add(char_map_ref map, const char * identifier, size_t length, const int value);
 
 /** Clears and destroys the map.
  *  @param[in,out] map The character string to integer map.
  */
-void	char_map_destroy( char_map_ref map );
+void char_map_destroy(char_map_ref map);
 
 /** Excludes the value assigned to the key from the map.
  *  The entry is cleared from the map.
@@ -103,7 +103,7 @@ void	char_map_destroy( char_map_ref map );
  *  @returns The integral value assigned to the key character string.
  *  @returns CHAR_MAP_NULL if the key is not assigned a&nbsp;value.
  */
-int	char_map_exclude( char_map_ref map, const char * identifier, size_t length );
+int char_map_exclude(char_map_ref map, const char * identifier, size_t length);
 
 /** Returns the value assigned to the key from the map.
  *  @param[in] map The character string to integer map.
@@ -112,7 +112,7 @@ int	char_map_exclude( char_map_ref map, const char * identifier, size_t length )
  *  @returns The integral value assigned to the key character string.
  *  @returns CHAR_MAP_NULL if the key is not assigned a&nbsp;value.
  */
-int	char_map_find( const char_map_ref map, const char * identifier, size_t length );
+int char_map_find(const char_map_ref map, const char * identifier, size_t length);
 
 /** Initializes the map.
  *  @param[in,out] map The character string to integer map.
@@ -120,7 +120,7 @@ int	char_map_find( const char_map_ref map, const char * identifier, size_t lengt
  *  @returns EINVAL if the map parameter is NULL.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int	char_map_initialize( char_map_ref map );
+int char_map_initialize(char_map_ref map);
 
 /** Adds or updates the value with the key to the map.
  *  @param[in,out] map The character string to integer map.
@@ -134,7 +134,7 @@ int	char_map_initialize( char_map_ref map );
  *  @returns EEXIST if the key character string is already used.
  *  @returns Other error codes as defined for the char_map_add_item() function.
  */
-int	char_map_update( char_map_ref map, const char * identifier, size_t length, const int value );
+int char_map_update(char_map_ref map, const char * identifier, size_t length, const int value);
 
 #endif
 

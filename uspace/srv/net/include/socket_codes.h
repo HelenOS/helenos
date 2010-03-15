@@ -441,13 +441,13 @@
 typedef enum sock_type{
 	/** Stream (connection oriented) socket.
 	 */
-	SOCK_STREAM	= 1,
+	SOCK_STREAM = 1,
 	/** Datagram (connectionless oriented) socket.
 	 */
-	SOCK_DGRAM	= 2,
+	SOCK_DGRAM = 2,
 	/** Raw socket.
 	 */
-	SOCK_RAW	= 3
+	SOCK_RAW = 3
 } sock_type_t;
 
 /** Type definition of the socket length.

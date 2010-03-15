@@ -69,27 +69,27 @@ Created:	March 15, 1994 by Philip Homburg <philip@f-mnx.phicoh.com>
 /** Sleeps for the defined millicesonds.
  *  @param[in] millis The number of milliseconds to sleep.
  */
-#define milli_delay( millis )	usleep(( millis ) * 1000 )
+#define milli_delay(millis)	usleep((millis) * 1000)
 
 /** Type definition of the testing function.
  */
-_PROTOTYPE( typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat)	);
+_PROTOTYPE(typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat)	);
 
 /** First data pattern.
  */
-u8_t	pat0[]= { 0x00, 0x00, 0x00, 0x00 };
+u8_t	pat0[]= {0x00, 0x00, 0x00, 0x00};
 
 /** Second data pattern.
  */
-u8_t	pat1[]= { 0xFF, 0xFF, 0xFF, 0xFF };
+u8_t	pat1[]= {0xFF, 0xFF, 0xFF, 0xFF};
 
 /** Third data pattern.
  */
-u8_t	pat2[]= { 0xA5, 0x5A, 0x69, 0x96 };
+u8_t	pat2[]= {0xA5, 0x5A, 0x69, 0x96};
 
 /** Fourth data pattern.
  */
-u8_t	pat3[]= { 0x96, 0x69, 0x5A, 0xA5 };
+u8_t	pat3[]= {0x96, 0x69, 0x5A, 0xA5};
 
 /** Tests 8 bit NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
@@ -113,7 +113,7 @@ static int test_16(dpeth_t *dep, int pos, u8_t *pat);
  *  @param[in,out] dep The network interface structure.
  */
 static void ne_stop(dpeth_t *dep);
-//_PROTOTYPE( static void milli_delay, (unsigned long millis)		);
+//_PROTOTYPE(static void milli_delay, (unsigned long millis)		);
 
 /** Initializes the NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
@@ -149,11 +149,11 @@ dpeth_t *dep;
 
 		/* Reset the dp8390 */
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
+		for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RST) == 0); i++)
 			; /* Do nothing */
 
 		/* Check if the dp8390 is really there */
-		if ((inb_reg0(dep, DP_CR) & (CR_STP|CR_DM_ABORT)) !=
+		if ((inb_reg0(dep, DP_CR) &(CR_STP|CR_DM_ABORT)) !=
 			(CR_STP|CR_DM_ABORT))
 		{
 			return 0;
@@ -185,9 +185,9 @@ dpeth_t *dep;
 			loc2= NE1000_START + NE1000_SIZE - 4;
 			f= test_8;
 		}
-		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) &&
-			f(dep, loc1, pat2) && f(dep, loc1, pat3) &&
-			f(dep, loc2, pat0) && f(dep, loc2, pat1) &&
+		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) && 
+			f(dep, loc1, pat2) && f(dep, loc1, pat3) && 
+			f(dep, loc2, pat0) && f(dep, loc2, pat1) && 
 			f(dep, loc2, pat2) && f(dep, loc2, pat3))
 		{
 			/* We don't need a memory segment */
@@ -296,7 +296,7 @@ u8_t *pat;
 	/* Setup a transfer to put the pattern. */
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xFF);
+	outb_reg0(dep, DP_RSAR0, pos &0xFF);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 
@@ -305,7 +305,7 @@ u8_t *pat;
 
 	for (i= 0; i<N; i++)
 	{
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
 			break;
 	}
 	if (i == N)
@@ -320,7 +320,7 @@ u8_t *pat;
 
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xFF);
+	outb_reg0(dep, DP_RSAR0, pos &0xFF);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 
@@ -348,7 +348,7 @@ u8_t *pat;
 	/* Setup a transfer to put the pattern. */
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xFF);
+	outb_reg0(dep, DP_RSAR0, pos &0xFF);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 
@@ -359,7 +359,7 @@ u8_t *pat;
 
 	for (i= 0; i<N; i++)
 	{
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
 			break;
 	}
 	if (i == N)
@@ -374,7 +374,7 @@ u8_t *pat;
 
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xFF);
+	outb_reg0(dep, DP_RSAR0, pos &0xFF);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 

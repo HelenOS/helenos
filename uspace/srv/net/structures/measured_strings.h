@@ -56,10 +56,10 @@ typedef measured_string_t *		measured_string_ref;
 struct	measured_string{
 	/** Character string data.
 	 */
-	char *	value;
+	char * value;
 	/** Character string length.
 	 */
-	size_t	length;
+	size_t length;
 };
 
 /** Creates a&nbsp;new measured string bundled with a&nbsp;copy of the given string itself as one memory block.
@@ -70,7 +70,7 @@ struct	measured_string{
  *  @returns The new bundled character string with measured length.
  *  @returns NULL if there is not enough memory left.
  */
-measured_string_ref	measured_string_create_bulk( const char * string, size_t length );
+measured_string_ref measured_string_create_bulk(const char * string, size_t length);
 
 /** Copies the given measured string with separated header and data parts.
  *  @param[in] source The source measured string to be copied.
@@ -78,7 +78,7 @@ measured_string_ref	measured_string_create_bulk( const char * string, size_t len
  *  @returns NULL if the source parameter is NULL.
  *  @returns NULL if there is not enough memory left.
  */
-measured_string_ref	measured_string_copy( measured_string_ref source );
+measured_string_ref measured_string_copy(measured_string_ref source);
 
 /** Receives a&nbsp;measured strings array from a&nbsp;calling module.
  *  Creates the array and the data memory blocks.
@@ -94,7 +94,7 @@ measured_string_ref	measured_string_copy( measured_string_ref source );
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the async_data_write_finalize() function.
  */
-int	measured_strings_receive( measured_string_ref * strings, char ** data, size_t count );
+int measured_strings_receive(measured_string_ref * strings, char ** data, size_t count);
 
 /** Replies the given measured strings array to a&nbsp;calling module.
  *  This method should be used only while processing IPC messages as the array size has to be negotiated in advance.
@@ -107,7 +107,7 @@ int	measured_strings_receive( measured_string_ref * strings, char ** data, size_
  *  @returns EINVAL if there is inconsistency in sent measured strings' lengths (should not occur).
  *  @returns Other error codes as defined for the async_data_read_finalize() function.
  */
-int	measured_strings_reply( const measured_string_ref strings, size_t count );
+int measured_strings_reply(const measured_string_ref strings, size_t count);
 
 /** Receives a&nbsp;measured strings array from another module.
  *  Creates the array and the data memory blocks.
@@ -123,7 +123,7 @@ int	measured_strings_reply( const measured_string_ref strings, size_t count );
  *  @returns ENOMEM if there is not enough memory left.
  *  @returns Other error codes as defined for the async_data_read_start() function.
  */
-int	measured_strings_return( int phone, measured_string_ref * strings, char ** data, size_t count );
+int measured_strings_return(int phone, measured_string_ref * strings, char ** data, size_t count);
 
 /** Sends the given measured strings array to another module.
  *  This method should be used only following other IPC messages as the array size has to be negotiated in advance.
@@ -135,7 +135,7 @@ int	measured_strings_return( int phone, measured_string_ref * strings, char ** d
  *  @returns EINVAL if the phone or count parameter is not positive (<=0).
  *  @returns Other error codes as defined for the async_data_write_start() function.
  */
-int	measured_strings_send( int phone, const measured_string_ref strings, size_t count );
+int measured_strings_send(int phone, const measured_string_ref strings, size_t count);
 
 #endif
 

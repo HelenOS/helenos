@@ -372,7 +372,7 @@ typedef uint16_t	eth_type_t;
  */
 #define ETH_P_Stanford_V_Kernel_prod		0x805C
 
-/** Evans & Sutherland ethernet protocol type.
+/** Evans &Sutherland ethernet protocol type.
  */
 #define ETH_P_Evans_Sutherland		0x805D
 
@@ -872,11 +872,11 @@ typedef uint16_t	eth_type_t;
  */
 #define ETH_P_Taurus_Controls_MAX		0x82AB
 
-/** Walker Richer & Quinn ethernet protocol type.
+/** Walker Richer &Quinn ethernet protocol type.
  */
 #define ETH_P_Walker_Richer_Quinn_MIN		0x82AC
 
-/** Walker Richer & Quinn ethernet protocol type.
+/** Walker Richer &Quinn ethernet protocol type.
  */
 #define ETH_P_Walker_Richer_Quinn_MAX		0x8693
 
@@ -920,11 +920,11 @@ typedef uint16_t	eth_type_t;
  */
 #define ETH_P_ATOMIC		0x86DF
 
-/** Landis & Gyr Powers ethernet protocol type.
+/** Landis &Gyr Powers ethernet protocol type.
  */
 #define ETH_P_Landis_Gyr_Powers_MIN		0x86E0
 
-/** Landis & Gyr Powers ethernet protocol type.
+/** Landis &Gyr Powers ethernet protocol type.
  */
 #define ETH_P_Landis_Gyr_Powers_MAX		0x86EF
 
