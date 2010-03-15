@@ -1059,6 +1059,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	socket_cores_t local_sockets;
 	int app_phone = IPC_GET_PHONE(&call);
 	struct sockaddr * addr;
+	int socket_id;
 	size_t addrlen;
 	fibril_rwlock_t lock;
 	ipc_call_t answer;
@@ -1103,8 +1104,9 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 					socket_data->local_lock = &lock;
 					socket_data->local_sockets = &local_sockets;
 					fibril_rwlock_write_lock(&lock);
-					*SOCKET_SET_SOCKET_ID(answer) = SOCKET_GET_SOCKET_ID(call);
-					res = socket_create(&local_sockets, app_phone, socket_data, SOCKET_SET_SOCKET_ID(answer));
+					socket_id = SOCKET_GET_SOCKET_ID(call);
+					res = socket_create(&local_sockets, app_phone, socket_data, &socket_id);
+					*SOCKET_SET_SOCKET_ID(answer) = socket_id;
 					fibril_rwlock_write_unlock(&lock);
 					if(res == EOK){
 						if(tl_get_ip_packet_dimension(tcp_globals.ip_phone, &tcp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
