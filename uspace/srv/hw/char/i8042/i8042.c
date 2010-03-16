@@ -67,9 +67,6 @@
 #define i8042_AUX_DISABLE	0x20
 #define i8042_KBD_TRANSLATE	0x40
 
-/* Mouse constants */
-#define MOUSE_OUT_INIT  0xf4
-#define MOUSE_ACK       0xfa
 
 enum {
 	DEVID_PRI = 0, /**< primary device */
@@ -176,30 +173,28 @@ static int i8042_init(void)
 
 	async_set_interrupt_received(i8042_irq_handler);
 
-	/* Disable kbd, enable mouse */
-	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
+	/* Disable kbd and aux */
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
-	pio_write_8(&i8042->data, i8042_KBD_DISABLE);
-	wait_ready();
+	pio_write_8(&i8042->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
 
 	/* Flush all current IO */
 	while (pio_read_8(&i8042->status) & i8042_OUTPUT_FULL)
 		(void) pio_read_8(&i8042->data);
 
-	i8042_port_write(DEVID_AUX, MOUSE_OUT_INIT);
-
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
 	ipc_register_irq(sysinfo_value("i8042.inr_a"), device_assign_devno(), 0, &i8042_kbd);
 	ipc_register_irq(sysinfo_value("i8042.inr_b"), device_assign_devno(), 0, &i8042_kbd);
+	printf("i8042: registered for interrupts %d and %d\n",
+	    sysinfo_value("i8042.inr_a"), sysinfo_value("i8042.inr_b"));
 
+	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
 	pio_write_8(&i8042->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
-	wait_ready();
 
 	return 0;
 }
@@ -270,11 +265,11 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 void i8042_port_write(int devid, uint8_t data)
 {
 	if (devid == DEVID_AUX) {
-		pio_write_8(&i8042->status, i8042_CMD_WRITE_AUX);
 		wait_ready();
+		pio_write_8(&i8042->status, i8042_CMD_WRITE_AUX);
 	}
-	pio_write_8(&i8042->data, data);
 	wait_ready();
+	pio_write_8(&i8042->data, data);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)
