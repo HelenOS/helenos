@@ -31,10 +31,12 @@
 
 CSCOPE = cscope
 CONFIG = tools/config.py
+SANITY = tools/sanity.py
 
 .PHONY: all config config_default distclean clean cscope precheck
 
 all: Makefile.config config.h config.defs
+	$(SANITY)
 	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
 	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
 	$(MAKE) -C boot PRECHECK=$(PRECHECK)
