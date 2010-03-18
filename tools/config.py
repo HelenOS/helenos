@@ -228,8 +228,13 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 	
 	sys.stderr.write("Fetching current revision identifier ... ")
-	version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
-	sys.stderr.write("OK\n")
+	
+	try:
+		version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
+		sys.stderr.write("ok\n")
+	except:
+		version = [1, "unknown", "unknown"]
+		sys.stderr.write("failed\n")
 	
 	if (len(version) == 3):
 		revision = version[1]
