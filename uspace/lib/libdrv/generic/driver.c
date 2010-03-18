@@ -128,7 +128,6 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
  */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
 	/* Select interface */
 	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
 	case DRIVER_DEVMAN:
@@ -148,6 +147,15 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 		/* No such interface */ 
 		ipc_answer_0(iid, ENOENT);
 	}
+}
+
+bool child_device_register(device_t *child, const char *child_name, device_t *parent)
+{
+	if (devman_child_device_register(child_name, parent->handle, &child->handle)) {
+		// TODO initialize child device
+		return true;
+	}
+	return false;
 }
 
 int driver_main(driver_t *drv) 

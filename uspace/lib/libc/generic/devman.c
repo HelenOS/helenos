@@ -105,6 +105,40 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	return retval;
 }
 
+int devman_child_device_register(const char *name, long parent_handle, long *handle)
+{	
+	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return phone;
+	
+	async_serialize_start();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_1(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, &answer);
+
+	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	async_serialize_end();
+	
+	if (retval != EOK) {
+		if (handle != NULL) {
+			*handle = -1;
+		}
+		return retval;
+	}	
+	
+	if (handle != NULL)
+		*handle = (int) IPC_GET_ARG1(answer);	
+}
+
 void devman_hangup_phone(devman_interface_t iface)
 {
 	switch (iface) {

@@ -37,8 +37,6 @@
 
 #include <adt/list.h>
 
-
-
 typedef struct device {
 	long handle;
 	ipcarg_t parent_phone;	
@@ -59,6 +57,20 @@ typedef struct driver {
 } driver_t;
 
 int driver_main(driver_t *drv);
+
+static inline device_t * create_device()
+{
+	device_t *dev = malloc(sizeof(device_t));
+	if (NULL != dev) {
+		memset(dev, 0, sizeof(device_t));
+	}
+	
+	return dev;
+}
+
+bool child_device_register(device_t *child, const char *child_name, device_t *parent);
+
+
 
 #endif
 
