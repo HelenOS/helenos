@@ -31,6 +31,7 @@ NAME = dp8390
 NET_BASE = ../../
 STRUCTURES = $(NET_BASE)structures/
 
+include $(NET_BASE)../../../Makefile.common
 include $(NET_BASE)../../../Makefile.config
 
 ## Sources

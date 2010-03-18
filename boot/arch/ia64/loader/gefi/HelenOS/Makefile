@@ -21,7 +21,6 @@
 #  02111-1307, USA.
 #
 
-prefix=$(PREFIX)
 include ../Make.defaults
 CDIR=$(TOPDIR)/..
 LINUX_HEADERS	= /usr/src/sys/build
@@ -68,4 +67,4 @@ mkimage: mkimage.c
 	gcc -o mkimage mkimage.c
 
 gefi:
-	$(MAKE) -C .. prefix=$(PREFIX)
+	$(MAKE) -C ..

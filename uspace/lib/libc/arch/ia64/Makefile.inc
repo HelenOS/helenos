@@ -26,12 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64/bin
-
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \
 	arch/$(UARCH)/src/thread_entry.s \

@@ -52,81 +52,35 @@ CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(LIBC_PREFIX
 LFLAGS = -M -N $(SOFTINT_PREFIX)/libsoftint.a
 AFLAGS =
 
-## Cross-toolchain prefix
-#
-
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 ## Setup platform configuration
 #
 
+-include $(LIBC_PREFIX)/../../../Makefile.common
 -include $(LIBC_PREFIX)/../../../Makefile.config
 -include $(LIBC_PREFIX)/../../../config.defs
 -include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
 
-## Simple detection of the host system
-#
-HOST = $(shell uname)
-
-## On Solaris, some utilities have different names
-#
-ifeq ($(HOST),SunOS)
-	BINUTILS_PREFIX = "g"
-else
-	BINUTILS_PREFIX = ""
-endif
-
-## Toolchain configuration
+## Compilation options
 #
 
 JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 
 ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	GCC = $(CC)
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	AR = $(TOOLCHAIN_DIR)/$(TARGET)-ar
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	GCC = $(CC)
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	AR = $(BINUTILS_PREFIX)ar
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc)
-	CC = icc
-	GCC = gcc
-	AS = as
-	LD = ld
-	AR = ar
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
 	CFLAGS = $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CC = clang
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	AR = $(BINUTILS_PREFIX)ar
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif

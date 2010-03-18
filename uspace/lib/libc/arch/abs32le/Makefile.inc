@@ -26,25 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-ifeq ($(COMPILER),gcc_cross)
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/$(CROSS_TARGET)/bin
-	
-	ifeq ($(CROSS_TARGET),arm32)
-		TARGET = arm-linux-gnu
-	endif
-	
-	ifeq ($(CROSS_TARGET),ia32)
-		TARGET = i686-pc-linux-gnu
-	endif
-	
-	ifeq ($(CROSS_TARGET),mips32)
-		TARGET = mipsel-linux-gnu
-	endif
-endif
-
 ifeq ($(COMPILER),clang)
 	CLANG_ARCH = i386
 endif

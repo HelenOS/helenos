@@ -27,12 +27,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32/bin
-
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \
 	arch/$(UARCH)/src/thread_entry.s \

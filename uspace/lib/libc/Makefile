@@ -27,6 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+-include ../../../Makefile.common
 -include ../../../Makefile.config
 
 USPACE_PREFIX = $(shell pwd)/../..

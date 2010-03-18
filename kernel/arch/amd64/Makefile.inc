@@ -26,15 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf64-x86-64
 BFD_ARCH = i386:x86-64
 BFD = binary
-TARGET = amd64-linux-gnu
 CLANG_ARCH = x86_64
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
 CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer

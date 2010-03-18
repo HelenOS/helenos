@@ -26,13 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64
 
 CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 GCC_CFLAGS += $(CMN1)

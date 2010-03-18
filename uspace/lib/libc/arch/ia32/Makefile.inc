@@ -26,12 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-TARGET = i686-pc-linux-gnu
 CLANG_ARCH = i386
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia32/bin
 
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \

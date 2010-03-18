@@ -32,6 +32,7 @@
 
 include Makefile.common
 include ../version
+include ../Makefile.common
 include ../Makefile.config
 include ../config.defs
 
@@ -41,10 +42,6 @@ SIZEOK_MAP = generic/src/debug/sizeok_map.o
 
 INCLUDES = generic/include
 OPTIMIZATION = 3
-
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
 
 ## Common compiler flags
 #
@@ -88,79 +85,39 @@ AFLAGS =
 # defined as the percentile-sign ('%') in the architecture-dependent
 # Makefile.inc.
 #
+
 ATSIGN ?= @
 
 ## Cross-platform assembly to start a symtab.data section
 #
+
 SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
 
-## Simple detection for the type of the host system
-#
-HOST = $(shell uname)
-
-## On Solaris, some utilities have slightly different names
-#
-ifeq ($(HOST),SunOS)
-	BINUTILS_PREFIX = "g"
-else
-	BINUTILS_PREFIX = ""
-endif
-
-## Toolchain configuration
+## Compilation options
 #
 
 ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
-	GCC = $(CC)
-	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),icc)
-	CC = icc
-	GCC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
 	CFLAGS = $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
 ifeq ($(COMPILER),suncc)
-	CC = suncc
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	CFLAGS = $(SUNCC_CFLAGS)
 	DEFS += $(CONFIG_DEFS)
 	DEPEND_DEFS = $(DEFS)
 endif
 
 ifeq ($(COMPILER),clang)
-	CC = clang
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif

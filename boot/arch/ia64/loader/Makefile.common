@@ -30,6 +30,7 @@
 ## Common names
 #
 
+include ../../../../Makefile.common
 include ../../../../Makefile.config
 include ../../../Makefile.common
 

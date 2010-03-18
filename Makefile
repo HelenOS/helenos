@@ -31,12 +31,11 @@
 
 CSCOPE = cscope
 CONFIG = tools/config.py
-SANITY = tools/sanity.py
+AUTOTOOL = tools/autotool.py
 
-.PHONY: all config config_default distclean clean cscope precheck
+.PHONY: all precheck cscope autotool config_default config distclean clean
 
-all: Makefile.config config.h config.defs
-	$(SANITY)
+all: Makefile.common Makefile.config config.h config.defs
 	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
 	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
 	$(MAKE) -C boot PRECHECK=$(PRECHECK)
@@ -46,6 +45,11 @@ precheck: clean
 
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
+
+Makefile.common: autotool
+
+autotool: Makefile.config
+	$(AUTOTOOL)
 
 Makefile.config: config_default
 
@@ -60,7 +64,7 @@ config: HelenOS.config
 	$(CONFIG) HelenOS.config
 
 distclean: clean
-	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc tools/checkers/*.pyc
+	rm -f $(CSCOPE).out Makefile.common Makefile.config config.h config.defs tools/*.pyc tools/checkers/*.pyc
 
 clean:
 	$(MAKE) -C kernel clean

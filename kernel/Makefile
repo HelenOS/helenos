@@ -30,7 +30,7 @@ include Makefile.common
 
 .PHONY: all clean
 
-all: ../version ../Makefile.config ../config.h ../config.defs
+all: ../version ../Makefile.common ../Makefile.config ../config.h ../config.defs
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
 	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
