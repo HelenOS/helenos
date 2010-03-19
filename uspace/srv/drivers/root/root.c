@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <macros.h>
 
 #include <driver.h>
 #include <devman.h>
@@ -62,10 +63,58 @@ static driver_t root_driver = {
 	.driver_ops = &root_ops
 };
 
+static bool add_platform_child(device_t *parent) {
+	printf(NAME ": adding new child for platform device.\n");
+	
+	device_t *platform = NULL;
+	match_id_t *match_id = NULL;	
+	
+	// create new device
+	if (NULL == (platform = create_device())) {
+		goto failure;
+	}
+	
+	// TODO - replace this with some better solution
+	platform->name = STRING(UARCH);
+	printf(NAME ": the new device's name is %s.\n", platform->name);
+	
+	// initialize match id list
+	if (NULL == (match_id = create_match_id())) {
+		goto failure;
+	}
+	match_id->id = platform->name;
+	match_id->score = 100;
+	add_match_id(&platform->match_ids, match_id);	
+	
+	// register child  device
+	if (!child_device_register(platform, parent)) {
+		goto failure;
+	}
+	
+	return true;
+	
+failure:
+	if (NULL != match_id) {
+		match_id->id = NULL;
+	}
+	
+	if (NULL != platform) {
+		platform->name = NULL;
+		delete_device(platform);		
+	}
+	
+	return false;	
+}
+
 static bool root_add_device(device_t *dev) 
 {
-	printf(NAME ": root_add_device, device handle = %s", dev->handle);
-	// TODO add root device and register its children
+	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
+	
+	// register root device's children	
+	if (!add_platform_child(dev)) {
+		return false;
+	}
+	
 	return true;
 }
 
@@ -89,3 +138,4 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
+ 

@@ -33,9 +33,84 @@
 #ifndef LIBC_IPC_DEVMAN_H_
 #define LIBC_IPC_DEVMAN_H_
 
+#include <adt/list.h>
 #include <ipc/ipc.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DEVMAN_NAME_MAXLEN 256
+
+typedef ipcarg_t device_handle_t;
+
+/** Ids of device models used for device-to-driver matching.
+ */
+typedef struct match_id {
+	/** Pointers to next and previous ids.
+	 */
+	link_t link;
+	/** Id of device model.
+	 */
+	const char *id;
+	/** Relevancy of device-to-driver match.
+	 * The higher is the product of scores specified for the device by the bus driver and by the leaf driver,
+	 * the more suitable is the leaf driver for handling the device.
+	 */
+	unsigned int score;
+} match_id_t;
+
+/** List of ids for matching devices to drivers sorted
+ * according to match scores in descending order.
+ */
+typedef struct match_id_list {
+	link_t ids;
+} match_id_list_t;
+
+
+static inline match_id_t * create_match_id()
+{
+	match_id_t *id = malloc(sizeof(match_id_t));
+	memset(id, 0, sizeof(match_id_t));
+	return id;
+}
+
+static inline void delete_match_id(match_id_t *id)
+{
+	if (id) {
+		if (NULL != id->id) {
+			free(id->id);
+		}
+		free(id);
+	}
+}
+
+static inline void add_match_id(match_id_list_t *ids, match_id_t *id) 
+{
+	match_id_t *mid = NULL;
+	link_t *link = ids->ids.next;	
+	
+	while (link != &ids->ids) {
+		mid = list_get_instance(link, match_id_t,link);
+		if (mid->score < id->score) {
+			break;
+		}	
+		link = link->next;
+	}
+	
+	list_insert_before(&id->link, link);	
+}
+
+static inline void clean_match_ids(match_id_list_t *ids)
+{
+	link_t *link = NULL;
+	match_id_t *id;
+	
+	while(!list_empty(&ids->ids)) {
+		link = ids->ids.next;
+		list_remove(link);		
+		id = list_get_instance(link, match_id_t, link);
+		delete_match_id(id);		
+	}	
+}
 
 typedef enum {
 	DEVMAN_DRIVER = 1,

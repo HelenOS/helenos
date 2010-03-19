@@ -39,6 +39,7 @@
 #include <string.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
+#include <ipc/devman.h>
 #include <fibril_synch.h>
 #include <atomic.h>
 
@@ -47,33 +48,11 @@
 #define NAME "devman"
 
 #define MATCH_EXT ".ma"
+#define MAX_DEV 256
 
 struct node;
 
 typedef struct node node_t;
-
-/** Ids of device models used for device-to-driver matching.
- */
-typedef struct match_id {
-	/** Pointers to next and previous ids.
-	 */
-	link_t link;
-	/** Id of device model.
-	 */
-	const char *id;
-	/** Relevancy of device-to-driver match.
-	 * The higher is the product of scores specified for the device by the bus driver and by the leaf driver,
-	 * the more suitable is the leaf driver for handling the device.
-	 */
-	unsigned int score;
-} match_id_t;
-
-/** List of ids for matching devices to drivers sorted
- * according to match scores in descending order.
- */
-typedef struct match_id_list {
-	link_t ids;
-} match_id_list_t;
 
 typedef enum {
 	/** driver has not been started */
@@ -116,7 +95,11 @@ typedef struct driver_list {
 /** Representation of a node in the device tree.*/
 struct node {
 	/** The global unique identifier of the device.*/
-	long handle;
+	device_handle_t handle;
+	/** The name of the device specified by its parent. */
+	char *name;
+	/** Full path and name of the device in device hierarchi (i. e. in full path in device tree).*/
+	char *pathname;	
 	/** The node of the parent device. */
 	node_t *parent;
 	/** Pointers to previous and next child devices in the linked list of parent device's node.*/
@@ -139,7 +122,10 @@ struct node {
 typedef struct dev_tree {
 	/** Root device node. */
 	node_t *root_node;
+	/** The next available handle - handles are assigned in a sequential manner.*/
 	atomic_t current_handle;
+	/** Handle-to-node mapping. */
+	node_t * node_map[MAX_DEV];
 } dev_tree_t;
 
 
@@ -151,29 +137,6 @@ int get_match_score(driver_t *drv, node_t *dev);
 bool parse_match_ids(const char *buf, match_id_list_t *ids);
 bool read_match_ids(const char *conf_path, match_id_list_t *ids);
 char * read_id(const char **buf) ;
-void add_match_id(match_id_list_t *ids, match_id_t *id);
-
-void clean_match_ids(match_id_list_t *ids);
-
-
-static inline match_id_t * create_match_id()
-{
-	match_id_t *id = malloc(sizeof(match_id_t));
-	memset(id, 0, sizeof(match_id_t));
-	return id;
-}
-
-static inline void delete_match_id(match_id_t *id)
-{
-	if (id) {
-		free_not_null(id->id);
-		free(id);
-	}
-}
-
-
-
-
 
 // Drivers
 
@@ -247,26 +210,19 @@ static inline node_t * create_dev_node()
 	return res;
 }
 
-static inline void insert_dev_node(dev_tree_t *tree, node_t *node, node_t *parent)
+static inline node_t * find_dev_node(dev_tree_t *tree, long handle)
 {
-	assert(NULL != node && NULL != tree);
-	
-	node->handle = atomic_postinc(&tree->current_handle);
-
-	node->parent = parent;
-	if (NULL != parent) {
-		fibril_mutex_lock(&parent->children_mutex);
-		list_append(&node->sibling, &parent->children);
-		fibril_mutex_unlock(&parent->children_mutex);
+	if (handle < MAX_DEV) {
+		return tree->node_map[handle];
 	}
+	return NULL;
 }
-
 
 // Device tree
 
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list);
 bool create_root_node(dev_tree_t *tree);
-
+bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_t *parent);
 
 #endif
 

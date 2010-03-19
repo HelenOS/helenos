@@ -105,7 +105,8 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	return retval;
 }
 
-int devman_child_device_register(const char *name, long parent_handle, long *handle)
+int devman_child_device_register(
+	const char *name, match_id_list_t *match_ids, device_handle_t parent_handle, device_handle_t *handle)
 {	
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -123,6 +124,8 @@ int devman_child_device_register(const char *name, long parent_handle, long *han
 		async_serialize_end();
 		return retval;
 	}
+	
+	// TODO match ids
 	
 	async_wait_for(req, &retval);
 	

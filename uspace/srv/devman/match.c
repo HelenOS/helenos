@@ -88,32 +88,5 @@ int get_match_score(driver_t *drv, node_t *dev)
 	return 0;
 }
 
-void add_match_id(match_id_list_t *ids, match_id_t *id) 
-{
-	match_id_t *mid = NULL;
-	link_t *link = ids->ids.next;	
-	
-	while (link != &ids->ids) {
-		mid = list_get_instance(link, match_id_t,link);
-		if (mid->score < id->score) {
-			break;
-		}	
-		link = link->next;
-	}
-	
-	list_insert_before(&id->link, link);	
-}
 
-void clean_match_ids(match_id_list_t *ids)
-{
-	link_t *link = NULL;
-	match_id_t *id;
-	
-	while(!list_empty(&ids->ids)) {
-		link = ids->ids.next;
-		list_remove(link);		
-		id = list_get_instance(link, match_id_t, link);
-		delete_match_id(id);		
-	}	
-}
 

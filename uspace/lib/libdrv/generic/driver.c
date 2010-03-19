@@ -71,7 +71,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	
 	// result of the operation - device was added, device is not present etc.
 	ipcarg_t ret = 0;	
-	ipcarg_t dev_handle =  IPC_GET_ARG1(*icall);
+	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
 	
 	printf("%s: adding device with handle = %x \n", driver->name, dev_handle);
 	
@@ -108,8 +108,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			if (!(callid & IPC_CALLID_NOTIFICATION))
 				ipc_answer_0(callid, ENOENT);
 		}
-	}
-	
+	}	
 }
 
 static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
@@ -149,9 +148,13 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-bool child_device_register(device_t *child, const char *child_name, device_t *parent)
+bool child_device_register(device_t *child, device_t *parent)
 {
-	if (devman_child_device_register(child_name, parent->handle, &child->handle)) {
+	printf("%s: child_device_register\n", driver->name);
+	
+	assert(NULL != child->name);
+	
+	if (devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle)) {
 		// TODO initialize child device
 		return true;
 	}

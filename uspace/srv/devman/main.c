@@ -119,6 +119,14 @@ static driver_t * devman_driver_register(void)
 	return driver;
 }
 
+static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *driver)
+{
+	printf(NAME ": devman_add_child\n");
+	
+	// TODO
+	
+}
+
 /** Function for handling connections to device manager.
  *
  */
@@ -144,7 +152,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			cont = false;
 			continue;
 		case DEVMAN_ADD_CHILD_DEVICE:
-			// TODO add new device node to the device tree
+			devman_add_child(callid, &call, driver);
 			break;
 		default:
 			ipc_answer_0(callid, EINVAL); 

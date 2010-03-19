@@ -36,10 +36,13 @@
 
 
 #include <adt/list.h>
+#include <ipc/devman.h>
 
 typedef struct device {
-	long handle;
+	device_handle_t handle;
 	ipcarg_t parent_phone;	
+	const char *name;
+	match_id_list_t match_ids;
 	
 	// TODO add more items - parent bus type etc.
 	
@@ -63,13 +66,20 @@ static inline device_t * create_device()
 	device_t *dev = malloc(sizeof(device_t));
 	if (NULL != dev) {
 		memset(dev, 0, sizeof(device_t));
-	}
-	
+	}	
+	list_initialize(&dev->match_ids.ids);
 	return dev;
 }
 
-bool child_device_register(device_t *child, const char *child_name, device_t *parent);
+static inline delete_device(device_t *dev) {
+	clean_match_ids(&dev->match_ids);
+	if (NULL != dev->name) {
+		free(dev->name);
+	}
+	free(dev);
+}
 
+bool child_device_register(device_t *child, device_t *parent);
 
 
 #endif

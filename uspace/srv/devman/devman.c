@@ -319,7 +319,7 @@ bool create_root_node(dev_tree_t *tree)
 	printf(NAME ": create_root_node\n");
 	node_t *node = create_dev_node();
 	if (node) {
-		insert_dev_node(tree, node, NULL);
+		insert_dev_node(tree, node, "", NULL);
 		match_id_t *id = create_match_id();
 		id->id = "root";
 		id->score = 100;
@@ -409,6 +409,12 @@ bool start_driver(driver_t *drv)
 	return true;
 }
 
+/** Find device driver in the list of device drivers.
+ * 
+ * @param drv_list the list of device drivers.
+ * @param drv_name the name of the device driver which is searched.
+ * @return the device driver of the specified name, if it is in the list, NULL otherwise.  
+ */
 driver_t * find_driver(driver_list_t *drv_list, const char *drv_name) 
 {	
 	driver_t *res = NULL;
@@ -431,6 +437,10 @@ driver_t * find_driver(driver_list_t *drv_list, const char *drv_name)
 	return res;
 }
 
+/** Remember the driver's phone.
+ * @param driver the driver.
+ * @param phone the phone to the driver.
+ */
 void set_driver_phone(driver_t *driver, ipcarg_t phone)
 {		
 	fibril_mutex_lock(&driver->driver_mutex);	
@@ -466,7 +476,8 @@ static void pass_devices_to_driver(driver_t *driver)
 	}
 }
 
-/** Finish the initialization of a driver after it has succesfully started and registered itself by the device manager.
+/** Finish the initialization of a driver after it has succesfully started 
+ * and after it has registered itself by the device manager.
  * 
  * Pass devices formerly matched to the driver to the driver and remember the driver is running and fully functional now.
  * 
@@ -558,6 +569,8 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
 	printf(NAME ": init_device_tree.\n");
 	
+	memset(tree->node_map, 0, MAX_DEV * sizeof(node_t *));
+	
 	atomic_set(&tree->current_handle, 0);
 	
 	// create root node and add it to the device tree
@@ -567,6 +580,77 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 
 	// find suitable driver and start it
 	return assign_driver(tree->root_node, drivers_list);
+}
+
+/** Create and set device's full path in device tree.
+ * 
+ * @param node the device's device node.
+ * @param parent the parent device node.
+ * @return true on success, false otherwise (insufficient resources etc.). 
+ */
+static bool set_dev_path(node_t *node, node_t *parent)
+{	
+	assert(NULL != node->name);
+	
+	size_t pathsize = (str_size(node->name) + 1);	
+	if (NULL != parent) {		
+		pathsize += str_size(parent->name) + 1;		
+	}
+	
+	if (NULL == (node->pathname = (char *)malloc(pathsize))) {
+		printf(NAME ": failed to allocate device path.\n");
+		return false;
+	}
+	
+	if (NULL != parent) {
+		str_cpy(node->pathname, pathsize, parent->pathname);
+		str_append(node->pathname, pathsize, "/");
+		str_append(node->pathname, pathsize, node->name);
+	} else {
+		str_cpy(node->pathname, pathsize, node->name);
+	}
+	
+	return true;
+}
+
+/** Insert new device into device tree.
+ * 
+ * @param tree the device tree.
+ * @param node the newly added device node. 
+ * @param dev_name the name of the newly added device.
+ * @param parent the parent device node.
+ * @return true on success, false otherwise (insufficient resources etc.).
+ */
+bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_t *parent)
+{
+	printf(NAME ": insert_dev_node\n");
+	
+	assert(NULL != node && NULL != tree && dev_name != NULL);
+	
+	node->name = dev_name;
+	if (!set_dev_path(node, parent)) {
+		return false;		
+	}
+	
+	// add the node to the handle-to-node map
+	node->handle = atomic_postinc(&tree->current_handle);
+	if (node->handle >= MAX_DEV) {
+		printf(NAME ": failed to add device to device tree, because maximum number of devices was reached.\n");
+		free(node->pathname);
+		node->pathname = NULL;
+		atomic_postdec(&tree->current_handle);
+		return false;
+	}
+	tree->node_map[node->handle] = node;
+
+	// add the node to the list of its parent's children
+	node->parent = parent;
+	if (NULL != parent) {
+		fibril_mutex_lock(&parent->children_mutex);
+		list_append(&node->sibling, &parent->children);
+		fibril_mutex_unlock(&parent->children_mutex);
+	}	
+	return true;
 }
 
 /** @}
