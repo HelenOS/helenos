@@ -26,16 +26,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
-
 CSCOPE = cscope
 CONFIG = tools/config.py
 AUTOTOOL = tools/autotool.py
+SANDBOX = autotool
+
+CONFIG_RULES = HelenOS.config
+
+COMMON_MAKEFILE = Makefile.common
+COMMON_HEADER = common.h
+COMMON_HEADER_PREV = $(COMMON_HEADER).prev
+
+CONFIG_MAKEFILE = Makefile.config
+CONFIG_HEADER = config.h
 
 .PHONY: all precheck cscope autotool config_default config distclean clean
 
-all: Makefile.common Makefile.config config.h config.defs
+all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
 	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
 	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
 	$(MAKE) -C boot PRECHECK=$(PRECHECK)
@@ -46,27 +54,27 @@ precheck: clean
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
 
-Makefile.common: autotool
+$(COMMON_MAKEFILE): autotool
+$(COMMON_HEADER): autotool
 
-autotool: Makefile.config
+autotool: $(CONFIG_MAKEFILE)
 	$(AUTOTOOL)
+	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
 
-Makefile.config: config_default
+$(CONFIG_MAKEFILE): config_default
+$(CONFIG_HEADER): config_default
 
-config.h: config_default
+config_default: $(CONFIG_RULES)
+	$(CONFIG) $< default
 
-config.defs: config_default
-
-config_default: HelenOS.config
-	$(CONFIG) HelenOS.config default
-
-config: HelenOS.config
-	$(CONFIG) HelenOS.config
+config: $(CONFIG_RULES)
+	$(CONFIG) $<
 
 distclean: clean
-	rm -f $(CSCOPE).out Makefile.common Makefile.config config.h config.defs tools/*.pyc tools/checkers/*.pyc
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc
 
 clean:
+	rm -fr $(SANDBOX)
 	$(MAKE) -C kernel clean
 	$(MAKE) -C uspace clean
 	$(MAKE) -C boot clean

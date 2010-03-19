@@ -42,7 +42,6 @@ import xtui
 INPUT = sys.argv[1]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-DEFS = 'config.defs'
 PRECONF = 'defaults'
 
 def read_defaults(fname, defaults):
@@ -224,7 +223,7 @@ def check_choices(defaults, ask_names):
 	
 	return True
 
-def create_output(mkname, mcname, dfname, defaults, ask_names):
+def create_output(mkname, mcname, defaults, ask_names):
 	"Create output configuration"
 	
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -248,7 +247,6 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	
 	outmk = file(mkname, 'w')
 	outmc = file(mcname, 'w')
-	outdf = file(dfname, 'w')
 	
 	outmk.write('#########################################\n')
 	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
@@ -258,10 +256,7 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	outmc.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
 	outmc.write(' ***************************************/\n\n')
 	
-	outdf.write('#########################################\n')
-	outdf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
-	outdf.write('#########################################\n\n')
-	outdf.write('CONFIG_DEFS =')
+	defs = 'CONFIG_DEFS ='
 	
 	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
@@ -279,23 +274,24 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 		if ((vartype == "y") or (vartype == "n") or (vartype == "y/n") or (vartype == "n/y")):
 			if (default == "y"):
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
-				outdf.write(' -D%s' % varname)
+				defs += ' -D%s' % varname
 		else:
 			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, default, varname, default))
-			outdf.write(' -D%s=%s -D%s_%s' % (varname, default, varname, default))
+			defs += ' -D%s=%s -D%s_%s' % (varname, default, varname, default)
 	
 	if (revision is not None):
 		outmk.write('REVISION = %s\n' % revision)
 		outmc.write('#define REVISION %s\n' % revision)
-		outdf.write(' "-DREVISION=%s"' % revision)
+		defs += ' "-DREVISION=%s"' % revision
 	
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
-	outdf.write(' "-DTIMESTAMP=%s"\n' % timestamp)
+	defs += ' "-DTIMESTAMP=%s"\n' % timestamp
+	
+	outmk.write(defs)
 	
 	outmk.close()
 	outmc.close()
-	outdf.close()
 
 def sorted_dir(root):
 	list = os.listdir(root)
@@ -354,7 +350,7 @@ def main():
 	# Default mode: only check defaults and regenerate configuration
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
 		if (check_choices(defaults, ask_names)):
-			create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
+			create_output(MAKEFILE, MACROS, defaults, ask_names)
 			return 0
 	
 	# Check mode: only check defaults
@@ -472,7 +468,7 @@ def main():
 	finally:
 		xtui.screen_done(screen)
 	
-	create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
+	create_output(MAKEFILE, MACROS, defaults, ask_names)
 	return 0
 
 if __name__ == '__main__':

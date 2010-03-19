@@ -78,7 +78,7 @@ def read_obdump(inp):
 			fname = res.group(1)
 			continue
 	
-	return {'text' : funcs, 'bss' : bss, 'data' : data }
+	return {'text' : funcs, 'bss' : bss, 'data' : data}
 
 def generate(kmapf, obmapf, out):
 	"Generate output file"

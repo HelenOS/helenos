@@ -62,7 +62,6 @@ all: \
     $(LIBC_PREFIX)/../../../Makefile.common \
     $(LIBC_PREFIX)/../../../Makefile.config \
     $(LIBC_PREFIX)/../../../config.h \
-    $(LIBC_PREFIX)/../../../config.defs \
     $(LIBS) \
     \
     $(OUTPUT) $(OUTPUT).disasm

@@ -31,7 +31,6 @@
 
 -include ../Makefile.common
 -include ../Makefile.config
--include ../config.defs
 
 ## Paths
 #
@@ -42,7 +41,7 @@ USPACEDIR = $(BASE)/uspace
 
 .PHONY: all build clean generic_clean
 
-all: ../Makefile.common ../Makefile.config ../config.h ../config.defs build
+all: ../Makefile.common ../Makefile.config ../config.h build
 
 -include arch/$(BARCH)/Makefile.inc
 

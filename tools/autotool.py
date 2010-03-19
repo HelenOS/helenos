@@ -33,16 +33,43 @@ Detect important prerequisites and parameters for building HelenOS
 
 import sys
 import os
+import shutil
 import re
 import time
 import subprocess
 
-MAKEFILE = 'Makefile.config'
-COMMON = 'Makefile.common'
+SANDBOX = 'autotool'
+CONFIG = 'Makefile.config'
+MAKEFILE = 'Makefile.common'
+HEADER = 'common.h'
+GUARD = 'AUTOTOOL_COMMON_H_'
+
+PROBE_SOURCE = 'probe.c'
+PROBE_OUTPUT = 'probe.s'
 
 PACKAGE_BINUTILS = "usually part of binutils"
 PACKAGE_GCC = "preferably version 4.4.3 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
+
+COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
+
+PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, name, value) \\
+	asm volatile ( \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" name "\\t%[val]\\n" \\
+		: \\
+		: [val] "n" (value) \\
+	)
+
+#define DECLARE_INTSIZE(type) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", #type, sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", #type, sizeof(signed type))
+
+int main(int argc, char *argv[])
+{
+"""
+
+PROBE_TAIL = """}
+"""
 
 def read_config(fname, config):
 	"Read HelenOS build configuration"
@@ -69,6 +96,34 @@ def print_error(msg):
 	
 	sys.exit(1)
 
+def sandbox_enter():
+	"Create a temporal sandbox directory for running tests"
+	
+	if (os.path.exists(SANDBOX)):
+		if (os.path.isdir(SANDBOX)):
+			try:
+				shutil.rmtree(SANDBOX)
+			except:
+				print_error(["Unable to cleanup the directory \"%s\"." % SANDBOX])
+		else:
+			print_error(["Please inspect and remove unexpected directory,",
+			             "entry \"%s\"." % SANDBOX])
+	
+	try:
+		os.mkdir(SANDBOX)
+	except:
+		print_error(["Unable to create sandbox directory \"%s\"." % SANDBOX])
+	
+	owd = os.getcwd()
+	os.chdir(SANDBOX)
+	
+	return owd
+
+def sandbox_leave(owd):
+	"Leave the temporal sandbox directory"
+	
+	os.chdir(owd)
+
 def check_config(config, key):
 	"Check whether the configuration key exists"
 	
@@ -76,6 +131,13 @@ def check_config(config, key):
 		print_error(["Build configuration of HelenOS does not contain %s." % key,
 		             "Try running \"make config\" again.",
 		             "If the problem persists, please contact the developers of HelenOS."])
+
+def check_common(common, key):
+	"Check whether the common key exists"
+	
+	if (not key in common):
+		print_error(["Failed to determine the value %s." % key,
+		             "Please contact the developers of HelenOS."])
 
 def check_app(args, name, details):
 	"Check whether an application can be executed"
@@ -121,29 +183,163 @@ def check_binutils(path, prefix, common, details):
 	check_app([common['OBJCOPY'], "--version"], "GNU Objcopy utility", details)
 	check_app([common['OBJDUMP'], "--version"], "GNU Objdump utility", details)
 
-def create_output(cmname, common):
-	"Create common parameters output"
+def probe_compiler(common, sizes):
+	"Generate, compile and parse probing source"
 	
-	outcm = file(cmname, 'w')
+	check_common(common, "CC")
 	
-	outcm.write('#########################################\n')
-	outcm.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
-	outcm.write('#########################################\n\n')
+	outf = file(PROBE_SOURCE, 'w')
+	outf.write(PROBE_HEAD)
+	
+	for typedef in sizes:
+		outf.write("\tDECLARE_INTSIZE(%s);\n" % typedef)
+	
+	outf.write(PROBE_TAIL)
+	outf.close()
+	
+	args = [common['CC'], "-S", "-o", PROBE_OUTPUT, PROBE_SOURCE]
+	
+	try:
+		sys.stderr.write("Checking compiler properties ... ")
+		output = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
+	except:
+		sys.stderr.write("failed\n")
+		print_error(["Error executing \"%s\"." % " ".join(args),
+		             "Make sure that the compiler works properly."])
+	
+	if (not os.path.isfile(PROBE_OUTPUT)):
+		sys.stderr.write("failed\n")
+		print output[1]
+		print_error(["Error executing \"%s\"." % " ".join(args),
+		             "The compiler did not produce the output file \"%s\"." % PROBE_OUTPUT,
+		             "",
+		             output[0],
+		             output[1]])
+	
+	sys.stderr.write("ok\n")
+	
+	inf = file(PROBE_OUTPUT, 'r')
+	lines = inf.readlines()
+	inf.close()
+	
+	unsigned_sizes = {}
+	signed_sizes = {}
+	
+	for j in range(len(lines)):
+		tokens = lines[j].strip().split("\t")
+		
+		if (len(tokens) > 0):
+			if (tokens[0] == "AUTOTOOL_DECLARE"):
+				if (len(tokens) < 5):
+					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+				
+				category = tokens[1]
+				subcategory = tokens[2]
+				name = tokens[3]
+				value = tokens[4]
+				
+				if (category == "intsize"):
+					base = 10
+					
+					if ((value.startswith('$')) or (value.startswith('#'))):
+						value = value[1:]
+					
+					if (value.startswith('0x')):
+						value = value[2:]
+						base = 16
+					
+					try:
+						value_int = int(value, base)
+					except:
+						print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
+					
+					if (subcategory == "unsigned"):
+						unsigned_sizes[name] = value_int
+					elif (subcategory == "signed"):
+						signed_sizes[name] = value_int
+					else:
+						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
+	
+	return {'unsigned_sizes' : unsigned_sizes, 'signed_sizes' : signed_sizes}
+
+def detect_uints(unsigned_sizes, signed_sizes, bytes):
+	"Detect correct types for fixed-size integer types"
+	
+	typedefs = []
+	
+	for b in bytes:
+		fnd = False
+		newtype = "uint%s_t" % (b * 8)
+		
+		for name, value in unsigned_sizes.items():
+			if (value == b):
+				oldtype = "unsigned %s" % name
+				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
+				fnd = True
+				break
+		
+		if (not fnd):
+			print_error(['Unable to find appropriate integer type for %s' % newtype,
+			             COMPILER_FAIL])
+		
+		
+		fnd = False
+		newtype = "int%s_t" % (b * 8)
+		
+		for name, value in signed_sizes.items():
+			if (value == b):
+				oldtype = "signed %s" % name
+				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
+				fnd = True
+				break
+		
+		if (not fnd):
+			print_error(['Unable to find appropriate integer type for %s' % newtype,
+			             COMPILER_FAIL])
+	
+	return typedefs
+
+def create_makefile(mkname, common):
+	"Create makefile output"
+	
+	outmk = file(mkname, 'w')
+	
+	outmk.write('#########################################\n')
+	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
+	outmk.write('#########################################\n\n')
 	
 	for key, value in common.items():
-		outcm.write('%s = %s\n' % (key, value))
+		outmk.write('%s = %s\n' % (key, value))
 	
-	outcm.close()
+	outmk.close()
+
+def create_header(hdname, typedefs):
+	"Create header output"
+	
+	outhd = file(hdname, 'w')
+	
+	outhd.write('/***************************************\n')
+	outhd.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
+	outhd.write(' ***************************************/\n\n')
+	
+	outhd.write('#ifndef %s\n' % GUARD)
+	outhd.write('#define %s\n\n' % GUARD)
+	
+	for typedef in typedefs:
+		outhd.write('typedef %s %s;\n' % (typedef['oldtype'], typedef['newtype']))
+	
+	outhd.write('\n#endif\n')
+	outhd.close()
 
 def main():
 	config = {}
 	common = {}
 	
 	# Read and check configuration
-	if os.path.exists(MAKEFILE):
-		read_config(MAKEFILE, config)
+	if os.path.exists(CONFIG):
+		read_config(CONFIG, config)
 	else:
-		print_error(["Configuration file %s not found! Make sure that the" % MAKEFILE,
+		print_error(["Configuration file %s not found! Make sure that the" % CONFIG,
 		             "configuration phase of HelenOS build went OK. Try running",
 		             "\"make config\" again."])
 	
@@ -163,101 +359,124 @@ def main():
 	else:
 		binutils_prefix = ""
 	
-	# Common utilities
-	check_app(["ln", "--version"], "Symlink utility", "usually part of coreutils")
-	check_app(["rm", "--version"], "File remove utility", "usually part of coreutils")
-	check_app(["mkdir", "--version"], "Directory creation utility", "usually part of coreutils")
-	check_app(["cp", "--version"], "Copy utility", "usually part of coreutils")
-	check_app(["find", "--version"], "Find utility", "usually part of findutils")
-	check_app(["diff", "--version"], "Diff utility", "usually part of diffutils")
-	check_app(["make", "--version"], "Make utility", "preferably GNU Make")
-	check_app(["makedepend", "-f", "-"], "Makedepend utility", "usually part of imake or xutils")
+	owd = sandbox_enter()
 	
-	# Compiler
-	if (config['COMPILER'] == "gcc_cross"):
-		if (config['PLATFORM'] == "abs32le"):
-			check_config(config, "CROSS_TARGET")
-			target = config['CROSS_TARGET']
+	try:
+		# Common utilities
+		check_app(["ln", "--version"], "Symlink utility", "usually part of coreutils")
+		check_app(["rm", "--version"], "File remove utility", "usually part of coreutils")
+		check_app(["mkdir", "--version"], "Directory creation utility", "usually part of coreutils")
+		check_app(["cp", "--version"], "Copy utility", "usually part of coreutils")
+		check_app(["find", "--version"], "Find utility", "usually part of findutils")
+		check_app(["diff", "--version"], "Diff utility", "usually part of diffutils")
+		check_app(["make", "--version"], "Make utility", "preferably GNU Make")
+		check_app(["makedepend", "-f", "-"], "Makedepend utility", "usually part of imake or xutils")
+		
+		# Compiler
+		if (config['COMPILER'] == "gcc_cross"):
+			if (config['PLATFORM'] == "abs32le"):
+				check_config(config, "CROSS_TARGET")
+				target = config['CROSS_TARGET']
+				
+				if (config['CROSS_TARGET'] == "arm32"):
+					gnu_target = "arm-linux-gnu"
+				
+				if (config['CROSS_TARGET'] == "ia32"):
+					gnu_target = "i686-pc-linux-gnu"
+				
+				if (config['CROSS_TARGET'] == "mips32"):
+					gnu_target = "mipsel-linux-gnu"
 			
-			if (config['CROSS_TARGET'] == "arm32"):
+			if (config['PLATFORM'] == "amd64"):
+				target = config['PLATFORM']
+				gnu_target = "amd64-linux-gnu"
+			
+			if (config['PLATFORM'] == "arm32"):
+				target = config['PLATFORM']
 				gnu_target = "arm-linux-gnu"
 			
-			if (config['CROSS_TARGET'] == "ia32"):
+			if (config['PLATFORM'] == "ia32"):
+				target = config['PLATFORM']
 				gnu_target = "i686-pc-linux-gnu"
 			
-			if (config['CROSS_TARGET'] == "mips32"):
-				gnu_target = "mipsel-linux-gnu"
-		
-		if (config['PLATFORM'] == "amd64"):
-			target = config['PLATFORM']
-			gnu_target = "amd64-linux-gnu"
-		
-		if (config['PLATFORM'] == "arm32"):
-			target = config['PLATFORM']
-			gnu_target = "arm-linux-gnu"
-		
-		if (config['PLATFORM'] == "ia32"):
-			target = config['PLATFORM']
-			gnu_target = "i686-pc-linux-gnu"
-		
-		if (config['PLATFORM'] == "ia64"):
-			target = config['PLATFORM']
-			gnu_target = "ia64-pc-linux-gnu"
-		
-		if (config['PLATFORM'] == "mips32"):
-			check_config(config, "MACHINE")
-			
-			if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
+			if (config['PLATFORM'] == "ia64"):
 				target = config['PLATFORM']
-				gnu_target = "mipsel-linux-gnu"
+				gnu_target = "ia64-pc-linux-gnu"
 			
-			if (config['MACHINE'] == "bgxemul"):
-				target = "mips32eb"
-				gnu_target = "mips-linux-gnu"
+			if (config['PLATFORM'] == "mips32"):
+				check_config(config, "MACHINE")
+				
+				if ((config['MACHINE'] == "lgxemul") or (config['MACHINE'] == "msim")):
+					target = config['PLATFORM']
+					gnu_target = "mipsel-linux-gnu"
+				
+				if (config['MACHINE'] == "bgxemul"):
+					target = "mips32eb"
+					gnu_target = "mips-linux-gnu"
+			
+			if (config['PLATFORM'] == "ppc32"):
+				target = config['PLATFORM']
+				gnu_target = "ppc-linux-gnu"
+			
+			if (config['PLATFORM'] == "sparc64"):
+				target = config['PLATFORM']
+				gnu_target = "sparc64-linux-gnu"
+			
+			path = "%s/%s/bin" % (cross_prefix, target)
+			prefix = "%s-" % gnu_target
+			
+			check_gcc(path, prefix, common, PACKAGE_CROSS)
+			check_binutils(path, prefix, common, PACKAGE_CROSS)
+			
+			check_common(common, "GCC")
+			common['CC'] = common['GCC']
 		
-		if (config['PLATFORM'] == "ppc32"):
-			target = config['PLATFORM']
-			gnu_target = "ppc-linux-gnu"
+		if (config['COMPILER'] == "gcc_native"):
+			check_gcc(None, "", common, PACKAGE_GCC)
+			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
+			
+			check_common(common, "GCC")
+			common['CC'] = common['GCC']
 		
-		if (config['PLATFORM'] == "sparc64"):
-			target = config['PLATFORM']
-			gnu_target = "sparc64-linux-gnu"
+		if (config['COMPILER'] == "icc"):
+			common['CC'] = "icc"
+			check_app([common['CC'], "-V"], "Intel C++ Compiler", "support is experimental")
+			check_gcc(None, "", common, PACKAGE_GCC)
+			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
-		path = "%s/%s/bin" % (cross_prefix, target)
-		prefix = "%s-" % gnu_target
+		if (config['COMPILER'] == "suncc"):
+			common['CC'] = "suncc"
+			check_app([common['CC'], "-V"], "Sun Studio Compiler", "support is experimental")
+			check_gcc(None, "", common, PACKAGE_GCC)
+			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
 		
-		check_gcc(path, prefix, common, PACKAGE_CROSS)
-		check_binutils(path, prefix, common, PACKAGE_CROSS)
-		common['CC'] = common['GCC']
+		if (config['COMPILER'] == "clang"):
+			common['CC'] = "clang"
+			check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
+			check_gcc(None, "", common, PACKAGE_GCC)
+			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
+		
+		# Platform-specific utilities
+		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
+			check_app(["mkisofs", "--version"], "ISO 9660 creation utility", "usually part of genisoimage")
+		
+		probe = probe_compiler(common,
+			[
+				"char",
+				"short int",
+				"int",
+				"long int",
+				"long long int",
+			]
+		)
+		
+		typedefs = detect_uints(probe['unsigned_sizes'], probe['signed_sizes'], [1, 2, 4, 8])
+		
+	finally:
+		sandbox_leave(owd)
 	
-	if (config['COMPILER'] == "gcc_native"):
-		check_gcc(None, "", common, PACKAGE_GCC)
-		check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-		common['CC'] = common['GCC']
-	
-	if (config['COMPILER'] == "icc"):
-		common['CC'] = "icc"
-		check_app([common['CC'], "-V"], "Intel C++ Compiler", "support is experimental")
-		check_gcc(None, "", common, PACKAGE_GCC)
-		check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-	
-	if (config['COMPILER'] == "suncc"):
-		common['CC'] = "suncc"
-		check_app([common['CC'], "-V"], "Sun Studio Compiler", "support is experimental")
-		check_gcc(None, "", common, PACKAGE_GCC)
-		check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-	
-	if (config['COMPILER'] == "clang"):
-		common['CC'] = "clang"
-		check_app([common['CC'], "--version"], "Clang compiler", "preferably version 1.0 or newer")
-		check_gcc(None, "", common, PACKAGE_GCC)
-		check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-	
-	# Platform-specific utilities
-	if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
-		check_app(["mkisofs", "--version"], "ISO 9660 creation utility", "usually part of genisoimage")
-	
-	create_output(COMMON, common)
+	create_makefile(MAKEFILE, common)
+	create_header(HEADER, typedefs)
 	
 	return 0
 

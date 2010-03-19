@@ -57,7 +57,6 @@ AFLAGS =
 
 -include $(LIBC_PREFIX)/../../../Makefile.common
 -include $(LIBC_PREFIX)/../../../Makefile.config
--include $(LIBC_PREFIX)/../../../config.defs
 -include $(LIBC_PREFIX)/arch/$(UARCH)/Makefile.inc
 
 ## Compilation options

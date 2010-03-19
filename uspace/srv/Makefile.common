@@ -66,7 +66,6 @@ all: \
     $(LIBC_PREFIX)/../../../Makefile.common \
     $(LIBC_PREFIX)/../../../Makefile.config \
     $(LIBC_PREFIX)/../../../config.h \
-    $(LIBC_PREFIX)/../../../config.defs \
     $(LIBS) \
     \
     $(OUTPUT) $(OUTPUT).disasm \
@@ -77,7 +76,7 @@ clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm $(EXTRA_OUTPUT)
 	find . -name '*.o' -follow -exec rm \{\} \;
 
-build: 
+build:
 
 -include $(DEPEND)
 
