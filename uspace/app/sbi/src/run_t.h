@@ -53,11 +53,8 @@ typedef struct run_proc_ar {
 	/** Object on which the procedure is being invoked or @c NULL. */
 	struct rdata_var *obj;
 
-	/** Definition of function or property being invoked */
-	struct stree_symbol *proc_sym;
-
-	/** Main block of procedure being invoked */
-	struct stree_block *proc_block;
+	/** Procedure being invoked */
+	struct stree_proc *proc;
 
 	/** Block activation records */
 	list_t block_ar; /* of run_block_ar_t */

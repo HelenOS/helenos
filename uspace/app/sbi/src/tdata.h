@@ -26,36 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MYTYPES_H_
-#define MYTYPES_H_
+#ifndef TDATA_H_
+#define TDATA_H_
 
-/** Boolean type compatible with builtin C 'boolean' operators. */
-typedef enum {
-	b_false = 0,
-	b_true = 1
-} bool_t;
+#include "mytypes.h"
 
-/** Node state for walks. */
-typedef enum {
-	ws_unvisited,
-	ws_active,
-	ws_visited
-} walk_state_t;
+tdata_item_t *tdata_item_new(titem_class_t tic);
+tdata_array_t *tdata_array_new(void);
+tdata_object_t *tdata_object_new(void);
+tdata_primitive_t *tdata_primitive_new(tprimitive_class_t tpc);
+tdata_fun_t *tdata_fun_new(void);
 
-/** Error return codes. */
-#include <errno.h>
-#define EOK 0
-
-#include "input_t.h"
-#include "intmap_t.h"
-#include "lex_t.h"
-#include "list_t.h"
-#include "parse_t.h"
-#include "rdata_t.h"
-#include "run_t.h"
-#include "stree_t.h"
-#include "strtab_t.h"
-#include "stype_t.h"
-#include "tdata_t.h"
+bool_t tdata_is_csi_derived_from_ti(stree_csi_t *a, tdata_item_t *tb);
+bool_t tdata_item_equal(tdata_item_t *a, tdata_item_t *b);
+void tdata_item_print(tdata_item_t *titem);
 
 #endif

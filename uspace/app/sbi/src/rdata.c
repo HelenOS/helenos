@@ -242,59 +242,6 @@ rdata_string_t *rdata_string_new(void)
 	return string_v;
 }
 
-rdata_titem_t *rdata_titem_new(titem_class_t tic)
-{
-	rdata_titem_t *titem;
-
-	titem = calloc(1, sizeof(rdata_titem_t));
-	if (titem == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(1);
-	}
-
-	titem->tic = tic;
-	return titem;
-}
-
-rdata_tarray_t *rdata_tarray_new(void)
-{
-	rdata_tarray_t *tarray;
-
-	tarray = calloc(1, sizeof(rdata_tarray_t));
-	if (tarray == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(1);
-	}
-
-	return tarray;
-}
-
-rdata_tcsi_t *rdata_tcsi_new(void)
-{
-	rdata_tcsi_t *tcsi;
-
-	tcsi = calloc(1, sizeof(rdata_tcsi_t));
-	if (tcsi == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(1);
-	}
-
-	return tcsi;
-}
-
-rdata_tprimitive_t *rdata_tprimitive_new(void)
-{
-	rdata_tprimitive_t *tprimitive;
-
-	tprimitive = calloc(1, sizeof(rdata_tprimitive_t));
-	if (tprimitive == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(1);
-	}
-
-	return tprimitive;
-}
-
 void rdata_array_alloc_element(rdata_array_t *array)
 {
 	int dim, idx;
@@ -444,56 +391,6 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 	}
 
 	/* XXX We should free some stuff around here. */
-}
-
-/** Get item var-class.
- *
- * Get var-class of @a item, regardless whether it is a value or address.
- * (I.e. the var class of the value or variable at the given address).
- */
-var_class_t rdata_item_get_vc(rdata_item_t *item)
-{
-	var_class_t vc;
-
-	switch (item->ic) {
-	case ic_value:
-		vc = item->u.value->var->vc;
-		break;
-	case ic_address:
-		switch (item->u.address->ac) {
-		case ac_var:
-			vc = item->u.address->u.var_a->vref->vc;
-			break;
-		case ac_prop:
-			printf("Unimplemented: Get property address "
-			    "varclass.\n");
-			exit(1);
-		default:
-			assert(b_false);
-		}
-		break;
-	default:
-		assert(b_false);
-	}
-
-	return vc;
-}
-
-/** Determine if CSI @a a is derived from CSI described by type item @a tb. */
-bool_t rdata_is_csi_derived_from_ti(stree_csi_t *a, rdata_titem_t *tb)
-{
-	bool_t res;
-
-	switch (tb->tic) {
-	case tic_tcsi:
-		res = stree_is_csi_derived_from_csi(a, tb->u.tcsi->csi);
-		break;
-	default:
-		printf("Error: Base type is not a CSI.\n");
-		exit(1);
-	}
-
-	return res;
 }
 
 void rdata_item_print(rdata_item_t *item)

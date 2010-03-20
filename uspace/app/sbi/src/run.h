@@ -47,9 +47,10 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar,
     list_t *arg_vals);
 void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
     rdata_item_t *arg_val);
-void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_symbol_t *proc_sym,
-    stree_block_t *proc_block, run_proc_ar_t **rproc_ar);
+void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
+    run_proc_ar_t **rproc_ar);
 
+var_class_t run_item_get_vc(run_t *run, rdata_item_t *item);
 void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem);
 void run_address_read(run_t *run, rdata_address_t *address,
     rdata_item_t **ritem);

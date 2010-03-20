@@ -135,6 +135,19 @@ stree_prop_t *stree_prop_new(void)
 	return prop;
 }
 
+stree_proc_t *stree_proc_new(void)
+{
+	stree_proc_t *proc;
+
+	proc = calloc(1, sizeof(stree_proc_t));
+	if (proc == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return proc;
+}
+
 stree_proc_arg_t *stree_proc_arg_new(void)
 {
 	stree_proc_arg_t *proc_arg;
@@ -506,7 +519,7 @@ stree_tindex_t *stree_tindex_new(void)
 	return tindex;
 }
 
-stree_tliteral_t *stree_tliteral_new(void)
+stree_tliteral_t *stree_tliteral_new(tliteral_class_t tlc)
 {
 	stree_tliteral_t *tliteral;
 
@@ -516,6 +529,7 @@ stree_tliteral_t *stree_tliteral_new(void)
 		exit(1);
 	}
 
+	tliteral->tlc = tlc;
 	return tliteral;
 }
 

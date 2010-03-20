@@ -26,36 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MYTYPES_H_
-#define MYTYPES_H_
+#ifndef STYPE_EXPR_H_
+#define STYPE_EXPR_H_
 
-/** Boolean type compatible with builtin C 'boolean' operators. */
-typedef enum {
-	b_false = 0,
-	b_true = 1
-} bool_t;
+#include "mytypes.h"
 
-/** Node state for walks. */
-typedef enum {
-	ws_unvisited,
-	ws_active,
-	ws_visited
-} walk_state_t;
-
-/** Error return codes. */
-#include <errno.h>
-#define EOK 0
-
-#include "input_t.h"
-#include "intmap_t.h"
-#include "lex_t.h"
-#include "list_t.h"
-#include "parse_t.h"
-#include "rdata_t.h"
-#include "run_t.h"
-#include "stree_t.h"
-#include "strtab_t.h"
-#include "stype_t.h"
-#include "tdata_t.h"
+void stype_expr(stype_t *stype, stree_expr_t *expr);
 
 #endif

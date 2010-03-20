@@ -26,36 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MYTYPES_H_
-#define MYTYPES_H_
+/** @file Static type system representation. */
 
-/** Boolean type compatible with builtin C 'boolean' operators. */
+#ifndef TDATA_T_H_
+#define TDATA_T_H_
+
+/** Class of primitive type. */
 typedef enum {
-	b_false = 0,
-	b_true = 1
-} bool_t;
+	/** Integer type */
+	tpc_int,
+	/** Special type for nil reference */
+	tpc_nil,
+	/** String type */
+	tpc_string
+} tprimitive_class_t;
 
-/** Node state for walks. */
+/** Primitive type. */
+typedef struct {
+	/** Class of primitive type */
+	tprimitive_class_t tpc;
+} tdata_primitive_t;
+
+/** Object type. */
+typedef struct {
+	/** @c true if expression is a static CSI reference */
+	bool_t static_ref;
+
+	/** CSI definition */
+	struct stree_csi *csi;
+} tdata_object_t;
+
+/** Array type. */
+typedef struct {
+	/** Base type item */
+	struct tdata_item *base_ti;
+
+	/** Rank */
+	int rank;
+
+	/** Extents */
+	list_t extents; /* of stree_expr_t */
+} tdata_array_t;
+
+/** Generic type. */
+typedef struct {
+} tdata_generic_t;
+
+/** Functional type. */
+typedef struct {
+	/**
+	 * Function definition. We'll leave expansion to the call operation.
+	 */
+	struct stree_fun *fun;
+} tdata_fun_t;
+
 typedef enum {
-	ws_unvisited,
-	ws_active,
-	ws_visited
-} walk_state_t;
+	tic_tprimitive,
+	tic_tobject,
+	tic_tarray,
+	tic_tgeneric,
+	tic_tfun
+} titem_class_t;
 
-/** Error return codes. */
-#include <errno.h>
-#define EOK 0
+/** Type item, the result of evaluating a type expression. */
+typedef struct tdata_item {
+	titem_class_t tic;
 
-#include "input_t.h"
-#include "intmap_t.h"
-#include "lex_t.h"
-#include "list_t.h"
-#include "parse_t.h"
-#include "rdata_t.h"
-#include "run_t.h"
-#include "stree_t.h"
-#include "strtab_t.h"
-#include "stype_t.h"
-#include "tdata_t.h"
+	union {
+		tdata_primitive_t *tprimitive;
+		tdata_object_t *tobject;
+		tdata_array_t *tarray;
+		tdata_generic_t *tgeneric;
+		tdata_fun_t *tfun;
+	} u;
+} tdata_item_t;
 
 #endif

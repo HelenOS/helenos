@@ -193,15 +193,14 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 static stree_tliteral_t *parse_tliteral(parse_t *parse)
 {
 	stree_tliteral_t *tliteral;
-
-	tliteral = stree_tliteral_new();
+	tliteral_class_t tlc;
 
 	switch (lcur_lc(parse)) {
 	case lc_int:
-		tliteral->tlc = tlc_int;
+		tlc = tlc_int;
 		break;
 	case lc_string:
-		tliteral->tlc = tlc_string;
+		tlc = tlc_string;
 		break;
 	default:
 		assert(b_false);
@@ -209,6 +208,7 @@ static stree_tliteral_t *parse_tliteral(parse_t *parse)
 
 	lskip(parse);
 
+	tliteral = stree_tliteral_new(tlc);
 	return tliteral;
 }
 

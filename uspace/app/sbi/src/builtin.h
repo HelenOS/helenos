@@ -32,6 +32,6 @@
 #include "mytypes.h"
 
 void builtin_declare(stree_program_t *program);
-void builtin_run_proc(run_t *run, stree_symbol_t *proc_sym);
+void builtin_run_proc(run_t *run, stree_proc_t *proc);
 
 #endif

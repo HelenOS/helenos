@@ -39,6 +39,7 @@ stree_fun_t *stree_fun_new(void);
 stree_var_t *stree_var_new(void);
 stree_prop_t *stree_prop_new(void);
 
+stree_proc_t *stree_proc_new(void);
 stree_proc_arg_t *stree_proc_arg_new(void);
 stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac);
 
@@ -72,7 +73,7 @@ stree_texpr_t *stree_texpr_new(texpr_class_t tc);
 stree_taccess_t *stree_taccess_new(void);
 stree_tapply_t *stree_tapply_new(void);
 stree_tindex_t *stree_tindex_new(void);
-stree_tliteral_t *stree_tliteral_new(void);
+stree_tliteral_t *stree_tliteral_new(tliteral_class_t tlc);
 stree_tnameref_t *stree_tnameref_new(void);
 
 stree_symbol_t *stree_symbol_new(symbol_class_t sc);

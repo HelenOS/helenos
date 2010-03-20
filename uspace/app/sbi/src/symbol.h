@@ -48,6 +48,6 @@ stree_symbol_t *var_to_symbol(stree_var_t *var);
 stree_prop_t *symbol_to_prop(stree_symbol_t *symbol);
 stree_symbol_t *prop_to_symbol(stree_prop_t *prop);
 
-void symbol_print_fqn(stree_program_t *prog, stree_symbol_t *symbol);
+void symbol_print_fqn(stree_symbol_t *symbol);
 
 #endif

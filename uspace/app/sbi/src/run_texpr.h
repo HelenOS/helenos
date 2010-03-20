@@ -31,6 +31,7 @@
 
 #include "mytypes.h"
 
-void run_texpr(run_t *run, stree_texpr_t *texpr, rdata_titem_t **res);
+void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
+    tdata_item_t **res);
 
 #endif

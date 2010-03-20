@@ -129,6 +129,12 @@ bool_t list_is_empty(list_t *list)
 	return (list_first(list) == NULL);
 }
 
+/** Change node data. */
+void list_node_setdata(list_node_t *node, void *data)
+{
+	node->data = data;
+}
+
 /** Create new node. */
 static list_node_t *list_node_new(void *data)
 {

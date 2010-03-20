@@ -43,7 +43,10 @@
 
 static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name);
 static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name);
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name);
+static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name,
+    stree_texpr_t *type);
+
+static stree_texpr_t *builtin_mktype_string_array(void);
 
 static void builtin_write_line(run_t *run);
 static void builtin_exec(run_t *run);
@@ -85,17 +88,22 @@ void builtin_declare(stree_program_t *program)
 	builtin_fun_add_arg(bi_write_line, "arg");
 
 	bi_exec = builtin_declare_fun(csi, "Exec");
-	builtin_fun_add_vararg(bi_exec, "args");
+	builtin_fun_add_vararg(bi_exec, "args",
+	    builtin_mktype_string_array());
 }
 
-void builtin_run_proc(run_t *run, stree_symbol_t *proc_sym)
+void builtin_run_proc(run_t *run, stree_proc_t *proc)
 {
+	stree_symbol_t *fun_sym;
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Run builtin procedure.\n");
 #endif
-	if (proc_sym == bi_write_line) {
+	fun_sym = proc->outer_symbol;
+
+	if (fun_sym == bi_write_line) {
 		builtin_write_line(run);
-	} else if (proc_sym == bi_exec) {
+	} else if (fun_sym == bi_exec) {
 		builtin_exec(run);
 	} else {
 		assert(b_false);
@@ -108,27 +116,29 @@ static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 	stree_ident_t *ident;
 	stree_fun_t *fun;
 	stree_csimbr_t *csimbr;
-	stree_symbol_t *symbol;
+	stree_symbol_t *fun_sym;
 
 	ident = stree_ident_new();
 	ident->sid = strtab_get_sid(name);
 
 	fun = stree_fun_new();
 	fun->name = ident;
-	fun->body = NULL;
+	fun->proc = stree_proc_new();
+	fun->proc->body = NULL;
 	list_init(&fun->args);
 
 	csimbr = stree_csimbr_new(csimbr_fun);
 	csimbr->u.fun = fun;
 
-	symbol = stree_symbol_new(sc_fun);
-	symbol->u.fun = fun;
-	symbol->outer_csi = csi;
-	fun->symbol = symbol;
+	fun_sym = stree_symbol_new(sc_fun);
+	fun_sym->u.fun = fun;
+	fun_sym->outer_csi = csi;
+	fun->symbol = fun_sym;
+	fun->proc->outer_symbol = fun_sym;
 
 	list_append(&csi->members, csimbr);
 
-	return symbol;
+	return fun_sym;
 }
 
 /** Add one formal parameter to function. */
@@ -149,7 +159,8 @@ static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 }
 
 /** Add variadic formal parameter to function. */
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name)
+static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name,
+    stree_texpr_t *type)
 {
 	stree_proc_arg_t *proc_arg;
 	stree_fun_t *fun;
@@ -160,9 +171,34 @@ static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name)
 	proc_arg = stree_proc_arg_new();
 	proc_arg->name = stree_ident_new();
 	proc_arg->name->sid = strtab_get_sid(name);
-	proc_arg->type = NULL; /* XXX */
+	proc_arg->type = type;
 
 	fun->varg = proc_arg;
+}
+
+/** Construct a @c string[] type expression. */
+static stree_texpr_t *builtin_mktype_string_array(void)
+{
+	stree_texpr_t *tstring;
+	stree_texpr_t *tsarray;
+	stree_tliteral_t *tliteral;
+	stree_tindex_t *tindex;
+
+	/* Construct @c string */
+	tstring = stree_texpr_new(tc_tliteral);
+	tliteral = stree_tliteral_new(tlc_string);
+	tstring->u.tliteral = tliteral;
+
+	/* Construct the indexing node */
+	tsarray = stree_texpr_new(tc_tindex);
+	tindex = stree_tindex_new();
+	tsarray->u.tindex = tindex;
+
+	tindex->base_type = tstring;
+	tindex->n_args = 1;
+	list_init(&tindex->args);
+
+	return tsarray;
 }
 
 static void builtin_write_line(run_t *run)

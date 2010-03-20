@@ -50,6 +50,9 @@ SOURCES = \
 	src/run_texpr.c \
 	src/stree.c \
 	src/strtab.c \
-	src/symbol.c
+	src/stype.c \
+	src/stype_expr.c \
+	src/symbol.c \
+	src/tdata.c
 
 include ../Makefile.common

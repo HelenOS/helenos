@@ -42,6 +42,7 @@
 #include "stree.h"
 #include "strtab.h"
 #include "symbol.h"
+#include "tdata.h"
 
 #include "run.h"
 
@@ -56,6 +57,7 @@ static void run_return(run_t *run, stree_return_t *return_s);
 static void run_wef(run_t *run, stree_wef_t *wef_s);
 
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c);
+static rdata_var_t *run_aprop_get_tpos(run_t *run, rdata_address_t *aprop);
 
 static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
     rdata_item_t **ritem);
@@ -101,13 +103,13 @@ void run_program(run_t *run, stree_program_t *prog)
 	assert(main_fun != NULL);
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Found function '"); symbol_print_fqn(prog, main_fun_sym);
+	printf("Found function '"); symbol_print_fqn(main_fun_sym);
 	printf("'.\n");
 #endif
 
 	/* Run function @c main. */
 	list_init(&main_args);
-	run_proc_ar_create(run, NULL, main_fun_sym, main_fun->body, &proc_ar);
+	run_proc_ar_create(run, NULL, main_fun->proc, &proc_ar);
 	run_proc_ar_set_args(run, proc_ar, &main_args);
 	run_proc(run, proc_ar, &res);
 
@@ -122,24 +124,24 @@ void run_program(run_t *run, stree_program_t *prog)
 /** Run procedure. */
 void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 {
-	stree_symbol_t *proc_sym;
+	stree_proc_t *proc;
 	list_node_t *node;
 
-	proc_sym = proc_ar->proc_sym;
+	proc = proc_ar->proc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Start executing function '");
-	symbol_print_fqn(run->program, proc_sym);
+	symbol_print_fqn(proc_sym);
 	printf("'.\n");
 #endif
 	/* Add procedure AR to the stack. */
 	list_append(&run->thread_ar->proc_ar, proc_ar);
 
 	/* Run main procedure block. */
-	if (proc_ar->proc_block != NULL) {
-		run_block(run, proc_ar->proc_block);
+	if (proc->body != NULL) {
+		run_block(run, proc->body);
 	} else {
-		builtin_run_proc(run, proc_sym);
+		builtin_run_proc(run, proc);
 	}
 
 	/* Handle bailout. */
@@ -156,7 +158,7 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Done executing procedure '");
-	symbol_print_fqn(run->program, proc_sym);
+	symbol_print_fqn(proc);
 	printf("'.\n");
 
 	run_print_fun_bt(run);
@@ -468,7 +470,7 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 	rdata_value_t *payload;
 	rdata_var_t *payload_v;
 	rdata_object_t *payload_o;
-	rdata_titem_t *etype;
+	tdata_item_t *etype;
 
 	payload = run->thread_ar->exc_payload;
 	assert(payload != NULL);
@@ -490,16 +492,17 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Active exception: '");
-	symbol_print_fqn(run->program, payload_o->class_sym);
+	symbol_print_fqn(payload_o->class_sym);
 	printf("'.\n");
 #endif
 	assert(payload_o->class_sym != NULL);
 	assert(payload_o->class_sym->sc == sc_csi);
 
 	/* Evaluate type expression in except clause. */
-	run_texpr(run, except_c->etype, &etype);
+	run_texpr(run->program, run_get_current_csi(run), except_c->etype,
+	    &etype);
 
-	return rdata_is_csi_derived_from_ti(payload_o->class_sym->u.csi,
+	return tdata_is_csi_derived_from_ti(payload_o->class_sym->u.csi,
 	    etype);
 }
 
@@ -555,7 +558,7 @@ stree_csi_t *run_get_current_csi(run_t *run)
 	run_proc_ar_t *proc_ar;
 
 	proc_ar = run_get_current_proc_ar(run);
-	return proc_ar->proc_sym->outer_csi;
+	return proc_ar->proc->outer_symbol->outer_csi;
 }
 
 /** Construct variable from a value item.
@@ -605,8 +608,8 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 }
 
 /** Construct a function AR. */
-void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_symbol_t *proc_sym,
-    stree_block_t *proc_block, run_proc_ar_t **rproc_ar)
+void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
+    run_proc_ar_t **rproc_ar)
 {
 	run_proc_ar_t *proc_ar;
 	run_block_ar_t *block_ar;
@@ -616,8 +619,7 @@ void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_symbol_t *proc_sym,
 	/* Create function activation record. */
 	proc_ar = run_proc_ar_new();
 	proc_ar->obj = obj;
-	proc_ar->proc_sym = proc_sym;
-	proc_ar->proc_block = proc_block;
+	proc_ar->proc = proc;
 	list_init(&proc_ar->block_ar);
 
 	proc_ar->retval = NULL;
@@ -641,6 +643,7 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 	stree_prop_t *prop;
 	list_t *args;
 	stree_proc_arg_t *varg;
+	stree_symbol_t *outer_symbol;
 
 	run_block_ar_t *block_ar;
 	list_node_t *block_ar_n;
@@ -654,21 +657,24 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 	rdata_array_t *array;
 	int n_vargs, idx;
 
+	(void) run;
+
 	/* AR should have been created with run_proc_ar_create(). */
-	assert(proc_ar->proc_sym != NULL);
+	assert(proc_ar->proc != NULL);
+	outer_symbol = proc_ar->proc->outer_symbol;
 
 	/*
-	 * The procedure being activated should be a member function or
+	 * The procedure being activated should belong to a member function or
 	 * property getter/setter.
 	 */
-	switch (proc_ar->proc_sym->sc) {
+	switch (outer_symbol->sc) {
 	case sc_fun:
-		fun = symbol_to_fun(proc_ar->proc_sym);
+		fun = symbol_to_fun(outer_symbol);
 		args = &fun->args;
 		varg = fun->varg;
 		break;
 	case sc_prop:
-		prop = symbol_to_prop(proc_ar->proc_sym);
+		prop = symbol_to_prop(outer_symbol);
 		args = &prop->args;
 		varg = prop->varg;
 		break;
@@ -687,8 +693,8 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 
 	while (parg_n != NULL) {
 		if (rarg_n == NULL) {
-			printf("Error: Too few arguments to function '");
-			symbol_print_fqn(run->program, proc_ar->proc_sym);
+			printf("Error: Too few arguments to '");
+			symbol_print_fqn(outer_symbol);
 			printf("'.\n");
 			exit(1);
 		}
@@ -751,8 +757,8 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 
 	/* Check for excess real parameters. */
 	if (rarg_n != NULL) {
-		printf("Error: Too many arguments to function '");
-		symbol_print_fqn(run->program, proc_ar->proc_sym);
+		printf("Error: Too many arguments to '");
+		symbol_print_fqn(outer_symbol);
 		printf("'.\n");
 		exit(1);
 	}
@@ -774,11 +780,12 @@ void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
 	(void) run;
 
 	/* AR should have been created with run_proc_ar_create(). */
-	assert(proc_ar->proc_sym != NULL);
+	assert(proc_ar->proc != NULL);
 
-	/* The procedure being activated should be a property setter. */
-	prop = symbol_to_prop(proc_ar->proc_sym);
+	/* The procedure being activated should belong to a property setter. */
+	prop = symbol_to_prop(proc_ar->proc->outer_symbol);
 	assert(prop != NULL);
+	assert(proc_ar->proc == prop->setter);
 
 	/* Fetch first block activation record. */
 	block_ar_n = list_first(&proc_ar->block_ar);
@@ -791,7 +798,7 @@ void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
 	run_value_item_to_var(arg_val, &var);
 
 	/* Declare variable using name of formal argument. */
-	intmap_set(&block_ar->vars, prop->setter_arg_name->sid, var);
+	intmap_set(&block_ar->vars, prop->setter_arg->name->sid, var);
 }
 
 /** Print function activation backtrace. */
@@ -805,7 +812,7 @@ void run_print_fun_bt(run_t *run)
 	while (node != NULL) {
 		printf(" * ");
 		proc_ar = list_node_data(node, run_proc_ar_t *);
-		symbol_print_fqn(run->program, proc_ar->proc_sym);
+		symbol_print_fqn(proc_ar->proc->outer_symbol);
 		printf("\n");
 
 		node = list_prev(&run->thread_ar->proc_ar, node);
@@ -843,6 +850,71 @@ void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
 	(*ritem)->u.value = value;
 }
 
+/** Get item var-class.
+ *
+ * Get var-class of @a item, regardless whether it is a value or address.
+ * (I.e. the var class of the value or variable at the given address).
+ */
+var_class_t run_item_get_vc(run_t *run, rdata_item_t *item)
+{
+	var_class_t vc;
+	rdata_var_t *tpos;
+
+	(void) run;
+
+	switch (item->ic) {
+	case ic_value:
+		vc = item->u.value->var->vc;
+		break;
+	case ic_address:
+		switch (item->u.address->ac) {
+		case ac_var:
+			vc = item->u.address->u.var_a->vref->vc;
+			break;
+		case ac_prop:
+			/* Prefetch the value of the property. */
+			tpos = run_aprop_get_tpos(run, item->u.address);
+			vc = tpos->vc;
+			break;
+		default:
+			assert(b_false);
+		}
+		break;
+	default:
+		assert(b_false);
+	}
+
+	return vc;
+}
+
+/** Get pointer to current var node in temporary copy in property address.
+ *
+ * A property address refers to a specific @c var node in a property.
+ * This function will fetch a copy of the property value (by running
+ * its getter) if there is not a temporary copy in the address yet.
+ * It returns a pointer to the relevant @c var node in the temporary
+ * copy.
+ *
+ * @param run	Runner object.
+ * @param addr	Address of class @c ac_prop.
+ * @param	Pointer to var node.
+ */
+static rdata_var_t *run_aprop_get_tpos(run_t *run, rdata_address_t *addr)
+{
+	rdata_item_t *ritem;
+
+	assert(addr->ac == ac_prop);
+
+	if (addr->u.prop_a->tvalue == NULL) {
+		/* Fetch value of the property. */
+		run_address_read(run, addr, &ritem);
+		assert(ritem->ic == ic_value);
+		addr->u.prop_a->tvalue = ritem->u.value;
+		addr->u.prop_a->tpos = addr->u.prop_a->tvalue->var;
+	}
+
+	return addr->u.prop_a->tpos;
+}
 
 /** Read data from an address.
  *
@@ -894,6 +966,8 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 
 	run_proc_ar_t *proc_ar;
 
+	rdata_var_t *cvar;
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Read from property.\n");
 #endif
@@ -902,8 +976,12 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 	 * instead of re-reading the whole thing.
 	 */
 	if (addr_prop->tvalue != NULL) {
-		printf("Unimplemented: Property field access.\n");
-		exit(1);
+		/* Copy the value */
+		rdata_var_copy(addr_prop->tpos, &cvar);
+		*ritem = rdata_item_new(ic_value);
+		(*ritem)->u.value = rdata_value_new();
+		(*ritem)->u.value->var = cvar;
+		return;
 	}
 
 	if (addr_prop->apc == apc_named)
@@ -916,13 +994,13 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 	prop = symbol_to_prop(prop_sym);
 	assert(prop != NULL);
 
-	if (prop->getter_body == NULL) {
+	if (prop->getter == NULL) {
 		printf("Error: Property is not readable.\n");
 		exit(1);
 	}
 
 	/* Create procedure activation record. */
-	run_proc_ar_create(run, obj, prop_sym, prop->getter_body, &proc_ar);
+	run_proc_ar_create(run, obj, prop->getter, &proc_ar);
 
 	/* Fill in arguments (indices). */
 	if (addr_prop->apc == apc_indexed) {
@@ -972,7 +1050,7 @@ static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
 	prop = symbol_to_prop(prop_sym);
 	assert(prop != NULL);
 
-	if (prop->setter_body == NULL) {
+	if (prop->setter == NULL) {
 		printf("Error: Property is not writable.\n");
 		exit(1);
 	}
@@ -981,7 +1059,7 @@ static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
 	vitem->u.value = value;
 
 	/* Create procedure activation record. */
-	run_proc_ar_create(run, obj, prop_sym, prop->setter_body, &proc_ar);
+	run_proc_ar_create(run, obj, prop->setter, &proc_ar);
 
 	/* Fill in arguments (indices). */
 	if (addr_prop->apc == apc_indexed) {

@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "debug.h"
 #include "lex.h"
 #include "list.h"
 #include "mytypes.h"
@@ -132,10 +133,11 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass)
 
 	csi = stree_csi_new(cc);
 	csi->name = parse_ident(parse);
-/*
+
+#ifdef DEBUG_PARSE_TRACE
 	printf("parse_csi: csi=%p, csi->name = %p (%s)\n", csi, csi->name,
 	    strtab_get_str(csi->name->sid));
-*/
+#endif
 	if (lcur_lc(parse) == lc_colon) {
 		/* Inheritance list */
 		lskip(parse);
@@ -192,6 +194,7 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 		symbol->u.fun = fun;
 		symbol->outer_csi = outer_csi;
 		fun->symbol = symbol;
+		fun->proc->outer_symbol = symbol;
 		break;
 	case lc_var:
 		var = parse_var(parse);
@@ -212,6 +215,10 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 		symbol->u.prop = prop;
 		symbol->outer_csi = outer_csi;
 		prop->symbol = symbol;
+		if (prop->getter)
+			prop->getter->outer_symbol = symbol;
+		if (prop->setter)
+			prop->setter->outer_symbol = symbol;
 		break;
 	default:
 		lunexpected_error(parse);
@@ -234,6 +241,10 @@ static stree_fun_t *parse_fun(parse_t *parse)
 	fun->name = parse_ident(parse);
 	lmatch(parse, lc_lparen);
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parsing function '%s'.\n", strtab_get_str(fun->name->sid));
+#endif
+
 	list_init(&fun->args);
 
 	if (lcur_lc(parse) != lc_rparen) {
@@ -241,6 +252,7 @@ static stree_fun_t *parse_fun(parse_t *parse)
 		/* Parse formal parameters. */
 		while (b_true) {
 			arg = parse_proc_arg(parse);
+
 			if (stree_arg_has_attr(arg, aac_packed)) {
 				fun->varg = arg;
 				break;
@@ -265,7 +277,8 @@ static stree_fun_t *parse_fun(parse_t *parse)
 	}
 
 	lmatch(parse, lc_is);
-	fun->body = parse_block(parse);
+	fun->proc = stree_proc_new();
+	fun->proc->body = parse_block(parse);
 	lmatch(parse, lc_end);
 
 	return fun;
@@ -341,22 +354,32 @@ static stree_prop_t *parse_prop(parse_t *parse)
 		case lc_get:
 			lskip(parse);
 			lmatch(parse, lc_is);
-			if (prop->getter_body != NULL) {
+			if (prop->getter != NULL) {
 				printf("Error: Duplicate getter.\n");
 				exit(1);
 			}
-			prop->getter_body = parse_block(parse);
+
+			/* Create setter procedure */
+			prop->getter = stree_proc_new();
+			prop->getter->body = parse_block(parse);
+
 			lmatch(parse, lc_end);
 			break;
 		case lc_set:
 			lskip(parse);
-			prop->setter_arg_name = parse_ident(parse);
+			prop->setter_arg = stree_proc_arg_new();
+			prop->setter_arg->name = parse_ident(parse);
+			prop->setter_arg->type = prop->type;
 			lmatch(parse, lc_is);
-			if (prop->setter_body != NULL) {
+			if (prop->setter != NULL) {
 				printf("Error: Duplicate setter.\n");
 				exit(1);
 			}
-			prop->setter_body = parse_block(parse);
+
+			/* Create setter procedure */
+			prop->setter = stree_proc_new();
+			prop->setter->body = parse_block(parse);
+
 			lmatch(parse, lc_end);
 			break;
 		default:
@@ -389,6 +412,9 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 		list_append(&arg->attr, attr);
 	}
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parsed arg attr, type=%p.\n", arg->type);
+#endif
 	return arg;
 }
 

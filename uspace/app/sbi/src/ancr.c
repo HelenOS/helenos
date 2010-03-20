@@ -173,7 +173,7 @@ static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node)
 	n = node;
 	do {
 		node_sym = csi_to_symbol(node);
-		symbol_print_fqn(prog, node_sym);
+		symbol_print_fqn(node_sym);
 		printf(", ");
 
 		outer_csi = node_sym->outer_csi;
@@ -195,5 +195,5 @@ static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node)
 	} while (n != node);
 
 	node_sym = csi_to_symbol(node);
-	symbol_print_fqn(prog, node_sym);
+	symbol_print_fqn(node_sym);
 }

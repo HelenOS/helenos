@@ -42,6 +42,7 @@
 #include "symbol.h"
 #include "stree.h"
 #include "strtab.h"
+#include "tdata.h"
 
 #include "run_expr.h"
 
@@ -71,9 +72,9 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res);
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res);
 static void run_new_array(run_t *run, stree_new_t *new_op,
-    rdata_titem_t *titem, rdata_item_t **res);
+    tdata_item_t *titem, rdata_item_t **res);
 static void run_new_object(run_t *run, stree_new_t *new_op,
-    rdata_titem_t *titem, rdata_item_t **res);
+    tdata_item_t *titem, rdata_item_t **res);
 
 static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res);
 static void run_access_item(run_t *run, stree_access_t *access,
@@ -198,7 +199,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		csi = symbol_to_csi(csi_sym);
 		assert(csi != NULL);
 	} else {
-		csi = proc_ar->proc_sym->outer_csi;
+		csi = proc_ar->proc->outer_symbol->outer_csi;
 		obj = NULL;
 	}
 
@@ -230,9 +231,9 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			/* Function is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "function '");
-			symbol_print_fqn(run->program, sym);
+			symbol_print_fqn(sym);
 			printf("' from nested CSI '");
-			symbol_print_fqn(run->program, csi_sym);
+			symbol_print_fqn(csi_sym);
 			printf("'.\n");
 			exit(1);
 		}
@@ -266,9 +267,9 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			/* Variable is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "variable '");
-			symbol_print_fqn(run->program, sym);
+			symbol_print_fqn(sym);
 			printf("' from nested CSI '");
-			symbol_print_fqn(run->program, csi_sym);
+			symbol_print_fqn(csi_sym);
 			printf("'.\n");
 			exit(1);
 		}
@@ -631,19 +632,20 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 /** Evaluate @c new operation. */
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 {
-	rdata_titem_t *titem;
+	tdata_item_t *titem;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run 'new' operation.\n");
 #endif
 	/* Evaluate type expression */
-	run_texpr(run, new_op->texpr, &titem);
+	run_texpr(run->program, run_get_current_csi(run), new_op->texpr,
+	    &titem);
 
 	switch (titem->tic) {
 	case tic_tarray:
 		run_new_array(run, new_op, titem, res);
 		break;
-	case tic_tcsi:
+	case tic_tobject:
 		run_new_object(run, new_op, titem, res);
 		break;
 	default:
@@ -655,9 +657,9 @@ static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 
 /** Create new array. */
 static void run_new_array(run_t *run, stree_new_t *new_op,
-    rdata_titem_t *titem, rdata_item_t **res)
+    tdata_item_t *titem, rdata_item_t **res)
 {
-	rdata_tarray_t *tarray;
+	tdata_array_t *tarray;
 	rdata_array_t *array;
 	rdata_var_t *array_var;
 	rdata_var_t *elem_var;
@@ -743,7 +745,7 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 
 /** Create new object. */
 static void run_new_object(run_t *run, stree_new_t *new_op,
-    rdata_titem_t *titem, rdata_item_t **res)
+    tdata_item_t *titem, rdata_item_t **res)
 {
 	rdata_object_t *obj;
 	rdata_var_t *obj_var;
@@ -763,8 +765,8 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	(void) new_op;
 
 	/* Lookup object CSI. */
-	assert(titem->tic == tic_tcsi);
-	csi = titem->u.tcsi->csi;
+	assert(titem->tic == tic_tobject);
+	csi = titem->u.tobject->csi;
 	csi_sym = csi_to_symbol(csi);
 
 	/* Create the object. */
@@ -822,7 +824,7 @@ static void run_access_item(run_t *run, stree_access_t *access,
 #ifdef DEBUG_RUN_TRACE
 	printf("Run access operation on pre-evaluated base.\n");
 #endif
-	vc = rdata_item_get_vc(arg);
+	vc = run_item_get_vc(run, arg);
 
 	switch (vc) {
 	case vc_ref:
@@ -882,7 +884,7 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
 
 	if (member == NULL) {
 		printf("Error: CSI '");
-		symbol_print_fqn(run->program, deleg_v->sym);
+		symbol_print_fqn(deleg_v->sym);
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(access->member_name->sid));
 		exit(1);
@@ -935,7 +937,7 @@ static void run_access_object(run_t *run, stree_access_t *access,
 
 	if (member == NULL) {
 		printf("Error: Object of class '");
-		symbol_print_fqn(run->program, object->class_sym);
+		symbol_print_fqn(object->class_sym);
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(access->member_name->sid));
 		exit(1);
@@ -1029,7 +1031,7 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Call function '");
-	symbol_print_fqn(run->program, deleg_v->sym);
+	symbol_print_fqn(deleg_v->sym);
 	printf("'\n");
 #endif
 	/* Evaluate function arguments. */
@@ -1049,8 +1051,7 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	assert(fun != NULL);
 
 	/* Create procedure activation record. */
-	run_proc_ar_create(run, deleg_v->obj, deleg_v->sym, fun->body,
-	    &proc_ar);
+	run_proc_ar_create(run, deleg_v->obj, fun->proc, &proc_ar);
 
 	/* Fill in argument values. */
 	run_proc_ar_set_args(run, proc_ar, &arg_vals);
@@ -1079,7 +1080,7 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 #endif
 	run_expr(run, index->base, &rbase);
 
-	vc = rdata_item_get_vc(rbase);
+	vc = run_item_get_vc(run, rbase);
 
 	/* Implicitly dereference. */
 	if (vc == vc_ref) {
@@ -1088,7 +1089,7 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 		base_i = rbase;
 	}
 
-	vc = rdata_item_get_vc(base_i);
+	vc = run_item_get_vc(run, base_i);
 
 	/* Evaluate arguments (indices). */
 	node = list_first(&index->args);
@@ -1223,7 +1224,6 @@ static void run_index_object(run_t *run, stree_index_t *index,
 #ifdef DEBUG_RUN_TRACE
 	printf("Run object index operation.\n");
 #endif
-	(void) run;
 	(void) index;
 
 	/* Construct property address item. */
@@ -1250,6 +1250,12 @@ static void run_index_object(run_t *run, stree_index_t *index,
 	obj_csi = symbol_to_csi(obj_var->u.object_v->class_sym);
 	assert(obj_csi != NULL);
 	indexer_sym = symbol_search_csi(run->program, obj_csi, indexer_ident);
+
+	if (indexer_sym == NULL) {
+		printf("Error: Accessing object which does not have an "
+		    "indexer.\n");
+		exit(1);
+	}
 
 	/* Construct delegate. */
 	object_d = rdata_deleg_new();

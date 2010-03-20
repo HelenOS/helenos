@@ -35,6 +35,7 @@
 #include "mytypes.h"
 #include "strtab.h"
 #include "stree.h"
+#include "stype.h"
 #include "input.h"
 #include "lex.h"
 #include "parse.h"
@@ -48,6 +49,7 @@ int main(int argc, char *argv[])
 	lex_t lex;
 	parse_t parse;
 	stree_program_t *program;
+	stype_t stype;
 	run_t run;
 	int rc;
 
@@ -76,6 +78,10 @@ int main(int argc, char *argv[])
 
 	/* Resolve ancestry. */
 	ancr_module_process(program, parse.cur_mod);
+
+	/* Type program. */
+	stype.program = program;
+	stype_module(&stype, program->module);
 
 	/* Run program. */
 	run_init(&run);

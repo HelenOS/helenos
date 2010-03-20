@@ -81,9 +81,6 @@ typedef struct {
 
 /** Binary operation class */
 typedef enum {
-	bo_period,
-	bo_slash,
-	bo_sbr,
 	bo_equal,
 	bo_notequal,
 	bo_lt,
@@ -176,6 +173,8 @@ typedef enum {
 /** Arithmetic expression */
 typedef struct stree_expr {
 	expr_class_t ec;
+
+	struct tdata_item *titem;
 
 	union {
 		stree_nameref_t *nameref;
@@ -378,8 +377,22 @@ typedef struct {
 	list_t attr; /* of stree_arg_attr_t */
 } stree_proc_arg_t;
 
+/** Procedure
+ *
+ * Procedure is the common term for a getter, setter or function body.
+ * A procedure can be invoked. However, the arguments are specified by
+ * the containing symbol.
+ */
+typedef struct stree_proc {
+	/** Symbol (function or property) containing the procedure */
+	struct stree_symbol *outer_symbol;
+
+	/** Main block */
+	stree_block_t *body;
+} stree_proc_t;
+
 /** Member function declaration */
-typedef struct {
+typedef struct stree_fun {
 	/** Function name */
 	stree_ident_t *name;
 
@@ -395,26 +408,27 @@ typedef struct {
 	/** Return type */
 	stree_texpr_t *rtype;
 
-	/** Function body */
-	stree_block_t *body;
+	/** Function implementation */
+	stree_proc_t *proc;
 } stree_fun_t;
 
 /** Member variable declaration */
-typedef struct {
+typedef struct stree_var {
 	stree_ident_t *name;
 	struct stree_symbol *symbol;
 	stree_texpr_t *type;
 } stree_var_t;
 
 /** Member property declaration */
-typedef struct {
+typedef struct stree_prop {
 	stree_ident_t *name;
 	struct stree_symbol *symbol;
 	stree_texpr_t *type;
 
-	stree_block_t *getter_body;
-	stree_ident_t *setter_arg_name;
-	stree_block_t *setter_body;
+	stree_proc_t *getter;
+
+	stree_proc_t *setter;
+	stree_proc_arg_t *setter_arg;
 
 	/** Formal parameters (for indexed properties) */
 	list_t args; /* of stree_proc_arg_t */
@@ -424,7 +438,8 @@ typedef struct {
 } stree_prop_t;
 
 /**
- * Fake identifier used with indexed properties. (Mostly for error messages.)
+ * Fake identifiers used with symbols that do not really have one.
+ * (Mostly for error messages.)
  */
 #define INDEXER_IDENT "$indexer"
 
@@ -503,7 +518,11 @@ typedef enum {
 	sc_prop
 } symbol_class_t;
 
-/** Symbol */
+/** Symbol
+ *
+ * A symbol is a common superclass of different program elements that
+ * allow us to refer to them, print their fully qualified names, etc.
+ */
 typedef struct stree_symbol {
 	symbol_class_t sc;
 

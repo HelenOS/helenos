@@ -26,36 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MYTYPES_H_
-#define MYTYPES_H_
+#ifndef STYPE_T_H_
+#define STYPE_T_H_
 
-/** Boolean type compatible with builtin C 'boolean' operators. */
-typedef enum {
-	b_false = 0,
-	b_true = 1
-} bool_t;
+/** Block visit record
+ *
+ * One block VR is created for each block that we enter. A variable declaration
+ * statement inserts the variable declaration here. Upon leaving the block we
+ * pop from the stack, thus all the variable declarations from that block
+ * are forgotten.
+ */
+typedef struct run_block_vr {
+	/** Variable declarations in this block */
+	intmap_t vdecls; /* of stree_vdecl_t */
+} stype_block_vr_t;
 
-/** Node state for walks. */
-typedef enum {
-	ws_unvisited,
-	ws_active,
-	ws_visited
-} walk_state_t;
+/** Procedure visit record
+ *
+ * A procedure can be a member function or a property getter or setter. A
+ * procedure visit record is created whenever @c stype (the static typing
+ * pass) enters a procedure.
+ */
+typedef struct run_proc_vr {
+	/** Definition of function or property being invoked */
+	struct stree_proc *proc;
 
-/** Error return codes. */
-#include <errno.h>
-#define EOK 0
+	/** Block activation records */
+	list_t block_vr; /* of run_block_ar_t */
+} stype_proc_vr_t;
 
-#include "input_t.h"
-#include "intmap_t.h"
-#include "lex_t.h"
-#include "list_t.h"
-#include "parse_t.h"
-#include "rdata_t.h"
-#include "run_t.h"
-#include "stree_t.h"
-#include "strtab_t.h"
-#include "stype_t.h"
-#include "tdata_t.h"
+/** Static typer state object */
+typedef struct stype {
+	/** Code of the program being typed */
+	struct stree_program *program;
+
+	/**
+	 * CSI context in which we are currently typing. We keep an implicit
+	 * stack of these (in instances of local variable
+	 * @c stype_csi::prev_ctx.)
+	 */
+	struct stree_csi *current_csi;
+
+	/** Procedure VR for the current procedure. */
+	stype_proc_vr_t *proc_vr;
+} stype_t;
 
 #endif

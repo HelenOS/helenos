@@ -170,10 +170,13 @@ typedef enum {
 
 /** Property address.
  *
- * When accessing part of a property that is non-scalar and mutable,
- * a read-modify-write (or get-modify-set) operation is necessary.
- * To accomodate this, the address item must hold a temporary copy of the
- * property value.
+ * When an access or index operation is performed on a property, the getter
+ * is run and the prefetched value is stored in @c tvalue. If the property
+ * is a non-scalar value type (a struct), then we might want to point to
+ * the proper @c var node inside it. @c tpos is used for this purpose.
+ *
+ * The assignment operator will modify @c tvalue and at the end the setter
+ * is called to store @c tvalue back into the property.
  */
 typedef struct {
 	aprop_class_t apc;
@@ -234,49 +237,5 @@ typedef struct rdata_item {
 		rdata_value_t *value;
 	} u;
 } rdata_item_t;
-
-/** Primitive type. */
-typedef struct {
-} rdata_tprimitive_t;
-
-/** Class, struct or interface type. */
-typedef struct {
-	struct stree_csi *csi;
-} rdata_tcsi_t;
-
-/** Array type. */
-typedef struct {
-	/** Base type item */
-	struct rdata_titem *base_ti;
-
-	/** Rank */
-	int rank;
-
-	/** Extents */
-	list_t extents; /* of stree_expr_t */
-} rdata_tarray_t;
-
-/** Generic type. */
-typedef struct {
-} rdata_tgeneric_t;
-
-typedef enum {
-	tic_tprimitive,
-	tic_tcsi,
-	tic_tarray,
-	tic_tgeneric
-} titem_class_t;
-
-/** Type item, the result of evaluating a type expression. */
-typedef struct rdata_titem {
-	titem_class_t tic;
-
-	union {
-		rdata_tprimitive_t *tprimitive;
-		rdata_tcsi_t *tcsi;
-		rdata_tarray_t *tarray;
-		rdata_tgeneric_t *tgeneric;
-	} u;
-} rdata_titem_t;
 
 #endif

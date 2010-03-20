@@ -28,38 +28,39 @@
 
 /** @file Evaluates type expressions. */
 
+#include <assert.h>
 #include <stdlib.h>
 #include "list.h"
 #include "mytypes.h"
-#include "rdata.h"
-#include "run.h"
 #include "symbol.h"
+#include "tdata.h"
 
 #include "run_texpr.h"
 
-static void run_taccess(run_t *run, stree_taccess_t *taccess,
-    rdata_titem_t **res);
-static void run_tindex(run_t *run, stree_tindex_t *tindex,
-    rdata_titem_t **res);
-static void run_tliteral(run_t *run, stree_tliteral_t *tliteral,
-    rdata_titem_t **res);
-static void run_tnameref(run_t *run, stree_tnameref_t *tnameref,
-    rdata_titem_t **res);
+static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
+    stree_taccess_t *taccess, tdata_item_t **res);
+static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tindex_t *tindex, tdata_item_t **res);
+static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tliteral_t *tliteral, tdata_item_t **res);
+static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tnameref_t *tnameref, tdata_item_t **res);
 
-void run_texpr(run_t *run, stree_texpr_t *texpr, rdata_titem_t **res)
+void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
+    tdata_item_t **res)
 {
 	switch (texpr->tc) {
 	case tc_taccess:
-		run_taccess(run, texpr->u.taccess, res);
+		run_taccess(prog, ctx, texpr->u.taccess, res);
 		break;
 	case tc_tindex:
-		run_tindex(run, texpr->u.tindex, res);
+		run_tindex(prog, ctx, texpr->u.tindex, res);
 		break;
 	case tc_tliteral:
-		run_tliteral(run, texpr->u.tliteral, res);
+		run_tliteral(prog, ctx, texpr->u.tliteral, res);
 		break;
 	case tc_tnameref:
-		run_tnameref(run, texpr->u.tnameref, res);
+		run_tnameref(prog, ctx, texpr->u.tnameref, res);
 		break;
 	case tc_tapply:
 		printf("Unimplemented: Evaluate type expression type %d.\n",
@@ -68,53 +69,54 @@ void run_texpr(run_t *run, stree_texpr_t *texpr, rdata_titem_t **res)
 	}
 }
 
-static void run_taccess(run_t *run, stree_taccess_t *taccess,
-    rdata_titem_t **res)
+static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
+    stree_taccess_t *taccess, tdata_item_t **res)
 {
 	stree_symbol_t *sym;
-	rdata_titem_t *targ_i;
-	rdata_titem_t *titem;
-	rdata_tcsi_t *tcsi;
+	tdata_item_t *targ_i;
+	tdata_item_t *titem;
+	tdata_object_t *tobject;
 	stree_csi_t *base_csi;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type access operation.\n");
 #endif
 	/* Evaluate base type. */
-	run_texpr(run, taccess->arg, &targ_i);
+	run_texpr(prog, ctx, taccess->arg, &targ_i);
 
-	if (targ_i->tic != tic_tcsi) {
-		printf("Error: Using '.' with type which is not CSI.\n");
+	if (targ_i->tic != tic_tobject) {
+		printf("Error: Using '.' with type which is not an object.\n");
 		exit(1);
 	}
 
 	/* Get base CSI. */
-	base_csi = targ_i->u.tcsi->csi;
+	base_csi = targ_i->u.tobject->csi;
 
-	sym = symbol_lookup_in_csi(run->program, base_csi,
-	    taccess->member_name);
+	sym = symbol_lookup_in_csi(prog, base_csi, taccess->member_name);
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");
-		symbol_print_fqn(run->program, sym);
+		symbol_print_fqn(sym);
 		printf("' is not a CSI.\n");
 		exit(1);
 	}
 
 	/* Construct type item. */
-	titem = rdata_titem_new(tic_tcsi);
-	tcsi = rdata_tcsi_new();
-	titem->u.tcsi = tcsi;
+	titem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+	titem->u.tobject = tobject;
 
-	tcsi->csi = sym->u.csi;
+	tobject->static_ref = b_false;
+	tobject->csi = sym->u.csi;
 
 	*res = titem;
 }
 
-static void run_tindex(run_t *run, stree_tindex_t *tindex, rdata_titem_t **res)
+static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tindex_t *tindex, tdata_item_t **res)
 {
-	rdata_titem_t *base_ti;
-	rdata_titem_t *titem;
-	rdata_tarray_t *tarray;
+	tdata_item_t *base_ti;
+	tdata_item_t *titem;
+	tdata_array_t *tarray;
 	stree_expr_t *arg_expr;
 	list_node_t *arg_node;
 
@@ -122,11 +124,11 @@ static void run_tindex(run_t *run, stree_tindex_t *tindex, rdata_titem_t **res)
 	printf("Evaluating type index operation.\n");
 #endif
 	/* Evaluate base type. */
-	run_texpr(run, tindex->base_type, &base_ti);
+	run_texpr(prog, ctx, tindex->base_type, &base_ti);
 
 	/* Construct type item. */
-	titem = rdata_titem_new(tic_tarray);
-	tarray = rdata_tarray_new();
+	titem = tdata_item_new(tic_tarray);
+	tarray = tdata_array_new();
 	titem->u.tarray = tarray;
 
 	tarray->base_ti = base_ti;
@@ -145,54 +147,59 @@ static void run_tindex(run_t *run, stree_tindex_t *tindex, rdata_titem_t **res)
 	*res = titem;
 }
 
-static void run_tliteral(run_t *run, stree_tliteral_t *tliteral,
-    rdata_titem_t **res)
+static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tliteral_t *tliteral, tdata_item_t **res)
 {
-	rdata_titem_t *titem;
-	rdata_tprimitive_t *tprimitive;
+	tdata_item_t *titem;
+	tdata_primitive_t *tprimitive;
+	tprimitive_class_t tpc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type literal.\n");
 #endif
-
-	(void) run;
+	(void) prog;
+	(void) ctx;
 	(void) tliteral;
 
+	switch (tliteral->tlc) {
+	case tlc_int: tpc = tpc_int; break;
+	case tlc_string: tpc = tpc_string; break;
+	}
+
 	/* Construct type item. */
-	titem = rdata_titem_new(tic_tprimitive);
-	tprimitive = rdata_tprimitive_new();
+	titem = tdata_item_new(tic_tprimitive);
+	tprimitive = tdata_primitive_new(tpc);
 	titem->u.tprimitive = tprimitive;
 
 	*res = titem;
 }
 
-static void run_tnameref(run_t *run, stree_tnameref_t *tnameref,
-    rdata_titem_t **res)
+static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tnameref_t *tnameref, tdata_item_t **res)
 {
-	stree_csi_t *current_csi;
 	stree_symbol_t *sym;
-	rdata_titem_t *titem;
-	rdata_tcsi_t *tcsi;
+	tdata_item_t *titem;
+	tdata_object_t *tobject;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type name reference.\n");
 #endif
-	current_csi = run_get_current_csi(run);
-	sym = symbol_lookup_in_csi(run->program, current_csi, tnameref->name);
+	sym = symbol_lookup_in_csi(prog, ctx, tnameref->name);
 
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");
-		symbol_print_fqn(run->program, sym);
+		symbol_print_fqn(sym);
 		printf("' is not a CSI.\n");
 		exit(1);
 	}
 
 	/* Construct type item. */
-	titem = rdata_titem_new(tic_tcsi);
-	tcsi = rdata_tcsi_new();
-	titem->u.tcsi = tcsi;
+	titem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+	titem->u.tobject = tobject;
 
-	tcsi->csi = sym->u.csi;
+	tobject->static_ref = b_false;
+	tobject->csi = sym->u.csi;
 
 	*res = titem;
 }

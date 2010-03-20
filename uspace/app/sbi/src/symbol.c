@@ -321,14 +321,14 @@ stree_symbol_t *prop_to_symbol(stree_prop_t *prop)
 }
 
 /** Print fully qualified name of symbol. */
-void symbol_print_fqn(stree_program_t *prog, stree_symbol_t *symbol)
+void symbol_print_fqn(stree_symbol_t *symbol)
 {
 	stree_ident_t *name;
 	stree_symbol_t *outer_sym;
 
 	if (symbol->outer_csi != NULL) {
 		outer_sym = csi_to_symbol(symbol->outer_csi);
-		symbol_print_fqn(prog, outer_sym);
+		symbol_print_fqn( outer_sym);
 		printf(".");
 	}
 

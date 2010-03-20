@@ -26,36 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MYTYPES_H_
-#define MYTYPES_H_
+#ifndef STYPE_H_
+#define STYPE_H_
 
-/** Boolean type compatible with builtin C 'boolean' operators. */
-typedef enum {
-	b_false = 0,
-	b_true = 1
-} bool_t;
+#include "mytypes.h"
 
-/** Node state for walks. */
-typedef enum {
-	ws_unvisited,
-	ws_active,
-	ws_visited
-} walk_state_t;
+void stype_module(stype_t *stype, stree_module_t *module);
 
-/** Error return codes. */
-#include <errno.h>
-#define EOK 0
+stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
+    tdata_item_t *dest);
 
-#include "input_t.h"
-#include "intmap_t.h"
-#include "lex_t.h"
-#include "list_t.h"
-#include "parse_t.h"
-#include "rdata_t.h"
-#include "run_t.h"
-#include "stree_t.h"
-#include "strtab_t.h"
-#include "stype_t.h"
-#include "tdata_t.h"
+stree_vdecl_t *stype_local_vars_lookup(stype_t *stype, sid_t name);
+stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name);
+stype_block_vr_t *stype_get_current_block_vr(stype_t *stype);
+
+stype_proc_vr_t *stype_proc_vr_new(void);
+stype_block_vr_t *stype_block_vr_new(void);
 
 #endif

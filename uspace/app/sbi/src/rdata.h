@@ -47,19 +47,11 @@ rdata_object_t *rdata_object_new(void);
 rdata_int_t *rdata_int_new(void);
 rdata_string_t *rdata_string_new(void);
 
-rdata_titem_t *rdata_titem_new(titem_class_t tic);
-rdata_tarray_t *rdata_tarray_new(void);
-rdata_tcsi_t *rdata_tcsi_new(void);
-rdata_tprimitive_t *rdata_tprimitive_new(void);
-
 void rdata_array_alloc_element(rdata_array_t *array);
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);
 
 void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem);
 void rdata_var_write(rdata_var_t *var, rdata_value_t *value);
-
-var_class_t rdata_item_get_vc(rdata_item_t *item);
-bool_t rdata_is_csi_derived_from_ti(stree_csi_t *a, rdata_titem_t *tb);
 
 void rdata_item_print(rdata_item_t *item);
 
