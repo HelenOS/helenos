@@ -25,21 +25,16 @@
 # Where to install the package. GNU-EFI will create and access
 # lib and include under the root
 #
+
+include ../../../../../Makefile.common
+
 INSTALLROOT=/usr/local
 
 TOPDIR    := $(shell pwd)
 
 ARCH       = ia64
-INCDIR     = -I. -I$(CDIR)/inc -I$(CDIR)/inc/$(ARCH) -I$(CDIR)/inc/protocol 
+INCDIR     = -I. -I$(CDIR)/inc -I$(CDIR)/inc/$(ARCH) -I$(CDIR)/inc/protocol
 CPPFLAGS   = -DCONFIG_$(ARCH)
 CFLAGS     = -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants -frename-registers -mfixed-range=f32-f127
 LDFLAGS    = -nostdlib
 INSTALL    = install
-
-CC         = $(prefix)gcc
-AS         = $(prefix)as
-LD         = $(prefix)ld
-AR         = $(prefix)ar
-RANLIB     = $(prefix)ranlib
-OBJCOPY    = $(prefix)objcopy
-OBJDUMP    = $(prefix)objdump

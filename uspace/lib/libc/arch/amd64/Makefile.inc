@@ -26,12 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-TARGET = amd64-linux-gnu
 CLANG_ARCH = x86_64
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/amd64/bin
 
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \

@@ -416,6 +416,7 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	socket_cores_t local_sockets;
 	int app_phone = IPC_GET_PHONE(&call);
 	struct sockaddr * addr;
+	int socket_id;
 	size_t addrlen;
 	ipc_call_t answer;
 	int answer_count;
@@ -450,8 +451,10 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				res = EHANGUP;
 				break;
 			case NET_SOCKET:
-				*SOCKET_SET_SOCKET_ID(answer) = SOCKET_GET_SOCKET_ID(call);
-				res = socket_create(&local_sockets, app_phone, NULL, SOCKET_SET_SOCKET_ID(answer));
+				socket_id = SOCKET_GET_SOCKET_ID(call);
+				res = socket_create(&local_sockets, app_phone, NULL, &socket_id);
+				*SOCKET_SET_SOCKET_ID(answer) = socket_id;
+				
 				if(res == EOK){
 					if(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
 						*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = packet_dimension->content;

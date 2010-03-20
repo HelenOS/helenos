@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,15 +35,7 @@
 #ifndef KERN_ia32_TYPES_H_
 #define KERN_ia32_TYPES_H_
 
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed long int32_t;
-typedef signed long long int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-typedef unsigned long long uint64_t;
+#include <arch/common.h>
 
 typedef uint32_t size_t;
 

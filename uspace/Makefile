@@ -29,6 +29,7 @@
 ## Include configuration
 #
 
+-include ../Makefile.common
 -include ../Makefile.config
 
 DIRS = \

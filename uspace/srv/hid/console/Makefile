@@ -31,7 +31,7 @@ include Makefile.common
 
 .PHONY: all clean
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
+all: $(LIBC_PREFIX)/../../../Makefile.common $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBS)
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
 	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 

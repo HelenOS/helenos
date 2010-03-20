@@ -31,8 +31,8 @@
 #
 
 include ../../../../version
+include ../../../../Makefile.common
 include ../../../../Makefile.config
-include ../../../../config.defs
 include Makefile.common
 include Makefile.toolchain
 
