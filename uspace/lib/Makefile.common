@@ -49,6 +49,7 @@ JOB = $(OUTPUT).job
 
 OBJECTS = $(addsuffix .o,$(basename $(SOURCES)))
 
+-include $(USPACE_PREFIX)/../Makefile.common
 -include $(USPACE_PREFIX)/../Makefile.config
 include $(LIBC_PREFIX)/Makefile.toolchain
 
@@ -58,9 +59,9 @@ CFLAGS += $(EXTRA_CFLAGS)
 
 all: \
     $(LIBC_PREFIX)/../../../version \
+    $(LIBC_PREFIX)/../../../Makefile.common \
     $(LIBC_PREFIX)/../../../Makefile.config \
     $(LIBC_PREFIX)/../../../config.h \
-    $(LIBC_PREFIX)/../../../config.defs \
     $(LIBS) \
     \
     $(OUTPUT) \

@@ -31,6 +31,7 @@ NAME = ping
 NET_BASE = ../../
 STRUCTURES = $(NET_BASE)structures/
 
+include ../../../../../Makefile.common
 include ../../../../../Makefile.config
 
 ## Sources
