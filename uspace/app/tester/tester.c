@@ -37,7 +37,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 #include "tester.h"
 
 bool test_quiet;

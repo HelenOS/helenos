@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <stdarg.h>
-#include <string.h>
+#include <str.h>
 #include <adt/list.h>
 
 #define EOF  (-1)

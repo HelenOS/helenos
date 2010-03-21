@@ -48,7 +48,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch.h>
 #include <panic.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */

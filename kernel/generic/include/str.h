@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_STRING_H_
-#define LIBC_STRING_H_
+#ifndef KERN_STR_H_
+#define KERN_STR_H_
 
-#include <mem.h>
-#include <sys/types.h>
-#include <bool.h>
+#include <typedefs.h>
 
-#define U_SPECIAL  '?'
+/**< Common Unicode characters */
+#define U_SPECIAL      '?'
 
-/** No size limit constant */
+#define U_LEFT_ARROW   0x2190
+#define U_UP_ARROW     0x2191
+#define U_RIGHT_ARROW  0x2192
+#define U_DOWN_ARROW   0x2193
+
+#define U_PAGE_UP      0x21de
+#define U_PAGE_DOWN    0x21df
+
+#define U_HOME_ARROW   0x21f1
+#define U_END_ARROW    0x21f2
+
+#define U_NULL         0x2400
+#define U_ESCAPE       0x241b
+#define U_DELETE       0x2421
+
+#define U_CURSOR       0x2588
+
+/**< No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-/** Maximum size of a string containing @c length characters */
-#define STR_BOUNDS(length)  ((length) << 2)
+/**< Maximum size of a string containing cnt characters */
+#define STR_BOUNDS(cnt)  (cnt << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
-extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+extern int chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -70,32 +86,12 @@ extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
-extern void str_append(char *dest, size_t size, const char *src);
-
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
-extern char *wstr_to_astr(const wchar_t *src);
-extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 
 extern char *str_chr(const char *str, wchar_t ch);
-extern char *str_rchr(const char *str, wchar_t ch);
 
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
-
-extern char *str_dup(const char *);
-extern char *str_ndup(const char *, size_t max_size);
-
-/*
- * TODO: Get rid of this.
- */
-
-extern int stricmp(const char *, const char *);
-
-extern long int strtol(const char *, char **, int);
-extern unsigned long strtoul(const char *, char **, int);
-
-extern char * strtok_r(char *, const char *, char **);
-extern char * strtok(char *, const char *);
 
 #endif
 

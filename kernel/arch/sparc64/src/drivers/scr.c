@@ -42,7 +42,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/types.h>
-#include <string.h>
+#include <str.h>
 #include <align.h>
 #include <print.h>
 

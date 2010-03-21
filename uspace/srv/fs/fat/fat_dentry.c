@@ -37,7 +37,7 @@
 
 #include "fat_dentry.h"
 #include <ctype.h>
-#include <string.h>
+#include <str.h>
 
 static bool is_d_char(const char ch)
 {

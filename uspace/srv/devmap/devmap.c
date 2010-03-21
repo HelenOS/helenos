@@ -43,7 +43,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ipc/devmap.h>
 
 #define NAME          "devmap"

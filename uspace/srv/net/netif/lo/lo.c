@@ -37,7 +37,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>

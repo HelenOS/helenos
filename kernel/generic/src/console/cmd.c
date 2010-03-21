@@ -50,7 +50,7 @@
 #include <arch.h>
 #include <config.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <debug.h>
 #include <cpu.h>

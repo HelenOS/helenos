@@ -65,7 +65,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)

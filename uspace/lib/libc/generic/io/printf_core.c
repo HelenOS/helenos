@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <io/printf_core.h>
 #include <ctype.h>
-#include <string.h>
+#include <str.h>
 
 /** show prefixes 0x or 0 */
 #define __PRINTF_FLAG_PREFIX       0x00000001

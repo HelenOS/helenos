@@ -41,7 +41,7 @@
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <async.h>
-#include <string.h>
+#include <str.h>
 #include <errno.h>
 #include <malloc.h>
 

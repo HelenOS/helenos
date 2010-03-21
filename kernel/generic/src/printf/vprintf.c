@@ -39,7 +39,7 @@
 #include <arch/asm.h>
 #include <arch/types.h>
 #include <typedefs.h>
-#include <string.h>
+#include <str.h>
 
 SPINLOCK_STATIC_INITIALIZE_NAME(printf_lock, "*printf_lock");
 

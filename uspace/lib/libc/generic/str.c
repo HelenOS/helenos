@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,89 +27,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
-
-/**
- * @file
- * @brief String functions.
- *
- * Strings and characters use the Universal Character Set (UCS). The standard
- * strings, called just strings are encoded in UTF-8. Wide strings (encoded
- * in UTF-32) are supported to a limited degree. A single character is
- * represented as wchar_t.@n
- *
- * Overview of the terminology:@n
- *
- *  Term                  Meaning
- *  --------------------  ----------------------------------------------------
- *  byte                  8 bits stored in uint8_t (unsigned 8 bit integer)
- *
- *  character             UTF-32 encoded Unicode character, stored in wchar_t
- *                        (signed 32 bit integer), code points 0 .. 1114111
- *                        are valid
- *
- *  ASCII character       7 bit encoded ASCII character, stored in char
- *                        (usually signed 8 bit integer), code points 0 .. 127
- *                        are valid
- *
- *  string                UTF-8 encoded NULL-terminated Unicode string, char *
- *
- *  wide string           UTF-32 encoded NULL-terminated Unicode string,
- *                        wchar_t *
- *
- *  [wide] string size    number of BYTES in a [wide] string (excluding
- *                        the NULL-terminator), size_t
- *
- *  [wide] string length  number of CHARACTERS in a [wide] string (excluding
- *                        the NULL-terminator), size_t
- *
- *  [wide] string width   number of display cells on a monospace display taken
- *                        by a [wide] string, size_t
- *
- *
- * Overview of string metrics:@n
- *
- *  Metric  Abbrev.  Type     Meaning
- *  ------  ------   ------   -------------------------------------------------
- *  size    n        size_t   number of BYTES in a string (excluding the
- *                            NULL-terminator)
- *
- *  length  l        size_t   number of CHARACTERS in a string (excluding the
- *                            null terminator)
- *
- *  width  w         size_t   number of display cells on a monospace display
- *                            taken by a string
- *
- *
- * Function naming prefixes:@n
- *
- *  chr_    operate on characters
- *  ascii_  operate on ASCII characters
- *  str_    operate on strings
- *  wstr_   operate on wide strings
- *
- *  [w]str_[n|l|w]  operate on a prefix limited by size, length
- *                  or width
- *
- *
- * A specific character inside a [wide] string can be referred to by:@n
- *
- *  pointer (char *, wchar_t *)
- *  byte offset (size_t)
- *  character index (size_t)
- *
+/** @file
  */
 
-#include <string.h>
-#include <print.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
+#include <str.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <limits.h>
+#include <ctype.h>
+#include <malloc.h>
 #include <errno.h>
 #include <align.h>
-#include <debug.h>
+#include <mem.h>
+#include <str.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -204,10 +138,10 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  * @param size   Size of the output buffer (in bytes).
  *
  * @return EOK if the character was encoded successfully, EOVERFLOW if there
- *	   was not enough space in the output buffer or EINVAL if the character
- *	   code was invalid.
+ *         was not enough space in the output buffer or EINVAL if the character
+ *         code was invalid.
  */
-int chr_encode(wchar_t ch, char *str, size_t *offset, size_t size)
+int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -547,7 +481,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 	size_t dest_off;
 
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
+	assert(size > 0);
 	
 	src_off = 0;
 	dest_off = 0;
@@ -582,7 +516,7 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	size_t dest_off;
 
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
+	assert(size > 0);
 	
 	src_off = 0;
 	dest_off = 0;
@@ -593,6 +527,25 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	}
 
 	dest[dest_off] = '\0';
+}
+
+/** Append one string to another.
+ *
+ * Append source string @a src to string in destination buffer @a dest.
+ * Size of the destination buffer is @a dest. If the size of the output buffer
+ * is at least one byte, the output string will always be well-formed, i.e.
+ * null-terminated and containing only complete characters.
+ *
+ * @param dest   Destination buffer.
+ * @param count Size of the destination buffer.
+ * @param src   Source string.
+ */
+void str_append(char *dest, size_t size, const char *src)
+{
+	size_t dstr_size;
+
+	dstr_size = str_size(dest);
+	str_cpy(dest + dstr_size, size - dstr_size, src);
 }
 
 /** Convert wide string to string.
@@ -612,11 +565,11 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	size_t dest_off;
 
 	/* There must be space for a null terminator in the buffer. */
-	ASSERT(size > 0);
-
+	assert(size > 0);
+	
 	src_idx = 0;
 	dest_off = 0;
-	
+
 	while ((ch = src[src_idx++]) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
@@ -625,13 +578,93 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest[dest_off] = '\0';
 }
 
+/** Convert wide string to new string.
+ *
+ * Convert wide string @a src to string. Space for the new string is allocated
+ * on the heap.
+ *
+ * @param src	Source wide string.
+ * @return	New string.
+ */
+char *wstr_to_astr(const wchar_t *src)
+{
+	char dbuf[STR_BOUNDS(1)];
+	char *str;
+	wchar_t ch;
+
+	size_t src_idx;
+	size_t dest_off;
+	size_t dest_size;
+
+	/* Compute size of encoded string. */
+
+	src_idx = 0;
+	dest_size = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		dest_off = 0;
+		if (chr_encode(ch, dbuf, &dest_off, STR_BOUNDS(1)) != EOK)
+			break;
+		dest_size += dest_off;
+	}
+
+	str = malloc(dest_size + 1);
+	if (str == NULL)
+		return NULL;
+
+	/* Encode string. */
+
+	src_idx = 0;
+	dest_off = 0;
+
+	while ((ch = src[src_idx++]) != 0) {
+		if (chr_encode(ch, str, &dest_off, dest_size) != EOK)
+			break;
+	}
+
+	str[dest_size] = '\0';
+	return str;
+}
+
+
+/** Convert string to wide string.
+ *
+ * Convert string @a src to wide string. The output is written to the
+ * buffer specified by @a dest and @a dlen. @a dlen must be non-zero
+ * and the wide string written will always be null-terminated.
+ *
+ * @param dest	Destination buffer.
+ * @param dlen	Length of destination buffer (number of wchars).
+ * @param src	Source string.
+ */
+void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
+{
+	size_t offset;
+	size_t di;
+	wchar_t c;
+
+	assert(dlen > 0);
+
+	offset = 0;
+	di = 0;
+
+	do {
+		if (di >= dlen - 1)
+			break;
+
+		c = str_decode(src, &offset, STR_NO_LIMIT);
+		dest[di++] = c;
+	} while (c != '\0');
+
+	dest[dlen - 1] = '\0';
+}
+
 /** Find first occurence of character in string.
  *
  * @param str String to search.
  * @param ch  Character to look for.
  *
  * @return Pointer to character in @a str or NULL if not found.
- *
  */
 char *str_chr(const char *str, wchar_t ch)
 {
@@ -646,6 +679,29 @@ char *str_chr(const char *str, wchar_t ch)
 	}
 	
 	return NULL;
+}
+
+/** Find last occurence of character in string.
+ *
+ * @param str String to search.
+ * @param ch  Character to look for.
+ *
+ * @return Pointer to character in @a str or NULL if not found.
+ */
+char *str_rchr(const char *str, wchar_t ch)
+{
+	wchar_t acc;
+	size_t off = 0;
+	size_t last = 0;
+	const char *res = NULL;
+	
+	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
+		if (acc == ch)
+			res = (str + last);
+		last = off;
+	}
+	
+	return (char *) res;
 }
 
 /** Insert a wide character into a wide string.
@@ -702,6 +758,224 @@ bool wstr_remove(wchar_t *str, size_t pos)
 		str[i - 1] = str[i];
 	
 	return true;
+}
+
+int stricmp(const char *a, const char *b)
+{
+	int c = 0;
+	
+	while (a[c] && b[c] && (!(tolower(a[c]) - tolower(b[c]))))
+		c++;
+	
+	return (tolower(a[c]) - tolower(b[c]));
+}
+
+/** Convert string to a number. 
+ * Core of strtol and strtoul functions.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character.
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @param sgn		It's set to 1 if minus found.
+ * @return		Result of conversion.
+ */
+static unsigned long
+_strtoul(const char *nptr, char **endptr, int base, char *sgn)
+{
+	unsigned char c;
+	unsigned long result = 0;
+	unsigned long a, b;
+	const char *str = nptr;
+	const char *tmpptr;
+	
+	while (isspace(*str))
+		str++;
+	
+	if (*str == '-') {
+		*sgn = 1;
+		++str;
+	} else if (*str == '+')
+		++str;
+	
+	if (base) {
+		if ((base == 1) || (base > 36)) {
+			/* FIXME: set errno to EINVAL */
+			return 0;
+		}
+		if ((base == 16) && (*str == '0') && ((str[1] == 'x') ||
+		    (str[1] == 'X'))) {
+			str += 2;
+		}
+	} else {
+		base = 10;
+		
+		if (*str == '0') {
+			base = 8;
+			if ((str[1] == 'X') || (str[1] == 'x'))  {
+				base = 16;
+				str += 2;
+			}
+		} 
+	}
+	
+	tmpptr = str;
+
+	while (*str) {
+		c = *str;
+		c = (c >= 'a' ? c - 'a' + 10 : (c >= 'A' ? c - 'A' + 10 :
+		    (c <= '9' ? c - '0' : 0xff)));
+		if (c > base) {
+			break;
+		}
+		
+		a = (result & 0xff) * base + c;
+		b = (result >> 8) * base + (a >> 8);
+		
+		if (b > (ULONG_MAX >> 8)) {
+			/* overflow */
+			/* FIXME: errno = ERANGE*/
+			return ULONG_MAX;
+		}
+	
+		result = (b << 8) + (a & 0xff);
+		++str;
+	}
+	
+	if (str == tmpptr) {
+		/*
+		 * No number was found => first invalid character is the first
+		 * character of the string.
+		 */
+		/* FIXME: set errno to EINVAL */
+		str = nptr;
+		result = 0;
+	}
+	
+	if (endptr)
+		*endptr = (char *) str;
+
+	if (nptr == str) { 
+		/*FIXME: errno = EINVAL*/
+		return 0;
+	}
+
+	return result;
+}
+
+/** Convert initial part of string to long int according to given base.
+ * The number may begin with an arbitrary number of whitespaces followed by
+ * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be
+ * inserted and the number will be taken as hexadecimal one. If the base is 0
+ * and the number begin with a zero, number will be taken as octal one (as with
+ * base 8). Otherwise the base 0 is taken as decimal.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character.
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @return		Result of conversion.
+ */
+long int strtol(const char *nptr, char **endptr, int base)
+{
+	char sgn = 0;
+	unsigned long number = 0;
+	
+	number = _strtoul(nptr, endptr, base, &sgn);
+
+	if (number > LONG_MAX) {
+		if ((sgn) && (number == (unsigned long) (LONG_MAX) + 1)) {
+			/* FIXME: set 0 to errno */
+			return number;		
+		}
+		/* FIXME: set ERANGE to errno */
+		return (sgn ? LONG_MIN : LONG_MAX);	
+	}
+	
+	return (sgn ? -number : number);
+}
+
+char *str_dup(const char *src)
+{
+	size_t size = str_size(src);
+	void *dest = malloc(size + 1);
+	
+	if (dest == NULL)
+		return (char *) NULL;
+	
+	return (char *) memcpy(dest, src, size + 1);
+}
+
+char *str_ndup(const char *src, size_t max_size)
+{
+	size_t size = str_size(src);
+	if (size > max_size)
+		size = max_size;
+	
+	char *dest = (char *) malloc(size + 1);
+	
+	if (dest == NULL)
+		return (char *) NULL;
+	
+	memcpy(dest, src, size);
+	dest[size] = 0;
+	return dest;
+}
+
+
+/** Convert initial part of string to unsigned long according to given base.
+ * The number may begin with an arbitrary number of whitespaces followed by
+ * optional sign (`+' or `-'). If the base is 0 or 16, the prefix `0x' may be
+ * inserted and the number will be taken as hexadecimal one. If the base is 0
+ * and the number begin with a zero, number will be taken as octal one (as with
+ * base 8). Otherwise the base 0 is taken as decimal.
+ *
+ * @param nptr		Pointer to string.
+ * @param endptr	If not NULL, function stores here pointer to the first
+ * 			invalid character
+ * @param base		Zero or number between 2 and 36 inclusive.
+ * @return		Result of conversion.
+ */
+unsigned long strtoul(const char *nptr, char **endptr, int base)
+{
+	char sgn = 0;
+	unsigned long number = 0;
+	
+	number = _strtoul(nptr, endptr, base, &sgn);
+
+	return (sgn ? -number : number);
+}
+
+char *strtok(char *s, const char *delim)
+{
+	static char *next;
+
+	return strtok_r(s, delim, &next);
+}
+
+char *strtok_r(char *s, const char *delim, char **next)
+{
+	char *start, *end;
+
+	if (s == NULL)
+		s = *next;
+
+	/* Skip over leading delimiters. */
+	while (*s && (str_chr(delim, *s) != NULL)) ++s;
+	start = s;
+
+	/* Skip over token characters. */
+	while (*s && (str_chr(delim, *s) == NULL)) ++s;
+	end = s;
+	*next = (*s ? s + 1 : s);
+
+	if (start == end) {
+		return NULL;	/* No more tokens. */
+	}
+
+	/* Overwrite delimiter with NULL terminator. */
+	*end = '\0';
+	return start;
 }
 
 /** @}

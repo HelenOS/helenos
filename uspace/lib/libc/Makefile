@@ -55,7 +55,7 @@ GENERIC_SOURCES = \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
-	generic/string.c \
+	generic/str.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \

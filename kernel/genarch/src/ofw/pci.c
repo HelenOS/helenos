@@ -40,12 +40,12 @@
 #include <arch/drivers/pci.h>
 #include <arch/trap/interrupt.h>
 #include <arch/memstr.h>
-#include <string.h>
+#include <str.h>
 #include <panic.h>
 #include <macros.h>
 
 #define PCI_SPACE_MASK		0x03000000
-#define PCI_ABS_MASK		0x80000000	
+#define PCI_ABS_MASK		0x80000000
 #define PCI_REG_MASK		0x000000ff
 
 #define PCI_IGN			0x1f

@@ -42,7 +42,7 @@
 #include <async.h>
 #include <task.h>
 #include <mem.h>
-#include <string.h>
+#include <str.h>
 #include <bool.h>
 #include <loader/loader.h>
 #include <io/console.h>

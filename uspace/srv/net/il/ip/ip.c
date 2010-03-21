@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
