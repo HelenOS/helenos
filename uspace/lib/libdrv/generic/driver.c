@@ -71,18 +71,16 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	
 	// result of the operation - device was added, device is not present etc.
 	ipcarg_t ret = 0;	
-	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
-	
-	printf("%s: adding device with handle = %x \n", driver->name, dev_handle);
-	
+	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);	
 	device_t *dev = driver_create_device();
 	dev->handle = dev_handle;
 	if (driver->driver_ops->add_device(dev)) {
 		list_append(&dev->link, &devices);
 		// TODO set return value
 	}
+	printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
 	
-	ipc_answer_1(iid, EOK, ret);
+	ipcarg_t r = ipc_answer_1(iid, EOK, ret);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
@@ -167,7 +165,6 @@ int driver_main(driver_t *drv)
 	driver = drv;
 	
 	// register driver by device manager with generic handler for incoming connections
-	printf("%s: sending registration request to devman.\n", driver->name);
 	devman_driver_register(driver->name, driver_connection);		
 
 	async_manager();

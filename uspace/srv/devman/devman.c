@@ -232,8 +232,6 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 		goto cleanup;
 	}	
 	
-	printf(NAME ": get_driver_info - path to match id list = %s.\n", match_path);
-	
 	if (!read_match_ids(match_path, &drv->match_ids)) {
 		goto cleanup;
 	}	
@@ -283,18 +281,16 @@ cleanup:
  */ 
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
-	printf(NAME ": lookup_available_drivers \n");
+	printf(NAME ": lookup_available_drivers, dir = %s \n", dir_path);
 	
 	int drv_cnt = 0;
 	DIR *dir = NULL;
 	struct dirent *diren;
 
 	dir = opendir(dir_path);
-	printf(NAME ": lookup_available_drivers has opened directory %s for driver search.\n", dir_path);
 	
 	if (dir != NULL) {
 		driver_t *drv = create_driver();
-		printf(NAME ": lookup_available_drivers has created driver structure.\n");
 		while ((diren = readdir(dir))) {			
 			if (get_driver_info(dir_path, diren->d_name, drv)) {
 				add_driver(drivers_list, drv);
@@ -344,7 +340,7 @@ bool create_root_node(dev_tree_t *tree)
  */
 driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
 {
-	printf(NAME ": find_best_match_driver\n");
+	printf(NAME ": find_best_match_driver for device '%s' \n", node->pathname);
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
 	
@@ -391,11 +387,9 @@ void attach_driver(node_t *node, driver_t *drv)
  */
 bool start_driver(driver_t *drv)
 {
-	printf(NAME ": start_driver\n");
+	printf(NAME ": start_driver '%s'\n", drv->name);
 	
 	char *argv[2];
-	
-	printf(NAME ": spawning driver %s\n", drv->name);
 	
 	argv[0] = drv->name;
 	argv[1] = NULL;
@@ -458,6 +452,7 @@ void set_driver_phone(driver_t *driver, ipcarg_t phone)
  */
 static void pass_devices_to_driver(driver_t *driver)
 {	
+	printf(NAME ": pass_devices_to_driver\n");
 	node_t *dev;
 	link_t *link;
 	
@@ -485,6 +480,7 @@ static void pass_devices_to_driver(driver_t *driver)
  */
 void initialize_running_driver(driver_t *driver) 
 {	
+	printf(NAME ": initialize_running_driver\n");
 	fibril_mutex_lock(&driver->driver_mutex);
 	
 	// pass devices which have been already assigned to the driver to the driver
@@ -532,7 +528,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list)
 	// find the driver which is the most suitable for handling this device
 	driver_t *drv = find_best_match_driver(drivers_list, node);
 	if (NULL == drv) {
-		printf(NAME ": no driver found for device.\n"); 
+		printf(NAME ": no driver found for device '%s'.\n", node->pathname); 
 		return false;		
 	}
 	
@@ -625,7 +621,7 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_
 {
 	printf(NAME ": insert_dev_node\n");
 	
-	assert(NULL != node && NULL != tree && dev_name != NULL);
+	assert(NULL != node && NULL != tree && NULL != dev_name);
 	
 	node->name = dev_name;
 	if (!set_dev_path(node, parent)) {

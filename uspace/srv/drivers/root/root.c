@@ -74,7 +74,7 @@ static bool add_platform_child(device_t *parent) {
 		goto failure;
 	}
 	
-	// TODO - replace this with some better solution
+	// TODO - replace this with some better solution (sysinfo ?)
 	platform->name = STRING(UARCH);
 	printf(NAME ": the new device's name is %s.\n", platform->name);
 	
@@ -112,6 +112,7 @@ static bool root_add_device(device_t *dev)
 	
 	// register root device's children	
 	if (!add_platform_child(dev)) {
+		printf(NAME ": failed to add child device for platform.\n");
 		return false;
 	}
 	

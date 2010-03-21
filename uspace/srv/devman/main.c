@@ -50,6 +50,7 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <ipc/devman.h>
+#include <thread.h>
 
 #include "devman.h"
 
@@ -95,7 +96,6 @@ static driver_t * devman_driver_register(void)
 		ipc_answer_0(iid, ENOENT);
 		return NULL;
 	}
-	printf(NAME ": registering the running instance of the %s driver.\n", driver->name);
 	
 	// Create connection to the driver
 	printf(NAME ":  creating connection to the %s driver.\n", driver->name);	
@@ -122,9 +122,45 @@ static driver_t * devman_driver_register(void)
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *driver)
 {
 	printf(NAME ": devman_add_child\n");
+
+	device_handle_t parent_handle = IPC_GET_ARG1(*call);
+	node_t *parent =  find_dev_node(&device_tree, parent_handle);
 	
-	// TODO
+	if (NULL == parent) {
+		ipc_answer_0(callid, ENOENT);
+		return;
+	}
 	
+	char *dev_name = NULL;
+	int rc = async_string_receive(&dev_name, DEVMAN_NAME_MAXLEN, NULL);	
+	if (rc != EOK) {
+		ipc_answer_0(callid, rc);
+		return;
+	}
+	printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
+	
+	node_t *node = create_dev_node();
+	if (!insert_dev_node(&device_tree, node, dev_name, parent)) {
+		delete_dev_node(node);
+		ipc_answer_0(callid, ENOMEM);
+		return;
+	}	
+	
+	// TODO match ids
+	
+	// return device handle to parent's driver
+	ipc_answer_1(callid, EOK, node->handle);
+	
+	// try to find suitable driver and assign it to the device	
+	assign_driver(node, &drivers_list);
+}
+
+static int init_running_drv(void *drv)
+{
+	driver_t *driver = (driver_t *)drv;
+	initialize_running_driver(driver);	
+	printf(NAME ": the %s driver was successfully initialized. \n", driver->name);
+	return 0;
 }
 
 /** Function for handling connections to device manager.
@@ -136,10 +172,20 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_answer_0(iid, EOK);
 	
 	driver_t *driver = devman_driver_register();
-	if (driver == NULL)
+	if (NULL == driver)
 		return;
-		
-	initialize_running_driver(driver);
+	
+	fid_t fid = fibril_create(init_running_drv, driver);
+	if (fid == 0) {
+		printf(NAME ": Error creating fibril for the initialization of the newly registered running driver.\n");
+		exit(1);
+	}
+	fibril_add_ready(fid);
+	
+	/*thread_id_t tid;
+	if (0 != thread_create(init_running_drv, driver, "init_running_drv", &tid)) {
+		printf(NAME ": failed to start the initialization of the newly registered running driver.\n");
+	}*/
 	
 	ipc_callid_t callid;
 	ipc_call_t call;

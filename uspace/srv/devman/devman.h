@@ -140,6 +140,12 @@ char * read_id(const char **buf) ;
 
 // Drivers
 
+/** 
+ * Initialize the list of device driver's.
+ * 
+ * @param drv_list the list of device driver's.
+ * 
+ */
 static inline void init_driver_list(driver_list_t *drv_list) 
 {
 	assert(NULL != drv_list);
@@ -164,7 +170,12 @@ driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
 void set_driver_phone(driver_t *driver, ipcarg_t phone);
 void initialize_running_driver(driver_t *driver);
 
-
+/** 
+ * Initialize device driver structure.
+ * 
+ * @param drv the device driver structure.
+ * 
+ */
 static inline void init_driver(driver_t *drv)
 {
 	assert(drv != NULL);
@@ -175,6 +186,11 @@ static inline void init_driver(driver_t *drv)
 	fibril_mutex_initialize(&drv->driver_mutex);	
 }
 
+/**
+ * Device driver structure clean-up.
+ * 
+ * @param drv the device driver structure. 
+ */
 static inline void clean_driver(driver_t *drv)
 {
 	assert(drv != NULL);
@@ -187,6 +203,11 @@ static inline void clean_driver(driver_t *drv)
 	init_driver(drv);
 }
 
+/**
+ * Delete device driver structure.
+ * 
+ *  @param drv the device driver structure.* 
+ */
 static inline void delete_driver(driver_t *drv)
 {
 	assert(NULL != drv);
@@ -196,7 +217,12 @@ static inline void delete_driver(driver_t *drv)
 }
 
 // Device nodes
-
+/**
+ * Create a new device node.
+ * 
+ * @return a device node structure.
+ * 
+ */
 static inline node_t * create_dev_node()
 {
 	node_t *res = malloc(sizeof(node_t));
@@ -206,10 +232,28 @@ static inline node_t * create_dev_node()
 	
 	list_initialize(&res->children);
 	list_initialize(&res->match_ids.ids);
+	fibril_mutex_initialize(&res->children_mutex);
 	
 	return res;
 }
 
+static inline void delete_dev_node(node_t *node)
+{
+	assert(list_empty(&node->children) && NULL == node->parent && NULL == node->drv);
+	
+	clean_match_ids(&node->match_ids);
+	free_not_null(node->name);
+	free_not_null(node->pathname);
+	free(node);	
+}
+
+/**
+ * Find the device node structure of the device witch has the specified handle.
+ * 
+ * @param tree the device tree where we look for the device node.
+ * @param handle the handle of the device.
+ * @return the device node. 
+ */
 static inline node_t * find_dev_node(dev_tree_t *tree, long handle)
 {
 	if (handle < MAX_DEV) {

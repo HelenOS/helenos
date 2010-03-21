@@ -107,7 +107,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 
 int devman_child_device_register(
 	const char *name, match_id_list_t *match_ids, device_handle_t parent_handle, device_handle_t *handle)
-{	
+{		
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
 	if (phone < 0)
