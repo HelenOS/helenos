@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 
 /* HelenOS Port : We're incorporating only the modern getopt_long with wrappers
  * to keep legacy getopt() usage from breaking. All references to REPLACE_GETOPT

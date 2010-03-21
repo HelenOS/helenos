@@ -38,7 +38,7 @@
 #include <libarch/faddr.h>
 #include <kernel/proc/uarg.h>
 #include <fibril.h>
-#include <string.h>
+#include <str.h>
 #include <async.h>
 
 #ifndef THREAD_INITIAL_STACK_PAGES_NO

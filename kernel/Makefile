@@ -203,7 +203,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
-	generic/src/lib/string.c \
+	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \

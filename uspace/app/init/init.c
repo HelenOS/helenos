@@ -45,7 +45,7 @@
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
 #include "init.h"
 

@@ -48,7 +48,7 @@
 #include <config.h>
 #include <bitops.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <ddi/ddi.h>
 #include <arch/types.h>
 #include <byteorder.h>

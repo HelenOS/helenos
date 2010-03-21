@@ -35,7 +35,7 @@
  *  Distributes messages and initializes all module parts.
  */
 
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 

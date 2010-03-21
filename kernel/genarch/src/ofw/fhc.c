@@ -39,7 +39,7 @@
 #include <genarch/ofw/fhc.h>
 #include <arch/drivers/fhc.h>
 #include <arch/memstr.h>
-#include <string.h>
+#include <str.h>
 #include <panic.h>
 #include <macros.h>
 

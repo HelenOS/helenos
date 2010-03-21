@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <string.h>
+#include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>

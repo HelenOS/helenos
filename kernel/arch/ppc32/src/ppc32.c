@@ -52,7 +52,7 @@
 #include <arch/drivers/pic.h>
 #include <align.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
 
 #define IRQ_COUNT  64

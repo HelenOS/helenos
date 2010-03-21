@@ -36,7 +36,7 @@
 #define KERN_SYSINFO_H_
 
 #include <arch/types.h>
-#include <string.h>
+#include <str.h>
 
 extern bool fb_exported;
 

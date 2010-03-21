@@ -8,7 +8,7 @@
  *	Can be freely distributed and used under the terms of the GNU GPL.
  */
 
-#include <string.h>
+#include <str.h>
 
 #include "internal.h"
 

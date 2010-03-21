@@ -41,7 +41,7 @@
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
-#include <string.h>
+#include <str.h>
 #include <arch.h>
 
 enum {

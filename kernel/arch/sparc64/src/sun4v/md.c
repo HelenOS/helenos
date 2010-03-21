@@ -36,7 +36,7 @@
 #include <panic.h>
 #include <func.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/hypercall.h>
 #include <arch/mm/page.h>

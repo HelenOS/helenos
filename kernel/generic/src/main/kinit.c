@@ -65,7 +65,7 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <debug.h>
-#include <string.h>
+#include <str.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>

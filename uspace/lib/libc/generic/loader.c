@@ -37,7 +37,7 @@
 #include <ipc/services.h>
 #include <libc.h>
 #include <task.h>
-#include <string.h>
+#include <str.h>
 #include <stdlib.h>
 #include <async.h>
 #include <errno.h>

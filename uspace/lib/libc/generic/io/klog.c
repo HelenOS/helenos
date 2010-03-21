@@ -34,7 +34,7 @@
  */
 
 #include <libc.h>
-#include <string.h>
+#include <str.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <io/klog.h>

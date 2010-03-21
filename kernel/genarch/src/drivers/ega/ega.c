@@ -44,7 +44,7 @@
 #include <arch/types.h>
 #include <arch/asm.h>
 #include <memstr.h>
-#include <string.h>
+#include <str.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>

@@ -40,7 +40,7 @@
 #include <bool.h>
 #include <errno.h>
 #include <malloc.h>
-#include <string.h>
+#include <str.h>
 #include <libfs.h>
 #include <fibril_synch.h>
 #include <adt/hash_table.h>

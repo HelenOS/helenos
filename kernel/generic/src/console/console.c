@@ -50,7 +50,7 @@
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 
 #define KLOG_PAGES    4
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))

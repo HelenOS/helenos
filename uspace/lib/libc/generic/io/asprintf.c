@@ -36,7 +36,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <io/printf_core.h>
 
 static int asprintf_str_write(const char *str, size_t count, void *unused)

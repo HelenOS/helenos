@@ -38,7 +38,7 @@
 #include <io/printf_core.h>
 #include <futex.h>
 #include <async.h>
-#include <string.h>
+#include <str.h>
 
 static atomic_t printf_futex = FUTEX_INITIALIZER;
 

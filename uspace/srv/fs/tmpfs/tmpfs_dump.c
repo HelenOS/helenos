@@ -40,7 +40,7 @@
 #include "../../vfs/vfs.h"
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <sys/types.h>
 #include <as.h>
 #include <libblock.h>

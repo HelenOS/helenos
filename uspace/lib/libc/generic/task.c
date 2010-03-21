@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <loader/loader.h>
-#include <string.h>
+#include <str.h>
 #include <ipc/ns.h>
 #include <macros.h>
 #include <async.h>

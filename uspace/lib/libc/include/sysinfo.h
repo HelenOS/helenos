@@ -37,7 +37,7 @@
 
 #include <libc.h>
 #include <sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 sysarg_t sysinfo_value(const char *name);
 

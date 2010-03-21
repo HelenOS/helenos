@@ -55,7 +55,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <inttypes.h>

@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 #include <stdio.h>
 #include <task.h>
 

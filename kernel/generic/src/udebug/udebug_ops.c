@@ -45,7 +45,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <syscall/copy.h>
 #include <ipc/ipc.h>
 #include <udebug/udebug.h>

@@ -48,7 +48,7 @@
 #include <atomic.h>
 #include <futex.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
 #include <ipc/vfs.h>
 #include <ipc/devmap.h>

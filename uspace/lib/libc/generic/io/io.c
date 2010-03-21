@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <string.h>
+#include <str.h>
 #include <errno.h>
 #include <bool.h>
 #include <malloc.h>

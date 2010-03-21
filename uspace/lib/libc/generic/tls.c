@@ -39,7 +39,7 @@
 
 #include <tls.h>
 #include <malloc.h>
-#include <string.h>
+#include <str.h>
 #include <align.h>
 
 /** Create TLS (Thread Local Storage) data structures.
