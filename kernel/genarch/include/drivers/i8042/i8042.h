@@ -36,7 +36,6 @@
 #define KERN_I8042_H_
 
 #include <ddi/irq.h>
-#include <arch/types.h>
 #include <console/chardev.h>
 #include <typedefs.h>
 

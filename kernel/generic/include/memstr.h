@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_MEMSTR_H_
 #define KERN_MEMSTR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/memstr.h>
 
 /*

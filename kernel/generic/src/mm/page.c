@@ -62,7 +62,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <arch/barrier.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 #include <debug.h>

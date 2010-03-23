@@ -35,7 +35,7 @@
 #ifndef KERN_abs32le_ATOMIC_H_
 #define KERN_abs32le_ATOMIC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
 

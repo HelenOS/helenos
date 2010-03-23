@@ -38,7 +38,7 @@
 #ifndef KERN_arm32_ASID_H_
 #define KERN_arm32_ASID_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define ASID_MAX_ARCH		3	/* minimal required number */
 

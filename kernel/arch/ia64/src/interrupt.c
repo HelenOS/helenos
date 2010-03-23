@@ -40,7 +40,7 @@
 #include <print.h>
 #include <debug.h>
 #include <console/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>

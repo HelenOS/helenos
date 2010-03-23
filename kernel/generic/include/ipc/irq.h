@@ -40,7 +40,7 @@
 
 #include <ipc/ipc.h>
 #include <ddi/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 
 extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, unative_t,

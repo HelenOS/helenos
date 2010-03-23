@@ -48,7 +48,7 @@
 #define __CAP_H__
 
 #include <syscall/sysarg64.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * CAP_CAP allows its holder to grant/revoke arbitrary

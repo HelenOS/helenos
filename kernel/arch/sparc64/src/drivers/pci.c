@@ -40,7 +40,7 @@
 #include <arch/trap/interrupt.h>
 #include <mm/page.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 #include <print.h>
 #include <str.h>

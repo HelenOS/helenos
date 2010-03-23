@@ -34,7 +34,7 @@
 
 #include <stacktrace.h>
 #include <interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <symtab.h>
 
 #define STACK_FRAMES_MAX	20

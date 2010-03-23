@@ -90,7 +90,7 @@
 
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 #if defined(US)
 /** LSU Control Register. */

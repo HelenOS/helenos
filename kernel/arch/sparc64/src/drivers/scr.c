@@ -41,7 +41,7 @@
 #include <genarch/fb/visuals.h>
 #include <console/chardev.h>
 #include <console/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <str.h>
 #include <align.h>
 #include <print.h>

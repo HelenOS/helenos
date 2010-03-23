@@ -41,7 +41,7 @@
 #include <mm/slab.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
 #include <str.h>

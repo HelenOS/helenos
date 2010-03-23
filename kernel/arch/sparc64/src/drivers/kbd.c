@@ -40,7 +40,7 @@
 #include <ddi/irq.h>
 #include <mm/page.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 #include <str.h>
 #include <print.h>

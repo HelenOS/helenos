@@ -44,7 +44,7 @@
 #include <console/cmd.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <macros.h>

@@ -53,7 +53,7 @@
 
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** TSB Base register. */
 typedef union tsb_base_reg {

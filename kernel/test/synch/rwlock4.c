@@ -31,7 +31,7 @@
 #include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <context.h>
 

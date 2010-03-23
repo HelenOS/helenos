@@ -36,7 +36,7 @@
 #ifndef KERN_arm32_PAGE_FAULT_H_
 #define KERN_arm32_PAGE_FAULT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 
 /** Decribes CP15 "fault status register" (FSR). */

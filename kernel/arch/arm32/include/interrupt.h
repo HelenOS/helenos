@@ -36,7 +36,7 @@
 #ifndef KERN_arm32_INTERRUPT_H_
 #define KERN_arm32_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/exception.h>
 
 /** Initial size of exception dispatch table. */

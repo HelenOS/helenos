@@ -34,7 +34,6 @@
 
 #include <stacktrace.h>
 #include <syscall/copy.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 bool kernel_frame_pointer_validate(uintptr_t fp)

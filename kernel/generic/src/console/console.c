@@ -38,7 +38,7 @@
 #include <sysinfo/sysinfo.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>

@@ -43,7 +43,7 @@
 #include <config.h>
 #include <macros.h>
 #include <func.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/synch.h>
 #include <synch/waitq.h>
 #include <print.h>

@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/smp/apic.h>
 #include <arch/smp/ap.h>
 #include <arch/smp/mps.h>

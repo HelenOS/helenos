@@ -35,7 +35,7 @@
 #ifndef KERN_abs32le_INTERRUPT_H_
 #define KERN_abs32le_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define IVT_ITEMS  0
 #define IVT_FIRST  0

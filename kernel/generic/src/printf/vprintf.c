@@ -37,7 +37,7 @@
 #include <putchar.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <typedefs.h>
 #include <str.h>
 

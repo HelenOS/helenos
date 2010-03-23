@@ -36,7 +36,7 @@
  * Low level time functions.
  */
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <time/clock.h>
 #include <time/delay.h>
 #include <arch/cycle.h>

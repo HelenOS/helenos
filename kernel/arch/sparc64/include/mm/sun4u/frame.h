@@ -54,7 +54,7 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 union frame_address {
 	uintptr_t address;

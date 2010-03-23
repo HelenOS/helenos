@@ -36,15 +36,15 @@
 #define KERN_ELF_H_
 
 #include <arch/elf.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * current ELF version
  */
-#define	EV_CURRENT	1
+#define EV_CURRENT	1
 
-/** 
- * ELF types 
+/**
+ * ELF types
  */
 #define ET_NONE		0	/* No type */
 #define ET_REL		1	/* Relocatable file */

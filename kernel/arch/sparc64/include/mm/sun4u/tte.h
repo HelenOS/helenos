@@ -48,7 +48,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* TTE tag's VA_tag field contains bits <63:VA_TAG_PAGE_SHIFT> of the VA */
 #define VA_TAG_PAGE_SHIFT	22

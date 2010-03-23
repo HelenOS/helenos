@@ -37,7 +37,7 @@
 #include <arch/mm/page.h>
 #include <arch/barrier.h>
 #include <mm/as.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <macros.h>
 #include <debug.h>
 

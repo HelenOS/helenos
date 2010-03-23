@@ -42,7 +42,7 @@
  * @see buddy.c
  */
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/frame.h>
 #include <mm/as.h>
 #include <panic.h>

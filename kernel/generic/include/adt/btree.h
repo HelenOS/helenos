@@ -35,7 +35,7 @@
 #ifndef KERN_BTREE_H_
 #define KERN_BTREE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 
 #define BTREE_M		5

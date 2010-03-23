@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_INTERRUPT_H_
 #define KERN_ia32_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/pm.h>
 
 #define IVT_ITEMS	IDT_ITEMS

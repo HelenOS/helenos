@@ -41,7 +41,6 @@
 #define KERN_genarch_PL050_H
 
 #include <ddi/irq.h>
-#include <arch/types.h>
 #include <console/chardev.h>
 #include <typedefs.h>
 

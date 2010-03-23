@@ -50,7 +50,7 @@
 #include <print.h>
 #include <str.h>
 #include <ddi/ddi.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <byteorder.h>
 
 #define BG_COLOR     0x000080

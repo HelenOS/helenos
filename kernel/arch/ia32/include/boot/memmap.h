@@ -60,7 +60,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 	uint64_t base_address;

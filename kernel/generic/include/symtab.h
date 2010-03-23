@@ -35,7 +35,7 @@
 #ifndef KERN_SYMTAB_H_
 #define KERN_SYMTAB_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define MAX_SYMBOL_NAME 64
 

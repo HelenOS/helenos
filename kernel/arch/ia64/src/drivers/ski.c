@@ -36,7 +36,7 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>

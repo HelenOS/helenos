@@ -74,7 +74,7 @@
 #include <errno.h>
 #include <config.h>
 #include <align.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 

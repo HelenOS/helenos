@@ -37,7 +37,6 @@
 #define KERN_arm32_ASM_H_
 
 #include <typedefs.h>
-#include <arch/types.h>
 #include <arch/stack.h>
 #include <config.h>
 #include <arch/interrupt.h>

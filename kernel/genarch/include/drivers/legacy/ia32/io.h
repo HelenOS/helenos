@@ -37,7 +37,7 @@
 #ifndef KERN_LEGACY_IA32_IO_H
 #define KERN_LEGACY_IA32_IO_H
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define I8042_BASE    ((ioport8_t *) 0x60)
 #define EGA_BASE      ((ioport8_t *) 0x3d4)

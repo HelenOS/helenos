@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_CPU_H_
 #define KERN_mips32_CPU_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 
 typedef struct {

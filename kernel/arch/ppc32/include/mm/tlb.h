@@ -36,7 +36,6 @@
 #define KERN_ppc32_TLB_H_
 
 #include <arch/interrupt.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 #define WIMG_GUARDED    0x01
