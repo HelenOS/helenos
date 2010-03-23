@@ -97,7 +97,7 @@ ifeq ($(CONFIG_NETIF_DP8390),y)
 	DIRS += srv/net/netif/dp8390
 endif
 
-NETWORKING_COMMON += \
+NETWORKING_COMMON = \
 	srv/net/netif/lo \
 	srv/net/nil/eth \
 	srv/net/nil/nildummy \
@@ -119,19 +119,19 @@ NETWORKING_MODULAR = \
 ## System libraries
 #
 
-LIBC = lib/libc
+LIBC = lib/c
 LIBS = \
-	lib/libfs \
-	lib/libblock \
+	lib/fs \
+	lib/block \
 	lib/softint \
 	lib/softfloat \
 
 ifeq ($(UARCH),amd64)
-	LIBS += lib/libpci
+	LIBS += lib/pci
 endif
 
 ifeq ($(UARCH),ia32)
-	LIBS += lib/libpci
+	LIBS += lib/pci
 endif
 
 
