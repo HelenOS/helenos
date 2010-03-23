@@ -31,8 +31,8 @@ BFD_ARCH = powerpc:common
 BFD = binary
 
 GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -no-check-sections -N
+AFLAGS = -a32
+LFLAGS = -no-check-sections -N
 
 BITS = 32
 ENDIANESS = BE
