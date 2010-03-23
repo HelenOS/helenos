@@ -420,6 +420,8 @@ int socket(int domain, int type, int protocol){
 	int phone;
 	int socket_id;
 	services_t service;
+	ipcarg_t fragment_size;
+	ipcarg_t header_size;
 
 	// find the appropriate service
 	switch(domain){
@@ -477,11 +479,13 @@ int socket(int domain, int type, int protocol){
 		free(socket);
 		return socket_id;
 	}
-	if(ERROR_OCCURRED((int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL, (ipcarg_t *) &socket->data_fragment_size, (ipcarg_t *) &socket->header_size))){
+	if(ERROR_OCCURRED((int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL, &fragment_size, &header_size))){
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		free(socket);
 		return ERROR_CODE;
 	}
+	socket->data_fragment_size = (size_t) fragment_size;
+	socket->header_size = (size_t) header_size;
 	// finish the new socket initialization
 	socket_initialize(socket, socket_id, phone, service);
 	// store the new socket
