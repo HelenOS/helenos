@@ -27,14 +27,56 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../..
+BINARY = fb
 
-.PHONY: all clean
+SOURCES = \
+	main.c \
+	ppm.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.common $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+ifneq ($(UARCH),ia64)
+	SOURCES += fb.c \
+		font-8x16.c
+	EXTRA_CFLAGS = -DFB_ENABLED
+endif
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+ifeq ($(UARCH),ia32)
+	SOURCES += ega.c
+	EXTRA_CFLAGS = -DEGA_ENABLED
+endif
+
+ifeq ($(UARCH),ia64)
+	SOURCES += ega.c \
+		ski.c \
+		serial_console.c
+	EXTRA_CFLAGS = -DSKI_ENABLED -DEGA_ENABLED
+endif
+
+ifeq ($(UARCH),amd64)
+	SOURCES += ega.c
+	EXTRA_CFLAGS = -DEGA_ENABLED
+endif
+
+ifeq ($(UARCH),mips32)
+	SOURCES += msim.c \
+		serial_console.c
+	EXTRA_CFLAGS = -DMSIM_ENABLED
+endif
+
+ifeq ($(UARCH),sparc64)
+	ifeq ($(PROCESSOR), sun4v)
+		SOURCES += niagara.c \
+			serial_console.c
+		EXTRA_CFLAGS = -DNIAGARA_ENABLED
+	endif
+
+	ifeq ($(MACHINE), serengeti)
+		SOURCES += sgcn.c \
+			serial_console.c
+		EXTRA_CFLAGS = -DSGCN_ENABLED
+	endif
+endif
+
+EXTRA_CFLAGS += -D$(UARCH)
+
+include $(USPACE_PREFIX)/Makefile.common

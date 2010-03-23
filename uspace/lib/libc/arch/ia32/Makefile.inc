@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CLANG_ARCH = i386
-
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \
 	arch/$(UARCH)/src/thread_entry.s \
@@ -38,10 +36,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -march=pentium
-LFLAGS += -N
-
-ENDIANESS = LE
-
-BFD_NAME = elf32-i386
-BFD_ARCH = i386
+.PRECIOUS: arch/$(UARCH)/src/entry.o

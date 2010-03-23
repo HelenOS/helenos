@@ -36,10 +36,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -fno-unwind-tables
-LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
-
-ENDIANESS = LE
-
-BFD_NAME = elf64-ia64-little
-BFD_ARCH = ia64-elf64
+.PRECIOUS: arch/$(UARCH)/src/entry.o

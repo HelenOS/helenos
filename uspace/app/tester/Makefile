@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = tester
+BINARY = tester
 
 SOURCES = \
 	tester.c \
@@ -52,4 +50,4 @@ SOURCES = \
 	loop/loop1.c \
 	mm/malloc1.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

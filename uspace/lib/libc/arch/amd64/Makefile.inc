@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CLANG_ARCH = x86_64
-
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.s \
 	arch/$(UARCH)/src/thread_entry.s \
@@ -37,10 +35,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -fno-omit-frame-pointer
-LFLAGS += -N
-
-ENDIANESS = LE
-
-BFD_NAME = elf64-x86-64
-BFD_ARCH = i386:x86-64
+.PRECIOUS: arch/$(UARCH)/src/entry.o

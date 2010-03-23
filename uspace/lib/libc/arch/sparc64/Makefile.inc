@@ -34,22 +34,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -mcpu=ultrasparc -m64
-LFLAGS += -no-check-sections -N
-
-ENDIANESS = BE
-
-BFD_NAME = elf64-sparc
-BFD_ARCH = sparc
-
-ifeq ($(PROCESSOR),us)
-	DEFS += -DSUN4U
-endif
-
-ifeq ($(PROCESSOR),us3)
-	DEFS += -DSUN4U
-endif
-
-ifeq ($(PROCESSOR),sun4v)
-	DEFS += -DSUN4V
-endif
+.PRECIOUS: arch/$(UARCH)/src/entry.o

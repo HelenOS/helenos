@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = libpci.a
+LIBRARY = libpci
 
 SOURCES = \
 	access.c \
@@ -38,4 +36,4 @@ SOURCES = \
 	names.c \
 	i386-ports.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

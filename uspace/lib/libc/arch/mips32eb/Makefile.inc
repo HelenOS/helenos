@@ -35,10 +35,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -mips3
-LFLAGS += -N
-
-ENDIANESS = BE
-
-BFD_ARCH = mips
-BFD_NAME = elf32-tradbigmips
+.PRECIOUS: arch/$(UARCH)/src/entry.o

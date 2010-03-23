@@ -27,16 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../version
-DEFS += -DRELEASE=$(RELEASE) "-DNAME=$(NAME)"
-
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = getterm
+DEFS = -DRELEASE=$(RELEASE) "-DNAME=$(NAME)"
+BINARY = getterm
 
 SOURCES = \
 	getterm.c \
 	version.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

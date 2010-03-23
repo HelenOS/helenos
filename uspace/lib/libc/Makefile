@@ -27,23 +27,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
--include ../../../Makefile.common
--include ../../../Makefile.config
-
-USPACE_PREFIX = $(shell pwd)/../..
-LIBS =
-
-LINK = arch/$(UARCH)/_link.ld
-
-PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
-EXTRA_OUTPUT = $(LINK)
+USPACE_PREFIX = ../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
 INCLUDE_KERNEL = include/kernel
 INCLUDE_ARCH = include/arch
 INCLUDE_LIBARCH = include/libarch
 
-OUTPUT = libc.a
+PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
+EXTRA_OUTPUT = $(LINKER_SCRIPT)
+EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(LINKER_SCRIPT)
+LIBRARY = libc
+
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+-include arch/$(UARCH)/Makefile.inc
 
 GENERIC_SOURCES = \
 	generic/libc.c \
@@ -94,7 +95,7 @@ SOURCES = \
 	$(GENERIC_SOURCES) \
 	$(ARCH_SOURCES)
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common
 
 $(INCLUDE_ARCH): $(INCLUDE_KERNEL) $(INCLUDE_KERNEL)/arch
 	ln -sfn kernel/arch $@
@@ -107,5 +108,5 @@ $(INCLUDE_KERNEL)/arch: ../../../kernel/generic/include/arch $(INCLUDE_KERNEL)
 $(INCLUDE_KERNEL): ../../../kernel/generic/include/
 	ln -sfn ../$< $@
 
-$(LINK): $(LINK).in
-	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
+$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@

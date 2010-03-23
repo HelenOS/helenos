@@ -37,10 +37,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
-GCC_CFLAGS += -ffixed-r9 -mtp=soft -mapcs-frame -fno-omit-frame-pointer
-LFLAGS += -N $(SOFTINT_PREFIX)/libsoftint.a
-
-ENDIANESS = LE
-
-BFD_NAME = elf32-littlearm
-BFD_ARCH = arm
+.PRECIOUS: arch/$(UARCH)/src/entry.o

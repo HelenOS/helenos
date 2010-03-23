@@ -26,15 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+CLANG_ARCH = x86_64
+GCC_CFLAGS += -fno-omit-frame-pointer
 
-## Common names
-#
+ENDIANESS = LE
 
-LIBC_PREFIX = ../../../lib/libc
-SOFTINT_PREFIX = ../../../lib/softint
-LIBS = $(LIBC_PREFIX)/libc.a
-
-DEPEND = Makefile.depend
-DEPEND_PREV = $(DEPEND).prev
-JOB = console.job
-OUTPUT = console
+BFD_NAME = elf64-x86-64
+BFD_ARCH = i386:x86-64

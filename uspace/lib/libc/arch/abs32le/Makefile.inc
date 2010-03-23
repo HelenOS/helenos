@@ -26,10 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(COMPILER),clang)
-	CLANG_ARCH = i386
-endif
-
 ARCH_SOURCES = \
 	arch/$(UARCH)/src/entry.c \
 	arch/$(UARCH)/src/thread_entry.c \
@@ -38,4 +34,4 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/stacktrace.c
 
-ENDIANESS = LE
+.PRECIOUS: arch/$(UARCH)/src/entry.o

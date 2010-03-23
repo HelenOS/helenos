@@ -27,11 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = taskmon
+BINARY = taskmon
 
 SOURCES = \
 	taskmon.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

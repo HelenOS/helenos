@@ -37,7 +37,7 @@
 
 #define __64_BITS__
 
-typedef unsigned long long sysarg_t;
+typedef unsigned long sysarg_t;
 
 typedef char int8_t;
 typedef short int int16_t;

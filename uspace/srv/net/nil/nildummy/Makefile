@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,22 +27,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = nildummy
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+BINARY = nildummy
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
-
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NAME)_module.c \
-	$(NET_BASE)module.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)net/net_remote.c \
-	$(NET_BASE)netif/netif_remote.c \
-	$(STRUCTURES)measured_strings.c \
-	$(STRUCTURES)packet/packet.c \
-	$(STRUCTURES)packet/packet_client.c \
-	$(STRUCTURES)packet/packet_remote.c
+	nildummy.c \
+	nildummy_module.c \
+	$(NET_BASE)/module.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/net/net_remote.c \
+	$(NET_BASE)/netif/netif_remote.c \
+	$(NET_BASE)/structures/measured_strings.c \
+	$(NET_BASE)/structures/packet/packet.c \
+	$(NET_BASE)/structures/packet/packet_client.c \
+	$(NET_BASE)/structures/packet/packet_remote.c
 
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

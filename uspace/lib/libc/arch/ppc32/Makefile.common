@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,67 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../Makefile.common
-include ../../../Makefile.config
+GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
+AFLAGS = -a32
 
-# keep netif drivers before nil modules
-# in order to support networking architectures build
+ENDIANESS = BE
 
-ifeq ($(CONFIG_NETIF_DP8390),y)
-	DIRS = netif/dp8390
-else
-	DIRS =
-endif
-
-DIRS += \
-	netif/lo \
-	nil/eth \
-	nil/nildummy \
-	net \
-	net/start \
-	socket \
-	app/echo \
-	app/ping \
-	app/nettest1 \
-	app/nettest2
-
-DIRS_MODULAR = \
-		il/arp \
-		il/ip \
-		tl/icmp \
-		tl/udp \
-		tl/tcp \
-
-DIRS_ALL = $(DIRS) $(DIRS_MODULAR)
-
-ifeq ($(NETWORKING), module)
-	BUILDS := $(addsuffix .build,$(DIRS))
-else
-ifeq ($(NETWORKING), modular)
-	BUILDS := $(addsuffix .build,$(DIRS_ALL))
-endif
-endif
-
-CLEANS := $(addsuffix .clean,$(DIRS_ALL))
-
-CHECKS := $(addsuffix .check,$(basename $(BUILDS)))
-
-.PHONY: all build $(BUILDS) $(CLEANS) clean
-
-all: $(BUILDS)
-
-build: $(BUILDS)
-
-check: $(CHECKS)
-
-clean: $(CLEANS)
-	find $(DIRS_ALL) ./ -name '*.o' -follow -exec rm \{\} \;
-
-$(CHECKS):
-	-$(MAKE) -C $(basename $@) check
-
-$(CLEANS):
-	-$(MAKE) -C $(basename $@) clean
-
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+BFD_NAME = elf32-powerpc
+BFD_ARCH = powerpc:common

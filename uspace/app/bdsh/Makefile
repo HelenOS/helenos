@@ -28,10 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
-
-OUTPUT = bdsh
+BINARY = bdsh
 
 SOURCES = \
 	cmds/modules/help/help.c \
@@ -59,4 +58,4 @@ SOURCES = \
 	exec.c \
 	scli.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

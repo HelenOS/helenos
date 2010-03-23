@@ -27,27 +27,33 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
--include ../../../Makefile.common
--include ../../../Makefile.config
+USPACE_PREFIX = ../..
+ROOT_PATH = $(USPACE_PREFIX)/..
+
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-EXTRA_CFLAGS += -Iinclude
-LINK_SCRIPT = arch/$(UARCH)/_link.ld
+LINKER_SCRIPT = arch/$(UARCH)/_link.ld
+EXTRA_CLEAN = $(LINKER_SCRIPT)
 
-OUTPUT = loader
-EXTRA_OUTPUT = $(LINK_SCRIPT)
+EXTRA_CFLAGS = -Iinclude
+
+BINARY = loader
 
 GENERIC_SOURCES = \
 	main.c \
 	elf_load.c \
 	interp.s
 
-SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+SOURCES = \
+	$(GENERIC_SOURCES) \
+	$(ARCH_SOURCES)
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common
 
-$(LINK_SCRIPT): $(LINK_SCRIPT).in
+$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
