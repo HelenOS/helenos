@@ -40,7 +40,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 #include <ddi.h>
 #include <sysinfo.h>
 #include <align.h>

@@ -26,19 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
-TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64
 
 GCC_CFLAGS += -m64 -mcpu=ultrasparc 
 SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
-LFLAGS += -no-check-sections -N
+LFLAGS = -no-check-sections -N
 
 BITS = 64
 ENDIANESS = BE

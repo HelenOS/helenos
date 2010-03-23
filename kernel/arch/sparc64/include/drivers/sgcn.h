@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_SGCN_H_
 #define KERN_sparc64_SGCN_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>

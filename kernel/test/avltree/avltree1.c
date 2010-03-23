@@ -30,7 +30,7 @@
 #include <print.h>
 #include <adt/avl.h>
 #include <debug.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define NODE_COUNT 100
 

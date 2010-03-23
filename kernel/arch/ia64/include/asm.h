@@ -37,7 +37,7 @@
 
 #include <config.h>
 #include <typedefs.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 
 #define IA64_IOSPACE_ADDRESS  0xE001000000000000ULL

@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_EXCEPTION_H_
 #define KERN_mips32_EXCEPTION_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/cp0.h>
 
 #define EXC_Int		0

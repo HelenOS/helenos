@@ -42,7 +42,7 @@
 #define KERN_arm32_MACHINE_FUNC_H_
 
 #include <console/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/exception.h>
 
 #define MACHINE_GENFUNC	machine_genfunc

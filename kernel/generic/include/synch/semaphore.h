@@ -35,7 +35,7 @@
 #ifndef KERN_SEMAPHORE_H_
 #define KERN_SEMAPHORE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/waitq.h>
 #include <synch/synch.h>
 

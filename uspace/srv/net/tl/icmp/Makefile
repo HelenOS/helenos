@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,28 +27,23 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = icmp
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+BINARY = icmp
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
-
-## Sources
-#
-
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NAME)_module.c \
-	$(NAME)_client.c \
-	$(NET_BASE)checksum.c \
-	$(NET_BASE)module.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)il/ip/ip_client.c \
-	$(NET_BASE)il/ip/ip_remote.c \
-	$(NET_BASE)net/net_remote.c \
-	$(STRUCTURES)measured_strings.c \
-	$(STRUCTURES)packet/packet.c \
-	$(STRUCTURES)packet/packet_client.c \
-	$(STRUCTURES)packet/packet_remote.c
+	icmp.c \
+	icmp_module.c \
+	icmp_client.c \
+	$(NET_BASE)/checksum.c \
+	$(NET_BASE)/module.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/il/ip/ip_client.c \
+	$(NET_BASE)/il/ip/ip_remote.c \
+	$(NET_BASE)/net/net_remote.c \
+	$(NET_BASE)/structures/measured_strings.c \
+	$(NET_BASE)/structures/packet/packet.c \
+	$(NET_BASE)/structures/packet/packet_client.c \
+	$(NET_BASE)/structures/packet/packet_remote.c
 
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

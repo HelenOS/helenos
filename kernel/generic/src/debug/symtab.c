@@ -37,9 +37,9 @@
 
 #include <symtab.h>
 #include <byteorder.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <typedefs.h>
 #include <errno.h>
 

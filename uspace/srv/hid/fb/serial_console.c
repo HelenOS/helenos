@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <io/color.h>
 #include <io/style.h>
-#include <string.h>
+#include <str.h>
 
 #include "../console/screenbuffer.h"
 #include "main.h"

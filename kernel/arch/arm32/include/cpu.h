@@ -36,7 +36,7 @@
 #ifndef KERN_arm32_CPU_H_
 #define KERN_arm32_CPU_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 
 

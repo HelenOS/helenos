@@ -28,13 +28,12 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBFS_PREFIX)/libfs.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBFS_PREFIX)/libfs.a
 EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
-
-OUTPUT = devfs
+BINARY = devfs
 
 SOURCES = \
 	devfs.c \
 	devfs_ops.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

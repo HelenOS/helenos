@@ -26,16 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
-
 BFD_ARCH = mips
-TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32/bin
 
 JOBFILE = ../../../../tools/jobfile.py
 
@@ -47,29 +38,11 @@ endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-tradbigmips
 	BFD = ecoff-bigmips
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb/bin
-	TARGET = mips-linux-gnu
 endif
 
 ifeq ($(MACHINE),msim)
 	BFD_NAME = elf32-tradlittlemips
 	BFD = binary
-endif
-
-ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-endif
-
-ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/$(TARGET)-gcc
-	AS = $(TOOLCHAIN_DIR)/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/$(TARGET)-objdump
 endif
 
 CFLAGS = \

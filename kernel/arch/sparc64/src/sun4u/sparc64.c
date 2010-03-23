@@ -47,7 +47,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
 #include <ddi/irq.h>
-#include <string.h>
+#include <str.h>
 
 bootinfo_t bootinfo;
 

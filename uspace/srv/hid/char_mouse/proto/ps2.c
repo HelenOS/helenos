@@ -35,10 +35,14 @@
  */
 
 #include <stdio.h>
-#include <mouse_proto.h>
+#include <mouse_port.h>
 #include <char_mouse.h>
+#include <mouse_proto.h>
 
 #define BUFSIZE 3
+
+#define PS2_MOUSE_OUT_INIT  0xf4
+#define PS2_MOUSE_ACK       0xfa
 
 typedef struct {
 	union {
@@ -66,6 +70,7 @@ static int middlebtn = 0;
 
 int mouse_proto_init(void)
 {
+	mouse_port_write(PS2_MOUSE_OUT_INIT);
 	return 0;
 }
 

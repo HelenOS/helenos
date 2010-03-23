@@ -26,18 +26,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf32-powerpc
 BFD_ARCH = powerpc:common
 BFD = binary
-TARGET = ppc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ppc32
 
 GCC_CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
-LFLAGS += -no-check-sections -N
+AFLAGS = -a32
+LFLAGS = -no-check-sections -N
 
 BITS = 32
 ENDIANESS = BE

@@ -34,7 +34,7 @@
 
 #include <arch/pm.h>
 #include <config.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/context.h>

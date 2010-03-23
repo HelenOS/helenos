@@ -33,7 +33,7 @@
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/tlb.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 
 extern void tlb_invalidate_all(void);

@@ -37,7 +37,7 @@
 #include <ipc/event.h>
 #include <ipc/event_types.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <console/console.h>
 #include <memstr.h>

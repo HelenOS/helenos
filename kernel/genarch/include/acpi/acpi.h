@@ -35,7 +35,7 @@
 #ifndef KERN_ACPI_H_
 #define KERN_ACPI_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* Root System Description Pointer */
 struct acpi_rsdp {

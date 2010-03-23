@@ -36,7 +36,7 @@
  */
 
 #include <time/timeout.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 #include <panic.h>
 #include <synch/spinlock.h>

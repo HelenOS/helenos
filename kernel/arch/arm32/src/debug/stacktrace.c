@@ -34,7 +34,6 @@
 
 #include <stacktrace.h>
 #include <syscall/copy.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 #define FRAME_OFFSET_FP_PREV	-3

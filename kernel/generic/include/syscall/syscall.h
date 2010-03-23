@@ -92,7 +92,7 @@ typedef enum {
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
     unative_t, unative_t);

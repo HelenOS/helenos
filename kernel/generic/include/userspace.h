@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -36,7 +36,7 @@
 #define KERN_USERSPACE_H_
 
 #include <proc/thread.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Switch to user-space (CPU user priviledge level) */
 extern void userspace(uspace_arg_t *uarg) __attribute__ ((noreturn)); 

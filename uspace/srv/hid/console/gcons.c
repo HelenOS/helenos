@@ -37,7 +37,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <sys/mman.h>
-#include <string.h>
+#include <str.h>
 #include <align.h>
 #include <bool.h>
 

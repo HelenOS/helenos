@@ -35,11 +35,27 @@
 #ifndef KERN_TYPEDEFS_H_
 #define KERN_TYPEDEFS_H_
 
+#include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL 0
-#define false 0
-#define true 1
+#define NULL  0
+
+#define false  0
+#define true   1
+
+typedef struct {
+	uint64_t lo;
+	int64_t hi;
+} int128_t;
+
+typedef struct {
+	uint64_t lo;
+	uint64_t hi;
+} uint128_t;
+
+typedef struct {
+	volatile atomic_count_t count;
+} atomic_t;
 
 typedef void (* function)();
 

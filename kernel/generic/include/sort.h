@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_SORT_H_
 #define KERN_SORT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* 
  * sorting routines

@@ -41,10 +41,10 @@
 #include <mm/slab.h>
 #include <arch/mm/page.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <memstr.h>
-#include <string.h>
+#include <str.h>
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>

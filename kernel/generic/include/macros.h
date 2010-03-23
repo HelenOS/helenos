@@ -37,7 +37,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Return true if the intervals overlap.
  *

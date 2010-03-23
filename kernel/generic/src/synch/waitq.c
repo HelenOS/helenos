@@ -48,7 +48,7 @@
 #include <proc/thread.h>
 #include <proc/scheduler.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <time/timeout.h>
 #include <arch.h>
 #include <context.h>

@@ -35,7 +35,7 @@
 #ifndef KERN_TIMEOUT_H_
 #define KERN_TIMEOUT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <cpu.h>
 

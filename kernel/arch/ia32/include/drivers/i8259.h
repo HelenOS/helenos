@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_I8259_H_
 #define KERN_ia32_I8259_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/interrupt.h>
 
 #define PIC_PIC0PORT1  ((ioport8_t *) 0x20)

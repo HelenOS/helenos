@@ -36,9 +36,9 @@
 #define KERN_AS_H_
 
 #ifdef KERNEL
-#include <arch/types.h>
+	#include <typedefs.h>
 #else
-#include <sys/types.h>
+	#include <sys/types.h>
 #endif
 
 /** Address space area flags. */
@@ -64,7 +64,7 @@ typedef struct {
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <arch/mm/asid.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <adt/list.h>

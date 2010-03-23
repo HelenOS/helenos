@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,23 +27,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = nettest2
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+LIBS = $(NET_BASE)/socket/libsocket.a
+BINARY = nettest2
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
-
-include ../../../../../Makefile.config
-
-## Sources
-#
-
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NET_BASE)app/nettest.c \
-	$(NET_BASE)app/parse.c \
-	$(NET_BASE)app/print_error.c
+	nettest2.c \
+	$(NET_BASE)/app/nettest.c \
+	$(NET_BASE)/app/parse.c \
+	$(NET_BASE)/app/print_error.c
 
-LIBS += ../../socket/libsocket.a
-
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

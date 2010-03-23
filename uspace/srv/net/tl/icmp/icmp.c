@@ -40,7 +40,7 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <stdint.h>
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>

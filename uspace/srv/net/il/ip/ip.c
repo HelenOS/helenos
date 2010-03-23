@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -894,6 +894,7 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 	size_t addrlen;
 	ip_pseudo_header_ref header;
 	size_t headerlen;
+	device_id_t device_id;
 
 	*answer_count = 0;
 	switch(IPC_GET_METHOD(*call)){
@@ -920,7 +921,9 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 			return ip_set_gateway_req(0, IPC_GET_DEVICE(call), IP_GET_GATEWAY(call));
 		case NET_IP_GET_ROUTE:
 			ERROR_PROPAGATE(data_receive((void **) &addr, &addrlen));
-			ERROR_PROPAGATE(ip_get_route_req(0, IP_GET_PROTOCOL(call), addr, (socklen_t) addrlen, IPC_SET_DEVICE(answer), &header, &headerlen));
+			ERROR_PROPAGATE(ip_get_route_req(0, IP_GET_PROTOCOL(call), addr, (socklen_t) addrlen,
+			    &device_id, &header, &headerlen));
+			*IPC_SET_DEVICE(answer) = device_id;
 			*IP_SET_HEADERLEN(answer) = headerlen;
 			*answer_count = 2;
 			if(! ERROR_OCCURRED(data_reply(&headerlen, sizeof(headerlen)))){

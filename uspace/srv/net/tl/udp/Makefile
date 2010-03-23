@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,34 +27,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = udp
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+BINARY = udp
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
-
-## Sources
-#
-
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NAME)_module.c \
-	$(NET_BASE)checksum.c \
-	$(NET_BASE)module.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)il/ip/ip_client.c \
-	$(NET_BASE)il/ip/ip_remote.c \
-	$(NET_BASE)net/net_remote.c \
-	$(NET_BASE)socket/socket_core.c \
-	$(NET_BASE)tl/icmp/icmp_client.c \
-	$(NET_BASE)tl/icmp/icmp_common.c \
-	$(NET_BASE)tl/icmp/icmp_remote.c \
-	$(NET_BASE)tl/tl_common.c \
-	$(STRUCTURES)char_map.c \
-	$(STRUCTURES)dynamic_fifo.c \
-	$(STRUCTURES)measured_strings.c \
-	$(STRUCTURES)packet/packet.c \
-	$(STRUCTURES)packet/packet_client.c \
-	$(STRUCTURES)packet/packet_remote.c
+	udp.c \
+	udp_module.c \
+	$(NET_BASE)/checksum.c \
+	$(NET_BASE)/module.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/il/ip/ip_client.c \
+	$(NET_BASE)/il/ip/ip_remote.c \
+	$(NET_BASE)/net/net_remote.c \
+	$(NET_BASE)/socket/socket_core.c \
+	$(NET_BASE)/tl/icmp/icmp_client.c \
+	$(NET_BASE)/tl/icmp/icmp_common.c \
+	$(NET_BASE)/tl/icmp/icmp_remote.c \
+	$(NET_BASE)/tl/tl_common.c \
+	$(NET_BASE)/structures/char_map.c \
+	$(NET_BASE)/structures/dynamic_fifo.c \
+	$(NET_BASE)/structures/measured_strings.c \
+	$(NET_BASE)/structures/packet/packet.c \
+	$(NET_BASE)/structures/packet/packet_client.c \
+	$(NET_BASE)/structures/packet/packet_remote.c
 
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

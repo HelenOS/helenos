@@ -35,7 +35,6 @@
 #ifndef KERN_abs32le_ASM_H_
 #define KERN_abs32le_ASM_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
 

@@ -26,25 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD = binary
 
 ifeq ($(COMPILER),gcc_cross)
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/$(CROSS_TARGET)
-	
 	ifeq ($(CROSS_TARGET),arm32)
-		TARGET = arm-linux-gnu
 		ATSIGN = %
 	endif
 	
-	ifeq ($(CROSS_TARGET),ia32)
-		TARGET = i686-pc-linux-gnu
-	endif
-	
 	ifeq ($(CROSS_TARGET),mips32)
-		TARGET = mipsel-linux-gnu
 		GCC_CFLAGS += -mno-abicalls
 	endif
 endif

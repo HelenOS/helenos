@@ -31,8 +31,8 @@
 #
 
 include ../../../../version
+include ../../../../Makefile.common
 include ../../../../Makefile.config
-include ../../../../config.defs
 include Makefile.common
 include Makefile.toolchain
 
@@ -59,7 +59,7 @@ all: $(OUTPUT)
 
 $(OUTPUT): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
 	$(LD) -no-check-sections -N -T $(LINK) $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
-	$(MAKE) -C gefi/HelenOS PREFIX=$(GEFI_PREFIX)
+	$(MAKE) -C gefi/HelenOS
 	cp gefi/HelenOS/hello.efi ../../../../
 	cp gefi/HelenOS/image.bin ../../../../
 

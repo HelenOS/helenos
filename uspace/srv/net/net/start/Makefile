@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +27,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = netstart
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+BINARY = netstart
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
-
-include ../../../../../Makefile.config
-
-## Sources
-#
-
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NET_BASE)checksum.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)self_test.c \
-	$(STRUCTURES)char_map.c \
-	$(STRUCTURES)dynamic_fifo.c \
-	$(STRUCTURES)measured_strings.c
+	netstart.c \
+	$(NET_BASE)/checksum.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/self_test.c \
+	$(NET_BASE)/structures/char_map.c \
+	$(NET_BASE)/structures/dynamic_fifo.c \
+	$(NET_BASE)/structures/measured_strings.c
 
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

@@ -126,7 +126,6 @@
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 /* Page fault error codes. */

@@ -35,7 +35,7 @@
 #ifndef KERN_amd64_DEBUGGER_H_
 #define KERN_amd64_DEBUGGER_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define BKPOINTS_MAX 4
 

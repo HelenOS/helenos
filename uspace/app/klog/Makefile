@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = klog
+BINARY = klog
 
 SOURCES = \
 	klog.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -36,7 +36,7 @@
 #ifndef KERN_sparc64_INTERRUPT_H_
 #define KERN_sparc64_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/regdef.h>
 
 #define IVT_ITEMS 	15

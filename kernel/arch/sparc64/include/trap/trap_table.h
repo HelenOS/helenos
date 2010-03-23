@@ -43,7 +43,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 struct trap_table_entry {
 	uint8_t octets[TRAP_TABLE_ENTRY_SIZE];

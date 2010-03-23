@@ -390,12 +390,12 @@
 /** Sets the device identifier in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_DEVICE(answer)	((device_id_t *) &IPC_GET_ARG1(*answer))
+#define IPC_SET_DEVICE(answer)	(&IPC_GET_ARG1(*answer))
 
 /** Sets the minimum address length in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_ADDR(answer)		((size_t *) &IPC_GET_ARG1(*answer))
+#define IPC_SET_ADDR(answer)		(&IPC_GET_ARG1(*answer))
 
 /*@}*/
 
@@ -406,7 +406,7 @@
 /** Sets the minimum prefix size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_PREFIX(answer)	((size_t *) &IPC_GET_ARG2(*answer))
+#define IPC_SET_PREFIX(answer)	(&IPC_GET_ARG2(*answer))
 
 /*@}*/
 
@@ -417,7 +417,7 @@
 /** Sets the maximum content size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_CONTENT(answer)	((size_t *) &IPC_GET_ARG3(*answer))
+#define IPC_SET_CONTENT(answer)	(&IPC_GET_ARG3(*answer))
 
 /*@}*/
 
@@ -428,7 +428,7 @@
 /** Sets the minimum suffix size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_SUFFIX(answer)	((size_t *) &IPC_GET_ARG4(*answer))
+#define IPC_SET_SUFFIX(answer)	(&IPC_GET_ARG4(*answer))
 
 /*@}*/
 

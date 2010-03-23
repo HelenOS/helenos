@@ -36,7 +36,7 @@
 #define KERN_amd64_PM_H_
 
 #ifndef __ASM__
-	#include <arch/types.h>
+	#include <typedefs.h>
 	#include <arch/context.h>
 #endif
 

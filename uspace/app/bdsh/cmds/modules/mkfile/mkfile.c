@@ -37,7 +37,7 @@
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 
 #include "config.h"

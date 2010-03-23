@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = devmap
+BINARY = devmap
 
 SOURCES = \
 	devmap.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

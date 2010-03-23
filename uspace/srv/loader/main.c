@@ -57,7 +57,7 @@
 #include <loader/pcb.h>
 #include <errno.h>
 #include <async.h>
-#include <string.h>
+#include <str.h>
 #include <as.h>
 
 #include <elf.h>

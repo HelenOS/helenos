@@ -35,7 +35,6 @@
 #ifndef KERN_ppc32_ASM_H_
 #define KERN_ppc32_ASM_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
 

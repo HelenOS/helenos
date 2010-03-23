@@ -26,14 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_ARCH = mips
 BFD = binary
-TARGET = mipsel-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32
-
 GCC_CFLAGS += -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
 BITS = 32
@@ -47,8 +41,6 @@ ifeq ($(MACHINE),lgxemul)
 endif
 ifeq ($(MACHINE),bgxemul)
 	BFD_NAME = elf32-tradbigmips
-	TOOLCHAIN_DIR = $(CROSS_PREFIX)/mips32eb
-	TARGET = mips-linux-gnu
 	ENDIANESS = BE
 	GCC_CFLAGS += -D__BE__
 endif

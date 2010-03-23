@@ -35,7 +35,7 @@
 #ifndef KERN_PROGRAM_H_
 #define KERN_PROGRAM_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 struct task;
 struct thread;

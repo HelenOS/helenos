@@ -46,7 +46,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 #include <genarch/ofw/ofw_tree.h>
 

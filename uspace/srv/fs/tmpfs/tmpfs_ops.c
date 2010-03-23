@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <atomic.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <stdio.h>
 #include <assert.h>
 #include <sys/types.h>

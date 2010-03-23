@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = file_bd
+BINARY = file_bd
 
 SOURCES = \
 	file_bd.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

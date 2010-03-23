@@ -35,7 +35,7 @@
 #ifndef KERN_BYTEORDER_H_
 #define KERN_BYTEORDER_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #if !(defined(__BE__) ^ defined(__LE__))
 	#error The architecture must be either big-endian or little-endian.

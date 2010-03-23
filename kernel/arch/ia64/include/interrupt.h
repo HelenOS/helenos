@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_INTERRUPT_H_
 #define KERN_ia64_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 
 /** ia64 has 256 INRs. */

@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = tetris
+BINARY = tetris
 
 SOURCES = \
 	shapes.c \
@@ -39,4 +37,4 @@ SOURCES = \
 	tetris.c \
 	screen.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

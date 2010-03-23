@@ -52,7 +52,6 @@
 #include <typedefs.h>
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
-#include <arch/types.h>
 
 /** TSB description, used in hypercalls */
 typedef struct tsb_descr {

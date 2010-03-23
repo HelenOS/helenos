@@ -34,7 +34,7 @@
 
 #include <arch.h>
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #include <config.h>
 

@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <string.h>
+#include <str.h>
 #include <fcntl.h>
 #include "config.h"
 #include "util.h"

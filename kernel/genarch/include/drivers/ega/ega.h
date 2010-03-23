@@ -35,7 +35,6 @@
 #ifndef KERN_EGA_H_
 #define KERN_EGA_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <console/chardev.h>
 

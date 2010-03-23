@@ -52,7 +52,7 @@
 #include <print.h>
 #include <errno.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
