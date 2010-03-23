@@ -708,6 +708,10 @@ int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 
 	measured_string_ref address;
 	packet_t packet;
+	size_t addrlen;
+	size_t prefix;
+	size_t suffix;
+	size_t content;
 
 //	printf("message %d - %d\n", IPC_GET_METHOD(*call), NET_NIL_FIRST);
 	*answer_count = 0;
@@ -720,7 +724,11 @@ int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 			ERROR_PROPAGATE(packet_translate(eth_globals.net_phone, &packet, IPC_GET_PACKET(call)));
 			return eth_send_message(IPC_GET_DEVICE(call), packet, IPC_GET_SERVICE(call));
 		case NET_NIL_PACKET_SPACE:
-			ERROR_PROPAGATE(eth_packet_space_message(IPC_GET_DEVICE(call), IPC_SET_ADDR(answer), IPC_SET_PREFIX(answer), IPC_SET_CONTENT(answer), IPC_SET_SUFFIX(answer)));
+			ERROR_PROPAGATE(eth_packet_space_message(IPC_GET_DEVICE(call), &addrlen, &prefix, &content, &suffix));
+			IPC_SET_ADDR(answer, addrlen);
+			IPC_SET_PREFIX(answer, prefix);
+			IPC_SET_CONTENT(answer, content);
+			IPC_SET_SUFFIX(answer, suffix);
 			*answer_count = 4;
 			return EOK;
 		case NET_NIL_ADDR:
