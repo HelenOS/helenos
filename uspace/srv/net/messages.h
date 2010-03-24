@@ -235,67 +235,80 @@
 /** Returns a value indicating whether the IPC call is a generic networking message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_MESSAGE(call)			IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_FIRST, NET_LAST)
+#define IS_NET_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_FIRST, NET_LAST)
 
 /** Returns a value indicating whether the IPC call is an ARP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_ARP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
+#define IS_NET_ARP_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
 
 /** Returns a value indicating whether the IPC call is an Ethernet message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_ETH_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ETH_FIRST, NET_ETH_LAST)
+#define IS_NET_ETH_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ETH_FIRST, NET_ETH_LAST)
 
 /** Returns a value indicating whether the IPC call is an ICMP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_ICMP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
+#define IS_NET_ICMP_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
 
 /** Returns a value indicating whether the IPC call is an inter-network layer message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_IL_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IL_FIRST, NET_IL_LAST)
+#define IS_NET_IL_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IL_FIRST, NET_IL_LAST)
 
 /** Returns a value indicating whether the IPC call is an IP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_IP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IP_FIRST, NET_IP_LAST)
+#define IS_NET_IP_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IP_FIRST, NET_IP_LAST)
 
 /** Returns a value indicating whether the IPC call is a generic networking message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_NET_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NET_FIRST, NET_NET_LAST)
+#define IS_NET_NET_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NET_FIRST, NET_NET_LAST)
 
 /** Returns a value indicating whether the IPC call is a network interface layer message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_NIL_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
+#define IS_NET_NIL_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
 
 /** Returns a value indicating whether the IPC call is a packet manaagement system message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_PACKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
+#define IS_NET_PACKET_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
 
 /** Returns a value indicating whether the IPC call is a socket message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_SOCKET_MESSAGE(call)	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
+#define IS_NET_SOCKET_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
 
 /** Returns a value indicating whether the IPC call is a TCP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_TCP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
+#define IS_NET_TCP_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
 
 /** Returns a value indicating whether the IPC call is a transport layer message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_TL_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TL_FIRST, NET_TL_LAST)
+#define IS_NET_TL_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TL_FIRST, NET_TL_LAST)
 
 /** Returns a value indicating whether the IPC call is a UDP message.
  *  @param[in] call The IPC call to be checked.
  */
-#define IS_NET_UDP_MESSAGE(call)		IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
+#define IS_NET_UDP_MESSAGE(call) \
+	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
 
 /*@}*/
 
@@ -310,76 +323,86 @@
 /** Returns the device identifier message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_DEVICE(call)		(device_id_t) IPC_GET_ARG1(*call)
+#define IPC_GET_DEVICE(call) \
+	({device_id_t device_id = (device_id_t) IPC_GET_ARG1(*call); device_id;})
 
-/*@}*/
+/*@;})*/
 
 /** @name Second arguments
  */
-/*@{*/
+/*@({*/
 
 /** Returns the packet identifier message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_PACKET(call)		(packet_id_t) IPC_GET_ARG2(*call)
+#define IPC_GET_PACKET(call) \
+	({packet_id_t packet_id = (packet_id_t) IPC_GET_ARG2(*call); packet_id;})
 
 /** Returns the count message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_COUNT(call)		(size_t) IPC_GET_ARG2(*call)
+#define IPC_GET_COUNT(call) \
+	({size_t size = (size_t) IPC_GET_ARG2(*call); size;})
 
 /** Returns the device state message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_STATE(call)		(device_state_t) IPC_GET_ARG2(*call)
+#define IPC_GET_STATE(call) \
+	({device_state_t device_state = (device_state_t) IPC_GET_ARG2(*call); device_state;})
 
 /** Returns the maximum transmission unit message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_MTU(call)			(size_t) IPC_GET_ARG2(*call)
+#define IPC_GET_MTU(call) \
+	({size_t size = (size_t) IPC_GET_ARG2(*call); size;})
 
-/*@}*/
+/*@;})*/
 
 /** @name Third arguments
  */
-/*@{*/
+/*@({*/
 
 /** Returns the device driver service message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_SERVICE(call)		(services_t) IPC_GET_ARG3(*call)
+ #define IPC_GET_SERVICE(call) \
+	({services_t service = (services_t) IPC_GET_ARG3(*call); service;})
 
 /** Returns the target service message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_TARGET(call)		(services_t) IPC_GET_ARG3(*call)
+#define IPC_GET_TARGET(call) \
+	({services_t service = (services_t) IPC_GET_ARG3(*call); service;})
 
 /** Returns the sender service message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_SENDER(call)		(services_t) IPC_GET_ARG3(*call)
+#define IPC_GET_SENDER(call) \
+	({services_t service = (services_t) IPC_GET_ARG3(*call); service;})
 
-/*@}*/
+/*@;})*/
 
 /** @name Fourth arguments
  */
-/*@{*/
+/*@({*/
 
 /** Returns the error service message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_ERROR(call)		(services_t) IPC_GET_ARG4(*call)
+#define IPC_GET_ERROR(call) \
+	({services_t service = (services_t) IPC_GET_ARG4(*call); service;})
 
-/*@}*/
+/*@;})*/
 
 /** @name Fifth arguments
  */
-/*@{*/
+/*@({*/
 
 /** Returns the phone message argument.
  *  @param[in] call The message call structure.
  */
-#define IPC_GET_PHONE(call)		(int) IPC_GET_ARG5(*call)
+#define IPC_GET_PHONE(call) \
+	({int phone = (int) IPC_GET_ARG5(*call); phone;})
 
 /*@}*/
 
@@ -390,12 +413,14 @@
 /** Sets the device identifier in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_DEVICE(answer)	(&IPC_GET_ARG1(*answer))
+#define IPC_SET_DEVICE(answer, value) \
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG1(*answer, argument);}
 
 /** Sets the minimum address length in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_ADDR(answer)		(&IPC_GET_ARG1(*answer))
+#define IPC_SET_ADDR(answer, value) \
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG1(*answer, argument);}
 
 /*@}*/
 
@@ -406,7 +431,8 @@
 /** Sets the minimum prefix size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_PREFIX(answer)	(&IPC_GET_ARG2(*answer))
+#define IPC_SET_PREFIX(answer, value) \
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG2(*answer, argument);}
 
 /*@}*/
 
@@ -417,7 +443,8 @@
 /** Sets the maximum content size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_CONTENT(answer)	(&IPC_GET_ARG3(*answer))
+#define IPC_SET_CONTENT(answer, value) \
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG3(*answer, argument);}
 
 /*@}*/
 
@@ -428,7 +455,8 @@
 /** Sets the minimum suffix size in the message answer.
  *  @param[out] answer The message answer structure.
  */
-#define IPC_SET_SUFFIX(answer)	(&IPC_GET_ARG4(*answer))
+#define IPC_SET_SUFFIX(answer, value) \
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG4(*answer, argument);}
 
 /*@}*/
 

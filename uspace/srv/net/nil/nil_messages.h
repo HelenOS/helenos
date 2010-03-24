@@ -81,7 +81,8 @@ typedef enum {
 
 /** Returns the protocol service message parameter.
  */
-#define NIL_GET_PROTO(call)		(services_t) IPC_GET_ARG2(*call)
+#define NIL_GET_PROTO(call) \
+	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
 
 /*@}*/
 

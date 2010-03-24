@@ -1061,6 +1061,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	struct sockaddr * addr;
 	int socket_id;
 	size_t addrlen;
+	size_t size;
 	fibril_rwlock_t lock;
 	ipc_call_t answer;
 	int answer_count;
@@ -1106,14 +1107,14 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 					fibril_rwlock_write_lock(&lock);
 					socket_id = SOCKET_GET_SOCKET_ID(call);
 					res = socket_create(&local_sockets, app_phone, socket_data, &socket_id);
-					*SOCKET_SET_SOCKET_ID(answer) = socket_id;
+					SOCKET_SET_SOCKET_ID(answer, socket_id);
 					fibril_rwlock_write_unlock(&lock);
 					if(res == EOK){
 						if(tl_get_ip_packet_dimension(tcp_globals.ip_phone, &tcp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
-							*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = ((packet_dimension->content < socket_data->data_fragment_size) ? packet_dimension->content : socket_data->data_fragment_size);
+							SOCKET_SET_DATA_FRAGMENT_SIZE(answer, ((packet_dimension->content < socket_data->data_fragment_size) ? packet_dimension->content : socket_data->data_fragment_size));
 						}
-//						*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = MAX_TCP_FRAGMENT_SIZE;
-						*SOCKET_SET_HEADER_SIZE(answer) = TCP_HEADER_SIZE;
+//						SOCKET_SET_DATA_FRAGMENT_SIZE(answer, MAX_TCP_FRAGMENT_SIZE);
+						SOCKET_SET_HEADER_SIZE(answer, TCP_HEADER_SIZE);
 						answer_count = 3;
 					}else{
 						free(socket_data);
@@ -1165,19 +1166,21 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 			case NET_SOCKET_ACCEPT:
 				fibril_rwlock_read_lock(&tcp_globals.lock);
 				fibril_rwlock_write_lock(&lock);
-				res = tcp_accept_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_NEW_SOCKET_ID(call), SOCKET_SET_DATA_FRAGMENT_SIZE(answer), &addrlen);
+				res = tcp_accept_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_NEW_SOCKET_ID(call), &size, &addrlen);
+				SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 				fibril_rwlock_write_unlock(&lock);
 				fibril_rwlock_read_unlock(&tcp_globals.lock);
 				if(res > 0){
-					*SOCKET_SET_SOCKET_ID(answer) = res;
-					*SOCKET_SET_ADDRESS_LENGTH(answer) = addrlen;
+					SOCKET_SET_SOCKET_ID(answer, res);
+					SOCKET_SET_ADDRESS_LENGTH(answer, addrlen);
 					answer_count = 3;
 				}
 				break;
 			case NET_SOCKET_SEND:
 				fibril_rwlock_read_lock(&tcp_globals.lock);
 				fibril_rwlock_write_lock(&lock);
-				res = tcp_send_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_DATA_FRAGMENTS(call), SOCKET_SET_DATA_FRAGMENT_SIZE(answer), SOCKET_GET_FLAGS(call));
+				res = tcp_send_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_DATA_FRAGMENTS(call), &size, SOCKET_GET_FLAGS(call));
+				SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 				if(res != EOK){
 					fibril_rwlock_write_unlock(&lock);
 					fibril_rwlock_read_unlock(&tcp_globals.lock);
@@ -1190,7 +1193,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				if(res == EOK){
 					fibril_rwlock_read_lock(&tcp_globals.lock);
 					fibril_rwlock_write_lock(&lock);
-					res = tcp_send_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_DATA_FRAGMENTS(call), SOCKET_SET_DATA_FRAGMENT_SIZE(answer), SOCKET_GET_FLAGS(call));
+					res = tcp_send_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_DATA_FRAGMENTS(call), &size, SOCKET_GET_FLAGS(call));
+					SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 					if(res != EOK){
 						fibril_rwlock_write_unlock(&lock);
 						fibril_rwlock_read_unlock(&tcp_globals.lock);
@@ -1207,7 +1211,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				fibril_rwlock_write_unlock(&lock);
 				fibril_rwlock_read_unlock(&tcp_globals.lock);
 				if(res > 0){
-					*SOCKET_SET_READ_DATA_LENGTH(answer) = res;
+					SOCKET_SET_READ_DATA_LENGTH(answer, res);
 					answer_count = 1;
 					res = EOK;
 				}
@@ -1219,8 +1223,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				fibril_rwlock_write_unlock(&lock);
 				fibril_rwlock_read_unlock(&tcp_globals.lock);
 				if(res > 0){
-					*SOCKET_SET_READ_DATA_LENGTH(answer) = res;
-					*SOCKET_SET_ADDRESS_LENGTH(answer) = addrlen;
+					SOCKET_SET_READ_DATA_LENGTH(answer, res);
+					SOCKET_SET_ADDRESS_LENGTH(answer, addrlen);
 					answer_count = 3;
 					res = EOK;
 				}
