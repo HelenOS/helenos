@@ -115,7 +115,7 @@ typedef enum{
  *  @param[out] answer The message answer structure.
  */
 #define SOCKET_SET_SOCKET_ID(answer, value) \
-	{ipcarg_t argument = (value); IPC_SET_ARG1(answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG1(answer, argument);}
 
 /** Returns the socket identifier message parameter.
  *  @param[in] call The message call structure.
@@ -127,7 +127,7 @@ typedef enum{
  *  @param[out] answer The message answer structure.
  */
 #define SOCKET_SET_READ_DATA_LENGTH(answer, value) \
-	{ipcarg_t argument = (value); IPC_SET_ARG1(answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG1(answer, argument);}
 
 /** Returns the read data length message parameter.
  *  @param[in] call The message call structure.
@@ -157,13 +157,13 @@ typedef enum{
  *  @param[out] answer The message answer structure.
  */
 #define SOCKET_SET_DATA_FRAGMENT_SIZE(answer, value) \
-	{ipcarg_t argument = (value); IPC_SET_ARG2(answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG2(answer, argument);}
 
 /** Sets the address length in the message answer.
  *  @param[out] answer The message answer structure.
  */
 #define SOCKET_SET_ADDRESS_LENGTH(answer, value) \
-	{ipcarg_t argument = (value); IPC_SET_ARG3(answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG3(answer, argument);}
 
 /** Returns the address length message parameter.
  *  @param[in] call The message call structure.
@@ -176,7 +176,7 @@ typedef enum{
  */
 #define SOCKET_SET_HEADER_SIZE(answer, value) \
 	\
-	{ipcarg_t argument = (value); IPC_SET_ARG3(answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG3(answer, argument);}
 
 /** Returns the header size message parameter.
  *  @param[in] call The message call structure.

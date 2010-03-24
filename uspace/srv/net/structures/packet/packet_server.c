@@ -193,8 +193,8 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * a
 				return ENOMEM;
 			}
 			*answer_count = 2;
-			IPC_SET_ARG1(*answer, packet->packet_id);
-			IPC_SET_ARG2(*answer, packet->length);
+			IPC_SET_ARG1(*answer, (ipcarg_t) packet->packet_id);
+			IPC_SET_ARG2(*answer, (ipcarg_t) packet->length);
 			return EOK;
 		case NET_PACKET_CREATE_4:
 			packet = packet_get(((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(call)) ? IPC_GET_ADDR_LEN(call) : DEFAULT_ADDR_LEN), DEFAULT_PREFIX + IPC_GET_PREFIX(call), IPC_GET_CONTENT(call), DEFAULT_SUFFIX + IPC_GET_SUFFIX(call));
@@ -202,8 +202,8 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * a
 				return ENOMEM;
 			}
 			*answer_count = 2;
-			IPC_SET_ARG1(*answer, packet->packet_id);
-			IPC_SET_ARG2(*answer, packet->length);
+			IPC_SET_ARG1(*answer, (ipcarg_t) packet->packet_id);
+			IPC_SET_ARG2(*answer, (ipcarg_t) packet->length);
 			return EOK;
 		case NET_PACKET_GET:
 			packet = pm_find(IPC_GET_ID(call));
@@ -216,7 +216,7 @@ int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * a
 			if(! packet_is_valid(packet)){
 				return ENOENT;
 			}
-			IPC_SET_ARG1(*answer, packet->length);
+			IPC_SET_ARG1(*answer, (ipcarg_t) packet->length);
 			*answer_count = 1;
 			return EOK;
 		case NET_PACKET_RELEASE:

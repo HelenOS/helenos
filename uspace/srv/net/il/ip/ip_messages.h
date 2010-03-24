@@ -84,7 +84,7 @@ typedef enum{
  *  @param[out] answer The message answer structure.
  */
 #define IP_SET_HEADERLEN(answer, value) \
-	{ipcarg_t argument = (value); IPC_SET_ARG2(*answer, argument);}
+	{ipcarg_t argument = (ipcarg_t) (value); IPC_SET_ARG2(*answer, argument);}
 
 /** Returns the network mask message parameter.
  *  @param[in] call The message call structure.
