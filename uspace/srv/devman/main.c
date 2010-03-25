@@ -149,6 +149,8 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 	}
 	
 	list_append(&match_id->link, &match_ids->ids);
+	
+	printf(NAME ": received match id '%s', score = %d \n", match_id->id, match_id->score);
 	return rc;
 }
 

@@ -35,6 +35,9 @@ RD_SRVS += \
 #	$(USPACEDIR)/srv/hw/bus/pci/pci \
 	$(USPACEDIR)/srv/hid/char_mouse/char_ms
 
+RD_DRVS = \
+	root 
+
 MODULES := $(notdir $(COMPONENTS))
 
 build: $(BASE)/image.iso
@@ -63,6 +66,11 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 	for file in $(RD_SRVS) ; do \
 		cp $$file $(USPACEDIR)/dist/srv/ ; \
 	done
+	for driver in $(RD_DRVS); do \
+		mkdir -p $(USPACEDIR)/dist/srv/drivers/$$driver ; \
+		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver.ma $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
+		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
+	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
@@ -80,6 +88,9 @@ endif
 clean:
 	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	for driver in $(RD_DRVS) ; do \
+		rm -r $(USPACEDIR)/dist/srv/drivers/$$driver ; \
 	done
 	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
