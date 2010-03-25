@@ -43,8 +43,9 @@ typedef struct device {
 	ipcarg_t parent_phone;	
 	const char *name;
 	match_id_list_t match_ids;
+	void *driver_data;
 	
-	// TODO add more items - parent bus type etc.
+	// TODO add more items
 	
 	link_t link;
 } device_t;
@@ -71,7 +72,7 @@ static inline device_t * create_device()
 	return dev;
 }
 
-static inline delete_device(device_t *dev) {
+static inline void delete_device(device_t *dev) {
 	clean_match_ids(&dev->match_ids);
 	if (NULL != dev->name) {
 		free(dev->name);

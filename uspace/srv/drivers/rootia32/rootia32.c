@@ -27,8 +27,8 @@
  */
 
 /**
- * @defgroup root Root device driver.
- * @brief HelenOS root device driver.
+ * @defgroup root_ia32 Root HW device driver for ia32 platform.
+ * @brief HelenOS root HW device driver for ia32 platform.
  * @{
  */
 
@@ -49,53 +49,48 @@
 #include <devman.h>
 #include <ipc/devman.h>
 
-#define NAME "root"
+#define NAME "rootia32"
 
-static bool root_add_device(device_t *dev);
-static bool root_init();
+static bool rootia32_add_device(device_t *dev);
+static bool rootia32_init();
 
 /** The root device driver's standard operations.
  */
-static driver_ops_t root_ops = {
-	.add_device = &root_add_device
+static driver_ops_t rootia32_ops = {
+	.add_device = &rootia32_add_device
 };
 
 /** The root device driver structure. 
  */
-static driver_t root_driver = {
+static driver_t rootia32_driver = {
 	.name = NAME,
-	.driver_ops = &root_ops
+	.driver_ops = &rootia32_ops
 };
 
-/** Create the device which represents the root of HW device tree. 
- * @param parent parent of the newly created device.
- */
-static bool add_platform_child(device_t *parent) {
-	printf(NAME ": adding new child for platform device.\n");
+// TODO HW resources
+static bool rootia32_add_child(device_t *parent, const char *name, const char *str_match_id) {
+	printf(NAME ": adding new child device '%s'.\n", name);
 	
-	device_t *platform = NULL;
+	device_t *child = NULL;
 	match_id_t *match_id = NULL;	
 	
 	// create new device
-	if (NULL == (platform = create_device())) {
+	if (NULL == (child = create_device())) {
 		goto failure;
-	}	
+	}
 	
-	platform->name = "hw";
-	printf(NAME ": the new device's name is %s.\n", platform->name);
+	child->name = name;
 	
 	// initialize match id list
 	if (NULL == (match_id = create_match_id())) {
 		goto failure;
 	}
-	
-	// TODO - replace this with some better solution (sysinfo ?)
-	match_id->id = STRING(UARCH);
+	match_id->id = str_match_id;
 	match_id->score = 100;
-	add_match_id(&platform->match_ids, match_id);	
+	add_match_id(&child->match_ids, match_id);	
 	
 	// register child  device
-	if (!child_device_register(platform, parent)) {
+	if (!child_device_register(child, parent)) {
 		goto failure;
 	}
 	
@@ -106,24 +101,31 @@ failure:
 		match_id->id = NULL;
 	}
 	
-	if (NULL != platform) {
-		platform->name = NULL;
-		delete_device(platform);		
+	if (NULL != child) {
+		child->name = NULL;
+		delete_device(child);		
 	}
 	
+	printf(NAME ": failed to add child device '%s'.\n", name);
+	
 	return false;	
+}
+
+static bool rootia32_add_children(dev) 
+{
+	return rootia32_add_child(dev, "pci0", "intel_pci");
 }
 
 /** Get the root device.
  * @param dev the device which is root of the whole device tree (both of HW and pseudo devices).
  */
-static bool root_add_device(device_t *dev) 
+static bool rootia32_add_device(device_t *dev) 
 {
-	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": rootia32_add_device, device handle = %d\n", dev->handle);
 	
-	// register root device's children	
-	if (!add_platform_child(dev)) {
-		printf(NAME ": failed to add child device for platform.\n");
+	// register child devices	
+	if (!rootia32_add_children(dev)) {
+		printf(NAME ": failed to add child devices for platform ia32.\n");
 		return false;
 	}
 	
@@ -133,7 +135,7 @@ static bool root_add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");	
-	return driver_main(&root_driver);
+	return driver_main(&rootia32_driver);
 }
 
 /**

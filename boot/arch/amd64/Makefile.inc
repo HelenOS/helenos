@@ -36,7 +36,8 @@ RD_SRVS += \
 	$(USPACEDIR)/srv/hid/char_mouse/char_ms
 
 RD_DRVS = \
-	root 
+	root \
+	rootia32
 
 MODULES := $(notdir $(COMPONENTS))
 

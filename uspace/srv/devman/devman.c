@@ -590,7 +590,7 @@ static bool set_dev_path(node_t *node, node_t *parent)
 	
 	size_t pathsize = (str_size(node->name) + 1);	
 	if (NULL != parent) {		
-		pathsize += str_size(parent->name) + 1;		
+		pathsize += str_size(parent->pathname) + 1;		
 	}
 	
 	if (NULL == (node->pathname = (char *)malloc(pathsize))) {
