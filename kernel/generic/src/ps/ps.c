@@ -169,6 +169,11 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	result.priority = t->priority;
 	result.cycles = t->cycles;
 
+	if (t->cpu)
+		result.cpu = t->cpu->id;
+	else
+		result.cpu = -1;
+
 	WRITE_THREAD_INFO(infos, count - 1, &result);
 
 	spinlock_unlock(&t->lock);
@@ -185,6 +190,10 @@ int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t
 	spinlock_lock(&tasks_lock);
 	selected_task = task_find_by_id(id);
 	spinlock_unlock(&tasks_lock);
+
+	if (!selected_task) {
+		return 0;
+	}
 
 	spinlock_lock(&threads_lock);
 

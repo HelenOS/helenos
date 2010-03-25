@@ -46,6 +46,17 @@
 #define TASK_COUNT 10
 #define THREAD_COUNT 50
 
+/** Thread states */
+static const char *thread_states[] = {
+	"Invalid",
+	"Running",
+	"Sleeping",
+	"Ready",
+	"Entering",
+	"Exiting",
+	"Lingering"
+}; 
+
 static void list_tasks(void)
 {
 	int task_count = TASK_COUNT;
@@ -81,12 +92,22 @@ static void list_threads(task_id_t taskid)
 		result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
 	}
 
-	int i;
-	printf("    ID    State   Prio    [k]Cycles\n");
-	for (i = 0; i < result; ++i) {
-		printf("%6llu %8d %6d %12llu\n", threads[i].tid, threads[i].state,
-				threads[i].priority, threads[i].cycles / 1000);
+	if (result == 0) {
+		printf("No task with given pid!\n");
+		exit(1);
 	}
+
+	int i;
+	printf("    ID    State  CPU   Prio    [k]Cycles\n");
+	for (i = 0; i < result; ++i) {
+		printf("%6llu %-8s %4u %6d %12llu\n", threads[i].tid, thread_states[threads[i].state],
+				threads[i].cpu, threads[i].priority, threads[i].cycles / 1000);
+	}
+}
+
+static void usage()
+{
+	printf("Usage: ps [-t pid]\n");
 }
 
 int main(int argc, char *argv[])
@@ -99,12 +120,14 @@ int main(int argc, char *argv[])
 			--argc; ++argv;
 			if (argc != 1) {
 				printf("Bad argument count!\n");
+				usage();
 				exit(1);
 			}
 			task_id_t taskid = strtol(*argv, NULL, 10);
 			list_threads(taskid);
 		} else {
 			printf("Unknown argument %s!\n", *argv);
+			usage();
 			exit(1);
 		}
 

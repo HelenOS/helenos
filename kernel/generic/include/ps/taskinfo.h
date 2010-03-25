@@ -74,6 +74,7 @@ typedef struct {
 	state_t state;
 	int priority;
 	uint64_t cycles;
+	unsigned int cpu;
 } thread_info_t;
 
 
