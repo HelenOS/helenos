@@ -56,7 +56,7 @@
 #include <ipc/kbox.h>
 #include <mm/as.h>
 
-#define TASK_NAME_BUFLEN	20
+#include <ps/taskinfo.h>
 
 struct thread;
 
