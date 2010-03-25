@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2010 Stanislav Kozina
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,85 +29,53 @@
 /** @addtogroup generic
  * @{
  */
-/** @file
+/** @file taskinfo.h		Contains all thread and task defs common for
+ * 				kernel and uspace.
  */
 
-#ifndef KERN_SYSCALL_H_
-#define KERN_SYSCALL_H_
-
-typedef enum {
-	SYS_KLOG = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
-	
-	SYS_THREAD_CREATE,
-	SYS_THREAD_EXIT,
-	SYS_THREAD_GET_ID,
-	SYS_THREAD_USLEEP,
-	
-	SYS_TASK_GET_ID,
-	SYS_TASK_SET_NAME,
-	SYS_PROGRAM_SPAWN_LOADER,
-	
-	SYS_FUTEX_SLEEP,
-	SYS_FUTEX_WAKEUP,
-	SYS_SMC_COHERENCE,
-	
-	SYS_AS_AREA_CREATE,
-	SYS_AS_AREA_RESIZE,
-	SYS_AS_AREA_CHANGE_FLAGS,
-	SYS_AS_AREA_DESTROY,
-	
-	SYS_IPC_CALL_SYNC_FAST,
-	SYS_IPC_CALL_SYNC_SLOW,
-	SYS_IPC_CALL_ASYNC_FAST,
-	SYS_IPC_CALL_ASYNC_SLOW,
-	SYS_IPC_ANSWER_FAST,
-	SYS_IPC_ANSWER_SLOW,
-	SYS_IPC_FORWARD_FAST,
-	SYS_IPC_FORWARD_SLOW,
-	SYS_IPC_WAIT,
-	SYS_IPC_POKE,
-	SYS_IPC_HANGUP,
-	SYS_IPC_REGISTER_IRQ,
-	SYS_IPC_UNREGISTER_IRQ,
-
-	SYS_EVENT_SUBSCRIBE,
-	
-	SYS_CAP_GRANT,
-	SYS_CAP_REVOKE,
-	
-	SYS_DEVICE_ASSIGN_DEVNO,
-	SYS_PHYSMEM_MAP,
-	SYS_IOSPACE_ENABLE,
-	SYS_PREEMPT_CONTROL,
-	
-	SYS_SYSINFO_VALID,
-	SYS_SYSINFO_VALUE,
-	
-	SYS_DEBUG_ENABLE_CONSOLE,
-	SYS_DEBUG_DISABLE_CONSOLE,
-
-	SYS_PS_GET_TASKS,
-	SYS_PS_GET_TASK_INFO,
-	SYS_PS_GET_THREADS,
-
-	SYS_IPC_CONNECT_KBOX,
-	SYSCALL_END
-} syscall_t;
+#ifndef KERN_PS_TASKINFO_H_
+#define KERN_PS_TASKINFO_H_
 
 #ifdef KERNEL
-
 #include <typedefs.h>
-
-typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t);
-
-extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t, unative_t);
-extern unative_t sys_tls_set(unative_t);
-
+#else
+#include <thread.h>
 #endif
+
+#define TASK_NAME_BUFLEN	20
+
+typedef struct {
+	char name[TASK_NAME_BUFLEN];
+	size_t pages;
+	int thread_count;
+	uint64_t cycles;
+} task_info_t;
+
+/** Thread states. */
+typedef enum {
+	/** It is an error, if thread is found in this state. */
+	Invalid,
+	/** State of a thread that is currently executing on some CPU. */
+	Running,
+	/** Thread in this state is waiting for an event. */
+	Sleeping,
+	/** State of threads in a run queue. */
+	Ready,
+	/** Threads are in this state before they are first readied. */
+	Entering,
+	/** After a thread calls thread_exit(), it is put into Exiting state. */
+	Exiting,
+	/** Threads that were not detached but exited are Lingering. */
+	Lingering
+} state_t;
+
+typedef struct {
+	thread_id_t tid;
+	state_t state;
+	int priority;
+	uint64_t cycles;
+} thread_info_t;
+
 
 #endif
 
