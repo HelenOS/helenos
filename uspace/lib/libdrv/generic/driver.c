@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include <devman.h>
 #include <ipc/devman.h>
@@ -152,8 +153,7 @@ bool child_device_register(device_t *child, device_t *parent)
 	
 	assert(NULL != child->name);
 	
-	if (devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle)) {
-		// TODO initialize child device
+	if (EOK == devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle)) {
 		return true;
 	}
 	return false;

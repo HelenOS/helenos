@@ -54,15 +54,22 @@
 static bool root_add_device(device_t *dev);
 static bool root_init();
 
+/** The root device driver's standard operations.
+ */
 static driver_ops_t root_ops = {
 	.add_device = &root_add_device
 };
 
+/** The root device driver structure. 
+ */
 static driver_t root_driver = {
 	.name = NAME,
 	.driver_ops = &root_ops
 };
 
+/** Create the device which represents the root of HW device tree. 
+ * @param parent parent of the newly created device.
+ */
 static bool add_platform_child(device_t *parent) {
 	printf(NAME ": adding new child for platform device.\n");
 	
@@ -106,6 +113,9 @@ failure:
 	return false;	
 }
 
+/** Get the root device.
+ * @param dev the device which is root of the whole device tree (both of HW and pseudo devices).
+ */
 static bool root_add_device(device_t *dev) 
 {
 	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);

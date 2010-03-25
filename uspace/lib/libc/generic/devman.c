@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <bool.h>
+#include <adt/list.h>
 
 static int devman_phone_driver = -1;
 static int devman_phone_client = -1;
@@ -105,6 +106,33 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	return retval;
 }
 
+static int devman_send_match_id(int phone, match_id_t *match_id) \
+{
+	ipc_call_t answer;
+	async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
+	int retval = async_data_write_start(phone, match_id->id, str_size(match_id->id));
+	return retval;	
+}
+
+
+static int devman_send_match_ids(int phone, match_id_list_t *match_ids) 
+{
+	link_t *link = match_ids->ids.next;
+	match_id_t *match_id = NULL;
+	int ret = EOK;
+	
+	while (link != &match_ids->ids) {
+		match_id = list_get_instance(link, match_id_t, link); 
+		if (EOK != (ret = devman_send_match_id(phone, match_id))) 
+		{
+			printf("Driver failed to send match id, error number = %d\n", ret);
+			return ret;			
+		}
+		link = link->next;
+	}
+	return ret;	
+}
+
 int devman_child_device_register(
 	const char *name, match_id_list_t *match_ids, device_handle_t parent_handle, device_handle_t *handle)
 {		
@@ -115,8 +143,9 @@ int devman_child_device_register(
 	
 	async_serialize_start();
 	
+	int match_count = list_count(&match_ids->ids);	
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, &answer);
+	aid_t req = async_send_2(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, match_count, &answer);
 
 	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
@@ -125,7 +154,7 @@ int devman_child_device_register(
 		return retval;
 	}
 	
-	// TODO match ids
+	devman_send_match_ids(phone, match_ids);
 	
 	async_wait_for(req, &retval);
 	
@@ -140,6 +169,8 @@ int devman_child_device_register(
 	
 	if (handle != NULL)
 		*handle = (int) IPC_GET_ARG1(answer);	
+		
+	return retval;
 }
 
 void devman_hangup_phone(devman_interface_t iface)

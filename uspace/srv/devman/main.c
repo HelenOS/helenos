@@ -119,21 +119,68 @@ static driver_t * devman_driver_register(void)
 	return driver;
 }
 
+static int devman_receive_match_id(match_id_list_t *match_ids) {
+	
+	match_id_t *match_id = create_match_id();
+	ipc_callid_t callid;
+	ipc_call_t call;
+	int rc = 0;
+	
+	callid = async_get_call(&call);
+	if (DEVMAN_ADD_MATCH_ID != IPC_GET_METHOD(call)) {
+		printf(NAME ": ERROR: devman_receive_match_id - invalid protocol.\n");
+		ipc_answer_0(callid, EINVAL); 
+		delete_match_id(match_id);
+		return EINVAL;
+	}
+	
+	if (NULL == match_id) {
+		printf(NAME ": ERROR: devman_receive_match_id - failed to allocate match id.\n");
+		ipc_answer_0(callid, ENOMEM);
+		return ENOMEM;
+	}
+	
+	match_id->score = IPC_GET_ARG1(call);
+	
+	rc = async_string_receive(&match_id->id, DEVMAN_NAME_MAXLEN, NULL);	
+	if (EOK != rc) {
+		delete_match_id(match_id);
+		return rc;
+	}
+	
+	list_append(&match_id->link, &match_ids->ids);
+	return rc;
+}
+
+static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids) 
+{
+	int ret = EOK;
+	int i;
+	for (i = 0; i < match_count; i++) {
+		if (EOK != (ret = devman_receive_match_id(match_ids))) {
+			return ret;
+		}
+	}
+	return ret;
+}
+
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *driver)
 {
 	printf(NAME ": devman_add_child\n");
-
+	
 	device_handle_t parent_handle = IPC_GET_ARG1(*call);
+	ipcarg_t match_count = IPC_GET_ARG2(*call);
+	
 	node_t *parent =  find_dev_node(&device_tree, parent_handle);
 	
 	if (NULL == parent) {
 		ipc_answer_0(callid, ENOENT);
 		return;
-	}
+	}	
 	
 	char *dev_name = NULL;
 	int rc = async_string_receive(&dev_name, DEVMAN_NAME_MAXLEN, NULL);	
-	if (rc != EOK) {
+	if (EOK != rc) {
 		ipc_answer_0(callid, rc);
 		return;
 	}
@@ -146,7 +193,7 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *dr
 		return;
 	}	
 	
-	// TODO match ids
+	devman_receive_match_ids(match_count, &node->match_ids);
 	
 	// return device handle to parent's driver
 	ipc_answer_1(callid, EOK, node->handle);

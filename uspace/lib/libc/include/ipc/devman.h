@@ -50,7 +50,7 @@ typedef struct match_id {
 	link_t link;
 	/** Id of device model.
 	 */
-	const char *id;
+	char *id;
 	/** Relevancy of device-to-driver match.
 	 * The higher is the product of scores specified for the device by the bus driver and by the leaf driver,
 	 * the more suitable is the leaf driver for handling the device.
@@ -120,7 +120,8 @@ typedef enum {
 
 typedef enum {
 	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAN_ADD_CHILD_DEVICE
+	DEVMAN_ADD_CHILD_DEVICE,
+	DEVMAN_ADD_MATCH_ID
 
 } driver_to_devman_t;
 
