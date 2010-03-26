@@ -32,7 +32,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 #include <align.h>
 

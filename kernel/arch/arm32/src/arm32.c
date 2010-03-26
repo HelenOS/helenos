@@ -46,7 +46,7 @@
 #include <arch/regutils.h>
 #include <userspace.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <arch/ras.h>
 
 #ifdef MACHINE_testarm

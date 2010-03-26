@@ -47,7 +47,7 @@
 #include <macros.h>
 #include <async.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 #include <byteorder.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>

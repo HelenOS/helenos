@@ -38,7 +38,7 @@
 
 #include <arch/drivers/i8259.h>
 #include <cpu.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <print.h>

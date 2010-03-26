@@ -119,7 +119,6 @@
 #ifndef __ASM__
 
 #include <typedefs.h>
-#include <arch/types.h>
 
 /*
  * Macros to be used from the C-language code; __hypercall_fastN performs

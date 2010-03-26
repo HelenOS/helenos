@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericdebug 
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
@@ -35,7 +35,6 @@
 #ifndef KERN_STACKTRACE_H_
 #define KERN_STACKTRACE_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 
 /* Forward declarations. */

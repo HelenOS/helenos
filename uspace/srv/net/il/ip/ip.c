@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -892,6 +892,9 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 	packet_t packet;
 	struct sockaddr * addr;
 	size_t addrlen;
+	size_t prefix;
+	size_t suffix;
+	size_t content;
 	ip_pseudo_header_ref header;
 	size_t headerlen;
 	device_id_t device_id;
@@ -923,8 +926,8 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 			ERROR_PROPAGATE(data_receive((void **) &addr, &addrlen));
 			ERROR_PROPAGATE(ip_get_route_req(0, IP_GET_PROTOCOL(call), addr, (socklen_t) addrlen,
 			    &device_id, &header, &headerlen));
-			*IPC_SET_DEVICE(answer) = device_id;
-			*IP_SET_HEADERLEN(answer) = headerlen;
+			IPC_SET_DEVICE(answer, device_id);
+			IP_SET_HEADERLEN(answer, headerlen);
 			*answer_count = 2;
 			if(! ERROR_OCCURRED(data_reply(&headerlen, sizeof(headerlen)))){
 				ERROR_CODE = data_reply(header, headerlen);
@@ -932,8 +935,12 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 			free(header);
 			return ERROR_CODE;
 		case NET_IL_PACKET_SPACE:
-			ERROR_PROPAGATE(ip_packet_size_message(IPC_GET_DEVICE(call), IPC_SET_ADDR(answer), IPC_SET_PREFIX(answer), IPC_SET_CONTENT(answer), IPC_SET_SUFFIX(answer)));
-			*answer_count = 3;
+			ERROR_PROPAGATE(ip_packet_size_message(IPC_GET_DEVICE(call), &addrlen, &prefix, &content, &suffix));
+			IPC_SET_ADDR(answer, addrlen);
+			IPC_SET_PREFIX(answer, prefix);
+			IPC_SET_CONTENT(answer, content);
+			IPC_SET_SUFFIX(answer, suffix);
+			*answer_count = 4;
 			return EOK;
 		case NET_IL_MTU_CHANGED:
 			return ip_mtu_changed_message(IPC_GET_DEVICE(call), IPC_GET_MTU(call));

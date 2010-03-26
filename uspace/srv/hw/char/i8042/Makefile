@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = i8042
+BINARY = i8042
 
 SOURCES = \
 	i8042.c
 
-include ../../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

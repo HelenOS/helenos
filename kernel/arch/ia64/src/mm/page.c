@@ -38,7 +38,7 @@
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/vhpt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <mm/page.h>
 #include <mm/frame.h>

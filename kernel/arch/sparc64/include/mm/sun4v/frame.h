@@ -44,7 +44,7 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 extern uintptr_t last_frame;
 extern void frame_arch_init(void);

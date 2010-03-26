@@ -36,7 +36,7 @@
 #define KERN_HASH_TABLE_H_
 
 #include <adt/list.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Set of operations for hash table. */
 typedef struct {

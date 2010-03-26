@@ -39,7 +39,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string.h>
+#include <str.h>
 
 #include "errors.h"
 #include "config.h"

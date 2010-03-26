@@ -39,7 +39,7 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>

@@ -35,12 +35,7 @@
 #ifndef KERN_ATOMIC_H_
 #define KERN_ATOMIC_H_
 
-#include <arch/types.h>
-
-typedef struct atomic {
-	volatile atomic_count_t count;
-} atomic_t;
-
+#include <typedefs.h>
 #include <arch/atomic.h>
 
 static inline void atomic_set(atomic_t *val, atomic_count_t i)

@@ -34,7 +34,7 @@
  *  Wrapper for the standalone networking module.
  */
 
-#include <string.h>
+#include <str.h>
 
 #include <ipc/ipc.h>
 

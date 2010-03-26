@@ -37,7 +37,6 @@
 #ifndef KERN_DSRLNOUT_H_
 #define KERN_DSRLNOUT_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <console/chardev.h>
 

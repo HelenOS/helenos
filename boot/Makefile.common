@@ -102,36 +102,31 @@ NET_APPS = \
 	$(USPACEDIR)/srv/net/app/nettest1/nettest1 \
 	$(USPACEDIR)/srv/net/app/nettest2/nettest2
 
-ifneq ($(NETWORKING), none)
-NET_CFG = \
-	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/general \
-	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/lo
-
-ifeq ($(CONFIG_NETIF_DP8390),y)
-	NET_SRVS	+=	$(USPACEDIR)/srv/net/netif/dp8390/dp8390
-
-	NET_CFG	+=	$(USPACEDIR)/srv/net/cfg/$(NETWORKING)/ne2k
-endif
-
-ifeq ($(NETWORKING), module)
-	RD_APPS +=	$(NET_APPS)
-
-	RD_SRVS +=	$(NET_SRVS)
-
-	CFG		+=	$(NET_CFG)
-else
-ifeq ($(NETWORKING), modular)
-	RD_APPS +=	$(NET_APPS)
-
-	RD_SRVS +=	$(NET_SRVS)
-
-	RD_SRVS +=	$(USPACEDIR)/srv/net/il/ip/ip \
+ifneq ($(CONFIG_NETWORKING),none)
+	NET_CFG = \
+		$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/general \
+		$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/lo
+	
+	ifeq ($(CONFIG_NETIF_DP8390),y)
+		NET_SRVS += $(USPACEDIR)/srv/net/netif/dp8390/dp8390
+		NET_CFG += $(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/ne2k
+	endif
+	
+	ifeq ($(CONFIG_NETWORKING),module)
+		RD_APPS += $(NET_APPS)
+		RD_SRVS += $(NET_SRVS)
+		CFG += $(NET_CFG)
+	endif
+	
+	ifeq ($(CONFIG_NETWORKING),modular)
+		RD_APPS += $(NET_APPS)
+		RD_SRVS += $(NET_SRVS)
+		RD_SRVS += \
+			$(USPACEDIR)/srv/net/il/ip/ip \
 			$(USPACEDIR)/srv/net/il/arp/arp \
 			$(USPACEDIR)/srv/net/tl/udp/udp \
 			$(USPACEDIR)/srv/net/tl/tcp/tcp \
 			$(USPACEDIR)/srv/net/tl/icmp/icmp
-
-	CFG		+=	$(NET_CFG)
-endif
-endif
+		CFG += $(NET_CFG)
+	endif
 endif

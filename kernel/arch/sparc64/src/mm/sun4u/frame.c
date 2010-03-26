@@ -35,7 +35,7 @@
 #include <arch/mm/frame.h>
 #include <mm/frame.h>
 #include <arch/boot/boot.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 #include <align.h>
 #include <macros.h>

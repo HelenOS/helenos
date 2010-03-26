@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = vfs
+BINARY = vfs
 
 SOURCES = \
 	vfs.c \
@@ -40,4 +38,4 @@ SOURCES = \
 	vfs_lookup.c \
 	vfs_register.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -46,7 +46,7 @@
 #include <adt/fifo.h>
 #include <sys/mman.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 #include <sysinfo.h>
 #include <event.h>
 #include <devmap.h>

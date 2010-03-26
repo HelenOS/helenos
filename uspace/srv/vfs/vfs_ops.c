@@ -43,7 +43,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <bool.h>
 #include <fibril_synch.h>
 #include <adt/list.h>

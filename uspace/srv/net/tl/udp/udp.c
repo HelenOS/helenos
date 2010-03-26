@@ -418,6 +418,7 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 	struct sockaddr * addr;
 	int socket_id;
 	size_t addrlen;
+	size_t size;
 	ipc_call_t answer;
 	int answer_count;
 	packet_dimension_ref packet_dimension;
@@ -453,14 +454,14 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 			case NET_SOCKET:
 				socket_id = SOCKET_GET_SOCKET_ID(call);
 				res = socket_create(&local_sockets, app_phone, NULL, &socket_id);
-				*SOCKET_SET_SOCKET_ID(answer) = socket_id;
-				
+				SOCKET_SET_SOCKET_ID(answer, socket_id);
+
 				if(res == EOK){
 					if(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
-						*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = packet_dimension->content;
+						SOCKET_SET_DATA_FRAGMENT_SIZE(answer, packet_dimension->content);
 					}
-//					*SOCKET_SET_DATA_FRAGMENT_SIZE(answer) = MAX_UDP_FRAGMENT_SIZE;
-					*SOCKET_SET_HEADER_SIZE(answer) = UDP_HEADER_SIZE;
+//					SOCKET_SET_DATA_FRAGMENT_SIZE(answer, MAX_UDP_FRAGMENT_SIZE);
+					SOCKET_SET_HEADER_SIZE(answer, UDP_HEADER_SIZE);
 					answer_count = 3;
 				}
 				break;
@@ -477,7 +478,8 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				res = data_receive((void **) &addr, &addrlen);
 				if(res == EOK){
 					fibril_rwlock_write_lock(&udp_globals.lock);
-					res = udp_sendto_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), addr, addrlen, SOCKET_GET_DATA_FRAGMENTS(call), SOCKET_SET_DATA_FRAGMENT_SIZE(answer), SOCKET_GET_FLAGS(call));
+					res = udp_sendto_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), addr, addrlen, SOCKET_GET_DATA_FRAGMENTS(call), &size, SOCKET_GET_FLAGS(call));
+					SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 					if(res != EOK){
 						fibril_rwlock_write_unlock(&udp_globals.lock);
 					}else{
@@ -491,8 +493,8 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				res = udp_recvfrom_message(&local_sockets, SOCKET_GET_SOCKET_ID(call), SOCKET_GET_FLAGS(call), &addrlen);
 				fibril_rwlock_write_unlock(&udp_globals.lock);
 				if(res > 0){
-					*SOCKET_SET_READ_DATA_LENGTH(answer) = res;
-					*SOCKET_SET_ADDRESS_LENGTH(answer) = addrlen;
+					SOCKET_SET_READ_DATA_LENGTH(answer, res);
+					SOCKET_SET_ADDRESS_LENGTH(answer, addrlen);
 					answer_count = 3;
 					res = EOK;
 				}

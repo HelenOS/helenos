@@ -28,13 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS = -Iinclude
-
-OUTPUT = libsoftint.a
+LIBRARY = libsoftint
 
 SOURCES = \
 	generic/division.c\
 	generic/multiplication.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

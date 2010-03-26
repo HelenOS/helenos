@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,42 +27,42 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = dp8390
+NET_BASE = ../..
+USPACE_PREFIX = ../../../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
-NET_BASE = ../../
-STRUCTURES = $(NET_BASE)structures/
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-include $(NET_BASE)../../../Makefile.common
-include $(NET_BASE)../../../Makefile.config
+BINARY = dp8390
 
-## Sources
-#
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
 
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NAME)_module.c \
+	dp8390.c \
+	dp8390_module.c \
 	ne2000.c \
-	$(NET_BASE)module.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)netif/netif.c \
-	$(STRUCTURES)measured_strings.c \
-	$(STRUCTURES)packet/packet.c \
-	$(STRUCTURES)packet/packet_client.c \
-	$(STRUCTURES)packet/packet_remote.c
+	$(NET_BASE)/module.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/netif/netif.c \
+	$(NET_BASE)/structures/measured_strings.c \
+	$(NET_BASE)/structures/packet/packet.c \
+	$(NET_BASE)/structures/packet/packet_client.c \
+	$(NET_BASE)/structures/packet/packet_remote.c
 
-ifeq ($(NETWORKING), module)
-
-	SOURCES +=	$(NET_BASE)checksum.c \
-				$(NET_BASE)nil/eth/eth.c \
-				$(NET_BASE)net/net_remote.c \
-				$(NET_BASE)netif/netif_nil_bundle.c
-
-else
-
-	SOURCES += 	$(NET_BASE)nil/nil_remote.c \
-				$(NET_BASE)netif/netif_standalone.c
-
+ifeq ($(CONFIG_NETWORKING),module)
+	SOURCES += \
+		$(NET_BASE)/checksum.c \
+		$(NET_BASE)/nil/eth/eth.c \
+		$(NET_BASE)/net/net_remote.c \
+		$(NET_BASE)/netif/netif_nil_bundle.c
 endif
 
-include $(NET_BASE)Makefile.module
+ifeq ($(CONFIG_NETWORKING),modular)
+	SOURCES += \
+		$(NET_BASE)/nil/nil_remote.c \
+		$(NET_BASE)/netif/netif_standalone.c
+endif
+
+include $(USPACE_PREFIX)/Makefile.common

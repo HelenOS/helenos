@@ -44,20 +44,20 @@
 #include <console/cmd.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <macros.h>
 #include <debug.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>
-#include <string.h>
+#include <str.h>
 
 /** Simple kernel console.
  *

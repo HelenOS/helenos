@@ -38,7 +38,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 #include <config.h>
 #include <func.h>

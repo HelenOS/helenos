@@ -36,7 +36,7 @@
 #define KERN_INTERRUPT_H_
 
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>

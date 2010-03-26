@@ -35,7 +35,7 @@
 #include <dirent.h>
 #include <getopt.h>
 #include <mem.h>
-#include <string.h>
+#include <str.h>
 
 #include "config.h"
 #include "errors.h"

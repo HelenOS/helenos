@@ -47,7 +47,7 @@
 #include <arch/mm/page.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 #include <arch/cpu.h>
 #include <arch/sun4v/hypercall.h>

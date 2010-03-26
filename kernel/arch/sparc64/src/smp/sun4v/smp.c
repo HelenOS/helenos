@@ -43,7 +43,7 @@
 #include <config.h>
 #include <macros.h>
 #include <func.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/synch.h>
 #include <synch/waitq.h>
 #include <print.h>
@@ -52,7 +52,7 @@
 #include <arch/sun4v/ipi.h>
 #include <time/delay.h>
 #include <arch/smp/sun4v/smp.h>
-#include <string.h>
+#include <str.h>
 
 /** hypervisor code of the "running" state of the CPU */
 #define CPU_STATE_RUNNING	2

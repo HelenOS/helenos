@@ -36,7 +36,8 @@
 #define KERN_ia32_CONTEXT_H_
 
 #ifdef KERNEL
-#include <arch/types.h>
+
+#include <typedefs.h>
 
 #define STACK_ITEM_SIZE	4
 

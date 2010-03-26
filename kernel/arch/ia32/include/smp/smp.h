@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_SMP_H_
 #define KERN_ia32_SMP_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** SMP config opertaions interface. */
 struct smp_config_operations {

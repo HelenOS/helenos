@@ -36,7 +36,7 @@
 #define KERN_mips32_DEBUGGER_H_
 
 #include <arch/exception.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define BKPOINTS_MAX 10
 

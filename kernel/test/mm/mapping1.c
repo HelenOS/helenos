@@ -32,7 +32,7 @@
 #include <mm/frame.h>
 #include <mm/as.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 
 #define PAGE0  0x10000000

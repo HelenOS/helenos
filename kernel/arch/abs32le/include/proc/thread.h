@@ -35,7 +35,7 @@
 #ifndef KERN_abs32le_THREAD_H_
 #define KERN_abs32le_THREAD_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 } thread_arch_t;

@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = ata_bd
+BINARY = ata_bd
 
 SOURCES = \
 	ata_bd.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

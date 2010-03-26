@@ -35,7 +35,7 @@
 #ifndef KERN_WAITQ_H_
 #define KERN_WAITQ_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <synch/synch.h>
 #include <adt/list.h>

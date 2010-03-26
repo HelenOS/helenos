@@ -46,7 +46,7 @@
 #include <mm/as.h>
 #include <mm/page.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /*
  * Number of entries in each level.

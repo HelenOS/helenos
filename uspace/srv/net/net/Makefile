@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,51 +27,51 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = net
+NET_BASE = ..
+USPACE_PREFIX = ../../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
-NET_BASE = ../
-STRUCTURES = $(NET_BASE)structures/
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-include $(NET_BASE)../../../Makefile.common
-include $(NET_BASE)../../../Makefile.config
+BINARY = net
 
-## Sources
-#
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
 
-OUTPUT = $(NAME)
 SOURCES = \
-	$(NAME).c \
-	$(NET_BASE)module.c \
-	$(NET_BASE)modules.c \
-	$(NET_BASE)netif/netif_remote.c \
-	$(STRUCTURES)char_map.c \
-	$(STRUCTURES)measured_strings.c \
-	$(STRUCTURES)module_map.c \
-	$(STRUCTURES)packet/packet.c \
-	$(STRUCTURES)packet/packet_client.c \
-	$(STRUCTURES)packet/packet_server.c
+	net.c \
+	$(NET_BASE)/module.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/netif/netif_remote.c \
+	$(NET_BASE)/structures/char_map.c \
+	$(NET_BASE)/structures/measured_strings.c \
+	$(NET_BASE)/structures/module_map.c \
+	$(NET_BASE)/structures/packet/packet.c \
+	$(NET_BASE)/structures/packet/packet_client.c \
+	$(NET_BASE)/structures/packet/packet_server.c
 
-ifeq ($(NETWORKING), module)
-
-	SOURCES +=	$(NAME)_bundle.c \
-				$(NET_BASE)checksum.c \
-				$(NET_BASE)inet.c \
-				$(NET_BASE)il/arp/arp.c \
-				$(NET_BASE)il/ip/ip.c \
-				$(NET_BASE)il/ip/ip_client.c \
-				$(NET_BASE)socket/socket_core.c \
-				$(NET_BASE)tl/icmp/icmp.c \
-				$(NET_BASE)tl/icmp/icmp_client.c \
-				$(NET_BASE)tl/tcp/tcp.c \
-				$(NET_BASE)tl/tl_common.c \
-				$(NET_BASE)tl/udp/udp.c \
-				$(STRUCTURES)dynamic_fifo.c
-
-else
-
-	SOURCES +=	$(NAME)_standalone.c \
-				$(NET_BASE)il/ip/ip_remote.c
-
+ifeq ($(CONFIG_NETWORKING),module)
+	SOURCES += \
+		net_bundle.c \
+		$(NET_BASE)/checksum.c \
+		$(NET_BASE)/inet.c \
+		$(NET_BASE)/il/arp/arp.c \
+		$(NET_BASE)/il/ip/ip.c \
+		$(NET_BASE)/il/ip/ip_client.c \
+		$(NET_BASE)/socket/socket_core.c \
+		$(NET_BASE)/tl/icmp/icmp.c \
+		$(NET_BASE)/tl/icmp/icmp_client.c \
+		$(NET_BASE)/tl/tcp/tcp.c \
+		$(NET_BASE)/tl/tl_common.c \
+		$(NET_BASE)/tl/udp/udp.c \
+		$(NET_BASE)/structures/dynamic_fifo.c
 endif
 
-include $(NET_BASE)Makefile.module
+ifeq ($(CONFIG_NETWORKING),modular)
+	SOURCES += \
+		net_standalone.c \
+		$(NET_BASE)/il/ip/ip_remote.c
+endif
+
+include $(USPACE_PREFIX)/Makefile.common

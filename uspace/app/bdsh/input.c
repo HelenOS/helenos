@@ -31,7 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <io/style.h>

@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2009 Lukas Mejdrech
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,19 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NAME = socket
+NET_BASE = ..
+USPACE_PREFIX = ../../..
+LIBRARY = libsocket
 
-NET_BASE = ../
-STRUCTURES = $(NET_BASE)structures/
-
-## Sources
-#
-
-LIB = lib$(NAME).a
 SOURCES = \
-	$(NAME)_client.c \
-	$(NET_BASE)inet.c \
-	$(NET_BASE)modules.c \
-	$(STRUCTURES)dynamic_fifo.c
+	socket_client.c \
+	$(NET_BASE)/inet.c \
+	$(NET_BASE)/modules.c \
+	$(NET_BASE)/structures/dynamic_fifo.c
 
-include $(NET_BASE)Makefile.module
+include $(USPACE_PREFIX)/Makefile.common

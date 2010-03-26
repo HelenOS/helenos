@@ -141,7 +141,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Processor Status Register. */
 typedef union {

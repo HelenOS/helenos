@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 
 #include "include/in.h"
 #include "include/in6.h"

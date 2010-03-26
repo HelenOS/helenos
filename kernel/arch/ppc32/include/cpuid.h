@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_CPUID_H_
 #define KERN_ppc32_CPUID_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 	uint16_t version;

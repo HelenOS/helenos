@@ -40,7 +40,7 @@
 #include <macros.h>
 #include <async.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 #include <stdarg.h>
 #include <bool.h>
 #include <fibril_synch.h>

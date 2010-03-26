@@ -37,7 +37,7 @@
 #include <arch/mm/tlb.h>
 #include <panic.h>
 #include <arch/cp0.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <debug.h>
 #include <proc/thread.h>

@@ -56,7 +56,7 @@
 #include <genarch/srln/srln.h>
 #include <macros.h>
 #include <config.h>
-#include <string.h>
+#include <str.h>
 #include <arch/drivers/msim.h>
 #include <arch/asm/regname.h>
 

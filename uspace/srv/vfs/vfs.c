@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <bool.h>
-#include <string.h>
+#include <str.h>
 #include <as.h>
 #include <atomic.h>
 #include "vfs.h"

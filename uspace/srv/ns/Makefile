@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = ns
+BINARY = ns
 
 SOURCES = \
 	ns.c \
@@ -38,4 +36,4 @@ SOURCES = \
 	clonable.c \
 	task.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

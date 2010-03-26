@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_ASID_H_
 #define KERN_ppc32_ASID_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define ASID_MAX_ARCH		4096
 

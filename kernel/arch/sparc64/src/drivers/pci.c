@@ -40,15 +40,15 @@
 #include <arch/trap/interrupt.h>
 #include <mm/page.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <arch/asm.h>
 #include <sysinfo/sysinfo.h>
 
 #define SABRE_INTERNAL_REG	0
-#define PSYCHO_INTERNAL_REG	2	
+#define PSYCHO_INTERNAL_REG	2
 
 #define OBIO_IMR_BASE	0x200
 #define OBIO_IMR(ino)	(OBIO_IMR_BASE + ((ino) & INO_MASK))

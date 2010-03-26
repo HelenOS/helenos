@@ -68,9 +68,6 @@ LINK = arch/$(KARCH)/_link.ld
 EMPTY_MAP = generic/src/debug/empty_map.o
 SIZEOK_MAP = generic/src/debug/sizeok_map.o
 
-INCLUDES = generic/include
-OPTIMIZATION = 3
-
 .PHONY: all clean
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
@@ -83,16 +80,19 @@ clean:
 ## Common compiler flags
 #
 
+INCLUDES = generic/include
+OPTIMIZATION = 3
+
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-Werror -pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Werror -wd170
 
@@ -100,15 +100,12 @@ SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
 	-erroff=E_ZERO_SIZED_STRUCT_UNION
 
-CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -arch $(CLANG_ARCH)
-
-LFLAGS = -M
-AFLAGS =
 
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
@@ -203,7 +200,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
-	generic/src/lib/string.c \
+	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
@@ -355,7 +352,7 @@ $(DISASM): $(RAW)
 	$(OBJDUMP) -d $< > $@
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
-	$(LD) -T $(LINK) $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS) -o $@ -Map $(MAP)
+	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@  $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 
 $(LINK): $(LINK).in $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
@@ -367,7 +364,7 @@ ifeq ($(PRECHECK),y)
 endif
 
 %.o: %.s $(DEPEND)
-	$(AS) $(AFLAGS) $< -o $@
+	$(AS) $(AFLAGS) -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
@@ -398,7 +395,7 @@ $(REAL_MAP).o: $(REAL_MAP).bin
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
-	$(LD) -T $(LINK) $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP) -o $@ -Map $(MAP_PREV)
+	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@  $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 	
@@ -406,7 +403,7 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	# on architectures that have bss after symtab
 	
 	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
-	$(LD) -T $(LINK) $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP) -o $@ -Map $(MAP_PREV)
+	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
