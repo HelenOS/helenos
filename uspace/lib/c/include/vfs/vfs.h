@@ -42,7 +42,7 @@
 
 /**
  * This type is a libc version of the VFS triplet.
- * It uniquelly identifies a file system node within a file system instance.
+ * It uniquely identifies a file system node within a file system instance.
  */
 typedef struct {
 	fs_handle_t fs_handle;
