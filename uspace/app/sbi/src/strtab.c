@@ -34,7 +34,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 #include "mytypes.h"
 #include "os/os.h"
 #include "list.h"

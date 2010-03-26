@@ -33,7 +33,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "mytypes.h"
 #include "input.h"
 #include "os/os.h"

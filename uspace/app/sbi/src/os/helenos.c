@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <task.h>
 
 #include "os.h"

@@ -27,10 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS = -D__HELENOS__
 
-OUTPUT = sbi
+BINARY = sbi
 
 SOURCES = \
 	src/builtin/bi_fun.c \
@@ -58,4 +57,4 @@ SOURCES = \
 	src/symbol.c \
 	src/tdata.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common
