@@ -32,6 +32,7 @@
 #include "mytypes.h"
 
 void stype_module(stype_t *stype, stree_module_t *module);
+void stype_stat(stype_t *stype, stree_stat_t *stat);
 
 stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);

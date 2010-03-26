@@ -48,6 +48,7 @@ static stree_expr_t *parse_postfix(parse_t *parse);
 static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a);
+static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_primitive(parse_t *parse);
 static stree_expr_t *parse_nameref(parse_t *parse);
 static stree_expr_t *parse_lit_int(parse_t *parse);
@@ -205,7 +206,7 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 	a = parse_primitive(parse);
 
 	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lparen ||
-	    lcur_lc(parse) == lc_lsbr) {
+	    lcur_lc(parse) == lc_lsbr || lcur_lc(parse) == lc_as) {
 
 		switch (lcur_lc(parse)) {
 		case lc_period:
@@ -216,6 +217,9 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 			break;
 		case lc_lsbr:
 			tmp = parse_pf_index(parse, a);
+			break;
+		case lc_as:
+			tmp = parse_pf_as(parse, a);
 			break;
 		default:
 			assert(b_false);
@@ -311,6 +315,25 @@ static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 
 	expr = stree_expr_new(ec_index);
 	expr->u.index = index;
+
+	return expr;
+}
+
+/** Parse @c as operator. */
+static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
+{
+	stree_expr_t *expr;
+	stree_texpr_t *texpr;
+	stree_as_t *as_op;
+
+	lmatch(parse, lc_as);
+	texpr = parse_texpr(parse);
+
+	as_op = stree_as_new();
+	as_op->arg = a;
+	as_op->dtype = texpr;
+	expr = stree_expr_new(ec_as);
+	expr->u.as_op = as_op;
 
 	return expr;
 }

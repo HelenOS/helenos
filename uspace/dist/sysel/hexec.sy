@@ -28,7 +28,7 @@
 
 class HelenOSExecDemo is
 	fun Main() is
-		Builtin.Exec("/app/tester");
-		Builtin.Exec("/app/tester", "print1");
+		Task.Exec("/app/tester");
+		Task.Exec("/app/tester", "print1");
 	end
 end

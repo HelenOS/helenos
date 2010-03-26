@@ -27,7 +27,7 @@
 --
 
 class ExceptionDemo is
-	fun foo() : int is
+	fun foo() is
 	        Builtin.WriteLine("Entered foo().");
 		raise new BaseException();
 	end

@@ -164,6 +164,7 @@ static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
 	switch (tliteral->tlc) {
 	case tlc_int: tpc = tpc_int; break;
 	case tlc_string: tpc = tpc_string; break;
+	case tlc_resource: tpc = tpc_resource; break;
 	}
 
 	/* Construct type item. */

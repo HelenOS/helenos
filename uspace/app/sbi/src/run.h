@@ -34,6 +34,7 @@
 void run_init(run_t *run);
 void run_program(run_t *run, stree_program_t *prog);
 void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res);
+void run_stat(run_t *run, stree_stat_t *stat);
 
 void run_print_fun_bt(run_t *run);
 

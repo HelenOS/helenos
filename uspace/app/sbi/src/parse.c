@@ -42,18 +42,22 @@
 #include "p_type.h"
 #include "stree.h"
 #include "strtab.h"
+#include "symbol.h"
 
 #include "parse.h"
 
 /*
  * Module members
  */
-static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass);
+static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
+    stree_csi_t *outer_csi);
 static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi);
 
-static stree_fun_t *parse_fun(parse_t *parse);
-static stree_var_t *parse_var(parse_t *parse);
-static stree_prop_t *parse_prop(parse_t *parse);
+static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi);
+static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi);
+static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi);
+
+static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse);
 
 static stree_proc_arg_t *parse_proc_arg(parse_t *parse);
 static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
@@ -62,7 +66,6 @@ static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
  * Statements
  */
 static stree_block_t *parse_block(parse_t *parse);
-static stree_stat_t *parse_stat(parse_t *parse);
 
 static stree_vdecl_t *parse_vdecl(parse_t *parse);
 static stree_if_t *parse_if(parse_t *parse);
@@ -88,21 +91,15 @@ void parse_module(parse_t *parse)
 {
 	stree_csi_t *csi;
 	stree_modm_t *modm;
-	stree_symbol_t *symbol;
 
 	while (lcur_lc(parse) != lc_eof) {
 		switch (lcur_lc(parse)) {
 		case lc_class:
 		case lc_struct:
 		case lc_interface:
-			csi = parse_csi(parse, lcur_lc(parse));
+			csi = parse_csi(parse, lcur_lc(parse), NULL);
 			modm = stree_modm_new(mc_csi);
 			modm->u.csi = csi;
-
-			symbol = stree_symbol_new(sc_csi);
-			symbol->u.csi = csi;
-			symbol->outer_csi = NULL;
-			csi->symbol = symbol;
 
 			list_append(&parse->cur_mod->members, modm);
 			break;
@@ -116,11 +113,13 @@ void parse_module(parse_t *parse)
 }
 
 /** Parse class, struct or interface declaration. */
-static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass)
+static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
+    stree_csi_t *outer_csi)
 {
 	stree_csi_t *csi;
 	csi_class_t cc;
 	stree_csimbr_t *csimbr;
+	stree_symbol_t *symbol;
 
 	switch (dclass) {
 	case lc_class: cc = csi_class; break;
@@ -133,6 +132,11 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass)
 
 	csi = stree_csi_new(cc);
 	csi->name = parse_ident(parse);
+
+	symbol = stree_symbol_new(sc_csi);
+	symbol->u.csi = csi;
+	symbol->outer_csi = outer_csi;
+	csi->symbol = symbol;
 
 #ifdef DEBUG_PARSE_TRACE
 	printf("parse_csi: csi=%p, csi->name = %p (%s)\n", csi, csi->name,
@@ -170,55 +174,28 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	stree_var_t *var;
 	stree_prop_t *prop;
 
-	stree_symbol_t *symbol;
-
 	switch (lcur_lc(parse)) {
 	case lc_class:
 	case lc_struct:
 	case lc_interface:
-		csi = parse_csi(parse, lcur_lc(parse));
+		csi = parse_csi(parse, lcur_lc(parse), outer_csi);
 		csimbr = stree_csimbr_new(csimbr_csi);
 		csimbr->u.csi = csi;
-
-		symbol = stree_symbol_new(sc_csi);
-		symbol->u.csi = csi;
-		symbol->outer_csi = outer_csi;
-		csi->symbol = symbol;
 		break;
 	case lc_fun:
-		fun = parse_fun(parse);
+		fun = parse_fun(parse, outer_csi);
 		csimbr = stree_csimbr_new(csimbr_fun);
 		csimbr->u.fun = fun;
-
-		symbol = stree_symbol_new(sc_fun);
-		symbol->u.fun = fun;
-		symbol->outer_csi = outer_csi;
-		fun->symbol = symbol;
-		fun->proc->outer_symbol = symbol;
 		break;
 	case lc_var:
-		var = parse_var(parse);
+		var = parse_var(parse, outer_csi);
 		csimbr = stree_csimbr_new(csimbr_var);
 		csimbr->u.var = var;
-
-		symbol = stree_symbol_new(sc_var);
-		symbol->u.var = var;
-		symbol->outer_csi = outer_csi;
-		var->symbol = symbol;
 		break;
 	case lc_prop:
-		prop = parse_prop(parse);
+		prop = parse_prop(parse, outer_csi);
 		csimbr = stree_csimbr_new(csimbr_prop);
 		csimbr->u.prop = prop;
-
-		symbol = stree_symbol_new(sc_prop);
-		symbol->u.prop = prop;
-		symbol->outer_csi = outer_csi;
-		prop->symbol = symbol;
-		if (prop->getter)
-			prop->getter->outer_symbol = symbol;
-		if (prop->setter)
-			prop->setter->outer_symbol = symbol;
 		break;
 	default:
 		lunexpected_error(parse);
@@ -230,12 +207,19 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 
 
 /** Parse member function. */
-static stree_fun_t *parse_fun(parse_t *parse)
+static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_fun_t *fun;
 	stree_proc_arg_t *arg;
+	stree_symbol_t *symbol;
+	stree_symbol_attr_t *attr;
 
 	fun = stree_fun_new();
+	symbol = stree_symbol_new(sc_fun);
+
+	symbol->u.fun = fun;
+	symbol->outer_csi = outer_csi;
+	fun->symbol = symbol;
 
 	lmatch(parse, lc_fun);
 	fun->name = parse_ident(parse);
@@ -276,20 +260,49 @@ static stree_fun_t *parse_fun(parse_t *parse)
 		fun->rtype = NULL;
 	}
 
-	lmatch(parse, lc_is);
+	list_init(&symbol->attr);
+
+	/* Parse attributes. */
+	while (lcur_lc(parse) == lc_comma) {
+		lskip(parse);
+		attr = parse_symbol_attr(parse);
+		list_append(&symbol->attr, attr);
+	}
+
 	fun->proc = stree_proc_new();
-	fun->proc->body = parse_block(parse);
-	lmatch(parse, lc_end);
+	fun->proc->outer_symbol = symbol;
+
+	if (lcur_lc(parse) == lc_scolon) {
+		lskip(parse);
+
+		/* This function has no body. */
+		if (!stree_symbol_has_attr(symbol, sac_builtin)) {
+			printf("Error: Function '");
+			symbol_print_fqn(symbol);
+			printf("' has no body.\n");
+			exit(1);
+		}
+		fun->proc->body = NULL;
+	} else {
+		lmatch(parse, lc_is);
+		fun->proc->body = parse_block(parse);
+		lmatch(parse, lc_end);
+	}
 
 	return fun;
 }
 
 /** Parse member variable. */
-static stree_var_t *parse_var(parse_t *parse)
+static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_var_t *var;
+	stree_symbol_t *symbol;
 
 	var = stree_var_new();
+	symbol = stree_symbol_new(sc_var);
+	symbol->u.var = var;
+	symbol->outer_csi = outer_csi;
+	var->symbol = symbol;
 
 	lmatch(parse, lc_var);
 	var->name = parse_ident(parse);
@@ -301,14 +314,21 @@ static stree_var_t *parse_var(parse_t *parse)
 }
 
 /** Parse member property. */
-static stree_prop_t *parse_prop(parse_t *parse)
+static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_prop_t *prop;
+	stree_symbol_t *symbol;
+
 	stree_ident_t *ident;
 	stree_proc_arg_t *arg;
 
 	prop = stree_prop_new();
 	list_init(&prop->args);
+
+	symbol = stree_symbol_new(sc_prop);
+	symbol->u.prop = prop;
+	symbol->outer_csi = outer_csi;
+	prop->symbol = symbol;
 
 	lmatch(parse, lc_prop);
 
@@ -362,6 +382,7 @@ static stree_prop_t *parse_prop(parse_t *parse)
 			/* Create setter procedure */
 			prop->getter = stree_proc_new();
 			prop->getter->body = parse_block(parse);
+			prop->getter->outer_symbol = symbol;
 
 			lmatch(parse, lc_end);
 			break;
@@ -379,6 +400,7 @@ static stree_prop_t *parse_prop(parse_t *parse)
 			/* Create setter procedure */
 			prop->setter = stree_proc_new();
 			prop->setter->body = parse_block(parse);
+			prop->setter->outer_symbol = symbol;
 
 			lmatch(parse, lc_end);
 			break;
@@ -390,6 +412,24 @@ static stree_prop_t *parse_prop(parse_t *parse)
 	lmatch(parse, lc_end);
 
 	return prop;
+}
+
+/** Parse symbol attribute. */
+static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
+{
+	stree_symbol_attr_t *attr;
+
+	if (lcur_lc(parse) != lc_builtin) {
+		printf("Error: Unexpected attribute '");
+		lem_print(lcur(parse));
+		printf("'.\n");
+		exit(1);
+	}
+
+	lskip(parse);
+
+	attr = stree_symbol_attr_new(sac_builtin);
+	return attr;
 }
 
 /** Parse formal function argument. */
@@ -454,7 +494,7 @@ static stree_block_t *parse_block(parse_t *parse)
 }
 
 /** Parse statement. */
-static stree_stat_t *parse_stat(parse_t *parse)
+stree_stat_t *parse_stat(parse_t *parse)
 {
 	stree_stat_t *stat;
 
@@ -718,13 +758,16 @@ stree_ident_t *parse_ident(parse_t *parse)
 /** Return current lem. */
 lem_t *lcur(parse_t *parse)
 {
-	return &parse->lex->current;
+	return lex_get_current(parse->lex);
 }
 
 /** Retturn current lem lclass. */
 lclass_t lcur_lc(parse_t *parse)
 {
-	return parse->lex->current.lclass;
+	lem_t *lem;
+
+	lem = lcur(parse);
+	return lem->lclass;
 }
 
 /** Skip to next lem. */

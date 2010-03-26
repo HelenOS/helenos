@@ -95,6 +95,7 @@ static void run_index_object(run_t *run, stree_index_t *index,
 static void run_index_string(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res);
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res);
+static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res);
 
 /** Evaluate expression. */
 void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
@@ -133,6 +134,9 @@ void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
 		break;
 	case ec_assign:
 		run_assign(run, expr->u.assign, res);
+		break;
+	case ec_as:
+		run_as(run, expr->u.as_op, res);
 		break;
 	}
 
@@ -1359,7 +1363,6 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	*res = ritem;
 }
 
-
 /** Execute assignment. */
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 {
@@ -1386,6 +1389,69 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 	run_address_write(run, rdest_i->u.address, rsrc_vi->u.value);
 
 	*res = NULL;
+}
+
+/** Execute @c as conversion. */
+static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
+{
+	rdata_item_t *rarg_i;
+	rdata_item_t *rarg_vi;
+	rdata_item_t *rarg_di;
+	rdata_var_t *arg_vref;
+	tdata_item_t *dtype;
+	run_proc_ar_t *proc_ar;
+
+	stree_symbol_t *obj_csi_sym;
+	stree_csi_t *obj_csi;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run @c as conversion operation.\n");
+#endif
+	run_expr(run, as_op->arg, &rarg_i);
+
+	/*
+	 * This should always be a reference if the argument is indeed
+	 * a class instance.
+	 */
+	assert(run_item_get_vc(run, rarg_i) == vc_ref);
+	run_cvt_value_item(run, rarg_i, &rarg_vi);
+	assert(rarg_vi->ic == ic_value);
+
+	if (rarg_vi->u.value->var->u.ref_v->vref == NULL) {
+		/* Nil reference is always okay. */
+		*res = rarg_vi;
+		return;
+	}
+
+	run_dereference(run, rarg_vi, &rarg_di);
+
+	/* Now we should have a variable address. */
+	assert(rarg_di->ic == ic_address);
+	assert(rarg_di->u.address->ac == ac_var);
+
+	arg_vref = rarg_di->u.address->u.var_a->vref;
+
+	proc_ar = run_get_current_proc_ar(run);
+	/* XXX Memoize to avoid recomputing. */
+	run_texpr(run->program, proc_ar->proc->outer_symbol->outer_csi,
+	    as_op->dtype, &dtype);
+
+	assert(arg_vref->vc == vc_object);
+	obj_csi_sym = arg_vref->u.object_v->class_sym;
+	obj_csi = symbol_to_csi(obj_csi_sym);
+	assert(obj_csi != NULL);
+
+	if (tdata_is_csi_derived_from_ti(obj_csi, dtype) != b_true) {
+		printf("Error: Run-time type conversion error. Object is "
+		    "of type '");
+		symbol_print_fqn(obj_csi_sym);
+		printf("' which is not derived from '");
+		tdata_item_print(dtype);
+		printf("'.\n");
+		exit(1);
+	}
+
+	*res = rarg_vi;
 }
 
 /** Return boolean value of an item.

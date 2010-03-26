@@ -38,7 +38,9 @@ typedef enum {
 	/** Special type for nil reference */
 	tpc_nil,
 	/** String type */
-	tpc_string
+	tpc_string,
+	/** Resource type */
+	tpc_resource
 } tprimitive_class_t;
 
 /** Primitive type. */

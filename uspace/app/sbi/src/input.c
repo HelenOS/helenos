@@ -41,20 +41,44 @@
 
 #define INPUT_BUFFER_SIZE 256
 
-static int input_init(input_t *input, char *fname);
+static int input_init_file(input_t *input, char *fname);
+static void input_init_interactive(input_t *input);
+static void input_init_string(input_t *input, const char *str);
 
-/** Create new input object. */
-int input_new(input_t **input, char *fname)
+/** Create new input object for reading from file. */
+int input_new_file(input_t **input, char *fname)
 {
 	*input = malloc(sizeof(input_t));
 	if (*input == NULL)
 		return ENOMEM;
 
-	return input_init(*input, fname);
+	return input_init_file(*input, fname);
 }
 
-/** Initialize input object. */
-static int input_init(input_t *input, char *fname)
+/** Create new input object for reading from interactive input. */
+int input_new_interactive(input_t **input)
+{
+	*input = malloc(sizeof(input_t));
+	if (*input == NULL)
+		return ENOMEM;
+
+	input_init_interactive(*input);
+	return EOK;
+}
+
+/** Create new input object for reading from string. */
+int input_new_string(input_t **input, const char *str)
+{
+	*input = malloc(sizeof(input_t));
+	if (*input == NULL)
+		return ENOMEM;
+
+	input_init_string(*input, str);
+	return EOK;
+}
+
+/** Initialize input object for reading from file. */
+static int input_init_file(input_t *input, char *fname)
 {
 	FILE *f;
 
@@ -73,16 +97,84 @@ static int input_init(input_t *input, char *fname)
 	return EOK;
 }
 
+/** Initialize input object for reading from interactive input. */
+static void input_init_interactive(input_t *input)
+{
+	input->buffer = malloc(INPUT_BUFFER_SIZE);
+	if (input->buffer == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	input->line_no = 0;
+	input->fin = NULL;
+}
+
+/** Initialize input object for reading from string. */
+static void input_init_string(input_t *input, const char *str)
+{
+	input->buffer = malloc(INPUT_BUFFER_SIZE);
+	if (input->buffer == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	input->str = str;
+	input->line_no = 0;
+	input->fin = NULL;
+}
+
 /** Get next line of input. */
 int input_get_line(input_t *input, char **line)
 {
-	if (fgets(input->buffer, INPUT_BUFFER_SIZE, input->fin) == NULL)
-		input->buffer[0] = '\0';
+	const char *sp;
+	char *dp;
+	size_t cnt;
 
-	if (ferror(input->fin))
-		return EIO;
+	if (input->fin != NULL) {
+		/* Reading from file. */
+		if (fgets(input->buffer, INPUT_BUFFER_SIZE, input->fin) == NULL)
+			input->buffer[0] = '\0';
 
-	*line = input->buffer;
+		if (ferror(input->fin))
+			return EIO;
+
+		*line = input->buffer;
+	} else if (input->str != NULL) {
+		/* Reading from a string constant. */
+
+		/* Copy one line. */
+		sp = input->str;
+		dp = input->buffer;
+		cnt = 0;
+		while (*sp != '\n' && *sp != '\0' &&
+		    cnt < INPUT_BUFFER_SIZE - 2) {
+			*dp++ = *sp++;
+		}
+
+		/* Advance to start of next line. */
+		if (*sp == '\n')
+			*dp++ = *sp++;
+
+		*dp++ = '\0';
+		input->str = sp;
+		*line = input->buffer;
+	} else {
+		/* Interactive mode */
+		if (input->line_no == 0)
+			printf("sbi> ");
+		else
+			printf("...  ");
+
+		if (fgets(input->buffer, INPUT_BUFFER_SIZE, stdin) == NULL)
+			input->buffer[0] = '\0';
+
+		if (ferror(stdin))
+			return EIO;
+
+		*line = input->buffer;
+	}
+
 	++input->line_no;
 	return EOK;
 }

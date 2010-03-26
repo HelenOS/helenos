@@ -49,6 +49,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include "builtin.h"
 #include "list.h"
 #include "mytypes.h"
 #include "stree.h"
@@ -119,6 +120,7 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 {
 	stree_symbol_t *base_sym;
 	stree_csi_t *base_csi, *outer_csi;
+	stree_csi_t *gf_class;
 
 	if (node->ancr_state == ws_visited) {
 		/* Node already processed */
@@ -136,6 +138,7 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 	node->ancr_state = ws_active;
 
 	outer_csi = csi_to_symbol(node)->outer_csi;
+	gf_class = builtin_get_gf_class(prog->builtin);
 
 	/* Process outer CSI */
 	if (outer_csi != NULL)
@@ -150,7 +153,11 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 
 		/* Process base CSI. */
 		ancr_csi_process(prog, base_csi);
+	} else if (node != gf_class) {
+		/* Implicit inheritance from grandfather class. */
+		base_csi = gf_class;
 	} else {
+		/* Grandfather class has no base class. */
 		base_csi = NULL;
 	}
 

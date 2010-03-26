@@ -39,6 +39,8 @@ typedef enum {
 	lc_lit_string,
 
 	/* Keywords */
+	lc_as,
+	lc_builtin,
 	lc_class,
 	lc_constructor,
 	lc_do,
@@ -63,6 +65,7 @@ typedef enum {
 	lc_protected,
 	lc_public,
 	lc_raise,
+	lc_resource,
 	lc_return,
 	lc_self,
 	lc_set,
@@ -148,7 +151,10 @@ typedef struct lex {
 	/** Column number adjustment (due to tabs) */
 	int col_adj;
 
-	/** Curent lem */
+	/** @c b_true if we have the next lem in @c current */
+	bool_t current_valid;
+
+	/** Curent lem (only valid if @c current_valid is true) */
 	lem_t current;
 } lex_t;
 

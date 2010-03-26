@@ -178,6 +178,7 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 		break;
 	case lc_int:
 	case lc_string:
+	case lc_resource:
 		texpr = stree_texpr_new(tc_tliteral);
 		texpr->u.tliteral = parse_tliteral(parse);
 		break;
@@ -201,6 +202,9 @@ static stree_tliteral_t *parse_tliteral(parse_t *parse)
 		break;
 	case lc_string:
 		tlc = tlc_string;
+		break;
+	case lc_resource:
+		tlc = tlc_resource;
 		break;
 	default:
 		assert(b_false);

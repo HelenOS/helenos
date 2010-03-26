@@ -26,14 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Builtin procedures. */
+/** @file Builtin symbol binding. */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "ancr.h"
+#include "builtin/bi_fun.h"
+#include "builtin/bi_textfile.h"
+#include "input.h"
+#include "intmap.h"
+#include "lex.h"
 #include "list.h"
 #include "mytypes.h"
 #include "os/os.h"
+#include "parse.h"
 #include "run.h"
 #include "stree.h"
 #include "strtab.h"
@@ -41,18 +48,7 @@
 
 #include "builtin.h"
 
-static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name);
-static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name);
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name,
-    stree_texpr_t *type);
-
-static stree_texpr_t *builtin_mktype_string_array(void);
-
-static void builtin_write_line(run_t *run);
-static void builtin_exec(run_t *run);
-
-static stree_symbol_t *bi_write_line;
-static stree_symbol_t *bi_exec;
+static builtin_t *builtin_new(void);
 
 /** Declare builtin symbols in the program.
  *
@@ -60,58 +56,171 @@ static stree_symbol_t *bi_exec;
  */
 void builtin_declare(stree_program_t *program)
 {
-	stree_modm_t *modm;
-	stree_csi_t *csi;
+	builtin_t *bi;
+
+	bi = builtin_new();
+	bi->program = program;
+	program->builtin = bi;
+
+	/*
+	 * Declare grandfather class.
+	 */
+
+	builtin_code_snippet(bi,
+		"class Object is\n"
+		"end\n");
+	bi->gf_class = builtin_find_lvl0(bi, "Object");
+
+	/*
+	 * Declare other builtin classes/functions.
+	 */
+
+	bi_fun_declare(bi);
+	bi_textfile_declare(bi);
+
+	/* Need to process ancestry so that symbol lookups work. */
+	ancr_module_process(program, program->module);
+
+	bi_fun_bind(bi);
+	bi_textfile_bind(bi);
+}
+
+/** Get grandfather class. */
+stree_csi_t *builtin_get_gf_class(builtin_t *builtin)
+{
+	if (builtin->gf_class == NULL)
+		return NULL;
+
+	return symbol_to_csi(builtin->gf_class);
+}
+
+static builtin_t *builtin_new(void)
+{
+	builtin_t *builtin;
+
+	builtin = calloc(1, sizeof(builtin_t));
+	if (builtin == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return builtin;
+}
+
+/** Parse a declaration code snippet.
+ *
+ * Parses a piece of code from a string at the module level. This can be
+ * used to declare builtin symbols easily and without need for an external
+ * file.
+ */
+void builtin_code_snippet(builtin_t *bi, const char *snippet)
+{
+	input_t *input;
+	lex_t lex;
+	parse_t parse;
+
+	input_new_string(&input, snippet);
+	lex_init(&lex, input);
+	parse_init(&parse, bi->program, &lex);
+	parse_module(&parse);
+}
+
+/** Simplifed search for a global symbol. */
+stree_symbol_t *builtin_find_lvl0(builtin_t *bi, const char *sym_name)
+{
+	stree_symbol_t *sym;
 	stree_ident_t *ident;
-	stree_symbol_t *symbol;
 
 	ident = stree_ident_new();
-	ident->sid = strtab_get_sid("Builtin");
 
-	csi = stree_csi_new(csi_class);
-	csi->name = ident;
-	list_init(&csi->members);
+	ident->sid = strtab_get_sid(sym_name);
+	sym = symbol_lookup_in_csi(bi->program, NULL, ident);
 
-	modm = stree_modm_new(mc_csi);
-	modm->u.csi = csi;
+	return sym;
+}
 
-	symbol = stree_symbol_new(sc_csi);
-	symbol->u.csi = csi;
-	symbol->outer_csi = NULL;
-	csi->symbol = symbol;
+/** Simplifed search for a level 1 symbol. */
+stree_symbol_t *builtin_find_lvl1(builtin_t *bi, const char *csi_name,
+    const char *sym_name)
+{
+	stree_symbol_t *csi_sym;
+	stree_csi_t *csi;
 
-	list_append(&program->module->members, modm);
+	stree_symbol_t *mbr_sym;
+	stree_ident_t *ident;
 
-	/* Declare builtin procedures. */
+	ident = stree_ident_new();
 
-	bi_write_line = builtin_declare_fun(csi, "WriteLine");
-	builtin_fun_add_arg(bi_write_line, "arg");
+	ident->sid = strtab_get_sid(csi_name);
+	csi_sym = symbol_lookup_in_csi(bi->program, NULL, ident);
+	csi = symbol_to_csi(csi_sym);
+	assert(csi != NULL);
 
-	bi_exec = builtin_declare_fun(csi, "Exec");
-	builtin_fun_add_vararg(bi_exec, "args",
-	    builtin_mktype_string_array());
+	ident->sid = strtab_get_sid(sym_name);
+	mbr_sym = symbol_lookup_in_csi(bi->program, csi, ident);
+
+	return mbr_sym;
+}
+
+void builtin_fun_bind(builtin_t *bi, const char *csi_name,
+    const char *sym_name, builtin_proc_t bproc)
+{
+	stree_symbol_t *fun_sym;
+	stree_fun_t *fun;
+
+	fun_sym = builtin_find_lvl1(bi, csi_name, sym_name);
+	assert(fun_sym != NULL);
+	fun = symbol_to_fun(fun_sym);
+	assert(fun != NULL);
+
+	fun->proc->bi_handler = bproc;
 }
 
 void builtin_run_proc(run_t *run, stree_proc_t *proc)
 {
 	stree_symbol_t *fun_sym;
+	builtin_t *bi;
+	builtin_proc_t bproc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run builtin procedure.\n");
 #endif
 	fun_sym = proc->outer_symbol;
+	bi = run->program->builtin;
 
-	if (fun_sym == bi_write_line) {
-		builtin_write_line(run);
-	} else if (fun_sym == bi_exec) {
-		builtin_exec(run);
-	} else {
-		assert(b_false);
+	bproc = proc->bi_handler;
+	if (bproc == NULL) {
+		printf("Error: Unrecognized builtin function '");
+		symbol_print_fqn(fun_sym);
+		printf("'.\n");
+		exit(1);
 	}
+
+	/* Run the builtin procedure handler. */
+	(*bproc)(run);
+}
+
+/** Get pointer to member var of current object. */
+rdata_var_t *builtin_get_self_mbr_var(run_t *run, const char *mbr_name)
+{
+	run_proc_ar_t *proc_ar;
+	rdata_object_t *object;
+	sid_t mbr_name_sid;
+	rdata_var_t *mbr_var;
+
+	proc_ar = run_get_current_proc_ar(run);
+	assert(proc_ar->obj->vc == vc_object);
+	object = proc_ar->obj->u.object_v;
+
+	mbr_name_sid = strtab_get_sid(mbr_name);
+	mbr_var = intmap_get(&object->fields, mbr_name_sid);
+	assert(mbr_var != NULL);
+
+	return mbr_var;
 }
 
 /** Declare a builtin function in @a csi. */
-static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
+stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 {
 	stree_ident_t *ident;
 	stree_fun_t *fun;
@@ -142,7 +251,7 @@ static stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 }
 
 /** Add one formal parameter to function. */
-static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
+void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 {
 	stree_proc_arg_t *proc_arg;
 	stree_fun_t *fun;
@@ -156,125 +265,4 @@ static void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 	proc_arg->type = NULL; /* XXX */
 
 	list_append(&fun->args, proc_arg);
-}
-
-/** Add variadic formal parameter to function. */
-static void builtin_fun_add_vararg(stree_symbol_t *fun_sym, const char *name,
-    stree_texpr_t *type)
-{
-	stree_proc_arg_t *proc_arg;
-	stree_fun_t *fun;
-
-	fun = symbol_to_fun(fun_sym);
-	assert(fun != NULL);
-
-	proc_arg = stree_proc_arg_new();
-	proc_arg->name = stree_ident_new();
-	proc_arg->name->sid = strtab_get_sid(name);
-	proc_arg->type = type;
-
-	fun->varg = proc_arg;
-}
-
-/** Construct a @c string[] type expression. */
-static stree_texpr_t *builtin_mktype_string_array(void)
-{
-	stree_texpr_t *tstring;
-	stree_texpr_t *tsarray;
-	stree_tliteral_t *tliteral;
-	stree_tindex_t *tindex;
-
-	/* Construct @c string */
-	tstring = stree_texpr_new(tc_tliteral);
-	tliteral = stree_tliteral_new(tlc_string);
-	tstring->u.tliteral = tliteral;
-
-	/* Construct the indexing node */
-	tsarray = stree_texpr_new(tc_tindex);
-	tindex = stree_tindex_new();
-	tsarray->u.tindex = tindex;
-
-	tindex->base_type = tstring;
-	tindex->n_args = 1;
-	list_init(&tindex->args);
-
-	return tsarray;
-}
-
-static void builtin_write_line(run_t *run)
-{
-	rdata_var_t *var;
-
-#ifdef DEBUG_RUN_TRACE
-	printf("Called Builtin.WriteLine()\n");
-#endif
-	var = run_local_vars_lookup(run, strtab_get_sid("arg"));
-	assert(var);
-
-	switch (var->vc) {
-	case vc_int:
-		printf("%d\n", var->u.int_v->value);
-		break;
-	case vc_string:
-		printf("%s\n", var->u.string_v->value);
-		break;
-	default:
-		printf("Unimplemented: writeLine() with unsupported type.\n");
-		exit(1);
-	}
-}
-
-/** Start an executable and wait for it to finish. */
-static void builtin_exec(run_t *run)
-{
-	rdata_var_t *args;
-	rdata_var_t *var;
-	rdata_array_t *array;
-	rdata_var_t *arg;
-	int idx, dim;
-	char **cmd;
-
-#ifdef DEBUG_RUN_TRACE
-	printf("Called Builtin.Exec()\n");
-#endif
-	args = run_local_vars_lookup(run, strtab_get_sid("args"));
-
-	assert(args);
-	assert(args->vc == vc_ref);
-
-	var = args->u.ref_v->vref;
-	assert(var->vc == vc_array);
-
-	array = var->u.array_v;
-	assert(array->rank == 1);
-	dim = array->extent[0];
-
-	if (dim == 0) {
-		printf("Error: Builtin.Exec() expects at least one argument.\n");
-		exit(1);
-	}
-
-	cmd = calloc(dim + 1, sizeof(char *));
-	if (cmd == NULL) {
-		printf("Memory allocation failed.\n");
-		exit(1);
-	}
-
-	for (idx = 0; idx < dim; ++idx) {
-		arg = array->element[idx];
-		if (arg->vc != vc_string) {
-			printf("Error: Argument to Builtin.Exec() must be "
-			    "string (found %d).\n", arg->vc);
-			exit(1);
-		}
-
-		cmd[idx] = arg->u.string_v->value;
-	}
-
-	cmd[dim] = '\0';
-
-	if (os_exec(cmd) != EOK) {
-		printf("Error: Exec failed.\n");
-		exit(1);
-	}
 }

@@ -29,6 +29,7 @@
 #ifndef RUN_T_H_
 #define RUN_T_H_
 
+#include "intmap_t.h"
 #include "list_t.h"
 
 /** Block activation record

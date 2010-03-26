@@ -43,6 +43,7 @@ typedef struct {
 	int value;
 } rdata_int_t;
 
+
 /** String variable */
 typedef struct {
 	char *value;
@@ -91,6 +92,16 @@ typedef struct {
 	intmap_t fields; /* of (rdata_var_t *) */
 } rdata_object_t;
 
+/** Resource handle
+ *
+ * Binding to external data. This type can be used to refer to data used
+ * by builtin functions (such as files).
+ */
+typedef struct {
+	/** Only understood by the right builtin function. */
+	void *data;
+} rdata_resource_t;
+
 typedef enum var_class {
 	/** Integer */
 	vc_int,
@@ -108,7 +119,10 @@ typedef enum var_class {
 	vc_array,
 
 	/** Object */
-	vc_object
+	vc_object,
+
+	/** Interpreter builtin resource */
+	vc_resource
 } var_class_t;
 
 /** Variable.
@@ -127,6 +141,7 @@ typedef struct rdata_var {
 		rdata_deleg_t *deleg_v;
 		rdata_array_t *array_v;
 		rdata_object_t *object_v;
+		rdata_resource_t *resource_v;
 	} u;
 } rdata_var_t;
 

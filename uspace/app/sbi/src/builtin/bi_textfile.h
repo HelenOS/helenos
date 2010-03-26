@@ -26,17 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LEX_H_
-#define LEX_H_
+#ifndef BI_TEXTFILE_H_
+#define BI_TEXTFILE_H_
 
-#include "mytypes.h"
+#include "../mytypes.h"
 
-void lclass_print(lclass_t lclass);
-void lem_print(lem_t *lem);
-void lem_print_coords(lem_t *lem);
-
-void lex_init(lex_t *lex, struct input *input);
-void lex_next(lex_t *lex);
-lem_t *lex_get_current(lex_t *lex);
+void bi_textfile_declare(builtin_t *bi);
+void bi_textfile_bind(builtin_t *bi);
 
 #endif

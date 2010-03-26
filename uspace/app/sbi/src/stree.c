@@ -135,6 +135,20 @@ stree_prop_t *stree_prop_new(void)
 	return prop;
 }
 
+stree_symbol_attr_t *stree_symbol_attr_new(symbol_attr_class_t sac)
+{
+	stree_symbol_attr_t *symbol_attr;
+
+	symbol_attr = calloc(1, sizeof(stree_symbol_attr_t));
+	if (symbol_attr == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	symbol_attr->sac = sac;
+	return symbol_attr;
+}
+
 stree_proc_t *stree_proc_new(void)
 {
 	stree_proc_t *proc;
@@ -413,6 +427,19 @@ stree_index_t *stree_index_new(void)
 	return index;
 }
 
+stree_as_t *stree_as_new(void)
+{
+	stree_as_t *as_expr;
+
+	as_expr = calloc(1, sizeof(stree_as_t));
+	if (as_expr == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return as_expr;
+}
+
 stree_nameref_t *stree_nameref_new(void)
 {
 	stree_nameref_t *nameref;
@@ -571,6 +598,24 @@ stree_program_t *stree_program_new(void)
 	}
 
 	return program;
+}
+
+/** Determine if @a symbol has attribute of class @a sac. */
+bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac)
+{
+	list_node_t *node;
+	stree_symbol_attr_t *attr;
+
+	node = list_first(&symbol->attr);
+	while (node != NULL) {
+		attr = list_node_data(node, stree_symbol_attr_t *);
+		if (attr->sac == sac)
+			return b_true;
+
+		node = list_next(&symbol->attr, node);
+	}
+
+	return b_false;
 }
 
 /** Determine if argument @a arg has attribute of class @a aac. */

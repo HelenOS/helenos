@@ -46,6 +46,7 @@ rdata_array_t *rdata_array_new(int rank);
 rdata_object_t *rdata_object_new(void);
 rdata_int_t *rdata_int_new(void);
 rdata_string_t *rdata_string_new(void);
+rdata_resource_t *rdata_resource_new(void);
 
 void rdata_array_alloc_element(rdata_array_t *array);
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);

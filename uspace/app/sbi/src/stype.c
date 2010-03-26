@@ -53,7 +53,6 @@ static void stype_var(stype_t *stype, stree_var_t *var);
 static void stype_prop(stype_t *stype, stree_prop_t *prop);
 
 static void stype_block(stype_t *stype, stree_block_t *block);
-static void stype_stat(stype_t *stype, stree_stat_t *stat);
 
 static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s);
 static void stype_if(stype_t *stype, stree_if_t *if_s);
@@ -252,7 +251,7 @@ static void stype_block(stype_t *stype, stree_block_t *block)
 }
 
 /** Type statement */
-static void stype_stat(stype_t *stype, stree_stat_t *stat)
+void stype_stat(stype_t *stype, stree_stat_t *stat)
 {
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type statement.\n");

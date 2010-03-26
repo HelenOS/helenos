@@ -26,7 +26,7 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-class A is
+class Foo is
 	var x : int;
 
 	-- Example of a named property
@@ -67,14 +67,41 @@ class A is
 			iprops[index] = value;
 		end
 	end
+
+	--
+	-- Class-type property. This is used for demonstrating property
+	-- field access. This case is still quite easy. It does not require
+	-- read-modify-write. Since class is a reference type, access
+	-- operator will read the value and dereference it, thereby
+	-- getting somewhere else (so the value will not be modified and
+	-- need not be written back).
+	--
+
+	var bprop : Bar;
+
+	prop B : Bar is
+		get is
+			Builtin.WriteLine("Getting B");
+			return bprop;
+		end
+		set value is
+			Builtin.WriteLine("Setting B");
+			bprop = value;
+		end
+	end
+
+end
+
+class Bar is
+	var i : int;
 end
 
 class PropertyDemo is
 	fun Main() is
-		var a : A;
+		var a : Foo;
 		var i : int;
 
-		a = new A();
+		a = new Foo();
 
 		-- Get value of named property.
 		a.X = 1;
@@ -95,5 +122,17 @@ class PropertyDemo is
 
 		Builtin.WriteLine("Main(): Got ");
 		Builtin.WriteLine(i);
+
+		-- Property field access
+		var b : Bar;
+
+		b = new Bar();
+
+		b.i = 42;
+		a.bprop = b;
+
+		Builtin.WriteLine(a.bprop.i);
+		a.bprop.i = 2;
+		Builtin.WriteLine(a.bprop.i);
 	end
 end

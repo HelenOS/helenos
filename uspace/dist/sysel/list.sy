@@ -26,15 +26,18 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
+-- Doubly-linked list implementation.
 class List is
 	var head : ListNode;
 
+	-- Initialize list.
 	fun Init() is
 		head = new ListNode();
 		head.prev = head;
 		head.next = head;
 	end
 
+	-- Append new entry at the end of the list.
 	fun Append(data : int) is
 		var n : ListNode;
 		var ntl : ListNode;
@@ -52,8 +55,20 @@ class List is
 		head.prev = n;
 	end
 
-	fun GetFirst() : ListNode is
-		return head.next;
+	-- Return first node in the list or @c nil if there is none.
+	prop First : ListNode is
+		get is
+		    return get_first();
+		end
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	fun get_first() : ListNode is
+		if head.next == head then
+			return nil;
+		else
+			return head.next;
+		end
 	end
 end
 
@@ -64,7 +79,29 @@ class ListNode is
 	var next : ListNode;
 	var head : ListNode;
 
-	fun GetNext() : ListNode is
+	-- Value stored in this node.
+	prop Value : int is
+		get is
+			return value;
+		end
+	end
+
+	-- Previous node in list.
+	prop Prev : ListNode is
+		get is
+			return get_prev();
+		end
+	end
+
+	-- Next node in list.
+	prop Next : ListNode is
+		get is
+			return get_next();
+		end
+	end
+
+	-- Get next node.
+	fun get_next() : ListNode is
 		if next != head then
 			return next;
 		else
@@ -72,7 +109,8 @@ class ListNode is
 		end
 	end
 
-	fun GetPrev() : ListNode is
+	-- Get previous node.
+	fun get_prev() : ListNode is
 		if prev != head then
 			return next;
 		else
@@ -80,9 +118,6 @@ class ListNode is
 		end
 	end
 
-	fun GetValue() : int is
-		return value;
-	end
 end
 
 class ListDemo is
@@ -99,10 +134,10 @@ class ListDemo is
 
 		var n : ListNode;
 
-		n = list.GetFirst();
+		n = list.First;
 		while n != nil do
 			Builtin.WriteLine(n.value);
-			n = n.GetNext();
+			n = n.Next;
 		end
 	end
 end

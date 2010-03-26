@@ -44,14 +44,26 @@ end
 class InheritanceDemo is
 	fun Main() is
 		var a : A;
+		var c : C;
 
+		-- Construct and assign object.
 		a = new A();
 		a.Foo();
 
+		-- Implicit conversion to base type.
 		a = new B();
 		a.Foo();
 
 		a = new C();
 		a.Foo();
+
+		-- Test 'as' operator for conversion to derived type.
+		c = a as C;
+
+		-- Test grandfather class.
+		var d : Object;
+		d = a;
+		d = new B();
+		d = c;
 	end
 end

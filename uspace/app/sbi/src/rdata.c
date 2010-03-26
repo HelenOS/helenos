@@ -41,6 +41,8 @@ static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest);
 static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest);
 static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest);
 static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest);
+static void rdata_resource_copy(rdata_resource_t *src,
+    rdata_resource_t **dest);
 
 static int rdata_array_get_dim(rdata_array_t *array);
 
@@ -242,6 +244,19 @@ rdata_string_t *rdata_string_new(void)
 	return string_v;
 }
 
+rdata_resource_t *rdata_resource_new(void)
+{
+	rdata_resource_t *resource_v;
+
+	resource_v = calloc(1, sizeof(rdata_resource_t));
+	if (resource_v == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return resource_v;
+}
+
 void rdata_array_alloc_element(rdata_array_t *array)
 {
 	int dim, idx;
@@ -305,6 +320,9 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	case vc_object:
 		rdata_object_copy(src->u.object_v, &nvar->u.object_v);
 		break;
+	case vc_resource:
+		rdata_resource_copy(src->u.resource_v, &nvar->u.resource_v);
+		break;
 	}
 
 	*dest = nvar;
@@ -349,6 +367,12 @@ static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 	exit(1);
 }
 
+static void rdata_resource_copy(rdata_resource_t *src, rdata_resource_t **dest)
+{
+	*dest = rdata_resource_new();
+	(*dest)->data = src->data;
+}
+
 /** Read data from a variable.
  *
  * Return value stored in variable @a var.
@@ -388,6 +412,7 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 	case vc_deleg: var->u.deleg_v = nvar->u.deleg_v; break;
 	case vc_array: var->u.array_v = nvar->u.array_v; break;
 	case vc_object: var->u.object_v = nvar->u.object_v; break;
+	case vc_resource: var->u.resource_v = nvar->u.resource_v; break;
 	}
 
 	/* XXX We should free some stuff around here. */

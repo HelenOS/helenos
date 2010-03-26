@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include "ancr.h"
 #include "builtin.h"
+#include "imode.h"
 #include "mytypes.h"
 #include "strtab.h"
 #include "stree.h"
@@ -53,12 +54,19 @@ int main(int argc, char *argv[])
 	run_t run;
 	int rc;
 
+	if (argc == 1) {
+		/* Enter interactive mode */
+		strtab_init();
+		imode_run();
+		return 0;
+	}
+
 	if (argc != 2) {
 		syntax_print();
 		exit(1);
 	}
 
-	rc = input_new(&input, argv[1]);
+	rc = input_new_file(&input, argv[1]);
 	if (rc != EOK) {
 		printf("Failed opening source file '%s'.\n", argv[1]);
 		exit(1);

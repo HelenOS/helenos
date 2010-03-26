@@ -47,7 +47,6 @@
 #include "run.h"
 
 static void run_block(run_t *run, stree_block_t *block);
-static void run_stat(run_t *run, stree_stat_t *stat);
 static void run_exps(run_t *run, stree_exps_t *exps);
 static void run_vdecl(run_t *run, stree_vdecl_t *vdecl);
 static void run_if(run_t *run, stree_if_t *if_s);
@@ -131,7 +130,7 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Start executing function '");
-	symbol_print_fqn(proc_sym);
+	symbol_print_fqn(proc->outer_symbol);
 	printf("'.\n");
 #endif
 	/* Add procedure AR to the stack. */
@@ -158,7 +157,7 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Done executing procedure '");
-	symbol_print_fqn(proc);
+	symbol_print_fqn(proc->outer_symbol);
 	printf("'.\n");
 
 	run_print_fun_bt(run);
@@ -215,7 +214,7 @@ static void run_block(run_t *run, stree_block_t *block)
 }
 
 /** Run statement. */
-static void run_stat(run_t *run, stree_stat_t *stat)
+void run_stat(run_t *run, stree_stat_t *stat)
 {
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing one statement %p.\n", stat);

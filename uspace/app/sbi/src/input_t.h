@@ -33,10 +33,13 @@
 
 /** Input state object */
 typedef struct input {
-	/** Input file */
+	/** Input file if reading from file. */
 	FILE *fin;
 
-	/** Buffer holding current line */
+	/** Input string if reading from string. */
+	const char *str;
+
+	/** Buffer holding current line. */
 	char *buffer;
 
 	/** Current line number */

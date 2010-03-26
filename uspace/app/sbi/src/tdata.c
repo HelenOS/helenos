@@ -59,6 +59,26 @@ bool_t tdata_is_csi_derived_from_ti(stree_csi_t *a, tdata_item_t *tb)
 	return res;
 }
 
+/**
+ * Determine if CSI described by type item @a a is derived from CSI described
+ * by type item @a tb.
+ */
+bool_t tdata_is_ti_derived_from_ti(tdata_item_t *ta, tdata_item_t *tb)
+{
+	bool_t res;
+
+	switch (ta->tic) {
+	case tic_tobject:
+		res = tdata_is_csi_derived_from_ti(ta->u.tobject->csi, tb);
+		break;
+	default:
+		printf("Error: Derived type is not a CSI.\n");
+		exit(1);
+	}
+
+	return res;
+}
+
 /** Determine if two type items are equal (i.e. describe the same type). */
 bool_t tdata_item_equal(tdata_item_t *a, tdata_item_t *b)
 {
@@ -136,6 +156,7 @@ static void tdata_tprimitive_print(tdata_primitive_t *tprimitive)
 	case tpc_int: printf("int"); break;
 	case tpc_nil: printf("nil"); break;
 	case tpc_string: printf("string"); break;
+	case tpc_resource: printf("resource"); break;
 	}
 }
 

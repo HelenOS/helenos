@@ -30,6 +30,7 @@
 #define STREE_T_H_
 
 #include "list_t.h"
+#include "builtin_t.h"
 
 /*
  * Arithmetic expressions
@@ -156,6 +157,14 @@ typedef struct {
 	list_t args; /* of stree_expr_t */
 } stree_index_t;
 
+/** @c as conversion operation */
+typedef struct {
+	/** Expression to convert */
+	struct stree_expr *arg;
+	/** Destination type of conversion. */
+	struct stree_texpr *dtype;
+} stree_as_t;
+
 /** Arithmetic expression class */
 typedef enum {
 	ec_nameref,
@@ -167,7 +176,8 @@ typedef enum {
 	ec_access,
 	ec_call,
 	ec_assign,
-	ec_index
+	ec_index,
+	ec_as
 } expr_class_t;
 
 /** Arithmetic expression */
@@ -187,6 +197,7 @@ typedef struct stree_expr {
 		stree_call_t *call;
 		stree_index_t *index;
 		stree_assign_t *assign;
+		stree_as_t *as_op;
 	} u;
 } stree_expr_t;
 
@@ -199,6 +210,7 @@ struct stree_texpr;
 /** Type literal class */
 typedef enum {
 	tlc_int,
+	tlc_resource,
 	tlc_string
 } tliteral_class_t;
 
@@ -387,8 +399,11 @@ typedef struct stree_proc {
 	/** Symbol (function or property) containing the procedure */
 	struct stree_symbol *outer_symbol;
 
-	/** Main block */
+	/** Main block for regular procedures */
 	stree_block_t *body;
+
+	/** Builtin handler for builtin procedures */
+	builtin_proc_t bi_handler;
 } stree_proc_t;
 
 /** Member function declaration */
@@ -511,6 +526,18 @@ typedef struct stree_module {
 	list_t members; /* of stree_modm_t */
 } stree_module_t;
 
+/** Symbol attribute class */
+typedef enum {
+	/** Builtin symbol (interpreter hook) */
+	sac_builtin
+} symbol_attr_class_t;
+
+/** Symbol atribute */
+typedef struct {
+	symbol_attr_class_t sac;
+} stree_symbol_attr_t;
+
+
 typedef enum {
 	sc_csi,
 	sc_fun,
@@ -538,12 +565,18 @@ typedef struct stree_symbol {
 
 	/** Containing block (for block-level symbols) */
 	stree_block_t *outer_block;
+
+	/** Symbol attributes. */
+	list_t attr; /* of stree_symbol_attr_t */
 } stree_symbol_t;
 
 /** Program */
 typedef struct stree_program {
 	/** The one and only module in the program */
 	stree_module_t *module;
+
+	/** Builtin symbols binding. */
+	struct builtin *builtin;
 } stree_program_t;
 
 #endif

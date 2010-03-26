@@ -89,15 +89,20 @@ static void stype_index_tgeneric(stype_t *stype, stree_index_t *index,
 
 static void stype_assign(stype_t *stype, stree_assign_t *assign,
     tdata_item_t **rtitem);
+static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem);
 
 
 /** Type expression. */
 void stype_expr(stype_t *stype, stree_expr_t *expr)
 {
 	tdata_item_t *et;
+
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type expression.\n");
 #endif
+	/* Silence warning. */
+	et = NULL;
+
 	switch (expr->ec) {
 	case ec_nameref: stype_nameref(stype, expr->u.nameref, &et); break;
 	case ec_literal: stype_literal(stype, expr->u.literal, &et); break;
@@ -109,6 +114,7 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 	case ec_call: stype_call(stype, expr->u.call, &et); break;
 	case ec_index: stype_index(stype, expr->u.index, &et); break;
 	case ec_assign: stype_assign(stype, expr->u.assign, &et); break;
+	case ec_as: stype_as(stype, expr->u.as_op, &et); break;
 	}
 
 	expr->titem = et;
@@ -336,6 +342,9 @@ static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
 		}
 		rtpc = tpc_string;
 		break;
+	case tpc_resource:
+		printf("Error: Cannot apply operator to resource type.\n");
+		exit(1);
 	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
@@ -827,4 +836,28 @@ static void stype_assign(stype_t *stype, stree_assign_t *assign,
 	/* Patch code with the augmented expression. */
 	assign->src = csrc;
 	*rtitem = NULL;
+}
+
+/** Type @c as conversion. */
+static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
+{
+	tdata_item_t *titem;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Evaluate type of @c as conversion.\n");
+#endif
+	stype_expr(stype, as_op->arg);
+	run_texpr(stype->program, stype->current_csi, as_op->dtype, &titem);
+
+	/* Check that target type is derived from argument type. */
+	if (tdata_is_ti_derived_from_ti(titem, as_op->arg->titem) != b_true) {
+		printf("Error: Target of 'as' operator '");
+		tdata_item_print(titem);
+		printf("' is not derived from '");
+		tdata_item_print(as_op->arg->titem);
+		printf("'.\n");
+		exit(1);
+	}
+
+	*rtitem = titem;
 }

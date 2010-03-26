@@ -43,7 +43,8 @@
 
 #define TAB_WIDTH 8
 
-static bool_t lex_next_try(lex_t *lex);
+static void lex_touch(lex_t *lex);
+static bool_t lex_read_try(lex_t *lex);
 
 static void lex_skip_comment(lex_t *lex);
 static void lex_skip_ws(lex_t *lex);
@@ -71,6 +72,8 @@ struct lc_name {
 
 /** Keyword names. Used both for printing and recognition. */
 static struct lc_name keywords[] = {
+	{ lc_as,	"as" },
+	{ lc_builtin,	"builtin" },
 	{ lc_class,	"class" },
 	{ lc_constructor,	"constructor" },
 	{ lc_do,	"do" },
@@ -95,6 +98,7 @@ static struct lc_name keywords[] = {
 	{ lc_protected,	"protected" },
 	{ lc_public,	"public" },
 	{ lc_raise,	"raise" },
+	{ lc_resource,	"resource" },
 	{ lc_return,	"return" },
 	{ lc_self,	"self" },
 	{ lc_set,	"set" },
@@ -220,23 +224,52 @@ void lex_init(lex_t *lex, struct input *input)
 
 	lex->ibp = lex->inbuf;
 	lex->col_adj = 0;
+	lex->current_valid = b_true;
 }
 
-/** Read next lexical element. */
+/** Advance to next lexical element.
+ *
+ * The new element be read in lazily then it is actually accessed.
+ */
 void lex_next(lex_t *lex)
+{
+	/* Make sure the current lem has already been read in. */
+	lex_touch(lex);
+
+	/* Force a new lem to be read on next access. */
+	lex->current_valid = b_false;
+}
+
+/** Get current lem.
+ *
+ * The returned pointer is invalidated by next call to lex_next()
+ */
+lem_t *lex_get_current(lex_t *lex)
+{
+	lex_touch(lex);
+	return &lex->current;
+}
+
+/** Read in the current lexical element (unless already read in). */
+static void lex_touch(lex_t *lex)
 {
 	bool_t got_lem;
 
+	if (lex->current_valid == b_true)
+		return;
+
 	do {
-		got_lem = lex_next_try(lex);
+		got_lem = lex_read_try(lex);
 	} while (got_lem == b_false);
+
+	lex->current_valid = b_true;
 }
 
 /** Try reading next lexical element.
  *
  * @return @c b_true on success or @c b_false if it needs restarting.
  */
-static bool_t lex_next_try(lex_t *lex)
+static bool_t lex_read_try(lex_t *lex)
 {
 	char *bp;
 

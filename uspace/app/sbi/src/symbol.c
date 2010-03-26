@@ -328,7 +328,7 @@ void symbol_print_fqn(stree_symbol_t *symbol)
 
 	if (symbol->outer_csi != NULL) {
 		outer_sym = csi_to_symbol(symbol->outer_csi);
-		symbol_print_fqn( outer_sym);
+		symbol_print_fqn(outer_sym);
 		printf(".");
 	}
 

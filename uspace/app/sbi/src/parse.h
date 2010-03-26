@@ -34,6 +34,7 @@
 void parse_init(parse_t *parse, struct stree_program *prog, struct lex *lex);
 void parse_module(parse_t *parse);
 
+stree_stat_t *parse_stat(parse_t *parse);
 stree_ident_t *parse_ident(parse_t *parse);
 
 /*

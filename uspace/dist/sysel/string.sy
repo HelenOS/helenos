@@ -30,5 +30,13 @@ class StringDemo is
 	fun Main() is
 		-- Concatenate some strings.
 		Builtin.WriteLine("One-" + "two-" + "three!");
+
+		-- Extract characters from a string.
+		var i : int;
+		i = 0;
+		while i < 5 do
+			Builtin.WriteLine("ABCDE"[i]);
+			i = i + 1;
+		end
 	end
 end
