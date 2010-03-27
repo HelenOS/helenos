@@ -64,7 +64,8 @@ static int cli_init(cliuser_t *usr)
 	usr->prompt = (char *) NULL;
 	usr->lasterr = 0;
 
-	input_init();
+	if (input_init() != 0)
+		return 1;
 
 	return (int) cli_set_prompt(usr);
 }
