@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <string.h>
+#include <str.h>
 #include <fcntl.h>
 #include "config.h"
 #include "util.h"
@@ -73,7 +73,7 @@ static int64_t copy_file(const char *src, const char *dest,
 	size_t blen, int vb)
 {
 	int fd1, fd2, bytes = 0;
-	off_t total = 0;
+	off64_t total = 0;
 	int64_t copied = 0;
 	char *buff = NULL;
 

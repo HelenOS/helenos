@@ -37,9 +37,9 @@
 #include <putchar.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
-#include <arch/types.h>
 #include <typedefs.h>
-#include <string.h>
+#include <typedefs.h>
+#include <str.h>
 
 SPINLOCK_STATIC_INITIALIZE_NAME(printf_lock, "*printf_lock");
 

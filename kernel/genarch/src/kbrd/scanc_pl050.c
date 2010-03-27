@@ -35,7 +35,7 @@
  */
 #include <genarch/kbrd/scanc.h>
 #include <typedefs.h>
-#include <string.h>
+#include <str.h>
 
 
 /** Primary meaning of scancodes. */

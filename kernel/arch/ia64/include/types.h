@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -34,24 +34,6 @@
 
 #ifndef KERN_ia64_TYPES_H_
 #define KERN_ia64_TYPES_H_
-
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed int int32_t;
-typedef signed long int64_t;
-typedef struct {
-	int64_t lo;
-	int64_t hi;
-} int128_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long uint64_t;
-typedef struct {
-	uint64_t lo;
-	uint64_t hi;
-} uint128_t;
 
 typedef uint64_t size_t;
 
@@ -62,32 +44,33 @@ typedef uint64_t ipl_t;
 
 typedef uint64_t unative_t;
 typedef int64_t native_t;
+typedef uint64_t atomic_count_t;
 
 typedef struct {
 	unative_t fnc;
 	unative_t gp;
 } __attribute__((may_alias)) fncptr_t;
 
-#define PRIp "lx"	/**< Format for uintptr_t. */
-#define PRIs "lu"	/**< Format for size_t. */
+#define PRIp "lx"  /**< Format for uintptr_t. */
+#define PRIs "lu"  /**< Format for size_t. */
 
-#define PRId8 "d"	/**< Format for int8_t. */
-#define PRId16 "d"	/**< Format for int16_t. */
-#define PRId32 "d"	/**< Format for int32_t. */
-#define PRId64 "ld"	/**< Format for int64_t. */
-#define PRIdn "d"	/**< Format for native_t. */
+#define PRId8 "d"    /**< Format for int8_t. */
+#define PRId16 "d"   /**< Format for int16_t. */
+#define PRId32 "d"   /**< Format for int32_t. */
+#define PRId64 "ld"  /**< Format for int64_t. */
+#define PRIdn "d"    /**< Format for native_t. */
 
-#define PRIu8 "u"	/**< Format for uint8_t. */
-#define PRIu16 "u"	/**< Format for uint16_t. */
-#define PRIu32 "u"	/**< Format for uint32_t. */
-#define PRIu64 "lu"	/**< Format for uint64_t. */
-#define PRIun "u"	/**< Format for unative_t. */
+#define PRIu8 "u"    /**< Format for uint8_t. */
+#define PRIu16 "u"   /**< Format for uint16_t. */
+#define PRIu32 "u"   /**< Format for uint32_t. */
+#define PRIu64 "lu"  /**< Format for uint64_t. */
+#define PRIun "u"    /**< Format for unative_t. */
 
-#define PRIx8 "x"	/**< Format for hexadecimal (u)int8_t. */
-#define PRIx16 "x"	/**< Format for hexadecimal (u)int16_t. */
-#define PRIx32 "x"	/**< Format for hexadecimal (u)uint32_t. */
-#define PRIx64 "lx"	/**< Format for hexadecimal (u)int64_t. */
-#define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
+#define PRIx8 "x"    /**< Format for hexadecimal (u)int8_t. */
+#define PRIx16 "x"   /**< Format for hexadecimal (u)int16_t. */
+#define PRIx32 "x"   /**< Format for hexadecimal (u)uint32_t. */
+#define PRIx64 "lx"  /**< Format for hexadecimal (u)int64_t. */
+#define PRIxn "x"    /**< Format for hexadecimal (u)native_t. */
 
 #endif
 

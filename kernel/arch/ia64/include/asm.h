@@ -37,7 +37,7 @@
 
 #include <config.h>
 #include <typedefs.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 
 #define IA64_IOSPACE_ADDRESS  0xE001000000000000ULL
@@ -427,7 +427,7 @@ static inline void pk_disable(void)
 	);
 }
 
-extern void cpu_halt(void);
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(uint32_t t);
 

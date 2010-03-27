@@ -1,0 +1,131 @@
+#
+# Copyright (c) 2009 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+-include ../Makefile.common
+-include ../Makefile.config
+
+TMP = distroot
+INITRD = initrd
+
+INIT_TASKS = \
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/bd/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs
+ifeq ($(RDFMT),tmpfs)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
+endif
+
+RD_SRVS = \
+	$(USPACEDIR)/srv/bd/file_bd/file_bd \
+	$(USPACEDIR)/srv/bd/part/guid_part/g_part \
+	$(USPACEDIR)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACEDIR)/srv/clip/clip \
+	$(USPACEDIR)/srv/hid/fb/fb \
+	$(USPACEDIR)/srv/hid/kbd/kbd \
+	$(USPACEDIR)/srv/hid/console/console \
+	$(USPACEDIR)/srv/fs/devfs/devfs \
+	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
+	$(USPACEDIR)/srv/fs/fat/fat \
+	$(USPACEDIR)/srv/taskmon/taskmon
+
+RD_APPS = \
+	$(USPACEDIR)/app/bdsh/bdsh \
+	$(USPACEDIR)/app/edit/edit \
+	$(USPACEDIR)/app/getterm/getterm \
+	$(USPACEDIR)/app/klog/klog \
+	$(USPACEDIR)/app/mkfat/mkfat \
+	$(USPACEDIR)/app/redir/redir \
+	$(USPACEDIR)/app/taskdump/taskdump \
+	$(USPACEDIR)/app/tester/tester \
+	$(USPACEDIR)/app/tetris/tetris \
+	$(USPACEDIR)/app/trace/trace
+
+COMPONENTS = \
+	$(KERNELDIR)/kernel.bin \
+	$(USPACEDIR)/srv/ns/ns \
+	$(USPACEDIR)/srv/loader/loader \
+	$(USPACEDIR)/app/init/init \
+	$(USPACEDIR)/srv/devmap/devmap \
+	$(USPACEDIR)/srv/bd/rd/rd \
+	$(USPACEDIR)/srv/vfs/vfs
+ifeq ($(RDFMT),tmpfs)
+	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+endif
+ifeq ($(RDFMT),fat)
+	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
+endif
+
+CFG =
+
+NET_SRVS = \
+	$(USPACEDIR)/srv/net/net/net \
+	$(USPACEDIR)/srv/net/netif/lo/lo \
+	$(USPACEDIR)/srv/net/nil/eth/eth \
+	$(USPACEDIR)/srv/net/nil/nildummy/nildummy \
+	$(USPACEDIR)/srv/net/app/echo/echo
+
+NET_APPS = \
+	$(USPACEDIR)/srv/net/net/start/netstart \
+	$(USPACEDIR)/srv/net/app/ping/ping \
+	$(USPACEDIR)/srv/net/app/nettest1/nettest1 \
+	$(USPACEDIR)/srv/net/app/nettest2/nettest2
+
+ifneq ($(CONFIG_NETWORKING),none)
+	NET_CFG = \
+		$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/general \
+		$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/lo
+	
+	ifeq ($(CONFIG_NETIF_DP8390),y)
+		NET_SRVS += $(USPACEDIR)/srv/net/netif/dp8390/dp8390
+		NET_CFG += $(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/ne2k
+	endif
+	
+	ifeq ($(CONFIG_NETWORKING),module)
+		RD_APPS += $(NET_APPS)
+		RD_SRVS += $(NET_SRVS)
+		CFG += $(NET_CFG)
+	endif
+	
+	ifeq ($(CONFIG_NETWORKING),modular)
+		RD_APPS += $(NET_APPS)
+		RD_SRVS += $(NET_SRVS)
+		RD_SRVS += \
+			$(USPACEDIR)/srv/net/il/ip/ip \
+			$(USPACEDIR)/srv/net/il/arp/arp \
+			$(USPACEDIR)/srv/net/tl/udp/udp \
+			$(USPACEDIR)/srv/net/tl/tcp/tcp \
+			$(USPACEDIR)/srv/net/tl/icmp/icmp
+		CFG += $(NET_CFG)
+	endif
+endif

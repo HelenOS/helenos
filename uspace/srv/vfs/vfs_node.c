@@ -37,8 +37,8 @@
 
 #include "vfs.h"
 #include <stdlib.h>
-#include <string.h>
-#include <fibril_sync.h>
+#include <str.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <assert.h>
 #include <async.h>
@@ -138,6 +138,26 @@ void vfs_node_delref(vfs_node_t *node)
 		free(node);
 }
 
+/** Forget node.
+ *
+ * This function will remove the node from the node hash table and deallocate
+ * its memory, regardless of the node's reference count.
+ *
+ * @param node	Node to be forgotten.
+ */
+void vfs_node_forget(vfs_node_t *node)
+{
+	fibril_mutex_lock(&nodes_mutex);
+	unsigned long key[] = {
+		[KEY_FS_HANDLE] = node->fs_handle,
+		[KEY_DEV_HANDLE] = node->dev_handle,
+		[KEY_INDEX] = node->index
+	};
+	hash_table_remove(&nodes, key, 3);
+	fibril_mutex_unlock(&nodes_mutex);
+	free(node);
+}
+
 /** Find VFS node.
  *
  * This function will try to lookup the given triplet in the VFS node hash
@@ -221,13 +241,46 @@ hash_index_t nodes_hash(unsigned long key[])
 int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
-	return (node->fs_handle == key[KEY_FS_HANDLE]) &&
+	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
 	    (node->dev_handle == key[KEY_DEV_HANDLE]) &&
 	    (node->index == key[KEY_INDEX]);
 }
 
 void nodes_remove_callback(link_t *item)
 {
+}
+
+struct refcnt_data {
+	/** Sum of all reference counts for this file system instance. */
+	unsigned refcnt;
+	fs_handle_t fs_handle;
+	dev_handle_t dev_handle;
+};
+
+static void refcnt_visitor(link_t *item, void *arg)
+{
+	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
+	struct refcnt_data *rd = (void *) arg;
+
+	if ((node->fs_handle == rd->fs_handle) &&
+	    (node->dev_handle == rd->dev_handle))
+		rd->refcnt += node->refcnt;
+}
+
+unsigned
+vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, dev_handle_t dev_handle)
+{
+	struct refcnt_data rd = {
+		.refcnt = 0,
+		.fs_handle = fs_handle,
+		.dev_handle = dev_handle
+	};
+
+	fibril_mutex_lock(&nodes_mutex);
+	hash_table_apply(&nodes, refcnt_visitor, &rd);
+	fibril_mutex_unlock(&nodes_mutex);
+
+	return rd.refcnt;
 }
 
 /**

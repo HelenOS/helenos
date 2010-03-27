@@ -27,14 +27,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../..
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a
+EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
+BINARY = tmpfs
 
-.PHONY: all clean
+SOURCES = \
+	tmpfs.c \
+	tmpfs_ops.c \
+	tmpfs_dump.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
-
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include $(USPACE_PREFIX)/Makefile.common

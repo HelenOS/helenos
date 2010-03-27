@@ -36,7 +36,7 @@
 #define KERN_TLB_H_
 
 #include <arch/mm/asid.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * Number of TLB shootdown messages that can be queued in processor tlb_messages

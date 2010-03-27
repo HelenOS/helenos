@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <vfs/vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -53,7 +53,7 @@
 
 static char text[] = "Lorem ipsum dolor sit amet, consectetur adipisicing elit";
 
-static char *read_root(void)
+static const char *read_root(void)
 {
 	TPRINTF("Opening the root directory...");
 	
@@ -72,23 +72,16 @@ static char *read_root(void)
 	return NULL;
 }
 
-char *test_vfs1(void)
+const char *test_vfs1(void)
 {
 	if (mkdir(MOUNT_POINT, 0) != 0)
 		return "mkdir() failed";
 	TPRINTF("Created directory %s\n", MOUNT_POINT);
 	
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1)
-		return "Unable to create null device";
-	
-	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
-	int rc = mount(FS_TYPE, MOUNT_POINT, null, OPTIONS, FLAGS);
+	int rc = mount(FS_TYPE, MOUNT_POINT, "", OPTIONS, FLAGS);
 	switch (rc) {
 	case EOK:
-		TPRINTF("Mounted /dev/%s as %s on %s\n", null, FS_TYPE, MOUNT_POINT);
+		TPRINTF("Mounted %s on %s\n", FS_TYPE, MOUNT_POINT);
 		break;
 	case EBUSY:
 		TPRINTF("(INFO) Filesystem already mounted on %s\n", MOUNT_POINT);
@@ -127,7 +120,7 @@ char *test_vfs1(void)
 	
 	close(fd0);
 	
-	char *rv = read_root();
+	const char *rv = read_root();
 	if (rv != NULL)
 		return rv;
 	

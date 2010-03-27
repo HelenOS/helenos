@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_BIOS_H_
 #define KERN_ia32_BIOS_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define BIOS_EBDA_PTR	0x40e
 

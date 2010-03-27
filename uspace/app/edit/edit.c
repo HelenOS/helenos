@@ -97,6 +97,7 @@ static int con;
 static doc_t doc;
 static bool done;
 static pane_t pane;
+static bool cursor_visible;
 
 static int scr_rows, scr_columns;
 
@@ -107,6 +108,10 @@ static int scr_rows, scr_columns;
 
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
+
+static void cursor_show(void);
+static void cursor_hide(void);
+static void cursor_setvis(bool visible);
 
 static void key_handle_unmod(console_event_t const *ev);
 static void key_handle_ctrl(console_event_t const *ev);
@@ -198,13 +203,16 @@ int main(int argc, char *argv[])
 	sheet_place_tag(&doc.sh, &pt, &pane.sel_start);
 
 	/* Initial display */
+	cursor_visible = true;
+
+	cursor_hide();
 	console_clear(con);
 	pane_text_display();
 	pane_status_display();
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
 	pane_caret_display();
-
+	cursor_show();
 
 	done = false;
 
@@ -229,6 +237,8 @@ int main(int argc, char *argv[])
 
 		/* Redraw as necessary. */
 
+		cursor_hide();
+
 		if (pane.rflags & REDRAW_TEXT)
 			pane_text_display();
 		if (pane.rflags & REDRAW_ROW)
@@ -237,11 +247,31 @@ int main(int argc, char *argv[])
 			pane_status_display();
 		if (pane.rflags & REDRAW_CARET)
 			pane_caret_display();
+
+		cursor_show();
 	}
 
 	console_clear(con);
 
 	return 0;
+}
+
+static void cursor_show(void)
+{
+	cursor_setvis(true);
+}
+
+static void cursor_hide(void)
+{
+	cursor_setvis(false);
+}
+
+static void cursor_setvis(bool visible)
+{
+	if (cursor_visible != visible) {
+		console_cursor_visibility(con, visible);
+		cursor_visible = visible;
+	}
 }
 
 /** Handle key without modifier. */
@@ -444,17 +474,16 @@ static int file_save(char const *fname)
 /** Change document name and save. */
 static void file_save_as(void)
 {
-	char *old_fname, *fname;
-	int rc;
-
-	old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	char *fname;
+	
 	fname = filename_prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
 	}
 
-	rc = file_save(fname);
+	int rc = file_save(fname);
 	if (rc != EOK)
 		return;
 
@@ -687,7 +716,7 @@ static void pane_row_range_display(int r0, int r1)
 	char row_buf[ROW_BUF_SIZE];
 	wchar_t c;
 	size_t pos, size;
-	unsigned s_column;
+	int s_column;
 	coord_t csel_start, csel_end, ctmp;
 
 	/* Determine selection start and end. */
@@ -735,13 +764,13 @@ static void pane_row_range_display(int r0, int r1)
 		pos = 0;
 		s_column = pane.sh_column;
 		while (pos < size) {
-			if (csel_start.row == rbc.row && csel_start.column == s_column) {
+			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
 				fflush(stdout);
 				console_set_color(con, COLOR_BLACK, COLOR_RED, 0);
 				fflush(stdout);
 			}
 	
-			if (csel_end.row == rbc.row && csel_end.column == s_column) {
+			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 				fflush(stdout);
 				console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 				fflush(stdout);
@@ -761,7 +790,7 @@ static void pane_row_range_display(int r0, int r1)
 			}
 		}
 
-		if (csel_end.row == rbc.row && csel_end.column == s_column) {
+		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 			fflush(stdout);
 			console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
 			fflush(stdout);
@@ -788,17 +817,15 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
-	char *fname;
-	int n;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
-	fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
 
 	console_goto(con, 0, scr_rows - 1);
 	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
-	n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 	    "Ctrl-E Save As", coord.row, coord.column, fname);
 	printf("%*s", scr_columns - 1 - n, "");
 	fflush(stdout);

@@ -38,7 +38,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 #include <config.h>
 #include <func.h>
@@ -79,7 +79,7 @@ void page_arch_init(void)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes).", physaddr, size)
+		panic("Unable to map physical memory %p (%d bytes).", physaddr, size);
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;

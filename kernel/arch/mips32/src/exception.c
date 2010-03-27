@@ -37,7 +37,7 @@
 #include <arch/mm/tlb.h>
 #include <panic.h>
 #include <arch/cp0.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <debug.h>
 #include <proc/thread.h>
@@ -48,7 +48,7 @@
 #include <arch/debugger.h>
 #include <symtab.h>
 
-static char * exctable[] = {
+static const char *exctable[] = {
 	"Interrupt",
 	"TLB Modified",
 	"TLB Invalid",
@@ -73,11 +73,9 @@ static char * exctable[] = {
 
 static void print_regdump(istate_t *istate)
 {
-	char *pcsymbol, *rasymbol;
-
-	pcsymbol = symtab_fmt_name_lookup(istate->epc);
-	rasymbol = symtab_fmt_name_lookup(istate->ra);
-
+	const char *pcsymbol = symtab_fmt_name_lookup(istate->epc);
+	const char *rasymbol = symtab_fmt_name_lookup(istate->ra);
+	
 	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol,
 	    istate->ra, rasymbol, istate->sp);
 }
@@ -92,11 +90,11 @@ static void unhandled_exception(int n, istate_t *istate)
 
 static void reserved_instr_exception(int n, istate_t *istate)
 {
-	if (*((uint32_t *)istate->epc) == 0x7c03e83b) {
+	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
 		istate->v1 = istate->k1;
-	} else 
+	} else
 		unhandled_exception(n, istate);
 }
 

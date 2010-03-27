@@ -54,6 +54,7 @@
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
+#include <mm/as.h>
 
 #define TASK_NAME_BUFLEN	20
 
@@ -128,7 +129,7 @@ extern avltree_t tasks_tree;
 
 extern void task_init(void);
 extern void task_done(void);
-extern task_t *task_create(as_t *as, char *name);
+extern task_t *task_create(as_t *as, const char *name);
 extern void task_destroy(task_t *t);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);

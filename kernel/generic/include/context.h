@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,18 +35,15 @@
 #ifndef KERN_CONTEXT_H_
 #define KERN_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 
+#define context_set_generic(ctx, _pc, stack, size) \
+	(ctx)->pc = (uintptr_t) (_pc); \
+	(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
 
-#ifndef context_set
-#define context_set(c, _pc, stack, size) 	\
-	(c)->pc = (uintptr_t) (_pc);		\
-	(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
-#endif /* context_set */
-
-extern int context_save_arch(context_t *c) __attribute__ ((returns_twice));
-extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
+extern int context_save_arch(context_t *ctx) __attribute__((returns_twice));
+extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
 
 /** Save register context.
  *
@@ -72,11 +69,12 @@ extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
  * overwritten by functions called next. Any attempt to restore to a context
  * saved like that would therefore lead to a disaster.
  *
- * @param c		Context structure.
+ * @param ctx Context structure.
  *
- * @return		context_save() returns 1, context_restore() returns 0.
+ * @return context_save() returns 1, context_restore() returns 0.
+ *
  */
-#define context_save(c)   context_save_arch(c)
+#define context_save(ctx)  context_save_arch(ctx)
 
 /** Restore register context.
  *
@@ -87,11 +85,11 @@ extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
  * same address as the corresponding call to context_save(), the only difference
  * being return value.
  *
- * @param c		Context structure.
+ * @param ctx Context structure.
  */
-static inline void context_restore(context_t *c)
+static inline void context_restore(context_t *ctx)
 {
-	context_restore_arch(c);
+	context_restore_arch(ctx);
 }
 
 #endif

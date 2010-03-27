@@ -51,7 +51,7 @@
 #define THREAD_STACK_SIZE	STACK_SIZE
 #define THREAD_NAME_BUFLEN	20
 
-extern char *thread_states[];
+extern const char *thread_states[];
 
 /* Thread flags */
 
@@ -224,45 +224,45 @@ SPINLOCK_EXTERN(threads_lock);
 extern avltree_t threads_tree;
 
 extern void thread_init(void);
-extern thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
-    int flags, char *name, bool uncounted);
-extern void thread_attach(thread_t *t, task_t *task);
-extern void thread_ready(thread_t *t);
+extern thread_t *thread_create(void (*)(void *), void *, task_t *, int,
+    const char *, bool);
+extern void thread_attach(thread_t *, task_t *);
+extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 
 #ifndef thread_create_arch
-extern void thread_create_arch(thread_t *t);
+extern void thread_create_arch(thread_t *);
 #endif
 #ifndef thr_constructor_arch
-extern void thr_constructor_arch(thread_t *t);
+extern void thr_constructor_arch(thread_t *);
 #endif
 #ifndef thr_destructor_arch
-extern void thr_destructor_arch(thread_t *t);
+extern void thr_destructor_arch(thread_t *);
 #endif
 
-extern void thread_sleep(uint32_t sec);
-extern void thread_usleep(uint32_t usec);
+extern void thread_sleep(uint32_t);
+extern void thread_usleep(uint32_t);
 
 #define thread_join(t) \
 	thread_join_timeout((t), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-extern int thread_join_timeout(thread_t *t, uint32_t usec, int flags);
-extern void thread_detach(thread_t *t);
+extern int thread_join_timeout(thread_t *, uint32_t, int);
+extern void thread_detach(thread_t *);
 
-extern void thread_register_call_me(void (* call_me)(void *),
-    void *call_me_with);
+extern void thread_register_call_me(void (*)(void *), void *);
 extern void thread_print_list(void);
-extern void thread_destroy(thread_t *t);
+extern void thread_destroy(thread_t *);
 extern void thread_update_accounting(void);
-extern bool thread_exists(thread_t *t);
+extern bool thread_exists(thread_t *);
 
 /** Fpu context slab cache. */
 extern slab_cache_t *fpu_context_slab;
 
 /* Thread syscall prototypes. */
-extern unative_t sys_thread_create(uspace_arg_t *uspace_uarg,
-    char *uspace_name, size_t name_len, thread_id_t *uspace_thread_id);
-extern unative_t sys_thread_exit(int uspace_status);
-extern unative_t sys_thread_get_id(thread_id_t *uspace_thread_id);
+extern unative_t sys_thread_create(uspace_arg_t *, char *, size_t,
+    thread_id_t *);
+extern unative_t sys_thread_exit(int);
+extern unative_t sys_thread_get_id(thread_id_t *);
+extern unative_t sys_thread_usleep(uint32_t);
 
 #endif
 

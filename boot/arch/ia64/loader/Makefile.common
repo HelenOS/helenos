@@ -30,34 +30,24 @@
 ## Common names
 #
 
+include ../../../../Makefile.common
+include ../../../../Makefile.config
+include ../../../Makefile.common
+
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
+JOB = image.job
 OUTPUT = image.boot
 HELLO = hello.efi
 
 LINK = _link.ld
 COMPS = _components
-INITRD = initrd
 
 KERNELDIR = ../../../../kernel
 USPACEDIR = ../../../../uspace
 
-RD_SRVS = \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/part/mbr_part/mbr_part
-
-RD_APPS = \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+ifeq ($(MACHINE),i460GX)
+	RD_SRVS += \
+		$(USPACEDIR)/srv/hw/char/i8042/i8042 \
+		$(USPACEDIR)/srv/hid/char_mouse/char_ms
+endif

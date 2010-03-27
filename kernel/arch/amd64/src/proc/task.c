@@ -34,7 +34,7 @@
 
 #include <proc/task.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Perform amd64 specific task initialization.
  *

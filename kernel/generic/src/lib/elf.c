@@ -38,7 +38,7 @@
 
 #include <lib/elf.h>
 #include <debug.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
@@ -47,7 +47,7 @@
 #include <macros.h>
 #include <arch.h>
 
-static char *error_codes[] = {
+static const char *error_codes[] = {
 	"no error",
 	"invalid image",
 	"address space error",
@@ -136,7 +136,7 @@ unsigned int elf_load(elf_header_t *header, as_t * as, int flags)
  *
  * @return NULL terminated description of error.
  */
-char *elf_error(unsigned int rc)
+const char *elf_error(unsigned int rc)
 {
 	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
 
@@ -154,8 +154,6 @@ char *elf_error(unsigned int rc)
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
     as_t *as, int flags)
 {
-	char *interp;
-
 	switch (entry->p_type) {
 	case PT_NULL:
 	case PT_PHDR:
@@ -164,12 +162,13 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		return load_segment(entry, elf, as);
 	case PT_DYNAMIC:
 	case PT_INTERP:
-		interp = (char *)elf + entry->p_offset;
-		/* FIXME */
-		/*if (memcmp((uintptr_t)interp, (uintptr_t)ELF_INTERP_ZSTR,
+		// FIXME
+		/*
+		char *interp = (char *) elf + entry->p_offset;
+		if (memcmp((uintptr_t) interp, (uintptr_t) ELF_INTERP_ZSTR,
 		    ELF_INTERP_ZLEN) != 0) {
 			return EE_UNSUPPORTED;
-		}*/
+		} */
 		if ((flags & ELD_F_LOADER) == 0) {
 			return EE_LOADER;
 		}

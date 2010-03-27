@@ -35,7 +35,7 @@
 #ifndef KERN_ACPI_H_
 #define KERN_ACPI_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* Root System Description Pointer */
 struct acpi_rsdp {
@@ -66,7 +66,7 @@ struct acpi_sdt_header {
 struct acpi_signature_map {
 	uint8_t *signature;
 	struct acpi_sdt_header **sdt_ptr;
-	char *description;
+	const char *description;
 };
 
 /* Root System Description Table */

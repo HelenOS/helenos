@@ -37,7 +37,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef uint16_t asid_t;
 typedef uint32_t rid_t;
@@ -49,16 +49,18 @@ typedef uint32_t rid_t;
  * Note that some architectures may support more bits,
  * but those extra bits are not used by the kernel. 
  */
-#define RIDS_PER_ASID		7
+#define RIDS_PER_ASID		8
 
 #define RID_MAX			262143		/* 2^18 - 1 */
-#define RID_KERNEL		0
-#define RID_INVALID		1
+#define RID_KERNEL7		7
 
-#define ASID2RID(asid, vrn)	(((asid)>RIDS_PER_ASID)?(((asid)*RIDS_PER_ASID)+(vrn)):(asid))
-#define RID2ASID(rid)		((rid)/RIDS_PER_ASID)
+#define ASID2RID(asid, vrn) \
+	((asid) * RIDS_PER_ASID + (vrn))
 
-#define ASID_MAX_ARCH		(RID_MAX/RIDS_PER_ASID)
+#define RID2ASID(rid) \
+	((rid) / RIDS_PER_ASID)
+
+#define ASID_MAX_ARCH		(RID_MAX / RIDS_PER_ASID)
 
 #endif
 

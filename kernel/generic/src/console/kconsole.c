@@ -44,20 +44,20 @@
 #include <console/cmd.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <macros.h>
 #include <debug.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>
-#include <string.h>
+#include <str.h>
 
 /** Simple kernel console.
  *
@@ -223,7 +223,7 @@ static int cmdtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
-		while ((hint = cmdtab_search_one(name, &pos))) {
+		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
 			printf("%s (%s)\n", hlp->name, hlp->description);
 			pos = pos->next;
@@ -542,7 +542,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		
 		if (str_lcmp(hlp->name, cmdline + start,
 		    max(str_length(hlp->name),
-		    str_nlength(cmdline + start, (size_t) (end - start) - 1))) == 0) {
+		    str_nlength(cmdline + start, (size_t) (end - start)))) == 0) {
 			cmd = hlp;
 			break;
 		}
@@ -642,7 +642,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
  *               and never exit.
  *
  */
-void kconsole(char *prompt, char *msg, bool kcon)
+void kconsole(const char *prompt, const char *msg, bool kcon)
 {
 	if (!stdin) {
 		LOG("No stdin for kernel console");

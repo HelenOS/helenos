@@ -31,7 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <io/style.h>
@@ -507,21 +507,18 @@ static void tinput_sel_delete(tinput_t *ti)
 static void tinput_sel_copy_to_cb(tinput_t *ti)
 {
 	int sa, sb;
-	wchar_t tmp_c;
 	char *str;
 
 	tinput_sel_get_bounds(ti, &sa, &sb);
 
 	if (sb < ti->nc) {
-		tmp_c = ti->buffer[sb];
+		wchar_t tmp_c = ti->buffer[sb];
 		ti->buffer[sb] = '\0';
-	}
-
-	str = wstr_to_astr(ti->buffer + sa);
-
-	if (sb < ti->nc)
+		str = wstr_to_astr(ti->buffer + sa);
 		ti->buffer[sb] = tmp_c;
-
+	} else
+		str = wstr_to_astr(ti->buffer + sa);
+	
 	if (str == NULL)
 		goto error;
 

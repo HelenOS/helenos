@@ -38,18 +38,19 @@
 #include <sysinfo/sysinfo.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
+#include <panic.h>
 #include <print.h>
 #include <putchar.h>
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 
 #define KLOG_PAGES    4
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -108,7 +108,7 @@ static void init_e820_memory(pfn_t minconf)
 	}
 }
 
-static char *e820names[] = {
+static const char *e820names[] = {
 	"invalid",
 	"available",
 	"reserved",
@@ -121,7 +121,7 @@ static char *e820names[] = {
 void physmem_print(void)
 {
 	unsigned int i;
-	char *name;
+	const char *name;
 	
 	printf("Base               Size               Name\n");
 	printf("------------------ ------------------ ---------\n");

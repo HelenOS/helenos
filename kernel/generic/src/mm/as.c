@@ -74,7 +74,7 @@
 #include <errno.h>
 #include <config.h>
 #include <align.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
@@ -783,7 +783,6 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 {
 	as_area_t *area;
-	uintptr_t base;
 	link_t *cur;
 	ipl_t ipl;
 	int page_flags;
@@ -812,8 +811,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
-
-	base = area->base;
 
 	/*
 	 * Compute total number of used pages in the used_space B+tree
@@ -951,11 +948,12 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	
 	if (!THREAD)
 		return AS_PF_FAULT;
-		
-	ASSERT(AS);
-
+	
+	if (!AS)
+		return AS_PF_FAULT;
+	
 	mutex_lock(&AS->lock);
-	area = find_area_and_lock(AS, page);	
+	area = find_area_and_lock(AS, page);
 	if (!area) {
 		/*
 		 * No area contained mapping for 'page'.
@@ -1918,6 +1916,72 @@ unative_t sys_as_area_destroy(uintptr_t address)
 {
 	return (unative_t) as_area_destroy(AS, address);
 }
+
+/** Get list of adress space areas.
+ *
+ * @param as		Address space.
+ * @param obuf		Place to save pointer to returned buffer.
+ * @param osize		Place to save size of returned buffer.
+ */
+void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
+{
+	ipl_t ipl;
+	size_t area_cnt, area_idx, i;
+	link_t *cur;
+
+	as_area_info_t *info;
+	size_t isize;
+
+	ipl = interrupts_disable();
+	mutex_lock(&as->lock);
+
+	/* First pass, count number of areas. */
+
+	area_cnt = 0;
+
+	for (cur = as->as_area_btree.leaf_head.next;
+	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		area_cnt += node->keys;
+	}
+
+        isize = area_cnt * sizeof(as_area_info_t);
+	info = malloc(isize, 0);
+
+	/* Second pass, record data. */
+
+	area_idx = 0;
+
+	for (cur = as->as_area_btree.leaf_head.next;
+	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+
+		for (i = 0; i < node->keys; i++) {
+			as_area_t *area = node->value[i];
+
+			ASSERT(area_idx < area_cnt);
+			mutex_lock(&area->lock);
+
+			info[area_idx].start_addr = area->base;
+			info[area_idx].size = FRAMES2SIZE(area->pages);
+			info[area_idx].flags = area->flags;
+			++area_idx;
+
+			mutex_unlock(&area->lock);
+		}
+	}
+
+	mutex_unlock(&as->lock);
+	interrupts_restore(ipl);
+
+	*obuf = info;
+	*osize = isize;
+}
+
 
 /** Print out information about address space.
  *

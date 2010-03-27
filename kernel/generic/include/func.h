@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,12 +35,12 @@
 #ifndef KERN_FUNC_H_
 #define KERN_FUNC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <atomic.h>
 
 extern atomic_t haltstate;
 
-extern void halt(void);
+extern void halt(void) __attribute__((noreturn));
 extern unative_t atoi(const char *text);
 extern void order(const uint64_t val, uint64_t *rv, char *suffix);
 

@@ -75,7 +75,7 @@
 
 
 /** Thread states */
-char *thread_states[] = {
+const char *thread_states[] = {
 	"Invalid",
 	"Running",
 	"Sleeping",
@@ -263,6 +263,7 @@ void thread_ready(thread_t *t)
 	spinlock_unlock(&r->lock);
 
 	atomic_inc(&nrdy);
+	// FIXME: Why is the avg value never read?
 	avg = atomic_get(&nrdy) / config.cpu_active;
 	atomic_inc(&cpu->nrdy);
 
@@ -287,7 +288,7 @@ void thread_ready(thread_t *t)
  *
  */
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
-    int flags, char *name, bool uncounted)
+    int flags, const char *name, bool uncounted)
 {
 	thread_t *t;
 	ipl_t ipl;
@@ -500,7 +501,14 @@ restart:
  */
 void thread_sleep(uint32_t sec)
 {
-	thread_usleep(sec * 1000000);
+	/* Sleep in 1000 second steps to support
+	   full argument range */
+	while (sec > 0) {
+		uint32_t period = (sec > 1000) ? 1000 : sec;
+	
+		thread_usleep(period * 1000000);
+		sec -= period;
+	}
 }
 
 /** Wait for another thread to exit.
@@ -574,9 +582,9 @@ void thread_detach(thread_t *t)
 void thread_usleep(uint32_t usec)
 {
 	waitq_t wq;
-				  
+	
 	waitq_initialize(&wq);
-
+	
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING);
 }
 
@@ -809,6 +817,13 @@ unative_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 	 */
 	return (unative_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
 	    sizeof(THREAD->tid));
+}
+
+/** Syscall wrapper for sleeping. */
+unative_t sys_thread_usleep(uint32_t usec)
+{
+	thread_usleep(usec);
+	return 0;
 }
 
 /** @}

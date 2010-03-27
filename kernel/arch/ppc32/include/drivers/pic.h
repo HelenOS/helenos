@@ -35,7 +35,7 @@
 #ifndef KERN_ppc32_PIC_H_
 #define KERN_ppc32_PIC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 
 #define PIC_PENDING_LOW    8

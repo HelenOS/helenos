@@ -45,11 +45,9 @@
 
 void dump_istate(istate_t *istate)
 {
-	char *tpcs, *tnpcs;
-
-	tpcs = symtab_fmt_name_lookup(istate->tpc);
-	tnpcs = symtab_fmt_name_lookup(istate->tnpc);
-
+	const char *tpcs = symtab_fmt_name_lookup(istate->tpc);
+	const char *tnpcs = symtab_fmt_name_lookup(istate->tnpc);
+	
 	printf("TSTATE=%#" PRIx64 "\n", istate->tstate);
 	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, tpcs);
 	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, tnpcs);
@@ -161,7 +159,7 @@ void data_access_exception(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "%s.", __func__);
 	dump_istate(istate);
-	dump_sfsr_and_sfar();
+	describe_dmmu_fault();
 	panic("%s.", __func__);
 }
 

@@ -35,10 +35,8 @@
 #ifndef KERN_FUTEX_H_
 #define KERN_FUTEX_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/waitq.h>
-#include <genarch/mm/page_ht.h>
-#include <genarch/mm/page_pt.h>
 
 /** Kernel-side futex structure. */
 typedef struct {
@@ -53,9 +51,8 @@ typedef struct {
 } futex_t;
 
 extern void futex_init(void);
-extern unative_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec,
-    int flags);
-extern unative_t sys_futex_wakeup(uintptr_t uaddr);
+extern unative_t sys_futex_sleep(uintptr_t);
+extern unative_t sys_futex_wakeup(uintptr_t);
 
 extern void futex_cleanup(void);
 

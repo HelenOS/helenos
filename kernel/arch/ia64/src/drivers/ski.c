@@ -36,12 +36,12 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
-#include <string.h>
+#include <str.h>
 #include <arch.h>
 
 enum {

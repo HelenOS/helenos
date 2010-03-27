@@ -42,6 +42,7 @@ typedef enum {
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
 	SYS_THREAD_GET_ID,
+	SYS_THREAD_USLEEP,
 	
 	SYS_TASK_GET_ID,
 	SYS_TASK_SET_NAME,
@@ -91,7 +92,7 @@ typedef enum {
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
     unative_t, unative_t);

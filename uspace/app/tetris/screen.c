@@ -48,7 +48,7 @@
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <unistd.h>
 #include <vfs/vfs.h>
 #include <async.h>
@@ -71,7 +71,7 @@ static const struct shape *lastshape;
  * putstr() is for unpadded strings (either as in termcap(5) or
  * simply literal strings);
  */
-static inline void putstr(char *s)
+static inline void putstr(const char *s)
 {
 	while (*s)
 		putchar(*(s++));
@@ -180,7 +180,7 @@ void scr_end(void)
 	console_cursor_visibility(fphone(stdout), 1);
 }
 
-void stop(char *why)
+void stop(const char *why)
 {
 	if (isset)
 		scr_end();

@@ -26,43 +26,55 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
-
 CSCOPE = cscope
-STANSE = stanse
+CONFIG = tools/config.py
+AUTOTOOL = tools/autotool.py
+SANDBOX = autotool
 
-.PHONY: all config config_default distclean clean cscope stanse
+CONFIG_RULES = HelenOS.config
 
-all: Makefile.config config.h config.defs
-	$(MAKE) -C kernel
-	$(MAKE) -C uspace
-	$(MAKE) -C boot
+COMMON_MAKEFILE = Makefile.common
+COMMON_HEADER = common.h
+COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 
-stanse: Makefile.config config.h config.defs
-	$(MAKE) -C kernel clean
-	$(MAKE) -C kernel EXTRA_TOOL=stanse
-	$(STANSE) --checker ReachabilityChecker --checker ThreadChecker:contrib/$(STANSE)/ThreadChecker.xml --jobfile kernel/kernel.job
+CONFIG_MAKEFILE = Makefile.config
+CONFIG_HEADER = config.h
+
+.PHONY: all precheck cscope autotool config_default config distclean clean
+
+all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
+	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
+	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
+	$(MAKE) -C boot PRECHECK=$(PRECHECK)
+
+precheck: clean
+	$(MAKE) all PRECHECK=y
 
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
 
-Makefile.config: config_default
+$(COMMON_MAKEFILE): autotool
+$(COMMON_HEADER): autotool
 
-config.h: config_default
+autotool: $(CONFIG_MAKEFILE)
+	$(AUTOTOOL)
+	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
 
-config.defs: config_default
+$(CONFIG_MAKEFILE): config_default
+$(CONFIG_HEADER): config_default
 
-config_default: HelenOS.config
-	tools/config.py HelenOS.config default
+config_default: $(CONFIG_RULES)
+	$(CONFIG) $< default
 
-config: HelenOS.config
-	tools/config.py HelenOS.config
+config: $(CONFIG_RULES)
+	$(CONFIG) $<
 
 distclean: clean
-	rm -f $(CSCOPE).out Makefile.config config.h config.defs tools/*.pyc
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc
 
 clean:
+	rm -fr $(SANDBOX)
 	$(MAKE) -C kernel clean
 	$(MAKE) -C uspace clean
 	$(MAKE) -C boot clean

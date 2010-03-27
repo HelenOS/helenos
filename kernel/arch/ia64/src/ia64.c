@@ -39,10 +39,11 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
 #include <userspace.h>
@@ -64,7 +65,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -202,15 +203,19 @@ void arch_post_smp_init(void)
 		}
 	}
 	
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
-	
+
+#ifdef CONFIG_NETIF_DP8390
+	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+#endif
+
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
@@ -277,6 +282,11 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 	fptr->gp = ((unative_t *) caller)[1];
 	
 	return (void *) fptr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

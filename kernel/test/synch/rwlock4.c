@@ -31,7 +31,7 @@
 #include <atomic.h>
 #include <print.h>
 #include <proc/thread.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <context.h>
 
@@ -131,7 +131,7 @@ static void reader(void *arg)
 	atomic_dec(&thread_count);
 }
 
-char *test_rwlock4(void)
+const char *test_rwlock4(void)
 {
 	context_t ctx;
 	uint32_t i;

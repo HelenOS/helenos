@@ -36,22 +36,22 @@
 #include <print.h>
 #include <macros.h>
 
-char *project = "SPARTAN kernel";
-char *copyright = "Copyright (c) 2001-2009 HelenOS project";
-char *release = STRING(RELEASE);
-char *name = STRING(NAME);
-char *arch = STRING(KARCH);
+static const char *project = "SPARTAN kernel";
+static const char *copyright = "Copyright (c) 2001-2010 HelenOS project";
+static const char *release = STRING(RELEASE);
+static const char *name = STRING(NAME);
+static const char *arch = STRING(KARCH);
 
 #ifdef REVISION
-	char *revision = ", revision " STRING(REVISION);
+	static const char *revision = ", revision " STRING(REVISION);
 #else
-	char *revision = "";
+	static const char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	char *timestamp = " on " STRING(TIMESTAMP);
+	static const char *timestamp = " on " STRING(TIMESTAMP);
 #else
-	char *timestamp = "";
+	static const char *timestamp = "";
 #endif
 
 /** Print version information. */

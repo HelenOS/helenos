@@ -27,14 +27,35 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../..
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I. -Icmds/ -Icmds/builtins -Icmds/modules
+BINARY = bdsh
 
-.PHONY: all clean
+SOURCES = \
+	cmds/modules/help/help.c \
+	cmds/modules/mkdir/mkdir.c \
+	cmds/modules/mkfile/mkfile.c \
+	cmds/modules/rm/rm.c \
+	cmds/modules/bdd/bdd.c \
+	cmds/modules/cat/cat.c \
+	cmds/modules/touch/touch.c \
+	cmds/modules/ls/ls.c \
+	cmds/modules/pwd/pwd.c \
+	cmds/modules/sleep/sleep.c \
+	cmds/modules/cp/cp.c \
+	cmds/modules/mv/mv.c \
+	cmds/modules/mount/mount.c \
+	cmds/modules/unmount/unmount.c \
+	cmds/modules/kcon/kcon.c \
+	cmds/builtins/exit/exit.c \
+	cmds/builtins/cd/cd.c \
+	cmds/mod_cmds.c \
+	cmds/builtin_cmds.c \
+	errors.c \
+	input.c \
+	util.c \
+	exec.c \
+	scli.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
-
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include $(USPACE_PREFIX)/Makefile.common

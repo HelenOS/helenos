@@ -36,7 +36,7 @@
 #ifndef KERN_arm32_FADDR_H_
 #define KERN_arm32_FADDR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Calculate absolute address of function referenced by fptr pointer.
  *

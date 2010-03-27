@@ -30,7 +30,7 @@
 #define KERN_SBUS_H_
 
 #include <genarch/ofw/ofw_tree.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 #include <typedefs.h>
 

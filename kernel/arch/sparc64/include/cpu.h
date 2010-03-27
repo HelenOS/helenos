@@ -53,7 +53,6 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <arch/register.h>
 #include <arch/regdef.h>
@@ -63,33 +62,13 @@
 #include <arch/mm/cache.h>
 #endif
 
-typedef struct {
-	uint32_t mid;			/**< Processor ID as read from
-					     UPA_CONFIG/FIREPLANE_CONFIG. */
-	ver_reg_t ver;
-	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
-	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-					     generated when the TICK register
-					     matches this value. */
-} cpu_arch_t;
 
-
-/**
- * Reads the module ID (agent ID/CPUID) of the current CPU.
- */
-static inline uint32_t read_mid(void)
-{
-	uint64_t icbus_config = asi_u64_read(ASI_ICBUS_CONFIG, 0);
-	icbus_config = icbus_config >> ICBUS_CONFIG_MID_SHIFT;
-#if defined (US)
-	return icbus_config & 0x1f;
-#elif defined (US3)
-	if (((ver_reg_t) ver_read()).impl == IMPL_ULTRASPARCIII_I)
-		return icbus_config & 0x1f;
-	else
-		return icbus_config & 0x3ff;
+#if defined (SUN4U)
+#include <arch/sun4u/cpu.h>
+#elif defined (SUN4V)
+#include <arch/sun4v/cpu.h>
 #endif
-}
+
 
 #endif	
 

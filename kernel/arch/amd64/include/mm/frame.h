@@ -36,7 +36,7 @@
 #define KERN_amd64_FRAME_H_
 
 #ifndef __ASM__
-#include <arch/types.h>
+#include <typedefs.h>
 #endif /* __ASM__ */
 
 #define FRAME_WIDTH  12  /* 4K */

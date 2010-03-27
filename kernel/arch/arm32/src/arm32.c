@@ -46,7 +46,8 @@
 #include <arch/regutils.h>
 #include <userspace.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
+#include <arch/ras.h>
 
 #ifdef MACHINE_testarm
 	#include <arch/mach/testarm/testarm.h>
@@ -87,6 +88,9 @@ void arch_post_mm_init(void)
 	/* Initialize exception dispatch table */
 	exception_init();
 	interrupt_init();
+
+	/* Initialize Restartable Atomic Sequences support. */
+	ras_init();
 	
 	machine_output_init();
 }
@@ -135,7 +139,6 @@ void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
 	
-	tlb_invalidate_all();
 	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
 	supervisor_sp = (uintptr_t) stck;
 }
@@ -151,14 +154,15 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	machine_cpu_halt();
+	while (true)
+		machine_cpu_halt();
 }
 
 /** Reboot. */
 void arch_reboot()
 {
 	/* not implemented */
-	while (1);
+	while (true);
 }
 
 /** Construct function pointer
@@ -173,6 +177,11 @@ void arch_reboot()
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

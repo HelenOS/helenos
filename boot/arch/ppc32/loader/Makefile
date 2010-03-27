@@ -31,17 +31,24 @@ include Makefile.common
 
 .PHONY: all clean
 
-all: ../../../../version ../../../../Makefile.config ../../../../config.h ../../../../config.defs
+all: ../../../../version ../../../../Makefile.common ../../../../Makefile.config ../../../../config.h
 	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
 
 clean:
+	rm -f $(USPACEDIR)/dist/srv/*
+	rm -f $(USPACEDIR)/dist/app/*
+	rm -f $(USPACEDIR)/dist/cfg/net/*
+
 	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
 	done
 	for file in $(RD_APPS) ; do \
 		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
 	done
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
+	for file in $(NET_CFG) ; do \
+		rm -f $(USPACEDIR)/dist/cfg/net/`basename $$file` ; \
+	done
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(COMPS).h $(COMPS).c $(LINK) $(INITRD).img $(INITRD).fs
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.co' -follow -exec rm \{\} \;

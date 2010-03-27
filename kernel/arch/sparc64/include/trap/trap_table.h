@@ -43,7 +43,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 struct trap_table_entry {
 	uint8_t octets[TRAP_TABLE_ENTRY_SIZE];
@@ -100,7 +100,7 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 
 .macro PREEMPTIBLE_HANDLER f
 	sethi %hi(\f), %g1
-	ba %xcc, preemptible_handler
+	b preemptible_handler
 	or %g1, %lo(\f), %g1
 .endm
 

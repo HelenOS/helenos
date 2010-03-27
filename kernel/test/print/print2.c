@@ -29,7 +29,7 @@
 #include <print.h>
 #include <test.h>
 
-char *test_print2(void)
+const char *test_print2(void)
 {
 	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
 	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");

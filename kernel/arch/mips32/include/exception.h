@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_EXCEPTION_H_
 #define KERN_mips32_EXCEPTION_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/cp0.h>
 
 #define EXC_Int		0
@@ -57,7 +57,7 @@
 #define EXC_WATCH	23
 #define EXC_VCED	31
 
-typedef struct {
+typedef struct istate {
 	uint32_t at;
 	uint32_t v0;
 	uint32_t v1;
@@ -100,6 +100,10 @@ static inline int istate_from_uspace(istate_t *istate)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->epc;
+}
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return 0;	/* FIXME */
 }
 
 extern void exception(istate_t *istate);

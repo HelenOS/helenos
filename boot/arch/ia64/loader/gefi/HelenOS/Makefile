@@ -21,7 +21,6 @@
 #  02111-1307, USA.
 #
 
-prefix=$(PREFIX)
 include ../Make.defaults
 CDIR=$(TOPDIR)/..
 LINUX_HEADERS	= /usr/src/sys/build
@@ -32,7 +31,7 @@ LDFLAGS		+= -T $(LDSCRIPT) -shared -Bsymbolic -L../lib -L../gnuefi $(CRTOBJS)
 LOADLIBES	= -lefi -lgnuefi
 FORMAT		= efi-app-$(ARCH)
 
-all:	gefi hello.efi
+all:	hello.efi
 
 clean:
 	rm -f *.efi *~ *.o *.so *.map *.disass *.bin
@@ -45,7 +44,7 @@ hello.efi: hello.so
 
 #When selected first lines or second lines, select if image is linked into hello or not - usefull for network boot
 #hello.so: hello.o image.o division.o
-hello.so: hello.o image.bin division.o
+hello.so: hello.o image.bin division.o gefi
 #	$(LD) $(LDFLAGS) -Map hello.map hello.o division.o image.o -o hello.so $(LOADLIBES) #link image inside hello
 	$(LD) $(LDFLAGS) -Map hello.map hello.o division.o -o hello.so $(LOADLIBES) #dont link image inside hello
 
@@ -68,4 +67,4 @@ mkimage: mkimage.c
 	gcc -o mkimage mkimage.c
 
 gefi:
-	$(MAKE) -C .. prefix=$(PREFIX)
+	$(MAKE) -C ..

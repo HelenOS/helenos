@@ -52,7 +52,8 @@
 #include <print.h>
 #include <errno.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
+#include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
 #include <ipc/event.h>
@@ -169,7 +170,7 @@ int tsk_constructor(void *obj, int kmflags)
  * @return		New task's structure.
  *
  */
-task_t *task_create(as_t *as, char *name)
+task_t *task_create(as_t *as, const char *name)
 {
 	ipl_t ipl;
 	task_t *ta;

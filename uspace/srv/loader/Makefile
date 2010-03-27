@@ -27,14 +27,33 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
-.PHONY: all clean
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+-include arch/$(UARCH)/Makefile.inc
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm arch/*/_link.ld
-	find . -name '*.o' -follow -exec rm \{\} \;
+LINKER_SCRIPT = arch/$(UARCH)/_link.ld
+EXTRA_CLEAN = $(LINKER_SCRIPT)
+
+EXTRA_CFLAGS = -Iinclude
+
+BINARY = loader
+
+GENERIC_SOURCES = \
+	main.c \
+	elf_load.c \
+	interp.s
+
+SOURCES = \
+	$(GENERIC_SOURCES) \
+	$(ARCH_SOURCES)
+
+include $(USPACE_PREFIX)/Makefile.common
+
+$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

@@ -27,14 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../..
+LIBS = $(LIBFS_PREFIX)/libfs.a
+EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
+BINARY = devfs
 
-.PHONY: all clean
+SOURCES = \
+	devfs.c \
+	devfs_ops.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
-
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include $(USPACE_PREFIX)/Makefile.common

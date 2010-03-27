@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_INTERRUPT_H_
 #define KERN_ia32_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/pm.h>
 
 #define IVT_ITEMS	IDT_ITEMS
@@ -53,6 +53,7 @@
 #define IRQ_PIC1	2
 #define IRQ_PIC_SPUR	7
 #define IRQ_MOUSE	12
+#define IRQ_DP8390	9
 
 /* this one must have four least significant bits set to ones */
 #define VECTOR_APIC_SPUR	(IVT_ITEMS - 1)
@@ -68,10 +69,11 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI		(IVT_FREEBASE + 2)
 
-typedef struct {
+typedef struct istate {
 	uint32_t eax;
 	uint32_t ecx;
 	uint32_t edx;
+	uint32_t ebp;
 
 	uint32_t gs;
 	uint32_t fs;
@@ -99,6 +101,11 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->eip;
+}
+
+static inline unative_t istate_get_fp(istate_t *istate)
+{
+	return istate->ebp;
 }
 
 extern void (* disable_irqs_function)(uint16_t irqmask);

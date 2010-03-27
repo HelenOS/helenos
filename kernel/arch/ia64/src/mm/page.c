@@ -38,7 +38,7 @@
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/vhpt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -70,28 +70,14 @@ void set_environment(void)
 #endif
 
 	/*
-	 * First set up kernel region register.
-	 * This is redundant (see start.S) but we keep it here just for sure.
-	 */
-	rr.word = rr_read(VRN_KERNEL);
-	rr.map.ve = 0;                  /* disable VHPT walker */
-	rr.map.ps = PAGE_WIDTH;
-	rr.map.rid = ASID2RID(ASID_KERNEL, VRN_KERNEL);
-	rr_write(VRN_KERNEL, rr.word);
-	srlz_i();
-	srlz_d();
-
-	/*
-	 * And setup the rest of region register.
+	 * Set up kernel region registers.
+	 * VRN_KERNEL has already been set in start.S.
+	 * For paranoia reasons, we set it again.
 	 */
 	for(i = 0; i < REGION_REGISTERS; i++) {
-		/* skip kernel rr */
-		if (i == VRN_KERNEL)
-			continue;
-	
 		rr.word = rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = RID_KERNEL;
+		rr.map.rid = ASID2RID(ASID_KERNEL, i);
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
 		srlz_i();

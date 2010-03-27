@@ -39,7 +39,7 @@
 #ifndef KERN_PAGE_HT_H_
 #define KERN_PAGE_HT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/as.h>
 #include <mm/page.h>
 #include <synch/mutex.h>

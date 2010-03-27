@@ -42,12 +42,14 @@
 #include <async.h>
 #include <task.h>
 #include <mem.h>
-#include <string.h>
+#include <str.h>
 #include <bool.h>
 #include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
+#include <sys/types.h>
+#include <sys/typefmt.h>
 
 #include <libc.h>
 
@@ -158,7 +160,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%lld) -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -197,7 +199,7 @@ static int get_thread_list(void)
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash 0x%lx)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash %p)", 1+i, thread_hash_buf[i]);
 	}
 	printf("\ntotal of %u threads\n", tb_needed / sizeof(uintptr_t));
 
@@ -221,7 +223,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 
 	case V_HASH:
 	case V_PTR:
-		printf("0x%08lx", val);
+		printf("%p", val);
 		break;
 
 	case V_ERRNO:
@@ -274,9 +276,9 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%ld", sc_args[0]);
+	if (n > 0) printf("%" PRIdSYSARG, sc_args[0]);
 	for (i = 1; i < n; i++) {
-		printf(", %ld", sc_args[i]);
+		printf(", %" PRIdSYSARG, sc_args[i]);
 	}
 	putchar(')');
 }
@@ -507,7 +509,7 @@ static int trace_loop(void *thread_hash_arg)
 		return ELIMIT;
 	}
 
-	printf("Start tracing thread [%d] (hash 0x%lx).\n", thread_id, thread_hash);
+	printf("Start tracing thread [%d] (hash %p).\n", thread_id, thread_hash);
 
 	while (!abort_trace) {
 
@@ -551,7 +553,7 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread 0x%lx exited.\n", val0);
+				printf("Thread %p exited.\n", val0);
 				fibril_mutex_lock(&state_lock);
 				abort_trace = true;
 				fibril_condvar_broadcast(&state_cv);
@@ -582,13 +584,13 @@ void thread_trace_start(uintptr_t thread_hash)
 	fibril_add_ready(fid);
 }
 
-static loader_t *preload_task(const char *path, char *const argv[],
+static loader_t *preload_task(const char *path, char **argv,
     task_id_t *task_id)
 {
 	loader_t *ldr;
 	int rc;
 
-	/* Spawn a program loader */	
+	/* Spawn a program loader */
 	ldr = loader_connect();
 	if (ldr == NULL)
 		return 0;
@@ -604,7 +606,7 @@ static loader_t *preload_task(const char *path, char *const argv[],
 		goto error;
 
 	/* Send arguments */
-	rc = loader_set_args(ldr, argv);
+	rc = loader_set_args(ldr, (const char **) argv);
 	if (rc != EOK)
 		goto error;
 
@@ -867,47 +869,54 @@ static void print_syntax()
 	printf("\ttrace +tsip -t 12\n");
 }
 
-static display_mask_t parse_display_mask(char *text)
+static display_mask_t parse_display_mask(const char *text)
 {
 	display_mask_t dm;
-	char *c;
-
-	c = text;
-
+	const char *c = text;
+	
 	while (*c) {
 		switch (*c) {
-		case 't': dm = dm | DM_THREAD; break;
-		case 's': dm = dm | DM_SYSCALL; break;
-		case 'i': dm = dm | DM_IPC; break;
-		case 'p': dm = dm | DM_SYSTEM | DM_USER; break;
+		case 't':
+			dm = dm | DM_THREAD;
+			break;
+		case 's':
+			dm = dm | DM_SYSCALL;
+			break;
+		case 'i':
+			dm = dm | DM_IPC;
+			break;
+		case 'p':
+			dm = dm | DM_SYSTEM | DM_USER;
+			break;
 		default:
 			printf("Unexpected event type '%c'.\n", *c);
 			exit(1);
 		}
-
+		
 		++c;
 	}
-
+	
 	return dm;
 }
 
 static int parse_args(int argc, char *argv[])
 {
-	char *arg;
 	char *err_p;
 
 	task_id = 0;
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	while (argc > 0) {
-		arg = *argv;
+		char *arg = *argv;
 		if (arg[0] == '+') {
 			display_mask = parse_display_mask(&arg[1]);
 		} else if (arg[0] == '-') {
 			if (arg[1] == 't') {
 				/* Trace an already running task */
-				--argc; ++argv;
+				--argc;
+				++argv;
 				task_id = strtol(*argv, &err_p, 10);
 				task_ldr = NULL;
 				task_wait_for = false;
@@ -924,12 +933,14 @@ static int parse_args(int argc, char *argv[])
 		} else {
 			break;
 		}
-
-		--argc; ++argv;
+		
+		--argc;
+		++argv;
 	}
 
 	if (task_id != 0) {
-		if (argc == 0) return 0;
+		if (argc == 0)
+			return 0;
 		printf("Extra arguments\n");
 		print_syntax();
 		return -1;
@@ -943,10 +954,11 @@ static int parse_args(int argc, char *argv[])
 
 	/* Preload the specified program file. */
 	printf("Spawning '%s' with arguments:\n", *argv);
-	{
-		char **cp = argv;
-		while (*cp) printf("'%s'\n", *cp++);
-	}
+	
+	char **cp = argv;
+	while (*cp)
+		printf("'%s'\n", *cp++);
+	
 	task_ldr = preload_task(*argv, argv, &task_id);
 	task_wait_for = true;
 
@@ -971,11 +983,11 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %lld.\n", task_id);
+		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
 		return 1;
 	}
 
-	printf("Connected to task %lld.\n", task_id);
+	printf("Connected to task %" PRIdTASKID ".\n", task_id);
 
 	if (task_ldr != NULL)
 		program_run();

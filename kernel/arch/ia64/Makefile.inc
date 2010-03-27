@@ -26,20 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf64-little
 BFD_ARCH = ia64-elf64
-TARGET = ia64-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/ia64
 
 CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 
-LFLAGS += -EL
-AFLAGS += -mconstant-gp
+LFLAGS = -EL
+AFLAGS = -mconstant-gp
 
 BITS = 64
 ENDIANESS = LE
@@ -52,6 +47,8 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/ivt.S \
 	arch/$(KARCH)/src/interrupt.c \
 	arch/$(KARCH)/src/mm/as.c \

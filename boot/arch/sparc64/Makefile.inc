@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
+include Makefile.common
 
 ifeq ($(CONFIG_AOUT_ISOFS_B),y)
 	SILO_PACKAGE = silo.tar.gz
@@ -54,7 +54,7 @@ endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
 
 arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader
+	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 
 clean: generic_clean
 	$(MAKE) -C arch/$(BARCH)/loader clean

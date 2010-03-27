@@ -541,8 +541,11 @@ repeat:
 void kcpulb(void *arg)
 {
 	thread_t *t;
-	int count, average, j, k = 0;
+	int count;
+	atomic_count_t average;
 	unsigned int i;
+	int j;
+	int k = 0;
 	ipl_t ipl;
 
 	/*

@@ -37,7 +37,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Return true if the intervals overlap.
  *
@@ -83,8 +83,8 @@ static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 #define STRING(arg)      STRING_ARG(arg)
 #define STRING_ARG(arg)  #arg
 
-#define LOWER32(arg)  ((arg) & 0xffffffff)
-#define UPPER32(arg)  (((arg) >> 32) & 0xffffffff)
+#define LOWER32(arg)  (((uint64_t) (arg)) & 0xffffffff)
+#define UPPER32(arg)  (((((uint64_t) arg)) >> 32) & 0xffffffff)
 
 #define MERGE_LOUP32(lo, up) \
 	((((uint64_t) (lo)) & 0xffffffff) \

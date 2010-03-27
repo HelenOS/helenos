@@ -36,7 +36,8 @@
 #define KERN_ia32_CONTEXT_H_
 
 #ifdef KERNEL
-#include <arch/types.h>
+
+#include <typedefs.h>
 
 #define STACK_ITEM_SIZE	4
 
@@ -47,6 +48,13 @@
  * One item is put onto stack to support get_stack_base().
  */
 #define SP_DELTA	(8 + STACK_ITEM_SIZE)
+
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = (uintptr_t) (_pc); \
+		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(c)->ebp = 0; \
+	} while (0)
 
 #endif /* KERNEL */
 

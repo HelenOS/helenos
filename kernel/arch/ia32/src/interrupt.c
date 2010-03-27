@@ -52,6 +52,7 @@
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <symtab.h>
+#include <stacktrace.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -63,21 +64,21 @@ void (* eoi_function)(void) = NULL;
 
 void decode_istate(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->eip);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->eip);
+	
 	if (CPU)
 		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);
 	else
 		printf("----------------EXCEPTION OCCURED----------------\n");
-		
+	
 	printf("%%eip: %#lx (%s)\n", istate->eip, symbol);
 	printf("ERROR_WORD=%#lx\n", istate->error_word);
 	printf("%%cs=%#lx,flags=%#lx\n", istate->cs, istate->eflags);
 	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
 	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
 	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
+	
+	stack_trace_istate(istate);
 }
 
 static void trap_virtual_eoi(void)
@@ -95,6 +96,14 @@ static void null_interrupt(int n, istate_t *istate)
 
 	decode_istate(istate);
 	panic("Unserviced interrupt: %d.", n);
+}
+
+static void de_fault(int n, istate_t *istate)
+{
+	fault_if_from_uspace(istate, "Divide error.");
+
+	decode_istate(istate);
+	panic("Divide error.");
 }
 
 /** General Protection Fault. */
@@ -214,6 +223,7 @@ void interrupt_init(void)
 			exc_register(IVT_IRQBASE + i, "irq", (iroutine) irq_interrupt);
 	}
 	
+	exc_register(0, "de_fault", (iroutine) de_fault);
 	exc_register(7, "nm_fault", (iroutine) nm_fault);
 	exc_register(12, "ss_fault", (iroutine) ss_fault);
 	exc_register(13, "gp_fault", (iroutine) gp_fault);

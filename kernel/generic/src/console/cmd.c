@@ -45,12 +45,12 @@
 #include <console/kconsole.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <config.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <debug.h>
 #include <cpu.h>
@@ -1032,7 +1032,7 @@ static bool run_test(const test_t *test)
 	
 	/* Execute the test */
 	test_quiet = false;
-	char *ret = test->entry();
+	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
 	ipl = interrupts_disable();
@@ -1085,7 +1085,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Execute the test */
 		test_quiet = true;
-		char * ret = test->entry();
+		const char *ret = test->entry();
 		
 		/* Update and read thread accounting */
 		ipl = interrupts_disable();

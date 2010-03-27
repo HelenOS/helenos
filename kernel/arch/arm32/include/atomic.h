@@ -36,6 +36,8 @@
 #ifndef KERN_arm32_ATOMIC_H_
 #define KERN_arm32_ATOMIC_H_
 
+#include <arch/asm.h>
+
 /** Atomic addition.
  *
  * @param val Where to add.
@@ -44,23 +46,16 @@
  * @return Value after addition.
  *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	int ret;
-	volatile long *mem = &(val->count);
-	
-	asm volatile (
-		"1:\n"
-			"ldr r2, [%[mem]]\n"
-			"add r3, r2, %[i]\n"
-			"str r3, %[ret]\n"
-			"swp r3, r3, [%[mem]]\n"
-			"cmp r3, r2\n"
-			"bne 1b\n"
-		: [ret] "=m" (ret)
-		: [mem] "r" (mem), [i] "r" (i)
-		: "r3", "r2"
-	);
+	/*
+	 * This implementation is for UP pre-ARMv6 systems where we do not have
+	 * the LDREX and STREX instructions.
+	 */
+	ipl_t ipl = interrupts_disable();
+	val->count += i;
+	atomic_count_t ret = val->count;
+	interrupts_restore(ipl);
 	
 	return ret;
 }
@@ -68,6 +63,7 @@ static inline long atomic_add(atomic_t *val, int i)
 /** Atomic increment.
  *
  * @param val Variable to be incremented.
+ *
  */
 static inline void atomic_inc(atomic_t *val)
 {
@@ -77,6 +73,7 @@ static inline void atomic_inc(atomic_t *val)
 /** Atomic decrement.
  *
  * @param val Variable to be decremented.
+ *
  */
 static inline void atomic_dec(atomic_t *val) {
 	atomic_add(val, -1);
@@ -86,8 +83,9 @@ static inline void atomic_dec(atomic_t *val) {
  *
  * @param val Variable to be incremented.
  * @return    Value after incrementation.
+ *
  */
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
@@ -96,8 +94,9 @@ static inline long atomic_preinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value after decrementation.
+ *
  */
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -106,8 +105,9 @@ static inline long atomic_predec(atomic_t *val)
  *
  * @param val Variable to be incremented.
  * @return    Value before incrementation.
+ *
  */
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1) - 1;
 }
@@ -116,8 +116,9 @@ static inline long atomic_postinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value before decrementation.
+ *
  */
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1) + 1;
 }

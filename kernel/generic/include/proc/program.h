@@ -35,7 +35,7 @@
 #ifndef KERN_PROGRAM_H_
 #define KERN_PROGRAM_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 struct task;
 struct thread;
@@ -44,22 +44,21 @@ struct thread;
  *
  * A program is an abstraction of a freshly created (not yet running)
  * userspace task containing a main thread along with its userspace stack.
+ *
  */
 typedef struct program {
-	struct task *task;		/**< Program task */
-	struct thread *main_thread;	/**< Program main thread */
+	struct task *task;           /**< Program task */
+	struct thread *main_thread;  /**< Program main thread */
 } program_t;
 
 extern void *program_loader;
 
-extern void program_create(as_t *as, uintptr_t entry_addr, char *name,
-    program_t *p);
-extern int program_create_from_image(void *image_addr, char *name,
-    program_t *p);
-extern int program_create_loader(program_t *p, char *name);
-extern void program_ready(program_t *p);
+extern int program_create(as_t *, uintptr_t, char *, program_t *);
+extern int program_create_from_image(void *, char *, program_t *);
+extern int program_create_loader(program_t *, char *);
+extern void program_ready(program_t *);
 
-extern unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len);
+extern unative_t sys_program_spawn_loader(char *, size_t);
 
 #endif
 

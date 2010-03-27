@@ -37,7 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
     unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data);

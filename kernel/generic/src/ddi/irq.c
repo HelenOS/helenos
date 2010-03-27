@@ -70,9 +70,10 @@
 #include <ddi/irq.h>
 #include <adt/hash_table.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/spinlock.h>
 #include <console/console.h>
+#include <interrupt.h>
 #include <memstr.h>
 #include <arch.h>
 
@@ -168,6 +169,8 @@ void irq_initialize(irq_t *irq)
 	link_initialize(&irq->notif_cfg.link);
 	irq->inr = -1;
 	irq->devno = -1;
+
+	irq_initialize_arch(irq);
 }
 
 /** Register IRQ for device.

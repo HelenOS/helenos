@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <string.h>
+#include <str.h>
 #include <fcntl.h>
 
 #include "config.h"
@@ -42,11 +42,11 @@
 #include "cat.h"
 #include "cmds.h"
 
-static char *cmdname = "cat";
+static const char *cmdname = "cat";
 #define CAT_VERSION "0.0.1"
 #define CAT_DEFAULT_BUFLEN 1024
 
-static char *cat_oops = "That option is not yet supported\n";
+static const char *cat_oops = "That option is not yet supported\n";
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -84,7 +84,7 @@ void help_cmd_cat(unsigned int level)
 static unsigned int cat_file(const char *fname, size_t blen)
 {
 	int fd, bytes = 0, count = 0, reads = 0;
-	off_t total = 0;
+	off64_t total = 0;
 	char *buff = NULL;
 
 	fd = open(fname, O_RDONLY);

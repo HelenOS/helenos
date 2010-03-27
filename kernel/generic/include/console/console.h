@@ -35,12 +35,11 @@
 #ifndef KERN_CONSOLE_H_
 #define KERN_CONSOLE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 
 extern indev_t *stdin;
 extern outdev_t *stdout;
-extern bool silent;
 
 extern indev_t *stdin_wire(void);
 extern void stdout_wire(outdev_t *outdev);

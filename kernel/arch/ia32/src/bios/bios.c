@@ -33,7 +33,7 @@
  */
 
 #include <arch/bios/bios.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 uintptr_t ebda = 0;
 

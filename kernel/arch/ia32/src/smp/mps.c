@@ -41,7 +41,7 @@
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
 #include <func.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch/bios/bios.h>

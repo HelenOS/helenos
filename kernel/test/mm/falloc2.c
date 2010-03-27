@@ -32,7 +32,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <atomic.h>
 #include <debug.h>
 #include <proc/thread.h>
@@ -103,7 +103,7 @@ cleanup:
 	atomic_dec(&thread_count);
 }
 
-char *test_falloc2(void)
+const char *test_falloc2(void)
 {
 	unsigned int i;
 	

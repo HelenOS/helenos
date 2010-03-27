@@ -40,6 +40,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
+#include <mm/page.h>
 #include <mm/slab.h>
 #include <align.h>
 #include <panic.h>
@@ -47,9 +48,9 @@
 #include <config.h>
 #include <bitops.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <ddi/ddi.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <byteorder.h>
 
 #define BG_COLOR     0x000080

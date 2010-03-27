@@ -39,7 +39,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string.h>
+#include <str.h>
 
 #include "errors.h"
 #include "config.h"
@@ -48,7 +48,7 @@
 #include "ls.h"
 #include "cmds.h"
 
-static char *cmdname = "ls";
+static const char *cmdname = "ls";
 
 static void ls_scan_dir(const char *d, DIR *dirp)
 {
@@ -99,6 +99,8 @@ static void ls_print(const char *name, const char *pathname)
 	
 	if (s.is_file)
 		printf("%-40s\t%llu\n", name, (long long) s.size);
+	else if (s.is_directory)
+		printf("%-40s\t<dir>\n", name);
 	else
 		printf("%-40s\n", name);
 

@@ -27,14 +27,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../..
+BINARY = trace
 
-.PHONY: all clean
+SOURCES = \
+	trace.c \
+	syscalls.c \
+	ipcp.c \
+	ipc_desc.c \
+	proto.c \
+	errors.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build
-
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+include $(USPACE_PREFIX)/Makefile.common

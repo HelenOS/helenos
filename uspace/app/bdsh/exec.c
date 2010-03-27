@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 #include <fcntl.h>
 
 #include "config.h"
@@ -119,7 +119,7 @@ unsigned int try_exec(char *cmd, char **argv)
 	tmp = str_dup(find_command(cmd));
 	free(found);
 
-	tid = task_spawn((const char *)tmp, argv);
+	tid = task_spawn(tmp, (const char **) argv);
 	free(tmp);
 
 	if (tid == 0) {

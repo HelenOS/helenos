@@ -59,7 +59,7 @@ static void reader(void *arg)
 	atomic_dec(&thread_count);
 }
 
-char *test_rwlock3(void)
+const char *test_rwlock3(void)
 {
 	int i;
 	thread_t *thrd;

@@ -35,5 +35,8 @@
 #
 # Jump to a program entry point
 program_run:
+	# load ras_page address to r2
+	ldr r2, =ras_page
+	ldr r2, [r2]
 	# pcb is passed to the entry point in r1 (where it already is)
 	mov r15, r0

@@ -40,7 +40,7 @@
 #include <genarch/mm/page_ht.h>
 #include <mm/as.h>
 #include <mm/frame.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <memstr.h>
 #include <adt/hash_table.h>
 #include <synch/mutex.h>

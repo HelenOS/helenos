@@ -37,7 +37,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 #include "tester.h"
 
 bool test_quiet;
@@ -55,6 +55,7 @@ test_t tests[] = {
 #include "stdio/stdio2.def"
 #include "fault/fault1.def"
 #include "fault/fault2.def"
+#include "fault/fault3.def"
 #include "vfs/vfs1.def"
 #include "ipc/ping_pong.def"
 #include "ipc/register.def"
@@ -67,7 +68,7 @@ test_t tests[] = {
 static bool run_test(test_t *test)
 {
 	/* Execute the test */
-	char *ret = test->entry();
+	const char *ret = test->entry();
 	
 	if (ret == NULL) {
 		printf("\nTest passed\n");

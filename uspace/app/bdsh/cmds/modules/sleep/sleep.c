@@ -37,7 +37,7 @@
 #include "sleep.h"
 #include "cmds.h"
 
-static char *cmdname = "sleep";
+static const char *cmdname = "sleep";
 
 /* Dispays help for sleep in various levels */
 void help_cmd_sleep(unsigned int level)

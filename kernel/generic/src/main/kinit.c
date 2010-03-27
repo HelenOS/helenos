@@ -65,7 +65,7 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <debug.h>
-#include <string.h>
+#include <str.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -93,7 +93,6 @@ static char alive[ALIVE_CHARS] = "-\\|/";
  */
 void kinit(void *arg)
 {
-
 #if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
 #endif
@@ -183,9 +182,8 @@ void kinit(void *arg)
 		 */
 		
 		char namebuf[TASK_NAME_BUFLEN];
-		char *name;
 		
-		name = init.tasks[i].name;
+		const char *name = init.tasks[i].name;
 		if (name[0] == 0)
 			name = "<unknown>";
 		
@@ -216,7 +214,7 @@ void kinit(void *arg)
 				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
 		}
 	}
-	
+
 	/*
 	 * Run user tasks.
 	 */
@@ -224,7 +222,7 @@ void kinit(void *arg)
 		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
 	}
-	
+
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);
