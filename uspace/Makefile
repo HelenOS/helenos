@@ -124,6 +124,7 @@ LIBC = lib/c
 LIBS = \
 	lib/fs \
 	lib/block \
+	lib/clui \
 	lib/softint \
 	lib/softfloat \
 
