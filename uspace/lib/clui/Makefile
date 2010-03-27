@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,35 +27,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIB_PREFIX)/block/libblock.a $(LIB_PREFIX)/clui/libclui.a
-EXTRA_CFLAGS = -I$(LIB_PREFIX)/block -I$(LIB_PREFIX)/clui -I. -Icmds/ \
-    -Icmds/builtins -Icmds/modules
-BINARY = bdsh
+LIBRARY = libclui
 
 SOURCES = \
-	cmds/modules/help/help.c \
-	cmds/modules/mkdir/mkdir.c \
-	cmds/modules/mkfile/mkfile.c \
-	cmds/modules/rm/rm.c \
-	cmds/modules/bdd/bdd.c \
-	cmds/modules/cat/cat.c \
-	cmds/modules/touch/touch.c \
-	cmds/modules/ls/ls.c \
-	cmds/modules/pwd/pwd.c \
-	cmds/modules/sleep/sleep.c \
-	cmds/modules/cp/cp.c \
-	cmds/modules/mv/mv.c \
-	cmds/modules/mount/mount.c \
-	cmds/modules/unmount/unmount.c \
-	cmds/modules/kcon/kcon.c \
-	cmds/builtins/exit/exit.c \
-	cmds/builtins/cd/cd.c \
-	cmds/mod_cmds.c \
-	cmds/builtin_cmds.c \
-	errors.c \
-	input.c \
-	util.c \
-	exec.c \
-	scli.c
+	tinput.c
 
 include $(USPACE_PREFIX)/Makefile.common
