@@ -314,6 +314,7 @@ void scheduler(void)
 		
 		/* Update thread accounting */
 		THREAD->cycles += get_cycle() - THREAD->last_cycle;
+		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 		
 #ifndef CONFIG_FPU_LAZY
 		fpu_context_save(THREAD->saved_fpu_context);

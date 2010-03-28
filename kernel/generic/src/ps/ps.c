@@ -131,7 +131,9 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 
 	copy_to_uspace(uspace_info->name, t->name, sizeof(t->name));
 
-	uint64_t cycles = task_get_accounting(t);
+	uint64_t ucycles;
+	uint64_t kcycles;
+	uint64_t cycles = task_get_accounting(t, &ucycles, &kcycles);
 	copy_to_uspace(&uspace_info->cycles, &cycles, sizeof(cycles));
 
 	size_t pages = get_pages_count(t->as);

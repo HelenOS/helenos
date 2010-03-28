@@ -184,6 +184,8 @@ task_t *task_create(as_t *as, const char *name)
 	ta->context = CONTEXT;
 	ta->capabilities = 0;
 	ta->cycles = 0;
+	ta->ucycles = 0;
+	ta->kcycles = 0;
 
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
@@ -316,14 +318,15 @@ task_t *task_find_by_id(task_id_t id) { avltree_node_t *node;
  * already disabled.
  *
  * @param t		Pointer to thread.
- *
- * @return		Number of cycles used by the task and all its threads
- * 			so far.
+ * @param ucycles	Out pointer to sum of all user cycles.
+ * @param kcycles	Out pointer to sum of all kernel cycles.
  */
-uint64_t task_get_accounting(task_t *t)
+uint64_t task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles)
 {
-	/* Accumulated value of task */
+	/* Accumulated values of task */
 	uint64_t ret = t->cycles;
+	uint64_t uret = t->ucycles;
+	uint64_t kret = t->kcycles;
 	
 	/* Current values of threads */
 	link_t *cur;
@@ -335,13 +338,18 @@ uint64_t task_get_accounting(task_t *t)
 		if (!thr->uncounted) {
 			if (thr == THREAD) {
 				/* Update accounting of current thread */
-				thread_update_accounting();
+				thread_update_accounting(false);
 			} 
+			uret += thr->ucycles;
+			kret += thr->kcycles;
 			ret += thr->cycles;
 		}
 		spinlock_unlock(&thr->lock);
 	}
 	
+	*ucycles = uret;
+	*kcycles = kret;
+
 	return ret;
 }
 
@@ -409,19 +417,26 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	spinlock_lock(&t->lock);
 			
 	uint64_t cycles;
-	char suffix;
-	order(task_get_accounting(t), &cycles, &suffix);
+	uint64_t ucycles;
+	uint64_t kcycles;
+	char suffix, usuffix, ksuffix;
+	cycles = task_get_accounting(t, &ucycles, &kcycles);
+	order(cycles, &cycles, &suffix);
+	order(ucycles, &ucycles, &usuffix);
+	order(kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__	
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64
-	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
-	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
+		atomic_get(&t->active_calls));
 #endif
 
 #ifdef __64_BITS__
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64
-	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
-	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
+		atomic_get(&t->active_calls));
 #endif
 
 	for (j = 0; j < IPC_MAX_PHONES; j++) {
@@ -444,17 +459,17 @@ void task_print_list(void)
 	spinlock_lock(&tasks_lock);
 
 #ifdef __32_BITS__	
-	printf("taskid name         ctx address    as         "
-	    "cycles     threads calls  callee\n");
-	printf("------ ------------ --- ---------- ---------- "
-	    "---------- ------- ------ ------>\n");
+	printf("taskid name         ctx address    as        "
+	    " cycles     ucycles    kcycles    threads calls  callee\n");
+	printf("------ ------------ --- ---------- ----------"
+	    " ---------- ---------- ---------- ------- ------ ------>\n");
 #endif
 
 #ifdef __64_BITS__
-	printf("taskid name         ctx address            as                 "
-	    "cycles     threads calls  callee\n");
-	printf("------ ------------ --- ------------------ ------------------ "
-	    "---------- ------- ------ ------>\n");
+	printf("taskid name         ctx address            as                "
+	    " cycles     ucycles    kcycles    threads calls  callee\n");
+	printf("------ ------------ --- ------------------ ------------------"
+	    " ---------- ---------- ---------- ---------- ------- ------ ------>\n");
 #endif
 
 	avltree_walk(&tasks_tree, task_print_walker, NULL);

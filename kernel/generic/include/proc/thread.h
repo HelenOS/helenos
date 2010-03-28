@@ -174,6 +174,8 @@ typedef struct thread {
 	
 	/** Thread accounting. */
 	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 	/** Last sampled cycle. */
 	uint64_t last_cycle;
 	/** Thread doesn't affect accumulated accounting. */	
@@ -236,7 +238,7 @@ extern void thread_detach(thread_t *);
 extern void thread_register_call_me(void (*)(void *), void *);
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *);
-extern void thread_update_accounting(void);
+extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
 
 /** Fpu context slab cache. */

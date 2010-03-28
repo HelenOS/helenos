@@ -131,13 +131,20 @@ static void cushion(void)
 	
 	spinlock_lock(&THREAD->lock);
 	if (!THREAD->uncounted) {
-		thread_update_accounting();
+		thread_update_accounting(true);
 		uint64_t cycles = THREAD->cycles;
 		THREAD->cycles = 0;
+		uint64_t ucycles = THREAD->ucycles;
+		THREAD->ucycles = 0;
+		uint64_t kcycles = THREAD->kcycles;
+		THREAD->kcycles = 0;
+
 		spinlock_unlock(&THREAD->lock);
 		
 		spinlock_lock(&TASK->lock);
 		TASK->cycles += cycles;
+		TASK->ucycles += ucycles;
+		TASK->kcycles += kcycles;
 		spinlock_unlock(&TASK->lock);
 	} else
 		spinlock_unlock(&THREAD->lock);
@@ -323,6 +330,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	t->thread_arg = arg;
 	t->ticks = -1;
 	t->cycles = 0;
+	t->ucycles = 0;
+	t->kcycles = 0;
 	t->uncounted = uncounted;
 	t->priority = -1;		/* start in rq[0] */
 	t->cpu = NULL;
@@ -613,20 +622,22 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 {
 	thread_t *t = avltree_get_instance(node, thread_t, threads_tree_node);
 	
-	uint64_t cycles;
-	char suffix;
+	uint64_t cycles, ucycles, kcycles;
+	char suffix, usuffix, ksuffix;
 	order(t->cycles, &cycles, &suffix);
+	order(t->ucycles, &ucycles, &usuffix);
+	order(t->kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__
-	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9" PRIu64 "%c ",
+	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c %9" PRIu64 "%c ",
 	    t->tid, t->name, t, thread_states[t->state], t->task,
-    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+    	t->task->context, t->thread_code, t->kstack, cycles, suffix, ucycles, usuffix, kcycles, ksuffix);
 #endif
 
 #ifdef __64_BITS__
-	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9" PRIu64 "%c ",
+	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9" PRIu64 "%c %9" PRIu64 "%c ",
 	    t->tid, t->name, t, thread_states[t->state], t->task,
-    	t->task->context, t->thread_code, t->kstack, cycles, suffix);
+    	t->task->context, t->thread_code, t->kstack, cycles, suffix, ucycles, usuffix, kcycles, ksuffix);
 #endif
 			
 	if (t->cpu)
@@ -660,19 +671,19 @@ void thread_print_list(void)
 
 #ifdef __32_BITS__	
 	printf("tid    name       address    state    task       "
-		"ctx code       stack      cycles     cpu  "
+		"ctx code       stack      cycles     ucycles    kcycles    cpu  "
 		"waitqueue\n");
 	printf("------ ---------- ---------- -------- ---------- "
-		"--- ---------- ---------- ---------- ---- "
+		"--- ---------- ---------- ---------- ---------- ---------- ---- "
 		"----------\n");
 #endif
 
 #ifdef __64_BITS__
 	printf("tid    name       address            state    task               "
-		"ctx code               stack              cycles     cpu  "
+		"ctx code               stack              cycles     ucycles    kcycles    cpu  "
 		"waitqueue\n");
 	printf("------ ---------- ------------------ -------- ------------------ "
-		"--- ------------------ ------------------ ---------- ---- "
+		"--- ------------------ ------------------ ---------- ---------- ---------- ---- "
 		"------------------\n");
 #endif
 
@@ -705,11 +716,17 @@ bool thread_exists(thread_t *t)
  * Note that thread_lock on THREAD must be already held and
  * interrupts must be already disabled.
  *
+ * @param user	True to update user accounting, false for kernel.
  */
-void thread_update_accounting(void)
+void thread_update_accounting(bool user)
 {
 	uint64_t time = get_cycle();
 	THREAD->cycles += time - THREAD->last_cycle;
+	if (user) {
+		THREAD->ucycles += time - THREAD->last_cycle;
+	} else {
+		THREAD->kcycles += time - THREAD->last_cycle;
+	}
 	THREAD->last_cycle = time;
 }
 

@@ -1026,7 +1026,8 @@ static bool run_test(const test_t *test)
 	   for benchmarking */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t t0 = task_get_accounting(TASK);
+	uint64_t ucycles, kcycles;
+	uint64_t t0 = task_get_accounting(TASK, &ucycles, &kcycles);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
@@ -1037,7 +1038,7 @@ static bool run_test(const test_t *test)
 	/* Update and read thread accounting */
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t dt = task_get_accounting(TASK) - t0;
+	uint64_t dt = task_get_accounting(TASK, &ucycles, &kcycles) - t0;
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
@@ -1079,7 +1080,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		   for benchmarking */
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t t0 = task_get_accounting(TASK);
+		uint64_t ucycles, kcycles;
+		uint64_t t0 = task_get_accounting(TASK, &ucycles, &kcycles);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 		
@@ -1090,7 +1092,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		/* Update and read thread accounting */
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t dt = task_get_accounting(TASK) - t0;
+		uint64_t dt = task_get_accounting(TASK, &ucycles, &kcycles) - t0;
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 		

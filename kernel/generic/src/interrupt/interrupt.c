@@ -50,6 +50,7 @@
 #include <panic.h>
 #include <print.h>
 #include <symtab.h>
+#include <proc/thread.h>
 
 static struct {
 	const char *name;
@@ -89,6 +90,10 @@ iroutine exc_register(int n, const char *name, iroutine f)
 void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
+
+	/* Account user cycles */
+	if (THREAD)
+		thread_update_accounting(true);
 
 #ifdef CONFIG_UDEBUG
 	if (THREAD) THREAD->udebug.uspace_state = istate;
