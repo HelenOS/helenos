@@ -40,6 +40,7 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/sbi \
 	app/taskdump \
 	app/tester \
 	app/tetris \
