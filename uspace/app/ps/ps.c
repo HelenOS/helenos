@@ -69,14 +69,16 @@ static void list_tasks(void)
 		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 	}
 
-	printf("      ID  Threads    Pages    [k]Cycles Name\n");
+	printf("      ID  Threads    Pages   [k]uCycles   [k]kCycles  Cycle fault Name\n");
 
 	int i;
 	for (i = 0; i < result; ++i) {
 		task_info_t taskinfo;
 		get_task_info(tasks[i], &taskinfo);
-		printf("%8llu %8u %8u %12llu %s\n", tasks[i], taskinfo.thread_count, 
-				taskinfo.pages, taskinfo.cycles / 1000, taskinfo.name);
+		printf("%8llu %8u %8u %12llu %12llu %12llu %s\n", tasks[i],
+				taskinfo.thread_count, taskinfo.pages, taskinfo.ucycles / 1000,
+				taskinfo.kcycles / 1000, (taskinfo.ucycles + taskinfo.kcycles) -
+				taskinfo.cycles, taskinfo.name);
 	}
 }
 
@@ -98,10 +100,13 @@ static void list_threads(task_id_t taskid)
 	}
 
 	int i;
-	printf("    ID    State  CPU   Prio    [k]Cycles\n");
+	printf("    ID    State  CPU   Prio   [k]uCycles   [k]kcycles  Cycle fault\n");
 	for (i = 0; i < result; ++i) {
-		printf("%6llu %-8s %4u %6d %12llu\n", threads[i].tid, thread_states[threads[i].state],
-				threads[i].cpu, threads[i].priority, threads[i].cycles / 1000);
+		printf("%6llu %-8s %4u %6d %12llu %12llu %12llu\n", threads[i].tid,
+			thread_states[threads[i].state], threads[i].cpu,
+			threads[i].priority, threads[i].ucycles / 1000,
+			threads[i].kcycles / 1000,
+			threads[i].ucycles + threads[i].kcycles - threads[i].cycles);
 	}
 }
 

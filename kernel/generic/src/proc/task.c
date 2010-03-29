@@ -426,15 +426,15 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	order(kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__	
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c %9"
-		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as,
 		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
 		atomic_get(&t->active_calls));
 #endif
 
 #ifdef __64_BITS__
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9" PRIu64 "%c %9"
-		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles, suffix,
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as,
 		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
 		atomic_get(&t->active_calls));
 #endif
@@ -460,16 +460,16 @@ void task_print_list(void)
 
 #ifdef __32_BITS__	
 	printf("taskid name         ctx address    as        "
-	    " cycles     ucycles    kcycles    threads calls  callee\n");
+	    " ucycles    kcycles    threads calls  callee\n");
 	printf("------ ------------ --- ---------- ----------"
-	    " ---------- ---------- ---------- ------- ------ ------>\n");
+	    " ---------- ---------- ------- ------ ------>\n");
 #endif
 
 #ifdef __64_BITS__
 	printf("taskid name         ctx address            as                "
-	    " cycles     ucycles    kcycles    threads calls  callee\n");
+	    " ucycles    kcycles    threads calls  callee\n");
 	printf("------ ------------ --- ------------------ ------------------"
-	    " ---------- ---------- ---------- ---------- ------- ------ ------>\n");
+	    " ---------- ---------- ---------- ------- ------ ------>\n");
 #endif
 
 	avltree_walk(&tasks_tree, task_print_walker, NULL);

@@ -61,6 +61,9 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 {
 	unative_t rc;
 
+	/* Do userpace accounting */
+	thread_update_accounting(true);
+
 #ifdef CONFIG_UDEBUG
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
@@ -95,6 +98,9 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_end();
 	}
 #endif
+
+	/* Do kernel accounting */
+	thread_update_accounting(false);
 	
 	return rc;
 }

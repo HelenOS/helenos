@@ -629,15 +629,17 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	order(t->kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__
-	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c %9" PRIu64 "%c ",
-	    t->tid, t->name, t, thread_states[t->state], t->task,
-    	t->task->context, t->thread_code, t->kstack, cycles, suffix, ucycles, usuffix, kcycles, ksuffix);
+	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9"
+		PRIu64 "%c %9" PRIu64 "%c ", t->tid, t->name, t,
+		thread_states[t->state], t->task, t->task->context, t->thread_code,
+		t->kstack, ucycles, usuffix, kcycles, ksuffix);
 #endif
 
 #ifdef __64_BITS__
-	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9" PRIu64 "%c %9" PRIu64 "%c ",
-	    t->tid, t->name, t, thread_states[t->state], t->task,
-    	t->task->context, t->thread_code, t->kstack, cycles, suffix, ucycles, usuffix, kcycles, ksuffix);
+	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9"
+		PRIu64 "%c %9" PRIu64 "%c ", t->tid, t->name, t,
+		thread_states[t->state], t->task, t->task->context, t->thread_code,
+		t->kstack, ucycles, usuffix, kcycles, ksuffix);
 #endif
 			
 	if (t->cpu)
@@ -671,19 +673,19 @@ void thread_print_list(void)
 
 #ifdef __32_BITS__	
 	printf("tid    name       address    state    task       "
-		"ctx code       stack      cycles     ucycles    kcycles    cpu  "
+		"ctx code       stack      ucycles    kcycles    cpu  "
 		"waitqueue\n");
 	printf("------ ---------- ---------- -------- ---------- "
-		"--- ---------- ---------- ---------- ---------- ---------- ---- "
+		"--- ---------- ---------- ---------- ---------- ---- "
 		"----------\n");
 #endif
 
 #ifdef __64_BITS__
 	printf("tid    name       address            state    task               "
-		"ctx code               stack              cycles     ucycles    kcycles    cpu  "
+		"ctx code               stack              ucycles    kcycles    cpu  "
 		"waitqueue\n");
 	printf("------ ---------- ------------------ -------- ------------------ "
-		"--- ------------------ ------------------ ---------- ---------- ---------- ---- "
+		"--- ------------------ ------------------ ---------- ---------- ---- "
 		"------------------\n");
 #endif
 

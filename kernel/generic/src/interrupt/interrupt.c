@@ -108,6 +108,9 @@ void exc_dispatch(int n, istate_t *istate)
 	/* This is a safe place to exit exiting thread */
 	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
 		thread_exit();
+
+	if (THREAD)
+		thread_update_accounting(false);
 }
 
 /** Default 'null' exception handler */
