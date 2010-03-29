@@ -181,6 +181,22 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	sym = symbol_lookup_in_csi(stype->program, stype->current_csi,
 	    nameref->name);
 
+	if (sym == NULL) {
+		/* Not found. */
+		if (stype->current_csi != NULL) {
+			printf("Error: Symbol '%s' not found in '",
+			    strtab_get_str(nameref->name->sid));
+			symbol_print_fqn(csi_to_symbol(stype->current_csi));
+			printf("'.\n");
+		} else {
+			printf("Error: Symbol '%s' not found.\n",
+			    strtab_get_str(nameref->name->sid));
+		}
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
 	switch (sym->sc) {
 	case sc_var:
 		run_texpr(stype->program, stype->current_csi,
@@ -272,15 +288,20 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 	assert(binop->arg2->titem != NULL);
 
 	if (binop->arg1->titem == NULL) {
-		/* XXX Make this an error when ready. */
 		printf("Error First binary operand has no value.\n");
-		exit(1);
+		stype_note_error(stype);
+		if (binop->arg2->titem != NULL)
+			*rtitem = binop->arg2->titem;
+		else
+			*rtitem = stype_recovery_titem(stype);
+		return;
 	}
 
 	if (binop->arg2->titem == NULL) {
-		/* XXX Make this an error when ready. */
 		printf("Error: Second binary operand has no value.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = binop->arg1->titem;
+		return;
 	}
 
 	equal = tdata_item_equal(binop->arg1->titem, binop->arg2->titem);
@@ -291,7 +312,9 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 		printf("' and '");
 		tdata_item_print(binop->arg2->titem);
 		printf("').\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = binop->arg1->titem;
+		return;
 	}
 
 	titem = binop->arg1->titem;
@@ -310,7 +333,9 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 		    "supported type (found '");
 		tdata_item_print(titem);
 		printf("').\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = titem;
+		break;
 	}
 
 }
@@ -333,18 +358,21 @@ static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
 		break;
 	case tpc_nil:
 		printf("Unimplemented; Binary operation on nil.\n");
-		exit(1);
+		stype_note_error(stype);
+		rtpc = tpc_nil;
+		break;
 	case tpc_string:
 		if (binop->bc != bo_plus) {
 			printf("Unimplemented: Binary operation(%d) "
 			    "on strings.\n", binop->bc);
-			exit(1);
+			stype_note_error(stype);
 		}
 		rtpc = tpc_string;
 		break;
 	case tpc_resource:
 		printf("Error: Cannot apply operator to resource type.\n");
-		exit(1);
+		stype_note_error(stype);
+		rtpc = tpc_resource;
 	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
@@ -424,7 +452,9 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 
 	if (arg_ti == NULL) {
 		printf("Error: Argument of access has no value.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	}
 
 	switch (arg_ti->tic) {
@@ -442,7 +472,8 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 		break;
 	case tic_tfun:
 		printf("Error: Using '.' operator on a function.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
 		break;
 	}
 }
@@ -458,7 +489,8 @@ static void stype_access_tprimitive(stype_t *stype, stree_access_t *access,
 	printf("Error: Unimplemented: Accessing primitive type '");
 	tdata_item_print(arg_ti);
 	printf("'.\n");
-	exit(1);
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type an object access operation. */
@@ -487,7 +519,8 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 		symbol_print_fqn(csi_to_symbol(tobject->csi));
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(access->member_name->sid));
-		exit(1);
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	}
 
 #ifdef DEBUG_RUN_TRACE
@@ -499,7 +532,9 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 	case sc_csi:
 		printf("Error: Accessing object member which is nested "
 		    "CSI.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
 	case sc_fun:
 		fun = symbol_to_fun(member_sym);
 		assert(fun != NULL);
@@ -535,7 +570,8 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
 	printf("Error: Unimplemented: Accessing array type '");
 	tdata_item_print(arg_ti);
 	printf("'.\n");
-	exit(1);
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type a generic access operation. */
@@ -549,7 +585,8 @@ static void stype_access_tgeneric(stype_t *stype, stree_access_t *access,
 	printf("Error: Unimplemented: Accessing generic type '");
 	tdata_item_print(arg_ti);
 	printf("'.\n");
-	exit(1);
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type a call operation. */
@@ -638,14 +675,14 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		printf("Error: Too few arguments to function '");
 		symbol_print_fqn(fun_to_symbol(fun));
 		printf("'.\n");
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	if (arg_n != NULL) {
 		printf("Error: Too many arguments to function '");
 		symbol_print_fqn(fun_to_symbol(fun));
 		printf("'.\n");
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	if (fun->rtype != NULL) {
@@ -695,7 +732,8 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 		break;
 	case tic_tfun:
 		printf("Error: Indexing a function.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
 		break;
 	}
 }
@@ -723,7 +761,8 @@ static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
 	printf("Error: Indexing primitive type '");
 	tdata_item_print(base_ti);
 	printf("'.\n");
-	exit(1);
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type an object indexing operation. */
@@ -755,7 +794,9 @@ static void stype_index_tobject(stype_t *stype, stree_index_t *index,
 		printf("Error: Indexing object of type '");
 		tdata_item_print(base_ti);
 		printf("' which does not have an indexer.\n");
-		exit(1);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	}
 
 	idx = symbol_to_prop(idx_sym);
@@ -790,7 +831,7 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 		    arg->titem->u.tprimitive->tpc != tpc_int) {
 
 			printf("Error: Array index is not an integer.\n");
-			exit(1);
+			stype_note_error(stype);
 		}
 
 		arg_n = list_next(&index->args, arg_n);
@@ -799,7 +840,7 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 	if (arg_count != base_ti->u.tarray->rank) {
 		printf("Error: Using %d indices with array of rank %d.\n",
 		    arg_count, base_ti->u.tarray->rank);
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	*rtitem = base_ti->u.tarray->base_ti;
@@ -816,7 +857,8 @@ static void stype_index_tgeneric(stype_t *stype, stree_index_t *index,
 	printf("Error: Unimplemented: Indexing generic type '");
 	tdata_item_print(base_ti);
 	printf("'.\n");
-	exit(1);
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type an assignment. */
@@ -856,7 +898,7 @@ static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 		printf("' is not derived from '");
 		tdata_item_print(as_op->arg->titem);
 		printf("'.\n");
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	*rtitem = titem;

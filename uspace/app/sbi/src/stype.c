@@ -60,7 +60,7 @@ static void stype_while(stype_t *stype, stree_while_t *while_s);
 static void stype_for(stype_t *stype, stree_for_t *for_s);
 static void stype_raise(stype_t *stype, stree_raise_t *raise_s);
 static void stype_return(stype_t *stype, stree_return_t *return_s);
-static void stype_exps(stype_t *stype, stree_exps_t *exp_s);
+static void stype_exps(stype_t *stype, stree_exps_t *exp_s, bool_t want_value);
 static void stype_wef(stype_t *stype, stree_wef_t *wef_s);
 
 static tdata_item_t *stype_boolean_titem(stype_t *stype);
@@ -163,7 +163,7 @@ static void stype_fun(stype_t *stype, stree_fun_t *fun)
 
 		if (titem->tic != tic_tarray) {
 			printf("Error: Packed argument is not an array.\n");
-			exit(1);
+			stype_note_error(stype);
 		}
 	}
 
@@ -239,7 +239,7 @@ static void stype_block(stype_t *stype, stree_block_t *block)
 	stat_n = list_first(&block->stats);
 	while (stat_n != NULL) {
 		stat = list_node_data(stat_n, stree_stat_t *);
-		stype_stat(stype, stat);
+		stype_stat(stype, stat, b_false);
 
 		stat_n = list_next(&block->stats, stat_n);
 	}
@@ -250,8 +250,17 @@ static void stype_block(stype_t *stype, stree_block_t *block)
 	list_remove(&stype->proc_vr->block_vr, bvr_n);
 }
 
-/** Type statement */
-void stype_stat(stype_t *stype, stree_stat_t *stat)
+/** Type statement
+ *
+ * Types a statement. If @a want_value is @c b_true, then warning about
+ * ignored expression value will be supressed for this statement (but not
+ * for nested statemens). This is used in interactive mode.
+ *
+ * @param stype		Static typer object.
+ * @param stat		Statement to type.
+ * @param want_value	@c b_true to allow ignoring expression value.
+ */
+void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value)
 {
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type statement.\n");
@@ -263,7 +272,7 @@ void stype_stat(stype_t *stype, stree_stat_t *stat)
 	case st_for: stype_for(stype, stat->u.for_s); break;
 	case st_raise: stype_raise(stype, stat->u.raise_s); break;
 	case st_return: stype_return(stype, stat->u.return_s); break;
-	case st_exps: stype_exps(stype, stat->u.exp_s); break;
+	case st_exps: stype_exps(stype, stat->u.exp_s, want_value); break;
 	case st_wef: stype_wef(stype, stat->u.wef_s); break;
 	}
 }
@@ -284,7 +293,7 @@ static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s)
 	if (old_vdecl != NULL) {
 		printf("Error: Duplicate variable declaration '%s'.\n",
 		    strtab_get_str(vdecl_s->name->sid));
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	intmap_set(&block_vr->vdecls, vdecl_s->name->sid, vdecl_s);
@@ -386,7 +395,7 @@ static void stype_return(stype_t *stype, stree_return_t *return_s)
 		if (stype->proc_vr->proc != prop->getter) {
 			printf("Error: Return statement in "
 			    "setter.\n");
-			exit(1);
+			stype_note_error(stype);
 		}
 
 		/* XXX Memoize to avoid recomputing. */
@@ -405,14 +414,14 @@ static void stype_return(stype_t *stype, stree_return_t *return_s)
 }
 
 /** Type expression statement */
-static void stype_exps(stype_t *stype, stree_exps_t *exp_s)
+static void stype_exps(stype_t *stype, stree_exps_t *exp_s, bool_t want_value)
 {
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type expression statement.\n");
 #endif
 	stype_expr(stype, exp_s->expr);
 
-	if (exp_s->expr->titem != NULL)
+	if (want_value == b_false && exp_s->expr->titem != NULL)
 		printf("Warning: Expression value ignored.\n");
 }
 
@@ -467,12 +476,14 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 
 	if (dest == NULL) {
 		printf("Error: Conversion destination is not valid.\n");
-		exit(1);
+		stype_note_error(stype);
+		return expr;
 	}
 
 	if (src == NULL) {
 		printf("Error: Conversion source is not valid.\n");
-		exit(1);
+		stype_note_error(stype);
+		return expr;
 	}
 
 	if (dest == NULL || src == NULL)
@@ -518,7 +529,7 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 		printf("' to '");
 		tdata_item_print(dest);
 		printf("'.\n");
-		exit(1);
+		stype_note_error(stype);
 	}
 
 	return expr;
@@ -530,8 +541,8 @@ failure:
 	tdata_item_print(dest);
 	printf(".\n");
 
-	/* XXX We should rather return a bogus expression of type @a dest */
-	exit(1);
+	stype_note_error(stype);
+	return expr;
 }
 
 /** Return a boolean type item */
@@ -656,6 +667,28 @@ stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name)
 #endif
 	/* No match */
 	return NULL;
+}
+
+/** Note a static typing error that has been immediately recovered. */
+void stype_note_error(stype_t *stype)
+{
+	stype->error = b_true;
+}
+
+/** Construct a special type item for recovery. */
+tdata_item_t *stype_recovery_titem(stype_t *stype)
+{
+	tdata_item_t *titem;
+	tdata_primitive_t *tprimitive;
+
+	(void) stype;
+
+	titem = tdata_item_new(tic_tprimitive);
+	tprimitive = tdata_primitive_new(tpc_int);
+
+	titem->u.tprimitive = tprimitive;
+
+	return titem;
 }
 
 /** Get current block visit record. */

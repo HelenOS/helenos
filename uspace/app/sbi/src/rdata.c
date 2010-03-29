@@ -47,7 +47,6 @@ static void rdata_resource_copy(rdata_resource_t *src,
 static int rdata_array_get_dim(rdata_array_t *array);
 
 static void rdata_address_print(rdata_address_t *address);
-static void rdata_value_print(rdata_value_t *value);
 static void rdata_var_print(rdata_var_t *var);
 
 
@@ -449,7 +448,7 @@ static void rdata_address_print(rdata_address_t *address)
 	}
 }
 
-static void rdata_value_print(rdata_value_t *value)
+void rdata_value_print(rdata_value_t *value)
 {
 	rdata_var_print(value->var);
 }

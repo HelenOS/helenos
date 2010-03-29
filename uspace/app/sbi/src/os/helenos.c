@@ -33,12 +33,15 @@
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
+#include <tinput.h>
 
 #include "os.h"
 
 /*
  * Using HelenOS-specific string API.
  */
+
+static tinput_t *tinput = NULL;
 
 /** Concatenate two strings. */
 char *os_str_acat(const char *a, const char *b)
@@ -94,6 +97,28 @@ int os_str_get_char(const char *str, int index, int *out_char)
 	}
 
 	*out_char = (int) c;
+	return EOK;
+}
+
+/** Read one line of input from the user. */
+int os_input_line(char **ptr)
+{
+	char *line;
+
+	if (tinput == NULL) {
+		tinput = tinput_new();
+		if (tinput == NULL)
+			return EIO;
+	}
+
+	line = tinput_read(tinput);
+	if (line == NULL)
+		return EIO;
+
+	/* XXX Input module needs trailing newline to keep going. */
+	*ptr = os_str_acat(line, "\n");
+	free(line);
+
 	return EOK;
 }
 

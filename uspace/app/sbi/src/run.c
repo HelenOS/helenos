@@ -47,7 +47,7 @@
 #include "run.h"
 
 static void run_block(run_t *run, stree_block_t *block);
-static void run_exps(run_t *run, stree_exps_t *exps);
+static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res);
 static void run_vdecl(run_t *run, stree_vdecl_t *vdecl);
 static void run_if(run_t *run, stree_if_t *if_s);
 static void run_while(run_t *run, stree_while_t *while_s);
@@ -195,7 +195,7 @@ static void run_block(run_t *run, stree_block_t *block)
 	node = list_first(&block->stats);
 	while (node != NULL) {
 		stat = list_node_data(node, stree_stat_t *);
-		run_stat(run, stat);
+		run_stat(run, stat, NULL);
 
 		if (run->thread_ar->bo_mode != bm_none)
 			break;
@@ -213,16 +213,28 @@ static void run_block(run_t *run, stree_block_t *block)
 	list_remove(&proc_ar->block_ar, node);
 }
 
-/** Run statement. */
-void run_stat(run_t *run, stree_stat_t *stat)
+/** Run statement.
+ *
+ * Executes a statement. If @a res is not NULL and the statement is an
+ * expression statement with a value, the value item will be stored to
+ * @a res.
+ *
+ * @param run	Runner object.
+ * @param stat	Statement to run.
+ * @param res	Place to store exps result or NULL if not interested.
+ */
+void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
 {
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing one statement %p.\n", stat);
 #endif
 
+	if (res != NULL)
+		*res = NULL;
+
 	switch (stat->sc) {
 	case st_exps:
-		run_exps(run, stat->u.exp_s);
+		run_exps(run, stat->u.exp_s, res);
 		break;
 	case st_vdecl:
 		run_vdecl(run, stat->u.vdecl_s);
@@ -250,8 +262,16 @@ void run_stat(run_t *run, stree_stat_t *stat)
 	}
 }
 
-/** Run expression statement. */
-static void run_exps(run_t *run, stree_exps_t *exps)
+/** Run expression statement.
+ *
+ * Executes an expression statement. If @a res is not NULL then the value
+ * of the expression (or NULL if it has no value) will be stored to @a res.
+ *
+ * @param run	Runner object.
+ * @param exps	Expression statement to run.
+ * @param res	Place to store exps result or NULL if not interested.
+ */
+static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res)
 {
 	rdata_item_t *rexpr;
 
@@ -260,9 +280,8 @@ static void run_exps(run_t *run, stree_exps_t *exps)
 #endif
 	run_expr(run, exps->expr, &rexpr);
 
-	if (rexpr != NULL) {
-		printf("Warning: Expression value ignored.\n");
-	}
+	if (res != NULL)
+		*res = rexpr;
 }
 
 /** Run variable declaration statement. */
@@ -503,6 +522,23 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 
 	return tdata_is_csi_derived_from_ti(payload_o->class_sym->u.csi,
 	    etype);
+}
+
+/** Raise an irrecoverable run-time error, start bailing out.
+ *
+ * Raises an error that cannot be handled by the user program.
+ */
+void run_raise_error(run_t *run)
+{
+	run->thread_ar->bo_mode = bm_error;
+	run->thread_ar->error = b_true;
+}
+
+/** Construct a special recovery item. */
+rdata_item_t *run_recovery_item(run_t *run)
+{
+	(void) run;
+	return NULL;
 }
 
 /** Find a local variable in the currently active function. */
@@ -1135,7 +1171,9 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 
 	if (addr_var->vref == NULL) {
 		printf("Error: Accessing null reference.\n");
-		exit(1);
+		run_raise_error(run);
+		*ritem = run_recovery_item(run);
+		return;
 	}
 
 #ifdef DEBUG_RUN_TRACE
@@ -1143,7 +1181,6 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 #endif
 	*ritem = item;
 }
-
 
 run_thread_ar_t *run_thread_ar_new(void)
 {

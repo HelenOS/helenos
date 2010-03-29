@@ -91,6 +91,24 @@ int os_str_get_char(const char *str, int index, int *out_char)
 	return EOK;
 }
 
+#define OS_INPUT_BUFFER_SIZE 256
+static char os_input_buffer[OS_INPUT_BUFFER_SIZE];
+
+/** Read one line of input from the user. */
+int os_input_line(char **ptr)
+{
+	if (fgets(os_input_buffer, OS_INPUT_BUFFER_SIZE, stdin) == NULL)
+		os_input_buffer[0] = '\0';
+
+	if (ferror(stdin)) {
+		*ptr = NULL;
+		return EIO;
+	}
+
+	*ptr = strdup(os_input_buffer);
+	return EOK;
+}
+
 /** Simple command execution. */
 int os_exec(char *const cmd[])
 {

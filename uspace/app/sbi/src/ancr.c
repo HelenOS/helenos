@@ -66,6 +66,9 @@ static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node);
  *
  * Note that currently we expect there to be exactly one module in the
  * whole program.
+ *
+ * @param prog		Program being processed.
+ * @param module	Module to process.
  */
 void ancr_module_process(stree_program_t *prog, stree_module_t *module)
 {
@@ -78,8 +81,6 @@ void ancr_module_process(stree_program_t *prog, stree_module_t *module)
 	while (node != NULL) {
 		modm = list_node_data(node, stree_modm_t *);
 		assert(modm->mc == mc_csi); /* XXX */
-/*		printf("ancr_csi_process() on '%s'\n",
-		    strtab_get_str(modm->u.csi->name->sid));*/
 		ancr_csi_dfs(prog, modm->u.csi);
 
 		node = list_next(&prog->module->members, node);
@@ -91,6 +92,9 @@ void ancr_module_process(stree_program_t *prog, stree_module_t *module)
  * This is the outer depth-first walk whose purpose is to eventually
  * process all CSI nodes by calling ancr_csi_process() on them.
  * (Which causes that and possibly some other nodes to be processed).
+ *
+ * @param prog		Program being processed.
+ * @param csi		CSI node to visit.
  */
 static void ancr_csi_dfs(stree_program_t *prog, stree_csi_t *csi)
 {
@@ -115,6 +119,9 @@ static void ancr_csi_dfs(stree_program_t *prog, stree_csi_t *csi)
  *
  * Fist processes the pre-required nodes (outer CSI and base CSIs),
  * then processes @a node. This is the core 'outward-and-baseward' walk.
+ *
+ * @param prog		Program being processed.
+ * @param node		CSI node to process.
  */
 static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 {
@@ -170,6 +177,9 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
  *
  * We have detected a loop in CSI ancestry. Traverse it (by following the
  * nodes in ws_active state and print it.
+ *
+ * @param prog		Program.
+ * @param node		CSI node participating in an ancestry cycle.
  */
 static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node)
 {

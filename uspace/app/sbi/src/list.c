@@ -46,14 +46,23 @@ static void list_node_insert_between(list_node_t *n, list_node_t *a, list_node_t
 static void list_node_unlink(list_node_t *n);
 static bool_t list_node_present(list_t *list, list_node_t *node);
 
-/** Initialize list. */
+/** Initialize list.
+ *
+ * @param list	List to initialize.
+ */
 void list_init(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
 }
 
-/** Append data to list. */
+/** Append data to list.
+ *
+ * Create a new list node and append it at the end of the list.
+ *
+ * @param list	Linked list.
+ * @param data	Data for the new node.
+ */
 void list_append(list_t *list, void *data)
 {
 	list_node_t *node;
@@ -62,7 +71,13 @@ void list_append(list_t *list, void *data)
 	list_node_insert_between(node, list->head.prev, &list->head);
 }
 
-/** Prepend data to list. */
+/** Prepend data to list.
+ *
+ * Create a new list node and prepend it at the beginning of the list.
+ *
+ * @param list	Linked list.
+ * @param data	Data for the new node.
+ */
 void list_prepend(list_t *list, void *data)
 {
 	list_node_t *node;
@@ -71,7 +86,15 @@ void list_prepend(list_t *list, void *data)
 	list_node_insert_between(node, list->head.prev, &list->head);
 }
 
-/** Remove data from list. */
+/** Remove data from list.
+ *
+ * Removes the given node from a list and destroys it. Any data the node might
+ * have is ignored. If asserts are on, we check wheter node is really present
+ * in the list the caller is requesting us to remove it from.
+ *
+ * @param list	Linked list.
+ * @param node	List node to remove.
+ */
 void list_remove(list_t *list, list_node_t *node)
 {
 	/* Check whether node is in the list as claimed. */
@@ -81,7 +104,11 @@ void list_remove(list_t *list, list_node_t *node)
 	list_node_delete(node);
 }
 
-/** Return first list node or NULL if list is empty. */
+/** Return first list node or NULL if list is empty.
+ *
+ * @param list	Linked list.
+ * @return	First node of the list or @c NULL if the list is empty.
+ */
 list_node_t *list_first(list_t *list)
 {
 	list_node_t *node;
@@ -92,7 +119,11 @@ list_node_t *list_first(list_t *list)
 	return (node != &list->head) ? node : NULL;
 }
 
-/** Return last list node or NULL if list is empty. */
+/** Return last list node or NULL if list is empty.
+ *
+ * @param list	Linked list.
+ * @return	Last node of the list or @c NULL if the list is empty.
+ */
 list_node_t *list_last(list_t *list)
 {
 	list_node_t *node;
@@ -103,7 +134,12 @@ list_node_t *list_last(list_t *list)
 	return (node != &list->head) ? node : NULL;
 }
 
-/** Return next list node or NULL if this was the last one. */
+/** Return next list node or NULL if this was the last one.
+ *
+ * @param list	Linked list.
+ * @param node	Node whose successor we are interested in.
+ * @return	Following list node or @c NULL if @a node is last.
+ */
 list_node_t *list_next(list_t *list, list_node_t *node)
 {
 	(void) list;
@@ -113,7 +149,12 @@ list_node_t *list_next(list_t *list, list_node_t *node)
 	return (node->next != &list->head) ? node->next : NULL;
 }
 
-/** Return next list node or NULL if this was the last one. */
+/** Return previous list node or NULL if this was the last one.
+ *
+ * @param list	Linked list.
+ * @param node	Node whose predecessor we are interested in.
+ * @return	Preceding list node or @c NULL if @a node is last.
+ */
 list_node_t *list_prev(list_t *list, list_node_t *node)
 {
 	(void) list;
@@ -123,19 +164,33 @@ list_node_t *list_prev(list_t *list, list_node_t *node)
 	return (node->prev != &list->head) ? node->prev : NULL;
 }
 
-/** Return b_true if list is empty. */
+/** Return b_true if list is empty.
+ *
+ * @param list	Linked list.
+ * @return	@c b_true if list is empty, @c b_false otherwise.
+ */
 bool_t list_is_empty(list_t *list)
 {
 	return (list_first(list) == NULL);
 }
 
-/** Change node data. */
+/** Change node data.
+ *
+ * Change the data associated with a node.
+ *
+ * @param node	List node.
+ * @param data	New data for node.
+ */
 void list_node_setdata(list_node_t *node, void *data)
 {
 	node->data = data;
 }
 
-/** Create new node. */
+/** Create new node.
+ *
+ * @param data	Initial data for node.
+ * @return	New list node.
+ */
 static list_node_t *list_node_new(void *data)
 {
 	list_node_t *node;
@@ -153,7 +208,10 @@ static list_node_t *list_node_new(void *data)
 	return node;
 }
 
-/** Delete node. */
+/** Delete node.
+ *
+ * @param node	List node. Must not take part in any list.
+ */
 static void list_node_delete(list_node_t *node)
 {
 	assert(node->prev == NULL);
@@ -162,8 +220,16 @@ static void list_node_delete(list_node_t *node)
 	free(node);
 }
 
-/** Insert node between two other nodes. */
-static void list_node_insert_between(list_node_t *n, list_node_t *a, list_node_t *b)
+/** Insert node between two other nodes.
+ *
+ * Inserts @a n between neighboring nodes @a a and @a b.
+ *
+ * @param n	Node to insert.
+ * @param a	Node to precede @a n.
+ * @param b	Node to follow @a n.
+ */
+static void list_node_insert_between(list_node_t *n, list_node_t *a,
+    list_node_t *b)
 {
 	assert(n->prev == NULL);
 	assert(n->next == NULL);
@@ -176,7 +242,12 @@ static void list_node_insert_between(list_node_t *n, list_node_t *a, list_node_t
 	b->prev = n;
 }
 
-/** Unlink node. */
+/** Unlink node.
+ *
+ * Unlink node from the list it is currently in.
+ * 
+ * @param n	Node to unlink from its current list.
+ */
 static void list_node_unlink(list_node_t *n)
 {
 	list_node_t *a, *b;
@@ -196,7 +267,12 @@ static void list_node_unlink(list_node_t *n)
 	n->next = NULL;
 }
 
-/** Check whether @a node is in list @a list. */
+/** Check whether @a node is in list @a list.
+ *
+ * @param list	Linked list.
+ * @param node	Node.
+ * @return	@c b_true if @a node is part of @a list, @c b_false otherwise.
+ */
 static bool_t list_node_present(list_t *list, list_node_t *node)
 {
 	list_node_t *m;

@@ -83,6 +83,10 @@ void parse_init(parse_t *parse, stree_program_t *prog, struct lex *lex)
 	parse->program = prog;
 	parse->cur_mod = parse->program->module;
 	parse->lex = lex;
+
+	parse->error = b_false;
+	parse->error_bailout = b_false;
+
 	lex_next(parse->lex);
 }
 
@@ -92,7 +96,7 @@ void parse_module(parse_t *parse)
 	stree_csi_t *csi;
 	stree_modm_t *modm;
 
-	while (lcur_lc(parse) != lc_eof) {
+	while (lcur_lc(parse) != lc_eof && !parse_is_error(parse)) {
 		switch (lcur_lc(parse)) {
 		case lc_class:
 		case lc_struct:
@@ -154,7 +158,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	list_init(&csi->members);
 
 	/* Parse class, struct or interface members. */
-	while (lcur_lc(parse) != lc_end) {
+	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
 		csimbr = parse_csimbr(parse, csi);
 		list_append(&csi->members, csimbr);
 	}
@@ -234,7 +238,7 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 	if (lcur_lc(parse) != lc_rparen) {
 
 		/* Parse formal parameters. */
-		while (b_true) {
+		while (!parse_is_error(parse)) {
 			arg = parse_proc_arg(parse);
 
 			if (stree_arg_has_attr(arg, aac_packed)) {
@@ -263,7 +267,7 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 	list_init(&symbol->attr);
 
 	/* Parse attributes. */
-	while (lcur_lc(parse) == lc_comma) {
+	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
 		lskip(parse);
 		attr = parse_symbol_attr(parse);
 		list_append(&symbol->attr, attr);
@@ -280,7 +284,7 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 			printf("Error: Function '");
 			symbol_print_fqn(symbol);
 			printf("' has no body.\n");
-			exit(1);
+			parse_note_error(parse);
 		}
 		fun->proc->body = NULL;
 	} else {
@@ -344,7 +348,7 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 		lmatch(parse, lc_lsbr);
 
 		/* Parse formal parameters. */
-		while (b_true) {
+		while (!parse_is_error(parse)) {
 			arg = parse_proc_arg(parse);
 			if (stree_arg_has_attr(arg, aac_packed)) {
 				prop->varg = arg;
@@ -369,14 +373,17 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 	prop->type = parse_texpr(parse);
 	lmatch(parse, lc_is);
 
-	while (lcur_lc(parse) != lc_end) {
+	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
 		switch (lcur_lc(parse)) {
 		case lc_get:
 			lskip(parse);
 			lmatch(parse, lc_is);
 			if (prop->getter != NULL) {
 				printf("Error: Duplicate getter.\n");
-				exit(1);
+				(void) parse_block(parse); /* XXX Free */
+				lmatch(parse, lc_end);
+				parse_note_error(parse);
+				break;
 			}
 
 			/* Create setter procedure */
@@ -394,7 +401,9 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 			lmatch(parse, lc_is);
 			if (prop->setter != NULL) {
 				printf("Error: Duplicate setter.\n");
-				exit(1);
+				(void) parse_block(parse); /* XXX Free */
+				lmatch(parse, lc_end);
+				parse_note_error(parse);
 			}
 
 			/* Create setter procedure */
@@ -423,7 +432,7 @@ static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
 		printf("Error: Unexpected attribute '");
 		lem_print(lcur(parse));
 		printf("'.\n");
-		exit(1);
+		parse_note_error(parse);
 	}
 
 	lskip(parse);
@@ -446,7 +455,7 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 	list_init(&arg->attr);
 
 	/* Parse attributes. */
-	while (lcur_lc(parse) == lc_comma) {
+	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
 		lskip(parse);
 		attr = parse_arg_attr(parse);
 		list_append(&arg->attr, attr);
@@ -467,7 +476,7 @@ static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
 		printf("Error: Unexpected attribute '");
 		lem_print(lcur(parse));
 		printf("'.\n");
-		exit(1);
+		parse_note_error(parse);
 	}
 
 	lskip(parse);
@@ -485,7 +494,13 @@ static stree_block_t *parse_block(parse_t *parse)
 	block = stree_block_new();
 	list_init(&block->stats);
 
-	while (terminates_block(lcur_lc(parse)) != b_true) {
+	/* Avoid peeking if there is an error condition. */
+	if (parse_is_error(parse))
+		return block;
+
+	while (terminates_block(lcur_lc(parse)) != b_true &&
+	    !parse_is_error(parse)) {
+
 		stat = parse_stat(parse);
 		list_append(&block->stats, stat);
 	}
@@ -507,6 +522,9 @@ stree_stat_t *parse_stat(parse_t *parse)
 	stree_wef_t *wef_s;
 	stree_exps_t *exp_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse statement.\n");
+#endif
 	switch (lcur_lc(parse)) {
 	case lc_var:
 		vdecl_s = parse_vdecl(parse);
@@ -589,6 +607,9 @@ static stree_if_t *parse_if(parse_t *parse)
 {
 	stree_if_t *if_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'if' statement.\n");
+#endif
 	if_s = stree_if_new();
 
 	lmatch(parse, lc_if);
@@ -612,6 +633,9 @@ static stree_while_t *parse_while(parse_t *parse)
 {
 	stree_while_t *while_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'while' statement.\n");
+#endif
 	while_s = stree_while_new();
 
 	lmatch(parse, lc_while);
@@ -628,6 +652,9 @@ static stree_for_t *parse_for(parse_t *parse)
 {
 	stree_for_t *for_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'for' statement.\n");
+#endif
 	for_s = stree_for_new();
 
 	lmatch(parse, lc_for);
@@ -648,6 +675,9 @@ static stree_raise_t *parse_raise(parse_t *parse)
 {
 	stree_raise_t *raise_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'raise' statement.\n");
+#endif
 	raise_s = stree_raise_new();
 	lmatch(parse, lc_raise);
 	raise_s->expr = parse_expr(parse);
@@ -661,6 +691,9 @@ static stree_return_t *parse_return(parse_t *parse)
 {
 	stree_return_t *return_s;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'return' statement.\n");
+#endif
 	return_s = stree_return_new();
 
 	lmatch(parse, lc_return);
@@ -676,6 +709,9 @@ static stree_wef_t *parse_wef(parse_t *parse)
 	stree_wef_t *wef_s;
 	stree_except_t *except_c;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse WEF statement.\n");
+#endif
 	wef_s = stree_wef_new();
 	list_init(&wef_s->except_clauses);
 
@@ -691,7 +727,7 @@ static stree_wef_t *parse_wef(parse_t *parse)
 	lmatch(parse, lc_do);
 	wef_s->with_block = parse_block(parse);
 
-	while (lcur_lc(parse) == lc_except) {
+	while (lcur_lc(parse) == lc_except && !parse_is_error(parse)) {
 		except_c = parse_except(parse);
 		list_append(&wef_s->except_clauses, except_c);
 	}
@@ -715,6 +751,9 @@ static stree_exps_t *parse_exps(parse_t *parse)
 	stree_expr_t *expr;
 	stree_exps_t *exps;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse expression statement.\n");
+#endif
 	expr = parse_expr(parse);
 	lmatch(parse, lc_scolon);
 
@@ -729,6 +768,9 @@ static stree_except_t *parse_except(parse_t *parse)
 {
 	stree_except_t *except_c;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'except' statement.\n");
+#endif
 	except_c = stree_except_new();
 
 	lmatch(parse, lc_except);
@@ -747,6 +789,9 @@ stree_ident_t *parse_ident(parse_t *parse)
 {
 	stree_ident_t *ident;
 
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse identifier.\n");
+#endif
 	lcheck(parse, lc_ident);
 	ident = stree_ident_new();
 	ident->sid = lcur(parse)->u.ident.sid;
@@ -755,9 +800,43 @@ stree_ident_t *parse_ident(parse_t *parse)
 	return ident;
 }
 
+/** Signal a parse error, start bailing out from parser. */
+void parse_raise_error(parse_t *parse)
+{
+	parse->error = b_true;
+	parse->error_bailout = b_true;
+}
+
+/** Note a parse error that has been immediately recovered. */
+void parse_note_error(parse_t *parse)
+{
+	parse->error = b_true;
+}
+
+/** Check if we are currently bailing out of parser due to a parse error. */
+bool_t parse_is_error(parse_t *parse)
+{
+	return parse->error_bailout;
+}
+
+/** Recover from parse error bailout.
+ *
+ * Still remember that there was an error, but stop bailing out.
+ */
+void parse_recover_error(parse_t *parse)
+{
+	assert(parse->error == b_true);
+	assert(parse->error_bailout == b_true);
+
+	parse->error_bailout = b_false;
+}
+
 /** Return current lem. */
 lem_t *lcur(parse_t *parse)
 {
+#ifdef DEBUG_LPARSE_TRACE
+	printf("lcur()\n");
+#endif
 	return lex_get_current(parse->lex);
 }
 
@@ -766,6 +845,17 @@ lclass_t lcur_lc(parse_t *parse)
 {
 	lem_t *lem;
 
+	/*
+	 * This allows us to skip error checking in many places. If there is an
+	 * active error, lcur_lc() returns lc_invalid without reading input.
+	 *
+	 * Without this measure we would have to check for error all the time
+	 * or risk requiring extra input from the user (in interactive mode)
+	 * before actually bailing out from the parser.
+	 */
+	if (parse_is_error(parse))
+		return lc_invalid;
+
 	lem = lcur(parse);
 	return lem->lclass;
 }
@@ -773,24 +863,48 @@ lclass_t lcur_lc(parse_t *parse)
 /** Skip to next lem. */
 void lskip(parse_t *parse)
 {
+#ifdef DEBUG_LPARSE_TRACE
+	printf("lskip()\n");
+#endif
 	lex_next(parse->lex);
 }
 
 /** Verify that lclass of current lem is @a lc. */
 void lcheck(parse_t *parse, lclass_t lc)
 {
+#ifdef DEBUG_LPARSE_TRACE
+	printf("lcheck(");
+	lclass_print(lc);
+	printf(")\n");
+#endif
 	if (lcur(parse)->lclass != lc) {
 		lem_print_coords(lcur(parse));
 		printf(" Error: expected '"); lclass_print(lc);
 		printf("', got '"); lem_print(lcur(parse));
 		printf("'.\n");
-		exit(1);
+		parse_raise_error(parse);
 	}
 }
 
 /** Verify that lclass of current lem is @a lc and go to next lem. */
 void lmatch(parse_t *parse, lclass_t lc)
 {
+#ifdef DEBUG_LPARSE_TRACE
+	printf("lmatch(");
+	lclass_print(lc);
+	printf(")\n");
+#endif
+	/*
+	 * This allows us to skip error checking in many places. If there is an
+	 * active error, lmatch() does nothing (similar to parse_block(), etc.
+	 *
+	 * Without this measure we would have to check for error all the time
+	 * or risk requiring extra input from the user (in interactive mode)
+	 * before actually bailing out from the parser.
+	 */
+	if (parse_is_error(parse))
+		return;
+
 	lcheck(parse, lc);
 	lskip(parse);
 }
@@ -802,7 +916,7 @@ void lunexpected_error(parse_t *parse)
 	printf(" Error: unexpected token '");
 	lem_print(lcur(parse));
 	printf("'.\n");
-	exit(1);
+	parse_raise_error(parse);
 }
 
 /** Basically tells us whether @a lclass is in next(block). */

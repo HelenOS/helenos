@@ -209,6 +209,9 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 
 	sym = symbol_lookup_in_csi(run->program, csi, nameref->name);
 
+	/* Existence should have been verified in type checking phase. */
+	assert(sym != NULL);
+
 	switch (sym->sc) {
 	case sc_csi:
 #ifdef DEBUG_RUN_TRACE
@@ -856,6 +859,11 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 	/* Implicitly dereference. */
 	run_dereference(run, arg, &darg);
 
+	if (run->thread_ar->bo_mode != bm_none) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	/* Try again. */
 	run_access_item(run, access, darg, res);
 }
@@ -1020,10 +1028,14 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 #endif
 	run_expr(run, call->fun, &rfun);
 
+	if (run->thread_ar->bo_mode != bm_none) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	if (rfun->ic != ic_value || rfun->u.value->var->vc != vc_deleg) {
 		printf("Unimplemented: Call expression of this type.\n");
-		*res = NULL;
-		return;
+		exit(1);
 	}
 
 	deleg_v = rfun->u.value->var->u.deleg_v;
@@ -1181,7 +1193,9 @@ static void run_index_array(run_t *run, stree_index_t *index,
 		if (arg_val < 0 || arg_val >= array->extent[i]) {
 			printf("Error: Array index (value: %d) is out of range.\n",
 			    arg_val);
-			exit(1);
+			run_raise_error(run);
+			*res = run_recovery_item(run);
+			return;
 		}
 
 		elem_index = elem_index * array->extent[i] + arg_val;

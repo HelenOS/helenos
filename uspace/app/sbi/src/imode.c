@@ -26,14 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Interactive mode. */
+/** @file Interactive mode.
+ *
+ * In interactive mode the user types in statements. As soon as the outermost
+ * statement is complete (terminated with ';' or 'end'), the interpreter
+ * executes it. Otherwise it prompts the user until the entire statement
+ * is read in.
+ *
+ * The user interface depends on the OS. In HelenOS we use the CLUI library
+ * which gives us rich line editing capabilities.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "ancr.h"
+#include "assert.h"
 #include "builtin.h"
+#include "intmap.h"
 #include "list.h"
 #include "mytypes.h"
+#include "rdata.h"
 #include "stree.h"
 #include "strtab.h"
 #include "stype.h"
@@ -44,6 +56,10 @@
 
 #include "imode.h"
 
+/** Run in interactive mode.
+ *
+ * Repeatedly read in statements from the user and execute them.
+ */
 void imode_run(void)
 {
 	input_t *input;
@@ -55,6 +71,10 @@ void imode_run(void)
 	stree_fun_t *fun;
 	stree_symbol_t *fun_sym;
 	stype_t stype;
+	stype_block_vr_t *block_vr;
+	list_node_t *bvr_n;
+	rdata_item_t *rexpr;
+	rdata_item_t *rexpr_vi;
 
 	run_t run;
 	run_proc_ar_t *proc_ar;
@@ -71,8 +91,41 @@ void imode_run(void)
 	/* Resolve ancestry. */
 	ancr_module_process(program, program->module);
 
+	/* Construct typing context. */
+	stype.program = program;
+	stype.proc_vr = stype_proc_vr_new();
+	list_init(&stype.proc_vr->block_vr);
+	stype.current_csi = NULL;
+	proc = stree_proc_new();
+
+	fun = stree_fun_new();
+	fun_sym = stree_symbol_new(sc_fun);
+	fun_sym->u.fun = fun;
+	fun->name = stree_ident_new();
+	fun->name->sid = strtab_get_sid("$imode");
+
+	stype.proc_vr->proc = proc;
+	fun->symbol = fun_sym;
+	proc->outer_symbol = fun_sym;
+
+	/* Create block visit record. */
+	block_vr = stype_block_vr_new();
+	intmap_init(&block_vr->vdecls);
+
+	/* Add block visit record to the stack. */
+	list_append(&stype.proc_vr->block_vr, block_vr);
+
+	/* Construct run context. */
+	run.thread_ar = run_thread_ar_new();
+	list_init(&run.thread_ar->proc_ar);
+	run_proc_ar_create(&run, NULL, proc, &proc_ar);
+	list_append(&run.thread_ar->proc_ar, proc_ar);
+
 	quit_im = b_false;
 	while (quit_im != b_true) {
+		parse.error = b_false;
+		stype.error = b_false;
+
 		input_new_interactive(&input);
 
 		/* Parse input. */
@@ -84,36 +137,36 @@ void imode_run(void)
 
 		stat = parse_stat(&parse);
 
-		/* Construct typing context. */
-		stype.program = program;
-		stype.proc_vr = stype_proc_vr_new();
-		stype.current_csi = NULL;
-		proc = stree_proc_new();
-
-		fun = stree_fun_new();
-		fun_sym = stree_symbol_new(sc_fun);
-		fun_sym->u.fun = fun;
-		fun->name = stree_ident_new();
-		fun->name->sid = strtab_get_sid("$imode");
-
-		stype.proc_vr->proc = proc;
-		fun->symbol = fun_sym;
-		proc->outer_symbol = fun_sym;
-
-		/* Construct run context. */
-		run.thread_ar = run_thread_ar_new();
-		list_init(&run.thread_ar->proc_ar);
-		run_proc_ar_create(&run, NULL, proc, &proc_ar);
-		list_append(&run.thread_ar->proc_ar, proc_ar);
+		if (parse.error != b_false)
+			continue;
 
 		/* Type statement. */
-		stype_stat(&stype, stat);
+		stype_stat(&stype, stat, b_true);
+
+		if (stype.error != b_false)
+			continue;
 
 		/* Run statement. */
 		run_init(&run);
 		run.program = program;
-		run_stat(&run, stat);
+		run_stat(&run, stat, &rexpr);
+
+		if (rexpr != NULL) {
+			/* Convert expression result to value item. */
+			run_cvt_value_item(&run, rexpr, &rexpr_vi);
+			assert(rexpr_vi->ic == ic_value);
+
+			/* Print result. */
+			printf("Result: ");
+			rdata_value_print(rexpr_vi->u.value);
+			printf("\n");
+		}
 	}
+
+	/* Remove block visit record from the stack, */
+	bvr_n = list_last(&stype.proc_vr->block_vr);
+	assert(list_node_data(bvr_n, stype_block_vr_t *) == block_vr);
+	list_remove(&stype.proc_vr->block_vr, bvr_n);
 
 	printf("\nBye!\n");
 }

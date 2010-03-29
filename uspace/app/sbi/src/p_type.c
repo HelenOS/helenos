@@ -1,4 +1,4 @@
-/*                              YI
+/*
  * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "debug.h"
 #include "lex.h"
 #include "list.h"
 #include "mytypes.h"
@@ -47,13 +48,33 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse);
 static stree_tliteral_t *parse_tliteral(parse_t *parse);
 static stree_tnameref_t *parse_tnameref(parse_t *parse);
 
-/** Parse type expression. */
+static stree_texpr_t *parse_recovery_texpr(parse_t *parse);
+
+/** Parse type expression.
+ *
+ * Input is read from the input object associated with @a parse. If any
+ * error occurs, parse->error will @c b_true when this function
+ * returns. parse->error_bailout will be @c b_true if the error has not
+ * been recovered yet. Similar holds for other parsing functions in this
+ * module.
+ *
+ * @param parse		Parser object.
+ */
 stree_texpr_t *parse_texpr(parse_t *parse)
 {
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse type expression.\n");
+#endif
+	if (parse_is_error(parse))
+		return parse_recovery_texpr(parse);
+
 	return parse_tapply(parse);
 }
 
-/** Parse type application expression. */
+/** Parse type application expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_texpr_t *parse_tapply(parse_t *parse)
 {
 	stree_texpr_t *a, *b, *tmp;
@@ -61,6 +82,10 @@ static stree_texpr_t *parse_tapply(parse_t *parse)
 
 	a = parse_tpostfix(parse);
 	while (lcur_lc(parse) == lc_slash) {
+
+		if (parse_is_error(parse))
+			break;
+
 		lskip(parse);
 		b = parse_tpostfix(parse);
 
@@ -76,7 +101,10 @@ static stree_texpr_t *parse_tapply(parse_t *parse)
 	return a;
 }
 
-/** Parse postfix type expression. */
+/** Parse postfix type expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_texpr_t *parse_tpostfix(parse_t *parse)
 {
 	stree_texpr_t *a;
@@ -85,6 +113,9 @@ static stree_texpr_t *parse_tpostfix(parse_t *parse)
 	a = parse_tprimitive(parse);
 
 	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lsbr) {
+
+		if (parse_is_error(parse))
+			break;
 
 		switch (lcur_lc(parse)) {
 		case lc_period:
@@ -95,7 +126,8 @@ static stree_texpr_t *parse_tpostfix(parse_t *parse)
 			break;
 		default:
 			lunexpected_error(parse);
-			exit(1);
+			tmp = parse_recovery_texpr(parse);
+			break;
 		}
 
 		a = tmp;
@@ -104,7 +136,11 @@ static stree_texpr_t *parse_tpostfix(parse_t *parse)
 	return a;
 }
 
-/** Parse access type expression. */
+/** Parse access type expression.
+ *
+ * @param parse		Parser object.
+ * @param a		Base expression.
+ */
 static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a)
 {
 	stree_texpr_t *texpr;
@@ -124,7 +160,11 @@ static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a)
 	return texpr;
 }
 
-/** Parse index type expression. */
+/** Parse index type expression.
+ *
+ * @param parse		Parser object.
+ * @param a		Base expression.
+ */
 static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 {
 	stree_texpr_t *texpr;
@@ -141,6 +181,8 @@ static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 
 	if (lcur_lc(parse) != lc_rsbr && lcur_lc(parse) != lc_comma) {
 		while (b_true) {
+			if (parse_is_error(parse))
+				break;
 			expr = parse_expr(parse);
 			tindex->n_args += 1;
 			list_append(&tindex->args, expr);
@@ -153,6 +195,8 @@ static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 	} else {
 		tindex->n_args = 1;
 		while (lcur_lc(parse) == lc_comma) {
+			if (parse_is_error(parse))
+				break;
 			lskip(parse);
 			tindex->n_args += 1;
 		}
@@ -166,7 +210,10 @@ static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 	return texpr;
 }
 
-/** Parse primitive type expression. */
+/** Parse primitive type expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_texpr_t *parse_tprimitive(parse_t *parse)
 {
 	stree_texpr_t *texpr;
@@ -184,13 +231,17 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 		break;
 	default:
 		lunexpected_error(parse);
-		exit(1);
+		texpr = parse_recovery_texpr(parse);
+		break;
 	}
 
 	return texpr;
 }
 
-/** Parse type literal. */
+/** Parse type literal.
+ *
+ * @param parse		Parser object.
+ */
 static stree_tliteral_t *parse_tliteral(parse_t *parse)
 {
 	stree_tliteral_t *tliteral;
@@ -216,7 +267,10 @@ static stree_tliteral_t *parse_tliteral(parse_t *parse)
 	return tliteral;
 }
 
-/** Parse type identifier. */
+/** Parse type identifier.
+ *
+ * @param parse		Parser object.
+ */
 static stree_tnameref_t *parse_tnameref(parse_t *parse)
 {
 	stree_tnameref_t *tnameref;
@@ -225,4 +279,23 @@ static stree_tnameref_t *parse_tnameref(parse_t *parse)
 	tnameref->name = parse_ident(parse);
 
 	return tnameref;
+}
+
+/** Construct a special type expression fore recovery.
+ *
+ * @param parse		Parser object.
+ */
+static stree_texpr_t *parse_recovery_texpr(parse_t *parse)
+{
+	stree_tliteral_t *tliteral;
+	stree_texpr_t *texpr;
+
+	(void) parse;
+
+	tliteral = stree_tliteral_new(tlc_int);
+
+	texpr = stree_texpr_new(tc_tliteral);
+	texpr->u.tliteral = tliteral;
+
+	return texpr;
 }

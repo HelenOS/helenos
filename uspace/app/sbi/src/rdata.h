@@ -55,5 +55,6 @@ void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem);
 void rdata_var_write(rdata_var_t *var, rdata_value_t *value);
 
 void rdata_item_print(rdata_item_t *item);
+void rdata_value_print(rdata_value_t *value);
 
 #endif

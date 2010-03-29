@@ -79,7 +79,10 @@ typedef enum {
 	bm_proc,
 
 	/** Exception */
-	bm_exc
+	bm_exc,
+
+	/** Unrecoverable runtime error */
+	bm_error
 } run_bailout_mode_t;
 
 /** Thread activation record
@@ -95,6 +98,9 @@ typedef struct run_thread_ar {
 
 	/** Exception payload */
 	struct rdata_value *exc_payload;
+
+	/** @c b_true if a run-time error occured. */
+	bool_t error;
 } run_thread_ar_t;
 
 /** Runner state object */

@@ -26,7 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Builtin symbol binding. */
+/** @file Builtin symbol binding.
+ *
+ * 'Builtin' symbols are implemented outside of the language itself.
+ * Here we refer to entities residing within the interpreted universe
+ * as 'internal', while anything implemented outside this universe
+ * as 'external'. This module facilitates declaration of builtin
+ * symbols and the binding of these symbols to their external
+ * implementation.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +61,8 @@ static builtin_t *builtin_new(void);
 /** Declare builtin symbols in the program.
  *
  * Declares symbols that will be hooked to builtin interpreter procedures.
+ *
+ * @param program	Program in which to declare builtin symbols.
  */
 void builtin_declare(stree_program_t *program)
 {
@@ -85,7 +95,14 @@ void builtin_declare(stree_program_t *program)
 	bi_textfile_bind(bi);
 }
 
-/** Get grandfather class. */
+/** Get grandfather class.
+ *
+ * Grandfather class is the class from which all other classes are
+ * (directly or indirectly) derived.
+ *
+ * @param builtin	Builtin context (corresponsds to program).
+ * @return		Grandfather class (CSI).
+ */
 stree_csi_t *builtin_get_gf_class(builtin_t *builtin)
 {
 	if (builtin->gf_class == NULL)
@@ -94,6 +111,10 @@ stree_csi_t *builtin_get_gf_class(builtin_t *builtin)
 	return symbol_to_csi(builtin->gf_class);
 }
 
+/** Allocate new builtin context object.
+ *
+ * @return	Builtin context object.
+ */
 static builtin_t *builtin_new(void)
 {
 	builtin_t *builtin;
@@ -125,7 +146,14 @@ void builtin_code_snippet(builtin_t *bi, const char *snippet)
 	parse_module(&parse);
 }
 
-/** Simplifed search for a global symbol. */
+/** Simplifed search for a global symbol.
+ *
+ * The specified symbol must exist.
+ *
+ * @param bi		Builtin context object.
+ * @param sym_name	Name of symbol to find.
+ * @return		Symbol.
+ */
 stree_symbol_t *builtin_find_lvl0(builtin_t *bi, const char *sym_name)
 {
 	stree_symbol_t *sym;
@@ -135,11 +163,20 @@ stree_symbol_t *builtin_find_lvl0(builtin_t *bi, const char *sym_name)
 
 	ident->sid = strtab_get_sid(sym_name);
 	sym = symbol_lookup_in_csi(bi->program, NULL, ident);
+	assert(sym != NULL);
 
 	return sym;
 }
 
-/** Simplifed search for a level 1 symbol. */
+/** Simplifed search for a level 1 symbol.
+ *
+ * The specified symbol must exist.
+ *
+ * @param bi		Builtin context object.
+ * @param csi_name	CSI in which to look for symbol.
+ * @param sym_name	Name of symbol to find.
+ * @return		Symbol.
+ */
 stree_symbol_t *builtin_find_lvl1(builtin_t *bi, const char *csi_name,
     const char *sym_name)
 {
@@ -153,15 +190,27 @@ stree_symbol_t *builtin_find_lvl1(builtin_t *bi, const char *csi_name,
 
 	ident->sid = strtab_get_sid(csi_name);
 	csi_sym = symbol_lookup_in_csi(bi->program, NULL, ident);
+	assert(csi_sym != NULL);
 	csi = symbol_to_csi(csi_sym);
 	assert(csi != NULL);
 
 	ident->sid = strtab_get_sid(sym_name);
 	mbr_sym = symbol_lookup_in_csi(bi->program, csi, ident);
+	assert(mbr_sym != NULL);
 
 	return mbr_sym;
 }
 
+/** Bind level 1 member function to external implementation.
+ *
+ * Binds a member function (of a global class) to external implementation.
+ * The specified CSI and member function must exist.
+ *
+ * @param bi		Builtin context object.
+ * @param csi_name	CSI which contains the function.
+ * @param sym_name	Function name.
+ * @param bproc		Pointer to C function implementation.
+ */
 void builtin_fun_bind(builtin_t *bi, const char *csi_name,
     const char *sym_name, builtin_proc_t bproc)
 {
@@ -176,6 +225,13 @@ void builtin_fun_bind(builtin_t *bi, const char *csi_name,
 	fun->proc->bi_handler = bproc;
 }
 
+/** Execute a builtin procedure.
+ *
+ * Executes a procedure that has an external implementation.
+ *
+ * @param run		Runner object.
+ * @param proc		Procedure that has an external implementation.
+ */
 void builtin_run_proc(run_t *run, stree_proc_t *proc)
 {
 	stree_symbol_t *fun_sym;
@@ -200,7 +256,15 @@ void builtin_run_proc(run_t *run, stree_proc_t *proc)
 	(*bproc)(run);
 }
 
-/** Get pointer to member var of current object. */
+/** Get pointer to member var of current object.
+ *
+ * Returns the var node that corresponds to a member of the currently
+ * active object with the given name. This member must exist.
+ *
+ * @param run		Runner object.
+ * @param mbr_name	Name of member to find.
+ * @return		Var node of the member.
+ */
 rdata_var_t *builtin_get_self_mbr_var(run_t *run, const char *mbr_name)
 {
 	run_proc_ar_t *proc_ar;
@@ -219,7 +283,15 @@ rdata_var_t *builtin_get_self_mbr_var(run_t *run, const char *mbr_name)
 	return mbr_var;
 }
 
-/** Declare a builtin function in @a csi. */
+/** Declare a builtin function in @a csi.
+ *
+ * Declare a builtin function member of CSI @a csi. Deprecated in favor
+ * of builtin_code_snippet().
+ *
+ * @param csi		CSI in which to declare function.
+ * @param name		Name of member function to declare.
+ * @return		Symbol of newly declared function.
+ */
 stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 {
 	stree_ident_t *ident;
@@ -250,7 +322,15 @@ stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 	return fun_sym;
 }
 
-/** Add one formal parameter to function. */
+/** Add one formal parameter to function.
+ *
+ * Used to incrementally construct formal parameter list of a builtin
+ * function. Deprecated in favor of builtin_code_snippet(). Does not
+ * support type checking.
+ *
+ * @param fun_sym	Symbol of function to add parameters to.
+ * @param name		Name of parameter to add.
+ */
 void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 {
 	stree_proc_arg_t *proc_arg;

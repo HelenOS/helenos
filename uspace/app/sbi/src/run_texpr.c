@@ -93,6 +93,10 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	base_csi = targ_i->u.tobject->csi;
 
 	sym = symbol_lookup_in_csi(prog, base_csi, taccess->member_name);
+
+	/* Existence should have been verified in type checking phase. */
+	assert(sym != NULL);
+
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");
 		symbol_print_fqn(sym);
@@ -186,6 +190,9 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	printf("Evaluating type name reference.\n");
 #endif
 	sym = symbol_lookup_in_csi(prog, ctx, tnameref->name);
+
+	/* Existence should have been verified in type-checking phase. */
+	assert(sym);
 
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");

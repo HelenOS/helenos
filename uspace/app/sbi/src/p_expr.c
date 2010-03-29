@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "debug.h"
 #include "lex.h"
 #include "list.h"
 #include "mytypes.h"
@@ -56,13 +57,33 @@ static stree_expr_t *parse_lit_ref(parse_t *parse);
 static stree_expr_t *parse_lit_string(parse_t *parse);
 static stree_expr_t *parse_self_ref(parse_t *parse);
 
-/** Parse expression. */
+static stree_expr_t *parse_recovery_expr(parse_t *parse);
+
+/** Parse expression.
+ *
+ * Input is read from the input object associated with @a parse. If any
+ * error occurs, parse->error will @c b_true when this function
+ * returns. parse->error_bailout will be @c b_true if the error has not
+ * been recovered yet. Similar holds for other parsing functions in this
+ * module.
+ *
+ * @param parse		Parser object.
+ */
 stree_expr_t *parse_expr(parse_t *parse)
 {
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse expression.\n");
+#endif
+	if (parse_is_error(parse))
+		return parse_recovery_expr(parse);
+
 	return parse_assign(parse);
 }
 
-/** Parse assignment expression. */
+/** Parse assignment expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_assign(parse_t *parse)
 {
 	stree_expr_t *a, *b, *tmp;
@@ -92,7 +113,10 @@ static stree_expr_t *parse_assign(parse_t *parse)
 	return tmp;
 }
 
-/** Parse comparative expression. */
+/** Parse comparative expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_comparative(parse_t *parse)
 {
 	stree_expr_t *a, *b, *tmp;
@@ -104,6 +128,9 @@ static stree_expr_t *parse_comparative(parse_t *parse)
 	while (lcur_lc(parse) == lc_equal || lcur_lc(parse) == lc_notequal ||
 	    lcur_lc(parse) == lc_lt || lcur_lc(parse) == lc_gt ||
 	    lcur_lc(parse) == lc_lt_equal || lcur_lc(parse) == lc_gt_equal) {
+
+		if (parse_is_error(parse))
+			break;
 
 		switch (lcur_lc(parse)) {
 		case lc_equal: bc = bo_equal; break;
@@ -130,7 +157,10 @@ static stree_expr_t *parse_comparative(parse_t *parse)
 	return a;
 }
 
-/** Parse additive expression. */
+/** Parse additive expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_additive(parse_t *parse)
 {
 	stree_expr_t *a, *b, *tmp;
@@ -138,6 +168,9 @@ static stree_expr_t *parse_additive(parse_t *parse)
 
 	a = parse_prefix(parse);
 	while (lcur_lc(parse) == lc_plus) {
+		if (parse_is_error(parse))
+			break;
+
 		lskip(parse);
 		b = parse_prefix(parse);
 
@@ -153,7 +186,10 @@ static stree_expr_t *parse_additive(parse_t *parse)
 	return a;
 }
 
-/** Parse prefix expression. */
+/** Parse prefix expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_prefix(parse_t *parse)
 {
 	stree_expr_t *a;
@@ -161,7 +197,9 @@ static stree_expr_t *parse_prefix(parse_t *parse)
 	switch (lcur_lc(parse)) {
 	case lc_plus:
 		printf("Unimplemented: Unary plus.\n");
-		exit(1);
+		a = parse_recovery_expr(parse);
+		parse_note_error(parse);
+		break;
 	case lc_new:
 		a = parse_prefix_new(parse);
 		break;
@@ -173,7 +211,10 @@ static stree_expr_t *parse_prefix(parse_t *parse)
 	return a;
 }
 
-/** Parse @c new operator. */
+/** Parse @c new operator.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_prefix_new(parse_t *parse)
 {
 	stree_texpr_t *texpr;
@@ -197,7 +238,10 @@ static stree_expr_t *parse_prefix_new(parse_t *parse)
 	return expr;
 }
 
-/** Parse postfix expression. */
+/** Parse postfix expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_postfix(parse_t *parse)
 {
 	stree_expr_t *a;
@@ -207,6 +251,9 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 
 	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lparen ||
 	    lcur_lc(parse) == lc_lsbr || lcur_lc(parse) == lc_as) {
+
+		if (parse_is_error(parse))
+			break;
 
 		switch (lcur_lc(parse)) {
 		case lc_period:
@@ -231,7 +278,10 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 	return a;
 }
 
-/** Parse member access expression */
+/** Parse member access expression
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a)
 {
 	stree_ident_t *ident;
@@ -251,7 +301,10 @@ static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a)
 	return expr;
 }
 
-/** Parse function call expression. */
+/** Parse function call expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 {
 	stree_expr_t *expr;
@@ -267,7 +320,7 @@ static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 	/* Parse function arguments */
 
 	if (lcur_lc(parse) != lc_rparen) {
-		while (b_true) {
+		while (!parse_is_error(parse)) {
 			arg = parse_expr(parse);
 			list_append(&call->args, arg);
 
@@ -285,7 +338,10 @@ static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 	return expr;
 }
 
-/** Parse index expression. */
+/** Parse index expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 {
 	stree_expr_t *expr;
@@ -301,7 +357,7 @@ static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 	/* Parse indices */
 
 	if (lcur_lc(parse) != lc_rsbr) {
-		while (b_true) {
+		while (!parse_is_error(parse)) {
 			arg = parse_expr(parse);
 			list_append(&index->args, arg);
 
@@ -319,7 +375,10 @@ static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 	return expr;
 }
 
-/** Parse @c as operator. */
+/** Parse @c as operator.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
 {
 	stree_expr_t *expr;
@@ -338,7 +397,10 @@ static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
 	return expr;
 }
 
-/** Parse primitive expression. */
+/** Parse primitive expression.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_primitive(parse_t *parse)
 {
 	stree_expr_t *expr;
@@ -361,13 +423,16 @@ static stree_expr_t *parse_primitive(parse_t *parse)
 		break;
 	default:
 		lunexpected_error(parse);
-		exit(1);
+		expr = parse_recovery_expr(parse);
 	}
 
 	return expr;
 }
 
-/** Parse name reference. */
+/** Parse name reference.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_nameref(parse_t *parse)
 {
 	stree_nameref_t *nameref;
@@ -381,7 +446,10 @@ static stree_expr_t *parse_nameref(parse_t *parse)
 	return expr;
 }
 
-/** Parse integer literal. */
+/** Parse integer literal.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_lit_int(parse_t *parse)
 {
 	stree_literal_t *literal;
@@ -400,7 +468,10 @@ static stree_expr_t *parse_lit_int(parse_t *parse)
 	return expr;
 }
 
-/** Parse reference literal (@c nil). */
+/** Parse reference literal (@c nil).
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_lit_ref(parse_t *parse)
 {
 	stree_literal_t *literal;
@@ -416,7 +487,10 @@ static stree_expr_t *parse_lit_ref(parse_t *parse)
 	return expr;
 }
 
-/** Parse string literal. */
+/** Parse string literal.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_lit_string(parse_t *parse)
 {
 	stree_literal_t *literal;
@@ -435,7 +509,10 @@ static stree_expr_t *parse_lit_string(parse_t *parse)
 	return expr;
 }
 
-/** Parse @c self keyword. */
+/** Parse @c self keyword.
+ *
+ * @param parse		Parser object.
+ */
 static stree_expr_t *parse_self_ref(parse_t *parse)
 {
 	stree_self_ref_t *self_ref;
@@ -447,6 +524,25 @@ static stree_expr_t *parse_self_ref(parse_t *parse)
 
 	expr = stree_expr_new(ec_self_ref);
 	expr->u.self_ref = self_ref;
+
+	return expr;
+}
+
+/** Construct a special recovery expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_recovery_expr(parse_t *parse)
+{
+	stree_literal_t *literal;
+	stree_expr_t *expr;
+
+	(void) parse;
+
+	literal = stree_literal_new(ltc_ref);
+
+	expr = stree_expr_new(ec_literal);
+	expr->u.literal = literal;
 
 	return expr;
 }

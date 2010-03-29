@@ -69,6 +69,9 @@ typedef struct stype {
 
 	/** Procedure VR for the current procedure. */
 	stype_proc_vr_t *proc_vr;
+
+	/** @c b_true if an error occured. */
+	bool_t error;
 } stype_t;
 
 #endif

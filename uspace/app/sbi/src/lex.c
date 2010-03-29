@@ -144,7 +144,13 @@ static struct lc_name simple_lc[] = {
 	{ 0,		NULL },
 };
 
-/** Print lclass value. */
+/** Print lclass value.
+ *
+ * Prints lclass (lexical element class) value in human-readable form
+ * (for debugging).
+ *
+ * @param lclass	Lclass value for display.
+ */
 void lclass_print(lclass_t lclass)
 {
 	struct lc_name *dp;
@@ -183,7 +189,12 @@ void lclass_print(lclass_t lclass)
 	}
 }
 
-/** Print lexical element. */
+/** Print lexical element.
+ *
+ * Prints lexical element in human-readable form (for debugging).
+ *
+ * @param lem		Lexical element for display.
+ */
 void lem_print(lem_t *lem)
 {
 	lclass_print(lem->lclass);
@@ -202,13 +213,22 @@ void lem_print(lem_t *lem)
 	}
 }
 
-/** Print lem coordinates. */
+/** Print lem coordinates.
+ *
+ * Print the coordinates (line number, column number) of a lexical element.
+ *
+ * @param lem		Lexical element for coordinate printing.
+ */
 void lem_print_coords(lem_t *lem)
 {
 	printf("%d:%d", lem->line_no, lem->col_0);
 }
 
-/** Initialize lexer instance. */
+/** Initialize lexer instance.
+ *
+ * @param lex		Lexer object to initialize.
+ * @param input		Input to associate with lexer.
+ */
 void lex_init(lex_t *lex, struct input *input)
 {
 	int rc;
@@ -228,7 +248,9 @@ void lex_init(lex_t *lex, struct input *input)
 
 /** Advance to next lexical element.
  *
- * The new element be read in lazily then it is actually accessed.
+ * The new element is read in lazily then it is actually accessed.
+ *
+ * @param lex		Lexer object.
  */
 void lex_next(lex_t *lex)
 {
@@ -242,6 +264,8 @@ void lex_next(lex_t *lex)
 /** Get current lem.
  *
  * The returned pointer is invalidated by next call to lex_next()
+ *
+ * @param lex		Lexer object.
  */
 lem_t *lex_get_current(lex_t *lex)
 {
@@ -249,7 +273,10 @@ lem_t *lex_get_current(lex_t *lex)
 	return &lex->current;
 }
 
-/** Read in the current lexical element (unless already read in). */
+/** Read in the current lexical element (unless already read in).
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_touch(lex_t *lex)
 {
 	bool_t got_lem;
@@ -266,7 +293,14 @@ static void lex_touch(lex_t *lex)
 
 /** Try reading next lexical element.
  *
- * @return @c b_true on success or @c b_false if it needs restarting.
+ * Attemps to read the next lexical element. In some cases (such as a comment)
+ * this function will need to give it another try and returns @c b_false
+ * in such case.
+ *
+ * @param lex		Lexer object.
+ * @return		@c b_true on success or @c b_false if it needs
+ *			restarting. On success the lem is stored to
+ *			the current lem in @a lex.
  */
 static bool_t lex_read_try(lex_t *lex)
 {
@@ -368,7 +402,13 @@ invalid:
 	return b_true;
 }
 
-/** Lex a word (identifier or keyword). */
+/** Lex a word (identifier or keyword).
+ *
+ * Read in a word. This may later turn out to be a keyword or a regular
+ * identifier. It is stored in the current lem in @a lex.
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_word(lex_t *lex)
 {
 	struct lc_name *dp;
@@ -408,7 +448,12 @@ static void lex_word(lex_t *lex)
 	lex->current.u.ident.sid = strtab_get_sid(ident_buf);
 }
 
-/** Lex a numeric literal. */
+/** Lex a numeric literal.
+ *
+ * Reads in a numeric literal and stores it in the current lem in @a lex.
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_number(lex_t *lex)
 {
 	char *bp;
@@ -428,7 +473,12 @@ static void lex_number(lex_t *lex)
 	lex->current.u.lit_int.value = value;
 }
 
-/** Lex a string literal. */
+/** Lex a string literal.
+ *
+ * Reads in a string literal and stores it in the current lem in @a lex.
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_string(lex_t *lex)
 {
 	char *bp;
@@ -460,7 +510,12 @@ static void lex_string(lex_t *lex)
 	lex->current.u.lit_string.value = os_str_dup(strlit_buf);
 }
 
-/** Lex a single-line comment. */
+/** Lex a single-line comment.
+ *
+ * This does not produce any lem. The comment is just skipped.
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_skip_comment(lex_t *lex)
 {
 	char *bp;
@@ -474,7 +529,12 @@ static void lex_skip_comment(lex_t *lex)
 	lex->ibp = bp;
 }
 
-/** Skip whitespace characters. */
+/** Skip whitespace characters.
+ *
+ * This does not produce any lem. The whitespace is just skipped.
+ *
+ * @param lex		Lexer object.
+ */
 static void lex_skip_ws(lex_t *lex)
 {
 	char *bp;
@@ -484,8 +544,10 @@ static void lex_skip_ws(lex_t *lex)
 
 	while (b_true) {
 		while (*bp == ' ' || *bp == '\t') {
-			if (*bp == '\t')
+			if (*bp == '\t') {
+				/* XXX This is too simplifed. */
 				lex->col_adj += (TAB_WIDTH - 1);
+			}
 			++bp;
 		}
 
@@ -506,24 +568,43 @@ static void lex_skip_ws(lex_t *lex)
 	lex->ibp = bp;
 }
 
-/** Determine if character can start a word. */
+/** Determine if character can start a word.
+ *
+ * @param c 	Character.
+ * @return	@c b_true if @a c can start a word, @c b_false otherwise.
+ */
 static bool_t is_wstart(char c)
 {
 	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) ||
 	    (c == '_');
 }
 
-/** Determine if character can continue a word. */
+/** Determine if character can continue a word.
+ *
+ * @param c 	Character.
+ * @return	@c b_true if @a c can start continue word, @c b_false
+ *		otherwise.
+ */
 static bool_t is_wcont(char c)
 {
 	return is_digit(c) || is_wstart(c);
 }
 
+/** Determine if character is a numeric digit.
+ *
+ * @param c 	Character.
+ * @return	@c b_true if @a c is a numeric digit, @c b_false otherwise.
+ */
 static bool_t is_digit(char c)
 {
 	return ((c >= '0') && (c <= '9'));
 }
 
+/** Determine numeric value of digit character.
+ *
+ * @param c 	Character, must be a valid decimal digit.
+ * @return	Value of the digit (0-9).
+ */
 static int digit_value(char c)
 {
 	return (c - '0');

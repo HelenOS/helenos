@@ -26,7 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Main module. */
+/** @file Main module.
+ *
+ * Main entry point for SBI, the Sysel Bootstrap Interpreter.
+ * When run without parameters, the interpreter will enter interactive
+ * mode.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +49,10 @@
 
 void syntax_print(void);
 
+/** Main entry point.
+ *
+ * @return	Zero on success, non-zero on error.
+ */
 int main(int argc, char *argv[])
 {
 	input_t *input;
@@ -84,12 +93,19 @@ int main(int argc, char *argv[])
 	parse_init(&parse, program, &lex);
 	parse_module(&parse);
 
+	if (parse.error)
+		return 1;
+
 	/* Resolve ancestry. */
 	ancr_module_process(program, parse.cur_mod);
 
 	/* Type program. */
 	stype.program = program;
+	stype.error = b_false;
 	stype_module(&stype, program->module);
+
+	if (stype.error)
+		return 1;
 
 	/* Run program. */
 	run_init(&run);
@@ -98,6 +114,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+/** Print command-line syntax help. */
 void syntax_print(void)
 {
 	printf("Missing or invalid arguments.\n");

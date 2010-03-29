@@ -27,7 +27,8 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -D__HELENOS__
+LIBS = $(LIB_PREFIX)/clui/libclui.a
+EXTRA_CFLAGS = -D__HELENOS__ -I$(LIB_PREFIX)/clui
 
 BINARY = sbi
 

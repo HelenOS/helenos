@@ -176,7 +176,7 @@ static void tdata_tarray_print(tdata_array_t *tarray)
 	tdata_item_print(tarray->base_ti);
 
 	printf("[");
-	for (i = 0; i < tarray->rank; ++i)
+	for (i = 0; i < tarray->rank - 1; ++i)
 		printf(",");
 	printf("]");
 }

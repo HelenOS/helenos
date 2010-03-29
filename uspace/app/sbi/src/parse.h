@@ -37,6 +37,11 @@ void parse_module(parse_t *parse);
 stree_stat_t *parse_stat(parse_t *parse);
 stree_ident_t *parse_ident(parse_t *parse);
 
+void parse_raise_error(parse_t *parse);
+void parse_note_error(parse_t *parse);
+bool_t parse_is_error(parse_t *parse);
+void parse_recover_error(parse_t *parse);
+
 /*
  * Parsing primitives
  */

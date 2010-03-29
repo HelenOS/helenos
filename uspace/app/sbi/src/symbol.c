@@ -74,7 +74,14 @@ stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
 	}
 }
 
-/** Lookup symbol reference in CSI. */
+/** Lookup symbol reference in CSI.
+ *
+ * @param prog	Program to look in.
+ * @param scope CSI in @a prog which is the base for references.
+ * @param name	Identifier of the symbol.
+ *
+ * @return	Symbol or @c NULL if symbol not found.
+ */
 stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 	stree_ident_t *name)
 {
@@ -91,11 +98,6 @@ stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 
 	if (symbol == NULL)
 		symbol = symbol_search_global(prog, name);
-
-	if (symbol == NULL) {
-		printf("Error: Symbol '%s' not found.\n", strtab_get_str(name->sid));
-		exit(1);
-	}
 
 	return symbol;
 }

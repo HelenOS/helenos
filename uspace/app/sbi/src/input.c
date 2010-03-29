@@ -28,23 +28,34 @@
 
 /** @file Input module
  *
- * Reads source code from a file.
+ * Reads source code. Currently input can be read from a file (standard
+ * case), from a string literal (when parsing builtin code) or interactively
+ * from the user.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "mytypes.h"
+#include "os/os.h"
 #include "strtab.h"
 
 #include "input.h"
 
+/** Size of input buffer. XXX This limits the maximum line length. */
 #define INPUT_BUFFER_SIZE 256
 
 static int input_init_file(input_t *input, char *fname);
 static void input_init_interactive(input_t *input);
 static void input_init_string(input_t *input, const char *str);
 
-/** Create new input object for reading from file. */
+/** Create new input object for reading from file.
+ *
+ * @param input		Place to store pointer to new input object.
+ * @param fname		Name of file to read from.
+ *
+ * @return		EOK on success, ENOMEM when allocation fails,
+ *			ENOENT when opening file fails.
+ */
 int input_new_file(input_t **input, char *fname)
 {
 	*input = malloc(sizeof(input_t));
@@ -54,7 +65,11 @@ int input_new_file(input_t **input, char *fname)
 	return input_init_file(*input, fname);
 }
 
-/** Create new input object for reading from interactive input. */
+/** Create new input object for reading from interactive input.
+ *
+ * @param input		Place to store pointer to new input object.
+ * @return		EOK on success, ENOMEM when allocation fails.
+ */
 int input_new_interactive(input_t **input)
 {
 	*input = malloc(sizeof(input_t));
@@ -65,7 +80,12 @@ int input_new_interactive(input_t **input)
 	return EOK;
 }
 
-/** Create new input object for reading from string. */
+/** Create new input object for reading from string.
+ *
+ * @param input		Place to store pointer to new input object.
+ * @param str		String literal from which to read input.
+ * @return		EOK on success, ENOMEM when allocation fails.
+ */
 int input_new_string(input_t **input, const char *str)
 {
 	*input = malloc(sizeof(input_t));
@@ -76,7 +96,13 @@ int input_new_string(input_t **input, const char *str)
 	return EOK;
 }
 
-/** Initialize input object for reading from file. */
+/** Initialize input object for reading from file.
+ *
+ * @param input		Input object.
+ * @param fname		Name of file to read from.
+ *
+ * @return		EOK on success, ENOENT when opening file fails.
+*/
 static int input_init_file(input_t *input, char *fname)
 {
 	FILE *f;
@@ -91,12 +117,16 @@ static int input_init_file(input_t *input, char *fname)
 		exit(1);
 	}
 
+	input->str = NULL;
 	input->line_no = 0;
 	input->fin = f;
 	return EOK;
 }
 
-/** Initialize input object for reading from interactive input. */
+/** Initialize input object for reading from interactive input.
+ *
+ * @param input		Input object.
+ */
 static void input_init_interactive(input_t *input)
 {
 	input->buffer = malloc(INPUT_BUFFER_SIZE);
@@ -105,11 +135,16 @@ static void input_init_interactive(input_t *input)
 		exit(1);
 	}
 
+	input->str = NULL;
 	input->line_no = 0;
 	input->fin = NULL;
 }
 
-/** Initialize input object for reading from string. */
+/** Initialize input object for reading from string.
+ *
+ * @param input		Input object.
+ * @param str		String literal from which to read input.
+ */
 static void input_init_string(input_t *input, const char *str)
 {
 	input->buffer = malloc(INPUT_BUFFER_SIZE);
@@ -123,11 +158,23 @@ static void input_init_string(input_t *input, const char *str)
 	input->fin = NULL;
 }
 
-/** Get next line of input. */
+/** Get next line of input.
+ *
+ * The pointer stored in @a line is owned by @a input and is valid until the
+ * next call to input_get_line(). The caller is not to free it. The returned
+ * line is terminated with '\n' if another line is coming (potentially empty).
+ * An empty line ("") signals end of input.
+ *
+ * @param input		Input object.
+ * @param line		Place to store pointer to next line.
+ *
+ * @return		EOK on success, EIO on failure.
+ */
 int input_get_line(input_t *input, char **line)
 {
 	const char *sp;
 	char *dp;
+	char *line_p;
 	size_t cnt;
 
 	if (input->fin != NULL) {
@@ -165,20 +212,23 @@ int input_get_line(input_t *input, char **line)
 		else
 			printf("...  ");
 
-		if (fgets(input->buffer, INPUT_BUFFER_SIZE, stdin) == NULL)
-			input->buffer[0] = '\0';
-
-		if (ferror(stdin))
+		fflush(stdout);
+		if (os_input_line(&line_p) != EOK)
 			return EIO;
 
-		*line = input->buffer;
+		*line = line_p;
 	}
 
 	++input->line_no;
 	return EOK;
 }
 
-/** Get number of the last provided line of input. */
+/** Get number of the last provided line of input.
+ *
+ * @param input		Input module.
+ * @return		Line number of the last provided input line (counting
+ *			from 1 up).
+ */
 int input_get_line_no(input_t *input)
 {
 	return input->line_no;

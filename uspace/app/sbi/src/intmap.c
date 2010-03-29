@@ -28,7 +28,8 @@
 
 /** @file Integer map.
  *
- * Maps integers to pointers (void *).
+ * Maps integers to pointers (void *). Current implementation is trivial
+ * (linked list of key-value pairs).
  */
 
 #include <stdio.h>
@@ -39,13 +40,25 @@
 
 #include "intmap.h"
 
-/** Initialize map. */
+/** Initialize map.
+ *
+ * @param intmap	Map to initialize.
+ */
 void intmap_init(intmap_t *intmap)
 {
 	list_init(&intmap->elem);
 }
 
-/** Set value corresponding to a key. */
+/** Set value corresponding to a key.
+ *
+ * If there already exists a mapping for @a key in the map, it is
+ * silently replaced. If @a value is @c NULL, the mapping for @a key
+ * is removed from the map.
+ *
+ * @param intmap	Map.
+ * @param key		Key (integer).
+ * @param value		Value (must be a pointer) or @c NULL.
+ */
 void intmap_set(intmap_t *intmap, int key, void *value)
 {
 	list_node_t *node;
@@ -82,7 +95,14 @@ void intmap_set(intmap_t *intmap, int key, void *value)
 	list_append(&intmap->elem, elem);
 }
 
-/** Get value corresponding to a key. */
+/** Get value corresponding to a key.
+ *
+ * @param intmap	Map.
+ * @param key		Key for which to retrieve mapping.
+ *
+ * @return		Value correspoding to @a key or @c NULL if no mapping
+ *			exists.
+ */
 void *intmap_get(intmap_t *intmap, int key)
 {
 	list_node_t *node;
