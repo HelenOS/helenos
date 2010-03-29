@@ -40,8 +40,9 @@
 #include <ps.h>
 #include <errno.h>
 #include <stdlib.h>
-/* #include <string.h> */
 #include <malloc.h>
+
+#include "func.h"
 
 #define TASK_COUNT 10
 #define THREAD_COUNT 50
@@ -69,16 +70,20 @@ static void list_tasks(void)
 		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 	}
 
-	printf("      ID  Threads    Pages   [k]uCycles   [k]kCycles  Cycle fault Name\n");
+	printf("      ID  Threads    Pages       uCycles       kCycles   Cycle fault Name\n");
 
 	int i;
 	for (i = 0; i < result; ++i) {
 		task_info_t taskinfo;
 		get_task_info(tasks[i], &taskinfo);
-		printf("%8llu %8u %8u %12llu %12llu %12llu %s\n", tasks[i],
-				taskinfo.thread_count, taskinfo.pages, taskinfo.ucycles / 1000,
-				taskinfo.kcycles / 1000, (taskinfo.ucycles + taskinfo.kcycles) -
-				taskinfo.cycles, taskinfo.name);
+		uint64_t ucycles, kcycles, fault;
+		char usuffix, ksuffix, fsuffix;
+		order(taskinfo.ucycles, &ucycles, &usuffix);
+		order(taskinfo.kcycles, &kcycles, &ksuffix);
+		order((taskinfo.kcycles + taskinfo.ucycles) - taskinfo.cycles, &fault, &fsuffix);
+		printf("%8llu %8u %8u %12llu%c %12llu%c %12llu%c %s\n", tasks[i],
+			taskinfo.thread_count, taskinfo.pages, ucycles, usuffix,
+			kcycles, ksuffix, fault, fsuffix, taskinfo.name);
 	}
 }
 
@@ -100,13 +105,17 @@ static void list_threads(task_id_t taskid)
 	}
 
 	int i;
-	printf("    ID    State  CPU   Prio   [k]uCycles   [k]kcycles  Cycle fault\n");
+	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
 	for (i = 0; i < result; ++i) {
-		printf("%6llu %-8s %4u %6d %12llu %12llu %12llu\n", threads[i].tid,
+		uint64_t ucycles, kcycles, fault;
+		char usuffix, ksuffix, fsuffix;
+		order(threads[i].ucycles, &ucycles, &usuffix);
+		order(threads[i].kcycles, &kcycles, &ksuffix);
+		order((threads[i].kcycles + threads[i].ucycles) - threads[i].cycles, &fault, &fsuffix);
+		printf("%6llu %-8s %4u %6d %12llu%c %12llu%c %12llu%c\n", threads[i].tid,
 			thread_states[threads[i].state], threads[i].cpu,
-			threads[i].priority, threads[i].ucycles / 1000,
-			threads[i].kcycles / 1000,
-			threads[i].ucycles + threads[i].kcycles - threads[i].cycles);
+			threads[i].priority, ucycles, usuffix,
+			kcycles, ksuffix, fault, fsuffix);
 	}
 }
 

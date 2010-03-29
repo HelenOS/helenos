@@ -31,6 +31,7 @@ USPACE_PREFIX = ../..
 BINARY = ps
 
 SOURCES = \
-	ps.c
+	ps.c \
+	func.c
 
 include $(USPACE_PREFIX)/Makefile.common
