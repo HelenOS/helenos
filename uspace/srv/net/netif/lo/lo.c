@@ -42,20 +42,16 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../err.h"
-#include "../../messages.h"
-#include "../../modules.h"
-
-#include "../../structures/measured_strings.h"
-#include "../../structures/packet/packet_client.h"
-
-#include "../../include/device.h"
-#include "../../include/nil_interface.h"
-
-#include "../../nil/nil_messages.h"
-
-#include "../netif.h"
-#include "../netif_module.h"
+#include <net_err.h>
+#include <net_messages.h>
+#include <net_modules.h>
+#include <adt/measured_strings.h>
+#include <packet/packet_client.h>
+#include <net_device.h>
+#include <nil_interface.h>
+#include <nil_messages.h>
+#include <netif.h>
+#include <netif_module.h>
 
 /** Default hardware address.
  */
@@ -89,11 +85,6 @@ int change_state_message(device_ref device, device_state_t state);
  *  @returns ENOMEM if there is not enough memory left.
  */
 int create(device_id_t device_id, device_ref * device);
-
-/** Prints the module name.
- *  @see NAME
- */
-void module_print_name(void);
 
 int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	return ENOTSUP;
@@ -166,10 +157,6 @@ int netif_initialize(void){
 	return REGISTER_ME(SERVICE_LO, &phonehash);
 }
 
-void module_print_name(void){
-	printf("%s", NAME);
-}
-
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	ERROR_DECLARE;
 
@@ -218,6 +205,74 @@ int netif_start_message(device_ref device){
 int netif_stop_message(device_ref device){
 	return change_state_message(device, NETIF_STOPPED);
 }
+
+#ifdef CONFIG_NETWORKING_modular
+
+#include <netif_standalone.h>
+
+/** Default thread for new connections.
+ *
+ *  @param[in] iid The initial message identifier.
+ *  @param[in] icall The initial message call structure.
+ *
+ */
+static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+{
+	/*
+	 * Accept the connection
+	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
+	 */
+	ipc_answer_0(iid, EOK);
+	
+	while(true) {
+		ipc_call_t answer;
+		int answer_count;
+		
+		/* Clear the answer structure */
+		refresh_answer(&answer, &answer_count);
+		
+		/* Fetch the next message */
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		/* Process the message */
+		int res = netif_module_message(callid, &call, &answer, &answer_count);
+		
+		/* End if said to either by the message or the processing result */
+		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+			return;
+		
+		/* Answer the message */
+		answer_call(callid, res, &answer, answer_count);
+	}
+}
+
+/** Starts the module.
+ *
+ *  @param argc The count of the command line arguments. Ignored parameter.
+ *  @param argv The command line parameters. Ignored parameter.
+ *
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for each specific module start function.
+ *
+ */
+int main(int argc, char *argv[])
+{
+	ERROR_DECLARE;
+	
+	/* Print the module label */
+	printf("Task %d - %s\n", task_get_id(), NAME);
+	
+	/* Start the module */
+	if (ERROR_OCCURRED(netif_module_start(netif_client_connection))) {
+		printf(" - ERROR %i\n", ERROR_CODE);
+		return ERROR_CODE;
+	}
+	
+	return EOK;
+}
+
+#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

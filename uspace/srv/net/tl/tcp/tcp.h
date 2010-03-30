@@ -39,13 +39,10 @@
 
 #include <fibril_synch.h>
 
-#include "../../structures/packet/packet.h"
-
-#include "../../include/device.h"
-
-#include "../../socket/socket_core.h"
-
-#include "../tl_common.h"
+#include <packet/packet.h>
+#include <net_device.h>
+#include <socket_core.h>
+#include <tl_common.h>
 
 /** Type definition of the TCP global data.
  *  @see tcp_globals

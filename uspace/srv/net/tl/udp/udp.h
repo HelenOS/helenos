@@ -38,10 +38,8 @@
 #define __NET_UDP_H__
 
 #include <fibril_synch.h>
-
-#include "../../socket/socket_core.h"
-
-#include "../tl_common.h"
+#include <socket_core.h>
+#include <tl_common.h>
 
 /** Type definition of the UDP global data.
  *  @see udp_globals

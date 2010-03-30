@@ -27,20 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NET_BASE = ../..
 USPACE_PREFIX = ../../../..
+LIBS = $(LIBNETIF_PREFIX)/libnetif.a $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
+EXTRA_CFLAGS = -I$(LIBNETIF_PREFIX)/include -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
 BINARY = nildummy
 
 SOURCES = \
 	nildummy.c \
-	nildummy_module.c \
-	$(NET_BASE)/module.c \
-	$(NET_BASE)/modules.c \
-	$(NET_BASE)/net/net_remote.c \
-	$(NET_BASE)/netif/netif_remote.c \
-	$(NET_BASE)/structures/measured_strings.c \
-	$(NET_BASE)/structures/packet/packet.c \
-	$(NET_BASE)/structures/packet/packet_client.c \
-	$(NET_BASE)/structures/packet/packet_remote.c
+	nildummy_module.c
 
 include $(USPACE_PREFIX)/Makefile.common

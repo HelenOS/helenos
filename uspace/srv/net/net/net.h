@@ -39,13 +39,12 @@
 
 #include <ipc/ipc.h>
 
-#include "../include/device.h"
-
-#include "../structures/char_map.h"
-#include "../structures/generic_char_map.h"
-#include "../structures/measured_strings.h"
-#include "../structures/module_map.h"
-#include "../structures/packet/packet.h"
+#include <net_device.h>
+#include <adt/char_map.h>
+#include <adt/generic_char_map.h>
+#include <adt/measured_strings.h>
+#include <adt/module_map.h>
+#include <packet/packet.h>
 
 /** @name Modules definitions
  */
@@ -221,7 +220,7 @@ int add_configuration(measured_strings_ref configuration, const char * name, con
  *  @returns ENOTSUP if the message is not known.
  *  @returns Other error codes as defined for each bundled module message function.
  */
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+int net_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 /** Initializes the networking module for the chosen subsystem build type.
  *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.

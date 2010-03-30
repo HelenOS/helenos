@@ -39,11 +39,9 @@
 
 #include <fibril_synch.h>
 
-#include "../../include/icmp_codes.h"
-
-#include "../../structures/int_map.h"
-
-#include "icmp_header.h"
+#include <icmp_codes.h>
+#include <adt/int_map.h>
+#include <icmp_header.h>
 
 /** Type definition of the ICMP reply data.
  *  @see icmp_reply

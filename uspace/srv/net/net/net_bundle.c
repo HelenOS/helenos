@@ -78,7 +78,7 @@ int net_initialize_build(async_client_conn_t client_connection){
 	return EOK;
 }
 
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int net_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	if((IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME)
 		|| IS_NET_IL_MESSAGE(call)
 		|| IS_NET_TL_MESSAGE(call)

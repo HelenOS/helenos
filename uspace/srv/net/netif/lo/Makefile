@@ -27,39 +27,26 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NET_BASE = ../..
 USPACE_PREFIX = ../../../..
 ROOT_PATH = $(USPACE_PREFIX)/..
+LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-BINARY = lo
-
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-SOURCES = \
-	lo.c \
-	$(NET_BASE)/module.c \
-	$(NET_BASE)/modules.c \
-	$(NET_BASE)/net/net_remote.c \
-	$(NET_BASE)/netif/netif.c \
-	$(NET_BASE)/structures/measured_strings.c \
-	$(NET_BASE)/structures/packet/packet.c \
-	$(NET_BASE)/structures/packet/packet_client.c \
-	$(NET_BASE)/structures/packet/packet_remote.c
+ifeq ($(CONFIG_NETWORKING),modular)
+	BINARY = lo
+endif
 
 ifeq ($(CONFIG_NETWORKING),module)
-	SOURCES += \
-		$(NET_BASE)/nil/nildummy/nildummy.c \
-		$(NET_BASE)/netif/netif_nil_bundle.c
+	LIBRARY = liblo
 endif
 
-ifeq ($(CONFIG_NETWORKING),modular)
-	SOURCES += \
-		$(NET_BASE)/nil/nil_remote.c \
-		$(NET_BASE)/netif/netif_standalone.c
-endif
+SOURCES = \
+	lo.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -40,8 +40,8 @@
 #include <fibril_synch.h>
 #include <ipc/services.h>
 
-#include "../../include/device.h"
-#include "../../structures/measured_strings.h"
+#include <net_device.h>
+#include <adt/measured_strings.h>
 
 /** Type definition of the dummy nil global data.
  *  @see nildummy_globals
