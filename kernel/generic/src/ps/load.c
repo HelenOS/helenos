@@ -36,7 +36,6 @@
  */
 
 #include <proc/thread.h>
-#include <print.h>
 #include <ps/load.h>
 #include <arch.h>
 #include <proc/scheduler.h>
@@ -116,7 +115,6 @@ void kload_thread(void *arg)
 
 	while (true) {
 		calc_load_global();
-		printf("Computed loads: 0x%x 0x%x 0x%x\n", avenrun[0], avenrun[1], avenrun[2]);
 		thread_sleep(LOAD_FREQ);
 	}
 }

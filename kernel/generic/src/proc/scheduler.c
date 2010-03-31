@@ -201,6 +201,7 @@ loop:
 		 * even though there is a runnable thread.
 		 */
 
+		 CPU->idle = true;
 		 cpu_sleep();
 		 goto loop;
 	}

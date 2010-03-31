@@ -67,6 +67,10 @@ typedef struct cpu {
 					     CPU-local and can be only accessed when interrupts
 					     are disabled. */
 
+	bool idle;
+	uint64_t idle_ticks;
+	uint64_t busy_ticks;
+
 	/**
 	 * Processor ID assigned by kernel.
 	 */

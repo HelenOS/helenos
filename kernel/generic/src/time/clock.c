@@ -137,6 +137,15 @@ void clock(void)
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
 	unsigned int i;
 
+	/* Account lost ticks to CPU usage */
+	if (CPU->idle) {
+		ASSERT(missed_clock_ticks == 0);
+		CPU->idle_ticks++;
+	} else {
+		CPU->busy_ticks += missed_clock_ticks + 1;
+	}
+	CPU->idle = false;
+
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
