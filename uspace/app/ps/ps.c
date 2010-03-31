@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <load.h>
 
 #include "func.h"
 
@@ -119,9 +120,19 @@ static void list_threads(task_id_t taskid)
 	}
 }
 
+static void echo_load(void)
+{
+	size_t load[3];
+	load[0] = 0;
+	load[1] = 0;
+	load[2] = 0;
+	get_load(load);
+	printf("Current load: %d.%03d %d.%03d %d.%03d\n", load[0] >> 11, (load[0] & 0x7ff) / 2, load[1] >> 11, (load[1] & 0x7ff) / 2, load[2] >> 11, (load[2] & 0x7ff) / 2);
+}
+
 static void usage()
 {
-	printf("Usage: ps [-t pid]\n");
+	printf("Usage: ps [-t pid -l]\n");
 }
 
 int main(int argc, char *argv[])
@@ -139,12 +150,19 @@ int main(int argc, char *argv[])
 			}
 			task_id_t taskid = strtol(*argv, NULL, 10);
 			list_threads(taskid);
+		} if (str_cmp(*argv, "-l") == 0) {
+			--argc; ++argv;
+			if (argc != 0) {
+				printf("Bad argument count!\n");
+				usage();
+				exit(1);
+			}
+			echo_load();
 		} else {
 			printf("Unknown argument %s!\n", *argv);
 			usage();
 			exit(1);
 		}
-
 	} else {
 		list_tasks();
 	}

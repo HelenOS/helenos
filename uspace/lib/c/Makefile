@@ -90,7 +90,8 @@ GENERIC_SOURCES = \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/stacktrace.c \
-	generic/ps.c
+	generic/ps.c \
+	generic/load.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

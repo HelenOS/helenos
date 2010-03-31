@@ -26,19 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_LOAD_H_
-#define KERN_LOAD_H_
+#include <load.h>
+#include <libc.h>
 
-extern void kload_thread(void *);
-extern int sys_ps_get_load(size_t *user_load);
-
-#endif
+/** Get current system load
+ *
+ * @param load		Pointer where load will be stored.
+ *
+ * @return		EOK.
+ *
+ */
+int get_load(size_t *load)
+{
+	return __SYSCALL1(SYS_PS_GET_LOAD, (sysarg_t) load);
+}
 
 /** @}
  */

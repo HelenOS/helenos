@@ -26,17 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
- */
+ */ 
 
-#ifndef KERN_LOAD_H_
-#define KERN_LOAD_H_
+#ifndef LIBC_LOAD_H_
+#define LIBC_LOAD_H_
 
-extern void kload_thread(void *);
-extern int sys_ps_get_load(size_t *user_load);
+#include <sys/types.h>
+#include <libarch/types.h>
+
+extern int get_load(size_t *load);
 
 #endif
 

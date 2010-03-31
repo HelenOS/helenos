@@ -39,6 +39,66 @@
 #include <print.h>
 #include <ps/load.h>
 #include <arch.h>
+#include <proc/scheduler.h>
+#include <config.h>
+#include <arch/types.h>
+#include <time/clock.h>
+#include <syscall/copy.h>
+
+static size_t get_running_count(void);
+
+size_t avenrun[3];
+
+#define FSHIFT   11		/* nr of bits of precision */
+#define FIXED_1  (1<<FSHIFT)	/* 1.0 as fixed-point */
+#define LOAD_FREQ 5		/* 5 sec intervals */
+#define EXP_1  1884		/* 1/exp(5sec/1min) as fixed-point */
+#define EXP_5  2014		/* 1/exp(5sec/5min) */
+#define EXP_15 2037		/* 1/exp(5sec/15min) */
+
+#define CALC_LOAD(load,exp,n) \
+	load *= exp; \
+	load += n*(FIXED_1-exp); \
+	load >>= FSHIFT;
+
+static inline unsigned long calc_load(size_t load, size_t exp, size_t active)
+{
+	load *= exp;
+	load += active * (FIXED_1 - exp);
+	return load >> FSHIFT;
+}
+
+static inline void calc_load_global(void)
+{
+	size_t active;
+
+	active = get_running_count();
+	active = active > 0 ? active * FIXED_1 : 0;
+	avenrun[0] = calc_load(avenrun[0], EXP_1, active);
+	avenrun[1] = calc_load(avenrun[1], EXP_5, active);
+	avenrun[2] = calc_load(avenrun[2], EXP_15, active);
+}
+
+static size_t get_running_count(void)
+{
+	size_t i;
+	size_t result = 0;
+	ipl_t ipl;
+
+	/* run queues should not change during reading */
+	ipl = interrupts_disable();
+
+	for (i = 0; i < config.cpu_active; ++i) {
+		cpu_t *cpu = &cpus[i];
+		int j;
+		for (j = 0; j < RQ_COUNT; ++j) {
+			result += cpu->rq[j].n;
+		}
+	} 
+
+	interrupts_restore(ipl);
+	return result;
+}
 
 /** Load thread main function.
  *  Thread computes system load every few seconds.
@@ -50,11 +110,21 @@ void kload_thread(void *arg)
 {
 	/* Noone will thread_join us */
 	thread_detach(THREAD);
+	avenrun[0] = 0;
+	avenrun[1] = 0;
+	avenrun[2] = 0;
 
 	while (true) {
-		printf("load thread alive\n");
-		thread_sleep(5);
+		calc_load_global();
+		printf("Computed loads: 0x%x 0x%x 0x%x\n", avenrun[0], avenrun[1], avenrun[2]);
+		thread_sleep(LOAD_FREQ);
 	}
+}
+
+int sys_ps_get_load(size_t *user_load)
+{
+	copy_to_uspace(user_load, avenrun, sizeof(avenrun));
+	return 0;
 }
 
 

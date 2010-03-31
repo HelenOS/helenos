@@ -54,6 +54,7 @@
 #include <console/console.h>
 #include <udebug/udebug.h>
 #include <ps/ps.h>
+#include <ps/load.h>
 
 /** Dispatch system call */
 unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
@@ -170,6 +171,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ps_get_tasks,
 	(syshandler_t) sys_ps_get_task_info,
 	(syshandler_t) sys_ps_get_threads,
+	(syshandler_t) sys_ps_get_load,
 	
 	(syshandler_t) sys_ipc_connect_kbox
 };
