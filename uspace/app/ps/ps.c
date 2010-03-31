@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 			}
 			task_id_t taskid = strtol(*argv, NULL, 10);
 			list_threads(taskid);
-		} if (str_cmp(*argv, "-l") == 0) {
+		} else if (str_cmp(*argv, "-l") == 0) {
 			--argc; ++argv;
 			if (argc != 0) {
 				printf("Bad argument count!\n");
