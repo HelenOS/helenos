@@ -70,7 +70,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/ps/ps
+	$(USPACEDIR)/app/ps/ps \
+	$(USPACEDIR)/app/top/top
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
