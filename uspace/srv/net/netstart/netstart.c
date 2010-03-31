@@ -27,82 +27,87 @@
  */
 
 /** @addtogroup net
- *  @{
+ * @{
  */
 
 /** @file
- *  Starts the networking subsystem.
- *  Performs self test if configured to.
- *  @see configuration.h
+ *
+ * Start the networking subsystem.
+ * Perform networking self-test if executed
+ * with the -s argument.
+ *
  */
+
+#define NAME  "netstart"
 
 #include <async.h>
 #include <stdio.h>
 #include <task.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <net_err.h>
 #include <net_modules.h>
 #include <net_net_messages.h>
+
 #include "self_test.h"
 
-/** Networking startup module name.
+/** Start a module.
+ *
+ * @param[in] desc The module description
+ * @param[in] path The module absolute path.
+ *
+ * @returns true on succesful spanwning
+ * @returns false on failure
+ *
  */
-#define NAME	"Networking startup"
-
-/** Starts the module.
- *  @param[in] fname The module absolute name.
- *  @returns The started module task identifier.
- *  @returns Other error codes as defined for the task_spawn() function.
- */
-static task_id_t spawn(const char * fname){
-	const char * argv[2];
-	task_id_t res;
-
-	argv[0] = fname;
-	argv[1] = NULL;
-	res = task_spawn(fname, argv);
+static bool spawn(const char *desc, const char *path)
+{
+	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
 	
-	return res;
+	const char *argv[2];
+	
+	argv[0] = path;
+	argv[1] = NULL;
+	
+	if (task_spawn(path, argv) == 0) {
+		fprintf(stderr, "%s: Error spawning %s\n", NAME, path);
+		return false;
+	}
+	
+	return true;
 }
 
-/** Module entry point.
- *  @param[in] argc The number of command line parameters.
- *  @param[in] argv The command line parameters.
- *  @returns EOK on success.
- *  @returns EINVAL if the net module cannot be started.
- *  @returns Other error codes as defined for the self_test() function.
- *  @returns Other error codes as defined for the NET_NET_STARTUP message.
+/** Network startup entry point.
+ *
+ * @param[in] argc The number of command line parameters.
+ * @param[in] argv The command line parameters.
+ *
+ * @returns EOK on success.
+ * @returns EINVAL if the net module cannot be started.
+ * @returns Other error codes as defined for the self_test() function.
+ * @returns Other error codes as defined for the NET_NET_STARTUP message.
+ *
  */
-int main(int argc, char * argv[]){
+int main(int argc, char *argv[])
+{
 	ERROR_DECLARE;
-
-	int net_phone;
-
-	// print the module label
-	printf("Task %d - ", task_get_id());
-	printf("%s\n", NAME);
-
-	// run self tests
-	ERROR_PROPAGATE(self_test());
-
-	// start the networking service
-	if(! spawn("/srv/net")){
-		fprintf(stderr, "Could not spawn net\n");
+	
+	/* Run self-tests */
+	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
+		ERROR_PROPAGATE(self_test());
+	
+	if (!spawn("networking service", "/srv/net"))
 		return EINVAL;
-	}
-
-	// start the networking
-	net_phone = connect_to_service(SERVICE_NETWORKING);
-	if(ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))){
-		printf("ERROR %d\n", ERROR_CODE);
+	
+	printf("%s: Initializing networking\n", NAME);
+	
+	int net_phone = connect_to_service(SERVICE_NETWORKING);
+	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
+		fprintf(stderr, "%s: Networking error %d\n", NAME, ERROR_CODE);
 		return ERROR_CODE;
-	}else{
-		printf("OK\n");
 	}
-
+	
 	return EOK;
 }
 

@@ -27,36 +27,13 @@
  */
 
 /** @addtogroup net
- *  @{
- */
-
-/** @file
- *  Self tests.
- *  @see configuration.h
+ * @{
  */
 
 #ifndef __SELF_TEST_H__
 #define __SELF_TEST_H__
 
-#include "configuration.h"
-
-/** Self test start function.
- *  Runs all the configured self tests.
- *  @see configuration.h
- *  @returns EOK on success.
- *  @returns The first error occurred.
- */
-#if NET_SELF_TEST
-
 extern int self_test(void);
-
-#else
-
-#include <errno.h>
-
-#define self_test()	EOK
-
-#endif
 
 #endif
 
