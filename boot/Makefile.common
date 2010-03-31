@@ -71,7 +71,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/ps/ps \
-	$(USPACEDIR)/app/top/top
+	$(USPACEDIR)/app/top/top \
+	$(USPACEDIR)/app/uptime/uptime
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \

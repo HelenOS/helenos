@@ -46,6 +46,7 @@ DIRS = \
 	app/trace \
 	app/ps \
 	app/top \
+	app/uptime \
 	srv/clip \
 	srv/devmap \
 	srv/loader \
