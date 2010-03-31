@@ -60,6 +60,7 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/taskmon/taskmon \
 	$(USPACEDIR)/srv/hw/netif/dp8390/dp8390 \
 	$(USPACEDIR)/srv/net/net/net \
+	$(USPACEDIR)/srv/net/netstart/netstart \
 	$(USPACEDIR)/srv/net/netif/lo/lo \
 	$(USPACEDIR)/srv/net/nil/eth/eth \
 	$(USPACEDIR)/srv/net/nil/nildummy/nildummy
@@ -77,7 +78,6 @@ RD_APPS = \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/netecho/netecho \
-	$(USPACEDIR)/srv/net/netstart/netstart \
 	$(USPACEDIR)/app/ping/ping \
 	$(USPACEDIR)/app/nettest1/nettest1 \
 	$(USPACEDIR)/app/nettest2/nettest2
@@ -97,7 +97,7 @@ ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
 endif
 
-CFG = \
+NET_CFG = \
 	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/general \
 	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/lo \
 	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/ne2k
