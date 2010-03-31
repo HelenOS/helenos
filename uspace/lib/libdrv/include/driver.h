@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,20 +37,55 @@
 
 #include <adt/list.h>
 #include <ipc/devman.h>
+#include <ipc/dev_iface.h>
 
-typedef struct device {
+struct device;
+typedef struct device device_t;
+
+// device interface
+
+// first two parameters: device and interface structure registered by the devices driver
+typedef void remote_iface_func_t(device_t*, void *, ipc_callid_t, ipc_call_t *);
+typedef remote_iface_func_t *remote_iface_func_ptr_t;
+
+typedef struct {
+	int method_count;
+	remote_iface_func_ptr_t *methods;
+} remote_iface_t;
+
+typedef struct {
+	remote_iface_t * ifaces[DEV_IFACE_COUNT];
+} iface_dipatch_table_t;
+
+static inline int get_iface_index(dev_inferface_id_t id)
+{
+	return id - DEV_IFACE_FIRST;
+}
+
+static inline bool is_valid_iface_id(dev_inferface_id_t id)
+{
+	return DEV_IFACE_FIRST <= id && id < DEV_IFACE_MAX;
+}
+
+// device
+
+struct device {
 	device_handle_t handle;
-	ipcarg_t parent_phone;	
+	ipcarg_t parent_phone;
 	const char *name;
 	match_id_list_t match_ids;
 	void *driver_data;
-	
-	// TODO add more items
-	
-	link_t link;
-} device_t;
+	void *interfaces[DEV_IFACE_COUNT];
 
-typedef struct driver_ops {	
+	// TODO add more items
+
+	link_t link;
+};
+
+
+// driver
+
+typedef struct driver_ops {
 	bool (*add_device)(device_t *dev);
 	// TODO add other generic driver operations
 } driver_ops_t;
@@ -60,6 +95,10 @@ typedef struct driver {
 	driver_ops_t *driver_ops;
 } driver_t;
 
+
+
+
+
 int driver_main(driver_t *drv);
 
 static inline device_t * create_device()
@@ -67,17 +106,26 @@ static inline device_t * create_device()
 	device_t *dev = malloc(sizeof(device_t));
 	if (NULL != dev) {
 		memset(dev, 0, sizeof(device_t));
-	}	
+	}
 	list_initialize(&dev->match_ids.ids);
 	return dev;
 }
 
-static inline void delete_device(device_t *dev) {
+static inline void delete_device(device_t *dev)
+{
 	clean_match_ids(&dev->match_ids);
 	if (NULL != dev->name) {
 		free(dev->name);
 	}
 	free(dev);
+}
+
+static inline void device_set_iface (device_t *dev, dev_inferface_id_t id, void *iface)
+{
+	assert(is_valid_iface_id(id));
+
+	int idx = get_iface_index(id);
+	dev->interfaces[idx] = iface;
 }
 
 bool child_device_register(device_t *child, device_t *parent);

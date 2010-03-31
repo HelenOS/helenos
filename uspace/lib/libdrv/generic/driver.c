@@ -57,13 +57,28 @@
 static driver_t *driver;
 LIST_INITIALIZE(devices);
 
-static device_t* driver_create_device()
+static device_t * driver_create_device()
 {
 	device_t *dev = (device_t *)malloc(sizeof(device_t));
 	if (NULL != dev) {
 		memset(dev, 0, sizeof(device_t));		
 	}	
 	return dev;	
+}
+
+static device_t * driver_get_device(link_t *devices, device_handle_t handle) 
+{	
+	device_t *dev = NULL;
+	link_t *link = devices->next;
+	
+	while (link != devices) {
+		dev = list_get_instance(link, device_t, link);
+		if (handle == dev->handle) {
+			return dev;
+		}
+	}
+	
+	return NULL;
 }
 
 static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall) 
@@ -81,7 +96,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
 	
-	ipcarg_t r = ipc_answer_1(iid, EOK, ret);
+	ipc_answer_1(iid, EOK, ret);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
@@ -110,14 +125,60 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
+/** 
+ * Generic client connection handler both for applications and drivers.
+ * 
+ * @param driver true for driver client, false for other clients (applications, services etc.). 
+ */
+static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driver) {
+	/*
+	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of the device to which the client connected.
+	 */
+	device_handle_t handle = IPC_GET_ARG1(*icall); 
+	device_t *dev = driver_get_device(&devices, handle);
+	
+	if (dev == NULL) {
+		ipc_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	// TODO introduce generic device interface for opening and closing devices
+	// and call its open callback here to find out wheter the device can be used by the connecting client
+		
+
+	ipc_answer_0(iid, EOK);
+	
+	while (1) {
+		ipc_callid_t callid;
+		ipc_call_t call;
+	
+		callid = async_get_call(&call);
+		ipcarg_t method = IPC_GET_METHOD(call);
+		switch  (method) {
+		case IPC_M_PHONE_HUNGUP:
+			// TODO close the device 
+			ipc_answer_0(callid, EOK);
+			return;
+		default:
+			if (DEV_IFACE_FIRST <= method && method < DEV_IFACE_MAX) {
+				// TODO - try to find interface, if supported
+				// otherwise return  ENOTSUP				
+			} else {
+				ipc_answer_0(callid, ENOTSUP);
+			}
+			break;
+		}
+	}
+}
+
 static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	// TODO later
+	driver_connection_gen(iid, icall, true); 
 }
 
 static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
-	// TODO later
+	driver_connection_gen(iid, icall, false); 
 }
 
 
