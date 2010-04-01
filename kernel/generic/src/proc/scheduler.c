@@ -201,7 +201,9 @@ loop:
 		 * even though there is a runnable thread.
 		 */
 
+		 spinlock_lock(&CPU->lock);
 		 CPU->idle = true;
+		 spinlock_unlock(&CPU->lock);
 		 cpu_sleep();
 		 goto loop;
 	}

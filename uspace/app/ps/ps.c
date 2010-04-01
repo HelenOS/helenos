@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <load.h>
+#include <sysinfo.h>
 
 #include "func.h"
 
@@ -140,9 +141,22 @@ static void echo_load(void)
 	puts("\n");
 }
 
+static void echo_cpus(void)
+{
+	size_t cpu_count = sysinfo_value("cpu.count");
+	printf("Found %u cpu's:\n", cpu_count);
+	uspace_cpu_info_t *cpus = malloc(cpu_count * sizeof(uspace_cpu_info_t));
+	get_cpu_info(cpus);
+	size_t i;
+	for (i = 0; i < cpu_count; ++i) {
+		printf("%2u (%4u Mhz): Busy ticks: %8llu, Idle ticks: %8llu\n", cpus[i].id,
+				(size_t)cpus[i].frequency_mhz, cpus[i].busy_ticks, cpus[i].idle_ticks);
+	}
+}
+
 static void usage()
 {
-	printf("Usage: ps [-t pid -l]\n");
+	printf("Usage: ps [-t pid|-l|-c]\n");
 }
 
 int main(int argc, char *argv[])
@@ -168,6 +182,14 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			echo_load();
+		} else if (str_cmp(*argv, "-c") == 0) {
+			--argc; ++argv;
+			if (argc != 0) {
+				printf("Bad argument count!\n");
+				usage();
+				exit(1);
+			}
+			echo_cpus();
 		} else {
 			printf("Unknown argument %s!\n", *argv);
 			usage();

@@ -230,6 +230,7 @@ GENERIC_SOURCES = \
 	generic/src/security/cap.c \
 	generic/src/sysinfo/sysinfo.c \
 	generic/src/ps/ps.c \
+	generic/src/ps/cpu.c \
 	generic/src/ps/load.c \
 	generic/src/ps/uptime.c
 

@@ -26,25 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericps
  * @{
  */
-/** @file
- */ 
 
-#ifndef LIBC_PS_H_
-#define LIBC_PS_H_
+/**
+ * @file
+ * @brief	CPU listing.
+ */
 
-#include <task.h>
-#include <kernel/ps/taskinfo.h>
-#include <kernel/ps/cpuinfo.h>
+#include <ps/ps.h>
+#include <ps/cpuinfo.h>
+#include <arch/asm.h>
+#include <cpu.h>
+#include <syscall/copy.h>
 
-extern int get_cpu_info(uspace_cpu_info_t *cpus);
-extern size_t get_task_ids(task_id_t *ids, size_t size);
-extern int get_task_info(task_id_t id, task_info_t *info);
-extern int get_task_threads(task_id_t taskid, thread_info_t *infos, size_t size);
+#define WRITE_CPU_INFO(dst, i, src) copy_to_uspace(dst+i, src, sizeof(uspace_cpu_info_t))
 
-#endif
+int sys_ps_get_cpu_info(uspace_cpu_info_t *uspace_cpu)
+{
+	size_t i;
+	uspace_cpu_info_t cpuinfo;
+	ipl_t ipl;
+	ipl = interrupts_disable();
+
+	for (i = 0; i < config.cpu_count; ++i) {
+		spinlock_lock(&cpus[i].lock);
+		cpuinfo.id = cpus[i].id;
+		cpuinfo.frequency_mhz = cpus[i].frequency_mhz;
+		cpuinfo.busy_ticks = cpus[i].busy_ticks;
+		cpuinfo.idle_ticks = cpus[i].idle_ticks;
+		spinlock_unlock(&cpus[i].lock);
+		WRITE_CPU_INFO(uspace_cpu, i, &cpuinfo);
+	}
+
+	interrupts_restore(ipl);
+	return 0;
+}
 
 /** @}
  */

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_LOAD_H_
-#define KERN_LOAD_H_
+#ifndef KERN_PS_LOAD_H_
+#define KERN_PS_LOAD_H_
 
 extern void get_avenrun(unsigned long *loads, int shift);
 extern void kload_thread(void *);

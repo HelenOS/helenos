@@ -47,6 +47,7 @@
 #include <memstr.h>
 #include <adt/list.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
 
 cpu_t *cpus;
 
@@ -95,6 +96,8 @@ void cpu_init(void) {
 	
 	cpu_identify();
 	cpu_arch_init();
+
+	sysinfo_set_item_val("cpu.count", NULL, config.cpu_count);
 }
 
 /** List all processors. */

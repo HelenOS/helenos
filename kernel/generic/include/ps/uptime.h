@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef KERN_UPTIME_H_
-#define KERN_UPTIME_H_
+#ifndef KERN_PS_UPTIME_H_
+#define KERN_PS_UPTIME_H_
 
 extern int sys_ps_get_uptime(uint64_t *user_load);
 

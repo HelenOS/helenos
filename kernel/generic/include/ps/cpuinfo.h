@@ -26,23 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
- */ 
+ */
 
-#ifndef LIBC_PS_H_
-#define LIBC_PS_H_
+#ifndef KERN_PS_CPU_H_
+#define KERN_PS_CPU_H_
 
-#include <task.h>
-#include <kernel/ps/taskinfo.h>
-#include <kernel/ps/cpuinfo.h>
-
-extern int get_cpu_info(uspace_cpu_info_t *cpus);
-extern size_t get_task_ids(task_id_t *ids, size_t size);
-extern int get_task_info(task_id_t id, task_info_t *info);
-extern int get_task_threads(task_id_t taskid, thread_info_t *infos, size_t size);
+typedef struct {
+	unsigned int id;
+	uint16_t frequency_mhz;
+	uint64_t idle_ticks;
+	uint64_t busy_ticks;
+} uspace_cpu_info_t;
 
 #endif
 

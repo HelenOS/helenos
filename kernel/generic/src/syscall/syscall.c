@@ -169,6 +169,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_debug_disable_console,
 
 	/* Ps calls */
+	(syshandler_t) sys_ps_get_cpu_info,
 	(syshandler_t) sys_ps_get_tasks,
 	(syshandler_t) sys_ps_get_task_info,
 	(syshandler_t) sys_ps_get_threads,

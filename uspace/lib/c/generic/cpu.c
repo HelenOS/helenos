@@ -30,21 +30,23 @@
  * @{
  */
 /** @file
- */ 
+ */
 
-#ifndef LIBC_PS_H_
-#define LIBC_PS_H_
+#include <libc.h>
+#include <ps.h>
 
-#include <task.h>
-#include <kernel/ps/taskinfo.h>
-#include <kernel/ps/cpuinfo.h>
-
-extern int get_cpu_info(uspace_cpu_info_t *cpus);
-extern size_t get_task_ids(task_id_t *ids, size_t size);
-extern int get_task_info(task_id_t id, task_info_t *info);
-extern int get_task_threads(task_id_t taskid, thread_info_t *infos, size_t size);
-
-#endif
+/** Get infos about system CPUs.
+ *
+ * @param cpus		Pointer where info structures will be stored.
+ * 			Use \ref sysinfo() to get cpu.count value.
+ *
+ * @return		EOK.
+ *
+ */
+int get_cpu_info(uspace_cpu_info_t *cpus)
+{
+	return __SYSCALL1(SYS_PS_GET_CPU_INFO, (sysarg_t) cpus);
+}
 
 /** @}
  */
