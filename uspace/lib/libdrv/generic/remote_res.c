@@ -33,6 +33,7 @@
  */
 
 #include <ipc/ipc.h>
+#include <async.h>
 #include <errno.h>
 
 #include "driver.h"
@@ -57,7 +58,7 @@ static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t
 	resource_iface_t *ires = (resource_iface_t *)iface;
 	
 	if (NULL == ires->enable_interrupt) {
-		ipc_answer_0(callid, ENOENT);
+		ipc_answer_0(callid, ENOTSUP);
 	} else if (ires->enable_interrupt(dev)) {
 		ipc_answer_0(callid, EOK);
 	} else {
@@ -67,11 +68,26 @@ static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t
 
 static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
-	resource_iface_t *ires = (resource_iface_t *)iface;
+	resource_iface_t *ires = (resource_iface_t *)iface;	
+	if (NULL == ires->get_resources) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
 	
-	// TODO
+	hw_resource_list_t *hw_resources = ires->get_resources(dev);	
+	if (NULL == hw_resources){
+		ipc_answer_0(callid, ENOENT);
+		return;
+	}	
 	
-	ipc_answer_0(callid, EOK);
+	ipc_answer_1(callid, EOK, hw_resources->count);	
+
+	size_t len;
+	if (!async_data_read_receive(&callid, &len)) {
+		// protocol error - the recipient is not accepting data
+		return;
+	}
+	async_data_read_finalize(callid, hw_resources->resources, len);
 }
  
  
