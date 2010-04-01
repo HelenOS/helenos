@@ -37,10 +37,8 @@
 #include <stdio.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
-#include <futex.h>
 #include "screen.h"
-
-futex_t screen_lock;
+#include "top.h"
 
 static void resume_normal(void)
 {
@@ -65,6 +63,30 @@ void moveto(int r, int c)
 {
 	fflush(stdout);
 	console_goto(fphone(stdout), c, r);
+}
+
+static inline void print_time(data_t *data)
+{
+	printf("%02d:%02d:%02d ", data->hours, data->minutes, data->seconds);
+}
+
+static inline void print_uptime(data_t *data)
+{
+	printf("up %4d days, %02d:%02d:%02d ", data->uptime_d, data->uptime_h,
+		data->uptime_m, data->uptime_s);
+}
+
+static int i = 0;
+void print_data(data_t *data)
+{
+	clear_screen();
+	fflush(stdout);
+	printf("top - ");
+	print_time(data);
+	print_uptime(data);
+	puts(" ... \n");
+	printf("A dalsi radek topu - jiz po %dte", ++i);
+	fflush(stdout);
 }
 
 /** @}

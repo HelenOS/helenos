@@ -60,14 +60,19 @@ int main(int argc, char *argv[])
 
 	uint64_t uptime;
 	get_uptime(&uptime);
-	printf("\tUp %4llu days, %02llu:%02llu:%02llu",
+	printf(", up %4llu days, %02llu:%02llu:%02llu",
 		uptime / DAY, (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
 
-	size_t load[3];
+	unsigned long load[3];
 	get_load(load);
-	printf("\t load: %d.%03d %d.%03d %d.%03d ", ECHOLOAD1(load[0]), ECHOLOAD2(load[0]), ECHOLOAD1(load[1]), ECHOLOAD2(load[1]), ECHOLOAD1(load[2]), ECHOLOAD2(load[2]));
+	puts(", load avarage: ");
+	print_load_fragment(load[0], 2);
+	puts(" ");
+	print_load_fragment(load[1], 2);
+	puts(" ");
+	print_load_fragment(load[2], 2);
 
-	printf("\n");
+	puts("\n");
 	return 0;
 }
 

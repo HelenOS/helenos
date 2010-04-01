@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2008 Stanislav Kozina
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup top
  * @{
  */
-/** @file
- */
 
-#include <load.h>
-#include <libc.h>
-#include <stdio.h>
+#ifndef TOP_TOP_H_
+#define TOP_TOP_H_
 
-/** Get current system load
- *
- * @param load		Pointer where load will be stored.
- *
- * @return		EOK.
- *
- */
-int get_load(unsigned long *load)
-{
-	return __SYSCALL1(SYS_PS_GET_LOAD, (sysarg_t) load);
-}
+typedef struct {
+	unsigned int hours;
+	unsigned int minutes;
+	unsigned int seconds;
 
-void print_load_fragment(unsigned long upper, int dec_length)
-{
-	int i;
-	/* Magic value from BSD */
-	unsigned long lower = 65536;
-	/* Print whole part */
-	printf("%u.", upper / lower);
-	unsigned long rest = (upper % lower) * 10;
-	for (i = 0; i < dec_length; ++i) {
-		printf("%d", rest / lower);
-		rest = (rest % lower) * 10;
-	}
-}
+	unsigned int uptime_d;
+	unsigned int uptime_h;
+	unsigned int uptime_m;
+	unsigned int uptime_s;
 
-/** @}
+	unsigned long load[3];
+} data_t;
+
+#endif
+
+/**
+ * @}
  */

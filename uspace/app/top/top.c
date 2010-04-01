@@ -36,26 +36,66 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <async.h>
 #include <unistd.h>
 #include <io/console.h>
-#include <vfs/vfs.h>
+#include <uptime.h>
+#include <task.h>
+#include <thread.h>
+#include <sys/time.h>
+#include <load.h>
 #include "screen.h"
 #include "input.h"
+#include "top.h"
+
+#define UPDATE_INTERVAL 1
+
+#define DAY 86400
+#define HOUR 3600
+#define MINUTE 60
+
+static void read_vars(data_t *target)
+{
+	/* Read current time */
+	struct timeval time;
+	if (gettimeofday(&time, NULL) != 0) {
+		printf("Cannot get time of day!\n");
+		exit(1);
+	}
+	target->hours = (time.tv_sec % DAY) / HOUR;
+	target->minutes = (time.tv_sec % HOUR) / MINUTE;
+	target->seconds = time.tv_sec % MINUTE;
+
+	/* Read uptime */
+	uint64_t uptime;
+	get_uptime(&uptime);
+	target->uptime_d = uptime / DAY;
+	target->uptime_h = (uptime % DAY) / HOUR;
+	target->uptime_m = (uptime % HOUR) / MINUTE;
+	target->uptime_s = uptime % MINUTE;
+
+	/* Read load */
+	get_load(target->load);
+}
 
 int main(int argc, char *argv[])
 {
+	data_t old_data;
+	data_t new_data;
+
+	/* Read initial stats */
+	printf("Reading initial data...\n");
+	read_vars(&old_data);
+	sleep(UPDATE_INTERVAL);
+	read_vars(&new_data);
+
 	screen_init();
 
 	/* And paint screen until death... */
-	int i = 0;
 	while (true) {
-		char c = tgetchar();
+		char c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
-			clear_screen();
-			moveto(0,0);
-			printf("Still running;-) for  %d...", i++);
-			fflush(stdout);
+			read_vars(&new_data);
+			print_data(&new_data);
 			continue;
 		}
 		switch (c) {
@@ -67,8 +107,10 @@ int main(int argc, char *argv[])
 				fflush(stdout);
 				break;
 		}
+
 	}
 
+	puts("\n\n");
 	fflush(stdout);
 	return 0;
 }

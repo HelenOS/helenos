@@ -61,7 +61,7 @@
 #include <io/console.h>
 #include <ipc/console.h>
 
-#define READ_TIMEOUT 1000000
+#define USEC_COUNT 1000000
 
 /* return true iff the given timeval is positive */
 #define	TV_POS(tv) \
@@ -153,12 +153,12 @@ again:
  * `sleep' for the current turn time (using select).
  * Eat any input that might be available.
  */
-void tsleep(void)
+void tsleep(unsigned int sec)
 {
 	struct timeval tv;
 	
 	tv.tv_sec = 0;
-	tv.tv_usec = READ_TIMEOUT;
+	tv.tv_usec = sec * USEC_COUNT;
 	while (TV_POS(&tv))
 		if (rwait(&tv)) {
 			lastchar = '\0';
@@ -169,13 +169,13 @@ void tsleep(void)
 /*
  * getchar with timeout.
  */
-int tgetchar(void)
+int tgetchar(unsigned int sec)
 {
 	static struct timeval timeleft;
 	char c;
 	
 	/*
-	 * Reset timeleft to READ_TIMEOUT whenever it is not positive.
+	 * Reset timeleft to USEC_COUNT whenever it is not positive.
 	 * In any case, wait to see if there is any input.  If so,
 	 * take it, and update timeleft so that the next call to
 	 * tgetchar() will not wait as long.  If there is no input,
@@ -185,7 +185,7 @@ int tgetchar(void)
 	 */
 	if (!TV_POS(&timeleft)) {
 		timeleft.tv_sec = 0;
-		timeleft.tv_usec = READ_TIMEOUT;
+		timeleft.tv_usec = sec * USEC_COUNT;
 	}
 	
 	if (!rwait(&timeleft))

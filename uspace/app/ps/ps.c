@@ -129,9 +129,15 @@ static void list_threads(task_id_t taskid)
 
 static void echo_load(void)
 {
-	size_t load[3];
+	unsigned long load[3];
 	get_load(load);
-	printf("System load: %d.%03d %d.%03d %d.%03d\n", ECHOLOAD1(load[0]), ECHOLOAD2(load[0]), ECHOLOAD1(load[1]), ECHOLOAD2(load[1]), ECHOLOAD1(load[2]), ECHOLOAD2(load[2]));
+	printf("load avarage: ");
+	print_load_fragment(load[0], 2);
+	puts(" ");
+	print_load_fragment(load[1], 2);
+	puts(" ");
+	print_load_fragment(load[2], 2);
+	puts("\n");
 }
 
 static void usage()

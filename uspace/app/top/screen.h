@@ -33,13 +33,12 @@
 #ifndef TOP_SCREEN_H_
 #define TOP_SCREEN_H_
 
-#include <futex.h>
-
-extern futex_t screen_lock;
+#include "top.h"
 
 extern void screen_init(void);
 extern void clear_screen(void);
 extern void moveto(int r, int c);
+extern void print_data(data_t *data);
 
 #endif
 

@@ -46,7 +46,7 @@
 
 static size_t get_running_count(void);
 
-size_t avenrun[3];
+unsigned long avenrun[3];
 
 #define FSHIFT   11		/* nr of bits of precision */
 #define FIXED_1  (1<<FSHIFT)	/* 1.0 as fixed-point */
@@ -55,12 +55,14 @@ size_t avenrun[3];
 #define EXP_5  2014		/* 1/exp(5sec/5min) */
 #define EXP_15 2037		/* 1/exp(5sec/15min) */
 
-#define CALC_LOAD(load,exp,n) \
-	load *= exp; \
-	load += n*(FIXED_1-exp); \
-	load >>= FSHIFT;
+void get_avenrun(unsigned long *loads, int shift)
+{
+	loads[0] = avenrun[0] << shift;
+	loads[1] = avenrun[1] << shift;
+	loads[2] = avenrun[2] << shift;
+}
 
-static inline unsigned long calc_load(size_t load, size_t exp, size_t active)
+static inline unsigned long calc_load(unsigned long load, size_t exp, size_t active)
 {
 	load *= exp;
 	load += active * (FIXED_1 - exp);
@@ -119,9 +121,11 @@ void kload_thread(void *arg)
 	}
 }
 
-int sys_ps_get_load(size_t *user_load)
+int sys_ps_get_load(unsigned long *user_load)
 {
-	copy_to_uspace(user_load, avenrun, sizeof(avenrun));
+	unsigned long loads[3];
+	get_avenrun(loads, 5);
+	copy_to_uspace(user_load, loads, sizeof(loads));
 	return 0;
 }
 

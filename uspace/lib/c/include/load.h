@@ -38,7 +38,8 @@
 #include <sys/types.h>
 #include <libarch/types.h>
 
-extern int get_load(size_t *load);
+extern int get_load(unsigned long *load);
+extern void print_load_fragment(unsigned long upper, int dec_length);
 
 #endif
 

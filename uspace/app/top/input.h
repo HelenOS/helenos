@@ -44,9 +44,11 @@
 #ifndef TOP_INPUT_
 #define TOP_INPUT_
 
+#include <sys/time.h>
+
 extern int rwait(struct timeval *);
-extern int tgetchar(void);
-extern void tsleep(void);
+extern int tgetchar(unsigned int sec);
+extern void tsleep(unsigned int sec);
 
 #endif
 
