@@ -34,6 +34,8 @@ EXTRA_CFLAGS = -Iinclude
 OUTPUT = libdrv.a
 
 SOURCES = \
-	generic/driver.c
+	generic/driver.c \
+	generic/dev_iface.c \
+	generic/remote_res.h
 
 include ../Makefile.common

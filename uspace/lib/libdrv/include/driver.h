@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
+#include <assert.h>
 
 struct device;
 typedef struct device device_t;
@@ -49,7 +50,7 @@ typedef void remote_iface_func_t(device_t*, void *, ipc_callid_t, ipc_call_t *);
 typedef remote_iface_func_t *remote_iface_func_ptr_t;
 
 typedef struct {
-	int method_count;
+	size_t method_count;
 	remote_iface_func_ptr_t *methods;
 } remote_iface_t;
 
@@ -67,31 +68,45 @@ static inline bool is_valid_iface_id(dev_inferface_id_t id)
 	return DEV_IFACE_FIRST <= id && id < DEV_IFACE_MAX;
 }
 
+remote_iface_t* get_remote_iface(dev_inferface_id_t id);
+remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx);
+
+
 // device
 
+/** The device. */
 struct device {
+	/** Globally unique device identifier (assigned to the device by the device manager). */
 	device_handle_t handle;
+	/** The phone to the parent device driver.*/
 	ipcarg_t parent_phone;
+	/** The device's name.*/
 	const char *name;
+	/** The list of device ids for device-to-driver matching.*/
 	match_id_list_t match_ids;
+	/** The device driver's data associated with this device.*/
 	void *driver_data;
+	/** The table of interfaces exported by this device. */
 	void *interfaces[DEV_IFACE_COUNT];
-
-	// TODO add more items
-
+	/** Pointer to the previous and next device in the list of devices handled by the driver */
 	link_t link;
 };
 
 
 // driver
 
+/** Generic device driver operations. */
 typedef struct driver_ops {
+	/** Callback method for passing a new device to the device driver.*/
 	bool (*add_device)(device_t *dev);
 	// TODO add other generic driver operations
 } driver_ops_t;
 
+/** The driver structure.*/
 typedef struct driver {
+	/** The name of the device driver. */
 	const char *name;
+	/** Generic device driver operations. */
 	driver_ops_t *driver_ops;
 } driver_t;
 
@@ -101,6 +116,10 @@ typedef struct driver {
 
 int driver_main(driver_t *drv);
 
+/** Create new device structure. 
+ * 
+ * @return the device structure.
+ */
 static inline device_t * create_device()
 {
 	device_t *dev = malloc(sizeof(device_t));
@@ -111,6 +130,10 @@ static inline device_t * create_device()
 	return dev;
 }
 
+/** Delete device structure. 
+ * 
+ * @param dev the device structure.
+ */
 static inline void delete_device(device_t *dev)
 {
 	clean_match_ids(&dev->match_ids);
@@ -126,6 +149,14 @@ static inline void device_set_iface (device_t *dev, dev_inferface_id_t id, void 
 
 	int idx = get_iface_index(id);
 	dev->interfaces[idx] = iface;
+}
+
+static inline void * device_get_iface(device_t *dev, dev_inferface_id_t id)
+{
+	assert(is_valid_iface_id(id));
+	
+	int idx = get_iface_index(id);
+	return dev->interfaces[idx];	
 }
 
 bool child_device_register(device_t *child, device_t *parent);

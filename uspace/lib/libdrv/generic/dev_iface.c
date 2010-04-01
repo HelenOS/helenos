@@ -35,7 +35,30 @@
 /** @file
  */
  
- #include "driver.h"
+#include "dev_iface.h"
+#include "remote_res.h"
+ 
+static iface_dipatch_table_t remote_ifaces = {
+	.ifaces = {
+		&remote_res_iface
+	}
+};
+
+remote_iface_t* get_remote_iface(dev_inferface_id_t id)
+{
+	assert(is_valid_iface_id(id));
+	
+	int idx = get_iface_index(id);
+	return remote_ifaces.ifaces[idx];	
+}
+
+remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
+{
+	if (iface_method_idx >= rem_iface->method_count) {
+		return NULL;
+	}
+	return rem_iface->methods[iface_method_idx];
+}
  
  
  

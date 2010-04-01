@@ -52,7 +52,6 @@
 #define NAME "root"
 
 static bool root_add_device(device_t *dev);
-static bool root_init();
 
 /** The root device driver's standard operations.
  */

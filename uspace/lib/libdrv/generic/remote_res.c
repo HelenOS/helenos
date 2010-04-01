@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libdrv
+ * @{
+ */
+/** @file
+ */
 
 #include <ipc/ipc.h>
+#include <errno.h>
 
-#define DEV_IFACE_FIRST IPC_FIRST_USER_METHOD
+#include "driver.h"
+#include "resource.h"
 
-typedef enum {	
-	HW_RES_DEV_IFACE = DEV_IFACE_FIRST,	
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_id_t;
+ 
+static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call);
+static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call);
 
+static remote_iface_func_ptr_t remote_res_iface_ops [] = {
+	&remote_res_get_resources,
+	&remote_res_enable_interrupt	
+}; 
+ 
+remote_iface_t remote_res_iface = {
+	.method_count = sizeof(remote_res_iface_ops) / sizeof(remote_iface_func_ptr_t),
+	.methods = remote_res_iface_ops
+};
 
-#define DEV_IFACE_COUNT (DEV_IFACE_MAX - DEV_IFACE_FIRST)
+static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	resource_iface_t *ires = (resource_iface_t *)iface;
+	
+	if (NULL == ires->enable_interrupt) {
+		ipc_answer_0(callid, ENOENT);
+	} else if (ires->enable_interrupt(dev)) {
+		ipc_answer_0(callid, EOK);
+	} else {
+		ipc_answer_0(callid, EREFUSED);
+	}	
+}
 
-
-// data types related to some interface - TODO move this to separate header files
-
-
-// HW resource provider interface
-
-typedef enum {
-	GET_RESOURCE_LIST = 0,
-	ENABLE_INTERRUPT	
-} hw_res_funcs_t;
-
-/** HW resource types. */
-typedef enum {
-	INTERRUPT,
-	REGISTER
-} hw_res_type_t;
-
-typedef enum {
-	LITTLE_ENDIAN = 0,
-	BIG_ENDIAN
-} endianness_t;
-
-/** HW resource (e.g. interrupt, memory register, i/o register etc.). */
-typedef struct hw_resource {
-	hw_res_type_t type;
-	union {
-		struct {
-			void *address;
-			endianness_t endianness;			
-			size_t size;			
-		} reg;
-		struct {
-			int irq;			
-		} intr;		
-	};	
-} hw_resource_t;
-
-typedef struct {
-	size_t count;
-	hw_resource_t *resources;	
-} hw_resource_list_t;
-
-#endif
+static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
+{
+	resource_iface_t *ires = (resource_iface_t *)iface;
+	
+	// TODO
+	
+	ipc_answer_0(callid, EOK);
+}
+ 
+ 
+ /**
+ * @}
+ */
