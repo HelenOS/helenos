@@ -89,6 +89,8 @@ static void list_tasks(void)
 			taskinfo.thread_count, taskinfo.pages, ucycles, usuffix,
 			kcycles, ksuffix, fault, fsuffix, taskinfo.name);
 	}
+
+	free(tasks);
 }
 
 static void list_threads(task_id_t taskid)
@@ -121,6 +123,8 @@ static void list_threads(task_id_t taskid)
 			threads[i].priority, ucycles, usuffix,
 			kcycles, ksuffix, fault, fsuffix);
 	}
+
+	free(threads);
 }
 
 static void echo_load(void)
