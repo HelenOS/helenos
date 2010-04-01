@@ -36,14 +36,38 @@
 
 #include <stdio.h>
 #include <uptime.h>
+#include <sys/time.h>
+#include <load.h>
+
+#define DAY 86400
+#define HOUR 3600
+#define MINUTE 60
+
+#define ECHOLOAD1(x) ((x) >> 11)
+#define ECHOLOAD2(x) (((x) & 0x7ff) / 2)
 
 int main(int argc, char *argv[])
 {
-	uint64_t uptime;
+	struct timeval time;
+	uint64_t sec;
+	if (gettimeofday(&time, NULL) != 0) {
+		printf("Cannot get time of day!\n");
+		return 1;
+	}
+	sec = time.tv_sec;
+	printf("%02llu:%02llu:%02llu", (sec % DAY) / HOUR,
+			(sec % HOUR) / MINUTE, sec % MINUTE);
 
+	uint64_t uptime;
 	get_uptime(&uptime);
-	printf("Up %llu days, %llu hours, %llu minutes, %llu seconds\n",
-		uptime / 86400, (uptime % 86400) / 3600, (uptime % 3600) / 60, uptime % 60);
+	printf("\tUp %4llu days, %02llu:%02llu:%02llu",
+		uptime / DAY, (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
+
+	size_t load[3];
+	get_load(load);
+	printf("\t load: %d.%03d %d.%03d %d.%03d ", ECHOLOAD1(load[0]), ECHOLOAD2(load[0]), ECHOLOAD1(load[1]), ECHOLOAD2(load[1]), ECHOLOAD1(load[2]), ECHOLOAD2(load[2]));
+
+	printf("\n");
 	return 0;
 }
 

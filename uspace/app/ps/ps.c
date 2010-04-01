@@ -48,6 +48,9 @@
 #define TASK_COUNT 10
 #define THREAD_COUNT 50
 
+#define ECHOLOAD1(x) ((x) >> 11)
+#define ECHOLOAD2(x) (((x) & 0x7ff) / 2)
+
 /** Thread states */
 static const char *thread_states[] = {
 	"Invalid",
@@ -123,11 +126,8 @@ static void list_threads(task_id_t taskid)
 static void echo_load(void)
 {
 	size_t load[3];
-	load[0] = 0;
-	load[1] = 0;
-	load[2] = 0;
 	get_load(load);
-	printf("Current load: %d.%03d %d.%03d %d.%03d\n", load[0] >> 11, (load[0] & 0x7ff) / 2, load[1] >> 11, (load[1] & 0x7ff) / 2, load[2] >> 11, (load[2] & 0x7ff) / 2);
+	printf("System load: %d.%03d %d.%03d %d.%03d\n", ECHOLOAD1(load[0]), ECHOLOAD2(load[0]), ECHOLOAD1(load[1]), ECHOLOAD2(load[1]), ECHOLOAD1(load[2]), ECHOLOAD2(load[2]));
 }
 
 static void usage()
