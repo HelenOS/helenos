@@ -505,12 +505,12 @@ void add_device(int phone, driver_t *drv, node_t *node)
 	ipcarg_t rc = async_req_1_1(phone, DRIVER_ADD_DEVICE, node->handle, &ret);
 	if (rc != EOK) {
 		// TODO handle error
-		return false;
+		return;
 	}
 	
 	// TODO inspect return value (ret) to find out whether the device was successfully probed and added
 	
-	return true;
+	return;
 }
 
 /** 
@@ -617,7 +617,7 @@ static bool set_dev_path(node_t *node, node_t *parent)
  * @param parent the parent device node.
  * @return true on success, false otherwise (insufficient resources etc.).
  */
-bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_t *parent)
+bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *parent)
 {
 	printf(NAME ": insert_dev_node\n");
 	
@@ -647,6 +647,71 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_
 		fibril_mutex_unlock(&parent->children_mutex);
 	}	
 	return true;
+}
+
+/** 
+ * Find device node with a specified path in the device tree.
+ * 
+ * @param path the path of the device node in the device tree.
+ * @param tree the device tree.
+ * 
+ * @return the device node if it is present in the tree, NULL otherwise.
+ */
+node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
+{
+	node_t *dev = tree->root_node;
+	char *rel_path = path;
+	char *next_path_elem = NULL;
+	size_t elem_size = 0;
+	bool cont = '/' == rel_path[0];
+	
+	while (cont && NULL != dev) {		
+		next_path_elem  = get_path_elem_end(rel_path+1);		
+		if ('/' == next_path_elem[0]) {
+			cont = true;
+			next_path_elem[0] = 0;
+		} else {
+			cont = false;
+		}
+		
+		dev = find_node_child(dev, rel_path);		
+		
+		if (cont) {
+			next_path_elem[0] = '/';
+		}
+		rel_path = next_path_elem;		
+	}
+	
+	return dev;
+}
+
+/**
+ * Find child device node with a specified name.
+ * 
+ * @param parent the parent device node.
+ * @param name the name of the child device node.
+ * 
+ * @return the child device node.
+ */
+node_t *find_node_child(node_t *parent, const char *name)
+{
+	node_t *dev;
+	link_t *link;
+	
+	fibril_mutex_lock(&parent->children_mutex);		
+	link = parent->children.next;
+	
+	while (link != &parent->children) {
+		dev = list_get_instance(link, node_t, sibling);
+		
+		if (0 == str_cmp(name, dev->name)) {
+			fibril_mutex_unlock(&parent->children_mutex);
+			return dev;			
+		}
+	}	
+	
+	fibril_mutex_unlock(&parent->children_mutex);	
+	return NULL;
 }
 
 /** @}

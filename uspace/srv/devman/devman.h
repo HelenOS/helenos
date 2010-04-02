@@ -237,6 +237,12 @@ static inline node_t * create_dev_node()
 	return res;
 }
 
+/**
+ * Delete a device node.
+ * 
+ * @param node a device node structure.
+ * 
+ */
 static inline void delete_dev_node(node_t *node)
 {
 	assert(list_empty(&node->children) && NULL == node->parent && NULL == node->drv);
@@ -262,11 +268,14 @@ static inline node_t * find_dev_node(dev_tree_t *tree, long handle)
 	return NULL;
 }
 
+node_t * find_dev_node_by_path(dev_tree_t *tree, char *path);
+node_t *find_node_child(node_t *parent, const char *name);
+
 // Device tree
 
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list);
 bool create_root_node(dev_tree_t *tree);
-bool insert_dev_node(dev_tree_t *tree, node_t *node, const char *dev_name, node_t *parent);
+bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *parent);
 
 #endif
 

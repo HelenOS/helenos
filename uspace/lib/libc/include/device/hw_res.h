@@ -25,43 +25,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup devman
+ 
+ /** @addtogroup libc
  * @{
  */
+/** @file
+ */
  
-#ifndef DEVMAN_UTIL_H_
-#define DEVMAN_UTIL_H_
+#ifndef LIBC_DEVICE_HW_RES_H_
+#define LIBC_DEVICE_HW_RES_H_
 
-#include <ctype.h>
+#include <ipc/dev_iface.h>
+#include <bool.h>
 
 
-char * get_abs_path(const char *base_path, const char *name, const char *ext);
-const char * get_path_elem_end(const char *path);
+bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources);
 
-static inline bool skip_spaces(const char **buf) 
-{
-	while (isspace(**buf)) {
-		(*buf)++;		
-	}
-	return *buf != 0;	
-}
+bool enable_interrupt(int dev_phone);
 
-static inline size_t get_nonspace_len(const char *str) 
-{
-	size_t len = 0;
-	while(*str != 0 && !isspace(*str)) {
-		len++;
-		str++;
-	}
-	return len;
-}
-
-static inline void free_not_null(const void *ptr)
-{
-	if (NULL != ptr) {
-		free(ptr);
-	}
-}
 
 #endif
+
+/** @}
+ */

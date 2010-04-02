@@ -48,8 +48,13 @@
 #include <driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
+#include <ipc/dev_iface.h>
 
 #define NAME "rootia32"
+
+typedef struct rootia32_dev_data {
+	hw_resource_list_t hw_resources;	
+} rootia32_dev_data_t;
 
 static bool rootia32_add_device(device_t *dev);
 static bool rootia32_init();
@@ -67,8 +72,26 @@ static driver_t rootia32_driver = {
 	.driver_ops = &rootia32_ops
 };
 
-// TODO HW resources
-static bool rootia32_add_child(device_t *parent, const char *name, const char *str_match_id) {
+static hw_resource_t pci_conf_regs = {
+	.type = REGISTER,
+	.res.reg = {
+		.address = (void *)0xCF8,
+		.size = 8,
+		.endianness = LITTLE_ENDIAN	
+	}	
+};
+
+static rootia32_dev_data_t pci_data = {
+	.hw_resources = {
+		1, 
+		&pci_conf_regs
+	}
+};
+
+static bool rootia32_add_child(
+	device_t *parent, const char *name, const char *str_match_id, 
+	rootia32_dev_data_t *drv_data) 
+{
 	printf(NAME ": adding new child device '%s'.\n", name);
 	
 	device_t *child = NULL;
@@ -80,6 +103,7 @@ static bool rootia32_add_child(device_t *parent, const char *name, const char *s
 	}
 	
 	child->name = name;
+	child->driver_data = drv_data;
 	
 	// initialize match id list
 	if (NULL == (match_id = create_match_id())) {
@@ -111,9 +135,9 @@ failure:
 	return false;	
 }
 
-static bool rootia32_add_children(dev) 
+static bool rootia32_add_children(device_t *dev) 
 {
-	return rootia32_add_child(dev, "pci0", "intel_pci");
+	return rootia32_add_child(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.

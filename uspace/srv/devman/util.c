@@ -60,3 +60,11 @@ char * get_abs_path(const char *base_path, const char *name, const char *ext)
 	
 	return res;
 }
+
+const char * get_path_elem_end(const char *path)
+{
+	while (0 != *path && '/' != *path) {
+		path++;
+	}
+	return path;
+}

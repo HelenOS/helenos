@@ -27,6 +27,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+ /** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
 #include <string.h>
 #include <stdio.h>
@@ -192,3 +198,36 @@ void devman_hangup_phone(devman_interface_t iface)
 		break;
 	}
 }
+
+int devman_device_connect(device_handle_t handle, unsigned int flags)
+{
+	int phone;
+	
+	if (flags & IPC_FLAG_BLOCKING) {
+		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		    DEVMAN_CONNECT_TO_DEVICE, handle);
+	} else {
+		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		    DEVMAN_CONNECT_TO_DEVICE, handle);
+	}
+	
+	return phone;
+}
+
+int devman_parent_device_connect(device_handle_t handle, unsigned int flags)
+{
+	int phone;
+	
+	if (flags & IPC_FLAG_BLOCKING) {
+		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+	} else {
+		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
+	}
+	
+	return phone;
+}
+
+/** @}
+ */

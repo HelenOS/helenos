@@ -76,10 +76,10 @@ typedef struct hw_resource {
 		struct {
 			int irq;			
 		} intr;		
-	};	
+	} res;	
 } hw_resource_t;
 
-typedef struct {
+typedef struct hw_resource_list {
 	size_t count;
 	hw_resource_t *resources;	
 } hw_resource_list_t;

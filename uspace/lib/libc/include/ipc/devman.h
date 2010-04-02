@@ -115,7 +115,8 @@ static inline void clean_match_ids(match_id_list_t *ids)
 typedef enum {
 	DEVMAN_DRIVER = 1,
 	DEVMAN_CLIENT,
-	DEVMAN_CONNECT_TO_DEVICE
+	DEVMAN_CONNECT_TO_DEVICE,
+	DEVMAN_CONNECT_TO_PARENTS_DEVICE
 } devman_interface_t;
 
 typedef enum {

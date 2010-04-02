@@ -50,6 +50,7 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <ipc/devman.h>
+#include <ipc/driver.h>
 #include <thread.h>
 
 #include "devman.h"
@@ -157,7 +158,7 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids) 
 {
 	int ret = EOK;
-	int i;
+	size_t i;
 	for (i = 0; i < match_count; i++) {
 		if (EOK != (ret = devman_receive_match_id(match_ids))) {
 			return ret;
@@ -256,6 +257,37 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {
+	device_handle_t handle;
+	node_t *dev = find_dev_node(&device_tree, handle);
+	if (NULL == dev) {
+		ipc_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	driver_t *driver = NULL;
+	
+	if (drv_to_parent) {
+		driver = dev->parent->drv;
+	} else {
+		driver = dev->drv;		
+	}
+	
+	if (NULL == driver) {		
+		ipc_answer_0(iid, ENOENT);
+		return;	
+	}
+	
+	int method;	
+	if (drv_to_parent) {
+		method = DRIVER_DRIVER;
+	} else {
+		method = DRIVER_CLIENT;
+	}
+	
+	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
+}
+
 /** Function for handling connections to device manager.
  *
  */
@@ -268,11 +300,15 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	/*case DEVMAN_CLIENT:
 		devmap_connection_client(iid, icall);
-		break;
+		break;*/
 	case DEVMAN_CONNECT_TO_DEVICE:
 		// Connect client to selected device
-		devmap_forward(iid, icall);
-		break;*/
+		devman_forward(iid, icall, false);
+		break;
+	case DEVMAN_CONNECT_TO_PARENTS_DEVICE:
+		// Connect client to selected device
+		devman_forward(iid, icall, true);
+		break;		
 	default:
 		/* No such interface */
 		ipc_answer_0(iid, ENOENT);

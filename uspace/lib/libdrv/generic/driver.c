@@ -140,6 +140,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
+	
+	
+	// TODO - if the client is not a driver, check whether it is allowed to use the device
 
 	// TODO open the device (introduce some callbacks for opening and closing devices registered by the driver)
 	

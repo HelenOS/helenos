@@ -25,43 +25,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup devman
+ 
+ /** @addtogroup libc
  * @{
  */
+/** @file
+ */
  
-#ifndef DEVMAN_UTIL_H_
-#define DEVMAN_UTIL_H_
+#include <device/hw_res.h>
+#include <errno.h>
+#include <async.h>
+#include <malloc.h>
+ 
 
-#include <ctype.h>
-
-
-char * get_abs_path(const char *base_path, const char *name, const char *ext);
-const char * get_path_elem_end(const char *path);
-
-static inline bool skip_spaces(const char **buf) 
+bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 {
-	while (isspace(**buf)) {
-		(*buf)++;		
+	bool ret = true;
+	ipcarg_t count = 0;
+	int rc = async_req_1_1(dev_phone, HW_RES_DEV_IFACE, GET_RESOURCE_LIST, &count);
+	hw_resources->count = count;
+	if (EOK != rc) {
+		return false;
 	}
-	return *buf != 0;	
+	
+	size_t size = count * sizeof(hw_resource_t);
+	hw_resources->resources = (hw_resource_t *)malloc(size);
+	if (NULL == hw_resources->resources) {
+		size = 0;
+		ret = false;
+	}
+	
+	rc = async_data_read_start(dev_phone, hw_resources->resources, size);
+	if (EOK != rc) {
+		free(hw_resources->resources);
+		hw_resources->resources = NULL;
+		ret = false;
+	}
+	 	 
+	return ret;	 
 }
 
-static inline size_t get_nonspace_len(const char *str) 
+bool enable_interrupt(int dev_phone)
 {
-	size_t len = 0;
-	while(*str != 0 && !isspace(*str)) {
-		len++;
-		str++;
-	}
-	return len;
+	int rc = async_req_1_0(dev_phone, HW_RES_DEV_IFACE, ENABLE_INTERRUPT);
+	return rc == EOK;
 }
-
-static inline void free_not_null(const void *ptr)
-{
-	if (NULL != ptr) {
-		free(ptr);
-	}
-}
-
-#endif
+ 
+ 
+ 
+ /** @}
+ */
