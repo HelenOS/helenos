@@ -45,6 +45,7 @@
 #define TASK_NAME_BUFLEN	20
 
 typedef struct {
+	task_id_t taskid;
 	char name[TASK_NAME_BUFLEN];
 	size_t pages;
 	int thread_count;

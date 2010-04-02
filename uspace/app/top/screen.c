@@ -38,17 +38,26 @@
 #include <io/console.h>
 #include <vfs/vfs.h>
 #include <load.h>
+#include <kernel/ps/taskinfo.h>
+#include <ps.h>
 #include "screen.h"
 #include "top.h"
+
+int rows;
+int colls;
+
+#define WHITE 0xf0f0f0
+#define BLACK 0x000000
 
 static void resume_normal(void)
 {
 	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
+	console_set_rgb_color(fphone(stdout), 0, WHITE);
 }
 
 void screen_init(void)
 {
+	console_get_size(fphone(stdout), &colls, &rows);
 	console_cursor_visibility(fphone(stdout), 0);
 	resume_normal();
 	clear_screen();
@@ -93,6 +102,33 @@ static inline void print_taskstat(data_t *data)
 	printf("%4u total", data->task_count);
 }
 
+static inline void print_tasks(data_t *data, int row)
+{
+	int i;
+	for (i = 0; i < (int)data->task_count; ++i) {
+		if (row + i > rows)
+			return;
+		task_info_t taskinfo;
+		get_task_info(data->tasks[i], &taskinfo);
+		printf("%8llu %8u %8u %12llu %12llu %s\n", taskinfo.taskid,
+			taskinfo.thread_count, taskinfo.pages, taskinfo.ucycles / 1000 / 1000,
+			taskinfo.kcycles / 1000 / 1000, taskinfo.name);
+	}
+}
+
+
+static inline void print_head(void)
+{
+	fflush(stdout);
+	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
+	printf("      ID  Threads    Pages      uCycles      kCycles Name");
+	int i;
+	for (i = 60; i < colls; ++i)
+		puts(" ");
+	fflush(stdout);
+	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
+}
+
 void print_data(data_t *data)
 {
 	clear_screen();
@@ -103,7 +139,10 @@ void print_data(data_t *data)
 	print_load(data);
 	puts("\n");
 	print_taskstat(data);
+	puts("\n\n");
+	print_head();
 	puts("\n");
+	print_tasks(data, 4);
 	fflush(stdout);
 }
 

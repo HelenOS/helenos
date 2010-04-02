@@ -129,6 +129,7 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 
+	copy_to_uspace(&uspace_info->taskid, &t->taskid, sizeof(task_id_t));
 	copy_to_uspace(uspace_info->name, t->name, sizeof(t->name));
 
 	uint64_t ucycles;

@@ -35,6 +35,9 @@
 
 #include "top.h"
 
+extern int rows;
+extern int colls;
+
 extern void screen_init(void);
 extern void clear_screen(void);
 extern void moveto(int r, int c);
