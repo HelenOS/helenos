@@ -43,9 +43,6 @@
 #define HOUR 3600
 #define MINUTE 60
 
-#define ECHOLOAD1(x) ((x) >> 11)
-#define ECHOLOAD2(x) (((x) & 0x7ff) / 2)
-
 int main(int argc, char *argv[])
 {
 	struct timeval time;

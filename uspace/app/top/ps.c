@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup top
- * @brief Top utility.
+ * @brief Task lister.
  * @{
  */
 /**
@@ -35,76 +35,62 @@
  */
 
 #include <stdio.h>
-#include <io/console.h>
-#include <vfs/vfs.h>
-#include <load.h>
-#include "screen.h"
-#include "top.h"
+#include <task.h>
+#include <thread.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <ps.h>
+#include "ps.h"
 
-static void resume_normal(void)
+#define TASK_COUNT 10
+#define THREAD_COUNT 50
+
+/** Thread states */
+const char *thread_states[] = {
+	"Invalid",
+	"Running",
+	"Sleeping",
+	"Ready",
+	"Entering",
+	"Exiting",
+	"Lingering"
+}; 
+
+unsigned int get_tasks(task_id_t **out_tasks)
 {
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
+	int task_count = TASK_COUNT;
+	task_id_t *tasks = malloc(task_count * sizeof(task_id_t));
+	int result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
+
+	while (result > task_count) {
+		task_count *= 2;
+		tasks = realloc(tasks, task_count * sizeof(task_id_t));
+		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
+	}
+
+	int i;
+	for (i = 0; i < result; ++i) {
+		task_info_t taskinfo;
+		get_task_info(tasks[i], &taskinfo);
+	}
+
+	*out_tasks = tasks;
+	return result;
 }
 
-void screen_init(void)
+thread_info_t *get_threads(task_id_t taskid)
 {
-	console_cursor_visibility(fphone(stdout), 0);
-	resume_normal();
-	clear_screen();
-}
+	int thread_count = THREAD_COUNT;
+	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
+	int result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
 
-void clear_screen(void)
-{
-	console_clear(fphone(stdout));
-	moveto(0, 0);
-}
-
-void moveto(int r, int c)
-{
-	fflush(stdout);
-	console_goto(fphone(stdout), c, r);
-}
-
-static inline void print_time(data_t *data)
-{
-	printf("%02d:%02d:%02d ", data->hours, data->minutes, data->seconds);
-}
-
-static inline void print_uptime(data_t *data)
-{
-	printf("up %4d days, %02d:%02d:%02d, ", data->uptime_d, data->uptime_h,
-		data->uptime_m, data->uptime_s);
-}
-
-static inline void print_load(data_t *data)
-{
-	puts("load avarage: ");
-	print_load_fragment(data->load[0], 2);
-	puts(" ");
-	print_load_fragment(data->load[1], 2);
-	puts(" ");
-	print_load_fragment(data->load[2], 2);
-}
-
-static inline void print_taskstat(data_t *data)
-{
-	puts("Tasks: ");
-	printf("%4u total", data->task_count);
-}
-
-void print_data(data_t *data)
-{
-	clear_screen();
-	fflush(stdout);
-	printf("top - ");
-	print_time(data);
-	print_uptime(data);
-	print_load(data);
-	puts("\n");
-	print_taskstat(data);
-	puts("\n");
-	fflush(stdout);
+	while (result > thread_count) {
+		thread_count *= 2;
+		threads = realloc(threads, thread_count * sizeof(thread_info_t));
+		result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
+	}
+	
+	return threads;
 }
 
 /** @}

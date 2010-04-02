@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2008 Stanislav Kozina
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,85 +27,21 @@
  */
 
 /** @addtogroup top
- * @brief Top utility.
  * @{
  */
+
+#ifndef TOP_PS_H_
+#define TOP_PS_H_
+
+#include <task.h>
+#include <kernel/ps/taskinfo.h>
+
+extern const char *thread_states[];
+extern unsigned int get_tasks(task_id_t **out_tasks);
+extern thread_info_t *get_threads(task_id_t taskid);
+
+#endif
+
 /**
- * @file
- */
-
-#include <stdio.h>
-#include <io/console.h>
-#include <vfs/vfs.h>
-#include <load.h>
-#include "screen.h"
-#include "top.h"
-
-static void resume_normal(void)
-{
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
-}
-
-void screen_init(void)
-{
-	console_cursor_visibility(fphone(stdout), 0);
-	resume_normal();
-	clear_screen();
-}
-
-void clear_screen(void)
-{
-	console_clear(fphone(stdout));
-	moveto(0, 0);
-}
-
-void moveto(int r, int c)
-{
-	fflush(stdout);
-	console_goto(fphone(stdout), c, r);
-}
-
-static inline void print_time(data_t *data)
-{
-	printf("%02d:%02d:%02d ", data->hours, data->minutes, data->seconds);
-}
-
-static inline void print_uptime(data_t *data)
-{
-	printf("up %4d days, %02d:%02d:%02d, ", data->uptime_d, data->uptime_h,
-		data->uptime_m, data->uptime_s);
-}
-
-static inline void print_load(data_t *data)
-{
-	puts("load avarage: ");
-	print_load_fragment(data->load[0], 2);
-	puts(" ");
-	print_load_fragment(data->load[1], 2);
-	puts(" ");
-	print_load_fragment(data->load[2], 2);
-}
-
-static inline void print_taskstat(data_t *data)
-{
-	puts("Tasks: ");
-	printf("%4u total", data->task_count);
-}
-
-void print_data(data_t *data)
-{
-	clear_screen();
-	fflush(stdout);
-	printf("top - ");
-	print_time(data);
-	print_uptime(data);
-	print_load(data);
-	puts("\n");
-	print_taskstat(data);
-	puts("\n");
-	fflush(stdout);
-}
-
-/** @}
+ * @}
  */

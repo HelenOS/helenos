@@ -33,6 +33,8 @@
 #ifndef TOP_TOP_H_
 #define TOP_TOP_H_
 
+#include <task.h>
+
 typedef struct {
 	unsigned int hours;
 	unsigned int minutes;
@@ -44,6 +46,9 @@ typedef struct {
 	unsigned int uptime_s;
 
 	unsigned long load[3];
+
+	task_id_t *tasks;
+	unsigned int task_count;
 } data_t;
 
 #endif

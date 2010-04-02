@@ -46,6 +46,7 @@
 #include "screen.h"
 #include "input.h"
 #include "top.h"
+#include "ps.h"
 
 #define UPDATE_INTERVAL 1
 
@@ -75,6 +76,9 @@ static void read_vars(data_t *target)
 
 	/* Read load */
 	get_load(target->load);
+
+	/* Read task ids */
+	target->task_count = get_tasks(&target->tasks);
 }
 
 int main(int argc, char *argv[])
@@ -110,6 +114,7 @@ int main(int argc, char *argv[])
 
 	}
 
+	free(new_data.tasks);
 	puts("\n\n");
 	fflush(stdout);
 	return 0;
