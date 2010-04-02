@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
 	read_vars(&old_data);
 	sleep(UPDATE_INTERVAL);
 	read_vars(&new_data);
+	print_data(&new_data);
+	fflush(stdout);
 
 	screen_init();
 
