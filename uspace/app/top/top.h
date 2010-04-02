@@ -34,6 +34,7 @@
 #define TOP_TOP_H_
 
 #include <task.h>
+#include <kernel/ps/cpuinfo.h>
 
 typedef struct {
 	unsigned int hours;
@@ -49,6 +50,9 @@ typedef struct {
 
 	task_id_t *tasks;
 	unsigned int task_count;
+
+	uspace_cpu_info_t *cpus;
+	unsigned int cpu_count;
 } data_t;
 
 #endif

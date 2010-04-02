@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <io/console.h>
 #include <uptime.h>
 #include <task.h>
 #include <thread.h>
@@ -54,7 +53,7 @@
 #define HOUR 3600
 #define MINUTE 60
 
-static void read_vars(data_t *target)
+static void read_data(data_t *target)
 {
 	/* Read current time */
 	struct timeval time;
@@ -79,46 +78,63 @@ static void read_vars(data_t *target)
 
 	/* Read task ids */
 	target->task_count = get_tasks(&target->tasks);
+
+	/* Read cpu infos */
+	target->cpu_count = get_cpu_infos(&target->cpus);
 }
+
+static void free_data(data_t *target)
+{
+	free(target->tasks);
+}
+
+static inline void swap(data_t *first, data_t *second)
+{
+	data_t *temp;
+	temp = first;
+	first = second;
+	second = temp;
+}
+
+static data_t data[2];
 
 int main(int argc, char *argv[])
 {
-	data_t old_data;
-	data_t new_data;
+	data_t *data1 = &data[0];
+	data_t *data2 = &data[1];
 
 	/* Read initial stats */
 	printf("Reading initial data...\n");
-	read_vars(&old_data);
+	read_data(data1);
 	sleep(UPDATE_INTERVAL);
-	read_vars(&new_data);
-	print_data(&new_data);
-	fflush(stdout);
+	read_data(data2);
 
 	screen_init();
+	print_data(data2);
 
 	/* And paint screen until death... */
 	while (true) {
 		char c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
-			read_vars(&new_data);
-			print_data(&new_data);
+			free_data(data1);
+			swap(data1, data2);
+			read_data(data2);
+			print_data(data2);
 			continue;
 		}
 		switch (c) {
 			case 'q':
+				clear_screen();
 				return 0;
 			default:
-				moveto(10,10);
-				printf("Unknown command: %c", c);
-				fflush(stdout);
+				PRINT_WARNING("Unknown command: %c", c);
 				break;
 		}
 
 	}
 
-	free(new_data.tasks);
-	puts("\n\n");
-	fflush(stdout);
+	free_data(data1);
+	free_data(data2);
 	return 0;
 }
 

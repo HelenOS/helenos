@@ -149,7 +149,7 @@ static void echo_cpus(void)
 	get_cpu_info(cpus);
 	size_t i;
 	for (i = 0; i < cpu_count; ++i) {
-		printf("%2u (%4u Mhz): Busy ticks: %8llu, Idle ticks: %8llu\n", cpus[i].id,
+		printf("%2u (%4u Mhz): Busy ticks: %6llu, Idle ticks: %6llu\n", cpus[i].id,
 				(size_t)cpus[i].frequency_mhz, cpus[i].busy_ticks, cpus[i].idle_ticks);
 	}
 }

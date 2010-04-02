@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <ps.h>
+#include <sysinfo.h>
 #include "ps.h"
 
 #define TASK_COUNT 10
@@ -91,6 +92,16 @@ thread_info_t *get_threads(task_id_t taskid)
 	}
 	
 	return threads;
+}
+
+unsigned int get_cpu_infos(uspace_cpu_info_t **out_infos)
+{
+	unsigned int cpu_count = sysinfo_value("cpu.count");
+	uspace_cpu_info_t *cpus = malloc(cpu_count * sizeof(uspace_cpu_info_t));
+	get_cpu_info(cpus);
+
+	*out_infos = cpus;
+	return cpu_count;
 }
 
 /** @}

@@ -43,6 +43,14 @@ extern void clear_screen(void);
 extern void moveto(int r, int c);
 extern void print_data(data_t *data);
 
+extern int up_rows;
+#define PRINT_WARNING(message, ...) \
+do { \
+	moveto(up_rows - 1, 0); \
+	printf(message, ##__VA_ARGS__); \
+	fflush(stdout); \
+} while (0)
+
 #endif
 
 /**

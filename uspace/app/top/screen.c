@@ -45,6 +45,7 @@
 
 int rows;
 int colls;
+int up_rows;
 
 #define WHITE 0xf0f0f0
 #define BLACK 0x000000
@@ -58,6 +59,7 @@ static void resume_normal(void)
 void screen_init(void)
 {
 	console_get_size(fphone(stdout), &colls, &rows);
+	up_rows = 0;
 	console_cursor_visibility(fphone(stdout), 0);
 	resume_normal();
 	clear_screen();
@@ -67,6 +69,8 @@ void clear_screen(void)
 {
 	console_clear(fphone(stdout));
 	moveto(0, 0);
+	up_rows = 0;
+	fflush(stdout);
 }
 
 void moveto(int r, int c)
@@ -102,6 +106,18 @@ static inline void print_taskstat(data_t *data)
 	printf("%4u total", data->task_count);
 }
 
+static inline void print_cpuinfo(data_t *data)
+{
+	unsigned int i;
+	uspace_cpu_info_t *cpus = data->cpus;
+	for (i = 0; i < data->cpu_count; ++i) {
+		printf("Cpu%u (%4u Mhz): Busy ticks: %6llu, Idle Ticks: %6llu\n",
+			i, (unsigned int)cpus[i].frequency_mhz, cpus[i].busy_ticks,
+			cpus[i].idle_ticks);
+		++up_rows;
+	}
+}
+
 static inline void print_tasks(data_t *data, int row)
 {
 	int i;
@@ -115,7 +131,6 @@ static inline void print_tasks(data_t *data, int row)
 			taskinfo.kcycles / 1000 / 1000, taskinfo.name);
 	}
 }
-
 
 static inline void print_head(void)
 {
@@ -138,8 +153,13 @@ void print_data(data_t *data)
 	print_uptime(data);
 	print_load(data);
 	puts("\n");
+	++up_rows;
 	print_taskstat(data);
-	puts("\n\n");
+	puts("\n");
+	++up_rows;
+	print_cpuinfo(data);
+	puts("\n");
+	++up_rows;
 	print_head();
 	puts("\n");
 	print_tasks(data, 4);
