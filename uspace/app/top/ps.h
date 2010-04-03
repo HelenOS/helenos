@@ -38,7 +38,7 @@
 #include <kernel/ps/cpuinfo.h>
 
 extern const char *thread_states[];
-extern unsigned int get_tasks(task_id_t **out_tasks);
+extern unsigned int get_tasks(task_info_t **out_infos);
 extern thread_info_t *get_threads(task_id_t taskid);
 extern unsigned int get_cpu_infos(uspace_cpu_info_t **out_infos);
 

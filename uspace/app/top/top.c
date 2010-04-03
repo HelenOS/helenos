@@ -79,7 +79,7 @@ static void read_data(data_t *target)
 	get_load(target->load);
 
 	/* Read task ids */
-	target->task_count = get_tasks(&target->tasks);
+	target->task_count = get_tasks(&target->taskinfos);
 
 	/* Read cpu infos */
 	target->cpu_count = get_cpu_infos(&target->cpus);
@@ -101,16 +101,55 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		uint64_t idle = new_data->cpus[i].idle_ticks - old_data->cpus[i].idle_ticks;
 		uint64_t busy = new_data->cpus[i].busy_ticks - old_data->cpus[i].busy_ticks;
 		uint64_t sum = idle + busy;
-		new_data->cpu_perc[i].idle = ((float)(idle * 100) / sum);
-		new_data->cpu_perc[i].busy = ((float)(busy * 100) / sum);
+		new_data->cpu_perc[i].idle = (float)(idle * 100) / sum;
+		new_data->cpu_perc[i].busy = (float)(busy * 100) / sum;
 	}
+
+	/* For all tasks compute sum and differencies of all cycles */
+	uint64_t pages_total = 0;
+	uint64_t ucycles_total = 0;
+	uint64_t kcycles_total = 0;
+	uint64_t *ucycles_diff = malloc(new_data->task_count * sizeof(uint64_t));
+	uint64_t *kcycles_diff = malloc(new_data->task_count * sizeof(uint64_t));
+	unsigned int j = 0;
+	for (i = 0; i < new_data->task_count; ++i) {
+		/* Jump over all death tasks */
+		while (old_data->taskinfos[j].taskid < new_data->taskinfos[i].taskid)
+			++j;
+		if (old_data->taskinfos[j].taskid > new_data->taskinfos[i].taskid) {
+			/* This is newly borned task, ignore it */
+			ucycles_diff[i] = 0;
+			kcycles_diff[i] = 0;
+			continue;
+		}
+		/* Now we now we have task with same id */
+		ucycles_diff[i] = new_data->taskinfos[i].ucycles - old_data->taskinfos[j].ucycles;
+		kcycles_diff[i] = new_data->taskinfos[i].kcycles - old_data->taskinfos[j].kcycles;
+
+		pages_total += new_data->taskinfos[i].pages;
+		ucycles_total += ucycles_diff[i];
+		kcycles_total += kcycles_diff[i];
+	}
+
+	/* And now compute percental change */
+	new_data->task_perc = malloc(new_data->task_count * sizeof(task_perc_t));
+	for (i = 0; i < new_data->task_count; ++i) {
+		new_data->task_perc[i].pages = (float)(new_data->taskinfos[i].pages * 100) / pages_total;
+		new_data->task_perc[i].ucycles = (float)(ucycles_diff[i] * 100) / ucycles_total;
+		new_data->task_perc[i].kcycles = (float)(kcycles_diff[i] * 100) / kcycles_total;
+	}
+
+	/* And free temporary structures */
+	free(ucycles_diff);
+	free(kcycles_diff);
 }
 
 static void free_data(data_t *target)
 {
-	free(target->tasks);
+	free(target->taskinfos);
 	free(target->cpus);
 	free(target->cpu_perc);
+	free(target->task_perc);
 }
 
 static inline void swap(data_t **first, data_t **second)

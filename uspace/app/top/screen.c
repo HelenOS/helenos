@@ -52,7 +52,7 @@ int up_rows;
 
 static void print_float(float f, int precision)
 {
-	printf("%u.", (unsigned int) f);
+	printf("%2u.", (unsigned int) f);
 	int i;
 	float rest = (f - (int)f) * 10;
 	for (i = 0; i < precision; ++i) {
@@ -140,11 +140,18 @@ static inline void print_tasks(data_t *data, int row)
 	for (i = 0; i < (int)data->task_count; ++i) {
 		if (row + i > rows)
 			return;
-		task_info_t taskinfo;
-		get_task_info(data->tasks[i], &taskinfo);
-		printf("%8llu %8u %8u %12llu %12llu %s\n", taskinfo.taskid,
-			taskinfo.thread_count, taskinfo.pages, taskinfo.ucycles / 1000 / 1000,
-			taskinfo.kcycles / 1000 / 1000, taskinfo.name);
+		task_info_t *taskinfo = &data->taskinfos[i];
+		printf("%8llu %8u %8u ", taskinfo->taskid,
+			taskinfo->thread_count, taskinfo->pages);
+		task_perc_t *taskperc = &data->task_perc[i];
+		puts("   ");
+		print_float(taskperc->pages, 2);
+		puts("%   ");
+		print_float(taskperc->ucycles, 2);
+		puts("%   ");
+		print_float(taskperc->kcycles, 2);
+		puts("% ");
+		printf("%s\n", taskinfo->name);
 	}
 }
 
@@ -152,7 +159,7 @@ static inline void print_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
-	printf("      ID  Threads    Pages      uCycles      kCycles Name");
+	printf("      ID  Threads    Pages    %%Pages %%uCycles %%kCycles Name");
 	int i;
 	for (i = 60; i < colls; ++i)
 		puts(" ");

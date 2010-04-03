@@ -35,6 +35,7 @@
 
 #include <task.h>
 #include <kernel/ps/cpuinfo.h>
+#include <kernel/ps/taskinfo.h>
 
 typedef struct {
 	float idle;
@@ -42,9 +43,9 @@ typedef struct {
 } cpu_perc_t;
 
 typedef struct {
-	float user;
-	float system;
-	float memory;
+	float ucycles;
+	float kcycles;
+	float pages;
 } task_perc_t;
 
 typedef struct {
@@ -60,7 +61,8 @@ typedef struct {
 	unsigned long load[3];
 
 	unsigned int task_count;
-	task_id_t *tasks;
+	task_info_t *taskinfos;
+	task_perc_t *task_perc;
 
 	unsigned int cpu_count;
 	uspace_cpu_info_t *cpus;
