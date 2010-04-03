@@ -43,6 +43,7 @@
 #include <synch/waitq.h>
 #include <syscall/copy.h>
 #include <atomic.h>
+#include <errno.h>
 
 static size_t count;
 static size_t max_count;
@@ -126,6 +127,10 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 
 	spinlock_lock(&tasks_lock);
 	task_t *t = task_find_by_id(id);
+	if (!t) {
+		spinlock_unlock(&tasks_lock);
+		return ENOENT;
+	}
 	spinlock_lock(&t->lock);
 	spinlock_unlock(&tasks_lock);
 
