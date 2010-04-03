@@ -53,6 +53,8 @@
 #define HOUR 3600
 #define MINUTE 60
 
+int number = 0;
+int number2 = 0;
 static void read_data(data_t *target)
 {
 	/* Read current time */
@@ -83,17 +85,40 @@ static void read_data(data_t *target)
 	target->cpu_count = get_cpu_infos(&target->cpus);
 }
 
+/** Computes percentage differencies from old_data to new_data
+ *
+ * @param old_data	Pointer to old data strucutre.
+ * @param new_data	Pointer to actual data where percetages are stored.
+ *
+ */
+static void compute_percentages(data_t *old_data, data_t *new_data)
+{
+	/* Foreach cpu, compute total ticks and divide it between user and
+	 * system */
+	unsigned int i;
+	new_data->cpu_perc = malloc(new_data->cpu_count * sizeof(cpu_perc_t));
+	for (i = 0; i < new_data->cpu_count; ++i) {
+		uint64_t idle = new_data->cpus[i].idle_ticks - old_data->cpus[i].idle_ticks;
+		uint64_t busy = new_data->cpus[i].busy_ticks - old_data->cpus[i].busy_ticks;
+		uint64_t sum = idle + busy;
+		new_data->cpu_perc[i].idle = ((float)(idle * 100) / sum);
+		new_data->cpu_perc[i].busy = ((float)(busy * 100) / sum);
+	}
+}
+
 static void free_data(data_t *target)
 {
 	free(target->tasks);
+	free(target->cpus);
+	free(target->cpu_perc);
 }
 
-static inline void swap(data_t *first, data_t *second)
+static inline void swap(data_t **first, data_t **second)
 {
 	data_t *temp;
-	temp = first;
-	first = second;
-	second = temp;
+	temp = *first;
+	*first = *second;
+	*second = temp;
 }
 
 static data_t data[2];
@@ -102,24 +127,23 @@ int main(int argc, char *argv[])
 {
 	data_t *data1 = &data[0];
 	data_t *data2 = &data[1];
+	screen_init();
 
 	/* Read initial stats */
 	printf("Reading initial data...\n");
 	read_data(data1);
-	sleep(UPDATE_INTERVAL);
-	read_data(data2);
-
-	screen_init();
-	print_data(data2);
+	/* Compute some rubbish to have initialised values */
+	compute_percentages(data1, data1);
 
 	/* And paint screen until death... */
 	while (true) {
 		char c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
-			free_data(data1);
-			swap(data1, data2);
 			read_data(data2);
+			compute_percentages(data1, data2);
+			free_data(data1);
 			print_data(data2);
+			swap(&data1, &data2);
 			continue;
 		}
 		switch (c) {

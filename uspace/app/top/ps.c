@@ -69,11 +69,13 @@ unsigned int get_tasks(task_id_t **out_tasks)
 		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 	}
 
+/*
 	int i;
 	for (i = 0; i < result; ++i) {
 		task_info_t taskinfo;
 		get_task_info(tasks[i], &taskinfo);
 	}
+	*/
 
 	*out_tasks = tasks;
 	return result;

@@ -50,6 +50,17 @@ int up_rows;
 #define WHITE 0xf0f0f0
 #define BLACK 0x000000
 
+static void print_float(float f, int precision)
+{
+	printf("%u.", (unsigned int) f);
+	int i;
+	float rest = (f - (int)f) * 10;
+	for (i = 0; i < precision; ++i) {
+		printf("%d", (unsigned int)rest);
+		rest = (rest - (int)rest) * 10;
+	}
+}
+
 static void resume_normal(void)
 {
 	fflush(stdout);
@@ -111,9 +122,14 @@ static inline void print_cpuinfo(data_t *data)
 	unsigned int i;
 	uspace_cpu_info_t *cpus = data->cpus;
 	for (i = 0; i < data->cpu_count; ++i) {
-		printf("Cpu%u (%4u Mhz): Busy ticks: %6llu, Idle Ticks: %6llu\n",
+		printf("Cpu%u (%4u Mhz): Busy ticks: %6llu, Idle Ticks: %6llu",
 			i, (unsigned int)cpus[i].frequency_mhz, cpus[i].busy_ticks,
 			cpus[i].idle_ticks);
+		printf(", idle: ");
+		print_float(data->cpu_perc[i].idle, 2);
+		puts("%, busy: ");
+		print_float(data->cpu_perc[i].busy, 2);
+		puts("%\n");
 		++up_rows;
 	}
 }
@@ -162,7 +178,7 @@ void print_data(data_t *data)
 	++up_rows;
 	print_head();
 	puts("\n");
-	print_tasks(data, 4);
+	print_tasks(data, up_rows);
 	fflush(stdout);
 }
 

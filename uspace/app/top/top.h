@@ -37,6 +37,17 @@
 #include <kernel/ps/cpuinfo.h>
 
 typedef struct {
+	float idle;
+	float busy;
+} cpu_perc_t;
+
+typedef struct {
+	float user;
+	float system;
+	float memory;
+} task_perc_t;
+
+typedef struct {
 	unsigned int hours;
 	unsigned int minutes;
 	unsigned int seconds;
@@ -48,11 +59,12 @@ typedef struct {
 
 	unsigned long load[3];
 
-	task_id_t *tasks;
 	unsigned int task_count;
+	task_id_t *tasks;
 
-	uspace_cpu_info_t *cpus;
 	unsigned int cpu_count;
+	uspace_cpu_info_t *cpus;
+	cpu_perc_t *cpu_perc;
 } data_t;
 
 #endif
