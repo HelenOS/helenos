@@ -46,7 +46,7 @@
  *  @returns EOK on success.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int udp_initialize(async_client_conn_t client_connection);
+extern int udp_initialize(async_client_conn_t client_connection);
 
 /** Processes the UDP message.
  *  @param[in] callid The message identifier.
@@ -58,7 +58,7 @@ int udp_initialize(async_client_conn_t client_connection);
  *  @see udp_interface.h
  *  @see IS_NET_UDP_MESSAGE()
  */
-int udp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int udp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

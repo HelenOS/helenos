@@ -53,6 +53,7 @@
 #include <time/delay.h>
 #include <arch/smp/sun4v/smp.h>
 #include <str.h>
+#include <errno.h>
 
 /** hypervisor code of the "running" state of the CPU */
 #define CPU_STATE_RUNNING	2

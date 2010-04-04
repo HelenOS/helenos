@@ -27,21 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NET_BASE = ../..
 USPACE_PREFIX = ../../../..
+LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
 BINARY = arp
 
 SOURCES = \
 	arp.c \
-	arp_module.c \
-	$(NET_BASE)/module.c \
-	$(NET_BASE)/modules.c \
-	$(NET_BASE)/net/net_remote.c \
-	$(NET_BASE)/nil/nil_remote.c \
-	$(NET_BASE)/structures/char_map.c \
-	$(NET_BASE)/structures/measured_strings.c \
-	$(NET_BASE)/structures/packet/packet.c \
-	$(NET_BASE)/structures/packet/packet_client.c \
-	$(NET_BASE)/structures/packet/packet_remote.c
+	arp_module.c
 
 include $(USPACE_PREFIX)/Makefile.common

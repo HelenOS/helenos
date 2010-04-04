@@ -42,12 +42,11 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../include/device.h"
-#include "../../include/hardware.h"
-
-#include "../../structures/generic_char_map.h"
-#include "../../structures/int_map.h"
-#include "../../structures/measured_strings.h"
+#include <net_device.h>
+#include <net_hardware.h>
+#include <adt/generic_char_map.h>
+#include <adt/int_map.h>
+#include <adt/measured_strings.h>
 
 
 /** Type definition of the ARP device specific data.

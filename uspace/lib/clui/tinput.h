@@ -63,13 +63,15 @@ typedef struct {
 	int hnum;
 	/** Current position in history */
 	int hpos;
-	/** Exit flag */
+	/** @c true if finished with this line (return to caller) */
 	bool done;
+	/** @c true if user requested to abort interactive loop */
+	bool exit_clui;
 } tinput_t;
 
 extern tinput_t *tinput_new(void);
 extern void tinput_destroy(tinput_t *ti);
-extern char *tinput_read(tinput_t *ti);
+extern int tinput_read(tinput_t *ti, char **str);
 
 #endif
 

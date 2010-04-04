@@ -45,25 +45,23 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../err.h"
-#include "../messages.h"
-#include "../modules.h"
-
-#include "../structures/char_map.h"
-#include "../structures/generic_char_map.h"
-#include "../structures/measured_strings.h"
-#include "../structures/module_map.h"
-#include "../structures/packet/packet.h"
-
-#include "../il/il_messages.h"
-#include "../include/device.h"
-#include "../include/netif_interface.h"
-#include "../include/nil_interface.h"
-#include "../include/net_interface.h"
-#include "../include/ip_interface.h"
+#include <net_err.h>
+#include <net_messages.h>
+#include <net_modules.h>
+#include <adt/char_map.h>
+#include <adt/generic_char_map.h>
+#include <adt/measured_strings.h>
+#include <adt/module_map.h>
+#include <packet/packet.h>
+#include <il_messages.h>
+#include <net_device.h>
+#include <netif_interface.h>
+#include <nil_interface.h>
+#include <net_interface.h>
+#include <ip_interface.h>
+#include <net_net_messages.h>
 
 #include "net.h"
-#include "net_messages.h"
 
 /** File read buffer size.
  */
@@ -81,20 +79,6 @@ net_globals_t	net_globals;
  *  @returns The system-unique devic identifier.
  */
 device_id_t generate_new_device_id(void);
-
-/** Prints the module name.
- *  @see NAME
- */
-void module_print_name(void);
-
-/** Starts the networking module.
- *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on successful module termination.
- *  @returns Other error codes as defined for the net_initialize() function.
- *  @returns Other error codes as defined for the REGISTER_ME() macro function.
- */
-int module_start(async_client_conn_t client_connection);
 
 /** Returns the configured values.
  *  The network interface configuration is searched first.
@@ -184,11 +168,14 @@ device_id_t generate_new_device_id(void){
 	return device_assign_devno();
 }
 
-void module_print_name(void){
-	printf("%s", NAME);
-}
-
-int module_start(async_client_conn_t client_connection){
+/** Starts the networking module.
+ *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
+ *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
+ *  @returns EOK on successful module termination.
+ *  @returns Other error codes as defined for the net_initialize() function.
+ *  @returns Other error codes as defined for the REGISTER_ME() macro function.
+ */
+static int net_module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
 	ipcarg_t phonehash;
@@ -510,11 +497,7 @@ int start_device(netif_ref netif){
 int startup(void){
 	ERROR_DECLARE;
 
-#ifdef CONFIG_NETIF_DP8390
 	const char * conf_files[] = {"lo", "ne2k"};
-#else
-	const char * conf_files[] = {"lo"};
-#endif
 
 	int count = sizeof(conf_files) / sizeof(char *);
 	int index;
@@ -576,6 +559,68 @@ int startup(void){
 		++ netif->il->usage;
 		printf("New network interface started:\n\tname\t= %s\n\tid\t= %d\n\tdriver\t= %s\n\tnil\t= %s\n\til\t= %s\n", netif->name, netif->id, netif->driver->name, netif->nil ? netif->nil->name : NULL, netif->il->name);
 	}
+	return EOK;
+}
+
+/** Default thread for new connections.
+ *
+ *  @param[in] iid The initial message identifier.
+ *  @param[in] icall The initial message call structure.
+ *
+ */
+static void net_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+{
+	/*
+	 * Accept the connection
+	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
+	 */
+	ipc_answer_0(iid, EOK);
+	
+	while(true) {
+		ipc_call_t answer;
+		int answer_count;
+		
+		/* Clear the answer structure */
+		refresh_answer(&answer, &answer_count);
+		
+		/* Fetch the next message */
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		/* Process the message */
+		int res = net_module_message(callid, &call, &answer, &answer_count);
+		
+		/* End if said to either by the message or the processing result */
+		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+			return;
+		
+		/* Answer the message */
+		answer_call(callid, res, &answer, answer_count);
+	}
+}
+
+/** Starts the module.
+ *
+ *  @param argc The count of the command line arguments. Ignored parameter.
+ *  @param argv The command line parameters. Ignored parameter.
+ *
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for each specific module start function.
+ *
+ */
+int main(int argc, char *argv[])
+{
+	ERROR_DECLARE;
+	
+	/* Print the module label */
+	printf("Task %d - %s\n", task_get_id(), NAME);
+	
+	/* Start the module */
+	if (ERROR_OCCURRED(net_module_start(net_client_connection))) {
+		printf(" - ERROR %i\n", ERROR_CODE);
+		return ERROR_CODE;
+	}
+	
 	return EOK;
 }
 

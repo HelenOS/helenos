@@ -39,23 +39,17 @@
 
 #include <async.h>
 #include <stdio.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../err.h"
-#include "../../modules.h"
-
-#include "../../include/net_interface.h"
-
-#include "../../structures/packet/packet.h"
+#include <net_err.h>
+#include <net_modules.h>
+#include <net_interface.h>
+#include <packet/packet.h>
+#include <il_standalone.h>
 
 #include "ip.h"
 #include "ip_module.h"
-
-/** IP module name.
- */
-#define NAME	"IP protocol"
 
 /** IP module global data.
  */
@@ -69,12 +63,9 @@ extern ip_globals_t	ip_globals;
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the ip_message() function.
  */
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
-
-/** Prints the module name.
- *  @see NAME
- */
-void module_print_name(void);
+int il_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return ip_message(callid, call, answer, answer_count);
+}
 
 /** Starts the IP module.
  *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -83,17 +74,7 @@ void module_print_name(void);
  *  @returns Other error codes as defined for the ip_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int module_start(async_client_conn_t client_connection);
-
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return ip_message(callid, call, answer, answer_count);
-}
-
-void module_print_name(void){
-	printf("%s", NAME);
-}
-
-int module_start(async_client_conn_t client_connection){
+int il_module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
 	ipcarg_t phonehash;

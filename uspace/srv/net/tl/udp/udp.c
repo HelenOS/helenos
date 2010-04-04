@@ -39,39 +39,38 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <stdio.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../err.h"
-#include "../../messages.h"
-#include "../../modules.h"
-
-#include "../../structures/dynamic_fifo.h"
-#include "../../structures/packet/packet_client.h"
-
-#include "../../include/checksum.h"
-#include "../../include/in.h"
-#include "../../include/in6.h"
-#include "../../include/inet.h"
-#include "../../include/ip_client.h"
-#include "../../include/ip_interface.h"
-#include "../../include/ip_protocols.h"
-#include "../../include/icmp_client.h"
-#include "../../include/icmp_interface.h"
-#include "../../include/net_interface.h"
-#include "../../include/socket_codes.h"
-#include "../../include/socket_errno.h"
-
-#include "../../socket/socket_core.h"
-#include "../../socket/socket_messages.h"
-
-#include "../tl_common.h"
-#include "../tl_messages.h"
+#include <net_err.h>
+#include <net_messages.h>
+#include <net_modules.h>
+#include <adt/dynamic_fifo.h>
+#include <packet/packet_client.h>
+#include <net_checksum.h>
+#include <in.h>
+#include <in6.h>
+#include <inet.h>
+#include <ip_client.h>
+#include <ip_interface.h>
+#include <ip_protocols.h>
+#include <icmp_client.h>
+#include <icmp_interface.h>
+#include <net_interface.h>
+#include <socket_codes.h>
+#include <socket_errno.h>
+#include <socket_core.h>
+#include <socket_messages.h>
+#include <tl_common.h>
+#include <tl_messages.h>
 
 #include "udp.h"
 #include "udp_header.h"
 #include "udp_module.h"
+
+/** UDP module name.
+ */
+#define NAME	"UDP protocol"
 
 /** Default UDP checksum computing.
  */
@@ -698,6 +697,74 @@ int udp_release_and_return(packet_t packet, int result){
 	pq_release(udp_globals.net_phone, packet_get_id(packet));
 	return result;
 }
+
+#ifdef CONFIG_NETWORKING_modular
+
+#include <tl_standalone.h>
+
+/** Default thread for new connections.
+ *
+ *  @param[in] iid The initial message identifier.
+ *  @param[in] icall The initial message call structure.
+ *
+ */
+static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+{
+	/*
+	 * Accept the connection
+	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
+	 */
+	ipc_answer_0(iid, EOK);
+	
+	while(true) {
+		ipc_call_t answer;
+		int answer_count;
+		
+		/* Clear the answer structure */
+		refresh_answer(&answer, &answer_count);
+		
+		/* Fetch the next message */
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		/* Process the message */
+		int res = tl_module_message(callid, &call, &answer, &answer_count);
+		
+		/* End if said to either by the message or the processing result */
+		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+			return;
+		
+		/* Answer the message */
+		answer_call(callid, res, &answer, answer_count);
+	}
+}
+
+/** Starts the module.
+ *
+ *  @param argc The count of the command line arguments. Ignored parameter.
+ *  @param argv The command line parameters. Ignored parameter.
+ *
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for each specific module start function.
+ *
+ */
+int main(int argc, char *argv[])
+{
+	ERROR_DECLARE;
+	
+	/* Print the module label */
+	printf("Task %d - %s\n", task_get_id(), NAME);
+	
+	/* Start the module */
+	if (ERROR_OCCURRED(tl_module_start(tl_client_connection))) {
+		printf(" - ERROR %i\n", ERROR_CODE);
+		return ERROR_CODE;
+	}
+	
+	return EOK;
+}
+
+#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

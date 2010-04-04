@@ -512,8 +512,14 @@ static void tinput_init(tinput_t *ti)
 	ti->history[0] = NULL;
 }
 
-/** Read in one line of input. */
-char *tinput_read(tinput_t *ti)
+/** Read in one line of input.
+ *
+ * @param ti	Text input.
+ * @param dstr	Place to save pointer to new string.
+ * @return	EOK on success, ENOENT if user requested abort, EIO
+ *		if communication with console failed.
+ */
+int tinput_read(tinput_t *ti, char **dstr)
 {
 	console_event_t ev;
 	char *str;
@@ -521,19 +527,20 @@ char *tinput_read(tinput_t *ti)
 	fflush(stdout);
 
 	if (console_get_size(fphone(stdin), &ti->con_cols, &ti->con_rows) != EOK)
-		return NULL;
+		return EIO;
 	if (console_get_pos(fphone(stdin), &ti->col0, &ti->row0) != EOK)
-		return NULL;
+		return EIO;
 
 	ti->pos = ti->sel_start = 0;
 	ti->nc = 0;
 	ti->buffer[0] = '\0';
 	ti->done = false;
+	ti->exit_clui = false;
 
 	while (!ti->done) {
 		fflush(stdout);
 		if (!console_get_event(fphone(stdin), &ev))
-			return NULL;
+			return EIO;
 
 		if (ev.type != KEY_PRESS)
 			continue;
@@ -564,6 +571,9 @@ char *tinput_read(tinput_t *ti)
 		}
 	}
 
+	if (ti->exit_clui)
+		return ENOENT;
+
 	ti->pos = ti->nc;
 	tinput_position_caret(ti);
 	putchar('\n');
@@ -574,7 +584,8 @@ char *tinput_read(tinput_t *ti)
 
 	ti->hpos = 0;
 
-	return str;
+	*dstr = str;
+	return EOK;
 }
 
 static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
@@ -605,6 +616,11 @@ static void tinput_key_ctrl(tinput_t *ti, console_event_t *ev)
 		break;
 	case KC_A:
 		tinput_sel_all(ti);
+		break;
+	case KC_Q:
+		/* Signal libary client to quit interactive loop. */
+		ti->done = true;
+		ti->exit_clui = true;
 		break;
 	default:
 		break;

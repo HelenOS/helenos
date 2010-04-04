@@ -38,13 +38,11 @@
 
 #include <ipc/ipc.h>
 
-#include "../messages.h"
-
-#include "../include/ip_interface.h"
-
-#include "../structures/measured_strings.h"
-#include "../structures/module_map.h"
-#include "../structures/packet/packet_server.h"
+#include <net_messages.h>
+#include <ip_interface.h>
+#include <adt/measured_strings.h>
+#include <adt/module_map.h>
+#include <packet/packet_server.h>
 
 #include "net.h"
 
@@ -74,7 +72,7 @@ int net_initialize_build(async_client_conn_t client_connection){
 	return EOK;
 }
 
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int net_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	if(IS_NET_PACKET_MESSAGE(call)){
 		return packet_server_message(callid, call, answer, answer_count);
 	}else{

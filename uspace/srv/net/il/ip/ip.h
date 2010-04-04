@@ -38,17 +38,15 @@
 #define __NET_IP_H__
 
 #include <fibril_synch.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../include/device.h"
-#include "../../include/inet.h"
-#include "../../include/ip_interface.h"
-
-#include "../../structures/int_map.h"
-#include "../../structures/generic_field.h"
-#include "../../structures/module_map.h"
+#include <net_device.h>
+#include <inet.h>
+#include <ip_interface.h>
+#include <adt/int_map.h>
+#include <adt/generic_field.h>
+#include <adt/module_map.h>
 
 /** Type definition of the IP global data.
  *  @see ip_globals

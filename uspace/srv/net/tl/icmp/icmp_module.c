@@ -39,28 +39,21 @@
 
 #include <async.h>
 #include <stdio.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../err.h"
-#include "../../modules.h"
-
-#include "../../structures/packet/packet.h"
-
-#include "../../include/net_interface.h"
+#include <net_err.h>
+#include <net_modules.h>
+#include <packet/packet.h>
+#include <net_interface.h>
+#include <tl_standalone.h>
 
 #include "icmp.h"
 #include "icmp_module.h"
 
-/** ICMP module name.
+/** ICMP module global data.
  */
-#define NAME	"ICMP protocol"
-
-/** Prints the module name.
- *  @see NAME
- */
-void module_print_name(void);
+extern icmp_globals_t	icmp_globals;
 
 /** Starts the ICMP module.
  *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
@@ -69,27 +62,7 @@ void module_print_name(void);
  *  @returns Other error codes as defined for the arp_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int module_start(async_client_conn_t client_connection);
-
-/** Processes the ICMP message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the icmp_message() function.
- */
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
-
-/** ICMP module global data.
- */
-extern icmp_globals_t	icmp_globals;
-
-void module_print_name(void){
-	printf("%s", NAME);
-}
-
-int module_start(async_client_conn_t client_connection){
+int tl_module_start(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
 	ipcarg_t phonehash;
@@ -112,7 +85,15 @@ int module_start(async_client_conn_t client_connection){
 	return EOK;
 }
 
-int module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+/** Processes the ICMP message.
+ *  @param[in] callid The message identifier.
+ *  @param[in] call The message parameters.
+ *  @param[out] answer The message answer parameters.
+ *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for the icmp_message() function.
+ */
+int tl_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	return icmp_message(callid, call, answer, answer_count);
 }
 
