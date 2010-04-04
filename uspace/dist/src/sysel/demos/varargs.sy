@@ -32,20 +32,27 @@ class VariadicArgumentsDemo is
 	-- A variadic function is declared by marking its last argument
 	-- with the attribute 'packed'.
 	--
-	-- Note that we need to pass 'n' just because the array type
-	-- does not implement the Length property yet.
-	--
-	fun Print(n : int; args : string[], packed) is
+	fun Print(args : string[], packed) is
 		var i : int;
+		var error : int;
 
+		error = 0;
 		i = 0;
-		while i < n do
-			Builtin.WriteLine(args[i]);
+		while error == 0 do
+			-- This is definitely the wrong way to determine
+			-- array bounds, but until a better one is
+			-- implemented...
+			do
+				Builtin.WriteLine(args[i]);
+			except e : Error.OutOfBounds do
+				error = 1;
+			end
+
 			i = i + 1;
 		end
 	end
 
 	fun Main() is
-		Print(5, "One", "Two", "Three", "Four", "Five");
+		Print("One", "Two", "Three", "Four", "Five");
 	end
 end

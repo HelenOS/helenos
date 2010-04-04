@@ -26,25 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DEBUG_H_
-#define DEBUG_H_
+#ifndef BIGINT_H_
+#define BIGINT_H_
 
-/** Uncomment this to get verbose debugging messages during parsing. */
-//#define DEBUG_PARSE_TRACE
+#include "mytypes.h"
 
-/**
- *Uncomment this to get extra verbose messages from parser's lexing
- * primitives.
- */
-//#define DEBUG_LPARSE_TRACE
+void bigint_init(bigint_t *bigint, int value);
+void bigint_shallow_copy(bigint_t *src, bigint_t *dest);
+void bigint_clone(bigint_t *src, bigint_t *dest);
+void bigint_reverse_sign(bigint_t *src, bigint_t *dest);
+void bigint_destroy(bigint_t *bigint);
 
-/** Uncomment this to get verbose debugging messagges during typing. */
-//#define DEBUG_TYPE_TRACE
+int bigint_get_value_int(bigint_t *bigint, int *dval);
+bool_t bigint_is_zero(bigint_t *bigint);
+bool_t bigint_is_negative(bigint_t *bigint);
 
-/** Uncomment this to get verbose debugging messages during execution. */
-//#define DEBUG_RUN_TRACE
+void bigint_div_digit(bigint_t *a, bigint_word_t b, bigint_t *quot,
+    bigint_word_t *rem);
 
-/** Uncomment this to get verbose debugging messages for bigint computation. */
-//#define DEBUG_BIGINT_TRACE
+void bigint_add(bigint_t *a, bigint_t *b, bigint_t *dest);
+void bigint_sub(bigint_t *a, bigint_t *b, bigint_t *dest);
+void bigint_mul(bigint_t *a, bigint_t *b, bigint_t *dest);
+void bigint_print(bigint_t *bigint);
 
 #endif

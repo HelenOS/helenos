@@ -94,6 +94,12 @@ int os_str_get_char(const char *str, int index, int *out_char)
 #define OS_INPUT_BUFFER_SIZE 256
 static char os_input_buffer[OS_INPUT_BUFFER_SIZE];
 
+/** Display survival help message. */
+void os_input_disp_help(void)
+{
+	printf("Send ^C (SIGINT) to quit.\n");
+}
+
 /** Read one line of input from the user. */
 int os_input_line(char **ptr)
 {

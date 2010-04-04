@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "../bigint.h"
 #include "../builtin.h"
 #include "../list.h"
 #include "../mytypes.h"
@@ -106,7 +107,8 @@ static void bi_fun_builtin_writeline(run_t *run)
 
 	switch (var->vc) {
 	case vc_int:
-		printf("%d\n", var->u.int_v->value);
+		bigint_print(&var->u.int_v->value);
+		putchar('\n');
 		break;
 	case vc_string:
 		printf("%s\n", var->u.string_v->value);

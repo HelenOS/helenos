@@ -161,7 +161,7 @@ static void stype_fun(stype_t *stype, stree_fun_t *fun)
 		run_texpr(stype->program, fun_sym->outer_csi, fun->varg->type,
 		    &titem);
 
-		if (titem->tic != tic_tarray) {
+		if (titem->tic != tic_tarray && titem->tic != tic_ignore) {
 			printf("Error: Packed argument is not an array.\n");
 			stype_note_error(stype);
 		}
@@ -486,7 +486,7 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 		return expr;
 	}
 
-	if (dest == NULL || src == NULL)
+	if (dest->tic == tic_ignore || src->tic == tic_ignore)
 		return expr;
 
 	/*
@@ -679,15 +679,10 @@ void stype_note_error(stype_t *stype)
 tdata_item_t *stype_recovery_titem(stype_t *stype)
 {
 	tdata_item_t *titem;
-	tdata_primitive_t *tprimitive;
 
 	(void) stype;
 
-	titem = tdata_item_new(tic_tprimitive);
-	tprimitive = tdata_primitive_new(tpc_int);
-
-	titem->u.tprimitive = tprimitive;
-
+	titem = tdata_item_new(tic_ignore);
 	return titem;
 }
 

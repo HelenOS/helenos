@@ -375,6 +375,20 @@ stree_binop_t *stree_binop_new(binop_class_t bc)
 	return binop;
 }
 
+stree_unop_t *stree_unop_new(unop_class_t uc)
+{
+	stree_unop_t *unop;
+
+	unop = calloc(1, sizeof(stree_unop_t));
+	if (unop == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	unop->uc = uc;
+	return unop;
+}
+
 stree_new_t *stree_new_new(void)
 {
 	stree_new_t *new_op;

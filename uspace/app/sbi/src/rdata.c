@@ -26,10 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Run-time data representation. */
+/** @file Run-time data representation.
+ *
+ * At run time SBI represents all data as a graph of interconnected @c var
+ * nodes (variable nodes). Any piece of memory addressable by the program
+ * (i.e. all variables) are stored in var nodes. However, var nodes are also
+ * used internally to implement value items. (I.e. values in value items
+ * have exactly the same structure as program variables).
+ *
+ * Unlike byte- or word-oriented memory on a real machine, var nodes provide
+ * structured and typed storage. (This typing is dynamic, however and has
+ * nothing to do with the static type system).
+ *
+ * There are several types of var nodes, one for each primitive type,
+ * reference, delegate, array, and object. A reference var node contains
+ * a pointer to another var node. Delegate var node points to some stree
+ * declaration. Array and object var nodes refer to a collection of child
+ * nodes (fields, elements).
+ */
 
 #include <stdlib.h>
 #include <assert.h>
+#include "bigint.h"
 #include "mytypes.h"
 #include "stree.h"
 
@@ -49,7 +67,11 @@ static int rdata_array_get_dim(rdata_array_t *array);
 static void rdata_address_print(rdata_address_t *address);
 static void rdata_var_print(rdata_var_t *var);
 
-
+/** Allocate new data item.
+ *
+ * @param ic	Item class.
+ * @return	New item.
+ */
 rdata_item_t *rdata_item_new(item_class_t ic)
 {
 	rdata_item_t *item;
@@ -64,6 +86,10 @@ rdata_item_t *rdata_item_new(item_class_t ic)
 	return item;
 }
 
+/** Allocate new address.
+ *
+ * @return	New address.
+ */
 rdata_addr_var_t *rdata_addr_var_new(void)
 {
 	rdata_addr_var_t *addr_var;
@@ -77,6 +103,10 @@ rdata_addr_var_t *rdata_addr_var_new(void)
 	return addr_var;
 }
 
+/** Allocate new named property address.
+ *
+ * @return	New named property address.
+ */
 rdata_aprop_named_t *rdata_aprop_named_new(void)
 {
 	rdata_aprop_named_t *aprop_named;
@@ -90,6 +120,10 @@ rdata_aprop_named_t *rdata_aprop_named_new(void)
 	return aprop_named;
 }
 
+/** Allocate new indexed property address.
+ *
+ * @return	New indexed property address.
+ */
 rdata_aprop_indexed_t *rdata_aprop_indexed_new(void)
 {
 	rdata_aprop_indexed_t *aprop_indexed;
@@ -103,6 +137,11 @@ rdata_aprop_indexed_t *rdata_aprop_indexed_new(void)
 	return aprop_indexed;
 }
 
+/** Allocate new property address.
+ *
+ * @param apc	Property address class.
+ * @return	New property address.
+ */
 rdata_addr_prop_t *rdata_addr_prop_new(aprop_class_t apc)
 {
 	rdata_addr_prop_t *addr_prop;
@@ -117,6 +156,11 @@ rdata_addr_prop_t *rdata_addr_prop_new(aprop_class_t apc)
 	return addr_prop;
 }
 
+/** Allocate new address.
+ *
+ * @param ac	Address class.
+ * @return	New address.
+ */
 rdata_address_t *rdata_address_new(address_class_t ac)
 {
 	rdata_address_t *address;
@@ -131,6 +175,10 @@ rdata_address_t *rdata_address_new(address_class_t ac)
 	return address;
 }
 
+/** Allocate new value.
+ *
+ * @return	New value.
+ */
 rdata_value_t *rdata_value_new(void)
 {
 	rdata_value_t *value;
@@ -144,6 +192,11 @@ rdata_value_t *rdata_value_new(void)
 	return value;
 }
 
+/** Allocate new var node.
+ *
+ * @param vc	Var node class (varclass).
+ * @return	New var node.
+ */
 rdata_var_t *rdata_var_new(var_class_t vc)
 {
 	rdata_var_t *var;
@@ -158,6 +211,10 @@ rdata_var_t *rdata_var_new(var_class_t vc)
 	return var;
 }
 
+/** Allocate new reference.
+ *
+ * @return	New reference.
+ */
 rdata_ref_t *rdata_ref_new(void)
 {
 	rdata_ref_t *ref;
@@ -171,6 +228,10 @@ rdata_ref_t *rdata_ref_new(void)
 	return ref;
 }
 
+/** Allocate new delegate.
+ *
+ * @return	New delegate.
+ */
 rdata_deleg_t *rdata_deleg_new(void)
 {
 	rdata_deleg_t *deleg;
@@ -184,6 +245,10 @@ rdata_deleg_t *rdata_deleg_new(void)
 	return deleg;
 }
 
+/** Allocate new array.
+ *
+ * @return	New array.
+ */
 rdata_array_t *rdata_array_new(int rank)
 {
 	rdata_array_t *array;
@@ -204,6 +269,10 @@ rdata_array_t *rdata_array_new(int rank)
 	return array;
 }
 
+/** Allocate new object.
+ *
+ * @return	New object.
+ */
 rdata_object_t *rdata_object_new(void)
 {
 	rdata_object_t *object;
@@ -217,6 +286,10 @@ rdata_object_t *rdata_object_new(void)
 	return object;
 }
 
+/** Allocate new integer.
+ *
+ * @return	New integer.
+ */
 rdata_int_t *rdata_int_new(void)
 {
 	rdata_int_t *int_v;
@@ -230,6 +303,10 @@ rdata_int_t *rdata_int_new(void)
 	return int_v;
 }
 
+/** Allocate new string.
+ *
+ * @return	New string.
+ */
 rdata_string_t *rdata_string_new(void)
 {
 	rdata_string_t *string_v;
@@ -243,6 +320,10 @@ rdata_string_t *rdata_string_new(void)
 	return string_v;
 }
 
+/** Allocate new resource.
+ *
+ * @return	New resource.
+ */
 rdata_resource_t *rdata_resource_new(void)
 {
 	rdata_resource_t *resource_v;
@@ -256,6 +337,12 @@ rdata_resource_t *rdata_resource_new(void)
 	return resource_v;
 }
 
+/** Allocate array elements.
+ *
+ * Allocates var nodes for elements of @a array.
+ *
+ * @param array		Array.
+ */
 void rdata_array_alloc_element(rdata_array_t *array)
 {
 	int dim, idx;
@@ -281,6 +368,8 @@ void rdata_array_alloc_element(rdata_array_t *array)
  *
  * Dimension is the total number of elements in an array, in other words,
  * the product of all extents.
+ *
+ * @param array		Array.
  */
 static int rdata_array_get_dim(rdata_array_t *array)
 {
@@ -293,7 +382,14 @@ static int rdata_array_get_dim(rdata_array_t *array)
 	return dim;
 }
 
-/** Make copy of a variable. */
+/** Make copy of a variable.
+ *
+ * Creates a new var node that is an exact copy of an existing var node.
+ * This can be thought of as a shallow copy.
+ *
+ * @param src		Source var node.
+ * @param dest		Place to store pointer to new var node.
+ */
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 {
 	rdata_var_t *nvar;
@@ -327,24 +423,44 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	*dest = nvar;
 }
 
+/** Copy integer.
+ *
+ * @param src		Source integer.
+ * @param dest		Place to store pointer to new integer.
+ */
 static void rdata_int_copy(rdata_int_t *src, rdata_int_t **dest)
 {
 	*dest = rdata_int_new();
-	(*dest)->value = src->value;
+	bigint_clone(&src->value, &(*dest)->value);
 }
 
+/** Copy string.
+ *
+ * @param src		Source string.
+ * @param dest		Place to store pointer to new string.
+ */
 static void rdata_string_copy(rdata_string_t *src, rdata_string_t **dest)
 {
 	*dest = rdata_string_new();
 	(*dest)->value = src->value;
 }
 
+/** Copy reference.
+ *
+ * @param src		Source reference.
+ * @param dest		Place to store pointer to new reference.
+ */
 static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest)
 {
 	*dest = rdata_ref_new();
 	(*dest)->vref = src->vref;
 }
 
+/** Copy delegate.
+ *
+ * @param src		Source delegate.
+ * @param dest		Place to store pointer to new delegate.
+ */
 static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest)
 {
 	(void) src; (void) dest;
@@ -352,6 +468,11 @@ static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest)
 	exit(1);
 }
 
+/** Copy array.
+ *
+ * @param src		Source array.
+ * @param dest		Place to store pointer to new array.
+ */
 static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest)
 {
 	(void) src; (void) dest;
@@ -359,6 +480,11 @@ static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest)
 	exit(1);
 }
 
+/** Copy object.
+ *
+ * @param src		Source object.
+ * @param dest		Place to store pointer to new object.
+ */
 static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 {
 	(void) src; (void) dest;
@@ -366,6 +492,11 @@ static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 	exit(1);
 }
 
+/** Copy resource.
+ *
+ * @param src		Source resource.
+ * @param dest		Place to store pointer to new resource.
+ */
 static void rdata_resource_copy(rdata_resource_t *src, rdata_resource_t **dest)
 {
 	*dest = rdata_resource_new();
@@ -374,7 +505,14 @@ static void rdata_resource_copy(rdata_resource_t *src, rdata_resource_t **dest)
 
 /** Read data from a variable.
  *
- * Return value stored in variable @a var.
+ * This copies data from the variable to a value item. Ideally any read access
+ * to a program variable should go through this function. (Keep in mind
+ * that although values are composed of var nodes internally, but are not
+ * variables per se. Therefore this function is not used to read from values)
+ *
+ * @param var		Variable to read from (var node where it is stored).
+ * @param ritem		Place to store pointer to new value item read from
+ *			the variable.
  */
 void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem)
 {
@@ -392,7 +530,13 @@ void rdata_var_read(rdata_var_t *var, rdata_item_t **ritem)
 
 /** Write data to a variable.
  *
- * Store @a value to variable @a var.
+ * This copies data to the variable from a value. Ideally any write access
+ * to a program variable should go through this function. (Keep in mind
+ * that even though values are composed of var nodes internally, but are not
+ * variables per se. Therefore this function is not used to write to values)
+ *
+ * @param var		Variable to write to (var node where it is stored).
+ * @param value		The value to write.
  */
 void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 {
@@ -417,6 +561,10 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 	/* XXX We should free some stuff around here. */
 }
 
+/** Print data item in human-readable form.
+ *
+ * @param item		Item to print.
+ */
 void rdata_item_print(rdata_item_t *item)
 {
 	if (item == NULL) {
@@ -436,6 +584,15 @@ void rdata_item_print(rdata_item_t *item)
 	}
 }
 
+/** Print address in human-readable form.
+ *
+ * Actually this displays contents of the var node that is being addressed.
+ *
+ * XXX Maybe we should really rather print the address and not the data
+ * it is pointing to?
+ *
+ * @param item		Address to print.
+ */
 static void rdata_address_print(rdata_address_t *address)
 {
 	switch (address->ac) {
@@ -448,16 +605,26 @@ static void rdata_address_print(rdata_address_t *address)
 	}
 }
 
+/** Print value in human-readable form.
+ *
+ * @param value		Value to print.
+ */
 void rdata_value_print(rdata_value_t *value)
 {
 	rdata_var_print(value->var);
 }
 
+/** Print contents of var node in human-readable form.
+ *
+ * @param item		Var node to print.
+ */
 static void rdata_var_print(rdata_var_t *var)
 {
 	switch (var->vc) {
 	case vc_int:
-		printf("int(%d)", var->u.int_v->value);
+		printf("int(");
+		bigint_print(&var->u.int_v->value);
+		printf(")");
 		break;
 	case vc_string:
 		printf("string(\"%s\")", var->u.string_v->value);

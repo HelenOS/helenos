@@ -78,6 +78,17 @@ static stree_exps_t *parse_exps(parse_t *parse);
 
 static stree_except_t *parse_except(parse_t *parse);
 
+/** Initialize parser object.
+ *
+ * Set up parser @a parse to use lexer @a lex for input and to store
+ * output (i.e. new declarations) to program @a prog. @a prog is not
+ * necessarily empty, the declarations being parsed are simply added
+ * to it.
+ *
+ * @param parse		Parser object.
+ * @param prog		Destination program stree.
+ * @param lex		Input lexer.
+ */
 void parse_init(parse_t *parse, stree_program_t *prog, struct lex *lex)
 {
 	parse->program = prog;
@@ -90,7 +101,21 @@ void parse_init(parse_t *parse, stree_program_t *prog, struct lex *lex)
 	lex_next(parse->lex);
 }
 
-/** Parse module. */
+/** Parse module.
+ *
+ * Parse a program module.
+ *
+ * The input is read using the lexer associated with @a parse. The resulting
+ * declarations are added to existing declarations in the program associated
+ * with @a parse.
+ *
+ * If any parse error occurs, parse->error will @c b_true when this function
+ * returns. parse->error_bailout will be @c b_true if the error has not
+ * been recovered yet. Similar holds for other parsing functions in this
+ * module.
+ *
+ * @param parse		Parser object.
+ */
 void parse_module(parse_t *parse)
 {
 	stree_csi_t *csi;
@@ -116,7 +141,13 @@ void parse_module(parse_t *parse)
 	}
 }
 
-/** Parse class, struct or interface declaration. */
+/** Parse class, struct or interface declaration.
+ *
+ * @param parse		Parser object.
+ * @param dclass	What to parse: @c lc_class, @c lc_struct or @c lc_csi.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
     stree_csi_t *outer_csi)
 {
@@ -168,7 +199,12 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	return csi;
 }
 
-/** Parse class, struct or interface member. */
+/** Parse class, struct or interface member.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_csimbr_t *csimbr;
@@ -210,7 +246,12 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 }
 
 
-/** Parse member function. */
+/** Parse member function.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_fun_t *fun;
@@ -296,7 +337,12 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 	return fun;
 }
 
-/** Parse member variable. */
+/** Parse member variable.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_var_t *var;
@@ -317,7 +363,12 @@ static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi)
 	return var;
 }
 
-/** Parse member property. */
+/** Parse member property.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_prop_t *prop;
@@ -423,7 +474,12 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 	return prop;
 }
 
-/** Parse symbol attribute. */
+/** Parse symbol attribute.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
 static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
 {
 	stree_symbol_attr_t *attr;
@@ -441,7 +497,11 @@ static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
 	return attr;
 }
 
-/** Parse formal function argument. */
+/** Parse formal function argument.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 {
 	stree_proc_arg_t *arg;
@@ -467,7 +527,11 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 	return arg;
 }
 
-/** Parse argument attribute. */
+/** Parse argument attribute.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
 {
 	stree_arg_attr_t *attr;
@@ -485,7 +549,11 @@ static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
 	return attr;
 }
 
-/** Parse statement block. */
+/** Parse statement block.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_block_t *parse_block(parse_t *parse)
 {
 	stree_block_t *block;
@@ -508,7 +576,11 @@ static stree_block_t *parse_block(parse_t *parse)
 	return block;
 }
 
-/** Parse statement. */
+/** Parse statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 stree_stat_t *parse_stat(parse_t *parse)
 {
 	stree_stat_t *stat;
@@ -575,7 +647,11 @@ stree_stat_t *parse_stat(parse_t *parse)
 	return stat;
 }
 
-/** Parse variable declaration statement. */
+/** Parse variable declaration statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_vdecl_t *parse_vdecl(parse_t *parse)
 {
 	stree_vdecl_t *vdecl;
@@ -602,7 +678,11 @@ static stree_vdecl_t *parse_vdecl(parse_t *parse)
 	return vdecl;
 }
 
-/** Parse @c if statement, */
+/** Parse @c if statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_if_t *parse_if(parse_t *parse)
 {
 	stree_if_t *if_s;
@@ -628,7 +708,10 @@ static stree_if_t *parse_if(parse_t *parse)
 	return if_s;
 }
 
-/** Parse @c while statement. */
+/** Parse @c while statement.
+ *
+ * @param parse		Parser object.
+ */
 static stree_while_t *parse_while(parse_t *parse)
 {
 	stree_while_t *while_s;
@@ -647,7 +730,11 @@ static stree_while_t *parse_while(parse_t *parse)
 	return while_s;
 }
 
-/** Parse @c for statement. */
+/** Parse @c for statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_for_t *parse_for(parse_t *parse)
 {
 	stree_for_t *for_s;
@@ -670,7 +757,10 @@ static stree_for_t *parse_for(parse_t *parse)
 	return for_s;
 }
 
-/** Parse @c raise statement. */
+/** Parse @c raise statement.
+ *
+ * @param parse		Parser object.
+ */
 static stree_raise_t *parse_raise(parse_t *parse)
 {
 	stree_raise_t *raise_s;
@@ -686,7 +776,11 @@ static stree_raise_t *parse_raise(parse_t *parse)
 	return raise_s;
 }
 
-/** Parse @c return statement. */
+/** Parse @c return statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_return_t *parse_return(parse_t *parse)
 {
 	stree_return_t *return_s;
@@ -703,7 +797,11 @@ static stree_return_t *parse_return(parse_t *parse)
 	return return_s;
 }
 
-/* Parse @c with-except-finally statement. */
+/* Parse @c with-except-finally statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_wef_t *parse_wef(parse_t *parse)
 {
 	stree_wef_t *wef_s;
@@ -745,7 +843,11 @@ static stree_wef_t *parse_wef(parse_t *parse)
 	return wef_s;
 }
 
-/* Parse expression statement. */
+/* Parse expression statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_exps_t *parse_exps(parse_t *parse)
 {
 	stree_expr_t *expr;
@@ -763,7 +865,11 @@ static stree_exps_t *parse_exps(parse_t *parse)
 	return exps;
 }
 
-/* Parse @c except clause. */
+/* Parse @c except clause.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 static stree_except_t *parse_except(parse_t *parse)
 {
 	stree_except_t *except_c;
@@ -784,7 +890,11 @@ static stree_except_t *parse_except(parse_t *parse)
 	return except_c;
 }
 
-/** Parse identifier. */
+/** Parse identifier.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
 stree_ident_t *parse_ident(parse_t *parse)
 {
 	stree_ident_t *ident;
@@ -800,20 +910,29 @@ stree_ident_t *parse_ident(parse_t *parse)
 	return ident;
 }
 
-/** Signal a parse error, start bailing out from parser. */
+/** Signal a parse error, start bailing out from parser. 
+ *
+ * @param parse		Parser object.
+ */
 void parse_raise_error(parse_t *parse)
 {
 	parse->error = b_true;
 	parse->error_bailout = b_true;
 }
 
-/** Note a parse error that has been immediately recovered. */
+/** Note a parse error that has been immediately recovered.
+ *
+ * @param parse		Parser object.
+ */
 void parse_note_error(parse_t *parse)
 {
 	parse->error = b_true;
 }
 
-/** Check if we are currently bailing out of parser due to a parse error. */
+/** Check if we are currently bailing out of parser due to a parse error.
+ *
+ * @param parse		Parser object.
+ */
 bool_t parse_is_error(parse_t *parse)
 {
 	return parse->error_bailout;
@@ -822,6 +941,8 @@ bool_t parse_is_error(parse_t *parse)
 /** Recover from parse error bailout.
  *
  * Still remember that there was an error, but stop bailing out.
+ *
+ * @param parse		Parser object.
  */
 void parse_recover_error(parse_t *parse)
 {
@@ -831,7 +952,12 @@ void parse_recover_error(parse_t *parse)
 	parse->error_bailout = b_false;
 }
 
-/** Return current lem. */
+/** Return current lem.
+ *
+ * @param parse		Parser object.
+ * @return		Pointer to current lem. Only valid until the lexing
+ *			position is advanced.
+ */
 lem_t *lcur(parse_t *parse)
 {
 #ifdef DEBUG_LPARSE_TRACE
@@ -840,7 +966,11 @@ lem_t *lcur(parse_t *parse)
 	return lex_get_current(parse->lex);
 }
 
-/** Retturn current lem lclass. */
+/** Return current lem lclass.
+ *
+ * @param parse		Parser object.
+ * @return		Lclass of the current lem.
+ */
 lclass_t lcur_lc(parse_t *parse)
 {
 	lem_t *lem;
@@ -860,7 +990,10 @@ lclass_t lcur_lc(parse_t *parse)
 	return lem->lclass;
 }
 
-/** Skip to next lem. */
+/** Skip to next lem.
+ *
+ * @param parse		Parser object.
+ */
 void lskip(parse_t *parse)
 {
 #ifdef DEBUG_LPARSE_TRACE
@@ -869,7 +1002,14 @@ void lskip(parse_t *parse)
 	lex_next(parse->lex);
 }
 
-/** Verify that lclass of current lem is @a lc. */
+/** Verify that lclass of current lem is @a lc.
+ *
+ * If a lem of different lclass is found, a parse error is raised and
+ * a message is printed.
+ *
+ * @param parse		Parser object.
+ * @param lc		Expected lclass.
+ */
 void lcheck(parse_t *parse, lclass_t lc)
 {
 #ifdef DEBUG_LPARSE_TRACE
@@ -886,7 +1026,14 @@ void lcheck(parse_t *parse, lclass_t lc)
 	}
 }
 
-/** Verify that lclass of current lem is @a lc and go to next lem. */
+/** Verify that lclass of current lem is @a lc and go to next lem.
+ *
+ * If a lem of different lclass is found, a parse error is raised and
+ * a message is printed.
+ *
+ * @param parse		Parser object.
+ * @param lc		Expected lclass.
+ */
 void lmatch(parse_t *parse, lclass_t lc)
 {
 #ifdef DEBUG_LPARSE_TRACE
@@ -909,7 +1056,10 @@ void lmatch(parse_t *parse, lclass_t lc)
 	lskip(parse);
 }
 
-/** Display generic parsing error. */
+/** Raise and display generic parsing error.
+ *
+ * @param parse		Parser object.
+ */
 void lunexpected_error(parse_t *parse)
 {
 	lem_print_coords(lcur(parse));
@@ -919,7 +1069,13 @@ void lunexpected_error(parse_t *parse)
 	parse_raise_error(parse);
 }
 
-/** Basically tells us whether @a lclass is in next(block). */
+/** Determine whether @a lclass is in follow(block).
+ *
+ * Tests whether @a lclass belongs to the follow(block) set, i.e. if it is
+ * lclass of a lem that can follow a block in the program.
+ *
+ * @param lclass	Lclass.
+ */
 bool_t terminates_block(lclass_t lclass)
 {
 	switch (lclass) {

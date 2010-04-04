@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "../bigint.h"
 #include "../builtin.h"
 #include "../debug.h"
 #include "../mytypes.h"
@@ -343,7 +344,7 @@ static void bi_textfile_is_eof(run_t *run)
 #endif
 	/* Construct return value. */
 	eof_int = rdata_int_new();
-	eof_int->value = eof_flag;
+	bigint_init(&eof_int->value, eof_flag);
 
 	eof_var = rdata_var_new(vc_int);
 	eof_var->u.int_v = eof_int;

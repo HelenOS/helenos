@@ -38,6 +38,7 @@ void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res);
 
 void run_print_fun_bt(run_t *run);
 
+void run_exc_check_unhandled(run_t *run);
 void run_raise_error(run_t *run);
 rdata_item_t *run_recovery_item(run_t *run);
 
@@ -62,6 +63,9 @@ void run_address_write(run_t *run, rdata_address_t *address,
     rdata_value_t *value);
 void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res);
 void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem);
+
+void run_raise_exc(run_t *run, stree_csi_t *csi);
+bool_t run_is_bo(run_t *run);
 
 run_thread_ar_t *run_thread_ar_new(void);
 run_proc_ar_t *run_proc_ar_new(void);

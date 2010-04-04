@@ -39,6 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "os/os.h"
 #include "ancr.h"
 #include "assert.h"
 #include "builtin.h"
@@ -121,6 +122,9 @@ void imode_run(void)
 	run_proc_ar_create(&run, NULL, proc, &proc_ar);
 	list_append(&run.thread_ar->proc_ar, proc_ar);
 
+	printf("SBI interactive mode. ");
+	os_input_disp_help();
+
 	quit_im = b_false;
 	while (quit_im != b_true) {
 		parse.error = b_false;
@@ -150,6 +154,9 @@ void imode_run(void)
 		run_init(&run);
 		run.program = program;
 		run_stat(&run, stat, &rexpr);
+
+		/* Check for unhandled exceptions. */
+		run_exc_check_unhandled(&run);
 
 		if (rexpr != NULL) {
 			/* Convert expression result to value item. */

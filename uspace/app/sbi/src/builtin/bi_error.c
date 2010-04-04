@@ -26,25 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DEBUG_H_
-#define DEBUG_H_
+/** @file Error classes (used with exception handling). */
 
-/** Uncomment this to get verbose debugging messages during parsing. */
-//#define DEBUG_PARSE_TRACE
+#include <assert.h>
+#include "../builtin.h"
+#include "../mytypes.h"
+#include "../symbol.h"
 
-/**
- *Uncomment this to get extra verbose messages from parser's lexing
- * primitives.
- */
-//#define DEBUG_LPARSE_TRACE
+#include "bi_error.h"
 
-/** Uncomment this to get verbose debugging messagges during typing. */
-//#define DEBUG_TYPE_TRACE
+/** Declare error class hierarchy. */
+void bi_error_declare(builtin_t *bi)
+{
+	/*
+	 * Declare class Error and its subclasses.
+	 * Here, class Error supplants a package or namespace.
+	 */
 
-/** Uncomment this to get verbose debugging messages during execution. */
-//#define DEBUG_RUN_TRACE
+	builtin_code_snippet(bi,
+		"class Error is\n"
+			/* Common ancestor of all error classes */
+			"class Base is\n"
+			"end\n"
+			/* Accessing nil reference */
+			"class NilReference : Base is\n"
+			"end\n"
+			/* Array index out of bounds */
+			"class OutOfBounds : Base is\n"
+			"end\n"
+		"end\n");}
 
-/** Uncomment this to get verbose debugging messages for bigint computation. */
-//#define DEBUG_BIGINT_TRACE
+/** Bind error class hierarchy. */
+void bi_error_bind(builtin_t *bi)
+{
+	stree_symbol_t *sym;
 
-#endif
+	/* Declare class Error and its subclasses. */
+
+	sym = builtin_find_lvl1(bi, "Error", "OutOfBounds");
+	bi->error_outofbounds = symbol_to_csi(sym);
+	assert(bi->error_outofbounds != NULL);
+
+	sym = builtin_find_lvl1(bi, "Error", "NilReference");
+	bi->error_nilreference = symbol_to_csi(sym);
+	assert(bi->error_nilreference != NULL);
+}
