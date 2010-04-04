@@ -1,0 +1,143 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+-- Doubly-linked list implementation.
+class List is
+	var head : ListNode;
+
+	-- Initialize list.
+	fun Init() is
+		head = new ListNode();
+		head.prev = head;
+		head.next = head;
+	end
+
+	-- Append new entry at the end of the list.
+	fun Append(data : int) is
+		var n : ListNode;
+		var ntl : ListNode;
+
+		ntl = head.prev;
+
+		n = new ListNode();
+		n.value = data;
+
+		n.prev = ntl;
+		n.next = head;
+		n.head = head;
+
+		ntl.next = n;
+		head.prev = n;
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	prop First : ListNode is
+		get is
+		    return get_first();
+		end
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	fun get_first() : ListNode is
+		if head.next == head then
+			return nil;
+		else
+			return head.next;
+		end
+	end
+end
+
+class ListNode is
+	var value : int;
+
+	var prev : ListNode;
+	var next : ListNode;
+	var head : ListNode;
+
+	-- Value stored in this node.
+	prop Value : int is
+		get is
+			return value;
+		end
+	end
+
+	-- Previous node in list.
+	prop Prev : ListNode is
+		get is
+			return get_prev();
+		end
+	end
+
+	-- Next node in list.
+	prop Next : ListNode is
+		get is
+			return get_next();
+		end
+	end
+
+	-- Get next node.
+	fun get_next() : ListNode is
+		if next != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+
+	-- Get previous node.
+	fun get_prev() : ListNode is
+		if prev != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+
+end
+
+class ListDemo is
+	fun Main() is
+		var list : List;
+
+		list = new List();
+		list.Init();
+
+		list.Append(5);
+		list.Append(6);
+		list.Append(7);
+		list.Append(8);
+
+		var n : ListNode;
+
+		n = list.First;
+		while n != nil do
+			Builtin.WriteLine(n.value);
+			n = n.Next;
+		end
+	end
+end

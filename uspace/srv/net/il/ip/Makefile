@@ -27,29 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-NET_BASE = ../..
 USPACE_PREFIX = ../../../..
+LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
 BINARY = ip
 
 SOURCES = \
 	ip.c \
-	ip_client.c \
-	ip_module.c \
-	$(NET_BASE)/checksum.c \
-	$(NET_BASE)/inet.c \
-	$(NET_BASE)/module.c \
-	$(NET_BASE)/modules.c \
-	$(NET_BASE)/il/arp/arp_remote.c \
-	$(NET_BASE)/nil/nil_remote.c \
-	$(NET_BASE)/net/net_remote.c \
-	$(NET_BASE)/tl/icmp/icmp_client.c \
-	$(NET_BASE)/tl/icmp/icmp_common.c \
-	$(NET_BASE)/tl/icmp/icmp_remote.c \
-	$(NET_BASE)/structures/char_map.c \
-	$(NET_BASE)/structures/measured_strings.c \
-	$(NET_BASE)/structures/module_map.c \
-	$(NET_BASE)/structures/packet/packet.c \
-	$(NET_BASE)/structures/packet/packet_client.c \
-	$(NET_BASE)/structures/packet/packet_remote.c
+	ip_module.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -42,31 +42,32 @@
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
-
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include "../../err.h"
-#include "../../messages.h"
-#include "../../modules.h"
-
-#include "../../include/byteorder.h"
-#include "../../include/device.h"
-#include "../../include/arp_interface.h"
-#include "../../include/nil_interface.h"
-#include "../../include/protocol_map.h"
-
-#include "../../structures/measured_strings.h"
-#include "../../structures/packet/packet.h"
-#include "../../structures/packet/packet_client.h"
-
-#include "../il_messages.h"
+#include <net_err.h>
+#include <net_messages.h>
+#include <net_modules.h>
+#include <net_byteorder.h>
+#include <net_device.h>
+#include <arp_interface.h>
+#include <nil_interface.h>
+#include <protocol_map.h>
+#include <adt/measured_strings.h>
+#include <packet/packet.h>
+#include <packet/packet_client.h>
+#include <il_messages.h>
+#include <arp_messages.h>
 
 #include "arp.h"
 #include "arp_header.h"
 #include "arp_oc.h"
 #include "arp_module.h"
-#include "arp_messages.h"
+
+
+/** ARP module name.
+ */
+#define NAME	"ARP protocol"
 
 /** ARP global data.
  */
@@ -616,6 +617,74 @@ int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol,
 		return ENOENT;
 	}
 }
+
+#ifdef CONFIG_NETWORKING_modular
+
+#include <il_standalone.h>
+
+/** Default thread for new connections.
+ *
+ *  @param[in] iid The initial message identifier.
+ *  @param[in] icall The initial message call structure.
+ *
+ */
+static void il_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+{
+	/*
+	 * Accept the connection
+	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
+	 */
+	ipc_answer_0(iid, EOK);
+	
+	while(true) {
+		ipc_call_t answer;
+		int answer_count;
+		
+		/* Clear the answer structure */
+		refresh_answer(&answer, &answer_count);
+		
+		/* Fetch the next message */
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		/* Process the message */
+		int res = il_module_message(callid, &call, &answer, &answer_count);
+		
+		/* End if said to either by the message or the processing result */
+		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+			return;
+		
+		/* Answer the message */
+		answer_call(callid, res, &answer, answer_count);
+	}
+}
+
+/** Starts the module.
+ *
+ *  @param argc The count of the command line arguments. Ignored parameter.
+ *  @param argv The command line parameters. Ignored parameter.
+ *
+ *  @returns EOK on success.
+ *  @returns Other error codes as defined for each specific module start function.
+ *
+ */
+int main(int argc, char *argv[])
+{
+	ERROR_DECLARE;
+	
+	/* Print the module label */
+	printf("Task %d - %s\n", task_get_id(), NAME);
+	
+	/* Start the module */
+	if (ERROR_OCCURRED(il_module_start(il_client_connection))) {
+		printf(" - ERROR %i\n", ERROR_CODE);
+		return ERROR_CODE;
+	}
+	
+	return EOK;
+}
+
+#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

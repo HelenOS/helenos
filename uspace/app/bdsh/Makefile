@@ -28,9 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIB_PREFIX)/block/libblock.a $(LIB_PREFIX)/clui/libclui.a
-EXTRA_CFLAGS = -I$(LIB_PREFIX)/block -I$(LIB_PREFIX)/clui -I. -Icmds/ \
-    -Icmds/builtins -Icmds/modules
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBCLUI_PREFIX)/libclui.a
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX) -I$(LIBCLUI_PREFIX) -I. -Icmds/ \
+	-Icmds/builtins -Icmds/modules
 BINARY = bdsh
 
 SOURCES = \

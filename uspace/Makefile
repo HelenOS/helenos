@@ -40,6 +40,7 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/sbi \
 	app/taskdump \
 	app/tester \
 	app/tetris \
@@ -63,7 +64,8 @@ DIRS = \
 	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
-	srv/hw/char/i8042
+	srv/hw/char/i8042 \
+	srv/hw/netif/dp8390
 
 ## Platform-specific hardware support
 #
@@ -93,21 +95,16 @@ endif
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_DP8390),y)
-	DIRS += srv/net/netif/dp8390
-endif
-
 NETWORKING_COMMON = \
 	srv/net/netif/lo \
 	srv/net/nil/eth \
 	srv/net/nil/nildummy \
 	srv/net/net \
-	srv/net/net/start \
-	srv/net/socket \
-	srv/net/app/echo \
-	srv/net/app/ping \
-	srv/net/app/nettest1 \
-	srv/net/app/nettest2
+	srv/net/netstart \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping
 
 NETWORKING_MODULAR = \
 	srv/net/il/arp \
@@ -126,6 +123,9 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
+	lib/socket \
+	lib/net \
+	lib/netif
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/pci
@@ -145,10 +145,6 @@ endif
 
 ifeq ($(CONFIG_NETWORKING),module)
 	BUILDS := $(addsuffix .build,$(DIRS)) $(addsuffix .build,$(NETWORKING_COMMON))
-endif
-
-ifeq ($(CONFIG_NETWORKING),none)
-	BUILDS := $(addsuffix .build,$(DIRS))
 endif
 
 CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(NETWORKING_COMMON)) $(addsuffix .clean,$(NETWORKING_MODULAR)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
