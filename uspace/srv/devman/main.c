@@ -257,10 +257,14 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {
-	device_handle_t handle;
+static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {	
+	
+	device_handle_t handle = IPC_GET_ARG2(*icall);
+	printf(NAME ": devman_forward - trying to forward connection to device with handle %x.\n", handle);
+	
 	node_t *dev = find_dev_node(&device_tree, handle);
 	if (NULL == dev) {
+		printf(NAME ": devman_forward error - no device with handle %x was found.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -268,12 +272,15 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 	driver_t *driver = NULL;
 	
 	if (drv_to_parent) {
-		driver = dev->parent->drv;
+		if (NULL != dev->parent) {
+			driver = dev->parent->drv;		
+		}
 	} else {
 		driver = dev->drv;		
 	}
 	
-	if (NULL == driver) {		
+	if (NULL == driver) {	
+		printf(NAME ": devman_forward error - no driver to connect to.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;	
 	}
@@ -285,6 +292,11 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 		method = DRIVER_CLIENT;
 	}
 	
+	if (driver->phone <= 0) {
+		printf(NAME ": devman_forward: cound not forward to driver %s (the driver's phone is %x).\n", driver->name, driver->phone);
+		return;
+	}
+	printf(NAME ": devman_forward: forward to driver %s with phone %d.\n", driver->name, driver->phone);
 	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
 }
 

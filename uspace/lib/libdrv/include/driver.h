@@ -79,7 +79,7 @@ struct device {
 	/** Globally unique device identifier (assigned to the device by the device manager). */
 	device_handle_t handle;
 	/** The phone to the parent device driver.*/
-	ipcarg_t parent_phone;
+	int parent_phone;
 	/** The device's name.*/
 	const char *name;
 	/** The list of device ids for device-to-driver matching.*/

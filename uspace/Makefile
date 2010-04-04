@@ -77,6 +77,7 @@ endif
 ifeq ($(UARCH),ia32)
 	DIRS += srv/dd
 	DIRS += srv/drivers/rootia32
+	DIRS += srv/drivers/pciintel
 #	DIRS += srv/hw/bus/pci
 endif
 

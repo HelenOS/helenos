@@ -37,7 +37,8 @@ RD_SRVS += \
 
 RD_DRVS = \
 	root \
-	rootia32
+	rootia32 \
+	pciintel
 
 MODULES := $(notdir $(COMPONENTS))
 

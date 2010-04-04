@@ -49,12 +49,13 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
+#include <resource.h>
 
 #define NAME "rootia32"
 
-typedef struct rootia32_dev_data {
+typedef struct rootia32_child_dev_data {
 	hw_resource_list_t hw_resources;	
-} rootia32_dev_data_t;
+} rootia32_child_dev_data_t;
 
 static bool rootia32_add_device(device_t *dev);
 static bool rootia32_init();
@@ -81,16 +82,37 @@ static hw_resource_t pci_conf_regs = {
 	}	
 };
 
-static rootia32_dev_data_t pci_data = {
+static rootia32_child_dev_data_t pci_data = {
 	.hw_resources = {
 		1, 
 		&pci_conf_regs
 	}
 };
 
+static hw_resource_list_t * rootia32_get_child_resources(device_t *dev)
+{
+	rootia32_child_dev_data_t *data = (rootia32_child_dev_data_t *)dev->driver_data;
+	if (NULL == data) {
+		return NULL;
+	}
+	return &data->hw_resources;
+}
+
+static bool rootia32_enable_child_interrupt(device_t *dev) 
+{
+	// TODO
+	
+	return false;
+}
+
+static resource_iface_t child_res_iface = {
+	&rootia32_get_child_resources,
+	&rootia32_enable_child_interrupt	
+};
+
 static bool rootia32_add_child(
 	device_t *parent, const char *name, const char *str_match_id, 
-	rootia32_dev_data_t *drv_data) 
+	rootia32_child_dev_data_t *drv_data) 
 {
 	printf(NAME ": adding new child device '%s'.\n", name);
 	
@@ -112,6 +134,9 @@ static bool rootia32_add_child(
 	match_id->id = str_match_id;
 	match_id->score = 100;
 	add_match_id(&child->match_ids, match_id);	
+	
+	// add an interface to the device
+	device_set_iface(child, HW_RES_DEV_IFACE, &child_res_iface);
 	
 	// register child  device
 	if (!child_device_register(child, parent)) {
@@ -150,7 +175,6 @@ static bool rootia32_add_device(device_t *dev)
 	// register child devices	
 	if (!rootia32_add_children(dev)) {
 		printf(NAME ": failed to add child devices for platform ia32.\n");
-		return false;
 	}
 	
 	return true;

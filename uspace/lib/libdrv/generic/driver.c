@@ -56,6 +56,7 @@
 
 static driver_t *driver;
 LIST_INITIALIZE(devices);
+FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 
 static device_t * driver_create_device()
 {
@@ -66,17 +67,35 @@ static device_t * driver_create_device()
 	return dev;
 }
 
+static void add_to_devices_list(device_t *dev)
+{
+	fibril_mutex_lock(&devices_mutex);
+	list_append(&dev->link, &devices);
+	fibril_mutex_unlock(&devices_mutex);
+}
+
+static void remove_from_devices_list(device_t *dev)
+{
+	fibril_mutex_lock(&devices_mutex);
+	list_append(&dev->link, &devices);
+	fibril_mutex_unlock(&devices_mutex);
+}
+
 static device_t * driver_get_device(link_t *devices, device_handle_t handle)
 {
 	device_t *dev = NULL;
+	
+	fibril_mutex_lock(&devices_mutex);	
 	link_t *link = devices->next;
-
 	while (link != devices) {
 		dev = list_get_instance(link, device_t, link);
 		if (handle == dev->handle) {
+			fibril_mutex_unlock(&devices_mutex);
 			return dev;
 		}
+		link = link->next;
 	}
+	fibril_mutex_unlock(&devices_mutex);
 
 	return NULL;
 }
@@ -85,17 +104,24 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 {
 	printf("%s: driver_add_device\n", driver->name);
 
-	// result of the operation - device was added, device is not present etc.
-	ipcarg_t ret = 0;
+	// TODO device state - the driver may detect the device is not actually present 
+	// (old non PnP devices) or is not working properly. 
+	// We should send such information to device manager.
+	
+	ipcarg_t ret;
 	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
 	device_t *dev = driver_create_device();
 	dev->handle = dev_handle;
-	if (driver->driver_ops->add_device(dev)) {
-		list_append(&dev->link, &devices);
-		// TODO set return value
+	add_to_devices_list(dev);
+	if (driver->driver_ops->add_device(dev)) {		
+		printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
+		ret = 1;
+	} else {
+		printf("%s: failed to add a new device with handle = %x.\n", driver->name, dev_handle);	
+		remove_from_devices_list(dev);
+		// TODO delete device		
+		ret = 0;
 	}
-	printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
-
 	ipc_answer_1(iid, EOK, ret);
 }
 
@@ -128,15 +154,16 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 /**
  * Generic client connection handler both for applications and drivers.
  *
- * @param driver true for driver client, false for other clients (applications, services etc.).
+ * @param drv true for driver client, false for other clients (applications, services etc.).
  */
-static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driver)
+static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 {
 	// Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of the device to which the client connected.
-	device_handle_t handle = IPC_GET_ARG1(*icall);
+	device_handle_t handle = IPC_GET_ARG2(*icall);
 	device_t *dev = driver_get_device(&devices, handle);
 
 	if (dev == NULL) {
+		printf("%s: driver_connection_gen error - no device with handle %x was found.\n", driver->name, handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -146,12 +173,14 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 
 	// TODO open the device (introduce some callbacks for opening and closing devices registered by the driver)
 	
-	ipc_answer_0(iid, EOK);
+	printf("%s: driver_connection_gen: accepting connection.\n", driver->name);
+	ipc_answer_0(iid, EOK);	
 
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
 
+		printf("%s: driver_connection_gen: waiting for call.\n", driver->name);
 		callid = async_get_call(&call);
 		ipcarg_t method = IPC_GET_METHOD(call);
 		switch  (method) {
@@ -165,6 +194,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 
 			if (!is_valid_iface_id(method)) {
 				// this is not device's interface
+				printf("%s: driver_connection_gen error - invalid interface id %x.", driver->name, method);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -174,6 +204,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 			// get the device interface structure
 			void *iface = device_get_iface(dev, method);
 			if (NULL == iface) {
+				printf("%s: driver_connection_gen error - ", driver->name);
+				printf("device with handle %x has no interface with id %x.\n", handle, method);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -187,6 +219,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 			remote_iface_func_ptr_t iface_method_ptr = get_remote_method(rem_iface, iface_method_idx);
 			if (NULL == iface_method_ptr) {
 				// the interface has not such method
+				printf("%s: driver_connection_gen error - invalid interface method.", driver->name);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -202,11 +235,13 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool driv
 
 static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
+	printf("%s: driver_connection_driver\n", driver->name);
 	driver_connection_gen(iid, icall, true);
 }
 
 static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
+	printf("%s: driver_connection_client\n", driver->name);
 	driver_connection_gen(iid, icall, false);
 }
 
@@ -243,9 +278,11 @@ bool child_device_register(device_t *child, device_t *parent)
 
 	assert(NULL != child->name);
 
+	add_to_devices_list(child);
 	if (EOK == devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle)) {
 		return true;
 	}
+	remove_from_devices_list(child);	
 	return false;
 }
 

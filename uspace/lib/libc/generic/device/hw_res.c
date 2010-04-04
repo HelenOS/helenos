@@ -51,18 +51,17 @@ bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 	size_t size = count * sizeof(hw_resource_t);
 	hw_resources->resources = (hw_resource_t *)malloc(size);
 	if (NULL == hw_resources->resources) {
-		size = 0;
-		ret = false;
+		return false;
 	}
 	
 	rc = async_data_read_start(dev_phone, hw_resources->resources, size);
 	if (EOK != rc) {
 		free(hw_resources->resources);
 		hw_resources->resources = NULL;
-		ret = false;
+		return false;
 	}
 	 	 
-	return ret;	 
+	return true;	 
 }
 
 bool enable_interrupt(int dev_phone)
