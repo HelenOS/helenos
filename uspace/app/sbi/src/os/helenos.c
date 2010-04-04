@@ -104,6 +104,7 @@ int os_str_get_char(const char *str, int index, int *out_char)
 int os_input_line(char **ptr)
 {
 	char *line;
+	int rc;
 
 	if (tinput == NULL) {
 		tinput = tinput_new();
@@ -111,9 +112,17 @@ int os_input_line(char **ptr)
 			return EIO;
 	}
 
-	line = tinput_read(tinput);
-	if (line == NULL)
+	rc = tinput_read(tinput, &line);
+	if (rc == ENOENT) {
+		/* User-requested abort */
+		*ptr = os_str_dup("");
+		return EOK;
+	}
+
+	if (rc != EOK) {
+		/* Error in communication with console */
 		return EIO;
+	}
 
 	/* XXX Input module needs trailing newline to keep going. */
 	*ptr = os_str_acat(line, "\n");

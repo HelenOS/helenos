@@ -99,9 +99,9 @@ int main(int argc, char *argv[])
 			usr.lasterr = ret;
 		}
 	}
-	goto finit;
 
-finit:
+	printf("Leaving %s.\n", progname);
+
 	cli_finit(&usr);
 	return ret;
 }
