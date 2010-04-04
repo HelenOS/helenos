@@ -50,6 +50,8 @@
 #include "errors.h"
 #include "exec.h"
 
+extern volatile unsigned int cli_quit;
+
 /** Text input field. */
 static tinput_t *tinput;
 
@@ -106,6 +108,7 @@ finit:
 void get_input(cliuser_t *usr)
 {
 	char *str;
+	int rc;
 
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_EMPHASIS);
@@ -113,7 +116,18 @@ void get_input(cliuser_t *usr)
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_NORMAL);
 
-	str = tinput_read(tinput);
+	rc = tinput_read(tinput, &str);
+	if (rc == ENOENT) {
+		/* User requested exit */
+		cli_quit = 1;
+		putchar('\n');
+		return;
+	}
+
+	if (rc != EOK) {
+		/* Error in communication with console */
+		return;
+	}
 
 	/* Check for empty input. */
 	if (str_cmp(str, "") == 0) {
