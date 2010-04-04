@@ -83,11 +83,18 @@ typedef struct {
 } tdata_fun_t;
 
 typedef enum {
+	/** Primitive type item */
 	tic_tprimitive,
+	/** Object type item */
 	tic_tobject,
+	/** Array type item */
 	tic_tarray,
+	/** Generic type item */
 	tic_tgeneric,
-	tic_tfun
+	/** Function type item */
+	tic_tfun,
+	/** Special error-recovery type item */
+	tic_ignore
 } titem_class_t;
 
 /** Type item, the result of evaluating a type expression. */

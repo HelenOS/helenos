@@ -29,6 +29,7 @@
 #ifndef STREE_T_H_
 #define STREE_T_H_
 
+#include "bigint_t.h"
 #include "list_t.h"
 #include "builtin_t.h"
 
@@ -53,7 +54,7 @@ typedef struct {
 } stree_self_ref_t;
 
 typedef struct {
-	int value;
+	bigint_t value;
 } stree_lit_int_t;
 
 /** Reference literal (there is only one: @c nil). */
@@ -88,12 +89,15 @@ typedef enum {
 	bo_gt,
 	bo_lt_equal,
 	bo_gt_equal,
-	bo_plus
+	bo_plus,
+	bo_minus,
+	bo_mult
 } binop_class_t;
 
 /** Unary operation class */
 typedef enum {
-	uo_plus
+	uo_plus,
+	uo_minus,
 } unop_class_t;
 
 /** Binary operation */
@@ -108,7 +112,7 @@ typedef struct {
 /** Unary operation */
 typedef struct {
 	/** Operation class */
-	unop_class_t oc;
+	unop_class_t uc;
 
 	/** Argument */
 	struct stree_expr *arg;

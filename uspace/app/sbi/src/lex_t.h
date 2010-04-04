@@ -29,6 +29,8 @@
 #ifndef LEX_T_H_
 #define LEX_T_H_
 
+#include "bigint_t.h"
+
 /** Lexical element class */
 typedef enum {
 	lc_invalid,
@@ -94,6 +96,8 @@ typedef enum {
 	lc_gt_equal,
 	lc_assign,
 	lc_plus,
+	lc_minus,
+	lc_mult,
 	lc_increase,
 
 	/* Punctuators */
@@ -111,7 +115,7 @@ typedef struct {
 
 typedef struct {
 	/* Integer value */
-	int value;
+	bigint_t value;
 } lem_lit_int_t;
 
 typedef struct {

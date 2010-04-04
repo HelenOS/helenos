@@ -61,6 +61,7 @@ stree_block_t *stree_block_new(void);
 stree_expr_t *stree_expr_new(expr_class_t ec);
 stree_assign_t *stree_assign_new(assign_class_t ac);
 stree_binop_t *stree_binop_new(binop_class_t bc);
+stree_unop_t *stree_unop_new(unop_class_t uc);
 stree_new_t *stree_new_new(void);
 stree_access_t *stree_access_new(void);
 stree_call_t *stree_call_new(void);

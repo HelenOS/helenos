@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "ancr.h"
+#include "builtin/bi_error.h"
 #include "builtin/bi_fun.h"
 #include "builtin/bi_textfile.h"
 #include "input.h"
@@ -85,12 +86,14 @@ void builtin_declare(stree_program_t *program)
 	 * Declare other builtin classes/functions.
 	 */
 
+	bi_error_declare(bi);
 	bi_fun_declare(bi);
 	bi_textfile_declare(bi);
 
 	/* Need to process ancestry so that symbol lookups work. */
 	ancr_module_process(program, program->module);
 
+	bi_error_bind(bi);
 	bi_fun_bind(bi);
 	bi_textfile_bind(bi);
 }

@@ -59,6 +59,8 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 
 static void stype_unop(stype_t *stype, stree_unop_t *unop,
     tdata_item_t **rtitem);
+static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
+    tdata_item_t *ta, tdata_item_t **rtitem);
 static void stype_new(stype_t *stype, stree_new_t *new,
     tdata_item_t **rtitem);
 
@@ -275,7 +277,7 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
 	bool_t equal;
-	tdata_item_t *titem;
+	tdata_item_t *titem1, *titem2;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Evaluate type of binary operation.\n");
@@ -283,58 +285,48 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 	stype_expr(stype, binop->arg1);
 	stype_expr(stype, binop->arg2);
 
-	/* XXX This should be checked properly. */
-	assert(binop->arg1->titem != NULL);
-	assert(binop->arg2->titem != NULL);
+	titem1 = binop->arg1->titem;
+	titem2 = binop->arg2->titem;
 
-	if (binop->arg1->titem == NULL) {
-		printf("Error First binary operand has no value.\n");
+	if (titem1 == NULL || titem2 == NULL) {
+		printf("Error: Binary operand has no value.\n");
 		stype_note_error(stype);
-		if (binop->arg2->titem != NULL)
-			*rtitem = binop->arg2->titem;
-		else
-			*rtitem = stype_recovery_titem(stype);
+		*rtitem = stype_recovery_titem(stype);
 		return;
 	}
 
-	if (binop->arg2->titem == NULL) {
-		printf("Error: Second binary operand has no value.\n");
-		stype_note_error(stype);
-		*rtitem = binop->arg1->titem;
+	if (titem1->tic == tic_ignore || titem2->tic == tic_ignore) {
+		*rtitem = stype_recovery_titem(stype);
 		return;
 	}
 
-	equal = tdata_item_equal(binop->arg1->titem, binop->arg2->titem);
+	equal = tdata_item_equal(titem1, titem2);
 	if (equal != b_true) {
 		printf("Error: Binary operation arguments "
 		    "have different types ('");
-		tdata_item_print(binop->arg1->titem);
+		tdata_item_print(titem1);
 		printf("' and '");
-		tdata_item_print(binop->arg2->titem);
+		tdata_item_print(titem2);
 		printf("').\n");
 		stype_note_error(stype);
-		*rtitem = binop->arg1->titem;
+		*rtitem = stype_recovery_titem(stype);
 		return;
 	}
 
-	titem = binop->arg1->titem;
-
-	switch (titem->tic) {
+	switch (titem1->tic) {
 	case tic_tprimitive:
-		stype_binop_tprimitive(stype, binop, binop->arg1->titem,
-		    binop->arg2->titem, rtitem);
+		stype_binop_tprimitive(stype, binop, titem1, titem2, rtitem);
 		break;
 	case tic_tobject:
-		stype_binop_tobject(stype, binop, binop->arg1->titem,
-		    binop->arg2->titem, rtitem);
+		stype_binop_tobject(stype, binop, titem1, titem2, rtitem);
 		break;
 	default:
 		printf("Error: Binary operation on value which is not of a "
 		    "supported type (found '");
-		tdata_item_print(titem);
+		tdata_item_print(titem1);
 		printf("').\n");
 		stype_note_error(stype);
-		*rtitem = titem;
+		*rtitem = stype_recovery_titem(stype);
 		break;
 	}
 
@@ -416,12 +408,63 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 static void stype_unop(stype_t *stype, stree_unop_t *unop,
     tdata_item_t **rtitem)
 {
+	tdata_item_t *titem;
+
 #ifdef DEBUG_TYPE_TRACE
 	printf("Evaluate type of unary operation.\n");
 #endif
 	stype_expr(stype, unop->arg);
 
-	*rtitem = NULL;
+	titem = unop->arg->titem;
+
+	if (titem->tic == tic_ignore) {
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	switch (titem->tic) {
+	case tic_tprimitive:
+		stype_unop_tprimitive(stype, unop, titem, rtitem);
+		break;
+	default:
+		printf("Error: Unary operation on value which is not of a "
+		    "supported type (found '");
+		tdata_item_print(titem);
+		printf("').\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	}
+}
+
+/** Type a binary operation arguments of primitive type. */
+static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
+    tdata_item_t *ta, tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	(void) stype;
+	(void) unop;
+
+	assert(ta->tic == tic_tprimitive);
+
+	switch (ta->u.tprimitive->tpc) {
+	case tpc_int:
+		rtpc = tpc_int;
+		break;
+	default:
+		printf("Error: Unary operator applied on unsupported "
+		    "primitive type %d.\n", ta->u.tprimitive->tpc);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	res_ti = tdata_item_new(tic_tprimitive);
+	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
+
+	*rtitem = res_ti;
 }
 
 /** Type a @c new operation. */
@@ -473,6 +516,9 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 	case tic_tfun:
 		printf("Error: Using '.' operator on a function.\n");
 		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_ignore:
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	}
@@ -612,8 +658,26 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 	/* Type the function */
 	stype_expr(stype, call->fun);
 
+	/* Check type item class */
+
 	fun_ti = call->fun->titem;
-	assert(fun_ti->tic == tic_tfun);
+	switch (fun_ti->tic) {
+	case tic_tfun:
+		/* The expected case */
+		break;
+	case tic_ignore:
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	default:
+		printf("Error: Calling something which is not a function ");
+		printf("(found '");
+		tdata_item_print(fun_ti);
+		printf("').\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
 	fun = fun_ti->u.tfun->fun;
 	fun_sym = fun_to_symbol(fun);
 
@@ -733,6 +797,9 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 	case tic_tfun:
 		printf("Error: Indexing a function.\n");
 		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_ignore:
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	}

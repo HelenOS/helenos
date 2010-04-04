@@ -33,10 +33,12 @@ EXTRA_CFLAGS = -D__HELENOS__ -I$(LIBCLUI_PREFIX)
 BINARY = sbi
 
 SOURCES = \
+	src/builtin/bi_error.c \
 	src/builtin/bi_fun.c \
 	src/builtin/bi_textfile.c \
 	src/os/helenos.c \
 	src/ancr.c \
+	src/bigint.c \
 	src/builtin.c \
 	src/imode.c \
 	src/input.c \

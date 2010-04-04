@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "bigint.h"
 #include "debug.h"
 #include "lex.h"
 #include "list.h"
@@ -43,6 +44,7 @@
 static stree_expr_t *parse_assign(parse_t *parse);
 static stree_expr_t *parse_comparative(parse_t *parse);
 static stree_expr_t *parse_additive(parse_t *parse);
+static stree_expr_t *parse_multip(parse_t *parse);
 static stree_expr_t *parse_prefix(parse_t *parse);
 static stree_expr_t *parse_prefix_new(parse_t *parse);
 static stree_expr_t *parse_postfix(parse_t *parse);
@@ -50,6 +52,7 @@ static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a);
+static stree_expr_t *parse_paren(parse_t *parse);
 static stree_expr_t *parse_primitive(parse_t *parse);
 static stree_expr_t *parse_nameref(parse_t *parse);
 static stree_expr_t *parse_lit_int(parse_t *parse);
@@ -165,16 +168,58 @@ static stree_expr_t *parse_additive(parse_t *parse)
 {
 	stree_expr_t *a, *b, *tmp;
 	stree_binop_t *binop;
+	binop_class_t bc;
 
-	a = parse_prefix(parse);
-	while (lcur_lc(parse) == lc_plus) {
+	a = parse_multip(parse);
+	while (lcur_lc(parse) == lc_plus || lcur_lc(parse) == lc_minus) {
 		if (parse_is_error(parse))
 			break;
+
+		switch (lcur_lc(parse)) {
+		case lc_plus: bc = bo_plus; break;
+		case lc_minus: bc = bo_minus; break;
+		default: assert(b_false);
+		}
+
+		lskip(parse);
+		b = parse_multip(parse);
+
+		binop = stree_binop_new(bc);
+		binop->arg1 = a;
+		binop->arg2 = b;
+
+		tmp = stree_expr_new(ec_binop);
+		tmp->u.binop = binop;
+		a = tmp;
+	}
+
+	return a;
+}
+
+/** Parse multiplicative expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_multip(parse_t *parse)
+{
+	stree_expr_t *a, *b, *tmp;
+	stree_binop_t *binop;
+	binop_class_t bc;
+
+	a = parse_prefix(parse);
+	while (lcur_lc(parse) == lc_mult) {
+		if (parse_is_error(parse))
+			break;
+
+		switch (lcur_lc(parse)) {
+		case lc_mult: bc = bo_mult; break;
+		default: assert(b_false);
+		}
 
 		lskip(parse);
 		b = parse_prefix(parse);
 
-		binop = stree_binop_new(bo_plus);
+		binop = stree_binop_new(bc);
 		binop->arg1 = a;
 		binop->arg2 = b;
 
@@ -193,12 +238,31 @@ static stree_expr_t *parse_additive(parse_t *parse)
 static stree_expr_t *parse_prefix(parse_t *parse)
 {
 	stree_expr_t *a;
+	stree_expr_t *tmp;
+	stree_unop_t *unop;
+	unop_class_t uc;
 
 	switch (lcur_lc(parse)) {
 	case lc_plus:
-		printf("Unimplemented: Unary plus.\n");
-		a = parse_recovery_expr(parse);
-		parse_note_error(parse);
+	case lc_minus:
+		if (parse_is_error(parse))
+			return parse_recovery_expr(parse);
+
+		switch (lcur_lc(parse)) {
+		case lc_plus: uc = uo_plus; break;
+		case lc_minus: uc = uo_minus; break;
+		default: assert(b_false);
+		}
+
+		lskip(parse);
+		a = parse_postfix(parse);
+
+		unop = stree_unop_new(uc);
+		unop->arg = a;
+
+		tmp = stree_expr_new(ec_unop);
+		tmp->u.unop = unop;
+		a = tmp;
 		break;
 	case lc_new:
 		a = parse_prefix_new(parse);
@@ -247,7 +311,7 @@ static stree_expr_t *parse_postfix(parse_t *parse)
 	stree_expr_t *a;
 	stree_expr_t *tmp;
 
-	a = parse_primitive(parse);
+	a = parse_paren(parse);
 
 	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lparen ||
 	    lcur_lc(parse) == lc_lsbr || lcur_lc(parse) == lc_as) {
@@ -397,6 +461,26 @@ static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
 	return expr;
 }
 
+/** Parse possibly partenthesized expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_paren(parse_t *parse)
+{
+	stree_expr_t *expr;
+
+	if (lcur_lc(parse) == lc_lparen) {
+		lskip(parse);
+		expr = parse_expr(parse);
+		lmatch(parse, lc_rparen);
+	} else {
+		expr = parse_primitive(parse);
+	}
+
+	return expr;
+}
+
+
 /** Parse primitive expression.
  *
  * @param parse		Parser object.
@@ -458,7 +542,8 @@ static stree_expr_t *parse_lit_int(parse_t *parse)
 	lcheck(parse, lc_lit_int);
 
 	literal = stree_literal_new(ltc_int);
-	literal->u.lit_int.value = lcur(parse)->u.lit_int.value;
+	bigint_clone(&lcur(parse)->u.lit_int.value,
+	    &literal->u.lit_int.value);
 
 	lskip(parse);
 

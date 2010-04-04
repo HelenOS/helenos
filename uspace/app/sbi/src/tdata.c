@@ -147,6 +147,9 @@ void tdata_item_print(tdata_item_t *titem)
 	case tic_tfun:
 		tdata_tfun_print(titem->u.tfun);
 		break;
+	case tic_ignore:
+		printf("ignore");
+		break;
 	}
 }
 

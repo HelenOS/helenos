@@ -34,13 +34,13 @@
 
 #include "intmap_t.h"
 
-/** Integer variable */
+/** Integer variable.
+ *
+ * Sysel int type should be able to store arbitrarily (or at least
+ * very) large numbers.
+ */
 typedef struct {
-	/*
-	 * Note: Sysel int type should be able to store arbitrarily large
-	 * numbers. But for now we can live with limited width.
-	 */
-	int value;
+	bigint_t value;
 } rdata_int_t;
 
 

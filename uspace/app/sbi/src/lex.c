@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "bigint.h"
 #include "mytypes.h"
 #include "input.h"
 #include "os/os.h"
@@ -134,6 +135,8 @@ static struct lc_name simple_lc[] = {
 	{ lc_gt_equal,	">=" },
 	{ lc_assign,	"=" },
 	{ lc_plus,	"+" },
+	{ lc_minus,	"-" },
+	{ lc_mult,	"*" },
 	{ lc_increase,	"+=" },
 
 	/* Punctuators */
@@ -204,7 +207,9 @@ void lem_print(lem_t *lem)
 		printf("(%d)", lem->u.ident.sid);
 		break;
 	case lc_lit_int:
-		printf("(%d)", lem->u.lit_int.value);
+		printf("(");
+		bigint_print(&lem->u.lit_int.value);
+		printf(")");
 		break;
 	case lc_lit_string:
 		printf("(\"%s\")", lem->u.lit_string.value);
@@ -266,6 +271,8 @@ void lex_next(lex_t *lex)
  * The returned pointer is invalidated by next call to lex_next()
  *
  * @param lex		Lexer object.
+ * @return		Pointer to current lem. Owned by @a lex and only valid
+ *			until next call to lex_next().
  */
 lem_t *lex_get_current(lex_t *lex)
 {
@@ -375,6 +382,12 @@ static bool_t lex_read_try(lex_t *lex)
 		}
 		lex->current.lclass = lc_plus; ++bp; break;
 
+	case '-':
+		lex->current.lclass = lc_minus; ++bp; break;
+
+	case '*':
+		lex->current.lclass = lc_mult; ++bp; break;
+
 	case '<':
 		if (bp[1] == '=') {
 			lex->current.lclass = lc_lt_equal; bp += 2; break;
@@ -457,20 +470,34 @@ static void lex_word(lex_t *lex)
 static void lex_number(lex_t *lex)
 {
 	char *bp;
-	int value;
+	bigint_t value;
+	bigint_t dgval;
+	bigint_t base;
+	bigint_t tprod;
 
 	bp = lex->ibp;
-	value = 0;
+
+	bigint_init(&value, 0);
+	bigint_init(&base, 10);
 
 	while (is_digit(*bp)) {
-		value = value * 10 + digit_value(*bp);
+		bigint_mul(&value, &base, &tprod);
+		bigint_init(&dgval, digit_value(*bp));
+
+		bigint_destroy(&value);
+		bigint_add(&tprod, &dgval, &value);
+		bigint_destroy(&tprod);
+		bigint_destroy(&dgval);
+
 		++bp;
 	}
+
+	bigint_destroy(&base);
 
 	lex->ibp = bp;
 
 	lex->current.lclass = lc_lit_int;
-	lex->current.u.lit_int.value = value;
+	bigint_shallow_copy(&value, &lex->current.u.lit_int.value);
 }
 
 /** Lex a string literal.

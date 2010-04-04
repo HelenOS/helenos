@@ -46,6 +46,7 @@ typedef enum {
 #include <errno.h>
 #define EOK 0
 
+#include "bigint_t.h"
 #include "builtin_t.h"
 #include "input_t.h"
 #include "intmap_t.h"

@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "bigint.h"
 #include "debug.h"
 #include "intmap.h"
 #include "list.h"
@@ -70,6 +71,9 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res);
 
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res);
+static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
+    rdata_item_t **res);
+
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res);
 static void run_new_array(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res);
@@ -348,7 +352,7 @@ static void run_lit_int(run_t *run, stree_lit_int_t *lit_int,
 	item->u.value = value;
 	value->var = var;
 	var->u.int_v = int_v;
-	int_v->value = lit_int->value;
+	bigint_clone(&lit_int->value, &int_v->value);
 
 	*res = item;
 }
@@ -435,10 +439,21 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	printf("Run binary operation.\n");
 #endif
 	run_expr(run, binop->arg1, &rarg1_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
+
 	run_expr(run, binop->arg2, &rarg2_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
 
 	switch (binop->bc) {
 	case bo_plus:
+	case bo_minus:
+	case bo_mult:
 	case bo_equal:
 	case bo_notequal:
 	case bo_lt:
@@ -495,7 +510,10 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	rdata_var_t *var;
 	rdata_int_t *int_v;
 
-	int i1, i2;
+	bigint_t *i1, *i2;
+	bigint_t diff;
+	bool_t done;
+	bool_t zf, nf;
 
 	(void) run;
 
@@ -508,32 +526,56 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	value->var = var;
 	var->u.int_v = int_v;
 
-	i1 = v1->var->u.int_v->value;
-	i2 = v2->var->u.int_v->value;
+	i1 = &v1->var->u.int_v->value;
+	i2 = &v2->var->u.int_v->value;
+
+	done = b_true;
 
 	switch (binop->bc) {
 	case bo_plus:
-		int_v->value = i1 + i2;
+		bigint_add(i1, i2, &int_v->value);
 		break;
+	case bo_minus:
+		bigint_sub(i1, i2, &int_v->value);
+		break;
+	case bo_mult:
+		bigint_mul(i1, i2, &int_v->value);
+		break;
+	default:
+		done = b_false;
+		break;
+	}
+
+	if (done) {
+		*res = item;
+		return;
+	}
+
+	/* Relational operation. */
+
+	bigint_sub(i1, i2, &diff);
+	zf = bigint_is_zero(&diff);
+	nf = bigint_is_negative(&diff);
 
 	/* XXX We should have a real boolean type. */
+	switch (binop->bc) {
 	case bo_equal:
-		int_v->value = (i1 == i2) ? 1 : 0;
+		bigint_init(&int_v->value, zf ? 1 : 0);
 		break;
 	case bo_notequal:
-		int_v->value = (i1 != i2) ? 1 : 0;
+		bigint_init(&int_v->value, !zf ? 1 : 0);
 		break;
 	case bo_lt:
-		int_v->value = (i1 < i2) ? 1 : 0;
+		bigint_init(&int_v->value, (!zf && nf) ? 1 : 0);
 		break;
 	case bo_gt:
-		int_v->value = (i1 > i2) ? 1 : 0;
+		bigint_init(&int_v->value, (!zf && !nf) ? 1 : 0);
 		break;
 	case bo_lt_equal:
-		int_v->value = (i1 <= i2) ? 1 : 0;
+		bigint_init(&int_v->value, (zf || nf) ? 1 : 0);
 		break;
 	case bo_gt_equal:
-		int_v->value = (i1 >= i2) ? 1 : 0;
+		bigint_init(&int_v->value, !nf ? 1 : 0);
 		break;
 	default:
 		assert(b_false);
@@ -609,10 +651,10 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	switch (binop->bc) {
 	/* XXX We should have a real boolean type. */
 	case bo_equal:
-		int_v->value = (ref1 == ref2) ? 1 : 0;
+		bigint_init(&int_v->value, (ref1 == ref2) ? 1 : 0);
 		break;
 	case bo_notequal:
-		int_v->value = (ref1 != ref2) ? 1 : 0;
+		bigint_init(&int_v->value, (ref1 != ref2) ? 1 : 0);
 		break;
 	default:
 		printf("Error: Invalid binary operation on reference "
@@ -627,14 +669,72 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 /** Evaluate unary operation. */
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 {
-	rdata_item_t *rarg;
+	rdata_item_t *rarg_i;
+	rdata_item_t *rarg_vi;
+	rdata_value_t *val;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run unary operation.\n");
 #endif
-	run_expr(run, unop->arg, &rarg);
-	*res = NULL;
+	run_expr(run, unop->arg, &rarg_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Check unop argument result.\n");
+#endif
+	run_cvt_value_item(run, rarg_i, &rarg_vi);
+
+	val = rarg_vi->u.value;
+
+	switch (val->var->vc) {
+	case vc_int:
+		run_unop_int(run, unop, val, res);
+		break;
+	default:
+		printf("Unimplemented: Unrary operation argument of "
+		    "type %d.\n", val->var->vc);
+		run_raise_error(run);
+		*res = NULL;
+		break;
+	}
 }
+
+/** Evaluate unary operation on int argument. */
+static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
+    rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_int_t *int_v;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_int);
+	int_v = rdata_int_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.int_v = int_v;
+
+	switch (unop->uc) {
+	case uo_plus:
+	        bigint_clone(&val->var->u.int_v->value, &int_v->value);
+		break;
+	case uo_minus:
+		bigint_reverse_sign(&val->var->u.int_v->value,
+		    &int_v->value);
+		break;
+	}
+
+	*res = item;
+}
+
 
 /** Evaluate @c new operation. */
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
@@ -679,6 +779,8 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 	list_node_t *node;
 	int length;
 	int i;
+	int rc;
+	int iextent;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Create new array.\n");
@@ -707,6 +809,11 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 
 		/* Evaluate extent argument. */
 		run_expr(run, expr, &rexpr);
+		if (run_is_bo(run)) {
+			*res = NULL;
+			return;
+		}
+
 		run_cvt_value_item(run, rexpr, &rexpr_vi);
 		assert(rexpr_vi->ic == ic_value);
 		rexpr_var = rexpr_vi->u.value->var;
@@ -717,9 +824,18 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 		}
 
 #ifdef DEBUG_RUN_TRACE
-		printf("Array extent: %d.\n", rexpr_var->u.int_v->value);
+		printf("Array extent: ");
+		bigint_print(&rexpr_var->u.int_v->value);
+		printf(".\n");
 #endif
-		array->extent[i] = rexpr_var->u.int_v->value;
+		rc = bigint_get_value_int(&rexpr_var->u.int_v->value,
+		    &iextent);
+		if (rc != EOK) {
+			printf("Memory allocation failed (big int used).\n");
+			exit(1);
+		}
+
+		array->extent[i] = iextent;
 		length = length * array->extent[i];
 
 		node = list_next(&tarray->extents, node);
@@ -737,7 +853,7 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 		/* XXX Depends on member variable type. */
 		elem_var = rdata_var_new(vc_int);
 		elem_var->u.int_v = rdata_int_new();
-		elem_var->u.int_v->value = 0;
+		bigint_init(&elem_var->u.int_v->value, 0);
 
 		array->element[i] = elem_var;
 	}
@@ -754,55 +870,19 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 static void run_new_object(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res)
 {
-	rdata_object_t *obj;
-	rdata_var_t *obj_var;
-
-	stree_symbol_t *csi_sym;
 	stree_csi_t *csi;
-	stree_csimbr_t *csimbr;
-
-	rdata_var_t *mbr_var;
-
-	list_node_t *node;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Create new object.\n");
 #endif
-	(void) run;
 	(void) new_op;
 
 	/* Lookup object CSI. */
 	assert(titem->tic == tic_tobject);
 	csi = titem->u.tobject->csi;
-	csi_sym = csi_to_symbol(csi);
 
-	/* Create the object. */
-	obj = rdata_object_new();
-	obj->class_sym = csi_sym;
-	intmap_init(&obj->fields);
-
-	obj_var = rdata_var_new(vc_object);
-	obj_var->u.object_v = obj;
-
-	/* Create object fields. */
-	node = list_first(&csi->members);
-	while (node != NULL) {
-		csimbr = list_node_data(node, stree_csimbr_t *);
-		if (csimbr->cc == csimbr_var) {
-			/* XXX Depends on member variable type. */
-			mbr_var = rdata_var_new(vc_int);
-			mbr_var->u.int_v = rdata_int_new();
-			mbr_var->u.int_v->value = 0;
-
-			intmap_set(&obj->fields, csimbr->u.var->name->sid,
-			    mbr_var);
-		}
-
-		node = list_next(&csi->members, node);
-	}
-
-	/* Create reference to the new object. */
-	run_reference(run, obj_var, res);
+	/* Create CSI instance. */
+	run_new_csi_inst(run, csi, res);
 }
 
 /** Evaluate member acccess. */
@@ -814,6 +894,11 @@ static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 	printf("Run access operation.\n");
 #endif
 	run_expr(run, access->arg, &rarg);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+    	}
+
 	if (rarg == NULL) {
 		printf("Error: Sub-expression has no value.\n");
 		exit(1);
@@ -1027,6 +1112,10 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	printf("Run call operation.\n");
 #endif
 	run_expr(run, call->fun, &rfun);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
 
 	if (run->thread_ar->bo_mode != bm_none) {
 		*res = run_recovery_item(run);
@@ -1057,6 +1146,11 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	while (node != NULL) {
 		arg = list_node_data(node, stree_expr_t *);
 		run_expr(run, arg, &rarg_i);
+		if (run_is_bo(run)) {
+			*res = NULL;
+			return;
+		}
+
 		run_cvt_value_item(run, rarg_i, &rarg_vi);
 
 		list_append(&arg_vals, rarg_vi);
@@ -1095,6 +1189,10 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	printf("Run index operation.\n");
 #endif
 	run_expr(run, index->base, &rbase);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
 
 	vc = run_item_get_vc(run, rbase);
 
@@ -1114,6 +1212,11 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	while (node != NULL) {
 		arg = list_node_data(node, stree_expr_t *);
 		run_expr(run, arg, &rarg_i);
+		if (run_is_bo(run)) {
+			*res = NULL;
+			return;
+		}
+
 		run_cvt_value_item(run, rarg_i, &rarg_vi);
 
 		list_append(&arg_vals, rarg_vi);
@@ -1148,6 +1251,7 @@ static void run_index_array(run_t *run, stree_index_t *index,
 	int i;
 	int elem_index;
 	int arg_val;
+	int rc;
 
 	rdata_item_t *ritem;
 	rdata_address_t *address;
@@ -1188,12 +1292,18 @@ static void run_index_array(run_t *run, stree_index_t *index,
 			exit(1);
 		}
 
-		arg_val = arg->u.value->var->u.int_v->value;
+		rc = bigint_get_value_int(
+		    &arg->u.value->var->u.int_v->value,
+		    &arg_val);
 
-		if (arg_val < 0 || arg_val >= array->extent[i]) {
+		if (rc != EOK || arg_val < 0 || arg_val >= array->extent[i]) {
+#ifdef DEBUG_RUN_TRACE
 			printf("Error: Array index (value: %d) is out of range.\n",
 			    arg_val);
-			run_raise_error(run);
+#endif
+			/* Raise Error.OutOfBounds */
+			run_raise_exc(run,
+			    run->program->builtin->error_outofbounds);
 			*res = run_recovery_item(run);
 			return;
 		}
@@ -1306,7 +1416,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	int i;
 	int elem_index;
 	int arg_val;
-	int rc;
+	int rc1, rc2;
 
 	rdata_value_t *value;
 	rdata_var_t *cvar;
@@ -1321,7 +1431,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 
 	run_cvt_value_item(run, base, &base_vi);
 	assert(base_vi->u.value->var->vc == vc_string);
-	string = base->u.value->var->u.string_v;
+	string = base_vi->u.value->var->u.string_v;
 
 	/*
 	 * Linear index of the desired element. Elements are stored in
@@ -1345,7 +1455,10 @@ static void run_index_string(run_t *run, stree_index_t *index,
 			exit(1);
 		}
 
-		arg_val = arg->u.value->var->u.int_v->value;
+		rc1 = bigint_get_value_int(
+		    &arg->u.value->var->u.int_v->value,
+		    &arg_val);
+
 		elem_index = arg_val;
 
 		node = list_next(args, node);
@@ -1357,8 +1470,10 @@ static void run_index_string(run_t *run, stree_index_t *index,
 		exit(1);
 	}
 
-	rc = os_str_get_char(string->value, elem_index, &cval);
-	if (rc != EOK) {
+	if (rc1 == EOK)
+		rc2 = os_str_get_char(string->value, elem_index, &cval);
+
+	if (rc1 != EOK || rc2 != EOK) {
 		printf("Error: String index (value: %d) is out of range.\n",
 		    arg_val);
 		exit(1);
@@ -1371,7 +1486,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 
 	cvar = rdata_var_new(vc_int);
 	cvar->u.int_v = rdata_int_new();
-	cvar->u.int_v->value = cval;
+	bigint_init(&cvar->u.int_v->value, cval);
 	value->var = cvar;
 
 	*res = ritem;
@@ -1388,7 +1503,16 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 	printf("Run assign operation.\n");
 #endif
 	run_expr(run, assign->dest, &rdest_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
+
 	run_expr(run, assign->src, &rsrc_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
 
 	run_cvt_value_item(run, rsrc_i, &rsrc_vi);
 	assert(rsrc_vi->ic == ic_value);
@@ -1422,6 +1546,10 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 	printf("Run @c as conversion operation.\n");
 #endif
 	run_expr(run, as_op->arg, &rarg_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
 
 	/*
 	 * This should always be a reference if the argument is indeed
@@ -1468,6 +1596,56 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 	*res = rarg_vi;
 }
 
+/** Create new CSI instance. */
+void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
+{
+	rdata_object_t *obj;
+	rdata_var_t *obj_var;
+
+	stree_symbol_t *csi_sym;
+	stree_csimbr_t *csimbr;
+
+	rdata_var_t *mbr_var;
+
+	list_node_t *node;
+
+	csi_sym = csi_to_symbol(csi);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Create new instance of CSI '");
+	symbol_print_fqn(csi_sym);
+	printf("'.\n");
+#endif
+
+	/* Create the object. */
+	obj = rdata_object_new();
+	obj->class_sym = csi_sym;
+	intmap_init(&obj->fields);
+
+	obj_var = rdata_var_new(vc_object);
+	obj_var->u.object_v = obj;
+
+	/* Create object fields. */
+	node = list_first(&csi->members);
+	while (node != NULL) {
+		csimbr = list_node_data(node, stree_csimbr_t *);
+		if (csimbr->cc == csimbr_var) {
+			/* XXX Depends on member variable type. */
+			mbr_var = rdata_var_new(vc_int);
+			mbr_var->u.int_v = rdata_int_new();
+			bigint_init(&mbr_var->u.int_v->value, 0);
+
+			intmap_set(&obj->fields, csimbr->u.var->name->sid,
+			    mbr_var);
+		}
+
+		node = list_next(&csi->members, node);
+	}
+
+	/* Create reference to the new object. */
+	run_reference(run, obj_var, res);
+}
+
 /** Return boolean value of an item.
  *
  * Tries to interpret @a item as a boolean value. If it is not a boolean
@@ -1491,5 +1669,5 @@ bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 		exit(1);
 	}
 
-	return (var->u.int_v->value != 0);
+	return !bigint_is_zero(&var->u.int_v->value);
 }

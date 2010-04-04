@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "bigint.h"
 #include "builtin.h"
 #include "debug.h"
 #include "intmap.h"
@@ -56,6 +57,8 @@ static void run_return(run_t *run, stree_return_t *return_s);
 static void run_wef(run_t *run, stree_wef_t *wef_s);
 
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c);
+static stree_csi_t *run_exc_payload_get_csi(run_t *run);
+
 static rdata_var_t *run_aprop_get_tpos(run_t *run, rdata_address_t *aprop);
 
 static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
@@ -112,12 +115,7 @@ void run_program(run_t *run, stree_program_t *prog)
 	run_proc_ar_set_args(run, proc_ar, &main_args);
 	run_proc(run, proc_ar, &res);
 
-	/* Check for unhandled exceptions. */
-	if (run->thread_ar->bo_mode != bm_none) {
-		assert(run->thread_ar->bo_mode == bm_exc);
-		printf("Error: Unhandled exception.\n");
-		exit(1);
-	}
+	run_exc_check_unhandled(run);
 }
 
 /** Run procedure. */
@@ -301,7 +299,7 @@ static void run_vdecl(run_t *run, stree_vdecl_t *vdecl)
 	int_v = rdata_int_new();
 
 	var->u.int_v = int_v;
-	int_v->value = 0;
+	bigint_init(&int_v->value, 0);
 
 	block_ar = run_get_current_block_ar(run);
 	old_var = (rdata_var_t *) intmap_get(&block_ar->vars, vdecl->name->sid);
@@ -328,6 +326,8 @@ static void run_if(run_t *run, stree_if_t *if_s)
 	printf("Executing if statement.\n");
 #endif
 	run_expr(run, if_s->cond, &rcond);
+	if (run_is_bo(run))
+		return;
 
 	if (run_item_boolean_value(run, rcond) == b_true) {
 #ifdef DEBUG_RUN_TRACE
@@ -356,10 +356,14 @@ static void run_while(run_t *run, stree_while_t *while_s)
 	printf("Executing while statement.\n");
 #endif
 	run_expr(run, while_s->cond, &rcond);
+	if (run_is_bo(run))
+		return;
 
 	while (run_item_boolean_value(run, rcond) == b_true) {
 		run_block(run, while_s->body);
 		run_expr(run, while_s->cond, &rcond);
+		if (run_is_bo(run))
+			return;
 
 		if (run->thread_ar->bo_mode != bm_none)
 			break;
@@ -380,6 +384,9 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 	printf("Executing raise statement.\n");
 #endif
 	run_expr(run, raise_s->expr, &rexpr);
+	if (run_is_bo(run))
+		return;
+
 	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
 	/* Store expression result in thread AR. */
@@ -400,6 +407,9 @@ static void run_return(run_t *run, stree_return_t *return_s)
 	printf("Executing return statement.\n");
 #endif
 	run_expr(run, return_s->expr, &rexpr);
+	if (run_is_bo(run))
+		return;
+
 	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
 	/* Store expression result in function AR. */
@@ -476,8 +486,7 @@ static void run_wef(run_t *run, stree_wef_t *wef_s)
 /** Determine whether currently active exception matches @c except clause.
  *
  * Checks if the currently active exception in the runner object @c run
- * matches except clause @c except_c. Generates an error if the exception
- * payload has invalid type (i.e. not an object).
+ * matches except clause @c except_c.
  *
  * @param run		Runner object.
  * @param except_c	@c except clause.
@@ -485,15 +494,36 @@ static void run_wef(run_t *run, stree_wef_t *wef_s)
  */
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 {
+	stree_csi_t *exc_csi;
+	tdata_item_t *etype;
+
+	/* Get CSI of active exception. */
+	exc_csi = run_exc_payload_get_csi(run);
+
+	/* Evaluate type expression in except clause. */
+	run_texpr(run->program, run_get_current_csi(run), except_c->etype,
+	    &etype);
+
+	/* Determine if active exc. is derived from type in exc. clause. */
+	return tdata_is_csi_derived_from_ti(exc_csi, etype);
+}
+
+/** Return CSI of the active exception.
+ *
+ * @param run		Runner object.
+ * @return		CSI of the active exception.
+ */
+static stree_csi_t *run_exc_payload_get_csi(run_t *run)
+{
 	rdata_value_t *payload;
 	rdata_var_t *payload_v;
 	rdata_object_t *payload_o;
-	tdata_item_t *etype;
 
 	payload = run->thread_ar->exc_payload;
 	assert(payload != NULL);
 
 	if (payload->var->vc != vc_ref) {
+		/* XXX Prevent this via static type checking. */
 		printf("Error: Exception payload must be an object "
 		    "(found type %d).\n", payload->var->vc);
 		exit(1);
@@ -501,6 +531,7 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 
 	payload_v = payload->var->u.ref_v->vref;
 	if (payload_v->vc != vc_object) {
+		/* XXX Prevent this via static type checking. */
 		printf("Error: Exception payload must be an object "
 		    "(found type %d).\n", payload_v->vc);
 		exit(1);
@@ -516,12 +547,32 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 	assert(payload_o->class_sym != NULL);
 	assert(payload_o->class_sym->sc == sc_csi);
 
-	/* Evaluate type expression in except clause. */
-	run_texpr(run->program, run_get_current_csi(run), except_c->etype,
-	    &etype);
+	return payload_o->class_sym->u.csi;
+}
 
-	return tdata_is_csi_derived_from_ti(payload_o->class_sym->u.csi,
-	    etype);
+
+/** Check for unhandled exception.
+ *
+ * Checks whether there is an active exception. If so, it prints an
+ * error message and raises a run-time error.
+ *
+ * @param run		Runner object.
+ */
+void run_exc_check_unhandled(run_t *run)
+{
+	stree_csi_t *exc_csi;
+
+	if (run->thread_ar->bo_mode != bm_none) {
+		assert(run->thread_ar->bo_mode == bm_exc);
+
+		exc_csi = run_exc_payload_get_csi(run);
+
+		printf("Error: Unhandled exception '");
+		symbol_print_fqn(csi_to_symbol(exc_csi));
+		printf("'.\n");
+
+		run_raise_error(run);
+	}
 }
 
 /** Raise an irrecoverable run-time error, start bailing out.
@@ -619,7 +670,8 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 		int_v = rdata_int_new();
 
 		(*var)->u.int_v = int_v;
-		int_v->value = item->u.value->var->u.int_v->value;
+		bigint_clone(&item->u.value->var->u.int_v->value,
+		    &int_v->value);
 		break;
 	case vc_string:
 		*var = rdata_var_new(vc_string);
@@ -1170,8 +1222,11 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 	addr_var->vref = ref_val->u.value->var->u.ref_v->vref;
 
 	if (addr_var->vref == NULL) {
+#ifdef DEBUG_RUN_TRACE
 		printf("Error: Accessing null reference.\n");
-		run_raise_error(run);
+#endif
+		/* Raise Error.NilReference */
+		run_raise_exc(run, run->program->builtin->error_nilreference);
 		*ritem = run_recovery_item(run);
 		return;
 	}
@@ -1180,6 +1235,35 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 	printf("vref set to %p\n", addr_var->vref);
 #endif
 	*ritem = item;
+}
+
+/** Raise an exception of the given class.
+ *
+ * Used when the interpreter generates an exception due to a run-time
+ * error (not for the @c raise statement).
+ *
+ * @param run		Runner object.
+ * @param csi		Exception class.
+ */
+void run_raise_exc(run_t *run, stree_csi_t *csi)
+{
+	rdata_item_t *exc_vi;
+
+	/* Create exception object. */
+	run_new_csi_inst(run, csi, &exc_vi);
+	assert(exc_vi->ic == ic_value);
+
+	/* Store exception object in thread AR. */
+	run->thread_ar->exc_payload = exc_vi->u.value;
+
+	/* Start exception bailout. */
+	run->thread_ar->bo_mode = bm_exc;
+}
+
+/** Determine if we are bailing out. */
+bool_t run_is_bo(run_t *run)
+{
+	return run->thread_ar->bo_mode != bm_none;
 }
 
 run_thread_ar_t *run_thread_ar_new(void)

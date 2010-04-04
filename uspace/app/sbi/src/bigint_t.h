@@ -26,25 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DEBUG_H_
-#define DEBUG_H_
+#ifndef BIGINT_T_H_
+#define BIGINT_T_H_
 
-/** Uncomment this to get verbose debugging messages during parsing. */
-//#define DEBUG_PARSE_TRACE
+#include <sys/types.h>
+#include <stdint.h>
 
-/**
- *Uncomment this to get extra verbose messages from parser's lexing
- * primitives.
+typedef uint8_t bigint_word_t;
+typedef uint16_t bigint_dword_t;
+
+#define BIGINT_BASE ((bigint_dword_t) 256UL)
+
+/** Big integer.
+ *
+ * Used to implement Sysel @c int type.
  */
-//#define DEBUG_LPARSE_TRACE
+typedef struct bigint {
+	/** Number of non-zero digits in the @c digit array. */
+	size_t length;
 
-/** Uncomment this to get verbose debugging messagges during typing. */
-//#define DEBUG_TYPE_TRACE
+	/** Sign. */
+	bool_t negative;
 
-/** Uncomment this to get verbose debugging messages during execution. */
-//#define DEBUG_RUN_TRACE
-
-/** Uncomment this to get verbose debugging messages for bigint computation. */
-//#define DEBUG_BIGINT_TRACE
+	/** Digits starting from the least significant. */
+	bigint_word_t *digit;
+} bigint_t;
 
 #endif

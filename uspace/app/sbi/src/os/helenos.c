@@ -100,6 +100,12 @@ int os_str_get_char(const char *str, int index, int *out_char)
 	return EOK;
 }
 
+/** Display survival help message. */
+void os_input_disp_help(void)
+{
+	printf("Press Ctrl-Q to quit.\n");
+}
+
 /** Read one line of input from the user. */
 int os_input_line(char **ptr)
 {

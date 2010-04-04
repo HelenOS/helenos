@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 	parse_init(&parse, program, &lex);
 	parse_module(&parse);
 
+	/* Check for parse errors. */
 	if (parse.error)
 		return 1;
 
@@ -104,12 +105,17 @@ int main(int argc, char *argv[])
 	stype.error = b_false;
 	stype_module(&stype, program->module);
 
+	/* Check for typing errors. */
 	if (stype.error)
 		return 1;
 
 	/* Run program. */
 	run_init(&run);
 	run_program(&run, program);
+
+	/* Check for run-time errors. */
+	if (run.thread_ar->error)
+		return 1;
 
 	return 0;
 }
