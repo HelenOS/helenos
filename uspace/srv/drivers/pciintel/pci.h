@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup pciintel
+ * @{
+ */
+/** @file
+ */
+ 
+#ifndef PCI_H
+#define PCI_H
 
-#include <ipc/ipc.h>
-#include <malloc.h>
+#include <driver.h>
 
-#define DEV_IFACE_FIRST IPC_FIRST_USER_METHOD
-
-typedef enum {	
-	HW_RES_DEV_IFACE = DEV_IFACE_FIRST,	
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_id_t;
-
-
-#define DEV_IFACE_COUNT (DEV_IFACE_MAX - DEV_IFACE_FIRST)
-
-
-// data types related to some interface - TODO move this to separate header files
+typedef struct pci_dev_data {
+	int bus;
+	int dev;
+	int fn;
+	hw_resource_list hw_resources;
+} pci_dev_data_t;
 
 
-// HW resource provider interface
-
-typedef enum {
-	GET_RESOURCE_LIST = 0,
-	ENABLE_INTERRUPT	
-} hw_res_funcs_t;
-
-/** HW resource types. */
-typedef enum {
-	INTERRUPT,
-	REGISTER
-} hw_res_type_t;
-
-typedef enum {
-	LITTLE_ENDIAN = 0,
-	BIG_ENDIAN
-} endianness_t;
-
-/** HW resource (e.g. interrupt, memory register, i/o register etc.). */
-typedef struct hw_resource {
-	hw_res_type_t type;
-	union {
-		struct {
-			void *address;
-			endianness_t endianness;			
-			size_t size;			
-		} reg;
-		struct {
-			int irq;			
-		} intr;		
-	} res;	
-} hw_resource_t;
-
-typedef struct hw_resource_list {
-	size_t count;
-	hw_resource_t *resources;	
-} hw_resource_list_t;
-
-static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
-{
-	free(hw_res->resources);
-	hw_res->resources = 0;
-	hw_res->count = 0;	
-}
 
 #endif
+
+
+/**
+ * @}
+ */
