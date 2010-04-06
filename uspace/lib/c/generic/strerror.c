@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,30 +32,44 @@
 /** @file
  */
 
-#ifndef LIBC_ERRNO_H_
-#define LIBC_ERRNO_H_
-
-#include <kernel/errno.h>
+#include <strerror.h>
+#include <stdio.h>
 #include <fibril.h>
 
-extern int _errno;
+#define MIN_ERRNO  -17
+#define NOERR_LEN  64
 
-#define errno _errno
+static const char* err_desc[] = {
+	"No error",
+	"No such entry",
+	"Not enought memory",
+	"Limit exceeded", 
+	"Connection refused",
+	"Forward error",
+	"Permission denied",
+	"Answerbox closed connection",
+	"Other party error",
+	"Entry already exists",
+	"Bad memory pointer",
+	"Not supported",
+	"Address not available",
+	"Timeout expired",
+	"Invalid value",
+	"Resource is busy",
+	"Result does not fits its size",
+	"Operation was interrupted"
+};
 
-#define EMFILE        (-18)
-#define ENAMETOOLONG  (-256)
-#define EISDIR        (-257)
-#define ENOTDIR       (-258)
-#define ENOSPC        (-259)
-#define EEXIST        (-260)
-#define ENOTEMPTY     (-261)
-#define EBADF         (-262)
-#define ERANGE        (-263)
-#define EXDEV         (-264)
-#define EIO           (-265)
-#define EMLINK        (-266)
+static fibril_local char noerr[NOERR_LEN];
 
-#endif
+const char *str_error(const int errno)
+{
+	if ((errno <= 0) && (errno >= MIN_ERRNO))
+		return err_desc[-errno];
+	
+	snprintf(noerr, NOERR_LEN, "Unkown error code %d", errno);
+	return noerr;
+}
 
 /** @}
  */

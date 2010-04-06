@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,28 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_ERRNO_H_
-#define LIBC_ERRNO_H_
+#ifndef LIBC_STRERROR_H_
+#define LIBC_STRERROR_H_
 
-#include <kernel/errno.h>
-#include <fibril.h>
-
-extern int _errno;
-
-#define errno _errno
-
-#define EMFILE        (-18)
-#define ENAMETOOLONG  (-256)
-#define EISDIR        (-257)
-#define ENOTDIR       (-258)
-#define ENOSPC        (-259)
-#define EEXIST        (-260)
-#define ENOTEMPTY     (-261)
-#define EBADF         (-262)
-#define ERANGE        (-263)
-#define EXDEV         (-264)
-#define EIO           (-265)
-#define EMLINK        (-266)
+const char *str_error(const int);
 
 #endif
 

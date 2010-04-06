@@ -89,7 +89,8 @@ GENERIC_SOURCES = \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
-	generic/stacktrace.c
+	generic/stacktrace.c \
+	generic/strerror.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \
