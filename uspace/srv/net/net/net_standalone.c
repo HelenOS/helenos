@@ -50,6 +50,11 @@
  */
 extern net_globals_t	net_globals;
 
+/** Initializes the networking module for the chosen subsystem build type.
+ *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
+ *  @returns EOK on success.
+ *  @returns ENOMEM if there is not enough memory left.
+ */
 int net_initialize_build(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
@@ -72,6 +77,16 @@ int net_initialize_build(async_client_conn_t client_connection){
 	return EOK;
 }
 
+/** Processes the module message.
+ *  Distributes the message to the right bundled module.
+ *  @param[in] callid The message identifier.
+ *  @param[in] call The message parameters.
+ *  @param[out] answer The message answer parameters.
+ *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
+ *  @returns EOK on success.
+ *  @returns ENOTSUP if the message is not known.
+ *  @returns Other error codes as defined for each bundled module message function.
+ */
 int net_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	if(IS_NET_PACKET_MESSAGE(call)){
 		return packet_server_message(callid, call, answer, answer_count);

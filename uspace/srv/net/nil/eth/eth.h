@@ -146,27 +146,6 @@ struct	eth_globals{
 	measured_string_ref broadcast_addr;
 };
 
-/** Module initialization.
- *  Is called by the module_start() function.
- *  @param[in] net_phone The networking moduel phone.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module initialize function.
- */
-extern int nil_initialize(int net_phone);
-
-/** Message processing function.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for each specific module message function.
- *  @see nil_interface.h
- *  @see IS_NET_NIL_MESSAGE()
- */
-extern int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
-
 #endif
 
 /** @}

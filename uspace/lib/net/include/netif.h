@@ -128,18 +128,25 @@ extern void netif_pq_release(packet_id_t packet_id);
  */
 extern packet_t netif_packet_get_1(size_t content);
 
-/** Processes the netif module messages.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for each specific module message function.
- *  @see netif_interface.h
- *  @see IS_NET_NETIF_MESSAGE()
+/** Process the netif module messages.
+ *
+ * @param[in]  name         Module name.
+ * @param[in]  callid       The message identifier.
+ * @param[in]  call         The message parameters.
+ * @param[out] answer       The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer
+ *                          in the answer parameter.
+ *
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
+ * @return Other error codes as defined for each specific module message function.
+ *
+ * @see netif_interface.h
+ * @see IS_NET_NETIF_MESSAGE()
+ *
  */
-extern int netif_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int netif_message(const char *, ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, int *);
 
 /** Initializes the netif module.
  *  The function has to be defined in each module.

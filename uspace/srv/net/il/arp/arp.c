@@ -67,7 +67,7 @@
 
 /** ARP module name.
  */
-#define NAME	"ARP protocol"
+#define NAME  "arp"
 
 /** ARP global data.
  */
@@ -337,7 +337,8 @@ int arp_device_message(device_id_t device_id, services_t service, services_t pro
 			free(device);
 			return ERROR_CODE;
 		}
-		printf("New device registered:\n\tid\t= %d\n\ttype\t= 0x%x\n\tservice\t= %d\n\tproto\t= %d\n", device->device_id, device->hardware, device->service, protocol);
+		printf("%s: Device registered (id: %d, type: 0x%x, service: %d, proto: %d)\n",
+		    NAME, device->device_id, device->hardware, device->service, protocol);
 	}
 	fibril_rwlock_write_unlock(&arp_globals.lock);
 	return EOK;
@@ -672,14 +673,9 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(il_module_start(il_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(il_module_start(il_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }

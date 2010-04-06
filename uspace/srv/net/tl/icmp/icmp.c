@@ -872,14 +872,9 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(tl_module_start(tl_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(tl_module_start(tl_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }

@@ -63,7 +63,7 @@
 
 /** Loopback module name.
  */
-#define NAME	"lo - loopback interface"
+#define NAME  "lo"
 
 /** Network interface global data.
  */
@@ -112,12 +112,17 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	return EOK;
 }
 
-int change_state_message(device_ref device, device_state_t state){
-	if(device->state != state){
+int change_state_message(device_ref device, device_state_t state)
+{
+	if (device->state != state) {
 		device->state = state;
-		printf("State changed to %s\n", (state == NETIF_ACTIVE) ? "ACTIVE" : "STOPPED");
+		
+		printf("%s: State changed to %s\n", NAME,
+		    (state == NETIF_ACTIVE) ? "active" : "stopped");
+		
 		return state;
 	}
+	
 	return EOK;
 }
 
@@ -165,7 +170,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	// create a new device
 	ERROR_PROPAGATE(create(device_id, &device));
 	// print the settings
-	printf("New device created:\n\tid\t= %d\n", device->device_id);
+	printf("%s: Device created (id: %d)\n", NAME, device->device_id);
 	return EOK;
 }
 
@@ -236,7 +241,8 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = netif_module_message(callid, &call, &answer, &answer_count);
+		int res = netif_module_message(NAME, callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -260,14 +266,9 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(netif_module_start(netif_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(netif_module_start(netif_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }

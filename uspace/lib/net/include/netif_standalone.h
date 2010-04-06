@@ -36,9 +36,9 @@
 #include <ipc/ipc.h>
 #include <async.h>
 
-extern int netif_module_message(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count);
-extern int netif_module_start(async_client_conn_t client_connection);
+extern int netif_module_message(const char *, ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, int *);
+extern int netif_module_start(async_client_conn_t);
 
 #endif
 

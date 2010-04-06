@@ -78,17 +78,6 @@ static bool spawn(const char *desc, const char *path)
 	return true;
 }
 
-/** Network startup entry point.
- *
- * @param[in] argc The number of command line parameters.
- * @param[in] argv The command line parameters.
- *
- * @returns EOK on success.
- * @returns EINVAL if the net module cannot be started.
- * @returns Other error codes as defined for the self_test() function.
- * @returns Other error codes as defined for the NET_NET_STARTUP message.
- *
- */
 int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
@@ -104,7 +93,7 @@ int main(int argc, char *argv[])
 	
 	int net_phone = connect_to_service(SERVICE_NETWORKING);
 	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Networking error %d\n", NAME, ERROR_CODE);
+		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
 		return ERROR_CODE;
 	}
 	

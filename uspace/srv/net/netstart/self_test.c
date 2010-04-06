@@ -48,11 +48,10 @@
 
 #include "self_test.h"
 
-/** Test the function, compare the result and remember if the result differs.
+/** Test the statement, compare the result and evaluate.
  *
- *  @param[in] name          The test name.
- *  @param[in] function_call The function to be called and checked.
- *  @param[in] result        The expected result.
+ * @param[in] statement The statement to test.
+ * @param[in] result    The expected result.
  *
  */
 #define TEST(statement, result) \
@@ -84,6 +83,14 @@ GENERIC_FIELD_IMPLEMENT(int_field, int);
 INT_MAP_DECLARE(int_map, int);
 INT_MAP_IMPLEMENT(int_map, int);
 
+/** Self-test start function.
+ *
+ * Run all self-tests.
+ *
+ * @returns EOK on success.
+ * @returns The first error occurred.
+ *
+ */
 int self_test(void)
 {
 	printf("Running networking self-tests\n");

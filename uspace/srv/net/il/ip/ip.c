@@ -78,7 +78,7 @@
 
 /** IP module name.
  */
-#define NAME	"IP protocol"
+#define NAME  "ip"
 
 /** IP version 4.
  */
@@ -429,7 +429,6 @@ int ip_device_req(int il_phone, device_id_t device_id, services_t netif){
 	ip_netif_ref ip_netif;
 	ip_route_ref route;
 	int index;
-	char * data;
 
 	ip_netif = (ip_netif_ref) malloc(sizeof(ip_netif_t));
 	if(! ip_netif){
@@ -453,27 +452,30 @@ int ip_device_req(int il_phone, device_id_t device_id, services_t netif){
 		++ ip_netif->arp->usage;
 	}
 	// print the settings
-	printf("New device registered:\n\tid\t= %d\n\tphone\t= %d\n\tIPV\t= %d\n", ip_netif->device_id, ip_netif->phone, ip_netif->ipv);
-	printf("\tconfiguration\t= %s\n", ip_netif->dhcp ? "dhcp" : "static");
+	printf("%s: Device registered (id: %d, phone: %d, ipv: %d, conf: %s)\n",
+	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
+	    ip_netif->dhcp ? "dhcp" : "static");
+	
 	// TODO ipv6 addresses
-	data = (char *) malloc(INET_ADDRSTRLEN);
-	if(data){
-		for(index = 0; index < ip_routes_count(&ip_netif->routes); ++ index){
-			route = ip_routes_get_index(&ip_netif->routes, index);
-			if(route){
-				printf("\tRouting %d:\n", index);
-				inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\taddress\t= %s\n", data);
-				inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\tnetmask\t= %s\n", data);
-				inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\tgateway\t= %s\n", data);
-			}
+	
+	char address[INET_ADDRSTRLEN];
+	char netmask[INET_ADDRSTRLEN];
+	char gateway[INET_ADDRSTRLEN];
+	
+	for (index = 0; index < ip_routes_count(&ip_netif->routes); ++ index){
+		route = ip_routes_get_index(&ip_netif->routes, index);
+		if (route) {
+			inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr, address, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr, netmask, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr, gateway, INET_ADDRSTRLEN);
+			printf("%s: Route %d (address: %s, netmask: %s, gateway: %s)\n",
+			    NAME, index, address, netmask, gateway);
 		}
-		inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, data, INET_ADDRSTRLEN);
-		printf("\t\tbroadcast\t= %s\n", data);
-		free(data);
 	}
+	
+	inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, address, INET_ADDRSTRLEN);
+	printf("%s: Broadcast (%s)\n", NAME, address);
+	
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -594,7 +596,7 @@ int ip_mtu_changed_message(device_id_t device_id, size_t mtu){
 		return ENOENT;
 	}
 	netif->packet_dimension.content = mtu;
-	printf("ip - device %d changed mtu to %d\n\n", device_id, mtu);
+	printf("%s: Device %d changed MTU to %d\n", NAME, device_id, mtu);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -610,7 +612,7 @@ int ip_device_state_message(device_id_t device_id, device_state_t state){
 		return ENOENT;
 	}
 	netif->state = state;
-	printf("ip - device %d changed state to %d\n\n", device_id, state);
+	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -645,7 +647,10 @@ int ip_register(int protocol, services_t service, int phone, tl_received_msg_t r
 		free(proto);
 		return index;
 	}
-	printf("New protocol registered:\n\tprotocol\t= %d\n\tphone\t= %d\n", proto->protocol, proto->phone);
+	
+	printf("%s: Protocol registered (protocol: %d, phone: %d)\n",
+	    NAME, proto->protocol, proto->phone);
+	
 	fibril_rwlock_write_unlock(&ip_globals.protos_lock);
 	return EOK;
 }
@@ -1676,14 +1681,9 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(il_module_start(il_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(il_module_start(il_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }

@@ -41,25 +41,37 @@
 #include <ipc/ipc.h>
 
 /** Module initialization.
- *  Is called by the module_start() function.
- *  @param[in] net_phone The networking moduel phone.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module initialize function.
+ *
+ * Is called by the module_start() function.
+ *
+ * @param[in] net_phone The networking moduel phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module initialize function.
+ *
  */
-extern int nil_initialize(int net_phone);
+extern int nil_initialize(int);
 
 /** Message processing function.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for each specific module message function.
- *  @see nil_interface.h
- *  @see IS_NET_NIL_MESSAGE()
+ *
+ * @param[in]  name         Module name.
+ * @param[in]  callid       The message identifier.
+ * @param[in]  call         The message parameters.
+ * @param[out] answer       The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer
+ *                          in the answer parameter.
+ *
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
+ * @return Other error codes as defined for each specific
+ *         module message function.
+ *
+ * @see nil_interface.h
+ * @see IS_NET_NIL_MESSAGE()
+ *
  */
-extern int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int nil_message(const char *, ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    int *);
 
 #endif
 

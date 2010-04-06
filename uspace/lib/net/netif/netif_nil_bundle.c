@@ -44,21 +44,28 @@
 #include <netif_nil_bundle.h>
 #include <netif.h>
 
-/** Distributes the messages between the module parts.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for each specific module message function.
+/** Distribute the messages between the module parts.
+ *
+ * @param[in]  name         Module name.
+ * @param[in]  callid       The message identifier.
+ * @param[in]  call         The message parameters.
+ * @param[out] answer       The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual
+ *                          answer in the answer parameter.
+ *
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
+ * @return Other error codes as defined for each specific module message function.
+ *
  */
-int netif_nil_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	if(IS_NET_NIL_MESSAGE(call) || (IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME)){
-		return nil_message(callid, call, answer, answer_count);
-	}else{
-		return netif_message(callid, call, answer, answer_count);
-	}
+int netif_nil_module_message(const char *name, ipc_callid_t callid,
+    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
+{
+	if (IS_NET_NIL_MESSAGE(call)
+	    || (IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME))
+		return nil_message(name, callid, call, answer, answer_count);
+	else
+		return netif_message(name, callid, call, answer, answer_count);
 }
 
 /** Starts the bundle network interface module.

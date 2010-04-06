@@ -59,7 +59,7 @@
 
 /** The module name.
  */
-#define NAME	"Dummy nil protocol"
+#define NAME  "nildummy"
 
 /** Default maximum transmission unit.
  */
@@ -227,7 +227,8 @@ int nildummy_device_message(device_id_t device_id, services_t service, size_t mt
 			free(device);
 			return index;
 		}
-		printf("New device registered:\n\tid\t= %d\n\tservice\t= %d\n\tMTU\t= %d\n", device->device_id, device->service, device->mtu);
+		printf("%s: Device registered (id: %d, service: %d, mtu: %d)\n",
+		    NAME, device->device_id, device->service, device->mtu);
 	}
 	fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 	return EOK;
@@ -289,7 +290,10 @@ int nildummy_register_message(services_t service, int phone){
 	fibril_rwlock_write_lock(&nildummy_globals.protos_lock);
 	nildummy_globals.proto.service = service;
 	nildummy_globals.proto.phone = phone;
-	printf("New protocol registered:\n\tservice\t= %d\n\tphone\t= %d\n", nildummy_globals.proto.service, nildummy_globals.proto.phone);
+	
+	printf("%s: Protocol registered (service: %d, phone: %d)\n",
+	    NAME, nildummy_globals.proto.service, nildummy_globals.proto.phone);
+	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);
 	return EOK;
 }
@@ -311,28 +315,33 @@ int nildummy_send_message(device_id_t device_id, packet_t packet, services_t sen
 	return EOK;
 }
 
-int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int nil_message(const char *name, ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	ERROR_DECLARE;
-
+	
 	measured_string_ref address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
-
-//	printf("message %d - %d\n", IPC_GET_METHOD(*call), NET_NIL_FIRST);
+	
 	*answer_count = 0;
-	switch(IPC_GET_METHOD(*call)){
+	switch (IPC_GET_METHOD(*call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_NIL_DEVICE:
-			return nildummy_device_message(IPC_GET_DEVICE(call), IPC_GET_SERVICE(call), IPC_GET_MTU(call));
+			return nildummy_device_message(IPC_GET_DEVICE(call),
+			    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
 		case NET_NIL_SEND:
-			ERROR_PROPAGATE(packet_translate(nildummy_globals.net_phone, &packet, IPC_GET_PACKET(call)));
-			return nildummy_send_message(IPC_GET_DEVICE(call), packet, IPC_GET_SERVICE(call));
+			ERROR_PROPAGATE(packet_translate(nildummy_globals.net_phone,
+			    &packet, IPC_GET_PACKET(call)));
+			return nildummy_send_message(IPC_GET_DEVICE(call), packet,
+			    IPC_GET_SERVICE(call));
 		case NET_NIL_PACKET_SPACE:
-			ERROR_PROPAGATE(nildummy_packet_space_message(IPC_GET_DEVICE(call), &addrlen, &prefix, &content, &suffix));
+			ERROR_PROPAGATE(nildummy_packet_space_message(IPC_GET_DEVICE(call),
+			    &addrlen, &prefix, &content, &suffix));
 			IPC_SET_ADDR(answer, addrlen);
 			IPC_SET_PREFIX(answer, prefix);
 			IPC_SET_CONTENT(answer, content);
@@ -340,11 +349,14 @@ int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 			*answer_count = 4;
 			return EOK;
 		case NET_NIL_ADDR:
-			ERROR_PROPAGATE(nildummy_addr_message(IPC_GET_DEVICE(call), &address));
+			ERROR_PROPAGATE(nildummy_addr_message(IPC_GET_DEVICE(call),
+			    &address));
 			return measured_strings_reply(address, 1);
 		case IPC_M_CONNECT_TO_ME:
-			return nildummy_register_message(NIL_GET_PROTO(call), IPC_GET_PHONE(call));
+			return nildummy_register_message(NIL_GET_PROTO(call),
+			    IPC_GET_PHONE(call));
 	}
+	
 	return ENOTSUP;
 }
 
@@ -403,7 +415,8 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = nil_module_message(callid, &call, &answer, &answer_count);
+		int res = nil_module_message(NAME, callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -427,14 +440,9 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(nil_module_start(nil_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(nil_module_start(nil_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
