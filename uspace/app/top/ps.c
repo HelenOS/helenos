@@ -75,6 +75,8 @@ unsigned int get_tasks(task_info_t **out_infos)
 		get_task_info(tasks[i], &taskinfos[i]);
 	}
 
+	free(tasks);
+
 	*out_infos = taskinfos;
 	return result;
 }
