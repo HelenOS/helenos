@@ -127,10 +127,6 @@ int main(int argc, char * argv[]){
 	size_t reply_length;
 	int value;
 
-	// print the program label
-	printf("Task %d - ", task_get_id());
-	printf("%s\n", NAME);
-
 	// parse the command line arguments
 	for(index = 1; index < argc; ++ index){
 		if(argv[index][0] == '-'){

@@ -95,10 +95,6 @@ int main(int argc, char * argv[]){
 	int value;
 	int index;
 
-	// print the program label
-	printf("Task %d - ", task_get_id());
-	printf("%s\n", NAME);
-
 	// parse the command line arguments
 	// stop before the last argument if it does not start with the minus sign ('-')
 	for(index = 1; (index < argc - 1) || ((index == argc - 1) && (argv[index][0] == '-')); ++ index){
