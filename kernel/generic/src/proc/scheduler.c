@@ -315,8 +315,7 @@ void scheduler(void)
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
 		
-		/* Update thread accounting */
-		THREAD->cycles += get_cycle() - THREAD->last_cycle;
+		/* Update thread kernel accounting */
 		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 		
 #ifndef CONFIG_FPU_LAZY

@@ -1026,8 +1026,8 @@ static bool run_test(const test_t *test)
 	   for benchmarking */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t ucycles, kcycles;
-	uint64_t t0 = task_get_accounting(TASK, &ucycles, &kcycles);
+	uint64_t ucycles0, kcycles0;
+	task_get_accounting(TASK, &ucycles0, &kcycles0);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
@@ -1036,17 +1036,20 @@ static bool run_test(const test_t *test)
 	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
+	uint64_t ucycles1, kcycles1; 
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t dt = task_get_accounting(TASK, &ucycles, &kcycles) - t0;
+	task_get_accounting(TASK, &ucycles1, &kcycles1);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
-	uint64_t cycles;
-	char suffix;
-	order(dt, &cycles, &suffix);
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
+	order(ucycles1 - ucycles0, &ucycles, &usuffix);
+	order(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		
-	printf("Time: %" PRIu64 "%c cycles\n", cycles, suffix);
+	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
+			ucycles, usuffix, kcycles, ksuffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
@@ -1061,8 +1064,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 {
 	uint32_t i;
 	bool ret = true;
-	uint64_t cycles;
-	char suffix;
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
 	
 	if (cnt < 1)
 		return true;
@@ -1080,8 +1083,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		   for benchmarking */
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t ucycles, kcycles;
-		uint64_t t0 = task_get_accounting(TASK, &ucycles, &kcycles);
+		uint64_t ucycles0, kcycles0;
+		task_get_accounting(TASK, &ucycles0, &kcycles0);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 		
@@ -1092,19 +1095,22 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		/* Update and read thread accounting */
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t dt = task_get_accounting(TASK, &ucycles, &kcycles) - t0;
+		uint64_t ucycles1, kcycles1;
+		task_get_accounting(TASK, &ucycles1, &kcycles1);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
-		
+
 		if (ret != NULL) {
 			printf("%s\n", ret);
 			ret = false;
 			break;
 		}
 		
-		data[i] = dt;
-		order(dt, &cycles, &suffix);
-		printf("OK (%" PRIu64 "%c cycles)\n", cycles, suffix);
+		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
+		order(ucycles1 - ucycles0, &ucycles, &usuffix);
+		order(kcycles1 - kcycles0, &kcycles, &ksuffix);
+		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
+				ucycles, usuffix, kcycles, ksuffix);
 	}
 	
 	if (ret) {
@@ -1116,8 +1122,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			sum += data[i];
 		}
 		
-		order(sum / (uint64_t) cnt, &cycles, &suffix);
-		printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
+		order(sum / (uint64_t) cnt, &ucycles, &usuffix);
+		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
 	
 	free(data);

@@ -173,7 +173,6 @@ typedef struct thread {
 	uint64_t ticks;
 	
 	/** Thread accounting. */
-	uint64_t cycles;
 	uint64_t ucycles;
 	uint64_t kcycles;
 	/** Last sampled cycle. */

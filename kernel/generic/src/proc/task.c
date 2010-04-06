@@ -183,7 +183,6 @@ task_t *task_create(as_t *as, const char *name)
 
 	ta->context = CONTEXT;
 	ta->capabilities = 0;
-	ta->cycles = 0;
 	ta->ucycles = 0;
 	ta->kcycles = 0;
 
@@ -321,10 +320,9 @@ task_t *task_find_by_id(task_id_t id) { avltree_node_t *node;
  * @param ucycles	Out pointer to sum of all user cycles.
  * @param kcycles	Out pointer to sum of all kernel cycles.
  */
-uint64_t task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles)
+void task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles)
 {
 	/* Accumulated values of task */
-	uint64_t ret = t->cycles;
 	uint64_t uret = t->ucycles;
 	uint64_t kret = t->kcycles;
 	
@@ -342,15 +340,12 @@ uint64_t task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles)
 			} 
 			uret += thr->ucycles;
 			kret += thr->kcycles;
-			ret += thr->cycles;
 		}
 		spinlock_unlock(&thr->lock);
 	}
 	
 	*ucycles = uret;
 	*kcycles = kret;
-
-	return ret;
 }
 
 static void task_kill_internal(task_t *ta)
@@ -416,12 +411,10 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 		
 	spinlock_lock(&t->lock);
 			
-	uint64_t cycles;
 	uint64_t ucycles;
 	uint64_t kcycles;
-	char suffix, usuffix, ksuffix;
-	cycles = task_get_accounting(t, &ucycles, &kcycles);
-	order(cycles, &cycles, &suffix);
+	char usuffix, ksuffix;
+	task_get_accounting(t, &ucycles, &kcycles);
 	order(ucycles, &ucycles, &usuffix);
 	order(kcycles, &kcycles, &ksuffix);
 

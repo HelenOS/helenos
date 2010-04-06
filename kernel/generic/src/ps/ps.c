@@ -139,10 +139,9 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 
 	uint64_t ucycles;
 	uint64_t kcycles;
-	uint64_t cycles = task_get_accounting(t, &ucycles, &kcycles);
-	copy_to_uspace(&uspace_info->cycles, &cycles, sizeof(cycles));
-	copy_to_uspace(&uspace_info->ucycles, &ucycles, sizeof(cycles));
-	copy_to_uspace(&uspace_info->kcycles, &kcycles, sizeof(cycles));
+	task_get_accounting(t, &ucycles, &kcycles);
+	copy_to_uspace(&uspace_info->ucycles, &ucycles, sizeof(uint64_t));
+	copy_to_uspace(&uspace_info->kcycles, &kcycles, sizeof(uint64_t));
 
 	size_t pages = get_pages_count(t->as);
 	copy_to_uspace(&uspace_info->pages, &pages, sizeof(pages));
@@ -177,7 +176,6 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	result.tid = t->tid;
 	result.state = t->state;
 	result.priority = t->priority;
-	result.cycles = t->cycles;
 	result.ucycles = t->ucycles;
 	result.kcycles = t->kcycles;
 

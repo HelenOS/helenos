@@ -81,14 +81,13 @@ static void list_tasks(void)
 	for (i = 0; i < result; ++i) {
 		task_info_t taskinfo;
 		get_task_info(tasks[i], &taskinfo);
-		uint64_t ucycles, kcycles, fault;
-		char usuffix, ksuffix, fsuffix;
+		uint64_t ucycles, kcycles;
+		char usuffix, ksuffix;
 		order(taskinfo.ucycles, &ucycles, &usuffix);
 		order(taskinfo.kcycles, &kcycles, &ksuffix);
-		order((taskinfo.kcycles + taskinfo.ucycles) - taskinfo.cycles, &fault, &fsuffix);
-		printf("%8llu %8u %8u %12llu%c %12llu%c %12llu%c %s\n", tasks[i],
+		printf("%8llu %8u %8u %12llu%c %12llu%c %s\n", tasks[i],
 			taskinfo.thread_count, taskinfo.pages, ucycles, usuffix,
-			kcycles, ksuffix, fault, fsuffix, taskinfo.name);
+			kcycles, ksuffix, taskinfo.name);
 	}
 
 	free(tasks);
@@ -114,15 +113,14 @@ static void list_threads(task_id_t taskid)
 	int i;
 	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
 	for (i = 0; i < result; ++i) {
-		uint64_t ucycles, kcycles, fault;
-		char usuffix, ksuffix, fsuffix;
+		uint64_t ucycles, kcycles;
+		char usuffix, ksuffix;
 		order(threads[i].ucycles, &ucycles, &usuffix);
 		order(threads[i].kcycles, &kcycles, &ksuffix);
-		order((threads[i].kcycles + threads[i].ucycles) - threads[i].cycles, &fault, &fsuffix);
-		printf("%6llu %-8s %4u %6d %12llu%c %12llu%c %12llu%c\n", threads[i].tid,
+		printf("%6llu %-8s %4u %6d %12llu%c %12llu%c\n", threads[i].tid,
 			thread_states[threads[i].state], threads[i].cpu,
 			threads[i].priority, ucycles, usuffix,
-			kcycles, ksuffix, fault, fsuffix);
+			kcycles, ksuffix);
 	}
 
 	free(threads);

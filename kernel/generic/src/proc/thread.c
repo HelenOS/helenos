@@ -132,8 +132,6 @@ static void cushion(void)
 	spinlock_lock(&THREAD->lock);
 	if (!THREAD->uncounted) {
 		thread_update_accounting(true);
-		uint64_t cycles = THREAD->cycles;
-		THREAD->cycles = 0;
 		uint64_t ucycles = THREAD->ucycles;
 		THREAD->ucycles = 0;
 		uint64_t kcycles = THREAD->kcycles;
@@ -142,7 +140,6 @@ static void cushion(void)
 		spinlock_unlock(&THREAD->lock);
 		
 		spinlock_lock(&TASK->lock);
-		TASK->cycles += cycles;
 		TASK->ucycles += ucycles;
 		TASK->kcycles += kcycles;
 		spinlock_unlock(&TASK->lock);
@@ -329,7 +326,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	t->thread_code = func;
 	t->thread_arg = arg;
 	t->ticks = -1;
-	t->cycles = 0;
 	t->ucycles = 0;
 	t->kcycles = 0;
 	t->uncounted = uncounted;
@@ -622,9 +618,8 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 {
 	thread_t *t = avltree_get_instance(node, thread_t, threads_tree_node);
 	
-	uint64_t cycles, ucycles, kcycles;
-	char suffix, usuffix, ksuffix;
-	order(t->cycles, &cycles, &suffix);
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
 	order(t->ucycles, &ucycles, &usuffix);
 	order(t->kcycles, &kcycles, &ksuffix);
 
@@ -723,7 +718,6 @@ bool thread_exists(thread_t *t)
 void thread_update_accounting(bool user)
 {
 	uint64_t time = get_cycle();
-	THREAD->cycles += time - THREAD->last_cycle;
 	if (user) {
 		THREAD->ucycles += time - THREAD->last_cycle;
 	} else {
