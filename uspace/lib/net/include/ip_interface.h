@@ -95,7 +95,7 @@ extern int ip_bind_service(services_t service, int protocol, services_t me, asyn
  *  @returns Other error codes as defined for the net_get_device_conf_req() function.
  *  @returns Other error codes as defined for the arp_device_req() function.
  */
-extern int ip_device_req(int ip_phone, device_id_t device_id, services_t netif);
+extern int ip_device_req(int, device_id_t, services_t);
 
 /** Sends the packet queue.
  *  The packets may get fragmented if needed.

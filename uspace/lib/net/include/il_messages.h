@@ -43,7 +43,7 @@
 
 /** Internet layer modules messages.
  */
-typedef enum{
+typedef enum {
 	/** New device message.
 	 *  @see ip_device_req()
 	 */
