@@ -3,7 +3,7 @@
 NAME=ne2k
 
 NETIF=dp8390
-NIL=ethernet
+NIL=eth
 IL=ip
 
 # sysinfo_value("netif.dp8390.inr")
