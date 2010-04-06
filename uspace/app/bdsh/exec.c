@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <str.h>
 #include <fcntl.h>
+#include <strerror.h>
 
 #include "config.h"
 #include "util.h"
@@ -123,15 +124,16 @@ unsigned int try_exec(char *cmd, char **argv)
 	free(tmp);
 
 	if (tid == 0) {
-		cli_error(CL_EEXEC, "Cannot spawn `%s'.", cmd);
+		cli_error(CL_EEXEC, "%s: Cannot spawn `%s'", progname, cmd);
 		return 1;
 	}
 	
 	task_wait(tid, &texit, &retval);
 	if (texit != TASK_EXIT_NORMAL) {
-		printf("Command failed (unexpectedly terminated).\n");
+		printf("%s: Command failed (unexpectedly terminated)\n", progname);
 	} else if (retval != 0) {
-		printf("Command failed (return value %d).\n", retval);
+		printf("%s: Command failed (%s)\n",
+		    progname, str_error(retval));
 	}
 
 	return 0;

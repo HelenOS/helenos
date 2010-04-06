@@ -12,4 +12,6 @@ typedef struct {
 	int lasterr;
 } cliuser_t;
 
+extern const char *progname;
+
 #endif
