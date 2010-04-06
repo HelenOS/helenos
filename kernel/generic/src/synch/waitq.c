@@ -53,6 +53,7 @@
 #include <arch.h>
 #include <context.h>
 #include <adt/list.h>
+#include <arch/cycle.h>
 
 static void waitq_sleep_timed_out(void *data);
 
@@ -372,6 +373,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		THREAD->sleep_interruptible = true;
 		if (!context_save(&THREAD->sleep_interruption_context)) {
 			/* Short emulation of scheduler() return code. */
+			THREAD->last_cycle = get_cycle();
 			spinlock_unlock(&THREAD->lock);
 			return ESYNCH_INTERRUPTED;
 		}
@@ -384,6 +386,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		/* We use the timeout variant. */
 		if (!context_save(&THREAD->sleep_timeout_context)) {
 			/* Short emulation of scheduler() return code. */
+			THREAD->last_cycle = get_cycle();
 			spinlock_unlock(&THREAD->lock);
 			return ESYNCH_TIMEOUT;
 		}
