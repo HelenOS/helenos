@@ -26,26 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericps
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief	Mem info
  */
 
-#ifndef KERN_PS_PS_H_
-#define KERN_PS_PS_H_
-
-#include <ps/taskinfo.h>
-#include <ps/cpuinfo.h>
 #include <ps/meminfo.h>
+#include <ps/ps.h>
+#include <syscall/copy.h>
+#include <mm/frame.h>
+#include <arch.h>
 
-extern size_t sys_ps_get_tasks(task_id_t *uspace_ids, size_t size);
-extern int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info);
-extern int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t size);
-extern int sys_ps_get_cpu_info(uspace_cpu_info_t *uspace_cpu);
-extern int sys_ps_get_mem_info(uspace_mem_info_t *mem_info);
+int sys_ps_get_mem_info(uspace_mem_info_t *uspace_mem)
+{
+	uspace_mem_info_t meminfo;
+	ipl_t ipl;
+	ipl = interrupts_disable();
 
-#endif
+	meminfo.total = zone_total_size();
+	zone_busy_and_free(&meminfo.used, &meminfo.free);
+	interrupts_restore(ipl);
+
+	copy_to_uspace(uspace_mem, &meminfo, sizeof(uspace_mem_info_t));
+	return 0;
+}
 
 /** @}
  */

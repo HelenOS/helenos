@@ -42,6 +42,7 @@
 #include <ps.h>
 #include "screen.h"
 #include "top.h"
+#include "func.h"
 
 int rows;
 int colls;
@@ -134,6 +135,18 @@ static inline void print_cpuinfo(data_t *data)
 	}
 }
 
+static inline void print_meminfo(data_t *data)
+{
+	uint64_t newsize;
+	char suffix;
+	order(data->mem_info.total, &newsize, &suffix);
+	printf("Mem: %8llu %c total", newsize, suffix);
+	order(data->mem_info.used, &newsize, &suffix);
+	printf(", %8llu %c used", newsize, suffix);
+	order(data->mem_info.free, &newsize, &suffix);
+	printf(", %8llu %c free", newsize, suffix);
+}
+
 static inline void print_tasks(data_t *data, int row)
 {
 	int i;
@@ -181,6 +194,9 @@ void print_data(data_t *data)
 	puts("\n");
 	++up_rows;
 	print_cpuinfo(data);
+	print_meminfo(data);
+	puts("\n");
+	++up_rows;
 	puts("\n");
 	++up_rows;
 	print_head();

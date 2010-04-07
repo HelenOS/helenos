@@ -232,7 +232,8 @@ GENERIC_SOURCES = \
 	generic/src/ps/ps.c \
 	generic/src/ps/cpu.c \
 	generic/src/ps/load.c \
-	generic/src/ps/uptime.c
+	generic/src/ps/uptime.c \
+	generic/src/ps/mem.c
 
 ## Kernel console support
 #

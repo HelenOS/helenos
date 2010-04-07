@@ -67,6 +67,8 @@ typedef struct {
 	unsigned int cpu_count;
 	uspace_cpu_info_t *cpus;
 	cpu_perc_t *cpu_perc;
+
+	uspace_mem_info_t mem_info;
 } data_t;
 
 #endif

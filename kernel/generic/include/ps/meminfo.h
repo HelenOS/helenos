@@ -32,18 +32,14 @@
 /** @file
  */
 
-#ifndef KERN_PS_PS_H_
-#define KERN_PS_PS_H_
+#ifndef KERN_PS_MEM_H_
+#define KERN_PS_MEM_H_
 
-#include <ps/taskinfo.h>
-#include <ps/cpuinfo.h>
-#include <ps/meminfo.h>
-
-extern size_t sys_ps_get_tasks(task_id_t *uspace_ids, size_t size);
-extern int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info);
-extern int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t size);
-extern int sys_ps_get_cpu_info(uspace_cpu_info_t *uspace_cpu);
-extern int sys_ps_get_mem_info(uspace_mem_info_t *mem_info);
+typedef struct {
+	uint64_t total;
+	uint64_t used;
+	uint64_t free;
+} uspace_mem_info_t;
 
 #endif
 

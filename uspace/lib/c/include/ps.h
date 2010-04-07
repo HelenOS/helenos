@@ -38,8 +38,10 @@
 #include <task.h>
 #include <kernel/ps/taskinfo.h>
 #include <kernel/ps/cpuinfo.h>
+#include <kernel/ps/meminfo.h>
 
 extern int get_cpu_info(uspace_cpu_info_t *cpus);
+extern int get_mem_info(uspace_mem_info_t *meminfo);
 extern size_t get_task_ids(task_id_t *ids, size_t size);
 extern int get_task_info(task_id_t id, task_info_t *info);
 extern int get_task_threads(task_id_t taskid, thread_info_t *infos, size_t size);

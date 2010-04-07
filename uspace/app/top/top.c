@@ -42,6 +42,7 @@
 #include <thread.h>
 #include <sys/time.h>
 #include <load.h>
+#include <ps.h>
 #include "screen.h"
 #include "input.h"
 #include "top.h"
@@ -83,6 +84,9 @@ static void read_data(data_t *target)
 
 	/* Read cpu infos */
 	target->cpu_count = get_cpu_infos(&target->cpus);
+
+	/* Read mem info */
+	get_mem_info(&target->mem_info);
 }
 
 /** Computes percentage differencies from old_data to new_data

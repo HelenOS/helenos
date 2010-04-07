@@ -34,6 +34,7 @@ SOURCES = \
 	top.c \
 	screen.c \
 	input.c \
+	func.c \
 	ps.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -26,26 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_PS_PS_H_
-#define KERN_PS_PS_H_
+#include <libc.h>
+#include <ps.h>
 
-#include <ps/taskinfo.h>
-#include <ps/cpuinfo.h>
-#include <ps/meminfo.h>
-
-extern size_t sys_ps_get_tasks(task_id_t *uspace_ids, size_t size);
-extern int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info);
-extern int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t size);
-extern int sys_ps_get_cpu_info(uspace_cpu_info_t *uspace_cpu);
-extern int sys_ps_get_mem_info(uspace_mem_info_t *mem_info);
-
-#endif
+/** Get infos about system memory.
+ *
+ * @param cpus		Pointer where info structures will be stored.
+ *
+ * @return		EOK.
+ *
+ */
+int get_mem_info(uspace_mem_info_t *meminfo)
+{
+	return __SYSCALL1(SYS_PS_GET_MEM_INFO, (sysarg_t) meminfo);
+}
 
 /** @}
  */

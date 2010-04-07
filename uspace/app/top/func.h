@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup ps
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_PS_PS_H_
-#define KERN_PS_PS_H_
+#ifndef FUNC_H_
+#define FUNC_H_
 
-#include <ps/taskinfo.h>
-#include <ps/cpuinfo.h>
-#include <ps/meminfo.h>
-
-extern size_t sys_ps_get_tasks(task_id_t *uspace_ids, size_t size);
-extern int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info);
-extern int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t size);
-extern int sys_ps_get_cpu_info(uspace_cpu_info_t *uspace_cpu);
-extern int sys_ps_get_mem_info(uspace_mem_info_t *mem_info);
+extern void order(const uint64_t val, uint64_t *rv, char *suffix);
 
 #endif
 
