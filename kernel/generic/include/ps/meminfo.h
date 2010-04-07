@@ -35,6 +35,12 @@
 #ifndef KERN_PS_MEM_H_
 #define KERN_PS_MEM_H_
 
+#ifdef KERNEL
+#include <typedefs.h>
+#else
+#include <thread.h>
+#endif
+
 typedef struct {
 	uint64_t total;
 	uint64_t used;
