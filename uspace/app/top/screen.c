@@ -154,11 +154,14 @@ static inline void print_tasks(data_t *data, int row)
 		if (row + i > rows)
 			return;
 		task_info_t *taskinfo = &data->taskinfos[i];
-		printf("%8llu %8u %8u ", taskinfo->taskid,
-			taskinfo->thread_count, taskinfo->pages);
+		uint64_t mem;
+		char suffix;
+		order(taskinfo->virt_mem, &mem, &suffix);
+		printf("%8llu %8u %8llu%c ", taskinfo->taskid,
+			taskinfo->thread_count, mem, suffix);
 		task_perc_t *taskperc = &data->task_perc[i];
 		puts("   ");
-		print_float(taskperc->pages, 2);
+		print_float(taskperc->mem, 2);
 		puts("%   ");
 		print_float(taskperc->ucycles, 2);
 		puts("%   ");
@@ -172,7 +175,7 @@ static inline void print_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
-	printf("      ID  Threads    Pages    %%Pages %%uCycles %%kCycles Name");
+	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles Name");
 	int i;
 	for (i = 60; i < colls; ++i)
 		puts(" ");

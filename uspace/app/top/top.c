@@ -110,7 +110,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	}
 
 	/* For all tasks compute sum and differencies of all cycles */
-	uint64_t pages_total = 0;
+	uint64_t mem_total = 0;
 	uint64_t ucycles_total = 0;
 	uint64_t kcycles_total = 0;
 	uint64_t *ucycles_diff = malloc(new_data->task_count * sizeof(uint64_t));
@@ -130,7 +130,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		ucycles_diff[i] = new_data->taskinfos[i].ucycles - old_data->taskinfos[j].ucycles;
 		kcycles_diff[i] = new_data->taskinfos[i].kcycles - old_data->taskinfos[j].kcycles;
 
-		pages_total += new_data->taskinfos[i].pages;
+		mem_total += new_data->taskinfos[i].virt_mem;
 		ucycles_total += ucycles_diff[i];
 		kcycles_total += kcycles_diff[i];
 	}
@@ -138,7 +138,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	/* And now compute percental change */
 	new_data->task_perc = malloc(new_data->task_count * sizeof(task_perc_t));
 	for (i = 0; i < new_data->task_count; ++i) {
-		new_data->task_perc[i].pages = (float)(new_data->taskinfos[i].pages * 100) / pages_total;
+		new_data->task_perc[i].mem = (float)(new_data->taskinfos[i].virt_mem * 100) / mem_total;
 		new_data->task_perc[i].ucycles = (float)(ucycles_diff[i] * 100) / ucycles_total;
 		new_data->task_perc[i].kcycles = (float)(kcycles_diff[i] * 100) / kcycles_total;
 	}

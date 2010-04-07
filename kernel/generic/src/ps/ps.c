@@ -89,7 +89,7 @@ size_t sys_ps_get_tasks(task_id_t *uspace_ids, size_t size)
 	return count;
 }
 
-static size_t get_pages_count(as_t *as)
+static uint64_t get_task_memory(as_t *as)
 {
 	mutex_lock(&as->lock);
 
@@ -114,7 +114,7 @@ static size_t get_pages_count(as_t *as)
 	
 	mutex_unlock(&as->lock);
 	
-	return result;
+	return result * PAGE_SIZE;
 }
 
 int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
@@ -143,8 +143,8 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 	copy_to_uspace(&uspace_info->ucycles, &ucycles, sizeof(uint64_t));
 	copy_to_uspace(&uspace_info->kcycles, &kcycles, sizeof(uint64_t));
 
-	size_t pages = get_pages_count(t->as);
-	copy_to_uspace(&uspace_info->pages, &pages, sizeof(pages));
+	uint64_t memory = get_task_memory(t->as);
+	copy_to_uspace(&uspace_info->virt_mem, &memory, sizeof(memory));
 
 	int thread_count = atomic_get(&t->refcount);
 	copy_to_uspace(&uspace_info->thread_count, &thread_count, sizeof(thread_count));

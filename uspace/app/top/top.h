@@ -45,7 +45,7 @@ typedef struct {
 typedef struct {
 	float ucycles;
 	float kcycles;
-	float pages;
+	float mem;
 } task_perc_t;
 
 typedef struct {

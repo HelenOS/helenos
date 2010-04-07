@@ -47,7 +47,7 @@
 typedef struct {
 	task_id_t taskid;
 	char name[TASK_NAME_BUFLEN];
-	size_t pages;
+	uint64_t virt_mem;
 	int thread_count;
 	uint64_t ucycles;
 	uint64_t kcycles;

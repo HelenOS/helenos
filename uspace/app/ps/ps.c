@@ -75,18 +75,19 @@ static void list_tasks(void)
 		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 	}
 
-	printf("      ID  Threads    Pages       uCycles       kCycles   Cycle fault Name\n");
+	printf("      ID  Threads      Mem       uCycles       kCycles   Cycle fault Name\n");
 
 	int i;
 	for (i = 0; i < result; ++i) {
 		task_info_t taskinfo;
 		get_task_info(tasks[i], &taskinfo);
-		uint64_t ucycles, kcycles;
-		char usuffix, ksuffix;
+		uint64_t mem, ucycles, kcycles;
+		char memsuffix, usuffix, ksuffix;
+		order(taskinfo.virt_mem, &mem, &memsuffix);
 		order(taskinfo.ucycles, &ucycles, &usuffix);
 		order(taskinfo.kcycles, &kcycles, &ksuffix);
-		printf("%8llu %8u %8u %12llu%c %12llu%c %s\n", tasks[i],
-			taskinfo.thread_count, taskinfo.pages, ucycles, usuffix,
+		printf("%8llu %8u %8llu%c %12llu%c %12llu%c %s\n", tasks[i],
+			taskinfo.thread_count, mem, memsuffix, ucycles, usuffix,
 			kcycles, ksuffix, taskinfo.name);
 	}
 
