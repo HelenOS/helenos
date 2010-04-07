@@ -78,8 +78,10 @@ remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t if
 struct device {
 	/** Globally unique device identifier (assigned to the device by the device manager). */
 	device_handle_t handle;
-	/** The phone to the parent device driver.*/
+	/** The phone to the parent device driver (if it is different from this driver).*/
 	int parent_phone;
+	/** Parent device if handled by this driver, NULL otherwise. */
+	device_t *parent;
 	/** The device's name.*/
 	const char *name;
 	/** The list of device ids for device-to-driver matching.*/

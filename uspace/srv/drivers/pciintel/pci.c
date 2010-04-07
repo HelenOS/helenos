@@ -40,7 +40,6 @@
 #include <errno.h>
 #include <bool.h>
 #include <fibril_synch.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <macros.h>
@@ -52,8 +51,16 @@
 #include <resource.h>
 #include <device/hw_res.h>
 #include <ddi.h>
+#include <libarch/ddi.h>
+
+#include "pci.h"
+#include "pci_regs.h"
 
 #define NAME "pciintel"
+
+
+#define CONF_ADDR(bus, dev, fn, reg)   ((1 << 31) | (bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
+
 
 static bool pci_add_device(device_t *dev);
 
@@ -74,14 +81,135 @@ typedef struct pciintel_bus_data {
 	void *conf_io_addr;
 	void *conf_data_port;
 	void *conf_addr_port;	
+	fibril_mutex_t conf_mutex;
 } pci_bus_data_t;
 
+static inline pci_bus_data_t *create_pci_bus_data() 
+{
+	pci_bus_data_t *bus_data = (pci_bus_data_t *)malloc(sizeof(pci_bus_data_t));
+	if(NULL != bus_data) {
+		memset(bus_data, 0, sizeof(pci_bus_data_t));
+		fibril_mutex_initialize(&bus_data->conf_mutex);
+	}
+	return bus_data;	
+}
+
+static inline void delete_pci_bus_data(pci_bus_data_t *bus_data) 
+{
+	free(bus_data);	
+}
+
+static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
+{
+	assert(NULL != dev->parent);
+	
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	pci_bus_data_t *bus_data = (pci_bus_data_t *)dev->parent->driver_data;
+	
+	fibril_mutex_lock(&bus_data->conf_mutex);
+	
+	uint32_t conf_addr =  CONF_ADDR(dev_data->bus, dev_data->dev, dev_data->fn, reg);
+	void *addr = bus_data->conf_data_port + (reg & 3);
+	
+	pio_write_32(bus_data->conf_addr_port, conf_addr);
+	
+	switch (len) {
+		case 1:
+			buf[0] = pio_read_8(addr);
+			break;
+		case 2:
+			((uint16_t *)buf)[0] = pio_read_16(addr);
+			break;
+		case 4:
+			((uint32_t *)buf)[0] = pio_read_32(addr);
+			break;
+	}
+	
+	fibril_mutex_unlock(&bus_data->conf_mutex);	
+}
+
+uint8_t pci_conf_read_8(device_t *dev, int reg)
+{
+	uint8_t res;
+	pci_conf_read(dev, reg, &res, 1);
+	return res;
+}
+
+uint16_t pci_conf_read_16(device_t *dev, int reg)
+{
+	uint16_t res;
+	pci_conf_read(dev, reg, (uint8_t *)&res, 2);
+	return res;
+}
+
+uint32_t pci_conf_read_32(device_t *dev, int reg)
+{
+	uint32_t res;
+	pci_conf_read(dev, reg, (uint8_t *)&res, 4);
+	return res;	
+}
+
+void pci_bus_scan(device_t *parent, int bus_num) 
+{
+	device_t *dev = create_device();
+	pci_dev_data_t *dev_data = create_pci_dev_data();
+	dev->driver_data = dev_data;
+	dev->parent = parent;
+	
+	int child_bus = 0;
+	int dnum, fnum;
+	bool multi;
+	uint8_t header_type;
+	
+	for (dnum = 0; dnum < 32; dnum++) {
+		multi = true;
+		for (fnum = 0; multi && fnum < 8; fnum++) {
+			init_pci_dev_data(dev_data, bus_num, dnum, fnum);
+			dev_data->vendor_id = pci_conf_read_16(dev, PCI_VENDOR_ID);
+			dev_data->device_id = pci_conf_read_16(dev, PCI_DEVICE_ID);
+			if (dev_data->vendor_id == 0xFFFF) { // device is not present, go on scanning the bus
+				if (fnum == 0) {
+					break;
+				} else {
+					continue;  
+				}
+			}
+			header_type = pci_conf_read_8(dev, PCI_HEADER_TYPE);
+			if (fnum == 0) {
+				 multi = header_type >> 7;  // is the device multifunction?
+			}
+			header_type = header_type & 0x7F; // clear the multifunction bit
+			
+			// TODO initialize device - name, match ids, interfaces
+			// TODO register device
+			
+			if (header_type == PCI_HEADER_TYPE_BRIDGE || header_type == PCI_HEADER_TYPE_CARDBUS ) {
+				child_bus = pci_conf_read_8(dev, PCI_BRIDGE_SEC_BUS_NUM);
+				printf(NAME ": device is pci-to-pci bridge, secondary bus number = %d.\n", bus_num);
+				if(child_bus > bus_num) {			
+					pci_bus_scan(parent, child_bus);	
+				}					
+			}
+			
+			dev = create_device();  // alloc new aux. dev. structure
+			dev_data = create_pci_dev_data();
+			dev->driver_data = dev_data;
+			dev->parent = parent;
+		}
+	}
+	
+	if (dev_data->vendor_id == 0xFFFF) {
+		delete_device(dev);
+		delete_pci_dev_data(dev_data);  // free the auxiliary device structure
+	}	
+	
+}
 
 static bool pci_add_device(device_t *dev)
 {
 	printf(NAME ": pci_add_device\n");
 	
-	pci_bus_data_t *bus_data = (pci_bus_data_t *)malloc(sizeof(pci_bus_data_t));
+	pci_bus_data_t *bus_data = create_pci_bus_data();
 	if (NULL == bus_data) {
 		printf(NAME ": pci_add_device allocation failed.\n");
 		return false;
@@ -124,6 +252,7 @@ static bool pci_add_device(device_t *dev)
 	dev->driver_data = bus_data;
 	
 	// TODO scan the bus	
+	pci_bus_scan(dev, 0);
 	
 	clean_hw_resource_list(&hw_resources);
 	

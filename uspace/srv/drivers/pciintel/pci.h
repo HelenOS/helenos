@@ -35,16 +35,49 @@
 #ifndef PCI_H
 #define PCI_H
 
+
+#include <stdlib.h>
 #include <driver.h>
+#include <malloc.h>
 
 typedef struct pci_dev_data {
 	int bus;
 	int dev;
 	int fn;
-	hw_resource_list hw_resources;
+	int vendor_id;
+	int device_id;
+	hw_resource_list_t hw_resources;
 } pci_dev_data_t;
 
+static inline pci_dev_data_t *create_pci_dev_data() 
+{
+	pci_dev_data_t *res = (pci_dev_data_t *)malloc(sizeof(pci_dev_data_t));
+	if (NULL != res) {
+		memset(res, 0, sizeof(pci_dev_data_t));
+	}
+	return res;	
+}
 
+static inline void init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn) 
+{
+	d->bus = bus;
+	d->dev = dev;
+	d->fn = fn;	
+}
+
+static inline void delete_pci_dev_data(pci_dev_data_t *d) 
+{
+	if (NULL != d) {
+		clean_hw_resource_list(&d->hw_resources);
+		free(d);	
+	}
+}
+
+uint8_t pci_conf_read_8(device_t *dev, int reg);
+uint16_t pci_conf_read_16(device_t *dev, int reg);
+uint32_t pci_conf_read_32(device_t *dev, int reg);
+
+void pci_bus_scan(device_t *parent, int bus_num);
 
 #endif
 
