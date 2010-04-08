@@ -86,6 +86,9 @@ void create_pci_match_ids(device_t *dev);
 uint8_t pci_conf_read_8(device_t *dev, int reg);
 uint16_t pci_conf_read_16(device_t *dev, int reg);
 uint32_t pci_conf_read_32(device_t *dev, int reg);
+void pci_conf_write_8(device_t *dev, int reg, uint8_t val);
+void pci_conf_write_16(device_t *dev, int reg, uint16_t val);
+void pci_conf_write_32(device_t *dev, int reg, uint32_t val);
 
 void pci_bus_scan(device_t *parent, int bus_num);
 

@@ -32,6 +32,7 @@
 #include <ipc/ipc.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <libarch/types.h>
 
 #define DEV_IFACE_FIRST IPC_FIRST_USER_METHOD
 
@@ -71,7 +72,7 @@ typedef struct hw_resource {
 	hw_res_type_t type;
 	union {
 		struct {
-			void *address;
+			uint64_t address;
 			endianness_t endianness;			
 			size_t size;			
 		} reg;

@@ -78,7 +78,7 @@ static driver_t pci_driver = {
 };
 
 typedef struct pciintel_bus_data {
-	void *conf_io_addr;
+	uint32_t conf_io_addr;
 	void *conf_data_port;
 	void *conf_addr_port;	
 	fibril_mutex_t conf_mutex;
@@ -128,6 +128,35 @@ static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 	fibril_mutex_unlock(&bus_data->conf_mutex);	
 }
 
+static void pci_conf_write(device_t *dev, int reg, uint8_t *buf, size_t len)
+{
+	assert(NULL != dev->parent);
+	
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	pci_bus_data_t *bus_data = (pci_bus_data_t *)dev->parent->driver_data;
+	
+	fibril_mutex_lock(&bus_data->conf_mutex);
+	
+	uint32_t conf_addr =  CONF_ADDR(dev_data->bus, dev_data->dev, dev_data->fn, reg);
+	void *addr = bus_data->conf_data_port + (reg & 3);
+	
+	pio_write_32(bus_data->conf_addr_port, conf_addr);
+	
+	switch (len) {
+		case 1:
+			pio_write_8(addr, buf[0]);
+			break;
+		case 2:
+			pio_write_16(addr, ((uint16_t *)buf)[0]);
+			break;
+		case 4:
+			pio_write_32(addr, ((uint32_t *)buf)[0]);
+			break;
+	}
+	
+	fibril_mutex_unlock(&bus_data->conf_mutex);	
+}
+
 uint8_t pci_conf_read_8(device_t *dev, int reg)
 {
 	uint8_t res;
@@ -149,6 +178,22 @@ uint32_t pci_conf_read_32(device_t *dev, int reg)
 	return res;	
 }
 
+void pci_conf_write_8(device_t *dev, int reg, uint8_t val) 
+{
+	pci_conf_write(dev, reg, (uint8_t *)&val, 4);	
+}
+
+void pci_conf_write_16(device_t *dev, int reg, uint16_t val) 
+{
+	pci_conf_write(dev, reg, (uint8_t *)&val, 4);	
+}
+
+void pci_conf_write_32(device_t *dev, int reg, uint32_t val) 
+{
+	pci_conf_write(dev, reg, (uint8_t *)&val, 4);	
+}
+
+
 void create_pci_match_ids(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
@@ -163,6 +208,100 @@ void create_pci_match_ids(device_t *dev)
 }
 
 
+static size_t range_size_form_mask(uint32_t mask)
+{
+	// TODO
+	return 0;
+}
+
+/** Read the base address register (BAR) of the device 
+ *  and if it contains valid address add it to the devices hw resource list.
+ * 
+ * @param dev the pci device.
+ * @param addr the address of the BAR in the PCI configuration address space of the device.
+ * 
+ * @return the addr the address of the BAR which should be read next.
+ */
+static int pci_read_bar(device_t *dev, int addr) 
+{	
+	// value of the BAR
+	uint32_t val, mask;
+	// IO space address
+	bool io;
+	// 64-bit wide address
+	bool w64;
+	
+	// size of the io or memory range specified by the BAR
+	size_t range_size;
+	// beginning of the io or memory range specified by the BAR
+	uint64_t range_addr;
+	
+	
+	val = pci_conf_read_32(dev, addr);
+	
+	io = (bool)(val & 1);
+	if (io) {
+		w64 = false;
+	} else {
+		switch ((val >> 1) & 3) {
+		case 0:
+			w64 = false;
+			break;
+		case 2:
+			w64 = true;
+			break;
+		default:
+			// reserved, go to the next BAR
+			return addr + 4;							
+		}
+	}
+	
+	// get the address mask
+	pci_conf_write_32(dev, addr, 0xffffffff);
+	mask = pci_conf_read_32(dev, addr);	
+	
+	// restore the original value
+	pci_conf_write_32(dev, addr, val);
+	
+	range_size = range_size_form_mask(mask);
+	
+	if (w64) {
+		range_addr = ((uint64_t)pci_conf_read_32(dev, addr + 4) << 32) | (val & 0xfffffff0);	
+	} else {
+		range_addr = (val & 0xfffffff0);
+	}	
+	if (0 != range_addr) {
+		printf(NAME ": device address = %x\n", range_addr);	
+	}
+	
+	// TODO add to the HW resource list
+	
+	if (w64) {
+		return addr + 8;
+	}
+	return addr + 4;	
+}
+
+/** Read the base address registers (BARs) of the device 
+ *  and adds the addresses to its hw resource list.
+ * 
+ * @param dev the pci device.
+ */
+static void pci_read_bars(device_t *dev)
+{
+	// position of the BAR in the PCI configuration address space of the device
+	int addr = PCI_BASE_ADDR_0;
+	
+	while (addr <= PCI_BASE_ADDR_5) {
+		addr = pci_read_bar(dev, addr);	
+	}	
+}
+
+/** Enumerate (recursively) and register the devices connected to a pci bus.
+ * 
+ * @param parent the host-to-pci bridge device.
+ * @param bus_num the bus number. 
+ */
 void pci_bus_scan(device_t *parent, int bus_num) 
 {
 	device_t *dev = create_device();
@@ -173,7 +312,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 	int child_bus = 0;
 	int dnum, fnum;
 	bool multi;
-	uint8_t header_type;
+	uint8_t header_type; 
 	
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
@@ -195,6 +334,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			header_type = header_type & 0x7F; // clear the multifunction bit
 			
 			// TODO initialize device - interfaces, hw resources
+			pci_read_bars(dev);
 			
 			create_pci_dev_name(dev);
 			printf(NAME ": adding new child device %s.\n", dev->name);
@@ -265,9 +405,9 @@ static bool pci_add_device(device_t *dev)
 	assert(hw_resources.resources[0].type == REGISTER);
 	assert(hw_resources.resources[0].res.reg.size == 8);
 	
-	bus_data->conf_io_addr = hw_resources.resources[0].res.reg.address;
+	bus_data->conf_io_addr = (uint32_t)hw_resources.resources[0].res.reg.address;
 	
-	if (pio_enable(bus_data->conf_io_addr, 8, &bus_data->conf_addr_port)) {
+	if (pio_enable((void *)bus_data->conf_io_addr, 8, &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
