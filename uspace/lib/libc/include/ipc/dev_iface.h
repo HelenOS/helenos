@@ -31,6 +31,7 @@
 
 #include <ipc/ipc.h>
 #include <malloc.h>
+#include <unistd.h>
 
 #define DEV_IFACE_FIRST IPC_FIRST_USER_METHOD
 
@@ -87,8 +88,10 @@ typedef struct hw_resource_list {
 
 static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
 {
-	free(hw_res->resources);
-	hw_res->resources = 0;
+	if(NULL != hw_res->resources) {
+		free(hw_res->resources);
+		hw_res->resources = NULL;
+	}
 	hw_res->count = 0;	
 }
 

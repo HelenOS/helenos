@@ -73,6 +73,16 @@ static inline void delete_pci_dev_data(pci_dev_data_t *d)
 	}
 }
 
+static inline void create_pci_dev_name(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	char *name = NULL;
+	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev, dev_data->fn);
+	dev->name = name;
+}
+
+void create_pci_match_ids(device_t *dev);
+
 uint8_t pci_conf_read_8(device_t *dev, int reg);
 uint16_t pci_conf_read_16(device_t *dev, int reg);
 uint32_t pci_conf_read_32(device_t *dev, int reg);

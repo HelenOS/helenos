@@ -149,6 +149,20 @@ uint32_t pci_conf_read_32(device_t *dev, int reg)
 	return res;	
 }
 
+void create_pci_match_ids(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	match_id_t *match_id = NULL;	
+	match_id = create_match_id();
+	if (NULL != match_id) {
+		asprintf(&match_id->id, "pci/ven=%04x,dev=%04x", dev_data->vendor_id, dev_data->device_id);
+		match_id->score = 90;
+		add_match_id(&dev->match_ids, match_id);
+	}	
+	// TODO add more ids (with subsys ids, using class id etc.)
+}
+
+
 void pci_bus_scan(device_t *parent, int bus_num) 
 {
 	device_t *dev = create_device();
@@ -180,8 +194,19 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			}
 			header_type = header_type & 0x7F; // clear the multifunction bit
 			
-			// TODO initialize device - name, match ids, interfaces
-			// TODO register device
+			// TODO initialize device - interfaces, hw resources
+			
+			create_pci_dev_name(dev);
+			printf(NAME ": adding new device name %s.\n", dev->name);
+			
+			create_pci_match_ids(dev);
+			
+			if (!child_device_register(dev, parent)) {
+				clean_match_ids(&dev->match_ids);
+				free((char *)dev->name);
+				dev->name = NULL;
+				continue;
+			}
 			
 			if (header_type == PCI_HEADER_TYPE_BRIDGE || header_type == PCI_HEADER_TYPE_CARDBUS ) {
 				child_bus = pci_conf_read_8(dev, PCI_BRIDGE_SEC_BUS_NUM);
@@ -218,7 +243,7 @@ static bool pci_add_device(device_t *dev)
 	dev->parent_phone = devman_parent_device_connect(dev->handle,  IPC_FLAG_BLOCKING);
 	if (dev->parent_phone <= 0) {
 		printf(NAME ": pci_add_device failed to connect to the parent's driver.\n");
-		free(bus_data);
+		delete_pci_bus_data(bus_data);
 		return false;
 	}
 	
@@ -226,7 +251,7 @@ static bool pci_add_device(device_t *dev)
 	
 	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
 		printf(NAME ": pci_add_device failed to get hw resources for the device.\n");
-		free(bus_data);
+		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
 		return false;		
 	}
@@ -242,7 +267,7 @@ static bool pci_add_device(device_t *dev)
 	
 	if (pio_enable(bus_data->conf_io_addr, 8, &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
-		free(bus_data);
+		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
 		clean_hw_resource_list(&hw_resources);
 		return false;					
@@ -251,7 +276,8 @@ static bool pci_add_device(device_t *dev)
 	
 	dev->driver_data = bus_data;
 	
-	// TODO scan the bus	
+	// enumerate child devices
+	printf(NAME ": scanning the bus\n");
 	pci_bus_scan(dev, 0);
 	
 	clean_hw_resource_list(&hw_resources);
