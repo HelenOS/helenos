@@ -102,8 +102,6 @@ static device_t * driver_get_device(link_t *devices, device_handle_t handle)
 
 static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("%s: driver_add_device\n", driver->name);
-
 	// TODO device state - the driver may detect the device is not actually present 
 	// (old non PnP devices) or is not working properly. 
 	// We should send such information to device manager.
@@ -127,8 +125,6 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("%s: driver_connection_devman \n", driver->name);
-
 	/* Accept connection */
 	ipc_answer_0(iid, EOK);
 
@@ -173,14 +169,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 	// TODO open the device (introduce some callbacks for opening and closing devices registered by the driver)
 	
-	printf("%s: driver_connection_gen: accepting connection.\n", driver->name);
 	ipc_answer_0(iid, EOK);	
 
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
-
-		printf("%s: driver_connection_gen: waiting for call.\n", driver->name);
 		callid = async_get_call(&call);
 		ipcarg_t method = IPC_GET_METHOD(call);
 		switch  (method) {
@@ -235,13 +228,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("%s: driver_connection_driver\n", driver->name);
 	driver_connection_gen(iid, icall, true);
 }
 
 static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("%s: driver_connection_client\n", driver->name);
 	driver_connection_gen(iid, icall, false);
 }
 
@@ -274,7 +265,7 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 bool child_device_register(device_t *child, device_t *parent)
 {
-	printf("%s: child_device_register\n", driver->name);
+	// printf("%s: child_device_register\n", driver->name);
 
 	assert(NULL != child->name);
 

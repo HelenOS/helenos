@@ -155,7 +155,7 @@ void create_pci_match_ids(device_t *dev)
 	match_id_t *match_id = NULL;	
 	match_id = create_match_id();
 	if (NULL != match_id) {
-		asprintf(&match_id->id, "pci/ven=%04x,dev=%04x", dev_data->vendor_id, dev_data->device_id);
+		asprintf(&match_id->id, "pci/ven=%04x&dev=%04x", dev_data->vendor_id, dev_data->device_id);
 		match_id->score = 90;
 		add_match_id(&dev->match_ids, match_id);
 	}	
@@ -197,7 +197,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			// TODO initialize device - interfaces, hw resources
 			
 			create_pci_dev_name(dev);
-			printf(NAME ": adding new device name %s.\n", dev->name);
+			printf(NAME ": adding new child device %s.\n", dev->name);
 			
 			create_pci_match_ids(dev);
 			
@@ -207,6 +207,8 @@ void pci_bus_scan(device_t *parent, int bus_num)
 				dev->name = NULL;
 				continue;
 			}
+			
+			//printf(NAME ": new device %s was successfully registered by device manager.\n", dev->name);
 			
 			if (header_type == PCI_HEADER_TYPE_BRIDGE || header_type == PCI_HEADER_TYPE_CARDBUS ) {
 				child_bus = pci_conf_read_8(dev, PCI_BRIDGE_SEC_BUS_NUM);

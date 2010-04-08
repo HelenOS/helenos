@@ -340,7 +340,7 @@ bool create_root_node(dev_tree_t *tree)
  */
 driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
 {
-	printf(NAME ": find_best_match_driver for device '%s' \n", node->pathname);
+	//printf(NAME ": find_best_match_driver for device '%s' \n", node->pathname);
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
 	
@@ -370,6 +370,8 @@ driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node)
  */
 void attach_driver(node_t *node, driver_t *drv) 
 {
+	printf(NAME ": attach_driver %s to device %s\n", drv->name, node->pathname);
+	
 	fibril_mutex_lock(&drv->driver_mutex);
 	
 	node->drv = drv;
@@ -523,7 +525,7 @@ void add_device(int phone, driver_t *drv, node_t *node)
  */
 bool assign_driver(node_t *node, driver_list_t *drivers_list) 
 {
-	printf(NAME ": assign_driver\n");
+	//printf(NAME ": assign_driver\n");
 	
 	// find the driver which is the most suitable for handling this device
 	driver_t *drv = find_best_match_driver(drivers_list, node);
@@ -619,7 +621,7 @@ static bool set_dev_path(node_t *node, node_t *parent)
  */
 bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *parent)
 {
-	printf(NAME ": insert_dev_node\n");
+	// printf(NAME ": insert_dev_node\n");
 	
 	assert(NULL != node && NULL != tree && NULL != dev_name);
 	
@@ -708,6 +710,8 @@ node_t *find_node_child(node_t *parent, const char *name)
 			fibril_mutex_unlock(&parent->children_mutex);
 			return dev;			
 		}
+		
+		link = link->next;
 	}	
 	
 	fibril_mutex_unlock(&parent->children_mutex);	

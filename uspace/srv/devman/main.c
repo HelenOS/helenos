@@ -141,11 +141,14 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 		return ENOMEM;
 	}
 	
+	ipc_answer_0(callid, EOK);
+	
 	match_id->score = IPC_GET_ARG1(call);
 	
 	rc = async_string_receive(&match_id->id, DEVMAN_NAME_MAXLEN, NULL);	
 	if (EOK != rc) {
 		delete_match_id(match_id);
+		printf(NAME ": devman_receive_match_id - failed to receive match id string.\n");
 		return rc;
 	}
 	
@@ -156,7 +159,7 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 }
 
 static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids) 
-{
+{	
 	int ret = EOK;
 	size_t i;
 	for (i = 0; i < match_count; i++) {
@@ -169,7 +172,7 @@ static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match
 
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *driver)
 {
-	printf(NAME ": devman_add_child\n");
+	// printf(NAME ": devman_add_child\n");
 	
 	device_handle_t parent_handle = IPC_GET_ARG1(*call);
 	ipcarg_t match_count = IPC_GET_ARG2(*call);
@@ -187,7 +190,7 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *dr
 		ipc_answer_0(callid, rc);
 		return;
 	}
-	printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
+	// printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
 	
 	node_t *node = create_dev_node();
 	if (!insert_dev_node(&device_tree, node, dev_name, parent)) {
@@ -195,6 +198,8 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *dr
 		ipc_answer_0(callid, ENOMEM);
 		return;
 	}	
+	
+	printf(NAME ": devman_add_child %s\n", node->pathname);
 	
 	devman_receive_match_ids(match_count, &node->match_ids);
 	
@@ -260,7 +265,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {	
 	
 	device_handle_t handle = IPC_GET_ARG2(*icall);
-	printf(NAME ": devman_forward - trying to forward connection to device with handle %x.\n", handle);
+	// printf(NAME ": devman_forward - trying to forward connection to device with handle %x.\n", handle);
 	
 	node_t *dev = find_dev_node(&device_tree, handle);
 	if (NULL == dev) {
@@ -296,7 +301,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 		printf(NAME ": devman_forward: cound not forward to driver %s (the driver's phone is %x).\n", driver->name, driver->phone);
 		return;
 	}
-	printf(NAME ": devman_forward: forward to driver %s with phone %d.\n", driver->name, driver->phone);
+	printf(NAME ": devman_forward: forward connection to device %s to driver %s with phone %d.\n", 
+		dev->pathname, driver->name, driver->phone);
 	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
 }
 
