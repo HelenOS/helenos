@@ -50,6 +50,7 @@
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <resource.h>
+#include <device/hw_res.h>
 
 #define NAME "rootia32"
 
@@ -110,6 +111,9 @@ static resource_iface_t child_res_iface = {
 	&rootia32_enable_child_interrupt	
 };
 
+// initialized in root_ia32_init() function
+static device_class_t rootia32_child_class;
+
 static bool rootia32_add_child(
 	device_t *parent, const char *name, const char *str_match_id, 
 	rootia32_child_dev_data_t *drv_data) 
@@ -135,8 +139,8 @@ static bool rootia32_add_child(
 	match_id->score = 100;
 	add_match_id(&child->match_ids, match_id);	
 	
-	// add an interface to the device
-	device_set_iface(child, HW_RES_DEV_IFACE, &child_res_iface);
+	// set class to the device
+	child->class = &rootia32_child_class;
 	
 	// register child  device
 	if (!child_device_register(child, parent)) {
@@ -180,9 +184,16 @@ static bool rootia32_add_device(device_t *dev)
 	return true;
 }
 
+static void root_ia32_init() {
+	// initialize child device class		
+	rootia32_child_class.id = 0;	// TODO 
+	rootia32_child_class.interfaces[HW_RES_DEV_IFACE] = &child_res_iface;
+}
+
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");	
+	root_ia32_init();
 	return driver_main(&rootia32_driver);
 }
 

@@ -109,7 +109,7 @@ static inline bool pci_alloc_resource_list(device_t *dev)
 	return dev_data->hw_resources.resources != NULL;	
 }
 
-static inline bool pci_clean_resource_list(device_t *dev)
+static inline void pci_clean_resource_list(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
 	if (NULL != dev_data->hw_resources.resources) {

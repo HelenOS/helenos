@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
+#include <device/hw_res.h>
 #include <assert.h>
 
 struct device;
@@ -58,18 +59,25 @@ typedef struct {
 	remote_iface_t * ifaces[DEV_IFACE_COUNT];
 } iface_dipatch_table_t;
 
-static inline int get_iface_index(dev_inferface_id_t id)
+
+static inline bool is_valid_iface_idx(int idx)
 {
-	return id - DEV_IFACE_FIRST;
+	return 0 <= idx && idx < DEV_IFACE_MAX;
 }
 
-static inline bool is_valid_iface_id(dev_inferface_id_t id)
-{
-	return DEV_IFACE_FIRST <= id && id < DEV_IFACE_MAX;
-}
-
-remote_iface_t* get_remote_iface(dev_inferface_id_t id);
+remote_iface_t* get_remote_iface(int idx);
 remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx);
+
+
+// device class
+
+/** Devices belonging to the same class should implement the same set of interfaces.*/
+typedef struct device_class {
+	/** Unique identification of the class. */
+	int id;
+	/** The table of interfaces implemented by the device. */
+	void *interfaces[DEV_IFACE_COUNT];	
+} device_class_t;
 
 
 // device
@@ -88,8 +96,8 @@ struct device {
 	match_id_list_t match_ids;
 	/** The device driver's data associated with this device.*/
 	void *driver_data;
-	/** The table of interfaces exported by this device. */
-	void *interfaces[DEV_IFACE_COUNT];
+	/** Device class consist of class id and table of interfaces supported by the device.*/
+	device_class_t *class;
 	/** Pointer to the previous and next device in the list of devices handled by the driver */
 	link_t link;
 };
@@ -145,20 +153,11 @@ static inline void delete_device(device_t *dev)
 	free(dev);
 }
 
-static inline void device_set_iface (device_t *dev, dev_inferface_id_t id, void *iface)
+static inline void * device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 {
-	assert(is_valid_iface_id(id));
+	assert(is_valid_iface_idx(idx));	
 
-	int idx = get_iface_index(id);
-	dev->interfaces[idx] = iface;
-}
-
-static inline void * device_get_iface(device_t *dev, dev_inferface_id_t id)
-{
-	assert(is_valid_iface_id(id));
-	
-	int idx = get_iface_index(id);
-	return dev->interfaces[idx];	
+	return dev->class->interfaces[idx];	
 }
 
 bool child_device_register(device_t *child, device_t *parent);

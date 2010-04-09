@@ -44,11 +44,9 @@ static iface_dipatch_table_t remote_ifaces = {
 	}
 };
 
-remote_iface_t* get_remote_iface(dev_inferface_id_t id)
-{
-	assert(is_valid_iface_id(id));
-	
-	int idx = get_iface_index(id);
+remote_iface_t* get_remote_iface(int idx)
+{	
+	assert(is_valid_iface_idx(idx));	
 	return remote_ifaces.ifaces[idx];	
 }
 

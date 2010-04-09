@@ -57,8 +57,31 @@
 
 #define NAME "pciintel"
 
-
 #define CONF_ADDR(bus, dev, fn, reg)   ((1 << 31) | (bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
+
+
+static hw_resource_list_t * pciintel_get_child_resources(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	if (NULL == dev_data) {
+		return NULL;
+	}
+	return &dev_data->hw_resources;
+}
+
+static bool pciintel_enable_child_interrupt(device_t *dev) 
+{
+	// TODO
+	
+	return false;
+}
+
+static resource_iface_t pciintel_child_res_iface = {
+	&pciintel_get_child_resources,
+	&pciintel_enable_child_interrupt	
+};
+
+static device_class_t pci_child_class;
 
 
 static bool pci_add_device(device_t *dev);
@@ -372,7 +395,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			pci_read_bars(dev);
 			pci_read_interrupt(dev);
 			
-			// TODO initialize device interfaces			
+			dev->class = &pci_child_class;			
 			
 			printf(NAME ": adding new child device %s.\n", dev->name);
 			
@@ -463,9 +486,16 @@ static bool pci_add_device(device_t *dev)
 	return true;
 }
 
+static void pciintel_init() 
+{
+	pci_child_class.id = 0; // TODO
+	pci_child_class.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
+}
+
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS pci bus driver (intel method 1).\n");	
+	printf(NAME ": HelenOS pci bus driver (intel method 1).\n");
+	pciintel_init();
 	return driver_main(&pci_driver);
 }
 

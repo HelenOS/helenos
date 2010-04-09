@@ -36,12 +36,11 @@
 #include <errno.h>
 #include <async.h>
 #include <malloc.h>
- 
 
 bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 {
 	ipcarg_t count = 0;
-	int rc = async_req_1_1(dev_phone, HW_RES_DEV_IFACE, GET_RESOURCE_LIST, &count);
+	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), GET_RESOURCE_LIST, &count);
 	hw_resources->count = count;
 	if (EOK != rc) {
 		return false;
@@ -65,7 +64,7 @@ bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 
 bool enable_interrupt(int dev_phone)
 {
-	int rc = async_req_1_0(dev_phone, HW_RES_DEV_IFACE, ENABLE_INTERRUPT);
+	int rc = async_req_1_0(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), ENABLE_INTERRUPT);
 	return rc == EOK;
 }
  

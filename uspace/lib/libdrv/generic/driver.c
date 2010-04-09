@@ -176,6 +176,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		ipc_call_t call;
 		callid = async_get_call(&call);
 		ipcarg_t method = IPC_GET_METHOD(call);
+		int iface_idx;
+		
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
 		
@@ -183,9 +185,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			
 			ipc_answer_0(callid, EOK);
 			return;
-		default:
-
-			if (!is_valid_iface_id(method)) {
+		default:		
+			// convert ipc interface id to interface index
+			
+			iface_idx = DEV_IFACE_IDX(method);
+			
+			if (!is_valid_iface_idx(iface_idx)) {
 				// this is not device's interface
 				printf("%s: driver_connection_gen error - invalid interface id %x.", driver->name, method);
 				ipc_answer_0(callid, ENOTSUP);
@@ -195,7 +200,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			// calling one of the device's interfaces
 			
 			// get the device interface structure
-			void *iface = device_get_iface(dev, method);
+			void *iface = device_get_iface(dev, iface_idx);
 			if (NULL == iface) {
 				printf("%s: driver_connection_gen error - ", driver->name);
 				printf("device with handle %x has no interface with id %x.\n", handle, method);
@@ -204,7 +209,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			}
 
 			// get the corresponding interface for remote request handling ("remote interface")
-			remote_iface_t* rem_iface = get_remote_iface(method);
+			remote_iface_t* rem_iface = get_remote_iface(iface_idx);
 			assert(NULL != rem_iface);
 
 			// get the method of the remote interface

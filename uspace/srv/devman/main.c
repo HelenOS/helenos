@@ -120,6 +120,13 @@ static driver_t * devman_driver_register(void)
 	return driver;
 }
 
+/**
+ * Receive device match ID from the device's parent driver and add it to the list of devices match ids.
+ * 
+ * @param match_ids the list of the device's match ids.
+ * 
+ * @return 0 on success, negative error code otherwise. 
+ */
 static int devman_receive_match_id(match_id_list_t *match_ids) {
 	
 	match_id_t *match_id = create_match_id();
@@ -158,6 +165,15 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 	return rc;
 }
 
+/**
+ * Receive device match IDs from the device's parent driver 
+ * and add them to the list of devices match ids.
+ * 
+ * @param match_count the number of device's match ids to be received.
+ * @param match_ids the list of the device's match ids.
+ * 
+ * @return 0 on success, negative error code otherwise.
+ */
 static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids) 
 {	
 	int ret = EOK;
@@ -170,7 +186,11 @@ static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match
 	return ret;
 }
 
-static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *driver)
+/** Handle child device registration. 
+ * 
+ * Child devices are registered by their parent's device driver.
+ */
+static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 {
 	// printf(NAME ": devman_add_child\n");
 	
@@ -210,6 +230,12 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call, driver_t *dr
 	assign_driver(node, &drivers_list);
 }
 
+/**
+ * Initialize driver which has registered itself as running and ready.
+ * 
+ * The initialization is done in a separate fibril to avoid deadlocks 
+ * (if the driver needed to be served by devman during the driver's initialization). 
+ */
 static int init_running_drv(void *drv)
 {
 	driver_t *driver = (driver_t *)drv;
@@ -218,8 +244,7 @@ static int init_running_drv(void *drv)
 	return 0;
 }
 
-/** Function for handling connections to device manager.
- *
+/** Function for handling connections from a driver to the device manager.
  */
 static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {	
@@ -230,10 +255,13 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	if (NULL == driver)
 		return;
 	
+	// Initialize the driver as running (e.g. pass assigned devices to it) in a separate fibril;
+	// the separate fibril is used to enable the driver 
+	// to use devman service during the driver's initialization.
 	fid_t fid = fibril_create(init_running_drv, driver);
 	if (fid == 0) {
 		printf(NAME ": Error creating fibril for the initialization of the newly registered running driver.\n");
-		exit(1);
+		return;
 	}
 	fibril_add_ready(fid);
 	
@@ -253,7 +281,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			cont = false;
 			continue;
 		case DEVMAN_ADD_CHILD_DEVICE:
-			devman_add_child(callid, &call, driver);
+			devman_add_child(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, EINVAL); 
@@ -298,7 +326,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 	}
 	
 	if (driver->phone <= 0) {
-		printf(NAME ": devman_forward: cound not forward to driver %s (the driver's phone is %x).\n", driver->name, driver->phone);
+		printf(NAME ": devman_forward: cound not forward to driver %s ", driver->name);
+		printf("the driver's phone is %x).\n", driver->phone);
 		return;
 	}
 	printf(NAME ": devman_forward: forward connection to device %s to driver %s with phone %d.\n", 
