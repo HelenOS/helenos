@@ -37,17 +37,9 @@
 
 #define __32_BITS__
 
-typedef unsigned int sysarg_t;
+#include <libarch/common.h>
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long long int int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+typedef uint32_t sysarg_t;
 
 typedef int32_t ssize_t;
 typedef uint32_t size_t;
