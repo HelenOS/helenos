@@ -98,12 +98,12 @@ static void list_threads(task_id_t taskid)
 {
 	int thread_count = THREAD_COUNT;
 	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
-	int result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
+	int result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 
 	while (result > thread_count) {
 		thread_count *= 2;
 		threads = realloc(threads, thread_count * sizeof(thread_info_t));
-		result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
+		result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 	}
 
 	if (result == 0) {
@@ -114,6 +114,9 @@ static void list_threads(task_id_t taskid)
 	int i;
 	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
 	for (i = 0; i < result; ++i) {
+		if (threads[i].taskid != taskid) {
+			continue;
+		}
 		uint64_t ucycles, kcycles;
 		char usuffix, ksuffix;
 		order(threads[i].ucycles, &ucycles, &usuffix);

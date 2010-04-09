@@ -73,10 +73,9 @@ int get_task_info(task_id_t id, task_info_t *info)
  * @return 		0 on success.
  *
  */
-int get_task_threads(task_id_t taskid, thread_info_t *infos, size_t size)
+int get_task_threads(thread_info_t *infos, size_t size)
 {
-	return __SYSCALL3(SYS_PS_GET_THREADS, (sysarg_t) &taskid, (sysarg_t) infos,
-			(sysarg_t) size);
+	return __SYSCALL2(SYS_PS_GET_THREADS, (sysarg_t) infos, (sysarg_t) size);
 }
 
 /** @}

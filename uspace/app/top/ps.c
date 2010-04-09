@@ -85,12 +85,12 @@ thread_info_t *get_threads(task_id_t taskid)
 {
 	int thread_count = THREAD_COUNT;
 	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
-	int result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
+	int result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 
 	while (result > thread_count) {
 		thread_count *= 2;
 		threads = realloc(threads, thread_count * sizeof(thread_info_t));
-		result = get_task_threads(taskid, threads, sizeof(thread_info_t) * thread_count);
+		result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 	}
 	
 	return threads;

@@ -73,6 +73,7 @@ typedef enum {
 
 typedef struct {
 	thread_id_t tid;
+	task_id_t taskid;
 	state_t state;
 	int priority;
 	uint64_t cycles;

@@ -47,7 +47,6 @@
 
 static size_t count;
 static size_t max_count;
-static task_t *selected_task;
 
 #define WRITE_TASK_ID(dst, i, src) copy_to_uspace(dst + i, src, sizeof(task_id_t))
 #define WRITE_THREAD_INFO(dst, i, src) copy_to_uspace(dst+i, src, sizeof(thread_info_t))
@@ -162,11 +161,6 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 
 	spinlock_lock(&t->lock);
 
-	if (t->task != selected_task) {
-		spinlock_unlock(&t->lock);
-		return true;
-	}
-
 	++count;
 	if (count > max_count) {
 		spinlock_unlock(&t->lock);
@@ -174,6 +168,8 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	}
 	
 	result.tid = t->tid;
+	ASSERT(t->task);
+	result.taskid = t->task->taskid;
 	result.state = t->state;
 	result.priority = t->priority;
 	result.ucycles = t->ucycles;
@@ -190,21 +186,12 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	return true;
 }
 
-int sys_ps_get_threads(task_id_t *uspace_id, thread_info_t *uspace_infos, size_t size)
+int sys_ps_get_threads(thread_info_t *uspace_infos, size_t size)
 {
 	ipl_t ipl;
 	ipl = interrupts_disable();
 
-	task_id_t id;
-	copy_from_uspace(&id, uspace_id, sizeof(task_id_t));
-	spinlock_lock(&tasks_lock);
-	selected_task = task_find_by_id(id);
-	spinlock_unlock(&tasks_lock);
-
-	if (!selected_task) {
-		return 0;
-	}
-
+	printf("LIst threads, size: %llu\n", size);
 	spinlock_lock(&threads_lock);
 
 	count = 0;
