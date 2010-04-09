@@ -190,8 +190,6 @@ int sys_ps_get_threads(thread_info_t *uspace_infos, size_t size)
 {
 	ipl_t ipl;
 	ipl = interrupts_disable();
-
-	printf("LIst threads, size: %llu\n", size);
 	spinlock_lock(&threads_lock);
 
 	count = 0;

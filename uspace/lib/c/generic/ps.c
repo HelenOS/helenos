@@ -70,10 +70,11 @@ int get_task_info(task_id_t id, task_info_t *info)
  * @param infos		Pointer to out array of thread_info_t structures.
  * @param size		Size of the infos array.
  *
- * @return 		0 on success.
+ * @return		Count of written thread_infos. If higher than size, there
+ * 			was not enough space.
  *
  */
-int get_task_threads(thread_info_t *infos, size_t size)
+size_t get_task_threads(thread_info_t *infos, size_t size)
 {
 	return __SYSCALL2(SYS_PS_GET_THREADS, (sysarg_t) infos, (sysarg_t) size);
 }

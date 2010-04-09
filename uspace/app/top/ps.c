@@ -57,11 +57,11 @@ const char *thread_states[] = {
 	"Lingering"
 }; 
 
-unsigned int get_tasks(task_info_t **out_infos)
+size_t get_tasks(task_info_t **out_infos)
 {
-	int task_count = TASK_COUNT;
+	size_t task_count = TASK_COUNT;
 	task_id_t *tasks = malloc(task_count * sizeof(task_id_t));
-	int result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
+	size_t result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 
 	while (result > task_count) {
 		task_count *= 2;
@@ -69,7 +69,7 @@ unsigned int get_tasks(task_info_t **out_infos)
 		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
 	}
 
-	int i;
+	size_t i;
 	task_info_t *taskinfos = malloc(result * sizeof(task_info_t));
 	for (i = 0; i < result; ++i) {
 		get_task_info(tasks[i], &taskinfos[i]);
@@ -81,11 +81,11 @@ unsigned int get_tasks(task_info_t **out_infos)
 	return result;
 }
 
-thread_info_t *get_threads(task_id_t taskid)
+size_t get_threads(thread_info_t **thread_infos)
 {
-	int thread_count = THREAD_COUNT;
+	size_t thread_count = THREAD_COUNT;
 	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
-	int result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
+	size_t result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 
 	while (result > thread_count) {
 		thread_count *= 2;
@@ -93,7 +93,8 @@ thread_info_t *get_threads(task_id_t taskid)
 		result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
 	}
 	
-	return threads;
+	*thread_infos = threads;
+	return result;
 }
 
 unsigned int get_cpu_infos(uspace_cpu_info_t **out_infos)

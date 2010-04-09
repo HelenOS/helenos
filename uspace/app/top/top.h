@@ -60,9 +60,12 @@ typedef struct {
 
 	unsigned long load[3];
 
-	unsigned int task_count;
+	size_t task_count;
 	task_info_t *taskinfos;
 	task_perc_t *task_perc;
+
+	size_t thread_count;
+	thread_info_t *thread_infos;
 
 	unsigned int cpu_count;
 	uspace_cpu_info_t *cpus;

@@ -43,6 +43,7 @@
 #include <sys/time.h>
 #include <load.h>
 #include <ps.h>
+#include <arch/barrier.h>
 #include "screen.h"
 #include "input.h"
 #include "top.h"
@@ -81,6 +82,9 @@ static void read_data(data_t *target)
 
 	/* Read task ids */
 	target->task_count = get_tasks(&target->taskinfos);
+
+	/* Read all threads */
+	target->thread_count = get_threads(&target->thread_infos);
 
 	/* Read cpu infos */
 	target->cpu_count = get_cpu_infos(&target->cpus);
@@ -143,6 +147,9 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		new_data->task_perc[i].kcycles = (float)(kcycles_diff[i] * 100) / kcycles_total;
 	}
 
+	/* Wait until coprocessor finishes its work */
+	write_barrier();
+
 	/* And free temporary structures */
 	free(ucycles_diff);
 	free(kcycles_diff);
@@ -151,6 +158,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 static void free_data(data_t *target)
 {
 	free(target->taskinfos);
+	free(target->thread_infos);
 	free(target->cpus);
 	free(target->cpu_perc);
 	free(target->task_perc);

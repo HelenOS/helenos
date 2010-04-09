@@ -118,6 +118,38 @@ static inline void print_taskstat(data_t *data)
 	printf("%4u total", data->task_count);
 }
 
+static inline void print_threadstat(data_t *data)
+{
+	size_t sleeping = 0;
+	size_t running = 0;
+	size_t invalid = 0;
+	size_t other = 0;
+	size_t total = 0;
+	size_t i;
+	for (i = 0; i < data->thread_count; ++i) {
+		++total;
+		switch (data->thread_infos[i].state) {
+			case Invalid:
+			case Lingering:
+				++invalid;
+				break;
+			case Running:
+			case Ready:
+				++running;
+				break;
+			case Sleeping:
+				++sleeping;
+				break;
+			case Entering:
+			case Exiting:
+				++other;
+				break;
+		}
+	}
+	printf("Threads: %5u total, %5u running, %5u sleeping, %5u invalid, %5u other",
+		total, running, sleeping, invalid, other);
+}
+
 static inline void print_cpuinfo(data_t *data)
 {
 	unsigned int i;
@@ -194,6 +226,9 @@ void print_data(data_t *data)
 	puts("\n");
 	++up_rows;
 	print_taskstat(data);
+	puts("\n");
+	++up_rows;
+	print_threadstat(data);
 	puts("\n");
 	++up_rows;
 	print_cpuinfo(data);
