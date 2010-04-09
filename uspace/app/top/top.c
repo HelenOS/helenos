@@ -110,9 +110,9 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	}
 
 	/* For all tasks compute sum and differencies of all cycles */
-	uint64_t mem_total = 0;
-	uint64_t ucycles_total = 0;
-	uint64_t kcycles_total = 0;
+	uint64_t mem_total = 1; /*< Must NOT be null! */
+	uint64_t ucycles_total = 1; /*< Must NOT be null! */
+	uint64_t kcycles_total = 1; /*< Must NOT be null! */
 	uint64_t *ucycles_diff = malloc(new_data->task_count * sizeof(uint64_t));
 	uint64_t *kcycles_diff = malloc(new_data->task_count * sizeof(uint64_t));
 	unsigned int j = 0;
