@@ -60,6 +60,7 @@ GENERIC_SOURCES = \
 	generic/errno.c \
 	generic/mem.c \
 	generic/str.c \
+	generic/str_error.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \
@@ -93,7 +94,7 @@ GENERIC_SOURCES = \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/stacktrace.c \
-	generic/strerror.c
+	generic/arg_parse.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

@@ -39,7 +39,7 @@
 #include <unistd.h>
 #include <str.h>
 #include <fcntl.h>
-#include <strerror.h>
+#include <str_error.h>
 
 #include "config.h"
 #include "util.h"

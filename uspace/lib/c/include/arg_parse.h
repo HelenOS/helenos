@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,44 +32,16 @@
 /** @file
  */
 
-#include <strerror.h>
-#include <stdio.h>
-#include <fibril.h>
+#ifndef LIBC_ARG_PARSE_H_
+#define LIBC_ARG_PARSE_H_
 
-#define MIN_ERRNO  -17
-#define NOERR_LEN  64
+typedef int (*arg_parser)(const char *, int *);
 
-static const char* err_desc[] = {
-	"No error",
-	"No such entry",
-	"Not enought memory",
-	"Limit exceeded", 
-	"Connection refused",
-	"Forward error",
-	"Permission denied",
-	"Answerbox closed connection",
-	"Other party error",
-	"Entry already exists",
-	"Bad memory pointer",
-	"Not supported",
-	"Address not available",
-	"Timeout expired",
-	"Invalid value",
-	"Resource is busy",
-	"Result does not fits its size",
-	"Operation was interrupted"
-};
+extern int arg_parse_int(int, char **, int *, int *, int);
+extern int arg_parse_name_int(int, char **, int *, int *, int, arg_parser);
+extern int arg_parse_string(int, char **, int *, char **, int);
 
-static fibril_local char noerr[NOERR_LEN];
-
-const char *str_error(const int errno)
-{
-	if ((errno <= 0) && (errno >= MIN_ERRNO))
-		return err_desc[-errno];
-	
-	snprintf(noerr, NOERR_LEN, "Unkown error code %d", errno);
-	return noerr;
-}
+#endif
 
 /** @}
  */

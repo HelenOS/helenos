@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  * @{
  */
-
 /** @file
- * Common error processing codes and routines.
  */
 
-#ifndef __NET_ERR_H__
-#define __NET_ERR_H__
+#include <str_error.h>
+#include <stdio.h>
+#include <fibril.h>
 
-#include <errno.h>
+#define MIN_ERRNO  -17
+#define NOERR_LEN  64
 
-#ifdef CONFIG_DEBUG
-	#include <stdio.h>
-	#include <str_error.h>
-#endif
+static const char* err_desc[] = {
+	"No error",
+	"No such entry",
+	"Not enought memory",
+	"Limit exceeded", 
+	"Connection refused",
+	"Forward error",
+	"Permission denied",
+	"Answerbox closed connection",
+	"Other party error",
+	"Entry already exists",
+	"Bad memory pointer",
+	"Not supported",
+	"Address not available",
+	"Timeout expired",
+	"Invalid value",
+	"Resource is busy",
+	"Result does not fits its size",
+	"Operation was interrupted"
+};
 
-/** An actual stored error code.
- *
- */
-#define ERROR_CODE  error_check_return_value
+static fibril_local char noerr[NOERR_LEN];
 
-/** An error processing routines declaration.
- *
- * This has to be declared in the block where the error processing
- * is desired.
- *
- */
-#define ERROR_DECLARE  int ERROR_CODE
-
-/** Store the value as an error code and checks if an error occurred.
- *
- * @param[in] value The value to be checked. May be a function call.
- * @return False if the value indicates success (EOK).
- * @return True otherwise.
- *
- */
-#ifdef CONFIG_DEBUG
-
-#define ERROR_OCCURRED(value) \
-	(((ERROR_CODE = (value)) != EOK) \
-	&& ({ \
-		fprintf(stderr, "libsocket error at %s:%d (%s)\n", \
-		__FILE__, __LINE__, str_error(ERROR_CODE)); \
-		1; \
-	}))
-
-#else
-
-#define ERROR_OCCURRED(value)  ((ERROR_CODE = (value)) != EOK)
-
-#endif
-
-/** Error propagation
- *
- * Check if an error occurred and immediately exit the actual
- * function returning the error code.
- *
- * @param[in] value The value to be checked. May be a function call.
- *
- */
-
-#define ERROR_PROPAGATE(value) \
-	if (ERROR_OCCURRED(value)) \
-		return ERROR_CODE
-
-#endif
+const char *str_error(const int errno)
+{
+	if ((errno <= 0) && (errno >= MIN_ERRNO))
+		return err_desc[-errno];
+	
+	snprintf(noerr, NOERR_LEN, "Unkown error code %d", errno);
+	return noerr;
+}
 
 /** @}
  */

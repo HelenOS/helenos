@@ -39,15 +39,16 @@
 #include <str.h>
 #include <task.h>
 #include <time.h>
+#include <arg_parse.h>
 
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
 #include <socket.h>
 #include <net_err.h>
+#include <socket_parse.h>
 
 #include "nettest.h"
-#include "parse.h"
 #include "print_error.h"
 
 /** Echo module name.
@@ -112,28 +113,28 @@ int main(int argc, char * argv[]){
 			switch(argv[index][1]){
 				// short options with only one letter
 				case 'f':
-					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 0, parse_protocol_family));
+					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
 					break;
 				case 'h':
 					nettest1_print_help();
 					return EOK;
 					break;
 				case 'm':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &messages, "message count", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 0));
 					break;
 				case 'n':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &sockets, "socket count", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 0));
 					break;
 				case 'p':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
 					port = (uint16_t) value;
 					break;
 				case 's':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "packet size", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
 					size = (value >= 0) ? (size_t) value : 0;
 					break;
 				case 't':
-					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 0, parse_socket_type));
+					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
 					type = (sock_type_t) value;
 					break;
 				case 'v':
@@ -142,35 +143,32 @@ int main(int argc, char * argv[]){
 				// long options with the double minus sign ('-')
 				case '-':
 					if(str_lcmp(argv[index] + 2, "family=", 7) == 0){
-						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 9, parse_protocol_family));
+						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
 					}else if(str_lcmp(argv[index] + 2, "help", 5) == 0){
 						nettest1_print_help();
 						return EOK;
 					}else if(str_lcmp(argv[index] + 2, "messages=", 6) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &messages, "message count", 8));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 8));
 					}else if(str_lcmp(argv[index] + 2, "sockets=", 6) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &sockets, "socket count", 8));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 8));
 					}else if(str_lcmp(argv[index] + 2, "port=", 5) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 7));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
 						port = (uint16_t) value;
 					}else if(str_lcmp(argv[index] + 2, "type=", 5) == 0){
-						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 7, parse_socket_type));
+						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
 						type = (sock_type_t) value;
 					}else if(str_lcmp(argv[index] + 2, "verbose", 8) == 0){
 						verbose = 1;
 					}else{
-						print_unrecognized(index, argv[index] + 2);
 						nettest1_print_help();
 						return EINVAL;
 					}
 					break;
 				default:
-					print_unrecognized(index, argv[index] + 1);
 					nettest1_print_help();
 					return EINVAL;
 			}
 		}else{
-			print_unrecognized(index, argv[index]);
 			nettest1_print_help();
 			return EINVAL;
 		}
