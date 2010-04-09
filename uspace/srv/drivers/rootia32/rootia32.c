@@ -74,9 +74,9 @@ static driver_t rootia32_driver = {
 };
 
 static hw_resource_t pci_conf_regs = {
-	.type = REGISTER,
-	.res.reg = {
-		.address = (void *)0xCF8,
+	.type = IO_RANGE,
+	.res.io_range = {
+		.address = 0xCF8,
 		.size = 8,
 		.endianness = LITTLE_ENDIAN	
 	}	

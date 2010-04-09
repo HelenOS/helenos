@@ -40,6 +40,10 @@
 #include <driver.h>
 #include <malloc.h>
 
+#include "pci_regs.h"
+
+#define PCI_MAX_HW_RES 8
+
 typedef struct pci_dev_data {
 	int bus;
 	int dev;
@@ -48,6 +52,23 @@ typedef struct pci_dev_data {
 	int device_id;
 	hw_resource_list_t hw_resources;
 } pci_dev_data_t;
+
+void create_pci_match_ids(device_t *dev);
+
+uint8_t pci_conf_read_8(device_t *dev, int reg);
+uint16_t pci_conf_read_16(device_t *dev, int reg);
+uint32_t pci_conf_read_32(device_t *dev, int reg);
+void pci_conf_write_8(device_t *dev, int reg, uint8_t val);
+void pci_conf_write_16(device_t *dev, int reg, uint16_t val);
+void pci_conf_write_32(device_t *dev, int reg, uint32_t val);
+
+void pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io);
+int pci_read_bar(device_t *dev, int addr);
+void pci_read_interrupt(device_t *dev);
+void pci_add_interrupt(device_t *dev, int irq);
+
+void pci_bus_scan(device_t *parent, int bus_num);
+
 
 static inline pci_dev_data_t *create_pci_dev_data() 
 {
@@ -81,16 +102,42 @@ static inline void create_pci_dev_name(device_t *dev)
 	dev->name = name;
 }
 
-void create_pci_match_ids(device_t *dev);
+static inline bool pci_alloc_resource_list(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	dev_data->hw_resources.resources = (hw_resource_t *)malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
+	return dev_data->hw_resources.resources != NULL;	
+}
 
-uint8_t pci_conf_read_8(device_t *dev, int reg);
-uint16_t pci_conf_read_16(device_t *dev, int reg);
-uint32_t pci_conf_read_32(device_t *dev, int reg);
-void pci_conf_write_8(device_t *dev, int reg, uint8_t val);
-void pci_conf_write_16(device_t *dev, int reg, uint16_t val);
-void pci_conf_write_32(device_t *dev, int reg, uint32_t val);
+static inline bool pci_clean_resource_list(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	if (NULL != dev_data->hw_resources.resources) {
+		free(dev_data->hw_resources.resources);
+		dev_data->hw_resources.resources = NULL;
+	}
+}
 
-void pci_bus_scan(device_t *parent, int bus_num);
+/** Read the base address registers (BARs) of the device 
+ *  and adds the addresses to its hw resource list.
+ * 
+ * @param dev the pci device.
+ */
+static inline  void pci_read_bars(device_t *dev)
+{
+	// position of the BAR in the PCI configuration address space of the device
+	int addr = PCI_BASE_ADDR_0;
+	
+	while (addr <= PCI_BASE_ADDR_5) {
+		addr = pci_read_bar(dev, addr);	
+	}	
+}
+
+static inline size_t pci_bar_mask_to_size(uint32_t mask)
+{
+	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
+}
+
 
 #endif
 

@@ -59,7 +59,8 @@ typedef enum {
 /** HW resource types. */
 typedef enum {
 	INTERRUPT,
-	REGISTER
+	IO_RANGE, 
+	MEM_RANGE
 } hw_res_type_t;
 
 typedef enum {
@@ -75,10 +76,15 @@ typedef struct hw_resource {
 			uint64_t address;
 			endianness_t endianness;			
 			size_t size;			
-		} reg;
+		} mem_range;
+		struct {
+			uint64_t address;
+			endianness_t endianness;			
+			size_t size;			
+		} io_range;
 		struct {
 			int irq;			
-		} intr;		
+		} interrupt;		
 	} res;	
 } hw_resource_t;
 
