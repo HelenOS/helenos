@@ -26,21 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup net_nil
  *  @{
  */
 
 /** @file
- *  Wrapper for the standalone network interface module.
+ * Network interface layer modules common skeleton.
+ * All network interface layer modules have to implement this interface.
  */
 
-#include <async.h>
+#ifndef __NET_NIL_LOCAL_H__
+#define __NET_NIL_LOCAL_H__
+
 #include <ipc/ipc.h>
 
-#include <netif.h>
-#include <netif_standalone.h>
+/** Module initialization.
+ *
+ * Is called by the module_start() function.
+ *
+ * @param[in] net_phone The networking moduel phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module initialize function.
+ *
+ */
+extern int nil_initialize(int);
 
-/** Delegate the messages to the netif_message() function.
+extern int nil_device_state_msg_local(int, device_id_t, int);
+extern int nil_received_msg_local(int, device_id_t, packet_t, services_t);
+
+/** Message processing function.
  *
  * @param[in]  name         Module name.
  * @param[in]  callid       The message identifier.
@@ -51,27 +66,21 @@
  *
  * @return EOK on success.
  * @return ENOTSUP if the message is not known.
- * @return Other error codes as defined for each specific module message function.
+ * @return Other error codes as defined for each specific
+ *         module message function.
+ *
+ * @see nil_interface.h
+ * @see IS_NET_NIL_MESSAGE()
  *
  */
-int netif_module_message(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
-{
-	return netif_message(name, callid, call, answer, answer_count);
-}
+extern int nil_message_standalone(const char *, ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    int *);
 
-/** Starts the network interface module.
- *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module message function.
- */
-int netif_module_start(async_client_conn_t client_connection){
-	ERROR_DECLARE;
+extern int nil_module_message_standalone(const char *, ipc_callid_t,
+    ipc_call_t *, ipc_call_t *, int *);
+extern int nil_module_start_standalone(async_client_conn_t);
 
-	ERROR_PROPAGATE(netif_init_module(client_connection));
-	return netif_run_module();
-}
+#endif
 
 /** @}
  */

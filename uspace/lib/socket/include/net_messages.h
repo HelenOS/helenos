@@ -461,30 +461,43 @@
 
 /*@}*/
 
-/** Notifies the module about the device state change.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] state The new device state.
- *  @param[in] target The target module service.
- *  @returns EOK on success.
+/** Notify the module about the device state change.
+ *
+ * @param[in] phone     The service module phone.
+ * @param[in] message   The service specific message.
+ * @param[in] device_id The device identifier.
+ * @param[in] state     The new device state.
+ * @param[in] target    The target module service.
+ *
+ * @return EOK on success.
+ *
  */
-static inline int generic_device_state_msg(int phone, int message, device_id_t device_id, int state, services_t target){
-	async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) state, target);
+static inline int generic_device_state_msg_remote(int phone, int message,
+    device_id_t device_id, int state, services_t target)
+{
+	async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+	    (ipcarg_t) state, target);
+	
 	return EOK;
 }
 
-/** Notifies a module about the device.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] arg2 The second argument of the message.
- *  @param[in] service The device module service.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the specific service message.
+/** Notify a module about the device.
+ *
+ * @param[in] phone     The service module phone.
+ * @param[in] message   The service specific message.
+ * @param[in] device_id The device identifier.
+ * @param[in] arg2      The second argument of the message.
+ * @param[in] service   The device module service.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for the specific service message.
+ *
  */
-static inline int generic_device_req(int phone, int message, device_id_t device_id, int arg2, services_t service){
-	return (int) async_req_3_0(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) arg2, (ipcarg_t) service);
+static inline int generic_device_req_remote(int phone, int message,
+    device_id_t device_id, int arg2, services_t service)
+{
+	return (int) async_req_3_0(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+	    (ipcarg_t) arg2, (ipcarg_t) service);
 }
 
 /** Returns the address.
@@ -520,66 +533,90 @@ static inline int generic_get_addr_req(int phone, int message, device_id_t devic
 	return (int) result;
 }
 
-/** Returns the device packet dimension for sending.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[out] packet_dimension The packet dimension.
- *  @returns EOK on success.
- *  @returns EBADMEM if the packet_dimension parameter is NULL.
- *  @returns Other error codes as defined for the specific service message.
+/** Return the device packet dimension for sending.
+ *
+ * @param[in]  phone            The service module phone.
+ * @param[in]  message          The service specific message.
+ * @param[in]  device_id        The device identifier.
+ * @param[out] packet_dimension The packet dimension.
+ *
+ * @return EOK on success.
+ * @return EBADMEM if the packet_dimension parameter is NULL.
+ * @return Other error codes as defined for the specific service message.
+ *
  */
-static inline int generic_packet_size_req(int phone, int message, device_id_t device_id, packet_dimension_ref packet_dimension){
-	ipcarg_t result;
+static inline int generic_packet_size_req_remote(int phone, int message,
+    device_id_t device_id, packet_dimension_ref packet_dimension)
+{
+	if (!packet_dimension)
+		return EBADMEM;
+	
+	ipcarg_t addr_len;
 	ipcarg_t prefix;
 	ipcarg_t content;
 	ipcarg_t suffix;
-	ipcarg_t addr_len;
-
-	if(! packet_dimension){
-		return EBADMEM;
-	}
-	result = async_req_1_4(phone, (ipcarg_t) message, (ipcarg_t) device_id, &addr_len, &prefix, &content, &suffix);
+	
+	ipcarg_t result = async_req_1_4(phone, (ipcarg_t) message,
+	    (ipcarg_t) device_id, &addr_len, &prefix, &content, &suffix);
+	
 	packet_dimension->prefix = (size_t) prefix;
 	packet_dimension->content = (size_t) content;
 	packet_dimension->suffix = (size_t) suffix;
 	packet_dimension->addr_len = (size_t) addr_len;
+	
 	return (int) result;
 }
 
-/** Passes the packet queue to the module.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet_id The received packet or the received packet queue identifier.
- *  @param[in] target The target module service.
- *  @param[in] error The error module service.
- *  @returns EOK on success.
+/** Pass the packet queue to the module.
+ *
+ * @param[in] phone     The service module phone.
+ * @param[in] message   The service specific message.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet_id The received packet or the received packet queue
+ *                      identifier.
+ * @param[in] target    The target module service.
+ * @param[in] error     The error module service.
+ *
+ * @return EOK on success.
+ *
  */
-static inline int generic_received_msg(int phone, int message, device_id_t device_id, packet_id_t packet_id, services_t target, services_t error){
-	if(error){
-		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) target, (ipcarg_t) error);
-	}else{
-		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) target);
-	}
+static inline int generic_received_msg_remote(int phone, int message,
+    device_id_t device_id, packet_id_t packet_id, services_t target,
+    services_t error)
+{
+	if (error)
+		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+		    (ipcarg_t) packet_id, (ipcarg_t) target, (ipcarg_t) error);
+	else
+		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+		    (ipcarg_t) packet_id, (ipcarg_t) target);
+	
 	return EOK;
 }
 
-/** Sends the packet queue.
- *  @param[in] phone The service module phone.
- *  @param[in] message The service specific message.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet_id The packet or the packet queue identifier.
- *  @param[in] sender The sending module service.
- *  @param[in] error The error module service.
- *  @returns EOK on success.
+/** Send the packet queue.
+ *
+ * @param[in] phone     The service module phone.
+ * @param[in] message   The service specific message.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet_id The packet or the packet queue identifier.
+ * @param[in] sender    The sending module service.
+ * @param[in] error     The error module service.
+ *
+ * @return EOK on success.
+ *
  */
-static inline int generic_send_msg(int phone, int message, device_id_t device_id, packet_id_t packet_id, services_t sender, services_t error){
-	if(error){
-		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender, (ipcarg_t) error);
-	}else{
-		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id, (ipcarg_t) packet_id, (ipcarg_t) sender);
-	}
+static inline int generic_send_msg_remote(int phone, int message,
+    device_id_t device_id, packet_id_t packet_id, services_t sender,
+    services_t error)
+{
+	if (error)
+		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+		    (ipcarg_t) packet_id, (ipcarg_t) sender, (ipcarg_t) error);
+	else
+		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
+		    (ipcarg_t) packet_id, (ipcarg_t) sender);
+	
 	return EOK;
 }
 

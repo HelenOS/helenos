@@ -29,8 +29,8 @@
 
 USPACE_PREFIX = ../../..
 ROOT_PATH = $(USPACE_PREFIX)/..
-LIBS = $(LIBNETIF_PREFIX)/libnetif.a $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
-EXTRA_CFLAGS = -I$(LIBNETIF_PREFIX)/include -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
+LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config

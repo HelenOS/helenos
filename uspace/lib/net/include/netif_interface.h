@@ -27,101 +27,44 @@
  */
 
 /** @addtogroup netif
- *  @{
- */
-
-/** @file
- *  Network interface module interface.
- *  The same interface is used for standalone remote modules as well as for bundle network interface layer modules.
- *  The standalone remote modules have to be compiled with the netif_remote.c source file.
- *  The bundle network interface layer modules are compiled with the netif_nil_bundle.c source file and the choosen network interface layer implementation source file.
+ * @{
  */
 
 #ifndef __NET_NETIF_INTERFACE_H__
 #define __NET_NETIF_INTERFACE_H__
 
-#include <ipc/services.h>
+#ifdef CONFIG_NETIF_NIL_BUNDLE
 
-#include <net_messages.h>
-#include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <net_device.h>
+#include <netif_local.h>
+#include <netif_nil_bundle.h>
+#include <packet/packet_server.h>
 
-/** @name Network interface module interface
- *  This interface is used by other modules.
- */
-/*@{*/
+#define netif_module_message    netif_nil_module_message
+#define netif_module_start      netif_nil_module_start
+#define netif_get_addr_req      netif_get_addr_req_local
+#define netif_probe_req         netif_probe_req_local
+#define netif_send_msg          netif_send_msg_local
+#define netif_start_req         netif_start_req_local
+#define netif_stop_req          netif_stop_req_local
+#define netif_stats_req         netif_stats_req_local
+#define netif_bind_service      netif_bind_service_local
 
-/** Returns the device local hardware address.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @param[out] address The device local hardware address.
- *  @param[out] data The address data.
- *  @returns EOK on success.
- *  @returns EBADMEM if the address parameter is NULL.
- *  @returns ENOENT if there no such device.
- *  @returns Other error codes as defined for the netif_get_addr_message() function.
- */
-extern int netif_get_addr_req(int netif_phone, device_id_t device_id, measured_string_ref * address, char ** data);
+#else /* CONFIG_NETIF_NIL_BUNDLE */
 
-/** Probes the existence of the device.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @param[in] irq The device interrupt number.
- *  @param[in] io The device input/output address.
- *  @returns EOK on success.
- *  @returns Other errro codes as defined for the netif_probe_message().
- */
-extern int netif_probe_req(int netif_phone, device_id_t device_id, int irq, int io);
+#include <netif_remote.h>
+#include <packet/packet_client.h>
 
-/** Sends the packet queue.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet The packet queue.
- *  @param[in] sender The sending module service.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the generic_send_msg() function.
- */
-extern int netif_send_msg(int netif_phone, device_id_t device_id, packet_t packet, services_t sender);
+#define netif_module_message    netif_module_message_standalone
+#define netif_module_start      netif_module_start_standalone
+#define netif_get_addr_req      netif_get_addr_req_remote
+#define netif_probe_req         netif_probe_req_remote
+#define netif_send_msg          netif_send_msg_remote
+#define netif_start_req         netif_start_req_remote
+#define netif_stop_req          netif_stop_req_remote
+#define netif_stats_req         netif_stats_req_remote
+#define netif_bind_service      netif_bind_service_remote
 
-/** Starts the device.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the find_device() function.
- *  @returns Other error codes as defined for the netif_start_message() function.
- */
-extern int netif_start_req(int netif_phone, device_id_t device_id);
-
-/** Stops the device.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the find_device() function.
- *  @returns Other error codes as defined for the netif_stop_message() function.
- */
-extern int netif_stop_req(int netif_phone, device_id_t device_id);
-
-/** Returns the device usage statistics.
- *  @param[in] netif_phone The network interface phone.
- *  @param[in] device_id The device identifier.
- *  @param[out] stats The device usage statistics.
- *  @returns EOK on success.
- */
-extern int netif_stats_req(int netif_phone, device_id_t device_id, device_stats_ref stats);
-
-/** Creates bidirectional connection with the network interface module and registers the message receiver.
- *  @param[in] service The network interface module service.
- *  @param[in] device_id The device identifier.
- *  @param[in] me The requesting module service.
- *  @param[in] receiver The message receiver.
- *  @returns The phone of the needed service.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the bind_service() function.
- */
-extern int netif_bind_service(services_t service, device_id_t device_id, services_t me, async_client_conn_t receiver);
-
-/*@}*/
+#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 #endif
 

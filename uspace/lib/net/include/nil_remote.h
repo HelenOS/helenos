@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif_standalone
- *  @{
+/** @addtogroup netif
+ * @{
  */
 
-#ifndef __NETIF_STANDALONE_H__
-#define __NETIF_STANDALONE_H__
+#ifndef __NET_NIL_REMOTE_H__
+#define __NET_NIL_REMOTE_H__
 
-#include <ipc/ipc.h>
 #include <async.h>
+#include <fibril_synch.h>
+#include <ipc/ipc.h>
 
-extern int netif_module_message(const char *, ipc_callid_t, ipc_call_t *,
-    ipc_call_t *, int *);
-extern int netif_module_start(async_client_conn_t);
+extern int nil_device_state_msg_remote(int, device_id_t, int);
+extern int nil_received_msg_remote(int, device_id_t, packet_t, services_t);
 
 #endif
 

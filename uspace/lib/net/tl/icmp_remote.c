@@ -31,7 +31,7 @@
  */
 
 /** @file
- *  ICMP interface implementation for standalone remote modules.
+ *  ICMP interface implementation for remote modules.
  *  @see icmp_interface.h
  */
 

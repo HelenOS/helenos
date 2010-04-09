@@ -40,9 +40,9 @@
 
 #include <net_messages.h>
 #include <packet/packet.h>
-#include <nil_module.h>
 #include <netif_nil_bundle.h>
-#include <netif.h>
+#include <netif_local.h>
+#include <nil_local.h>
 
 /** Distribute the messages between the module parts.
  *
@@ -61,28 +61,44 @@
 int netif_nil_module_message(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	if (IS_NET_NIL_MESSAGE(call)
+	if ((IS_NET_NIL_MESSAGE(call))
 	    || (IPC_GET_METHOD(*call) == IPC_M_CONNECT_TO_ME))
-		return nil_message(name, callid, call, answer, answer_count);
+		return nil_message_standalone(name, callid, call, answer,
+		    answer_count);
 	else
-		return netif_message(name, callid, call, answer, answer_count);
+		return netif_module_message_standalone(name, callid, call, answer,
+		    answer_count);
 }
 
-/** Starts the bundle network interface module.
- *  Initializes the client connection serving function, initializes both module parts, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module message function.
+/** Start the bundle network interface module.
+ *
+ * Initialize the client connection serving function, initialize
+ * both module parts, register the module service and start the
+ * async manager, processing IPC messages in an infinite loop.
+ *
+ * @param[in] client_connection The client connection processing
+ *                              function. The module skeleton propagates
+ *                              its own one.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module message
+ *         function.
+ *
  */
-int netif_nil_module_start(async_client_conn_t client_connection){
+int netif_nil_module_start(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
-
+	
 	ERROR_PROPAGATE(netif_init_module(client_connection));
-	if(ERROR_OCCURRED(nil_initialize(netif_globals.net_phone))){
+	if (ERROR_OCCURRED(nil_initialize(netif_globals.net_phone))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
-	return netif_run_module();
+	
+	async_manager();
+	
+	pm_destroy();
+	return EOK;
 }
 
 /** @}

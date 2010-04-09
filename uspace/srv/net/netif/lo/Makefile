@@ -38,13 +38,11 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-ifeq ($(CONFIG_NETWORKING),modular)
-	BINARY = lo
+ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
+	LIBS += $(USPACE_PREFIX)/srv/net/nil/nildummy/libnildummy.a
 endif
 
-ifeq ($(CONFIG_NETWORKING),module)
-	LIBRARY = liblo
-endif
+BINARY = lo
 
 SOURCES = \
 	lo.c

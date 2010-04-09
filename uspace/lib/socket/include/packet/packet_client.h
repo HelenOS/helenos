@@ -44,7 +44,7 @@
 #ifndef __NET_PACKET_CLIENT_H__
 #define __NET_PACKET_CLIENT_H__
 
-#include "packet.h"
+#include <packet/packet.h>
 
 /** @name Packet client interface
  */
@@ -171,7 +171,7 @@ extern int packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t *
  *  @returns Other error codes as defined for the NET_PACKET_GET_SIZE message.
  *  @returns Other error codes as defined for the packet_return() function.
  */
-extern int packet_translate(int phone, packet_ref packet, packet_id_t packet_id);
+extern int packet_translate_local(int phone, packet_ref packet, packet_id_t packet_id);
 
 /** Obtains the packet of the given dimensions.
  *  Contacts the packet server to return the appropriate packet.
@@ -183,7 +183,7 @@ extern int packet_translate(int phone, packet_ref packet, packet_id_t packet_id)
  *  @returns The packet reference.
  *  @returns NULL on error.
  */
-extern packet_t packet_get_4(int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix);
+extern packet_t packet_get_4_local(int phone, size_t max_content, size_t addr_len, size_t max_prefix, size_t max_suffix);
 
 /** Obtains the packet of the given content size.
  *  Contacts the packet server to return the appropriate packet.
@@ -192,7 +192,7 @@ extern packet_t packet_get_4(int phone, size_t max_content, size_t addr_len, siz
  *  @returns The packet reference.
  *  @returns NULL on error.
  */
-extern packet_t packet_get_1(int phone, size_t content);
+extern packet_t packet_get_1_local(int phone, size_t content);
 
 /** Releases the packet queue.
  *  All packets in the queue are marked as free for use.
@@ -201,7 +201,7 @@ extern packet_t packet_get_1(int phone, size_t content);
  *  @param[in] phone The packet server module phone.
  *  @param[in] packet_id The packet identifier.
  */
-extern void pq_release(int phone, packet_id_t packet_id);
+extern void pq_release_local(int phone, packet_id_t packet_id);
 
 /** Returns the packet copy.
  *  Copies the addresses, data, order and metric values.

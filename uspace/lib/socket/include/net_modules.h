@@ -71,29 +71,10 @@ typedef int connect_module_t(services_t need);
  */
 extern void answer_call(ipc_callid_t callid, int result, ipc_call_t * answer, int answer_count);
 
-/** Creates bidirectional connection with the needed module service and registers the message receiver.
- *  @param[in] need The needed module service.
- *  @param[in] arg1 The first parameter.
- *  @param[in] arg2 The second parameter.
- *  @param[in] arg3 The third parameter.
- *  @param[in] client_receiver The message receiver.
- *  @returns The phone of the needed service.
- *  @returns Other error codes as defined for the ipc_connect_to_me() function.
- */
-extern int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver);
-
-/** Creates bidirectional connection with the needed module service and registers the message receiver.
- *  @param[in] need The needed module service.
- *  @param[in] arg1 The first parameter.
- *  @param[in] arg2 The second parameter.
- *  @param[in] arg3 The third parameter.
- *  @param[in] client_receiver The message receiver.
- *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
- *  @returns The phone of the needed service.
- *  @returns ETIMEOUT if the connection timeouted.
- *  @returns Other error codes as defined for the ipc_connect_to_me() function.
- */
-extern int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout);
+extern int bind_service(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    async_client_conn_t);
+extern int bind_service_timeout(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    async_client_conn_t, suseconds_t);
 
 /** Connects to the needed module.
  *  @param[in] need The needed module service.

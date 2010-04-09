@@ -46,14 +46,14 @@
 #include <net_modules.h>
 #include <net_interface.h>
 #include <packet/packet.h>
-#include <il_standalone.h>
+#include <il_local.h>
 
 #include "ip.h"
 #include "ip_module.h"
 
 /** IP module global data.
  */
-extern ip_globals_t	ip_globals;
+extern ip_globals_t ip_globals;
 
 /** Processes the IP message.
  *  @param[in] callid The message identifier.
@@ -63,8 +63,8 @@ extern ip_globals_t	ip_globals;
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the ip_message() function.
  */
-int il_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return ip_message(callid, call, answer, answer_count);
+int il_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return ip_message_standalone(callid, call, answer, answer_count);
 }
 
 /** Starts the IP module.
@@ -74,22 +74,22 @@ int il_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answe
  *  @returns Other error codes as defined for the ip_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int il_module_start(async_client_conn_t client_connection){
+int il_module_start_standalone(async_client_conn_t client_connection){
 	ERROR_DECLARE;
-
-	ipcarg_t phonehash;
-
+	
 	async_set_client_connection(client_connection);
 	ip_globals.net_phone = net_connect_module(SERVICE_NETWORKING);
 	ERROR_PROPAGATE(pm_init());
-	if(ERROR_OCCURRED(ip_initialize(client_connection))
-		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_IP, &phonehash))){
+	
+	ipcarg_t phonehash;
+	if (ERROR_OCCURRED(ip_initialize(client_connection))
+	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_IP, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
-
+	
 	async_manager();
-
+	
 	pm_destroy();
 	return EOK;
 }

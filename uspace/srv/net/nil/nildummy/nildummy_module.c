@@ -45,8 +45,7 @@
 #include <net_modules.h>
 #include <net_interface.h>
 #include <packet/packet.h>
-#include <nil_module.h>
-#include <nil_standalone.h>
+#include <nil_local.h>
 
 #include "nildummy.h"
 
@@ -66,7 +65,7 @@
  * @return Other error codes as defined for the REGISTER_ME() macro function.
  *
  */
-int nil_module_start(async_client_conn_t client_connection)
+int nil_module_start_standalone(async_client_conn_t client_connection)
 {
 	ERROR_DECLARE;
 	
@@ -102,10 +101,10 @@ int nil_module_start(async_client_conn_t client_connection)
  *          module message function.
  *
  */
-int nil_module_message(const char *name, ipc_callid_t callid,
+int nil_module_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	return nil_message(name, callid, call, answer, answer_count);
+	return nil_message_standalone(name, callid, call, answer, answer_count);
 }
 
 /** @}

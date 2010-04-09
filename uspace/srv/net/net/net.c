@@ -55,8 +55,8 @@
 #include <adt/module_map.h>
 #include <packet/packet.h>
 #include <il_messages.h>
+#include <netif_remote.h>
 #include <net_device.h>
-#include <netif_interface.h>
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>
@@ -460,7 +460,7 @@ static int start_device(netif_t *netif)
 	setting = measured_strings_find(&netif->configuration, CONF_IO, 0);
 	int io = setting ? strtol(setting->value, NULL, 16) : 0;
 	
-	ERROR_PROPAGATE(netif_probe_req(netif->driver->phone, netif->id, irq, io));
+	ERROR_PROPAGATE(netif_probe_req_remote(netif->driver->phone, netif->id, irq, io));
 	
 	/* Network interface layer startup */
 	services_t internet_service;
@@ -489,7 +489,7 @@ static int start_device(netif_t *netif)
 			return ENOENT;
 	}
 	
-	ERROR_PROPAGATE(netif_start_req(netif->driver->phone, netif->id));
+	ERROR_PROPAGATE(netif_start_req_remote(netif->driver->phone, netif->id));
 	return EOK;
 }
 

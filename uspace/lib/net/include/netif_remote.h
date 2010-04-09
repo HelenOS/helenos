@@ -26,52 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
- *  @{
+/** @addtogroup netif
+ * @{
  */
 
-/** @file
- *  Network interface layer modules common skeleton.
- *  All network interface layer modules have to implement this interface.
- */
+#ifndef __NET_NETIF_REMOTE_H__
+#define __NET_NETIF_REMOTE_H__
 
-#ifndef __NET_NIL_MODULE_H__
-#define __NET_NIL_MODULE_H__
-
+#include <async.h>
+#include <fibril_synch.h>
 #include <ipc/ipc.h>
 
-/** Module initialization.
- *
- * Is called by the module_start() function.
- *
- * @param[in] net_phone The networking moduel phone.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module initialize function.
- *
- */
-extern int nil_initialize(int);
-
-/** Message processing function.
- *
- * @param[in]  name         Module name.
- * @param[in]  callid       The message identifier.
- * @param[in]  call         The message parameters.
- * @param[out] answer       The message answer parameters.
- * @param[out] answer_count The last parameter for the actual answer
- *                          in the answer parameter.
- *
- * @return EOK on success.
- * @return ENOTSUP if the message is not known.
- * @return Other error codes as defined for each specific
- *         module message function.
- *
- * @see nil_interface.h
- * @see IS_NET_NIL_MESSAGE()
- *
- */
-extern int nil_message(const char *, ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    int *);
+extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
+    char **);
+extern int netif_probe_req_remote(int, device_id_t, int, int);
+extern int netif_send_msg_remote(int, device_id_t, packet_t, services_t);
+extern int netif_start_req_remote(int, device_id_t);
+extern int netif_stop_req_remote(int, device_id_t);
+extern int netif_stats_req_remote(int, device_id_t, device_stats_ref);
+extern int netif_bind_service_remote(services_t, device_id_t, services_t,
+    async_client_conn_t);
 
 #endif
 

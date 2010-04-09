@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
- *  @{
+/** @addtogroup ip
+ * @{
  */
 
-/** @file
- *  UDP module functions.
- *  The functions are used as UDP module entry points.
- */
-
-#ifndef __NET_UDP_MODULE_H__
-#define __NET_UDP_MODULE_H__
+#ifndef __NET_IP_REMOTE_H__
+#define __NET_IP_REMOTE_H__
 
 #include <async.h>
-#include <ipc/ipc.h>
+#include <ipc/services.h>
 
-/** Initializes the UDP module.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int udp_initialize(async_client_conn_t client_connection);
+#include <ip_codes.h>
+#include <inet.h>
+#include <in.h>
+#include <socket.h>
 
-/** Processes the UDP message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @see udp_interface.h
- *  @see IS_NET_UDP_MESSAGE()
- */
-extern int udp_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
+extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);
+extern int ip_received_error_msg_remote(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_device_req_remote(int, device_id_t, services_t);
+extern int ip_add_route_req_remote(int, device_id_t, in_addr_t, in_addr_t,
+    in_addr_t);
+extern int ip_send_msg_remote(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_get_route_req_remote(int, ip_protocol_t, const struct sockaddr *,
+    socklen_t, device_id_t *, void **, size_t *);
 
 #endif
 

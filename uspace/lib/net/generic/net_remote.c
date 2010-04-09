@@ -31,7 +31,7 @@
  */
 
 /** @file
- *  Networking interface implementation for standalone remote modules.
+ *  Networking interface implementation for remote modules.
  *  @see net_interface.h
  */
 

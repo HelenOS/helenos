@@ -47,6 +47,7 @@
 #include <net_modules.h>
 #include <adt/dynamic_fifo.h>
 #include <packet/packet_client.h>
+#include <packet_remote.h>
 #include <net_checksum.h>
 #include <in.h>
 #include <in6.h>
@@ -62,6 +63,8 @@
 #include <socket_core.h>
 #include <socket_messages.h>
 #include <tl_common.h>
+#include <tl_local.h>
+#include <tl_interface.h>
 #include <tl_messages.h>
 
 #include "udp.h"
@@ -257,7 +260,7 @@ int udp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	packet_t tmp_packet;
 	icmp_type_t type;
 	icmp_code_t code;
-	ip_pseudo_header_ref ip_header;
+	void *ip_header;
 	struct sockaddr * src;
 	struct sockaddr * dest;
 	packet_dimension_ref packet_dimension;
@@ -355,7 +358,7 @@ int udp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 			tmp_packet = pq_next(next_packet);
 			while(tmp_packet){
 				next_packet = pq_detach(tmp_packet);
-				pq_release(udp_globals.net_phone, packet_get_id(tmp_packet));
+				pq_release_remote(udp_globals.net_phone, packet_get_id(tmp_packet));
 				tmp_packet = next_packet;
 			}
 			// exit the loop
@@ -381,7 +384,7 @@ int udp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 
 	// queue the received packet
 	if(ERROR_OCCURRED(dyn_fifo_push(&socket->received, packet_get_id(packet), SOCKET_MAX_RECEIVED_SIZE))
-		|| ERROR_OCCURRED(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, device_id, &packet_dimension))){
+	    || ERROR_OCCURRED(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, device_id, &packet_dimension))){
 		return udp_release_and_return(packet, ERROR_CODE);
 	}
 
@@ -391,7 +394,7 @@ int udp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	return EOK;
 }
 
-int udp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int udp_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	ERROR_DECLARE;
 
 	packet_t packet;
@@ -399,7 +402,7 @@ int udp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 	*answer_count = 0;
 	switch(IPC_GET_METHOD(*call)){
 		case NET_TL_RECEIVED:
-			if(! ERROR_OCCURRED(packet_translate(udp_globals.net_phone, &packet, IPC_GET_PACKET(call)))){
+			if(! ERROR_OCCURRED(packet_translate_remote(udp_globals.net_phone, &packet, IPC_GET_PACKET(call)))){
 				ERROR_CODE = udp_received_msg(IPC_GET_DEVICE(call), packet, SERVICE_UDP, IPC_GET_ERROR(call));
 			}
 			return ERROR_CODE;
@@ -456,7 +459,7 @@ int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 				SOCKET_SET_SOCKET_ID(answer, socket_id);
 
 				if(res == EOK){
-					if(tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
+					if (tl_get_ip_packet_dimension(udp_globals.ip_phone, &udp_globals.dimensions, DEVICE_INVALID_ID, &packet_dimension) == EOK){
 						SOCKET_SET_DATA_FRAGMENT_SIZE(answer, packet_dimension->content);
 					}
 //					SOCKET_SET_DATA_FRAGMENT_SIZE(answer, MAX_UDP_FRAGMENT_SIZE);
@@ -532,7 +535,7 @@ int udp_sendto_message(socket_cores_ref local_sockets, int socket_id, const stru
 	int result;
 	uint16_t dest_port;
 	uint32_t checksum;
-	ip_pseudo_header_ref ip_header;
+	void *ip_header;
 	size_t headerlen;
 	device_id_t device_id;
 	packet_dimension_ref packet_dimension;
@@ -661,11 +664,11 @@ int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flag
 	if(packet_id < 0){
 		return NO_DATA;
 	}
-	ERROR_PROPAGATE(packet_translate(udp_globals.net_phone, &packet, packet_id));
+	ERROR_PROPAGATE(packet_translate_remote(udp_globals.net_phone, &packet, packet_id));
 	// get udp header
 	data = packet_get_data(packet);
 	if(! data){
-		pq_release(udp_globals.net_phone, packet_id);
+		pq_release_remote(udp_globals.net_phone, packet_id);
 		return NO_DATA;
 	}
 	header = (udp_header_ref) data;
@@ -673,7 +676,7 @@ int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flag
 	// set the source address port
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
 	if(ERROR_OCCURRED(tl_set_address_port(addr, result, ntohs(header->source_port)))){
-		pq_release(udp_globals.net_phone, packet_id);
+		pq_release_remote(udp_globals.net_phone, packet_id);
 		return ERROR_CODE;
 	}
 	*addrlen = (size_t) result;
@@ -688,19 +691,15 @@ int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flag
 
 	// release the packet
 	dyn_fifo_pop(&socket->received);
-	pq_release(udp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
 	// return the total length
 	return (int) length;
 }
 
 int udp_release_and_return(packet_t packet, int result){
-	pq_release(udp_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
 	return result;
 }
-
-#ifdef CONFIG_NETWORKING_modular
-
-#include <tl_standalone.h>
 
 /** Default thread for new connections.
  *
@@ -728,7 +727,8 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = tl_module_message(callid, &call, &answer, &answer_count);
+		int res = tl_module_message_standalone(callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -753,13 +753,11 @@ int main(int argc, char *argv[])
 	ERROR_DECLARE;
 	
 	/* Start the module */
-	if (ERROR_OCCURRED(tl_module_start(tl_client_connection)))
+	if (ERROR_OCCURRED(tl_module_start_standalone(tl_client_connection)))
 		return ERROR_CODE;
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

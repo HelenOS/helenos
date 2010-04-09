@@ -49,8 +49,8 @@
 #include <adt/measured_strings.h>
 #include <net_device.h>
 #include <nil_interface.h>
-#include <netif.h>
-#include <netif_module.h>
+#include <netif_interface.h>
+#include <netif_local.h>
 
 #include "dp8390.h"
 #include "dp8390_drv.h"
@@ -94,72 +94,14 @@ static irq_code_t	dp8390_code = {
 	dp8390_cmds
 };
 
-/** Network interface module global data.
- */
-netif_globals_t netif_globals;
-
 /** Handles the interrupt messages.
  *  This is the interrupt handler callback function.
  *  @param[in] iid The interrupt message identifier.
  *  @param[in] call The interrupt message.
  */
-void irq_handler(ipc_callid_t iid, ipc_call_t * call);
-
-/** Changes the network interface state.
- *  @param[in,out] device The network interface.
- *  @param[in] state The new state.
- *  @returns The new state.
- */
-int change_state(device_ref device, device_state_t state);
-
-int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return ENOTSUP;
-}
-
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
-	ERROR_DECLARE;
-
-	device_ref device;
-	eth_stat_t * de_stat;
-
-	if(! stats){
-		return EBADMEM;
-	}
-	ERROR_PROPAGATE(find_device(device_id, &device));
-	de_stat = &((dpeth_t *) device->specific)->de_stat;
-	null_device_stats(stats);
-	stats->receive_errors = de_stat->ets_recvErr;
-	stats->send_errors = de_stat->ets_sendErr;
-	stats->receive_crc_errors = de_stat->ets_CRCerr;
-	stats->receive_frame_errors = de_stat->ets_frameAll;
-	stats->receive_missed_errors = de_stat->ets_missedP;
-	stats->receive_packets = de_stat->ets_packetR;
-	stats->send_packets = de_stat->ets_packetT;
-	stats->collisions = de_stat->ets_collision;
-	stats->send_aborted_errors = de_stat->ets_transAb;
-	stats->send_carrier_errors = de_stat->ets_carrSense;
-	stats->send_heartbeat_errors = de_stat->ets_CDheartbeat;
-	stats->send_window_errors = de_stat->ets_OWC;
-	return EOK;
-}
-
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
-	ERROR_DECLARE;
-
-	device_ref device;
-
-	if(! address){
-		return EBADMEM;
-	}
-	ERROR_PROPAGATE(find_device(device_id, &device));
-	address->value = (char *) (&((dpeth_t *) device->specific)->de_address);
-	address->length = CONVERT_SIZE(ether_addr_t, char, 1);
-	return EOK;
-}
-
-void irq_handler(ipc_callid_t iid, ipc_call_t * call)
+static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 {
-	device_ref device;
+	netif_device_t * device;
 	dpeth_t * dep;
 	packet_t received;
 	device_id_t device_id;
@@ -202,13 +144,79 @@ void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 	ipc_answer_0(iid, EOK);
 }
 
+/** Changes the network interface state.
+ *  @param[in,out] device The network interface.
+ *  @param[in] state The new state.
+ *  @returns The new state.
+ */
+static int change_state(netif_device_t * device, device_state_t state)
+{
+	if (device->state != state) {
+		device->state = state;
+		
+		printf("%s: State changed to %s\n", NAME,
+		    (state == NETIF_ACTIVE) ? "active" : "stopped");
+		
+		return state;
+	}
+	
+	return EOK;
+}
+
+int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return ENOTSUP;
+}
+
+int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
+	ERROR_DECLARE;
+
+	netif_device_t * device;
+	eth_stat_t * de_stat;
+
+	if(! stats){
+		return EBADMEM;
+	}
+	ERROR_PROPAGATE(find_device(device_id, &device));
+	de_stat = &((dpeth_t *) device->specific)->de_stat;
+	null_device_stats(stats);
+	stats->receive_errors = de_stat->ets_recvErr;
+	stats->send_errors = de_stat->ets_sendErr;
+	stats->receive_crc_errors = de_stat->ets_CRCerr;
+	stats->receive_frame_errors = de_stat->ets_frameAll;
+	stats->receive_missed_errors = de_stat->ets_missedP;
+	stats->receive_packets = de_stat->ets_packetR;
+	stats->send_packets = de_stat->ets_packetT;
+	stats->collisions = de_stat->ets_collision;
+	stats->send_aborted_errors = de_stat->ets_transAb;
+	stats->send_carrier_errors = de_stat->ets_carrSense;
+	stats->send_heartbeat_errors = de_stat->ets_CDheartbeat;
+	stats->send_window_errors = de_stat->ets_OWC;
+	return EOK;
+}
+
+int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
+	ERROR_DECLARE;
+
+	netif_device_t * device;
+
+	if(! address){
+		return EBADMEM;
+	}
+	ERROR_PROPAGATE(find_device(device_id, &device));
+	address->value = (char *) (&((dpeth_t *) device->specific)->de_address);
+	address->length = CONVERT_SIZE(ether_addr_t, char, 1);
+	return EOK;
+}
+
+
+
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	dpeth_t * dep;
 
-	device = (device_ref) malloc(sizeof(device_t));
+	device = (netif_device_t *) malloc(sizeof(netif_device_t));
 	if(! device){
 		return ENOMEM;
 	}
@@ -217,7 +225,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 		free(device);
 		return ENOMEM;
 	}
-	bzero(device, sizeof(device_t));
+	bzero(device, sizeof(netif_device_t));
 	bzero(dep, sizeof(dpeth_t));
 	device->device_id = device_id;
 	device->nil_phone = -1;
@@ -232,7 +240,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 		free(device);
 		return ERROR_CODE;
 	}
-	if(ERROR_OCCURRED(device_map_add(&netif_globals.device_map, device->device_id, device))){
+	if(ERROR_OCCURRED(netif_device_map_add(&netif_globals.device_map, device->device_id, device))){
 		free(dep);
 		free(device);
 		return ERROR_CODE;
@@ -243,7 +251,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	dpeth_t * dep;
 	packet_t next;
 
@@ -270,7 +278,7 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	return EOK;
 }
 
-int netif_start_message(device_ref device){
+int netif_start_message(netif_device_t * device){
 	ERROR_DECLARE;
 
 	dpeth_t * dep;
@@ -289,7 +297,7 @@ int netif_start_message(device_ref device){
 	return EOK;
 }
 
-int netif_stop_message(device_ref device){
+int netif_stop_message(netif_device_t * device){
 	dpeth_t * dep;
 
 	if(device->state != NETIF_STOPPED){
@@ -301,20 +309,6 @@ int netif_stop_message(device_ref device){
 	return EOK;
 }
 
-int change_state(device_ref device, device_state_t state)
-{
-	if (device->state != state) {
-		device->state = state;
-		
-		printf("%s: State changed to %s\n", NAME,
-		    (state == NETIF_ACTIVE) ? "active" : "stopped");
-		
-		return state;
-	}
-	
-	return EOK;
-}
-
 int netif_initialize(void){
 	ipcarg_t phonehash;
 
@@ -322,10 +316,6 @@ int netif_initialize(void){
 
 	return REGISTER_ME(SERVICE_DP8390, &phonehash);
 }
-
-#ifdef CONFIG_NETWORKING_modular
-
-#include <netif_standalone.h>
 
 /** Default thread for new connections.
  *
@@ -384,9 +374,6 @@ int main(int argc, char *argv[])
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
-
 
 /** @}
  */

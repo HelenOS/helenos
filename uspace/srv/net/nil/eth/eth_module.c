@@ -45,8 +45,7 @@
 #include <net_modules.h>
 #include <net_interface.h>
 #include <packet/packet.h>
-#include <nil_module.h>
-#include <nil_standalone.h>
+#include <nil_local.h>
 
 #include "eth.h"
 
@@ -58,23 +57,23 @@
  *  @returns Other error codes as defined for the nil_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int nil_module_start(async_client_conn_t client_connection){
+int nil_module_start_standalone(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
-
-	ipcarg_t phonehash;
-	int net_phone;
-
+	
 	async_set_client_connection(client_connection);
-	net_phone = net_connect_module(SERVICE_NETWORKING);
+	int net_phone = net_connect_module(SERVICE_NETWORKING);
 	ERROR_PROPAGATE(pm_init());
-	if(ERROR_OCCURRED(nil_initialize(net_phone))
-		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))){
+	
+	ipcarg_t phonehash;
+	if (ERROR_OCCURRED(nil_initialize(net_phone))
+	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
-
+	
 	async_manager();
-
+	
 	pm_destroy();
 	return EOK;
 }
@@ -94,10 +93,10 @@ int nil_module_start(async_client_conn_t client_connection){
  *         specific module message function.
  *
  */
-int nil_module_message(const char *name, ipc_callid_t callid, ipc_call_t *call,
+int nil_module_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	return nil_message(name, callid, call, answer, answer_count);
+	return nil_message_standalone(name, callid, call, answer, answer_count);
 }
 
 /** @}

@@ -38,13 +38,11 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-ifeq ($(CONFIG_NETWORKING),modular)
-	BINARY = dp8390
+ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
+	LIBS += $(USPACE_PREFIX)/srv/net/nil/eth/libeth.a
 endif
 
-ifeq ($(CONFIG_NETWORKING),module)
-	LIBRARY = libdp8390
-endif
+BINARY = dp8390
 
 SOURCES = \
 	dp8390.c \

@@ -163,7 +163,7 @@ packet_t packet_get_copy(int phone, packet_t packet){
 		return NULL;
 	}
 	// get a new packet
-	copy = packet_get_4(phone, PACKET_DATA_LENGTH(packet), PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix, PACKET_MIN_SUFFIX(packet));
+	copy = packet_get_4_local(phone, PACKET_DATA_LENGTH(packet), PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix, PACKET_MIN_SUFFIX(packet));
 	if(! copy){
 		return NULL;
 	}
@@ -177,7 +177,7 @@ packet_t packet_get_copy(int phone, packet_t packet){
 		copy->metric = packet->metric;
 		return copy;
 	}else{
-		pq_release(phone, copy->packet_id);
+		pq_release_local(phone, copy->packet_id);
 		return NULL;
 	}
 }

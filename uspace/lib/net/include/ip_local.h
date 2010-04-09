@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup il_standalone
- *  @{
+/** @addtogroup ip
+ * @{
  */
 
-#ifndef __IL_STANDALONE_H__
-#define __IL_STANDALONE_H__
+#ifndef __NET_IP_LOCAL_H__
+#define __NET_IP_LOCAL_H__
 
-#include <ipc/ipc.h>
 #include <async.h>
+#include <ipc/services.h>
 
-extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count);
-extern int il_module_start(async_client_conn_t client_connection);
+#include <ip_codes.h>
+#include <inet.h>
+#include <in.h>
+#include <socket.h>
+
+extern int ip_received_error_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_set_gateway_req_local(int, device_id_t, in_addr_t);
+extern int ip_packet_size_req_local(int, device_id_t, packet_dimension_ref);
+extern int ip_received_error_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_device_req_local(int, device_id_t, services_t);
+extern int ip_add_route_req_local(int, device_id_t, in_addr_t, in_addr_t,
+    in_addr_t);
+extern int ip_send_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_get_route_req_local(int, ip_protocol_t, const struct sockaddr *,
+    socklen_t, device_id_t *, void **, size_t *);
 
 #endif
 

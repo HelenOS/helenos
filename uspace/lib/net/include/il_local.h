@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tl_standalone
+/** @addtogroup il_local
  *  @{
  */
 
-#ifndef __TL_STANDALONE_H__
-#define __TL_STANDALONE_H__
+#ifndef __IL_LOCAL_H__
+#define __IL_LOCAL_H__
 
 #include <ipc/ipc.h>
 #include <async.h>
 
-extern int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count);
-extern int tl_module_start(async_client_conn_t client_connection);
+extern int il_module_start_standalone(async_client_conn_t client_connection);
 
 #endif
 

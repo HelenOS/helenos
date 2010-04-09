@@ -39,9 +39,11 @@ INIT_TASKS = \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/bd/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs
+
 ifeq ($(RDFMT),tmpfs)
 	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif
+
 ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
 endif
@@ -59,11 +61,20 @@ RD_SRVS = \
 	$(USPACEDIR)/srv/fs/fat/fat \
 	$(USPACEDIR)/srv/taskmon/taskmon \
 	$(USPACEDIR)/srv/hw/netif/dp8390/dp8390 \
+	$(USPACEDIR)/srv/net/netif/lo/lo \
+	$(USPACEDIR)/srv/net/il/arp/arp \
+	$(USPACEDIR)/srv/net/il/ip/ip \
+	$(USPACEDIR)/srv/net/tl/icmp/icmp \
+	$(USPACEDIR)/srv/net/tl/udp/udp \
+	$(USPACEDIR)/srv/net/tl/tcp/tcp \
 	$(USPACEDIR)/srv/net/net/net \
 	$(USPACEDIR)/srv/net/netstart/netstart \
-	$(USPACEDIR)/srv/net/netif/lo/lo \
-	$(USPACEDIR)/srv/net/nil/eth/eth \
-	$(USPACEDIR)/srv/net/nil/nildummy/nildummy
+
+ifneq ($(CONFIG_NETIF_NIL_BUNDLE),y)
+	RD_SRVS += \
+		$(USPACEDIR)/srv/net/nil/eth/eth \
+		$(USPACEDIR)/srv/net/nil/nildummy/nildummy
+endif
 
 RD_APPS = \
 	$(USPACEDIR)/app/bdsh/bdsh \
@@ -77,10 +88,10 @@ RD_APPS = \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
 	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/netecho/netecho \
-	$(USPACEDIR)/app/ping/ping \
 	$(USPACEDIR)/app/nettest1/nettest1 \
-	$(USPACEDIR)/app/nettest2/nettest2
+	$(USPACEDIR)/app/nettest2/nettest2 \
+	$(USPACEDIR)/app/netecho/netecho \
+	$(USPACEDIR)/app/ping/ping
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
@@ -90,23 +101,16 @@ COMPONENTS = \
 	$(USPACEDIR)/srv/devmap/devmap \
 	$(USPACEDIR)/srv/bd/rd/rd \
 	$(USPACEDIR)/srv/vfs/vfs
+
 ifeq ($(RDFMT),tmpfs)
 	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
 endif
+
 ifeq ($(RDFMT),fat)
 	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
 endif
 
 NET_CFG = \
-	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/general \
-	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/lo \
-	$(USPACEDIR)/srv/net/cfg/$(CONFIG_NETWORKING)/ne2k
-
-ifeq ($(CONFIG_NETWORKING),modular)
-	RD_SRVS += \
-		$(USPACEDIR)/srv/net/il/ip/ip \
-		$(USPACEDIR)/srv/net/il/arp/arp \
-		$(USPACEDIR)/srv/net/tl/udp/udp \
-		$(USPACEDIR)/srv/net/tl/tcp/tcp \
-		$(USPACEDIR)/srv/net/tl/icmp/icmp
-endif
+	$(USPACEDIR)/srv/net/cfg/general \
+	$(USPACEDIR)/srv/net/cfg/lo \
+	$(USPACEDIR)/srv/net/cfg/ne2k

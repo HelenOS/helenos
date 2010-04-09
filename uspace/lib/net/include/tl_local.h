@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nil_standalone
+/** @addtogroup tl_local
  *  @{
  */
 
-#ifndef __NIL_STANDALONE_H__
-#define __NIL_STANDALONE_H__
+#ifndef __TL_LOCAL_H__
+#define __TL_LOCAL_H__
 
 #include <ipc/ipc.h>
 #include <async.h>
 
-extern int nil_module_message(const char *, ipc_callid_t, ipc_call_t *,
+extern int tl_module_message_standalone(ipc_callid_t, ipc_call_t *,
     ipc_call_t *, int *);
-extern int nil_module_start(async_client_conn_t);
+extern int tl_module_start_standalone(async_client_conn_t);
 
 #endif
 

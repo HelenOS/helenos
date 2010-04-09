@@ -89,7 +89,7 @@ static void socket_destroy_core(int packet_phone, socket_core_ref socket, socket
 	}
 	// release all received packets
 	while((packet_id = dyn_fifo_pop(&socket->received)) >= 0){
-		pq_release(packet_phone, packet_id);
+		pq_release_local(packet_phone, packet_id);
 	}
 	dyn_fifo_destroy(&socket->received);
 	dyn_fifo_destroy(&socket->accepted);

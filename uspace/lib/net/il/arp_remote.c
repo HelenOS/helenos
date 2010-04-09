@@ -31,7 +31,7 @@
  */
 
 /** @file
- *  ARP interface implementation for standalone remote modules.
+ *  ARP interface implementation for remote modules.
  *  @see arp_interface.h
  */
 
