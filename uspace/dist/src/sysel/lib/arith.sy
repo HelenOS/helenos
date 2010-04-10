@@ -26,27 +26,20 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
--- Using the List class from the library.
-class ListDemo is
-	fun Main() is
-		var list : List;
-		var i : Int;
+class Arith is
+	-- Return factorial of n.
+	fun Factorial(n : int) : int is
+		var i : int;
+		var val : int;
 
-		list = new List();
-		list.Init();
+		i = 1;
+		val = 1;
 
-		-- We need autoboxing or generics to get rid of this mess.
-		i = new Int(); i.Value = 5; list.Append(i);
-		i = new Int(); i.Value = 6; list.Append(i);
-		i = new Int(); i.Value = 7; list.Append(i);
-		i = new Int(); i.Value = 8; list.Append(i);
-
-		var n : ListNode;
-
-		n = list.First;
-		while n != nil do
-			Builtin.WriteLine((n.value as Int).Value);
-			n = n.Next;
+		while i <= n do
+			val = val * i;
+			i = i + 1;
 		end
+
+		return val;
 	end
 end

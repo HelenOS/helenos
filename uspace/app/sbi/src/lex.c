@@ -52,6 +52,7 @@ static bool_t is_wstart(char c);
 static bool_t is_wcont(char c);
 static bool_t is_digit(char c);
 static void lex_word(lex_t *lex);
+static void lex_char(lex_t *lex);
 static void lex_number(lex_t *lex);
 static void lex_string(lex_t *lex);
 static int digit_value(char c);
@@ -73,6 +74,8 @@ struct lc_name {
 /** Keyword names. Used both for printing and recognition. */
 static struct lc_name keywords[] = {
 	{ lc_as,	"as" },
+	{ lc_bool,	"bool" },
+	{ lc_char,	"char" },
 	{ lc_builtin,	"builtin" },
 	{ lc_class,	"class" },
 	{ lc_constructor,	"constructor" },
@@ -80,6 +83,7 @@ static struct lc_name keywords[] = {
 	{ lc_else,	"else" },
 	{ lc_end,	"end" },
 	{ lc_except,	"except" },
+	{ lc_false,	"false" },
 	{ lc_finally,	"finally" },
 	{ lc_for,	"for" },
 	{ lc_fun,	"fun" },
@@ -107,6 +111,7 @@ static struct lc_name keywords[] = {
 	{ lc_struct,	"struct" },
 	{ lc_then,	"then" },
 	{ lc_this,	"this" },
+	{ lc_true,	"true" },
 	{ lc_var,	"var" },
 	{ lc_with,	"with" },
 	{ lc_while,	"while" },
@@ -337,6 +342,11 @@ static bool_t lex_read_try(lex_t *lex)
 		return b_true;
 	}
 
+	if (bp[0] == '\'') {
+		lex_char(lex);
+		return b_true;
+	}
+
 	if (is_digit(bp[0])) {
 		lex_number(lex);
 		return b_true;
@@ -459,6 +469,52 @@ static void lex_word(lex_t *lex)
 	/* No matching keyword -- it must be an identifier. */
 	lex->current.lclass = lc_ident;
 	lex->current.u.ident.sid = strtab_get_sid(ident_buf);
+}
+
+/** Lex a character literal.
+ *
+ * Reads in a character literal and stores it in the current lem in @a lex.
+ *
+ * @param lex		Lexer object.
+ */
+static void lex_char(lex_t *lex)
+{
+	char *bp;
+	int idx;
+	size_t len;
+	int char_val;
+
+	bp = lex->ibp + 1;
+	idx = 0;
+
+	while (bp[idx] != '\'') {
+		if (idx >= SLBUF_SIZE) {
+			printf("Error: Character literal too long.\n");
+			exit(1);
+		}
+
+		if (bp[idx] == '\0') {
+			printf("Error: Unterminated character literal.\n");
+			exit(1);
+		}
+
+		strlit_buf[idx] = bp[idx];
+		++idx;
+	}
+
+	lex->ibp = bp + idx + 1;
+
+	strlit_buf[idx] = '\0';
+	len = os_str_length(strlit_buf);
+	if (len != 1) {
+		printf("Character literal should contain one character, "
+		    "but contains %u characters instead.\n", (unsigned) len);
+		exit(1);
+	}
+
+	os_str_get_char(strlit_buf, 0, &char_val);
+	lex->current.lclass = lc_lit_char;
+	bigint_init(&lex->current.u.lit_char.value, char_val);
 }
 
 /** Lex a numeric literal.

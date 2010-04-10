@@ -50,9 +50,12 @@
 #include "bigint.h"
 #include "mytypes.h"
 #include "stree.h"
+#include "symbol.h"
 
 #include "rdata.h"
 
+static void rdata_bool_copy(rdata_bool_t *src, rdata_bool_t **dest);
+static void rdata_char_copy(rdata_char_t *src, rdata_char_t **dest);
 static void rdata_int_copy(rdata_int_t *src, rdata_int_t **dest);
 static void rdata_string_copy(rdata_string_t *src, rdata_string_t **dest);
 static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest);
@@ -286,6 +289,40 @@ rdata_object_t *rdata_object_new(void)
 	return object;
 }
 
+/** Allocate new boolean.
+ *
+ * @return	New boolean.
+ */
+rdata_bool_t *rdata_bool_new(void)
+{
+	rdata_bool_t *bool_v;
+
+	bool_v = calloc(1, sizeof(rdata_bool_t));
+	if (bool_v == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return bool_v;
+}
+
+/** Allocate new character.
+ *
+ * @return	New character.
+ */
+rdata_char_t *rdata_char_new(void)
+{
+	rdata_char_t *char_v;
+
+	char_v = calloc(1, sizeof(rdata_char_t));
+	if (char_v == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return char_v;
+}
+
 /** Allocate new integer.
  *
  * @return	New integer.
@@ -397,6 +434,12 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	nvar = rdata_var_new(src->vc);
 
 	switch (src->vc) {
+	case vc_bool:
+		rdata_bool_copy(src->u.bool_v, &nvar->u.bool_v);
+		break;
+	case vc_char:
+		rdata_char_copy(src->u.char_v, &nvar->u.char_v);
+		break;
 	case vc_int:
 		rdata_int_copy(src->u.int_v, &nvar->u.int_v);
 		break;
@@ -421,6 +464,28 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	}
 
 	*dest = nvar;
+}
+
+/** Copy boolean.
+ *
+ * @param src		Source boolean.
+ * @param dest		Place to store pointer to new boolean.
+ */
+static void rdata_bool_copy(rdata_bool_t *src, rdata_bool_t **dest)
+{
+	*dest = rdata_bool_new();
+	(*dest)->value = src->value;
+}
+
+/** Copy character.
+ *
+ * @param src		Source character.
+ * @param dest		Place to store pointer to new character.
+ */
+static void rdata_char_copy(rdata_char_t *src, rdata_char_t **dest)
+{
+	*dest = rdata_char_new();
+	bigint_clone(&src->value, &(*dest)->value);
 }
 
 /** Copy integer.
@@ -549,6 +614,8 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 
 	var->vc = nvar->vc;
 	switch (nvar->vc) {
+	case vc_bool: var->u.bool_v = nvar->u.bool_v; break;
+	case vc_char: var->u.char_v = nvar->u.char_v; break;
 	case vc_int: var->u.int_v = nvar->u.int_v; break;
 	case vc_string: var->u.string_v = nvar->u.string_v; break;
 	case vc_ref: var->u.ref_v = nvar->u.ref_v; break;
@@ -620,7 +687,20 @@ void rdata_value_print(rdata_value_t *value)
  */
 static void rdata_var_print(rdata_var_t *var)
 {
+	int val;
+
 	switch (var->vc) {
+	case vc_bool:
+		printf("bool(%s)", var->u.bool_v->value ? "true" : "false");
+		break;
+	case vc_char:
+		printf("char(");
+		if (bigint_get_value_int(&var->u.char_v->value, &val) == EOK)
+			printf("'%c'", val);
+		else
+			printf("???:x%x\n", (unsigned) val);
+		printf(")");
+		break;
 	case vc_int:
 		printf("int(");
 		bigint_print(&var->u.int_v->value);
@@ -630,16 +710,27 @@ static void rdata_var_print(rdata_var_t *var)
 		printf("string(\"%s\")", var->u.string_v->value);
 		break;
 	case vc_ref:
-		printf("ref");
+		printf("ref(");
+		rdata_var_print(var->u.ref_v->vref);
+		printf(")");
 		break;
 	case vc_deleg:
-		printf("deleg");
+		printf("deleg(");
+		if (var->u.deleg_v->obj != NULL) {
+			rdata_var_print(var->u.deleg_v->obj);
+			printf(",");
+		}
+		symbol_print_fqn(var->u.deleg_v->sym);
+		printf(")");
+		break;
+	case vc_array:
+		printf("array");
 		break;
 	case vc_object:
 		printf("object");
 		break;
-	default:
-		printf("print(%d)\n", var->vc);
-		assert(b_false);
+	case vc_resource:
+		printf("resource(%p)", var->u.resource_v->data);
+		break;
 	}
 }

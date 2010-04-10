@@ -37,6 +37,9 @@
 
 #include "os.h"
 
+/** Path to executable file via which we have been invoked. */
+static char *ef_path;
+
 /*
  * Using HelenOS-specific string API.
  */
@@ -69,6 +72,12 @@ char *os_str_acat(const char *a, const char *b)
 int os_str_cmp(const char *a, const char *b)
 {
 	return str_cmp(a, b);
+}
+
+/** Return number of characters in string. */
+size_t os_str_length(const char *str)
+{
+	return str_length(str);
 }
 
 /** Duplicate string. */
@@ -154,4 +163,19 @@ int os_exec(char *const cmd[])
 	task_wait(tid, &texit, &retval);
 
 	return EOK;
+}
+
+/** Store the executable file path via which we were executed. */
+void os_store_ef_path(char *path)
+{
+	ef_path = path;
+}
+
+/** Return path to the Sysel library
+ *
+ * @return New string. Caller should deallocate it using @c free().
+ */
+char *os_get_lib_path(void)
+{
+	return os_str_dup("/src/sysel/lib");
 }

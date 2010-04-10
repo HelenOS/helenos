@@ -63,8 +63,6 @@ static void stype_return(stype_t *stype, stree_return_t *return_s);
 static void stype_exps(stype_t *stype, stree_exps_t *exp_s, bool_t want_value);
 static void stype_wef(stype_t *stype, stree_wef_t *wef_s);
 
-static tdata_item_t *stype_boolean_titem(stype_t *stype);
-
 /** Type module */
 void stype_module(stype_t *stype, stree_module_t *module)
 {
@@ -188,8 +186,18 @@ static void stype_fun(stype_t *stype, stree_fun_t *fun)
 /** Type member variable */
 static void stype_var(stype_t *stype, stree_var_t *var)
 {
+	tdata_item_t *titem;
+
 	(void) stype;
 	(void) var;
+
+	run_texpr(stype->program, stype->current_csi, var->type,
+	    &titem);
+	if (titem->tic == tic_ignore) {
+		/* An error occured. */
+		stype_note_error(stype);
+		return;
+	}
 }
 
 /** Type property */
@@ -282,6 +290,7 @@ static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s)
 {
 	stype_block_vr_t *block_vr;
 	stree_vdecl_t *old_vdecl;
+	tdata_item_t *titem;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type variable declaration statement.\n");
@@ -296,8 +305,15 @@ static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s)
 		stype_note_error(stype);
 	}
 
-	intmap_set(&block_vr->vdecls, vdecl_s->name->sid, vdecl_s);
+	run_texpr(stype->program, stype->current_csi, vdecl_s->type,
+	    &titem);
+	if (titem->tic == tic_ignore) {
+		/* An error occured. */
+		stype_note_error(stype);
+		return;
+	}
 
+	intmap_set(&block_vr->vdecls, vdecl_s->name->sid, vdecl_s);
 }
 
 /** Type @c if statement */
@@ -523,13 +539,16 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 		    dest->u.tarray->base_ti) != b_true)
 			goto failure;
 		break;
-	default:
+	case tic_tfun:
 		printf("Error: Unimplemented: Converting '");
 		tdata_item_print(src);
 		printf("' to '");
 		tdata_item_print(dest);
 		printf("'.\n");
 		stype_note_error(stype);
+		break;
+	case tic_ignore:
+		assert(b_false);
 	}
 
 	return expr;
@@ -546,16 +565,15 @@ failure:
 }
 
 /** Return a boolean type item */
-static tdata_item_t *stype_boolean_titem(stype_t *stype)
+tdata_item_t *stype_boolean_titem(stype_t *stype)
 {
 	tdata_item_t *titem;
 	tdata_primitive_t *tprimitive;
 
 	(void) stype;
 
-	/* XXX Use a true boolean type */
 	titem = tdata_item_new(tic_tprimitive);
-	tprimitive = tdata_primitive_new(tpc_int);
+	tprimitive = tdata_primitive_new(tpc_bool);
 	titem->u.tprimitive = tprimitive;
 
 	return titem;

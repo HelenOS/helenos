@@ -33,6 +33,10 @@
 
 /** Class of primitive type. */
 typedef enum {
+	/** Boolean type */
+	tpc_bool,
+	/** Character type */
+	tpc_char,
 	/** Integer type */
 	tpc_int,
 	/** Special type for nil reference */
@@ -56,6 +60,9 @@ typedef struct {
 
 	/** CSI definition */
 	struct stree_csi *csi;
+
+	/** (Real) type arguments */
+	list_t targs; /* of tdata_item_t */
 } tdata_object_t;
 
 /** Array type. */
@@ -69,10 +76,6 @@ typedef struct {
 	/** Extents */
 	list_t extents; /* of stree_expr_t */
 } tdata_array_t;
-
-/** Generic type. */
-typedef struct {
-} tdata_generic_t;
 
 /** Functional type. */
 typedef struct {
@@ -89,8 +92,6 @@ typedef enum {
 	tic_tobject,
 	/** Array type item */
 	tic_tarray,
-	/** Generic type item */
-	tic_tgeneric,
 	/** Function type item */
 	tic_tfun,
 	/** Special error-recovery type item */
@@ -105,7 +106,6 @@ typedef struct tdata_item {
 		tdata_primitive_t *tprimitive;
 		tdata_object_t *tobject;
 		tdata_array_t *tarray;
-		tdata_generic_t *tgeneric;
 		tdata_fun_t *tfun;
 	} u;
 } tdata_item_t;

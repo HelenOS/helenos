@@ -31,7 +31,7 @@
 
 #include "mytypes.h"
 
-int input_new_file(input_t **input, char *fname);
+int input_new_file(input_t **input, const char *fname);
 int input_new_interactive(input_t **input);
 int input_new_string(input_t **input, const char *str);
 

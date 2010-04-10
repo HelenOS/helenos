@@ -26,27 +26,22 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
--- Using the List class from the library.
-class ListDemo is
-	fun Main() is
-		var list : List;
-		var i : Int;
+--
+-- Declarations for boxed variants of primitive types.
+--
 
-		list = new List();
-		list.Init();
+class Bool is
+	var Value : bool;
+end
 
-		-- We need autoboxing or generics to get rid of this mess.
-		i = new Int(); i.Value = 5; list.Append(i);
-		i = new Int(); i.Value = 6; list.Append(i);
-		i = new Int(); i.Value = 7; list.Append(i);
-		i = new Int(); i.Value = 8; list.Append(i);
+class Char is
+	var Value : char;
+end
 
-		var n : ListNode;
+class Int is
+	var Value : int;
+end
 
-		n = list.First;
-		while n != nil do
-			Builtin.WriteLine((n.value as Int).Value);
-			n = n.Next;
-		end
-	end
+class String is
+	var Value : string;
 end

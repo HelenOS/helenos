@@ -52,8 +52,22 @@ static void stype_self_ref(stype_t *stype, stree_self_ref_t *self_ref,
 
 static void stype_binop(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem);
+
 static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem);
+static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+static void stype_binop_nil(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem);
+
 static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem);
 
@@ -72,8 +86,6 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem);
 static void stype_access_tarray(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem);
-static void stype_access_tgeneric(stype_t *stype, stree_access_t *access,
-    tdata_item_t *arg_ti, tdata_item_t **rtitem);
 
 static void stype_call(stype_t *stype, stree_call_t *call,
     tdata_item_t **rtitem);
@@ -85,8 +97,6 @@ static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
 static void stype_index_tobject(stype_t *stype, stree_index_t *index,
     tdata_item_t *base_ti, tdata_item_t **rtitem);
 static void stype_index_tarray(stype_t *stype, stree_index_t *index,
-    tdata_item_t *base_ti, tdata_item_t **rtitem);
-static void stype_index_tgeneric(stype_t *stype, stree_index_t *index,
     tdata_item_t *base_ti, tdata_item_t **rtitem);
 
 static void stype_assign(stype_t *stype, stree_assign_t *assign,
@@ -247,6 +257,8 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 	(void) stype;
 
 	switch (literal->ltc) {
+	case ltc_bool: tpc = tpc_bool; break;
+	case ltc_char: tpc = tpc_char; break;
 	case ltc_int: tpc = tpc_int; break;
 	case ltc_ref: tpc = tpc_nil; break;
 	case ltc_string: tpc = tpc_string; break;
@@ -332,39 +344,61 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 
 }
 
-/** Type a binary operation arguments of primitive type. */
+/** Type a binary operation with arguments of primitive type. */
 static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
 {
-	tprimitive_class_t rtpc;
-	tdata_item_t *res_ti;
-
-	(void) stype;
-
 	assert(ta->tic == tic_tprimitive);
 	assert(tb->tic == tic_tprimitive);
 
 	switch (ta->u.tprimitive->tpc) {
+	case tpc_bool:
+		stype_binop_bool(stype, binop, rtitem);
+		break;
+	case tpc_char:
+		stype_binop_char(stype, binop, rtitem);
+		break;
 	case tpc_int:
-		rtpc = tpc_int;
+		stype_binop_int(stype, binop, rtitem);
 		break;
 	case tpc_nil:
-		printf("Unimplemented; Binary operation on nil.\n");
-		stype_note_error(stype);
-		rtpc = tpc_nil;
+		stype_binop_nil(stype, binop, rtitem);
 		break;
 	case tpc_string:
-		if (binop->bc != bo_plus) {
-			printf("Unimplemented: Binary operation(%d) "
-			    "on strings.\n", binop->bc);
-			stype_note_error(stype);
-		}
-		rtpc = tpc_string;
+		stype_binop_string(stype, binop, rtitem);
 		break;
 	case tpc_resource:
-		printf("Error: Cannot apply operator to resource type.\n");
+		stype_binop_resource(stype, binop, rtitem);
+		break;
+	}
+}
+
+/** Type a binary operation with bool arguments. */
+static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+	case bo_lt:
+	case bo_gt:
+	case bo_lt_equal:
+	case bo_gt_equal:
+		/* Comparison -> boolean type */
+		rtpc = tpc_bool;
+		break;
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		/* Arithmetic -> error */
+		printf("Error: Binary operation (%d) on booleans.\n",
+		    binop->bc);
 		stype_note_error(stype);
-		rtpc = tpc_resource;
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
@@ -373,7 +407,129 @@ static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation arguments of an object type. */
+/** Type a binary operation with char arguments. */
+static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	(void) stype;
+
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+	case bo_lt:
+	case bo_gt:
+	case bo_lt_equal:
+	case bo_gt_equal:
+		/* Comparison -> boolean type */
+		rtpc = tpc_bool;
+		break;
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		/* Arithmetic -> error */
+		printf("Error: Binary operation (%d) on characters.\n",
+		    binop->bc);
+		stype_note_error(stype);
+		rtpc = tpc_char;
+		break;
+	}
+
+	res_ti = tdata_item_new(tic_tprimitive);
+	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
+
+	*rtitem = res_ti;
+}
+
+/** Type a binary operation with int arguments. */
+static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	(void) stype;
+
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+	case bo_lt:
+	case bo_gt:
+	case bo_lt_equal:
+	case bo_gt_equal:
+		/* Comparison -> boolean type */
+		rtpc = tpc_bool;
+		break;
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		/* Arithmetic -> int type */
+		rtpc = tpc_int;
+		break;
+	}
+
+	res_ti = tdata_item_new(tic_tprimitive);
+	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
+
+	*rtitem = res_ti;
+}
+
+/** Type a binary operation with nil arguments. */
+static void stype_binop_nil(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	(void) binop;
+
+	printf("Unimplemented; Binary operation on nil.\n");
+	stype_note_error(stype);
+	*rtitem = stype_recovery_titem(stype);
+}
+
+/** Type a binary operation with string arguments. */
+static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	if (binop->bc != bo_plus) {
+		printf("Unimplemented: Binary operation(%d) "
+		    "on strings.\n", binop->bc);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	rtpc = tpc_string;
+
+	res_ti = tdata_item_new(tic_tprimitive);
+	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
+
+	*rtitem = res_ti;
+}
+
+/** Type a binary operation with resource arguments. */
+static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t **rtitem)
+{
+	tprimitive_class_t rtpc;
+	tdata_item_t *res_ti;
+
+	(void) binop;
+
+	printf("Error: Cannot apply operator to resource type.\n");
+	stype_note_error(stype);
+	rtpc = tpc_resource;
+
+	res_ti = tdata_item_new(tic_tprimitive);
+	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
+
+	*rtitem = res_ti;
+}
+
+/** Type a binary operation with arguments of an object type. */
 static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
 {
@@ -389,14 +545,14 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 	switch (binop->bc) {
 	case bo_equal:
 	case bo_notequal:
-		/* Comparing objects -> boolean (XXX int for now) type */
-		res_ti = tdata_item_new(tic_tprimitive);
-		res_ti->u.tprimitive = tdata_primitive_new(tpc_int);
+		/* Comparing objects -> boolean type */
+		res_ti = stype_boolean_titem(stype);
 		break;
 	default:
 		printf("Error: Binary operation (%d) on objects.\n",
 		    binop->bc);
-		res_ti = NULL;
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
 		return;
 	}
 
@@ -450,6 +606,9 @@ static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
 	assert(ta->tic == tic_tprimitive);
 
 	switch (ta->u.tprimitive->tpc) {
+	case tpc_bool:
+		rtpc = tpc_bool;
+		break;
 	case tpc_int:
 		rtpc = tpc_int;
 		break;
@@ -479,6 +638,11 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
 	 * to the @c new operator.
 	 */
 	run_texpr(stype->program, stype->current_csi, new_op->texpr, rtitem);
+
+	if ((*rtitem)->tic == tic_ignore) {
+		/* An error occured when evaluating the type expression. */
+		stype_note_error(stype);
+	}
 }
 
 /** Type a field access operation */
@@ -509,9 +673,6 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 		break;
 	case tic_tarray:
 		stype_access_tarray(stype, access, arg_ti, rtitem);
-		break;
-	case tic_tgeneric:
-		stype_access_tgeneric(stype, access, arg_ti, rtitem);
 		break;
 	case tic_tfun:
 		printf("Error: Using '.' operator on a function.\n");
@@ -565,6 +726,7 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 		symbol_print_fqn(csi_to_symbol(tobject->csi));
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(access->member_name->sid));
+		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
 	}
@@ -614,21 +776,6 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
 	(void) rtitem;
 
 	printf("Error: Unimplemented: Accessing array type '");
-	tdata_item_print(arg_ti);
-	printf("'.\n");
-	stype_note_error(stype);
-	*rtitem = stype_recovery_titem(stype);
-}
-
-/** Type a generic access operation. */
-static void stype_access_tgeneric(stype_t *stype, stree_access_t *access,
-    tdata_item_t *arg_ti, tdata_item_t **rtitem)
-{
-	(void) stype;
-	(void) access;
-	(void) rtitem;
-
-	printf("Error: Unimplemented: Accessing generic type '");
 	tdata_item_print(arg_ti);
 	printf("'.\n");
 	stype_note_error(stype);
@@ -791,9 +938,6 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 	case tic_tarray:
 		stype_index_tarray(stype, index, base_ti, rtitem);
 		break;
-	case tic_tgeneric:
-		stype_index_tgeneric(stype, index, base_ti, rtitem);
-		break;
 	case tic_tfun:
 		printf("Error: Indexing a function.\n");
 		stype_note_error(stype);
@@ -820,7 +964,7 @@ static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
 
 	if (tprimitive->tpc == tpc_string) {
 		titem = tdata_item_new(tic_tprimitive);
-		titem->u.tprimitive = tdata_primitive_new(tpc_int);
+		titem->u.tprimitive = tdata_primitive_new(tpc_char);
 		*rtitem = titem;
 		return;
 	}
@@ -911,21 +1055,6 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 	}
 
 	*rtitem = base_ti->u.tarray->base_ti;
-}
-
-/** Type a generic indexing operation. */
-static void stype_index_tgeneric(stype_t *stype, stree_index_t *index,
-    tdata_item_t *base_ti, tdata_item_t **rtitem)
-{
-	(void) stype;
-	(void) index;
-	(void) rtitem;
-
-	printf("Error: Unimplemented: Indexing generic type '");
-	tdata_item_print(base_ti);
-	printf("'.\n");
-	stype_note_error(stype);
-	*rtitem = stype_recovery_titem(stype);
 }
 
 /** Type an assignment. */

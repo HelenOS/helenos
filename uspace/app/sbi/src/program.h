@@ -26,19 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OS_H_
-#define OS_H_
+#ifndef PROGRAM_H_
+#define PROGRAM_H_
 
-char *os_str_acat(const char *a, const char *b);
-int os_str_cmp(const char *a, const char *b);
-char *os_str_dup(const char *str);
-size_t os_str_length(const char *str);
-int os_str_get_char(const char *str, int index, int *out_char);
-void os_input_disp_help(void);
-int os_input_line(char **ptr);
-int os_exec(char *const cmd[]);
+#include "mytypes.h"
 
-void os_store_ef_path(char *path);
-char *os_get_lib_path(void);
+int program_file_process(stree_program_t *program, const char *fname);
+int program_lib_process(stree_program_t *program);
 
 #endif

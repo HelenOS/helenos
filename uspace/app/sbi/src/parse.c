@@ -155,6 +155,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	csi_class_t cc;
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *symbol;
+	stree_ident_t *targ_name;
 
 	switch (dclass) {
 	case lc_class: cc = csi_class; break;
@@ -167,6 +168,14 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 
 	csi = stree_csi_new(cc);
 	csi->name = parse_ident(parse);
+
+	list_init(&csi->targ_names);
+
+	while (lcur_lc(parse) == lc_slash) {
+		lskip(parse);
+		targ_name = parse_ident(parse);
+		list_append(&csi->targ_names, targ_name);
+	}
 
 	symbol = stree_symbol_new(sc_csi);
 	symbol->u.csi = csi;

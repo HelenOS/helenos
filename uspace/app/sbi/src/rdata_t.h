@@ -34,6 +34,20 @@
 
 #include "intmap_t.h"
 
+/** Boolean variable. */
+typedef struct {
+	bool_t value;
+} rdata_bool_t;
+
+/** Character variable.
+ *
+ * Sysel character type should be able to store arbitrarily (or at least
+ * very) large character sets.
+ */
+typedef struct {
+	bigint_t value;
+} rdata_char_t;
+
 /** Integer variable.
  *
  * Sysel int type should be able to store arbitrarily (or at least
@@ -42,7 +56,6 @@
 typedef struct {
 	bigint_t value;
 } rdata_int_t;
-
 
 /** String variable */
 typedef struct {
@@ -103,6 +116,12 @@ typedef struct {
 } rdata_resource_t;
 
 typedef enum var_class {
+	/** Boolean */
+	vc_bool,
+
+	/** Character **/
+	vc_char,
+
 	/** Integer */
 	vc_int,
 
@@ -135,6 +154,8 @@ typedef struct rdata_var {
 	var_class_t vc;
 
 	union {
+		rdata_bool_t *bool_v;
+		rdata_char_t *char_v;
 		rdata_int_t *int_v;
 		rdata_string_t *string_v;
 		rdata_ref_t *ref_v;

@@ -98,6 +98,8 @@ void bi_fun_bind(builtin_t *bi)
 static void bi_fun_builtin_writeline(run_t *run)
 {
 	rdata_var_t *var;
+	int char_val;
+	int rc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Called Builtin.WriteLine()\n");
@@ -106,6 +108,13 @@ static void bi_fun_builtin_writeline(run_t *run)
 	assert(var);
 
 	switch (var->vc) {
+	case vc_char:
+		rc = bigint_get_value_int(&var->u.char_v->value, &char_val);
+		if (rc == EOK)
+			printf("%lc\n", char_val);
+		else
+			printf("???\n");
+		break;
 	case vc_int:
 		bigint_print(&var->u.int_v->value);
 		putchar('\n');

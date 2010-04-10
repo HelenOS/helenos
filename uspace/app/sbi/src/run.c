@@ -656,6 +656,7 @@ stree_csi_t *run_get_current_csi(run_t *run)
  */
 void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 {
+	rdata_char_t *char_v;
 	rdata_int_t *int_v;
 	rdata_string_t *string_v;
 	rdata_ref_t *ref_v;
@@ -665,6 +666,14 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 	in_var = item->u.value->var;
 
 	switch (in_var->vc) {
+	case vc_char:
+		*var = rdata_var_new(vc_char);
+		char_v = rdata_char_new();
+
+		(*var)->u.char_v = char_v;
+		bigint_clone(&item->u.value->var->u.char_v->value,
+		    &char_v->value);
+		break;
 	case vc_int:
 		*var = rdata_var_new(vc_int);
 		int_v = rdata_int_new();

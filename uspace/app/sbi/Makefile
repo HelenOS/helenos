@@ -49,6 +49,7 @@ SOURCES = \
 	src/p_expr.c \
 	src/p_type.c \
 	src/parse.c \
+	src/program.c \
 	src/rdata.c \
 	src/run.c \
 	src/run_expr.c \
