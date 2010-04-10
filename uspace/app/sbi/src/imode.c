@@ -46,6 +46,7 @@
 #include "intmap.h"
 #include "list.h"
 #include "mytypes.h"
+#include "program.h"
 #include "rdata.h"
 #include "stree.h"
 #include "strtab.h"
@@ -89,6 +90,10 @@ void imode_run(void)
 	/* Declare builtin symbols. */
 	builtin_declare(program);
 
+	/* Process the library. */
+	if (program_lib_process(program) != EOK)
+		exit(1);
+
 	/* Resolve ancestry. */
 	ancr_module_process(program, program->module);
 
@@ -129,6 +134,8 @@ void imode_run(void)
 	while (quit_im != b_true) {
 		parse.error = b_false;
 		stype.error = b_false;
+		run.thread_ar->exc_payload = NULL;
+		run.thread_ar->bo_mode = bm_none;
 
 		input_new_interactive(&input);
 

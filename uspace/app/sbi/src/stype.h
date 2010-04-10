@@ -40,6 +40,8 @@ tdata_item_t *stype_recovery_titem(stype_t *stype);
 stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
 
+tdata_item_t *stype_boolean_titem(stype_t *stype);
+
 stree_vdecl_t *stype_local_vars_lookup(stype_t *stype, sid_t name);
 stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name);
 stype_block_vr_t *stype_get_current_block_vr(stype_t *stype);

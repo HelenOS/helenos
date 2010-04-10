@@ -53,6 +53,17 @@ typedef struct {
 typedef struct {
 } stree_self_ref_t;
 
+/** Boolean literal */
+typedef struct {
+	bool_t value;
+} stree_lit_bool_t;
+
+/** Character literal */
+typedef struct {
+	bigint_t value;
+} stree_lit_char_t;
+
+/** Integer literal */
 typedef struct {
 	bigint_t value;
 } stree_lit_int_t;
@@ -61,11 +72,14 @@ typedef struct {
 typedef struct {
 } stree_lit_ref_t;
 
+/** String literal */
 typedef struct {
 	char *value;
 } stree_lit_string_t;
 
 typedef enum {
+	ltc_bool,
+	ltc_char,
 	ltc_int,
 	ltc_ref,
 	ltc_string
@@ -75,6 +89,8 @@ typedef enum {
 typedef struct {
 	literal_class_t ltc;
 	union {
+		stree_lit_bool_t lit_bool;
+		stree_lit_char_t lit_char;
 		stree_lit_int_t lit_int;
 		stree_lit_ref_t lit_ref;
 		stree_lit_string_t lit_string;
@@ -213,6 +229,8 @@ struct stree_texpr;
 
 /** Type literal class */
 typedef enum {
+	tlc_bool,
+	tlc_char,
 	tlc_int,
 	tlc_resource,
 	tlc_string
@@ -238,8 +256,11 @@ typedef struct {
 
 /** Type application operation */
 typedef struct {
-	/** Arguments */
-	struct stree_texpr *gtype, *targ;
+	/* Base type */
+	struct stree_texpr *gtype;
+
+	/** (Formal) type arguments */
+	list_t targs; /* of stree_texpr_t */
 } stree_tapply_t;
 
 /** Type index operation */
@@ -494,6 +515,9 @@ typedef struct stree_csi {
 
 	/** Name of this CSI */
 	stree_ident_t *name;
+
+	/** List of type argument names */
+	list_t targ_names; /* of stree_ident_t */
 
 	/** Symbol for this CSI */
 	struct stree_symbol *symbol;

@@ -44,7 +44,7 @@
 /** Size of input buffer. XXX This limits the maximum line length. */
 #define INPUT_BUFFER_SIZE 256
 
-static int input_init_file(input_t *input, char *fname);
+static int input_init_file(input_t *input, const char *fname);
 static void input_init_interactive(input_t *input);
 static void input_init_string(input_t *input, const char *str);
 
@@ -56,7 +56,7 @@ static void input_init_string(input_t *input, const char *str);
  * @return		EOK on success, ENOMEM when allocation fails,
  *			ENOENT when opening file fails.
  */
-int input_new_file(input_t **input, char *fname)
+int input_new_file(input_t **input, const char *fname)
 {
 	*input = malloc(sizeof(input_t));
 	if (*input == NULL)
@@ -103,7 +103,7 @@ int input_new_string(input_t **input, const char *str)
  *
  * @return		EOK on success, ENOENT when opening file fails.
 */
-static int input_init_file(input_t *input, char *fname)
+static int input_init_file(input_t *input, const char *fname)
 {
 	FILE *f;
 

@@ -55,6 +55,8 @@ static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a);
 static stree_expr_t *parse_paren(parse_t *parse);
 static stree_expr_t *parse_primitive(parse_t *parse);
 static stree_expr_t *parse_nameref(parse_t *parse);
+static stree_expr_t *parse_lit_bool(parse_t *parse);
+static stree_expr_t *parse_lit_char(parse_t *parse);
 static stree_expr_t *parse_lit_int(parse_t *parse);
 static stree_expr_t *parse_lit_ref(parse_t *parse);
 static stree_expr_t *parse_lit_string(parse_t *parse);
@@ -493,6 +495,13 @@ static stree_expr_t *parse_primitive(parse_t *parse)
 	case lc_ident:
 		expr = parse_nameref(parse);
 		break;
+	case lc_false:
+	case lc_true:
+		expr = parse_lit_bool(parse);
+		break;
+	case lc_lit_char:
+		expr = parse_lit_char(parse);
+		break;
 	case lc_lit_int:
 		expr = parse_lit_int(parse);
 		break;
@@ -526,6 +535,56 @@ static stree_expr_t *parse_nameref(parse_t *parse)
 	nameref->name = parse_ident(parse);
 	expr = stree_expr_new(ec_nameref);
 	expr->u.nameref = nameref;
+
+	return expr;
+}
+
+/** Parse boolean literal.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_lit_bool(parse_t *parse)
+{
+	stree_literal_t *literal;
+	stree_expr_t *expr;
+	bool_t value;
+
+	switch (lcur_lc(parse)) {
+	case lc_false: value = b_false; break;
+	case lc_true: value = b_true; break;
+	default: assert(b_false);
+	}
+
+	lskip(parse);
+
+	literal = stree_literal_new(ltc_bool);
+	literal->u.lit_bool.value = value;
+
+	expr = stree_expr_new(ec_literal);
+	expr->u.literal = literal;
+
+	return expr;
+}
+
+/** Parse character literal.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_lit_char(parse_t *parse)
+{
+	stree_literal_t *literal;
+	stree_expr_t *expr;
+
+	lcheck(parse, lc_lit_char);
+
+	literal = stree_literal_new(ltc_char);
+	bigint_clone(&lcur(parse)->u.lit_char.value,
+	    &literal->u.lit_char.value);
+
+	lskip(parse);
+
+	expr = stree_expr_new(ec_literal);
+	expr->u.literal = literal;
 
 	return expr;
 }

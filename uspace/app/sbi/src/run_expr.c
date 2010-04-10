@@ -52,6 +52,10 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 
 static void run_literal(run_t *run, stree_literal_t *literal,
     rdata_item_t **res);
+static void run_lit_bool(run_t *run, stree_lit_bool_t *lit_bool,
+    rdata_item_t **res);
+static void run_lit_char(run_t *run, stree_lit_char_t *lit_char,
+    rdata_item_t **res);
 static void run_lit_int(run_t *run, stree_lit_int_t *lit_int,
     rdata_item_t **res);
 static void run_lit_ref(run_t *run, stree_lit_ref_t *lit_ref,
@@ -63,6 +67,10 @@ static void run_self_ref(run_t *run, stree_self_ref_t *self_ref,
     rdata_item_t **res);
 
 static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res);
+static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res);
+static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res);
 static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res);
 static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
@@ -314,8 +322,13 @@ static void run_literal(run_t *run, stree_literal_t *literal,
 #ifdef DEBUG_RUN_TRACE
 	printf("Run literal.\n");
 #endif
-
 	switch (literal->ltc) {
+	case ltc_bool:
+		run_lit_bool(run, &literal->u.lit_bool, res);
+		break;
+	case ltc_char:
+		run_lit_char(run, &literal->u.lit_char, res);
+		break;
 	case ltc_int:
 		run_lit_int(run, &literal->u.lit_int, res);
 		break;
@@ -325,9 +338,61 @@ static void run_literal(run_t *run, stree_literal_t *literal,
 	case ltc_string:
 		run_lit_string(run, &literal->u.lit_string, res);
 		break;
-	default:
-		assert(b_false);
 	}
+}
+
+/** Evaluate Boolean literal. */
+static void run_lit_bool(run_t *run, stree_lit_bool_t *lit_bool,
+    rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_bool_t *bool_v;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run Boolean literal.\n");
+#endif
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.bool_v = bool_v;
+	bool_v->value = lit_bool->value;
+
+	*res = item;
+}
+
+/** Evaluate character literal. */
+static void run_lit_char(run_t *run, stree_lit_char_t *lit_char,
+    rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_char_t *char_v;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run character literal.\n");
+#endif
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_char);
+	char_v = rdata_char_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.char_v = char_v;
+	bigint_clone(&lit_char->value, &char_v->value);
+
+	*res = item;
 }
 
 /** Evaluate integer literal. */
@@ -485,6 +550,12 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	}
 
 	switch (v1->var->vc) {
+	case vc_bool:
+		run_binop_bool(run, binop, v1, v2, res);
+		break;
+	case vc_char:
+		run_binop_char(run, binop, v1, v2, res);
+		break;
 	case vc_int:
 		run_binop_int(run, binop, v1, v2, res);
 		break;
@@ -494,11 +565,129 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	case vc_ref:
 		run_binop_ref(run, binop, v1, v2, res);
 		break;
-	default:
-		printf("Unimplemented: Binary operation arguments of "
-		    "type %d.\n", v1->var->vc);
-		exit(1);
+	case vc_deleg:
+	case vc_array:
+	case vc_object:
+	case vc_resource:
+		assert(b_false);
 	}
+}
+
+/** Evaluate binary operation on bool arguments. */
+static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_bool_t *bool_v;
+
+	bool_t b1, b2;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.bool_v = bool_v;
+
+	b1 = v1->var->u.bool_v->value;
+	b2 = v2->var->u.bool_v->value;
+
+	switch (binop->bc) {
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		assert(b_false);
+
+	case bo_equal:
+		bool_v->value = (b1 == b2);
+		break;
+	case bo_notequal:
+		bool_v->value = (b1 != b2);
+		break;
+	case bo_lt:
+		bool_v->value = (b1 == b_false) && (b2 == b_true);
+		break;
+	case bo_gt:
+		bool_v->value = (b1 == b_true) && (b2 == b_false);
+		break;
+	case bo_lt_equal:
+		bool_v->value = (b1 == b_false) || (b2 == b_true);
+		break;
+	case bo_gt_equal:
+		bool_v->value = (b1 == b_true) || (b2 == b_false);
+		break;
+	}
+
+	*res = item;
+}
+
+/** Evaluate binary operation on char arguments. */
+static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_bool_t *bool_v;
+
+	bigint_t *c1, *c2;
+	bigint_t diff;
+	bool_t zf, nf;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+
+	item->u.value = value;
+
+	c1 = &v1->var->u.char_v->value;
+	c2 = &v2->var->u.char_v->value;
+
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+	var->u.bool_v = bool_v;
+	value->var = var;
+
+	bigint_sub(c1, c2, &diff);
+	zf = bigint_is_zero(&diff);
+	nf = bigint_is_negative(&diff);
+
+	switch (binop->bc) {
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		assert(b_false);
+
+	case bo_equal:
+		bool_v->value = zf;
+		break;
+	case bo_notequal:
+		bool_v->value = !zf;
+		break;
+	case bo_lt:
+		bool_v->value = (!zf && nf);
+		break;
+	case bo_gt:
+		bool_v->value = (!zf && !nf);
+		break;
+	case bo_lt_equal:
+		bool_v->value = (zf || nf);
+		break;
+	case bo_gt_equal:
+		bool_v->value = !nf;
+		break;
+	default:
+		assert(b_false);
+	}
+
+	*res = item;
 }
 
 /** Evaluate binary operation on int arguments. */
@@ -509,6 +698,7 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	rdata_value_t *value;
 	rdata_var_t *var;
 	rdata_int_t *int_v;
+	rdata_bool_t *bool_v;
 
 	bigint_t *i1, *i2;
 	bigint_t diff;
@@ -519,12 +709,8 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 
 	item = rdata_item_new(ic_value);
 	value = rdata_value_new();
-	var = rdata_var_new(vc_int);
-	int_v = rdata_int_new();
 
 	item->u.value = value;
-	value->var = var;
-	var->u.int_v = int_v;
 
 	i1 = &v1->var->u.int_v->value;
 	i2 = &v2->var->u.int_v->value;
@@ -533,12 +719,15 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 
 	switch (binop->bc) {
 	case bo_plus:
+		int_v = rdata_int_new();
 		bigint_add(i1, i2, &int_v->value);
 		break;
 	case bo_minus:
+		int_v = rdata_int_new();
 		bigint_sub(i1, i2, &int_v->value);
 		break;
 	case bo_mult:
+		int_v = rdata_int_new();
 		bigint_mul(i1, i2, &int_v->value);
 		break;
 	default:
@@ -547,9 +736,17 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	}
 
 	if (done) {
+		var = rdata_var_new(vc_int);
+		var->u.int_v = int_v;
+		value->var = var;
 		*res = item;
 		return;
 	}
+
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+	var->u.bool_v = bool_v;
+	value->var = var;
 
 	/* Relational operation. */
 
@@ -557,25 +754,24 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	zf = bigint_is_zero(&diff);
 	nf = bigint_is_negative(&diff);
 
-	/* XXX We should have a real boolean type. */
 	switch (binop->bc) {
 	case bo_equal:
-		bigint_init(&int_v->value, zf ? 1 : 0);
+		bool_v->value = zf;
 		break;
 	case bo_notequal:
-		bigint_init(&int_v->value, !zf ? 1 : 0);
+		bool_v->value = !zf;
 		break;
 	case bo_lt:
-		bigint_init(&int_v->value, (!zf && nf) ? 1 : 0);
+		bool_v->value = (!zf && nf);
 		break;
 	case bo_gt:
-		bigint_init(&int_v->value, (!zf && !nf) ? 1 : 0);
+		bool_v->value = (!zf && !nf);
 		break;
 	case bo_lt_equal:
-		bigint_init(&int_v->value, (zf || nf) ? 1 : 0);
+		bool_v->value = (zf || nf);
 		break;
 	case bo_gt_equal:
-		bigint_init(&int_v->value, !nf ? 1 : 0);
+		bool_v->value = !nf;
 		break;
 	default:
 		assert(b_false);
@@ -630,7 +826,7 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	rdata_item_t *item;
 	rdata_value_t *value;
 	rdata_var_t *var;
-	rdata_int_t *int_v;
+	rdata_bool_t *bool_v;
 
 	rdata_var_t *ref1, *ref2;
 
@@ -638,23 +834,22 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 
 	item = rdata_item_new(ic_value);
 	value = rdata_value_new();
-	var = rdata_var_new(vc_int);
-	int_v = rdata_int_new();
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
 
 	item->u.value = value;
 	value->var = var;
-	var->u.int_v = int_v;
+	var->u.bool_v = bool_v;
 
 	ref1 = v1->var->u.ref_v->vref;
 	ref2 = v2->var->u.ref_v->vref;
 
 	switch (binop->bc) {
-	/* XXX We should have a real boolean type. */
 	case bo_equal:
-		bigint_init(&int_v->value, (ref1 == ref2) ? 1 : 0);
+		bool_v->value = (ref1 == ref2);
 		break;
 	case bo_notequal:
-		bigint_init(&int_v->value, (ref1 != ref2) ? 1 : 0);
+		bool_v->value = (ref1 != ref2);
 		break;
 	default:
 		printf("Error: Invalid binary operation on reference "
@@ -979,13 +1174,8 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
 	member = symbol_search_csi(run->program, deleg_v->sym->u.csi,
 	    access->member_name);
 
-	if (member == NULL) {
-		printf("Error: CSI '");
-		symbol_print_fqn(deleg_v->sym);
-		printf("' has no member named '%s'.\n",
-		    strtab_get_str(access->member_name->sid));
-		exit(1);
-	}
+	/* Member existence should be ensured by static type checking. */
+	assert(member != NULL);
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Found member '%s'.\n",
@@ -1474,9 +1664,14 @@ static void run_index_string(run_t *run, stree_index_t *index,
 		rc2 = os_str_get_char(string->value, elem_index, &cval);
 
 	if (rc1 != EOK || rc2 != EOK) {
+#ifdef DEBUG_RUN_TRACE
 		printf("Error: String index (value: %d) is out of range.\n",
 		    arg_val);
-		exit(1);
+#endif
+		/* Raise Error.OutOfBounds */
+		run_raise_exc(run, run->program->builtin->error_outofbounds);
+		*res = run_recovery_item(run);
+		return;
 	}
 
 	/* Construct character value. */
@@ -1484,9 +1679,9 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	value = rdata_value_new();
 	ritem->u.value = value;
 
-	cvar = rdata_var_new(vc_int);
-	cvar->u.int_v = rdata_int_new();
-	bigint_init(&cvar->u.int_v->value, cval);
+	cvar = rdata_var_new(vc_char);
+	cvar->u.char_v = rdata_char_new();
+	bigint_init(&cvar->u.char_v->value, cval);
 	value->var = cvar;
 
 	*res = ritem;
@@ -1650,8 +1845,6 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
  *
  * Tries to interpret @a item as a boolean value. If it is not a boolean
  * value, this generates an error.
- *
- * XXX Currently int supplants the role of a true boolean type.
  */
 bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 {
@@ -1664,10 +1857,6 @@ bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 	assert(vitem->ic == ic_value);
 	var = vitem->u.value->var;
 
-	if (var->vc != vc_int) {
-		printf("Error: Boolean (int) expression expected.\n");
-		exit(1);
-	}
-
-	return !bigint_is_zero(&var->u.int_v->value);
+	assert(var->vc == vc_bool);
+	return var->u.bool_v->value;
 }

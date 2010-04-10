@@ -30,6 +30,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include "list.h"
 #include "mytypes.h"
 #include "stree.h"
 #include "symbol.h"
@@ -39,7 +40,6 @@
 static void tdata_tprimitive_print(tdata_primitive_t *tprimitive);
 static void tdata_tobject_print(tdata_object_t *tobject);
 static void tdata_tarray_print(tdata_array_t *tarray);
-static void tdata_tgeneric_print(tdata_generic_t *tgeneric);
 static void tdata_tfun_print(tdata_fun_t *tfun);
 
 /** Determine if CSI @a a is derived from CSI described by type item @a tb. */
@@ -141,9 +141,6 @@ void tdata_item_print(tdata_item_t *titem)
 	case tic_tarray:
 		tdata_tarray_print(titem->u.tarray);
 		break;
-	case tic_tgeneric:
-		tdata_tgeneric_print(titem->u.tgeneric);
-		break;
 	case tic_tfun:
 		tdata_tfun_print(titem->u.tfun);
 		break;
@@ -156,6 +153,8 @@ void tdata_item_print(tdata_item_t *titem)
 static void tdata_tprimitive_print(tdata_primitive_t *tprimitive)
 {
 	switch (tprimitive->tpc) {
+	case tpc_bool: printf("bool"); break;
+	case tpc_char: printf("char"); break;
 	case tpc_int: printf("int"); break;
 	case tpc_nil: printf("nil"); break;
 	case tpc_string: printf("string"); break;
@@ -166,10 +165,20 @@ static void tdata_tprimitive_print(tdata_primitive_t *tprimitive)
 static void tdata_tobject_print(tdata_object_t *tobject)
 {
 	stree_symbol_t *csi_sym;
+	list_node_t *arg_n;
+	tdata_item_t *arg;
 
 	csi_sym = csi_to_symbol(tobject->csi);
 	assert(csi_sym != NULL);
 	symbol_print_fqn(csi_sym);
+
+	arg_n = list_first(&tobject->targs);
+	while (arg_n != NULL) {
+		arg = list_node_data(arg_n, tdata_item_t *);
+		putchar('/');
+		tdata_item_print(arg);
+		arg_n = list_next(&tobject->targs, arg_n);
+	}
 }
 
 static void tdata_tarray_print(tdata_array_t *tarray)
@@ -182,12 +191,6 @@ static void tdata_tarray_print(tdata_array_t *tarray)
 	for (i = 0; i < tarray->rank - 1; ++i)
 		printf(",");
 	printf("]");
-}
-
-static void tdata_tgeneric_print(tdata_generic_t *tgeneric)
-{
-	(void) tgeneric;
-	printf("unimplemented(generic)");
 }
 
 static void tdata_tfun_print(tdata_fun_t *tfun)

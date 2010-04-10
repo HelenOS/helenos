@@ -67,8 +67,8 @@ stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
 		}
 		return b;
 	case tc_tapply:
-		printf("Internal error: Generic types not implemented.\n");
-		exit(1);
+		return symbol_xlookup_in_csi(prog, scope,
+		    texpr->u.tapply->gtype);
 	default:
 		assert(b_false);
 	}

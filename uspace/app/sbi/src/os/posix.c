@@ -28,6 +28,7 @@
 
 /** @file POSIX-specific code. */
 
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,9 @@
 #include "../mytypes.h"
 
 #include "os.h"
+
+/** Path to executable file via which we have been invoked. */
+static char *ef_path;
 
 /*
  * The string functions are in fact standard C, but would not work under
@@ -70,6 +74,12 @@ char *os_str_acat(const char *a, const char *b)
 int os_str_cmp(const char *a, const char *b)
 {
 	return strcmp(a, b);
+}
+
+/** Return number of characters in string. */
+size_t os_str_length(const char *str)
+{
+	return strlen(str);
 }
 
 /** Duplicate string. */
@@ -144,4 +154,19 @@ int os_exec(char *const cmd[])
 	}
 
 	return EOK;
+}
+
+/** Store the executable file path via which we were executed. */
+void os_store_ef_path(char *path)
+{
+	ef_path = path;
+}
+
+/** Return path to the Sysel library
+ *
+ * @return New string. Caller should deallocate it using @c free().
+ */
+char *os_get_lib_path(void)
+{
+	return os_str_acat(dirname(ef_path), "/lib");
 }

@@ -77,28 +77,33 @@ stree_texpr_t *parse_texpr(parse_t *parse)
  */
 static stree_texpr_t *parse_tapply(parse_t *parse)
 {
-	stree_texpr_t *a, *b, *tmp;
+	stree_texpr_t *gtype;
+	stree_texpr_t *aexpr;
+	stree_texpr_t *targ;
 	stree_tapply_t *tapply;
 
-	a = parse_tpostfix(parse);
+	gtype = parse_tpostfix(parse);
+	if (lcur_lc(parse) != lc_slash)
+		return gtype;
+
+	tapply = stree_tapply_new();
+	tapply->gtype = gtype;
+	list_init(&tapply->targs);
+
 	while (lcur_lc(parse) == lc_slash) {
 
 		if (parse_is_error(parse))
 			break;
 
 		lskip(parse);
-		b = parse_tpostfix(parse);
+		targ = parse_tpostfix(parse);
 
-		tapply = stree_tapply_new();
-		tapply->gtype = a;
-		tapply->targ = b;
-
-		tmp = stree_texpr_new(tc_tapply);
-		tmp->u.tapply = tapply;
-		a = tmp;
+		list_append(&tapply->targs, targ);
 	}
 
-	return a;
+	aexpr = stree_texpr_new(tc_tapply);
+	aexpr->u.tapply = tapply;
+	return aexpr;
 }
 
 /** Parse postfix type expression.
@@ -223,6 +228,8 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 		texpr = stree_texpr_new(tc_tnameref);
 		texpr->u.tnameref = parse_tnameref(parse);
 		break;
+	case lc_bool:
+	case lc_char:
 	case lc_int:
 	case lc_string:
 	case lc_resource:
@@ -248,6 +255,12 @@ static stree_tliteral_t *parse_tliteral(parse_t *parse)
 	tliteral_class_t tlc;
 
 	switch (lcur_lc(parse)) {
+	case lc_bool:
+		tlc = tlc_bool;
+		break;
+	case lc_char:
+		tlc = tlc_char;
+		break;
 	case lc_int:
 		tlc = tlc_int;
 		break;

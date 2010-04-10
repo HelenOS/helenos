@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include "list.h"
 #include "mytypes.h"
+#include "strtab.h"
 #include "symbol.h"
 #include "tdata.h"
 
@@ -45,6 +46,8 @@ static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
     stree_tliteral_t *tliteral, tdata_item_t **res);
 static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
     stree_tnameref_t *tnameref, tdata_item_t **res);
+static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tapply_t *tapply, tdata_item_t **res);
 
 void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
     tdata_item_t **res)
@@ -63,9 +66,8 @@ void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
 		run_tnameref(prog, ctx, texpr->u.tnameref, res);
 		break;
 	case tc_tapply:
-		printf("Unimplemented: Evaluate type expression type %d.\n",
-		    texpr->tc);
-		exit(1);
+		run_tapply(prog, ctx, texpr->u.tapply, res);
+		break;
 	}
 }
 
@@ -84,24 +86,36 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	/* Evaluate base type. */
 	run_texpr(prog, ctx, taccess->arg, &targ_i);
 
+	if (targ_i->tic == tic_ignore) {
+		*res = tdata_item_new(tic_ignore);
+		return;
+	}
+
 	if (targ_i->tic != tic_tobject) {
 		printf("Error: Using '.' with type which is not an object.\n");
-		exit(1);
+		*res = tdata_item_new(tic_ignore);
+		return;
 	}
 
 	/* Get base CSI. */
 	base_csi = targ_i->u.tobject->csi;
 
 	sym = symbol_lookup_in_csi(prog, base_csi, taccess->member_name);
-
-	/* Existence should have been verified in type checking phase. */
-	assert(sym != NULL);
+	if (sym == NULL) {
+		printf("Error: CSI '");
+		symbol_print_fqn(csi_to_symbol(base_csi));
+		printf("' has no member named '%s'.\n",
+		    strtab_get_str(taccess->member_name->sid));
+		*res = tdata_item_new(tic_ignore);
+		return;
+	}
 
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");
 		symbol_print_fqn(sym);
 		printf("' is not a CSI.\n");
-		exit(1);
+		*res = tdata_item_new(tic_ignore);
+		return;
 	}
 
 	/* Construct type item. */
@@ -129,6 +143,11 @@ static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
 #endif
 	/* Evaluate base type. */
 	run_texpr(prog, ctx, tindex->base_type, &base_ti);
+
+	if (base_ti->tic == tic_ignore) {
+		*res = tdata_item_new(tic_ignore);
+		return;
+	}
 
 	/* Construct type item. */
 	titem = tdata_item_new(tic_tarray);
@@ -166,6 +185,8 @@ static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
 	(void) tliteral;
 
 	switch (tliteral->tlc) {
+	case tlc_bool: tpc = tpc_bool; break;
+	case tlc_char: tpc = tpc_char; break;
 	case tlc_int: tpc = tpc_int; break;
 	case tlc_string: tpc = tpc_string; break;
 	case tlc_resource: tpc = tpc_resource; break;
@@ -190,15 +211,19 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	printf("Evaluating type name reference.\n");
 #endif
 	sym = symbol_lookup_in_csi(prog, ctx, tnameref->name);
-
-	/* Existence should have been verified in type-checking phase. */
-	assert(sym);
+	if (sym == NULL) {
+		printf("Error: Symbol '%s' not found.\n",
+		    strtab_get_str(tnameref->name->sid));
+		*res = tdata_item_new(tic_ignore);
+		return;
+	}
 
 	if (sym->sc != sc_csi) {
 		printf("Error: Symbol '");
 		symbol_print_fqn(sym);
 		printf("' is not a CSI.\n");
-		exit(1);
+		*res = tdata_item_new(tic_ignore);
+		return;
 	}
 
 	/* Construct type item. */
@@ -208,6 +233,58 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 
 	tobject->static_ref = b_false;
 	tobject->csi = sym->u.csi;
+
+	*res = titem;
+}
+
+static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
+    stree_tapply_t *tapply, tdata_item_t **res)
+{
+	tdata_item_t *base_ti;
+	tdata_item_t *arg_ti;
+	tdata_item_t *titem;
+	tdata_object_t *tobject;
+
+	list_node_t *arg_n;
+	stree_texpr_t *arg;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Evaluating type apply operation.\n");
+#endif
+	/* Construct type item. */
+	titem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+	titem->u.tobject = tobject;
+
+	/* Evaluate base (generic) type. */
+	run_texpr(prog, ctx, tapply->gtype, &base_ti);
+
+	if (base_ti->tic != tic_tobject) {
+		printf("Error: Base type of generic application is not "
+		    "a CSI.\n");
+		*res = tdata_item_new(tic_ignore);
+		return;
+	}
+
+	tobject->static_ref = b_false;
+	tobject->csi = base_ti->u.tobject->csi;
+	list_init(&tobject->targs);
+
+	/* Evaluate type arguments. */
+	arg_n = list_first(&tapply->targs);
+	while (arg_n != NULL) {
+		arg = list_node_data(arg_n, stree_texpr_t *);
+		run_texpr(prog, ctx, arg, &arg_ti);
+
+		if (arg_ti->tic == tic_ignore) {
+			*res = tdata_item_new(tic_ignore);
+			return;
+		}
+
+		list_append(&tobject->targs, arg_ti);
+
+		arg_n = list_next(&tapply->targs, arg_n);
+	}
 
 	*res = titem;
 }

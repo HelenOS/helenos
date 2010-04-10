@@ -37,18 +37,22 @@ typedef enum {
 	lc_eof,
 
 	lc_ident,
+	lc_lit_char,
 	lc_lit_int,
 	lc_lit_string,
 
 	/* Keywords */
 	lc_as,
+	lc_bool,
 	lc_builtin,
+	lc_char,
 	lc_class,
 	lc_constructor,
 	lc_do,
 	lc_else,
 	lc_end,
 	lc_except,
+	lc_false,
 	lc_finally,
 	lc_for,
 	lc_fun,
@@ -76,6 +80,7 @@ typedef enum {
 	lc_struct,
 	lc_then,
 	lc_this,
+	lc_true,
 	lc_var,
 	lc_with,
 	lc_while,
@@ -114,6 +119,11 @@ typedef struct {
 } lem_ident_t;
 
 typedef struct {
+	/* Character value */
+	bigint_t value;
+} lem_lit_char_t;
+
+typedef struct {
 	/* Integer value */
 	bigint_t value;
 } lem_lit_int_t;
@@ -130,6 +140,7 @@ typedef struct {
 
 	union {
 		lem_ident_t ident;
+		lem_lit_char_t lit_char;
 		lem_lit_int_t lit_int;
 		lem_lit_string_t lit_string;
 	} u;

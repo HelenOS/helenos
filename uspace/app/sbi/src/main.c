@@ -36,9 +36,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ancr.h"
+#include "os/os.h"
 #include "builtin.h"
 #include "imode.h"
 #include "mytypes.h"
+#include "program.h"
 #include "strtab.h"
 #include "stree.h"
 #include "stype.h"
@@ -47,7 +49,7 @@
 #include "parse.h"
 #include "run.h"
 
-void syntax_print(void);
+static void syntax_print(void);
 
 /** Main entry point.
  *
@@ -55,30 +57,27 @@ void syntax_print(void);
  */
 int main(int argc, char *argv[])
 {
-	input_t *input;
-	lex_t lex;
-	parse_t parse;
 	stree_program_t *program;
 	stype_t stype;
 	run_t run;
 	int rc;
 
-	if (argc == 1) {
+	/* Store executable file path under which we have been invoked. */
+	os_store_ef_path(*argv);
+
+	argv += 1;
+	argc -= 1;
+
+	if (argc == 0) {
 		/* Enter interactive mode */
 		strtab_init();
 		imode_run();
 		return 0;
 	}
 
-	if (argc != 2) {
+	if (os_str_cmp(*argv, "-h") == 0) {
 		syntax_print();
-		exit(1);
-	}
-
-	rc = input_new_file(&input, argv[1]);
-	if (rc != EOK) {
-		printf("Failed opening source file '%s'.\n", argv[1]);
-		exit(1);
+		return 0;
 	}
 
 	strtab_init();
@@ -88,17 +87,22 @@ int main(int argc, char *argv[])
 	/* Declare builtin symbols. */
 	builtin_declare(program);
 
-	/* Parse input file. */
-	lex_init(&lex, input);
-	parse_init(&parse, program, &lex);
-	parse_module(&parse);
-
-	/* Check for parse errors. */
-	if (parse.error)
+	/* Process source files in the library. */
+	if (program_lib_process(program) != EOK)
 		return 1;
 
+	/* Process all source files specified in command-line arguments. */
+	while (argc > 0) {
+		rc = program_file_process(program, *argv);
+		if (rc != EOK)
+			return 1;
+
+		argv += 1;
+		argc -= 1;
+	}
+
 	/* Resolve ancestry. */
-	ancr_module_process(program, parse.cur_mod);
+	ancr_module_process(program, program->module);
 
 	/* Type program. */
 	stype.program = program;
@@ -121,8 +125,7 @@ int main(int argc, char *argv[])
 }
 
 /** Print command-line syntax help. */
-void syntax_print(void)
+static void syntax_print(void)
 {
-	printf("Missing or invalid arguments.\n");
 	printf("Syntax: sbi <source_file.sy>\n");
 }
