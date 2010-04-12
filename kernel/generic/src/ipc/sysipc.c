@@ -59,7 +59,7 @@
 
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
-	if (phoneid > IPC_MAX_PHONES) { \
+	if (phoneid >= IPC_MAX_PHONES) { \
 		err \
 	} \
 	phone = &TASK->phones[phoneid]; \
