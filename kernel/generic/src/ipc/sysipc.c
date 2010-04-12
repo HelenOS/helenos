@@ -955,7 +955,7 @@ unative_t sys_ipc_answer_slow(unative_t callid, ipc_data_t *data)
  *
  * @return		Return 0 on success or an error code.
  */
-unative_t sys_ipc_hangup(int phoneid)
+unative_t sys_ipc_hangup(unative_t phoneid)
 {
 	phone_t *phone;
 
