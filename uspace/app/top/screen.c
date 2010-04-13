@@ -51,14 +51,14 @@ int up_rows;
 #define WHITE 0xf0f0f0
 #define BLACK 0x000000
 
-static void print_float(float f, int precision)
+static void print_float(ps_float f, int precision)
 {
-	printf("%2u.", (unsigned int) f);
+	printf("%2u.", f.upper / f.lower);
 	int i;
-	float rest = (f - (int)f) * 10;
+	unsigned int rest = (f.upper % f.lower) * 10;
 	for (i = 0; i < precision; ++i) {
-		printf("%d", (unsigned int)rest);
-		rest = (rest - (int)rest) * 10;
+		printf("%d", rest / f.lower);
+		rest = (rest % f.lower) * 10;
 	}
 }
 
@@ -207,9 +207,9 @@ static inline void print_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
-	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles Name");
+	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles  Name");
 	int i;
-	for (i = 60; i < colls; ++i)
+	for (i = 61; i < colls; ++i)
 		puts(" ");
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), BLACK, WHITE);

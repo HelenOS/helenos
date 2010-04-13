@@ -109,8 +109,8 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		uint64_t idle = new_data->cpus[i].idle_ticks - old_data->cpus[i].idle_ticks;
 		uint64_t busy = new_data->cpus[i].busy_ticks - old_data->cpus[i].busy_ticks;
 		uint64_t sum = idle + busy;
-		new_data->cpu_perc[i].idle = (float)(idle * 100) / sum;
-		new_data->cpu_perc[i].busy = (float)(busy * 100) / sum;
+		FRACTION_TO_FLOAT(new_data->cpu_perc[i].idle, idle * 100, sum);
+		FRACTION_TO_FLOAT(new_data->cpu_perc[i].busy, busy * 100, sum);
 	}
 
 	/* For all tasks compute sum and differencies of all cycles */
@@ -142,9 +142,9 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	/* And now compute percental change */
 	new_data->task_perc = malloc(new_data->task_count * sizeof(task_perc_t));
 	for (i = 0; i < new_data->task_count; ++i) {
-		new_data->task_perc[i].mem = (float)(new_data->taskinfos[i].virt_mem * 100) / mem_total;
-		new_data->task_perc[i].ucycles = (float)(ucycles_diff[i] * 100) / ucycles_total;
-		new_data->task_perc[i].kcycles = (float)(kcycles_diff[i] * 100) / kcycles_total;
+		FRACTION_TO_FLOAT(new_data->task_perc[i].mem, new_data->taskinfos[i].virt_mem * 100, mem_total);
+		FRACTION_TO_FLOAT(new_data->task_perc[i].ucycles, ucycles_diff[i] * 100, ucycles_total);
+		FRACTION_TO_FLOAT(new_data->task_perc[i].kcycles, kcycles_diff[i] * 100, kcycles_total);
 	}
 
 	/* Wait until coprocessor finishes its work */

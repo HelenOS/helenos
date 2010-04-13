@@ -76,7 +76,6 @@ typedef struct {
 	task_id_t taskid;
 	state_t state;
 	int priority;
-	uint64_t cycles;
 	uint64_t ucycles;
 	uint64_t kcycles;
 	unsigned int cpu;

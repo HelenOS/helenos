@@ -37,15 +37,25 @@
 #include <kernel/ps/cpuinfo.h>
 #include <kernel/ps/taskinfo.h>
 
+#define FRACTION_TO_FLOAT(float, a, b) { \
+	(float).upper = (a); \
+	(float).lower = (b); \
+}
+
 typedef struct {
-	float idle;
-	float busy;
+	uint64_t upper;
+	uint64_t lower;
+} ps_float;
+
+typedef struct {
+	ps_float idle;
+	ps_float busy;
 } cpu_perc_t;
 
 typedef struct {
-	float ucycles;
-	float kcycles;
-	float mem;
+	ps_float ucycles;
+	ps_float kcycles;
+	ps_float mem;
 } task_perc_t;
 
 typedef struct {
