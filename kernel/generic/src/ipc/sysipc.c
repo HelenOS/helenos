@@ -57,12 +57,19 @@
  */
 #define DATA_XFER_LIMIT		(64 * 1024)
 
-#define GET_CHECK_PHONE(phone, phoneid, err) \
-{ \
-	if ((unative_t) (phoneid) >= IPC_MAX_PHONES) { \
-		err \
-	} \
-	phone = &TASK->phones[(phoneid)]; \
+/** Get phone from the current task by ID.
+ *
+ * @param phoneid	Phone ID.
+ * @param phone		Place to store pointer to phone.
+ * @return		EOK on success, EINVAL if ID is invalid.
+ */
+static int phone_get(unative_t phoneid, phone_t **phone)
+{
+	if (phoneid >= IPC_MAX_PHONES)
+		return EINVAL;
+
+	*phone = &TASK->phones[phoneid];
+	return EOK;
 }
 
 #define STRUCT_TO_USPACE(dst, src)	copy_to_uspace(dst, src, sizeof(*(src)))
@@ -373,9 +380,11 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	switch (IPC_GET_METHOD(call->data)) {
 	case IPC_M_CONNECTION_CLONE: {
 		phone_t *cloned_phone;
-		GET_CHECK_PHONE(cloned_phone, IPC_GET_ARG1(call->data),
-		    return ENOENT;);
+
+		if (phone_get(IPC_GET_ARG1(call->data), &cloned_phone) != EOK)
+			return ENOENT;
 		phones_lock(cloned_phone, phone);
+
 		if ((cloned_phone->state != IPC_PHONE_CONNECTED) ||
 		    phone->state != IPC_PHONE_CONNECTED) {
 			phones_unlock(cloned_phone, phone);
@@ -533,8 +542,9 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 	phone_t *phone;
 	int res;
 	int rc;
-	
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
+
+	if (phone_get(phoneid, &phone) != EOK)
+		return ENOENT;
 
 	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -590,7 +600,8 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	int res;
 	int rc;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
+	if (phone_get(phoneid, &phone) != EOK)
+		return ENOENT;
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &question->args,
@@ -665,7 +676,8 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
+	if (phone_get(phoneid, &phone) != EOK)
+		return IPC_CALLRET_FATAL;
 
 	call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -704,7 +716,8 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 	if (check_call_limit())
 		return IPC_CALLRET_TEMPORARY;
 
-	GET_CHECK_PHONE(phone, phoneid, return IPC_CALLRET_FATAL;);
+	if (phone_get(phoneid, &phone) != EOK)
+		return IPC_CALLRET_FATAL;
 
 	call = ipc_call_alloc(0);
 	rc = copy_from_uspace(&call->data.args, &data->args,
@@ -754,11 +767,11 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 	
 	call->flags |= IPC_CALL_FORWARDED;
 
-	GET_CHECK_PHONE(phone, phoneid, {
+	if (phone_get(phoneid, &phone) != EOK) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return ENOENT;
-	});
+	}
 
 	if (!method_is_forwardable(IPC_GET_METHOD(call->data))) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
@@ -959,7 +972,8 @@ unative_t sys_ipc_hangup(unative_t phoneid)
 {
 	phone_t *phone;
 
-	GET_CHECK_PHONE(phone, phoneid, return ENOENT;);
+	if (phone_get(phoneid, &phone) != EOK)
+		return ENOENT;
 
 	if (ipc_phone_hangup(phone))
 		return -1;
