@@ -59,10 +59,10 @@
 
 #define GET_CHECK_PHONE(phone, phoneid, err) \
 { \
-	if (phoneid >= IPC_MAX_PHONES) { \
+	if ((unative_t) (phoneid) >= IPC_MAX_PHONES) { \
 		err \
 	} \
-	phone = &TASK->phones[phoneid]; \
+	phone = &TASK->phones[(phoneid)]; \
 }
 
 #define STRUCT_TO_USPACE(dst, src)	copy_to_uspace(dst, src, sizeof(*(src)))
