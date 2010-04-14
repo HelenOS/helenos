@@ -186,6 +186,13 @@ task_t *task_create(as_t *as, const char *name)
 	ta->ucycles = 0;
 	ta->kcycles = 0;
 
+	ta->ipc_info.call_sent = 0;
+	ta->ipc_info.call_recieved = 0;
+	ta->ipc_info.answer_sent = 0;
+	ta->ipc_info.answer_recieved = 0;
+	ta->ipc_info.irq_notif_recieved = 0;
+	ta->ipc_info.forwarded = 0;
+
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&ta->udebug);

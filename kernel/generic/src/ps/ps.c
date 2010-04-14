@@ -142,6 +142,15 @@ int sys_ps_get_task_info(task_id_t *uspace_id, task_info_t *uspace_info)
 	copy_to_uspace(&uspace_info->ucycles, &ucycles, sizeof(uint64_t));
 	copy_to_uspace(&uspace_info->kcycles, &kcycles, sizeof(uint64_t));
 
+	task_ipc_info_t ipc_info;
+	ipc_info.call_sent = t->ipc_info.call_sent;
+	ipc_info.call_recieved = t->ipc_info.call_recieved;
+	ipc_info.answer_sent = t->ipc_info.answer_sent;
+	ipc_info.answer_recieved = t->ipc_info.answer_recieved;
+	ipc_info.irq_notif_recieved = t->ipc_info.irq_notif_recieved;
+	ipc_info.forwarded = t->ipc_info.forwarded;
+	copy_to_uspace(&uspace_info->ipc_info, &ipc_info, sizeof(task_ipc_info_t));
+
 	uint64_t memory = get_task_memory(t->as);
 	copy_to_uspace(&uspace_info->virt_mem, &memory, sizeof(memory));
 

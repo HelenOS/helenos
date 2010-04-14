@@ -45,12 +45,22 @@
 #define TASK_NAME_BUFLEN	20
 
 typedef struct {
+	uint64_t call_sent;
+	uint64_t call_recieved;
+	uint64_t answer_sent;
+	uint64_t answer_recieved;
+	uint64_t irq_notif_recieved;
+	uint64_t forwarded;
+} task_ipc_info_t;
+
+typedef struct {
 	task_id_t taskid;
 	char name[TASK_NAME_BUFLEN];
 	uint64_t virt_mem;
 	int thread_count;
 	uint64_t ucycles;
 	uint64_t kcycles;
+	task_ipc_info_t ipc_info;
 } task_info_t;
 
 /** Thread states. */

@@ -93,6 +93,7 @@ typedef struct task {
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
+	task_ipc_info_t ipc_info; /**< IPC statistics */
 	/**
 	 * Active asynchronous messages. It is used for limiting uspace to
 	 * certain extent.
