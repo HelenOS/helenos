@@ -203,7 +203,7 @@ static inline void print_tasks(data_t *data, int row)
 	}
 }
 
-static inline void print_head(void)
+static inline void print_task_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
@@ -213,6 +213,35 @@ static inline void print_head(void)
 		puts(" ");
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
+}
+
+static inline void print_ipc_head(void)
+{
+	fflush(stdout);
+	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
+	printf("      ID Calls sent Calls recv Answs sent Answs recv  IRQn recv       Forw Name");
+	int i;
+	for (i = 80; i < colls; ++i)
+		puts(" ");
+	fflush(stdout);
+	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
+}
+
+static inline void print_ipc(data_t *data, int row)
+{
+	int i;
+	for (i = 0; i < (int)data->task_count; ++i) {
+		if (row + i > rows)
+			return;
+		task_info_t *taskinfo = &data->taskinfos[i];
+		task_ipc_info_t *ipcinfo = &taskinfo->ipc_info;
+		printf("%8llu ", taskinfo->taskid);
+		printf("%10llu %10llu %10llu %10llu %10llu %10llu ",
+				ipcinfo->call_sent, ipcinfo->call_recieved,
+				ipcinfo->answer_sent, ipcinfo->answer_recieved,
+				ipcinfo->irq_notif_recieved, ipcinfo->forwarded);
+		printf("%s\n", taskinfo->name);
+	}
 }
 
 void print_data(data_t *data)
@@ -237,9 +266,15 @@ void print_data(data_t *data)
 	++up_rows;
 	puts("\n");
 	++up_rows;
-	print_head();
-	puts("\n");
-	print_tasks(data, up_rows);
+	if (operation_type == OP_IPC) {
+		print_ipc_head();
+		puts("\n");
+		print_ipc(data, up_rows);
+	} else {
+		print_task_head();
+		puts("\n");
+		print_tasks(data, up_rows);
+	}
 	fflush(stdout);
 }
 

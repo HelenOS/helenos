@@ -55,8 +55,8 @@
 #define HOUR 3600
 #define MINUTE 60
 
-int number = 0;
-int number2 = 0;
+int operation_type;
+
 static void read_data(data_t *target)
 {
 	/* Read current time */
@@ -187,6 +187,7 @@ int main(int argc, char *argv[])
 	compute_percentages(data1, data1);
 
 	/* And paint screen until death... */
+	operation_type = OP_TASKS;
 	while (true) {
 		char c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
@@ -201,6 +202,14 @@ int main(int argc, char *argv[])
 			case 'q':
 				clear_screen();
 				return 0;
+			case 'i':
+				PRINT_WARNING("Showing IPC statistics", c);
+				operation_type = OP_IPC;
+				break;
+			case 't':
+				PRINT_WARNING("Showing task stats", c);
+				operation_type = OP_TASKS;
+				break;
 			default:
 				PRINT_WARNING("Unknown command: %c", c);
 				break;

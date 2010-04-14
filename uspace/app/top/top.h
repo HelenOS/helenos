@@ -42,6 +42,10 @@
 	(float).lower = (b); \
 }
 
+#define OP_TASKS 1
+#define OP_IPC 2
+extern int operation_type;
+
 typedef struct {
 	uint64_t upper;
 	uint64_t lower;
