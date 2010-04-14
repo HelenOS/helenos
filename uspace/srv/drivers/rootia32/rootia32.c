@@ -192,7 +192,7 @@ static void root_ia32_init() {
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS root device driver\n");	
+	printf(NAME ": HelenOS rootia32 device driver\n");	
 	root_ia32_init();
 	return driver_main(&rootia32_driver);
 }

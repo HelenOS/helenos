@@ -78,7 +78,7 @@ static bool isa_add_device(device_t *dev)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS root device driver\n");	
+	printf(NAME ": HelenOS ISA bus driver\n");	
 	return driver_main(&isa_driver);
 }
 
