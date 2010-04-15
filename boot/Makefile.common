@@ -72,7 +72,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/trace/trace \
 	$(USPACEDIR)/app/ps/ps \
 	$(USPACEDIR)/app/top/top \
-	$(USPACEDIR)/app/uptime/uptime
+	$(USPACEDIR)/app/uptime/uptime \
+	$(USPACEDIR)/app/dummy_load/dummy_load
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \
