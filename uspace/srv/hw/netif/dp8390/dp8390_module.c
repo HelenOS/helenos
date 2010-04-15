@@ -120,10 +120,6 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 	}
 	assert(dep->de_flags &DEF_ENABLED);
 	dep->de_int_pending = 0;
-//	remove debug print:
-#ifdef CONFIG_DEBUG
-	printf("I%d: 0x%x\n", device_id, IPC_GET_ISR(call));
-#endif
 	dp_check_ints(dep, IPC_GET_ISR(call));
 	if(dep->received_queue){
 		received = dep->received_queue;
@@ -131,12 +127,6 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 		dep->received_queue = NULL;
 		dep->received_count = 0;
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-//	remove debug dump:
-#ifdef CONFIG_DEBUG
-	uint8_t * data;
-	data = packet_get_data(received);
-	printf("Receiving packet:\n\tid\t= %d\n\tlength\t= %d\n\tdata\t= %.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX\n\t\t%.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX\n", packet_get_id(received), packet_get_data_length(received), data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31], data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39], data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47], data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55], data[56], data[57], data[58], data[59]);
-#endif
 		nil_received_msg(phone, device_id, received, NULL);
 	}else{
 		fibril_rwlock_write_unlock(&netif_globals.lock);
@@ -264,12 +254,6 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	// process packet queue
 	do{
 		next = pq_detach(packet);
-//		remove debug dump:
-#ifdef CONFIG_DEBUG
-		uint8_t * data;
-		data = packet_get_data(packet);
-		printf("Sending packet:\n\tid\t= %d\n\tlength\t= %d\n\tdata\t= %.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX\n\t\t%.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX\n", packet_get_id(packet), packet_get_data_length(packet), data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31], data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39], data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47], data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55], data[56], data[57], data[58], data[59]);
-#endif
 		if(do_pwrite(dep, packet, FALSE) != EBUSY){
 			netif_pq_release(packet_get_id(packet));
 		}
