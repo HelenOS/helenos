@@ -65,6 +65,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <errno.h>
 
@@ -386,6 +387,14 @@ static cmd_info_t slabs_info = {
 	.argc = 0
 };
 
+static int cmd_sysinfo(cmd_arg_t *argv);
+static cmd_info_t sysinfo_info = {
+	.name = "sysinfo",
+	.description = "Dump sysinfo.",
+	.func = cmd_sysinfo,
+	.argc = 0
+};
+
 /* Data and methods for 'zones' command */
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
@@ -474,6 +483,7 @@ static cmd_info_t *basic_commands[] = {
 	&kill_info,
 	&set4_info,
 	&slabs_info,
+	&sysinfo_info,
 	&symaddr_info,
 	&sched_info,
 	&threads_info,
@@ -864,6 +874,18 @@ int cmd_set4(cmd_arg_t *argv)
 int cmd_slabs(cmd_arg_t * argv)
 {
 	slab_print_list();
+	return 1;
+}
+
+/** Command for dumping sysinfo
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_sysinfo(cmd_arg_t * argv)
+{
+	sysinfo_dump(NULL, 0);
 	return 1;
 }
 
