@@ -745,7 +745,7 @@ int __async_init(void)
 {
 	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1,
 	    &conn_hash_table_ops)) {
-		printf("%s: cannot create hash table\n", "async");
+		printf("%s: Cannot create async hash table\n", "libc");
 		return ENOMEM;
 	}
 	
