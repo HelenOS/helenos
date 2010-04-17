@@ -120,11 +120,12 @@ unsigned int try_exec(char *cmd, char **argv)
 	tmp = str_dup(find_command(cmd));
 	free(found);
 
-	tid = task_spawn(tmp, (const char **) argv);
+	tid = task_spawn(tmp, (const char **) argv, &retval);
 	free(tmp);
 
 	if (tid == 0) {
-		cli_error(CL_EEXEC, "%s: Cannot spawn `%s'", progname, cmd);
+		cli_error(CL_EEXEC, "%s: Cannot spawn `%s' (%s)", progname, cmd,
+		    str_error(retval));
 		return 1;
 	}
 	

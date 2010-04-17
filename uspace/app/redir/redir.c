@@ -41,10 +41,14 @@
 #include <str.h>
 #include <stdio.h>
 #include <task.h>
+#include <str_error.h>
+
+#define NAME  "redir"
 
 static void usage(void)
 {
-	printf("Usage: redir [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ...]\n");
+	printf("Usage: %s [-i <stdin>] [-o <stdout>] [-e <stderr>] -- <cmd> [args ...]\n",
+	    NAME);
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
@@ -83,12 +87,14 @@ static task_id_t spawn(int argc, char *argv[])
 	
 	args[argc] = NULL;
 	
-	task_id_t id = task_spawn(argv[0], args);
+	int err;
+	task_id_t id = task_spawn(argv[0], args, &err);
 	
 	free(args);
 	
 	if (id == 0)
-		printf("Error spawning %s\n", argv[0]);
+		printf("%s: Error spawning %s (%s)\n", NAME, argv[0],
+		    str_error(err));
 	
 	return id;
 }

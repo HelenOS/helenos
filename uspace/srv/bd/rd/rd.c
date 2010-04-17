@@ -31,11 +31,11 @@
 
 /** @addtogroup rd
  * @{
- */ 
+ */
 
 /**
- * @file	rd.c
- * @brief	Initial RAM disk for HelenOS.
+ * @file rd.c
+ * @brief Initial RAM disk for HelenOS.
  */
 
 #include <ipc/ipc.h>
@@ -60,6 +60,7 @@
 
 /** Pointer to the ramdisk's image */
 static void *rd_addr;
+
 /** Size of the ramdisk */
 static size_t rd_size;
 
@@ -69,18 +70,19 @@ static const size_t block_size = 512;
 static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf);
 static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 
-/**
- * This rwlock protects the ramdisk's data.
+/** This rwlock protects the ramdisk's data.
+ *
  * If we were to serve multiple requests (read + write or several writes)
- * concurrently (i.e. from two or more threads), each read and write needs to be
- * protected by this rwlock.
- */ 
+ * concurrently (i.e. from two or more threads), each read and write needs to
+ * be protected by this rwlock.
+ *
+ */
 fibril_rwlock_t rd_lock;
 
 /** Handle one connection to ramdisk.
  *
- * @param iid		Hash of the request that opened the connection.
- * @param icall		Call data of the request that opened the connection.
+ * @param iid   Hash of the request that opened the connection.
+ * @param icall Call data of the request that opened the connection.
  */
 static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -91,12 +93,12 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	uint64_t ba;
 	size_t cnt;
 	size_t comm_size;
-
+	
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	ipc_answer_0(iid, EOK);
-
+	
 	/*
 	 * Now we wait for the client to send us its communication as_area.
 	 */
@@ -107,7 +109,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			(void) async_share_out_finalize(callid, fs_va);
 		} else {
 			ipc_answer_0(callid, EHANGUP);
-			return;		
+			return;
 		}
 	} else {
 		/*
@@ -177,11 +179,11 @@ static int rd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 		/* Reading past the end of the device. */
 		return ELIMIT;
 	}
-
+	
 	fibril_rwlock_read_lock(&rd_lock);
 	memcpy(buf, rd_addr + ba * block_size, block_size * cnt);
 	fibril_rwlock_read_unlock(&rd_lock);
-
+	
 	return EOK;
 }
 
@@ -192,48 +194,53 @@ static int rd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 		/* Writing past the end of the device. */
 		return ELIMIT;
 	}
-
+	
 	fibril_rwlock_write_lock(&rd_lock);
 	memcpy(rd_addr + ba * block_size, buf, block_size * cnt);
 	fibril_rwlock_write_unlock(&rd_lock);
-
+	
 	return EOK;
 }
 
 /** Prepare the ramdisk image for operation. */
 static bool rd_init(void)
 {
-	rd_size = sysinfo_value("rd.size");
-	void *rd_ph_addr = (void *) sysinfo_value("rd.address.physical");
+	int ret = sysinfo_get_value("rd.size", &rd_size);
+	if ((ret != EOK) || (rd_size == 0)) {
+		printf("%s: No RAM disk found\n", NAME);
+		return false;
+	}
 	
-	if (rd_size == 0) {
-		printf(NAME ": No RAM disk found\n");
+	sysarg_t rd_ph_addr;
+	ret = sysinfo_get_value("rd.address.physical", &rd_ph_addr);
+	if ((ret != EOK) || (rd_ph_addr == 0)) {
+		printf("%s: Invalid RAM disk physical address\n", NAME);
 		return false;
 	}
 	
 	rd_addr = as_get_mappable_page(rd_size);
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	int retval = physmem_map(rd_ph_addr, rd_addr,
+	int retval = physmem_map((void *) rd_ph_addr, rd_addr,
 	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags);
 	
 	if (retval < 0) {
-		printf(NAME ": Error mapping RAM disk\n");
+		printf("%s: Error mapping RAM disk\n", NAME);
 		return false;
 	}
 	
-	printf(NAME ": Found RAM disk at %p, %d bytes\n", rd_ph_addr, rd_size);
+	printf("%s: Found RAM disk at %p, %d bytes\n", NAME, rd_ph_addr, rd_size);
 	
 	int rc = devmap_driver_register(NAME, rd_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver (%d)\n", rc);
+		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return false;
 	}
 	
 	dev_handle_t dev_handle;
 	if (devmap_device_register("bd/initrd", &dev_handle) != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
-		printf(NAME ": Unable to register device\n");
+		printf("%s: Unable to register device\n", NAME);
 		return false;
 	}
 
@@ -244,12 +251,12 @@ static bool rd_init(void)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS RAM disk server\n");
+	printf("%s: HelenOS RAM disk server\n", NAME);
 	
 	if (!rd_init())
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 
 	/* Never reached */

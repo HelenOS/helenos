@@ -1755,23 +1755,40 @@ int fb_init(void)
 {
 	async_set_client_connection(fb_client_connection);
 	
-	void *fb_ph_addr = (void *) sysinfo_value("fb.address.physical");
-	unsigned int fb_offset = sysinfo_value("fb.offset");
-	unsigned int fb_width = sysinfo_value("fb.width");
-	unsigned int fb_height = sysinfo_value("fb.height");
-	unsigned int fb_scanline = sysinfo_value("fb.scanline");
-	unsigned int fb_visual = sysinfo_value("fb.visual");
-
-	unsigned int fbsize = fb_scanline * fb_height;
+	sysarg_t fb_ph_addr;
+	if (sysinfo_get_value("fb.address.physical", &fb_ph_addr) != EOK)
+		return -1;
+	
+	sysarg_t fb_offset;
+	if (sysinfo_get_value("fb.offset", &fb_offset) != EOK)
+		fb_offset = 0;
+	
+	sysarg_t fb_width;
+	if (sysinfo_get_value("fb.width", &fb_width) != EOK)
+		return -1;
+	
+	sysarg_t fb_height;
+	if (sysinfo_get_value("fb.height", &fb_height) != EOK)
+		return -1;
+	
+	sysarg_t fb_scanline;
+	if (sysinfo_get_value("fb.scanline", &fb_scanline) != EOK)
+		return -1;
+	
+	sysarg_t fb_visual;
+	if (sysinfo_get_value("fb.visual", &fb_visual) != EOK)
+		return -1;
+	
+	sysarg_t fbsize = fb_scanline * fb_height;
 	void *fb_addr = as_get_mappable_page(fbsize);
-
-	if (physmem_map(fb_ph_addr + fb_offset, fb_addr,
+	
+	if (physmem_map((void *) fb_ph_addr + fb_offset, fb_addr,
 	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
-
+	
 	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual))
 		return 0;
-
+	
 	return -1;
 }
 

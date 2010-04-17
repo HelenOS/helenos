@@ -6,7 +6,6 @@ NETIF=dp8390
 NIL=dp8390
 IL=ip
 
-# sysinfo_value("netif.dp8390.inr")
 IRQ=9
 IO=300
 

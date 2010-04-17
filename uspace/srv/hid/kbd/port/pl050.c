@@ -82,14 +82,19 @@ static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int kbd_port_init(void)
 {
-
-	pl050_kbd.cmds[0].addr = (void *) sysinfo_value("kbd.address.status");
-	pl050_kbd.cmds[3].addr = (void *) sysinfo_value("kbd.address.data");
-
+	if (sysinfo_get_value("kbd.address.status", &pl050_kbd.cmds[0].addr) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("kbd.address.data", &pl050_kbd.cmds[3].addr) != EOK)
+		return -1;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
 	async_set_interrupt_received(pl050_irq_handler);
-
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &pl050_kbd);
-
+	ipc_register_irq(inr, device_assign_devno(), 0, &pl050_kbd);
+	
 	return 0;
 }
 

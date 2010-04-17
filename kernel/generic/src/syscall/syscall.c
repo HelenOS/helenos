@@ -152,8 +152,10 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_preempt_control,
 	
 	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_valid,
-	(syshandler_t) sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_get_tag,
+	(syshandler_t) sys_sysinfo_get_value,
+	(syshandler_t) sys_sysinfo_get_data_size,
+	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,

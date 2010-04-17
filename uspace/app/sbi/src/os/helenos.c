@@ -34,6 +34,7 @@
 #include <str.h>
 #include <task.h>
 #include <tinput.h>
+#include <str_error.h>
 
 #include "os.h"
 
@@ -153,9 +154,10 @@ int os_exec(char *const cmd[])
 	task_exit_t texit;
 	int retval;
 
-	tid = task_spawn(cmd[0], (char const * const *) cmd);
+	tid = task_spawn(cmd[0], (char const * const *) cmd, &retval);
 	if (tid == 0) {
-		printf("Error: Failed spawning '%s'.\n", cmd[0]);
+		printf("Error: Failed spawning '%s' (%s).\n", cmd[0],
+		    str_error(retval));
 		exit(1);
 	}
 

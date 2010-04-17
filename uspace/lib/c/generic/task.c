@@ -69,18 +69,23 @@ int task_set_name(const char *name)
  * This is really just a convenience wrapper over the more complicated
  * loader API.
  *
- * @param path pathname of the binary to execute
- * @param argv command-line arguments
+ * @param path Pathname of the binary to execute.
+ * @param argv Command-line arguments.
+ * @param err  If not NULL, the error value is stored here.
  *
  * @return ID of the newly created task or zero on error.
  *
  */
-task_id_t task_spawn(const char *path, const char *const args[])
+task_id_t task_spawn(const char *path, const char *const args[], int *err)
 {
 	/* Connect to a program loader. */
 	loader_t *ldr = loader_connect();
-	if (ldr == NULL)
+	if (ldr == NULL) {
+		if (err != NULL)
+			*err = EREFUSED;
+		
 		return 0;
+	}
 	
 	/* Get task ID. */
 	task_id_t task_id;
@@ -142,12 +147,19 @@ task_id_t task_spawn(const char *path, const char *const args[])
 	
 	/* Success */
 	free(ldr);
+	
+	if (err != NULL)
+		*err = EOK;
+	
 	return task_id;
 	
 error:
 	/* Error exit */
 	loader_abort(ldr);
 	free(ldr);
+	
+	if (err != NULL)
+		*err = rc;
 	
 	return 0;
 }

@@ -36,283 +36,413 @@
 #include <mm/slab.h>
 #include <print.h>
 #include <syscall/copy.h>
+#include <errno.h>
+
+#define SYSINFO_MAX_PATH  2048
 
 bool fb_exported = false;
-sysinfo_item_t *_root = NULL;
 
-static sysinfo_item_t *sysinfo_find_item(const char *name, sysinfo_item_t *subtree)
+static sysinfo_item_t *global_root = NULL;
+static slab_cache_t *sysinfo_item_slab;
+
+static int sysinfo_item_constructor(void *obj, int kmflag)
 {
-	if (subtree == NULL)
-		return NULL;
+	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	
-	while (subtree != NULL) {
-		int i = 0;
-		char *a = (char *) name;
-		char *b = subtree->name;
+	item->name = NULL;
+	item->val_type = SYSINFO_VAL_UNDEFINED;
+	item->subtree_type = SYSINFO_SUBTREE_NONE;
+	item->next = NULL;
+	
+	return 0;
+}
+
+static int sysinfo_item_destructor(void *obj)
+{
+	sysinfo_item_t *item = (sysinfo_item_t *) obj;
+	
+	if (item->name != NULL)
+		free(item->name);
+	
+	return 0;
+}
+
+void sysinfo_init(void)
+{
+	sysinfo_item_slab = slab_cache_create("sysinfo_item_slab",
+	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
+	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
+}
+
+static sysinfo_item_t *sysinfo_find_item(const char *name,
+    sysinfo_item_t *subtree)
+{
+	sysinfo_item_t *cur = subtree;
+	
+	while (cur != NULL) {
+		size_t i = 0;
 		
-		while ((a[i] == b[i]) && (b[i]))
+		/* Compare name with path */
+		while ((cur->name[i] != 0) && (name[i] == cur->name[i]))
 			i++;
 		
-		if ((!a[i]) && (!b[i]))  /* Last name in path matches */
-			return subtree;
+		/* Check for perfect name and path match */
+		if ((name[i] == 0) && (cur->name[i] == 0))
+			return cur;
 		
-		if ((a[i] == '.') && (!b[i])) { /* Middle name in path matches */
-			if (subtree->subinfo_type == SYSINFO_SUBINFO_TABLE)
-				return sysinfo_find_item(a + i + 1, subtree->subinfo.table);
-			
-			//if (subtree->subinfo_type == SYSINFO_SUBINFO_FUNCTION) /* Subinfo managed by subsystem */
-			//	return NULL; 
-			
-			return NULL; /* No subinfo */
+		/* Partial match up to the delimiter */
+		if ((name[i] == '.') && (cur->name[i] == 0)) {
+			/* Look into the subtree */
+			switch (cur->subtree_type) {
+			case SYSINFO_SUBTREE_TABLE:
+				/* Recursively find in subtree */
+				return sysinfo_find_item(name + i + 1, cur->subtree.table);
+			case SYSINFO_SUBTREE_FUNCTION:
+				/* Get generated item */
+				return cur->subtree.find_item(name + i + 1);
+			default:
+				/* Not found */
+				return NULL;
+			}
 		}
-		/* No matches try next */
-		subtree = subtree->next;
+		
+		cur = cur->next;
 	}
+	
 	return NULL;
 }
 
-static sysinfo_item_t *sysinfo_create_path(const char *name, sysinfo_item_t **psubtree)
+static sysinfo_item_t *sysinfo_create_path(const char *name,
+    sysinfo_item_t **psubtree)
 {
-	sysinfo_item_t *subtree;
-	subtree = *psubtree;
-	
-	if (subtree == NULL) {
-		sysinfo_item_t *item = malloc(sizeof(sysinfo_item_t), 0);
-		int i = 0, j;
-			
-		ASSERT(item);
-		*psubtree = item;
-		item->next = NULL;
-		item->val_type = SYSINFO_VAL_UNDEFINED;
-		item->subinfo.table = NULL;
-
-		while (name[i] && (name[i] != '.'))
+	if (*psubtree == NULL) {
+		/* No parent */
+		
+		size_t i = 0;
+		
+		/* Find the first delimiter in name */
+		while ((name[i] != 0) && (name[i] != '.'))
 			i++;
-			
-		item->name = malloc(i, 0);
-		ASSERT(item->name);
-
-		for (j = 0; j < i; j++)
-			item->name[j] = name[j];
-		item->name[j] = 0;
-			
-		if (name[i]) { /* =='.' */
-			item->subinfo_type = SYSINFO_SUBINFO_TABLE;
-			return sysinfo_create_path(name + i + 1, &(item->subinfo.table));
+		
+		*psubtree =
+		    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
+		ASSERT(*psubtree);
+		
+		/* Fill in item name up to the delimiter */
+		(*psubtree)->name = str_ndup(name, i);
+		ASSERT((*psubtree)->name);
+		
+		/* Create subtree items */
+		if (name[i] == '.') {
+			(*psubtree)->subtree_type = SYSINFO_SUBTREE_TABLE;
+			return sysinfo_create_path(name + i + 1,
+			    &((*psubtree)->subtree.table));
 		}
-		item->subinfo_type = SYSINFO_SUBINFO_NONE;
-		return item;
+		
+		/* No subtree needs to be created */
+		return *psubtree;
 	}
-
-	while (subtree != NULL) {
-		int i = 0, j;
-		char *a = (char *) name;
-		char *b = subtree->name;
+	
+	sysinfo_item_t *cur = *psubtree;
+	
+	while (cur != NULL) {
+		size_t i = 0;
 		
-		while ((a[i] == b[i]) && (b[i]))
+		/* Compare name with path */
+		while ((cur->name[i] != 0) && (name[i] == cur->name[i]))
 			i++;
 		
-		if ((!a[i]) && (!b[i])) /* Last name in path matches */
-			return subtree;
+		/* Check for perfect name and path match
+		 * -> item is already present.
+		 */
+		if ((name[i] == 0) && (cur->name[i] == 0))
+			return cur;
 		
-		if ((a[i] == '.') && (!b[i])) { /* Middle name in path matches */
-			if (subtree->subinfo_type == SYSINFO_SUBINFO_TABLE)
-				return sysinfo_create_path(a + i + 1, &(subtree->subinfo.table));
-			
-			if (subtree->subinfo_type == SYSINFO_SUBINFO_NONE) {
-				subtree->subinfo_type = SYSINFO_SUBINFO_TABLE;
-				return sysinfo_create_path(a + i + 1,&(subtree->subinfo.table));
+		/* Partial match up to the delimiter */
+		if ((name[i] == '.') && (cur->name[i] == 0)) {
+			switch (cur->subtree_type) {
+			case SYSINFO_SUBTREE_NONE:
+				/* No subtree yet, create one */
+				cur->subtree_type = SYSINFO_SUBTREE_TABLE;
+				return sysinfo_create_path(name + i + 1,
+				    &(cur->subtree.table));
+			case SYSINFO_SUBTREE_TABLE:
+				/* Subtree already created, add new sibling */
+				return sysinfo_create_path(name + i + 1,
+				    &(cur->subtree.table));
+			default:
+				/* Subtree items handled by a function, this
+				 * cannot be overriden.
+				 */
+				return NULL;
 			}
-			
-			//if (subtree->subinfo_type == SYSINFO_SUBINFO_FUNCTION) /* Subinfo managed by subsystem */
-			//	return NULL; 
-			
-			return NULL;
 		}
-		/* No matches try next or create new*/
-		if (subtree->next == NULL) {
-			sysinfo_item_t *item = malloc(sizeof(sysinfo_item_t), 0);
-			
-			ASSERT(item);
-			subtree->next = item;
-			item->next = NULL;
-			item->val_type = SYSINFO_VAL_UNDEFINED;
-			item->subinfo.table = NULL;
-
+		
+		/* No match and no more siblings to check
+		 * -> create a new sibling item.
+		 */
+		if (cur->next == NULL) {
+			/* Find the first delimiter in name */
 			i = 0;
-			while (name[i] && (name[i] != '.'))
+			while ((name[i] != 0) && (name[i] != '.'))
 				i++;
-
-			item->name = malloc(i, 0);
+			
+			sysinfo_item_t *item =
+			    (sysinfo_item_t *) slab_alloc(sysinfo_item_slab, 0);
+			ASSERT(item);
+			
+			cur->next = item;
+			
+			/* Fill in item name up to the delimiter */
+			item->name = str_ndup(name, i);
 			ASSERT(item->name);
 			
-			for (j = 0; j < i; j++)
-				item->name[j] = name[j];
-			
-			item->name[j] = 0;
-
-			if(name[i]) { /* =='.' */
-				item->subinfo_type = SYSINFO_SUBINFO_TABLE;
-				return sysinfo_create_path(name + i + 1, &(item->subinfo.table));
+			/* Create subtree items */
+			if (name[i] == '.') {
+				item->subtree_type = SYSINFO_SUBTREE_TABLE;
+				return sysinfo_create_path(name + i + 1,
+				    &(item->subtree.table));
 			}
-			item->subinfo_type = SYSINFO_SUBINFO_NONE;
+			
+			/* No subtree needs to be created */
 			return item;
-		} else
-			subtree = subtree->next;
+		}
+		
+		/* Get next sibling */
+		cur = cur->next;
 	}
-
-	panic("Not reached.");
+	
+	/* Unreachable */
+	ASSERT(false);
 	return NULL;
 }
 
-void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val)
+void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
+    unative_t val)
 {
 	if (root == NULL)
-		root = &_root;
+		root = &global_root;
 	
-	/* If already created create only returns pointer 
-	   If not, create it */
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
-	
-	if (item != NULL) { /* If in subsystem, unable to create or return so unable to set */
-		item->val.val = val;                   
+	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_VAL;
+		item->val.val = val;
 	}
 }
 
-void sysinfo_set_item_function(const char *name, sysinfo_item_t **root, sysinfo_val_fn_t fn)
+void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
+    void *data, size_t size)
 {
 	if (root == NULL)
-		root = &_root;
+		root = &global_root;
 	
-	/* If already created create only returns pointer 
-	   If not, create it */
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
-	
-	if (item != NULL) { /* If in subsystem, unable to create or return so  unable to set */
-		item->val.fn = fn;                   
-		item->val_type = SYSINFO_VAL_FUNCTION;
+	if (item != NULL) {
+		item->val_type = SYSINFO_VAL_DATA;
+		item->val.data.data = data;
+		item->val.data.size = size;
 	}
 }
 
+void sysinfo_set_item_val_fn(const char *name, sysinfo_item_t **root,
+    sysinfo_fn_val_t fn)
+{
+	if (root == NULL)
+		root = &global_root;
+	
+	sysinfo_item_t *item = sysinfo_create_path(name, root);
+	if (item != NULL) {
+		item->val_type = SYSINFO_VAL_FUNCTION_VAL;
+		item->val.fn_val = fn;
+	}
+}
+
+void sysinfo_set_item_data_fn(const char *name, sysinfo_item_t **root,
+    sysinfo_fn_data_t fn)
+{
+	if (root == NULL)
+		root = &global_root;
+	
+	sysinfo_item_t *item = sysinfo_create_path(name, root);
+	if (item != NULL) {
+		item->val_type = SYSINFO_VAL_FUNCTION_DATA;
+		item->val.fn_data = fn;
+	}
+}
 
 void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
 	if (root == NULL)
-		root = &_root;
+		root = &global_root;
 	
-	/* If already created create only returns pointer 
-	   If not, create it */
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
-	
 	if (item != NULL)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
 }
 
-
-void sysinfo_dump(sysinfo_item_t **proot, int depth)
+static void sysinfo_indent(unsigned int depth)
 {
-	sysinfo_item_t *root;
+	unsigned int i;
+	for (i = 0; i < depth; i++)
+		printf("  ");
+}
+
+void sysinfo_dump(sysinfo_item_t **proot, unsigned int depth)
+{
 	if (proot == NULL)
-		proot = &_root;
+		proot = &global_root;
 	
-	root = *proot;
+	sysinfo_item_t *cur = *proot;
 	
-	while (root != NULL) {
-		int i;
-		unative_t val = 0;
-		const char *vtype = NULL;
+	while (cur != NULL) {
+		sysinfo_indent(depth);
 		
+		unative_t val;
+		size_t size;
 		
-		for (i = 0; i < depth; i++)
-			printf("  ");
-		
-		switch (root->val_type) {
+		switch (cur->val_type) {
 		case SYSINFO_VAL_UNDEFINED:
-			val = 0;
-			vtype = "UND";
+			printf("+ %s\n", cur->name);
 			break;
 		case SYSINFO_VAL_VAL:
-			val = root->val.val;
-			vtype = "VAL";
+			printf("+ %s -> %" PRIun" (%#" PRIxn ")\n", cur->name,
+			    cur->val.val, cur->val.val);
 			break;
-		case SYSINFO_VAL_FUNCTION:
-			val = ((sysinfo_val_fn_t) (root->val.fn)) (root);
-			vtype = "FUN";
+		case SYSINFO_VAL_DATA:
+			printf("+ %s (%" PRIs" bytes)\n", cur->name,
+			    cur->val.data.size);
 			break;
+		case SYSINFO_VAL_FUNCTION_VAL:
+			val = cur->val.fn_val(cur);
+			printf("+ %s -> %" PRIun" (%#" PRIxn ") [generated]\n",
+			    cur->name, val, val);
+			break;
+		case SYSINFO_VAL_FUNCTION_DATA:
+			cur->val.fn_data(cur, &size);
+			printf("+ %s (%" PRIs" bytes) [generated]\n", cur->name,
+			    size);
+			break;
+		default:
+			printf("+ %s [unknown]\n", cur->name);
 		}
 		
-		printf("%s    %s val:%" PRIun "(%" PRIxn ") sub:%s\n", root->name, vtype, val,
-			val, (root->subinfo_type == SYSINFO_SUBINFO_NONE) ?
-			"NON" : ((root->subinfo_type == SYSINFO_SUBINFO_TABLE) ?
-			"TAB" : "FUN"));
+		switch (cur->subtree_type) {
+		case SYSINFO_SUBTREE_NONE:
+			break;
+		case SYSINFO_SUBTREE_TABLE:
+			sysinfo_dump(&(cur->subtree.table), depth + 1);
+			break;
+		case SYSINFO_SUBTREE_FUNCTION:
+			sysinfo_indent(depth + 1);
+			printf("  [generated subtree]\n");
+			break;
+		default:
+			sysinfo_indent(depth + 1);
+			printf("  [unknown subtree]\n");
+		}
 		
-		if (root->subinfo_type == SYSINFO_SUBINFO_TABLE)
-			sysinfo_dump(&(root -> subinfo.table), depth + 1);
-		
-		root = root->next;
+		cur = cur->next;
 	}
 }
 
-sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root)
+sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root)
 {
-	// TODO: Implement Subsystem subinfo (by function implemented subinfo)
-
-	sysinfo_rettype_t ret = {0, false};
-
 	if (root == NULL)
-		root = &_root;
+		root = &global_root;
 	
 	sysinfo_item_t *item = sysinfo_find_item(name, *root);
+	sysinfo_return_t ret;
 	
 	if (item != NULL) {
-		if (item->val_type == SYSINFO_VAL_UNDEFINED) 
-			return ret;
-		else
-			ret.valid = true;
-		
-		if (item->val_type == SYSINFO_VAL_VAL)
+		switch (item->val_type) {
+		case SYSINFO_VAL_UNDEFINED:
+			ret.tag = SYSINFO_VAL_UNDEFINED;
+			break;
+		case SYSINFO_VAL_VAL:
+			ret.tag = SYSINFO_VAL_VAL;
 			ret.val = item->val.val;
-		else
-			ret.val = ((sysinfo_val_fn_t) (item->val.fn)) (item);
-	}
+			break;
+		case SYSINFO_VAL_DATA:
+			ret.tag = SYSINFO_VAL_DATA;
+			ret.data = item->val.data;
+			break;
+		case SYSINFO_VAL_FUNCTION_VAL:
+			ret.tag = SYSINFO_VAL_VAL;
+			ret.val = item->val.fn_val(item);
+			break;
+		case SYSINFO_VAL_FUNCTION_DATA:
+			ret.tag = SYSINFO_VAL_DATA;
+			ret.data.data = item->val.fn_data(item, &ret.data.size);
+			break;
+		}
+	} else
+		ret.tag = SYSINFO_VAL_UNDEFINED;
+	
 	return ret;
 }
 
-#define SYSINFO_MAX_LEN	1024
-
-unative_t sys_sysinfo_valid(unative_t ptr, unative_t len)
+static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size)
 {
-	char *str;
-	sysinfo_rettype_t ret = {0, 0};
-
-	if (len > SYSINFO_MAX_LEN)
-		return ret.valid;
-	str = malloc(len + 1, 0);
+	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
 	
-	ASSERT(str);
-	if (!((copy_from_uspace(str, (void *) ptr, len + 1)) || (str[len])))
-		ret = sysinfo_get_val(str, NULL);
+	if (size > SYSINFO_MAX_PATH)
+		return ret;
 	
-	free(str);
-	return ret.valid;
+	char *path = (char *) malloc(size + 1, 0);
+	ASSERT(path);
+	
+	if ((copy_from_uspace(path, ptr, size + 1) == 0)
+	    && (path[size] == 0)) {
+		ret = sysinfo_get_item(path, NULL);
+		free(path);
+	}
+	
+	return ret;
 }
 
-unative_t sys_sysinfo_value(unative_t ptr, unative_t len)
+unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
-	char *str;
-	sysinfo_rettype_t ret = {0, 0};
+	return (unative_t) sysinfo_get_item_uspace(path_ptr, path_size).tag;
+}
+
+unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
+    void *value_ptr)
+{
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
 	
-	if (len > SYSINFO_MAX_LEN)
-		return ret.val;
-	str = malloc(len + 1, 0);
+	if (ret.tag != SYSINFO_VAL_VAL)
+		return (unative_t) EINVAL;
 	
-	ASSERT(str);
-	if (!((copy_from_uspace(str, (void *) ptr, len + 1)) || (str[len]))) 
-		ret = sysinfo_get_val(str, NULL);
+	return (unative_t) copy_to_uspace(value_ptr, &ret.val,
+	    sizeof(ret.val));
+}
+
+unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
+    void *size_ptr)
+{
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
 	
-	free(str);
-	return ret.val;
+	if (ret.tag != SYSINFO_VAL_DATA)
+		return (unative_t) EINVAL;
+	
+	return (unative_t) copy_to_uspace(size_ptr, &ret.data.size,
+	    sizeof(ret.data.size));
+}
+
+unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
+    void *buffer_ptr, size_t buffer_size)
+{
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	
+	if (ret.tag != SYSINFO_VAL_DATA)
+		return (unative_t) EINVAL;
+	
+	if (ret.data.size != buffer_size)
+		return ENOMEM;
+	
+	return (unative_t) copy_to_uspace(buffer_ptr, ret.data.data,
+	    ret.data.size);
 }
 
 /** @}

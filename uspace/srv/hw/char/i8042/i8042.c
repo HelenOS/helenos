@@ -163,16 +163,29 @@ int main(int argc, char *argv[])
 
 static int i8042_init(void)
 {
+	if (sysinfo_get_value("i8042.address.physical", &i8042_physical) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("i8042.address.kernel", &i8042_kernel) != EOK)
+		return -1;
+	
 	void *vaddr;
-
-	i8042_physical = sysinfo_value("i8042.address.physical");
-	i8042_kernel = sysinfo_value("i8042.address.kernel");
 	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
 		return -1;
+	
 	i8042 = vaddr;
-
+	
+	sysarg_t inr_a;
+	sysarg_t inr_b;
+	
+	if (sysinfo_get_value("i8042.inr_a", &inr_a) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("i8042.inr_b", &inr_b) != EOK)
+		return -1;
+	
 	async_set_interrupt_received(i8042_irq_handler);
-
+	
 	/* Disable kbd and aux */
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
@@ -185,10 +198,9 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(sysinfo_value("i8042.inr_a"), device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(sysinfo_value("i8042.inr_b"), device_assign_devno(), 0, &i8042_kbd);
-	printf("i8042: registered for interrupts %d and %d\n",
-	    sysinfo_value("i8042.inr_a"), sysinfo_value("i8042.inr_b"));
+	ipc_register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
+	printf("%s: registered for interrupts %d and %d\n", NAME, inr_a, inr_b);
 
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);

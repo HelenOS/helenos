@@ -30,16 +30,54 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <libc.h>
 #include <sysinfo.h>
 #include <str.h>
+#include <errno.h>
+#include <malloc.h>
+#include <bool.h>
 
-sysarg_t sysinfo_value(const char *name)
+sysinfo_item_tag_t sysinfo_get_tag(const char *path)
 {
-	return __SYSCALL2(SYS_SYSINFO_VALUE, (sysarg_t) name,
-	    (sysarg_t) str_size(name));
+	return (sysinfo_item_tag_t) __SYSCALL2(SYS_SYSINFO_GET_TAG,
+	    (sysarg_t) path, (sysarg_t) str_size(path));
+}
+
+int sysinfo_get_value(const char *path, sysarg_t *value)
+{
+	return (int) __SYSCALL3(SYS_SYSINFO_GET_VALUE, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) value);
+}
+
+static int sysinfo_get_data_size(const char *path, size_t *size)
+{
+	return (int) __SYSCALL3(SYS_SYSINFO_GET_DATA_SIZE, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) size);
+}
+
+extern void *sysinfo_get_data(const char *path, size_t *size)
+{
+	while (true) {
+		int ret = sysinfo_get_data_size(path, size);
+		if (ret != EOK)
+			return NULL;
+		
+		void *data = malloc(*size);
+		if (data == NULL)
+			return NULL;
+		
+		ret = __SYSCALL4(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
+		    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size);
+		if (ret == EOK)
+			return data;
+		
+		if (ret != ENOMEM)
+			return NULL;
+		
+		free(data);
+	}
 }
 
 /** @}

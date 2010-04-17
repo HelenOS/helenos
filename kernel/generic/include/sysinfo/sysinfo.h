@@ -40,53 +40,81 @@
 
 extern bool fb_exported;
 
-typedef union sysinfo_item_val {
+typedef enum {
+	SYSINFO_VAL_UNDEFINED = 0,
+	SYSINFO_VAL_VAL = 1,
+	SYSINFO_VAL_DATA = 2,
+	SYSINFO_VAL_FUNCTION_VAL = 3,
+	SYSINFO_VAL_FUNCTION_DATA = 4
+} sysinfo_item_val_type_t;
+
+typedef enum {
+	SYSINFO_SUBTREE_NONE = 0,
+	SYSINFO_SUBTREE_TABLE = 1,
+	SYSINFO_SUBTREE_FUNCTION = 2
+} sysinfo_subtree_type_t;
+
+struct sysinfo_item;
+
+typedef unative_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
+typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *);
+typedef struct sysinfo_item *(*sysinfo_fn_subtree_t)(const char *);
+
+typedef struct {
+	void *data;
+	size_t size;
+} sysinfo_data_t;
+
+typedef union {
 	unative_t val;
-	void *fn; 
+	sysinfo_fn_val_t fn_val;
+	sysinfo_fn_data_t fn_data;
+	sysinfo_data_t data;
 } sysinfo_item_val_t;
+
+typedef union {
+	struct sysinfo_item *table;
+	sysinfo_fn_subtree_t find_item;
+} sysinfo_subtree_t;
 
 typedef struct sysinfo_item {
 	char *name;
-	union {
-		unative_t val;
-		void *fn; 
-	} val;
-
-	union {
-		struct sysinfo_item *table;
-		void *fn;
-	} subinfo;
-
+	
+	sysinfo_item_val_type_t val_type;
+	sysinfo_item_val_t val;
+	
+	sysinfo_subtree_type_t subtree_type;
+	sysinfo_subtree_t subtree;
+	
 	struct sysinfo_item *next;
-	int val_type;
-	int subinfo_type;
 } sysinfo_item_t;
 
-#define SYSINFO_VAL_VAL        0
-#define SYSINFO_VAL_FUNCTION   1
-#define SYSINFO_VAL_UNDEFINED  U_SPECIAL
+typedef struct {
+	sysinfo_item_val_type_t tag;
+	union {
+		unative_t val;
+		sysinfo_data_t data;
+	};
+} sysinfo_return_t;
 
-#define SYSINFO_SUBINFO_NONE      0
-#define SYSINFO_SUBINFO_TABLE     1
-#define SYSINFO_SUBINFO_FUNCTION  2
+extern void sysinfo_init(void);
 
-typedef unative_t (*sysinfo_val_fn_t)(sysinfo_item_t *root);
-typedef unative_t (*sysinfo_subinfo_fn_t)(const char *subname);
+extern void sysinfo_set_item_val(const char *, sysinfo_item_t **, unative_t);
+extern void sysinfo_set_item_data(const char *, sysinfo_item_t **, void *,
+    size_t);
+extern void sysinfo_set_item_val_fn(const char *, sysinfo_item_t **,
+    sysinfo_fn_val_t);
+extern void sysinfo_set_item_data_fn(const char *, sysinfo_item_t **,
+    sysinfo_fn_data_t);
+extern void sysinfo_set_item_undefined(const char *, sysinfo_item_t **);
 
-typedef struct sysinfo_rettype {
-	unative_t val;
-	unative_t valid;
-} sysinfo_rettype_t;
+extern sysinfo_return_t sysinfo_get_item(const char *, sysinfo_item_t **);
+extern void sysinfo_dump(sysinfo_item_t **, unsigned int);
 
-void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val);
-void sysinfo_dump(sysinfo_item_t **root, int depth);
-void sysinfo_set_item_function(const char *name, sysinfo_item_t **root, sysinfo_val_fn_t fn);
-void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root);
-
-sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root);
-
-unative_t sys_sysinfo_valid(unative_t ptr, unative_t len);
-unative_t sys_sysinfo_value(unative_t ptr, unative_t len);
+unative_t sys_sysinfo_get_tag(void *, size_t);
+unative_t sys_sysinfo_get_value(void *, size_t, void *);
+unative_t sys_sysinfo_get_data_size(void *, size_t, void *);
+unative_t sys_sysinfo_get_data(void *, size_t, void *, size_t);
 
 #endif
 

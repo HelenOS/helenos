@@ -83,6 +83,7 @@
 #include <ddi/ddi.h>
 #include <main/main.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -208,6 +209,7 @@ void main_bsp_separated_stack(void)
 	
 	/* Initialize at least 1 memory segment big enough for slab to work. */
 	LOG_EXEC(slab_cache_init());
+	LOG_EXEC(sysinfo_init());
 	LOG_EXEC(btree_init());
 	LOG_EXEC(as_init());
 	LOG_EXEC(page_init());

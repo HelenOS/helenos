@@ -414,23 +414,38 @@ int ega_init(void)
 {
 	void *ega_ph_addr;
 	size_t sz;
-
-	ega_ph_addr = (void *) sysinfo_value("fb.address.physical");
-	scr_width = sysinfo_value("fb.width");
-	scr_height = sysinfo_value("fb.height");
-
-	if (sysinfo_value("fb.blinking")) {
+	
+	sysarg_t paddr;
+	if (sysinfo_get_value("fb.address.physical", &paddr) != EOK)
+		return -1;
+	
+	sysarg_t width;
+	if (sysinfo_get_value("fb.width", &width) != EOK)
+		return -1;
+	
+	sysarg_t height;
+	if (sysinfo_get_value("fb.width", &height) != EOK)
+		return -1;
+	
+	sysarg_t blinking;
+	if (sysinfo_get_value("fb.blinking", &blinking) != EOK)
+		blinking = false;
+	
+	ega_ph_addr = (void *) paddr;
+	scr_width = width;
+	scr_height = height;
+	if (blinking) {
 		ega_normal_color &= 0x77;
 		ega_inverted_color &= 0x77;
 	}
-
+	
 	style = NORMAL_COLOR;
-
+	
 	iospace_enable(task_get_id(), (void *) EGA_IO_BASE, 2);
-
+	
 	sz = scr_width * scr_height * 2;
 	scr_addr = as_get_mappable_page(sz);
-
+	
 	if (physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
 	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;

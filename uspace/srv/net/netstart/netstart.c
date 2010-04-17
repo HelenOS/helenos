@@ -43,6 +43,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <task.h>
+#include <str_error.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
@@ -70,8 +71,10 @@ static bool spawn(const char *desc, const char *path)
 	argv[0] = path;
 	argv[1] = NULL;
 	
-	if (task_spawn(path, argv) == 0) {
-		fprintf(stderr, "%s: Error spawning %s\n", NAME, path);
+	int err;
+	if (task_spawn(path, argv, &err) == 0) {
+		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
+		    str_error(err));
 		return false;
 	}
 	
