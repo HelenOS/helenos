@@ -40,7 +40,7 @@ $(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
 	cp arch/$(BARCH)/yaboot/yaboot.conf $(TMP)/boot/yaboot.conf
 	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
 
-arch/$(BARCH)/loader/image.boot:
+arch/$(BARCH)/loader/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
 	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 
 clean: generic_clean

@@ -38,7 +38,7 @@ MODULES := $(notdir $(COMPONENTS))
 
 build: $(BASE)/image.iso
 
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
+$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
 	mkdir -p $(TMP)/boot/grub
 	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
 	

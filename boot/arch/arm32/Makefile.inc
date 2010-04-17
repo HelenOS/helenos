@@ -26,9 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+include Makefile.common
+
 build: $(BASE)/image.boot
 
-$(BASE)/image.boot:
+$(BASE)/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
 	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 	cp arch/$(BARCH)/loader/image.boot $@
 
