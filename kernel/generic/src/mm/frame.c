@@ -1217,6 +1217,28 @@ uint64_t zone_total_size(void)
 	return total;
 }
 
+void zone_busy_and_free(uint64_t *out_busy, uint64_t *out_free)
+{
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&zones.lock);
+
+	uint64_t busy = 0, free = 0;
+	size_t i;
+	for (i = 0; i < zones.count; i++) {
+		bool available = zone_flags_available(zones.info[i].flags);
+		/* Do not count reserved memory */
+		if (available) {
+			busy += (uint64_t) FRAMES2SIZE(zones.info[i].busy_count);
+			free += (uint64_t) FRAMES2SIZE(zones.info[i].free_count);
+		}
+	}
+
+	spinlock_unlock(&zones.lock);
+	interrupts_restore(ipl);
+	*out_busy = busy;
+	*out_free = free;
+}
+
 /** Prints list of zones. */
 void zone_print_list(void)
 {

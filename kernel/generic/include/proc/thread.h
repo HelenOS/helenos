@@ -68,23 +68,8 @@ extern const char *thread_states[];
 /** Thread will be attached by the caller. */
 #define THREAD_FLAG_NOATTACH	(1 << 3)
 
-/** Thread states. */
-typedef enum {
-	/** It is an error, if thread is found in this state. */
-	Invalid,
-	/** State of a thread that is currently executing on some CPU. */
-	Running,
-	/** Thread in this state is waiting for an event. */
-	Sleeping,
-	/** State of threads in a run queue. */
-	Ready,
-	/** Threads are in this state before they are first readied. */
-	Entering,
-	/** After a thread calls thread_exit(), it is put into Exiting state. */
-	Exiting,
-	/** Threads that were not detached but exited are Lingering. */
-	Lingering
-} state_t;
+/* We need state_t enum definition */
+#include <ps/taskinfo.h>
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {
@@ -188,7 +173,8 @@ typedef struct thread {
 	uint64_t ticks;
 	
 	/** Thread accounting. */
-	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 	/** Last sampled cycle. */
 	uint64_t last_cycle;
 	/** Thread doesn't affect accumulated accounting. */	
@@ -251,7 +237,7 @@ extern void thread_detach(thread_t *);
 extern void thread_register_call_me(void (*)(void *), void *);
 extern void thread_print_list(void);
 extern void thread_destroy(thread_t *);
-extern void thread_update_accounting(void);
+extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
 
 /** Fpu context slab cache. */

@@ -45,6 +45,10 @@ DIRS = \
 	app/tester \
 	app/tetris \
 	app/trace \
+	app/ps \
+	app/top \
+	app/uptime \
+	app/dummy_load \
 	srv/clip \
 	srv/devmap \
 	srv/loader \

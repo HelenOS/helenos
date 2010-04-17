@@ -218,6 +218,11 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 	answerbox_t *callerbox = call->callerbox;
 	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
 
+	/* Count sent answer */
+	spinlock_lock(&TASK->lock);
+	TASK->ipc_info.answer_sent++;
+	spinlock_unlock(&TASK->lock);
+
 	call->flags |= IPC_CALL_ANSWERED;
 
 	if (call->flags & IPC_CALL_FORWARDED) {
@@ -275,6 +280,11 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
+	/* Count sent ipc call */
+	spinlock_lock(&TASK->lock);
+	TASK->ipc_info.call_sent++;
+	spinlock_unlock(&TASK->lock);
+
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
@@ -375,6 +385,11 @@ int ipc_phone_hangup(phone_t *phone)
  */
 int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 {
+	/* Count forwarded calls */
+	spinlock_lock(&TASK->lock);
+	TASK->ipc_info.forwarded++;
+	spinlock_unlock(&TASK->lock);
+
 	spinlock_lock(&oldbox->lock);
 	list_remove(&call->link);
 	spinlock_unlock(&oldbox->lock);
@@ -415,6 +430,12 @@ restart:
 	
 	spinlock_lock(&box->lock);
 	if (!list_empty(&box->irq_notifs)) {
+
+		/* Count recieved IRQ notification */
+		spinlock_lock(&TASK->lock);
+		TASK->ipc_info.irq_notif_recieved++;
+		spinlock_unlock(&TASK->lock);
+
 		ipl = interrupts_disable();
 		spinlock_lock(&box->irq_lock);
 
@@ -424,11 +445,21 @@ restart:
 		spinlock_unlock(&box->irq_lock);
 		interrupts_restore(ipl);
 	} else if (!list_empty(&box->answers)) {
+		/* Count recieved answer */
+		spinlock_lock(&TASK->lock);
+		TASK->ipc_info.answer_recieved++;
+		spinlock_unlock(&TASK->lock);
+
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
 		list_remove(&request->link);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
+		/* Count recieved call */
+		spinlock_lock(&TASK->lock);
+		TASK->ipc_info.call_recieved++;
+		spinlock_unlock(&TASK->lock);
+
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);
 		list_remove(&request->link);

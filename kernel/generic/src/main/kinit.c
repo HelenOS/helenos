@@ -66,6 +66,7 @@
 #include <ipc/ipc.h>
 #include <debug.h>
 #include <str.h>
+#include <ps/load.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -162,6 +163,13 @@ void kinit(void *arg)
 	}
 #endif /* CONFIG_KCONSOLE */
 	
+	/* Start thread computing system load */
+	thread = thread_create(kload_thread, NULL, TASK, 0, "kload", false);
+	if (thread != NULL)
+		thread_ready(thread);
+	else
+		printf("Unable to create kload thread\n");
+
 	interrupts_enable();
 	
 	/*

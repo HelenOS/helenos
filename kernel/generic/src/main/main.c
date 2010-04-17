@@ -225,7 +225,7 @@ void main_bsp_separated_stack(void)
 	
 	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
 	    config.cpu_count, SIZE2MB(zone_total_size()));
-	
+
 	LOG_EXEC(cpu_init());
 	
 	LOG_EXEC(calibrate_delay_loop());

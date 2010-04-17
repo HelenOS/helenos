@@ -56,7 +56,7 @@
 #include <ipc/kbox.h>
 #include <mm/as.h>
 
-#define TASK_NAME_BUFLEN	20
+#include <ps/taskinfo.h>
 
 struct thread;
 
@@ -93,6 +93,7 @@ typedef struct task {
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
+	task_ipc_info_t ipc_info; /**< IPC statistics */
 	/**
 	 * Active asynchronous messages. It is used for limiting uspace to
 	 * certain extent.
@@ -121,7 +122,8 @@ typedef struct task {
 	btree_t futexes;	
 	
 	/** Accumulated accounting. */
-	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 } task_t;
 
 SPINLOCK_EXTERN(tasks_lock);
@@ -133,7 +135,7 @@ extern task_t *task_create(as_t *as, const char *name);
 extern void task_destroy(task_t *t);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);
-extern uint64_t task_get_accounting(task_t *t);
+extern void task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles);
 extern void task_print_list(void);
 
 extern void cap_set(task_t *t, cap_t caps);

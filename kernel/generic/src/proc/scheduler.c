@@ -201,6 +201,9 @@ loop:
 		 * even though there is a runnable thread.
 		 */
 
+		 spinlock_lock(&CPU->lock);
+		 CPU->idle = true;
+		 spinlock_unlock(&CPU->lock);
 		 cpu_sleep();
 		 goto loop;
 	}
@@ -312,8 +315,8 @@ void scheduler(void)
 	if (THREAD) {
 		spinlock_lock(&THREAD->lock);
 		
-		/* Update thread accounting */
-		THREAD->cycles += get_cycle() - THREAD->last_cycle;
+		/* Update thread kernel accounting */
+		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 		
 #ifndef CONFIG_FPU_LAZY
 		fpu_context_save(THREAD->saved_fpu_context);

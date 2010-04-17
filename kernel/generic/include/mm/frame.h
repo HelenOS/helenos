@@ -169,6 +169,7 @@ extern uintptr_t zone_conf_size(size_t);
 extern bool zone_merge(size_t, size_t);
 extern void zone_merge_all(void);
 extern uint64_t zone_total_size(void);
+extern void zone_busy_and_free(uint64_t *out_busy, uint64_t *out_free);
 
 /*
  * Console functions

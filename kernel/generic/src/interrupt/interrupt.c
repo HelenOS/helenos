@@ -50,6 +50,7 @@
 #include <panic.h>
 #include <print.h>
 #include <symtab.h>
+#include <proc/thread.h>
 
 static struct {
 	const char *name;
@@ -90,6 +91,10 @@ void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
 
+	/* Account user cycles */
+	if (THREAD)
+		thread_update_accounting(true);
+
 #ifdef CONFIG_UDEBUG
 	if (THREAD) THREAD->udebug.uspace_state = istate;
 #endif
@@ -103,6 +108,9 @@ void exc_dispatch(int n, istate_t *istate)
 	/* This is a safe place to exit exiting thread */
 	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
 		thread_exit();
+
+	if (THREAD)
+		thread_update_accounting(false);
 }
 
 /** Default 'null' exception handler */

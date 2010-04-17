@@ -228,7 +228,12 @@ GENERIC_SOURCES = \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
 	generic/src/security/cap.c \
-	generic/src/sysinfo/sysinfo.c
+	generic/src/sysinfo/sysinfo.c \
+	generic/src/ps/ps.c \
+	generic/src/ps/cpu.c \
+	generic/src/ps/load.c \
+	generic/src/ps/uptime.c \
+	generic/src/ps/mem.c
 
 ## Kernel console support
 #
