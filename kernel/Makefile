@@ -277,8 +277,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
-		test/thread/thread1.c \
-		test/sysinfo/sysinfo1.c
+		test/thread/thread1.c
 	
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c
