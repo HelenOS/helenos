@@ -39,6 +39,16 @@
 
 #include <libarch/common.h>
 
+typedef struct {
+	uint64_t lo;
+	int64_t hi;
+} int128_t;
+
+typedef struct {
+	uint64_t lo;
+	uint64_t hi;
+} uint128_t;
+
 typedef uint64_t sysarg_t;
 
 typedef int64_t ssize_t;
