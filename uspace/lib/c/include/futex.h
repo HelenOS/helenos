@@ -38,7 +38,7 @@
 #include <atomic.h>
 #include <sys/types.h>
 
-#define FUTEX_INITIALIZER     {1}
+#define FUTEX_INITIALIZER  {1}
 
 typedef atomic_t futex_t;
 

@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <futex.h>
 #include <atomic.h>
@@ -39,8 +39,9 @@
 
 /** Initialize futex counter.
  *
- * @param futex		Futex.
- * @param val		Initialization value.
+ * @param futex Futex.
+ * @param val   Initialization value.
+ *
  */
 void futex_initialize(futex_t *futex, int val)
 {
@@ -49,9 +50,11 @@ void futex_initialize(futex_t *futex, int val)
 
 /** Try to down the futex.
  *
- * @param futex		Futex.
- * @return		Non-zero if the futex was acquired.
- * @return		Zero if the futex was not acquired.
+ * @param futex Futex.
+ *
+ * @return Non-zero if the futex was acquired.
+ * @return Zero if the futex was not acquired.
+ *
  */
 int futex_trydown(futex_t *futex)
 {
@@ -60,30 +63,34 @@ int futex_trydown(futex_t *futex)
 
 /** Down the futex.
  *
- * @param futex		Futex.
- * @return		ENOENT if there is no such virtual address.
- * @return		Zero in the uncontended case. 
- * @return		Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
+ * @param futex Futex.
+ *
+ * @return ENOENT if there is no such virtual address.
+ * @return Zero in the uncontended case.
+ * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
+ *
  */
 int futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(futex) < 0)
 		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->count);
-
+	
 	return 0;
 }
 
 /** Up the futex.
  *
- * @param futex		Futex.
- * @return		ENOENT if there is no such virtual address.
- * @return		Zero in the uncontended case.
+ * @param futex Futex.
+ *
+ * @return ENOENT if there is no such virtual address.
+ * @return Zero in the uncontended case.
+ *
  */
 int futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(futex) < 0)
 		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->count);
-		
+	
 	return 0;
 }
 
