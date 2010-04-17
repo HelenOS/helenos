@@ -88,6 +88,9 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 
+extern char *str_dup(const char *src);
+extern char *str_ndup(const char *src, size_t n);
+
 extern char *str_chr(const char *str, wchar_t ch);
 
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
