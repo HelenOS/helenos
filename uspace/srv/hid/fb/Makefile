@@ -28,7 +28,15 @@
 #
 
 USPACE_PREFIX = ../../..
+ROOT_PATH = $(USPACE_PREFIX)/..
+
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
 BINARY = fb
+
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
 
 SOURCES = \
 	main.c \
@@ -64,13 +72,13 @@ ifeq ($(UARCH),mips32)
 endif
 
 ifeq ($(UARCH),sparc64)
-	ifeq ($(PROCESSOR), sun4v)
+	ifeq ($(PROCESSOR),sun4v)
 		SOURCES += niagara.c \
 			serial_console.c
 		EXTRA_CFLAGS = -DNIAGARA_ENABLED
 	endif
-
-	ifeq ($(MACHINE), serengeti)
+	
+	ifeq ($(MACHINE),serengeti)
 		SOURCES += sgcn.c \
 			serial_console.c
 		EXTRA_CFLAGS = -DSGCN_ENABLED
