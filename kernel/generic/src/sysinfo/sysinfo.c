@@ -52,6 +52,7 @@ static int sysinfo_item_constructor(void *obj, int kmflag)
 	item->name = NULL;
 	item->val_type = SYSINFO_VAL_UNDEFINED;
 	item->subtree_type = SYSINFO_SUBTREE_NONE;
+	item->subtree.table = NULL;
 	item->next = NULL;
 	
 	return 0;
@@ -115,6 +116,8 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
 static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
+	ASSERT(psubtree != NULL);
+	
 	if (*psubtree == NULL) {
 		/* No parent */
 		
