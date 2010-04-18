@@ -37,6 +37,7 @@
 #include <print.h>
 #include <syscall/copy.h>
 #include <synch/spinlock.h>
+#include <arch/asm.h>
 #include <errno.h>
 
 #define SYSINFO_MAX_PATH  2048
