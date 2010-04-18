@@ -431,8 +431,8 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	uint64_t kcycles;
 	char usuffix, ksuffix;
 	task_get_accounting(t, &ucycles, &kcycles);
-	order(ucycles, &ucycles, &usuffix);
-	order(kcycles, &kcycles, &ksuffix);
+	order_suffix(ucycles, &ucycles, &usuffix);
+	order_suffix(kcycles, &kcycles, &ksuffix);
 	
 #ifdef __32_BITS__	
 	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9"

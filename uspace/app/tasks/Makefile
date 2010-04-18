@@ -31,7 +31,6 @@ USPACE_PREFIX = ../..
 BINARY = tasks
 
 SOURCES = \
-	tasks.c \
-	func.c
+	tasks.c
 
 include $(USPACE_PREFIX)/Makefile.common

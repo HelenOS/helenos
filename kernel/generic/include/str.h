@@ -98,6 +98,8 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 
 extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
 
+extern void order_suffix(const uint64_t val, uint64_t *rv, char *suffix);
+
 #endif
 
 /** @}

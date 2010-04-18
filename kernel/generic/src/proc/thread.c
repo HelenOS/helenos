@@ -49,7 +49,7 @@
 #include <synch/waitq.h>
 #include <synch/rwlock.h>
 #include <cpu.h>
-#include <func.h>
+#include <str.h>
 #include <context.h>
 #include <adt/avl.h>
 #include <adt/list.h>
@@ -625,8 +625,8 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
-	order(t->ucycles, &ucycles, &usuffix);
-	order(t->kcycles, &kcycles, &ksuffix);
+	order_suffix(t->ucycles, &ucycles, &usuffix);
+	order_suffix(t->kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__
 	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9"

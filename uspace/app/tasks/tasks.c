@@ -44,8 +44,8 @@
 #include <malloc.h>
 #include <inttypes.h>
 #include <bool.h>
+#include <str.h>
 #include <arg_parse.h>
-#include "func.h"
 
 #define NAME  "tasks"
 
@@ -75,9 +75,9 @@ static void list_tasks(void)
 			uint64_t virtmem, ucycles, kcycles;
 			char vmsuffix, usuffix, ksuffix;
 			
-			order(stats_task->virtmem, &virtmem, &vmsuffix);
-			order(stats_task->ucycles, &ucycles, &usuffix);
-			order(stats_task->kcycles, &kcycles, &ksuffix);
+			order_suffix(stats_task->virtmem, &virtmem, &vmsuffix);
+			order_suffix(stats_task->ucycles, &ucycles, &usuffix);
+			order_suffix(stats_task->kcycles, &kcycles, &ksuffix);
 			
 			printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
 			    PRIu64 "%c %12" PRIu64 "%c %s\n", ids[i], stats_task->threads,
@@ -112,8 +112,8 @@ static void list_threads(task_id_t task_id, bool all)
 				uint64_t ucycles, kcycles;
 				char usuffix, ksuffix;
 				
-				order(stats_thread->ucycles, &ucycles, &usuffix);
-				order(stats_thread->kcycles, &kcycles, &ksuffix);
+				order_suffix(stats_thread->ucycles, &ucycles, &usuffix);
+				order_suffix(stats_thread->kcycles, &kcycles, &ksuffix);
 				
 				if (stats_thread->on_cpu) {
 					printf("%8" PRIu64 " %-8s %4u %6d %12"

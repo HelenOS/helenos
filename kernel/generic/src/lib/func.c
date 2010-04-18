@@ -122,32 +122,5 @@ unative_t atoi(const char *text)
 	return result;
 }
 
-
-void order(const uint64_t val, uint64_t *rv, char *suffix)
-{
-	if (val > 10000000000000000000ULL) {
-		*rv = val / 1000000000000000000ULL;
-		*suffix = 'Z';
-	} else if (val > 1000000000000000000ULL) {
-		*rv = val / 1000000000000000ULL;
-		*suffix = 'E';
-	} else if (val > 1000000000000000ULL) {
-		*rv = val / 1000000000000ULL;
-		*suffix = 'T';
-	} else if (val > 1000000000000ULL) {
-		*rv = val / 1000000000ULL;
-		*suffix = 'G';
-	} else if (val > 1000000000ULL) {
-		*rv = val / 1000000ULL;
-		*suffix = 'M';
-	} else if (val > 1000000ULL) {
-		*rv = val / 1000ULL;
-		*suffix = 'k';
-	} else {
-		*rv = val;
-		*suffix = ' ';
-	}
-}
-
 /** @}
  */

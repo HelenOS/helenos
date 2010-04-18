@@ -1067,8 +1067,8 @@ static bool run_test(const test_t *test)
 	
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
-	order(ucycles1 - ucycles0, &ucycles, &usuffix);
-	order(kcycles1 - kcycles0, &kcycles, &ksuffix);
+	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		
 	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
 			ucycles, usuffix, kcycles, ksuffix);
@@ -1129,8 +1129,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		}
 		
 		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
-		order(ucycles1 - ucycles0, &ucycles, &usuffix);
-		order(kcycles1 - kcycles0, &kcycles, &ksuffix);
+		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
 				ucycles, usuffix, kcycles, ksuffix);
 	}
@@ -1144,7 +1144,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			sum += data[i];
 		}
 		
-		order(sum / (uint64_t) cnt, &ucycles, &usuffix);
+		order_suffix(sum / (uint64_t) cnt, &ucycles, &usuffix);
 		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
 	
