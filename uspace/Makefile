@@ -41,13 +41,13 @@ DIRS = \
 	app/mkfat \
 	app/redir \
 	app/sbi \
+	app/stats \
 	app/taskdump \
+	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
-	app/tasks \
 	app/top \
-	app/uptime \
 	app/dummy_load \
 	srv/clip \
 	srv/devmap \

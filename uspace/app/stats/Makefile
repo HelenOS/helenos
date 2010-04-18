@@ -28,9 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = uptime
+BINARY = stats
 
 SOURCES = \
-	uptime.c
+	stats.c
 
 include $(USPACE_PREFIX)/Makefile.common

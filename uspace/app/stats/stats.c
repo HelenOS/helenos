@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uptime
- * @brief Print system uptime.
+/** @addtogroup stats
+ * @brief Print system statistics.
  * @{
  */
 /**
@@ -40,7 +40,7 @@
 #include <inttypes.h>
 #include <malloc.h>
 
-#define NAME  "uptime"
+#define NAME  "sysstat"
 
 #define DAY     86400
 #define HOUR    3600
