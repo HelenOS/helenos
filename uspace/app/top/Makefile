@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = top
+# BINARY = top
 
 SOURCES = \
 	top.c \

@@ -95,11 +95,7 @@ GENERIC_SOURCES = \
 	generic/vfs/canonify.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
-	generic/ps.c \
-	generic/cpuinfo.c \
-	generic/meminfo.c \
-	generic/load.c \
-	generic/uptime.c
+	generic/stats.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

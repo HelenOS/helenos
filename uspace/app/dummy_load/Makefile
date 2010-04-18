@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = dummy_load
+# BINARY = dummy_load
 
 SOURCES = \
 	dummy_load.c \

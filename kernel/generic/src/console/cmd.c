@@ -885,7 +885,7 @@ int cmd_slabs(cmd_arg_t * argv)
  */
 int cmd_sysinfo(cmd_arg_t * argv)
 {
-	sysinfo_dump(NULL, 0);
+	sysinfo_dump(NULL);
 	return 1;
 }
 
@@ -934,7 +934,7 @@ int cmd_sched(cmd_arg_t * argv)
  */
 int cmd_zones(cmd_arg_t * argv)
 {
-	zone_print_list();
+	zones_print_list();
 	return 1;
 }
 

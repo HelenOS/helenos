@@ -36,6 +36,7 @@
 #include <mm/slab.h>
 #include <print.h>
 #include <syscall/copy.h>
+#include <synch/spinlock.h>
 #include <errno.h>
 
 #define SYSINFO_MAX_PATH  2048
@@ -44,6 +45,8 @@ bool fb_exported = false;
 
 static sysinfo_item_t *global_root = NULL;
 static slab_cache_t *sysinfo_item_slab;
+
+SPINLOCK_STATIC_INITIALIZE_NAME(sysinfo_lock, "sysinfo_lock");
 
 static int sysinfo_item_constructor(void *obj, int kmflag)
 {
@@ -75,9 +78,18 @@ void sysinfo_init(void)
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
 }
 
+/** Recursively find item in sysinfo tree
+ *
+ * Should be called with interrupts disabled
+ * and sysinfo_lock held.
+ *
+ */
 static sysinfo_item_t *sysinfo_find_item(const char *name,
-    sysinfo_item_t *subtree)
+    sysinfo_item_t *subtree, sysinfo_return_t **ret)
 {
+	ASSERT(subtree != NULL);
+	ASSERT(ret != NULL);
+	
 	sysinfo_item_t *cur = subtree;
 	
 	while (cur != NULL) {
@@ -97,12 +109,15 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
 			switch (cur->subtree_type) {
 			case SYSINFO_SUBTREE_TABLE:
 				/* Recursively find in subtree */
-				return sysinfo_find_item(name + i + 1, cur->subtree.table);
+				return sysinfo_find_item(name + i + 1,
+				    cur->subtree.table, ret);
 			case SYSINFO_SUBTREE_FUNCTION:
-				/* Get generated item */
-				return cur->subtree.find_item(name + i + 1);
+				/* Get generated data */
+				**ret = cur->subtree.get_data(name + i + 1);
+				return NULL;
 			default:
 				/* Not found */
+				*ret = NULL;
 				return NULL;
 			}
 		}
@@ -110,9 +125,16 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
 		cur = cur->next;
 	}
 	
+	*ret = NULL;
 	return NULL;
 }
 
+/** Recursively create items in sysinfo tree
+ *
+ * Should be called with interrupts disabled
+ * and sysinfo_lock held.
+ *
+ */
 static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
@@ -223,6 +245,9 @@ static sysinfo_item_t *sysinfo_create_path(const char *name,
 void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
     unative_t val)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	if (root == NULL)
 		root = &global_root;
 	
@@ -231,11 +256,17 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_VAL;
 		item->val.val = val;
 	}
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
 }
 
 void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
     void *data, size_t size)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	if (root == NULL)
 		root = &global_root;
 	
@@ -245,11 +276,17 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 		item->val.data.data = data;
 		item->val.data.size = size;
 	}
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
 }
 
-void sysinfo_set_item_val_fn(const char *name, sysinfo_item_t **root,
+void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
     sysinfo_fn_val_t fn)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	if (root == NULL)
 		root = &global_root;
 	
@@ -258,11 +295,17 @@ void sysinfo_set_item_val_fn(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_FUNCTION_VAL;
 		item->val.fn_val = fn;
 	}
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
 }
 
-void sysinfo_set_item_data_fn(const char *name, sysinfo_item_t **root,
+void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
     sysinfo_fn_data_t fn)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	if (root == NULL)
 		root = &global_root;
 	
@@ -271,18 +314,49 @@ void sysinfo_set_item_data_fn(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_FUNCTION_DATA;
 		item->val.fn_data = fn;
 	}
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
 }
 
 void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	if (root == NULL)
 		root = &global_root;
 	
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
 }
 
+void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
+    sysinfo_fn_subtree_t fn)
+{
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
+	if (root == NULL)
+		root = &global_root;
+	
+	sysinfo_item_t *item = sysinfo_create_path(name, root);
+	if ((item != NULL) && (item->subtree_type != SYSINFO_SUBTREE_TABLE)) {
+		item->subtree_type = SYSINFO_SUBTREE_FUNCTION;
+		item->subtree.get_data = fn;
+	}
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+}
+
+/** Sysinfo dump indentation helper routine
+ *
+ */
 static void sysinfo_indent(unsigned int depth)
 {
 	unsigned int i;
@@ -290,17 +364,24 @@ static void sysinfo_indent(unsigned int depth)
 		printf("  ");
 }
 
-void sysinfo_dump(sysinfo_item_t **proot, unsigned int depth)
+/** Dump the structure of sysinfo tree
+ *
+ * Should be called with interrupts disabled
+ * and sysinfo_lock held. Because this routine
+ * might take a reasonable long time to proceed,
+ * having the spinlock held is not optimal, but
+ * there is no better simple solution.
+ *
+ */
+static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 {
-	if (proot == NULL)
-		proot = &global_root;
-	
-	sysinfo_item_t *cur = *proot;
+	sysinfo_item_t *cur = root;
 	
 	while (cur != NULL) {
 		sysinfo_indent(depth);
 		
 		unative_t val;
+		void *data;
 		size_t size;
 		
 		switch (cur->val_type) {
@@ -321,7 +402,10 @@ void sysinfo_dump(sysinfo_item_t **proot, unsigned int depth)
 			    cur->name, val, val);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
-			cur->val.fn_data(cur, &size);
+			data = cur->val.fn_data(cur, &size);
+			if (data != NULL)
+				free(data);
+			
 			printf("+ %s (%" PRIs" bytes) [generated]\n", cur->name,
 			    size);
 			break;
@@ -333,57 +417,82 @@ void sysinfo_dump(sysinfo_item_t **proot, unsigned int depth)
 		case SYSINFO_SUBTREE_NONE:
 			break;
 		case SYSINFO_SUBTREE_TABLE:
-			sysinfo_dump(&(cur->subtree.table), depth + 1);
+			sysinfo_dump_internal(cur->subtree.table, depth + 1);
 			break;
 		case SYSINFO_SUBTREE_FUNCTION:
 			sysinfo_indent(depth + 1);
-			printf("  [generated subtree]\n");
+			printf("+ [generated subtree]\n");
 			break;
 		default:
 			sysinfo_indent(depth + 1);
-			printf("  [unknown subtree]\n");
+			printf("+ [unknown subtree]\n");
 		}
 		
 		cur = cur->next;
 	}
 }
 
-sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root)
+void sysinfo_dump(sysinfo_item_t *root)
+{
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
+	if (root == NULL)
+		sysinfo_dump_internal(global_root, 0);
+	else
+		sysinfo_dump_internal(root, 0);
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+}
+
+/** Return sysinfo item determined by name
+ *
+ * Should be called with interrupts disabled
+ * and sysinfo_lock held.
+ *
+ */
+static sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root)
 {
 	if (root == NULL)
 		root = &global_root;
 	
-	sysinfo_item_t *item = sysinfo_find_item(name, *root);
 	sysinfo_return_t ret;
+	sysinfo_return_t *ret_ptr = &ret;
+	sysinfo_item_t *item = sysinfo_find_item(name, *root, &ret_ptr);
 	
 	if (item != NULL) {
+		ret.tag = item->val_type;
 		switch (item->val_type) {
 		case SYSINFO_VAL_UNDEFINED:
-			ret.tag = SYSINFO_VAL_UNDEFINED;
 			break;
 		case SYSINFO_VAL_VAL:
-			ret.tag = SYSINFO_VAL_VAL;
 			ret.val = item->val.val;
 			break;
 		case SYSINFO_VAL_DATA:
-			ret.tag = SYSINFO_VAL_DATA;
 			ret.data = item->val.data;
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
-			ret.tag = SYSINFO_VAL_VAL;
 			ret.val = item->val.fn_val(item);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
-			ret.tag = SYSINFO_VAL_DATA;
 			ret.data.data = item->val.fn_data(item, &ret.data.size);
 			break;
 		}
-	} else
-		ret.tag = SYSINFO_VAL_UNDEFINED;
+	} else {
+		if (ret_ptr == NULL)
+			ret.tag = SYSINFO_VAL_UNDEFINED;
+	}
 	
 	return ret;
 }
 
+/** Return sysinfo item determined by name from user space
+ *
+ * Should be called with interrupts disabled
+ * and sysinfo_lock held.
+ *
+ */
 static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size)
 {
 	sysinfo_return_t ret;
@@ -396,56 +505,106 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size)
 	ASSERT(path);
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0)
-	    && (path[size] == 0)) {
+	    && (path[size] == 0))
 		ret = sysinfo_get_item(path, NULL);
-		free(path);
-	}
 	
+	free(path);
 	return ret;
 }
 
 unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
-	return (unative_t) sysinfo_get_item_uspace(path_ptr, path_size).tag;
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	
+	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
+		free(ret.data.data);
+	
+	if (ret.tag == SYSINFO_VAL_FUNCTION_VAL)
+		ret.tag = SYSINFO_VAL_VAL;
+	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
+		ret.tag = SYSINFO_VAL_DATA;
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
+	return (unative_t) ret.tag;
 }
 
 unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	int rc;
 	
-	if (ret.tag != SYSINFO_VAL_VAL)
-		return (unative_t) EINVAL;
+	if ((ret.tag == SYSINFO_VAL_VAL) || (ret.tag == SYSINFO_VAL_FUNCTION_VAL))
+		rc = copy_to_uspace(value_ptr, &ret.val, sizeof(ret.val));
+	else
+		rc = EINVAL;
 	
-	return (unative_t) copy_to_uspace(value_ptr, &ret.val,
-	    sizeof(ret.val));
+	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
+		free(ret.data.data);
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
+	return (unative_t) rc;
 }
 
 unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	int rc;
 	
-	if (ret.tag != SYSINFO_VAL_DATA)
-		return (unative_t) EINVAL;
+	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA))
+		rc = copy_to_uspace(size_ptr, &ret.data.size,
+		    sizeof(ret.data.size));
+	else
+		rc = EINVAL;
 	
-	return (unative_t) copy_to_uspace(size_ptr, &ret.data.size,
-	    sizeof(ret.data.size));
+	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
+		free(ret.data.data);
+	
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
+	return (unative_t) rc;
 }
 
 unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size)
 {
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&sysinfo_lock);
+	
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	int rc;
 	
-	if (ret.tag != SYSINFO_VAL_DATA)
-		return (unative_t) EINVAL;
+	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
+		if (ret.data.size == buffer_size)
+			rc = copy_to_uspace(buffer_ptr, ret.data.data,
+			    ret.data.size);
+		else
+			rc = ENOMEM;
+	} else
+		rc = EINVAL;
 	
-	if (ret.data.size != buffer_size)
-		return ENOMEM;
+	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
+		free(ret.data.data);
 	
-	return (unative_t) copy_to_uspace(buffer_ptr, ret.data.data,
-	    ret.data.size);
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
+	return (unative_t) rc;
 }
 
 /** @}

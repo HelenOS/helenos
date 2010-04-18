@@ -53,9 +53,6 @@
 #include <sysinfo/sysinfo.h>
 #include <console/console.h>
 #include <udebug/udebug.h>
-#include <ps/ps.h>
-#include <ps/load.h>
-#include <ps/uptime.h>
 
 /** Dispatch system call */
 unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
@@ -146,7 +143,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
-
+	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
 	
@@ -169,15 +166,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,
 	(syshandler_t) sys_debug_disable_console,
-
-	/* Ps calls */
-	(syshandler_t) sys_ps_get_cpu_info,
-	(syshandler_t) sys_ps_get_mem_info,
-	(syshandler_t) sys_ps_get_tasks,
-	(syshandler_t) sys_ps_get_task_info,
-	(syshandler_t) sys_ps_get_threads,
-	(syshandler_t) sys_ps_get_uptime,
-	(syshandler_t) sys_ps_get_load,
 	
 	(syshandler_t) sys_ipc_connect_kbox
 };

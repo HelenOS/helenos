@@ -26,21 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_PS_CPU_H_
-#define KERN_PS_CPU_H_
+#ifndef LIBC_STATS_H_
+#define LIBC_STATS_H_
 
-typedef struct {
-	unsigned int id;
-	uint16_t frequency_mhz;
-	uint64_t idle_ticks;
-	uint64_t busy_ticks;
-} uspace_cpu_info_t;
+#include <task.h>
+#include <kernel/sysinfo/abi.h>
+
+extern stats_cpu_t *get_stats_cpus(size_t *);
+extern stats_physmem_t *get_stats_physmem(void);
+extern task_id_t *get_stats_tasks(size_t *);
+extern stats_task_t *get_stats_task(task_id_t);
+extern load_t *get_stats_load(size_t *);
+extern sysarg_t get_stats_uptime(void);
+
+extern void print_load_fragment(load_t, unsigned int);
 
 #endif
 

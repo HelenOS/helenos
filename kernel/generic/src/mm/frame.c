@@ -1201,7 +1201,7 @@ void frame_init(void)
 }
 
 /** Return total size of all zones. */
-uint64_t zone_total_size(void)
+uint64_t zones_total_size(void)
 {
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
@@ -1217,30 +1217,39 @@ uint64_t zone_total_size(void)
 	return total;
 }
 
-void zone_busy_and_free(uint64_t *out_busy, uint64_t *out_free)
+void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
+    uint64_t *free)
 {
+	ASSERT(total != NULL);
+	ASSERT(unavail != NULL);
+	ASSERT(busy != NULL);
+	ASSERT(free != NULL);
+	
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&zones.lock);
-
-	uint64_t busy = 0, free = 0;
+	
+	*total = 0;
+	*unavail = 0;
+	*busy = 0;
+	*free = 0;
+	
 	size_t i;
 	for (i = 0; i < zones.count; i++) {
-		bool available = zone_flags_available(zones.info[i].flags);
-		/* Do not count reserved memory */
-		if (available) {
-			busy += (uint64_t) FRAMES2SIZE(zones.info[i].busy_count);
-			free += (uint64_t) FRAMES2SIZE(zones.info[i].free_count);
-		}
+		*total += (uint64_t) FRAMES2SIZE(zones.info[i].count);
+		
+		if (zone_flags_available(zones.info[i].flags)) {
+			*busy += (uint64_t) FRAMES2SIZE(zones.info[i].busy_count);
+			*free += (uint64_t) FRAMES2SIZE(zones.info[i].free_count);
+		} else
+			*unavail += (uint64_t) FRAMES2SIZE(zones.info[i].count);
 	}
-
+	
 	spinlock_unlock(&zones.lock);
 	interrupts_restore(ipl);
-	*out_busy = busy;
-	*out_free = free;
 }
 
 /** Prints list of zones. */
-void zone_print_list(void)
+void zones_print_list(void)
 {
 #ifdef __32_BITS__
 	printf("#  base address frames       flags    free frames  busy frames\n");

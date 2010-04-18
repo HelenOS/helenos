@@ -37,65 +37,73 @@
 #include <stdio.h>
 #include <task.h>
 #include <thread.h>
-#include <ps.h>
+#include <stats.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include <load.h>
-#include <sysinfo.h>
-
+#include <inttypes.h>
+#include <arg_parse.h>
 #include "func.h"
 
-#define TASK_COUNT 10
-#define THREAD_COUNT 50
+#define NAME  "ps"
 
-#define ECHOLOAD1(x) ((x) >> 11)
-#define ECHOLOAD2(x) (((x) & 0x7ff) / 2)
+#define TASK_COUNT    10
+#define THREAD_COUNT  50
+
+#define PRINT_LOAD1(x)  ((x) >> 11)
+#define PRINT_LOAD2(x)  (((x) & 0x7ff) / 2)
 
 /** Thread states */
-static const char *thread_states[] = {
-	"Invalid",
-	"Running",
-	"Sleeping",
-	"Ready",
-	"Entering",
-	"Exiting",
-	"Lingering"
-}; 
+//static const char *thread_states[] = {
+//	"Invalid",
+//	"Running",
+//	"Sleeping",
+//	"Ready",
+//	"Entering",
+//	"Exiting",
+//	"Lingering"
+//};
 
 static void list_tasks(void)
 {
-	int task_count = TASK_COUNT;
-	task_id_t *tasks = malloc(task_count * sizeof(task_id_t));
-	int result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
-
-	while (result > task_count) {
-		task_count *= 2;
-		tasks = realloc(tasks, task_count * sizeof(task_id_t));
-		result = get_task_ids(tasks, sizeof(task_id_t) * task_count);
+	size_t count;
+	task_id_t *ids =
+	    (task_id_t *) get_stats_tasks(&count);
+	
+	if (ids == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return;
 	}
-
-	printf("      ID  Threads      Mem       uCycles       kCycles   Cycle fault Name\n");
-
-	int i;
-	for (i = 0; i < result; ++i) {
-		task_info_t taskinfo;
-		get_task_info(tasks[i], &taskinfo);
-		uint64_t mem, ucycles, kcycles;
-		char memsuffix, usuffix, ksuffix;
-		order(taskinfo.virt_mem, &mem, &memsuffix);
-		order(taskinfo.ucycles, &ucycles, &usuffix);
-		order(taskinfo.kcycles, &kcycles, &ksuffix);
-		printf("%8llu %8u %8llu%c %12llu%c %12llu%c %s\n", tasks[i],
-			taskinfo.thread_count, mem, memsuffix, ucycles, usuffix,
-			kcycles, ksuffix, taskinfo.name);
+	
+	printf("      ID  Threads      Mem       uCycles       kCycles   Name\n");
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		stats_task_t *stats_task = get_stats_task(ids[i]);
+		if (stats_task != NULL) {
+			uint64_t virtmem, ucycles, kcycles;
+			char vmsuffix, usuffix, ksuffix;
+			
+			order(stats_task->virtmem, &virtmem, &vmsuffix);
+			order(stats_task->ucycles, &ucycles, &usuffix);
+			order(stats_task->kcycles, &kcycles, &ksuffix);
+			
+			printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
+			    PRIu64"%c %12" PRIu64"%c %s\n", ids[i], stats_task->threads,
+			    virtmem, vmsuffix, ucycles, usuffix, kcycles, ksuffix,
+			    stats_task->name);
+			
+			free(stats_task);
+		} else
+			printf("%8" PRIu64 "\n", ids[i]);
 	}
-
-	free(tasks);
+	
+	free(ids);
 }
 
-static void list_threads(task_id_t taskid)
+static void list_threads(task_id_t task_id)
 {
+	/* TODO:
 	size_t thread_count = THREAD_COUNT;
 	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
 	size_t result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
@@ -127,80 +135,146 @@ static void list_threads(task_id_t taskid)
 			kcycles, ksuffix);
 	}
 
-	free(threads);
+	free(threads); */
 }
 
-static void echo_load(void)
+static void print_load(void)
 {
-	unsigned long load[3];
-	get_load(load);
-	printf("load avarage: ");
-	print_load_fragment(load[0], 2);
-	puts(" ");
-	print_load_fragment(load[1], 2);
-	puts(" ");
-	print_load_fragment(load[2], 2);
-	puts("\n");
-}
-
-static void echo_cpus(void)
-{
-	size_t cpu_count = sysinfo_value("cpu.count");
-	printf("Found %u cpu's:\n", cpu_count);
-	uspace_cpu_info_t *cpus = malloc(cpu_count * sizeof(uspace_cpu_info_t));
-	get_cpu_info(cpus);
-	size_t i;
-	for (i = 0; i < cpu_count; ++i) {
-		printf("%2u (%4u Mhz): Busy ticks: %6llu, Idle ticks: %6llu\n", cpus[i].id,
-				(size_t)cpus[i].frequency_mhz, cpus[i].busy_ticks, cpus[i].idle_ticks);
+	size_t count;
+	load_t *load = get_stats_load(&count);
+	
+	if (load == NULL) {
+		fprintf(stderr, "%s: Unable to get load\n", NAME);
+		return;
 	}
+	
+	printf("%s: Load avarage: ", NAME);
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (i > 0)
+			printf(" ");
+		
+		print_load_fragment(load[i], 2);
+	}
+	
+	printf("\n");
+	
+	free(load);
+}
+
+static void list_cpus(void)
+{
+	size_t count;
+	stats_cpu_t *cpus = get_stats_cpus(&count);
+	
+	if (cpus == NULL) {
+		fprintf(stderr, "%s: Unable to get CPU statistics\n", NAME);
+		return;
+	}
+	
+	printf("%s: %u CPU(s) detected\n", NAME, count);
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		printf("cpu%u: %" PRIu16 " MHz, busy ticks: "
+		    "%" PRIu64 ", idle ticks: %" PRIu64 "\n",
+		    cpus[i].id, cpus[i].frequency_mhz, cpus[i].busy_ticks,
+		    cpus[i].idle_ticks);
+	}
+	
+	free(cpus);
 }
 
 static void usage()
 {
-	printf("Usage: ps [-t pid|-l|-c]\n");
+	printf(
+	    "Usage: ps [-t task_id] [-l] [-c]\n" \
+	    "\n" \
+	    "Options:\n" \
+	    "\t-t task_id\n" \
+	    "\t--task=task_id\n" \
+	    "\t\tList threads of the given task\n" \
+	    "\n" \
+	    "\t-l\n" \
+	    "\t--load\n" \
+	    "\t\tPrint system load\n" \
+	    "\n" \
+	    "\t-c\n" \
+	    "\t--cpu\n" \
+	    "\t\tList CPUs\n" \
+	    "\n" \
+	    "\t-h\n" \
+	    "\t--help\n" \
+	    "\t\tPrint this usage information\n"
+	    "\n" \
+	    "Without any options all tasks are listed\n"
+	);
 }
 
 int main(int argc, char *argv[])
 {
-	--argc; ++argv;
-
-	if (argc > 0)
-	{
-		if (str_cmp(*argv, "-t") == 0) {
-			--argc; ++argv;
-			if (argc != 1) {
-				printf("Bad argument count!\n");
-				usage();
-				exit(1);
-			}
-			task_id_t taskid = strtol(*argv, NULL, 10);
-			list_threads(taskid);
-		} else if (str_cmp(*argv, "-l") == 0) {
-			--argc; ++argv;
-			if (argc != 0) {
-				printf("Bad argument count!\n");
-				usage();
-				exit(1);
-			}
-			echo_load();
-		} else if (str_cmp(*argv, "-c") == 0) {
-			--argc; ++argv;
-			if (argc != 0) {
-				printf("Bad argument count!\n");
-				usage();
-				exit(1);
-			}
-			echo_cpus();
-		} else {
-			printf("Unknown argument %s!\n", *argv);
+	bool toggle_tasks = true;
+	bool toggle_threads = false;
+	bool toggle_load = false;
+	bool toggle_cpus = false;
+	
+	task_id_t task_id;
+	
+	int i;
+	for (i = 1; i < argc; i++) {
+		int off;
+		
+		/* Usage */
+		if ((off = arg_parse_short_long(argv[i], "-h", "--help")) != -1) {
 			usage();
-			exit(1);
+			return 0;
 		}
-	} else {
-		list_tasks();
+		
+		/* Load */
+		if ((off = arg_parse_short_long(argv[i], "-l", "--load")) != -1) {
+			toggle_tasks = false;
+			toggle_load = true;
+			continue;
+		}
+		
+		/* CPUs */
+		if ((off = arg_parse_short_long(argv[i], "-c", "--cpus")) != -1) {
+			toggle_tasks = false;
+			toggle_cpus = true;
+			continue;
+		}
+		
+		/* Threads */
+		if ((off = arg_parse_short_long(argv[i], "-t", "--task=")) != -1) {
+			// TODO: Support for 64b range
+			int tmp;
+			int ret = arg_parse_int(argc, argv, &i, &tmp, off);
+			if (ret != EOK) {
+				printf("%s: Malformed task_id '%s'\n", NAME, argv[i]);
+				return -1;
+			}
+			
+			task_id = tmp;
+			
+			toggle_tasks = false;
+			toggle_threads = true;
+			continue;
+		}
 	}
-
+	
+	if (toggle_tasks)
+		list_tasks();
+	
+	if (toggle_threads)
+		list_threads(task_id);
+	
+	if (toggle_load)
+		print_load();
+	
+	if (toggle_cpus)
+		list_cpus();
+	
 	return 0;
 }
 

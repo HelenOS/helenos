@@ -32,11 +32,10 @@
 
 /**
  * @file
- * @brief	Miscellaneous functions.
+ * @brief Miscellaneous functions.
  */
 
-#include <stdio.h>
-
+#include <stdint.h>
 #include "func.h"
 
 void order(const uint64_t val, uint64_t *rv, char *suffix)

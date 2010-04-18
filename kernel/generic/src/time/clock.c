@@ -85,7 +85,7 @@ void clock_counter_init(void)
 	
 	uptime->seconds1 = 0;
 	uptime->seconds2 = 0;
-	uptime->useconds = 0; 
+	uptime->useconds = 0;
 
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;

@@ -93,9 +93,9 @@ RD_APPS = \
 	$(USPACEDIR)/app/netecho/netecho \
 	$(USPACEDIR)/app/ping/ping \
 	$(USPACEDIR)/app/ps/ps \
-	$(USPACEDIR)/app/top/top \
-	$(USPACEDIR)/app/uptime/uptime \
-	$(USPACEDIR)/app/dummy_load/dummy_load
+	$(USPACEDIR)/app/uptime/uptime
+#	$(USPACEDIR)/app/top/top \
+#	$(USPACEDIR)/app/dummy_load/dummy_load
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ps
+/** @addtogroup top
  * @{
  */
 /** @file
@@ -35,7 +35,9 @@
 #ifndef FUNC_H_
 #define FUNC_H_
 
-extern void order(const uint64_t val, uint64_t *rv, char *suffix);
+#include <stdint.h>
+
+extern void order(const uint64_t, uint64_t *, char *);
 
 #endif
 

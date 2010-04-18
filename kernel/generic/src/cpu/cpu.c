@@ -74,8 +74,6 @@ void cpu_init(void) {
 			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);
 			
 			cpus[i].id = i;
-			cpus[i].idle_ticks = 0;
-			cpus[i].busy_ticks = 0;
 			
 			spinlock_initialize(&cpus[i].lock, "cpu_t.lock");
 
@@ -96,8 +94,6 @@ void cpu_init(void) {
 	
 	cpu_identify();
 	cpu_arch_init();
-
-	sysinfo_set_item_val("cpu.count", NULL, config.cpu_count);
 }
 
 /** List all processors. */

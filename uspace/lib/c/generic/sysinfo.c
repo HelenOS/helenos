@@ -57,7 +57,7 @@ static int sysinfo_get_data_size(const char *path, size_t *size)
 	    (sysarg_t) str_size(path), (sysarg_t) size);
 }
 
-extern void *sysinfo_get_data(const char *path, size_t *size)
+void *sysinfo_get_data(const char *path, size_t *size)
 {
 	while (true) {
 		int ret = sysinfo_get_data_size(path, size);
@@ -73,10 +73,10 @@ extern void *sysinfo_get_data(const char *path, size_t *size)
 		if (ret == EOK)
 			return data;
 		
+		free(data);
+		
 		if (ret != ENOMEM)
 			return NULL;
-		
-		free(data);
 	}
 }
 

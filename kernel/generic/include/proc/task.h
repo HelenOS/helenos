@@ -55,8 +55,7 @@
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
 #include <mm/as.h>
-
-#include <ps/taskinfo.h>
+#include <sysinfo/abi.h>
 
 struct thread;
 
@@ -80,7 +79,7 @@ typedef struct task {
 	/** Unique identity of task. */
 	task_id_t taskid;
 	/** Task security context. */
-	context_id_t context;	
+	context_id_t context;
 
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;
@@ -88,12 +87,12 @@ typedef struct task {
 	atomic_t lifecount;
 
 	/** Task capabilities. */
-	cap_t capabilities;	
+	cap_t capabilities;
 
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
-	task_ipc_info_t ipc_info; /**< IPC statistics */
+	stats_ipc_t ipc_info;   /**< IPC statistics */
 	/**
 	 * Active asynchronous messages. It is used for limiting uspace to
 	 * certain extent.
@@ -119,7 +118,7 @@ typedef struct task {
 	 */
 	mutex_t futexes_lock;
 	/** B+tree of futexes referenced by this task. */
-	btree_t futexes;	
+	btree_t futexes;
 	
 	/** Accumulated accounting. */
 	uint64_t ucycles;

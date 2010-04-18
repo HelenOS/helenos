@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup uptime
- * @brief Echo system uptime.
+ * @brief Print system uptime.
  * @{
  */
 /**
@@ -35,41 +35,47 @@
  */
 
 #include <stdio.h>
-#include <uptime.h>
+#include <stats.h>
 #include <sys/time.h>
-#include <load.h>
+#include <inttypes.h>
 
-#define DAY 86400
-#define HOUR 3600
-#define MINUTE 60
+#define NAME  "uptime"
+
+#define DAY     86400
+#define HOUR    3600
+#define MINUTE  60
 
 int main(int argc, char *argv[])
 {
 	struct timeval time;
-	uint64_t sec;
 	if (gettimeofday(&time, NULL) != 0) {
-		printf("Cannot get time of day!\n");
-		return 1;
+		fprintf(stderr, "%s: Cannot get time of day\n", NAME);
+		return -1;
 	}
-	sec = time.tv_sec;
-	printf("%02llu:%02llu:%02llu", (sec % DAY) / HOUR,
-			(sec % HOUR) / MINUTE, sec % MINUTE);
-
-	uint64_t uptime;
-	get_uptime(&uptime);
-	printf(", up %4llu days, %02llu:%02llu:%02llu",
-		uptime / DAY, (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
-
-	unsigned long load[3];
-	get_load(load);
-	puts(", load avarage: ");
-	print_load_fragment(load[0], 2);
-	puts(" ");
-	print_load_fragment(load[1], 2);
-	puts(" ");
-	print_load_fragment(load[2], 2);
-
-	puts("\n");
+	
+	uint64_t sec = time.tv_sec;
+	printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64, (sec % DAY) / HOUR,
+	    (sec % HOUR) / MINUTE, sec % MINUTE);
+	
+	sysarg_t uptime = get_stats_uptime();
+	printf(", up %u days, %02u:%02u:%02u", uptime / DAY,
+	    (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
+	
+	size_t count;
+	load_t *load = get_stats_load(&count);
+	if (load != NULL) {
+		printf(", load avarage: ");
+		
+		size_t i;
+		for (i = 0; i < count; i++) {
+			if (i > 0)
+				printf(" ");
+			
+			print_load_fragment(load[i], 2);
+		}
+	}
+	
+	printf("\n");
 	return 0;
 }
 

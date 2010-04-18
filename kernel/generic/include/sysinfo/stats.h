@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#include <load.h>
-#include <libc.h>
-#include <stdio.h>
+#ifndef KERN_STATS_H_
+#define KERN_STATS_H_
 
-/** Get current system load
- *
- * @param load		Pointer where load will be stored.
- *
- * @return		EOK.
- *
- */
-int get_load(unsigned long *load)
-{
-	return __SYSCALL1(SYS_PS_GET_LOAD, (sysarg_t) load);
-}
+extern void kload(void *arg);
+extern void stats_init(void);
 
-void print_load_fragment(unsigned long upper, int dec_length)
-{
-	int i;
-	/* Magic value from BSD */
-	unsigned long lower = 65536;
-	/* Print whole part */
-	printf("%u.", upper / lower);
-	unsigned long rest = (upper % lower) * 10;
-	for (i = 0; i < dec_length; ++i) {
-		printf("%d", rest / lower);
-		rest = (rest % lower) * 10;
-	}
-}
+#endif
 
 /** @}
  */

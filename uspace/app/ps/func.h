@@ -35,6 +35,8 @@
 #ifndef FUNC_H_
 #define FUNC_H_
 
+#include <stdint.h>
+
 extern void order(const uint64_t val, uint64_t *rv, char *suffix);
 
 #endif

@@ -68,8 +68,23 @@ extern const char *thread_states[];
 /** Thread will be attached by the caller. */
 #define THREAD_FLAG_NOATTACH	(1 << 3)
 
-/* We need state_t enum definition */
-#include <ps/taskinfo.h>
+/** Thread states. */
+typedef enum {
+	/** It is an error, if thread is found in this state. */
+	Invalid,
+	/** State of a thread that is currently executing on some CPU. */
+	Running,
+	/** Thread in this state is waiting for an event. */
+	Sleeping,
+	/** State of threads in a run queue. */
+	Ready,
+	/** Threads are in this state before they are first readied. */
+	Entering,
+	/** After a thread calls thread_exit(), it is put into Exiting state. */
+	Exiting,
+	/** Threads that were not detached but exited are Lingering. */
+	Lingering
+} state_t;
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {

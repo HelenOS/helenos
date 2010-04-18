@@ -84,6 +84,7 @@
 #include <main/main.h>
 #include <ipc/event.h>
 #include <sysinfo/sysinfo.h>
+#include <sysinfo/stats.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -224,7 +225,7 @@ void main_bsp_separated_stack(void)
 	LOG_EXEC(slab_enable_cpucache());
 	
 	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
-	    config.cpu_count, SIZE2MB(zone_total_size()));
+	    config.cpu_count, SIZE2MB(zones_total_size()));
 
 	LOG_EXEC(cpu_init());
 	
@@ -248,6 +249,7 @@ void main_bsp_separated_stack(void)
 	LOG_EXEC(ipc_init());
 	LOG_EXEC(event_init());
 	LOG_EXEC(klog_init());
+	LOG_EXEC(stats_init());
 	
 	/*
 	 * Create kernel task.
