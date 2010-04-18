@@ -39,6 +39,7 @@
 #include <sysinfo/sysinfo.h>
 #include <time/clock.h>
 #include <mm/frame.h>
+#include <proc/task.h>
 #include <proc/thread.h>
 #include <str.h>
 #include <errno.h>
@@ -126,17 +127,17 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 	return ((void *) stats_cpus);
 }
 
-/** Count number of tasks
+/** Count number of nodes in an AVL tree
  *
- * AVL task tree walker for counting tasks.
+ * AVL tree walker for counting nodes.
  *
- * @param node AVL task tree node (unused).
- * @param arg  Pointer to the counter.
+ * @param node AVL tree node (unused).
+ * @param arg  Pointer to the counter (size_t).
  *
  * @param Always true (continue the walk).
  *
  */
-static bool task_count_walker(avltree_node_t *node, void *arg)
+static bool avl_count_walker(avltree_node_t *node, void *arg)
 {
 	size_t *count = (size_t *) arg;
 	(*count)++;
@@ -191,7 +192,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	
 	/* First walk the task tree to count the tasks */
 	size_t count = 0;
-	avltree_walk(&tasks_tree, task_count_walker, (void *) &count);
+	avltree_walk(&tasks_tree, avl_count_walker, (void *) &count);
 	
 	if (count == 0) {
 		/* No tasks found (strange) */
@@ -227,6 +228,91 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	interrupts_restore(ipl);
 	
 	return ((void *) task_ids);
+}
+
+/** Gather threads
+ *
+ * AVL three tree walker for gathering thread IDs. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL thread tree node.
+ * @param arg  Pointer to the iterator into the array of thread IDs.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool thread_serialize_walker(avltree_node_t *node, void *arg)
+{
+	thread_id_t **ids = (thread_id_t **) arg;
+	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
+	
+	/* Interrupts are already disabled */
+	spinlock_lock(&(thread->lock));
+	
+	/* Record the ID and increment the iterator */
+	**ids = thread->tid;
+	(*ids)++;
+	
+	spinlock_unlock(&(thread->lock));
+	
+	return true;
+}
+
+/** Get thread IDs
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing thread IDs of all threads.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	/* Messing with threads structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	
+	/* First walk the thread tree to count the threads */
+	size_t count = 0;
+	avltree_walk(&threads_tree, avl_count_walker, (void *) &count);
+	
+	if (count == 0) {
+		/* No threads found (strange) */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	*size = sizeof(thread_id_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	thread_id_t *thread_ids = (thread_id_t *) malloc(*size, FRAME_ATOMIC);
+	if (thread_ids == NULL) {
+		/* No free space for allocation */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Walk tha thread tree again to gather the IDs */
+	thread_id_t *iterator = thread_ids;
+	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
+	
+	spinlock_unlock(&threads_lock);
+	interrupts_restore(ipl);
+	
+	return ((void *) thread_ids);
 }
 
 /** Get the size of a virtual address space
@@ -270,7 +356,8 @@ static size_t get_task_virtmem(as_t *as)
  * as a string (current limitation of the sysinfo interface,
  * but it is still reasonable for the given purpose).
  *
- * @param name Task ID (string-encoded number).
+ * @param name    Task ID (string-encoded number).
+ * @param dry_run Do not get the data, just calculate the size.
  *
  * @return Sysinfo return holder. The type of the returned
  *         data is either SYSINFO_VAL_UNDEFINED (unknown
@@ -280,7 +367,7 @@ static size_t get_task_virtmem(as_t *as)
  *         sysinfo request context).
  *
  */
-static sysinfo_return_t get_stats_task(const char *name)
+static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
 {
 	/* Initially no return value */
 	sysinfo_return_t ret;
@@ -289,12 +376,6 @@ static sysinfo_return_t get_stats_task(const char *name)
 	/* Parse the task ID */
 	task_id_t task_id;
 	if (str_uint64(name, NULL, 0, true, &task_id) != EOK)
-		return ret;
-	
-	/* Allocate stats_task_t structure */
-	stats_task_t *stats_task =
-	    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
-	if (stats_task == NULL)
 		return ret;
 	
 	/* Messing with task structures, avoid deadlock */
@@ -306,29 +387,132 @@ static sysinfo_return_t get_stats_task(const char *name)
 		/* No task with this ID */
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
-		free(stats_task);
 		return ret;
 	}
 	
-	/* Hand-over-hand locking */
-	spinlock_lock(&task->lock);
-	spinlock_unlock(&tasks_lock);
+	if (dry_run) {
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = NULL;
+		ret.data.size = sizeof(stats_task_t);
+		
+		spinlock_unlock(&tasks_lock);
+	} else {
+		/* Allocate stats_task_t structure */
+		stats_task_t *stats_task =
+		    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
+		if (stats_task == NULL) {
+			spinlock_unlock(&tasks_lock);
+			interrupts_restore(ipl);
+			return ret;
+		}
+		
+		/* Correct return value */
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = (void *) stats_task;
+		ret.data.size = sizeof(stats_task_t);
 	
-	/* Copy task's statistics */
-	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
-	stats_task->virtmem = get_task_virtmem(task->as);
-	stats_task->threads = atomic_get(&task->refcount);
-	task_get_accounting(task, &(stats_task->ucycles),
-	    &(stats_task->kcycles));
-	stats_task->ipc_info = task->ipc_info;
+		/* Hand-over-hand locking */
+		spinlock_lock(&task->lock);
+		spinlock_unlock(&tasks_lock);
+		
+		/* Copy task's statistics */
+		str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
+		stats_task->virtmem = get_task_virtmem(task->as);
+		stats_task->threads = atomic_get(&task->refcount);
+		task_get_accounting(task, &(stats_task->ucycles),
+		    &(stats_task->kcycles));
+		stats_task->ipc_info = task->ipc_info;
+		
+		spinlock_unlock(&task->lock);
+	}
 	
-	spinlock_unlock(&task->lock);
 	interrupts_restore(ipl);
 	
-	/* Correct return value */
-	ret.tag = SYSINFO_VAL_FUNCTION_DATA;
-	ret.data.data = (void *) stats_task;
-	ret.data.size = sizeof(stats_task_t);
+	return ret;
+}
+
+/** Get thread statistics
+ *
+ * Get statistics of a given thread. The thread ID is passed
+ * as a string (current limitation of the sysinfo interface,
+ * but it is still reasonable for the given purpose).
+ *
+ * @param name    Thread ID (string-encoded number).
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Sysinfo return holder. The type of the returned
+ *         data is either SYSINFO_VAL_UNDEFINED (unknown
+ *         thread ID or memory allocation error) or
+ *         SYSINFO_VAL_FUNCTION_DATA (in that case the
+ *         generated data should be freed within the
+ *         sysinfo request context).
+ *
+ */
+static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
+{
+	/* Initially no return value */
+	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
+	
+	/* Parse the thread ID */
+	thread_id_t thread_id;
+	if (str_uint64(name, NULL, 0, true, &thread_id) != EOK)
+		return ret;
+	
+	/* Messing with threads structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	
+	thread_t *thread = thread_find_by_id(thread_id);
+	if (thread == NULL) {
+		/* No thread with this ID */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		return ret;
+	}
+	
+	if (dry_run) {
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = NULL;
+		ret.data.size = sizeof(stats_thread_t);
+		
+		spinlock_unlock(&threads_lock);
+	} else {
+		/* Allocate stats_thread_t structure */
+		stats_thread_t *stats_thread =
+		    (stats_thread_t *) malloc(sizeof(stats_thread_t), FRAME_ATOMIC);
+		if (stats_thread == NULL) {
+			spinlock_unlock(&threads_lock);
+			interrupts_restore(ipl);
+			return ret;
+		}
+		
+		/* Correct return value */
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = (void *) stats_thread;
+		ret.data.size = sizeof(stats_thread_t);
+	
+		/* Hand-over-hand locking */
+		spinlock_lock(&thread->lock);
+		spinlock_unlock(&threads_lock);
+		
+		/* Copy thread's statistics */
+		stats_thread->task_id = thread->task->taskid;
+		stats_thread->state = thread->state;
+		stats_thread->priority = thread->priority;
+		stats_thread->ucycles = thread->ucycles;
+		stats_thread->kcycles = thread->kcycles;
+		
+		if (thread->cpu != NULL) {
+			stats_thread->on_cpu = true;
+			stats_thread->cpu = thread->cpu->id;
+		} else
+			stats_thread->on_cpu = false;
+		
+		spinlock_unlock(&thread->lock);
+	}
+	
+	interrupts_restore(ipl);
 	
 	return ret;
 }
@@ -476,7 +660,9 @@ void stats_init(void)
 	sysinfo_set_item_fn_data("system.physmem", NULL, get_stats_physmem);
 	sysinfo_set_item_fn_data("system.load", NULL, get_stats_load);
 	sysinfo_set_item_fn_data("system.tasks", NULL, get_stats_tasks);
+	sysinfo_set_item_fn_data("system.threads", NULL, get_stats_threads);
 	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task);
+	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread);
 }
 
 /** @}

@@ -104,7 +104,7 @@ typedef struct {
 } sysinfo_return_t;
 
 /** Generated subtree function */
-typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *);
+typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *, bool);
 
 /** Sysinfo subtree (union)
  *

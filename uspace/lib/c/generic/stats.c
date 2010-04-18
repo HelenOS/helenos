@@ -42,6 +42,19 @@
 
 #define SYSINFO_STATS_MAX_PATH  64
 
+/** Thread states
+ *
+ */
+static const char *thread_states[] = {
+	"Invalid",
+	"Running",
+	"Sleeping",
+	"Ready",
+	"Entering",
+	"Exiting",
+	"Lingering"
+};
+
 /** Get CPUs statistics
  *
  * @param count Number of records returned.
@@ -126,6 +139,50 @@ stats_task_t *stats_get_task(task_id_t task_id)
 	return stats_task;
 }
 
+/** Get thread IDs
+ *
+ * @param count Number of IDs returned.
+ *
+ * @return Array of IDs (thread_id_t).
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
+thread_id_t *stats_get_threads(size_t *count)
+{
+	size_t size = 0;
+	thread_id_t *ids =
+	    (thread_id_t *) sysinfo_get_data("system.threads", &size);
+	
+	assert((size % sizeof(thread_id_t)) == 0);
+	
+	*count = size / sizeof(thread_id_t);
+	return ids;
+}
+
+/** Get single thread statistics
+ *
+ * @param thread_id Thread ID we are interested in.
+ *
+ * @return Pointer to the stats_thread_t structure.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
+stats_thread_t *stats_get_thread(thread_id_t thread_id)
+{
+	char name[SYSINFO_STATS_MAX_PATH];
+	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.threads.%" PRIu64, thread_id);
+	
+	size_t size = 0;
+	stats_thread_t *stats_thread =
+	    (stats_thread_t *) sysinfo_get_data(name, &size);
+	
+	assert((size == sizeof(stats_thread_t)) || (size == 0));
+	
+	return stats_thread;
+}
+
 /** Get system load
  *
  * @param count Number of load records returned.
@@ -185,6 +242,14 @@ void stats_print_load_fragment(load_t upper, unsigned int dec_length)
 		printf("%u", rest / lower);
 		rest = (rest % lower) * 10;
 	}
+}
+
+const char *thread_get_state(state_t state)
+{
+	if (state <= Lingering)
+		return thread_states[state];
+	
+	return thread_states[Invalid];
 }
 
 /** @}

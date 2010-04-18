@@ -42,6 +42,24 @@
 /** Maximum task name size */
 #define TASK_NAME_BUFLEN  20
 
+/** Thread states */
+typedef enum {
+	/** It is an error, if thread is found in this state. */
+	Invalid,
+	/** State of a thread that is currently executing on some CPU. */
+	Running,
+	/** Thread in this state is waiting for an event. */
+	Sleeping,
+	/** State of threads in a run queue. */
+	Ready,
+	/** Threads are in this state before they are first readied. */
+	Entering,
+	/** After a thread calls thread_exit(), it is put into Exiting state. */
+	Exiting,
+	/** Threads that were not detached but exited are Lingering. */
+	Lingering
+} state_t;
+
 /** Statistics about a single CPU
  *
  */
@@ -87,6 +105,19 @@ typedef struct {
 	uint64_t kcycles;             /**< Number of CPU cycles in kernel */
 	stats_ipc_t ipc_info;         /**< IPC statistics */
 } stats_task_t;
+
+/** Statistics about a single thread
+ *
+ */
+typedef struct {
+	task_id_t task_id;
+	state_t state;
+	int priority;
+	uint64_t ucycles;
+	uint64_t kcycles;
+	bool on_cpu;
+	unsigned int cpu;
+} stats_thread_t;
 
 /** Load fixed-point value */
 typedef uint32_t load_t;

@@ -311,14 +311,13 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
  *
  * @param id Task ID.
  *
- * @return Task structure address or NULL if there is no such task
- *         ID.
+ * @return Task structure address or NULL if there is no such task ID.
  *
  */
 task_t *task_find_by_id(task_id_t id)
 {
-	avltree_node_t *node;
-	node = avltree_search(&tasks_tree, (avltree_key_t) id);
+	avltree_node_t *node =
+	    avltree_search(&tasks_tree, (avltree_key_t) id);
 	
 	if (node)
 		return avltree_get_instance(node, task_t, tasks_tree_node); 

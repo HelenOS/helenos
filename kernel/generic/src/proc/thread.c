@@ -83,7 +83,12 @@ const char *thread_states[] = {
 	"Entering",
 	"Exiting",
 	"Lingering"
-}; 
+};
+
+typedef struct {
+	thread_id_t thread_id;
+	thread_t *thread;
+} thread_iterator_t;
 
 /** Lock protecting the threads_tree AVL tree.
  *
@@ -725,6 +730,43 @@ void thread_update_accounting(bool user)
 	}
 	THREAD->last_cycle = time;
 }
+
+static bool thread_search_walker(avltree_node_t *node, void *arg)
+{
+	thread_t *thread =
+	    (thread_t *) avltree_get_instance(node, thread_t, threads_tree_node);
+	thread_iterator_t *iterator = (thread_iterator_t *) arg;
+	
+	if (thread->tid == iterator->thread_id) {
+		iterator->thread = thread;
+		return false;
+	}
+	
+	return true;
+}
+
+/** Find thread structure corresponding to thread ID.
+ *
+ * The threads_lock must be already held by the caller of this function and
+ * interrupts must be disabled.
+ *
+ * @param id Thread ID.
+ *
+ * @return Thread structure address or NULL if there is no such thread ID.
+ *
+ */
+thread_t *thread_find_by_id(thread_id_t thread_id)
+{
+	thread_iterator_t iterator;
+	
+	iterator.thread_id = thread_id;
+	iterator.thread = NULL;
+	
+	avltree_walk(&threads_tree, thread_search_walker, (void *) &iterator);
+	
+	return iterator.thread;
+}
+
 
 /** Process syscall to create new thread.
  *

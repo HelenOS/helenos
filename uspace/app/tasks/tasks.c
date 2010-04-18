@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <inttypes.h>
+#include <bool.h>
 #include <arg_parse.h>
 #include "func.h"
 
@@ -52,17 +54,6 @@
 
 #define PRINT_LOAD1(x)  ((x) >> 11)
 #define PRINT_LOAD2(x)  (((x) & 0x7ff) / 2)
-
-/** Thread states */
-//static const char *thread_states[] = {
-//	"Invalid",
-//	"Running",
-//	"Sleeping",
-//	"Ready",
-//	"Entering",
-//	"Exiting",
-//	"Lingering"
-//};
 
 static void list_tasks(void)
 {
@@ -89,7 +80,7 @@ static void list_tasks(void)
 			order(stats_task->kcycles, &kcycles, &ksuffix);
 			
 			printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
-			    PRIu64"%c %12" PRIu64"%c %s\n", ids[i], stats_task->threads,
+			    PRIu64 "%c %12" PRIu64 "%c %s\n", ids[i], stats_task->threads,
 			    virtmem, vmsuffix, ucycles, usuffix, kcycles, ksuffix,
 			    stats_task->name);
 			
@@ -101,41 +92,50 @@ static void list_tasks(void)
 	free(ids);
 }
 
-static void list_threads(task_id_t task_id)
+static void list_threads(task_id_t task_id, bool all)
 {
-	/* TODO:
-	size_t thread_count = THREAD_COUNT;
-	thread_info_t *threads = malloc(thread_count * sizeof(thread_info_t));
-	size_t result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
-
-	while (result > thread_count) {
-		thread_count *= 2;
-		threads = realloc(threads, thread_count * sizeof(thread_info_t));
-		result = get_task_threads(threads, sizeof(thread_info_t) * thread_count);
+	size_t count;
+	thread_id_t *ids =
+	    (thread_id_t *) stats_get_threads(&count);
+	
+	if (ids == NULL) {
+		fprintf(stderr, "%s: Unable to get threads\n", NAME);
+		return;
 	}
-
-	if (result == 0) {
-		printf("No task with given pid!\n");
-		exit(1);
-	}
-
-	size_t i;
+	
 	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
-	for (i = 0; i < result; ++i) {
-		if (threads[i].taskid != taskid) {
-			continue;
-		}
-		uint64_t ucycles, kcycles;
-		char usuffix, ksuffix;
-		order(threads[i].ucycles, &ucycles, &usuffix);
-		order(threads[i].kcycles, &kcycles, &ksuffix);
-		printf("%6llu %-8s %4u %6d %12llu%c %12llu%c\n", threads[i].tid,
-			thread_states[threads[i].state], threads[i].cpu,
-			threads[i].priority, ucycles, usuffix,
-			kcycles, ksuffix);
+	size_t i;
+	for (i = 0; i < count; i++) {
+		stats_thread_t *stats_thread = stats_get_thread(ids[i]);
+		if (stats_thread != NULL) {
+			if ((all) || (stats_thread->task_id == task_id)) {
+				uint64_t ucycles, kcycles;
+				char usuffix, ksuffix;
+				
+				order(stats_thread->ucycles, &ucycles, &usuffix);
+				order(stats_thread->kcycles, &kcycles, &ksuffix);
+				
+				if (stats_thread->on_cpu) {
+					printf("%8" PRIu64 " %-8s %4u %6d %12"
+					    PRIu64"%c %12" PRIu64"%c\n", ids[i],
+					    thread_get_state(stats_thread->state),
+					    stats_thread->cpu, stats_thread->priority,
+					    ucycles, usuffix, kcycles, ksuffix);
+				} else {
+					printf("%8" PRIu64 " %-8s ---- %6d %12"
+					    PRIu64"%c %12" PRIu64"%c\n", ids[i],
+					    thread_get_state(stats_thread->state),
+					    stats_thread->priority,
+					    ucycles, usuffix, kcycles, ksuffix);
+				}
+			}
+			
+			free(stats_thread);
+		} else if (all)
+			printf("%8" PRIu64 "\n", ids[i]);
 	}
-
-	free(threads); */
+	
+	free(ids);
 }
 
 static void print_load(void)
@@ -189,12 +189,16 @@ static void list_cpus(void)
 static void usage()
 {
 	printf(
-	    "Usage: tasks [-t task_id] [-l] [-c]\n" \
+	    "Usage: tasks [-t task_id] [-a] [-l] [-c]\n" \
 	    "\n" \
 	    "Options:\n" \
 	    "\t-t task_id\n" \
 	    "\t--task=task_id\n" \
 	    "\t\tList threads of the given task\n" \
+	    "\n" \
+	    "\t-a\n" \
+	    "\t--all\n" \
+	    "\t\tList all threads\n" \
 	    "\n" \
 	    "\t-l\n" \
 	    "\t--load\n" \
@@ -216,10 +220,11 @@ int main(int argc, char *argv[])
 {
 	bool toggle_tasks = true;
 	bool toggle_threads = false;
+	bool toggle_all = false;
 	bool toggle_load = false;
 	bool toggle_cpus = false;
 	
-	task_id_t task_id;
+	task_id_t task_id = 0;
 	
 	int i;
 	for (i = 1; i < argc; i++) {
@@ -229,6 +234,14 @@ int main(int argc, char *argv[])
 		if ((off = arg_parse_short_long(argv[i], "-h", "--help")) != -1) {
 			usage();
 			return 0;
+		}
+		
+		/* All threads */
+		if ((off = arg_parse_short_long(argv[i], "-a", "--all")) != -1) {
+			toggle_tasks = false;
+			toggle_threads = true;
+			toggle_all = true;
+			continue;
 		}
 		
 		/* Load */
@@ -267,7 +280,7 @@ int main(int argc, char *argv[])
 		list_tasks();
 	
 	if (toggle_threads)
-		list_threads(task_id);
+		list_threads(task_id, toggle_all);
 	
 	if (toggle_load)
 		print_load();
