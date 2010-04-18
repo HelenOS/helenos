@@ -34,6 +34,17 @@
 #include <errno.h>
 #include <str.h>
 
+int arg_parse_short_long(const char *arg, const char *ashort, const char *along)
+{
+	if (str_cmp(arg, ashort) == 0)
+		return 0;
+	
+	if (str_lcmp(arg, along, str_length(along)) == 0)
+		return str_length(along);
+	
+	return -1;
+}
+
 /** Parse the next argument as an integer.
  *
  * The actual argument is pointed by the index.

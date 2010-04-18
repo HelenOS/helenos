@@ -37,6 +37,7 @@
 
 typedef int (*arg_parser)(const char *, int *);
 
+extern int arg_parse_short_long(const char *, const char *, const char *);
 extern int arg_parse_int(int, char **, int *, int *, int);
 extern int arg_parse_name_int(int, char **, int *, int *, int, arg_parser);
 extern int arg_parse_string(int, char **, int *, char **, int);

@@ -131,18 +131,6 @@ static void usage(void)
 	);
 }
 
-static int arg_short_long(const char *arg, const char *ashort,
-    const char *along)
-{
-	if (str_cmp(arg, ashort) == 0)
-		return 0;
-	
-	if (str_lcmp(arg, along, str_length(along)) == 0)
-		return str_length(along);
-	
-	return -1;
-}
-
 static int args_parse(int argc, char *argv[], ping_config_t *config)
 {
 	if (argc < 2)
@@ -164,14 +152,13 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		int off;
-		int tmp;
 		
 		/* Usage */
-		if ((off = arg_short_long(argv[i], "-h", "--help")) != -1)
+		if ((off = arg_parse_short_long(argv[i], "-h", "--help")) != -1)
 			return CL_USAGE;
 		
 		/* Verbose */
-		if ((off = arg_short_long(argv[i], "-v", "--verbose")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-v", "--verbose")) != -1) {
 			config->verbose = true;
 			continue;
 		}
@@ -183,7 +170,8 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Count */
-		if ((off = arg_short_long(argv[i], "-c", "--count=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-c", "--count=")) != -1) {
+			int tmp;
 			ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			
 			if ((ret != EOK) || (tmp < 0))
@@ -194,7 +182,8 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Outgoing packet size */
-		if ((off = arg_short_long(argv[i], "-s", "--size=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-s", "--size=")) != -1) {
+			int tmp;
 			ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			
 			if ((ret != EOK) || (tmp < 0))
@@ -205,7 +194,8 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Reply wait timeout */
-		if ((off = arg_short_long(argv[i], "-W", "--timeout=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-W", "--timeout=")) != -1) {
+			int tmp;
 			ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			
 			if ((ret != EOK) || (tmp < 0))
@@ -216,7 +206,7 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Address family */
-		if ((off = arg_short_long(argv[i], "-f", "--family=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-f", "--family=")) != -1) {
 			ret = arg_parse_name_int(argc, argv, &i, &config->af, off,
 			    socket_parse_address_family);
 			
@@ -227,7 +217,8 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Type of service */
-		if ((off = arg_short_long(argv[i], "-Q", "--tos=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-Q", "--tos=")) != -1) {
+			int tmp;
 			ret = arg_parse_name_int(argc, argv, &i, &tmp, off,
 			    socket_parse_address_family);
 			
@@ -239,7 +230,8 @@ static int args_parse(int argc, char *argv[], ping_config_t *config)
 		}
 		
 		/* Time to live */
-		if ((off = arg_short_long(argv[i], "-t", "--ttl=")) != -1) {
+		if ((off = arg_parse_short_long(argv[i], "-t", "--ttl=")) != -1) {
+			int tmp;
 			ret = arg_parse_name_int(argc, argv, &i, &tmp, off,
 			    socket_parse_address_family);
 			
