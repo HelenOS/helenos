@@ -56,7 +56,7 @@ ifeq ($(UARCH),ia32)
 endif
 
 ifeq ($(UARCH),ia64)
-	SOURCES +=
+	SOURCES += \
 		ega.c \
 		ski.c \
 		serial_console.c
