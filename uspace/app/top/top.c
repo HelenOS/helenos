@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 	/* And paint screen until death */
 	operation_type = OP_TASKS;
 	while (true) {
-		char c = tgetchar(UPDATE_INTERVAL);
+		int c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
 			if ((ret = read_data(&data)) != NULL) {
 				free_data(&data);
