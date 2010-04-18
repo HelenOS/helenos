@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	    (sec % HOUR) / MINUTE, sec % MINUTE);
 	
 	sysarg_t uptime = get_stats_uptime();
-	printf(", up %u days, %u hours %u minutes, %u seconds", uptime / DAY,
+	printf(", up %u days, %u hours, %u minutes, %u seconds", uptime / DAY,
 	    (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
 	
 	size_t count;
