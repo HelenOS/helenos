@@ -102,17 +102,20 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	   Let's hope that the number of iterations is bounded
 	   in common cases. */
 	
+	void *data = NULL;
+	
 	while (true) {
 		/* Get the binary data size */
 		int ret = sysinfo_get_data_size(path, size);
-		if (ret != EOK) {
-			/* Not binary data item */
-			return NULL;
+		if ((ret != EOK) || (size == 0)) {
+			/* Not a binary data item
+			   or an empty item */
+			break;
 		}
 		
-		void *data = malloc(*size);
+		data = realloc(data, *size);
 		if (data == NULL)
-			return NULL;
+			break;
 		
 		/* Get the data */
 		ret = __SYSCALL4(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
@@ -120,15 +123,18 @@ void *sysinfo_get_data(const char *path, size_t *size)
 		if (ret == EOK)
 			return data;
 		
-		/* Dispose the buffer */
-		free(data);
-		
 		if (ret != ENOMEM) {
 			/* The failure to get the data was not caused
 			   by wrong buffer size */
-			return NULL;
+			break;
 		}
 	}
+	
+	if (data != NULL)
+		free(data);
+	
+	*size = 0;
+	return NULL;
 }
 
 /** @}
