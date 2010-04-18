@@ -38,6 +38,26 @@
 #include <ipc/dev_iface.h>
 #include <bool.h>
 
+// HW resource provider interface
+
+typedef enum {
+	GET_RESOURCE_LIST = 0,
+	ENABLE_INTERRUPT	
+} hw_res_funcs_t;
+
+/** HW resource types. */
+typedef enum {
+	INTERRUPT,
+	IO_RANGE, 
+	MEM_RANGE
+} hw_res_type_t;
+
+typedef enum {
+	LITTLE_ENDIAN = 0,
+	BIG_ENDIAN
+} endianness_t;
+
+
 /** HW resource (e.g. interrupt, memory register, i/o register etc.). */
 typedef struct hw_resource {
 	hw_res_type_t type;
@@ -71,6 +91,7 @@ static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
 	}
 	hw_res->count = 0;	
 }
+
 
 
 bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources);

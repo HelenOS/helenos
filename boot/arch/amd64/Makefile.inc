@@ -41,6 +41,9 @@ RD_DRVS = \
 	pciintel \
 	isa
 
+RD_DRV_CONF = \
+	isa/isa.dev
+
 MODULES := $(notdir $(COMPONENTS))
 
 build: $(BASE)/image.iso
@@ -74,6 +77,9 @@ $(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(
 		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver.ma $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
 		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
 	done
+	for drv_conf in $(RD_DRV_CONF); do \
+		cp $(USPACEDIR)/srv/drivers/$$drv_conf $(USPACEDIR)/dist/srv/drivers/$$drv_conf ; \
+	done
 	for file in $(RD_APPS) ; do \
 		cp $$file $(USPACEDIR)/dist/app/ ; \
 	done
@@ -91,6 +97,9 @@ endif
 clean:
 	for file in $(RD_SRVS) ; do \
 		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
+	done
+	for drv_conf in $(RD_DRV_CONF) ; do \
+		rm -r $(USPACEDIR)/dist/srv/drivers/$$drv_conf ; \
 	done
 	for driver in $(RD_DRVS) ; do \
 		rm -r $(USPACEDIR)/dist/srv/drivers/$$driver ; \

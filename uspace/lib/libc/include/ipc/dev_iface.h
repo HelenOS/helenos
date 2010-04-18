@@ -46,24 +46,4 @@ typedef enum {
 #define DEV_IFACE_COUNT DEV_IFACE_MAX
 
 
-
-// HW resource provider interface
-
-typedef enum {
-	GET_RESOURCE_LIST = 0,
-	ENABLE_INTERRUPT	
-} hw_res_funcs_t;
-
-/** HW resource types. */
-typedef enum {
-	INTERRUPT,
-	IO_RANGE, 
-	MEM_RANGE
-} hw_res_type_t;
-
-typedef enum {
-	LITTLE_ENDIAN = 0,
-	BIG_ENDIAN
-} endianness_t;
-
 #endif
