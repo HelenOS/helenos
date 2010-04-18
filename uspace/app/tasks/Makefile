@@ -28,10 +28,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = ps
+BINARY = tasks
 
 SOURCES = \
-	ps.c \
+	tasks.c \
 	func.c
 
 include $(USPACE_PREFIX)/Makefile.common

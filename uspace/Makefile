@@ -45,7 +45,7 @@ DIRS = \
 	app/tester \
 	app/tetris \
 	app/trace \
-	app/ps \
+	app/tasks \
 	app/top \
 	app/uptime \
 	app/dummy_load \

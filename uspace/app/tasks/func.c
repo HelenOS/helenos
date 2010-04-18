@@ -26,20 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ps
+/** @addtogroup tasks
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Miscellaneous functions.
  */
 
-#ifndef FUNC_H_
-#define FUNC_H_
-
 #include <stdint.h>
+#include "func.h"
 
-extern void order(const uint64_t val, uint64_t *rv, char *suffix);
-
-#endif
+void order(const uint64_t val, uint64_t *rv, char *suffix)
+{
+	if (val > 10000000000000000000ULL) {
+		*rv = val / 1000000000000000000ULL;
+		*suffix = 'Z';
+	} else if (val > 1000000000000000000ULL) {
+		*rv = val / 1000000000000000ULL;
+		*suffix = 'E';
+	} else if (val > 1000000000000000ULL) {
+		*rv = val / 1000000000000ULL;
+		*suffix = 'T';
+	} else if (val > 1000000000000ULL) {
+		*rv = val / 1000000000ULL;
+		*suffix = 'G';
+	} else if (val > 1000000000ULL) {
+		*rv = val / 1000000ULL;
+		*suffix = 'M';
+	} else if (val > 1000000ULL) {
+		*rv = val / 1000ULL;
+		*suffix = 'k';
+	} else {
+		*rv = val;
+		*suffix = ' ';
+	}
+}
 
 /** @}
  */

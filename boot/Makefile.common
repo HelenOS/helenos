@@ -92,7 +92,7 @@ RD_APPS = \
 	$(USPACEDIR)/app/nettest2/nettest2 \
 	$(USPACEDIR)/app/netecho/netecho \
 	$(USPACEDIR)/app/ping/ping \
-	$(USPACEDIR)/app/ps/ps \
+	$(USPACEDIR)/app/tasks/tasks \
 	$(USPACEDIR)/app/uptime/uptime
 #	$(USPACEDIR)/app/top/top \
 #	$(USPACEDIR)/app/dummy_load/dummy_load

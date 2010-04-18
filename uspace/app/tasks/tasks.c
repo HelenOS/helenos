@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ps
+/** @addtogroup tasks
  * @brief Task lister.
  * @{
  */
@@ -45,7 +45,7 @@
 #include <arg_parse.h>
 #include "func.h"
 
-#define NAME  "ps"
+#define NAME  "tasks"
 
 #define TASK_COUNT    10
 #define THREAD_COUNT  50
@@ -189,7 +189,7 @@ static void list_cpus(void)
 static void usage()
 {
 	printf(
-	    "Usage: ps [-t task_id] [-l] [-c]\n" \
+	    "Usage: tasks [-t task_id] [-l] [-c]\n" \
 	    "\n" \
 	    "Options:\n" \
 	    "\t-t task_id\n" \
