@@ -54,8 +54,7 @@
 /** Compute load in 5 second intervals */
 #define LOAD_INTERVAL  5
 
-/**
- * Fixed-point representation of:
+/** Fixed-point representation of
  *
  * 1 / exp(5 sec / 1 min)
  * 1 / exp(5 sec / 5 min)
@@ -63,17 +62,38 @@
  *
  */
 static load_t load_exp[LOAD_STEPS] = {1884, 2014, 2037};
+
+/** Running average of the number of ready threads */
 static load_t avenrdy[LOAD_STEPS] = {0, 0, 0};
+
+/** Load calculation spinlock */
 SPINLOCK_STATIC_INITIALIZE_NAME(load_lock, "load_lock");
 
+/** Get system uptime
+ *
+ * @param item Sysinfo item (unused).
+ *
+ * @return System uptime (in secords).
+ *
+ */
 static unative_t get_stats_uptime(struct sysinfo_item *item)
 {
 	/* This doesn't have to be very accurate */
 	return uptime->seconds1;
 }
 
+/** Get statistics of all CPUs
+ *
+ * @param item Sysinfo item (unused).
+ * @param size Size of the returned data.
+ *
+ * @return Data containing several stats_cpu_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
 static void *get_stats_cpus(struct sysinfo_item *item, size_t *size)
 {
+	/* Assumption: config.cpu_count is constant */
 	stats_cpu_t *stats_cpus =
 	    (stats_cpu_t *) malloc(sizeof(stats_cpu_t) * config.cpu_count,
 	    FRAME_ATOMIC);
@@ -82,6 +102,7 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size)
 		return NULL;
 	}
 	
+	/* Each CPU structure is locked separatelly */
 	ipl_t ipl = interrupts_disable();
 	
 	size_t i;
@@ -102,6 +123,16 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size)
 	return ((void *) stats_cpus);
 }
 
+/** Count number of tasks
+ *
+ * AVL task tree walker for counting tasks.
+ *
+ * @param node AVL task tree node (unused).
+ * @param arg  Pointer to the counter.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
 static bool task_count_walker(avltree_node_t *node, void *arg)
 {
 	size_t *count = (size_t *) arg;
@@ -110,13 +141,26 @@ static bool task_count_walker(avltree_node_t *node, void *arg)
 	return true;
 }
 
+/** Gather tasks
+ *
+ * AVL task tree walker for gathering task IDs. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL task tree node.
+ * @param arg  Pointer to the iterator into the array of task IDs.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
 static bool task_serialize_walker(avltree_node_t *node, void *arg)
 {
 	task_id_t **ids = (task_id_t **) arg;
 	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	
+	/* Interrupts are already disabled */
 	spinlock_lock(&(task->lock));
 	
+	/* Record the ID and increment the iterator */
 	**ids = task->taskid;
 	(*ids)++;
 	
@@ -125,16 +169,27 @@ static bool task_serialize_walker(avltree_node_t *node, void *arg)
 	return true;
 }
 
+/** Get task IDs
+ *
+ * @param item Sysinfo item (unused).
+ * @param size Size of the returned data.
+ *
+ * @return Data containing task IDs of all tasks.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
 static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 {
 	/* Messing with task structures, avoid deadlock */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
+	/* First walk the task tree to count the tasks */
 	size_t count = 0;
 	avltree_walk(&tasks_tree, task_count_walker, (void *) &count);
 	
 	if (count == 0) {
+		/* No tasks found (strange) */
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		
@@ -145,6 +200,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 	task_id_t *task_ids =
 	    (task_id_t *) malloc(sizeof(task_id_t) * count, FRAME_ATOMIC);
 	if (task_ids == NULL) {
+		/* No free space for allocation */
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		
@@ -152,6 +208,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 		return NULL;
 	}
 	
+	/* Walk tha task tree again to gather the IDs */
 	task_id_t *iterator = task_ids;
 	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
 	
@@ -162,12 +219,20 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 	return ((void *) task_ids);
 }
 
+/** Get the size of a virtual address space
+ *
+ * @param as Address space.
+ *
+ * @return Size of the mapped virtual address space (bytes).
+ *
+ */
 static size_t get_task_virtmem(as_t *as)
 {
 	mutex_lock(&as->lock);
 	
 	size_t result = 0;
 	
+	/* Walk the B+ tree and count pages */
 	link_t *cur;
 	for (cur = as->as_area_btree.leaf_head.next;
 	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
@@ -189,35 +254,57 @@ static size_t get_task_virtmem(as_t *as)
 	return result * PAGE_SIZE;
 }
 
+/** Get task statistics
+ *
+ * Get statistics of a given task. The task ID is passed
+ * as a string (current limitation of the sysinfo interface,
+ * but it is still reasonable for the given purpose).
+ *
+ * @param name Task ID (string-encoded number).
+ *
+ * @return Sysinfo return holder. The type of the returned
+ *         data is either SYSINFO_VAL_UNDEFINED (unknown
+ *         task ID or memory allocation error) or
+ *         SYSINFO_VAL_FUNCTION_DATA (in that case the
+ *         generated data should be freed within the
+ *         sysinfo request context).
+ *
+ */
 static sysinfo_return_t get_stats_task(const char *name)
 {
-	
+	/* Initially no return value */
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
 	
+	/* Parse the task ID */
 	task_id_t task_id;
 	if (str_uint64(name, NULL, 0, true, &task_id) != EOK)
 		return ret;
 	
+	/* Allocate stats_task_t structure */
 	stats_task_t *stats_task =
 	    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
 	if (stats_task == NULL)
 		return ret;
 	
+	/* Messing with task structures, avoid deadlock */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	
 	task_t *task = task_find_by_id(task_id);
 	if (task == NULL) {
+		/* No task with this ID */
 		spinlock_unlock(&tasks_lock);
 		interrupts_restore(ipl);
 		free(stats_task);
 		return ret;
 	}
 	
+	/* Hand-over-hand locking */
 	spinlock_lock(&task->lock);
 	spinlock_unlock(&tasks_lock);
 	
+	/* Copy task's statistics */
 	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
 	stats_task->virtmem = get_task_virtmem(task->as);
 	stats_task->threads = atomic_get(&task->refcount);
@@ -228,6 +315,7 @@ static sysinfo_return_t get_stats_task(const char *name)
 	spinlock_unlock(&task->lock);
 	interrupts_restore(ipl);
 	
+	/* Correct return value */
 	ret.tag = SYSINFO_VAL_FUNCTION_DATA;
 	ret.data.data = (void *) stats_task;
 	ret.data.size = sizeof(stats_task_t);
@@ -235,6 +323,15 @@ static sysinfo_return_t get_stats_task(const char *name)
 	return ret;
 }
 
+/** Get physical memory statistics
+ *
+ * @param item Sysinfo item (unused).
+ * @param size Size of the returned data.
+ *
+ * @return Data containing stats_physmem_t.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
 static void *get_stats_physmem(struct sysinfo_item *item, size_t *size)
 {
 	stats_physmem_t *stats_physmem =
@@ -251,6 +348,15 @@ static void *get_stats_physmem(struct sysinfo_item *item, size_t *size)
 	return ((void *) stats_physmem);
 }
 
+/** Get system load
+ *
+ * @param item Sysinfo item (unused).
+ * @param size Size of the returned data.
+ *
+ * @return Data several load_t values.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
 static void *get_stats_load(struct sysinfo_item *item, size_t *size)
 {
 	load_t *stats_load =
@@ -260,6 +366,7 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size)
 		return NULL;
 	}
 	
+	/* To always get consistent values acquire the spinlock */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&load_lock);
 	
@@ -323,6 +430,7 @@ void kload(void *arg)
 	thread_detach(THREAD);
 	
 	while (true) {
+		/* Mutually exclude with get_stats_load() */
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&load_lock);
 		
@@ -339,6 +447,9 @@ void kload(void *arg)
 	}
 }
 
+/** Register sysinfo statistical items
+ *
+ */
 void stats_init(void)
 {
 	sysinfo_set_item_fn_val("system.uptime", NULL, get_stats_uptime);

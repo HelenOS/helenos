@@ -42,6 +42,15 @@
 
 #define SYSINFO_STATS_MAX_PATH  64
 
+/** Get CPUs statistics
+ *
+ * @param count Number of records returned.
+ *
+ * @return Array of stats_cpu_t structures.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
 stats_cpu_t *get_stats_cpus(size_t *count)
 {
 	size_t size = 0;
@@ -54,6 +63,14 @@ stats_cpu_t *get_stats_cpus(size_t *count)
 	return stats_cpus;
 }
 
+/** Get physical memory statistics
+ *
+ *
+ * @return Pointer to the stats_physmem_t structure.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
 stats_physmem_t *get_stats_physmem(void)
 {
 	size_t size = 0;
@@ -65,6 +82,15 @@ stats_physmem_t *get_stats_physmem(void)
 	return stats_physmem;
 }
 
+/** Get task IDs
+ *
+ * @param count Number of IDs returned.
+ *
+ * @return Array of IDs (task_id_t).
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
 task_id_t *get_stats_tasks(size_t *count)
 {
 	size_t size = 0;
@@ -77,6 +103,15 @@ task_id_t *get_stats_tasks(size_t *count)
 	return ids;
 }
 
+/** Get single task statistics
+ *
+ * @param task_id Task ID we are interested in.
+ *
+ * @return Pointer to the stats_task_t structure.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
 stats_task_t *get_stats_task(task_id_t task_id)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
@@ -91,6 +126,15 @@ stats_task_t *get_stats_task(task_id_t task_id)
 	return stats_task;
 }
 
+/** Get system load
+ *
+ * @param count Number of load records returned.
+ *
+ * @return Array of load records (load_t).
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
 load_t *get_stats_load(size_t *count)
 {
 	size_t size = 0;
@@ -103,6 +147,11 @@ load_t *get_stats_load(size_t *count)
 	return load;
 }
 
+/** Get system uptime
+ *
+ * @return System uptime (in seconds).
+ *
+ */
 sysarg_t get_stats_uptime(void)
 {
 	sysarg_t uptime;
@@ -112,6 +161,15 @@ sysarg_t get_stats_uptime(void)
 	return uptime;
 }
 
+/** Print load fixed-point value
+ *
+ * Print the load record fixed-point value in decimal
+ * representation on stdout.
+ *
+ * @param upper      Load record.
+ * @param dec_length Number of decimal digits to print.
+ *
+ */
 void print_load_fragment(load_t upper, unsigned int dec_length)
 {
 	/* Magic value from BSD */

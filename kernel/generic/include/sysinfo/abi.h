@@ -30,46 +30,65 @@
  * @{
  */
 /** @file
+ * Data structures passed between kernel sysinfo and user space.
  */
 
 #ifndef KERN_ABI_H_
 #define KERN_ABI_H_
 
+/** Number of load components */
 #define LOAD_STEPS        3
+
+/** Maximum task name size */
 #define TASK_NAME_BUFLEN  20
 
+/** Statistics about a single CPU
+ *
+ */
 typedef struct {
-	unsigned int id;
-	uint16_t frequency_mhz;
-	uint64_t idle_ticks;
-	uint64_t busy_ticks;
+	unsigned int id;         /**< CPU ID as stored by kernel */
+	uint16_t frequency_mhz;  /**< Frequency in MHz */
+	uint64_t idle_ticks;     /**< Number of idle kernel quanta */
+	uint64_t busy_ticks;     /**< Number of busy kernel quanta */
 } stats_cpu_t;
 
+/** Physical memory statistics
+ *
+ */
 typedef struct {
-	uint64_t total;
-	uint64_t unavail;
-	uint64_t used;
-	uint64_t free;
+	uint64_t total;    /**< Total physical memory (bytes) */
+	uint64_t unavail;  /**< Unavailable (reserved, firmware) bytes */
+	uint64_t used;     /**< Allocated physical memory (bytes) */
+	uint64_t free;     /**< Free physical memory (bytes) */
 } stats_physmem_t;
 
+/** IPC statistics
+ *
+ * Associated with a task.
+ *
+ */
 typedef struct {
-	uint64_t call_sent;
-	uint64_t call_recieved;
-	uint64_t answer_sent;
-	uint64_t answer_recieved;
-	uint64_t irq_notif_recieved;
-	uint64_t forwarded;
+	uint64_t call_sent;           /**< IPC calls sent */
+	uint64_t call_recieved;       /**< IPC calls received */
+	uint64_t answer_sent;         /**< IPC answers sent */
+	uint64_t answer_recieved;     /**< IPC answers received */
+	uint64_t irq_notif_recieved;  /**< IPC IRQ notifications */
+	uint64_t forwarded;           /**< IPC messages forwarded */
 } stats_ipc_t;
 
+/** Statistics about a single task
+ *
+ */
 typedef struct {
-	char name[TASK_NAME_BUFLEN];
-	size_t virtmem;
-	size_t threads;
-	uint64_t ucycles;
-	uint64_t kcycles;
-	stats_ipc_t ipc_info;
+	char name[TASK_NAME_BUFLEN];  /**< Task name (in kernel) */
+	size_t virtmem;               /**< Size of VAS (bytes) */
+	size_t threads;               /**< Number of threads */
+	uint64_t ucycles;             /**< Number of CPU cycles in user space */
+	uint64_t kcycles;             /**< Number of CPU cycles in kernel */
+	stats_ipc_t ipc_info;         /**< IPC statistics */
 } stats_task_t;
 
+/** Load fixed-point value */
 typedef uint32_t load_t;
 
 #endif

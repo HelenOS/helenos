@@ -37,6 +37,9 @@
 
 #include <libc.h>
 
+/** Sysinfo value types
+ *
+ */
 typedef enum {
 	SYSINFO_VAL_UNDEFINED = 0,
 	SYSINFO_VAL_VAL = 1,
