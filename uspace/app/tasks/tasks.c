@@ -68,7 +68,7 @@ static void list_tasks(void)
 {
 	size_t count;
 	task_id_t *ids =
-	    (task_id_t *) get_stats_tasks(&count);
+	    (task_id_t *) stats_get_tasks(&count);
 	
 	if (ids == NULL) {
 		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
@@ -79,7 +79,7 @@ static void list_tasks(void)
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
-		stats_task_t *stats_task = get_stats_task(ids[i]);
+		stats_task_t *stats_task = stats_get_task(ids[i]);
 		if (stats_task != NULL) {
 			uint64_t virtmem, ucycles, kcycles;
 			char vmsuffix, usuffix, ksuffix;
@@ -141,7 +141,7 @@ static void list_threads(task_id_t task_id)
 static void print_load(void)
 {
 	size_t count;
-	load_t *load = get_stats_load(&count);
+	load_t *load = stats_get_load(&count);
 	
 	if (load == NULL) {
 		fprintf(stderr, "%s: Unable to get load\n", NAME);
@@ -155,7 +155,7 @@ static void print_load(void)
 		if (i > 0)
 			printf(" ");
 		
-		print_load_fragment(load[i], 2);
+		stats_print_load_fragment(load[i], 2);
 	}
 	
 	printf("\n");
@@ -166,7 +166,7 @@ static void print_load(void)
 static void list_cpus(void)
 {
 	size_t count;
-	stats_cpu_t *cpus = get_stats_cpus(&count);
+	stats_cpu_t *cpus = stats_get_cpus(&count);
 	
 	if (cpus == NULL) {
 		fprintf(stderr, "%s: Unable to get CPU statistics\n", NAME);

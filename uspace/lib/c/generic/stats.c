@@ -51,7 +51,7 @@
  *         by free().
  *
  */
-stats_cpu_t *get_stats_cpus(size_t *count)
+stats_cpu_t *stats_get_cpus(size_t *count)
 {
 	size_t size = 0;
 	stats_cpu_t *stats_cpus =
@@ -71,7 +71,7 @@ stats_cpu_t *get_stats_cpus(size_t *count)
  *         by free().
  *
  */
-stats_physmem_t *get_stats_physmem(void)
+stats_physmem_t *stats_get_physmem(void)
 {
 	size_t size = 0;
 	stats_physmem_t *stats_physmem =
@@ -91,7 +91,7 @@ stats_physmem_t *get_stats_physmem(void)
  *         by free().
  *
  */
-task_id_t *get_stats_tasks(size_t *count)
+task_id_t *stats_get_tasks(size_t *count)
 {
 	size_t size = 0;
 	task_id_t *ids =
@@ -112,7 +112,7 @@ task_id_t *get_stats_tasks(size_t *count)
  *         by free().
  *
  */
-stats_task_t *get_stats_task(task_id_t task_id)
+stats_task_t *stats_get_task(task_id_t task_id)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
 	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.tasks.%" PRIu64, task_id);
@@ -135,7 +135,7 @@ stats_task_t *get_stats_task(task_id_t task_id)
  *         by free().
  *
  */
-load_t *get_stats_load(size_t *count)
+load_t *stats_get_load(size_t *count)
 {
 	size_t size = 0;
 	load_t *load =
@@ -152,7 +152,7 @@ load_t *get_stats_load(size_t *count)
  * @return System uptime (in seconds).
  *
  */
-sysarg_t get_stats_uptime(void)
+sysarg_t stats_get_uptime(void)
 {
 	sysarg_t uptime;
 	if (sysinfo_get_value("system.uptime", &uptime) != EOK)
@@ -170,7 +170,7 @@ sysarg_t get_stats_uptime(void)
  * @param dec_length Number of decimal digits to print.
  *
  */
-void print_load_fragment(load_t upper, unsigned int dec_length)
+void stats_print_load_fragment(load_t upper, unsigned int dec_length)
 {
 	/* Magic value from BSD */
 	load_t lower = 65536;

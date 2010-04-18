@@ -38,14 +38,14 @@
 #include <task.h>
 #include <kernel/sysinfo/abi.h>
 
-extern stats_cpu_t *get_stats_cpus(size_t *);
-extern stats_physmem_t *get_stats_physmem(void);
-extern task_id_t *get_stats_tasks(size_t *);
-extern stats_task_t *get_stats_task(task_id_t);
-extern load_t *get_stats_load(size_t *);
-extern sysarg_t get_stats_uptime(void);
+extern stats_cpu_t *stats_get_cpus(size_t *);
+extern stats_physmem_t *stats_get_physmem(void);
+extern task_id_t *stats_get_tasks(size_t *);
+extern stats_task_t *stats_get_task(task_id_t);
+extern load_t *stats_get_load(size_t *);
+extern sysarg_t stats_get_uptime(void);
 
-extern void print_load_fragment(load_t, unsigned int);
+extern void stats_print_load_fragment(load_t, unsigned int);
 
 #endif
 
