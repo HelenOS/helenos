@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2008 Stanislav Kozina
+ * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,21 +36,10 @@
 
 #include "top.h"
 
-extern int rows;
-extern int colls;
-
 extern void screen_init(void);
-extern void clear_screen(void);
-extern void moveto(int r, int c);
-extern void print_data(data_t *data);
-
-extern int up_rows;
-#define PRINT_WARNING(message, ...) \
-do { \
-	moveto(up_rows - 1, 0); \
-	printf(message, ##__VA_ARGS__); \
-	fflush(stdout); \
-} while (0)
+extern void screen_done(void);
+extern void print_data(data_t *);
+extern void print_warning(const char *, ...);
 
 #endif
 

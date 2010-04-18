@@ -145,176 +145,6 @@ static bool avl_count_walker(avltree_node_t *node, void *arg)
 	return true;
 }
 
-/** Gather tasks
- *
- * AVL task tree walker for gathering task IDs. Interrupts should
- * be already disabled while walking the tree.
- *
- * @param node AVL task tree node.
- * @param arg  Pointer to the iterator into the array of task IDs.
- *
- * @param Always true (continue the walk).
- *
- */
-static bool task_serialize_walker(avltree_node_t *node, void *arg)
-{
-	task_id_t **ids = (task_id_t **) arg;
-	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
-	
-	/* Interrupts are already disabled */
-	spinlock_lock(&(task->lock));
-	
-	/* Record the ID and increment the iterator */
-	**ids = task->taskid;
-	(*ids)++;
-	
-	spinlock_unlock(&(task->lock));
-	
-	return true;
-}
-
-/** Get task IDs
- *
- * @param item    Sysinfo item (unused).
- * @param size    Size of the returned data.
- * @param dry_run Do not get the data, just calculate the size.
- *
- * @return Data containing task IDs of all tasks.
- *         If the return value is not NULL, it should be freed
- *         in the context of the sysinfo request.
- */
-static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
-{
-	/* Messing with task structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	
-	/* First walk the task tree to count the tasks */
-	size_t count = 0;
-	avltree_walk(&tasks_tree, avl_count_walker, (void *) &count);
-	
-	if (count == 0) {
-		/* No tasks found (strange) */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		
-		*size = 0;
-		return NULL;
-	}
-	
-	*size = sizeof(task_id_t) * count;
-	if (dry_run) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		return NULL;
-	}
-	
-	task_id_t *task_ids = (task_id_t *) malloc(*size, FRAME_ATOMIC);
-	if (task_ids == NULL) {
-		/* No free space for allocation */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		
-		*size = 0;
-		return NULL;
-	}
-	
-	/* Walk tha task tree again to gather the IDs */
-	task_id_t *iterator = task_ids;
-	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
-	
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);
-	
-	return ((void *) task_ids);
-}
-
-/** Gather threads
- *
- * AVL three tree walker for gathering thread IDs. Interrupts should
- * be already disabled while walking the tree.
- *
- * @param node AVL thread tree node.
- * @param arg  Pointer to the iterator into the array of thread IDs.
- *
- * @param Always true (continue the walk).
- *
- */
-static bool thread_serialize_walker(avltree_node_t *node, void *arg)
-{
-	thread_id_t **ids = (thread_id_t **) arg;
-	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
-	
-	/* Interrupts are already disabled */
-	spinlock_lock(&(thread->lock));
-	
-	/* Record the ID and increment the iterator */
-	**ids = thread->tid;
-	(*ids)++;
-	
-	spinlock_unlock(&(thread->lock));
-	
-	return true;
-}
-
-/** Get thread IDs
- *
- * @param item    Sysinfo item (unused).
- * @param size    Size of the returned data.
- * @param dry_run Do not get the data, just calculate the size.
- *
- * @return Data containing thread IDs of all threads.
- *         If the return value is not NULL, it should be freed
- *         in the context of the sysinfo request.
- */
-static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
-    bool dry_run)
-{
-	/* Messing with threads structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&threads_lock);
-	
-	/* First walk the thread tree to count the threads */
-	size_t count = 0;
-	avltree_walk(&threads_tree, avl_count_walker, (void *) &count);
-	
-	if (count == 0) {
-		/* No threads found (strange) */
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
-		
-		*size = 0;
-		return NULL;
-	}
-	
-	*size = sizeof(thread_id_t) * count;
-	if (dry_run) {
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
-		return NULL;
-	}
-	
-	thread_id_t *thread_ids = (thread_id_t *) malloc(*size, FRAME_ATOMIC);
-	if (thread_ids == NULL) {
-		/* No free space for allocation */
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
-		
-		*size = 0;
-		return NULL;
-	}
-	
-	/* Walk tha thread tree again to gather the IDs */
-	thread_id_t *iterator = thread_ids;
-	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
-	
-	spinlock_unlock(&threads_lock);
-	interrupts_restore(ipl);
-	
-	return ((void *) thread_ids);
-}
-
 /** Get the size of a virtual address space
  *
  * @param as Address space.
@@ -350,7 +180,224 @@ static size_t get_task_virtmem(as_t *as)
 	return result * PAGE_SIZE;
 }
 
+/* Produce task statistics
+ *
+ * Summarize task information into task statistics.
+ * Task lock should be held and interrupts disabled
+ * before executing this function.
+ *
+ * @param task       Task.
+ * @param stats_task Task statistics.
+ *
+ */
+static void produce_stats_task(task_t *task, stats_task_t *stats_task)
+{
+	stats_task->task_id = task->taskid;
+	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
+	stats_task->virtmem = get_task_virtmem(task->as);
+	stats_task->threads = atomic_get(&task->refcount);
+	task_get_accounting(task, &(stats_task->ucycles),
+	    &(stats_task->kcycles));
+	stats_task->ipc_info = task->ipc_info;
+}
+
+/** Gather statistics of all tasks
+ *
+ * AVL task tree walker for gathering task statistics. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL task tree node.
+ * @param arg  Pointer to the iterator into the array of stats_task_t.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool task_serialize_walker(avltree_node_t *node, void *arg)
+{
+	stats_task_t **iterator = (stats_task_t **) arg;
+	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
+	
+	/* Interrupts are already disabled */
+	spinlock_lock(&(task->lock));
+	
+	/* Record the statistics and increment the iterator */
+	produce_stats_task(task, *iterator);
+	(*iterator)++;
+	
+	spinlock_unlock(&(task->lock));
+	
+	return true;
+}
+
 /** Get task statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_task_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	/* Messing with task structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	
+	/* First walk the task tree to count the tasks */
+	size_t count = 0;
+	avltree_walk(&tasks_tree, avl_count_walker, (void *) &count);
+	
+	if (count == 0) {
+		/* No tasks found (strange) */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	*size = sizeof(stats_task_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	stats_task_t *stats_tasks = (stats_task_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_tasks == NULL) {
+		/* No free space for allocation */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Walk tha task tree again to gather the statistics */
+	stats_task_t *iterator = stats_tasks;
+	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
+	
+	spinlock_unlock(&tasks_lock);
+	interrupts_restore(ipl);
+	
+	return ((void *) stats_tasks);
+}
+
+/* Produce thread statistics
+ *
+ * Summarize thread information into thread statistics.
+ * Thread lock should be held and interrupts disabled
+ * before executing this function.
+ *
+ * @param thread       Thread.
+ * @param stats_thread Thread statistics.
+ *
+ */
+static void produce_stats_thread(thread_t *thread, stats_thread_t *stats_thread)
+{
+	stats_thread->thread_id = thread->tid;
+	stats_thread->task_id = thread->task->taskid;
+	stats_thread->state = thread->state;
+	stats_thread->priority = thread->priority;
+	stats_thread->ucycles = thread->ucycles;
+	stats_thread->kcycles = thread->kcycles;
+	
+	if (thread->cpu != NULL) {
+		stats_thread->on_cpu = true;
+		stats_thread->cpu = thread->cpu->id;
+	} else
+		stats_thread->on_cpu = false;
+}
+
+/** Gather statistics of all threads
+ *
+ * AVL three tree walker for gathering thread statistics. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL thread tree node.
+ * @param arg  Pointer to the iterator into the array of thread statistics.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool thread_serialize_walker(avltree_node_t *node, void *arg)
+{
+	stats_thread_t **iterator = (stats_thread_t **) arg;
+	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
+	
+	/* Interrupts are already disabled */
+	spinlock_lock(&(thread->lock));
+	
+	/* Record the statistics and increment the iterator */
+	produce_stats_thread(thread, *iterator);
+	(*iterator)++;
+	
+	spinlock_unlock(&(thread->lock));
+	
+	return true;
+}
+
+/** Get thread statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_task_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	/* Messing with threads structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	
+	/* First walk the thread tree to count the threads */
+	size_t count = 0;
+	avltree_walk(&threads_tree, avl_count_walker, (void *) &count);
+	
+	if (count == 0) {
+		/* No threads found (strange) */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	*size = sizeof(stats_thread_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	stats_thread_t *stats_threads = (stats_thread_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_threads == NULL) {
+		/* No free space for allocation */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Walk tha thread tree again to gather the statistics */
+	stats_thread_t *iterator = stats_threads;
+	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
+	
+	spinlock_unlock(&threads_lock);
+	interrupts_restore(ipl);
+	
+	return ((void *) stats_threads);
+}
+
+/** Get a single task statistics
  *
  * Get statistics of a given task. The task ID is passed
  * as a string (current limitation of the sysinfo interface,
@@ -415,13 +462,7 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
 		spinlock_lock(&task->lock);
 		spinlock_unlock(&tasks_lock);
 		
-		/* Copy task's statistics */
-		str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
-		stats_task->virtmem = get_task_virtmem(task->as);
-		stats_task->threads = atomic_get(&task->refcount);
-		task_get_accounting(task, &(stats_task->ucycles),
-		    &(stats_task->kcycles));
-		stats_task->ipc_info = task->ipc_info;
+		produce_stats_task(task, stats_task);
 		
 		spinlock_unlock(&task->lock);
 	}
@@ -491,23 +532,12 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
 		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
 		ret.data.data = (void *) stats_thread;
 		ret.data.size = sizeof(stats_thread_t);
-	
+		
 		/* Hand-over-hand locking */
 		spinlock_lock(&thread->lock);
 		spinlock_unlock(&threads_lock);
 		
-		/* Copy thread's statistics */
-		stats_thread->task_id = thread->task->taskid;
-		stats_thread->state = thread->state;
-		stats_thread->priority = thread->priority;
-		stats_thread->ucycles = thread->ucycles;
-		stats_thread->kcycles = thread->kcycles;
-		
-		if (thread->cpu != NULL) {
-			stats_thread->on_cpu = true;
-			stats_thread->cpu = thread->cpu->id;
-		} else
-			stats_thread->on_cpu = false;
+		produce_stats_thread(thread, stats_thread);
 		
 		spinlock_unlock(&thread->lock);
 	}

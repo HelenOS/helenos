@@ -98,6 +98,7 @@ typedef struct {
  *
  */
 typedef struct {
+	task_id_t task_id;            /**< Task ID */
 	char name[TASK_NAME_BUFLEN];  /**< Task name (in kernel) */
 	size_t virtmem;               /**< Size of VAS (bytes) */
 	size_t threads;               /**< Number of threads */
@@ -110,13 +111,14 @@ typedef struct {
  *
  */
 typedef struct {
-	task_id_t task_id;
-	state_t state;
-	int priority;
-	uint64_t ucycles;
-	uint64_t kcycles;
-	bool on_cpu;
-	unsigned int cpu;
+	thread_id_t thread_id;  /**< Thread ID */
+	task_id_t task_id;      /**< Associated task ID */
+	state_t state;          /**< Thread state */
+	int priority;           /**< Thread priority */
+	uint64_t ucycles;       /**< Number of CPU cycles in user space */
+	uint64_t kcycles;       /**< Number of CPU cycles in kernel */
+	bool on_cpu;            /**< Associated with a CPU */
+	unsigned int cpu;       /**< Associated CPU ID (if on_cpu is true) */
 } stats_thread_t;
 
 /** Load fixed-point value */

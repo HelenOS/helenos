@@ -58,10 +58,9 @@
 static void list_tasks(void)
 {
 	size_t count;
-	task_id_t *ids =
-	    (task_id_t *) stats_get_tasks(&count);
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
 	
-	if (ids == NULL) {
+	if (stats_tasks == NULL) {
 		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
 		return;
 	}
@@ -70,35 +69,28 @@ static void list_tasks(void)
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
-		stats_task_t *stats_task = stats_get_task(ids[i]);
-		if (stats_task != NULL) {
-			uint64_t virtmem, ucycles, kcycles;
-			char vmsuffix, usuffix, ksuffix;
-			
-			order_suffix(stats_task->virtmem, &virtmem, &vmsuffix);
-			order_suffix(stats_task->ucycles, &ucycles, &usuffix);
-			order_suffix(stats_task->kcycles, &kcycles, &ksuffix);
-			
-			printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
-			    PRIu64 "%c %12" PRIu64 "%c %s\n", ids[i], stats_task->threads,
-			    virtmem, vmsuffix, ucycles, usuffix, kcycles, ksuffix,
-			    stats_task->name);
-			
-			free(stats_task);
-		} else
-			printf("%8" PRIu64 "\n", ids[i]);
+		uint64_t virtmem, ucycles, kcycles;
+		char vmsuffix, usuffix, ksuffix;
+		
+		order_suffix(stats_tasks[i].virtmem, &virtmem, &vmsuffix);
+		order_suffix(stats_tasks[i].ucycles, &ucycles, &usuffix);
+		order_suffix(stats_tasks[i].kcycles, &kcycles, &ksuffix);
+		
+		printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
+		    PRIu64 "%c %12" PRIu64 "%c %s\n", stats_tasks[i].task_id,
+		    stats_tasks[i].threads, virtmem, vmsuffix, ucycles, usuffix,
+		    kcycles, ksuffix, stats_tasks[i].name);
 	}
 	
-	free(ids);
+	free(stats_tasks);
 }
 
 static void list_threads(task_id_t task_id, bool all)
 {
 	size_t count;
-	thread_id_t *ids =
-	    (thread_id_t *) stats_get_threads(&count);
+	stats_thread_t *stats_threads = stats_get_threads(&count);
 	
-	if (ids == NULL) {
+	if (stats_threads == NULL) {
 		fprintf(stderr, "%s: Unable to get threads\n", NAME);
 		return;
 	}
@@ -106,36 +98,30 @@ static void list_threads(task_id_t task_id, bool all)
 	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
 	size_t i;
 	for (i = 0; i < count; i++) {
-		stats_thread_t *stats_thread = stats_get_thread(ids[i]);
-		if (stats_thread != NULL) {
-			if ((all) || (stats_thread->task_id == task_id)) {
-				uint64_t ucycles, kcycles;
-				char usuffix, ksuffix;
-				
-				order_suffix(stats_thread->ucycles, &ucycles, &usuffix);
-				order_suffix(stats_thread->kcycles, &kcycles, &ksuffix);
-				
-				if (stats_thread->on_cpu) {
-					printf("%8" PRIu64 " %-8s %4u %6d %12"
-					    PRIu64"%c %12" PRIu64"%c\n", ids[i],
-					    thread_get_state(stats_thread->state),
-					    stats_thread->cpu, stats_thread->priority,
-					    ucycles, usuffix, kcycles, ksuffix);
-				} else {
-					printf("%8" PRIu64 " %-8s ---- %6d %12"
-					    PRIu64"%c %12" PRIu64"%c\n", ids[i],
-					    thread_get_state(stats_thread->state),
-					    stats_thread->priority,
-					    ucycles, usuffix, kcycles, ksuffix);
-				}
-			}
+		if ((all) || (stats_threads[i].task_id == task_id)) {
+			uint64_t ucycles, kcycles;
+			char usuffix, ksuffix;
 			
-			free(stats_thread);
-		} else if (all)
-			printf("%8" PRIu64 "\n", ids[i]);
+			order_suffix(stats_threads[i].ucycles, &ucycles, &usuffix);
+			order_suffix(stats_threads[i].kcycles, &kcycles, &ksuffix);
+			
+			if (stats_threads[i].on_cpu) {
+				printf("%8" PRIu64 " %-8s %4u %6d %12"
+				    PRIu64"%c %12" PRIu64"%c\n", stats_threads[i].thread_id,
+				    thread_get_state(stats_threads[i].state),
+				    stats_threads[i].cpu, stats_threads[i].priority,
+				    ucycles, usuffix, kcycles, ksuffix);
+			} else {
+				printf("%8" PRIu64 " %-8s ---- %6d %12"
+				    PRIu64"%c %12" PRIu64"%c\n", stats_threads[i].thread_id,
+				    thread_get_state(stats_threads[i].state),
+				    stats_threads[i].priority,
+				    ucycles, usuffix, kcycles, ksuffix);
+			}
+		}
 	}
 	
-	free(ids);
+	free(stats_threads);
 }
 
 static void print_load(void)

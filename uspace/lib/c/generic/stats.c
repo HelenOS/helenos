@@ -95,25 +95,25 @@ stats_physmem_t *stats_get_physmem(void)
 	return stats_physmem;
 }
 
-/** Get task IDs
+/** Get task statistics
  *
- * @param count Number of IDs returned.
+ * @param count Number of records returned.
  *
- * @return Array of IDs (task_id_t).
+ * @return Array of stats_task_t structures.
  *         If non-NULL then it should be eventually freed
  *         by free().
  *
  */
-task_id_t *stats_get_tasks(size_t *count)
+stats_task_t *stats_get_tasks(size_t *count)
 {
 	size_t size = 0;
-	task_id_t *ids =
-	    (task_id_t *) sysinfo_get_data("system.tasks", &size);
+	stats_task_t *stats_tasks =
+	    (stats_task_t *) sysinfo_get_data("system.tasks", &size);
 	
-	assert((size % sizeof(task_id_t)) == 0);
+	assert((size % sizeof(stats_task_t)) == 0);
 	
-	*count = size / sizeof(task_id_t);
-	return ids;
+	*count = size / sizeof(stats_task_t);
+	return stats_tasks;
 }
 
 /** Get single task statistics
@@ -139,25 +139,25 @@ stats_task_t *stats_get_task(task_id_t task_id)
 	return stats_task;
 }
 
-/** Get thread IDs
+/** Get thread statistics.
  *
- * @param count Number of IDs returned.
+ * @param count Number of records returned.
  *
- * @return Array of IDs (thread_id_t).
+ * @return Array of stats_thread_t structures.
  *         If non-NULL then it should be eventually freed
  *         by free().
  *
  */
-thread_id_t *stats_get_threads(size_t *count)
+stats_thread_t *stats_get_threads(size_t *count)
 {
 	size_t size = 0;
-	thread_id_t *ids =
-	    (thread_id_t *) sysinfo_get_data("system.threads", &size);
+	stats_thread_t *stats_threads =
+	    (stats_thread_t *) sysinfo_get_data("system.threads", &size);
 	
-	assert((size % sizeof(thread_id_t)) == 0);
+	assert((size % sizeof(stats_thread_t)) == 0);
 	
-	*count = size / sizeof(thread_id_t);
-	return ids;
+	*count = size / sizeof(stats_thread_t);
+	return stats_threads;
 }
 
 /** Get single thread statistics

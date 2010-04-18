@@ -28,12 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-# BINARY = top
+BINARY = top
 
 SOURCES = \
 	top.c \
 	screen.c \
-	input.c \
-	ps.c
+	input.c
 
 include $(USPACE_PREFIX)/Makefile.common

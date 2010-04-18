@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,169 +38,195 @@
 #include <stdio.h>
 #include <io/console.h>
 #include <vfs/vfs.h>
-#include <load.h>
-#include <kernel/ps/taskinfo.h>
-#include <ps.h>
+#include <stdarg.h>
+#include <stats.h>
+#include <inttypes.h>
 #include "screen.h"
 #include "top.h"
-#include "func.h"
 
-int rows;
-int colls;
-int up_rows;
+#define WHITE  0xf0f0f0
+#define BLACK  0x000000
 
-#define WHITE 0xf0f0f0
-#define BLACK 0x000000
+static int rows;
+static int colls;
+static int up_rows;
 
-static void print_float(ps_float f, int precision)
+static void print_float(fixed_float ffloat, unsigned int precision)
 {
-	printf("%2u.", f.upper / f.lower);
-	int i;
-	unsigned int rest = (f.upper % f.lower) * 10;
-	for (i = 0; i < precision; ++i) {
-		printf("%d", rest / f.lower);
-		rest = (rest % f.lower) * 10;
+	printf("%2" PRIu64 ".", ffloat.upper / ffloat.lower);
+	
+	unsigned int i;
+	uint64_t rest = (ffloat.upper % ffloat.lower) * 10;
+	for (i = 0; i < precision; i++) {
+		printf("%" PRIu64, rest / ffloat.lower);
+		rest = (rest % ffloat.lower) * 10;
 	}
 }
 
-static void resume_normal(void)
+static void screen_resume_normal(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), 0, WHITE);
 }
 
-void screen_init(void)
-{
-	console_get_size(fphone(stdout), &colls, &rows);
-	up_rows = 0;
-	console_cursor_visibility(fphone(stdout), 0);
-	resume_normal();
-	clear_screen();
-}
-
-void clear_screen(void)
-{
-	console_clear(fphone(stdout));
-	moveto(0, 0);
-	up_rows = 0;
-	fflush(stdout);
-}
-
-void moveto(int r, int c)
+static void screen_moveto(int r, int c)
 {
 	fflush(stdout);
 	console_goto(fphone(stdout), c, r);
 }
 
+static void screen_clear(void)
+{
+	console_clear(fphone(stdout));
+	screen_moveto(0, 0);
+	up_rows = 0;
+	fflush(stdout);
+}
+
+void screen_init(void)
+{
+	console_cursor_visibility(fphone(stdout), 0);
+	screen_resume_normal();
+	screen_clear();
+	
+	console_get_size(fphone(stdout), &colls, &rows);
+}
+
+void screen_done(void)
+{
+	screen_resume_normal();
+	screen_clear();
+	console_cursor_visibility(fphone(stdout), 1);
+}
+
 static inline void print_time(data_t *data)
 {
-	printf("%02d:%02d:%02d ", data->hours, data->minutes, data->seconds);
+	printf("%02lu:%02lu:%02lu ", data->hours, data->minutes, data->seconds);
 }
 
 static inline void print_uptime(data_t *data)
 {
-	printf("up %4d days, %02d:%02d:%02d, ", data->uptime_d, data->uptime_h,
-		data->uptime_m, data->uptime_s);
+	printf("up %u days, %02u:%02u:%02u, ", data->udays, data->uhours,
+	    data->uminutes, data->useconds);
 }
 
 static inline void print_load(data_t *data)
 {
-	puts("load avarage: ");
-	print_load_fragment(data->load[0], 2);
-	puts(" ");
-	print_load_fragment(data->load[1], 2);
-	puts(" ");
-	print_load_fragment(data->load[2], 2);
-}
-
-static inline void print_taskstat(data_t *data)
-{
-	puts("Tasks: ");
-	printf("%4u total", data->task_count);
-}
-
-static inline void print_threadstat(data_t *data)
-{
-	size_t sleeping = 0;
-	size_t running = 0;
-	size_t invalid = 0;
-	size_t other = 0;
-	size_t total = 0;
+	printf("load avarage: ");
+	
 	size_t i;
-	for (i = 0; i < data->thread_count; ++i) {
-		++total;
-		switch (data->thread_infos[i].state) {
-			case Invalid:
-			case Lingering:
-				++invalid;
-				break;
-			case Running:
-			case Ready:
-				++running;
-				break;
-			case Sleeping:
-				++sleeping;
-				break;
-			case Entering:
-			case Exiting:
-				++other;
-				break;
+	for (i = 0; i < data->load_count; i++) {
+		stats_print_load_fragment(data->load[i], 2);
+		printf(" ");
+	}
+}
+
+static inline void print_task_summary(data_t *data)
+{
+	printf("tasks: %u total", data->tasks_count);
+}
+
+static inline void print_thread_summary(data_t *data)
+{
+	size_t total = 0;
+	size_t running = 0;
+	size_t ready = 0;
+	size_t sleeping = 0;
+	size_t lingering = 0;
+	size_t other = 0;
+	size_t invalid = 0;
+	
+	
+	size_t i;
+	for (i = 0; i < data->threads_count; i++) {
+		total++;
+		
+		switch (data->threads[i].state) {
+		case Running:
+			running++;
+			break;
+		case Ready:
+			ready++;
+			break;
+		case Sleeping:
+			sleeping++;
+			break;
+		case Lingering:
+			lingering++;
+			break;
+		case Entering:
+		case Exiting:
+			other++;
+			break;
+		default:
+			invalid++;
 		}
 	}
-	printf("Threads: %5u total, %5u running, %5u sleeping, %5u invalid, %5u other",
-		total, running, sleeping, invalid, other);
+	
+	printf("threads: %u total, %u running, %u ready, %u sleeping, %u lingering, "
+	    "%u other, %u invalid",
+	    total, running, ready, sleeping, lingering, other, invalid);
 }
 
-static inline void print_cpuinfo(data_t *data)
+static inline void print_cpu_info(data_t *data)
 {
-	unsigned int i;
-	uspace_cpu_info_t *cpus = data->cpus;
-	for (i = 0; i < data->cpu_count; ++i) {
-		printf("Cpu%u (%4u Mhz): Busy ticks: %6llu, Idle Ticks: %6llu",
-			i, (unsigned int)cpus[i].frequency_mhz, cpus[i].busy_ticks,
-			cpus[i].idle_ticks);
+	size_t i;
+	for (i = 0; i < data->cpus_count; i++) {
+		printf("cpu%u (%4" PRIu16 " MHz): busy ticks: "
+		    "%" PRIu64 ", idle ticks: %" PRIu64,
+		    data->cpus[i].id, data->cpus[i].frequency_mhz,
+		    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
 		printf(", idle: ");
-		print_float(data->cpu_perc[i].idle, 2);
-		puts("%, busy: ");
-		print_float(data->cpu_perc[i].busy, 2);
-		puts("%\n");
-		++up_rows;
+		print_float(data->cpus_perc[i].idle, 2);
+		printf("%%, busy: ");
+		print_float(data->cpus_perc[i].busy, 2);
+		
+		printf("%%\n");
+		up_rows++;
 	}
 }
 
-static inline void print_meminfo(data_t *data)
+static inline void print_physmem_info(data_t *data)
 {
-	uint64_t newsize;
-	char suffix;
-	order(data->mem_info.total, &newsize, &suffix);
-	printf("Mem: %8llu %c total", newsize, suffix);
-	order(data->mem_info.used, &newsize, &suffix);
-	printf(", %8llu %c used", newsize, suffix);
-	order(data->mem_info.free, &newsize, &suffix);
-	printf(", %8llu %c free", newsize, suffix);
+	uint64_t total;
+	uint64_t unavail;
+	uint64_t used;
+	uint64_t free;
+	char total_suffix;
+	char unavail_suffix;
+	char used_suffix;
+	char free_suffix;
+	
+	order_suffix(data->physmem->total, &total, &total_suffix);
+	order_suffix(data->physmem->unavail, &unavail, &unavail_suffix);
+	order_suffix(data->physmem->used, &used, &used_suffix);
+	order_suffix(data->physmem->free, &free, &free_suffix);
+	
+	printf("memory: %" PRIu64 "%c total, %" PRIu64 "%c unavail, %"
+	    PRIu64 "%c used, %" PRIu64 "%c free", total, total_suffix,
+	    unavail, unavail_suffix, used, used_suffix, free, free_suffix);
 }
 
 static inline void print_tasks(data_t *data, int row)
 {
-	int i;
-	for (i = 0; i < (int)data->task_count; ++i) {
-		if (row + i > rows)
-			return;
-		task_info_t *taskinfo = &data->taskinfos[i];
-		uint64_t mem;
-		char suffix;
-		order(taskinfo->virt_mem, &mem, &suffix);
-		printf("%8llu %8u %8llu%c ", taskinfo->taskid,
-			taskinfo->thread_count, mem, suffix);
-		task_perc_t *taskperc = &data->task_perc[i];
-		puts("   ");
-		print_float(taskperc->mem, 2);
-		puts("%   ");
-		print_float(taskperc->ucycles, 2);
-		puts("%   ");
-		print_float(taskperc->kcycles, 2);
-		puts("% ");
-		printf("%s\n", taskinfo->name);
+	size_t i;
+	for (i = 0; i < data->tasks_count; i++, row++) {
+		if (row > rows)
+			break;
+		
+		uint64_t virtmem;
+		char virtmem_suffix;
+		order_suffix(data->tasks[i].virtmem, &virtmem, &virtmem_suffix);
+		
+		printf("%8" PRIu64 " %8u %8" PRIu64 "%c ", data->tasks[i].task_id,
+		    data->tasks[i].threads, virtmem, virtmem_suffix);
+		printf("   ");
+		print_float(data->tasks_perc[i].virtmem, 2);
+		printf("%%   ");
+		print_float(data->tasks_perc[i].ucycles, 2);
+		printf("%%   ");
+		print_float(data->tasks_perc[i].kcycles, 2);
+		printf("%% %s\n", data->tasks[i].name);
 	}
 }
 
@@ -207,10 +234,13 @@ static inline void print_task_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
+	
 	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles  Name");
+	
 	int i;
 	for (i = 61; i < colls; ++i)
-		puts(" ");
+		printf(" ");
+	
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
 }
@@ -219,62 +249,89 @@ static inline void print_ipc_head(void)
 {
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
+	
 	printf("      ID Calls sent Calls recv Answs sent Answs recv  IRQn recv       Forw Name");
+	
 	int i;
 	for (i = 80; i < colls; ++i)
-		puts(" ");
+		printf(" ");
+	
 	fflush(stdout);
 	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
 }
 
 static inline void print_ipc(data_t *data, int row)
 {
-	int i;
-	for (i = 0; i < (int)data->task_count; ++i) {
-		if (row + i > rows)
-			return;
-		task_info_t *taskinfo = &data->taskinfos[i];
-		task_ipc_info_t *ipcinfo = &taskinfo->ipc_info;
-		printf("%8llu ", taskinfo->taskid);
-		printf("%10llu %10llu %10llu %10llu %10llu %10llu ",
-				ipcinfo->call_sent, ipcinfo->call_recieved,
-				ipcinfo->answer_sent, ipcinfo->answer_recieved,
-				ipcinfo->irq_notif_recieved, ipcinfo->forwarded);
-		printf("%s\n", taskinfo->name);
+	size_t i;
+	for (i = 0; i < data->tasks_count; i++, row++) {
+		if (row > rows)
+			break;
+		
+		printf("%8" PRIu64 " %10" PRIu64 " %10" PRIu64 " %10" PRIu64
+		     " %10" PRIu64 " %10" PRIu64 " %10" PRIu64 " %s\n",
+		     data->tasks[i].task_id, data->tasks[i].ipc_info.call_sent,
+		     data->tasks[i].ipc_info.call_recieved,
+		     data->tasks[i].ipc_info.answer_sent,
+		     data->tasks[i].ipc_info.answer_recieved,
+		     data->tasks[i].ipc_info.irq_notif_recieved,
+		     data->tasks[i].ipc_info.forwarded, data->tasks[i].name);
 	}
 }
 
 void print_data(data_t *data)
 {
-	clear_screen();
+	screen_clear();
 	fflush(stdout);
+	
 	printf("top - ");
 	print_time(data);
 	print_uptime(data);
 	print_load(data);
-	puts("\n");
-	++up_rows;
-	print_taskstat(data);
-	puts("\n");
-	++up_rows;
-	print_threadstat(data);
-	puts("\n");
-	++up_rows;
-	print_cpuinfo(data);
-	print_meminfo(data);
-	puts("\n");
-	++up_rows;
-	puts("\n");
-	++up_rows;
+	
+	printf("\n");
+	up_rows++;
+	
+	print_task_summary(data);
+	
+	printf("\n");
+	up_rows++;
+	
+	print_thread_summary(data);
+	
+	printf("\n");
+	up_rows++;
+	
+	print_cpu_info(data);
+	print_physmem_info(data);
+	
+	printf("\n");
+	up_rows++;
+	
+	/* Empty row for warnings */
+	printf("\n");
+	
 	if (operation_type == OP_IPC) {
 		print_ipc_head();
-		puts("\n");
+		printf("\n");
 		print_ipc(data, up_rows);
 	} else {
 		print_task_head();
-		puts("\n");
+		printf("\n");
 		print_tasks(data, up_rows);
 	}
+	
+	fflush(stdout);
+}
+
+void print_warning(const char *fmt, ...)
+{
+	screen_moveto(up_rows, 0);
+	
+	va_list args;
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	
 	fflush(stdout);
 }
 

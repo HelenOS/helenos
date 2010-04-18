@@ -93,8 +93,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/netecho/netecho \
 	$(USPACEDIR)/app/ping/ping \
 	$(USPACEDIR)/app/stats/stats \
-	$(USPACEDIR)/app/tasks/tasks
-#	$(USPACEDIR)/app/top/top \
+	$(USPACEDIR)/app/tasks/tasks \
+	$(USPACEDIR)/app/top/top
 #	$(USPACEDIR)/app/dummy_load/dummy_load
 
 COMPONENTS = \
