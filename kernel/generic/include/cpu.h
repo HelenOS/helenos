@@ -76,7 +76,7 @@ typedef struct cpu {
 	 */
 	unsigned int id;
 	
-	int active;
+	bool active;
 	int tlb_active;
 
 	uint16_t frequency_mhz;

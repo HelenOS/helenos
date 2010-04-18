@@ -172,16 +172,19 @@ static inline void print_cpu_info(data_t *data)
 {
 	size_t i;
 	for (i = 0; i < data->cpus_count; i++) {
-		printf("cpu%u (%4" PRIu16 " MHz): busy ticks: "
-		    "%" PRIu64 ", idle ticks: %" PRIu64,
-		    data->cpus[i].id, data->cpus[i].frequency_mhz,
-		    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
-		printf(", idle: ");
-		print_float(data->cpus_perc[i].idle, 2);
-		printf("%%, busy: ");
-		print_float(data->cpus_perc[i].busy, 2);
+		if (data->cpus[i].active) {
+			printf("cpu%u (%4" PRIu16 " MHz): busy ticks: "
+			    "%" PRIu64 ", idle ticks: %" PRIu64,
+			    data->cpus[i].id, data->cpus[i].frequency_mhz,
+			    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
+			printf(", idle: ");
+			print_float(data->cpus_perc[i].idle, 2);
+			printf("%%, busy: ");
+			print_float(data->cpus_perc[i].busy, 2);
+			printf("%%\n");
+		} else
+			printf("cpu%u inactive\n", data->cpus[i].id);
 		
-		printf("%%\n");
 		up_rows++;
 	}
 }

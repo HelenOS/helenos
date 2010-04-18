@@ -163,10 +163,14 @@ static void list_cpus(void)
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
-		printf("cpu%u: %" PRIu16 " MHz, busy ticks: "
-		    "%" PRIu64 ", idle ticks: %" PRIu64 "\n",
-		    cpus[i].id, cpus[i].frequency_mhz, cpus[i].busy_ticks,
-		    cpus[i].idle_ticks);
+		if (cpus[i].active) {
+			printf("cpu%u: %" PRIu16 " MHz, busy ticks: "
+			    "%" PRIu64 ", idle ticks: %" PRIu64 "\n",
+			    cpus[i].id, cpus[i].frequency_mhz, cpus[i].busy_ticks,
+			    cpus[i].idle_ticks);
+		} else {
+			printf("cpu%u: inactive\n", cpus[i].id);
+		}
 	}
 	
 	free(cpus);
