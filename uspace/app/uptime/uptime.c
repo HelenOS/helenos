@@ -58,13 +58,13 @@ int main(int argc, char *argv[])
 	    (sec % HOUR) / MINUTE, sec % MINUTE);
 	
 	sysarg_t uptime = get_stats_uptime();
-	printf(", up %u days, %02u:%02u:%02u", uptime / DAY,
+	printf(", up %u days, %u hours %u minutes, %u seconds", uptime / DAY,
 	    (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
 	
 	size_t count;
 	load_t *load = get_stats_load(&count);
 	if (load != NULL) {
-		printf(", load avarage: ");
+		printf(", load average: ");
 		
 		size_t i;
 		for (i = 0; i < count; i++) {
