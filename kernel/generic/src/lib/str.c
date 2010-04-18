@@ -109,6 +109,7 @@
 #include <errno.h>
 #include <align.h>
 #include <debug.h>
+#include <macros.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -757,6 +758,163 @@ bool wstr_remove(wchar_t *str, size_t pos)
 		str[i - 1] = str[i];
 	
 	return true;
+}
+
+/** Convert string to uint64_t (internal variant).
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr Pointer to the first invalid character is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param neg    Indication of unary minus is stored here.
+ * @apram result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+static int str_uint(const char *nptr, char **endptr, unsigned int base,
+    bool *neg, uint64_t *result)
+{
+	ASSERT(endptr != NULL);
+	ASSERT(neg != NULL);
+	ASSERT(result != NULL);
+	
+	*neg = false;
+	const char *str = nptr;
+	
+	/* Ignore leading whitespace */
+	while (isspace(*str))
+		str++;
+	
+	if (*str == '-') {
+		*neg = true;
+		str++;
+	} else if (*str == '+')
+		str++;
+	
+	if (base == 0) {
+		/* Decode base if not specified */
+		base = 10;
+		
+		if (*str == '0') {
+			base = 8;
+			str++;
+			
+			switch (*str) {
+			case 'b':
+			case 'B':
+				base = 2;
+				str++;
+				break;
+			case 'o':
+			case 'O':
+				base = 8;
+				str++;
+				break;
+			case 'd':
+			case 'D':
+			case 't':
+			case 'T':
+				base = 10;
+				str++;
+				break;
+			case 'x':
+			case 'X':
+				base = 16;
+				str++;
+				break;
+			}
+		}
+	} else {
+		/* Check base range */
+		if ((base < 2) || (base > 36)) {
+			*endptr = (char *) str;
+			return EINVAL;
+		}
+	}
+	
+	*result = 0;
+	const char *startstr = str;
+	
+	while (*str != 0) {
+		unsigned int digit;
+		
+		if ((*str >= 'a') && (*str <= 'z'))
+			digit = *str - 'a' + 10;
+		else if ((*str >= 'A') && (*str <= 'Z'))
+			digit = *str - 'A' + 10;
+		else if ((*str >= '0') && (*str <= '9'))
+			digit = *str - '0';
+		else
+			break;
+		
+		if (digit >= base)
+			break;
+		
+		uint64_t prev = *result;
+		*result = (*result) * base + digit;
+		
+		if (*result < prev) {
+			/* Overflow */
+			*endptr = (char *) str;
+			return EOVERFLOW;
+		}
+		
+		str++;
+	}
+	
+	if (str == startstr) {
+		/*
+		 * No digits were decoded => first invalid character is
+		 * the first character of the string.
+		 */
+		str = nptr;
+	}
+	
+	*endptr = (char *) str;
+	
+	if (str == nptr)
+		return EINVAL;
+	
+	return EOK;
+}
+
+/** Convert string to uint64_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @apram result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint64(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint64_t *result)
+{
+	ASSERT(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	int ret = str_uint(nptr, &lendptr, base, &neg, result);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	return EOK;
 }
 
 /** @}
