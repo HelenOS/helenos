@@ -38,6 +38,7 @@
 #include <stats.h>
 #include <sys/time.h>
 #include <inttypes.h>
+#include <malloc.h>
 
 #define NAME  "uptime"
 
@@ -73,6 +74,8 @@ int main(int argc, char *argv[])
 			
 			print_load_fragment(load[i], 2);
 		}
+		
+		free(load);
 	}
 	
 	printf("\n");

@@ -495,7 +495,6 @@ static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 		sysinfo_indent(depth);
 		
 		unative_t val;
-		void *data;
 		size_t size;
 		
 		/* Display node value and type */
@@ -517,12 +516,8 @@ static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 			    cur->name, val, val);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
-			data = cur->val.fn_data(cur, &size);
-			
-			/* N.B.: The generated binary data should be freed */
-			if (data != NULL)
-				free(data);
-			
+			/* N.B.: No data was actually returned (only a dry run) */
+			(void) cur->val.fn_data(cur, &size, true);
 			printf("+ %s (%" PRIs" bytes) [generated]\n", cur->name,
 			    size);
 			break;
@@ -578,15 +573,18 @@ void sysinfo_dump(sysinfo_item_t *root)
  * Should be called with interrupts disabled
  * and sysinfo_lock held.
  *
- * @param name Sysinfo path.
- * @param root Root item of the sysinfo (sub)tree.
- *             If it is NULL then consider the global
- *             sysinfo tree.
+ * @param name    Sysinfo path.
+ * @param root    Root item of the sysinfo (sub)tree.
+ *                If it is NULL then consider the global
+ *                sysinfo tree.
+ * @param dry_run Do not actually get any generated
+ *                binary data, just calculate the size.
  *
  * @return Item value (constant or generated).
  *
  */
-static sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root)
+static sysinfo_return_t sysinfo_get_item(const char *name,
+    sysinfo_item_t **root, bool dry_run)
 {
 	if (root == NULL)
 		root = &global_root;
@@ -613,7 +611,8 @@ static sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root
 			ret.val = item->val.fn_val(item);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:
-			ret.data.data = item->val.fn_data(item, &ret.data.size);
+			ret.data.data = item->val.fn_data(item, &ret.data.size,
+			    dry_run);
 			break;
 		}
 	} else {
@@ -634,11 +633,14 @@ static sysinfo_return_t sysinfo_get_item(const char *name, sysinfo_item_t **root
  * the user space has to be properly null-terminated
  * (the last passed character must be null).
  *
- * @param ptr  Sysinfo path in the user address space.
- * @param size Size of the path string.
+ * @param ptr     Sysinfo path in the user address space.
+ * @param size    Size of the path string.
+ * @param dry_run Do not actually get any generated
+ *                binary data, just calculate the size.
  *
  */
-static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size)
+static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
+    bool dry_run)
 {
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
@@ -651,7 +653,7 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size)
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0)
 	    && (path[size] == 0))
-		ret = sysinfo_get_item(path, NULL);
+		ret = sysinfo_get_item(path, NULL, dry_run);
 	
 	free(path);
 	return ret;
@@ -676,12 +678,11 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&sysinfo_lock);
 	
-	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	/* Get the item.
 	
-	/* N.B.: The generated binary data should be freed */
-	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
-		free(ret.data.data);
+	   N.B.: There is no need to free any potential generated
+	   binary data since we request a dry run */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/* Map generated value types to constant types
 	   (user space does not care whether the
@@ -719,8 +720,11 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&sysinfo_lock);
 	
-	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	/* Get the item.
+	
+	   N.B.: There is no need to free any potential generated
+	   binary data since we request a dry run */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	int rc;
 	
 	/* Only constant or generated numerical value is returned */
@@ -728,10 +732,6 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 		rc = copy_to_uspace(value_ptr, &ret.val, sizeof(ret.val));
 	else
 		rc = EINVAL;
-	
-	/* N.B.: The generated binary data should be freed */
-	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
-		free(ret.data.data);
 	
 	spinlock_unlock(&sysinfo_lock);
 	interrupts_restore(ipl);
@@ -761,8 +761,11 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&sysinfo_lock);
 	
-	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	/* Get the item.
+	
+	   N.B.: There is no need to free any potential generated
+	   binary data since we request a dry run */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	int rc;
 	
 	/* Only the size of constant or generated binary data is considered */
@@ -771,10 +774,6 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 		    sizeof(ret.data.size));
 	else
 		rc = EINVAL;
-	
-	/* N.B.: The generated binary data should be freed */
-	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
-		free(ret.data.data);
 	
 	spinlock_unlock(&sysinfo_lock);
 	interrupts_restore(ipl);
@@ -810,7 +809,7 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	spinlock_lock(&sysinfo_lock);
 	
 	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size);
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
 	int rc;
 	
 	/* Only constant or generated binary data is considered */

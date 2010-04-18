@@ -84,19 +84,23 @@ static unative_t get_stats_uptime(struct sysinfo_item *item)
 
 /** Get statistics of all CPUs
  *
- * @param item Sysinfo item (unused).
- * @param size Size of the returned data.
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
  *
  * @return Data containing several stats_cpu_t structures.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
-static void *get_stats_cpus(struct sysinfo_item *item, size_t *size)
+static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
 {
+	*size = sizeof(stats_cpu_t) * config.cpu_count;
+	if (dry_run)
+		return NULL;
+	
 	/* Assumption: config.cpu_count is constant */
-	stats_cpu_t *stats_cpus =
-	    (stats_cpu_t *) malloc(sizeof(stats_cpu_t) * config.cpu_count,
-	    FRAME_ATOMIC);
+	stats_cpu_t *stats_cpus = (stats_cpu_t *) malloc(*size, FRAME_ATOMIC);
 	if (stats_cpus == NULL) {
 		*size = 0;
 		return NULL;
@@ -119,7 +123,6 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size)
 	
 	interrupts_restore(ipl);
 	
-	*size = sizeof(stats_cpu_t) * config.cpu_count;
 	return ((void *) stats_cpus);
 }
 
@@ -171,14 +174,16 @@ static bool task_serialize_walker(avltree_node_t *node, void *arg)
 
 /** Get task IDs
  *
- * @param item Sysinfo item (unused).
- * @param size Size of the returned data.
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
  *
  * @return Data containing task IDs of all tasks.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
-static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
+static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
 {
 	/* Messing with task structures, avoid deadlock */
 	ipl_t ipl = interrupts_disable();
@@ -197,8 +202,14 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 		return NULL;
 	}
 	
-	task_id_t *task_ids =
-	    (task_id_t *) malloc(sizeof(task_id_t) * count, FRAME_ATOMIC);
+	*size = sizeof(task_id_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	task_id_t *task_ids = (task_id_t *) malloc(*size, FRAME_ATOMIC);
 	if (task_ids == NULL) {
 		/* No free space for allocation */
 		spinlock_unlock(&tasks_lock);
@@ -215,7 +226,6 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size)
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 	
-	*size = sizeof(task_id_t) * count;
 	return ((void *) task_ids);
 }
 
@@ -325,17 +335,23 @@ static sysinfo_return_t get_stats_task(const char *name)
 
 /** Get physical memory statistics
  *
- * @param item Sysinfo item (unused).
- * @param size Size of the returned data.
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
  *
  * @return Data containing stats_physmem_t.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
-static void *get_stats_physmem(struct sysinfo_item *item, size_t *size)
+static void *get_stats_physmem(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
 {
+	*size = sizeof(stats_physmem_t);
+	if (dry_run)
+		return NULL;
+	
 	stats_physmem_t *stats_physmem =
-	    (stats_physmem_t *) malloc(sizeof(stats_physmem_t), FRAME_ATOMIC);
+	    (stats_physmem_t *) malloc(*size, FRAME_ATOMIC);
 	if (stats_physmem == NULL) {
 		*size = 0;
 		return NULL;
@@ -344,23 +360,27 @@ static void *get_stats_physmem(struct sysinfo_item *item, size_t *size)
 	zones_stats(&(stats_physmem->total), &(stats_physmem->unavail),
 	    &(stats_physmem->used), &(stats_physmem->free));
 	
-	*size = sizeof(stats_physmem_t);
 	return ((void *) stats_physmem);
 }
 
 /** Get system load
  *
- * @param item Sysinfo item (unused).
- * @param size Size of the returned data.
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
  *
  * @return Data several load_t values.
  *         If the return value is not NULL, it should be freed
  *         in the context of the sysinfo request.
  */
-static void *get_stats_load(struct sysinfo_item *item, size_t *size)
+static void *get_stats_load(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
 {
-	load_t *stats_load =
-	    (load_t *) malloc(sizeof(load_t) * LOAD_STEPS, FRAME_ATOMIC);
+	*size = sizeof(load_t) * LOAD_STEPS;
+	if (dry_run)
+		return NULL;
+	
+	load_t *stats_load = (load_t *) malloc(*size, FRAME_ATOMIC);
 	if (stats_load == NULL) {
 		*size = 0;
 		return NULL;
@@ -377,7 +397,6 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size)
 	spinlock_unlock(&load_lock);
 	interrupts_restore(ipl);
 	
-	*size = sizeof(load_t) * LOAD_STEPS;
 	return ((void *) stats_load);
 }
 

@@ -67,7 +67,7 @@ struct sysinfo_item;
 typedef unative_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
 
 /** Generated binary data function */
-typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *);
+typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *, bool);
 
 /** Sysinfo item binary data
  *
