@@ -155,8 +155,8 @@ int packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest, 
 
 packet_t packet_get_copy(int phone, packet_t packet){
 	packet_t copy;
-	uint8_t * src;
-	uint8_t * dest;
+	uint8_t * src = NULL;
+	uint8_t * dest = NULL;
 	size_t addrlen;
 
 	if(! packet_is_valid(packet)){

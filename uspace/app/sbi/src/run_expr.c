@@ -1280,6 +1280,8 @@ static void run_access_object(run_t *run, stree_access_t *access,
 		deleg_p->sym = member;
 		addr_prop->u.named->prop_d = deleg_p;
 		break;
+	default:
+		ritem = NULL;
 	}
 
 	*res = ritem;

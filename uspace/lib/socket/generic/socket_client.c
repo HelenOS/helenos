@@ -298,7 +298,7 @@ static int socket_get_udp_phone(void){
  */
 static int socket_generate_new_id(void){
 	sockets_ref sockets;
-	int socket_id;
+	int socket_id = 0;
 	int count;
 
 	sockets = socket_get_sockets();
