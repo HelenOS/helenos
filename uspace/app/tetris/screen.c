@@ -52,9 +52,11 @@
 #include <unistd.h>
 #include <vfs/vfs.h>
 #include <async.h>
+#include <bool.h>
+#include <io/console.h>
+#include <io/style.h>
 #include "screen.h"
 #include "tetris.h"
-#include <io/console.h>
 
 #define STOP  (B_COLS - 3)
 
@@ -62,7 +64,7 @@ static cell curscreen[B_SIZE];  /* non-zero => standout (or otherwise marked) */
 static int curscore;
 static int isset;               /* true => terminal is in game mode */
 
-static int use_color;		/* true => use colors */
+static bool use_color;          /* true => use colors */
 
 static const struct shape *lastshape;
 
@@ -80,14 +82,14 @@ static inline void putstr(const char *s)
 static void start_standout(uint32_t color)
 {
 	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0xf0f0f0,
+	console_set_rgb_color(fphone(stdout), 0xffffff,
 	    use_color ? color : 0x000000);
 }
 
 static void resume_normal(void)
 {
 	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0, 0xf0f0f0);
+	console_set_style(fphone(stdout), STYLE_NORMAL);
 }
 
 void clear_screen(void)
@@ -117,10 +119,10 @@ void scr_init(void)
 	scr_clear();
 }
 
-void moveto(int r, int c)
+void moveto(ipcarg_t r, ipcarg_t c)
 {
 	fflush(stdout);
-	console_goto(fphone(stdout), c, r);
+	console_set_pos(fphone(stdout), c, r);
 }
 
 winsize_t winsize;
@@ -130,15 +132,14 @@ static int get_display_size(winsize_t *ws)
 	return console_get_size(fphone(stdout), &ws->ws_col, &ws->ws_row);
 }
 
-static int get_display_color_sup(void)
+static bool get_display_color_sup(void)
 {
-	int rc;
-	int ccap;
-
-	rc = console_get_color_cap(fphone(stdout), &ccap);
+	ipcarg_t ccap;
+	int rc = console_get_color_cap(fphone(stdout), &ccap);
+	
 	if (rc != 0)
-		return 0;
-
+		return false;
+	
 	return (ccap >= CONSOLE_CCAP_RGB);
 }
 
@@ -307,7 +308,7 @@ void scr_update(void)
  * Write a message (set != 0), or clear the same message (set == 0).
  * (We need its length in case we have to overwrite with blanks.)
  */
-void scr_msg(char *s, int set)
+void scr_msg(char *s, bool set)
 {
 	int l = str_size(s);
 	

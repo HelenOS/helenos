@@ -36,7 +36,9 @@
  */
 
 #include <stdio.h>
+#include <ipc/ipc.h>
 #include <io/console.h>
+#include <io/style.h>
 #include <vfs/vfs.h>
 #include <stdarg.h>
 #include <stats.h>
@@ -44,12 +46,84 @@
 #include "screen.h"
 #include "top.h"
 
-#define WHITE  0xf0f0f0
-#define BLACK  0x000000
+static ipcarg_t warn_col = 0;
+static ipcarg_t warn_row = 0;
 
-static int rows;
-static int colls;
-static int up_rows;
+static void screen_style_normal(void)
+{
+	fflush(stdout);
+	console_set_style(fphone(stdout), STYLE_NORMAL);
+}
+
+static void screen_style_inverted(void)
+{
+	fflush(stdout);
+	console_set_style(fphone(stdout), STYLE_INVERTED);
+}
+
+static void screen_moveto(ipcarg_t col, ipcarg_t row)
+{
+	fflush(stdout);
+	console_set_pos(fphone(stdout), col, row);
+}
+
+static void screen_get_pos(ipcarg_t *col, ipcarg_t *row)
+{
+	fflush(stdout);
+	console_get_pos(fphone(stdout), col, row);
+}
+
+static void screen_get_size(ipcarg_t *col, ipcarg_t *row)
+{
+	fflush(stdout);
+	console_get_size(fphone(stdout), col, row);
+}
+
+static void screen_restart(bool clear)
+{
+	screen_style_normal();
+	
+	if (clear) {
+		fflush(stdout);
+		console_clear(fphone(stdout));
+	}
+	
+	screen_moveto(0, 0);
+}
+
+static void screen_newline(void)
+{
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t c;
+	ipcarg_t r;
+	screen_get_pos(&c, &r);
+	
+	ipcarg_t i;
+	for (i = c + 1; i < cols; i++)
+		puts(" ");
+	
+	if (r + 1 < rows)
+		puts("\n");
+}
+
+void screen_init(void)
+{
+	fflush(stdout);
+	console_cursor_visibility(fphone(stdout), false);
+	
+	screen_restart(true);
+}
+
+void screen_done(void)
+{
+	screen_restart(true);
+	
+	fflush(stdout);
+	console_cursor_visibility(fphone(stdout), true);
+}
 
 static void print_float(fixed_float ffloat, unsigned int precision)
 {
@@ -63,67 +137,25 @@ static void print_float(fixed_float ffloat, unsigned int precision)
 	}
 }
 
-static void screen_resume_normal(void)
+static inline void print_global_head(data_t *data)
 {
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), 0, WHITE);
-}
-
-static void screen_moveto(int r, int c)
-{
-	fflush(stdout);
-	console_goto(fphone(stdout), c, r);
-}
-
-static void screen_clear(void)
-{
-	console_clear(fphone(stdout));
-	screen_moveto(0, 0);
-	up_rows = 0;
-	fflush(stdout);
-}
-
-void screen_init(void)
-{
-	console_cursor_visibility(fphone(stdout), 0);
-	screen_resume_normal();
-	screen_clear();
-	
-	console_get_size(fphone(stdout), &colls, &rows);
-}
-
-void screen_done(void)
-{
-	screen_resume_normal();
-	screen_clear();
-	console_cursor_visibility(fphone(stdout), 1);
-}
-
-static inline void print_time(data_t *data)
-{
-	printf("%02lu:%02lu:%02lu ", data->hours, data->minutes, data->seconds);
-}
-
-static inline void print_uptime(data_t *data)
-{
-	printf("up %u days, %02u:%02u:%02u, ", data->udays, data->uhours,
-	    data->uminutes, data->useconds);
-}
-
-static inline void print_load(data_t *data)
-{
-	printf("load avarage: ");
+	printf("top - %02lu:%02lu:%02lu up %u days, %02u:%02u:%02u, load avarage:",
+	    data->hours, data->minutes, data->seconds,
+	    data->udays, data->uhours, data->uminutes, data->useconds);
 	
 	size_t i;
 	for (i = 0; i < data->load_count; i++) {
+		puts(" ");
 		stats_print_load_fragment(data->load[i], 2);
-		printf(" ");
 	}
+	
+	screen_newline();
 }
 
 static inline void print_task_summary(data_t *data)
 {
 	printf("tasks: %u total", data->tasks_count);
+	screen_newline();
 }
 
 static inline void print_thread_summary(data_t *data)
@@ -135,7 +167,6 @@ static inline void print_thread_summary(data_t *data)
 	size_t lingering = 0;
 	size_t other = 0;
 	size_t invalid = 0;
-	
 	
 	size_t i;
 	for (i = 0; i < data->threads_count; i++) {
@@ -166,6 +197,7 @@ static inline void print_thread_summary(data_t *data)
 	printf("threads: %u total, %u running, %u ready, %u sleeping, %u lingering, "
 	    "%u other, %u invalid",
 	    total, running, ready, sleeping, lingering, other, invalid);
+	screen_newline();
 }
 
 static inline void print_cpu_info(data_t *data)
@@ -177,15 +209,15 @@ static inline void print_cpu_info(data_t *data)
 			    "%" PRIu64 ", idle ticks: %" PRIu64,
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
 			    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
-			printf(", idle: ");
+			puts(", idle: ");
 			print_float(data->cpus_perc[i].idle, 2);
-			printf("%%, busy: ");
+			puts("%, busy: ");
 			print_float(data->cpus_perc[i].busy, 2);
-			printf("%%\n");
+			puts("%");
 		} else
-			printf("cpu%u inactive\n", data->cpus[i].id);
+			printf("cpu%u inactive", data->cpus[i].id);
 		
-		up_rows++;
+		screen_newline();
 	}
 }
 
@@ -208,119 +240,99 @@ static inline void print_physmem_info(data_t *data)
 	printf("memory: %" PRIu64 "%c total, %" PRIu64 "%c unavail, %"
 	    PRIu64 "%c used, %" PRIu64 "%c free", total, total_suffix,
 	    unavail, unavail_suffix, used, used_suffix, free, free_suffix);
+	screen_newline();
 }
 
-static inline void print_tasks(data_t *data, int row)
+static inline void print_task_head(void)
 {
+	screen_style_inverted();
+	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles  Name");
+	screen_newline();
+	screen_style_normal();
+}
+
+static inline void print_tasks(data_t *data)
+{
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t col;
+	ipcarg_t row;
+	screen_get_pos(&col, &row);
+	
 	size_t i;
-	for (i = 0; i < data->tasks_count; i++, row++) {
-		if (row > rows)
-			break;
-		
+	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
 		uint64_t virtmem;
 		char virtmem_suffix;
 		order_suffix(data->tasks[i].virtmem, &virtmem, &virtmem_suffix);
 		
 		printf("%8" PRIu64 " %8u %8" PRIu64 "%c ", data->tasks[i].task_id,
 		    data->tasks[i].threads, virtmem, virtmem_suffix);
-		printf("   ");
+		puts("   ");
 		print_float(data->tasks_perc[i].virtmem, 2);
-		printf("%%   ");
+		puts("%   ");
 		print_float(data->tasks_perc[i].ucycles, 2);
-		printf("%%   ");
+		puts("%   ");
 		print_float(data->tasks_perc[i].kcycles, 2);
-		printf("%% %s\n", data->tasks[i].name);
+		printf("%% %s", data->tasks[i].name);
+		
+		screen_newline();
 	}
-}
-
-static inline void print_task_head(void)
-{
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
-	
-	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles  Name");
-	
-	int i;
-	for (i = 61; i < colls; ++i)
-		printf(" ");
-	
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
 }
 
 static inline void print_ipc_head(void)
 {
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), WHITE, BLACK);
-	
+	screen_style_inverted();
 	printf("      ID Calls sent Calls recv Answs sent Answs recv  IRQn recv       Forw Name");
-	
-	int i;
-	for (i = 80; i < colls; ++i)
-		printf(" ");
-	
-	fflush(stdout);
-	console_set_rgb_color(fphone(stdout), BLACK, WHITE);
+	screen_newline();
+	screen_style_normal();
 }
 
-static inline void print_ipc(data_t *data, int row)
+static inline void print_ipc(data_t *data)
 {
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t col;
+	ipcarg_t row;
+	screen_get_pos(&col, &row);
+	
 	size_t i;
-	for (i = 0; i < data->tasks_count; i++, row++) {
-		if (row > rows)
-			break;
-		
+	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
 		printf("%8" PRIu64 " %10" PRIu64 " %10" PRIu64 " %10" PRIu64
-		     " %10" PRIu64 " %10" PRIu64 " %10" PRIu64 " %s\n",
+		     " %10" PRIu64 " %10" PRIu64 " %10" PRIu64 " %s",
 		     data->tasks[i].task_id, data->tasks[i].ipc_info.call_sent,
 		     data->tasks[i].ipc_info.call_recieved,
 		     data->tasks[i].ipc_info.answer_sent,
 		     data->tasks[i].ipc_info.answer_recieved,
 		     data->tasks[i].ipc_info.irq_notif_recieved,
 		     data->tasks[i].ipc_info.forwarded, data->tasks[i].name);
+		
+		screen_newline();
 	}
 }
 
 void print_data(data_t *data)
 {
-	screen_clear();
-	fflush(stdout);
-	
-	printf("top - ");
-	print_time(data);
-	print_uptime(data);
-	print_load(data);
-	
-	printf("\n");
-	up_rows++;
-	
+	screen_restart(false);
+	print_global_head(data);
 	print_task_summary(data);
-	
-	printf("\n");
-	up_rows++;
-	
 	print_thread_summary(data);
-	
-	printf("\n");
-	up_rows++;
-	
 	print_cpu_info(data);
 	print_physmem_info(data);
 	
-	printf("\n");
-	up_rows++;
-	
 	/* Empty row for warnings */
-	printf("\n");
+	screen_get_pos(&warn_col, &warn_row);
+	screen_newline();
 	
 	if (operation_type == OP_IPC) {
 		print_ipc_head();
-		printf("\n");
-		print_ipc(data, up_rows);
+		print_ipc(data);
 	} else {
 		print_task_head();
-		printf("\n");
-		print_tasks(data, up_rows);
+		print_tasks(data);
 	}
 	
 	fflush(stdout);
@@ -328,13 +340,14 @@ void print_data(data_t *data)
 
 void print_warning(const char *fmt, ...)
 {
-	screen_moveto(up_rows, 0);
+	screen_moveto(warn_col, warn_row);
 	
 	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
 	
+	screen_newline();
 	fflush(stdout);
 }
 

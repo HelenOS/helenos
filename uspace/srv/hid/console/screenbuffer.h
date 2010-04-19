@@ -37,9 +37,10 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <ipc/ipc.h>
 #include <bool.h>
 
-#define DEFAULT_FOREGROUND  0x0       /**< default console foreground color */
+#define DEFAULT_FOREGROUND  0x000000  /**< default console foreground color */
 #define DEFAULT_BACKGROUND  0xf0f0f0  /**< default console background color */
 
 typedef struct {
@@ -81,12 +82,12 @@ typedef struct {
 typedef struct {
 	keyfield_t *buffer;      /**< Screen content - characters and
 	                              their attributes (used as a circular buffer) */
-	size_t size_x;           /**< Number of columns  */
-	size_t size_y;           /**< Number of rows */
+	ipcarg_t size_x;         /**< Number of columns  */
+	ipcarg_t size_y;         /**< Number of rows */
 	
 	/** Coordinates of last printed character for determining cursor position */
-	size_t position_x;
-	size_t position_y;
+	ipcarg_t position_x;
+	ipcarg_t position_y;
 	
 	attrs_t attrs;           /**< Current attributes. */
 	size_t top_line;         /**< Points to buffer[][] line that will
@@ -106,7 +107,7 @@ typedef struct {
  * @return Keyfield structure with character and its attributes on x, y
  *
  */
-static inline keyfield_t *get_field_at(screenbuffer_t *scr, size_t x, size_t y)
+static inline keyfield_t *get_field_at(screenbuffer_t *scr, ipcarg_t x, ipcarg_t y)
 {
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
@@ -139,19 +140,16 @@ static inline int attrs_same(attrs_t a1, attrs_t a2)
 	return 0;
 }
 
+extern void screenbuffer_putchar(screenbuffer_t *, wchar_t);
+extern screenbuffer_t *screenbuffer_init(screenbuffer_t *, ipcarg_t, ipcarg_t);
 
-void screenbuffer_putchar(screenbuffer_t *scr, wchar_t c);
-screenbuffer_t *screenbuffer_init(screenbuffer_t *scr, size_t size_x, size_t size_y);
-
-void screenbuffer_clear(screenbuffer_t *scr);
-void screenbuffer_clear_line(screenbuffer_t *scr, size_t line);
-void screenbuffer_copy_buffer(screenbuffer_t *scr, keyfield_t *dest);
-void screenbuffer_goto(screenbuffer_t *scr, size_t x, size_t y);
-void screenbuffer_set_style(screenbuffer_t *scr, uint8_t style);
-void screenbuffer_set_color(screenbuffer_t *scr, uint8_t fg_color,
-    uint8_t bg_color, uint8_t attr);
-void screenbuffer_set_rgb_color(screenbuffer_t *scr, uint32_t fg_color,
-    uint32_t bg_color);
+extern void screenbuffer_clear(screenbuffer_t *);
+extern void screenbuffer_clear_line(screenbuffer_t *, ipcarg_t);
+extern void screenbuffer_copy_buffer(screenbuffer_t *, keyfield_t *);
+extern void screenbuffer_goto(screenbuffer_t *, ipcarg_t, ipcarg_t);
+extern void screenbuffer_set_style(screenbuffer_t *, uint8_t);
+extern void screenbuffer_set_color(screenbuffer_t *, uint8_t, uint8_t, uint8_t);
+extern void screenbuffer_set_rgb_color(screenbuffer_t *, uint32_t, uint32_t);
 
 #endif
 

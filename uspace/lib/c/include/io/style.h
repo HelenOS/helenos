@@ -37,7 +37,9 @@
 
 enum console_style {
 	STYLE_NORMAL   = 0,
-	STYLE_EMPHASIS = 1
+	STYLE_EMPHASIS = 1,
+	STYLE_INVERTED = 2,
+	STYLE_SELECTED = 3
 };
 
 #endif

@@ -52,13 +52,19 @@ const char *test_console1(void)
 		printf("Style test: ");
 		fflush(stdout);
 		console_set_style(fphone(stdout), STYLE_NORMAL);
-		printf("normal ");
+		printf(" normal ");
 		fflush(stdout);
 		console_set_style(fphone(stdout), STYLE_EMPHASIS);
-		printf("emphasized");
+		printf(" emphasized ");
+		fflush(stdout);
+		console_set_style(fphone(stdout), STYLE_INVERTED);
+		printf(" inverted ");
+		fflush(stdout);
+		console_set_style(fphone(stdout), STYLE_SELECTED);
+		printf(" selected ");
 		fflush(stdout);
 		console_set_style(fphone(stdout), STYLE_NORMAL);
-		printf(".\n");
+		printf("\n");
 		
 		unsigned int i;
 		unsigned int j;
@@ -72,7 +78,7 @@ const char *test_console1(void)
 				printf(" %s ", color_name[i]);
 			}
 			fflush(stdout);
-			console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+			console_set_style(fphone(stdout), STYLE_NORMAL);
 			putchar('\n');
 		}
 		
@@ -85,7 +91,7 @@ const char *test_console1(void)
 				printf(" %s ", color_name[i]);
 			}
 			fflush(stdout);
-			console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+			console_set_style(fphone(stdout), STYLE_NORMAL);
 			putchar('\n');
 		}
 		
@@ -93,7 +99,7 @@ const char *test_console1(void)
 		
 		for (i = 0; i < 255; i += 16) {
 			fflush(stdout);
-			console_set_rgb_color(fphone(stdout), 0xffffff, i << 16);
+			console_set_rgb_color(fphone(stdout), (255 - i) << 16, i << 16);
 			putchar('X');
 		}
 		fflush(stdout);
@@ -102,7 +108,7 @@ const char *test_console1(void)
 		
 		for (i = 0; i < 255; i += 16) {
 			fflush(stdout);
-			console_set_rgb_color(fphone(stdout), 0xffffff, i << 8);
+			console_set_rgb_color(fphone(stdout), (255 - i) << 8, i << 8);
 			putchar('X');
 		}
 		fflush(stdout);
@@ -111,11 +117,11 @@ const char *test_console1(void)
 		
 		for (i = 0; i < 255; i += 16) {
 			fflush(stdout);
-			console_set_rgb_color(fphone(stdout), 0xffffff, i);
+			console_set_rgb_color(fphone(stdout), 255 - i, i);
 			putchar('X');
 		}
 		fflush(stdout);
-		console_set_color(fphone(stdout), COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_style(fphone(stdout), STYLE_NORMAL);
 		putchar('\n');
 	}
 	

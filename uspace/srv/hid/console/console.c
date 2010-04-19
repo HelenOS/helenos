@@ -70,10 +70,10 @@ static int mouse_phone;
 
 /** Information about framebuffer */
 struct {
-	int phone;      /**< Framebuffer phone */
-	ipcarg_t cols;  /**< Framebuffer columns */
-	ipcarg_t rows;  /**< Framebuffer rows */
-	int color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
+	int phone;           /**< Framebuffer phone */
+	ipcarg_t cols;       /**< Framebuffer columns */
+	ipcarg_t rows;       /**< Framebuffer rows */
+	ipcarg_t color_cap;  /**< Color capabilities (FB_CCAP_xxx) */
 } fb_info;
 
 typedef struct {
@@ -98,9 +98,9 @@ static keyfield_t *interbuffer = NULL;
 
 /** Information on row-span yet unsent to FB driver. */
 struct {
-	size_t col;  /**< Leftmost column of the span. */
-	size_t row;  /**< Row where the span lies. */
-	size_t cnt;  /**< Width of the span. */
+	ipcarg_t col;  /**< Leftmost column of the span. */
+	ipcarg_t row;  /**< Row where the span lies. */
+	ipcarg_t cnt;  /**< Width of the span. */
 } fb_pending;
 
 static FIBRIL_MUTEX_INITIALIZE(input_mutex);
@@ -116,7 +116,7 @@ static void curs_hide_sync(void)
 	ipc_call_sync_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
-static void curs_goto(size_t x, size_t y)
+static void curs_goto(ipcarg_t x, ipcarg_t y)
 {
 	async_msg_2(fb_info.phone, FB_CURSOR_GOTO, x, y);
 }
@@ -146,17 +146,17 @@ static void kbd_reclaim(void)
 	ipc_call_sync_0_0(kbd_phone, KBD_RECLAIM);
 }
 
-static void set_style(int style)
+static void set_style(uint8_t style)
 {
 	async_msg_1(fb_info.phone, FB_SET_STYLE, style);
 }
 
-static void set_color(int fgcolor, int bgcolor, int flags)
+static void set_color(uint8_t fgcolor, uint8_t bgcolor, uint8_t flags)
 {
 	async_msg_3(fb_info.phone, FB_SET_COLOR, fgcolor, bgcolor, flags);
 }
 
-static void set_rgb_color(int fgcolor, int bgcolor)
+static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 {
 	async_msg_2(fb_info.phone, FB_SET_RGB_COLOR, fgcolor, bgcolor); 
 }
@@ -177,16 +177,25 @@ static void set_attrs(attrs_t *attrs)
 	}
 }
 
-static int ccap_fb_to_con(int ccap_fb, int *ccap_con)
+static int ccap_fb_to_con(ipcarg_t ccap_fb, ipcarg_t *ccap_con)
 {
 	switch (ccap_fb) {
-	case FB_CCAP_NONE: *ccap_con = CONSOLE_CCAP_NONE; break;
-	case FB_CCAP_STYLE: *ccap_con = CONSOLE_CCAP_STYLE; break;
-	case FB_CCAP_INDEXED: *ccap_con = CONSOLE_CCAP_INDEXED; break;
-	case FB_CCAP_RGB: *ccap_con = CONSOLE_CCAP_RGB; break;
-	default: return EINVAL;
+	case FB_CCAP_NONE:
+		*ccap_con = CONSOLE_CCAP_NONE;
+		break;
+	case FB_CCAP_STYLE:
+		*ccap_con = CONSOLE_CCAP_STYLE;
+		break;
+	case FB_CCAP_INDEXED:
+		*ccap_con = CONSOLE_CCAP_INDEXED;
+		break;
+	case FB_CCAP_RGB:
+		*ccap_con = CONSOLE_CCAP_RGB;
+		break;
+	default:
+		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
@@ -225,7 +234,7 @@ static void fb_pending_flush(void)
  * the old span is flushed first.
  *
  */
-static void cell_mark_changed(size_t col, size_t row)
+static void cell_mark_changed(ipcarg_t col, ipcarg_t row)
 {
 	if (fb_pending.cnt != 0) {
 		if ((col != fb_pending.col + fb_pending.cnt)
@@ -252,7 +261,7 @@ static void fb_putchar(wchar_t c, ipcarg_t col, ipcarg_t row)
 static void write_char(console_t *cons, wchar_t ch)
 {
 	bool flush_cursor = false;
-
+	
 	switch (ch) {
 	case '\n':
 		fb_pending_flush();
@@ -296,7 +305,7 @@ static void write_char(console_t *cons, wchar_t ch)
 		if (cons == active_console)
 			async_msg_1(fb_info.phone, FB_SCROLL, 1);
 	}
-
+	
 	if (cons == active_console && flush_cursor)
 		curs_goto(cons->scr.position_x, cons->scr.position_y);
 	cons->scr.position_x = cons->scr.position_x % cons->scr.size_x;
@@ -326,10 +335,6 @@ static void change_console(console_t *cons)
 	}
 	
 	if (cons != kernel_console) {
-		size_t x;
-		size_t y;
-		int rc = 0;
-		
 		async_serialize_start();
 		
 		if (active_console == kernel_console) {
@@ -343,6 +348,11 @@ static void change_console(console_t *cons)
 		
 		set_attrs(&cons->scr.attrs);
 		curs_visibility(false);
+		
+		ipcarg_t x;
+		ipcarg_t y;
+		int rc = 0;
+		
 		if (interbuffer) {
 			for (y = 0; y < cons->scr.size_y; y++) {
 				for (x = 0; x < cons->scr.size_x; x++) {
@@ -389,7 +399,6 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
-		
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
@@ -432,36 +441,28 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 /** Handler for mouse events */
 static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int button, press;
-	int dx, dy;
-	int newcon;
-
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
-
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-
+		
 		int retval;
-
+		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
 		case MEVENT_BUTTON:
-			button = IPC_GET_ARG1(call);
-			press = IPC_GET_ARG2(call);
-			if (button == 1) {
-				newcon = gcons_mouse_btn(press);
+			if (IPC_GET_ARG1(call) == 1) {
+				int newcon = gcons_mouse_btn((bool) IPC_GET_ARG2(call));
 				if (newcon != -1)
 					change_console(&consoles[newcon]);
 			}
 			retval = 0;
 			break;
 		case MEVENT_MOVE:
-			dx = IPC_GET_ARG1(call);
-			dy = IPC_GET_ARG2(call);
-			gcons_mouse_move(dx, dy);
+			gcons_mouse_move((int) IPC_GET_ARG1(call),
+			    (int) IPC_GET_ARG2(call));
 			retval = 0;
 			break;
 		default:
@@ -519,6 +520,7 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	size_t pos = 0;
 	console_event_t ev;
 	fibril_mutex_lock(&input_mutex);
+	
 recheck:
 	while ((keybuffer_pop(&cons->keybuffer, &ev)) && (pos < size)) {
 		if (ev.type == KEY_PRESS) {
@@ -535,14 +537,16 @@ recheck:
 		fibril_condvar_wait(&input_cv, &input_mutex);
 		goto recheck;
 	}
+	
 	fibril_mutex_unlock(&input_mutex);
 }
 
 static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 {
 	console_event_t ev;
-
+	
 	fibril_mutex_lock(&input_mutex);
+	
 recheck:
 	if (keybuffer_pop(&cons->keybuffer, &ev)) {
 		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
@@ -550,6 +554,7 @@ recheck:
 		fibril_condvar_wait(&input_cv, &input_mutex);
 		goto recheck;
 	}
+	
 	fibril_mutex_unlock(&input_mutex);
 }
 
@@ -579,8 +584,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipcarg_t arg1;
 	ipcarg_t arg2;
 	ipcarg_t arg3;
-
-	int cons_ccap;
+	
 	int rc;
 	
 	async_serialize_start();
@@ -621,7 +625,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fb_pending_flush();
 			if (cons == active_console) {
 				async_req_0_0(fb_info.phone, FB_FLUSH);
-				
 				curs_goto(cons->scr.position_x, cons->scr.position_y);
 			}
 			break;
@@ -649,12 +652,11 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			arg2 = fb_info.rows;
 			break;
 		case CONSOLE_GET_COLOR_CAP:
-			rc = ccap_fb_to_con(fb_info.color_cap, &cons_ccap);
+			rc = ccap_fb_to_con(fb_info.color_cap, &arg1);
 			if (rc != EOK) {
 				ipc_answer_0(callid, rc);
 				continue;
 			}
-			arg1 = cons_ccap;
 			break;
 		case CONSOLE_SET_STYLE:
 			fb_pending_flush();
@@ -713,53 +715,53 @@ static bool console_init(char *input)
 		printf(NAME ": Failed opening %s\n", input);
 		return false;
 	}
-
+	
 	kbd_phone = fd_phone(input_fd);
 	if (kbd_phone < 0) {
 		printf(NAME ": Failed to connect to input device\n");
 		return false;
 	}
-
+	
 	/* NB: The callback connection is slotted for removal */
 	ipcarg_t phonehash;
 	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return false;
 	}
-
+	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
-
+	
 	/* Connect to mouse device */
 	mouse_phone = -1;
 	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
-
+	
 	if (mouse_fd < 0) {
 		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
 		goto skip_mouse;
 	}
-
+	
 	mouse_phone = fd_phone(mouse_fd);
 	if (mouse_phone < 0) {
 		printf(NAME ": Failed to connect to mouse device\n");
 		goto skip_mouse;
 	}
-
+	
 	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from mouse device\n");
 		mouse_phone = -1;
 		goto skip_mouse;
 	}
-
+	
 	async_new_connection(phonehash, 0, NULL, mouse_events);
 skip_mouse:
-
+	
 	/* Connect to framebuffer driver */
 	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
 		return -1;
 	}
-
+	
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
@@ -771,11 +773,9 @@ skip_mouse:
 	gcons_init(fb_info.phone);
 	
 	/* Synchronize, the gcons could put something in queue */
-	ipcarg_t color_cap;
 	async_req_0_0(fb_info.phone, FB_FLUSH);
 	async_req_0_2(fb_info.phone, FB_GET_CSIZE, &fb_info.cols, &fb_info.rows);
-	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &color_cap);
-	fb_info.color_cap = color_cap;
+	async_req_0_1(fb_info.phone, FB_GET_COLOR_CAP, &fb_info.color_cap);
 	
 	/* Set up shared memory buffer. */
 	size_t ib_size = sizeof(keyfield_t) * fb_info.cols * fb_info.rows;

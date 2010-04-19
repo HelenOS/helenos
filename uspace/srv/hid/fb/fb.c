@@ -71,12 +71,12 @@
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000
 
-#define GLYPH_UNAVAIL    '?'
+#define GLYPH_UNAVAIL  '?'
 
-#define MAX_ANIM_LEN     8
-#define MAX_ANIMATIONS   4
-#define MAX_PIXMAPS      256  /**< Maximum number of saved pixmaps */
-#define MAX_VIEWPORTS    128  /**< Viewport is a rectangular area on the screen */
+#define MAX_ANIM_LEN    8
+#define MAX_ANIMATIONS  4
+#define MAX_PIXMAPS     256  /**< Maximum number of saved pixmaps */
+#define MAX_VIEWPORTS   128  /**< Viewport is a rectangular area on the screen */
 
 /** Function to render a pixel from a RGB value. */
 typedef void (*rgb_conv_t)(void *, uint32_t);
@@ -955,7 +955,6 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 	unsigned int j;
 	bb_cell_t *bbp;
 	attrs_t *a;
-	attr_rgb_t rgb;
 	
 	for (j = 0; j < h; j++) {
 		for (i = 0; i < w; i++) {
@@ -965,6 +964,10 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 			bbp = &vport->backbuf[BB_POS(vport, col, row)];
 			
 			a = &data[j * w + i].attrs;
+			
+			attr_rgb_t rgb;
+			rgb.fg_color = 0;
+			rgb.bg_color = 0;
 			rgb_from_attr(&rgb, a);
 			
 			bbp->glyph = fb_font_glyph(data[j * w + i].character);
@@ -1510,10 +1513,18 @@ static int rgb_from_style(attr_rgb_t *rgb, int style)
 		rgb->fg_color = color_table[COLOR_RED];
 		rgb->bg_color = color_table[COLOR_WHITE];
 		break;
+	case STYLE_INVERTED:
+		rgb->fg_color = color_table[COLOR_WHITE];
+		rgb->bg_color = color_table[COLOR_BLACK];
+		break;
+	case STYLE_SELECTED:
+		rgb->fg_color = color_table[COLOR_WHITE];
+		rgb->bg_color = color_table[COLOR_RED];
+		break;
 	default:
 		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
