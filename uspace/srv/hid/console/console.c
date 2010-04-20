@@ -53,11 +53,13 @@
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <fibril_synch.h>
+#include <io/style.h>
+#include <io/screenbuffer.h>
 
 #include "console.h"
 #include "gcons.h"
 #include "keybuffer.h"
-#include "screenbuffer.h"
+
 
 #define NAME       "console"
 #define NAMESPACE  "term"
@@ -826,7 +828,7 @@ skip_mouse:
 	/* Initialize the screen */
 	async_serialize_start();
 	gcons_redraw_console();
-	set_rgb_color(DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+	set_style(STYLE_NORMAL);
 	screen_clear();
 	curs_goto(0, 0);
 	curs_visibility(active_console->scr.is_cursor_visible);

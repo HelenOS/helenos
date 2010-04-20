@@ -35,7 +35,7 @@
 #ifndef LIBC_IO_COLOR_H_
 #define LIBC_IO_COLOR_H_
 
-enum console_color {
+typedef enum {
 	COLOR_BLACK   = 0,
 	COLOR_BLUE    = 1,
 	COLOR_GREEN   = 2,
@@ -47,7 +47,7 @@ enum console_color {
 	
 	CATTR_BRIGHT  = 8,
 	CATTR_BLINK   = 8
-};
+} console_color_t;
 
 #endif
 

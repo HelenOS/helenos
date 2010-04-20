@@ -32,16 +32,19 @@
 /** @file
  */
 
-#ifndef SCREENBUFFER_H__
-#define SCREENBUFFER_H__
+#ifndef LIBC_SCREENBUFFER_H__
+#define LIBC_SCREENBUFFER_H__
 
 #include <stdint.h>
 #include <sys/types.h>
 #include <ipc/ipc.h>
 #include <bool.h>
 
-#define DEFAULT_FOREGROUND  0x000000  /**< default console foreground color */
-#define DEFAULT_BACKGROUND  0xf0f0f0  /**< default console background color */
+typedef enum {
+	at_style,
+	at_idx,
+	at_rgb
+} attr_type_t;
 
 typedef struct {
 	uint8_t style;
@@ -58,17 +61,15 @@ typedef struct {
 	uint32_t fg_color;  /**< foreground color */
 } attr_rgb_t;
 
+typedef union {
+	attr_style_t s;
+	attr_idx_t i;
+	attr_rgb_t r;
+} attr_val_t;
+
 typedef struct {
-	enum {
-		at_style,
-		at_idx,
-		at_rgb
-	} t;
-	union {
-		attr_style_t s;
-		attr_idx_t i;
-		attr_rgb_t r;
-	} a;
+	attr_type_t t;
+	attr_val_t a;
 } attrs_t;
 
 /** One field on screen. It contain one character and its attributes. */
@@ -120,10 +121,10 @@ static inline keyfield_t *get_field_at(screenbuffer_t *scr, ipcarg_t x, ipcarg_t
  * @return Nonzero on equality
  *
  */
-static inline int attrs_same(attrs_t a1, attrs_t a2)
+static inline bool attrs_same(attrs_t a1, attrs_t a2)
 {
 	if (a1.t != a2.t)
-		return 0;
+		return false;
 	
 	switch (a1.t) {
 	case at_style:
@@ -137,7 +138,7 @@ static inline int attrs_same(attrs_t a1, attrs_t a2)
 		    && (a1.a.r.bg_color == a2.a.r.bg_color);
 	}
 	
-	return 0;
+	return false;
 }
 
 extern void screenbuffer_putchar(screenbuffer_t *, wchar_t);

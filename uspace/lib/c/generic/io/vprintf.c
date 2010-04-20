@@ -75,7 +75,7 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)
  */
 int vfprintf(FILE *stream, const char *fmt, va_list ap)
 {
-	struct printf_spec ps = {
+	printf_spec_t ps = {
 		vprintf_str_write,
 		vprintf_wstr_write,
 		stream

@@ -60,7 +60,7 @@ static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
  */
 int asprintf(char **strp, const char *fmt, ...)
 {
-	struct printf_spec ps = {
+	printf_spec_t ps = {
 		asprintf_str_write,
 		asprintf_wstr_write,
 		NULL

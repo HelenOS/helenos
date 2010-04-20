@@ -50,7 +50,7 @@
  * For easier mapping to the model and to emphasize the nature of keycodes,
  * they really are organized here by position, rather than by label.
  */
-enum keycode {
+typedef enum {
 
 	/* Main block row 1 */
 
@@ -198,7 +198,7 @@ enum keycode {
 	
 } keycode_t;
 
-enum keymod {
+typedef enum {
 	KM_LSHIFT      = 0x001,
 	KM_RSHIFT      = 0x002,
 	KM_LCTRL       = 0x004,

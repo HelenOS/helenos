@@ -58,11 +58,11 @@
 #include <bool.h>
 #include <stdio.h>
 #include <byteorder.h>
+#include <io/screenbuffer.h>
 
 #include "font-8x16.h"
 #include "fb.h"
 #include "main.h"
-#include "../console/screenbuffer.h"
 #include "ppm.h"
 
 #include "pointer.xbm"

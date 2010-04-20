@@ -51,10 +51,10 @@
 #include <libarch/ddi.h>
 #include <io/style.h>
 #include <io/color.h>
+#include <io/screenbuffer.h>
 #include <sys/types.h>
 
 #include "ega.h"
-#include "../console/screenbuffer.h"
 #include "main.h"
 
 #define MAX_SAVED_SCREENS  256
@@ -259,7 +259,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	size_t intersize = 0;
 	keyfield_t *interbuf = NULL;
-
+	
 	if (client_connected) {
 		ipc_answer_0(iid, ELIMIT);
 		return;

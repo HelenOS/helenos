@@ -35,12 +35,12 @@
 #ifndef LIBC_IO_STYLE_H_
 #define LIBC_IO_STYLE_H_
 
-enum console_style {
+typedef enum {
 	STYLE_NORMAL   = 0,
 	STYLE_EMPHASIS = 1,
 	STYLE_INVERTED = 2,
 	STYLE_SELECTED = 3
-};
+} console_style_t;
 
 #endif
 

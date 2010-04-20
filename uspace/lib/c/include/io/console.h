@@ -43,12 +43,12 @@ typedef enum {
 	KEY_RELEASE
 } console_ev_type_t;
 
-enum {
+typedef enum {
 	CONSOLE_CCAP_NONE = 0,
 	CONSOLE_CCAP_STYLE,
 	CONSOLE_CCAP_INDEXED,
 	CONSOLE_CCAP_RGB
-};
+} console_caps_t;
 
 /** Console event structure. */
 typedef struct {

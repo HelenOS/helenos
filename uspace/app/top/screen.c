@@ -279,6 +279,11 @@ static inline void print_tasks(data_t *data)
 		
 		screen_newline();
 	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
+	}
 }
 
 static inline void print_ipc_head(void)
@@ -311,6 +316,11 @@ static inline void print_ipc(data_t *data)
 		     data->tasks[i].ipc_info.forwarded, data->tasks[i].name);
 		
 		screen_newline();
+	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
 	}
 }
 
