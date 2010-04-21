@@ -39,7 +39,8 @@ RD_DRVS = \
 	root \
 	rootia32 \
 	pciintel \
-	isa
+	isa \
+	serial
 
 RD_DRV_CONF = \
 	isa/isa.dev

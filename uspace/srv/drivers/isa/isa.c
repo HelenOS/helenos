@@ -311,7 +311,7 @@ static void get_match_id(char **id, char *val)
 {
 	char *end = val;
 	
-	while (isspace(*end)) {
+	while (!isspace(*end)) {
 		end++;
 	}	
 	*end = 0;
@@ -329,19 +329,22 @@ static void get_dev_match_id(device_t *dev, char *val)
 	
 	val = skip_spaces(val);	
 	
-	score = (int)strtol(val, &end, 0x10);
+	score = (int)strtol(val, &end, 10);
 	if (val == end) {
+		printf(NAME " : error - could not read match score for device %s.\n", dev->name);
 		return;
 	}
 	
 	match_id_t *match_id = create_match_id();
 	if (NULL == match_id) {
+		printf(NAME " : failed to allocate match id for device %s.\n", dev->name);
 		return;
 	}
 	
 	val = skip_spaces(end);	
 	get_match_id(&id, val);
 	if (NULL == id) {
+		printf(NAME " : error - could not read match id for device %s.\n", dev->name);
 		delete_match_id(match_id);
 		return;
 	}
@@ -349,23 +352,34 @@ static void get_dev_match_id(device_t *dev, char *val)
 	match_id->id = id;
 	match_id->score = score;
 	
+	printf(NAME ": adding match id %s with score %d to device %s\n", id, score, dev->name);
 	add_match_id(&dev->match_ids, match_id);
+}
+
+static bool read_dev_prop(
+	device_t *dev, char *line, const char *prop, void (* read_fn)(device_t *, char *)) 
+{
+	size_t proplen = str_size(prop);
+	if (0 == str_lcmp(line, prop, proplen)) {
+		line += proplen;
+		line = skip_spaces(line);
+		(*read_fn)(dev, line);
+		return true;
+	}
+	return false;		
 }
 
 static void get_dev_prop(device_t *dev, char *line)
 {
+	printf(NAME " get_dev_prop from line '%s'\n", line);
 	// skip leading spaces
 	line = skip_spaces(line);
 	
-	// value of the property
-	char *val;
-	
-	if (NULL != (val = strtok(line, "io_range"))) {		
-		get_dev_io_range(dev, val);
-	} else if (NULL != (val = strtok(line, "irq"))) {
-		get_dev_irq(dev, val);		
-	} else if (NULL != (val = strtok(line, "match"))) {
-		get_dev_match_id(dev, val);
+	if (!read_dev_prop(dev, line, "io_range", &get_dev_io_range) &&
+		!read_dev_prop(dev, line, "irq", &get_dev_irq) &&
+		!read_dev_prop(dev, line, "match", &get_dev_match_id)
+	) {		
+		printf(NAME " error undefined device property at line %s\n", line);
 	} 	
 }
 
@@ -396,6 +410,9 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 		}
 	}
 	
+	printf(NAME ": next line ='%s'\n", dev_conf);
+	printf(NAME ": current line ='%s'\n", line);
+	
 	// get device name
 	dev_name = get_device_name(line);
 	if (NULL == dev_name) {
@@ -423,12 +440,15 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 		
 		// get the device's property from the configuration line and store it in the device structure
 		get_dev_prop(dev, line);
+		
+		printf(NAME ": next line ='%s'\n", dev_conf);
+		printf(NAME ": current line ='%s'\n", line);		
 	}
 	
 	// set a class (including the corresponding set of interfaces) to the device
 	dev->class = &isa_child_class;
 	
-	child_device_register(dev, parent);
+	child_device_register(dev, parent);	
 	
 	return dev_conf;	
 }
@@ -455,6 +475,7 @@ static bool isa_add_device(device_t *dev)
 	
 	// add child devices	
 	add_legacy_children(dev);
+	printf(NAME ": finished the enumeration of legacy devices\n", dev->handle);
 	
 	return true;
 }
