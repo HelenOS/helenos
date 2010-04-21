@@ -618,38 +618,12 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size,
 /** Calculate load
  *
  */
-static inline load_t load_calc(load_t load, load_t exp, size_t ready)
+static inline load_t load_calc(load_t load, load_t exp, atomic_count_t ready)
 {
 	load *= exp;
-	load += ready * (LOAD_FIXED_1 - exp);
+	load += (ready << LOAD_FIXED_SHIFT) * (LOAD_FIXED_1 - exp);
 	
 	return (load >> LOAD_FIXED_SHIFT);
-}
-
-/** Count threads in ready queues
- *
- * Should be called with interrupts disabled.
- *
- */
-static inline size_t get_ready_count(void)
-{
-	size_t i;
-	size_t count = 0;
-	
-	for (i = 0; i < config.cpu_count; i++) {
-		spinlock_lock(&cpus[i].lock);
-		
-		size_t j;
-		for (j = 0; j < RQ_COUNT; j++) {
-			spinlock_lock(&cpus[i].rq[j].lock);
-			count += cpus[i].rq[j].n;
-			spinlock_unlock(&cpus[i].rq[j].lock);
-		}
-		
-		spinlock_unlock(&cpus[i].lock);
-	}
-	
-	return count;
 }
 
 /** Load computation thread.
@@ -664,11 +638,11 @@ void kload(void *arg)
 	thread_detach(THREAD);
 	
 	while (true) {
+		atomic_count_t ready = atomic_get(&nrdy);
+		
 		/* Mutually exclude with get_stats_load() */
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&load_lock);
-		
-		size_t ready = get_ready_count() * LOAD_FIXED_1;
 		
 		unsigned int i;
 		for (i = 0; i < LOAD_STEPS; i++)

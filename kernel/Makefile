@@ -343,8 +343,6 @@ else
 	SYMTAB_OBJECTS :=
 endif
 
-
-
 $(BIN): $(RAW)
 	$(OBJCOPY) -O $(BFD) $< $@
 
