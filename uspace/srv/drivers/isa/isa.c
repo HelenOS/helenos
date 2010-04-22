@@ -130,9 +130,7 @@ static device_t * create_isa_child_dev()
 }
 
 static char * read_dev_conf(const char *conf_path)
-{
-	printf(NAME ": read_dev_conf conf_path = %s.\n", conf_path);
-		
+{		
 	bool suc = false;	
 	char *buf = NULL;
 	bool opened = false;
@@ -181,8 +179,14 @@ cleanup:
 	return buf;	
 }
 
-static char * str_get_line(char *str, char **next) {
+static char * str_get_line(char *str, char **next) {	
 	char *line = str;
+	
+	if (NULL == str) {
+		*next = NULL;
+		return NULL;
+	}
+	
 	while (0 != *str && '\n' != *str) {
 		str++;
 	} 
@@ -191,9 +195,9 @@ static char * str_get_line(char *str, char **next) {
 		*next = str + 1;
 	} else {
 		*next = NULL;
-	}
+	}	
 	
-	*str = 0;	
+	*str = 0;
 	
 	return line;
 }
@@ -253,6 +257,8 @@ static void isa_child_set_irq(device_t *dev, int irq)
 		resources[count].res.interrupt.irq = irq;
 		
 		data->hw_resources.count++;
+		
+		printf(NAME ": added irq 0x%x to device %s\n", irq, dev->name);
 	}	
 }
 
@@ -267,8 +273,11 @@ static void isa_child_set_io_range(device_t *dev, size_t addr, size_t len)
 		resources[count].type = IO_RANGE;
 		resources[count].res.io_range.address = addr;
 		resources[count].res.io_range.size = len;
-		resources[count].res.io_range.endianness = LITTLE_ENDIAN;		
+		resources[count].res.io_range.endianness = LITTLE_ENDIAN;	
+		
 		data->hw_resources.count++;
+		
+		printf(NAME ": added io range (addr=0x%x, size=0x%x) to device %s\n", addr, len, dev->name);
 	}	
 }
 
@@ -313,10 +322,8 @@ static void get_match_id(char **id, char *val)
 	
 	while (!isspace(*end)) {
 		end++;
-	}	
-	*end = 0;
-	
-	size_t size = str_size(val) + 1;
+	}		
+	size_t size = end - val + 1;
 	*id = (char *)malloc(size);
 	str_cpy(*id, size, val);	
 }
@@ -352,7 +359,7 @@ static void get_dev_match_id(device_t *dev, char *val)
 	match_id->id = id;
 	match_id->score = score;
 	
-	printf(NAME ": adding match id %s with score %d to device %s\n", id, score, dev->name);
+	printf(NAME ": adding match id '%s' with score %d to device %s\n", id, score, dev->name);
 	add_match_id(&dev->match_ids, match_id);
 }
 
@@ -371,7 +378,6 @@ static bool read_dev_prop(
 
 static void get_dev_prop(device_t *dev, char *line)
 {
-	printf(NAME " get_dev_prop from line '%s'\n", line);
 	// skip leading spaces
 	line = skip_spaces(line);
 	
@@ -379,7 +385,7 @@ static void get_dev_prop(device_t *dev, char *line)
 		!read_dev_prop(dev, line, "irq", &get_dev_irq) &&
 		!read_dev_prop(dev, line, "match", &get_dev_match_id)
 	) {		
-		printf(NAME " error undefined device property at line %s\n", line);
+		printf(NAME " error undefined device property at line '%s'\n", line);
 	} 	
 }
 
@@ -410,9 +416,6 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 		}
 	}
 	
-	printf(NAME ": next line ='%s'\n", dev_conf);
-	printf(NAME ": current line ='%s'\n", line);
-	
 	// get device name
 	dev_name = get_device_name(line);
 	if (NULL == dev_name) {
@@ -431,7 +434,7 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 	
 	// get properties of the device (match ids, irq and io range)
 	while (true) {		
-		line = str_get_line(dev_conf, &dev_conf);
+		line = str_get_line(dev_conf, &dev_conf);		
 		
 		if (line_empty(line)) {
 			// no more device properties
@@ -441,13 +444,14 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 		// get the device's property from the configuration line and store it in the device structure
 		get_dev_prop(dev, line);
 		
-		printf(NAME ": next line ='%s'\n", dev_conf);
-		printf(NAME ": current line ='%s'\n", line);		
+		//printf(NAME ": next line ='%s'\n", dev_conf);
+		//printf(NAME ": current line ='%s'\n", line);		
 	}
 	
 	// set a class (including the corresponding set of interfaces) to the device
 	dev->class = &isa_child_class;
 	
+	printf(NAME ": child_device_register(dev, parent); device is %s.\n", dev->name);
 	child_device_register(dev, parent);	
 	
 	return dev_conf;	
@@ -455,7 +459,7 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 
 static char * parse_dev_conf(char *conf, device_t *parent)
 {
-	while (NULL != conf) {
+	while (NULL != conf && 0 != *conf) {
 		conf = read_isa_dev_info(conf, parent);
 	}	
 }
