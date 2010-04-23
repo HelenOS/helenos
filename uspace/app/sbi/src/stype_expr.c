@@ -26,7 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Type expressions. */
+/** @file Typing of expressions.
+ *
+ * This module types (data) expressions -- not to be confused with evaluating
+ * type expressions! Thus the type of each (sub-)expression is determined
+ * and stored in its @c titem field.
+ *
+ * It can also happen that, due to implicit conversions, the expression
+ * needs to be patched to insert these conversions.
+ *
+ * If a type error occurs within an expression, @c stype->error is set
+ * and the type of the expression will be @c tic_ignore. This type item
+ * is propagated upwards and causes further typing errors to be ignored
+ * (this prevents a type error avalanche). Type checking is thus resumed
+ * at the next expression.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,9 +116,17 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 static void stype_assign(stype_t *stype, stree_assign_t *assign,
     tdata_item_t **rtitem);
 static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem);
+static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem);
 
 
-/** Type expression. */
+/** Type expression
+ *
+ * The type is stored in @a expr->titem. If the express contains a type error,
+ * @a stype->error will be set when this function returns.
+ *
+ * @param stype		Static typing object
+ * @param expr		Expression
+ */
 void stype_expr(stype_t *stype, stree_expr_t *expr)
 {
 	tdata_item_t *et;
@@ -127,6 +149,7 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 	case ec_index: stype_index(stype, expr->u.index, &et); break;
 	case ec_assign: stype_assign(stype, expr->u.assign, &et); break;
 	case ec_as: stype_as(stype, expr->u.as_op, &et); break;
+	case ec_box: stype_box(stype, expr->u.box, &et); break;
 	}
 
 	expr->titem = et;
@@ -138,7 +161,12 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 #endif
 }
 
-/** Type name reference. */
+/** Type name reference.
+ *
+ * @param stype		Static typing object
+ * @param nameref	Name reference
+ * @param rtitem	Place to store result type
+ */
 static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
     tdata_item_t **rtitem)
 {
@@ -148,6 +176,7 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	tdata_item_t *titem;
 	tdata_object_t *tobject;
 	stree_csi_t *csi;
+	stree_deleg_t *deleg;
 	stree_fun_t *fun;
 
 #ifdef DEBUG_TYPE_TRACE
@@ -230,20 +259,32 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 		tobject->static_ref = b_true;
 		tobject->csi = csi;
 		break;
+	case sc_deleg:
+		printf("referenced name is deleg\n");
+		deleg = symbol_to_deleg(sym);
+		assert(deleg != NULL);
+		/* Type delegate if it has not been typed yet. */
+		stype_deleg(stype, deleg);
+		titem = deleg->titem;
+		break;
 	case sc_fun:
 		fun = symbol_to_fun(sym);
 		assert(fun != NULL);
-
-		titem = tdata_item_new(tic_tfun);
-		titem->u.tfun = tdata_fun_new();
-		titem->u.tfun->fun = fun;
+		/* Type function header if it has not been typed yet. */
+		stype_fun_header(stype, fun);
+		titem = fun->titem;
 		break;
 	}
 
 	*rtitem = titem;
 }
 
-/** Type a literal. */
+/** Type a literal.
+ *
+ * @param stype		Static typing object
+ * @param literal	Literal
+ * @param rtitem	Place to store result type
+ */
 static void stype_literal(stype_t *stype, stree_literal_t *literal,
     tdata_item_t **rtitem)
 {
@@ -271,7 +312,12 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 	*rtitem = titem;
 }
 
-/** Type a self reference. */
+/** Type @c self reference.
+ *
+ * @param stype		Static typing object
+ * @param self_ref	@c self reference
+ * @param rtitem	Place to store result type
+ */
 static void stype_self_ref(stype_t *stype, stree_self_ref_t *self_ref,
     tdata_item_t **rtitem)
 {
@@ -284,7 +330,12 @@ static void stype_self_ref(stype_t *stype, stree_self_ref_t *self_ref,
 	*rtitem = NULL;
 }
 
-/** Type a binary operation. */
+/** Type a binary operation.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -344,7 +395,14 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 
 }
 
-/** Type a binary operation with arguments of primitive type. */
+/** Type a binary operation with arguments of primitive type.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param ta		Type of first argument
+ * @param tb		Type of second argument
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
 {
@@ -373,7 +431,12 @@ static void stype_binop_tprimitive(stype_t *stype, stree_binop_t *binop,
 	}
 }
 
-/** Type a binary operation with bool arguments. */
+/** Type a binary operation with @c bool arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -407,7 +470,12 @@ static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation with char arguments. */
+/** Type a binary operation with @c char arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -443,7 +511,12 @@ static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation with int arguments. */
+/** Type a binary operation with @c int arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -476,7 +549,12 @@ static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation with nil arguments. */
+/** Type a binary operation with @c nil arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_nil(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -487,7 +565,12 @@ static void stype_binop_nil(stype_t *stype, stree_binop_t *binop,
 	*rtitem = stype_recovery_titem(stype);
 }
 
-/** Type a binary operation with string arguments. */
+/** Type a binary operation with @c string arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -510,7 +593,12 @@ static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation with resource arguments. */
+/** Type a binary operation with resource arguments.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
     tdata_item_t **rtitem)
 {
@@ -529,7 +617,14 @@ static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
-/** Type a binary operation with arguments of an object type. */
+/** Type a binary operation with arguments of an object type.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param ta		Type of first argument
+ * @param tb		Type of second argument
+ * @param rtitem	Place to store result type
+ */
 static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
 {
@@ -560,7 +655,12 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 }
 
 
-/** Type a unary operation. */
+/** Type a unary operation.
+ *
+ * @param stype		Static typing object
+ * @param unop		Unary operation
+ * @param rtitem	Place to store result type
+*/
 static void stype_unop(stype_t *stype, stree_unop_t *unop,
     tdata_item_t **rtitem)
 {
@@ -593,7 +693,13 @@ static void stype_unop(stype_t *stype, stree_unop_t *unop,
 	}
 }
 
-/** Type a binary operation arguments of primitive type. */
+/** Type a binary operation arguments of primitive type.
+ *
+ * @param stype		Static typing object
+ * @param unop		Binary operation
+ * @param ta		Type of argument
+ * @param rtitem	Place to store result type
+ */
 static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
     tdata_item_t *ta, tdata_item_t **rtitem)
 {
@@ -626,7 +732,12 @@ static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
 	*rtitem = res_ti;
 }
 
-/** Type a @c new operation. */
+/** Type a @c new operation.
+ *
+ * @param stype		Static typing object
+ * @param new_op	@c new operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_new(stype_t *stype, stree_new_t *new_op,
     tdata_item_t **rtitem)
 {
@@ -645,7 +756,12 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
 	}
 }
 
-/** Type a field access operation */
+/** Type a member access operation.
+ *
+ * @param stype		Static typing object
+ * @param access	Member access operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_access(stype_t *stype, stree_access_t *access,
     tdata_item_t **rtitem)
 {
@@ -674,9 +790,19 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 	case tic_tarray:
 		stype_access_tarray(stype, access, arg_ti, rtitem);
 		break;
-	case tic_tfun:
+	case tic_tdeleg:
 		printf("Error: Using '.' operator on a function.\n");
 		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tfun:
+		printf("Error: Using '.' operator on a delegate.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tvref:
+		/* Cannot allow this without some constraint. */
+		printf("Error: Using '.' operator on generic data.\n");
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_ignore:
@@ -685,7 +811,13 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 	}
 }
 
-/** Type a primitive type access operation. */
+/** Type a primitive type access operation.
+ *
+ * @param stype		Static typing object
+ * @param access	Member access operation
+ * @param arg_ti	Base type
+ * @param rtitem	Place to store result type
+ */
 static void stype_access_tprimitive(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
@@ -700,7 +832,13 @@ static void stype_access_tprimitive(stype_t *stype, stree_access_t *access,
 	*rtitem = stype_recovery_titem(stype);
 }
 
-/** Type an object access operation. */
+/** Type an object access operation.
+ *
+ * @param stype		Static typing object
+ * @param access	Member access operation
+ * @param arg_ti	Base type
+ * @param rtitem	Place to store result type
+*/
 static void stype_access_tobject(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
@@ -709,6 +847,8 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 	stree_fun_t *fun;
 	stree_prop_t *prop;
 	tdata_object_t *tobject;
+	tdata_item_t *mtitem;
+	tdata_tvv_t *tvv;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type a CSI access operation.\n");
@@ -742,32 +882,53 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 		    "CSI.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
-		break;
+		return;
+	case sc_deleg:
+		printf("Error: Accessing object member which is a "
+		    "delegate.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	case sc_fun:
 		fun = symbol_to_fun(member_sym);
 		assert(fun != NULL);
-		*rtitem = tdata_item_new(tic_tfun);
-		(*rtitem)->u.tfun = tdata_fun_new();
-		(*rtitem)->u.tfun->fun = fun;
+		/* Type function header now */
+		stype_fun_header(stype, fun);
+		mtitem = fun->titem;
 		break;
 	case sc_var:
 		var = symbol_to_var(member_sym);
 		assert(var != NULL);
-		/* XXX Memoize to avoid recomputing every time. */
 		run_texpr(stype->program, member_sym->outer_csi,
-		    var->type, rtitem);
+		    var->type, &mtitem);
 		break;
 	case sc_prop:
 		prop = symbol_to_prop(member_sym);
 		assert(prop != NULL);
-		/* XXX Memoize to avoid recomputing every time. */
 		run_texpr(stype->program, member_sym->outer_csi,
-		    prop->type, rtitem);
+		    prop->type, &mtitem);
 		break;
 	}
+
+	/*
+	 * Substitute type arguments in member titem.
+	 *
+	 * Since the CSI can be generic the actual type of the member
+	 * is obtained by substituting our type arguments into the
+	 * (generic) type of the member.
+	 */
+
+	stype_titem_to_tvv(stype, arg_ti, &tvv);
+	tdata_item_subst(mtitem, tvv, rtitem);
 }
 
-/** Type an array access operation. */
+/** Type an array access operation.
+ *
+ * @param stype		Static typing object
+ * @param access	Member access operation
+ * @param arg_ti	Base type
+ * @param rtitem	Place to store result type
+ */
 static void stype_access_tarray(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
@@ -782,12 +943,16 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
 	*rtitem = stype_recovery_titem(stype);
 }
 
-/** Type a call operation. */
+/** Type a call operation.
+ *
+ * @param stype		Static typing object
+ * @param call		Call operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_call(stype_t *stype, stree_call_t *call,
     tdata_item_t **rtitem)
 {
-	list_node_t *farg_n;
-	stree_proc_arg_t *farg;
+	list_node_t *fargt_n;
 	tdata_item_t *farg_ti;
 	tdata_item_t *varg_ti;
 
@@ -796,8 +961,9 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 	stree_expr_t *carg;
 
 	tdata_item_t *fun_ti;
-	stree_fun_t *fun;
-	stree_symbol_t *fun_sym;
+	tdata_fun_sig_t *tsig;
+
+	int cnt;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Evaluate type of call operation.\n");
@@ -806,11 +972,14 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 	stype_expr(stype, call->fun);
 
 	/* Check type item class */
-
 	fun_ti = call->fun->titem;
 	switch (fun_ti->tic) {
+	case tic_tdeleg:
+		tsig = stype_deleg_get_sig(stype, fun_ti->u.tdeleg);
+		assert(tsig != NULL);
+		break;
 	case tic_tfun:
-		/* The expected case */
+		tsig = fun_ti->u.tfun->tsig;
 		break;
 	case tic_ignore:
 		*rtitem = stype_recovery_titem(stype);
@@ -825,28 +994,23 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		return;
 	}
 
-	fun = fun_ti->u.tfun->fun;
-	fun_sym = fun_to_symbol(fun);
-
 	/* Type and check the arguments. */
-	farg_n = list_first(&fun->args);
+	fargt_n = list_first(&tsig->arg_ti);
 	arg_n = list_first(&call->args);
-	while (farg_n != NULL && arg_n != NULL) {
-		farg = list_node_data(farg_n, stree_proc_arg_t *);
+
+	cnt = 0;
+	while (fargt_n != NULL && arg_n != NULL) {
+		farg_ti = list_node_data(fargt_n, tdata_item_t *);
 		arg = list_node_data(arg_n, stree_expr_t *);
 		stype_expr(stype, arg);
 
 		/* XXX Because of overloaded bultin WriteLine */
-		if (farg->type == NULL) {
+		if (farg_ti == NULL) {
 			/* Skip the check */
-			farg_n = list_next(&fun->args, farg_n);
+			fargt_n = list_next(&tsig->arg_ti, fargt_n);
 			arg_n = list_next(&call->args, arg_n);
 			continue;
 		}
-
-		/* XXX Memoize to avoid recomputing every time. */
-		run_texpr(stype->program, fun_sym->outer_csi, farg->type,
-		    &farg_ti);
 
 		/* Convert expression to type of formal argument. */
 		carg = stype_convert(stype, arg, farg_ti);
@@ -854,15 +1018,14 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		/* Patch code with augmented expression. */
 		list_node_setdata(arg_n, carg);
 
-		farg_n = list_next(&fun->args, farg_n);
+		fargt_n = list_next(&tsig->arg_ti, fargt_n);
 		arg_n = list_next(&call->args, arg_n);
 	}
 
 	/* Type and check variadic arguments. */
-	if (fun->varg != NULL) {
-		/* XXX Memoize to avoid recomputing every time. */
-		run_texpr(stype->program, fun_sym->outer_csi, fun->varg->type,
-		    &farg_ti);
+	if (tsig->varg_ti != NULL) {
+		/* Obtain type of packed argument. */
+		farg_ti = tsig->varg_ti;
 
 		/* Get array element type */
 		assert(farg_ti->tic == tic_tarray);
@@ -882,30 +1045,30 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		}
 	}
 
-	if (farg_n != NULL) {
-		printf("Error: Too few arguments to function '");
-		symbol_print_fqn(fun_to_symbol(fun));
-		printf("'.\n");
+	if (fargt_n != NULL) {
+		printf("Error: Too few arguments to function.\n");
 		stype_note_error(stype);
 	}
 
 	if (arg_n != NULL) {
-		printf("Error: Too many arguments to function '");
-		symbol_print_fqn(fun_to_symbol(fun));
-		printf("'.\n");
+		printf("Error: Too many arguments to function.\n");
 		stype_note_error(stype);
 	}
 
-	if (fun->rtype != NULL) {
-		/* XXX Memoize to avoid recomputing every time. */
-		run_texpr(stype->program, fun_sym->outer_csi, fun->rtype,
-		    rtitem);
+	if (tsig->rtype != NULL) {
+		/* XXX Might be better to clone here. */
+		*rtitem = tsig->rtype;
 	} else {
 		*rtitem = NULL;
 	}
 }
 
-/** Type an indexing operation. */
+/** Type an indexing operation.
+ *
+ * @param stype		Static typing object
+ * @param index		Indexing operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_index(stype_t *stype, stree_index_t *index,
     tdata_item_t **rtitem)
 {
@@ -938,9 +1101,19 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 	case tic_tarray:
 		stype_index_tarray(stype, index, base_ti, rtitem);
 		break;
+	case tic_tdeleg:
+		printf("Error: Indexing a delegate.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
 	case tic_tfun:
 		printf("Error: Indexing a function.\n");
 		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tvref:
+		/* Cannot allow this without some constraint. */
+		printf("Error: Indexing generic data.\n");
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_ignore:
@@ -949,7 +1122,13 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 	}
 }
 
-/** Type a primitive indexing operation. */
+/** Type a primitive indexing operation.
+ *
+ * @param stype		Static typing object
+ * @param index		Indexing operation
+ * @param base_ti	Base type (primitive being indexed)
+ * @param rtitem	Place to store result type
+ */
 static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
     tdata_item_t *base_ti, tdata_item_t **rtitem)
 {
@@ -976,7 +1155,13 @@ static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
 	*rtitem = stype_recovery_titem(stype);
 }
 
-/** Type an object indexing operation. */
+/** Type an object indexing operation.
+ *
+ * @param stype		Static typing object
+ * @param index		Indexing operation
+ * @param base_ti	Base type (object being indexed)
+ * @param rtitem	Place to store result type
+ */
 static void stype_index_tobject(stype_t *stype, stree_index_t *index,
     tdata_item_t *base_ti, tdata_item_t **rtitem)
 {
@@ -984,6 +1169,8 @@ static void stype_index_tobject(stype_t *stype, stree_index_t *index,
 	stree_symbol_t *idx_sym;
 	stree_prop_t *idx;
 	stree_ident_t *idx_ident;
+	tdata_item_t *mtitem;
+	tdata_tvv_t *tvv;
 
 	(void) index;
 
@@ -1014,10 +1201,27 @@ static void stype_index_tobject(stype_t *stype, stree_index_t *index,
 	assert(idx != NULL);
 
 	/* XXX Memoize to avoid recomputing every time. */
-	run_texpr(stype->program, idx_sym->outer_csi, idx->type, rtitem);
+	run_texpr(stype->program, idx_sym->outer_csi, idx->type, &mtitem);
+
+	/*
+	 * Substitute type arguments in member titem.
+	 *
+	 * Since the CSI can be generic the actual type of the member
+	 * is obtained by substituting our type arguments into the
+	 * (generic) type of the member.
+	 */
+
+	stype_titem_to_tvv(stype, base_ti, &tvv);
+	tdata_item_subst(mtitem, tvv, rtitem);
 }
 
-/** Type an array indexing operation. */
+/** Type an array indexing operation.
+ *
+ * @param stype		Static typing object
+ * @param index		Indexing operation
+ * @param base_ti	Base type (array being indexed)
+ * @param rtitem	Place to store result type
+ */
 static void stype_index_tarray(stype_t *stype, stree_index_t *index,
     tdata_item_t *base_ti, tdata_item_t **rtitem)
 {
@@ -1057,7 +1261,12 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 	*rtitem = base_ti->u.tarray->base_ti;
 }
 
-/** Type an assignment. */
+/** Type an assignment.
+ *
+ * @param stype		Static typing object
+ * @param assign	Assignment operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_assign(stype_t *stype, stree_assign_t *assign,
     tdata_item_t **rtitem)
 {
@@ -1076,7 +1285,12 @@ static void stype_assign(stype_t *stype, stree_assign_t *assign,
 	*rtitem = NULL;
 }
 
-/** Type @c as conversion. */
+/** Type @c as conversion.
+ *
+ * @param stype		Static typing object
+ * @param as_op		@c as conversion operation
+ * @param rtitem	Place to store result type
+ */
 static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 {
 	tdata_item_t *titem;
@@ -1098,4 +1312,53 @@ static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 	}
 
 	*rtitem = titem;
+}
+
+/** Type boxing operation.
+ *
+ * While there is no boxing operation on the first typing pass, we do want
+ * to allow potential re-evaluation (with same results).
+ *
+ * @param stype		Static typing object
+ * @param box		Boxing operation
+ * @param rtitem	Place to store result type
+ */
+static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem)
+{
+	tdata_item_t *ptitem, *btitem;
+	tdata_object_t *tobject;
+	stree_symbol_t *csi_sym;
+	builtin_t *bi;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Evaluate type of boxing operation.\n");
+#endif
+	bi = stype->program->builtin;
+
+	stype_expr(stype, box->arg);
+	ptitem = box->arg->titem;
+
+        /* Make compiler happy. */
+	csi_sym = NULL;
+
+	assert(ptitem->tic == tic_tprimitive);
+	switch (ptitem->u.tprimitive->tpc) {
+	case tpc_bool: csi_sym = bi->boxed_bool; break;
+	case tpc_char: csi_sym = bi->boxed_char; break;
+	case tpc_int: csi_sym = bi->boxed_int; break;
+	case tpc_nil: assert(b_false);
+	case tpc_string: csi_sym = bi->boxed_string; break;
+	case tpc_resource: assert(b_false);
+	}
+
+	btitem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+
+	btitem->u.tobject = tobject;
+	tobject->static_ref = b_false;
+	tobject->csi = symbol_to_csi(csi_sym);
+	assert(tobject->csi != NULL);
+	list_init(&tobject->targs);
+
+	*rtitem = btitem;
 }

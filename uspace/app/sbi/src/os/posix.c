@@ -46,9 +46,16 @@ static char *ef_path;
 /*
  * The string functions are in fact standard C, but would not work under
  * HelenOS.
+ * 
+ * XXX String functions used here only work with 8-bit text encoding.
  */
 
-/** Concatenate two strings. */
+/** Concatenate two strings.
+ *
+ * @param a	First string
+ * @param b	Second string
+ * @return	New string, concatenation of @a a and @a b.
+ */
 char *os_str_acat(const char *a, const char *b)
 {
 	int a_len, b_len;
@@ -70,25 +77,45 @@ char *os_str_acat(const char *a, const char *b)
 	return str;
 }
 
-/** Compare two strings. */
+/** Compare two strings.
+ *
+ * @param a	First string
+ * @param b	Second string
+ * @return	Zero if equal, nonzero if not equal
+ */
 int os_str_cmp(const char *a, const char *b)
 {
 	return strcmp(a, b);
 }
 
-/** Return number of characters in string. */
+/** Return number of characters in string.
+ *
+ * @param str	String
+ * @return	Number of characters in @a str.
+ */
 size_t os_str_length(const char *str)
 {
 	return strlen(str);
 }
 
-/** Duplicate string. */
+/** Duplicate string.
+ *
+ * @param str	String
+ * @return	New string, duplicate of @a str.
+ */
 char *os_str_dup(const char *str)
 {
 	return strdup(str);
 }
 
-/** Get character from string at the given index. */
+/** Get character from string at the given index.
+ *
+ * @param str		String
+ * @param index		Character index (starting from zero).
+ * @param out_char	Place to store character.
+ * @return		EOK on success, EINVAL if index is out of bounds,
+ *			EIO on decoding error.
+ */
 int os_str_get_char(const char *str, int index, int *out_char)
 {
 	size_t len;
@@ -110,7 +137,10 @@ void os_input_disp_help(void)
 	printf("Send ^C (SIGINT) to quit.\n");
 }
 
-/** Read one line of input from the user. */
+/** Read one line of input from the user.
+ *
+ * @param ptr	Place to store pointer to new string.
+ */
 int os_input_line(char **ptr)
 {
 	if (fgets(os_input_buffer, OS_INPUT_BUFFER_SIZE, stdin) == NULL)
@@ -125,7 +155,11 @@ int os_input_line(char **ptr)
 	return EOK;
 }
 
-/** Simple command execution. */
+/** Simple command execution.
+ *
+ * @param cmd	Command and arguments (NULL-terminated list of strings.)
+ *		Command is present just one, not duplicated.
+ */
 int os_exec(char *const cmd[])
 {
 	pid_t pid;
@@ -156,7 +190,10 @@ int os_exec(char *const cmd[])
 	return EOK;
 }
 
-/** Store the executable file path via which we were executed. */
+/** Store the executable file path via which we were executed.
+ *
+ * @param path	Executable path via which we were executed.
+ */
 void os_store_ef_path(char *path)
 {
 	ef_path = path;

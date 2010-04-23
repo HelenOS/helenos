@@ -97,6 +97,12 @@ void imode_run(void)
 	/* Resolve ancestry. */
 	ancr_module_process(program, program->module);
 
+	/* Bind internal interpreter references to symbols. */
+	builtin_bind(program->builtin);
+
+	/* Resolve ancestry. */
+	ancr_module_process(program, program->module);
+
 	/* Construct typing context. */
 	stype.program = program;
 	stype.proc_vr = stype_proc_vr_new();

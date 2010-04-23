@@ -91,6 +91,12 @@ int main(int argc, char *argv[])
 	if (program_lib_process(program) != EOK)
 		return 1;
 
+	/* Resolve ancestry. */
+	ancr_module_process(program, program->module);
+
+	/* Bind internal interpreter references to symbols. */
+	builtin_bind(program->builtin);
+
 	/* Process all source files specified in command-line arguments. */
 	while (argc > 0) {
 		rc = program_file_process(program, *argv);

@@ -43,7 +43,18 @@ static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
     stree_ident_t *name, stree_csi_t *csi);
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol);
 
-/** Lookup symbol in CSI using a type expression. */
+/** Lookup symbol in CSI using a type expression.
+ *
+ * XXX This should be removed in favor of full type expression evaluation
+ * (run_texpr). This cannot work properly with generics.
+ *
+ * @param prog		Program
+ * @param scope		CSI used as base for relative references
+ * @param texpr		Type expression
+ *
+ * @return		Symbol referenced by type expression or @c NULL
+ *			if not found
+ */
 stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
     stree_csi_t *scope, stree_texpr_t *texpr)
 {
@@ -76,11 +87,11 @@ stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
 
 /** Lookup symbol reference in CSI.
  *
- * @param prog	Program to look in.
- * @param scope CSI in @a prog which is the base for references.
- * @param name	Identifier of the symbol.
+ * @param prog	Program to look in
+ * @param scope CSI in @a prog which is the base for references
+ * @param name	Identifier of the symbol
  *
- * @return	Symbol or @c NULL if symbol not found.
+ * @return	Symbol or @c NULL if symbol not found
  */
 stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 	stree_ident_t *name)
@@ -106,6 +117,12 @@ stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
  *
  * Look for symbol in definition of a CSI and its ancestors. (But not
  * in lexically enclosing CSI.)
+ *
+ * @param prog	Program to look in
+ * @param scope CSI in which to look
+ * @param name	Identifier of the symbol
+ *
+ * @return	Symbol or @c NULL if symbol not found.
  */
 stree_symbol_t *symbol_search_csi(stree_program_t *prog,
     stree_csi_t *scope, stree_ident_t *name)
@@ -124,12 +141,16 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 	node = list_first(&scope->members);
 	while (node != NULL) {
 		csimbr = list_node_data(node, stree_csimbr_t *);
+
+		/* Keep compiler happy. */
+		mbr_name = NULL;
+
 		switch (csimbr->cc) {
 		case csimbr_csi: mbr_name = csimbr->u.csi->name; break;
+		case csimbr_deleg: mbr_name = csimbr->u.deleg->name; break;
 		case csimbr_fun: mbr_name = csimbr->u.fun->name; break;
 		case csimbr_var: mbr_name = csimbr->u.var->name; break;
 		case csimbr_prop: mbr_name = csimbr->u.prop->name; break;
-		default: assert(b_false);
 		}
 
 		if (name->sid == mbr_name->sid) {
@@ -137,6 +158,9 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 			switch (csimbr->cc) {
 			case csimbr_csi:
 				symbol = csi_to_symbol(csimbr->u.csi);
+				break;
+			case csimbr_deleg:
+				symbol = deleg_to_symbol(csimbr->u.deleg);
 				break;
 			case csimbr_fun:
 				symbol = fun_to_symbol(csimbr->u.fun);
@@ -169,6 +193,13 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 	return NULL;
 }
 
+/** Look for symbol in global scope.
+ *
+ * @param prog	Program to look in
+ * @param name	Identifier of the symbol
+ *
+ * @return	Symbol or @c NULL if symbol not found.
+ */
 static stree_symbol_t *symbol_search_global(stree_program_t *prog,
     stree_ident_t *name)
 {
@@ -196,7 +227,15 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 	return NULL;
 }
 
-/** Find entry point. */
+/** Find entry point.
+ *
+ * Perform a walk of all CSIs and look for a function with the name @a name.
+ *
+ * @param prog	Program to look in
+ * @param name	Name of entry point
+ *
+ * @return	Symbol or @c NULL if symbol not found.
+ */
 stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name)
 {
 	list_node_t *node;
@@ -224,6 +263,15 @@ stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name)
 	return entry;
 }
 
+/** Find entry point under CSI.
+ *
+ * Internal part of symbol_find_epoint() that recursively walks CSIs.
+ *
+ * @param prog	Program to look in
+ * @param name	Name of entry point
+ *
+ * @return	Symbol or @c NULL if symbol not found.
+ */
 static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
     stree_ident_t *name, stree_csi_t *csi)
 {
@@ -266,6 +314,42 @@ static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
 	return entry;
 }
 
+/*
+ * The notion of symbol is designed as a common base class for several
+ * types of declarations with global and CSI scope. Here we simulate
+ * conversion from this base class (symbol) to derived classes (CSI,
+ * fun, ..) and vice versa.
+ */
+
+/** Convert symbol to delegate (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Delegate or @c NULL if symbol is not a delegate
+ */
+stree_deleg_t *symbol_to_deleg(stree_symbol_t *symbol)
+{
+	if (symbol->sc != sc_deleg)
+		return NULL;
+
+	return symbol->u.deleg;
+}
+
+/** Convert delegate to symbol (derived to base).
+ *
+ * @param deleg		Delegate
+ * @return		Symbol
+ */
+stree_symbol_t *deleg_to_symbol(stree_deleg_t *deleg)
+{
+	assert(deleg->symbol);
+	return deleg->symbol;
+}
+
+/** Convert symbol to CSI (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		CSI or @c NULL if symbol is not a CSI
+ */
 stree_csi_t *symbol_to_csi(stree_symbol_t *symbol)
 {
 	if (symbol->sc != sc_csi)
@@ -274,12 +358,22 @@ stree_csi_t *symbol_to_csi(stree_symbol_t *symbol)
 	return symbol->u.csi;
 }
 
+/** Convert CSI to symbol (derived to base).
+ *
+ * @param csi		CSI
+ * @return		Symbol
+ */
 stree_symbol_t *csi_to_symbol(stree_csi_t *csi)
 {
 	assert(csi->symbol);
 	return csi->symbol;
 }
 
+/** Convert symbol to function (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Function or @c NULL if symbol is not a function
+ */
 stree_fun_t *symbol_to_fun(stree_symbol_t *symbol)
 {
 	if (symbol->sc != sc_fun)
@@ -288,12 +382,22 @@ stree_fun_t *symbol_to_fun(stree_symbol_t *symbol)
 	return symbol->u.fun;
 }
 
+/** Convert function to symbol (derived to base).
+ *
+ * @param fun		Function
+ * @return		Symbol
+ */
 stree_symbol_t *fun_to_symbol(stree_fun_t *fun)
 {
 	assert(fun->symbol);
 	return fun->symbol;
 }
 
+/** Convert symbol to member variable (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Variable or @c NULL if symbol is not a member variable
+ */
 stree_var_t *symbol_to_var(stree_symbol_t *symbol)
 {
 	if (symbol->sc != sc_var)
@@ -302,12 +406,22 @@ stree_var_t *symbol_to_var(stree_symbol_t *symbol)
 	return symbol->u.var;
 }
 
+/** Convert variable to symbol (derived to base).
+ *
+ * @param fun		Variable
+ * @return		Symbol
+ */
 stree_symbol_t *var_to_symbol(stree_var_t *var)
 {
 	assert(var->symbol);
 	return var->symbol;
 }
 
+/** Convert symbol to property (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Property or @c NULL if symbol is not a property
+ */
 stree_prop_t *symbol_to_prop(stree_symbol_t *symbol)
 {
 	if (symbol->sc != sc_prop)
@@ -316,13 +430,21 @@ stree_prop_t *symbol_to_prop(stree_symbol_t *symbol)
 	return symbol->u.prop;
 }
 
+/** Convert property to symbol (derived to base).
+ *
+ * @param fun		Property
+ * @return		Symbol
+ */
 stree_symbol_t *prop_to_symbol(stree_prop_t *prop)
 {
 	assert(prop->symbol);
 	return prop->symbol;
 }
 
-/** Print fully qualified name of symbol. */
+/** Print fully qualified name of symbol.
+ *
+ * @param symbol	Symbol
+ */
 void symbol_print_fqn(stree_symbol_t *symbol)
 {
 	stree_ident_t *name;
@@ -338,12 +460,18 @@ void symbol_print_fqn(stree_symbol_t *symbol)
 	printf("%s", strtab_get_str(name->sid));
 }
 
+/** Return symbol identifier.
+ *
+ * @param symbol	Symbol
+ * @return 		Symbol identifier
+ */
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol)
 {
 	stree_ident_t *ident;
 
 	switch (symbol->sc) {
 	case sc_csi: ident = symbol->u.csi->name; break;
+	case sc_deleg: ident = symbol->u.deleg->name; break;
 	case sc_fun: ident = symbol->u.fun->name; break;
 	case sc_var: ident = symbol->u.var->name; break;
 	case sc_prop: ident = symbol->u.prop->name; break;

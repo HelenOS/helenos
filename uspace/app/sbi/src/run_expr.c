@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Runner (executes the code). */
+/** @file Run expressions. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,8 +108,18 @@ static void run_index_string(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res);
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res);
 static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res);
+static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res);
 
-/** Evaluate expression. */
+/** Evaluate expression.
+ *
+ * Run the expression @a expr and store pointer to the result in *(@a res).
+ * If the expression has on value (assignment) then @c NULL is returned.
+ * @c NULL is also returned if an error or exception occurs.
+ *
+ * @param run		Runner object
+ * @param expr		Expression to run
+ * @param res		Place to store result
+ */
 void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
 {
 #ifdef DEBUG_RUN_TRACE
@@ -150,6 +160,9 @@ void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
 	case ec_as:
 		run_as(run, expr->u.as_op, res);
 		break;
+	case ec_box:
+		run_box(run, expr->u.box, res);
+		break;
 	}
 
 #ifdef DEBUG_RUN_TRACE
@@ -159,7 +172,12 @@ void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res)
 #endif
 }
 
-/** Evaluate name reference expression. */
+/** Evaluate name reference expression.
+ *
+ * @param run		Runner object
+ * @param nameref	Name reference
+ * @param res		Place to store result
+ */
 static void run_nameref(run_t *run, stree_nameref_t *nameref,
     rdata_item_t **res)
 {
@@ -246,7 +264,8 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		/* There should be no global functions. */
 		assert(csi != NULL);
 
-		if (sym->outer_csi != csi) {
+		if (symbol_search_csi(run->program, csi, nameref->name)
+		    == NULL) {
 			/* Function is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "function '");
@@ -282,7 +301,8 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		/* XXX Assume variable is not static for now. */
 		assert(obj != NULL);
 
-		if (sym->outer_csi != csi) {
+		if (symbol_search_csi(run->program, csi, nameref->name)
+		    == NULL) {
 			/* Variable is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "variable '");
@@ -315,7 +335,12 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	}
 }
 
-/** Evaluate literal. */
+/** Evaluate literal.
+ *
+ * @param run		Runner object
+ * @param literal	Literal
+ * @param res		Place to store result
+ */
 static void run_literal(run_t *run, stree_literal_t *literal,
     rdata_item_t **res)
 {
@@ -341,7 +366,12 @@ static void run_literal(run_t *run, stree_literal_t *literal,
 	}
 }
 
-/** Evaluate Boolean literal. */
+/** Evaluate Boolean literal.
+ *
+ * @param run		Runner object
+ * @param lit_bool	Boolean literal
+ * @param res		Place to store result
+ */
 static void run_lit_bool(run_t *run, stree_lit_bool_t *lit_bool,
     rdata_item_t **res)
 {
@@ -395,7 +425,12 @@ static void run_lit_char(run_t *run, stree_lit_char_t *lit_char,
 	*res = item;
 }
 
-/** Evaluate integer literal. */
+/** Evaluate integer literal.
+ *
+ * @param run		Runner object
+ * @param lit_int	Integer literal
+ * @param res		Place to store result
+ */
 static void run_lit_int(run_t *run, stree_lit_int_t *lit_int,
     rdata_item_t **res)
 {
@@ -422,7 +457,12 @@ static void run_lit_int(run_t *run, stree_lit_int_t *lit_int,
 	*res = item;
 }
 
-/** Evaluate reference literal (@c nil). */
+/** Evaluate reference literal (@c nil).
+ *
+ * @param run		Runner object
+ * @param lit_ref	Reference literal
+ * @param res		Place to store result
+ */
 static void run_lit_ref(run_t *run, stree_lit_ref_t *lit_ref,
     rdata_item_t **res)
 {
@@ -450,7 +490,12 @@ static void run_lit_ref(run_t *run, stree_lit_ref_t *lit_ref,
 	*res = item;
 }
 
-/** Evaluate string literal. */
+/** Evaluate string literal.
+ *
+ * @param run		Runner object
+ * @param lit_string	String literal
+ * @param res		Place to store result
+ */
 static void run_lit_string(run_t *run, stree_lit_string_t *lit_string,
     rdata_item_t **res)
 {
@@ -477,7 +522,12 @@ static void run_lit_string(run_t *run, stree_lit_string_t *lit_string,
 	*res = item;
 }
 
-/** Evaluate @c self reference. */
+/** Evaluate @c self reference.
+ *
+ * @param run		Runner object
+ * @param self_ref	Self reference
+ * @param res		Place to store result
+ */
 static void run_self_ref(run_t *run, stree_self_ref_t *self_ref,
     rdata_item_t **res)
 {
@@ -493,7 +543,12 @@ static void run_self_ref(run_t *run, stree_self_ref_t *self_ref,
 	run_reference(run, proc_ar->obj, res);
 }
 
-/** Evaluate binary operation. */
+/** Evaluate binary operation.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param res		Place to store result
+ */
 static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 {
 	rdata_item_t *rarg1_i, *rarg2_i;
@@ -573,7 +628,14 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	}
 }
 
-/** Evaluate binary operation on bool arguments. */
+/** Evaluate binary operation on bool arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+ */
 static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -627,7 +689,14 @@ static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	*res = item;
 }
 
-/** Evaluate binary operation on char arguments. */
+/** Evaluate binary operation on char arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+*/
 static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -690,7 +759,14 @@ static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	*res = item;
 }
 
-/** Evaluate binary operation on int arguments. */
+/** Evaluate binary operation on int arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+*/
 static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -780,7 +856,14 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	*res = item;
 }
 
-/** Evaluate binary operation on string arguments. */
+/** Evaluate binary operation on string arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+ */
 static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -789,7 +872,7 @@ static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1
 	rdata_var_t *var;
 	rdata_string_t *string_v;
 
-	char *s1, *s2;
+	const char *s1, *s2;
 
 	(void) run;
 
@@ -819,7 +902,14 @@ static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1
 	*res = item;
 }
 
-/** Evaluate binary operation on ref arguments. */
+/** Evaluate binary operation on ref arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+ */
 static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -861,7 +951,12 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 }
 
 
-/** Evaluate unary operation. */
+/** Evaluate unary operation.
+ *
+ * @param run		Runner object
+ * @param unop		Unary operation
+ * @param res		Place to store result
+ */
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 {
 	rdata_item_t *rarg_i;
@@ -897,7 +992,13 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 	}
 }
 
-/** Evaluate unary operation on int argument. */
+/** Evaluate unary operation on int argument.
+ *
+ * @param run		Runner object
+ * @param unop		Unary operation
+ * @param val		Value of argument
+ * @param res		Place to store result
+ */
 static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
     rdata_item_t **res)
 {
@@ -931,7 +1032,15 @@ static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
 }
 
 
-/** Evaluate @c new operation. */
+/** Evaluate @c new operation.
+ *
+ * Evaluates operation per the @c new operator that creates a new
+ * instance of some type.
+ *
+ * @param run		Runner object
+ * @param unop		Unary operation
+ * @param res		Place to store result
+ */
 static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 {
 	tdata_item_t *titem;
@@ -957,7 +1066,13 @@ static void run_new(run_t *run, stree_new_t *new_op, rdata_item_t **res)
 	}
 }
 
-/** Create new array. */
+/** Create new array.
+ *
+ * @param run		Runner object
+ * @param new_op	New operation
+ * @param titem		Type of new var node (tic_tarray)
+ * @param res		Place to store result
+ */
 static void run_new_array(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res)
 {
@@ -1045,10 +1160,8 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 
 	/* Create member variables */
 	for (i = 0; i < length; ++i) {
-		/* XXX Depends on member variable type. */
-		elem_var = rdata_var_new(vc_int);
-		elem_var->u.int_v = rdata_int_new();
-		bigint_init(&elem_var->u.int_v->value, 0);
+		/* Create and initialize element. */
+		run_var_new(run, tarray->base_ti, &elem_var);
 
 		array->element[i] = elem_var;
 	}
@@ -1061,7 +1174,13 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 	run_reference(run, array_var, res);
 }
 
-/** Create new object. */
+/** Create new object.
+ *
+ * @param run		Runner object
+ * @param new_op	New operation
+ * @param titem		Type of new var node (tic_tobject)
+ * @param res		Place to store result
+ */
 static void run_new_object(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res)
 {
@@ -1080,7 +1199,14 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	run_new_csi_inst(run, csi, res);
 }
 
-/** Evaluate member acccess. */
+/** Evaluate member acccess.
+ *
+ * Evaluate operation per the member access ('.') operator.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param res		Place to store result
+ */
 static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 {
 	rdata_item_t *rarg;
@@ -1102,7 +1228,13 @@ static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 	run_access_item(run, access, rarg, res);
 }
 
-/** Evaluate member acccess (with base already evaluated). */
+/** Evaluate member acccess (with base already evaluated).
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
 static void run_access_item(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
@@ -1130,7 +1262,13 @@ static void run_access_item(run_t *run, stree_access_t *access,
 	}
 }
 
-/** Evaluate reference acccess. */
+/** Evaluate reference acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
 static void run_access_ref(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
@@ -1148,7 +1286,13 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 	run_access_item(run, access, darg, res);
 }
 
-/** Evaluate delegate-member acccess. */
+/** Evaluate delegate-member acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
 static void run_access_deleg(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
@@ -1191,7 +1335,13 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
 	*res = arg;
 }
 
-/** Evaluate object member acccess. */
+/** Evaluate object member acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
 static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
@@ -1239,8 +1389,11 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	case sc_csi:
 		printf("Error: Accessing object member which is nested CSI.\n");
 		exit(1);
+	case sc_deleg:
+		printf("Error: Accessing object member which is a delegate.\n");
+		exit(1);
 	case sc_fun:
-		/* Construct delegate. */
+		/* Construct anonymous delegate. */
 		ritem = rdata_item_new(ic_value);
 		value = rdata_value_new();
 		ritem->u.value = value;
@@ -1285,10 +1438,17 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	*res = ritem;
 }
 
-/** Call a function. */
+/** Call a function.
+ *
+ * Call a function and return the result in @a res.
+ *
+ * @param run		Runner object
+ * @param call		Call operation
+ * @param res		Place to store result
+ */
 static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 {
-	rdata_item_t *rfun;
+	rdata_item_t *rdeleg, *rdeleg_vi;
 	rdata_deleg_t *deleg_v;
 	list_t arg_vals;
 	list_node_t *node;
@@ -1301,7 +1461,7 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Run call operation.\n");
 #endif
-	run_expr(run, call->fun, &rfun);
+	run_expr(run, call->fun, &rdeleg);
 	if (run_is_bo(run)) {
 		*res = NULL;
 		return;
@@ -1312,12 +1472,17 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 		return;
 	}
 
-	if (rfun->ic != ic_value || rfun->u.value->var->vc != vc_deleg) {
-		printf("Unimplemented: Call expression of this type.\n");
+	run_cvt_value_item(run, rdeleg, &rdeleg_vi);
+	assert(rdeleg_vi->ic == ic_value);
+
+	if (rdeleg_vi->u.value->var->vc != vc_deleg) {
+		printf("Unimplemented: Call expression of this type (");
+		rdata_item_print(rdeleg_vi);
+		printf(").\n");
 		exit(1);
 	}
 
-	deleg_v = rfun->u.value->var->u.deleg_v;
+	deleg_v = rdeleg_vi->u.value->var->u.deleg_v;
 
 	if (deleg_v->sym->sc != sc_fun) {
 		printf("Error: Called symbol is not a function.\n");
@@ -1364,7 +1529,14 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 #endif
 }
 
-/** Run index operation. */
+/** Run index operation.
+ *
+ * Evaluate operation per the indexing ('[', ']') operator.
+ *
+ * @param run		Runner object
+ * @param index		Index operation
+ * @param res		Place to store result
+ */
 static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 {
 	rdata_item_t *rbase;
@@ -1430,7 +1602,14 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	}
 }
 
-/** Run index operation on array. */
+/** Run index operation on array.
+ *
+ * @param run		Runner object
+ * @param index		Index operation
+ * @param base		Evaluated base expression
+ * @param args		Evaluated indices (list of rdata_item_t)
+ * @param res		Place to store result
+ */
 static void run_index_array(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res)
 {
@@ -1522,7 +1701,14 @@ static void run_index_array(run_t *run, stree_index_t *index,
 	*res = ritem;
 }
 
-/** Index an object (via its indexer). */
+/** Index an object (via its indexer).
+ *
+ * @param run		Runner object
+ * @param index		Index operation
+ * @param base		Evaluated base expression
+ * @param args		Evaluated indices (list of rdata_item_t)
+ * @param res		Place to store result
+ */
 static void run_index_object(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res)
 {
@@ -1594,7 +1780,14 @@ static void run_index_object(run_t *run, stree_index_t *index,
 	*res = ritem;
 }
 
-/** Run index operation on string. */
+/** Run index operation on string.
+ *
+ * @param run		Runner object
+ * @param index		Index operation
+ * @param base		Evaluated base expression
+ * @param args		Evaluated indices (list of rdata_item_t)
+ * @param res		Place to store result
+ */
 static void run_index_string(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res)
 {
@@ -1687,7 +1880,15 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	*res = ritem;
 }
 
-/** Execute assignment. */
+/** Run assignment.
+ *
+ * Executes an assignment. @c NULL is always stored to @a res because
+ * an assignment does not have a value.
+ *
+ * @param run		Runner object
+ * @param assign	Assignment expression
+ * @param res		Place to store result
+*/
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 {
 	rdata_item_t *rdest_i, *rsrc_i;
@@ -1724,7 +1925,12 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 	*res = NULL;
 }
 
-/** Execute @c as conversion. */
+/** Execute @c as conversion.
+ *
+ * @param run		Runner object
+ * @param as_op		@c as conversion expression
+ * @param res		Place to store result
+ */
 static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 {
 	rdata_item_t *rarg_i;
@@ -1791,7 +1997,93 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 	*res = rarg_vi;
 }
 
-/** Create new CSI instance. */
+/** Execute boxing operation.
+ *
+ * XXX We can scrap this special operation once we have constructors.
+ *
+ * @param run		Runner object
+ * @param box		Boxing operation
+ * @param res		Place to store result
+ */
+static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
+{
+	rdata_item_t *rarg_i;
+	rdata_item_t *rarg_vi;
+
+	stree_symbol_t *csi_sym;
+	stree_csi_t *csi;
+	builtin_t *bi;
+	rdata_var_t *var;
+	rdata_object_t *object;
+
+	sid_t mbr_name_sid;
+	rdata_var_t *mbr_var;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run boxing operation.\n");
+#endif
+	run_expr(run, box->arg, &rarg_i);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
+
+	run_cvt_value_item(run, rarg_i, &rarg_vi);
+	assert(rarg_vi->ic == ic_value);
+
+	bi = run->program->builtin;
+
+	/* Just to keep the compiler happy. */
+	csi_sym = NULL;
+
+	switch (rarg_vi->u.value->var->vc) {
+	case vc_bool: csi_sym = bi->boxed_bool; break;
+	case vc_char: csi_sym = bi->boxed_char; break;
+	case vc_int: csi_sym = bi->boxed_int; break;
+	case vc_string: csi_sym = bi->boxed_string; break;
+
+	case vc_ref:
+	case vc_deleg:
+	case vc_array:
+	case vc_object:
+	case vc_resource:
+		assert(b_false);
+	}
+
+	csi = symbol_to_csi(csi_sym);
+	assert(csi != NULL);
+
+	/* Construct object of the relevant boxed type. */
+	run_new_csi_inst(run, csi, res);
+
+	/* Set the 'Value' field */
+
+	assert((*res)->ic == ic_value);
+	assert((*res)->u.value->var->vc == vc_ref);
+	var = (*res)->u.value->var->u.ref_v->vref;
+	assert(var->vc == vc_object);
+	object = var->u.object_v;
+
+	mbr_name_sid = strtab_get_sid("Value");
+	mbr_var = intmap_get(&object->fields, mbr_name_sid);
+	assert(mbr_var != NULL);
+
+	rdata_var_write(mbr_var, rarg_vi->u.value);
+}
+
+/** Create new CSI instance.
+ *
+ * Create a new object, instance of @a csi.
+ * XXX This does not work with generics as @a csi cannot specify a generic
+ * type.
+ *
+ * Initialize the fields with default values of their types, but do not
+ * run any constructor.
+ *
+ * @param run		Runner object
+ * @param as_op		@c as conversion expression
+ * @param res		Place to store result
+ */
 void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 {
 	rdata_object_t *obj;
@@ -1801,8 +2093,8 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 	stree_csimbr_t *csimbr;
 
 	rdata_var_t *mbr_var;
-
 	list_node_t *node;
+	tdata_item_t *field_ti;
 
 	csi_sym = csi_to_symbol(csi);
 
@@ -1821,20 +2113,30 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 	obj_var->u.object_v = obj;
 
 	/* Create object fields. */
-	node = list_first(&csi->members);
-	while (node != NULL) {
-		csimbr = list_node_data(node, stree_csimbr_t *);
-		if (csimbr->cc == csimbr_var) {
-			/* XXX Depends on member variable type. */
-			mbr_var = rdata_var_new(vc_int);
-			mbr_var->u.int_v = rdata_int_new();
-			bigint_init(&mbr_var->u.int_v->value, 0);
+	while (csi != NULL) {
+		node = list_first(&csi->members);
+		while (node != NULL) {
+			csimbr = list_node_data(node, stree_csimbr_t *);
+			if (csimbr->cc == csimbr_var) {
+				/* Compute field type. XXX Memoize. */
+				run_texpr(run->program, csi,
+				    csimbr->u.var->type,
+				    &field_ti);
 
-			intmap_set(&obj->fields, csimbr->u.var->name->sid,
-			    mbr_var);
+				/* Create and initialize field. */
+				run_var_new(run, field_ti, &mbr_var);
+
+				/* Add to field map. */
+				intmap_set(&obj->fields,
+				    csimbr->u.var->name->sid,
+				    mbr_var);
+			}
+
+			node = list_next(&csi->members, node);
 		}
 
-		node = list_next(&csi->members, node);
+		/* Continue with base CSI */
+		csi = csi->base_csi;
 	}
 
 	/* Create reference to the new object. */
@@ -1843,8 +2145,12 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 
 /** Return boolean value of an item.
  *
- * Tries to interpret @a item as a boolean value. If it is not a boolean
- * value, this generates an error.
+ * Try to interpret @a item as a boolean value. If it is not a boolean
+ * value, generate an error.
+ *
+ * @param run		Runner object
+ * @param item		Input item
+ * @return		Resulting boolean value
  */
 bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 {

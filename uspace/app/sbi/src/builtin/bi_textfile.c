@@ -52,7 +52,10 @@ static void bi_textfile_readline(run_t *run);
 static void bi_textfile_writeline(run_t *run);
 static void bi_textfile_is_eof(run_t *run);
 
-/** Declare TextFile builtin. */
+/** Declare TextFile builtin.
+ *
+ * @param bi	Builtin object
+ */
 void bi_textfile_declare(builtin_t *bi)
 {
 	/* Declare class TextFile. */
@@ -78,7 +81,10 @@ void bi_textfile_declare(builtin_t *bi)
 
 }
 
-/** Bind TextFile builtin. */
+/** Bind TextFile builtin.
+ *
+ * @param bi	Builtin object
+ */
 void bi_textfile_bind(builtin_t *bi)
 {
 	builtin_fun_bind(bi, "TextFile", "OpenRead", bi_textfile_openread);
@@ -89,11 +95,14 @@ void bi_textfile_bind(builtin_t *bi)
 	builtin_fun_bind(bi, "TextFile", "is_eof", bi_textfile_is_eof);
 }
 
-/** Open a text file for reading. */
+/** Open a text file for reading.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_openread(run_t *run)
 {
 	rdata_var_t *fname_var;
-	char *fname;
+	const char *fname;
 	FILE *file;
 
 	rdata_resource_t *resource;
@@ -129,11 +138,14 @@ static void bi_textfile_openread(run_t *run)
 	rdata_var_write(self_f_var, res_val);
 }
 
-/** Open a text file for writing. */
+/** Open a text file for writing.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_openwrite(run_t *run)
 {
 	rdata_var_t *fname_var;
-	char *fname;
+	const char *fname;
 	FILE *file;
 
 	rdata_resource_t *resource;
@@ -169,7 +181,10 @@ static void bi_textfile_openwrite(run_t *run)
 	rdata_var_write(self_f_var, res_val);
 }
 
-/** Close a text file. */
+/** Close a text file.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_close(run_t *run)
 {
 	FILE *file;
@@ -204,7 +219,10 @@ static void bi_textfile_close(run_t *run)
 }
 
 
-/** Read one line from a text file. */
+/** Read one line from a text file.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_readline(run_t *run)
 {
 	FILE *file;
@@ -271,13 +289,16 @@ static void bi_textfile_readline(run_t *run)
 	proc_ar->retval = str_item;
 }
 
-/** Write one line to a text file. */
+/** Write one line to a text file.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_writeline(run_t *run)
 {
 	FILE *file;
         rdata_var_t *self_f_var;
 	rdata_var_t *line_var;
-	char *line;
+	const char *line;
 
 	run_proc_ar_t *proc_ar;
 
@@ -311,7 +332,10 @@ static void bi_textfile_writeline(run_t *run)
 	proc_ar->retval = NULL;
 }
 
-/** Return value of EOF flag. */
+/** Return value of EOF flag.
+ *
+ * @param run	Runner object
+ */
 static void bi_textfile_is_eof(run_t *run)
 {
 	FILE *file;

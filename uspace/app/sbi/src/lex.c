@@ -79,6 +79,7 @@ static struct lc_name keywords[] = {
 	{ lc_builtin,	"builtin" },
 	{ lc_class,	"class" },
 	{ lc_constructor,	"constructor" },
+	{ lc_deleg,	"deleg" },
 	{ lc_do,	"do" },
 	{ lc_else,	"else" },
 	{ lc_end,	"end" },
@@ -209,7 +210,7 @@ void lem_print(lem_t *lem)
 
 	switch (lem->lclass) {
 	case lc_ident:
-		printf("(%d)", lem->u.ident.sid);
+		printf("('%s')", strtab_get_str(lem->u.ident.sid));
 		break;
 	case lc_lit_int:
 		printf("(");

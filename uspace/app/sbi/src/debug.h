@@ -33,7 +33,7 @@
 //#define DEBUG_PARSE_TRACE
 
 /**
- *Uncomment this to get extra verbose messages from parser's lexing
+ * Uncomment this to get extra verbose messages from parser's lexing
  * primitives.
  */
 //#define DEBUG_LPARSE_TRACE

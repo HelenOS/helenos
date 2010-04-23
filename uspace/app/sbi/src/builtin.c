@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "ancr.h"
+#include "builtin/bi_boxed.h"
 #include "builtin/bi_error.h"
 #include "builtin/bi_fun.h"
 #include "builtin/bi_textfile.h"
@@ -89,10 +89,18 @@ void builtin_declare(stree_program_t *program)
 	bi_error_declare(bi);
 	bi_fun_declare(bi);
 	bi_textfile_declare(bi);
+}
 
-	/* Need to process ancestry so that symbol lookups work. */
-	ancr_module_process(program, program->module);
-
+/** Bind internal interpreter references to symbols in the program.
+ *
+ * This is performed in separate phase for several reasons. First,
+ * symbol lookups do not work until ancestry is processed. Second,
+ * this gives a chance to process the library first and thus bind
+ * to symbols defined there.
+ */
+void builtin_bind(builtin_t *bi)
+{
+	bi_boxed_bind(bi);
 	bi_error_bind(bi);
 	bi_fun_bind(bi);
 	bi_textfile_bind(bi);
@@ -299,6 +307,7 @@ stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 {
 	stree_ident_t *ident;
 	stree_fun_t *fun;
+	stree_fun_sig_t *sig;
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *fun_sym;
 
@@ -309,7 +318,10 @@ stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 	fun->name = ident;
 	fun->proc = stree_proc_new();
 	fun->proc->body = NULL;
-	list_init(&fun->args);
+	sig = stree_fun_sig_new();
+	fun->sig = sig;
+
+	list_init(&fun->sig->args);
 
 	csimbr = stree_csimbr_new(csimbr_fun);
 	csimbr->u.fun = fun;
@@ -347,5 +359,5 @@ void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name)
 	proc_arg->name->sid = strtab_get_sid(name);
 	proc_arg->type = NULL; /* XXX */
 
-	list_append(&fun->args, proc_arg);
+	list_append(&fun->sig->args, proc_arg);
 }

@@ -31,6 +31,8 @@
 #ifndef TDATA_T_H_
 #define TDATA_T_H_
 
+#include "intmap_t.h"
+
 /** Class of primitive type. */
 typedef enum {
 	/** Boolean type */
@@ -77,13 +79,44 @@ typedef struct {
 	list_t extents; /* of stree_expr_t */
 } tdata_array_t;
 
+/** Function signature type.
+ *
+ * This is a part of functional type or delegate type.
+ */
+typedef struct {
+	/** Types of fixed arguments. */
+	list_t arg_ti; /* of tdata_item_t */
+
+	/** Type of variadic argument */
+	struct tdata_item *varg_ti;
+
+	/** Return type */
+	struct tdata_item *rtype;
+} tdata_fun_sig_t;
+
+/** Delegate type. */
+typedef struct {
+	/** Delegate definition or @c NULL if anonymous delegate */
+	struct stree_deleg *deleg;
+
+	/** Delegate signature type */
+	tdata_fun_sig_t *tsig;
+} tdata_deleg_t;
+
 /** Functional type. */
 typedef struct {
-	/**
-	 * Function definition. We'll leave expansion to the call operation.
-	 */
-	struct stree_fun *fun;
+	/** Delegate definition or @c NULL if anonymous delegate */
+	struct stree_deleg *deleg;
+
+	/** Function signature type */
+	tdata_fun_sig_t *tsig;
 } tdata_fun_t;
+
+/** Type variable reference. */
+typedef struct {
+	/** Definition of type argument this variable is referencing. */
+	struct stree_targ *targ;
+} tdata_vref_t;
 
 typedef enum {
 	/** Primitive type item */
@@ -92,8 +125,12 @@ typedef enum {
 	tic_tobject,
 	/** Array type item */
 	tic_tarray,
+	/** Delegate type item */
+	tic_tdeleg,
 	/** Function type item */
 	tic_tfun,
+	/** Type variable item */
+	tic_tvref,
 	/** Special error-recovery type item */
 	tic_ignore
 } titem_class_t;
@@ -106,8 +143,16 @@ typedef struct tdata_item {
 		tdata_primitive_t *tprimitive;
 		tdata_object_t *tobject;
 		tdata_array_t *tarray;
+		tdata_deleg_t *tdeleg;
 		tdata_fun_t *tfun;
+		tdata_vref_t *tvref;
 	} u;
 } tdata_item_t;
+
+/** Type variable valuation (mapping of type argument names to values). */
+typedef struct {
+	/** Maps name SID to type item */
+	intmap_t tvv; /* of tdata_item_t */
+} tdata_tvv_t;
 
 #endif

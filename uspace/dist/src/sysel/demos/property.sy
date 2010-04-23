@@ -32,13 +32,13 @@ class Foo is
 	-- Example of a named property
 	prop X : int is
 		get is
-			Builtin.WriteLine("Getting value of X which is");
+			Builtin.Write("Getting value of X which is ");
 			Builtin.WriteLine(x);
 			return x;
 		end
 
 		set value is
-			Builtin.WriteLine("Setting value of X to");
+			Builtin.Write("Setting value of X to ");
 			Builtin.WriteLine(value);
 			x = value;
 		end
@@ -50,18 +50,18 @@ class Foo is
 	-- Example of an indexed property set (i.e. an indexer)
 	prop self[index : int] : int is
 		get is
-			Builtin.WriteLine("Getting property with index ");
-			Builtin.WriteLine(index);
-			Builtin.WriteLine("which is");
+			Builtin.Write("Getting property with index ");
+			Builtin.Write(index);
+			Builtin.Write(" which is ");
 			Builtin.WriteLine(iprops[index]);
 
 			return iprops[index];
 		end
 
 		set value is
-			Builtin.WriteLine("Setting property with index ");
-			Builtin.WriteLine(index);
-			Builtin.WriteLine("to");
+			Builtin.Write("Setting property with index ");
+			Builtin.Write(index);
+			Builtin.Write(" to ");
 			Builtin.WriteLine(value);
 
 			iprops[index] = value;
@@ -109,7 +109,7 @@ class PropertyDemo is
 		-- Set value of named property.
 		i = a.X;
 
-		Builtin.WriteLine("Main(): Got ");
+		Builtin.Write("Main(): Got ");
 		Builtin.WriteLine(i);
 
 		a.iprops = new int[5];
@@ -120,7 +120,7 @@ class PropertyDemo is
 		-- Get value of indexed property.
 		i = a[1];
 
-		Builtin.WriteLine("Main(): Got ");
+		Builtin.Write("Main(): Got ");
 		Builtin.WriteLine(i);
 
 		-- Property field access
