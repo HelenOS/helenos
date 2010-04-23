@@ -36,6 +36,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #define DEVMAN_NAME_MAXLEN 256
@@ -97,6 +98,11 @@ static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 	}
 	
 	list_insert_before(&id->link, link);	
+}
+
+static inline void init_match_ids(match_id_list_t *id_list)
+{
+	list_initialize(&id_list->ids);
 }
 
 static inline void clean_match_ids(match_id_list_t *ids)

@@ -58,15 +58,6 @@ static driver_t *driver;
 LIST_INITIALIZE(devices);
 FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 
-static device_t * driver_create_device()
-{
-	device_t *dev = (device_t *)malloc(sizeof(device_t));
-	if (NULL != dev) {
-		memset(dev, 0, sizeof(device_t));
-	}
-	return dev;
-}
-
 static void add_to_devices_list(device_t *dev)
 {
 	fibril_mutex_lock(&devices_mutex);
@@ -77,7 +68,7 @@ static void add_to_devices_list(device_t *dev)
 static void remove_from_devices_list(device_t *dev)
 {
 	fibril_mutex_lock(&devices_mutex);
-	list_append(&dev->link, &devices);
+	list_remove(&dev->link);
 	fibril_mutex_unlock(&devices_mutex);
 }
 
@@ -106,7 +97,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res = EOK;
 	
 	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
-	device_t *dev = driver_create_device();
+	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
 	async_string_receive(&dev_name, 0, NULL);
@@ -119,7 +110,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	} else {
 		printf("%s: failed to add a new device with handle = %d.\n", driver->name, dev_handle);	
 		remove_from_devices_list(dev);
-		delete_device(dev);		
+		delete_device(dev);	
 	}
 	
 	ipc_answer_0(iid, res);

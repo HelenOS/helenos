@@ -120,10 +120,6 @@ typedef struct driver {
 	driver_ops_t *driver_ops;
 } driver_t;
 
-
-
-
-
 int driver_main(driver_t *drv);
 
 /** Create new device structure. 
@@ -135,8 +131,8 @@ static inline device_t * create_device()
 	device_t *dev = malloc(sizeof(device_t));
 	if (NULL != dev) {
 		memset(dev, 0, sizeof(device_t));
-	}
-	list_initialize(&dev->match_ids.ids);
+		init_match_ids(&dev->match_ids);
+	}	
 	return dev;
 }
 
