@@ -92,6 +92,14 @@ typedef struct driver_list {
 	fibril_mutex_t drivers_mutex;	
 } driver_list_t;
 
+/** The state of the device. */
+typedef enum {
+	DEVICE_NOT_INITIALIZED = 0,
+	DEVICE_USABLE,
+	DEVICE_NOT_PRESENT,
+	DEVICE_INVALID
+} device_state_t;
+
 /** Representation of a node in the device tree.*/
 struct node {
 	/** The global unique identifier of the device.*/
@@ -112,6 +120,8 @@ struct node {
 	match_id_list_t match_ids;
 	/** Driver of this device.*/
 	driver_t *drv;
+	/** The state of the device. */
+	device_state_t state;
 	/** Pointer to the previous and next device in the list of devices
 	    owned by one driver */
 	link_t driver_devices;

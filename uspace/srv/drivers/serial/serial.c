@@ -92,7 +92,7 @@ static void delete_serial_dev_data(serial_dev_data_t *data)
 
 static device_class_t serial_dev_class;
 
-static bool serial_add_device(device_t *dev);
+static int serial_add_device(device_t *dev);
 
 /** The serial port device driver's standard operations.
  */
@@ -122,7 +122,7 @@ static void serial_dev_cleanup(device_t *dev)
 
 static bool serial_pio_enable(device_t *dev)
 {
-	printf(NAME ": serial_pio_enable = %s\n", dev->name);
+	printf(NAME ": serial_pio_enable %s\n", dev->name);
 	
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	
@@ -137,7 +137,7 @@ static bool serial_pio_enable(device_t *dev)
 
 static bool serial_dev_probe(device_t *dev)
 {
-	printf(NAME ": serial_dev_probe dev = %s\n", dev->name);
+	printf(NAME ": serial_dev_probe %s\n", dev->name);
 	
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	ioport8_t *port_addr = data->port;	
@@ -165,17 +165,18 @@ static bool serial_dev_probe(device_t *dev)
 	return res;	
 }
 
-static bool serial_dev_initialize(device_t *dev)
+static int serial_dev_initialize(device_t *dev)
 {
-	printf(NAME ": serial_dev_initialize dev = %s\n", dev->name);
+	printf(NAME ": serial_dev_initialize %s\n", dev->name);
 	
+	int ret = EOK;
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 	
 	// allocate driver data for the device
 	serial_dev_data_t *data = create_serial_dev_data();	
 	if (NULL == data) {
-		return false;
+		return ENOMEM;
 	}
 	dev->driver_data = data;
 	
@@ -183,6 +184,7 @@ static bool serial_dev_initialize(device_t *dev)
 	dev->parent_phone = devman_parent_device_connect(dev->handle,  IPC_FLAG_BLOCKING);
 	if (dev->parent_phone <= 0) {
 		printf(NAME ": failed to connect to the parent driver of the device %s.\n", dev->name);
+		ret = EPARTY;
 		goto failed;
 	}
 	
@@ -190,6 +192,7 @@ static bool serial_dev_initialize(device_t *dev)
 	
 	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
 		printf(NAME ": failed to get hw resources for the device %s.\n", dev->name);
+		ret = EPARTY;
 		goto failed;
 	}	
 	
@@ -210,6 +213,7 @@ static bool serial_dev_initialize(device_t *dev)
 			data->io_addr = res->res.io_range.address;
 			if (res->res.io_range.size < REG_COUNT) {
 				printf(NAME ": i/o range assigned to the device %s is too small.\n", dev->name);
+				ret = EPARTY;
 				goto failed;
 			}
 			ioport = true;
@@ -220,39 +224,42 @@ static bool serial_dev_initialize(device_t *dev)
 	
 	if (!irq || !ioport) {
 		printf(NAME ": missing hw resource(s) for the device %s.\n", dev->name);
+		ret = EPARTY;
 		goto failed;
 	}		
 	
 	clean_hw_resource_list(&hw_resources);
-	return true;
+	return ret;
 	
 failed:
 	serial_dev_cleanup(dev);	
 	clean_hw_resource_list(&hw_resources);	
-	return false;	
+	return ret;	
 }
 
-static bool serial_add_device(device_t *dev) 
+static int serial_add_device(device_t *dev) 
 {
-	printf(NAME ": serial_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": serial_add_device %s (handle = %d)\n", dev->name, dev->handle);
 	
-	if (!serial_dev_initialize(dev)) {
-		return false;
+	int res = serial_dev_initialize(dev);
+	if (EOK != res) {
+		return res;
 	}
 	
 	if (!serial_pio_enable(dev)) {
 		serial_dev_cleanup(dev);
-		return false;
+		return EADDRNOTAVAIL;
 	}
+	
 	
 	if (!serial_dev_probe(dev)) {
 		serial_dev_cleanup(dev);
-		return false;
+		return ENOENT;
 	}	
 	
 	// TODO interrupt and serial port initialization (baud rate etc.)
 	
-	return true;
+	return EOK;
 }
 
 static void serial_init() 

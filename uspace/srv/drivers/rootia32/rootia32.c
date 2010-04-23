@@ -58,7 +58,7 @@ typedef struct rootia32_child_dev_data {
 	hw_resource_list_t hw_resources;	
 } rootia32_child_dev_data_t;
 
-static bool rootia32_add_device(device_t *dev);
+static int rootia32_add_device(device_t *dev);
 static bool rootia32_init();
 
 /** The root device driver's standard operations.
@@ -143,7 +143,7 @@ static bool rootia32_add_child(
 	child->class = &rootia32_child_class;
 	
 	// register child  device
-	if (!child_device_register(child, parent)) {
+	if (EOK != child_device_register(child, parent)) {
 		goto failure;
 	}
 	
@@ -170,9 +170,11 @@ static bool rootia32_add_children(device_t *dev)
 }
 
 /** Get the root device.
+ * 
  * @param dev the device which is root of the whole device tree (both of HW and pseudo devices).
+ * @return 0 on success, negative error number otherwise.
  */
-static bool rootia32_add_device(device_t *dev) 
+static int rootia32_add_device(device_t *dev) 
 {
 	printf(NAME ": rootia32_add_device, device handle = %d\n", dev->handle);
 	
@@ -181,7 +183,7 @@ static bool rootia32_add_device(device_t *dev)
 		printf(NAME ": failed to add child devices for platform ia32.\n");
 	}
 	
-	return true;
+	return EOK;
 }
 
 static void root_ia32_init() {

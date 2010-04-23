@@ -108,7 +108,7 @@ struct device {
 /** Generic device driver operations. */
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver.*/
-	bool (*add_device)(device_t *dev);
+	int (*add_device)(device_t *dev);
 	// TODO add other generic driver operations
 } driver_ops_t;
 
@@ -160,7 +160,7 @@ static inline void * device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 	return dev->class->interfaces[idx];	
 }
 
-bool child_device_register(device_t *child, device_t *parent);
+int child_device_register(device_t *child, device_t *parent);
 
 
 #endif

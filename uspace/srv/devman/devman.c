@@ -518,12 +518,14 @@ void add_device(int phone, driver_t *drv, node_t *node)
 	// wait for answer from the driver
 	async_wait_for(req, &rc);
 	switch(rc) {
-		// TODO inspect return value to find out whether the device was successfully probed and added
 	case EOK:
-	case ENOENT:
-		
+		node->state = DEVICE_USABLE;
 		break;
-		
+	case ENOENT:
+		node->state = DEVICE_NOT_PRESENT;
+		break;
+	default:
+		node->state = DEVICE_INVALID;		
 	}
 	
 	return;

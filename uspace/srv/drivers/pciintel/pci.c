@@ -84,7 +84,7 @@ static resource_iface_t pciintel_child_res_iface = {
 static device_class_t pci_child_class;
 
 
-static bool pci_add_device(device_t *dev);
+static int pci_add_device(device_t *dev);
 
 /** The pci bus driver's standard operations.
  */
@@ -401,7 +401,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			
 			create_pci_match_ids(dev);
 			
-			if (!child_device_register(dev, parent)) {				
+			if (EOK != child_device_register(dev, parent)) {				
 				pci_clean_resource_list(dev);				
 				clean_match_ids(&dev->match_ids);
 				free((char *)dev->name);
@@ -432,21 +432,21 @@ void pci_bus_scan(device_t *parent, int bus_num)
 	}		
 }
 
-static bool pci_add_device(device_t *dev)
+static int pci_add_device(device_t *dev)
 {
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
 	if (NULL == bus_data) {
 		printf(NAME ": pci_add_device allocation failed.\n");
-		return false;
+		return ENOMEM;
 	}	
 	
 	dev->parent_phone = devman_parent_device_connect(dev->handle,  IPC_FLAG_BLOCKING);
 	if (dev->parent_phone <= 0) {
 		printf(NAME ": pci_add_device failed to connect to the parent's driver.\n");
 		delete_pci_bus_data(bus_data);
-		return false;
+		return EPARTY;
 	}
 	
 	hw_resource_list_t hw_resources;
@@ -455,7 +455,7 @@ static bool pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to get hw resources for the device.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
-		return false;		
+		return EPARTY;		
 	}	
 	
 	printf(NAME ": conf_addr = %x.\n", hw_resources.resources[0].res.io_range.address);	
@@ -471,7 +471,7 @@ static bool pci_add_device(device_t *dev)
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
 		clean_hw_resource_list(&hw_resources);
-		return false;					
+		return EADDRNOTAVAIL;					
 	}
 	bus_data->conf_data_port = (char *)bus_data->conf_addr_port + 4;
 	
@@ -483,7 +483,7 @@ static bool pci_add_device(device_t *dev)
 	
 	clean_hw_resource_list(&hw_resources);
 	
-	return true;
+	return EOK;
 }
 
 static void pciintel_init() 

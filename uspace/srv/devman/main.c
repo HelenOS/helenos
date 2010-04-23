@@ -308,12 +308,13 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 		if (NULL != dev->parent) {
 			driver = dev->parent->drv;		
 		}
-	} else {
+	} else if (DEVICE_USABLE == dev->state) {
 		driver = dev->drv;		
+		assert(NULL != driver);
 	}
 	
 	if (NULL == driver) {	
-		printf(NAME ": devman_forward error - no driver to connect to.\n", handle);
+		printf(NAME ": devman_forward error - the device is not in usable state.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;	
 	}
@@ -330,8 +331,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 		printf("the driver's phone is %x).\n", driver->phone);
 		return;
 	}
-	printf(NAME ": devman_forward: forward connection to device %s to driver %s with phone %d.\n", 
-		dev->pathname, driver->name, driver->phone);
+	printf(NAME ": devman_forward: forward connection to device %s to driver %s.\n", dev->pathname, driver->name);
 	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
 }
 

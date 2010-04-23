@@ -88,7 +88,7 @@ static resource_iface_t isa_child_res_iface = {
 
 static device_class_t isa_child_class;
 
-static bool isa_add_device(device_t *dev);
+static int isa_add_device(device_t *dev);
 
 /** The isa device driver's standard operations.
  */
@@ -473,7 +473,7 @@ static void add_legacy_children(device_t *parent)
 	}
 }
 
-static bool isa_add_device(device_t *dev) 
+static int isa_add_device(device_t *dev) 
 {
 	printf(NAME ": isa_add_device, device handle = %d\n", dev->handle);
 	
@@ -481,7 +481,7 @@ static bool isa_add_device(device_t *dev)
 	add_legacy_children(dev);
 	printf(NAME ": finished the enumeration of legacy devices\n", dev->handle);
 	
-	return true;
+	return EOK;
 }
 
 static void isa_init() 

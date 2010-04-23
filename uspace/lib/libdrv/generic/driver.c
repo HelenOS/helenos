@@ -102,26 +102,27 @@ static device_t * driver_get_device(link_t *devices, device_handle_t handle)
 
 static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 {
-	// TODO device state - the driver may detect the device is not actually present 
-	// (old non PnP devices) or is not working properly. 
-	// We should send such information to device manager.
+	char *dev_name = NULL;
+	int res = EOK;
 	
-	ipcarg_t ret;
 	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
 	device_t *dev = driver_create_device();
 	dev->handle = dev_handle;
-	async_string_receive(&dev->name, 0, NULL);
-	add_to_devices_list(dev);
-	if (driver->driver_ops->add_device(dev)) {		
+	
+	async_string_receive(&dev_name, 0, NULL);
+	dev->name = dev_name;
+	
+	add_to_devices_list(dev);		
+	res = driver->driver_ops->add_device(dev);
+	if (0 == res) {
 		printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
-		ret = 1;
 	} else {
-		printf("%s: failed to add a new device with handle = %x.\n", driver->name, dev_handle);	
+		printf("%s: failed to add a new device with handle = %d.\n", driver->name, dev_handle);	
 		remove_from_devices_list(dev);
-		// TODO delete device		
-		ret = 0;
+		delete_device(dev);		
 	}
-	ipc_answer_0(iid, EOK);
+	
+	ipc_answer_0(iid, res);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
@@ -269,18 +270,20 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-bool child_device_register(device_t *child, device_t *parent)
+int child_device_register(device_t *child, device_t *parent)
 {
 	// printf("%s: child_device_register\n", driver->name);
 
 	assert(NULL != child->name);
 
+	int res;
+	
 	add_to_devices_list(child);
-	if (EOK == devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle)) {
-		return true;
+	if (EOK == (res = devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle))) {
+		return res;
 	}
 	remove_from_devices_list(child);	
-	return false;
+	return res;
 }
 
 int driver_main(driver_t *drv)

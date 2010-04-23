@@ -51,7 +51,7 @@
 
 #define NAME "root"
 
-static bool root_add_device(device_t *dev);
+static int root_add_device(device_t *dev);
 
 /** The root device driver's standard operations.
  */
@@ -66,17 +66,21 @@ static driver_t root_driver = {
 	.driver_ops = &root_ops
 };
 
-/** Create the device which represents the root of HW device tree. 
+/** Create the device which represents the root of HW device tree.
+ * 
  * @param parent parent of the newly created device.
+ * @return 0 on success, negative error number otherwise.
  */
-static bool add_platform_child(device_t *parent) {
+static int add_platform_child(device_t *parent) {
 	printf(NAME ": adding new child for platform device.\n");
 	
+	int res = EOK;
 	device_t *platform = NULL;
 	match_id_t *match_id = NULL;	
 	
 	// create new device
 	if (NULL == (platform = create_device())) {
+		res = ENOMEM;
 		goto failure;
 	}	
 	
@@ -85,6 +89,7 @@ static bool add_platform_child(device_t *parent) {
 	
 	// initialize match id list
 	if (NULL == (match_id = create_match_id())) {
+		res = ENOMEM;
 		goto failure;
 	}
 	
@@ -94,11 +99,12 @@ static bool add_platform_child(device_t *parent) {
 	add_match_id(&platform->match_ids, match_id);	
 	
 	// register child  device
-	if (!child_device_register(platform, parent)) {
+	res = child_device_register(platform, parent);
+	if (EOK != res) {
 		goto failure;
 	}
 	
-	return true;
+	return res;
 	
 failure:
 	if (NULL != match_id) {
@@ -110,23 +116,23 @@ failure:
 		delete_device(platform);		
 	}
 	
-	return false;	
+	return res;	
 }
 
 /** Get the root device.
  * @param dev the device which is root of the whole device tree (both of HW and pseudo devices).
  */
-static bool root_add_device(device_t *dev) 
+static int root_add_device(device_t *dev) 
 {
 	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
 	
 	// register root device's children	
-	if (!add_platform_child(dev)) {
+	int res = add_platform_child(dev);	
+	if (EOK != res) {
 		printf(NAME ": failed to add child device for platform.\n");
-		return false;
 	}
 	
-	return true;
+	return res;
 }
 
 int main(int argc, char *argv[])
