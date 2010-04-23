@@ -139,7 +139,7 @@ static void print_float(fixed_float ffloat, unsigned int precision)
 
 static inline void print_global_head(data_t *data)
 {
-	printf("top - %02lu:%02lu:%02lu up %u days, %02u:%02u:%02u, load avarage:",
+	printf("top - %02lu:%02lu:%02lu up %u days, %02u:%02u:%02u, load average:",
 	    data->hours, data->minutes, data->seconds,
 	    data->udays, data->uhours, data->uminutes, data->useconds);
 	

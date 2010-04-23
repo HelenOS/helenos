@@ -42,10 +42,10 @@
 static const char* err_desc[] = {
 	"No error",
 	"No such entry",
-	"Not enought memory",
+	"Not enough memory",
 	"Limit exceeded", 
 	"Connection refused",
-	"Forward error",
+	"Forwarding error",
 	"Permission denied",
 	"Answerbox closed connection",
 	"Other party error",
@@ -56,8 +56,8 @@ static const char* err_desc[] = {
 	"Timeout expired",
 	"Invalid value",
 	"Resource is busy",
-	"Result does not fits its size",
-	"Operation was interrupted"
+	"Result does not fit its size",
+	"Operation interrupted"
 };
 
 static fibril_local char noerr[NOERR_LEN];

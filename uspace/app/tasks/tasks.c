@@ -134,7 +134,7 @@ static void print_load(void)
 		return;
 	}
 	
-	printf("%s: Load avarage: ", NAME);
+	printf("%s: Load average: ", NAME);
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
