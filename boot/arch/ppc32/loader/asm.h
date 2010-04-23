@@ -32,7 +32,7 @@
 #define PAGE_WIDTH  12
 #define PAGE_SIZE   (1 << PAGE_WIDTH)
 
-#define TRANS_SIZE   1024
+#define TRANS_SIZE   2048
 #define BOOT_OFFSET  0x8000
 
 #define BALLOC_MAX_SIZE  (128 * 1024)

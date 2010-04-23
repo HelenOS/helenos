@@ -28,9 +28,9 @@
 
 /**
  * @defgroup serial Serial console
- * @brief    Serial console services (putc, puts, clear screen, cursor goto,...)
+ * @brief Serial console services (putc, puts, clear screen, cursor goto,...)
  * @{
- */ 
+ */
 
 /** @file
  */
@@ -42,15 +42,14 @@
 
 typedef void (*putc_function_t)(char);
 
-void serial_puts(const char *str);
-void serial_goto(const unsigned int col, const unsigned int row);
-void serial_clrscr(void);
-void serial_scroll(int i);
-void serial_cursor_disable(void);
-void serial_cursor_enable(void);
-void serial_set_scroll_region(unsigned height);
-void serial_console_init(putc_function_t putc_fn, uint32_t w, uint32_t h);
-void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall);
-
+extern void serial_puts(const char *);
+extern void serial_goto(const ipcarg_t, const ipcarg_t);
+extern void serial_clrscr(void);
+extern void serial_scroll(ssize_t);
+extern void serial_cursor_disable(void);
+extern void serial_cursor_enable(void);
+extern void serial_set_scroll_region(ipcarg_t);
+extern void serial_console_init(putc_function_t, ipcarg_t, ipcarg_t);
+extern void serial_client_connection(ipc_callid_t, ipc_call_t *);
 
 #endif

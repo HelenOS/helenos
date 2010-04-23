@@ -28,7 +28,7 @@
 
 /** @addtogroup libclui
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -36,8 +36,10 @@
 #ifndef LIBCLUI_TINPUT_H_
 #define LIBCLUI_TINPUT_H_
 
-#define HISTORY_LEN 10
-#define INPUT_MAX_SIZE 1024
+#include <ipc/ipc.h>
+
+#define HISTORY_LEN     10
+#define INPUT_MAX_SIZE  1024
 
 /** Text input field (command line).
  *
@@ -46,35 +48,45 @@
 typedef struct {
 	/** Buffer holding text currently being edited */
 	wchar_t buffer[INPUT_MAX_SIZE + 1];
+	
 	/** Screen coordinates of the top-left corner of the text field */
-	int col0, row0;
+	ipcarg_t col0;
+	ipcarg_t row0;
+	
 	/** Screen dimensions */
-	int con_cols, con_rows;
+	ipcarg_t con_cols;
+	ipcarg_t con_rows;
+	
 	/** Number of characters in @c buffer */
-	int nc;
+	size_t nc;
+	
 	/** Caret position within buffer */
-	int pos;
+	size_t pos;
+	
 	/** Selection mark position within buffer */
-	int sel_start;
-
+	size_t sel_start;
+	
 	/** History (dynamically allocated strings) */
-	char *history[1 + HISTORY_LEN];
+	char *history[HISTORY_LEN + 1];
+	
 	/** Number of entries in @c history, not counting [0] */
-	int hnum;
+	size_t hnum;
+	
 	/** Current position in history */
-	int hpos;
+	size_t hpos;
+	
 	/** @c true if finished with this line (return to caller) */
 	bool done;
+	
 	/** @c true if user requested to abort interactive loop */
 	bool exit_clui;
 } tinput_t;
 
 extern tinput_t *tinput_new(void);
-extern void tinput_destroy(tinput_t *ti);
-extern int tinput_read(tinput_t *ti, char **str);
+extern void tinput_destroy(tinput_t *);
+extern int tinput_read(tinput_t *, char **);
 
 #endif
 
 /** @}
  */
-

@@ -86,7 +86,7 @@ extern size_t ip_client_header_length(packet_t packet);
  *  @returns EBADMEM if the header parameter is NULL.
  *  @returns EINVAL if the headerlen parameter is not IPv4 pseudo header length.
  */
-extern int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, size_t headerlen, size_t data_length);
+extern int ip_client_set_pseudo_header_data_length(void *header, size_t headerlen, size_t data_length);
 
 /** Constructs the IPv4 pseudo header.
  *  @param[in] protocol The transport protocol.
@@ -106,7 +106,7 @@ extern int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, 
  *  @returns EAFNOSUPPORT if the address family is not supported.
  *  @returns ENOMEM if there is not enough memory left.
  */
-extern int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, ip_pseudo_header_ref * header, size_t * headerlen);
+extern int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, void **header, size_t * headerlen);
 
 // TODO ipopt manipulation
 

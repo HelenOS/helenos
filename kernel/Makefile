@@ -228,7 +228,8 @@ GENERIC_SOURCES = \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
 	generic/src/security/cap.c \
-	generic/src/sysinfo/sysinfo.c
+	generic/src/sysinfo/sysinfo.c \
+	generic/src/sysinfo/stats.c
 
 ## Kernel console support
 #
@@ -277,8 +278,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
-		test/thread/thread1.c \
-		test/sysinfo/sysinfo1.c
+		test/thread/thread1.c
 	
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c
@@ -343,8 +343,6 @@ else
 	SYMTAB_OBJECTS :=
 endif
 
-
-
 $(BIN): $(RAW)
 	$(OBJCOPY) -O $(BFD) $< $@
 
@@ -352,7 +350,7 @@ $(DISASM): $(RAW)
 	$(OBJDUMP) -d $< > $@
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
-	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@  $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 
 $(LINK): $(LINK).in $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
@@ -395,7 +393,7 @@ $(REAL_MAP).o: $(REAL_MAP).bin
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
-	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@  $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 	
@@ -403,7 +401,7 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	# on architectures that have bss after symtab
 	
 	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
-	$(LD) $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 

@@ -32,12 +32,12 @@
 /** @file
  */
 
-#ifndef LIBC_STREAM_H_
-#define LIBC_STREAM_H_
+#ifndef LIBC_IO_KLOG_H_
+#define LIBC_IO_KLOG_H_
 
 #include <sys/types.h>
 
-extern size_t klog_write(const void *buf, size_t size);
+extern size_t klog_write(const void *, size_t);
 extern void klog_update(void);
 
 #endif

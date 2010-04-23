@@ -30,16 +30,25 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_SYSINFO_H_
 #define LIBC_SYSINFO_H_
 
 #include <libc.h>
-#include <sysinfo.h>
-#include <str.h>
 
-sysarg_t sysinfo_value(const char *name);
+/** Sysinfo value types
+ *
+ */
+typedef enum {
+	SYSINFO_VAL_UNDEFINED = 0,
+	SYSINFO_VAL_VAL = 1,
+	SYSINFO_VAL_DATA = 2
+} sysinfo_item_tag_t;
+
+extern sysinfo_item_tag_t sysinfo_get_tag(const char *);
+extern int sysinfo_get_value(const char *, sysarg_t *);
+extern void *sysinfo_get_data(const char *, size_t *);
 
 #endif
 

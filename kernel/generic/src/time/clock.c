@@ -85,7 +85,7 @@ void clock_counter_init(void)
 	
 	uptime->seconds1 = 0;
 	uptime->seconds2 = 0;
-	uptime->useconds = 0; 
+	uptime->useconds = 0;
 
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
@@ -136,6 +136,15 @@ void clock(void)
 	void *arg;
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
 	unsigned int i;
+
+	/* Account lost ticks to CPU usage */
+	if (CPU->idle) {
+		ASSERT(missed_clock_ticks == 0);
+		CPU->idle_ticks++;
+	} else {
+		CPU->busy_ticks += missed_clock_ticks + 1;
+	}
+	CPU->idle = false;
 
 	/*
 	 * To avoid lock ordering problems,

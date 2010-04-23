@@ -48,7 +48,7 @@
 #include <net_interface.h>
 #include <ip_protocols.h>
 #include <ip_interface.h>
-#include <tl_standalone.h>
+#include <tl_local.h>
 
 #include "tcp.h"
 #include "tcp_module.h"
@@ -64,22 +64,23 @@ extern tcp_globals_t	tcp_globals;
  *  @returns Other error codes as defined for the tcp_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int tl_module_start(async_client_conn_t client_connection){
+int tl_module_start_standalone(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
-
-	ipcarg_t phonehash;
-
+	
 	async_set_client_connection(client_connection);
 	tcp_globals.net_phone = net_connect_module(SERVICE_NETWORKING);
 	ERROR_PROPAGATE(pm_init());
-	if(ERROR_OCCURRED(tcp_initialize(client_connection))
-		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_TCP, &phonehash))){
+	
+	ipcarg_t phonehash;
+	if (ERROR_OCCURRED(tcp_initialize(client_connection))
+	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_TCP, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
-
+	
 	async_manager();
-
+	
 	pm_destroy();
 	return EOK;
 }
@@ -92,8 +93,8 @@ int tl_module_start(async_client_conn_t client_connection){
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the tcp_message() function.
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return tcp_message(callid, call, answer, answer_count);
+int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return tcp_message_standalone(callid, call, answer, answer_count);
 }
 
 /** @}

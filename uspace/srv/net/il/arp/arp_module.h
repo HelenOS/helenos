@@ -57,7 +57,7 @@ int arp_initialize(async_client_conn_t client_connection);
  *  @see arp_interface.h
  *  @see IS_NET_ARP_MESSAGE()
  */
-int arp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+int arp_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

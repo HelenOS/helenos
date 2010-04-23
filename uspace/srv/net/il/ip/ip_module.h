@@ -58,7 +58,7 @@ int ip_initialize(async_client_conn_t client_connection);
  *  @see il_interface.h
  *  @see IS_NET_IP_MESSAGE()
  */
-int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+int ip_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

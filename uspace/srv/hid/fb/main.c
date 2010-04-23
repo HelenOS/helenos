@@ -59,43 +59,52 @@ void receive_comm_area(ipc_callid_t callid, ipc_call_t *call, void **area)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS Framebuffer service\n");
+	printf("%s: HelenOS Framebuffer service\n", NAME);
 	
-	ipcarg_t phonead;
 	bool initialized = false;
+	sysarg_t fb_present;
+	sysarg_t fb_kind;
+	
+	if (sysinfo_get_value("fb", &fb_present) != EOK)
+		fb_present = false;
+	
+	if (sysinfo_get_value("fb.kind", &fb_kind) != EOK) {
+		printf("%s: Unable to detect framebuffer configuration\n", NAME);
+		return -1;
+	}
 	
 #ifdef FB_ENABLED
-	if (sysinfo_value("fb.kind") == 1) {
+	if ((!initialized) && (fb_kind == 1)) {
 		if (fb_init() == 0)
 			initialized = true;
 	}
 #endif
 #ifdef EGA_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 2)) {
+	if ((!initialized) && (fb_kind == 2)) {
 		if (ega_init() == 0)
 			initialized = true;
 	}
 #endif
 #ifdef MSIM_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 3)) {
+	if ((!initialized) && (fb_kind == 3)) {
 		if (msim_init() == 0)
 			initialized = true;
 	}
 #endif
 #ifdef SGCN_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 4)) {
+	if ((!initialized) && (fb_kind == 4)) {
 		if (sgcn_init() == 0)
 			initialized = true;
 	}
 #endif
 #ifdef NIAGARA_ENABLED
-	if ((!initialized) && (sysinfo_value("fb.kind") == 5)) {
+	if ((!initialized) && (fb_kind == 5)) {
 		if (niagara_init() == 0)
 			initialized = true;
 	}
 #endif
 #ifdef SKI_ENABLED
-	if ((!initialized) && (sysinfo_value("fb") != true)) {
+	if ((!initialized) && (!fb_present)) {
 		if (ski_init() == 0)
 			initialized = true;
 	}
@@ -104,10 +113,11 @@ int main(int argc, char *argv[])
 	if (!initialized)
 		return -1;
 	
+	ipcarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 	
 	/* Never reached */

@@ -43,8 +43,9 @@
 #include <stdio.h>
 #include <thread.h>
 #include <bool.h>
+#include <errno.h>
 
-#define POLL_INTERVAL		10000
+#define POLL_INTERVAL  10000
 
 /**
  * Virtual address mapped to the buffer shared with the kernel counterpart.
@@ -56,7 +57,8 @@ static uintptr_t input_buffer_addr;
  * Keep in sync with the definition from
  * kernel/arch/sparc64/src/drivers/niagara.c.
  */
-#define INPUT_BUFFER_SIZE	((PAGE_SIZE) - 2 * 8)
+#define INPUT_BUFFER_SIZE  ((PAGE_SIZE) - 2 * 8)
+
 typedef volatile struct {
 	uint64_t write_ptr;
 	uint64_t read_ptr;
@@ -78,26 +80,27 @@ static void niagara_thread_impl(void *arg);
  */
 int kbd_port_init(void)
 {
+	sysarg_t paddr;
+	if (sysinfo_get_value("niagara.inbuf.address", &paddr) != EOK)
+		return -1;
+	
 	input_buffer_addr = (uintptr_t) as_get_mappable_page(PAGE_SIZE);
-	int result = physmem_map(
-		(void *) sysinfo_value("niagara.inbuf.address"),
-		(void *) input_buffer_addr,
-		1, AS_AREA_READ | AS_AREA_WRITE);
-
-	if (result != 0) {
-		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
-			result);
-	}
-
-	input_buffer = (input_buffer_t) input_buffer_addr;
-
-	thread_id_t tid;
-	int rc;
-
-	rc = thread_create(niagara_thread_impl, NULL, "kbd_poll", &tid);
+	int rc = physmem_map((void *) paddr, (void *) input_buffer_addr,
+	    1, AS_AREA_READ | AS_AREA_WRITE);
+	
 	if (rc != 0) {
+		printf("Niagara: uspace driver couldn't map physical memory: %d\n",
+		    rc);
 		return rc;
 	}
+	
+	input_buffer = (input_buffer_t) input_buffer_addr;
+	
+	thread_id_t tid;
+	rc = thread_create(niagara_thread_impl, NULL, "kbd_poll", &tid);
+	if (rc != 0)
+		return rc;
+	
 	return 0;
 }
 

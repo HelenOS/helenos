@@ -35,7 +35,6 @@ BINARY = nettest2
 SOURCES = \
 	nettest2.c \
 	nettest.c \
-	parse.c \
 	print_error.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -90,11 +90,14 @@ static void niagara_putc(char c)
  */
 int niagara_init(void)
 {
+	sysarg_t paddr;
+	if (sysinfo_get_value("niagara.outbuf.address", &paddr) != EOK)
+		return -1;
+	
 	output_buffer_addr = (uintptr_t) as_get_mappable_page(PAGE_SIZE);
-	int result = physmem_map(
-		(void *) sysinfo_value("niagara.outbuf.address"),
-		(void *) output_buffer_addr,
-		1, AS_AREA_READ | AS_AREA_WRITE);
+	int result = physmem_map((void *) paddr,
+	    (void *) output_buffer_addr, 1,
+	    AS_AREA_READ | AS_AREA_WRITE);
 
 	if (result != 0) {
 		printf("Niagara: uspace driver couldn't map physical memory: %d\n",

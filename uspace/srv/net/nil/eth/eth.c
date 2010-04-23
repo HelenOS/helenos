@@ -59,13 +59,15 @@
 #include <il_interface.h>
 #include <adt/measured_strings.h>
 #include <packet/packet_client.h>
+#include <packet_remote.h>
+#include <nil_local.h>
 
 #include "eth.h"
 #include "eth_header.h"
 
 /** The module name.
  */
-#define NAME	"Ethernet protocol"
+#define NAME  "eth"
 
 /** Reserved packet prefix length.
  */
@@ -269,7 +271,7 @@ DEVICE_MAP_IMPLEMENT(eth_devices, eth_device_t)
 
 INT_MAP_IMPLEMENT(eth_protos, eth_proto_t)
 
-int nil_device_state_msg(int nil_phone, device_id_t device_id, int state){
+int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state){
 	int index;
 	eth_proto_ref proto;
 
@@ -400,7 +402,12 @@ int eth_device_message(device_id_t device_id, services_t service, size_t mtu){
 			free(device);
 			return index;
 		}
-		printf("New device registered:\n\tid\t= %d\n\tservice\t= %d\n\tMTU\t= %d\n\taddress\t= %X:%X:%X:%X:%X:%X\n\tflags\t= 0x%x\n", device->device_id, device->service, device->mtu, device->addr_data[0], device->addr_data[1], device->addr_data[2], device->addr_data[3], device->addr_data[4], device->addr_data[5], device->flags);
+		printf("%s: Device registered (id: %d, service: %d: mtu: %d, "
+		    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
+		    NAME, device->device_id, device->service, device->mtu,
+		    device->addr_data[0], device->addr_data[1],
+		    device->addr_data[2], device->addr_data[3],
+		    device->addr_data[4], device->addr_data[5], device->flags);
 	}
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 	return EOK;
@@ -468,7 +475,7 @@ eth_proto_ref eth_process_packet(int flags, packet_t packet){
 	return eth_protos_find(&eth_globals.protos, type);
 }
 
-int nil_received_msg(int nil_phone, device_id_t device_id, packet_t packet, services_t target){
+int nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet, services_t target){
 	eth_proto_ref proto;
 	packet_t next;
 	eth_device_ref device;
@@ -490,7 +497,7 @@ int nil_received_msg(int nil_phone, device_id_t device_id, packet_t packet, serv
 			il_received_msg(proto->phone, device_id, packet, proto->service);
 		}else{
 			// drop invalid/unknown
-			pq_release(eth_globals.net_phone, packet_get_id(packet));
+			pq_release_remote(eth_globals.net_phone, packet_get_id(packet));
 		}
 		packet = next;
 	}while(packet);
@@ -570,7 +577,10 @@ int eth_register_message(services_t service, int phone){
 			return index;
 		}
 	}
-	printf("New protocol registered:\n\tprotocol\t= 0x%x\n\tservice\t= %d\n\tphone\t= %d\n", proto->protocol, proto->service, proto->phone);
+	
+	printf("%s: Protocol registered (protocol: %d, service: %d, phone: %d)\n",
+	    NAME, proto->protocol, proto->service, proto->phone);
+	
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 	return EOK;
 }
@@ -671,7 +681,7 @@ int eth_send_message(device_id_t device_id, packet_t packet, services_t sender){
 
 	ethertype = htons(protocol_map(SERVICE_ETHERNET, sender));
 	if(! ethertype){
-		pq_release(eth_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(eth_globals.net_phone, packet_get_id(packet));
 		return EINVAL;
 	}
 	fibril_rwlock_read_lock(&eth_globals.devices_lock);
@@ -689,7 +699,7 @@ int eth_send_message(device_id_t device_id, packet_t packet, services_t sender){
 			if(next == packet){
 				packet = tmp;
 			}
-			pq_release(eth_globals.net_phone, packet_get_id(next));
+			pq_release_remote(eth_globals.net_phone, packet_get_id(next));
 			next = tmp;
 		}else{
 			next = pq_next(next);
@@ -703,28 +713,33 @@ int eth_send_message(device_id_t device_id, packet_t packet, services_t sender){
 	return EOK;
 }
 
-int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	ERROR_DECLARE;
-
+	
 	measured_string_ref address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
-
-//	printf("message %d - %d\n", IPC_GET_METHOD(*call), NET_NIL_FIRST);
+	
 	*answer_count = 0;
-	switch(IPC_GET_METHOD(*call)){
+	switch (IPC_GET_METHOD(*call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_NIL_DEVICE:
-			return eth_device_message(IPC_GET_DEVICE(call), IPC_GET_SERVICE(call), IPC_GET_MTU(call));
+			return eth_device_message(IPC_GET_DEVICE(call),
+			    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
 		case NET_NIL_SEND:
-			ERROR_PROPAGATE(packet_translate(eth_globals.net_phone, &packet, IPC_GET_PACKET(call)));
-			return eth_send_message(IPC_GET_DEVICE(call), packet, IPC_GET_SERVICE(call));
+			ERROR_PROPAGATE(packet_translate_remote(eth_globals.net_phone, &packet,
+			    IPC_GET_PACKET(call)));
+			return eth_send_message(IPC_GET_DEVICE(call), packet,
+			    IPC_GET_SERVICE(call));
 		case NET_NIL_PACKET_SPACE:
-			ERROR_PROPAGATE(eth_packet_space_message(IPC_GET_DEVICE(call), &addrlen, &prefix, &content, &suffix));
+			ERROR_PROPAGATE(eth_packet_space_message(IPC_GET_DEVICE(call),
+			    &addrlen, &prefix, &content, &suffix));
 			IPC_SET_ADDR(answer, addrlen);
 			IPC_SET_PREFIX(answer, prefix);
 			IPC_SET_CONTENT(answer, content);
@@ -732,14 +747,18 @@ int nil_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 			*answer_count = 4;
 			return EOK;
 		case NET_NIL_ADDR:
-			ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call), ETH_LOCAL_ADDR, &address));
+			ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call),
+			    ETH_LOCAL_ADDR, &address));
 			return measured_strings_reply(address, 1);
 		case NET_NIL_BROADCAST_ADDR:
-			ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call), ETH_BROADCAST_ADDR, &address));
+			ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call),
+			    ETH_BROADCAST_ADDR, &address));
 			return measured_strings_reply(address, 1);
 		case IPC_M_CONNECT_TO_ME:
-			return eth_register_message(NIL_GET_PROTO(call), IPC_GET_PHONE(call));
+			return eth_register_message(NIL_GET_PROTO(call),
+			    IPC_GET_PHONE(call));
 	}
+	
 	return ENOTSUP;
 }
 
@@ -752,12 +771,12 @@ void eth_receiver(ipc_callid_t iid, ipc_call_t * icall){
 //		printf("message %d - %d\n", IPC_GET_METHOD(*icall), NET_NIL_FIRST);
 		switch(IPC_GET_METHOD(*icall)){
 			case NET_NIL_DEVICE_STATE:
-				nil_device_state_msg(0, IPC_GET_DEVICE(icall), IPC_GET_STATE(icall));
+				nil_device_state_msg_local(0, IPC_GET_DEVICE(icall), IPC_GET_STATE(icall));
 				ipc_answer_0(iid, EOK);
 				break;
 			case NET_NIL_RECEIVED:
-				if(! ERROR_OCCURRED(packet_translate(eth_globals.net_phone, &packet, IPC_GET_PACKET(icall)))){
-					ERROR_CODE = nil_received_msg(0, IPC_GET_DEVICE(icall), packet, 0);
+				if(! ERROR_OCCURRED(packet_translate_remote(eth_globals.net_phone, &packet, IPC_GET_PACKET(icall)))){
+					ERROR_CODE = nil_received_msg_local(0, IPC_GET_DEVICE(icall), packet, 0);
 				}
 				ipc_answer_0(iid, (ipcarg_t) ERROR_CODE);
 				break;
@@ -768,17 +787,15 @@ void eth_receiver(ipc_callid_t iid, ipc_call_t * icall){
 	}
 }
 
-#ifdef CONFIG_NETWORKING_modular
-
-#include <nil_standalone.h>
+#ifndef CONFIG_NETIF_NIL_BUNDLE
 
 /** Default thread for new connections.
  *
- *  @param[in] iid The initial message identifier.
- *  @param[in] icall The initial message call structure.
+ * @param[in] iid The initial message identifier.
+ * @param[in] icall The initial message call structure.
  *
  */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/*
 	 * Accept the connection
@@ -798,7 +815,8 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = nil_module_message(callid, &call, &answer, &answer_count);
+		int res = nil_module_message_standalone(NAME, callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -809,32 +827,18 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 	}
 }
 
-/** Starts the module.
- *
- *  @param argc The count of the command line arguments. Ignored parameter.
- *  @param argv The command line parameters. Ignored parameter.
- *
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module start function.
- *
- */
 int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(nil_module_start(nil_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(nil_module_start_standalone(nil_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
 
-#endif /* CONFIG_NETWORKING_modular */
+#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 /** @}
  */

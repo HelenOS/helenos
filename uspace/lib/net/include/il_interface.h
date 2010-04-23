@@ -31,8 +31,8 @@
  */
 
 /** @file
- *  Internetwork layer module interface for the underlying network interface layer.
- *  This interface is always called by the standalone remote modules.
+ * Internetwork layer module interface for the underlying network interface layer.
+ * This interface is always called by the remote modules.
  */
 
 #ifndef __NET_IL_INTERFACE_H__
@@ -49,41 +49,65 @@
 #include <il_messages.h>
 
 /** @name Internetwork layer module interface
- *  This interface is used by other modules.
+ * This interface is used by other modules.
  */
 /*@{*/
 
-/** Notifies the internetwork layer modules about the device state change.
- *  @param[in] il_phone The internetwork layer module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] state The new device state.
- *  @param[in] target The target internetwork module service to be delivered to.
- *  @returns EOK on success.
+/** Notify the internetwork layer modules about the device state change.
+ *
+ * @param[in] il_phone  The internetwork layer module phone used for
+ *                      (semi)remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] state     The new device state.
+ * @param[in] target    The target internetwork module service to be
+ *                      delivered to.
+ *
+ * @return EOK on success.
+ *
  */
-static inline int il_device_state_msg(int il_phone, device_id_t device_id, device_state_t state, services_t target){
-	return generic_device_state_msg(il_phone, NET_IL_DEVICE_STATE, device_id, state, target);
+static inline int il_device_state_msg(int il_phone, device_id_t device_id,
+    device_state_t state, services_t target)
+{
+	return generic_device_state_msg_remote(il_phone, NET_IL_DEVICE_STATE,
+	    device_id, state, target);
 }
 
-/** Notifies the internetwork layer modules about the received packet/s.
- *  @param[in] il_phone The internetwork layer module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet The received packet or the received packet queue.
- *  @param[in] target The target internetwork module service to be delivered to.
- *  @returns EOK on success.
+/** Notify the internetwork layer modules about the received packet/s.
+ *
+ * @param[in] il_phone  The internetwork layer module phone used for
+ *                      (semi)remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ * @param[in] target    The target internetwork module service to be
+ *                      delivered to.
+ *
+ * @return EOK on success.
+ *
  */
-inline static int il_received_msg(int il_phone, device_id_t device_id, packet_t packet, services_t target){
-	return generic_received_msg(il_phone, NET_IL_RECEIVED, device_id, packet_get_id(packet), target, 0);
+inline static int il_received_msg(int il_phone, device_id_t device_id,
+    packet_t packet, services_t target)
+{
+	return generic_received_msg_remote(il_phone, NET_IL_RECEIVED, device_id,
+	    packet_get_id(packet), target, 0);
 }
 
-/** Notifies the internetwork layer modules about the mtu change.
- *  @param[in] il_phone The internetwork layer module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] mtu The new mtu value.
- *  @param[in] target The target internetwork module service to be delivered to.
- *  @returns EOK on success.
+/** Notify the internetwork layer modules about the mtu change.
+ *
+ * @param[in] il_phone  The internetwork layer module phone used for
+ *                      (semi)remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] mtu       The new mtu value.
+ * @param[in] target    The target internetwork module service to be
+ *                      delivered to.
+ *
+ * @return EOK on success.
+ *
  */
-inline static int il_mtu_changed_msg(int il_phone, device_id_t device_id, size_t mtu, services_t target){
-	return generic_device_state_msg(il_phone, NET_IL_MTU_CHANGED, device_id, (int) mtu, target);
+inline static int il_mtu_changed_msg(int il_phone, device_id_t device_id,
+    size_t mtu, services_t target)
+{
+	return generic_device_state_msg_remote(il_phone, NET_IL_MTU_CHANGED,
+	    device_id, (int) mtu, target);
 }
 
 /*@}*/

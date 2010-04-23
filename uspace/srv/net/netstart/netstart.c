@@ -43,6 +43,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <task.h>
+#include <str_error.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
@@ -70,25 +71,16 @@ static bool spawn(const char *desc, const char *path)
 	argv[0] = path;
 	argv[1] = NULL;
 	
-	if (task_spawn(path, argv) == 0) {
-		fprintf(stderr, "%s: Error spawning %s\n", NAME, path);
+	int err;
+	if (task_spawn(path, argv, &err) == 0) {
+		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
+		    str_error(err));
 		return false;
 	}
 	
 	return true;
 }
 
-/** Network startup entry point.
- *
- * @param[in] argc The number of command line parameters.
- * @param[in] argv The command line parameters.
- *
- * @returns EOK on success.
- * @returns EINVAL if the net module cannot be started.
- * @returns Other error codes as defined for the self_test() function.
- * @returns Other error codes as defined for the NET_NET_STARTUP message.
- *
- */
 int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
@@ -104,7 +96,7 @@ int main(int argc, char *argv[])
 	
 	int net_phone = connect_to_service(SERVICE_NETWORKING);
 	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Networking error %d\n", NAME, ERROR_CODE);
+		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
 		return ERROR_CODE;
 	}
 	

@@ -27,12 +27,12 @@
  */
 
 /** @addtogroup net_nil
- *  @{
+ * @{
  */
 
 /** @file
- *  Network interface layer interface implementation for standalone remote modules.
- *  @see nil_interface.h
+ * Network interface layer interface implementation for remote modules.
+ * @see nil_interface.h
  */
 
 #include <net_messages.h>
@@ -41,13 +41,45 @@
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <nil_messages.h>
+#include <nil_remote.h>
 
-int nil_device_state_msg(int nil_phone, device_id_t device_id, int state){
-	return generic_device_state_msg(nil_phone, NET_NIL_DEVICE_STATE, device_id, state, 0);
+/** Notify the network interface layer about the device state change.
+ *
+ * @param[in] nil_phone The network interface layer phone.
+ * @param[in] device_id The device identifier.
+ * @param[in] state     The new device state.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module device
+ *         state function.
+ *
+ */
+int nil_device_state_msg_remote(int nil_phone, device_id_t device_id, int state)
+{
+	return generic_device_state_msg_remote(nil_phone, NET_NIL_DEVICE_STATE,
+	    device_id, state, 0);
 }
 
-int nil_received_msg(int nil_phone, device_id_t device_id, packet_t packet, services_t target){
-	return generic_received_msg(nil_phone, NET_NIL_RECEIVED, device_id, packet_get_id(packet), target, 0);
+/** Pass the packet queue to the network interface layer.
+ *
+ * Process and redistribute the received packet queue to the registered
+ * upper layers.
+ *
+ * @param[in] nil_phone The network interface layer phone.
+ * @param[in] device_id The source device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ * @param     target    The target service. Ignored parameter.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         received function.
+ *
+ */
+int nil_received_msg_remote(int nil_phone, device_id_t device_id,
+    packet_t packet, services_t target)
+{
+	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED, device_id,
+	    packet_get_id(packet), target, 0);
 }
 
 /** @}

@@ -41,10 +41,14 @@ DIRS = \
 	app/mkfat \
 	app/redir \
 	app/sbi \
+	app/stats \
 	app/taskdump \
+	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
+	app/top \
+	app/dummy_load \
 	srv/clip \
 	srv/devmap \
 	srv/loader \
@@ -65,7 +69,33 @@ DIRS = \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
-	srv/hw/netif/dp8390
+	srv/hw/netif/dp8390 \
+	srv/net/cfg \
+	srv/net/netif/lo \
+	srv/net/il/arp \
+	srv/net/il/ip \
+	srv/net/tl/icmp \
+	srv/net/tl/udp \
+	srv/net/tl/tcp \
+	srv/net/net \
+	srv/net/netstart \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping
+
+## Networking
+#
+
+ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
+	LIBN = \
+		srv/net/nil/eth \
+		srv/net/nil/nildummy
+else
+	DIRS += \
+		srv/net/nil/eth \
+		srv/net/nil/nildummy
+endif
 
 ## Platform-specific hardware support
 #
@@ -92,27 +122,6 @@ ifeq ($(UARCH),sparc64)
 		srv/hw/cir/obio
 endif
 
-## Networking
-#
-
-NETWORKING_COMMON = \
-	srv/net/netif/lo \
-	srv/net/nil/eth \
-	srv/net/nil/nildummy \
-	srv/net/net \
-	srv/net/netstart \
-	app/netecho \
-	app/nettest1 \
-	app/nettest2 \
-	app/ping
-
-NETWORKING_MODULAR = \
-	srv/net/il/arp \
-	srv/net/il/ip \
-	srv/net/tl/icmp \
-	srv/net/tl/udp \
-	srv/net/tl/tcp
-
 ## System libraries
 #
 
@@ -124,8 +133,7 @@ LIBS = \
 	lib/softint \
 	lib/softfloat \
 	lib/socket \
-	lib/net \
-	lib/netif
+	lib/net
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/pci
@@ -138,18 +146,12 @@ endif
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
+LIBN_BUILD = $(addsuffix .build,$(LIBN))
+BUILDS := $(addsuffix .build,$(DIRS))
 
-ifeq ($(CONFIG_NETWORKING),modular)
-	BUILDS := $(addsuffix .build,$(DIRS)) $(addsuffix .build,$(NETWORKING_COMMON)) $(addsuffix .build,$(NETWORKING_MODULAR))
-endif
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-ifeq ($(CONFIG_NETWORKING),module)
-	BUILDS := $(addsuffix .build,$(DIRS)) $(addsuffix .build,$(NETWORKING_COMMON))
-endif
-
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(NETWORKING_COMMON)) $(addsuffix .clean,$(NETWORKING_MODULAR)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
-
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
 
 all: $(BUILDS)
 
@@ -158,7 +160,10 @@ clean: $(CLEANS)
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
 	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)

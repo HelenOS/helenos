@@ -65,6 +65,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <errno.h>
 
@@ -386,6 +387,14 @@ static cmd_info_t slabs_info = {
 	.argc = 0
 };
 
+static int cmd_sysinfo(cmd_arg_t *argv);
+static cmd_info_t sysinfo_info = {
+	.name = "sysinfo",
+	.description = "Dump sysinfo.",
+	.func = cmd_sysinfo,
+	.argc = 0
+};
+
 /* Data and methods for 'zones' command */
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
@@ -474,6 +483,7 @@ static cmd_info_t *basic_commands[] = {
 	&kill_info,
 	&set4_info,
 	&slabs_info,
+	&sysinfo_info,
 	&symaddr_info,
 	&sched_info,
 	&threads_info,
@@ -867,6 +877,18 @@ int cmd_slabs(cmd_arg_t * argv)
 	return 1;
 }
 
+/** Command for dumping sysinfo
+ *
+ * @param argv Ignores
+ *
+ * @return Always 1
+ */
+int cmd_sysinfo(cmd_arg_t * argv)
+{
+	sysinfo_dump(NULL);
+	return 1;
+}
+
 
 /** Command for listings Thread information
  *
@@ -912,7 +934,7 @@ int cmd_sched(cmd_arg_t * argv)
  */
 int cmd_zones(cmd_arg_t * argv)
 {
-	zone_print_list();
+	zones_print_list();
 	return 1;
 }
 
@@ -1026,7 +1048,8 @@ static bool run_test(const test_t *test)
 	   for benchmarking */
 	ipl_t ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t t0 = task_get_accounting(TASK);
+	uint64_t ucycles0, kcycles0;
+	task_get_accounting(TASK, &ucycles0, &kcycles0);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
@@ -1035,17 +1058,20 @@ static bool run_test(const test_t *test)
 	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
+	uint64_t ucycles1, kcycles1; 
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
-	uint64_t dt = task_get_accounting(TASK) - t0;
+	task_get_accounting(TASK, &ucycles1, &kcycles1);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
 	
-	uint64_t cycles;
-	char suffix;
-	order(dt, &cycles, &suffix);
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
+	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		
-	printf("Time: %" PRIu64 "%c cycles\n", cycles, suffix);
+	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
+			ucycles, usuffix, kcycles, ksuffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
@@ -1060,8 +1086,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 {
 	uint32_t i;
 	bool ret = true;
-	uint64_t cycles;
-	char suffix;
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
 	
 	if (cnt < 1)
 		return true;
@@ -1079,7 +1105,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		   for benchmarking */
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t t0 = task_get_accounting(TASK);
+		uint64_t ucycles0, kcycles0;
+		task_get_accounting(TASK, &ucycles0, &kcycles0);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
 		
@@ -1090,19 +1117,22 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		/* Update and read thread accounting */
 		ipl = interrupts_disable();
 		spinlock_lock(&TASK->lock);
-		uint64_t dt = task_get_accounting(TASK) - t0;
+		uint64_t ucycles1, kcycles1;
+		task_get_accounting(TASK, &ucycles1, &kcycles1);
 		spinlock_unlock(&TASK->lock);
 		interrupts_restore(ipl);
-		
+
 		if (ret != NULL) {
 			printf("%s\n", ret);
 			ret = false;
 			break;
 		}
 		
-		data[i] = dt;
-		order(dt, &cycles, &suffix);
-		printf("OK (%" PRIu64 "%c cycles)\n", cycles, suffix);
+		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
+		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
+		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
+				ucycles, usuffix, kcycles, ksuffix);
 	}
 	
 	if (ret) {
@@ -1114,8 +1144,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			sum += data[i];
 		}
 		
-		order(sum / (uint64_t) cnt, &cycles, &suffix);
-		printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
+		order_suffix(sum / (uint64_t) cnt, &ucycles, &usuffix);
+		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
 	
 	free(data);

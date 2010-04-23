@@ -56,7 +56,10 @@
 #include <adt/measured_strings.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
+#include <packet_remote.h>
 #include <il_messages.h>
+#include <il_interface.h>
+#include <il_local.h>
 #include <arp_messages.h>
 
 #include "arp.h"
@@ -67,7 +70,7 @@
 
 /** ARP module name.
  */
-#define NAME	"ARP protocol"
+#define NAME  "arp"
 
 /** ARP global data.
  */
@@ -337,7 +340,8 @@ int arp_device_message(device_id_t device_id, services_t service, services_t pro
 			free(device);
 			return ERROR_CODE;
 		}
-		printf("New device registered:\n\tid\t= %d\n\ttype\t= 0x%x\n\tservice\t= %d\n\tproto\t= %d\n", device->device_id, device->hardware, device->service, protocol);
+		printf("%s: Device registered (id: %d, type: 0x%x, service: %d, proto: %d)\n",
+		    NAME, device->device_id, device->hardware, device->service, protocol);
 	}
 	fibril_rwlock_write_unlock(&arp_globals.lock);
 	return EOK;
@@ -368,18 +372,19 @@ int arp_initialize(async_client_conn_t client_connection){
 	return EOK;
 }
 
-int arp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	ERROR_DECLARE;
-
+	
 	measured_string_ref address;
 	measured_string_ref translation;
 	char * data;
 	packet_t packet;
 	packet_t next;
-
-//	printf("message %d - %d\n", IPC_GET_METHOD(*call), NET_ARP_FIRST);
+	
 	*answer_count = 0;
-	switch(IPC_GET_METHOD(*call)){
+	switch (IPC_GET_METHOD(*call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_ARP_DEVICE:
@@ -416,13 +421,13 @@ int arp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 			// do nothing - keep the cache
 			return EOK;
 		case NET_IL_RECEIVED:
-			if(! ERROR_OCCURRED(packet_translate(arp_globals.net_phone, &packet, IPC_GET_PACKET(call)))){
+			if(! ERROR_OCCURRED(packet_translate_remote(arp_globals.net_phone, &packet, IPC_GET_PACKET(call)))){
 				fibril_rwlock_read_lock(&arp_globals.lock);
 				do{
 					next = pq_detach(packet);
 					ERROR_CODE = arp_receive_message(IPC_GET_DEVICE(call), packet);
 					if(ERROR_CODE != 1){
-						pq_release(arp_globals.net_phone, packet_get_id(packet));
+						pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 					}
 					packet = next;
 				}while(packet);
@@ -432,6 +437,7 @@ int arp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int
 		case NET_IL_MTU_CHANGED:
 			return arp_mtu_changed_message(IPC_GET_DEVICE(call), IPC_GET_MTU(call));
 	}
+	
 	return ENOTSUP;
 }
 
@@ -568,13 +574,13 @@ measured_string_ref arp_translate_message(device_id_t device_id, services_t prot
 	if(length > device->packet_dimension.content){
 		return NULL;
 	}
-	packet = packet_get_4(arp_globals.net_phone, device->packet_dimension.addr_len, device->packet_dimension.prefix, length, device->packet_dimension.suffix);
+	packet = packet_get_4_remote(arp_globals.net_phone, device->packet_dimension.addr_len, device->packet_dimension.prefix, length, device->packet_dimension.suffix);
 	if(! packet){
 		return NULL;
 	}
 	header = (arp_header_ref) packet_suffix(packet, length);
 	if(! header){
-		pq_release(arp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return NULL;
 	}
 	header->hardware = htons(device->hardware);
@@ -591,7 +597,7 @@ measured_string_ref arp_translate_message(device_id_t device_id, services_t prot
 	length += device->addr->length;
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
 	if(packet_set_addr(packet, (uint8_t *) device->addr->value, (uint8_t *) device->broadcast_addr->value, CONVERT_SIZE(char, uint8_t, device->addr->length)) != EOK){
-		pq_release(arp_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return NULL;
 	}
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
@@ -617,10 +623,6 @@ int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol,
 		return ENOENT;
 	}
 }
-
-#ifdef CONFIG_NETWORKING_modular
-
-#include <il_standalone.h>
 
 /** Default thread for new connections.
  *
@@ -648,7 +650,8 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = il_module_message(callid, &call, &answer, &answer_count);
+		int res = il_module_message_standalone(callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -672,19 +675,12 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(il_module_start(il_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(il_module_start_standalone(il_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

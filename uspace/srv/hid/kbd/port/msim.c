@@ -29,9 +29,9 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	Msim keyboard port driver.
+ * @brief Msim keyboard port driver.
  */
 
 #include <ipc/ipc.h>
@@ -40,6 +40,7 @@
 #include <kbd_port.h>
 #include <kbd.h>
 #include <ddi.h>
+#include <errno.h>
 
 irq_cmd_t msim_cmds[] = {
 	{
@@ -62,10 +63,18 @@ static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int kbd_port_init(void)
 {
+	sysarg_t vaddr;
+	if (sysinfo_get_value("kbd.address.virtual", &vaddr) != EOK)
+		return -1;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
+	msim_cmds[0].addr = (void *) vaddr;
 	async_set_interrupt_received(msim_irq_handler);
-	msim_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    0, &msim_kbd);
+	ipc_register_irq(inr, device_assign_devno(), 0, &msim_kbd);
+	
 	return 0;
 }
 

@@ -39,7 +39,7 @@
 #include <stdarg.h>
 
 /** Structure for specifying output methods for different printf clones. */
-typedef struct printf_spec {
+typedef struct {
 	/* String output function, returns number of printed characters or EOF */
 	int (*str_write)(const char *, size_t, void *);
 	
@@ -50,7 +50,7 @@ typedef struct printf_spec {
 	void *data;
 } printf_spec_t;
 
-int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
+extern int printf_core(const char *, printf_spec_t *, va_list);
 
 #endif
 

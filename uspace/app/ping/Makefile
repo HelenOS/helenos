@@ -34,7 +34,6 @@ BINARY = ping
 
 SOURCES = \
 	ping.c \
-	parse.c \
 	print_error.c
 
 include $(USPACE_PREFIX)/Makefile.common

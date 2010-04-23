@@ -44,48 +44,35 @@ void console_clear(int phone)
 	async_msg_0(phone, CONSOLE_CLEAR);
 }
 
-int console_get_size(int phone, int *cols, int *rows)
+int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows)
 {
-	ipcarg_t cols_v;
-	ipcarg_t rows_v;
-	int rc;
-
-	rc = async_req_0_2(phone, CONSOLE_GET_SIZE, &cols_v, &rows_v);
-
-	*cols = (int) cols_v;
-	*rows = (int) rows_v;
-	return rc;
+	return async_req_0_2(phone, CONSOLE_GET_SIZE, cols, rows);
 }
 
-void console_set_style(int phone, int style)
+void console_set_style(int phone, uint8_t style)
 {
 	async_msg_1(phone, CONSOLE_SET_STYLE, style);
 }
 
-void console_set_color(int phone, int fg_color, int bg_color, int flags)
+void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
+    uint8_t flags)
 {
 	async_msg_3(phone, CONSOLE_SET_COLOR, fg_color, bg_color, flags);
 }
 
-void console_set_rgb_color(int phone, int fg_color, int bg_color)
+void console_set_rgb_color(int phone, uint32_t fg_color, uint32_t bg_color)
 {
 	async_msg_2(phone, CONSOLE_SET_RGB_COLOR, fg_color, bg_color);
 }
 
 void console_cursor_visibility(int phone, bool show)
 {
-	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, show != false);
+	async_msg_1(phone, CONSOLE_CURSOR_VISIBILITY, (show != false));
 }
 
-int console_get_color_cap(int phone, int *ccap)
+int console_get_color_cap(int phone, ipcarg_t *ccap)
 {
-	ipcarg_t ccap_tmp;
-	int rc;
-
-	rc = async_req_0_1(phone, CONSOLE_GET_COLOR_CAP, &ccap_tmp);
-	*ccap = ccap_tmp;
-
-	return rc;
+	return async_req_0_1(phone, CONSOLE_GET_COLOR_CAP, ccap);
 }
 
 void console_kcon_enable(int phone)
@@ -93,20 +80,12 @@ void console_kcon_enable(int phone)
 	async_msg_0(phone, CONSOLE_KCON_ENABLE);
 }
 
-int console_get_pos(int phone, int *col, int *row)
+int console_get_pos(int phone, ipcarg_t *col, ipcarg_t *row)
 {
-	ipcarg_t col_v;
-	ipcarg_t row_v;
-	int rc;
-
-	rc = async_req_0_2(phone, CONSOLE_GET_POS, &col_v, &row_v);
-
-	*col = (int) col_v;
-	*row = (int) row_v;
-	return rc;
+	return async_req_0_2(phone, CONSOLE_GET_POS, col, row);
 }
 
-void console_goto(int phone, int col, int row)
+void console_set_pos(int phone, ipcarg_t col, ipcarg_t row)
 {
 	async_msg_2(phone, CONSOLE_GOTO, col, row);
 }

@@ -32,7 +32,6 @@ BINARY = console
 
 GENERIC_SOURCES = \
 	console.c \
-	screenbuffer.c \
 	keybuffer.c \
 	gcons.c
 

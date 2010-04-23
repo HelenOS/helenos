@@ -28,52 +28,67 @@
 #
 
 USPACE_PREFIX = ../../..
+ROOT_PATH = $(USPACE_PREFIX)/..
+
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
 BINARY = fb
+
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
 
 SOURCES = \
 	main.c \
 	ppm.c
 
 ifneq ($(UARCH),ia64)
-	SOURCES += fb.c \
+	SOURCES += \
+		fb.c \
 		font-8x16.c
-	EXTRA_CFLAGS = -DFB_ENABLED
+	EXTRA_CFLAGS += -DFB_ENABLED
 endif
 
 ifeq ($(UARCH),ia32)
-	SOURCES += ega.c
-	EXTRA_CFLAGS = -DEGA_ENABLED
+	SOURCES += \
+		ega.c
+	EXTRA_CFLAGS += -DEGA_ENABLED
 endif
 
 ifeq ($(UARCH),ia64)
-	SOURCES += ega.c \
+	SOURCES += \
+		ega.c \
 		ski.c \
 		serial_console.c
-	EXTRA_CFLAGS = -DSKI_ENABLED -DEGA_ENABLED
+	EXTRA_CFLAGS += -DSKI_ENABLED -DEGA_ENABLED
 endif
 
 ifeq ($(UARCH),amd64)
-	SOURCES += ega.c
-	EXTRA_CFLAGS = -DEGA_ENABLED
+	SOURCES += \
+		ega.c
+	EXTRA_CFLAGS += -DEGA_ENABLED
 endif
 
 ifeq ($(UARCH),mips32)
-	SOURCES += msim.c \
+	SOURCES += \
+		msim.c \
 		serial_console.c
-	EXTRA_CFLAGS = -DMSIM_ENABLED
+	EXTRA_CFLAGS += -DMSIM_ENABLED
 endif
 
 ifeq ($(UARCH),sparc64)
-	ifeq ($(PROCESSOR), sun4v)
-		SOURCES += niagara.c \
+	ifeq ($(PROCESSOR),sun4v)
+		SOURCES += \
+			niagara.c \
 			serial_console.c
-		EXTRA_CFLAGS = -DNIAGARA_ENABLED
+		EXTRA_CFLAGS += -DNIAGARA_ENABLED
 	endif
-
-	ifeq ($(MACHINE), serengeti)
-		SOURCES += sgcn.c \
+	
+	ifeq ($(MACHINE),serengeti)
+		SOURCES += \
+			sgcn.c \
 			serial_console.c
-		EXTRA_CFLAGS = -DSGCN_ENABLED
+		EXTRA_CFLAGS += -DSGCN_ENABLED
 	endif
 endif
 

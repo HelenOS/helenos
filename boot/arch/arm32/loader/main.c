@@ -47,7 +47,7 @@
 #include "mm.h"
 
 /** Kernel entry point address. */
-#define KERNEL_VIRTUAL_ADDRESS 0x80200000
+#define KERNEL_VIRTUAL_ADDRESS 0x80800000
 
 
 char *release = STRING(RELEASE);

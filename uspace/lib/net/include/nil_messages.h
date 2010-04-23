@@ -27,12 +27,11 @@
  */
 
 /** @addtogroup net_nil
- *  @{
+ * @{
  */
 
 /** @file
- *  Network interface layer module messages.
- *  @see nil_interface.h
+ * Network interface layer module messages.
  */
 
 #ifndef __NET_NIL_MESSAGES_H__
@@ -42,7 +41,7 @@
 
 #include <net_messages.h>
 
-/**  Network interface layer module messages.
+/** Network interface layer module messages.
  */
 typedef enum {
 	/** New device or update MTU message.
@@ -79,7 +78,7 @@ typedef enum {
  */
 /*@{*/
 
-/** Returns the protocol service message parameter.
+/** Return the protocol service message parameter.
  */
 #define NIL_GET_PROTO(call) \
 	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})

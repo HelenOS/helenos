@@ -41,14 +41,18 @@
 #include <net_err.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
+#include <packet_remote.h>
 #include <net_device.h>
 #include <icmp_interface.h>
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
-#include <ip_interface.h>
+#include <ip_local.h>
+#include <ip_remote.h>
 #include <socket_codes.h>
 #include <socket_errno.h>
+#include <ip_interface.h>
+#include <tl_interface.h>
 #include <tl_common.h>
 
 DEVICE_MAP_IMPLEMENT(packet_dimensions, packet_dimension_t);
@@ -81,30 +85,53 @@ int tl_get_address_port(const struct sockaddr * addr, int addrlen, uint16_t * po
 	return EOK;
 }
 
-int tl_get_ip_packet_dimension(int ip_phone, packet_dimensions_ref packet_dimensions, device_id_t device_id, packet_dimension_ref * packet_dimension){
+/** Get IP packet dimensions.
+ *
+ * Try to search a cache and query the IP module if not found.
+ * The reply is cached then.
+ *
+ * @param[in]  ip_phone          The IP moduel phone for (semi)remote calls.
+ * @param[in]  packet_dimensions The packet dimensions cache.
+ * @param[in]  device_id         The device identifier.
+ * @param[out] packet_dimension  The IP packet dimensions.
+ *
+ * @return EOK on success.
+ * @return EBADMEM if the packet_dimension parameter is NULL.
+ * @return ENOMEM if there is not enough memory left.
+ * @return EINVAL if the packet_dimensions cache is not valid.
+ * @return Other codes as defined for the ip_packet_size_req() function.
+ *
+ */
+int tl_get_ip_packet_dimension(int ip_phone,
+    packet_dimensions_ref packet_dimensions, device_id_t device_id,
+    packet_dimension_ref *packet_dimension)
+{
 	ERROR_DECLARE;
-
-	if(! packet_dimension){
+	
+	if (!packet_dimension)
 		return EBADMEM;
-	}
-
+	
 	*packet_dimension = packet_dimensions_find(packet_dimensions, device_id);
-	if(! * packet_dimension){
-		// ask for and remember them if not found
-		*packet_dimension = malloc(sizeof(** packet_dimension));
-		if(! * packet_dimension){
+	if (!*packet_dimension) {
+		/* Ask for and remember them if not found */
+		*packet_dimension = malloc(sizeof(**packet_dimension));
+		if(!*packet_dimension)
 			return ENOMEM;
-		}
-		if(ERROR_OCCURRED(ip_packet_size_req(ip_phone, device_id, * packet_dimension))){
+		
+		if (ERROR_OCCURRED(ip_packet_size_req(ip_phone, device_id,
+		    *packet_dimension))) {
 			free(*packet_dimension);
 			return ERROR_CODE;
 		}
-		ERROR_CODE = packet_dimensions_add(packet_dimensions, device_id, * packet_dimension);
-		if(ERROR_CODE < 0){
+		
+		ERROR_CODE = packet_dimensions_add(packet_dimensions, device_id,
+		    *packet_dimension);
+		if (ERROR_CODE < 0) {
 			free(*packet_dimension);
 			return ERROR_CODE;
 		}
 	}
+	
 	return EOK;
 }
 
@@ -168,9 +195,9 @@ int tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet, se
 
 	// detach the first packet and release the others
 	next = pq_detach(packet);
-	if(next){
-		pq_release(packet_phone, packet_get_id(next));
-	}
+	if (next)
+		pq_release_remote(packet_phone, packet_get_id(next));
+	
 	length = packet_get_addr(packet, &src, NULL);
 	if((length > 0)
 		&& (! error)
@@ -179,7 +206,7 @@ int tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet, se
 		&& (packet_set_addr(packet, src, src, (size_t) length) == EOK)){
 		return EOK;
 	}else{
-		pq_release(packet_phone, packet_get_id(packet));
+		pq_release_remote(packet_phone, packet_get_id(packet));
 	}
 	return ENOENT;
 }
@@ -199,21 +226,21 @@ int tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefi
 		return EINVAL;
 	}
 	// get a new packet
-	*packet = packet_get_4(packet_phone, length, dimension->addr_len, prefix + dimension->prefix, dimension->suffix);
+	*packet = packet_get_4_remote(packet_phone, length, dimension->addr_len, prefix + dimension->prefix, dimension->suffix);
 	if(! packet){
 		return ENOMEM;
 	}
 	// allocate space in the packet
 	data = packet_suffix(*packet, length);
 	if(! data){
-		pq_release(packet_phone, packet_get_id(*packet));
+		pq_release_remote(packet_phone, packet_get_id(*packet));
 		return ENOMEM;
 	}
 	// read the data into the packet
 	if(ERROR_OCCURRED(async_data_write_finalize(callid, data, length))
 	// set the packet destination address
 		|| ERROR_OCCURRED(packet_set_addr(*packet, NULL, (uint8_t *) addr, addrlen))){
-		pq_release(packet_phone, packet_get_id(*packet));
+		pq_release_remote(packet_phone, packet_get_id(*packet));
 		return ERROR_CODE;
 	}
 	return (int) length;

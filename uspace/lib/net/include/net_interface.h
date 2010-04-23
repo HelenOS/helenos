@@ -30,13 +30,6 @@
  *  @{
  */
 
-/** @file
- *  Networking module interface.
- *  The same interface is used for standalone remote modules as well as for bundle modules.
- *  The standalone remote modules have to be compiled with the net_remote.c source file.
- *  The bundle networking module is compiled with the net_bundle.c source file and the choosen bundle module implementation source files.
- */
-
 #ifndef __NET_NET_INTERFACE_H__
 #define __NET_NET_INTERFACE_H__
 

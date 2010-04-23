@@ -27,12 +27,11 @@
  */
 
 /** @addtogroup netif
- *  @{
+ * @{
  */
 
 /** @file
- *  Network interface common module messages.
- *  @see netif_interface.h
+ * Network interface common module messages.
  */
 
 #ifndef __NET_NETIF_MESSAGES_H__
@@ -75,14 +74,14 @@ typedef enum {
  */
 /*@{*/
 
-/** Returns the interrupt number message parameter.
- *  @param[in] call The message call structure.
+/** Return the interrupt number message parameter.
+ * @param[in] call The message call structure.
  */
 #define NETIF_GET_IRQ(call) \
 	({int irq = (int) IPC_GET_ARG2(*call); irq;})
 
-/** Returns the input/output address message parameter.
- *  @param[in] call The message call structure.
+/** Return the input/output address message parameter.
+ * @param[in] call The message call structure.
  */
 #define NETIF_GET_IO(call) \
 	({int io = (int) IPC_GET_ARG3(*call); io;})

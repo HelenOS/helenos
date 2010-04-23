@@ -48,6 +48,9 @@
  */
 DEVICE_MAP_DECLARE(packet_dimensions, packet_dimension_t);
 
+extern int tl_get_ip_packet_dimension(int, packet_dimensions_ref,
+    device_id_t, packet_dimension_ref *);
+
 /** Gets the address port.
  *  Supports AF_INET and AF_INET6 address families.
  *  @param[in,out] addr The address to be updated.
@@ -58,21 +61,6 @@ DEVICE_MAP_DECLARE(packet_dimensions, packet_dimension_t);
  *  @returns EAFNOSUPPORT if the address family is not supported.
  */
 extern int tl_get_address_port(const struct sockaddr * addr, int addrlen, uint16_t * port);
-
-/** Gets IP packet dimensions.
- *  Tries to search a cache and queries the IP module if not found.
- *  The reply is cached then.
- *  @param[in] ip_phone The IP moduel phone for (semi)remote calls.
- *  @param[in] packet_dimensions The packet dimensions cache.
- *  @param[in] device_id The device identifier.
- *  @param[out] packet_dimension The IP packet dimensions.
- *  @returns EOK on success.
- *  @returns EBADMEM if the packet_dimension parameter is NULL.
- *  @return ENOMEM if there is not enough memory left.
- *  @returns EINVAL if the packet_dimensions cache is not valid.
- *  @returns Other codes as defined for the ip_packet_size_req() function.
- */
-extern int tl_get_ip_packet_dimension(int ip_phone, packet_dimensions_ref packet_dimensions, device_id_t device_id, packet_dimension_ref * packet_dimension);
 
 /** Updates IP device packet dimensions cache.
  *  @param[in,out] packet_dimensions The packet dimensions cache.

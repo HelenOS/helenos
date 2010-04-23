@@ -39,14 +39,15 @@
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
+#include <arg_parse.h>
 
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
 #include <socket.h>
 #include <net_err.h>
+#include <socket_parse.h>
 
-#include "parse.h"
 #include "print_error.h"
 
 /** Network echo module name.
@@ -127,40 +128,36 @@ int main(int argc, char * argv[]){
 	size_t reply_length;
 	int value;
 
-	// print the program label
-	printf("Task %d - ", task_get_id());
-	printf("%s\n", NAME);
-
 	// parse the command line arguments
 	for(index = 1; index < argc; ++ index){
 		if(argv[index][0] == '-'){
 			switch(argv[index][1]){
 				case 'b':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &backlog, "accepted sockets queue size", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 0));
 					break;
 				case 'c':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &count, "message count", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 0));
 					break;
 				case 'f':
-					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 0, parse_protocol_family));
+					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
 					break;
 				case 'h':
 					echo_print_help();
 					return EOK;
 					break;
 				case 'p':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
 					port = (uint16_t) value;
 					break;
 				case 'r':
-					ERROR_PROPAGATE(parse_parameter_string(argc, argv, &index, &reply, "reply string", 0));
+					ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 0));
 					break;
 				case 's':
-					ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "receive size", 0));
+					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
 					size = (value >= 0) ? (size_t) value : 0;
 					break;
 				case 't':
-					ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 0, parse_socket_type));
+					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
 					type = (sock_type_t) value;
 					break;
 				case 'v':
@@ -169,40 +166,37 @@ int main(int argc, char * argv[]){
 				// long options with the double minus sign ('-')
 				case '-':
 					if(str_lcmp(argv[index] + 2, "backlog=", 6) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &backlog, "accepted sockets queue size", 8));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 8));
 					}else if(str_lcmp(argv[index] + 2, "count=", 6) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &count, "message count", 8));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 8));
 					}else if(str_lcmp(argv[index] + 2, "family=", 7) == 0){
-						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &family, "protocol family", 9, parse_protocol_family));
+						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
 					}else if(str_lcmp(argv[index] + 2, "help", 5) == 0){
 						echo_print_help();
 						return EOK;
 					}else if(str_lcmp(argv[index] + 2, "port=", 5) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "port number", 7));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
 						port = (uint16_t) value;
 					}else if(str_lcmp(argv[index] + 2, "reply=", 6) == 0){
-						ERROR_PROPAGATE(parse_parameter_string(argc, argv, &index, &reply, "reply string", 8));
+						ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 8));
 					}else if(str_lcmp(argv[index] + 2, "size=", 5) == 0){
-						ERROR_PROPAGATE(parse_parameter_int(argc, argv, &index, &value, "receive size", 7));
+						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
 						size = (value >= 0) ? (size_t) value : 0;
 					}else if(str_lcmp(argv[index] + 2, "type=", 5) == 0){
-						ERROR_PROPAGATE(parse_parameter_name_int(argc, argv, &index, &value, "socket type", 7, parse_socket_type));
+						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
 						type = (sock_type_t) value;
 					}else if(str_lcmp(argv[index] + 2, "verbose", 8) == 0){
 						verbose = 1;
 					}else{
-						print_unrecognized(index, argv[index] + 2);
 						echo_print_help();
 						return EINVAL;
 					}
 					break;
 				default:
-					print_unrecognized(index, argv[index] + 1);
 					echo_print_help();
 					return EINVAL;
 			}
 		}else{
-			print_unrecognized(index, argv[index]);
 			echo_print_help();
 			return EINVAL;
 		}

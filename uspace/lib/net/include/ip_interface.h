@@ -30,13 +30,6 @@
  *  @{
  */
 
-/** @file
- *  IP module interface.
- *  The same interface is used for standalone remote modules as well as for bundle modules.
- *  The standalone remote modules have to be compiled with the ip_remote.c source file.
- *  The bundle modules with the ip.c source file.
- */
-
 #ifndef __NET_IP_INTERFACE_H__
 #define __NET_IP_INTERFACE_H__
 
@@ -50,14 +43,36 @@
 #include <ip_codes.h>
 #include <socket_codes.h>
 
+#ifdef CONFIG_IL_TL_BUNDLE
+
+#include <ip_local.h>
+
+#define ip_received_error_msg  ip_received_error_msg_local
+#define ip_set_gateway_req     ip_set_gateway_req_local
+#define ip_packet_size_req     ip_packet_size_req_local
+#define ip_device_req          ip_device_req_local
+#define ip_add_route_req       ip_add_route_req_local
+#define ip_send_msg            ip_send_msg_local
+#define ip_get_route_req       ip_get_route_req_local
+
+#else
+
+#include <ip_remote.h>
+
+#define ip_received_error_msg  ip_received_error_msg_remote
+#define ip_set_gateway_req     ip_set_gateway_req_remote
+#define ip_packet_size_req     ip_packet_size_req_remote
+#define ip_device_req          ip_device_req_remote
+#define ip_add_route_req       ip_add_route_req_remote
+#define ip_send_msg            ip_send_msg_remote
+#define ip_get_route_req       ip_get_route_req_remote
+
+#endif
+
 /** @name IP module interface
  *  This interface is used by other modules.
  */
 /*@{*/
-
-/** Type definition of the internet pseudo header pointer.
- */
-typedef void *		ip_pseudo_header_ref;
 
 /** The transport layer notification function type definition.
  *  Notifies the transport layer modules about the received packet/s.
@@ -81,89 +96,12 @@ typedef int	(*tl_received_msg_t)(device_id_t device_id, packet_t packet, service
  */
 extern int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t tl_received_msg);
 
-/** Registers the new device.
- *  Registers itself as the ip packet receiver.
- *  If the device uses ARP registers also the new ARP device.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The new device identifier.
- *  @param[in] netif The underlying device network interface layer service.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- *  @returns EINVAL if the device configuration is invalid.
- *  @returns ENOTSUP if the device uses IPv6.
- *  @returns ENOTSUP if the device uses DHCP.
- *  @returns Other error codes as defined for the net_get_device_conf_req() function.
- *  @returns Other error codes as defined for the arp_device_req() function.
- */
-extern int ip_device_req(int ip_phone, device_id_t device_id, services_t netif);
-
-/** Sends the packet queue.
- *  The packets may get fragmented if needed.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet The packet fragments as a~packet queue. All the packets have to have the same destination address.
- *  @param[in] sender The sending module service.
- *  @param[in] error The packet error reporting service. Prefixes the received packet.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the generic_send_msg() function.
- */
-extern int ip_send_msg(int ip_phone, device_id_t device_id, packet_t packet, services_t sender, services_t error);
-
 /** Connects to the IP module.
  *  @param service The IP module service. Ignored parameter.
  *  @returns The IP module phone on success.
  *  @returns 0 if called by the bundle module.
  */
 extern int ip_connect_module(services_t service);
-
-/** Adds a route to the device routing table.
- *  The target network is routed using this device.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] address The target network address.
- *  @param[in] netmask The target network mask.
- *  @param[in] gateway The target network gateway. Not used if zero.
- */
-extern int ip_add_route_req(int ip_phone, device_id_t device_id, in_addr_t address, in_addr_t netmask, in_addr_t gateway);
-
-/** Sets the default gateway.
- *  This gateway is used if no other route is found.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] gateway The default gateway.
- */
-extern int ip_set_gateway_req(int ip_phone, device_id_t device_id, in_addr_t gateway);
-
-/** Returns the device packet dimension for sending.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[out] packet_dimension The packet dimension.
- *  @returns EOK on success.
- *  @returns ENOENT if there is no such device.
- *  @returns Other error codes as defined for the generic_packet_size_req() function.
- */
-extern int ip_packet_size_req(int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension);
-
-/** Notifies the IP module about the received error notification packet.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] packet The received packet or the received packet queue.
- *  @param[in] target The target internetwork module service to be delivered to.
- *  @param[in] error The packet error reporting service. Prefixes the received packet.
- *  @returns EOK on success.
- */
-extern int ip_received_error_msg(int ip_phone, device_id_t device_id, packet_t packet, services_t target, services_t error);
-
-/** Returns the device identifier and the IP pseudo header based on the destination address.
- *  @param[in] ip_phone The IP module phone used for (semi)remote calls.
- *  @param[in] protocol The transport protocol.
- *  @param[in] destination The destination address.
- *  @param[in] addrlen The destination address length.
- *  @param[out] device_id The device identifier.
- *  @param[out] header The constructed IP pseudo header.
- *  @param[out] headerlen The IP pseudo header length.
- */
-extern int ip_get_route_req(int ip_phone, ip_protocol_t protocol, const struct sockaddr * destination, socklen_t addrlen, device_id_t * device_id, ip_pseudo_header_ref * header, size_t * headerlen);
 
 /*@}*/
 

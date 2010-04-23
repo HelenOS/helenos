@@ -43,12 +43,12 @@ typedef enum {
 	KEY_RELEASE
 } console_ev_type_t;
 
-enum {
+typedef enum {
 	CONSOLE_CCAP_NONE = 0,
 	CONSOLE_CCAP_STYLE,
 	CONSOLE_CCAP_INDEXED,
 	CONSOLE_CCAP_RGB
-};
+} console_caps_t;
 
 /** Console event structure. */
 typedef struct {
@@ -67,16 +67,17 @@ typedef struct {
 
 extern void console_clear(int phone);
 
-extern int console_get_size(int phone, int *cols, int *rows);
-extern int console_get_pos(int phone, int *col, int *row);
-extern void console_goto(int phone, int col, int row);
+extern int console_get_size(int phone, ipcarg_t *cols, ipcarg_t *rows);
+extern int console_get_pos(int phone, ipcarg_t *col, ipcarg_t *row);
+extern void console_set_pos(int phone, ipcarg_t col, ipcarg_t row);
 
-extern void console_set_style(int phone, int style);
-extern void console_set_color(int phone, int fg_color, int bg_color, int flags);
-extern void console_set_rgb_color(int phone, int fg_color, int bg_color);
+extern void console_set_style(int phone, uint8_t style);
+extern void console_set_color(int phone, uint8_t fg_color, uint8_t bg_color,
+    uint8_t flags);
+extern void console_set_rgb_color(int phone, uint32_t fg_color, uint32_t bg_color);
 
 extern void console_cursor_visibility(int phone, bool show);
-extern int console_get_color_cap(int phone, int *ccap);
+extern int console_get_color_cap(int phone, ipcarg_t *ccap);
 extern void console_kcon_enable(int phone);
 
 extern bool console_get_event(int phone, console_event_t *event);

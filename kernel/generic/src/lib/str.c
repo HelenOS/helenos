@@ -109,6 +109,7 @@
 #include <errno.h>
 #include <align.h>
 #include <debug.h>
+#include <macros.h>
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -536,27 +537,25 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * is at least one byte, the output string will always be well-formed, i.e.
  * null-terminated and containing only complete characters.
  *
- * @param dest   Destination buffer.
+ * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
+ *
  */
 void str_cpy(char *dest, size_t size, const char *src)
 {
-	wchar_t ch;
-	size_t src_off;
-	size_t dest_off;
-
 	/* There must be space for a null terminator in the buffer. */
 	ASSERT(size > 0);
 	
-	src_off = 0;
-	dest_off = 0;
-
+	size_t src_off = 0;
+	size_t dest_off = 0;
+	
+	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-
+	
 	dest[dest_off] = '\0';
 }
 
@@ -570,29 +569,86 @@ void str_cpy(char *dest, size_t size, const char *src)
  * No more than @a n bytes are read from the input string, so it does not
  * have to be null-terminated.
  *
- * @param dest   Destination buffer.
+ * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
- * @param n	Maximum number of bytes to read from @a src.
+ * @param n     Maximum number of bytes to read from @a src.
+ *
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
-	wchar_t ch;
-	size_t src_off;
-	size_t dest_off;
-
 	/* There must be space for a null terminator in the buffer. */
 	ASSERT(size > 0);
 	
-	src_off = 0;
-	dest_off = 0;
-
+	size_t src_off = 0;
+	size_t dest_off = 0;
+	
+	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, n)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-
+	
 	dest[dest_off] = '\0';
+}
+
+/** Duplicate string.
+ *
+ * Allocate a new string and copy characters from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ *
+ * @return Duplicate string.
+ *
+ */
+char *str_dup(const char *src)
+{
+	size_t size = str_size(src) + 1;
+	char *dest = malloc(size, 0);
+	ASSERT(dest);
+	
+	str_cpy(dest, size, src);
+	return dest;
+}
+
+/** Duplicate string with size limit.
+ *
+ * Allocate a new string and copy up to @max_size bytes from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ * No more than @max_size + 1 bytes is allocated, but if the size
+ * occupied by the source string is smaller than @max_size + 1,
+ * less is allocated.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ * @param n   Maximum number of bytes to duplicate.
+ *
+ * @return Duplicate string.
+ *
+ */
+char *str_ndup(const char *src, size_t n)
+{
+	size_t size = str_size(src);
+	if (size > n)
+		size = n;
+	
+	char *dest = malloc(size + 1, 0);
+	ASSERT(dest);
+	
+	str_ncpy(dest, size + 1, src, size);
+	return dest;
 }
 
 /** Convert wide string to string.
@@ -702,6 +758,189 @@ bool wstr_remove(wchar_t *str, size_t pos)
 		str[i - 1] = str[i];
 	
 	return true;
+}
+
+/** Convert string to uint64_t (internal variant).
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr Pointer to the first invalid character is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param neg    Indication of unary minus is stored here.
+ * @apram result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+static int str_uint(const char *nptr, char **endptr, unsigned int base,
+    bool *neg, uint64_t *result)
+{
+	ASSERT(endptr != NULL);
+	ASSERT(neg != NULL);
+	ASSERT(result != NULL);
+	
+	*neg = false;
+	const char *str = nptr;
+	
+	/* Ignore leading whitespace */
+	while (isspace(*str))
+		str++;
+	
+	if (*str == '-') {
+		*neg = true;
+		str++;
+	} else if (*str == '+')
+		str++;
+	
+	if (base == 0) {
+		/* Decode base if not specified */
+		base = 10;
+		
+		if (*str == '0') {
+			base = 8;
+			str++;
+			
+			switch (*str) {
+			case 'b':
+			case 'B':
+				base = 2;
+				str++;
+				break;
+			case 'o':
+			case 'O':
+				base = 8;
+				str++;
+				break;
+			case 'd':
+			case 'D':
+			case 't':
+			case 'T':
+				base = 10;
+				str++;
+				break;
+			case 'x':
+			case 'X':
+				base = 16;
+				str++;
+				break;
+			}
+		}
+	} else {
+		/* Check base range */
+		if ((base < 2) || (base > 36)) {
+			*endptr = (char *) str;
+			return EINVAL;
+		}
+	}
+	
+	*result = 0;
+	const char *startstr = str;
+	
+	while (*str != 0) {
+		unsigned int digit;
+		
+		if ((*str >= 'a') && (*str <= 'z'))
+			digit = *str - 'a' + 10;
+		else if ((*str >= 'A') && (*str <= 'Z'))
+			digit = *str - 'A' + 10;
+		else if ((*str >= '0') && (*str <= '9'))
+			digit = *str - '0';
+		else
+			break;
+		
+		if (digit >= base)
+			break;
+		
+		uint64_t prev = *result;
+		*result = (*result) * base + digit;
+		
+		if (*result < prev) {
+			/* Overflow */
+			*endptr = (char *) str;
+			return EOVERFLOW;
+		}
+		
+		str++;
+	}
+	
+	if (str == startstr) {
+		/*
+		 * No digits were decoded => first invalid character is
+		 * the first character of the string.
+		 */
+		str = nptr;
+	}
+	
+	*endptr = (char *) str;
+	
+	if (str == nptr)
+		return EINVAL;
+	
+	return EOK;
+}
+
+/** Convert string to uint64_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @apram result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+int str_uint64(const char *nptr, char **endptr, unsigned int base,
+    bool strict, uint64_t *result)
+{
+	ASSERT(result != NULL);
+	
+	bool neg;
+	char *lendptr;
+	int ret = str_uint(nptr, &lendptr, base, &neg, result);
+	
+	if (endptr != NULL)
+		*endptr = (char *) lendptr;
+	
+	if (ret != EOK)
+		return ret;
+	
+	/* Do not allow negative values */
+	if (neg)
+		return EINVAL;
+	
+	/* Check whether we are at the end of
+	   the string in strict mode */
+	if ((strict) && (*lendptr != 0))
+		return EINVAL;
+	
+	return EOK;
+}
+
+void order_suffix(const uint64_t val, uint64_t *rv, char *suffix)
+{
+	if (val > 10000000000000000000ULL) {
+		*rv = val / 1000000000000000000ULL;
+		*suffix = 'Z';
+	} else if (val > 1000000000000000000ULL) {
+		*rv = val / 1000000000000000ULL;
+		*suffix = 'E';
+	} else if (val > 1000000000000000ULL) {
+		*rv = val / 1000000000000ULL;
+		*suffix = 'T';
+	} else if (val > 1000000000000ULL) {
+		*rv = val / 1000000000ULL;
+		*suffix = 'G';
+	} else if (val > 1000000000ULL) {
+		*rv = val / 1000000ULL;
+		*suffix = 'M';
+	} else if (val > 1000000ULL) {
+		*rv = val / 1000ULL;
+		*suffix = 'k';
+	} else {
+		*rv = val;
+		*suffix = ' ';
+	}
 }
 
 /** @}

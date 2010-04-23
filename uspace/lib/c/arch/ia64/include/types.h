@@ -37,22 +37,19 @@
 
 #define __64_BITS__
 
-typedef unsigned long sysarg_t;
+#include <libarch/common.h>
 
-typedef char int8_t;
-typedef short int int16_t;
-typedef int int32_t;
-typedef long int int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short int uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long int uint64_t;
+typedef struct {
+	uint64_t lo;
+	int64_t hi;
+} int128_t;
 
 typedef struct {
 	uint64_t lo;
 	uint64_t hi;
 } uint128_t;
+
+typedef uint64_t sysarg_t;
 
 typedef int64_t ssize_t;
 typedef uint64_t size_t;

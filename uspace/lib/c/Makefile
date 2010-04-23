@@ -34,13 +34,16 @@ INCLUDE_KERNEL = include/kernel
 INCLUDE_ARCH = include/arch
 INCLUDE_LIBARCH = include/libarch
 
-PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH)
-EXTRA_OUTPUT = $(LINKER_SCRIPT)
-EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(LINKER_SCRIPT)
-LIBRARY = libc
-
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+COMMON_HEADER = $(ROOT_PATH)/common.h
+COMMON_HEADER_ARCH = arch/$(UARCH)/include/common.h
+
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
+PRE_DEPEND = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH)
+EXTRA_OUTPUT = $(LINKER_SCRIPT)
+EXTRA_CLEAN = $(INCLUDE_KERNEL) $(INCLUDE_ARCH) $(INCLUDE_LIBARCH) $(COMMON_HEADER_ARCH) $(LINKER_SCRIPT)
+LIBRARY = libc
 
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
@@ -57,6 +60,7 @@ GENERIC_SOURCES = \
 	generic/errno.c \
 	generic/mem.c \
 	generic/str.c \
+	generic/str_error.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \
 	generic/pcb.c \
@@ -74,6 +78,7 @@ GENERIC_SOURCES = \
 	generic/io/vsnprintf.c \
 	generic/io/printf_core.c \
 	generic/io/console.c \
+	generic/io/screenbuffer.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
@@ -89,7 +94,9 @@ GENERIC_SOURCES = \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
-	generic/stacktrace.c
+	generic/stacktrace.c \
+	generic/arg_parse.c \
+	generic/stats.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \
@@ -110,3 +117,6 @@ $(INCLUDE_KERNEL): ../../../kernel/generic/include/
 
 $(LINKER_SCRIPT): $(LINKER_SCRIPT).in
 	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+
+$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
+	ln -sfn ../../../$< $@

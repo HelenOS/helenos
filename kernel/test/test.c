@@ -62,7 +62,6 @@ test_t tests[] = {
 #include <print/print3.def>
 #include <print/print4.def>
 #include <thread/thread1.def>
-#include <sysinfo/sysinfo1.def>
 	{
 		.name = NULL,
 		.desc = NULL,

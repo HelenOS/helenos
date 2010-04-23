@@ -27,6 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
+EXTRA_CFLAGS = -I.
 LIBRARY = libclui
 
 SOURCES = \

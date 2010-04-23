@@ -46,7 +46,7 @@
 #include <net_modules.h>
 #include <packet/packet.h>
 #include <net_interface.h>
-#include <tl_standalone.h>
+#include <tl_local.h>
 
 #include "udp.h"
 #include "udp_module.h"
@@ -62,7 +62,7 @@ extern udp_globals_t	udp_globals;
  *  @returns Other error codes as defined for the udp_initialize() function.
  *  @returns Other error codes as defined for the REGISTER_ME() macro function.
  */
-int tl_module_start(async_client_conn_t client_connection){
+int tl_module_start_standalone(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
 	ipcarg_t phonehash;
@@ -93,8 +93,8 @@ int tl_module_start(async_client_conn_t client_connection){
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the udp_message() function.
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
-	return udp_message(callid, call, answer, answer_count);
+int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+	return udp_message_standalone(callid, call, answer, answer_count);
 }
 
 /** @}

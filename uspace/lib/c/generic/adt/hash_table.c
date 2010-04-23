@@ -41,67 +41,67 @@
 #include <unistd.h>
 #include <malloc.h>
 #include <assert.h>
-#include <stdio.h>
 #include <str.h>
 
 /** Create chained hash table.
  *
- * @param h		Hash table structure. Will be initialized by this call.
- * @param m		Number of hash table buckets.
- * @param max_keys	Maximal number of keys needed to identify an item.
- * @param op		Hash table operations structure.
- * @return		True on success
+ * @param h        Hash table structure. Will be initialized by this call.
+ * @param m        Number of hash table buckets.
+ * @param max_keys Maximal number of keys needed to identify an item.
+ * @param op       Hash table operations structure.
+ *
+ * @return True on success
+ *
  */
 int hash_table_create(hash_table_t *h, hash_count_t m, hash_count_t max_keys,
     hash_table_operations_t *op)
 {
-	hash_count_t i;
-
 	assert(h);
 	assert(op && op->hash && op->compare);
 	assert(max_keys > 0);
 	
 	h->entry = malloc(m * sizeof(link_t));
-	if (!h->entry) {
-		printf("cannot allocate memory for hash table\n");
+	if (!h->entry)
 		return false;
-	}
+	
 	memset((void *) h->entry, 0,  m * sizeof(link_t));
 	
+	hash_count_t i;
 	for (i = 0; i < m; i++)
 		list_initialize(&h->entry[i]);
 	
 	h->entries = m;
 	h->max_keys = max_keys;
 	h->op = op;
+	
 	return true;
 }
 
 /** Destroy a hash table instance.
  *
- * @param h		Hash table to be destroyed.
+ * @param h Hash table to be destroyed.
+ *
  */
 void hash_table_destroy(hash_table_t *h)
 {
 	assert(h);
 	assert(h->entry);
+	
 	free(h->entry);
 }
 
 /** Insert item into a hash table.
  *
- * @param h		Hash table.
- * @param key		Array of all keys necessary to compute hash index.
- * @param item		Item to be inserted into the hash table.
+ * @param h    Hash table.
+ * @param key  Array of all keys necessary to compute hash index.
+ * @param item Item to be inserted into the hash table.
  */
 void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
 {
-	hash_index_t chain;
-
 	assert(item);
 	assert(h && h->op && h->op->hash && h->op->compare);
-
-	chain = h->op->hash(key);
+	
+	hash_index_t chain = h->op->hash(key);
 	assert(chain < h->entries);
 	
 	list_append(item, &h->entry[chain]);
@@ -109,21 +109,20 @@ void hash_table_insert(hash_table_t *h, unsigned long key[], link_t *item)
 
 /** Search hash table for an item matching keys.
  *
- * @param h		Hash table.
- * @param key		Array of all keys needed to compute hash index.
+ * @param h   Hash table.
+ * @param key Array of all keys needed to compute hash index.
  *
- * @return		Matching item on success, NULL if there is no such item.
+ * @return Matching item on success, NULL if there is no such item.
+ *
  */
 link_t *hash_table_find(hash_table_t *h, unsigned long key[])
 {
-	link_t *cur;
-	hash_index_t chain;
-
 	assert(h && h->op && h->op->hash && h->op->compare);
-
-	chain = h->op->hash(key);
+	
+	hash_index_t chain = h->op->hash(key);
 	assert(chain < h->entries);
 	
+	link_t *cur;
 	for (cur = h->entry[chain].next; cur != &h->entry[chain];
 	    cur = cur->next) {
 		if (h->op->compare(key, h->max_keys, cur)) {
@@ -141,32 +140,32 @@ link_t *hash_table_find(hash_table_t *h, unsigned long key[])
  *
  * For each removed item, h->remove_callback() is called.
  *
- * @param h		Hash table.
- * @param key		Array of keys that will be compared against items of
- * 			the hash table.
- * @param keys		Number of keys in the 'key' array.
+ * @param h    Hash table.
+ * @param key  Array of keys that will be compared against items of
+ *             the hash table.
+ * @param keys Number of keys in the 'key' array.
+ *
  */
 void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 {
-	hash_index_t chain;
-	link_t *cur;
-
 	assert(h && h->op && h->op->hash && h->op->compare &&
 	    h->op->remove_callback);
 	assert(keys <= h->max_keys);
 	
+	link_t *cur;
+	
 	if (keys == h->max_keys) {
-
 		/*
 		 * All keys are known, hash_table_find() can be used to find the
 		 * entry.
 		 */
-	
+		
 		cur = hash_table_find(h, key);
 		if (cur) {
 			list_remove(cur);
 			h->op->remove_callback(cur);
 		}
+		
 		return;
 	}
 	
@@ -174,6 +173,7 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 	 * Fewer keys were passed.
 	 * Any partially matching entries are to be removed.
 	 */
+	hash_index_t chain;
 	for (chain = 0; chain < h->entries; chain++) {
 		for (cur = h->entry[chain].next; cur != &h->entry[chain];
 		    cur = cur->next) {
@@ -194,16 +194,16 @@ void hash_table_remove(hash_table_t *h, unsigned long key[], hash_count_t keys)
 
 /** Apply fucntion to all items in hash table.
  *
- * @param h		Hash table.
- * @param f		Function to be applied.
- * @param arg		Argument to be passed to the function.
+ * @param h   Hash table.
+ * @param f   Function to be applied.
+ * @param arg Argument to be passed to the function.
+ *
  */
-void
-hash_table_apply(hash_table_t *h, void (*f)(link_t *, void *), void *arg)
+void hash_table_apply(hash_table_t *h, void (*f)(link_t *, void *), void *arg)
 {
 	hash_index_t bucket;
 	link_t *cur;
-
+	
 	for (bucket = 0; bucket < h->entries; bucket++) {
 		for (cur = h->entry[bucket].next; cur != &h->entry[bucket];
 		    cur = cur->next) {

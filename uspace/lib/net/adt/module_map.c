@@ -93,14 +93,15 @@ module_ref get_running_module(modules_ref modules, char * name){
 	return module;
 }
 
-task_id_t spawn(const char * fname){
-	const char * argv[2];
+task_id_t spawn(const char *fname)
+{
+	const char *argv[2];
 	task_id_t res;
-
+	
 	argv[0] = fname;
 	argv[1] = NULL;
-	res = task_spawn(fname, argv);
-
+	res = task_spawn(fname, argv, NULL);
+	
 	return res;
 }
 

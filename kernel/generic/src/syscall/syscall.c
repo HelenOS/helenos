@@ -60,6 +60,9 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 {
 	unative_t rc;
 
+	/* Do userpace accounting */
+	thread_update_accounting(true);
+
 #ifdef CONFIG_UDEBUG
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
@@ -94,6 +97,9 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_end();
 	}
 #endif
+
+	/* Do kernel accounting */
+	thread_update_accounting(false);
 	
 	return rc;
 }
@@ -137,7 +143,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
-
+	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
 	
@@ -152,8 +158,10 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_preempt_control,
 	
 	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_valid,
-	(syshandler_t) sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_get_tag,
+	(syshandler_t) sys_sysinfo_get_value,
+	(syshandler_t) sys_sysinfo_get_data_size,
+	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,

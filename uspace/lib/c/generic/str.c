@@ -470,27 +470,24 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * is at least one byte, the output string will always be well-formed, i.e.
  * null-terminated and containing only complete characters.
  *
- * @param dest   Destination buffer.
+ * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
  */
 void str_cpy(char *dest, size_t size, const char *src)
 {
-	wchar_t ch;
-	size_t src_off;
-	size_t dest_off;
-
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
 	
-	src_off = 0;
-	dest_off = 0;
-
+	size_t src_off = 0;
+	size_t dest_off = 0;
+	
+	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-
+	
 	dest[dest_off] = '\0';
 }
 
@@ -504,28 +501,25 @@ void str_cpy(char *dest, size_t size, const char *src)
  * No more than @a n bytes are read from the input string, so it does not
  * have to be null-terminated.
  *
- * @param dest   Destination buffer.
+ * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
  * @param src   Source string.
- * @param n	Maximum number of bytes to read from @a src.
+ * @param n     Maximum number of bytes to read from @a src.
  */
 void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
-	wchar_t ch;
-	size_t src_off;
-	size_t dest_off;
-
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
 	
-	src_off = 0;
-	dest_off = 0;
-
+	size_t src_off = 0;
+	size_t dest_off = 0;
+	
+	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, n)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-
+	
 	dest[dest_off] = '\0';
 }
 
@@ -895,30 +889,64 @@ long int strtol(const char *nptr, char **endptr, int base)
 	return (sgn ? -number : number);
 }
 
+/** Duplicate string.
+ *
+ * Allocate a new string and copy characters from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ *
+ * @return Duplicate string.
+ *
+ */
 char *str_dup(const char *src)
 {
-	size_t size = str_size(src);
-	void *dest = malloc(size + 1);
-	
+	size_t size = str_size(src) + 1;
+	char *dest = (char *) malloc(size);
 	if (dest == NULL)
 		return (char *) NULL;
 	
-	return (char *) memcpy(dest, src, size + 1);
+	str_cpy(dest, size, src);
+	return dest;
 }
 
-char *str_ndup(const char *src, size_t max_size)
+/** Duplicate string with size limit.
+ *
+ * Allocate a new string and copy up to @max_size bytes from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ * No more than @max_size + 1 bytes is allocated, but if the size
+ * occupied by the source string is smaller than @max_size + 1,
+ * less is allocated.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ * @param n   Maximum number of bytes to duplicate.
+ *
+ * @return Duplicate string.
+ *
+ */
+char *str_ndup(const char *src, size_t n)
 {
 	size_t size = str_size(src);
-	if (size > max_size)
-		size = max_size;
+	if (size > n)
+		size = n;
 	
 	char *dest = (char *) malloc(size + 1);
-	
 	if (dest == NULL)
 		return (char *) NULL;
 	
-	memcpy(dest, src, size);
-	dest[size] = 0;
+	str_ncpy(dest, size + 1, src, size);
 	return dest;
 }
 
@@ -976,6 +1004,32 @@ char *strtok_r(char *s, const char *delim, char **next)
 	/* Overwrite delimiter with NULL terminator. */
 	*end = '\0';
 	return start;
+}
+
+void order_suffix(const uint64_t val, uint64_t *rv, char *suffix)
+{
+	if (val > 10000000000000000000ULL) {
+		*rv = val / 1000000000000000000ULL;
+		*suffix = 'Z';
+	} else if (val > 1000000000000000000ULL) {
+		*rv = val / 1000000000000000ULL;
+		*suffix = 'E';
+	} else if (val > 1000000000000000ULL) {
+		*rv = val / 1000000000000ULL;
+		*suffix = 'T';
+	} else if (val > 1000000000000ULL) {
+		*rv = val / 1000000000ULL;
+		*suffix = 'G';
+	} else if (val > 1000000000ULL) {
+		*rv = val / 1000000ULL;
+		*suffix = 'M';
+	} else if (val > 1000000ULL) {
+		*rv = val / 1000ULL;
+		*suffix = 'k';
+	} else {
+		*rv = val;
+		*suffix = ' ';
+	}
 }
 
 /** @}

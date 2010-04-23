@@ -76,27 +76,57 @@ void answer_call(ipc_callid_t callid, int result, ipc_call_t * answer, int answe
 	}
 }
 
-int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver){
+/** Create bidirectional connection with the needed module service and registers the message receiver.
+ *
+ * @param[in] need            The needed module service.
+ * @param[in] arg1            The first parameter.
+ * @param[in] arg2            The second parameter.
+ * @param[in] arg3            The third parameter.
+ * @param[in] client_receiver The message receiver.
+ *
+ * @return The phone of the needed service.
+ * @return Other error codes as defined for the ipc_connect_to_me() function.
+ *
+ */
+int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
+    async_client_conn_t client_receiver)
+{
 	return bind_service_timeout(need, arg1, arg2, arg3, client_receiver, 0);
 }
 
-int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout){
+/** Create bidirectional connection with the needed module service and registers the message receiver.
+ *
+ * @param[in] need            The needed module service.
+ * @param[in] arg1            The first parameter.
+ * @param[in] arg2            The second parameter.
+ * @param[in] arg3            The third parameter.
+ * @param[in] client_receiver The message receiver.
+ * @param[in] timeout         The connection timeout in microseconds.
+ *                            No timeout if set to zero (0).
+ *
+ * @return The phone of the needed service.
+ * @return ETIMEOUT if the connection timeouted.
+ * @return Other error codes as defined for the ipc_connect_to_me() function.
+ *
+ */
+int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
+    ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
+{
 	ERROR_DECLARE;
-
-	int phone;
-	ipcarg_t phonehash;
-
-	// connect to the needed service
-	phone = connect_to_service_timeout(need, timeout);
-	// if connected
-	if(phone >= 0){
-		// request the bidirectional connection
-		if(ERROR_OCCURRED(ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash))){
+	
+	/* Connect to the needed service */
+	int phone = connect_to_service_timeout(need, timeout);
+	if (phone >= 0) {
+		/* Request the bidirectional connection */
+		ipcarg_t phonehash;
+		if (ERROR_OCCURRED(ipc_connect_to_me(phone, arg1, arg2, arg3,
+		    &phonehash))) {
 			ipc_hangup(phone);
 			return ERROR_CODE;
 		}
 		async_new_connection(phonehash, 0, NULL, client_receiver);
 	}
+	
 	return phone;
 }
 

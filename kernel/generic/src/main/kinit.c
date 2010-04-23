@@ -66,6 +66,7 @@
 #include <ipc/ipc.h>
 #include <debug.h>
 #include <str.h>
+#include <sysinfo/stats.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -121,6 +122,7 @@ void kinit(void *arg)
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
+		
 		thread_join(thread);
 		thread_detach(thread);
 	}
@@ -148,6 +150,13 @@ void kinit(void *arg)
 	 * At this point SMP, if present, is configured.
 	 */
 	arch_post_smp_init();
+	
+	/* Start thread computing system load */
+	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	if (thread != NULL)
+		thread_ready(thread);
+	else
+		printf("Unable to create kload thread\n");
 	
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {

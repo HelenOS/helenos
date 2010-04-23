@@ -47,77 +47,81 @@
 #include <async.h>
 
 #ifndef FIBRIL_INITIAL_STACK_PAGES_NO
-#define FIBRIL_INITIAL_STACK_PAGES_NO	1
+	#define FIBRIL_INITIAL_STACK_PAGES_NO  1
 #endif
 
 /**
- * This futex serializes access to ready_list, serialized_list and manager_list.
- */ 
+ * This futex serializes access to ready_list,
+ * serialized_list and manager_list.
+ */
 static atomic_t fibril_futex = FUTEX_INITIALIZER;
 
 static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(serialized_list);
 static LIST_INITIALIZE(manager_list);
 
-static void fibril_main(void);
-
 /** Number of threads that are executing a manager fibril. */
 static int threads_in_manager;
-/** Number of threads that are executing a manager fibril and are serialized. */
-static int serialized_threads;	/* Protected by async_futex */
+
+/**
+ * Number of threads that are executing a manager fibril
+ * and are serialized. Protected by async_futex.
+ */
+static int serialized_threads;
+
 /** Fibril-local count of serialization. If > 0, we must not preempt */
 static fibril_local int serialization_count;
-
-/** Setup fibril information into TCB structure */
-fibril_t *fibril_setup(void)
-{
-	fibril_t *f;
-	tcb_t *tcb;
-
-	tcb = __make_tls();
-	if (!tcb)
-		return NULL;
-
-	f = malloc(sizeof(fibril_t));
-	if (!f) {
-		__free_tls(tcb);
-		return NULL;
-	}
-
-	tcb->fibril_data = f;
-	f->tcb = tcb;
-
-	f->func = NULL;
-	f->arg = NULL;
-	f->stack = NULL;
-	f->clean_after_me = NULL;
-	f->retval = 0;
-	f->flags = 0;
-
-	return f;
-}
-
-void fibril_teardown(fibril_t *f)
-{
-	__free_tls(f->tcb);
-	free(f);
-}
 
 /** Function that spans the whole life-cycle of a fibril.
  *
  * Each fibril begins execution in this function. Then the function implementing
  * the fibril logic is called.  After its return, the return value is saved.
  * The fibril then switches to another fibril, which cleans up after it.
+ *
  */
-void fibril_main(void)
+static void fibril_main(void)
 {
-	fibril_t *f = __tcb_get()->fibril_data;
-
+	fibril_t *fibril = __tcb_get()->fibril_data;
+	
 	/* Call the implementing function. */
-	f->retval = f->func(f->arg);
-
+	fibril->retval = fibril->func(fibril->arg);
+	
 	fibril_switch(FIBRIL_FROM_DEAD);
-	/* not reached */
+	/* Not reached */
+}
+
+/** Setup fibril information into TCB structure
+ *
+ */
+fibril_t *fibril_setup(void)
+{
+	tcb_t *tcb = __make_tls();
+	if (!tcb)
+		return NULL;
+	
+	fibril_t *fibril = malloc(sizeof(fibril_t));
+	if (!fibril) {
+		__free_tls(tcb);
+		return NULL;
+	}
+	
+	tcb->fibril_data = fibril;
+	fibril->tcb = tcb;
+	
+	fibril->func = NULL;
+	fibril->arg = NULL;
+	fibril->stack = NULL;
+	fibril->clean_after_me = NULL;
+	fibril->retval = 0;
+	fibril->flags = 0;
+	
+	return fibril;
+}
+
+void fibril_teardown(fibril_t *fibril)
+{
+	__free_tls(fibril->tcb);
+	free(fibril);
 }
 
 /** Switch from the current fibril.
@@ -125,11 +129,13 @@ void fibril_main(void)
  * If calling with FIBRIL_TO_MANAGER parameter, the async_futex should be
  * held.
  *
- * @param stype		Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
- * 			FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
- * 			describes the circumstances of the switch.
- * @return		Return 0 if there is no ready fibril,
- * 			return 1 otherwise.
+ * @param stype Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
+ *              FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
+ *              describes the circumstances of the switch.
+ *
+ * @return 0 if there is no ready fibril,
+ * @return 1 otherwise.
+ *
  */
 int fibril_switch(fibril_switch_type_t stype)
 {
@@ -245,66 +251,69 @@ ret_0:
 
 /** Create a new fibril.
  *
- * @param func		Implementing function of the new fibril.
- * @param arg		Argument to pass to func.
+ * @param func Implementing function of the new fibril.
+ * @param arg Argument to pass to func.
  *
- * @return		Return 0 on failure or TLS of the new fibril.
+ * @return 0 on failure or TLS of the new fibril.
+ *
  */
 fid_t fibril_create(int (*func)(void *), void *arg)
 {
-	fibril_t *f;
-
-	f = fibril_setup();
-	if (!f) 
+	fibril_t *fibril;
+	
+	fibril = fibril_setup();
+	if (fibril == NULL)
 		return 0;
-	f->stack = (char *) malloc(FIBRIL_INITIAL_STACK_PAGES_NO *
-	    getpagesize());
-	if (!f->stack) {
-		fibril_teardown(f);
+	
+	fibril->stack =
+	    (char *) malloc(FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize());
+	if (!fibril->stack) {
+		fibril_teardown(fibril);
 		return 0;
 	}
 	
-	f->func = func;
-	f->arg = arg;
+	fibril->func = func;
+	fibril->arg = arg;
+	
+	context_save(&fibril->ctx);
+	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,
+	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(), fibril->tcb);
 
-	context_save(&f->ctx);
-	context_set(&f->ctx, FADDR(fibril_main), f->stack,
-	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(), f->tcb);
-
-	return (fid_t) f;
+	return (fid_t) fibril;
 }
 
 /** Add a fibril to the ready list.
  *
- * @param fid		Pointer to the fibril structure of the fibril to be
- *			added.
+ * @param fid Pointer to the fibril structure of the fibril to be
+ *            added.
+ *
  */
 void fibril_add_ready(fid_t fid)
 {
-	fibril_t *f;
-
-	f = (fibril_t *) fid;
+	fibril_t *fibril = (fibril_t *) fid;
+	
 	futex_down(&fibril_futex);
-	if ((f->flags & FIBRIL_SERIALIZED))
-		list_append(&f->link, &serialized_list);
+	
+	if ((fibril->flags & FIBRIL_SERIALIZED))
+		list_append(&fibril->link, &serialized_list);
 	else
-		list_append(&f->link, &ready_list);
+		list_append(&fibril->link, &ready_list);
+	
 	futex_up(&fibril_futex);
 }
 
 /** Add a fibril to the manager list.
  *
- * @param fid		Pointer to the fibril structure of the fibril to be
- *			added.
+ * @param fid Pointer to the fibril structure of the fibril to be
+ *            added.
+ *
  */
 void fibril_add_manager(fid_t fid)
 {
-	fibril_t *f;
-
-	f = (fibril_t *) fid;
-
+	fibril_t *fibril = (fibril_t *) fid;
+	
 	futex_down(&fibril_futex);
-	list_append(&f->link, &manager_list);
+	list_append(&fibril->link, &manager_list);
 	futex_up(&fibril_futex);
 }
 
@@ -312,11 +321,10 @@ void fibril_add_manager(fid_t fid)
 void fibril_remove_manager(void)
 {
 	futex_down(&fibril_futex);
-	if (list_empty(&manager_list)) {
-		futex_up(&fibril_futex);
-		return;
-	}
-	list_remove(manager_list.next);
+	
+	if (!list_empty(&manager_list))
+		list_remove(manager_list.next);
+	
 	futex_up(&fibril_futex);
 }
 

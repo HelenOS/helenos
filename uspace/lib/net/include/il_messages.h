@@ -27,13 +27,13 @@
  */
 
 /** @addtogroup net_il
- *  @{
+ * @{
  */
 
 /** @file
- *  Internetwork layer modules messages.
- *  @see il_interface.h
- *  @see ip_interface.h
+ * Internetwork layer modules messages.
+ * @see il_interface.h
+ * @see ip_interface.h
  */
 
 #ifndef __NET_IL_MESSAGES_H__
@@ -43,7 +43,7 @@
 
 /** Internet layer modules messages.
  */
-typedef enum{
+typedef enum {
 	/** New device message.
 	 *  @see ip_device_req()
 	 */
@@ -71,18 +71,21 @@ typedef enum{
 } il_messages;
 
 /** @name Internetwork layer specific message parameters definitions
+ *
  */
 /*@{*/
 
-/** Returns the protocol number message parameter.
- *  @param[in] call The message call structure.
+/** Return the protocol number message parameter.
+ * @param[in] call The message call structure.
+ *
  */
-#define IL_GET_PROTO(call)		(int) IPC_GET_ARG1(*call)
+#define IL_GET_PROTO(call)  (int) IPC_GET_ARG1(*call)
 
-/** Returns the registering service message parameter.
- *  @param[in] call The message call structure.
+/** Return the registering service message parameter.
+ * @param[in] call The message call structure.
+ *
  */
-#define IL_GET_SERVICE(call)	(services_t) IPC_GET_ARG2(*call)
+#define IL_GET_SERVICE(call)  (services_t) IPC_GET_ARG2(*call)
 
 /*@}*/
 

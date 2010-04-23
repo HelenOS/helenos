@@ -27,11 +27,11 @@
  */
 
 /** @addtogroup net
- *  @{
+ * @{
  */
 
 /** @file
- *  Common error processing codes and routines.
+ * Common error processing codes and routines.
  */
 
 #ifndef __NET_ERR_H__
@@ -40,42 +40,58 @@
 #include <errno.h>
 
 #ifdef CONFIG_DEBUG
-
-#include <stdio.h>
-
+	#include <stdio.h>
+	#include <str_error.h>
 #endif
 
 /** An actual stored error code.
+ *
  */
-#define ERROR_CODE					error_check_return_value
+#define ERROR_CODE  error_check_return_value
 
 /** An error processing routines declaration.
- *  This has to be declared in the block where the error processing is desired.
+ *
+ * This has to be declared in the block where the error processing
+ * is desired.
+ *
  */
-#define ERROR_DECLARE				int ERROR_CODE
+#define ERROR_DECLARE  int ERROR_CODE
 
-/** Stores the value as an error code and checks if an error occurred.
- *  @param[in] value The value to be checked. May be a function call.
- *  @returns FALSE if the value indicates success (EOK).
- *  @returns TRUE otherwise.
+/** Store the value as an error code and checks if an error occurred.
+ *
+ * @param[in] value The value to be checked. May be a function call.
+ * @return False if the value indicates success (EOK).
+ * @return True otherwise.
+ *
  */
 #ifdef CONFIG_DEBUG
 
-#define ERROR_OCCURRED(value)												\
-	(((ERROR_CODE = (value)) != EOK)										\
-	&& ({printf("error at %s:%d %d\n", __FILE__, __LINE__, ERROR_CODE); 1;}))
+#define ERROR_OCCURRED(value) \
+	(((ERROR_CODE = (value)) != EOK) \
+	&& ({ \
+		fprintf(stderr, "libsocket error at %s:%d (%s)\n", \
+		__FILE__, __LINE__, str_error(ERROR_CODE)); \
+		1; \
+	}))
 
 #else
 
-#define ERROR_OCCURRED(value)		((ERROR_CODE = (value)) != EOK)
+#define ERROR_OCCURRED(value)  ((ERROR_CODE = (value)) != EOK)
 
 #endif
 
-/** Checks if an error occurred and immediately exits the actual function returning the error code.
- *  @param[in] value The value to be checked. May be a function call.
+/** Error propagation
+ *
+ * Check if an error occurred and immediately exit the actual
+ * function returning the error code.
+ *
+ * @param[in] value The value to be checked. May be a function call.
+ *
  */
 
-#define ERROR_PROPAGATE(value)	if(ERROR_OCCURRED(value)) return ERROR_CODE
+#define ERROR_PROPAGATE(value) \
+	if (ERROR_OCCURRED(value)) \
+		return ERROR_CODE
 
 #endif
 

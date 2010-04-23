@@ -36,11 +36,9 @@
 #include <errno.h>
 
 #include <net_byteorder.h>
-
+#include <netif_local.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
-
-#include <netif.h>
 
 #include "dp8390_drv.h"
 #include "dp8390_port.h"

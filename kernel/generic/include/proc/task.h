@@ -55,8 +55,7 @@
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
 #include <mm/as.h>
-
-#define TASK_NAME_BUFLEN	20
+#include <sysinfo/abi.h>
 
 struct thread;
 
@@ -80,7 +79,7 @@ typedef struct task {
 	/** Unique identity of task. */
 	task_id_t taskid;
 	/** Task security context. */
-	context_id_t context;	
+	context_id_t context;
 
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;
@@ -88,11 +87,12 @@ typedef struct task {
 	atomic_t lifecount;
 
 	/** Task capabilities. */
-	cap_t capabilities;	
+	cap_t capabilities;
 
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
+	stats_ipc_t ipc_info;   /**< IPC statistics */
 	/**
 	 * Active asynchronous messages. It is used for limiting uspace to
 	 * certain extent.
@@ -118,10 +118,11 @@ typedef struct task {
 	 */
 	mutex_t futexes_lock;
 	/** B+tree of futexes referenced by this task. */
-	btree_t futexes;	
+	btree_t futexes;
 	
 	/** Accumulated accounting. */
-	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 } task_t;
 
 SPINLOCK_EXTERN(tasks_lock);
@@ -133,7 +134,7 @@ extern task_t *task_create(as_t *as, const char *name);
 extern void task_destroy(task_t *t);
 extern task_t *task_find_by_id(task_id_t id);
 extern int task_kill(task_id_t id);
-extern uint64_t task_get_accounting(task_t *t);
+extern void task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles);
 extern void task_print_list(void);
 
 extern void cap_set(task_t *t, cap_t caps);

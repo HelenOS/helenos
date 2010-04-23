@@ -37,17 +37,17 @@
 
 #include <sys/types.h>
 
-void gcons_init(int phone);
+void gcons_init(int);
 
 void gcons_redraw_console(void);
-void gcons_change_console(size_t index);
-void gcons_notify_char(size_t index);
+void gcons_change_console(size_t);
+void gcons_notify_char(size_t);
 void gcons_in_kernel(void);
 
-void gcons_notify_connect(size_t index);
-void gcons_notify_disconnect(size_t index);
+void gcons_notify_connect(size_t);
+void gcons_notify_disconnect(size_t);
 
-void gcons_mouse_move(ssize_t dx, ssize_t dy);
+void gcons_mouse_move(ssize_t, ssize_t);
 int gcons_mouse_btn(bool state);
 
 #endif

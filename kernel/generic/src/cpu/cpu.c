@@ -47,6 +47,7 @@
 #include <memstr.h>
 #include <adt/list.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
 
 cpu_t *cpus;
 

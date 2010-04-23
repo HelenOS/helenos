@@ -50,8 +50,8 @@
 #include <net_device.h>
 #include <nil_interface.h>
 #include <nil_messages.h>
-#include <netif.h>
-#include <netif_module.h>
+#include <netif_interface.h>
+#include <netif_local.h>
 
 /** Default hardware address.
  */
@@ -63,7 +63,7 @@
 
 /** Loopback module name.
  */
-#define NAME	"lo - loopback interface"
+#define NAME  "lo"
 
 /** Network interface global data.
  */
@@ -75,7 +75,7 @@ netif_globals_t	netif_globals;
  *  @returns The new state if changed.
  *  @returns EOK otherwise.
  */
-int change_state_message(device_ref device, device_state_t state);
+int change_state_message(netif_device_t * device, device_state_t state);
 
 /** Creates and returns the loopback network interface structure.
  *  @param[in] device_id The new devce identifier.
@@ -84,7 +84,7 @@ int change_state_message(device_ref device, device_state_t state);
  *  @returns EXDEV if one loopback network interface already exists.
  *  @returns ENOMEM if there is not enough memory left.
  */
-int create(device_id_t device_id, device_ref * device);
+int create(device_id_t device_id, netif_device_t * * device);
 
 int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	return ENOTSUP;
@@ -102,7 +102,7 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
 int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 
 	if(! stats){
 		return EBADMEM;
@@ -112,22 +112,27 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	return EOK;
 }
 
-int change_state_message(device_ref device, device_state_t state){
-	if(device->state != state){
+int change_state_message(netif_device_t * device, device_state_t state)
+{
+	if (device->state != state) {
 		device->state = state;
-		printf("State changed to %s\n", (state == NETIF_ACTIVE) ? "ACTIVE" : "STOPPED");
+		
+		printf("%s: State changed to %s\n", NAME,
+		    (state == NETIF_ACTIVE) ? "active" : "stopped");
+		
 		return state;
 	}
+	
 	return EOK;
 }
 
-int create(device_id_t device_id, device_ref * device){
+int create(device_id_t device_id, netif_device_t * * device){
 	int index;
 
-	if(device_map_count(&netif_globals.device_map) > 0){
+	if(netif_device_map_count(&netif_globals.device_map) > 0){
 		return EXDEV;
 	}else{
-		*device = (device_ref) malloc(sizeof(device_t));
+		*device = (netif_device_t *) malloc(sizeof(netif_device_t));
 		if(!(*device)){
 			return ENOMEM;
 		}
@@ -140,7 +145,7 @@ int create(device_id_t device_id, device_ref * device){
 		(** device).device_id = device_id;
 		(** device).nil_phone = -1;
 		(** device).state = NETIF_STOPPED;
-		index = device_map_add(&netif_globals.device_map, (** device).device_id, * device);
+		index = netif_device_map_add(&netif_globals.device_map, (** device).device_id, * device);
 		if(index < 0){
 			free(*device);
 			free((** device).specific);
@@ -160,19 +165,19 @@ int netif_initialize(void){
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 
 	// create a new device
 	ERROR_PROPAGATE(create(device_id, &device));
 	// print the settings
-	printf("New device created:\n\tid\t= %d\n", device->device_id);
+	printf("%s: Device created (id: %d)\n", NAME, device->device_id);
 	return EOK;
 }
 
 int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	size_t length;
 	packet_t next;
 	int phone;
@@ -198,25 +203,21 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	return EOK;
 }
 
-int netif_start_message(device_ref device){
+int netif_start_message(netif_device_t * device){
 	return change_state_message(device, NETIF_ACTIVE);
 }
 
-int netif_stop_message(device_ref device){
+int netif_stop_message(netif_device_t * device){
 	return change_state_message(device, NETIF_STOPPED);
 }
 
-#ifdef CONFIG_NETWORKING_modular
-
-#include <netif_standalone.h>
-
 /** Default thread for new connections.
  *
- *  @param[in] iid The initial message identifier.
- *  @param[in] icall The initial message call structure.
+ * @param[in] iid The initial message identifier.
+ * @param[in] icall The initial message call structure.
  *
  */
-static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/*
 	 * Accept the connection
@@ -236,7 +237,8 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = netif_module_message(callid, &call, &answer, &answer_count);
+		int res = netif_module_message(NAME, callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -247,32 +249,16 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 	}
 }
 
-/** Starts the module.
- *
- *  @param argc The count of the command line arguments. Ignored parameter.
- *  @param argv The command line parameters. Ignored parameter.
- *
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module start function.
- *
- */
 int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(netif_module_start(netif_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(netif_module_start(netif_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

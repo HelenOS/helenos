@@ -49,8 +49,8 @@
 #include <adt/measured_strings.h>
 #include <net_device.h>
 #include <nil_interface.h>
-#include <netif.h>
-#include <netif_module.h>
+#include <netif_interface.h>
+#include <netif_local.h>
 
 #include "dp8390.h"
 #include "dp8390_drv.h"
@@ -58,7 +58,7 @@
 
 /** DP8390 module name.
  */
-#define NAME	"dp8390 network interface"
+#define NAME  "dp8390"
 
 /** Returns the device from the interrupt call.
  *  @param[in] call The interrupt call.
@@ -94,23 +94,64 @@ static irq_code_t	dp8390_code = {
 	dp8390_cmds
 };
 
-/** Network interface module global data.
- */
-netif_globals_t netif_globals;
-
 /** Handles the interrupt messages.
  *  This is the interrupt handler callback function.
  *  @param[in] iid The interrupt message identifier.
  *  @param[in] call The interrupt message.
  */
-void irq_handler(ipc_callid_t iid, ipc_call_t * call);
+static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
+{
+	netif_device_t * device;
+	dpeth_t * dep;
+	packet_t received;
+	device_id_t device_id;
+	int phone;
+
+	device_id = IRQ_GET_DEVICE(call);
+	fibril_rwlock_write_lock(&netif_globals.lock);
+	if(find_device(device_id, &device) != EOK){
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		return;
+	}
+	dep = (dpeth_t *) device->specific;
+	if (dep->de_mode != DEM_ENABLED){
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		return;
+	}
+	assert(dep->de_flags &DEF_ENABLED);
+	dep->de_int_pending = 0;
+	dp_check_ints(dep, IPC_GET_ISR(call));
+	if(dep->received_queue){
+		received = dep->received_queue;
+		phone = device->nil_phone;
+		dep->received_queue = NULL;
+		dep->received_count = 0;
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		nil_received_msg(phone, device_id, received, NULL);
+	}else{
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+	}
+	ipc_answer_0(iid, EOK);
+}
 
 /** Changes the network interface state.
  *  @param[in,out] device The network interface.
  *  @param[in] state The new state.
  *  @returns The new state.
  */
-int change_state(device_ref device, device_state_t state);
+static int change_state(netif_device_t * device, device_state_t state)
+{
+	if (device->state != state) {
+		device->state = state;
+		
+		printf("%s: State changed to %s\n", NAME,
+		    (state == NETIF_ACTIVE) ? "active" : "stopped");
+		
+		return state;
+	}
+	
+	return EOK;
+}
 
 int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
 	return ENOTSUP;
@@ -119,7 +160,7 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	eth_stat_t * de_stat;
 
 	if(! stats){
@@ -146,7 +187,7 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 
 	if(! address){
 		return EBADMEM;
@@ -157,58 +198,15 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
 	return EOK;
 }
 
-void irq_handler(ipc_callid_t iid, ipc_call_t * call)
-{
-	device_ref device;
-	dpeth_t * dep;
-	packet_t received;
-	device_id_t device_id;
-	int phone;
 
-	device_id = IRQ_GET_DEVICE(call);
-	fibril_rwlock_write_lock(&netif_globals.lock);
-	if(find_device(device_id, &device) != EOK){
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return;
-	}
-	dep = (dpeth_t *) device->specific;
-	if (dep->de_mode != DEM_ENABLED){
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return;
-	}
-	assert(dep->de_flags &DEF_ENABLED);
-	dep->de_int_pending = 0;
-//	remove debug print:
-#ifdef CONFIG_DEBUG
-	printf("I%d: 0x%x\n", device_id, IPC_GET_ISR(call));
-#endif
-	dp_check_ints(dep, IPC_GET_ISR(call));
-	if(dep->received_queue){
-		received = dep->received_queue;
-		phone = device->nil_phone;
-		dep->received_queue = NULL;
-		dep->received_count = 0;
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-//	remove debug dump:
-#ifdef CONFIG_DEBUG
-	uint8_t * data;
-	data = packet_get_data(received);
-	printf("Receiving packet:\n\tid\t= %d\n\tlength\t= %d\n\tdata\t= %.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX\n\t\t%.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX\n", packet_get_id(received), packet_get_data_length(received), data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31], data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39], data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47], data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55], data[56], data[57], data[58], data[59]);
-#endif
-		nil_received_msg(phone, device_id, received, NULL);
-	}else{
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-	}
-	ipc_answer_0(iid, EOK);
-}
 
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	dpeth_t * dep;
 
-	device = (device_ref) malloc(sizeof(device_t));
+	device = (netif_device_t *) malloc(sizeof(netif_device_t));
 	if(! device){
 		return ENOMEM;
 	}
@@ -217,7 +215,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 		free(device);
 		return ENOMEM;
 	}
-	bzero(device, sizeof(device_t));
+	bzero(device, sizeof(netif_device_t));
 	bzero(dep, sizeof(dpeth_t));
 	device->device_id = device_id;
 	device->nil_phone = -1;
@@ -232,7 +230,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 		free(device);
 		return ERROR_CODE;
 	}
-	if(ERROR_OCCURRED(device_map_add(&netif_globals.device_map, device->device_id, device))){
+	if(ERROR_OCCURRED(netif_device_map_add(&netif_globals.device_map, device->device_id, device))){
 		free(dep);
 		free(device);
 		return ERROR_CODE;
@@ -243,7 +241,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
 	ERROR_DECLARE;
 
-	device_ref device;
+	netif_device_t * device;
 	dpeth_t * dep;
 	packet_t next;
 
@@ -256,12 +254,6 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	// process packet queue
 	do{
 		next = pq_detach(packet);
-//		remove debug dump:
-#ifdef CONFIG_DEBUG
-		uint8_t * data;
-		data = packet_get_data(packet);
-		printf("Sending packet:\n\tid\t= %d\n\tlength\t= %d\n\tdata\t= %.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX\n\t\t%.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX:%.2hhX %.2hhX %.2hhX %.2hhX\n", packet_get_id(packet), packet_get_data_length(packet), data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25], data[26], data[27], data[28], data[29], data[30], data[31], data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39], data[40], data[41], data[42], data[43], data[44], data[45], data[46], data[47], data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55], data[56], data[57], data[58], data[59]);
-#endif
 		if(do_pwrite(dep, packet, FALSE) != EBUSY){
 			netif_pq_release(packet_get_id(packet));
 		}
@@ -270,7 +262,7 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	return EOK;
 }
 
-int netif_start_message(device_ref device){
+int netif_start_message(netif_device_t * device){
 	ERROR_DECLARE;
 
 	dpeth_t * dep;
@@ -289,7 +281,7 @@ int netif_start_message(device_ref device){
 	return EOK;
 }
 
-int netif_stop_message(device_ref device){
+int netif_stop_message(netif_device_t * device){
 	dpeth_t * dep;
 
 	if(device->state != NETIF_STOPPED){
@@ -301,12 +293,6 @@ int netif_stop_message(device_ref device){
 	return EOK;
 }
 
-int change_state(device_ref device, device_state_t state){
-	device->state = state;
-	printf("State changed to %s\n", (state == NETIF_ACTIVE) ? "ACTIVE" : "STOPPED");
-	return state;
-}
-
 int netif_initialize(void){
 	ipcarg_t phonehash;
 
@@ -314,10 +300,6 @@ int netif_initialize(void){
 
 	return REGISTER_ME(SERVICE_DP8390, &phonehash);
 }
-
-#ifdef CONFIG_NETWORKING_modular
-
-#include <netif_standalone.h>
 
 /** Default thread for new connections.
  *
@@ -345,7 +327,8 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = netif_module_message(callid, &call, &answer, &answer_count);
+		int res = netif_module_message(NAME, callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -369,20 +352,12 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(netif_module_start(netif_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(netif_module_start(netif_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
-
 
 /** @}
  */

@@ -30,13 +30,6 @@
  *  @{
  */
 
-/** @file
- *  ARP module interface.
- *  The same interface is used for standalone remote modules as well as for bundle modules.
- *  The standalone remote modules have to be compiled with the arp_remote.c source file.
- *  The bundle modules with the arp.c source file.
- */
-
 #ifndef __NET_ARP_INTERFACE_H__
 #define __NET_ARP_INTERFACE_H__
 

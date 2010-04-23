@@ -231,7 +231,7 @@ struct tcp_socket_data{
 	packet_t outgoing;
 	/** IP pseudo header.
 	 */
-	ip_pseudo_header_ref pseudo_header;
+	void *pseudo_header;
 	/** IP pseudo header length.
 	 */
 	size_t headerlen;

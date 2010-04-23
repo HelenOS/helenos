@@ -68,8 +68,11 @@
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <packet/packet_client.h>
+#include <packet_remote.h>
 #include <nil_messages.h>
 #include <il_messages.h>
+#include <il_local.h>
+#include <ip_local.h>
 
 #include "ip.h"
 #include "ip_header.h"
@@ -78,7 +81,7 @@
 
 /** IP module name.
  */
-#define NAME	"IP protocol"
+#define NAME  "ip"
 
 /** IP version 4.
  */
@@ -423,13 +426,12 @@ int ip_initialize(async_client_conn_t client_connection){
 	return EOK;
 }
 
-int ip_device_req(int il_phone, device_id_t device_id, services_t netif){
+int ip_device_req_local(int il_phone, device_id_t device_id, services_t netif){
 	ERROR_DECLARE;
 
 	ip_netif_ref ip_netif;
 	ip_route_ref route;
 	int index;
-	char * data;
 
 	ip_netif = (ip_netif_ref) malloc(sizeof(ip_netif_t));
 	if(! ip_netif){
@@ -453,27 +455,30 @@ int ip_device_req(int il_phone, device_id_t device_id, services_t netif){
 		++ ip_netif->arp->usage;
 	}
 	// print the settings
-	printf("New device registered:\n\tid\t= %d\n\tphone\t= %d\n\tIPV\t= %d\n", ip_netif->device_id, ip_netif->phone, ip_netif->ipv);
-	printf("\tconfiguration\t= %s\n", ip_netif->dhcp ? "dhcp" : "static");
+	printf("%s: Device registered (id: %d, phone: %d, ipv: %d, conf: %s)\n",
+	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
+	    ip_netif->dhcp ? "dhcp" : "static");
+	
 	// TODO ipv6 addresses
-	data = (char *) malloc(INET_ADDRSTRLEN);
-	if(data){
-		for(index = 0; index < ip_routes_count(&ip_netif->routes); ++ index){
-			route = ip_routes_get_index(&ip_netif->routes, index);
-			if(route){
-				printf("\tRouting %d:\n", index);
-				inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\taddress\t= %s\n", data);
-				inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\tnetmask\t= %s\n", data);
-				inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr, data, INET_ADDRSTRLEN);
-				printf("\t\tgateway\t= %s\n", data);
-			}
+	
+	char address[INET_ADDRSTRLEN];
+	char netmask[INET_ADDRSTRLEN];
+	char gateway[INET_ADDRSTRLEN];
+	
+	for (index = 0; index < ip_routes_count(&ip_netif->routes); ++ index){
+		route = ip_routes_get_index(&ip_netif->routes, index);
+		if (route) {
+			inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr, address, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr, netmask, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr, gateway, INET_ADDRSTRLEN);
+			printf("%s: Route %d (address: %s, netmask: %s, gateway: %s)\n",
+			    NAME, index, address, netmask, gateway);
 		}
-		inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, data, INET_ADDRSTRLEN);
-		printf("\t\tbroadcast\t= %s\n", data);
-		free(data);
 	}
+	
+	inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, address, INET_ADDRSTRLEN);
+	printf("%s: Broadcast (%s)\n", NAME, address);
+	
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -594,7 +599,7 @@ int ip_mtu_changed_message(device_id_t device_id, size_t mtu){
 		return ENOENT;
 	}
 	netif->packet_dimension.content = mtu;
-	printf("ip - device %d changed mtu to %d\n\n", device_id, mtu);
+	printf("%s: Device %d changed MTU to %d\n", NAME, device_id, mtu);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -610,7 +615,7 @@ int ip_device_state_message(device_id_t device_id, device_state_t state){
 		return ENOENT;
 	}
 	netif->state = state;
-	printf("ip - device %d changed state to %d\n\n", device_id, state);
+	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
 }
@@ -645,12 +650,15 @@ int ip_register(int protocol, services_t service, int phone, tl_received_msg_t r
 		free(proto);
 		return index;
 	}
-	printf("New protocol registered:\n\tprotocol\t= %d\n\tphone\t= %d\n", proto->protocol, proto->phone);
+	
+	printf("%s: Protocol registered (protocol: %d, phone: %d)\n",
+	    NAME, proto->protocol, proto->phone);
+	
 	fibril_rwlock_write_unlock(&ip_globals.protos_lock);
 	return EOK;
 }
 
-int ip_send_msg(int il_phone, device_id_t device_id, packet_t packet, services_t sender, services_t error){
+int ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet, services_t sender, services_t error){
 	ERROR_DECLARE;
 
 	int addrlen;
@@ -776,7 +784,7 @@ int ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route, in_ad
 		if(ERROR_OCCURRED(arp_translate_req(netif->arp->phone, netif->device_id, SERVICE_IP, &destination, &translation, &data))){
 //			sleep(1);
 //			ERROR_PROPAGATE(arp_translate_req(netif->arp->phone, netif->device_id, SERVICE_IP, &destination, &translation, &data));
-			pq_release(ip_globals.net_phone, packet_get_id(packet));
+			pq_release_remote(ip_globals.net_phone, packet_get_id(packet));
 			return ERROR_CODE;
 		}
 		if(!(translation && translation->value)){
@@ -793,7 +801,7 @@ int ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route, in_ad
 		}
 	}else translation = NULL;
 	if(ERROR_OCCURRED(ip_prepare_packet(src, dest, packet, translation))){
-		pq_release(ip_globals.net_phone, packet_get_id(packet));
+		pq_release_remote(ip_globals.net_phone, packet_get_id(packet));
 	}else{
 		packet = ip_split_packet(packet, netif->packet_dimension.prefix, netif->packet_dimension.content, netif->packet_dimension.suffix, netif->packet_dimension.addr_len, error);
 		if(packet){
@@ -885,56 +893,71 @@ int ip_prepare_packet(in_addr_t * source, in_addr_t dest, packet_t packet, measu
 	return EOK;
 }
 
-int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int ip_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int * answer_count)
+{
 	ERROR_DECLARE;
-
+	
 	packet_t packet;
-	struct sockaddr * addr;
+	struct sockaddr *addr;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
-	ip_pseudo_header_ref header;
+	void *header;
 	size_t headerlen;
 	device_id_t device_id;
-
+	
 	*answer_count = 0;
-	switch(IPC_GET_METHOD(*call)){
+	switch (IPC_GET_METHOD(*call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return EOK;
 		case NET_IL_DEVICE:
-			return ip_device_req(0, IPC_GET_DEVICE(call), IPC_GET_SERVICE(call));
+			return ip_device_req_local(0, IPC_GET_DEVICE(call),
+			    IPC_GET_SERVICE(call));
 		case IPC_M_CONNECT_TO_ME:
-			return ip_register(IL_GET_PROTO(call), IL_GET_SERVICE(call), IPC_GET_PHONE(call), NULL);
+			return ip_register(IL_GET_PROTO(call), IL_GET_SERVICE(call),
+			    IPC_GET_PHONE(call), NULL);
 		case NET_IL_SEND:
-			ERROR_PROPAGATE(packet_translate(ip_globals.net_phone, &packet, IPC_GET_PACKET(call)));
-			return ip_send_msg(0, IPC_GET_DEVICE(call), packet, 0, IPC_GET_ERROR(call));
+			ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone, &packet,
+			    IPC_GET_PACKET(call)));
+			return ip_send_msg_local(0, IPC_GET_DEVICE(call), packet, 0,
+			    IPC_GET_ERROR(call));
 		case NET_IL_DEVICE_STATE:
-			return ip_device_state_message(IPC_GET_DEVICE(call), IPC_GET_STATE(call));
+			return ip_device_state_message(IPC_GET_DEVICE(call),
+			    IPC_GET_STATE(call));
 		case NET_IL_RECEIVED:
-			ERROR_PROPAGATE(packet_translate(ip_globals.net_phone, &packet, IPC_GET_PACKET(call)));
+			ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone, &packet,
+			    IPC_GET_PACKET(call)));
 			return ip_receive_message(IPC_GET_DEVICE(call), packet);
 		case NET_IP_RECEIVED_ERROR:
-			ERROR_PROPAGATE(packet_translate(ip_globals.net_phone, &packet, IPC_GET_PACKET(call)));
-			return ip_received_error_msg(0, IPC_GET_DEVICE(call), packet, IPC_GET_TARGET(call), IPC_GET_ERROR(call));
+			ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone, &packet,
+			    IPC_GET_PACKET(call)));
+			return ip_received_error_msg_local(0, IPC_GET_DEVICE(call), packet,
+			    IPC_GET_TARGET(call), IPC_GET_ERROR(call));
 		case NET_IP_ADD_ROUTE:
-			return ip_add_route_req(0, IPC_GET_DEVICE(call), IP_GET_ADDRESS(call), IP_GET_NETMASK(call), IP_GET_GATEWAY(call));
+			return ip_add_route_req_local(0, IPC_GET_DEVICE(call),
+			    IP_GET_ADDRESS(call), IP_GET_NETMASK(call), IP_GET_GATEWAY(call));
 		case NET_IP_SET_GATEWAY:
-			return ip_set_gateway_req(0, IPC_GET_DEVICE(call), IP_GET_GATEWAY(call));
+			return ip_set_gateway_req_local(0, IPC_GET_DEVICE(call),
+			    IP_GET_GATEWAY(call));
 		case NET_IP_GET_ROUTE:
 			ERROR_PROPAGATE(data_receive((void **) &addr, &addrlen));
-			ERROR_PROPAGATE(ip_get_route_req(0, IP_GET_PROTOCOL(call), addr, (socklen_t) addrlen,
-			    &device_id, &header, &headerlen));
+			ERROR_PROPAGATE(ip_get_route_req_local(0, IP_GET_PROTOCOL(call),
+			    addr, (socklen_t) addrlen, &device_id, &header, &headerlen));
 			IPC_SET_DEVICE(answer, device_id);
 			IP_SET_HEADERLEN(answer, headerlen);
+			
 			*answer_count = 2;
-			if(! ERROR_OCCURRED(data_reply(&headerlen, sizeof(headerlen)))){
+			
+			if (!ERROR_OCCURRED(data_reply(&headerlen, sizeof(headerlen))))
 				ERROR_CODE = data_reply(header, headerlen);
-			}
+			
 			free(header);
 			return ERROR_CODE;
 		case NET_IL_PACKET_SPACE:
-			ERROR_PROPAGATE(ip_packet_size_message(IPC_GET_DEVICE(call), &addrlen, &prefix, &content, &suffix));
+			ERROR_PROPAGATE(ip_packet_size_message(IPC_GET_DEVICE(call),
+			    &addrlen, &prefix, &content, &suffix));
 			IPC_SET_ADDR(answer, addrlen);
 			IPC_SET_PREFIX(answer, prefix);
 			IPC_SET_CONTENT(answer, content);
@@ -942,16 +965,22 @@ int ip_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int 
 			*answer_count = 4;
 			return EOK;
 		case NET_IL_MTU_CHANGED:
-			return ip_mtu_changed_message(IPC_GET_DEVICE(call), IPC_GET_MTU(call));
+			return ip_mtu_changed_message(IPC_GET_DEVICE(call),
+			    IPC_GET_MTU(call));
 	}
+	
 	return ENOTSUP;
 }
 
-int ip_packet_size_req(int ip_phone, device_id_t device_id, packet_dimension_ref packet_dimension){
-	if(! packet_dimension){
+int ip_packet_size_req_local(int ip_phone, device_id_t device_id,
+    packet_dimension_ref packet_dimension)
+{
+	if (!packet_dimension)
 		return EBADMEM;
-	}
-	return ip_packet_size_message(device_id, &packet_dimension->addr_len, &packet_dimension->prefix, &packet_dimension->content, &packet_dimension->suffix);
+	
+	return ip_packet_size_message(device_id, &packet_dimension->addr_len,
+	    &packet_dimension->prefix, &packet_dimension->content,
+	    &packet_dimension->suffix);
 }
 
 int ip_packet_size_message(device_id_t device_id, size_t * addr_len, size_t * prefix, size_t * content, size_t * suffix){
@@ -997,7 +1026,7 @@ int ip_packet_size_message(device_id_t device_id, size_t * addr_len, size_t * pr
 	return EOK;
 }
 
-int ip_add_route_req(int ip_phone, device_id_t device_id, in_addr_t address, in_addr_t netmask, in_addr_t gateway){
+int ip_add_route_req_local(int ip_phone, device_id_t device_id, in_addr_t address, in_addr_t netmask, in_addr_t gateway){
 	ip_route_ref route;
 	ip_netif_ref netif;
 	int index;
@@ -1061,7 +1090,8 @@ ip_route_ref ip_netif_find_route(ip_netif_ref netif, in_addr_t destination){
 	return NULL;
 }
 
-int ip_set_gateway_req(int ip_phone, device_id_t device_id, in_addr_t gateway){
+int ip_set_gateway_req_local(int ip_phone, device_id_t device_id, in_addr_t gateway)
+{
 	ip_netif_ref netif;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
@@ -1106,7 +1136,7 @@ packet_t ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t 
 						icmp_destination_unreachable_msg(phone, ICMP_FRAG_NEEDED, content, next);
 					}
 				}else{
-					pq_release(ip_globals.net_phone, packet_get_id(next));
+					pq_release_remote(ip_globals.net_phone, packet_get_id(next));
 				}
 				next = new_packet;
 				continue;
@@ -1147,7 +1177,7 @@ int ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suf
 		return EPERM;
 	}
 	// create the last fragment
-	new_packet = packet_get_4(ip_globals.net_phone, prefix, length, suffix, ((addrlen > addr_len) ? addrlen : addr_len));
+	new_packet = packet_get_4_remote(ip_globals.net_phone, prefix, length, suffix, ((addrlen > addr_len) ? addrlen : addr_len));
 	if(! new_packet){
 		return ENOMEM;
 	}
@@ -1171,7 +1201,7 @@ int ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suf
 	header->flags |= IPFLAG_MORE_FRAGMENTS;
 	// create middle framgents
 	while(IP_TOTAL_LENGTH(header) > length){
-		new_packet = packet_get_4(ip_globals.net_phone, prefix, length, suffix, ((addrlen >= addr_len) ? addrlen : addr_len));
+		new_packet = packet_get_4_remote(ip_globals.net_phone, prefix, length, suffix, ((addrlen >= addr_len) ? addrlen : addr_len));
 		if(! new_packet){
 			return ENOMEM;
 		}
@@ -1351,7 +1381,20 @@ int ip_process_packet(device_id_t device_id, packet_t packet){
 	}
 }
 
-int ip_received_error_msg(int ip_phone, device_id_t device_id, packet_t packet, services_t target, services_t error){
+/** Notify the IP module about the received error notification packet.
+ *
+ * @param[in] ip_phone  The IP module phone used for (semi)remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ * @param[in] target    The target internetwork module service to be
+ *                      delivered to.
+ * @param[in] error     The packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
+ */
+int ip_received_error_msg_local(int ip_phone, device_id_t device_id, packet_t packet, services_t target, services_t error){
 	uint8_t * data;
 	int offset;
 	icmp_type_t type;
@@ -1486,7 +1529,7 @@ int ip_prepare_icmp(packet_t packet, ip_header_ref header){
 	// detach the first packet and release the others
 	next = pq_detach(packet);
 	if(next){
-		pq_release(ip_globals.net_phone, packet_get_id(next));
+		pq_release_remote(ip_globals.net_phone, packet_get_id(next));
 	}
 	if(! header){
 		if(packet_get_data_length(packet) <= sizeof(ip_header_t)){
@@ -1550,11 +1593,11 @@ int ip_prepare_icmp_and_get_phone(services_t error, packet_t packet, ip_header_r
 }
 
 int ip_release_and_return(packet_t packet, int result){
-	pq_release(ip_globals.net_phone, packet_get_id(packet));
+	pq_release_remote(ip_globals.net_phone, packet_get_id(packet));
 	return result;
 }
 
-int ip_get_route_req(int ip_phone, ip_protocol_t protocol, const struct sockaddr * destination, socklen_t addrlen, device_id_t * device_id, ip_pseudo_header_ref * header, size_t * headerlen){
+int ip_get_route_req_local(int ip_phone, ip_protocol_t protocol, const struct sockaddr * destination, socklen_t addrlen, device_id_t * device_id, void **header, size_t * headerlen){
 	struct sockaddr_in * address_in;
 //	struct sockaddr_in6 *	address_in6;
 	in_addr_t * dest;
@@ -1618,13 +1661,9 @@ int ip_get_route_req(int ip_phone, ip_protocol_t protocol, const struct sockaddr
 	header_in->source_address = src->s_addr;
 	header_in->protocol = protocol;
 	header_in->data_length = 0;
-	*header = (ip_pseudo_header_ref) header_in;
+	*header = header_in;
 	return EOK;
 }
-
-#ifdef CONFIG_NETWORKING_modular
-
-#include <il_standalone.h>
 
 /** Default thread for new connections.
  *
@@ -1652,7 +1691,8 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = il_module_message(callid, &call, &answer, &answer_count);
+		int res = il_module_message_standalone(callid, &call, &answer,
+		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
@@ -1676,19 +1716,12 @@ int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
 	
-	/* Print the module label */
-	printf("Task %d - %s\n", task_get_id(), NAME);
-	
 	/* Start the module */
-	if (ERROR_OCCURRED(il_module_start(il_client_connection))) {
-		printf(" - ERROR %i\n", ERROR_CODE);
+	if (ERROR_OCCURRED(il_module_start_standalone(il_client_connection)))
 		return ERROR_CODE;
-	}
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETWORKING_modular */
 
 /** @}
  */

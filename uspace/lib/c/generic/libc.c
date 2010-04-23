@@ -61,8 +61,7 @@ void _exit(int status)
 
 void __main(void *pcb_ptr)
 {
-	int retval;
-
+	/* Initialize user task run-time environment */
 	__heap_init();
 	__async_init();
 	fibril_t *fibril = fibril_setup();
@@ -74,6 +73,8 @@ void __main(void *pcb_ptr)
 	int argc;
 	char **argv;
 	
+	/* Get command line arguments and initialize
+	   standard input and output */
 	if (__pcb == NULL) {
 		argc = 0;
 		argv = NULL;
@@ -85,14 +86,14 @@ void __main(void *pcb_ptr)
 		(void) chdir(__pcb->cwd);
 	}
 	
-	retval = main(argc, argv);
-
-	__stdio_done();
-	(void) task_retval(retval);
+	/* Run main() and set task return value
+	   according the result */
+	(void) task_retval(main(argc, argv));
 }
 
 void __exit(void)
 {
+	__stdio_done();
 	fibril_teardown(__tcb_get()->fibril_data);
 	_exit(0);
 }

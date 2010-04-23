@@ -58,7 +58,7 @@ extern int udp_initialize(async_client_conn_t client_connection);
  *  @see udp_interface.h
  *  @see IS_NET_UDP_MESSAGE()
  */
-extern int udp_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int udp_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
 
 #endif
 

@@ -27,11 +27,12 @@
  */
 
 /** @addtogroup net
- *  @{
+ * @{
  */
 
 /** @file
- *  Networking subsystem central module.
+ * Networking subsystem central module.
+ *
  */
 
 #ifndef __NET_NET_H__
@@ -47,199 +48,94 @@
 #include <packet/packet.h>
 
 /** @name Modules definitions
+ * @{
  */
-/*@{*/
 
-/** DP8390 network interface module full path filename.
+#define DP8390_FILENAME  "/srv/dp8390"
+#define DP8390_NAME      "dp8390"
+
+#define ETHERNET_FILENAME  "/srv/eth"
+#define ETHERNET_NAME      "eth"
+
+#define IP_FILENAME  "/srv/ip"
+#define IP_NAME      "ip"
+
+#define LO_FILENAME  "/srv/lo"
+#define LO_NAME      "lo"
+
+#define NILDUMMY_FILENAME  "/srv/nildummy"
+#define NILDUMMY_NAME      "nildummy"
+
+/** @}
  */
-#define DP8390_FILENAME		"/srv/dp8390"
-
-/** DP8390 network interface module name.
- */
-#define DP8390_NAME			"dp8390"
-
-/** Ethernet module full path filename.
- */
-#define ETHERNET_FILENAME	"/srv/eth"
-
-/** Ethernet module name.
- */
-#define ETHERNET_NAME		"ethernet"
-
-/** IP module full path filename.
- */
-#define IP_FILENAME			"/srv/ip"
-
-/** IP module name.
- */
-#define IP_NAME				"ip"
-
-/** Loopback network interface module full path filename.
- */
-#define LO_FILENAME			"/srv/lo"
-
-/** Loopback network interface module name.
- */
-#define LO_NAME				"lo"
-
-/** Ethernet module full path filename.
- */
-#define NILDUMMY_FILENAME	"/srv/nildummy"
-
-/** Ethernet module name.
- */
-#define NILDUMMY_NAME		"nildummy"
-
-/*@}*/
 
 /** @name Configuration setting names definitions
+ * @{
  */
-/*@{*/
 
-/** Internet protocol module name configuration label.
+#define CONF_IL     "IL"     /**< Internet protocol module name configuration label. */
+#define CONF_IO     "IO"     /**< Device input/output address configuration label. */
+#define CONF_IRQ    "IRQ"    /**< Interrupt number configuration label. */
+#define CONF_MTU    "MTU"    /**< Maximum transmission unit configuration label. */
+#define CONF_NAME   "NAME"   /**< Network interface name configuration label. */
+#define CONF_NETIF  "NETIF"  /**< Network interface module name configuration label. */
+#define CONF_NIL    "NIL"    /**< Network interface layer module name configuration label. */
+
+/** @}
  */
-#define CONF_IL				"IL"
 
-/** Device input/output address configuration label.
- */
-#define CONF_IO				"IO"
-
-/** Interrupt number configuration label.
- */
-#define CONF_IRQ			"IRQ"
-
-/** Maximum transmission unit configuration label.
- */
-#define CONF_MTU			"MTU"
-
-/** Network interface name configuration label.
- */
-#define CONF_NAME			"NAME"
-
-/** Network interface module name configuration label.
- */
-#define CONF_NETIF			"NETIF"
-
-/** Network interface layer module name configuration label.
- */
-#define CONF_NIL			"NIL"
-
-/*@}*/
-
-/** Configuration directory.
- */
-#define CONF_DIR			"/cfg/net"
-
-/** General configuration file.
- */
-#define CONF_GENERAL_FILE	"general"
-
-/** Type definition of the networking module global data.
- *  @see net_globals
- */
-typedef struct net_globals	net_globals_t;
-
-/** Type definition of the network interface specific data.
- *  @see netif
- */
-typedef struct netif	netif_t;
-
-/** Type definition of the network interface specific data pointer.
- *  @see netif
- */
-typedef netif_t *		netif_ref;
+#define CONF_DIR           "/cfg/net"  /**< Configuration directory. */
+#define CONF_GENERAL_FILE  "general"   /**< General configuration file. */
 
 /** Configuration settings.
- *  Maps setting names to the values.
- *  @see generic_char_map.h
+ *
+ * Maps setting names to the values.
+ * @see generic_char_map.h
+ *
  */
-GENERIC_CHAR_MAP_DECLARE(measured_strings, measured_string_t)
-
-/** Present network interfaces.
- *  Maps devices to the networking device specific data.
- *  @see device.h
- */
-DEVICE_MAP_DECLARE(netifs, netif_t)
-
-/** Networking module global variables.
- */
-struct net_globals{
-	/** Global configuration.
-	 */
-	measured_strings_t configuration;
-	/** Available modules.
-	 */
-	modules_t modules;
-	/** Network interface structure indices by names.
-	 */
-	char_map_t netif_names;
-	/** Present network interfaces.
-	 */
-	netifs_t netifs;
-};
+GENERIC_CHAR_MAP_DECLARE(measured_strings, measured_string_t);
 
 /** Present network interface device.
+ *
  */
-struct netif{
-	/** Configuration.
-	 */
-	measured_strings_t configuration;
-	/** Serving network interface driver module index.
-	 */
+typedef struct {
+	measured_strings_t configuration;  /**< Configuration. */
+	
+	/** Serving network interface driver module index. */
 	module_ref driver;
-	/** System-unique network interface identifier.
-	 */
-	device_id_t id;
-	/** Serving internet layer module index.
-	 */
-	module_ref il;
-	/** System-unique network interface name.
-	 */
-	char * name;
-	/** Serving link layer module index.
-	 */
-	module_ref nil;
-};
+	
+	device_id_t id;  /**< System-unique network interface identifier. */
+	module_ref il;   /**< Serving internet layer module index. */
+	char *name;      /**< System-unique network interface name. */
+	module_ref nil;  /**< Serving link layer module index. */
+} netif_t;
 
-/** Adds the configured setting to the configuration map.
- *  @param[in] configuration The configuration map.
- *  @param[in] name The setting name.
- *  @param[in] value The setting value.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
+/** Present network interfaces.
+ *
+ * Maps devices to the networking device specific data.
+ * @see device.h
+ *
  */
-int add_configuration(measured_strings_ref configuration, const char * name, const char * value);
+DEVICE_MAP_DECLARE(netifs, netif_t);
 
-/** Processes the module message.
- *  Distributes the message to the right bundled module.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for each bundled module message function.
+/** Networking module global data.
+ *
  */
-int net_module_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+typedef struct {
+	measured_strings_t configuration;  /**< Global configuration. */
+	modules_t modules;                 /**< Available modules. */
+	
+	/** Network interface structure indices by names. */
+	char_map_t netif_names;
+	
+	/** Present network interfaces. */
+	netifs_t netifs;
+} net_globals_t;
 
-/** Initializes the networking module for the chosen subsystem build type.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- */
-int net_initialize_build(async_client_conn_t client_connection);
-
-/** Processes the networking message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @see net_interface.h
- *  @see IS_NET_NET_MESSAGE()
- */
-int net_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int add_configuration(measured_strings_ref, const char *, const char *);
+extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
+extern int net_initialize_build(async_client_conn_t);
+extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
 
 #endif
 

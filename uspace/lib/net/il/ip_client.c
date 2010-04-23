@@ -55,7 +55,7 @@ size_t ip_client_header_length(packet_t packet){
 	return IP_HEADER_LENGTH(header);
 }
 
-int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, ip_pseudo_header_ref * header, size_t * headerlen){
+int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, socklen_t srclen, struct sockaddr * dest, socklen_t destlen, size_t data_length, void **header, size_t * headerlen){
 	ipv4_pseudo_header_ref header_in;
 	struct sockaddr_in * address_in;
 
@@ -83,7 +83,7 @@ int ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr * src, s
 			header_in->source_address = address_in->sin_addr.s_addr;
 			header_in->protocol = protocol;
 			header_in->data_length = htons(data_length);
-			*header = (ip_pseudo_header_ref) header_in;
+			*header = header_in;
 			return EOK;
 		// TODO IPv6
 /*		case AF_INET6:
@@ -163,7 +163,7 @@ int ip_client_process_packet(packet_t packet, ip_protocol_t * protocol, ip_ttl_t
 	}
 }
 
-int ip_client_set_pseudo_header_data_length(ip_pseudo_header_ref header, size_t headerlen, size_t data_length){
+int ip_client_set_pseudo_header_data_length(void *header, size_t headerlen, size_t data_length){
 	ipv4_pseudo_header_ref header_in;
 
 	if(! header){

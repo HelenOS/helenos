@@ -35,10 +35,12 @@
 #ifndef LIBC_BOOL_H_
 #define LIBC_BOOL_H_
 
-#define false 0
-#define true 1
+#include <libarch/types.h>
 
-typedef short bool;
+#define false  0
+#define true   1
+
+typedef uint8_t bool;
 
 #endif
 

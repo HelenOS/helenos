@@ -30,13 +30,6 @@
  *  @{
  */
 
-/** @file
- *  ICMP module interface.
- *  The same interface is used for standalone remote modules as well as for bundle modules.
- *  The standalone remote modules have to be compiled with the icmp_remote.c source file.
- *  The bundle modules with the icmp.c source file.
- */
-
 #ifndef __NET_ICMP_INTERFACE_H__
 #define __NET_ICMP_INTERFACE_H__
 

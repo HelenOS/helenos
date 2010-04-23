@@ -38,6 +38,8 @@
 #include <kbd_port.h>
 #include <sun.h>
 #include <sysinfo.h>
+#include <errno.h>
+#include <bool.h>
 
 /** Sun keyboard virtual port driver.
  *
@@ -49,12 +51,20 @@
  */
 int kbd_port_init(void)
 {
-	if (sysinfo_value("kbd.type.z8530")) {
+	sysarg_t z8530;
+	if (sysinfo_get_value("kbd.type.z8530", &z8530) != EOK)
+		z8530 = false;
+	
+	sysarg_t ns16550;
+	if (sysinfo_get_value("kbd.type.ns16550", &ns16550) != EOK)
+		ns16550 = false;
+	
+	if (z8530) {
 		if (z8530_port_init() == 0)
 			return 0;
 	}
 	
-	if (sysinfo_value("kbd.type.ns16550")) {
+	if (ns16550) {
 		if (ns16550_port_init() == 0)
 			return 0;
 	}

@@ -42,7 +42,7 @@ extern int _errno;
 
 #define errno _errno
 
-#define EMFILE        (-17)
+#define EMFILE        (-18)
 #define ENAMETOOLONG  (-256)
 #define EISDIR        (-257)
 #define ENOTDIR       (-258)

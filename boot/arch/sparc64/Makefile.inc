@@ -53,7 +53,7 @@ ifeq ($(CONFIG_RD_EXTERNAL),y)
 endif
 	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
 
-arch/$(BARCH)/loader/image.boot:
+arch/$(BARCH)/loader/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
 	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
 
 clean: generic_clean
