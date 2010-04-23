@@ -502,15 +502,29 @@ void initialize_running_driver(driver_t *driver)
 void add_device(int phone, driver_t *drv, node_t *node)
 {
 	printf(NAME ": add_device\n");
-
-	ipcarg_t ret;
-	ipcarg_t rc = async_req_1_1(phone, DRIVER_ADD_DEVICE, node->handle, &ret);
-	if (rc != EOK) {
-		// TODO handle error
-		return;
-	}
 	
-	// TODO inspect return value (ret) to find out whether the device was successfully probed and added
+	ipcarg_t rc;
+	ipc_call_t answer;
+	
+	// send the device to the driver
+	aid_t req = async_send_1(phone, DRIVER_ADD_DEVICE, node->handle, &answer);
+	
+	// send the device's name to the driver
+	rc = async_data_write_start(phone, node->name, str_size(node->name) + 1);
+    if (rc != EOK) {
+		// TODO handle error
+    }
+	
+	// wait for answer from the driver
+	async_wait_for(req, &rc);
+	switch(rc) {
+		// TODO inspect return value to find out whether the device was successfully probed and added
+	case EOK:
+	case ENOENT:
+		
+		break;
+		
+	}
 	
 	return;
 }

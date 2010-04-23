@@ -110,6 +110,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
 	device_t *dev = driver_create_device();
 	dev->handle = dev_handle;
+	async_string_receive(&dev->name, 0, NULL);
 	add_to_devices_list(dev);
 	if (driver->driver_ops->add_device(dev)) {		
 		printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
@@ -120,7 +121,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 		// TODO delete device		
 		ret = 0;
 	}
-	ipc_answer_1(iid, EOK, ret);
+	ipc_answer_0(iid, EOK);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
