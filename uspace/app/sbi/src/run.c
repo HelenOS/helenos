@@ -1505,6 +1505,9 @@ static void run_var_new_tprimitive(run_t *run, tdata_primitive_t *tprimitive,
 
 	(void) run;
 
+	/* Make compiler happy. */
+	var = NULL;
+
 	switch (tprimitive->tpc) {
 	case tpc_bool:
 		var = rdata_var_new(vc_bool);

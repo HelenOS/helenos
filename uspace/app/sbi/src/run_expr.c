@@ -1385,6 +1385,9 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	    strtab_get_str(access->member_name->sid));
 #endif
 
+	/* Make compiler happy. */
+	ritem = NULL;
+
 	switch (member->sc) {
 	case sc_csi:
 		printf("Error: Accessing object member which is nested CSI.\n");
@@ -1433,8 +1436,6 @@ static void run_access_object(run_t *run, stree_access_t *access,
 		deleg_p->sym = member;
 		addr_prop->u.named->prop_d = deleg_p;
 		break;
-	default:
-		ritem = NULL;
 	}
 
 	*res = ritem;
