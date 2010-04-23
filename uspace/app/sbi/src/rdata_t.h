@@ -59,7 +59,7 @@ typedef struct {
 
 /** String variable */
 typedef struct {
-	char *value;
+	const char *value;
 } rdata_string_t;
 
 /** Reference variable */

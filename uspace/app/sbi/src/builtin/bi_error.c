@@ -35,7 +35,10 @@
 
 #include "bi_error.h"
 
-/** Declare error class hierarchy. */
+/** Declare error class hierarchy.
+ *
+ * @param bi	Builtin object
+ */
 void bi_error_declare(builtin_t *bi)
 {
 	/*
@@ -56,7 +59,10 @@ void bi_error_declare(builtin_t *bi)
 			"end\n"
 		"end\n");}
 
-/** Bind error class hierarchy. */
+/** Bind error class hierarchy.
+ *
+ * @param bi	Builtin object
+ */
 void bi_error_bind(builtin_t *bi)
 {
 	stree_symbol_t *sym;

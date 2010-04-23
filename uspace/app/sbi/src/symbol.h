@@ -39,6 +39,8 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog, stree_csi_t *scope,
     stree_ident_t *name);
 stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name);
 
+stree_deleg_t *symbol_to_deleg(stree_symbol_t *symbol);
+stree_symbol_t *deleg_to_symbol(stree_deleg_t *deleg);
 stree_csi_t *symbol_to_csi(stree_symbol_t *symbol);
 stree_symbol_t *csi_to_symbol(stree_csi_t *csi);
 stree_fun_t *symbol_to_fun(stree_symbol_t *symbol);

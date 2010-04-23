@@ -66,13 +66,31 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
     rdata_value_t *value);
 
-/** Initialize runner instance. */
+static void run_var_new_tprimitive(run_t *run, tdata_primitive_t *tprimitive,
+    rdata_var_t **rvar);
+static void run_var_new_null_ref(run_t *run, rdata_var_t **rvar);
+static void run_var_new_deleg(run_t *run, rdata_var_t **rvar);
+
+
+/** Initialize runner instance.
+ *
+ * @param run		Runner object
+ */
 void run_init(run_t *run)
 {
 	(void) run;
 }
 
-/** Run program */
+/** Run program.
+ *
+ * Associates the program @a prog with the runner object and executes
+ * it. If a run-time error occurs during the execution (e.g. an unhandled
+ * exception), @a run->error will be set to @c b_true when this function
+ * returns.
+ *
+ * @param run		Runner object
+ * @param prog		Program to run
+ */
 void run_program(run_t *run, stree_program_t *prog)
 {
 	stree_symbol_t *main_fun_sym;
@@ -118,7 +136,21 @@ void run_program(run_t *run, stree_program_t *prog)
 	run_exc_check_unhandled(run);
 }
 
-/** Run procedure. */
+/** Run procedure.
+ *
+ * Inserts the provided procedure AR @a proc_ar on the execution stack
+ * (in the thread AR) and executes the procedure. The return value
+ * of the procedure is stored to *(@a res). @c NULL is stored if the
+ * procedure returns no value.
+ *
+ * If the procedure execution bails out due to an exception, this
+ * can be determined by looking at @c bo_mode in thread AR. Also,
+ * in this case @c NULL is stored into *(@a res).
+ *
+ * @param run		Runner object
+ * @param proc_ar	Procedure activation record
+ * @param res		Place to store procedure return value
+ */
 void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 {
 	stree_proc_t *proc;
@@ -170,7 +202,11 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 	*res = proc_ar->retval;
 }
 
-/** Run code block */
+/** Run code block.
+ *
+ * @param run		Runner object
+ * @param block		Block to run
+ */
 static void run_block(run_t *run, stree_block_t *block)
 {
 	run_proc_ar_t *proc_ar;
@@ -217,9 +253,9 @@ static void run_block(run_t *run, stree_block_t *block)
  * expression statement with a value, the value item will be stored to
  * @a res.
  *
- * @param run	Runner object.
- * @param stat	Statement to run.
- * @param res	Place to store exps result or NULL if not interested.
+ * @param run	Runner object
+ * @param stat	Statement to run
+ * @param res	Place to store exps result or NULL if not interested
  */
 void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
 {
@@ -265,9 +301,9 @@ void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
  * Executes an expression statement. If @a res is not NULL then the value
  * of the expression (or NULL if it has no value) will be stored to @a res.
  *
- * @param run	Runner object.
- * @param exps	Expression statement to run.
- * @param res	Place to store exps result or NULL if not interested.
+ * @param run	Runner object
+ * @param exps	Expression statement to run
+ * @param res	Place to store exps result or NULL if not interested
  */
 static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res)
 {
@@ -282,24 +318,26 @@ static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res)
 		*res = rexpr;
 }
 
-/** Run variable declaration statement. */
+/** Run variable declaration statement.
+ *
+ * @param run	Runner object
+ * @param vdecl	Variable declaration statement to run
+ */
 static void run_vdecl(run_t *run, stree_vdecl_t *vdecl)
 {
 	run_block_ar_t *block_ar;
 	rdata_var_t *var, *old_var;
-	rdata_int_t *int_v;
+	tdata_item_t *var_ti;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing variable declaration statement.\n");
 #endif
+	/* Compute variable type. XXX Memoize. */
+	run_texpr(run->program, run_get_current_csi(run), vdecl->type,
+	    &var_ti);
 
-	/* XXX Need to support other variables than int. */
-
-	var = rdata_var_new(vc_int);
-	int_v = rdata_int_new();
-
-	var->u.int_v = int_v;
-	bigint_init(&int_v->value, 0);
+	/* Create variable and initialize with default value. */
+	run_var_new(run, var_ti, &var);
 
 	block_ar = run_get_current_block_ar(run);
 	old_var = (rdata_var_t *) intmap_get(&block_ar->vars, vdecl->name->sid);
@@ -317,7 +355,11 @@ static void run_vdecl(run_t *run, stree_vdecl_t *vdecl)
 #endif
 }
 
-/** Run @c if statement. */
+/** Run @c if statement.
+ *
+ * @param run	Runner object
+ * @param if_s	If statement to run
+ */
 static void run_if(run_t *run, stree_if_t *if_s)
 {
 	rdata_item_t *rcond;
@@ -347,7 +389,11 @@ static void run_if(run_t *run, stree_if_t *if_s)
 #endif
 }
 
-/** Run @c while statement. */
+/** Run @c while statement.
+ *
+ * @param run		Runner object
+ * @param while_s	While statement to run
+ */
 static void run_while(run_t *run, stree_while_t *while_s)
 {
 	rdata_item_t *rcond;
@@ -374,7 +420,11 @@ static void run_while(run_t *run, stree_while_t *while_s)
 #endif
 }
 
-/** Run @c raise statement. */
+/** Run @c raise statement.
+ *
+ * @param run		Runner object
+ * @param raise_s	Raise statement to run
+ */
 static void run_raise(run_t *run, stree_raise_t *raise_s)
 {
 	rdata_item_t *rexpr;
@@ -396,7 +446,14 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 	run->thread_ar->bo_mode = bm_exc;
 }
 
-/** Run @c return statement. */
+/** Run @c return statement.
+ *
+ * Sets the return value in procedure AR and forces control to return
+ * from the function by setting bailout mode to @c bm_proc.
+ *
+ * @param run		Runner object
+ * @param raise_s	Return statement to run
+ */
 static void run_return(run_t *run, stree_return_t *return_s)
 {
 	rdata_item_t *rexpr;
@@ -412,7 +469,7 @@ static void run_return(run_t *run, stree_return_t *return_s)
 
 	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
-	/* Store expression result in function AR. */
+	/* Store expression result in procedure AR. */
 	proc_ar = run_get_current_proc_ar(run);
 	proc_ar->retval = rexpr_vi;
 
@@ -421,7 +478,13 @@ static void run_return(run_t *run, stree_return_t *return_s)
 		run->thread_ar->bo_mode = bm_proc;
 }
 
-/** Run @c with-except-finally statement. */
+/** Run @c with-except-finally statement.
+ *
+ * Note: 'With' clause is not implemented.
+ *
+ * @param run		Runner object
+ * @param wef_s		With-except-finally statement to run
+ */
 static void run_wef(run_t *run, stree_wef_t *wef_s)
 {
 	list_node_t *except_n;
@@ -488,9 +551,9 @@ static void run_wef(run_t *run, stree_wef_t *wef_s)
  * Checks if the currently active exception in the runner object @c run
  * matches except clause @c except_c.
  *
- * @param run		Runner object.
- * @param except_c	@c except clause.
- * @return		@c b_true if there is a match, @c b_false otherwise.
+ * @param run		Runner object
+ * @param except_c	@c except clause
+ * @return		@c b_true if there is a match, @c b_false otherwise
  */
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 {
@@ -505,13 +568,14 @@ static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 	    &etype);
 
 	/* Determine if active exc. is derived from type in exc. clause. */
+	/* XXX This is wrong, it does not work with generics. */
 	return tdata_is_csi_derived_from_ti(exc_csi, etype);
 }
 
 /** Return CSI of the active exception.
  *
- * @param run		Runner object.
- * @return		CSI of the active exception.
+ * @param run		Runner object
+ * @return		CSI of the active exception
  */
 static stree_csi_t *run_exc_payload_get_csi(run_t *run)
 {
@@ -556,7 +620,7 @@ static stree_csi_t *run_exc_payload_get_csi(run_t *run)
  * Checks whether there is an active exception. If so, it prints an
  * error message and raises a run-time error.
  *
- * @param run		Runner object.
+ * @param run		Runner object
  */
 void run_exc_check_unhandled(run_t *run)
 {
@@ -578,6 +642,8 @@ void run_exc_check_unhandled(run_t *run)
 /** Raise an irrecoverable run-time error, start bailing out.
  *
  * Raises an error that cannot be handled by the user program.
+ *
+ * @param run		Runner object
  */
 void run_raise_error(run_t *run)
 {
@@ -585,14 +651,22 @@ void run_raise_error(run_t *run)
 	run->thread_ar->error = b_true;
 }
 
-/** Construct a special recovery item. */
+/** Construct a special recovery item.
+ *
+ * @param run		Runner object
+ */
 rdata_item_t *run_recovery_item(run_t *run)
 {
 	(void) run;
 	return NULL;
 }
 
-/** Find a local variable in the currently active function. */
+/** Find a local variable in the currently active function.
+ *
+ * @param run		Runner object
+ * @param name		Name SID of the local variable
+ * @return		Pointer to var node or @c NULL if not found
+ */
 rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name)
 {
 	run_proc_ar_t *proc_ar;
@@ -617,7 +691,11 @@ rdata_var_t *run_local_vars_lookup(run_t *run, sid_t name)
 	return NULL;
 }
 
-/** Get current function activation record. */
+/** Get current procedure activation record.
+ *
+ * @param run		Runner object
+ * @return		Active procedure AR
+ */
 run_proc_ar_t *run_get_current_proc_ar(run_t *run)
 {
 	list_node_t *node;
@@ -626,7 +704,11 @@ run_proc_ar_t *run_get_current_proc_ar(run_t *run)
 	return list_node_data(node, run_proc_ar_t *);
 }
 
-/** Get current block activation record. */
+/** Get current block activation record.
+ *
+ * @param run		Runner object
+ * @return		Active block AR
+ */
 run_block_ar_t *run_get_current_block_ar(run_t *run)
 {
 	run_proc_ar_t *proc_ar;
@@ -638,7 +720,11 @@ run_block_ar_t *run_get_current_block_ar(run_t *run)
 	return list_node_data(node, run_block_ar_t *);
 }
 
-/** Get current CSI. */
+/** Get current CSI.
+ *
+ * @param run		Runner object
+ * @return		Active CSI
+ */
 stree_csi_t *run_get_current_csi(run_t *run)
 {
 	run_proc_ar_t *proc_ar;
@@ -653,10 +739,15 @@ stree_csi_t *run_get_current_csi(run_t *run)
  *
  * (1) Create a variable of the desired type.
  * (2) Initialize the variable with the provided value.
+ *
+ * @param item		Value item (initial value for variable).
+ * @param var		Place to store new var node.
  */
 void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 {
+	rdata_bool_t *bool_v;
 	rdata_char_t *char_v;
+	rdata_deleg_t *deleg_v;
 	rdata_int_t *int_v;
 	rdata_string_t *string_v;
 	rdata_ref_t *ref_v;
@@ -666,6 +757,13 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 	in_var = item->u.value->var;
 
 	switch (in_var->vc) {
+	case vc_bool:
+		*var = rdata_var_new(vc_bool);
+		bool_v = rdata_bool_new();
+
+		(*var)->u.bool_v = bool_v;
+		bool_v->value = item->u.value->var->u.bool_v->value;
+		break;
 	case vc_char:
 		*var = rdata_var_new(vc_char);
 		char_v = rdata_char_new();
@@ -673,6 +771,14 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 		(*var)->u.char_v = char_v;
 		bigint_clone(&item->u.value->var->u.char_v->value,
 		    &char_v->value);
+		break;
+	case vc_deleg:
+		*var = rdata_var_new(vc_deleg);
+		deleg_v = rdata_deleg_new();
+
+		(*var)->u.deleg_v = deleg_v;
+		deleg_v->obj = item->u.value->var->u.deleg_v->obj;
+		deleg_v->sym = item->u.value->var->u.deleg_v->sym;
 		break;
 	case vc_int:
 		*var = rdata_var_new(vc_int);
@@ -703,7 +809,13 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 	}
 }
 
-/** Construct a function AR. */
+/** Construct a procedure AR.
+ *
+ * @param run		Runner object
+ * @param obj		Object whose procedure is being activated
+ * @param proc		Procedure that is being activated
+ * @param rproc_ar	Place to store pointer to new activation record
+ */
 void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
     run_proc_ar_t **rproc_ar)
 {
@@ -732,6 +844,12 @@ void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
  *
  * When invoking a procedure this is used to store the argument values
  * in the activation record.
+ *
+ * @param run		Runner object
+ * @param proc_ar	Existing procedure activation record where to store
+ *			the values
+ * @param arg_vals	List of value items (rdata_item_t *) -- real
+ *			argument values
  */
 void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 {
@@ -766,8 +884,8 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 	switch (outer_symbol->sc) {
 	case sc_fun:
 		fun = symbol_to_fun(outer_symbol);
-		args = &fun->args;
-		varg = fun->varg;
+		args = &fun->sig->args;
+		varg = fun->sig->varg;
 		break;
 	case sc_prop:
 		prop = symbol_to_prop(outer_symbol);
@@ -864,6 +982,11 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
  *
  * When invoking a setter this is used to store its argument value in its
  * procedure activation record.
+ *
+ * @param run		Runner object
+ * @param proc_ar	Existing procedure activation record where to store
+ *			the setter argument
+ * @param arg_val	Value items (rdata_item_t *) -- real argument value
  */
 void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
     rdata_item_t *arg_val)
@@ -897,7 +1020,12 @@ void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
 	intmap_set(&block_ar->vars, prop->setter_arg->name->sid, var);
 }
 
-/** Print function activation backtrace. */
+/** Print function activation backtrace.
+ *
+ * Prints a backtrace of activated functions for debugging purposes.
+ *
+ * @param run		Runner object
+ */
 void run_print_fun_bt(run_t *run)
 {
 	list_node_t *node;
@@ -919,6 +1047,10 @@ void run_print_fun_bt(run_t *run)
  *
  * If @a item is a value, we just return a copy. If @a item is an address,
  * we read from the address.
+ *
+ * @param run		Runner object
+ * @param item		Input item (value or address)
+ * @param ritem		Place to store pointer to new value item
  */
 void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
 {
@@ -950,6 +1082,10 @@ void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
  *
  * Get var-class of @a item, regardless whether it is a value or address.
  * (I.e. the var class of the value or variable at the given address).
+ *
+ * @param run		Runner object
+ * @param item		Value or address item
+ * @return		Varclass of @a item
  */
 var_class_t run_item_get_vc(run_t *run, rdata_item_t *item)
 {
@@ -991,9 +1127,9 @@ var_class_t run_item_get_vc(run_t *run, rdata_item_t *item)
  * It returns a pointer to the relevant @c var node in the temporary
  * copy.
  *
- * @param run	Runner object.
- * @param addr	Address of class @c ac_prop.
- * @param	Pointer to var node.
+ * @param run	Runner object
+ * @param addr	Address of class @c ac_prop
+ * @return	Pointer to var node
  */
 static rdata_var_t *run_aprop_get_tpos(run_t *run, rdata_address_t *addr)
 {
@@ -1014,7 +1150,11 @@ static rdata_var_t *run_aprop_get_tpos(run_t *run, rdata_address_t *addr)
 
 /** Read data from an address.
  *
- * Return value stored in a variable at the specified address.
+ * Read value from the specified address.
+ *
+ * @param run		Runner object
+ * @param address	Address to read
+ * @param ritem		Place to store pointer to the value that was read
  */
 void run_address_read(run_t *run, rdata_address_t *address,
     rdata_item_t **ritem)
@@ -1035,7 +1175,11 @@ void run_address_read(run_t *run, rdata_address_t *address,
 
 /** Write data to an address.
  *
- * Store @a value to the variable at @a address.
+ * Store value @a value at address @a address.
+ *
+ * @param run		Runner object
+ * @param address	Address to write
+ * @param value		Value to store at the address
  */
 void run_address_write(run_t *run, rdata_address_t *address,
     rdata_value_t *value)
@@ -1052,6 +1196,14 @@ void run_address_write(run_t *run, rdata_address_t *address,
 	}
 }
 
+/** Read data from a property address.
+ *
+ * This involves invoking the property getter procedure.
+ *
+ * @param run		Runner object.
+ * @param addr_prop	Property address to read.
+ * @param ritem		Place to store pointer to the value that was read.
+ */
 static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
     rdata_item_t **ritem)
 {
@@ -1115,6 +1267,14 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 #endif
 }
 
+/** Write data to a property address.
+ *
+ * This involves invoking the property setter procedure.
+ *
+ * @param run		Runner object
+ * @param addr_prop	Property address to write
+ * @param value		Value to store at the address
+ */
 static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
     rdata_value_t *value)
 {
@@ -1180,6 +1340,10 @@ static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
 /** Return reference to a variable.
  *
  * Constructs a reference (value item) pointing to @a var.
+ *
+ * @param run		Runner object
+ * @param var		Variable node that is being referenced
+ * @param res		Place to store pointer to new reference.
  */
 void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res)
 {
@@ -1209,6 +1373,10 @@ void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res)
  *
  * Takes a reference (address or value) and returns the address (item) of
  * the target of the reference.
+ *
+ * @param run		Runner object
+ * @param ref		Reference
+ * @param rtitem	Place to store pointer to the resulting address.
  */
 void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 {
@@ -1251,8 +1419,8 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
  * Used when the interpreter generates an exception due to a run-time
  * error (not for the @c raise statement).
  *
- * @param run		Runner object.
- * @param csi		Exception class.
+ * @param run		Runner object
+ * @param csi		Exception class
  */
 void run_raise_exc(run_t *run, stree_csi_t *csi)
 {
@@ -1269,12 +1437,151 @@ void run_raise_exc(run_t *run, stree_csi_t *csi)
 	run->thread_ar->bo_mode = bm_exc;
 }
 
-/** Determine if we are bailing out. */
+/** Determine if we are bailing out.
+ *
+ * @param run		Runner object
+ * @return		@c b_true if we are bailing out, @c b_false otherwise
+ */
 bool_t run_is_bo(run_t *run)
 {
 	return run->thread_ar->bo_mode != bm_none;
 }
 
+/** Construct a new variable of the given type.
+ *
+ * The variable is allocated and initialized with a default value
+ * based on type item @a ti. For reference types the default value
+ * is a null reference. At this point this does not work for generic
+ * types (we need RTTI).
+ *
+ * @param run		Runner object
+ * @param ti		Type of variable to create (type item)
+ * @param rvar		Place to store pointer to new variable
+ */
+void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar)
+{
+	rdata_var_t *var;
+
+	switch (ti->tic) {
+	case tic_tprimitive:
+		run_var_new_tprimitive(run, ti->u.tprimitive, rvar);
+		break;
+	case tic_tobject:
+	case tic_tarray:
+		run_var_new_null_ref(run, rvar);
+		break;
+	case tic_tdeleg:
+	case tic_tfun:
+		run_var_new_deleg(run, rvar);
+		break;
+	case tic_tvref:
+		/* 
+		 * XXX Need to obtain run-time value of type argument to
+		 * initialize variable properly.
+		 */
+		var = rdata_var_new(vc_int);
+		var->u.int_v = rdata_int_new();
+		bigint_init(&var->u.int_v->value, 0);
+		*rvar = var;
+		break;
+	case tic_ignore:
+		assert(b_false);
+	}
+}
+
+/** Construct a new variable of primitive type.
+ *
+ * The variable is allocated and initialized with a default value
+ * based on primitive type item @a tprimitive.
+ *
+ * @param run		Runner object
+ * @param ti		Primitive type of variable to create
+ * @param rvar		Place to store pointer to new variable
+ */
+static void run_var_new_tprimitive(run_t *run, tdata_primitive_t *tprimitive,
+    rdata_var_t **rvar)
+{
+	rdata_var_t *var;
+
+	(void) run;
+
+	/* Make compiler happy. */
+	var = NULL;
+
+	switch (tprimitive->tpc) {
+	case tpc_bool:
+		var = rdata_var_new(vc_bool);
+		var->u.bool_v = rdata_bool_new();
+		var->u.bool_v->value = b_false;
+		break;
+	case tpc_char:
+		var = rdata_var_new(vc_char);
+		var->u.char_v = rdata_char_new();
+		bigint_init(&var->u.char_v->value, 0);
+		break;
+	case tpc_int:
+		var = rdata_var_new(vc_int);
+		var->u.int_v = rdata_int_new();
+		bigint_init(&var->u.int_v->value, 0);
+		break;
+	case tpc_nil:
+		assert(b_false);
+	case tpc_string:
+		var = rdata_var_new(vc_string);
+		var->u.string_v = rdata_string_new();
+		var->u.string_v->value = "";
+		break;
+	case tpc_resource:
+		var = rdata_var_new(vc_resource);
+		var->u.resource_v = rdata_resource_new();
+		var->u.resource_v->data = NULL;
+		break;
+	}
+
+	*rvar = var;
+}
+
+/** Construct a new variable containing null reference.
+ *
+ * @param run		Runner object
+ * @param rvar		Place to store pointer to new variable
+ */
+static void run_var_new_null_ref(run_t *run, rdata_var_t **rvar)
+{
+	rdata_var_t *var;
+
+	(void) run;
+
+	/* Return null reference. */
+	var = rdata_var_new(vc_ref);
+	var->u.ref_v = rdata_ref_new();
+
+	*rvar = var;
+}
+
+/** Construct a new variable containing invalid delegate.
+ *
+ * @param run		Runner object
+ * @param rvar		Place to store pointer to new variable
+ */
+static void run_var_new_deleg(run_t *run, rdata_var_t **rvar)
+{
+	rdata_var_t *var;
+
+	(void) run;
+
+	/* Return null reference. */
+	var = rdata_var_new(vc_deleg);
+	var->u.deleg_v = rdata_deleg_new();
+
+	*rvar = var;
+}
+
+/** Construct a new thread activation record.
+ *
+ * @param run	Runner object
+ * @return	New thread AR.
+ */
 run_thread_ar_t *run_thread_ar_new(void)
 {
 	run_thread_ar_t *thread_ar;
@@ -1288,6 +1595,11 @@ run_thread_ar_t *run_thread_ar_new(void)
 	return thread_ar;
 }
 
+/** Construct a new procedure activation record.
+ *
+ * @param run	Runner object
+ * @return	New procedure AR.
+ */
 run_proc_ar_t *run_proc_ar_new(void)
 {
 	run_proc_ar_t *proc_ar;
@@ -1301,6 +1613,11 @@ run_proc_ar_t *run_proc_ar_new(void)
 	return proc_ar;
 }
 
+/** Construct a new block activation record.
+ *
+ * @param run	Runner object
+ * @return	New block AR.
+ */
 run_block_ar_t *run_block_ar_new(void)
 {
 	run_block_ar_t *block_ar;

@@ -67,6 +67,8 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem);
 void run_raise_exc(run_t *run, stree_csi_t *csi);
 bool_t run_is_bo(run_t *run);
 
+void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar);
+
 run_thread_ar_t *run_thread_ar_new(void);
 run_proc_ar_t *run_proc_ar_new(void);
 run_block_ar_t *run_block_ar_new(void);

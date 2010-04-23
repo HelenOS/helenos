@@ -26,23 +26,81 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
+-- Demonstrate generic classes.
+
+class GenericsDemo is
+	fun Main() is
+		Builtin.WriteLine("Let's try some generics.");
+
+		var f : B/int/string;
+		var g : A/string/int;
+		var s : string;
+
+		f = new B/int/string();
+		g = new A/string/int();
+
+		-- This should be okay.
+		f = f;
+		g = f;
+
+		-- Method
+		g.set_a("Lorem");
+		f.set_a("ipsum");
+		s = g.get_a();
+		s = f.get_a();
+
+		-- Named property
+		g.P = "Lorem";
+		f.P = "ipsum";
+		s = g.P;
+		s = f.P;
+
+		-- Indexed property
+		g[1] = "Lorem";
+		f[1] = "ipsum";
+		s = g[1];
+		s = f[1];
+	end
+end
+
+-- Generic class with two type parameters
+class A/u/v is
+	-- Variable whose type is one of the parameters
+	var a : u;
+
+	-- Member function whose argument type is one of the parameters
+	fun set_a(arg : u) is
+		a = arg;
+	end
+
+	fun get_a() : u is
+		return a;
+	end
+
+	-- Property whose type is one of the type parameters
+	prop P : u is
+		get is
+			return a;
+		end
+		set value is
+			a = value;
+		end
+	end
+
+	-- Indexed property whose type is one of the type arguments
+	prop self[i : int] : u is
+		get is
+			return a;
+		end
+		set value is
+			a = value;
+		end
+	end
+end
+
+-- Generic class derived from another generic class
 --
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
+-- Note the swapping of type arguments.
 --
-
-class Bool is
-	var Value : bool;
-end
-
-class Char is
-	var Value : char;
-end
-
-class Int is
-	var Value : int;
-end
-
-class String is
-	var Value : string;
+class B/v/u : A/u/v is
 end

@@ -36,6 +36,10 @@
 
 #include "stree.h"
 
+/** Allocate new module.
+ *
+ * @return	New module
+ */
 stree_module_t *stree_module_new(void)
 {
 	stree_module_t *module;
@@ -50,6 +54,11 @@ stree_module_t *stree_module_new(void)
 	return module;
 }
 
+/** Allocate new module member.
+ *
+ * @param mc	Module member class
+ * @return	New module member
+ */
 stree_modm_t *stree_modm_new(modm_class_t mc)
 {
 	stree_modm_t *modm;
@@ -64,6 +73,11 @@ stree_modm_t *stree_modm_new(modm_class_t mc)
 	return modm;
 }
 
+/** Allocate new CSI.
+ *
+ * @param cc	CSI class
+ * @return	New CSI
+ */
 stree_csi_t *stree_csi_new(csi_class_t cc)
 {
 	stree_csi_t *csi;
@@ -82,6 +96,11 @@ stree_csi_t *stree_csi_new(csi_class_t cc)
 	return csi;
 }
 
+/** Allocate new CSI member.
+ *
+ * @param cc	CSI member class
+ * @return	New CSI member
+ */
 stree_csimbr_t *stree_csimbr_new(csimbr_class_t cc)
 {
 	stree_csimbr_t *csimbr;
@@ -96,6 +115,27 @@ stree_csimbr_t *stree_csimbr_new(csimbr_class_t cc)
 	return csimbr;
 }
 
+/** Allocate new member delegate.
+ *
+ * @return	New member delegate
+ */
+stree_deleg_t *stree_deleg_new(void)
+{
+	stree_deleg_t *deleg;
+
+	deleg = calloc(1, sizeof(stree_deleg_t));
+	if (deleg == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return deleg;
+}
+
+/** Allocate new member function.
+ *
+ * @return	New member function
+ */
 stree_fun_t *stree_fun_new(void)
 {
 	stree_fun_t *fun;
@@ -109,6 +149,10 @@ stree_fun_t *stree_fun_new(void)
 	return fun;
 }
 
+/** Allocate new member variable.
+ *
+ * @return	New member variable
+ */
 stree_var_t *stree_var_new(void)
 {
 	stree_var_t *var;
@@ -122,6 +166,10 @@ stree_var_t *stree_var_new(void)
 	return var;
 }
 
+/** Allocate new property.
+ *
+ * @return	New property
+ */
 stree_prop_t *stree_prop_new(void)
 {
 	stree_prop_t *prop;
@@ -135,6 +183,28 @@ stree_prop_t *stree_prop_new(void)
 	return prop;
 }
 
+/** Allocate new type argument.
+ *
+ * @return	New type argument
+ */
+stree_targ_t *stree_targ_new(void)
+{
+	stree_targ_t *targ;
+
+	targ = calloc(1, sizeof(stree_targ_t));
+	if (targ == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return targ;
+}
+
+/** Allocate new symbol attribute.
+ *
+ * @param sac	Symbol attribute class
+ * @return	New symbol attribute
+ */
 stree_symbol_attr_t *stree_symbol_attr_new(symbol_attr_class_t sac)
 {
 	stree_symbol_attr_t *symbol_attr;
@@ -149,6 +219,10 @@ stree_symbol_attr_t *stree_symbol_attr_new(symbol_attr_class_t sac)
 	return symbol_attr;
 }
 
+/** Allocate new procedure.
+ *
+ * @return	New procedure
+ */
 stree_proc_t *stree_proc_new(void)
 {
 	stree_proc_t *proc;
@@ -162,6 +236,10 @@ stree_proc_t *stree_proc_new(void)
 	return proc;
 }
 
+/** Allocate new procedure argument.
+ *
+ * @return	New procedure argument
+ */
 stree_proc_arg_t *stree_proc_arg_new(void)
 {
 	stree_proc_arg_t *proc_arg;
@@ -175,6 +253,28 @@ stree_proc_arg_t *stree_proc_arg_new(void)
 	return proc_arg;
 }
 
+/** Allocate new function signature.
+ *
+ * @return	New procedure argument
+ */
+stree_fun_sig_t *stree_fun_sig_new(void)
+{
+	stree_fun_sig_t *fun_sig;
+
+	fun_sig = calloc(1, sizeof(stree_fun_sig_t));
+	if (fun_sig == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return fun_sig;
+}
+
+/** Allocate new procedure argument attribute.
+ *
+ * @param	Argument attribute class
+ * @return	New procedure argument attribute
+ */
 stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac)
 {
 	stree_arg_attr_t *arg_attr;
@@ -189,6 +289,11 @@ stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac)
 	return arg_attr;
 }
 
+/** Allocate new statement.
+ *
+ * @param sc	Statement class
+ * @return	New statement
+ */
 stree_stat_t *stree_stat_new(stat_class_t sc)
 {
 	stree_stat_t *stat;
@@ -203,6 +308,10 @@ stree_stat_t *stree_stat_new(stat_class_t sc)
 	return stat;
 }
 
+/** Allocate new local variable declaration.
+ *
+ * @return	New local variable declaration
+ */
 stree_vdecl_t *stree_vdecl_new(void)
 {
 	stree_vdecl_t *vdecl_s;
@@ -216,6 +325,10 @@ stree_vdecl_t *stree_vdecl_new(void)
 	return vdecl_s;
 }
 
+/** Allocate new @c if statement.
+ *
+ * @return	New @c if statement
+ */
 stree_if_t *stree_if_new(void)
 {
 	stree_if_t *if_s;
@@ -229,6 +342,10 @@ stree_if_t *stree_if_new(void)
 	return if_s;
 }
 
+/** Allocate new @c while statement.
+ *
+ * @return	New @c while statement
+ */
 stree_while_t *stree_while_new(void)
 {
 	stree_while_t *while_s;
@@ -242,6 +359,10 @@ stree_while_t *stree_while_new(void)
 	return while_s;
 }
 
+/** Allocate new @c for statement.
+ *
+ * @return	New @c for statement
+ */
 stree_for_t *stree_for_new(void)
 {
 	stree_for_t *for_s;
@@ -255,6 +376,10 @@ stree_for_t *stree_for_new(void)
 	return for_s;
 }
 
+/** Allocate new @c raise statement.
+ *
+ * @return	New @c raise statement
+ */
 stree_raise_t *stree_raise_new(void)
 {
 	stree_raise_t *raise_s;
@@ -268,6 +393,10 @@ stree_raise_t *stree_raise_new(void)
 	return raise_s;
 }
 
+/** Allocate new @c return statement.
+ *
+ * @return	New @c return statement
+ */
 stree_return_t *stree_return_new(void)
 {
 	stree_return_t *return_s;
@@ -281,6 +410,10 @@ stree_return_t *stree_return_new(void)
 	return return_s;
 }
 
+/** Allocate new with-except-finally statement.
+ *
+ * @return	New with-except-finally statement.
+ */
 stree_wef_t *stree_wef_new(void)
 {
 	stree_wef_t *wef_s;
@@ -294,6 +427,10 @@ stree_wef_t *stree_wef_new(void)
 	return wef_s;
 }
 
+/** Allocate new expression statement.
+ *
+ * @return	New expression statement
+ */
 stree_exps_t *stree_exps_new(void)
 {
 	stree_exps_t *exp_s;
@@ -307,6 +444,10 @@ stree_exps_t *stree_exps_new(void)
 	return exp_s;
 }
 
+/** Allocate new @c except clause.
+ *
+ * @return	New @c except clause
+ */
 stree_except_t *stree_except_new(void)
 {
 	stree_except_t *except_c;
@@ -320,6 +461,10 @@ stree_except_t *stree_except_new(void)
 	return except_c;
 }
 
+/** Allocate new statement block.
+ *
+ * @return	New statement block
+ */
 stree_block_t *stree_block_new(void)
 {
 	stree_block_t *block;
@@ -333,6 +478,11 @@ stree_block_t *stree_block_new(void)
 	return block;
 }
 
+/** Allocate new expression.
+ *
+ * @param ec	Expression class
+ * @return	New expression
+ */
 stree_expr_t *stree_expr_new(expr_class_t ec)
 {
 	stree_expr_t *expr;
@@ -347,6 +497,11 @@ stree_expr_t *stree_expr_new(expr_class_t ec)
 	return expr;
 }
 
+/** Allocate new assignment.
+ *
+ * @param ac	Assignment class
+ * @return	New assignment
+ */
 stree_assign_t *stree_assign_new(assign_class_t ac)
 {
 	stree_assign_t *assign;
@@ -361,6 +516,10 @@ stree_assign_t *stree_assign_new(assign_class_t ac)
 	return assign;
 }
 
+/** Allocate new binary operation.
+ *
+ * @return	New binary operation
+ */
 stree_binop_t *stree_binop_new(binop_class_t bc)
 {
 	stree_binop_t *binop;
@@ -375,6 +534,11 @@ stree_binop_t *stree_binop_new(binop_class_t bc)
 	return binop;
 }
 
+/** Allocate new unary operation.
+ *
+ * @param uc	Unary operation class
+ * @return	New unary operation
+ */
 stree_unop_t *stree_unop_new(unop_class_t uc)
 {
 	stree_unop_t *unop;
@@ -389,6 +553,10 @@ stree_unop_t *stree_unop_new(unop_class_t uc)
 	return unop;
 }
 
+/** Allocate new @c new operation.
+ *
+ * @return	New @c new operation
+ */
 stree_new_t *stree_new_new(void)
 {
 	stree_new_t *new_op;
@@ -402,6 +570,10 @@ stree_new_t *stree_new_new(void)
 	return new_op;
 }
 
+/** Allocate new .
+ *
+ * @return	New 
+ */
 stree_access_t *stree_access_new(void)
 {
 	stree_access_t *access;
@@ -415,6 +587,10 @@ stree_access_t *stree_access_new(void)
 	return access;
 }
 
+/** Allocate new function call operation.
+ *
+ * @return	New function call operation
+ */
 stree_call_t *stree_call_new(void)
 {
 	stree_call_t *call;
@@ -428,6 +604,10 @@ stree_call_t *stree_call_new(void)
 	return call;
 }
 
+/** Allocate new indexing operation.
+ *
+ * @return	New indexing operation
+ */
 stree_index_t *stree_index_new(void)
 {
 	stree_index_t *index;
@@ -441,6 +621,10 @@ stree_index_t *stree_index_new(void)
 	return index;
 }
 
+/** Allocate new as conversion.
+ *
+ * @return	New as conversion
+ */
 stree_as_t *stree_as_new(void)
 {
 	stree_as_t *as_expr;
@@ -454,6 +638,27 @@ stree_as_t *stree_as_new(void)
 	return as_expr;
 }
 
+/** Allocate new boxing operation.
+ *
+ * @return	New boxing operation
+ */
+stree_box_t *stree_box_new(void)
+{
+	stree_box_t *box_expr;
+
+	box_expr = calloc(1, sizeof(stree_box_t));
+	if (box_expr == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return box_expr;
+}
+
+/** Allocate new name reference operation.
+ *
+ * @return	New name reference operation
+ */
 stree_nameref_t *stree_nameref_new(void)
 {
 	stree_nameref_t *nameref;
@@ -467,6 +672,10 @@ stree_nameref_t *stree_nameref_new(void)
 	return nameref;
 }
 
+/** Allocate new identifier.
+ *
+ * @return	New identifier
+ */
 stree_ident_t *stree_ident_new(void)
 {
 	stree_ident_t *ident;
@@ -480,6 +689,11 @@ stree_ident_t *stree_ident_new(void)
 	return ident;
 }
 
+/** Allocate new literal.
+ *
+ * @param ltc	Literal class
+ * @return	New literal
+ */
 stree_literal_t *stree_literal_new(literal_class_t ltc)
 {
 	stree_literal_t *literal;
@@ -494,6 +708,10 @@ stree_literal_t *stree_literal_new(literal_class_t ltc)
 	return literal;
 }
 
+/** Allocate new @c self reference.
+ *
+ * @return	New @c self reference
+ */
 stree_self_ref_t *stree_self_ref_new(void)
 {
 	stree_self_ref_t *self_ref;
@@ -507,6 +725,10 @@ stree_self_ref_t *stree_self_ref_new(void)
 	return self_ref;
 }
 
+/** Allocate new type expression
+ *
+ * @return	New type expression
+ */
 stree_texpr_t *stree_texpr_new(texpr_class_t tc)
 {
 	stree_texpr_t *texpr;
@@ -521,6 +743,10 @@ stree_texpr_t *stree_texpr_new(texpr_class_t tc)
 	return texpr;
 }
 
+/** Allocate new type access operation.
+ *
+ * @return	New type access operation
+ */
 stree_taccess_t *stree_taccess_new(void)
 {
 	stree_taccess_t *taccess;
@@ -534,6 +760,10 @@ stree_taccess_t *stree_taccess_new(void)
 	return taccess;
 }
 
+/** Allocate new type application operation.
+ *
+ * @return	New type application operation
+ */
 stree_tapply_t *stree_tapply_new(void)
 {
 	stree_tapply_t *tapply;
@@ -547,6 +777,10 @@ stree_tapply_t *stree_tapply_new(void)
 	return tapply;
 }
 
+/** Allocate new type indexing operation.
+ *
+ * @return	New type indexing operation
+ */
 stree_tindex_t *stree_tindex_new(void)
 {
 	stree_tindex_t *tindex;
@@ -560,6 +794,10 @@ stree_tindex_t *stree_tindex_new(void)
 	return tindex;
 }
 
+/** Allocate new type literal.
+ *
+ * @return	New type literal
+ */
 stree_tliteral_t *stree_tliteral_new(tliteral_class_t tlc)
 {
 	stree_tliteral_t *tliteral;
@@ -574,6 +812,10 @@ stree_tliteral_t *stree_tliteral_new(tliteral_class_t tlc)
 	return tliteral;
 }
 
+/** Allocate new type name reference.
+ *
+ * @return	New type name reference
+ */
 stree_tnameref_t *stree_tnameref_new(void)
 {
 	stree_tnameref_t *tnameref;
@@ -587,6 +829,10 @@ stree_tnameref_t *stree_tnameref_new(void)
 	return tnameref;
 }
 
+/** Allocate new symbol.
+ *
+ * @return	New symbol
+ */
 stree_symbol_t *stree_symbol_new(symbol_class_t sc)
 {
 	stree_symbol_t *symbol;
@@ -601,6 +847,10 @@ stree_symbol_t *stree_symbol_new(symbol_class_t sc)
 	return symbol;
 }
 
+/** Allocate new program.
+ *
+ * @return	New program
+ */
 stree_program_t *stree_program_new(void)
 {
 	stree_program_t *program;
@@ -614,7 +864,12 @@ stree_program_t *stree_program_new(void)
 	return program;
 }
 
-/** Determine if @a symbol has attribute of class @a sac. */
+/** Determine if @a symbol has attribute of class @a sac.
+ *
+ * @param symbol	Symbol
+ * @param sac		Symbol attribute class
+ * @return		@c b_true if yes, @c b_false if no.
+ */
 bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac)
 {
 	list_node_t *node;
@@ -632,7 +887,12 @@ bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac)
 	return b_false;
 }
 
-/** Determine if argument @a arg has attribute of class @a aac. */
+/** Determine if argument @a arg has attribute of class @a aac.
+ *
+ * @param arg		Formal procedure argument
+ * @param aac		Argument attribute class
+ * @return		@c b_true if yes, @c b_false if no.
+ */
 bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac)
 {
 	list_node_t *node;
@@ -651,6 +911,8 @@ bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac)
 }
 
 /** Determine wheter @a a is derived (transitively) from @a b.
+ *
+ * XXX This does not work right with generics.
  *
  * @param a	Derived CSI.
  * @param b	Base CSI.
@@ -671,4 +933,28 @@ bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b)
 
 	/* We went all the way to the root and did not find b. */
 	return b_false;
+}
+
+/** Search for CSI type argument of the given name.
+ *
+ * @param csi		CSI to look in.
+ * @param ident		Identifier of the type argument.
+ * @return		Type argument definition or @c NULL if not found.
+ */
+stree_targ_t *stree_csi_find_targ(stree_csi_t *csi, stree_ident_t *ident)
+{
+	list_node_t *targ_n;
+	stree_targ_t *targ;
+
+	targ_n = list_first(&csi->targ);
+	while (targ_n != NULL) {
+		targ = list_node_data(targ_n, stree_targ_t *);
+		if (targ->name->sid == ident->sid)
+			return targ;
+
+		targ_n = list_next(&csi->targ, targ_n);
+	}
+
+	/* No match */
+	return NULL;
 }

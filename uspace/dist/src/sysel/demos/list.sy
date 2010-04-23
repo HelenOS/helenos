@@ -29,23 +29,21 @@
 -- Using the List class from the library.
 class ListDemo is
 	fun Main() is
-		var list : List;
-		var i : Int;
+		var list : List/int;
 
-		list = new List();
+		list = new List/int();
 		list.Init();
 
-		-- We need autoboxing or generics to get rid of this mess.
-		i = new Int(); i.Value = 5; list.Append(i);
-		i = new Int(); i.Value = 6; list.Append(i);
-		i = new Int(); i.Value = 7; list.Append(i);
-		i = new Int(); i.Value = 8; list.Append(i);
+		list.Append(5);
+		list.Append(6);
+		list.Append(7);
+		list.Append(8);
 
-		var n : ListNode;
+		var n : ListNode/int;
 
 		n = list.First;
 		while n != nil do
-			Builtin.WriteLine((n.value as Int).Value);
+			Builtin.WriteLine(n.Value);
 			n = n.Next;
 		end
 	end

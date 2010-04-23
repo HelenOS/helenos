@@ -26,23 +26,48 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
---
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
---
+class DelegateDemo is
+	fun Main() is
+		var demo : DelegateClass;
 
-class Bool is
-	var Value : bool;
+		demo = new DelegateClass();
+		demo.Run();
+	end
 end
 
-class Char is
-	var Value : char;
-end
+class DelegateClass is
+	fun Run() is
+		var op : BinaryOp;
 
-class Int is
-	var Value : int;
-end
+		-- The anonymous delegate to self.Add is implicitly
+		-- converted to BinaryOp. This is allowed as long as
+		-- the signature matches.
+		op = Add;
 
-class String is
-	var Value : string;
+		-- Pass delegate to Operate()
+		Operate(op, "Add");
+
+		-- Obviously the intermediate step through a variable
+		-- is redundant.
+		Operate(Subtract, "Subtract");
+	end
+
+	-- Function having delegate as the first parameger
+	fun Operate(op : BinaryOp; opName : string) is
+		Builtin.Write(opName + "(1, 2): ");
+		Builtin.WriteLine(op(1, 2));
+	end
+
+	-- A function matching the delegate signature
+	fun Add(a : int; b : int) : int is
+		return a + b;
+	end
+
+	-- Another function matching the delegate signature
+	fun Subtract(a : int; b : int) : int is
+		return a - b;
+	end
+
+	-- Declaration of a delegate.
+	deleg BinaryOp(a : int; b : int) : int;
 end

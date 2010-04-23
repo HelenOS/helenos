@@ -42,10 +42,16 @@ typedef struct builtin {
 	/** Grandfather object */
 	struct stree_symbol *gf_class;
 
-	/** Error class for nil reference access. */
+	/** Boxed variants of primitive types */
+	struct stree_symbol *boxed_bool;
+	struct stree_symbol *boxed_char;
+	struct stree_symbol *boxed_int;
+	struct stree_symbol *boxed_string;
+
+	/** Error class for nil reference access */
 	struct stree_csi *error_nilreference;
 
-	/** Error class for out-of-bounds array access. */
+	/** Error class for out-of-bounds array access */
 	struct stree_csi *error_outofbounds;
 } builtin_t;
 

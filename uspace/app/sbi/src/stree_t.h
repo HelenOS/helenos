@@ -185,6 +185,17 @@ typedef struct {
 	struct stree_texpr *dtype;
 } stree_as_t;
 
+/** Boxing of primitive type (pseudo)
+ *
+ * This pseudo-node is used internally to box a value of primitive type.
+ * It is implicitly inserted by stype_convert(). It does not correspond
+ * to a an explicit program construct.
+ */
+typedef struct {
+	/* Primitive type expression */
+	struct stree_expr *arg;
+} stree_box_t;
+
 /** Arithmetic expression class */
 typedef enum {
 	ec_nameref,
@@ -197,7 +208,8 @@ typedef enum {
 	ec_call,
 	ec_assign,
 	ec_index,
-	ec_as
+	ec_as,
+	ec_box
 } expr_class_t;
 
 /** Arithmetic expression */
@@ -218,6 +230,7 @@ typedef struct stree_expr {
 		stree_index_t *index;
 		stree_assign_t *assign;
 		stree_as_t *as_op;
+		stree_box_t *box;
 	} u;
 } stree_expr_t;
 
@@ -414,6 +427,22 @@ typedef struct {
 	list_t attr; /* of stree_arg_attr_t */
 } stree_proc_arg_t;
 
+/** Function signature.
+ *
+ * Foormal parameters and return type. This is common to function and delegate
+ * delcarations.
+ */
+typedef struct {
+	/** Formal parameters */
+	list_t args; /* of stree_proc_arg_t */
+
+	/** Variadic argument or @c NULL if none. */
+	stree_proc_arg_t *varg;
+
+	/** Return type */
+	stree_texpr_t *rtype;
+} stree_fun_sig_t;
+
 /** Procedure
  *
  * Procedure is the common term for a getter, setter or function body.
@@ -431,6 +460,21 @@ typedef struct stree_proc {
 	builtin_proc_t bi_handler;
 } stree_proc_t;
 
+/** Delegate declaration */
+typedef struct stree_deleg {
+	/** Delegate name */
+	stree_ident_t *name;
+
+	/** Symbol */
+	struct stree_symbol *symbol;
+
+	/** Signature (arguments and return type) */
+	stree_fun_sig_t *sig;
+
+	/** Type item describing the delegate */
+	struct tdata_item *titem;
+} stree_deleg_t;
+
 /** Member function declaration */
 typedef struct stree_fun {
 	/** Function name */
@@ -439,17 +483,14 @@ typedef struct stree_fun {
 	/** Symbol */
 	struct stree_symbol *symbol;
 
-	/** Formal parameters */
-	list_t args; /* of stree_proc_arg_t */
-
-	/** Variadic argument or @c NULL if none. */
-	stree_proc_arg_t *varg;
-
-	/** Return type */
-	stree_texpr_t *rtype;
+	/** Signature (arguments and return type) */
+	stree_fun_sig_t *sig;
 
 	/** Function implementation */
 	stree_proc_t *proc;
+
+	/** Type item describing the function */
+	struct tdata_item *titem;
 } stree_fun_t;
 
 /** Member variable declaration */
@@ -485,6 +526,7 @@ typedef struct stree_prop {
 
 typedef enum {
 	csimbr_csi,
+	csimbr_deleg,
 	csimbr_fun,
 	csimbr_var,
 	csimbr_prop
@@ -496,6 +538,7 @@ typedef struct {
 
 	union {
 		struct stree_csi *csi;
+		stree_deleg_t *deleg;
 		stree_fun_t *fun;
 		stree_var_t *var;
 		stree_prop_t *prop;
@@ -508,6 +551,12 @@ typedef enum {
 	csi_interface
 } csi_class_t;
 
+/** CSI formal type argument */
+typedef struct stree_targ {
+	stree_ident_t *name;
+	struct stree_symbol *symbol;
+} stree_targ_t;
+
 /** Class, struct or interface declaration */
 typedef struct stree_csi {
 	/** Which of class, struct or interface */
@@ -516,8 +565,8 @@ typedef struct stree_csi {
 	/** Name of this CSI */
 	stree_ident_t *name;
 
-	/** List of type argument names */
-	list_t targ_names; /* of stree_ident_t */
+	/** List of type arguments */
+	list_t targ; /* of stree_targ_t */
 
 	/** Symbol for this CSI */
 	struct stree_symbol *symbol;
@@ -565,11 +614,16 @@ typedef struct {
 	symbol_attr_class_t sac;
 } stree_symbol_attr_t;
 
-
 typedef enum {
+	/** CSI (class, struct or interface) */
 	sc_csi,
+	/** Member delegate */
+	sc_deleg,
+	/** Member function */
 	sc_fun,
+	/** Member variable */
 	sc_var,
+	/** Member property */
 	sc_prop
 } symbol_class_t;
 
@@ -583,6 +637,7 @@ typedef struct stree_symbol {
 
 	union {
 		struct stree_csi *csi;
+		stree_deleg_t *deleg;
 		stree_fun_t *fun;
 		stree_var_t *var;
 		stree_prop_t *prop;

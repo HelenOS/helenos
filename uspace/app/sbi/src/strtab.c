@@ -29,8 +29,13 @@
 /** @file String table.
  *
  * Converts strings to more compact SID (string ID, integer) and back.
- * The string table is not an object as there will never be a need for
+ * (The point is that this deduplicates the strings. Using SID might actually
+ * not be such a big win.)
+ *
+ * The string table is a singleton as there will never be a need for
  * more than one.
+ *
+ * Current implementation uses a linked list and thus it is slow.
  */
 
 #include <stdlib.h>
@@ -42,11 +47,20 @@
 
 static list_t str_list;
 
+/** Initialize string table. */
 void strtab_init(void)
 {
 	list_init(&str_list);
 }
 
+/** Get SID of a string.
+ *
+ * Return SID of @a str. If @a str is not in the string table yet,
+ * it is added and thus a new SID is assigned.
+ *
+ * @param str	String
+ * @return	SID of @a str.
+ */
 sid_t strtab_get_sid(const char *str)
 {
 	list_node_t *node;
@@ -69,6 +83,14 @@ sid_t strtab_get_sid(const char *str)
 	return sid;
 }
 
+/** Get string with the given SID.
+ *
+ * Returns string that has SID @a sid. If no such string exists, this
+ * causes a fatal error in the interpreter.
+ *
+ * @param sid	SID of the string.
+ * @return	Pointer to the string.
+ */
 char *strtab_get_str(sid_t sid)
 {
 	list_node_t *node;

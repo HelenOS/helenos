@@ -32,6 +32,7 @@
 #include "mytypes.h"
 
 void builtin_declare(stree_program_t *program);
+void builtin_bind(builtin_t *bi);
 void builtin_code_snippet(builtin_t *bi, const char *snippet);
 
 stree_csi_t *builtin_get_gf_class(builtin_t *builtin);

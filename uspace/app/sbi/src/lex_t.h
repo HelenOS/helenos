@@ -48,6 +48,7 @@ typedef enum {
 	lc_char,
 	lc_class,
 	lc_constructor,
+	lc_deleg,
 	lc_do,
 	lc_else,
 	lc_end,

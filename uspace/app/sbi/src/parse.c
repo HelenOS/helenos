@@ -53,6 +53,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
     stree_csi_t *outer_csi);
 static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi);
 
+static stree_deleg_t *parse_deleg(parse_t *parse, stree_csi_t *outer_csi);
 static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi);
 static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi);
 static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi);
@@ -61,6 +62,8 @@ static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse);
 
 static stree_proc_arg_t *parse_proc_arg(parse_t *parse);
 static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
+static stree_fun_sig_t *parse_fun_sig(parse_t *parse);
+
 
 /*
  * Statements
@@ -156,6 +159,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *symbol;
 	stree_ident_t *targ_name;
+	stree_targ_t *targ;
 
 	switch (dclass) {
 	case lc_class: cc = csi_class; break;
@@ -169,12 +173,16 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	csi = stree_csi_new(cc);
 	csi->name = parse_ident(parse);
 
-	list_init(&csi->targ_names);
+	list_init(&csi->targ);
 
 	while (lcur_lc(parse) == lc_slash) {
 		lskip(parse);
 		targ_name = parse_ident(parse);
-		list_append(&csi->targ_names, targ_name);
+
+		targ = stree_targ_new();
+		targ->name = targ_name;
+
+		list_append(&csi->targ, targ);
 	}
 
 	symbol = stree_symbol_new(sc_csi);
@@ -200,6 +208,9 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	/* Parse class, struct or interface members. */
 	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
 		csimbr = parse_csimbr(parse, csi);
+		if (csimbr == NULL)
+			break;
+
 		list_append(&csi->members, csimbr);
 	}
 
@@ -212,13 +223,15 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
  *
  * @param parse		Parser object.
  * @param outer_csi	CSI containing this declaration or @c NULL if global.
- * @return		New syntax tree node.
+ * @return		New syntax tree node. In case of parse error,
+ *			@c NULL may (but need not) be returned.
  */
 static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_csimbr_t *csimbr;
 
 	stree_csi_t *csi;
+	stree_deleg_t *deleg;
 	stree_fun_t *fun;
 	stree_var_t *var;
 	stree_prop_t *prop;
@@ -230,6 +243,11 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 		csi = parse_csi(parse, lcur_lc(parse), outer_csi);
 		csimbr = stree_csimbr_new(csimbr_csi);
 		csimbr->u.csi = csi;
+		break;
+	case lc_deleg:
+		deleg = parse_deleg(parse, outer_csi);
+		csimbr = stree_csimbr_new(csimbr_deleg);
+		csimbr->u.deleg = deleg;
 		break;
 	case lc_fun:
 		fun = parse_fun(parse, outer_csi);
@@ -249,11 +267,54 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	default:
 		lunexpected_error(parse);
 		lex_next(parse->lex);
+		csimbr = NULL;
+		break;
 	}
 
 	return csimbr;
 }
 
+/** Parse delegate.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
+static stree_deleg_t *parse_deleg(parse_t *parse, stree_csi_t *outer_csi)
+{
+	stree_deleg_t *deleg;
+	stree_symbol_t *symbol;
+	stree_symbol_attr_t *attr;
+
+	deleg = stree_deleg_new();
+	symbol = stree_symbol_new(sc_deleg);
+
+	symbol->u.deleg = deleg;
+	symbol->outer_csi = outer_csi;
+	deleg->symbol = symbol;
+
+	lmatch(parse, lc_deleg);
+	deleg->name = parse_ident(parse);
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parsing delegate '%s'.\n", strtab_get_str(deleg->name->sid));
+#endif
+
+	deleg->sig = parse_fun_sig(parse);
+
+	list_init(&symbol->attr);
+
+	/* Parse attributes. */
+	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
+		lskip(parse);
+		attr = parse_symbol_attr(parse);
+		list_append(&symbol->attr, attr);
+	}
+
+	lmatch(parse, lc_scolon);
+
+	return deleg;
+}
 
 /** Parse member function.
  *
@@ -264,7 +325,6 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_fun_t *fun;
-	stree_proc_arg_t *arg;
 	stree_symbol_t *symbol;
 	stree_symbol_attr_t *attr;
 
@@ -277,42 +337,11 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 
 	lmatch(parse, lc_fun);
 	fun->name = parse_ident(parse);
-	lmatch(parse, lc_lparen);
 
 #ifdef DEBUG_PARSE_TRACE
 	printf("Parsing function '%s'.\n", strtab_get_str(fun->name->sid));
 #endif
-
-	list_init(&fun->args);
-
-	if (lcur_lc(parse) != lc_rparen) {
-
-		/* Parse formal parameters. */
-		while (!parse_is_error(parse)) {
-			arg = parse_proc_arg(parse);
-
-			if (stree_arg_has_attr(arg, aac_packed)) {
-				fun->varg = arg;
-				break;
-			} else {
-				list_append(&fun->args, arg);
-			}
-
-			if (lcur_lc(parse) == lc_rparen)
-				break;
-
-			lmatch(parse, lc_scolon);
-		}
-	}
-
-	lmatch(parse, lc_rparen);
-
-	if (lcur_lc(parse) == lc_colon) {
-	    	lskip(parse);
-		fun->rtype = parse_texpr(parse);
-	} else {
-		fun->rtype = NULL;
-	}
+	fun->sig = parse_fun_sig(parse);
 
 	list_init(&symbol->attr);
 
@@ -521,7 +550,10 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 	lmatch(parse, lc_colon);
 	arg->type = parse_texpr(parse);
 
-	list_init(&arg->attr);
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse procedure argument.\n");
+#endif
+ 	list_init(&arg->attr);
 
 	/* Parse attributes. */
 	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
@@ -530,9 +562,6 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 		list_append(&arg->attr, attr);
 	}
 
-#ifdef DEBUG_PARSE_TRACE
-	printf("Parsed arg attr, type=%p.\n", arg->type);
-#endif
 	return arg;
 }
 
@@ -556,6 +585,58 @@ static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
 
 	attr = stree_arg_attr_new(aac_packed);
 	return attr;
+}
+
+/** Parse function signature.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
+static stree_fun_sig_t *parse_fun_sig(parse_t *parse)
+{
+	stree_fun_sig_t *sig;
+	stree_proc_arg_t *arg;
+
+	sig = stree_fun_sig_new();
+
+	lmatch(parse, lc_lparen);
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parsing function signature.\n");
+#endif
+
+	list_init(&sig->args);
+
+	if (lcur_lc(parse) != lc_rparen) {
+
+		/* Parse formal parameters. */
+		while (!parse_is_error(parse)) {
+			arg = parse_proc_arg(parse);
+
+			if (stree_arg_has_attr(arg, aac_packed)) {
+				sig->varg = arg;
+				break;
+			} else {
+				list_append(&sig->args, arg);
+			}
+
+			if (lcur_lc(parse) == lc_rparen)
+				break;
+
+			lmatch(parse, lc_scolon);
+		}
+	}
+
+	lmatch(parse, lc_rparen);
+
+	if (lcur_lc(parse) == lc_colon) {
+	    	lskip(parse);
+		sig->rtype = parse_texpr(parse);
+	} else {
+		sig->rtype = NULL;
+	}
+
+	return sig;
 }
 
 /** Parse statement block.

@@ -26,23 +26,30 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
---
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
---
+class AutoboxingDemo is
+	fun Main() is
+		var b : Bool;
+		var c : Char;
+		var i : Int;
+		var s : String;
 
-class Bool is
-	var Value : bool;
-end
+		--
+		-- Automatic conversion of each primitive type to the
+		-- respective boxed type.
+		--
+		b = true;
+		Builtin.WriteLine(b.Value);
+		c = 'a';
+		Builtin.WriteLine(c.Value);
+		i = 1;
+		Builtin.WriteLine(i.Value);
+		s = "Hello";
+		Builtin.WriteLine(s.Value);
 
-class Char is
-	var Value : char;
-end
+		-- Anything can be converted to Object.
+		foo(b, c, i, s);
+	end
 
-class Int is
-	var Value : int;
-end
-
-class String is
-	var Value : string;
+	fun foo(args : Object[], packed) is
+	end
 end

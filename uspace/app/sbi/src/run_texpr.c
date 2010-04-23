@@ -26,12 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Evaluates type expressions. */
+/** @file Evaluate type expressions. */
 
 #include <assert.h>
 #include <stdlib.h>
+#include "debug.h"
 #include "list.h"
 #include "mytypes.h"
+#include "stree.h"
 #include "strtab.h"
 #include "symbol.h"
 #include "tdata.h"
@@ -49,6 +51,16 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
     stree_tapply_t *tapply, tdata_item_t **res);
 
+/** Evaluate type expression.
+ *
+ * Evaluate type expression (this produces a type item). If a type error
+ * occurs, the resulting type item is of class @c tic_ignore.
+ *
+ * @param prog		Program
+ * @param ctx		Current CSI (context)
+ * @param texpr		Type expression to evaluate
+ * @param res		Place to store type result
+ */
 void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
     tdata_item_t **res)
 {
@@ -71,6 +83,15 @@ void run_texpr(stree_program_t *prog, stree_csi_t *ctx, stree_texpr_t *texpr,
 	}
 }
 
+/** Evaluate type access expression.
+ *
+ * Evaluate operation per the type access ('.') operator.
+ *
+ * @param prog		Program
+ * @param ctx		Current CSI (context)
+ * @param taccess	Type access expression to evaluate
+ * @param res		Place to store type result
+ */
 static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
     stree_taccess_t *taccess, tdata_item_t **res)
 {
@@ -78,6 +99,7 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	tdata_item_t *targ_i;
 	tdata_item_t *titem;
 	tdata_object_t *tobject;
+	tdata_deleg_t *tdeleg;
 	stree_csi_t *base_csi;
 
 #ifdef DEBUG_RUN_TRACE
@@ -110,25 +132,49 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 		return;
 	}
 
-	if (sym->sc != sc_csi) {
+	switch (sym->sc) {
+	case sc_csi:
+		/* Construct type item. */
+		titem = tdata_item_new(tic_tobject);
+		tobject = tdata_object_new();
+		titem->u.tobject = tobject;
+
+		tobject->static_ref = b_false;
+		tobject->csi = sym->u.csi;
+		list_init(&tobject->targs); /* XXX */
+		break;
+	case sc_deleg:
+		/* Construct type item. */
+		titem = tdata_item_new(tic_tdeleg);
+		tdeleg = tdata_deleg_new();
+		titem->u.tdeleg = tdeleg;
+
+		tdeleg->deleg = sym->u.deleg;
+		break;
+	case sc_fun:
+	case sc_var:
+	case sc_prop:
 		printf("Error: Symbol '");
 		symbol_print_fqn(sym);
-		printf("' is not a CSI.\n");
-		*res = tdata_item_new(tic_ignore);
-		return;
+		printf("' is not a type.\n");
+		titem = tdata_item_new(tic_ignore);
+		break;
 	}
-
-	/* Construct type item. */
-	titem = tdata_item_new(tic_tobject);
-	tobject = tdata_object_new();
-	titem->u.tobject = tobject;
-
-	tobject->static_ref = b_false;
-	tobject->csi = sym->u.csi;
 
 	*res = titem;
 }
 
+/** Evaluate type indexing expression.
+ *
+ * Evaluate operation per the type indexing ('[', ']') operator.
+ * A type indexing operation may have extents specified or only rank
+ * specified.
+ *
+ * @param prog		Program
+ * @param ctx		Current CSI (context)
+ * @param tindex	Type indexing expression to evaluate
+ * @param res		Place to store type result
+ */
 static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
     stree_tindex_t *tindex, tdata_item_t **res)
 {
@@ -170,6 +216,13 @@ static void run_tindex(stree_program_t *prog, stree_csi_t *ctx,
 	*res = titem;
 }
 
+/** Evaluate type literal expression.
+ *
+ * @param prog		Program
+ * @param ctx		Current CSI (context)
+ * @param tliteral	Type literal
+ * @param res		Place to store type result
+ */
 static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
     stree_tliteral_t *tliteral, tdata_item_t **res)
 {
@@ -206,10 +259,37 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	stree_symbol_t *sym;
 	tdata_item_t *titem;
 	tdata_object_t *tobject;
+	stree_targ_t *targ;
+	tdata_vref_t *tvref;
+	stree_deleg_t *deleg;
+	tdata_deleg_t *tdeleg;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type name reference.\n");
+	printf("'%s'\n", strtab_get_str(tnameref->name->sid));
 #endif
+	/* In interactive mode we are not in a class */
+	if (ctx != NULL) {
+		/* Look for type argument */
+		targ = stree_csi_find_targ(ctx, tnameref->name);
+
+		if (targ != NULL) {
+			/* Found type argument */
+#ifdef DEBUG_RUN_TRACE
+			printf("Found type argument '%s'.\n",
+			    strtab_get_str(tnameref->name->sid));
+#endif
+			titem = tdata_item_new(tic_tvref);
+			tvref = tdata_vref_new();
+			titem->u.tvref = tvref;
+			tvref->targ = targ;
+
+			*res = titem;
+			return;
+		}
+	}
+
+	/* Look for symbol */
 	sym = symbol_lookup_in_csi(prog, ctx, tnameref->name);
 	if (sym == NULL) {
 		printf("Error: Symbol '%s' not found.\n",
@@ -218,25 +298,60 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 		return;
 	}
 
-	if (sym->sc != sc_csi) {
+	switch (sym->sc) {
+	case sc_csi:
+		/* Construct type item. */
+		titem = tdata_item_new(tic_tobject);
+		tobject = tdata_object_new();
+		titem->u.tobject = tobject;
+
+		tobject->static_ref = b_false;
+		tobject->csi = sym->u.csi;
+		list_init(&tobject->targs); /* XXX */
+		break;
+	case sc_deleg:
+		/* Fetch stored delegate type. */
+		deleg = symbol_to_deleg(sym);
+		assert(deleg != NULL);
+		if (deleg->titem == NULL) {
+			/*
+			 * Prepare a partial delegate which will be completed
+			 * later.
+			 */
+			titem = tdata_item_new(tic_tdeleg);
+			tdeleg = tdata_deleg_new();
+			titem->u.tdeleg = tdeleg;
+			tdeleg->deleg = deleg;
+			tdeleg->tsig = NULL;
+
+			deleg->titem = titem;
+		} else {
+			titem = deleg->titem;
+		}
+		break;
+	case sc_fun:
+	case sc_var:
+	case sc_prop:
 		printf("Error: Symbol '");
 		symbol_print_fqn(sym);
-		printf("' is not a CSI.\n");
-		*res = tdata_item_new(tic_ignore);
-		return;
+		printf("' is not a type.\n");
+		titem = tdata_item_new(tic_ignore);
+		break;
 	}
-
-	/* Construct type item. */
-	titem = tdata_item_new(tic_tobject);
-	tobject = tdata_object_new();
-	titem->u.tobject = tobject;
-
-	tobject->static_ref = b_false;
-	tobject->csi = sym->u.csi;
 
 	*res = titem;
 }
 
+/** Evaluate type application expression.
+ *
+ * In a type application expression type arguments are applied to a generic
+ * CSI.
+ *
+ * @param prog		Program
+ * @param ctx		Current CSI (context)
+ * @param tapply	Type application expression
+ * @param res		Place to store type result
+ */
 static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
     stree_tapply_t *tapply, tdata_item_t **res)
 {
@@ -247,6 +362,9 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 
 	list_node_t *arg_n;
 	stree_texpr_t *arg;
+
+	list_node_t *farg_n;
+	stree_targ_t *farg;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type apply operation.\n");
@@ -271,9 +389,12 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 	list_init(&tobject->targs);
 
 	/* Evaluate type arguments. */
+	farg_n = list_first(&tobject->csi->targ);
 	arg_n = list_first(&tapply->targs);
-	while (arg_n != NULL) {
+	while (farg_n != NULL && arg_n != NULL) {
+		farg = list_node_data(farg_n, stree_targ_t *);
 		arg = list_node_data(arg_n, stree_texpr_t *);
+
 		run_texpr(prog, ctx, arg, &arg_ti);
 
 		if (arg_ti->tic == tic_ignore) {
@@ -283,7 +404,14 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 
 		list_append(&tobject->targs, arg_ti);
 
+		farg_n = list_next(&tobject->csi->targ, farg_n);
 		arg_n = list_next(&tapply->targs, arg_n);
+	}
+
+	if (farg_n != NULL || arg_n != NULL) {
+		printf("Error: Incorrect number of type arguments.\n");
+		*res = tdata_item_new(tic_ignore);
+		return;
 	}
 
 	*res = titem;

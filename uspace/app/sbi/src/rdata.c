@@ -528,9 +528,9 @@ static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest)
  */
 static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest)
 {
-	(void) src; (void) dest;
-	printf("Unimplemented: Copy delegate.\n");
-	exit(1);
+	*dest = rdata_deleg_new();
+	(*dest)->obj = src->obj;
+	(*dest)->sym = src->sym;
 }
 
 /** Copy array.
@@ -710,17 +710,25 @@ static void rdata_var_print(rdata_var_t *var)
 		printf("string(\"%s\")", var->u.string_v->value);
 		break;
 	case vc_ref:
-		printf("ref(");
-		rdata_var_print(var->u.ref_v->vref);
-		printf(")");
+		if (var->u.ref_v->vref != NULL) {
+			printf("ref(");
+			rdata_var_print(var->u.ref_v->vref);
+			printf(")");
+		} else {
+			printf("nil");
+		}
 		break;
 	case vc_deleg:
 		printf("deleg(");
-		if (var->u.deleg_v->obj != NULL) {
-			rdata_var_print(var->u.deleg_v->obj);
-			printf(",");
+		if (var->u.deleg_v->sym != NULL) {
+			if (var->u.deleg_v->obj != NULL) {
+				rdata_var_print(var->u.deleg_v->obj);
+				printf(",");
+			}
+			symbol_print_fqn(var->u.deleg_v->sym);
+		} else {
+			printf("nil");
 		}
-		symbol_print_fqn(var->u.deleg_v->sym);
 		printf(")");
 		break;
 	case vc_array:
