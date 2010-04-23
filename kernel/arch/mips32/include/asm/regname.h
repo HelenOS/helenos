@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -68,30 +68,30 @@
 #define s8      30
 #define ra      31
 
-#define rindex		0
-#define rrandom		1
-#define entrylo0	2
-#define entrylo1	3
-#define context		4
-#define pagemask	5
-#define wired		6
-#define badvaddr	8
-#define count		9
-#define entryhi		10
-#define compare		11
-#define status		12
-#define cause		13
-#define epc		14
-#define rconfig		16
-#define lladdr		17
-#define watchlo		18
-#define watchhi		19
-#define xcontext	20
-#define rdebug		23
-#define depc		24
-#define eepc		30
+#define rindex    0
+#define rrandom   1
+#define entrylo0  2
+#define entrylo1  3
+#define context   4
+#define pagemask  5
+#define wired     6
+#define badvaddr  8
+#define count     9
+#define entryhi   10
+#define compare   11
+#define status    12
+#define cause     13
+#define epc       14
+#define rconfig   16
+#define lladdr    17
+#define watchlo   18
+#define watchhi   19
+#define xcontext  20
+#define rdebug    23
+#define depc      24
+#define eepc      30
 
-#endif /* KERN_mips32_REGNAME_H_ */
+#endif
 
 /** @}
  */
