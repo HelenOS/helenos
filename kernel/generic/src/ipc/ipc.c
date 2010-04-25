@@ -421,6 +421,9 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
 {
 	call_t *request;
 	ipl_t ipl;
+	uint64_t irq_cnt = 0;
+	uint64_t answer_cnt = 0;
+	uint64_t call_cnt = 0;
 	int rc;
 
 restart:
@@ -430,11 +433,8 @@ restart:
 	
 	spinlock_lock(&box->lock);
 	if (!list_empty(&box->irq_notifs)) {
-
 		/* Count recieved IRQ notification */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.irq_notif_recieved++;
-		spinlock_unlock(&TASK->lock);
+		irq_cnt++;	
 
 		ipl = interrupts_disable();
 		spinlock_lock(&box->irq_lock);
@@ -446,9 +446,7 @@ restart:
 		interrupts_restore(ipl);
 	} else if (!list_empty(&box->answers)) {
 		/* Count recieved answer */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.answer_recieved++;
-		spinlock_unlock(&TASK->lock);
+		answer_cnt++;
 
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
@@ -456,9 +454,7 @@ restart:
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Count recieved call */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.call_recieved++;
-		spinlock_unlock(&TASK->lock);
+		call_cnt++;
 
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);
@@ -471,6 +467,15 @@ restart:
 		goto restart;
 	}
 	spinlock_unlock(&box->lock);
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&TASK->lock);
+	TASK->ipc_info.irq_notif_recieved += irq_cnt;
+	TASK->ipc_info.answer_recieved += answer_cnt;
+	TASK->ipc_info.call_recieved += call_cnt;
+	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
+
 	return request;
 }
 
