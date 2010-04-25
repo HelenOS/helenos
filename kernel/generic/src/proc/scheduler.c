@@ -186,7 +186,6 @@ static thread_t *find_best_thread(void)
 	ASSERT(CPU != NULL);
 
 loop:
-	interrupts_enable();
 	
 	if (atomic_get(&CPU->nrdy) == 0) {
 		/*
@@ -195,20 +194,21 @@ loop:
 		 * This improves energy saving and hyperthreading.
 		 */
 
-		/*
+		 /* Mark CPU as it was idle this clock tick */
+		 spinlock_lock(&CPU->lock);
+		 CPU->idle = true;
+		 spinlock_unlock(&CPU->lock);
+
+		 interrupts_enable();
+		 /*
 		 * An interrupt might occur right now and wake up a thread.
 		 * In such case, the CPU will continue to go to sleep
 		 * even though there is a runnable thread.
 		 */
-
-		 spinlock_lock(&CPU->lock);
-		 CPU->idle = true;
-		 spinlock_unlock(&CPU->lock);
 		 cpu_sleep();
+		 interrupts_disable();
 		 goto loop;
 	}
-
-	interrupts_disable();
 	
 	for (i = 0; i < RQ_COUNT; i++) {
 		r = &CPU->rq[i];
