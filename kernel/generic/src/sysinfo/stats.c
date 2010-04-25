@@ -155,9 +155,21 @@ static bool avl_count_walker(avltree_node_t *node, void *arg)
  */
 static size_t get_task_virtmem(as_t *as)
 {
-	mutex_lock(&as->lock);
-	
 	size_t result = 0;
+
+	/*
+	 * We are holding some spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space area
+	 * mutexes conditionally. If it is not possible to lock either object,
+	 * allow the statistics to be inexact by skipping the respective object.
+	 *
+	 * Note that it may be infinitely better to let the address space
+	 * management code compute these statistics as it proceeds instead of
+	 * having them calculated here over and over again here.
+	 */
+
+	if (!mutex_trylock(&as->lock))
+		return result * PAGE_SIZE;
 	
 	/* Walk the B+ tree and count pages */
 	link_t *cur;
@@ -170,7 +182,8 @@ static size_t get_task_virtmem(as_t *as)
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 			
-			mutex_lock(&area->lock);
+			if (!mutex_trylock(&area->lock))
+				continue;
 			result += area->pages;
 			mutex_unlock(&area->lock);
 		}
