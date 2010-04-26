@@ -168,7 +168,7 @@ static size_t get_task_virtmem(as_t *as)
 	 * having them calculated here over and over again here.
 	 */
 
-	if (!mutex_trylock(&as->lock))
+	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
 		return result * PAGE_SIZE;
 	
 	/* Walk the B+ tree and count pages */
@@ -182,7 +182,7 @@ static size_t get_task_virtmem(as_t *as)
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 			
-			if (!mutex_trylock(&area->lock))
+			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
 				continue;
 			result += area->pages;
 			mutex_unlock(&area->lock);
