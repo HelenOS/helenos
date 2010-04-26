@@ -728,6 +728,10 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	   N.B.: There is no need to free any potential generated
 	   binary data since we request a dry run */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
+
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
 	int rc;
 	
 	/* Only constant or generated numerical value is returned */
@@ -735,9 +739,6 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 		rc = copy_to_uspace(value_ptr, &ret.val, sizeof(ret.val));
 	else
 		rc = EINVAL;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }
@@ -769,6 +770,10 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	   N.B.: There is no need to free any potential generated
 	   binary data since we request a dry run */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
+
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+	
 	int rc;
 	
 	/* Only the size of constant or generated binary data is considered */
@@ -777,9 +782,6 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 		    sizeof(ret.data.size));
 	else
 		rc = EINVAL;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }
@@ -813,6 +815,10 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	
 	/* Get the item */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
+
+	spinlock_unlock(&sysinfo_lock);
+	interrupts_restore(ipl);
+
 	int rc;
 	
 	/* Only constant or generated binary data is considered */
@@ -829,9 +835,6 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	/* N.B.: The generated binary data should be freed */
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }
