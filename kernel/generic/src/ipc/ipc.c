@@ -217,11 +217,14 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
 	answerbox_t *callerbox = call->callerbox;
 	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
+	ipl_t ipl;
 
 	/* Count sent answer */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.answer_sent++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	call->flags |= IPC_CALL_ANSWERED;
 
@@ -280,10 +283,14 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
+	ipl_t ipl;
+
 	/* Count sent ipc call */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.call_sent++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
@@ -385,10 +392,14 @@ int ipc_phone_hangup(phone_t *phone)
  */
 int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 {
+	ipl_t ipl;
+
 	/* Count forwarded calls */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.forwarded++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	spinlock_lock(&oldbox->lock);
 	list_remove(&call->link);
@@ -679,14 +690,18 @@ void ipc_print_task(task_id_t taskid)
 	int i;
 	call_t *call;
 	link_t *tmp;
+	ipl_t ipl;
 	
+	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	task = task_find_by_id(taskid);
 	if (task) 
 		spinlock_lock(&task->lock);
 	spinlock_unlock(&tasks_lock);
-	if (!task)
+	if (!task) {
+		interrupts_restore(ipl);
 		return;
+	}
 
 	/* Print opened phones & details */
 	printf("PHONE:\n");
@@ -769,6 +784,7 @@ void ipc_print_task(task_id_t taskid)
 
 	spinlock_unlock(&task->answerbox.lock);
 	spinlock_unlock(&task->lock);
+	interrupts_restore(ipl);
 }
 
 /** @}
