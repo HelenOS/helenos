@@ -631,9 +631,7 @@ static sysinfo_return_t sysinfo_get_item(const char *name,
 
 /** Return sysinfo item determined by name from user space
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held. The path string passed from
- * the user space has to be properly null-terminated
+ * The path string passed from the user space has to be properly null-terminated
  * (the last passed character must be null).
  *
  * @param ptr     Sysinfo path in the user address space.
@@ -655,9 +653,17 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	ASSERT(path);
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0)
-	    && (path[size] == 0))
+	    && (path[size] == 0)) {
+		/*
+		 * Prevent other functions from messing with sysinfo while we
+		 * are reading it.
+		 */
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&sysinfo_lock);
 		ret = sysinfo_get_item(path, NULL, dry_run);
-	
+		spinlock_unlock(&sysinfo_lock);
+		interrupts_restore(ipl);
+	}
 	free(path);
 	return ret;
 }
@@ -676,27 +682,22 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  */
 unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated
+	 * binary data since we request a dry run.
+	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
-	/* Map generated value types to constant types
-	   (user space does not care whether the
-	   value is constant or generated) */
+	/*
+	 * Map generated value types to constant types (user space does not care
+	 * whether the value is constant or generated).
+	 */
 	if (ret.tag == SYSINFO_VAL_FUNCTION_VAL)
 		ret.tag = SYSINFO_VAL_VAL;
 	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
 		ret.tag = SYSINFO_VAL_DATA;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) ret.tag;
 }
@@ -718,21 +719,15 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
-
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
-	
 	int rc;
+
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated binary data
+	 * since we request a dry run.
+	 */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/* Only constant or generated numerical value is returned */
 	if ((ret.tag == SYSINFO_VAL_VAL) || (ret.tag == SYSINFO_VAL_FUNCTION_VAL))
@@ -760,21 +755,15 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
-
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
-	
 	int rc;
+	
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated binary data
+	 * since we request a dry run.
+	 */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/* Only the size of constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA))
@@ -808,19 +797,11 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	int rc;
 	
 	/* Get the item */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
 
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
-
-	int rc;
-	
 	/* Only constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
 		/* Check destination buffer size */
