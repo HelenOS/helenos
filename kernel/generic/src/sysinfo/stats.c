@@ -37,6 +37,8 @@
 #include <sysinfo/abi.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
+#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <time/clock.h>
 #include <mm/frame.h>
 #include <proc/task.h>
@@ -67,8 +69,8 @@ static load_t load_exp[LOAD_STEPS] = {1884, 2014, 2037};
 /** Running average of the number of ready threads */
 static load_t avenrdy[LOAD_STEPS] = {0, 0, 0};
 
-/** Load calculation spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(load_lock, "load_lock");
+/** Load calculation lock */
+static mutex_t load_lock;
 
 /** Get system uptime
  *
@@ -343,13 +345,13 @@ static bool thread_serialize_walker(avltree_node_t *node, void *arg)
 	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
 	
 	/* Interrupts are already disabled */
-	spinlock_lock(&(thread->lock));
+	spinlock_lock(&thread->lock);
 	
 	/* Record the statistics and increment the iterator */
 	produce_stats_thread(thread, *iterator);
 	(*iterator)++;
 	
-	spinlock_unlock(&(thread->lock));
+	spinlock_unlock(&thread->lock);
 	
 	return true;
 }
@@ -614,16 +616,14 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 	
-	/* To always get consistent values acquire the spinlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&load_lock);
+	/* To always get consistent values acquire the mutex */
+	mutex_lock(&load_lock);
 	
 	unsigned int i;
 	for (i = 0; i < LOAD_STEPS; i++)
 		stats_load[i] = avenrdy[i] << LOAD_FIXED_SHIFT;
 	
-	spinlock_unlock(&load_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&load_lock);
 	
 	return ((void *) stats_load);
 }
@@ -654,15 +654,13 @@ void kload(void *arg)
 		atomic_count_t ready = atomic_get(&nrdy);
 		
 		/* Mutually exclude with get_stats_load() */
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&load_lock);
+		mutex_lock(&load_lock);
 		
 		unsigned int i;
 		for (i = 0; i < LOAD_STEPS; i++)
 			avenrdy[i] = load_calc(avenrdy[i], load_exp[i], ready);
 		
-		spinlock_unlock(&load_lock);
-		interrupts_restore(ipl);
+		mutex_unlock(&load_lock);
 		
 		thread_sleep(LOAD_INTERVAL);
 	}
@@ -673,6 +671,8 @@ void kload(void *arg)
  */
 void stats_init(void)
 {
+	mutex_initialize(&load_lock, MUTEX_PASSIVE);
+
 	sysinfo_set_item_fn_val("system.uptime", NULL, get_stats_uptime);
 	sysinfo_set_item_fn_data("system.cpus", NULL, get_stats_cpus);
 	sysinfo_set_item_fn_data("system.physmem", NULL, get_stats_physmem);
