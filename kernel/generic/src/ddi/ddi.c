@@ -45,7 +45,7 @@
 #include <security/cap.h>
 #include <mm/frame.h>
 #include <mm/as.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <syscall/copy.h>
 #include <adt/btree.h>
 #include <arch.h>
@@ -53,7 +53,7 @@
 #include <errno.h>
 
 /** This lock protects the parea_btree. */
-SPINLOCK_INITIALIZE(parea_lock);
+static mutex_t parea_lock;
 
 /** B+tree with enabled physical memory areas. */
 static btree_t parea_btree;
@@ -62,6 +62,7 @@ static btree_t parea_btree;
 void ddi_init(void)
 {
 	btree_create(&parea_btree);
+	mutex_initialize(&parea_lock, MUTEX_PASSIVE);
 }
 
 /** Enable piece of physical memory for mapping by physmem_map().
@@ -71,16 +72,14 @@ void ddi_init(void)
  */
 void ddi_parea_register(parea_t *parea)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&parea_lock);
+	mutex_lock(&parea_lock);
 	
 	/*
 	 * We don't check for overlaps here as the kernel is pretty sane.
 	 */
 	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
 	
-	spinlock_unlock(&parea_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&parea_lock);
 }
 
 /** Map piece of physical memory into virtual address space of current task.
@@ -140,17 +139,17 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 		 */
 		spinlock_unlock(&zones.lock);
 		
-		spinlock_lock(&parea_lock);
+		mutex_lock(&parea_lock);
 		btree_node_t *nodep;
 		parea_t *parea = (parea_t *) btree_search(&parea_btree,
 		    (btree_key_t) pf, &nodep);
 		
 		if ((!parea) || (parea->frames < pages)) {
-			spinlock_unlock(&parea_lock);
+			mutex_unlock(&parea_lock);
 			goto err;
 		}
 		
-		spinlock_unlock(&parea_lock);
+		mutex_unlock(&parea_lock);
 		goto map;
 	}
 	
