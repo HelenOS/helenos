@@ -159,25 +159,20 @@ err:
 	return ENOENT;
 	
 map:
-	spinlock_lock(&TASK->lock);
-	
+	interrupts_restore(ipl);
+
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
 		/*
 		 * The address space area could not have been created.
 		 * We report it using ENOMEM.
 		 */
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
 		return ENOMEM;
 	}
 	
 	/*
 	 * Mapping is created on-demand during page fault.
 	 */
-	
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
 	return 0;
 }
 
