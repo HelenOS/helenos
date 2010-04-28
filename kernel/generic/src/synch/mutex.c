@@ -39,6 +39,7 @@
 #include <synch/semaphore.h>
 #include <synch/synch.h>
 #include <debug.h>
+#include <arch.h>
 
 /** Initialize mutex.
  *
@@ -68,10 +69,10 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
 {
 	int rc;
 
-	if (mtx->type == MUTEX_PASSIVE) {
+	if (mtx->type == MUTEX_PASSIVE && THREAD) {
 		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
 	} else {
-		ASSERT(mtx->type == MUTEX_ACTIVE);
+		ASSERT(mtx->type == MUTEX_ACTIVE || !THREAD);
 		ASSERT(usec == SYNCH_NO_TIMEOUT);
 		ASSERT(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
 		do {
