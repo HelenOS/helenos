@@ -1032,6 +1032,9 @@ loop:
 		
 		spinlock_unlock(&zones.lock);
 		interrupts_restore(ipl);
+
+		if (!THREAD)
+			panic("Cannot wait for memory to become available.");
 		
 		/*
 		 * Sleep until some frames are available again.
