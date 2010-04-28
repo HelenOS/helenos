@@ -103,8 +103,7 @@ void sysinfo_init(void)
 
 /** Recursively find an item in sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name    Current sysinfo path suffix.
  * @param subtree Current sysinfo (sub)tree root item.
@@ -169,8 +168,7 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
 
 /** Recursively create items in sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name     Current sysinfo path suffix.
  * @param psubtree Pointer to an already existing (sub)tree root
@@ -300,7 +298,6 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
     unative_t val)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -313,7 +310,6 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 	}
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Set sysinfo item with a constant binary data
@@ -333,7 +329,6 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
     void *data, size_t size)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -347,7 +342,6 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 	}
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Set sysinfo item with a generated numeric value
@@ -362,7 +356,6 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
     sysinfo_fn_val_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -375,7 +368,6 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
 	}
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Set sysinfo item with a generated binary data
@@ -395,7 +387,6 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
     sysinfo_fn_data_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -408,7 +399,6 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
 	}
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Set sysinfo item with an undefined value
@@ -421,7 +411,6 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
 void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -432,7 +421,6 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Set sysinfo item with a generated subtree
@@ -447,7 +435,6 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
     sysinfo_fn_subtree_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -463,7 +450,6 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 	}
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Sysinfo dump indentation helper routine
@@ -480,8 +466,7 @@ static void sysinfo_indent(unsigned int depth)
 
 /** Dump the structure of sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param root  Root item of the current (sub)tree.
  * @param depth Current depth in the sysinfo tree.
@@ -557,7 +542,6 @@ void sysinfo_dump(sysinfo_item_t *root)
 {
 	/* Avoid other functions to mess with sysinfo
 	   while we are dumping it */
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
@@ -566,13 +550,11 @@ void sysinfo_dump(sysinfo_item_t *root)
 		sysinfo_dump_internal(root, 0);
 	
 	mutex_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 }
 
 /** Return sysinfo item value determined by name
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name    Sysinfo path.
  * @param root    Root item of the sysinfo (sub)tree.
@@ -657,11 +639,9 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 		 * Prevent other functions from messing with sysinfo while we
 		 * are reading it.
 		 */
-		ipl_t ipl = interrupts_disable();
 		mutex_lock(&sysinfo_lock);
 		ret = sysinfo_get_item(path, NULL, dry_run);
 		mutex_unlock(&sysinfo_lock);
-		interrupts_restore(ipl);
 	}
 	free(path);
 	return ret;
