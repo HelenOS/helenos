@@ -237,6 +237,35 @@ failed:
 	return ret;	
 }
 
+static int serial_interrupt_enable(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	
+	// enable interrupt globally	
+	enable_interrupt(data->irq);
+	
+	// enable interrupt on the serial port
+	pio_write_8(data->port + 1 , 0x01);   // Interrupt when data received
+	pio_write_8(data->port + 4, 0x0B);
+	
+	return EOK;
+}
+
+static void serial_initialize_port(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ioport8_t *port = data->port;
+	
+	pio_write_8(port + 1, 0x00);    // Disable all interrupts
+	pio_write_8(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+	pio_write_8(port + 0, 0x60);    // Set divisor to 96 (lo byte) 1200 baud
+	pio_write_8(port + 1, 0x00);    //                   (hi byte)
+	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
+	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
+									// Aux Output2 set - needed for interrupts	
+}
+
 static int serial_add_device(device_t *dev) 
 {
 	printf(NAME ": serial_add_device %s (handle = %d)\n", dev->name, dev->handle);
@@ -249,15 +278,24 @@ static int serial_add_device(device_t *dev)
 	if (!serial_pio_enable(dev)) {
 		serial_dev_cleanup(dev);
 		return EADDRNOTAVAIL;
-	}
+	}	
 	
-	
+	// find out whether the device is present
 	if (!serial_dev_probe(dev)) {
 		serial_dev_cleanup(dev);
 		return ENOENT;
 	}	
 	
-	// TODO interrupt and serial port initialization (baud rate etc.)
+	// serial port initialization (baud rate etc.)
+	serial_initialize_port(dev);
+	
+	// TODO register interrupt handler
+	
+	// enable interrupt
+	if (0 != (res = serial_interrupt_enable(dev))) {
+		serial_dev_cleanup(dev);
+		return res;
+	}		
 	
 	return EOK;
 }

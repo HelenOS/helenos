@@ -40,6 +40,10 @@
 #include <ipc/dev_iface.h>
 #include <device/hw_res.h>
 #include <assert.h>
+#include <ddi.h>
+#include <libarch/ddi.h>
+#include <fibril_synch.h>
+#include <malloc.h>
 
 struct device;
 typedef struct device device_t;
@@ -158,6 +162,112 @@ static inline void * device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 
 int child_device_register(device_t *child, device_t *parent);
 
+// interrupts
+
+static irq_cmd_t default_cmds[] = {
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
+
+static irq_code_t default_pseudocode = {
+	sizeof(default_cmds) / sizeof(irq_cmd_t),
+	default_cmds
+};
+
+typedef void interrupt_handler_t(device_t *dev, ipc_callid_t iid, ipc_call_t *icall);
+
+typedef struct interrupt_context {
+	int id;
+	device_t *dev;
+	int irq;
+	interrupt_handler_t *handler;
+	link_t link;
+} interrupt_context_t;
+
+typedef struct interrupt_context_list {
+	int curr_id;
+	link_t contexts;
+	fibril_mutex_t mutex;
+} interrupt_context_list_t;
+
+static inline interrupt_context_t * create_interrupt_context()
+{ 
+	interrupt_context_t *ctx = (interrupt_context_t *)malloc(sizeof(interrupt_context_t));
+	if (NULL != ctx) {
+		memset(ctx, 0, sizeof(interrupt_context_t));
+	}
+	return ctx;
+}
+
+static inline void delete_interrupt_context(interrupt_context_t *ctx)
+{
+	if (NULL != ctx) {
+		free(ctx);
+	}
+}
+
+static inline void init_interrupt_context_list(interrupt_context_list_t *list)
+{
+	memset(list, 0, sizeof(interrupt_context_list_t));
+	fibril_mutex_initialize(&list->mutex);
+	list_initialize(&list->contexts);	
+}
+
+static inline void add_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
+{
+	fibril_mutex_lock(&list->mutex);
+	
+	ctx->id = list->curr_id++;
+	list_append(&ctx->link, &list->contexts);
+	
+	fibril_mutex_unlock(&list->mutex);
+}
+
+static inline void remove_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
+{
+	fibril_mutex_lock(&list->mutex);
+	
+	list_remove(&ctx->link);
+	
+	fibril_mutex_unlock(&list->mutex);
+}
+
+static inline interrupt_context_t *find_interrupt_context_by_id(interrupt_context_list_t *list, int id) 
+{
+	fibril_mutex_lock(&list->mutex);	
+	link_t *link = list->contexts.next;
+	interrupt_context_t *ctx;
+	
+	while (link != &list->contexts) {
+		ctx = list_get_instance(link, interrupt_context_t, link);
+		if (id == ctx->id) {
+			fibril_mutex_unlock(&list->mutex);
+			return ctx;
+		}
+		link = link->next;
+	}	
+	fibril_mutex_unlock(&list->mutex);	
+	return NULL;
+}
+
+static inline interrupt_context_t *find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq) 
+{
+	fibril_mutex_lock(&list->mutex);	
+	link_t *link = list->contexts.next;
+	interrupt_context_t *ctx;
+	
+	while (link != &list->contexts) {
+		ctx = list_get_instance(link, interrupt_context_t, link);
+		if (irq == ctx->irq && dev == ctx->dev) {
+			fibril_mutex_unlock(&list->mutex);
+			return ctx;
+		}
+		link = link->next;
+	}	
+	fibril_mutex_unlock(&list->mutex);	
+	return NULL;
+}
 
 #endif
 
