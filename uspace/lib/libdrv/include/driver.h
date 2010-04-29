@@ -36,6 +36,7 @@
 
 
 #include <adt/list.h>
+#include <ipc/ipc.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <device/hw_res.h>
@@ -164,17 +165,6 @@ int child_device_register(device_t *child, device_t *parent);
 
 // interrupts
 
-static irq_cmd_t default_cmds[] = {
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-
-static irq_code_t default_pseudocode = {
-	sizeof(default_cmds) / sizeof(irq_cmd_t),
-	default_cmds
-};
-
 typedef void interrupt_handler_t(device_t *dev, ipc_callid_t iid, ipc_call_t *icall);
 
 typedef struct interrupt_context {
@@ -268,6 +258,9 @@ static inline interrupt_context_t *find_interrupt_context(interrupt_context_list
 	fibril_mutex_unlock(&list->mutex);	
 	return NULL;
 }
+
+int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode);
+int unregister_interrupt_handler(device_t *dev, int irq);
 
 #endif
 

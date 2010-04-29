@@ -54,9 +54,70 @@
 
 #include "driver.h"
 
+// driver structure 
+
 static driver_t *driver;
+
+// devices
+
 LIST_INITIALIZE(devices);
 FIBRIL_MUTEX_INITIALIZE(devices_mutex);
+
+// interrupts 
+
+static interrupt_context_list_t interrupt_contexts;
+
+static irq_cmd_t default_cmds[] = {
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
+
+static irq_code_t default_pseudocode = {
+	sizeof(default_cmds) / sizeof(irq_cmd_t),
+	default_cmds
+};
+
+
+static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
+{
+	int id = (int)IPC_GET_METHOD(*icall);
+	interrupt_context_t *ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
+	(*ctx->handler)(ctx->dev, iid, icall);	
+}
+
+int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode)
+{
+	interrupt_context_t *ctx = create_interrupt_context();
+	
+	ctx->dev = dev;
+	ctx->irq = irq;
+	ctx->handler = handler;
+	
+	add_interrupt_context(&interrupt_contexts, ctx);
+	
+	if (NULL == pseudocode) {
+		pseudocode = &default_pseudocode;
+	}
+	
+	int res = ipc_register_irq(irq, dev->handle, ctx->id, pseudocode);
+	if (0 != res) {
+		remove_interrupt_context(&interrupt_contexts, ctx);
+		delete_interrupt_context(ctx);
+	}
+	return res;	
+}
+
+int unregister_interrupt_handler(device_t *dev, int irq)
+{
+	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts, dev, irq);
+	int res = ipc_unregister_irq(irq, dev->handle);
+	if (NULL != ctx) {
+		remove_interrupt_context(&interrupt_contexts, ctx);
+		delete_interrupt_context(ctx);		
+	}
+	return res;
+}
 
 static void add_to_devices_list(device_t *dev)
 {
@@ -282,6 +343,12 @@ int driver_main(driver_t *drv)
 	// remember the driver structure - driver_ops will be called by generic handler for incoming connections
 	driver = drv;
 
+	// initialize the list of interrupt contexts
+	init_interrupt_context_list(&interrupt_contexts);
+	
+	// set generic interrupt handler
+	async_set_interrupt_received(driver_irq_handler);
+	
 	// register driver by device manager with generic handler for incoming connections
 	devman_driver_register(driver->name, driver_connection);
 

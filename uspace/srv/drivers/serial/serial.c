@@ -266,6 +266,19 @@ static void serial_initialize_port(device_t *dev)
 									// Aux Output2 set - needed for interrupts	
 }
 
+static void serial_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	// TODO 
+}
+
+static inline int serial_register_interrupt_handler(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	
+	return register_interrupt_handler(dev, data->irq, serial_interrupt_handler, NULL);
+	
+}
+
 static int serial_add_device(device_t *dev) 
 {
 	printf(NAME ": serial_add_device %s (handle = %d)\n", dev->name, dev->handle);
@@ -289,7 +302,10 @@ static int serial_add_device(device_t *dev)
 	// serial port initialization (baud rate etc.)
 	serial_initialize_port(dev);
 	
-	// TODO register interrupt handler
+	// register interrupt handler
+	if (0 != serial_register_interrupt_handler(dev)) {
+		
+	}
 	
 	// enable interrupt
 	if (0 != (res = serial_interrupt_enable(dev))) {
