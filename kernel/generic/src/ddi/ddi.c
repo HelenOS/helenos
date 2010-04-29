@@ -286,5 +286,32 @@ unative_t sys_preempt_control(int enable)
 	return 0;
 }
 
+/** Disable or enable specified interrupts.
+ * 
+ * @param irq the interrupt to be enabled/disabled.
+ * @param enable if true enable the interrupt, disable otherwise.
+ * 
+ * @retutn Zero on success, error code otherwise.
+ */
+unative_t sys_interrupt_enable(int irq, int enable)
+{	
+	cap_t task_cap = cap_get(TASK);
+	if (!(task_cap & CAP_PREEMPT_CONTROL) || !(task_cap & CAP_IRQ_REG))
+		return EPERM;
+		
+	if (irq < 0 || irq > 16) {
+		return EINVAL;
+	}
+	
+	uint16_t irq_mask = (uint16_t)(1 << irq);
+	if (enable) {
+		trap_virtual_enable_irqs(irq_mask);
+	} else {
+		trap_virtual_disable_irqs(irq_mask);
+	}
+	
+	return 0;	
+}
+
 /** @}
  */

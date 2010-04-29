@@ -104,6 +104,18 @@ int preemption_control(int enable)
 	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
 }
 
+/** Enable/disable interrupt.
+ * 
+ * @param irq the interrupt.
+ * @param enable 1 - enable interrupt, 0 - disable interrupt.
+ * 
+ * @return Zero on success, negative error code otherwise. 
+ */
+int interrupt_enable(int irq, int enable) 
+{
+	return __SYSCALL2(SYS_INTERRUPT_ENABLE, (sysarg_t) irq, (sysarg_t) enable);
+}
+
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr	I/O start address.
