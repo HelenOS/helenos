@@ -40,6 +40,7 @@
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <device/hw_res.h>
+#include <device/char.h>
 #include <assert.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
@@ -80,6 +81,10 @@ remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t if
 typedef struct device_class {
 	/** Unique identification of the class. */
 	int id;
+	/** Optional callback function called when a client is connecting to the device. */
+	int (*open)(device_t *dev);
+	/** Optional callback function called when a client is disconnecting from the device. */
+	void (*close)(device_t *dev);
 	/** The table of interfaces implemented by the device. */
 	void *interfaces[DEV_IFACE_COUNT];	
 } device_class_t;

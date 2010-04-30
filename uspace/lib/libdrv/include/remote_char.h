@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
  */
- 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
- 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface
-	}
-};
+#ifndef LIBDRV_REMOTE_CHAR_H_
+#define LIBDRV_REMOTE_CHAR_H_
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));	
-	return remote_ifaces.ifaces[idx];	
-}
+remote_iface_t remote_char_iface;
 
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
-}
- 
- 
- 
+#endif
+
 /**
  * @}
  */

@@ -223,9 +223,13 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	
 	// TODO - if the client is not a driver, check whether it is allowed to use the device
 
-	// TODO open the device (introduce some callbacks for opening and closing devices registered by the driver)
+	int ret = EOK;
+	// open the device
+	if (NULL != dev->class && NULL != dev->class->open) {
+		ret = (*dev->class->open)(dev);
+	}
 	
-	ipc_answer_0(iid, EOK);	
+	ipc_answer_0(iid, ret);	
 
 	while (1) {
 		ipc_callid_t callid;
@@ -235,10 +239,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		int iface_idx;
 		
 		switch  (method) {
-		case IPC_M_PHONE_HUNGUP:
-		
-			// TODO close the device
-			
+		case IPC_M_PHONE_HUNGUP:		
+			// close the device
+			if (NULL != dev->class && NULL != dev->class->close) {
+				(*dev->class->close)(dev);
+			}			
 			ipc_answer_0(callid, EOK);
 			return;
 		default:		

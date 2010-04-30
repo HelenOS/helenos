@@ -268,7 +268,6 @@ static int serial_interrupt_enable(device_t *dev)
 	
 	int res;
 	// enable interrupt globally	
-	printf(NAME ": call  enable_interrupt\n");
 	if (EOK != (res = interrupt_enable(data->irq))) {
 		return res;
 	}
@@ -384,10 +383,62 @@ static int serial_add_device(device_t *dev)
 	return EOK;
 }
 
+/** Open the device.
+ * 
+ * This is a callback function called when a client tries to connect to the device.
+ * 
+ * @param dev the device.
+ */
+static int serial_open(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	int res;
+	
+	fibril_mutex_lock(&data->mutex);	
+	
+	if (data->client_connected) {
+		res = ELIMIT;
+	} else {
+		res = EOK;
+		data->client_connected = true;
+	}
+	
+	fibril_mutex_unlock(&data->mutex);
+
+	return res;
+}
+
+/** Close the device.
+ * 
+ *  This is a callback function called when a client tries to disconnect from the device.
+ * 
+ * @param dev the device. 
+ */
+static void serial_close(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	
+	fibril_mutex_lock(&data->mutex);
+	
+	assert(data->client_connected);	
+	
+	data->client_connected = false;
+	buf_clear(&data->input_buffer);
+	
+	fibril_mutex_unlock(&data->mutex);	 
+}
+
+/** Initialize the serial port driver.
+ * 
+ * Initialize class structures with callback methods for handling 
+ * client requests to the serial port devices.
+ */
 static void serial_init() 
 {
 	// TODO
 	serial_dev_class.id = 0;
+	serial_dev_class.open = &serial_open;
+	serial_dev_class.close = &serial_close;	
 }
 
 int main(int argc, char *argv[])

@@ -25,43 +25,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+ 
+ /** @addtogroup libc
  * @{
  */
-
 /** @file
  */
- 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
- 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface
-	}
-};
 
-remote_iface_t* get_remote_iface(int idx)
+#include <ipc/dev_iface.h>
+#include <device/char.h>
+#include <errno.h>
+#include <async.h>
+#include <malloc.h>
+
+
+int read_dev(int dev_phone, void *buf, size_t len)
 {	
-	assert(is_valid_iface_idx(idx));	
-	return remote_ifaces.ifaces[idx];	
+	ipc_call_t answer;
+	
+	async_serialize_start();
+	
+	aid_t req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_READ_DEV, &answer);
+	
+	int rc = async_data_read_start(dev_phone, buf, len);
+	if (rc != EOK) {
+		ipcarg_t rc_orig;
+		async_wait_for(req, &rc_orig);
+		async_serialize_end();
+		if (rc_orig == EOK) {
+			return rc;
+		}
+		else {
+			return (int) rc_orig;
+		}
+	}
+	
+	async_wait_for(req, &rc);
+	async_serialize_end();
+	
+	if (EOK != rc) {
+		return rc;
+	}
+	
+	return IPC_GET_ARG1(answer);
 }
 
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
+int write_dev(int dev_phone, void *buf, size_t len)
 {
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
+	// TODO
+	return 0;
 }
- 
- 
- 
-/**
- * @}
+
+  
+ /** @}
  */

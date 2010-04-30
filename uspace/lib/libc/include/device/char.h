@@ -25,43 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+ 
+ /** @addtogroup libc
  * @{
  */
-
 /** @file
  */
  
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
- 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface
-	}
-};
+#ifndef LIBC_DEVICE_HW_RES_H_
+#define LIBC_DEVICE_HW_RES_H_
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));	
-	return remote_ifaces.ifaces[idx];	
-}
+typedef enum {
+	CHAR_READ_DEV = 0,
+	CHAR_WRITE_DEV	
+} hw_res_funcs_t;
 
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
-}
- 
- 
- 
-/**
- * @}
+int read_dev(int dev_phone, void *buf, size_t len);
+int write_dev(int dev_phone, void *buf, size_t len);
+
+#endif
+
+/** @}
  */
