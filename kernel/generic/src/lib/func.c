@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
  * @file
- * @brief	Miscellaneous functions.
+ * @brief Miscellaneous functions.
  */
 
 #include <func.h>
@@ -76,50 +76,6 @@ void halt()
 		printf("cpu: halted\n");
 	
 	cpu_halt();
-}
-
-/** Convert ascii representation to unative_t
- *
- * Supports 0x for hexa & 0 for octal notation.
- * Does not check for overflows, does not support negative numbers
- *
- * @param text Textual representation of number
- * @return Converted number or 0 if no valid number ofund 
- */
-unative_t atoi(const char *text)
-{
-	int base = 10;
-	unative_t result = 0;
-
-	if (text[0] == '0' && text[1] == 'x') {
-		base = 16;
-		text += 2;
-	} else if (text[0] == '0')
-		base = 8;
-
-	while (*text) {
-		if (base != 16 && \
-		    ((*text >= 'A' && *text <= 'F' )
-		     || (*text >='a' && *text <='f')))
-			break;
-		if (base == 8 && *text >='8')
-			break;
-
-		if (*text >= '0' && *text <= '9') {
-			result *= base;
-			result += *text - '0';
-		} else if (*text >= 'A' && *text <= 'F') {
-			result *= base;
-			result += *text - 'A' + 10;
-		} else if (*text >= 'a' && *text <= 'f') {
-			result *= base;
-			result += *text - 'a' + 10;
-		} else
-			break;
-		text++;
-	}
-
-	return result;
 }
 
 /** @}
