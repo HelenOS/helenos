@@ -120,6 +120,29 @@ static void serial_dev_cleanup(device_t *dev)
 	}	
 }
 
+static bool serial_received(ioport8_t *port) 
+{
+   return (pio_read_8(port + 5) & 1) != 0;
+}
+
+static uint8_t serial_read_8(ioport8_t *port) 
+{
+	return pio_read_8(port);
+}
+
+static bool is_transmit_empty(ioport8_t *port) 
+{
+   return (pio_read_8(port + 5) & 0x20) != 0;
+}
+
+static void serial_write_8(ioport8_t *port, uint8_t c) 
+{
+	while (!is_transmit_empty(port)) 
+		;
+	
+	pio_write_8(port, c);
+}
+
 static bool serial_pio_enable(device_t *dev)
 {
 	printf(NAME ": serial_pio_enable %s\n", dev->name);
@@ -218,7 +241,9 @@ static int serial_dev_initialize(device_t *dev)
 			}
 			ioport = true;
 			printf(NAME ": the %s device was asigned i/o address = 0x%x.\n", dev->name, data->io_addr);
-			break;			
+			break;	
+		default:
+			break;
 		}
 	}
 	
@@ -272,12 +297,33 @@ static void serial_initialize_port(device_t *dev)
 
 static void serial_read_from_device(device_t *dev)
 {
-	// TODO
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ioport8_t *port = data->port;
+	bool cont = true;
+	
+	while (cont) {	
+		if (cont = serial_received(port)) {
+			uint8_t val = serial_read_8(port);
+			printf(NAME ": character %c read from %s.\n", val, dev->name);
+			
+			fibril_mutex_lock(&data->mutex);
+			if (data->client_connected) {
+				if (!buf_push_back(&(data->input_buffer), val)) {
+					printf(NAME ": buffer overflow on %s.\n", dev->name);
+				} else {
+					printf(NAME ": the character %c saved to the buffer of %s.\n", val, dev->name);
+				}
+			} else {
+				printf(NAME ": no client is connected to %s, discarding the character which was read.\n", dev->name);
+			}
+			fibril_mutex_unlock(&data->mutex);
+		}
+		
+	}	
 }
 
 static inline void serial_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf(NAME ": interrupt received.\n");
 	serial_read_from_device(dev);
 }
 
