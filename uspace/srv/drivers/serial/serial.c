@@ -241,12 +241,16 @@ static int serial_interrupt_enable(device_t *dev)
 {
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	
+	int res;
 	// enable interrupt globally	
-	enable_interrupt(data->irq);
+	printf(NAME ": call  enable_interrupt\n");
+	if (EOK != (res = interrupt_enable(data->irq))) {
+		return res;
+	}
 	
 	// enable interrupt on the serial port
 	pio_write_8(data->port + 1 , 0x01);   // Interrupt when data received
-	pio_write_8(data->port + 4, 0x0B);
+	pio_write_8(data->port + 4, 0x0B);	
 	
 	return EOK;
 }
@@ -266,17 +270,29 @@ static void serial_initialize_port(device_t *dev)
 									// Aux Output2 set - needed for interrupts	
 }
 
-static void serial_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+static void serial_read_from_device(device_t *dev)
 {
-	// TODO 
+	// TODO
+}
+
+static inline void serial_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+{
+	printf(NAME ": interrupt received.\n");
+	serial_read_from_device(dev);
 }
 
 static inline int serial_register_interrupt_handler(device_t *dev)
 {
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	
-	return register_interrupt_handler(dev, data->irq, serial_interrupt_handler, NULL);
+	return register_interrupt_handler(dev, data->irq, serial_interrupt_handler, NULL);	
+}
+
+static inline int serial_unregister_interrupt_handler(device_t *dev)
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	
+	return unregister_interrupt_handler(dev, data->irq);	
 }
 
 static int serial_add_device(device_t *dev) 
@@ -303,15 +319,21 @@ static int serial_add_device(device_t *dev)
 	serial_initialize_port(dev);
 	
 	// register interrupt handler
-	if (0 != serial_register_interrupt_handler(dev)) {
-		
+	if (EOK != serial_register_interrupt_handler(dev)) {
+		printf(NAME ": failed to register interrupt handler.\n");
+		serial_dev_cleanup(dev);
+		return res;
 	}
 	
 	// enable interrupt
-	if (0 != (res = serial_interrupt_enable(dev))) {
+	if (EOK != (res = serial_interrupt_enable(dev))) {
+		printf(NAME ": failed to enable the interrupt. Error code = %d.\n", res);
 		serial_dev_cleanup(dev);
+		serial_unregister_interrupt_handler(dev);
 		return res;
 	}		
+	
+	printf(NAME ": the %s device has been successfully initialized.\n", dev->name);
 	
 	return EOK;
 }

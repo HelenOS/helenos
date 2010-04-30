@@ -80,10 +80,12 @@ static irq_code_t default_pseudocode = {
 
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
-{
+{	
 	int id = (int)IPC_GET_METHOD(*icall);
 	interrupt_context_t *ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
-	(*ctx->handler)(ctx->dev, iid, icall);	
+	if (NULL != ctx && NULL != ctx->handler) {
+		(*ctx->handler)(ctx->dev, iid, icall);		
+	}
 }
 
 int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode)
