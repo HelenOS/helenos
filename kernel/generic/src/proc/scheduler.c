@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2007 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -381,9 +381,21 @@ void scheduler_separated_stack(void)
 {
 	int priority;
 	DEADLOCK_PROBE_INIT(p_joinwq);
+	task_t *old_task = TASK;
+	as_t *old_as = AS;
 
 	ASSERT(CPU != NULL);
 	
+	/*
+	 * Hold the current task and the address space to prevent their
+	 * possible destruction should thread_destroy() be called on this or any
+	 * other processor while the scheduler is still using them.
+	 */
+	if (old_task)
+		task_hold(old_task);
+	if (old_as)
+		as_hold(old_as);
+
 	if (THREAD) {
 		/* must be run after the switch to scheduler stack */
 		after_thread_ran();
@@ -475,34 +487,29 @@ repeat:
 	 * avoided.
 	 */
 	if (TASK != THREAD->task) {
-		as_t *as1 = NULL;
-		as_t *as2;
-
-		if (TASK) {
-			spinlock_lock(&TASK->lock);
-			as1 = TASK->as;
-			spinlock_unlock(&TASK->lock);
-		}
-
-		spinlock_lock(&THREAD->task->lock);
-		as2 = THREAD->task->as;
-		spinlock_unlock(&THREAD->task->lock);
+		as_t *new_as = THREAD->task->as;
 		
 		/*
 		 * Note that it is possible for two tasks to share one address
 		 * space.
 		 */
-		if (as1 != as2) {
+		if (old_as != new_as) {
 			/*
 			 * Both tasks and address spaces are different.
 			 * Replace the old one with the new one.
 			 */
-			as_switch(as1, as2);
+			as_switch(old_as, new_as);
 		}
+
 		TASK = THREAD->task;
 		before_task_runs();
 	}
 
+	if (old_task)
+		task_release(old_task);
+	if (old_as)
+		as_release(old_as);
+	
 	spinlock_lock(&THREAD->lock);	
 	THREAD->state = Running;
 
