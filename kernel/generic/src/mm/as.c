@@ -199,6 +199,7 @@ void as_destroy(as_t *as)
 	bool cond;
 	DEADLOCK_PROBE_INIT(p_asidlock);
 
+	ASSERT(as != AS);
 	ASSERT(atomic_get(&as->refcount) == 0);
 	
 	/*
@@ -224,7 +225,7 @@ retry:
 	}
 	preemption_enable();	/* Interrupts disabled, enable preemption */
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
-		if (as != AS && as->cpu_refcount == 0)
+		if (as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
