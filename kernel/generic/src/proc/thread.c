@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -408,11 +408,9 @@ void thread_destroy(thread_t *t)
 	spinlock_unlock(&t->task->lock);	
 
 	/*
-	 * t is guaranteed to be the very last thread of its task.
-	 * It is safe to destroy the task.
+	 * Drop the reference to the containing task.
 	 */
-	if (atomic_predec(&t->task->refcount) == 0)
-		task_destroy(t->task);
+	task_release(t->task);
 	
 	slab_free(thread_slab, t);
 }
@@ -435,7 +433,8 @@ void thread_attach(thread_t *t, task_t *task)
 	ipl = interrupts_disable();
 	spinlock_lock(&task->lock);
 
-	atomic_inc(&task->refcount);
+	/* Hold a reference to the task. */
+	task_hold(task);
 
 	/* Must not count kbox thread into lifecount */
 	if (t->flags & THREAD_FLAG_USPACE)
