@@ -209,8 +209,12 @@ task_t *task_create(as_t *as, const char *name)
 	
 	btree_create(&ta->futexes);
 	
+	/*
+	 * Get a reference to the address space.
+	 */
+	as_hold(ta->as);
+
 	ipl = interrupts_disable();
-	atomic_inc(&as->refcount);
 	spinlock_lock(&tasks_lock);
 	ta->taskid = ++task_counter;
 	avltree_node_initialize(&ta->tasks_tree_node);
@@ -249,8 +253,7 @@ void task_destroy(task_t *t)
 	/*
 	 * Drop our reference to the address space.
 	 */
-	if (atomic_predec(&t->as->refcount) == 0) 
-		as_destroy(t->as);
+	as_release(t->as);
 	
 	slab_free(task_slab, t);
 	TASK = NULL;

@@ -151,7 +151,7 @@ void as_init(void)
 	/* Make sure the kernel address space
 	 * reference count never drops to zero.
 	 */
-	atomic_set(&AS_KERNEL->refcount, 1);
+	as_hold(AS_KERNEL);
 }
 
 /** Create address space.
