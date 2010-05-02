@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -130,26 +130,26 @@ extern avltree_t tasks_tree;
 
 extern void task_init(void);
 extern void task_done(void);
-extern task_t *task_create(as_t *as, const char *name);
-extern void task_destroy(task_t *t);
-extern task_t *task_find_by_id(task_id_t id);
-extern int task_kill(task_id_t id);
-extern void task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles);
+extern task_t *task_create(as_t *, const char *);
+extern void task_destroy(task_t *);
+extern task_t *task_find_by_id(task_id_t);
+extern int task_kill(task_id_t);
+extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
 extern void task_print_list(void);
 
-extern void cap_set(task_t *t, cap_t caps);
-extern cap_t cap_get(task_t *t);
+extern void cap_set(task_t *, cap_t);
+extern cap_t cap_get(task_t *);
 
 #ifndef task_create_arch
-extern void task_create_arch(task_t *t);
+extern void task_create_arch(task_t *);
 #endif
 
 #ifndef task_destroy_arch
-extern void task_destroy_arch(task_t *t);
+extern void task_destroy_arch(task_t *);
 #endif
 
-extern unative_t sys_task_get_id(task_id_t *uspace_task_id);
-extern unative_t sys_task_set_name(const char *uspace_name, size_t name_len);
+extern unative_t sys_task_get_id(task_id_t *);
+extern unative_t sys_task_set_name(const char *, size_t);
 
 #endif
 
