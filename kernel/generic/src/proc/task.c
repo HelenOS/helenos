@@ -256,7 +256,6 @@ void task_destroy(task_t *t)
 	as_release(t->as);
 	
 	slab_free(task_slab, t);
-	TASK = NULL;
 }
 
 /** Hold a reference to a task.
