@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <async.h>
 #include <malloc.h>
+#include <stdio.h>
 
 
 int read_dev(int dev_phone, void *buf, size_t len)
@@ -45,6 +46,7 @@ int read_dev(int dev_phone, void *buf, size_t len)
 	
 	async_serialize_start();
 	
+	printf("calling interface %d\n", DEV_IFACE_ID(CHAR_DEV_IFACE));
 	aid_t req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_READ_DEV, &answer);
 	
 	int rc = async_data_read_start(dev_phone, buf, len);

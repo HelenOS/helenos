@@ -290,6 +290,58 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Find handle for the device instance identified by the device's path in the device tree.
+ */
+static void devman_device_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+{
+	char *pathname;
+	
+	/* Get fqdn */
+	int rc = async_string_receive(&pathname, 0, NULL);
+	if (rc != EOK) {
+		ipc_answer_0(iid, rc);
+		return;
+	}
+	
+	node_t * dev = find_dev_node_by_path(&device_tree, pathname); 
+	
+	free(pathname);
+
+	if (NULL == dev) {
+		ipc_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	ipc_answer_1(iid, EOK, dev->handle);
+}
+
+
+/** Function for handling connections from a client to the device manager.
+ */
+static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
+{
+	/* Accept connection */
+	ipc_answer_0(iid, EOK);
+	
+	bool cont = true;
+	while (cont) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		switch (IPC_GET_METHOD(call)) {
+		case IPC_M_PHONE_HUNGUP:
+			cont = false;
+			continue;
+		case DEVMAN_DEVICE_GET_HANDLE:
+			devman_device_get_handle(callid, &call);
+			break;
+		default:
+			if (!(callid & IPC_CALLID_NOTIFICATION))
+				ipc_answer_0(callid, ENOENT);
+		}
+	}	
+}
+
 static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {	
 	
 	device_handle_t handle = IPC_GET_ARG2(*icall);
@@ -345,9 +397,9 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 	case DEVMAN_DRIVER:
 		devman_connection_driver(iid, icall);
 		break;
-	/*case DEVMAN_CLIENT:
-		devmap_connection_client(iid, icall);
-		break;*/
+	case DEVMAN_CLIENT:
+		devman_connection_client(iid, icall);
+		break;
 	case DEVMAN_CONNECT_TO_DEVICE:
 		// Connect client to selected device
 		devman_forward(iid, icall, false);

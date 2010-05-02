@@ -55,12 +55,8 @@
 #include <string.h>
 
 #define NAME 		"test serial"
-#define MYROOM 		2
-#define UpSection1 	25
-#define DwnSection1 26
-#define UpSection2 	27
-#define DwnSection2 28
 
+/*
 static int device_get_handle(const char *name, dev_handle_t *handle);
 static void print_usage();
 static void move_shutters(const char * serial_dev_name, char room, char cmd);
@@ -104,9 +100,7 @@ static void print_usage()
 }
 
 
-/*
- * The name of a serial device must be between 'com0' and 'com9'.
- */ 
+// The name of a serial device must be between 'com0' and 'com9'.
 static bool is_com_dev(const char *dev_name) 
 {
 	if (str_length(dev_name) != 4) {
@@ -167,7 +161,73 @@ int main(int argc, char *argv[])
 	}
 	
 	return 0;
+}*/
+
+
+#include <ipc/devman.h>
+#include <devman.h>
+#include <device/char.h>
+
+
+static void print_usage()
+{
+	printf("Usage: \n test_serial count \n where count is a number of characters to be read\n");	
 }
+
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		printf(NAME ": incorrect number of arguments.\n");
+		print_usage();
+		return 0;		
+	}
+	
+	long int cnt = strtol(argv[1], NULL, 10);
+	
+	int res;
+	res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
+	device_handle_t handle;
+	
+	if (EOK != (res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle, IPC_FLAG_BLOCKING))) {
+		printf(NAME ": could not get the device handle, errno = %d.\n", -res);
+		return 1;
+	}
+	
+	printf(NAME ": device handle is %d.\n", handle);	
+	
+	int phone;
+	if (0 >= (phone = devman_device_connect(handle, IPC_FLAG_BLOCKING))) {
+		printf(NAME ": could not connect to the device, errno = %d.\n", -res);
+		devman_hangup_phone(DEVMAN_CLIENT);		
+		return 2;
+	}
+	
+	char *buf = (char *)malloc(cnt+1);
+	if (NULL == buf) {
+		printf(NAME ": failed to allocate the input buffer\n");
+		ipc_hangup(phone);
+		devman_hangup_phone(DEVMAN_CLIENT);
+		return 3;
+	}
+	
+	int read = read_dev(phone, buf, cnt);
+	if (0 > read) {
+		printf(NAME ": failed read from device, errno = %d.\n", -read);
+		ipc_hangup(phone);
+		devman_hangup_phone(DEVMAN_CLIENT);
+		return 4;
+	}
+	
+	buf[cnt+1] = 0;
+	printf(NAME ": read data: '%s'.", buf);
+	
+	devman_hangup_phone(DEVMAN_CLIENT);
+	ipc_hangup(phone);
+	
+	return 0;
+}
+
 
 /** @}
  */

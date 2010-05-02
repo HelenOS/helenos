@@ -55,16 +55,19 @@ remote_iface_t remote_char_iface = {
 };
 
 static void remote_char_read(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
-{
+{	
 	char_iface_t *char_iface = (char_iface_t *)iface;
-	if (!char_iface->read) {
-		ipc_answer_0(callid, ENOTSUP);
-		return;
-	}
 	
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {
 		// TODO handle protocol error
+		ipc_answer_0(callid, EINVAL);
+		return;
+	}
+	
+	if (!char_iface->read) {
+		async_data_read_finalize(callid, NULL, 0);
+		ipc_answer_0(callid, ENOTSUP);
 		return;
 	}
 	

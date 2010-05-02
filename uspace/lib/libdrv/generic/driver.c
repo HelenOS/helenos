@@ -253,7 +253,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			
 			if (!is_valid_iface_idx(iface_idx)) {
 				// this is not device's interface
-				printf("%s: driver_connection_gen error - invalid interface id %x.", driver->name, method);
+				printf("%s: driver_connection_gen error - invalid interface id %d.", driver->name, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
@@ -264,7 +264,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			void *iface = device_get_iface(dev, iface_idx);
 			if (NULL == iface) {
 				printf("%s: driver_connection_gen error - ", driver->name);
-				printf("device with handle %x has no interface with id %x.\n", handle, method);
+				printf("device with handle %d has no interface with id %d.\n", handle, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}

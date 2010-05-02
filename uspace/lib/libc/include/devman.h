@@ -50,6 +50,8 @@ int devman_child_device_register(const char *, match_id_list_t *, device_handle_
 int devman_device_connect(device_handle_t handle, unsigned int flags);
 int devman_parent_device_connect(device_handle_t handle, unsigned int flags);
 
+int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags);
+
 
 #endif
 

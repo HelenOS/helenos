@@ -678,13 +678,14 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *par
 node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
 {
 	node_t *dev = tree->root_node;
+	// relative path to the device from its parent (but with '/' at the beginning)
 	char *rel_path = path;
 	char *next_path_elem = NULL;
 	size_t elem_size = 0;
 	bool cont = '/' == rel_path[0];
 	
 	while (cont && NULL != dev) {		
-		next_path_elem  = get_path_elem_end(rel_path+1);		
+		next_path_elem  = get_path_elem_end(rel_path + 1);		
 		if ('/' == next_path_elem[0]) {
 			cont = true;
 			next_path_elem[0] = 0;
@@ -692,9 +693,10 @@ node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
 			cont = false;
 		}
 		
-		dev = find_node_child(dev, rel_path);		
+		dev = find_node_child(dev, rel_path + 1);		
 		
 		if (cont) {
+			// restore the original path
 			next_path_elem[0] = '/';
 		}
 		rel_path = next_path_elem;		

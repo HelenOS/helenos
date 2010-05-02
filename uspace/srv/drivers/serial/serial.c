@@ -52,6 +52,7 @@
 #include <libarch/ddi.h>
 
 #include <driver.h>
+#include <char.h>
 #include <resource.h>
 
 #include <devman.h>
@@ -90,7 +91,25 @@ static void delete_serial_dev_data(serial_dev_data_t *data)
 	}
 }
 
+static int serial_read(device_t *dev, char *buf, size_t count) 
+{
+	printf(NAME ": serial_read %s\n", dev->name);
+	// TODO
+	return 0;
+}
+
+static int serial_write(device_t *dev, char *buf, size_t count) 
+{
+	// TODO
+	return 0;
+}
+
 static device_class_t serial_dev_class;
+
+static char_iface_t serial_char_iface = {
+	.read = &serial_read,
+	.write = &serial_write
+};
 
 static int serial_add_device(device_t *dev);
 
@@ -376,7 +395,9 @@ static int serial_add_device(device_t *dev)
 		serial_dev_cleanup(dev);
 		serial_unregister_interrupt_handler(dev);
 		return res;
-	}		
+	}	
+	
+	dev->class = &serial_dev_class;
 	
 	printf(NAME ": the %s device has been successfully initialized.\n", dev->name);
 	
@@ -439,6 +460,8 @@ static void serial_init()
 	serial_dev_class.id = 0;
 	serial_dev_class.open = &serial_open;
 	serial_dev_class.close = &serial_close;	
+	
+	serial_dev_class.interfaces[CHAR_DEV_IFACE] = &serial_char_iface;
 }
 
 int main(int argc, char *argv[])

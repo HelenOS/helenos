@@ -162,7 +162,9 @@ static inline void delete_device(device_t *dev)
 static inline void * device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 {
 	assert(is_valid_iface_idx(idx));	
-
+	if (NULL == dev->class) {
+		return NULL;
+	}
 	return dev->class->interfaces[idx];	
 }
 

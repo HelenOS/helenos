@@ -69,7 +69,8 @@ RD_APPS = \
 	$(USPACEDIR)/app/taskdump/taskdump \
 	$(USPACEDIR)/app/tester/tester \
 	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/trace/trace
+	$(USPACEDIR)/app/trace/trace \
+	$(USPACEDIR)/app/test_serial/test_serial
 
 COMPONENTS = \
 	$(KERNELDIR)/kernel.bin \

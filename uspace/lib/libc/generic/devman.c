@@ -229,5 +229,42 @@ int devman_parent_device_connect(device_handle_t handle, unsigned int flags)
 	return phone;
 }
 
+int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags)
+{
+	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
+	
+	if (phone < 0)
+		return phone;
+	
+	async_serialize_start();
+	
+	ipc_call_t answer;
+	aid_t req = async_send_2(phone, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
+	    &answer);
+	
+	ipcarg_t retval = async_data_write_start(phone, pathname, str_size(pathname));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	
+	async_serialize_end();
+	
+	if (retval != EOK) {
+		if (handle != NULL)
+			*handle = (device_handle_t) -1;
+		return retval;
+	}
+	
+	if (handle != NULL)
+		*handle = (device_handle_t) IPC_GET_ARG1(answer);
+	
+	return retval;
+}
+
+
 /** @}
  */
