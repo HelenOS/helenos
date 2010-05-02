@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -226,42 +226,40 @@ extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
 
-extern as_t *as_create(int flags);
-extern void as_destroy(as_t *as);
-extern void as_switch(as_t *old_as, as_t *new_as);
-extern int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate);
+extern as_t *as_create(int);
+extern void as_destroy(as_t *);
+extern void as_switch(as_t *, as_t *);
+extern int as_page_fault(uintptr_t, pf_access_t, istate_t *);
 
-extern as_area_t *as_area_create(as_t *as, int flags, size_t size,
-    uintptr_t base, int attrs, mem_backend_t *backend,
-    mem_backend_data_t *backend_data);
-extern int as_area_destroy(as_t *as, uintptr_t address);	
-extern int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags);
-int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
-    as_t *dst_as, uintptr_t dst_base, int dst_flags_mask);
-extern int as_area_change_flags(as_t *as, int flags, uintptr_t address);
+extern as_area_t *as_area_create(as_t *, int, size_t, uintptr_t, int,
+    mem_backend_t *, mem_backend_data_t *);
+extern int as_area_destroy(as_t *, uintptr_t);
+extern int as_area_resize(as_t *, uintptr_t, size_t, int);
+extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, uintptr_t, int);
+extern int as_area_change_flags(as_t *, int, uintptr_t);
 
-extern int as_area_get_flags(as_area_t *area);
-extern bool as_area_check_access(as_area_t *area, pf_access_t access);
-extern size_t as_area_get_size(uintptr_t base);
-extern int used_space_insert(as_area_t *a, uintptr_t page, size_t count);
-extern int used_space_remove(as_area_t *a, uintptr_t page, size_t count);
+extern int as_area_get_flags(as_area_t *);
+extern bool as_area_check_access(as_area_t *, pf_access_t);
+extern size_t as_area_get_size(uintptr_t);
+extern int used_space_insert(as_area_t *, uintptr_t, size_t);
+extern int used_space_remove(as_area_t *, uintptr_t, size_t);
 
 
 /* Interface to be implemented by architectures. */
 #ifndef as_constructor_arch
-extern int as_constructor_arch(as_t *as, int flags);
+extern int as_constructor_arch(as_t *, int);
 #endif /* !def as_constructor_arch */
 #ifndef as_destructor_arch
-extern int as_destructor_arch(as_t *as);
+extern int as_destructor_arch(as_t *);
 #endif /* !def as_destructor_arch */
 #ifndef as_create_arch
-extern int as_create_arch(as_t *as, int flags);
+extern int as_create_arch(as_t *, int);
 #endif /* !def as_create_arch */
 #ifndef as_install_arch
-extern void as_install_arch(as_t *as);
+extern void as_install_arch(as_t *);
 #endif /* !def as_install_arch */
 #ifndef as_deinstall_arch
-extern void as_deinstall_arch(as_t *as);
+extern void as_deinstall_arch(as_t *);
 #endif /* !def as_deinstall_arch */
 
 /* Backend declarations and functions. */
@@ -276,17 +274,17 @@ extern mem_backend_t phys_backend;
 #define ELD_F_NONE	0
 #define ELD_F_LOADER	1
 
-extern unsigned int elf_load(elf_header_t *header, as_t *as, int flags);
+extern unsigned int elf_load(elf_header_t *, as_t *, int);
 
 /* Address space area related syscalls. */
-extern unative_t sys_as_area_create(uintptr_t address, size_t size, int flags);
-extern unative_t sys_as_area_resize(uintptr_t address, size_t size, int flags);
-extern unative_t sys_as_area_change_flags(uintptr_t address, int flags);
-extern unative_t sys_as_area_destroy(uintptr_t address);
+extern unative_t sys_as_area_create(uintptr_t, size_t, int);
+extern unative_t sys_as_area_resize(uintptr_t, size_t, int);
+extern unative_t sys_as_area_change_flags(uintptr_t, int);
+extern unative_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */
-extern void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize);
-extern void as_print(as_t *as);
+extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);
+extern void as_print(as_t *);
 
 #endif /* KERNEL */
 
