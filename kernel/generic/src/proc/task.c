@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -254,6 +254,29 @@ void task_destroy(task_t *t)
 	
 	slab_free(task_slab, t);
 	TASK = NULL;
+}
+
+/** Hold a reference to a task.
+ *
+ * Holding a reference to a task prevents destruction of that task.
+ *
+ * @param t		Task to be held.
+ */
+void task_hold(task_t *t)
+{
+	atomic_inc(&t->refcount);
+}
+
+/** Release a reference to a task.
+ *
+ * The last one to release a reference to a task destroys the task.
+ *
+ * @param t		Task to be released.
+ */
+void task_release(task_t *t)
+{
+	if ((atomic_predec(&t->refcount)) == 0)
+		task_destroy(t);
 }
 
 /** Syscall for reading task ID from userspace.

@@ -132,6 +132,8 @@ extern void task_init(void);
 extern void task_done(void);
 extern task_t *task_create(as_t *, const char *);
 extern void task_destroy(task_t *);
+extern void task_hold(task_t *);
+extern void task_release(task_t *);
 extern task_t *task_find_by_id(task_id_t);
 extern int task_kill(task_id_t);
 extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
