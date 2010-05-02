@@ -202,8 +202,8 @@ void as_destroy(as_t *as)
 	ASSERT(atomic_get(&as->refcount) == 0);
 	
 	/*
-	 * Since there is no reference to this area,
-	 * it is safe not to lock its mutex.
+	 * Since there is no reference to this address space, it is safe not to
+	 * lock its mutex.
 	 */
 
 	/*
