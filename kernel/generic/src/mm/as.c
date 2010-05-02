@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2006 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -257,6 +257,31 @@ retry:
 	interrupts_restore(ipl);
 
 	slab_free(as_slab, as);
+}
+
+/** Hold a reference to an address space.
+ *
+ * Holding a reference to an address space prevents destruction of that address
+ * space.
+ *
+ * @param a		Address space to be held.
+ */
+void as_hold(as_t *as)
+{
+	atomic_inc(&as->refcount);
+}
+
+/** Release a reference to an address space.
+ *
+ * The last one to release a reference to an address space destroys the address
+ * space.
+ *
+ * @param a		Address space to be released.
+ */
+void as_release(as_t *as)
+{
+	if (atomic_predec(&as->refcount) == 0)
+		as_destroy(as);
 }
 
 /** Create address space area of common attributes.
