@@ -50,7 +50,7 @@ void frame_arch_init(void)
 	pfn_t confdata;
 
 	if (config.cpu_active == 1) {
-		for (i = 0; i < memmap->count; i++) {
+		for (i = 0; i < memmap.cnt; i++) {
 			uintptr_t start = (uintptr_t) memmap.zones[i].start;
 			size_t size = memmap.zones[i].size;
 
