@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2009 Martin Decky
+# Copyright (c) 2006 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,95 +26,131 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
--include ../Makefile.common
--include ../Makefile.config
+## Configuration
+#
 
-TMP = distroot
+ROOT_PATH = ..
+
+VERSION_DEF = $(ROOT_PATH)/version
+
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+COMMON_HEADER = $(ROOT_PATH)/common.h
+COMMON_HEADER_ARCH = arch/$(BARCH)/include/common.h
+
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+CONFIG_HEADER = $(ROOT_PATH)/config.h
+
+-include $(VERSION_DEF)
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+
+KERNEL_PATH = $(ROOT_PATH)/kernel
+USPACE_PATH = $(ROOT_PATH)/uspace
+DIST_PATH = $(USPACE_PATH)/dist
+TOOLS_PATH = $(ROOT_PATH)/tools
+
+SANDBOX = pack
+PACK = $(TOOLS_PATH)/pack.py
+MKHORD = $(TOOLS_PATH)/mkhord.py
+MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
+MKFAT = $(TOOLS_PATH)/mkfat.py
+
+JOBFILE = $(ROOT_PATH)/tools/jobfile.py
+
+ARCH_INCLUDE = generic/include/arch
+GENARCH_INCLUDE = generic/include/genarch
+
+DEPEND = Makefile.depend
+DEPEND_PREV = $(DEPEND).prev
+DISTROOT = distroot
 INITRD = initrd
 
 INIT_TASKS = \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
+	$(USPACE_PATH)/srv/ns/ns \
+	$(USPACE_PATH)/srv/loader/loader \
+	$(USPACE_PATH)/app/init/init \
+	$(USPACE_PATH)/srv/devmap/devmap \
+	$(USPACE_PATH)/srv/bd/rd/rd \
+	$(USPACE_PATH)/srv/vfs/vfs
 
 ifeq ($(RDFMT),tmpfs)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/tmpfs/tmpfs
 endif
 
 ifeq ($(RDFMT),fat)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
+	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
 endif
 
 RD_SRVS = \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd \
-	$(USPACEDIR)/srv/bd/part/guid_part/g_part \
-	$(USPACEDIR)/srv/bd/part/mbr_part/mbr_part \
-	$(USPACEDIR)/srv/clip/clip \
-	$(USPACEDIR)/srv/hid/fb/fb \
-	$(USPACEDIR)/srv/hid/kbd/kbd \
-	$(USPACEDIR)/srv/hid/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/taskmon/taskmon \
-	$(USPACEDIR)/srv/hw/netif/dp8390/dp8390 \
-	$(USPACEDIR)/srv/net/netif/lo/lo \
-	$(USPACEDIR)/srv/net/il/arp/arp \
-	$(USPACEDIR)/srv/net/il/ip/ip \
-	$(USPACEDIR)/srv/net/tl/icmp/icmp \
-	$(USPACEDIR)/srv/net/tl/udp/udp \
-	$(USPACEDIR)/srv/net/tl/tcp/tcp \
-	$(USPACEDIR)/srv/net/net/net \
-	$(USPACEDIR)/srv/net/netstart/netstart \
+	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
+	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
+	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
+	$(USPACE_PATH)/srv/clip/clip \
+	$(USPACE_PATH)/srv/hid/fb/fb \
+	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/console/console \
+	$(USPACE_PATH)/srv/fs/devfs/devfs \
+	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
+	$(USPACE_PATH)/srv/fs/fat/fat \
+	$(USPACE_PATH)/srv/taskmon/taskmon \
+	$(USPACE_PATH)/srv/hw/netif/dp8390/dp8390 \
+	$(USPACE_PATH)/srv/net/netif/lo/lo \
+	$(USPACE_PATH)/srv/net/il/arp/arp \
+	$(USPACE_PATH)/srv/net/il/ip/ip \
+	$(USPACE_PATH)/srv/net/tl/icmp/icmp \
+	$(USPACE_PATH)/srv/net/tl/udp/udp \
+	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
+	$(USPACE_PATH)/srv/net/net/net \
+	$(USPACE_PATH)/srv/net/netstart/netstart \
 
 ifneq ($(CONFIG_NETIF_NIL_BUNDLE),y)
 	RD_SRVS += \
-		$(USPACEDIR)/srv/net/nil/eth/eth \
-		$(USPACEDIR)/srv/net/nil/nildummy/nildummy
+		$(USPACE_PATH)/srv/net/nil/eth/eth \
+		$(USPACE_PATH)/srv/net/nil/nildummy/nildummy
 endif
 
 RD_APPS = \
-	$(USPACEDIR)/app/bdsh/bdsh \
-	$(USPACEDIR)/app/edit/edit \
-	$(USPACEDIR)/app/getterm/getterm \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/mkfat/mkfat \
-	$(USPACEDIR)/app/sbi/sbi \
-	$(USPACEDIR)/app/redir/redir \
-	$(USPACEDIR)/app/taskdump/taskdump \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/nettest1/nettest1 \
-	$(USPACEDIR)/app/nettest2/nettest2 \
-	$(USPACEDIR)/app/netecho/netecho \
-	$(USPACEDIR)/app/ping/ping \
-	$(USPACEDIR)/app/stats/stats \
-	$(USPACEDIR)/app/tasks/tasks \
-	$(USPACEDIR)/app/top/top
-#	$(USPACEDIR)/app/dummy_load/dummy_load
-
-COMPONENTS = \
-	$(KERNELDIR)/kernel.bin \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-
-ifeq ($(RDFMT),tmpfs)
-	COMPONENTS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-
-ifeq ($(RDFMT),fat)
-	COMPONENTS += $(USPACEDIR)/srv/fs/fat/fat
-endif
+	$(USPACE_PATH)/app/bdsh/bdsh \
+	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/getterm/getterm \
+	$(USPACE_PATH)/app/klog/klog \
+	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/sbi/sbi \
+	$(USPACE_PATH)/app/redir/redir \
+	$(USPACE_PATH)/app/taskdump/taskdump \
+	$(USPACE_PATH)/app/tester/tester \
+	$(USPACE_PATH)/app/tetris/tetris \
+	$(USPACE_PATH)/app/trace/trace \
+	$(USPACE_PATH)/app/nettest1/nettest1 \
+	$(USPACE_PATH)/app/nettest2/nettest2 \
+	$(USPACE_PATH)/app/netecho/netecho \
+	$(USPACE_PATH)/app/ping/ping \
+	$(USPACE_PATH)/app/stats/stats \
+	$(USPACE_PATH)/app/tasks/tasks \
+	$(USPACE_PATH)/app/top/top
+#	$(USPACE_PATH)/app/dummy_load/dummy_load
 
 NET_CFG = \
-	$(USPACEDIR)/srv/net/cfg/general \
-	$(USPACEDIR)/srv/net/cfg/lo \
-	$(USPACEDIR)/srv/net/cfg/ne2k
+	$(USPACE_PATH)/srv/net/cfg/general \
+	$(USPACE_PATH)/srv/net/cfg/lo \
+	$(USPACE_PATH)/srv/net/cfg/ne2k
+
+COMPONENTS = \
+	$(KERNEL_PATH)/kernel.bin \
+	$(INIT_TASKS) \
+	$(INITRD).img
+
+LINK = arch/$(BARCH)/_link.ld
+COMPS_H = arch/$(BARCH)/include/_components.h
+COMPS_C = arch/$(BARCH)/src/_components.c
+
+-include arch/$(BARCH)/Makefile.inc
+
+MODULES := $(notdir $(COMPONENTS))
+
+BOOT_OUTPUT ?= $(ROOT_PATH)/image.boot
+RAW ?= image.raw
+JOB ?= image.job
+MAP ?= image.map
+PREBUILD ?= build_comps
+BUILD ?= Makefile.build

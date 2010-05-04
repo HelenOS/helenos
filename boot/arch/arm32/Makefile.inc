@@ -26,14 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+BFD_NAME = elf32-littlearm
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = arm
 
-build: $(BASE)/image.boot
+BITS = 32
+ENDIANESS = LE
+PAGE_SIZE = 4096
 
-$(BASE)/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
-	cp arch/$(BARCH)/loader/image.boot $@
+RD_SRVS += \
+	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
 
-clean:
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -f $(BASE)/image.boot
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/mm.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

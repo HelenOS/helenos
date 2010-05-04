@@ -82,12 +82,11 @@ size_t cpu_count = 0;
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
-	/* Setup usermode */
-	init.cnt = bootinfo->cnt;
+	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
 	size_t i;
-	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
-		init.tasks[i].addr = bootinfo->tasks[i].addr;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);

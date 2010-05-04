@@ -51,24 +51,24 @@
 #include <genarch/ofw/ofw_tree.h>
 
 typedef struct {
-	uintptr_t addr;
-	uint32_t size;
+	void *addr;
+	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } utask_t;
 
 typedef struct {
-	uint32_t count;
+	size_t cnt;
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } taskmap_t;
 
 typedef struct {
-	uintptr_t start;
-	uint32_t size;
+	void *start;
+	size_t size;
 } memzone_t;
 
 typedef struct {
-	uint32_t total;
-	uint32_t count;
+	uint64_t total;
+	size_t cnt;
 	memzone_t zones[MEMMAP_MAX_RECORDS];
 } memmap_t;
 
@@ -79,7 +79,7 @@ typedef struct {
 	ofw_tree_node_t *ofw_root;
 } bootinfo_t;
 
-extern bootinfo_t bootinfo;
+extern memmap_t memmap;
 
 #endif
 

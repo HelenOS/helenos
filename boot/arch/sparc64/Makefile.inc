@@ -26,37 +26,34 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+BOOT_OUTPUT = image.boot
+POST_OUTPUT = $(ROOT_PATH)/image.iso
+POSTBUILD = Makefile.silo
 
-ifeq ($(CONFIG_AOUT_ISOFS_B),y)
-	SILO_PACKAGE = silo.tar.gz
-else
-	SILO_PACKAGE = silo.patched.tar.gz
-endif
+BFD_NAME = elf64-sparc
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = sparc
 
-build: $(BASE)/image.iso
+BITS = 64
+ENDIANESS = BE
+PAGE_SIZE = 16384
+EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu
 
-$(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
-	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/HelenOS
-	cat arch/$(BARCH)/silo/$(SILO_PACKAGE) | (cd $(TMP)/boot; tar xvfz -)
-	cp arch/$(BARCH)/silo/README arch/$(BARCH)/silo/COPYING $(TMP)/boot
-ifeq ($(CONFIG_RD_EXTERNAL),y)
-	cp arch/$(BARCH)/silo/silo.conf $(TMP)/boot/silo.conf
-else
-	cat arch/$(BARCH)/silo/silo.conf | grep -v initrd > $(TMP)/boot/silo.conf
-endif
-	cp arch/$(BARCH)/loader/image.boot $(TMP)/HelenOS/image.boot
-	gzip -f $(TMP)/HelenOS/image.boot
-ifeq ($(CONFIG_RD_EXTERNAL),y)
-	cp arch/$(BARCH)/loader/initrd.img $(TMP)/HelenOS/initrd.img
-endif
-	mkisofs -f -G $(TMP)/boot/isofs.b -B ... -r -o $@ $(TMP)/
+RD_SRVS += \
+	$(USPACE_PATH)/srv/hw/cir/fhc/fhc \
+	$(USPACE_PATH)/srv/hw/cir/obio/obio
 
-arch/$(BARCH)/loader/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
-
-clean: generic_clean
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -fr $(TMP)
-	rm -f $(BASE)/image.iso
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/ofw.c \
+	$(COMPS_C) \
+	genarch/src/ofw.c \
+	genarch/src/ofw_tree.c \
+	generic/src/balloc.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

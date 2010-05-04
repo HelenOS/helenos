@@ -42,9 +42,9 @@
 
 uintptr_t last_frame = NULL;
 
-/** Create memory zones according to information stored in bootinfo.
+/** Create memory zones according to information stored in memmap.
  *
- * Walk the bootinfo memory map and create frame zones according to it.
+ * Walk the memory map and create frame zones according to it.
  */
 void frame_arch_init(void)
 {
@@ -52,9 +52,9 @@ void frame_arch_init(void)
 	pfn_t confdata;
 
 	if (config.cpu_active == 1) {
-		for (i = 0; i < bootinfo.memmap.count; i++) {
-			uintptr_t start = bootinfo.memmap.zones[i].start;
-			size_t size = bootinfo.memmap.zones[i].size;
+		for (i = 0; i < memmap.cnt; i++) {
+			uintptr_t start = (uintptr_t) memmap.zones[i].start;
+			size_t size = memmap.zones[i].size;
 
 			/*
 			 * The memmap is created by HelenOS boot loader.
