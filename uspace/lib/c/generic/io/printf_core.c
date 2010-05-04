@@ -259,12 +259,12 @@ static int print_str(char *str, int width, unsigned int precision,
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-
+	
 	/* Print leading spaces. */
 	size_t strw = str_length(str);
 	if (precision == 0)
 		precision = strw;
-
+	
 	/* Left padding */
 	size_t counter = 0;
 	width -= precision;
@@ -274,7 +274,7 @@ static int print_str(char *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-
+	
 	/* Part of @a str fitting into the alloted space. */
 	int retval;
 	size_t size = str_lsize(str, precision);
@@ -389,7 +389,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	 * leading zeroes.
 	 */
 	if (flags & __PRINTF_FLAG_PREFIX) {
-		switch(base) {
+		switch (base) {
 		case 2:
 			/* Binary formating is not standard, but usefull */
 			size += 2;
@@ -453,7 +453,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	
 	/* Print prefix */
 	if (flags & __PRINTF_FLAG_PREFIX) {
-		switch(base) {
+		switch (base) {
 		case 2:
 			/* Binary formating is not standard, but usefull */
 			if (printf_putchar('0', ps) == 1)
@@ -568,8 +568,9 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *      If type is "l", then the string is expected to be wide string.
  *
  *  - P, p Print value of a pointer. Void * value is expected and it is
- *         printed in hexadecimal notation with prefix (as with \%#X / \%#x
- *         for 32-bit or \%#X / \%#x for 64-bit long pointers).
+ *         printed in hexadecimal notation with prefix (as with
+ *         \%#0.8X / \%#0.8x for 32-bit or \%#0.16lX / \%#0.16lx for 64-bit
+ *         long pointers).
  *
  *  - b Print value as unsigned binary number. Prefix is not printed by
  *      default. (Nonstandard extension.)
@@ -782,6 +783,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				flags |= __PRINTF_FLAG_BIGCHARS;
 			case 'p':
 				flags |= __PRINTF_FLAG_PREFIX;
+				flags |= __PRINTF_FLAG_ZEROPADDED;
 				base = 16;
 				qualifier = PrintfQualifierPointer;
 				break;
@@ -844,7 +846,8 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				break;
 			case PrintfQualifierPointer:
 				size = sizeof(void *);
-				number = (uint64_t) (unsigned long) va_arg(ap, void *);
+				precision = size << 1;
+				number = (uint64_t) (uintptr_t) va_arg(ap, void *);
 				break;
 			default:
 				/* Unknown qualifier */

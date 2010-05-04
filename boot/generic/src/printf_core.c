@@ -81,9 +81,9 @@ typedef enum {
 	PrintfQualifierPointer
 } qualifier_t;
 
-static const char nullstr[] = "(NULL)";
-static const char digits_small[] = "0123456789abcdef";
-static const char digits_big[] = "0123456789ABCDEF";
+static const char *nullstr = "(NULL)";
+static const char *digits_small = "0123456789abcdef";
+static const char *digits_big = "0123456789ABCDEF";
 static const char invalch = U_SPECIAL;
 
 /** Print one or more characters without adding newline.
@@ -217,7 +217,6 @@ static int print_str(char *str, int width, unsigned int precision,
 	}
 
 	return ((int) counter);
-
 }
 
 /** Print a number in a given base.
