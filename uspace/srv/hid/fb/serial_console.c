@@ -351,7 +351,6 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipcarg_t row;
 		ipcarg_t w;
 		ipcarg_t h;
-		attrs_t attr;
 		ssize_t rows;
 		
 		int retval;
@@ -429,23 +428,23 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
-			attr.t = at_style;
-			attr.a.s.style = IPC_GET_ARG1(call);
+			cur_attr.t = at_style;
+			cur_attr.a.s.style = IPC_GET_ARG1(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
 		case FB_SET_COLOR:
-			attr.t = at_idx;
-			attr.a.i.fg_color = IPC_GET_ARG1(call);
-			attr.a.i.bg_color = IPC_GET_ARG2(call);
-			attr.a.i.flags = IPC_GET_ARG3(call);
+			cur_attr.t = at_idx;
+			cur_attr.a.i.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.i.bg_color = IPC_GET_ARG2(call);
+			cur_attr.a.i.flags = IPC_GET_ARG3(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
-			attr.t = at_rgb;
-			attr.a.r.fg_color = IPC_GET_ARG1(call);
-			attr.a.r.bg_color = IPC_GET_ARG2(call);
+			cur_attr.t = at_rgb;
+			cur_attr.a.r.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.r.bg_color = IPC_GET_ARG2(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
