@@ -37,11 +37,6 @@
  *
  * All dynamically allocated memory memory is taken from the stack. The
  * stack usage should be typically bounded by 2 KB.
- * is less than 2K bytes.  This code is compatible with 16-bit int's and
- * assumes that long's are at least 32 bits.  puff.c uses the short data type,
- * assumed to be 16 bits, for arrays in order to to conserve memory.  The code
- * works whether integers are stored big endian or little endian.
- *
  *
  * Original copyright notice:
  *
@@ -66,6 +61,7 @@
  *     distribution.
  *
  *   Mark Adler <madler@alumni.caltech.edu>
+ *
  */
 
 #include <typedefs.h>
