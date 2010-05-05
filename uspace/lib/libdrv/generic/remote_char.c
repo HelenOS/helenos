@@ -84,7 +84,9 @@ static void remote_char_read(device_t *dev, void *iface, ipc_callid_t callid, ip
 		return;
 	}
 	
+	printf("remote_char_read - async_data_read_finalize\n");
 	async_data_read_finalize(callid, buf, ret);
+	printf("remote_char_read - ipc_answer_0(callid, EOK);\n");
 	ipc_answer_0(callid, EOK);	
 }
 

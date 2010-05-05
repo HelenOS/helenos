@@ -94,8 +94,20 @@ static void delete_serial_dev_data(serial_dev_data_t *data)
 static int serial_read(device_t *dev, char *buf, size_t count) 
 {
 	printf(NAME ": serial_read %s\n", dev->name);
-	// TODO
-	return 0;
+	
+	int ret = 0;
+	
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	fibril_mutex_lock(&data->mutex);
+	
+	while (!buf_is_empty(&data->input_buffer) && ret < count) {
+		buf[ret] = (char)buf_pop_front(&data->input_buffer);
+		ret++;
+	}
+	
+	fibril_mutex_unlock(&data->mutex);
+	
+	return ret;
 }
 
 static int serial_write(device_t *dev, char *buf, size_t count) 
