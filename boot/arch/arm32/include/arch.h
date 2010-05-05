@@ -35,7 +35,7 @@
 #define PTL0_ENTRIES     4096
 #define PTL0_ENTRY_SIZE  4
 
-#define BOOT_OFFSET  0x800000
+#define BOOT_OFFSET  0xa00000
 
 #ifndef __ASM__
 	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
