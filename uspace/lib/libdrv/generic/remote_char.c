@@ -57,16 +57,17 @@ remote_iface_t remote_char_iface = {
 static void remote_char_read(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {	
 	char_iface_t *char_iface = (char_iface_t *)iface;
+	ipc_callid_t cid;
 	
 	size_t len;
-	if (!async_data_read_receive(&callid, &len)) {
+	if (!async_data_read_receive(&cid, &len)) {
 		// TODO handle protocol error
 		ipc_answer_0(callid, EINVAL);
 		return;
 	}
 	
 	if (!char_iface->read) {
-		async_data_read_finalize(callid, NULL, 0);
+		async_data_read_finalize(cid, NULL, 0);
 		ipc_answer_0(callid, ENOTSUP);
 		return;
 	}
@@ -79,15 +80,13 @@ static void remote_char_read(device_t *dev, void *iface, ipc_callid_t callid, ip
 	int ret = (*char_iface->read)(dev, buf, len);
 	
 	if (ret < 0) { // some error occured
-		async_data_read_finalize(callid, buf, 0);
+		async_data_read_finalize(cid, buf, 0);
 		ipc_answer_0(callid, ret);
 		return;
 	}
 	
-	printf("remote_char_read - async_data_read_finalize\n");
-	async_data_read_finalize(callid, buf, ret);
-	printf("remote_char_read - ipc_answer_0(callid, EOK);\n");
-	ipc_answer_0(callid, EOK);	
+	async_data_read_finalize(cid, buf, ret);
+	ipc_answer_1(callid, EOK, ret);	
 }
 
 static void remote_char_write(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
@@ -116,7 +115,7 @@ static void remote_char_write(device_t *dev, void *iface, ipc_callid_t callid, i
 	if (ret < 0) { // some error occured
 		ipc_answer_0(callid, ret);
 	} else {
-		ipc_answer_0(callid, EOK);
+		ipc_answer_1(callid, EOK, ret);
 	}
 }
 

@@ -46,13 +46,10 @@ int read_dev(int dev_phone, void *buf, size_t len)
 	
 	async_serialize_start();
 	
-	printf("calling interface %d\n", DEV_IFACE_ID(CHAR_DEV_IFACE));
 	aid_t req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_READ_DEV, &answer);
 	
-	printf("async_data_read_start \n");
 	int rc = async_data_read_start(dev_phone, buf, len);
 	
-	printf("async_data_read_start, rc = %d\n", rc);
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
@@ -65,16 +62,13 @@ int read_dev(int dev_phone, void *buf, size_t len)
 		}
 	}
 	
-	printf("async_wait_for(req, &rc);\n", rc);
 	async_wait_for(req, &rc);
-	printf("async_serialize_end();\n", rc);
 	async_serialize_end();
 	
 	if (EOK != rc) {
 		return rc;
 	}
 	
-	printf("IPC_GET_ARG1(answer);\n", rc);
 	return IPC_GET_ARG1(answer);
 }
 
