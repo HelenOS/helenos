@@ -91,6 +91,29 @@ static void delete_serial_dev_data(serial_dev_data_t *data)
 	}
 }
 
+static bool serial_received(ioport8_t *port) 
+{
+   return (pio_read_8(port + 5) & 1) != 0;
+}
+
+static uint8_t serial_read_8(ioport8_t *port) 
+{
+	return pio_read_8(port);
+}
+
+static bool is_transmit_empty(ioport8_t *port) 
+{
+   return (pio_read_8(port + 5) & 0x20) != 0;
+}
+
+static void serial_write_8(ioport8_t *port, uint8_t c) 
+{
+	while (!is_transmit_empty(port)) 
+		;
+	
+	pio_write_8(port, c);
+}
+
 static int serial_read(device_t *dev, char *buf, size_t count) 
 {
 	printf(NAME ": serial_read %s\n", dev->name);
@@ -110,9 +133,22 @@ static int serial_read(device_t *dev, char *buf, size_t count)
 	return ret;
 }
 
+static inline void serial_putchar(serial_dev_data_t *data, uint8_t c)
+{	
+	fibril_mutex_lock(&data->mutex);
+	serial_write_8(data->port, c);	
+	fibril_mutex_unlock(&data->mutex);
+}
+
 static int serial_write(device_t *dev, char *buf, size_t count) 
 {
-	// TODO
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	
+	size_t idx;
+	for (idx = 0; idx < count; idx++) {
+		serial_putchar(data, (uint8_t)buf[idx]);
+	}
+	
 	return 0;
 }
 
@@ -149,29 +185,6 @@ static void serial_dev_cleanup(device_t *dev)
 		ipc_hangup(dev->parent_phone);
 		dev->parent_phone = 0;
 	}	
-}
-
-static bool serial_received(ioport8_t *port) 
-{
-   return (pio_read_8(port + 5) & 1) != 0;
-}
-
-static uint8_t serial_read_8(ioport8_t *port) 
-{
-	return pio_read_8(port);
-}
-
-static bool is_transmit_empty(ioport8_t *port) 
-{
-   return (pio_read_8(port + 5) & 0x20) != 0;
-}
-
-static void serial_write_8(ioport8_t *port, uint8_t c) 
-{
-	while (!is_transmit_empty(port)) 
-		;
-	
-	pio_write_8(port, c);
 }
 
 static bool serial_pio_enable(device_t *dev)
@@ -332,11 +345,13 @@ static void serial_read_from_device(device_t *dev)
 	bool cont = true;
 	
 	while (cont) {	
+		fibril_mutex_lock(&data->mutex);
+		
 		if (cont = serial_received(port)) {
 			uint8_t val = serial_read_8(port);
 			printf(NAME ": character %c read from %s.\n", val, dev->name);
 			
-			fibril_mutex_lock(&data->mutex);
+			
 			if (data->client_connected) {
 				if (!buf_push_back(&(data->input_buffer), val)) {
 					printf(NAME ": buffer overflow on %s.\n", dev->name);
@@ -345,10 +360,12 @@ static void serial_read_from_device(device_t *dev)
 				}
 			} else {
 				printf(NAME ": no client is connected to %s, discarding the character which was read.\n", dev->name);
-			}
-			fibril_mutex_unlock(&data->mutex);
+			}			
 		}
 		
+		fibril_mutex_unlock(&data->mutex);	
+		
+		fibril_yield();		
 	}	
 }
 

@@ -44,6 +44,7 @@
 #include <ipc/devman.h>
 #include <devman.h>
 #include <device/char.h>
+#include <string.h>
 
 #define NAME 		"test serial"
 
@@ -103,11 +104,16 @@ int main(int argc, char *argv[])
 		total += read;
 		if (read > 0) {			
 			buf[read] = 0;
-			printf(buf);		
+			printf(buf);	
+			// write data back to the device to test the opposite direction of data transfer
+			write_dev(phone, buf, read);
 		} else {	
 			usleep(100000);			
 		}	
 	}
+	
+	char *the_end = "\n---------\nTHE END\n---------\n";
+	write_dev(phone, the_end, str_size(the_end));
 	
 	devman_hangup_phone(DEVMAN_CLIENT);
 	ipc_hangup(phone);

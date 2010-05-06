@@ -39,16 +39,35 @@
 #include <malloc.h>
 #include <stdio.h>
 
-
-int read_dev(int dev_phone, void *buf, size_t len)
-{	
+/** Read to or write from the device using its character interface.
+ * 
+ * Helper function.
+ * 
+ * @param dev_phone phone to the device.
+ * @param buf the buffer for the data read from or written to the device.
+ * @param len the maximum length of the data to be read or written.
+ * @param read read from the device if true, write to it otherwise.
+ * 
+ * @return non-negative number of bytes actually read from or written to the device on success,
+ * negative error number otherwise.
+ * 
+ */
+static int rw_dev(int dev_phone, void *buf, size_t len, bool read) 
+{
 	ipc_call_t answer;
 	
 	async_serialize_start();
 	
-	aid_t req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_READ_DEV, &answer);
+	aid_t req;
+	int rc;
 	
-	int rc = async_data_read_start(dev_phone, buf, len);
+	if (read) {
+		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_READ_DEV, &answer);
+		rc = async_data_read_start(dev_phone, buf, len);		
+	} else {
+		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE), CHAR_WRITE_DEV, &answer);
+		rc = async_data_write_start(dev_phone, buf, len);
+	}
 	
 	if (rc != EOK) {
 		ipcarg_t rc_orig;
@@ -69,13 +88,33 @@ int read_dev(int dev_phone, void *buf, size_t len)
 		return rc;
 	}
 	
-	return IPC_GET_ARG1(answer);
+	return IPC_GET_ARG1(answer);	
 }
 
+/** Read from the device using its character interface.
+ * 
+ * @param dev_phone phone to the device.
+ * @param buf the output buffer for the data read from the device.
+ * @param len the maximum length of the data to be read.
+ * 
+ * @return non-negative number of bytes actually read from the device on success, negative error number otherwise.
+ */
+int read_dev(int dev_phone, void *buf, size_t len)
+{	
+	return rw_dev(dev_phone, buf, len, true);
+}
+
+/** Write to the device using its character interface.
+ * 
+ * @param dev_phone phone to the device.
+ * @param buf the input buffer containg the data to be written to the device.
+ * @param len the maximum length of the data to be written.
+ * 
+ * @return non-negative number of bytes actually written to the device on success, negative error number otherwise.
+ */
 int write_dev(int dev_phone, void *buf, size_t len)
 {
-	// TODO
-	return 0;
+	return rw_dev(dev_phone, buf, len, false);
 }
 
   
