@@ -38,11 +38,13 @@
 #include "dev_iface.h"
 #include "remote_res.h"
 #include "remote_char.h"
+#include "remote_ioctl.h"
  
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_res_iface,
-		&remote_char_iface
+		&remote_char_iface,
+		&remote_ioctl_iface
 	}
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libdrv
+ * @{
+ */
+/** @file
+ */
+#ifndef LIBDRV_IOCTL_H_
+#define LIBDRV_IOCTL_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include "driver.h"
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-	IOCTL_DEV_IFACE,
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx) ((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id) ((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT DEV_IFACE_MAX
-
+typedef struct ioctl_iface {
+	int (*ioctl)(device_t *dev, int ctlcode, void *inbuf, size_t inlen, void *outbuf, size_t outlen, size_t *retlen);	
+} ioctl_iface_t;
 
 #endif
+
+/**
+ * @}
+ */

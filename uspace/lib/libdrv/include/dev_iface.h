@@ -37,8 +37,6 @@
 #include "driver.h"
 
 
-// TODO declare device interface structures here
-
 #endif
 
 /**
