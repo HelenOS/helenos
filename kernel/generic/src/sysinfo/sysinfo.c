@@ -36,7 +36,7 @@
 #include <mm/slab.h>
 #include <print.h>
 #include <syscall/copy.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <arch/asm.h>
 #include <errno.h>
 
@@ -51,8 +51,8 @@ static sysinfo_item_t *global_root = NULL;
 /** Sysinfo SLAB cache */
 static slab_cache_t *sysinfo_item_slab;
 
-/** Sysinfo spinlock */
-SPINLOCK_STATIC_INITIALIZE_NAME(sysinfo_lock, "sysinfo_lock");
+/** Sysinfo lock */
+static mutex_t sysinfo_lock;
 
 /** Sysinfo item constructor
  *
@@ -97,12 +97,13 @@ void sysinfo_init(void)
 	sysinfo_item_slab = slab_cache_create("sysinfo_item_slab",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
+
+	mutex_initialize(&sysinfo_lock, MUTEX_ACTIVE);
 }
 
 /** Recursively find an item in sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name    Current sysinfo path suffix.
  * @param subtree Current sysinfo (sub)tree root item.
@@ -167,8 +168,7 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
 
 /** Recursively create items in sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name     Current sysinfo path suffix.
  * @param psubtree Pointer to an already existing (sub)tree root
@@ -298,8 +298,7 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
     unative_t val)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -310,8 +309,7 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 		item->val.val = val;
 	}
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Set sysinfo item with a constant binary data
@@ -331,8 +329,7 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
     void *data, size_t size)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -344,8 +341,7 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 		item->val.data.size = size;
 	}
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Set sysinfo item with a generated numeric value
@@ -360,8 +356,7 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
     sysinfo_fn_val_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -372,8 +367,7 @@ void sysinfo_set_item_fn_val(const char *name, sysinfo_item_t **root,
 		item->val.fn_val = fn;
 	}
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Set sysinfo item with a generated binary data
@@ -393,8 +387,7 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
     sysinfo_fn_data_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -405,8 +398,7 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
 		item->val.fn_data = fn;
 	}
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Set sysinfo item with an undefined value
@@ -419,8 +411,7 @@ void sysinfo_set_item_fn_data(const char *name, sysinfo_item_t **root,
 void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -429,8 +420,7 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 	if (item != NULL)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Set sysinfo item with a generated subtree
@@ -445,8 +435,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
     sysinfo_fn_subtree_t fn)
 {
 	/* Protect sysinfo tree consistency */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		root = &global_root;
@@ -460,8 +449,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 		item->subtree.get_data = fn;
 	}
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Sysinfo dump indentation helper routine
@@ -478,11 +466,7 @@ static void sysinfo_indent(unsigned int depth)
 
 /** Dump the structure of sysinfo tree
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held. Because this routine
- * might take a reasonable long time to proceed,
- * having the spinlock held is not optimal, but
- * there is no better simple solution.
+ * Should be called with sysinfo_lock held.
  *
  * @param root  Root item of the current (sub)tree.
  * @param depth Current depth in the sysinfo tree.
@@ -558,22 +542,19 @@ void sysinfo_dump(sysinfo_item_t *root)
 {
 	/* Avoid other functions to mess with sysinfo
 	   while we are dumping it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	mutex_lock(&sysinfo_lock);
 	
 	if (root == NULL)
 		sysinfo_dump_internal(global_root, 0);
 	else
 		sysinfo_dump_internal(root, 0);
 	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&sysinfo_lock);
 }
 
 /** Return sysinfo item value determined by name
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held.
+ * Should be called with sysinfo_lock held.
  *
  * @param name    Sysinfo path.
  * @param root    Root item of the sysinfo (sub)tree.
@@ -631,9 +612,7 @@ static sysinfo_return_t sysinfo_get_item(const char *name,
 
 /** Return sysinfo item determined by name from user space
  *
- * Should be called with interrupts disabled
- * and sysinfo_lock held. The path string passed from
- * the user space has to be properly null-terminated
+ * The path string passed from the user space has to be properly null-terminated
  * (the last passed character must be null).
  *
  * @param ptr     Sysinfo path in the user address space.
@@ -655,9 +634,15 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	ASSERT(path);
 	
 	if ((copy_from_uspace(path, ptr, size + 1) == 0)
-	    && (path[size] == 0))
+	    && (path[size] == 0)) {
+		/*
+		 * Prevent other functions from messing with sysinfo while we
+		 * are reading it.
+		 */
+		mutex_lock(&sysinfo_lock);
 		ret = sysinfo_get_item(path, NULL, dry_run);
-	
+		mutex_unlock(&sysinfo_lock);
+	}
 	free(path);
 	return ret;
 }
@@ -676,27 +661,22 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  */
 unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated
+	 * binary data since we request a dry run.
+	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
-	/* Map generated value types to constant types
-	   (user space does not care whether the
-	   value is constant or generated) */
+	/*
+	 * Map generated value types to constant types (user space does not care
+	 * whether the value is constant or generated).
+	 */
 	if (ret.tag == SYSINFO_VAL_FUNCTION_VAL)
 		ret.tag = SYSINFO_VAL_VAL;
 	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
 		ret.tag = SYSINFO_VAL_DATA;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) ret.tag;
 }
@@ -718,26 +698,21 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	int rc;
+
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated binary data
+	 * since we request a dry run.
+	 */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/* Only constant or generated numerical value is returned */
 	if ((ret.tag == SYSINFO_VAL_VAL) || (ret.tag == SYSINFO_VAL_FUNCTION_VAL))
 		rc = copy_to_uspace(value_ptr, &ret.val, sizeof(ret.val));
 	else
 		rc = EINVAL;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }
@@ -759,17 +734,15 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
-	
-	/* Get the item.
-	
-	   N.B.: There is no need to free any potential generated
-	   binary data since we request a dry run */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	int rc;
+	
+	/*
+	 * Get the item.
+	 *
+	 * N.B.: There is no need to free any potential generated binary data
+	 * since we request a dry run.
+	 */
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
 	
 	/* Only the size of constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA))
@@ -777,9 +750,6 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 		    sizeof(ret.data.size));
 	else
 		rc = EINVAL;
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }
@@ -806,15 +776,11 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are reading it */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&sysinfo_lock);
+	int rc;
 	
 	/* Get the item */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
-	int rc;
-	
+
 	/* Only constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
 		/* Check destination buffer size */
@@ -829,9 +795,6 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	/* N.B.: The generated binary data should be freed */
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
-	
-	spinlock_unlock(&sysinfo_lock);
-	interrupts_restore(ipl);
 	
 	return (unative_t) rc;
 }

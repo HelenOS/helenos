@@ -836,31 +836,33 @@ int cmd_set4(cmd_arg_t *argv)
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 	int rc;
-
-	if (((char *)argv->buffer)[0] == '*') {
+	
+	if (((char *) argv->buffer)[0] == '*') {
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
-	} else if (((char *) argv->buffer)[0] >= '0' && 
-		   ((char *)argv->buffer)[0] <= '9') {
-		rc = EOK;
-		addr = atoi((char *)argv->buffer);
-	} else {
+	} else if (((char *) argv->buffer)[0] >= '0' &&
+		   ((char *) argv->buffer)[0] <= '9') {
+		uint64_t value;
+		rc = str_uint64((char *) argv->buffer, NULL, 0, true, &value);
+		if (rc == EOK)
+			addr = (uintptr_t) value;
+	} else
 		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
-	}
-
+	
 	if (rc == ENOENT)
 		printf("Symbol %s not found.\n", argv->buffer);
+	else if (rc == EINVAL)
+		printf("Invalid address.\n");
 	else if (rc == EOVERFLOW) {
 		symtab_print_search((char *) argv->buffer);
-		printf("Duplicate symbol, be more specific.\n");
+		printf("Duplicate symbol (be more specific) or address overflow.\n");
 	} else if (rc == EOK) {
 		if (pointer)
 			addr = *(uintptr_t *) addr;
 		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
 		*(uint32_t *) addr = arg1;
-	} else {
+	} else
 		printf("No symbol information available.\n");
-	}
 	
 	return 1;
 }

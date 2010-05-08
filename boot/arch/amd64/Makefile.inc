@@ -26,76 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+PAGE_SIZE = 4096
 
 RD_SRVS += \
-	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/hw/char/i8042/i8042 \
-	$(USPACEDIR)/srv/hw/bus/pci/pci \
-	$(USPACEDIR)/srv/hid/char_mouse/char_ms
+	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
+	$(USPACE_PATH)/srv/hw/bus/pci/pci \
+	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
-MODULES := $(notdir $(COMPONENTS))
-
-build: $(BASE)/image.iso
-
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
-	mkdir -p $(TMP)/boot/grub
-	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
-	
-	echo "default 0" > $(TMP)/boot/grub/menu.lst
-	echo "timeout 10" >> $(TMP)/boot/grub/menu.lst
-	echo "" >> $(TMP)/boot/grub/menu.lst
-	echo "title=HelenOS" >> $(TMP)/boot/grub/menu.lst
-	echo "	root (cd)" >> $(TMP)/boot/grub/menu.lst
-	for module in $(MODULES) $(INITRD).img ; do \
-		if [ $$module = kernel.bin ] ; then \
-			echo "	kernel /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
-		else \
-			echo "	module /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
-		fi \
-	done
-	
-	rm -f $(USPACEDIR)/dist/srv/*
-	rm -f $(USPACEDIR)/dist/app/*
-	rm -f $(USPACEDIR)/dist/cfg/net/*
-	
-	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
-	for task in $(INIT_TASKS) ; do \
-		cp $$task $(TMP)/boot/ ; \
-	done
-	for file in $(RD_SRVS) ; do \
-		cp $$file $(USPACEDIR)/dist/srv/ ; \
-	done
-	for file in $(RD_APPS) ; do \
-		cp $$file $(USPACEDIR)/dist/app/ ; \
-	done
-	for file in $(NET_CFG) ; do \
-		cp $$file $(USPACEDIR)/dist/cfg/net/ ; \
-	done
-	
-ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
-endif
-ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
-endif
-	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/$(INITRD).fs $(TMP)/boot/$(INITRD).img
-	rm $(TMP)/boot/$(INITRD).fs
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
-
-clean:
-	rm -f $(USPACEDIR)/dist/srv/*
-	rm -f $(USPACEDIR)/dist/app/*
-	rm -f $(USPACEDIR)/dist/cfg/net/*
-
-	for file in $(RD_SRVS) ; do \
-		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
-	done
-	for file in $(RD_APPS) ; do \
-		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
-	done
-	for file in $(NET_CFG) ; do \
-		rm -f $(USPACEDIR)/dist/cfg/net/`basename $$file` ; \
-	done
-	rm -fr $(TMP)
-	rm -f $(BASE)/image.iso
+BOOT_OUTPUT = $(ROOT_PATH)/image.iso
+PREBUILD = $(INITRD).img
+BUILD = Makefile.grub

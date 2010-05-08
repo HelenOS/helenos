@@ -454,19 +454,38 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
 		case ENOTSUP:
 			printf("No symbol information available.\n");
 			return false;
+		case EOK:
+			if (isaddr)
+				*result = (unative_t) symaddr;
+			else if (isptr)
+				*result = **((unative_t **) symaddr);
+			else
+				*result = *((unative_t *) symaddr);
+			break;
+		default:
+			printf("Unknown error.\n");
+			return false;
 		}
-		
-		if (isaddr)
-			*result = (unative_t) symaddr;
-		else if (isptr)
-			*result = **((unative_t **) symaddr);
-		else
-			*result = *((unative_t *) symaddr);
 	} else {
 		/* It's a number - convert it */
-		*result = atoi(text);
-		if (isptr)
-			*result = *((unative_t *) *result);
+		uint64_t value;
+		int rc = str_uint64(text, NULL, 0, true, &value);
+		switch (rc) {
+		case EINVAL:
+			printf("Invalid number.\n");
+			return false;
+		case EOVERFLOW:
+			printf("Integer overflow.\n");
+			return false;
+		case EOK:
+			*result = (unative_t) value;
+			if (isptr)
+				*result = *((unative_t *) *result);
+			break;
+		default:
+			printf("Unknown error.\n");
+			return false;
+		}
 	}
 	
 	return true;

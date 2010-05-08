@@ -35,6 +35,7 @@
 #include <arch.h>
 #include <debug.h>
 #include <config.h>
+#include <macros.h>
 #include <arch/trap/trap.h>
 #include <arch/console.h>
 #include <arch/sun4v/md.h>
@@ -51,23 +52,30 @@
 #include <str.h>
 #include <arch/drivers/niagara.h>
 
-bootinfo_t bootinfo;
+memmap_t memmap;
 
 /** Perform sparc64-specific initialization before main_bsp() is called. */
-void arch_pre_main(void)
+void arch_pre_main(bootinfo_t *bootinfo)
 {
 	/* Copy init task info. */
-	init.cnt = bootinfo.taskmap.count;
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
-	uint32_t i;
-
-	for (i = 0; i < bootinfo.taskmap.count; i++) {
-		init.tasks[i].addr = (uintptr_t) bootinfo.taskmap.tasks[i].addr;
-		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+	size_t i;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->taskmap.tasks[i].addr;
+		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
-		    bootinfo.taskmap.tasks[i].name);
+		    bootinfo->taskmap.tasks[i].name);
 	}
-
+	
+	/* Copy physical memory map. */
+	memmap.total = bootinfo->memmap.total;
+	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);
+	for (i = 0; i < memmap.cnt; i++) {
+		memmap.zones[i].start = bootinfo->memmap.zones[i].start;
+		memmap.zones[i].size = bootinfo->memmap.zones[i].size;
+	}
+	
 	md_init();
 }
 

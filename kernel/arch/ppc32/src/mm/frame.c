@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
@@ -40,6 +40,7 @@
 #include <print.h>
 
 uintptr_t last_frame = 0;
+memmap_t memmap;
 
 void physmem_print(void)
 {
@@ -48,9 +49,9 @@ void physmem_print(void)
 	printf("Base       Size\n");
 	printf("---------- ----------\n");
 		
-	for (i = 0; i < bootinfo.memmap.count; i++) {
-		printf("%#10x %#10x\n", bootinfo.memmap.zones[i].start,
-			bootinfo.memmap.zones[i].size);
+	for (i = 0; i < memmap.cnt; i++) {
+		printf("%#10x %#10x\n", memmap.zones[i].start,
+			memmap.zones[i].size);
 	}
 }
 
@@ -61,9 +62,9 @@ void frame_arch_init(void)
 	pfn_t start, conf;
 	size_t size;
 	
-	for (i = 0; i < bootinfo.memmap.count; i++) {
-		start = ADDR2PFN(ALIGN_UP(bootinfo.memmap.zones[i].start, FRAME_SIZE));
-		size = SIZE2FRAMES(ALIGN_DOWN(bootinfo.memmap.zones[i].size, FRAME_SIZE));
+	for (i = 0; i < memmap.cnt; i++) {
+		start = ADDR2PFN(ALIGN_UP((uintptr_t) memmap.zones[i].start, FRAME_SIZE));
+		size = SIZE2FRAMES(ALIGN_DOWN(memmap.zones[i].size, FRAME_SIZE));
 		
 		if ((minconf < start) || (minconf >= start + size))
 			conf = start;
@@ -71,8 +72,8 @@ void frame_arch_init(void)
 			conf = minconf;
 		
 		zone_create(start, size, conf, 0);
-		if (last_frame < ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE))
-			last_frame = ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE);
+		if (last_frame < ALIGN_UP((uintptr_t) memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE))
+			last_frame = ALIGN_UP((uintptr_t) memmap.zones[i].start + memmap.zones[i].size, FRAME_SIZE);
 	}
 	
 	/* First is exception vector, second is 'implementation specific',

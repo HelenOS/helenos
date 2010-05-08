@@ -822,6 +822,8 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
 				base = 16;
 				str++;
 				break;
+			default:
+				str--;
 			}
 		}
 	} else {
@@ -885,7 +887,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  *               is stored here.
  * @param base   Zero or number between 2 and 36 inclusive.
  * @param strict Do not allow any trailing characters.
- * @apram result Result of the conversion.
+ * @param result Result of the conversion.
  *
  * @return EOK if conversion was successful.
  *

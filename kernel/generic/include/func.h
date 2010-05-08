@@ -41,7 +41,6 @@
 extern atomic_t haltstate;
 
 extern void halt(void) __attribute__((noreturn));
-extern unative_t atoi(const char *text);
 
 #endif
 

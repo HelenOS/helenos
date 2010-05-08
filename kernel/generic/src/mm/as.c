@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2006 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -151,7 +151,7 @@ void as_init(void)
 	/* Make sure the kernel address space
 	 * reference count never drops to zero.
 	 */
-	atomic_set(&AS_KERNEL->refcount, 1);
+	as_hold(AS_KERNEL);
 }
 
 /** Create address space.
@@ -199,11 +199,12 @@ void as_destroy(as_t *as)
 	bool cond;
 	DEADLOCK_PROBE_INIT(p_asidlock);
 
+	ASSERT(as != AS);
 	ASSERT(atomic_get(&as->refcount) == 0);
 	
 	/*
-	 * Since there is no reference to this area,
-	 * it is safe not to lock its mutex.
+	 * Since there is no reference to this address space, it is safe not to
+	 * lock its mutex.
 	 */
 
 	/*
@@ -224,7 +225,7 @@ retry:
 	}
 	preemption_enable();	/* Interrupts disabled, enable preemption */
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
-		if (as != AS && as->cpu_refcount == 0)
+		if (as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
@@ -257,6 +258,31 @@ retry:
 	interrupts_restore(ipl);
 
 	slab_free(as_slab, as);
+}
+
+/** Hold a reference to an address space.
+ *
+ * Holding a reference to an address space prevents destruction of that address
+ * space.
+ *
+ * @param a		Address space to be held.
+ */
+void as_hold(as_t *as)
+{
+	atomic_inc(&as->refcount);
+}
+
+/** Release a reference to an address space.
+ *
+ * The last one to release a reference to an address space destroys the address
+ * space.
+ *
+ * @param a		Address space to be released.
+ */
+void as_release(as_t *as)
+{
+	if (atomic_predec(&as->refcount) == 0)
+		as_destroy(as);
 }
 
 /** Create address space area of common attributes.

@@ -26,16 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /**
  * @file
- * @brief	Various sparc64-specific macros.
+ * @brief Various sparc64-specific macros.
  */
 
 #ifndef KERN_sparc64_ARCH_H_
 #define KERN_sparc64_ARCH_H_
+
+#include <arch/boot/boot.h>
 
 #if defined (SUN4U)
 #include <arch/sun4u/arch.h>
@@ -43,17 +45,16 @@
 #include <arch/sun4v/arch.h>
 #endif
 
-#define ASI_AIUP		0x10	/** Access to primary context with user privileges. */
-#define ASI_AIUS		0x11	/** Access to secondary context with user privileges. */
+#define ASI_AIUP  0x10  /** Access to primary context with user privileges. */
+#define ASI_AIUS  0x11  /** Access to secondary context with user privileges. */
 
-#define NWINDOWS		8	/** Number of register window sets. */
+#define NWINDOWS  8  /** Number of register window sets. */
 
 #ifndef __ASM__
 
-extern void arch_pre_main(void);
+extern void arch_pre_main(bootinfo_t *);
 
 #endif /* __ASM__ */
-
 
 #endif
 

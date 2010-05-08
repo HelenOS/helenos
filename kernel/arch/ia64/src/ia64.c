@@ -46,6 +46,7 @@
 #include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
+#include <macros.h>
 #include <userspace.h>
 #include <console/console.h>
 #include <proc/uarg.h>
@@ -77,12 +78,8 @@ static uint64_t iosapic_base = 0xfec00000;
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	/* Setup usermode init tasks. */
-
-	unsigned int i;
-	
-	init.cnt = bootinfo->taskmap.count;
-	
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].addr =
 		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |

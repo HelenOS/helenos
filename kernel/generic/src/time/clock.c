@@ -139,8 +139,7 @@ void clock(void)
 
 	/* Account lost ticks to CPU usage */
 	if (CPU->idle) {
-		ASSERT(missed_clock_ticks == 0);
-		CPU->idle_ticks++;
+		CPU->idle_ticks += missed_clock_ticks + 1;
 	} else {
 		CPU->busy_ticks += missed_clock_ticks + 1;
 	}

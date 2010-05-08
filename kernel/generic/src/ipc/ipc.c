@@ -217,11 +217,14 @@ static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
 	answerbox_t *callerbox = call->callerbox;
 	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
+	ipl_t ipl;
 
 	/* Count sent answer */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.answer_sent++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	call->flags |= IPC_CALL_ANSWERED;
 
@@ -280,10 +283,14 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
+	ipl_t ipl;
+
 	/* Count sent ipc call */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.call_sent++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
@@ -385,10 +392,14 @@ int ipc_phone_hangup(phone_t *phone)
  */
 int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
 {
+	ipl_t ipl;
+
 	/* Count forwarded calls */
+	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	TASK->ipc_info.forwarded++;
 	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
 
 	spinlock_lock(&oldbox->lock);
 	list_remove(&call->link);
@@ -421,6 +432,9 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
 {
 	call_t *request;
 	ipl_t ipl;
+	uint64_t irq_cnt = 0;
+	uint64_t answer_cnt = 0;
+	uint64_t call_cnt = 0;
 	int rc;
 
 restart:
@@ -430,11 +444,8 @@ restart:
 	
 	spinlock_lock(&box->lock);
 	if (!list_empty(&box->irq_notifs)) {
-
 		/* Count recieved IRQ notification */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.irq_notif_recieved++;
-		spinlock_unlock(&TASK->lock);
+		irq_cnt++;	
 
 		ipl = interrupts_disable();
 		spinlock_lock(&box->irq_lock);
@@ -446,9 +457,7 @@ restart:
 		interrupts_restore(ipl);
 	} else if (!list_empty(&box->answers)) {
 		/* Count recieved answer */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.answer_recieved++;
-		spinlock_unlock(&TASK->lock);
+		answer_cnt++;
 
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
@@ -456,9 +465,7 @@ restart:
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
 		/* Count recieved call */
-		spinlock_lock(&TASK->lock);
-		TASK->ipc_info.call_recieved++;
-		spinlock_unlock(&TASK->lock);
+		call_cnt++;
 
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);
@@ -471,6 +478,15 @@ restart:
 		goto restart;
 	}
 	spinlock_unlock(&box->lock);
+	
+	ipl = interrupts_disable();
+	spinlock_lock(&TASK->lock);
+	TASK->ipc_info.irq_notif_recieved += irq_cnt;
+	TASK->ipc_info.answer_recieved += answer_cnt;
+	TASK->ipc_info.call_recieved += call_cnt;
+	spinlock_unlock(&TASK->lock);
+	interrupts_restore(ipl);
+
 	return request;
 }
 
@@ -674,14 +690,18 @@ void ipc_print_task(task_id_t taskid)
 	int i;
 	call_t *call;
 	link_t *tmp;
+	ipl_t ipl;
 	
+	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
 	task = task_find_by_id(taskid);
 	if (task) 
 		spinlock_lock(&task->lock);
 	spinlock_unlock(&tasks_lock);
-	if (!task)
+	if (!task) {
+		interrupts_restore(ipl);
 		return;
+	}
 
 	/* Print opened phones & details */
 	printf("PHONE:\n");
@@ -764,6 +784,7 @@ void ipc_print_task(task_id_t taskid)
 
 	spinlock_unlock(&task->answerbox.lock);
 	spinlock_unlock(&task->lock);
+	interrupts_restore(ipl);
 }
 
 /** @}

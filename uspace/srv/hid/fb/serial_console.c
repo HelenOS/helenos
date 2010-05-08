@@ -83,11 +83,9 @@ enum sgr_color_index {
 enum sgr_command {
 	SGR_RESET       = 0,
 	SGR_BOLD        = 1,
+	SGR_UNDERLINE   = 4,
 	SGR_BLINK       = 5,
 	SGR_REVERSE     = 7,
-	SGR_NORMAL_INT  = 22,
-	SGR_BLINK_OFF   = 25,
-	SGR_REVERSE_OFF = 27,
 	SGR_FGCOLOR     = 30,
 	SGR_BGCOLOR     = 40
 };
@@ -152,65 +150,58 @@ static void serial_set_style(console_style_t style)
 {
 	switch (style) {
 	case STYLE_EMPHASIS:
+		serial_sgr(SGR_RESET);
 		if (color) {
-			serial_sgr(SGR_RESET);
 			serial_sgr(SGR_FGCOLOR + CI_RED);
 			serial_sgr(SGR_BGCOLOR + CI_WHITE);
 		}
 		serial_sgr(SGR_BOLD);
 		break;
 	case STYLE_INVERTED:
+		serial_sgr(SGR_RESET);
 		if (color) {
-			serial_sgr(SGR_RESET);
 			serial_sgr(SGR_FGCOLOR + CI_WHITE);
 			serial_sgr(SGR_BGCOLOR + CI_BLACK);
-			serial_sgr(SGR_NORMAL_INT);
 		} else
 			serial_sgr(SGR_REVERSE);
 		break;
 	case STYLE_SELECTED:
+		serial_sgr(SGR_RESET);
 		if (color) {
-			serial_sgr(SGR_RESET);
 			serial_sgr(SGR_FGCOLOR + CI_WHITE);
 			serial_sgr(SGR_BGCOLOR + CI_RED);
-			serial_sgr(SGR_NORMAL_INT);
-		} else {
-			serial_sgr(SGR_BOLD);
-			serial_sgr(SGR_REVERSE);
-		}
+		} else
+			serial_sgr(SGR_UNDERLINE);
 		break;
 	default:
+		serial_sgr(SGR_RESET);
 		if (color) {
-			serial_sgr(SGR_RESET);
 			serial_sgr(SGR_FGCOLOR + CI_BLACK);
 			serial_sgr(SGR_BGCOLOR + CI_WHITE);
 		}
-		serial_sgr(SGR_NORMAL_INT);
 	}
 }
 
 static void serial_set_idx(uint8_t fgcolor, uint8_t bgcolor,
     uint8_t flags)
 {
+	serial_sgr(SGR_RESET);
 	if (color) {
-		serial_sgr(SGR_RESET);
-		serial_sgr(SGR_FGCOLOR + color_map[fgcolor]);
-		serial_sgr(SGR_BGCOLOR + color_map[bgcolor]);
+		serial_sgr(SGR_FGCOLOR + color_map[fgcolor & 7]);
+		serial_sgr(SGR_BGCOLOR + color_map[bgcolor & 7]);
+		if (flags & CATTR_BRIGHT)
+			serial_sgr(SGR_BOLD);
 	} else {
-		if (fgcolor < bgcolor)
-			serial_sgr(SGR_RESET);
-		else
+		if (fgcolor >= bgcolor)
 			serial_sgr(SGR_REVERSE);
-	}	
+	}
 }
 
 static void serial_set_rgb(uint32_t fgcolor, uint32_t bgcolor)
 {
 	serial_sgr(SGR_RESET);
 	
-	if (fgcolor < bgcolor)
-		serial_sgr(SGR_REVERSE_OFF);
-	else
+	if (fgcolor >= bgcolor)
 		serial_sgr(SGR_REVERSE);
 }
 
@@ -282,40 +273,36 @@ void serial_console_init(putc_function_t putc_fn, ipcarg_t w, ipcarg_t h)
 	putc_function = putc_fn;
 }
 
-
-
 /** Draw text data to viewport.
  *
- * @param vport Viewport id
- * @param data  Text data.
- * @param x     Leftmost column of the area.
- * @param y     Topmost row of the area.
- * @param w     Number of rows.
- * @param h     Number of columns.
+ * @param vport  Viewport id
+ * @param data   Text data.
+ * @param x0     Leftmost column of the area.
+ * @param y0     Topmost row of the area.
+ * @param width  Number of rows.
+ * @param height Number of columns.
  *
  */
-static void draw_text_data(keyfield_t *data, ipcarg_t x, ipcarg_t y,
-    ipcarg_t w, ipcarg_t h)
+static void draw_text_data(keyfield_t *data, ipcarg_t x0, ipcarg_t y0,
+    ipcarg_t width, ipcarg_t height)
 {
-	serial_goto(x, y);
-	ipcarg_t i;
-	ipcarg_t j;
-	
 	attrs_t *a0 = &data[0].attrs;
+	serial_set_attrs(a0);
 	
-	for (j = 0; j < h; j++) {
-		if ((j > 0) && (w != scr_width))
-			serial_goto(x, j);
+	ipcarg_t y;
+	for (y = 0; y < height; y++) {
+		serial_goto(x0, y0 + y);
 		
-		for (i = 0; i < w; i++) {
-			attrs_t *a1 = &data[j * w + i].attrs;
+		ipcarg_t x;
+		for (x = 0; x < width; x++) {
+			attrs_t *attr = &data[y * width + x].attrs;
 			
-			if (!attrs_same(*a0, *a1)) {
-				serial_set_attrs(a1);
-				a0 = a1;
+			if (!attrs_same(*a0, *attr)) {
+				serial_set_attrs(attr);
+				a0 = attr;
 			}
 			
-			serial_putchar(data[j * w + i].character);
+			serial_putchar(data[y * width + x].character);
 		}
 	}
 }
@@ -351,7 +338,6 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipcarg_t row;
 		ipcarg_t w;
 		ipcarg_t h;
-		attrs_t attr;
 		ssize_t rows;
 		
 		int retval;
@@ -429,23 +415,23 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
-			attr.t = at_style;
-			attr.a.s.style = IPC_GET_ARG1(call);
+			cur_attr.t = at_style;
+			cur_attr.a.s.style = IPC_GET_ARG1(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
 		case FB_SET_COLOR:
-			attr.t = at_idx;
-			attr.a.i.fg_color = IPC_GET_ARG1(call);
-			attr.a.i.bg_color = IPC_GET_ARG2(call);
-			attr.a.i.flags = IPC_GET_ARG3(call);
+			cur_attr.t = at_idx;
+			cur_attr.a.i.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.i.bg_color = IPC_GET_ARG2(call);
+			cur_attr.a.i.flags = IPC_GET_ARG3(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
-			attr.t = at_rgb;
-			attr.a.r.fg_color = IPC_GET_ARG1(call);
-			attr.a.r.bg_color = IPC_GET_ARG2(call);
+			cur_attr.t = at_rgb;
+			cur_attr.a.r.fg_color = IPC_GET_ARG1(call);
+			cur_attr.a.r.bg_color = IPC_GET_ARG2(call);
 			serial_set_attrs(&cur_attr);
 			retval = 0;
 			break;

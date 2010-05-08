@@ -416,37 +416,31 @@ static void init_cpuids(void)
  */
 static bool wake_cpu(uint64_t cpuid)
 {
-
 #ifdef CONFIG_SIMICS_SMP_HACK
 	ipi_unicast_to((void (*)(void)) 1234, cpuid);
 #else
 	/* stop the CPU before making it execute our code */
 	if (__hypercall_fast1(CPU_STOP, cpuid) != EOK)
 		return false;
-
+	
 	/* wait for the CPU to stop */
 	uint64_t state;
-	__hypercall_fast_ret1(cpuid, 0, 0, 0, 0,
-		CPU_STATE, &state);
-	while (state == CPU_STATE_RUNNING) {
-		__hypercall_fast_ret1(cpuid, 0, 0, 0, 0,
-			CPU_STATE, &state);
-	}
-
+	__hypercall_fast_ret1(cpuid, 0, 0, 0, 0, CPU_STATE, &state);
+	while (state == CPU_STATE_RUNNING)
+		__hypercall_fast_ret1(cpuid, 0, 0, 0, 0, CPU_STATE, &state);
+	
 	/* make the CPU run again and execute HelenOS code */
-	if (__hypercall_fast4(
-		CPU_START, cpuid,
-		(uint64_t) KA2PA(kernel_image_start),
-		KA2PA(trap_table), bootinfo.physmem_start			
-		) != EOK)
-			return false;
+	if (__hypercall_fast4(CPU_START, cpuid,
+	    (uint64_t) KA2PA(kernel_image_start), KA2PA(trap_table),
+	    physmem_start) != EOK)
+		return false;
 #endif
-
+	
 	if (waitq_sleep_timeout(&ap_completion_wq, 10000000, SYNCH_FLAGS_NONE) ==
-			ESYNCH_TIMEOUT)
-		printf("%s: waiting for processor (cpuid = %" PRIu32
-		") timed out\n", __func__, cpuid);
-
+	    ESYNCH_TIMEOUT)
+		printf("%s: waiting for processor (cpuid = %" PRIu32 ") timed out\n",
+		    __func__, cpuid);
+	
 	return true;
 }
 

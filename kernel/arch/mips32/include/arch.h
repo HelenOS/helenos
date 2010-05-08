@@ -44,7 +44,7 @@
 extern size_t cpu_count;
 
 typedef struct {
-	uintptr_t addr;
+	void *addr;
 	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } utask_t;

@@ -74,12 +74,13 @@
  * address of the physical memory to the virtual address.
  *
  * parameters:
- * 	addr:			virtual address to be mapped
- *	rphysmem_start:		register containing the starting address of the
- *				physical memory
- *	rtmp1:			a register to be used as temporary
- *	rtmp2:			a register to be used as temporary
- *	rd:			register where the result will be saved
+ *  addr:           virtual address to be mapped
+ *  rphysmem_start: register containing the starting address
+ *                  of the physical memory
+ *  rtmp1:          a register to be used as temporary
+ *  rtmp2:          a register to be used as temporary
+ *  rd:             register where the result will be saved
+ *
  */
 #define TTE_DATA(addr, rphysmem_start, rtmp1, rtmp2, rd) \
 	setx TTE_FLAGS | PAGESIZE_4M, rtmp1, rd; \
@@ -89,25 +90,25 @@
 
 /*
  * Here is where the kernel is passed control from the boot loader.
- * 
+ *
  * The registers are expected to be in this state:
- * - %o0 starting address of physical memory + bootstrap processor flag
- * 	bits 63...1:	physical memory starting address / 2
- *	bit 0:		non-zero on BSP processor, zero on AP processors
- * - %o1 bootinfo structure address (BSP only)
- * - %o2 bootinfo structure size (BSP only)
+ *  - %o0 bootinfo structure address (BSP only)
+ *  - %o1 starting address of physical memory
+ *        + bootstrap processor flag
+ *          bits 63...1: physical memory starting address / 2
+ *          bit 0:       non-zero on BSP processor, zero on AP processors
  *
  * Moreover, we depend on boot having established the following environment:
- * - TLBs are on
- * - identity mapping for the kernel image
+ *  - TLBs are on
+ *  - identity mapping for the kernel image
+ *
  */
 .global kernel_image_start
 kernel_image_start:
 	mov BSP_FLAG, %l0
-	and %o0, %l0, %l7			! l7 <= bootstrap processor?
-	andn %o0, %l0, %l6			! l6 <= start of physical memory
-	or %o1, %g0, %l1
-	or %o2, %g0, %l2
+	and %o1, %l0, %l7			! l7 <= bootstrap processor?
+	andn %o1, %l0, %l6			! l6 <= start of physical memory
+	or %o0, %g0, %l0
 
 	! Get bits (PHYSMEM_ADDR_SIZE - 1):13 of physmem_base.
 	srlx %l6, 13, %l5
@@ -244,12 +245,7 @@ kernel_image_start:
 	or %sp, %lo(temporary_boot_stack), %sp
 	sub %sp, STACK_BIAS, %sp
 
-	or %l1, %g0, %o1
-	or %l2, %g0, %o2
-	sethi %hi(bootinfo), %o0
-	call memcpy				! copy bootinfo
-	or %o0, %lo(bootinfo), %o0
-
+	or %l0, %g0, %o0
 	call arch_pre_main
 	nop
 	

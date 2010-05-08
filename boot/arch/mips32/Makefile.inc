@@ -26,14 +26,41 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+BFD_ARCH = mips
+BITS = 32
+PAGE_SIZE = 16384
+EXTRA_CFLAGS = -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
-build: $(BASE)/image.boot
+RD_SRVS += \
+	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
 
-$(BASE)/image.boot: $(COMPONENTS) $(INIT_TASKS) $(RD_SRVS) $(RD_APPS) $(CFG)
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
-	cp arch/$(BARCH)/loader/image.boot $@
+ifeq ($(MACHINE),lgxemul)
+	BFD_NAME = elf32-tradlittlemips
+	BFD_OUTPUT = ecoff-littlemips
+	ENDIANESS = LE
+endif
+ifeq ($(MACHINE),bgxemul)
+	BFD_NAME = elf32-tradbigmips
+	BFD_OUTPUT = ecoff-bigmips
+	ENDIANESS = BE
+endif
+ifeq ($(MACHINE),msim)
+	BFD_NAME = elf32-tradlittlemips
+	BFD_OUTPUT = binary
+	ENDIANESS = LE
+	EXTRA_GCC_CFLAGS = -mhard-float
+endif
 
-clean:
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -f $(BASE)/image.boot
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	genarch/src/multiplication.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c
