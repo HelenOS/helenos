@@ -37,10 +37,12 @@ SOURCES = \
 	src/builtin/bi_error.c \
 	src/builtin/bi_fun.c \
 	src/builtin/bi_textfile.c \
+	src/builtin/bi_string.c \
 	src/os/helenos.c \
 	src/ancr.c \
 	src/bigint.c \
 	src/builtin.c \
+	src/cspan.c \
 	src/imode.c \
 	src/input.c \
 	src/intmap.c \

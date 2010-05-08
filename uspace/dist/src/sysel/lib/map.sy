@@ -26,35 +26,73 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
---
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
---
+-- Trivial map.
+class Map/tkey/tvalue is
+	var data : List/(MapPair/tkey/tvalue);
 
-class Bool is
-	var Value : bool;
-end
-
-class Char is
-	var Value : char;
-end
-
-class Int is
-	var Value : int;
-end
-
-class String is
-	var Value : string;
-
-	fun get_length() : int, builtin;
-
-	-- Length of string.
-	prop Length : int is
-		get is
-			return get_length();
-		end
+	-- New empty map.
+	new() is
+		data = new List/(MapPair/tkey/tvalue)();
 	end
 
-	-- Slice (sub-string).
-	fun Slice(start : int; length : int) : string, builtin;
+	fun Set(key : tkey; value : tvalue) is
+		if KeyPresent(key) then
+			Remove(key);
+		end
+
+		var p : MapPair/tkey/tvalue;
+		p = new MapPair/tkey/tvalue();
+
+		p.Key = key;
+		p.Value = value;
+		data.Append(p);
+	end
+
+	-- Return internal list node associated with key @a key.
+	fun lookup_node(key : tkey) : ListNode/(MapPair/tkey/tvalue) is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = data.First;
+		while node != nil do
+			if node.Data.Key == key then
+				return node;
+			end
+
+			node = node.Next;
+		end
+
+		return nil;
+	end
+
+	fun KeyPresent(key : tkey) : bool is
+		return lookup_node(key) != nil;
+	end
+
+	fun Get(key : tkey) : tvalue is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = lookup_node(key);
+		return node.Data.Value;
+	end
+
+	fun Remove(key : tkey) is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = lookup_node(key);
+		node.Remove();
+	end
+
+	prop self[key : tkey] : tvalue is
+		get is
+			return Get(key);
+		end
+		set value is
+			Set(key, value);
+		end
+	end
+end
+
+class MapPair/tkey/tvalue is
+	var Key : tkey;
+	var Value : tvalue;
 end

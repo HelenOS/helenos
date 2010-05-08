@@ -28,6 +28,7 @@
 
 /** @file POSIX-specific code. */
 
+#include <assert.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,6 +76,35 @@ char *os_str_acat(const char *a, const char *b)
 	str[a_len + b_len] = '\0';
 
 	return str;
+}
+
+/** Return slice (substring) of a string.
+ *
+ * Copies the specified range of characters from @a str and returns it
+ * as a newly allocated string. @a start + @a length must be less than
+ * or equal to the length of @a str.
+ *
+ * @param str		String
+ * @param start		Index of first character (starting from zero).
+ * @param length	Number of characters to copy.
+ *
+ * @return		Newly allocated string holding the slice.
+ */
+char *os_str_aslice(const char *str, size_t start, size_t length)
+{
+	char *slice;
+
+	assert(start + length <= strlen(str));
+	slice = malloc(length + 1);
+	if (slice == NULL) {
+		printf("Memory allocation error.\n");
+		exit(1);
+	}
+
+	strncpy(slice, str + start, length);
+	slice[length] = '\0';
+
+	return slice;
 }
 
 /** Compare two strings.

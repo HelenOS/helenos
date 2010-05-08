@@ -96,6 +96,9 @@ typedef struct run_thread_ar {
 	/** Bailout mode */
 	run_bailout_mode_t bo_mode;
 
+	/** Exception cspan */
+	struct cspan *exc_cspan;
+
 	/** Exception payload */
 	struct rdata_value *exc_payload;
 

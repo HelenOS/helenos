@@ -51,6 +51,7 @@
 #include "mytypes.h"
 #include "stree.h"
 #include "symbol.h"
+#include "strtab.h"
 
 #include "rdata.h"
 
@@ -60,10 +61,12 @@ static void rdata_int_copy(rdata_int_t *src, rdata_int_t **dest);
 static void rdata_string_copy(rdata_string_t *src, rdata_string_t **dest);
 static void rdata_ref_copy(rdata_ref_t *src, rdata_ref_t **dest);
 static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest);
+static void rdata_enum_copy(rdata_enum_t *src, rdata_enum_t **dest);
 static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest);
 static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest);
 static void rdata_resource_copy(rdata_resource_t *src,
     rdata_resource_t **dest);
+static void rdata_symbol_copy(rdata_symbol_t *src, rdata_symbol_t **dest);
 
 static int rdata_array_get_dim(rdata_array_t *array);
 
@@ -248,6 +251,23 @@ rdata_deleg_t *rdata_deleg_new(void)
 	return deleg;
 }
 
+/** Allocate new enum value.
+ *
+ * @return	New enum value.
+ */
+rdata_enum_t *rdata_enum_new(void)
+{
+	rdata_enum_t *enum_v;
+
+	enum_v = calloc(1, sizeof(rdata_enum_t));
+	if (enum_v == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return enum_v;
+}
+
 /** Allocate new array.
  *
  * @return	New array.
@@ -374,6 +394,23 @@ rdata_resource_t *rdata_resource_new(void)
 	return resource_v;
 }
 
+/** Allocate new symbol reference.
+ *
+ * @return	New symbol reference.
+ */
+rdata_symbol_t *rdata_symbol_new(void)
+{
+	rdata_symbol_t *symbol_v;
+
+	symbol_v = calloc(1, sizeof(rdata_symbol_t));
+	if (symbol_v == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return symbol_v;
+}
+
 /** Allocate array elements.
  *
  * Allocates var nodes for elements of @a array.
@@ -452,6 +489,9 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 	case vc_deleg:
 		rdata_deleg_copy(src->u.deleg_v, &nvar->u.deleg_v);
 		break;
+	case vc_enum:
+		rdata_enum_copy(src->u.enum_v, &nvar->u.enum_v);
+		break;
 	case vc_array:
 		rdata_array_copy(src->u.array_v, &nvar->u.array_v);
 		break;
@@ -460,6 +500,9 @@ void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest)
 		break;
 	case vc_resource:
 		rdata_resource_copy(src->u.resource_v, &nvar->u.resource_v);
+		break;
+	case vc_symbol:
+		rdata_symbol_copy(src->u.symbol_v, &nvar->u.symbol_v);
 		break;
 	}
 
@@ -533,6 +576,17 @@ static void rdata_deleg_copy(rdata_deleg_t *src, rdata_deleg_t **dest)
 	(*dest)->sym = src->sym;
 }
 
+/** Copy enum value.
+ *
+ * @param src		Source enum value.
+ * @param dest		Place to store pointer to new enum value.
+ */
+static void rdata_enum_copy(rdata_enum_t *src, rdata_enum_t **dest)
+{
+	*dest = rdata_enum_new();
+	(*dest)->value = src->value;
+}
+
 /** Copy array.
  *
  * @param src		Source array.
@@ -566,6 +620,17 @@ static void rdata_resource_copy(rdata_resource_t *src, rdata_resource_t **dest)
 {
 	*dest = rdata_resource_new();
 	(*dest)->data = src->data;
+}
+
+/** Copy symbol.
+ *
+ * @param src		Source symbol.
+ * @param dest		Place to store pointer to new symbol.
+ */
+static void rdata_symbol_copy(rdata_symbol_t *src, rdata_symbol_t **dest)
+{
+	*dest = rdata_symbol_new();
+	(*dest)->sym = src->sym;
 }
 
 /** Read data from a variable.
@@ -620,9 +685,11 @@ void rdata_var_write(rdata_var_t *var, rdata_value_t *value)
 	case vc_string: var->u.string_v = nvar->u.string_v; break;
 	case vc_ref: var->u.ref_v = nvar->u.ref_v; break;
 	case vc_deleg: var->u.deleg_v = nvar->u.deleg_v; break;
+	case vc_enum: var->u.enum_v = nvar->u.enum_v; break;
 	case vc_array: var->u.array_v = nvar->u.array_v; break;
 	case vc_object: var->u.object_v = nvar->u.object_v; break;
 	case vc_resource: var->u.resource_v = nvar->u.resource_v; break;
+	case vc_symbol: var->u.symbol_v = nvar->u.symbol_v; break;
 	}
 
 	/* XXX We should free some stuff around here. */
@@ -731,6 +798,12 @@ static void rdata_var_print(rdata_var_t *var)
 		}
 		printf(")");
 		break;
+	case vc_enum:
+		symbol_print_fqn(
+		    enum_to_symbol(var->u.enum_v->value->outer_enum));
+		printf(".%s",
+		    strtab_get_str(var->u.enum_v->value->name->sid));
+		break;
 	case vc_array:
 		printf("array");
 		break;
@@ -739,6 +812,15 @@ static void rdata_var_print(rdata_var_t *var)
 		break;
 	case vc_resource:
 		printf("resource(%p)", var->u.resource_v->data);
+		break;
+	case vc_symbol:
+		printf("symbol(");
+		if (var->u.symbol_v->sym != NULL) {
+			symbol_print_fqn(var->u.symbol_v->sym);
+		} else {
+			printf("nil");
+		}
+		printf(")");
 		break;
 	}
 }

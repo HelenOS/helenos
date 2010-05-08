@@ -103,6 +103,23 @@ typedef struct {
 	tdata_fun_sig_t *tsig;
 } tdata_deleg_t;
 
+/** Enum-base type.
+ *
+ * Type for expression which reference an enum declaration. In run time
+ * enum type reference is represented by @c rdata_deleg_t. (Which is used
+ * for any symbol references).
+ */
+typedef struct {
+	/** Enum definition */
+	struct stree_enum *enum_d;
+} tdata_ebase_t;
+
+/** Enum type. */
+typedef struct {
+	/** Enum definition */
+	struct stree_enum *enum_d;
+} tdata_enum_t;
+
 /** Functional type. */
 typedef struct {
 	/** Delegate definition or @c NULL if anonymous delegate */
@@ -127,6 +144,10 @@ typedef enum {
 	tic_tarray,
 	/** Delegate type item */
 	tic_tdeleg,
+	/** Enum-base type item */
+	tic_tebase,
+	/** Enum type item */
+	tic_tenum,
 	/** Function type item */
 	tic_tfun,
 	/** Type variable item */
@@ -144,6 +165,8 @@ typedef struct tdata_item {
 		tdata_object_t *tobject;
 		tdata_array_t *tarray;
 		tdata_deleg_t *tdeleg;
+		tdata_ebase_t *tebase;
+		tdata_enum_t *tenum;
 		tdata_fun_t *tfun;
 		tdata_vref_t *tvref;
 	} u;

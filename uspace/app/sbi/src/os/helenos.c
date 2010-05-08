@@ -28,6 +28,7 @@
 
 /** @file HelenOS-specific code. */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +73,42 @@ char *os_str_acat(const char *a, const char *b)
 	str[a_size + b_size] = '\0';
 
 	return str;
+}
+
+/** Return slice (substring) of a string.
+ *
+ * Copies the specified range of characters from @a str and returns it
+ * as a newly allocated string. @a start + @a length must be less than
+ * or equal to the length of @a str.
+ *
+ * @param str		String
+ * @param start		Index of first character (starting from zero).
+ * @param length	Number of characters to copy.
+ *
+ * @return		Newly allocated string holding the slice.
+ */
+char *os_str_aslice(const char *str, size_t start, size_t length)
+{
+	char *slice;
+	size_t offset;
+	size_t i;
+	size_t size;
+	wchar_t c;
+
+	assert(start + length <= str_length(str));
+
+	offset = 0;
+	for (i = 0; i < start; ++i) {
+		c = str_decode(str, &offset, STR_NO_LIMIT);
+		assert(c != '\0');
+		assert(c != U_SPECIAL);
+		(void) c;
+	}
+
+	size = str_lsize(str, length);
+	slice = str_ndup(str + offset, size);
+
+	return slice;
 }
 
 /** Compare two strings.

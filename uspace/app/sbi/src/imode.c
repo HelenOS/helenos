@@ -115,6 +115,7 @@ void imode_run(void)
 	fun_sym->u.fun = fun;
 	fun->name = stree_ident_new();
 	fun->name->sid = strtab_get_sid("$imode");
+	fun->sig = stree_fun_sig_new();
 
 	stype.proc_vr->proc = proc;
 	fun->symbol = fun_sym;

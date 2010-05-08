@@ -42,6 +42,7 @@ rdata_value_t *rdata_value_new(void);
 rdata_var_t *rdata_var_new(var_class_t vc);
 rdata_ref_t *rdata_ref_new(void);
 rdata_deleg_t *rdata_deleg_new(void);
+rdata_enum_t *rdata_enum_new(void);
 rdata_array_t *rdata_array_new(int rank);
 rdata_object_t *rdata_object_new(void);
 rdata_bool_t *rdata_bool_new(void);
@@ -49,6 +50,7 @@ rdata_char_t *rdata_char_new(void);
 rdata_int_t *rdata_int_new(void);
 rdata_string_t *rdata_string_new(void);
 rdata_resource_t *rdata_resource_new(void);
+rdata_symbol_t *rdata_symbol_new(void);
 
 void rdata_array_alloc_element(rdata_array_t *array);
 void rdata_var_copy(rdata_var_t *src, rdata_var_t **dest);

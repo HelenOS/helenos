@@ -62,9 +62,10 @@ void run_address_read(run_t *run, rdata_address_t *address,
 void run_address_write(run_t *run, rdata_address_t *address,
     rdata_value_t *value);
 void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res);
-void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem);
+void run_dereference(run_t *run, rdata_item_t *ref, cspan_t *cspan,
+    rdata_item_t **ritem);
 
-void run_raise_exc(run_t *run, stree_csi_t *csi);
+void run_raise_exc(run_t *run, stree_csi_t *csi, cspan_t *cspan);
 bool_t run_is_bo(run_t *run);
 
 void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar);

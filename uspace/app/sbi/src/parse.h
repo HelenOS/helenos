@@ -47,6 +47,9 @@ void parse_recover_error(parse_t *parse);
  */
 lem_t *lcur(parse_t *parse);
 lclass_t lcur_lc(parse_t *parse);
+cspan_t *lcur_span(parse_t *parse);
+cspan_t *lprev_span(parse_t *parse);
+
 void lskip(parse_t *parse);
 void lcheck(parse_t *parse, lclass_t lc);
 void lmatch(parse_t *parse, lclass_t lc);

@@ -77,8 +77,12 @@ static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1
     rdata_value_t *v2, rdata_item_t **res);
 static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res);
+static void run_binop_enum(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res);
 
 static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res);
+static void run_unop_bool(run_t *run, stree_unop_t *unop, rdata_value_t *val,
+    rdata_item_t **res);
 static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
     rdata_item_t **res);
 
@@ -87,6 +91,8 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res);
 static void run_new_object(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res);
+
+static void run_object_ctor(run_t *run, rdata_var_t *obj, list_t *arg_vals);
 
 static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res);
 static void run_access_item(run_t *run, stree_access_t *access,
@@ -97,8 +103,12 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
 static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
+static void run_access_symbol(run_t *run, stree_access_t *access,
+    rdata_item_t *arg, rdata_item_t **res);
 
 static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res);
+static void run_call_args(run_t *run, list_t *args, list_t *arg_vals);
+
 static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res);
 static void run_index_array(run_t *run, stree_index_t *index,
     rdata_item_t *base, list_t *args, rdata_item_t **res);
@@ -188,6 +198,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	rdata_value_t *value;
 	rdata_var_t *var;
 	rdata_deleg_t *deleg_v;
+	rdata_symbol_t *symbol_v;
 
 	run_proc_ar_t *proc_ar;
 	stree_symbol_t *csi_sym;
@@ -245,7 +256,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	switch (sym->sc) {
 	case sc_csi:
 #ifdef DEBUG_RUN_TRACE
-		printf("Referencing class.\n");
+		printf("Referencing CSI.\n");
 #endif
 		item = rdata_item_new(ic_value);
 		value = rdata_value_new();
@@ -259,6 +270,30 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		deleg_v->obj = NULL;
 		deleg_v->sym = sym;
 		*res = item;
+		break;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
+	case sc_enum:
+#ifdef DEBUG_RUN_TRACE
+		printf("Referencing enum.\n");
+#endif
+		item = rdata_item_new(ic_value);
+		value = rdata_value_new();
+		var = rdata_var_new(vc_symbol);
+		symbol_v = rdata_symbol_new();
+
+		item->u.value = value;
+		value->var = var;
+		var->u.symbol_v = symbol_v;
+
+		symbol_v->sym = sym;
+		*res = item;
+		break;
+	case sc_deleg:
+		/* XXX TODO */
+		printf("Unimplemented: Delegate name reference.\n");
+		abort();
 		break;
 	case sc_fun:
 		/* There should be no global functions. */
@@ -328,9 +363,10 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 
 		*res = item;
 		break;
-	default:
-		printf("Referencing symbol class %d unimplemented.\n", sym->sc);
-		*res = NULL;
+	case sc_prop:
+		/* XXX TODO */
+		printf("Unimplemented: Property name reference.\n");
+		abort();
 		break;
 	}
 }
@@ -570,24 +606,6 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 		return;
 	}
 
-	switch (binop->bc) {
-	case bo_plus:
-	case bo_minus:
-	case bo_mult:
-	case bo_equal:
-	case bo_notequal:
-	case bo_lt:
-	case bo_gt:
-	case bo_lt_equal:
-	case bo_gt_equal:
-		/* These are implemented so far. */
-		break;
-	default:
-		printf("Unimplemented: Binary operation type %d.\n",
-		    binop->bc);
-		exit(1);
-	}
-
 #ifdef DEBUG_RUN_TRACE
 	printf("Check binop argument results.\n");
 #endif
@@ -620,10 +638,14 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	case vc_ref:
 		run_binop_ref(run, binop, v1, v2, res);
 		break;
+	case vc_enum:
+		run_binop_enum(run, binop, v1, v2, res);
+		break;
 	case vc_deleg:
 	case vc_array:
 	case vc_object:
 	case vc_resource:
+	case vc_symbol:
 		assert(b_false);
 	}
 }
@@ -683,6 +705,13 @@ static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 		break;
 	case bo_gt_equal:
 		bool_v->value = (b1 == b_true) || (b2 == b_false);
+		break;
+
+	case bo_and:
+		bool_v->value = (b1 == b_true) && (b2 == b_true);
+		break;
+	case bo_or:
+		bool_v->value = (b1 == b_true) || (b2 == b_true);
 		break;
 	}
 
@@ -752,7 +781,9 @@ static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	case bo_gt_equal:
 		bool_v->value = !nf;
 		break;
-	default:
+
+	case bo_and:
+	case bo_or:
 		assert(b_false);
 	}
 
@@ -831,6 +862,11 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	nf = bigint_is_negative(&diff);
 
 	switch (binop->bc) {
+	case bo_plus:
+	case bo_minus:
+	case bo_mult:
+		assert(b_false);
+
 	case bo_equal:
 		bool_v->value = zf;
 		break;
@@ -849,7 +885,8 @@ static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	case bo_gt_equal:
 		bool_v->value = !nf;
 		break;
-	default:
+	case bo_and:
+	case bo_or:
 		assert(b_false);
 	}
 
@@ -871,6 +908,9 @@ static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1
 	rdata_value_t *value;
 	rdata_var_t *var;
 	rdata_string_t *string_v;
+	rdata_bool_t *bool_v;
+	bool_t done;
+	bool_t zf;
 
 	const char *s1, *s2;
 
@@ -878,20 +918,48 @@ static void run_binop_string(run_t *run, stree_binop_t *binop, rdata_value_t *v1
 
 	item = rdata_item_new(ic_value);
 	value = rdata_value_new();
-	var = rdata_var_new(vc_string);
-	string_v = rdata_string_new();
 
 	item->u.value = value;
-	value->var = var;
-	var->u.string_v = string_v;
 
 	s1 = v1->var->u.string_v->value;
 	s2 = v2->var->u.string_v->value;
 
+	done = b_true;
+
 	switch (binop->bc) {
 	case bo_plus:
 		/* Concatenate strings. */
+		string_v = rdata_string_new();
 		string_v->value = os_str_acat(s1, s2);
+		break;
+	default:
+		done = b_false;
+		break;
+	}
+
+	if (done) {
+		var = rdata_var_new(vc_string);
+		var->u.string_v = string_v;
+		value->var = var;
+		*res = item;
+		return;
+	}
+
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+	var->u.bool_v = bool_v;
+	value->var = var;
+
+	/* Relational operation. */
+
+	zf = os_str_cmp(s1, s2) == 0;
+
+	switch (binop->bc) {
+	case bo_equal:
+		bool_v->value = zf;
+		break;
+	case bo_notequal:
+		bool_v->value = !zf;
 		break;
 	default:
 		printf("Error: Invalid binary operation on string "
@@ -950,6 +1018,52 @@ static void run_binop_ref(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	*res = item;
 }
 
+/** Evaluate binary operation on enum arguments.
+ *
+ * @param run		Runner object
+ * @param binop		Binary operation
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result
+ */
+static void run_binop_enum(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
+    rdata_value_t *v2, rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_bool_t *bool_v;
+
+	rdata_var_t *ref1, *ref2;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.bool_v = bool_v;
+
+	ref1 = v1->var->u.ref_v->vref;
+	ref2 = v2->var->u.ref_v->vref;
+
+	switch (binop->bc) {
+	case bo_equal:
+		bool_v->value = (ref1 == ref2);
+		break;
+	case bo_notequal:
+		bool_v->value = (ref1 != ref2);
+		break;
+	default:
+		/* Should have been caught by static typing. */
+		assert(b_false);
+	}
+
+	*res = item;
+}
 
 /** Evaluate unary operation.
  *
@@ -980,6 +1094,9 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 	val = rarg_vi->u.value;
 
 	switch (val->var->vc) {
+	case vc_bool:
+		run_unop_bool(run, unop, val, res);
+		break;
 	case vc_int:
 		run_unop_int(run, unop, val, res);
 		break;
@@ -990,6 +1107,45 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 		*res = NULL;
 		break;
 	}
+}
+
+/** Evaluate unary operation on bool argument.
+ *
+ * @param run		Runner object
+ * @param unop		Unary operation
+ * @param val		Value of argument
+ * @param res		Place to store result
+ */
+static void run_unop_bool(run_t *run, stree_unop_t *unop, rdata_value_t *val,
+    rdata_item_t **res)
+{
+	rdata_item_t *item;
+	rdata_value_t *value;
+	rdata_var_t *var;
+	rdata_bool_t *bool_v;
+
+	(void) run;
+
+	item = rdata_item_new(ic_value);
+	value = rdata_value_new();
+	var = rdata_var_new(vc_bool);
+	bool_v = rdata_bool_new();
+
+	item->u.value = value;
+	value->var = var;
+	var->u.bool_v = bool_v;
+
+	switch (unop->uc) {
+	case uo_plus:
+	case uo_minus:
+		assert(b_false);
+
+	case uo_not:
+		bool_v->value = !val->var->u.bool_v->value;
+		break;
+	}
+
+	*res = item;
 }
 
 /** Evaluate unary operation on int argument.
@@ -1026,11 +1182,12 @@ static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
 		bigint_reverse_sign(&val->var->u.int_v->value,
 		    &int_v->value);
 		break;
+	case uo_not:
+		assert(b_false);
 	}
 
 	*res = item;
 }
-
 
 /** Evaluate @c new operation.
  *
@@ -1185,18 +1342,31 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
     tdata_item_t *titem, rdata_item_t **res)
 {
 	stree_csi_t *csi;
+	rdata_item_t *obj_i;
+	list_t arg_vals;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Create new object.\n");
 #endif
-	(void) new_op;
-
 	/* Lookup object CSI. */
 	assert(titem->tic == tic_tobject);
 	csi = titem->u.tobject->csi;
 
+	/* Evaluate constructor arguments. */
+	run_call_args(run, &new_op->ctor_args, &arg_vals);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
+	}
+
 	/* Create CSI instance. */
 	run_new_csi_inst(run, csi, res);
+
+	/* Run the constructor. */
+	run_dereference(run, *res, NULL, &obj_i);
+	assert(obj_i->ic == ic_address);
+	assert(obj_i->u.address->ac == ac_var);
+	run_object_ctor(run, obj_i->u.address->u.var_a->vref, &arg_vals);
 }
 
 /** Evaluate member acccess.
@@ -1255,7 +1425,17 @@ static void run_access_item(run_t *run, stree_access_t *access,
 	case vc_object:
 		run_access_object(run, access, arg, res);
 		break;
-	default:
+	case vc_symbol:
+		run_access_symbol(run, access, arg, res);
+		break;
+
+	case vc_bool:
+	case vc_char:
+	case vc_enum:
+	case vc_int:
+	case vc_string:
+	case vc_array:
+	case vc_resource:
 		printf("Unimplemented: Using access operator ('.') "
 		    "with unsupported data type (value/%d).\n", vc);
 		exit(1);
@@ -1275,7 +1455,7 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 	rdata_item_t *darg;
 
 	/* Implicitly dereference. */
-	run_dereference(run, arg, &darg);
+	run_dereference(run, arg, access->arg->cspan, &darg);
 
 	if (run->thread_ar->bo_mode != bm_none) {
 		*res = run_recovery_item(run);
@@ -1395,6 +1575,12 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	case sc_deleg:
 		printf("Error: Accessing object member which is a delegate.\n");
 		exit(1);
+	case sc_enum:
+		printf("Error: Accessing object member which is an enum.\n");
+		exit(1);
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_fun:
 		/* Construct anonymous delegate. */
 		ritem = rdata_item_new(ic_value);
@@ -1441,6 +1627,61 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	*res = ritem;
 }
 
+/** Evaluate symbol member acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
+static void run_access_symbol(run_t *run, stree_access_t *access,
+    rdata_item_t *arg, rdata_item_t **res)
+{
+	rdata_item_t *arg_vi;
+	rdata_value_t *arg_val;
+	rdata_symbol_t *symbol_v;
+	stree_embr_t *embr;
+
+	rdata_item_t *ritem;
+	rdata_value_t *rvalue;
+	rdata_var_t *rvar;
+	rdata_enum_t *enum_v;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run symbol access operation.\n");
+#endif
+	run_cvt_value_item(run, arg, &arg_vi);
+	arg_val = arg_vi->u.value;
+	assert(arg_val->var->vc == vc_symbol);
+
+	symbol_v = arg_val->var->u.symbol_v;
+
+	/* XXX Port CSI symbol reference to using vc_symbol */
+	assert(symbol_v->sym->sc == sc_enum);
+
+	embr = stree_enum_find_mbr(symbol_v->sym->u.enum_d,
+	    access->member_name);
+
+	/* Member existence should be ensured by static type checking. */
+	assert(embr != NULL);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Found enum member '%s'.\n",
+	    strtab_get_str(access->member_name->sid));
+#endif
+	ritem = rdata_item_new(ic_value);
+	rvalue = rdata_value_new();
+	rvar = rdata_var_new(vc_enum);
+	enum_v = rdata_enum_new();
+
+	ritem->u.value = rvalue;
+	rvalue->var = rvar;
+	rvar->u.enum_v = enum_v;
+	enum_v->value = embr;
+
+	*res = ritem;
+}
+
 /** Call a function.
  *
  * Call a function and return the result in @a res.
@@ -1454,9 +1695,6 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	rdata_item_t *rdeleg, *rdeleg_vi;
 	rdata_deleg_t *deleg_v;
 	list_t arg_vals;
-	list_node_t *node;
-	stree_expr_t *arg;
-	rdata_item_t *rarg_i, *rarg_vi;
 
 	stree_fun_t *fun;
 	run_proc_ar_t *proc_ar;
@@ -1498,21 +1736,10 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	printf("'\n");
 #endif
 	/* Evaluate function arguments. */
-	list_init(&arg_vals);
-	node = list_first(&call->args);
-
-	while (node != NULL) {
-		arg = list_node_data(node, stree_expr_t *);
-		run_expr(run, arg, &rarg_i);
-		if (run_is_bo(run)) {
-			*res = NULL;
-			return;
-		}
-
-		run_cvt_value_item(run, rarg_i, &rarg_vi);
-
-		list_append(&arg_vals, rarg_vi);
-		node = list_next(&call->args, node);
+	run_call_args(run, &call->args, &arg_vals);
+	if (run_is_bo(run)) {
+		*res = NULL;
+		return;
 	}
 
 	fun = symbol_to_fun(deleg_v->sym);
@@ -1527,9 +1754,48 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	/* Run the function. */
 	run_proc(run, proc_ar, res);
 
+	if (!run_is_bo(run) && fun->sig->rtype != NULL && *res == NULL) {
+		printf("Error: Function '");
+		symbol_print_fqn(deleg_v->sym);
+		printf("' did not return a value.\n");
+		exit(1);
+	}
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Returned from function call.\n");
 #endif
+}
+
+/** Evaluate call arguments.
+ *
+ * Evaluate arguments to function or constructor.
+ *
+ * @param run		Runner object
+ * @param args		Real arguments (list of stree_expr_t)
+ * @param arg_vals	Address of uninitialized list to store argument values
+ *			(list of rdata_item_t).
+ */
+static void run_call_args(run_t *run, list_t *args, list_t *arg_vals)
+{
+	list_node_t *arg_n;
+	stree_expr_t *arg;
+	rdata_item_t *rarg_i, *rarg_vi;
+
+	/* Evaluate function arguments. */
+	list_init(arg_vals);
+	arg_n = list_first(args);
+
+	while (arg_n != NULL) {
+		arg = list_node_data(arg_n, stree_expr_t *);
+		run_expr(run, arg, &rarg_i);
+		if (run_is_bo(run))
+			return;
+
+		run_cvt_value_item(run, rarg_i, &rarg_vi);
+
+		list_append(arg_vals, rarg_vi);
+		arg_n = list_next(args, arg_n);
+	}
 }
 
 /** Run index operation.
@@ -1563,7 +1829,11 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 
 	/* Implicitly dereference. */
 	if (vc == vc_ref) {
-		run_dereference(run, rbase, &base_i);
+		run_dereference(run, rbase, index->base->cspan, &base_i);
+		if (run_is_bo(run)) {
+			*res = NULL;
+			return;
+		}
 	} else {
 		base_i = rbase;
 	}
@@ -1633,7 +1903,6 @@ static void run_index_array(run_t *run, stree_index_t *index,
 	printf("Run array index operation.\n");
 #endif
 	(void) run;
-	(void) index;
 
 	assert(base->ic == ic_address);
 	assert(base->u.address->ac == ac_var);
@@ -1675,7 +1944,9 @@ static void run_index_array(run_t *run, stree_index_t *index,
 #endif
 			/* Raise Error.OutOfBounds */
 			run_raise_exc(run,
-			    run->program->builtin->error_outofbounds);
+			    run->program->builtin->error_outofbounds,
+			    index->expr->cspan);
+			/* XXX It should be cspan of the argument. */
 			*res = run_recovery_item(run);
 			return;
 		}
@@ -1813,7 +2084,6 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	printf("Run string index operation.\n");
 #endif
 	(void) run;
-	(void) index;
 
 	run_cvt_value_item(run, base, &base_vi);
 	assert(base_vi->u.value->var->vc == vc_string);
@@ -1865,7 +2135,8 @@ static void run_index_string(run_t *run, stree_index_t *index,
 		    arg_val);
 #endif
 		/* Raise Error.OutOfBounds */
-		run_raise_exc(run, run->program->builtin->error_outofbounds);
+		run_raise_exc(run, run->program->builtin->error_outofbounds,
+		    index->expr->cspan);
 		*res = run_recovery_item(run);
 		return;
 	}
@@ -1969,7 +2240,7 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 		return;
 	}
 
-	run_dereference(run, rarg_vi, &rarg_di);
+	run_dereference(run, rarg_vi, NULL, &rarg_di);
 
 	/* Now we should have a variable address. */
 	assert(rarg_di->ic == ic_address);
@@ -2047,9 +2318,11 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 
 	case vc_ref:
 	case vc_deleg:
+	case vc_enum:
 	case vc_array:
 	case vc_object:
 	case vc_resource:
+	case vc_symbol:
 		assert(b_false);
 	}
 
@@ -2144,6 +2417,63 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 
 	/* Create reference to the new object. */
 	run_reference(run, obj_var, res);
+}
+
+/** Run constructor on an object.
+ *
+ * @param run		Runner object
+ * @param obj		Object to run constructor on
+ * @param arg_vals	Argument values (list of rdata_item_t)
+ */
+static void run_object_ctor(run_t *run, rdata_var_t *obj, list_t *arg_vals)
+{
+	stree_ident_t *ctor_ident;
+	stree_symbol_t *csi_sym;
+	stree_csi_t *csi;
+	stree_symbol_t *ctor_sym;
+	stree_ctor_t *ctor;
+	run_proc_ar_t *proc_ar;
+	rdata_item_t *res;
+
+	csi_sym = obj->u.object_v->class_sym;
+	csi = symbol_to_csi(csi_sym);
+	assert(csi != NULL);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run object constructor from CSI '");
+	symbol_print_fqn(csi_sym);
+	printf("'.\n");
+#endif
+	ctor_ident = stree_ident_new();
+	ctor_ident->sid = strtab_get_sid(CTOR_IDENT);
+
+	/* Find constructor. */
+	ctor_sym = symbol_search_csi_no_base(run->program, csi, ctor_ident);
+	if (ctor_sym == NULL) {
+#ifdef DEBUG_RUN_TRACE
+		printf("No constructor found.\n");
+#endif
+		return;
+	}
+
+	ctor = symbol_to_ctor(ctor_sym);
+	assert(ctor != NULL);
+
+	/* Create procedure activation record. */
+	run_proc_ar_create(run, obj, ctor->proc, &proc_ar);
+
+	/* Fill in argument values. */
+	run_proc_ar_set_args(run, proc_ar, arg_vals);
+
+	/* Run the procedure. */
+	run_proc(run, proc_ar, &res);
+
+	/* Constructor does not return a value. */
+	assert(res == NULL);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Returned from constructor..\n");
+#endif
 }
 
 /** Return boolean value of an item.

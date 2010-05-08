@@ -42,7 +42,7 @@ class TextFileDemo is
 		out_file = new TextFile();
 		out_file.OpenWrite("/out.txt");
 
-		while in_file.EOF != 1 do
+		while not in_file.EOF do
 			line = in_file.ReadLine();
 			Builtin.WriteLine(name + ": " + line);
 			out_file.WriteLine(name + ": " + line);

@@ -34,18 +34,18 @@ class VariadicArgumentsDemo is
 	--
 	fun Print(args : string[], packed) is
 		var i : int;
-		var error : int;
+		var error : bool;
 
-		error = 0;
+		error = false;
 		i = 0;
-		while error == 0 do
+		while not error do
 			-- This is definitely the wrong way to determine
 			-- array bounds, but until a better one is
 			-- implemented...
 			do
 				Builtin.WriteLine(args[i]);
 			except e : Error.OutOfBounds do
-				error = 1;
+				error = true;
 			end
 
 			i = i + 1;

@@ -80,8 +80,14 @@ void ancr_module_process(stree_program_t *prog, stree_module_t *module)
 
 	while (node != NULL) {
 		modm = list_node_data(node, stree_modm_t *);
-		assert(modm->mc == mc_csi); /* XXX */
-		ancr_csi_dfs(prog, modm->u.csi);
+
+		switch (modm->mc) {
+		case mc_csi:
+			ancr_csi_dfs(prog, modm->u.csi);
+			break;
+		case mc_enum:
+			break;
+		}
 
 		node = list_next(&prog->module->members, node);
 	}

@@ -36,6 +36,8 @@ tdata_array_t *tdata_array_new(void);
 tdata_object_t *tdata_object_new(void);
 tdata_primitive_t *tdata_primitive_new(tprimitive_class_t tpc);
 tdata_deleg_t *tdata_deleg_new(void);
+tdata_ebase_t *tdata_ebase_new(void);
+tdata_enum_t *tdata_enum_new(void);
 tdata_fun_t *tdata_fun_new(void);
 tdata_vref_t *tdata_vref_new(void);
 

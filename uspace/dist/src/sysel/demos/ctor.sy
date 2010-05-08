@@ -26,35 +26,21 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
---
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
---
+class ConstructorDemo is
+	fun Main() is
+		var a : A;
 
-class Bool is
-	var Value : bool;
-end
-
-class Char is
-	var Value : char;
-end
-
-class Int is
-	var Value : int;
-end
-
-class String is
-	var Value : string;
-
-	fun get_length() : int, builtin;
-
-	-- Length of string.
-	prop Length : int is
-		get is
-			return get_length();
-		end
+		a = new A(1);
+		Builtin.Write("a.v = ");
+		Builtin.WriteLine(a.v);
 	end
+end
 
-	-- Slice (sub-string).
-	fun Slice(start : int; length : int) : string, builtin;
+class A is
+	var v : int;
+
+	new(i : int) is
+		Builtin.WriteLine("A.new()");
+		v = i;
+	end
 end
