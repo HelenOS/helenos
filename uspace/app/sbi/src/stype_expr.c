@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "cspan.h"
 #include "debug.h"
 #include "list.h"
 #include "mytypes.h"
@@ -84,6 +85,10 @@ static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
 
 static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
     tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem);
+static void stype_binop_tenum(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem);
+static void stype_binop_tvref(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem);
 
 static void stype_unop(stype_t *stype, stree_unop_t *unop,
     tdata_item_t **rtitem);
@@ -91,6 +96,8 @@ static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
     tdata_item_t *ta, tdata_item_t **rtitem);
 static void stype_new(stype_t *stype, stree_new_t *new,
     tdata_item_t **rtitem);
+static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
+    tdata_item_t *obj_ti);
 
 static void stype_access(stype_t *stype, stree_access_t *access,
     tdata_item_t **rtitem);
@@ -100,9 +107,13 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem);
 static void stype_access_tarray(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem);
+static void stype_access_tebase(stype_t *stype, stree_access_t *access,
+    tdata_item_t *arg_ti, tdata_item_t **rtitem);
 
 static void stype_call(stype_t *stype, stree_call_t *call,
     tdata_item_t **rtitem);
+static void stype_call_args(stype_t *stype, cspan_t *cspan, list_t *farg_tis,
+    tdata_item_t *fvarg_ti, list_t *args);
 
 static void stype_index(stype_t *stype, stree_index_t *index,
     tdata_item_t **rtitem);
@@ -132,7 +143,8 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 	tdata_item_t *et;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Type expression.\n");
+	cspan_print(expr->cspan);
+	printf(" Type expression.\n");
 #endif
 	/* Silence warning. */
 	et = NULL;
@@ -155,7 +167,8 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 	expr->titem = et;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Expression type is '");
+	cspan_print(expr->cspan);
+	printf(" Expression type is '");
 	tdata_item_print(et);
 	printf("'.\n");
 #endif
@@ -177,10 +190,13 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	tdata_object_t *tobject;
 	stree_csi_t *csi;
 	stree_deleg_t *deleg;
+	stree_enum_t *enum_d;
+	tdata_ebase_t *tebase;
 	stree_fun_t *fun;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of name reference '%s'.\n",
+	cspan_print(nameref->expr->cspan);
+	printf(" Evaluate type of name reference '%s'.\n",
 	    strtab_get_str(nameref->name->sid));
 #endif
 	/*
@@ -225,12 +241,14 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	if (sym == NULL) {
 		/* Not found. */
 		if (stype->current_csi != NULL) {
-			printf("Error: Symbol '%s' not found in '",
+			cspan_print(nameref->expr->cspan);
+			printf(" Error: Symbol '%s' not found in '",
 			    strtab_get_str(nameref->name->sid));
 			symbol_print_fqn(csi_to_symbol(stype->current_csi));
 			printf("'.\n");
 		} else {
-			printf("Error: Symbol '%s' not found.\n",
+			cspan_print(nameref->expr->cspan);
+			printf(" Error: Symbol '%s' not found.\n",
 			    strtab_get_str(nameref->name->sid));
 		}
 		stype_note_error(stype);
@@ -259,13 +277,26 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 		tobject->static_ref = b_true;
 		tobject->csi = csi;
 		break;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_deleg:
-		printf("referenced name is deleg\n");
 		deleg = symbol_to_deleg(sym);
 		assert(deleg != NULL);
 		/* Type delegate if it has not been typed yet. */
 		stype_deleg(stype, deleg);
 		titem = deleg->titem;
+		break;
+	case sc_enum:
+		enum_d = symbol_to_enum(sym);
+		assert(enum_d != NULL);
+
+		titem = tdata_item_new(tic_tebase);
+		tebase = tdata_ebase_new();
+		titem->u.tebase = tebase;
+
+		/* This is an enum base reference. */
+		tebase->enum_d = enum_d;
 		break;
 	case sc_fun:
 		fun = symbol_to_fun(sym);
@@ -293,7 +324,8 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 	tprimitive_class_t tpc;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of literal.\n");
+	cspan_print(literal->expr->cspan);
+	printf(" Evaluate type of literal.\n");
 #endif
 	(void) stype;
 
@@ -321,13 +353,32 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 static void stype_self_ref(stype_t *stype, stree_self_ref_t *self_ref,
     tdata_item_t **rtitem)
 {
+	stree_csi_t *cur_csi;
+	tdata_item_t *titem;
+	tdata_object_t *tobject;
+
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of self reference.\n");
+	cspan_print(self_ref->expr->cspan);
+	printf(" Evaluate type of self reference.\n");
 #endif
 	(void) stype;
 	(void) self_ref;
 
-	*rtitem = NULL;
+	cur_csi = stype->proc_vr->proc->outer_symbol->outer_csi;
+
+	/* No global symbols should have procedures. */
+	assert(cur_csi != NULL);
+
+	/* Construct type item. */
+	titem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+	titem->u.tobject = tobject;
+
+	tobject->static_ref = b_false;
+	tobject->csi = cur_csi;
+	list_init(&tobject->targs);
+
+	*rtitem = titem;
 }
 
 /** Type a binary operation.
@@ -343,7 +394,8 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 	tdata_item_t *titem1, *titem2;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of binary operation.\n");
+	cspan_print(binop->expr->cspan);
+	printf(" Evaluate type of binary operation.\n");
 #endif
 	stype_expr(stype, binop->arg1);
 	stype_expr(stype, binop->arg2);
@@ -351,8 +403,17 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 	titem1 = binop->arg1->titem;
 	titem2 = binop->arg2->titem;
 
-	if (titem1 == NULL || titem2 == NULL) {
-		printf("Error: Binary operand has no value.\n");
+	if (titem1 == NULL) {
+		cspan_print(binop->arg1->cspan);
+		printf(" Error: Binary operand has no value.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	if (titem2 == NULL) {
+		cspan_print(binop->arg2->cspan);
+		printf(" Error: Binary operand has no value.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
@@ -365,7 +426,8 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 
 	equal = tdata_item_equal(titem1, titem2);
 	if (equal != b_true) {
-		printf("Error: Binary operation arguments "
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation arguments "
 		    "have different types ('");
 		tdata_item_print(titem1);
 		printf("' and '");
@@ -383,8 +445,15 @@ static void stype_binop(stype_t *stype, stree_binop_t *binop,
 	case tic_tobject:
 		stype_binop_tobject(stype, binop, titem1, titem2, rtitem);
 		break;
+	case tic_tenum:
+		stype_binop_tenum(stype, binop, titem1, titem2, rtitem);
+		break;
+	case tic_tvref:
+		stype_binop_tvref(stype, binop, titem1, titem2, rtitem);
+		break;
 	default:
-		printf("Error: Binary operation on value which is not of a "
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation on value which is not of a "
 		    "supported type (found '");
 		tdata_item_print(titem1);
 		printf("').\n");
@@ -457,11 +526,17 @@ static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
 	case bo_minus:
 	case bo_mult:
 		/* Arithmetic -> error */
-		printf("Error: Binary operation (%d) on booleans.\n",
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on booleans.\n",
 		    binop->bc);
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
+	case bo_and:
+	case bo_or:
+		/* Boolean -> boolean type */
+		rtpc = tpc_bool;
+		break;
 	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
@@ -497,8 +572,11 @@ static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
 	case bo_plus:
 	case bo_minus:
 	case bo_mult:
-		/* Arithmetic -> error */
-		printf("Error: Binary operation (%d) on characters.\n",
+	case bo_and:
+	case bo_or:
+		/* Arithmetic, boolean -> error */
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on characters.\n",
 		    binop->bc);
 		stype_note_error(stype);
 		rtpc = tpc_char;
@@ -541,6 +619,15 @@ static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
 		/* Arithmetic -> int type */
 		rtpc = tpc_int;
 		break;
+	case bo_and:
+	case bo_or:
+		/* Boolean -> error */
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on integers.\n",
+		    binop->bc);
+		stype_note_error(stype);
+		rtpc = tpc_char;
+		break;
 	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
@@ -560,7 +647,8 @@ static void stype_binop_nil(stype_t *stype, stree_binop_t *binop,
 {
 	(void) binop;
 
-	printf("Unimplemented; Binary operation on nil.\n");
+	cspan_print(binop->expr->cspan);
+	printf(" Unimplemented: Binary operation on nil.\n");
 	stype_note_error(stype);
 	*rtitem = stype_recovery_titem(stype);
 }
@@ -577,15 +665,34 @@ static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
 	tprimitive_class_t rtpc;
 	tdata_item_t *res_ti;
 
-	if (binop->bc != bo_plus) {
-		printf("Unimplemented: Binary operation(%d) "
-		    "on strings.\n", binop->bc);
-		stype_note_error(stype);
-		*rtitem = stype_recovery_titem(stype);
-		return;
-	}
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+		/* Comparison -> boolean type */
+		rtpc = tpc_bool;
+		break;
+	case bo_plus:
+		/* Concatenation -> string type */
+		rtpc = tpc_string;
+		break;
 
-	rtpc = tpc_string;
+	case bo_lt:
+	case bo_gt:
+	case bo_lt_equal:
+	case bo_gt_equal:
+
+	case bo_minus:
+	case bo_mult:
+	case bo_and:
+	case bo_or:
+		/* Ordering, arithmetic, boolean -> error */
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on strings.\n",
+		    binop->bc);
+		stype_note_error(stype);
+		rtpc = tpc_char;
+		break;
+	}
 
 	res_ti = tdata_item_new(tic_tprimitive);
 	res_ti->u.tprimitive = tdata_primitive_new(rtpc);
@@ -607,7 +714,8 @@ static void stype_binop_resource(stype_t *stype, stree_binop_t *binop,
 
 	(void) binop;
 
-	printf("Error: Cannot apply operator to resource type.\n");
+	cspan_print(binop->expr->cspan);
+	printf(" Error: Cannot apply operator to resource type.\n");
 	stype_note_error(stype);
 	rtpc = tpc_resource;
 
@@ -644,7 +752,8 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 		res_ti = stype_boolean_titem(stype);
 		break;
 	default:
-		printf("Error: Binary operation (%d) on objects.\n",
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on objects.\n",
 		    binop->bc);
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
@@ -654,6 +763,75 @@ static void stype_binop_tobject(stype_t *stype, stree_binop_t *binop,
 	*rtitem = res_ti;
 }
 
+/** Type a binary operation with arguments of an enum type.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param ta		Type of first argument
+ * @param tb		Type of second argument
+ * @param rtitem	Place to store result type
+ */
+static void stype_binop_tenum(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
+{
+	tdata_item_t *res_ti;
+
+	assert(ta->tic == tic_tenum);
+	assert(tb->tic == tic_tenum);
+
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+		/* Comparison -> boolean type */
+		res_ti = stype_boolean_titem(stype);
+		break;
+	default:
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on values of enum "
+		    "type.\n", binop->bc);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	*rtitem = res_ti;
+}
+
+/** Type a binary operation with arguments of a variable type.
+ *
+ * @param stype		Static typing object
+ * @param binop		Binary operation
+ * @param ta		Type of first argument
+ * @param tb		Type of second argument
+ * @param rtitem	Place to store result type
+ */
+static void stype_binop_tvref(stype_t *stype, stree_binop_t *binop,
+    tdata_item_t *ta, tdata_item_t *tb, tdata_item_t **rtitem)
+{
+	tdata_item_t *res_ti;
+
+	assert(ta->tic == tic_tvref || (ta->tic == tic_tprimitive &&
+	    ta->u.tprimitive->tpc == tpc_nil));
+	assert(tb->tic == tic_tvref || (tb->tic == tic_tprimitive &&
+	    tb->u.tprimitive->tpc == tpc_nil));
+
+	switch (binop->bc) {
+	case bo_equal:
+	case bo_notequal:
+		/* Comparison -> boolean type */
+		res_ti = stype_boolean_titem(stype);
+		break;
+	default:
+		cspan_print(binop->expr->cspan);
+		printf(" Error: Binary operation (%d) on variable types.\n",
+		    binop->bc);
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	*rtitem = res_ti;
+}
 
 /** Type a unary operation.
  *
@@ -667,7 +845,8 @@ static void stype_unop(stype_t *stype, stree_unop_t *unop,
 	tdata_item_t *titem;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of unary operation.\n");
+	cspan_print(unop->expr->cspan);
+	printf(" Evaluate type of unary operation.\n");
 #endif
 	stype_expr(stype, unop->arg);
 
@@ -683,7 +862,8 @@ static void stype_unop(stype_t *stype, stree_unop_t *unop,
 		stype_unop_tprimitive(stype, unop, titem, rtitem);
 		break;
 	default:
-		printf("Error: Unary operation on value which is not of a "
+		cspan_print(unop->arg->cspan);
+		printf(" Error: Unary operation on value which is not of a "
 		    "supported type (found '");
 		tdata_item_print(titem);
 		printf("').\n");
@@ -719,7 +899,8 @@ static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
 		rtpc = tpc_int;
 		break;
 	default:
-		printf("Error: Unary operator applied on unsupported "
+		cspan_print(unop->arg->cspan);
+		printf(" Error: Unary operator applied on unsupported "
 		    "primitive type %d.\n", ta->u.tprimitive->tpc);
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
@@ -742,6 +923,7 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
     tdata_item_t **rtitem)
 {
 #ifdef DEBUG_TYPE_TRACE
+	cspan_print(new_op->expr->cspan);
 	printf("Evaluate type of 'new' operation.\n");
 #endif
 	/*
@@ -753,7 +935,61 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
 	if ((*rtitem)->tic == tic_ignore) {
 		/* An error occured when evaluating the type expression. */
 		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
 	}
+
+	if ((*rtitem)->tic == tic_tobject)
+		stype_new_object_args(stype, new_op, *rtitem);
+}
+
+/** Type a new object operation arguments.
+ *
+ * @param stype		Static typing object
+ * @param new_op	@c new operation
+ */
+static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
+    tdata_item_t *obj_ti)
+{
+	stree_csi_t *csi;
+	stree_ctor_t *ctor;
+	stree_symbol_t *ctor_sym;
+	stree_ident_t *ctor_ident;
+	tdata_fun_sig_t *tsig;
+
+	assert(obj_ti->tic == tic_tobject);
+	csi = obj_ti->u.tobject->csi;
+	ctor_ident = stree_ident_new();
+	ctor_ident->sid = strtab_get_sid(CTOR_IDENT);
+
+	/* Find constructor. */
+	ctor_sym = symbol_search_csi_no_base(stype->program, csi,
+	    ctor_ident);
+
+	if (ctor_sym == NULL && !list_is_empty(&new_op->ctor_args)) {
+		cspan_print(new_op->expr->cspan);
+		printf(" Error: Passing arguments to 'new' but no "
+		    "constructor found.\n");
+		stype_note_error(stype);
+		return;
+	}
+
+	if (ctor_sym == NULL)
+		return;
+
+	ctor = symbol_to_ctor(ctor_sym);
+	assert(ctor != NULL);
+
+	/* Type constructor header if it has not been typed yet. */
+	stype_ctor_header(stype, ctor);
+	if (ctor->titem->tic == tic_ignore)
+		return;
+
+	assert(ctor->titem->tic == tic_tfun);
+	tsig = ctor->titem->u.tfun->tsig;
+
+	stype_call_args(stype, new_op->expr->cspan, &tsig->arg_ti,
+	    tsig->varg_ti, &new_op->ctor_args);
 }
 
 /** Type a member access operation.
@@ -768,13 +1004,15 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 	tdata_item_t *arg_ti;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of access operation.\n");
+	cspan_print(access->expr->cspan);
+	printf(" Evaluate type of access operation.\n");
 #endif
 	stype_expr(stype, access->arg);
 	arg_ti = access->arg->titem;
 
 	if (arg_ti == NULL) {
-		printf("Error: Argument of access has no value.\n");
+		cspan_print(access->arg->cspan);
+		printf(" Error: Argument of access operation has no value.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
@@ -791,18 +1029,31 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 		stype_access_tarray(stype, access, arg_ti, rtitem);
 		break;
 	case tic_tdeleg:
-		printf("Error: Using '.' operator on a function.\n");
+		cspan_print(access->arg->cspan);
+		printf(" Error: Using '.' operator on a delegate.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tebase:
+		stype_access_tebase(stype, access, arg_ti, rtitem);
+		break;
+	case tic_tenum:
+		cspan_print(access->arg->cspan);
+		printf(" Error: Using '.' operator on expression of enum "
+		    "type.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_tfun:
-		printf("Error: Using '.' operator on a delegate.\n");
+		cspan_print(access->arg->cspan);
+		printf(" Error: Using '.' operator on a function.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_tvref:
 		/* Cannot allow this without some constraint. */
-		printf("Error: Using '.' operator on generic data.\n");
+		cspan_print(access->arg->cspan);
+		printf(" Error: Using '.' operator on generic data.\n");
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_ignore:
@@ -821,15 +1072,17 @@ static void stype_access(stype_t *stype, stree_access_t *access,
 static void stype_access_tprimitive(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
-	(void) stype;
-	(void) access;
-	(void) rtitem;
+	(void) arg_ti;
 
-	printf("Error: Unimplemented: Accessing primitive type '");
-	tdata_item_print(arg_ti);
-	printf("'.\n");
-	stype_note_error(stype);
-	*rtitem = stype_recovery_titem(stype);
+	/* Box the value. */
+	access->arg = stype_box_expr(stype, access->arg);
+	if (access->arg->titem->tic == tic_ignore) {
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	/* Access the boxed object. */
+	stype_access_tobject(stype, access, access->arg->titem, rtitem);
 }
 
 /** Type an object access operation.
@@ -844,6 +1097,7 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 {
 	stree_symbol_t *member_sym;
 	stree_var_t *var;
+	stree_enum_t *enum_d;
 	stree_fun_t *fun;
 	stree_prop_t *prop;
 	tdata_object_t *tobject;
@@ -862,7 +1116,8 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 
 	if (member_sym == NULL) {
 		/* No such member found. */
-		printf("Error: CSI '");
+		cspan_print(access->member_name->cspan);
+		printf(" Error: CSI '");
 		symbol_print_fqn(csi_to_symbol(tobject->csi));
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(access->member_name->sid));
@@ -878,17 +1133,29 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 
 	switch (member_sym->sc) {
 	case sc_csi:
-		printf("Error: Accessing object member which is nested "
+		cspan_print(access->member_name->cspan);
+		printf(" Error: Accessing object member which is nested "
 		    "CSI.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_deleg:
-		printf("Error: Accessing object member which is a "
+		cspan_print(access->member_name->cspan);
+		printf(" Error: Accessing object member which is a "
 		    "delegate.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
+	case sc_enum:
+		enum_d = symbol_to_enum(member_sym);
+		assert(enum_d != NULL);
+		/* Type enum if it has not been typed yet. */
+		stype_enum(stype, enum_d);
+		mtitem = enum_d->titem;
+		break;
 	case sc_fun:
 		fun = symbol_to_fun(member_sym);
 		assert(fun != NULL);
@@ -936,12 +1203,63 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
 	(void) access;
 	(void) rtitem;
 
-	printf("Error: Unimplemented: Accessing array type '");
+	cspan_print(access->arg->cspan);
+	printf(" Error: Unimplemented: Accessing array type '");
 	tdata_item_print(arg_ti);
 	printf("'.\n");
 	stype_note_error(stype);
 	*rtitem = stype_recovery_titem(stype);
 }
+
+/** Type an enum access operation.
+ *
+ * @param stype		Static typing object
+ * @param access	Member access operation
+ * @param arg_ti	Base type
+ * @param rtitem	Place to store result type
+*/
+static void stype_access_tebase(stype_t *stype, stree_access_t *access,
+    tdata_item_t *arg_ti, tdata_item_t **rtitem)
+{
+	tdata_ebase_t *tebase;
+	tdata_enum_t *tenum;
+	tdata_item_t *mtitem;
+	stree_embr_t *embr;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type an ebase access operation.\n");
+#endif
+	assert(arg_ti->tic == tic_tebase);
+	tebase = arg_ti->u.tebase;
+
+	/* Look for a member with the specified name. */
+	embr = stree_enum_find_mbr(tebase->enum_d, access->member_name);
+
+	if (embr == NULL) {
+		/* No such member found. */
+		cspan_print(access->member_name->cspan);
+		printf(" Error: Enum type '");
+		symbol_print_fqn(enum_to_symbol(tebase->enum_d));
+		printf("' has no member named '%s'.\n",
+		    strtab_get_str(access->member_name->sid));
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Found member '%s'.\n",
+	    strtab_get_str(access->member_name->sid));
+#endif
+
+	mtitem = tdata_item_new(tic_tenum);
+	tenum = tdata_enum_new();
+	mtitem->u.tenum = tenum;
+	tenum->enum_d = tebase->enum_d;
+
+	*rtitem = mtitem;
+}
+
 
 /** Type a call operation.
  *
@@ -952,21 +1270,12 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
 static void stype_call(stype_t *stype, stree_call_t *call,
     tdata_item_t **rtitem)
 {
-	list_node_t *fargt_n;
-	tdata_item_t *farg_ti;
-	tdata_item_t *varg_ti;
-
-	list_node_t *arg_n;
-	stree_expr_t *arg;
-	stree_expr_t *carg;
-
 	tdata_item_t *fun_ti;
 	tdata_fun_sig_t *tsig;
 
-	int cnt;
-
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of call operation.\n");
+	cspan_print(call->expr->cspan);
+	printf(" Evaluate type of call operation.\n");
 #endif
 	/* Type the function */
 	stype_expr(stype, call->fun);
@@ -985,7 +1294,8 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		*rtitem = stype_recovery_titem(stype);
 		return;
 	default:
-		printf("Error: Calling something which is not a function ");
+		cspan_print(call->fun->cspan);
+		printf(" Error: Calling something which is not a function ");
 		printf("(found '");
 		tdata_item_print(fun_ti);
 		printf("').\n");
@@ -994,9 +1304,43 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		return;
 	}
 
-	/* Type and check the arguments. */
-	fargt_n = list_first(&tsig->arg_ti);
-	arg_n = list_first(&call->args);
+	/* Type call arguments. */
+	stype_call_args(stype, call->expr->cspan, &tsig->arg_ti, tsig->varg_ti,
+	    &call->args);
+
+	if (tsig->rtype != NULL) {
+		/* XXX Might be better to clone here. */
+		*rtitem = tsig->rtype;
+	} else {
+		*rtitem = NULL;
+	}
+}
+
+/** Type call arguments.
+ *
+ * Type arguments in call to a function or constructor.
+ *
+ * @param stype		Static typing object
+ * @param cpsan		Cspan to print in case of error.
+ * @param farg_tis	Formal argument types (list of tdata_item_t)
+ * @param args		Real arguments (list of stree_expr_t)
+ */
+static void stype_call_args(stype_t *stype, cspan_t *cspan, list_t *farg_tis,
+    tdata_item_t *fvarg_ti, list_t *args)
+{
+	list_node_t *fargt_n;
+	tdata_item_t *farg_ti;
+	tdata_item_t *varg_ti;
+
+	list_node_t *arg_n;
+	stree_expr_t *arg;
+	stree_expr_t *carg;
+
+	int cnt;
+
+	/* Type and check regular arguments. */
+	fargt_n = list_first(farg_tis);
+	arg_n = list_first(args);
 
 	cnt = 0;
 	while (fargt_n != NULL && arg_n != NULL) {
@@ -1007,8 +1351,8 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		/* XXX Because of overloaded bultin WriteLine */
 		if (farg_ti == NULL) {
 			/* Skip the check */
-			fargt_n = list_next(&tsig->arg_ti, fargt_n);
-			arg_n = list_next(&call->args, arg_n);
+			fargt_n = list_next(farg_tis, fargt_n);
+			arg_n = list_next(args, arg_n);
 			continue;
 		}
 
@@ -1018,14 +1362,14 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 		/* Patch code with augmented expression. */
 		list_node_setdata(arg_n, carg);
 
-		fargt_n = list_next(&tsig->arg_ti, fargt_n);
-		arg_n = list_next(&call->args, arg_n);
+		fargt_n = list_next(farg_tis, fargt_n);
+		arg_n = list_next(args, arg_n);
 	}
 
 	/* Type and check variadic arguments. */
-	if (tsig->varg_ti != NULL) {
+	if (fvarg_ti != NULL) {
 		/* Obtain type of packed argument. */
-		farg_ti = tsig->varg_ti;
+		farg_ti = fvarg_ti;
 
 		/* Get array element type */
 		assert(farg_ti->tic == tic_tarray);
@@ -1041,25 +1385,20 @@ static void stype_call(stype_t *stype, stree_call_t *call,
 			/* Patch code with augmented expression. */
 			list_node_setdata(arg_n, carg);
 
-			arg_n = list_next(&call->args, arg_n);
+			arg_n = list_next(args, arg_n);
 		}
 	}
 
 	if (fargt_n != NULL) {
-		printf("Error: Too few arguments to function.\n");
+		cspan_print(cspan);
+		printf(" Error: Too few arguments.\n");
 		stype_note_error(stype);
 	}
 
 	if (arg_n != NULL) {
-		printf("Error: Too many arguments to function.\n");
+		cspan_print(cspan);
+		printf(" Error: Too many arguments.\n");
 		stype_note_error(stype);
-	}
-
-	if (tsig->rtype != NULL) {
-		/* XXX Might be better to clone here. */
-		*rtitem = tsig->rtype;
-	} else {
-		*rtitem = NULL;
 	}
 }
 
@@ -1077,7 +1416,8 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 	stree_expr_t *arg;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of index operation.\n");
+	cspan_print(index->expr->cspan);
+	printf(" Evaluate type of index operation.\n");
 #endif
 	stype_expr(stype, index->base);
 	base_ti = index->base->titem;
@@ -1102,18 +1442,33 @@ static void stype_index(stype_t *stype, stree_index_t *index,
 		stype_index_tarray(stype, index, base_ti, rtitem);
 		break;
 	case tic_tdeleg:
-		printf("Error: Indexing a delegate.\n");
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing a delegate.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tebase:
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing an enum declaration.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		break;
+	case tic_tenum:
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing an enum value.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_tfun:
-		printf("Error: Indexing a function.\n");
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing a function.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_tvref:
 		/* Cannot allow this without some constraint. */
-		printf("Error: Indexing generic data.\n");
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing generic data.\n");
 		*rtitem = stype_recovery_titem(stype);
 		break;
 	case tic_ignore:
@@ -1148,7 +1503,8 @@ static void stype_index_tprimitive(stype_t *stype, stree_index_t *index,
 		return;
 	}
 
-	printf("Error: Indexing primitive type '");
+	cspan_print(index->base->cspan);
+	printf(" Error: Indexing primitive type '");
 	tdata_item_print(base_ti);
 	printf("'.\n");
 	stype_note_error(stype);
@@ -1175,7 +1531,8 @@ static void stype_index_tobject(stype_t *stype, stree_index_t *index,
 	(void) index;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Indexing object type '");
+	cspan_print(index->expr->cspan);
+	printf(" Indexing object type '");
 	tdata_item_print(base_ti);
 	printf("'.\n");
 #endif
@@ -1189,7 +1546,8 @@ static void stype_index_tobject(stype_t *stype, stree_index_t *index,
 	idx_sym = symbol_search_csi(stype->program, tobject->csi, idx_ident);
 
 	if (idx_sym == NULL) {
-		printf("Error: Indexing object of type '");
+		cspan_print(index->base->cspan);
+		printf(" Error: Indexing object of type '");
 		tdata_item_print(base_ti);
 		printf("' which does not have an indexer.\n");
 		stype_note_error(stype);
@@ -1245,7 +1603,8 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 		if (arg->titem->tic != tic_tprimitive ||
 		    arg->titem->u.tprimitive->tpc != tpc_int) {
 
-			printf("Error: Array index is not an integer.\n");
+			cspan_print(arg->cspan);
+			printf(" Error: Array index is not an integer.\n");
 			stype_note_error(stype);
 		}
 
@@ -1253,7 +1612,8 @@ static void stype_index_tarray(stype_t *stype, stree_index_t *index,
 	}
 
 	if (arg_count != base_ti->u.tarray->rank) {
-		printf("Error: Using %d indices with array of rank %d.\n",
+		cspan_print(index->expr->cspan);
+		printf(" Error: Using %d indices with array of rank %d.\n",
 		    arg_count, base_ti->u.tarray->rank);
 		stype_note_error(stype);
 	}
@@ -1273,7 +1633,8 @@ static void stype_assign(stype_t *stype, stree_assign_t *assign,
 	stree_expr_t *csrc;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of assignment.\n");
+	cspan_print(assign->expr->cspan);
+	printf(" Evaluate type of assignment.\n");
 #endif
 	stype_expr(stype, assign->dest);
 	stype_expr(stype, assign->src);
@@ -1296,14 +1657,16 @@ static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 	tdata_item_t *titem;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of @c as conversion.\n");
+	cspan_print(as_op->expr->cspan);
+	printf(" Evaluate type of @c as conversion.\n");
 #endif
 	stype_expr(stype, as_op->arg);
 	run_texpr(stype->program, stype->current_csi, as_op->dtype, &titem);
 
 	/* Check that target type is derived from argument type. */
 	if (tdata_is_ti_derived_from_ti(titem, as_op->arg->titem) != b_true) {
-		printf("Error: Target of 'as' operator '");
+		cspan_print(as_op->dtype->cspan);
+		printf(" Error: Target of 'as' operator '");
 		tdata_item_print(titem);
 		printf("' is not derived from '");
 		tdata_item_print(as_op->arg->titem);
@@ -1331,7 +1694,8 @@ static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem)
 	builtin_t *bi;
 
 #ifdef DEBUG_TYPE_TRACE
-	printf("Evaluate type of boxing operation.\n");
+	cspan_print(box->expr->cspan);
+	printf(" Evaluate type of boxing operation.\n");
 #endif
 	bi = stype->program->builtin;
 

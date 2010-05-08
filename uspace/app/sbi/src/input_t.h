@@ -33,6 +33,9 @@
 
 /** Input state object */
 typedef struct input {
+	/** Input name (for error output) */
+	const char *name;
+
 	/** Input file if reading from file. */
 	FILE *fin;
 

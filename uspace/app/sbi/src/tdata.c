@@ -47,6 +47,10 @@ static void tdata_item_subst_tarray(tdata_array_t *torig, tdata_tvv_t *tvv,
     tdata_item_t **res);
 static void tdata_item_subst_tdeleg(tdata_deleg_t *torig,
     tdata_tvv_t *tvv, tdata_item_t **res);
+static void tdata_item_subst_tebase(tdata_ebase_t *tebase,
+    tdata_tvv_t *tvv, tdata_item_t **res);
+static void tdata_item_subst_tenum(tdata_enum_t *tenum,
+    tdata_tvv_t *tvv, tdata_item_t **res);
 static void tdata_item_subst_tfun(tdata_fun_t *torig,
     tdata_tvv_t *tvv, tdata_item_t **res);
 static void tdata_item_subst_tvref(tdata_vref_t *tvref, tdata_tvv_t *tvv,
@@ -59,6 +63,8 @@ static void tdata_tprimitive_print(tdata_primitive_t *tprimitive);
 static void tdata_tobject_print(tdata_object_t *tobject);
 static void tdata_tarray_print(tdata_array_t *tarray);
 static void tdata_tdeleg_print(tdata_deleg_t *tdeleg);
+static void tdata_tebase_print(tdata_ebase_t *tebase);
+static void tdata_tenum_print(tdata_enum_t *tenum);
 static void tdata_tfun_print(tdata_fun_t *tfun);
 static void tdata_tvref_print(tdata_vref_t *tvref);
 
@@ -156,6 +162,9 @@ bool_t tdata_item_equal(tdata_item_t *a, tdata_item_t *b)
 
 		return tdata_item_equal(a->u.tarray->base_ti,
 		    b->u.tarray->base_ti);
+	case tic_tenum:
+		/* Check if both use the same enum definition. */
+		return (a->u.tenum->enum_d == b->u.tenum->enum_d);
 	case tic_tvref:
 		/* Check if both refer to the same type argument. */
 		return (a->u.tvref->targ == b->u.tvref->targ);
@@ -194,6 +203,12 @@ void tdata_item_subst(tdata_item_t *ti, tdata_tvv_t *tvv, tdata_item_t **res)
 		break;
 	case tic_tdeleg:
 		tdata_item_subst_tdeleg(ti->u.tdeleg, tvv, res);
+		break;
+	case tic_tebase:
+		tdata_item_subst_tebase(ti->u.tebase, tvv, res);
+		break;
+	case tic_tenum:
+		tdata_item_subst_tenum(ti->u.tenum, tvv, res);
 		break;
 	case tic_tfun:
 		tdata_item_subst_tfun(ti->u.tfun, tvv, res);
@@ -312,6 +327,44 @@ static void tdata_item_subst_tdeleg(tdata_deleg_t *torig, tdata_tvv_t *tvv,
 	(*res)->u.tdeleg = tnew;
 }
 
+/** Substitute type variables in a enum-base type item.
+ *
+ * @param torig	Type item to substitute into.
+ * @param tvv	Type variable valuation (values of type variables).
+ * @param res	Place to store pointer to new type item.
+ */
+static void tdata_item_subst_tebase(tdata_ebase_t *tebase,
+    tdata_tvv_t *tvv, tdata_item_t **res)
+{
+	tdata_ebase_t *tnew;
+
+	(void) tvv;
+
+	/* Plain copy */
+	tnew = tdata_ebase_new();
+	*res = tdata_item_new(tic_tebase);
+	(*res)->u.tebase = tebase;
+}
+
+/** Substitute type variables in a enum type item.
+ *
+ * @param torig	Type item to substitute into.
+ * @param tvv	Type variable valuation (values of type variables).
+ * @param res	Place to store pointer to new type item.
+ */
+static void tdata_item_subst_tenum(tdata_enum_t *tenum,
+    tdata_tvv_t *tvv, tdata_item_t **res)
+{
+	tdata_enum_t *tnew;
+
+	(void) tvv;
+
+	/* Plain copy */
+	tnew = tdata_enum_new();
+	*res = tdata_item_new(tic_tenum);
+	(*res)->u.tenum = tenum;
+}
+
 /** Substitute type variables in a functional type item.
  *
  * @param torig	Type item to substitute into.
@@ -417,6 +470,12 @@ void tdata_item_print(tdata_item_t *titem)
 	case tic_tdeleg:
 		tdata_tdeleg_print(titem->u.tdeleg);
 		break;
+	case tic_tebase:
+		tdata_tebase_print(titem->u.tebase);
+		break;
+	case tic_tenum:
+		tdata_tenum_print(titem->u.tenum);
+		break;
 	case tic_tfun:
 		tdata_tfun_print(titem->u.tfun);
 		break;
@@ -494,6 +553,33 @@ static void tdata_tdeleg_print(tdata_deleg_t *tdeleg)
 
 	deleg_sym = deleg_to_symbol(tdeleg->deleg);
 	symbol_print_fqn(deleg_sym);
+}
+
+/** Print enum-base type item.
+ *
+ * @param tebase		Enum-base type item
+ */
+static void tdata_tebase_print(tdata_ebase_t *tebase)
+{
+	stree_symbol_t *enum_sym;
+
+	enum_sym = enum_to_symbol(tebase->enum_d);
+
+	printf("typeref(");
+	symbol_print_fqn(enum_sym);
+	printf(")");
+}
+
+/** Print enum type item.
+ *
+ * @param tenum		Enum type item
+ */
+static void tdata_tenum_print(tdata_enum_t *tenum)
+{
+	stree_symbol_t *enum_sym;
+
+	enum_sym = enum_to_symbol(tenum->enum_d);
+	symbol_print_fqn(enum_sym);
 }
 
 /** Print function type item.
@@ -623,6 +709,40 @@ tdata_deleg_t *tdata_deleg_new(void)
 	return tdeleg;
 }
 
+/** Allocate new enum-base type item.
+ *
+ * @return	New enum type item
+ */
+tdata_ebase_t *tdata_ebase_new(void)
+{
+	tdata_ebase_t *tebase;
+
+	tebase = calloc(1, sizeof(tdata_ebase_t));
+	if (tebase == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tebase;
+}
+
+/** Allocate new enum type item.
+ *
+ * @return	New enum type item
+ */
+tdata_enum_t *tdata_enum_new(void)
+{
+	tdata_enum_t *tenum;
+
+	tenum = calloc(1, sizeof(tdata_enum_t));
+	if (tenum == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return tenum;
+}
+
 /** Allocate new functional type item.
  *
  * @return	New function type item
@@ -706,7 +826,7 @@ tdata_item_t *tdata_tvv_get_val(tdata_tvv_t *tvv, sid_t name)
 	return (tdata_item_t *)intmap_get(&tvv->tvv, name);
 }
 
-/** Set tyoe variable value.
+/** Set type variable value.
  *
  * Sets the value of variable with name SID @a name in type variable
  * valuation @a tvv to the value @a tvalue.

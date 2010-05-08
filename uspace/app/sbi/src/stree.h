@@ -35,7 +35,10 @@ stree_module_t *stree_module_new(void);
 stree_modm_t *stree_modm_new(modm_class_t mc);
 stree_csi_t *stree_csi_new(csi_class_t cc);
 stree_csimbr_t *stree_csimbr_new(csimbr_class_t cc);
+stree_ctor_t *stree_ctor_new(void);
 stree_deleg_t *stree_deleg_new(void);
+stree_enum_t *stree_enum_new(void);
+stree_embr_t *stree_embr_new(void);
 stree_fun_t *stree_fun_new(void);
 stree_var_t *stree_var_new(void);
 stree_prop_t *stree_prop_new(void);
@@ -54,11 +57,13 @@ stree_if_t *stree_if_new(void);
 stree_while_t *stree_while_new(void);
 stree_for_t *stree_for_new(void);
 stree_raise_t *stree_raise_new(void);
+stree_break_t *stree_break_new(void);
 stree_return_t *stree_return_new(void);
 stree_wef_t *stree_wef_new(void);
 stree_exps_t *stree_exps_new(void);
 
 stree_except_t *stree_except_new(void);
+stree_if_clause_t *stree_if_clause_new(void);
 stree_block_t *stree_block_new(void);
 
 stree_expr_t *stree_expr_new(expr_class_t ec);
@@ -91,5 +96,7 @@ bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac);
 bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac);
 bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b);
 stree_targ_t *stree_csi_find_targ(stree_csi_t *csi, stree_ident_t *ident);
+stree_embr_t *stree_enum_find_mbr(stree_enum_t *enum_d, stree_ident_t *ident);
+stree_ident_t *stree_csimbr_get_name(stree_csimbr_t *csimbr);
 
 #endif

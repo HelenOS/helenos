@@ -32,7 +32,6 @@ class ListDemo is
 		var list : List/int;
 
 		list = new List/int();
-		list.Init();
 
 		list.Append(5);
 		list.Append(6);
@@ -43,7 +42,7 @@ class ListDemo is
 
 		n = list.First;
 		while n != nil do
-			Builtin.WriteLine(n.Value);
+			Builtin.WriteLine(n.Data);
 			n = n.Next;
 		end
 	end

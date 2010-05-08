@@ -81,6 +81,12 @@ typedef struct {
 	struct stree_symbol *sym;
 } rdata_deleg_t;
 
+/** Enumerated type value. */
+typedef struct {
+	/** Enum member declaration */
+	struct stree_embr *value;
+} rdata_enum_t;
+
 /** Array variable */
 typedef struct {
 	/** Rank */
@@ -115,6 +121,15 @@ typedef struct {
 	void *data;
 } rdata_resource_t;
 
+/** Symbol reference variable
+ *
+ * A symbol reference points to a program symbol.
+ */
+typedef struct {
+	/** Program symbol. */
+	struct stree_symbol *sym;
+} rdata_symbol_t;
+
 typedef enum var_class {
 	/** Boolean */
 	vc_bool,
@@ -134,6 +149,9 @@ typedef enum var_class {
 	/** Delegate */
 	vc_deleg,
 
+	/** Enumerated type value */
+	vc_enum,
+
 	/** Array */
 	vc_array,
 
@@ -141,7 +159,10 @@ typedef enum var_class {
 	vc_object,
 
 	/** Interpreter builtin resource */
-	vc_resource
+	vc_resource,
+
+	/** Symbol reference */
+	vc_symbol
 } var_class_t;
 
 /** Variable.
@@ -160,9 +181,11 @@ typedef struct rdata_var {
 		rdata_string_t *string_v;
 		rdata_ref_t *ref_v;
 		rdata_deleg_t *deleg_v;
+		rdata_enum_t *enum_v;
 		rdata_array_t *array_v;
 		rdata_object_t *object_v;
 		rdata_resource_t *resource_v;
+		rdata_symbol_t *symbol_v;
 	} u;
 } rdata_var_t;
 

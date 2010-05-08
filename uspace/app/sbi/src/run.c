@@ -33,6 +33,7 @@
 #include <assert.h>
 #include "bigint.h"
 #include "builtin.h"
+#include "cspan.h"
 #include "debug.h"
 #include "intmap.h"
 #include "list.h"
@@ -53,6 +54,7 @@ static void run_vdecl(run_t *run, stree_vdecl_t *vdecl);
 static void run_if(run_t *run, stree_if_t *if_s);
 static void run_while(run_t *run, stree_while_t *while_s);
 static void run_raise(run_t *run, stree_raise_t *raise_s);
+static void run_break(run_t *run, stree_break_t *break_s);
 static void run_return(run_t *run, stree_return_t *return_s);
 static void run_wef(run_t *run, stree_wef_t *wef_s);
 
@@ -70,7 +72,8 @@ static void run_var_new_tprimitive(run_t *run, tdata_primitive_t *tprimitive,
     rdata_var_t **rvar);
 static void run_var_new_null_ref(run_t *run, rdata_var_t **rvar);
 static void run_var_new_deleg(run_t *run, rdata_var_t **rvar);
-
+static void run_var_new_enum(run_t *run, tdata_enum_t *tenum,
+    rdata_var_t **rvar);
 
 /** Initialize runner instance.
  *
@@ -176,8 +179,8 @@ void run_proc(run_t *run, run_proc_ar_t *proc_ar, rdata_item_t **res)
 	/* Handle bailout. */
 	switch (run->thread_ar->bo_mode) {
 	case bm_stat:
-		printf("Error: Misplaced 'break' statement.\n");
-		exit(1);
+		/* Break bailout was not caught. */
+		assert(b_false);
 	case bm_proc:
 		run->thread_ar->bo_mode = bm_none;
 		break;
@@ -282,6 +285,9 @@ void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
 	case st_raise:
 		run_raise(run, stat->u.raise_s);
 		break;
+	case st_break:
+		run_break(run, stat->u.break_s);
+		break;
 	case st_return:
 		run_return(run, stat->u.return_s);
 		break;
@@ -291,8 +297,6 @@ void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
 	case st_for:
 		printf("Ignoring unimplemented statement type %d.\n", stat->sc);
 		break;
-	default:
-		assert(b_false);
 	}
 }
 
@@ -363,25 +367,44 @@ static void run_vdecl(run_t *run, stree_vdecl_t *vdecl)
 static void run_if(run_t *run, stree_if_t *if_s)
 {
 	rdata_item_t *rcond;
+	list_node_t *ifc_node;
+	stree_if_clause_t *ifc;
+	bool_t clause_fired;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing if statement.\n");
 #endif
-	run_expr(run, if_s->cond, &rcond);
-	if (run_is_bo(run))
-		return;
+	clause_fired = b_false;
+	ifc_node = list_first(&if_s->if_clauses);
 
-	if (run_item_boolean_value(run, rcond) == b_true) {
+	/* Walk through all if/elif clauses and see if they fire. */
+
+	while (ifc_node != NULL) {
+		/* Get if/elif clause */
+		ifc = list_node_data(ifc_node, stree_if_clause_t *);
+
+		run_expr(run, ifc->cond, &rcond);
+		if (run_is_bo(run))
+			return;
+
+		if (run_item_boolean_value(run, rcond) == b_true) {
 #ifdef DEBUG_RUN_TRACE
-		printf("Taking true path.\n");
+			printf("Taking non-default path.\n");
 #endif
-		run_block(run, if_s->if_block);
-	} else {
+			run_block(run, ifc->block);
+			clause_fired = b_true;
+			break;
+		}
+
+		ifc_node = list_next(&if_s->if_clauses, ifc_node);
+	}
+
+	/* If no if/elif clause fired, invoke the else clause. */
+	if (clause_fired == b_false && if_s->else_block != NULL) {
 #ifdef DEBUG_RUN_TRACE
-		printf("Taking false path.\n");
+		printf("Taking default path.\n");
 #endif
-        	if (if_s->else_block != NULL)
-			run_block(run, if_s->else_block);
+		run_block(run, if_s->else_block);
 	}
 
 #ifdef DEBUG_RUN_TRACE
@@ -409,10 +432,12 @@ static void run_while(run_t *run, stree_while_t *while_s)
 		run_block(run, while_s->body);
 		run_expr(run, while_s->cond, &rcond);
 		if (run_is_bo(run))
-			return;
-
-		if (run->thread_ar->bo_mode != bm_none)
 			break;
+	}
+
+	if (run->thread_ar->bo_mode == bm_stat) {
+		/* Bailout due to break statement */
+		run->thread_ar->bo_mode = bm_none;
 	}
 
 #ifdef DEBUG_RUN_TRACE
@@ -439,11 +464,34 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 
 	run_cvt_value_item(run, rexpr, &rexpr_vi);
 
+	/* Store expression cspan in thread AR. */
+	run->thread_ar->exc_cspan = raise_s->expr->cspan;
+
 	/* Store expression result in thread AR. */
 	run->thread_ar->exc_payload = rexpr_vi->u.value;
 
 	/* Start exception bailout. */
 	run->thread_ar->bo_mode = bm_exc;
+}
+
+/** Run @c break statement.
+ *
+ * Forces control to return from the active breakable statement by setting
+ * bailout mode to @c bm_stat.
+ *
+ * @param run		Runner object
+ * @param break_s	Break statement to run
+ */
+static void run_break(run_t *run, stree_break_t *break_s)
+{
+#ifdef DEBUG_RUN_TRACE
+	printf("Executing 'break' statement.\n");
+#endif
+	(void) break_s;
+
+	/* Force control to ascend and leave the procedure. */
+	if (run->thread_ar->bo_mode == bm_none)
+		run->thread_ar->bo_mode = bm_stat;
 }
 
 /** Run @c return statement.
@@ -452,7 +500,7 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
  * from the function by setting bailout mode to @c bm_proc.
  *
  * @param run		Runner object
- * @param raise_s	Return statement to run
+ * @param return_s	Return statement to run
  */
 static void run_return(run_t *run, stree_return_t *return_s)
 {
@@ -463,15 +511,17 @@ static void run_return(run_t *run, stree_return_t *return_s)
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing return statement.\n");
 #endif
-	run_expr(run, return_s->expr, &rexpr);
-	if (run_is_bo(run))
-		return;
+	if (return_s->expr != NULL) {
+		run_expr(run, return_s->expr, &rexpr);
+		if (run_is_bo(run))
+			return;
 
-	run_cvt_value_item(run, rexpr, &rexpr_vi);
+		run_cvt_value_item(run, rexpr, &rexpr_vi);
 
-	/* Store expression result in procedure AR. */
-	proc_ar = run_get_current_proc_ar(run);
-	proc_ar->retval = rexpr_vi;
+		/* Store expression result in procedure AR. */
+		proc_ar = run_get_current_proc_ar(run);
+		proc_ar->retval = rexpr_vi;
+	}
 
 	/* Force control to ascend and leave the procedure. */
 	if (run->thread_ar->bo_mode == bm_none)
@@ -631,6 +681,11 @@ void run_exc_check_unhandled(run_t *run)
 
 		exc_csi = run_exc_payload_get_csi(run);
 
+		if (run->thread_ar->exc_cspan != NULL) {
+			cspan_print(run->thread_ar->exc_cspan);
+			putchar(' ');
+		}
+
 		printf("Error: Unhandled exception '");
 		symbol_print_fqn(csi_to_symbol(exc_csi));
 		printf("'.\n");
@@ -748,6 +803,7 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 	rdata_bool_t *bool_v;
 	rdata_char_t *char_v;
 	rdata_deleg_t *deleg_v;
+	rdata_enum_t *enum_v;
 	rdata_int_t *int_v;
 	rdata_string_t *string_v;
 	rdata_ref_t *ref_v;
@@ -779,6 +835,13 @@ void run_value_item_to_var(rdata_item_t *item, rdata_var_t **var)
 		(*var)->u.deleg_v = deleg_v;
 		deleg_v->obj = item->u.value->var->u.deleg_v->obj;
 		deleg_v->sym = item->u.value->var->u.deleg_v->sym;
+		break;
+	case vc_enum:
+		*var = rdata_var_new(vc_enum);
+		enum_v = rdata_enum_new();
+
+		(*var)->u.enum_v = enum_v;
+		enum_v->value = item->u.value->var->u.enum_v->value;
 		break;
 	case vc_int:
 		*var = rdata_var_new(vc_int);
@@ -853,6 +916,7 @@ void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
  */
 void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 {
+	stree_ctor_t *ctor;
 	stree_fun_t *fun;
 	stree_prop_t *prop;
 	list_t *args;
@@ -877,11 +941,20 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 	assert(proc_ar->proc != NULL);
 	outer_symbol = proc_ar->proc->outer_symbol;
 
+	/* Make compiler happy. */
+	args = NULL;
+	varg = NULL;
+
 	/*
 	 * The procedure being activated should belong to a member function or
 	 * property getter/setter.
 	 */
 	switch (outer_symbol->sc) {
+	case sc_ctor:
+		ctor = symbol_to_ctor(outer_symbol);
+		args = &ctor->sig->args;
+		varg = ctor->sig->varg;
+		break;
 	case sc_fun:
 		fun = symbol_to_fun(outer_symbol);
 		args = &fun->sig->args;
@@ -892,7 +965,10 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 		args = &prop->args;
 		varg = prop->varg;
 		break;
-	default:
+	case sc_csi:
+	case sc_deleg:
+	case sc_enum:
+	case sc_var:
 		assert(b_false);
 	}
 
@@ -1376,9 +1452,12 @@ void run_reference(run_t *run, rdata_var_t *var, rdata_item_t **res)
  *
  * @param run		Runner object
  * @param ref		Reference
+ * @param cspan		Cspan to put into exception if reference is nil
+ *			or @c NULL if no cspan is provided.
  * @param rtitem	Place to store pointer to the resulting address.
  */
-void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
+void run_dereference(run_t *run, rdata_item_t *ref, cspan_t *cspan,
+    rdata_item_t **ritem)
 {
 	rdata_item_t *ref_val;
 	rdata_item_t *item;
@@ -1403,7 +1482,8 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
 		printf("Error: Accessing null reference.\n");
 #endif
 		/* Raise Error.NilReference */
-		run_raise_exc(run, run->program->builtin->error_nilreference);
+		run_raise_exc(run, run->program->builtin->error_nilreference,
+		    cspan);
 		*ritem = run_recovery_item(run);
 		return;
 	}
@@ -1421,10 +1501,14 @@ void run_dereference(run_t *run, rdata_item_t *ref, rdata_item_t **ritem)
  *
  * @param run		Runner object
  * @param csi		Exception class
+ * @param cspan		Cspan of code that caused exception (for debugging)
  */
-void run_raise_exc(run_t *run, stree_csi_t *csi)
+void run_raise_exc(run_t *run, stree_csi_t *csi, cspan_t *cspan)
 {
 	rdata_item_t *exc_vi;
+
+	/* Store exception cspan in thread AR. */
+	run->thread_ar->exc_cspan = cspan;
 
 	/* Create exception object. */
 	run_new_csi_inst(run, csi, &exc_vi);
@@ -1471,6 +1555,17 @@ void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar)
 		run_var_new_null_ref(run, rvar);
 		break;
 	case tic_tdeleg:
+		run_var_new_deleg(run, rvar);
+		break;
+	case tic_tebase:
+		/*
+		 * One cannot declare variable of ebase type. It is just
+		 * type of expressions referring to enum types.
+		 */
+		assert(b_false);
+	case tic_tenum:
+		run_var_new_enum(run, ti->u.tenum, rvar);
+		break;
 	case tic_tfun:
 		run_var_new_deleg(run, rvar);
 		break;
@@ -1573,6 +1668,34 @@ static void run_var_new_deleg(run_t *run, rdata_var_t **rvar)
 	/* Return null reference. */
 	var = rdata_var_new(vc_deleg);
 	var->u.deleg_v = rdata_deleg_new();
+
+	*rvar = var;
+}
+
+/** Construct a new variable containing default value of an enum type.
+ *
+ * @param run		Runner object
+ * @param rvar		Place to store pointer to new variable
+ */
+static void run_var_new_enum(run_t *run, tdata_enum_t *tenum,
+    rdata_var_t **rvar)
+{
+	rdata_var_t *var;
+	list_node_t *embr_n;
+	stree_embr_t *embr;
+
+	(void) run;
+
+	/* Get first member of enum which will serve as default value. */
+	embr_n = list_first(&tenum->enum_d->members);
+	assert(embr_n != NULL);
+
+	embr = list_node_data(embr_n, stree_embr_t *);
+
+	/* Return null reference. */
+	var = rdata_var_new(vc_enum);
+	var->u.enum_v = rdata_enum_new();
+	var->u.enum_v->value = embr;
 
 	*rvar = var;
 }

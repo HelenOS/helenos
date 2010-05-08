@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "cspan.h"
 #include "debug.h"
 #include "lex.h"
 #include "list.h"
@@ -44,9 +45,10 @@ static stree_texpr_t *parse_tapply(parse_t *parse);
 static stree_texpr_t *parse_tpostfix(parse_t *parse);
 static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a);
 static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a);
+static stree_texpr_t *parse_tparen(parse_t *parse);
 static stree_texpr_t *parse_tprimitive(parse_t *parse);
-static stree_tliteral_t *parse_tliteral(parse_t *parse);
-static stree_tnameref_t *parse_tnameref(parse_t *parse);
+static stree_texpr_t *parse_tliteral(parse_t *parse);
+static stree_texpr_t *parse_tnameref(parse_t *parse);
 
 static stree_texpr_t *parse_recovery_texpr(parse_t *parse);
 
@@ -90,6 +92,8 @@ static stree_texpr_t *parse_tapply(parse_t *parse)
 	tapply->gtype = gtype;
 	list_init(&tapply->targs);
 
+	targ = NULL;
+
 	while (lcur_lc(parse) == lc_slash) {
 
 		if (parse_is_error(parse))
@@ -103,6 +107,13 @@ static stree_texpr_t *parse_tapply(parse_t *parse)
 
 	aexpr = stree_texpr_new(tc_tapply);
 	aexpr->u.tapply = tapply;
+	tapply->texpr = aexpr;
+
+	if (targ != NULL)
+		aexpr->cspan = cspan_merge(gtype->cspan, targ->cspan);
+	else
+		aexpr->cspan = gtype->cspan;
+
 	return aexpr;
 }
 
@@ -115,7 +126,7 @@ static stree_texpr_t *parse_tpostfix(parse_t *parse)
 	stree_texpr_t *a;
 	stree_texpr_t *tmp;
 
-	a = parse_tprimitive(parse);
+	a = parse_tparen(parse);
 
 	while (lcur_lc(parse) == lc_period || lcur_lc(parse) == lc_lsbr) {
 
@@ -161,6 +172,8 @@ static stree_texpr_t *parse_pf_taccess(parse_t *parse, stree_texpr_t *a)
 
 	texpr = stree_texpr_new(tc_taccess);
 	texpr->u.taccess = taccess;
+	taccess->texpr = texpr;
+	texpr->cspan = cspan_merge(a->cspan, ident->cspan);
 
 	return texpr;
 }
@@ -175,6 +188,7 @@ static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 	stree_texpr_t *texpr;
 	stree_tindex_t *tindex;
 	stree_expr_t *expr;
+	cspan_t *cs1;
 
 	tindex = stree_tindex_new();
 	tindex->base_type = a;
@@ -208,12 +222,39 @@ static stree_texpr_t *parse_pf_tindex(parse_t *parse, stree_texpr_t *a)
 	}
 
 	lmatch(parse, lc_rsbr);
+	cs1 = lprev_span(parse);
 
 	texpr = stree_texpr_new(tc_tindex);
 	texpr->u.tindex = tindex;
+	tindex->texpr = texpr;
+	texpr->cspan = cspan_merge(a->cspan, cs1);
 
 	return texpr;
 }
+
+/** Parse possibly partenthesized type expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_texpr_t *parse_tparen(parse_t *parse)
+{
+	stree_texpr_t *texpr;
+	cspan_t *cs0, *cs1;
+
+	if (lcur_lc(parse) == lc_lparen) {
+		cs0 = lcur_span(parse);
+		lskip(parse);
+		texpr = parse_texpr(parse);
+		lmatch(parse, lc_rparen);
+		cs1 = lprev_span(parse);
+		texpr->cspan = cspan_merge(cs0, cs1);
+	} else {
+		texpr = parse_tprimitive(parse);
+	}
+
+	return texpr;
+}
+
 
 /** Parse primitive type expression.
  *
@@ -225,16 +266,14 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
 
 	switch (lcur_lc(parse)) {
 	case lc_ident:
-		texpr = stree_texpr_new(tc_tnameref);
-		texpr->u.tnameref = parse_tnameref(parse);
+		texpr = parse_tnameref(parse);
 		break;
 	case lc_bool:
 	case lc_char:
 	case lc_int:
 	case lc_string:
 	case lc_resource:
-		texpr = stree_texpr_new(tc_tliteral);
-		texpr->u.tliteral = parse_tliteral(parse);
+		texpr = parse_tliteral(parse);
 		break;
 	default:
 		lunexpected_error(parse);
@@ -249,10 +288,11 @@ static stree_texpr_t *parse_tprimitive(parse_t *parse)
  *
  * @param parse		Parser object.
  */
-static stree_tliteral_t *parse_tliteral(parse_t *parse)
+static stree_texpr_t *parse_tliteral(parse_t *parse)
 {
 	stree_tliteral_t *tliteral;
 	tliteral_class_t tlc;
+	stree_texpr_t *texpr;
 
 	switch (lcur_lc(parse)) {
 	case lc_bool:
@@ -277,21 +317,32 @@ static stree_tliteral_t *parse_tliteral(parse_t *parse)
 	lskip(parse);
 
 	tliteral = stree_tliteral_new(tlc);
-	return tliteral;
+	texpr = stree_texpr_new(tc_tliteral);
+	texpr->u.tliteral = tliteral;
+	tliteral->texpr = texpr;
+	texpr->cspan = lprev_span(parse);
+
+	return texpr;
 }
 
 /** Parse type identifier.
  *
  * @param parse		Parser object.
  */
-static stree_tnameref_t *parse_tnameref(parse_t *parse)
+static stree_texpr_t *parse_tnameref(parse_t *parse)
 {
 	stree_tnameref_t *tnameref;
+	stree_texpr_t *texpr;
 
 	tnameref = stree_tnameref_new();
 	tnameref->name = parse_ident(parse);
 
-	return tnameref;
+	texpr = stree_texpr_new(tc_tnameref);
+	texpr->u.tnameref = tnameref;
+	tnameref->texpr = texpr;
+	texpr->cspan = tnameref->name->cspan;
+
+	return texpr;
 }
 
 /** Construct a special type expression fore recovery.
@@ -309,6 +360,7 @@ static stree_texpr_t *parse_recovery_texpr(parse_t *parse)
 
 	texpr = stree_texpr_new(tc_tliteral);
 	texpr->u.tliteral = tliteral;
+	tliteral->texpr = texpr;
 
 	return texpr;
 }

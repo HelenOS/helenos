@@ -47,11 +47,16 @@
 #include "parse.h"
 
 /*
- * Module members
+ * Module and CSI members
  */
 static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
     stree_csi_t *outer_csi);
 static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi);
+
+static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi);
+
+static stree_enum_t *parse_enum(parse_t *parse, stree_csi_t *outer_csi);
+static stree_embr_t *parse_embr(parse_t *parse, stree_enum_t *outer_enum);
 
 static stree_deleg_t *parse_deleg(parse_t *parse, stree_csi_t *outer_csi);
 static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi);
@@ -75,6 +80,7 @@ static stree_if_t *parse_if(parse_t *parse);
 static stree_while_t *parse_while(parse_t *parse);
 static stree_for_t *parse_for(parse_t *parse);
 static stree_raise_t *parse_raise(parse_t *parse);
+static stree_break_t *parse_break(parse_t *parse);
 static stree_return_t *parse_return(parse_t *parse);
 static stree_wef_t *parse_wef(parse_t *parse);
 static stree_exps_t *parse_exps(parse_t *parse);
@@ -122,6 +128,7 @@ void parse_init(parse_t *parse, stree_program_t *prog, struct lex *lex)
 void parse_module(parse_t *parse)
 {
 	stree_csi_t *csi;
+	stree_enum_t *enum_d;
 	stree_modm_t *modm;
 
 	while (lcur_lc(parse) != lc_eof && !parse_is_error(parse)) {
@@ -132,6 +139,13 @@ void parse_module(parse_t *parse)
 			csi = parse_csi(parse, lcur_lc(parse), NULL);
 			modm = stree_modm_new(mc_csi);
 			modm->u.csi = csi;
+
+			list_append(&parse->cur_mod->members, modm);
+			break;
+		case lc_enum:
+			enum_d = parse_enum(parse, NULL);
+			modm = stree_modm_new(mc_enum);
+			modm->u.enum_d = enum_d;
 
 			list_append(&parse->cur_mod->members, modm);
 			break;
@@ -222,7 +236,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 /** Parse class, struct or interface member.
  *
  * @param parse		Parser object.
- * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @param outer_csi	CSI containing this declaration.
  * @return		New syntax tree node. In case of parse error,
  *			@c NULL may (but need not) be returned.
  */
@@ -231,7 +245,9 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	stree_csimbr_t *csimbr;
 
 	stree_csi_t *csi;
+	stree_ctor_t *ctor;
 	stree_deleg_t *deleg;
+	stree_enum_t *enum_d;
 	stree_fun_t *fun;
 	stree_var_t *var;
 	stree_prop_t *prop;
@@ -244,10 +260,20 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 		csimbr = stree_csimbr_new(csimbr_csi);
 		csimbr->u.csi = csi;
 		break;
+	case lc_new:
+		ctor = parse_ctor(parse, outer_csi);
+		csimbr = stree_csimbr_new(csimbr_ctor);
+		csimbr->u.ctor = ctor;
+		break;
 	case lc_deleg:
 		deleg = parse_deleg(parse, outer_csi);
 		csimbr = stree_csimbr_new(csimbr_deleg);
 		csimbr->u.deleg = deleg;
+		break;
+	case lc_enum:
+		enum_d = parse_enum(parse, outer_csi);
+		csimbr = stree_csimbr_new(csimbr_enum);
+		csimbr->u.enum_d = enum_d;
 		break;
 	case lc_fun:
 		fun = parse_fun(parse, outer_csi);
@@ -272,6 +298,144 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	}
 
 	return csimbr;
+}
+
+/** Parse constructor.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
+static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
+{
+	stree_ctor_t *ctor;
+	stree_symbol_t *symbol;
+	stree_symbol_attr_t *attr;
+
+	ctor = stree_ctor_new();
+	symbol = stree_symbol_new(sc_ctor);
+
+	symbol->u.ctor = ctor;
+	symbol->outer_csi = outer_csi;
+	ctor->symbol = symbol;
+
+	lmatch(parse, lc_new);
+
+	/* Fake identifier. */
+	ctor->name = stree_ident_new();
+	ctor->name->sid = strtab_get_sid(CTOR_IDENT);
+	ctor->name->cspan = lprev_span(parse);
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parsing constructor of CSI '");
+	symbol_print_fqn(csi_to_symbol(outer_csi));
+	printf("'.\n");
+#endif
+	ctor->sig = parse_fun_sig(parse);
+	if (ctor->sig->rtype != NULL) {
+		printf("Error: Constructor of CSI '");
+		symbol_print_fqn(csi_to_symbol(outer_csi));
+		printf("' has a return type.\n");
+		parse_note_error(parse);
+	}
+
+	list_init(&symbol->attr);
+
+	/* Parse attributes. */
+	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
+		lskip(parse);
+		attr = parse_symbol_attr(parse);
+		list_append(&symbol->attr, attr);
+	}
+
+	ctor->proc = stree_proc_new();
+	ctor->proc->outer_symbol = symbol;
+
+	if (lcur_lc(parse) == lc_scolon) {
+		lskip(parse);
+
+		/* This constructor has no body. */
+		printf("Error: Constructor of CSI '");
+		symbol_print_fqn(csi_to_symbol(outer_csi));
+		printf("' has no body.\n");
+		parse_note_error(parse);
+
+		ctor->proc->body = NULL;
+	} else {
+		lmatch(parse, lc_is);
+		ctor->proc->body = parse_block(parse);
+		lmatch(parse, lc_end);
+	}
+
+	return ctor;
+}
+
+/** Parse @c enum declaration.
+ *
+ * @param parse		Parser object.
+ * @param outer_csi	CSI containing this declaration or @c NULL if global.
+ * @return		New syntax tree node.
+ */
+static stree_enum_t *parse_enum(parse_t *parse, stree_csi_t *outer_csi)
+{
+	stree_enum_t *enum_d;
+	stree_symbol_t *symbol;
+	stree_embr_t *embr;
+
+	enum_d = stree_enum_new();
+	symbol = stree_symbol_new(sc_enum);
+
+	symbol->u.enum_d = enum_d;
+	symbol->outer_csi = outer_csi;
+	enum_d->symbol = symbol;
+
+	lmatch(parse, lc_enum);
+	enum_d->name = parse_ident(parse);
+	list_init(&enum_d->members);
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse enum '%s'.\n", strtab_get_str(enum_d->name->sid));
+#endif
+	lmatch(parse, lc_is);
+
+	/* Parse enum members. */
+	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
+		embr = parse_embr(parse, enum_d);
+		if (embr == NULL)
+			break;
+
+		list_append(&enum_d->members, embr);
+	}
+
+	if (list_is_empty(&enum_d->members)) {
+		printf("Error: Enum type '%s' has no members.\n",
+		    strtab_get_str(enum_d->name->sid));
+		parse_note_error(parse);
+	}
+
+	lmatch(parse, lc_end);
+
+	return enum_d;
+}
+
+/** Parse enum member.
+ *
+ * @param parse		Parser object.
+ * @param outer_enum	Enum containing this declaration.
+ * @return		New syntax tree node. In case of parse error,
+ *			@c NULL may (but need not) be returned.
+ */
+static stree_embr_t *parse_embr(parse_t *parse, stree_enum_t *outer_enum)
+{
+	stree_embr_t *embr;
+
+	embr = stree_embr_new();
+	embr->outer_enum = outer_enum;
+	embr->name = parse_ident(parse);
+
+	lmatch(parse, lc_scolon);
+
+	return embr;
 }
 
 /** Parse delegate.
@@ -680,6 +844,7 @@ stree_stat_t *parse_stat(parse_t *parse)
 	stree_while_t *while_s;
 	stree_for_t *for_s;
 	stree_raise_t *raise_s;
+	stree_break_t *break_s;
 	stree_return_t *return_s;
 	stree_wef_t *wef_s;
 	stree_exps_t *exp_s;
@@ -712,6 +877,11 @@ stree_stat_t *parse_stat(parse_t *parse)
 		raise_s = parse_raise(parse);
 		stat = stree_stat_new(st_raise);
 		stat->u.raise_s = raise_s;
+		break;
+	case lc_break:
+		break_s = parse_break(parse);
+		stat = stree_stat_new(st_break);
+		stat->u.break_s = break_s;
 		break;
 	case lc_return:
 		return_s = parse_return(parse);
@@ -776,17 +946,36 @@ static stree_vdecl_t *parse_vdecl(parse_t *parse)
 static stree_if_t *parse_if(parse_t *parse)
 {
 	stree_if_t *if_s;
+	stree_if_clause_t *if_c;
 
 #ifdef DEBUG_PARSE_TRACE
 	printf("Parse 'if' statement.\n");
 #endif
 	if_s = stree_if_new();
+	list_init(&if_s->if_clauses);
 
+	/* Parse @c if clause. */
 	lmatch(parse, lc_if);
-	if_s->cond = parse_expr(parse);
-	lmatch(parse, lc_then);
-	if_s->if_block = parse_block(parse);
 
+	if_c = stree_if_clause_new();
+	if_c->cond = parse_expr(parse);
+	lmatch(parse, lc_then);
+	if_c->block = parse_block(parse);
+
+	list_append(&if_s->if_clauses, if_c);
+
+	/* Parse @c elif clauses. */
+	while (lcur_lc(parse) == lc_elif) {
+		lskip(parse);
+		if_c = stree_if_clause_new();
+		if_c->cond = parse_expr(parse);
+		lmatch(parse, lc_then);
+		if_c->block = parse_block(parse);
+
+		list_append(&if_s->if_clauses, if_c);
+	}
+
+	/* Parse @c else clause. */
 	if (lcur_lc(parse) == lc_else) {
 		lskip(parse);
 		if_s->else_block = parse_block(parse);
@@ -866,6 +1055,26 @@ static stree_raise_t *parse_raise(parse_t *parse)
 	return raise_s;
 }
 
+/** Parse @c break statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
+static stree_break_t *parse_break(parse_t *parse)
+{
+	stree_break_t *break_s;
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'break' statement.\n");
+#endif
+	break_s = stree_break_new();
+
+	lmatch(parse, lc_break);
+	lmatch(parse, lc_scolon);
+
+	return break_s;
+}
+
 /** Parse @c return statement.
  *
  * @param parse		Parser object.
@@ -881,7 +1090,10 @@ static stree_return_t *parse_return(parse_t *parse)
 	return_s = stree_return_new();
 
 	lmatch(parse, lc_return);
-	return_s->expr = parse_expr(parse);
+
+	if (lcur_lc(parse) != lc_scolon)
+		return_s->expr = parse_expr(parse);
+
 	lmatch(parse, lc_scolon);
 
 	return return_s;
@@ -995,6 +1207,7 @@ stree_ident_t *parse_ident(parse_t *parse)
 	lcheck(parse, lc_ident);
 	ident = stree_ident_new();
 	ident->sid = lcur(parse)->u.ident.sid;
+	ident->cspan = lcur_span(parse);
 	lskip(parse);
 
 	return ident;
@@ -1058,8 +1271,8 @@ lem_t *lcur(parse_t *parse)
 
 /** Return current lem lclass.
  *
- * @param parse		Parser object.
- * @return		Lclass of the current lem.
+ * @param parse		Parser object
+ * @return		Lclass of the current lem
  */
 lclass_t lcur_lc(parse_t *parse)
 {
@@ -1078,6 +1291,44 @@ lclass_t lcur_lc(parse_t *parse)
 
 	lem = lcur(parse);
 	return lem->lclass;
+}
+
+/** Return coordinate span of current lem.
+ *
+ * @param parse		Parser object
+ * @return		Coordinate span of current lem or @c NULL if a
+ *			parse error is active
+ */
+cspan_t *lcur_span(parse_t *parse)
+{
+	lem_t *lem;
+
+	if (parse_is_error(parse))
+		return NULL;
+
+	lem = lcur(parse);
+	return lem->cspan;
+}
+
+/** Return coordinate span of previous lem.
+ *
+ * @param parse		Parser object
+ * @return		Coordinate span of previous lem or @c NULL if
+ * 			parse error is active or previous lem is not
+ *			available.
+ */
+cspan_t *lprev_span(parse_t *parse)
+{
+	lem_t *lem;
+
+	if (parse_is_error(parse))
+		return NULL;
+
+	lem = lex_peek_prev(parse->lex);
+	if (lem == NULL)
+		return NULL;
+
+	return lem->cspan;
 }
 
 /** Skip to next lem.
@@ -1169,6 +1420,7 @@ void lunexpected_error(parse_t *parse)
 bool_t terminates_block(lclass_t lclass)
 {
 	switch (lclass) {
+	case lc_elif:
 	case lc_else:
 	case lc_end:
 	case lc_except:

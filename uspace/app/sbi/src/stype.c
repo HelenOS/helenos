@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "cspan.h"
 #include "debug.h"
 #include "intmap.h"
 #include "list.h"
@@ -51,6 +52,8 @@
 #include "stype.h"
 
 static void stype_csi(stype_t *stype, stree_csi_t *csi);
+static void stype_ctor(stype_t *stype, stree_ctor_t *ctor);
+static void stype_ctor_body(stype_t *stype, stree_ctor_t *ctor);
 static void stype_fun(stype_t *stype, stree_fun_t *fun);
 static void stype_var(stype_t *stype, stree_var_t *var);
 static void stype_prop(stype_t *stype, stree_prop_t *prop);
@@ -65,6 +68,7 @@ static void stype_if(stype_t *stype, stree_if_t *if_s);
 static void stype_while(stype_t *stype, stree_while_t *while_s);
 static void stype_for(stype_t *stype, stree_for_t *for_s);
 static void stype_raise(stype_t *stype, stree_raise_t *raise_s);
+static void stype_break(stype_t *stype, stree_break_t *break_s);
 static void stype_return(stype_t *stype, stree_return_t *return_s);
 static void stype_exps(stype_t *stype, stree_exps_t *exp_s, bool_t want_value);
 static void stype_wef(stype_t *stype, stree_wef_t *wef_s);
@@ -79,11 +83,13 @@ static stree_expr_t *stype_convert_tarray(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
 static stree_expr_t *stype_convert_tdeleg(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
+static stree_expr_t *stype_convert_tenum(stype_t *stype, stree_expr_t *expr,
+    tdata_item_t *dest);
 static stree_expr_t *stype_convert_tfun_tdeleg(stype_t *stype,
     stree_expr_t *expr, tdata_item_t *dest);
 static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
-static void stype_convert_failure(stype_t *stype, tdata_item_t *src,
+static void stype_convert_failure(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
 
 static bool_t stype_fun_sig_equal(stype_t *stype, tdata_fun_sig_t *asig,
@@ -111,9 +117,15 @@ void stype_module(stype_t *stype, stree_module_t *module)
 	mbr_n = list_first(&module->members);
 	while (mbr_n != NULL) {
 		mbr = list_node_data(mbr_n, stree_modm_t *);
-		assert(mbr->mc == mc_csi);
 
-		stype_csi(stype, mbr->u.csi);
+		switch (mbr->mc) {
+		case mc_csi:
+			stype_csi(stype, mbr->u.csi);
+			break;
+		case mc_enum:
+			stype_enum(stype, mbr->u.enum_d);
+			break;
+		}
 
 		mbr_n = list_next(&module->members, mbr_n);
 	}
@@ -144,7 +156,9 @@ static void stype_csi(stype_t *stype, stree_csi_t *csi)
 
 		switch (csimbr->cc) {
 		case csimbr_csi: stype_csi(stype, csimbr->u.csi); break;
+		case csimbr_ctor: stype_ctor(stype, csimbr->u.ctor); break;
 		case csimbr_deleg: stype_deleg(stype, csimbr->u.deleg); break;
+		case csimbr_enum: stype_enum(stype, csimbr->u.enum_d); break;
 		case csimbr_fun: stype_fun(stype, csimbr->u.fun); break;
 		case csimbr_var: stype_var(stype, csimbr->u.var); break;
 		case csimbr_prop: stype_prop(stype, csimbr->u.prop); break;
@@ -154,6 +168,81 @@ static void stype_csi(stype_t *stype, stree_csi_t *csi)
 	}
 
 	stype->current_csi = prev_ctx;
+}
+
+/** Type a constructor.
+ *
+ * @param stype		Static typing object.
+ * @param ctor		Constructor to type.
+ */
+static void stype_ctor(stype_t *stype, stree_ctor_t *ctor)
+{
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type constructor '");
+	symbol_print_fqn(ctor_to_symbol(ctor));
+	printf("'.\n");
+#endif
+	if (ctor->titem == NULL)
+		stype_ctor_header(stype, ctor);
+
+	stype_ctor_body(stype, ctor);
+}
+
+/** Type constructor header.
+ *
+ * @param stype		Static typing object.
+ * @param ctor		Constructor to type.
+ */
+void stype_ctor_header(stype_t *stype, stree_ctor_t *ctor)
+{
+	stree_symbol_t *ctor_sym;
+	tdata_item_t *ctor_ti;
+	tdata_fun_t *tfun;
+	tdata_fun_sig_t *tsig;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type constructor '");
+	symbol_print_fqn(ctor_to_symbol(ctor));
+	printf("' header.\n");
+#endif
+	if (ctor->titem != NULL)
+		return; /* Constructor header has already been typed. */
+
+	ctor_sym = ctor_to_symbol(ctor);
+
+	/* Type function signature. */
+	stype_fun_sig(stype, ctor_sym->outer_csi, ctor->sig, &tsig);
+
+	ctor_ti = tdata_item_new(tic_tfun);
+	tfun = tdata_fun_new();
+	ctor_ti->u.tfun = tfun;
+	tfun->tsig = tsig;
+
+	ctor->titem = ctor_ti;
+}
+
+/** Type constructor body.
+ *
+ * @param stype		Static typing object
+ * @param ctor		Constructor
+ */
+static void stype_ctor_body(stype_t *stype, stree_ctor_t *ctor)
+{
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type constructor '");
+	symbol_print_fqn(ctor_to_symbol(ctor));
+	printf("' body.\n");
+#endif
+	assert(stype->proc_vr == NULL);
+
+	stype->proc_vr = stype_proc_vr_new();
+	stype->proc_vr->proc = ctor->proc;
+	list_init(&stype->proc_vr->block_vr);
+
+	stype_block(stype, ctor->proc->body);
+
+	free(stype->proc_vr);
+	stype->proc_vr = NULL;
 }
 
 /** Type delegate.
@@ -194,6 +283,35 @@ void stype_deleg(stype_t *stype, stree_deleg_t *deleg)
 
 	tdeleg->deleg = deleg;
 	tdeleg->tsig = tsig;
+}
+
+/** Type enum.
+ *
+ * @param stype		Static typing object
+ * @param enum_d	Enum to type
+ */
+void stype_enum(stype_t *stype, stree_enum_t *enum_d)
+{
+	tdata_item_t *titem;
+	tdata_enum_t *tenum;
+
+	(void) stype;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type enum '");
+	symbol_print_fqn(enum_to_symbol(enum_d));
+	printf("'.\n");
+#endif
+	if (enum_d->titem == NULL) {
+		titem = tdata_item_new(tic_tenum);
+		tenum = tdata_enum_new();
+		titem->u.tenum = tenum;
+		tenum->enum_d = enum_d;
+
+		enum_d->titem = titem;
+	} else {
+		titem = enum_d->titem;
+	}
 }
 
 /** Type function.
@@ -456,6 +574,7 @@ void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value)
 	case st_while: stype_while(stype, stat->u.while_s); break;
 	case st_for: stype_for(stype, stat->u.for_s); break;
 	case st_raise: stype_raise(stype, stat->u.raise_s); break;
+	case st_break: stype_break(stype, stat->u.break_s); break;
 	case st_return: stype_return(stype, stat->u.return_s); break;
 	case st_exps: stype_exps(stype, stat->u.exp_s, want_value); break;
 	case st_wef: stype_wef(stype, stat->u.wef_s); break;
@@ -505,19 +624,33 @@ static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s)
 static void stype_if(stype_t *stype, stree_if_t *if_s)
 {
 	stree_expr_t *ccond;
+	list_node_t *ifc_node;
+	stree_if_clause_t *ifc;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type 'if' statement.\n");
 #endif
-	/* Convert condition to boolean type. */
-	stype_expr(stype, if_s->cond);
-	ccond = stype_convert(stype, if_s->cond, stype_boolean_titem(stype));
+	ifc_node = list_first(&if_s->if_clauses);
 
-	/* Patch code with augmented expression. */
-	if_s->cond = ccond;
+	/* Walk through all if/elif clauses. */
 
-	/* Type the @c if block */
-	stype_block(stype, if_s->if_block);
+	while (ifc_node != NULL) {
+		/* Get if/elif clause */
+		ifc = list_node_data(ifc_node, stree_if_clause_t *);
+
+		/* Convert condition to boolean type. */
+		stype_expr(stype, ifc->cond);
+		ccond = stype_convert(stype, ifc->cond,
+		    stype_boolean_titem(stype));
+
+		/* Patch code with augmented expression. */
+		ifc->cond = ccond;
+
+		/* Type the @c if/elif block */
+		stype_block(stype, ifc->block);
+
+		ifc_node = list_next(&if_s->if_clauses, ifc_node);
+	}
 
 	/* Type the @c else block */
 	if (if_s->else_block != NULL)
@@ -544,8 +677,13 @@ static void stype_while(stype_t *stype, stree_while_t *while_s)
 	/* Patch code with augmented expression. */
 	while_s->cond = ccond;
 
+	/* While is a breakable statement. Increment counter. */
+	stype->proc_vr->bstat_cnt += 1;
+
 	/* Type the body of the loop */
 	stype_block(stype, while_s->body);
+
+	stype->proc_vr->bstat_cnt -= 1;
 }
 
 /** Type @c for statement.
@@ -558,7 +696,12 @@ static void stype_for(stype_t *stype, stree_for_t *for_s)
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type 'for' statement.\n");
 #endif
+	/* For is a breakable statement. Increment counter. */
+	stype->proc_vr->bstat_cnt += 1;
+
 	stype_block(stype, for_s->body);
+
+	stype->proc_vr->bstat_cnt -= 1;
 }
 
 /** Type @c raise statement.
@@ -574,6 +717,21 @@ static void stype_raise(stype_t *stype, stree_raise_t *raise_s)
 	stype_expr(stype, raise_s->expr);
 }
 
+/** Type @c break statement */
+static void stype_break(stype_t *stype, stree_break_t *break_s)
+{
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type 'break' statement.\n");
+#endif
+	(void) break_s;
+
+	/* Check whether there is an active statement to break from. */
+	if (stype->proc_vr->bstat_cnt == 0) {
+		printf("Error: Break statement outside of while or for.\n");
+		stype_note_error(stype);
+	}
+}
+
 /** Type @c return statement */
 static void stype_return(stype_t *stype, stree_return_t *return_s)
 {
@@ -587,7 +745,8 @@ static void stype_return(stype_t *stype, stree_return_t *return_s)
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type 'return' statement.\n");
 #endif
-	stype_expr(stype, return_s->expr);
+	if (return_s->expr != NULL)
+		stype_expr(stype, return_s->expr);
 
 	/* Determine the type we need to return. */
 
@@ -598,17 +757,41 @@ static void stype_return(stype_t *stype, stree_return_t *return_s)
 		assert(fun != NULL);
 
 		/* XXX Memoize to avoid recomputing. */
-		run_texpr(stype->program, outer_sym->outer_csi,
-		    fun->sig->rtype, &dtype);
+		if (fun->sig->rtype != NULL) {
+			run_texpr(stype->program, outer_sym->outer_csi,
+			    fun->sig->rtype, &dtype);
+
+			if (return_s->expr == NULL) {
+				printf("Error: Return without a value in "
+				    "function returning value.\n");
+				stype_note_error(stype);
+			}
+		} else {
+			dtype = NULL;
+
+			if (return_s->expr != NULL) {
+				printf("Error: Return with a value in "
+				    "value-less function.\n");
+				stype_note_error(stype);
+			}
+		}
 		break;
 	case sc_prop:
 		prop = symbol_to_prop(outer_sym);
 		assert(prop != NULL);
 
-		if (stype->proc_vr->proc != prop->getter) {
-			printf("Error: Return statement in "
-			    "setter.\n");
-			stype_note_error(stype);
+		if (stype->proc_vr->proc == prop->getter) {
+			if (return_s->expr == NULL) {
+				printf("Error: Return without a value in "
+				    "getter.\n");
+				stype_note_error(stype);
+			}
+		} else {
+			if (return_s->expr == NULL) {
+				printf("Error: Return with a value in "
+				    "setter.\n");
+				stype_note_error(stype);
+			}
 		}
 
 		/* XXX Memoize to avoid recomputing. */
@@ -619,11 +802,13 @@ static void stype_return(stype_t *stype, stree_return_t *return_s)
 		assert(b_false);
 	}
 
-	/* Convert to the return type. */
-	cexpr = stype_convert(stype, return_s->expr, dtype);
+	if (dtype != NULL && return_s->expr != NULL) {
+		/* Convert to the return type. */
+		cexpr = stype_convert(stype, return_s->expr, dtype);
 
-	/* Patch code with the augmented expression. */
-	return_s->expr = cexpr;
+		/* Patch code with the augmented expression. */
+		return_s->expr = cexpr;
+	}
 }
 
 /** Type expression statement.
@@ -713,7 +898,8 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 	}
 
 	if (src == NULL) {
-		printf("Error: Conversion source is not valid.\n");
+		cspan_print(expr->cspan);
+		printf(" Error: Conversion source is not valid.\n");
 		stype_note_error(stype);
 		return expr;
 	}
@@ -737,8 +923,15 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 		return stype_convert_tfun_tdeleg(stype, expr, dest);
 	}
 
+	if (src->tic == tic_tebase) {
+		stype_convert_failure(stype, expr, dest);
+		printf("Invalid use of reference to enum type in "
+		    "expression.\n");
+		return expr;
+	}
+
 	if (src->tic != dest->tic) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
@@ -754,6 +947,12 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 		break;
 	case tic_tdeleg:
 		expr = stype_convert_tdeleg(stype, expr, dest);
+		break;
+	case tic_tebase:
+		/* Conversion destination should never be enum-base */
+		assert(b_false);
+	case tic_tenum:
+		expr = stype_convert_tenum(stype, expr, dest);
 		break;
 	case tic_tfun:
 		assert(b_false);
@@ -787,14 +986,15 @@ static stree_expr_t *stype_convert_tprimitive(stype_t *stype,
 
 	/* Check if both have the same tprimitive class. */
 	if (src->u.tprimitive->tpc != dest->u.tprimitive->tpc)
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 
 	return expr;
 }
 
 /** Convert expression of primitive type to object type.
  *
- * This function implements autoboxing. It modified the code.
+ * This function implements autoboxing. It modifies the code by inserting
+ * the boxing operation.
  *
  * @param stype		Static typing object
  * @param expr		Expression
@@ -827,19 +1027,20 @@ static stree_expr_t *stype_convert_tprim_tobj(stype_t *stype,
 	case tpc_nil: assert(b_false);
 	case tpc_string: bp_sym = bi->boxed_string; break;
 	case tpc_resource:
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
 	/* Target type must be boxed @a src or Object */
 	if (csi_sym != bp_sym && csi_sym != bi->gf_class)
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 
 	/* Patch the code to box the primitive value */
 	box = stree_box_new();
 	box->arg = expr;
 	bexpr = stree_expr_new(ec_box);
 	bexpr->u.box = box;
+	bexpr->titem = dest;
 
 	/* No action needed to optionally convert boxed type to Object */
 
@@ -900,7 +1101,7 @@ static stree_expr_t *stype_convert_tobject(stype_t *stype, stree_expr_t *expr,
 			list_init(&cur->u.tobject->targs);
 		} else {
 			/* No match */
-			stype_convert_failure(stype, src, dest);
+			stype_convert_failure(stype, expr, dest);
 			return expr;
 		}
 	}
@@ -915,7 +1116,7 @@ static stree_expr_t *stype_convert_tobject(stype_t *stype, stree_expr_t *expr,
 
 		if (tdata_item_equal(carg, darg) != b_true) {
 			/* Diferent argument type */
-			stype_convert_failure(stype, src, dest);
+			stype_convert_failure(stype, expr, dest);
 			printf("Different argument type '");
 			tdata_item_print(carg);
 			printf("' vs. '");
@@ -930,7 +1131,7 @@ static stree_expr_t *stype_convert_tobject(stype_t *stype, stree_expr_t *expr,
 
 	if (ca_n != NULL || da_n != NULL) {
 		/* Diferent number of arguments */
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		printf("Different number of arguments.\n");
 		return expr;
 	}
@@ -958,14 +1159,14 @@ static stree_expr_t *stype_convert_tarray(stype_t *stype, stree_expr_t *expr,
 
 	/* Compare rank and base type. */
 	if (src->u.tarray->rank != dest->u.tarray->rank) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
 	/* XXX Should we convert each element? */
 	if (tdata_item_equal(src->u.tarray->base_ti,
 	    dest->u.tarray->base_ti) != b_true) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 	}
 
 	return expr;
@@ -1003,7 +1204,42 @@ static stree_expr_t *stype_convert_tdeleg(stype_t *stype, stree_expr_t *expr,
 
 	/* Both must be the same delegate. */
 	if (sdeleg->deleg != ddeleg->deleg) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
+		return expr;
+	}
+
+	return expr;
+}
+
+/** Convert expression of enum type to enum type.
+ *
+ * @param stype		Static typing object
+ * @param expr		Expression
+ * @param dest		Destination type
+ */
+static stree_expr_t *stype_convert_tenum(stype_t *stype, stree_expr_t *expr,
+    tdata_item_t *dest)
+{
+	tdata_item_t *src;
+	tdata_enum_t *senum, *denum;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Convert enum type.\n");
+#endif
+	src = expr->titem;
+	assert(src->tic == tic_tenum);
+	assert(dest->tic == tic_tenum);
+
+	senum = src->u.tenum;
+	denum = dest->u.tenum;
+
+	/*
+	 * XXX How should enum types interact with generics?
+	 */
+
+	/* Both must be of the same enum type (with the same declaration). */
+	if (senum->enum_d != denum->enum_d) {
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
@@ -1042,7 +1278,7 @@ static stree_expr_t *stype_convert_tfun_tdeleg(stype_t *stype,
 	/* Signature type must match. */
 
 	if (!stype_fun_sig_equal(stype, ssig, dsig)) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
@@ -1074,7 +1310,7 @@ static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
 
 	/* Currently only allow if both types are the same. */
 	if (src->u.tvref->targ != dest->u.tvref->targ) {
-		stype_convert_failure(stype, src, dest);
+		stype_convert_failure(stype, expr, dest);
 		return expr;
 	}
 
@@ -1084,20 +1320,83 @@ static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
 /** Display conversion error message and note error.
  *
  * @param stype		Static typing object
- * @param src		Original type
+ * @param expr		Original expression
  * @param dest		Destination type
  */
-static void stype_convert_failure(stype_t *stype, tdata_item_t *src,
+static void stype_convert_failure(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest)
 {
-	printf("Error: Cannot convert ");
-	tdata_item_print(src);
+	cspan_print(expr->cspan);
+	printf(" Error: Cannot convert ");
+	tdata_item_print(expr->titem);
 	printf(" to ");
 	tdata_item_print(dest);
 	printf(".\n");
 
 	stype_note_error(stype);
 }
+
+/** Box value.
+ *
+ * This function implements implicit boxing. It modifies the code by inserting
+ * the boxing operation.
+ *
+ * @param stype		Static typing object
+ * @param expr		Expression
+ * @return		Modified expression.
+ */
+stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr)
+{
+	tdata_item_t *src;
+	builtin_t *bi;
+	stree_symbol_t *bp_sym;
+	stree_box_t *box;
+	stree_expr_t *bexpr;
+	tdata_object_t *tobject;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Boxing.\n");
+#endif
+	src = expr->titem;
+	assert(src->tic == tic_tprimitive);
+
+	bi = stype->program->builtin;
+
+	/* Make compiler happy. */
+	bp_sym = NULL;
+
+	switch (src->u.tprimitive->tpc) {
+	case tpc_bool: bp_sym = bi->boxed_bool; break;
+	case tpc_char: bp_sym = bi->boxed_char; break;
+	case tpc_int: bp_sym = bi->boxed_int; break;
+	case tpc_nil: assert(b_false);
+	case tpc_string: bp_sym = bi->boxed_string; break;
+	case tpc_resource:
+		cspan_print(expr->cspan);
+		printf(" Error: Cannot use ");
+		tdata_item_print(expr->titem);
+		printf(" as an object.\n");
+
+		stype_note_error(stype);
+		return expr;
+	}
+
+	/* Patch the code to box the primitive value */
+	box = stree_box_new();
+	box->arg = expr;
+	bexpr = stree_expr_new(ec_box);
+	bexpr->u.box = box;
+	bexpr->titem = tdata_item_new(tic_tobject);
+	tobject = tdata_object_new();
+	bexpr->titem->u.tobject = tobject;
+
+	tobject->csi = symbol_to_csi(bp_sym);
+	assert(tobject->csi != NULL);
+
+	return bexpr;
+}
+
+
 
 /** Determine if two type signatures are equal.
  *
@@ -1295,6 +1594,7 @@ stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name)
 	stype_proc_vr_t *proc_vr;
 
 	stree_symbol_t *outer_sym;
+	stree_ctor_t *ctor;
 	stree_fun_t *fun;
 	stree_prop_t *prop;
 
@@ -1313,7 +1613,17 @@ stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name)
 	printf("Look for argument named '%s'.\n", strtab_get_str(name));
 #endif
 
+	/* Make compiler happy. */
+	args = NULL;
+	varg = NULL;
+
 	switch (outer_sym->sc) {
+	case sc_ctor:
+		ctor = symbol_to_ctor(outer_sym);
+		assert(ctor != NULL);
+		args = &ctor->sig->args;
+		varg = ctor->sig->varg;
+		break;
 	case sc_fun:
 		fun = symbol_to_fun(outer_sym);
 		assert(fun != NULL);
@@ -1330,7 +1640,10 @@ stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name)
 		if (prop->setter == proc_vr->proc)
 			setter_arg = prop->setter_arg;
 		break;
-	default:
+	case sc_csi:
+	case sc_deleg:
+	case sc_enum:
+	case sc_var:
 		assert(b_false);
 	}
 

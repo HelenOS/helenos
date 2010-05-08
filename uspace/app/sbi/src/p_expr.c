@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "bigint.h"
+#include "cspan.h"
 #include "debug.h"
 #include "lex.h"
 #include "list.h"
@@ -42,6 +43,8 @@
 #include "p_expr.h"
 
 static stree_expr_t *parse_assign(parse_t *parse);
+static stree_expr_t *parse_disjunctive(parse_t *parse);
+static stree_expr_t *parse_conjunctive(parse_t *parse);
 static stree_expr_t *parse_comparative(parse_t *parse);
 static stree_expr_t *parse_additive(parse_t *parse);
 static stree_expr_t *parse_multip(parse_t *parse);
@@ -94,7 +97,7 @@ static stree_expr_t *parse_assign(parse_t *parse)
 	stree_expr_t *a, *b, *tmp;
 	stree_assign_t *assign;
 
-	a = parse_comparative(parse);
+	a = parse_disjunctive(parse);
 
 	switch (lcur_lc(parse)) {
 	case lc_assign:
@@ -108,14 +111,90 @@ static stree_expr_t *parse_assign(parse_t *parse)
 	}
 
 	lskip(parse);
-	b = parse_comparative(parse);
+	b = parse_disjunctive(parse);
 
 	assign->dest = a;
 	assign->src = b;
 
 	tmp = stree_expr_new(ec_assign);
 	tmp->u.assign = assign;
+	tmp->cspan = cspan_merge(a->cspan, b->cspan);
+
+	assign->expr = tmp;
+
 	return tmp;
+}
+
+/** Parse disjunctive expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_disjunctive(parse_t *parse)
+{
+	stree_expr_t *a, *b, *tmp;
+	stree_binop_t *binop;
+	cspan_t *cs;
+
+	a = parse_conjunctive(parse);
+	cs = a->cspan;
+
+	while (lcur_lc(parse) == lc_or) {
+		if (parse_is_error(parse))
+			break;
+
+		lskip(parse);
+		b = parse_conjunctive(parse);
+
+		binop = stree_binop_new(bo_or);
+		binop->arg1 = a;
+		binop->arg2 = b;
+
+		tmp = stree_expr_new(ec_binop);
+		tmp->u.binop = binop;
+		tmp->cspan = cspan_merge(cs, b->cspan);
+		binop->expr = tmp;
+
+		a = tmp;
+		cs = tmp->cspan;
+	}
+
+	return a;
+}
+
+/** Parse conjunctive expression.
+ *
+ * @param parse		Parser object.
+ */
+static stree_expr_t *parse_conjunctive(parse_t *parse)
+{
+	stree_expr_t *a, *b, *tmp;
+	stree_binop_t *binop;
+	cspan_t *cs;
+
+	a = parse_comparative(parse);
+	cs = a->cspan;
+
+	while (lcur_lc(parse) == lc_and) {
+		if (parse_is_error(parse))
+			break;
+
+		lskip(parse);
+		b = parse_comparative(parse);
+
+		binop = stree_binop_new(bo_and);
+		binop->arg1 = a;
+		binop->arg2 = b;
+
+		tmp = stree_expr_new(ec_binop);
+		tmp->u.binop = binop;
+		tmp->cspan = cspan_merge(cs, b->cspan);
+		binop->expr = tmp;
+
+		a = tmp;
+		cs = tmp->cspan;
+	}
+
+	return a;
 }
 
 /** Parse comparative expression.
@@ -127,8 +206,10 @@ static stree_expr_t *parse_comparative(parse_t *parse)
 	stree_expr_t *a, *b, *tmp;
 	stree_binop_t *binop;
 	binop_class_t bc;
+	cspan_t *cs;
 
 	a = parse_additive(parse);
+	cs = a->cspan;
 
 	while (lcur_lc(parse) == lc_equal || lcur_lc(parse) == lc_notequal ||
 	    lcur_lc(parse) == lc_lt || lcur_lc(parse) == lc_gt ||
@@ -156,7 +237,11 @@ static stree_expr_t *parse_comparative(parse_t *parse)
 
 		tmp = stree_expr_new(ec_binop);
 		tmp->u.binop = binop;
+		tmp->cspan = cspan_merge(cs, b->cspan);
+		binop->expr = tmp;
+
 		a = tmp;
+		cs = tmp->cspan;
 	}
 
 	return a;
@@ -171,8 +256,11 @@ static stree_expr_t *parse_additive(parse_t *parse)
 	stree_expr_t *a, *b, *tmp;
 	stree_binop_t *binop;
 	binop_class_t bc;
+	cspan_t *cs;
 
 	a = parse_multip(parse);
+	cs = a->cspan;
+
 	while (lcur_lc(parse) == lc_plus || lcur_lc(parse) == lc_minus) {
 		if (parse_is_error(parse))
 			break;
@@ -192,7 +280,11 @@ static stree_expr_t *parse_additive(parse_t *parse)
 
 		tmp = stree_expr_new(ec_binop);
 		tmp->u.binop = binop;
+		tmp->cspan = cspan_merge(cs, b->cspan);
+		binop->expr = tmp;
+
 		a = tmp;
+		cs = tmp->cspan;
 	}
 
 	return a;
@@ -207,8 +299,11 @@ static stree_expr_t *parse_multip(parse_t *parse)
 	stree_expr_t *a, *b, *tmp;
 	stree_binop_t *binop;
 	binop_class_t bc;
+	cspan_t *cs;
 
 	a = parse_prefix(parse);
+	cs = a->cspan;
+
 	while (lcur_lc(parse) == lc_mult) {
 		if (parse_is_error(parse))
 			break;
@@ -227,7 +322,11 @@ static stree_expr_t *parse_multip(parse_t *parse)
 
 		tmp = stree_expr_new(ec_binop);
 		tmp->u.binop = binop;
+		tmp->cspan = cspan_merge(cs, b->cspan);
+		binop->expr = tmp;
+
 		a = tmp;
+		cs = tmp->cspan;
 	}
 
 	return a;
@@ -243,19 +342,23 @@ static stree_expr_t *parse_prefix(parse_t *parse)
 	stree_expr_t *tmp;
 	stree_unop_t *unop;
 	unop_class_t uc;
+	cspan_t *cs0;
 
 	switch (lcur_lc(parse)) {
 	case lc_plus:
 	case lc_minus:
+	case lc_not:
 		if (parse_is_error(parse))
 			return parse_recovery_expr(parse);
 
 		switch (lcur_lc(parse)) {
 		case lc_plus: uc = uo_plus; break;
 		case lc_minus: uc = uo_minus; break;
+		case lc_not: uc = uo_not; break;
 		default: assert(b_false);
 		}
 
+		cs0 = lcur_span(parse);
 		lskip(parse);
 		a = parse_postfix(parse);
 
@@ -264,6 +367,8 @@ static stree_expr_t *parse_prefix(parse_t *parse)
 
 		tmp = stree_expr_new(ec_unop);
 		tmp->u.unop = unop;
+		tmp->cspan = cspan_merge(cs0, a->cspan);
+		unop->expr = tmp;
 		a = tmp;
 		break;
 	case lc_new:
@@ -286,20 +391,46 @@ static stree_expr_t *parse_prefix_new(parse_t *parse)
 	stree_texpr_t *texpr;
 	stree_new_t *new_op;
 	stree_expr_t *expr;
+	stree_expr_t *arg;
+	cspan_t *cs0, *cs1;
 
+	cs0 = lcur_span(parse);
 	lmatch(parse, lc_new);
 	texpr = parse_texpr(parse);
 
-	/* Parenthesis should be present except for arrays. */
-	if (texpr->tc != tc_tindex) {
-		lmatch(parse, lc_lparen);
-		lmatch(parse, lc_rparen);
-	}
+	/* XXX Take span from texpr */
+	cs1 = lprev_span(parse);
 
 	new_op = stree_new_new();
 	new_op->texpr = texpr;
 	expr = stree_expr_new(ec_new);
 	expr->u.new_op = new_op;
+
+	list_init(&new_op->ctor_args);
+
+	/* Parenthesized arguments should be present except for arrays. */
+	if (texpr->tc != tc_tindex) {
+		lmatch(parse, lc_lparen);
+
+		/* Parse constructor arguments */
+
+		if (lcur_lc(parse) != lc_rparen) {
+			while (!parse_is_error(parse)) {
+				arg = parse_expr(parse);
+				list_append(&new_op->ctor_args, arg);
+
+				if (lcur_lc(parse) == lc_rparen)
+					break;
+				lmatch(parse, lc_comma);
+			}
+		}
+
+		lmatch(parse, lc_rparen);
+		cs1 = cspan_merge(cs0, lprev_span(parse));
+	}
+
+	expr->cspan = cspan_merge(cs0, cs1);
+	new_op->expr = expr;
 
 	return expr;
 }
@@ -353,9 +484,13 @@ static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a)
 	stree_ident_t *ident;
 	stree_expr_t *expr;
 	stree_access_t *access;
+	cspan_t *cs1;
 
 	lmatch(parse, lc_period);
 	ident = parse_ident(parse);
+
+	/* XXX Take span from ident */
+	cs1 = lprev_span(parse);
 
 	access = stree_access_new();
 	access->arg = a;
@@ -363,6 +498,9 @@ static stree_expr_t *parse_pf_access(parse_t *parse, stree_expr_t *a)
 
 	expr = stree_expr_new(ec_access);
 	expr->u.access = access;
+	expr->cspan = cspan_merge(a->cspan, cs1);
+
+	access->expr = expr;
 
 	return expr;
 }
@@ -376,6 +514,7 @@ static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 	stree_expr_t *expr;
 	stree_call_t *call;
 	stree_expr_t *arg;
+	cspan_t *cs1;
 
 	lmatch(parse, lc_lparen);
 
@@ -397,9 +536,12 @@ static stree_expr_t *parse_pf_call(parse_t *parse, stree_expr_t *a)
 	}
 
 	lmatch(parse, lc_rparen);
+	cs1 = lprev_span(parse);
 
 	expr = stree_expr_new(ec_call);
 	expr->u.call = call;
+	expr->cspan = cspan_merge(a->cspan, cs1);
+	call->expr = expr;
 
 	return expr;
 }
@@ -413,6 +555,7 @@ static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 	stree_expr_t *expr;
 	stree_index_t *index;
 	stree_expr_t *arg;
+	cspan_t *cs1;
 
 	lmatch(parse, lc_lsbr);
 
@@ -434,9 +577,12 @@ static stree_expr_t *parse_pf_index(parse_t *parse, stree_expr_t *a)
 	}
 
 	lmatch(parse, lc_rsbr);
+	cs1 = lprev_span(parse);
 
 	expr = stree_expr_new(ec_index);
 	expr->u.index = index;
+	expr->cspan = cspan_merge(a->cspan, cs1);
+	index->expr = expr;
 
 	return expr;
 }
@@ -450,15 +596,23 @@ static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
 	stree_expr_t *expr;
 	stree_texpr_t *texpr;
 	stree_as_t *as_op;
+	cspan_t *cs1;
 
 	lmatch(parse, lc_as);
 	texpr = parse_texpr(parse);
 
+	/* XXX Take span from texpr */
+	cs1 = lprev_span(parse);
+
 	as_op = stree_as_new();
 	as_op->arg = a;
 	as_op->dtype = texpr;
+
 	expr = stree_expr_new(ec_as);
 	expr->u.as_op = as_op;
+	expr->cspan = cspan_merge(a->cspan, cs1);
+
+	as_op->expr = expr;
 
 	return expr;
 }
@@ -470,18 +624,22 @@ static stree_expr_t *parse_pf_as(parse_t *parse, stree_expr_t *a)
 static stree_expr_t *parse_paren(parse_t *parse)
 {
 	stree_expr_t *expr;
+	cspan_t *cs0, *cs1;
 
 	if (lcur_lc(parse) == lc_lparen) {
+		cs0 = lcur_span(parse);
 		lskip(parse);
 		expr = parse_expr(parse);
 		lmatch(parse, lc_rparen);
+		cs1 = lprev_span(parse);
+
+		expr->cspan = cspan_merge(cs0, cs1);
 	} else {
 		expr = parse_primitive(parse);
 	}
 
 	return expr;
 }
-
 
 /** Parse primitive expression.
  *
@@ -535,6 +693,8 @@ static stree_expr_t *parse_nameref(parse_t *parse)
 	nameref->name = parse_ident(parse);
 	expr = stree_expr_new(ec_nameref);
 	expr->u.nameref = nameref;
+	expr->cspan = lprev_span(parse);
+	nameref->expr = expr;
 
 	return expr;
 }
@@ -562,6 +722,8 @@ static stree_expr_t *parse_lit_bool(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	expr->cspan = lprev_span(parse);
+	literal->expr = expr;
 
 	return expr;
 }
@@ -585,6 +747,8 @@ static stree_expr_t *parse_lit_char(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	expr->cspan = lprev_span(parse);
+	literal->expr = expr;
 
 	return expr;
 }
@@ -608,6 +772,8 @@ static stree_expr_t *parse_lit_int(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	expr->cspan = lprev_span(parse);
+	literal->expr = expr;
 
 	return expr;
 }
@@ -627,6 +793,8 @@ static stree_expr_t *parse_lit_ref(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	expr->cspan = lprev_span(parse);
+	literal->expr = expr;
 
 	return expr;
 }
@@ -649,6 +817,8 @@ static stree_expr_t *parse_lit_string(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	expr->cspan = lprev_span(parse);
+	literal->expr = expr;
 
 	return expr;
 }
@@ -668,6 +838,8 @@ static stree_expr_t *parse_self_ref(parse_t *parse)
 
 	expr = stree_expr_new(ec_self_ref);
 	expr->u.self_ref = self_ref;
+	expr->cspan = lprev_span(parse);
+	self_ref->expr = expr;
 
 	return expr;
 }
@@ -687,6 +859,7 @@ static stree_expr_t *parse_recovery_expr(parse_t *parse)
 
 	expr = stree_expr_new(ec_literal);
 	expr->u.literal = literal;
+	literal->expr = expr;
 
 	return expr;
 }

@@ -48,6 +48,7 @@ typedef enum {
 
 #include "bigint_t.h"
 #include "builtin_t.h"
+#include "cspan_t.h"
 #include "input_t.h"
 #include "intmap_t.h"
 #include "lex_t.h"

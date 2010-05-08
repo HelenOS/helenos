@@ -26,35 +26,21 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
---
--- Declarations for boxed variants of primitive types. The interpreter
--- binds to these types internally. They must be declared.
---
+-- Using the Map class from the library.
+class MapDemo is
+	fun Main() is
+		var map : Map/string/int;
 
-class Bool is
-	var Value : bool;
-end
+		map = new Map/string/int();
 
-class Char is
-	var Value : char;
-end
+		map["one"] = 1;
+		map["two"] = 2;
+		map["three"] = 3;
+		map["four"] = 4;
 
-class Int is
-	var Value : int;
-end
-
-class String is
-	var Value : string;
-
-	fun get_length() : int, builtin;
-
-	-- Length of string.
-	prop Length : int is
-		get is
-			return get_length();
-		end
+		Builtin.WriteLine(map["one"]);
+		Builtin.WriteLine(map["two"]);
+		Builtin.WriteLine(map["three"]);
+		Builtin.WriteLine(map["four"]);
 	end
-
-	-- Slice (sub-string).
-	fun Slice(start : int; length : int) : string, builtin;
 end

@@ -42,16 +42,19 @@ typedef enum {
 	lc_lit_string,
 
 	/* Keywords */
+	lc_and,
 	lc_as,
+	lc_break,
 	lc_bool,
 	lc_builtin,
 	lc_char,
 	lc_class,
-	lc_constructor,
 	lc_deleg,
 	lc_do,
+	lc_elif,
 	lc_else,
 	lc_end,
+	lc_enum,
 	lc_except,
 	lc_false,
 	lc_finally,
@@ -65,6 +68,8 @@ typedef enum {
 	lc_interface,
 	lc_is,
 	lc_nil,
+	lc_not,
+	lc_or,
 	lc_override,
 	lc_packed,
 	lc_private,
@@ -147,7 +152,7 @@ typedef struct {
 	} u;
 
 	/** Coordinates of this lexical element */
-	int line_no, col_0;
+	struct cspan *cspan;
 } lem_t;
 
 /** Lexer state object */
@@ -167,7 +172,13 @@ typedef struct lex {
 	/** Column number adjustment (due to tabs) */
 	int col_adj;
 
-	/** @c b_true if we have the next lem in @c current */
+	/** @c b_true if we have the previous lem in @c prev */
+	bool_t prev_valid;
+
+	/** Previous lem (only valid if @c current_valid is true) */
+	lem_t prev;
+
+	/** @c b_true if we have the current lem in @c current */
 	bool_t current_valid;
 
 	/** Curent lem (only valid if @c current_valid is true) */

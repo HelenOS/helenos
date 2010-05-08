@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "cspan.h"
 #include "debug.h"
 #include "list.h"
 #include "mytypes.h"
@@ -101,6 +102,9 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	tdata_object_t *tobject;
 	tdata_deleg_t *tdeleg;
 	stree_csi_t *base_csi;
+	stree_deleg_t *deleg;
+	stree_enum_t *enum_d;
+	tdata_enum_t *tenum;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type access operation.\n");
@@ -114,7 +118,9 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 	}
 
 	if (targ_i->tic != tic_tobject) {
-		printf("Error: Using '.' with type which is not an object.\n");
+		cspan_print(taccess->texpr->cspan);
+		printf(" Error: Using '.' with type which is not an "
+		    "object.\n");
 		*res = tdata_item_new(tic_ignore);
 		return;
 	}
@@ -124,7 +130,8 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 
 	sym = symbol_lookup_in_csi(prog, base_csi, taccess->member_name);
 	if (sym == NULL) {
-		printf("Error: CSI '");
+		cspan_print(taccess->member_name->cspan);
+		printf(" Error: CSI '");
 		symbol_print_fqn(csi_to_symbol(base_csi));
 		printf("' has no member named '%s'.\n",
 		    strtab_get_str(taccess->member_name->sid));
@@ -141,20 +148,53 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 
 		tobject->static_ref = b_false;
 		tobject->csi = sym->u.csi;
-		list_init(&tobject->targs); /* XXX */
+		list_init(&tobject->targs);
 		break;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_deleg:
-		/* Construct type item. */
-		titem = tdata_item_new(tic_tdeleg);
-		tdeleg = tdata_deleg_new();
-		titem->u.tdeleg = tdeleg;
+		/* Fetch stored delegate type. */
+		deleg = symbol_to_deleg(sym);
+		assert(deleg != NULL);
+		if (deleg->titem == NULL) {
+			/*
+			 * Prepare a partial delegate which will be completed
+			 * later.
+			 */
+			titem = tdata_item_new(tic_tdeleg);
+			tdeleg = tdata_deleg_new();
+			titem->u.tdeleg = tdeleg;
+			tdeleg->deleg = deleg;
+			tdeleg->tsig = NULL;
 
-		tdeleg->deleg = sym->u.deleg;
+			deleg->titem = titem;
+		} else {
+			titem = deleg->titem;
+		}
+		break;
+	case sc_enum:
+		/* Fetch stored enum type. */
+		enum_d = symbol_to_enum(sym);
+		assert(enum_d != NULL);
+		if (enum_d->titem == NULL) {
+			/*
+			 * Prepare a partial enum whic will be completed
+			 * later.
+			 */
+			titem = tdata_item_new(tic_tenum);
+			tenum = tdata_enum_new();
+			titem->u.tenum = tenum;
+			tenum->enum_d = enum_d;
+		} else {
+			titem = enum_d->titem;
+		}
 		break;
 	case sc_fun:
 	case sc_var:
 	case sc_prop:
-		printf("Error: Symbol '");
+		cspan_print(taccess->member_name->cspan);
+		printf(" Error: Symbol '");
 		symbol_print_fqn(sym);
 		printf("' is not a type.\n");
 		titem = tdata_item_new(tic_ignore);
@@ -263,6 +303,8 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	tdata_vref_t *tvref;
 	stree_deleg_t *deleg;
 	tdata_deleg_t *tdeleg;
+	stree_enum_t *enum_d;
+	tdata_enum_t *tenum;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type name reference.\n");
@@ -292,7 +334,8 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 	/* Look for symbol */
 	sym = symbol_lookup_in_csi(prog, ctx, tnameref->name);
 	if (sym == NULL) {
-		printf("Error: Symbol '%s' not found.\n",
+		cspan_print(tnameref->texpr->cspan);
+		printf(" Error: Symbol '%s' not found.\n",
 		    strtab_get_str(tnameref->name->sid));
 		*res = tdata_item_new(tic_ignore);
 		return;
@@ -307,8 +350,11 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 
 		tobject->static_ref = b_false;
 		tobject->csi = sym->u.csi;
-		list_init(&tobject->targs); /* XXX */
+		list_init(&tobject->targs);
 		break;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_deleg:
 		/* Fetch stored delegate type. */
 		deleg = symbol_to_deleg(sym);
@@ -329,10 +375,28 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 			titem = deleg->titem;
 		}
 		break;
+	case sc_enum:
+		/* Fetch stored enum type. */
+		enum_d = symbol_to_enum(sym);
+		assert(enum_d != NULL);
+		if (enum_d->titem == NULL) {
+			/*
+			 * Prepare a partial enum whic will be completed
+			 * later.
+			 */
+			titem = tdata_item_new(tic_tenum);
+			tenum = tdata_enum_new();
+			titem->u.tenum = tenum;
+			tenum->enum_d = enum_d;
+		} else {
+			titem = enum_d->titem;
+		}
+		break;
 	case sc_fun:
 	case sc_var:
 	case sc_prop:
-		printf("Error: Symbol '");
+		cspan_print(tnameref->texpr->cspan);
+		printf(" Error: Symbol '");
 		symbol_print_fqn(sym);
 		printf("' is not a type.\n");
 		titem = tdata_item_new(tic_ignore);
@@ -378,7 +442,8 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 	run_texpr(prog, ctx, tapply->gtype, &base_ti);
 
 	if (base_ti->tic != tic_tobject) {
-		printf("Error: Base type of generic application is not "
+		cspan_print(tapply->gtype->cspan);
+		printf(" Error: Base type of generic application is not "
 		    "a CSI.\n");
 		*res = tdata_item_new(tic_ignore);
 		return;
@@ -409,7 +474,8 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 	}
 
 	if (farg_n != NULL || arg_n != NULL) {
-		printf("Error: Incorrect number of type arguments.\n");
+		cspan_print(tapply->texpr->cspan);
+		printf(" Error: Incorrect number of type arguments.\n");
 		*res = tdata_item_new(tic_ignore);
 		return;
 	}

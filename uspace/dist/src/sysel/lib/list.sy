@@ -30,8 +30,8 @@
 class List/t is
 	var head : ListNode/t;
 
-	-- Initialize list.
-	fun Init() is
+	-- New empty list.
+	new() is
 		head = new ListNode/t();
 		head.prev = head;
 		head.next = head;
@@ -45,7 +45,7 @@ class List/t is
 		ntl = head.prev;
 
 		n = new ListNode/t();
-		n.value = data;
+		n.data = data;
 
 		n.prev = ntl;
 		n.next = head;
@@ -73,16 +73,16 @@ class List/t is
 end
 
 class ListNode/t is
-	var value : t;
+	var data : t;
 
 	var prev : ListNode/t;
 	var next : ListNode/t;
 	var head : ListNode/t;
 
-	-- Value stored in this node.
-	prop Value : t is
+	-- Data stored in this node.
+	prop Data : t is
 		get is
-			return value;
+			return data;
 		end
 	end
 
@@ -98,6 +98,19 @@ class ListNode/t is
 		get is
 			return get_next();
 		end
+	end
+
+	-- Remove node from list.
+	fun Remove() is
+		var p : ListNode/t;
+		var n : ListNode/t;
+
+		p = prev; n = next;
+		p.next = n;
+		n.prev = p;
+
+		prev = nil;
+		next = nil;
 	end
 
 	-- Get next node.

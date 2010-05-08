@@ -32,7 +32,9 @@
 #include "mytypes.h"
 
 void stype_module(stype_t *stype, stree_module_t *module);
+void stype_ctor_header(stype_t *stype, stree_ctor_t *ctor);
 void stype_deleg(stype_t *stype, stree_deleg_t *deleg);
+void stype_enum(stype_t *stype, stree_enum_t *enum_d);
 void stype_fun_header(stype_t *stype, stree_fun_t *fun);
 void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value);
 
@@ -41,6 +43,7 @@ tdata_item_t *stype_recovery_titem(stype_t *stype);
 
 stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
+stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr);
 
 tdata_fun_sig_t *stype_deleg_get_sig(stype_t *stype, tdata_deleg_t *tdeleg);
 

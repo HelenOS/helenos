@@ -115,6 +115,23 @@ stree_csimbr_t *stree_csimbr_new(csimbr_class_t cc)
 	return csimbr;
 }
 
+/** Allocate new constructor.
+ *
+ * @return	New constructor
+ */
+stree_ctor_t *stree_ctor_new(void)
+{
+	stree_ctor_t *ctor;
+
+	ctor = calloc(1, sizeof(stree_ctor_t));
+	if (ctor == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return ctor;
+}
+
 /** Allocate new member delegate.
  *
  * @return	New member delegate
@@ -130,6 +147,40 @@ stree_deleg_t *stree_deleg_new(void)
 	}
 
 	return deleg;
+}
+
+/** Allocate new enum.
+ *
+ * @return	New enum
+ */
+stree_enum_t *stree_enum_new(void)
+{
+	stree_enum_t *enum_d;
+
+	enum_d = calloc(1, sizeof(stree_enum_t));
+	if (enum_d == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return enum_d;
+}
+
+/** Allocate new enum member.
+ *
+ * @return	New enum member
+ */
+stree_embr_t *stree_embr_new(void)
+{
+	stree_embr_t *embr;
+
+	embr = calloc(1, sizeof(stree_embr_t));
+	if (embr == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return embr;
 }
 
 /** Allocate new member function.
@@ -393,6 +444,23 @@ stree_raise_t *stree_raise_new(void)
 	return raise_s;
 }
 
+/** Allocate new @c break statement.
+ *
+ * @return	New @c break statement
+ */
+stree_break_t *stree_break_new(void)
+{
+	stree_break_t *break_s;
+
+	break_s = calloc(1, sizeof(stree_break_t));
+	if (break_s == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return break_s;
+}
+
 /** Allocate new @c return statement.
  *
  * @return	New @c return statement
@@ -459,6 +527,23 @@ stree_except_t *stree_except_new(void)
 	}
 
 	return except_c;
+}
+
+/** Allocate new @c if/elif clause.
+ *
+ * @return	New @c if/elif clause
+ */
+stree_if_clause_t *stree_if_clause_new(void)
+{
+	stree_if_clause_t *if_clause;
+
+	if_clause = calloc(1, sizeof(stree_if_clause_t));
+	if (if_clause == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return if_clause;
 }
 
 /** Allocate new statement block.
@@ -868,7 +953,7 @@ stree_program_t *stree_program_new(void)
  *
  * @param symbol	Symbol
  * @param sac		Symbol attribute class
- * @return		@c b_true if yes, @c b_false if no.
+ * @return		@c b_true if yes, @c b_false if no
  */
 bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac)
 {
@@ -937,9 +1022,9 @@ bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b)
 
 /** Search for CSI type argument of the given name.
  *
- * @param csi		CSI to look in.
- * @param ident		Identifier of the type argument.
- * @return		Type argument definition or @c NULL if not found.
+ * @param csi		CSI to look in
+ * @param ident		Identifier of the type argument
+ * @return		Type argument declaration or @c NULL if not found
  */
 stree_targ_t *stree_csi_find_targ(stree_csi_t *csi, stree_ident_t *ident)
 {
@@ -957,4 +1042,53 @@ stree_targ_t *stree_csi_find_targ(stree_csi_t *csi, stree_ident_t *ident)
 
 	/* No match */
 	return NULL;
+}
+
+/** Search for enum member of the given name.
+ *
+ * @param enum_d	Enum to look in
+ * @param ident		Identifier of the enum member
+ * @return		Enum member declaration or @c NULL if not found
+ */
+stree_embr_t *stree_enum_find_mbr(stree_enum_t *enum_d, stree_ident_t *ident)
+{
+	list_node_t *embr_n;
+	stree_embr_t *embr;
+
+	embr_n = list_first(&enum_d->members);
+	while (embr_n != NULL) {
+		embr = list_node_data(embr_n, stree_embr_t *);
+		if (embr->name->sid == ident->sid)
+			return embr;
+
+		embr_n = list_next(&enum_d->members, embr_n);
+	}
+
+	/* No match */
+	return NULL;
+}
+
+/** Get CSI member name.
+ *
+ * @param csimbr	CSI member
+ * @return		Member name
+ */
+stree_ident_t *stree_csimbr_get_name(stree_csimbr_t *csimbr)
+{
+	stree_ident_t *mbr_name;
+
+	/* Keep compiler happy. */
+	mbr_name = NULL;
+
+	switch (csimbr->cc) {
+	case csimbr_csi: mbr_name = csimbr->u.csi->name; break;
+	case csimbr_ctor: mbr_name = csimbr->u.ctor->name; break;
+	case csimbr_deleg: mbr_name = csimbr->u.deleg->name; break;
+	case csimbr_enum: mbr_name = csimbr->u.enum_d->name; break;
+	case csimbr_fun: mbr_name = csimbr->u.fun->name; break;
+	case csimbr_var: mbr_name = csimbr->u.var->name; break;
+	case csimbr_prop: mbr_name = csimbr->u.prop->name; break;
+	}
+
+	return mbr_name;
 }

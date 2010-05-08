@@ -43,6 +43,7 @@
 #include "builtin/bi_error.h"
 #include "builtin/bi_fun.h"
 #include "builtin/bi_textfile.h"
+#include "builtin/bi_string.h"
 #include "input.h"
 #include "intmap.h"
 #include "lex.h"
@@ -89,6 +90,7 @@ void builtin_declare(stree_program_t *program)
 	bi_error_declare(bi);
 	bi_fun_declare(bi);
 	bi_textfile_declare(bi);
+	bi_string_declare(bi);
 }
 
 /** Bind internal interpreter references to symbols in the program.
@@ -104,6 +106,7 @@ void builtin_bind(builtin_t *bi)
 	bi_error_bind(bi);
 	bi_fun_bind(bi);
 	bi_textfile_bind(bi);
+	bi_string_bind(bi);
 }
 
 /** Get grandfather class.

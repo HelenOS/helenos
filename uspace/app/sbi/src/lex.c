@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "bigint.h"
+#include "cspan.h"
 #include "mytypes.h"
 #include "input.h"
 #include "os/os.h"
@@ -73,16 +74,19 @@ struct lc_name {
 
 /** Keyword names. Used both for printing and recognition. */
 static struct lc_name keywords[] = {
+	{ lc_and,	"and" },
 	{ lc_as,	"as" },
 	{ lc_bool,	"bool" },
-	{ lc_char,	"char" },
+	{ lc_break,	"break" },
 	{ lc_builtin,	"builtin" },
+	{ lc_char,	"char" },
 	{ lc_class,	"class" },
-	{ lc_constructor,	"constructor" },
 	{ lc_deleg,	"deleg" },
 	{ lc_do,	"do" },
+	{ lc_elif,	"elif" },
 	{ lc_else,	"else" },
 	{ lc_end,	"end" },
+	{ lc_enum,	"enum" },
 	{ lc_except,	"except" },
 	{ lc_false,	"false" },
 	{ lc_finally,	"finally" },
@@ -95,7 +99,9 @@ static struct lc_name keywords[] = {
 	{ lc_interface,	"interface" },
 	{ lc_is,	"is" },
 	{ lc_new,	"new" },
+	{ lc_not,	"not" },
 	{ lc_nil,	"nil" },
+	{ lc_or,	"or" },
 	{ lc_override,	"override" },
 	{ lc_packed,	"packed" },
 	{ lc_private,	"private" },
@@ -232,7 +238,7 @@ void lem_print(lem_t *lem)
  */
 void lem_print_coords(lem_t *lem)
 {
-	printf("%d:%d", lem->line_no, lem->col_0);
+	cspan_print(lem->cspan);
 }
 
 /** Initialize lexer instance.
@@ -254,6 +260,7 @@ void lex_init(lex_t *lex, struct input *input)
 
 	lex->ibp = lex->inbuf;
 	lex->col_adj = 0;
+	lex->prev_valid = b_false;
 	lex->current_valid = b_true;
 }
 
@@ -278,12 +285,42 @@ void lex_next(lex_t *lex)
  *
  * @param lex		Lexer object.
  * @return		Pointer to current lem. Owned by @a lex and only valid
- *			until next call to lex_next().
+ *			until next call to lex_xxx().
  */
 lem_t *lex_get_current(lex_t *lex)
 {
 	lex_touch(lex);
 	return &lex->current;
+}
+
+/** Get previous lem if valid.
+ *
+ * The returned pointer is invalidated by next call to lex_next()
+ *
+ * @param lex		Lexer object.
+ * @return		Pointer to previous lem. Owned by @a lex and only valid
+ *			until next call to lex_xxx().
+ */
+lem_t *lex_peek_prev(lex_t *lex)
+{
+	if (lex->current_valid == b_false) {
+		/*
+		 * This means the head is advanced but next lem was not read.
+		 * Thus the previous lem is still in @a current.
+		 */
+		return &lex->current;
+	}
+
+	if (lex->prev_valid != b_true) {
+		/* Looks like we are still at the first lem. */
+		return NULL;
+	}
+
+	/*
+	 * Current lem has been read in. Thus the previous lem was moved to
+	 * @a previous.
+	 */
+	return &lex->prev;
 }
 
 /** Read in the current lexical element (unless already read in).
@@ -296,6 +333,10 @@ static void lex_touch(lex_t *lex)
 
 	if (lex->current_valid == b_true)
 		return;
+
+	/* Copy previous lem */
+	lex->prev = lex->current;
+	lex->prev_valid = b_true;
 
 	do {
 		got_lem = lex_read_try(lex);
@@ -317,7 +358,8 @@ static void lex_touch(lex_t *lex)
  */
 static bool_t lex_read_try(lex_t *lex)
 {
-	char *bp;
+	char *bp, *lsp;
+	int line0, col0;
 
 	lex_skip_ws(lex);
 
@@ -327,39 +369,47 @@ static bool_t lex_read_try(lex_t *lex)
 	 * for all characters except tab. Thus we keep track of tabs
 	 * separately using col_adj.
 	 */
-	lex->current.line_no = input_get_line_no(lex->input);
-	lex->current.col_0 = 1 + lex->col_adj + (lex->ibp - lex->inbuf);
+	line0 = input_get_line_no(lex->input);
+	col0 = 1 + lex->col_adj + (lex->ibp - lex->inbuf);
 
+	lex->current.cspan = cspan_new(lex->input, line0, col0, line0, col0);
+
+	lsp = lex->ibp;
 	bp = lex->ibp;
 
 	if (bp[0] == '\0') {
 		/* End of input */
 		lex->current.lclass = lc_eof;
-		return b_true;
+		goto finish;
 	}
 
 	if (is_wstart(bp[0])) {
 		lex_word(lex);
-		return b_true;
+		goto finish;
 	}
 
 	if (bp[0] == '\'') {
 		lex_char(lex);
-		return b_true;
+		goto finish;
 	}
 
 	if (is_digit(bp[0])) {
 		lex_number(lex);
-		return b_true;
+		goto finish;
 	}
 
 	if (bp[0] == '"') {
 		lex_string(lex);
-		return b_true;
+		goto finish;
 	}
 
 	if (bp[0] == '-' && bp[1] == '-') {
 		lex_skip_comment(lex);
+
+		/* Compute ending column number */
+		lex->current.cspan->col1 = col0 + (lex->ibp - lsp) - 1;
+
+		/* Try again */
 		return b_false;
 	}
 
@@ -416,6 +466,10 @@ static bool_t lex_read_try(lex_t *lex)
 	}
 
 	lex->ibp = bp;
+
+finish:
+	/* Compute ending column number */
+	lex->current.cspan->col1 = col0 + (lex->ibp - lsp) - 1;
 	return b_true;
 
 invalid:

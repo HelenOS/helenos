@@ -38,5 +38,6 @@ void lem_print_coords(lem_t *lem);
 void lex_init(lex_t *lex, struct input *input);
 void lex_next(lex_t *lex);
 lem_t *lex_get_current(lex_t *lex);
+lem_t *lex_peek_prev(lex_t *lex);
 
 #endif

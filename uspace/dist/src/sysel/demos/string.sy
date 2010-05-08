@@ -38,5 +38,7 @@ class StringDemo is
 			Builtin.WriteLine("ABCDE"[i]);
 			i = i + 1;
 		end
+
+		Builtin.WriteLine("Abracadabra".Slice(2, 4));
 	end
 end

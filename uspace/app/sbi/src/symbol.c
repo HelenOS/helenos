@@ -41,6 +41,7 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
     stree_ident_t *name);
 static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
     stree_ident_t *name, stree_csi_t *csi);
+static stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr);
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol);
 
 /** Lookup symbol in CSI using a type expression.
@@ -87,6 +88,9 @@ stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
 
 /** Lookup symbol reference in CSI.
  *
+ * XXX These functions should take just an sid, not a full identifier.
+ * Sometimes we search for a name which has no associated cspan.
+ *
  * @param prog	Program to look in
  * @param scope CSI in @a prog which is the base for references
  * @param name	Identifier of the symbol
@@ -127,57 +131,14 @@ stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 stree_symbol_t *symbol_search_csi(stree_program_t *prog,
     stree_csi_t *scope, stree_ident_t *name)
 {
-	list_node_t *node;
-	stree_csimbr_t *csimbr;
-	stree_symbol_t *symbol;
-	stree_ident_t *mbr_name;
 	stree_symbol_t *base_csi_sym;
 	stree_csi_t *base_csi;
-
-	(void) prog;
+	stree_symbol_t *symbol;
 
 	/* Look in new members in this class. */
-
-	node = list_first(&scope->members);
-	while (node != NULL) {
-		csimbr = list_node_data(node, stree_csimbr_t *);
-
-		/* Keep compiler happy. */
-		mbr_name = NULL;
-
-		switch (csimbr->cc) {
-		case csimbr_csi: mbr_name = csimbr->u.csi->name; break;
-		case csimbr_deleg: mbr_name = csimbr->u.deleg->name; break;
-		case csimbr_fun: mbr_name = csimbr->u.fun->name; break;
-		case csimbr_var: mbr_name = csimbr->u.var->name; break;
-		case csimbr_prop: mbr_name = csimbr->u.prop->name; break;
-		}
-
-		if (name->sid == mbr_name->sid) {
-			/* Match */
-			switch (csimbr->cc) {
-			case csimbr_csi:
-				symbol = csi_to_symbol(csimbr->u.csi);
-				break;
-			case csimbr_deleg:
-				symbol = deleg_to_symbol(csimbr->u.deleg);
-				break;
-			case csimbr_fun:
-				symbol = fun_to_symbol(csimbr->u.fun);
-				break;
-			case csimbr_var:
-				symbol = var_to_symbol(csimbr->u.var);
-				break;
-			case csimbr_prop:
-				symbol = prop_to_symbol(csimbr->u.prop);
-				break;
-			default:
-				assert(b_false);
-			}
-			return symbol;
-		}
-		node = list_next(&scope->members, node);
-	}
+	symbol = symbol_search_csi_no_base(prog, scope, name);
+	if (symbol != NULL)
+		return symbol;
 
 	/* Try inherited members. */
 	if (scope->base_csi_ref != NULL) {
@@ -189,6 +150,44 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 		return symbol_search_csi(prog, base_csi, name);
 	}
 
+	/* No match */
+	return NULL;
+}
+
+/** Look for symbol strictly in CSI.
+ *
+ * Look for symbol in definition of a CSI and its ancestors. (But not
+ * in lexically enclosing CSI or in base CSI.)
+ *
+ * @param prog	Program to look in
+ * @param scope CSI in which to look
+ * @param name	Identifier of the symbol
+ *
+ * @return	Symbol or @c NULL if symbol not found.
+ */
+stree_symbol_t *symbol_search_csi_no_base(stree_program_t *prog,
+    stree_csi_t *scope, stree_ident_t *name)
+{
+	list_node_t *node;
+	stree_csimbr_t *csimbr;
+	stree_ident_t *mbr_name;
+
+	(void) prog;
+
+	/* Look in new members in this class. */
+
+	node = list_first(&scope->members);
+	while (node != NULL) {
+		csimbr = list_node_data(node, stree_csimbr_t *);
+		mbr_name = stree_csimbr_get_name(csimbr);
+
+		if (name->sid == mbr_name->sid) {
+			/* Match */
+			return csimbr_to_symbol(csimbr);
+		}
+
+		node = list_next(&scope->members, node);
+	}
 	/* No match */
 	return NULL;
 }
@@ -206,18 +205,26 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 	list_node_t *node;
 	stree_modm_t *modm;
 	stree_symbol_t *symbol;
+	stree_ident_t *mbr_name;
 
 	node = list_first(&prog->module->members);
 	while (node != NULL) {
 		modm = list_node_data(node, stree_modm_t *);
-		if (name->sid == modm->u.csi->name->sid) {
+
+		switch (modm->mc) {
+		case mc_csi: mbr_name = modm->u.csi->name; break;
+		case mc_enum: mbr_name = modm->u.enum_d->name; break;
+		}
+
+		if (name->sid == mbr_name->sid) {
 			/* Match */
 			switch (modm->mc) {
 			case mc_csi:
 				symbol = csi_to_symbol(modm->u.csi);
 				break;
-			default:
-				assert(b_false);
+			case mc_enum:
+				symbol = enum_to_symbol(modm->u.enum_d);
+				break;
 			}
 			return symbol;
 		}
@@ -345,6 +352,30 @@ stree_symbol_t *deleg_to_symbol(stree_deleg_t *deleg)
 	return deleg->symbol;
 }
 
+/** Convert symbol to enum (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Enum or @c NULL if symbol is not a enum
+ */
+stree_enum_t *symbol_to_enum(stree_symbol_t *symbol)
+{
+	if (symbol->sc != sc_enum)
+		return NULL;
+
+	return symbol->u.enum_d;
+}
+
+/** Convert enum to symbol (derived to base).
+ *
+ * @param deleg		Enum
+ * @return		Symbol
+ */
+stree_symbol_t *enum_to_symbol(stree_enum_t *enum_d)
+{
+	assert(enum_d->symbol);
+	return enum_d->symbol;
+}
+
 /** Convert symbol to CSI (base to derived).
  *
  * @param symbol	Symbol
@@ -368,6 +399,31 @@ stree_symbol_t *csi_to_symbol(stree_csi_t *csi)
 	assert(csi->symbol);
 	return csi->symbol;
 }
+
+/** Convert symbol to constructor (base to derived).
+ *
+ * @param symbol	Symbol
+ * @return		Constructor or @c NULL if symbol is not a constructor
+ */
+stree_ctor_t *symbol_to_ctor(stree_symbol_t *symbol)
+{
+	if (symbol->sc != sc_ctor)
+		return NULL;
+
+	return symbol->u.ctor;
+}
+
+/** Convert constructor to symbol (derived to base).
+ *
+ * @param ctor		Constructor
+ * @return		Symbol
+ */
+stree_symbol_t *ctor_to_symbol(stree_ctor_t *ctor)
+{
+	assert(ctor->symbol);
+	return ctor->symbol;
+}
+
 
 /** Convert symbol to function (base to derived).
  *
@@ -430,6 +486,49 @@ stree_prop_t *symbol_to_prop(stree_symbol_t *symbol)
 	return symbol->u.prop;
 }
 
+/** Get symbol from CSI member.
+ *
+ * A symbol corresponds to any CSI member. Return it.
+ *
+ * @param csimbr	CSI member
+ * @return		Symbol
+ */
+static stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr)
+{
+	stree_symbol_t *symbol;
+
+	/* Keep compiler happy. */
+	symbol = NULL;
+
+	/* Match */
+	switch (csimbr->cc) {
+	case csimbr_csi:
+		symbol = csi_to_symbol(csimbr->u.csi);
+		break;
+	case csimbr_ctor:
+		symbol = ctor_to_symbol(csimbr->u.ctor);
+		break;
+	case csimbr_deleg:
+		symbol = deleg_to_symbol(csimbr->u.deleg);
+		break;
+	case csimbr_enum:
+		symbol = enum_to_symbol(csimbr->u.enum_d);
+		break;
+	case csimbr_fun:
+		symbol = fun_to_symbol(csimbr->u.fun);
+		break;
+	case csimbr_var:
+		symbol = var_to_symbol(csimbr->u.var);
+		break;
+	case csimbr_prop:
+		symbol = prop_to_symbol(csimbr->u.prop);
+		break;
+	}
+
+	return symbol;
+}
+
+
 /** Convert property to symbol (derived to base).
  *
  * @param fun		Property
@@ -471,7 +570,9 @@ static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol)
 
 	switch (symbol->sc) {
 	case sc_csi: ident = symbol->u.csi->name; break;
+	case sc_ctor: ident = symbol->u.ctor->name; break;
 	case sc_deleg: ident = symbol->u.deleg->name; break;
+	case sc_enum: ident = symbol->u.enum_d->name; break;
 	case sc_fun: ident = symbol->u.fun->name; break;
 	case sc_var: ident = symbol->u.var->name; break;
 	case sc_prop: ident = symbol->u.prop->name; break;

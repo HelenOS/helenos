@@ -70,13 +70,13 @@ void bi_textfile_declare(builtin_t *bi)
 			"fun ReadLine() : string, builtin;\n"
 			"fun WriteLine(line : string), builtin;\n"
 			"\n"
-			"prop EOF : int is\n"
+			"prop EOF : bool is\n"
 				"get is\n"
 					"return is_eof();\n"
 				"end\n"
 			"end\n"
 			"\n"
-			"fun is_eof() : int, builtin;\n"
+			"fun is_eof() : bool, builtin;\n"
 		"end\n");
 
 }
@@ -341,8 +341,8 @@ static void bi_textfile_is_eof(run_t *run)
 	FILE *file;
         rdata_var_t *self_f_var;
 
-	int eof_flag;
-	rdata_int_t *eof_int;
+	bool_t eof_flag;
+	rdata_bool_t *eof_bool;
 	rdata_var_t *eof_var;
 	rdata_value_t *eof_val;
 	rdata_item_t *eof_item;
@@ -361,17 +361,17 @@ static void bi_textfile_is_eof(run_t *run)
 
 	/* Get status of EOF flag. */
 
-	eof_flag = feof(file) ? 1 : 0;
+	eof_flag = feof(file) ? b_true : b_false;
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Read EOF flag '%d'.\n", eof_flag);
+	printf("Read EOF flag '%s'.\n", eof_flag ? "true" : "false");
 #endif
 	/* Construct return value. */
-	eof_int = rdata_int_new();
-	bigint_init(&eof_int->value, eof_flag);
+	eof_bool = rdata_bool_new();
+	eof_bool->value = eof_flag;
 
-	eof_var = rdata_var_new(vc_int);
-	eof_var->u.int_v = eof_int;
+	eof_var = rdata_var_new(vc_bool);
+	eof_var->u.bool_v = eof_bool;
 	eof_val = rdata_value_new();
 	eof_val->var = eof_var;
 

@@ -42,16 +42,16 @@ struct stree_expr;
 /** Identifier */
 typedef struct {
 	int sid;
+	struct cspan *cspan;
 } stree_ident_t;
 
 /** Name reference */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	stree_ident_t *name;
 } stree_nameref_t;
-
-/** Reference to currently active object. */
-typedef struct {
-} stree_self_ref_t;
 
 /** Boolean literal */
 typedef struct {
@@ -87,6 +87,9 @@ typedef enum {
 
 /** Literal */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	literal_class_t ltc;
 	union {
 		stree_lit_bool_t lit_bool;
@@ -96,6 +99,12 @@ typedef struct {
 		stree_lit_string_t lit_string;
 	} u;
 } stree_literal_t;
+
+/** Reference to currently active object. */
+typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+} stree_self_ref_t;
 
 /** Binary operation class */
 typedef enum {
@@ -107,17 +116,23 @@ typedef enum {
 	bo_gt_equal,
 	bo_plus,
 	bo_minus,
-	bo_mult
+	bo_mult,
+	bo_and,
+	bo_or
 } binop_class_t;
 
 /** Unary operation class */
 typedef enum {
 	uo_plus,
 	uo_minus,
+	uo_not
 } unop_class_t;
 
 /** Binary operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Binary operation class */
 	binop_class_t bc;
 
@@ -127,6 +142,9 @@ typedef struct {
 
 /** Unary operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Operation class */
 	unop_class_t uc;
 
@@ -136,12 +154,21 @@ typedef struct {
 
 /** New operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Type of object to construct. */
 	struct stree_texpr *texpr;
+
+	/** Constructor arguments */
+	list_t ctor_args; /* of stree_expr_t */
 } stree_new_t;
 
 /** Member access operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Argument */
 	struct stree_expr *arg;
 	/** Name of member being accessed. */
@@ -150,6 +177,9 @@ typedef struct {
 
 /** Function call operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Function */
 	struct stree_expr *fun;
 
@@ -164,12 +194,18 @@ typedef enum {
 
 /** Assignment */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	assign_class_t ac;
 	struct stree_expr *dest, *src;
 } stree_assign_t;
 
 /** Indexing operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Base */
 	struct stree_expr *base;
 
@@ -179,8 +215,12 @@ typedef struct {
 
 /** @c as conversion operation */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/** Expression to convert */
 	struct stree_expr *arg;
+
 	/** Destination type of conversion. */
 	struct stree_texpr *dtype;
 } stree_as_t;
@@ -192,6 +232,9 @@ typedef struct {
  * to a an explicit program construct.
  */
 typedef struct {
+	/** Expression backlink */
+	struct stree_expr *expr;
+
 	/* Primitive type expression */
 	struct stree_expr *arg;
 } stree_box_t;
@@ -216,7 +259,11 @@ typedef enum {
 typedef struct stree_expr {
 	expr_class_t ec;
 
+	/** Type of this expression or @c NULL if not typed yet */
 	struct tdata_item *titem;
+
+	/** Coordinate span */
+	struct cspan *cspan;
 
 	union {
 		stree_nameref_t *nameref;
@@ -251,24 +298,37 @@ typedef enum {
 
 /** Type literal */
 typedef struct {
+	/** Type expression backlink */
+	struct stree_texpr *texpr;
+
 	tliteral_class_t tlc;
 } stree_tliteral_t;
 
 /** Type name reference */
 typedef struct {
+	/** Type expression backlink */
+	struct stree_texpr *texpr;
+
 	stree_ident_t *name;
 } stree_tnameref_t;
 
 /** Type member access operation */
 typedef struct {
+	/** Type expression backlink */
+	struct stree_texpr *texpr;
+
 	/** Argument */
 	struct stree_texpr *arg;
+
 	/** Name of member being accessed. */
 	stree_ident_t *member_name;
 } stree_taccess_t;
 
 /** Type application operation */
 typedef struct {
+	/** Type expression backlink */
+	struct stree_texpr *texpr;
+
 	/* Base type */
 	struct stree_texpr *gtype;
 
@@ -278,6 +338,9 @@ typedef struct {
 
 /** Type index operation */
 typedef struct {
+	/** Type expression backlink */
+	struct stree_texpr *texpr;
+
 	/** Base type */
 	struct stree_texpr *base_type;
 
@@ -303,6 +366,9 @@ typedef enum {
 /** Arithmetic expression */
 typedef struct stree_texpr {
 	texpr_class_t tc;
+
+	/** Coordinate span */
+	struct cspan *cspan;
 
 	union {
 		stree_tliteral_t *tliteral;
@@ -336,10 +402,18 @@ typedef struct {
 	stree_block_t *block;
 } stree_except_t;
 
-/** If statement */
+/** @c if or @c elif clause */
 typedef struct {
 	stree_expr_t *cond;
-	stree_block_t *if_block;
+	stree_block_t *block;
+} stree_if_clause_t;
+
+/** If statement */
+typedef struct {
+	/** If and elif clauses */
+	list_t if_clauses; /* of stree_if_clause_t */
+
+	/** Else block */
 	stree_block_t *else_block;
 } stree_if_t;
 
@@ -358,6 +432,10 @@ typedef struct {
 typedef struct {
 	stree_expr_t *expr;
 } stree_raise_t;
+
+/** Break statement */
+typedef struct {
+} stree_break_t;
 
 /** Return statement */
 typedef struct {
@@ -383,6 +461,7 @@ typedef enum {
 	st_while,
 	st_for,
 	st_raise,
+	st_break,
 	st_return,
 	st_exps,
 	st_wef
@@ -398,6 +477,7 @@ typedef struct {
 		stree_while_t *while_s;
 		stree_for_t *for_s;
 		stree_raise_t *raise_s;
+		stree_break_t *break_s;
 		stree_return_t *return_s;
 		stree_exps_t *exp_s;
 		stree_wef_t *wef_s;
@@ -460,6 +540,24 @@ typedef struct stree_proc {
 	builtin_proc_t bi_handler;
 } stree_proc_t;
 
+/** Constructor declaration */
+typedef struct stree_ctor {
+	/** Constructor 'name'. Points to the @c new keyword. */
+	stree_ident_t *name;
+
+	/** Symbol */
+	struct stree_symbol *symbol;
+
+	/** Signature (arguments, return type is always none) */
+	stree_fun_sig_t *sig;
+
+	/** Constructor implementation */
+	stree_proc_t *proc;
+
+	/** Type item describing the constructor */
+	struct tdata_item *titem;
+} stree_ctor_t;
+
 /** Delegate declaration */
 typedef struct stree_deleg {
 	/** Delegate name */
@@ -474,6 +572,30 @@ typedef struct stree_deleg {
 	/** Type item describing the delegate */
 	struct tdata_item *titem;
 } stree_deleg_t;
+
+/** Enum member */
+typedef struct stree_embr {
+	/** Enum containing this declaration */
+	struct stree_enum *outer_enum;
+
+	/** Enum member name */
+	stree_ident_t *name;
+} stree_embr_t;
+
+/** Enum declaration */
+typedef struct stree_enum {
+	/** Enum name */
+	stree_ident_t *name;
+
+	/** Symbol */
+	struct stree_symbol *symbol;
+
+	/** List of enum members */
+	list_t members; /* of stree_embr_t */
+
+	/** Type item describing the enum */
+	struct tdata_item *titem;
+} stree_enum_t;
 
 /** Member function declaration */
 typedef struct stree_fun {
@@ -520,13 +642,15 @@ typedef struct stree_prop {
 
 /**
  * Fake identifiers used with symbols that do not really have one.
- * (Mostly for error messages.)
  */
+#define CTOR_IDENT "$ctor"
 #define INDEXER_IDENT "$indexer"
 
 typedef enum {
 	csimbr_csi,
+	csimbr_ctor,
 	csimbr_deleg,
+	csimbr_enum,
 	csimbr_fun,
 	csimbr_var,
 	csimbr_prop
@@ -538,7 +662,9 @@ typedef struct {
 
 	union {
 		struct stree_csi *csi;
+		stree_ctor_t *ctor;
 		stree_deleg_t *deleg;
+		stree_enum_t *enum_d;
 		stree_fun_t *fun;
 		stree_var_t *var;
 		stree_prop_t *prop;
@@ -586,7 +712,9 @@ typedef struct stree_csi {
 
 typedef enum {
 	/* Class, struct or interface declaration */
-	mc_csi
+	mc_csi,
+	/* Enum declaration */
+	mc_enum
 } modm_class_t;
 
 /** Module member */
@@ -594,6 +722,7 @@ typedef struct {
 	modm_class_t mc;
 	union {
 		stree_csi_t *csi;
+		stree_enum_t *enum_d;
 	} u;
 } stree_modm_t;
 
@@ -617,8 +746,12 @@ typedef struct {
 typedef enum {
 	/** CSI (class, struct or interface) */
 	sc_csi,
+	/** Constructor */
+	sc_ctor,
 	/** Member delegate */
 	sc_deleg,
+	/** Enum */
+	sc_enum,
 	/** Member function */
 	sc_fun,
 	/** Member variable */
@@ -637,7 +770,9 @@ typedef struct stree_symbol {
 
 	union {
 		struct stree_csi *csi;
+		stree_ctor_t *ctor;
 		stree_deleg_t *deleg;
+		stree_enum_t *enum_d;
 		stree_fun_t *fun;
 		stree_var_t *var;
 		stree_prop_t *prop;

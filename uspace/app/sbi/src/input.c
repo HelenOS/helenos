@@ -117,6 +117,7 @@ static int input_init_file(input_t *input, const char *fname)
 		exit(1);
 	}
 
+	input->name = os_str_dup(fname);
 	input->str = NULL;
 	input->line_no = 0;
 	input->fin = f;
@@ -135,6 +136,7 @@ static void input_init_interactive(input_t *input)
 		exit(1);
 	}
 
+	input->name = "<user-input>";
 	input->str = NULL;
 	input->line_no = 0;
 	input->fin = NULL;
@@ -153,6 +155,7 @@ static void input_init_string(input_t *input, const char *str)
 		exit(1);
 	}
 
+	input->name = "<builtin>";
 	input->str = str;
 	input->line_no = 0;
 	input->fin = NULL;
@@ -225,7 +228,7 @@ int input_get_line(input_t *input, char **line)
 
 /** Get number of the last provided line of input.
  *
- * @param input		Input module.
+ * @param input		Input object.
  * @return		Line number of the last provided input line (counting
  *			from 1 up).
  */
