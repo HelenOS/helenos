@@ -59,9 +59,14 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
 	unative_t rc;
+	ipl_t ipl;
 
 	/* Do userpace accounting */
+	ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
 	thread_update_accounting(true);
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
 
 #ifdef CONFIG_UDEBUG
 	/*
@@ -99,7 +104,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 #endif
 
 	/* Do kernel accounting */
+	ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
 	thread_update_accounting(false);
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
 	
 	return rc;
 }
