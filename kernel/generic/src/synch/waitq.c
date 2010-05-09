@@ -207,6 +207,9 @@ void waitq_unsleep(waitq_t *wq)
 	interrupts_restore(ipl);
 }
 
+#define PARAM_NON_BLOCKING(flags, usec) \
+	(((flags) & SYNCH_FLAGS_NON_BLOCKING) && ((usec) == 0))
+
 /** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to time out or to be
@@ -256,6 +259,8 @@ int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
+
+	ASSERT(!PREEMPTION_DISABLED || PARAM_NON_BLOCKING(flags, usec));
 	
 	ipl = waitq_sleep_prepare(wq);
 	rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
@@ -343,7 +348,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		return ESYNCH_OK_ATOMIC;
 	}
 	else {
-		if ((flags & SYNCH_FLAGS_NON_BLOCKING) && (usec == 0)) {
+		if (PARAM_NON_BLOCKING(flags, usec)) {
 			/* return immediatelly instead of going to sleep */
 			return ESYNCH_WOULD_BLOCK;
 		}
