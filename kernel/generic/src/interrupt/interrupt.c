@@ -92,8 +92,11 @@ void exc_dispatch(int n, istate_t *istate)
 	ASSERT(n < IVT_ITEMS);
 
 	/* Account user cycles */
-	if (THREAD)
+	if (THREAD) {
+		spinlock_lock(&THREAD->lock);
 		thread_update_accounting(true);
+		spinlock_unlock(&THREAD->lock);
+	}
 
 #ifdef CONFIG_UDEBUG
 	if (THREAD) THREAD->udebug.uspace_state = istate;
@@ -109,8 +112,11 @@ void exc_dispatch(int n, istate_t *istate)
 	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
 		thread_exit();
 
-	if (THREAD)
+	if (THREAD) {
+		spinlock_lock(&THREAD->lock);
 		thread_update_accounting(false);
+		spinlock_unlock(&THREAD->lock);
+	}
 }
 
 /** Default 'null' exception handler */
