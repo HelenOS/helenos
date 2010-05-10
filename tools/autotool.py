@@ -172,9 +172,10 @@ def check_binutils(path, prefix, common, details):
 	common['AR'] = "%sar" % prefix
 	common['OBJCOPY'] = "%sobjcopy" % prefix
 	common['OBJDUMP'] = "%sobjdump" % prefix
+	common['STRIP'] = "%sstrip" % prefix
 	
 	if (not path is None):
-		for key in ["AS", "LD", "AR", "OBJCOPY", "OBJDUMP"]:
+		for key in ["AS", "LD", "AR", "OBJCOPY", "OBJDUMP", "STRIP"]:
 			common[key] = "%s/%s" % (path, common[key])
 	
 	check_app([common['AS'], "--version"], "GNU Assembler", details)
@@ -182,6 +183,7 @@ def check_binutils(path, prefix, common, details):
 	check_app([common['AR'], "--version"], "GNU Archiver", details)
 	check_app([common['OBJCOPY'], "--version"], "GNU Objcopy utility", details)
 	check_app([common['OBJDUMP'], "--version"], "GNU Objdump utility", details)
+	check_app([common['STRIP'], "--version"], "GNU strip", details)
 
 def probe_compiler(common, sizes):
 	"Generate, compile and parse probing source"
