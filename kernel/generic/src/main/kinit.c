@@ -94,9 +94,7 @@ static char alive[ALIVE_CHARS] = "-\\|/";
  */
 void kinit(void *arg)
 {
-#if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
-#endif
 	
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
