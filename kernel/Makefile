@@ -81,7 +81,12 @@ clean:
 #
 
 INCLUDES = generic/include
+
+ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
+OPTIMIZATION = s
+else
 OPTIMIZATION = 3
+endif
 
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
@@ -351,6 +356,9 @@ $(DISASM): $(RAW)
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
 	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	$(STRIP) $(RAW) 
+endif
 
 $(LINK): $(LINK).in $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@

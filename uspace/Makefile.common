@@ -103,7 +103,11 @@ clean:
 	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
 
+ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
+OPTIMIZATION = s
+else
 OPTIMIZATION = 3
+endif
 
 GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -166,6 +170,9 @@ ifneq ($(BINARY),)
 
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 	$(LD) -N $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	$(STRIP) $(BINARY)
+endif
 endif
 
 ifneq ($(LIBRARY),)
