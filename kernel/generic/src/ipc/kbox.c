@@ -125,6 +125,8 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	IPC_SET_RETVAL(call->data, 0);
 	ipc_answer(&TASK->kb.box, call);
 
+	mutex_lock(&TASK->kb.cleanup_lock);
+
 	ipl = interrupts_disable();
 	spinlock_lock(&TASK->lock);
 	spinlock_lock(&TASK->kb.box.lock);
@@ -135,13 +137,11 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 		 */
 
 		/* Only detach kbox thread unless already terminating. */
-		mutex_lock(&TASK->kb.cleanup_lock);
 		if (TASK->kb.finished == false) {
 			/* Detach kbox thread so it gets freed from memory. */
 			thread_detach(TASK->kb.thread);
 			TASK->kb.thread = NULL;
 		}
-		mutex_unlock(&TASK->kb.cleanup_lock);
 
 		LOG("Phone list is empty.");
 		*last = true;
@@ -152,6 +152,8 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	spinlock_unlock(&TASK->kb.box.lock);
 	spinlock_unlock(&TASK->lock);
 	interrupts_restore(ipl);
+
+	mutex_unlock(&TASK->kb.cleanup_lock);
 }
 
 /** Implementing function for the kbox thread.
