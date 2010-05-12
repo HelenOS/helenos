@@ -204,12 +204,13 @@ void bootstrap(void)
 	ofw_memmap(&bootinfo.memmap);
 	
 	void *bootinfo_pa = ofw_translate(&bootinfo);
+	void *kernel_address_pa = ofw_translate((void *) KERNEL_ADDRESS);
 	void *loader_address_pa = ofw_translate((void *) LOADER_ADDRESS);
 	
 	printf("\nMemory statistics (total %llu MB, starting at %p)\n",
 	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
 	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
-	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, KERNEL_ADDRESS);
+	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, kernel_address_pa);
 	printf(" %p|%p: loader entry pount\n", LOADER_ADDRESS, loader_address_pa);
 	
 	size_t i;
@@ -303,7 +304,6 @@ void bootstrap(void)
 		sun4v_fixups();
 	
 	printf("Booting the kernel ...\n");
-	ofw_quiesce();
-	jump_to_kernel((void *) KERNEL_ADDRESS, &bootinfo, subarch,
-	    bootinfo.physmem_start | BSP_PROCESSOR);
+	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo, subarch,
+	    (void *) KERNEL_ADDRESS);
 }

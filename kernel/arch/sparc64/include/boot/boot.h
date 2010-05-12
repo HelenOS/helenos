@@ -86,7 +86,6 @@ typedef struct {
 } bootinfo_t;
 
 extern memmap_t memmap;
-extern uintptr_t physmem_start;
 
 #endif
 #endif

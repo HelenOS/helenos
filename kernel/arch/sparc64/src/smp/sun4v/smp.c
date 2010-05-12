@@ -432,7 +432,7 @@ static bool wake_cpu(uint64_t cpuid)
 	/* make the CPU run again and execute HelenOS code */
 	if (__hypercall_fast4(CPU_START, cpuid,
 	    (uint64_t) KA2PA(kernel_image_start), KA2PA(trap_table),
-	    physmem_start) != EOK)
+	    physmem_base) != EOK)
 		return false;
 #endif
 	

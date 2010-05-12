@@ -181,7 +181,7 @@ jump_to_kernel:
 	 * or not is decided according to the value of the 3rd argument
 	 * (subarch).
 	 */
-	cmp %i2, SUBARCH_US3
+	cmp %o2, SUBARCH_US3
 	be %xcc, 1f
 	nop
 	
@@ -198,11 +198,7 @@ jump_to_kernel:
 	flush %i7
 	
 	! Jump to kernel
-	mov %o0, %l1
-	mov %o1, %o0
-	mov %o3, %o1
-	
-	jmp %l1
+	jmp %o3
 	nop
 
 # Flush I-cache

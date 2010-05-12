@@ -92,11 +92,12 @@
  * Here is where the kernel is passed control from the boot loader.
  *
  * The registers are expected to be in this state:
- *  - %o0 bootinfo structure address (BSP only)
- *  - %o1 starting address of physical memory
+ *  - %o0 starting address of physical memory
  *        + bootstrap processor flag
  *          bits 63...1: physical memory starting address / 2
  *          bit 0:       non-zero on BSP processor, zero on AP processors
+ *  - %o1 bootinfo structure address (BSP only)
+ *
  *
  * Moreover, we depend on boot having established the following environment:
  *  - TLBs are on
@@ -106,9 +107,9 @@
 .global kernel_image_start
 kernel_image_start:
 	mov BSP_FLAG, %l0
-	and %o1, %l0, %l7			! l7 <= bootstrap processor?
-	andn %o1, %l0, %l6			! l6 <= start of physical memory
-	or %o0, %g0, %l0
+	and %o0, %l0, %l7			! l7 <= bootstrap processor?
+	andn %o0, %l0, %l6			! l6 <= start of physical memory
+	or %o1, %g0, %l1
 
 	! Get bits (PHYSMEM_ADDR_SIZE - 1):13 of physmem_base.
 	srlx %l6, 13, %l5
@@ -245,7 +246,10 @@ kernel_image_start:
 	or %sp, %lo(temporary_boot_stack), %sp
 	sub %sp, STACK_BIAS, %sp
 
-	or %l0, %g0, %o0
+	/*
+	 * Call arch_pre_main(bootinfo)
+	 */
+	or %l1, %g0, %o0
 	call arch_pre_main
 	nop
 	

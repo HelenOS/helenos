@@ -166,6 +166,5 @@ void bootstrap(void)
 	}
 	
 	printf("Booting the kernel...\n");
-	ofw_quiesce();
 	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa);
 }

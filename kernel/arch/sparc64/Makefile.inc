@@ -89,11 +89,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/fhc.c \
 	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
 
-ifeq ($(USARCH),sun4u)
-	ARCH_SOURCES += \
-	        arch/$(KARCH)/src/mm/cache.S
-endif
-
 ifeq ($(USARCH),sun4v)
 	ARCH_SOURCES += \
 		arch/$(KARCH)/src/drivers/niagara.c \
