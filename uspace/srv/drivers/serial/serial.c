@@ -58,12 +58,14 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <device/hw_res.h>
+#include <ipc/serial_ctl.h>
 
 #include "cyclic_buffer.h"
 
 #define NAME "serial"
 
 #define REG_COUNT 7
+#define MAX_BAUD_RATE 115200
 
 typedef struct serial_dev_data {
 	bool client_connected;
@@ -306,6 +308,17 @@ failed:
 	return ret;	
 }
 
+static inline void serial_port_interrupts_enable(ioport8_t *port)
+{	
+	pio_write_8(port + 1 , 0x01);   // Interrupt when data received
+	pio_write_8(port + 4, 0x0B);	
+}
+
+static inline void serial_port_interrupts_disable(ioport8_t *port)
+{
+	pio_write_8(port + 1, 0x00);    // Disable all interrupts
+}
+
 static int serial_interrupt_enable(device_t *dev)
 {
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
@@ -317,10 +330,47 @@ static int serial_interrupt_enable(device_t *dev)
 	}
 	
 	// enable interrupt on the serial port
-	pio_write_8(data->port + 1 , 0x01);   // Interrupt when data received
-	pio_write_8(data->port + 4, 0x0B);	
+	serial_port_interrupts_enable(data->port);
 	
 	return EOK;
+}
+
+static int serial_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
+{
+	uint16_t divisor;
+	uint8_t div_low, div_high;
+	
+	if (50 > baud_rate || 0 != MAX_BAUD_RATE % baud_rate) {
+		return EINVAL; 
+	}
+	
+	divisor = MAX_BAUD_RATE / baud_rate;
+	div_low = (uint8_t)divisor;
+	div_high = (uint8_t)(divisor >> 8);	
+	
+	pio_write_8(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+	
+	pio_write_8(port + 0, div_low);    // Set divisor low byte
+	pio_write_8(port + 1, div_high);    // Set divisor high byte
+	
+	pio_write_8(port + 3, pio_read_8(port + 3) & (~0x80));    // Clear DLAB	
+	
+	return EOK;		
+}
+
+static int serial_set_baud_rate(device_t *dev, unsigned int baud_rate) 
+{
+	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ioport8_t *port = data->port;
+	int ret;
+	
+	fibril_mutex_lock(&data->mutex);	
+	serial_port_interrupts_disable(port);    // Disable all interrupts
+	ret = serial_port_set_baud_rate(port, baud_rate);
+	serial_port_interrupts_enable(port);
+	fibril_mutex_unlock(&data->mutex);	
+	
+	return ret;	
 }
 
 static void serial_initialize_port(device_t *dev)
@@ -328,10 +378,8 @@ static void serial_initialize_port(device_t *dev)
 	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
 	ioport8_t *port = data->port;
 	
-	pio_write_8(port + 1, 0x00);    // Disable all interrupts
-	pio_write_8(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-	pio_write_8(port + 0, 0x60);    // Set divisor to 96 (lo byte) 1200 baud
-	pio_write_8(port + 1, 0x00);    //                   (hi byte)
+	serial_port_interrupts_disable(port);     // Disable all interrupts
+	serial_port_set_baud_rate(port, 1200);
 	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
 	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
 	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
@@ -478,6 +526,31 @@ static void serial_close(device_t *dev)
 	fibril_mutex_unlock(&data->mutex);	 
 }
 
+/** Default handler for client requests which are not handled by the standard interfaces.
+ * 
+ * Configure the parameters of the serial communication.
+ */
+static void serial_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_t *call)
+{
+	ipcarg_t method = IPC_GET_METHOD(*call);
+	int ret;
+	
+	switch(method) {
+		case SERIAL_SET_BAUD_RATE:
+			ret = serial_set_baud_rate(dev, IPC_GET_ARG1(*call));
+			ipc_answer_0(callid, ret);
+			break;
+		case SERIAL_SET_PARITY:
+			// TODO
+			break;
+		case SERIAL_SET_STOP_BITS:
+			// TODO
+			break;
+		default:
+			ipc_answer_0(callid, ENOTSUP);		
+	}
+}
+
 /** Initialize the serial port driver.
  * 
  * Initialize class structures with callback methods for handling 
@@ -491,6 +564,7 @@ static void serial_init()
 	serial_dev_class.close = &serial_close;	
 	
 	serial_dev_class.interfaces[CHAR_DEV_IFACE] = &serial_char_iface;
+	serial_dev_class.default_handler = &serial_default_handler;
 }
 
 int main(int argc, char *argv[])
