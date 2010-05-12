@@ -128,7 +128,6 @@ RD_APPS = \
 	$(USPACE_PATH)/app/stats/stats \
 	$(USPACE_PATH)/app/tasks/tasks \
 	$(USPACE_PATH)/app/top/top
-#	$(USPACE_PATH)/app/dummy_load/dummy_load
 
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \

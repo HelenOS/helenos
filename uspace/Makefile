@@ -48,7 +48,6 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
-	app/dummy_load \
 	srv/clip \
 	srv/devmap \
 	srv/loader \
