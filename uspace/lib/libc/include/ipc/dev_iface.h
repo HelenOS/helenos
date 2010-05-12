@@ -45,6 +45,7 @@ typedef enum {
 #define DEV_IFACE_IDX(id) ((id) - IPC_FIRST_USER_METHOD)
 
 #define DEV_IFACE_COUNT DEV_IFACE_MAX
+#define DEV_FIRST_CUSTOM_METHOD DEV_IFACE_MAX
 
 
 #endif

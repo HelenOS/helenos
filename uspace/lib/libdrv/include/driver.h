@@ -55,6 +55,7 @@ typedef struct device device_t;
 // first two parameters: device and interface structure registered by the devices driver
 typedef void remote_iface_func_t(device_t*, void *, ipc_callid_t, ipc_call_t *);
 typedef remote_iface_func_t *remote_iface_func_ptr_t;
+typedef void remote_handler_t(device_t*, ipc_callid_t, ipc_call_t *);
 
 typedef struct {
 	size_t method_count;
@@ -85,8 +86,11 @@ typedef struct device_class {
 	int (*open)(device_t *dev);
 	/** Optional callback function called when a client is disconnecting from the device. */
 	void (*close)(device_t *dev);
-	/** The table of interfaces implemented by the device. */
+	/** The table of standard interfaces implemented by the device. */
 	void *interfaces[DEV_IFACE_COUNT];	
+	/** The default handler of remote client requests. If the client's remote request cannot be handled 
+	 * by any of the standard interfaces, the default handler is used.*/
+	remote_handler_t *default_handler;
 } device_class_t;
 
 
@@ -268,6 +272,18 @@ static inline interrupt_context_t *find_interrupt_context(interrupt_context_list
 
 int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode);
 int unregister_interrupt_handler(device_t *dev, int irq);
+
+
+// default handler for client requests
+
+static inline remote_handler_t * device_get_default_handler(device_t *dev)
+{
+	if (NULL == dev->class) {
+		return NULL;
+	}
+	
+	return dev->class->default_handler;	
+}
 
 #endif
 

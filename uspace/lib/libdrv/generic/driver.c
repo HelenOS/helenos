@@ -252,7 +252,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			iface_idx = DEV_IFACE_IDX(method);
 			
 			if (!is_valid_iface_idx(iface_idx)) {
-				// this is not device's interface
+				remote_handler_t *default_handler;
+				if (NULL != (default_handler = device_get_default_handler(dev))) {
+					(*default_handler)(dev, callid, &call);
+					break;
+				}
+				// this is not device's interface and the default handler is not provided
 				printf("%s: driver_connection_gen error - invalid interface id %d.", driver->name, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
