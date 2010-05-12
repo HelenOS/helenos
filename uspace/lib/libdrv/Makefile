@@ -37,7 +37,6 @@ SOURCES = \
 	generic/driver.c \
 	generic/dev_iface.c \
 	generic/remote_res.c \
-	generic/remote_char.c \
-	generic/remote_ioctl.c
+	generic/remote_char.c
 
 include ../Makefile.common
