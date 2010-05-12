@@ -118,7 +118,7 @@ static void serial_write_8(ioport8_t *port, uint8_t c)
 
 static int serial_read(device_t *dev, char *buf, size_t count) 
 {
-	printf(NAME ": serial_read %s\n", dev->name);
+	// printf(NAME ": serial_read %s\n", dev->name);
 	
 	int ret = 0;
 	
@@ -341,6 +341,7 @@ static int serial_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 	uint8_t div_low, div_high;
 	
 	if (50 > baud_rate || 0 != MAX_BAUD_RATE % baud_rate) {
+		printf(NAME ": error - somebody tried to set invalid baud rate %d\n", baud_rate);
 		return EINVAL; 
 	}
 	
@@ -364,6 +365,8 @@ static int serial_set_baud_rate(device_t *dev, unsigned int baud_rate)
 	ioport8_t *port = data->port;
 	int ret;
 	
+	printf(NAME ": set baud rate %d for the device %s.\n", baud_rate, dev->name);
+	
 	fibril_mutex_lock(&data->mutex);	
 	serial_port_interrupts_disable(port);    // Disable all interrupts
 	ret = serial_port_set_baud_rate(port, baud_rate);
@@ -379,7 +382,7 @@ static void serial_initialize_port(device_t *dev)
 	ioport8_t *port = data->port;
 	
 	serial_port_interrupts_disable(port);     // Disable all interrupts
-	serial_port_set_baud_rate(port, 1200);
+	serial_port_set_baud_rate(port, 38400);
 	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
 	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
 	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
@@ -397,8 +400,7 @@ static void serial_read_from_device(device_t *dev)
 		
 		if (cont = serial_received(port)) {
 			uint8_t val = serial_read_8(port);
-			printf(NAME ": character %c read from %s.\n", val, dev->name);
-			
+			// printf(NAME ": character %c read from %s.\n", val, dev->name);			
 			
 			if (data->client_connected) {
 				if (!buf_push_back(&(data->input_buffer), val)) {
@@ -407,7 +409,7 @@ static void serial_read_from_device(device_t *dev)
 					printf(NAME ": the character %c saved to the buffer of %s.\n", val, dev->name);
 				}
 			} else {
-				printf(NAME ": no client is connected to %s, discarding the character which was read.\n", dev->name);
+				// printf(NAME ": no client is connected to %s, discarding the character which was read.\n", dev->name);
 			}			
 		}
 		

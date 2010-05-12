@@ -45,6 +45,7 @@
 #include <devman.h>
 #include <device/char.h>
 #include <string.h>
+#include <ipc/serial_ctl.h>
 
 #define NAME 		"test serial"
 
@@ -90,6 +91,15 @@ int main(int argc, char *argv[])
 		return 3;
 	}
 	
+	res = ipc_call_sync_1_0(phone, SERIAL_SET_BAUD_RATE, 1200);
+	if (EOK != res) {
+		printf(NAME ": failed to set baud rate, errno = %d.\n", -res);
+		devman_hangup_phone(DEVMAN_CLIENT);
+		ipc_hangup(phone);
+		free(buf);
+		return 4;		
+	}
+	
 	int total = 0;
 	int read = 0;
 	while (total < cnt) {		
@@ -99,7 +109,7 @@ int main(int argc, char *argv[])
 			ipc_hangup(phone);
 			devman_hangup_phone(DEVMAN_CLIENT);
 			free(buf);
-			return 4;
+			return 5;
 		}		
 		total += read;
 		if (read > 0) {			
