@@ -278,7 +278,6 @@ kernel_image_start:
 	membar #Sync
 	subcc %g1, DCACHE_LINE_SIZE, %g1
 	bnz,pt %xcc, 0b
-	
 	stxa %g0, [%g1] ASI_DCACHE_TAG
 	membar #Sync
 	
