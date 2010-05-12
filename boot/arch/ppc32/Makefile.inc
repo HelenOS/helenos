@@ -39,9 +39,11 @@ ENDIANESS = BE
 PAGE_SIZE = 4096
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
-RD_SRVS += \
-	$(USPACE_PATH)/srv/hid/adb_mouse/adb_ms \
+RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/bus/cuda_adb/cuda_adb
+
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hid/adb_mouse/adb_ms
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \

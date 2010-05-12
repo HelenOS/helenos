@@ -39,7 +39,9 @@ ENDIANESS = BE
 PAGE_SIZE = 16384
 EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu
 
-RD_SRVS += \
+RD_SRVS_NON_ESSENTIAL +=
+
+RD_SRVS_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/cir/fhc/fhc \
 	$(USPACE_PATH)/srv/hw/cir/obio/obio
 

@@ -81,15 +81,17 @@ ifeq ($(RDFMT),fat)
 	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
 endif
 
-RD_SRVS = \
+RD_SRVS_ESSENTIAL = \
+	$(USPACE_PATH)/srv/hid/fb/fb \
+	$(USPACE_PATH)/srv/hid/kbd/kbd \
+	$(USPACE_PATH)/srv/hid/console/console \
+	$(USPACE_PATH)/srv/fs/devfs/devfs
+
+RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
 	$(USPACE_PATH)/srv/bd/part/guid_part/g_part \
 	$(USPACE_PATH)/srv/bd/part/mbr_part/mbr_part \
 	$(USPACE_PATH)/srv/clip/clip \
-	$(USPACE_PATH)/srv/hid/fb/fb \
-	$(USPACE_PATH)/srv/hid/kbd/kbd \
-	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/fs/devfs/devfs \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
@@ -104,16 +106,18 @@ RD_SRVS = \
 	$(USPACE_PATH)/srv/net/netstart/netstart \
 
 ifneq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	RD_SRVS += \
+	RD_SRVS_NON_ESSENTIAL += \
 		$(USPACE_PATH)/srv/net/nil/eth/eth \
 		$(USPACE_PATH)/srv/net/nil/nildummy/nildummy
 endif
 
-RD_APPS = \
+RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
-	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/getterm/getterm \
-	$(USPACE_PATH)/app/klog/klog \
+	$(USPACE_PATH)/app/klog/klog
+
+RD_APPS_NON_ESSENTIAL = \
+	$(USPACE_PATH)/app/edit/edit \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
@@ -129,10 +133,12 @@ RD_APPS = \
 	$(USPACE_PATH)/app/tasks/tasks \
 	$(USPACE_PATH)/app/top/top
 
+ifneq ($(CONFIG_BARE_BONED),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
 	$(USPACE_PATH)/srv/net/cfg/lo \
 	$(USPACE_PATH)/srv/net/cfg/ne2k
+endif
 
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.bin \
@@ -144,6 +150,14 @@ COMPS_H = arch/$(BARCH)/include/_components.h
 COMPS_C = arch/$(BARCH)/src/_components.c
 
 -include arch/$(BARCH)/Makefile.inc
+
+ifeq ($(CONFIG_BARE_BONED),y)
+RD_SRVS = $(RD_SRVS_ESSENTIAL)
+RD_APPS = $(RD_APPS_ESSENTIAL)
+else
+RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
+RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
+endif
 
 MODULES := $(notdir $(COMPONENTS))
 

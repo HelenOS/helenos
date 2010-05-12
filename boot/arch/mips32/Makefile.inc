@@ -31,7 +31,9 @@ BITS = 32
 PAGE_SIZE = 16384
 EXTRA_CFLAGS = -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
-RD_SRVS += \
+RD_SRVS_ESSENTIAL +=
+
+RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
 
 ifeq ($(MACHINE),lgxemul)

@@ -28,9 +28,11 @@
 
 PAGE_SIZE = 4096
 
-RD_SRVS += \
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042
+
+RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
 	$(USPACE_PATH)/srv/hw/bus/pci/pci \
 	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 

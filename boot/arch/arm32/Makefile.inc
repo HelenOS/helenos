@@ -34,7 +34,9 @@ BITS = 32
 ENDIANESS = LE
 PAGE_SIZE = 4096
 
-RD_SRVS += \
+RD_SRVS_ESSENTIAL +=
+
+RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
 
 SOURCES = \
