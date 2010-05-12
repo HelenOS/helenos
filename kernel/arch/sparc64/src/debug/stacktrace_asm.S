@@ -26,16 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/stack.h>
+
 .text
 
 .global frame_pointer_get
 .global program_counter_get
+.global alloc_window_and_flush
 
 frame_pointer_get:
+	# Add the stack bias to %sp to get the actual address.
 	retl
-	nop
+	add %sp, STACK_BIAS, %o0
 
 program_counter_get:
 	retl
-	nop
+	mov %o7, %o0
+
+alloc_window_and_flush:
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE+STACK_ARG_SAVE_AREA_SIZE), %sp
+	# Flush all other windows to memory so that we can read their contents.
+	flushw
+	ret
+	restore
 

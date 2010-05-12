@@ -36,19 +36,32 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 
+#include <arch/stack.h>
+
+#define FRAME_OFFSET_FP_PREV	14
+#define FRAME_OFFSET_RA		15
+
+extern void alloc_window_and_flush(void);
+
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	return false;
+	return fp != 0;
 }
 
 bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return false;
+	uint64_t *stack = (void *) fp;
+	alloc_window_and_flush();
+	*prev = stack[FRAME_OFFSET_FP_PREV] + STACK_BIAS;
+	return true;
 }
 
 bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return false;
+	uint64_t *stack = (void *) fp;
+	alloc_window_and_flush();
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
 }
 
 bool uspace_frame_pointer_validate(uintptr_t fp)
