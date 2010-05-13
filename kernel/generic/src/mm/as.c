@@ -422,6 +422,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		 * No need to check for overlaps.
 		 */
 
+		page_table_lock(as, false);
+
 		/*
 		 * Start TLB shootdown sequence.
 		 */
@@ -485,7 +487,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 				for (; i < c; i++) {
 					pte_t *pte;
 			
-					page_table_lock(as, false);
 					pte = page_mapping_find(as, b +
 					    i * PAGE_SIZE);
 					ASSERT(pte && PTE_VALID(pte) &&
@@ -498,7 +499,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 					}
 					page_mapping_remove(as, b +
 					    i * PAGE_SIZE);
-					page_table_unlock(as, false);
 				}
 			}
 		}
@@ -509,12 +509,15 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 
 		tlb_invalidate_pages(as->asid, area->base + pages * PAGE_SIZE,
 		    area->pages - pages);
+
 		/*
 		 * Invalidate software translation caches (e.g. TSB on sparc64).
 		 */
 		as_invalidate_translation_cache(as, area->base +
 		    pages * PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
+
+		page_table_unlock(as, false);
 		
 	} else {
 		/*
@@ -565,6 +568,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 
 	base = area->base;
 
+	page_table_lock(as, false);
+
 	/*
 	 * Start TLB shootdown sequence.
 	 */
@@ -585,7 +590,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			pte_t *pte;
 			
 			for (j = 0; j < (size_t) node->value[i]; j++) {
-				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
@@ -595,7 +599,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 					    j * PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
 				page_mapping_remove(as, b + j * PAGE_SIZE);				
-				page_table_unlock(as, false);
 			}
 		}
 	}
@@ -605,12 +608,15 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	 */
 
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
+
 	/*
 	 * Invalidate potential software translation caches (e.g. TSB on
 	 * sparc64).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize();
+
+	page_table_unlock(as, false);
 	
 	btree_destroy(&area->used_space);
 
@@ -857,6 +863,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	/* An array for storing frame numbers */
 	old_frame = malloc(used_pages * sizeof(uintptr_t), 0);
 
+	page_table_lock(as, false);
+
 	/*
 	 * Start TLB shootdown sequence.
 	 */
@@ -880,7 +888,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 			pte_t *pte;
 			
 			for (j = 0; j < (size_t) node->value[i]; j++) {
-				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
@@ -888,7 +895,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 
 				/* Remove old mapping */
 				page_mapping_remove(as, b + j * PAGE_SIZE);
-				page_table_unlock(as, false);
 			}
 		}
 	}
@@ -905,6 +911,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize();
+
+	page_table_unlock(as, false);
 
 	/*
 	 * Set the new flags.
