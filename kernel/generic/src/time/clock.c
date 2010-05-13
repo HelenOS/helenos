@@ -194,7 +194,7 @@ void clock(void)
 		}
 		spinlock_unlock(&THREAD->lock);
 		
-		if (!ticks && !PREEMPTION_DISABLED) {
+		if ((!ticks) && (!PREEMPTION_DISABLED)) {
 #ifdef CONFIG_UDEBUG
 			istate_t *istate;
 #endif

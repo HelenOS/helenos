@@ -260,7 +260,7 @@ int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
 	ipl_t ipl;
 	int rc;
 
-	ASSERT(!PREEMPTION_DISABLED || PARAM_NON_BLOCKING(flags, usec));
+	ASSERT((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
 	
 	ipl = waitq_sleep_prepare(wq);
 	rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
