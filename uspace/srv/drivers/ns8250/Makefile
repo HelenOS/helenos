@@ -28,10 +28,10 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBC_PREFIX)/libc.a
 
-OUTPUT = serial
+OUTPUT = ns8250
 
 SOURCES = \
-	serial.c
+	ns8250.c
 
 include ../../Makefile.common
 

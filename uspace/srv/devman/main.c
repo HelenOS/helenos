@@ -89,14 +89,16 @@ static driver_t * devman_driver_register(void)
 	// Find driver structure
 	driver = find_driver(&drivers_list, drv_name);
 	
-	free(drv_name);
-	drv_name = NULL;
-	
 	if (NULL == driver) {
 		printf(NAME ": no driver named %s was found.\n", drv_name);
+		free(drv_name);
+		drv_name = NULL;
 		ipc_answer_0(iid, ENOENT);
 		return NULL;
 	}
+	
+	free(drv_name);
+	drv_name = NULL;
 	
 	// Create connection to the driver
 	printf(NAME ":  creating connection to the %s driver.\n", driver->name);	

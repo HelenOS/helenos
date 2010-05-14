@@ -40,7 +40,7 @@ RD_DRVS = \
 	rootia32 \
 	pciintel \
 	isa \
-	serial
+	ns8250
 
 RD_DRV_CONF = \
 	isa/isa.dev

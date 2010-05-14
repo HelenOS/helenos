@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup serial Serial port driver.
+ * @defgroup ns8250 Serial port driver.
  * @brief HelenOS serial port driver.
  * @{
  */
@@ -62,43 +62,43 @@
 
 #include "cyclic_buffer.h"
 
-#define NAME "serial"
+#define NAME "ns8250"
 
 #define REG_COUNT 7
 #define MAX_BAUD_RATE 115200
 
-typedef struct serial_dev_data {
+typedef struct ns8250_dev_data {
 	bool client_connected;
 	int irq;
 	uint32_t io_addr;
 	ioport8_t *port;
 	cyclic_buffer_t input_buffer;
 	fibril_mutex_t mutex;		
-} serial_dev_data_t;
+} ns8250_dev_data_t;
 
-static serial_dev_data_t * create_serial_dev_data()
+static ns8250_dev_data_t * create_ns8250_dev_data()
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)malloc(sizeof(serial_dev_data_t));
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)malloc(sizeof(ns8250_dev_data_t));
 	if (NULL != data) {
-		memset(data, 0, sizeof(serial_dev_data_t));
+		memset(data, 0, sizeof(ns8250_dev_data_t));
 		fibril_mutex_initialize(&data->mutex);
 	}
 	return data;	
 }
 
-static void delete_serial_dev_data(serial_dev_data_t *data) 
+static void delete_ns8250_dev_data(ns8250_dev_data_t *data) 
 {
 	if (NULL != data) {
 		free(data);
 	}
 }
 
-static bool serial_received(ioport8_t *port) 
+static bool ns8250_received(ioport8_t *port) 
 {
    return (pio_read_8(port + 5) & 1) != 0;
 }
 
-static uint8_t serial_read_8(ioport8_t *port) 
+static uint8_t ns8250_read_8(ioport8_t *port) 
 {
 	return pio_read_8(port);
 }
@@ -108,7 +108,7 @@ static bool is_transmit_empty(ioport8_t *port)
    return (pio_read_8(port + 5) & 0x20) != 0;
 }
 
-static void serial_write_8(ioport8_t *port, uint8_t c) 
+static void ns8250_write_8(ioport8_t *port, uint8_t c) 
 {
 	while (!is_transmit_empty(port)) 
 		;
@@ -116,13 +116,13 @@ static void serial_write_8(ioport8_t *port, uint8_t c)
 	pio_write_8(port, c);
 }
 
-static int serial_read(device_t *dev, char *buf, size_t count) 
+static int ns8250_read(device_t *dev, char *buf, size_t count) 
 {
-	// printf(NAME ": serial_read %s\n", dev->name);
+	// printf(NAME ": ns8250_read %s\n", dev->name);
 	
 	int ret = 0;
 	
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	fibril_mutex_lock(&data->mutex);
 	
 	while (!buf_is_empty(&data->input_buffer) && ret < count) {
@@ -135,51 +135,51 @@ static int serial_read(device_t *dev, char *buf, size_t count)
 	return ret;
 }
 
-static inline void serial_putchar(serial_dev_data_t *data, uint8_t c)
+static inline void ns8250_putchar(ns8250_dev_data_t *data, uint8_t c)
 {	
 	fibril_mutex_lock(&data->mutex);
-	serial_write_8(data->port, c);	
+	ns8250_write_8(data->port, c);	
 	fibril_mutex_unlock(&data->mutex);
 }
 
-static int serial_write(device_t *dev, char *buf, size_t count) 
+static int ns8250_write(device_t *dev, char *buf, size_t count) 
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	size_t idx;
 	for (idx = 0; idx < count; idx++) {
-		serial_putchar(data, (uint8_t)buf[idx]);
+		ns8250_putchar(data, (uint8_t)buf[idx]);
 	}
 	
 	return 0;
 }
 
-static device_class_t serial_dev_class;
+static device_class_t ns8250_dev_class;
 
-static char_iface_t serial_char_iface = {
-	.read = &serial_read,
-	.write = &serial_write
+static char_iface_t ns8250_char_iface = {
+	.read = &ns8250_read,
+	.write = &ns8250_write
 };
 
-static int serial_add_device(device_t *dev);
+static int ns8250_add_device(device_t *dev);
 
 /** The serial port device driver's standard operations.
  */
-static driver_ops_t serial_ops = {
-	.add_device = &serial_add_device
+static driver_ops_t ns8250_ops = {
+	.add_device = &ns8250_add_device
 };
 
 /** The serial port device driver structure. 
  */
-static driver_t serial_driver = {
+static driver_t ns8250_driver = {
 	.name = NAME,
-	.driver_ops = &serial_ops
+	.driver_ops = &ns8250_ops
 };
 
-static void serial_dev_cleanup(device_t *dev)
+static void ns8250_dev_cleanup(device_t *dev)
 {
 	if (NULL != dev->driver_data) {
-		delete_serial_dev_data((serial_dev_data_t*)dev->driver_data);	
+		delete_ns8250_dev_data((ns8250_dev_data_t*)dev->driver_data);	
 		dev->driver_data = NULL;
 	}
 	
@@ -189,11 +189,11 @@ static void serial_dev_cleanup(device_t *dev)
 	}	
 }
 
-static bool serial_pio_enable(device_t *dev)
+static bool ns8250_pio_enable(device_t *dev)
 {
-	printf(NAME ": serial_pio_enable %s\n", dev->name);
+	printf(NAME ": ns8250_pio_enable %s\n", dev->name);
 	
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	// Gain control over port's registers.
 	if (pio_enable((void *)data->io_addr, REG_COUNT, (void **)(&data->port))) {  
@@ -204,11 +204,11 @@ static bool serial_pio_enable(device_t *dev)
 	return true;
 }
 
-static bool serial_dev_probe(device_t *dev)
+static bool ns8250_dev_probe(device_t *dev)
 {
-	printf(NAME ": serial_dev_probe %s\n", dev->name);
+	printf(NAME ": ns8250_dev_probe %s\n", dev->name);
 	
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	ioport8_t *port_addr = data->port;	
 	bool res = true;
 	uint8_t olddata;
@@ -234,16 +234,16 @@ static bool serial_dev_probe(device_t *dev)
 	return res;	
 }
 
-static int serial_dev_initialize(device_t *dev)
+static int ns8250_dev_initialize(device_t *dev)
 {
-	printf(NAME ": serial_dev_initialize %s\n", dev->name);
+	printf(NAME ": ns8250_dev_initialize %s\n", dev->name);
 	
 	int ret = EOK;
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
 	
 	// allocate driver data for the device
-	serial_dev_data_t *data = create_serial_dev_data();	
+	ns8250_dev_data_t *data = create_ns8250_dev_data();	
 	if (NULL == data) {
 		return ENOMEM;
 	}
@@ -303,25 +303,25 @@ static int serial_dev_initialize(device_t *dev)
 	return ret;
 	
 failed:
-	serial_dev_cleanup(dev);	
+	ns8250_dev_cleanup(dev);	
 	clean_hw_resource_list(&hw_resources);	
 	return ret;	
 }
 
-static inline void serial_port_interrupts_enable(ioport8_t *port)
+static inline void ns8250_port_interrupts_enable(ioport8_t *port)
 {	
 	pio_write_8(port + 1 , 0x01);   // Interrupt when data received
 	pio_write_8(port + 4, 0x0B);	
 }
 
-static inline void serial_port_interrupts_disable(ioport8_t *port)
+static inline void ns8250_port_interrupts_disable(ioport8_t *port)
 {
 	pio_write_8(port + 1, 0x00);    // Disable all interrupts
 }
 
-static int serial_interrupt_enable(device_t *dev)
+static int ns8250_interrupt_enable(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	int res;
 	// enable interrupt globally	
@@ -330,12 +330,12 @@ static int serial_interrupt_enable(device_t *dev)
 	}
 	
 	// enable interrupt on the serial port
-	serial_port_interrupts_enable(data->port);
+	ns8250_port_interrupts_enable(data->port);
 	
 	return EOK;
 }
 
-static int serial_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
+static int ns8250_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 {
 	uint16_t divisor;
 	uint8_t div_low, div_high;
@@ -359,47 +359,47 @@ static int serial_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 	return EOK;		
 }
 
-static int serial_set_baud_rate(device_t *dev, unsigned int baud_rate) 
+static int ns8250_set_baud_rate(device_t *dev, unsigned int baud_rate) 
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	ioport8_t *port = data->port;
 	int ret;
 	
 	printf(NAME ": set baud rate %d for the device %s.\n", baud_rate, dev->name);
 	
 	fibril_mutex_lock(&data->mutex);	
-	serial_port_interrupts_disable(port);    // Disable all interrupts
-	ret = serial_port_set_baud_rate(port, baud_rate);
-	serial_port_interrupts_enable(port);
+	ns8250_port_interrupts_disable(port);    // Disable all interrupts
+	ret = ns8250_port_set_baud_rate(port, baud_rate);
+	ns8250_port_interrupts_enable(port);
 	fibril_mutex_unlock(&data->mutex);	
 	
 	return ret;	
 }
 
-static void serial_initialize_port(device_t *dev)
+static void ns8250_initialize_port(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	ioport8_t *port = data->port;
 	
-	serial_port_interrupts_disable(port);     // Disable all interrupts
-	serial_port_set_baud_rate(port, 38400);
+	ns8250_port_interrupts_disable(port);     // Disable all interrupts
+	ns8250_port_set_baud_rate(port, 38400);
 	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
 	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
 	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
 									// Aux Output2 set - needed for interrupts	
 }
 
-static void serial_read_from_device(device_t *dev)
+static void ns8250_read_from_device(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	ioport8_t *port = data->port;
 	bool cont = true;
 	
 	while (cont) {	
 		fibril_mutex_lock(&data->mutex);
 		
-		if (cont = serial_received(port)) {
-			uint8_t val = serial_read_8(port);
+		if (cont = ns8250_received(port)) {
+			uint8_t val = ns8250_read_8(port);
 			// printf(NAME ": character %c read from %s.\n", val, dev->name);			
 			
 			if (data->client_connected) {
@@ -419,64 +419,64 @@ static void serial_read_from_device(device_t *dev)
 	}	
 }
 
-static inline void serial_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+static inline void ns8250_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
-	serial_read_from_device(dev);
+	ns8250_read_from_device(dev);
 }
 
-static inline int serial_register_interrupt_handler(device_t *dev)
+static inline int ns8250_register_interrupt_handler(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
-	return register_interrupt_handler(dev, data->irq, serial_interrupt_handler, NULL);	
+	return register_interrupt_handler(dev, data->irq, ns8250_interrupt_handler, NULL);	
 }
 
-static inline int serial_unregister_interrupt_handler(device_t *dev)
+static inline int ns8250_unregister_interrupt_handler(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	return unregister_interrupt_handler(dev, data->irq);	
 }
 
-static int serial_add_device(device_t *dev) 
+static int ns8250_add_device(device_t *dev) 
 {
-	printf(NAME ": serial_add_device %s (handle = %d)\n", dev->name, dev->handle);
+	printf(NAME ": ns8250_add_device %s (handle = %d)\n", dev->name, dev->handle);
 	
-	int res = serial_dev_initialize(dev);
+	int res = ns8250_dev_initialize(dev);
 	if (EOK != res) {
 		return res;
 	}
 	
-	if (!serial_pio_enable(dev)) {
-		serial_dev_cleanup(dev);
+	if (!ns8250_pio_enable(dev)) {
+		ns8250_dev_cleanup(dev);
 		return EADDRNOTAVAIL;
 	}	
 	
 	// find out whether the device is present
-	if (!serial_dev_probe(dev)) {
-		serial_dev_cleanup(dev);
+	if (!ns8250_dev_probe(dev)) {
+		ns8250_dev_cleanup(dev);
 		return ENOENT;
 	}	
 	
 	// serial port initialization (baud rate etc.)
-	serial_initialize_port(dev);
+	ns8250_initialize_port(dev);
 	
 	// register interrupt handler
-	if (EOK != serial_register_interrupt_handler(dev)) {
+	if (EOK != ns8250_register_interrupt_handler(dev)) {
 		printf(NAME ": failed to register interrupt handler.\n");
-		serial_dev_cleanup(dev);
+		ns8250_dev_cleanup(dev);
 		return res;
 	}
 	
 	// enable interrupt
-	if (EOK != (res = serial_interrupt_enable(dev))) {
+	if (EOK != (res = ns8250_interrupt_enable(dev))) {
 		printf(NAME ": failed to enable the interrupt. Error code = %d.\n", res);
-		serial_dev_cleanup(dev);
-		serial_unregister_interrupt_handler(dev);
+		ns8250_dev_cleanup(dev);
+		ns8250_unregister_interrupt_handler(dev);
 		return res;
 	}	
 	
-	dev->class = &serial_dev_class;
+	dev->class = &ns8250_dev_class;
 	
 	printf(NAME ": the %s device has been successfully initialized.\n", dev->name);
 	
@@ -489,9 +489,9 @@ static int serial_add_device(device_t *dev)
  * 
  * @param dev the device.
  */
-static int serial_open(device_t *dev)
+static int ns8250_open(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	int res;
 	
 	fibril_mutex_lock(&data->mutex);	
@@ -514,9 +514,9 @@ static int serial_open(device_t *dev)
  * 
  * @param dev the device. 
  */
-static void serial_close(device_t *dev)
+static void ns8250_close(device_t *dev)
 {
-	serial_dev_data_t *data = (serial_dev_data_t *)dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	fibril_mutex_lock(&data->mutex);
 	
@@ -532,14 +532,14 @@ static void serial_close(device_t *dev)
  * 
  * Configure the parameters of the serial communication.
  */
-static void serial_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_t *call)
+static void ns8250_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_t *call)
 {
 	ipcarg_t method = IPC_GET_METHOD(*call);
 	int ret;
 	
 	switch(method) {
 		case SERIAL_SET_BAUD_RATE:
-			ret = serial_set_baud_rate(dev, IPC_GET_ARG1(*call));
+			ret = ns8250_set_baud_rate(dev, IPC_GET_ARG1(*call));
 			ipc_answer_0(callid, ret);
 			break;
 		case SERIAL_SET_PARITY:
@@ -558,22 +558,22 @@ static void serial_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_
  * Initialize class structures with callback methods for handling 
  * client requests to the serial port devices.
  */
-static void serial_init() 
+static void ns8250_init() 
 {
 	// TODO
-	serial_dev_class.id = 0;
-	serial_dev_class.open = &serial_open;
-	serial_dev_class.close = &serial_close;	
+	ns8250_dev_class.id = 0;
+	ns8250_dev_class.open = &ns8250_open;
+	ns8250_dev_class.close = &ns8250_close;	
 	
-	serial_dev_class.interfaces[CHAR_DEV_IFACE] = &serial_char_iface;
-	serial_dev_class.default_handler = &serial_default_handler;
+	ns8250_dev_class.interfaces[CHAR_DEV_IFACE] = &ns8250_char_iface;
+	ns8250_dev_class.default_handler = &ns8250_default_handler;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS serial port driver\n");	
-	serial_init();
-	return driver_main(&serial_driver);
+	ns8250_init();
+	return driver_main(&ns8250_driver);
 }
 
 /**

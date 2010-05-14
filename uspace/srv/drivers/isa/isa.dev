@@ -1,10 +1,10 @@
 com1:
-	match 100 isa/serial
+	match 100 isa/ns8250
 	irq 4
 	io_range 3f8 8
 
 com2:
-	match 100 isa/serial
+	match 100 isa/ns8250
 	irq 3
 	io_range 2f8 8
 
