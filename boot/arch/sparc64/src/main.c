@@ -100,7 +100,8 @@ static void arch_detect(void)
 		 * "SUNW,Serengeti"), we will by default fallback to sun4u if
 		 * an unknown value of the "compatible" property is encountered.
 		 */
-		printf("Warning: Unknown architecture, assuming sun4u.\n");
+		if (str_cmp(compatible, "sun4u") != 0)
+			printf("Warning: Unknown architecture, assuming sun4u.\n");
 		arch = ARCH_SUN4U;
 	} else
 		arch = ARCH_SUN4V;
