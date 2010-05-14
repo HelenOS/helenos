@@ -66,16 +66,45 @@
 
 #define REG_COUNT 7
 #define MAX_BAUD_RATE 115200
+#define DLAB_MASK (1 << 7)
 
+/** The number of bits of one data unit send by the serial port.*/
+typedef enum {
+	WORD_LENGTH_5,
+	WORD_LENGTH_6,
+	WORD_LENGTH_7,
+	WORD_LENGTH_8	
+} word_length_t;
+
+/** The number of stop bits used by the serial port. */
+typedef enum {
+	/** Use one stop bit. */
+	ONE_STOP_BIT,
+	/** 1.5 stop bits for word length 5, 2 stop bits otherwise. */
+	TWO_STOP_BITS	
+} stop_bit_t;
+
+/** The driver data for the serial port devices.
+ */
 typedef struct ns8250_dev_data {
+	/** Is there any client conntected to the device? */
 	bool client_connected;
+	/** The irq assigned to this device. */
 	int irq;
+	/** The base i/o address of the devices registers. */
 	uint32_t io_addr;
+	/** The i/o port used to access the serial ports registers. */
 	ioport8_t *port;
+	/** The buffer for incomming data.*/
 	cyclic_buffer_t input_buffer;
+	/** The fibril mutex for synchronizing the access to the device.*/
 	fibril_mutex_t mutex;		
 } ns8250_dev_data_t;
 
+/** Create driver data for a device.
+ * 
+ * @return the driver data. 
+ */
 static ns8250_dev_data_t * create_ns8250_dev_data()
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)malloc(sizeof(ns8250_dev_data_t));
@@ -86,6 +115,10 @@ static ns8250_dev_data_t * create_ns8250_dev_data()
 	return data;	
 }
 
+/** Delete driver data.
+ * 
+ * @param data the driver data structure.
+ */
 static void delete_ns8250_dev_data(ns8250_dev_data_t *data) 
 {
 	if (NULL != data) {
@@ -93,21 +126,40 @@ static void delete_ns8250_dev_data(ns8250_dev_data_t *data)
 	}
 }
 
+/** Find out if there is some incomming data available on the serial port.
+ * 
+ * @param port the base address of the serial port device's ports.
+ * @return true if there are data waiting to be read, false otherwise. 
+ */
 static bool ns8250_received(ioport8_t *port) 
 {
    return (pio_read_8(port + 5) & 1) != 0;
 }
 
+/** Read one byte from the serial port.
+ * 
+ * @param port the base address of the serial port device's ports.
+ * @return the data read. 
+ */
 static uint8_t ns8250_read_8(ioport8_t *port) 
 {
 	return pio_read_8(port);
 }
 
+/** Find out wheter it is possible to send data.
+ * 
+ * @param port the base address of the serial port device's ports.
+ */
 static bool is_transmit_empty(ioport8_t *port) 
 {
    return (pio_read_8(port + 5) & 0x20) != 0;
 }
 
+/** Write one character on the serial port.
+ * 
+ * @param port the base address of the serial port device's ports.
+ * @param c the character to be written to the serial port device.
+ */
 static void ns8250_write_8(ioport8_t *port, uint8_t c) 
 {
 	while (!is_transmit_empty(port)) 
@@ -116,16 +168,24 @@ static void ns8250_write_8(ioport8_t *port, uint8_t c)
 	pio_write_8(port, c);
 }
 
+/** Read data from the serial port device.
+ * 
+ * @param dev the serial port device.
+ * @param buf the ouput buffer for read data.
+ * @param count the number of bytes to be read.
+ * 
+ * @return the number of bytes actually read on success, negative error number otherwise.
+ */
 static int ns8250_read(device_t *dev, char *buf, size_t count) 
 {
 	// printf(NAME ": ns8250_read %s\n", dev->name);
 	
-	int ret = 0;
+	int ret = EOK;
 	
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	fibril_mutex_lock(&data->mutex);
 	
-	while (!buf_is_empty(&data->input_buffer) && ret < count) {
+	while (!buf_is_empty(&data->input_buffer) && (size_t)ret < count) {
 		buf[ret] = (char)buf_pop_front(&data->input_buffer);
 		ret++;
 	}
@@ -135,6 +195,11 @@ static int ns8250_read(device_t *dev, char *buf, size_t count)
 	return ret;
 }
 
+/** Write a character to the serial port.
+ * 
+ * @param data the serial port device's driver data.
+ * @param c the character to be written. 
+ */
 static inline void ns8250_putchar(ns8250_dev_data_t *data, uint8_t c)
 {	
 	fibril_mutex_lock(&data->mutex);
@@ -142,6 +207,14 @@ static inline void ns8250_putchar(ns8250_dev_data_t *data, uint8_t c)
 	fibril_mutex_unlock(&data->mutex);
 }
 
+/** Write data to the serial port.
+ * 
+ * @param dev the serial port device.
+ * @param buf the data to be written.
+ * @param count the number of bytes to be written.
+ * 
+ * @return 0 on success.
+ */
 static int ns8250_write(device_t *dev, char *buf, size_t count) 
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
@@ -156,6 +229,8 @@ static int ns8250_write(device_t *dev, char *buf, size_t count)
 
 static device_class_t ns8250_dev_class;
 
+/** The character interface's callbacks. 
+ */
 static char_iface_t ns8250_char_iface = {
 	.read = &ns8250_read,
 	.write = &ns8250_write
@@ -176,6 +251,10 @@ static driver_t ns8250_driver = {
 	.driver_ops = &ns8250_ops
 };
 
+/** Clean up the serial port device structure.
+ * 
+ * @param dev the device structure.
+ */
 static void ns8250_dev_cleanup(device_t *dev)
 {
 	if (NULL != dev->driver_data) {
@@ -189,6 +268,11 @@ static void ns8250_dev_cleanup(device_t *dev)
 	}	
 }
 
+/** Enable the i/o ports of the device.
+ * 
+ * @param the serial port device.
+ * @return true on success, false otherwise.
+ */
 static bool ns8250_pio_enable(device_t *dev)
 {
 	printf(NAME ": ns8250_pio_enable %s\n", dev->name);
@@ -204,6 +288,11 @@ static bool ns8250_pio_enable(device_t *dev)
 	return true;
 }
 
+/** Probe the serial port device for its presence.
+ * 
+ * @param dev the serial port device.
+ * @return true if the device is present, false otherwise.
+ */
 static bool ns8250_dev_probe(device_t *dev)
 {
 	printf(NAME ": ns8250_dev_probe %s\n", dev->name);
@@ -234,6 +323,11 @@ static bool ns8250_dev_probe(device_t *dev)
 	return res;	
 }
 
+/** Initialize serial port device.
+ * 
+ * @param dev the serial port device.
+ * @return 0 on success, negative error number otherwise.
+ */
 static int ns8250_dev_initialize(device_t *dev)
 {
 	printf(NAME ": ns8250_dev_initialize %s\n", dev->name);
@@ -308,17 +402,32 @@ failed:
 	return ret;	
 }
 
+/** Enable interrupts on the serial port device.
+ * 
+ * Interrupt when data is received.
+ * 
+ * @param port the base address of the serial port device's ports. 
+ */
 static inline void ns8250_port_interrupts_enable(ioport8_t *port)
 {	
 	pio_write_8(port + 1 , 0x01);   // Interrupt when data received
 	pio_write_8(port + 4, 0x0B);	
 }
 
+/** Disable interrupts on the serial port device.
+ * 
+ * @param port the base address of the serial port device's ports. 
+ */
 static inline void ns8250_port_interrupts_disable(ioport8_t *port)
 {
 	pio_write_8(port + 1, 0x00);    // Disable all interrupts
 }
 
+/** Enable interrupts for the serial port device.
+ * 
+ * @param dev the device.
+ * @return 0 on success, negative error number otherwise.
+ */
 static int ns8250_interrupt_enable(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
@@ -335,6 +444,36 @@ static int ns8250_interrupt_enable(device_t *dev)
 	return EOK;
 }
 
+/** Set Divisor Latch Access Bit.
+ * 
+ * When the Divisor Latch Access Bit is set, 
+ * it is possible to set baud rate of the serial port device.
+ * 
+ * @param port the base address of the serial port device's ports. 
+ */
+static inline void enable_dlab(ioport8_t *port)
+{
+	uint8_t val = pio_read_8(port + 3);
+	pio_write_8(port + 3, val | DLAB_MASK);	
+}
+
+/** Clear Divisor Latch Access Bit.
+ * 
+ * @param port the base address of the serial port device's ports. 
+ */
+static inline void clear_dlab(ioport8_t *port)
+{
+	uint8_t val = pio_read_8(port + 3);
+	pio_write_8(port + 3, val & (~DLAB_MASK));
+}
+
+/** Set baud rate of the serial communication on the serial device.
+ * 
+ * @param port the base address of the serial port device's ports. 
+ * @param baud_rate the baud rate to be used by the device.
+ * 
+ * @return 0 on success, negative error number otherwise (EINVAL if the specified baud_rate is not valid). 
+ */
 static int ns8250_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 {
 	uint16_t divisor;
@@ -349,46 +488,166 @@ static int ns8250_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 	div_low = (uint8_t)divisor;
 	div_high = (uint8_t)(divisor >> 8);	
 	
-	pio_write_8(port + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+	// enable DLAB to be able to access baud rate divisor
+	enable_dlab(port);    
 	
-	pio_write_8(port + 0, div_low);    // Set divisor low byte
-	pio_write_8(port + 1, div_high);    // Set divisor high byte
+	// set divisor low byte
+	pio_write_8(port + 0, div_low); 
+	// set divisor high byte
+	pio_write_8(port + 1, div_high);    
 	
-	pio_write_8(port + 3, pio_read_8(port + 3) & (~0x80));    // Clear DLAB	
+	clear_dlab(port);	
 	
 	return EOK;		
 }
 
-static int ns8250_set_baud_rate(device_t *dev, unsigned int baud_rate) 
+/** Get baud rate used by the serial port device.
+ * 
+ * @param port the base address of the serial port device's ports.
+ * @param baud_rate the ouput parameter to which the baud rate is stored.
+ */
+static unsigned int ns8250_port_get_baud_rate(ioport8_t *port)
 {
-	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
-	ioport8_t *port = data->port;
-	int ret;
+	uint16_t divisor;
+	uint8_t div_low, div_high;
 	
-	printf(NAME ": set baud rate %d for the device %s.\n", baud_rate, dev->name);
+	// enable DLAB to be able to access baud rate divisor
+	enable_dlab(port);
 	
-	fibril_mutex_lock(&data->mutex);	
-	ns8250_port_interrupts_disable(port);    // Disable all interrupts
-	ret = ns8250_port_set_baud_rate(port, baud_rate);
-	ns8250_port_interrupts_enable(port);
-	fibril_mutex_unlock(&data->mutex);	
+	// get divisor low byte
+	div_low = pio_read_8(port + 0);
+	// get divisor high byte
+	div_high = pio_read_8(port + 1);   
 	
-	return ret;	
+	clear_dlab(port);
+	
+	divisor = (div_high << 8) | div_low;
+	return MAX_BAUD_RATE / divisor;
 }
 
+/** Get the parameters of the serial communication set on the serial port device.
+ * 
+ * @param parity the parity used.
+ * @param word_length the length of one data unit in bits.
+ * @param stop_bits the number of stop bits used (one or two). 
+ */
+static void ns8250_port_get_com_props(
+	ioport8_t *port, unsigned int *parity, unsigned int *word_length, unsigned int *stop_bits)
+{
+	uint8_t val;
+	
+	val = pio_read_8(port + 3);
+	
+	*parity = ((val >> 3) & 7);
+	
+	switch (val & 3) {
+		case WORD_LENGTH_5:
+			*word_length = 5;
+			break;
+		case WORD_LENGTH_6:
+			*word_length = 6;
+			break;
+		case WORD_LENGTH_7:
+			*word_length = 7;
+			break;
+		case WORD_LENGTH_8:
+			*word_length = 8;
+			break;
+	}
+	
+	if ((val >> 2) & 1) {
+		*stop_bits = 2;
+	} else {
+		*stop_bits = 1;
+	}	
+}
+
+/** Set the parameters of the serial communication on the serial port device.
+ * 
+ * @param parity the parity to be used.
+ * @param word_length the length of one data unit in bits.
+ * @param stop_bits the number of stop bits used (one or two). 
+ * 
+ * @return 0 on success, EINVAL if some of the specified values is invalid.
+ */
+static int ns8250_port_set_com_props(
+	ioport8_t *port, unsigned int parity, unsigned int word_length, unsigned int stop_bits)
+{
+	uint8_t val;
+	
+	switch (word_length) {
+		case 5:
+			val = WORD_LENGTH_5;
+			break;
+		case 6:
+			val = WORD_LENGTH_6;
+			break;
+		case 7:
+			val = WORD_LENGTH_7;
+			break;
+		case 8:
+			val = WORD_LENGTH_8;
+			break;
+		default:
+			return EINVAL;
+	}
+	
+	switch (stop_bits) {
+		case 1:
+			val |= ONE_STOP_BIT << 2;
+			break;
+		case 2:
+			val |= TWO_STOP_BITS << 2;
+			break;
+		default:
+			return EINVAL;
+	}
+	
+	switch (parity) {
+		case SERIAL_NO_PARITY:
+		case SERIAL_ODD_PARITY:
+		case SERIAL_EVEN_PARITY:
+		case SERIAL_MARK_PARITY:
+		case SERIAL_SPACE_PARITY:	
+			val |= parity << 3;
+			break;
+		default:
+			return EINVAL;
+	}
+	
+	pio_write_8(port + 3, val);	
+	
+	return EOK;
+}
+
+/** Initialize the serial port device.
+ * 
+ * Set the default parameters of the serial communication.
+ * 
+ * @param dev the serial port device.
+ */
 static void ns8250_initialize_port(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	ioport8_t *port = data->port;
 	
-	ns8250_port_interrupts_disable(port);     // Disable all interrupts
+	// disable interrupts
+	ns8250_port_interrupts_disable(port); 
+    // set baud rate
 	ns8250_port_set_baud_rate(port, 38400);
-	pio_write_8(port + 3, 0x07);    // 8 bits, no parity, two stop bits
-	pio_write_8(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-	pio_write_8(port + 4, 0x0B);    // RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
-									// Aux Output2 set - needed for interrupts	
+	// 8 bits, no parity, two stop bits
+	ns8250_port_set_com_props(port, SERIAL_NO_PARITY, 8, 2);  
+	// Enable FIFO, clear them, with 14-byte threshold
+	pio_write_8(port + 2, 0xC7);  	
+	// RTS/DSR set (Request to Send and Data Terminal Ready lines enabled), 
+	// Aux Output2 set - needed for interrupts
+	pio_write_8(port + 4, 0x0B);    										
 }
 
+/** Read the data from the serial port device and store them to the input buffer.
+ * 
+ * @param dev the serial port device.
+ */
 static void ns8250_read_from_device(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
@@ -398,7 +657,8 @@ static void ns8250_read_from_device(device_t *dev)
 	while (cont) {	
 		fibril_mutex_lock(&data->mutex);
 		
-		if (cont = ns8250_received(port)) {
+		cont = ns8250_received(port);
+		if (cont) {
 			uint8_t val = ns8250_read_8(port);
 			// printf(NAME ": character %c read from %s.\n", val, dev->name);			
 			
@@ -419,11 +679,22 @@ static void ns8250_read_from_device(device_t *dev)
 	}	
 }
 
+/** The interrupt handler.
+ * 
+ * The serial port is initialized to interrupt when some data come, 
+ * so the interrupt is handled by reading the incomming data.
+ * 
+ * @param dev the serial port device. 
+ */
 static inline void ns8250_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
 {
 	ns8250_read_from_device(dev);
 }
 
+/** Register the interrupt handler for the device.
+ * 
+ * @param dev the serial port device.
+ */
 static inline int ns8250_register_interrupt_handler(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
@@ -431,6 +702,10 @@ static inline int ns8250_register_interrupt_handler(device_t *dev)
 	return register_interrupt_handler(dev, data->irq, ns8250_interrupt_handler, NULL);	
 }
 
+/** Unregister the interrupt handler for the device.
+ * 
+ * @param dev the serial port device.
+ */
 static inline int ns8250_unregister_interrupt_handler(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
@@ -438,6 +713,12 @@ static inline int ns8250_unregister_interrupt_handler(device_t *dev)
 	return unregister_interrupt_handler(dev, data->irq);	
 }
 
+/** The add_device callback method of the serial port driver.
+ * 
+ * Probe and initialize the newly added device.
+ * 
+ * @param dev the serial port device. 
+ */
 static int ns8250_add_device(device_t *dev) 
 {
 	printf(NAME ": ns8250_add_device %s (handle = %d)\n", dev->name, dev->handle);
@@ -528,6 +809,62 @@ static void ns8250_close(device_t *dev)
 	fibril_mutex_unlock(&data->mutex);	 
 }
 
+/** Get parameters of the serial communication which are set to the specified device.
+ * 
+ * @param the serial port device.
+ * @param baud_rate the baud rate used by the device.
+ * @param the type of parity used by the device.
+ * @param word_length the size of one data unit in bits.
+ * @param stop_bits the number of stop bits used.
+ */
+static void ns8250_get_props(device_t *dev, unsigned int *baud_rate, 
+	unsigned int *parity, unsigned int *word_length, unsigned int* stop_bits)
+{	
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
+	ioport8_t *port = data->port;
+	
+	fibril_mutex_lock(&data->mutex);	
+	ns8250_port_interrupts_disable(port);    // Disable all interrupts
+	*baud_rate = ns8250_port_get_baud_rate(port);
+	ns8250_port_get_com_props(port, parity, word_length, stop_bits);	
+	ns8250_port_interrupts_enable(port);
+	fibril_mutex_unlock(&data->mutex);	
+	
+	printf(NAME ": ns8250_get_props: baud rate %d, parity 0x%x, word length %d, stop bits %d\n", 
+		*baud_rate, *parity, *word_length, * stop_bits);
+}
+
+/** Set parameters of the serial communication to the specified  serial port device.
+ * 
+ * @param the serial port device.
+ * @param baud_rate the baud rate to be used by the device.
+ * @param the type of parity to be used by the device.
+ * @param word_length the size of one data unit in bits.
+ * @param stop_bits the number of stop bits to be used.
+ */
+static int ns8250_set_props(device_t *dev, unsigned int baud_rate, 
+	unsigned int parity, unsigned int word_length, unsigned int stop_bits)
+{
+	printf(NAME ": ns8250_set_props: baud rate %d, parity 0x%x, word length %d, stop bits %d\n", 
+		baud_rate, parity, word_length, stop_bits);
+	
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
+	ioport8_t *port = data->port;
+	int ret;
+	
+	fibril_mutex_lock(&data->mutex);	
+	ns8250_port_interrupts_disable(port);    // Disable all interrupts
+	ret = ns8250_port_set_baud_rate(port, baud_rate);
+	if (EOK == ret) {
+		ret = ns8250_port_set_com_props(port, parity, word_length, stop_bits);
+	}
+	ns8250_port_interrupts_enable(port);
+	fibril_mutex_unlock(&data->mutex);	
+	
+	return ret;		
+}
+
+
 /** Default handler for client requests which are not handled by the standard interfaces.
  * 
  * Configure the parameters of the serial communication.
@@ -536,21 +873,26 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_
 {
 	ipcarg_t method = IPC_GET_METHOD(*call);
 	int ret;
+	unsigned int baud_rate, parity, word_length, stop_bits;	
 	
 	switch(method) {
-		case SERIAL_SET_BAUD_RATE:
-			ret = ns8250_set_baud_rate(dev, IPC_GET_ARG1(*call));
+		case SERIAL_GET_COM_PROPS:
+			ns8250_get_props(dev, &baud_rate, &parity, &word_length, &stop_bits);
+			ipc_answer_4(callid, EOK, baud_rate, parity, word_length, stop_bits);
+			break;
+		
+		case SERIAL_SET_COM_PROPS:
+ 			baud_rate = IPC_GET_ARG1(*call);
+			parity = IPC_GET_ARG2(*call);
+			word_length = IPC_GET_ARG3(*call);
+			stop_bits = IPC_GET_ARG4(*call);
+			ret = ns8250_set_props(dev, baud_rate, parity, word_length, stop_bits);
 			ipc_answer_0(callid, ret);
 			break;
-		case SERIAL_SET_PARITY:
-			// TODO
-			break;
-		case SERIAL_SET_STOP_BITS:
-			// TODO
-			break;
+			
 		default:
 			ipc_answer_0(callid, ENOTSUP);		
-	}
+	}	
 }
 
 /** Initialize the serial port driver.

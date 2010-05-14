@@ -91,14 +91,26 @@ int main(int argc, char *argv[])
 		return 3;
 	}
 	
-	res = ipc_call_sync_1_0(phone, SERIAL_SET_BAUD_RATE, 1200);
+	unsigned int old_baud, old_par, old_stop, old_word_size;
+	
+	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud, &old_par, &old_word_size, &old_stop);	
 	if (EOK != res) {
-		printf(NAME ": failed to set baud rate, errno = %d.\n", -res);
+		printf(NAME ": failed to get old communication parameters, errno = %d.\n", -res);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		ipc_hangup(phone);
 		free(buf);
-		return 4;		
+		return 4;
 	}
+	
+	res = ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, 1200, SERIAL_NO_PARITY, 8, 1);	
+	if (EOK != res) {
+		printf(NAME ": failed to set communication parameters, errno = %d.\n", -res);
+		devman_hangup_phone(DEVMAN_CLIENT);
+		ipc_hangup(phone);
+		free(buf);
+		return 4;
+	}
+	
 	
 	int total = 0;
 	int read = 0;
@@ -106,6 +118,7 @@ int main(int argc, char *argv[])
 		read = read_dev(phone, buf, cnt - total);
 		if (0 > read) {
 			printf(NAME ": failed read from device, errno = %d.\n", -read);
+			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par, old_word_size, old_stop);	
 			ipc_hangup(phone);
 			devman_hangup_phone(DEVMAN_CLIENT);
 			free(buf);
@@ -125,6 +138,8 @@ int main(int argc, char *argv[])
 	char *the_end = "\n---------\nTHE END\n---------\n";
 	write_dev(phone, the_end, str_size(the_end));
 	
+	// restore original communication settings
+	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par, old_word_size, old_stop);	
 	devman_hangup_phone(DEVMAN_CLIENT);
 	ipc_hangup(phone);
 	free(buf);
