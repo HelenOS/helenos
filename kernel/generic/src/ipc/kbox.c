@@ -46,7 +46,6 @@
 
 void ipc_kbox_cleanup(void)
 {
-	ipl_t ipl;
 	bool have_kb_thread;
 
 	/* 
@@ -77,12 +76,10 @@ void ipc_kbox_cleanup(void)
 	 * This is necessarry as slamming the phones won't force
 	 * kbox thread to clean it up since sender != debugger.
 	 */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	mutex_lock(&TASK->udebug.lock);
 	udebug_task_cleanup(TASK);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-	
+	mutex_unlock(&TASK->udebug.lock);
+
 	if (have_kb_thread) {
 		LOG("Join kb.thread.");
 		thread_join(TASK->kb.thread);
