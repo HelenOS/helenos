@@ -133,7 +133,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/tasks/tasks \
 	$(USPACE_PATH)/app/top/top
 
-ifneq ($(CONFIG_BARE_BONED),y)
+ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \
 	$(USPACE_PATH)/srv/net/cfg/general \
 	$(USPACE_PATH)/srv/net/cfg/lo \
@@ -151,7 +151,7 @@ COMPS_C = arch/$(BARCH)/src/_components.c
 
 -include arch/$(BARCH)/Makefile.inc
 
-ifeq ($(CONFIG_BARE_BONED),y)
+ifeq ($(CONFIG_BAREBONE),y)
 RD_SRVS = $(RD_SRVS_ESSENTIAL)
 RD_APPS = $(RD_APPS_ESSENTIAL)
 else
