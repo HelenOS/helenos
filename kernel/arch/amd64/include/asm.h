@@ -37,6 +37,7 @@
 
 #include <config.h>
 #include <typedefs.h>
+#include <arch/cpu.h>
 
 extern void asm_delay_loop(uint32_t t);
 extern void asm_fake_loop(uint32_t t);
@@ -268,6 +269,25 @@ static inline ipl_t interrupts_read(void) {
 	
 	return v;
 }
+
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+static inline bool interrupts_disabled(void)
+{
+	ipl_t v;
+	
+	asm volatile (
+		"pushfq\n"
+		"popq %[v]\n"
+		: [v] "=r" (v)
+	);
+	
+	return ((v & RFLAGS_IF) == 0);
+}
+
 
 /** Write to MSR */
 static inline void write_msr(uint32_t msr, uint64_t value)
