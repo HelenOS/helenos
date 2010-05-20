@@ -183,9 +183,9 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #endif /* CONFIG_SMP */
 
 typedef struct {
-	spinlock_t lock;  /**< Spinlock */
-	bool guard;       /**< Flag whether ipl is valid */
-	ipl_t ipl;        /**< Original interrupt level */
+	SPINLOCK_DECLARE(lock);	/**< Spinlock */
+	bool guard;		/**< Flag whether ipl is valid */
+	ipl_t ipl;		/**< Original interrupt level */
 } irq_spinlock_t;
 
 #define IRQ_SPINLOCK_DECLARE(lock_name)  irq_spinlock_t lock_name
