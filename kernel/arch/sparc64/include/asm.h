@@ -307,6 +307,19 @@ static inline ipl_t interrupts_read(void) {
 	return (ipl_t) pstate_read();
 }
 
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+static inline bool interrupts_disabled(void)
+{
+	pstate_reg_t pstate;
+
+	pstate.value = pstate_read();
+	return !pstate.ie;
+}
+
 /** Return base address of current stack.
  *
  * Return the base address of the current stack.
