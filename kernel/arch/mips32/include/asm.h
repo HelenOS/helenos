@@ -73,7 +73,7 @@ extern ipl_t interrupts_disable(void);
 extern ipl_t interrupts_enable(void);
 extern void interrupts_restore(ipl_t ipl);
 extern ipl_t interrupts_read(void);
-extern void asm_delay_loop(uint32_t t);
+extern bool interrupts_disabled(void);
 
 static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {

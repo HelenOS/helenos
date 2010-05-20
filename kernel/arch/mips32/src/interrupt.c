@@ -88,6 +88,16 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+bool interrupts_disabled(void)
+{
+	return !(cp0_status_read() & cp0_status_ie_enabled_bit);
+}
+
 /* TODO: This is SMP unsafe!!! */
 uint32_t count_hi = 0;
 static unsigned long nextcount;
