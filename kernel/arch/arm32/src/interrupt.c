@@ -96,6 +96,16 @@ ipl_t interrupts_read(void)
 	return current_status_reg_read();
 }
 
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+bool interrupts_disabled(void)
+{
+	return current_status_reg_read() & STATUS_REG_IRQ_DISABLED_BIT;
+}
+
 /** Initialize basic tables for exception dispatching
  * and starts the timer.
  */
