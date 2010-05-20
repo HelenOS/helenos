@@ -163,6 +163,13 @@ static inline ipl_t interrupts_read(void)
 	return 0;
 }
 
+static inline bool interrupts_disabled(void)
+{
+	/* On real hardware the return value is true iff interrupts are
+	   disabled. */
+	return false;
+}
+
 static inline uintptr_t get_stack_base(void)
 {
 	/* On real hardware this returns the address of the bottom
