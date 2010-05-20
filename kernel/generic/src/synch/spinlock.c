@@ -127,7 +127,7 @@ void spinlock_lock_debug(spinlock_t *lock)
  */
 void spinlock_unlock_debug(spinlock_t *lock)
 {
-	ASSERT(atomic_get(&lock->val) != 0);
+	ASSERT_SPINLOCK(atomic_get(&lock->val) != 0, lock);
 	
 	/*
 	 * Prevent critical section code from bleeding out this way down.
@@ -142,9 +142,8 @@ void spinlock_unlock_debug(spinlock_t *lock)
 
 /** Lock spinlock conditionally
  *
- * Lock spinlock conditionally.
- * If the spinlock is not available at the moment,
- * signal failure.
+ * Lock spinlock conditionally. If the spinlock is not available
+ * at the moment, signal failure.
  *
  * @param lock Pointer to spinlock_t structure.
  *

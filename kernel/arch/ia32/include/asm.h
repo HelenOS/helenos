@@ -37,6 +37,7 @@
 #define KERN_ia32_ASM_H_
 
 #include <arch/pm.h>
+#include <arch/cpu.h>
 #include <typedefs.h>
 #include <config.h>
 
@@ -296,6 +297,24 @@ static inline ipl_t interrupts_read(void)
 	);
 	
 	return v;
+}
+
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+static inline bool interrupts_disabled(void)
+{
+	ipl_t v;
+	
+	asm volatile (
+		"pushf\n"
+		"popl %[v]\n"
+		: [v] "=r" (v)
+	);
+	
+	return ((v & EFLAGS_IF) == 0);
 }
 
 /** Write to MSR */

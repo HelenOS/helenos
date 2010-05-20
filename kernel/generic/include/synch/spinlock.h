@@ -48,7 +48,7 @@ typedef struct {
 	
 #ifdef CONFIG_DEBUG_SPINLOCK
 	const char *name;
-#endif
+#endif /* CONFIG_DEBUG_SPINLOCK */
 } spinlock_t;
 
 /*
@@ -59,8 +59,9 @@ typedef struct {
 #define SPINLOCK_EXTERN(lock_name)   extern spinlock_t lock_name
 
 /*
- * SPINLOCK_INITIALIZE is to be used for statically allocated spinlocks.
- * It declares and initializes the lock.
+ * SPINLOCK_INITIALIZE and SPINLOCK_STATIC_INITIALIZE are to be used
+ * for statically allocated spinlocks. They declare (either as global
+ * or static) symbol and initialize the lock.
  */
 #ifdef CONFIG_DEBUG_SPINLOCK
 
@@ -76,10 +77,13 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)	spinlock_lock_debug((lock))
-#define spinlock_unlock(lock)	spinlock_unlock_debug((lock))
+#define ASSERT_SPINLOCK(expr, lock) \
+	ASSERT_VERBOSE(expr, (lock)->name)
 
-#else
+#define spinlock_lock(lock)    spinlock_lock_debug((lock))
+#define spinlock_unlock(lock)  spinlock_unlock_debug((lock))
+
+#else /* CONFIG_DEBUG_SPINLOCK */
 
 #define SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
 	spinlock_t lock_name = { \
@@ -91,10 +95,13 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)	atomic_lock_arch(&(lock)->val)
-#define spinlock_unlock(lock)	spinlock_unlock_nondebug((lock))
+#define ASSERT_SPINLOCK(expr, lock) \
+	ASSERT(expr)
 
-#endif
+#define spinlock_lock(lock)    atomic_lock_arch(&(lock)->val)
+#define spinlock_unlock(lock)  spinlock_unlock_nondebug((lock))
+
+#endif /* CONFIG_DEBUG_SPINLOCK */
 
 #define SPINLOCK_INITIALIZE(lock_name) \
 	SPINLOCK_INITIALIZE_NAME(lock_name, #lock_name)
@@ -102,16 +109,17 @@ typedef struct {
 #define SPINLOCK_STATIC_INITIALIZE(lock_name) \
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
-extern void spinlock_initialize(spinlock_t *lock, const char *name);
-extern int spinlock_trylock(spinlock_t *lock);
-extern void spinlock_lock_debug(spinlock_t *lock);
-extern void spinlock_unlock_debug(spinlock_t *lock);
+extern void spinlock_initialize(spinlock_t *, const char *);
+extern int spinlock_trylock(spinlock_t *);
+extern void spinlock_lock_debug(spinlock_t *);
+extern void spinlock_unlock_debug(spinlock_t *);
 
 /** Unlock spinlock
  *
  * Unlock spinlock for non-debug kernels.
  *
  * @param sl Pointer to spinlock_t structure.
+ *
  */
 static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
@@ -140,12 +148,12 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 		    #pname, (value), CPU->id, __func__, __LINE__); \
 	}
 
-#else
+#else /* CONFIG_DEBUG_SPINLOCK */
 
 #define DEADLOCK_PROBE_INIT(pname)
 #define DEADLOCK_PROBE(pname, value)
 
-#endif
+#endif /* CONFIG_DEBUG_SPINLOCK */
 
 #else /* CONFIG_SMP */
 
@@ -160,6 +168,8 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define SPINLOCK_INITIALIZE_NAME(name, desc_name)
 #define SPINLOCK_STATIC_INITIALIZE_NAME(name, desc_name)
 
+#define ASSERT_SPINLOCK(expr, lock)
+
 #define spinlock_initialize(lock, name)
 
 #define spinlock_lock(lock)     preemption_disable()
@@ -169,7 +179,221 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define DEADLOCK_PROBE_INIT(pname)
 #define DEADLOCK_PROBE(pname, value)
 
-#endif
+#endif /* CONFIG_SMP */
+
+typedef struct {
+	spinlock_t lock;  /**< Spinlock */
+	bool guard;       /**< Flag whether ipl is valid */
+	ipl_t ipl;        /**< Original interrupt level */
+} irq_spinlock_t;
+
+#define IRQ_SPINLOCK_DECLARE(lock_name)  irq_spinlock_t lock_name
+#define IRQ_SPINLOCK_EXTERN(lock_name)   extern irq_spinlock_t lock_name
+
+#define ASSERT_IRQ_SPINLOCK(expr, irq_lock) \
+	ASSERT_SPINLOCK(expr, &((irq_lock)->lock))
+
+/*
+ * IRQ_SPINLOCK_INITIALIZE and IRQ_SPINLOCK_STATIC_INITIALIZE are to be used
+ * for statically allocated interrupts-disabled spinlocks. They declare (either
+ * as global or static symbol) and initialize the lock.
+ */
+#ifdef CONFIG_DEBUG_SPINLOCK
+
+#define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
+	irq_spinlock_t lock_name = { \
+		.lock = { \
+			.name = desc_name, \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
+	static irq_spinlock_t lock_name = { \
+		.lock = { \
+			.name = desc_name, \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#else /* CONFIG_DEBUG_SPINLOCK */
+
+#define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
+	irq_spinlock_t lock_name = { \
+		.lock = { \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
+	static irq_spinlock_t lock_name = { \
+		.lock = { \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#endif /* CONFIG_DEBUG_SPINLOCK */
+
+#define IRQ_SPINLOCK_INITIALIZE(lock_name) \
+	IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, #lock_name)
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE(lock_name) \
+	IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
+
+/** Initialize interrupts-disabled spinlock
+ *
+ * @param lock IRQ spinlock to be initialized.
+ * @param name IRQ spinlock name.
+ *
+ */
+static inline void irq_spinlock_initialize(irq_spinlock_t *lock, const char *name)
+{
+	spinlock_initialize(&(lock->lock), name);
+	lock->guard = false;
+	lock->ipl = 0;
+}
+
+/** Lock interrupts-disabled spinlock
+ *
+ * Lock a spinlock which requires disabled interrupts.
+ *
+ * @param lock    IRQ spinlock to be locked.
+ * @param irq_dis If true, interrupts are actually disabled
+ *                prior locking the spinlock. If false, interrupts
+ *                are expected to be already disabled.
+ *
+ */
+static inline void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
+{
+	if (irq_dis) {
+		ipl_t ipl = interrupts_disable();
+		spinlock_lock(&(lock->lock));
+		
+		lock->guard = true;
+		lock->ipl = ipl;
+	} else {
+		ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
+		
+		spinlock_lock(&(lock->lock));
+		ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+	}
+}
+
+/** Unlock interrupts-disabled spinlock
+ *
+ * Unlock a spinlock which requires disabled interrupts.
+ *
+ * @param lock    IRQ spinlock to be unlocked.
+ * @param irq_res If true, interrupts are restored to previously
+ *                saved interrupt level.
+ *
+ */
+static inline void irq_spinlock_unlock(irq_spinlock_t *lock, bool irq_res)
+{
+	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
+	
+	if (irq_res) {
+		ASSERT_IRQ_SPINLOCK(lock->guard, lock);
+		
+		lock->guard = false;
+		ipl_t ipl = lock->ipl;
+		
+		spinlock_unlock(&(lock->lock));
+		interrupts_restore(ipl);
+	} else {
+		ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+		spinlock_unlock(&(lock->lock));
+	}
+}
+
+/** Lock interrupts-disabled spinlock
+ *
+ * Lock an interrupts-disabled spinlock conditionally. If the
+ * spinlock is not available at the moment, signal failure.
+ * Interrupts are expected to be already disabled.
+ *
+ * @param lock IRQ spinlock to be locked conditionally.
+ *
+ * @return Zero on failure, non-zero otherwise.
+ *
+ */
+static inline int irq_spinlock_trylock(irq_spinlock_t *lock)
+{
+	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
+	int rc = spinlock_trylock(&(lock->lock));
+	
+	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+	return rc;
+}
+
+/** Pass lock from one interrupts-disabled spinlock to another
+ *
+ * Pass lock from one IRQ spinlock to another IRQ spinlock
+ * without enabling interrupts during the process.
+ *
+ * The first IRQ spinlock is supposed to be locked.
+ *
+ * @param unlock IRQ spinlock to be unlocked.
+ * @param lock   IRQ spinlock to be locked.
+ *
+ */
+static inline void irq_spinlock_pass(irq_spinlock_t *unlock,
+    irq_spinlock_t *lock)
+{
+	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
+	
+	/* Pass guard from unlock to lock */
+	bool guard = unlock->guard;
+	ipl_t ipl = unlock->ipl;
+	unlock->guard = false;
+	
+	spinlock_unlock(&(unlock->lock));
+	spinlock_lock(&(lock->lock));
+	
+	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+	
+	if (guard) {
+		lock->guard = true;
+		lock->ipl = ipl;
+	}
+}
+
+/** Hand-over-hand locking of interrupts-disabled spinlocks
+ *
+ * Implement hand-over-hand locking between two interrupts-disabled
+ * spinlocks without enabling interrupts during the process.
+ *
+ * The first IRQ spinlock is supposed to be locked.
+ *
+ * @param unlock IRQ spinlock to be unlocked.
+ * @param lock   IRQ spinlock to be locked.
+ *
+ */
+static inline void irq_spinlock_exchange(irq_spinlock_t *unlock,
+    irq_spinlock_t *lock)
+{
+	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
+	
+	spinlock_lock(&(lock->lock));
+	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
+	
+	/* Pass guard from unlock to lock */
+	if (unlock->guard) {
+		lock->guard = true;
+		lock->ipl = unlock->ipl;
+		unlock->guard = false;
+	}
+	
+	spinlock_unlock(&(unlock->lock));
+}
 
 #endif
 
