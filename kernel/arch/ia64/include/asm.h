@@ -416,6 +416,16 @@ static inline ipl_t interrupts_read(void)
 	return (ipl_t) psr_read();
 }
 
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+static inline bool interrupts_disabled(void)
+{
+	return psr_read() & PSR_I_MASK;	
+}
+
 /** Disable protection key checking. */
 static inline void pk_disable(void)
 {
