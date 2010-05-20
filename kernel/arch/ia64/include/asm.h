@@ -423,7 +423,7 @@ static inline ipl_t interrupts_read(void)
  */
 static inline bool interrupts_disabled(void)
 {
-	return psr_read() & PSR_I_MASK;	
+	return !(psr_read() & PSR_I_MASK);
 }
 
 /** Disable protection key checking. */
