@@ -38,12 +38,18 @@
 #include <panic.h>
 #include <arch/debug.h>
 
-#define CALLER ((uintptr_t) __builtin_return_address(0))
+#define CALLER  ((uintptr_t) __builtin_return_address(0))
+
 
 #ifndef HERE
+
 /** Current Instruction Pointer address */
-#	define HERE ((uintptr_t *) 0)
-#endif
+#define HERE ((uintptr_t *) 0)
+
+#endif /* HERE */
+
+
+#ifdef CONFIG_DEBUG
 
 /** Debugging ASSERT macro
  *
@@ -54,14 +60,36 @@
  * @param expr Expression which is expected to be true.
  *
  */
-#ifdef CONFIG_DEBUG
-#	define ASSERT(expr) \
-		if (!(expr)) { \
-			panic("Assertion failed (%s), caller=%p.", #expr, CALLER); \
-		}
-#else
-#	define ASSERT(expr)
-#endif
+#define ASSERT(expr) \
+	if (!(expr)) { \
+		panic("Assertion failed (%s), caller=%p.", #expr, CALLER); \
+	}
+
+/** Debugging verbose ASSERT macro
+ *
+ * If CONFIG_DEBUG is set, the ASSERT() macro
+ * evaluates expr and if it is false raises
+ * kernel panic. The panic message contains also
+ * the supplied message.
+ *
+ * @param expr Expression which is expected to be true.
+ * @param msg  Additional message to show (string).
+ *
+ */
+#define ASSERT_VERBOSE(expr, msg) \
+	if (!(expr)) { \
+		panic("Assertion failed (%s, %s), caller=%p.", #expr, msg, CALLER); \
+	}
+
+#else /* CONFIG_DEBUG */
+
+#define ASSERT(expr)
+#define ASSERT_VERBOSE(expr, msg)
+
+#endif /* CONFIG_DEBUG */
+
+
+#ifdef CONFIG_LOG
 
 /** Extensive logging output macro
  *
@@ -70,14 +98,9 @@
  * an information about the location.
  *
  */
-
-#ifdef CONFIG_LOG
-#	define LOG(format, ...) \
-		printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
-		    __LINE__, ##__VA_ARGS__);
-#else
-#	define LOG(format, ...)
-#endif
+#define LOG(format, ...) \
+	printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
+	    __LINE__, ##__VA_ARGS__);
 
 /** Extensive logging execute macro
  *
@@ -86,18 +109,19 @@
  * function and call it.
  *
  */
+#define LOG_EXEC(fnc) \
+	{ \
+		printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
+		    __LINE__); \
+		fnc; \
+	}
+	
+#else /* CONFOG_LOG */
 
-#ifdef CONFIG_LOG
-#	define LOG_EXEC(fnc) \
-		{ \
-			printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
-			    __LINE__); \
-			fnc; \
-		}
-#else
-#	define LOG_EXEC(fnc) fnc
-#endif
+#define LOG(format, ...)
+#define LOG_EXEC(fnc) fnc
 
+#endif /* CONFOG_LOG */
 
 #endif
 
