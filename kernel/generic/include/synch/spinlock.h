@@ -40,6 +40,7 @@
 #include <preemption.h>
 #include <atomic.h>
 #include <debug.h>
+#include <arch/asm.h>
 
 #ifdef CONFIG_SMP
 
