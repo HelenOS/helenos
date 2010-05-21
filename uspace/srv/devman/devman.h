@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/devman.h>
+#include <ipc/devmap.h>
 #include <fibril_synch.h>
 #include <atomic.h>
 
@@ -51,7 +52,6 @@
 #define MAX_DEV 256
 
 struct node;
-
 typedef struct node node_t;
 
 typedef enum {
@@ -125,6 +125,8 @@ struct node {
 	/** Pointer to the previous and next device in the list of devices
 	    owned by one driver */
 	link_t driver_devices;
+	/** The list of device classes to which this device belongs.*/
+	link_t classes;
 };
 
 /** Represents device tree.
@@ -138,7 +140,38 @@ typedef struct dev_tree {
 	node_t * node_map[MAX_DEV];
 } dev_tree_t;
 
+typedef struct dev_class {	
+	/** The name of the class.*/
+	const char *name;
+	/** Pointer to the previous and next class in the list of registered classes.*/
+	link_t link;	
+	/** List of dev_class_info structures - one for each device registered by this class.*/
+	link_t devices;	
+	/** Default base name for the device within the class, might be overrided by the driver.*/
+	const char *base_dev_name;
+	/** Unique numerical identifier appened to the base name of the newly added device.*/
+	size_t curr_dev_idx;
+	/** Synchronize access to the list of devices in this class. */
+	fibril_mutex_t mutex;
+} dev_class_t;
 
+/** Provides n-to-m mapping between device nodes and classes 
+ * - each device may be register to the arbitrary number of classes 
+ * and each class may contain the arbitrary number of devices. */
+typedef struct dev_class_info {
+	/** The class.*/
+	dev_class_t *dev_class;
+	/** The device.*/
+	node_t *dev;
+	/** Pointer to the previous and next class info in the list of devices registered by the class.*/
+	link_t link;
+	/** Pointer to the previous and next class info in the list of classes by which the device is registered.*/
+	link_t dev_classes;
+	/** The name of the device within the class.*/
+	char *dev_name;	
+	/** The handle of the device by device mapper in the class namespace.*/
+	dev_handle_t devmap_handle;
+} dev_class_info_t;
 
 // Match ids and scores
 
@@ -287,6 +320,47 @@ node_t *find_node_child(node_t *parent, const char *name);
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list);
 bool create_root_node(dev_tree_t *tree);
 bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *parent);
+
+// Device classes
+
+/** Create device class. 
+ *   
+ * @return device class.
+ */
+static inline dev_class_t * create_dev_class()
+{
+	dev_class_t *cl = (dev_class_t *)malloc(sizeof(dev_class_t));
+	if (NULL != cl) {
+		memset(cl, 0, sizeof(dev_class_t));
+		fibril_mutex_initialize(&cl->mutex);
+	}
+	return cl;	
+}
+
+/** Create device class info. 
+ * 
+ * @return device class info.
+ */
+static inline dev_class_info_t * create_dev_class_info()
+{
+	dev_class_info_t *info = (dev_class_info_t *)malloc(sizeof(dev_class_info_t));
+	if (NULL != info) {
+		memset(info, 0, sizeof(dev_class_info_t));
+	}
+	return info;	
+}
+
+static inline size_t get_new_class_dev_idx(dev_class_t *cl)
+{
+	size_t dev_idx;
+	fibril_mutex_lock(&cl->mutex);
+	dev_idx = ++cl->curr_dev_idx;
+	fibril_mutex_unlock(&cl->mutex);
+	return dev_idx;
+}
+
+char * create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name);
+dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char *base_dev_name);
 
 #endif
 

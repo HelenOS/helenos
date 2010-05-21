@@ -735,5 +735,59 @@ node_t *find_node_child(node_t *parent, const char *name)
 	return NULL;
 }
 
+/** Create unique device name within the class. 
+ * 
+ * @param cl the class.
+ * @param base_dev_name contains base name for the device 
+ * if it was specified by the driver when it registered the device by the class; 
+ * NULL if driver specified no base name.
+ * @return the unique name for the device within the class.
+ */
+char * create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
+{
+	char *dev_name;
+	const char *base_name;
+	if (NULL != base_dev_name) {
+		base_name = base_dev_name;
+	} else {
+		base_name = cl->base_dev_name;
+	}
+	
+	size_t idx = get_new_class_dev_idx(cl);
+	asprintf(&dev_name, "%s%d", base_name, idx);
+	return dev_name;	
+}
+
+/** Add the device to the class.
+ * 
+ * The device may be added to multiple classes and a class may contain multiple devices.
+ * The class and the device are associated with each other by the dev_class_info_t structure.
+ * 
+ * @param dev the device.
+ * @param class the class.
+ * @param base_dev_name the base name of the device within the class if specified by the driver,
+ * NULL otherwise.
+ * @return dev_class_info_t structure which associates the device with the class.
+ */
+dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char *base_dev_name)
+{
+	dev_class_info_t *info = create_dev_class_info();
+	info->dev_class = cl;
+	info->dev = dev;
+	
+	// add the device to the class
+	fibril_mutex_lock(&cl->mutex);
+	list_append(&info->link, &cl->devices);
+	fibril_mutex_unlock(&cl->mutex);
+	
+	// add the class to the device
+	list_append(&info->dev_classes, &dev->classes);
+	
+	// create unique name for the device within the class
+	info->dev_name = create_dev_name_for_class(cl, base_dev_name);	
+	
+	return info;
+}
+
 /** @}
  */
