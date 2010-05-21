@@ -33,7 +33,6 @@
  */
 
 #include <arch/cpu.h>
-#include <arch/cpuid.h>
 #include <cpu.h>
 #include <arch.h>
 #include <print.h>
@@ -44,35 +43,32 @@ void cpu_arch_init(void)
 
 void cpu_identify(void)
 {
-	cpu_info_t info;
-	
-	cpu_version(&info);
-	CPU->arch.version = info.version;
-	CPU->arch.revision = info.revision;
+	cpu_version(&CPU->arch);
 }
 
-void cpu_print_report(cpu_t *m)
+void cpu_print_report(cpu_t *cpu)
 {
 	const char *name;
 	
-	switch (m->arch.version) {
+	switch (cpu->arch.version) {
 		case 8:
-			name = " (PowerPC 750)";
+			name = "PowerPC 750";
 			break;
 		case 9:
-			name = " (PowerPC 604e)";
+			name = "PowerPC 604e";
 			break;
 		case 0x81:
-			name = " (PowerPC 8260)";
+			name = "PowerPC 8260";
 			break;
 		case 0x8081:
-			name = " (PowerPC 826xA)";
+			name = "PowerPC 826xA";
 			break;
 		default:
-			name = "";
+			name = "unknown";
 	}
 	
-	printf("cpu%d: version=%d%s, revision=%d\n", m->id, m->arch.version, name, m->arch.revision);
+	printf("cpu%" PRIs ": version=%" PRIu16" (%s), revision=%" PRIu16 "\n", cpu->id,
+	    cpu->arch.version, name, cpu->arch.revision);
 }
 
 /** @}

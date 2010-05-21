@@ -37,6 +37,27 @@
 
 #include <typedefs.h>
 #include <config.h>
+#include <arch/cpu.h>
+
+static inline uint32_t msr_read(void)
+{
+	uint32_t msr;
+	
+	asm volatile (
+		"mfmsr %[msr]\n"
+		: [msr] "=r" (msr)
+	);
+	
+	return msr;
+}
+
+static inline void msr_write(uint32_t msr)
+{
+	asm volatile (
+		"mtmsr %[msr]\n"
+		:: [msr] "r" (msr)
+	);
+}
 
 /** Enable interrupts.
  *
@@ -44,20 +65,13 @@
  * value of EE.
  *
  * @return Old interrupt priority level.
+ *
  */
 static inline ipl_t interrupts_enable(void)
 {
-	ipl_t v;
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		"mfmsr %1\n"
-		"ori %1, %1, 1 << 15\n"
-		"mtmsr %1\n"
-		: "=r" (v), "=r" (tmp)
-	);
-	return v;
+	ipl_t ipl = msr_read();
+	msr_write(ipl | MSR_EE);
+	return ipl;
 }
 
 /** Disable interrupts.
@@ -66,20 +80,13 @@ static inline ipl_t interrupts_enable(void)
  * value of EE.
  *
  * @return Old interrupt priority level.
+ *
  */
 static inline ipl_t interrupts_disable(void)
 {
-	ipl_t v;
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		"mfmsr %1\n"
-		"rlwinm %1, %1, 0, 17, 15\n"
-		"mtmsr %1\n"
-		: "=r" (v), "=r" (tmp)
-	);
-	return v;
+	ipl_t ipl = msr_read();
+	msr_write(ipl & (~MSR_EE));
+	return ipl;
 }
 
 /** Restore interrupt priority level.
@@ -87,22 +94,11 @@ static inline ipl_t interrupts_disable(void)
  * Restore EE.
  *
  * @param ipl Saved interrupt priority level.
+ *
  */
 static inline void interrupts_restore(ipl_t ipl)
 {
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %1\n"
-		"rlwimi  %0, %1, 0, 17, 15\n"
-		"cmpw 0, %0, %1\n"
-		"beq 0f\n"
-		"mtmsr %0\n"
-		"0:\n"
-		: "=r" (ipl), "=r" (tmp)
-		: "0" (ipl)
-		: "cr0"
-	);
+	msr_write((msr_read() & (~MSR_EE)) | (ipl & MSR_EE));
 }
 
 /** Return interrupt priority level.
@@ -110,16 +106,21 @@ static inline void interrupts_restore(ipl_t ipl)
  * Return EE.
  *
  * @return Current interrupt priority level.
+ *
  */
 static inline ipl_t interrupts_read(void)
 {
-	ipl_t v;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		: "=r" (v)
-	);
-	return v;
+	return msr_read();
+}
+
+/** Check whether interrupts are disabled.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+static inline bool interrupts_disabled(void)
+{
+	return ((msr_read() & MSR_EE) == 0);
 }
 
 /** Return base address of current stack.
@@ -127,17 +128,19 @@ static inline ipl_t interrupts_read(void)
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
 static inline uintptr_t get_stack_base(void)
 {
-	uintptr_t v;
+	uintptr_t base;
 	
 	asm volatile (
-		"and %0, %%sp, %1\n"
-		: "=r" (v)
-		: "r" (~(STACK_SIZE - 1))
+		"and %[base], %%sp, %[mask]\n"
+		: [base] "=r" (base)
+		: [mask] "r" (~(STACK_SIZE - 1))
 	);
-	return v;
+	
+	return base;
 }
 
 static inline void cpu_sleep(void)
