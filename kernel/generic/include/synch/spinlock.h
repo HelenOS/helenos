@@ -35,7 +35,7 @@
 #ifndef KERN_SPINLOCK_H_
 #define KERN_SPINLOCK_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
 #include <atomic.h>
@@ -47,7 +47,7 @@ typedef struct {
 	atomic_t val;
 	
 #ifdef CONFIG_DEBUG_SPINLOCK
-	char *name;
+	const char *name;
 #endif
 } spinlock_t;
 
@@ -76,7 +76,8 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)  spinlock_lock_debug(lock)
+#define spinlock_lock(lock)	spinlock_lock_debug((lock))
+#define spinlock_unlock(lock)	spinlock_unlock_debug((lock))
 
 #else
 
@@ -90,7 +91,8 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)  atomic_lock_arch(&(lock)->val)
+#define spinlock_lock(lock)	atomic_lock_arch(&(lock)->val)
+#define spinlock_unlock(lock)	spinlock_unlock_nondebug((lock))
 
 #endif
 
@@ -100,20 +102,19 @@ typedef struct {
 #define SPINLOCK_STATIC_INITIALIZE(lock_name) \
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
-extern void spinlock_initialize(spinlock_t *lock, char *name);
+extern void spinlock_initialize(spinlock_t *lock, const char *name);
 extern int spinlock_trylock(spinlock_t *lock);
 extern void spinlock_lock_debug(spinlock_t *lock);
+extern void spinlock_unlock_debug(spinlock_t *lock);
 
 /** Unlock spinlock
  *
- * Unlock spinlock.
+ * Unlock spinlock for non-debug kernels.
  *
  * @param sl Pointer to spinlock_t structure.
  */
-static inline void spinlock_unlock(spinlock_t *lock)
+static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
-	ASSERT(atomic_get(&lock->val) != 0);
-	
 	/*
 	 * Prevent critical section code from bleeding out this way down.
 	 */

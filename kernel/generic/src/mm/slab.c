@@ -129,7 +129,7 @@ static slab_cache_t slab_cache_cache;
 static slab_cache_t *slab_extern_cache;
 /** Caches for malloc */
 static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1];
-static char *malloc_names[] =  {
+static const char *malloc_names[] =  {
 	"malloc-16",
 	"malloc-32",
 	"malloc-64",
@@ -554,26 +554,29 @@ static unsigned int badness(slab_cache_t *cache)
 /**
  * Initialize mag_cache structure in slab cache
  */
-static void make_magcache(slab_cache_t *cache)
+static bool make_magcache(slab_cache_t *cache)
 {
 	unsigned int i;
 	
 	ASSERT(_slab_initialized >= 2);
 
 	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,
-	    0);
+	    FRAME_ATOMIC);
+	if (!cache->mag_cache)
+		return false;
+
 	for (i = 0; i < config.cpu_count; i++) {
 		memsetb(&cache->mag_cache[i], sizeof(cache->mag_cache[i]), 0);
 		spinlock_initialize(&cache->mag_cache[i].lock,
 		    "slab_maglock_cpu");
 	}
+	return true;
 }
 
 /** Initialize allocated memory as a slab cache */
-static void
-_slab_cache_create(slab_cache_t *cache, char *name, size_t size, size_t align,
-    int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
-    int flags)
+static void _slab_cache_create(slab_cache_t *cache, const char *name,
+    size_t size, size_t align, int (*constructor)(void *obj, int kmflag),
+    int (*destructor)(void *obj), int flags)
 {
 	int pages;
 	ipl_t ipl;
@@ -597,7 +600,7 @@ _slab_cache_create(slab_cache_t *cache, char *name, size_t size, size_t align,
 	spinlock_initialize(&cache->slablock, "slab_lock");
 	spinlock_initialize(&cache->maglock, "slab_maglock");
 	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
-		make_magcache(cache);
+		(void) make_magcache(cache);
 
 	/* Compute slab sizes, object counts in slabs etc. */
 	if (cache->size < SLAB_INSIDE_SIZE)
@@ -630,8 +633,7 @@ _slab_cache_create(slab_cache_t *cache, char *name, size_t size, size_t align,
 }
 
 /** Create slab cache  */
-slab_cache_t *
-slab_cache_create(char *name, size_t size, size_t align,
+slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
     int (*constructor)(void *obj, int kmflag), int (*destructor)(void *obj),
     int flags)
 {
@@ -852,7 +854,7 @@ void slab_print_list(void)
 
 		cache = list_get_instance(cur, slab_cache_t, link);
 
-		char *name = cache->name;
+		const char *name = cache->name;
 		uint8_t order = cache->order;
 		size_t size = cache->size;
 		unsigned int objects = cache->objects;
@@ -895,7 +897,7 @@ void slab_cache_init(void)
 		malloc_caches[i] = slab_cache_create(malloc_names[i], size, 0,
 		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 	}
-#ifdef CONFIG_DEBUG       
+#ifdef CONFIG_DEBUG
 	_slab_initialized = 1;
 #endif
 }
@@ -924,7 +926,7 @@ void slab_enable_cpucache(void)
 		if ((s->flags & SLAB_CACHE_MAGDEFERRED) !=
 		    SLAB_CACHE_MAGDEFERRED)
 			continue;
-		make_magcache(s);
+		(void) make_magcache(s);
 		s->flags &= ~SLAB_CACHE_MAGDEFERRED;
 	}
 

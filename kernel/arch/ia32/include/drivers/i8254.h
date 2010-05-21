@@ -35,8 +35,6 @@
 #ifndef KERN_ia32_I8254_H_
 #define KERN_ia32_I8254_H_
 
-#include <arch/types.h>
-
 extern void i8254_init(void);
 extern void i8254_calibrate_delay_loop(void);
 extern void i8254_normal_operation(void);

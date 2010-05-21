@@ -48,7 +48,7 @@
 static int elf_hdr_check(elf_header_t *hdr);
 static int section_hdr_load(int fd, const elf_header_t *ehdr, int idx,
     elf_section_header_t *shdr);
-static int chunk_load(int fd, off_t start, off_t size, void **ptr);
+static int chunk_load(int fd, off64_t start, size_t size, void **ptr);
 static int read_all(int fd, void *buf, size_t len);
 
 /** Load symbol table from an ELF file.
@@ -64,7 +64,8 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	symtab_t *stab;
 	elf_header_t elf_hdr;
 	elf_section_header_t sec_hdr;
-	off_t shstrt_start, shstrt_size;
+	off64_t shstrt_start;
+	size_t shstrt_size;
 	char *shstrt, *sec_name;
 	void *data;
 
@@ -205,9 +206,14 @@ int symtab_name_to_addr(symtab_t *st, char *name, uintptr_t *addr)
 {
 	size_t i;
 	char *sname;
+	unsigned stype;
 
 	for (i = 0; i < st->sym_size / sizeof(elf_symbol_t); ++i) {
 		if (st->sym[i].st_name == 0)
+			continue;
+
+		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		if (stype != STT_OBJECT && stype != STT_FUNC)
 			continue;
 
 		sname = st->strtab + st->sym[i].st_name;
@@ -239,6 +245,7 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 	size_t i;
 	uintptr_t saddr, best_addr;
 	char *sname, *best_name;
+	unsigned stype;
 
 	best_name = NULL;
 	best_addr = 0;
@@ -247,8 +254,18 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 		if (st->sym[i].st_name == 0)
 			continue;
 
+		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		if (stype != STT_OBJECT && stype != STT_FUNC &&
+		    stype != STT_NOTYPE) {
+			continue;
+		}
+
 		saddr = st->sym[i].st_value;
 		sname = st->strtab + st->sym[i].st_name;
+
+		/* An ugly hack to filter out some special ARM symbols. */
+		if (sname[0] == '$')
+			continue;
 
 		if (best_name == NULL || (saddr <= addr && saddr > best_addr)) {
 			best_name = sname;
@@ -290,7 +307,7 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
 
 	rc = lseek(fd, elf_hdr->e_shoff + idx * sizeof(elf_section_header_t),
 	    SEEK_SET);
-	if (rc == (off_t) -1)
+	if (rc == (off64_t) -1)
 		return EIO;
 
 	rc = read_all(fd, sec_hdr, sizeof(elf_section_header_t));
@@ -311,12 +328,12 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
  *
  * @return		EOK on success or EIO on failure.
  */
-static int chunk_load(int fd, off_t start, off_t size, void **ptr)
+static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 {
 	int rc;
 
 	rc = lseek(fd, start, SEEK_SET);
-	if (rc == (off_t) -1) {
+	if (rc == (off64_t) -1) {
 		printf("failed seeking chunk\n");
 		*ptr = NULL;
 		return EIO;

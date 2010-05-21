@@ -41,12 +41,13 @@
 #include <mm/slab.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 #include <panic.h>
 #include <memstr.h>
 #include <adt/list.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
 
 cpu_t *cpus;
 

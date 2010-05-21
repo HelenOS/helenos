@@ -40,7 +40,7 @@
 
 static rwlock_t rwlock;
 
-char *test_rwlock1(void)
+const char *test_rwlock1(void)
 {
 	rwlock_initialize(&rwlock);
 	

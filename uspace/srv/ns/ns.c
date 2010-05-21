@@ -54,10 +54,10 @@
 static void *clockaddr = NULL;
 static void *klogaddr = NULL;
 
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *ph_addr,
+static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *faddr,
     size_t pages, void **addr)
 {
-	if (ph_addr == NULL) {
+	if ((faddr == NULL) || (pages == 0)) {
 		ipc_answer_0(callid, ENOENT);
 		return;
 	}
@@ -70,7 +70,7 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *ph_addr,
 			return;
 		}
 		
-		if (physmem_map(ph_addr, *addr, pages,
+		if (physmem_map(faddr, *addr, pages,
 		    AS_AREA_READ | AS_AREA_CACHEABLE) != 0) {
 			ipc_answer_0(callid, ENOENT);
 			return;
@@ -78,6 +78,34 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *ph_addr,
 	}
 	
 	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
+}
+
+static void setup_clock_area(ipc_callid_t callid, ipc_call_t *call, void **addr)
+{
+	uintptr_t faddr;
+	int err = sysinfo_get_value("clock.faddr", &faddr);
+	
+	if (err != EOK)
+		ipc_answer_0(callid, err);
+	
+	get_as_area(callid, call, (void *) faddr, 1, addr);
+}
+
+static void setup_klog_area(ipc_callid_t callid, ipc_call_t *call, void **addr)
+{
+	uintptr_t faddr;
+	int err = sysinfo_get_value("klog.faddr", &faddr);
+	
+	if (err != EOK)
+		ipc_answer_0(callid, err);
+	
+	size_t pages;
+	err = sysinfo_get_value("klog.pages", &pages);
+	
+	if (err != EOK)
+		ipc_answer_0(callid, err);
+	
+	get_as_area(callid, call, (void *) faddr, pages, addr);
 }
 
 int main(int argc, char **argv)
@@ -96,7 +124,7 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		return rc;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	
 	while (true) {
 		process_pending_conn();
@@ -112,14 +140,10 @@ int main(int argc, char **argv)
 		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:
-				get_as_area(callid, &call,
-				    (void *) sysinfo_value("clock.faddr"),
-				    1, &clockaddr);
+				setup_clock_area(callid, &call, &clockaddr);
 				break;
 			case SERVICE_MEM_KLOG:
-				get_as_area(callid, &call,
-				    (void *) sysinfo_value("klog.faddr"),
-				    sysinfo_value("klog.pages"), &klogaddr);
+				setup_klog_area(callid, &call, &klogaddr);
 				break;
 			default:
 				ipc_answer_0(callid, ENOENT);

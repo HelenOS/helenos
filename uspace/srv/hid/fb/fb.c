@@ -40,7 +40,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 #include <ddi.h>
 #include <sysinfo.h>
 #include <align.h>
@@ -58,11 +58,11 @@
 #include <bool.h>
 #include <stdio.h>
 #include <byteorder.h>
+#include <io/screenbuffer.h>
 
 #include "font-8x16.h"
 #include "fb.h"
 #include "main.h"
-#include "../console/screenbuffer.h"
 #include "ppm.h"
 
 #include "pointer.xbm"
@@ -71,12 +71,12 @@
 #define DEFAULT_BGCOLOR  0xf0f0f0
 #define DEFAULT_FGCOLOR  0x000000
 
-#define GLYPH_UNAVAIL    '?'
+#define GLYPH_UNAVAIL  '?'
 
-#define MAX_ANIM_LEN     8
-#define MAX_ANIMATIONS   4
-#define MAX_PIXMAPS      256  /**< Maximum number of saved pixmaps */
-#define MAX_VIEWPORTS    128  /**< Viewport is a rectangular area on the screen */
+#define MAX_ANIM_LEN    8
+#define MAX_ANIMATIONS  4
+#define MAX_PIXMAPS     256  /**< Maximum number of saved pixmaps */
+#define MAX_VIEWPORTS   128  /**< Viewport is a rectangular area on the screen */
 
 /** Function to render a pixel from a RGB value. */
 typedef void (*rgb_conv_t)(void *, uint32_t);
@@ -955,7 +955,6 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 	unsigned int j;
 	bb_cell_t *bbp;
 	attrs_t *a;
-	attr_rgb_t rgb;
 	
 	for (j = 0; j < h; j++) {
 		for (i = 0; i < w; i++) {
@@ -965,6 +964,10 @@ static void draw_text_data(viewport_t *vport, keyfield_t *data, unsigned int x,
 			bbp = &vport->backbuf[BB_POS(vport, col, row)];
 			
 			a = &data[j * w + i].attrs;
+			
+			attr_rgb_t rgb;
+			rgb.fg_color = 0;
+			rgb.bg_color = 0;
 			rgb_from_attr(&rgb, a);
 			
 			bbp->glyph = fb_font_glyph(data[j * w + i].character);
@@ -1510,10 +1513,18 @@ static int rgb_from_style(attr_rgb_t *rgb, int style)
 		rgb->fg_color = color_table[COLOR_RED];
 		rgb->bg_color = color_table[COLOR_WHITE];
 		break;
+	case STYLE_INVERTED:
+		rgb->fg_color = color_table[COLOR_WHITE];
+		rgb->bg_color = color_table[COLOR_BLACK];
+		break;
+	case STYLE_SELECTED:
+		rgb->fg_color = color_table[COLOR_WHITE];
+		rgb->bg_color = color_table[COLOR_RED];
+		break;
 	default:
 		return EINVAL;
 	}
-
+	
 	return EOK;
 }
 
@@ -1755,23 +1766,40 @@ int fb_init(void)
 {
 	async_set_client_connection(fb_client_connection);
 	
-	void *fb_ph_addr = (void *) sysinfo_value("fb.address.physical");
-	unsigned int fb_offset = sysinfo_value("fb.offset");
-	unsigned int fb_width = sysinfo_value("fb.width");
-	unsigned int fb_height = sysinfo_value("fb.height");
-	unsigned int fb_scanline = sysinfo_value("fb.scanline");
-	unsigned int fb_visual = sysinfo_value("fb.visual");
-
-	unsigned int fbsize = fb_scanline * fb_height;
+	sysarg_t fb_ph_addr;
+	if (sysinfo_get_value("fb.address.physical", &fb_ph_addr) != EOK)
+		return -1;
+	
+	sysarg_t fb_offset;
+	if (sysinfo_get_value("fb.offset", &fb_offset) != EOK)
+		fb_offset = 0;
+	
+	sysarg_t fb_width;
+	if (sysinfo_get_value("fb.width", &fb_width) != EOK)
+		return -1;
+	
+	sysarg_t fb_height;
+	if (sysinfo_get_value("fb.height", &fb_height) != EOK)
+		return -1;
+	
+	sysarg_t fb_scanline;
+	if (sysinfo_get_value("fb.scanline", &fb_scanline) != EOK)
+		return -1;
+	
+	sysarg_t fb_visual;
+	if (sysinfo_get_value("fb.visual", &fb_visual) != EOK)
+		return -1;
+	
+	sysarg_t fbsize = fb_scanline * fb_height;
 	void *fb_addr = as_get_mappable_page(fbsize);
-
-	if (physmem_map(fb_ph_addr + fb_offset, fb_addr,
+	
+	if (physmem_map((void *) fb_ph_addr + fb_offset, fb_addr,
 	    ALIGN_UP(fbsize, PAGE_SIZE) >> PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
-
+	
 	if (screen_init(fb_addr, fb_width, fb_height, fb_scanline, fb_visual))
 		return 0;
-
+	
 	return -1;
 }
 

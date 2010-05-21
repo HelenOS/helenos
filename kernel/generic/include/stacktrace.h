@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericdebug 
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
@@ -35,7 +35,6 @@
 #ifndef KERN_STACKTRACE_H_
 #define KERN_STACKTRACE_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 
 /* Forward declarations. */
@@ -45,7 +44,7 @@ typedef struct {
 	bool (* frame_pointer_validate)(uintptr_t);
 	bool (* frame_pointer_prev)(uintptr_t, uintptr_t *);
 	bool (* return_address_get)(uintptr_t, uintptr_t *);
-	bool (* symbol_resolve)(uintptr_t, char **, uintptr_t *);
+	bool (* symbol_resolve)(uintptr_t, const char **, uintptr_t *);
 } stack_trace_ops_t;
 
 extern stack_trace_ops_t kst_ops;
@@ -59,7 +58,7 @@ extern void stack_trace_fp_pc(stack_trace_ops_t *, uintptr_t, uintptr_t);
  * The following interface is to be implemented by each architecture.
  */
 extern uintptr_t frame_pointer_get(void);
-extern uintptr_t program_counter_get();
+extern uintptr_t program_counter_get(void);
 
 extern bool kernel_frame_pointer_validate(uintptr_t);
 extern bool kernel_frame_pointer_prev(uintptr_t, uintptr_t *);

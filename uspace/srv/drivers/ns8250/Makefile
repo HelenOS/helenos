@@ -26,13 +26,11 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBC_PREFIX)/libc.a
-
-OUTPUT = ns8250
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = ns8250
 
 SOURCES = \
 	ns8250.c
 
-include ../../Makefile.common
-
-EXTRA_CFLAGS = -I$(LIBDRV_PREFIX)/include
+include $(USPACE_PREFIX)/Makefile.common

@@ -226,7 +226,7 @@
 
 #ifdef KERNEL
 
-#define IPC_MAX_PHONES  16
+#define IPC_MAX_PHONES  32
 
 #include <synch/spinlock.h>
 #include <synch/mutex.h>

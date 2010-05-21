@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = shutters
+BINARY = shutters
 
 SOURCES = \
 	shutters.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

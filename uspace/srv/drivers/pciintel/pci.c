@@ -40,7 +40,7 @@
 #include <errno.h>
 #include <bool.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <macros.h>
 
@@ -220,9 +220,11 @@ void create_pci_match_ids(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
 	match_id_t *match_id = NULL;	
+	char *match_id_str;	
 	match_id = create_match_id();
 	if (NULL != match_id) {
-		asprintf(&match_id->id, "pci/ven=%04x&dev=%04x", dev_data->vendor_id, dev_data->device_id);
+		asprintf(&match_id_str, "pci/ven=%04x&dev=%04x", dev_data->vendor_id, dev_data->device_id);
+		match_id->id = match_id_str;
 		match_id->score = 90;
 		add_match_id(&dev->match_ids, match_id);
 	}	

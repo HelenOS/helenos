@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
- * @file	preemption.c
- * @brief	Preemption control.
+ * @file preemption.c
+ * @brief Preemption control.
  */
- 
+
 #include <preemption.h>
 #include <arch.h>
 #include <arch/asm.h>
@@ -51,7 +51,7 @@ void preemption_disable(void)
 /** Decrement preemption disabled counter. */
 void preemption_enable(void)
 {
-	ASSERT(THE->preemption_disabled);
+	ASSERT(PREEMPTION_DISABLED);
 	memory_barrier();
 	THE->preemption_disabled--;
 }

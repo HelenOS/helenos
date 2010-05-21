@@ -26,12 +26,29 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: $(BASE)/image.boot
+BFD_NAME = elf32-littlearm
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = arm
 
-$(BASE)/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
-	cp arch/$(BARCH)/loader/image.boot $@
+BITS = 32
+ENDIANESS = LE
+PAGE_SIZE = 4096
 
-clean:
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -f $(BASE)/image.boot
+RD_SRVS_ESSENTIAL +=
+
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
+
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/mm.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

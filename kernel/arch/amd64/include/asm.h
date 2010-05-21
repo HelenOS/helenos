@@ -36,7 +36,6 @@
 #define KERN_amd64_ASM_H_
 
 #include <config.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 extern void asm_delay_loop(uint32_t t);

@@ -80,7 +80,7 @@ typedef struct {
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <synch/spinlock.h>

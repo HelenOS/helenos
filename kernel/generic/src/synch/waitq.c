@@ -48,11 +48,12 @@
 #include <proc/thread.h>
 #include <proc/scheduler.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <time/timeout.h>
 #include <arch.h>
 #include <context.h>
 #include <adt/list.h>
+#include <arch/cycle.h>
 
 static void waitq_sleep_timed_out(void *data);
 
@@ -206,6 +207,9 @@ void waitq_unsleep(waitq_t *wq)
 	interrupts_restore(ipl);
 }
 
+#define PARAM_NON_BLOCKING(flags, usec) \
+	(((flags) & SYNCH_FLAGS_NON_BLOCKING) && ((usec) == 0))
+
 /** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to time out or to be
@@ -255,6 +259,8 @@ int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, int flags)
 {
 	ipl_t ipl;
 	int rc;
+
+	ASSERT((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
 	
 	ipl = waitq_sleep_prepare(wq);
 	rc = waitq_sleep_timeout_unsafe(wq, usec, flags);
@@ -342,7 +348,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		return ESYNCH_OK_ATOMIC;
 	}
 	else {
-		if ((flags & SYNCH_FLAGS_NON_BLOCKING) && (usec == 0)) {
+		if (PARAM_NON_BLOCKING(flags, usec)) {
 			/* return immediatelly instead of going to sleep */
 			return ESYNCH_WOULD_BLOCK;
 		}
@@ -372,6 +378,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		THREAD->sleep_interruptible = true;
 		if (!context_save(&THREAD->sleep_interruption_context)) {
 			/* Short emulation of scheduler() return code. */
+			THREAD->last_cycle = get_cycle();
 			spinlock_unlock(&THREAD->lock);
 			return ESYNCH_INTERRUPTED;
 		}
@@ -384,6 +391,7 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, int flags)
 		/* We use the timeout variant. */
 		if (!context_save(&THREAD->sleep_timeout_context)) {
 			/* Short emulation of scheduler() return code. */
+			THREAD->last_cycle = get_cycle();
 			spinlock_unlock(&THREAD->lock);
 			return ESYNCH_TIMEOUT;
 		}

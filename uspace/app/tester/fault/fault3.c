@@ -29,7 +29,7 @@
 #include "../tester.h"
 #include <stdlib.h>
 
-char *test_fault3(void)
+const char *test_fault3(void)
 {
 	abort();
 }

@@ -36,7 +36,7 @@
 #define KERN_ppc32_FPU_CONTEXT_H_
 
 #ifndef KERN_ppc32_TYPES_H_
-# include <arch/types.h>
+	#include <typedefs.h>
 #endif
 
 typedef struct {

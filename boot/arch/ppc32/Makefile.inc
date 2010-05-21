@@ -26,24 +26,38 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+BOOT_OUTPUT = image.boot
+POST_OUTPUT = $(ROOT_PATH)/image.iso
+POSTBUILD = Makefile.yaboot
 
-build: $(BASE)/image.iso
+BFD_NAME = elf32-powerpc
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = powerpc:common
 
-$(BASE)/image.iso: arch/$(BARCH)/loader/image.boot
-	mkdir -p $(TMP)/boot
-	mkdir -p $(TMP)/ppc
-	cp arch/$(BARCH)/loader/image.boot $(TMP)/boot/image.boot
-	cp arch/$(BARCH)/yaboot/ofboot.b $(TMP)/boot/ofboot.b
-	cp arch/$(BARCH)/yaboot/bootinfo.txt $(TMP)/ppc/bootinfo.txt
-	cp arch/$(BARCH)/yaboot/yaboot $(TMP)/boot/yaboot
-	cp arch/$(BARCH)/yaboot/yaboot.conf $(TMP)/boot/yaboot.conf
-	mkisofs -hfs -part -map arch/$(BARCH)/yaboot/maps -no-desktop -hfs-volid "HelenOS" -hfs-bless $(TMP)/boot -r -o $@ $(TMP)/
+BITS = 32
+ENDIANESS = BE
+PAGE_SIZE = 4096
+EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
-arch/$(BARCH)/loader/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hw/bus/cuda_adb/cuda_adb
 
-clean: generic_clean
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -fr $(TMP)
-	rm -f $(BASE)/image.iso
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hid/adb_mouse/adb_ms
+
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/ofw.c \
+	$(COMPS_C) \
+	genarch/src/ofw.c \
+	genarch/src/ofw_tree.c \
+	genarch/src/division.c \
+	genarch/src/multiplication.c \
+	generic/src/balloc.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

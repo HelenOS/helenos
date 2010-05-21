@@ -37,7 +37,6 @@
 #include <ipc/devman.h>
 
 #include "devman.h"
-#include "util.h"
 
 /** Allocate and initialize a new driver structure.
  * 
@@ -73,7 +72,7 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
  * 
  * @return the match id. 
  */
-char * read_match_id(const char **buf) 
+char * read_match_id(char **buf) 
 {
 	char *res = NULL;
 	size_t len = get_nonspace_len(*buf);
@@ -99,7 +98,7 @@ char * read_match_id(const char **buf)
  * 
  * @return true if at least one match id and associated match score was successfully read, false otherwise.
  */
-bool parse_match_ids(const char *buf, match_id_list_t *ids)
+bool parse_match_ids(char *buf, match_id_list_t *ids)
 {
 	int score = 0;
 	char *id = NULL;
@@ -157,7 +156,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	char *buf = NULL;
 	bool opened = false;
 	int fd;		
-	off_t len = 0;
+	size_t len = 0;
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -314,10 +313,10 @@ bool create_root_node(dev_tree_t *tree)
 {
 	printf(NAME ": create_root_node\n");
 	node_t *node = create_dev_node();
-	if (node) {
-		insert_dev_node(tree, node, "", NULL);
+	if (node) {		
+		insert_dev_node(tree, node, clone_string(""), NULL);
 		match_id_t *id = create_match_id();
-		id->id = "root";
+		id->id = clone_string("root");
 		id->score = 100;
 		add_match_id(&node->match_ids, id);
 		tree->root_node = node;
@@ -391,13 +390,14 @@ bool start_driver(driver_t *drv)
 {
 	printf(NAME ": start_driver '%s'\n", drv->name);
 	
-	char *argv[2];
+	const char *argv[2];
 	
 	argv[0] = drv->name;
 	argv[1] = NULL;
 	
-	if (!task_spawn(drv->binary_path, argv)) {
-		printf(NAME ": error spawning %s\n", drv->name);
+	int err;
+	if (!task_spawn(drv->binary_path, argv, &err)) {
+		printf(NAME ": error spawning %s, errno = %d\n", drv->name, err);
 		return false;
 	}
 	
@@ -681,7 +681,6 @@ node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
 	// relative path to the device from its parent (but with '/' at the beginning)
 	char *rel_path = path;
 	char *next_path_elem = NULL;
-	size_t elem_size = 0;
 	bool cont = '/' == rel_path[0];
 	
 	while (cont && NULL != dev) {		

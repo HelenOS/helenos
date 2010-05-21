@@ -47,11 +47,11 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall);
 
 static int dev_phone;
 
-#define NAME "kbd"
+#define NAME "char_mouse"
 
 int mouse_port_init(void)
 {
-	char *input = "/dev/char/ps2b";
+	const char *input = "/dev/char/ps2b";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);

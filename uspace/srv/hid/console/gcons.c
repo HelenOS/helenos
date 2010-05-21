@@ -37,7 +37,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <sys/mman.h>
-#include <string.h>
+#include <str.h>
 #include <align.h>
 #include <bool.h>
 
@@ -53,7 +53,32 @@
 #define STATUS_WIDTH   48
 #define STATUS_HEIGHT  48
 
-#define MAIN_COLOR  0xffffff
+#define COLOR_MAIN        0xffffff
+#define COLOR_FOREGROUND  0x202020
+#define COLOR_BACKGROUND  0xffffff
+
+extern char _binary_gfx_helenos_ppm_start[0];
+extern int _binary_gfx_helenos_ppm_size;
+extern char _binary_gfx_nameic_ppm_start[0];
+extern int _binary_gfx_nameic_ppm_size;
+
+extern char _binary_gfx_anim_1_ppm_start[0];
+extern int _binary_gfx_anim_1_ppm_size;
+extern char _binary_gfx_anim_2_ppm_start[0];
+extern int _binary_gfx_anim_2_ppm_size;
+extern char _binary_gfx_anim_3_ppm_start[0];
+extern int _binary_gfx_anim_3_ppm_size;
+extern char _binary_gfx_anim_4_ppm_start[0];
+extern int _binary_gfx_anim_4_ppm_size;
+
+extern char _binary_gfx_cons_selected_ppm_start[0];
+extern int _binary_gfx_cons_selected_ppm_size;
+extern char _binary_gfx_cons_idle_ppm_start[0];
+extern int _binary_gfx_cons_idle_ppm_size;
+extern char _binary_gfx_cons_has_data_ppm_start[0];
+extern int _binary_gfx_cons_has_data_ppm_size;
+extern char _binary_gfx_cons_kernel_ppm_start[0];
+extern int _binary_gfx_cons_kernel_ppm_size;
 
 static bool use_gcons = false;
 static ipcarg_t xres;
@@ -81,12 +106,12 @@ static int animation = -1;
 
 static size_t active_console = 0;
 
-size_t mouse_x;
-size_t mouse_y;
+static ipcarg_t mouse_x = 0;
+static ipcarg_t mouse_y= 0;
 
-bool btn_pressed;
-size_t btn_x;
-size_t btn_y;
+static bool btn_pressed = false;
+static ipcarg_t btn_x = 0;
+static ipcarg_t btn_y = 0;
 
 static void vp_switch(int vp)
 {
@@ -94,7 +119,7 @@ static void vp_switch(int vp)
 }
 
 /** Create view port */
-static int vp_create(size_t x, size_t y, size_t width, size_t height)
+static int vp_create(ipcarg_t x, ipcarg_t y, ipcarg_t width, ipcarg_t height)
 {
 	return async_req_2_0(fbphone, FB_VIEWPORT_CREATE, (x << 16) | y,
 	    (width << 16) | height);
@@ -111,7 +136,7 @@ static void set_rgb_color(uint32_t fgcolor, uint32_t bgcolor)
 }
 
 /** Transparent putchar */
-static void tran_putch(wchar_t ch, size_t col, size_t row)
+static void tran_putch(wchar_t ch, ipcarg_t col, ipcarg_t row)
 {
 	async_msg_3(fbphone, FB_PUTCHAR, ch, col, row);
 }
@@ -258,16 +283,19 @@ static inline ssize_t limit(ssize_t a, ssize_t left, ssize_t right)
  */
 void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
-	mouse_x = limit(mouse_x + dx, 0, xres);
-	mouse_y = limit(mouse_y + dy, 0, yres);
-
+	ssize_t nx = (ssize_t) mouse_x + dx;
+	ssize_t ny = (ssize_t) mouse_y + dy;
+	
+	mouse_x = (size_t) limit(nx, 0, xres);
+	mouse_y = (size_t) limit(ny, 0, yres);
+	
 	if (active_console != KERNEL_CONSOLE)
 		async_msg_2(fbphone, FB_POINTER_MOVE, mouse_x, mouse_y);
 }
 
-static int gcons_find_conbut(int x, int y)
+static int gcons_find_conbut(ipcarg_t x, ipcarg_t y)
 {
-	int status_start = STATUS_START + (xres - 800) / 2;
+	ipcarg_t status_start = STATUS_START + (xres - 800) / 2;
 	
 	if ((y < STATUS_TOP) || (y >= STATUS_TOP + STATUS_HEIGHT))
 		return -1;
@@ -277,22 +305,32 @@ static int gcons_find_conbut(int x, int y)
 	
 	if (x >= status_start + (STATUS_WIDTH + STATUS_SPACE) * CONSOLE_COUNT)
 		return -1;
+	
 	if (((x - status_start) % (STATUS_WIDTH + STATUS_SPACE)) < STATUS_SPACE)
 		return -1;
 	
-	return (x - status_start) / (STATUS_WIDTH + STATUS_SPACE);
+	ipcarg_t btn = (x - status_start) / (STATUS_WIDTH + STATUS_SPACE);
+	
+	if (btn < CONSOLE_COUNT)
+		return btn;
+	
+	return -1;
 }
 
 /** Handle mouse click
  *
  * @param state New state (true - pressed, false - depressed)
+ *
  */
 int gcons_mouse_btn(bool state)
 {
-	int conbut;
+	/* Ignore mouse clicks if no buttons
+	   are drawn at all */
+	if (xres < 800)
+		return -1;
 	
 	if (state) {
-		conbut = gcons_find_conbut(mouse_x, mouse_y);
+		int conbut = gcons_find_conbut(mouse_x, mouse_y);
 		if (conbut != -1) {
 			btn_pressed = true;
 			btn_x = mouse_x;
@@ -306,13 +344,12 @@ int gcons_mouse_btn(bool state)
 	
 	btn_pressed = false;
 	
-	conbut = gcons_find_conbut(mouse_x, mouse_y);
+	int conbut = gcons_find_conbut(mouse_x, mouse_y);
 	if (conbut == gcons_find_conbut(btn_x, btn_y))
 		return conbut;
 	
 	return -1;
 }
-
 
 /** Draw a PPM pixmap to framebuffer
  *
@@ -320,14 +357,12 @@ int gcons_mouse_btn(bool state)
  * @param size Size of PPM data
  * @param x Coordinate of upper left corner
  * @param y Coordinate of upper left corner
+ *
  */
-static void draw_pixmap(char *logo, size_t size, int x, int y)
+static void draw_pixmap(char *logo, size_t size, ipcarg_t x, ipcarg_t y)
 {
-	char *shm;
-	int rc;
-	
 	/* Create area */
-	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
+	char *shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
 	    MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return;
@@ -335,7 +370,7 @@ static void draw_pixmap(char *logo, size_t size, int x, int y)
 	memcpy(shm, logo, size);
 	
 	/* Send area */
-	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
+	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
 	
@@ -355,27 +390,21 @@ exit:
 	munmap(shm, size);
 }
 
-extern char _binary_gfx_helenos_ppm_start[0];
-extern int _binary_gfx_helenos_ppm_size;
-extern char _binary_gfx_nameic_ppm_start[0];
-extern int _binary_gfx_nameic_ppm_size;
-
 /** Redraws console graphics */
 void gcons_redraw_console(void)
 {
-	int i;
-	
 	if (!use_gcons)
 		return;
 	
 	vp_switch(0);
-	set_rgb_color(MAIN_COLOR, MAIN_COLOR);
+	set_rgb_color(COLOR_MAIN, COLOR_MAIN);
 	clear();
 	draw_pixmap(_binary_gfx_helenos_ppm_start,
 	    (size_t) &_binary_gfx_helenos_ppm_size, xres - 66, 2);
 	draw_pixmap(_binary_gfx_nameic_ppm_start,
 	    (size_t) &_binary_gfx_nameic_ppm_size, 5, 17);
 	
+	unsigned int i;
 	for (i = 0; i < CONSOLE_COUNT; i++)
 		redraw_state(i);
 	
@@ -392,20 +421,18 @@ void gcons_redraw_console(void)
  */
 static int make_pixmap(char *data, size_t size)
 {
-	char *shm;
-	int rc;
-	int pxid = -1;
-	
 	/* Create area */
-	shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
+	char *shm = mmap(NULL, size, PROTO_READ | PROTO_WRITE, MAP_SHARED |
 	    MAP_ANONYMOUS, 0, 0);
 	if (shm == MAP_FAILED)
 		return -1;
 	
 	memcpy(shm, data, size);
 	
+	int pxid = -1;
+	
 	/* Send area */
-	rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
+	int rc = async_req_1_0(fbphone, FB_PREPARE_SHM, (ipcarg_t) shm);
 	if (rc)
 		goto exit;
 	
@@ -431,50 +458,33 @@ exit:
 	return pxid;
 }
 
-extern char _binary_gfx_anim_1_ppm_start[0];
-extern int _binary_gfx_anim_1_ppm_size;
-extern char _binary_gfx_anim_2_ppm_start[0];
-extern int _binary_gfx_anim_2_ppm_size;
-extern char _binary_gfx_anim_3_ppm_start[0];
-extern int _binary_gfx_anim_3_ppm_size;
-extern char _binary_gfx_anim_4_ppm_start[0];
-extern int _binary_gfx_anim_4_ppm_size;
-
 static void make_anim(void)
 {
-	int an = async_req_1_0(fbphone, FB_ANIM_CREATE, cstatus_vp[KERNEL_CONSOLE]);
+	int an = async_req_1_0(fbphone, FB_ANIM_CREATE,
+	    cstatus_vp[KERNEL_CONSOLE]);
 	if (an < 0)
 		return;
 	
 	int pm = make_pixmap(_binary_gfx_anim_1_ppm_start,
-	    (int) &_binary_gfx_anim_1_ppm_size);
+	    (size_t) &_binary_gfx_anim_1_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_2_ppm_start,
-	    (int) &_binary_gfx_anim_2_ppm_size);
+	    (size_t) &_binary_gfx_anim_2_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_3_ppm_start,
-	    (int) &_binary_gfx_anim_3_ppm_size);
+	    (size_t) &_binary_gfx_anim_3_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	pm = make_pixmap(_binary_gfx_anim_4_ppm_start,
-	    (int) &_binary_gfx_anim_4_ppm_size);
+	    (size_t) &_binary_gfx_anim_4_ppm_size);
 	async_msg_2(fbphone, FB_ANIM_ADDPIXMAP, an, pm);
 	
 	async_msg_1(fbphone, FB_ANIM_START, an);
 	
 	animation = an;
 }
-
-extern char _binary_gfx_cons_selected_ppm_start[0];
-extern int _binary_gfx_cons_selected_ppm_size;
-extern char _binary_gfx_cons_idle_ppm_start[0];
-extern int _binary_gfx_cons_idle_ppm_size;
-extern char _binary_gfx_cons_has_data_ppm_start[0];
-extern int _binary_gfx_cons_has_data_ppm_size;
-extern char _binary_gfx_cons_kernel_ppm_start[0];
-extern int _binary_gfx_cons_kernel_ppm_size;
 
 /** Initialize nice graphical console environment */
 void gcons_init(int phone)
@@ -499,7 +509,7 @@ void gcons_init(int phone)
 		return;
 	
 	/* Create status buttons */
-	size_t status_start = STATUS_START + (xres - 800) / 2;
+	ipcarg_t status_start = STATUS_START + (xres - 800) / 2;
 	size_t i;
 	for (i = 0; i < CONSOLE_COUNT; i++) {
 		cstatus_vp[i] = vp_create(status_start + CONSOLE_MARGIN +
@@ -510,7 +520,7 @@ void gcons_init(int phone)
 			return;
 		
 		vp_switch(cstatus_vp[i]);
-		set_rgb_color(0x202020, 0xffffff);
+		set_rgb_color(COLOR_FOREGROUND, COLOR_BACKGROUND);
 	}
 	
 	/* Initialize icons */

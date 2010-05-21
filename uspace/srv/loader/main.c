@@ -57,7 +57,7 @@
 #include <loader/pcb.h>
 #include <errno.h>
 #include <async.h>
-#include <string.h>
+#include <str.h>
 #include <as.h>
 
 #include <elf.h>
@@ -125,7 +125,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
-	int rc = async_string_receive(&buf, 0, NULL);
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
 	
 	if (rc == EOK) {
 		if (cwd != NULL)
@@ -145,7 +145,7 @@ static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 static void ldr_set_pathname(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
-	int rc = async_string_receive(&buf, 0, NULL);
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
 	
 	if (rc == EOK) {
 		if (pathname != NULL)
@@ -166,7 +166,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
 	size_t buf_size;
-	int rc = async_string_receive(&buf, 0, &buf_size);
+	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, &buf_size);
 	
 	if (rc == EOK) {
 		/*
@@ -231,7 +231,8 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 {
 	fdi_node_t *buf;
 	size_t buf_size;
-	int rc = async_data_receive(&buf, 0, 0, sizeof(fdi_node_t), &buf_size);
+	int rc = async_data_write_accept((void **) &buf, false, 0, 0,
+	    sizeof(fdi_node_t), &buf_size);
 	
 	if (rc == EOK) {
 		int count = buf_size / sizeof(fdi_node_t);
@@ -239,7 +240,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * Allocate new filv
 		 */
-		fdi_node_t **_filv = (fdi_node_t *) malloc((count + 1) * sizeof(fdi_node_t *));
+		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
 		if (_filv == NULL) {
 			free(buf);
 			ipc_answer_0(rid, ENOMEM);

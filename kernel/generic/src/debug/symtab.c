@@ -37,9 +37,9 @@
 
 #include <symtab.h>
 #include <byteorder.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <typedefs.h>
 #include <errno.h>
 
@@ -53,7 +53,7 @@
  *         ENOTSUP if symbol table not available.
  *
  */
-int symtab_name_lookup(uintptr_t addr, char **name, uintptr_t *offset)
+int symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 {
 #ifdef CONFIG_SYMTAB
 	size_t i;
@@ -91,9 +91,9 @@ int symtab_name_lookup(uintptr_t addr, char **name, uintptr_t *offset)
  * @return Pointer to a human-readable string.
  *
  */
-char *symtab_fmt_name_lookup(uintptr_t addr)
+const char *symtab_fmt_name_lookup(uintptr_t addr)
 {
-	char *name;
+	const char *name;
 	int rc = symtab_name_lookup(addr, &name, NULL);
 	
 	switch (rc) {
@@ -238,7 +238,7 @@ int symtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = 0;
-		while ((hint = symtab_search_one(name, &pos))) {
+		while (symtab_search_one(name, &pos)) {
 			printf("%s\n", symbol_table[pos].symbol_name);
 			pos++;
 		}

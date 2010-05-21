@@ -47,7 +47,7 @@
  *
  * There is one structure like this for every processor.
  */
-typedef struct {
+typedef struct cpu {
 	SPINLOCK_DECLARE(lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
@@ -67,12 +67,16 @@ typedef struct {
 					     CPU-local and can be only accessed when interrupts
 					     are disabled. */
 
+	bool idle;
+	uint64_t idle_ticks;
+	uint64_t busy_ticks;
+
 	/**
 	 * Processor ID assigned by kernel.
 	 */
 	unsigned int id;
 	
-	int active;
+	bool active;
 	int tlb_active;
 
 	uint16_t frequency_mhz;

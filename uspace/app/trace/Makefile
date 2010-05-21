@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = trace
+BINARY = trace
 
 SOURCES = \
 	trace.c \
@@ -40,4 +38,4 @@ SOURCES = \
 	proto.c \
 	errors.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

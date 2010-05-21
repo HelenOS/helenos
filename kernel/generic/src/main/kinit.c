@@ -65,7 +65,8 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <debug.h>
-#include <string.h>
+#include <str.h>
+#include <sysinfo/stats.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -93,10 +94,7 @@ static char alive[ALIVE_CHARS] = "-\\|/";
  */
 void kinit(void *arg)
 {
-
-#if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
-#endif
 	
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
@@ -122,6 +120,7 @@ void kinit(void *arg)
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
+		
 		thread_join(thread);
 		thread_detach(thread);
 	}
@@ -149,6 +148,13 @@ void kinit(void *arg)
 	 * At this point SMP, if present, is configured.
 	 */
 	arch_post_smp_init();
+	
+	/* Start thread computing system load */
+	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	if (thread != NULL)
+		thread_ready(thread);
+	else
+		printf("Unable to create kload thread\n");
 	
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {
@@ -183,9 +189,8 @@ void kinit(void *arg)
 		 */
 		
 		char namebuf[TASK_NAME_BUFLEN];
-		char *name;
 		
-		name = init.tasks[i].name;
+		const char *name = init.tasks[i].name;
 		if (name[0] == 0)
 			name = "<unknown>";
 		
@@ -216,7 +221,7 @@ void kinit(void *arg)
 				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
 		}
 	}
-	
+
 	/*
 	 * Run user tasks.
 	 */
@@ -224,7 +229,7 @@ void kinit(void *arg)
 		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
 	}
-	
+
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);

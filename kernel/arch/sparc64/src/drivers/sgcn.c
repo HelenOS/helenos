@@ -39,7 +39,7 @@
 #include <arch/drivers/kbd.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <debug.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
 #include <mm/page.h>
 #include <proc/thread.h>

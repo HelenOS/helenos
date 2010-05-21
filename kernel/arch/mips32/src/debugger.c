@@ -163,6 +163,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		if (breakpoints[i].address == (uintptr_t)argv->intval) {
 			printf("Duplicate breakpoint %d.\n", i);
 			spinlock_unlock(&bkpoint_lock);
+			interrupts_restore(ipl);
 			return 0;
 		} else if (breakpoints[i].address == (uintptr_t)argv->intval +
 		    sizeof(unative_t) || breakpoints[i].address ==
@@ -170,6 +171,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 			printf("Adjacent breakpoints not supported, conflict "
 			    "with %d.\n", i);
 			spinlock_unlock(&bkpoint_lock);
+			interrupts_restore(ipl);
 			return 0;
 		}
 		
@@ -252,16 +254,15 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 int cmd_print_breakpoints(cmd_arg_t *argv)
 {
 	unsigned int i;
-	char *symbol;
 	
 	printf("#  Count Address    INPROG ONESHOT FUNCCALL In symbol\n");
 	printf("-- ----- ---------- ------ ------- -------- ---------\n");
 	
-	for (i = 0; i < BKPOINTS_MAX; i++)
+	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (breakpoints[i].address) {
-			symbol = symtab_fmt_name_lookup(
+			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
-
+			
 			printf("%-2u %-5d %#10zx %-6s %-7s %-8s %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
@@ -269,6 +270,8 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 			    ? "true" : "false"), ((breakpoints[i].flags &
 			    BKPOINT_FUNCCALL) ? "true" : "false"), symbol);
 		}
+	}
+	
 	return 1;
 }
 

@@ -37,7 +37,6 @@
 #define KERN_ia32_ASM_H_
 
 #include <arch/pm.h>
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
 

@@ -41,7 +41,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <macros.h>
 #include <malloc.h>
@@ -135,7 +135,7 @@ static char * read_dev_conf(const char *conf_path)
 	char *buf = NULL;
 	bool opened = false;
 	int fd;		
-	off_t len = 0;
+	size_t len = 0;
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
@@ -457,7 +457,7 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 	return dev_conf;	
 }
 
-static char * parse_dev_conf(char *conf, device_t *parent)
+static void parse_dev_conf(char *conf, device_t *parent)
 {
 	while (NULL != conf && 0 != *conf) {
 		conf = read_isa_dev_info(conf, parent);

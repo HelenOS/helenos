@@ -39,7 +39,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string.h>
+#include <str.h>
 
 #include "errors.h"
 #include "config.h"
@@ -48,7 +48,7 @@
 #include "ls.h"
 #include "cmds.h"
 
-static char *cmdname = "ls";
+static const char *cmdname = "ls";
 
 static void ls_scan_dir(const char *d, DIR *dirp)
 {

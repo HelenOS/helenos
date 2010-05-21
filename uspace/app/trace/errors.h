@@ -36,8 +36,8 @@
 #define ERRORS_H_
 
 typedef struct {
-	char *name;	/**< Error value name (Exx) */
-	char *desc;	/**< Error description */
+	const char *name;  /**< Error value name (Exx) */
+	const char *desc;  /**< Error description */
 } err_desc_t;
 
 extern const err_desc_t err_desc[];

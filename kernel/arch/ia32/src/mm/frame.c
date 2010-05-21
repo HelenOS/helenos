@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -54,12 +54,12 @@ uintptr_t last_frame = 0;
 static void init_e820_memory(pfn_t minconf)
 {
 	unsigned int i;
+
 	for (i = 0; i < e820counter; i++) {
 		uint64_t base = e820table[i].base_address;
 		uint64_t size = e820table[i].size;
 		
 #ifdef __32_BITS__
-		
 		/* Ignore physical memory above 4 GB */
 		if ((base >> 32) != 0)
 			continue;
@@ -67,8 +67,8 @@ static void init_e820_memory(pfn_t minconf)
 		/* Clip regions above 4 GB */
 		if (((base + size) >> 32) != 0)
 			size = 0xffffffff - base;
-		
 #endif
+
 		pfn_t pfn;
 		size_t count;
 		
@@ -108,7 +108,7 @@ static void init_e820_memory(pfn_t minconf)
 	}
 }
 
-static char *e820names[] = {
+static const char *e820names[] = {
 	"invalid",
 	"available",
 	"reserved",
@@ -117,11 +117,10 @@ static char *e820names[] = {
 	"unusable"
 };
 
-
 void physmem_print(void)
 {
 	unsigned int i;
-	char *name;
+	const char *name;
 	
 	printf("Base               Size               Name\n");
 	printf("------------------ ------------------ ---------\n");
@@ -133,7 +132,7 @@ void physmem_print(void)
 			name = "invalid";
 		
 		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
-			e820table[i].size, name);
+		    e820table[i].size, name);
 	}
 }
 
@@ -147,9 +146,10 @@ void frame_arch_init(void)
 		
 #ifdef CONFIG_SMP
 		minconf = max(minconf,
-			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
-			hardcoded_unmapped_kdata_size));
+		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
+		    hardcoded_unmapped_kdata_size));
 #endif
+
 		init_e820_memory(minconf);
 		
 		/* Reserve frame 0 (BIOS data) */
@@ -158,8 +158,8 @@ void frame_arch_init(void)
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
-			(hardcoded_unmapped_ktext_size +
-			hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
+		    (hardcoded_unmapped_ktext_size +
+		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 #endif
 	}
 }

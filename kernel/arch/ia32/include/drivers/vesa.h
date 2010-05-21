@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_VESA_H_
 #define KERN_ia32_VESA_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 extern bool vesa_init(void);
 

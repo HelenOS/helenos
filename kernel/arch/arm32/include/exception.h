@@ -37,7 +37,7 @@
 #ifndef KERN_arm32_EXCEPTION_H_
 #define KERN_arm32_EXCEPTION_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/regutils.h>
 
 /** If defined, forces using of high exception vectors. */

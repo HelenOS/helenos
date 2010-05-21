@@ -35,7 +35,7 @@
 #include <ddi/irq.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>

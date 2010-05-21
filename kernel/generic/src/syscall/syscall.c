@@ -59,6 +59,14 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
 	unative_t rc;
+	ipl_t ipl;
+
+	/* Do userpace accounting */
+	ipl = interrupts_disable();
+	spinlock_lock(&THREAD->lock);
+	thread_update_accounting(true);
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
 
 #ifdef CONFIG_UDEBUG
 	/*
@@ -94,6 +102,13 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_end();
 	}
 #endif
+
+	/* Do kernel accounting */
+	(void) interrupts_disable();
+	spinlock_lock(&THREAD->lock);
+	thread_update_accounting(false);
+	spinlock_unlock(&THREAD->lock);
+	interrupts_restore(ipl);
 	
 	return rc;
 }
@@ -137,7 +152,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
-
+	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
 	
@@ -153,8 +168,10 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_interrupt_enable,
 	
 	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_valid,
-	(syshandler_t) sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_get_tag,
+	(syshandler_t) sys_sysinfo_get_value,
+	(syshandler_t) sys_sysinfo_get_data_size,
+	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,

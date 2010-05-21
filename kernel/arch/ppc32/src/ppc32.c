@@ -52,7 +52,7 @@
 #include <arch/drivers/pic.h>
 #include <align.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
 
 #define IRQ_COUNT  64
@@ -64,24 +64,32 @@ static cir_t pic_cir;
 static void *pic_cir_arg;
 
 /** Performs ppc32-specific initialization before main_bsp() is called. */
-void arch_pre_main(void)
+void arch_pre_main(bootinfo_t *bootinfo)
 {
-	init.cnt = bootinfo.taskmap.count;
-	
-	uint32_t i;
-	
-	for (i = 0; i < min3(bootinfo.taskmap.count, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
-		init.tasks[i].addr = bootinfo.taskmap.tasks[i].addr;
-		init.tasks[i].size = bootinfo.taskmap.tasks[i].size;
+	/* Copy tasks map. */
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	size_t i;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->taskmap.tasks[i].addr;
+		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
-		    bootinfo.taskmap.tasks[i].name);
+		    bootinfo->taskmap.tasks[i].name);
+	}
+	
+	/* Copy physical memory map. */
+	memmap.total = bootinfo->memmap.total;
+	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);
+	for (i = 0; i < memmap.cnt; i++) {
+		memmap.zones[i].start = bootinfo->memmap.zones[i].start;
+		memmap.zones[i].size = bootinfo->memmap.zones[i].size;
 	}
 	
 	/* Copy boot allocations info. */
-	ballocs.base = bootinfo.ballocs.base;
-	ballocs.size = bootinfo.ballocs.size;
+	ballocs.base = bootinfo->ballocs.base;
+	ballocs.size = bootinfo->ballocs.size;
 	
-	ofw_tree_init(bootinfo.ofw_root);
+	/* Copy OFW tree. */
+	ofw_tree_init(bootinfo->ofw_root);
 }
 
 void arch_pre_mm_init(void)

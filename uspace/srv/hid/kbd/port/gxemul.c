@@ -40,6 +40,7 @@
 #include <kbd_port.h>
 #include <kbd.h>
 #include <ddi.h>
+#include <errno.h>
 
 static irq_cmd_t gxemul_cmds[] = {
 	{ 
@@ -62,10 +63,17 @@ static void gxemul_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 /** Initializes keyboard handler. */
 int kbd_port_init(void)
 {
+	sysarg_t addr;
+	if (sysinfo_get_value("kbd.address.virtual", &addr) != EOK)
+		return -1;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
 	async_set_interrupt_received(gxemul_irq_handler);
-	gxemul_cmds[0].addr = (void *) sysinfo_value("kbd.address.virtual");
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    0, &gxemul_kbd);
+	gxemul_cmds[0].addr = (void *) addr;
+	ipc_register_irq(inr, device_assign_devno(), 0, &gxemul_kbd);
 	return 0;
 }
 

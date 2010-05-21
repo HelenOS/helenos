@@ -35,9 +35,9 @@
 #ifndef KERN_CLOCK_H_
 #define KERN_CLOCK_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define HZ		100
+#define HZ  100
 
 /** Uptime structure */
 typedef struct {

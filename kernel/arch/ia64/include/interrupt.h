@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_INTERRUPT_H_
 #define KERN_ia64_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 
 /** ia64 has 256 INRs. */
@@ -60,6 +60,7 @@
 
 #define IRQ_KBD    (0x01 + LEGACY_INTERRUPT_BASE)
 #define IRQ_MOUSE  (0x0c + LEGACY_INTERRUPT_BASE)
+#define IRQ_DP8390 (0x09 + LEGACY_INTERRUPT_BASE)
 
 /** General Exception codes. */
 #define GE_ILLEGALOP     0

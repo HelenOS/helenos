@@ -92,7 +92,7 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	}
 
 	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
-		bn_t fsec;	/* sector offset relative to FAT1 */
+		aoff64_t fsec;	/* sector offset relative to FAT1 */
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST);
@@ -134,7 +134,7 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
  */
 int
 _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
-    fat_cluster_t firstc, bn_t bn, int flags)
+    fat_cluster_t firstc, aoff64_t bn, int flags)
 {
 	unsigned bps;
 	unsigned rscnt;		/* block address of the first FAT */
@@ -146,6 +146,12 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
 	unsigned max_clusters;
 	fat_cluster_t lastc;
 	int rc;
+
+	/*
+	 * This function can only operate on non-zero length files.
+	 */
+	if (firstc == FAT_CLST_RES0)
+		return ELIMIT;
 
 	bps = uint16_t_le2host(bs->bps);
 	rscnt = uint16_t_le2host(bs->rscnt);
@@ -189,12 +195,12 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
  *
  * @return		EOK on success or a negative error code.
  */
-int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
+int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 {
 	uint16_t bps;
 	unsigned spc;
 	block_t *b;
-	off_t o, boundary;
+	aoff64_t o, boundary;
 	int rc;
 
 	bps = uint16_t_le2host(bs->bps);
@@ -360,7 +366,7 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	uint16_t bps;
 	uint16_t rscnt;
 	uint16_t sf;
-	uint16_t ts;
+	uint32_t ts;
 	unsigned rde;
 	unsigned rds;
 	unsigned ssa;
@@ -378,7 +384,9 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	rscnt = uint16_t_le2host(bs->rscnt);
 	sf = uint16_t_le2host(bs->sec_per_fat);
 	rde = uint16_t_le2host(bs->root_ent_max);
-	ts = uint16_t_le2host(bs->totsec16);
+	ts = (uint32_t) uint16_t_le2host(bs->totsec16);
+	if (ts == 0)
+		ts = uint32_t_le2host(bs->totsec32);
 
 	rds = (sizeof(fat_dentry_t) * rde) / bps;
 	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);

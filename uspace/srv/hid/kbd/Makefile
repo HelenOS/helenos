@@ -27,14 +27,136 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
-.PHONY: all clean
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+EXTRA_CFLAGS = -Iinclude
+BINARY = kbd
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+
+## Sources
+#
+
+SOURCES = \
+	generic/kbd.c \
+	genarch/gsp.c \
+	genarch/stroke.c \
+	layout/cz.c \
+	layout/us_qwerty.c \
+	layout/us_dvorak.c
+
+ifeq ($(UARCH),amd64)
+	SOURCES += \
+		port/chardev.c \
+		ctl/pc.c
+endif
+
+ifeq ($(UARCH),arm32)
+	ifeq ($(MACHINE),testarm)
+		SOURCES += \
+			port/gxemul.c
+		
+		ifeq ($(CONFIG_FB),y)
+			SOURCES += \
+				ctl/gxe_fb.c
+		else
+			SOURCES += \
+				ctl/stty.c
+		endif
+	endif
+	ifeq ($(MACHINE),integratorcp)
+		SOURCES += \
+			port/pl050.c \
+			ctl/pl050.c
+	endif
+endif
+
+ifeq ($(UARCH),ia32)
+	SOURCES += \
+		port/chardev.c \
+		ctl/pc.c
+endif
+
+ifeq ($(MACHINE),i460GX)
+	SOURCES += \
+		port/chardev.c \
+		ctl/pc.c
+endif
+
+ifeq ($(MACHINE),ski)
+	SOURCES += \
+		port/ski.c \
+		ctl/stty.c
+endif
+
+ifeq ($(MACHINE),msim)
+	SOURCES += \
+		port/msim.c \
+		ctl/stty.c
+endif
+
+ifeq ($(MACHINE),lgxemul)
+	SOURCES += \
+		port/gxemul.c
+	
+	ifeq ($(CONFIG_FB),y)
+		SOURCES += \
+			ctl/gxe_fb.c
+	else
+		SOURCES += \
+			ctl/stty.c
+	endif
+endif
+
+ifeq ($(MACHINE),bgxemul)
+	SOURCES += \
+		port/gxemul.c
+	
+	ifeq ($(CONFIG_FB),y)
+		SOURCES += \
+			ctl/gxe_fb.c
+	else
+		SOURCES += \
+			ctl/stty.c
+	endif
+endif
+
+ifeq ($(UARCH),ppc32)
+	SOURCES += \
+		port/adb.c \
+		ctl/apple.c
+endif
+
+ifeq ($(UARCH),sparc64)
+	ifeq ($(PROCESSOR),sun4v)
+		SOURCES += \
+			port/niagara.c \
+			ctl/stty.c
+	else
+		ifeq ($(MACHINE),serengeti)
+			SOURCES += \
+				port/sgcn.c \
+				ctl/stty.c
+		endif
+		ifeq ($(MACHINE),generic)
+			SOURCES += \
+			port/sun.c \
+			port/z8530.c \
+			port/ns16550.c \
+			ctl/sun.c
+		endif
+	endif
+endif
+
+ifeq ($(UARCH),abs32le)
+	SOURCES += \
+		port/dummy.c \
+		ctl/pc.c
+endif
+
+include $(USPACE_PREFIX)/Makefile.common

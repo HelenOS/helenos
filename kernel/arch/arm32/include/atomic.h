@@ -46,17 +46,15 @@
  * @return Value after addition.
  *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	long ret;
-
 	/*
 	 * This implementation is for UP pre-ARMv6 systems where we do not have
 	 * the LDREX and STREX instructions.
 	 */
 	ipl_t ipl = interrupts_disable();
 	val->count += i;
-	ret = val->count;
+	atomic_count_t ret = val->count;
 	interrupts_restore(ipl);
 	
 	return ret;
@@ -65,6 +63,7 @@ static inline long atomic_add(atomic_t *val, int i)
 /** Atomic increment.
  *
  * @param val Variable to be incremented.
+ *
  */
 static inline void atomic_inc(atomic_t *val)
 {
@@ -74,6 +73,7 @@ static inline void atomic_inc(atomic_t *val)
 /** Atomic decrement.
  *
  * @param val Variable to be decremented.
+ *
  */
 static inline void atomic_dec(atomic_t *val) {
 	atomic_add(val, -1);
@@ -83,8 +83,9 @@ static inline void atomic_dec(atomic_t *val) {
  *
  * @param val Variable to be incremented.
  * @return    Value after incrementation.
+ *
  */
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
@@ -93,8 +94,9 @@ static inline long atomic_preinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value after decrementation.
+ *
  */
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -103,8 +105,9 @@ static inline long atomic_predec(atomic_t *val)
  *
  * @param val Variable to be incremented.
  * @return    Value before incrementation.
+ *
  */
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1) - 1;
 }
@@ -113,8 +116,9 @@ static inline long atomic_postinc(atomic_t *val)
  *
  * @param val Variable to be decremented.
  * @return    Value before decrementation.
+ *
  */
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1) + 1;
 }

@@ -40,7 +40,7 @@
 #include <print.h>
 #include <debug.h>
 #include <console/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>
@@ -63,7 +63,7 @@
 
 #define BUNDLE_SIZE		16
 
-char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
+static const char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
 	"Instruction TLB vector",
 	"Data TLB vector",
@@ -86,7 +86,7 @@ char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"Reserved"
 };
 
-char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
+static const char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Page Not Present vector",
 	"Key Permission vector",
 	"Instruction Access rights vector",
@@ -120,10 +120,7 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Reserved"
 };
 
-static char *vector_to_string(uint16_t vector);
-static void dump_interrupted_context(istate_t *istate);
-
-char *vector_to_string(uint16_t vector)
+static const char *vector_to_string(uint16_t vector)
 {
 	ASSERT(vector <= VECTOR_MAX);
 	
@@ -134,14 +131,12 @@ char *vector_to_string(uint16_t vector)
 		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
 }
 
-void dump_interrupted_context(istate_t *istate)
+static void dump_interrupted_context(istate_t *istate)
 {
-	char *ifa, *iipa, *iip;
-
-	ifa = symtab_fmt_name_lookup(istate->cr_ifa);
-	iipa = symtab_fmt_name_lookup(istate->cr_iipa);
-	iip = symtab_fmt_name_lookup(istate->cr_iip);
-
+	const char *ifa = symtab_fmt_name_lookup(istate->cr_ifa);
+	const char *iipa = symtab_fmt_name_lookup(istate->cr_iipa);
+	const char *iip = symtab_fmt_name_lookup(istate->cr_iip);
+	
 	putchar('\n');
 	printf("Interrupted context dump:\n");
 	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
@@ -161,8 +156,8 @@ void dump_interrupted_context(istate_t *istate)
 
 void general_exception(uint64_t vector, istate_t *istate)
 {
-	char *desc = "";
-
+	const char *desc;
+	
 	switch (istate->cr_isr.ge_code) {
 	case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
@@ -186,9 +181,9 @@ void general_exception(uint64_t vector, istate_t *istate)
 		desc = "unknown";
 		break;
 	}
-
+	
 	fault_if_from_uspace(istate, "General Exception (%s).", desc);
-
+	
 	dump_interrupted_context(istate);
 	panic("General Exception (%s).", desc);
 }

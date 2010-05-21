@@ -72,7 +72,7 @@ typedef struct {
 } sp_action_prob_s;
 
 typedef struct {
-	char *name;
+	const char *name;
 	sp_term_cond_s cond;
 	sp_action_prob_s prob;
 } subphase_s;
@@ -89,7 +89,7 @@ typedef struct {
 } ph_alloc_size_s;
 
 typedef struct {
-	char *name;
+	const char *name;
 	ph_alloc_size_s alloc;
 	subphase_s *subphases;
 } phase_s;
@@ -627,7 +627,7 @@ static void do_phase(phase_s *phase)
 	}
 }
 
-char *test_malloc1(void)
+const char *test_malloc1(void)
 {
 	init_mem();
 	

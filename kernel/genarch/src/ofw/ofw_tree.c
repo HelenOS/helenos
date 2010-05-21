@@ -38,7 +38,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/memstr.h>
 #include <mm/slab.h>
-#include <string.h>
+#include <str.h>
 #include <panic.h>
 #include <print.h>
 
@@ -64,7 +64,7 @@ void ofw_tree_init(ofw_tree_node_t *root)
 ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node,
     const char *name)
 {
-	unsigned int i;
+	size_t i;
 	
 	for (i = 0; i < node->properties; i++) {
 		if (str_cmp(node->property[i].name, name) == 0)
@@ -169,7 +169,7 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
  *
  */
 ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
-    uint32_t handle)
+    phandle handle)
 {
 	ofw_tree_node_t *cur;
 	

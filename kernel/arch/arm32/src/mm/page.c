@@ -40,7 +40,6 @@
 #include <config.h>
 #include <arch/exception.h>
 #include <typedefs.h>
-#include <arch/types.h>
 #include <interrupt.h>
 #include <arch/mm/frame.h>
 

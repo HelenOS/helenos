@@ -70,7 +70,7 @@ typedef enum {
 	SYS_IPC_HANGUP,
 	SYS_IPC_REGISTER_IRQ,
 	SYS_IPC_UNREGISTER_IRQ,
-
+	
 	SYS_EVENT_SUBSCRIBE,
 	
 	SYS_CAP_GRANT,
@@ -82,18 +82,21 @@ typedef enum {
 	SYS_PREEMPT_CONTROL,
 	SYS_INTERRUPT_ENABLE,
 	
-	SYS_SYSINFO_VALID,
-	SYS_SYSINFO_VALUE,
+	SYS_SYSINFO_GET_TAG,
+	SYS_SYSINFO_GET_VALUE,
+	SYS_SYSINFO_GET_DATA_SIZE,
+	SYS_SYSINFO_GET_DATA,
 	
 	SYS_DEBUG_ENABLE_CONSOLE,
 	SYS_DEBUG_DISABLE_CONSOLE,
+	
 	SYS_IPC_CONNECT_KBOX,
 	SYSCALL_END
 } syscall_t;
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
     unative_t, unative_t);

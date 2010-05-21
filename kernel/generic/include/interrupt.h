@@ -36,7 +36,7 @@
 #define KERN_INTERRUPT_H_
 
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
@@ -45,7 +45,7 @@
 
 typedef void (* iroutine)(int n, istate_t *istate);
 
-extern void fault_if_from_uspace(istate_t *istate, char *fmt, ...);
+extern void fault_if_from_uspace(istate_t *istate, const char *fmt, ...);
 extern iroutine exc_register(int n, const char *name, iroutine f);
 extern void exc_dispatch(int n, istate_t *t);
 void exc_init(void);

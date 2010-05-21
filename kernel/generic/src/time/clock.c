@@ -85,7 +85,7 @@ void clock_counter_init(void)
 	
 	uptime->seconds1 = 0;
 	uptime->seconds2 = 0;
-	uptime->useconds = 0; 
+	uptime->useconds = 0;
 
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
@@ -137,6 +137,14 @@ void clock(void)
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
 	unsigned int i;
 
+	/* Account lost ticks to CPU usage */
+	if (CPU->idle) {
+		CPU->idle_ticks += missed_clock_ticks + 1;
+	} else {
+		CPU->busy_ticks += missed_clock_ticks + 1;
+	}
+	CPU->idle = false;
+
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
@@ -186,7 +194,7 @@ void clock(void)
 		}
 		spinlock_unlock(&THREAD->lock);
 		
-		if (!ticks && !PREEMPTION_DISABLED) {
+		if ((!ticks) && (!PREEMPTION_DISABLED)) {
 #ifdef CONFIG_UDEBUG
 			istate_t *istate;
 #endif

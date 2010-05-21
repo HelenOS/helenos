@@ -37,7 +37,7 @@
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* According to ABI the stack MUST be aligned on 
  * 16-byte boundary. If it is not, the va_arg calling will

@@ -34,7 +34,7 @@
 
 #include <print.h>
 #include <printf/printf_core.h>
-#include <string.h>
+#include <str.h>
 #include <memstr.h>
 #include <errno.h>
 

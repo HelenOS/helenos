@@ -35,7 +35,6 @@
 #ifndef KERN_AVLTREE_H_
 #define KERN_AVLTREE_H_ 
 
-#include <arch/types.h>
 #include <typedefs.h>
 
 /**

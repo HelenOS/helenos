@@ -35,7 +35,7 @@
 #ifndef KERN_COPY_H_
 #define KERN_COPY_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Label within memcpy_from_uspace() that contains return -1. */
 extern char memcpy_from_uspace_failover_address;

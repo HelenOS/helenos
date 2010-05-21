@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_INTERRUPT_H_
 #define KERN_ia32_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/pm.h>
 
 #define IVT_ITEMS	IDT_ITEMS
@@ -53,6 +53,7 @@
 #define IRQ_PIC1	2
 #define IRQ_PIC_SPUR	7
 #define IRQ_MOUSE	12
+#define IRQ_DP8390	9
 
 /* this one must have four least significant bits set to ones */
 #define VECTOR_APIC_SPUR	(IVT_ITEMS - 1)

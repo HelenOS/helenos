@@ -200,9 +200,7 @@ int breakpoint_add(const void *where, const int flags, int curidx)
 	interrupts_restore(ipl);
 
 	/* Send IPI */
-#ifdef CONFIG_SMP
 //	ipi_broadcast(VECTOR_DEBUG_IPI);
-#endif	
 
 	return curidx;
 }
@@ -261,9 +259,7 @@ void breakpoint_del(int slot)
 
 	spinlock_unlock(&bkpoint_lock);
 	interrupts_restore(ipl);
-#ifdef CONFIG_SMP
-//	ipi_broadcast(VECTOR_DEBUG_IPI);	
-#endif
+//	ipi_broadcast(VECTOR_DEBUG_IPI);
 }
 
 
@@ -342,7 +338,6 @@ void debugger_init()
 int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 	unsigned int i;
-	char *symbol;
 
 #ifdef __32_BITS__
 	printf("#  Count Address    In symbol\n");
@@ -356,7 +351,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		if (breakpoints[i].address) {
-			symbol = symtab_fmt_name_lookup(
+			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
 
 #ifdef __32_BITS__

@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char *test_sse1(void)
+const char *test_sse1(void)
 {
 	return NULL;
 }

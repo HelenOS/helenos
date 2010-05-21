@@ -44,7 +44,7 @@
 #include <ipc/devman.h>
 #include <devman.h>
 #include <device/char.h>
-#include <string.h>
+#include <str.h>
 #include <ipc/serial_ctl.h>
 
 #define NAME 		"test serial"
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
 		}	
 	}
 	
-	char *the_end = "\n---------\nTHE END\n---------\n";
-	write_dev(phone, the_end, str_size(the_end));
+	const char *the_end = "\n---------\nTHE END\n---------\n";
+	write_dev(phone, (void *)the_end, str_size(the_end));
 	
 	// restore original communication settings
 	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par, old_word_size, old_stop);	

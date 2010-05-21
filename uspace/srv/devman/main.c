@@ -44,7 +44,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -59,6 +59,55 @@
 
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;
+
+/** Wrapper for receiving strings
+ *
+ * This wrapper only makes it more comfortable to use async_data_write_*
+ * functions to receive strings.
+ *
+ * @param str      Pointer to string pointer (which should be later disposed
+ *                 by free()). If the operation fails, the pointer is not
+ *                 touched.
+ * @param max_size Maximum size (in bytes) of the string to receive. 0 means
+ *                 no limit.
+ * @param received If not NULL, the size of the received data is stored here.
+ *
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
+ */
+static int async_string_receive(char **str, const size_t max_size, size_t *received)
+{
+        ipc_callid_t callid;
+        size_t size;
+        if (!async_data_write_receive(&callid, &size)) {
+                ipc_answer_0(callid, EINVAL);
+                return EINVAL;
+        }
+        
+        if ((max_size > 0) && (size > max_size)) {
+                ipc_answer_0(callid, EINVAL);
+                return EINVAL;
+        }
+        
+        char *data = (char *) malloc(size + 1);
+        if (data == NULL) {
+                ipc_answer_0(callid, ENOMEM);
+                return ENOMEM;
+        }
+        
+        int rc = async_data_write_finalize(callid, data, size);
+        if (rc != EOK) {
+                free(data);
+                return rc;
+        }
+        
+        data[size] = 0;
+        *str = data;
+        if (received != NULL)
+                *received = size;
+        
+        return EOK;
+}
 
 /**
  * Register running driver.
@@ -154,7 +203,9 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 	
 	match_id->score = IPC_GET_ARG1(call);
 	
-	rc = async_string_receive(&match_id->id, DEVMAN_NAME_MAXLEN, NULL);	
+	char *match_id_str;
+	rc = async_string_receive(&match_id_str, DEVMAN_NAME_MAXLEN, NULL);	
+	match_id->id = match_id_str;
 	if (EOK != rc) {
 		delete_match_id(match_id);
 		printf(NAME ": devman_receive_match_id - failed to receive match id string.\n");

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -37,55 +37,59 @@
 
 static inline void atomic_inc(atomic_t *val)
 {
-	long tmp;
-
+	atomic_count_t tmp;
+	
 	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"
 		"addic %0, %0, 1\n"
 		"stwcx. %0, 0, %2\n"
 		"bne- 1b"
-		: "=&r" (tmp), "=m" (val->count)
-		: "r" (&val->count), "m" (val->count)
+		: "=&r" (tmp),
+		  "=m" (val->count)
+		: "r" (&val->count),
+		  "m" (val->count)
 		: "cc"
 	);
 }
 
 static inline void atomic_dec(atomic_t *val)
 {
-	long tmp;
-
+	atomic_count_t tmp;
+	
 	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"
 		"addic %0, %0, -1\n"
-		"stwcx.	%0, 0, %2\n"
+		"stwcx. %0, 0, %2\n"
 		"bne- 1b"
-		: "=&r" (tmp), "=m" (val->count)
-		: "r" (&val->count), "m" (val->count)
+		: "=&r" (tmp),
+		  "=m" (val->count)
+		: "r" (&val->count),
+		  "m" (val->count)
 		: "cc"
 	);
 }
 
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	atomic_inc(val);
 	return val->count - 1;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	atomic_dec(val);
 	return val->count + 1;
 }
 
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	atomic_inc(val);
 	return val->count;
 }
 
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	atomic_dec(val);
 	return val->count;

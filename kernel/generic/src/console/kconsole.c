@@ -44,20 +44,20 @@
 #include <console/cmd.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <macros.h>
 #include <debug.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/device.h>
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>
-#include <string.h>
+#include <str.h>
 
 /** Simple kernel console.
  *
@@ -223,7 +223,7 @@ static int cmdtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
-		while ((hint = cmdtab_search_one(name, &pos))) {
+		while (cmdtab_search_one(name, &pos)) {
 			cmd_info_t *hlp = list_get_instance(pos, cmd_info_t, link);
 			printf("%s (%s)\n", hlp->name, hlp->description);
 			pos = pos->next;
@@ -454,19 +454,38 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
 		case ENOTSUP:
 			printf("No symbol information available.\n");
 			return false;
+		case EOK:
+			if (isaddr)
+				*result = (unative_t) symaddr;
+			else if (isptr)
+				*result = **((unative_t **) symaddr);
+			else
+				*result = *((unative_t *) symaddr);
+			break;
+		default:
+			printf("Unknown error.\n");
+			return false;
 		}
-		
-		if (isaddr)
-			*result = (unative_t) symaddr;
-		else if (isptr)
-			*result = **((unative_t **) symaddr);
-		else
-			*result = *((unative_t *) symaddr);
 	} else {
 		/* It's a number - convert it */
-		*result = atoi(text);
-		if (isptr)
-			*result = *((unative_t *) *result);
+		uint64_t value;
+		int rc = str_uint64(text, NULL, 0, true, &value);
+		switch (rc) {
+		case EINVAL:
+			printf("Invalid number.\n");
+			return false;
+		case EOVERFLOW:
+			printf("Integer overflow.\n");
+			return false;
+		case EOK:
+			*result = (unative_t) value;
+			if (isptr)
+				*result = *((unative_t *) *result);
+			break;
+		default:
+			printf("Unknown error.\n");
+			return false;
+		}
 	}
 	
 	return true;
@@ -642,7 +661,7 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
  *               and never exit.
  *
  */
-void kconsole(char *prompt, char *msg, bool kcon)
+void kconsole(const char *prompt, const char *msg, bool kcon)
 {
 	if (!stdin) {
 		LOG("No stdin for kernel console");

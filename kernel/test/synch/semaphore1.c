@@ -69,10 +69,11 @@ static void consumer(void *arg)
 	semaphore_up(&sem);
 }
 
-char *test_semaphore1(void)
+const char *test_semaphore1(void)
 {
 	int i, j, k;
-	int consumers, producers;
+	atomic_count_t consumers;
+	atomic_count_t producers;
 	
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);

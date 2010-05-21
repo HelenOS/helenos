@@ -39,11 +39,14 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <task.h>
+#include <str_error.h>
 #include "version.h"
+
+#define APP_NAME  "getterm"
 
 static void usage(void)
 {
-	printf("Usage: getterm <terminal> <path>\n");
+	printf("Usage: %s <terminal> <path>\n", APP_NAME);
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
@@ -68,17 +71,19 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 	*stream = fdopen(fd, mode);
 }
 
-static task_id_t spawn(char *fname)
+static task_id_t spawn(const char *fname)
 {
-	char *args[2];
+	const char *args[2];
 	
 	args[0] = fname;
 	args[1] = NULL;
 	
-	task_id_t id = task_spawn(fname, args);
+	int err;
+	task_id_t id = task_spawn(fname, args, &err);
 	
 	if (id == 0)
-		printf("Error spawning %s\n", fname);
+		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
+		    str_error(err));
 	
 	return id;
 }

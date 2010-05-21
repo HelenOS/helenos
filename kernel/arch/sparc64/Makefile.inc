@@ -26,52 +26,58 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf64-sparc
 BFD_ARCH = sparc
 BFD = binary
-TARGET = sparc64-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/sparc64
 
 GCC_CFLAGS += -m64 -mcpu=ultrasparc 
 SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
-LFLAGS += -no-check-sections -N
+LFLAGS = -no-check-sections -N
 
 BITS = 64
 ENDIANESS = BE
 
 ifeq ($(PROCESSOR),us)
 	DEFS += -DUS
+	DEFS += -DSUN4U
+	USARCH = sun4u
 endif
 
 ifeq ($(PROCESSOR),us3)
 	DEFS += -DUS3
+	DEFS += -DSUN4U
+	USARCH = sun4u
+endif
+
+ifeq ($(PROCESSOR),sun4v)
+	DEFS += -DSUN4V
+	USARCH = sun4v
+#MH
+	DEFS += -DUS
 endif
 
 ARCH_SOURCES = \
-	arch/$(KARCH)/src/cpu/cpu.c \
+	arch/$(KARCH)/src/cpu/$(USARCH)/cpu.c \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/asm.S \
+	arch/$(KARCH)/src/$(USARCH)/asm.S \
 	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/console.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/fpu_context.c \
 	arch/$(KARCH)/src/dummy.s \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/cache.S \
-	arch/$(KARCH)/src/mm/frame.c \
+	arch/$(KARCH)/src/mm/$(USARCH)/as.c \
+	arch/$(KARCH)/src/mm/$(USARCH)/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/sparc64.c \
-	arch/$(KARCH)/src/start.S \
-	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/mm/$(USARCH)/tlb.c \
+	arch/$(KARCH)/src/$(USARCH)/sparc64.c \
+	arch/$(KARCH)/src/$(USARCH)/start.S \
+	arch/$(KARCH)/src/proc/$(USARCH)/scheduler.c \
 	arch/$(KARCH)/src/proc/thread.c \
-	arch/$(KARCH)/src/trap/mmu.S \
-	arch/$(KARCH)/src/trap/trap_table.S \
+	arch/$(KARCH)/src/trap/$(USARCH)/mmu.S \
+	arch/$(KARCH)/src/trap/$(USARCH)/trap_table.S \
 	arch/$(KARCH)/src/trap/trap.c \
 	arch/$(KARCH)/src/trap/exception.c \
 	arch/$(KARCH)/src/trap/interrupt.c \
@@ -80,7 +86,14 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/drivers/kbd.c \
 	arch/$(KARCH)/src/drivers/sgcn.c \
 	arch/$(KARCH)/src/drivers/pci.c \
-	arch/$(KARCH)/src/drivers/fhc.c
+	arch/$(KARCH)/src/drivers/fhc.c \
+	arch/$(KARCH)/src/trap/$(USARCH)/interrupt.c
+
+ifeq ($(USARCH),sun4v)
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/drivers/niagara.c \
+		arch/$(KARCH)/src/sun4v/md.c
+endif
 
 ifeq ($(CONFIG_FB),y)
 	ARCH_SOURCES += \
@@ -89,11 +102,11 @@ endif
 
 ifeq ($(CONFIG_SMP),y)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/smp/ipi.c \
-		arch/$(KARCH)/src/smp/smp.c
+		arch/$(KARCH)/src/smp/$(USARCH)/smp.c \
+		arch/$(KARCH)/src/smp/$(USARCH)/ipi.c
 endif
 
 ifeq ($(CONFIG_TSB),y)
 	ARCH_SOURCES += \
-		arch/$(KARCH)/src/mm/tsb.c
+		arch/$(KARCH)/src/mm/$(USARCH)/tsb.c
 endif

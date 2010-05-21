@@ -35,18 +35,12 @@
 #ifndef KERN_abs32le_ASM_H_
 #define KERN_abs32le_ASM_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
 
-extern void interrupt_handlers(void);
-
-extern void enable_l_apic_in_msr(void);
-
-
-extern void asm_delay_loop(uint32_t);
-extern void asm_fake_loop(uint32_t);
-
+static inline void asm_delay_loop(uint32_t usec)
+{
+}
 
 static inline __attribute__((noreturn)) void cpu_halt(void)
 {

@@ -1,0 +1,126 @@
+#
+# Copyright (c) 2006 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+.PHONY: all clean
+
+include Makefile.common
+
+INCLUDES = generic/include
+OPTIMIZATION = 3
+
+DEFS = -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
+
+GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-Werror -pipe
+
+ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Werror -wd170
+
+SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
+	-xnolib -xc99=all -features=extensions \
+	-erroff=E_ZERO_SIZED_STRUCT_UNION
+
+CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-pipe -arch $(CLANG_ARCH)
+
+ifeq ($(COMPILER),gcc_native)
+	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),gcc_cross)
+	CFLAGS = $(GCC_CFLAGS) $(EXTRA_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),icc)
+	CFLAGS = $(ICC_CFLAGS) $(EXTRA_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+ifeq ($(COMPILER),suncc)
+	CFLAGS = $(SUNCC_CFLAGS) $(EXTRA_CFLAGS)
+	DEFS += $(CONFIG_DEFS)
+	DEPEND_DEFS = $(DEFS)
+endif
+
+ifeq ($(COMPILER),clang)
+	CFLAGS = $(CLANG_CFLAGS) $(EXTRA_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+endif
+
+OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+COMPONENT_OBJECTS := $(addsuffix .co,$(basename $(MODULES)))
+
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
+	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
+
+clean:
+	rm -f $(RAW) $(MAP) $(ARCH_INCLUDE) $(GENARCH_INCLUDE)
+
+-include $(DEPEND)
+
+$(BOOT_OUTPUT): $(RAW)
+	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
+
+$(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
+	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(COMPONENT_OBJECTS) $(OBJECTS)
+
+%.o: %.S $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
+
+%.o: %.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
+
+$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
+	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+$(ARCH_INCLUDE): arch/$(KARCH)/include/
+	ln -sfn ../../$< $@
+
+$(GENARCH_INCLUDE): genarch/include/
+	ln -sfn ../../$< $@
+
+$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
+	ln -sfn ../../../$< $@

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -37,10 +37,8 @@
 
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 
-extern void memsetw(void *dst, size_t cnt, uint16_t x);
-extern void memsetb(void *dst, size_t cnt, uint8_t x);
-
-extern int memcmp(const void *a, const void *b, size_t cnt);
+extern void memsetw(void *, size_t, uint16_t);
+extern void memsetb(void *, size_t, uint8_t);
 
 #endif
 

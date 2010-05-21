@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,12 +35,14 @@
 #ifndef KERN_PANIC_H_
 #define KERN_PANIC_H_
 
+#include <typedefs.h>
 #include <stacktrace.h>
 #include <print.h>
 
 #ifdef CONFIG_DEBUG
 #	define panic(format, ...) \
 		do { \
+			silent = false; \
 			printf("Kernel panic in %s() at %s:%u.\n", \
 			    __func__, __FILE__, __LINE__); \
 			stack_trace(); \
@@ -49,10 +51,15 @@
 		} while (0)
 #else
 #	define panic(format, ...) \
-		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__);
+		do { \
+			silent = false; \
+			panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__); \
+		} while (0)
 #endif
 
-extern void panic_printf(char *fmt, ...) __attribute__((noreturn));
+extern bool silent;
+
+extern void panic_printf(const char *fmt, ...) __attribute__((noreturn));
 
 #endif
 

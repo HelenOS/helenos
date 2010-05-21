@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -38,19 +38,21 @@
 /*
  * The following macros are valid for the following processors:
  *
- * 	UltraSPARC, UltraSPARC II, UltraSPARC IIi, UltraSPARC III,
- * 	UltraSPARC III+, UltraSPARC IV, UltraSPARC IV+
- * 
+ *  UltraSPARC, UltraSPARC II, UltraSPARC IIi, UltraSPARC III,
+ *  UltraSPARC III+, UltraSPARC IV, UltraSPARC IV+
+ *
  * Should we support other UltraSPARC processors, we need to make sure that
  * the macros are defined correctly for them.
  */
- 
+
 #if defined (US)
-#define DCACHE_SIZE		(16 * 1024)
+	#define DCACHE_SIZE  (16 * 1024)
 #elif defined (US3)
-#define DCACHE_SIZE		(64 * 1024)
+	#define DCACHE_SIZE  (64 * 1024)
 #endif
-#define DCACHE_LINE_SIZE	32	
+
+#define DCACHE_LINE_SIZE  32
+#define DCACHE_TAG_SHIFT  2
 
 #endif
 

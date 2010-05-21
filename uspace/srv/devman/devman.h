@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <bool.h>
 #include <dirent.h>
-#include <string.h>
+#include <str.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>
 #include <ipc/devman.h>
@@ -144,9 +144,10 @@ typedef struct dev_tree {
 
 int get_match_score(driver_t *drv, node_t *dev);
 
-bool parse_match_ids(const char *buf, match_id_list_t *ids);
+bool parse_match_ids(char *buf, match_id_list_t *ids);
 bool read_match_ids(const char *conf_path, match_id_list_t *ids);
-char * read_id(const char **buf) ;
+char * read_match_id(char **buf);
+char * read_id(const char **buf);
 
 // Drivers
 
@@ -164,7 +165,7 @@ static inline void init_driver_list(driver_list_t *drv_list)
 	fibril_mutex_initialize(&drv_list->drivers_mutex);	
 }
 
-driver_t * create_driver();
+driver_t * create_driver(void);
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv);
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path);
 

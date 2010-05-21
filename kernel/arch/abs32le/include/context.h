@@ -35,18 +35,11 @@
 #ifndef KERN_abs32le_CONTEXT_H_
 #define KERN_abs32le_CONTEXT_H_
 
-#ifdef KERNEL
-#include <arch/types.h>
-
 #define STACK_ITEM_SIZE  4
 #define SP_DELTA         0
 
-#define context_set(c, _pc, stack, size) \
-	do { \
-		(c)->pc = (uintptr_t) (_pc); \
-	} while (0)
-
-#endif /* KERNEL */
+#define context_set(ctx, pc, stack, size) \
+	context_set_generic(ctx, pc, stack, size)
 
 /*
  * On real hardware this stores the registers which

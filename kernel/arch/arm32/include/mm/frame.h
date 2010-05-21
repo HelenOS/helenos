@@ -42,10 +42,10 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define BOOT_PAGE_TABLE_SIZE     0x4000
-#define BOOT_PAGE_TABLE_ADDRESS  0x4000
+#define BOOT_PAGE_TABLE_ADDRESS  0x8000
 
 #define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
 #define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)

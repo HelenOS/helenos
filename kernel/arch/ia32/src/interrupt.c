@@ -64,22 +64,20 @@ void (* eoi_function)(void) = NULL;
 
 void decode_istate(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->eip);
-
+	const char *symbol = symtab_fmt_name_lookup(istate->eip);
+	
 	if (CPU)
 		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);
 	else
 		printf("----------------EXCEPTION OCCURED----------------\n");
-		
+	
 	printf("%%eip: %#lx (%s)\n", istate->eip, symbol);
 	printf("ERROR_WORD=%#lx\n", istate->error_word);
 	printf("%%cs=%#lx,flags=%#lx\n", istate->cs, istate->eflags);
 	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
 	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
 	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
-
+	
 	stack_trace_istate(istate);
 }
 

@@ -44,9 +44,10 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>
+#include <macros.h>
 #include <async.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 #include <byteorder.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
@@ -78,7 +79,7 @@ static int fat_link(fs_node_t *, fs_node_t *, const char *);
 static int fat_unlink(fs_node_t *, fs_node_t *, const char *);
 static int fat_has_children(bool *, fs_node_t *);
 static fs_index_t fat_index_get(fs_node_t *);
-static size_t fat_size_get(fs_node_t *);
+static aoff64_t fat_size_get(fs_node_t *);
 static unsigned fat_lnkcnt_get(fs_node_t *);
 static char fat_plb_get_char(unsigned);
 static bool fat_is_directory(fs_node_t *);
@@ -721,48 +722,51 @@ hit:
 
 	fibril_mutex_lock(&childp->idx->lock);
 	
-	/*
-	 * If possible, create the Sub-directory Identifier Entry and the
-	 * Sub-directory Parent Pointer Entry (i.e. "." and ".."). These entries
-	 * are not mandatory according to Standard ECMA-107 and HelenOS VFS does
-	 * not use them anyway, so this is rather a sign of our good will.
-	 */
-	rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
-	if (rc != EOK) {
+	if (childp->type == FAT_DIRECTORY) {
 		/*
-		 * Rather than returning an error, simply skip the creation of
-		 * these two entries.
+		 * If possible, create the Sub-directory Identifier Entry and
+		 * the Sub-directory Parent Pointer Entry (i.e. "." and "..").
+		 * These entries are not mandatory according to Standard
+		 * ECMA-107 and HelenOS VFS does not use them anyway, so this is
+		 * rather a sign of our good will.
 		 */
-		goto skip_dots;
+		rc = fat_block_get(&b, bs, childp, 0, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			/*
+			 * Rather than returning an error, simply skip the
+			 * creation of these two entries.
+			 */
+			goto skip_dots;
+		}
+		d = (fat_dentry_t *) b->data;
+		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
+		    (str_cmp((char *) d->name, FAT_NAME_DOT)) == 0) {
+			memset(d, 0, sizeof(fat_dentry_t));
+			str_cpy((char *) d->name, 8, FAT_NAME_DOT);
+			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			d->attr = FAT_ATTR_SUBDIR;
+			d->firstc = host2uint16_t_le(childp->firstc);
+			/* TODO: initialize also the date/time members. */
+		}
+		d++;
+		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
+		    (str_cmp((char *) d->name, FAT_NAME_DOT_DOT) == 0)) {
+			memset(d, 0, sizeof(fat_dentry_t));
+			str_cpy((char *) d->name, 8, FAT_NAME_DOT_DOT);
+			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			d->attr = FAT_ATTR_SUBDIR;
+			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
+			    host2uint16_t_le(FAT_CLST_RES0) :
+			    host2uint16_t_le(parentp->firstc);
+			/* TODO: initialize also the date/time members. */
+		}
+		b->dirty = true;		/* need to sync block */
+		/*
+		 * Ignore the return value as we would have fallen through on error
+		 * anyway.
+		 */
+		(void) block_put(b);
 	}
-	d = (fat_dentry_t *)b->data;
-	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    str_cmp(d->name, FAT_NAME_DOT) == 0) {
-	   	memset(d, 0, sizeof(fat_dentry_t));
-	   	str_cpy(d->name, 8, FAT_NAME_DOT);
-		str_cpy(d->ext, 3, FAT_EXT_PAD);
-		d->attr = FAT_ATTR_SUBDIR;
-		d->firstc = host2uint16_t_le(childp->firstc);
-		/* TODO: initialize also the date/time members. */
-	}
-	d++;
-	if (fat_classify_dentry(d) == FAT_DENTRY_LAST ||
-	    str_cmp(d->name, FAT_NAME_DOT_DOT) == 0) {
-		memset(d, 0, sizeof(fat_dentry_t));
-		str_cpy(d->name, 8, FAT_NAME_DOT_DOT);
-		str_cpy(d->ext, 3, FAT_EXT_PAD);
-		d->attr = FAT_ATTR_SUBDIR;
-		d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
-		    host2uint16_t_le(FAT_CLST_RES0) :
-		    host2uint16_t_le(parentp->firstc);
-		/* TODO: initialize also the date/time members. */
-	}
-	b->dirty = true;		/* need to sync block */
-	/*
-	 * Ignore the return value as we would have fallen through on error
-	 * anyway.
-	 */
-	(void) block_put(b);
 skip_dots:
 
 	childp->idx->pfc = parentp->firstc;
@@ -911,7 +915,7 @@ fs_index_t fat_index_get(fs_node_t *fn)
 	return FAT_NODE(fn)->idx->index;
 }
 
-size_t fat_size_get(fs_node_t *fn)
+aoff64_t fat_size_get(fs_node_t *fn)
 {
 	return FAT_NODE(fn)->size;
 }
@@ -976,7 +980,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Accept the mount options */
 	char *opts;
-	int rc = async_string_receive(&opts, 0, NULL);
+	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	
 	if (rc != EOK) {
 		ipc_answer_0(rid, rc);
@@ -1153,9 +1157,10 @@ void fat_lookup(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_read(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	off_t pos = (off_t)IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
@@ -1219,7 +1224,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		}
 	} else {
 		unsigned bnum;
-		off_t spos = pos;
+		aoff64_t spos = pos;
 		char name[FAT_NAME_LEN + 1 + FAT_EXT_LEN + 1];
 		fat_dentry_t *d;
 
@@ -1235,7 +1240,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		bnum = (pos * sizeof(fat_dentry_t)) / bps;
 		while (bnum < nodep->size / bps) {
-			off_t o;
+			aoff64_t o;
 
 			rc = fat_block_get(&b, bs, nodep, bnum,
 			    BLOCK_FLAGS_NONE);
@@ -1291,9 +1296,10 @@ hit:
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	off_t pos = (off_t)IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;
@@ -1302,7 +1308,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	uint16_t bps;
 	unsigned spc;
 	unsigned bpc;		/* bytes per cluster */
-	off_t boundary;
+	aoff64_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
 	int rc;
 	
@@ -1448,9 +1454,10 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t)IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
-	size_t size = (off_t)IPC_GET_ARG3(*request);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t size =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	fs_node_t *fn;
 	fat_node_t *nodep;
 	fat_bs_t *bs;

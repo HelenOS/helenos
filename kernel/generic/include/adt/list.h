@@ -35,7 +35,6 @@
 #ifndef KERN_LIST_H_
 #define KERN_LIST_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 
 /** Doubly linked list head and link type. */

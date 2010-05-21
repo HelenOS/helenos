@@ -28,10 +28,10 @@
  */
 
 /** @defgroup msimfb MSIM text console
- * @brief	HelenOS MSIM text console.
+ * @brief HelenOS MSIM text console.
  * @ingroup fbs
  * @{
- */ 
+ */
 /** @file
  */
 
@@ -40,6 +40,7 @@
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
+#include <errno.h>
 
 #include "serial_console.h"
 #include "msim.h"
@@ -56,10 +57,14 @@ static void msim_putc(const char c)
 
 int msim_init(void)
 {
-	void *phys_addr = (void *) sysinfo_value("fb.address.physical");
+	sysarg_t phys_addr;
+	if (sysinfo_get_value("fb.address.physical", &phys_addr) != EOK)
+		return -1;
+	
 	virt_addr = (char *) as_get_mappable_page(1);
 	
-	if (physmem_map(phys_addr, virt_addr, 1, AS_AREA_READ | AS_AREA_WRITE) != 0)
+	if (physmem_map((void *) phys_addr, virt_addr, 1,
+	    AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
 	
 	serial_console_init(msim_putc, WIDTH, HEIGHT);
@@ -68,6 +73,5 @@ int msim_init(void)
 	return 0;
 }
 
-/** 
- * @}
+/** @}
  */

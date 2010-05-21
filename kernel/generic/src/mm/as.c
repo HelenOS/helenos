@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2006 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@
 #include <errno.h>
 #include <config.h>
 #include <align.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
@@ -151,7 +151,7 @@ void as_init(void)
 	/* Make sure the kernel address space
 	 * reference count never drops to zero.
 	 */
-	atomic_set(&AS_KERNEL->refcount, 1);
+	as_hold(AS_KERNEL);
 }
 
 /** Create address space.
@@ -199,11 +199,12 @@ void as_destroy(as_t *as)
 	bool cond;
 	DEADLOCK_PROBE_INIT(p_asidlock);
 
+	ASSERT(as != AS);
 	ASSERT(atomic_get(&as->refcount) == 0);
 	
 	/*
-	 * Since there is no reference to this area,
-	 * it is safe not to lock its mutex.
+	 * Since there is no reference to this address space, it is safe not to
+	 * lock its mutex.
 	 */
 
 	/*
@@ -224,7 +225,7 @@ retry:
 	}
 	preemption_enable();	/* Interrupts disabled, enable preemption */
 	if (as->asid != ASID_INVALID && as != AS_KERNEL) {
-		if (as != AS && as->cpu_refcount == 0)
+		if (as->cpu_refcount == 0)
 			list_remove(&as->inactive_as_with_asid_link);
 		asid_put(as->asid);
 	}
@@ -257,6 +258,31 @@ retry:
 	interrupts_restore(ipl);
 
 	slab_free(as_slab, as);
+}
+
+/** Hold a reference to an address space.
+ *
+ * Holding a reference to an address space prevents destruction of that address
+ * space.
+ *
+ * @param a		Address space to be held.
+ */
+void as_hold(as_t *as)
+{
+	atomic_inc(&as->refcount);
+}
+
+/** Release a reference to an address space.
+ *
+ * The last one to release a reference to an address space destroys the address
+ * space.
+ *
+ * @param a		Address space to be released.
+ */
+void as_release(as_t *as)
+{
+	if (atomic_predec(&as->refcount) == 0)
+		as_destroy(as);
 }
 
 /** Create address space area of common attributes.
@@ -396,6 +422,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 		 * No need to check for overlaps.
 		 */
 
+		page_table_lock(as, false);
+
 		/*
 		 * Start TLB shootdown sequence.
 		 */
@@ -459,7 +487,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 				for (; i < c; i++) {
 					pte_t *pte;
 			
-					page_table_lock(as, false);
 					pte = page_mapping_find(as, b +
 					    i * PAGE_SIZE);
 					ASSERT(pte && PTE_VALID(pte) &&
@@ -472,7 +499,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 					}
 					page_mapping_remove(as, b +
 					    i * PAGE_SIZE);
-					page_table_unlock(as, false);
 				}
 			}
 		}
@@ -483,12 +509,15 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, int flags)
 
 		tlb_invalidate_pages(as->asid, area->base + pages * PAGE_SIZE,
 		    area->pages - pages);
+
 		/*
 		 * Invalidate software translation caches (e.g. TSB on sparc64).
 		 */
 		as_invalidate_translation_cache(as, area->base +
 		    pages * PAGE_SIZE, area->pages - pages);
 		tlb_shootdown_finalize();
+
+		page_table_unlock(as, false);
 		
 	} else {
 		/*
@@ -539,6 +568,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 
 	base = area->base;
 
+	page_table_lock(as, false);
+
 	/*
 	 * Start TLB shootdown sequence.
 	 */
@@ -559,7 +590,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 			pte_t *pte;
 			
 			for (j = 0; j < (size_t) node->value[i]; j++) {
-				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
@@ -569,7 +599,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 					    j * PAGE_SIZE, PTE_GET_FRAME(pte));
 				}
 				page_mapping_remove(as, b + j * PAGE_SIZE);				
-				page_table_unlock(as, false);
 			}
 		}
 	}
@@ -579,12 +608,15 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	 */
 
 	tlb_invalidate_pages(as->asid, area->base, area->pages);
+
 	/*
 	 * Invalidate potential software translation caches (e.g. TSB on
 	 * sparc64).
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize();
+
+	page_table_unlock(as, false);
 	
 	btree_destroy(&area->used_space);
 
@@ -783,7 +815,6 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 {
 	as_area_t *area;
-	uintptr_t base;
 	link_t *cur;
 	ipl_t ipl;
 	int page_flags;
@@ -813,8 +844,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 		return ENOTSUP;
 	}
 
-	base = area->base;
-
 	/*
 	 * Compute total number of used pages in the used_space B+tree
 	 */
@@ -833,6 +862,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 
 	/* An array for storing frame numbers */
 	old_frame = malloc(used_pages * sizeof(uintptr_t), 0);
+
+	page_table_lock(as, false);
 
 	/*
 	 * Start TLB shootdown sequence.
@@ -857,7 +888,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 			pte_t *pte;
 			
 			for (j = 0; j < (size_t) node->value[i]; j++) {
-				page_table_lock(as, false);
 				pte = page_mapping_find(as, b + j * PAGE_SIZE);
 				ASSERT(pte && PTE_VALID(pte) &&
 				    PTE_PRESENT(pte));
@@ -865,7 +895,6 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 
 				/* Remove old mapping */
 				page_mapping_remove(as, b + j * PAGE_SIZE);
-				page_table_unlock(as, false);
 			}
 		}
 	}
@@ -882,6 +911,8 @@ int as_area_change_flags(as_t *as, int flags, uintptr_t address)
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
 	tlb_shootdown_finalize();
+
+	page_table_unlock(as, false);
 
 	/*
 	 * Set the new flags.
@@ -951,11 +982,12 @@ int as_page_fault(uintptr_t page, pf_access_t access, istate_t *istate)
 	
 	if (!THREAD)
 		return AS_PF_FAULT;
-		
-	ASSERT(AS);
-
+	
+	if (!AS)
+		return AS_PF_FAULT;
+	
 	mutex_lock(&AS->lock);
-	area = find_area_and_lock(AS, page);	
+	area = find_area_and_lock(AS, page);
 	if (!area) {
 		/*
 		 * No area contained mapping for 'page'.

@@ -34,12 +34,14 @@
 #define DEVMAN_UTIL_H_
 
 #include <ctype.h>
+#include <str.h>
+#include <malloc.h>
 
 
 char * get_abs_path(const char *base_path, const char *name, const char *ext);
-const char * get_path_elem_end(const char *path);
+char * get_path_elem_end(char *path);
 
-static inline bool skip_spaces(const char **buf) 
+static inline bool skip_spaces(char **buf) 
 {
 	while (isspace(**buf)) {
 		(*buf)++;		
@@ -62,6 +64,16 @@ static inline void free_not_null(const void *ptr)
 	if (NULL != ptr) {
 		free(ptr);
 	}
+}
+
+static inline char * clone_string(const char *s) 
+{
+	size_t size = str_size(s) + 1;
+	char *str = (char *)malloc(size);
+	if (NULL != str) {
+		str_cpy(str, size, s);
+	}
+	return str;
 }
 
 #endif

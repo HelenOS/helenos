@@ -36,15 +36,15 @@
 #define KERN_ELF_H_
 
 #include <arch/elf.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * current ELF version
  */
-#define	EV_CURRENT	1
+#define EV_CURRENT	1
 
-/** 
- * ELF types 
+/**
+ * ELF types
  */
 #define ET_NONE		0	/* No type */
 #define ET_REL		1	/* Relocatable file */
@@ -337,7 +337,7 @@ typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
 #endif
 
-extern char *elf_error(unsigned int rc);
+extern const char *elf_error(unsigned int rc);
 
 /* Interpreter string used to recognize the program loader */
 #define ELF_INTERP_ZSTR "kernel"

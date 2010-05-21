@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 
 enum {
 	CTL_READ_START  = 0,

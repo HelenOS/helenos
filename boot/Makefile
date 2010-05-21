@@ -26,24 +26,61 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
+.PHONY: all build_dist build_comps clean_dist clean
 
--include ../Makefile.config
--include ../config.defs
+include Makefile.common
 
-## Paths
-#
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD)
+	$(MAKE) -f $(BUILD) PRECHECK=$(PRECHECK)
+ifneq ($(POSTBUILD),)
+	$(MAKE) -f $(POSTBUILD) PRECHECK=$(PRECHECK)
+endif
 
-BASE = ..
-KERNELDIR = $(BASE)/kernel
-USPACEDIR = $(BASE)/uspace
+build_comps: $(COMPONENTS) $(LINK).in
+	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
 
-.PHONY: all build clean generic_clean
+$(INITRD).img: $(INITRD).fs
+	$(MKHORD) $(PAGE_SIZE) $< $@
 
-all: ../Makefile.config ../config.h ../config.defs build
+$(INITRD).fs: build_dist
+ifeq ($(RDFMT),tmpfs)
+	$(MKTMPFS) $(DIST_PATH) $@
+endif
+ifeq ($(RDFMT),fat)
+	$(MKFAT) $(DIST_PATH) $@
+endif
 
--include arch/$(BARCH)/Makefile.inc
+build_dist: clean_dist
+	for file in $(RD_SRVS) ; do \
+		cp "$$file" "$(DIST_PATH)/srv/" ; \
+	done
+	for file in $(RD_APPS) ; do \
+		cp "$$file" "$(DIST_PATH)/app/" ; \
+	done
+	for file in $(NET_CFG) ; do \
+		cp "$$file" "$(DIST_PATH)/cfg/net/" ; \
+	done
+	for drv in $(RD_DRVS) ; do \
+		mkdir -p "$(DIST_PATH)/$(DRVS_PATH)/$$drv" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" ; \
+	done
+	for file in $(RD_DRV_CFG) ; do \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file" "$(DIST_PATH)/$(DRVS_PATH)/$$file" ; \
+	done
+	
+clean: clean_dist
+	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
+ifneq ($(POSTBUILD),)
+	$(MAKE) -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
+endif
+	rm -fr $(SANDBOX)
+	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) $(DEPEND) $(DEPEND_PREV) arch/*/include/common.h
+	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
-generic_clean:
-	rm -f generic/*.o genarch/*.o
+clean_dist:
+	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) *.co
+	rm -f -r "$(DIST_PATH)/$(DRVS_PATH)" 
+	rm -f $(USPACE_PATH)/dist/srv/*
+	rm -f $(USPACE_PATH)/dist/app/*
+	rm -f $(USPACE_PATH)/dist/cfg/net/*

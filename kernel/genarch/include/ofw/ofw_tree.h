@@ -29,10 +29,11 @@
 #ifndef KERN_OFW_TREE_H_
 #define KERN_OFW_TREE_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 
 #define OFW_TREE_PROPERTY_MAX_NAMELEN  32
+
+typedef uint32_t phandle;
 
 /** Memory representation of OpenFirmware device tree node property. */
 typedef struct {
@@ -47,11 +48,11 @@ typedef struct ofw_tree_node {
 	struct ofw_tree_node *peer;
 	struct ofw_tree_node *child;
 	
-	uint32_t node_handle;           /**< Old OpenFirmware node handle. */
+	phandle node_handle;            /**< Old OpenFirmware node handle. */
 	
 	char *da_name;                  /**< Disambigued name. */
 	
-	unsigned int properties;        /**< Number of properties. */
+	size_t properties;              /**< Number of properties. */
 	ofw_tree_property_t *property;
 	
 	/**
@@ -83,6 +84,6 @@ extern ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *,
 extern ofw_tree_node_t *ofw_tree_find_peer_by_name(ofw_tree_node_t *,
     const char *);
 extern ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *,
-    uint32_t);
+    phandle);
 
 #endif

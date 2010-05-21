@@ -26,87 +26,25 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+PAGE_SIZE = 4096
 
-RD_SRVS += \
-	$(USPACEDIR)/srv/dd/dd \
-	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/hw/char/i8042/i8042 \
-#	$(USPACEDIR)/srv/hw/bus/pci/pci \
-	$(USPACEDIR)/srv/hid/char_mouse/char_ms
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042
 
-RD_DRVS = \
-	root \
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
+	$(USPACE_PATH)/srv/hw/bus/pci/pci \
+	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+
+RD_DRVS += \
 	rootia32 \
 	pciintel \
 	isa \
 	ns8250
-
-RD_DRV_CONF = \
+	
+RD_DRV_CFG += \
 	isa/isa.dev
 
-MODULES := $(notdir $(COMPONENTS))
-
-build: $(BASE)/image.iso
-
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
-	mkdir -p $(TMP)/boot/grub
-	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
-	
-	echo "default 0" > $(TMP)/boot/grub/menu.lst
-	echo "timeout 10" >> $(TMP)/boot/grub/menu.lst
-	echo "" >> $(TMP)/boot/grub/menu.lst
-	echo "title=HelenOS" >> $(TMP)/boot/grub/menu.lst
-	echo "	root (cd)" >> $(TMP)/boot/grub/menu.lst
-	for module in $(MODULES) $(INITRD).img ; do \
-		if [ $$module = kernel.bin ] ; then \
-			echo "	kernel /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
-		else \
-			echo "	module /boot/$$module" >> $(TMP)/boot/grub/menu.lst ; \
-		fi \
-	done
-	
-	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
-	for task in $(INIT_TASKS) ; do \
-		cp $$task $(TMP)/boot/ ; \
-	done
-	for file in $(RD_SRVS) ; do \
-		cp $$file $(USPACEDIR)/dist/srv/ ; \
-	done
-	for driver in $(RD_DRVS); do \
-		mkdir -p $(USPACEDIR)/dist/srv/drivers/$$driver ; \
-		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver.ma $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
-		cp $(USPACEDIR)/srv/drivers/$$driver/$$driver $(USPACEDIR)/dist/srv/drivers/$$driver/ ; \
-	done
-	for drv_conf in $(RD_DRV_CONF); do \
-		cp $(USPACEDIR)/srv/drivers/$$drv_conf $(USPACEDIR)/dist/srv/drivers/$$drv_conf ; \
-	done
-	for file in $(RD_APPS) ; do \
-		cp $$file $(USPACEDIR)/dist/app/ ; \
-	done
-	
-ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
-endif
-ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/$(INITRD).fs
-endif
-	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/$(INITRD).fs $(TMP)/boot/$(INITRD).img
-	rm $(TMP)/boot/$(INITRD).fs
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
-
-clean:
-	for file in $(RD_SRVS) ; do \
-		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
-	done
-	for drv_conf in $(RD_DRV_CONF) ; do \
-		rm -r $(USPACEDIR)/dist/srv/drivers/$$drv_conf ; \
-	done
-	for driver in $(RD_DRVS) ; do \
-		rm -r $(USPACEDIR)/dist/srv/drivers/$$driver ; \
-	done
-	for file in $(RD_APPS) ; do \
-		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
-	done
-	rm -fr $(TMP)
-	rm -f $(BASE)/image.iso
+BOOT_OUTPUT = $(ROOT_PATH)/image.iso
+PREBUILD = $(INITRD).img
+BUILD = Makefile.grub

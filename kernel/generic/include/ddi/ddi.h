@@ -36,7 +36,7 @@
 #define KERN_DDI_H_
 
 #include <ddi/ddi_arg.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <adt/list.h>
 

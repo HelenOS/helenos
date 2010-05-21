@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -34,16 +34,6 @@
 
 #ifndef KERN_ppc32_TYPES_H_
 #define KERN_ppc32_TYPES_H_
-
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
 
 typedef uint32_t size_t;
 
@@ -54,32 +44,33 @@ typedef uint32_t ipl_t;
 
 typedef uint32_t unative_t;
 typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;
 
 /**< Formats for uintptr_t, size_t */
-#define PRIp "x"
-#define PRIs "u"
+#define PRIp  "x"
+#define PRIs  "u"
 
 /**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
-#define PRId8 "d"
-#define PRId16 "d"
-#define PRId32 "d"
-#define PRId64 "lld"
-#define PRIdn "d"
+#define PRId8   "d"
+#define PRId16  "d"
+#define PRId32  "d"
+#define PRId64  "lld"
+#define PRIdn   "d"
 
-#define PRIu8 "u"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-#define PRIun "u"
+#define PRIu8   "u"
+#define PRIu16  "u"
+#define PRIu32  "u"
+#define PRIu64  "llu"
+#define PRIun   "u"
 
-#define PRIx8 "x"
-#define PRIx16 "x"
-#define PRIx32 "x"
-#define PRIx64 "llx"
-#define PRIxn "x"
+#define PRIx8   "x"
+#define PRIx16  "x"
+#define PRIx32  "x"
+#define PRIx64  "llx"
+#define PRIxn   "x"
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Task management.
+ * @brief Task management.
  */
 
 #include <proc/thread.h>
@@ -52,7 +52,7 @@
 #include <print.h>
 #include <errno.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <memstr.h>
 #include <syscall/copy.h>
 #include <macros.h>
@@ -65,6 +65,7 @@ SPINLOCK_INITIALIZE(tasks_lock);
  *
  * The task is guaranteed to exist after it was found in the tasks_tree as
  * long as:
+ *
  * @li the tasks_lock is held,
  * @li the task's lock is held when task's lock is acquired before releasing
  *     tasks_lock or
@@ -98,7 +99,7 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 {
 	task_t *t = avltree_get_instance(node, task_t, tasks_tree_node);
 	unsigned *cnt = (unsigned *) arg;
-
+	
 	if (t != TASK) {
 		(*cnt)++;
 #ifdef CONFIG_DEBUG
@@ -106,15 +107,16 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 #endif
 		task_kill_internal(t);
 	}
-
-	return true;	/* continue the walk */
+	
+	/* Continue the walk */
+	return true;
 }
 
 /** Kill all tasks except the current task. */
 void task_done(void)
 {
 	unsigned tasks_left;
-
+	
 	do { /* Repeat until there are any tasks except TASK */
 		/* Messing with task structures, avoid deadlock */
 #ifdef CONFIG_DEBUG
@@ -137,40 +139,40 @@ int tsk_constructor(void *obj, int kmflags)
 {
 	task_t *ta = obj;
 	int i;
-
+	
 	atomic_set(&ta->refcount, 0);
 	atomic_set(&ta->lifecount, 0);
 	atomic_set(&ta->active_calls, 0);
-
+	
 	spinlock_initialize(&ta->lock, "task_ta_lock");
 	mutex_initialize(&ta->futexes_lock, MUTEX_PASSIVE);
-
+	
 	list_initialize(&ta->th_head);
 	list_initialize(&ta->sync_box_head);
-
+	
 	ipc_answerbox_init(&ta->answerbox, ta);
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_init(&ta->phones[i]);
-
+	
 #ifdef CONFIG_UDEBUG
 	/* Init kbox stuff */
 	ta->kb.thread = NULL;
 	ipc_answerbox_init(&ta->kb.box, ta);
 	mutex_initialize(&ta->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
-
+	
 	return 0;
 }
 
 /** Create new task with no threads.
  *
- * @param as		Task's address space.
- * @param name		Symbolic name (a copy is made).
+ * @param as   Task's address space.
+ * @param name Symbolic name (a copy is made).
  *
- * @return		New task's structure.
+ * @return New task's structure.
  *
  */
-task_t *task_create(as_t *as, char *name)
+task_t *task_create(as_t *as, const char *name)
 {
 	ipl_t ipl;
 	task_t *ta;
@@ -180,27 +182,39 @@ task_t *task_create(as_t *as, char *name)
 	ta->as = as;
 	memcpy(ta->name, name, TASK_NAME_BUFLEN);
 	ta->name[TASK_NAME_BUFLEN - 1] = 0;
-
+	
 	ta->context = CONTEXT;
 	ta->capabilities = 0;
-	ta->cycles = 0;
+	ta->ucycles = 0;
+	ta->kcycles = 0;
+
+	ta->ipc_info.call_sent = 0;
+	ta->ipc_info.call_recieved = 0;
+	ta->ipc_info.answer_sent = 0;
+	ta->ipc_info.answer_recieved = 0;
+	ta->ipc_info.irq_notif_recieved = 0;
+	ta->ipc_info.forwarded = 0;
 
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&ta->udebug);
-
+	
 	/* Init kbox stuff */
 	ta->kb.finished = false;
 #endif
-
+	
 	if ((ipc_phone_0) &&
 	    (context_check(ipc_phone_0->task->context, ta->context)))
 		ipc_phone_connect(&ta->phones[0], ipc_phone_0);
-
+	
 	btree_create(&ta->futexes);
 	
+	/*
+	 * Get a reference to the address space.
+	 */
+	as_hold(ta->as);
+
 	ipl = interrupts_disable();
-	atomic_inc(&as->refcount);
 	spinlock_lock(&tasks_lock);
 	ta->taskid = ++task_counter;
 	avltree_node_initialize(&ta->tasks_tree_node);
@@ -214,7 +228,8 @@ task_t *task_create(as_t *as, char *name)
 
 /** Destroy task.
  *
- * @param t		Task to be destroyed.
+ * @param t Task to be destroyed.
+ *
  */
 void task_destroy(task_t *t)
 {
@@ -224,33 +239,55 @@ void task_destroy(task_t *t)
 	spinlock_lock(&tasks_lock);
 	avltree_delete(&tasks_tree, &t->tasks_tree_node);
 	spinlock_unlock(&tasks_lock);
-
+	
 	/*
 	 * Perform architecture specific task destruction.
 	 */
 	task_destroy_arch(t);
-
+	
 	/*
 	 * Free up dynamically allocated state.
 	 */
 	btree_destroy(&t->futexes);
-
+	
 	/*
 	 * Drop our reference to the address space.
 	 */
-	if (atomic_predec(&t->as->refcount) == 0) 
-		as_destroy(t->as);
+	as_release(t->as);
 	
 	slab_free(task_slab, t);
-	TASK = NULL;
+}
+
+/** Hold a reference to a task.
+ *
+ * Holding a reference to a task prevents destruction of that task.
+ *
+ * @param t		Task to be held.
+ */
+void task_hold(task_t *t)
+{
+	atomic_inc(&t->refcount);
+}
+
+/** Release a reference to a task.
+ *
+ * The last one to release a reference to a task destroys the task.
+ *
+ * @param t		Task to be released.
+ */
+void task_release(task_t *t)
+{
+	if ((atomic_predec(&t->refcount)) == 0)
+		task_destroy(t);
 }
 
 /** Syscall for reading task ID from userspace.
  *
- * @param		uspace_task_id userspace address of 8-byte buffer
- * 			where to store current task ID.
+ * @param uspace_task_id Userspace address of 8-byte buffer
+ *                       where to store current task ID.
  *
- * @return		Zero on success or an error code from @ref errno.h.
+ * @return Zero on success or an error code from @ref errno.h.
+ *
  */
 unative_t sys_task_get_id(task_id_t *uspace_task_id)
 {
@@ -266,28 +303,29 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
  *
  * The name simplifies identifying the task in the task list.
  *
- * @param name	The new name for the task. (typically the same
- *		as the command used to execute it).
+ * @param name The new name for the task. (typically the same
+ *             as the command used to execute it).
  *
  * @return 0 on success or an error code from @ref errno.h.
+ *
  */
 unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
 	int rc;
 	char namebuf[TASK_NAME_BUFLEN];
-
+	
 	/* Cap length of name and copy it from userspace. */
-
+	
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
-
+	
 	rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
 		return (unative_t) rc;
-
+	
 	namebuf[name_len] = '\0';
 	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);
-
+	
 	return EOK;
 }
 
@@ -296,17 +334,19 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
  * The tasks_lock must be already held by the caller of this function and
  * interrupts must be disabled.
  *
- * @param id		Task ID.
+ * @param id Task ID.
  *
- * @return		Task structure address or NULL if there is no such task
- * 			ID.
+ * @return Task structure address or NULL if there is no such task ID.
+ *
  */
-task_t *task_find_by_id(task_id_t id) { avltree_node_t *node;
+task_t *task_find_by_id(task_id_t id)
+{
+	avltree_node_t *node =
+	    avltree_search(&tasks_tree, (avltree_key_t) id);
 	
-	node = avltree_search(&tasks_tree, (avltree_key_t) id);
-
 	if (node)
 		return avltree_get_instance(node, task_t, tasks_tree_node); 
+	
 	return NULL;
 }
 
@@ -315,15 +355,16 @@ task_t *task_find_by_id(task_id_t id) { avltree_node_t *node;
  * Note that task lock of 't' must be already held and interrupts must be
  * already disabled.
  *
- * @param t		Pointer to thread.
+ * @param t       Pointer to thread.
+ * @param ucycles Out pointer to sum of all user cycles.
+ * @param kcycles Out pointer to sum of all kernel cycles.
  *
- * @return		Number of cycles used by the task and all its threads
- * 			so far.
  */
-uint64_t task_get_accounting(task_t *t)
+void task_get_accounting(task_t *t, uint64_t *ucycles, uint64_t *kcycles)
 {
-	/* Accumulated value of task */
-	uint64_t ret = t->cycles;
+	/* Accumulated values of task */
+	uint64_t uret = t->ucycles;
+	uint64_t kret = t->kcycles;
 	
 	/* Current values of threads */
 	link_t *cur;
@@ -335,20 +376,22 @@ uint64_t task_get_accounting(task_t *t)
 		if (!thr->uncounted) {
 			if (thr == THREAD) {
 				/* Update accounting of current thread */
-				thread_update_accounting();
+				thread_update_accounting(false);
 			} 
-			ret += thr->cycles;
+			uret += thr->ucycles;
+			kret += thr->kcycles;
 		}
 		spinlock_unlock(&thr->lock);
 	}
 	
-	return ret;
+	*ucycles = uret;
+	*kcycles = kret;
 }
 
 static void task_kill_internal(task_t *ta)
 {
 	link_t *cur;
-
+	
 	/*
 	 * Interrupt all threads.
 	 */
@@ -376,9 +419,10 @@ static void task_kill_internal(task_t *ta)
  * This function is idempotent.
  * It signals all the task's threads to bail it out.
  *
- * @param id		ID of the task to be killed.
+ * @param id ID of the task to be killed.
  *
- * @return		Zero on success or an error code from errno.h.
+ * @return Zero on success or an error code from errno.h.
+ *
  */
 int task_kill(task_id_t id)
 {
@@ -405,31 +449,36 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 {
 	task_t *t = avltree_get_instance(node, task_t, tasks_tree_node);
 	int j;
-		
+	
 	spinlock_lock(&t->lock);
-			
-	uint64_t cycles;
-	char suffix;
-	order(task_get_accounting(t), &cycles, &suffix);
-
+	
+	uint64_t ucycles;
+	uint64_t kcycles;
+	char usuffix, ksuffix;
+	task_get_accounting(t, &ucycles, &kcycles);
+	order_suffix(ucycles, &ucycles, &usuffix);
+	order_suffix(kcycles, &kcycles, &ksuffix);
+	
 #ifdef __32_BITS__	
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64
-	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
-	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as,
+		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
+		atomic_get(&t->active_calls));
 #endif
-
+	
 #ifdef __64_BITS__
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64
-	    "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as, cycles,
-	    suffix, atomic_get(&t->refcount), atomic_get(&t->active_calls));
+	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9"
+		PRIu64 "%c %7ld %6ld", t->taskid, t->name, t->context, t, t->as,
+		ucycles, usuffix, kcycles, ksuffix, atomic_get(&t->refcount),
+		atomic_get(&t->active_calls));
 #endif
-
+	
 	for (j = 0; j < IPC_MAX_PHONES; j++) {
 		if (t->phones[j].callee)
 			printf(" %d:%p", j, t->phones[j].callee);
 	}
 	printf("\n");
-			
+	
 	spinlock_unlock(&t->lock);
 	return true;
 }
@@ -442,23 +491,23 @@ void task_print_list(void)
 	/* Messing with task structures, avoid deadlock */
 	ipl = interrupts_disable();
 	spinlock_lock(&tasks_lock);
-
-#ifdef __32_BITS__	
-	printf("taskid name         ctx address    as         "
-	    "cycles     threads calls  callee\n");
-	printf("------ ------------ --- ---------- ---------- "
-	    "---------- ------- ------ ------>\n");
+	
+#ifdef __32_BITS__
+	printf("taskid name         ctx address    as        "
+	    " ucycles    kcycles    threads calls  callee\n");
+	printf("------ ------------ --- ---------- ----------"
+	    " ---------- ---------- ------- ------ ------>\n");
 #endif
-
+	
 #ifdef __64_BITS__
-	printf("taskid name         ctx address            as                 "
-	    "cycles     threads calls  callee\n");
-	printf("------ ------------ --- ------------------ ------------------ "
-	    "---------- ------- ------ ------>\n");
+	printf("taskid name         ctx address            as                "
+	    " ucycles    kcycles    threads calls  callee\n");
+	printf("------ ------------ --- ------------------ ------------------"
+	    " ---------- ---------- ---------- ------- ------ ------>\n");
 #endif
-
+	
 	avltree_walk(&tasks_tree, task_print_walker, NULL);
-
+	
 	spinlock_unlock(&tasks_lock);
 	interrupts_restore(ipl);
 }

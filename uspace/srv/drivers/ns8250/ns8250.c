@@ -41,7 +41,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <macros.h>
 #include <malloc.h>

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -36,7 +36,7 @@
 #define KERN_sparc64_ATOMIC_H_
 
 #include <arch/barrier.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <preemption.h>
 
 /** Atomic add operation.
@@ -44,42 +44,49 @@
  * Use atomic compare and swap operation to atomically add signed value.
  *
  * @param val Atomic variable.
- * @param i Signed value to be added.
+ * @param i   Signed value to be added.
  *
  * @return Value of the atomic variable as it existed before addition.
+ *
  */
-static inline long atomic_add(atomic_t *val, int i)
+static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
-	uint64_t a, b;
-
+	atomic_count_t a;
+	atomic_count_t b;
+	
 	do {
-		volatile uintptr_t x = (uint64_t) &val->count;
-
-		a = *((uint64_t *) x);
+		volatile uintptr_t ptr = (uintptr_t) &val->count;
+		
+		a = *((atomic_count_t *) ptr);
 		b = a + i;
-		asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *)x)),
-		    "+r" (b) : "r" (a));
+		
+		asm volatile (
+			"casx %0, %2, %1\n"
+			: "+m" (*((atomic_count_t *) ptr)),
+		      "+r" (b)
+		    : "r" (a)
+		);
 	} while (a != b);
-
+	
 	return a;
 }
 
-static inline long atomic_preinc(atomic_t *val)
+static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1) + 1;
 }
 
-static inline long atomic_postinc(atomic_t *val)
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
 
-static inline long atomic_predec(atomic_t *val)
+static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1) - 1;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -94,39 +101,46 @@ static inline void atomic_dec(atomic_t *val)
 	(void) atomic_add(val, -1);
 }
 
-static inline long test_and_set(atomic_t *val)
+static inline atomic_count_t test_and_set(atomic_t *val)
 {
-	uint64_t v = 1;
-	volatile uintptr_t x = (uint64_t) &val->count;
-
-	asm volatile ("casx %0, %2, %1\n" : "+m" (*((uint64_t *) x)),
-	    "+r" (v) : "r" (0));
-
+	atomic_count_t v = 1;
+	volatile uintptr_t ptr = (uintptr_t) &val->count;
+	
+	asm volatile (
+		"casx %0, %2, %1\n"
+		: "+m" (*((atomic_count_t *) ptr)),
+	      "+r" (v)
+	    : "r" (0)
+	);
+	
 	return v;
 }
 
 static inline void atomic_lock_arch(atomic_t *val)
 {
-	uint64_t tmp1 = 1;
-	uint64_t tmp2 = 0;
-
-	volatile uintptr_t x = (uint64_t) &val->count;
-
+	atomic_count_t tmp1 = 1;
+	atomic_count_t tmp2 = 0;
+	
+	volatile uintptr_t ptr = (uintptr_t) &val->count;
+	
 	preemption_disable();
-
+	
 	asm volatile (
-	"0:\n"
-		"casx %0, %3, %1\n"
-		"brz %1, 2f\n"
-		"nop\n"
-	"1:\n"
-		"ldx %0, %2\n"
-		"brz %2, 0b\n"
-		"nop\n"
-		"ba %%xcc, 1b\n"
-		"nop\n"
-	"2:\n"
-		: "+m" (*((uint64_t *) x)), "+r" (tmp1), "+r" (tmp2) : "r" (0)
+		"0:\n"
+			"casx %0, %3, %1\n"
+			"brz %1, 2f\n"
+			"nop\n"
+		"1:\n"
+			"ldx %0, %2\n"
+			"brz %2, 0b\n"
+			"nop\n"
+			"ba %%xcc, 1b\n"
+			"nop\n"
+		"2:\n"
+		: "+m" (*((atomic_count_t *) ptr)),
+		  "+r" (tmp1),
+		  "+r" (tmp2)
+		: "r" (0)
 	);
 	
 	/*

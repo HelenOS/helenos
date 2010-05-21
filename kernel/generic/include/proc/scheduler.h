@@ -36,18 +36,19 @@
 #define KERN_SCHEDULER_H_
 
 #include <synch/spinlock.h>
-#include <time/clock.h>		/* HZ */
+#include <time/clock.h>
+#include <typedefs.h>
 #include <atomic.h>
 #include <adt/list.h>
 
-#define RQ_COUNT 		16
-#define NEEDS_RELINK_MAX	(HZ)
+#define RQ_COUNT          16
+#define NEEDS_RELINK_MAX  (HZ)
 
 /** Scheduler run queue structure. */
 typedef struct {
 	SPINLOCK_DECLARE(lock);
-	link_t rq_head;		/**< List of ready threads. */
-	size_t n;		/**< Number of threads in rq_ready. */
+	link_t rq_head;          /**< List of ready threads. */
+	size_t n;                /**< Number of threads in rq_ready. */
 } runq_t;
 
 extern atomic_t nrdy;
@@ -60,7 +61,7 @@ extern void kcpulb(void *arg);
 extern void sched_print_list(void);
 
 /*
- * To be defined by architectures:
+ * To be defined by architectures.
  */
 extern void before_task_runs_arch(void);
 extern void before_thread_runs_arch(void);

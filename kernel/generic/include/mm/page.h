@@ -35,7 +35,7 @@
 #ifndef KERN_PAGE_H_
 #define KERN_PAGE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/as.h>
 #include <memstr.h>
 

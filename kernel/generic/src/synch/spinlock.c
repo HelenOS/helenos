@@ -51,7 +51,7 @@
  * @param sl Pointer to spinlock_t structure.
  *
  */
-void spinlock_initialize(spinlock_t *lock, char *name)
+void spinlock_initialize(spinlock_t *lock, const char *name)
 {
 	atomic_set(&lock->val, 0);
 #ifdef CONFIG_DEBUG_SPINLOCK
@@ -117,6 +117,25 @@ void spinlock_lock_debug(spinlock_t *lock)
 	 * Prevent critical section code from bleeding out this way up.
 	 */
 	CS_ENTER_BARRIER();
+}
+
+/** Unlock spinlock
+ *
+ * Unlock spinlock.
+ *
+ * @param sl Pointer to spinlock_t structure.
+ */
+void spinlock_unlock_debug(spinlock_t *lock)
+{
+	ASSERT(atomic_get(&lock->val) != 0);
+	
+	/*
+	 * Prevent critical section code from bleeding out this way down.
+	 */
+	CS_LEAVE_BARRIER();
+	
+	atomic_set(&lock->val, 0);
+	preemption_enable();
 }
 
 #endif

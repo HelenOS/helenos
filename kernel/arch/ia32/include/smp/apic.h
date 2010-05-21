@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_APIC_H_
 #define KERN_ia32_APIC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <cpu.h>
 
 #define FIXED		(0<<0)

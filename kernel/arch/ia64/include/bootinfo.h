@@ -31,7 +31,7 @@
 
 #define BOOTINFO_ADDRESS 0x4401000
 
-#define CONFIG_INIT_TASKS	32
+#define TASKMAP_MAX_RECORDS  32
 
 #define MEMMAP_ITEMS 128
 
@@ -43,30 +43,29 @@
 #define BOOTINFO_TASK_NAME_BUFLEN 32
 
 typedef struct {
-	void *addr; 
-	unsigned long size;
+	void *addr;
+	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } binit_task_t;
 	
 typedef struct {
-	unsigned long count;
-	binit_task_t tasks[CONFIG_INIT_TASKS];
+	size_t cnt;
+	binit_task_t tasks[TASKMAP_MAX_RECORDS];
 } binit_t;
 
 typedef struct {
 	unsigned int type;
 	unsigned long base;
 	unsigned long size;
-}efi_memmap_item_t;
-
+} efi_memmap_item_t;
 
 typedef struct {
 	binit_t taskmap;
-
+	
 	efi_memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;
-
-	unsigned long * sapic;
+	
+	unative_t *sapic;
 	unsigned long sys_freq;
 	unsigned long freq_scale;
 	unsigned int wakeup_intno;

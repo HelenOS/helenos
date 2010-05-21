@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_CONTEXT_H_
 #define KERN_ia64_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 #include <align.h>
 #include <arch/stack.h>
@@ -47,10 +47,6 @@
  * One item is put onto the stack to support get_stack_base().
  */
 #define SP_DELTA	(0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
-#ifdef context_set
-#undef context_set
-#endif
 
 /* RSE stack starts at the bottom of memory stack. */
 #define context_set(c, _pc, stack, size)								\

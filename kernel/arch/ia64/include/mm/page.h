@@ -107,7 +107,7 @@
 #include <arch/interrupt.h>
 #include <arch/barrier.h>
 #include <arch/mm/asid.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 
 struct vhpt_tag_info {

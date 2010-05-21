@@ -36,7 +36,7 @@
 #ifndef KERN_FRAME_H_
 #define KERN_FRAME_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <mm/buddy.h>
 #include <synch/spinlock.h>
@@ -168,12 +168,13 @@ extern void frame_mark_unavailable(pfn_t, size_t);
 extern uintptr_t zone_conf_size(size_t);
 extern bool zone_merge(size_t, size_t);
 extern void zone_merge_all(void);
-extern uint64_t zone_total_size(void);
+extern uint64_t zones_total_size(void);
+extern void zones_stats(uint64_t *, uint64_t *, uint64_t *, uint64_t *);
 
 /*
  * Console functions
  */
-extern void zone_print_list(void);
+extern void zones_print_list(void);
 extern void zone_print_one(size_t);
 
 #endif

@@ -27,10 +27,10 @@
  */
 
 /** @defgroup egafb EGA framebuffer
- * @brief	HelenOS EGA framebuffer.
+ * @brief HelenOS EGA framebuffer.
  * @ingroup fbs
  * @{
- */ 
+ */
 /** @file
  */
 
@@ -51,39 +51,86 @@
 #include <libarch/ddi.h>
 #include <io/style.h>
 #include <io/color.h>
+#include <io/screenbuffer.h>
 #include <sys/types.h>
 
 #include "ega.h"
-#include "../console/screenbuffer.h"
 #include "main.h"
 
-#define MAX_SAVED_SCREENS 256
+#define MAX_SAVED_SCREENS  256
+
 typedef struct saved_screen {
 	short *data;
 } saved_screen;
 
 saved_screen saved_screens[MAX_SAVED_SCREENS];
 
-#define EGA_IO_BASE ((ioport8_t *) 0x3d4)
-#define EGA_IO_SIZE 2
-
-int ega_normal_color = 0x0f;
-int ega_inverted_color = 0xf0;
-
-#define NORMAL_COLOR		ega_normal_color
-#define INVERTED_COLOR		ega_inverted_color
+#define EGA_IO_BASE  ((ioport8_t *) 0x3d4)
+#define EGA_IO_SIZE  2
 
 /* Allow only 1 connection */
 static int client_connected = 0;
 
-static unsigned int scr_width;
-static unsigned int scr_height;
+static sysarg_t scr_width;
+static sysarg_t scr_height;
 static uint8_t *scr_addr;
 
-static unsigned int style;
+static uint8_t style_normal = 0xf0;
+static uint8_t style_inverted = 0x0f;
+static uint8_t style;
 
-static unsigned attr_to_ega_style(const attrs_t *a);
-static uint8_t ega_glyph(wchar_t ch);
+static uint8_t style_to_ega_style(uint8_t style)
+{
+	switch (style) {
+	case STYLE_EMPHASIS:
+		return (style_normal | 0x04);
+	case STYLE_SELECTED:
+		return (style_inverted | 0x40);
+	case STYLE_INVERTED:
+		return style_inverted;
+	}
+	
+	return style_normal;
+}
+
+static uint8_t color_to_ega_style(uint8_t fg_color, uint8_t bg_color,
+    uint8_t attr)
+{
+	uint8_t style = (fg_color & 7) | ((bg_color & 7) << 4);
+	
+	if (attr & CATTR_BRIGHT)
+		style |= 0x08;
+	
+	return style;
+}
+
+static uint8_t rgb_to_ega_style(uint32_t fg, uint32_t bg)
+{
+	return (fg > bg) ? style_inverted : style_normal;
+}
+
+static uint8_t attr_to_ega_style(const attrs_t *attr)
+{
+	switch (attr->t) {
+	case at_style:
+		return style_to_ega_style(attr->a.s.style);
+	case at_idx:
+		return color_to_ega_style(attr->a.i.fg_color,
+		    attr->a.i.bg_color, attr->a.i.flags);
+	case at_rgb:
+		return rgb_to_ega_style(attr->a.r.fg_color, attr->a.r.bg_color);
+	default:
+		return style_normal;
+	}
+}
+
+static uint8_t ega_glyph(wchar_t ch)
+{
+	if (ch >= 0 && ch < 128)
+		return ch;
+	
+	return '?';
+}
 
 static void clrscr(void)
 {
@@ -95,42 +142,40 @@ static void clrscr(void)
 	}
 }
 
-static void cursor_goto(unsigned int col, unsigned int row)
+static void cursor_goto(sysarg_t col, sysarg_t row)
 {
-	int ega_cursor;
-
-	ega_cursor = col + scr_width * row;
+	sysarg_t cursor = col + scr_width * row;
 	
 	pio_write_8(EGA_IO_BASE, 0xe);
-	pio_write_8(EGA_IO_BASE + 1, (ega_cursor >> 8) & 0xff);
+	pio_write_8(EGA_IO_BASE + 1, (cursor >> 8) & 0xff);
 	pio_write_8(EGA_IO_BASE, 0xf);
-	pio_write_8(EGA_IO_BASE + 1, ega_cursor & 0xff);
+	pio_write_8(EGA_IO_BASE + 1, cursor & 0xff);
 }
 
 static void cursor_disable(void)
 {
-	uint8_t stat;
-
 	pio_write_8(EGA_IO_BASE, 0xa);
-	stat = pio_read_8(EGA_IO_BASE + 1);
+	
+	uint8_t stat = pio_read_8(EGA_IO_BASE + 1);
+	
 	pio_write_8(EGA_IO_BASE, 0xa);
 	pio_write_8(EGA_IO_BASE + 1, stat | (1 << 5));
 }
 
 static void cursor_enable(void)
 {
-	uint8_t stat;
-
 	pio_write_8(EGA_IO_BASE, 0xa);
-	stat = pio_read_8(EGA_IO_BASE + 1);
+	
+	uint8_t stat = pio_read_8(EGA_IO_BASE + 1);
+	
 	pio_write_8(EGA_IO_BASE, 0xa);
 	pio_write_8(EGA_IO_BASE + 1, stat & (~(1 << 5)));
 }
 
-static void scroll(int rows)
+static void scroll(ssize_t rows)
 {
-	unsigned i;
-
+	size_t i;
+	
 	if (rows > 0) {
 		memmove(scr_addr, ((char *) scr_addr) + rows * scr_width * 2,
 		    scr_width * scr_height * 2 - rows * scr_width * 2);
@@ -141,11 +186,11 @@ static void scroll(int rows)
 		memmove(((char *)scr_addr) - rows * scr_width * 2, scr_addr,
 		    scr_width * scr_height * 2 + rows * scr_width * 2);
 		for (i = 0; i < -rows * scr_width; i++)
-			((short *)scr_addr)[i] = ((style << 8 ) + ' ');
+			((short *) scr_addr)[i] = ((style << 8 ) + ' ');
 	}
 }
 
-static void printchar(wchar_t c, unsigned int col, unsigned int row)
+static void printchar(wchar_t c, sysarg_t col, sysarg_t row)
 {
 	scr_addr[(row * scr_width + col) * 2] = ega_glyph(c);
 	scr_addr[(row * scr_width + col) * 2 + 1] = style;
@@ -157,23 +202,25 @@ static void printchar(wchar_t c, unsigned int col, unsigned int row)
  *
  * @param vport Viewport id
  * @param data  Text data.
- * @param x	Leftmost column of the area.
- * @param y	Topmost row of the area.
- * @param w	Number of rows.
- * @param h	Number of columns.
+ * @param x     Leftmost column of the area.
+ * @param y     Topmost row of the area.
+ * @param w     Number of rows.
+ * @param h     Number of columns.
+ *
  */
-static void draw_text_data(keyfield_t *data, unsigned int x,
-    unsigned int y, unsigned int w, unsigned int h)
+static void draw_text_data(keyfield_t *data, sysarg_t x, sysarg_t y,
+    sysarg_t w, sysarg_t h)
 {
-	unsigned int i, j;
+	sysarg_t i;
+	sysarg_t j;
 	keyfield_t *field;
 	uint8_t *dp;
-
+	
 	for (j = 0; j < h; j++) {
 		for (i = 0; i < w; i++) {
 			field = &data[j * w + i];
 			dp = &scr_addr[2 * ((y + j) * scr_width + (x + i))];
-
+			
 			dp[0] = ega_glyph(field->character);
 			dp[1] = attr_to_ega_style(&field->attrs);
 		}
@@ -182,113 +229,76 @@ static void draw_text_data(keyfield_t *data, unsigned int x,
 
 static int save_screen(void)
 {
-	int i;
-
-	for (i = 0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++)
-		;
-	if (i == MAX_SAVED_SCREENS) 
+	ipcarg_t i;
+	
+	/* Find empty screen */
+	for (i = 0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++);
+	
+	if (i == MAX_SAVED_SCREENS)
 		return EINVAL;
-	if (!(saved_screens[i].data = malloc(2 * scr_width * scr_height))) 
+	
+	if (!(saved_screens[i].data = malloc(2 * scr_width * scr_height)))
 		return ENOMEM;
+	
 	memcpy(saved_screens[i].data, scr_addr, 2 * scr_width * scr_height);
-
-	return i;
+	return (int) i;
 }
 
-static int print_screen(int i)
+static int print_screen(ipcarg_t i)
 {
-	if (saved_screens[i].data)
+	if ((i >= MAX_SAVED_SCREENS) || (saved_screens[i].data))
 		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width *
 		    scr_height);
 	else
 		return EINVAL;
-	return i;
-}
-
-static int style_to_ega_style(int style)
-{
-	unsigned int ega_style;
-
-	switch (style) {
-	case STYLE_NORMAL:
-		ega_style = INVERTED_COLOR;
-		break;
-	case STYLE_EMPHASIS:
-		ega_style = INVERTED_COLOR | 4;
-		break;
-	default:
-		return INVERTED_COLOR;
-	}
-
-	return ega_style;
-}
-
-static unsigned int color_to_ega_style(int fg_color, int bg_color, int attr)
-{
-	unsigned int style;
-
-	style = (fg_color & 7) | ((bg_color & 7) << 4);
-	if (attr & CATTR_BRIGHT)
-		style = style | 0x08;
-
-	return style;
-}
-
-static unsigned int rgb_to_ega_style(uint32_t fg, uint32_t bg)
-{
-	return (fg > bg) ? NORMAL_COLOR : INVERTED_COLOR;
-}
-
-static unsigned attr_to_ega_style(const attrs_t *a)
-{
-	switch (a->t) {
-	case at_style:
-		return style_to_ega_style(a->a.s.style);
-	case at_rgb:
-		return rgb_to_ega_style(a->a.r.fg_color, a->a.r.bg_color);
-	case at_idx:
-		return color_to_ega_style(a->a.i.fg_color,
-		    a->a.i.bg_color, a->a.i.flags);
-	default:
-		return INVERTED_COLOR;
-	}
-}
-
-static uint8_t ega_glyph(wchar_t ch)
-{
-	if (ch >= 0 && ch < 128)
-		return ch;
-
-	return '?';
+	
+	return (int) i;
 }
 
 static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int retval;
-	ipc_callid_t callid;
-	ipc_call_t call;
-	wchar_t c;
-	unsigned int row, col, w, h;
-	int bg_color, fg_color, attr;
-	uint32_t bg_rgb, fg_rgb;
-	keyfield_t *interbuf = NULL;
 	size_t intersize = 0;
-	int i;
-
+	keyfield_t *interbuf = NULL;
+	
 	if (client_connected) {
 		ipc_answer_0(iid, ELIMIT);
 		return;
 	}
+	
+	/* Accept connection */
 	client_connected = 1;
-	ipc_answer_0(iid, EOK); /* Accept connection */
-
-	while (1) {
-		callid = async_get_call(&call);
- 		switch (IPC_GET_METHOD(call)) {
+	ipc_answer_0(iid, EOK);
+	
+	while (true) {
+		ipc_call_t call;
+		ipc_callid_t callid = async_get_call(&call);
+		
+		wchar_t c;
+		
+		ipcarg_t col;
+		ipcarg_t row;
+		ipcarg_t w;
+		ipcarg_t h;
+		
+		ssize_t rows;
+		
+		uint8_t bg_color;
+		uint8_t fg_color;
+		uint8_t attr;
+		
+		uint32_t fg_rgb;
+		uint32_t bg_rgb;
+		
+		ipcarg_t scr;
+		int retval;
+		
+		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);
-			return; /* Exit thread */
+			
+			/* Exit thread */
+			return;
 		case IPC_M_SHARE_OUT:
 			/* We accept one area for data interchange */
 			intersize = IPC_GET_ARG2(call);
@@ -298,21 +308,25 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				    (void *) &interbuf);
 				continue;
 			}
+			
 			retval = EINVAL;
 			break;
 		case FB_DRAW_TEXT_DATA:
-			col = IPC_GET_ARG1(call);
-			row = IPC_GET_ARG2(call);
-			w = IPC_GET_ARG3(call);
-			h = IPC_GET_ARG4(call);
 			if (!interbuf) {
 				retval = EINVAL;
 				break;
 			}
-			if (col + w > scr_width || row + h > scr_height) {
+			
+			col = IPC_GET_ARG1(call);
+			row = IPC_GET_ARG2(call);
+			w = IPC_GET_ARG3(call);
+			h = IPC_GET_ARG4(call);
+			
+			if ((col + w > scr_width) || (row + h > scr_height)) {
 				retval = EINVAL;
 				break;
 			}
+			
 			draw_text_data(interbuf, col, row, w, h);
 			retval = 0;
 			break;
@@ -330,30 +344,43 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			c = IPC_GET_ARG1(call);
 			col = IPC_GET_ARG2(call);
 			row = IPC_GET_ARG3(call);
-			if (col >= scr_width || row >= scr_height) {
+			
+			if ((col >= scr_width) || (row >= scr_height)) {
 				retval = EINVAL;
 				break;
 			}
+			
 			printchar(c, col, row);
 			retval = 0;
 			break;
- 		case FB_CURSOR_GOTO:
- 			col = IPC_GET_ARG1(call);
+		case FB_CURSOR_GOTO:
+			col = IPC_GET_ARG1(call);
 			row = IPC_GET_ARG2(call);
-			if (row >= scr_height || col >= scr_width) {
+			
+			if ((row >= scr_height) || (col >= scr_width)) {
 				retval = EINVAL;
 				break;
 			}
+			
 			cursor_goto(col, row);
- 			retval = 0;
- 			break;
+			retval = 0;
+			break;
 		case FB_SCROLL:
-			i = IPC_GET_ARG1(call);
-			if (i > (int) scr_height || i < -((int) scr_height)) {
-				retval = EINVAL;
-				break;
+			rows = IPC_GET_ARG1(call);
+			
+			if (rows >= 0) {
+				if ((ipcarg_t) rows > scr_height) {
+					retval = EINVAL;
+					break;
+				}
+			} else {
+				if ((ipcarg_t) (-rows) > scr_height) {
+					retval = EINVAL;
+					break;
+				}
 			}
-			scroll(i);
+			
+			scroll(rows);
 			retval = 0;
 			break;
 		case FB_CURSOR_VISIBILITY:
@@ -361,6 +388,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				cursor_enable();
 			else
 				cursor_disable();
+			
 			retval = 0;
 			break;
 		case FB_SET_STYLE:
@@ -371,32 +399,37 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fg_color = IPC_GET_ARG1(call);
 			bg_color = IPC_GET_ARG2(call);
 			attr = IPC_GET_ARG3(call);
+			
 			style = color_to_ega_style(fg_color, bg_color, attr);
 			retval = 0;
 			break;
 		case FB_SET_RGB_COLOR:
 			fg_rgb = IPC_GET_ARG1(call);
 			bg_rgb = IPC_GET_ARG2(call);
+			
 			style = rgb_to_ega_style(fg_rgb, bg_rgb);
 			retval = 0;
 			break;
 		case FB_VP_DRAW_PIXMAP:
-			i = IPC_GET_ARG2(call);
-			retval = print_screen(i);
+			scr = IPC_GET_ARG2(call);
+			retval = print_screen(scr);
 			break;
 		case FB_VP2PIXMAP:
 			retval = save_screen();
 			break;
 		case FB_DROP_PIXMAP:
-			i = IPC_GET_ARG1(call);
-			if (i >= MAX_SAVED_SCREENS) {
+			scr = IPC_GET_ARG1(call);
+			
+			if (scr >= MAX_SAVED_SCREENS) {
 				retval = EINVAL;
 				break;
 			}
-			if (saved_screens[i].data) {
-				free(saved_screens[i].data);
-				saved_screens[i].data = NULL;
+			
+			if (saved_screens[scr].data) {
+				free(saved_screens[scr].data);
+				saved_screens[scr].data = NULL;
 			}
+			
 			retval = 0;
 			break;
 		case FB_SCREEN_YIELD:
@@ -412,34 +445,41 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int ega_init(void)
 {
-	void *ega_ph_addr;
-	size_t sz;
-
-	ega_ph_addr = (void *) sysinfo_value("fb.address.physical");
-	scr_width = sysinfo_value("fb.width");
-	scr_height = sysinfo_value("fb.height");
-
-	if (sysinfo_value("fb.blinking")) {
-		ega_normal_color &= 0x77;
-		ega_inverted_color &= 0x77;
+	sysarg_t paddr;
+	if (sysinfo_get_value("fb.address.physical", &paddr) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("fb.width", &scr_width) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("fb.height", &scr_height) != EOK)
+		return -1;
+	
+	sysarg_t blinking;
+	if (sysinfo_get_value("fb.blinking", &blinking) != EOK)
+		blinking = false;
+	
+	void *ega_ph_addr = (void *) paddr;
+	if (blinking) {
+		style_normal &= 0x77;
+		style_inverted &= 0x77;
 	}
-
-	style = NORMAL_COLOR;
-
+	
+	style = style_normal;
+	
 	iospace_enable(task_get_id(), (void *) EGA_IO_BASE, 2);
-
-	sz = scr_width * scr_height * 2;
+	
+	size_t sz = scr_width * scr_height * 2;
 	scr_addr = as_get_mappable_page(sz);
-
+	
 	if (physmem_map(ega_ph_addr, scr_addr, ALIGN_UP(sz, PAGE_SIZE) >>
 	    PAGE_WIDTH, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
-
+	
 	async_set_client_connection(ega_client_connection);
-
+	
 	return 0;
 }
-
 
 /**
  * @}

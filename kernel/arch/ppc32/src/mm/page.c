@@ -44,7 +44,6 @@ void page_arch_init(void)
 		page_mapping_operations = &pt_mapping_operations;
 }
 
-
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >

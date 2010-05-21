@@ -51,7 +51,7 @@ static int dev_phone;
 
 int kbd_port_init(void)
 {
-	char *input = "/dev/char/ps2a";
+	const char *input = "/dev/char/ps2a";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);

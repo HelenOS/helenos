@@ -41,7 +41,7 @@
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <macros.h>
 
@@ -59,7 +59,7 @@ typedef struct rootia32_child_dev_data {
 } rootia32_child_dev_data_t;
 
 static int rootia32_add_device(device_t *dev);
-static bool rootia32_init();
+static void root_ia32_init(void);
 
 /** The root device driver's standard operations.
  */

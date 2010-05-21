@@ -45,7 +45,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <syscall/copy.h>
 #include <ipc/ipc.h>
 #include <udebug/udebug.h>
@@ -79,10 +79,7 @@
  */
 static int _thread_op_begin(thread_t *t, bool being_go)
 {
-	task_id_t taskid;
 	ipl_t ipl;
-
-	taskid = TASK->taskid;
 
 	mutex_lock(&TASK->udebug.lock);
 

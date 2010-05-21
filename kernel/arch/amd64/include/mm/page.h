@@ -56,7 +56,7 @@
 
 #ifndef __ASM__
 #	include <mm/mm.h>
-#	include <arch/types.h>
+#	include <typedefs.h>
 #	include <arch/interrupt.h>
 
 static inline uintptr_t ka2pa(uintptr_t x)

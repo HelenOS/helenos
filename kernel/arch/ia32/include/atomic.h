@@ -35,11 +35,12 @@
 #ifndef KERN_ia32_ATOMIC_H_
 #define KERN_ia32_ATOMIC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
 
-static inline void atomic_inc(atomic_t *val) {
+static inline void atomic_inc(atomic_t *val)
+{
 #ifdef CONFIG_SMP
 	asm volatile (
 		"lock incl %[count]\n"
@@ -53,7 +54,8 @@ static inline void atomic_inc(atomic_t *val) {
 #endif /* CONFIG_SMP */
 }
 
-static inline void atomic_dec(atomic_t *val) {
+static inline void atomic_dec(atomic_t *val)
+{
 #ifdef CONFIG_SMP
 	asm volatile (
 		"lock decl %[count]\n"
@@ -67,25 +69,27 @@ static inline void atomic_dec(atomic_t *val) {
 #endif /* CONFIG_SMP */
 }
 
-static inline long atomic_postinc(atomic_t *val) 
+static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-	long r = 1;
+	atomic_count_t r = 1;
 	
 	asm volatile (
 		"lock xaddl %[r], %[count]\n"
-		: [count] "+m" (val->count), [r] "+r" (r)
+		: [count] "+m" (val->count),
+		  [r] "+r" (r)
 	);
 	
 	return r;
 }
 
-static inline long atomic_postdec(atomic_t *val) 
+static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
-	long r = -1;
+	atomic_count_t r = -1;
 	
 	asm volatile (
 		"lock xaddl %[r], %[count]\n"
-		: [count] "+m" (val->count), [r] "+r"(r)
+		: [count] "+m" (val->count),
+		  [r] "+r" (r)
 	);
 	
 	return r;
@@ -94,13 +98,14 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_preinc(val)  (atomic_postinc(val) + 1)
 #define atomic_predec(val)  (atomic_postdec(val) - 1)
 
-static inline uint32_t test_and_set(atomic_t *val) {
-	uint32_t v;
+static inline atomic_count_t test_and_set(atomic_t *val)
+{
+	atomic_count_t v = 1;
 	
 	asm volatile (
-		"movl $1, %[v]\n"
 		"xchgl %[v], %[count]\n"
-		: [v] "=r" (v), [count] "+m" (val->count)
+		: [v] "+r" (v),
+		  [count] "+m" (val->count)
 	);
 	
 	return v;
@@ -109,7 +114,7 @@ static inline uint32_t test_and_set(atomic_t *val) {
 /** ia32 specific fast spinlock */
 static inline void atomic_lock_arch(atomic_t *val)
 {
-	uint32_t tmp;
+	atomic_count_t tmp;
 	
 	preemption_disable();
 	asm volatile (
@@ -123,8 +128,10 @@ static inline void atomic_lock_arch(atomic_t *val)
 		"xchgl %[count], %[tmp]\n"
 		"testl %[tmp], %[tmp]\n"
 		"jnz 0b\n"
-		: [count] "+m" (val->count), [tmp] "=&r" (tmp)
+		: [count] "+m" (val->count),
+		  [tmp] "=&r" (tmp)
 	);
+	
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */

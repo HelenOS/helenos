@@ -1,0 +1,687 @@
+/*
+ * Copyright (c) 2010 Stanislav Kozina
+ * Copyright (c) 2010 Martin Decky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
+
+#include <typedefs.h>
+#include <sysinfo/abi.h>
+#include <sysinfo/stats.h>
+#include <sysinfo/sysinfo.h>
+#include <synch/spinlock.h>
+#include <synch/mutex.h>
+#include <time/clock.h>
+#include <mm/frame.h>
+#include <proc/task.h>
+#include <proc/thread.h>
+#include <str.h>
+#include <errno.h>
+#include <cpu.h>
+#include <arch.h>
+
+/** Bits of fixed-point precision for load */
+#define LOAD_FIXED_SHIFT  11
+
+/** 1.0 as fixed-point for load */
+#define LOAD_FIXED_1  (1 << LOAD_FIXED_SHIFT)
+
+/** Compute load in 5 second intervals */
+#define LOAD_INTERVAL  5
+
+/** Fixed-point representation of
+ *
+ * 1 / exp(5 sec / 1 min)
+ * 1 / exp(5 sec / 5 min)
+ * 1 / exp(5 sec / 15 min)
+ *
+ */
+static load_t load_exp[LOAD_STEPS] = {1884, 2014, 2037};
+
+/** Running average of the number of ready threads */
+static load_t avenrdy[LOAD_STEPS] = {0, 0, 0};
+
+/** Load calculation lock */
+static mutex_t load_lock;
+
+/** Get system uptime
+ *
+ * @param item Sysinfo item (unused).
+ *
+ * @return System uptime (in secords).
+ *
+ */
+static unative_t get_stats_uptime(struct sysinfo_item *item)
+{
+	/* This doesn't have to be very accurate */
+	return uptime->seconds1;
+}
+
+/** Get statistics of all CPUs
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_cpu_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	*size = sizeof(stats_cpu_t) * config.cpu_count;
+	if (dry_run)
+		return NULL;
+	
+	/* Assumption: config.cpu_count is constant */
+	stats_cpu_t *stats_cpus = (stats_cpu_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_cpus == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Each CPU structure is locked separatelly */
+	ipl_t ipl = interrupts_disable();
+	
+	size_t i;
+	for (i = 0; i < config.cpu_count; i++) {
+		spinlock_lock(&cpus[i].lock);
+		
+		stats_cpus[i].id = cpus[i].id;
+		stats_cpus[i].active = cpus[i].active;
+		stats_cpus[i].frequency_mhz = cpus[i].frequency_mhz;
+		stats_cpus[i].busy_ticks = cpus[i].busy_ticks;
+		stats_cpus[i].idle_ticks = cpus[i].idle_ticks;
+		
+		spinlock_unlock(&cpus[i].lock);
+	}
+	
+	interrupts_restore(ipl);
+	
+	return ((void *) stats_cpus);
+}
+
+/** Count number of nodes in an AVL tree
+ *
+ * AVL tree walker for counting nodes.
+ *
+ * @param node AVL tree node (unused).
+ * @param arg  Pointer to the counter (size_t).
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool avl_count_walker(avltree_node_t *node, void *arg)
+{
+	size_t *count = (size_t *) arg;
+	(*count)++;
+	
+	return true;
+}
+
+/** Get the size of a virtual address space
+ *
+ * @param as Address space.
+ *
+ * @return Size of the mapped virtual address space (bytes).
+ *
+ */
+static size_t get_task_virtmem(as_t *as)
+{
+	size_t result = 0;
+
+	/*
+	 * We are holding some spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space area
+	 * mutexes conditionally. If it is not possible to lock either object,
+	 * allow the statistics to be inexact by skipping the respective object.
+	 *
+	 * Note that it may be infinitely better to let the address space
+	 * management code compute these statistics as it proceeds instead of
+	 * having them calculated here over and over again here.
+	 */
+
+	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
+		return result * PAGE_SIZE;
+	
+	/* Walk the B+ tree and count pages */
+	link_t *cur;
+	for (cur = as->as_area_btree.leaf_head.next;
+	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node =
+		    list_get_instance(cur, btree_node_t, leaf_link);
+		
+		unsigned int i;
+		for (i = 0; i < node->keys; i++) {
+			as_area_t *area = node->value[i];
+			
+			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
+				continue;
+			result += area->pages;
+			mutex_unlock(&area->lock);
+		}
+	}
+	
+	mutex_unlock(&as->lock);
+	
+	return result * PAGE_SIZE;
+}
+
+/* Produce task statistics
+ *
+ * Summarize task information into task statistics.
+ * Task lock should be held and interrupts disabled
+ * before executing this function.
+ *
+ * @param task       Task.
+ * @param stats_task Task statistics.
+ *
+ */
+static void produce_stats_task(task_t *task, stats_task_t *stats_task)
+{
+	stats_task->task_id = task->taskid;
+	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
+	stats_task->virtmem = get_task_virtmem(task->as);
+	stats_task->threads = atomic_get(&task->refcount);
+	task_get_accounting(task, &(stats_task->ucycles),
+	    &(stats_task->kcycles));
+	stats_task->ipc_info = task->ipc_info;
+}
+
+/** Gather statistics of all tasks
+ *
+ * AVL task tree walker for gathering task statistics. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL task tree node.
+ * @param arg  Pointer to the iterator into the array of stats_task_t.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool task_serialize_walker(avltree_node_t *node, void *arg)
+{
+	stats_task_t **iterator = (stats_task_t **) arg;
+	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
+	
+	/* Interrupts are already disabled */
+	spinlock_lock(&(task->lock));
+	
+	/* Record the statistics and increment the iterator */
+	produce_stats_task(task, *iterator);
+	(*iterator)++;
+	
+	spinlock_unlock(&(task->lock));
+	
+	return true;
+}
+
+/** Get task statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_task_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	/* Messing with task structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	
+	/* First walk the task tree to count the tasks */
+	size_t count = 0;
+	avltree_walk(&tasks_tree, avl_count_walker, (void *) &count);
+	
+	if (count == 0) {
+		/* No tasks found (strange) */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	*size = sizeof(stats_task_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	stats_task_t *stats_tasks = (stats_task_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_tasks == NULL) {
+		/* No free space for allocation */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Walk tha task tree again to gather the statistics */
+	stats_task_t *iterator = stats_tasks;
+	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
+	
+	spinlock_unlock(&tasks_lock);
+	interrupts_restore(ipl);
+	
+	return ((void *) stats_tasks);
+}
+
+/* Produce thread statistics
+ *
+ * Summarize thread information into thread statistics.
+ * Thread lock should be held and interrupts disabled
+ * before executing this function.
+ *
+ * @param thread       Thread.
+ * @param stats_thread Thread statistics.
+ *
+ */
+static void produce_stats_thread(thread_t *thread, stats_thread_t *stats_thread)
+{
+	stats_thread->thread_id = thread->tid;
+	stats_thread->task_id = thread->task->taskid;
+	stats_thread->state = thread->state;
+	stats_thread->priority = thread->priority;
+	stats_thread->ucycles = thread->ucycles;
+	stats_thread->kcycles = thread->kcycles;
+	
+	if (thread->cpu != NULL) {
+		stats_thread->on_cpu = true;
+		stats_thread->cpu = thread->cpu->id;
+	} else
+		stats_thread->on_cpu = false;
+}
+
+/** Gather statistics of all threads
+ *
+ * AVL three tree walker for gathering thread statistics. Interrupts should
+ * be already disabled while walking the tree.
+ *
+ * @param node AVL thread tree node.
+ * @param arg  Pointer to the iterator into the array of thread statistics.
+ *
+ * @param Always true (continue the walk).
+ *
+ */
+static bool thread_serialize_walker(avltree_node_t *node, void *arg)
+{
+	stats_thread_t **iterator = (stats_thread_t **) arg;
+	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
+	
+	/* Interrupts are already disabled */
+	spinlock_lock(&thread->lock);
+	
+	/* Record the statistics and increment the iterator */
+	produce_stats_thread(thread, *iterator);
+	(*iterator)++;
+	
+	spinlock_unlock(&thread->lock);
+	
+	return true;
+}
+
+/** Get thread statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_task_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	/* Messing with threads structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	
+	/* First walk the thread tree to count the threads */
+	size_t count = 0;
+	avltree_walk(&threads_tree, avl_count_walker, (void *) &count);
+	
+	if (count == 0) {
+		/* No threads found (strange) */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	*size = sizeof(stats_thread_t) * count;
+	if (dry_run) {
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		return NULL;
+	}
+	
+	stats_thread_t *stats_threads = (stats_thread_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_threads == NULL) {
+		/* No free space for allocation */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Walk tha thread tree again to gather the statistics */
+	stats_thread_t *iterator = stats_threads;
+	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
+	
+	spinlock_unlock(&threads_lock);
+	interrupts_restore(ipl);
+	
+	return ((void *) stats_threads);
+}
+
+/** Get a single task statistics
+ *
+ * Get statistics of a given task. The task ID is passed
+ * as a string (current limitation of the sysinfo interface,
+ * but it is still reasonable for the given purpose).
+ *
+ * @param name    Task ID (string-encoded number).
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Sysinfo return holder. The type of the returned
+ *         data is either SYSINFO_VAL_UNDEFINED (unknown
+ *         task ID or memory allocation error) or
+ *         SYSINFO_VAL_FUNCTION_DATA (in that case the
+ *         generated data should be freed within the
+ *         sysinfo request context).
+ *
+ */
+static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
+{
+	/* Initially no return value */
+	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
+	
+	/* Parse the task ID */
+	task_id_t task_id;
+	if (str_uint64(name, NULL, 0, true, &task_id) != EOK)
+		return ret;
+	
+	/* Messing with task structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&tasks_lock);
+	
+	task_t *task = task_find_by_id(task_id);
+	if (task == NULL) {
+		/* No task with this ID */
+		spinlock_unlock(&tasks_lock);
+		interrupts_restore(ipl);
+		return ret;
+	}
+	
+	if (dry_run) {
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = NULL;
+		ret.data.size = sizeof(stats_task_t);
+		
+		spinlock_unlock(&tasks_lock);
+	} else {
+		/* Allocate stats_task_t structure */
+		stats_task_t *stats_task =
+		    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
+		if (stats_task == NULL) {
+			spinlock_unlock(&tasks_lock);
+			interrupts_restore(ipl);
+			return ret;
+		}
+		
+		/* Correct return value */
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = (void *) stats_task;
+		ret.data.size = sizeof(stats_task_t);
+	
+		/* Hand-over-hand locking */
+		spinlock_lock(&task->lock);
+		spinlock_unlock(&tasks_lock);
+		
+		produce_stats_task(task, stats_task);
+		
+		spinlock_unlock(&task->lock);
+	}
+	
+	interrupts_restore(ipl);
+	
+	return ret;
+}
+
+/** Get thread statistics
+ *
+ * Get statistics of a given thread. The thread ID is passed
+ * as a string (current limitation of the sysinfo interface,
+ * but it is still reasonable for the given purpose).
+ *
+ * @param name    Thread ID (string-encoded number).
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Sysinfo return holder. The type of the returned
+ *         data is either SYSINFO_VAL_UNDEFINED (unknown
+ *         thread ID or memory allocation error) or
+ *         SYSINFO_VAL_FUNCTION_DATA (in that case the
+ *         generated data should be freed within the
+ *         sysinfo request context).
+ *
+ */
+static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
+{
+	/* Initially no return value */
+	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
+	
+	/* Parse the thread ID */
+	thread_id_t thread_id;
+	if (str_uint64(name, NULL, 0, true, &thread_id) != EOK)
+		return ret;
+	
+	/* Messing with threads structures, avoid deadlock */
+	ipl_t ipl = interrupts_disable();
+	spinlock_lock(&threads_lock);
+	
+	thread_t *thread = thread_find_by_id(thread_id);
+	if (thread == NULL) {
+		/* No thread with this ID */
+		spinlock_unlock(&threads_lock);
+		interrupts_restore(ipl);
+		return ret;
+	}
+	
+	if (dry_run) {
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = NULL;
+		ret.data.size = sizeof(stats_thread_t);
+		
+		spinlock_unlock(&threads_lock);
+	} else {
+		/* Allocate stats_thread_t structure */
+		stats_thread_t *stats_thread =
+		    (stats_thread_t *) malloc(sizeof(stats_thread_t), FRAME_ATOMIC);
+		if (stats_thread == NULL) {
+			spinlock_unlock(&threads_lock);
+			interrupts_restore(ipl);
+			return ret;
+		}
+		
+		/* Correct return value */
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = (void *) stats_thread;
+		ret.data.size = sizeof(stats_thread_t);
+		
+		/* Hand-over-hand locking */
+		spinlock_lock(&thread->lock);
+		spinlock_unlock(&threads_lock);
+		
+		produce_stats_thread(thread, stats_thread);
+		
+		spinlock_unlock(&thread->lock);
+	}
+	
+	interrupts_restore(ipl);
+	
+	return ret;
+}
+
+/** Get physical memory statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing stats_physmem_t.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_physmem(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	*size = sizeof(stats_physmem_t);
+	if (dry_run)
+		return NULL;
+	
+	stats_physmem_t *stats_physmem =
+	    (stats_physmem_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_physmem == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	zones_stats(&(stats_physmem->total), &(stats_physmem->unavail),
+	    &(stats_physmem->used), &(stats_physmem->free));
+	
+	return ((void *) stats_physmem);
+}
+
+/** Get system load
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data several load_t values.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_load(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	*size = sizeof(load_t) * LOAD_STEPS;
+	if (dry_run)
+		return NULL;
+	
+	load_t *stats_load = (load_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_load == NULL) {
+		*size = 0;
+		return NULL;
+	}
+	
+	/* To always get consistent values acquire the mutex */
+	mutex_lock(&load_lock);
+	
+	unsigned int i;
+	for (i = 0; i < LOAD_STEPS; i++)
+		stats_load[i] = avenrdy[i] << LOAD_FIXED_SHIFT;
+	
+	mutex_unlock(&load_lock);
+	
+	return ((void *) stats_load);
+}
+
+/** Calculate load
+ *
+ */
+static inline load_t load_calc(load_t load, load_t exp, atomic_count_t ready)
+{
+	load *= exp;
+	load += (ready << LOAD_FIXED_SHIFT) * (LOAD_FIXED_1 - exp);
+	
+	return (load >> LOAD_FIXED_SHIFT);
+}
+
+/** Load computation thread.
+ *
+ * Compute system load every few seconds.
+ *
+ * @param arg Unused.
+ *
+ */
+void kload(void *arg)
+{
+	thread_detach(THREAD);
+	
+	while (true) {
+		atomic_count_t ready = atomic_get(&nrdy);
+		
+		/* Mutually exclude with get_stats_load() */
+		mutex_lock(&load_lock);
+		
+		unsigned int i;
+		for (i = 0; i < LOAD_STEPS; i++)
+			avenrdy[i] = load_calc(avenrdy[i], load_exp[i], ready);
+		
+		mutex_unlock(&load_lock);
+		
+		thread_sleep(LOAD_INTERVAL);
+	}
+}
+
+/** Register sysinfo statistical items
+ *
+ */
+void stats_init(void)
+{
+	mutex_initialize(&load_lock, MUTEX_PASSIVE);
+
+	sysinfo_set_item_fn_val("system.uptime", NULL, get_stats_uptime);
+	sysinfo_set_item_fn_data("system.cpus", NULL, get_stats_cpus);
+	sysinfo_set_item_fn_data("system.physmem", NULL, get_stats_physmem);
+	sysinfo_set_item_fn_data("system.load", NULL, get_stats_load);
+	sysinfo_set_item_fn_data("system.tasks", NULL, get_stats_tasks);
+	sysinfo_set_item_fn_data("system.threads", NULL, get_stats_threads);
+	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task);
+	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread);
+}
+
+/** @}
+ */

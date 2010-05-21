@@ -28,12 +28,11 @@
 #
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBPCI_PREFIX)/libpci.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBPCI_PREFIX)/libpci.a
 EXTRA_CFLAGS = -I$(LIBPCI_PREFIX)
-
-OUTPUT = pci
+BINARY = pci
 
 SOURCES = \
 	pci.c
 
-include ../../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

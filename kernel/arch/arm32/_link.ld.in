@@ -6,7 +6,7 @@
  *
  */
 
-#define KERNEL_LOAD_ADDRESS 0x80200000
+#define KERNEL_LOAD_ADDRESS 0x80a00000
 
 OUTPUT_ARCH(arm)
 ENTRY(kernel_image_start)

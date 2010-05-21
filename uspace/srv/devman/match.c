@@ -31,7 +31,7 @@
  */
  
  
-#include <string.h>
+#include <str.h>
 
 #include "devman.h"
 

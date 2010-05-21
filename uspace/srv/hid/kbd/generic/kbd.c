@@ -211,11 +211,14 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS Keyboard service\n");
+	printf("%s: HelenOS Keyboard service\n", NAME);
 	
-	if (sysinfo_value("kbd.cir.fhc") == 1)
+	sysarg_t fhc;
+	sysarg_t obio;
+	
+	if ((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
 		cir_service = SERVICE_FHC;
-	else if (sysinfo_value("kbd.cir.obio") == 1)
+	else if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
 		cir_service = SERVICE_OBIO;
 	
 	if (cir_service) {
@@ -239,7 +242,7 @@ int main(int argc, char **argv)
 	/* Register driver */
 	int rc = devmap_driver_register(NAME, client_connection);
 	if (rc < 0) {
-		printf(NAME ": Unable to register driver (%d)\n", rc);
+		printf("%s: Unable to register driver (%d)\n", NAME, rc);
 		return -1;
 	}
 	
@@ -248,7 +251,7 @@ int main(int argc, char **argv)
 	
 	dev_handle_t dev_handle;
 	if (devmap_device_register(kbd, &dev_handle) != EOK) {
-		printf(NAME ": Unable to register device %s\n", kbd);
+		printf("%s: Unable to register device %s\n", NAME, kbd);
 		return -1;
 	}
 

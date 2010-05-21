@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = dd
+BINARY = dd
 
 SOURCES = \
 	main.c \
@@ -38,16 +36,7 @@ SOURCES = \
 	pci.c \
 	intel_piix3.c \
 	isa.c \
-	serial.c
+	serial.c \
+	intel_method1.c
 
-#ifeq ($(PROCESSOR), us)
-#        SOURCES += psycho.c
-#endif
-
-#ifeq ($(UARCH), ia32)
-        SOURCES += intel_method1.c
-#endif
-
-
-
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

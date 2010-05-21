@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_MPS_H_
 #define KERN_ia32_MPS_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/waitq.h>
 #include <config.h>
 #include <arch/smp/smp.h>

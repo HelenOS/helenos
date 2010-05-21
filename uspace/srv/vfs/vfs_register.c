@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <bool.h>
 #include <fibril_synch.h>
@@ -113,8 +113,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	    request->in_phone_hash);
 	
 	vfs_info_t *vfs_info;
-	int rc = async_data_receive(&vfs_info, sizeof(vfs_info_t),
-	    sizeof(vfs_info_t), 0, NULL);
+	int rc = async_data_write_accept((void **) &vfs_info, false,
+	    sizeof(vfs_info_t), sizeof(vfs_info_t), 0, NULL);
 	
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",

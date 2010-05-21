@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #include <arch/syscall.h>
 #include <arch/cpu.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/pm.h>
 
 /** Enable & setup support for SYSENTER/SYSEXIT */

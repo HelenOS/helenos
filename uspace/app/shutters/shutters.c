@@ -52,7 +52,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include <string.h>
+#include <str.h>
 
 #define NAME 		"shutters"
 #define MYROOM 		2

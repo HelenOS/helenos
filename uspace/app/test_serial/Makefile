@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = test_serial
+BINARY = test_serial
 
 SOURCES = \
 	test_serial.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = devman
+BINARY = devman
 
 SOURCES = \
 	main.c \
@@ -38,4 +36,4 @@ SOURCES = \
 	match.c \
 	util.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

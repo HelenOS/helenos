@@ -38,7 +38,7 @@ static void callback(void *priv, int retval, ipc_call_t *data)
 	atomic_set(&finish, 1);
 }
 
-char *test_connect(void)
+const char *test_connect(void)
 {
 	TPRINTF("Connecting to %u...", IPC_TEST_SERVICE);
 	int phone = ipc_connect_me_to(PHONE_NS, IPC_TEST_SERVICE, 0, 0);
