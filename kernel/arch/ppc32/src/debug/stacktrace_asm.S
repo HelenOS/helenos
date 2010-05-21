@@ -26,13 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+#include <arch/asm/regname.h>
+
 .text
 
 .global frame_pointer_get
 .global program_counter_get
 
 frame_pointer_get:
+	mr r3, sp
 	blr
 
 program_counter_get:
+	mflr r3
 	blr
