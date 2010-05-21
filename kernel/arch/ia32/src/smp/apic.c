@@ -425,7 +425,7 @@ void l_apic_init(void)
 	l_apic[ICRT] = t1-t2;
 	
 	/* Program Logical Destination Register. */
-	ASSERT(CPU->id < 8)
+	ASSERT(CPU->id < 8);
 	ldr.value = l_apic[LDR];
 	ldr.id = (uint8_t) (1 << CPU->id);
 	l_apic[LDR] = ldr.value;
