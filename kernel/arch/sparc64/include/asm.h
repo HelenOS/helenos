@@ -432,6 +432,7 @@ extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(const uint32_t usec);
 
+extern uint64_t read_from_ag_g6(void);
 extern uint64_t read_from_ag_g7(void);
 extern void write_to_ag_g6(uint64_t val);
 extern void write_to_ag_g7(uint64_t val);
