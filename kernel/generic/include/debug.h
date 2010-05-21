@@ -36,18 +36,9 @@
 #define KERN_DEBUG_H_
 
 #include <panic.h>
-#include <arch/debug.h>
+#include <symtab.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
-
-
-#ifndef HERE
-
-/** Current Instruction Pointer address */
-#define HERE ((uintptr_t *) 0)
-
-#endif /* HERE */
-
 
 #ifdef CONFIG_DEBUG
 
@@ -61,9 +52,10 @@
  *
  */
 #define ASSERT(expr) \
-	if (!(expr)) { \
-		panic("Assertion failed (%s), caller=%p.", #expr, CALLER); \
-	}
+	do { \
+		if (!(expr)) \
+			panic("Assertion failed (%s)", #expr); \
+	} while (0)
 
 /** Debugging verbose ASSERT macro
  *
@@ -77,9 +69,10 @@
  *
  */
 #define ASSERT_VERBOSE(expr, msg) \
-	if (!(expr)) { \
-		panic("Assertion failed (%s, %s), caller=%p.", #expr, msg, CALLER); \
-	}
+	do { \
+		if (!(expr)) \
+			panic("Assertion failed (%s, %s)", #expr, msg); \
+	} while (0)
 
 #else /* CONFIG_DEBUG */
 
@@ -87,7 +80,6 @@
 #define ASSERT_VERBOSE(expr, msg)
 
 #endif /* CONFIG_DEBUG */
-
 
 #ifdef CONFIG_LOG
 
@@ -99,8 +91,10 @@
  *
  */
 #define LOG(format, ...) \
-	printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
-	    __LINE__, ##__VA_ARGS__);
+	do { \
+		printf("%s->%s() at %s:%u: " format "\n", symtab_fmt_name_lookup(CALLER), \
+		    __func__, __FILE__, __LINE__, ##__VA_ARGS__); \
+	} while (0)
 
 /** Extensive logging execute macro
  *
@@ -110,16 +104,16 @@
  *
  */
 #define LOG_EXEC(fnc) \
-	{ \
-		printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
-		    __LINE__); \
+	do { \
+		printf("%s->%s() at %s:%u: " #fnc "\n", symtab_fmt_name_lookup(CALLER), \
+		    __func__, __FILE__, __LINE__); \
 		fnc; \
-	}
-	
-#else /* CONFOG_LOG */
+	} while (0)
+
+#else /* CONFIG_LOG */
 
 #define LOG(format, ...)
-#define LOG_EXEC(fnc) fnc
+#define LOG_EXEC(fnc)     fnc
 
 #endif /* CONFOG_LOG */
 

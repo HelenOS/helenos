@@ -40,22 +40,27 @@
 #include <print.h>
 
 #ifdef CONFIG_DEBUG
-#	define panic(format, ...) \
-		do { \
-			silent = false; \
-			printf("Kernel panic in %s() at %s:%u.\n", \
-			    __func__, __FILE__, __LINE__); \
-			stack_trace(); \
-			panic_printf("Panic message: " format "\n", \
-			    ##__VA_ARGS__);\
-		} while (0)
-#else
-#	define panic(format, ...) \
-		do { \
-			silent = false; \
-			panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__); \
-		} while (0)
-#endif
+
+#define panic(format, ...) \
+	do { \
+		silent = false; \
+		printf("Kernel panic in %s() at %s:%u\n", \
+		    __func__, __FILE__, __LINE__); \
+		stack_trace(); \
+		panic_printf("Panic message: " format "\n", \
+		    ##__VA_ARGS__);\
+	} while (0)
+
+#else /* CONFIG_DEBUG */
+
+#define panic(format, ...) \
+	do { \
+		silent = false; \
+		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__); \
+		stack_trace(); \
+	} while (0)
+
+#endif /* CONFIG_DEBUG */
 
 extern bool silent;
 
