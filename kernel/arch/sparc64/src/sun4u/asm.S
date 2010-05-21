@@ -66,6 +66,10 @@ write_to_ag_g7:
 write_to_ig_g6:
 	WRITE_ALTERNATE_REGISTER %g6, PSTATE_IG_BIT
 
+.global read_from_ag_g6
+read_from_ag_g6:
+	READ_ALTERNATE_REGISTER %g6, PSTATE_AG_BIT
+
 .global read_from_ag_g7
 read_from_ag_g7:
 	READ_ALTERNATE_REGISTER %g7, PSTATE_AG_BIT

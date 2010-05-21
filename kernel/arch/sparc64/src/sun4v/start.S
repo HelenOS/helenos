@@ -218,7 +218,7 @@ kernel_image_start:
 
 	! on APs skip executing the following code
 	cmp %l7, 0
-	be 1f
+	be %xcc, 1f
 	nop
 
 	/*
@@ -259,7 +259,7 @@ kernel_image_start:
 	/* Not reached. */
 
 0:
-	ba 0b
+	ba %xcc, 0b
 	nop
 
 1:
@@ -294,7 +294,7 @@ kernel_image_start:
 
 	/* Not reached. */
 0:
-	ba 0b
+	ba %xcc, 0b
 	nop
 
 .align 8
@@ -313,7 +313,7 @@ temp_cpu_mondo_handler:
 
 before_ap_boots:
 	setx 0x80400000, %g0, %o0
-	ba kernel_image_start
+	ba %xcc, kernel_image_start
 	nop
 
 .section K_DATA_START, "aw", @progbits

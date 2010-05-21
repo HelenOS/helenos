@@ -70,7 +70,7 @@ instruction_access_exception_tl0:
 /* TT = 0x09, TL = 0, instruction_access_mmu_miss */
 .org trap_table + TT_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
 .global instruction_access_mmu_miss_handler_tl0
-	ba fast_instruction_access_mmu_miss_handler_tl0
+	ba %xcc, fast_instruction_access_mmu_miss_handler_tl0
 	nop
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
@@ -186,7 +186,7 @@ data_access_exception_tl0:
 .org trap_table + TT_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
 .global data_access_mmu_miss_tl0
 data_access_mmu_miss_tl0:
-	ba fast_data_access_mmu_miss_handler_tl0
+	ba %xcc, fast_data_access_mmu_miss_handler_tl0
 	nop
 
 /* TT = 0x32, TL = 0, data_access_error */
@@ -393,7 +393,7 @@ fill_1_normal_tl0:
 .org trap_table + (TT_TRAP_INSTRUCTION_0+\cur)*ENTRY_SIZE
 .global trap_instruction_\cur\()_tl0
 trap_instruction_\cur\()_tl0:
-	ba trap_instruction_handler
+	ba %xcc, trap_instruction_handler
 	mov \cur, %g2
 .endr
 
@@ -413,7 +413,7 @@ instruction_access_exception_tl1:
 .org trap_table + (TT_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
 .global instruction_access_mmu_miss_handler_tl1
 	wrpr %g0, 1, %tl
-	ba fast_instruction_access_mmu_miss_handler_tl0
+	ba %xcc, fast_instruction_access_mmu_miss_handler_tl0
 	nop
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
@@ -497,7 +497,7 @@ data_access_exception_tl1:
 .org trap_table + (TT_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
 .global data_access_mmu_miss_tl1
 data_access_mmu_miss_tl1:
-	ba fast_data_access_mmu_miss_handler_tl1
+	ba %xcc, fast_data_access_mmu_miss_handler_tl1
 	nop
 
 
@@ -786,7 +786,7 @@ fill_0_normal_tl1:
 	cmp %g3, 1
 	be 1f
 	nop
-0:	ba 0b					! this is for debugging, if we ever get here
+0:	ba %xcc, 0b				! this is for debugging, if we ever get here
 	nop					! it will be easy to find
 
 1:
@@ -981,7 +981,7 @@ fill_0_normal_tl1:
 	and %g3, NWINDOWS - 1, %g3
 	wrpr %g3, 0, %cwp			! switch to the preceeding window
 
-	ba 5b
+	ba %xcc, 5b
 	inc %g4
 
 6:
@@ -1065,7 +1065,7 @@ fill_0_normal_tl1:
 	nop
 
 	PREEMPTIBLE_HANDLER_KERNEL
-	ba 101f
+	ba %xcc, 101f
 	nop
 
 	100:

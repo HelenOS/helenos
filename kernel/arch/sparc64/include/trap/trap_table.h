@@ -41,6 +41,28 @@
 #define TRAP_TABLE_ENTRY_SIZE	32
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT * TRAP_TABLE_ENTRY_SIZE)
 
+/*
+ * The following needs to be in sync with the definition of the istate
+ * structure. The one STACK_ITEM_SIZE is counted for space holding the 7th
+ * argument to syscall_handler (i.e. syscall number) and the other
+ * STACK_ITEM_SIZE is counted because of the required alignment.
+ */
+#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE \
+    (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE + \
+    (2 * STACK_ITEM_SIZE) + (12 * 8))
+#define SAVED_TSTATE	-(1 * 8)
+#define SAVED_TPC	-(2 * 8)
+#define SAVED_TNPC	-(3 * 8)	/* <-- istate_t begins here */
+#define SAVED_Y		-(4 * 8)
+#define SAVED_I0	-(5 * 8)
+#define SAVED_I1	-(6 * 8)
+#define SAVED_I2	-(7 * 8)
+#define SAVED_I3	-(8 * 8)
+#define SAVED_I4	-(9 * 8)
+#define SAVED_I5	-(10 * 8)
+#define SAVED_I6	-(11 * 8)
+#define SAVED_I7	-(12 * 8)
+
 #ifndef __ASM__
 
 #include <typedefs.h>
@@ -76,31 +98,9 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 	mov %l7, %g7
 .endm
 
-/*
- * The following needs to be in sync with the definition of the istate
- * structure. The one STACK_ITEM_SIZE is counted for space holding the 7th
- * argument to syscall_handler (i.e. syscall number) and the other
- * STACK_ITEM_SIZE is counted because of the required alignment.
- */
-#define PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE	\
-    (STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE + \
-    (2 * STACK_ITEM_SIZE) + (12 * 8))
-#define SAVED_TSTATE	-(1 * 8)
-#define SAVED_TPC	-(2 * 8)
-#define SAVED_TNPC	-(3 * 8)	/* <-- istate_t begins here */
-#define SAVED_Y		-(4 * 8)
-#define SAVED_I0	-(5 * 8)
-#define SAVED_I1	-(6 * 8)
-#define SAVED_I2	-(7 * 8)
-#define SAVED_I3	-(8 * 8)
-#define SAVED_I4	-(9 * 8)
-#define SAVED_I5	-(10 * 8)
-#define SAVED_I6	-(11 * 8)
-#define SAVED_I7	-(12 * 8)
-
 .macro PREEMPTIBLE_HANDLER f
 	sethi %hi(\f), %g1
-	b preemptible_handler
+	ba %xcc, preemptible_handler
 	or %g1, %lo(\f), %g1
 .endm
 

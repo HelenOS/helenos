@@ -36,19 +36,51 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 
+#include <arch.h>
+#include <arch/stack.h>
+#include <arch/trap/trap_table.h>
+
+#if defined(SUN4V)
+#include <arch/sun4v/arch.h>
+#endif
+
+#define FRAME_OFFSET_FP_PREV	14
+#define FRAME_OFFSET_RA		15
+
+extern void alloc_window_and_flush(void);
+
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
-	return false;
+	uintptr_t kstack;
+	
+#if defined(SUN4U)
+	kstack = read_from_ag_g6();
+#elif defined(SUN4V)
+	kstack = asi_u64_read(ASI_SCRATCHPAD, SCRATCHPAD_KSTACK);
+#endif
+
+	kstack += STACK_BIAS;
+	kstack -= PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE;
+
+	if (THREAD && (fp == kstack))
+		return false;
+	return fp != 0;
 }
 
 bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return false;
+	uint64_t *stack = (void *) fp;
+	alloc_window_and_flush();
+	*prev = stack[FRAME_OFFSET_FP_PREV] + STACK_BIAS;
+	return true;
 }
 
 bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return false;
+	uint64_t *stack = (void *) fp;
+	alloc_window_and_flush();
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
 }
 
 bool uspace_frame_pointer_validate(uintptr_t fp)
