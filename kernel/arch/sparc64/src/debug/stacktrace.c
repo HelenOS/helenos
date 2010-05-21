@@ -36,7 +36,13 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 
+#include <arch.h>
 #include <arch/stack.h>
+#include <arch/trap/trap_table.h>
+
+#if defined(SUN4V)
+#include <arch/sun4v/arch.h>
+#endif
 
 #define FRAME_OFFSET_FP_PREV	14
 #define FRAME_OFFSET_RA		15
@@ -45,6 +51,19 @@ extern void alloc_window_and_flush(void);
 
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
+	uintptr_t kstack;
+	
+#if defined(SUN4U)
+	kstack = read_from_ag_g6();
+#elif defined(SUN4V)
+	kstack = asi_u64_read(ASI_SCRATCHPAD, SCRATCHPAD_KSTACK);
+#endif
+
+	kstack += STACK_BIAS;
+	kstack -= PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE;
+
+	if (THREAD && (fp == kstack))
+		return false;
 	return fp != 0;
 }
 
