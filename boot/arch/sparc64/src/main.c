@@ -212,7 +212,7 @@ void bootstrap(void)
 	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
 	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
 	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, kernel_address_pa);
-	printf(" %p|%p: loader entry pount\n", LOADER_ADDRESS, loader_address_pa);
+	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, loader_address_pa);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
