@@ -44,13 +44,18 @@
 .global exception_entry
 .global userspace_asm
 
-# Which status bits should are thread-local
-#define REG_SAVE_MASK 0x1f # KSU(UM), EXL, ERL, IE
+/*
+ * Which status bits should are thread-local:
+ * KSU(UM), EXL, ERL, IE
+ */
+#define REG_SAVE_MASK 0x1f
 
-# Save registers to space defined by \r
-# We will change status: Disable ERL, EXL, UM, IE
-# These changes will be automatically reversed in REGISTER_LOAD
-# %sp is NOT saved as part of these registers
+/*
+ * Save registers to space defined by \r
+ * We will change status: Disable ERL, EXL, UM, IE
+ * These changes will be automatically reversed in REGISTER_LOAD
+ * %sp is NOT saved as part of these registers
+ */
 .macro REGISTERS_STORE_AND_EXC_RESET r
 	sw $at, EOFFSET_AT(\r)
 	sw $v0, EOFFSET_V0(\r)
@@ -82,10 +87,10 @@
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
 	
-	# save only KSU, EXL, ERL, IE
+	/* save only KSU, EXL, ERL, IE */
 	and $t2, $t0, REG_SAVE_MASK
 	
-	# clear KSU, EXL, ERL, IE
+	/* clear KSU, EXL, ERL, IE */
 	li $t3, ~(REG_SAVE_MASK)
 	and $t0, $t0, $t3
 	
@@ -95,16 +100,18 @@
 .endm
 
 .macro REGISTERS_LOAD r
-	# Update only UM, EXR, IE from status, the rest
-	# is controlled by OS and not bound to task
+	/*
+	 * Update only UM, EXR, IE from status, the rest
+	 * is controlled by OS and not bound to task.
+	 */
 	mfc0 $t0, $status
 	lw $t1,EOFFSET_STATUS(\r)
 	
-	# Mask UM, EXL, ERL, IE
+	/* mask UM, EXL, ERL, IE */
 	li $t2, ~REG_SAVE_MASK
 	and $t0, $t0, $t2
 	
-	# Copy UM, EXL, ERL, IE from saved status
+	/* copy UM, EXL, ERL, IE from saved status */
 	or $t0, $t0, $t1
 	mtc0 $t0, $status
 	
@@ -141,21 +148,23 @@
 	lw $sp, EOFFSET_SP(\r)
 .endm
 
-# Move kernel stack pointer address to register K0
-# - if we are in user mode, load the appropriate stack address
+/*
+ * Move kernel stack pointer address to register $k0.
+ * If we are in user mode, load the appropriate stack address.
+ */
 .macro KERNEL_STACK_TO_K0
-	# if we are in user mode
+	/* if we are in user mode */
 	mfc0 $k0, $status
 	andi $k0, 0x10
 	
 	beq $k0, $0, 1f
 	add $k0, $sp, 0
 	
-	# move $k0 pointer to kernel stack
+	/* move $k0 pointer to kernel stack */
 	lui $k0, %hi(supervisor_sp)
 	ori $k0, $k0, %lo(supervisor_sp)
 	
-	# move $k0 (supervisor_sp)
+	/* move $k0 (supervisor_sp) */
 	lw $k0, 0($k0)
 	
 	1:
@@ -163,15 +172,14 @@
 
 .org 0x0
 kernel_image_start:
-	# load temporary stack
+	/* load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
 	
-	# Not sure about this, but might
-	# be needed for PIC code
+	/* not sure about this, but might be needed for PIC code */
 	lui $gp, 0x8000
 	
-	# $a1 contains physical address of bootinfo_t
+	/* $a1 contains physical address of bootinfo_t */
 	jal arch_pre_main
 	nop
 	
@@ -202,84 +210,89 @@ exception_handler:
 	
 	mfc0 $k0, $cause
 	
-	sra $k0, $k0, 0x2    # cp0_exc_cause() part 1
-	andi $k0, $k0, 0x1f  # cp0_exc_cause() part 2
-	sub $k0, 8           # 8 = SYSCALL
+	sra $k0, $k0, 0x2    /* cp0_exc_cause() part 1 */
+	andi $k0, $k0, 0x1f  /* cp0_exc_cause() part 2 */
+	sub $k0, 8           /* 8 = SYSCALL */
 	
 	beqz $k0, syscall_shortcut
-	add $k0, 8           # Revert $k0 back to correct exc number
+	add $k0, 8           /* revert $k0 back to correct exc number */
 	
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
-	jal exc_dispatch     # exc_dispatch(excno, register_space)
+	jal exc_dispatch     /* exc_dispatch(excno, register_space) */
 	move $a0, $k0
 	
 	REGISTERS_LOAD $sp
-	# The $sp is automatically restored to former value
+	/* the $sp is automatically restored to former value */
 	eret
 
-## Syscall entry
-#
-# Registers:
-#
-# @param v0		Syscall number.
-# @param a0		1st argument.
-# @param a1		2nd argument.
-# @param a2		3rd argument.
-# @param a3		4th argument.
-# @param t0		5th argument.
-# @param t1		6th argument.
-#
-# @return		The return value will be stored in v0.
-#
-#define SS_SP		EOFFSET_SP
-#define SS_STATUS	EOFFSET_STATUS
-#define SS_EPC		EOFFSET_EPC
-#define SS_K1		EOFFSET_K1
+#define SS_SP      EOFFSET_SP
+#define SS_STATUS  EOFFSET_STATUS
+#define SS_EPC     EOFFSET_EPC
+#define SS_K1      EOFFSET_K1
+
+/** Syscall entry
+ *
+ * Registers:
+ *
+ * @param $v0 Syscall number.
+ * @param $a0 1st argument.
+ * @param $a1 2nd argument.
+ * @param $a2 3rd argument.
+ * @param $a3 4th argument.
+ * @param $t0 5th argument.
+ * @param $t1 6th argument.
+ *
+ * @return The return value will be stored in $v0.
+ *
+ */
 syscall_shortcut:
-	# We have a lot of space on the stack, with free use
+	/* we have a lot of space on the stack, with free use */
 	mfc0 $t3, $epc
 	mfc0 $t2, $status
-	sw $t3, SS_EPC($sp)		# Save EPC
-	sw $k1, SS_K1($sp)   		# Save k1 not saved on context switch
+	sw $t3, SS_EPC($sp)  /* save EPC */
+	sw $k1, SS_K1($sp)   /* save $k1 not saved on context switch */
 	
-	and $t4, $t2, REG_SAVE_MASK	# Save only KSU, EXL, ERL, IE
+	and $t4, $t2, REG_SAVE_MASK  /* save only KSU, EXL, ERL, IE */
 	li $t5, ~(0x1f)
-	and $t2, $t2, $t5		# Clear KSU, EXL, ERL
-	ori $t2, $t2, 0x1		# Set IE
-
+	and $t2, $t2, $t5  /* clear KSU, EXL, ERL */
+	ori $t2, $t2, 0x1  /* set IE */
+	
 	sw $t4, SS_STATUS($sp)
 	mtc0 $t2, $status
-
-	#
-	# Call the higher level system call handler
-	# We are going to reuse part of the unused exception stack frame
-	#
-	sw $t0, STACK_ARG4($sp)		# save the 5th argument on the stack
-	sw $t1, STACK_ARG5($sp)		# save the 6th argument on the stack
+	
+	/*
+	 * Call the higher level system call handler.
+	 * We are going to reuse part of the unused exception stack frame.
+	 *
+	 */
+	sw $t0, STACK_ARG4($sp)  /* save the 5th argument on the stack */
+	sw $t1, STACK_ARG5($sp)  /* save the 6th argument on the stack */
 	jal syscall_handler
-	sw $v0, STACK_ARG6($sp)		# save the syscall number on the stack
-
-	# restore status
+	sw $v0, STACK_ARG6($sp)  /* save the syscall number on the stack */
+	
+	/* restore status */
 	mfc0 $t2, $status
 	lw $t3, SS_STATUS($sp)
-
-	# Change back to EXL = 1 (from last exception), otherwise
-	# an interrupt could rewrite the CP0 - EPC
-	li $t4, ~REG_SAVE_MASK		# Mask UM, EXL, ERL, IE
+	
+	/*
+	 * Change back to EXL = 1 (from last exception), otherwise
+	 * an interrupt could rewrite the CP0 - EPC.
+	 *
+	 */
+	li $t4, ~REG_SAVE_MASK  /* mask UM, EXL, ERL, IE */
 	and $t2, $t2, $t4
-	or $t2, $t2, $t3		# Copy saved UM, EXL, ERL, IE
+	or $t2, $t2, $t3  /* copy saved UM, EXL, ERL, IE */
 	mtc0 $t2, $status
-			
-	# restore epc + 4
+	
+	/* restore epc + 4 */
 	lw $t2, SS_EPC($sp)
 	lw $k1, SS_K1($sp)
 	addi $t2, $t2, 4
 	mtc0 $t2, $epc
 	
-	lw $sp, SS_SP($sp)		# restore sp
-	
+	lw $sp, SS_SP($sp)  /* restore $sp */
 	eret
 
 tlb_refill_handler:
@@ -288,12 +301,11 @@ tlb_refill_handler:
 	REGISTERS_STORE_AND_EXC_RESET $k0
 	sw $sp,EOFFSET_SP($k0)
 	add $sp, $k0, 0
-
+	
 	jal tlb_refill
 	add $a0, $sp, 0 
-
+	
 	REGISTERS_LOAD $sp
-
 	eret
 
 cache_error_handler:
@@ -302,18 +314,17 @@ cache_error_handler:
 	REGISTERS_STORE_AND_EXC_RESET $k0
 	sw $sp,EOFFSET_SP($k0)
 	add $sp, $k0, 0
-
+	
 	jal cache_error
-	add $a0, $sp, 0 
-
+	add $a0, $sp, 0
+	
 	REGISTERS_LOAD $sp
-
 	eret
 
 userspace_asm:
 	add $sp, $a0, 0
-	add $v0, $a1, 0 
-	add $t9, $a2, 0			# Set up correct entry into PIC code
-	xor $a0, $a0, $a0		# $a0 is defined to hold pcb_ptr
-					# set it to 0
+	add $v0, $a1, 0
+	add $t9, $a2, 0    /* set up correct entry into PIC code */
+	xor $a0, $a0, $a0  /* $a0 is defined to hold pcb_ptr */
+	                   /* set it to 0 */
 	eret
