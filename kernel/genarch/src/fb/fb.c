@@ -553,7 +553,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	outdev_initialize("fbdev", fbdev, &fbdev_ops);
 	fbdev->data = instance;
 	
-	spinlock_initialize(&instance->lock, "*fb_lock");
+	spinlock_initialize(&instance->lock, "*fb.instance.lock");
 	instance->rgb_conv = rgb_conv;
 	instance->pixelbytes = pixelbytes;
 	instance->xres = props->x;

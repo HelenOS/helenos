@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -291,7 +291,7 @@ static void detect_execution_units(void)
 				exec_units[i].exec_unit_id = exec_unit_id;
 				exec_units[i].strand_count = 0;
 				atomic_set(&(exec_units[i].nrdy), 0);
-				spinlock_initialize(&(exec_units[i].proposed_nrdy_lock), "proposed nrdy lock");
+				spinlock_initialize(&(exec_units[i].proposed_nrdy_lock), "exec_units[].proposed_nrdy_lock");
 				exec_unit_count++;
 			}
 
@@ -329,7 +329,7 @@ static void detect_execution_units(void)
 		exec_unit_count = 1;
 		exec_units[0].strand_count = cpu_count;
 		exec_units[0].exec_unit_id = 1;
-		spinlock_initialize(&(exec_units[0].proposed_nrdy_lock), "proposed nrdy lock");
+		spinlock_initialize(&(exec_units[0].proposed_nrdy_lock), "exec_units[0].proposed_nrdy_lock");
 		atomic_set(&(exec_units[0].nrdy), 0);
 		max_core_strands = cpu_count;
 
