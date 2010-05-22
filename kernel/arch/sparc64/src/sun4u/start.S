@@ -292,9 +292,8 @@ kernel_image_start:
 	/*
 	 * Call arch_pre_main(bootinfo)
 	 */
-	mov %o1, %o0
 	call arch_pre_main
-	nop
+	mov %o1, %o0
 	
 	call main_bsp
 	nop
@@ -302,8 +301,7 @@ kernel_image_start:
 	/* Not reached. */
 
 0:
-	ba %xcc, 0b
-	nop
+	ba,a %xcc, 0b
 
 
 1:
@@ -360,8 +358,7 @@ kernel_image_start:
 #endif
 	
 0:
-	ba %xcc, 0b
-	nop
+	ba,a %xcc, 0b
 
 
 .section K_DATA_START, "aw", @progbits
