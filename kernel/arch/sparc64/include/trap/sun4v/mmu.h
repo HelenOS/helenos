@@ -95,7 +95,7 @@
 	sllx %g1, TTE_DATA_TADDR_OFFSET, %g1
 
 	/* service by higher-level routine when context != 0 */
-	brnz %g3, 0f 
+	brnz %g3, 0f
 	nop
 	/* exclude page number 0 from installing the identity mapping */
 	brz %g1, 0f
@@ -106,10 +106,9 @@
 	 * a separate routine. The routine performs RETRY, hence the call never
 	 * returns.
 	 */
-	ba install_identity_mapping
-	nop	
+	ba,a %xcc, install_identity_mapping
 
-	0:
+0:
 
 	/*
 	 * One of the scenarios in which this trap can occur is when the
