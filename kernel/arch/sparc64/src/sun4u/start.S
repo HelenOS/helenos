@@ -295,6 +295,13 @@ kernel_image_start:
 	call arch_pre_main
 	mov %o1, %o0
 	
+	/*
+	 * Create the first stack frame.
+	 */
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
+	flushw
+	add %g0, -STACK_BIAS, %fp
+
 	call main_bsp
 	nop
 
@@ -350,6 +357,13 @@ kernel_image_start:
 	set ctx, %g1
 	add %g1, OFFSET_SP, %g1
 	ldx [%g1], %o6
+
+	/*
+	 * Create the first stack frame.
+	 */
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
+	flushw
+	add %g0, -STACK_BIAS, %fp
 
 	call main_ap
 	nop
