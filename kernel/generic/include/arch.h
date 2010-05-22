@@ -64,6 +64,12 @@ typedef struct {
 	as_t *as;                    /**< Current address space. */
 } the_t;
 
+/*
+ * THE is not an abbreviation, but the English definite article written in
+ * capital letters. It means the current pointer to something, e.g. thread,
+ * processor or address space. Kind reader of this comment shall appreciate
+ * the wit of constructs like THE->thread and similar.
+ */
 #define THE  ((the_t * )(get_stack_base()))
 
 extern void the_initialize(the_t *);
