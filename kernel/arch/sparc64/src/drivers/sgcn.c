@@ -131,7 +131,7 @@ static void register_sram(uintptr_t sram_begin_physical)
  */
 static void init_sram_begin(void)
 {
-	ASSERT(instance)
+	ASSERT(instance);
 	
 	ofw_tree_node_t *chosen = ofw_tree_lookup("/chosen");
 	if (!chosen)
