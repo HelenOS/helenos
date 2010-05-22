@@ -37,10 +37,14 @@ __thread_entry:
 	#
 	# Create the first stack frame.
 	#
+	save %sp, -176, %sp
+	flushw
+	add %g0, -0x7ff, %fp
 
-	#save %sp, -176, %sp
-	#flushw
-	#add %g0, -0x7ff, %fp
+	#
+	# Propagate the input arguments to the new window.
+	#
+	mov %i0, %o0
 
 	sethi %hi(_gp), %l7
 	call __thread_main		! %o0 contains address of uarg
