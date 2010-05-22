@@ -27,8 +27,8 @@
 #
 
 #include <arch/context_offset.h>
-	
-.text   
+
+.text
 
 .set noat
 .set noreorder
@@ -37,17 +37,16 @@
 .global context_save_arch
 .global context_restore_arch
 
-	
 context_save_arch:
 	CONTEXT_SAVE_ARCH_CORE $a0
-
+	
 	# context_save returns 1
 	j $31
-	li $2, 1	
-	
+	li $2, 1
+
 context_restore_arch:
 	CONTEXT_RESTORE_ARCH_CORE $a0
-
+	
 	# context_restore returns 0
 	j $31
-	xor $2, $2	
+	xor $2, $2

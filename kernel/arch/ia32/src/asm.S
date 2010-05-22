@@ -197,114 +197,116 @@ sysenter_handler:
 #
 #define INTERRUPT_ALIGN 64
 .macro handler i n
-
-.ifeq \i - 0x30     # Syscall handler
-	pushl %ds
-	pushl %es
-	pushl %fs
-	pushl %gs
-
-	#
-	# Push syscall arguments onto the stack
-	#
-	# NOTE: The idea behind the order of arguments passed in registers is to
-	#	use all scratch registers first and preserved registers next.
-	#	An optimized libc syscall wrapper can make use of this setup.
-	#
-	pushl %eax
-	pushl %ebp
-	pushl %edi
-	pushl %esi
-	pushl %ebx
-	pushl %ecx
-	pushl %edx
 	
-	# we must fill the data segment registers
-	movw $16, %ax
-	movw %ax, %ds
-	movw %ax, %es
-	
-	cld
-	sti
-	# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
-	call syscall_handler   
-	cli
-	addl $28, %esp         # clean-up of parameters
-	
-	popl %gs
-	popl %fs
-	popl %es
-	popl %ds
-	
-	CLEAR_NT_FLAG
-	iret
-.else	
-	/*
-	 * This macro distinguishes between two versions of ia32 exceptions.
-	 * One version has error word and the other does not have it.
-	 * The latter version fakes the error word on the stack so that the
-	 * handlers and istate_t can be the same for both types.
-	 */
-	.iflt \i - 32
-		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
-			/* 
-			 * With error word, do nothing
+	.ifeq \i - 0x30     # Syscall handler
+		pushl %ds
+		pushl %es
+		pushl %fs
+		pushl %gs
+		
+		#
+		# Push syscall arguments onto the stack
+		#
+		# NOTE: The idea behind the order of arguments passed in registers is to
+		#       use all scratch registers first and preserved registers next.
+		#       An optimized libc syscall wrapper can make use of this setup.
+		#
+		pushl %eax
+		pushl %ebp
+		pushl %edi
+		pushl %esi
+		pushl %ebx
+		pushl %ecx
+		pushl %edx
+		
+		# we must fill the data segment registers
+		movw $16, %ax
+		movw %ax, %ds
+		movw %ax, %es
+		
+		cld
+		sti
+		# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
+		call syscall_handler
+		cli
+		addl $28, %esp         # clean-up of parameters
+		
+		popl %gs
+		popl %fs
+		popl %es
+		popl %ds
+		
+		CLEAR_NT_FLAG
+		iret
+	.else
+		/*
+		 * This macro distinguishes between two versions of ia32 exceptions.
+		 * One version has error word and the other does not have it.
+		 * The latter version fakes the error word on the stack so that the
+		 * handlers and istate_t can be the same for both types.
+		 */
+		.iflt \i - 32
+			.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
+				/*
+				 * With error word, do nothing
+				 */
+			.else
+				/*
+				 * Version without error word
+				 */
+				subl $4, %esp
+			.endif
+		.else
+			/*
+			 * Version without error word
 			 */
-                .else
-                        /*
-                         * Version without error word,
-                         */
 			subl $4, %esp
-                .endif
-        .else
-                /*
-                 * Version without error word,
-                 */
-		subl $4, %esp
+		.endif
+		
+		pushl %ds
+		pushl %es
+		pushl %fs
+		pushl %gs
+		
+		pushl %ebp
+		pushl %edx
+		pushl %ecx
+		pushl %eax
+		
+		# we must fill the data segment registers
+		
+		movw $16, %ax
+		movw %ax, %ds
+		movw %ax, %es
+		
+		# stop stack traces here
+		xorl %ebp, %ebp
+		
+		pushl %esp          # *istate
+		pushl $(\i)         # intnum
+		call exc_dispatch   # exc_dispatch(intnum, *istate)
+		addl $8, %esp       # Clear arguments from stack
+		
+		CLEAR_NT_FLAG # Modifies %ecx
+		
+		popl %eax
+		popl %ecx
+		popl %edx
+		popl %ebp
+		
+		popl %gs
+		popl %fs
+		popl %es
+		popl %ds
+		
+		# skip error word, no matter whether real or fake
+		addl $4, %esp
+		iret
 	.endif
 	
-	pushl %ds
-	pushl %es
-	pushl %fs
-	pushl %gs
-
-	pushl %ebp
-	pushl %edx
-	pushl %ecx
-	pushl %eax
-	
-	# we must fill the data segment registers
-	movw $16, %ax
-	movw %ax, %ds
-	movw %ax, %es
-
-	# stop stack traces here
-	xorl %ebp, %ebp
-
-	pushl %esp          # *istate
-	pushl $(\i)         # intnum
-	call exc_dispatch   # excdispatch(intnum, *istate)
-	addl $8, %esp       # Clear arguments from stack
-
-	CLEAR_NT_FLAG # Modifies %ecx
-	
-	popl %eax
-	popl %ecx
-	popl %edx
-	popl %ebp
-	
-	popl %gs
-	popl %fs
-	popl %es
-	popl %ds
-
-	addl $4, %esp	# Skip error word, no matter whether real or fake.
-	iret
-.endif
-
 	.align INTERRUPT_ALIGN
 	.if (\n- \i) - 1
-	handler "(\i + 1)", \n
+		handler "(\i + 1)", \n
 	.endif
 .endm
 

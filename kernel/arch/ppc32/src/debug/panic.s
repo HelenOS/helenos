@@ -34,5 +34,5 @@
 panic_printf:
 	lis %r14, halt@ha
 	addi %r14, %r14, halt@l
-	mtlr %r14	# fake stack to make printf return to halt
+	mtlr %r14  # fake stack to make printf return to halt
 	b printf

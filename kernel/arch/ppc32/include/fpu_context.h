@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -35,9 +35,7 @@
 #ifndef KERN_ppc32_FPU_CONTEXT_H_
 #define KERN_ppc32_FPU_CONTEXT_H_
 
-#ifndef KERN_ppc32_TYPES_H_
-	#include <typedefs.h>
-#endif
+#include <typedefs.h>
 
 typedef struct {
 	uint64_t fr14;

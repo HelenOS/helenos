@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
@@ -44,40 +44,43 @@
 #define WIMG_WRITETHRU  0x08
 
 typedef struct {
-	unsigned v : 1;          /**< Valid */
-	unsigned vsid : 24;      /**< Virtual Segment ID */
-	unsigned h : 1;          /**< Primary/secondary hash */
-	unsigned api : 6;        /**< Abbreviated Page Index */
-	unsigned rpn : 20;       /**< Real Page Number */
-	unsigned reserved0 : 3;
-	unsigned r : 1;          /**< Reference */
-	unsigned c : 1;          /**< Change */
-	unsigned wimg : 4;       /**< Access control */
-	unsigned reserved1 : 1;
-	unsigned pp : 2;         /**< Page protection */
+	unsigned int v : 1;          /**< Valid */
+	unsigned int vsid : 24;      /**< Virtual Segment ID */
+	unsigned int h : 1;          /**< Primary/secondary hash */
+	unsigned int api : 6;        /**< Abbreviated Page Index */
+	unsigned int rpn : 20;       /**< Real Page Number */
+	unsigned int reserved0 : 3;
+	unsigned int r : 1;          /**< Reference */
+	unsigned int c : 1;          /**< Change */
+	unsigned int wimg : 4;       /**< Access control */
+	unsigned int reserved1 : 1;
+	unsigned int pp : 2;         /**< Page protection */
 } phte_t;
 
 typedef struct {
-	unsigned v : 1;
-	unsigned vsid : 24;
-	unsigned reserved0 : 1;
-	unsigned api : 6;
+	unsigned int v : 1;
+	unsigned int vsid : 24;
+	unsigned int reserved0 : 1;
+	unsigned int api : 6;
 } ptehi_t;
 
 typedef struct {
-	unsigned rpn : 20;
-	unsigned xpn : 3;
-	unsigned reserved0 : 1;
-	unsigned c : 1;
-	unsigned wimg : 4;
-	unsigned x : 1;
-	unsigned pp : 2;
+	unsigned int rpn : 20;
+	unsigned int xpn : 3;
+	unsigned int reserved0 : 1;
+	unsigned int c : 1;
+	unsigned int wimg : 4;
+	unsigned int x : 1;
+	unsigned int pp : 2;
 } ptelo_t;
 
 extern void pht_init(void);
-extern void pht_refill(int n, istate_t *istate);
-extern bool pht_refill_real(int n, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
-extern void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate) __attribute__ ((section("K_UNMAPPED_TEXT_START")));
+extern void pht_refill(int, istate_t *);
+
+extern bool pht_refill_real(int, istate_t *)
+    __attribute__ ((section("K_UNMAPPED_TEXT_START")));
+extern void tlb_refill_real(int, uint32_t, ptehi_t, ptelo_t, istate_t *)
+    __attribute__ ((section("K_UNMAPPED_TEXT_START")));
 
 #endif
 

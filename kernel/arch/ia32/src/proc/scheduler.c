@@ -37,7 +37,7 @@
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <arch/context.h>	/* SP_DELTA */
+#include <arch/context.h>  /* SP_DELTA */
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <arch/ddi/ddi.h>

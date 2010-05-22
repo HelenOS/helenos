@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	ia32 specific DDI declarations and macros.
+ * @brief ia32 specific DDI declarations and macros.
  */
 
 #ifndef KERN_ia32_DDI_H_

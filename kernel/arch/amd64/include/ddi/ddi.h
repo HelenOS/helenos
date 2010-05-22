@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	amd64 specific DDI declarations and macros.
+ * @brief amd64 specific DDI declarations and macros.
  */
 
 #ifndef KERN_amd64_DDI_H_
