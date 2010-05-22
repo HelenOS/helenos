@@ -361,19 +361,6 @@ static inline uintptr_t get_stack_base(void)
 	return v;
 }
 
-/** Return current IP address */
-static inline uintptr_t * get_ip() 
-{
-	uintptr_t *ip;
-	
-	asm volatile (
-		"mov %%eip, %[ip]"
-		: [ip] "=r" (ip)
-	);
-	
-	return ip;
-}
-
 /** Invalidate TLB Entry.
  *
  * @param addr Address on a page whose TLB entry is to be invalidated.

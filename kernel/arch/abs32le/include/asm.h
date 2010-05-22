@@ -181,16 +181,6 @@ static inline uintptr_t get_stack_base(void)
 	return 0;
 }
 
-static inline uintptr_t *get_ip()
-{
-	/* On real hardware this returns the current instruction
-	   pointer value. The value certainly changes with each
-	   instruction, but it can be still used to identify
-	   a specific function. */
-	
-	return 0;
-}
-
 #endif
 
 /** @}

@@ -331,18 +331,6 @@ static inline void enable_l_apic_in_msr()
 	);
 }
 
-static inline uintptr_t * get_ip() 
-{
-	uintptr_t *ip;
-	
-	asm volatile (
-		"mov %%rip, %[ip]"
-		: [ip] "=r" (ip)
-	);
-	
-	return ip;
-}
-
 /** Invalidate TLB Entry.
  *
  * @param addr Address on a page whose TLB entry is to be invalidated.
