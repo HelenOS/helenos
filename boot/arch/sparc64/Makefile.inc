@@ -37,7 +37,7 @@ BFD_ARCH = sparc
 BITS = 64
 ENDIANESS = BE
 PAGE_SIZE = 16384
-EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu
+EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
 
 RD_SRVS_NON_ESSENTIAL +=
 
