@@ -292,18 +292,23 @@ kernel_image_start:
 	/*
 	 * Call arch_pre_main(bootinfo)
 	 */
-	mov %o1, %o0
 	call arch_pre_main
-	nop
+	mov %o1, %o0
 	
+	/*
+	 * Create the first stack frame.
+	 */
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
+	flushw
+	add %g0, -STACK_BIAS, %fp
+
 	call main_bsp
 	nop
 
 	/* Not reached. */
 
 0:
-	ba %xcc, 0b
-	nop
+	ba,a %xcc, 0b
 
 
 1:
@@ -353,6 +358,13 @@ kernel_image_start:
 	add %g1, OFFSET_SP, %g1
 	ldx [%g1], %o6
 
+	/*
+	 * Create the first stack frame.
+	 */
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
+	flushw
+	add %g0, -STACK_BIAS, %fp
+
 	call main_ap
 	nop
 
@@ -360,8 +372,7 @@ kernel_image_start:
 #endif
 	
 0:
-	ba %xcc, 0b
-	nop
+	ba,a %xcc, 0b
 
 
 .section K_DATA_START, "aw", @progbits
