@@ -134,8 +134,7 @@ static inline void atomic_lock_arch(atomic_t *val)
 			"ldx %0, %2\n"
 			"brz %2, 0b\n"
 			"nop\n"
-			"ba %%xcc, 1b\n"
-			"nop\n"
+			"ba,a %%xcc, 1b\n"
 		"2:\n"
 		: "+m" (*((atomic_count_t *) ptr)),
 		  "+r" (tmp1),

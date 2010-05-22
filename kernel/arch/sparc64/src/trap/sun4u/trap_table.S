@@ -480,8 +480,8 @@ fill_0_normal_tl1:
 	cmp %g3, 1
 	be %xcc, 1f
 	nop
-0:	ba %xcc, 0b				! this is for debugging, if we ever get here
-	nop					! it will be easy to find
+	! this is for debugging, if we ever get here it will be easy to find
+0:	ba,a %xcc, 0b
 
 1:
 .if NOT(\is_syscall)
@@ -545,8 +545,7 @@ fill_0_normal_tl1:
 	flush %l0
 
 .if NOT(\is_syscall)
-	ba %xcc, 1f
-	nop
+	ba,a %xcc, 1f
 0:
 	save %sp, -PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE, %sp
 

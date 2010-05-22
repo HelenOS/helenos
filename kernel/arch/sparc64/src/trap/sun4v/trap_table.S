@@ -70,8 +70,7 @@ instruction_access_exception_tl0:
 /* TT = 0x09, TL = 0, instruction_access_mmu_miss */
 .org trap_table + TT_INSTRUCTION_ACCESS_MMU_MISS*ENTRY_SIZE
 .global instruction_access_mmu_miss_handler_tl0
-	ba %xcc, fast_instruction_access_mmu_miss_handler_tl0
-	nop
+	ba,a %xcc, fast_instruction_access_mmu_miss_handler_tl0
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
 .org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
@@ -186,8 +185,7 @@ data_access_exception_tl0:
 .org trap_table + TT_DATA_ACCESS_MMU_MISS*ENTRY_SIZE
 .global data_access_mmu_miss_tl0
 data_access_mmu_miss_tl0:
-	ba %xcc, fast_data_access_mmu_miss_handler_tl0
-	nop
+	ba,a %xcc, fast_data_access_mmu_miss_handler_tl0
 
 /* TT = 0x32, TL = 0, data_access_error */
 .org trap_table + TT_DATA_ACCESS_ERROR*ENTRY_SIZE
@@ -413,8 +411,7 @@ instruction_access_exception_tl1:
 .org trap_table + (TT_INSTRUCTION_ACCESS_MMU_MISS+512)*ENTRY_SIZE
 .global instruction_access_mmu_miss_handler_tl1
 	wrpr %g0, 1, %tl
-	ba %xcc, fast_instruction_access_mmu_miss_handler_tl0
-	nop
+	ba,a %xcc, fast_instruction_access_mmu_miss_handler_tl0
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -497,9 +494,7 @@ data_access_exception_tl1:
 .org trap_table + (TT_DATA_ACCESS_MMU_MISS+512)*ENTRY_SIZE
 .global data_access_mmu_miss_tl1
 data_access_mmu_miss_tl1:
-	ba %xcc, fast_data_access_mmu_miss_handler_tl1
-	nop
-
+	ba,a %xcc, fast_data_access_mmu_miss_handler_tl1
 
 /* TT = 0x32, TL > 0, data_access_error */
 .org trap_table + (TT_DATA_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -741,7 +736,7 @@ fill_0_normal_tl1:
 	and %l0, NWINDOWS - 1, %l0	! %l0 mod NWINDOWS
 	rdpr %cwp, %l1
 	cmp %l0, %l1
-	bz 4f				! CWP is ok
+	bz %xcc, 4f			! CWP is ok
 	nop
 
 3:
@@ -784,10 +779,11 @@ fill_0_normal_tl1:
 	 */
 	rdpr %tl, %g3
 	cmp %g3, 1
-	be 1f
+	be %xcc, 1f
 	nop
-0:	ba %xcc, 0b				! this is for debugging, if we ever get here
-	nop					! it will be easy to find
+
+	! this is for debugging, if we ever get here it will be easy to find
+0:	ba,a %xcc, 0b
 
 1:
 	/* prevent unnecessary CLEANWIN exceptions */
@@ -956,7 +952,7 @@ fill_0_normal_tl1:
 	 */
 	clr %g4
 5:	andcc %g7, UWB_ALIGNMENT - 1, %g0	! alignment check
-	bz 6f					! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
+	bz %xcc, 6f				! %g7 is UWB_ALIGNMENT-aligned, no more windows to refill
 	nop
 
 	add %g7, -STACK_WINDOW_SAVE_AREA_SIZE, %g7
@@ -1065,8 +1061,7 @@ fill_0_normal_tl1:
 	nop
 
 	PREEMPTIBLE_HANDLER_KERNEL
-	ba %xcc, 101f
-	nop
+	ba,a %xcc, 101f
 
 	100:
 	PREEMPTIBLE_HANDLER_USPACE \is_syscall
