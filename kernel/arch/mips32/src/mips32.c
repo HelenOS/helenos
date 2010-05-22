@@ -35,6 +35,7 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
+#include <arch/debug.h>
 #include <mm/as.h>
 #include <userspace.h>
 #include <memstr.h>
