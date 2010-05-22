@@ -32,7 +32,6 @@
 /** @file
  */
 
-
 #include <arch/drivers/pic.h>
 #include <mm/page.h>
 #include <byteorder.h>
@@ -78,22 +77,24 @@ void pic_ack_interrupt(void *arg, inr_t intnum)
 	}
 }
 
-/** Return number of pending interrupt */
-int pic_get_pending(void)
+/** Return number of pending interrupts
+ *
+ */
+uint8_t pic_get_pending(void)
 {
 	if (pic) {
-		int pending;
+		uint32_t pending;
 		
 		pending = pic[PIC_PENDING_LOW];
-		if (pending)
+		if (pending != 0)
 			return fnzb32(pending);
 		
 		pending = pic[PIC_PENDING_HIGH];
-		if (pending)
+		if (pending != 0)
 			return fnzb32(pending) + 32;
 	}
 	
-	return -1;
+	return 255;
 }
 
 /** @}

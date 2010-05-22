@@ -27,15 +27,16 @@
 #
 
 #include <arch/asm/regname.h>
+#include <arch/cpu.h>
 #include <arch/mm/page.h>
 
 .section K_UNMAPPED_TEXT_START, "ax"
 
 .macro CONTEXT_STORE
 	
-	# save R12 in SPRG1, backup CR in R12
+	# save r12 in SPRG1, backup CR in r12
 	# save SP in SPRG2
-
+	
 	mtsprg1 r12
 	mfcr r12
 	mtsprg2 sp
@@ -287,7 +288,7 @@ jump_to_kernel:
 	mtsrr0 r12
 	
 	mfmsr r12
-	ori r12, r12, (msr_ir | msr_dr)@l
+	ori r12, r12, (MSR_IR | MSR_DR)@l
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000
@@ -306,7 +307,7 @@ jump_to_kernel_syscall:
 	mtlr r12
 	
 	mfmsr r12
-	ori r12, r12, (msr_ir | msr_dr)@l
+	ori r12, r12, (MSR_IR | MSR_DR)@l
 	mtsrr1 r12
 	
 	addis sp, sp, 0x8000

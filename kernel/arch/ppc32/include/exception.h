@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -36,7 +36,7 @@
 #define KERN_ppc32_EXCEPTION_H_
 
 #include <typedefs.h>
-#include <arch/regutils.h>
+#include <arch/cpu.h>
 
 typedef struct istate {
 	uint32_t r0;
@@ -85,10 +85,13 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 	istate->pc = retaddr;
 }
 
-/** Return true if exception happened while in userspace */
+/** Return true if exception happened while in userspace
+ *
+ * The contexts of MSR register was stored in SRR1.
+ *
+ */
 static inline int istate_from_uspace(istate_t *istate)
 {
-	/* true if privilege level PR (copied from MSR) == 1 */
 	return (istate->srr1 & MSR_PR) != 0;
 }
 

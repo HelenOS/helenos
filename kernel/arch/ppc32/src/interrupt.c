@@ -43,23 +43,22 @@
 #include <arch/mm/tlb.h>
 #include <print.h>
 
-
 void start_decrementer(void)
 {
 	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
+		"mtdec %[dec]\n"
+		:: [dec] "r" (1000)
 	);
 }
 
-
-/** Handler of external interrupts */
+/** External interrupts handler
+ *
+ */
 static void exception_external(int n, istate_t *istate)
 {
-	int inum;
+	uint8_t inum;
 	
-	while ((inum = pic_get_pending()) != -1) {
+	while ((inum = pic_get_pending()) != 255) {
 		irq_t *irq = irq_dispatch_and_lock(inum);
 		if (irq) {
 			/*
@@ -79,25 +78,24 @@ static void exception_external(int n, istate_t *istate)
 					irq->cir(irq->cir_arg, irq->inr);
 			}
 			
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			/*
 			 * Spurious interrupt.
 			 */
 #ifdef CONFIG_DEBUG
-			printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
+			printf("cpu%" PRIs ": spurious interrupt (inum=%" PRIu8 ")\n",
+			    CPU->id, inum);
 #endif
 		}
 	}
 }
-
 
 static void exception_decrementer(int n, istate_t *istate)
 {
 	start_decrementer();
 	clock();
 }
-
 
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)

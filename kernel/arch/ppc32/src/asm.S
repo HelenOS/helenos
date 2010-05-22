@@ -27,6 +27,7 @@
 #
 
 #include <arch/asm/regname.h>
+#include <arch/cpu.h>
 
 .text
 
@@ -42,13 +43,13 @@
 .global memcpy_to_uspace_failover_address
 
 userspace_asm:
-
+	
 	# r3 = uspace_uarg
 	# r4 = stack
 	# r5 = entry
 	
 	# disable interrupts
-
+	
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
@@ -59,16 +60,16 @@ userspace_asm:
 	
 	# set problem state, enable interrupts
 	
-	ori r31, r31, msr_pr
-	ori r31, r31, msr_ee
+	ori r31, r31, MSR_PR
+	ori r31, r31, MSR_EE
 	mtsrr1 r31
 	
 	# set stack
 	
 	mr sp, r4
-
+	
 	# %r6 is defined to hold pcb_ptr - set it to 0
-
+	
 	xor r6, r6, r6
 	
 	# jump to userspace
@@ -140,7 +141,7 @@ iret:
 iret_syscall:
 	
 	# reset decrementer
-
+	
 	li r31, 1000
 	mtdec r31
 	
@@ -200,7 +201,7 @@ iret_syscall:
 	
 	lwz r12, 156(sp)
 	lwz sp, 160(sp)
-
+	
 	rfi
 
 memsetb:
@@ -212,11 +213,11 @@ memsetw:
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-
+	
 	srwi. r7, r5, 3
 	addi r6, r3, -4
 	addi r4, r4, -4
-	beq	2f
+	beq 2f
 	
 	andi. r0, r6, 3
 	mtctr r7
@@ -224,55 +225,55 @@ memcpy_to_uspace:
 	
 	1:
 	
-	lwz r7, 4(r4)
-	lwzu r8, 8(r4)
-	stw r7, 4(r6)
-	stwu r8, 8(r6)
-	bdnz 1b
-	
-	andi. r5, r5, 7
+		lwz r7, 4(r4)
+		lwzu r8, 8(r4)
+		stw r7, 4(r6)
+		stwu r8, 8(r6)
+		bdnz 1b
+		
+		andi. r5, r5, 7
 	
 	2:
 	
-	cmplwi 0, r5, 4
-	blt 3f
-	
-	lwzu r0, 4(r4)
-	addi r5, r5, -4
-	stwu r0, 4(r6)
+		cmplwi 0, r5, 4
+		blt 3f
+		
+		lwzu r0, 4(r4)
+		addi r5, r5, -4
+		stwu r0, 4(r6)
 	
 	3:
 	
-	cmpwi 0, r5, 0
-	beqlr
-	mtctr r5
-	addi r4, r4, 3
-	addi r6, r6, 3
+		cmpwi 0, r5, 0
+		beqlr
+		mtctr r5
+		addi r4, r4, 3
+		addi r6, r6, 3
 	
 	4:
 	
-	lbzu r0, 1(r4)
-	stbu r0, 1(r6)
-	bdnz 4b
-	blr
+		lbzu r0, 1(r4)
+		stbu r0, 1(r6)
+		bdnz 4b
+		blr
 	
 	5:
 	
-	subfic r0, r0, 4
-	mtctr r0
+		subfic r0, r0, 4
+		mtctr r0
 	
 	6:
 	
-	lbz r7, 4(r4)
-	addi r4, r4, 1
-	stb r7, 4(r6)
-	addi r6, r6, 1
-	bdnz 6b
-	subf r5, r0, r5
-	rlwinm. r7, r5, 32-3, 3, 31
-	beq 2b
-	mtctr r7
-	b 1b
+		lbz r7, 4(r4)
+		addi r4, r4, 1
+		stb r7, 4(r6)
+		addi r6, r6, 1
+		bdnz 6b
+		subf r5, r0, r5
+		rlwinm. r7, r5, 32-3, 3, 31
+		beq 2b
+		mtctr r7
+		b 1b
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
