@@ -59,26 +59,6 @@ static inline void msr_write(uint32_t msr)
 	);
 }
 
-static inline uint32_t msr_read(void)
-{
-	uint32_t msr;
-	
-	asm volatile (
-		"mfmsr %[msr]\n"
-		: [msr] "=r" (msr)
-	);
-	
-	return msr;
-}
-
-static inline void msr_write(uint32_t msr)
-{
-	asm volatile (
-		"mtmsr %[msr]\n"
-		:: [msr] "r" (msr)
-	);
-}
-
 /** Enable interrupts.
  *
  * Enable interrupts and return previous
