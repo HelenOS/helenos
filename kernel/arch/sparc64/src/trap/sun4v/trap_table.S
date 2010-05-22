@@ -991,7 +991,7 @@ fill_0_normal_tl1:
 	wrpr %g1, 0, %cwp
 	add %g4, %g2, %g2
 	cmp %g2, NWINDOWS - 2
-	bg 8f					! fix the CANRESTORE=NWINDOWS-1 anomaly
+	bg %xcc, 8f				! fix the CANRESTORE=NWINDOWS-1 anomaly
 	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
 	
