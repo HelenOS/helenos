@@ -39,19 +39,18 @@ static inline uint64_t get_cycle(void)
 {
 	uint32_t lower;
 	uint32_t upper;
-	uint32_t upper2;
+	uint32_t tmp;
 	
-	asm volatile (
-		"1: mftbu %0\n"
-		"mftb %1\n"
-		"mftbu %2\n"
-		"cmpw %0, %2\n"
-		"bne- 1b\n"
-		: "=r" (upper),
-		  "=r" (lower),
-		  "=r" (upper2)
-		:: "cr0"
-	);
+	do {
+		asm volatile (
+			"mftbu %[upper]\n"
+			"mftb %[lower]\n"
+			"mftbu %[tmp]\n"
+			: [upper] "=r" (upper),
+			  [lower] "=r" (lower),
+			  [tmp] "=r" (tmp)
+		);
+	} while (upper != tmp);
 	
 	return ((uint64_t) upper << 32) + (uint64_t) lower;
 }

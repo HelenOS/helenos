@@ -37,12 +37,12 @@
 
 #include <typedefs.h>
 
-#define cp0_status_ie_enabled_bit	(1 << 0)
-#define cp0_status_exl_exception_bit	(1 << 1)
-#define cp0_status_erl_error_bit	(1 << 2)
-#define cp0_status_um_bit	        (1 << 4)
-#define cp0_status_bev_bootstrap_bit	(1 << 22)
-#define cp0_status_fpu_bit              (1 << 29)
+#define cp0_status_ie_enabled_bit     (1 << 0)
+#define cp0_status_exl_exception_bit  (1 << 1)
+#define cp0_status_erl_error_bit      (1 << 2)
+#define cp0_status_um_bit             (1 << 4)
+#define cp0_status_bev_bootstrap_bit  (1 << 22)
+#define cp0_status_fpu_bit            (1 << 29)
 
 #define cp0_status_im_shift		8
 #define cp0_status_im_mask              0xff00

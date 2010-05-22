@@ -38,19 +38,23 @@
 #include <proc/thread.h>
 #include <arch.h>
 
-/** Perform ppc32 specific tasks needed before the new task is run. */
+/** Perform ppc32 specific tasks needed before the new task is run.
+ *
+ */
 void before_task_runs_arch(void)
 {
 }
 
-/** Perform ppc32 specific tasks needed before the new thread is scheduled. */
+/** Perform ppc32 specific tasks needed before the new thread is scheduled.
+ *
+ */
 void before_thread_runs_arch(void)
 {
 	tlb_invalidate_all();
+	
 	asm volatile (
-		"mtsprg0 %0\n"
-		:
-		: "r" (KA2PA(&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]))
+		"mtsprg0 %[ksp]\n"
+		:: [ksp] "r" (KA2PA(&THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA]))
 	);
 }
 
