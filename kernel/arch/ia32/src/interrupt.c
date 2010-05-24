@@ -93,7 +93,7 @@ static void trap_virtual_eoi(void)
 static void null_interrupt(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unserviced interrupt: %d.", n);
-
+	
 	decode_istate(istate);
 	panic("Unserviced interrupt: %d.", n);
 }
@@ -101,7 +101,7 @@ static void null_interrupt(int n, istate_t *istate)
 static void de_fault(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
-
+	
 	decode_istate(istate);
 	panic("Divide error.");
 }
@@ -110,12 +110,10 @@ static void de_fault(int n, istate_t *istate)
 static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	if (TASK) {
-		size_t ver;
+		irq_spinlock_lock(&TASK->lock, false);
+		size_t ver = TASK->arch.iomapver;
+		irq_spinlock_unlock(&TASK->lock, false);
 		
-		spinlock_lock(&TASK->lock);
-		ver = TASK->arch.iomapver;
-		spinlock_unlock(&TASK->lock);
-	
 		if (CPU->arch.iomapver_copy != ver) {
 			/*
 			 * This fault can be caused by an early access
@@ -129,7 +127,7 @@ static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 		}
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
-
+	
 	decode_istate(istate);
 	panic("General protection fault.");
 }
@@ -137,7 +135,7 @@ static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 static void ss_fault(int n __attribute__((unused)), istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
-
+	
 	decode_istate(istate);
 	panic("Stack fault.");
 }
@@ -145,10 +143,11 @@ static void ss_fault(int n __attribute__((unused)), istate_t *istate)
 static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
 {
 	uint32_t mxcsr;
-	asm (
+	asm volatile (
 		"stmxcsr %[mxcsr]\n"
 		: [mxcsr] "=m" (mxcsr)
 	);
+	
 	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx.",
 	    (unative_t) mxcsr);
 	
@@ -157,9 +156,10 @@ static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
 	panic("SIMD FP exception(19).");
 }
 
-static void nm_fault(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+static void nm_fault(int n __attribute__((unused)),
+    istate_t *istate __attribute__((unused)))
 {
-#ifdef CONFIG_FPU_LAZY     
+#ifdef CONFIG_FPU_LAZY
 	scheduler_fpu_lazy_request();
 #else
 	fault_if_from_uspace(istate, "FPU fault.");
@@ -168,7 +168,8 @@ static void nm_fault(int n __attribute__((unused)), istate_t *istate __attribute
 }
 
 #ifdef CONFIG_SMP
-static void tlb_shootdown_ipi(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+static void tlb_shootdown_ipi(int n __attribute__((unused)),
+    istate_t *istate __attribute__((unused)))
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
@@ -190,14 +191,14 @@ static void irq_interrupt(int n, istate_t *istate __attribute__((unused)))
 		/*
 		 * The IRQ handler was found.
 		 */
-		 
+		
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
 			trap_virtual_eoi();
 			ack = true;
 		}
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		/*
 		 * Spurious interrupt.

@@ -47,35 +47,43 @@ typedef enum {
 } rwlock_type_t;
 
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	/**
 	 * Mutex for writers, readers can bypass it if readers_in is positive.
+	 *
 	 */
 	mutex_t exclusive;
+	
 	/** Number of readers in critical section. */
 	size_t readers_in;
 } rwlock_t;
 
 #define rwlock_write_lock(rwl) \
 	_rwlock_write_lock_timeout((rwl), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
+
 #define rwlock_read_lock(rwl) \
 	_rwlock_read_lock_timeout((rwl), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
+
 #define rwlock_write_trylock(rwl) \
 	_rwlock_write_lock_timeout((rwl), SYNCH_NO_TIMEOUT, \
 	    SYNCH_FLAGS_NON_BLOCKING)
+
 #define rwlock_read_trylock(rwl) \
 	_rwlock_read_lock_timeout((rwl), SYNCH_NO_TIMEOUT, \
 	    SYNCH_FLAGS_NON_BLOCKING)
+
 #define rwlock_write_lock_timeout(rwl, usec) \
 	_rwlock_write_lock_timeout((rwl), (usec), SYNCH_FLAGS_NONE)
+
 #define rwlock_read_lock_timeout(rwl, usec) \
 	_rwlock_read_lock_timeout((rwl), (usec), SYNCH_FLAGS_NONE)
 
-extern void rwlock_initialize(rwlock_t *rwl);
-extern void rwlock_read_unlock(rwlock_t *rwl);
-extern void rwlock_write_unlock(rwlock_t *rwl);
-extern int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags);
-extern int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags);
+extern void rwlock_initialize(rwlock_t *);
+extern void rwlock_read_unlock(rwlock_t *);
+extern void rwlock_write_unlock(rwlock_t *);
+extern int _rwlock_read_lock_timeout(rwlock_t *, uint32_t, unsigned int);
+extern int _rwlock_write_lock_timeout(rwlock_t *, uint32_t, unsigned int);
 
 #endif
 

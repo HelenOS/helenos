@@ -48,6 +48,12 @@
 function virtual_timer_fnc = NULL;
 static irq_t timer_irq;
 
+// TODO: This is SMP unsafe!!!
+
+uint32_t count_hi = 0;
+static unsigned long nextcount;
+static unsigned long lastcount;
+
 /** Disable interrupts.
  *
  * @return Old interrupt priority level.
@@ -98,12 +104,9 @@ bool interrupts_disabled(void)
 	return !(cp0_status_read() & cp0_status_ie_enabled_bit);
 }
 
-/* TODO: This is SMP unsafe!!! */
-uint32_t count_hi = 0;
-static unsigned long nextcount;
-static unsigned long lastcount;
-
-/** Start hardware clock */
+/** Start hardware clock
+ *
+ */
 static void timer_start(void)
 {
 	lastcount = cp0_count_read();
@@ -118,18 +121,18 @@ static irq_ownership_t timer_claim(irq_t *irq)
 
 static void timer_irq_handler(irq_t *irq)
 {
-	unsigned long drift;
-	
 	if (cp0_count_read() < lastcount)
 		/* Count overflow detected */
 		count_hi++;
+	
 	lastcount = cp0_count_read();
 	
-	drift = cp0_count_read() - nextcount;
+	unsigned long drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
 		drift -= cp0_compare_value;
 		CPU->missed_clock_ticks++;
 	}
+	
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
 	
@@ -137,9 +140,9 @@ static void timer_irq_handler(irq_t *irq)
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
 	 */
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 	
 	if (virtual_timer_fnc != NULL)
 		virtual_timer_fnc();

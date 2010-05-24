@@ -45,19 +45,22 @@ typedef enum {
 	WAKEUP_ALL
 } wakeup_mode_t;
 
-/** Wait queue structure. */
+/** Wait queue structure.
+ *
+ */
 typedef struct {
-
 	/** Lock protecting wait queue structure.
 	 *
 	 * Must be acquired before T.lock for each T of type thread_t.
 	 */
-	SPINLOCK_DECLARE(lock);
-
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	/**
 	 * Number of waitq_wakeup() calls that didn't find a thread to wake up.
+	 *
 	 */
 	int missed_wakeups;
+	
 	/** List of sleeping threads for wich there was no missed_wakeup. */
 	link_t head;
 } waitq_t;
@@ -68,9 +71,9 @@ typedef struct {
 struct thread;
 
 extern void waitq_initialize(waitq_t *);
-extern int waitq_sleep_timeout(waitq_t *, uint32_t, int);
+extern int waitq_sleep_timeout(waitq_t *, uint32_t, unsigned int);
 extern ipl_t waitq_sleep_prepare(waitq_t *);
-extern int waitq_sleep_timeout_unsafe(waitq_t *, uint32_t, int);
+extern int waitq_sleep_timeout_unsafe(waitq_t *, uint32_t, unsigned int);
 extern void waitq_sleep_finish(waitq_t *, int, ipl_t);
 extern void waitq_wakeup(waitq_t *, wakeup_mode_t);
 extern void _waitq_wakeup_unsafe(waitq_t *, wakeup_mode_t);

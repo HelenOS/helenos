@@ -62,7 +62,7 @@
 #define EMPTY_CHAR  ((STYLE << 8) | SPACE)
 
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 	
 	uint32_t cursor;
 	uint8_t *addr;
@@ -70,8 +70,8 @@ typedef struct {
 	ioport8_t *base;
 } ega_instance_t;
 
-static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent);
-static void ega_redraw(outdev_t *dev);
+static void ega_putchar(outdev_t *, wchar_t, bool);
+static void ega_redraw(outdev_t *);
 
 static outdev_operations_t egadev_ops = {
 	.write = ega_putchar,
@@ -539,8 +539,7 @@ static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&instance->lock);
+	irq_spinlock_lock(&instance->lock, true);
 	
 	switch (ch) {
 	case '\n':
@@ -563,23 +562,20 @@ static void ega_putchar(outdev_t *dev, wchar_t ch, bool silent)
 	ega_check_cursor(instance, silent);
 	ega_move_cursor(instance, silent);
 	
-	spinlock_unlock(&instance->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&instance->lock, true);
 }
 
 static void ega_redraw(outdev_t *dev)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 	
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&instance->lock);
+	irq_spinlock_lock(&instance->lock, true);
 	
 	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
 	ega_move_cursor(instance, silent);
 	ega_show_cursor(instance, silent);
 	
-	spinlock_unlock(&instance->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&instance->lock, true);
 }
 
 outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
@@ -597,7 +593,7 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 	outdev_initialize("egadev", egadev, &egadev_ops);
 	egadev->data = instance;
 	
-	spinlock_initialize(&instance->lock, "*ega_lock");
+	irq_spinlock_initialize(&instance->lock, "*ega.instance.lock");
 	
 	instance->base = base;
 	instance->addr = (uint8_t *) hw_map(addr, EGA_VRAM_SIZE);

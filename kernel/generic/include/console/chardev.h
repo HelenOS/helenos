@@ -56,7 +56,7 @@ typedef struct indev {
 	waitq_t wq;
 	
 	/** Protects everything below. */
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 	wchar_t buffer[INDEV_BUFLEN];
 	size_t counter;
 	
@@ -94,15 +94,15 @@ typedef struct outdev {
 	void *data;
 } outdev_t;
 
-extern void indev_initialize(const char *name, indev_t *indev,
-    indev_operations_t *op);
-extern void indev_push_character(indev_t *indev, wchar_t ch);
-extern wchar_t indev_pop_character(indev_t *indev);
+extern void indev_initialize(const char *, indev_t *,
+    indev_operations_t *);
+extern void indev_push_character(indev_t *, wchar_t);
+extern wchar_t indev_pop_character(indev_t *);
 
-extern void outdev_initialize(const char *name, outdev_t *outdev,
-    outdev_operations_t *op);
+extern void outdev_initialize(const char *, outdev_t *,
+    outdev_operations_t *);
 
-extern bool check_poll(indev_t *indev);
+extern bool check_poll(indev_t *);
 
 #endif /* KERN_CHARDEV_H_ */
 

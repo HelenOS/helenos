@@ -38,7 +38,6 @@
 #include <typedefs.h>
 #include <config.h>
 
-
 static inline void cpu_sleep(void)
 {
 	/* Most of the simulators do not support */
@@ -46,22 +45,23 @@ static inline void cpu_sleep(void)
 }
 
 /** Return base address of current stack
- * 
+ *
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
 static inline uintptr_t get_stack_base(void)
 {
-	uintptr_t v;
+	uintptr_t base;
 	
 	asm volatile (
-		"and %0, $29, %1\n"
-		: "=r" (v)
-		: "r" (~(STACK_SIZE-1))
+		"and %[base], $29, %[mask]\n"
+		: [base] "=r" (base)
+		: [mask] "r" (~(STACK_SIZE - 1))
 	);
 	
-	return v;
+	return base;
 }
 
 extern void cpu_halt(void) __attribute__((noreturn));
@@ -77,17 +77,17 @@ extern bool interrupts_disabled(void);
 
 static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
-	*port = v;	
+	*port = v;
 }
 
 static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
-	*port = v;	
+	*port = v;
 }
 
 static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
-	*port = v;	
+	*port = v;
 }
 
 static inline uint8_t pio_read_8(ioport8_t *port)

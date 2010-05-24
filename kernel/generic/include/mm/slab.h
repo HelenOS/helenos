@@ -83,7 +83,6 @@ typedef struct {
 	SPINLOCK_DECLARE(lock);
 } slab_mag_cache_t;
 
-
 typedef struct {
 	const char *name;
 	
@@ -93,22 +92,22 @@ typedef struct {
 	/** Size of slab position - align_up(sizeof(obj)) */
 	size_t size;
 	
-	int (*constructor)(void *obj, int kmflag);
-	int (*destructor)(void *obj);
+	int (*constructor)(void *obj, unsigned int kmflag);
+	size_t (*destructor)(void *obj);
 	
 	/** Flags changing behaviour of cache */
-	int flags;
+	unsigned int flags;
 	
 	/* Computed values */
-	uint8_t order;         /**< Order of frames to be allocated */
-	unsigned int objects;  /**< Number of objects that fit in */
+	uint8_t order;   /**< Order of frames to be allocated */
+	size_t objects;  /**< Number of objects that fit in */
 	
 	/* Statistics */
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
 	/** How many magazines in magazines list */
-	atomic_t magazine_counter; 
+	atomic_t magazine_counter;
 	
 	/* Slabs */
 	link_t full_slabs;     /**< List of full slabs */
@@ -123,12 +122,12 @@ typedef struct {
 } slab_cache_t;
 
 extern slab_cache_t *slab_cache_create(const char *, size_t, size_t,
-    int (*)(void *, int), int (*)(void *), int);
+    int (*)(void *, unsigned int), size_t (*)(void *), unsigned int);
 extern void slab_cache_destroy(slab_cache_t *);
 
-extern void * slab_alloc(slab_cache_t *, int);
+extern void * slab_alloc(slab_cache_t *, unsigned int);
 extern void slab_free(slab_cache_t *, void *);
-extern size_t slab_reclaim(int);
+extern size_t slab_reclaim(unsigned int);
 
 /* slab subsytem initialization */
 extern void slab_cache_init(void);
@@ -138,8 +137,8 @@ extern void slab_enable_cpucache(void);
 extern void slab_print_list(void);
 
 /* malloc support */
-extern void *malloc(unsigned int, int);
-extern void *realloc(void *, unsigned int, int);
+extern void *malloc(size_t, unsigned int);
+extern void *realloc(void *, size_t, unsigned int);
 extern void free(void *);
 
 #endif

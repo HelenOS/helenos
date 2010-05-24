@@ -509,7 +509,7 @@ static cmd_info_t *basic_commands[] = {
  */
 void cmd_initialize(cmd_info_t *cmd)
 {
-	spinlock_initialize(&cmd->lock, "cmd");
+	spinlock_initialize(&cmd->lock, "cmd.lock");
 	link_initialize(&cmd->link);
 }
 
@@ -680,17 +680,20 @@ int cmd_mcall0(cmd_arg_t *argv)
 		if (!cpus[i].active)
 			continue;
 		
-		thread_t *t;
-		if ((t = thread_create((void (*)(void *)) cmd_call0, (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
-			spinlock_lock(&t->lock);
-			t->cpu = &cpus[i];
-			spinlock_unlock(&t->lock);
-			printf("cpu%u: ", i);
-			thread_ready(t);
-			thread_join(t);
-			thread_detach(t);
+		thread_t *thread;
+		if ((thread = thread_create((void (*)(void *)) cmd_call0,
+		    (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
+			irq_spinlock_lock(&thread->lock, true);
+			thread->cpu = &cpus[i];
+			irq_spinlock_unlock(&thread->lock, true);
+			
+			printf("cpu%" PRIs ": ", i);
+			
+			thread_ready(thread);
+			thread_join(thread);
+			thread_detach(thread);
 		} else
-			printf("Unable to create thread for cpu%u\n", i);
+			printf("Unable to create thread for cpu%" PRIs "\n", i);
 	}
 	
 	return 1;
@@ -1048,38 +1051,34 @@ static bool run_test(const test_t *test)
 	
 	/* Update and read thread accounting
 	   for benchmarking */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	uint64_t ucycles0, kcycles0;
 	task_get_accounting(TASK, &ucycles0, &kcycles0);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
 	/* Execute the test */
 	test_quiet = false;
 	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
-	uint64_t ucycles1, kcycles1; 
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	uint64_t ucycles1, kcycles1;
+	irq_spinlock_lock(&TASK->lock, true);
 	task_get_accounting(TASK, &ucycles1, &kcycles1);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
 	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
 	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
-		
+	
 	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
-			ucycles, usuffix, kcycles, ksuffix);
+	    ucycles, usuffix, kcycles, ksuffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
 		return true;
 	}
-
+	
 	printf("%s\n", ret);
 	return false;
 }
@@ -1105,25 +1104,21 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Update and read thread accounting
 		   for benchmarking */
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
+		irq_spinlock_lock(&TASK->lock, true);
 		uint64_t ucycles0, kcycles0;
 		task_get_accounting(TASK, &ucycles0, &kcycles0);
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&TASK->lock, true);
 		
 		/* Execute the test */
 		test_quiet = true;
 		const char *ret = test->entry();
 		
 		/* Update and read thread accounting */
-		ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
+		irq_spinlock_lock(&TASK->lock, true);
 		uint64_t ucycles1, kcycles1;
 		task_get_accounting(TASK, &ucycles1, &kcycles1);
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
-
+		irq_spinlock_unlock(&TASK->lock, true);
+		
 		if (ret != NULL) {
 			printf("%s\n", ret);
 			ret = false;
@@ -1134,7 +1129,7 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
 		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
-				ucycles, usuffix, kcycles, ksuffix);
+		    ucycles, usuffix, kcycles, ksuffix);
 	}
 	
 	if (ret) {

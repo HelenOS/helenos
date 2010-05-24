@@ -52,13 +52,14 @@
 /*
  * Advanced Programmable Interrupt Controller for SMP systems.
  * Tested on:
- *	Bochs 2.0.2 - Bochs 2.2.6 with 2-8 CPUs
- *	Simics 2.0.28 - Simics 2.2.19 2-15 CPUs
- *	VMware Workstation 5.5 with 2 CPUs
- *	QEMU 0.8.0 with 2-15 CPUs
- *	ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
- *	ASUS PCH-DL with 2x 3000Mhz Pentium 4 Xeon (HT) CPUs
- *	MSI K7D Master-L with 2x 2100MHz Athlon MP CPUs
+ *    Bochs 2.0.2 - Bochs 2.2.6 with 2-8 CPUs
+ *    Simics 2.0.28 - Simics 2.2.19 2-15 CPUs
+ *    VMware Workstation 5.5 with 2 CPUs
+ *    QEMU 0.8.0 with 2-15 CPUs
+ *    ASUS P/I-P65UP5 + ASUS C-P55T2D REV. 1.41 with 2x 200Mhz Pentium CPUs
+ *    ASUS PCH-DL with 2x 3000Mhz Pentium 4 Xeon (HT) CPUs
+ *    MSI K7D Master-L with 2x 2100MHz Athlon MP CPUs
+ *
  */
 
 /*
@@ -68,6 +69,7 @@
  * Pay special attention to the volatile keyword. Without it, gcc -O2 would
  * optimize the code too much and accesses to l_apic and io_apic, that must
  * always be 32-bit, would use byte oriented instructions.
+ *
  */
 volatile uint32_t *l_apic = (uint32_t *) 0xfee00000;
 volatile uint32_t *io_apic = (uint32_t *) 0xfec00000;
@@ -78,7 +80,7 @@ static irq_t l_apic_timer_irq;
 static int apic_poll_errors(void);
 
 #ifdef LAPIC_VERBOSE
-static char *delmod_str[] = {
+static const char *delmod_str[] = {
 	"Fixed",
 	"Lowest Priority",
 	"SMI",
@@ -89,32 +91,32 @@ static char *delmod_str[] = {
 	"ExtInt"
 };
 
-static char *destmod_str[] = {
+static const char *destmod_str[] = {
 	"Physical",
 	"Logical"
 };
 
-static char *trigmod_str[] = {
+static const char *trigmod_str[] = {
 	"Edge",
 	"Level"
 };
 
-static char *mask_str[] = {
+static const char *mask_str[] = {
 	"Unmasked",
 	"Masked"
 };
 
-static char *delivs_str[] = {
+static const char *delivs_str[] = {
 	"Idle",
 	"Send Pending"
 };
 
-static char *tm_mode_str[] = {
+static const char *tm_mode_str[] = {
 	"One-shot",
 	"Periodic"
 };
 
-static char *intpol_str[] = {
+static const char *intpol_str[] = {
 	"Polarity High",
 	"Polarity Low"
 };
@@ -122,10 +124,12 @@ static char *intpol_str[] = {
 
 /** APIC spurious interrupt handler.
  *
- * @param n Interrupt vector.
+ * @param n      Interrupt vector.
  * @param istate Interrupted state.
+ *
  */
-static void apic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+static void apic_spurious(int n __attribute__((unused)),
+    istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
 	printf("cpu%u: APIC spurious interrupt\n", CPU->id);
@@ -144,18 +148,16 @@ static void l_apic_timer_irq_handler(irq_t *irq)
 	 * the current thread. In this case, we don't need to hold the
 	 * irq->lock so we just unlock it and then lock it again.
 	 */
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 /** Initialize APIC on BSP. */
 void apic_init(void)
 {
-	io_apic_id_t idreg;
-	
 	exc_register(VECTOR_APIC_SPUR, "apic_spurious", (iroutine) apic_spurious);
-
+	
 	enable_irqs_function = io_apic_enable_irqs;
 	disable_irqs_function = io_apic_disable_irqs;
 	eoi_function = l_apic_eoi;
@@ -178,7 +180,7 @@ void apic_init(void)
 	uint8_t i;
 	for (i = 0; i < IRQ_COUNT; i++) {
 		int pin;
-	
+		
 		if ((pin = smp_irq_to_pin(i)) != -1)
 			io_apic_change_ioredtbl((uint8_t) pin, DEST_ALL, (uint8_t) (IVT_IRQBASE + i), LOPRI);
 	}
@@ -186,8 +188,10 @@ void apic_init(void)
 	/*
 	 * Ensure that io_apic has unique ID.
 	 */
+	io_apic_id_t idreg;
+	
 	idreg.value = io_apic_read(IOAPICID);
-	if ((1 << idreg.apic_id) & apic_id_mask) {	/* see if IO APIC ID is used already */
+	if ((1 << idreg.apic_id) & apic_id_mask) {  /* See if IO APIC ID is used already */
 		for (i = 0; i < APIC_ID_COUNT; i++) {
 			if (!((1 << i) & apic_id_mask)) {
 				idreg.apic_id = i;
@@ -196,13 +200,12 @@ void apic_init(void)
 			}
 		}
 	}
-
+	
 	/*
 	 * Configure the BSP's lapic.
 	 */
 	l_apic_init();
-
-	l_apic_debug();	
+	l_apic_debug();
 }
 
 /** Poll for APIC errors.
@@ -210,6 +213,7 @@ void apic_init(void)
  * Examine Error Status Register and report all errors found.
  *
  * @return 0 on error, 1 on success.
+ *
  */
 int apic_poll_errors(void)
 {
@@ -231,7 +235,7 @@ int apic_poll_errors(void)
 		printf("Received Illegal Vector\n");
 	if (esr.illegal_register_address)
 		printf("Illegal Register Address\n");
-
+	
 	return !esr.err_bitmap;
 }
 
@@ -240,11 +244,12 @@ int apic_poll_errors(void)
  * @param vector Interrupt vector to be sent.
  *
  * @return 0 on failure, 1 on success.
+ *
  */
 int l_apic_broadcast_custom_ipi(uint8_t vector)
 {
 	icr_t icr;
-
+	
 	icr.lo = l_apic[ICRlo];
 	icr.delmod = DELMOD_FIXED;
 	icr.destmod = DESTMOD_LOGIC;
@@ -252,16 +257,16 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
 	icr.shorthand = SHORTHAND_ALL_EXCL;
 	icr.trigger_mode = TRIGMOD_LEVEL;
 	icr.vector = vector;
-
+	
 	l_apic[ICRlo] = icr.lo;
-
+	
 	icr.lo = l_apic[ICRlo];
 	if (icr.delivs == DELIVS_PENDING) {
 #ifdef CONFIG_DEBUG
 		printf("IPI is pending.\n");
 #endif
 	}
-
+	
 	return apic_poll_errors();
 }
 
@@ -270,15 +275,15 @@ int l_apic_broadcast_custom_ipi(uint8_t vector)
  * @param apicid APIC ID of the processor to be brought up.
  *
  * @return 0 on failure, 1 on success.
+ *
  */
 int l_apic_send_init_ipi(uint8_t apicid)
 {
-	icr_t icr;
-	int i;
-
 	/*
 	 * Read the ICR register in and zero all non-reserved fields.
 	 */
+	icr_t icr;
+	
 	icr.lo = l_apic[ICRlo];
 	icr.hi = l_apic[ICRhi];
 	
@@ -292,23 +297,23 @@ int l_apic_send_init_ipi(uint8_t apicid)
 	
 	l_apic[ICRhi] = icr.hi;
 	l_apic[ICRlo] = icr.lo;
-
+	
 	/*
 	 * According to MP Specification, 20us should be enough to
 	 * deliver the IPI.
 	 */
 	delay(20);
-
+	
 	if (!apic_poll_errors())
 		return 0;
-
+	
 	icr.lo = l_apic[ICRlo];
 	if (icr.delivs == DELIVS_PENDING) {
 #ifdef CONFIG_DEBUG
 		printf("IPI is pending.\n");
 #endif
 	}
-
+	
 	icr.delmod = DELMOD_INIT;
 	icr.destmod = DESTMOD_PHYS;
 	icr.level = LEVEL_DEASSERT;
@@ -316,17 +321,18 @@ int l_apic_send_init_ipi(uint8_t apicid)
 	icr.trigger_mode = TRIGMOD_LEVEL;
 	icr.vector = 0;
 	l_apic[ICRlo] = icr.lo;
-
+	
 	/*
 	 * Wait 10ms as MP Specification specifies.
 	 */
 	delay(10000);
-
+	
 	if (!is_82489DX_apic(l_apic[LAVR])) {
 		/*
 		 * If this is not 82489DX-based l_apic we must send two STARTUP IPI's.
 		 */
-		for (i = 0; i<2; i++) {
+		unsigned int i;
+		for (i = 0; i < 2; i++) {
 			icr.lo = l_apic[ICRlo];
 			icr.vector = (uint8_t) (((uintptr_t) ap_boot) >> 12); /* calculate the reset vector */
 			icr.delmod = DELMOD_STARTUP;
@@ -345,49 +351,48 @@ int l_apic_send_init_ipi(uint8_t apicid)
 /** Initialize Local APIC. */
 void l_apic_init(void)
 {
-	lvt_error_t error;
-	lvt_lint_t lint;
-	tpr_t tpr;
-	svr_t svr;
-	icr_t icr;
-	tdcr_t tdcr;
-	lvt_tm_t tm;
-	ldr_t ldr;
-	dfr_t dfr;
-	uint32_t t1, t2;
-
 	/* Initialize LVT Error register. */
+	lvt_error_t error;
+	
 	error.value = l_apic[LVT_Err];
 	error.masked = true;
 	l_apic[LVT_Err] = error.value;
-
+	
 	/* Initialize LVT LINT0 register. */
+	lvt_lint_t lint;
+	
 	lint.value = l_apic[LVT_LINT0];
 	lint.masked = true;
 	l_apic[LVT_LINT0] = lint.value;
-
+	
 	/* Initialize LVT LINT1 register. */
 	lint.value = l_apic[LVT_LINT1];
 	lint.masked = true;
 	l_apic[LVT_LINT1] = lint.value;
-
+	
 	/* Task Priority Register initialization. */
+	tpr_t tpr;
+	
 	tpr.value = l_apic[TPR];
 	tpr.pri_sc = 0;
 	tpr.pri = 0;
 	l_apic[TPR] = tpr.value;
 	
 	/* Spurious-Interrupt Vector Register initialization. */
+	svr_t svr;
+	
 	svr.value = l_apic[SVR];
 	svr.vector = VECTOR_APIC_SPUR;
 	svr.lapic_enabled = true;
 	svr.focus_checking = true;
 	l_apic[SVR] = svr.value;
-
+	
 	if (CPU->arch.family >= 6)
 		enable_l_apic_in_msr();
 	
 	/* Interrupt Command Register initialization. */
+	icr_t icr;
+	
 	icr.lo = l_apic[ICRlo];
 	icr.delmod = DELMOD_INIT;
 	icr.destmod = DESTMOD_PHYS;
@@ -397,40 +402,47 @@ void l_apic_init(void)
 	l_apic[ICRlo] = icr.lo;
 	
 	/* Timer Divide Configuration Register initialization. */
+	tdcr_t tdcr;
+	
 	tdcr.value = l_apic[TDCR];
 	tdcr.div_value = DIVIDE_1;
 	l_apic[TDCR] = tdcr.value;
-
+	
 	/* Program local timer. */
+	lvt_tm_t tm;
+	
 	tm.value = l_apic[LVT_Tm];
 	tm.vector = VECTOR_CLK;
 	tm.mode = TIMER_PERIODIC;
 	tm.masked = false;
 	l_apic[LVT_Tm] = tm.value;
-
+	
 	/*
 	 * Measure and configure the timer to generate timer
 	 * interrupt with period 1s/HZ seconds.
 	 */
-	t1 = l_apic[CCRT];
+	uint32_t t1 = l_apic[CCRT];
 	l_apic[ICRT] = 0xffffffff;
-
-	while (l_apic[CCRT] == t1)
-		;
-		
-	t1 = l_apic[CCRT];
-	delay(1000000/HZ);
-	t2 = l_apic[CCRT];
 	
-	l_apic[ICRT] = t1-t2;
+	while (l_apic[CCRT] == t1);
+	
+	t1 = l_apic[CCRT];
+	delay(1000000 / HZ);
+	uint32_t t2 = l_apic[CCRT];
+	
+	l_apic[ICRT] = t1 - t2;
 	
 	/* Program Logical Destination Register. */
 	ASSERT(CPU->id < 8);
+	ldr_t ldr;
+	
 	ldr.value = l_apic[LDR];
 	ldr.id = (uint8_t) (1 << CPU->id);
 	l_apic[LDR] = ldr.value;
 	
 	/* Program Destination Format Register for Flat mode. */
+	dfr_t dfr;
+	
 	dfr.value = l_apic[DFR];
 	dfr.model = MODEL_FLAT;
 	l_apic[DFR] = dfr.value;
@@ -446,18 +458,19 @@ void l_apic_eoi(void)
 void l_apic_debug(void)
 {
 #ifdef LAPIC_VERBOSE
-	lvt_tm_t tm;
-	lvt_lint_t lint;
-	lvt_error_t error;	
+	printf("LVT on cpu%" PRIs ", LAPIC ID: %" PRIu8 "\n", CPU->id, l_apic_id());
 	
-	printf("LVT on cpu%d, LAPIC ID: %d\n", CPU->id, l_apic_id());
-
+	lvt_tm_t tm;
 	tm.value = l_apic[LVT_Tm];
 	printf("LVT Tm: vector=%hhd, %s, %s, %s\n", tm.vector, delivs_str[tm.delivs], mask_str[tm.masked], tm_mode_str[tm.mode]);
+	
+	lvt_lint_t lint;
 	lint.value = l_apic[LVT_LINT0];
 	printf("LVT LINT0: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);
 	lint.value = l_apic[LVT_LINT1];	
 	printf("LVT LINT1: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);	
+	
+	lvt_error_t error;
 	error.value = l_apic[LVT_Err];
 	printf("LVT Err: vector=%hhd, %s, %s\n", error.vector, delivs_str[error.delivs], mask_str[error.masked]);
 #endif
@@ -466,6 +479,7 @@ void l_apic_debug(void)
 /** Get Local APIC ID.
  *
  * @return Local APIC ID.
+ *
  */
 uint8_t l_apic_id(void)
 {
@@ -480,6 +494,7 @@ uint8_t l_apic_id(void)
  * @param address IO APIC register address.
  *
  * @return Content of the addressed IO APIC register.
+ *
  */
 uint32_t io_apic_read(uint8_t address)
 {
@@ -494,33 +509,38 @@ uint32_t io_apic_read(uint8_t address)
 /** Write to IO APIC register.
  *
  * @param address IO APIC register address.
- * @param x Content to be written to the addressed IO APIC register.
+ * @param val     Content to be written to the addressed IO APIC register.
+ *
  */
-void io_apic_write(uint8_t address, uint32_t x)
+void io_apic_write(uint8_t address, uint32_t val)
 {
 	io_regsel_t regsel;
 	
 	regsel.value = io_apic[IOREGSEL];
 	regsel.reg_addr = address;
 	io_apic[IOREGSEL] = regsel.value;
-	io_apic[IOWIN] = x;
+	io_apic[IOWIN] = val;
 }
 
 /** Change some attributes of one item in I/O Redirection Table.
  *
- * @param pin IO APIC pin number.
- * @param dest Interrupt destination address.
- * @param v Interrupt vector to trigger.
+ * @param pin   IO APIC pin number.
+ * @param dest  Interrupt destination address.
+ * @param vec   Interrupt vector to trigger.
  * @param flags Flags.
+ *
  */
-void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags)
+void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t vec,
+    unsigned int flags)
 {
-	io_redirection_reg_t reg;
-	int dlvr = DELMOD_FIXED;
+	unsigned int dlvr;
 	
 	if (flags & LOPRI)
 		dlvr = DELMOD_LOWPRI;
-
+	else
+		dlvr = DELMOD_FIXED;
+	
+	io_redirection_reg_t reg;
 	reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
 	reg.hi = io_apic_read((uint8_t) (IOREDTBL + pin * 2 + 1));
 	
@@ -529,8 +549,8 @@ void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags)
 	reg.trigger_mode = TRIGMOD_EDGE;
 	reg.intpol = POLARITY_HIGH;
 	reg.delmod = dlvr;
-	reg.intvec = v;
-
+	reg.intvec = vec;
+	
 	io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
 	io_apic_write((uint8_t) (IOREDTBL + pin * 2 + 1), reg.hi);
 }
@@ -538,21 +558,21 @@ void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, int flags)
 /** Mask IRQs in IO APIC.
  *
  * @param irqmask Bitmask of IRQs to be masked (0 = do not mask, 1 = mask).
+ *
  */
 void io_apic_disable_irqs(uint16_t irqmask)
 {
-	io_redirection_reg_t reg;
 	unsigned int i;
-	int pin;
-	
 	for (i = 0; i < 16; i++) {
 		if (irqmask & (1 << i)) {
 			/*
 			 * Mask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = smp_irq_to_pin(i);
+			int pin = smp_irq_to_pin(i);
 			if (pin != -1) {
+				io_redirection_reg_t reg;
+				
 				reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
 				reg.masked = true;
 				io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);
@@ -565,21 +585,21 @@ void io_apic_disable_irqs(uint16_t irqmask)
 /** Unmask IRQs in IO APIC.
  *
  * @param irqmask Bitmask of IRQs to be unmasked (0 = do not unmask, 1 = unmask).
+ *
  */
 void io_apic_enable_irqs(uint16_t irqmask)
 {
 	unsigned int i;
-	int pin;
-	io_redirection_reg_t reg;	
-	
 	for (i = 0; i < 16; i++) {
 		if (irqmask & (1 << i)) {
 			/*
 			 * Unmask the signal input in IO APIC if there is a
 			 * mapping for the respective IRQ number.
 			 */
-			pin = smp_irq_to_pin(i);
+			int pin = smp_irq_to_pin(i);
 			if (pin != -1) {
+				io_redirection_reg_t reg;
+				
 				reg.lo = io_apic_read((uint8_t) (IOREDTBL + pin * 2));
 				reg.masked = false;
 				io_apic_write((uint8_t) (IOREDTBL + pin * 2), reg.lo);

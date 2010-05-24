@@ -42,21 +42,21 @@
 #endif
 
 /** Address space area flags. */
-#define AS_AREA_READ		1
-#define AS_AREA_WRITE		2
-#define AS_AREA_EXEC		4
-#define AS_AREA_CACHEABLE	8
+#define AS_AREA_READ       1
+#define AS_AREA_WRITE      2
+#define AS_AREA_EXEC       4
+#define AS_AREA_CACHEABLE  8
 
 /** Address space area info exported to userspace. */
 typedef struct {
 	/** Starting address */
 	uintptr_t start_addr;
-
+	
 	/** Area size */
 	size_t size;
-
+	
 	/** Area flags */
-	int flags;
+	unsigned int flags;
 } as_area_info_t;
 
 #ifdef KERNEL
@@ -74,29 +74,32 @@ typedef struct {
 /**
  * Defined to be true if user address space and kernel address space shadow each
  * other.
+ *
  */
-#define KERNEL_ADDRESS_SPACE_SHADOWED	KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
+#define KERNEL_ADDRESS_SPACE_SHADOWED  KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
 
-#define KERNEL_ADDRESS_SPACE_START	KERNEL_ADDRESS_SPACE_START_ARCH
-#define KERNEL_ADDRESS_SPACE_END	KERNEL_ADDRESS_SPACE_END_ARCH
-#define USER_ADDRESS_SPACE_START	USER_ADDRESS_SPACE_START_ARCH
-#define USER_ADDRESS_SPACE_END		USER_ADDRESS_SPACE_END_ARCH
+#define KERNEL_ADDRESS_SPACE_START  KERNEL_ADDRESS_SPACE_START_ARCH
+#define KERNEL_ADDRESS_SPACE_END    KERNEL_ADDRESS_SPACE_END_ARCH
+#define USER_ADDRESS_SPACE_START    USER_ADDRESS_SPACE_START_ARCH
+#define USER_ADDRESS_SPACE_END      USER_ADDRESS_SPACE_END_ARCH
 
-#define USTACK_ADDRESS			USTACK_ADDRESS_ARCH
+#define USTACK_ADDRESS  USTACK_ADDRESS_ARCH
 
 /** Kernel address space. */
-#define FLAG_AS_KERNEL			(1 << 0)	
+#define FLAG_AS_KERNEL  (1 << 0)
 
 /* Address space area attributes. */
-#define AS_AREA_ATTR_NONE	0
-#define AS_AREA_ATTR_PARTIAL	1	/**< Not fully initialized area. */
+#define AS_AREA_ATTR_NONE     0
+#define AS_AREA_ATTR_PARTIAL  1  /**< Not fully initialized area. */
 
 /** The page fault was not resolved by as_page_fault(). */
-#define AS_PF_FAULT		0
+#define AS_PF_FAULT  0
+
 /** The page fault was resolved by as_page_fault(). */
-#define AS_PF_OK		1
+#define AS_PF_OK  1
+
 /** The page fault was caused by memcpy_from_uspace() or memcpy_to_uspace(). */
-#define AS_PF_DEFER		2
+#define AS_PF_DEFER  2
 
 /** Address space structure.
  *
@@ -104,53 +107,58 @@ typedef struct {
  * pages for one or more tasks. Ranges of kernel memory pages are not
  * supposed to figure in the list as they are shared by all tasks and
  * set up during system initialization.
+ *
  */
 typedef struct as {
 	/** Protected by asidlock. */
 	link_t inactive_as_with_asid_link;
+	
 	/**
 	 * Number of processors on wich is this address space active.
 	 * Protected by asidlock.
 	 */
 	size_t cpu_refcount;
+	
 	/**
 	 * Address space identifier.
 	 * Constant on architectures that do not support ASIDs.
 	 * Protected by asidlock.
 	 */
 	asid_t asid;
-
+	
 	/** Number of references (i.e tasks that reference this as). */
 	atomic_t refcount;
-
+	
 	mutex_t lock;
-
+	
 	/** B+tree of address space areas. */
 	btree_t as_area_btree;
 	
 	/** Non-generic content. */
 	as_genarch_t genarch;
-
+	
 	/** Architecture specific content. */
 	as_arch_t arch;
 } as_t;
 
 typedef struct {
-	pte_t *(* page_table_create)(int flags);
-	void (* page_table_destroy)(pte_t *page_table);
-	void (* page_table_lock)(as_t *as, bool lock);
-	void (* page_table_unlock)(as_t *as, bool unlock);
+	pte_t *(* page_table_create)(unsigned int);
+	void (* page_table_destroy)(pte_t *);
+	void (* page_table_lock)(as_t *, bool);
+	void (* page_table_unlock)(as_t *, bool);
 } as_operations_t;
 
 /**
  * This structure contains information associated with the shared address space
  * area.
+ *
  */
 typedef struct {
 	/** This lock must be acquired only when the as_area lock is held. */
-	mutex_t lock;		
+	mutex_t lock;
 	/** This structure can be deallocated if refcount drops to 0. */
 	size_t refcount;
+	
 	/**
 	 * B+tree containing complete map of anonymous pages of the shared area.
 	 */
@@ -168,11 +176,14 @@ struct mem_backend;
 
 /** Backend data stored in address space area. */
 typedef union mem_backend_data {
-	struct {	/**< elf_backend members */
+	/** elf_backend members */
+	struct {
 		elf_header_t *elf;
 		elf_segment_header_t *segment;
 	};
-	struct {	/**< phys_backend members */
+	
+	/** phys_backend members */
+	struct {
 		uintptr_t base;
 		size_t frames;
 	};
@@ -181,42 +192,45 @@ typedef union mem_backend_data {
 /** Address space area structure.
  *
  * Each as_area_t structure describes one contiguous area of virtual memory.
+ *
  */
 typedef struct {
 	mutex_t lock;
 	/** Containing address space. */
-	as_t *as;		
+	as_t *as;
+	
 	/**
 	 * Flags related to the memory represented by the address space area.
 	 */
-	int flags;
+	unsigned int flags;
+	
 	/** Attributes related to the address space area itself. */
-	int attributes;
+	unsigned int attributes;
 	/** Size of this area in multiples of PAGE_SIZE. */
 	size_t pages;
 	/** Base address of this area. */
 	uintptr_t base;
 	/** Map of used space. */
 	btree_t used_space;
-
+	
 	/**
 	 * If the address space area has been shared, this pointer will
 	 * reference the share info structure.
 	 */
 	share_info_t *sh_info;
-
+	
 	/** Memory backend backing this address space area. */
 	struct mem_backend *backend;
-
+	
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
 } as_area_t;
 
 /** Address space area backend structure. */
 typedef struct mem_backend {
-	int (* page_fault)(as_area_t *area, uintptr_t addr, pf_access_t access);
-	void (* frame_free)(as_area_t *area, uintptr_t page, uintptr_t frame);
-	void (* share)(as_area_t *area);
+	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
+	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);
+	void (* share)(as_area_t *);
 } mem_backend_t;
 
 extern as_t *AS_KERNEL;
@@ -226,21 +240,22 @@ extern link_t inactive_as_with_asid_head;
 
 extern void as_init(void);
 
-extern as_t *as_create(int);
+extern as_t *as_create(unsigned int);
 extern void as_destroy(as_t *);
 extern void as_hold(as_t *);
 extern void as_release(as_t *);
 extern void as_switch(as_t *, as_t *);
 extern int as_page_fault(uintptr_t, pf_access_t, istate_t *);
 
-extern as_area_t *as_area_create(as_t *, int, size_t, uintptr_t, int,
-    mem_backend_t *, mem_backend_data_t *);
+extern as_area_t *as_area_create(as_t *, unsigned int, size_t, uintptr_t,
+    unsigned int, mem_backend_t *, mem_backend_data_t *);
 extern int as_area_destroy(as_t *, uintptr_t);
-extern int as_area_resize(as_t *, uintptr_t, size_t, int);
-extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, uintptr_t, int);
-extern int as_area_change_flags(as_t *, int, uintptr_t);
+extern int as_area_resize(as_t *, uintptr_t, size_t, unsigned int);
+extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, uintptr_t,
+    unsigned int);
+extern int as_area_change_flags(as_t *, unsigned int, uintptr_t);
 
-extern int as_area_get_flags(as_area_t *);
+extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);
 extern size_t as_area_get_size(uintptr_t);
 extern int used_space_insert(as_area_t *, uintptr_t, size_t);
@@ -248,18 +263,23 @@ extern int used_space_remove(as_area_t *, uintptr_t, size_t);
 
 
 /* Interface to be implemented by architectures. */
+
 #ifndef as_constructor_arch
-extern int as_constructor_arch(as_t *, int);
+extern int as_constructor_arch(as_t *, unsigned int);
 #endif /* !def as_constructor_arch */
+
 #ifndef as_destructor_arch
 extern int as_destructor_arch(as_t *);
 #endif /* !def as_destructor_arch */
+
 #ifndef as_create_arch
-extern int as_create_arch(as_t *, int);
+extern int as_create_arch(as_t *, unsigned int);
 #endif /* !def as_create_arch */
+
 #ifndef as_install_arch
 extern void as_install_arch(as_t *);
 #endif /* !def as_install_arch */
+
 #ifndef as_deinstall_arch
 extern void as_deinstall_arch(as_t *);
 #endif /* !def as_deinstall_arch */
@@ -269,19 +289,20 @@ extern mem_backend_t anon_backend;
 extern mem_backend_t elf_backend;
 extern mem_backend_t phys_backend;
 
-/** 
+/**
  * This flags is passed when running the loader, otherwise elf_load()
  * would return with a EE_LOADER error code.
+ *
  */
-#define ELD_F_NONE	0
-#define ELD_F_LOADER	1
+#define ELD_F_NONE    0
+#define ELD_F_LOADER  1
 
-extern unsigned int elf_load(elf_header_t *, as_t *, int);
+extern unsigned int elf_load(elf_header_t *, as_t *, unsigned int);
 
 /* Address space area related syscalls. */
-extern unative_t sys_as_area_create(uintptr_t, size_t, int);
-extern unative_t sys_as_area_resize(uintptr_t, size_t, int);
-extern unative_t sys_as_area_change_flags(uintptr_t, int);
+extern unative_t sys_as_area_create(uintptr_t, size_t, unsigned int);
+extern unative_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
+extern unative_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern unative_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */

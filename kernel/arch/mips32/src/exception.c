@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -66,18 +66,16 @@ static const char *exctable[] = {
 	"Virtual Coherency - instruction",
 	"Floating Point",
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	"WatchHi/WatchLo", /* 23 */
+	"WatchHi/WatchLo",  /* 23 */
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	"Virtual Coherency - data",
 };
 
 static void print_regdump(istate_t *istate)
 {
-	const char *pcsymbol = symtab_fmt_name_lookup(istate->epc);
-	const char *rasymbol = symtab_fmt_name_lookup(istate->ra);
-	
-	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol,
-	    istate->ra, rasymbol, istate->sp);
+	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc,
+	    symtab_fmt_name_lookup(istate->epc), istate->ra,
+	    symtab_fmt_name_lookup(istate->ra), istate->sp);
 }
 
 static void unhandled_exception(int n, istate_t *istate)
@@ -134,12 +132,10 @@ static void cpuns_exception(int n, istate_t *istate)
 
 static void interrupt_exception(int n, istate_t *istate)
 {
-	uint32_t cause;
-	int i;
+	/* Decode interrupt number and process the interrupt */
+	uint32_t cause = (cp0_cause_read() >> 8) & 0xff;
 	
-	/* decode interrupt number and process the interrupt */
-	cause = (cp0_cause_read() >> 8) & 0xff;
-	
+	unsigned int i;
 	for (i = 0; i < 8; i++) {
 		if (cause & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
@@ -148,7 +144,7 @@ static void interrupt_exception(int n, istate_t *istate)
 				 * The IRQ handler was found.
 				 */
 				irq->handler(irq);
-				spinlock_unlock(&irq->lock);
+				irq_spinlock_unlock(&irq->lock, false);
 			} else {
 				/*
 				 * Spurious interrupt.
@@ -171,7 +167,7 @@ static void syscall_exception(int n, istate_t *istate)
 void exception_init(void)
 {
 	int i;
-
+	
 	/* Clear exception table */
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) unhandled_exception);

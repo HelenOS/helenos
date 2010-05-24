@@ -43,14 +43,14 @@
 #include <ddi/irq.h>
 #include <stacktrace.h>
 
-typedef void (* iroutine)(int n, istate_t *istate);
+typedef void (* iroutine)(int, istate_t *);
 
-extern void fault_if_from_uspace(istate_t *istate, const char *fmt, ...);
-extern iroutine exc_register(int n, const char *name, iroutine f);
-extern void exc_dispatch(int n, istate_t *t);
-void exc_init(void);
+extern void fault_if_from_uspace(istate_t *, const char *, ...);
+extern iroutine exc_register(int, const char *, iroutine);
+extern void exc_dispatch(int, istate_t *);
+extern void exc_init(void);
 
-extern void irq_initialize_arch(irq_t *irq);
+extern void irq_initialize_arch(irq_t *);
 
 #endif
 

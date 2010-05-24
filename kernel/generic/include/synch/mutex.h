@@ -49,15 +49,17 @@ typedef struct {
 	semaphore_t sem;
 } mutex_t;
 
-#define mutex_lock(mtx)			\
+#define mutex_lock(mtx) \
 	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-#define mutex_trylock(mtx)		\
+
+#define mutex_trylock(mtx) \
 	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING)
-#define mutex_lock_timeout(mtx, usec)	\
+
+#define mutex_lock_timeout(mtx, usec) \
 	_mutex_lock_timeout((mtx), (usec), SYNCH_FLAGS_NON_BLOCKING)
 
 extern void mutex_initialize(mutex_t *, mutex_type_t);
-extern int _mutex_lock_timeout(mutex_t *, uint32_t, int);
+extern int _mutex_lock_timeout(mutex_t *, uint32_t, unsigned int);
 extern void mutex_unlock(mutex_t *);
 
 #endif

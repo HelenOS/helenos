@@ -41,26 +41,24 @@
 
 /** Operations to manipulate page mappings. */
 typedef struct {
-	void (* mapping_insert)(as_t *as, uintptr_t page, uintptr_t frame,
-	    int flags);
-	void (* mapping_remove)(as_t *as, uintptr_t page);
-	pte_t *(* mapping_find)(as_t *as, uintptr_t page);
+	void (* mapping_insert)(as_t *, uintptr_t, uintptr_t, unsigned int);
+	void (* mapping_remove)(as_t *, uintptr_t);
+	pte_t *(* mapping_find)(as_t *, uintptr_t);
 } page_mapping_operations_t;
 
 extern page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
-extern void page_table_lock(as_t *as, bool lock);
-extern void page_table_unlock(as_t *as, bool unlock);
-extern void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
-    int flags);
-extern void page_mapping_remove(as_t *as, uintptr_t page);
-extern pte_t *page_mapping_find(as_t *as, uintptr_t page);
-extern pte_t *page_table_create(int flags);
-extern void page_table_destroy(pte_t *page_table);
-extern void map_structure(uintptr_t s, size_t size);
+extern void page_table_lock(as_t *, bool);
+extern void page_table_unlock(as_t *, bool);
+extern void page_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
+extern void page_mapping_remove(as_t *, uintptr_t);
+extern pte_t *page_mapping_find(as_t *, uintptr_t);
+extern pte_t *page_table_create(unsigned int);
+extern void page_table_destroy(pte_t *);
+extern void map_structure(uintptr_t, size_t);
 
-extern uintptr_t hw_map(uintptr_t physaddr, size_t size);
+extern uintptr_t hw_map(uintptr_t, size_t);
 
 #endif
 

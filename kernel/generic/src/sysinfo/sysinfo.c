@@ -57,7 +57,7 @@ static mutex_t sysinfo_lock;
 /** Sysinfo item constructor
  *
  */
-static int sysinfo_item_constructor(void *obj, int kmflag)
+static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	
@@ -77,7 +77,7 @@ static int sysinfo_item_constructor(void *obj, int kmflag)
  * to the disposal of item->name
  *
  */
-static int sysinfo_item_destructor(void *obj)
+static size_t sysinfo_item_destructor(void *obj)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	

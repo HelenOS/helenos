@@ -56,12 +56,13 @@
 #include <symtab.h>
 #include <putchar.h>
 
-#define VECTORS_64_BUNDLE	20
-#define VECTORS_16_BUNDLE	48
-#define VECTORS_16_BUNDLE_START	0x5000
-#define VECTOR_MAX		0x7f00
+#define VECTORS_64_BUNDLE        20
+#define VECTORS_16_BUNDLE        48
+#define VECTORS_16_BUNDLE_START  0x5000
 
-#define BUNDLE_SIZE		16
+#define VECTOR_MAX  0x7f00
+
+#define BUNDLE_SIZE  16
 
 static const char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
@@ -133,10 +134,6 @@ static const char *vector_to_string(uint16_t vector)
 
 static void dump_interrupted_context(istate_t *istate)
 {
-	const char *ifa = symtab_fmt_name_lookup(istate->cr_ifa);
-	const char *iipa = symtab_fmt_name_lookup(istate->cr_iipa);
-	const char *iip = symtab_fmt_name_lookup(istate->cr_iip);
-	
 	putchar('\n');
 	printf("Interrupted context dump:\n");
 	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
@@ -148,10 +145,12 @@ static void dump_interrupted_context(istate_t *istate)
 	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value,
 	    istate->cr_ipsr);
 	
-	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip,
-	    istate->cr_isr.ei, iip);
-	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa, iipa);
-	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa, ifa);
+	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei,
+	    symtab_fmt_name_lookup(istate->cr_iip));
+	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa,
+	    symtab_fmt_name_lookup(istate->cr_iipa));
+	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa,
+	    symtab_fmt_name_lookup(istate->cr_ifa));
 }
 
 void general_exception(uint64_t vector, istate_t *istate)
@@ -217,7 +216,7 @@ int break_instruction(uint64_t vector, istate_t *istate)
 	} else {
 		istate->cr_ipsr.ri++;
 	}
-
+	
 	return syscall_handler(istate->in0, istate->in1, istate->in2,
 	    istate->in3, istate->in4, istate->in5, istate->in6);
 }
@@ -233,37 +232,39 @@ void universal_handler(uint64_t vector, istate_t *istate)
 
 static void end_of_local_irq(void)
 {
-	asm volatile ("mov cr.eoi=r0;;");
+	asm volatile (
+		"mov cr.eoi=r0;;"
+	);
 }
-
 
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
 	cr_ivr_t ivr;
-	irq_t *irq;
 	
 	ivr.value = ivr_read();
 	srlz_d();
-
+	
+	irq_t *irq;
+	
 	switch (ivr.vector) {
 	case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
  		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
 		break;
-
+	
 #ifdef CONFIG_SMP
 	case VECTOR_TLB_SHOOTDOWN_IPI:
 		tlb_shootdown_ipi_recv();
 		end_of_local_irq();
 		break;
 #endif
-
+	
 	case INTERRUPT_TIMER:
 		irq = irq_dispatch_and_lock(ivr.vector);
 		if (irq) {
 			irq->handler(irq);
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			panic("Unhandled Internal Timer Interrupt (%d).",
 			    ivr.vector);
@@ -282,7 +283,7 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 			irq->handler(irq);
 			if (!irq->preack)
 				end_of_local_irq();
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			/*
 			 * Unhandled interrupt.

@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief		Timeout management functions.
+ * @brief Timeout management functions.
  */
 
 #include <time/timeout.h>
@@ -52,41 +52,38 @@
  */
 void timeout_init(void)
 {
-	spinlock_initialize(&CPU->timeoutlock, "timeout_lock");
+	irq_spinlock_initialize(&CPU->timeoutlock, "cpu.timeoutlock");
 	list_initialize(&CPU->timeout_active_head);
 }
 
-
-/** Reinitialize timeout 
+/** Reinitialize timeout
  *
  * Initialize all members except the lock.
  *
- * @param t		Timeout to be initialized.
+ * @param timeout Timeout to be initialized.
  *
  */
-void timeout_reinitialize(timeout_t *t)
+void timeout_reinitialize(timeout_t *timeout)
 {
-	t->cpu = NULL;
-	t->ticks = 0;
-	t->handler = NULL;
-	t->arg = NULL;
-	link_initialize(&t->link);
+	timeout->cpu = NULL;
+	timeout->ticks = 0;
+	timeout->handler = NULL;
+	timeout->arg = NULL;
+	link_initialize(&timeout->link);
 }
-
 
 /** Initialize timeout
  *
  * Initialize all members including the lock.
  *
- * @param t		Timeout to be initialized.
+ * @param timeout Timeout to be initialized.
  *
  */
-void timeout_initialize(timeout_t *t)
+void timeout_initialize(timeout_t *timeout)
 {
-	spinlock_initialize(&t->lock, "timeout_t_lock");
-	timeout_reinitialize(t);
+	irq_spinlock_initialize(&timeout->lock, "timeout_t_lock");
+	timeout_reinitialize(timeout);
 }
-
 
 /** Register timeout
  *
@@ -94,123 +91,115 @@ void timeout_initialize(timeout_t *t)
  * to timeout list and make it execute in
  * time microseconds (or slightly more).
  *
- * @param t		Timeout structure.
- * @param time		Number of usec in the future to execute the handler.
- * @param f		Timeout handler function.
- * @param arg		Timeout handler argument.
+ * @param timeout Timeout structure.
+ * @param time    Number of usec in the future to execute the handler.
+ * @param handler Timeout handler function.
+ * @param arg     Timeout handler argument.
  *
  */
-void
-timeout_register(timeout_t *t, uint64_t time, timeout_handler_t f, void *arg)
+void timeout_register(timeout_t *timeout, uint64_t time,
+    timeout_handler_t handler, void *arg)
 {
-	timeout_t *hlp = NULL;
-	link_t *l, *m;
-	ipl_t ipl;
-	uint64_t sum;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&CPU->timeoutlock);
-	spinlock_lock(&t->lock);
-
-	if (t->cpu)
-		panic("Unexpected: t->cpu != 0.");
-
-	t->cpu = CPU;
-	t->ticks = us2ticks(time);
+	irq_spinlock_lock(&CPU->timeoutlock, true);
+	irq_spinlock_lock(&timeout->lock, false);
 	
-	t->handler = f;
-	t->arg = arg;
-
+	if (timeout->cpu)
+		panic("Unexpected: timeout->cpu != 0.");
+	
+	timeout->cpu = CPU;
+	timeout->ticks = us2ticks(time);
+	
+	timeout->handler = handler;
+	timeout->arg = arg;
+	
 	/*
-	 * Insert t into the active timeouts list according to t->ticks.
+	 * Insert timeout into the active timeouts list according to timeout->ticks.
 	 */
-	sum = 0;
-	l = CPU->timeout_active_head.next;
-	while (l != &CPU->timeout_active_head) {
-		hlp = list_get_instance(l, timeout_t, link);
-		spinlock_lock(&hlp->lock);
-		if (t->ticks < sum + hlp->ticks) {
-			spinlock_unlock(&hlp->lock);
+	uint64_t sum = 0;
+	timeout_t *target = NULL;
+	link_t *cur;
+	for (cur = CPU->timeout_active_head.next;
+	    cur != &CPU->timeout_active_head; cur = cur->next) {
+		target = list_get_instance(cur, timeout_t, link);
+		irq_spinlock_lock(&target->lock, false);
+		
+		if (timeout->ticks < sum + target->ticks) {
+			irq_spinlock_unlock(&target->lock, false);
 			break;
 		}
-		sum += hlp->ticks;
-		spinlock_unlock(&hlp->lock);
-		l = l->next;
+		
+		sum += target->ticks;
+		irq_spinlock_unlock(&target->lock, false);
 	}
-
-	m = l->prev;
-	list_prepend(&t->link, m); /* avoid using l->prev */
-
+	
+	/* Avoid using cur->prev directly */
+	link_t *prev = cur->prev;
+	list_prepend(&timeout->link, prev);
+	
 	/*
-	 * Adjust t->ticks according to ticks accumulated in h's predecessors.
+	 * Adjust timeout->ticks according to ticks
+	 * accumulated in target's predecessors.
 	 */
-	t->ticks -= sum;
-
+	timeout->ticks -= sum;
+	
 	/*
-	 * Decrease ticks of t's immediate succesor by t->ticks.
+	 * Decrease ticks of timeout's immediate succesor by timeout->ticks.
 	 */
-	if (l != &CPU->timeout_active_head) {
-		spinlock_lock(&hlp->lock);
-		hlp->ticks -= t->ticks;
-		spinlock_unlock(&hlp->lock);
+	if (cur != &CPU->timeout_active_head) {
+		irq_spinlock_lock(&target->lock, false);
+		target->ticks -= timeout->ticks;
+		irq_spinlock_unlock(&target->lock, false);
 	}
-
-	spinlock_unlock(&t->lock);
-	spinlock_unlock(&CPU->timeoutlock);
-	interrupts_restore(ipl);
+	
+	irq_spinlock_unlock(&timeout->lock, false);
+	irq_spinlock_unlock(&CPU->timeoutlock, true);
 }
-
 
 /** Unregister timeout
  *
  * Remove timeout from timeout list.
  *
- * @param t		Timeout to unregister.
+ * @param timeout Timeout to unregister.
  *
- * @return		True on success, false on failure.
+ * @return True on success, false on failure.
+ *
  */
-bool timeout_unregister(timeout_t *t)
+bool timeout_unregister(timeout_t *timeout)
 {
-	timeout_t *hlp;
-	link_t *l;
-	ipl_t ipl;
 	DEADLOCK_PROBE_INIT(p_tolock);
-
+	
 grab_locks:
-	ipl = interrupts_disable();
-	spinlock_lock(&t->lock);
-	if (!t->cpu) {
-		spinlock_unlock(&t->lock);
-		interrupts_restore(ipl);
+	irq_spinlock_lock(&timeout->lock, true);
+	if (!timeout->cpu) {
+		irq_spinlock_unlock(&timeout->lock, true);
 		return false;
 	}
-	if (!spinlock_trylock(&t->cpu->timeoutlock)) {
-		spinlock_unlock(&t->lock);
-		interrupts_restore(ipl);
+	
+	if (!irq_spinlock_trylock(&timeout->cpu->timeoutlock)) {
+		irq_spinlock_unlock(&timeout->lock, true);
 		DEADLOCK_PROBE(p_tolock, DEADLOCK_THRESHOLD);
 		goto grab_locks;
 	}
 	
 	/*
-	 * Now we know for sure that t hasn't been activated yet
-	 * and is lurking in t->cpu->timeout_active_head queue.
+	 * Now we know for sure that timeout hasn't been activated yet
+	 * and is lurking in timeout->cpu->timeout_active_head queue.
 	 */
-
-	l = t->link.next;
-	if (l != &t->cpu->timeout_active_head) {
-		hlp = list_get_instance(l, timeout_t, link);
-		spinlock_lock(&hlp->lock);
-		hlp->ticks += t->ticks;
-		spinlock_unlock(&hlp->lock);
+	
+	link_t *cur = timeout->link.next;
+	if (cur != &timeout->cpu->timeout_active_head) {
+		timeout_t *tmp = list_get_instance(cur, timeout_t, link);
+		irq_spinlock_lock(&tmp->lock, false);
+		tmp->ticks += timeout->ticks;
+		irq_spinlock_unlock(&tmp->lock, false);
 	}
 	
-	list_remove(&t->link);
-	spinlock_unlock(&t->cpu->timeoutlock);
-
-	timeout_reinitialize(t);
-	spinlock_unlock(&t->lock);
-
-	interrupts_restore(ipl);
+	list_remove(&timeout->link);
+	irq_spinlock_unlock(&timeout->cpu->timeoutlock, false);
+	
+	timeout_reinitialize(timeout);
+	irq_spinlock_unlock(&timeout->lock, true);
+	
 	return true;
 }
 

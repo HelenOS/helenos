@@ -66,7 +66,7 @@ void mutex_initialize(mutex_t *mtx, mutex_type_t type)
  * @return See comment for waitq_sleep_timeout().
  *
  */
-int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
+int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 {
 	int rc;
 

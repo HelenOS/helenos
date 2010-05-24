@@ -46,9 +46,9 @@
 
 /** Scheduler run queue structure. */
 typedef struct {
-	SPINLOCK_DECLARE(lock);
-	link_t rq_head;          /**< List of ready threads. */
-	size_t n;                /**< Number of threads in rq_ready. */
+	IRQ_SPINLOCK_DECLARE(lock);
+	link_t rq_head;              /**< List of ready threads. */
+	size_t n;                    /**< Number of threads in rq_ready. */
 } runq_t;
 
 extern atomic_t nrdy;

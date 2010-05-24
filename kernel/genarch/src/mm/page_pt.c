@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Virtual Address Translation for hierarchical 4-level page tables.
+ * @brief Virtual Address Translation for hierarchical 4-level page tables.
  */
 
 #include <genarch/mm/page_pt.h>
@@ -45,9 +45,9 @@
 #include <arch/asm.h>
 #include <memstr.h>
 
-static void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags);
-static void pt_mapping_remove(as_t *as, uintptr_t page);
-static pte_t *pt_mapping_find(as_t *as, uintptr_t page);
+static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
+static void pt_mapping_remove(as_t *, uintptr_t);
+static pte_t *pt_mapping_find(as_t *, uintptr_t);
 
 page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
@@ -62,45 +62,44 @@ page_mapping_operations_t pt_mapping_operations = {
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
- * @param page Virtual address of the page to be mapped.
+ * @param as    Address space to wich page belongs.
+ * @param page  Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
+ *
  */
-void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
+void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+    unsigned int flags)
 {
-	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
-	pte_t *newpt;
-
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
-
+	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
+	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = (pte_t *)frame_alloc(PTL1_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL1_SIZE, FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL1_SIZE, 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page), KA2PA(newpt));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
-
-	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
-
+	
+	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+	
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = (pte_t *)frame_alloc(PTL2_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL2_SIZE, FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL2_SIZE, 0);
 		SET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page), KA2PA(newpt));
 		SET_PTL2_FLAGS(ptl1, PTL1_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
-
-	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
-
+	
+	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+	
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
-		newpt = (pte_t *)frame_alloc(PTL3_SIZE, FRAME_KA);
+		pte_t *newpt = (pte_t *) frame_alloc(PTL3_SIZE, FRAME_KA);
 		memsetb(newpt, FRAME_SIZE << PTL3_SIZE, 0);
 		SET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page), KA2PA(newpt));
 		SET_PTL3_FLAGS(ptl2, PTL2_INDEX(page), PAGE_PRESENT | PAGE_USER | PAGE_EXEC | PAGE_CACHEABLE | PAGE_WRITE);
 	}
-
-	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-
+	
+	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+	
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags);
 }
@@ -115,118 +114,125 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
+ * @param as   Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
+ *
  */
 void pt_mapping_remove(as_t *as, uintptr_t page)
 {
-	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
-	bool empty = true;
-	int i;
-
 	/*
 	 * First, remove the mapping, if it exists.
-	 */
-
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
-
-	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
-		return;
-
-	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
-
-	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
-		return;
-
-	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
-
-	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
-		return;
-
-	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-
-	/* Destroy the mapping. Setting to PAGE_NOT_PRESENT is not sufficient. */
-	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
-
-	/*
-	 * Second, free all empty tables along the way from PTL3 down to PTL0.
+	 *
 	 */
 	
-	/* check PTL3 */
+	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
+	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+	
+	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
+	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+	
+	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
+	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
+		return;
+	
+	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+	
+	/* Destroy the mapping. Setting to PAGE_NOT_PRESENT is not sufficient. */
+	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
+	
+	/*
+	 * Second, free all empty tables along the way from PTL3 down to PTL0.
+	 *
+	 */
+	
+	/* Check PTL3 */
+	bool empty = true;
+	
+	unsigned int i;
 	for (i = 0; i < PTL3_ENTRIES; i++) {
 		if (PTE_VALID(&ptl3[i])) {
 			empty = false;
 			break;
 		}
 	}
+	
 	if (empty) {
 		/*
 		 * PTL3 is empty.
 		 * Release the frame and remove PTL3 pointer from preceding table.
+		 *
 		 */
 		frame_free(KA2PA((uintptr_t) ptl3));
-		if (PTL2_ENTRIES)
-			memsetb(&ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
-		else if (PTL1_ENTRIES)
-			memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
-		else
-			memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+#if (PTL2_ENTRIES != 0)
+		memsetb(&ptl2[PTL2_INDEX(page)], sizeof(pte_t), 0);
+#elif (PTL1_ENTRIES != 0)
+		memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+#else
+		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+#endif
 	} else {
 		/*
 		 * PTL3 is not empty.
 		 * Therefore, there must be a path from PTL0 to PTL3 and
 		 * thus nothing to free in higher levels.
+		 *
 		 */
 		return;
 	}
 	
-	/* check PTL2, empty is still true */
-	if (PTL2_ENTRIES) {
-		for (i = 0; i < PTL2_ENTRIES; i++) {
-			if (PTE_VALID(&ptl2[i])) {
-				empty = false;
-				break;
-			}
-		}
-		if (empty) {
-			/*
-			 * PTL2 is empty.
-			 * Release the frame and remove PTL2 pointer from preceding table.
-			 */
-			frame_free(KA2PA((uintptr_t) ptl2));
-			if (PTL1_ENTRIES)
-				memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
-			else
-				memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
-		}
-		else {
-			/*
-			 * PTL2 is not empty.
-			 * Therefore, there must be a path from PTL0 to PTL2 and
-			 * thus nothing to free in higher levels.
-			 */
-			return;
+	/* Check PTL2, empty is still true */
+#if (PTL2_ENTRIES != 0)
+	for (i = 0; i < PTL2_ENTRIES; i++) {
+		if (PTE_VALID(&ptl2[i])) {
+			empty = false;
+			break;
 		}
 	}
-
+	
+	if (empty) {
+		/*
+		 * PTL2 is empty.
+		 * Release the frame and remove PTL2 pointer from preceding table.
+		 *
+		 */
+		frame_free(KA2PA((uintptr_t) ptl2));
+#if (PTL1_ENTRIES != 0)
+		memsetb(&ptl1[PTL1_INDEX(page)], sizeof(pte_t), 0);
+#else
+		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+#endif
+	} else {
+		/*
+		 * PTL2 is not empty.
+		 * Therefore, there must be a path from PTL0 to PTL2 and
+		 * thus nothing to free in higher levels.
+		 *
+		 */
+		return;
+	}
+#endif /* PTL2_ENTRIES != 0 */
+	
 	/* check PTL1, empty is still true */
-	if (PTL1_ENTRIES) {
-		for (i = 0; i < PTL1_ENTRIES; i++) {
-			if (PTE_VALID(&ptl1[i])) {
-				empty = false;
-				break;
-			}
-		}
-		if (empty) {
-			/*
-			 * PTL1 is empty.
-			 * Release the frame and remove PTL1 pointer from preceding table.
-			 */
-			frame_free(KA2PA((uintptr_t) ptl1));
-			memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+#if (PTL1_ENTRIES != 0)
+	for (i = 0; i < PTL1_ENTRIES; i++) {
+		if (PTE_VALID(&ptl1[i])) {
+			empty = false;
+			break;
 		}
 	}
-
+	
+	if (empty) {
+		/*
+		 * PTL1 is empty.
+		 * Release the frame and remove PTL1 pointer from preceding table.
+		 *
+		 */
+		frame_free(KA2PA((uintptr_t) ptl1));
+		memsetb(&ptl0[PTL0_INDEX(page)], sizeof(pte_t), 0);
+	}
+#endif /* PTL1_ENTRIES != 0 */
 }
 
 /** Find mapping for virtual page in hierarchical page tables.
@@ -235,32 +241,29 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to which page belongs.
+ * @param as   Address space to which page belongs.
  * @param page Virtual page.
  *
- * @return NULL if there is no such mapping; entry from PTL3 describing the mapping otherwise.
+ * @return NULL if there is no such mapping; entry from PTL3 describing
+ *         the mapping otherwise.
+ *
  */
 pte_t *pt_mapping_find(as_t *as, uintptr_t page)
 {
-	pte_t *ptl0, *ptl1, *ptl2, *ptl3;
-
-	ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
-
+	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
-
-	ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
-
+	
+	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
-
-	ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
-
+	
+	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
-
-	ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-
+	
+	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
+	
 	return &ptl3[PTL3_INDEX(page)];
 }
 

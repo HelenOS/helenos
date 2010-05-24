@@ -65,7 +65,8 @@ static slab_cache_t *ipc_answerbox_slab;
 
 /** Initialize a call structure.
  *
- * @param call		Call structure to be initialized.
+ * @param call Call structure to be initialized.
+ *
  */
 static void _ipc_call_init(call_t *call)
 {
@@ -76,29 +77,29 @@ static void _ipc_call_init(call_t *call)
 }
 
 /** Allocate and initialize a call structure.
- * 
+ *
  * The call is initialized, so that the reply will be directed to
  * TASK->answerbox.
  *
- * @param flags		Parameters for slab_alloc (e.g FRAME_ATOMIC).
+ * @param flags Parameters for slab_alloc (e.g FRAME_ATOMIC).
  *
- * @return		If flags permit it, return NULL, or initialized kernel
- *			call structure.
+ * @return If flags permit it, return NULL, or initialized kernel
+ *         call structure.
+ *
  */
-call_t *ipc_call_alloc(int flags)
+call_t *ipc_call_alloc(unsigned int flags)
 {
-	call_t *call;
-
-	call = slab_alloc(ipc_call_slab, flags);
+	call_t *call = slab_alloc(ipc_call_slab, flags);
 	if (call)
 		_ipc_call_init(call);
-
+	
 	return call;
 }
 
 /** Deallocate a call structure.
  *
- * @param call		Call structure to be freed.
+ * @param call Call structure to be freed.
+ *
  */
 void ipc_call_free(call_t *call)
 {
@@ -110,13 +111,14 @@ void ipc_call_free(call_t *call)
 
 /** Initialize an answerbox structure.
  *
- * @param box		Answerbox structure to be initialized.
- * @param task		Task to which the answerbox belongs.
+ * @param box  Answerbox structure to be initialized.
+ * @param task Task to which the answerbox belongs.
+ *
  */
 void ipc_answerbox_init(answerbox_t *box, task_t *task)
 {
-	spinlock_initialize(&box->lock, "ipc_box_lock");
-	spinlock_initialize(&box->irq_lock, "ipc_box_irqlock");
+	irq_spinlock_initialize(&box->lock, "ipc.box.lock");
+	irq_spinlock_initialize(&box->irq_lock, "ipc.box.irqlock");
 	waitq_initialize(&box->wq);
 	link_initialize(&box->sync_box_link);
 	list_initialize(&box->connected_phones);
@@ -130,26 +132,28 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 
 /** Connect a phone to an answerbox.
  *
- * @param phone		Initialized phone structure.
- * @param box		Initialized answerbox structure.
+ * @param phone Initialized phone structure.
+ * @param box   Initialized answerbox structure.
+ *
  */
 void ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
 	mutex_lock(&phone->lock);
-
+	
 	phone->state = IPC_PHONE_CONNECTED;
 	phone->callee = box;
-
-	spinlock_lock(&box->lock);
+	
+	irq_spinlock_lock(&box->lock, true);
 	list_append(&phone->link, &box->connected_phones);
-	spinlock_unlock(&box->lock);
-
+	irq_spinlock_unlock(&box->lock, true);
+	
 	mutex_unlock(&phone->lock);
 }
 
 /** Initialize a phone structure.
  *
- * @param phone		Phone structure to be initialized.
+ * @param phone Phone structure to be initialized.
+ *
  */
 void ipc_phone_init(phone_t *phone)
 {
@@ -161,99 +165,96 @@ void ipc_phone_init(phone_t *phone)
 
 /** Helper function to facilitate synchronous calls.
  *
- * @param phone		Destination kernel phone structure.
- * @param request	Call structure with request.
+ * @param phone   Destination kernel phone structure.
+ * @param request Call structure with request.
  *
- * @return		EOK on success or EINTR if the sleep was interrupted.
+ * @return EOK on success or EINTR if the sleep was interrupted.
+ *
  */
 int ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t *sync_box; 
-	ipl_t ipl;
-
-	sync_box = slab_alloc(ipc_answerbox_slab, 0);
+	answerbox_t *sync_box = slab_alloc(ipc_answerbox_slab, 0);
 	ipc_answerbox_init(sync_box, TASK);
-
+	
 	/*
 	 * Put the answerbox on the TASK's list of synchronous answerboxes so
 	 * that it can be cleaned up if the call is interrupted.
 	 */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	list_append(&sync_box->sync_box_link, &TASK->sync_box_head);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	/* We will receive data in a special box. */
 	request->callerbox = sync_box;
-
+	
 	ipc_call(phone, request);
 	if (!ipc_wait_for_call(sync_box, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_INTERRUPTIBLE)) {
-	    	/* The answerbox and the call will be freed by ipc_cleanup(). */
+		/* The answerbox and the call will be freed by ipc_cleanup(). */
 		return EINTR;
 	}
-
+	
 	/*
 	 * The answer arrived without interruption so we can remove the
 	 * answerbox from the TASK's list of synchronous answerboxes.
 	 */
-	(void) interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	list_remove(&sync_box->sync_box_link);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	slab_free(ipc_answerbox_slab, sync_box);
 	return EOK;
 }
 
 /** Answer a message which was not dispatched and is not listed in any queue.
  *
- * @param call		Call structure to be answered.
- * @param selflocked	If true, then TASK->answebox is locked.
+ * @param call       Call structure to be answered.
+ * @param selflocked If true, then TASK->answebox is locked.
+ *
  */
 static void _ipc_answer_free_call(call_t *call, bool selflocked)
 {
 	answerbox_t *callerbox = call->callerbox;
 	bool do_lock = ((!selflocked) || callerbox != (&TASK->answerbox));
-	ipl_t ipl;
-
+	
 	/* Count sent answer */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	TASK->ipc_info.answer_sent++;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	call->flags |= IPC_CALL_ANSWERED;
-
+	
 	if (call->flags & IPC_CALL_FORWARDED) {
 		if (call->caller_phone) {
 			/* Demasquerade the caller phone. */
 			call->data.phone = call->caller_phone;
 		}
 	}
-
+	
 	if (do_lock)
-		spinlock_lock(&callerbox->lock);
+		irq_spinlock_lock(&callerbox->lock, true);
+	
 	list_append(&call->link, &callerbox->answers);
+	
 	if (do_lock)
-		spinlock_unlock(&callerbox->lock);
+		irq_spinlock_unlock(&callerbox->lock, true);
+	
 	waitq_wakeup(&callerbox->wq, WAKEUP_FIRST);
 }
 
 /** Answer a message which is in a callee queue.
  *
- * @param box		Answerbox that is answering the message.
- * @param call		Modified request that is being sent back.
+ * @param box  Answerbox that is answering the message.
+ * @param call Modified request that is being sent back.
+ *
  */
 void ipc_answer(answerbox_t *box, call_t *call)
 {
 	/* Remove from active box */
-	spinlock_lock(&box->lock);
+	irq_spinlock_lock(&box->lock, true);
 	list_remove(&call->link);
-	spinlock_unlock(&box->lock);
+	irq_spinlock_unlock(&box->lock, true);
+	
 	/* Send back answer */
 	_ipc_answer_free_call(call, false);
 }
@@ -263,9 +264,10 @@ void ipc_answer(answerbox_t *box, call_t *call)
  * Most errors are better handled by forming a normal backward
  * message and sending it as a normal answer.
  *
- * @param phone		Phone structure the call should appear to come from.
- * @param call		Call structure to be answered.
- * @param err		Return value to be used for the answer.
+ * @param phone Phone structure the call should appear to come from.
+ * @param call  Call structure to be answered.
+ * @param err   Return value to be used for the answer.
+ *
  */
 void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 {
@@ -277,44 +279,41 @@ void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
 
 /** Unsafe unchecking version of ipc_call.
  *
- * @param phone		Phone structure the call comes from.
- * @param box		Destination answerbox structure.
- * @param call		Call structure with request.
+ * @param phone Phone structure the call comes from.
+ * @param box   Destination answerbox structure.
+ * @param call  Call structure with request.
+ *
  */
 static void _ipc_call(phone_t *phone, answerbox_t *box, call_t *call)
 {
-	ipl_t ipl;
-
 	/* Count sent ipc call */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	TASK->ipc_info.call_sent++;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	if (!(call->flags & IPC_CALL_FORWARDED)) {
 		atomic_inc(&phone->active_calls);
 		call->data.phone = phone;
 	}
-
-	spinlock_lock(&box->lock);
+	
+	irq_spinlock_lock(&box->lock, true);
 	list_append(&call->link, &box->calls);
-	spinlock_unlock(&box->lock);
+	irq_spinlock_unlock(&box->lock, true);
+	
 	waitq_wakeup(&box->wq, WAKEUP_FIRST);
 }
 
 /** Send an asynchronous request using a phone to an answerbox.
  *
- * @param phone		Phone structure the call comes from and which is
- *			connected to the destination answerbox.
- * @param call		Call structure with request.
+ * @param phone Phone structure the call comes from and which is
+ *              connected to the destination answerbox.
+ * @param call  Call structure with request.
  *
- * @return		Return 0 on success, ENOENT on error.
+ * @return Return 0 on success, ENOENT on error.
+ *
  */
 int ipc_call(phone_t *phone, call_t *call)
 {
-	answerbox_t *box;
-
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_CONNECTED) {
 		mutex_unlock(&phone->lock);
@@ -327,9 +326,11 @@ int ipc_call(phone_t *phone, call_t *call)
 			else
 				ipc_backsend_err(phone, call, ENOENT);
 		}
+		
 		return ENOENT;
 	}
-	box = phone->callee;
+	
+	answerbox_t *box = phone->callee;
 	_ipc_call(phone, box, call);
 	
 	mutex_unlock(&phone->lock);
@@ -341,16 +342,14 @@ int ipc_call(phone_t *phone, call_t *call)
  * This call leaves the phone in the HUNGUP state. The change to 'free' is done
  * lazily later.
  *
- * @param phone		Phone structure to be hung up.
- *              
- * @return		Return 0 if the phone is disconnected.
- *			Return -1 if the phone was already disconnected.
+ * @param phone Phone structure to be hung up.
+ *
+ * @return 0 if the phone is disconnected.
+ * @return -1 if the phone was already disconnected.
+ *
  */
 int ipc_phone_hangup(phone_t *phone)
 {
-	answerbox_t *box;
-	call_t *call;
-	
 	mutex_lock(&phone->lock);
 	if (phone->state == IPC_PHONE_FREE ||
 	    phone->state == IPC_PHONE_HUNGUP ||
@@ -358,107 +357,103 @@ int ipc_phone_hangup(phone_t *phone)
 		mutex_unlock(&phone->lock);
 		return -1;
 	}
-	box = phone->callee;
+	
+	answerbox_t *box = phone->callee;
 	if (phone->state != IPC_PHONE_SLAMMED) {
 		/* Remove myself from answerbox */
-		spinlock_lock(&box->lock);
+		irq_spinlock_lock(&box->lock, true);
 		list_remove(&phone->link);
-		spinlock_unlock(&box->lock);
-
-		call = ipc_call_alloc(0);
+		irq_spinlock_unlock(&box->lock, true);
+		
+		call_t *call = ipc_call_alloc(0);
 		IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
 		_ipc_call(phone, box, call);
 	}
-
+	
 	phone->state = IPC_PHONE_HUNGUP;
 	mutex_unlock(&phone->lock);
-
+	
 	return 0;
 }
 
 /** Forwards call from one answerbox to another one.
  *
- * @param call		Call structure to be redirected.
- * @param newphone	Phone structure to target answerbox.
- * @param oldbox	Old answerbox structure.
- * @param mode		Flags that specify mode of the forward operation.
+ * @param call     Call structure to be redirected.
+ * @param newphone Phone structure to target answerbox.
+ * @param oldbox   Old answerbox structure.
+ * @param mode     Flags that specify mode of the forward operation.
  *
- * @return		Return 0 if forwarding succeeded or an error code if
- *			there was error.
- * 
+ * @return 0 if forwarding succeeded or an error code if
+ *         there was an error.
+ *
  * The return value serves only as an information for the forwarder,
  * the original caller is notified automatically with EFORWARD.
+ *
  */
-int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox, int mode)
+int ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
+    unsigned int mode)
 {
-	ipl_t ipl;
-
 	/* Count forwarded calls */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_lock(&TASK->lock, true);
 	TASK->ipc_info.forwarded++;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
-	spinlock_lock(&oldbox->lock);
+	irq_spinlock_pass(&TASK->lock, &oldbox->lock);
 	list_remove(&call->link);
-	spinlock_unlock(&oldbox->lock);
-
+	irq_spinlock_unlock(&oldbox->lock, true);
+	
 	if (mode & IPC_FF_ROUTE_FROM_ME) {
 		if (!call->caller_phone)
 			call->caller_phone = call->data.phone;
 		call->data.phone = newphone;
 	}
-
+	
 	return ipc_call(newphone, call);
 }
 
 
 /** Wait for a phone call.
  *
- * @param box		Answerbox expecting the call.
- * @param usec		Timeout in microseconds. See documentation for
- *			waitq_sleep_timeout() for decription of its special
- *			meaning.
- * @param flags		Select mode of sleep operation. See documentation for
- *			waitq_sleep_timeout() for description of its special
- *			meaning.
- * @return 		Recived call structure or NULL.
- * 
+ * @param box   Answerbox expecting the call.
+ * @param usec  Timeout in microseconds. See documentation for
+ *              waitq_sleep_timeout() for decription of its special
+ *              meaning.
+ * @param flags Select mode of sleep operation. See documentation for
+ *              waitq_sleep_timeout() for description of its special
+ *              meaning.
+ *
+ * @return Recived call structure or NULL.
+ *
  * To distinguish between a call and an answer, have a look at call->flags.
+ *
  */
-call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, int flags)
+call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 {
 	call_t *request;
-	ipl_t ipl;
 	uint64_t irq_cnt = 0;
 	uint64_t answer_cnt = 0;
 	uint64_t call_cnt = 0;
 	int rc;
-
+	
 restart:
 	rc = waitq_sleep_timeout(&box->wq, usec, flags);
 	if (SYNCH_FAILED(rc))
 		return NULL;
 	
-	spinlock_lock(&box->lock);
+	irq_spinlock_lock(&box->lock, true);
 	if (!list_empty(&box->irq_notifs)) {
 		/* Count recieved IRQ notification */
-		irq_cnt++;	
-
-		ipl = interrupts_disable();
-		spinlock_lock(&box->irq_lock);
-
+		irq_cnt++;
+		
+		irq_spinlock_lock(&box->irq_lock, false);
+		
 		request = list_get_instance(box->irq_notifs.next, call_t, link);
 		list_remove(&request->link);
-
-		spinlock_unlock(&box->irq_lock);
-		interrupts_restore(ipl);
+		
+		irq_spinlock_unlock(&box->irq_lock, false);
 	} else if (!list_empty(&box->answers)) {
 		/* Count recieved answer */
 		answer_cnt++;
-
+		
 		/* Handle asynchronous answers */
 		request = list_get_instance(box->answers.next, call_t, link);
 		list_remove(&request->link);
@@ -466,44 +461,44 @@ restart:
 	} else if (!list_empty(&box->calls)) {
 		/* Count recieved call */
 		call_cnt++;
-
+		
 		/* Handle requests */
 		request = list_get_instance(box->calls.next, call_t, link);
 		list_remove(&request->link);
+		
 		/* Append request to dispatch queue */
 		list_append(&request->link, &box->dispatched_calls);
 	} else {
 		/* This can happen regularly after ipc_cleanup */
-		spinlock_unlock(&box->lock);
+		irq_spinlock_unlock(&box->lock, true);
 		goto restart;
 	}
-	spinlock_unlock(&box->lock);
 	
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
+	irq_spinlock_pass(&box->lock, &TASK->lock);
+	
 	TASK->ipc_info.irq_notif_recieved += irq_cnt;
 	TASK->ipc_info.answer_recieved += answer_cnt;
 	TASK->ipc_info.call_recieved += call_cnt;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
-
+	
+	irq_spinlock_unlock(&TASK->lock, true);
+	
 	return request;
 }
 
 /** Answer all calls from list with EHANGUP answer.
  *
- * @param lst		Head of the list to be cleaned up.
+ * @param lst Head of the list to be cleaned up.
+ *
  */
 void ipc_cleanup_call_list(link_t *lst)
 {
-	call_t *call;
-
 	while (!list_empty(lst)) {
-		call = list_get_instance(lst->next, call_t, link);
+		call_t *call = list_get_instance(lst->next, call_t, link);
 		if (call->buffer)
 			free(call->buffer);
+		
 		list_remove(&call->link);
-
+		
 		IPC_SET_RETVAL(call->data, EHANGUP);
 		_ipc_answer_free_call(call, true);
 	}
@@ -511,44 +506,40 @@ void ipc_cleanup_call_list(link_t *lst)
 
 /** Disconnects all phones connected to an answerbox.
  *
- * @param box		Answerbox to disconnect phones from.
- * @param notify_box	If true, the answerbox will get a hangup message for
- *			each disconnected phone.
+ * @param box        Answerbox to disconnect phones from.
+ * @param notify_box If true, the answerbox will get a hangup message for
+ *                   each disconnected phone.
+ *
  */
 void ipc_answerbox_slam_phones(answerbox_t *box, bool notify_box)
 {
 	phone_t *phone;
 	DEADLOCK_PROBE_INIT(p_phonelck);
-	ipl_t ipl;
-	call_t *call;
-
-	call = notify_box ? ipc_call_alloc(0) : NULL;
-
+	
+	call_t *call = notify_box ? ipc_call_alloc(0) : NULL;
+	
 	/* Disconnect all phones connected to our answerbox */
 restart_phones:
-	ipl = interrupts_disable();
-	spinlock_lock(&box->lock);
+	irq_spinlock_lock(&box->lock, true);
 	while (!list_empty(&box->connected_phones)) {
 		phone = list_get_instance(box->connected_phones.next,
 		    phone_t, link);
 		if (SYNCH_FAILED(mutex_trylock(&phone->lock))) {
-			spinlock_unlock(&box->lock);
-			interrupts_restore(ipl);
+			irq_spinlock_unlock(&box->lock, true);
 			DEADLOCK_PROBE(p_phonelck, DEADLOCK_THRESHOLD);
 			goto restart_phones;
 		}
 		
 		/* Disconnect phone */
 		ASSERT(phone->state == IPC_PHONE_CONNECTED);
-
+		
 		list_remove(&phone->link);
 		phone->state = IPC_PHONE_SLAMMED;
-
+		
 		if (notify_box) {
 			mutex_unlock(&phone->lock);
-			spinlock_unlock(&box->lock);
-			interrupts_restore(ipl);
-
+			irq_spinlock_unlock(&box->lock, true);
+			
 			/*
 			 * Send one message to the answerbox for each
 			 * phone. Used to make sure the kbox thread
@@ -558,79 +549,78 @@ restart_phones:
 			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call);
-
+			
 			/* Allocate another call in advance */
 			call = ipc_call_alloc(0);
-
+			
 			/* Must start again */
 			goto restart_phones;
 		}
-
+		
 		mutex_unlock(&phone->lock);
 	}
-
-	spinlock_unlock(&box->lock);
-	interrupts_restore(ipl);
-
+	
+	irq_spinlock_unlock(&box->lock, true);
+	
 	/* Free unused call */
 	if (call)
 		ipc_call_free(call);
 }
 
-/** Cleans up all IPC communication of the current task.
+/** Clean up all IPC communication of the current task.
  *
  * Note: ipc_hangup sets returning answerbox to TASK->answerbox, you
  * have to change it as well if you want to cleanup other tasks than TASK.
+ *
  */
 void ipc_cleanup(void)
 {
-	int i;
-	call_t *call;
-	ipl_t ipl;
-
 	/* Disconnect all our phones ('ipc_phone_hangup') */
+	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++)
 		ipc_phone_hangup(&TASK->phones[i]);
-
+	
 	/* Unsubscribe from any event notifications. */
 	event_cleanup_answerbox(&TASK->answerbox);
-
+	
 	/* Disconnect all connected irqs */
 	ipc_irq_cleanup(&TASK->answerbox);
-
+	
 	/* Disconnect all phones connected to our regular answerbox */
 	ipc_answerbox_slam_phones(&TASK->answerbox, false);
-
+	
 #ifdef CONFIG_UDEBUG
 	/* Clean up kbox thread and communications */
 	ipc_kbox_cleanup();
 #endif
-
+	
 	/* Answer all messages in 'calls' and 'dispatched_calls' queues */
-	spinlock_lock(&TASK->answerbox.lock);
+	irq_spinlock_lock(&TASK->answerbox.lock, true);
 	ipc_cleanup_call_list(&TASK->answerbox.dispatched_calls);
 	ipc_cleanup_call_list(&TASK->answerbox.calls);
-	spinlock_unlock(&TASK->answerbox.lock);
+	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 	
 	/* Wait for all answers to interrupted synchronous calls to arrive */
-	ipl = interrupts_disable();
+	ipl_t ipl = interrupts_disable();
 	while (!list_empty(&TASK->sync_box_head)) {
 		answerbox_t *box = list_get_instance(TASK->sync_box_head.next,
 		    answerbox_t, sync_box_link);
-
+		
 		list_remove(&box->sync_box_link);
-		call = ipc_wait_for_call(box, SYNCH_NO_TIMEOUT,
+		call_t *call = ipc_wait_for_call(box, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NONE);
 		ipc_call_free(call);
 		slab_free(ipc_answerbox_slab, box);
 	}
 	interrupts_restore(ipl);
-
+	
 	/* Wait for all answers to asynchronous calls to arrive */
-	while (1) {
-		/* Go through all phones, until all are FREE... */
-		/* Locking not needed, no one else should modify
-		 * it, when we are in cleanup */
+	while (true) {
+		/*
+		 * Go through all phones, until they are all FREE
+		 * Locking is not needed, no one else should modify
+		 * it when we are in cleanup
+		 */
 		for (i = 0; i < IPC_MAX_PHONES; i++) {
 			if (TASK->phones[i].state == IPC_PHONE_HUNGUP &&
 			    atomic_get(&TASK->phones[i].active_calls) == 0) {
@@ -638,22 +628,28 @@ void ipc_cleanup(void)
 				TASK->phones[i].callee = NULL;
 			}
 			
-			/* Just for sure, we might have had some 
-			 * IPC_PHONE_CONNECTING phones */
+			/*
+			 * Just for sure, we might have had some
+			 * IPC_PHONE_CONNECTING phones
+			 */
 			if (TASK->phones[i].state == IPC_PHONE_CONNECTED)
 				ipc_phone_hangup(&TASK->phones[i]);
-			/* If the hangup succeeded, it has sent a HANGUP 
+			
+			/*
+			 * If the hangup succeeded, it has sent a HANGUP
 			 * message, the IPC is now in HUNGUP state, we
-			 * wait for the reply to come */
+			 * wait for the reply to come
+			 */
 			
 			if (TASK->phones[i].state != IPC_PHONE_FREE)
 				break;
 		}
-		/* Voila, got into cleanup */
+		
+		/* Got into cleanup */
 		if (i == IPC_MAX_PHONES)
 			break;
 		
-		call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
+		call_t *call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NONE);
 		ASSERT((call->flags & IPC_CALL_ANSWERED) ||
 		    (call->flags & IPC_CALL_NOTIF));
@@ -665,12 +661,14 @@ void ipc_cleanup(void)
 		 */
 		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
 			atomic_dec(&TASK->active_calls);
+		
 		ipc_call_free(call);
 	}
 }
 
-
-/** Initilize IPC subsystem */
+/** Initilize IPC subsystem
+ *
+ */
 void ipc_init(void)
 {
 	ipc_call_slab = slab_cache_create("ipc_call", sizeof(call_t), 0, NULL,
@@ -679,71 +677,73 @@ void ipc_init(void)
 	    sizeof(answerbox_t), 0, NULL, NULL, 0);
 }
 
-
 /** List answerbox contents.
  *
- * @param taskid	Task ID.
+ * @param taskid Task ID.
+ *
  */
 void ipc_print_task(task_id_t taskid)
 {
-	task_t *task;
-	int i;
-	call_t *call;
-	link_t *tmp;
-	ipl_t ipl;
+	irq_spinlock_lock(&tasks_lock, true);
+	task_t *task = task_find_by_id(taskid);
 	
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	task = task_find_by_id(taskid);
-	if (task) 
-		spinlock_lock(&task->lock);
-	spinlock_unlock(&tasks_lock);
 	if (!task) {
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return;
 	}
-
+	
+	/* Hand-over-hand locking */
+	irq_spinlock_exchange(&tasks_lock, &task->lock);
+	
 	/* Print opened phones & details */
 	printf("PHONE:\n");
+	
+	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
 			printf("%d: mutex busy\n", i);
 			continue;
 		}
+		
 		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%d: ", i);
+			printf("%" PRIs ": ", i);
+			
 			switch (task->phones[i].state) {
 			case IPC_PHONE_CONNECTING:
 				printf("connecting ");
 				break;
 			case IPC_PHONE_CONNECTED:
-				printf("connected to: %p ", 
-				       task->phones[i].callee);
+				printf("connected to: %p ",
+				    task->phones[i].callee);
 				break;
 			case IPC_PHONE_SLAMMED:
 				printf("slammed by: %p ", 
-				       task->phones[i].callee);
+				    task->phones[i].callee);
 				break;
 			case IPC_PHONE_HUNGUP:
 				printf("hung up - was: %p ", 
-				       task->phones[i].callee);
+				    task->phones[i].callee);
 				break;
 			default:
 				break;
 			}
-			printf("active: %ld\n",
+			
+			printf("active: %" PRIun "\n",
 			    atomic_get(&task->phones[i].active_calls));
 		}
+		
 		mutex_unlock(&task->phones[i].lock);
 	}
-
-
+	
+	irq_spinlock_lock(&task->answerbox.lock, false);
+	
+	link_t *cur;
+	
 	/* Print answerbox - calls */
-	spinlock_lock(&task->answerbox.lock);
 	printf("ABOX - CALLS:\n");
-	for (tmp = task->answerbox.calls.next; tmp != &task->answerbox.calls;
-	    tmp = tmp->next) {
-		call = list_get_instance(tmp, call_t, link);
+	for (cur = task->answerbox.calls.next; cur != &task->answerbox.calls;
+	    cur = cur->next) {
+		call_t *call = list_get_instance(cur, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun 
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
@@ -753,12 +753,13 @@ void ipc_print_task(task_id_t taskid)
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
-	/* Print answerbox - calls */
+	
+	/* Print answerbox - dispatched calls */
 	printf("ABOX - DISPATCHED CALLS:\n");
-	for (tmp = task->answerbox.dispatched_calls.next;
-	    tmp != &task->answerbox.dispatched_calls; 
-	    tmp = tmp->next) {
-		call = list_get_instance(tmp, call_t, link);
+	for (cur = task->answerbox.dispatched_calls.next;
+	    cur != &task->answerbox.dispatched_calls;
+	    cur = cur->next) {
+		call_t *call = list_get_instance(cur, call_t, link);
 		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
@@ -768,12 +769,13 @@ void ipc_print_task(task_id_t taskid)
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
-	/* Print answerbox - calls */
+	
+	/* Print answerbox - answers */
 	printf("ABOX - ANSWERS:\n");
-	for (tmp = task->answerbox.answers.next;
-	    tmp != &task->answerbox.answers;
-	    tmp = tmp->next) {
-		call = list_get_instance(tmp, call_t, link);
+	for (cur = task->answerbox.answers.next;
+	    cur != &task->answerbox.answers;
+	    cur = cur->next) {
+		call_t *call = list_get_instance(cur, call_t, link);
 		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
 		    " A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n",
 		    call, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
@@ -781,10 +783,9 @@ void ipc_print_task(task_id_t taskid)
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
 	}
-
-	spinlock_unlock(&task->answerbox.lock);
-	spinlock_unlock(&task->lock);
-	interrupts_restore(ipl);
+	
+	irq_spinlock_unlock(&task->answerbox.lock, false);
+	irq_spinlock_unlock(&task->lock, true);
 }
 
 /** @}

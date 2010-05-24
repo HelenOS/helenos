@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-/* Forward declarations. */
+/* Forward declaration. */
 struct istate;
 
 typedef struct {

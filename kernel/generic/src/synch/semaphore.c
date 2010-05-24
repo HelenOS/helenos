@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Semaphores.
+ * @brief Semaphores.
  */
 
 #include <synch/semaphore.h>
@@ -46,22 +46,17 @@
  *
  * Initialize semaphore.
  *
- * @param s Semaphore.
+ * @param sem Semaphore.
  * @param val Maximal number of threads allowed to enter critical section.
+ *
  */
-void semaphore_initialize(semaphore_t *s, int val)
+void semaphore_initialize(semaphore_t *sem, int val)
 {
-	ipl_t ipl;
+	waitq_initialize(&sem->wq);
 	
-	waitq_initialize(&s->wq);
-	
-	ipl = interrupts_disable();
-
-	spinlock_lock(&s->wq.lock);
-	s->wq.missed_wakeups = val;
-	spinlock_unlock(&s->wq.lock);
-
-	interrupts_restore(ipl);
+	irq_spinlock_lock(&sem->wq.lock, true);
+	sem->wq.missed_wakeups = val;
+	irq_spinlock_unlock(&sem->wq.lock, true);
 }
 
 /** Semaphore down
@@ -69,18 +64,19 @@ void semaphore_initialize(semaphore_t *s, int val)
  * Semaphore down.
  * Conditional mode and mode with timeout can be requested.
  *
- * @param s Semaphore.
- * @param usec Timeout in microseconds.
+ * @param sem   Semaphore.
+ * @param usec  Timeout in microseconds.
  * @param flags Select mode of operation.
  *
  * For exact description of possible combinations of
  * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
+ *
  */
-int _semaphore_down_timeout(semaphore_t *s, uint32_t usec, int flags)
+int _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned int flags)
 {
-	return waitq_sleep_timeout(&s->wq, usec, flags); 
+	return waitq_sleep_timeout(&sem->wq, usec, flags);
 }
 
 /** Semaphore up
@@ -88,10 +84,11 @@ int _semaphore_down_timeout(semaphore_t *s, uint32_t usec, int flags)
  * Semaphore up.
  *
  * @param s Semaphore.
+ *
  */
-void semaphore_up(semaphore_t *s)
+void semaphore_up(semaphore_t *sem)
 {
-	waitq_wakeup(&s->wq, WAKEUP_FIRST);
+	waitq_wakeup(&sem->wq, WAKEUP_FIRST);
 }
 
 /** @}

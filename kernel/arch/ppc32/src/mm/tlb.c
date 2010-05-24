@@ -44,8 +44,8 @@
 #include <symtab.h>
 
 static unsigned int seed = 10;
-static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
-
+static unsigned int seed_real
+    __attribute__ ((section("K_UNMAPPED_DATA_START"))) = 42;
 
 /** Try to find PTE for faulting address
  *
@@ -53,23 +53,23 @@ static unsigned int seed_real __attribute__ ((section("K_UNMAPPED_DATA_START")))
  * The as->lock must be held on entry to this function
  * if lock is true.
  *
- * @param as		Address space.
- * @param lock		Lock/unlock the address space.
- * @param badvaddr	Faulting virtual address.
- * @param access	Access mode that caused the fault.
- * @param istate	Pointer to interrupted state.
- * @param pfrc		Pointer to variable where as_page_fault() return code
- * 			will be stored.
- * @return		PTE on success, NULL otherwise.
+ * @param as       Address space.
+ * @param lock     Lock/unlock the address space.
+ * @param badvaddr Faulting virtual address.
+ * @param access   Access mode that caused the fault.
+ * @param istate   Pointer to interrupted state.
+ * @param pfrc     Pointer to variable where as_page_fault() return code
+ *                 will be stored.
+ *
+ * @return PTE on success, NULL otherwise.
  *
  */
-static pte_t *
-find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
-    istate_t *istate, int *pfrc)
+static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr,
+    int access, istate_t *istate, int *pfrc)
 {
 	/*
 	 * Check if the mapping exists in page tables.
-	 */	
+	 */
 	pte_t *pte = page_mapping_find(as, badvaddr);
 	if ((pte) && (pte->present)) {
 		/*
@@ -78,14 +78,14 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 		 */
 		return pte;
 	} else {
-		int rc;
-	
 		/*
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
 		page_table_unlock(as, lock);
-		switch (rc = as_page_fault(badvaddr, access, istate)) {
+		
+		int rc = as_page_fault(badvaddr, access, istate);
+		switch (rc) {
 		case AS_PF_OK:
 			/*
 			 * The higher-level page fault handler succeeded,
@@ -106,10 +106,9 @@ find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr, int access,
 			return NULL;
 		default:
 			panic("Unexpected rc (%d).", rc);
-		}	
+		}
 	}
 }
-
 
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
@@ -122,24 +121,15 @@ static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 	    istate->pc, symbol, sym2);
 }
 
-
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 {
 	uint32_t page = (vaddr >> 12) & 0xffff;
 	uint32_t api = (vaddr >> 22) & 0x3f;
 	
-	uint32_t vsid;
-	asm volatile (
-		"mfsrin %0, %1\n"
-		: "=r" (vsid)
-		: "r" (vaddr)
-	);
+	uint32_t vsid = sr_get(vaddr);
+	uint32_t sdr1 = sdr1_get();
 	
-	uint32_t sdr1;
-	asm volatile (
-		"mfsdr1 %0\n"
-		: "=r" (sdr1)
-	);
+	// FIXME: compute size of PHT exactly
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
 	
 	/* Primary hash (xor) */
@@ -214,7 +204,6 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 	phte[base + i].pp = 2; // FIXME
 }
 
-
 /** Process Instruction/Data Storage Exception
  *
  * @param n      Exception vector number.
@@ -223,9 +212,6 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
  */
 void pht_refill(int n, istate_t *istate)
 {
-	uintptr_t badvaddr;
-	pte_t *pte;
-	int pfrc;
 	as_t *as;
 	bool lock;
 	
@@ -237,15 +223,19 @@ void pht_refill(int n, istate_t *istate)
 		lock = true;
 	}
 	
+	uintptr_t badvaddr;
+	
 	if (n == VECTOR_DATA_STORAGE)
 		badvaddr = istate->dar;
 	else
 		badvaddr = istate->pc;
-		
+	
 	page_table_lock(as, lock);
 	
-	pte = find_mapping_and_check(as, lock, badvaddr,
+	int pfrc;
+	pte_t *pte = find_mapping_and_check(as, lock, badvaddr,
 	    PF_ACCESS_READ /* FIXME */, istate, &pfrc);
+	
 	if (!pte) {
 		switch (pfrc) {
 		case AS_PF_FAULT:
@@ -263,7 +253,8 @@ void pht_refill(int n, istate_t *istate)
 		}
 	}
 	
-	pte->accessed = 1; /* Record access to PTE */
+	/* Record access to PTE */
+	pte->accessed = 1;
 	pht_insert(badvaddr, pte);
 	
 	page_table_unlock(as, lock);
@@ -273,7 +264,6 @@ fail:
 	page_table_unlock(as, lock);
 	pht_refill_fail(badvaddr, istate);
 }
-
 
 /** Process Instruction/Data Storage Exception in Real Mode
  *
@@ -290,11 +280,7 @@ bool pht_refill_real(int n, istate_t *istate)
 	else
 		badvaddr = istate->pc;
 	
-	uint32_t physmem;
-	asm volatile (
-		"mfsprg3 %0\n"
-		: "=r" (physmem)
-	);
+	uint32_t physmem = physmem_top();
 	
 	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
 		return false;
@@ -302,18 +288,10 @@ bool pht_refill_real(int n, istate_t *istate)
 	uint32_t page = (badvaddr >> 12) & 0xffff;
 	uint32_t api = (badvaddr >> 22) & 0x3f;
 	
-	uint32_t vsid;
-	asm volatile (
-		"mfsrin %0, %1\n"
-		: "=r" (vsid)
-		: "r" (badvaddr)
-	);
+	uint32_t vsid = sr_get(badvaddr);
+	uint32_t sdr1 = sdr1_get();
 	
-	uint32_t sdr1;
-	asm volatile (
-		"mfsdr1 %0\n"
-		: "=r" (sdr1)
-	);
+	// FIXME: compute size of PHT exactly
 	phte_t *phte_real = (phte_t *) (sdr1 & 0xffff0000);
 	
 	/* Primary hash (xor) */
@@ -395,7 +373,6 @@ bool pht_refill_real(int n, istate_t *istate)
 	return true;
 }
 
-
 /** Process ITLB/DTLB Miss Exception in Real Mode
  *
  *
@@ -403,12 +380,7 @@ bool pht_refill_real(int n, istate_t *istate)
 void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate)
 {
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
-	
-	uint32_t physmem;
-	asm volatile (
-		"mfsprg3 %0\n"
-		: "=r" (physmem)
-	);
+	uint32_t physmem = physmem_top();
 	
 	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
 		return; // FIXME
@@ -419,61 +391,57 @@ void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, ista
 	
 	uint32_t index = 0;
 	asm volatile (
-		"mtspr 981, %0\n"
-		"mtspr 982, %1\n"
-		"tlbld %2\n"
-		"tlbli %2\n"
-		: "=r" (index)
-		: "r" (ptehi),
-		  "r" (ptelo)
+		"mtspr 981, %[ptehi]\n"
+		"mtspr 982, %[ptelo]\n"
+		"tlbld %[index]\n"
+		"tlbli %[index]\n"
+		: [index] "=r" (index)
+		: [ptehi] "r" (ptehi),
+		  [ptelo] "r" (ptelo)
 	);
 }
-
 
 void tlb_arch_init(void)
 {
 	tlb_invalidate_all();
 }
 
-
 void tlb_invalidate_all(void)
 {
 	uint32_t index;
+	
 	asm volatile (
-		"li %0, 0\n"
+		"li %[index], 0\n"
 		"sync\n"
 		
 		".rept 64\n"
-		"tlbie %0\n"
-		"addi %0, %0, 0x1000\n"
+		"	tlbie %[index]\n"
+		"	addi %[index], %[index], 0x1000\n"
 		".endr\n"
 		
 		"eieio\n"
 		"tlbsync\n"
 		"sync\n"
-		: "=r" (index)
+		: [index] "=r" (index)
 	);
 }
 
-
 void tlb_invalidate_asid(asid_t asid)
 {
-	uint32_t sdr1;
-	asm volatile (
-		"mfsdr1 %0\n"
-		: "=r" (sdr1)
-	);
+	uint32_t sdr1 = sdr1_get();
+	
+	// FIXME: compute size of PHT exactly
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
 	
-	uint32_t i;
+	size_t i;
 	for (i = 0; i < 8192; i++) {
 		if ((phte[i].v) && (phte[i].vsid >= (asid << 4)) &&
 		    (phte[i].vsid < ((asid << 4) + 16)))
 			phte[i].v = 0;
 	}
+	
 	tlb_invalidate_all();
 }
-
 
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
@@ -481,17 +449,19 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	tlb_invalidate_all();
 }
 
-
 #define PRINT_BAT(name, ureg, lreg) \
 	asm volatile ( \
-		"mfspr %0," #ureg "\n" \
-		"mfspr %1," #lreg "\n" \
-		: "=r" (upper), "=r" (lower) \
+		"mfspr %[upper], " #ureg "\n" \
+		"mfspr %[lower], " #lreg "\n" \
+		: [upper] "=r" (upper), \
+		  [lower] "=r" (lower) \
 	); \
+	\
 	mask = (upper & 0x1ffc) >> 2; \
 	if (upper & 3) { \
 		uint32_t tmp = mask; \
 		length = 128; \
+		\
 		while (tmp) { \
 			if ((tmp & 1) == 0) { \
 				printf("ibat[0]: error in mask\n"); \
@@ -502,6 +472,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 		} \
 	} else \
 		length = 0; \
+	\
 	printf(name ": page=%.*p frame=%.*p length=%d KB (mask=%#x)%s%s\n", \
 	    sizeof(upper) * 2, upper & 0xffff0000, sizeof(lower) * 2, \
 	    lower & 0xffff0000, length, mask, \
@@ -514,12 +485,8 @@ void tlb_print(void)
 	uint32_t sr;
 	
 	for (sr = 0; sr < 16; sr++) {
-		uint32_t vsid;
-		asm volatile (
-			"mfsrin %0, %1\n"
-			: "=r" (vsid)
-			: "r" (sr << 28)
-		);
+		uint32_t vsid = sr_get(sr << 28);
+		
 		printf("sr[%02u]: vsid=%.*p (asid=%u)%s%s\n", sr,
 		    sizeof(vsid) * 2, vsid & 0xffffff, (vsid & 0xffffff) >> 4,
 		    ((vsid >> 30) & 1) ? " supervisor" : "",

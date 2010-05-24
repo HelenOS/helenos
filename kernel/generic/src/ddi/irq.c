@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	IRQ dispatcher.
+ * @brief IRQ dispatcher.
  *
  * This file provides means of connecting IRQs with particular
  * devices and logic for dispatching interrupts to IRQ handlers
@@ -77,28 +77,33 @@
 #include <memstr.h>
 #include <arch.h>
 
-#define KEY_INR		0
-#define KEY_DEVNO	1
+#define KEY_INR    0
+#define KEY_DEVNO  1
 
-/**
- * Spinlock protecting the kernel IRQ hash table.
+/** Spinlock protecting the kernel IRQ hash table.
+ *
  * This lock must be taken only when interrupts are disabled.
+ *
  */
-SPINLOCK_INITIALIZE(irq_kernel_hash_table_lock);
+IRQ_SPINLOCK_STATIC_INITIALIZE(irq_kernel_hash_table_lock);
+
 /** The kernel IRQ hash table. */
 static hash_table_t irq_kernel_hash_table;
 
-/**
- * Spinlock protecting the uspace IRQ hash table.
+/** Spinlock protecting the uspace IRQ hash table.
+ *
  * This lock must be taken only when interrupts are disabled.
+ *
  */
-SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
+IRQ_SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
+
 /** The uspace IRQ hash table. */
 hash_table_t irq_uspace_hash_table;
 
 /**
  * Hash table operations for cases when we know that
  * there will be collisions between different keys.
+ *
  */
 static size_t irq_ht_hash(unative_t *key);
 static bool irq_ht_compare(unative_t *key, size_t keys, link_t *item);
@@ -115,6 +120,7 @@ static hash_table_operations_t irq_ht_ops = {
  * there will be no collisions between different keys.
  * However, there might be still collisions among
  * elements with single key (sharing of one IRQ).
+ *
  */
 static size_t irq_lin_hash(unative_t *key);
 static bool irq_lin_compare(unative_t *key, size_t keys, link_t *item);
@@ -131,8 +137,9 @@ static size_t buckets;
 
 /** Initialize IRQ subsystem.
  *
- * @param inrs Numbers of unique IRQ numbers or INRs.
+ * @param inrs   Numbers of unique IRQ numbers or INRs.
  * @param chains Number of chains in the hash table.
+ *
  */
 void irq_init(size_t inrs, size_t chains)
 {
@@ -165,11 +172,11 @@ void irq_initialize(irq_t *irq)
 {
 	memsetb(irq, sizeof(irq_t), 0);
 	link_initialize(&irq->link);
-	spinlock_initialize(&irq->lock, "irq.lock");
+	irq_spinlock_initialize(&irq->lock, "irq.lock");
 	link_initialize(&irq->notif_cfg.link);
 	irq->inr = -1;
 	irq->devno = -1;
-
+	
 	irq_initialize_arch(irq);
 }
 
@@ -179,24 +186,23 @@ void irq_initialize(irq_t *irq)
  * about the interrupt source and with the claim()
  * function pointer and handler() function pointer.
  *
- * @param irq		IRQ structure belonging to a device.
- * @return		True on success, false on failure.
+ * @param irq IRQ structure belonging to a device.
+ *
+ * @return True on success, false on failure.
+ *
  */
 void irq_register(irq_t *irq)
 {
-	ipl_t ipl;
 	unative_t key[] = {
 		(unative_t) irq->inr,
 		(unative_t) irq->devno
 	};
 	
-	ipl = interrupts_disable();
-	spinlock_lock(&irq_kernel_hash_table_lock);
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq_kernel_hash_table_lock, true);
+	irq_spinlock_lock(&irq->lock, false);
 	hash_table_insert(&irq_kernel_hash_table, key, &irq->link);
-	spinlock_unlock(&irq->lock);	
-	spinlock_unlock(&irq_kernel_hash_table_lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&irq->lock, false);
+	irq_spinlock_unlock(&irq_kernel_hash_table_lock, true);
 }
 
 /** Search and lock the uspace IRQ hash table.
@@ -207,19 +213,17 @@ static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
 	link_t *lnk;
 	unative_t key[] = {
 		(unative_t) inr,
-		(unative_t) -1    /* search will use claim() instead of devno */
+		(unative_t) -1    /* Search will use claim() instead of devno */
 	};
 	
-	spinlock_lock(&irq_uspace_hash_table_lock);
+	irq_spinlock_lock(&irq_uspace_hash_table_lock, false);
 	lnk = hash_table_find(&irq_uspace_hash_table, key);
 	if (lnk) {
-		irq_t *irq;
-		
-		irq = hash_table_get_instance(lnk, irq_t, link);
-		spinlock_unlock(&irq_uspace_hash_table_lock);
+		irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+		irq_spinlock_unlock(&irq_uspace_hash_table_lock, false);
 		return irq;
 	}
-	spinlock_unlock(&irq_uspace_hash_table_lock);
+	irq_spinlock_unlock(&irq_uspace_hash_table_lock, false);
 	
 	return NULL;
 }
@@ -232,19 +236,17 @@ static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
 	link_t *lnk;
 	unative_t key[] = {
 		(unative_t) inr,
-		(unative_t) -1    /* search will use claim() instead of devno */
+		(unative_t) -1    /* Search will use claim() instead of devno */
 	};
 	
-	spinlock_lock(&irq_kernel_hash_table_lock);
+	irq_spinlock_lock(&irq_kernel_hash_table_lock, false);
 	lnk = hash_table_find(&irq_kernel_hash_table, key);
 	if (lnk) {
-		irq_t *irq;
-		
-		irq = hash_table_get_instance(lnk, irq_t, link);
-		spinlock_unlock(&irq_kernel_hash_table_lock);
+		irq_t *irq = hash_table_get_instance(lnk, irq_t, link);
+		irq_spinlock_unlock(&irq_kernel_hash_table_lock, false);
 		return irq;
 	}
-	spinlock_unlock(&irq_kernel_hash_table_lock);
+	irq_spinlock_unlock(&irq_kernel_hash_table_lock, false);
 	
 	return NULL;
 }
@@ -262,11 +264,10 @@ static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
  * @param inr Interrupt number (aka inr or irq).
  *
  * @return IRQ structure of the respective device or NULL.
+ *
  */
 irq_t *irq_dispatch_and_lock(inr_t inr)
 {
-	irq_t *irq;
-	
 	/*
 	 * If the kernel console is silenced,
 	 * then try first the uspace handlers,
@@ -276,15 +277,17 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
 	 * then do it the other way around.
 	 */
 	if (silent) {
-		irq = irq_dispatch_and_lock_uspace(inr);
+		irq_t *irq = irq_dispatch_and_lock_uspace(inr);
 		if (irq)
 			return irq;
+		
 		return irq_dispatch_and_lock_kernel(inr);
 	}
 	
-	irq = irq_dispatch_and_lock_kernel(inr);
+	irq_t *irq = irq_dispatch_and_lock_kernel(inr);
 	if (irq)
 		return irq;
+	
 	return irq_dispatch_and_lock_uspace(inr);
 }
 
@@ -300,6 +303,7 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
  * @param key The first of the keys is inr and the second is devno or -1.
  *
  * @return Index into the hash table.
+ *
  */
 size_t irq_ht_hash(unative_t key[])
 {
@@ -321,21 +325,22 @@ size_t irq_ht_hash(unative_t key[])
  *
  * This function assumes interrupts are already disabled.
  *
- * @param key Keys (i.e. inr and devno).
+ * @param key  Keys (i.e. inr and devno).
  * @param keys This is 2.
  * @param item The item to compare the key with.
  *
  * @return True on match or false otherwise.
+ *
  */
 bool irq_ht_compare(unative_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
 	inr_t inr = (inr_t) key[KEY_INR];
 	devno_t devno = (devno_t) key[KEY_DEVNO];
-
+	
 	bool rv;
 	
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock(). */
 		rv = ((irq->inr == inr) &&
@@ -347,8 +352,8 @@ bool irq_ht_compare(unative_t key[], size_t keys, link_t *item)
 	
 	/* unlock only on non-match */
 	if (!rv)
-		spinlock_unlock(&irq->lock);
-
+		irq_spinlock_unlock(&irq->lock, false);
+	
 	return rv;
 }
 
@@ -360,7 +365,7 @@ void irq_ht_remove(link_t *lnk)
 {
 	irq_t *irq __attribute__((unused))
 	    = hash_table_get_instance(lnk, irq_t, link);
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 }
 
 /** Compute hash index for the key.
@@ -373,6 +378,7 @@ void irq_ht_remove(link_t *lnk)
  * @param key The first of the keys is inr and the second is devno or -1.
  *
  * @return Index into the hash table.
+ *
  */
 size_t irq_lin_hash(unative_t key[])
 {
@@ -394,11 +400,12 @@ size_t irq_lin_hash(unative_t key[])
  *
  * This function assumes interrupts are already disabled.
  *
- * @param key Keys (i.e. inr and devno).
+ * @param key  Keys (i.e. inr and devno).
  * @param keys This is 2.
  * @param item The item to compare the key with.
  *
  * @return True on match or false otherwise.
+ *
  */
 bool irq_lin_compare(unative_t key[], size_t keys, link_t *item)
 {
@@ -406,7 +413,7 @@ bool irq_lin_compare(unative_t key[], size_t keys, link_t *item)
 	devno_t devno = (devno_t) key[KEY_DEVNO];
 	bool rv;
 	
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 	if (devno == -1) {
 		/* Invoked by irq_dispatch_and_lock() */
 		rv = (irq->claim(irq) == IRQ_ACCEPT);
@@ -417,20 +424,21 @@ bool irq_lin_compare(unative_t key[], size_t keys, link_t *item)
 	
 	/* unlock only on non-match */
 	if (!rv)
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	
 	return rv;
 }
 
 /** Unlock IRQ structure after hash_table_remove().
  *
- * @param lnk		Link in the removed and locked IRQ structure.
+ * @param lnk Link in the removed and locked IRQ structure.
+ *
  */
 void irq_lin_remove(link_t *lnk)
 {
 	irq_t *irq __attribute__((unused))
 	    = hash_table_get_instance(lnk, irq_t, link);
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 }
 
 /** @}

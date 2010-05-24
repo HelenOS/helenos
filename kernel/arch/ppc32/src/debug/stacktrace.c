@@ -65,12 +65,14 @@ bool uspace_frame_pointer_validate(uintptr_t fp)
 
 bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
-	return false;
+	return !copy_from_uspace((void *) prev,
+	    (uint32_t *) fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
 }
 
 bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
-	return false;
+	return !copy_from_uspace((void *) ra, (uint32_t *) fp + FRAME_OFFSET_RA,
+	    sizeof(*ra));
 }
 
 /** @}

@@ -37,19 +37,19 @@
 
 #include <typedefs.h>
 
-#define BKPOINTS_MAX 4
+#define BKPOINTS_MAX  4
 
 /* Flags that are passed to breakpoint_add function */
-#define BKPOINT_INSTR        0x1
-#define BKPOINT_WRITE        0x2 
-#define BKPOINT_READ_WRITE   0x4
+#define BKPOINT_INSTR       0x1
+#define BKPOINT_WRITE       0x2
+#define BKPOINT_READ_WRITE  0x4
 
-#define BKPOINT_CHECK_ZERO   0x8
+#define BKPOINT_CHECK_ZERO  0x8
 
 
 extern void debugger_init(void);
-extern int breakpoint_add(const void *where, const int flags, int curidx);
-extern void breakpoint_del(int slot);
+extern int breakpoint_add(const void *, const unsigned int, int);
+extern void breakpoint_del(int);
 
 #endif
 

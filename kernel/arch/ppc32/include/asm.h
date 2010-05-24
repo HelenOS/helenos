@@ -38,6 +38,7 @@
 #include <typedefs.h>
 #include <config.h>
 #include <arch/cpu.h>
+#include <arch/mm/asid.h>
 
 static inline uint32_t msr_read(void)
 {
@@ -57,6 +58,40 @@ static inline void msr_write(uint32_t msr)
 		"mtmsr %[msr]\n"
 		:: [msr] "r" (msr)
 	);
+}
+
+static inline void sr_set(uint32_t flags, asid_t asid, uint32_t sr)
+{
+	asm volatile (
+		"mtsrin %[value], %[sr]\n"
+		:: [value] "r" ((flags << 16) + (asid << 4) + sr),
+		   [sr] "r" (sr << 28)
+	);
+}
+
+static inline uint32_t sr_get(uint32_t vaddr)
+{
+	uint32_t vsid;
+	
+	asm volatile (
+		"mfsrin %[vsid], %[vaddr]\n"
+		: [vsid] "=r" (vsid)
+		: [vaddr] "r" (vaddr)
+	);
+	
+	return vsid;
+}
+
+static inline uint32_t sdr1_get(void)
+{
+	uint32_t sdr1;
+	
+	asm volatile (
+		"mfsdr1 %[sdr1]\n"
+		: [sdr1] "=r" (sdr1)
+	);
+	
+	return sdr1;
 }
 
 /** Enable interrupts.

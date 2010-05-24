@@ -58,26 +58,22 @@
 unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
-	unative_t rc;
-	ipl_t ipl;
-
 	/* Do userpace accounting */
-	ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
+	irq_spinlock_lock(&THREAD->lock, true);
 	thread_update_accounting(true);
-	spinlock_unlock(&THREAD->lock);
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&THREAD->lock, true);
+	
 #ifdef CONFIG_UDEBUG
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
 	 * test need not be precise in either direction.
+	 *
 	 */
-	if (THREAD->udebug.active) {
+	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
-	}
 #endif
 	
+	unative_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
@@ -92,7 +88,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 #ifdef CONFIG_UDEBUG
 	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-	
+		
 		/*
 		 * Stopping point needed for tasks that only invoke
 		 * non-blocking system calls. Not needed if the task
@@ -102,13 +98,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_end();
 	}
 #endif
-
+	
 	/* Do kernel accounting */
-	(void) interrupts_disable();
-	spinlock_lock(&THREAD->lock);
+	irq_spinlock_lock(&THREAD->lock, true);
 	thread_update_accounting(false);
-	spinlock_unlock(&THREAD->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&THREAD->lock, true);
 	
 	return rc;
 }

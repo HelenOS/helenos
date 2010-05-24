@@ -80,7 +80,7 @@ typedef uint8_t zone_flags_t;
 #define FRAME_TO_ZONE_FLAGS(frame_flags)  0
 
 typedef struct {
-	size_t refcount;     /**< Tracking of shared frames */
+	size_t refcount;      /**< Tracking of shared frames */
 	uint8_t buddy_order;  /**< Buddy system block order */
 	link_t buddy_link;    /**< Link to the next free block inside
                                one order */
@@ -90,10 +90,10 @@ typedef struct {
 typedef struct {
 	pfn_t base;                    /**< Frame_no of the first frame
                                         in the frames array */
-	size_t count;                 /**< Size of zone */
-	size_t free_count;            /**< Number of free frame_t
+	size_t count;                  /**< Size of zone */
+	size_t free_count;             /**< Number of free frame_t
                                         structures */
-	size_t busy_count;            /**< Number of busy frame_t
+	size_t busy_count;             /**< Number of busy frame_t
                                         structures */
 	zone_flags_t flags;            /**< Type of the zone */
 	
@@ -107,7 +107,7 @@ typedef struct {
  * Some of the attributes in zone_t structures are 'read-only'
  */
 typedef struct {
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 	size_t count;
 	zone_t info[ZONES_MAX];
 } zones_t;

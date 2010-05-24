@@ -105,16 +105,16 @@ static void de_fault(int n, istate_t *istate)
 	panic("Divide error.");
 }
 
-/** General Protection Fault. */
+/** General Protection Fault.
+ *
+ */
 static void gp_fault(int n, istate_t *istate)
 {
 	if (TASK) {
-		size_t ver;
-
-		spinlock_lock(&TASK->lock);
-		ver = TASK->arch.iomapver;
-		spinlock_unlock(&TASK->lock);
-
+		irq_spinlock_lock(&TASK->lock, false);
+		size_t ver = TASK->arch.iomapver;
+		irq_spinlock_unlock(&TASK->lock, false);
+		
 		if (CPU->arch.iomapver_copy != ver) {
 			/*
 			 * This fault can be caused by an early access
@@ -128,7 +128,7 @@ static void gp_fault(int n, istate_t *istate)
 		}
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
-
+	
 	decode_istate(n, istate);
 	panic("General protection fault.");
 }
@@ -158,7 +158,9 @@ static void tlb_shootdown_ipi(int n, istate_t *istate)
 }
 #endif
 
-/** Handler of IRQ exceptions */
+/** Handler of IRQ exceptions.
+ *
+ */
 static void irq_interrupt(int n, istate_t *istate)
 {
 	ASSERT(n >= IVT_IRQBASE);
@@ -173,14 +175,14 @@ static void irq_interrupt(int n, istate_t *istate)
 		/*
 		 * The IRQ handler was found.
 		 */
-		 
+		
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
 			trap_virtual_eoi();
 			ack = true;
 		}
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		/*
 		 * Spurious interrupt.

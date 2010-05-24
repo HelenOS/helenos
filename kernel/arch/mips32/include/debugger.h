@@ -40,27 +40,35 @@
 
 #define BKPOINTS_MAX 10
 
-#define BKPOINT_INPROG   (1 << 0)   /**< Breakpoint was shot */
-#define BKPOINT_ONESHOT  (1 << 1)   /**< One-time breakpoint,mandatory for j/b
-				         instructions */
-#define BKPOINT_REINST   (1 << 2)   /**< Breakpoint is set on the next 
-				         instruction, so that it could be
-					 reinstalled on the previous one */
-#define BKPOINT_FUNCCALL (1 << 3)   /**< Call a predefined function */
+/** Breakpoint was shot */
+#define BKPOINT_INPROG  (1 << 0)
+
+/** One-time breakpoint, mandatory for j/b instructions */
+#define BKPOINT_ONESHOT  (1 << 1)
+
+/**
+ * Breakpoint is set on the next instruction, so that it
+ * could be reinstalled on the previous one
+ */
+#define BKPOINT_REINST  (1 << 2)
+
+/** Call a predefined function */
+#define BKPOINT_FUNCCALL  (1 << 3)
+
 
 typedef struct  {
-	uintptr_t address;      /**< Breakpoint address */
-	unative_t instruction; /**< Original instruction */
+	uintptr_t address;          /**< Breakpoint address */
+	unative_t instruction;      /**< Original instruction */
 	unative_t nextinstruction;  /**< Original instruction following break */
-	int flags;        /**< Flags regarding breakpoint */
+	unsigned int flags;         /**< Flags regarding breakpoint */
 	size_t counter;
-	void (*bkfunc)(void *b, istate_t *istate);
+	void (*bkfunc)(void *, istate_t *);
 } bpinfo_t;
 
-extern void debugger_init(void);
-void debugger_bpoint(istate_t *istate);
-
 extern bpinfo_t breakpoints[BKPOINTS_MAX];
+
+extern void debugger_init(void);
+extern void debugger_bpoint(istate_t *);
 
 #endif
 

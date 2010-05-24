@@ -41,7 +41,7 @@
 #include <typedefs.h>
 #include <str.h>
 
-SPINLOCK_STATIC_INITIALIZE_NAME(printf_lock, "*printf_lock");
+IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(printf_lock, "*printf_lock");
 
 static int vprintf_str_write(const char *str, size_t size, void *data)
 {
@@ -92,13 +92,9 @@ int vprintf(const char *fmt, va_list ap)
 		NULL
 	};
 	
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&printf_lock);
-	
+	irq_spinlock_lock(&printf_lock, true);
 	int ret = printf_core(fmt, &ps, ap);
-	
-	spinlock_unlock(&printf_lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&printf_lock, true);
 	
 	return ret;
 }

@@ -69,8 +69,8 @@ typedef struct task {
 	 * Must be acquired before threads_lock and thread lock of any of its
 	 * threads.
 	 */
-	SPINLOCK_DECLARE(lock);
-
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
 	link_t th_head;
@@ -80,15 +80,15 @@ typedef struct task {
 	task_id_t taskid;
 	/** Task security context. */
 	context_id_t context;
-
+	
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;
 	/** Number of threads that haven't exited yet. */
 	atomic_t lifecount;
-
+	
 	/** Task capabilities. */
 	cap_t capabilities;
-
+	
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
@@ -100,15 +100,15 @@ typedef struct task {
 	atomic_t active_calls;
 	/** List of synchronous answerboxes. */
 	link_t sync_box_head;
-
+	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */
 	udebug_task_t udebug;
-
+	
 	/** Kernel answerbox. */
 	kbox_t kb;
-#endif
-
+#endif /* CONFIG_UDEBUG */
+	
 	/** Architecture specific task data. */
 	task_arch_t arch;
 	
@@ -125,7 +125,7 @@ typedef struct task {
 	uint64_t kcycles;
 } task_t;
 
-SPINLOCK_EXTERN(tasks_lock);
+IRQ_SPINLOCK_EXTERN(tasks_lock);
 extern avltree_t tasks_tree;
 
 extern void task_init(void);

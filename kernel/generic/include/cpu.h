@@ -41,49 +41,53 @@
 #include <arch/cpu.h>
 #include <arch/context.h>
 
-#define CPU_STACK_SIZE	STACK_SIZE
+#define CPU_STACK_SIZE  STACK_SIZE
 
 /** CPU structure.
  *
  * There is one structure like this for every processor.
  */
 typedef struct cpu {
-	SPINLOCK_DECLARE(lock);
-
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
 	size_t tlb_messages_count;
 	
 	context_t saved_context;
-
+	
 	atomic_t nrdy;
 	runq_t rq[RQ_COUNT];
 	volatile size_t needs_relink;
-
-	SPINLOCK_DECLARE(timeoutlock);
+	
+	IRQ_SPINLOCK_DECLARE(timeoutlock);
 	link_t timeout_active_head;
-
-	size_t missed_clock_ticks;	/**< When system clock loses a tick, it is recorded here
-					     so that clock() can react. This variable is
-					     CPU-local and can be only accessed when interrupts
-					     are disabled. */
-
+	
+	/**
+	 * When system clock loses a tick, it is
+	 * recorded here so that clock() can react.
+	 * This variable is CPU-local and can be
+	 * only accessed when interrupts are
+	 * disabled.
+	 */
+	size_t missed_clock_ticks;
+	
 	bool idle;
 	uint64_t idle_ticks;
 	uint64_t busy_ticks;
-
+	
 	/**
 	 * Processor ID assigned by kernel.
 	 */
-	unsigned int id;
+	size_t id;
 	
 	bool active;
-	int tlb_active;
-
+	bool tlb_active;
+	
 	uint16_t frequency_mhz;
 	uint32_t delay_loop_const;
-
+	
 	cpu_arch_t arch;
-
+	
 	struct thread *fpu_owner;
 	
 	/**
@@ -99,7 +103,7 @@ extern void cpu_list(void);
 
 extern void cpu_arch_init(void);
 extern void cpu_identify(void);
-extern void cpu_print_report(cpu_t *m);
+extern void cpu_print_report(cpu_t *);
 
 #endif
 

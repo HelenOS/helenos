@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Virtual Address Translation (VAT) for global page hash table.
+ * @brief Virtual Address Translation (VAT) for global page hash table.
  */
 
 #include <genarch/mm/page_ht.h>
@@ -51,25 +51,26 @@
 #include <adt/hash_table.h>
 #include <align.h>
 
-static size_t hash(unative_t key[]);
-static bool compare(unative_t key[], size_t keys, link_t *item);
-static void remove_callback(link_t *item);
+static size_t hash(unative_t[]);
+static bool compare(unative_t[], size_t, link_t *);
+static void remove_callback(link_t *);
 
-static void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
-    int flags);
-static void ht_mapping_remove(as_t *as, uintptr_t page);
-static pte_t *ht_mapping_find(as_t *as, uintptr_t page);
+static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
+static void ht_mapping_remove(as_t *, uintptr_t);
+static pte_t *ht_mapping_find(as_t *, uintptr_t);
 
 /**
  * This lock protects the page hash table. It must be acquired
  * after address space lock and after any address space area
  * locks.
+ *
  */
 mutex_t page_ht_lock;
 
-/**
- * Page hash table.
+/** Page hash table.
+ *
  * The page hash table may be accessed only when page_ht_lock is held.
+ *
  */
 hash_table_t page_ht;
 
@@ -92,24 +93,26 @@ page_mapping_operations_t ht_mapping_operations = {
  * @param key Array of two keys (i.e. page and address space).
  *
  * @return Index into page hash table.
+ *
  */
 size_t hash(unative_t key[])
 {
 	as_t *as = (as_t *) key[KEY_AS];
 	uintptr_t page = (uintptr_t) key[KEY_PAGE];
-	size_t index;
 	
 	/*
 	 * Virtual page addresses have roughly the same probability
 	 * of occurring. Least significant bits of VPN compose the
 	 * hash index.
+	 *
 	 */
-	index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES - 1));
+	size_t index = ((page >> PAGE_WIDTH) & (PAGE_HT_ENTRIES - 1));
 	
 	/*
 	 * Address space structures are likely to be allocated from
 	 * similar addresses. Least significant bits compose the
 	 * hash index.
+	 *
 	 */
 	index |= ((unative_t) as) & (PAGE_HT_ENTRIES - 1);
 	
@@ -118,88 +121,89 @@ size_t hash(unative_t key[])
 
 /** Compare page hash table item with page and/or address space.
  *
- * @param key Array of one or two keys (i.e. page and/or address space).
+ * @param key  Array of one or two keys (i.e. page and/or address space).
  * @param keys Number of keys passed.
  * @param item Item to compare the keys with.
  *
  * @return true on match, false otherwise.
+ *
  */
 bool compare(unative_t key[], size_t keys, link_t *item)
 {
-	pte_t *t;
-
 	ASSERT(item);
-	ASSERT((keys > 0) && (keys <= PAGE_HT_KEYS));
-
+	ASSERT(keys > 0);
+	ASSERT(keys <= PAGE_HT_KEYS);
+	
 	/*
 	 * Convert item to PTE.
+	 *
 	 */
-	t = hash_table_get_instance(item, pte_t, link);
-
-	if (keys == PAGE_HT_KEYS) {
-		return (key[KEY_AS] == (uintptr_t) t->as) &&
-		    (key[KEY_PAGE] == t->page);
-	} else {
-		return (key[KEY_AS] == (uintptr_t) t->as);
-	}
+	pte_t *pte = hash_table_get_instance(item, pte_t, link);
+	
+	if (keys == PAGE_HT_KEYS)
+		return (key[KEY_AS] == (uintptr_t) pte->as) &&
+		    (key[KEY_PAGE] == pte->page);
+	
+	return (key[KEY_AS] == (uintptr_t) pte->as);
 }
 
 /** Callback on page hash table item removal.
  *
  * @param item Page hash table item being removed.
+ *
  */
 void remove_callback(link_t *item)
 {
-	pte_t *t;
-
 	ASSERT(item);
-
+	
 	/*
 	 * Convert item to PTE.
+	 *
 	 */
-	t = hash_table_get_instance(item, pte_t, link);
-
-	free(t);
+	pte_t *pte = hash_table_get_instance(item, pte_t, link);
+	
+	free(pte);
 }
 
 /** Map page to frame using page hash table.
  *
  * Map virtual address page to physical address frame
- * using flags. 
+ * using flags.
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to which page belongs.
- * @param page Virtual address of the page to be mapped.
+ * @param as    Address space to which page belongs.
+ * @param page  Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
  * @param flags Flags to be used for mapping.
+ *
  */
-void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
+void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+    unsigned int flags)
 {
-	pte_t *t;
 	unative_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 	
 	if (!hash_table_find(&page_ht, key)) {
-		t = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
-		ASSERT(t != NULL);
-
-		t->g = (flags & PAGE_GLOBAL) != 0;
-		t->x = (flags & PAGE_EXEC) != 0;
-		t->w = (flags & PAGE_WRITE) != 0;
-		t->k = !(flags & PAGE_USER);
-		t->c = (flags & PAGE_CACHEABLE) != 0;
-		t->p = !(flags & PAGE_NOT_PRESENT);
-		t->a = false;
-		t->d = false;
-
-		t->as = as;
-		t->page = ALIGN_DOWN(page, PAGE_SIZE);
-		t->frame = ALIGN_DOWN(frame, FRAME_SIZE);
-
-		hash_table_insert(&page_ht, key, &t->link);
+		pte_t *pte = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
+		ASSERT(pte != NULL);
+		
+		pte->g = (flags & PAGE_GLOBAL) != 0;
+		pte->x = (flags & PAGE_EXEC) != 0;
+		pte->w = (flags & PAGE_WRITE) != 0;
+		pte->k = !(flags & PAGE_USER);
+		pte->c = (flags & PAGE_CACHEABLE) != 0;
+		pte->p = !(flags & PAGE_NOT_PRESENT);
+		pte->a = false;
+		pte->d = false;
+		
+		pte->as = as;
+		pte->page = ALIGN_DOWN(page, PAGE_SIZE);
+		pte->frame = ALIGN_DOWN(frame, FRAME_SIZE);
+		
+		hash_table_insert(&page_ht, key, &pte->link);
 	}
 }
 
@@ -211,8 +215,9 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame, int flags)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
+ * @param as   Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
+ *
  */
 void ht_mapping_remove(as_t *as, uintptr_t page)
 {
@@ -235,25 +240,24 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
  *
  * The page table must be locked and interrupts must be disabled.
  *
- * @param as Address space to wich page belongs.
+ * @param as   Address space to wich page belongs.
  * @param page Virtual page.
  *
  * @return NULL if there is no such mapping; requested mapping otherwise.
+ *
  */
 pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 {
-	link_t *hlp;
-	pte_t *t = NULL;
 	unative_t key[2] = {
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 	
-	hlp = hash_table_find(&page_ht, key);
-	if (hlp)
-		t = hash_table_get_instance(hlp, pte_t, link);
-
-	return t;
+	link_t *cur = hash_table_find(&page_ht, key);
+	if (cur)
+		return hash_table_get_instance(cur, pte_t, link);
+	
+	return NULL;
 }
 
 /** @}

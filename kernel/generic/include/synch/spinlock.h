@@ -169,7 +169,7 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define SPINLOCK_INITIALIZE_NAME(name, desc_name)
 #define SPINLOCK_STATIC_INITIALIZE_NAME(name, desc_name)
 
-#define ASSERT_SPINLOCK(expr, lock)
+#define ASSERT_SPINLOCK(expr, lock)  ASSERT(expr)
 
 #define spinlock_initialize(lock, name)
 

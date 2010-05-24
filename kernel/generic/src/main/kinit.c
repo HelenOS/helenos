@@ -114,9 +114,9 @@ void kinit(void *arg)
 		 */
 		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
 		if (thread != NULL) {
-			spinlock_lock(&thread->lock);
+			irq_spinlock_lock(&thread->lock, false);
 			thread->cpu = &cpus[0];
-			spinlock_unlock(&thread->lock);
+			irq_spinlock_unlock(&thread->lock, false);
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
@@ -134,9 +134,9 @@ void kinit(void *arg)
 		for (i = 0; i < config.cpu_count; i++) {
 			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
 			if (thread != NULL) {
-				spinlock_lock(&thread->lock);
+				irq_spinlock_lock(&thread->lock, false);
 				thread->cpu = &cpus[i];
-				spinlock_unlock(&thread->lock);
+				irq_spinlock_unlock(&thread->lock, false);
 				thread_ready(thread);
 			} else
 				printf("Unable to create kcpulb thread for cpu" PRIs "\n", i);
@@ -198,7 +198,7 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
-
+		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    namebuf, &programs[i]);
 		
@@ -221,7 +221,7 @@ void kinit(void *arg)
 				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
 		}
 	}
-
+	
 	/*
 	 * Run user tasks.
 	 */
@@ -229,7 +229,7 @@ void kinit(void *arg)
 		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
 	}
-
+	
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
 		thread_sleep(10);

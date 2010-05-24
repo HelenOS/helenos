@@ -32,11 +32,11 @@
 
 /**
  * @file
- * @brief	Udebug hooks and data structure management.
+ * @brief Udebug hooks and data structure management.
  *
  * Udebug is an interface that makes userspace debuggers possible.
  */
- 
+
 #include <synch/waitq.h>
 #include <debug.h>
 #include <udebug/udebug.h>
@@ -44,11 +44,11 @@
 #include <print.h>
 #include <arch.h>
 
-
 /** Initialize udebug part of task structure.
  *
  * Called as part of task structure initialization.
- * @param ut	Pointer to the structure to initialize.
+ * @param ut Pointer to the structure to initialize.
+ *
  */
 void udebug_task_init(udebug_task_t *ut)
 {
@@ -62,20 +62,22 @@ void udebug_task_init(udebug_task_t *ut)
 /** Initialize udebug part of thread structure.
  *
  * Called as part of thread structure initialization.
- * @param ut	Pointer to the structure to initialize.
+ *
+ * @param ut Pointer to the structure to initialize.
+ *
  */
 void udebug_thread_initialize(udebug_thread_t *ut)
 {
 	mutex_initialize(&ut->lock, MUTEX_PASSIVE);
 	waitq_initialize(&ut->go_wq);
 	condvar_initialize(&ut->active_cv);
-
+	
 	ut->go_call = NULL;
 	ut->uspace_state = NULL;
 	ut->go = false;
 	ut->stoppable = true;
 	ut->active = false;
-	ut->cur_event = 0; /* none */
+	ut->cur_event = 0;  /* None */
 }
 
 /** Wait for a GO message.
@@ -84,88 +86,85 @@ void udebug_thread_initialize(udebug_thread_t *ut)
  * this function is called to block the thread until a GO message
  * is received.
  *
- * @param wq	The wait queue used by the thread to wait for GO messages.
+ * @param wq The wait queue used by the thread to wait for GO messages.
+ *
  */
 static void udebug_wait_for_go(waitq_t *wq)
 {
-	int rc;
-	ipl_t ipl;
-
-	ipl = waitq_sleep_prepare(wq);
-
-	wq->missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
-
+	ipl_t ipl = waitq_sleep_prepare(wq);
+	
+	wq->missed_wakeups = 0;  /* Enforce blocking. */
+	int rc = waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+	
 	waitq_sleep_finish(wq, rc, ipl);
 }
 
 /** Start of stoppable section.
  *
- * A stoppable section is a section of code where if the thread can be stoped. In other words,
- * if a STOP operation is issued, the thread is guaranteed not to execute
- * any userspace instructions until the thread is resumed.
+ * A stoppable section is a section of code where if the thread can
+ * be stoped. In other words, if a STOP operation is issued, the thread
+ * is guaranteed not to execute any userspace instructions until the
+ * thread is resumed.
  *
  * Having stoppable sections is better than having stopping points, since
  * a thread can be stopped even when it is blocked indefinitely in a system
  * call (whereas it would not reach any stopping point).
+ *
  */
 void udebug_stoppable_begin(void)
 {
-	int nsc;
-	call_t *db_call, *go_call;
-
 	ASSERT(THREAD);
 	ASSERT(TASK);
-
+	
 	mutex_lock(&TASK->udebug.lock);
-
-	nsc = --TASK->udebug.not_stoppable_count;
-
+	
+	int nsc = --TASK->udebug.not_stoppable_count;
+	
 	/* Lock order OK, THREAD->udebug.lock is after TASK->udebug.lock */
 	mutex_lock(&THREAD->udebug.lock);
 	ASSERT(THREAD->udebug.stoppable == false);
 	THREAD->udebug.stoppable = true;
-
-	if (TASK->udebug.dt_state == UDEBUG_TS_BEGINNING && nsc == 0) {
+	
+	if ((TASK->udebug.dt_state == UDEBUG_TS_BEGINNING) && (nsc == 0)) {
 		/*
 		 * This was the last non-stoppable thread. Reply to
 		 * DEBUG_BEGIN call.
+		 *
 		 */
-
-		db_call = TASK->udebug.begin_call;
+		
+		call_t *db_call = TASK->udebug.begin_call;
 		ASSERT(db_call);
-
+		
 		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
 		TASK->udebug.begin_call = NULL;
-
+		
 		IPC_SET_RETVAL(db_call->data, 0);
-		ipc_answer(&TASK->answerbox, db_call);		
-
+		ipc_answer(&TASK->answerbox, db_call);
 	} else if (TASK->udebug.dt_state == UDEBUG_TS_ACTIVE) {
 		/*
 		 * Active debugging session
 		 */
-
+		
 		if (THREAD->udebug.active == true &&
 		    THREAD->udebug.go == false) {
 			/*
 			 * Thread was requested to stop - answer go call
+			 *
 			 */
-
+			
 			/* Make sure nobody takes this call away from us */
-			go_call = THREAD->udebug.go_call;
+			call_t *go_call = THREAD->udebug.go_call;
 			THREAD->udebug.go_call = NULL;
 			ASSERT(go_call);
-
+			
 			IPC_SET_RETVAL(go_call->data, 0);
 			IPC_SET_ARG1(go_call->data, UDEBUG_EVENT_STOP);
-
+			
 			THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
-
-	    		ipc_answer(&TASK->answerbox, go_call);
+			ipc_answer(&TASK->answerbox, go_call);
 		}
 	}
-
+	
 	mutex_unlock(&THREAD->udebug.lock);
         mutex_unlock(&TASK->udebug.lock);
 }
@@ -173,27 +172,29 @@ void udebug_stoppable_begin(void)
 /** End of a stoppable section.
  *
  * This is the point where the thread will block if it is stopped.
- * (As, by definition, a stopped thread must not leave its stoppable section).
+ * (As, by definition, a stopped thread must not leave its stoppable
+ * section).
+ *
  */
 void udebug_stoppable_end(void)
 {
 restart:
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
-
-	if (THREAD->udebug.active && THREAD->udebug.go == false) {
+	
+	if ((THREAD->udebug.active) && (THREAD->udebug.go == false)) {
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
-
+		
 		udebug_wait_for_go(&THREAD->udebug.go_wq);
-
+		
 		goto restart;
 		/* Must try again - have to lose stoppability atomically. */
 	} else {
 		++TASK->udebug.not_stoppable_count;
 		ASSERT(THREAD->udebug.stoppable == true);
 		THREAD->udebug.stoppable = false;
-
+		
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 	}
@@ -202,6 +203,7 @@ restart:
 /** Upon being scheduled to run, check if the current thread should stop.
  *
  * This function is called from clock().
+ *
  */
 void udebug_before_thread_runs(void)
 {
@@ -214,19 +216,18 @@ void udebug_before_thread_runs(void)
  *
  * Must be called before and after servicing a system call. This generates
  * a SYSCALL_B or SYSCALL_E event, depending on the value of @a end_variant.
+ *
  */
 void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
     bool end_variant)
 {
-	call_t *call;
-	udebug_event_t etype;
-
-	etype = end_variant ? UDEBUG_EVENT_SYSCALL_E : UDEBUG_EVENT_SYSCALL_B;
-
+	udebug_event_t etype =
+	    end_variant ? UDEBUG_EVENT_SYSCALL_E : UDEBUG_EVENT_SYSCALL_B;
+	
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
-
+	
 	/* Must only generate events when in debugging session and is go. */
 	if (THREAD->udebug.active != true || THREAD->udebug.go == false ||
 	    (TASK->udebug.evmask & UDEBUG_EVMASK(etype)) == 0) {
@@ -234,36 +235,37 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
 		mutex_unlock(&TASK->udebug.lock);
 		return;
 	}
-
+	
 	/* Fill in the GO response. */
-	call = THREAD->udebug.go_call;
+	call_t *call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
-
+	
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, etype);
 	IPC_SET_ARG2(call->data, id);
 	IPC_SET_ARG3(call->data, rc);
-
+	
 	THREAD->udebug.syscall_args[0] = a1;
 	THREAD->udebug.syscall_args[1] = a2;
 	THREAD->udebug.syscall_args[2] = a3;
 	THREAD->udebug.syscall_args[3] = a4;
 	THREAD->udebug.syscall_args[4] = a5;
 	THREAD->udebug.syscall_args[5] = a6;
-
+	
 	/*
 	 * Make sure udebug.go is false when going to sleep
 	 * in case we get woken up by DEBUG_END. (At which
 	 * point it must be back to the initial true value).
+	 *
 	 */
 	THREAD->udebug.go = false;
 	THREAD->udebug.cur_event = etype;
-
+	
 	ipc_answer(&TASK->answerbox, call);
-
+	
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
-
+	
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
 }
 
@@ -279,51 +281,54 @@ void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
  * either miss threads or get some threads both in the thread list
  * and get a THREAD_B event for them.
  *
- * @param t	Structure of the thread being created. Not locked, as the
- *		thread is not executing yet.
- * @param ta	Task to which the thread should be attached.
+ * @param thread Structure of the thread being created. Not locked, as the
+ *               thread is not executing yet.
+ * @param task   Task to which the thread should be attached.
+ *
  */
-void udebug_thread_b_event_attach(struct thread *t, struct task *ta)
+void udebug_thread_b_event_attach(struct thread *thread, struct task *task)
 {
-	call_t *call;
-
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
-
-	thread_attach(t, ta);
-
+	
+	thread_attach(thread, task);
+	
 	LOG("Check state");
-
+	
 	/* Must only generate events when in debugging session */
 	if (THREAD->udebug.active != true) {
 		LOG("udebug.active: %s, udebug.go: %s",
-			THREAD->udebug.active ? "Yes(+)" : "No",
-			THREAD->udebug.go ? "Yes(-)" : "No");
+		    THREAD->udebug.active ? "Yes(+)" : "No",
+		    THREAD->udebug.go ? "Yes(-)" : "No");
+		
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
 	}
-
+	
 	LOG("Trigger event");
-	call = THREAD->udebug.go_call;
+	
+	call_t *call = THREAD->udebug.go_call;
+	
 	THREAD->udebug.go_call = NULL;
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_B);
-	IPC_SET_ARG2(call->data, (unative_t)t);
-
+	IPC_SET_ARG2(call->data, (unative_t) thread);
+	
 	/*
 	 * Make sure udebug.go is false when going to sleep
 	 * in case we get woken up by DEBUG_END. (At which
 	 * point it must be back to the initial true value).
+	 *
 	 */
 	THREAD->udebug.go = false;
 	THREAD->udebug.cur_event = UDEBUG_EVENT_THREAD_B;
-
+	
 	ipc_answer(&TASK->answerbox, call);
-
+	
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
-
+	
 	LOG("Wait for Go");
 	udebug_wait_for_go(&THREAD->udebug.go_wq);
 }
@@ -332,130 +337,127 @@ void udebug_thread_b_event_attach(struct thread *t, struct task *ta)
  *
  * Must be called when the current thread is terminating.
  * Generates a THREAD_E event.
+ *
  */
 void udebug_thread_e_event(void)
 {
-	call_t *call;
-
 	mutex_lock(&TASK->udebug.lock);
 	mutex_lock(&THREAD->udebug.lock);
-
+	
 	LOG("Check state");
-
+	
 	/* Must only generate events when in debugging session. */
 	if (THREAD->udebug.active != true) {
 		LOG("udebug.active: %s, udebug.go: %s",
-			THREAD->udebug.active ? "Yes" : "No",
-			THREAD->udebug.go ? "Yes" : "No");
+		    THREAD->udebug.active ? "Yes" : "No",
+		    THREAD->udebug.go ? "Yes" : "No");
+		
 		mutex_unlock(&THREAD->udebug.lock);
 		mutex_unlock(&TASK->udebug.lock);
 		return;
 	}
-
+	
 	LOG("Trigger event");
-	call = THREAD->udebug.go_call;
+	
+	call_t *call = THREAD->udebug.go_call;
+	
 	THREAD->udebug.go_call = NULL;
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_E);
-
+	
 	/* Prevent any further debug activity in thread. */
 	THREAD->udebug.active = false;
-	THREAD->udebug.cur_event = 0;		/* none */
-	THREAD->udebug.go = false;	/* set to initial value */
-
+	THREAD->udebug.cur_event = 0;   /* None */
+	THREAD->udebug.go = false;      /* Set to initial value */
+	
 	ipc_answer(&TASK->answerbox, call);
-
+	
 	mutex_unlock(&THREAD->udebug.lock);
 	mutex_unlock(&TASK->udebug.lock);
-
-	/* 
+	
+	/*
 	 * This event does not sleep - debugging has finished
 	 * in this thread.
+	 *
 	 */
 }
 
-/**
- * Terminate task debugging session.
+/** Terminate task debugging session.
  *
- * Gracefully terminates the debugging session for a task. If the debugger
+ * Gracefully terminate the debugging session for a task. If the debugger
  * is still waiting for events on some threads, it will receive a
  * FINISHED event for each of them.
  *
- * @param ta	Task structure. ta->udebug.lock must be already locked.
- * @return	Zero on success or negative error code.
+ * @param task Task structure. ta->udebug.lock must be already locked.
+ *
+ * @return Zero on success or negative error code.
+ *
  */
-int udebug_task_cleanup(struct task *ta)
+int udebug_task_cleanup(struct task *task)
 {
-	thread_t *t;
-	link_t *cur;
-	int flags;
-	ipl_t ipl;
-
-	if (ta->udebug.dt_state != UDEBUG_TS_BEGINNING &&
-	    ta->udebug.dt_state != UDEBUG_TS_ACTIVE) {
+	if ((task->udebug.dt_state != UDEBUG_TS_BEGINNING) &&
+	    (task->udebug.dt_state != UDEBUG_TS_ACTIVE)) {
 		return EINVAL;
 	}
-
-	LOG("Task %" PRIu64, ta->taskid);
-
+	
+	LOG("Task %" PRIu64, task->taskid);
+	
 	/* Finish debugging of all userspace threads */
-	for (cur = ta->th_head.next; cur != &ta->th_head; cur = cur->next) {
-		t = list_get_instance(cur, thread_t, th_link);
-
-		mutex_lock(&t->udebug.lock);
-
-		ipl = interrupts_disable();
-		spinlock_lock(&t->lock);
-
-		flags = t->flags;
-
-		spinlock_unlock(&t->lock);
-		interrupts_restore(ipl);
-
+	link_t *cur;
+	for (cur = task->th_head.next; cur != &task->th_head; cur = cur->next) {
+		thread_t *thread = list_get_instance(cur, thread_t, th_link);
+		
+		mutex_lock(&thread->udebug.lock);
+		unsigned int flags = thread->flags;
+		
 		/* Only process userspace threads. */
 		if ((flags & THREAD_FLAG_USPACE) != 0) {
 			/* Prevent any further debug activity in thread. */
-			t->udebug.active = false;
-			t->udebug.cur_event = 0;	/* none */
-
+			thread->udebug.active = false;
+			thread->udebug.cur_event = 0;   /* None */
+			
 			/* Is the thread still go? */
-			if (t->udebug.go == true) {
+			if (thread->udebug.go == true) {
 				/*
-				* Yes, so clear go. As active == false,
+				 * Yes, so clear go. As active == false,
 				 * this doesn't affect anything.
+				 (
 				 */
-				t->udebug.go = false;	
-
+				thread->udebug.go = false;
+				
 				/* Answer GO call */
 				LOG("Answer GO call with EVENT_FINISHED.");
-				IPC_SET_RETVAL(t->udebug.go_call->data, 0);
-				IPC_SET_ARG1(t->udebug.go_call->data,
+				
+				IPC_SET_RETVAL(thread->udebug.go_call->data, 0);
+				IPC_SET_ARG1(thread->udebug.go_call->data,
 				    UDEBUG_EVENT_FINISHED);
-
-				ipc_answer(&ta->answerbox, t->udebug.go_call);
-				t->udebug.go_call = NULL;
+				
+				ipc_answer(&task->answerbox, thread->udebug.go_call);
+				thread->udebug.go_call = NULL;
 			} else {
 				/*
 				 * Debug_stop is already at initial value.
 				 * Yet this means the thread needs waking up.
+				 *
 				 */
-
+				
 				/*
-				 * t's lock must not be held when calling
+				 * thread's lock must not be held when calling
 				 * waitq_wakeup.
+				 *
 				 */
-				waitq_wakeup(&t->udebug.go_wq, WAKEUP_FIRST);
+				waitq_wakeup(&thread->udebug.go_wq, WAKEUP_FIRST);
 			}
-			mutex_unlock(&t->udebug.lock);
-			condvar_broadcast(&t->udebug.active_cv);
-		} else {
-			mutex_unlock(&t->udebug.lock);
-		}
+			
+			mutex_unlock(&thread->udebug.lock);
+			condvar_broadcast(&thread->udebug.active_cv);
+		} else
+			mutex_unlock(&thread->udebug.lock);
 	}
-
-	ta->udebug.dt_state = UDEBUG_TS_INACTIVE;
-	ta->udebug.debugger = NULL;
-
+	
+	task->udebug.dt_state = UDEBUG_TS_INACTIVE;
+	task->udebug.debugger = NULL;
+	
 	return 0;
 }
 
@@ -465,23 +467,24 @@ int udebug_task_cleanup(struct task *ta)
  * this function is called to wait for a debugging session to give userspace
  * a chance to examine the faulting thead/task. When the debugging session
  * is over, this function returns (so that thread/task cleanup can continue).
+ *
  */
 void udebug_thread_fault(void)
 {
 	udebug_stoppable_begin();
-
+	
 	/* Wait until a debugger attends to us. */
 	mutex_lock(&THREAD->udebug.lock);
 	while (!THREAD->udebug.active)
 		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
 	mutex_unlock(&THREAD->udebug.lock);
-
+	
 	/* Make sure the debugging session is over before proceeding. */
 	mutex_lock(&THREAD->udebug.lock);
 	while (THREAD->udebug.active)
 		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
 	mutex_unlock(&THREAD->udebug.lock);
-
+	
 	udebug_stoppable_end();
 }
 

@@ -27,13 +27,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
  * @file
- * @brief	Kernel ELF loader.
+ * @brief Kernel ELF loader.
  */
 
 #include <lib/elf.h>
@@ -56,77 +56,74 @@ static const char *error_codes[] = {
 	"irrecoverable error"
 };
 
-static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as, int flags);
-static int section_header(elf_section_header_t *entry, elf_header_t *elf,
-    as_t *as);
-static int load_segment(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as);
+static int segment_header(elf_segment_header_t *, elf_header_t *, as_t *,
+    unsigned int);
+static int section_header(elf_section_header_t *, elf_header_t *, as_t *);
+static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
 
 /** ELF loader
  *
  * @param header Pointer to ELF header in memory
- * @param as Created and properly mapped address space
- * @param flags A combination of ELD_F_*
+ * @param as     Created and properly mapped address space
+ * @param flags  A combination of ELD_F_*
+ *
  * @return EE_OK on success
+ *
  */
-unsigned int elf_load(elf_header_t *header, as_t * as, int flags)
+unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 {
-	int i, rc;
-
 	/* Identify ELF */
-	if (header->e_ident[EI_MAG0] != ELFMAG0 ||
-	    header->e_ident[EI_MAG1] != ELFMAG1 || 
-	    header->e_ident[EI_MAG2] != ELFMAG2 ||
-	    header->e_ident[EI_MAG3] != ELFMAG3) {
+	if ((header->e_ident[EI_MAG0] != ELFMAG0) ||
+	    (header->e_ident[EI_MAG1] != ELFMAG1) ||
+	    (header->e_ident[EI_MAG2] != ELFMAG2) ||
+	    (header->e_ident[EI_MAG3] != ELFMAG3))
 		return EE_INVALID;
-	}
 	
 	/* Identify ELF compatibility */
-	if (header->e_ident[EI_DATA] != ELF_DATA_ENCODING ||
-	    header->e_machine != ELF_MACHINE || 
-	    header->e_ident[EI_VERSION] != EV_CURRENT ||
-	    header->e_version != EV_CURRENT ||
-	    header->e_ident[EI_CLASS] != ELF_CLASS) {
+	if ((header->e_ident[EI_DATA] != ELF_DATA_ENCODING) ||
+	    (header->e_machine != ELF_MACHINE) ||
+	    (header->e_ident[EI_VERSION] != EV_CURRENT) ||
+	    (header->e_version != EV_CURRENT) ||
+	    (header->e_ident[EI_CLASS] != ELF_CLASS))
 		return EE_INCOMPATIBLE;
-	}
-
+	
 	if (header->e_phentsize != sizeof(elf_segment_header_t))
 		return EE_INCOMPATIBLE;
-
+	
 	if (header->e_shentsize != sizeof(elf_section_header_t))
 		return EE_INCOMPATIBLE;
-
+	
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC)
 		return EE_UNSUPPORTED;
-
+	
 	/* Check if the ELF image starts on a page boundary */
-	if (ALIGN_UP((uintptr_t)header, PAGE_SIZE) != (uintptr_t)header)
+	if (ALIGN_UP((uintptr_t) header, PAGE_SIZE) != (uintptr_t) header)
 		return EE_UNSUPPORTED;
-
+	
 	/* Walk through all segment headers and process them. */
+	elf_half i;
 	for (i = 0; i < header->e_phnum; i++) {
-		elf_segment_header_t *seghdr;
-
-		seghdr = &((elf_segment_header_t *)(((uint8_t *) header) +
+		elf_segment_header_t *seghdr =
+		    &((elf_segment_header_t *)(((uint8_t *) header) +
 		    header->e_phoff))[i];
-		rc = segment_header(seghdr, header, as, flags);
+		
+		int rc = segment_header(seghdr, header, as, flags);
 		if (rc != EE_OK)
 			return rc;
 	}
-
+	
 	/* Inspect all section headers and proccess them. */
 	for (i = 0; i < header->e_shnum; i++) {
-		elf_section_header_t *sechdr;
-
-		sechdr = &((elf_section_header_t *)(((uint8_t *) header) +
+		elf_section_header_t *sechdr =
+		    &((elf_section_header_t *)(((uint8_t *) header) +
 		    header->e_shoff))[i];
-		rc = section_header(sechdr, header, as);
+		
+		int rc = section_header(sechdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
-
+	
 	return EE_OK;
 }
 
@@ -135,24 +132,26 @@ unsigned int elf_load(elf_header_t *header, as_t * as, int flags)
  * @param rc Return code returned by elf_load().
  *
  * @return NULL terminated description of error.
+ *
  */
 const char *elf_error(unsigned int rc)
 {
 	ASSERT(rc < sizeof(error_codes) / sizeof(char *));
-
+	
 	return error_codes[rc];
 }
 
 /** Process segment header.
  *
  * @param entry Segment header.
- * @param elf ELF header.
- * @param as Address space into wich the ELF is being loaded.
+ * @param elf   ELF header.
+ * @param as    Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
+ *
  */
 static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as, int flags)
+    as_t *as, unsigned int flags)
 {
 	switch (entry->p_type) {
 	case PT_NULL:
@@ -169,9 +168,8 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 		    ELF_INTERP_ZLEN) != 0) {
 			return EE_UNSUPPORTED;
 		} */
-		if ((flags & ELD_F_LOADER) == 0) {
+		if ((flags & ELD_F_LOADER) == 0)
 			return EE_LOADER;
-		}
 		break;
 	case PT_SHLIB:
 	case PT_NOTE:
@@ -186,63 +184,66 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 /** Load segment described by program header entry.
  *
  * @param entry Program header entry describing segment to be loaded.
- * @param elf ELF header.
- * @param as Address space into wich the ELF is being loaded.
+ * @param elf   ELF header.
+ * @param as    Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
+ *
  */
 int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
-	as_area_t *a;
-	int flags = 0;
 	mem_backend_data_t backend_data;
-	uintptr_t base;
-	size_t mem_sz;
-	
 	backend_data.elf = elf;
 	backend_data.segment = entry;
-
+	
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
-		    (entry->p_vaddr % entry->p_align)) {
+		    (entry->p_vaddr % entry->p_align))
 			return EE_INVALID;
-		}
 	}
-
+	
+	unsigned int flags = 0;
+	
 	if (entry->p_flags & PF_X)
 		flags |= AS_AREA_EXEC;
+	
 	if (entry->p_flags & PF_W)
 		flags |= AS_AREA_WRITE;
+	
 	if (entry->p_flags & PF_R)
 		flags |= AS_AREA_READ;
+	
 	flags |= AS_AREA_CACHEABLE;
-
-	/* 
+	
+	/*
 	 * Align vaddr down, inserting a little "gap" at the beginning.
 	 * Adjust area size, so that its end remains in place.
+	 *
 	 */
-	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
-	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
-
-	a = as_area_create(as, flags, mem_sz, base,
+	uintptr_t base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
+	size_t mem_sz = entry->p_memsz + (entry->p_vaddr - base);
+	
+	as_area_t *area = as_area_create(as, flags, mem_sz, base,
 	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data);
-	if (!a)
+	if (!area)
 		return EE_MEMORY;
 	
 	/*
 	 * The segment will be mapped on demand by elf_page_fault().
+	 *
 	 */
-
+	
 	return EE_OK;
 }
 
 /** Process section header.
  *
  * @param entry Segment header.
- * @param elf ELF header.
- * @param as Address space into wich the ELF is being loaded.
+ * @param elf   ELF header.
+ * @param as    Address space into wich the ELF is being loaded.
  *
  * @return EE_OK on success, error code otherwise.
+ *
  */
 static int section_header(elf_section_header_t *entry, elf_header_t *elf,
     as_t *as)

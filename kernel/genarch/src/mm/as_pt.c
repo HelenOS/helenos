@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Address space functions for 4-level hierarchical pagetables.
+ * @brief Address space functions for 4-level hierarchical pagetables.
  */
 
 #include <genarch/mm/page_pt.h>
@@ -46,11 +46,11 @@
 #include <memstr.h>
 #include <arch.h>
 
-static pte_t *ptl0_create(int flags);
-static void ptl0_destroy(pte_t *page_table);
+static pte_t *ptl0_create(unsigned int);
+static void ptl0_destroy(pte_t *);
 
-static void pt_lock(as_t *as, bool lock);
-static void pt_unlock(as_t *as, bool unlock);
+static void pt_lock(as_t *, bool);
+static void pt_unlock(as_t *, bool);
 
 as_operations_t as_pt_operations = {
 	.page_table_create = ptl0_create,
@@ -66,38 +66,40 @@ as_operations_t as_pt_operations = {
  * @param flags Flags can specify whether ptl0 is for the kernel address space.
  *
  * @return New PTL0.
+ *
  */
-pte_t *ptl0_create(int flags)
+pte_t *ptl0_create(unsigned int flags)
 {
-	pte_t *src_ptl0, *dst_ptl0;
-	ipl_t ipl;
-	int table_size;
-
-	dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE, FRAME_KA);
-	table_size = FRAME_SIZE << PTL0_SIZE;
-
-	if (flags & FLAG_AS_KERNEL) {
-		memsetb(dst_ptl0, table_size, 0);
-	} else {
-		uintptr_t src, dst;
+	pte_t *dst_ptl0 = (pte_t *) frame_alloc(PTL0_SIZE, FRAME_KA);
+	size_t table_size = FRAME_SIZE << PTL0_SIZE;
 	
+	if (flags & FLAG_AS_KERNEL)
+		memsetb(dst_ptl0, table_size, 0);
+	else {
 		/*
 		 * Copy the kernel address space portion to new PTL0.
+		 *
 		 */
-		 
-		ipl = interrupts_disable();
-		mutex_lock(&AS_KERNEL->lock);		
-		src_ptl0 = (pte_t *) PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
-
-		src = (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
-		dst = (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
-
+		
+		ipl_t ipl = interrupts_disable();
+		mutex_lock(&AS_KERNEL->lock);
+		
+		pte_t *src_ptl0 =
+		    (pte_t *) PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
+		
+		uintptr_t src =
+		    (uintptr_t) &src_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		uintptr_t dst =
+		    (uintptr_t) &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
+		
 		memsetb(dst_ptl0, table_size, 0);
-		memcpy((void *) dst, (void *) src, table_size - (src - (uintptr_t) src_ptl0));
+		memcpy((void *) dst, (void *) src,
+		    table_size - (src - (uintptr_t) src_ptl0));
+		
 		mutex_unlock(&AS_KERNEL->lock);
 		interrupts_restore(ipl);
 	}
-
+	
 	return (pte_t *) KA2PA((uintptr_t) dst_ptl0);
 }
 
@@ -106,10 +108,11 @@ pte_t *ptl0_create(int flags)
  * Destroy PTL0, other levels are expected to be already deallocated.
  *
  * @param page_table Physical address of PTL0.
+ *
  */
 void ptl0_destroy(pte_t *page_table)
 {
-	frame_free((uintptr_t)page_table);
+	frame_free((uintptr_t) page_table);
 }
 
 /** Lock page tables.
@@ -117,8 +120,9 @@ void ptl0_destroy(pte_t *page_table)
  * Lock only the address space.
  * Interrupts must be disabled.
  *
- * @param as Address space.
+ * @param as   Address space.
  * @param lock If false, do not attempt to lock the address space.
+ *
  */
 void pt_lock(as_t *as, bool lock)
 {
@@ -131,8 +135,9 @@ void pt_lock(as_t *as, bool lock)
  * Unlock the address space.
  * Interrupts must be disabled.
  *
- * @param as Address space.
+ * @param as     Address space.
  * @param unlock If false, do not attempt to unlock the address space.
+ *
  */
 void pt_unlock(as_t *as, bool unlock)
 {

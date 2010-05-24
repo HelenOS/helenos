@@ -48,32 +48,29 @@
  *
  * Interrupts are disabled and task is locked.
  *
- * @param task Task.
+ * @param task   Task.
  * @param ioaddr Startign I/O space address.
- * @param size Size of the enabled I/O range.
+ * @param size   Size of the enabled I/O range.
  *
  * @return 0 on success or an error code from errno.h.
+ *
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	size_t bits;
-	
-	bits = ioaddr + size;
+	size_t bits = ioaddr + size;
 	if (bits > IO_PORTS)
 		return ENOENT;
 	
 	if (task->arch.iomap.bits < bits) {
-		bitmap_t oldiomap;
-		uint8_t *newmap;
-		
 		/*
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
 		
-		newmap = (uint8_t *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
+		uint8_t *newmap = (uint8_t *) malloc(BITS2BYTES(bits), FRAME_ATOMIC);
 		if (!newmap)
 			return ENOMEM;
 		
+		bitmap_t oldiomap;
 		bitmap_initialize(&oldiomap, task->arch.iomap.map,
 		    task->arch.iomap.bits);
 		bitmap_initialize(&task->arch.iomap, newmap, bits);
@@ -114,39 +111,38 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
  * in the current CPU's TSS.
  *
  * Interrupts must be disabled prior this call.
+ *
  */
 void io_perm_bitmap_install(void)
 {
-	size_t bits;
-	ptr_16_64_t cpugdtr;
-	descriptor_t *gdt_p;
-	tss_descriptor_t *tss_desc;
-	size_t ver;
-	
 	/* First, copy the I/O Permission Bitmap. */
-	spinlock_lock(&TASK->lock);
-	ver = TASK->arch.iomapver;
-	if ((bits = TASK->arch.iomap.bits)) {
-		bitmap_t iomap;
-	
+	irq_spinlock_lock(&TASK->lock, false);
+	size_t ver = TASK->arch.iomapver;
+	size_t bits = TASK->arch.iomap.bits;
+	if (bits) {
 		ASSERT(TASK->arch.iomap.map);
+		
+		bitmap_t iomap;
 		bitmap_initialize(&iomap, CPU->arch.tss->iomap,
 		    TSS_IOMAP_SIZE * 8);
 		bitmap_copy(&iomap, &TASK->arch.iomap, TASK->arch.iomap.bits);
+		
 		/*
 		 * It is safe to set the trailing eight bits because of the
 		 * extra convenience byte in TSS_IOMAP_SIZE.
 		 */
 		bitmap_set_range(&iomap, ALIGN_UP(TASK->arch.iomap.bits, 8), 8);
 	}
-	spinlock_unlock(&TASK->lock);
+	irq_spinlock_unlock(&TASK->lock, false);
 	
 	/*
 	 * Second, adjust TSS segment limit.
 	 * Take the extra ending byte will all bits set into account. 
 	 */
+	ptr_16_64_t cpugdtr;
 	gdtr_store(&cpugdtr);
-	gdt_p = (descriptor_t *) cpugdtr.base;
+	
+	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + BITS2BYTES(bits));
 	gdtr_load(&cpugdtr);
 	
@@ -154,7 +150,7 @@ void io_perm_bitmap_install(void)
 	 * Before we load new TSS limit, the current TSS descriptor
 	 * type must be changed to describe inactive TSS.
 	 */
-	tss_desc = (tss_descriptor_t *) &gdt_p[TSS_DES];
+	tss_descriptor_t *tss_desc = (tss_descriptor_t *) &gdt_p[TSS_DES];
 	tss_desc->type = AR_TSS;
 	tr_load(gdtselector(TSS_DES));
 	

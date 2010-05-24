@@ -53,11 +53,14 @@
 #include <ddi/irq.h>
 #include <ddi/device.h>
 
-#define CLK_PORT1	((ioport8_t *)0x40)
-#define CLK_PORT4	((ioport8_t *)0x43)
+#define CLK_PORT1  ((ioport8_t *) 0x40)
+#define CLK_PORT4  ((ioport8_t *) 0x43)
 
-#define CLK_CONST	1193180
-#define MAGIC_NUMBER	1194
+#define CLK_CONST     1193180
+#define MAGIC_NUMBER  1194
+
+#define LOOPS  150000
+#define SHIFT  11
 
 static irq_t i8254_irq;
 
@@ -74,9 +77,9 @@ static void i8254_irq_handler(irq_t *irq)
 	 * preemption. For this particular IRQ, we don't need the
 	 * lock. We just release it, call clock() and then reacquire it again.
 	 */
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 void i8254_init(void)
@@ -101,15 +104,8 @@ void i8254_normal_operation(void)
 	pic_enable_irqs(1 << IRQ_CLK);
 }
 
-#define LOOPS 150000
-#define SHIFT 11
 void i8254_calibrate_delay_loop(void)
 {
-	uint64_t clk1, clk2;
-	uint32_t t1, t2, o1, o2;
-	uint8_t not_ok;
-
-
 	/*
 	 * One-shot timer. Count-down from 0xffff at 1193180Hz
 	 * MAGIC_NUMBER is the magic value for 1ms.
@@ -117,7 +113,11 @@ void i8254_calibrate_delay_loop(void)
 	pio_write_8(CLK_PORT4, 0x30);
 	pio_write_8(CLK_PORT1, 0xff);
 	pio_write_8(CLK_PORT1, 0xff);
-
+	
+	uint8_t not_ok;
+	uint32_t t1;
+	uint32_t t2;
+	
 	do {
 		/* will read both status and count */
 		pio_write_8(CLK_PORT4, 0xc2);
@@ -125,36 +125,36 @@ void i8254_calibrate_delay_loop(void)
 		t1 = pio_read_8(CLK_PORT1);
 		t1 |= pio_read_8(CLK_PORT1) << 8;
 	} while (not_ok);
-
+	
 	asm_delay_loop(LOOPS);
-
+	
 	pio_write_8(CLK_PORT4, 0xd2);
 	t2 = pio_read_8(CLK_PORT1);
 	t2 |= pio_read_8(CLK_PORT1) << 8;
-
+	
 	/*
 	 * We want to determine the overhead of the calibrating mechanism.
 	 */
 	pio_write_8(CLK_PORT4, 0xd2);
-	o1 = pio_read_8(CLK_PORT1);
+	uint32_t o1 = pio_read_8(CLK_PORT1);
 	o1 |= pio_read_8(CLK_PORT1) << 8;
-
+	
 	asm_fake_loop(LOOPS);
-
+	
 	pio_write_8(CLK_PORT4, 0xd2);
-	o2 = pio_read_8(CLK_PORT1);
+	uint32_t o2 = pio_read_8(CLK_PORT1);
 	o2 |= pio_read_8(CLK_PORT1) << 8;
-
+	
 	CPU->delay_loop_const =
 	    ((MAGIC_NUMBER * LOOPS) / 1000) / ((t1 - t2) - (o1 - o2)) +
 	    (((MAGIC_NUMBER * LOOPS) / 1000) % ((t1 - t2) - (o1 - o2)) ? 1 : 0);
-
-	clk1 = get_cycle();
+	
+	uint64_t clk1 = get_cycle();
 	delay(1 << SHIFT);
-	clk2 = get_cycle();
+	uint64_t clk2 = get_cycle();
 	
 	CPU->frequency_mhz = (clk2 - clk1) >> SHIFT;
-
+	
 	return;
 }
 

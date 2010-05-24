@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Reader/Writer locks.
+ * @brief Reader/Writer locks.
  *
  * A reader/writer lock can be held by multiple readers at a time.
  * Or it can be exclusively held by a sole writer at a time.
@@ -56,7 +56,7 @@
  * to store the rwlock type in the thread structure, because
  * each thread can block on only one rwlock at a time.
  */
- 
+
 #include <synch/rwlock.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
@@ -68,22 +68,109 @@
 #include <proc/thread.h>
 #include <panic.h>
 
-#define ALLOW_ALL		0
-#define ALLOW_READERS_ONLY	1
-
-static void let_others_in(rwlock_t *rwl, int readers_only);
-static void release_spinlock(void *arg);
+#define ALLOW_ALL           0
+#define ALLOW_READERS_ONLY  1
 
 /** Initialize reader/writer lock
  *
  * Initialize reader/writer lock.
  *
  * @param rwl Reader/Writer lock.
+ *
  */
 void rwlock_initialize(rwlock_t *rwl) {
-	spinlock_initialize(&rwl->lock, "rwlock_t");
+	irq_spinlock_initialize(&rwl->lock, "rwl.lock");
 	mutex_initialize(&rwl->exclusive, MUTEX_PASSIVE);
 	rwl->readers_in = 0;
+}
+
+/** Direct handoff of reader/writer lock ownership.
+ *
+ * Direct handoff of reader/writer lock ownership
+ * to waiting readers or a writer.
+ *
+ * Must be called with rwl->lock locked.
+ * Must be called with interrupts_disable()'d.
+ *
+ * @param rwl          Reader/Writer lock.
+ * @param readers_only See the description below.
+ *
+ * If readers_only is false: (unlock scenario)
+ * Let the first sleeper on 'exclusive' mutex in, no matter
+ * whether it is a reader or a writer. If there are more leading
+ * readers in line, let each of them in.
+ *
+ * Otherwise: (timeout scenario)
+ * Let all leading readers in.
+ *
+ */
+static void let_others_in(rwlock_t *rwl, int readers_only)
+{
+	rwlock_type_t type = RWLOCK_NONE;
+	thread_t *thread = NULL;
+	bool one_more = true;
+	
+	irq_spinlock_lock(&rwl->exclusive.sem.wq.lock, false);
+	
+	if (!list_empty(&rwl->exclusive.sem.wq.head))
+		thread = list_get_instance(rwl->exclusive.sem.wq.head.next,
+		    thread_t, wq_link);
+	
+	do {
+		if (thread) {
+			irq_spinlock_lock(&thread->lock, false);
+			type = thread->rwlock_holder_type;
+			irq_spinlock_unlock(&thread->lock, false);
+		}
+		
+		/*
+		 * If readers_only is true, we wake all leading readers
+		 * if and only if rwl is locked by another reader.
+		 * Assumption: readers_only ==> rwl->readers_in
+		 *
+		 */
+		if ((readers_only) && (type != RWLOCK_READER))
+			break;
+		
+		if (type == RWLOCK_READER) {
+			/*
+			 * Waking up a reader.
+			 * We are responsible for incrementing rwl->readers_in
+			 * for it.
+			 *
+			 */
+			 rwl->readers_in++;
+		}
+		
+		/*
+		 * Only the last iteration through this loop can increment
+		 * rwl->exclusive.sem.wq.missed_wakeup's. All preceeding
+		 * iterations will wake up a thread.
+		 *
+		 */
+		
+		/*
+		 * We call the internal version of waitq_wakeup, which
+		 * relies on the fact that the waitq is already locked.
+		 *
+		 */
+		_waitq_wakeup_unsafe(&rwl->exclusive.sem.wq, WAKEUP_FIRST);
+		
+		thread = NULL;
+		if (!list_empty(&rwl->exclusive.sem.wq.head)) {
+			thread = list_get_instance(rwl->exclusive.sem.wq.head.next,
+			    thread_t, wq_link);
+			
+			if (thread) {
+				irq_spinlock_lock(&thread->lock, false);
+				if (thread->rwlock_holder_type != RWLOCK_READER)
+					one_more = false;
+				irq_spinlock_unlock(&thread->lock, false);
+			}
+		}
+	} while ((type == RWLOCK_READER) && (thread) && (one_more));
+	
+	irq_spinlock_unlock(&rwl->exclusive.sem.wq.lock, false);
 }
 
 /** Acquire reader/writer lock for reading
@@ -91,53 +178,64 @@ void rwlock_initialize(rwlock_t *rwl) {
  * Acquire reader/writer lock for reading.
  * Timeout and willingness to block may be specified.
  *
- * @param rwl Reader/Writer lock.
- * @param usec Timeout in microseconds.
+ * @param rwl   Reader/Writer lock.
+ * @param usec  Timeout in microseconds.
  * @param flags Specify mode of operation.
  *
  * For exact description of possible combinations of
  * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
+ *
  */
-int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
+int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, unsigned int flags)
 {
-	ipl_t ipl;
-	int rc;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
+	irq_spinlock_lock(&THREAD->lock, true);
 	THREAD->rwlock_holder_type = RWLOCK_WRITER;
-	spinlock_unlock(&THREAD->lock);	
-	interrupts_restore(ipl);
-
+	irq_spinlock_unlock(&THREAD->lock, true);
+	
 	/*
 	 * Writers take the easy part.
 	 * They just need to acquire the exclusive mutex.
+	 *
 	 */
-	rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
+	int rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
 	if (SYNCH_FAILED(rc)) {
-
 		/*
 		 * Lock operation timed out or was interrupted.
 		 * The state of rwl is UNKNOWN at this point.
 		 * No claims about its holder can be made.
+		 *
 		 */
-		 
-		ipl = interrupts_disable();
-		spinlock_lock(&rwl->lock);
+		irq_spinlock_lock(&rwl->lock, true);
+		
 		/*
 		 * Now when rwl is locked, we can inspect it again.
 		 * If it is held by some readers already, we can let
 		 * readers from the head of the wait queue in.
+		 *
 		 */
 		if (rwl->readers_in)
 			let_others_in(rwl, ALLOW_READERS_ONLY);
-		spinlock_unlock(&rwl->lock);
-		interrupts_restore(ipl);
+		
+		irq_spinlock_unlock(&rwl->lock, true);
 	}
 	
 	return rc;
+}
+
+/** Release spinlock callback
+ *
+ * This is a callback function invoked from the scheduler.
+ * The callback is registered in _rwlock_read_lock_timeout().
+ *
+ * @param arg Spinlock.
+ *
+ */
+static void release_spinlock(void *arg)
+{
+	if (arg != NULL)
+		irq_spinlock_unlock((irq_spinlock_t *) arg, false);
 }
 
 /** Acquire reader/writer lock for writing
@@ -145,79 +243,87 @@ int _rwlock_write_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
  * Acquire reader/writer lock for writing.
  * Timeout and willingness to block may be specified.
  *
- * @param rwl Reader/Writer lock.
- * @param usec Timeout in microseconds.
+ * @param rwl   Reader/Writer lock.
+ * @param usec  Timeout in microseconds.
  * @param flags Select mode of operation.
  *
  * For exact description of possible combinations of
  * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
+ *
  */
-int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
+int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, unsigned int flags)
 {
-	int rc;
-	ipl_t ipl;
+	/*
+	 * Since the locking scenarios get a little bit too
+	 * complicated, we do not rely on internal irq_spinlock_t
+	 * interrupt disabling logic here and control interrupts
+	 * manually.
+	 *
+	 */
+	ipl_t ipl = interrupts_disable();
 	
-	ipl = interrupts_disable();
-	spinlock_lock(&THREAD->lock);
+	irq_spinlock_lock(&THREAD->lock, false);
 	THREAD->rwlock_holder_type = RWLOCK_READER;
-	spinlock_unlock(&THREAD->lock);	
-
-	spinlock_lock(&rwl->lock);
-
+	irq_spinlock_pass(&THREAD->lock, &rwl->lock);
+	
 	/*
 	 * Find out whether we can get what we want without blocking.
+	 *
 	 */
-	rc = mutex_trylock(&rwl->exclusive);
+	int rc = mutex_trylock(&rwl->exclusive);
 	if (SYNCH_FAILED(rc)) {
-
 		/*
 		 * 'exclusive' mutex is being held by someone else.
 		 * If the holder is a reader and there is no one
 		 * else waiting for it, we can enter the critical
 		 * section.
+		 *
 		 */
-
+		
 		if (rwl->readers_in) {
-			spinlock_lock(&rwl->exclusive.sem.wq.lock);
+			irq_spinlock_lock(&rwl->exclusive.sem.wq.lock, false);
 			if (list_empty(&rwl->exclusive.sem.wq.head)) {
 				/*
 				 * We can enter.
 				 */
-				spinlock_unlock(&rwl->exclusive.sem.wq.lock);
+				irq_spinlock_unlock(&rwl->exclusive.sem.wq.lock, false);
 				goto shortcut;
 			}
-			spinlock_unlock(&rwl->exclusive.sem.wq.lock);
+			irq_spinlock_unlock(&rwl->exclusive.sem.wq.lock, false);
 		}
-
+		
 		/*
 		 * In order to prevent a race condition when a reader
 		 * could block another reader at the head of the waitq,
 		 * we register a function to unlock rwl->lock
 		 * after this thread is put asleep.
+		 *
 		 */
-		#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
 		thread_register_call_me(release_spinlock, &rwl->lock);
-		#else
+#else
 		thread_register_call_me(release_spinlock, NULL);
-		#endif
-				 
+#endif
+		
 		rc = _mutex_lock_timeout(&rwl->exclusive, usec, flags);
 		switch (rc) {
 		case ESYNCH_WOULD_BLOCK:
 			/*
 			 * release_spinlock() wasn't called
+			 *
 			 */
 			thread_register_call_me(NULL, NULL);
-			spinlock_unlock(&rwl->lock);
+			irq_spinlock_unlock(&rwl->lock, false);
 		case ESYNCH_TIMEOUT:
 		case ESYNCH_INTERRUPTED:
 			/*
 			 * The sleep timed out.
 			 * We just restore interrupt priority level.
+			 *
 			 */
-		case ESYNCH_OK_BLOCKED:		
+		case ESYNCH_OK_BLOCKED:
 			/*
 			 * We were woken with rwl->readers_in already
 			 * incremented.
@@ -227,6 +333,7 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 			 * 'exclusive' is locked at the same time as
 			 * 'readers_in' is incremented. Same time means both
 			 * events happen atomically when rwl->lock is held.)
+			 *
 			 */
 			interrupts_restore(ipl);
 			break;
@@ -239,18 +346,17 @@ int _rwlock_read_lock_timeout(rwlock_t *rwl, uint32_t usec, int flags)
 		}
 		return rc;
 	}
-
+	
 shortcut:
-
 	/*
 	 * We can increment readers_in only if we didn't go to sleep.
 	 * For sleepers, rwlock_let_others_in() will do the job.
+	 *
 	 */
 	rwl->readers_in++;
-	
-	spinlock_unlock(&rwl->lock);
+	irq_spinlock_unlock(&rwl->lock, false);
 	interrupts_restore(ipl);
-
+	
 	return ESYNCH_OK_ATOMIC;
 }
 
@@ -261,17 +367,13 @@ shortcut:
  * to waiting readers or a writer.
  *
  * @param rwl Reader/Writer lock.
+ *
  */
 void rwlock_write_unlock(rwlock_t *rwl)
 {
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&rwl->lock);
+	irq_spinlock_lock(&rwl->lock, true);
 	let_others_in(rwl, ALLOW_ALL);
-	spinlock_unlock(&rwl->lock);
-	interrupts_restore(ipl);
-	
+	irq_spinlock_unlock(&rwl->lock, true);
 }
 
 /** Release reader/writer lock held by reader
@@ -282,111 +384,16 @@ void rwlock_write_unlock(rwlock_t *rwl)
  * readers poses the lock.
  *
  * @param rwl Reader/Writer lock.
+ *
  */
 void rwlock_read_unlock(rwlock_t *rwl)
 {
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&rwl->lock);
+	irq_spinlock_lock(&rwl->lock, true);
+	
 	if (!--rwl->readers_in)
 		let_others_in(rwl, ALLOW_ALL);
-	spinlock_unlock(&rwl->lock);
-	interrupts_restore(ipl);
-}
-
-
-/** Direct handoff of reader/writer lock ownership.
- *
- * Direct handoff of reader/writer lock ownership
- * to waiting readers or a writer.
- *
- * Must be called with rwl->lock locked.
- * Must be called with interrupts_disable()'d.
- *
- * @param rwl Reader/Writer lock.
- * @param readers_only See the description below.
- *
- * If readers_only is false: (unlock scenario)
- * Let the first sleeper on 'exclusive' mutex in, no matter
- * whether it is a reader or a writer. If there are more leading
- * readers in line, let each of them in.
- *
- * Otherwise: (timeout scenario)
- * Let all leading readers in.
- */
-void let_others_in(rwlock_t *rwl, int readers_only)
-{
-	rwlock_type_t type = RWLOCK_NONE;
-	thread_t *t = NULL;
-	bool one_more = true;
 	
-	spinlock_lock(&rwl->exclusive.sem.wq.lock);
-
-	if (!list_empty(&rwl->exclusive.sem.wq.head))
-		t = list_get_instance(rwl->exclusive.sem.wq.head.next, thread_t,
-		    wq_link);
-	do {
-		if (t) {
-			spinlock_lock(&t->lock);
-			type = t->rwlock_holder_type;
-			spinlock_unlock(&t->lock);			
-		}
-	
-		/*
-		 * If readers_only is true, we wake all leading readers
-		 * if and only if rwl is locked by another reader.
-		 * Assumption: readers_only ==> rwl->readers_in
-		 */
-		if (readers_only && (type != RWLOCK_READER))
-			break;
-
-
-		if (type == RWLOCK_READER) {
-			/*
-			 * Waking up a reader.
-			 * We are responsible for incrementing rwl->readers_in
-			 * for it.
-			 */
-			 rwl->readers_in++;
-		}
-
-		/*
-		 * Only the last iteration through this loop can increment
-		 * rwl->exclusive.sem.wq.missed_wakeup's. All preceeding
-		 * iterations will wake up a thread.
-		 */
-		/* We call the internal version of waitq_wakeup, which
-		 * relies on the fact that the waitq is already locked.
-		 */
-		_waitq_wakeup_unsafe(&rwl->exclusive.sem.wq, WAKEUP_FIRST);
-		
-		t = NULL;
-		if (!list_empty(&rwl->exclusive.sem.wq.head)) {
-			t = list_get_instance(rwl->exclusive.sem.wq.head.next,
-			    thread_t, wq_link);
-			if (t) {
-				spinlock_lock(&t->lock);
-				if (t->rwlock_holder_type != RWLOCK_READER)
-					one_more = false;
-				spinlock_unlock(&t->lock);	
-			}
-		}
-	} while ((type == RWLOCK_READER) && t && one_more);
-
-	spinlock_unlock(&rwl->exclusive.sem.wq.lock);
-}
-
-/** Release spinlock callback
- *
- * This is a callback function invoked from the scheduler.
- * The callback is registered in _rwlock_read_lock_timeout().
- *
- * @param arg Spinlock.
- */
-void release_spinlock(void *arg)
-{
-	spinlock_unlock((spinlock_t *) arg);
+	irq_spinlock_unlock(&rwl->lock, true);
 }
 
 /** @}

@@ -37,7 +37,7 @@
 #define KERN_ABI_H_
 
 /** Number of load components */
-#define LOAD_STEPS        3
+#define LOAD_STEPS  3
 
 /** Maximum task name size */
 #define TASK_NAME_BUFLEN  20
@@ -64,7 +64,7 @@ typedef enum {
  *
  */
 typedef struct {
-	unsigned int id;         /**< CPU ID as stored by kernel */
+	size_t id;               /**< CPU ID as stored by kernel */
 	bool active;             /**< CPU is activate */
 	uint16_t frequency_mhz;  /**< Frequency in MHz */
 	uint64_t idle_ticks;     /**< Number of idle kernel quanta */

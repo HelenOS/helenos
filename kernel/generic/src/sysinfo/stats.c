@@ -109,12 +109,9 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 	
-	/* Each CPU structure is locked separatelly */
-	ipl_t ipl = interrupts_disable();
-	
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
-		spinlock_lock(&cpus[i].lock);
+		irq_spinlock_lock(&cpus[i].lock, true);
 		
 		stats_cpus[i].id = cpus[i].id;
 		stats_cpus[i].active = cpus[i].active;
@@ -122,10 +119,8 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 		stats_cpus[i].busy_ticks = cpus[i].busy_ticks;
 		stats_cpus[i].idle_ticks = cpus[i].idle_ticks;
 		
-		spinlock_unlock(&cpus[i].lock);
+		irq_spinlock_unlock(&cpus[i].lock, true);
 	}
-	
-	interrupts_restore(ipl);
 	
 	return ((void *) stats_cpus);
 }
@@ -234,13 +229,13 @@ static bool task_serialize_walker(avltree_node_t *node, void *arg)
 	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	
 	/* Interrupts are already disabled */
-	spinlock_lock(&(task->lock));
+	irq_spinlock_lock(&(task->lock), false);
 	
 	/* Record the statistics and increment the iterator */
 	produce_stats_task(task, *iterator);
 	(*iterator)++;
 	
-	spinlock_unlock(&(task->lock));
+	irq_spinlock_unlock(&(task->lock), false);
 	
 	return true;
 }
@@ -259,8 +254,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
     bool dry_run)
 {
 	/* Messing with task structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
+	irq_spinlock_lock(&tasks_lock, true);
 	
 	/* First walk the task tree to count the tasks */
 	size_t count = 0;
@@ -268,26 +262,21 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	
 	if (count == 0) {
 		/* No tasks found (strange) */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		
+		irq_spinlock_unlock(&tasks_lock, true);
 		*size = 0;
 		return NULL;
 	}
 	
 	*size = sizeof(stats_task_t) * count;
 	if (dry_run) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return NULL;
 	}
 	
 	stats_task_t *stats_tasks = (stats_task_t *) malloc(*size, FRAME_ATOMIC);
 	if (stats_tasks == NULL) {
 		/* No free space for allocation */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
-		
+		irq_spinlock_unlock(&tasks_lock, true);
 		*size = 0;
 		return NULL;
 	}
@@ -296,8 +285,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	stats_task_t *iterator = stats_tasks;
 	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
 	
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&tasks_lock, true);
 	
 	return ((void *) stats_tasks);
 }
@@ -345,13 +333,13 @@ static bool thread_serialize_walker(avltree_node_t *node, void *arg)
 	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
 	
 	/* Interrupts are already disabled */
-	spinlock_lock(&thread->lock);
+	irq_spinlock_lock(&thread->lock, false);
 	
 	/* Record the statistics and increment the iterator */
 	produce_stats_thread(thread, *iterator);
 	(*iterator)++;
 	
-	spinlock_unlock(&thread->lock);
+	irq_spinlock_unlock(&thread->lock, false);
 	
 	return true;
 }
@@ -370,8 +358,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
     bool dry_run)
 {
 	/* Messing with threads structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&threads_lock);
+	irq_spinlock_lock(&threads_lock, true);
 	
 	/* First walk the thread tree to count the threads */
 	size_t count = 0;
@@ -379,26 +366,21 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	
 	if (count == 0) {
 		/* No threads found (strange) */
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
-		
+		irq_spinlock_unlock(&threads_lock, true);
 		*size = 0;
 		return NULL;
 	}
 	
 	*size = sizeof(stats_thread_t) * count;
 	if (dry_run) {
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&threads_lock, true);
 		return NULL;
 	}
 	
 	stats_thread_t *stats_threads = (stats_thread_t *) malloc(*size, FRAME_ATOMIC);
 	if (stats_threads == NULL) {
 		/* No free space for allocation */
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
-		
+		irq_spinlock_unlock(&threads_lock, true);
 		*size = 0;
 		return NULL;
 	}
@@ -407,8 +389,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	stats_thread_t *iterator = stats_threads;
 	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
 	
-	spinlock_unlock(&threads_lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&threads_lock, true);
 	
 	return ((void *) stats_threads);
 }
@@ -442,14 +423,12 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
 		return ret;
 	
 	/* Messing with task structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
+	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id(task_id);
 	if (task == NULL) {
 		/* No task with this ID */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return ret;
 	}
 	
@@ -458,14 +437,13 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
 		ret.data.data = NULL;
 		ret.data.size = sizeof(stats_task_t);
 		
-		spinlock_unlock(&tasks_lock);
+		irq_spinlock_unlock(&tasks_lock, true);
 	} else {
 		/* Allocate stats_task_t structure */
 		stats_task_t *stats_task =
 		    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
 		if (stats_task == NULL) {
-			spinlock_unlock(&tasks_lock);
-			interrupts_restore(ipl);
+			irq_spinlock_unlock(&tasks_lock, true);
 			return ret;
 		}
 		
@@ -473,17 +451,14 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run)
 		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
 		ret.data.data = (void *) stats_task;
 		ret.data.size = sizeof(stats_task_t);
-	
+		
 		/* Hand-over-hand locking */
-		spinlock_lock(&task->lock);
-		spinlock_unlock(&tasks_lock);
+		irq_spinlock_exchange(&tasks_lock, &task->lock);
 		
 		produce_stats_task(task, stats_task);
 		
-		spinlock_unlock(&task->lock);
+		irq_spinlock_unlock(&task->lock, true);
 	}
-	
-	interrupts_restore(ipl);
 	
 	return ret;
 }
@@ -517,14 +492,12 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
 		return ret;
 	
 	/* Messing with threads structures, avoid deadlock */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&threads_lock);
+	irq_spinlock_lock(&threads_lock, true);
 	
 	thread_t *thread = thread_find_by_id(thread_id);
 	if (thread == NULL) {
 		/* No thread with this ID */
-		spinlock_unlock(&threads_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&threads_lock, true);
 		return ret;
 	}
 	
@@ -533,14 +506,13 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
 		ret.data.data = NULL;
 		ret.data.size = sizeof(stats_thread_t);
 		
-		spinlock_unlock(&threads_lock);
+		irq_spinlock_unlock(&threads_lock, true);
 	} else {
 		/* Allocate stats_thread_t structure */
 		stats_thread_t *stats_thread =
 		    (stats_thread_t *) malloc(sizeof(stats_thread_t), FRAME_ATOMIC);
 		if (stats_thread == NULL) {
-			spinlock_unlock(&threads_lock);
-			interrupts_restore(ipl);
+			irq_spinlock_unlock(&threads_lock, true);
 			return ret;
 		}
 		
@@ -550,15 +522,12 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
 		ret.data.size = sizeof(stats_thread_t);
 		
 		/* Hand-over-hand locking */
-		spinlock_lock(&thread->lock);
-		spinlock_unlock(&threads_lock);
+		irq_spinlock_exchange(&threads_lock, &thread->lock);
 		
 		produce_stats_thread(thread, stats_thread);
 		
-		spinlock_unlock(&thread->lock);
+		irq_spinlock_unlock(&thread->lock, true);
 	}
-	
-	interrupts_restore(ipl);
 	
 	return ret;
 }
@@ -672,7 +641,7 @@ void kload(void *arg)
 void stats_init(void)
 {
 	mutex_initialize(&load_lock, MUTEX_PASSIVE);
-
+	
 	sysinfo_set_item_fn_val("system.uptime", NULL, get_stats_uptime);
 	sysinfo_set_item_fn_data("system.cpus", NULL, get_stats_cpus);
 	sysinfo_set_item_fn_data("system.physmem", NULL, get_stats_physmem);

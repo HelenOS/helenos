@@ -61,12 +61,16 @@ static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
 static bool klog_inited = false;
+
 /** First kernel log characters */
 static size_t klog_start = 0;
+
 /** Number of valid kernel log characters */
 static size_t klog_len = 0;
+
 /** Number of stored (not printed) kernel log characters */
 static size_t klog_stored = 0;
+
 /** Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
@@ -83,8 +87,8 @@ static indev_operations_t stdin_ops = {
 	.poll = NULL
 };
 
-static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
-static void stdout_redraw(outdev_t *dev);
+static void stdout_write(outdev_t *, wchar_t, bool);
+static void stdout_redraw(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
 	.write = stdout_write,
@@ -173,9 +177,12 @@ void grab_console(void)
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
 	
-	/* Force the console to print the prompt */
-	if ((stdin) && (prev))
+	if ((stdin) && (prev)) {
+		/*
+		 * Force the console to print the prompt.
+		 */
 		indev_push_character(stdin, '\n');
+	}
 }
 
 void release_console(void)

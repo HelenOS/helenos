@@ -32,13 +32,14 @@
 
 /**
  * @file
- * @brief	High-level clock interrupt handler.
+ * @brief High-level clock interrupt handler.
  *
  * This file contains the clock() function which is the source
  * of preemption. It is also responsible for executing expired
  * timeouts.
+ *
  */
- 
+
 #include <time/clock.h>
 #include <time/timeout.h>
 #include <config.h>
@@ -62,8 +63,10 @@ uptime_t *uptime;
 /** Physical memory area of the real time clock */
 static parea_t clock_parea;
 
-/* Variable holding fragment of second, so that we would update
- * seconds correctly
+/** Fragment of second
+ *
+ * For updating  seconds correctly.
+ *
  */
 static unative_t secfrag = 0;
 
@@ -72,12 +75,11 @@ static unative_t secfrag = 0;
  * The applications (and sometimes kernel) need to access accurate
  * information about realtime data. We allocate 1 page with these 
  * data and update it periodically.
+ *
  */
 void clock_counter_init(void)
 {
-	void *faddr;
-
-	faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC);
+	void *faddr = frame_alloc(ONE_FRAME, FRAME_ATOMIC);
 	if (!faddr)
 		panic("Cannot allocate page for clock.");
 	
@@ -86,24 +88,25 @@ void clock_counter_init(void)
 	uptime->seconds1 = 0;
 	uptime->seconds2 = 0;
 	uptime->useconds = 0;
-
+	
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
 	ddi_parea_register(&clock_parea);
-
+	
 	/*
 	 * Prepare information for the userspace so that it can successfully
 	 * physmem_map() the clock_parea.
+	 *
 	 */
 	sysinfo_set_item_val("clock.cacheable", NULL, (unative_t) true);
 	sysinfo_set_item_val("clock.faddr", NULL, (unative_t) faddr);
 }
 
-
 /** Update public counters
  *
  * Update it only on first processor
- * TODO: Do we really need so many write barriers? 
+ * TODO: Do we really need so many write barriers?
+ *
  */
 static void clock_update_counters(void)
 {
@@ -130,87 +133,87 @@ static void clock_update_counters(void)
  */
 void clock(void)
 {
-	link_t *l;
-	timeout_t *h;
-	timeout_handler_t f;
-	void *arg;
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
-	unsigned int i;
-
+	
 	/* Account lost ticks to CPU usage */
-	if (CPU->idle) {
+	if (CPU->idle)
 		CPU->idle_ticks += missed_clock_ticks + 1;
-	} else {
+	else
 		CPU->busy_ticks += missed_clock_ticks + 1;
-	}
+	
 	CPU->idle = false;
-
+	
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
+	 *
 	 */
+	size_t i;
 	for (i = 0; i <= missed_clock_ticks; i++) {
 		clock_update_counters();
-		spinlock_lock(&CPU->timeoutlock);
-		while ((l = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
-			h = list_get_instance(l, timeout_t, link);
-			spinlock_lock(&h->lock);
-			if (h->ticks-- != 0) {
-				spinlock_unlock(&h->lock);
+		irq_spinlock_lock(&CPU->timeoutlock, false);
+		
+		link_t *cur;
+		while ((cur = CPU->timeout_active_head.next) != &CPU->timeout_active_head) {
+			timeout_t *timeout = list_get_instance(cur, timeout_t, link);
+			
+			irq_spinlock_lock(&timeout->lock, false);
+			if (timeout->ticks-- != 0) {
+				irq_spinlock_unlock(&timeout->lock, false);
 				break;
 			}
-			list_remove(l);
-			f = h->handler;
-			arg = h->arg;
-			timeout_reinitialize(h);
-			spinlock_unlock(&h->lock);	
-			spinlock_unlock(&CPU->timeoutlock);
-
-			f(arg);
-
-			spinlock_lock(&CPU->timeoutlock);
+			
+			list_remove(cur);
+			timeout_handler_t handler = timeout->handler;
+			void *arg = timeout->arg;
+			timeout_reinitialize(timeout);
+			
+			irq_spinlock_unlock(&timeout->lock, false);
+			irq_spinlock_unlock(&CPU->timeoutlock, false);
+			
+			handler(arg);
+			
+			irq_spinlock_lock(&CPU->timeoutlock, false);
 		}
-		spinlock_unlock(&CPU->timeoutlock);
+		
+		irq_spinlock_unlock(&CPU->timeoutlock, false);
 	}
 	CPU->missed_clock_ticks = 0;
-
+	
 	/*
 	 * Do CPU usage accounting and find out whether to preempt THREAD.
+	 *
 	 */
-
+	
 	if (THREAD) {
 		uint64_t ticks;
 		
-		spinlock_lock(&CPU->lock);
+		irq_spinlock_lock(&CPU->lock, false);
 		CPU->needs_relink += 1 + missed_clock_ticks;
-		spinlock_unlock(&CPU->lock);	
-	
-		spinlock_lock(&THREAD->lock);
+		irq_spinlock_unlock(&CPU->lock, false);
+		
+		irq_spinlock_lock(&THREAD->lock, false);
 		if ((ticks = THREAD->ticks)) {
 			if (ticks >= 1 + missed_clock_ticks)
 				THREAD->ticks -= 1 + missed_clock_ticks;
 			else
 				THREAD->ticks = 0;
 		}
-		spinlock_unlock(&THREAD->lock);
+		irq_spinlock_unlock(&THREAD->lock, false);
 		
 		if ((!ticks) && (!PREEMPTION_DISABLED)) {
-#ifdef CONFIG_UDEBUG
-			istate_t *istate;
-#endif
 			scheduler();
 #ifdef CONFIG_UDEBUG
 			/*
 			 * Give udebug chance to stop the thread
 			 * before it begins executing userspace code.
 			 */
-			istate = THREAD->udebug.uspace_state;
-			if (istate && istate_from_uspace(istate))
+			istate_t *istate = THREAD->udebug.uspace_state;
+			if ((istate) && (istate_from_uspace(istate)))
 				udebug_before_thread_runs();
 #endif
 		}
 	}
-
 }
 
 /** @}

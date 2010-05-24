@@ -31,11 +31,12 @@
  */
 /**
  * @file
- * @brief	Interrupt redirector.
+ * @brief Interrupt redirector.
  *
  * This file provides means of registering interrupt handlers
  * by kernel functions and calling the handlers when interrupts
  * occur.
+ *
  */
 
 #include <interrupt.h>
@@ -60,21 +61,20 @@ static struct {
 SPINLOCK_INITIALIZE(exctbl_lock);
 
 /** Register exception handler
- * 
- * @param n Exception number
- * @param name Description 
- * @param f Exception handler
+ *
+ * @param n       Exception number
+ * @param name    Description
+ * @param handler Exception handler
+ *
  */
-iroutine exc_register(int n, const char *name, iroutine f)
+iroutine exc_register(int n, const char *name, iroutine handler)
 {
 	ASSERT(n < IVT_ITEMS);
 	
-	iroutine old;
-	
 	spinlock_lock(&exctbl_lock);
 	
-	old = exc_table[n].f;
-	exc_table[n].f = f;
+	iroutine old = exc_table[n].f;
+	exc_table[n].f = handler;
 	exc_table[n].name = name;
 	
 	spinlock_unlock(&exctbl_lock);
@@ -86,67 +86,73 @@ iroutine exc_register(int n, const char *name, iroutine f)
  *
  * Called directly from the assembler code.
  * CPU is interrupts_disable()'d.
+ *
  */
 void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
-
+	
 	/* Account user cycles */
 	if (THREAD) {
-		spinlock_lock(&THREAD->lock);
+		irq_spinlock_lock(&THREAD->lock, false);
 		thread_update_accounting(true);
-		spinlock_unlock(&THREAD->lock);
+		irq_spinlock_unlock(&THREAD->lock, false);
 	}
-
+	
 #ifdef CONFIG_UDEBUG
-	if (THREAD) THREAD->udebug.uspace_state = istate;
+	if (THREAD)
+		THREAD->udebug.uspace_state = istate;
 #endif
 	
 	exc_table[n].f(n + IVT_FIRST, istate);
-
+	
 #ifdef CONFIG_UDEBUG
-	if (THREAD) THREAD->udebug.uspace_state = NULL;
+	if (THREAD)
+		THREAD->udebug.uspace_state = NULL;
 #endif
-
+	
 	/* This is a safe place to exit exiting thread */
-	if (THREAD && THREAD->interrupted && istate_from_uspace(istate))
+	if ((THREAD) && (THREAD->interrupted) && (istate_from_uspace(istate)))
 		thread_exit();
-
+	
 	if (THREAD) {
-		spinlock_lock(&THREAD->lock);
+		irq_spinlock_lock(&THREAD->lock, false);
 		thread_update_accounting(false);
-		spinlock_unlock(&THREAD->lock);
+		irq_spinlock_unlock(&THREAD->lock, false);
 	}
 }
 
-/** Default 'null' exception handler */
+/** Default 'null' exception handler
+ *
+ */
 static void exc_undef(int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %d.", n);
 	panic("Unhandled exception %d.", n);
 }
 
-/** Terminate thread and task if exception came from userspace. */
+/** Terminate thread and task if exception came from userspace.
+ *
+ */
 void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 {
-	task_t *task = TASK;
-	va_list args;
-
 	if (!istate_from_uspace(istate))
 		return;
-
+	
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
-	    "program counter %p.\n", task->name, task->taskid,
+	    "program counter %p.\n", TASK->name, TASK->taskid,
 	    istate_get_pc(istate));
-
+	
 	stack_trace_istate(istate);
-
+	
 	printf("Kill message: ");
+	
+	va_list args;
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
 	printf("\n");
-
+	
 	/*
 	 * Userspace can subscribe for FAULT events to take action
 	 * whenever a thread faults. (E.g. take a dump, run a debugger).
@@ -157,32 +163,34 @@ void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 		/* Notify the subscriber that a fault occurred. */
 		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
 		    UPPER32(TASK->taskid), (unative_t) THREAD);
-
+		
 #ifdef CONFIG_UDEBUG
 		/* Wait for a debugging session. */
 		udebug_thread_fault();
 #endif
 	}
-
-	task_kill(task->taskid);
+	
+	task_kill(TASK->taskid);
 	thread_exit();
 }
 
 #ifdef CONFIG_KCONSOLE
 
-/** kconsole cmd - print all exceptions */
+/** Print all exceptions
+ *
+ */
 static int cmd_exc_print(cmd_arg_t *argv)
 {
 #if (IVT_ITEMS > 0)
 	unsigned int i;
-
+	
 	spinlock_lock(&exctbl_lock);
-
+	
 #ifdef __32_BITS__
 	printf("Exc Description          Handler    Symbol\n");
 	printf("--- -------------------- ---------- --------\n");
 #endif
-
+	
 #ifdef __64_BITS__
 	printf("Exc Description          Handler            Symbol\n");
 	printf("--- -------------------- ------------------ --------\n");
@@ -190,12 +198,12 @@ static int cmd_exc_print(cmd_arg_t *argv)
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
 		const char *symbol = symtab_fmt_name_lookup((unative_t) exc_table[i].f);
-
+		
 #ifdef __32_BITS__
 		printf("%-3u %-20s %10p %s\n", i + IVT_FIRST, exc_table[i].name,
 			exc_table[i].f, symbol);
 #endif
-
+		
 #ifdef __64_BITS__
 		printf("%-3u %-20s %18p %s\n", i + IVT_FIRST, exc_table[i].name,
 			exc_table[i].f, symbol);
@@ -216,7 +224,6 @@ static int cmd_exc_print(cmd_arg_t *argv)
 	return 1;
 }
 
-
 static cmd_info_t exc_info = {
 	.name = "exc",
 	.description = "Print exception table.",
@@ -226,16 +233,22 @@ static cmd_info_t exc_info = {
 	.argv = NULL
 };
 
-#endif
+#endif /* CONFIG_KCONSOLE */
 
-/** Initialize generic exception handling support */
+/** Initialize generic exception handling support
+ *
+ */
 void exc_init(void)
 {
-	int i;
-
+	(void) exc_undef;
+	
+#if (IVT_ITEMS > 0)
+	unsigned int i;
+	
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", (iroutine) exc_undef);
-
+#endif
+	
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&exc_info);
 	if (!cmd_register(&exc_info))

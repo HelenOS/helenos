@@ -58,7 +58,9 @@ static mutex_t parea_lock;
 /** B+tree with enabled physical memory areas. */
 static btree_t parea_btree;
 
-/** Initialize DDI. */
+/** Initialize DDI.
+ *
+ */
 void ddi_init(void)
 {
 	btree_create(&parea_btree);
@@ -96,7 +98,8 @@ void ddi_parea_register(parea_t *parea)
  *         creating address space area.
  *
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
+static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
+    unsigned int flags)
 {
 	ASSERT(TASK);
 	ASSERT((pf % FRAME_SIZE) == 0);
@@ -113,31 +116,30 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 	backend_data.base = pf;
 	backend_data.frames = pages;
 	
-	ipl_t ipl = interrupts_disable();
-	
 	/* Find the zone of the physical memory */
-	spinlock_lock(&zones.lock);
+	irq_spinlock_lock(&zones.lock, true);
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
 	if (znum == (size_t) -1) {
 		/* Frames not found in any zones
 		 * -> assume it is hardware device and allow mapping
 		 */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		goto map;
 	}
 	
 	if (zones.info[znum].flags & ZONE_FIRMWARE) {
 		/* Frames are part of firmware */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		goto map;
 	}
 	
 	if (zone_flags_available(zones.info[znum].flags)) {
-		/* Frames are part of physical memory, check if the memory
+		/*
+		 * Frames are part of physical memory, check if the memory
 		 * region is enabled for mapping.
 		 */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		
 		mutex_lock(&parea_lock);
 		btree_node_t *nodep;
@@ -153,14 +155,12 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 		goto map;
 	}
 	
-	spinlock_unlock(&zones.lock);
+	irq_spinlock_unlock(&zones.lock, true);
+	
 err:
-	interrupts_restore(ipl);
 	return ENOENT;
 	
 map:
-	interrupts_restore(ipl);
-
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
 		/*
@@ -195,8 +195,7 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	if (!(caps & CAP_IO_MANAGER))
 		return EPERM;
 	
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
+	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id(id);
 	
@@ -206,19 +205,16 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 		 * or the task belongs to a different security
 		 * context.
 		 */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
 	
 	/* Lock the task and release the lock protecting tasks_btree. */
-	spinlock_lock(&task->lock);
-	spinlock_unlock(&tasks_lock);
+	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	
 	int rc = ddi_iospace_enable_arch(task, ioaddr, size);
 	
-	spinlock_unlock(&task->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&task->lock, true);
 	
 	return rc;
 }

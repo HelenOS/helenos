@@ -51,7 +51,7 @@ void indev_initialize(const char *name, indev_t *indev,
 {
 	indev->name = name;
 	waitq_initialize(&indev->wq);
-	spinlock_initialize(&indev->lock, "indev");
+	irq_spinlock_initialize(&indev->lock, "chardev.indev.lock");
 	indev->counter = 0;
 	indev->index = 0;
 	indev->op = op;
@@ -67,10 +67,10 @@ void indev_push_character(indev_t *indev, wchar_t ch)
 {
 	ASSERT(indev);
 	
-	spinlock_lock(&indev->lock);
+	irq_spinlock_lock(&indev->lock, true);
 	if (indev->counter == INDEV_BUFLEN - 1) {
 		/* Buffer full */
-		spinlock_unlock(&indev->lock);
+		irq_spinlock_unlock(&indev->lock, true);
 		return;
 	}
 	
@@ -80,7 +80,7 @@ void indev_push_character(indev_t *indev, wchar_t ch)
 	/* Index modulo size of buffer */
 	indev->index = indev->index % INDEV_BUFLEN;
 	waitq_wakeup(&indev->wq, WAKEUP_FIRST);
-	spinlock_unlock(&indev->lock);
+	irq_spinlock_unlock(&indev->lock, true);
 }
 
 /** Pop character from input character device.
@@ -113,12 +113,10 @@ wchar_t indev_pop_character(indev_t *indev)
 	}
 	
 	waitq_sleep(&indev->wq);
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&indev->lock);
+	irq_spinlock_lock(&indev->lock, true);
 	wchar_t ch = indev->buffer[(indev->index - indev->counter) % INDEV_BUFLEN];
 	indev->counter--;
-	spinlock_unlock(&indev->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&indev->lock, true);
 	
 	return ch;
 }
@@ -133,7 +131,7 @@ void outdev_initialize(const char *name, outdev_t *outdev,
     outdev_operations_t *op)
 {
 	outdev->name = name;
-	spinlock_initialize(&outdev->lock, "outdev");
+	spinlock_initialize(&outdev->lock, "chardev.outdev.lock");
 	link_initialize(&outdev->link);
 	list_initialize(&outdev->list);
 	outdev->op = op;

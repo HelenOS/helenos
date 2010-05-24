@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-#define MAX_SYMBOL_NAME 64
+#define MAX_SYMBOL_NAME  64
 
 struct symtab_entry {
 	uint64_t address_le;
@@ -52,10 +52,12 @@ extern int symtab_compl(char *, size_t);
 
 #ifdef CONFIG_SYMTAB
 
-/* Symtable linked together by build process */
+/** Symtable linked together by build process
+ *
+ */
 extern struct symtab_entry symbol_table[];
 
-#endif
+#endif /* CONFIG_SYMTAB */
 
 #endif
 

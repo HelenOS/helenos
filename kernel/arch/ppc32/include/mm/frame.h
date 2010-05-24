@@ -45,6 +45,18 @@
 
 extern uintptr_t last_frame;
 
+static inline uint32_t physmem_top(void)
+{
+	uint32_t physmem;
+	
+	asm volatile (
+		"mfsprg3 %[physmem]\n"
+		: [physmem] "=r" (physmem)
+	);
+	
+	return physmem;
+}
+
 extern void frame_arch_init(void);
 extern void physmem_print(void);
 
