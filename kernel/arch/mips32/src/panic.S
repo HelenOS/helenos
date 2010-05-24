@@ -26,23 +26,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text   
+.text
 
 .set noat
 .set noreorder
 .set nomacro
 
 #include <arch/asm/regname.h>
-	
+
 .global panic_printf
 
-/* From printf return directly to halt() */	
+/* From printf return directly to halt() */
 panic_printf:
 	jal printf
 	nop
 	j halt
 	nop
-/* This code does not work, god knows why */		
-/*	lui $ra, %hi(halt)
+	
+	/* This code does not work, god knows why
+	lui $ra, %hi(halt)
 	j printf
 	ori $ra, %lo(halt) */

@@ -200,7 +200,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		/* Initialize PIC */
 		pic_init(assigned_address[0].addr, PAGE_SIZE, &pic_cir,
 		    &pic_cir_arg);
-
+		
 #ifdef CONFIG_MAC_KBD
 		uintptr_t pa = assigned_address[0].addr + 0x16000;
 		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
@@ -222,7 +222,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 				pic_enable_interrupt(IRQ_CUDA);
 			}
 		}
-
+		
 		/*
 		 * This is the necessary evil until the userspace driver is entirely
 		 * self-sufficient.
@@ -283,7 +283,7 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 void arch_reboot(void)
 {
 	// TODO
-	while (1);
+	while (true);
 }
 
 /** @}
