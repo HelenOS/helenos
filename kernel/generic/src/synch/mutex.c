@@ -52,6 +52,16 @@ void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 	semaphore_initialize(&mtx->sem, 1);
 }
 
+/** Find out whether the mutex is currently locked.
+ *
+ * @param mtx		Mutex.
+ * @return 		True if the mutex is locked, false otherwise.
+ */
+bool mutex_locked(mutex_t *mtx)
+{
+	return semaphore_count_get(&mtx->sem) <= 0;
+}
+
 /** Acquire mutex.
  *
  * Timeout mode and non-blocking mode can be requested.

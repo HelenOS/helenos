@@ -59,6 +59,7 @@ typedef struct {
 	_mutex_lock_timeout((mtx), (usec), SYNCH_FLAGS_NON_BLOCKING)
 
 extern void mutex_initialize(mutex_t *, mutex_type_t);
+extern bool mutex_locked(mutex_t *);
 extern int _mutex_lock_timeout(mutex_t *, uint32_t, unsigned int);
 extern void mutex_unlock(mutex_t *);
 
