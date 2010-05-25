@@ -55,6 +55,7 @@ typedef struct {
 extern void semaphore_initialize(semaphore_t *, int);
 extern int _semaphore_down_timeout(semaphore_t *, uint32_t, unsigned int);
 extern void semaphore_up(semaphore_t *);
+extern int semaphore_count_get(semaphore_t *);
 
 #endif
 
