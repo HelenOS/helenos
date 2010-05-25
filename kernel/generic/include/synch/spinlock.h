@@ -114,6 +114,8 @@ extern void spinlock_initialize(spinlock_t *, const char *);
 extern int spinlock_trylock(spinlock_t *);
 extern void spinlock_lock_debug(spinlock_t *);
 extern void spinlock_unlock_debug(spinlock_t *);
+extern bool spinlock_locked(spinlock_t *);
+extern bool spinlock_unlocked(spinlock_t *);
 
 /** Unlock spinlock
  *
@@ -176,6 +178,8 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define spinlock_lock(lock)     preemption_disable()
 #define spinlock_trylock(lock)  (preemption_disable(), 1)
 #define spinlock_unlock(lock)   preemption_enable()
+#define spinlock_locked(lock)	1
+#define spinlock_unlocked(lock)	1
 
 #define DEADLOCK_PROBE_INIT(pname)
 #define DEADLOCK_PROBE(pname, value)
@@ -282,6 +286,8 @@ extern void irq_spinlock_unlock(irq_spinlock_t *, bool);
 extern int irq_spinlock_trylock(irq_spinlock_t *);
 extern void irq_spinlock_pass(irq_spinlock_t *, irq_spinlock_t *);
 extern void irq_spinlock_exchange(irq_spinlock_t *, irq_spinlock_t *);
+extern bool irq_spinlock_locked(irq_spinlock_t *);
+extern bool irq_spinlock_unlocked(irq_spinlock_t *);
 
 #endif
 
