@@ -115,7 +115,6 @@ extern int spinlock_trylock(spinlock_t *);
 extern void spinlock_lock_debug(spinlock_t *);
 extern void spinlock_unlock_debug(spinlock_t *);
 extern bool spinlock_locked(spinlock_t *);
-extern bool spinlock_unlocked(spinlock_t *);
 
 /** Unlock spinlock
  *
@@ -287,7 +286,6 @@ extern int irq_spinlock_trylock(irq_spinlock_t *);
 extern void irq_spinlock_pass(irq_spinlock_t *, irq_spinlock_t *);
 extern void irq_spinlock_exchange(irq_spinlock_t *, irq_spinlock_t *);
 extern bool irq_spinlock_locked(irq_spinlock_t *);
-extern bool irq_spinlock_unlocked(irq_spinlock_t *);
 
 #endif
 

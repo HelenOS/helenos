@@ -176,16 +176,6 @@ bool spinlock_locked(spinlock_t *lock)
 	return atomic_get(&lock->val) != 0;
 }
 
-/** Find out whether the spinlock is currently unlocked.
- *
- * @param lock		Spinlock.
- * @return		True if the spinlock is not locked, false otherwise.
- */
-bool spinlock_unlocked(spinlock_t *lock)
-{
-	return atomic_get(&lock->val) == 0;
-}
-
 #endif
 
 /** Initialize interrupts-disabled spinlock
@@ -341,16 +331,6 @@ void irq_spinlock_exchange(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 bool irq_spinlock_locked(irq_spinlock_t *ilock)
 {
 	return spinlock_locked(&ilock->lock);
-}
-
-/** Find out whether the IRQ spinlock is currently unlocked.
- *
- * @param lock		IRQ spinlock.
- * @return		True if the IRQ spinlock is not locked, false otherwise.
- */
-bool irq_spinlock_unlocked(irq_spinlock_t *ilock)
-{
-	return spinlock_unlocked(&ilock->lock);
 }
 
 /** @}
