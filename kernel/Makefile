@@ -95,11 +95,11 @@ GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-Werror -pipe
+	-pipe
 
 ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
-	-Werror-implicit-function-declaration -Werror -wd170
+	-Werror-implicit-function-declaration -wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
@@ -111,6 +111,11 @@ CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -arch $(CLANG_ARCH)
+
+ifeq ($(CONFIG_DEBUG),y)
+	GCC_CFLAGS += -Werror
+	ICC_CFLAGS += -Werror
+endif
 
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc

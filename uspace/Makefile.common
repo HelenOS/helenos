@@ -114,14 +114,14 @@ GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-Werror -pipe -g -D__$(ENDIANESS)__
+	-pipe -g -D__$(ENDIANESS)__
 
 ICC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
 	-Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
-	-Werror -pipe -g -D__$(ENDIANESS)__
+	-pipe -g -D__$(ENDIANESS)__
 
 CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -129,6 +129,11 @@ CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEAD
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
+
+ifeq ($(CONFIG_DEBUG),y)
+	GCC_CFLAGS += -Werror
+	ICC_CFLAGS += -Werror
+endif
 
 ## Setup platform configuration
 #
