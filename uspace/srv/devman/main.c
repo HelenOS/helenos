@@ -245,14 +245,17 @@ static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match
  */
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 {
-	// printf(NAME ": devman_add_child\n");
+	//printf(NAME ": devman_add_child\n");
 	
 	device_handle_t parent_handle = IPC_GET_ARG1(*call);
 	ipcarg_t match_count = IPC_GET_ARG2(*call);
+	dev_tree_t *tree = &device_tree;
 	
-	node_t *parent =  find_dev_node(&device_tree, parent_handle);
+	fibril_rwlock_write_lock(&tree->rwlock);
+	node_t *parent =  find_dev_node_no_lock(&device_tree, parent_handle);
 	
 	if (NULL == parent) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
 		ipc_answer_0(callid, ENOENT);
 		return;
 	}	
@@ -260,17 +263,20 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	char *dev_name = NULL;
 	int rc = async_string_receive(&dev_name, DEVMAN_NAME_MAXLEN, NULL);	
 	if (EOK != rc) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
 		ipc_answer_0(callid, rc);
 		return;
 	}
-	// printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
+	//printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
 	
 	node_t *node = create_dev_node();
 	if (!insert_dev_node(&device_tree, node, dev_name, parent)) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
 		delete_dev_node(node);
 		ipc_answer_0(callid, ENOMEM);
 		return;
 	}	
+	fibril_rwlock_write_unlock(&tree->rwlock);
 	
 	printf(NAME ": devman_add_child %s\n", node->pathname);
 	
@@ -280,7 +286,7 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_1(callid, EOK, node->handle);
 	
 	// try to find suitable driver and assign it to the device	
-	assign_driver(node, &drivers_list);
+	assign_driver(node, &drivers_list);	
 }
 
 /**

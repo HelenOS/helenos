@@ -38,6 +38,7 @@
 #include <dirent.h>
 #include <str.h>
 #include <adt/list.h>
+#include <adt/hash_table.h>
 #include <ipc/ipc.h>
 #include <ipc/devman.h>
 #include <ipc/devmap.h>
@@ -49,7 +50,7 @@
 #define NAME "devman"
 
 #define MATCH_EXT ".ma"
-#define MAX_DEV 256
+#define DEVICE_BUCKETS 256
 
 struct node;
 typedef struct node node_t;
@@ -114,8 +115,6 @@ struct node {
 	link_t sibling;
 	/** List of child device nodes. */
 	link_t children;
-	/** Fibril mutex for the list of child device nodes of this node. */
-	fibril_mutex_t children_mutex;
 	/** List of device ids for device-to-driver matching.*/
 	match_id_list_t match_ids;
 	/** Driver of this device.*/
@@ -127,7 +126,14 @@ struct node {
 	link_t driver_devices;
 	/** The list of device classes to which this device belongs.*/
 	link_t classes;
+	/** Devmap handle if the device is registered by devmapper. */
+	dev_handle_t devmap_handle;
+	/** Used by the hash table of devices indexed by devman device handles.*/
+	link_t devman_link;
+	/** Used by the hash table of devices indexed by devmap device handles.*/
+	link_t devmap_link;
 };
+
 
 /** Represents device tree.
  */
@@ -135,9 +141,14 @@ typedef struct dev_tree {
 	/** Root device node. */
 	node_t *root_node;
 	/** The next available handle - handles are assigned in a sequential manner.*/
-	atomic_t current_handle;
-	/** Handle-to-node mapping. */
-	node_t * node_map[MAX_DEV];
+	device_handle_t current_handle;
+	/** Synchronize access to the device tree.*/
+	fibril_rwlock_t rwlock;
+	/** Hash table of all devices indexed by devman handles.*/
+	hash_table_t devman_devices;
+	/** Hash table of devices registered by devmapper, indexed by devmap handles.*/
+	hash_table_t devmap_devices;
+	
 } dev_tree_t;
 
 typedef struct dev_class {	
@@ -276,7 +287,6 @@ static inline node_t * create_dev_node()
 	
 	list_initialize(&res->children);
 	list_initialize(&res->match_ids.ids);
-	fibril_mutex_initialize(&res->children_mutex);
 	
 	return res;
 }
@@ -300,16 +310,37 @@ static inline void delete_dev_node(node_t *node)
 /**
  * Find the device node structure of the device witch has the specified handle.
  * 
+ * Device tree's rwlock should be held at least for reading.
+ * 
  * @param tree the device tree where we look for the device node.
  * @param handle the handle of the device.
  * @return the device node. 
  */
-static inline node_t * find_dev_node(dev_tree_t *tree, long handle)
+static inline node_t * find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
 {
-	if (handle < MAX_DEV) {
-		return tree->node_map[handle];
-	}
-	return NULL;
+	unsigned long key = handle;
+	link_t *link = hash_table_find(&tree->devman_devices, &key);
+	return hash_table_get_instance(link, node_t, devman_link);
+}
+
+/**
+ * Find the device node structure of the device witch has the specified handle.
+ * 
+ * @param tree the device tree where we look for the device node.
+ * @param handle the handle of the device.
+ * @return the device node. 
+ */
+static inline node_t * find_dev_node(dev_tree_t *tree, device_handle_t handle)
+{
+	node_t *node = NULL;
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	
+	node = find_dev_node_no_lock(tree, handle);
+	
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	return node;
 }
 
 node_t * find_dev_node_by_path(dev_tree_t *tree, char *path);

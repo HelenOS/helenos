@@ -38,6 +38,41 @@
 
 #include "devman.h"
 
+// hash table operations
+
+static hash_index_t devices_hash(unsigned long key[])
+{
+	return key[0] % DEVICE_BUCKETS;
+}
+
+static int devman_devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
+{
+	node_t *dev = hash_table_get_instance(item, node_t, devman_link);
+	return (dev->handle == (device_handle_t) key[0]);
+}
+
+static int devmap_devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
+{
+	node_t *dev = hash_table_get_instance(item, node_t, devmap_link);
+	return (dev->devmap_handle == (dev_handle_t) key[0]);
+}
+
+static void devices_remove_callback(link_t *item)
+{
+}
+
+static hash_table_operations_t devman_devices_ops = {
+	.hash = devices_hash,
+	.compare = devman_devices_compare,
+	.remove_callback = devices_remove_callback
+};
+
+static hash_table_operations_t devmap_devices_ops = {
+	.hash = devices_hash,
+	.compare = devmap_devices_compare,
+	.remove_callback = devices_remove_callback
+};
+
 /** Allocate and initialize a new driver structure.
  * 
  * @return driver structure.
@@ -583,9 +618,12 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
 	printf(NAME ": init_device_tree.\n");
 	
-	memset(tree->node_map, 0, MAX_DEV * sizeof(node_t *));
+	tree->current_handle = 0;
 	
-	atomic_set(&tree->current_handle, 0);
+	hash_table_create(&tree->devman_devices, DEVICE_BUCKETS, 1, &devman_devices_ops);
+	hash_table_create(&tree->devmap_devices, DEVICE_BUCKETS, 1, &devmap_devices_ops);
+	
+	fibril_rwlock_initialize(&tree->rwlock);
 	
 	// create root node and add it to the device tree
 	if (!create_root_node(tree)) {
@@ -629,6 +667,8 @@ static bool set_dev_path(node_t *node, node_t *parent)
 
 /** Insert new device into device tree.
  * 
+ * The device tree's rwlock should be already held exclusively when calling this function.
+ * 
  * @param tree the device tree.
  * @param node the newly added device node. 
  * @param dev_name the name of the newly added device.
@@ -643,27 +683,20 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *par
 	
 	node->name = dev_name;
 	if (!set_dev_path(node, parent)) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
 		return false;		
 	}
 	
 	// add the node to the handle-to-node map
-	node->handle = atomic_postinc(&tree->current_handle);
-	if (node->handle >= MAX_DEV) {
-		printf(NAME ": failed to add device to device tree, because maximum number of devices was reached.\n");
-		free(node->pathname);
-		node->pathname = NULL;
-		atomic_postdec(&tree->current_handle);
-		return false;
-	}
-	tree->node_map[node->handle] = node;
+	node->handle = ++tree->current_handle;
+	unsigned long key = node->handle;
+	hash_table_insert(&tree->devman_devices, &key, &node->devman_link);
 
 	// add the node to the list of its parent's children
 	node->parent = parent;
 	if (NULL != parent) {
-		fibril_mutex_lock(&parent->children_mutex);
-		list_append(&node->sibling, &parent->children);
-		fibril_mutex_unlock(&parent->children_mutex);
-	}	
+		list_append(&node->sibling, &parent->children);		
+	}
 	return true;
 }
 
@@ -677,6 +710,8 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name, node_t *par
  */
 node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
 {
+	fibril_rwlock_read_lock(&tree->rwlock);
+	
 	node_t *dev = tree->root_node;
 	// relative path to the device from its parent (but with '/' at the beginning)
 	char *rel_path = path;
@@ -701,11 +736,15 @@ node_t * find_dev_node_by_path(dev_tree_t *tree, char *path)
 		rel_path = next_path_elem;		
 	}
 	
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
 	return dev;
 }
 
 /**
  * Find child device node with a specified name.
+ * 
+ * Device tree rwlock should be held at least for reading. 
  * 
  * @param parent the parent device node.
  * @param name the name of the child device node.
@@ -716,22 +755,19 @@ node_t *find_node_child(node_t *parent, const char *name)
 {
 	node_t *dev;
 	link_t *link;
-	
-	fibril_mutex_lock(&parent->children_mutex);		
+			
 	link = parent->children.next;
 	
 	while (link != &parent->children) {
 		dev = list_get_instance(link, node_t, sibling);
 		
 		if (0 == str_cmp(name, dev->name)) {
-			fibril_mutex_unlock(&parent->children_mutex);
 			return dev;			
 		}
 		
 		link = link->next;
 	}	
-	
-	fibril_mutex_unlock(&parent->children_mutex);	
+		
 	return NULL;
 }
 
