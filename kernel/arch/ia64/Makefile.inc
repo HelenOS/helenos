@@ -33,8 +33,8 @@ CMN1 = -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 
-LFLAGS = -EL
-AFLAGS = -mconstant-gp
+AFLAGS += -mconstant-gp
+LFLAGS += -EL
 
 BITS = 64
 ENDIANESS = LE

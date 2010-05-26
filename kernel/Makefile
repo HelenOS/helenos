@@ -117,6 +117,10 @@ ifeq ($(CONFIG_DEBUG),y)
 	ICC_CFLAGS += -Werror
 endif
 
+ifeq ($(CONFIG_LTO),y)
+	GCC_CFLAGS += -flto
+endif
+
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
 -include $(DEPEND)
@@ -166,6 +170,9 @@ ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
+
+AFLAGS =
+LFLAGS = -N -T $(LINK) -M
 
 ## Generic kernel sources
 #
@@ -347,6 +354,8 @@ GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 
+LFLAGS_LTO := $(addprefix -Xlinker ,$(LFLAGS))
+
 ifeq ($(CONFIG_SYMTAB),y)
 	SYMTAB_OBJECTS := generic/src/debug/real_map.o
 else
@@ -360,16 +369,20 @@ $(DISASM): $(RAW)
 	$(OBJDUMP) -d $< > $@
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
-	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+else
+	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+endif
 ifeq ($(CONFIG_STRIP_BINARIES),y)
-	$(STRIP) $(RAW) 
+	$(STRIP) $(RAW)
 endif
 
 $(LINK): $(LINK).in $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.o: %.S $(DEPEND)
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(GCC_CFLAGS) -D__ASM__
 endif
@@ -386,7 +399,7 @@ endif
 #
 
 test/fpu/%.o: test/fpu/%.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc test $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
 endif
@@ -396,7 +409,7 @@ endif
 #
 
 %.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
 endif
@@ -406,7 +419,11 @@ $(REAL_MAP).o: $(REAL_MAP).bin
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
-	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+else
+	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 	
@@ -414,7 +431,11 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	# on architectures that have bss after symtab
 	
 	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
-	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+else
+	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 

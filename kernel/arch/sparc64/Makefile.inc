@@ -33,7 +33,7 @@ BFD = binary
 GCC_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow
 SUNCC_CFLAGS += -m64 -xarch=sparc -xregs=appl,no%float
 
-LFLAGS = -no-check-sections -N
+LFLAGS += -no-check-sections
 
 BITS = 64
 ENDIANESS = BE
