@@ -104,9 +104,9 @@ clean:
 	find . -name '*.o' -follow -exec rm \{\} \;
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
-OPTIMIZATION = s
+	OPTIMIZATION = s
 else
-OPTIMIZATION = 3
+	OPTIMIZATION = 3
 endif
 
 GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
