@@ -88,55 +88,6 @@ static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Wrapper for receiving strings
- *
- * This wrapper only makes it more comfortable to use async_data_write_*
- * functions to receive strings.
- *
- * @param str      Pointer to string pointer (which should be later disposed
- *                 by free()). If the operation fails, the pointer is not
- *                 touched.
- * @param max_size Maximum size (in bytes) of the string to receive. 0 means
- *                 no limit.
- * @param received If not NULL, the size of the received data is stored here.
- *
- * @return Zero on success or a value from @ref errno.h on failure.
- *
- */
-static int async_string_receive(char **str, const size_t max_size, size_t *received)
-{
-        ipc_callid_t callid;
-        size_t size;
-        if (!async_data_write_receive(&callid, &size)) {
-                ipc_answer_0(callid, EINVAL);
-                return EINVAL;
-        }
-        
-        if ((max_size > 0) && (size > max_size)) {
-                ipc_answer_0(callid, EINVAL);
-                return EINVAL;
-        }
-        
-        char *data = (char *) malloc(size + 1);
-        if (data == NULL) {
-                ipc_answer_0(callid, ENOMEM);
-                return ENOMEM;
-        }
-        
-        int rc = async_data_write_finalize(callid, data, size);
-        if (rc != EOK) {
-                free(data);
-                return rc;
-        }
-        
-        data[size] = 0;
-        *str = data;
-        if (received != NULL)
-                *received = size;
-        
-        return EOK;
-}
-
 int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
@@ -212,7 +163,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
-	async_string_receive(&dev_name, 0, NULL);
+	async_data_write_accept((void **)&dev_name, true, 0, 0, 0, 0);
 	dev->name = dev_name;
 	
 	add_to_devices_list(dev);		
