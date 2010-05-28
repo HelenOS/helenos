@@ -52,6 +52,7 @@ int devman_parent_device_connect(device_handle_t handle, unsigned int flags);
 
 int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags);
 
+int devman_add_device_to_class(device_handle_t dev_handle, const char *class_name);
 
 #endif
 

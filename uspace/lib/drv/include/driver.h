@@ -37,6 +37,7 @@
 
 #include <adt/list.h>
 #include <ipc/ipc.h>
+#include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include <device/hw_res.h>
@@ -283,6 +284,11 @@ static inline remote_handler_t * device_get_default_handler(device_t *dev)
 	}
 	
 	return dev->class->default_handler;	
+}
+
+static inline int add_device_to_class(device_t *dev, const char *class_name)
+{
+	return devman_add_device_to_class(dev->handle, class_name);
 }
 
 #endif

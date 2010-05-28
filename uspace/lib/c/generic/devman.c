@@ -179,6 +179,30 @@ int devman_child_device_register(
 	return retval;
 }
 
+int devman_add_device_to_class(device_handle_t dev_handle, const char *class_name)
+{
+	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
+	
+	if (phone < 0)
+		return phone;
+	
+	async_serialize_start();
+	ipc_call_t answer;
+	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS, dev_handle, &answer);
+	
+	ipcarg_t retval = async_data_write_start(phone, class_name, str_size(class_name));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+	
+	async_wait_for(req, &retval);
+	async_serialize_end();
+	
+	return retval;	
+}
+
 void devman_hangup_phone(devman_interface_t iface)
 {
 	switch (iface) {

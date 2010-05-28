@@ -806,23 +806,56 @@ char * create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
  * @return dev_class_info_t structure which associates the device with the class.
  */
 dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char *base_dev_name)
-{
+{	
 	dev_class_info_t *info = create_dev_class_info();
-	info->dev_class = cl;
-	info->dev = dev;
-	
-	// add the device to the class
-	fibril_mutex_lock(&cl->mutex);
-	list_append(&info->link, &cl->devices);
-	fibril_mutex_unlock(&cl->mutex);
-	
-	// add the class to the device
-	list_append(&info->dev_classes, &dev->classes);
-	
-	// create unique name for the device within the class
-	info->dev_name = create_dev_name_for_class(cl, base_dev_name);	
+	if (NULL != info) {
+		info->dev_class = cl;
+		info->dev = dev;
+		
+		// add the device to the class
+		fibril_mutex_lock(&cl->mutex);
+		list_append(&info->link, &cl->devices);
+		fibril_mutex_unlock(&cl->mutex);
+		
+		// add the class to the device
+		list_append(&info->dev_classes, &dev->classes);
+		
+		// create unique name for the device within the class
+		info->dev_name = create_dev_name_for_class(cl, base_dev_name);	
+	}
 	
 	return info;
+}
+
+dev_class_t * get_dev_class(class_list_t *class_list, char *class_name)
+{
+	dev_class_t *cl;
+	fibril_mutex_lock(&class_list->classes_mutex);	
+	cl = find_dev_class_no_lock(class_list, class_name);
+	if (NULL == cl) {
+		cl = create_dev_class();
+		if (NULL != cl) {
+			cl->name = class_name;	
+			cl->base_dev_name = "";
+			add_dev_class_no_lock(class_list, cl);
+		}		
+	}	
+	fibril_mutex_unlock(&class_list->classes_mutex);
+	return cl;
+}
+
+dev_class_t * find_dev_class_no_lock(class_list_t *class_list, const char *class_name)
+{
+	dev_class_t *cl;
+	link_t *link = class_list->classes.next;
+	while (link != &class_list->classes) {
+		cl = list_get_instance(link, dev_class_t, link);
+		if (0 == str_cmp(cl->name, class_name)) {
+			return cl;
+		}
+	}
+	
+	return NULL;	
 }
 
 /** @}

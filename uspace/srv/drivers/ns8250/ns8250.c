@@ -759,6 +759,8 @@ static int ns8250_add_device(device_t *dev)
 	
 	dev->class = &ns8250_dev_class;
 	
+	add_device_to_class(dev, "serial");
+	
 	printf(NAME ": the %s device has been successfully initialized.\n", dev->name);
 	
 	return EOK;

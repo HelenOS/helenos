@@ -157,10 +157,10 @@ typedef struct dev_class {
 	/** Pointer to the previous and next class in the list of registered classes.*/
 	link_t link;	
 	/** List of dev_class_info structures - one for each device registered by this class.*/
-	link_t devices;	
-	/** Default base name for the device within the class, might be overrided by the driver.*/
+	link_t devices;
+	/** Default base name for the device within the class, might be overrided by the driver.*/	
 	const char *base_dev_name;
-	/** Unique numerical identifier appened to the base name of the newly added device.*/
+	/** Unique numerical identifier of the newly added device.*/
 	size_t curr_dev_idx;
 	/** Synchronize access to the list of devices in this class. */
 	fibril_mutex_t mutex;
@@ -183,6 +183,14 @@ typedef struct dev_class_info {
 	/** The handle of the device by device mapper in the class namespace.*/
 	dev_handle_t devmap_handle;
 } dev_class_info_t;
+
+/** The list of device classes. */
+typedef struct class_list {
+	/** List of classes */
+	link_t classes;
+	/** Fibril mutex for list of classes. */
+	fibril_mutex_t classes_mutex;	
+} class_list_t;
 
 // Match ids and scores
 
@@ -281,12 +289,13 @@ static inline void delete_driver(driver_t *drv)
 static inline node_t * create_dev_node()
 {
 	node_t *res = malloc(sizeof(node_t));
+	
 	if (res != NULL) {
 		memset(res, 0, sizeof(node_t));
+		list_initialize(&res->children);
+		list_initialize(&res->match_ids.ids);
+		list_initialize(&res->classes);
 	}
-	
-	list_initialize(&res->children);
-	list_initialize(&res->match_ids.ids);
 	
 	return res;
 }
@@ -363,6 +372,7 @@ static inline dev_class_t * create_dev_class()
 	dev_class_t *cl = (dev_class_t *)malloc(sizeof(dev_class_t));
 	if (NULL != cl) {
 		memset(cl, 0, sizeof(dev_class_t));
+		list_initialize(&cl->devices);
 		fibril_mutex_initialize(&cl->mutex);
 	}
 	return cl;	
@@ -392,6 +402,20 @@ static inline size_t get_new_class_dev_idx(dev_class_t *cl)
 
 char * create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name);
 dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char *base_dev_name);
+
+static inline void init_class_list(class_list_t *class_list)
+{
+	list_initialize(&class_list->classes);
+	fibril_mutex_initialize(&class_list->classes_mutex);
+}
+
+dev_class_t * get_dev_class(class_list_t *class_list, char *class_name);
+dev_class_t * find_dev_class_no_lock(class_list_t *class_list, const char *class_name);
+
+static inline void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
+{
+	list_append(&cl->link, &class_list->classes);
+}
 
 #endif
 

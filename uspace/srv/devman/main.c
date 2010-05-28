@@ -59,6 +59,7 @@
 
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;
+static class_list_t class_list;
 
 
 /**
@@ -241,6 +242,35 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	assign_driver(node, &drivers_list);	
 }
 
+static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
+{		
+	device_handle_t handle = IPC_GET_ARG1(*call);
+	
+	// Get class name
+	char *class_name;
+	int rc = async_data_write_accept((void **)&class_name, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		ipc_answer_0(callid, rc);
+		return;
+	}	
+	
+	node_t *dev = find_dev_node(&device_tree, handle);
+	if (NULL == dev) {
+		ipc_answer_0(callid, ENOENT);
+		return;
+	}
+	
+	dev_class_t *cl = get_dev_class(&class_list, class_name);
+	
+	dev_class_info_t *class_info = add_device_to_class(dev, cl, NULL);
+	
+	// TODO register the device's class alias by devmapper
+	
+	printf(NAME ": device '%s' added to class '%s', class name '%s' was asigned to it\n", dev->pathname, class_name, class_info->dev_name);
+	
+	ipc_answer_0(callid, EOK);	
+}
+
 /**
  * Initialize driver which has registered itself as running and ready.
  * 
@@ -293,6 +323,9 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case DEVMAN_ADD_CHILD_DEVICE:
 			devman_add_child(callid, &call);
+			break;
+		case DEVMAN_ADD_DEVICE_TO_CLASS:
+			devman_add_device_to_class(callid, &call);
 			break;
 		default:
 			ipc_answer_0(callid, EINVAL); 
@@ -443,6 +476,8 @@ static bool devman_init()
 		return false;		
 	}
 
+	init_class_list(&class_list);
+	
 	return true;
 }
 

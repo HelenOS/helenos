@@ -48,8 +48,6 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <devman.h>
-#include <ipc/devman.h>
 #include <ipc/driver.h>
 
 #include "driver.h"
