@@ -79,10 +79,8 @@ remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t if
 
 // device class
 
-/** Devices belonging to the same class should implement the same set of interfaces.*/
-typedef struct device_class {
-	/** Unique identification of the class. */
-	int id;
+/** Devices operations. */
+typedef struct device_ops {
 	/** Optional callback function called when a client is connecting to the device. */
 	int (*open)(device_t *dev);
 	/** Optional callback function called when a client is disconnecting from the device. */
@@ -92,7 +90,7 @@ typedef struct device_class {
 	/** The default handler of remote client requests. If the client's remote request cannot be handled 
 	 * by any of the standard interfaces, the default handler is used.*/
 	remote_handler_t *default_handler;
-} device_class_t;
+} device_ops_t;
 
 
 // device
@@ -111,8 +109,8 @@ struct device {
 	match_id_list_t match_ids;
 	/** The device driver's data associated with this device.*/
 	void *driver_data;
-	/** Device class consist of class id and table of interfaces supported by the device.*/
-	device_class_t *class;
+	/** The implementation of operations provided by this device.*/
+	device_ops_t *ops;
 	/** Pointer to the previous and next device in the list of devices handled by the driver */
 	link_t link;
 };
@@ -167,10 +165,10 @@ static inline void delete_device(device_t *dev)
 static inline void * device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 {
 	assert(is_valid_iface_idx(idx));	
-	if (NULL == dev->class) {
+	if (NULL == dev->ops) {
 		return NULL;
 	}
-	return dev->class->interfaces[idx];	
+	return dev->ops->interfaces[idx];	
 }
 
 int child_device_register(device_t *child, device_t *parent);
@@ -279,11 +277,11 @@ int unregister_interrupt_handler(device_t *dev, int irq);
 
 static inline remote_handler_t * device_get_default_handler(device_t *dev)
 {
-	if (NULL == dev->class) {
+	if (NULL == dev->ops) {
 		return NULL;
 	}
 	
-	return dev->class->default_handler;	
+	return dev->ops->default_handler;	
 }
 
 static inline int add_device_to_class(device_t *dev, const char *class_name)

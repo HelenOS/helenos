@@ -112,7 +112,7 @@ static resource_iface_t child_res_iface = {
 };
 
 // initialized in root_ia32_init() function
-static device_class_t rootia32_child_class;
+static device_ops_t rootia32_child_ops;
 
 static bool rootia32_add_child(
 	device_t *parent, const char *name, const char *str_match_id, 
@@ -139,8 +139,8 @@ static bool rootia32_add_child(
 	match_id->score = 100;
 	add_match_id(&child->match_ids, match_id);	
 	
-	// set class to the device
-	child->class = &rootia32_child_class;
+	// set provided operations to the device
+	child->ops = &rootia32_child_ops;
 	
 	// register child  device
 	if (EOK != child_device_register(child, parent)) {
@@ -187,9 +187,7 @@ static int rootia32_add_device(device_t *dev)
 }
 
 static void root_ia32_init() {
-	// initialize child device class		
-	rootia32_child_class.id = 0;	// TODO 
-	rootia32_child_class.interfaces[HW_RES_DEV_IFACE] = &child_res_iface;
+	rootia32_child_ops.interfaces[HW_RES_DEV_IFACE] = &child_res_iface;
 }
 
 int main(int argc, char *argv[])

@@ -227,7 +227,7 @@ static int ns8250_write(device_t *dev, char *buf, size_t count)
 	return 0;
 }
 
-static device_class_t ns8250_dev_class;
+static device_ops_t ns8250_dev_ops;
 
 /** The character interface's callbacks. 
  */
@@ -757,7 +757,8 @@ static int ns8250_add_device(device_t *dev)
 		return res;
 	}	
 	
-	dev->class = &ns8250_dev_class;
+	// set device operations
+	dev->ops = &ns8250_dev_ops;
 	
 	add_device_to_class(dev, "serial");
 	
@@ -899,18 +900,16 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_
 
 /** Initialize the serial port driver.
  * 
- * Initialize class structures with callback methods for handling 
+ * Initialize device operations structures with callback methods for handling 
  * client requests to the serial port devices.
  */
 static void ns8250_init() 
 {
-	// TODO
-	ns8250_dev_class.id = 0;
-	ns8250_dev_class.open = &ns8250_open;
-	ns8250_dev_class.close = &ns8250_close;	
+	ns8250_dev_ops.open = &ns8250_open;
+	ns8250_dev_ops.close = &ns8250_close;	
 	
-	ns8250_dev_class.interfaces[CHAR_DEV_IFACE] = &ns8250_char_iface;
-	ns8250_dev_class.default_handler = &ns8250_default_handler;
+	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_iface;
+	ns8250_dev_ops.default_handler = &ns8250_default_handler;
 }
 
 int main(int argc, char *argv[])

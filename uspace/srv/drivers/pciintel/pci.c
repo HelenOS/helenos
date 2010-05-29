@@ -81,7 +81,7 @@ static resource_iface_t pciintel_child_res_iface = {
 	&pciintel_enable_child_interrupt	
 };
 
-static device_class_t pci_child_class;
+static device_ops_t pci_child_ops;
 
 
 static int pci_add_device(device_t *dev);
@@ -397,7 +397,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			pci_read_bars(dev);
 			pci_read_interrupt(dev);
 			
-			dev->class = &pci_child_class;			
+			dev->ops = &pci_child_ops;			
 			
 			printf(NAME ": adding new child device %s.\n", dev->name);
 			
@@ -490,8 +490,7 @@ static int pci_add_device(device_t *dev)
 
 static void pciintel_init() 
 {
-	pci_child_class.id = 0; // TODO
-	pci_child_class.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
+	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
 }
 
 int main(int argc, char *argv[])

@@ -86,7 +86,7 @@ static resource_iface_t isa_child_res_iface = {
 	&isa_enable_child_interrupt	
 };
 
-static device_class_t isa_child_class;
+static device_ops_t isa_child_dev_ops;
 
 static int isa_add_device(device_t *dev);
 
@@ -448,8 +448,8 @@ static char * read_isa_dev_info(char *dev_conf, device_t *parent)
 		//printf(NAME ": current line ='%s'\n", line);		
 	}
 	
-	// set a class (including the corresponding set of interfaces) to the device
-	dev->class = &isa_child_class;
+	// set device operations to the device
+	dev->ops = &isa_child_dev_ops;
 	
 	printf(NAME ": child_device_register(dev, parent); device is %s.\n", dev->name);
 	child_device_register(dev, parent);	
@@ -486,8 +486,7 @@ static int isa_add_device(device_t *dev)
 
 static void isa_init() 
 {
-	isa_child_class.id = 0; // TODO
-	isa_child_class.interfaces[HW_RES_DEV_IFACE] = &isa_child_res_iface;
+	isa_child_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_child_res_iface;
 }
 
 int main(int argc, char *argv[])

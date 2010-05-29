@@ -223,8 +223,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 	int ret = EOK;
 	// open the device
-	if (NULL != dev->class && NULL != dev->class->open) {
-		ret = (*dev->class->open)(dev);
+	if (NULL != dev->ops && NULL != dev->ops->open) {
+		ret = (*dev->ops->open)(dev);
 	}
 	
 	ipc_answer_0(iid, ret);	
@@ -239,8 +239,8 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:		
 			// close the device
-			if (NULL != dev->class && NULL != dev->class->close) {
-				(*dev->class->close)(dev);
+			if (NULL != dev->ops && NULL != dev->ops->close) {
+				(*dev->ops->close)(dev);
 			}			
 			ipc_answer_0(callid, EOK);
 			return;
