@@ -35,6 +35,12 @@
 #ifndef KERN_sparc64_BARRIER_H_
 #define KERN_sparc64_BARRIER_H_
 
+#ifdef KERNEL
+#include <typedefs.h>
+#else
+#include <stdint.h>
+#endif
+
 /*
  * Our critical section barriers are prepared for the weakest RMO memory model.
  */
@@ -63,17 +69,23 @@
 /** Flush Instruction pipeline. */
 static inline void flush_pipeline(void)
 {
+	uint64_t pc;
+
 	/*
 	 * The FLUSH instruction takes address parameter.
 	 * As such, it may trap if the address is not found in DTLB.
 	 *
 	 * The entire kernel text is mapped by a locked ITLB and
 	 * DTLB entries. Therefore, when this function is called,
-	 * the %o7 register will always be in the range mapped by
+	 * the %pc register will always be in the range mapped by
 	 * DTLB.
 	 */
 	 
-        asm volatile ("flush %o7\n");
+        asm volatile (
+		"rd %%pc, %0\n"
+		"flush %0\n"
+		: "=&r" (pc)
+	);
 }
 
 /** Memory Barrier instruction. */
