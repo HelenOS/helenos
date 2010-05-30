@@ -146,6 +146,7 @@ typedef struct {
 	void (* page_table_destroy)(pte_t *);
 	void (* page_table_lock)(as_t *, bool);
 	void (* page_table_unlock)(as_t *, bool);
+	bool (* page_table_locked)(as_t *);
 } as_operations_t;
 
 /**

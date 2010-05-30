@@ -51,6 +51,7 @@ extern page_mapping_operations_t *page_mapping_operations;
 extern void page_init(void);
 extern void page_table_lock(as_t *, bool);
 extern void page_table_unlock(as_t *, bool);
+extern bool page_table_locked(as_t *);
 extern void page_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 extern void page_mapping_remove(as_t *, uintptr_t);
 extern pte_t *page_mapping_find(as_t *, uintptr_t);

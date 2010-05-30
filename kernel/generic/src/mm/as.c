@@ -1292,6 +1292,21 @@ void page_table_unlock(as_t *as, bool unlock)
 	as_operations->page_table_unlock(as, unlock);
 }
 
+/** Test whether page tables are locked.
+ *
+ * @param as		Address space where the page tables belong.
+ *
+ * @return		True if the page tables belonging to the address soace
+ *			are locked, otherwise false.
+ */
+bool page_table_locked(as_t *as)
+{
+	ASSERT(as_operations);
+	ASSERT(as_operations->page_table_locked);
+
+	return as_operations->page_table_locked(as);
+}
+
 
 /** Find address space area and lock it.
  *

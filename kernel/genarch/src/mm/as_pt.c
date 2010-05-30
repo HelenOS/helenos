@@ -51,12 +51,14 @@ static void ptl0_destroy(pte_t *);
 
 static void pt_lock(as_t *, bool);
 static void pt_unlock(as_t *, bool);
+static bool pt_locked(as_t *);
 
 as_operations_t as_pt_operations = {
 	.page_table_create = ptl0_create,
 	.page_table_destroy = ptl0_destroy,
 	.page_table_lock = pt_lock,
-	.page_table_unlock = pt_unlock
+	.page_table_unlock = pt_unlock,
+	.page_table_locked = pt_locked,
 };
 
 /** Create PTL0.
@@ -143,6 +145,18 @@ void pt_unlock(as_t *as, bool unlock)
 {
 	if (unlock)
 		mutex_unlock(&as->lock);
+}
+
+/** Test whether page tables are locked.
+ *
+ * @param as		Address space where the page tables belong.
+ *
+ * @return		True if the page tables belonging to the address soace
+ *			are locked, otherwise false.
+ */
+bool pt_locked(as_t *as)
+{
+	return mutex_locked(&as->lock);
 }
 
 /** @}

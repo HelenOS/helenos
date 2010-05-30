@@ -50,12 +50,14 @@ static void ht_destroy(pte_t *);
 
 static void ht_lock(as_t *, bool);
 static void ht_unlock(as_t *, bool);
+static bool ht_locked(as_t *);
 
 as_operations_t as_ht_operations = {
 	.page_table_create = ht_create,
 	.page_table_destroy = ht_destroy,
 	.page_table_lock = ht_lock,
 	.page_table_unlock = ht_unlock,
+	.page_table_locked = ht_locked,
 };
 
 
@@ -123,6 +125,18 @@ void ht_unlock(as_t *as, bool unlock)
 	
 	if (unlock)
 		mutex_unlock(&as->lock);
+}
+
+/** Test whether page tables are locked.
+ *
+ * @param as		Address space where the page tables belong.
+ *
+ * @return		True if the page tables belonging to the address soace
+ *			are locked, otherwise false.
+ */
+bool ht_locked(as_t *as)
+{
+	return (mutex_locked(&page_ht_lock) && mutex_locked(&as->lock));
 }
 
 /** @}
