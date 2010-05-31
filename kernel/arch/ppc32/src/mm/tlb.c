@@ -50,8 +50,7 @@ static unsigned int seed_real
 /** Try to find PTE for faulting address
  *
  * Try to find PTE for faulting address.
- * The as->lock must be held on entry to this function
- * if lock is true.
+ * The as->lock must be held on entry to this function.
  *
  * @param as       Address space.
  * @param lock     Lock/unlock the address space.
@@ -64,8 +63,8 @@ static unsigned int seed_real
  * @return PTE on success, NULL otherwise.
  *
  */
-static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr,
-    int access, istate_t *istate, int *pfrc)
+static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
+    istate_t *istate, int *pfrc)
 {
 	/*
 	 * Check if the mapping exists in page tables.
@@ -82,7 +81,7 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr,
 		 * Mapping not found in page tables.
 		 * Resort to higher-level page fault handler.
 		 */
-		page_table_unlock(as, lock);
+		page_table_unlock(as, true);
 		
 		int rc = as_page_fault(badvaddr, access, istate);
 		switch (rc) {
@@ -91,17 +90,17 @@ static pte_t *find_mapping_and_check(as_t *as, bool lock, uintptr_t badvaddr,
 			 * The higher-level page fault handler succeeded,
 			 * The mapping ought to be in place.
 			 */
-			page_table_lock(as, lock);
+			page_table_lock(as, true);
 			pte = page_mapping_find(as, badvaddr);
 			ASSERT((pte) && (pte->present));
 			*pfrc = 0;
 			return pte;
 		case AS_PF_DEFER:
-			page_table_lock(as, lock);
+			page_table_lock(as, true);
 			*pfrc = rc;
 			return NULL;
 		case AS_PF_FAULT:
-			page_table_lock(as, lock);
+			page_table_lock(as, true);
 			*pfrc = rc;
 			return NULL;
 		default:
@@ -212,17 +211,7 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
  */
 void pht_refill(int n, istate_t *istate)
 {
-	as_t *as;
-	bool lock;
-	
-	if (AS == NULL) {
-		as = AS_KERNEL;
-		lock = false;
-	} else {
-		as = AS;
-		lock = true;
-	}
-	
+	as_t *as = (AS == NULL) ? AS_KERNEL : AS;
 	uintptr_t badvaddr;
 	
 	if (n == VECTOR_DATA_STORAGE)
@@ -230,10 +219,10 @@ void pht_refill(int n, istate_t *istate)
 	else
 		badvaddr = istate->pc;
 	
-	page_table_lock(as, lock);
+	page_table_lock(as, true);
 	
 	int pfrc;
-	pte_t *pte = find_mapping_and_check(as, lock, badvaddr,
+	pte_t *pte = find_mapping_and_check(as, badvaddr,
 	    PF_ACCESS_READ /* FIXME */, istate, &pfrc);
 	
 	if (!pte) {
@@ -246,7 +235,7 @@ void pht_refill(int n, istate_t *istate)
 			 * The page fault came during copy_from_uspace()
 			 * or copy_to_uspace().
 			 */
-			page_table_unlock(as, lock);
+			page_table_unlock(as, true);
 			return;
 		default:
 			panic("Unexpected pfrc (%d).", pfrc);
@@ -257,11 +246,11 @@ void pht_refill(int n, istate_t *istate)
 	pte->accessed = 1;
 	pht_insert(badvaddr, pte);
 	
-	page_table_unlock(as, lock);
+	page_table_unlock(as, true);
 	return;
 	
 fail:
-	page_table_unlock(as, lock);
+	page_table_unlock(as, true);
 	pht_refill_fail(badvaddr, istate);
 }
 
