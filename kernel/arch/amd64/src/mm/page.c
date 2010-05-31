@@ -88,6 +88,8 @@ void page_arch_init(void)
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
 
+		page_table_lock(AS_KERNEL, true);
+
 		/*
 		 * PA2KA(identity) mapping for all frames.
 		 */
@@ -110,6 +112,8 @@ void page_arch_init(void)
 			for (cur = init.tasks[i].addr; cur < init.tasks[i].addr + init.tasks[i].size; cur += FRAME_SIZE)
 				page_mapping_insert(AS_KERNEL, PA2KA_CODE(KA2PA(cur)), KA2PA(cur), identity_flags);
 		}
+
+		page_table_unlock(AS_KERNEL, true);
 
 		exc_register(14, "page_fault", (iroutine) page_fault);
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
@@ -207,8 +211,11 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
+
+	page_table_lock(AS_KERNEL, true);
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++)
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i), physaddr + PFN2ADDR(i), PAGE_NOT_CACHEABLE | PAGE_WRITE);
+	page_table_unlock(AS_KERNEL, true);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
