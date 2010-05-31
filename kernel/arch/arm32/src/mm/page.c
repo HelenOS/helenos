@@ -52,6 +52,8 @@ void page_arch_init(void)
 {
 	int flags = PAGE_CACHEABLE;
 	page_mapping_operations = &pt_mapping_operations;
+
+	page_table_lock(AS_KERNEL, true);
 	
 	uintptr_t cur;
 	/* Kernel identity mapping */
@@ -65,6 +67,8 @@ void page_arch_init(void)
 #else
 #error "Only high exception vector supported now"
 #endif
+
+	page_table_unlock(AS_KERNEL, true);
 	
 	as_switch(NULL, AS_KERNEL);
 	
@@ -91,11 +95,14 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
+
+	page_table_lock(AS_KERNEL, true);
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i),
 		    physaddr + PFN2ADDR(i),
 		    PAGE_NOT_CACHEABLE | PAGE_READ | PAGE_WRITE | PAGE_KERNEL);
 	}
+	page_table_unlock(AS_KERNEL, true);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	return virtaddr;
