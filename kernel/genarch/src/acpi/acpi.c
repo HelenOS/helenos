@@ -98,8 +98,10 @@ int acpi_sdt_check(uint8_t *sdt)
 
 static void map_sdt(struct acpi_sdt_header *sdt)
 {
+	page_table_lock(AS_KERNEL, true);
 	page_mapping_insert(AS_KERNEL, (uintptr_t) sdt, (uintptr_t) sdt, PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	map_structure((uintptr_t) sdt, sdt->length);
+	page_table_unlock(AS_KERNEL, true);
 }
 
 static void configure_via_rsdt(void)
