@@ -429,6 +429,9 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 void ipc_irq_top_half_handler(irq_t *irq)
 {
 	ASSERT(irq);
+
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&irq->lock));
 	
 	if (irq->notif_cfg.answerbox) {
 		call_t *call = ipc_call_alloc(FRAME_ATOMIC);

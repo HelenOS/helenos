@@ -682,6 +682,9 @@ void thread_print_list(void)
  */
 bool thread_exists(thread_t *thread)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&threads_lock));
+
 	avltree_node_t *node =
 	    avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) thread));
 	
@@ -699,6 +702,9 @@ bool thread_exists(thread_t *thread)
 void thread_update_accounting(bool user)
 {
 	uint64_t time = get_cycle();
+
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&THREAD->lock));
 	
 	if (user)
 		THREAD->ucycles += time - THREAD->last_cycle;
@@ -734,6 +740,9 @@ static bool thread_search_walker(avltree_node_t *node, void *arg)
  */
 thread_t *thread_find_by_id(thread_id_t thread_id)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&threads_lock));
+
 	thread_iterator_t iterator;
 	
 	iterator.thread_id = thread_id;

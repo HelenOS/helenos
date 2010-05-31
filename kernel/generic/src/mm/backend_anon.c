@@ -79,6 +79,9 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	uintptr_t frame;
 
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
@@ -167,6 +170,9 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  */
 void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
+	ASSERT(page_table_locked(area->as));
+	ASSERT(mutex_locked(&area->lock));
+
 	frame_free(frame);
 }
 
@@ -182,6 +188,9 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 void anon_share(as_area_t *area)
 {
 	link_t *cur;
+
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
 
 	/*
 	 * Copy used portions of the area to sh_info's page map.

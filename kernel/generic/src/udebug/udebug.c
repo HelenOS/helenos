@@ -388,13 +388,15 @@ void udebug_thread_e_event(void)
  * is still waiting for events on some threads, it will receive a
  * FINISHED event for each of them.
  *
- * @param task Task structure. ta->udebug.lock must be already locked.
+ * @param task Task structure. task->udebug.lock must be already locked.
  *
  * @return Zero on success or negative error code.
  *
  */
 int udebug_task_cleanup(struct task *task)
 {
+	ASSERT(mutex_locked(&task->udebug.lock));
+
 	if ((task->udebug.dt_state != UDEBUG_TS_BEGINNING) &&
 	    (task->udebug.dt_state != UDEBUG_TS_ACTIVE)) {
 		return EINVAL;

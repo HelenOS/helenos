@@ -369,6 +369,8 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 	entry_hi_t hi;
 	pte_t *pte;
 
+	ASSERT(mutex_locked(&AS->lock));
+
 	hi.value = cp0_entry_hi_read();
 
 	/*

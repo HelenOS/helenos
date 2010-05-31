@@ -71,6 +71,9 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	uintptr_t base = area->backend_data.base;
 
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
@@ -92,6 +95,8 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  */
 void phys_share(as_area_t *area)
 {
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
 }
 
 /** @}

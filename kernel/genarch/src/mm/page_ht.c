@@ -185,6 +185,9 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
+
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
 	
 	if (!hash_table_find(&page_ht, key)) {
 		pte_t *pte = (pte_t *) malloc(sizeof(pte_t), FRAME_ATOMIC);
@@ -225,6 +228,9 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
+
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
 	
 	/*
 	 * Note that removed PTE's will be freed
@@ -252,6 +258,9 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 		(uintptr_t) as,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
+
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
 	
 	link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)

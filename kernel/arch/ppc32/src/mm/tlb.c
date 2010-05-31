@@ -66,6 +66,8 @@ static unsigned int seed_real
 static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
     istate_t *istate, int *pfrc)
 {
+	ASSERT(mutex_locked(&as->lock));
+
 	/*
 	 * Check if the mapping exists in page tables.
 	 */

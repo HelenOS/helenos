@@ -203,6 +203,9 @@ static size_t get_task_virtmem(as_t *as)
  */
 static void produce_stats_task(task_t *task, stats_task_t *stats_task)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&task->lock));
+
 	stats_task->task_id = task->taskid;
 	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
 	stats_task->virtmem = get_task_virtmem(task->as);
@@ -302,6 +305,9 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
  */
 static void produce_stats_thread(thread_t *thread, stats_thread_t *stats_thread)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&thread->lock));
+
 	stats_thread->thread_id = thread->tid;
 	stats_thread->task_id = thread->task->taskid;
 	stats_thread->state = thread->state;

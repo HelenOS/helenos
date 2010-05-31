@@ -119,9 +119,12 @@ void map_structure(uintptr_t addr, size_t size)
 void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
+	
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_insert);
-	
+
 	page_mapping_operations->mapping_insert(as, page, frame, flags);
 	
 	/* Repel prefetched accesses to the old mapping. */
@@ -142,6 +145,9 @@ void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 void page_mapping_remove(as_t *as, uintptr_t page)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
+	
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_remove);
 	
@@ -166,6 +172,9 @@ void page_mapping_remove(as_t *as, uintptr_t page)
  */
 pte_t *page_mapping_find(as_t *as, uintptr_t page)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(page_table_locked(as));
+	
 	ASSERT(page_mapping_operations);
 	ASSERT(page_mapping_operations->mapping_find);
 	

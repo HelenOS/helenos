@@ -85,6 +85,9 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	size_t i;
 	bool dirty = false;
 
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
@@ -234,8 +237,12 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	elf_segment_header_t *entry = area->backend_data.segment;
 	uintptr_t start_anon;
 
-	ASSERT((page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) &&
-	    (page < entry->p_vaddr + entry->p_memsz));
+	ASSERT(page_table_locked(area->as));
+	ASSERT(mutex_locked(&area->lock));
+
+	ASSERT(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
+	ASSERT(page < entry->p_vaddr + entry->p_memsz);
+
 	start_anon = entry->p_vaddr + entry->p_filesz;
 
 	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
@@ -272,6 +279,9 @@ void elf_share(as_area_t *area)
 	link_t *cur;
 	btree_node_t *leaf, *node;
 	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
+
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
 
 	/*
 	 * Find the node in which to start linear search.

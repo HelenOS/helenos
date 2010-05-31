@@ -458,6 +458,9 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 {
 	size_t count = 0;
+
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&wq->lock));
 	
 loop:
 	if (list_empty(&wq->head)) {

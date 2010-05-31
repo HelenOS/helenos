@@ -816,6 +816,9 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 		[PF_ACCESS_WRITE] = AS_AREA_WRITE,
 		[PF_ACCESS_EXEC] = AS_AREA_EXEC
 	};
+
+	ASSERT(interrupts_disabled());
+	ASSERT(mutex_locked(&area->lock));
 	
 	if (!(area->flags & flagmap[access]))
 		return false;
@@ -1220,6 +1223,9 @@ unsigned int area_flags_to_page_flags(unsigned int aflags)
  */
 unsigned int as_area_get_flags(as_area_t *area)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(mutex_locked(&area->lock));
+
 	return area_flags_to_page_flags(area->flags);
 }
 
@@ -1321,6 +1327,9 @@ bool page_table_locked(as_t *as)
  */
 as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(mutex_locked(&as->lock));
+
 	btree_node_t *leaf;
 	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
 	if (area) {
@@ -1385,6 +1394,9 @@ as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
     as_area_t *avoid_area)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(mutex_locked(&as->lock));
+
 	/*
 	 * We don't want any area to have conflicts with NULL page.
 	 *
@@ -1472,7 +1484,7 @@ bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
 
 /** Return size of the address space area with given base.
  *
- * @param base Arbitrary address insede the address space area.
+ * @param base Arbitrary address inside the address space area.
  *
  * @return Size of the address space area in bytes or zero if it
  *         does not exist.
@@ -1483,6 +1495,7 @@ size_t as_area_get_size(uintptr_t base)
 	size_t size;
 	
 	ipl_t ipl = interrupts_disable();
+	page_table_lock(AS, true);
 	as_area_t *src_area = find_area_and_lock(AS, base);
 	
 	if (src_area) {
@@ -1491,6 +1504,7 @@ size_t as_area_get_size(uintptr_t base)
 	} else
 		size = 0;
 	
+	page_table_unlock(AS, true);
 	interrupts_restore(ipl);
 	return size;
 }
@@ -1508,6 +1522,7 @@ size_t as_area_get_size(uintptr_t base)
  */
 int used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 {
+	ASSERT(mutex_locked(&area->lock));
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
 	
@@ -1814,6 +1829,7 @@ int used_space_insert(as_area_t *area, uintptr_t page, size_t count)
  */
 int used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 {
+	ASSERT(mutex_locked(&area->lock));
 	ASSERT(page == ALIGN_DOWN(page, PAGE_SIZE));
 	ASSERT(count);
 	

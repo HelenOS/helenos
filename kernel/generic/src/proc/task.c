@@ -350,6 +350,9 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
  */
 task_t *task_find_by_id(task_id_t id)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&tasks_lock));
+
 	avltree_node_t *node =
 	    avltree_search(&tasks_tree, (avltree_key_t) id);
 	
@@ -361,7 +364,7 @@ task_t *task_find_by_id(task_id_t id)
 
 /** Get accounting data of given task.
  *
- * Note that task lock of 't' must be already held and interrupts must be
+ * Note that task lock of 'task' must be already held and interrupts must be
  * already disabled.
  *
  * @param task    Pointer to the task.
@@ -371,6 +374,9 @@ task_t *task_find_by_id(task_id_t id)
  */
 void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 {
+	ASSERT(interrupts_disabled());
+	ASSERT(irq_spinlock_locked(&task->lock));
+
 	/* Accumulated values of task */
 	uint64_t uret = task->ucycles;
 	uint64_t kret = task->kcycles;

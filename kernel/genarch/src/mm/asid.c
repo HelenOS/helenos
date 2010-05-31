@@ -69,8 +69,7 @@ static size_t asids_allocated = 0;
 
 /** Allocate free address space identifier.
  *
- * Interrupts must be disabled and inactive_as_with_asid_lock must be held
- * prior to this call
+ * Interrupts must be disabled and asidlock must be held prior to this call
  *
  * @return New ASID.
  */
@@ -79,6 +78,9 @@ asid_t asid_get(void)
 	asid_t asid;
 	link_t *tmp;
 	as_t *as;
+
+	ASSERT(interrupts_disabled());
+	ASSERT(spinlock_locked(&asidlock));
 
 	/*
 	 * Check if there is an unallocated ASID.
