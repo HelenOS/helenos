@@ -76,4 +76,14 @@ static inline char * clone_string(const char *s)
 	return str;
 }
 
+static inline void replace_char(char *str, char orig, char repl)
+{
+	while (*str) {
+		if (orig == *str) {
+			*str = repl;
+		}
+		str++;
+	}
+}
+
 #endif

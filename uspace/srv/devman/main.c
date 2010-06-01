@@ -239,20 +239,23 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	ipc_answer_1(callid, EOK, node->handle);
 	
 	// try to find suitable driver and assign it to the device
-	assign_driver(node, &drivers_list);	
+	assign_driver(node, &drivers_list, &device_tree);	
 }
 
 static void devmap_register_class_dev(dev_class_info_t *cli)
 {
 	// create devmap path and name for the device
 	char *devmap_pathname = NULL;
-	asprintf(&devmap_pathname, "%s/%s%s%s", DEVMAP_CLASS_NAMESPACE, cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
+	asprintf(&devmap_pathname, "%s/%s%c%s", DEVMAP_CLASS_NAMESPACE, cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
 	if (NULL == devmap_pathname) {
 		return;
 	}
 	
 	// register the device by the device mapper and remember its devmap handle
 	devmap_device_register(devmap_pathname, &cli->devmap_handle);	
+	
+	// add device to the hash map of class devices registered by device mapper
+	class_add_devmap_device(&class_list, cli);
 	
 	free(devmap_pathname);	
 }
@@ -296,7 +299,7 @@ static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 static int init_running_drv(void *drv)
 {
 	driver_t *driver = (driver_t *)drv;
-	initialize_running_driver(driver);	
+	initialize_running_driver(driver, &device_tree);	
 	printf(NAME ": the %s driver was successfully initialized. \n", driver->name);
 	return 0;
 }

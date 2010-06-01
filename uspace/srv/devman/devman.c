@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <ipc/driver.h>
 #include <ipc/devman.h>
+#include <devmap.h>
 
 #include "devman.h"
 
@@ -487,7 +488,7 @@ void set_driver_phone(driver_t *driver, ipcarg_t phone)
  * 
  * @param driver the driver to which the devices are passed.
  */
-static void pass_devices_to_driver(driver_t *driver)
+static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 {	
 	printf(NAME ": pass_devices_to_driver\n");
 	node_t *dev;
@@ -500,7 +501,7 @@ static void pass_devices_to_driver(driver_t *driver)
 		link = driver->devices.next;
 		while (link != &driver->devices) {
 			dev = list_get_instance(link, node_t, driver_devices);
-			add_device(phone, driver, dev);
+			add_device(phone, driver, dev, tree);
 			link = link->next;
 		}
 		
@@ -515,13 +516,13 @@ static void pass_devices_to_driver(driver_t *driver)
  * 
  * @param driver the driver which registered itself as running by the device manager.
  */
-void initialize_running_driver(driver_t *driver) 
+void initialize_running_driver(driver_t *driver, dev_tree_t *tree) 
 {	
 	printf(NAME ": initialize_running_driver\n");
 	fibril_mutex_lock(&driver->driver_mutex);
 	
 	// pass devices which have been already assigned to the driver to the driver
-	pass_devices_to_driver(driver);	
+	pass_devices_to_driver(driver, tree);	
 	
 	// change driver's state to running
 	driver->state = DRIVER_RUNNING;	
@@ -529,12 +530,41 @@ void initialize_running_driver(driver_t *driver)
 	fibril_mutex_unlock(&driver->driver_mutex);
 }
 
+
+static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
+{
+	// create devmap path and name for the device
+	char *devmap_pathname = NULL;
+	char *devmap_name = NULL;
+	
+	asprintf(&devmap_name, "%s", node->pathname);
+	if (NULL == devmap_name) {
+		return;
+	}
+	
+	replace_char(devmap_name, '/', DEVMAP_SEPARATOR);
+	
+	asprintf(&devmap_pathname, "%s/%s", DEVMAP_DEVICE_NAMESPACE, devmap_name);
+	if (NULL == devmap_pathname) {
+		free(devmap_name);
+		return;
+	}	
+	
+	devmap_device_register(devmap_pathname, &node->devmap_handle);
+	
+	tree_add_devmap_device(tree, node);
+	
+	free(devmap_name);
+	free(devmap_pathname);	
+}
+
+
 /** Pass a device to running driver.
  * 
  * @param drv the driver's structure.
  * @param node the device's node in the device tree.
  */
-void add_device(int phone, driver_t *drv, node_t *node)
+void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 {
 	printf(NAME ": add_device\n");
 	
@@ -555,6 +585,7 @@ void add_device(int phone, driver_t *drv, node_t *node)
 	switch(rc) {
 	case EOK:
 		node->state = DEVICE_USABLE;
+		devmap_register_tree_device(node, tree);
 		break;
 	case ENOENT:
 		node->state = DEVICE_NOT_PRESENT;
@@ -574,7 +605,7 @@ void add_device(int phone, driver_t *drv, node_t *node)
  * 
  * @return true if the suitable driver is found and successfully assigned to the device, false otherwise. 
  */
-bool assign_driver(node_t *node, driver_list_t *drivers_list) 
+bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree) 
 {
 	//printf(NAME ": assign_driver\n");
 	
@@ -597,7 +628,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list)
 		// notify driver about new device
 		int phone = ipc_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
 		if (phone > 0) {
-			add_device(phone, drv, node);		
+			add_device(phone, drv, node, tree);		
 			ipc_hangup(phone);
 		}
 	}
@@ -631,7 +662,7 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	}
 
 	// find suitable driver and start it
-	return assign_driver(tree->root_node, drivers_list);
+	return assign_driver(tree->root_node, drivers_list, tree);
 }
 
 /** Create and set device's full path in device tree.

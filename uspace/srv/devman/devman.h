@@ -54,7 +54,7 @@
 
 #define DEVMAP_CLASS_NAMESPACE "class"
 #define DEVMAP_DEVICE_NAMESPACE "devices"
-#define DEVMAP_SEPARATOR "\\"
+#define DEVMAP_SEPARATOR '\\'
 
 struct node;
 typedef struct node node_t;
@@ -229,16 +229,16 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv);
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path);
 
 driver_t * find_best_match_driver(driver_list_t *drivers_list, node_t *node);
-bool assign_driver(node_t *node, driver_list_t *drivers_list);
+bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree);
 
 void add_driver(driver_list_t *drivers_list, driver_t *drv);
 void attach_driver(node_t *node, driver_t *drv);
-void add_device(int phone, driver_t *drv, node_t *node);
+void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree);
 bool start_driver(driver_t *drv);
 
 driver_t * find_driver(driver_list_t *drv_list, const char *drv_name);
 void set_driver_phone(driver_t *driver, ipcarg_t phone);
-void initialize_running_driver(driver_t *driver);
+void initialize_running_driver(driver_t *driver, dev_tree_t *tree);
 
 /** 
  * Initialize device driver structure.
@@ -425,6 +425,23 @@ static inline void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *
 
 node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle);
 node_t *find_devmap_class_device(class_list_t *classes, dev_handle_t devmap_handle);
+
+
+static inline void class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
+{
+	unsigned long key = (unsigned long)cli->devmap_handle;
+	fibril_rwlock_write_lock(&class_list->rwlock);
+	hash_table_insert(&class_list->devmap_devices, &key, &cli->devmap_link);
+	fibril_rwlock_write_unlock(&class_list->rwlock);
+}
+
+static inline void tree_add_devmap_device(dev_tree_t *tree, node_t *node)
+{
+	unsigned long key = (unsigned long)node->devmap_handle;
+	fibril_rwlock_write_lock(&tree->rwlock);
+	hash_table_insert(&tree->devmap_devices, &key, &node->devmap_link);
+	fibril_rwlock_write_unlock(&tree->rwlock);	
+}
 
 #endif
 
