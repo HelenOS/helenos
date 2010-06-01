@@ -830,7 +830,7 @@ dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char 
 dev_class_t * get_dev_class(class_list_t *class_list, char *class_name)
 {
 	dev_class_t *cl;
-	fibril_mutex_lock(&class_list->classes_mutex);	
+	fibril_rwlock_write_lock(&class_list->rwlock);	
 	cl = find_dev_class_no_lock(class_list, class_name);
 	if (NULL == cl) {
 		cl = create_dev_class();
@@ -840,7 +840,7 @@ dev_class_t * get_dev_class(class_list_t *class_list, char *class_name)
 			add_dev_class_no_lock(class_list, cl);
 		}		
 	}	
-	fibril_mutex_unlock(&class_list->classes_mutex);
+	fibril_rwlock_write_unlock(&class_list->rwlock);
 	return cl;
 }
 
@@ -857,6 +857,51 @@ dev_class_t * find_dev_class_no_lock(class_list_t *class_list, const char *class
 	
 	return NULL;	
 }
+
+void init_class_list(class_list_t *class_list)
+{
+	list_initialize(&class_list->classes);
+	fibril_rwlock_initialize(&class_list->rwlock);
+	hash_table_create(&class_list->devmap_devices, DEVICE_BUCKETS, 1, &devmap_devices_ops);	
+}
+
+
+// devmap devices
+
+node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle)
+{
+	node_t *dev = NULL;
+	link_t *link;
+	unsigned long key = (unsigned long)devmap_handle;
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	link = hash_table_find(&tree->devmap_devices, &key);	
+	if (NULL != link) {
+		dev = hash_table_get_instance(link, node_t, devmap_link);
+	}
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	return dev;
+}
+
+node_t *find_devmap_class_device(class_list_t *classes, dev_handle_t devmap_handle)
+{
+	node_t *dev = NULL;
+	dev_class_info_t *cli;
+	link_t *link;
+	unsigned long key = (unsigned long)devmap_handle;
+	
+	fibril_rwlock_read_lock(&classes->rwlock);
+	link = hash_table_find(&classes->devmap_devices, &key);	
+	if (NULL != link) {
+		cli = hash_table_get_instance(link, dev_class_info_t, devmap_link);
+		dev = cli->dev;
+	}
+	fibril_rwlock_read_unlock(&classes->rwlock);
+	
+	return dev;	
+}
+
 
 /** @}
  */

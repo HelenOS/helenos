@@ -52,6 +52,7 @@
 #include <ipc/devman.h>
 #include <ipc/driver.h>
 #include <thread.h>
+#include <devmap.h>
 
 #include "devman.h"
 
@@ -60,7 +61,6 @@
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;
 static class_list_t class_list;
-
 
 /**
  * Register running driver.
@@ -238,12 +238,27 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	// return device handle to parent's driver
 	ipc_answer_1(callid, EOK, node->handle);
 	
-	// try to find suitable driver and assign it to the device	
+	// try to find suitable driver and assign it to the device
 	assign_driver(node, &drivers_list);	
 }
 
+static void devmap_register_class_dev(dev_class_info_t *cli)
+{
+	// create devmap path and name for the device
+	char *devmap_pathname = NULL;
+	asprintf(&devmap_pathname, "%s/%s%s%s", DEVMAP_CLASS_NAMESPACE, cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
+	if (NULL == devmap_pathname) {
+		return;
+	}
+	
+	// register the device by the device mapper and remember its devmap handle
+	devmap_device_register(devmap_pathname, &cli->devmap_handle);	
+	
+	free(devmap_pathname);	
+}
+
 static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
-{		
+{
 	device_handle_t handle = IPC_GET_ARG1(*call);
 	
 	// Get class name
@@ -261,10 +276,11 @@ static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	dev_class_t *cl = get_dev_class(&class_list, class_name);
-	
+		
 	dev_class_info_t *class_info = add_device_to_class(dev, cl, NULL);
 	
-	// TODO register the device's class alias by devmapper
+	// register the device's class alias by devmapper
+	devmap_register_class_dev(class_info);
 	
 	printf(NAME ": device '%s' added to class '%s', class name '%s' was asigned to it\n", dev->pathname, class_name, class_info->dev_name);
 	
@@ -423,17 +439,57 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 	if (driver->phone <= 0) {
 		printf(NAME ": devman_forward: cound not forward to driver %s ", driver->name);
 		printf("the driver's phone is %x).\n", driver->phone);
+		ipc_answer_0(iid, EINVAL);
 		return;
 	}
-	printf(NAME ": devman_forward: forward connection to device %s to driver %s.\n", dev->pathname, driver->name);
+	printf(NAME ": devman_forward: forward connection to device %s to driver %s.\n", 
+		dev->pathname, driver->name);
 	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
+}
+
+/** Function for handling connections from a client forwarded by the device mapper to the device manager.
+ */
+static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
+{
+	dev_handle_t devmap_handle = IPC_GET_METHOD(*icall);
+	node_t *dev = find_devmap_tree_device(&device_tree, devmap_handle);
+	if (NULL == dev) {
+		dev = find_devmap_class_device(&class_list, devmap_handle);
+	}
+	
+	if (NULL == dev || NULL == dev->drv) {
+		ipc_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	if (DEVICE_USABLE != dev->state || dev->drv->phone <= 0) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	printf(NAME ": devman_connection_devmapper: forward connection to device %s to driver %s.\n", 
+		dev->pathname, dev->drv->name);
+	ipc_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, dev->handle, 0, IPC_FF_NONE);	
 }
 
 /** Function for handling connections to device manager.
  *
  */
 static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
+{	
+	// Silly hack to enable the device manager to register as a driver by the device mapper. 
+	// If the ipc method is not IPC_M_CONNECT_ME_TO, this is not the forwarded connection from naming service,
+	// so it must be a connection from the devmapper which thinks this is a devmapper-style driver. 
+	// So pretend this is a devmapper-style driver. 
+	// (This does not work for device with handle == IPC_M_CONNECT_ME_TO, 
+	// because devmapper passes device handle to the driver as an ipc method.)
+	if (IPC_M_CONNECT_ME_TO != IPC_GET_METHOD(*icall)) {
+		devman_connection_devmapper(iid, icall);
+	}
+
+	// ipc method is IPC_M_CONNECT_ME_TO, so this is forwarded connection from naming service
+	// by which we registered as device manager, so be device manager
+	
 	// Select interface 
 	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAN_DRIVER:
@@ -477,6 +533,11 @@ static bool devman_init()
 	}
 
 	init_class_list(&class_list);
+	
+	// !!! devman_connection ... as the device manager is not a real devmap driver 
+	// (it uses a completely different ipc protocol than an ordinary devmap driver)
+	// forwarding a connection from client to the devman by devmapper would not work
+	devmap_driver_register(NAME, devman_connection);	
 	
 	return true;
 }

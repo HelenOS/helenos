@@ -52,6 +52,10 @@
 #define MATCH_EXT ".ma"
 #define DEVICE_BUCKETS 256
 
+#define DEVMAP_CLASS_NAMESPACE "class"
+#define DEVMAP_DEVICE_NAMESPACE "devices"
+#define DEVMAP_SEPARATOR "\\"
+
 struct node;
 typedef struct node node_t;
 
@@ -148,7 +152,6 @@ typedef struct dev_tree {
 	hash_table_t devman_devices;
 	/** Hash table of devices registered by devmapper, indexed by devmap handles.*/
 	hash_table_t devmap_devices;
-	
 } dev_tree_t;
 
 typedef struct dev_class {	
@@ -182,14 +185,18 @@ typedef struct dev_class_info {
 	char *dev_name;	
 	/** The handle of the device by device mapper in the class namespace.*/
 	dev_handle_t devmap_handle;
+	/** Link in the hash table of devices registered by the devmapper using their class names.*/
+	link_t devmap_link;
 } dev_class_info_t;
 
 /** The list of device classes. */
 typedef struct class_list {
 	/** List of classes */
 	link_t classes;
+	/** Hash table of devices registered by devmapper using their class name, indexed by devmap handles.*/
+	hash_table_t devmap_devices;
 	/** Fibril mutex for list of classes. */
-	fibril_mutex_t classes_mutex;	
+	fibril_rwlock_t rwlock;	
 } class_list_t;
 
 // Match ids and scores
@@ -403,11 +410,7 @@ static inline size_t get_new_class_dev_idx(dev_class_t *cl)
 char * create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name);
 dev_class_info_t * add_device_to_class(node_t *dev, dev_class_t *cl, const char *base_dev_name);
 
-static inline void init_class_list(class_list_t *class_list)
-{
-	list_initialize(&class_list->classes);
-	fibril_mutex_initialize(&class_list->classes_mutex);
-}
+void init_class_list(class_list_t *class_list);
 
 dev_class_t * get_dev_class(class_list_t *class_list, char *class_name);
 dev_class_t * find_dev_class_no_lock(class_list_t *class_list, const char *class_name);
@@ -416,6 +419,12 @@ static inline void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *
 {
 	list_append(&cl->link, &class_list->classes);
 }
+
+
+// devmap devices
+
+node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle);
+node_t *find_devmap_class_device(class_list_t *classes, dev_handle_t devmap_handle);
 
 #endif
 
