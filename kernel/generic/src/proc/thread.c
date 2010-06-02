@@ -453,6 +453,12 @@ void thread_exit(void)
 #ifdef CONFIG_UDEBUG
 		/* Generate udebug THREAD_E event */
 		udebug_thread_e_event();
+
+		/*
+		 * This thread will not execute any code or system calls from
+		 * now on.
+		 */
+		udebug_stoppable_begin();
 #endif
 		if (atomic_predec(&TASK->lifecount) == 0) {
 			/*
