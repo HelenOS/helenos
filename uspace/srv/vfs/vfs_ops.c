@@ -591,6 +591,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
+	assert(file);
 	file->node = node;
 	if (oflag & O_APPEND)
 		file->append = true;
