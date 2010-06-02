@@ -139,8 +139,8 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	} else
 		*last = false;
 	
-	irq_spinlock_unlock(&TASK->kb.box.lock, true);
-	irq_spinlock_unlock(&TASK->lock, false);
+	irq_spinlock_unlock(&TASK->kb.box.lock, false);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
 	mutex_unlock(&TASK->kb.cleanup_lock);
 }
