@@ -43,7 +43,8 @@ typedef enum {
 	SCR_ATYFB,
 	SCR_FFB,
 	SCR_CGSIX,
-	SCR_XVR
+	SCR_XVR,
+	SCR_QEMU_VGA
 } scr_type_t;
 
 extern scr_type_t scr_type;

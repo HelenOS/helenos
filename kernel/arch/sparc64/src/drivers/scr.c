@@ -76,6 +76,8 @@ void scr_init(ofw_tree_node_t *node)
 		scr_type = SCR_FFB;
 	else if (str_cmp(name, "cgsix") == 0)
 		scr_type = SCR_CGSIX;
+	else if (str_cmp(name, "QEMU,VGA") == 0)
+		scr_type = SCR_QEMU_VGA;
 	
 	if (scr_type == SCR_UNKNOWN) {
 		printf("Unknown screen device.\n");
@@ -227,6 +229,49 @@ void scr_init(ofw_tree_node_t *node)
 		}
 	
 		break;
+
+	case SCR_QEMU_VGA:
+		if (prop->size / sizeof(ofw_pci_reg_t) < 2) {
+			printf("Too few screen registers.\n");
+			return;
+		}
+
+		pci_reg = &((ofw_pci_reg_t *) prop->value)[1];
+
+		if (!ofw_pci_reg_absolutize(node, pci_reg, &pci_abs_reg)) {
+			printf("Failed to absolutize fb register.\n");
+			return;
+		}
+
+		if (!ofw_pci_apply_ranges(node->parent, &pci_abs_reg,
+		    &fb_addr)) {
+			printf("Failed to determine screen address.\n");
+			return;
+		}
+
+		switch (fb_depth) {
+		case 8:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_INDIRECT_8;
+			break;
+		case 16:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_5_6_5_BE;
+			break;
+		case 24:
+			fb_scanline = fb_linebytes * 4;
+			visual = VISUAL_BGR_8_8_8_0;
+			break;
+		case 32:
+			fb_scanline = fb_linebytes * (fb_depth >> 3);
+			visual = VISUAL_RGB_0_8_8_8;
+			break;
+		default:
+			printf("Unsupported bits per pixel.\n");
+			return;
+		}
+		break;
+
 	default:
 		panic("Unexpected type.");
 	}
