@@ -370,7 +370,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 /** Destroy thread memory structure
  *
  * Detach thread from all queues, cpus etc. and destroy it.
- * Assume thread->lock is held!
  *
  * @param thread  Thread to be destroyed.
  * @param irq_res Indicate whether it should unlock thread->lock
@@ -379,6 +378,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
  */
 void thread_destroy(thread_t *thread, bool irq_res)
 {
+	ASSERT(irq_spinlock_locked(&thread->lock));
 	ASSERT((thread->state == Exiting) || (thread->state == Lingering));
 	ASSERT(thread->task);
 	ASSERT(thread->cpu);

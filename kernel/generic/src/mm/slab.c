@@ -404,13 +404,13 @@ static size_t magazine_destroy(slab_cache_t *cache, slab_magazine_t *mag)
 
 /** Find full magazine, set it as current and return it
  *
- * Assume cpu_magazine lock is held
- *
  */
 static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
 {
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
+
+	ASSERT(spinlock_locked(&cache->mag_cache[CPU->id].lock));
 	
 	if (cmag) { /* First try local CPU magazines */
 		if (cmag->busy)
@@ -466,8 +466,6 @@ static void *magazine_obj_get(slab_cache_t *cache)
 /** Assure that the current magazine is empty, return pointer to it,
  * or NULL if no empty magazine is available and cannot be allocated
  *
- * Assume mag_cache[CPU->id].lock is held
- *
  * We have 2 magazines bound to processor.
  * First try the current.
  * If full, try the last.
@@ -479,6 +477,8 @@ static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
 	
+	ASSERT(spinlock_locked(&cache->mag_cache[CPU->id].lock));
+
 	if (cmag) {
 		if (cmag->busy < cmag->size)
 			return cmag;

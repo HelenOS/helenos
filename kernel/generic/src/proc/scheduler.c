@@ -378,8 +378,6 @@ void scheduler(void)
  * using new stack. Handling the actual context
  * switch to a new thread.
  *
- * Assume THREAD->lock is held.
- *
  */
 void scheduler_separated_stack(void)
 {
@@ -387,6 +385,7 @@ void scheduler_separated_stack(void)
 	task_t *old_task = TASK;
 	as_t *old_as = AS;
 	
+	ASSERT(!THREAD || irq_spinlock_locked(&THREAD->lock));
 	ASSERT(CPU != NULL);
 	
 	/*
