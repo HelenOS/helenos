@@ -657,10 +657,14 @@ int cmd_call0(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
 		    (void *) symaddr, (void *) cmd_call0);
 		printf("Calling %s() (%p)\n", symbol, symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -718,9 +722,13 @@ int cmd_call1(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -748,10 +756,14 @@ int cmd_call2(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -779,10 +791,14 @@ int cmd_call3(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
