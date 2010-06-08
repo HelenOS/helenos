@@ -170,8 +170,6 @@ void remove_callback(link_t *item)
  * Map virtual address page to physical address frame
  * using flags.
  *
- * The page table must be locked and interrupts must be disabled.
- *
  * @param as    Address space to which page belongs.
  * @param page  Virtual address of the page to be mapped.
  * @param frame Physical address of memory frame to which the mapping is done.
@@ -216,8 +214,6 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * TLB shootdown should follow in order to make effects of
  * this call visible.
  *
- * The page table must be locked and interrupts must be disabled.
- *
  * @param as   Address space to wich page belongs.
  * @param page Virtual address of the page to be demapped.
  *
@@ -243,8 +239,6 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 /** Find mapping for virtual page in page hash table.
  *
  * Find mapping for virtual page.
- *
- * The page table must be locked and interrupts must be disabled.
  *
  * @param as   Address space to wich page belongs.
  * @param page Virtual page.

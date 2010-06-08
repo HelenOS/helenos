@@ -194,8 +194,6 @@ static size_t get_task_virtmem(as_t *as)
 /* Produce task statistics
  *
  * Summarize task information into task statistics.
- * Task lock should be held and interrupts disabled
- * before executing this function.
  *
  * @param task       Task.
  * @param stats_task Task statistics.
@@ -296,8 +294,6 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 /* Produce thread statistics
  *
  * Summarize thread information into thread statistics.
- * Thread lock should be held and interrupts disabled
- * before executing this function.
  *
  * @param thread       Thread.
  * @param stats_thread Thread statistics.

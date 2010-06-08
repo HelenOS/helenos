@@ -269,8 +269,6 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
  * Otherwise only portions of the area that are not backed by the ELF image
  * are put into the pagemap.
  *
- * The address space and address space area must be locked prior to the call.
- *
  * @param area		Address space area.
  */
 void elf_share(as_area_t *area)

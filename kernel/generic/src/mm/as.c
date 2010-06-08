@@ -800,8 +800,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 
 /** Check access mode for address space area.
  *
- * The address space area must be locked prior to this call.
- *
  * @param area   Address space area.
  * @param access Access mode.
  *
@@ -1213,9 +1211,6 @@ unsigned int area_flags_to_page_flags(unsigned int aflags)
 
 /** Compute flags for virtual address translation subsytem.
  *
- * The address space area must be locked.
- * Interrupts must be disabled.
- *
  * @param area Address space area.
  *
  * @return Flags to be used in page_mapping_insert().
@@ -1316,8 +1311,6 @@ bool page_table_locked(as_t *as)
 
 /** Find address space area and lock it.
  *
- * The address space must be locked and interrupts must be disabled.
- *
  * @param as Address space.
  * @param va Virtual address.
  *
@@ -1380,8 +1373,6 @@ as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 }
 
 /** Check area conflicts with other areas.
- *
- * The address space must be locked and interrupts must be disabled.
  *
  * @param as         Address space.
  * @param va         Starting virtual address of the area being tested.

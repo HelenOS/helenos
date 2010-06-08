@@ -69,8 +69,6 @@ static size_t asids_allocated = 0;
 
 /** Allocate free address space identifier.
  *
- * Interrupts must be disabled and asidlock must be held prior to this call
- *
  * @return New ASID.
  */
 asid_t asid_get(void)

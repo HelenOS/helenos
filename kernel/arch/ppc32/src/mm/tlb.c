@@ -49,9 +49,6 @@ static unsigned int seed_real
 
 /** Try to find PTE for faulting address
  *
- * Try to find PTE for faulting address.
- * The as->lock must be held on entry to this function.
- *
  * @param as       Address space.
  * @param lock     Lock/unlock the address space.
  * @param badvaddr Faulting virtual address.

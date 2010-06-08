@@ -352,8 +352,6 @@ void tlb_modified_fail(istate_t *istate)
 
 /** Try to find PTE for faulting address.
  *
- * The AS->lock must be held on entry to this function.
- *
  * @param badvaddr	Faulting virtual address.
  * @param access	Access mode that caused the fault.
  * @param istate	Pointer to interrupted state.
