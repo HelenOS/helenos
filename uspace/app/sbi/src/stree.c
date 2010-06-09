@@ -91,8 +91,11 @@ stree_csi_t *stree_csi_new(csi_class_t cc)
 	csi->cc = cc;
 	csi->ancr_state = ws_unvisited;
 	csi->name = NULL;
-	csi->base_csi_ref = NULL;
+	csi->base_csi = NULL;
+	list_init(&csi->inherit);
+	list_init(&csi->impl_if_ti);
 	list_init(&csi->members);
+
 	return csi;
 }
 
@@ -929,6 +932,8 @@ stree_symbol_t *stree_symbol_new(symbol_class_t sc)
 	}
 
 	symbol->sc = sc;
+	list_init(&symbol->attr);
+
 	return symbol;
 }
 
@@ -1017,6 +1022,36 @@ bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b)
 	}
 
 	/* We went all the way to the root and did not find b. */
+	return b_false;
+}
+
+/** Determine if @a symbol is static.
+ *
+ * @param symbol	Symbol
+ * @return		@c b_true if symbol is static, @c b_false otherwise
+ */
+bool_t stree_symbol_is_static(stree_symbol_t *symbol)
+{
+	/* Module-wide symbols are static. */
+	if (symbol->outer_csi == NULL)
+		return b_true;
+
+	/* Symbols with @c static attribute are static. */
+	if (stree_symbol_has_attr(symbol, sac_static))
+		return b_true;
+
+	switch (symbol->sc) {
+	case sc_csi:
+	case sc_deleg:
+	case sc_enum:
+		return b_true;
+	case sc_ctor:
+	case sc_fun:
+	case sc_var:
+	case sc_prop:
+		break;
+	}
+
 	return b_false;
 }
 

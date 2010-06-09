@@ -98,6 +98,7 @@ void run_program(run_t *run, stree_program_t *prog)
 {
 	stree_symbol_t *main_fun_sym;
 	stree_fun_t *main_fun;
+	rdata_var_t *main_obj;
 	stree_ident_t *fake_ident;
 	list_t main_args;
 	run_proc_ar_t *proc_ar;
@@ -110,6 +111,9 @@ void run_program(run_t *run, stree_program_t *prog)
 	run->thread_ar = run_thread_ar_new();
 	list_init(&run->thread_ar->proc_ar);
 	run->thread_ar->bo_mode = bm_none;
+
+	/* Initialize global data structure. */
+	run_gdata_init(run);
 
 	/*
 	 * Find entry point @c Main().
@@ -125,6 +129,8 @@ void run_program(run_t *run, stree_program_t *prog)
 	main_fun = symbol_to_fun(main_fun_sym);
 	assert(main_fun != NULL);
 
+	main_obj = run_fun_sobject_find(run, main_fun);
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Found function '"); symbol_print_fqn(main_fun_sym);
 	printf("'.\n");
@@ -132,11 +138,28 @@ void run_program(run_t *run, stree_program_t *prog)
 
 	/* Run function @c main. */
 	list_init(&main_args);
-	run_proc_ar_create(run, NULL, main_fun->proc, &proc_ar);
+	run_proc_ar_create(run, main_obj, main_fun->proc, &proc_ar);
 	run_proc_ar_set_args(run, proc_ar, &main_args);
 	run_proc(run, proc_ar, &res);
 
 	run_exc_check_unhandled(run);
+}
+
+/** Initialize global data.
+ *
+ * @param run		Runner object
+ */
+void run_gdata_init(run_t *run)
+{
+	rdata_object_t *gobject;
+
+	run->gdata = rdata_var_new(vc_object);
+	gobject = rdata_object_new();
+	run->gdata->u.object_v = gobject;
+
+	gobject->class_sym = NULL;
+	gobject->static_obj = sn_static;
+	intmap_init(&gobject->fields);
 }
 
 /** Run procedure.
@@ -786,6 +809,104 @@ stree_csi_t *run_get_current_csi(run_t *run)
 
 	proc_ar = run_get_current_proc_ar(run);
 	return proc_ar->proc->outer_symbol->outer_csi;
+}
+
+/** Get static object (i.e. class object).
+ *
+ * Looks for a child static object named @a name in static object @a pobject.
+ * If the child does not exist yet, it is created.
+ *
+ * @param run		Runner object
+ * @param csi		CSI of the static object named @a name
+ * @param pobject	Parent static object
+ * @param name		Static object name
+ *
+ * @return		Static (class) object of the given name
+ */
+rdata_var_t *run_sobject_get(run_t *run, stree_csi_t *csi,
+    rdata_var_t *pobj_var, sid_t name)
+{
+	rdata_object_t *pobject;
+	rdata_var_t *mbr_var;
+	rdata_var_t *rvar;
+	stree_ident_t *ident;
+
+	assert(pobj_var->vc == vc_object);
+	pobject = pobj_var->u.object_v;
+#ifdef DEBUG_RUN_TRACE
+	printf("Get static object '%s' in '", strtab_get_str(name));
+	if (pobject->class_sym != NULL)
+		symbol_print_fqn(pobject->class_sym);
+	else
+		printf("global");
+#endif
+
+	assert(pobject->static_obj == sn_static);
+
+	mbr_var = intmap_get(&pobject->fields, name);
+	if (mbr_var != NULL) {
+#ifdef DEBUG_RUN_TRACE
+		printf("Return exising static object (mbr_var=%p).\n", mbr_var);
+#endif
+		/* Return existing object. */
+		return mbr_var;
+	}
+
+	/* Construct new object. */
+#ifdef DEBUG_RUN_TRACE
+	printf("Construct new static object.\n");
+#endif
+	ident = stree_ident_new();
+	ident->sid = name;
+
+	run_new_csi_inst(run, csi, sn_static, &rvar);
+
+	/* Store static object reference for future use. */
+	intmap_set(&pobject->fields, name, rvar);
+
+	return rvar;
+}
+
+/** Get static object for CSI.
+ *
+ * In situations where we do not have the parent static object and need
+ * to find static object for a CSI from the gdata root we use this.
+ *
+ * This is only used in special cases such as when invoking the entry
+ * point. This is too slow to use during normal execution.
+ *
+ * @param run		Runner object
+ * @param csi		CSI to get static object of
+ *
+ * @return		Static (class) object
+ */
+rdata_var_t *run_sobject_find(run_t *run, stree_csi_t *csi)
+{
+	rdata_var_t *pobj_var;
+
+	if (csi == NULL)
+		return run->gdata;
+
+	assert(csi->ancr_state == ws_visited);
+	pobj_var = run_sobject_find(run, csi_to_symbol(csi)->outer_csi);
+
+	return run_sobject_get(run, csi, pobj_var, csi->name->sid);
+}
+
+/** Get static object for CSI containing function.
+ *
+ * This is used to obtain active object for invoking static function
+ * @a fun. Only used in cases where we don't already have the object such
+ * as when running the entry point. Otherwise this would be slow.
+ *
+ * @param run		Runner object
+ * @param fun		Function to get static class object of
+ *
+ * @return		Static (class) object
+ */
+rdata_var_t *run_fun_sobject_find(run_t *run, stree_fun_t *fun)
+{
+	return run_sobject_find(run, fun_to_symbol(fun)->outer_csi);
 }
 
 /** Construct variable from a value item.
@@ -1511,7 +1632,7 @@ void run_raise_exc(run_t *run, stree_csi_t *csi, cspan_t *cspan)
 	run->thread_ar->exc_cspan = cspan;
 
 	/* Create exception object. */
-	run_new_csi_inst(run, csi, &exc_vi);
+	run_new_csi_inst_ref(run, csi, sn_nonstatic, &exc_vi);
 	assert(exc_vi->ic == ic_value);
 
 	/* Store exception object in thread AR. */

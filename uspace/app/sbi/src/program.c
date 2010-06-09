@@ -84,6 +84,11 @@ int program_file_process(stree_program_t *program, const char *fname)
  * Processes all source files in the library. The list of library source files
  * is read from '<libdir>/libflist'. Each line of the file contains one file
  * name relative to <libdir>.
+ *
+ * @param program 	The program to which the parsed code is added.
+ * @return		EOK on success, EIO if some file comprising the
+ *			library is not found, EINVAL if the library
+ *			has syntax errors.
  */
 int program_lib_process(stree_program_t *program)
 {
@@ -146,5 +151,5 @@ int program_lib_process(stree_program_t *program)
 	free(path);
 	fclose(f);
 
-	return rc;
+	return EOK;
 }

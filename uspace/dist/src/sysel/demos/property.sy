@@ -97,7 +97,7 @@ class Bar is
 end
 
 class PropertyDemo is
-	fun Main() is
+	fun Main(), static is
 		var a : Foo;
 		var i : int;
 

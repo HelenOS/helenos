@@ -27,7 +27,7 @@
 --
 
 class DelegateDemo is
-	fun Main() is
+	fun Main(), static is
 		var demo : DelegateClass;
 
 		demo = new DelegateClass();

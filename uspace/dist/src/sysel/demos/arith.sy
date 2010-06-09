@@ -27,7 +27,7 @@
 --
 
 class ArithmeticDemo is
-	fun Main() is
+	fun Main(), static is
 		-- Test addition, multiplication and precedence.
 		Builtin.Write("2*2 + 2*2 = ");
 		Builtin.Write(2*2 + 2*2);
@@ -87,7 +87,7 @@ class ArithmeticDemo is
 	end
 
 	-- Return factorial of n.
-	fun Factorial(n : int) : int is
+	fun Factorial(n : int) : int, static is
 		var i : int;
 		var val : int;
 

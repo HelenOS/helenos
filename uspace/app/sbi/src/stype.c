@@ -63,6 +63,16 @@ static void stype_fun_sig(stype_t *stype, stree_csi_t *outer_csi,
 static void stype_fun_body(stype_t *stype, stree_fun_t *fun);
 static void stype_block(stype_t *stype, stree_block_t *block);
 
+static void stype_class_impl_check(stype_t *stype, stree_csi_t *csi);
+static void stype_class_impl_check_if(stype_t *stype, stree_csi_t *csi,
+    tdata_item_t *iface_ti);
+static void stype_class_impl_check_mbr(stype_t *stype, stree_csi_t *csi,
+    tdata_tvv_t *if_tvv, stree_csimbr_t *ifmbr);
+static void stype_class_impl_check_fun(stype_t *stype,
+    stree_symbol_t *cfun_sym, tdata_tvv_t *if_tvv, stree_symbol_t *ifun_sym);
+static void stype_class_impl_check_prop(stype_t *stype,
+    stree_symbol_t *cprop_sym, tdata_tvv_t *if_tvv, stree_symbol_t *iprop_sym);
+
 static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s);
 static void stype_if(stype_t *stype, stree_if_t *if_s);
 static void stype_while(stype_t *stype, stree_while_t *while_s);
@@ -88,8 +98,6 @@ static stree_expr_t *stype_convert_tenum(stype_t *stype, stree_expr_t *expr,
 static stree_expr_t *stype_convert_tfun_tdeleg(stype_t *stype,
     stree_expr_t *expr, tdata_item_t *dest);
 static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
-    tdata_item_t *dest);
-static void stype_convert_failure(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
 
 static bool_t stype_fun_sig_equal(stype_t *stype, tdata_fun_sig_t *asig,
@@ -166,6 +174,9 @@ static void stype_csi(stype_t *stype, stree_csi_t *csi)
 
 		csimbr_n = list_next(&csi->members, csimbr_n);
 	}
+
+	if (csi->cc == csi_class)
+		stype_class_impl_check(stype, csi);
 
 	stype->current_csi = prev_ctx;
 }
@@ -309,8 +320,6 @@ void stype_enum(stype_t *stype, stree_enum_t *enum_d)
 		tenum->enum_d = enum_d;
 
 		enum_d->titem = titem;
-	} else {
-		titem = enum_d->titem;
 	}
 }
 
@@ -452,7 +461,7 @@ static void stype_fun_body(stype_t *stype, stree_fun_t *fun)
 #endif
 	assert(stype->proc_vr == NULL);
 
-	/* Builtin functions do not have a body. */
+	/* Declarations and builtin functions do not have a body. */
 	if (fun->proc->body == NULL)
 		return;
 
@@ -475,15 +484,11 @@ static void stype_var(stype_t *stype, stree_var_t *var)
 {
 	tdata_item_t *titem;
 
-	(void) stype;
-	(void) var;
-
 	run_texpr(stype->program, stype->current_csi, var->type,
 	    &titem);
 	if (titem->tic == tic_ignore) {
 		/* An error occured. */
 		stype_note_error(stype);
-		return;
 	}
 }
 
@@ -499,21 +504,51 @@ static void stype_prop(stype_t *stype, stree_prop_t *prop)
 	symbol_print_fqn(prop_to_symbol(prop));
 	printf("'.\n");
 #endif
+	if (prop->titem == NULL)
+		stype_prop_header(stype, prop);
+
 	stype->proc_vr = stype_proc_vr_new();
 	list_init(&stype->proc_vr->block_vr);
 
-	if (prop->getter != NULL) {
+	/* Property declarations do not have a getter body. */
+	if (prop->getter != NULL && prop->getter->body != NULL) {
 		stype->proc_vr->proc = prop->getter;
 		stype_block(stype, prop->getter->body);
 	}
 
-	if (prop->setter != NULL) {
+	/* Property declarations do not have a setter body. */
+	if (prop->setter != NULL && prop->setter->body != NULL) {
 		stype->proc_vr->proc = prop->setter;
 		stype_block(stype, prop->setter->body);
 	}
 
 	free(stype->proc_vr);
 	stype->proc_vr = NULL;
+}
+
+/** Type property header.
+ *
+ * @param stype		Static typing object
+ * @param prop		Property
+ */
+void stype_prop_header(stype_t *stype, stree_prop_t *prop)
+{
+	tdata_item_t *titem;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type property '");
+	symbol_print_fqn(prop_to_symbol(prop));
+	printf("' header.\n");
+#endif
+	run_texpr(stype->program, stype->current_csi, prop->type,
+	    &titem);
+	if (titem->tic == tic_ignore) {
+		/* An error occured. */
+		stype_note_error(stype);
+		return;
+	}
+
+	prop->titem = titem;
 }
 
 /** Type statement block.
@@ -551,6 +586,288 @@ static void stype_block(stype_t *stype, stree_block_t *block)
 	bvr_n = list_last(&stype->proc_vr->block_vr);
 	assert(list_node_data(bvr_n, stype_block_vr_t *) == block_vr);
 	list_remove(&stype->proc_vr->block_vr, bvr_n);
+}
+
+/** Verify that class fully implements all interfaces as it claims.
+ *
+ * @param stype		Static typing object
+ * @param csi		CSI to check
+ */
+static void stype_class_impl_check(stype_t *stype, stree_csi_t *csi)
+{
+	list_node_t *pred_n;
+	stree_texpr_t *pred_te;
+	tdata_item_t *pred_ti;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Verify that class implements all interfaces.\n");
+#endif
+	assert(csi->cc == csi_class);
+
+	pred_n = list_first(&csi->inherit);
+	while (pred_n != NULL) {
+		pred_te = list_node_data(pred_n, stree_texpr_t *);
+		run_texpr(stype->program, csi, pred_te, &pred_ti);
+
+		assert(pred_ti->tic == tic_tobject);
+		switch (pred_ti->u.tobject->csi->cc) {
+		case csi_class:
+			break;
+		case csi_struct:
+			assert(b_false);
+		case csi_interface:
+			/* Store to impl_if_ti for later use. */
+			list_append(&csi->impl_if_ti, pred_ti);
+
+			/* Check implementation of this interface. */
+			stype_class_impl_check_if(stype, csi, pred_ti);
+			break;
+		}
+
+		pred_n = list_next(&csi->inherit, pred_n);
+	}
+}
+
+/** Verify that class fully implements an interface.
+ *
+ * @param stype		Static typing object
+ * @param csi		CSI to check
+ * @param iface		Interface that must be fully implemented
+ */
+static void stype_class_impl_check_if(stype_t *stype, stree_csi_t *csi,
+    tdata_item_t *iface_ti)
+{
+	tdata_tvv_t *iface_tvv;
+	list_node_t *pred_n;
+	tdata_item_t *pred_ti;
+	tdata_item_t *pred_sti;
+
+	stree_csi_t *iface;
+	list_node_t *ifmbr_n;
+	stree_csimbr_t *ifmbr;
+
+	assert(csi->cc == csi_class);
+
+	assert(iface_ti->tic == tic_tobject);
+	iface = iface_ti->u.tobject->csi;
+	assert(iface->cc = csi_interface);
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Verify that class fully implements interface.\n");
+#endif
+	/* Compute TVV for this interface reference. */
+	stype_titem_to_tvv(stype, iface_ti, &iface_tvv);
+
+	/*
+	 * Recurse to accumulated interfaces.
+	 */
+	pred_n = list_first(&iface->impl_if_ti);
+	while (pred_n != NULL) {
+		pred_ti = list_node_data(pred_n, tdata_item_t *);
+		assert(pred_ti->tic == tic_tobject);
+		assert(pred_ti->u.tobject->csi->cc == csi_interface);
+
+		/* Substitute real type parameters to predecessor reference. */
+		tdata_item_subst(pred_ti, iface_tvv, &pred_sti);
+
+		/* Check accumulated interface. */
+		stype_class_impl_check_if(stype, csi, pred_sti);
+
+		pred_n = list_next(&iface->impl_if_ti, pred_n);
+	}
+
+	/*
+	 * Check all interface members.
+	 */
+	ifmbr_n = list_first(&iface->members);
+	while (ifmbr_n != NULL) {
+		ifmbr = list_node_data(ifmbr_n, stree_csimbr_t *);
+		stype_class_impl_check_mbr(stype, csi, iface_tvv, ifmbr);
+
+		ifmbr_n = list_next(&iface->members, ifmbr_n);
+	}
+}
+
+/** Verify that class fully implements an interface member.
+ *
+ * @param stype		Static typing object
+ * @param csi		CSI to check
+ * @param if_tvv	TVV for @a ifmbr
+ * @param ifmbr		Interface that must be fully implemented
+ */
+static void stype_class_impl_check_mbr(stype_t *stype, stree_csi_t *csi,
+    tdata_tvv_t *if_tvv, stree_csimbr_t *ifmbr)
+{
+	stree_symbol_t *cmbr_sym;
+	stree_symbol_t *ifmbr_sym;
+	stree_ident_t *ifmbr_name;
+
+	assert(csi->cc == csi_class);
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Verify that class implements interface member.\n");
+#endif
+	ifmbr_name = stree_csimbr_get_name(ifmbr);
+
+	cmbr_sym = symbol_search_csi(stype->program, csi, ifmbr_name);
+	if (cmbr_sym == NULL) {
+		printf("Error: CSI '");
+		symbol_print_fqn(csi_to_symbol(csi));
+		printf("' should implement '");
+		symbol_print_fqn(csimbr_to_symbol(ifmbr));
+		printf("' but it does not.\n");
+		stype_note_error(stype);
+		return;
+	}
+
+	ifmbr_sym = csimbr_to_symbol(ifmbr);
+	if (cmbr_sym->sc != ifmbr_sym->sc) {
+		printf("Error: CSI '");
+		symbol_print_fqn(csi_to_symbol(csi));
+		printf("' implements '");
+		symbol_print_fqn(csimbr_to_symbol(ifmbr));
+		printf("' as a different kind of symbol.\n");
+		stype_note_error(stype);
+	}
+
+	switch (cmbr_sym->sc) {
+	case sc_csi:
+	case sc_ctor:
+	case sc_deleg:
+	case sc_enum:
+		/*
+		 * Checked at parse time. Interface should not have these
+		 * member types.
+		 */
+		assert(b_false);
+	case sc_fun:
+		stype_class_impl_check_fun(stype, cmbr_sym, if_tvv, ifmbr_sym);
+		break;
+	case sc_var:
+		/*
+		 * Checked at parse time. Interface should not have these
+		 * member types.
+		 */
+		assert(b_false);
+	case sc_prop:
+		stype_class_impl_check_prop(stype, cmbr_sym, if_tvv, ifmbr_sym);
+		break;
+	}
+}
+
+/** Verify that class properly implements a function from an interface.
+ *
+ * @param stype		Static typing object
+ * @param cfun_sym	Function symbol in class
+ * @param if_tvv	TVV for @a ifun_sym
+ * @param ifun_sym	Function declaration symbol in interface
+ */
+static void stype_class_impl_check_fun(stype_t *stype,
+    stree_symbol_t *cfun_sym, tdata_tvv_t *if_tvv, stree_symbol_t *ifun_sym)
+{
+	stree_fun_t *cfun;
+	tdata_fun_t *tcfun;
+	stree_fun_t *ifun;
+	tdata_item_t *sifun_ti;
+	tdata_fun_t *tifun;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Verify that class '");
+	symbol_print_fqn(csi_to_symbol(cfun_sym->outer_csi));
+	printf("' implements function '");
+	symbol_print_fqn(ifun_sym);
+	printf("' properly.\n");
+#endif
+	assert(cfun_sym->sc == sc_fun);
+	cfun = cfun_sym->u.fun;
+
+	assert(ifun_sym->sc == sc_fun);
+	ifun = ifun_sym->u.fun;
+
+	assert(cfun->titem->tic == tic_tfun);
+	tcfun = cfun->titem->u.tfun;
+
+	tdata_item_subst(ifun->titem, if_tvv, &sifun_ti);
+	assert(sifun_ti->tic == tic_tfun);
+	tifun = sifun_ti->u.tfun;
+
+	if (!stype_fun_sig_equal(stype, tcfun->tsig, tifun->tsig)) {
+		cspan_print(cfun->name->cspan);
+		printf(" Error: Type of function '");
+		symbol_print_fqn(cfun_sym);
+		printf("' (");
+		tdata_item_print(cfun->titem);
+		printf(") does not match type of '");
+		symbol_print_fqn(ifun_sym);
+		printf("' (");
+		tdata_item_print(sifun_ti);
+		printf(") which it should implement.\n");
+		stype_note_error(stype);
+	}
+}
+
+/** Verify that class properly implements a function from an interface.
+ *
+ * @param stype		Static typing object
+ * @param cprop_sym	Property symbol in class
+ * @param if_tvv	TVV for @a ifun_sym
+ * @param iprop_sym	Property declaration symbol in interface
+ */
+static void stype_class_impl_check_prop(stype_t *stype,
+    stree_symbol_t *cprop_sym, tdata_tvv_t *if_tvv, stree_symbol_t *iprop_sym)
+{
+	stree_prop_t *cprop;
+	stree_prop_t *iprop;
+	tdata_item_t *siprop_ti;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Verify that class '");
+	symbol_print_fqn(csi_to_symbol(cprop_sym->outer_csi));
+	printf("' implements property '");
+	symbol_print_fqn(iprop_sym);
+	printf("' properly.\n");
+#endif
+	assert(cprop_sym->sc == sc_prop);
+	cprop = cprop_sym->u.prop;
+
+	assert(iprop_sym->sc == sc_prop);
+	iprop = iprop_sym->u.prop;
+
+	tdata_item_subst(iprop->titem, if_tvv, &siprop_ti);
+
+	if (!tdata_item_equal(cprop->titem, siprop_ti)) {
+		cspan_print(cprop->name->cspan);
+		printf(" Error: Type of property '");
+		symbol_print_fqn(cprop_sym);
+		printf("' (");
+		tdata_item_print(cprop->titem);
+		printf(") does not match type of '");
+		symbol_print_fqn(iprop_sym);
+		printf("' (");
+		tdata_item_print(siprop_ti);
+		printf(") which it should implement.\n");
+		stype_note_error(stype);
+	}
+
+	if (iprop->getter != NULL && cprop->getter == NULL) {
+		cspan_print(cprop->name->cspan);
+		printf(" Error: Property '");
+		symbol_print_fqn(cprop_sym);
+		printf("' is missing a getter, which is required by '");
+		symbol_print_fqn(iprop_sym);
+		printf("'.\n");
+		stype_note_error(stype);
+	}
+
+	if (iprop->setter != NULL && cprop->setter == NULL) {
+		cspan_print(cprop->name->cspan);
+		printf(" Error: Property '");
+		symbol_print_fqn(cprop_sym);
+		printf("' is missing a setter, which is required by '");
+		symbol_print_fqn(iprop_sym);
+		printf("'.\n");
+		stype_note_error(stype);
+	}
 }
 
 /** Type statement
@@ -823,8 +1140,10 @@ static void stype_exps(stype_t *stype, stree_exps_t *exp_s, bool_t want_value)
 #endif
 	stype_expr(stype, exp_s->expr);
 
-	if (want_value == b_false && exp_s->expr->titem != NULL)
-		printf("Warning: Expression value ignored.\n");
+	if (want_value == b_false && exp_s->expr->titem != NULL) {
+		cspan_print(exp_s->expr->cspan);
+		printf(" Warning: Expression value ignored.\n");
+	}
 }
 
 /** Type with-except-finally statement.
@@ -924,14 +1243,14 @@ stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
 	}
 
 	if (src->tic == tic_tebase) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		printf("Invalid use of reference to enum type in "
 		    "expression.\n");
 		return expr;
 	}
 
 	if (src->tic != dest->tic) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -986,7 +1305,7 @@ static stree_expr_t *stype_convert_tprimitive(stype_t *stype,
 
 	/* Check if both have the same tprimitive class. */
 	if (src->u.tprimitive->tpc != dest->u.tprimitive->tpc)
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 
 	return expr;
 }
@@ -1020,6 +1339,9 @@ static stree_expr_t *stype_convert_tprim_tobj(stype_t *stype,
 	bi = stype->program->builtin;
 	csi_sym = csi_to_symbol(dest->u.tobject->csi);
 
+	/* Make compiler happy. */
+	bp_sym = NULL;
+
 	switch (src->u.tprimitive->tpc) {
 	case tpc_bool: bp_sym = bi->boxed_bool; break;
 	case tpc_char: bp_sym = bi->boxed_char; break;
@@ -1027,13 +1349,13 @@ static stree_expr_t *stype_convert_tprim_tobj(stype_t *stype,
 	case tpc_nil: assert(b_false);
 	case tpc_string: bp_sym = bi->boxed_string; break;
 	case tpc_resource:
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
 	/* Target type must be boxed @a src or Object */
 	if (csi_sym != bp_sym && csi_sym != bi->gf_class)
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 
 	/* Patch the code to box the primitive value */
 	box = stree_box_new();
@@ -1057,82 +1379,33 @@ static stree_expr_t *stype_convert_tobject(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest)
 {
 	tdata_item_t *src;
-	tdata_item_t *cur;
-	stree_csi_t *cur_csi;
-	tdata_tvv_t *tvv;
-	tdata_item_t *b_ti, *bs_ti;
+	tdata_item_t *pred_ti;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Convert object type.\n");
 #endif
-	list_node_t *ca_n, *da_n;
-	tdata_item_t *carg, *darg;
-
 	src = expr->titem;
 	assert(src->tic == tic_tobject);
 	assert(dest->tic == tic_tobject);
 
-	cur = src;
-
-	while (cur->u.tobject->csi != dest->u.tobject->csi) {
-
-		cur_csi = cur->u.tobject->csi;
-		stype_titem_to_tvv(stype, cur, &tvv);
-
-		if (cur_csi->base_csi_ref != NULL) {
-			run_texpr(stype->program, cur_csi, cur_csi->base_csi_ref, &b_ti);
-			if (b_ti->tic == tic_ignore) {
-				/* An error occured. */
-				stype_note_error(stype);
-				return expr;
-			}
-
-			tdata_item_subst(b_ti, tvv, &bs_ti);
-			cur = bs_ti;
-			assert(cur->tic == tic_tobject);
-
-		} else if (cur_csi->base_csi != NULL) {
-			/* No explicit reference. Use grandfather class. */
-			cur = tdata_item_new(tic_tobject);
-			cur->u.tobject = tdata_object_new();
-			cur->u.tobject->csi = cur_csi->base_csi;
-			cur->u.tobject->static_ref = b_false;
-
-			list_init(&cur->u.tobject->targs);
-		} else {
-			/* No match */
-			stype_convert_failure(stype, expr, dest);
-			return expr;
-		}
+	/*
+	 * Find predecessor of the right type. This determines the
+	 * type arguments that the destination type should have.
+	 */
+	pred_ti = stype_tobject_find_pred(stype, src, dest);
+	if (pred_ti == NULL) {
+		stype_convert_failure(stype, convc_implicit, expr, dest);
+		printf("Not a base class or implemented or accumulated "
+		    "interface.\n");
+		return expr;
 	}
 
-	/* Verify that type arguments match */
-	ca_n = list_first(&cur->u.tobject->targs);
-	da_n = list_first(&dest->u.tobject->targs);
-
-	while (ca_n != NULL && da_n != NULL) {
-		carg = list_node_data(ca_n, tdata_item_t *);
-		darg = list_node_data(da_n, tdata_item_t *);
-
-		if (tdata_item_equal(carg, darg) != b_true) {
-			/* Diferent argument type */
-			stype_convert_failure(stype, expr, dest);
-			printf("Different argument type '");
-			tdata_item_print(carg);
-			printf("' vs. '");
-			tdata_item_print(darg);
-			printf("'.\n");
-			return expr;
-		}
-
-		ca_n = list_next(&cur->u.tobject->targs, ca_n);
-		da_n = list_next(&dest->u.tobject->targs, da_n);
-	}
-
-	if (ca_n != NULL || da_n != NULL) {
-		/* Diferent number of arguments */
-		stype_convert_failure(stype, expr, dest);
-		printf("Different number of arguments.\n");
+	/*
+	 * Verify that type arguments match with those specified for
+	 * conversion destination.
+	 */
+	if (stype_targs_check_equal(stype, pred_ti, dest) != EOK) {
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -1159,14 +1432,14 @@ static stree_expr_t *stype_convert_tarray(stype_t *stype, stree_expr_t *expr,
 
 	/* Compare rank and base type. */
 	if (src->u.tarray->rank != dest->u.tarray->rank) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
 	/* XXX Should we convert each element? */
 	if (tdata_item_equal(src->u.tarray->base_ti,
 	    dest->u.tarray->base_ti) != b_true) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 	}
 
 	return expr;
@@ -1204,7 +1477,7 @@ static stree_expr_t *stype_convert_tdeleg(stype_t *stype, stree_expr_t *expr,
 
 	/* Both must be the same delegate. */
 	if (sdeleg->deleg != ddeleg->deleg) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -1239,7 +1512,7 @@ static stree_expr_t *stype_convert_tenum(stype_t *stype, stree_expr_t *expr,
 
 	/* Both must be of the same enum type (with the same declaration). */
 	if (senum->enum_d != denum->enum_d) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -1278,7 +1551,7 @@ static stree_expr_t *stype_convert_tfun_tdeleg(stype_t *stype,
 	/* Signature type must match. */
 
 	if (!stype_fun_sig_equal(stype, ssig, dsig)) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -1310,7 +1583,7 @@ static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
 
 	/* Currently only allow if both types are the same. */
 	if (src->u.tvref->targ != dest->u.tvref->targ) {
-		stype_convert_failure(stype, expr, dest);
+		stype_convert_failure(stype, convc_implicit, expr, dest);
 		return expr;
 	}
 
@@ -1323,11 +1596,16 @@ static stree_expr_t *stype_convert_tvref(stype_t *stype, stree_expr_t *expr,
  * @param expr		Original expression
  * @param dest		Destination type
  */
-static void stype_convert_failure(stype_t *stype, stree_expr_t *expr,
-    tdata_item_t *dest)
+void stype_convert_failure(stype_t *stype, stype_conv_class_t convc,
+    stree_expr_t *expr, tdata_item_t *dest)
 {
 	cspan_print(expr->cspan);
-	printf(" Error: Cannot convert ");
+	printf(" Error: ");
+	switch (convc) {
+	case convc_implicit: printf("Cannot implicitly convert '"); break;
+	case convc_as: printf("Cannot use 'as' to convert '"); break;
+	}
+
 	tdata_item_print(expr->titem);
 	printf(" to ");
 	tdata_item_print(dest);
@@ -1396,6 +1674,168 @@ stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr)
 	return bexpr;
 }
 
+/** Find predecessor CSI and return its type item.
+ *
+ * Looks for predecessor of CSI type @a src that matches @a dest.
+ * The type maches if they use the same generic CSI definition, type
+ * arguments are ignored. If found, returns the type arguments that
+ * @a dest should have in order to be a true predecessor of @a src.
+ *
+ * @param stype		Static typing object
+ * @param src		Source type
+ * @param dest		Destination type
+ * @return		Type matching @a dest with correct type arguments
+ */
+tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
+    tdata_item_t *dest)
+{
+	stree_csi_t *src_csi;
+	tdata_tvv_t *tvv;
+	tdata_item_t *b_ti, *bs_ti;
+
+	list_node_t *pred_n;
+	stree_texpr_t *pred_te;
+
+	tdata_item_t *res_ti;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Find CSI predecessor.\n");
+#endif
+	assert(src->tic == tic_tobject);
+	assert(dest->tic == tic_tobject);
+
+	if (src->u.tobject->csi == dest->u.tobject->csi)
+		return src;
+
+	src_csi = src->u.tobject->csi;
+	stype_titem_to_tvv(stype, src, &tvv);
+
+	res_ti = NULL;
+
+	switch (dest->u.tobject->csi->cc) {
+	case csi_class:
+		/* Destination is a class. Look at base class. */
+		pred_te = symbol_get_base_class_ref(stype->program,
+		    src_csi);
+		if (pred_te != NULL) {
+			run_texpr(stype->program, src_csi, pred_te,
+			    &b_ti);
+		} else if (src_csi->base_csi != NULL &&
+			src->u.tobject->csi->cc == csi_class) {
+			/* No explicit reference. Use grandfather class. */
+		    	b_ti = tdata_item_new(tic_tobject);
+			b_ti->u.tobject = tdata_object_new();
+			b_ti->u.tobject->csi = src_csi->base_csi;
+			b_ti->u.tobject->static_ref = sn_nonstatic;
+
+			list_init(&b_ti->u.tobject->targs);
+		} else {
+			/* No match */
+			return NULL;
+		}
+
+		/* Substitute type variables to get predecessor type. */
+		tdata_item_subst(b_ti, tvv, &bs_ti);
+		assert(bs_ti->tic == tic_tobject);
+
+		/* Recurse to compute the rest of the path. */
+		res_ti = stype_tobject_find_pred(stype, bs_ti, dest);
+	    	if (b_ti->tic == tic_ignore) {
+			/* An error occured. */
+			return NULL;
+		}
+		break;
+	case csi_struct:
+		assert(b_false);
+	case csi_interface:
+		/*
+		 * Destination is an interface. Look at implemented
+		 * or accumulated interfaces.
+		 */
+		pred_n = list_first(&src_csi->inherit);
+		while (pred_n != NULL) {
+			pred_te = list_node_data(pred_n, stree_texpr_t *);
+			run_texpr(stype->program, src_csi, pred_te,
+			    &b_ti);
+
+			/* Substitute type variables to get predecessor type. */
+			tdata_item_subst(b_ti, tvv, &bs_ti);
+			assert(bs_ti->tic == tic_tobject);
+
+			/* Recurse to compute the rest of the path. */
+			res_ti = stype_tobject_find_pred(stype, bs_ti, dest);
+			if (res_ti != NULL)
+				break;
+
+			pred_n = list_next(&src_csi->inherit, pred_n);
+		}
+		break;
+	}
+
+	return res_ti;
+}
+
+/** Check whether type arguments of expression type and another type are equal.
+ *
+ * Compare type arguments of the type of @a expr and of type @a b_ti.
+ * @a convc denotes the type of conversion for which we perform this check
+ * (for sake of error reporting).
+ *
+ * If the type arguments are not equal a typing error and a conversion error
+ * message is generated.
+ *
+ * @param stype		Static typing object
+ * @param expr		Expression
+ * @param b_ti		b_tiination type
+ * @return		EOK if equal, EINVAL if not.
+ */
+int stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
+    tdata_item_t *b_ti)
+{
+	list_node_t *arg_a_n, *arg_b_n;
+	tdata_item_t *arg_a, *arg_b;
+
+	(void) stype;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Check if type arguments match.\n");
+#endif
+	assert(a_ti->tic == tic_tobject);
+	assert(b_ti->tic == tic_tobject);
+
+	/*
+	 * Verify that type arguments match with those specified for
+	 * conversion b_tiination.
+	 */
+	arg_a_n = list_first(&a_ti->u.tobject->targs);
+	arg_b_n = list_first(&b_ti->u.tobject->targs);
+
+	while (arg_a_n != NULL && arg_b_n != NULL) {
+		arg_a = list_node_data(arg_a_n, tdata_item_t *);
+		arg_b = list_node_data(arg_b_n, tdata_item_t *);
+
+		if (tdata_item_equal(arg_a, arg_b) != b_true) {
+			/* Diferent argument type */
+			printf("Different argument type '");
+			tdata_item_print(arg_a);
+			printf("' vs. '");
+			tdata_item_print(arg_b);
+			printf("'.\n");
+			return EINVAL;
+		}
+
+		arg_a_n = list_next(&a_ti->u.tobject->targs, arg_a_n);
+		arg_b_n = list_next(&b_ti->u.tobject->targs, arg_b_n);
+	}
+
+	if (arg_a_n != NULL || arg_b_n != NULL) {
+		/* Diferent number of arguments */
+		printf("Different number of arguments.\n");
+		return EINVAL;
+	}
+
+	return EOK;
+}
 
 
 /** Determine if two type signatures are equal.
@@ -1447,8 +1887,17 @@ static bool_t stype_fun_sig_equal(stype_t *stype, tdata_fun_sig_t *asig,
 	}
 
 	/* Compare return type */
-	if (!tdata_item_equal(asig->rtype, bsig->rtype))
-		return b_false;
+
+	if (asig->rtype != NULL || bsig->rtype != NULL) {
+		if (asig->rtype == NULL ||
+		    bsig->rtype == NULL) {
+			return b_false;
+		}
+
+		if (!tdata_item_equal(asig->rtype, bsig->rtype)) {
+			return b_false;
+		}
+	}
 
 	return b_true;
 }

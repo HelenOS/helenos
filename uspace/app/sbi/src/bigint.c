@@ -359,63 +359,87 @@ void bigint_mul(bigint_t *a, bigint_t *b, bigint_t *dest)
 	bigint_shallow_copy(&sum, dest);
 }
 
-/** Print bigint to standard output. */
-void bigint_print(bigint_t *bigint)
+/** Convert bigint to string.
+ *
+ * @param bigint	Bigint to convert.
+ * @param dptr		Place to store pointer to new string.
+ */
+void bigint_get_as_string(bigint_t *bigint, char **dptr)
 {
+	static const char digits[] = { '0', '1', '2', '3', '4', '5', '6',
+	    '7', '8', '9' };
+
 	bigint_t val, tmp;
 	bigint_word_t rem;
-	size_t ndigits;
-	int *digits;
+	size_t nchars;
+	char *str;
 	size_t idx;
 
 #ifdef DEBUG_BIGINT_TRACE
-	printf("Print bigint.\n");
+	printf("Convert bigint to string.\n");
 #endif
 	assert(BIGINT_BASE >= 10);
 
-	if (bigint_is_zero(bigint)) {
-		putchar('0');
-		return;
-	}
+	/* Compute number of characters. */
+	nchars = 0;
 
-	if (bigint->negative)
-		putchar('-');
+	if (bigint_is_zero(bigint) || bigint->negative)
+		nchars += 1; /* '0' or '-' */
 
-	/* Compute number of digits. */
-	ndigits = 0;
 	bigint_clone(bigint, &val);
 	while (bigint_is_zero(&val) != b_true) {
 		bigint_div_digit(&val, 10, &tmp, &rem);
 		bigint_destroy(&val);
 		bigint_shallow_copy(&tmp, &val);
 
-		ndigits += 1;
+		nchars += 1;
 	}
 	bigint_destroy(&val);
 
-	/* Store digits to array. */
+	/* Store characters to array. */
 
-	digits = malloc(ndigits * sizeof(int));
-	if (digits == NULL) {
+	str = malloc(nchars * sizeof(char) + 1);
+	if (str == NULL) {
 		printf("Memory allocation failed.\n");
 		exit(1);
 	}
 
-	idx = 0;
+	if (bigint_is_zero(bigint)) {
+		str[0] = '0';
+	} else if (bigint->negative) {
+		str[0] = '-';
+	}
+
+	idx = 1;
 	bigint_clone(bigint, &val);
 	while (bigint_is_zero(&val) != b_true) {
 		bigint_div_digit(&val, 10, &tmp, &rem);
 		bigint_destroy(&val);
 		bigint_shallow_copy(&tmp, &val);
 
-		digits[idx++] = (int) rem;
+		str[nchars - idx] = digits[(int) rem];
+		++idx;
 	}
+
 	bigint_destroy(&val);
+	str[nchars] = '\0';
+	*dptr = str;
+}
 
-	for (idx = 0; idx < ndigits; ++idx)
-		printf("%u", digits[ndigits - 1 - idx]);
+/** Print bigint to standard output.
+ *
+ * @param bigint	Bigint to print.
+ */
+void bigint_print(bigint_t *bigint)
+{
+	char *str;
 
-	free(digits);
+#ifdef DEBUG_BIGINT_TRACE
+	printf("Print bigint.\n");
+#endif
+	bigint_get_as_string(bigint, &str);
+	printf("%s", str);
+	free(str);
 }
 
 /** Compute sign combination of two big integers.

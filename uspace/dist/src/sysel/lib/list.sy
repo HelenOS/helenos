@@ -27,7 +27,7 @@
 --
 
 -- Doubly-linked list.
-class List/t is
+class List/t : IEnumerable/t is
 	var head : ListNode/t;
 
 	-- New empty list.
@@ -58,8 +58,13 @@ class List/t is
 	-- Return first node in the list or @c nil if there is none.
 	prop First : ListNode/t is
 		get is
-		    return get_first();
+			return get_first();
 		end
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	fun GetEnumerator() : IEnumerator/t is
+		return new ListEnumerator/t(get_first());
 	end
 
 	-- Return first node in the list or @c nil if there is none.
@@ -130,5 +135,33 @@ class ListNode/t is
 			return nil;
 		end
 	end
+end
 
+class ListEnumerator/t : IEnumerator/t is
+	var first : ListNode/t;
+	var current : ListNode/t;
+	var started : bool;
+
+	new(first_node : ListNode/t) is
+		first = first_node;
+		current = nil;
+		started = false;
+	end
+
+	fun MoveNext() : bool is
+		if started then
+			current = current.Next;
+		else
+			current = first;
+			started = true;
+		end
+
+		return current != nil;
+	end
+
+	prop Data : t is
+		get is
+			return current.Data;
+		end
+	end
 end

@@ -39,6 +39,9 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog, stree_csi_t *scope,
     stree_ident_t *name);
 stree_symbol_t *symbol_search_csi_no_base(stree_program_t *prog,
     stree_csi_t *scope, stree_ident_t *name);
+stree_csi_t *symbol_get_base_class(stree_program_t *prog, stree_csi_t *csi);
+stree_texpr_t *symbol_get_base_class_ref(stree_program_t *prog,
+    stree_csi_t *csi);
 stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name);
 
 stree_deleg_t *symbol_to_deleg(stree_symbol_t *symbol);
@@ -55,6 +58,8 @@ stree_var_t *symbol_to_var(stree_symbol_t *symbol);
 stree_symbol_t *var_to_symbol(stree_var_t *var);
 stree_prop_t *symbol_to_prop(stree_symbol_t *symbol);
 stree_symbol_t *prop_to_symbol(stree_prop_t *prop);
+
+stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr);
 
 void symbol_print_fqn(stree_symbol_t *symbol);
 

@@ -37,10 +37,28 @@ end
 
 class Char is
 	var Value : char;
+
+	fun get_as_string() : string, builtin;
+
+	-- String representation.
+	prop AsString : string is
+		get is
+			return get_as_string();
+		end
+	end
 end
 
 class Int is
 	var Value : int;
+
+	fun get_as_string() : string, builtin;
+
+	-- String representation.
+	prop AsString : string is
+		get is
+			return get_as_string();
+		end
+	end
 end
 
 class String is

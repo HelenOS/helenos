@@ -113,6 +113,9 @@ typedef struct run {
 
 	/** Thread-private state */
 	run_thread_ar_t *thread_ar;
+
+	/** Global state */
+	struct rdata_var *gdata;
 } run_t;
 
 #endif

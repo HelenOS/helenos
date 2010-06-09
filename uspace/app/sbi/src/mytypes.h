@@ -42,6 +42,12 @@ typedef enum {
 	ws_visited
 } walk_state_t;
 
+/** Static vs. nonstatic */
+typedef enum {
+	sn_nonstatic,
+	sn_static
+} statns_t;
+
 /** Error return codes. */
 #include <errno.h>
 #define EOK 0

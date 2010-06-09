@@ -57,8 +57,8 @@ typedef struct {
 
 /** Object type. */
 typedef struct {
-	/** @c true if expression is a static CSI reference */
-	bool_t static_ref;
+	/** @c sn_static if expression is a static CSI reference */
+	statns_t static_ref;
 
 	/** CSI definition */
 	struct stree_csi *csi;

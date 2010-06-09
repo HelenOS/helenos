@@ -96,7 +96,7 @@ static void stype_unop_tprimitive(stype_t *stype, stree_unop_t *unop,
     tdata_item_t *ta, tdata_item_t **rtitem);
 static void stype_new(stype_t *stype, stree_new_t *new,
     tdata_item_t **rtitem);
-static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
+static void stype_new_object(stype_t *stype, stree_new_t *new_op,
     tdata_item_t *obj_ti);
 
 static void stype_access(stype_t *stype, stree_access_t *access,
@@ -193,6 +193,7 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 	stree_enum_t *enum_d;
 	tdata_ebase_t *tebase;
 	stree_fun_t *fun;
+	bool_t static_ctx;
 
 #ifdef DEBUG_TYPE_TRACE
 	cspan_print(nameref->expr->cspan);
@@ -256,14 +257,41 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 		return;
 	}
 
+	/* Determine if current procedure is static. */
+	static_ctx = stree_symbol_is_static(stype->proc_vr->proc->outer_symbol);
+
+	/*
+	 * If the symbol is not found in current CSI, then we access it
+	 * in a static context. (Context of current object cannot be used.)
+	 */
+	if (sym->outer_csi != stype->current_csi)
+		static_ctx = b_true;
+
+	/* Check for referencing non-static symbol in static context. */
+	if (static_ctx && !stree_symbol_is_static(sym)) {
+		cspan_print(nameref->expr->cspan);
+		printf(" Error: Referencing non-static symbol '");
+		symbol_print_fqn(sym);
+		printf("' in static context.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	/* Referencing static member in non-static context is allowed. */
+
+	/* Make compiler happy. */
+	titem = NULL;
+
 	switch (sym->sc) {
 	case sc_var:
 		run_texpr(stype->program, stype->current_csi,
 		    sym->u.var->type, &titem);
 		break;
 	case sc_prop:
-		run_texpr(stype->program, stype->current_csi,
-		    sym->u.prop->type, &titem);
+		/* Type property header if it has not been typed yet. */
+		stype_prop_header(stype, sym->u.prop);
+		titem = sym->u.prop->titem;
 		break;
 	case sc_csi:
 		csi = symbol_to_csi(sym);
@@ -273,8 +301,7 @@ static void stype_nameref(stype_t *stype, stree_nameref_t *nameref,
 		tobject = tdata_object_new();
 		titem->u.tobject = tobject;
 
-		/* This is a static CSI reference. */
-		tobject->static_ref = b_true;
+		tobject->static_ref = sn_static;
 		tobject->csi = csi;
 		break;
 	case sc_ctor:
@@ -329,6 +356,9 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 #endif
 	(void) stype;
 
+	/* Make compiler happy. */
+	tpc = 0;
+
 	switch (literal->ltc) {
 	case ltc_bool: tpc = tpc_bool; break;
 	case ltc_char: tpc = tpc_char; break;
@@ -374,7 +404,7 @@ static void stype_self_ref(stype_t *stype, stree_self_ref_t *self_ref,
 	tobject = tdata_object_new();
 	titem->u.tobject = tobject;
 
-	tobject->static_ref = b_false;
+	tobject->static_ref = sn_nonstatic;
 	tobject->csi = cur_csi;
 	list_init(&tobject->targs);
 
@@ -512,6 +542,9 @@ static void stype_binop_bool(stype_t *stype, stree_binop_t *binop,
 	tprimitive_class_t rtpc;
 	tdata_item_t *res_ti;
 
+	/* Make compiler happy. */
+	rtpc = 0;
+
 	switch (binop->bc) {
 	case bo_equal:
 	case bo_notequal:
@@ -559,6 +592,9 @@ static void stype_binop_char(stype_t *stype, stree_binop_t *binop,
 
 	(void) stype;
 
+	/* Make compiler happy. */
+	rtpc = 0;
+
 	switch (binop->bc) {
 	case bo_equal:
 	case bo_notequal:
@@ -602,6 +638,9 @@ static void stype_binop_int(stype_t *stype, stree_binop_t *binop,
 	tdata_item_t *res_ti;
 
 	(void) stype;
+
+	/* Make compiler happy. */
+	rtpc = 0;
 
 	switch (binop->bc) {
 	case bo_equal:
@@ -664,6 +703,9 @@ static void stype_binop_string(stype_t *stype, stree_binop_t *binop,
 {
 	tprimitive_class_t rtpc;
 	tdata_item_t *res_ti;
+
+	/* Make compiler happy. */
+	rtpc = 0;
 
 	switch (binop->bc) {
 	case bo_equal:
@@ -940,7 +982,7 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
 	}
 
 	if ((*rtitem)->tic == tic_tobject)
-		stype_new_object_args(stype, new_op, *rtitem);
+		stype_new_object(stype, new_op, *rtitem);
 }
 
 /** Type a new object operation arguments.
@@ -948,7 +990,7 @@ static void stype_new(stype_t *stype, stree_new_t *new_op,
  * @param stype		Static typing object
  * @param new_op	@c new operation
  */
-static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
+static void stype_new_object(stype_t *stype, stree_new_t *new_op,
     tdata_item_t *obj_ti)
 {
 	stree_csi_t *csi;
@@ -956,9 +998,19 @@ static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
 	stree_symbol_t *ctor_sym;
 	stree_ident_t *ctor_ident;
 	tdata_fun_sig_t *tsig;
+	tdata_tvv_t *obj_tvv;
+	tdata_item_t *ctor_sti;
 
 	assert(obj_ti->tic == tic_tobject);
 	csi = obj_ti->u.tobject->csi;
+
+	if (csi->cc == csi_interface) {
+		cspan_print(new_op->expr->cspan);
+		printf(" Error: Cannot instantiate an interface.\n");
+		stype_note_error(stype);
+		return;
+	}
+
 	ctor_ident = stree_ident_new();
 	ctor_ident->sid = strtab_get_sid(CTOR_IDENT);
 
@@ -985,8 +1037,13 @@ static void stype_new_object_args(stype_t *stype, stree_new_t *new_op,
 	if (ctor->titem->tic == tic_ignore)
 		return;
 
-	assert(ctor->titem->tic == tic_tfun);
-	tsig = ctor->titem->u.tfun->tsig;
+	/* Substitute type arguments in constructor type. */
+	stype_titem_to_tvv(stype, obj_ti, &obj_tvv);
+	tdata_item_subst(ctor->titem, obj_tvv, &ctor_sti);
+	/* XXX Free obj_tvv */
+
+	assert(ctor_sti->tic == tic_tfun);
+	tsig = ctor_sti->u.tfun->tsig;
 
 	stype_call_args(stype, new_op->expr->cspan, &tsig->arg_ti,
 	    tsig->varg_ti, &new_op->ctor_args);
@@ -1103,6 +1160,7 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 	tdata_object_t *tobject;
 	tdata_item_t *mtitem;
 	tdata_tvv_t *tvv;
+	stree_csi_t *member_csi;
 
 #ifdef DEBUG_TYPE_TRACE
 	printf("Type a CSI access operation.\n");
@@ -1130,15 +1188,45 @@ static void stype_access_tobject(stype_t *stype, stree_access_t *access,
 	printf("Found member '%s'.\n",
 	    strtab_get_str(access->member_name->sid));
 #endif
-
-	switch (member_sym->sc) {
-	case sc_csi:
+	/* Check for accessing non-static member in static context. */
+	if (tobject->static_ref == sn_static &&
+	    !stree_symbol_is_static(member_sym)) {
 		cspan_print(access->member_name->cspan);
-		printf(" Error: Accessing object member which is nested "
-		    "CSI.\n");
+		printf(" Error: Accessing non-static member '");
+		symbol_print_fqn(member_sym);
+		printf("' in static context.\n");
 		stype_note_error(stype);
 		*rtitem = stype_recovery_titem(stype);
 		return;
+	}
+
+	/* Check for accessing static member in non-static context. */
+	if (tobject->static_ref != sn_static &&
+	    stree_symbol_is_static(member_sym)) {
+		cspan_print(access->member_name->cspan);
+		printf(" Error: Accessing static member '");
+		symbol_print_fqn(member_sym);
+		printf("' in non-static context.\n");
+		stype_note_error(stype);
+		*rtitem = stype_recovery_titem(stype);
+		return;
+	}
+
+	/* Make compiler happy. */
+	mtitem = NULL;
+
+	switch (member_sym->sc) {
+	case sc_csi:
+		member_csi = symbol_to_csi(member_sym);
+		assert(member_csi != NULL);
+
+		mtitem = tdata_item_new(tic_tobject);
+		tobject = tdata_object_new();
+		mtitem->u.tobject = tobject;
+
+		tobject->static_ref = sn_static;
+		tobject->csi = member_csi;
+		break;
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
 		assert(b_false);
@@ -1336,13 +1424,10 @@ static void stype_call_args(stype_t *stype, cspan_t *cspan, list_t *farg_tis,
 	stree_expr_t *arg;
 	stree_expr_t *carg;
 
-	int cnt;
-
 	/* Type and check regular arguments. */
 	fargt_n = list_first(farg_tis);
 	arg_n = list_first(args);
 
-	cnt = 0;
 	while (fargt_n != NULL && arg_n != NULL) {
 		farg_ti = list_node_data(fargt_n, tdata_item_t *);
 		arg = list_node_data(arg_n, stree_expr_t *);
@@ -1655,6 +1740,7 @@ static void stype_assign(stype_t *stype, stree_assign_t *assign,
 static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 {
 	tdata_item_t *titem;
+	tdata_item_t *pred_ti;
 
 #ifdef DEBUG_TYPE_TRACE
 	cspan_print(as_op->expr->cspan);
@@ -1663,15 +1749,23 @@ static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 	stype_expr(stype, as_op->arg);
 	run_texpr(stype->program, stype->current_csi, as_op->dtype, &titem);
 
-	/* Check that target type is derived from argument type. */
-	if (tdata_is_ti_derived_from_ti(titem, as_op->arg->titem) != b_true) {
-		cspan_print(as_op->dtype->cspan);
-		printf(" Error: Target of 'as' operator '");
-		tdata_item_print(titem);
-		printf("' is not derived from '");
-		tdata_item_print(as_op->arg->titem);
-		printf("'.\n");
-		stype_note_error(stype);
+	pred_ti = stype_tobject_find_pred(stype, titem, as_op->arg->titem);
+	if (pred_ti == NULL) {
+		/* No CSI match. */
+		stype_convert_failure(stype, convc_as, as_op->arg, titem);
+		*rtitem = titem;
+		return;
+	}
+
+	/*
+	 * Verify that type arguments match with those specified for
+	 * conversion destination.
+	 */
+	if (stype_targs_check_equal(stype, pred_ti, as_op->arg->titem)
+	    != EOK) {
+		stype_convert_failure(stype, convc_as, as_op->arg, titem);
+		*rtitem = titem;
+		return;
 	}
 
 	*rtitem = titem;
@@ -1719,7 +1813,7 @@ static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem)
 	tobject = tdata_object_new();
 
 	btitem->u.tobject = tobject;
-	tobject->static_ref = b_false;
+	tobject->static_ref = sn_nonstatic;
 	tobject->csi = symbol_to_csi(csi_sym);
 	assert(tobject->csi != NULL);
 	list_init(&tobject->targs);

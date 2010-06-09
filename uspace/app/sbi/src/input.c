@@ -205,7 +205,7 @@ int input_get_line(input_t *input, char **line)
 		if (*sp == '\n')
 			*dp++ = *sp++;
 
-		*dp++ = '\0';
+		*dp = '\0';
 		input->str = sp;
 		*line = input->buffer;
 	} else {

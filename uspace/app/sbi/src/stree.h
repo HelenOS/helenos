@@ -95,6 +95,7 @@ stree_program_t *stree_program_new(void);
 bool_t stree_symbol_has_attr(stree_symbol_t *symbol, symbol_attr_class_t sac);
 bool_t stree_arg_has_attr(stree_proc_arg_t *arg, arg_attr_class_t aac);
 bool_t stree_is_csi_derived_from_csi(stree_csi_t *a, stree_csi_t *b);
+bool_t stree_symbol_is_static(stree_symbol_t *symbol);
 stree_targ_t *stree_csi_find_targ(stree_csi_t *csi, stree_ident_t *ident);
 stree_embr_t *stree_enum_find_mbr(stree_enum_t *enum_d, stree_ident_t *ident);
 stree_ident_t *stree_csimbr_get_name(stree_csimbr_t *csimbr);

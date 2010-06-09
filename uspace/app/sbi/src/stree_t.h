@@ -638,6 +638,9 @@ typedef struct stree_prop {
 
 	/** Variadic argument or @c NULL if none. */
 	stree_proc_arg_t *varg;
+
+	/** Type of the property */
+	struct tdata_item *titem;
 } stree_prop_t;
 
 /**
@@ -697,11 +700,14 @@ typedef struct stree_csi {
 	/** Symbol for this CSI */
 	struct stree_symbol *symbol;
 
-	/** Type expression referencing base CSI. */
-	stree_texpr_t *base_csi_ref;
+	/** Type expressions referencing inherited CSIs. */
+	list_t inherit; /* of stree_texpr_t */
 
 	/** Base CSI. Only available when ancr_state == ws_visited. */
 	struct stree_csi *base_csi;
+
+	/** Types of implemented or accumulated interfaces. */
+	list_t impl_if_ti; /* of tdata_item_t */
 
 	/** Node state for ancr walks. */
 	walk_state_t ancr_state;
@@ -735,7 +741,10 @@ typedef struct stree_module {
 /** Symbol attribute class */
 typedef enum {
 	/** Builtin symbol (interpreter hook) */
-	sac_builtin
+	sac_builtin,
+
+	/** Static symbol */
+	sac_static
 } symbol_attr_class_t;
 
 /** Symbol atribute */

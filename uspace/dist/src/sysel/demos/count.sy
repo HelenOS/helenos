@@ -27,7 +27,7 @@
 --
 
 class CountDemo is
-	fun Count(a : int; b : int) is
+	fun Count(a : int; b : int), static is
 		var i : int;
 
 		i = a;
@@ -38,7 +38,7 @@ class CountDemo is
 
 	end
 
-	fun Main() is
+	fun Main(), static is
 		Count(0, 10);
 	end
 end

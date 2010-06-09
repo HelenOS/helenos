@@ -28,7 +28,7 @@
 
 class Arith is
 	-- Return factorial of n.
-	fun Factorial(n : int) : int is
+	fun Factorial(n : int) : int, static is
 		var i : int;
 		var val : int;
 

@@ -27,12 +27,12 @@
 --
 
 class ExceptionDemo is
-	fun foo() is
+	fun foo(), static is
 	        Builtin.WriteLine("Entered foo().");
 		raise new BaseException();
 	end
 
-	fun Main() is
+	fun Main(), static is
 		do
 			foo();
 			foo();

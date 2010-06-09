@@ -27,7 +27,7 @@
 --
 
 class ConstructorDemo is
-	fun Main() is
+	fun Main(), static is
 		var a : A;
 
 		a = new A(1);

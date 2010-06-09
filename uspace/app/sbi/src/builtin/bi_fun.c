@@ -93,7 +93,7 @@ void bi_fun_declare(builtin_t *bi)
 
 	builtin_code_snippet(bi,
 		"class Task is\n"
-			"fun Exec(args : string[], packed), builtin;\n"
+			"fun Exec(args : string[], packed), static, builtin;\n"
 		"end\n");
 }
 

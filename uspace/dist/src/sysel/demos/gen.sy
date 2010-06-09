@@ -29,7 +29,7 @@
 -- Demonstrate generic classes.
 
 class GenericsDemo is
-	fun Main() is
+	fun Main(), static is
 		Builtin.WriteLine("Let's try some generics.");
 
 		var f : B/int/string;
