@@ -27,7 +27,7 @@
 --
 
 class AutoboxingDemo is
-	fun Main() is
+	fun Main(), static is
 		var b : Bool;
 		var c : Char;
 		var i : Int;
@@ -50,6 +50,6 @@ class AutoboxingDemo is
 		foo(b, c, i, s);
 	end
 
-	fun foo(args : Object[], packed) is
+	fun foo(args : Object[], packed), static is
 	end
 end

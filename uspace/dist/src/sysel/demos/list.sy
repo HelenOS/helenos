@@ -28,7 +28,7 @@
 
 -- Using the List class from the library.
 class ListDemo is
-	fun Main() is
+	fun Main(), static is
 		var list : List/int;
 
 		list = new List/int();
@@ -38,12 +38,11 @@ class ListDemo is
 		list.Append(7);
 		list.Append(8);
 
-		var n : ListNode/int;
+		var e : IEnumerator/int;
 
-		n = list.First;
-		while n != nil do
-			Builtin.WriteLine(n.Data);
-			n = n.Next;
+		e = list.GetEnumerator();
+		while e.MoveNext() do
+			Builtin.WriteLine(e.Data);
 		end
 	end
 end

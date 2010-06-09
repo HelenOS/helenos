@@ -26,19 +26,62 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-class StringDemo is
+class InterfaceDemo is
 	fun Main(), static is
-		-- Concatenate some strings.
-		Builtin.WriteLine("One-" + "two-" + "three!");
+		-- Create new instance of Foo
+		var f : Foo;
+		f = new Foo();
 
-		-- Extract characters from a string.
-		var i : int;
-		i = 0;
-		while i < 5 do
-			Builtin.WriteLine("ABCDE"[i]);
-			i = i + 1;
+		-- Variable of interface type
+		var g : IA/int;
+
+		-- Implicit conversion to interface implemented by Foo
+		g = f;
+
+		-- Explicit conversion of interface type IA/int to class type
+		-- Foo. Foo is implementing the interface IA/int.
+		f = g as Foo;
+
+		Builtin.WriteLine(g.a());
+	end
+end
+
+-- Generic interface implemented by class Foo
+interface IA/t is
+	fun a() : t;
+end
+
+-- Non-generic interface implemented by class Foo
+interface IB is
+	fun b();
+	prop P : int is
+		get;
+		set value;
+	end
+end
+
+-- Base class of Foo
+class A is
+end
+
+-- Class unrelated to Foo
+class B is
+end
+
+-- Foo is derived from A and implements IA/int and IB
+class Foo : A + IA/int + IB is
+	fun a() : int is
+		return 0;
+	end
+
+	fun b() is
+	end
+
+	prop P : int is
+		get is
+			return 1;
 		end
-
-		Builtin.WriteLine("Abracadabra".Slice(2, 4));
+		set value is
+		end
 	end
 end

@@ -27,7 +27,7 @@
 --
 
 class EnumDemo is
-	fun Main() is
+	fun Main(), static is
 		var color : ChessColor;
 
 		Builtin.WriteLine("Set color to ChessColor.Black.");

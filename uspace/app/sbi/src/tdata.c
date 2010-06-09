@@ -342,8 +342,10 @@ static void tdata_item_subst_tebase(tdata_ebase_t *tebase,
 
 	/* Plain copy */
 	tnew = tdata_ebase_new();
+	tnew->enum_d = tebase->enum_d;
+
 	*res = tdata_item_new(tic_tebase);
-	(*res)->u.tebase = tebase;
+	(*res)->u.tebase = tnew;
 }
 
 /** Substitute type variables in a enum type item.
@@ -361,8 +363,10 @@ static void tdata_item_subst_tenum(tdata_enum_t *tenum,
 
 	/* Plain copy */
 	tnew = tdata_enum_new();
+	tnew->enum_d = tenum->enum_d;
+
 	*res = tdata_item_new(tic_tenum);
-	(*res)->u.tenum = tenum;
+	(*res)->u.tenum = tnew;
 }
 
 /** Substitute type variables in a functional type item.

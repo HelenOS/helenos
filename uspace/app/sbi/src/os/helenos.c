@@ -172,6 +172,33 @@ int os_str_get_char(const char *str, int index, int *out_char)
 	return EOK;
 }
 
+/** Convert character to new string.
+ *
+ * @param chr		Character
+ * @return		Newly allocated string.
+ */
+char *os_chr_to_astr(wchar_t chr)
+{
+	char *str;
+	size_t offset;
+
+	str = malloc(STR_BOUNDS(1) + 1);
+	if (str == NULL) {
+		printf("Memory allocation error.\n");
+		exit(1);
+	}
+
+	offset = 0;
+	if (chr_encode(chr, str, &offset, STR_BOUNDS(1)) != EOK) {
+		/* XXX Should handle gracefully */
+		printf("String conversion error.\n");
+		exit(1);
+	}
+
+	str[offset] = '\0';
+	return str;
+}
+
 /** Display survival help message. */
 void os_input_disp_help(void)
 {

@@ -90,9 +90,42 @@ class Map/tkey/tvalue is
 			Set(key, value);
 		end
 	end
+
+	fun GetEnumerator() : IEnumerator/tkey is
+		return new MapEnumerator/tkey/tvalue(data.get_first());
+	end
 end
 
 class MapPair/tkey/tvalue is
 	var Key : tkey;
 	var Value : tvalue;
+end
+
+class MapEnumerator/tkey/tvalue : IEnumerator/tkey is
+	var first : ListNode/(MapPair/tkey/tvalue);
+	var current : ListNode/(MapPair/tkey/tvalue);
+	var started : bool;
+
+	new(first_node : ListNode/(MapPair/tkey/tvalue)) is
+		first = first_node;
+		current = nil;
+		started = false;
+	end
+
+	fun MoveNext() : bool is
+		if started then
+			current = current.Next;
+		else
+			current = first;
+			started = true;
+		end
+
+		return current != nil;
+	end
+
+	prop Data : tkey is
+		get is
+			return current.Data.Key;
+		end
+	end
 end

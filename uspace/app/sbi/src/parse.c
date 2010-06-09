@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "cspan.h"
 #include "debug.h"
 #include "lex.h"
 #include "list.h"
@@ -63,12 +64,15 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi);
 static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi);
 static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi);
 
+static void parse_symbol_attrs(parse_t *parse, stree_symbol_t *symbol);
 static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse);
 
 static stree_proc_arg_t *parse_proc_arg(parse_t *parse);
 static stree_arg_attr_t *parse_arg_attr(parse_t *parse);
 static stree_fun_sig_t *parse_fun_sig(parse_t *parse);
 
+static void parse_prop_get(parse_t *parse, stree_prop_t *prop);
+static void parse_prop_set(parse_t *parse, stree_prop_t *prop);
 
 /*
  * Statements
@@ -174,6 +178,7 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	stree_symbol_t *symbol;
 	stree_ident_t *targ_name;
 	stree_targ_t *targ;
+	stree_texpr_t *pref;
 
 	switch (dclass) {
 	case lc_class: cc = csi_class; break;
@@ -211,9 +216,18 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	if (lcur_lc(parse) == lc_colon) {
 		/* Inheritance list */
 		lskip(parse);
-		csi->base_csi_ref = parse_texpr(parse);
-	} else {
-		csi->base_csi_ref = NULL;
+
+		while (b_true) {
+			pref = parse_texpr(parse);
+			if (parse_is_error(parse))
+				break;
+
+			list_append(&csi->inherit, pref);
+			if (lcur_lc(parse) != lc_plus)
+				break;
+
+			lskip(parse);
+		}
 	}
 
 	lmatch(parse, lc_is);
@@ -223,12 +237,26 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
 		csimbr = parse_csimbr(parse, csi);
 		if (csimbr == NULL)
-			break;
+			continue;
 
 		list_append(&csi->members, csimbr);
 	}
 
 	lmatch(parse, lc_end);
+
+	if (outer_csi != NULL) {
+		switch (outer_csi->cc) {
+		case csi_class:
+		case csi_struct:
+			break;
+		case csi_interface:
+			cspan_print(csi->name->cspan);
+			printf(" Error: CSI declared inside interface.\n");
+			parse_note_error(parse);
+			/* XXX Free csi */
+			return NULL;
+		}
+	}
 
 	return csi;
 }
@@ -252,28 +280,38 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	stree_var_t *var;
 	stree_prop_t *prop;
 
+	csimbr = NULL;
+
 	switch (lcur_lc(parse)) {
 	case lc_class:
 	case lc_struct:
 	case lc_interface:
 		csi = parse_csi(parse, lcur_lc(parse), outer_csi);
-		csimbr = stree_csimbr_new(csimbr_csi);
-		csimbr->u.csi = csi;
+		if (csi != NULL) {
+			csimbr = stree_csimbr_new(csimbr_csi);
+			csimbr->u.csi = csi;
+		}
 		break;
 	case lc_new:
 		ctor = parse_ctor(parse, outer_csi);
-		csimbr = stree_csimbr_new(csimbr_ctor);
-		csimbr->u.ctor = ctor;
+		if (ctor != NULL) {
+			csimbr = stree_csimbr_new(csimbr_ctor);
+			csimbr->u.ctor = ctor;
+		}
 		break;
 	case lc_deleg:
 		deleg = parse_deleg(parse, outer_csi);
-		csimbr = stree_csimbr_new(csimbr_deleg);
-		csimbr->u.deleg = deleg;
+		if (deleg != NULL) {
+			csimbr = stree_csimbr_new(csimbr_deleg);
+			csimbr->u.deleg = deleg;
+		}
 		break;
 	case lc_enum:
 		enum_d = parse_enum(parse, outer_csi);
-		csimbr = stree_csimbr_new(csimbr_enum);
-		csimbr->u.enum_d = enum_d;
+		if (enum_d != NULL) {
+			csimbr = stree_csimbr_new(csimbr_enum);
+			csimbr->u.enum_d = enum_d;
+		}
 		break;
 	case lc_fun:
 		fun = parse_fun(parse, outer_csi);
@@ -282,8 +320,10 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 		break;
 	case lc_var:
 		var = parse_var(parse, outer_csi);
-		csimbr = stree_csimbr_new(csimbr_var);
-		csimbr->u.var = var;
+		if (var != NULL) {
+			csimbr = stree_csimbr_new(csimbr_var);
+			csimbr->u.var = var;
+		}
 		break;
 	case lc_prop:
 		prop = parse_prop(parse, outer_csi);
@@ -293,7 +333,6 @@ static stree_csimbr_t *parse_csimbr(parse_t *parse, stree_csi_t *outer_csi)
 	default:
 		lunexpected_error(parse);
 		lex_next(parse->lex);
-		csimbr = NULL;
 		break;
 	}
 
@@ -310,7 +349,7 @@ static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_ctor_t *ctor;
 	stree_symbol_t *symbol;
-	stree_symbol_attr_t *attr;
+	cspan_t *cspan;
 
 	ctor = stree_ctor_new();
 	symbol = stree_symbol_new(sc_ctor);
@@ -320,6 +359,7 @@ static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
 	ctor->symbol = symbol;
 
 	lmatch(parse, lc_new);
+	cspan = lprev_span(parse);
 
 	/* Fake identifier. */
 	ctor->name = stree_ident_new();
@@ -333,20 +373,15 @@ static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
 #endif
 	ctor->sig = parse_fun_sig(parse);
 	if (ctor->sig->rtype != NULL) {
-		printf("Error: Constructor of CSI '");
+		cspan_print(cspan);
+		printf(" Error: Constructor of CSI '");
 		symbol_print_fqn(csi_to_symbol(outer_csi));
 		printf("' has a return type.\n");
 		parse_note_error(parse);
 	}
 
-	list_init(&symbol->attr);
-
 	/* Parse attributes. */
-	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
-		lskip(parse);
-		attr = parse_symbol_attr(parse);
-		list_append(&symbol->attr, attr);
-	}
+	parse_symbol_attrs(parse, symbol);
 
 	ctor->proc = stree_proc_new();
 	ctor->proc->outer_symbol = symbol;
@@ -355,7 +390,8 @@ static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
 		lskip(parse);
 
 		/* This constructor has no body. */
-		printf("Error: Constructor of CSI '");
+		cspan_print(cspan);
+		printf(" Error: Constructor of CSI '");
 		symbol_print_fqn(csi_to_symbol(outer_csi));
 		printf("' has no body.\n");
 		parse_note_error(parse);
@@ -365,6 +401,18 @@ static stree_ctor_t *parse_ctor(parse_t *parse, stree_csi_t *outer_csi)
 		lmatch(parse, lc_is);
 		ctor->proc->body = parse_block(parse);
 		lmatch(parse, lc_end);
+	}
+
+	switch (outer_csi->cc) {
+	case csi_class:
+	case csi_struct:
+		break;
+	case csi_interface:
+		cspan_print(ctor->name->cspan);
+		printf(" Error: Constructor declared inside interface.\n");
+		parse_note_error(parse);
+		/* XXX Free ctor */
+		return NULL;
 	}
 
 	return ctor;
@@ -408,12 +456,27 @@ static stree_enum_t *parse_enum(parse_t *parse, stree_csi_t *outer_csi)
 	}
 
 	if (list_is_empty(&enum_d->members)) {
+		cspan_print(enum_d->name->cspan);
 		printf("Error: Enum type '%s' has no members.\n",
 		    strtab_get_str(enum_d->name->sid));
 		parse_note_error(parse);
 	}
 
 	lmatch(parse, lc_end);
+
+	if (outer_csi != NULL) {
+		switch (outer_csi->cc) {
+		case csi_class:
+		case csi_struct:
+			break;
+		case csi_interface:
+			cspan_print(enum_d->name->cspan);
+			printf(" Error: Enum declared inside interface.\n");
+			parse_note_error(parse);
+			/* XXX Free enum */
+			return NULL;
+		}
+	}
 
 	return enum_d;
 }
@@ -448,7 +511,6 @@ static stree_deleg_t *parse_deleg(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_deleg_t *deleg;
 	stree_symbol_t *symbol;
-	stree_symbol_attr_t *attr;
 
 	deleg = stree_deleg_new();
 	symbol = stree_symbol_new(sc_deleg);
@@ -466,16 +528,22 @@ static stree_deleg_t *parse_deleg(parse_t *parse, stree_csi_t *outer_csi)
 
 	deleg->sig = parse_fun_sig(parse);
 
-	list_init(&symbol->attr);
-
 	/* Parse attributes. */
-	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
-		lskip(parse);
-		attr = parse_symbol_attr(parse);
-		list_append(&symbol->attr, attr);
-	}
+	parse_symbol_attrs(parse, symbol);
 
 	lmatch(parse, lc_scolon);
+
+	switch (outer_csi->cc) {
+	case csi_class:
+	case csi_struct:
+		break;
+	case csi_interface:
+		cspan_print(deleg->name->cspan);
+		printf(" Error: Delegate declared inside interface.\n");
+		parse_note_error(parse);
+		/* XXX Free deleg */
+		return NULL;
+	}
 
 	return deleg;
 }
@@ -490,7 +558,7 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_fun_t *fun;
 	stree_symbol_t *symbol;
-	stree_symbol_attr_t *attr;
+	bool_t body_expected;
 
 	fun = stree_fun_new();
 	symbol = stree_symbol_new(sc_fun);
@@ -507,14 +575,11 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 #endif
 	fun->sig = parse_fun_sig(parse);
 
-	list_init(&symbol->attr);
-
 	/* Parse attributes. */
-	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
-		lskip(parse);
-		attr = parse_symbol_attr(parse);
-		list_append(&symbol->attr, attr);
-	}
+	parse_symbol_attrs(parse, symbol);
+
+	body_expected = !stree_symbol_has_attr(symbol, sac_builtin) &&
+	    (outer_csi->cc != csi_interface);
 
 	fun->proc = stree_proc_new();
 	fun->proc->outer_symbol = symbol;
@@ -522,18 +587,29 @@ static stree_fun_t *parse_fun(parse_t *parse, stree_csi_t *outer_csi)
 	if (lcur_lc(parse) == lc_scolon) {
 		lskip(parse);
 
-		/* This function has no body. */
-		if (!stree_symbol_has_attr(symbol, sac_builtin)) {
-			printf("Error: Function '");
+		/* Body not present */
+		if (body_expected) {
+			cspan_print(fun->name->cspan);
+			printf(" Error: Function '");
 			symbol_print_fqn(symbol);
-			printf("' has no body.\n");
+			printf("' should have a body.\n");
 			parse_note_error(parse);
 		}
+
 		fun->proc->body = NULL;
 	} else {
 		lmatch(parse, lc_is);
 		fun->proc->body = parse_block(parse);
 		lmatch(parse, lc_end);
+
+		/* Body present */
+		if (!body_expected) {
+			cspan_print(fun->name->cspan);
+			printf(" Error: Function declaration '");
+			symbol_print_fqn(symbol);
+			printf("' should not have a body.\n");
+			parse_note_error(parse);
+		}
 	}
 
 	return fun;
@@ -560,7 +636,22 @@ static stree_var_t *parse_var(parse_t *parse, stree_csi_t *outer_csi)
 	var->name = parse_ident(parse);
 	lmatch(parse, lc_colon);
 	var->type =  parse_texpr(parse);
+
+	parse_symbol_attrs(parse, symbol);
+
 	lmatch(parse, lc_scolon);
+
+	switch (outer_csi->cc) {
+	case csi_class:
+	case csi_struct:
+		break;
+	case csi_interface:
+		cspan_print(var->name->cspan);
+		printf(" Error: Variable declared inside interface.\n");
+		parse_note_error(parse);
+		/* XXX Free var */
+		return NULL;
+	}
 
 	return var;
 }
@@ -575,6 +666,7 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_prop_t *prop;
 	stree_symbol_t *symbol;
+	bool_t body_expected;
 
 	stree_ident_t *ident;
 	stree_proc_arg_t *arg;
@@ -624,47 +716,21 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 
 	lmatch(parse, lc_colon);
 	prop->type = parse_texpr(parse);
+
+	/* Parse attributes. */
+	parse_symbol_attrs(parse, symbol);
+
+	body_expected = (outer_csi->cc != csi_interface);
+
 	lmatch(parse, lc_is);
 
 	while (lcur_lc(parse) != lc_end && !parse_is_error(parse)) {
 		switch (lcur_lc(parse)) {
 		case lc_get:
-			lskip(parse);
-			lmatch(parse, lc_is);
-			if (prop->getter != NULL) {
-				printf("Error: Duplicate getter.\n");
-				(void) parse_block(parse); /* XXX Free */
-				lmatch(parse, lc_end);
-				parse_note_error(parse);
-				break;
-			}
-
-			/* Create setter procedure */
-			prop->getter = stree_proc_new();
-			prop->getter->body = parse_block(parse);
-			prop->getter->outer_symbol = symbol;
-
-			lmatch(parse, lc_end);
+			parse_prop_get(parse, prop);
 			break;
 		case lc_set:
-			lskip(parse);
-			prop->setter_arg = stree_proc_arg_new();
-			prop->setter_arg->name = parse_ident(parse);
-			prop->setter_arg->type = prop->type;
-			lmatch(parse, lc_is);
-			if (prop->setter != NULL) {
-				printf("Error: Duplicate setter.\n");
-				(void) parse_block(parse); /* XXX Free */
-				lmatch(parse, lc_end);
-				parse_note_error(parse);
-			}
-
-			/* Create setter procedure */
-			prop->setter = stree_proc_new();
-			prop->setter->body = parse_block(parse);
-			prop->setter->outer_symbol = symbol;
-
-			lmatch(parse, lc_end);
+			parse_prop_set(parse, prop);
 			break;
 		default:
 			lunexpected_error(parse);
@@ -676,26 +742,53 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 	return prop;
 }
 
+/** Parse symbol attributes.
+ *
+ * Parse list of attributes and add them to @a symbol.
+ *
+ * @param parse		Parser object
+ * @param symbol	Symbol to add these attributes to
+ */
+static void parse_symbol_attrs(parse_t *parse, stree_symbol_t *symbol)
+{
+	stree_symbol_attr_t *attr;
+
+	/* Parse attributes. */
+	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
+		lskip(parse);
+		attr = parse_symbol_attr(parse);
+		list_append(&symbol->attr, attr);
+	}
+}
+
 /** Parse symbol attribute.
  *
- * @param parse		Parser object.
- * @param outer_csi	CSI containing this declaration or @c NULL if global.
- * @return		New syntax tree node.
+ * @param parse		Parser object
+ * @return		New syntax tree node
  */
 static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
 {
 	stree_symbol_attr_t *attr;
+	symbol_attr_class_t sac;
 
-	if (lcur_lc(parse) != lc_builtin) {
-		printf("Error: Unexpected attribute '");
+	/* Make compiler happy. */
+	sac = 0;
+
+	switch (lcur_lc(parse)) {
+	case lc_builtin: sac = sac_builtin; break;
+	case lc_static: sac = sac_static; break;
+	default:
+		cspan_print(lcur_span(parse));
+		printf(" Error: Unexpected attribute '");
 		lem_print(lcur(parse));
 		printf("'.\n");
 		parse_note_error(parse);
+		break;
 	}
 
 	lskip(parse);
 
-	attr = stree_symbol_attr_new(sac_builtin);
+	attr = stree_symbol_attr_new(sac);
 	return attr;
 }
 
@@ -717,7 +810,7 @@ static stree_proc_arg_t *parse_proc_arg(parse_t *parse)
 #ifdef DEBUG_PARSE_TRACE
 	printf("Parse procedure argument.\n");
 #endif
- 	list_init(&arg->attr);
+	list_init(&arg->attr);
 
 	/* Parse attributes. */
 	while (lcur_lc(parse) == lc_comma && !parse_is_error(parse)) {
@@ -739,7 +832,8 @@ static stree_arg_attr_t *parse_arg_attr(parse_t *parse)
 	stree_arg_attr_t *attr;
 
 	if (lcur_lc(parse) != lc_packed) {
-		printf("Error: Unexpected attribute '");
+		cspan_print(lcur_span(parse));
+		printf(" Error: Unexpected attribute '");
 		lem_print(lcur(parse));
 		printf("'.\n");
 		parse_note_error(parse);
@@ -801,6 +895,140 @@ static stree_fun_sig_t *parse_fun_sig(parse_t *parse)
 	}
 
 	return sig;
+}
+
+/** Parse member property getter.
+ *
+ * @param parse		Parser object.
+ * @param prop		Property containing this declaration.
+ */
+static void parse_prop_get(parse_t *parse, stree_prop_t *prop)
+{
+	cspan_t *cspan;
+	stree_block_t *block;
+	stree_proc_t *getter;
+	bool_t body_expected;
+
+	body_expected = (prop->symbol->outer_csi->cc != csi_interface);
+
+	lskip(parse);
+	cspan = lprev_span(parse);
+
+	if (prop->getter != NULL) {
+		cspan_print(cspan);
+		printf(" Error: Duplicate getter.\n");
+		parse_note_error(parse);
+		return;
+	}
+
+	if (lcur_lc(parse) == lc_scolon) {
+		/* Body not present */
+		lskip(parse);
+		block = NULL;
+
+		if (body_expected) {
+			cspan_print(prop->name->cspan);
+			printf(" Error: Property '");
+			symbol_print_fqn(prop->symbol);
+			printf("' getter should have "
+			    "a body.\n");
+			parse_note_error(parse);
+		}
+	} else {
+		/* Body present */
+		lmatch(parse, lc_is);
+		block = parse_block(parse);
+		lmatch(parse, lc_end);
+
+		if (!body_expected) {
+			cspan_print(prop->name->cspan);
+			printf(" Error: Property '");
+			symbol_print_fqn(prop->symbol);
+			printf("' getter declaration should "
+			    "not have a body.\n");
+			parse_note_error(parse);
+
+			/* XXX Free block */
+			block = NULL;
+		}
+	}
+
+	/* Create getter procedure */
+	getter = stree_proc_new();
+	getter->body = block;
+	getter->outer_symbol = prop->symbol;
+
+	/* Store getter in property. */
+	prop->getter = getter;
+}
+
+
+/** Parse member property setter.
+ *
+ * @param parse		Parser object.
+ * @param prop		Property containing this declaration.
+ */
+static void parse_prop_set(parse_t *parse, stree_prop_t *prop)
+{
+	cspan_t *cspan;
+	stree_block_t *block;
+	stree_proc_t *setter;
+	bool_t body_expected;
+
+	body_expected = (prop->symbol->outer_csi->cc != csi_interface);
+
+	lskip(parse);
+	cspan = lprev_span(parse);
+
+	if (prop->setter != NULL) {
+		cspan_print(cspan);
+		printf(" Error: Duplicate setter.\n");
+		parse_note_error(parse);
+		return;
+	}
+
+	prop->setter_arg = stree_proc_arg_new();
+	prop->setter_arg->name = parse_ident(parse);
+	prop->setter_arg->type = prop->type;
+
+	if (lcur_lc(parse) == lc_scolon) {
+		/* Body not present */
+		lskip(parse);
+
+		block = NULL;
+
+		if (body_expected) {
+			cspan_print(prop->name->cspan);
+			printf(" Error: Property '");
+			symbol_print_fqn(prop->symbol);
+			printf("' setter should have "
+			    "a body.\n");
+			parse_note_error(parse);
+		}
+	} else {
+		/* Body present */
+		lmatch(parse, lc_is);
+		block = parse_block(parse);
+		lmatch(parse, lc_end);
+
+		if (!body_expected) {
+			cspan_print(prop->name->cspan);
+			printf(" Error: Property '");
+			symbol_print_fqn(prop->symbol);
+			printf("' setter declaration should "
+			    "not have a body.\n");
+			parse_note_error(parse);
+		}
+	}
+
+
+	/* Create setter procedure */
+	setter = stree_proc_new();
+	setter->body = block;
+	setter->outer_symbol = prop->symbol;
+
+	/* Store setter in property. */
+	prop->setter = setter;
 }
 
 /** Parse statement block.

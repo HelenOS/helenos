@@ -139,6 +139,9 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 		return;
 	}
 
+	/* Make compiler happy. */
+	titem = NULL;
+
 	switch (sym->sc) {
 	case sc_csi:
 		/* Construct type item. */
@@ -146,7 +149,7 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 		tobject = tdata_object_new();
 		titem->u.tobject = tobject;
 
-		tobject->static_ref = b_false;
+		tobject->static_ref = sn_nonstatic;
 		tobject->csi = sym->u.csi;
 		list_init(&tobject->targs);
 		break;
@@ -277,6 +280,9 @@ static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
 	(void) ctx;
 	(void) tliteral;
 
+	/* Make compiler happy. */
+	tpc = 0;
+
 	switch (tliteral->tlc) {
 	case tlc_bool: tpc = tpc_bool; break;
 	case tlc_char: tpc = tpc_char; break;
@@ -341,6 +347,9 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 		return;
 	}
 
+	/* Make compiler happy. */
+	titem = NULL;
+
 	switch (sym->sc) {
 	case sc_csi:
 		/* Construct type item. */
@@ -348,7 +357,7 @@ static void run_tnameref(stree_program_t *prog, stree_csi_t *ctx,
 		tobject = tdata_object_new();
 		titem->u.tobject = tobject;
 
-		tobject->static_ref = b_false;
+		tobject->static_ref = sn_nonstatic;
 		tobject->csi = sym->u.csi;
 		list_init(&tobject->targs);
 		break;
@@ -428,7 +437,6 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 	stree_texpr_t *arg;
 
 	list_node_t *farg_n;
-	stree_targ_t *farg;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Evaluating type apply operation.\n");
@@ -449,7 +457,7 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 		return;
 	}
 
-	tobject->static_ref = b_false;
+	tobject->static_ref = sn_nonstatic;
 	tobject->csi = base_ti->u.tobject->csi;
 	list_init(&tobject->targs);
 
@@ -457,7 +465,6 @@ static void run_tapply(stree_program_t *prog, stree_csi_t *ctx,
 	farg_n = list_first(&tobject->csi->targ);
 	arg_n = list_first(&tapply->targs);
 	while (farg_n != NULL && arg_n != NULL) {
-		farg = list_node_data(farg_n, stree_targ_t *);
 		arg = list_node_data(arg_n, stree_texpr_t *);
 
 		run_texpr(prog, ctx, arg, &arg_ti);

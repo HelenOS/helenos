@@ -27,7 +27,7 @@
 --
 
 class TextFileDemo is
-	fun Main() is
+	fun Main(), static is
 		var name : string;
 		var line : string;
 

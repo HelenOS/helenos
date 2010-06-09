@@ -70,11 +70,11 @@ typedef struct {
 /** Delegate variable
  *
  * A delegate variable points to a static or non-static symbol. If the
- * symbol is non static, @c obj points to the object the symbol instance
+ * symbol is non static, @c obj points to the object the symbol
  * belongs to.
  */
 typedef struct {
-	/** Object or @c NULL if deleg. points to a CSI or static member. */
+	/** Object or @c NULL if deleg. points to a static function. */
 	struct rdata_var *obj;
 
 	/** Member symbol. */
@@ -106,6 +106,9 @@ typedef struct {
 typedef struct {
 	/** Class of this object (symbol) */
 	struct stree_symbol *class_sym;
+
+	/** @c sn_static if this is a static object (i.e. class object) */
+	statns_t static_obj;
 
 	/** Map field name SID to field data */
 	intmap_t fields; /* of (rdata_var_t *) */

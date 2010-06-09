@@ -27,7 +27,7 @@
 --
 
 class HelloWorld is
-	fun Main() is
+	fun Main(), static is
 		Builtin.WriteLine("Hello world!");
 	end
 end

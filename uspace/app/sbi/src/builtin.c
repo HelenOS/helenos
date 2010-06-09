@@ -41,7 +41,9 @@
 #include <assert.h>
 #include "builtin/bi_boxed.h"
 #include "builtin/bi_error.h"
+#include "builtin/bi_char.h"
 #include "builtin/bi_fun.h"
+#include "builtin/bi_int.h"
 #include "builtin/bi_textfile.h"
 #include "builtin/bi_string.h"
 #include "input.h"
@@ -51,6 +53,7 @@
 #include "mytypes.h"
 #include "os/os.h"
 #include "parse.h"
+#include "rdata.h"
 #include "run.h"
 #include "stree.h"
 #include "strtab.h"
@@ -88,7 +91,9 @@ void builtin_declare(stree_program_t *program)
 	 */
 
 	bi_error_declare(bi);
+	bi_char_declare(bi);
 	bi_fun_declare(bi);
+	bi_int_declare(bi);
 	bi_textfile_declare(bi);
 	bi_string_declare(bi);
 }
@@ -104,7 +109,9 @@ void builtin_bind(builtin_t *bi)
 {
 	bi_boxed_bind(bi);
 	bi_error_bind(bi);
+	bi_char_bind(bi);
 	bi_fun_bind(bi);
+	bi_int_bind(bi);
 	bi_textfile_bind(bi);
 	bi_string_bind(bi);
 }
@@ -249,14 +256,12 @@ void builtin_fun_bind(builtin_t *bi, const char *csi_name,
 void builtin_run_proc(run_t *run, stree_proc_t *proc)
 {
 	stree_symbol_t *fun_sym;
-	builtin_t *bi;
 	builtin_proc_t bproc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run builtin procedure.\n");
 #endif
 	fun_sym = proc->outer_symbol;
-	bi = run->program->builtin;
 
 	bproc = proc->bi_handler;
 	if (bproc == NULL) {
@@ -297,7 +302,42 @@ rdata_var_t *builtin_get_self_mbr_var(run_t *run, const char *mbr_name)
 	return mbr_var;
 }
 
-/** Declare a builtin function in @a csi.
+/** Return string value from builtin procedure.
+ *
+ * Makes it easy for a builtin procedure to return value of type @c string.
+ *
+ * @param run		Runner object
+ * @param str		String value. Must be allocated from heap and its
+ *			ownership is hereby given up.
+ */
+void builtin_return_string(run_t *run, const char *astr)
+{
+	rdata_string_t *rstring;
+	rdata_var_t *rvar;
+	rdata_value_t *rval;
+	rdata_item_t *ritem;
+
+	run_proc_ar_t *proc_ar;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Return string '%s' from builtin function.\n", astr);
+#endif
+	rstring = rdata_string_new();
+	rstring->value = astr;
+
+	rvar = rdata_var_new(vc_string);
+	rvar->u.string_v = rstring;
+	rval = rdata_value_new();
+	rval->var = rvar;
+
+	ritem = rdata_item_new(ic_value);
+	ritem->u.value = rval;
+
+	proc_ar = run_get_current_proc_ar(run);
+	proc_ar->retval = ritem;
+}
+
+/** Declare a static builtin function in @a csi.
  *
  * Declare a builtin function member of CSI @a csi. Deprecated in favor
  * of builtin_code_snippet().
@@ -313,6 +353,7 @@ stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 	stree_fun_sig_t *sig;
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *fun_sym;
+	stree_symbol_attr_t *sym_attr;
 
 	ident = stree_ident_new();
 	ident->sid = strtab_get_sid(name);
@@ -332,6 +373,10 @@ stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name)
 	fun_sym = stree_symbol_new(sc_fun);
 	fun_sym->u.fun = fun;
 	fun_sym->outer_csi = csi;
+
+	sym_attr = stree_symbol_attr_new(sac_static);
+	list_append(&fun_sym->attr, sym_attr);
+
 	fun->symbol = fun_sym;
 	fun->proc->outer_symbol = fun_sym;
 

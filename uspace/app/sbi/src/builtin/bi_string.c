@@ -115,6 +115,7 @@ static void bi_string_slice(run_t *run)
 {
         rdata_var_t *self_value_var;
         const char *str;
+        const char *slice;
         size_t str_l;
 
 	rdata_var_t *start_var;
@@ -124,13 +125,6 @@ static void bi_string_slice(run_t *run)
 	int length;
 
 	int rc;
-
-	rdata_string_t *rstring;
-	rdata_var_t *rvar;
-	rdata_value_t *rval;
-	rdata_item_t *ritem;
-
-	run_proc_ar_t *proc_ar;
 
 	/* Extract self.Value */
 	self_value_var = builtin_get_self_mbr_var(run, "Value");
@@ -164,18 +158,8 @@ static void bi_string_slice(run_t *run)
 	printf("Construct Slice(%d, %d) from string '%s'.\n",
 	    start, length, str);
 #endif
-	/* Construct return value. */
-	rstring = rdata_string_new();
-	rstring->value = os_str_aslice(str, start, length);
+	slice = os_str_aslice(str, start, length);
 
-	rvar = rdata_var_new(vc_string);
-	rvar->u.string_v = rstring;
-	rval = rdata_value_new();
-	rval->var = rvar;
-
-	ritem = rdata_item_new(ic_value);
-	ritem->u.value = rval;
-
-	proc_ar = run_get_current_proc_ar(run);
-	proc_ar->retval = ritem;
+	/* Ownership of slice is transferred. */
+	builtin_return_string(run, slice);
 }

@@ -50,6 +50,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "builtin.h"
+#include "cspan.h"
 #include "list.h"
 #include "mytypes.h"
 #include "stree.h"
@@ -60,6 +61,8 @@
 
 static void ancr_csi_dfs(stree_program_t *prog, stree_csi_t *csi);
 static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node);
+static stree_csi_t *ancr_csi_get_pred(stree_program_t *prog, stree_csi_t *csi,
+    stree_texpr_t *pred_ref);
 static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node);
 
 /** Process ancestry of all CSIs in a module.
@@ -127,46 +130,36 @@ static void ancr_csi_dfs(stree_program_t *prog, stree_csi_t *csi)
  * then processes @a node. This is the core 'outward-and-baseward' walk.
  *
  * @param prog		Program being processed.
- * @param node		CSI node to process.
+ * @param csi		CSI node to process.
  */
-static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
+static void ancr_csi_process(stree_program_t *prog, stree_csi_t *csi)
 {
-	stree_symbol_t *base_sym;
 	stree_csi_t *base_csi, *outer_csi;
 	stree_csi_t *gf_class;
 
-	if (node->ancr_state == ws_visited) {
+	list_node_t *pred_n;
+	stree_texpr_t *pred;
+	stree_csi_t *pred_csi;
+
+	if (csi->ancr_state == ws_visited) {
 		/* Node already processed */
 		return;
 	}
 
-	if (node->ancr_state == ws_active) {
+	if (csi->ancr_state == ws_active) {
 		/* Error, closed reference loop. */
 		printf("Error: Circular class, struct or interface chain: ");
-		ancr_csi_print_cycle(prog, node);
+		ancr_csi_print_cycle(prog, csi);
 		printf(".\n");
 		exit(1);
 	}
 
-	node->ancr_state = ws_active;
+	csi->ancr_state = ws_active;
 
-	outer_csi = csi_to_symbol(node)->outer_csi;
+	outer_csi = csi_to_symbol(csi)->outer_csi;
 	gf_class = builtin_get_gf_class(prog->builtin);
 
-	/* Process outer CSI */
-	if (outer_csi != NULL)
-		ancr_csi_process(prog, outer_csi);
-
-	if (node->base_csi_ref != NULL) {
-		/* Resolve base CSI. */
-		base_sym = symbol_xlookup_in_csi(prog, outer_csi,
-			node->base_csi_ref);
-		base_csi = symbol_to_csi(base_sym);
-		assert(base_csi != NULL);
-
-		/* Process base CSI. */
-		ancr_csi_process(prog, base_csi);
-	} else if (node != gf_class) {
+	if (csi != gf_class){
 		/* Implicit inheritance from grandfather class. */
 		base_csi = gf_class;
 	} else {
@@ -174,9 +167,102 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 		base_csi = NULL;
 	}
 
+	/* Process outer CSI */
+	if (outer_csi != NULL)
+		ancr_csi_process(prog, outer_csi);
+
+	/*
+	 * Process inheritance list.
+	 */
+	pred_n = list_first(&csi->inherit);
+
+	/* For a class node, the first entry can be a class. */
+	if (csi->cc == csi_class && pred_n != NULL) {
+		pred = list_node_data(pred_n, stree_texpr_t *);
+		pred_csi = ancr_csi_get_pred(prog, csi, pred);
+		assert(pred_csi != NULL);
+
+		if (pred_csi->cc == csi_class) {
+			/* Process base class */
+			base_csi = pred_csi;
+			ancr_csi_process(prog, pred_csi);
+
+			pred_n = list_next(&csi->inherit, pred_n);
+		}
+	}
+
+	/* Following entires can only be interfaces. */
+	while (pred_n != NULL) {
+		pred = list_node_data(pred_n, stree_texpr_t *);
+		pred_csi = ancr_csi_get_pred(prog, csi, pred);
+		assert(pred_csi != NULL);
+
+		/* Process implemented or accumulated interface. */
+		ancr_csi_process(prog, pred_csi);
+
+		switch (pred_csi->cc) {
+		case csi_class:
+			switch (csi->cc) {
+			case csi_class:
+				cspan_print(csi->name->cspan);
+				printf(" Error: Only the first predecessor "
+				    "can be a class. ('");
+				symbol_print_fqn(csi_to_symbol(csi));
+				printf("' deriving from '");
+				symbol_print_fqn(csi_to_symbol(pred_csi));
+				printf("').\n");
+				exit(1);
+				break;
+			case csi_struct:
+				assert(b_false); /* XXX */
+			case csi_interface:
+				cspan_print(csi->name->cspan);
+				printf(" Error: Interface predecessor must be "
+				    "an interface ('");
+				symbol_print_fqn(csi_to_symbol(csi));
+				printf("' deriving from '");
+				symbol_print_fqn(csi_to_symbol(pred_csi));
+				printf("').\n");
+				exit(1);
+				break;
+			}
+		case csi_struct:
+			assert(b_false); /* XXX */
+		case csi_interface:
+			break;
+		}
+
+		pred_n = list_next(&csi->inherit, pred_n);
+	}
+
 	/* Store base CSI and update node state. */
-	node->ancr_state = ws_visited;
-	node->base_csi = base_csi;
+	csi->ancr_state = ws_visited;
+	csi->base_csi = base_csi;
+}
+
+/** Resolve CSI predecessor reference.
+ *
+ * Returns the CSI predecessor referenced by @a pred_ref.
+ * If the referenced CSI does not exist, an error is generated.
+ *
+ * @param prog		Program being processed.
+ * @param csi		CSI node to process.
+ * @param pred_ref	Type expression referencing the predecessor.
+ * @return		Predecessor CSI.
+ */
+static stree_csi_t *ancr_csi_get_pred(stree_program_t *prog, stree_csi_t *csi,
+    stree_texpr_t *pred_ref)
+{
+	stree_csi_t *outer_csi;
+	stree_symbol_t *pred_sym;
+	stree_csi_t *pred_csi;
+
+	outer_csi = csi_to_symbol(csi)->outer_csi;
+	pred_sym = symbol_xlookup_in_csi(prog, outer_csi, pred_ref);
+	pred_csi = symbol_to_csi(pred_sym);
+	assert(pred_csi != NULL); /* XXX */
+
+	return pred_csi;
 }
 
 /** Print loop in CSI ancestry.
@@ -190,8 +276,10 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *node)
 static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node)
 {
 	stree_csi_t *n;
-	stree_symbol_t *base_sym, *node_sym;
-	stree_csi_t *base_csi, *outer_csi;
+	stree_symbol_t *pred_sym, *node_sym;
+	stree_csi_t *pred_csi, *outer_csi;
+	stree_texpr_t *pred;
+	list_node_t *pred_n;
 
 	n = node;
 	do {
@@ -203,17 +291,24 @@ static void ancr_csi_print_cycle(stree_program_t *prog, stree_csi_t *node)
 
 		if (outer_csi != NULL && outer_csi->ancr_state == ws_active) {
 			node = outer_csi;
-		} else if (node->base_csi_ref != NULL) {
-			/* Resolve base CSI. */
-			base_sym = symbol_xlookup_in_csi(prog, outer_csi,
-				node->base_csi_ref);
-			base_csi = symbol_to_csi(base_sym);
-			assert(base_csi != NULL);
-
-			assert(base_csi->ancr_state == ws_active);
-			node = base_csi;
 		} else {
-			assert(b_false);
+			node = NULL;
+
+			pred_n = list_first(&node->inherit);
+			while (pred_n != NULL) {
+				pred = list_node_data(pred_n, stree_texpr_t *);
+				pred_sym = symbol_xlookup_in_csi(prog,
+				    outer_csi, pred);
+				pred_csi = symbol_to_csi(pred_sym);
+				assert(pred_csi != NULL);
+
+				if (pred_csi->ancr_state == ws_active) {
+					node = pred_csi;
+					break;
+				}
+			}
+
+			assert(node != NULL);
 		}
 	} while (n != node);
 

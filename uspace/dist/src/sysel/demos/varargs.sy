@@ -32,7 +32,7 @@ class VariadicArgumentsDemo is
 	-- A variadic function is declared by marking its last argument
 	-- with the attribute 'packed'.
 	--
-	fun Print(args : string[], packed) is
+	fun Print(args : string[], packed), static is
 		var i : int;
 		var error : bool;
 
@@ -52,7 +52,7 @@ class VariadicArgumentsDemo is
 		end
 	end
 
-	fun Main() is
+	fun Main(), static is
 		Print("One", "Two", "Three", "Four", "Five");
 	end
 end

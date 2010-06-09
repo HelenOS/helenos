@@ -41,7 +41,6 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
     stree_ident_t *name);
 static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
     stree_ident_t *name, stree_csi_t *csi);
-static stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr);
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol);
 
 /** Lookup symbol in CSI using a type expression.
@@ -131,7 +130,6 @@ stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
 stree_symbol_t *symbol_search_csi(stree_program_t *prog,
     stree_csi_t *scope, stree_ident_t *name)
 {
-	stree_symbol_t *base_csi_sym;
 	stree_csi_t *base_csi;
 	stree_symbol_t *symbol;
 
@@ -141,14 +139,9 @@ stree_symbol_t *symbol_search_csi(stree_program_t *prog,
 		return symbol;
 
 	/* Try inherited members. */
-	if (scope->base_csi_ref != NULL) {
-		base_csi_sym = symbol_xlookup_in_csi(prog,
-		    csi_to_symbol(scope)->outer_csi, scope->base_csi_ref);
-		base_csi = symbol_to_csi(base_csi_sym);
-		assert(base_csi != NULL);
-
+	base_csi = symbol_get_base_class(prog, scope);
+	if (base_csi != NULL)
 		return symbol_search_csi(prog, base_csi, name);
-	}
 
 	/* No match */
 	return NULL;
@@ -211,12 +204,21 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 	while (node != NULL) {
 		modm = list_node_data(node, stree_modm_t *);
 
+		/* Make compiler happy. */
+		mbr_name = NULL;
+
 		switch (modm->mc) {
 		case mc_csi: mbr_name = modm->u.csi->name; break;
 		case mc_enum: mbr_name = modm->u.enum_d->name; break;
 		}
 
+		/* The Clang static analyzer is just too picky. */
+		assert(mbr_name != NULL);
+
 		if (name->sid == mbr_name->sid) {
+			/* Make compiler happy. */
+			symbol = NULL;
+
 			/* Match */
 			switch (modm->mc) {
 			case mc_csi:
@@ -230,6 +232,77 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 		}
 		node = list_next(&prog->module->members, node);
 	}
+
+	return NULL;
+}
+
+/** Get explicit base class for a CSI.
+ *
+ * Note that if there is no explicit base class (class is derived implicitly
+ * from @c object, then @c NULL is returned.
+ *
+ * @param prog	Program to look in
+ * @param csi	CSI
+ *
+ * @return	Base class (CSI) or @c NULL if no explicit base class.
+ */
+stree_csi_t *symbol_get_base_class(stree_program_t *prog, stree_csi_t *csi)
+{
+	list_node_t *pred_n;
+	stree_texpr_t *pred;
+	stree_symbol_t *pred_sym;
+	stree_csi_t *pred_csi;
+	stree_csi_t *outer_csi;
+
+	outer_csi = csi_to_symbol(csi)->outer_csi;
+
+	pred_n = list_first(&csi->inherit);
+	if (pred_n == NULL)
+		return NULL;
+
+	pred = list_node_data(pred_n, stree_texpr_t *);
+	pred_sym = symbol_xlookup_in_csi(prog, outer_csi, pred);
+	pred_csi = symbol_to_csi(pred_sym);
+	assert(pred_csi != NULL); /* XXX! */
+
+	if (pred_csi->cc == csi_class)
+		return pred_csi;
+
+	return NULL;
+}
+
+/** Get type expression referencing base class for a CSI.
+ *
+ * Note that if there is no explicit base class (class is derived implicitly
+ * from @c object, then @c NULL is returned.
+ *
+ * @param prog	Program to look in
+ * @param csi	CSI
+ *
+ * @return	Type expression or @c NULL if no explicit base class.
+ */
+stree_texpr_t *symbol_get_base_class_ref(stree_program_t *prog,
+    stree_csi_t *csi)
+{
+	list_node_t *pred_n;
+	stree_texpr_t *pred;
+	stree_symbol_t *pred_sym;
+	stree_csi_t *pred_csi;
+	stree_csi_t *outer_csi;
+
+	outer_csi = csi_to_symbol(csi)->outer_csi;
+
+	pred_n = list_first(&csi->inherit);
+	if (pred_n == NULL)
+		return NULL;
+
+	pred = list_node_data(pred_n, stree_texpr_t *);
+	pred_sym = symbol_xlookup_in_csi(prog, outer_csi, pred);
+	pred_csi = symbol_to_csi(pred_sym);
+	assert(pred_csi != NULL); /* XXX! */
+
+	if (pred_csi->cc == csi_class)
+		return pred;
 
 	return NULL;
 }
@@ -285,6 +358,7 @@ static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
 	list_node_t *node;
 	stree_csimbr_t *csimbr;
 	stree_symbol_t *entry, *etmp;
+	stree_symbol_t *fun_sym;
 
 	entry = NULL;
 
@@ -304,12 +378,15 @@ static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
 			}
 			break;
 		case csimbr_fun:
-			if (csimbr->u.fun->name->sid == name->sid) {
+			fun_sym = fun_to_symbol(csimbr->u.fun);
+
+			if (csimbr->u.fun->name->sid == name->sid &&
+			    stree_symbol_has_attr(fun_sym, sac_static)) {
 				if (entry != NULL) {
 					printf("Error: Duplicate entry point.\n");
 					exit(1);
 				}
-				entry = fun_to_symbol(csimbr->u.fun);
+				entry = fun_sym;
 			}
 		default:
 			break;
@@ -493,7 +570,7 @@ stree_prop_t *symbol_to_prop(stree_symbol_t *symbol)
  * @param csimbr	CSI member
  * @return		Symbol
  */
-static stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr)
+stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr)
 {
 	stree_symbol_t *symbol;
 
@@ -567,6 +644,9 @@ void symbol_print_fqn(stree_symbol_t *symbol)
 static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol)
 {
 	stree_ident_t *ident;
+
+	/* Make compiler happy. */
+	ident = NULL;
 
 	switch (symbol->sc) {
 	case sc_csi: ident = symbol->u.csi->name; break;

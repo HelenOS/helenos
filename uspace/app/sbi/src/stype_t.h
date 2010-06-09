@@ -58,6 +58,14 @@ typedef struct run_proc_vr {
 	int bstat_cnt;
 } stype_proc_vr_t;
 
+/** Conversion class */
+typedef enum {
+	/** Implicit conversion */
+	convc_implicit,
+	/** 'as' conversion */
+	convc_as
+} stype_conv_class_t;
+
 /** Static typer state object */
 typedef struct stype {
 	/** Code of the program being typed */

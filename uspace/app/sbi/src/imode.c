@@ -129,9 +129,11 @@ void imode_run(void)
 	list_append(&stype.proc_vr->block_vr, block_vr);
 
 	/* Construct run context. */
+	run_gdata_init(&run);
+
 	run.thread_ar = run_thread_ar_new();
 	list_init(&run.thread_ar->proc_ar);
-	run_proc_ar_create(&run, NULL, proc, &proc_ar);
+	run_proc_ar_create(&run, run.gdata, proc, &proc_ar);
 	list_append(&run.thread_ar->proc_ar, proc_ar);
 
 	printf("SBI interactive mode. ");

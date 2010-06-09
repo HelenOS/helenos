@@ -26,29 +26,62 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BIGINT_H_
-#define BIGINT_H_
+/** @file Int builtin binding. */
 
-#include "mytypes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "../bigint.h"
+#include "../builtin.h"
+#include "../debug.h"
+#include "../mytypes.h"
+#include "../os/os.h"
+#include "../rdata.h"
+#include "../run.h"
+#include "../strtab.h"
 
-void bigint_init(bigint_t *bigint, int value);
-void bigint_shallow_copy(bigint_t *src, bigint_t *dest);
-void bigint_clone(bigint_t *src, bigint_t *dest);
-void bigint_reverse_sign(bigint_t *src, bigint_t *dest);
-void bigint_destroy(bigint_t *bigint);
+#include "bi_int.h"
 
-int bigint_get_value_int(bigint_t *bigint, int *dval);
-bool_t bigint_is_zero(bigint_t *bigint);
-bool_t bigint_is_negative(bigint_t *bigint);
+static void bi_int_get_as_string(run_t *run);
 
-void bigint_div_digit(bigint_t *a, bigint_word_t b, bigint_t *quot,
-    bigint_word_t *rem);
+/** Declare Int builtin.
+ *
+ * @param bi	Builtin object
+ */
+void bi_int_declare(builtin_t *bi)
+{
+	(void) bi;
+}
 
-void bigint_add(bigint_t *a, bigint_t *b, bigint_t *dest);
-void bigint_sub(bigint_t *a, bigint_t *b, bigint_t *dest);
-void bigint_mul(bigint_t *a, bigint_t *b, bigint_t *dest);
+/** Bind Int builtin.
+ *
+ * @param bi	Builtin object
+ */
+void bi_int_bind(builtin_t *bi)
+{
+	builtin_fun_bind(bi, "Int", "get_as_string", bi_int_get_as_string);
+}
 
-void bigint_get_as_string(bigint_t *bigint, char **dptr);
-void bigint_print(bigint_t *bigint);
+/** Return string representation.
+ *
+ * @param run	Runner object
+ */
+static void bi_int_get_as_string(run_t *run)
+{
+        rdata_var_t *self_value_var;
+        bigint_t *ival;
+        char *str;
 
+	/* Extract self.Value */
+	self_value_var = builtin_get_self_mbr_var(run, "Value");
+	assert(self_value_var->vc == vc_int);
+	ival = &self_value_var->u.int_v->value;
+
+	bigint_get_as_string(ival, &str);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Convert int to string '%s'.\n", str);
 #endif
+	/* Ownership of str is transferred. */
+	builtin_return_string(run, str);
+}

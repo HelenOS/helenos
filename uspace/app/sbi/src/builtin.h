@@ -39,6 +39,7 @@ stree_csi_t *builtin_get_gf_class(builtin_t *builtin);
 void builtin_run_proc(run_t *run, stree_proc_t *proc);
 
 rdata_var_t *builtin_get_self_mbr_var(run_t *run, const char *mbr_name);
+void builtin_return_string(run_t *run, const char *str);
 
 stree_symbol_t *builtin_declare_fun(stree_csi_t *csi, const char *name);
 void builtin_fun_add_arg(stree_symbol_t *fun_sym, const char *name);

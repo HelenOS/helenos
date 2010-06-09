@@ -36,6 +36,7 @@ void stype_ctor_header(stype_t *stype, stree_ctor_t *ctor);
 void stype_deleg(stype_t *stype, stree_deleg_t *deleg);
 void stype_enum(stype_t *stype, stree_enum_t *enum_d);
 void stype_fun_header(stype_t *stype, stree_fun_t *fun);
+void stype_prop_header(stype_t *stype, stree_prop_t *prop);
 void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value);
 
 void stype_note_error(stype_t *stype);
@@ -43,7 +44,13 @@ tdata_item_t *stype_recovery_titem(stype_t *stype);
 
 stree_expr_t *stype_convert(stype_t *stype, stree_expr_t *expr,
     tdata_item_t *dest);
+void stype_convert_failure(stype_t *stype, stype_conv_class_t convc,
+    stree_expr_t *expr, tdata_item_t *dest);
 stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr);
+tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
+    tdata_item_t *dest);
+int stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
+    tdata_item_t *b_ti);
 
 tdata_fun_sig_t *stype_deleg_get_sig(stype_t *stype, tdata_deleg_t *tdeleg);
 

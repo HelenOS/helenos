@@ -34,8 +34,10 @@ BINARY = sbi
 
 SOURCES = \
 	src/builtin/bi_boxed.c \
+	src/builtin/bi_char.c \
 	src/builtin/bi_error.c \
 	src/builtin/bi_fun.c \
+	src/builtin/bi_int.c \
 	src/builtin/bi_textfile.c \
 	src/builtin/bi_string.c \
 	src/os/helenos.c \

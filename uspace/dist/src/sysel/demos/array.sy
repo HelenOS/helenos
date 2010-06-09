@@ -27,7 +27,7 @@
 --
 
 class ArrayDemo is
-	fun Main() is
+	fun Main(), static is
 		var a : int[,];
 		var i : int;
 

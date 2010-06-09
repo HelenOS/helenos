@@ -26,19 +26,34 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-class StringDemo is
+class StaticPropertyDemo is
 	fun Main(), static is
-		-- Concatenate some strings.
-		Builtin.WriteLine("One-" + "two-" + "three!");
+		-- Test static member variable
+		A.B.a = 1;
+		Builtin.WriteLine(A.B.a);
+		A.B.a = 2;
+		Builtin.WriteLine(A.B.a);
 
-		-- Extract characters from a string.
-		var i : int;
-		i = 0;
-		while i < 5 do
-			Builtin.WriteLine("ABCDE"[i]);
-			i = i + 1;
+		-- Test static property
+		A.B.P = 1;
+		Builtin.WriteLine(A.B.P);
+		A.B.P = 2;
+		Builtin.WriteLine(A.B.P);
+	end
+end
+
+class A is
+	class B is
+		var a : int, static;
+
+		prop P : int, static is
+			get is
+				return a;
+			end
+
+			set value is
+				a = value;
+			end
 		end
-
-		Builtin.WriteLine("Abracadabra".Slice(2, 4));
 	end
 end

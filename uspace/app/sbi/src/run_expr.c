@@ -103,6 +103,10 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
 static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
+static void run_access_object_static(run_t *run, stree_access_t *access,
+    rdata_var_t *obj_var, rdata_item_t **res);
+static void run_access_object_nonstatic(run_t *run, stree_access_t *access,
+    rdata_var_t *obj_var, rdata_item_t **res);
 static void run_access_symbol(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res);
 
@@ -206,6 +210,10 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	rdata_object_t *obj;
 	rdata_var_t *member_var;
 
+	rdata_var_t *psobj;
+	rdata_var_t *sobj;
+	rdata_object_t *aobj;
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Run nameref.\n");
 #endif
@@ -237,15 +245,18 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 
 	/* Determine currently active object or CSI. */
 	proc_ar = run_get_current_proc_ar(run);
-	if (proc_ar->obj != NULL) {
-		assert(proc_ar->obj->vc == vc_object);
-		obj = proc_ar->obj->u.object_v;
-		csi_sym = obj->class_sym;
+
+	assert (proc_ar->obj != NULL);
+	assert(proc_ar->obj->vc == vc_object);
+	obj = proc_ar->obj->u.object_v;
+	csi_sym = obj->class_sym;
+
+	if (csi_sym != NULL) {
 		csi = symbol_to_csi(csi_sym);
 		assert(csi != NULL);
 	} else {
-		csi = proc_ar->proc->outer_symbol->outer_csi;
-		obj = NULL;
+		/* This happens in interactive mode. */
+		csi = NULL;
 	}
 
 	sym = symbol_lookup_in_csi(run->program, csi, nameref->name);
@@ -258,18 +269,13 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 #ifdef DEBUG_RUN_TRACE
 		printf("Referencing CSI.\n");
 #endif
-		item = rdata_item_new(ic_value);
-		value = rdata_value_new();
-		var = rdata_var_new(vc_deleg);
-		deleg_v = rdata_deleg_new();
+		/* Obtain static object for the referenced CSI. */
+		psobj = run->gdata; /* XXX */
+		sobj = run_sobject_get(run, sym->u.csi, psobj,
+		    nameref->name->sid);
 
-		item->u.value = value;
-		value->var = var;
-		var->u.deleg_v = deleg_v;
-
-		deleg_v->obj = NULL;
-		deleg_v->sym = sym;
-		*res = item;
+		/* Return reference to the object. */
+		run_reference(run, sobj, res);
 		break;
 	case sc_ctor:
 		/* It is not possible to reference a constructor explicitly. */
@@ -333,11 +339,8 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		/* There should be no global variables. */
 		assert(csi != NULL);
 
-		/* XXX Assume variable is not static for now. */
-		assert(obj != NULL);
-
 		if (symbol_search_csi(run->program, csi, nameref->name)
-		    == NULL) {
+		    == NULL && !stree_symbol_is_static(sym)) {
 			/* Variable is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "variable '");
@@ -348,8 +351,24 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			exit(1);
 		}
 
+		if (stree_symbol_is_static(sym)) {
+			/*
+			 * XXX This is too slow!
+			 *
+			 * However fixing this is non-trivial. We would
+			 * have to have pointer to static object available
+			 * for each object (therefore also for each object
+			 * type).
+			 */
+			sobj = run_sobject_find(run, sym->outer_csi);
+			assert(sobj->vc == vc_object);
+			aobj = sobj->u.object_v;
+		} else {
+			aobj = obj;
+		}
+
 		/* Find member variable in object. */
-		member_var = intmap_get(&obj->fields, nameref->name->sid);
+		member_var = intmap_get(&aobj->fields, nameref->name->sid);
 		assert(member_var != NULL);
 
 		/* Return address of the variable. */
@@ -1360,7 +1379,7 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	}
 
 	/* Create CSI instance. */
-	run_new_csi_inst(run, csi, res);
+	run_new_csi_inst_ref(run, csi, sn_nonstatic, res);
 
 	/* Run the constructor. */
 	run_dereference(run, *res, NULL, &obj_i);
@@ -1466,7 +1485,7 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 	run_access_item(run, access, darg, res);
 }
 
-/** Evaluate delegate-member acccess.
+/** Evaluate delegate member acccess.
  *
  * @param run		Runner object
  * @param access	Access operation
@@ -1476,43 +1495,13 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 static void run_access_deleg(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
-	rdata_item_t *arg_vi;
-	rdata_value_t *arg_val;
-	rdata_deleg_t *deleg_v;
-	stree_symbol_t *member;
+	(void) run;
+	(void) access;
+	(void) arg;
+	(void) res;
 
-#ifdef DEBUG_RUN_TRACE
-	printf("Run delegate access operation.\n");
-#endif
-	run_cvt_value_item(run, arg, &arg_vi);
-	arg_val = arg_vi->u.value;
-	assert(arg_val->var->vc == vc_deleg);
-
-	deleg_v = arg_val->var->u.deleg_v;
-	if (deleg_v->obj != NULL || deleg_v->sym->sc != sc_csi) {
-		printf("Error: Using '.' with delegate to different object "
-		    "than a CSI (%d).\n", deleg_v->sym->sc);
-		exit(1);
-	}
-
-	member = symbol_search_csi(run->program, deleg_v->sym->u.csi,
-	    access->member_name);
-
-	/* Member existence should be ensured by static type checking. */
-	assert(member != NULL);
-
-#ifdef DEBUG_RUN_TRACE
-	printf("Found member '%s'.\n",
-	    strtab_get_str(access->member_name->sid));
-#endif
-
-	/*
-	 * Reuse existing item, value, var, deleg.
-	 * XXX This is maybe not a good idea because it complicates memory
-	 * management as there is not a single owner 
-	 */
-	deleg_v->sym = member;
-	*res = arg;
+	printf("Error: Using '.' with delegate.\n");
+	exit(1);
 }
 
 /** Evaluate object member acccess.
@@ -1525,9 +1514,160 @@ static void run_access_deleg(run_t *run, stree_access_t *access,
 static void run_access_object(run_t *run, stree_access_t *access,
     rdata_item_t *arg, rdata_item_t **res)
 {
-	stree_symbol_t *member;
-	rdata_var_t *object_var;
+	rdata_var_t *obj_var;
 	rdata_object_t *object;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run object access operation.\n");
+#endif
+	assert(arg->ic == ic_address);
+	assert(arg->u.address->ac == ac_var);
+
+	obj_var = arg->u.address->u.var_a->vref;
+	assert(obj_var->vc == vc_object);
+
+	object = obj_var->u.object_v;
+
+	if (object->static_obj == sn_static)
+		run_access_object_static(run, access, obj_var, res);
+	else
+		run_access_object_nonstatic(run, access, obj_var, res);
+}
+
+/** Evaluate static object member acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
+static void run_access_object_static(run_t *run, stree_access_t *access,
+    rdata_var_t *obj_var, rdata_item_t **res)
+{
+	rdata_object_t *object;
+	stree_symbol_t *member;
+	stree_csi_t *member_csi;
+
+	rdata_deleg_t *deleg_v;
+	rdata_item_t *ritem;
+	rdata_value_t *rvalue;
+	rdata_var_t *rvar;
+	rdata_address_t *address;
+	rdata_addr_var_t *addr_var;
+	rdata_addr_prop_t *addr_prop;
+	rdata_aprop_named_t *aprop_named;
+	rdata_deleg_t *deleg_p;
+	rdata_var_t *mvar;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Run static object access operation.\n");
+#endif
+	assert(obj_var->vc == vc_object);
+	object = obj_var->u.object_v;
+
+	assert(object->static_obj == sn_static);
+
+	member = symbol_search_csi(run->program, object->class_sym->u.csi,
+	    access->member_name);
+
+	/* Member existence should be ensured by static type checking. */
+	assert(member != NULL);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Found member '%s'.\n",
+	    strtab_get_str(access->member_name->sid));
+#endif
+
+	switch (member->sc) {
+	case sc_csi:
+		/* Get child static object. */
+		member_csi = symbol_to_csi(member);
+		assert(member_csi != NULL);
+
+		mvar = run_sobject_get(run, member_csi, obj_var,
+		    access->member_name->sid);
+
+		ritem = rdata_item_new(ic_address);
+		address = rdata_address_new(ac_var);
+		ritem->u.address = address;
+
+		addr_var = rdata_addr_var_new();
+		address->u.var_a = addr_var;
+		addr_var->vref = mvar;
+
+		*res = ritem;
+		break;
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
+	case sc_deleg:
+		printf("Error: Accessing object member which is a delegate.\n");
+		exit(1);
+	case sc_enum:
+		printf("Error: Accessing object member which is an enum.\n");
+		exit(1);
+	case sc_fun:
+		/* Construct anonymous delegate. */
+		ritem = rdata_item_new(ic_value);
+		rvalue = rdata_value_new();
+		ritem->u.value = rvalue;
+
+		rvar = rdata_var_new(vc_deleg);
+		rvalue->var = rvar;
+
+		deleg_v = rdata_deleg_new();
+		rvar->u.deleg_v = deleg_v;
+
+		deleg_v->obj = obj_var;
+		deleg_v->sym = member;
+		*res = ritem;
+		break;
+	case sc_var:
+		/* Get static object member variable. */
+		mvar = intmap_get(&object->fields, access->member_name->sid);
+
+		ritem = rdata_item_new(ic_address);
+		address = rdata_address_new(ac_var);
+		ritem->u.address = address;
+
+		addr_var = rdata_addr_var_new();
+		address->u.var_a = addr_var;
+		addr_var->vref = mvar;
+
+		*res = ritem;
+		break;
+	case sc_prop:
+		/* Construct named property address. */
+		ritem = rdata_item_new(ic_address);
+		address = rdata_address_new(ac_prop);
+		addr_prop = rdata_addr_prop_new(apc_named);
+		aprop_named = rdata_aprop_named_new();
+		ritem->u.address = address;
+		address->u.prop_a = addr_prop;
+		addr_prop->u.named = aprop_named;
+
+		deleg_p = rdata_deleg_new();
+		deleg_p->obj = obj_var;
+		deleg_p->sym = member;
+		addr_prop->u.named->prop_d = deleg_p;
+
+		*res = ritem;
+		break;
+	}
+}
+
+/** Evaluate object member acccess.
+ *
+ * @param run		Runner object
+ * @param access	Access operation
+ * @param arg		Evaluated base expression
+ * @param res		Place to store result
+ */
+static void run_access_object_nonstatic(run_t *run, stree_access_t *access,
+    rdata_var_t *obj_var, rdata_item_t **res)
+{
+	rdata_object_t *object;
+	stree_symbol_t *member;
 	rdata_item_t *ritem;
 	rdata_address_t *address;
 	rdata_addr_var_t *addr_var;
@@ -1540,14 +1680,12 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	rdata_var_t *var;
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Run object access operation.\n");
+	printf("Run nonstatic object access operation.\n");
 #endif
-	assert(arg->ic == ic_address);
-	assert(arg->u.address->ac == ac_var);
-	assert(arg->u.address->u.var_a->vref->vc == vc_object);
+	assert(obj_var->vc == vc_object);
+	object = obj_var->u.object_v;
 
-	object_var = arg->u.address->u.var_a->vref;
-	object = object_var->u.object_v;
+	assert(object->static_obj == sn_nonstatic);
 
 	member = symbol_search_csi(run->program, object->class_sym->u.csi,
 	    access->member_name);
@@ -1572,15 +1710,15 @@ static void run_access_object(run_t *run, stree_access_t *access,
 	case sc_csi:
 		printf("Error: Accessing object member which is nested CSI.\n");
 		exit(1);
+	case sc_ctor:
+		/* It is not possible to reference a constructor explicitly. */
+		assert(b_false);
 	case sc_deleg:
 		printf("Error: Accessing object member which is a delegate.\n");
 		exit(1);
 	case sc_enum:
 		printf("Error: Accessing object member which is an enum.\n");
 		exit(1);
-	case sc_ctor:
-		/* It is not possible to reference a constructor explicitly. */
-		assert(b_false);
 	case sc_fun:
 		/* Construct anonymous delegate. */
 		ritem = rdata_item_new(ic_value);
@@ -1592,7 +1730,7 @@ static void run_access_object(run_t *run, stree_access_t *access,
 		deleg_v = rdata_deleg_new();
 		var->u.deleg_v = deleg_v;
 
-		deleg_v->obj = arg->u.address->u.var_a->vref;
+		deleg_v->obj = obj_var;
 		deleg_v->sym = member;
 		break;
 	case sc_var:
@@ -1618,7 +1756,7 @@ static void run_access_object(run_t *run, stree_access_t *access,
 		addr_prop->u.named = aprop_named;
 
 		deleg_p = rdata_deleg_new();
-		deleg_p->obj = object_var;
+		deleg_p->obj = obj_var;
 		deleg_p->sym = member;
 		addr_prop->u.named->prop_d = deleg_p;
 		break;
@@ -2167,7 +2305,6 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 {
 	rdata_item_t *rdest_i, *rsrc_i;
 	rdata_item_t *rsrc_vi;
-	rdata_value_t *src_val;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run assign operation.\n");
@@ -2186,7 +2323,6 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 
 	run_cvt_value_item(run, rsrc_i, &rsrc_vi);
 	assert(rsrc_vi->ic == ic_value);
-	src_val = rsrc_vi->u.value;
 
 	if (rdest_i->ic != ic_address) {
 		printf("Error: Address expression required on left side of "
@@ -2330,7 +2466,7 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 	assert(csi != NULL);
 
 	/* Construct object of the relevant boxed type. */
-	run_new_csi_inst(run, csi, res);
+	run_new_csi_inst_ref(run, csi, sn_nonstatic, res);
 
 	/* Set the 'Value' field */
 
@@ -2347,6 +2483,37 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 	rdata_var_write(mbr_var, rarg_vi->u.value);
 }
 
+/** Create new CSI instance and return reference to it.
+ *
+ * Create a new object, instance of @a csi.
+ * XXX This does not work with generics as @a csi cannot specify a generic
+ * type.
+ *
+ * Initialize the fields with default values of their types, but do not
+ * run any constructor.
+ *
+ * If @a sn is @c sn_nonstatic a regular object is created, containing all
+ * non-static member variables. If @a sn is @c sn_static a static object
+ * is created, containing all static member variables.
+ *
+ * @param run		Runner object
+ * @param csi		CSI to create instance of
+ * @param sn		@c sn_static to create a static (class) object,
+ *			@c sn_nonstatic to create a regular object
+ * @param res		Place to store result
+ */
+void run_new_csi_inst_ref(run_t *run, stree_csi_t *csi, statns_t sn,
+    rdata_item_t **res)
+{
+	rdata_var_t *obj_var;
+
+	/* Create object. */
+	run_new_csi_inst(run, csi, sn, &obj_var);
+
+	/* Create reference to the new object. */
+	run_reference(run, obj_var, res);
+}
+
 /** Create new CSI instance.
  *
  * Create a new object, instance of @a csi.
@@ -2356,17 +2523,26 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
  * Initialize the fields with default values of their types, but do not
  * run any constructor.
  *
+ * If @a sn is @c sn_nonstatic a regular object is created, containing all
+ * non-static member variables. If @a sn is @c sn_static a static object
+ * is created, containing all static member variables.
+ *
  * @param run		Runner object
- * @param as_op		@c as conversion expression
+ * @param csi		CSI to create instance of
+ * @param sn		@c sn_static to create a static (class) object,
+ *			@c sn_nonstatic to create a regular object
  * @param res		Place to store result
  */
-void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
+void run_new_csi_inst(run_t *run, stree_csi_t *csi, statns_t sn,
+    rdata_var_t **res)
 {
 	rdata_object_t *obj;
 	rdata_var_t *obj_var;
 
 	stree_symbol_t *csi_sym;
 	stree_csimbr_t *csimbr;
+	stree_var_t *var;
+	statns_t var_sn;
 
 	rdata_var_t *mbr_var;
 	list_node_t *node;
@@ -2383,29 +2559,39 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 	/* Create the object. */
 	obj = rdata_object_new();
 	obj->class_sym = csi_sym;
+	obj->static_obj = sn;
 	intmap_init(&obj->fields);
 
 	obj_var = rdata_var_new(vc_object);
 	obj_var->u.object_v = obj;
 
-	/* Create object fields. */
+	/* For this CSI and all base CSIs */
 	while (csi != NULL) {
+
+		/* For all members */
 		node = list_first(&csi->members);
 		while (node != NULL) {
 			csimbr = list_node_data(node, stree_csimbr_t *);
+
+			/* Is it a member variable? */
 			if (csimbr->cc == csimbr_var) {
-				/* Compute field type. XXX Memoize. */
-				run_texpr(run->program, csi,
-				    csimbr->u.var->type,
-				    &field_ti);
+				var = csimbr->u.var;
 
-				/* Create and initialize field. */
-				run_var_new(run, field_ti, &mbr_var);
+				/* Is it static/nonstatic? */
+				var_sn = stree_symbol_has_attr(
+				    var_to_symbol(var), sac_static);
+				if (var_sn == sn) {
+					/* Compute field type. XXX Memoize. */
+					run_texpr(run->program, csi, var->type,
+					    &field_ti);
 
-				/* Add to field map. */
-				intmap_set(&obj->fields,
-				    csimbr->u.var->name->sid,
-				    mbr_var);
+					/* Create and initialize field. */
+					run_var_new(run, field_ti, &mbr_var);
+
+					/* Add to field map. */
+					intmap_set(&obj->fields, var->name->sid,
+					    mbr_var);
+				}
 			}
 
 			node = list_next(&csi->members, node);
@@ -2415,8 +2601,7 @@ void run_new_csi_inst(run_t *run, stree_csi_t *csi, rdata_item_t **res)
 		csi = csi->base_csi;
 	}
 
-	/* Create reference to the new object. */
-	run_reference(run, obj_var, res);
+	*res = obj_var;
 }
 
 /** Run constructor on an object.

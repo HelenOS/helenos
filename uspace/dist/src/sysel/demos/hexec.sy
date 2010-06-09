@@ -27,7 +27,7 @@
 --
 
 class HelenOSExecDemo is
-	fun Main() is
+	fun Main(), static is
 		Task.Exec("/app/tester");
 		Task.Exec("/app/tester", "print1");
 	end

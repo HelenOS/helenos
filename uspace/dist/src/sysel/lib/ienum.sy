@@ -26,19 +26,16 @@
 -- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-class StringDemo is
-	fun Main(), static is
-		-- Concatenate some strings.
-		Builtin.WriteLine("One-" + "two-" + "three!");
+-- Enumerable collection interface.
+interface IEnumerable/tdata is
+	fun GetEnumerator() : IEnumerator/tdata;
+end
 
-		-- Extract characters from a string.
-		var i : int;
-		i = 0;
-		while i < 5 do
-			Builtin.WriteLine("ABCDE"[i]);
-			i = i + 1;
-		end
+-- Enumerator interface.
+interface IEnumerator/tdata is
+	fun MoveNext() : bool;
 
-		Builtin.WriteLine("Abracadabra".Slice(2, 4));
+	prop Data : tdata is
+		get;
 	end
 end

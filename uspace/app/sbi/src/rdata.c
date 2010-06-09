@@ -608,7 +608,7 @@ static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 {
 	(void) src; (void) dest;
 	printf("Unimplemented: Copy object.\n");
-	exit(1);
+	abort();
 }
 
 /** Copy resource.

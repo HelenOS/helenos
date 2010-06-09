@@ -42,7 +42,7 @@ class C : A is
 end
 
 class InheritanceDemo is
-	fun Main() is
+	fun Main(), static is
 		var a : A;
 		var c : C;
 
