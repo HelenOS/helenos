@@ -39,8 +39,9 @@
 /** Number of load components */
 #define LOAD_STEPS  3
 
-/** Maximum task name size */
+/** Maximum name sizes */
 #define TASK_NAME_BUFLEN  20
+#define EXC_NAME_BUFLEN   20
 
 /** Thread states */
 typedef enum {
@@ -121,6 +122,16 @@ typedef struct {
 	bool on_cpu;            /**< Associated with a CPU */
 	unsigned int cpu;       /**< Associated CPU ID (if on_cpu is true) */
 } stats_thread_t;
+
+/** Statistics about a single exception
+ *
+ */
+typedef struct {
+	unsigned int id;             /**< Exception ID */
+	char desc[EXC_NAME_BUFLEN];  /**< Description */
+	uint64_t cycles;             /**< Number of CPU cycles in the handler */
+	uint64_t count;              /**< Number of handled exceptions */
+} stats_exc_t;
 
 /** Load fixed-point value */
 typedef uint32_t load_t;

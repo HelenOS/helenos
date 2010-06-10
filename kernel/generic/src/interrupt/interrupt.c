@@ -52,13 +52,11 @@
 #include <print.h>
 #include <symtab.h>
 #include <proc/thread.h>
+#include <arch/cycle.h>
+#include <str.h>
 
-static struct {
-	const char *name;
-	iroutine f;
-} exc_table[IVT_ITEMS];
-
-SPINLOCK_INITIALIZE(exctbl_lock);
+exc_table_t exc_table[IVT_ITEMS];
+IRQ_SPINLOCK_INITIALIZE(exctbl_lock);
 
 /** Register exception handler
  *
@@ -71,13 +69,15 @@ iroutine exc_register(int n, const char *name, iroutine handler)
 {
 	ASSERT(n < IVT_ITEMS);
 	
-	spinlock_lock(&exctbl_lock);
+	irq_spinlock_lock(&exctbl_lock, true);
 	
 	iroutine old = exc_table[n].f;
 	exc_table[n].f = handler;
 	exc_table[n].name = name;
+	exc_table[n].cycles = 0;
+	exc_table[n].count = 0;
 	
-	spinlock_unlock(&exctbl_lock);
+	irq_spinlock_unlock(&exctbl_lock, true);
 	
 	return old;
 }
@@ -92,10 +92,12 @@ void exc_dispatch(int n, istate_t *istate)
 {
 	ASSERT(n < IVT_ITEMS);
 	
+	uint64_t begin_cycle = get_cycle();
+	
 	/* Account user cycles */
 	if (THREAD) {
 		irq_spinlock_lock(&THREAD->lock, false);
-		thread_update_accounting(true);
+		THREAD->ucycles += begin_cycle - THREAD->last_cycle;
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
 	
@@ -115,9 +117,15 @@ void exc_dispatch(int n, istate_t *istate)
 	if ((THREAD) && (THREAD->interrupted) && (istate_from_uspace(istate)))
 		thread_exit();
 	
+	/* Account exception handling */
+	uint64_t end_cycle = get_cycle();
+	exc_table[n].cycles += end_cycle - begin_cycle;
+	exc_table[n].count++;
+	
+	/* Do not charge THREAD for exception cycles */
 	if (THREAD) {
 		irq_spinlock_lock(&THREAD->lock, false);
-		thread_update_accounting(false);
+		THREAD->last_cycle = end_cycle;
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
 }
@@ -184,41 +192,54 @@ static int cmd_exc_print(cmd_arg_t *argv)
 #if (IVT_ITEMS > 0)
 	unsigned int i;
 	
-	spinlock_lock(&exctbl_lock);
+	irq_spinlock_lock(&exctbl_lock, true);
 	
 #ifdef __32_BITS__
-	printf("Exc Description          Handler    Symbol\n");
-	printf("--- -------------------- ---------- --------\n");
+	printf("Exc Description          Count      Cycles     Handler    Symbol\n");
+	printf("--- -------------------- ---------- ---------- ---------- --------\n");
 #endif
 	
 #ifdef __64_BITS__
-	printf("Exc Description          Handler            Symbol\n");
-	printf("--- -------------------- ------------------ --------\n");
+	printf("Exc Description          Count      Cycles     Handler            Symbol\n");
+	printf("--- -------------------- ---------- ---------- ------------------ --------\n");
 #endif
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
-		const char *symbol = symtab_fmt_name_lookup((unative_t) exc_table[i].f);
+		uint64_t count;
+		char count_suffix;
+		
+		order_suffix(exc_table[i].count, &count, &count_suffix);
+		
+		uint64_t cycles;
+		char cycles_suffix;
+		
+		order_suffix(exc_table[i].cycles, &cycles, &cycles_suffix);
+		
+		const char *symbol =
+		    symtab_fmt_name_lookup((unative_t) exc_table[i].f);
 		
 #ifdef __32_BITS__
-		printf("%-3u %-20s %10p %s\n", i + IVT_FIRST, exc_table[i].name,
-			exc_table[i].f, symbol);
+		printf("%-3u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %10p %s\n",
+		    i + IVT_FIRST, exc_table[i].name, count, count_suffix,
+		    cycles, cycles_suffix, exc_table[i].f, symbol);
 #endif
 		
 #ifdef __64_BITS__
-		printf("%-3u %-20s %18p %s\n", i + IVT_FIRST, exc_table[i].name,
-			exc_table[i].f, symbol);
+		printf("%-3u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %18p %s\n",
+		    i + IVT_FIRST, exc_table[i].name, count, count_suffix,
+		    cycles, cycles_suffix, exc_table[i].f, symbol);
 #endif
 		
 		if (((i + 1) % 20) == 0) {
 			printf(" -- Press any key to continue -- ");
-			spinlock_unlock(&exctbl_lock);
+			irq_spinlock_unlock(&exctbl_lock, true);
 			indev_pop_character(stdin);
-			spinlock_lock(&exctbl_lock);
+			irq_spinlock_lock(&exctbl_lock, true);
 			printf("\n");
 		}
 	}
 	
-	spinlock_unlock(&exctbl_lock);
+	irq_spinlock_unlock(&exctbl_lock, true);
 #endif
 	
 	return 1;

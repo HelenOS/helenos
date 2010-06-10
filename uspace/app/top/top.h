@@ -45,6 +45,7 @@
 
 #define OP_TASKS  1
 #define OP_IPC    2
+#define OP_EXC    3
 
 extern int operation_type;
 
@@ -87,6 +88,9 @@ typedef struct {
 	
 	size_t threads_count;
 	stats_thread_t *threads;
+	
+	size_t exceptions_count;
+	stats_exc_t *exceptions;
 	
 	stats_physmem_t *physmem;
 } data_t;

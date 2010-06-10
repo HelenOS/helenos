@@ -183,6 +183,50 @@ stats_thread_t *stats_get_thread(thread_id_t thread_id)
 	return stats_thread;
 }
 
+/** Get exception statistics.
+ *
+ * @param count Number of records returned.
+ *
+ * @return Array of stats_exc_t structures.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
+stats_exc_t *stats_get_exceptions(size_t *count)
+{
+	size_t size = 0;
+	stats_exc_t *stats_exceptions =
+	    (stats_exc_t *) sysinfo_get_data("system.exceptions", &size);
+	
+	assert((size % sizeof(stats_exc_t)) == 0);
+	
+	*count = size / sizeof(stats_exc_t);
+	return stats_exceptions;
+}
+
+/** Get single exception statistics
+ *
+ * @param excn Exception number we are interested in.
+ *
+ * @return Pointer to the stats_exc_t structure.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
+stats_exc_t *stats_get_exception(unsigned int excn)
+{
+	char name[SYSINFO_STATS_MAX_PATH];
+	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.exceptionss.%u", excn);
+	
+	size_t size = 0;
+	stats_exc_t *stats_exception =
+	    (stats_exc_t *) sysinfo_get_data(name, &size);
+	
+	assert((size == sizeof(stats_exc_t)) || (size == 0));
+	
+	return stats_exception;
+}
+
 /** Get system load
  *
  * @param count Number of load records returned.

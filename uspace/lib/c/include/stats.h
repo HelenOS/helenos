@@ -52,6 +52,9 @@ extern stats_task_t *stats_get_task(task_id_t);
 extern stats_thread_t *stats_get_threads(size_t *);
 extern stats_thread_t *stats_get_thread(thread_id_t);
 
+extern stats_exc_t *stats_get_exceptions(size_t *);
+extern stats_exc_t *stats_get_exception(unsigned int);
+
 extern void stats_print_load_fragment(load_t, unsigned int);
 extern const char *thread_get_state(state_t);
 

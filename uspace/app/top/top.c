@@ -114,6 +114,10 @@ static const char *read_data(data_t *target)
 	if (target->threads == NULL)
 		return "Cannot get threads";
 	
+	target->exceptions = stats_get_exceptions(&(target->exceptions_count));
+	if (target->exceptions == NULL)
+		return "Cannot get exceptions";
+	
 	/* Get physical memory */
 	target->physmem = stats_get_physmem();
 	if (target->physmem == NULL)
@@ -231,6 +235,9 @@ static void free_data(data_t *target)
 	if (target->threads != NULL)
 		free(target->threads);
 	
+	if (target->exceptions != NULL)
+		free(target->exceptions);
+	
 	if (target->physmem != NULL)
 		free(target->physmem);
 }
@@ -283,6 +290,10 @@ int main(int argc, char *argv[])
 			case 't':
 				print_warning("Showing task statistics");
 				operation_type = OP_TASKS;
+				break;
+			case 'e':
+				print_warning("Showing exception statistics");
+				operation_type = OP_EXC;
 				break;
 			default:
 				print_warning("Unknown command: %c", c);

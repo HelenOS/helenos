@@ -324,6 +324,43 @@ static inline void print_ipc(data_t *data)
 	}
 }
 
+static inline void print_exc_head(void)
+{
+	screen_style_inverted();
+	printf("  ID                     Desc    Count   Cycles");
+	screen_newline();
+	screen_style_normal();
+}
+
+static inline void print_exc(data_t *data)
+{
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t col;
+	ipcarg_t row;
+	screen_get_pos(&col, &row);
+	
+	size_t i;
+	for (i = 0; (i < data->exceptions_count) && (row < rows); i++, row++) {
+		uint64_t cycles;
+		char suffix;
+		
+		order_suffix(data->exceptions[i].cycles, &cycles, &suffix);
+		printf("%8u %20s %8" PRIu64 " %8" PRIu64 "%c",
+		     data->exceptions[i].id, data->exceptions[i].desc,
+		     data->exceptions[i].count, cycles, suffix);
+		
+		screen_newline();
+	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
+	}
+}
+
 void print_data(data_t *data)
 {
 	screen_restart(false);
@@ -337,12 +374,19 @@ void print_data(data_t *data)
 	screen_get_pos(&warn_col, &warn_row);
 	screen_newline();
 	
-	if (operation_type == OP_IPC) {
-		print_ipc_head();
-		print_ipc(data);
-	} else {
+	switch (operation_type) {
+	case OP_TASKS:
 		print_task_head();
 		print_tasks(data);
+		break;
+	case OP_IPC:
+		print_ipc_head();
+		print_ipc(data);
+		break;
+	case OP_EXC:
+		print_exc_head();
+		print_exc(data);
+		break;
 	}
 	
 	fflush(stdout);

@@ -45,6 +45,16 @@
 
 typedef void (* iroutine)(int, istate_t *);
 
+typedef struct {
+	const char *name;
+	iroutine f;
+	uint64_t cycles;
+	uint64_t count;
+} exc_table_t;
+
+IRQ_SPINLOCK_EXTERN(exctbl_lock);
+extern exc_table_t exc_table[];
+
 extern void fault_if_from_uspace(istate_t *, const char *, ...);
 extern iroutine exc_register(int, const char *, iroutine);
 extern void exc_dispatch(int, istate_t *);

@@ -43,6 +43,7 @@
 #include <mm/frame.h>
 #include <proc/task.h>
 #include <proc/thread.h>
+#include <interrupt.h>
 #include <str.h>
 #include <errno.h>
 #include <cpu.h>
@@ -534,6 +535,117 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run)
 	return ret;
 }
 
+/** Get exceptions statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Data containing several stats_exc_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ */
+static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
+    bool dry_run)
+{
+	*size = sizeof(stats_exc_t) * IVT_ITEMS;
+	
+	if ((dry_run) || (IVT_ITEMS == 0))
+		return NULL;
+	
+	stats_exc_t *stats_exceptions =
+	    (stats_exc_t *) malloc(*size, FRAME_ATOMIC);
+	if (stats_exceptions == NULL) {
+		/* No free space for allocation */
+		*size = 0;
+		return NULL;
+	}
+	
+	/* Messing with exception table, avoid deadlock */
+	irq_spinlock_lock(&exctbl_lock, true);
+	
+	unsigned int i;
+	for (i = 0; i < IVT_ITEMS; i++) {
+		stats_exceptions[i].id = i + IVT_FIRST;
+		str_cpy(stats_exceptions[i].desc, EXC_NAME_BUFLEN, exc_table[i].name);
+		stats_exceptions[i].cycles = exc_table[i].cycles;
+		stats_exceptions[i].count = exc_table[i].count;
+	}
+	
+	irq_spinlock_unlock(&exctbl_lock, true);
+	
+	return ((void *) stats_exceptions);
+}
+
+/** Get exception statistics
+ *
+ * Get statistics of a given exception. The exception number
+ * is passed as a string (current limitation of the sysinfo
+ * interface, but it is still reasonable for the given purpose).
+ *
+ * @param name    Exception number (string-encoded number).
+ * @param dry_run Do not get the data, just calculate the size.
+ *
+ * @return Sysinfo return holder. The type of the returned
+ *         data is either SYSINFO_VAL_UNDEFINED (unknown
+ *         exception number or memory allocation error) or
+ *         SYSINFO_VAL_FUNCTION_DATA (in that case the
+ *         generated data should be freed within the
+ *         sysinfo request context).
+ *
+ */
+static sysinfo_return_t get_stats_exception(const char *name, bool dry_run)
+{
+	/* Initially no return value */
+	sysinfo_return_t ret;
+	ret.tag = SYSINFO_VAL_UNDEFINED;
+	
+	/* Parse the exception number */
+	uint64_t excn;
+	if (str_uint64(name, NULL, 0, true, &excn) != EOK)
+		return ret;
+	
+#if IVT_FIRST > 0
+	if (excn < IVT_FIRST)
+		return ret;
+#endif
+	
+	if (excn >= IVT_ITEMS + IVT_FIRST)
+		return ret;
+	
+	if (dry_run) {
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = NULL;
+		ret.data.size = sizeof(stats_thread_t);
+	} else {
+		/* Update excn index for accessing exc_table */
+		excn -= IVT_FIRST;
+		
+		/* Allocate stats_exc_t structure */
+		stats_exc_t *stats_exception =
+		    (stats_exc_t *) malloc(sizeof(stats_exc_t), FRAME_ATOMIC);
+		if (stats_exception == NULL)
+			return ret;
+		
+		/* Messing with exception table, avoid deadlock */
+		irq_spinlock_lock(&exctbl_lock, true);
+		
+		/* Correct return value */
+		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+		ret.data.data = (void *) stats_exception;
+		ret.data.size = sizeof(stats_exc_t);
+		
+		stats_exception->id = excn;
+		str_cpy(stats_exception->desc, EXC_NAME_BUFLEN, exc_table[excn].name);
+		stats_exception->cycles = exc_table[excn].cycles;
+		stats_exception->count = exc_table[excn].count;
+		
+		irq_spinlock_unlock(&exctbl_lock, true);
+	}
+	
+	return ret;
+}
+
 /** Get physical memory statistics
  *
  * @param item    Sysinfo item (unused).
@@ -650,8 +762,10 @@ void stats_init(void)
 	sysinfo_set_item_fn_data("system.load", NULL, get_stats_load);
 	sysinfo_set_item_fn_data("system.tasks", NULL, get_stats_tasks);
 	sysinfo_set_item_fn_data("system.threads", NULL, get_stats_threads);
+	sysinfo_set_item_fn_data("system.exceptions", NULL, get_stats_exceptions);
 	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task);
 	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread);
+	sysinfo_set_subtree_fn("system.exceptions", NULL, get_stats_exception);
 }
 
 /** @}
