@@ -589,16 +589,24 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 	bool error = false;
 	size_t i;
 	for (i = 0; i < cmd->argc; i++) {
+		char *buf;
+		
 		start = end;
 		if (!parse_argument(cmdline, size, &start, &end)) {
+			if (cmd->argv[i].type == ARG_TYPE_STRING_OPTIONAL) {
+				buf = (char *) cmd->argv[i].buffer;
+				str_cpy(buf, cmd->argv[i].len, "");
+				continue;
+			}
+			
 			printf("Too few arguments.\n");
 			spinlock_unlock(&cmd->lock);
 			return NULL;
 		}
 		
-		char *buf;
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
+		case ARG_TYPE_STRING_OPTIONAL:
 			buf = (char *) cmd->argv[i].buffer;
 			str_ncpy(buf, cmd->argv[i].len, cmdline + start,
 			    end - start);

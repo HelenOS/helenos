@@ -464,6 +464,7 @@ int task_kill(task_id_t id)
 
 static bool task_print_walker(avltree_node_t *node, void *arg)
 {
+	bool *additional = (bool *) arg;
 	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	irq_spinlock_lock(&task->lock, false);
 	
@@ -475,51 +476,67 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	order_suffix(kcycles, &kcycles, &ksuffix);
 	
 #ifdef __32_BITS__
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %10p %10p %9" PRIu64 "%c %9"
-	    PRIu64 "%c %7ld %6ld", task->taskid, task->name, task->context,
-	    task, task->as, ucycles, usuffix, kcycles, ksuffix,
-	    atomic_get(&task->refcount), atomic_get(&task->active_calls));
+	if (*additional)
+		printf("%-8" PRIu64 " %9ld %7ld", task->taskid,
+		    atomic_get(&task->refcount), atomic_get(&task->active_calls));
+	else
+		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %10p %10p"
+		    " %9" PRIu64 "%c %9" PRIu64 "%c\n", task->taskid,
+		    task->name, task->context, task, task->as,
+		    ucycles, usuffix, kcycles, ksuffix);
 #endif
 	
 #ifdef __64_BITS__
-	printf("%-6" PRIu64 " %-12s %-3" PRIu32 " %18p %18p %9" PRIu64 "%c %9"
-	    PRIu64 "%c %7ld %6ld", task->taskid, task->name, task->context,
-	    task, task->as, ucycles, usuffix, kcycles, ksuffix,
-	    atomic_get(&task->refcount), atomic_get(&task->active_calls));
+	if (*additional)
+		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c %9ld %7ld",
+		    task->taskid, ucycles, usuffix, kcycles, ksuffix,
+		    atomic_get(&task->refcount), atomic_get(&task->active_calls));
+	else
+		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
+		    task->taskid, task->name, task->context, task, task->as);
 #endif
 	
-	size_t i;
-	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (task->phones[i].callee)
-			printf(" %" PRIs ":%p", i, task->phones[i].callee);
+	if (*additional) {
+		size_t i;
+		for (i = 0; i < IPC_MAX_PHONES; i++) {
+			if (task->phones[i].callee)
+				printf(" %" PRIs ":%p", i, task->phones[i].callee);
+		}
+		printf("\n");
 	}
-	printf("\n");
 	
 	irq_spinlock_unlock(&task->lock, false);
 	return true;
 }
 
-/** Print task list */
-void task_print_list(void)
+/** Print task list
+ *
+ * @param additional Print additional information.
+ *
+ */
+void task_print_list(bool additional)
 {
 	/* Messing with task structures, avoid deadlock */
 	irq_spinlock_lock(&tasks_lock, true);
 	
 #ifdef __32_BITS__
-	printf("taskid name         ctx address    as        "
-	    " ucycles    kcycles    threads calls  callee\n");
-	printf("------ ------------ --- ---------- ----------"
-	    " ---------- ---------- ------- ------ ------>\n");
+	if (additional)
+		printf("[taskid] [threads] [calls] [callee\n");
+	else
+		printf("[taskid] [name        ] [ctx] [address ] [as      ]"
+		    " [ucycles ] [kcycles ]\n");
 #endif
 	
 #ifdef __64_BITS__
-	printf("taskid name         ctx address            as                "
-	    " ucycles    kcycles    threads calls  callee\n");
-	printf("------ ------------ --- ------------------ ------------------"
-	    " ---------- ---------- ---------- ------- ------ ------>\n");
+	if (additional)
+		printf("[taskid] [ucycles ] [kcycles ] [threads] [calls]"
+		    " [callee\n");
+	else
+		printf("[taskid] [name        ] [ctx] [address         ]"
+		    " [as              ]\n");
 #endif
 	
-	avltree_walk(&tasks_tree, task_print_walker, NULL);
+	avltree_walk(&tasks_tree, task_print_walker, &additional);
 	
 	irq_spinlock_unlock(&tasks_lock, true);
 }

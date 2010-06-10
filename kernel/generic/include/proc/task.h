@@ -137,7 +137,7 @@ extern void task_release(task_t *);
 extern task_t *task_find_by_id(task_id_t);
 extern int task_kill(task_id_t);
 extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
-extern void task_print_list(void);
+extern void task_print_list(bool);
 
 extern void cap_set(task_t *, cap_t);
 extern cap_t cap_get(task_t *);

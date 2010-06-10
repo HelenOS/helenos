@@ -206,7 +206,7 @@ static cmd_info_t set4_info = {
 	.argv = set4_argv
 };
 
-/* Data and methods for 'call0' command. */
+/* Data and methods for 'call0' and 'mcall0' command. */
 static char call0_buf[MAX_CMDLINE + 1];
 static char carg1_buf[MAX_CMDLINE + 1];
 static char carg2_buf[MAX_CMDLINE + 1];
@@ -362,12 +362,21 @@ static cmd_info_t threads_info = {
 	.argc = 0
 };
 
+
 static int cmd_tasks(cmd_arg_t *argv);
+static char tasks_buf[MAX_CMDLINE + 1];
+
+static cmd_arg_t tasks_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = tasks_buf,
+	.len = sizeof(tasks_buf)
+};
 static cmd_info_t tasks_info = {
 	.name = "tasks",
-	.description = "List all tasks.",
+	.description = "List all tasks (use -a for additional information).",
 	.func = cmd_tasks,
-	.argc = 0
+	.argc = 1,
+	.argv = &tasks_argv
 };
 
 
@@ -929,9 +938,15 @@ int cmd_threads(cmd_arg_t * argv)
  *
  * @return Always 1
  */
-int cmd_tasks(cmd_arg_t * argv)
+int cmd_tasks(cmd_arg_t *argv)
 {
-	task_print_list();
+	if (str_cmp(tasks_buf, "-a") == 0)
+		task_print_list(true);
+	else if (str_cmp(tasks_buf, "") == 0)
+		task_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", tasks_buf);
+	
 	return 1;
 }
 

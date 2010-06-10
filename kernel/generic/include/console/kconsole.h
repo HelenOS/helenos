@@ -46,6 +46,8 @@ typedef enum {
 	ARG_TYPE_INVALID = 0,
 	ARG_TYPE_INT,
 	ARG_TYPE_STRING,
+	/** Optional string */
+	ARG_TYPE_STRING_OPTIONAL,
 	/** Variable type - either symbol or string. */
 	ARG_TYPE_VAR
 } cmd_arg_type_t;
