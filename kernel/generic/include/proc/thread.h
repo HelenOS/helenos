@@ -239,7 +239,7 @@ extern int thread_join_timeout(thread_t *, uint32_t, unsigned int);
 extern void thread_detach(thread_t *);
 
 extern void thread_register_call_me(void (*)(void *), void *);
-extern void thread_print_list(void);
+extern void thread_print_list(bool);
 extern void thread_destroy(thread_t *, bool);
 extern thread_t *thread_find_by_id(thread_id_t);
 extern void thread_update_accounting(bool);

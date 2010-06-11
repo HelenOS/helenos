@@ -521,9 +521,9 @@ void task_print_list(bool additional)
 	
 #ifdef __32_BITS__
 	if (additional)
-		printf("[taskid] [threads] [calls] [callee\n");
+		printf("[id    ] [threads] [calls] [callee\n");
 	else
-		printf("[taskid] [name        ] [ctx] [address ] [as      ]"
+		printf("[id    ] [name        ] [ctx] [address ] [as      ]"
 		    " [ucycles ] [kcycles ]\n");
 #endif
 	

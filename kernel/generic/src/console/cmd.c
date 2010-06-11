@@ -354,22 +354,27 @@ cmd_info_t tlb_info = {
 	.argv = NULL
 };
 
+static char flag_buf[MAX_CMDLINE + 1];
+
 static int cmd_threads(cmd_arg_t *argv);
+static cmd_arg_t threads_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
 static cmd_info_t threads_info = {
 	.name = "threads",
-	.description = "List all threads.",
+	.description = "List all threads (use -a for additional information).",
 	.func = cmd_threads,
-	.argc = 0
+	.argc = 1,
+	.argv = &threads_argv
 };
 
-
 static int cmd_tasks(cmd_arg_t *argv);
-static char tasks_buf[MAX_CMDLINE + 1];
-
 static cmd_arg_t tasks_argv = {
 	.type = ARG_TYPE_STRING_OPTIONAL,
-	.buffer = tasks_buf,
-	.len = sizeof(tasks_buf)
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
 };
 static cmd_info_t tasks_info = {
 	.name = "tasks",
@@ -922,30 +927,36 @@ int cmd_sysinfo(cmd_arg_t * argv)
 
 /** Command for listings Thread information
  *
- * @param argv Ignores
+ * @param argv Ignored
  *
  * @return Always 1
  */
-int cmd_threads(cmd_arg_t * argv)
+int cmd_threads(cmd_arg_t *argv)
 {
-	thread_print_list();
+	if (str_cmp(flag_buf, "-a") == 0)
+		thread_print_list(true);
+	else if (str_cmp(flag_buf, "") == 0)
+		thread_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", flag_buf);
+	
 	return 1;
 }
 
 /** Command for listings Task information
  *
- * @param argv Ignores
+ * @param argv Ignored
  *
  * @return Always 1
  */
 int cmd_tasks(cmd_arg_t *argv)
 {
-	if (str_cmp(tasks_buf, "-a") == 0)
+	if (str_cmp(flag_buf, "-a") == 0)
 		task_print_list(true);
-	else if (str_cmp(tasks_buf, "") == 0)
+	else if (str_cmp(flag_buf, "") == 0)
 		task_print_list(false);
 	else
-		printf("Unknown argument \"%s\".\n", tasks_buf);
+		printf("Unknown argument \"%s\".\n", flag_buf);
 	
 	return 1;
 }

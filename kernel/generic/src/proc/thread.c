@@ -604,6 +604,7 @@ void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
 
 static bool thread_walker(avltree_node_t *node, void *arg)
 {
+	bool *additional = (bool *) arg;
 	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
 	
 	uint64_t ucycles, kcycles;
@@ -612,66 +613,79 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	order_suffix(thread->kcycles, &kcycles, &ksuffix);
 	
 #ifdef __32_BITS__
-	printf("%-6" PRIu64" %-10s %10p %-8s %10p %-3" PRIu32 " %10p %10p %9"
-		PRIu64 "%c %9" PRIu64 "%c ", thread->tid, thread->name, thread,
-		thread_states[thread->state], thread->task, thread->task->context,
-		thread->thread_code, thread->kstack, ucycles, usuffix, kcycles, ksuffix);
-#endif
-	
-#ifdef __64_BITS__
-	printf("%-6" PRIu64" %-10s %18p %-8s %18p %-3" PRIu32 " %18p %18p %9"
-		PRIu64 "%c %9" PRIu64 "%c ", thread->tid, thread->name, thread,
-		thread_states[thread->state], thread->task, thread->task->context,
-		thread->thread_code, thread->kstack, ucycles, usuffix, kcycles, ksuffix);
-#endif
-	
-	if (thread->cpu)
-		printf("%-4u", thread->cpu->id);
+	if (*additional)
+		printf("%-8" PRIu64" %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
+		    thread->tid, thread->kstack, ucycles, usuffix,
+		    kcycles, ksuffix);
 	else
-		printf("none");
-	
-	if (thread->state == Sleeping) {
-#ifdef __32_BITS__
-		printf(" %10p", thread->sleep_queue);
+		printf("%-8" PRIu64" %-14s %10p %-8s %10p %-5" PRIu32 " %10p\n",
+		    thread->tid, thread->name, thread, thread_states[thread->state],
+		    thread->task, thread->task->context, thread->thread_code);
 #endif
-		
+	
 #ifdef __64_BITS__
-		printf(" %18p", thread->sleep_queue);
+	if (*additional)
+		printf("%-8" PRIu64" %18p %18p\n"
+		    "         %9" PRIu64 "%c %9" PRIu64 "%c ",
+		    thread->tid, thread->thread_code, thread->kstack,
+		    ucycles, usuffix, kcycles, ksuffix);
+	else
+		printf("%-8" PRIu64" %-14s %18p %-8s %18p %-5" PRIu32 "\n",
+		    thread->tid, thread->name, thread, thread_states[thread->state],
+		    thread->task, thread->task->context);
 #endif
-	}
 	
-	printf("\n");
+	if (*additional) {
+		if (thread->cpu)
+			printf("%-5u", thread->cpu->id);
+		else
+			printf("none ");
+		
+		if (thread->state == Sleeping) {
+#ifdef __32_BITS__
+			printf(" %10p", thread->sleep_queue);
+#endif
+			
+#ifdef __64_BITS__
+			printf(" %18p", thread->sleep_queue);
+#endif
+		}
+		
+		printf("\n");
+	}
 	
 	return true;
 }
 
 /** Print list of threads debug info
  *
+ * @param additional Print additional information.
+ *
  */
-void thread_print_list(void)
+void thread_print_list(bool additional)
 {
 	/* Messing with thread structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
 	
 #ifdef __32_BITS__
-	printf("tid    name       address    state    task       "
-		"ctx code       stack      ucycles    kcycles    cpu  "
-		"waitqueue\n");
-	printf("------ ---------- ---------- -------- ---------- "
-		"--- ---------- ---------- ---------- ---------- ---- "
-		"----------\n");
+	if (additional)
+		printf("[id    ] [stack   ] [ucycles ] [kcycles ] [cpu]"
+		    " [waitqueue]\n");
+	else
+		printf("[id    ] [name        ] [address ] [state ] [task    ]"
+		    " [ctx] [code    ]\n");
 #endif
 	
 #ifdef __64_BITS__
-	printf("tid    name       address            state    task               "
-		"ctx code               stack              ucycles    kcycles    cpu  "
-		"waitqueue\n");
-	printf("------ ---------- ------------------ -------- ------------------ "
-		"--- ------------------ ------------------ ---------- ---------- ---- "
-		"------------------\n");
+	if (additional) {
+		printf("[id    ] [code            ] [stack           ]\n"
+		    "         [ucycles ] [kcycles ] [cpu] [waitqueue       ]\n");
+	} else
+		printf("[id    ] [name        ] [address         ] [state ]"
+		    " [task            ] [ctx]\n");
 #endif
 	
-	avltree_walk(&threads_tree, thread_walker, NULL);
+	avltree_walk(&threads_tree, thread_walker, &additional);
 	
 	irq_spinlock_unlock(&threads_lock, true);
 }
