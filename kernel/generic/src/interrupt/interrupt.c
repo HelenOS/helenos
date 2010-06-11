@@ -102,14 +102,14 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 	ASSERT(n < IVT_ITEMS);
 #endif
 	
-	uint64_t begin_cycle = get_cycle();
-	
 	/* Account user cycles */
 	if (THREAD) {
 		irq_spinlock_lock(&THREAD->lock, false);
-		THREAD->ucycles += begin_cycle - THREAD->last_cycle;
+		thread_update_accounting(true);
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
+	
+	uint64_t begin_cycle = get_cycle();
 	
 #ifdef CONFIG_UDEBUG
 	if (THREAD)
@@ -129,6 +129,7 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 	
 	/* Account exception handling */
 	uint64_t end_cycle = get_cycle();
+	
 	exc_table[n].cycles += end_cycle - begin_cycle;
 	exc_table[n].count++;
 	
