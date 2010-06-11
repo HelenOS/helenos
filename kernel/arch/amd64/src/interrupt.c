@@ -91,14 +91,14 @@ static void trap_virtual_eoi(void)
 
 }
 
-static void null_interrupt(int n, istate_t *istate)
+static void null_interrupt(unsigned int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unserviced interrupt: %d.", n);
+	fault_if_from_uspace(istate, "Unserviced interrupt: %u.", n);
 	decode_istate(n, istate);
 	panic("Unserviced interrupt.");
 }
 
-static void de_fault(int n, istate_t *istate)
+static void de_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
 	decode_istate(n, istate);
@@ -108,7 +108,7 @@ static void de_fault(int n, istate_t *istate)
 /** General Protection Fault.
  *
  */
-static void gp_fault(int n, istate_t *istate)
+static void gp_fault(unsigned int n, istate_t *istate)
 {
 	if (TASK) {
 		irq_spinlock_lock(&TASK->lock, false);
@@ -133,14 +133,14 @@ static void gp_fault(int n, istate_t *istate)
 	panic("General protection fault.");
 }
 
-static void ss_fault(int n, istate_t *istate)
+static void ss_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
 	decode_istate(n, istate);
 	panic("Stack fault.");
 }
 
-static void nm_fault(int n, istate_t *istate)
+static void nm_fault(unsigned int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY
 	scheduler_fpu_lazy_request();
@@ -151,7 +151,7 @@ static void nm_fault(int n, istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void tlb_shootdown_ipi(int n, istate_t *istate)
+static void tlb_shootdown_ipi(unsigned int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
@@ -161,11 +161,11 @@ static void tlb_shootdown_ipi(int n, istate_t *istate)
 /** Handler of IRQ exceptions.
  *
  */
-static void irq_interrupt(int n, istate_t *istate)
+static void irq_interrupt(unsigned int n, istate_t *istate)
 {
 	ASSERT(n >= IVT_IRQBASE);
 	
-	int inum = n - IVT_IRQBASE;
+	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	ASSERT(inum < IRQ_COUNT);
 	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
@@ -188,7 +188,7 @@ static void irq_interrupt(int n, istate_t *istate)
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+		printf("cpu%u: spurious interrupt (inum=%u)\n", CPU->id, inum);
 #endif
 	}
 	

@@ -80,8 +80,8 @@ typedef union {
 	uint32_t pc;
 } instruction_union_t;
 
-extern void prefetch_abort(int n, istate_t *istate);
-extern void data_abort(int n, istate_t *istate);
+extern void prefetch_abort(unsigned int, istate_t *);
+extern void data_abort(unsigned int, istate_t *);
 
 #endif
 

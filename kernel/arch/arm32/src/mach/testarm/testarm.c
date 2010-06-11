@@ -204,7 +204,7 @@ static inline uint32_t gxemul_irqc_get_sources(void)
  *
  * Determines the sources of interrupt and calls their handlers.
  */
-void gxemul_irq_exception(int exc_no, istate_t *istate)
+void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;

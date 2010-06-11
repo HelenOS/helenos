@@ -128,7 +128,7 @@ void page_arch_init(void)
  * is initializaed. This thing clears page table and fills in the specific
  * items.
  */
-void ident_page_fault(int n, istate_t *istate)
+void ident_page_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t page;
 	static uintptr_t oldpage = 0;
@@ -176,7 +176,7 @@ void ident_page_fault(int n, istate_t *istate)
 }
 
 
-void page_fault(int n, istate_t *istate)
+void page_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t page;
 	pf_access_t access;

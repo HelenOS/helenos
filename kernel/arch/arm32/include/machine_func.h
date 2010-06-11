@@ -52,7 +52,7 @@ struct arm_machine_ops {
 	void		(*machine_timer_irq_start)(void);
 	void		(*machine_cpu_halt)(void);
 	uintptr_t	(*machine_get_memory_size)(void);
-	void		(*machine_irq_exception)(int, istate_t*);
+	void		(*machine_irq_exception)(unsigned int, istate_t*);
 	void		(*machine_frame_init)(void);
 	void		(*machine_output_init)(void);
 	void		(*machine_input_init)(void);
@@ -85,7 +85,7 @@ extern uintptr_t machine_get_memory_size(void);
  * @param exc_no Interrupt exception number.
  * @param istate Saved processor state.
  */
-extern void machine_irq_exception(int exc_no, istate_t *istate);
+extern void machine_irq_exception(unsigned int exc_no, istate_t *istate);
 
 
 /*

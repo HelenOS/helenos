@@ -44,7 +44,7 @@
 #include <print.h>
 #include <interrupt.h>
 
-static void pic_spurious(int n, istate_t *istate);
+static void pic_spurious(unsigned int n, istate_t *istate);
 
 void i8259_init(void)
 {
@@ -124,7 +124,7 @@ void pic_eoi(void)
 	pio_write_8((ioport8_t *)0xa0, 0x20);
 }
 
-void pic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
 	printf("cpu%u: PIC spurious interrupt\n", CPU->id);

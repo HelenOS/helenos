@@ -169,7 +169,7 @@ static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 }
 
 extern void page_arch_init(void);
-extern void page_fault(int, istate_t *);
+extern void page_fault(unsigned int, istate_t *);
 
 #endif /* KERNEL */
 

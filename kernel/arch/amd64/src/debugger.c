@@ -267,7 +267,7 @@ void breakpoint_del(int slot)
 //	ipi_broadcast(VECTOR_DEBUG_IPI);
 }
 
-static void debug_exception(int n __attribute__((unused)), istate_t *istate)
+static void debug_exception(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	/* Set RF to restart the instruction  */
 #ifdef __64_BITS__
@@ -292,7 +292,7 @@ static void debug_exception(int n __attribute__((unused)), istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void debug_ipi(int n __attribute__((unused)),
+static void debug_ipi(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
 	irq_spinlock_lock(&bkpoint_lock, false);

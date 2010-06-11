@@ -75,7 +75,7 @@ uintptr_t machine_get_memory_size(void)
  * @param exc_no Interrupt exception number.
  * @param istate Saved processor state.
  */
-void machine_irq_exception(int exc_no, istate_t *istate)
+void machine_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	(machine_ops.machine_irq_exception)(exc_no, istate);
 }

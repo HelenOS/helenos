@@ -90,15 +90,15 @@ static void trap_virtual_eoi(void)
 
 }
 
-static void null_interrupt(int n, istate_t *istate)
+static void null_interrupt(unsigned int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unserviced interrupt: %d.", n);
+	fault_if_from_uspace(istate, "Unserviced interrupt: %u.", n);
 	
 	decode_istate(istate);
-	panic("Unserviced interrupt: %d.", n);
+	panic("Unserviced interrupt: %u.", n);
 }
 
-static void de_fault(int n, istate_t *istate)
+static void de_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
 	
@@ -107,7 +107,7 @@ static void de_fault(int n, istate_t *istate)
 }
 
 /** General Protection Fault. */
-static void gp_fault(int n __attribute__((unused)), istate_t *istate)
+static void gp_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	if (TASK) {
 		irq_spinlock_lock(&TASK->lock, false);
@@ -132,7 +132,7 @@ static void gp_fault(int n __attribute__((unused)), istate_t *istate)
 	panic("General protection fault.");
 }
 
-static void ss_fault(int n __attribute__((unused)), istate_t *istate)
+static void ss_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
 	
@@ -140,7 +140,7 @@ static void ss_fault(int n __attribute__((unused)), istate_t *istate)
 	panic("Stack fault.");
 }
 
-static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
+static void simd_fp_exception(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	uint32_t mxcsr;
 	asm volatile (
@@ -156,7 +156,7 @@ static void simd_fp_exception(int n __attribute__((unused)), istate_t *istate)
 	panic("SIMD FP exception(19).");
 }
 
-static void nm_fault(int n __attribute__((unused)),
+static void nm_fault(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_FPU_LAZY
@@ -168,7 +168,7 @@ static void nm_fault(int n __attribute__((unused)),
 }
 
 #ifdef CONFIG_SMP
-static void tlb_shootdown_ipi(int n __attribute__((unused)),
+static void tlb_shootdown_ipi(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
 	trap_virtual_eoi();
@@ -177,11 +177,11 @@ static void tlb_shootdown_ipi(int n __attribute__((unused)),
 #endif
 
 /** Handler of IRQ exceptions */
-static void irq_interrupt(int n, istate_t *istate __attribute__((unused)))
+static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused)))
 {
 	ASSERT(n >= IVT_IRQBASE);
 	
-	int inum = n - IVT_IRQBASE;
+	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	ASSERT(inum < IRQ_COUNT);
 	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
@@ -204,7 +204,7 @@ static void irq_interrupt(int n, istate_t *istate __attribute__((unused)))
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
+		printf("cpu%u: spurious interrupt (inum=%u)\n", CPU->id, inum);
 #endif
 	}
 	

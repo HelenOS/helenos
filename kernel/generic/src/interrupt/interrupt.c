@@ -143,10 +143,10 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 /** Default 'null' exception handler
  *
  */
-static void exc_undef(int n, istate_t *istate)
+static void exc_undef(unsigned int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unhandled exception %d.", n);
-	panic("Unhandled exception %d.", n);
+	fault_if_from_uspace(istate, "Unhandled exception %u.", n);
+	panic("Unhandled exception %u.", n);
 }
 
 /** Terminate thread and task if exception came from userspace.

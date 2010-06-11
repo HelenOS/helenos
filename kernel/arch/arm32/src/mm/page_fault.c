@@ -166,10 +166,11 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 
 /** Handles "data abort" exception (load or store at invalid address).
  *
- * @param exc_no	Exception number.
- * @param istate	CPU state when exception occured.
+ * @param exc_no Exception number.
+ * @param istate CPU state when exception occured.
+ *
  */
-void data_abort(int exc_no, istate_t *istate)
+void data_abort(unsigned int exc_no, istate_t *istate)
 {
 	fault_status_t fsr __attribute__ ((unused)) =
 	    read_fault_status_register();
@@ -192,10 +193,11 @@ void data_abort(int exc_no, istate_t *istate)
 
 /** Handles "prefetch abort" exception (instruction couldn't be executed).
  *
- * @param exc_no	Exception number.
- * @param istate	CPU state when exception occured.
+ * @param exc_no Exception number.
+ * @param istate CPU state when exception occured.
+ *
  */
-void prefetch_abort(int exc_no, istate_t *istate)
+void prefetch_abort(unsigned int exc_no, istate_t *istate)
 {
 	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 

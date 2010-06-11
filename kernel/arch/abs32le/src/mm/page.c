@@ -61,7 +61,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	return physaddr;
 }
 
-void page_fault(int n __attribute__((unused)), istate_t *istate)
+void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 }
 

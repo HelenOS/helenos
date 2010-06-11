@@ -128,7 +128,7 @@ static const char *intpol_str[] = {
  * @param istate Interrupted state.
  *
  */
-static void apic_spurious(int n __attribute__((unused)),
+static void apic_spurious(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG

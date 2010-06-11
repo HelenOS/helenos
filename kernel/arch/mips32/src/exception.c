@@ -78,7 +78,7 @@ static void print_regdump(istate_t *istate)
 	    symtab_fmt_name_lookup(istate->ra), istate->sp);
 }
 
-static void unhandled_exception(int n, istate_t *istate)
+static void unhandled_exception(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %s.", exctable[n]);
 	
@@ -86,7 +86,7 @@ static void unhandled_exception(int n, istate_t *istate)
 	panic("Unhandled exception %s.", exctable[n]);
 }
 
-static void reserved_instr_exception(int n, istate_t *istate)
+static void reserved_instr_exception(unsigned int n, istate_t *istate)
 {
 	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
@@ -96,7 +96,7 @@ static void reserved_instr_exception(int n, istate_t *istate)
 		unhandled_exception(n, istate);
 }
 
-static void breakpoint_exception(int n, istate_t *istate)
+static void breakpoint_exception(unsigned int n, istate_t *istate)
 {
 #ifdef CONFIG_DEBUG
 	debugger_bpoint(istate);
@@ -108,18 +108,18 @@ static void breakpoint_exception(int n, istate_t *istate)
 #endif
 }
 
-static void tlbmod_exception(int n, istate_t *istate)
+static void tlbmod_exception(unsigned int n, istate_t *istate)
 {
 	tlb_modified(istate);
 }
 
-static void tlbinv_exception(int n, istate_t *istate)
+static void tlbinv_exception(unsigned int n, istate_t *istate)
 {
 	tlb_invalid(istate);
 }
 
 #ifdef CONFIG_FPU_LAZY
-static void cpuns_exception(int n, istate_t *istate)
+static void cpuns_exception(unsigned int n, istate_t *istate)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
@@ -130,7 +130,7 @@ static void cpuns_exception(int n, istate_t *istate)
 }
 #endif
 
-static void interrupt_exception(int n, istate_t *istate)
+static void interrupt_exception(unsigned int n, istate_t *istate)
 {
 	/* Decode interrupt number and process the interrupt */
 	uint32_t cause = (cp0_cause_read() >> 8) & 0xff;
@@ -150,7 +150,7 @@ static void interrupt_exception(int n, istate_t *istate)
 				 * Spurious interrupt.
 				 */
 #ifdef CONFIG_DEBUG
-				printf("cpu%u: spurious interrupt (inum=%d)\n",
+				printf("cpu%u: spurious interrupt (inum=%u)\n",
 				    CPU->id, i);
 #endif
 			}
@@ -159,7 +159,7 @@ static void interrupt_exception(int n, istate_t *istate)
 }
 
 /** Handle syscall userspace call */
-static void syscall_exception(int n, istate_t *istate)
+static void syscall_exception(unsigned int n, istate_t *istate)
 {
 	panic("Syscall is handled through shortcut.");
 }

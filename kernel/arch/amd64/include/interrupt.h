@@ -115,8 +115,9 @@ extern void decode_istate(int n, istate_t *istate);
 extern void interrupt_init(void);
 extern void trap_virtual_enable_irqs(uint16_t irqmask);
 extern void trap_virtual_disable_irqs(uint16_t irqmask);
+
 /* AMD64 - specific page handler */
-extern void ident_page_fault(int n, istate_t *istate);
+extern void ident_page_fault(unsigned int, istate_t *);
 
 #endif
 

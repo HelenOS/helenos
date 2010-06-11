@@ -90,8 +90,9 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 /** Software Interrupt handler.
  *
  * Dispatches the syscall.
+ *
  */
-static void swi_exception(int exc_no, istate_t *istate)
+static void swi_exception(unsigned int exc_no, istate_t *istate)
 {
 	istate->r0 = syscall_handler(istate->r0, istate->r1, istate->r2,
 	    istate->r3, istate->r4, istate->r5, istate->r6);
@@ -147,7 +148,7 @@ static void high_vectors(void)
  *
  * Determines the sources of interrupt and calls their handlers.
  */
-static void irq_exception(int exc_no, istate_t *istate)
+static void irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	machine_irq_exception(exc_no, istate);
 }

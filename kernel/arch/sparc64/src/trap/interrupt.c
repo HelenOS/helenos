@@ -57,7 +57,8 @@
  */
 void interrupt_register(unsigned int n, const char *name, iroutine_t handler)
 {
-	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
+	ASSERT(n >= IVT_FIRST);
+	ASSERT(n <= IVT_ITEMS);
 	
 	exc_register(n - IVT_FIRST, name, true, handler);
 }

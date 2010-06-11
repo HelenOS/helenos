@@ -191,7 +191,7 @@ static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 }
 
 extern void page_arch_init(void);
-extern void page_fault(int n, istate_t *istate);
+extern void page_fault(unsigned int, istate_t *);
 
 #endif /* __ASM__ */
 

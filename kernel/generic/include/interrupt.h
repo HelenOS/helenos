@@ -43,7 +43,7 @@
 #include <ddi/irq.h>
 #include <stacktrace.h>
 
-typedef void (* iroutine_t)(int, istate_t *);
+typedef void (* iroutine_t)(unsigned int, istate_t *);
 
 typedef struct {
 	const char *name;

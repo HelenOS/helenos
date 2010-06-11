@@ -241,10 +241,10 @@ void icp_cpu_halt(void)
  * @param exc_no Interrupt exception number.
  * @param istate Saved processor state.
  */
-void icp_irq_exception(int exc_no, istate_t *istate)
+void icp_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = icp_irqc_get_sources();
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < ICP_IRQC_MAX_IRQ; i++) {
 		if (sources & (1 << i)) {
