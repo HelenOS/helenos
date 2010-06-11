@@ -332,9 +332,12 @@ void debugger_init()
 		printf("Cannot register command %s\n", addwatchp_info.name);
 #endif /* CONFIG_KCONSOLE */
 	
-	exc_register(VECTOR_DEBUG, "debugger", debug_exception);
+	exc_register(VECTOR_DEBUG, "debugger", true,
+	    debug_exception);
+	
 #ifdef CONFIG_SMP
-	exc_register(VECTOR_DEBUG_IPI, "debugger_smp", debug_ipi);
+	exc_register(VECTOR_DEBUG_IPI, "debugger_smp", true,
+	    debug_ipi);
 #endif /* CONFIG_SMP */
 }
 

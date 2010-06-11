@@ -55,7 +55,8 @@
 #define HOUR    3600
 #define MINUTE  60
 
-int operation_type;
+op_mode_t op_mode = OP_TASKS;
+bool excs_all = false;
 
 static const char *read_data(data_t *target)
 {
@@ -337,7 +338,6 @@ int main(int argc, char *argv[])
 		goto out;
 	
 	/* And paint screen until death */
-	operation_type = OP_TASKS;
 	while (true) {
 		int c = tgetchar(UPDATE_INTERVAL);
 		if (c < 0) {
@@ -359,22 +359,35 @@ int main(int argc, char *argv[])
 		}
 		
 		switch (c) {
-			case 'q':
-				goto out;
-			case 'i':
-				print_warning("Showing IPC statistics");
-				operation_type = OP_IPC;
-				break;
 			case 't':
 				print_warning("Showing task statistics");
-				operation_type = OP_TASKS;
+				op_mode = OP_TASKS;
+				break;
+			case 'i':
+				print_warning("Showing IPC statistics");
+				op_mode = OP_IPC;
 				break;
 			case 'e':
 				print_warning("Showing exception statistics");
-				operation_type = OP_EXC;
+				op_mode = OP_EXCS;
 				break;
+			case 'h':
+				print_warning("Showing help");
+				op_mode = OP_HELP;
+				break;
+			case 'q':
+				goto out;
+			case 'a':
+				if (op_mode == OP_EXCS) {
+					excs_all = !excs_all;
+					if (excs_all)
+						print_warning("Showing all exceptions");
+					else
+						print_warning("Showing only hot exceptions");
+					break;
+				}
 			default:
-				print_warning("Unknown command: %c", c);
+				print_warning("Unknown command \"%c\", use \"h\" for help", c);
 				break;
 		}
 	}

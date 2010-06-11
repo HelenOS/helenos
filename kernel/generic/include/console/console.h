@@ -36,7 +36,21 @@
 #define KERN_CONSOLE_H_
 
 #include <typedefs.h>
+#include <print.h>
 #include <console/chardev.h>
+
+#define PAGING(counter, increment, before, after) \
+	do { \
+		(counter) += (increment); \
+		if ((counter) > 23) { \
+			before; \
+			printf(" -- Press any key to continue -- "); \
+			indev_pop_character(stdin); \
+			after; \
+			printf("\n"); \
+			(counter) = 0; \
+		} \
+	} while (0)
 
 extern indev_t *stdin;
 extern outdev_t *stdout;

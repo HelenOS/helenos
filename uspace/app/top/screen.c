@@ -258,7 +258,7 @@ static inline void print_physmem_info(data_t *data)
 	screen_newline();
 }
 
-static inline void print_task_head(void)
+static inline void print_tasks_head(void)
 {
 	screen_style_inverted();
 	printf("[taskid] [threads] [virtual] [%%virt] [%%user]"
@@ -370,7 +370,7 @@ static inline void print_ipc(data_t *data)
 	}
 }
 
-static inline void print_exc_head(void)
+static inline void print_excs_head(void)
 {
 	screen_style_inverted();
 	printf("[exc   ] [count   ] [%%count] [cycles  ] [%%cycles] [description");
@@ -378,7 +378,7 @@ static inline void print_exc_head(void)
 	screen_style_normal();
 }
 
-static inline void print_exc(data_t *data)
+static inline void print_excs(data_t *data)
 {
 	ipcarg_t cols;
 	ipcarg_t rows;
@@ -389,7 +389,11 @@ static inline void print_exc(data_t *data)
 	screen_get_pos(&col, &row);
 	
 	size_t i;
-	for (i = 0; (i < data->exceptions_count) && (row < rows); i++, row++) {
+	for (i = 0; (i < data->exceptions_count) && (row < rows); i++) {
+		/* Filter-out cold exceptions if not instructed otherwise */
+		if ((!excs_all) && (!data->exceptions[i].hot))
+			continue;
+		
 		uint64_t count;
 		uint64_t cycles;
 		
@@ -408,7 +412,43 @@ static inline void print_exc(data_t *data)
 		print_string(data->exceptions[i].desc);
 		
 		screen_newline();
+		row++;
 	}
+	
+	while (row < rows) {
+		screen_newline();
+		row++;
+	}
+}
+
+static void print_help(void)
+{
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t col;
+	ipcarg_t row;
+	screen_get_pos(&col, &row);
+	
+	screen_newline();
+	
+	printf("Operation modes:");
+	screen_newline();
+	
+	printf(" t .. tasks statistics");
+	screen_newline();
+	
+	printf(" i .. IPC statistics");
+	screen_newline();
+	
+	printf(" e .. exceptions statistics");
+	screen_newline();
+	
+	printf("      a .. toggle display of all/hot exceptions");
+	screen_newline();
+	
+	row += 6;
 	
 	while (row < rows) {
 		screen_newline();
@@ -429,19 +469,22 @@ void print_data(data_t *data)
 	screen_get_pos(&warn_col, &warn_row);
 	screen_newline();
 	
-	switch (operation_type) {
+	switch (op_mode) {
 	case OP_TASKS:
-		print_task_head();
+		print_tasks_head();
 		print_tasks(data);
 		break;
 	case OP_IPC:
 		print_ipc_head();
 		print_ipc(data);
 		break;
-	case OP_EXC:
-		print_exc_head();
-		print_exc(data);
+	case OP_EXCS:
+		print_excs_head();
+		print_excs(data);
 		break;
+	case OP_HELP:
+		print_tasks_head();
+		print_help();
 	}
 	
 	fflush(stdout);

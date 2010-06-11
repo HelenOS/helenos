@@ -129,6 +129,7 @@ typedef struct {
 typedef struct {
 	unsigned int id;             /**< Exception ID */
 	char desc[EXC_NAME_BUFLEN];  /**< Description */
+	bool hot;                    /**< Active or inactive exception */
 	uint64_t cycles;             /**< Number of CPU cycles in the handler */
 	uint64_t count;              /**< Number of handled exceptions */
 } stats_exc_t;

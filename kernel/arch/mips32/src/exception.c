@@ -166,22 +166,33 @@ static void syscall_exception(int n, istate_t *istate)
 
 void exception_init(void)
 {
-	int i;
+	unsigned int i;
 	
 	/* Clear exception table */
 	for (i = 0; i < IVT_ITEMS; i++)
-		exc_register(i, "undef", (iroutine) unhandled_exception);
+		exc_register(i, "undef", false,
+		    (iroutine_t) unhandled_exception);
 	
-	exc_register(EXC_Bp, "bkpoint", (iroutine) breakpoint_exception);
-	exc_register(EXC_RI, "resinstr", (iroutine) reserved_instr_exception);
-	exc_register(EXC_Mod, "tlb_mod", (iroutine) tlbmod_exception);
-	exc_register(EXC_TLBL, "tlbinvl", (iroutine) tlbinv_exception);
-	exc_register(EXC_TLBS, "tlbinvl", (iroutine) tlbinv_exception);
-	exc_register(EXC_Int, "interrupt", (iroutine) interrupt_exception);
+	exc_register(EXC_Bp, "bkpoint", true,
+	    (iroutine_t) breakpoint_exception);
+	exc_register(EXC_RI, "resinstr", true,
+	    (iroutine_t) reserved_instr_exception);
+	exc_register(EXC_Mod, "tlb_mod", true,
+	    (iroutine_t) tlbmod_exception);
+	exc_register(EXC_TLBL, "tlbinvl", true,
+	    (iroutine_t) tlbinv_exception);
+	exc_register(EXC_TLBS, "tlbinvl", true,
+	    (iroutine_t) tlbinv_exception);
+	exc_register(EXC_Int, "interrupt", true,
+	    (iroutine_t) interrupt_exception);
+	
 #ifdef CONFIG_FPU_LAZY
-	exc_register(EXC_CpU, "cpunus", (iroutine) cpuns_exception);
+	exc_register(EXC_CpU, "cpunus", true,
+	    (iroutine_t) cpuns_exception);
 #endif
-	exc_register(EXC_Sys, "syscall", (iroutine) syscall_exception);
+	
+	exc_register(EXC_Sys, "syscall", true,
+	    (iroutine_t) syscall_exception);
 }
 
 /** @}

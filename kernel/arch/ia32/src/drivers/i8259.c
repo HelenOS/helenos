@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /**
@@ -75,7 +75,8 @@ void i8259_init(void)
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
 	 */
-	exc_register(VECTOR_PIC_SPUR, "pic_spurious", (iroutine) pic_spurious);	
+	exc_register(VECTOR_PIC_SPUR, "pic_spurious", false,
+	    (iroutine_t) pic_spurious);
 
 	/*
 	 * Set the enable/disable IRQs handlers.

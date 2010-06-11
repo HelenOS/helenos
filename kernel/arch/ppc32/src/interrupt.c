@@ -100,10 +100,14 @@ static void exception_decrementer(int n, istate_t *istate)
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
-	exc_register(VECTOR_DATA_STORAGE, "data_storage", pht_refill);
-	exc_register(VECTOR_INSTRUCTION_STORAGE, "instruction_storage", pht_refill);
-	exc_register(VECTOR_EXTERNAL, "external", exception_external);
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
+	exc_register(VECTOR_DATA_STORAGE, "data_storage", true,
+	    pht_refill);
+	exc_register(VECTOR_INSTRUCTION_STORAGE, "instruction_storage", true,
+	    pht_refill);
+	exc_register(VECTOR_EXTERNAL, "external", true,
+	    exception_external);
+	exc_register(VECTOR_DECREMENTER, "timer", true,
+	    exception_decrementer);
 }
 
 /** @}

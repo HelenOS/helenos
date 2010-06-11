@@ -60,20 +60,28 @@ IRQ_SPINLOCK_INITIALIZE(exctbl_lock);
 
 /** Register exception handler
  *
- * @param n       Exception number
- * @param name    Description
- * @param handler Exception handler
+ * @param n       Exception number.
+ * @param name    Description.
+ * @param hot     Whether the exception is actually handled
+ *                in any meaningful way.
+ * @param handler New exception handler.
+ *
+ * @return Previously registered exception handler.
  *
  */
-iroutine exc_register(int n, const char *name, iroutine handler)
+iroutine_t exc_register(unsigned int n, const char *name, bool hot,
+    iroutine_t handler)
 {
+#if (IVT_ITEMS > 0)
 	ASSERT(n < IVT_ITEMS);
+#endif
 	
 	irq_spinlock_lock(&exctbl_lock, true);
 	
-	iroutine old = exc_table[n].f;
-	exc_table[n].f = handler;
+	iroutine_t old = exc_table[n].handler;
+	exc_table[n].handler = handler;
 	exc_table[n].name = name;
+	exc_table[n].hot = hot;
 	exc_table[n].cycles = 0;
 	exc_table[n].count = 0;
 	
@@ -88,9 +96,11 @@ iroutine exc_register(int n, const char *name, iroutine handler)
  * CPU is interrupts_disable()'d.
  *
  */
-void exc_dispatch(int n, istate_t *istate)
+void exc_dispatch(unsigned int n, istate_t *istate)
 {
+#if (IVT_ITEMS > 0)
 	ASSERT(n < IVT_ITEMS);
+#endif
 	
 	uint64_t begin_cycle = get_cycle();
 	
@@ -106,7 +116,7 @@ void exc_dispatch(int n, istate_t *istate)
 		THREAD->udebug.uspace_state = istate;
 #endif
 	
-	exc_table[n].f(n + IVT_FIRST, istate);
+	exc_table[n].handler(n + IVT_FIRST, istate);
 	
 #ifdef CONFIG_UDEBUG
 	if (THREAD)
@@ -184,27 +194,47 @@ void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 
 #ifdef CONFIG_KCONSOLE
 
+static char flag_buf[MAX_CMDLINE + 1];
+
 /** Print all exceptions
  *
  */
 static int cmd_exc_print(cmd_arg_t *argv)
 {
+	bool excs_all;
+	
+	if (str_cmp(flag_buf, "-a") == 0)
+		excs_all = true;
+	else if (str_cmp(flag_buf, "") == 0)
+		excs_all = false;
+	else {
+		printf("Unknown argument \"%s\".\n", flag_buf);
+		return 1;
+	}
+	
 #if (IVT_ITEMS > 0)
 	unsigned int i;
+	unsigned int rows;
 	
 	irq_spinlock_lock(&exctbl_lock, true);
 	
 #ifdef __32_BITS__
-	printf("Exc Description          Count      Cycles     Handler    Symbol\n");
-	printf("--- -------------------- ---------- ---------- ---------- --------\n");
+	printf("[exc   ] [description       ] [count   ] [cycles  ]"
+	    " [handler ] [symbol\n");
+	rows = 1;
 #endif
 	
 #ifdef __64_BITS__
-	printf("Exc Description          Count      Cycles     Handler            Symbol\n");
-	printf("--- -------------------- ---------- ---------- ------------------ --------\n");
+	printf("[exc   ] [description       ] [count   ] [cycles  ]"
+	    " [handler         ]\n");
+	printf("         [symbol\n");
+	rows = 2;
 #endif
 	
 	for (i = 0; i < IVT_ITEMS; i++) {
+		if ((!excs_all) && (!exc_table[i].hot))
+			continue;
+		
 		uint64_t count;
 		char count_suffix;
 		
@@ -216,42 +246,51 @@ static int cmd_exc_print(cmd_arg_t *argv)
 		order_suffix(exc_table[i].cycles, &cycles, &cycles_suffix);
 		
 		const char *symbol =
-		    symtab_fmt_name_lookup((unative_t) exc_table[i].f);
+		    symtab_fmt_name_lookup((unative_t) exc_table[i].handler);
 		
 #ifdef __32_BITS__
-		printf("%-3u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %10p %s\n",
+		printf("%-8u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %10p %s\n",
 		    i + IVT_FIRST, exc_table[i].name, count, count_suffix,
-		    cycles, cycles_suffix, exc_table[i].f, symbol);
+		    cycles, cycles_suffix, exc_table[i].handler, symbol);
+		
+		PAGING(rows, 1, irq_spinlock_unlock(&exctbl_lock, true),
+		    irq_spinlock_lock(&exctbl_lock, true));
 #endif
 		
 #ifdef __64_BITS__
-		printf("%-3u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %18p %s\n",
+		printf("%-8u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %18p\n",
 		    i + IVT_FIRST, exc_table[i].name, count, count_suffix,
-		    cycles, cycles_suffix, exc_table[i].f, symbol);
-#endif
+		    cycles, cycles_suffix, exc_table[i].handler);
+		printf("         %s\n", symbol);
 		
-		if (((i + 1) % 20) == 0) {
-			printf(" -- Press any key to continue -- ");
-			irq_spinlock_unlock(&exctbl_lock, true);
-			indev_pop_character(stdin);
-			irq_spinlock_lock(&exctbl_lock, true);
-			printf("\n");
-		}
+		PAGING(rows, 2, irq_spinlock_unlock(&exctbl_lock, true),
+		    irq_spinlock_lock(&exctbl_lock, true));
+#endif
 	}
 	
 	irq_spinlock_unlock(&exctbl_lock, true);
-#endif
+#else /* (IVT_ITEMS > 0) */
+	
+	printf("No exception table%s.\n", excs_all ? " (showing all exceptions)" : "");
+	
+#endif /* (IVT_ITEMS > 0) */
 	
 	return 1;
 }
 
+static cmd_arg_t exc_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
+
 static cmd_info_t exc_info = {
 	.name = "exc",
-	.description = "Print exception table.",
+	.description = "Print exception table (use -a for all exceptions).",
 	.func = cmd_exc_print,
 	.help = NULL,
-	.argc = 0,
-	.argv = NULL
+	.argc = 1,
+	.argv = &exc_argv
 };
 
 #endif /* CONFIG_KCONSOLE */
@@ -267,7 +306,7 @@ void exc_init(void)
 	unsigned int i;
 	
 	for (i = 0; i < IVT_ITEMS; i++)
-		exc_register(i, "undef", (iroutine) exc_undef);
+		exc_register(i, "undef", false, (iroutine_t) exc_undef);
 #endif
 	
 #ifdef CONFIG_KCONSOLE

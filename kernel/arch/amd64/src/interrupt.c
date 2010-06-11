@@ -198,26 +198,26 @@ static void irq_interrupt(int n, istate_t *istate)
 
 void interrupt_init(void)
 {
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < IVT_ITEMS; i++)
-		exc_register(i, "null", (iroutine) null_interrupt);
+		exc_register(i, "null", false, (iroutine_t) null_interrupt);
 	
 	for (i = 0; i < IRQ_COUNT; i++) {
 		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
-			exc_register(IVT_IRQBASE + i, "irq",
-			    (iroutine) irq_interrupt);
+			exc_register(IVT_IRQBASE + i, "irq", true,
+			    (iroutine_t) irq_interrupt);
 	}
 	
-	exc_register(0, "de_fault", (iroutine) de_fault);
-	exc_register(7, "nm_fault", (iroutine) nm_fault);
-	exc_register(12, "ss_fault", (iroutine) ss_fault);
-	exc_register(13, "gp_fault", (iroutine) gp_fault);
-	exc_register(14, "ident_mapper", (iroutine) ident_page_fault);
+	exc_register(0, "de_fault", true, (iroutine_t) de_fault);
+	exc_register(7, "nm_fault", true, (iroutine_t) nm_fault);
+	exc_register(12, "ss_fault", true, (iroutine_t) ss_fault);
+	exc_register(13, "gp_fault", true, (iroutine_t) gp_fault);
+	exc_register(14, "ident_mapper", true, (iroutine_t) ident_page_fault);
 	
 #ifdef CONFIG_SMP
-	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-	    (iroutine) tlb_shootdown_ipi);
+	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
+	    (iroutine_t) tlb_shootdown_ipi);
 #endif
 }
 

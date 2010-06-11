@@ -50,15 +50,17 @@
 
 /** Register Interrupt Level Handler.
  *
- * @param n Interrupt Level (1 - 15).
- * @param name Short descriptive string.
- * @param f Handler.
+ * @param n       Interrupt Level (1 - 15).
+ * @param name    Short descriptive string.
+ * @param handler Handler.
+ *
  */
-void interrupt_register(int n, const char *name, iroutine f)
+void interrupt_register(unsigned int n, const char *name, iroutine_t handler)
 {
 	ASSERT(n >= IVT_FIRST && n <= IVT_ITEMS);
 	
-	exc_register(n - 1, name, f);
+	exc_register(n - IVT_FIRST, name, true, handler);
 }
+
 /** @}
  */

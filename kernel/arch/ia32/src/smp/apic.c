@@ -156,7 +156,8 @@ static void l_apic_timer_irq_handler(irq_t *irq)
 /** Initialize APIC on BSP. */
 void apic_init(void)
 {
-	exc_register(VECTOR_APIC_SPUR, "apic_spurious", (iroutine) apic_spurious);
+	exc_register(VECTOR_APIC_SPUR, "apic_spurious", false,
+	    (iroutine_t) apic_spurious);
 	
 	enable_irqs_function = io_apic_enable_irqs;
 	disable_irqs_function = io_apic_disable_irqs;

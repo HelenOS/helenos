@@ -561,6 +561,7 @@ static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 	
+#if (IVT_ITEMS > 0)
 	/* Messing with exception table, avoid deadlock */
 	irq_spinlock_lock(&exctbl_lock, true);
 	
@@ -568,11 +569,13 @@ static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
 	for (i = 0; i < IVT_ITEMS; i++) {
 		stats_exceptions[i].id = i + IVT_FIRST;
 		str_cpy(stats_exceptions[i].desc, EXC_NAME_BUFLEN, exc_table[i].name);
+		stats_exceptions[i].hot = exc_table[i].hot;
 		stats_exceptions[i].cycles = exc_table[i].cycles;
 		stats_exceptions[i].count = exc_table[i].count;
 	}
 	
 	irq_spinlock_unlock(&exctbl_lock, true);
+#endif
 	
 	return ((void *) stats_exceptions);
 }
@@ -605,13 +608,17 @@ static sysinfo_return_t get_stats_exception(const char *name, bool dry_run)
 	if (str_uint64(name, NULL, 0, true, &excn) != EOK)
 		return ret;
 	
-#if IVT_FIRST > 0
+#if (IVT_FIRST > 0)
 	if (excn < IVT_FIRST)
 		return ret;
 #endif
 	
+#if (IVT_ITEMS + IVT_FIRST == 0)
+	return ret;
+#else
 	if (excn >= IVT_ITEMS + IVT_FIRST)
 		return ret;
+#endif
 	
 	if (dry_run) {
 		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
@@ -637,6 +644,7 @@ static sysinfo_return_t get_stats_exception(const char *name, bool dry_run)
 		
 		stats_exception->id = excn;
 		str_cpy(stats_exception->desc, EXC_NAME_BUFLEN, exc_table[excn].name);
+		stats_exception->hot = exc_table[excn].hot;
 		stats_exception->cycles = exc_table[excn].cycles;
 		stats_exception->count = exc_table[excn].count;
 		

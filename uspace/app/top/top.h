@@ -39,7 +39,7 @@
 #include <time.h>
 
 #define FRACTION_TO_FLOAT(float, a, b) \
-	{ \
+	do { \
 		if ((b) != 0) { \
 			(float).upper = (a); \
 			(float).lower = (b); \
@@ -47,13 +47,17 @@
 			(float).upper = 0; \
 			(float).lower = 1; \
 		} \
-	}
+	} while (0)
 
-#define OP_TASKS  1
-#define OP_IPC    2
-#define OP_EXC    3
+typedef enum {
+	OP_TASKS,
+	OP_IPC,
+	OP_EXCS,
+	OP_HELP
+} op_mode_t;
 
-extern int operation_type;
+extern op_mode_t op_mode;
+extern bool excs_all;
 
 typedef struct {
 	uint64_t upper;

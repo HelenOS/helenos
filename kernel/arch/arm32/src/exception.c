@@ -164,11 +164,14 @@ void exception_init(void)
 #endif
 	install_exception_handlers();
 	
-	exc_register(EXC_IRQ, "interrupt", (iroutine) irq_exception);
-	exc_register(EXC_PREFETCH_ABORT, "prefetch abort",
-	    (iroutine) prefetch_abort);
-	exc_register(EXC_DATA_ABORT, "data abort", (iroutine) data_abort);
-	exc_register(EXC_SWI, "software interrupt", (iroutine) swi_exception);
+	exc_register(EXC_IRQ, "interrupt", true,
+	    (iroutine_t) irq_exception);
+	exc_register(EXC_PREFETCH_ABORT, "prefetch abort", true,
+	    (iroutine_t) prefetch_abort);
+	exc_register(EXC_DATA_ABORT, "data abort", true,
+	    (iroutine_t) data_abort);
+	exc_register(EXC_SWI, "software interrupt", true,
+	    (iroutine_t) swi_exception);
 }
 
 /** Prints #istate_t structure content.

@@ -149,7 +149,7 @@ reset_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #0
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 irq_exception_entry:
@@ -157,7 +157,7 @@ irq_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #5
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 fiq_exception_entry:
@@ -165,14 +165,14 @@ fiq_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #6
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 undef_instr_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #1
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 prefetch_abort_exception_entry:
@@ -180,7 +180,7 @@ prefetch_abort_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #3
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 data_abort_exception_entry:
@@ -188,7 +188,7 @@ data_abort_exception_entry:
 	SAVE_REGS_TO_STACK
 	mov r0, #4
 	mov r1, r13
-	bl ras_check 
+	bl ras_check
 	LOAD_REGS_FROM_STACK
 
 swi_exception_entry:
