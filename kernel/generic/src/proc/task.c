@@ -196,10 +196,10 @@ task_t *task_create(as_t *as, const char *name)
 	task->kcycles = 0;
 	
 	task->ipc_info.call_sent = 0;
-	task->ipc_info.call_recieved = 0;
+	task->ipc_info.call_received = 0;
 	task->ipc_info.answer_sent = 0;
-	task->ipc_info.answer_recieved = 0;
-	task->ipc_info.irq_notif_recieved = 0;
+	task->ipc_info.answer_received = 0;
+	task->ipc_info.irq_notif_received = 0;
 	task->ipc_info.forwarded = 0;
 	
 #ifdef CONFIG_UDEBUG
@@ -477,7 +477,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	
 #ifdef __32_BITS__
 	if (*additional)
-		printf("%-8" PRIu64 " %9ld %7ld", task->taskid,
+		printf("%-8" PRIu64 " %9lu %7lu", task->taskid,
 		    atomic_get(&task->refcount), atomic_get(&task->active_calls));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %10p %10p"
@@ -488,7 +488,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	
 #ifdef __64_BITS__
 	if (*additional)
-		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c %9ld %7ld",
+		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c %9lu %7lu",
 		    task->taskid, ucycles, usuffix, kcycles, ksuffix,
 		    atomic_get(&task->refcount), atomic_get(&task->active_calls));
 	else
@@ -529,10 +529,10 @@ void task_print_list(bool additional)
 	
 #ifdef __64_BITS__
 	if (additional)
-		printf("[taskid] [ucycles ] [kcycles ] [threads] [calls]"
+		printf("[id    ] [ucycles ] [kcycles ] [threads] [calls]"
 		    " [callee\n");
 	else
-		printf("[taskid] [name        ] [ctx] [address         ]"
+		printf("[id    ] [name        ] [ctx] [address         ]"
 		    " [as              ]\n");
 #endif
 	

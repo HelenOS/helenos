@@ -441,7 +441,7 @@ restart:
 	
 	irq_spinlock_lock(&box->lock, true);
 	if (!list_empty(&box->irq_notifs)) {
-		/* Count recieved IRQ notification */
+		/* Count received IRQ notification */
 		irq_cnt++;
 		
 		irq_spinlock_lock(&box->irq_lock, false);
@@ -451,7 +451,7 @@ restart:
 		
 		irq_spinlock_unlock(&box->irq_lock, false);
 	} else if (!list_empty(&box->answers)) {
-		/* Count recieved answer */
+		/* Count received answer */
 		answer_cnt++;
 		
 		/* Handle asynchronous answers */
@@ -459,7 +459,7 @@ restart:
 		list_remove(&request->link);
 		atomic_dec(&request->data.phone->active_calls);
 	} else if (!list_empty(&box->calls)) {
-		/* Count recieved call */
+		/* Count received call */
 		call_cnt++;
 		
 		/* Handle requests */
@@ -476,9 +476,9 @@ restart:
 	
 	irq_spinlock_pass(&box->lock, &TASK->lock);
 	
-	TASK->ipc_info.irq_notif_recieved += irq_cnt;
-	TASK->ipc_info.answer_recieved += answer_cnt;
-	TASK->ipc_info.call_recieved += call_cnt;
+	TASK->ipc_info.irq_notif_received += irq_cnt;
+	TASK->ipc_info.answer_received += answer_cnt;
+	TASK->ipc_info.call_received += call_cnt;
 	
 	irq_spinlock_unlock(&TASK->lock, true);
 	

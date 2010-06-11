@@ -89,10 +89,10 @@ typedef struct {
  */
 typedef struct {
 	uint64_t call_sent;           /**< IPC calls sent */
-	uint64_t call_recieved;       /**< IPC calls received */
+	uint64_t call_received;       /**< IPC calls received */
 	uint64_t answer_sent;         /**< IPC answers sent */
-	uint64_t answer_recieved;     /**< IPC answers received */
-	uint64_t irq_notif_recieved;  /**< IPC IRQ notifications */
+	uint64_t answer_received;     /**< IPC answers received */
+	uint64_t irq_notif_received;  /**< IPC IRQ notifications */
 	uint64_t forwarded;           /**< IPC messages forwarded */
 } stats_ipc_t;
 

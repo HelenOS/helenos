@@ -125,9 +125,9 @@ void screen_done(void)
 	console_cursor_visibility(fphone(stdout), true);
 }
 
-static void print_float(fixed_float ffloat, unsigned int precision)
+static void print_percent(fixed_float ffloat, unsigned int precision)
 {
-	printf("%2" PRIu64 ".", ffloat.upper / ffloat.lower);
+	printf("%3" PRIu64 ".", ffloat.upper / ffloat.lower);
 	
 	unsigned int i;
 	uint64_t rest = (ffloat.upper % ffloat.lower) * 10;
@@ -135,6 +135,22 @@ static void print_float(fixed_float ffloat, unsigned int precision)
 		printf("%" PRIu64, rest / ffloat.lower);
 		rest = (rest % ffloat.lower) * 10;
 	}
+	
+	printf("%%");
+}
+
+static void print_string(const char *str)
+{
+	ipcarg_t cols;
+	ipcarg_t rows;
+	screen_get_size(&cols, &rows);
+	
+	ipcarg_t c;
+	ipcarg_t r;
+	screen_get_pos(&c, &r);
+	
+	if (c < cols)
+		printf("%.*s", cols - c - 1, str);
 }
 
 static inline void print_global_head(data_t *data)
@@ -210,10 +226,9 @@ static inline void print_cpu_info(data_t *data)
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
 			    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
 			puts(", idle: ");
-			print_float(data->cpus_perc[i].idle, 2);
-			puts("%, busy: ");
-			print_float(data->cpus_perc[i].busy, 2);
-			puts("%");
+			print_percent(data->cpus_perc[i].idle, 2);
+			puts(", busy: ");
+			print_percent(data->cpus_perc[i].busy, 2);
 		} else
 			printf("cpu%u inactive", data->cpus[i].id);
 		
@@ -246,7 +261,8 @@ static inline void print_physmem_info(data_t *data)
 static inline void print_task_head(void)
 {
 	screen_style_inverted();
-	printf("      ID  Threads      Mem      %%Mem %%uCycles %%kCycles  Name");
+	printf("[taskid] [threads] [virtual] [%%virt] [%%user]"
+	    " [%%kernel] [name");
 	screen_newline();
 	screen_style_normal();
 }
@@ -267,15 +283,15 @@ static inline void print_tasks(data_t *data)
 		char virtmem_suffix;
 		order_suffix(data->tasks[i].virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%8" PRIu64 " %8u %8" PRIu64 "%c ", data->tasks[i].task_id,
+		printf("%-8" PRIu64 " %9u %8" PRIu64 "%c ", data->tasks[i].task_id,
 		    data->tasks[i].threads, virtmem, virtmem_suffix);
+		print_percent(data->tasks_perc[i].virtmem, 2);
+		puts(" ");
+		print_percent(data->tasks_perc[i].ucycles, 2);
 		puts("   ");
-		print_float(data->tasks_perc[i].virtmem, 2);
-		puts("%   ");
-		print_float(data->tasks_perc[i].ucycles, 2);
-		puts("%   ");
-		print_float(data->tasks_perc[i].kcycles, 2);
-		printf("%% %s", data->tasks[i].name);
+		print_percent(data->tasks_perc[i].kcycles, 2);
+		puts(" ");
+		print_string(data->tasks[i].name);
 		
 		screen_newline();
 	}
@@ -289,7 +305,8 @@ static inline void print_tasks(data_t *data)
 static inline void print_ipc_head(void)
 {
 	screen_style_inverted();
-	printf("      ID Calls sent Calls recv Answs sent Answs recv  IRQn recv       Forw Name");
+	printf("[taskid] [cls snt] [cls rcv] [ans snt]"
+	    " [ans rcv] [irq rcv] [forward] [name");
 	screen_newline();
 	screen_style_normal();
 }
@@ -306,14 +323,43 @@ static inline void print_ipc(data_t *data)
 	
 	size_t i;
 	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
-		printf("%8" PRIu64 " %10" PRIu64 " %10" PRIu64 " %10" PRIu64
-		     " %10" PRIu64 " %10" PRIu64 " %10" PRIu64 " %s",
-		     data->tasks[i].task_id, data->tasks[i].ipc_info.call_sent,
-		     data->tasks[i].ipc_info.call_recieved,
-		     data->tasks[i].ipc_info.answer_sent,
-		     data->tasks[i].ipc_info.answer_recieved,
-		     data->tasks[i].ipc_info.irq_notif_recieved,
-		     data->tasks[i].ipc_info.forwarded, data->tasks[i].name);
+		uint64_t call_sent;
+		uint64_t call_received;
+		uint64_t answer_sent;
+		uint64_t answer_received;
+		uint64_t irq_notif_received;
+		uint64_t forwarded;
+		
+		char call_sent_suffix;
+		char call_received_suffix;
+		char answer_sent_suffix;
+		char answer_received_suffix;
+		char irq_notif_received_suffix;
+		char forwarded_suffix;
+		
+		order_suffix(data->tasks[i].ipc_info.call_sent, &call_sent,
+		    &call_sent_suffix);
+		order_suffix(data->tasks[i].ipc_info.call_received,
+		    &call_received, &call_received_suffix);
+		order_suffix(data->tasks[i].ipc_info.answer_sent,
+		    &answer_sent, &answer_sent_suffix);
+		order_suffix(data->tasks[i].ipc_info.answer_received,
+		    &answer_received, &answer_received_suffix);
+		order_suffix(data->tasks[i].ipc_info.irq_notif_received,
+		    &irq_notif_received, &irq_notif_received_suffix);
+		order_suffix(data->tasks[i].ipc_info.forwarded, &forwarded,
+		    &forwarded_suffix);
+		
+		printf("%-8" PRIu64 " %8" PRIu64 "%c %8" PRIu64 "%c"
+		     " %8" PRIu64 "%c %8" PRIu64 "%c %8" PRIu64 "%c"
+		     " %8" PRIu64 "%c ", data->tasks[i].task_id,
+		     call_sent, call_sent_suffix,
+		     call_received, call_received_suffix,
+		     answer_sent, answer_sent_suffix,
+		     answer_received, answer_received_suffix,
+		     irq_notif_received, irq_notif_received_suffix,
+		     forwarded, forwarded_suffix);
+		print_string(data->tasks[i].name);
 		
 		screen_newline();
 	}
@@ -327,7 +373,7 @@ static inline void print_ipc(data_t *data)
 static inline void print_exc_head(void)
 {
 	screen_style_inverted();
-	printf("  ID                     Desc    Count   Cycles");
+	printf("[exc   ] [count   ] [%%count] [cycles  ] [%%cycles] [description");
 	screen_newline();
 	screen_style_normal();
 }
@@ -344,13 +390,22 @@ static inline void print_exc(data_t *data)
 	
 	size_t i;
 	for (i = 0; (i < data->exceptions_count) && (row < rows); i++, row++) {
+		uint64_t count;
 		uint64_t cycles;
-		char suffix;
 		
-		order_suffix(data->exceptions[i].cycles, &cycles, &suffix);
-		printf("%8u %20s %8" PRIu64 " %8" PRIu64 "%c",
-		     data->exceptions[i].id, data->exceptions[i].desc,
-		     data->exceptions[i].count, cycles, suffix);
+		char count_suffix;
+		char cycles_suffix;
+		
+		order_suffix(data->exceptions[i].count, &count, &count_suffix);
+		order_suffix(data->exceptions[i].cycles, &cycles, &cycles_suffix);
+		
+		printf("%-8u %9" PRIu64 "%c  ",
+		     data->exceptions[i].id, count, count_suffix);
+		print_percent(data->exceptions_perc[i].count, 2);
+		printf(" %9" PRIu64 "%c   ", cycles, cycles_suffix);
+		print_percent(data->exceptions_perc[i].cycles, 2);
+		puts(" ");
+		print_string(data->exceptions[i].desc);
 		
 		screen_newline();
 	}

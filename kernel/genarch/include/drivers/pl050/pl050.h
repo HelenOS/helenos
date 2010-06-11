@@ -71,7 +71,7 @@
 #define PL050_STAT_TXBUSY	(1 << 5)	/* 1: Busy, sending data */
 #define PL050_STAT_RXFULL	(1 << 4)	/* 1: register Full */
 #define PL050_STAT_RXBUSY	(1 << 3)	/* 1: Busy, recieving Data */
-#define PL050_STAT_RXPARITY	(1 << 2)	/* odd parity of the last bit recieved */
+#define PL050_STAT_RXPARITY	(1 << 2)	/* odd parity of the last bit received */
 #define PL050_STAT_KMIC		(1 << 1)	/* status of KMICLKIN */
 #define PL050_STAT_KMID		1		/* status of KMIDATAIN */
 

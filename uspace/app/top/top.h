@@ -38,10 +38,16 @@
 #include <stats.h>
 #include <time.h>
 
-#define FRACTION_TO_FLOAT(float, a, b) { \
-	(float).upper = (a); \
-	(float).lower = (b); \
-}
+#define FRACTION_TO_FLOAT(float, a, b) \
+	{ \
+		if ((b) != 0) { \
+			(float).upper = (a); \
+			(float).lower = (b); \
+		} else { \
+			(float).upper = 0; \
+			(float).lower = 1; \
+		} \
+	}
 
 #define OP_TASKS  1
 #define OP_IPC    2
@@ -60,10 +66,15 @@ typedef struct {
 } perc_cpu_t;
 
 typedef struct {
+	fixed_float virtmem;
 	fixed_float ucycles;
 	fixed_float kcycles;
-	fixed_float virtmem;
 } perc_task_t;
+
+typedef struct {
+	fixed_float cycles;
+	fixed_float count;
+} perc_exc_t;
 
 typedef struct {
 	time_t hours;
@@ -91,6 +102,7 @@ typedef struct {
 	
 	size_t exceptions_count;
 	stats_exc_t *exceptions;
+	perc_exc_t *exceptions_perc;
 	
 	stats_physmem_t *physmem;
 } data_t;

@@ -66,6 +66,8 @@ static const char *read_data(data_t *target)
 	target->tasks = NULL;
 	target->tasks_perc = NULL;
 	target->threads = NULL;
+	target->exceptions = NULL;
+	target->exceptions_perc = NULL;
 	target->physmem = NULL;
 	
 	/* Get current time */
@@ -114,9 +116,15 @@ static const char *read_data(data_t *target)
 	if (target->threads == NULL)
 		return "Cannot get threads";
 	
+	/* Get Exceptions */
 	target->exceptions = stats_get_exceptions(&(target->exceptions_count));
 	if (target->exceptions == NULL)
 		return "Cannot get exceptions";
+	
+	target->exceptions_perc =
+	    (perc_exc_t *) calloc(target->exceptions_count, sizeof(perc_exc_t));
+	if (target->exceptions_perc == NULL)
+		return "Not enough memory for exception utilization";
 	
 	/* Get physical memory */
 	target->physmem = stats_get_physmem();
@@ -136,14 +144,33 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 {
 	/* Allocate memory */
 	
-	uint64_t *ucycles_diff = calloc(new_data->tasks_count, sizeof(uint64_t));
+	uint64_t *ucycles_diff = calloc(new_data->tasks_count,
+	    sizeof(uint64_t));
 	if (ucycles_diff == NULL)
 		return "Not enough memory for user utilization";
 	
-	uint64_t *kcycles_diff = calloc(new_data->tasks_count, sizeof(uint64_t));
+	uint64_t *kcycles_diff = calloc(new_data->tasks_count,
+	    sizeof(uint64_t));
 	if (kcycles_diff == NULL) {
 		free(ucycles_diff);
 		return "Not enough memory for kernel utilization";
+	}
+	
+	uint64_t *ecycles_diff = calloc(new_data->exceptions_count,
+	    sizeof(uint64_t));
+	if (ecycles_diff == NULL) {
+		free(ucycles_diff);
+		free(kcycles_diff);
+		return "Not enough memory for exception cycles utilization";
+	}
+	
+	uint64_t *ecount_diff = calloc(new_data->exceptions_count,
+	    sizeof(uint64_t));
+	if (ecount_diff == NULL) {
+		free(ucycles_diff);
+		free(kcycles_diff);
+		free(ecycles_diff);
+		return "Not enough memory for exception count utilization";
 	}
 	
 	/* For each CPU: Compute total ticks and divide it between
@@ -163,9 +190,9 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 	
 	/* For all tasks compute sum and differencies of all cycles */
 	
-	uint64_t virtmem_total = 1;  /* Must NOT be zero */
-	uint64_t ucycles_total = 1;  /* Must NOT be zero */
-	uint64_t kcycles_total = 1;  /* Must NOT be zero */
+	uint64_t virtmem_total = 0;
+	uint64_t ucycles_total = 0;
+	uint64_t kcycles_total = 0;
 	
 	for (i = 0; i < new_data->tasks_count; i++) {
 		/* Match task with the previous instance */
@@ -196,7 +223,7 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		kcycles_total += kcycles_diff[i];
 	}
 	
-	/* For each task: Compute percential change */
+	/* For each task compute percential change */
 	
 	for (i = 0; i < new_data->tasks_count; i++) {
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].virtmem,
@@ -207,10 +234,58 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		    kcycles_diff[i] * 100, kcycles_total);
 	}
 	
+	/* For all exceptions compute sum and differencies of cycles */
+	
+	uint64_t ecycles_total = 0;
+	uint64_t ecount_total = 0;
+	
+	for (i = 0; i < new_data->exceptions_count; i++) {
+		/*
+		 * March exception with the previous instance.
+		 * This is quite paranoid since exceptions do not
+		 * usually disappear, but it does not hurt.
+		 */
+		
+		bool found = false;
+		size_t j;
+		for (j = 0; j < old_data->exceptions_count; j++) {
+			if (new_data->exceptions[i].id == old_data->exceptions[j].id) {
+				found = true;
+				break;
+			}
+		}
+		
+		if (!found) {
+			/* This is a new exception, ignore it */
+			ecycles_diff[i] = 0;
+			ecount_diff[i] = 0;
+			continue;
+		}
+		
+		ecycles_diff[i] =
+		    new_data->exceptions[i].cycles - old_data->exceptions[j].cycles;
+		ecount_diff[i] =
+		    new_data->exceptions[i].count - old_data->exceptions[i].count;
+		
+		ecycles_total += ecycles_diff[i];
+		ecount_total += ecount_diff[i];
+	}
+	
+	/* For each exception compute percential change */
+	
+	for (i = 0; i < new_data->exceptions_count; i++) {
+		FRACTION_TO_FLOAT(new_data->exceptions_perc[i].cycles,
+		    ecycles_diff[i] * 100, ecycles_total);
+		FRACTION_TO_FLOAT(new_data->exceptions_perc[i].count,
+		    ecount_diff[i] * 100, ecount_total);
+	}
+	
 	/* Cleanup */
 	
 	free(ucycles_diff);
 	free(kcycles_diff);
+	free(ecycles_diff);
+	free(ecount_diff);
 	
 	return NULL;
 }
@@ -237,6 +312,9 @@ static void free_data(data_t *target)
 	
 	if (target->exceptions != NULL)
 		free(target->exceptions);
+	
+	if (target->exceptions_perc != NULL)
+		free(target->exceptions_perc);
 	
 	if (target->physmem != NULL)
 		free(target->physmem);
