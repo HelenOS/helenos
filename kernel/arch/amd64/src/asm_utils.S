@@ -57,7 +57,6 @@ panic_printf:
 
 .global cpuid
 .global has_cpuid
-.global get_cycle
 .global read_efer_flag
 .global set_efer_flag
 .global memsetb
@@ -149,11 +148,6 @@ cpuid:
 	movl %edx,12(%rsi)
 
 	movq %r10, %rbx
-	ret
-
-get_cycle:
-	xorq %rax,%rax
-	rdtsc
 	ret
 
 set_efer_flag:

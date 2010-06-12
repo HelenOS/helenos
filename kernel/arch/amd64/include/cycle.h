@@ -35,7 +35,19 @@
 #ifndef KERN_amd64_CYCLE_H_
 #define KERN_amd64_CYCLE_H_
 
-extern uint64_t get_cycle(void);
+static inline uint64_t get_cycle(void)
+{
+	uint32_t lower;
+	uint32_t upper;
+	
+	asm volatile (
+		"rdtsc\n"
+		: "=a" (lower),
+		  "=d" (upper)
+	);
+	
+	return ((uint64_t) lower) | (((uint64_t) upper) << 32);
+}
 
 #endif
 
