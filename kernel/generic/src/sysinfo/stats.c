@@ -52,6 +52,12 @@
 /** Bits of fixed-point precision for load */
 #define LOAD_FIXED_SHIFT  11
 
+/** Uspace load fixed-point precision */
+#define LOAD_USPACE_SHIFT  6
+
+/** Kernel load shift */
+#define LOAD_KERNEL_SHIFT  (LOAD_FIXED_SHIFT - LOAD_USPACE_SHIFT)
+
 /** 1.0 as fixed-point for load */
 #define LOAD_FIXED_1  (1 << LOAD_FIXED_SHIFT)
 
@@ -712,7 +718,7 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size,
 	
 	unsigned int i;
 	for (i = 0; i < LOAD_STEPS; i++)
-		stats_load[i] = avenrdy[i] << LOAD_FIXED_SHIFT;
+		stats_load[i] = avenrdy[i] << LOAD_KERNEL_SHIFT;
 	
 	mutex_unlock(&load_lock);
 	
