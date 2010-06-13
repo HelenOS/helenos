@@ -121,6 +121,17 @@ ifeq ($(CONFIG_LTO),y)
 	GCC_CFLAGS += -flto
 endif
 
+#
+# Mind the mutual ordering with the inclusion of the arch Makefile.inc.
+# AFLAGS and LFLAGS must be initialized before the inclusion.
+#
+AFLAGS =
+LFLAGS = -N -T $(LINK) -M
+
+#
+# Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
+# The arch Makefile.inc must be included after the initialization.
+#
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
 -include $(DEPEND)
@@ -171,8 +182,6 @@ ifeq ($(COMPILER),clang)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
 endif
 
-AFLAGS =
-LFLAGS = -N -T $(LINK) -M
 
 ## Generic kernel sources
 #
