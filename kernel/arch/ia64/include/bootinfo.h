@@ -29,15 +29,11 @@
 #ifndef KERN_ia64_BOOTINFO_H_
 #define KERN_ia64_BOOTINFO_H_
 
-#define BOOTINFO_ADDRESS 0x4401000
-
 #define TASKMAP_MAX_RECORDS  32
 
 #define MEMMAP_ITEMS 128
 
 #define EFI_MEMMAP_FREE_MEM 0
-#define EFI_MEMMAP_IO 1
-#define EFI_MEMMAP_IO_PORTS 2
 
 /** Size of buffer for storing task name in binit_task_t. */
 #define BOOTINFO_TASK_NAME_BUFLEN 32
@@ -73,8 +69,5 @@ typedef struct {
 } bootinfo_t;
 
 extern bootinfo_t *bootinfo;
-
-extern void start(void);
-extern void bootstrap(void);
 
 #endif
