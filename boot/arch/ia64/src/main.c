@@ -54,10 +54,6 @@
 #define EFI_MEMMAP_IO			1
 #define EFI_MEMMAP_IO_PORTS		2
 
-#define BALLOC_MAX_SIZE  131072
-
-#define TOP2ADDR(top)  (((void *) KERNEL_ADDRESS) + (top))
-
 static bootinfo_t bootinfo;
 
 void bootstrap(void)
@@ -66,7 +62,7 @@ void bootstrap(void)
 	
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
 	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, KERNEL_ADDRESS);
-	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, KERNEL_ADDRESS);
+	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, LOADER_ADDRESS);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
