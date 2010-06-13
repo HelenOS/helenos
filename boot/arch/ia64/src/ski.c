@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_ia64_BOOTINFO_H_
-#define KERN_ia64_BOOTINFO_H_
+#include <arch/ski.h>
+#include <typedefs.h>
 
-#define TASKMAP_MAX_RECORDS  32
+#define SKI_INIT_CONSOLE	20
+#define	SKI_PUTCHAR		31
 
-#define MEMMAP_ITEMS 128
-
-#define EFI_MEMMAP_FREE_MEM 0
-
-/** Size of buffer for storing task name in binit_task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
-
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} binit_task_t;
+static void ski_console_init(void)
+{
+	static bool initialized = false;
 	
-typedef struct {
-	size_t cnt;
-	binit_task_t tasks[TASKMAP_MAX_RECORDS];
-} binit_t;
+	if (initialized)
+		return;
 
-typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} efi_memmap_item_t;
-
-typedef struct {
-	binit_t taskmap;
+	asm volatile (
+		"mov r15 = %[cmd]\n"
+		"break 0x80000\n"
+		:
+		: [cmd] "i" (SKI_INIT_CONSOLE)
+		: "r15", "r8"
+	);
 	
-	efi_memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
-	
-	unative_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-	int hello_configured;
-} bootinfo_t;
+	initialized = true;
+}
 
-extern bootinfo_t *bootinfo;
+void ski_putchar(const wchar_t ch)
+{
+	ski_console_init();
 
-#endif
+	if (ch == '\n')
+		ski_putchar('\r');
+
+	asm volatile (
+		"mov r15 = %[cmd]\n"
+		"mov r32 = %[ch]\n"   /* r32 is in0 */
+		"break 0x80000\n"     /* modifies r8 */
+		:
+		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
+		: "r15", "in0", "r8"
+	);
+}

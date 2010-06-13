@@ -26,24 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_ia64_BOOTINFO_H_
-#define KERN_ia64_BOOTINFO_H_
+#ifndef BOOT_ia64_TYPES_H_
+#define BOOT_ia64_TYPES_H_
 
-#define TASKMAP_MAX_RECORDS  32
+#define TASKMAP_MAX_RECORDS		32
+#define BOOTINFO_TASK_NAME_BUFLEN	32
+#define MEMMAP_ITEMS			128	
 
-#define MEMMAP_ITEMS 128
-
-#define EFI_MEMMAP_FREE_MEM 0
-
-/** Size of buffer for storing task name in binit_task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
+typedef uint64_t size_t;
+typedef uint64_t unative_t;
+typedef uint64_t uintptr_t;
 
 typedef struct {
 	void *addr;
 	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } binit_task_t;
-	
+
 typedef struct {
 	size_t cnt;
 	binit_task_t tasks[TASKMAP_MAX_RECORDS];
@@ -57,17 +56,15 @@ typedef struct {
 
 typedef struct {
 	binit_t taskmap;
-	
+
 	efi_memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;
-	
+
 	unative_t *sapic;
 	unsigned long sys_freq;
 	unsigned long freq_scale;
 	unsigned int wakeup_intno;
 	int hello_configured;
 } bootinfo_t;
-
-extern bootinfo_t *bootinfo;
 
 #endif

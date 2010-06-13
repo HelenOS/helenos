@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_ia64_BOOTINFO_H_
-#define KERN_ia64_BOOTINFO_H_
+#include <typedefs.h>
+#include <arch/arch.h>
+#include <putchar.h>
+#include <str.h>
+#include <arch/ski.h>
 
-#define TASKMAP_MAX_RECORDS  32
-
-#define MEMMAP_ITEMS 128
-
-#define EFI_MEMMAP_FREE_MEM 0
-
-/** Size of buffer for storing task name in binit_task_t. */
-#define BOOTINFO_TASK_NAME_BUFLEN 32
-
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} binit_task_t;
-	
-typedef struct {
-	size_t cnt;
-	binit_task_t tasks[TASKMAP_MAX_RECORDS];
-} binit_t;
-
-typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} efi_memmap_item_t;
-
-typedef struct {
-	binit_t taskmap;
-	
-	efi_memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
-	
-	unative_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-	int hello_configured;
-} bootinfo_t;
-
-extern bootinfo_t *bootinfo;
-
+void putchar(const wchar_t ch)
+{
+#ifdef MACHINE_ski
+	if (ascii_check(ch))
+		ski_putchar(ch);
+	else
+		ski_putchar(U_SPECIAL);
 #endif
+}
