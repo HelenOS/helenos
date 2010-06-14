@@ -180,6 +180,7 @@ void kinit(void *arg)
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
 			printf("init[%" PRIs "].addr is not frame aligned\n", i);
+			programs[i].task = NULL;
 			continue;
 		}
 		
