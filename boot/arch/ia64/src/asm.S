@@ -96,7 +96,7 @@ memcpy:
 	add in0 = r14, in0
 	adds r15 = -1, r15
 	add r17 = r14, in1 
-(p6)	br.cond.dpnt 2b	;;
+(p6)	br.cond.dpnt 2b ;;
 	mov ar.lc = r15
 6:
 	add r14 = r16, r17
@@ -111,8 +111,8 @@ memcpy:
 	br.ret.sptk.many rp
 
 jump_to_kernel:
-    alloc loc0 = ar.pfs, 1, 1, 0, 0
-    mov r1 = in0;			# Pass bootinfo address
-    movl r8 = KERNEL_ADDRESS;;
-    mov b1 = r8 ;;
-    br.call.sptk.many b0 = b1;;
+	alloc loc0 = ar.pfs, 1, 1, 0, 0
+	mov r1 = in0 ;;			# Pass bootinfo address
+	movl r8 = KERNEL_ADDRESS;;
+	mov b1 = r8 ;;
+	br.call.sptk.many b0 = b1;;
