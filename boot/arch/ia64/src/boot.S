@@ -57,9 +57,7 @@ start:
 	srlz.i
 	srlz.d ;;
 
-	movl r18 = bootstrap ;;
-	mov b1 = r18 ;;
-	br.call.sptk.many b0 = b1
+	br.call.sptk.many rp = bootstrap
 
 .bss
 
