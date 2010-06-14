@@ -50,7 +50,10 @@ start:
 	movl r12 = initial_stack_top ;;
 	add r12 = -16, r12
 
-	ssm (1 << 19) ;;	/* disable f32 - f127 */
+	#
+	# Disable Floating-point High register set (f32 - f127)
+	#
+	ssm (1 << 19) ;;
 	srlz.i
 	srlz.d ;;
 
