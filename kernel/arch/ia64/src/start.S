@@ -49,19 +49,6 @@ stack0:
 kernel_image_start:
 	.auto
 	
-#ifdef CONFIG_SMP
-	# Identify self(CPU) in OS structures by ID / EID
-	
-	mov r9 = cr64
-	mov r10 = 1
-	movl r12 = 0xffffffff
-	movl r8 = cpu_by_id_eid_list
-	and r8 = r8, r12
-	shr r9 = r9, 16
-	add r8 = r8, r9
-	st1 [r8] = r10
-#endif
-	
 	mov psr.l = r0
 	srlz.i
 	srlz.d
@@ -163,15 +150,6 @@ paging_start:
 	# Switch to register bank 1
 	bsw.1
 	
-#ifdef CONFIG_SMP
-	# Am I BSP or AP?
-	movl r20 = bsp_started ;;
-	ld8 r20 = [r20] ;;
-	cmp.eq p3, p2 = r20, r0 ;;
-#else
-	cmp.eq p3, p2 = r0, r0 ;;  /* you are BSP */
-#endif  /* CONFIG_SMP */
-	
 	# Initialize register stack
 	mov ar.rsc = r0
 	movl r8 = (VRN_KERNEL << VRN_SHIFT) ;;
@@ -190,24 +168,12 @@ paging_start:
 	/*
 	 * Initialize bootinfo on BSP.
 	 */
-(p3)	addl r21 = @gprel(bootinfo), gp ;;
-(p3)	st8 [r21] = r20
+	addl r21 = @gprel(bootinfo), gp ;;
+	st8 [r21] = r20
 	
 	ssm (1 << 19) ;; /* Disable f32 - f127 */
 	srlz.i
 	srlz.d ;;
-	
-#ifdef CONFIG_SMP
-(p2)	movl r18 = main_ap ;;
-(p2)	mov b1 = r18 ;;
-(p2)	br.call.sptk.many b0 = b1
-	
-	# Mark that BSP is on
-	
-	mov r20 = 1 ;;
-	movl r21 = bsp_started ;;
-	st8 [r21] = r20 ;;
-#endif
 	
 	br.call.sptk.many b0 = arch_pre_main
 	
@@ -217,49 +183,3 @@ paging_start:
 
 0:
 	br 0b
-
-#ifdef CONFIG_SMP
-
-.align 4096
-kernel_image_ap_start:
-	.auto
-	
-	# Identify self(CPU) in OS structures by ID / EID
-	
-	mov r9 = cr64
-	mov r10 = 1
-	movl r12 = 0xffffffff
-	movl r8 = cpu_by_id_eid_list
-	and r8 = r8, r12
-	shr r9 = r9, 16
-	add r8 = r8, r9
-	st1 [r8] = r10
-	
-	# Wait for wakeup synchro signal (#3 in cpu_by_id_eid_list)
-
-kernel_image_ap_start_loop:
-	movl r11 = kernel_image_ap_start_loop
-	and r11 = r11, r12
-	mov b1 = r11
-	
-	ld1 r20 = [r8]
-	movl r21 = 3
-	cmp.eq p2, p3 = r20, r21
-(p3)	br.call.sptk.many b0 = b1
-	
-	movl r11 = kernel_image_start
-	and r11 = r11, r12
-	mov b1 = r11
-	br.call.sptk.many b0 = b1
-
-.align 16
-.global bsp_started
-bsp_started:
-	.space 8
-
-.align 4096
-.global cpu_by_id_eid_list
-cpu_by_id_eid_list:
-	.space 65536
-
-#endif  /* CONFIG_SMP */
