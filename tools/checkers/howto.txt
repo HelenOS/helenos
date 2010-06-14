@@ -1,0 +1,28 @@
+Basic instructions
+------------------
+This is a very brief and preliminary description of the usage of source
+code checkers and verifiers located in this directory. It is not intended
+to be perfect since the formal verification is still work-in-progress, but
+it should at least give you some basic hints.
+
+If you want to try, say, the Clang static analyzer, follow the steps:
+
+1. Go to the root directory of HelenOS source tree.
+
+2. Run
+
+      make precheck
+
+   Configure the kernel according to your preferences. Remember that many
+   checkers have specific limitation on the target platform. They might
+   require the abstract platform abs32le or they might be suitable only
+   for platforms supported by some toolchain (e.g. ia32 and amd64 in the
+   case of Clang).
+
+3. As HelenOS compiles, Jobfiles (e.g. kernel/kernel.job) are created.
+
+4. Execute the checker while still in the source tree root directory. Do
+   not forget the argument "." which indicates the path to the source tree
+   root directory.
+
+      ./tools/checkers/clang.py .
