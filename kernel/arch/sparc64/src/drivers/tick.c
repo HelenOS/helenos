@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -76,10 +76,11 @@ void tick_init(void)
 
 /** Process tick interrupt.
  *
- * @param n Interrupt Level, 14,  (can be ignored)
+ * @param n      Interrupt Level (14, can be ignored)
  * @param istate Interrupted state.
+ *
  */
-void tick_interrupt(int n, istate_t *istate)
+void tick_interrupt(unsigned int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
 	uint64_t drift;
