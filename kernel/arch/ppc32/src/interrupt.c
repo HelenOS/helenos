@@ -54,7 +54,7 @@ void start_decrementer(void)
 /** External interrupts handler
  *
  */
-static void exception_external(int n, istate_t *istate)
+static void exception_external(unsigned int n, istate_t *istate)
 {
 	uint8_t inum;
 	
@@ -91,7 +91,7 @@ static void exception_external(int n, istate_t *istate)
 	}
 }
 
-static void exception_decrementer(int n, istate_t *istate)
+static void exception_decrementer(unsigned int n, istate_t *istate)
 {
 	start_decrementer();
 	clock();

@@ -47,7 +47,7 @@
 
 extern void start_decrementer(void);
 extern void interrupt_init(void);
-extern void extint_handler(int, istate_t *);
+extern void extint_handler(unsigned int, istate_t *);
 
 #endif
 

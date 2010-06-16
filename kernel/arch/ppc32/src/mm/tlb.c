@@ -208,7 +208,7 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
  * @param istate Interrupted register context.
  *
  */
-void pht_refill(int n, istate_t *istate)
+void pht_refill(unsigned int n, istate_t *istate)
 {
 	as_t *as = (AS == NULL) ? AS_KERNEL : AS;
 	uintptr_t badvaddr;
@@ -259,7 +259,7 @@ fail:
  * @param istate Interrupted register context.
  *
  */
-bool pht_refill_real(int n, istate_t *istate)
+bool pht_refill_real(unsigned int n, istate_t *istate)
 {
 	uintptr_t badvaddr;
 	
@@ -365,7 +365,8 @@ bool pht_refill_real(int n, istate_t *istate)
  *
  *
  */
-void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate)
+void tlb_refill_real(unsigned int n, uint32_t tlbmiss, ptehi_t ptehi,
+    ptelo_t ptelo, istate_t *istate)
 {
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
 	uint32_t physmem = physmem_top();
