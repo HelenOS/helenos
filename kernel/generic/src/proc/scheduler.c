@@ -192,13 +192,11 @@ loop:
 		 * until a hardware interrupt or an IPI comes.
 		 * This improves energy saving and hyperthreading.
 		 */
-		
-		 /* Mark CPU as it was idle this clock tick */
 		irq_spinlock_lock(&CPU->lock, false);
 		CPU->idle = true;
 		irq_spinlock_unlock(&CPU->lock, false);
-		
 		interrupts_enable();
+		
 		/*
 		 * An interrupt might occur right now and wake up a thread.
 		 * In such case, the CPU will continue to go to sleep
@@ -385,7 +383,7 @@ void scheduler_separated_stack(void)
 	task_t *old_task = TASK;
 	as_t *old_as = AS;
 	
-	ASSERT(!THREAD || irq_spinlock_locked(&THREAD->lock));
+	ASSERT((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	ASSERT(CPU != NULL);
 	
 	/*

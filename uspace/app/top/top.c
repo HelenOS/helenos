@@ -174,15 +174,15 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		return "Not enough memory for exception count utilization";
 	}
 	
-	/* For each CPU: Compute total ticks and divide it between
+	/* For each CPU: Compute total cycles and divide it between
 	   user and kernel */
 	
 	size_t i;
 	for (i = 0; i < new_data->cpus_count; i++) {
 		uint64_t idle =
-		    new_data->cpus[i].idle_ticks - old_data->cpus[i].idle_ticks;
+		    new_data->cpus[i].idle_cycles - old_data->cpus[i].idle_cycles;
 		uint64_t busy =
-		    new_data->cpus[i].busy_ticks - old_data->cpus[i].busy_ticks;
+		    new_data->cpus[i].busy_cycles - old_data->cpus[i].busy_cycles;
 		uint64_t sum = idle + busy;
 		
 		FRACTION_TO_FLOAT(new_data->cpus_perc[i].idle, idle * 100, sum);

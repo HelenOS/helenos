@@ -48,6 +48,7 @@
 #include <adt/list.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
+#include <arch/cycle.h>
 
 cpu_t *cpus;
 
@@ -92,6 +93,11 @@ void cpu_init(void) {
 	
 	CPU->active = true;
 	CPU->tlb_active = true;
+	
+	CPU->idle = false;
+	CPU->last_cycle = get_cycle();
+	CPU->idle_cycles = 0;
+	CPU->busy_cycles = 0;
 	
 	cpu_identify();
 	cpu_arch_init();

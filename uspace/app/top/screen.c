@@ -221,10 +221,18 @@ static inline void print_cpu_info(data_t *data)
 	size_t i;
 	for (i = 0; i < data->cpus_count; i++) {
 		if (data->cpus[i].active) {
-			printf("cpu%u (%4" PRIu16 " MHz): busy ticks: "
-			    "%" PRIu64 ", idle ticks: %" PRIu64,
+			uint64_t busy;
+			uint64_t idle;
+			char busy_suffix;
+			char idle_suffix;
+			
+			order_suffix(data->cpus[i].busy_cycles, &busy, &busy_suffix);
+			order_suffix(data->cpus[i].idle_cycles, &idle, &idle_suffix);
+			
+			printf("cpu%u (%4" PRIu16 " MHz): busy cycles: "
+			    "%" PRIu64 "%c, idle cycles: %" PRIu64 "%c",
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
-			    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
+			    busy, busy_suffix, idle, idle_suffix);
 			puts(", idle: ");
 			print_percent(data->cpus_perc[i].idle, 2);
 			puts(", busy: ");

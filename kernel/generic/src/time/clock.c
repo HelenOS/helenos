@@ -56,6 +56,7 @@
 #include <arch/barrier.h>
 #include <mm/frame.h>
 #include <ddi/ddi.h>
+#include <arch/cycle.h>
 
 /* Pointer to variable with uptime */
 uptime_t *uptime;
@@ -124,6 +125,15 @@ static void clock_update_counters(void)
 	}
 }
 
+static void cpu_update_accounting(void)
+{
+	irq_spinlock_lock(&CPU->lock, false);
+	uint64_t now = get_cycle();
+	CPU->busy_cycles += now - CPU->last_cycle;
+	CPU->last_cycle = now;
+	irq_spinlock_unlock(&CPU->lock, false);
+}
+
 /** Clock routine
  *
  * Clock routine executed from clock interrupt handler
@@ -135,13 +145,8 @@ void clock(void)
 {
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
 	
-	/* Account lost ticks to CPU usage */
-	if (CPU->idle)
-		CPU->idle_ticks += missed_clock_ticks + 1;
-	else
-		CPU->busy_ticks += missed_clock_ticks + 1;
-	
-	CPU->idle = false;
+	/* Account CPU usage */
+	cpu_update_accounting();
 	
 	/*
 	 * To avoid lock ordering problems,
@@ -150,7 +155,10 @@ void clock(void)
 	 */
 	size_t i;
 	for (i = 0; i <= missed_clock_ticks; i++) {
+		/* Update counters and accounting */
 		clock_update_counters();
+		cpu_update_accounting();
+		
 		irq_spinlock_lock(&CPU->timeoutlock, false);
 		
 		link_t *cur;

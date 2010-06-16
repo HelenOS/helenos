@@ -68,8 +68,8 @@ typedef struct {
 	size_t id;               /**< CPU ID as stored by kernel */
 	bool active;             /**< CPU is activate */
 	uint16_t frequency_mhz;  /**< Frequency in MHz */
-	uint64_t idle_ticks;     /**< Number of idle kernel quanta */
-	uint64_t busy_ticks;     /**< Number of busy kernel quanta */
+	uint64_t idle_cycles;    /**< Number of idle cycles */
+	uint64_t busy_cycles;    /**< Number of busy cycles */
 } stats_cpu_t;
 
 /** Physical memory statistics
