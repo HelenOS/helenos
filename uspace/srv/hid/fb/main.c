@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 #ifdef SKI_ENABLED
-	if ((!initialized) && (!fb_present)) {
+	if ((!initialized) && (fb_kind == 6)) {
 		if (ski_init() == 0)
 			initialized = true;
 	}

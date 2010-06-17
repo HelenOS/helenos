@@ -215,7 +215,7 @@ outdev_t *skiout_init(void)
 		 * This is the necessary evil until the userspace driver is entirely
 		 * self-sufficient.
 		 */
-		sysinfo_set_item_val("fb", NULL, false);
+		sysinfo_set_item_val("fb.kind", NULL, 6);
 		
 		fb_exported = true;
 	}
