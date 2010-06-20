@@ -45,8 +45,6 @@
 #include <typedefs.h>
 #include <arch/exception.h>
 
-#define MACHINE_GENFUNC	machine_genfunc
-
 struct arm_machine_ops {
 	void		(*machine_init)(void);
 	void		(*machine_timer_irq_start)(void);
@@ -103,7 +101,6 @@ extern void machine_output_init(void);
  */
 extern void machine_input_init(void);
 
-extern void machine_genfunc(void);
 #endif
 
 /** @}

@@ -105,12 +105,5 @@ void machine_input_init(void)
 	(machine_ops.machine_input_init)();
 }
 
-/*
- * Generic function to use, if sepcific function doesn't define any of the above functions.
- */
-void machine_genfunc()
-{
-}
-
 /** @}
  */
