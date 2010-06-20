@@ -44,19 +44,11 @@
 #include <config.h>
 #include <interrupt.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <userspace.h>
 #include <macros.h>
 #include <str.h>
 #include <arch/ras.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
-
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
