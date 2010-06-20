@@ -36,20 +36,13 @@
 #include <arch/exception.h>
 #include <arch/memstr.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <interrupt.h>
 #include <arch/mm/page_fault.h>
 #include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
 #include <stacktrace.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
 
 /** Offset used in calculation of exception handler's relative address.
  *

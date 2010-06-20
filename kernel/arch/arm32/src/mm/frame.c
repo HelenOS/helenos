@@ -35,15 +35,8 @@
 
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
+#include <arch/machine_func.h>
 #include <config.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
 
 /** Address of the last frame in the memory. */
 uintptr_t last_frame = 0;
