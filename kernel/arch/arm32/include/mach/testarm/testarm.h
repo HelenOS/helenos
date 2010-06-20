@@ -36,8 +36,8 @@
  *  @brief GXemul peripheries drivers declarations.
  */
 
-#ifndef KERN_arm32_MACHINE_H_
-#define KERN_arm32_MACHINE_H_
+#ifndef KERN_arm32_testarm_H_
+#define KERN_arm32_testarm_H_
 
 #include <arch/machine_func.h>
 
@@ -75,6 +75,7 @@ extern void gxemul_irq_exception(unsigned int, istate_t *);
 extern uintptr_t gxemul_get_memory_size(void);
 extern void gxemul_frame_init(void);
 
+extern struct arm_machine_ops gxemul_machine_ops;
 
 #endif
 

@@ -55,7 +55,7 @@
 static parea_t fb_parea;
 static icp_hw_map_t icp_hw_map;
 static irq_t icp_timer_irq;
-struct arm_machine_ops machine_ops = {
+struct arm_machine_ops icp_machine_ops = {
 	icp_init,
 	icp_timer_irq_start,
 	icp_cpu_halt,

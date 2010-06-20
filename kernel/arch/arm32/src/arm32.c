@@ -62,6 +62,9 @@ void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
+
+	/* Initialize machine_ops pointer. */
+	machine_ops_init();
 }
 
 /** Performs arm32 specific initialization before mm is initialized. */

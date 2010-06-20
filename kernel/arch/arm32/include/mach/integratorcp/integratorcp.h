@@ -35,8 +35,8 @@
  *  @brief Integratorcp peripheries drivers declarations.
  */
 
-#ifndef KERN_arm32_MACHINE_H_
-#define KERN_arm32_MACHINE_H_
+#ifndef KERN_arm32_icp_H_
+#define KERN_arm32_icp_H_
 
 #include <arch/machine_func.h>
 
@@ -104,6 +104,8 @@ extern void icp_cpu_halt(void);
 extern void icp_irq_exception(unsigned int, istate_t *);
 extern uintptr_t icp_get_memory_size(void);
 extern void icp_frame_init(void);
+
+extern struct arm_machine_ops icp_machine_ops;
 
 #endif
 
