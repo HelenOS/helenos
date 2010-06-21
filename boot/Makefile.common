@@ -54,6 +54,7 @@ PACK = $(TOOLS_PATH)/pack.py
 MKHORD = $(TOOLS_PATH)/mkhord.py
 MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
+MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
 JOBFILE = $(ROOT_PATH)/tools/jobfile.py
 

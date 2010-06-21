@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE), gta02)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	POSTBUILD = Makefile.uboot
-endif
+.PHONY: all clean
 
-BFD_NAME = elf32-littlearm
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = arm
+include Makefile.common
 
-BITS = 32
-ENDIANESS = LE
-PAGE_SIZE = 4096
+IMAGE_NAME=HelenOS-$(RELEASE)
 
-RD_SRVS_ESSENTIAL +=
+all: $(POST_OUTPUT)
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
+$(POST_OUTPUT): $(BOOT_OUTPUT)
+	$(MKUIMAGE) -name "$(IMAGE_NAME)" -laddr 0x00000000 -saddr 0x00000000 \
+    $< $@
 
-SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/mm.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/division.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+clean:
