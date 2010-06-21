@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32boot
+/** @addtogroup arm32gxemul
  * @{
  */
 /** @file
- * @brief Boot related declarations.
+ *  @brief Openmoko GTA02 (Neo FreeRunner) platform driver.
  */
 
-#ifndef BOOT_arm32_MAIN_H
-#define BOOT_arm32_MAIN_H
+#include <arch/exception.h>
+#include <arch/mach/gta02/gta02.h>
 
-/** Address where characters to be printed are expected. */
+static void gta02_init(void);
+static void gta02_timer_irq_start(void);
+static void gta02_cpu_halt(void);
+static uintptr_t gta02_get_memory_size(void);
+static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
+static void gta02_frame_init(void);
+static void gta02_output_init(void);
+static void gta02_input_init(void);
 
-#ifdef MACHINE_gta02
-	/* FIXME: Need real S3C244x UART driver. */
-	#define VIDEORAM_ADDRESS  0x50008020
-#endif
+struct arm_machine_ops gta02_machine_ops = {
+	gta02_init,
+	gta02_timer_irq_start,
+	gta02_cpu_halt,
+	gta02_get_memory_size,
+	gta02_irq_exception,
+	gta02_frame_init,
+	gta02_output_init,
+	gta02_input_init
+};
 
-#ifdef MACHINE_testarm
-	#define VIDEORAM_ADDRESS  0x10000000
-#endif
+static void gta02_init(void)
+{
+}
 
-#ifdef MACHINE_integratorcp
-	#define VIDEORAM_ADDRESS  0x16000000
-#endif
+static void gta02_timer_irq_start(void)
+{
+}
 
-extern void bootstrap(void);
+static void gta02_cpu_halt(void)
+{
+}
 
-#endif
+static uintptr_t gta02_get_memory_size(void)
+{
+	return 0;
+}
+
+static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
+{
+}
+
+static void gta02_frame_init(void)
+{
+}
+
+static void gta02_output_init(void)
+{
+}
+
+static void gta02_input_init(void)
+{
+}
 
 /** @}
  */

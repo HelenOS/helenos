@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32boot
+/** @addtogroup arm32gta02 GTA02
+ *  @brief Openmoko GTA02 platform.
+ *  @ingroup arm32
  * @{
  */
 /** @file
- * @brief Boot related declarations.
+ *  @brief Openmoko GTA02 platform driver.
  */
 
-#ifndef BOOT_arm32_MAIN_H
-#define BOOT_arm32_MAIN_H
+#ifndef KERN_arm32_gta02_H_
+#define KERN_arm32_gta02_H_
 
-/** Address where characters to be printed are expected. */
+#include <arch/machine_func.h>
 
-#ifdef MACHINE_gta02
-	/* FIXME: Need real S3C244x UART driver. */
-	#define VIDEORAM_ADDRESS  0x50008020
-#endif
-
-#ifdef MACHINE_testarm
-	#define VIDEORAM_ADDRESS  0x10000000
-#endif
-
-#ifdef MACHINE_integratorcp
-	#define VIDEORAM_ADDRESS  0x16000000
-#endif
-
-extern void bootstrap(void);
+extern struct arm_machine_ops gta02_machine_ops;
 
 #endif
 

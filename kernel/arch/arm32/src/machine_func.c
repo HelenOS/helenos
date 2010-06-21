@@ -38,6 +38,7 @@
  */
 
 #include <arch/machine_func.h>
+#include <arch/mach/gta02/gta02.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <arch/mach/testarm/testarm.h>
 
@@ -47,7 +48,9 @@ struct arm_machine_ops *machine_ops;
 /** Initialize machine_ops pointer. */
 void machine_ops_init(void)
 {
-#if defined(MACHINE_testarm)
+#if defined(MACHINE_gta02)
+	machine_ops = &gta02_machine_ops;
+#elif defined(MACHINE_testarm)
 	machine_ops = &gxemul_machine_ops;
 #elif defined(MACHINE_integratorcp)
 	machine_ops = &icp_machine_ops;
