@@ -142,13 +142,15 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
-	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
-	    (!p->present) << PAGE_PRESENT_SHIFT |
-	    p->uaccessible << PAGE_USER_SHIFT |
-	    1 << PAGE_READ_SHIFT |
-	    p->writeable << PAGE_WRITE_SHIFT |
-	    1 << PAGE_EXEC_SHIFT |
-	    p->global << PAGE_GLOBAL_SHIFT);
+	return (
+	    ((unsigned int) (!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
+	    ((unsigned int) (!p->present) << PAGE_PRESENT_SHIFT) |
+	    ((unsigned int) p->uaccessible << PAGE_USER_SHIFT) |
+	    (1 << PAGE_READ_SHIFT) |
+	    ((unsigned int) p->writeable << PAGE_WRITE_SHIFT) |
+	    (1 << PAGE_EXEC_SHIFT) |
+	    ((unsigned int) p->global << PAGE_GLOBAL_SHIFT)
+	);
 }
 
 static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
