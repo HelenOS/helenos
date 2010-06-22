@@ -432,8 +432,8 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 * Start TLB shootdown sequence.
 		 *
 		 */
-		tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base +
-		    pages * PAGE_SIZE, area->pages - pages);
+		ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES, as->asid,
+		    area->base + pages * PAGE_SIZE, area->pages - pages);
 		
 		/*
 		 * Remove frames belonging to used space starting from
@@ -527,7 +527,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		as_invalidate_translation_cache(as, area->base +
 		    pages * PAGE_SIZE, area->pages - pages);
-		tlb_shootdown_finalize();
+		tlb_shootdown_finalize(ipl);
 		
 		page_table_unlock(as, false);
 	} else {
@@ -577,7 +577,8 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Start TLB shootdown sequence.
 	 */
-	tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base, area->pages);
+	ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base,
+	    area->pages);
 	
 	/*
 	 * Visit only the pages mapped by used_space B+tree.
@@ -624,7 +625,7 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	 *
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
-	tlb_shootdown_finalize();
+	tlb_shootdown_finalize(ipl);
 	
 	page_table_unlock(as, false);
 	
@@ -864,7 +865,8 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 * Start TLB shootdown sequence.
 	 *
 	 */
-	tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base, area->pages);
+	ipl_t ipl = tlb_shootdown_start(TLB_INVL_PAGES, as->asid, area->base,
+	    area->pages);
 	
 	/*
 	 * Remove used pages from page tables and remember their frame
@@ -911,7 +913,7 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 *
 	 */
 	as_invalidate_translation_cache(as, area->base, area->pages);
-	tlb_shootdown_finalize();
+	tlb_shootdown_finalize(ipl);
 	
 	page_table_unlock(as, false);
 	
