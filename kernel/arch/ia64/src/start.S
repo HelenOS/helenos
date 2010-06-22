@@ -165,8 +165,8 @@ paging_start:
 	
 	# Initialize gp (Global Pointer) register
 	movl r20 = (VRN_KERNEL << VRN_SHIFT) ;;
-	or r20 = r20, r1 ;;
-	movl r1 = kernel_image_start
+	or r20 = r20, gp ;;
+	movl gp = kernel_image_start
 	
 	/*
 	 * Initialize bootinfo on BSP.

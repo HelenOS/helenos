@@ -38,7 +38,7 @@
 #
 __entry:
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
-	movl r1 = _gp
+	movl gp = _gp
 
 	# Pass PCB pointer as the first argument to __main
 	mov out0 = r2
