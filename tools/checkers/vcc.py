@@ -35,15 +35,18 @@ import sys
 import os
 import subprocess
 import jobfile
+import re
 
 jobs = [
-	"kernel/kernel.job",
-	"uspace/srv/clip/clip.job"
+	"kernel/kernel.job"
 ]
+
+re_attribute = re.compile("__attribute__\s*\(\(.*\)\)")
+re_va_list = re.compile("__builtin_va_list")
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ROOT>"
+	print prname + " <ROOT> [VCC_PATH]"
 
 def cygpath(upath):
 	"Convert Unix (Cygwin) path to Windows path"
@@ -67,9 +70,21 @@ def preprocess(srcfname, tmpfname, base, options):
 	tmpf = file(tmpfname, "w")
 	
 	for line in preproc.splitlines():
+		
 		# Ignore preprocessor directives
+		
 		if (line.startswith('#')):
 			continue
+		
+		# Remove __attribute__((.*)) GCC extension
+		
+		line = re.sub(re_attribute, "", line)
+		
+		# Ignore unsupported __builtin_va_list type
+		# (a better solution replacing __builrin_va_list with
+		# an emulated implementation is needed)
+		
+		line = re.sub(re_va_list, "void *", line)
 		
 		tmpf.write("%s\n" % line)
 	
@@ -79,7 +94,7 @@ def preprocess(srcfname, tmpfname, base, options):
 	
 	return True
 
-def vcc(root, job):
+def vcc(vcc_path, root, job):
 	"Run Vcc on a jobfile"
 	
 	# Parse jobfile
@@ -119,6 +134,9 @@ def vcc(root, job):
 		tmpfname = "%s.preproc" % srcfname
 		tmpfqname = os.path.join(base, tmpfname)
 		
+		vccfname = "%s.i" % srcfname
+		vccfqname = os.path.join(base, vccfname);
+		
 		# Only C files are interesting for us
 		if (tool != "cc"):
 			continue
@@ -129,16 +147,18 @@ def vcc(root, job):
 			return False
 		
 		# Run Vcc
-		
-		retval = subprocess.Popen(['vcc', cygpath(tmpfqname)]).wait()
-		
-		# Cleanup
-		
-		if (os.path.isfile(tmpfqname)):
-			os.remove(tmpfqname)
+		print " -- %s --" % srcfname		
+		retval = subprocess.Popen([vcc_path, cygpath(tmpfqname)]).wait()
 		
 		if (retval != 0):
 			return False
+		
+		# Cleanup, but only if verification was successful
+		# (to be able to examine the preprocessed file)
+		
+		if (os.path.isfile(tmpfqname)):
+			os.remove(tmpfqname)
+			os.remove(vccfqname)
 	
 	return True
 
@@ -148,6 +168,16 @@ def main():
 		return
 	
 	rootdir = os.path.abspath(sys.argv[1])
+	if (len(sys.argv) > 2):
+		vcc_path = sys.argv[2]
+	else:
+		vcc_path = "/cygdrive/c/Program Files (x86)/Microsoft Research/Vcc/Binaries/vcc"
+	
+	if (not os.path.isfile(vcc_path)):
+		print "%s is not a binary." % vcc_path
+		print "Please supply the full Cygwin path to Vcc as the second argument."
+		return
+	
 	config = os.path.join(rootdir, "HelenOS.config")
 	
 	if (not os.path.isfile(config)):
@@ -156,7 +186,7 @@ def main():
 		return
 	
 	for job in jobs:
-		if (not vcc(rootdir, job)):
+		if (not vcc(vcc_path, rootdir, job)):
 			print
 			print "Failed job: %s" % job
 			return
