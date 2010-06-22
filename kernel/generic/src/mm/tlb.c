@@ -72,8 +72,6 @@ IRQ_SPINLOCK_STATIC_INITIALIZE(tlblock);
  * This function attempts to deliver TLB shootdown message
  * to all other processors.
  *
- * This function must be called with interrupts disabled.
- *
  * @param type Type describing scope of shootdown.
  * @param asid Address space, if required by type.
  * @param page Virtual page address, if required by type.
@@ -84,7 +82,7 @@ void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
     uintptr_t page, size_t count)
 {
 	CPU->tlb_active = false;
-	irq_spinlock_lock(&tlblock, false);
+	irq_spinlock_lock(&tlblock, true);
 	
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
@@ -131,7 +129,7 @@ busy_wait:
  */
 void tlb_shootdown_finalize(void)
 {
-	irq_spinlock_unlock(&tlblock, false);
+	irq_spinlock_unlock(&tlblock, true);
 	CPU->tlb_active = true;
 }
 

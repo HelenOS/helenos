@@ -112,11 +112,8 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 	futex_t *futex;
 	uintptr_t paddr;
 	pte_t *t;
-	ipl_t ipl;
 	int rc;
 	
-	ipl = interrupts_disable();
-
 	/*
 	 * Find physical address of futex counter.
 	 */
@@ -124,14 +121,11 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
-		interrupts_restore(ipl);
 		return (unative_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
-	interrupts_restore(ipl);	
-
 	futex = futex_find(paddr);
 
 #ifdef CONFIG_UDEBUG

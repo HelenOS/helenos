@@ -184,7 +184,6 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 	
 	if (!hash_table_find(&page_ht, key)) {
@@ -225,7 +224,6 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 	
 	/*
@@ -253,7 +251,6 @@ pte_t *ht_mapping_find(as_t *as, uintptr_t page)
 		page = ALIGN_DOWN(page, PAGE_SIZE)
 	};
 
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 	
 	link_t *cur = hash_table_find(&page_ht, key);

@@ -238,6 +238,8 @@ retry:
 	}
 	
 	spinlock_unlock(&asidlock);
+	interrupts_restore(ipl);
+
 	
 	/*
 	 * Destroy address space areas of the address space.
@@ -264,8 +266,6 @@ retry:
 #else
 	page_table_destroy(NULL);
 #endif
-	
-	interrupts_restore(ipl);
 	
 	slab_free(as_slab, as);
 }
@@ -326,12 +326,10 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	if ((flags & AS_AREA_EXEC) && (flags & AS_AREA_WRITE))
 		return NULL;
 	
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	if (!check_area_conflicts(as, base, size, NULL)) {
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return NULL;
 	}
 	
@@ -356,7 +354,6 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	btree_insert(&as->as_area_btree, base, (void *) area, NULL);
 	
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 	
 	return area;
 }
@@ -375,7 +372,6 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
  */
 int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 {
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	/*
@@ -385,7 +381,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	as_area_t *area = find_area_and_lock(as, address);
 	if (!area) {
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	
@@ -397,7 +392,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
 	
@@ -409,7 +403,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
 	
@@ -421,7 +414,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		 */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return EPERM;
 	}
 	
@@ -548,7 +540,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 		    area)) {
 			mutex_unlock(&area->lock);
 			mutex_unlock(&as->lock);
-			interrupts_restore(ipl);
 			return EADDRNOTAVAIL;
 		}
 	}
@@ -557,7 +548,6 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	
 	mutex_unlock(&area->lock);
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 	
 	return 0;
 }
@@ -572,13 +562,11 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
  */
 int as_area_destroy(as_t *as, uintptr_t address)
 {
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	as_area_t *area = find_area_and_lock(as, address);
 	if (!area) {
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	
@@ -658,7 +646,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 	free(area);
 	
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 	return 0;
 }
 
@@ -689,7 +676,6 @@ int as_area_destroy(as_t *as, uintptr_t address)
 int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
     as_t *dst_as, uintptr_t dst_base, unsigned int dst_flags_mask)
 {
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&src_as->lock);
 	as_area_t *src_area = find_area_and_lock(src_as, src_base);
 	if (!src_area) {
@@ -698,7 +684,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		 *
 		 */
 		mutex_unlock(&src_as->lock);
-		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	
@@ -710,7 +695,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		 */
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
-		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
 	
@@ -727,7 +711,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	    ((src_flags & dst_flags_mask) != dst_flags_mask)) {
 		mutex_unlock(&src_area->lock);
 		mutex_unlock(&src_as->lock);
-		interrupts_restore(ipl);
 		return EPERM;
 	}
 	
@@ -776,7 +759,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 		 */
 		sh_info_remove_reference(sh_info);
 		
-		interrupts_restore(ipl);
 		return ENOMEM;
 	}
 	
@@ -792,8 +774,6 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
 	dst_area->sh_info = sh_info;
 	mutex_unlock(&dst_area->lock);
 	mutex_unlock(&dst_as->lock);
-	
-	interrupts_restore(ipl);
 	
 	return 0;
 }
@@ -815,7 +795,6 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 		[PF_ACCESS_EXEC] = AS_AREA_EXEC
 	};
 
-	ASSERT(interrupts_disabled());
 	ASSERT(mutex_locked(&area->lock));
 	
 	if (!(area->flags & flagmap[access]))
@@ -843,13 +822,11 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	/* Flags for the new memory mapping */
 	unsigned int page_flags = area_flags_to_page_flags(flags);
 	
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	as_area_t *area = find_area_and_lock(as, address);
 	if (!area) {
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOENT;
 	}
 	
@@ -858,7 +835,6 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 		/* Copying non-anonymous memory not supported yet */
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
-		interrupts_restore(ipl);
 		return ENOTSUP;
 	}
 	
@@ -977,7 +953,6 @@ int as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	
 	mutex_unlock(&area->lock);
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 	
 	return 0;
 }
@@ -1218,7 +1193,6 @@ unsigned int area_flags_to_page_flags(unsigned int aflags)
  */
 unsigned int as_area_get_flags(as_area_t *area)
 {
-	ASSERT(interrupts_disabled());
 	ASSERT(mutex_locked(&area->lock));
 
 	return area_flags_to_page_flags(area->flags);
@@ -1320,7 +1294,6 @@ bool page_table_locked(as_t *as)
  */
 as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
-	ASSERT(interrupts_disabled());
 	ASSERT(mutex_locked(&as->lock));
 
 	btree_node_t *leaf;
@@ -1385,7 +1358,6 @@ as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
     as_area_t *avoid_area)
 {
-	ASSERT(interrupts_disabled());
 	ASSERT(mutex_locked(&as->lock));
 
 	/*
@@ -1485,7 +1457,6 @@ size_t as_area_get_size(uintptr_t base)
 {
 	size_t size;
 	
-	ipl_t ipl = interrupts_disable();
 	page_table_lock(AS, true);
 	as_area_t *src_area = find_area_and_lock(AS, base);
 	
@@ -1496,7 +1467,6 @@ size_t as_area_get_size(uintptr_t base)
 		size = 0;
 	
 	page_table_unlock(AS, true);
-	interrupts_restore(ipl);
 	return size;
 }
 
@@ -2069,7 +2039,6 @@ unative_t sys_as_area_destroy(uintptr_t address)
  */
 void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 {
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	/* First pass, count number of areas. */
@@ -2113,7 +2082,6 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	}
 	
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 	
 	*obuf = info;
 	*osize = isize;
@@ -2126,7 +2094,6 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
  */
 void as_print(as_t *as)
 {
-	ipl_t ipl = interrupts_disable();
 	mutex_lock(&as->lock);
 	
 	/* print out info about address space areas */
@@ -2149,7 +2116,6 @@ void as_print(as_t *as)
 	}
 	
 	mutex_unlock(&as->lock);
-	interrupts_restore(ipl);
 }
 
 /** @}

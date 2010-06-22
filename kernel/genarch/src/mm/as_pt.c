@@ -83,7 +83,6 @@ pte_t *ptl0_create(unsigned int flags)
 		 *
 		 */
 		
-		ipl_t ipl = interrupts_disable();
 		mutex_lock(&AS_KERNEL->lock);
 		
 		pte_t *src_ptl0 =
@@ -99,7 +98,6 @@ pte_t *ptl0_create(unsigned int flags)
 		    table_size - (src - (uintptr_t) src_ptl0));
 		
 		mutex_unlock(&AS_KERNEL->lock);
-		interrupts_restore(ipl);
 	}
 	
 	return (pte_t *) KA2PA((uintptr_t) dst_ptl0);
