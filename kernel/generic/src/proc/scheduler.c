@@ -454,19 +454,7 @@ repeat:
 			 */
 			irq_spinlock_unlock(&THREAD->sleep_queue->lock, false);
 			
-			/*
-			 * Check for possible requests for out-of-context
-			 * invocation.
-			 *
-			 */
-			if (THREAD->call_me) {
-				THREAD->call_me(THREAD->call_me_with);
-				THREAD->call_me = NULL;
-				THREAD->call_me_with = NULL;
-			}
-			
 			irq_spinlock_unlock(&THREAD->lock, false);
-			
 			break;
 		
 		default:

@@ -240,7 +240,6 @@ GENERIC_SOURCES = \
 	generic/src/preempt/preemption.c \
 	generic/src/synch/spinlock.c \
 	generic/src/synch/condvar.c \
-	generic/src/synch/rwlock.c \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
@@ -293,11 +292,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/mapping1.c \
 		test/mm/slab1.c \
 		test/mm/slab2.c \
-		test/synch/rwlock1.c \
-		test/synch/rwlock2.c \
-		test/synch/rwlock3.c \
-		test/synch/rwlock4.c \
-		test/synch/rwlock5.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
 		test/print/print1.c \

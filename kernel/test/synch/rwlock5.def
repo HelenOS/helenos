@@ -1,6 +1,0 @@
-{
-	"rwlock5",
-	"RW-lock test 5",
-	&test_rwlock5,
-	true
-},

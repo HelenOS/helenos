@@ -47,7 +47,6 @@
 #include <synch/synch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
-#include <synch/rwlock.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -328,8 +327,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->cpu = NULL;
 	thread->flags = flags;
 	thread->state = Entering;
-	thread->call_me = NULL;
-	thread->call_me_with = NULL;
 	
 	timeout_initialize(&thread->sleep_timeout);
 	thread->sleep_interruptible = false;
@@ -342,8 +339,6 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->interrupted = false;
 	thread->detached = false;
 	waitq_initialize(&thread->join_wq);
-	
-	thread->rwlock_holder_type = RWLOCK_NONE;
 	
 	thread->task = task;
 	
@@ -582,24 +577,6 @@ void thread_usleep(uint32_t usec)
 	waitq_initialize(&wq);
 	
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING);
-}
-
-/** Register thread out-of-context invocation
- *
- * Register a function and its argument to be executed
- * on next context switch to the current thread. Must
- * be called with interrupts disabled.
- *
- * @param call_me      Out-of-context function.
- * @param call_me_with Out-of-context function argument.
- *
- */
-void thread_register_call_me(void (* call_me)(void *), void *call_me_with)
-{
-	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->call_me = call_me;
-	THREAD->call_me_with = call_me_with;
-	irq_spinlock_unlock(&THREAD->lock, false);
 }
 
 static bool thread_walker(avltree_node_t *node, void *arg)
