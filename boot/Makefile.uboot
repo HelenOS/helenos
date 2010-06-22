@@ -31,11 +31,16 @@
 include Makefile.common
 
 IMAGE_NAME=HelenOS-$(RELEASE)
+BIN_OUTPUT=image.bin
 
 all: $(POST_OUTPUT)
 
-$(POST_OUTPUT): $(BOOT_OUTPUT)
-	$(MKUIMAGE) -name "$(IMAGE_NAME)" -laddr 0x00000000 -saddr 0x00000000 \
+$(BIN_OUTPUT): $(BOOT_OUTPUT)
+	$(OBJCOPY) -O binary $< $@
+
+$(POST_OUTPUT): $(BIN_OUTPUT)
+	$(MKUIMAGE) -name "$(IMAGE_NAME)" -laddr 0x30000000 -saddr 0x30000000 \
     $< $@
 
 clean:
+	rm -f $(BIN_OUTPUT)
