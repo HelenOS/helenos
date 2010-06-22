@@ -17,33 +17,46 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 
 #ifdef PCI_HAVE_64BIT_ADDRESS
-#include <limits.h>
+
+#include <stdint.h>
+
 #if ULONG_MAX > 0xffffffff
+
 typedef unsigned long u64;
 #define PCI_U64_FMT "l"
-#else
+
+#else /* ULONG_MAX > 0xffffffff */
+
 typedef unsigned long long u64;
 #define PCI_U64_FMT "ll"
-#endif
-#endif
 
-#endif				/* PCI_HAVE_Uxx_TYPES */
+#endif /* ULONG_MAX > 0xffffffff */
+#endif /* PCI_HAVE_64BIT_ADDRESS */
+#endif /* PCI_HAVE_Uxx_TYPES */
 
 #ifdef PCI_HAVE_64BIT_ADDRESS
+
 typedef u64 pciaddr_t;
 #define PCIADDR_T_FMT "%08" PCI_U64_FMT "x"
 #define PCIADDR_PORT_FMT "%04" PCI_U64_FMT "x"
-#else
+
+#else /* PCI_HAVE_64BIT_ADDRESS */
+
 typedef u32 pciaddr_t;
 #define PCIADDR_T_FMT "%08x"
 #define PCIADDR_PORT_FMT "%04x"
-#endif
+
+#endif /* PCI_HAVE_64BIT_ADDRESS */
 
 #ifdef PCI_ARCH_SPARC64
+
 /* On sparc64 Linux the kernel reports remapped port addresses and IRQ numbers */
 #undef PCIADDR_PORT_FMT
 #define PCIADDR_PORT_FMT PCIADDR_T_FMT
 #define PCIIRQ_FMT "%08x"
-#else
+
+#else /* PCI_ARCH_SPARC64 */
+
 #define PCIIRQ_FMT "%d"
-#endif
+
+#endif /* PCI_ARCH_SPARC64 */

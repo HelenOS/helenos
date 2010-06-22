@@ -38,7 +38,7 @@
 #include "vfs.h"
 #include <ipc/ipc.h>
 #include <macros.h>
-#include <limits.h>
+#include <stdint.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>

@@ -39,6 +39,12 @@
 
 #include <libarch/common.h>
 
+#define SIZE_MIN  UINT64_MIN
+#define SIZE_MAX  UINT64_MAX
+
+#define SSIZE_MIN  INT64_MIN
+#define SSIZE_MAX  INT64_MAX
+
 typedef struct {
 	uint64_t lo;
 	int64_t hi;
