@@ -156,9 +156,12 @@ paging_start:
 	mov ar.bspstore = r8
 	loadrs
 	
-	# Initialize memory stack to some sane value
-	movl r12 = stack0 ;;
-	add r12 = -16, r12  /* allocate a scratch area on the stack */
+	#
+	# Initialize memory stack to some sane value and allocate a scratch are
+	# on it.
+	#
+	movl sp = stack0 ;;
+	add sp = -16, sp
 	
 	# Initialize gp (Global Pointer) register
 	movl r20 = (VRN_KERNEL << VRN_SHIFT) ;;
