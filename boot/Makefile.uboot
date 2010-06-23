@@ -39,7 +39,7 @@ $(BIN_OUTPUT): $(BOOT_OUTPUT)
 	$(OBJCOPY) -O binary $< $@
 
 $(POST_OUTPUT): $(BIN_OUTPUT)
-	$(MKUIMAGE) -name "$(IMAGE_NAME)" -laddr 0x30000000 -saddr 0x30000000 \
+	$(MKUIMAGE) -name "$(IMAGE_NAME)" -laddr 0x30008000 -saddr 0x30008000 \
     $< $@
 
 clean:

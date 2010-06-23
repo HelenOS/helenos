@@ -1,12 +1,14 @@
+#include <arch/arch.h>
+
 ENTRY(start)
 
 SECTIONS {
-	. = 0x0000;
+	. = BOOT_BASE;
 	.text : {
 		*(BOOTSTRAP);
 		*(.text);
 	}
-	. = 0x8000;
+	. = BOOT_BASE + 0x8000;
 	.data : {
 		*(BOOTPT);      /* bootstrap page table */
 		*(BOOTSTACK);   /* bootstrap stack */

@@ -35,7 +35,17 @@
 #define PTL0_ENTRIES     4096
 #define PTL0_ENTRY_SIZE  4
 
-#define BOOT_OFFSET  0xa00000
+/*
+ * Address where the boot stage image starts (beginning of usable physical
+ * memory).
+ */
+#ifdef MACHINE_gta02
+#define BOOT_BASE	0x30008000
+#else
+#define BOOT_BASE	0x00000000
+#endif
+
+#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
 
 #ifndef __ASM__
 	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
