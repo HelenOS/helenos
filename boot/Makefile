@@ -38,6 +38,7 @@ endif
 
 build_comps: $(COMPONENTS) $(LINK).in
 	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
+	$(MAKE) -f $(BUILD) $(LINK) PRECHECK=$(PRECHECK)
 
 $(INITRD).img: $(INITRD).fs
 	$(MKHORD) $(PAGE_SIZE) $< $@
@@ -71,7 +72,7 @@ endif
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) *.co
+	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

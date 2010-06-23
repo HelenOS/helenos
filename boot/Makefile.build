@@ -105,6 +105,9 @@ $(BOOT_OUTPUT): $(RAW)
 $(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
 	$(LD) -N $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(COMPONENT_OBJECTS) $(OBJECTS)
 
+$(LINK): $(LINK).comp
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).comp | grep -v "^\#" > $(LINK)
+
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
 ifeq ($(PRECHECK),y)
