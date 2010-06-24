@@ -107,26 +107,18 @@ static cmd_info_t continue_info = {
 };
 
 #ifdef CONFIG_TEST
-static int cmd_tests(cmd_arg_t *argv);
-static cmd_info_t tests_info = {
-	.name = "tests",
-	.description = "Print available kernel tests.",
-	.func = cmd_tests,
-	.argc = 0
-};
-
 static char test_buf[MAX_CMDLINE + 1];
 static int cmd_test(cmd_arg_t *argv);
 static cmd_arg_t test_argv[] = {
 	{
-		.type = ARG_TYPE_STRING,
+		.type = ARG_TYPE_STRING_OPTIONAL,
 		.buffer = test_buf,
 		.len = sizeof(test_buf)
 	}
 };
 static cmd_info_t test_info = {
 	.name = "test",
-	.description = "Run kernel test.",
+	.description = "Print list of kernel tests or run a test.",
 	.func = cmd_test,
 	.argc = 1,
 	.argv = test_argv
@@ -508,7 +500,6 @@ static cmd_info_t *basic_commands[] = {
 	&zones_info,
 	&zone_info,
 #ifdef CONFIG_TEST
-	&tests_info,
 	&test_info,
 	&bench_info,
 #endif
@@ -1065,28 +1056,6 @@ int cmd_continue(cmd_arg_t *argv)
 }
 
 #ifdef CONFIG_TEST
-/** Command for printing kernel tests list.
- *
- * @param argv Ignored.
- *
- * return Always 1.
- */
-int cmd_tests(cmd_arg_t *argv)
-{
-	size_t len = 0;
-	test_t *test;
-	for (test = tests; test->name != NULL; test++) {
-		if (str_length(test->name) > len)
-			len = str_length(test->name);
-	}
-	
-	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
-	
-	printf("%-*s Run all safe tests\n", len, "*");
-	return 1;
-}
-
 static bool run_test(const test_t *test)
 {
 	printf("%s (%s)\n", test->name, test->desc);
@@ -1192,11 +1161,28 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	return ret;
 }
 
-/** Command for returning kernel tests
+static void list_tests(void)
+{
+	size_t len = 0;
+	test_t *test;
+	
+	for (test = tests; test->name != NULL; test++) {
+		if (str_length(test->name) > len)
+			len = str_length(test->name);
+	}
+	
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+	
+	printf("%-*s Run all safe tests\n", len, "*");
+}
+
+/** Command for listing and running kernel tests
  *
  * @param argv Argument vector.
  *
  * return Always 1.
+ *
  */
 int cmd_test(cmd_arg_t *argv)
 {
@@ -1210,7 +1196,7 @@ int cmd_test(cmd_arg_t *argv)
 					break;
 			}
 		}
-	} else {
+	} else if (str_cmp((char *) argv->buffer, "") != 0) {
 		bool fnd = false;
 		
 		for (test = tests; test->name != NULL; test++) {
@@ -1223,7 +1209,8 @@ int cmd_test(cmd_arg_t *argv)
 		
 		if (!fnd)
 			printf("Unknown test\n");
-	}
+	} else
+		list_tests();
 	
 	return 1;
 }
