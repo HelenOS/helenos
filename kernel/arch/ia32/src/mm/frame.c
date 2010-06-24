@@ -122,8 +122,7 @@ void physmem_print(void)
 	unsigned int i;
 	const char *name;
 	
-	printf("Base               Size               Name\n");
-	printf("------------------ ------------------ ---------\n");
+	printf("[base            ] [size            ] [name\n");
 		
 	for (i = 0; i < e820counter; i++) {
 		if (e820table[i].type <= MEMMAP_MEMORY_UNUSABLE)

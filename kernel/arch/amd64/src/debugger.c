@@ -348,13 +348,11 @@ void debugger_init()
 int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 #ifdef __32_BITS__
-	printf("#  Count Address    In symbol\n");
-	printf("-- ----- ---------- ---------\n");
+	printf("[nr] [count] [address ] [in symbol\n");
 #endif
 	
 #ifdef __64_BITS__
-	printf("#  Count Address            In symbol\n");
-	printf("-- ----- ------------------ ---------\n");
+	printf("[nr] [count] [address         ] [in symbol\n");
 #endif
 	
 	unsigned int i;
@@ -364,13 +362,13 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 			    breakpoints[i].address);
 			
 #ifdef __32_BITS__
-			printf("%-2u %-5" PRIs " %p %s\n", i,
+			printf("%-4u %7" PRIs " %p %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    symbol);
 #endif
 			
 #ifdef __64_BITS__
-			printf("%-2u %-5" PRIs " %p %s\n", i,
+			printf("%-4u %7" PRIs " %p %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    symbol);
 #endif

@@ -454,8 +454,7 @@ void tlb_print(void)
 
 	hi_save.value = cp0_entry_hi_read();
 	
-	printf("#  ASID VPN2   MASK G V D C PFN\n");
-	printf("-- ---- ------ ---- - - - - ------\n");
+	printf("[nr] [asid] [vpn2] [mask] [gvdc] [pfn ]\n");
 	
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
@@ -466,10 +465,10 @@ void tlb_print(void)
 		lo0.value = cp0_entry_lo0_read();
 		lo1.value = cp0_entry_lo1_read();
 		
-		printf("%-2u %-4u %#6x %#4x %1u %1u %1u %1u %#6x\n",
+		printf("%-4u %-6u %#6x %#6x  %1u%1u%1u%1u  %#6x\n",
 		    i, hi.asid, hi.vpn2, mask.mask,
 		    lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn);
-		printf("                    %1u %1u %1u %1u %#6x\n",
+		printf("                           %1u%1u%1u%1u  %#6x\n",
 		    lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
 	

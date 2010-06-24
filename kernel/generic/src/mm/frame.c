@@ -1233,13 +1233,11 @@ void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
 void zones_print_list(void)
 {
 #ifdef __32_BITS__
-	printf("#  base address frames       flags    free frames  busy frames\n");
-	printf("-- ------------ ------------ -------- ------------ ------------\n");
+	printf("[nr] [base addr ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
 #endif
 
 #ifdef __64_BITS__
-	printf("#  base address          frames      flags    free frames  busy frames\n");
-	printf("-- -------------------- ------------ -------- ------------ ------------\n");
+	printf("[nr] [base address      ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
 #endif
 	
 	/*
@@ -1272,7 +1270,7 @@ void zones_print_list(void)
 		
 		bool available = zone_flags_available(flags);
 		
-		printf("%-2" PRIs, i);
+		printf("%-4" PRIs, i);
 		
 #ifdef __32_BITS__
 		printf("   %10p", base);
@@ -1288,7 +1286,7 @@ void zones_print_list(void)
 		    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 		
 		if (available)
-			printf("%12" PRIs " %12" PRIs,
+			printf("%14" PRIs " %14" PRIs,
 			    free_count, busy_count);
 		
 		printf("\n");

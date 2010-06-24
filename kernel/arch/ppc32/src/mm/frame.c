@@ -44,8 +44,7 @@ memmap_t memmap;
 
 void physmem_print(void)
 {
-	printf("Base       Size\n");
-	printf("---------- ----------\n");
+	printf("[base    ] [size    ]\n");
 	
 	size_t i;
 	for (i = 0; i < memmap.cnt; i++) {
