@@ -35,6 +35,9 @@
 #ifndef KERN_abs32le_TYPES_H_
 #define KERN_abs32le_TYPES_H_
 
+#define ATOMIC_COUNT_MIN  UINT32_MIN
+#define ATOMIC_COUNT_MAX  UINT32_MAX
+
 typedef uint32_t size_t;
 
 typedef uint32_t uintptr_t;

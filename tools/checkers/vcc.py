@@ -58,7 +58,7 @@ def preprocess(srcfname, tmpfname, base, options):
 	
 	args = ['gcc', '-E']
 	args.extend(options.split())
-	args.append(srcfname)
+	args.extend(['-DCONFIG_VERIFY_VCC=1', srcfname])
 	
 	# Change working directory
 	
@@ -68,6 +68,12 @@ def preprocess(srcfname, tmpfname, base, options):
 	preproc = subprocess.Popen(args, stdout = subprocess.PIPE).communicate()[0]
 	
 	tmpf = file(tmpfname, "w")
+	
+	tmpf.write("__specification(const char * const \\declspec_atomic_inline;)\n\n");
+	
+	tmpf.write("#define __spec_attr(key, value) \\\n");
+	tmpf.write("	__declspec(System.Diagnostics.Contracts.CodeContract.StringVccAttr, \\\n");
+	tmpf.write("	    key, value)\n\n");
 	
 	for line in preproc.splitlines():
 		
@@ -148,7 +154,7 @@ def vcc(vcc_path, root, job):
 		
 		# Run Vcc
 		print " -- %s --" % srcfname		
-		retval = subprocess.Popen([vcc_path, cygpath(tmpfqname)]).wait()
+		retval = subprocess.Popen([vcc_path, '/pointersize:32', cygpath(tmpfqname)]).wait()
 		
 		if (retval != 0):
 			return False

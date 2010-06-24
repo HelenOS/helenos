@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericverify
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ATOMIC_H_
-#define KERN_ATOMIC_H_
+#ifndef KERN_VERIFY_H_
+#define KERN_VERIFY_H_
 
-#include <typedefs.h>
-#include <arch/atomic.h>
-#include <verify.h>
 
-ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	val->count = i;
-}
+#ifdef CONFIG_VERIFY_VCC
 
-ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return val->count;
-}
+#define ATOMIC         __spec_attr("atomic_inline", "")
+#define REQUIRES(...)  __requires(__VA_ARGS__)
+
+#else /* CONFIG_VERIFY_VCC */
+
+#define ATOMIC
+#define REQUIRES(...)
+
+#endif /* CONFIG_VERIFY_VCC */
+
 
 #endif
 
