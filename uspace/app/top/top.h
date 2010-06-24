@@ -56,7 +56,12 @@ typedef enum {
 	OP_HELP
 } op_mode_t;
 
+typedef enum {
+	SORT_TASK_CYCLES
+} sort_mode_t;
+
 extern op_mode_t op_mode;
+extern sort_mode_t sort_mode;
 extern bool excs_all;
 
 typedef struct {
@@ -100,6 +105,7 @@ typedef struct {
 	size_t tasks_count;
 	stats_task_t *tasks;
 	perc_task_t *tasks_perc;
+	size_t *tasks_map;
 	
 	size_t threads_count;
 	stats_thread_t *threads;
@@ -109,6 +115,11 @@ typedef struct {
 	perc_exc_t *exceptions_perc;
 	
 	stats_physmem_t *physmem;
+	
+	uint64_t *ucycles_diff;
+	uint64_t *kcycles_diff;
+	uint64_t *ecycles_diff;
+	uint64_t *ecount_diff;
 } data_t;
 
 #endif
