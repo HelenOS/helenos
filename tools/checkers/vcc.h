@@ -26,37 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericverify
- * @{
- */
 /** @file
+ *
+ * VCC specifications tight to the HelenOS-specific annotations.
+ *
  */
 
-#ifndef KERN_VERIFY_H_
-#define KERN_VERIFY_H_
+#ifndef HELENOS_VCC_H_
+#define HELENOS_VCC_H_
 
+typedef _Bool bool;
 
-#ifdef CONFIG_VERIFY_VCC
+#define __concat_identifiers_str(a, b)  a ## b
+#define __concat_identifiers(a, b)      __concat_identifiers_str(a, b)
 
-#define ATOMIC         __specification_attr("atomic_inline", "")
-#define READS(...)     __specification(reads(__VA_ARGS__))
-#define WRITES(...)    __specification(writes(__VA_ARGS__))
-#define REQUIRES(...)  __specification(requires __VA_ARGS__)
+#define __specification_attr(key, value) \
+	__declspec(System.Diagnostics.Contracts.CodeContract.StringVccAttr, \
+	    key, value)
 
-#define REQUIRES_EXTENT_MUTABLE(...) \
-	REQUIRES(\extent_mutable(__VA_ARGS__))
+#define __specification_type(name) \
+	__specification( \
+		typedef struct __concat_identifiers(_vcc_math_type_, name) { \
+			char _vcc_marker_for_math_type; \
+		} __concat_identifiers(\, name); \
+	)
 
-#else /* CONFIG_VERIFY_VCC */
+__specification(typedef void * \object;)
+__specification(typedef __int64 \integer;)
 
-#define ATOMIC
-#define READS(...)
-#define WRITES(...)
-#define REQUIRES(...)
+__specification_type(objset)
 
-#define REQUIRES_EXTENT_MUTABLE(...)
+__specification(struct \TypeState {
+	__specification(ghost \integer \claim_count;)
+	__specification(ghost bool \consistent;)
+	__specification(ghost \objset \owns;)
+	__specification(ghost \object \owner;)
+	__specification(ghost bool \valid;)
+};)
 
-#endif /* CONFIG_VERIFY_VCC */
-
+__specification(bool \extent_mutable(\object);)
 
 #endif
 
