@@ -38,7 +38,6 @@ endif
 
 build_comps: $(COMPONENTS) $(LINK).in
 	$(PACK) $(OBJCOPY) $(BFD_NAME) $(BFD_ARCH) arch/$(KARCH) $(COMPONENTS)
-	$(MAKE) -f $(BUILD) $(LINK) PRECHECK=$(PRECHECK)
 
 $(INITRD).img: $(INITRD).fs
 	$(MKHORD) $(PAGE_SIZE) $< $@
