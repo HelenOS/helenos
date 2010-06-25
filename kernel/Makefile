@@ -200,6 +200,7 @@ GENERIC_SOURCES = \
 	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
 	generic/src/debug/stacktrace.c \
+	generic/src/debug/panic.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \

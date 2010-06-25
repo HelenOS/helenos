@@ -54,7 +54,7 @@
 #define ASSERT(expr) \
 	do { \
 		if (!(expr)) \
-			panic("Assertion failed (%s)", #expr); \
+			panic_assert("%s", #expr); \
 	} while (0)
 
 /** Debugging verbose ASSERT macro
@@ -71,7 +71,7 @@
 #define ASSERT_VERBOSE(expr, msg) \
 	do { \
 		if (!(expr)) \
-			panic("Assertion failed (%s, %s)", #expr, msg); \
+			panic_assert("%s, %s", #expr, msg); \
 	} while (0)
 
 #else /* CONFIG_DEBUG */

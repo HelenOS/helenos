@@ -26,44 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_PANIC_H_
-#define KERN_PANIC_H_
-
+#include <panic.h>
+#include <print.h>
+#include <stacktrace.h>
+#include <func.h>
 #include <typedefs.h>
+#include <mm/as.h>
+#include <stdarg.h>
+#include <interrupt.h>
 
-#define panic(fmt, ...) \
-	panic_common(PANIC_OTHER, NULL, 0, 0, fmt, ##__VA_ARGS__)
+void panic_common(panic_category_t cat, istate_t *istate, int access,
+    uintptr_t address, const char *fmt, ...)
+{
+	va_list args;
 
-#define panic_assert(fmt, ...) \
-	panic_common(PANIC_ASSERT, NULL, 0, 0, fmt, ##__VA_ARGS__)
+	silent = false;
 
-#define panic_badtrap(istate, n, fmt, ...) \
-	panic_common(PANIC_BADTRAP, istate, 0, n, fmt, ##__VA_ARGS__)
+	printf("\nKERNEL PANIC ON cpu%d DUE TO ", CPU->id);
+	va_start(args, fmt);
+	if (cat == PANIC_ASSERT) {
+		printf("A FAILED ASSERTION:\n");
+		vprintf(fmt, args);
+		printf("\n");
+	} else if (cat == PANIC_BADTRAP) {
+		printf("BAD TRAP %ld.\n", address);
+	} else if (cat == PANIC_MEMTRAP) {
+		printf("A BAD MEMORY ACCESS WHILE ");
+		if (access == PF_ACCESS_READ)
+			printf("LOADING FROM");
+		else if (access == PF_ACCESS_WRITE)
+			printf("STORING TO");
+		else if (access == PF_ACCESS_EXEC)
+			printf("BRANCHING TO");
+		else
+			printf("REFERENCING");
+		printf(" ADDRESS %p.\n", address); 
+	} else {
+		printf("THE FOLLOWING REASON:\n");
+		vprintf(fmt, args);
+	}
+	va_end(args);
 
-#define panic_memtrap(istate, access, addr, fmt, ...) \
-	panic_common(PANIC_MEMTRAP, istate, access, addr, fmt, ##__VA_ARGS__)
+	printf("\n");
 
-typedef enum {
-	PANIC_OTHER,
-	PANIC_ASSERT,
-	PANIC_BADTRAP,
-	PANIC_MEMTRAP
-} panic_category_t;
+	if (istate) {
+		decode_istate(istate);
+		printf("\n");
+	}
 
-struct istate;
-
-extern bool silent;
-
-extern void panic_common(panic_category_t, struct istate *, int,
-    uintptr_t, const char *, ...) __attribute__ ((noreturn));
-
-#endif
+	stack_trace();
+	halt();
+}
 
 /** @}
  */
