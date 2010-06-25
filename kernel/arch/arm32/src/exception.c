@@ -172,22 +172,16 @@ void exception_init(void)
  *
  * @param istate Structure to be printed.
  */
-void print_istate(istate_t *istate)
+void decode_istate(istate_t *istate)
 {
-	printf("istate dump:\n");
-	
-	printf(" r0: %x    r1: %x    r2: %x    r3: %x\n",
+	printf("r0 =%#0.8lx\tr1 =%#0.8lx\tr2 =%#0.8lx\tr3 =%#0.8lx\n",
 	    istate->r0, istate->r1, istate->r2, istate->r3);
-	printf(" r4: %x    r5: %x    r6: %x    r7: %x\n", 
+	printf("r4 =%#0.8lx\tr5 =%#0.8lx\tr6 =%#0.8lx\tr7 =%#0.8lx\n",
 	    istate->r4, istate->r5, istate->r6, istate->r7);
-	printf(" r8: %x    r8: %x   r10: %x    fp: %x\n", 
+	printf("r8 =%#0.8lx\tr9 =%#0.8lx\tr10=%#0.8lx\tfp =%#0.8lx\n",
 	    istate->r8, istate->r9, istate->r10, istate->fp);
-	printf(" r12: %x    sp: %x    lr: %x  spsr: %x\n",
+	printf("r12=%#0.8lx\tsp =%#0.8lx\tlr =%#0.8lx\tspsr=%#0.8lx\n",
 	    istate->r12, istate->sp, istate->lr, istate->spsr);
-	
-	printf(" pc: %x\n", istate->pc);
-
-	stack_trace_istate(istate);
 }
 
 /** @}
