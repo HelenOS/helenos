@@ -39,21 +39,33 @@
 #ifdef CONFIG_VERIFY_VCC
 
 #define ATOMIC         __specification_attr("atomic_inline", "")
-#define READS(...)     __specification(reads(__VA_ARGS__))
-#define WRITES(...)    __specification(writes(__VA_ARGS__))
+
+#define READS(ptr)     __specification(reads(ptr))
+#define WRITES(ptr)    __specification(writes(ptr))
 #define REQUIRES(...)  __specification(requires __VA_ARGS__)
 
-#define REQUIRES_EXTENT_MUTABLE(...) \
-	REQUIRES(\extent_mutable(__VA_ARGS__))
+#define EXTENT(ptr)              \extent(ptr)
+#define ARRAY_RANGE(ptr, nmemb)  \array_range(ptr, nmemb)
+
+#define REQUIRES_EXTENT_MUTABLE(ptr) \
+	REQUIRES(\extent_mutable(ptr))
+
+#define REQUIRES_ARRAY_MUTABLE(ptr, nmemb) \
+	REQUIRES(\mutable_array(ptr, nmemb))
 
 #else /* CONFIG_VERIFY_VCC */
 
 #define ATOMIC
-#define READS(...)
-#define WRITES(...)
+
+#define READS(ptr)
+#define WRITES(ptr)
 #define REQUIRES(...)
 
-#define REQUIRES_EXTENT_MUTABLE(...)
+#define EXTENT(ptr)
+#define ARRAY_RANGE(ptr, nmemb)
+
+#define REQUIRES_EXTENT_MUTABLE(ptr)
+#define REQUIRES_ARRAY_MUTABLE(ptr, nmemb)
 
 #endif /* CONFIG_VERIFY_VCC */
 

@@ -53,6 +53,7 @@ typedef _Bool bool;
 
 __specification(typedef void * \object;)
 __specification(typedef __int64 \integer;)
+__specification(typedef unsigned __int64 \size_t;)
 
 __specification_type(objset)
 
@@ -65,6 +66,9 @@ __specification(struct \TypeState {
 };)
 
 __specification(bool \extent_mutable(\object);)
+__specification(\objset \extent(\object);)
+__specification(\objset \array_range(\object, \size_t);)
+__specification(bool \mutable_array(\object, \size_t);)
 
 #endif
 
