@@ -103,7 +103,7 @@ static void scons_sendb(uint8_t byte)
 	scons_sendb_testarm(byte);
 #endif
 #ifdef MACHINE_integratorcp
-	scons_senbd_integratorcp(byte);
+	scons_sendb_icp(byte);
 #endif
 }
 

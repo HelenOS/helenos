@@ -72,7 +72,7 @@ extern void gxemul_input_init(void);
 extern void gxemul_timer_irq_start(void);
 extern void gxemul_cpu_halt(void);
 extern void gxemul_irq_exception(unsigned int, istate_t *);
-extern uintptr_t gxemul_get_memory_size(void);
+extern void gxemul_get_memory_extents(uintptr_t *, uintptr_t *);
 extern void gxemul_frame_init(void);
 
 extern struct arm_machine_ops gxemul_machine_ops;
