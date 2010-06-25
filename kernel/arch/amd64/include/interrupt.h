@@ -111,7 +111,7 @@ extern void (* disable_irqs_function)(uint16_t irqmask);
 extern void (* enable_irqs_function)(uint16_t irqmask);
 extern void (* eoi_function)(void);
 
-extern void decode_istate(int n, istate_t *istate);
+extern void decode_istate(istate_t *istate);
 extern void interrupt_init(void);
 extern void trap_virtual_enable_irqs(uint16_t irqmask);
 extern void trap_virtual_disable_irqs(uint16_t irqmask);

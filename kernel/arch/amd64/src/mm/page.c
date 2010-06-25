@@ -195,10 +195,7 @@ void page_fault(unsigned int n, istate_t *istate)
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-
-		decode_istate(n, istate);
-		printf("Page fault address: %llx.\n", page);
-		panic("Page fault.");
+		panic_memtrap(istate, access, page, "Page fault.");
 	}
 }
 

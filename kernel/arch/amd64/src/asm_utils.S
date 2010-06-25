@@ -49,11 +49,6 @@
 .text
 .global interrupt_handlers
 .global syscall_entry
-.global panic_printf
-
-panic_printf:
-	movq $halt, (%rsp)
-	jmp printf
 
 .global cpuid
 .global has_cpuid
@@ -231,8 +226,13 @@ read_efer_flag:
 	save_all_gpr
 	cld
 
-	# Stop stack traces here
-	xorq %rbp, %rbp
+	#
+	# Stop stack traces here if we came from userspace.
+	#
+	movq %cs, %rax
+	xorq %rdx, %rdx
+	cmpq %rax, IREGISTER_SPACE+16(%rsp)
+	cmovneq %rdx, %rbp
 
 	movq $(\i), %rdi   	# %rdi - first parameter
 	movq %rsp, %rsi   	# %rsi - pointer to istate
@@ -286,12 +286,16 @@ syscall_entry:
 	
 	pushq %rcx
 	pushq %r11
+	pushq %rbp
+
+	xorq %rbp, %rbp		# stop the stack traces here
 
 	movq %r10, %rcx		# Copy the 4th argument where it is expected 
 	pushq %rax
 	call syscall_handler
 	addq $8, %rsp
 		
+	popq %rbp
 	popq %r11
 	popq %rcx
 
