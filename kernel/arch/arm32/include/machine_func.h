@@ -46,14 +46,14 @@
 #include <arch/exception.h>
 
 struct arm_machine_ops {
-	void		(*machine_init)(void);
-	void		(*machine_timer_irq_start)(void);
-	void		(*machine_cpu_halt)(void);
-	uintptr_t	(*machine_get_memory_size)(void);
-	void		(*machine_irq_exception)(unsigned int, istate_t*);
-	void		(*machine_frame_init)(void);
-	void		(*machine_output_init)(void);
-	void		(*machine_input_init)(void);
+	void (*machine_init)(void);
+	void (*machine_timer_irq_start)(void);
+	void (*machine_cpu_halt)(void);
+	void (*machine_get_memory_extents)(uintptr_t *, uintptr_t *);
+	void (*machine_irq_exception)(unsigned int, istate_t *);
+	void (*machine_frame_init)(void);
+	void (*machine_output_init)(void);
+	void (*machine_input_init)(void);
 };
 
 /** Pointer to arm_machine_ops structure being used. */
@@ -73,13 +73,12 @@ extern void machine_timer_irq_start(void);
 /** Halts CPU. */
 extern void machine_cpu_halt(void);
 
-
-/** Returns size of available memory.
+/** Get extents of available memory.
  *
- *  @return Size of available memory.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-extern uintptr_t machine_get_memory_size(void);
-
+extern void machine_get_memory_extents(uintptr_t *start, uintptr_t *size);
 
 /** Interrupt exception handler.
  *

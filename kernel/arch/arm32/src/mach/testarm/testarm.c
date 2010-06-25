@@ -59,7 +59,7 @@ struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_init,
 	gxemul_timer_irq_start,
 	gxemul_cpu_halt,
-	gxemul_get_memory_size,
+	gxemul_get_memory_extents,
 	gxemul_irq_exception,
 	gxemul_frame_init,
 	gxemul_output_init,
@@ -184,15 +184,16 @@ void gxemul_timer_irq_start(void)
         gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
-/** Returns the size of emulated memory.
+/** Get extents of available memory.
  *
- * @return Size in bytes.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t gxemul_get_memory_size(void)
+void gxemul_get_memory_size(uintptr_t *start, uintptr_t *size)
 {
-        return  *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	start = 0;
+        size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
-
 
 /** Returns the mask of active interrupts. */
 static inline uint32_t gxemul_irqc_get_sources(void)

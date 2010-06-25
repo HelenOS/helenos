@@ -79,14 +79,14 @@ void machine_cpu_halt(void)
 	(machine_ops->machine_cpu_halt)();
 }
 
-
-/** Returns size of available memory.
+/** Get extents of available memory.
  *
- *  @return Size of available memory.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t machine_get_memory_size(void)
+void machine_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-	return (machine_ops->machine_get_memory_size)();
+	(machine_ops->machine_get_memory_extents)(start, size);
 }
 
 /** Interrupt exception handler.

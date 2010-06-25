@@ -35,11 +35,16 @@
 
 #include <arch/exception.h>
 #include <arch/mach/gta02/gta02.h>
+#include <arch/mm/page.h>
+
+#define GTA02_MEMORY_START	0x30000000	/* physical */
+#define GTA02_MEMORY_SIZE	0x08000000	/* 128 MB */
+#define GTA02_MEMORY_SKIP	0x8000		/* 2 pages */
 
 static void gta02_init(void);
 static void gta02_timer_irq_start(void);
 static void gta02_cpu_halt(void);
-static uintptr_t gta02_get_memory_size(void);
+static void gta02_get_memory_extents(uintptr_t *start, uintptr_t *size);
 static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
 static void gta02_frame_init(void);
 static void gta02_output_init(void);
@@ -49,7 +54,7 @@ struct arm_machine_ops gta02_machine_ops = {
 	gta02_init,
 	gta02_timer_irq_start,
 	gta02_cpu_halt,
-	gta02_get_memory_size,
+	gta02_get_memory_extents,
 	gta02_irq_exception,
 	gta02_frame_init,
 	gta02_output_init,
@@ -68,9 +73,15 @@ static void gta02_cpu_halt(void)
 {
 }
 
-static uintptr_t gta02_get_memory_size(void)
+/** Get extents of available memory.
+ *
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
+ */
+static void gta02_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-	return 0;
+	*start = PA2KA(GTA02_MEMORY_START) + GTA02_MEMORY_SKIP;
+	*size  = GTA02_MEMORY_SIZE - GTA02_MEMORY_SKIP;
 }
 
 static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
