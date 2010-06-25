@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,18 +39,22 @@
 
 /** Address where characters to be printed are expected. */
 
-#ifdef MACHINE_gta02
-	/* FIXME: Need real S3C244x UART driver. */
-	#define VIDEORAM_ADDRESS  0x50008020
-#endif
+/** GTA02 serial console UART register addresses.
+ *
+ * This is UART channel 2 of the S3C244x CPU
+ */
+#define GTA02_SCONS_UTRSTAT	0x50008010
+#define GTA02_SCONS_UTXH	0x50008020
 
-#ifdef MACHINE_testarm
-	#define VIDEORAM_ADDRESS  0x10000000
-#endif
+/* Bits in UTXH register */
+#define S3C244X_UTXH_TX_EMPTY	0x00000004
 
-#ifdef MACHINE_integratorcp
-	#define VIDEORAM_ADDRESS  0x16000000
-#endif
+
+/** GXemul testarm serial console output register */
+#define TESTARM_SCONS_ADDR 	0x10000000
+
+/** IntegratorCP serial console output register */
+#define ICP_SCONS_ADDR 		0x16000000
 
 extern void bootstrap(void);
 

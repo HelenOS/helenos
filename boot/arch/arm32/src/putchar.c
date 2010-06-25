@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
  * Copyright (c) 2009 Vineeth Pillai
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,15 +40,86 @@
 #include <putchar.h>
 #include <str.h>
 
+#ifdef MACHINE_gta02
+
+/** Send a byte to the gta02 serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb_gta02(uint8_t byte)
+{
+	volatile uint32_t *utrstat;
+	volatile uint32_t *utxh;
+
+	utrstat = (volatile uint32_t *) GTA02_SCONS_UTRSTAT;
+	utxh    = (volatile uint32_t *) GTA02_SCONS_UTXH;
+
+	/* Wait until transmitter is empty. */
+	while ((*utrstat & S3C244X_UTXH_TX_EMPTY) == 0)
+		;
+
+	/* Transmit byte. */
+	*utxh = (uint32_t) byte;
+}
+
+#endif
+
+#ifdef MACHINE_testarm
+
+/** Send a byte to the GXemul testarm serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb_testarm(uint8_t byte)
+{
+	*((volatile uint8_t *) TESTARM_SCONS_ADDR) = byte;
+}
+
+#endif
+
+#ifdef MACHINE_integratorcp
+
+/** Send a byte to the IntegratorCP serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb_icp(uint8_t byte)
+{
+	*((volatile uint8_t *) ICP_SCONS_ADDR) = byte;
+}
+
+#endif
+
+/** Send a byte to the serial console.
+ *
+ * @param byte		Byte to send.
+ */
+static void scons_sendb(uint8_t byte)
+{
+#ifdef MACHINE_gta02
+	scons_sendb_gta02(byte);
+#endif
+#ifdef MACHINE_testarm
+	scons_sendb_testarm(byte);
+#endif
+#ifdef MACHINE_integratorcp
+	scons_senbd_integratorcp(byte);
+#endif
+}
+
+/** Display a character
+ *
+ * @param ch	Character to display
+ */
 void putchar(const wchar_t ch)
 {
 	if (ch == '\n')
-		*((volatile char *) VIDEORAM_ADDRESS) = '\r';
-	
+		scons_sendb('\r');
+
 	if (ascii_check(ch))
-		*((volatile char *) VIDEORAM_ADDRESS) = ch;
+		scons_sendb((uint8_t) ch);
 	else
-		*((volatile char *) VIDEORAM_ADDRESS) = U_SPECIAL;
+		scons_sendb(U_SPECIAL);
 }
 
 /** @}
