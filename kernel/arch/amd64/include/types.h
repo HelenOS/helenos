@@ -49,11 +49,11 @@ typedef uint64_t atomic_count_t;
 typedef struct {
 } fncptr_t;
 
-/**< Formats for uintptr_t, size_t */
+/* Formats for uintptr_t, size_t */
 #define PRIp  "llx"
 #define PRIs  "llu"
 
-/**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
+/* Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
 #define PRId8   "d"
 #define PRId16  "d"
 #define PRId32  "d"
