@@ -46,6 +46,8 @@
 
 #include <print.h>
 
+#define PHYSMEM_LIMIT  0x7C000000
+
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
 
@@ -54,21 +56,37 @@ uintptr_t last_frame = 0;
 static void init_e820_memory(pfn_t minconf)
 {
 	unsigned int i;
-
+	
 	for (i = 0; i < e820counter; i++) {
 		uint64_t base = e820table[i].base_address;
 		uint64_t size = e820table[i].size;
 		
 #ifdef __32_BITS__
-		/* Ignore physical memory above 4 GB */
-		if ((base >> 32) != 0)
+		/*
+		 * XXX FIXME:
+		 *
+		 * Ignore zones which start above PHYSMEM_LIMIT
+		 * or clip zones which go beyond PHYSMEM_LIMIT.
+		 *
+		 * The PHYSMEM_LIMIT (2 GB - 64 MB) is a rather
+		 * arbitrary constant which allows to have at
+		 * least 64 MB in the kernel address space to
+		 * map hardware resources.
+		 *
+		 * The kernel uses fixed 1:1 identity mapping
+		 * of the physical memory with 2:2 GB split.
+		 * This is a severe limitation of the current
+		 * kernel memory management.
+		 *
+		 */
+		
+		if (base > PHYSMEM_LIMIT)
 			continue;
 		
-		/* Clip regions above 4 GB */
-		if (((base + size) >> 32) != 0)
-			size = 0xffffffff - base;
+		if (base + size > PHYSMEM_LIMIT)
+			size = PHYSMEM_LIMIT - base;
 #endif
-
+		
 		pfn_t pfn;
 		size_t count;
 		
