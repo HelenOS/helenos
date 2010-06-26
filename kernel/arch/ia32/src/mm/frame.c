@@ -46,7 +46,8 @@
 
 #include <print.h>
 
-#define PHYSMEM_LIMIT  0x7C000000ull
+#define PHYSMEM_LIMIT32  0x7c000000ull
+#define PHYSMEM_LIMIT64  0xe0000000ull
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -65,10 +66,10 @@ static void init_e820_memory(pfn_t minconf)
 		/*
 		 * XXX FIXME:
 		 *
-		 * Ignore zones which start above PHYSMEM_LIMIT
-		 * or clip zones which go beyond PHYSMEM_LIMIT.
+		 * Ignore zones which start above PHYSMEM_LIMIT32
+		 * or clip zones which go beyond PHYSMEM_LIMIT32.
 		 *
-		 * The PHYSMEM_LIMIT (2 GB - 64 MB) is a rather
+		 * The PHYSMEM_LIMIT32 (2 GB - 64 MB) is a rather
 		 * arbitrary constant which allows to have at
 		 * least 64 MB in the kernel address space to
 		 * map hardware resources.
@@ -80,11 +81,31 @@ static void init_e820_memory(pfn_t minconf)
 		 *
 		 */
 		
-		if (base > PHYSMEM_LIMIT)
+		if (base > PHYSMEM_LIMIT32)
 			continue;
 		
-		if (base + size > PHYSMEM_LIMIT)
-			size = PHYSMEM_LIMIT - base;
+		if (base + size > PHYSMEM_LIMIT32)
+			size = PHYSMEM_LIMIT32 - base;
+#endif
+		
+#ifdef __64_BITS__
+		/*
+		 * XXX FIXME:
+		 *
+		 * Ignore zones which start above PHYSMEM_LIMIT64
+		 * or clip zones which go beyond PHYSMEM_LIMIT64.
+		 *
+		 * The limit PHYSMEM_LIMIT64 (3.5 GB) is caused
+		 * by various limitations of the current kernel
+		 * memory management.
+		 *
+		 */
+		
+		if (base > PHYSMEM_LIMIT64)
+			continue;
+		
+		if (base + size > PHYSMEM_LIMIT64)
+			size = PHYSMEM_LIMIT64 - base;
 #endif
 		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
