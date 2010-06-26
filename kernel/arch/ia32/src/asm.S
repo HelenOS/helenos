@@ -162,6 +162,8 @@ sysenter_handler:
 	pushl %ebp	# remember user stack
 	pushl %edi	# remember return user address
 
+	xorl %ebp, %ebp	# stop stack traces here
+
 	pushl %gs	# remember TLS
 
 	pushl %eax	# syscall number
@@ -195,7 +197,7 @@ sysenter_handler:
 # The handlers setup data segment registers
 # and call exc_dispatch().
 #
-#define INTERRUPT_ALIGN 64
+#define INTERRUPT_ALIGN	128 
 .macro handler i n
 	
 	.ifeq \i - 0x30     # Syscall handler
@@ -223,13 +225,17 @@ sysenter_handler:
 		movw $16, %ax
 		movw %ax, %ds
 		movw %ax, %es
-		
+	
+		xorl %ebp, %ebp
+
 		cld
 		sti
 		# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
 		call syscall_handler
 		cli
-		addl $28, %esp         # clean-up of parameters
+
+		movl 20(%esp), %ebp	# restore EBP
+		addl $28, %esp		# clean-up of parameters
 		
 		popl %gs
 		popl %fs
@@ -279,9 +285,12 @@ sysenter_handler:
 		movw %ax, %ds
 		movw %ax, %es
 		
-		# stop stack traces here
+		# stop stack traces here if we came from userspace
+		cmpl $8, 40(%esp)
+		jz 0f
 		xorl %ebp, %ebp
-		
+
+0:		
 		pushl %esp          # *istate
 		pushl $(\i)         # intnum
 		call exc_dispatch   # exc_dispatch(intnum, *istate)
