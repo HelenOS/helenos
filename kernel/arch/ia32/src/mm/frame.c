@@ -46,7 +46,7 @@
 
 #include <print.h>
 
-#define PHYSMEM_LIMIT  0x7C000000
+#define PHYSMEM_LIMIT  0x7C000000ull
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -87,13 +87,14 @@ static void init_e820_memory(pfn_t minconf)
 			size = PHYSMEM_LIMIT - base;
 #endif
 		
-		pfn_t pfn;
-		size_t count;
-		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-			/* To be safe, make available zone possibly smaller */
-			pfn = ADDR2PFN(ALIGN_UP(base, FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE));
+			/* To be safe, make the available zone possibly smaller */
+			uint64_t new_base = ALIGN_UP(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_DOWN(size - (new_base - base),
+			    FRAME_SIZE);
+			
+			pfn_t pfn = ADDR2PFN(new_base);
+			size_t count = SIZE2FRAMES(new_size);
 			
 			pfn_t conf;
 			if ((minconf < pfn) || (minconf >= pfn + count))
@@ -104,24 +105,28 @@ static void init_e820_memory(pfn_t minconf)
 			zone_create(pfn, count, conf, ZONE_AVAILABLE);
 			
 			// XXX this has to be removed
-			if (last_frame < ALIGN_UP(base + size, FRAME_SIZE))
-				last_frame = ALIGN_UP(base + size, FRAME_SIZE);
+			if (last_frame < ALIGN_UP(new_base + new_size, FRAME_SIZE))
+				last_frame = ALIGN_UP(new_base + new_size, FRAME_SIZE);
 		}
 		
 		if (e820table[i].type == MEMMAP_MEMORY_RESERVED) {
-			/* To be safe, make reserved zone possibly larger */
-			pfn = ADDR2PFN(ALIGN_DOWN(base, FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_UP(size, FRAME_SIZE));
+			/* To be safe, make the reserved zone possibly larger */
+			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_UP(size + (base - new_base),
+			    FRAME_SIZE);
 			
-			zone_create(pfn, count, 0, ZONE_RESERVED);
+			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
+			    ZONE_RESERVED);
 		}
 		
 		if (e820table[i].type == MEMMAP_MEMORY_ACPI) {
-			/* To be safe, make firmware zone possibly larger */
-			pfn = ADDR2PFN(ALIGN_DOWN(base, (uintptr_t) FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_UP(size, (uintptr_t) FRAME_SIZE));
+			/* To be safe, make the firmware zone possibly larger */
+			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_UP(size + (base - new_base),
+			    FRAME_SIZE);
 			
-			zone_create(pfn, count, 0, ZONE_FIRMWARE);
+			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
+			    ZONE_FIRMWARE);
 		}
 	}
 }
