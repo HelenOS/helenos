@@ -30,7 +30,7 @@
 
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
-#include <arch/mm/page.h>	
+#include <arch/mm/page.h>
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
@@ -171,13 +171,16 @@ start64:
 	movl grub_eax, %edi
 	xorq %rsi, %rsi
 	movl grub_ebx, %esi
-	call arch_pre_main
+	
+	movabsq $arch_pre_main, %rax
+	callq *%rax
 	
 	# create the first stack frame
 	pushq $0
 	movq %rsp, %rbp
-
-	call main_bsp
+	
+	movabsq $main_bsp, %rax
+	call *%rax
 	
 	# not reached
 	
@@ -255,12 +258,12 @@ error_halt:
 
 #
 # Macro for generating initial page table contents.
-# @param cnt Number of entries to generat. Must be multiple of 8.
+# @param cnt Number of entries to generate. Must be multiple of 8.
 # @param g   Number of GB that will be added to the mapping.
 #
-.macro ptl2gen cnt g 
+.macro ptl2gen cnt g
 .if \cnt
-	ptl2gen "\cnt - 8" \g 
+	ptl2gen "\cnt - 8" \g
 	.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
 	.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
 	.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
@@ -275,7 +278,7 @@ error_halt:
 # Page table for pages in the first gigabyte.
 .align 4096
 .global ptl_2_0g
-ptl_2_0g:	
+ptl_2_0g:
 	ptl2gen 512 0
 
 # Page table for pages in the second gigabyte.
@@ -301,22 +304,18 @@ ptl_2_3g:
 ptl_1:
 	# Identity mapping for [0; 4G)
 	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT) 
+	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 506, 8, 0
-	# Mapping of [0; 1G) at -2G
-	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 1, 8, 0
+	.fill 508, 8, 0
 
 .align 4096
 .global ptl_0
 ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255,8,0
+	.fill 255, 8, 0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 254,8,0
-	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 255, 8, 0
 
 .section K_DATA_START, "aw", @progbits
 

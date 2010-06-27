@@ -34,14 +34,11 @@
 
 /** Paging on AMD64
  *
- * The space is divided in positive numbers - userspace and
- * negative numbers - kernel space. The 'negative' space starting
- * with 0xffff800000000000 and ending with 0xffffffff80000000
- * (-2GB) is identically mapped physical memory. The area
- * (0xffffffff80000000 ... 0xffffffffffffffff is again identically
- * mapped first 2GB.
+ * The space is divided in positive numbers (uspace) and
+ * negative numbers (kernel). The 'negative' space starting
+ * with 0xffff800000000000 and ending with 0xffffffffffffffff
+ * is identically mapped physical memory.
  *
- * ATTENTION - PA2KA(KA2PA(x)) != x if 'x' is in kernel
  */
 
 #ifndef KERN_amd64_PAGE_H_
@@ -49,49 +46,40 @@
 
 #include <arch/mm/frame.h>
 
-#define PAGE_WIDTH	FRAME_WIDTH
-#define PAGE_SIZE	FRAME_SIZE
+#define PAGE_WIDTH  FRAME_WIDTH
+#define PAGE_SIZE   FRAME_SIZE
 
 #ifdef KERNEL
 
 #ifndef __ASM__
-#	include <mm/mm.h>
-#	include <typedefs.h>
-#	include <arch/interrupt.h>
 
-static inline uintptr_t ka2pa(uintptr_t x)
-{
-	if (x > 0xffffffff80000000)
-		return x - 0xffffffff80000000;
-	else 
-		return x - 0xffff800000000000;
-}
+#define KA2PA(x)  (((uintptr_t) (x)) - 0xffff800000000000)
+#define PA2KA(x)  (((uintptr_t) (x)) + 0xffff800000000000)
 
-#	define KA2PA(x)		ka2pa((uintptr_t) x)
-#	define PA2KA_CODE(x)	(((uintptr_t) (x)) + 0xffffffff80000000)
-#	define PA2KA(x)		(((uintptr_t) (x)) + 0xffff800000000000)
-#else
-#	define KA2PA(x)		((x) - 0xffffffff80000000)
-#	define PA2KA(x)		((x) + 0xffffffff80000000)
-#endif
+#else /* __ASM__ */
+
+#define KA2PA(x)  ((x) - 0xffff800000000000)
+#define PA2KA(x)  ((x) + 0xffff800000000000)
+
+#endif /* __ASM__ */
 
 /* Number of entries in each level. */
-#define PTL0_ENTRIES_ARCH	512
-#define PTL1_ENTRIES_ARCH	512
-#define PTL2_ENTRIES_ARCH	512
-#define PTL3_ENTRIES_ARCH	512
+#define PTL0_ENTRIES_ARCH  512
+#define PTL1_ENTRIES_ARCH  512
+#define PTL2_ENTRIES_ARCH  512
+#define PTL3_ENTRIES_ARCH  512
 
 /* Page table sizes for each level. */
-#define PTL0_SIZE_ARCH		ONE_FRAME
-#define PTL1_SIZE_ARCH		ONE_FRAME
-#define PTL2_SIZE_ARCH		ONE_FRAME
-#define PTL3_SIZE_ARCH		ONE_FRAME
+#define PTL0_SIZE_ARCH  ONE_FRAME
+#define PTL1_SIZE_ARCH  ONE_FRAME
+#define PTL2_SIZE_ARCH  ONE_FRAME
+#define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices into page tables in each level. */
-#define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 39) & 0x1ff)
-#define PTL1_INDEX_ARCH(vaddr)	(((vaddr) >> 30) & 0x1ff)
-#define PTL2_INDEX_ARCH(vaddr)	(((vaddr) >> 21) & 0x1ff)
-#define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x1ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 39) & 0x1ff)
+#define PTL1_INDEX_ARCH(vaddr)  (((vaddr) >> 30) & 0x1ff)
+#define PTL2_INDEX_ARCH(vaddr)  (((vaddr) >> 21) & 0x1ff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ff)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -155,43 +143,47 @@ static inline uintptr_t ka2pa(uintptr_t x)
 
 #ifndef __ASM__
 
+#include <mm/mm.h>
+#include <arch/interrupt.h>
+#include <typedefs.h>
+
 /* Page fault error codes. */
 
 /** When bit on this position is 0, the page fault was caused by a not-present
  * page.
  */
-#define PFERR_CODE_P            (1 << 0)  
+#define PFERR_CODE_P  (1 << 0)
 
 /** When bit on this position is 1, the page fault was caused by a write. */
-#define PFERR_CODE_RW           (1 << 1)
+#define PFERR_CODE_RW  (1 << 1)
 
 /** When bit on this position is 1, the page fault was caused in user mode. */
-#define PFERR_CODE_US           (1 << 2)
+#define PFERR_CODE_US  (1 << 2)
 
 /** When bit on this position is 1, a reserved bit was set in page directory. */
-#define PFERR_CODE_RSVD         (1 << 3)
+#define PFERR_CODE_RSVD  (1 << 3)
 
 /** When bit on this position os 1, the page fault was caused during instruction
  * fecth.
  */
-#define PFERR_CODE_ID		(1 << 4)
+#define PFERR_CODE_ID  (1 << 4)
 
 /** Page Table Entry. */
 typedef struct {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned unused: 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;		/**< Valid content even if present bit is cleared. */
-	unsigned avl : 2;
-	unsigned addr_12_31 : 30;
-	unsigned addr_32_51 : 21;
-	unsigned no_execute : 1;
+	unsigned int present : 1;
+	unsigned int writeable : 1;
+	unsigned int uaccessible : 1;
+	unsigned int page_write_through : 1;
+	unsigned int page_cache_disable : 1;
+	unsigned int accessed : 1;
+	unsigned int dirty : 1;
+	unsigned int unused: 1;
+	unsigned int global : 1;
+	unsigned int soft_valid : 1;  /**< Valid content even if present bit is cleared. */
+	unsigned int avl : 2;
+	unsigned int addr_12_31 : 30;
+	unsigned int addr_32_51 : 21;
+	unsigned int no_execute : 1;
 } __attribute__ ((packed)) pte_t;
 
 static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
@@ -210,7 +202,7 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
-
+	
 	p->addr_12_31 = (a >> 12) & 0xfffff;
 	p->addr_32_51 = a >> 32;
 }
