@@ -36,8 +36,8 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 
-#define FRAME_OFFSET_FP_PREV	0
-#define FRAME_OFFSET_RA		1
+#define FRAME_OFFSET_FP_PREV  0
+#define FRAME_OFFSET_RA       1
 
 bool kernel_frame_pointer_validate(uintptr_t fp)
 {
@@ -48,6 +48,7 @@ bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
 {
 	uint64_t *stack = (void *) fp;
 	*prev = stack[FRAME_OFFSET_FP_PREV];
+	
 	return true;
 }
 
@@ -55,6 +56,7 @@ bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
 {
 	uint64_t *stack = (void *) fp;
 	*ra = stack[FRAME_OFFSET_RA];
+	
 	return true;
 }
 
