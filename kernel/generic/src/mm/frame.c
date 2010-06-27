@@ -1233,11 +1233,11 @@ void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
 void zones_print_list(void)
 {
 #ifdef __32_BITS__
-	printf("[nr] [base addr ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
+	printf("[nr] [base addr] [frames    ] [flags ] [free frames ] [busy frames ]\n");
 #endif
 
 #ifdef __64_BITS__
-	printf("[nr] [base address      ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
+	printf("[nr] [base address    ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
 #endif
 	
 	/*
@@ -1273,11 +1273,11 @@ void zones_print_list(void)
 		printf("%-4" PRIs, i);
 		
 #ifdef __32_BITS__
-		printf("   %10p", base);
+		printf("  %10p", base);
 #endif
 		
 #ifdef __64_BITS__
-		printf("   %18p", base);
+		printf(" %18p", base);
 #endif
 		
 		printf(" %12" PRIs " %c%c%c      ", count,
