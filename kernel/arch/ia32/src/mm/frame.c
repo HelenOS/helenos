@@ -46,8 +46,8 @@
 
 #include <print.h>
 
-#define PHYSMEM_LIMIT32  0x7c000000ull
-#define PHYSMEM_LIMIT64  0xe0000000ull
+#define PHYSMEM_LIMIT32  0x07c000000ull
+#define PHYSMEM_LIMIT64  0x200000000ull
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -95,9 +95,11 @@ static void init_e820_memory(pfn_t minconf)
 		 * Ignore zones which start above PHYSMEM_LIMIT64
 		 * or clip zones which go beyond PHYSMEM_LIMIT64.
 		 *
-		 * The limit PHYSMEM_LIMIT64 (3.5 GB) is caused
-		 * by various limitations of the current kernel
-		 * memory management.
+		 * The PHYSMEM_LIMIT64 (8 GB) is the size of the
+		 * fixed 1:1 identically mapped physical memory
+		 * accessible during the bootstrap process.
+		 * This is a severe limitation of the current
+		 * kernel memory management.
 		 *
 		 */
 		

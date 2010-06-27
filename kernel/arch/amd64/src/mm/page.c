@@ -38,7 +38,6 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/as.h>
-#include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <config.h>
 #include <memstr.h>
@@ -46,57 +45,6 @@
 #include <print.h>
 #include <panic.h>
 #include <align.h>
-
-/* Definitions for identity page mapper */
-pte_t helper_ptl1[512] __attribute__((aligned (PAGE_SIZE)));
-pte_t helper_ptl2[512] __attribute__((aligned (PAGE_SIZE)));
-pte_t helper_ptl3[512] __attribute__((aligned (PAGE_SIZE)));
-
-static uintptr_t oldpage = 0;
-
-extern pte_t ptl_0;  /* From boot.S */
-
-#define PTL1_PRESENT(ptl0, page) \
-	(!(GET_PTL1_FLAGS_ARCH(ptl0, PTL0_INDEX_ARCH(page)) & PAGE_NOT_PRESENT))
-
-#define PTL2_PRESENT(ptl1, page) \
-	(!(GET_PTL2_FLAGS_ARCH(ptl1, PTL1_INDEX_ARCH(page)) & PAGE_NOT_PRESENT))
-
-#define PTL3_PRESENT(ptl2, page) \
-	(!(GET_PTL3_FLAGS_ARCH(ptl2, PTL2_INDEX_ARCH(page)) & PAGE_NOT_PRESENT))
-
-#define PTL1_ADDR(ptl0, page) \
-	((pte_t *) PA2KA(GET_PTL1_ADDRESS_ARCH(ptl0, PTL0_INDEX_ARCH(page))))
-
-#define PTL2_ADDR(ptl1, page) \
-	((pte_t *) PA2KA(GET_PTL2_ADDRESS_ARCH(ptl1, PTL1_INDEX_ARCH(page))))
-
-#define PTL3_ADDR(ptl2, page) \
-	((pte_t *) PA2KA(GET_PTL3_ADDRESS_ARCH(ptl2, PTL2_INDEX_ARCH(page))))
-
-#define SETUP_PTL1(ptl0, page, tgt) \
-	{ \
-		SET_PTL1_ADDRESS_ARCH(ptl0, PTL0_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
-		SET_PTL1_FLAGS_ARCH(ptl0, PTL0_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
-	}
-
-#define SETUP_PTL2(ptl1, page, tgt) \
-	{ \
-		SET_PTL2_ADDRESS_ARCH(ptl1, PTL1_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
-		SET_PTL2_FLAGS_ARCH(ptl1, PTL1_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
-	}
-
-#define SETUP_PTL3(ptl2, page, tgt) \
-	{ \
-		SET_PTL3_ADDRESS_ARCH(ptl2, PTL2_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
-		SET_PTL3_FLAGS_ARCH(ptl2, PTL2_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
-	}
-
-#define SETUP_FRAME(ptl3, page, tgt) \
-	{ \
-		SET_FRAME_ADDRESS_ARCH(ptl3, PTL3_INDEX_ARCH(page), (uintptr_t)KA2PA(tgt)); \
-		SET_FRAME_FLAGS_ARCH(ptl3, PTL3_INDEX_ARCH(page), PAGE_WRITE | PAGE_EXEC); \
-	}
 
 void page_arch_init(void)
 {
@@ -121,65 +69,6 @@ void page_arch_init(void)
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 	} else
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-}
-
-/** Identity page mapper
- *
- * We need to map whole physical memory identically before the page subsystem
- * is initializaed. This thing clears page table and fills in the specific
- * items.
- *
- */
-void ident_page_fault(unsigned int n, istate_t *istate)
-{
-	pte_t *aptl_1;
-	pte_t *aptl_2;
-	pte_t *aptl_3;
-	
-	uintptr_t page = read_cr2();
-	
-	/* Unmap old address */
-	if (oldpage) {
-		pte_t *aptl_1 = PTL1_ADDR(&ptl_0, oldpage);
-		pte_t *aptl_2 = PTL2_ADDR(aptl_1, oldpage);
-		pte_t *aptl_3 = PTL3_ADDR(aptl_2, oldpage);
-		
-		SET_FRAME_FLAGS_ARCH(aptl_3, PTL3_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		
-		if (KA2PA(aptl_3) == KA2PA(helper_ptl3))
-			SET_PTL3_FLAGS_ARCH(aptl_2, PTL2_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		
-		if (KA2PA(aptl_2) == KA2PA(helper_ptl2))
-			SET_PTL2_FLAGS_ARCH(aptl_1, PTL1_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-		
-		if (KA2PA(aptl_1) == KA2PA(helper_ptl1))
-			SET_PTL1_FLAGS_ARCH(&ptl_0, PTL0_INDEX_ARCH(oldpage), PAGE_NOT_PRESENT);
-	}
-	
-	if (PTL1_PRESENT(&ptl_0, page))
-		aptl_1 = PTL1_ADDR(&ptl_0, page);
-	else {
-		SETUP_PTL1(&ptl_0, page, helper_ptl1);
-		aptl_1 = helper_ptl1;
-	}
-	
-	if (PTL2_PRESENT(aptl_1, page)) 
-		aptl_2 = PTL2_ADDR(aptl_1, page);
-	else {
-		SETUP_PTL2(aptl_1, page, helper_ptl2);
-		aptl_2 = helper_ptl2;
-	}
-	
-	if (PTL3_PRESENT(aptl_2, page))
-		aptl_3 = PTL3_ADDR(aptl_2, page);
-	else {
-		SETUP_PTL3(aptl_2, page, helper_ptl3);
-		aptl_3 = helper_ptl3;
-	}
-	
-	SETUP_FRAME(aptl_3, page, page);
-	
-	oldpage = page;
 }
 
 void page_fault(unsigned int n, istate_t *istate)

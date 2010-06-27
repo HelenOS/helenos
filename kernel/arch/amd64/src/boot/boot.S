@@ -262,52 +262,71 @@ error_halt:
 # @param g   Number of GB that will be added to the mapping.
 #
 .macro ptl2gen cnt g
-.if \cnt
-	ptl2gen "\cnt - 8" \g
-	.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-.endif
+	.if \cnt
+		ptl2gen "\cnt - 8" \g
+		.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.endif
 .endm
 
-# Page table for pages in the first gigabyte.
+# Page table for pages in the 1st gigabyte.
 .align 4096
-.global ptl_2_0g
 ptl_2_0g:
 	ptl2gen 512 0
 
-# Page table for pages in the second gigabyte.
+# Page table for pages in the 2nd gigabyte.
 .align 4096
-.global ptl_2_1g
 ptl_2_1g:
 	ptl2gen 512 1
 
-# Page table for pages in the third gigabyte.
+# Page table for pages in the 3rd gigabyte.
 .align 4096
-.global ptl_2_2g
 ptl_2_2g:
 	ptl2gen 512 2
 
-# Page table for pages in the fourth gigabyte.
+# Page table for pages in the 4th gigabyte.
 .align 4096
-.global ptl_2_3g
 ptl_2_3g:
 	ptl2gen 512 3
 
+# Page table for pages in the 5th gigabyte.
 .align 4096
-.global ptl_1
+ptl_2_4g:
+	ptl2gen 512 3
+
+# Page table for pages in the 6th gigabyte.
+.align 4096
+ptl_2_5g:
+	ptl2gen 512 3
+
+# Page table for pages in the 7th gigabyte.
+.align 4096
+ptl_2_6g:
+	ptl2gen 512 3
+
+# Page table for pages in the 8th gigabyte.
+.align 4096
+ptl_2_7g:
+	ptl2gen 512 3
+
+.align 4096
 ptl_1:
-	# Identity mapping for [0; 4G)
+	# Identity mapping for [0; 8G)
 	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 508, 8, 0
+	.quad ptl_2_4g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_5g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_6g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_7g + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 504, 8, 0
 
 .align 4096
 .global ptl_0
