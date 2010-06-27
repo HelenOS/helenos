@@ -75,12 +75,12 @@ static void gta02_cpu_halt(void)
 
 /** Get extents of available memory.
  *
- * @param start		Place to store memory start address.
+ * @param start		Place to store memory start address (physical).
  * @param size		Place to store memory size.
  */
 static void gta02_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-	*start = PA2KA(GTA02_MEMORY_START) + GTA02_MEMORY_SKIP;
+	*start = GTA02_MEMORY_START + GTA02_MEMORY_SKIP;
 	*size  = GTA02_MEMORY_SIZE - GTA02_MEMORY_SKIP;
 }
 

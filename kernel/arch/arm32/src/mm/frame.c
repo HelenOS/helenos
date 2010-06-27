@@ -55,7 +55,7 @@ void frame_arch_init(void)
 	num_frames = (last_frame - first_frame) >> FRAME_WIDTH;
 	
 	/* All memory as one zone */
-	zone_create(first_frame, num_frames,
+	zone_create(first_frame >> FRAME_WIDTH, num_frames,
 	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
 	
 	/* blacklist boot page table */
