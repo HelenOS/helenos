@@ -164,17 +164,17 @@ static const char *e820names[] = {
 void physmem_print(void)
 {
 	unsigned int i;
-	const char *name;
+	printf("[base            ] [size            ] [name   ]\n");
 	
-	printf("[base            ] [size            ] [name\n");
-		
 	for (i = 0; i < e820counter; i++) {
+		const char *name;
+		
 		if (e820table[i].type <= MEMMAP_MEMORY_UNUSABLE)
 			name = e820names[e820table[i].type];
 		else
 			name = "invalid";
 		
-		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
+		printf("%#018" PRIx64 " %#018" PRIx64" %s\n", e820table[i].base_address,
 		    e820table[i].size, name);
 	}
 }
@@ -192,7 +192,7 @@ void frame_arch_init(void)
 		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
 		    hardcoded_unmapped_kdata_size));
 #endif
-
+		
 		init_e820_memory(minconf);
 		
 		/* Reserve frame 0 (BIOS data) */
