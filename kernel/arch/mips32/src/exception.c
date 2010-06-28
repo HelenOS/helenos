@@ -71,19 +71,24 @@ static const char *exctable[] = {
 	"Virtual Coherency - data",
 };
 
-static void print_regdump(istate_t *istate)
+void decode_istate(istate_t *istate)
 {
-	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc,
-	    symtab_fmt_name_lookup(istate->epc), istate->ra,
-	    symtab_fmt_name_lookup(istate->ra), istate->sp);
+	printf("at=%p\tv0=%p\tv1=%p\n", istate->at, istate->v0, istate->v1);
+	printf("a0=%p\ta1=%p\ta2=%p\n", istate->a0, istate->a1, istate->a2);
+	printf("a3=%p\tt0=%p\tt1=%p\n", istate->a3, istate->t0, istate->t1);
+	printf("t2=%p\tt3=%p\tt4=%p\n", istate->t2, istate->t3, istate->t4);
+	printf("t5=%p\tt6=%p\tt7=%p\n", istate->t5, istate->t6, istate->t7);
+	printf("t8=%p\tt9=%p\tgp=%p\n", istate->t8, istate->t9, istate->gp);
+	printf("sp=%p\tra=%p\t\n", istate->sp, istate->ra);
+	printf("lo=%p\thi=%p\t\n", istate->lo, istate->hi);
+	printf("cp0_status=%p\tcp0_epc=%p\tk1=%p\n",
+	    istate->status, istate->epc, istate->k1);
 }
 
 static void unhandled_exception(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %s.", exctable[n]);
-	
-	print_regdump(istate);
-	panic("Unhandled exception %s.", exctable[n]);
+	panic_badtrap(istate, n, "Unhandled exception %s.", exctable[n]);
 }
 
 static void reserved_instr_exception(unsigned int n, istate_t *istate)
@@ -124,8 +129,10 @@ static void cpuns_exception(unsigned int n, istate_t *istate)
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
 	else {
-		fault_if_from_uspace(istate, "Unhandled Coprocessor Unusable Exception.");
-		panic("Unhandled Coprocessor Unusable Exception.");
+		fault_if_from_uspace(istate,
+		    "Unhandled Coprocessor Unusable Exception.");
+		panic_badtrap(istate, n,
+		    "Unhandled Coprocessor Unusable Exception.");
 	}
 }
 #endif
@@ -161,7 +168,7 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 /** Handle syscall userspace call */
 static void syscall_exception(unsigned int n, istate_t *istate)
 {
-	panic("Syscall is handled through shortcut.");
+	fault_if_from_uspace(istate, "Syscall is handled through shortcut.");
 }
 
 void exception_init(void)

@@ -112,6 +112,8 @@ extern void exception_entry(void);
 extern void cache_error_entry(void);
 extern void exception_init(void);
 
+extern void decode_istate(istate_t *);
+
 #endif
 
 /** @}
