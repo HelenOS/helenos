@@ -113,15 +113,9 @@ void irq_initialize_arch(irq_t *irq)
 	(void) irq;
 }
 
-void panic_printf(const char *fmt, ...)
+void istate_decode(istate_t *istate)
 {
-	va_list args;
-	
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	
-	halt();
+	(void) istate;
 }
 
 int context_save_arch(context_t *ctx)
