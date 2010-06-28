@@ -48,7 +48,11 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 
 	silent = false;
 
-	printf("\nKERNEL PANIC ON cpu%d DUE TO ", CPU->id);
+	printf("\nKERNEL PANIC ");
+	if (CPU)
+		printf("ON cpu%d ", CPU->id);
+	printf("DUE TO ");
+
 	va_start(args, fmt);
 	if (cat == PANIC_ASSERT) {
 		printf("A FAILED ASSERTION:\n");
