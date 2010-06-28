@@ -55,7 +55,7 @@ static void scons_sendb_gta02(uint8_t byte)
 	utxh    = (volatile uint32_t *) GTA02_SCONS_UTXH;
 
 	/* Wait until transmitter is empty. */
-	while ((*utrstat & S3C244X_UTXH_TX_EMPTY) == 0)
+	while ((*utrstat & S3C24XX_UTXH_TX_EMPTY) == 0)
 		;
 
 	/* Transmit byte. */

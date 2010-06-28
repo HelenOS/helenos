@@ -36,10 +36,15 @@
 #include <arch/exception.h>
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mm/page.h>
+#include <mm/page.h>
+#include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
 
 #define GTA02_MEMORY_START	0x30000000	/* physical */
 #define GTA02_MEMORY_SIZE	0x08000000	/* 128 MB */
-#define GTA02_MEMORY_SKIP	0x8000		/* 2 pages */
+#define GTA02_MEMORY_SKIP	0x8000
+
+/** GTA02 serial console UART address (UART S3C24XX CPU UART channel 2). */
+#define GTA02_SCONS_BASE	0x50008000
 
 static void gta02_init(void);
 static void gta02_timer_irq_start(void);
@@ -49,6 +54,8 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
 static void gta02_frame_init(void);
 static void gta02_output_init(void);
 static void gta02_input_init(void);
+
+static void *gta02_scons_out;
 
 struct arm_machine_ops gta02_machine_ops = {
 	gta02_init,
@@ -63,6 +70,7 @@ struct arm_machine_ops gta02_machine_ops = {
 
 static void gta02_init(void)
 {
+	gta02_scons_out = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
 }
 
 static void gta02_timer_irq_start(void)
@@ -94,6 +102,11 @@ static void gta02_frame_init(void)
 
 static void gta02_output_init(void)
 {
+	outdev_t *scons_dev;
+
+	scons_dev = s3c24xx_uart_init((ioport8_t *) gta02_scons_out);
+	if (scons_dev)
+		stdout_wire(scons_dev);
 }
 
 static void gta02_input_init(void)
