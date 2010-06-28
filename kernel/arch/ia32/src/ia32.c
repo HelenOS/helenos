@@ -138,7 +138,7 @@ void arch_post_mm_init(void)
 void arch_post_cpu_init()
 {
 #ifdef CONFIG_SMP
-        if (config.cpu_active > 1) {
+	if (config.cpu_active > 1) {
 		l_apic_init();
 		l_apic_debug();
 	}

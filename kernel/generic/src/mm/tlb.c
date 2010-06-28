@@ -93,6 +93,7 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 			continue;
 		
 		cpu_t *cpu = &cpus[i];
+		
 		irq_spinlock_lock(&cpu->lock, false);
 		if (cpu->tlb_messages_count == TLB_MESSAGE_QUEUE_LEN) {
 			/*
@@ -120,9 +121,10 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 	tlb_shootdown_ipi_send();
 	
 busy_wait:
-	for (i = 0; i < config.cpu_count; i++)
+	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].tlb_active)
 			goto busy_wait;
+	}
 	
 	return ipl;
 }
