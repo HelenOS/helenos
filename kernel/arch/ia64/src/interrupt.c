@@ -132,7 +132,7 @@ static const char *vector_to_string(uint16_t vector)
 		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
 }
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
 	    istate->ar_bspstore);

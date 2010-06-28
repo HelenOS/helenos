@@ -51,7 +51,7 @@ void start_decrementer(void)
 	);
 }
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	printf("r0 =%p\tr1 =%p\tr2 =%p\n", istate->r0, istate->sp, istate->r2);
 	printf("r3 =%p\tr4 =%p\tr5 =%p\n", istate->r3, istate->r4, istate->r5);

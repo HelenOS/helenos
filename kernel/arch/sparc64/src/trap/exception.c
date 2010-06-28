@@ -43,7 +43,7 @@
 #include <print.h>
 #include <symtab.h>
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	const char *tpcs = symtab_fmt_name_lookup(istate->tpc);
 	const char *tnpcs = symtab_fmt_name_lookup(istate->tnpc);

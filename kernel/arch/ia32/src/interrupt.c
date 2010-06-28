@@ -62,7 +62,7 @@ void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	printf("error_word=%#lx\n", istate->error_word);
 	printf("cs =%#0.8lx\teflags=%#0.8lx\n", istate->cs, istate->eflags);

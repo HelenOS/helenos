@@ -172,7 +172,7 @@ void exception_init(void)
  *
  * @param istate Structure to be printed.
  */
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	printf("r0 =%#0.8lx\tr1 =%#0.8lx\tr2 =%#0.8lx\tr3 =%#0.8lx\n",
 	    istate->r0, istate->r1, istate->r2, istate->r3);

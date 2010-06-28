@@ -71,7 +71,7 @@ static const char *exctable[] = {
 	"Virtual Coherency - data",
 };
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
 	printf("at=%p\tv0=%p\tv1=%p\n", istate->at, istate->v0, istate->v1);
 	printf("a0=%p\ta1=%p\ta2=%p\n", istate->a0, istate->a1, istate->a2);

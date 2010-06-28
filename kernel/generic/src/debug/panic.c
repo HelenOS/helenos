@@ -80,7 +80,7 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 	printf("\n");
 
 	if (istate) {
-		decode_istate(istate);
+		istate_decode(istate);
 		printf("\n");
 	}
 
