@@ -164,6 +164,8 @@ extern void disabled_fp_register(uint64_t vector, istate_t *istate);
 
 extern void trap_virtual_enable_irqs(uint16_t irqmask);
 
+extern void decode_istate(istate_t *);
+
 #endif
 
 /** @}
