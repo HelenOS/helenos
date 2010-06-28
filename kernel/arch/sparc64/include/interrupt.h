@@ -75,6 +75,8 @@ static inline unative_t istate_get_fp(istate_t *istate)
 	return 0;	/* TODO */
 }
 
+extern void decode_istate(istate_t *);
+
 #endif
 
 /** @}
