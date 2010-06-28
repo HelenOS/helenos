@@ -136,13 +136,6 @@ memsetw:
 cpu_halt:
 	br cpu_halt
 
-.global panic_printf
-panic_printf:
-	{
-		br.call.sptk.many b0=printf
-	}
-	br halt
-
 /** Switch to userspace - low level code.
  *
  * @param in0 Userspace entry point address.

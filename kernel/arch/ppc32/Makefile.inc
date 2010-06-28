@@ -39,7 +39,6 @@ ENDIANESS = BE
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/debug/panic.s \
 	arch/$(KARCH)/src/debug/stacktrace.c \
 	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/fpu_context.S \
