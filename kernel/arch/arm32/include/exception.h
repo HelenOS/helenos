@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -140,7 +140,6 @@ static inline unative_t istate_get_fp(istate_t *istate)
 
 extern void install_exception_handlers(void);
 extern void exception_init(void);
-extern void print_istate(istate_t *istate);
 extern void reset_exception_entry(void);
 extern void irq_exception_entry(void);
 extern void fiq_exception_entry(void);

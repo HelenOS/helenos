@@ -51,6 +51,32 @@ void start_decrementer(void)
 	);
 }
 
+void istate_decode(istate_t *istate)
+{
+	printf("r0 =%p\tr1 =%p\tr2 =%p\n", istate->r0, istate->sp, istate->r2);
+	printf("r3 =%p\tr4 =%p\tr5 =%p\n", istate->r3, istate->r4, istate->r5);
+	printf("r6 =%p\tr7 =%p\tr8 =%p\n", istate->r6, istate->r7, istate->r8);
+	printf("r9 =%p\tr10=%p\tr11=%p\n",
+	    istate->r9, istate->r10, istate->r11);
+	printf("r12=%p\tr13=%p\tr14=%p\n",
+	    istate->r12, istate->r13, istate->r14);
+	printf("r15=%p\tr16=%p\tr17=%p\n",
+	    istate->r15, istate->r16, istate->r17);
+	printf("r18=%p\tr19=%p\tr20=%p\n",
+	    istate->r18, istate->r19, istate->r20);
+	printf("r21=%p\tr22=%p\tr23=%p\n",
+	    istate->r21, istate->r22, istate->r23);
+	printf("r24=%p\tr25=%p\tr26=%p\n",
+	    istate->r24, istate->r25, istate->r26);
+	printf("r27=%p\tr28=%p\tr29=%p\n",
+	    istate->r27, istate->r28, istate->r29);
+	printf("r30=%p\tr31=%p\n", istate->r30, istate->r31);
+	printf("cr =%p\tpc =%p\tlr =%p\n", istate->cr, istate->pc, istate->lr);
+	printf("ctr=%p\txer=%p\tdar=%p\n",
+	    istate->ctr, istate->xer, istate->dar);
+	printf("srr1=%p\n", istate->srr1);
+}
+
 /** External interrupts handler
  *
  */

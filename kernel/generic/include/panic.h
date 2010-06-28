@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,35 +36,32 @@
 #define KERN_PANIC_H_
 
 #include <typedefs.h>
-#include <stacktrace.h>
-#include <print.h>
 
-#ifdef CONFIG_DEBUG
+#define panic(fmt, ...) \
+	panic_common(PANIC_OTHER, NULL, 0, 0, fmt, ##__VA_ARGS__)
 
-#define panic(format, ...) \
-	do { \
-		silent = false; \
-		printf("Kernel panic in %s() at %s:%u\n", \
-		    __func__, __FILE__, __LINE__); \
-		stack_trace(); \
-		panic_printf("Panic message: " format "\n", \
-		    ##__VA_ARGS__);\
-	} while (0)
+#define panic_assert(fmt, ...) \
+	panic_common(PANIC_ASSERT, NULL, 0, 0, fmt, ##__VA_ARGS__)
 
-#else /* CONFIG_DEBUG */
+#define panic_badtrap(istate, n, fmt, ...) \
+	panic_common(PANIC_BADTRAP, istate, 0, n, fmt, ##__VA_ARGS__)
 
-#define panic(format, ...) \
-	do { \
-		silent = false; \
-		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__); \
-		stack_trace(); \
-	} while (0)
+#define panic_memtrap(istate, access, addr, fmt, ...) \
+	panic_common(PANIC_MEMTRAP, istate, access, addr, fmt, ##__VA_ARGS__)
 
-#endif /* CONFIG_DEBUG */
+typedef enum {
+	PANIC_OTHER,
+	PANIC_ASSERT,
+	PANIC_BADTRAP,
+	PANIC_MEMTRAP
+} panic_category_t;
+
+struct istate;
 
 extern bool silent;
 
-extern void panic_printf(const char *fmt, ...) __attribute__((noreturn));
+extern void panic_common(panic_category_t, struct istate *, int,
+    uintptr_t, const char *, ...) __attribute__ ((noreturn));
 
 #endif
 

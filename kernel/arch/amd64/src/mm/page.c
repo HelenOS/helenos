@@ -88,9 +88,8 @@ void page_fault(unsigned int n, istate_t *istate)
 		access = PF_ACCESS_READ;
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
-		fault_if_from_uspace(istate, "Page fault: %p.", page);
-		decode_istate(n, istate);
-		panic("Page fault: %p", page);
+		fault_if_from_uspace(istate, "Page fault: %#x.", page);
+		panic_memtrap(istate, access, page, "Page fault.");
 	}
 }
 

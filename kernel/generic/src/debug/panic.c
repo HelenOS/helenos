@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericinterrupt
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_INTERRUPT_H_
-#define KERN_INTERRUPT_H_
-
-#include <arch/interrupt.h>
-#include <typedefs.h>
-#include <proc/task.h>
-#include <proc/thread.h>
-#include <arch.h>
-#include <ddi/irq.h>
+#include <panic.h>
+#include <print.h>
 #include <stacktrace.h>
+#include <func.h>
+#include <typedefs.h>
+#include <mm/as.h>
+#include <stdarg.h>
+#include <interrupt.h>
 
-typedef void (* iroutine_t)(unsigned int, istate_t *);
+void panic_common(panic_category_t cat, istate_t *istate, int access,
+    uintptr_t address, const char *fmt, ...)
+{
+	va_list args;
 
-typedef struct {
-	const char *name;
-	bool hot;
-	iroutine_t handler;
-	uint64_t cycles;
-	uint64_t count;
-} exc_table_t;
+	silent = false;
 
-IRQ_SPINLOCK_EXTERN(exctbl_lock);
-extern exc_table_t exc_table[];
+	printf("\nKERNEL PANIC ");
+	if (CPU)
+		printf("ON cpu%d ", CPU->id);
+	printf("DUE TO ");
 
-extern void fault_if_from_uspace(istate_t *, const char *, ...);
-extern iroutine_t exc_register(unsigned int, const char *, bool, iroutine_t);
-extern void exc_dispatch(unsigned int, istate_t *);
-extern void exc_init(void);
+	va_start(args, fmt);
+	if (cat == PANIC_ASSERT) {
+		printf("A FAILED ASSERTION:\n");
+		vprintf(fmt, args);
+		printf("\n");
+	} else if (cat == PANIC_BADTRAP) {
+		printf("BAD TRAP %ld.\n", address);
+	} else if (cat == PANIC_MEMTRAP) {
+		printf("A BAD MEMORY ACCESS WHILE ");
+		if (access == PF_ACCESS_READ)
+			printf("LOADING FROM");
+		else if (access == PF_ACCESS_WRITE)
+			printf("STORING TO");
+		else if (access == PF_ACCESS_EXEC)
+			printf("BRANCHING TO");
+		else
+			printf("REFERENCING");
+		printf(" ADDRESS %p.\n", address); 
+	} else {
+		printf("THE FOLLOWING REASON:\n");
+		vprintf(fmt, args);
+	}
+	va_end(args);
 
-extern void irq_initialize_arch(irq_t *);
+	printf("\n");
 
-extern void istate_decode(istate_t *);
+	if (istate) {
+		istate_decode(istate);
+		printf("\n");
+	}
 
-#endif
+	stack_trace();
+	halt();
+}
 
 /** @}
  */
