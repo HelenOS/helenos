@@ -131,7 +131,7 @@ static void configure_via_xsdt(void)
 	
 	for (i = 0; i < cnt; i++) {
 		for (j = 0; j < sizeof(signature_map) / sizeof(struct acpi_signature_map); j++) {
-			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((uintptr_t) acpi_rsdt->entry[i]);
+			struct acpi_sdt_header *h = (struct acpi_sdt_header *) ((uintptr_t) acpi_xsdt->entry[i]);
 
 			map_sdt(h);
 			if (CMP_SIGNATURE(h->signature, signature_map[j].signature)) {
