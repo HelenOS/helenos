@@ -26,30 +26,30 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#define IREGISTER_SPACE	80
+#define IREGISTER_SPACE  80
 
-#define IOFFSET_RAX	0x0
-#define IOFFSET_RCX	0x8
-#define IOFFSET_RDX	0x10
-#define IOFFSET_RSI	0x18
-#define IOFFSET_RDI	0x20
-#define IOFFSET_R8	0x28
-#define IOFFSET_R9	0x30
-#define IOFFSET_R10	0x38
-#define IOFFSET_R11	0x40
-#define IOFFSET_RBP	0x48
+#define IOFFSET_RAX  0x00
+#define IOFFSET_RCX  0x08
+#define IOFFSET_RDX  0x10
+#define IOFFSET_RSI  0x18
+#define IOFFSET_RDI  0x20
+#define IOFFSET_R8   0x28
+#define IOFFSET_R9   0x30
+#define IOFFSET_R10  0x38
+#define IOFFSET_R11  0x40
+#define IOFFSET_RBP  0x48
 
-#  Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int has no error word
-# and 1 means interrupt with error word
-#define ERROR_WORD_INTERRUPT_LIST 0x00027D00
+# Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
+# has no error word  and 1 means interrupt with error word
+
+#define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
 #include <arch/pm.h>
 #include <arch/mm/page.h>
-	
+
 .text
 .global interrupt_handlers
 .global syscall_entry
-
 .global cpuid
 .global has_cpuid
 .global read_efer_flag
@@ -70,9 +70,9 @@ memsetb:
 memsetw:
 	jmp _memsetw
 
-#define MEMCPY_DST	%rdi
-#define MEMCPY_SRC	%rsi
-#define MEMCPY_SIZE	%rdx
+#define MEMCPY_DST   %rdi
+#define MEMCPY_SRC   %rsi
+#define MEMCPY_SIZE  %rdx
 
 /**
  * Copy memory from/to userspace.
@@ -83,34 +83,35 @@ memsetw:
  * the page fault occurs during copy_from_uspace()
  * or copy_to_uspace().
  *
- * @param MEMCPY_DST	Destination address.
- * @param MEMCPY_SRC	Source address.
- * @param MEMCPY_SIZE	Number of bytes to copy.
+ * @param MEMCPY_DST  Destination address.
+ * @param MEMCPY_SRC  Source address.
+ * @param MEMCPY_SIZE Number of bytes to copy.
  *
  * @retrun MEMCPY_DST on success, 0 on failure.
+ *
  */
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movq MEMCPY_DST, %rax
-
-	movq MEMCPY_SIZE, %rcx
-	shrq $3, %rcx			/* size / 8 */
 	
-	rep movsq			/* copy as much as possible word by word */
-
 	movq MEMCPY_SIZE, %rcx
-	andq $7, %rcx			/* size % 8 */
+	shrq $3, %rcx           /* size / 8 */
+	
+	rep movsq               /* copy as much as possible word by word */
+	
+	movq MEMCPY_SIZE, %rcx
+	andq $7, %rcx           /* size % 8 */
 	jz 0f
 	
-	rep movsb			/* copy the rest byte by byte */
+	rep movsb               /* copy the rest byte by byte */
 	
-0:
-	ret				/* return MEMCPY_SRC, success */
+	0:
+		ret                 /* return MEMCPY_SRC, success */
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	xorq %rax, %rax			/* return 0, failure */
+	xorq %rax, %rax         /* return 0, failure */
 	ret
 
 ## Determine CPUID support
@@ -118,30 +119,30 @@ memcpy_to_uspace_failover_address:
 # Return 0 in EAX if CPUID is not support, 1 if supported.
 #
 has_cpuid:
-	pushfq			# store flags
-	popq %rax		# read flags
-	movq %rax,%rdx		# copy flags
-	btcl $21,%edx		# swap the ID bit
+	pushfq                 # store flags
+	popq %rax              # read flags
+	movq %rax, %rdx        # copy flags
+	btcl $21, %edx         # swap the ID bit
 	pushq %rdx
-	popfq			# propagate the change into flags
+	popfq                  # propagate the change into flags
 	pushfq
-	popq %rdx		# read flags	
-	andl $(1<<21),%eax	# interested only in ID bit
-	andl $(1<<21),%edx
-	xorl %edx,%eax		# 0 if not supported, 1 if supported
+	popq %rdx              # read flags
+	andl $(1 << 21), %eax  # interested only in ID bit
+	andl $(1 << 21), %edx
+	xorl %edx, %eax        # 0 if not supported, 1 if supported
 	ret
 
 cpuid:
-	movq %rbx, %r10  # we have to preserve rbx across function calls
-
-	movl %edi,%eax	# load the command into %eax
-
-	cpuid	
-	movl %eax,0(%rsi)
-	movl %ebx,4(%rsi)
-	movl %ecx,8(%rsi)
-	movl %edx,12(%rsi)
-
+	movq %rbx, %r10        # we have to preserve rbx across function calls
+	
+	movl %edi,%eax         # load the command into %eax
+	
+	cpuid
+	movl %eax, 0(%rsi)
+	movl %ebx, 4(%rsi)
+	movl %ecx, 8(%rsi)
+	movl %edx, 12(%rsi)
+	
 	movq %r10, %rbx
 	ret
 
@@ -151,11 +152,11 @@ set_efer_flag:
 	btsl %edi, %eax
 	wrmsr
 	ret
-	
+
 read_efer_flag:	
 	movq $0xc0000080, %rcx
 	rdmsr
-	ret 		
+	ret
 
 # Push all volatile general purpose registers on stack
 .macro save_all_gpr
@@ -184,8 +185,8 @@ read_efer_flag:
 	movq IOFFSET_RBP(%rsp), %rbp
 .endm
 
-#define INTERRUPT_ALIGN 128
-	
+#define INTERRUPT_ALIGN  128
+
 ## Declare interrupt handlers
 #
 # Declare interrupt handlers for n interrupt
@@ -194,7 +195,7 @@ read_efer_flag:
 # The handlers call exc_dispatch().
 #
 .macro handler i n
-
+	
 	/*
 	 * Choose between version with error code and version without error
 	 * code. Both versions have to be of the same size. amd64 assembly is,
@@ -203,7 +204,7 @@ read_efer_flag:
 	 * op-code lengths.
 	 * Therefore we align the interrupt handlers.
 	 */
-
+	
 	.iflt \i-32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
 			/*
@@ -214,15 +215,15 @@ read_efer_flag:
 			/*
 			 * Version without error word,
 			 */
-			subq $(IREGISTER_SPACE+8), %rsp
+			subq $(IREGISTER_SPACE + 8), %rsp
 		.endif
 	.else
 		/*
 		 * Version without error word,
 		 */
-		subq $(IREGISTER_SPACE+8), %rsp
-	.endif	
-
+		subq $(IREGISTER_SPACE + 8), %rsp
+	.endif
+	
 	save_all_gpr
 	cld
 
@@ -240,48 +241,48 @@ read_efer_flag:
 	
 	restore_all_gpr
 	# $8 = Skip error word
-	addq $(IREGISTER_SPACE+8), %rsp
+	addq $(IREGISTER_SPACE + 8), %rsp
 	iretq
-
+	
 	.align INTERRUPT_ALIGN
-	.if (\n-\i)-1
-	handler "(\i+1)",\n
+	.if (\n - \i) - 1
+		handler "(\i + 1)", \n
 	.endif
 .endm
 
 .align INTERRUPT_ALIGN
 interrupt_handlers:
-h_start:
-	handler 0 IDT_ITEMS
-h_end:
+	h_start:
+		handler 0 IDT_ITEMS
+	h_end:
 
 ## Low-level syscall handler
-# 
+#
 # Registers on entry:
 #
-# @param rcx		Userspace return address.
-# @param r11		Userspace RLFAGS.
+# @param rcx Userspace return address.
+# @param r11 Userspace RLFAGS.
 #
-# @param rax		Syscall number.
-# @param rdi		1st syscall argument.
-# @param rsi		2nd syscall argument.
-# @param rdx		3rd syscall argument.
-# @param r10		4th syscall argument. Used instead of RCX because the
-#			SYSCALL instruction clobbers it.
-# @param r8		5th syscall argument.
-# @param r9		6th syscall argument.
+# @param rax Syscall number.
+# @param rdi 1st syscall argument.
+# @param rsi 2nd syscall argument.
+# @param rdx 3rd syscall argument.
+# @param r10 4th syscall argument. Used instead of RCX because
+#            the SYSCALL instruction clobbers it.
+# @param r8  5th syscall argument.
+# @param r9  6th syscall argument.
 #
-# @return		Return value is in rax.
+# @return Return value is in rax.
 #
 syscall_entry:
-	swapgs			# Switch to hidden gs	
-	# 
-	# %gs:0			Scratch space for this thread's user RSP
-	# %gs:8			Address to be used as this thread's kernel RSP
+	swapgs            # Switch to hidden gs
 	#
-	movq %rsp, %gs:0	# Save this thread's user RSP
-	movq %gs:8, %rsp	# Set this thread's kernel RSP
-	swapgs			# Switch back to remain consistent
+	# %gs:0 Scratch space for this thread's user RSP
+	# %gs:8 Address to be used as this thread's kernel RSP
+	#
+	movq %rsp, %gs:0  # Save this thread's user RSP
+	movq %gs:8, %rsp  # Set this thread's kernel RSP
+	swapgs            # Switch back to remain consistent
 	sti
 	
 	pushq %rcx
@@ -298,15 +299,15 @@ syscall_entry:
 	popq %rbp
 	popq %r11
 	popq %rcx
-
+	
 	cli
 	swapgs
-	movq %gs:0, %rsp	# Restore the user RSP
+	movq %gs:0, %rsp  # Restore the user RSP
 	swapgs
-
+	
 	sysretq
 
 .data
 .global interrupt_handler_size
 
-interrupt_handler_size: .quad (h_end-h_start)/IDT_ITEMS
+interrupt_handler_size: .quad (h_end - h_start) / IDT_ITEMS

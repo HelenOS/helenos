@@ -44,6 +44,8 @@ jobs = [
 re_attribute = re.compile("__attribute__\s*\(\(.*\)\)")
 re_va_list = re.compile("__builtin_va_list")
 
+specification = ""
+
 def usage(prname):
 	"Print usage syntax"
 	print prname + " <ROOT> [VCC_PATH]"
@@ -55,6 +57,8 @@ def cygpath(upath):
 
 def preprocess(srcfname, tmpfname, base, options):
 	"Preprocess source using GCC preprocessor and compatibility tweaks"
+	
+	global specification
 	
 	args = ['gcc', '-E']
 	args.extend(options.split())
@@ -68,12 +72,7 @@ def preprocess(srcfname, tmpfname, base, options):
 	preproc = subprocess.Popen(args, stdout = subprocess.PIPE).communicate()[0]
 	
 	tmpf = file(tmpfname, "w")
-	
-	tmpf.write("__specification(const char * const \\declspec_atomic_inline;)\n\n");
-	
-	tmpf.write("#define __spec_attr(key, value) \\\n");
-	tmpf.write("	__declspec(System.Diagnostics.Contracts.CodeContract.StringVccAttr, \\\n");
-	tmpf.write("	    key, value)\n\n");
+	tmpf.write(specification)
 	
 	for line in preproc.splitlines():
 		
@@ -154,7 +153,7 @@ def vcc(vcc_path, root, job):
 		
 		# Run Vcc
 		print " -- %s --" % srcfname		
-		retval = subprocess.Popen([vcc_path, '/pointersize:32', cygpath(tmpfqname)]).wait()
+		retval = subprocess.Popen([vcc_path, '/pointersize:32', '/newsyntax', cygpath(tmpfqname)]).wait()
 		
 		if (retval != 0):
 			return False
@@ -169,6 +168,8 @@ def vcc(vcc_path, root, job):
 	return True
 
 def main():
+	global specification
+	
 	if (len(sys.argv) < 2):
 		usage(sys.argv[0])
 		return
@@ -190,6 +191,15 @@ def main():
 		print "%s not found." % config
 		print "Please specify the path to HelenOS build tree root as the first argument."
 		return
+	
+	specpath = os.path.join(rootdir, "tools/checkers/vcc.h")
+	if (not os.path.isfile(specpath)):
+		print "%s not found." % config
+		return
+	
+	specfile = file(specpath, "r")
+	specification = specfile.read()
+	specfile.close()
 	
 	for job in jobs:
 		if (not vcc(vcc_path, rootdir, job)):

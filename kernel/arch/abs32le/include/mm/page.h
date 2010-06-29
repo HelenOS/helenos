@@ -139,6 +139,7 @@ typedef struct {
 } __attribute__((packed)) pte_t;
 
 static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+    REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
 	
@@ -154,6 +155,8 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 }
 
 static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+    WRITES(ARRAY_RANGE(pt, PTL0_ENTRIES_ARCH))
+    REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
 	

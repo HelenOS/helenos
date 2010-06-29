@@ -36,11 +36,15 @@
 .global asm_fake_loop
 
 asm_delay_loop:
-0:	dec %rdi
-	jnz 0b
+	0:
+		dec %rdi
+		jnz 0b
+	
 	ret
 
 asm_fake_loop:
-0:	dec %rdi
-	jz 0b
+	0:
+		dec %rdi
+		jz 0b
+	
 	ret

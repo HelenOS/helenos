@@ -72,30 +72,28 @@ IRQ_SPINLOCK_STATIC_INITIALIZE(tlblock);
  * This function attempts to deliver TLB shootdown message
  * to all other processors.
  *
- * @param type		Type describing scope of shootdown.
- * @param asid		Address space, if required by type.
- * @param page		Virtual page address, if required by type.
- * @param count		Number of pages, if required by type.
+ * @param type  Type describing scope of shootdown.
+ * @param asid  Address space, if required by type.
+ * @param page  Virtual page address, if required by type.
+ * @param count Number of pages, if required by type.
  *
  * @return The interrupt priority level as it existed prior to this call.
+ *
  */
 ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
     uintptr_t page, size_t count)
 {
-	ipl_t ipl;
-
-	ipl = interrupts_disable();
+	ipl_t ipl = interrupts_disable();
 	CPU->tlb_active = false;
 	irq_spinlock_lock(&tlblock, false);
 	
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
-		cpu_t *cpu;
-		
 		if (i == CPU->id)
 			continue;
 		
-		cpu = &cpus[i];
+		cpu_t *cpu = &cpus[i];
+		
 		irq_spinlock_lock(&cpu->lock, false);
 		if (cpu->tlb_messages_count == TLB_MESSAGE_QUEUE_LEN) {
 			/*
@@ -123,16 +121,18 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 	tlb_shootdown_ipi_send();
 	
 busy_wait:
-	for (i = 0; i < config.cpu_count; i++)
+	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].tlb_active)
 			goto busy_wait;
-
+	}
+	
 	return ipl;
 }
 
 /** Finish TLB shootdown sequence.
  *
- * @param ipl		Previous interrupt priority level.
+ * @param ipl Previous interrupt priority level.
+ *
  */
 void tlb_shootdown_finalize(ipl_t ipl)
 {

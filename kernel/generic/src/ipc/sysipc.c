@@ -1149,7 +1149,7 @@ unative_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg)
 	if (rc != 0)
 		return (unative_t) rc;
 	
-	LOG("sys_ipc_connect_kbox(%" PRIu64 ")\n", taskid_arg.value);
+	LOG("sys_ipc_connect_kbox(%" PRIu64 ")", taskid_arg.value);
 	
 	return ipc_connect_kbox(taskid_arg.value);
 #else

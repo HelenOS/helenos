@@ -142,8 +142,10 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 	/* Account exception handling */
 	uint64_t end_cycle = get_cycle();
 	
+	irq_spinlock_lock(&exctbl_lock, false);
 	exc_table[n].cycles += end_cycle - begin_cycle;
 	exc_table[n].count++;
+	irq_spinlock_unlock(&exctbl_lock, false);
 	
 	/* Do not charge THREAD for exception cycles */
 	if (THREAD) {

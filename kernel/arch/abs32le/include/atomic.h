@@ -41,6 +41,8 @@
 #include <verify.h>
 
 ATOMIC static inline void atomic_inc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
 	/* On real hardware the increment has to be done
@@ -50,6 +52,8 @@ ATOMIC static inline void atomic_inc(atomic_t *val)
 }
 
 ATOMIC static inline void atomic_dec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
 	/* On real hardware the decrement has to be done
@@ -59,6 +63,8 @@ ATOMIC static inline void atomic_dec(atomic_t *val)
 }
 
 ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
 	/* On real hardware both the storing of the previous
@@ -72,6 +78,8 @@ ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
 }
 
 ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
 	/* On real hardware both the storing of the previous
@@ -88,6 +96,8 @@ ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
 #define atomic_predec(val)  (atomic_postdec(val) - 1)
 
 ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	/* On real hardware the retrieving of the original
 	   value and storing 1 have to be done as a single
@@ -98,20 +108,12 @@ ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
 	return prev;
 }
 
-ATOMIC static inline atomic_count_t arch_atomic_get(atomic_t *val)
-{
-	/* This function is not needed on real hardware, it just
-	   duplicates the functionality of atomic_get(). It is
-	   defined here because atomic_get() is an inline function
-	   declared in a header file which we are included in. */
-	
-	return val->count;
-}
-
 static inline void atomic_lock_arch(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	do {
-		while (arch_atomic_get(val));
+		while (val->count);
 	} while (test_and_set(val));
 }
 

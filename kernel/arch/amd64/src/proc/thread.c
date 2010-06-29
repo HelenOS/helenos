@@ -36,17 +36,19 @@
 
 /** Perform amd64 specific thread initialization.
  *
- * @param t Thread to be initialized.
+ * @param thread Thread to be initialized.
+ *
  */
-void thread_create_arch(thread_t *t)
+void thread_create_arch(thread_t *thread)
 {
-	t->arch.tls = 0;
-	t->arch.syscall_rsp[SYSCALL_USTACK_RSP] = 0;
+	thread->arch.tls = 0;
+	thread->arch.syscall_rsp[SYSCALL_USTACK_RSP] = 0;
+	
 	/*
 	 * Kernel RSP can be precalculated at thread creation time.
 	 */
-	t->arch.syscall_rsp[SYSCALL_KSTACK_RSP] =
-	    (uintptr_t) &t->kstack[PAGE_SIZE - sizeof(uint64_t)];
+	thread->arch.syscall_rsp[SYSCALL_KSTACK_RSP] =
+	    (uintptr_t) &thread->kstack[PAGE_SIZE - sizeof(uint64_t)];
 }
 
 /** @}

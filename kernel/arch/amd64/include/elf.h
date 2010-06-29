@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -35,9 +35,9 @@
 #ifndef KERN_amd64_ELF_H_
 #define KERN_amd64_ELF_H_
 
-#define	ELF_MACHINE		EM_X86_64
-#define ELF_DATA_ENCODING	ELFDATA2LSB
-#define ELF_CLASS		ELFCLASS64
+#define ELF_MACHINE        EM_X86_64
+#define ELF_DATA_ENCODING  ELFDATA2LSB
+#define ELF_CLASS          ELFCLASS64
 
 #endif
 

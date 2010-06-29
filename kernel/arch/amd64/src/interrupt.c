@@ -201,7 +201,6 @@ void interrupt_init(void)
 	exc_register(7, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(12, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(13, "gp_fault", true, (iroutine_t) gp_fault);
-	exc_register(14, "ident_mapper", true, (iroutine_t) ident_page_fault);
 	
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,

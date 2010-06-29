@@ -30,7 +30,7 @@
 
 #include <arch/boot/boot.h>
 #include <arch/boot/memmap.h>
-#include <arch/mm/page.h>	
+#include <arch/mm/page.h>
 #include <arch/mm/ptl.h>
 #include <arch/pm.h>
 #include <arch/cpu.h>
@@ -171,13 +171,16 @@ start64:
 	movl grub_eax, %edi
 	xorq %rsi, %rsi
 	movl grub_ebx, %esi
-	call arch_pre_main
+	
+	movabsq $arch_pre_main, %rax
+	callq *%rax
 	
 	# create the first stack frame
 	pushq $0
 	movq %rsp, %rbp
-
-	call main_bsp
+	
+	movabsq $main_bsp, %rax
+	call *%rax
 	
 	# not reached
 	
@@ -255,68 +258,83 @@ error_halt:
 
 #
 # Macro for generating initial page table contents.
-# @param cnt Number of entries to generat. Must be multiple of 8.
+# @param cnt Number of entries to generate. Must be multiple of 8.
 # @param g   Number of GB that will be added to the mapping.
 #
-.macro ptl2gen cnt g 
-.if \cnt
-	ptl2gen "\cnt - 8" \g 
-	.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-	.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
-.endif
+.macro ptl2gen cnt g
+	.if \cnt
+		ptl2gen "\cnt - 8" \g
+		.quad ((\cnt - 8) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 7) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 6) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 5) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 4) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 3) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 2) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+		.quad ((\cnt - 1) * 0x200000) + (\g * 1024 * 1024 * 1024) | (PTL_WRITABLE | PTL_PRESENT | PTL_2MB_PAGE)
+	.endif
 .endm
 
-# Page table for pages in the first gigabyte.
+# Page table for pages in the 1st gigabyte.
 .align 4096
-.global ptl_2_0g
-ptl_2_0g:	
+ptl_2_0g:
 	ptl2gen 512 0
 
-# Page table for pages in the second gigabyte.
+# Page table for pages in the 2nd gigabyte.
 .align 4096
-.global ptl_2_1g
 ptl_2_1g:
 	ptl2gen 512 1
 
-# Page table for pages in the third gigabyte.
+# Page table for pages in the 3rd gigabyte.
 .align 4096
-.global ptl_2_2g
 ptl_2_2g:
 	ptl2gen 512 2
 
-# Page table for pages in the fourth gigabyte.
+# Page table for pages in the 4th gigabyte.
 .align 4096
-.global ptl_2_3g
 ptl_2_3g:
 	ptl2gen 512 3
 
+# Page table for pages in the 5th gigabyte.
 .align 4096
-.global ptl_1
+ptl_2_4g:
+	ptl2gen 512 3
+
+# Page table for pages in the 6th gigabyte.
+.align 4096
+ptl_2_5g:
+	ptl2gen 512 3
+
+# Page table for pages in the 7th gigabyte.
+.align 4096
+ptl_2_6g:
+	ptl2gen 512 3
+
+# Page table for pages in the 8th gigabyte.
+.align 4096
+ptl_2_7g:
+	ptl2gen 512 3
+
+.align 4096
 ptl_1:
-	# Identity mapping for [0; 4G)
+	# Identity mapping for [0; 8G)
 	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
-	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT) 
+	.quad ptl_2_1g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_2g + (PTL_WRITABLE | PTL_PRESENT)
 	.quad ptl_2_3g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 506, 8, 0
-	# Mapping of [0; 1G) at -2G
-	.quad ptl_2_0g + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 1, 8, 0
+	.quad ptl_2_4g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_5g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_6g + (PTL_WRITABLE | PTL_PRESENT)
+	.quad ptl_2_7g + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 504, 8, 0
 
 .align 4096
 .global ptl_0
 ptl_0:
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 255,8,0
+	.fill 255, 8, 0
 	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
-	.fill 254,8,0
-	.quad ptl_1 + (PTL_WRITABLE | PTL_PRESENT)
+	.fill 255, 8, 0
 
 .section K_DATA_START, "aw", @progbits
 

@@ -70,7 +70,7 @@
 #define PL_KERNEL  0
 #define PL_USER    3
 
-#define AR_PRESENT   ( 1 << 7)
+#define AR_PRESENT    (1 << 7)
 #define AR_DATA       (2 << 3)
 #define AR_CODE       (3 << 3)
 #define AR_WRITABLE   (1 << 1)
