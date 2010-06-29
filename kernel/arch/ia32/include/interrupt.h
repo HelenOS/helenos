@@ -71,20 +71,27 @@
 
 typedef struct istate {
 	uint32_t eax;
+	uint32_t ebx;
 	uint32_t ecx;
 	uint32_t edx;
+	uint32_t edi;
+	uint32_t esi;
 	uint32_t ebp;
+	
+	uint32_t ebp_frame;	/* imitation of frame pointer linkage */
+	uint32_t eip_frame;	/* imitation of return address linkage */
 
 	uint32_t gs;
 	uint32_t fs;
 	uint32_t es;
 	uint32_t ds;
 
-	uint32_t error_word;
+	uint32_t error_word;	/* real or fake error word */
 	uint32_t eip;
 	uint32_t cs;
 	uint32_t eflags;
-	uint32_t stack[];
+	uint32_t esp;		/* only if istate_t is from uspace */
+	uint32_t ss;		/* only if istate_t is from uspace */
 } istate_t;
 
 /** Return true if exception happened while in userspace */
