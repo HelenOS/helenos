@@ -84,10 +84,10 @@ static bool is_cpu_enabled(size_t i)
 	
 	/*
 	 * FIXME: The current local APIC driver limits usable
-	 * APIC IDs to 8.
+	 * CPU IDs to 8.
 	 *
 	 */
-	if (get_cpu_apic_id(i) > 7)
+	if (i > 7)
 		return false;
 	
 	return (bool) ((processor_entries[i].cpu_flags & 0x01) == 0x01);
