@@ -110,7 +110,7 @@ static bool madt_cpu_bootstrap(size_t i)
 	
 	return ((struct madt_l_apic *)
 	    madt_entries_index[madt_l_apic_entry_index + i])->apic_id ==
-	    l_apic_id();
+	    bsp_l_apic;
 }
 
 static int madt_irq_to_pin(unsigned int irq)
@@ -146,8 +146,10 @@ static int madt_cmp(void *a, void *b, void *arg)
 
 static void madt_l_apic_entry(struct madt_l_apic *la, size_t i)
 {
-	if (!madt_l_apic_entry_cnt++)
+	if (madt_l_apic_entry_cnt == 0)
 		madt_l_apic_entry_index = i;
+	
+	madt_l_apic_entry_cnt++;
 	
 	if (!(la->flags & 0x1)) {
 		/* Processor is unusable, skip it. */
@@ -159,13 +161,15 @@ static void madt_l_apic_entry(struct madt_l_apic *la, size_t i)
 
 static void madt_io_apic_entry(struct madt_io_apic *ioa, size_t i)
 {
-	if (!madt_io_apic_entry_cnt++) {
+	if (madt_io_apic_entry_cnt == 0) {
 		/* Remember index of the first io apic entry */
 		madt_io_apic_entry_index = i;
 		io_apic = (uint32_t *) (unative_t) ioa->io_apic_address;
 	} else {
 		/* Currently not supported */
 	}
+	
+	madt_io_apic_entry_cnt++;
 }
 
 static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override,
@@ -189,22 +193,24 @@ void acpi_madt_parse(void)
 	
 	/* Count MADT entries */
 	unsigned int madt_entries_index_cnt = 0;
-	for (hdr = &acpi_madt->apic_header[0]; hdr < end;
+	for (hdr = acpi_madt->apic_header; hdr < end;
 	    hdr = (struct madt_apic_header *) (((uint8_t *) hdr) + hdr->length))
 		madt_entries_index_cnt++;
 	
 	/* Create MADT APIC entries index array */
 	madt_entries_index = (struct madt_apic_header **)
-	    malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header **),
+	    malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header *),
 	    FRAME_ATOMIC);
 	if (!madt_entries_index)
 		panic("Memory allocation error.");
 	
 	size_t i = 0;
 	
-	for (hdr = &acpi_madt->apic_header[0]; hdr < end;
-	    hdr = (struct madt_apic_header *) (((uint8_t *) hdr) + hdr->length))
-		madt_entries_index[i++] = hdr;
+	for (hdr = acpi_madt->apic_header; hdr < end;
+	    hdr = (struct madt_apic_header *) (((uint8_t *) hdr) + hdr->length)) {
+		madt_entries_index[i] = hdr;
+		i++;
+	}
 	
 	/* Sort MADT index structure */
 	if (!gsort(madt_entries_index, madt_entries_index_cnt,

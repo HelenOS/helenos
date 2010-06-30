@@ -112,8 +112,6 @@ void kmp(void *arg __attribute__((unused)))
 	pic_disable_irqs(0xffff);
 	apic_init();
 	
-	uint8_t apic = l_apic_id();
-	
 	for (i = 0; i < config.cpu_count; i++) {
 		/*
 		 * Skip processors marked unusable.
@@ -127,9 +125,9 @@ void kmp(void *arg __attribute__((unused)))
 		if (ops->cpu_bootstrap(i))
 			continue;
 		
-		if (ops->cpu_apic_id(i) == apic) {
-			printf("%s: bad processor entry #%u, will not send IPI "
-			    "to myself\n", __FUNCTION__, i);
+		if (ops->cpu_apic_id(i) == bsp_l_apic) {
+			printf("kmp: bad processor entry #%u, will not send IPI "
+			    "to myself\n", i);
 			continue;
 		}
 		
