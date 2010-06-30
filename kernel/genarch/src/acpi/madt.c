@@ -130,10 +130,10 @@ struct smp_config_operations madt_config_operations = {
 	.irq_to_pin = madt_irq_to_pin
 };
 
-static int madt_cmp(void *a, void *b)
+static int madt_cmp(void *a, void *b, void *arg)
 {
-	uint8_t typea = ((struct madt_apic_header *) a)->type;
-	uint8_t typeb = ((struct madt_apic_header *) b)->type;
+	uint8_t typea = (*((struct madt_apic_header **) a))->type;
+	uint8_t typeb = (*((struct madt_apic_header **) b))->type;
 	
 	if (typea > typeb)
 		return 1;
@@ -207,8 +207,9 @@ void acpi_madt_parse(void)
 		madt_entries_index[i++] = hdr;
 	
 	/* Sort MADT index structure */
-	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(uintptr_t),
-	    &madt_cmp);
+	if (!gsort(madt_entries_index, madt_entries_index_cnt,
+	    sizeof(struct madt_apic_header *), madt_cmp, NULL))
+		panic("Sorting error.");
 	
 	/* Parse MADT entries */
 	for (i = 0; i < madt_entries_index_cnt; i++) {
