@@ -61,9 +61,6 @@ static struct smp_config_operations *ops = NULL;
 
 void smp_init(void)
 {
-	uintptr_t l_apic_address;
-	uintptr_t io_apic_address;
-	
 	if (acpi_madt) {
 		acpi_madt_parse();
 		ops = &madt_config_operations;
@@ -74,26 +71,9 @@ void smp_init(void)
 		ops = &mps_config_operations;
 	}
 	
-	l_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_ATOMIC | FRAME_KA);
-	if (!l_apic_address)
-		panic("Cannot allocate address for l_apic.");
-	
-	io_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_ATOMIC | FRAME_KA);
-	if (!io_apic_address)
-		panic("Cannot allocate address for io_apic.");
-	
 	if (config.cpu_count > 1) {
-		page_table_lock(AS_KERNEL, true);
-		page_mapping_insert(AS_KERNEL, l_apic_address,
-		    (uintptr_t) l_apic, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-		page_mapping_insert(AS_KERNEL, io_apic_address,
-		    (uintptr_t) io_apic, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-		page_table_unlock(AS_KERNEL, true);
-		
-		l_apic = (uint32_t *) l_apic_address;
-		io_apic = (uint32_t *) io_apic_address;
+		l_apic = (uint32_t *) hw_map((uintptr_t) l_apic, PAGE_SIZE);
+		io_apic = (uint32_t *) hw_map((uintptr_t) io_apic, PAGE_SIZE);
 	}
 }
 
