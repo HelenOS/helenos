@@ -26,180 +26,202 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
  * @file
- * @brief	Sorting functions.
+ * @brief Sorting functions.
  *
  * This files contains functions implementing several sorting
- * algorithms (e.g. quick sort and bubble sort).
+ * algorithms (e.g. quick sort and gnome sort).
+ *
  */
- 
+
 #include <mm/slab.h>
 #include <memstr.h>
 #include <sort.h>
-#include <panic.h>
 
-#define EBUFSIZE	32
-
-void _qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot);
-void _bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot);
-
-/** Quicksort wrapper
+/** Immediate buffer size.
  *
- * This is only a wrapper that takes care of memory allocations for storing
- * the pivot and temporary elements for generic quicksort algorithm.
- * 
- * This function _can_ sleep
+ * For small buffer sizes avoid doing malloc()
+ * and use the stack.
  *
- * @param data Pointer to data to be sorted.
- * @param n Number of elements to be sorted.
- * @param e_size Size of one element.
- * @param cmp Comparator function.
- * 
  */
-void qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b))
+#define IBUF_SIZE  32
+
+/** Array accessor.
+ *
+ */
+#define INDEX(buf, i, elem_size)  ((buf) + (i) * (elem_size))
+
+/** Gnome sort
+ *
+ * Apply generic gnome sort algorithm on supplied data,
+ * using pre-allocated buffer.
+ *
+ * @param data      Pointer to data to be sorted.
+ * @param cnt       Number of elements to be sorted.
+ * @param elem_size Size of one element.
+ * @param cmp       Comparator function.
+ * @param arg       3rd argument passed to cmp.
+ * @param slot      Pointer to scratch memory buffer
+ *                  elem_size bytes long.
+ *
+ */
+static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
+    void *arg, void *slot)
 {
-	uint8_t buf_tmp[EBUFSIZE];
-	uint8_t buf_pivot[EBUFSIZE];
-	void * tmp = buf_tmp;
-	void * pivot = buf_pivot;
-
-	if (e_size > EBUFSIZE) {
-		pivot = (void *) malloc(e_size, 0);
-		tmp = (void *) malloc(e_size, 0);
-	}
-
-	_qsort(data, n, e_size, cmp, tmp, pivot);
+	size_t i = 0;
 	
-	if (e_size > EBUFSIZE) {
-		free(tmp);
-		free(pivot);
+	while (i < cnt) {
+		if ((i > 0) &&
+		    (cmp(INDEX(data, i, elem_size),
+		    INDEX(data, i - 1, elem_size), arg) == -1)) {
+			memcpy(slot, INDEX(data, i, elem_size), elem_size);
+			memcpy(INDEX(data, i, elem_size), INDEX(data, i - 1, elem_size),
+			    elem_size);
+			memcpy(INDEX(data, i - 1, elem_size), slot, elem_size);
+			printf("exch: %u %u\n", i - 1, i);
+			i--;
+		} else
+			i++;
 	}
 }
 
 /** Quicksort
  *
- * Apply generic quicksort algorithm on supplied data, using pre-allocated buffers.
- * 
- * @param data Pointer to data to be sorted.
- * @param n Number of elements to be sorted.
- * @param e_size Size of one element.
- * @param cmp Comparator function.
- * @param tmp Pointer to scratch memory buffer e_size bytes long.
- * @param pivot Pointer to scratch memory buffer e_size bytes long.
- * 
+ * Apply generic quicksort algorithm on supplied data,
+ * using pre-allocated buffers.
+ *
+ * @param data      Pointer to data to be sorted.
+ * @param cnt       Number of elements to be sorted.
+ * @param elem_size Size of one element.
+ * @param cmp       Comparator function.
+ * @param arg       3rd argument passed to cmp.
+ * @param slot      Pointer to scratch memory buffer
+ *                  elem_size bytes long.
+ * @param pivot     Pointer to scratch memory buffer
+ *                  elem_size bytes long.
+ *
  */
-void _qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *tmp, void *pivot)
+static void _qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
+    void *arg, void *slot, void *pivot)
 {
-	if (n > 4) {
-		unsigned int i = 0, j = n - 1;
-
-		memcpy(pivot, data, e_size);
-
-		while (1) {
-			while ((cmp(data + i * e_size, pivot) < 0) && (i < n))
+	if (cnt > 4) {
+		size_t i = 0;
+		size_t j = cnt - 1;
+		
+		memcpy(pivot, data, elem_size);
+		
+		while (true) {
+			while ((cmp(INDEX(data, i, elem_size), pivot, arg) < 0) && (i < cnt))
 				i++;
-			while ((cmp(data + j * e_size, pivot) >= 0) && (j > 0))
+			
+			while ((cmp(INDEX(data, j, elem_size), pivot, arg) >= 0) && (j > 0))
 				j--;
 			
 			if (i < j) {
-				memcpy(tmp, data + i * e_size, e_size);
-				memcpy(data + i * e_size, data + j * e_size, e_size);
-				memcpy(data + j * e_size, tmp, e_size);
-			} else {
+				memcpy(slot, INDEX(data, i, elem_size), elem_size);
+				memcpy(INDEX(data, i, elem_size), INDEX(data, j, elem_size),
+				    elem_size);
+				memcpy(INDEX(data, j, elem_size), slot, elem_size);
+			} else
 				break;
-			}
 		}
-
-		_qsort(data, j + 1, e_size, cmp, tmp, pivot);
-		_qsort(data + (j + 1) * e_size, n - j - 1, e_size, cmp, tmp, pivot);
-	} else {
-		_bubblesort(data, n, e_size, cmp, tmp);
-	}
+		
+		_qsort(data, j + 1, elem_size, cmp, arg, slot, pivot);
+		_qsort(INDEX(data, j + 1, elem_size), cnt - j - 1, elem_size,
+		    cmp, arg, slot, pivot);
+	} else
+		_gsort(data, cnt, elem_size, cmp, arg, slot);
 }
 
-/** Bubblesort wrapper
+/** Gnome sort wrapper
  *
- * This is only a wrapper that takes care of memory allocation for storing
- * the slot element for generic bubblesort algorithm.
- * 
- * @param data Pointer to data to be sorted.
- * @param n Number of elements to be sorted.
- * @param e_size Size of one element.
- * @param cmp Comparator function.
- * 
+ * This is only a wrapper that takes care of memory
+ * allocations for storing the slot element for generic
+ * gnome sort algorithm.
+ *
+ * This function can sleep.
+ *
+ * @param data      Pointer to data to be sorted.
+ * @param cnt       Number of elements to be sorted.
+ * @param elem_size Size of one element.
+ * @param cmp       Comparator function.
+ * @param arg       3rd argument passed to cmp.
+ *
+ * @return True if sorting succeeded.
+ *
  */
-void bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b))
+bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 {
-	uint8_t buf_slot[EBUFSIZE];
-	void * slot = buf_slot;
+	uint8_t ibuf_slot[IBUF_SIZE];
+	void *slot;
 	
-	if (e_size > EBUFSIZE) {
-		slot = (void *) malloc(e_size, 0);
-	}
+	if (elem_size > IBUF_SIZE) {
+		slot = (void *) malloc(elem_size, 0);
+		if (!slot)
+			return false;
+	} else
+		slot = (void *) ibuf_slot;
+	
+	_gsort(data, cnt, elem_size, cmp, arg, slot);
+	
+	if (elem_size > IBUF_SIZE)
+		free(slot);
+	
+	return true;
+}
 
-	_bubblesort(data, n, e_size, cmp, slot);
+/** Quicksort wrapper
+ *
+ * This is only a wrapper that takes care of memory
+ * allocations for storing the pivot and temporary elements
+ * for generic quicksort algorithm.
+ *
+ * This function can sleep.
+ *
+ * @param data      Pointer to data to be sorted.
+ * @param cnt       Number of elements to be sorted.
+ * @param elem_size Size of one element.
+ * @param cmp       Comparator function.
+ * @param arg       3rd argument passed to cmp.
+ *
+ * @return True if sorting succeeded.
+ *
+ */
+bool qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
+{
+	uint8_t ibuf_slot[IBUF_SIZE];
+	uint8_t ibuf_pivot[IBUF_SIZE];
+	void *slot;
+	void *pivot;
 	
-	if (e_size > EBUFSIZE) {
+	if (elem_size > IBUF_SIZE) {
+		slot = (void *) malloc(elem_size, 0);
+		if (!slot)
+			return false;
+		
+		pivot = (void *) malloc(elem_size, 0);
+		if (!pivot) {
+			free(slot);
+			return false;
+		}
+	} else {
+		slot = (void *) ibuf_slot;
+		pivot = (void *) ibuf_pivot;
+	}
+	
+	_qsort(data, cnt, elem_size, cmp, arg, slot, pivot);
+	
+	if (elem_size > IBUF_SIZE) {
+		free(pivot);
 		free(slot);
 	}
-}
-
-/** Bubblesort
- *
- * Apply generic bubblesort algorithm on supplied data, using pre-allocated buffer.
- * 
- * @param data Pointer to data to be sorted.
- * @param n Number of elements to be sorted.
- * @param e_size Size of one element.
- * @param cmp Comparator function.
- * @param slot Pointer to scratch memory buffer e_size bytes long.
- * 
- */
-void _bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b), void *slot)
-{
-	bool done = false;
-	void * p;
-
-	while (!done) {
-		done = true;
-		for (p = data; p < data + e_size * (n - 1); p = p + e_size) {
-			if (cmp(p, p + e_size) == 1) {
-				memcpy(slot, p, e_size);
-				memcpy(p, p + e_size, e_size);
-				memcpy(p + e_size, slot, e_size);
-				done = false;
-			}
-		}
-	}
-
-}
-
-/*
- * Comparator returns 1 if a > b, 0 if a == b, -1 if a < b
- */
-int int_cmp(void * a, void * b)
-{
-	return (* (int *) a > * (int*)b) ? 1 : (*(int *)a < * (int *)b) ? -1 : 0;
-}
-
-int uint8_t_cmp(void * a, void * b)
-{
-	return (* (uint8_t *) a > * (uint8_t *)b) ? 1 : (*(uint8_t *)a < * (uint8_t *)b) ? -1 : 0;
-}
-
-int uint16_t_cmp(void * a, void * b)
-{
-	return (* (uint16_t *) a > * (uint16_t *)b) ? 1 : (*(uint16_t *)a < * (uint16_t *)b) ? -1 : 0;
-}
-
-int uint32_t_cmp(void * a, void * b)
-{
-	return (* (uint32_t *) a > * (uint32_t *)b) ? 1 : (*(uint32_t *)a < * (uint32_t *)b) ? -1 : 0;
+	
+	return true;
 }
 
 /** @}
