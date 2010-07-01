@@ -1,30 +1,30 @@
-#
-# Copyright (c) 2005 Martin Decky
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# - Redistributions of source code must retain the above copyright
-#   notice, this list of conditions and the following disclaimer.
-# - Redistributions in binary form must reproduce the above copyright
-#   notice, this list of conditions and the following disclaimer in the
-#   documentation and/or other materials provided with the distribution.
-# - The name of the author may not be used to endorse or promote products
-#   derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+/*
+ * Copyright (c) 2005 Martin Decky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <arch/asm/regname.h>
 #include <arch/cpu.h>
@@ -41,44 +41,47 @@
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
+.global early_putchar
 
 userspace_asm:
 	
-	# r3 = uspace_uarg
-	# r4 = stack
-	# r5 = entry
+	/*
+	 * r3 = uspace_uarg
+	 * r4 = stack
+	 * r5 = entry
+	 */
 	
-	# disable interrupts
+	/* Disable interrupts */
 	
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	
-	# set entry point
+	/* Set entry point */
 	
 	mtsrr0 r5
 	
-	# set problem state, enable interrupts
+	/* Set problem state, enable interrupts */
 	
 	ori r31, r31, MSR_PR
 	ori r31, r31, MSR_EE
 	mtsrr1 r31
 	
-	# set stack
+	/* Set stack */
 	
 	mr sp, r4
 	
-	# %r6 is defined to hold pcb_ptr - set it to 0
+	/* %r6 is defined to hold pcb_ptr - set it to 0 */
 	
 	xor r6, r6, r6
 	
-	# jump to userspace
+	/* Jump to userspace */
 	
 	rfi
 
 iret:
 	
-	# disable interrupts
+	/* Disable interrupts */
 	
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
@@ -140,12 +143,12 @@ iret:
 
 iret_syscall:
 	
-	# reset decrementer
+	/* Reset decrementer */
 	
 	li r31, 1000
 	mtdec r31
 	
-	# disable interrupts
+	/* Disable interrupts */
 	
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
@@ -277,6 +280,6 @@ memcpy_to_uspace:
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	# return zero, failure
+	/* Return zero, failure */
 	xor r3, r3, r3
 	blr
