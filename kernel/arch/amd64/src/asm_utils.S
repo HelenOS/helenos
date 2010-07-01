@@ -1,30 +1,30 @@
-#
-# Copyright (c) 2005 Ondrej Palkovsky
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# - Redistributions of source code must retain the above copyright
-#   notice, this list of conditions and the following disclaimer.
-# - Redistributions in binary form must reproduce the above copyright
-#   notice, this list of conditions and the following disclaimer in the
-#   documentation and/or other materials provided with the distribution.
-# - The name of the author may not be used to endorse or promote products
-#   derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+/*
+ * Copyright (c) 2005 Ondrej Palkovsky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #define IREGISTER_SPACE  80
 
@@ -39,9 +39,11 @@
 #define IOFFSET_R11  0x40
 #define IOFFSET_RBP  0x48
 
-# Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
-# has no error word  and 1 means interrupt with error word
-
+/**
+ * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
+ * has no error word  and 1 means interrupt with error word
+ *
+ */
 #define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
 #include <arch/pm.h>
@@ -62,11 +64,11 @@
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
 
-# Wrapper for generic memsetb
+/* Wrapper for generic memsetb */
 memsetb:
 	jmp _memsetb
 
-# Wrapper for generic memsetw
+/* Wrapper for generic memsetw */
 memsetw:
 	jmp _memsetw
 
@@ -114,28 +116,40 @@ memcpy_to_uspace_failover_address:
 	xorq %rax, %rax         /* return 0, failure */
 	ret
 
-## Determine CPUID support
-#
-# Return 0 in EAX if CPUID is not support, 1 if supported.
-#
+/** Determine CPUID support
+*
+* @return 0 in EAX if CPUID is not support, 1 if supported.
+*
+*/
 has_cpuid:
-	pushfq                 # store flags
-	popq %rax              # read flags
-	movq %rax, %rdx        # copy flags
-	btcl $21, %edx         # swap the ID bit
-	pushq %rdx
-	popfq                  # propagate the change into flags
+	/* Load RFLAGS */
 	pushfq
-	popq %rdx              # read flags
-	andl $(1 << 21), %eax  # interested only in ID bit
+	popq %rax
+	movq %rax, %rdx
+	
+	/* Flip the ID bit */
+	btcl $21, %edx
+	
+	/* Store RFLAGS */
+	pushq %rdx
+	popfq
+	pushfq
+	
+	/* Get the ID bit again */
+	popq %rdx
+	andl $(1 << 21), %eax
 	andl $(1 << 21), %edx
-	xorl %edx, %eax        # 0 if not supported, 1 if supported
+	
+	/* 0 if not supported, 1 if supported */
+	xorl %edx, %eax
 	ret
 
 cpuid:
-	movq %rbx, %r10        # we have to preserve rbx across function calls
+	/* Preserve %rbx across function calls */
+	movq %rbx, %r10
 	
-	movl %edi,%eax         # load the command into %eax
+	/* Load the command into %eax */
+	movl %edi, %eax
 	
 	cpuid
 	movl %eax, 0(%rsi)
@@ -153,12 +167,14 @@ set_efer_flag:
 	wrmsr
 	ret
 
-read_efer_flag:	
+read_efer_flag:
 	movq $0xc0000080, %rcx
 	rdmsr
 	ret
 
-# Push all volatile general purpose registers on stack
+/** Push all volatile general purpose registers on stack
+ *
+ */
 .macro save_all_gpr
 	movq %rax, IOFFSET_RAX(%rsp)
 	movq %rcx, IOFFSET_RCX(%rsp)
@@ -187,13 +203,14 @@ read_efer_flag:
 
 #define INTERRUPT_ALIGN  128
 
-## Declare interrupt handlers
-#
-# Declare interrupt handlers for n interrupt
-# vectors starting at vector i.
-#
-# The handlers call exc_dispatch().
-#
+/** Declare interrupt handlers
+ *
+ * Declare interrupt handlers for n interrupt
+ * vectors starting at vector i.
+ *
+ * The handlers call exc_dispatch().
+ *
+ */
 .macro handler i n
 	
 	/*
@@ -226,21 +243,24 @@ read_efer_flag:
 	
 	save_all_gpr
 	cld
-
-	#
-	# Stop stack traces here if we came from userspace.
-	#
+	
+	/*
+	 * Stop stack traces here if we came from userspace.
+	 */
 	movq %cs, %rax
 	xorq %rdx, %rdx
 	cmpq %rax, IREGISTER_SPACE+16(%rsp)
 	cmovneq %rdx, %rbp
 
-	movq $(\i), %rdi   	# %rdi - first parameter
-	movq %rsp, %rsi   	# %rsi - pointer to istate
-	call exc_dispatch 	# exc_dispatch(i, istate)
+	movq $(\i), %rdi   /* %rdi - first argument */
+	movq %rsp, %rsi    /* %rsi - pointer to istate */
+	
+	/* Call exc_dispatch(i, istate) */
+	call exc_dispatch
 	
 	restore_all_gpr
-	# $8 = Skip error word
+	
+	/* $8 = Skip error word */
 	addq $(IREGISTER_SPACE + 8), %rsp
 	iretq
 	
@@ -256,53 +276,64 @@ interrupt_handlers:
 		handler 0 IDT_ITEMS
 	h_end:
 
-## Low-level syscall handler
-#
-# Registers on entry:
-#
-# @param rcx Userspace return address.
-# @param r11 Userspace RLFAGS.
-#
-# @param rax Syscall number.
-# @param rdi 1st syscall argument.
-# @param rsi 2nd syscall argument.
-# @param rdx 3rd syscall argument.
-# @param r10 4th syscall argument. Used instead of RCX because
-#            the SYSCALL instruction clobbers it.
-# @param r8  5th syscall argument.
-# @param r9  6th syscall argument.
-#
-# @return Return value is in rax.
-#
+/** Low-level syscall handler
+ *
+ * Registers on entry:
+ *
+ * @param %rcx Userspace return address.
+ * @param %r11 Userspace RLFAGS.
+ *
+ * @param %rax Syscall number.
+ * @param %rdi 1st syscall argument.
+ * @param %rsi 2nd syscall argument.
+ * @param %rdx 3rd syscall argument.
+ * @param %r10 4th syscall argument. Used instead of RCX because
+ *             the SYSCALL instruction clobbers it.
+ * @param %r8  5th syscall argument.
+ * @param %r9  6th syscall argument.
+ *
+ * @return Return value is in %rax.
+ *
+ */
 syscall_entry:
-	swapgs            # Switch to hidden gs
-	#
-	# %gs:0 Scratch space for this thread's user RSP
-	# %gs:8 Address to be used as this thread's kernel RSP
-	#
-	movq %rsp, %gs:0  # Save this thread's user RSP
-	movq %gs:8, %rsp  # Set this thread's kernel RSP
-	swapgs            # Switch back to remain consistent
+	/* Switch to hidden %gs */
+	swapgs
+	
+	/*
+	 * %gs:0 Scratch space for this thread's user RSP
+	 * %gs:8 Address to be used as this thread's kernel RSP
+	 */
+	
+	movq %rsp, %gs:0  /* save this thread's user RSP */
+	movq %gs:8, %rsp  /* set this thread's kernel RSP */
+	
+	/* Switch back to remain consistent */
+	swapgs
 	sti
 	
 	pushq %rcx
 	pushq %r11
 	pushq %rbp
-
-	xorq %rbp, %rbp		# stop the stack traces here
-
-	movq %r10, %rcx		# Copy the 4th argument where it is expected 
+	
+	xorq %rbp, %rbp  /* stop the stack traces here */
+	
+	/* Copy the 4th argument where it is expected  */
+	movq %r10, %rcx
 	pushq %rax
+	
 	call syscall_handler
+	
 	addq $8, %rsp
-		
+	
 	popq %rbp
 	popq %r11
 	popq %rcx
 	
 	cli
 	swapgs
-	movq %gs:0, %rsp  # Restore the user RSP
+	
+	/* Restore the user RSP */
+	movq %gs:0, %rsp
 	swapgs
 	
 	sysretq
