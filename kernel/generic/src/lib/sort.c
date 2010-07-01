@@ -83,7 +83,6 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
 			memcpy(INDEX(data, i, elem_size), INDEX(data, i - 1, elem_size),
 			    elem_size);
 			memcpy(INDEX(data, i - 1, elem_size), slot, elem_size);
-			printf("exch: %u %u\n", i - 1, i);
 			i--;
 		} else
 			i++;
