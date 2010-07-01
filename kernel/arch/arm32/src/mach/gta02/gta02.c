@@ -37,7 +37,10 @@
 #include <arch/mach/gta02/gta02.h>
 #include <arch/mm/page.h>
 #include <mm/page.h>
+#include <genarch/fb/fb.h>
+#include <genarch/fb/visuals.h>
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
+#include <ddi/ddi.h>
 
 #define GTA02_MEMORY_START	0x30000000	/* physical */
 #define GTA02_MEMORY_SIZE	0x08000000	/* 128 MB */
@@ -45,6 +48,9 @@
 
 /** GTA02 serial console UART address (UART S3C24XX CPU UART channel 2). */
 #define GTA02_SCONS_BASE	0x50008000
+
+/** GTA02 framebuffer base address */
+#define GTA02_FB_BASE		0x08800000
 
 static void gta02_init(void);
 static void gta02_timer_irq_start(void);
@@ -56,6 +62,7 @@ static void gta02_output_init(void);
 static void gta02_input_init(void);
 
 static void *gta02_scons_out;
+static parea_t fb_parea;
 
 struct arm_machine_ops gta02_machine_ops = {
 	gta02_init,
@@ -102,6 +109,24 @@ static void gta02_frame_init(void)
 
 static void gta02_output_init(void)
 {
+#ifdef CONFIG_FB
+	fb_properties_t prop = {
+		.addr = GTA02_FB_BASE,
+		.offset = 0,
+		.x = 480,
+		.y = 640,
+		.scan = 960,
+		.visual = VISUAL_RGB_5_6_5_LE
+	};
+
+	outdev_t *fb_dev = fb_init(&prop);
+	if (fb_dev) {
+		stdout_wire(fb_dev);
+		fb_parea.pbase = GTA02_FB_BASE;
+		fb_parea.frames = 150;
+		ddi_parea_register(&fb_parea);
+	}
+#endif
 	outdev_t *scons_dev;
 
 	scons_dev = s3c24xx_uart_init((ioport8_t *) gta02_scons_out);
