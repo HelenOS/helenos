@@ -223,7 +223,7 @@ sysenter_handler:
 # The handlers setup data segment registers
 # and call exc_dispatch().
 #
-#define INTERRUPT_ALIGN	128 
+#define INTERRUPT_ALIGN	256 
 .macro handler i n
 	
 .ifeq \i - 0x30     # Syscall handler
