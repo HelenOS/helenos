@@ -338,6 +338,8 @@ sysenter_handler:
 	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
 	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
 
+	cld
+
 	pushl %esp          # pass istate address
 	pushl $(\i)         # pass intnum
 	call exc_dispatch   # exc_dispatch(intnum, istate)
