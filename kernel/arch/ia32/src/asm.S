@@ -141,9 +141,7 @@ enable_l_apic_in_msr:
 # overwrites %ecx
 .macro CLEAR_NT_FLAG
 	pushfl
-	pop %ecx
-	and $0xffffbfff, %ecx
-	push %ecx
+	andl $0xffffbfff, (%esp)
 	popfl
 .endm	
 
