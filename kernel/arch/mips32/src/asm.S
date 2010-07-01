@@ -1,30 +1,30 @@
-#
-# Copyright (c) 2003-2004 Jakub Jermar
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# - Redistributions of source code must retain the above copyright
-#   notice, this list of conditions and the following disclaimer.
-# - Redistributions in binary form must reproduce the above copyright
-#   notice, this list of conditions and the following disclaimer in the
-#   documentation and/or other materials provided with the distribution.
-# - The name of the author may not be used to endorse or promote products
-#   derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+/*
+ * Copyright (c) 2003 Jakub Jermar
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <arch/asm/regname.h>
 
@@ -56,18 +56,15 @@ cpu_halt:
 	j cpu_halt
 	nop
 
-
 .global memsetb
 memsetb:
 	j _memsetb
 	nop
 
-
 .global memsetw
 memsetw:
 	j _memsetw
 	nop
-
 
 .global memcpy
 .global memcpy_from_uspace
@@ -77,10 +74,10 @@ memsetw:
 memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
-	move $t2, $a0      # save dst
+	move $t2, $a0  /* save dst */
 	
 	addiu $v0, $a1, 3
-	li $v1, -4         # 0xfffffffffffffffc
+	li $v1, -4  /* 0xfffffffffffffffc */
 	and $v0, $v0, $v1
 	beq $a1, $v0, 3f
 	move $t0, $a0
@@ -148,8 +145,6 @@ memcpy_to_uspace_failover_address:
 	jr $ra
 	move $v0, $zero
 
-
-
 .macro fpu_gp_save reg ctx
 	mfc1 $t0, $\reg
 	sw $t0, \reg * 4(\ctx)
@@ -163,13 +158,12 @@ memcpy_to_uspace_failover_address:
 .macro fpu_ct_save reg ctx
 	cfc1 $t0, $1
 	sw $t0, (\reg + 32) * 4(\ctx)
-.endm	
+.endm
 
 .macro fpu_ct_restore reg ctx
 	lw $t0, (\reg + 32) * 4(\ctx)
 	ctc1 $t0, $\reg
 .endm
-
 
 .global fpu_context_save
 fpu_context_save:
