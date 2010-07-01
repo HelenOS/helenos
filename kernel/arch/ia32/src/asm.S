@@ -141,9 +141,7 @@ enable_l_apic_in_msr:
 # overwrites %ecx
 .macro CLEAR_NT_FLAG
 	pushfl
-	pop %ecx
-	and $0xffffbfff, %ecx
-	push %ecx
+	andl $0xffffbfff, (%esp)
 	popfl
 .endm	
 
@@ -189,6 +187,32 @@ sysenter_handler:
 	sysexit		# return to userspace
 
 
+#define ISTATE_OFFSET_EAX		0
+#define ISTATE_OFFSET_EBX		4
+#define ISTATE_OFFSET_ECX		8
+#define ISTATE_OFFSET_EDX		12
+#define ISTATE_OFFSET_EDI		16
+#define ISTATE_OFFSET_ESI		20
+#define ISTATE_OFFSET_EBP		24
+#define ISTATE_OFFSET_EBP_FRAME		28
+#define ISTATE_OFFSET_EIP_FRAME		32
+#define ISTATE_OFFSET_GS		36
+#define ISTATE_OFFSET_FS		40
+#define ISTATE_OFFSET_ES		44
+#define ISTATE_OFFSET_DS		48
+#define ISTATE_OFFSET_ERROR_WORD	52
+#define ISTATE_OFFSET_EIP		56
+#define ISTATE_OFFSET_CS		60
+#define ISTATE_OFFSET_EFLAGS		64
+#define ISTATE_OFFSET_ESP		68
+#define ISTATE_OFFSET_SS		72
+
+/*
+ * Size of the istate structure without the hardware-saved part and without the
+ * error word.
+ */
+#define ISTATE_SOFT_SIZE		52
+
 ## Declare interrupt handlers
 #
 # Declare interrupt handlers for n interrupt
@@ -197,126 +221,163 @@ sysenter_handler:
 # The handlers setup data segment registers
 # and call exc_dispatch().
 #
-#define INTERRUPT_ALIGN	128 
+#define INTERRUPT_ALIGN	256 
 .macro handler i n
 	
-	.ifeq \i - 0x30     # Syscall handler
-		pushl %ds
-		pushl %es
-		pushl %fs
-		pushl %gs
+.ifeq \i - 0x30     # Syscall handler
+	pushl %ds
+	pushl %es
+	pushl %fs
+	pushl %gs
 		
-		#
-		# Push syscall arguments onto the stack
-		#
-		# NOTE: The idea behind the order of arguments passed in registers is to
-		#       use all scratch registers first and preserved registers next.
-		#       An optimized libc syscall wrapper can make use of this setup.
-		#
-		pushl %eax
-		pushl %ebp
-		pushl %edi
-		pushl %esi
-		pushl %ebx
-		pushl %ecx
-		pushl %edx
+	#
+	# Push syscall arguments onto the stack
+	#
+	# NOTE: The idea behind the order of arguments passed in registers is to
+	#       use all scratch registers first and preserved registers next.
+	#       An optimized libc syscall wrapper can make use of this setup.
+	#
+	pushl %eax
+	pushl %ebp
+	pushl %edi
+	pushl %esi
+	pushl %ebx
+	pushl %ecx
+	pushl %edx
 		
-		# we must fill the data segment registers
-		movw $16, %ax
-		movw %ax, %ds
-		movw %ax, %es
+	# we must fill the data segment registers
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %es
 	
-		xorl %ebp, %ebp
+	xorl %ebp, %ebp
 
-		cld
-		sti
-		# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
-		call syscall_handler
-		cli
+	cld
+	sti
+	# syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax)
+	call syscall_handler
+	cli
 
-		movl 20(%esp), %ebp	# restore EBP
-		addl $28, %esp		# clean-up of parameters
+	movl 20(%esp), %ebp	# restore EBP
+	addl $28, %esp		# clean-up of parameters
 		
-		popl %gs
-		popl %fs
-		popl %es
-		popl %ds
+	popl %gs
+	popl %fs
+	popl %es
+	popl %ds
 		
-		CLEAR_NT_FLAG
-		iret
-	.else
-		/*
-		 * This macro distinguishes between two versions of ia32 exceptions.
-		 * One version has error word and the other does not have it.
-		 * The latter version fakes the error word on the stack so that the
-		 * handlers and istate_t can be the same for both types.
-		 */
-		.iflt \i - 32
-			.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
-				/*
-				 * With error word, do nothing
-				 */
-			.else
-				/*
-				 * Version without error word
-				 */
-				subl $4, %esp
-			.endif
-		.else
-			/*
-			 * Version without error word
-			 */
-			subl $4, %esp
-		.endif
+	CLEAR_NT_FLAG
+	iret
+.else
+	/*
+	 * This macro distinguishes between two versions of ia32 exceptions.
+	 * One version has error word and the other does not have it.
+	 * The latter version fakes the error word on the stack so that the
+	 * handlers and istate_t can be the same for both types.
+	 */
+.iflt \i - 32
+.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
+	#
+	# Exception with error word: do nothing
+	#
+.else
+	#
+	# Exception without error word: fake up one
+	#
+	pushl $0
+.endif
+.else
+	#
+	# Interrupt: fake up one
+	#
+	pushl $0
+.endif
 		
-		pushl %ds
-		pushl %es
-		pushl %fs
-		pushl %gs
-		
-		pushl %ebp
-		pushl %edx
-		pushl %ecx
-		pushl %eax
-		
-		# we must fill the data segment registers
-		
-		movw $16, %ax
-		movw %ax, %ds
-		movw %ax, %es
-		
-		# stop stack traces here if we came from userspace
-		cmpl $8, 40(%esp)
-		jz 0f
-		xorl %ebp, %ebp
+	subl $ISTATE_SOFT_SIZE, %esp
 
-0:		
-		pushl %esp          # *istate
-		pushl $(\i)         # intnum
-		call exc_dispatch   # exc_dispatch(intnum, *istate)
-		addl $8, %esp       # Clear arguments from stack
-		
-		CLEAR_NT_FLAG # Modifies %ecx
-		
-		popl %eax
-		popl %ecx
-		popl %edx
-		popl %ebp
-		
-		popl %gs
-		popl %fs
-		popl %es
-		popl %ds
-		
-		# skip error word, no matter whether real or fake
-		addl $4, %esp
-		iret
-	.endif
+	#
+	# Save the general purpose registers.
+	#
+	movl %eax, ISTATE_OFFSET_EAX(%esp)
+	movl %ebx, ISTATE_OFFSET_EBX(%esp)
+	movl %ecx, ISTATE_OFFSET_ECX(%esp)
+	movl %edx, ISTATE_OFFSET_EDX(%esp)
+	movl %edi, ISTATE_OFFSET_EDI(%esp)
+	movl %esi, ISTATE_OFFSET_ESI(%esp)
+	movl %ebp, ISTATE_OFFSET_EBP(%esp)
 	
-	.align INTERRUPT_ALIGN
-	.if (\n- \i) - 1
-		handler "(\i + 1)", \n
-	.endif
+	#
+	# Save the selector registers.
+	#
+	movl %gs, %eax
+	movl %fs, %ebx
+	movl %es, %ecx
+	movl %ds, %edx
+
+	movl %eax, ISTATE_OFFSET_GS(%esp)
+	movl %ebx, ISTATE_OFFSET_FS(%esp)
+	movl %ecx, ISTATE_OFFSET_ES(%esp)
+	movl %edx, ISTATE_OFFSET_DS(%esp)
+
+	#
+	# Switch to kernel selectors.
+	#
+	movl $16, %eax
+	movl %eax, %ds
+	movl %eax, %es
+		
+	#
+	# Imitate a regular stack frame linkage.
+	# Stop stack traces here if we came from userspace.
+	#
+	cmpl $8, ISTATE_OFFSET_CS(%esp)
+	jz 0f
+	xorl %ebp, %ebp
+0:	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
+	movl ISTATE_OFFSET_EIP(%esp), %eax
+	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+
+	cld
+
+	pushl %esp          # pass istate address
+	pushl $(\i)         # pass intnum
+	call exc_dispatch   # exc_dispatch(intnum, istate)
+	addl $8, %esp       # Clear arguments from the stack
+		
+	CLEAR_NT_FLAG
+	
+	#
+	# Restore the selector registers.
+	#
+	movl ISTATE_OFFSET_GS(%esp), %eax
+	movl ISTATE_OFFSET_FS(%esp), %ebx
+	movl ISTATE_OFFSET_ES(%esp), %ecx
+	movl ISTATE_OFFSET_DS(%esp), %edx
+
+	movl %eax, %gs
+	movl %ebx, %fs
+	movl %ecx, %es
+	movl %edx, %ds
+
+	#
+	# Restore the scratch registers and the preserved registers the handler
+	# cloberred itself (i.e. EBX and EBP).
+	#
+	movl ISTATE_OFFSET_EAX(%esp), %eax
+	movl ISTATE_OFFSET_EBX(%esp), %ebx
+	movl ISTATE_OFFSET_ECX(%esp), %ecx
+	movl ISTATE_OFFSET_EDX(%esp), %edx
+	movl ISTATE_OFFSET_EBP(%esp), %ebp
+	
+	addl $(ISTATE_SOFT_SIZE + 4), %esp
+	iret
+.endif
+	
+.align INTERRUPT_ALIGN
+.if (\n- \i) - 1
+	handler "(\i + 1)", \n
+.endif
 .endm
 
 # keep in sync with pm.h !!!
