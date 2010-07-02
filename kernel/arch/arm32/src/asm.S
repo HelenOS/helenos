@@ -35,6 +35,7 @@
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
+.global early_putchar
 
 memsetb:
 	b _memsetb
@@ -107,3 +108,6 @@ memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
 	mov r0, #0
 	ldmia sp!, {r4, r5, pc}
+
+early_putchar:
+	mov pc, lr

@@ -86,8 +86,10 @@ extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
  * being return value.
  *
  * @param ctx Context structure.
+ *
  */
-static inline void context_restore(context_t *ctx)
+static inline void __attribute__((no_instrument_function))
+    context_restore(context_t *ctx)
 {
 	context_restore_arch(ctx);
 }

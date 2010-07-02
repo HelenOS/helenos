@@ -46,7 +46,8 @@
  * @param s2  Start address of the second interval.
  * @param sz2 Size of the second interval.
  */
-static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
+static inline int __attribute__((no_instrument_function))
+    overlaps(uintptr_t s1, size_t sz1, uintptr_t s2, size_t sz2)
 {
 	uintptr_t e1 = s1 + sz1;
 	uintptr_t e2 = s2 + sz2;

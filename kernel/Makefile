@@ -363,10 +363,12 @@ endif
 ## Sources where instrumentation is enabled
 #
 
-ifeq ($(CONFIG_LOG),y)
+ifeq ($(CONFIG_TRACE),y)
 INSTRUMENTED_SOURCES = \
 	generic/src/cpu/cpu.c \
-	generic/src/main/kinit.c
+	generic/src/main/main.c \
+	generic/src/main/kinit.c \
+	generic/src/proc/the.c
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

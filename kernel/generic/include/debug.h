@@ -97,14 +97,18 @@
 		    ##__VA_ARGS__); \
 	} while (0)
 
-extern void __cyg_profile_func_enter(void *, void *);
-extern void __cyg_profile_func_exit(void *, void *);
-
 #else /* CONFIG_LOG */
 
 #define LOG(format, ...)
 
 #endif /* CONFIG_LOG */
+
+#ifdef CONFIG_TRACE
+
+extern void __cyg_profile_func_enter(void *, void *);
+extern void __cyg_profile_func_exit(void *, void *);
+
+#endif /* CONFIG_TRACE */
 
 #endif
 

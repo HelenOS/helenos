@@ -283,3 +283,6 @@ memcpy_to_uspace_failover_address:
 	/* Return zero, failure */
 	xor r3, r3, r3
 	blr
+
+early_putchar:
+	blr

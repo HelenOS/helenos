@@ -191,7 +191,8 @@ multiboot_image_start:
  * CPU anyway, it is always better to at least try to print
  * some hints.
  *
- * @param %esi NULL-terminated string to print.
+ * @param %esi Pointer to the NULL-terminated string
+ *             to be print.
  *
  */
 pm_error_halt:
@@ -294,7 +295,8 @@ pm_error_halt:
  * this function is used only when CONFIG_EGA is enabled
  * and CONFIG_FB is disabled.
  *
- * @param %esi NULL-terminated string to print.
+ * @param %esi Pointer to the NULL-terminated string
+ *             to be print.
  *
  */
 pm_early_puts:
@@ -449,7 +451,8 @@ start64:
  * If CONFIG_EGA is undefined or CONFIG_FB is defined
  * then this function does nothing.
  *
- * @param %rdi NULL-terminated string to print.
+ * @param %rdi Pointer to the NULL-terminated string
+ *             to be printed.
  *
  */
 early_puts:

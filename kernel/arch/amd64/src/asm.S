@@ -63,6 +63,7 @@
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
+.global early_putchar
 
 /* Wrapper for generic memsetb */
 memsetb:
@@ -337,6 +338,137 @@ syscall_entry:
 	swapgs
 	
 	sysretq
+
+/** Print Unicode character to EGA display.
+ *
+ * If CONFIG_EGA is undefined or CONFIG_FB is defined
+ * then this function does nothing.
+ *
+ * Since the EGA can only display Extended ASCII (usually
+ * ISO Latin 1) characters, some of the Unicode characters
+ * can be displayed in a wrong way. Only the newline character
+ * is interpreted, all other characters (even unprintable) are
+ * printed verbatim.
+ *
+ * @param %rdi Unicode character to be printed.
+ *
+ */
+early_putchar:
+	
+#if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
+	
+	/* Prologue, save preserved registers */
+	pushq %rbp
+	movq %rsp, %rbp
+	pushq %rbx
+	
+	movq %rdi, %rsi
+	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
+	xorq %rax, %rax
+	
+	/* Read bits 8 - 15 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	shl $8, %ax
+	
+	/* Read bits 0 - 7 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	
+	/* Sanity check for the cursor on screen */
+	cmp $2000, %ax
+	jb early_putchar_cursor_ok
+	
+		movw $1998, %ax
+	
+	early_putchar_cursor_ok:
+	
+	movw %ax, %bx
+	shl $1, %rax
+	addq %rax, %rdi
+	
+	movq %rsi, %rax
+	
+	cmp $0x0a, %al
+	jne early_putchar_print
+	
+		/* Interpret newline */
+		
+		movw %bx, %ax  /* %bx -> %dx:%ax */
+		xorw %dx, %dx
+		
+		movw $80, %cx
+		idivw %cx, %ax  /* %dx = %bx % 80 */
+		
+		/* %bx <- %bx + 80 - (%bx % 80) */
+		addw %cx, %bx
+		subw %dx, %bx
+		
+		jmp early_putchar_newline
+	
+	early_putchar_print:
+	
+		/* Print character */
+		
+		movb $0x0e, %ah  /* black background, yellow foreground */
+		stosw
+	
+	early_putchar_newline:
+	
+	/* Sanity check for the cursor on the last line */
+	inc %bx
+	cmp $2000, %bx
+	jb early_putchar_no_scroll
+	
+		/* Scroll the screen (24 rows) */
+		movq $(PA2KA(0xb80a0)), %rsi
+		movq $(PA2KA(0xb8000)), %rdi
+		movq $1920, %rcx
+		rep movsw
+		
+		/* Clear the 24th row */
+		xorq %rax, %rax
+		movq $80, %rcx
+		rep stosw
+		
+		/* Go to row 24 */
+		movw $1920, %bx
+	
+	early_putchar_no_scroll:
+	
+	/* Write bits 8 - 15 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bh, %al
+	outb %al, %dx
+	
+	/* Write bits 0 - 7 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bl, %al
+	outb %al, %dx
+	
+	/* Epilogue, restore preserved registers */
+	popq %rbx
+	leave
+	
+#endif
+	
+	ret
 
 .data
 .global interrupt_handler_size

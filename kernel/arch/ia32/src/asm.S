@@ -37,8 +37,10 @@
  */
 #define ERROR_WORD_INTERRUPT_LIST  0x00027d00
 
-.text
+#include <arch/pm.h>
+#include <arch/mm/page.h>
 
+.text
 .global paging_on
 .global enable_l_apic_in_msr
 .global interrupt_handlers
@@ -49,7 +51,7 @@
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
-
+.global early_putchar
 
 /* Wrapper for generic memsetb */
 memsetb:
@@ -404,19 +406,153 @@ sysenter_handler:
 	.endif
 	
 	.align INTERRUPT_ALIGN
-	.if (\n- \i) - 1
+	.if (\n - \i) - 1
 		handler "(\i + 1)", \n
 	.endif
 .endm
 
 /* Keep in sync with pm.h! */
-IDT_ITEMS = 64
+#define IDT_ITEMS  64
 
 .align INTERRUPT_ALIGN
 interrupt_handlers:
 	h_start:
 		handler 0 IDT_ITEMS
 	h_end:
+
+/** Print Unicode character to EGA display.
+ *
+ * If CONFIG_EGA is undefined or CONFIG_FB is defined
+ * then this function does nothing.
+ *
+ * Since the EGA can only display Extended ASCII (usually
+ * ISO Latin 1) characters, some of the Unicode characters
+ * can be displayed in a wrong way. Only the newline character
+ * is interpreted, all other characters (even unprintable) are
+ * printed verbatim.
+ *
+ * @param %ebp+0x08 Unicode character to be printed.
+ *
+ */
+early_putchar:
+	
+#if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
+	
+	/* Prologue, save preserved registers */
+	pushl %ebp
+	movl %esp, %ebp
+	pushl %ebx
+	pushl %esi
+	pushl %edi
+	
+	movl $(PA2KA(0xb8000)), %edi  /* base of EGA text mode memory */
+	xorl %eax, %eax
+	
+	/* Read bits 8 - 15 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	shl $8, %ax
+	
+	/* Read bits 0 - 7 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	inb %dx, %al
+	
+	/* Sanity check for the cursor on screen */
+	cmp $2000, %ax
+	jb early_putchar_cursor_ok
+	
+		movw $1998, %ax
+	
+	early_putchar_cursor_ok:
+	
+	movw %ax, %bx
+	shl $1, %eax
+	addl %eax, %edi
+	
+	movl 0x08(%ebp), %eax
+	
+	cmp $0x0a, %al
+	jne early_putchar_print
+	
+		/* Interpret newline */
+		
+		movw %bx, %ax  /* %bx -> %dx:%ax */
+		xorw %dx, %dx
+		
+		movw $80, %cx
+		idivw %cx, %ax  /* %dx = %bx % 80 */
+		
+		/* %bx <- %bx + 80 - (%bx % 80) */
+		addw %cx, %bx
+		subw %dx, %bx
+		
+		jmp early_putchar_newline
+	
+	early_putchar_print:
+	
+		/* Print character */
+		
+		movb $0x0e, %ah  /* black background, yellow foreground */
+		stosw
+	
+	early_putchar_newline:
+	
+	/* Sanity check for the cursor on the last line */
+	inc %bx
+	cmp $2000, %bx
+	jb early_putchar_no_scroll
+	
+		/* Scroll the screen (24 rows) */
+		movl $(PA2KA(0xb80a0)), %esi
+		movl $(PA2KA(0xb8000)), %edi
+		movl $1920, %ecx
+		rep movsw
+		
+		/* Clear the 24th row */
+		xorl %eax, %eax
+		movl $80, %ecx
+		rep stosw
+		
+		/* Go to row 24 */
+		movw $1920, %bx
+	
+	early_putchar_no_scroll:
+	
+	/* Write bits 8 - 15 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xe, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bh, %al
+	outb %al, %dx
+	
+	/* Write bits 0 - 7 of the cursor address */
+	movw $0x3d4, %dx
+	movb $0xf, %al
+	outb %al, %dx
+	
+	movw $0x3d5, %dx
+	movb %bl, %al
+	outb %al, %dx
+	
+	/* Epilogue, restore preserved registers */
+	popl %edi
+	popl %esi
+	popl %ebx
+	leave
+	
+#endif
+	
+	ret
 
 .data
 .global interrupt_handler_size

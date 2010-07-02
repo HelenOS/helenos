@@ -130,7 +130,7 @@ static void main_ap_separated_stack(void);
  * Assuming interrupts_disable().
  *
  */
-void main_bsp(void)
+void __attribute__((no_instrument_function)) main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
@@ -182,8 +182,8 @@ void main_bsp_separated_stack(void)
 	
 	version_print();
 	
-	LOG("\nconfig.base=%#" PRIp " config.kernel_size=%" PRIs
-	    "\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
+	LOG("\nconfig.base=%p config.kernel_size=%" PRIs
+	    "\nconfig.stack_base=%p config.stack_size=%" PRIs,
 	    config.base, config.kernel_size, config.stack_base,
 	    config.stack_size);
 	
@@ -240,8 +240,8 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
-			LOG("init[%" PRIs "].addr=%#" PRIp ", init[%" PRIs
-			    "].size=%#" PRIs, i, init.tasks[i].addr, i,
+			LOG("init[%" PRIs "].addr=%p, init[%" PRIs
+			    "].size=%" PRIs, i, init.tasks[i].addr, i,
 			    init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");

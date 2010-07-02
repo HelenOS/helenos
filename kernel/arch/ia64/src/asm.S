@@ -199,3 +199,7 @@ switch_to_userspace:
 	mov r8 = in3
 	
 	rfi ;;
+
+.global early_putchar
+early_putchar:
+	br.ret.sptk.many b0

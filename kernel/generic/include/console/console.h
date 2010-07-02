@@ -55,6 +55,8 @@
 extern indev_t *stdin;
 extern outdev_t *stdout;
 
+extern void early_putchar(wchar_t);
+
 extern indev_t *stdin_wire(void);
 extern void stdout_wire(outdev_t *outdev);
 extern void console_init(void);

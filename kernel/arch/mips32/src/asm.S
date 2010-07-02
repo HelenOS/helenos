@@ -306,3 +306,8 @@ fpu_context_restore:
 #endif
 	j $ra
 	nop
+
+.global early_putchar
+early_putchar:
+	j $ra
+	nop

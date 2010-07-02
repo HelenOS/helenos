@@ -272,3 +272,8 @@ memsetb:
 memsetw:
 	ba %xcc, _memsetw
 	nop
+
+.global early_putchar
+early_putchar:
+	retl
+	nop
