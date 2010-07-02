@@ -827,7 +827,7 @@ NO_TRACE static void zone_construct(zone_t *zone, buddy_system_t *buddy,
  * @return Size of zone configuration info (in bytes).
  *
  */
-uintptr_t zone_conf_size(size_t count)
+size_t zone_conf_size(size_t count)
 {
 	return (count * sizeof(frame_t) + buddy_conf_size(fnzb(count)));
 }
