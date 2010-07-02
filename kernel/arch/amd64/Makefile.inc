@@ -32,7 +32,7 @@ BFD = binary
 CLANG_ARCH = x86_64
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-CMN1 = -m64 -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+CMN1 = -m64 -mcmodel=large -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += -m64 -xmodel=kernel
@@ -70,7 +70,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \
 	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/asm_utils.S \
+	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/proc/task.c \

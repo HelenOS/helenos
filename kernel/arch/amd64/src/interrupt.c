@@ -62,24 +62,17 @@ void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-void decode_istate(int n, istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	const char *symbol = symtab_fmt_name_lookup(istate->rip);
-	
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n", n, __func__);
-	printf("%%rip: %#llx (%s)\n", istate->rip, symbol);
-	printf("ERROR_WORD=%#llx\n", istate->error_word);
-	printf("%%cs=%#llx, rflags=%#llx, %%cr0=%#llx\n", istate->cs,
-	    istate->rflags, read_cr0());
-	printf("%%rax=%#llx, %%rcx=%#llx, %%rdx=%#llx\n", istate->rax,
+	printf("error_word=%#llx\n", istate->error_word);
+	printf("cs =%#0.16llx\trflags=%#0.16llx\n", istate->cs,
+	    istate->rflags);
+	printf("rax=%#0.16llx\trbx=%#0.16llx\trcx=%#0.16llx\n", istate->rax,
 	    istate->rcx, istate->rdx);
-	printf("%%rsi=%#llx, %%rdi=%#llx, %%r8=%#llx\n", istate->rsi,
+	printf("rsi=%#0.16llx\trdi=%#0.16llx\tr8 =%#0.16llx\n", istate->rsi,
 	    istate->rdi, istate->r8);
-	printf("%%r9=%#llx, %%r10=%#llx, %%r11=%#llx\n", istate->r9,
+	printf("r9 =%#0.16llx\tr10=%#0.16llx\tr11=%#0.16llx\n", istate->r9,
 	    istate->r10, istate->r11);
-	printf("%%rsp=%#llx\n", &istate->stack[0]);
-	
-	stack_trace_istate(istate);
 }
 
 static void trap_virtual_eoi(void)
@@ -94,15 +87,13 @@ static void trap_virtual_eoi(void)
 static void null_interrupt(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unserviced interrupt: %u.", n);
-	decode_istate(n, istate);
-	panic("Unserviced interrupt.");
+	panic_badtrap(istate, n, "Unserviced interrupt.");
 }
 
 static void de_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
-	decode_istate(n, istate);
-	panic("Divide error.");
+	panic_badtrap(istate, n, "Divide error.");
 }
 
 /** General Protection Fault.
@@ -128,16 +119,13 @@ static void gp_fault(unsigned int n, istate_t *istate)
 		}
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
-	
-	decode_istate(n, istate);
-	panic("General protection fault.");
+	panic_badtrap(istate, n, "General protection fault.");
 }
 
 static void ss_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
-	decode_istate(n, istate);
-	panic("Stack fault.");
+	panic_badtrap(istate, n, "Stack fault.");
 }
 
 static void nm_fault(unsigned int n, istate_t *istate)
@@ -213,7 +201,6 @@ void interrupt_init(void)
 	exc_register(7, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(12, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(13, "gp_fault", true, (iroutine_t) gp_fault);
-	exc_register(14, "ident_mapper", true, (iroutine_t) ident_page_fault);
 	
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2005 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,51 +32,16 @@
 /** @file
  */
 
-#ifndef LIBC_LIMITS_H_
-#define LIBC_LIMITS_H_
+#ifndef LIBC_SORT_H_
+#define LIBC_SORT_H_
 
-#include <stdint.h>
-#include <libarch/limits.h>
+#include <sys/types.h>
+#include <bool.h>
 
-/* char */
-#define SCHAR_MIN MIN_INT8
-#define SCHAR_MAX MAX_INT8
-#define UCHAR_MIN MIN_UINT8
-#define UCHAR_MAX MAX_UINT8
+typedef int (* sort_cmp_t)(void *, void *, void *);
 
-#ifdef __CHAR_UNSIGNED__
-	#define CHAR_MIN UCHAR_MIN
-	#define CHAR_MAX UCHAR_MAX
-#else
-	#define CHAR_MIN SCHAR_MIN
-	#define CHAR_MAX SCHAR_MAX
-#endif
-
-/* short int */
-#define SHRT_MIN MIN_INT16
-#define SHRT_MAX MAX_INT16
-#define USHRT_MIN MIN_UINT16
-#define USHRT_MAX MAX_UINT16
-
-/* int */
-#define INT_MIN MIN_INT32
-#define INT_MAX MAX_INT32
-#define UINT_MIN MIN_UINT32
-#define UINT_MAX MAX_UINT32
-
-/* long long int */
-#define LLONG_MIN MIN_INT64
-#define LLONG_MAX MAX_INT64
-#define ULLONG_MIN MIN_UINT64
-#define ULLONG_MAX MAX_UINT64
-
-/* off64_t */
-#define OFF64_MIN MIN_INT64
-#define OFF64_MAX MAX_INT64
-
-/* aoff64_t */
-#define AOFF64_MIN MIN_UINT64
-#define AOFF64_MAX MAX_UINT64
+extern bool gsort(void *, size_t, size_t, sort_cmp_t, void *);
+extern bool qsort(void *, size_t, size_t, sort_cmp_t, void *);
 
 #endif
 

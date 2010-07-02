@@ -828,10 +828,8 @@ size_t slab_reclaim(unsigned int flags)
  */
 void slab_print_list(void)
 {
-	printf("slab name        size     pages  obj/pg   slabs  cached allocated"
-	    " ctl\n");
-	printf("---------------- -------- ------ -------- ------ ------ ---------"
-	    " ---\n");
+	printf("[slab name       ] [size  ] [pages ] [obj/pg] [slabs ]"
+	    " [cached] [alloc ] [ctl]\n");
 	
 	size_t skip = 0;
 	while (true) {
@@ -886,7 +884,7 @@ void slab_print_list(void)
 		
 		irq_spinlock_unlock(&slab_cache_lock, true);
 		
-		printf("%-16s %8" PRIs " %6u %8" PRIs " %6ld %6ld %9ld %-3s\n",
+		printf("%-18s %8" PRIs " %8u %8" PRIs " %8ld %8ld %8ld %-5s\n",
 		    name, size, (1 << order), objects, allocated_slabs,
 		    cached_objs, allocated_objs,
 		    flags & SLAB_CACHE_SLINSIDE ? "in" : "out");

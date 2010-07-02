@@ -45,8 +45,6 @@
 #include <typedefs.h>
 #include <arch/exception.h>
 
-#define MACHINE_GENFUNC	machine_genfunc
-
 struct arm_machine_ops {
 	void		(*machine_init)(void);
 	void		(*machine_timer_irq_start)(void);
@@ -58,8 +56,11 @@ struct arm_machine_ops {
 	void		(*machine_input_init)(void);
 };
 
-extern struct arm_machine_ops machine_ops;
+/** Pointer to arm_machine_ops structure being used. */
+extern struct arm_machine_ops *machine_ops;
 
+/** Initialize machine_ops pointer. */
+extern void machine_ops_init(void);
 
 /** Maps HW devices to the kernel address space using #hw_map. */
 extern void machine_init(void);
@@ -103,7 +104,6 @@ extern void machine_output_init(void);
  */
 extern void machine_input_init(void);
 
-extern void machine_genfunc(void);
 #endif
 
 /** @}

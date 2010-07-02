@@ -36,6 +36,7 @@
 #define KERN_abs32le_INTERRUPT_H_
 
 #include <typedefs.h>
+#include <verify.h>
 
 #define IVT_ITEMS  0
 #define IVT_FIRST  0
@@ -53,6 +54,7 @@ typedef struct istate {
 } istate_t;
 
 static inline int istate_from_uspace(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this checks whether the interrupted
 	   context originated from user space. */
@@ -61,6 +63,7 @@ static inline int istate_from_uspace(istate_t *istate)
 }
 
 static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
+    WRITES(&istate->ip)
 {
 	/* On real hardware this sets the instruction pointer. */
 	
@@ -68,6 +71,7 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 }
 
 static inline unative_t istate_get_pc(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the instruction pointer. */
 	
@@ -75,6 +79,7 @@ static inline unative_t istate_get_pc(istate_t *istate)
 }
 
 static inline unative_t istate_get_fp(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the frame pointer. */
 	

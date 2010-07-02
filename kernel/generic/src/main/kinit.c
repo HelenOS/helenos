@@ -106,6 +106,7 @@ void kinit(void *arg)
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		waitq_initialize(&ap_completion_wq);
+		
 		/*
 		 * Create the kmp thread and wait for its completion.
 		 * cpu1 through cpuN-1 will come up consecutively and
@@ -123,14 +124,12 @@ void kinit(void *arg)
 		
 		thread_join(thread);
 		thread_detach(thread);
-	}
-	
-	if (config.cpu_count > 1) {
-		size_t i;
 		
 		/*
 		 * For each CPU, create its load balancing thread.
 		 */
+		size_t i;
+		
 		for (i = 0; i < config.cpu_count; i++) {
 			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
 			if (thread != NULL) {
@@ -180,6 +179,7 @@ void kinit(void *arg)
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
 			printf("init[%" PRIs "].addr is not frame aligned\n", i);
+			programs[i].task = NULL;
 			continue;
 		}
 		

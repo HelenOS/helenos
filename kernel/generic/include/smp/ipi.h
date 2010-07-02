@@ -42,7 +42,7 @@ extern void ipi_broadcast_arch(int);
 
 #else
 
-	#define ipi_broadcast(ipi)
+#define ipi_broadcast(ipi)
 
 #endif /* CONFIG_SMP */
 

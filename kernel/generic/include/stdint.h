@@ -26,24 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_LIMITS_H_
-#define LIBC_sparc64_LIMITS_H_
+#ifndef KERN_STDINT_H_
+#define KERN_STDINT_H_
 
-#define LONG_MIN MIN_INT64
-#define LONG_MAX MAX_INT64
-#define ULONG_MIN MIN_UINT64
-#define ULONG_MAX MAX_UINT64
+#define INT8_MIN  (0x80)
+#define INT8_MAX  (0x7F)
 
-#define SIZE_MIN MIN_UINT64
-#define SIZE_MAX MAX_UINT64
-#define SSIZE_MIN MIN_INT64
-#define SSIZE_MAX MAX_INT64
+#define UINT8_MIN  (0u)
+#define UINT8_MAX  (0xFFu)
+
+#define INT16_MIN  (0x8000)
+#define INT16_MAX  (0x7FFF)
+
+#define UINT16_MIN  (0u)
+#define UINT16_MAX  (0xFFFFu)
+
+#define INT32_MIN  (0x80000000l)
+#define INT32_MAX  (0x7FFFFFFFl)
+
+#define UINT32_MIN  (0ul)
+#define UINT32_MAX  (0xFFFFFFFFul)
+
+#define INT64_MIN  (0x8000000000000000ll)
+#define INT64_MAX  (0x7FFFFFFFFFFFFFFFll)
+
+#define UINT64_MIN  (0ull)
+#define UINT64_MAX  (0xFFFFFFFFFFFFFFFFull)
 
 #endif
 

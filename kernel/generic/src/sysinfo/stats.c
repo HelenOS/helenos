@@ -123,8 +123,8 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 		stats_cpus[i].id = cpus[i].id;
 		stats_cpus[i].active = cpus[i].active;
 		stats_cpus[i].frequency_mhz = cpus[i].frequency_mhz;
-		stats_cpus[i].busy_ticks = cpus[i].busy_ticks;
-		stats_cpus[i].idle_ticks = cpus[i].idle_ticks;
+		stats_cpus[i].busy_cycles = cpus[i].busy_cycles;
+		stats_cpus[i].idle_cycles = cpus[i].idle_cycles;
 		
 		irq_spinlock_unlock(&cpus[i].lock, true);
 	}

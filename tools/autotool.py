@@ -53,16 +53,16 @@ PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
 
-PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, name, value) \\
+PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, value) \\
 	asm volatile ( \\
-		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" name "\\t%[val]\\n" \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t%[val]\\n" \\
 		: \\
 		: [val] "n" (value) \\
 	)
 
-#define DECLARE_INTSIZE(type) \\
-	AUTOTOOL_DECLARE("intsize", "unsigned", #type, sizeof(unsigned type)); \\
-	AUTOTOOL_DECLARE("intsize", "signed", #type, sizeof(signed type))
+#define DECLARE_INTSIZE(tag, type) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, sizeof(signed type))
 
 int main(int argc, char *argv[])
 {
@@ -194,7 +194,7 @@ def probe_compiler(common, sizes):
 	outf.write(PROBE_HEAD)
 	
 	for typedef in sizes:
-		outf.write("\tDECLARE_INTSIZE(%s);\n" % typedef)
+		outf.write("\tDECLARE_INTSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -227,6 +227,9 @@ def probe_compiler(common, sizes):
 	unsigned_sizes = {}
 	signed_sizes = {}
 	
+	unsigned_tags = {}
+	signed_tags = {}
+	
 	for j in range(len(lines)):
 		tokens = lines[j].strip().split("\t")
 		
@@ -237,8 +240,9 @@ def probe_compiler(common, sizes):
 				
 				category = tokens[1]
 				subcategory = tokens[2]
-				name = tokens[3]
-				value = tokens[4]
+				tag = tokens[3]
+				name = tokens[4]
+				value = tokens[5]
 				
 				if (category == "intsize"):
 					base = 10
@@ -257,23 +261,26 @@ def probe_compiler(common, sizes):
 					
 					if (subcategory == "unsigned"):
 						unsigned_sizes[name] = value_int
+						unsigned_tags[tag] = value_int
 					elif (subcategory == "signed"):
 						signed_sizes[name] = value_int
+						signed_tags[tag] = value_int
 					else:
 						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
 	
-	return {'unsigned_sizes' : unsigned_sizes, 'signed_sizes' : signed_sizes}
+	return {'unsigned_sizes' : unsigned_sizes, 'signed_sizes' : signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags}
 
-def detect_uints(unsigned_sizes, signed_sizes, bytes):
+def detect_uints(probe, bytes):
 	"Detect correct types for fixed-size integer types"
 	
+	macros = []
 	typedefs = []
 	
 	for b in bytes:
 		fnd = False
 		newtype = "uint%s_t" % (b * 8)
 		
-		for name, value in unsigned_sizes.items():
+		for name, value in probe['unsigned_sizes'].items():
 			if (value == b):
 				oldtype = "unsigned %s" % name
 				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
@@ -288,7 +295,7 @@ def detect_uints(unsigned_sizes, signed_sizes, bytes):
 		fnd = False
 		newtype = "int%s_t" % (b * 8)
 		
-		for name, value in signed_sizes.items():
+		for name, value in probe['signed_sizes'].items():
 			if (value == b):
 				oldtype = "signed %s" % name
 				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
@@ -299,7 +306,38 @@ def detect_uints(unsigned_sizes, signed_sizes, bytes):
 			print_error(['Unable to find appropriate integer type for %s' % newtype,
 			             COMPILER_FAIL])
 	
-	return typedefs
+	for tag in ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG']:
+		fnd = False;
+		newmacro = "U%s" % tag
+		
+		for name, value in probe['unsigned_tags'].items():
+			if (name == tag):
+				oldmacro = "UINT%s" % (value * 8)
+				macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
+				macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+				fnd = True
+				break
+		
+		if (not fnd):
+			print_error(['Unable to find appropriate size macro for %s' % newmacro,
+			             COMPILER_FAIL])
+		
+		fnd = False;
+		newmacro = tag
+		
+		for name, value in probe['signed_tags'].items():
+			if (name == tag):
+				oldmacro = "INT%s" % (value * 8)
+				macros.append({'oldmacro': "%s_MIN" % oldmacro, 'newmacro': "%s_MIN" % newmacro})
+				macros.append({'oldmacro': "%s_MAX" % oldmacro, 'newmacro': "%s_MAX" % newmacro})
+				fnd = True
+				break
+		
+		if (not fnd):
+			print_error(['Unable to find appropriate size macro for %s' % newmacro,
+			             COMPILER_FAIL])
+	
+	return {'macros': macros, 'typedefs': typedefs}
 
 def create_makefile(mkname, common):
 	"Create makefile output"
@@ -315,7 +353,7 @@ def create_makefile(mkname, common):
 	
 	outmk.close()
 
-def create_header(hdname, typedefs):
+def create_header(hdname, maps):
 	"Create header output"
 	
 	outhd = file(hdname, 'w')
@@ -327,7 +365,12 @@ def create_header(hdname, typedefs):
 	outhd.write('#ifndef %s\n' % GUARD)
 	outhd.write('#define %s\n\n' % GUARD)
 	
-	for typedef in typedefs:
+	for macro in maps['macros']:
+		outhd.write('#define %s  %s\n' % (macro['newmacro'], macro['oldmacro']))
+	
+	outhd.write('\n')
+	
+	for typedef in maps['typedefs']:
 		outhd.write('typedef %s %s;\n' % (typedef['oldtype'], typedef['newtype']))
 	
 	outhd.write('\n#endif\n')
@@ -464,21 +507,21 @@ def main():
 		
 		probe = probe_compiler(common,
 			[
-				"char",
-				"short int",
-				"int",
-				"long int",
-				"long long int",
+				{'type': 'char', 'tag': 'CHAR'},
+				{'type': 'short int', 'tag': 'SHORT'},
+				{'type': 'int', 'tag': 'INT'},
+				{'type': 'long int', 'tag': 'LONG'},
+				{'type': 'long long int', 'tag': 'LLONG'}
 			]
 		)
 		
-		typedefs = detect_uints(probe['unsigned_sizes'], probe['signed_sizes'], [1, 2, 4, 8])
+		maps = detect_uints(probe, [1, 2, 4, 8])
 		
 	finally:
 		sandbox_leave(owd)
 	
 	create_makefile(MAKEFILE, common)
-	create_header(HEADER, typedefs)
+	create_header(HEADER, maps)
 	
 	return 0
 

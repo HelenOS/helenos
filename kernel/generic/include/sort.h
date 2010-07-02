@@ -37,19 +37,10 @@
 
 #include <typedefs.h>
 
-/* 
- * sorting routines
- */
-extern void bubblesort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b));
-extern void qsort(void * data, size_t n, size_t e_size, int (* cmp) (void * a, void * b));
+typedef int (* sort_cmp_t)(void *, void *, void *);
 
-/*
- * default sorting comparators
- */
-extern int int_cmp(void * a, void * b);
-extern int uint32_t_cmp(void * a, void * b);
-extern int uint16_t_cmp(void * a, void * b);
-extern int uint8_t_cmp(void * a, void * b);
+extern bool gsort(void *, size_t, size_t, sort_cmp_t, void *);
+extern bool qsort(void *, size_t, size_t, sort_cmp_t, void *);
 
 #endif
 

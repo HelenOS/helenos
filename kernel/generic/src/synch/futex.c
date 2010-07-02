@@ -36,7 +36,7 @@
  */
 
 #include <synch/futex.h>
-#include <synch/rwlock.h>
+#include <synch/mutex.h>
 #include <synch/spinlock.h>
 #include <synch/synch.h>
 #include <mm/frame.h>
@@ -64,11 +64,11 @@ static bool futex_ht_compare(unative_t *key, size_t keys, link_t *item);
 static void futex_ht_remove_callback(link_t *item);
 
 /**
- * Read-write lock protecting global futex hash table.
+ * Mutex protecting global futex hash table.
  * It is also used to serialize access to all futex_t structures.
  * Must be acquired before the task futex B+tree lock.
  */
-static rwlock_t futex_ht_lock;
+static mutex_t futex_ht_lock;
 
 /** Futex hash table. */
 static hash_table_t futex_ht;
@@ -83,7 +83,7 @@ static hash_table_operations_t futex_ht_ops = {
 /** Initialize futex subsystem. */
 void futex_init(void)
 {
-	rwlock_initialize(&futex_ht_lock);
+	mutex_initialize(&futex_ht_lock, MUTEX_PASSIVE);
 	hash_table_create(&futex_ht, FUTEX_HT_SIZE, 1, &futex_ht_ops);
 }
 
@@ -112,11 +112,8 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 	futex_t *futex;
 	uintptr_t paddr;
 	pte_t *t;
-	ipl_t ipl;
 	int rc;
 	
-	ipl = interrupts_disable();
-
 	/*
 	 * Find physical address of futex counter.
 	 */
@@ -124,14 +121,11 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
-		interrupts_restore(ipl);
 		return (unative_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
-	interrupts_restore(ipl);	
-
 	futex = futex_find(paddr);
 
 #ifdef CONFIG_UDEBUG
@@ -155,9 +149,6 @@ unative_t sys_futex_wakeup(uintptr_t uaddr)
 	futex_t *futex;
 	uintptr_t paddr;
 	pte_t *t;
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
 	
 	/*
 	 * Find physical address of futex counter.
@@ -166,14 +157,11 @@ unative_t sys_futex_wakeup(uintptr_t uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
-		interrupts_restore(ipl);
 		return (unative_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
 	
-	interrupts_restore(ipl);
-
 	futex = futex_find(paddr);
 		
 	waitq_wakeup(&futex->wq, WAKEUP_FIRST);
@@ -199,7 +187,7 @@ futex_t *futex_find(uintptr_t paddr)
 	 * Find the respective futex structure
 	 * or allocate new one if it does not exist already.
 	 */
-	rwlock_read_lock(&futex_ht_lock);
+	mutex_lock(&futex_ht_lock);
 	item = hash_table_find(&futex_ht, &paddr);
 	if (item) {
 		futex = hash_table_get_instance(item, futex_t, ht_link);
@@ -211,68 +199,30 @@ futex_t *futex_find(uintptr_t paddr)
 		if (!btree_search(&TASK->futexes, paddr, &leaf)) {
 			/*
 			 * The futex is new to the current task.
-			 * However, we only have read access.
-			 * Gain write access and try again.
+			 * Upgrade its reference count and put it to the
+			 * current task's B+tree of known futexes.
 			 */
-			mutex_unlock(&TASK->futexes_lock);
-			goto gain_write_access;
+			futex->refcount++;
+			btree_insert(&TASK->futexes, paddr, futex, leaf);
 		}
 		mutex_unlock(&TASK->futexes_lock);
-
-		rwlock_read_unlock(&futex_ht_lock);
 	} else {
-gain_write_access:
+		futex = (futex_t *) malloc(sizeof(futex_t), 0);
+		futex_initialize(futex);
+		futex->paddr = paddr;
+		hash_table_insert(&futex_ht, &paddr, &futex->ht_link);
+			
 		/*
-		 * Upgrade to writer is not currently supported,
-		 * therefore, it is necessary to release the read lock
-		 * and reacquire it as a writer.
+		 * This is the first task referencing the futex.
+		 * It can be directly inserted into its
+		 * B+tree of known futexes.
 		 */
-		rwlock_read_unlock(&futex_ht_lock);
-
-		rwlock_write_lock(&futex_ht_lock);
-		/*
-		 * Avoid possible race condition by searching
-		 * the hash table once again with write access.
-		 */
-		item = hash_table_find(&futex_ht, &paddr);
-		if (item) {
-			futex = hash_table_get_instance(item, futex_t, ht_link);
-			
-			/*
-			 * See if this futex is known to the current task.
-			 */
-			mutex_lock(&TASK->futexes_lock);
-			if (!btree_search(&TASK->futexes, paddr, &leaf)) {
-				/*
-				 * The futex is new to the current task.
-				 * Upgrade its reference count and put it to the
-				 * current task's B+tree of known futexes.
-				 */
-				futex->refcount++;
-				btree_insert(&TASK->futexes, paddr, futex,
-				    leaf);
-			}
-			mutex_unlock(&TASK->futexes_lock);
-	
-			rwlock_write_unlock(&futex_ht_lock);
-		} else {
-			futex = (futex_t *) malloc(sizeof(futex_t), 0);
-			futex_initialize(futex);
-			futex->paddr = paddr;
-			hash_table_insert(&futex_ht, &paddr, &futex->ht_link);
-			
-			/*
-			 * This is the first task referencing the futex.
-			 * It can be directly inserted into its
-			 * B+tree of known futexes.
-			 */
-			mutex_lock(&TASK->futexes_lock);
-			btree_insert(&TASK->futexes, paddr, futex, NULL);
-			mutex_unlock(&TASK->futexes_lock);
-			
-			rwlock_write_unlock(&futex_ht_lock);
-		}
+		mutex_lock(&TASK->futexes_lock);
+		btree_insert(&TASK->futexes, paddr, futex, NULL);
+		mutex_unlock(&TASK->futexes_lock);
+		
 	}
+	mutex_unlock(&futex_ht_lock);
 	
 	return futex;
 }
@@ -323,7 +273,7 @@ void futex_cleanup(void)
 {
 	link_t *cur;
 	
-	rwlock_write_lock(&futex_ht_lock);
+	mutex_lock(&futex_ht_lock);
 	mutex_lock(&TASK->futexes_lock);
 
 	for (cur = TASK->futexes.leaf_head.next;
@@ -343,7 +293,7 @@ void futex_cleanup(void)
 	}
 	
 	mutex_unlock(&TASK->futexes_lock);
-	rwlock_write_unlock(&futex_ht_lock);
+	mutex_unlock(&futex_ht_lock);
 }
 
 /** @}

@@ -229,15 +229,15 @@ static void handle_exception(int slot, istate_t *istate)
 			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
 			
-			printf("*** Found ZERO on address %lx (slot %d) ***\n",
+			printf("*** Found ZERO on address %" PRIp " (slot %d) ***\n",
 			    breakpoints[slot].address, slot);
 		} else {
-			printf("Data watchpoint - new data: %lx\n",
+			printf("Data watchpoint - new data: %" PRIp "\n",
 			    *((unative_t *) breakpoints[slot].address));
 		}
 	}
 	
-	printf("Reached breakpoint %d:%lx (%s)\n", slot, getip(istate),
+	printf("Reached breakpoint %d:%" PRIp " (%s)\n", slot, getip(istate),
 	    symtab_fmt_name_lookup(getip(istate)));
 	
 #ifdef CONFIG_KCONSOLE
@@ -348,13 +348,11 @@ void debugger_init()
 int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 {
 #ifdef __32_BITS__
-	printf("#  Count Address    In symbol\n");
-	printf("-- ----- ---------- ---------\n");
+	printf("[nr] [count] [address ] [in symbol\n");
 #endif
 	
 #ifdef __64_BITS__
-	printf("#  Count Address            In symbol\n");
-	printf("-- ----- ------------------ ---------\n");
+	printf("[nr] [count] [address         ] [in symbol\n");
 #endif
 	
 	unsigned int i;
@@ -364,13 +362,13 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 			    breakpoints[i].address);
 			
 #ifdef __32_BITS__
-			printf("%-2u %-5" PRIs " %p %s\n", i,
+			printf("%-4u %7" PRIs " %p %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    symbol);
 #endif
 			
 #ifdef __64_BITS__
-			printf("%-2u %-5" PRIs " %p %s\n", i,
+			printf("%-4u %7" PRIs " %p %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    symbol);
 #endif

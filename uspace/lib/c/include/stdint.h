@@ -35,28 +35,39 @@
 #ifndef LIBC_STDINT_H_
 #define LIBC_STDINT_H_
 
-/* Definitions of types with fixed size */
+#define INT8_MIN  (0x80)
+#define INT8_MAX  (0x7F)
+
+#define UINT8_MIN  (0u)
+#define UINT8_MAX  (0xFFu)
+
+#define INT16_MIN  (0x8000)
+#define INT16_MAX  (0x7FFF)
+
+#define UINT16_MIN  (0u)
+#define UINT16_MAX  (0xFFFFu)
+
+#define INT32_MIN  (0x80000000l)
+#define INT32_MAX  (0x7FFFFFFFl)
+
+#define UINT32_MIN  (0ul)
+#define UINT32_MAX  (0xFFFFFFFFul)
+
+#define INT64_MIN  (0x8000000000000000ll)
+#define INT64_MAX  (0x7FFFFFFFFFFFFFFFll)
+
+#define UINT64_MIN  (0ull)
+#define UINT64_MAX  (0xFFFFFFFFFFFFFFFFull)
+
 #include <libarch/types.h>
 
-#define MAX_INT8 (0x7F)
-#define MIN_INT8 (0x80)
-#define MAX_UINT8 (0xFFu)
-#define MIN_UINT8 (0u)
+/* off64_t */
+#define OFF64_MIN  INT64_MIN
+#define OFF64_MAX  INT64_MAX
 
-#define MAX_INT16 (0x7FFF)
-#define MIN_INT16 (0x8000)
-#define MAX_UINT16 (0xFFFFu)
-#define MIN_UINT16 (0u)
-
-#define MAX_INT32 (0x7FFFFFFF)
-#define MIN_INT32 (0x80000000)
-#define MAX_UINT32 (0xFFFFFFFFu)
-#define MIN_UINT32 (0u)
-
-#define MAX_INT64 (0x7FFFFFFFFFFFFFFFll)
-#define MIN_INT64 (0x8000000000000000ll)
-#define MAX_UINT64 (0xFFFFFFFFFFFFFFFFull)
-#define MIN_UINT64 (0ull)
+/* aoff64_t */
+#define AOFF64_MIN  UINT64_MIN
+#define AOFF64_MAX  UINT64_MAX
 
 #endif
 

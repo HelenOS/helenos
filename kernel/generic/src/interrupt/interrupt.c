@@ -98,6 +98,8 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
  */
 void exc_dispatch(unsigned int n, istate_t *istate)
 {
+	ASSERT(CPU);
+	
 #if (IVT_ITEMS > 0)
 	ASSERT(n < IVT_ITEMS);
 #endif
@@ -108,6 +110,16 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 		thread_update_accounting(true);
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
+	
+	/* Account CPU usage if it has waked up from sleep */
+	irq_spinlock_lock(&CPU->lock, false);
+	if (CPU->idle) {
+		uint64_t now = get_cycle();
+		CPU->idle_cycles += now - CPU->last_cycle;
+		CPU->last_cycle = now;
+		CPU->idle = false;
+	}
+	irq_spinlock_unlock(&CPU->lock, false);
 	
 	uint64_t begin_cycle = get_cycle();
 	
@@ -130,8 +142,10 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 	/* Account exception handling */
 	uint64_t end_cycle = get_cycle();
 	
+	irq_spinlock_lock(&exctbl_lock, false);
 	exc_table[n].cycles += end_cycle - begin_cycle;
 	exc_table[n].count++;
+	irq_spinlock_unlock(&exctbl_lock, false);
 	
 	/* Do not charge THREAD for exception cycles */
 	if (THREAD) {

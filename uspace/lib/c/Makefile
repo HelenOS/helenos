@@ -96,6 +96,7 @@ GENERIC_SOURCES = \
 	generic/vfs/canonify.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
+	generic/sort.c \
 	generic/stats.c
 
 SOURCES = \

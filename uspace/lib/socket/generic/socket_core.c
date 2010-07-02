@@ -34,7 +34,7 @@
  *  Socket common core implementation.
  */
 
-#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <net_err.h>

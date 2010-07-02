@@ -221,10 +221,18 @@ static inline void print_cpu_info(data_t *data)
 	size_t i;
 	for (i = 0; i < data->cpus_count; i++) {
 		if (data->cpus[i].active) {
-			printf("cpu%u (%4" PRIu16 " MHz): busy ticks: "
-			    "%" PRIu64 ", idle ticks: %" PRIu64,
+			uint64_t busy;
+			uint64_t idle;
+			char busy_suffix;
+			char idle_suffix;
+			
+			order_suffix(data->cpus[i].busy_cycles, &busy, &busy_suffix);
+			order_suffix(data->cpus[i].idle_cycles, &idle, &idle_suffix);
+			
+			printf("cpu%u (%4" PRIu16 " MHz): busy cycles: "
+			    "%" PRIu64 "%c, idle cycles: %" PRIu64 "%c",
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
-			    data->cpus[i].busy_ticks, data->cpus[i].idle_ticks);
+			    busy, busy_suffix, idle, idle_suffix);
 			puts(", idle: ");
 			print_percent(data->cpus_perc[i].idle, 2);
 			puts(", busy: ");
@@ -279,19 +287,22 @@ static inline void print_tasks(data_t *data)
 	
 	size_t i;
 	for (i = 0; (i < data->tasks_count) && (row < rows); i++, row++) {
+		stats_task_t *task = data->tasks + data->tasks_map[i];
+		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
+		
 		uint64_t virtmem;
 		char virtmem_suffix;
-		order_suffix(data->tasks[i].virtmem, &virtmem, &virtmem_suffix);
+		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%-8" PRIu64 " %9u %8" PRIu64 "%c ", data->tasks[i].task_id,
-		    data->tasks[i].threads, virtmem, virtmem_suffix);
-		print_percent(data->tasks_perc[i].virtmem, 2);
+		printf("%-8" PRIu64 " %9u %8" PRIu64 "%c ", task->task_id,
+		    task->threads, virtmem, virtmem_suffix);
+		print_percent(perc->virtmem, 2);
 		puts(" ");
-		print_percent(data->tasks_perc[i].ucycles, 2);
+		print_percent(perc->ucycles, 2);
 		puts("   ");
-		print_percent(data->tasks_perc[i].kcycles, 2);
+		print_percent(perc->kcycles, 2);
 		puts(" ");
-		print_string(data->tasks[i].name);
+		print_string(task->name);
 		
 		screen_newline();
 	}

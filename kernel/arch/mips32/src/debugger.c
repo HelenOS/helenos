@@ -259,15 +259,14 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 {
 	unsigned int i;
 	
-	printf("#  Count Address    INPROG ONESHOT FUNCCALL In symbol\n");
-	printf("-- ----- ---------- ------ ------- -------- ---------\n");
+	printf("[nr] [count] [address ] [inprog] [oneshot] [funccall] [in symbol\n");
 	
 	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (breakpoints[i].address) {
 			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
 			
-			printf("%-2u %-5d %#10zx %-6s %-7s %-8s %s\n", i,
+			printf("%-4u %7" PRIs " %p %-8s %-9s %-10s %s\n", i,
 			    breakpoints[i].counter, breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
 			    "false"), ((breakpoints[i].flags & BKPOINT_ONESHOT)

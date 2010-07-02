@@ -97,7 +97,7 @@
 
 /** Free identifier numbers pool end.
  */
-#define ICMP_FREE_IDS_END	MAX_UINT16
+#define ICMP_FREE_IDS_END	UINT16_MAX
 
 /** Computes the ICMP datagram checksum.
  *  @param[in,out] header The ICMP datagram header.
@@ -262,7 +262,7 @@ int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,
 		res = ENOENT;
 	}else{
 		res = icmp_echo(echo_data->identifier, echo_data->sequence_number, size, timeout, ttl, tos, dont_fragment, addr, addrlen);
-		if(echo_data->sequence_number < MAX_UINT16){
+		if(echo_data->sequence_number < UINT16_MAX){
 			++ echo_data->sequence_number;
 		}else{
 			echo_data->sequence_number = 0;
@@ -730,7 +730,7 @@ int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call){
 							res = icmp_echo(echo_data->identifier, echo_data->sequence_number, ICMP_GET_SIZE(call), ICMP_GET_TIMEOUT(call), ICMP_GET_TTL(call), ICMP_GET_TOS(call), ICMP_GET_DONT_FRAGMENT(call), addr, (socklen_t) length);
 							fibril_rwlock_write_unlock(&icmp_globals.lock);
 							free(addr);
-							if(echo_data->sequence_number < MAX_UINT16){
+							if(echo_data->sequence_number < UINT16_MAX){
 								++ echo_data->sequence_number;
 							}else{
 								echo_data->sequence_number = 0;

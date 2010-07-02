@@ -37,13 +37,17 @@
 
 #include <typedefs.h>
 #include <arch/atomic.h>
+#include <verify.h>
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
+ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	val->count = i;
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
+ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	return val->count;
 }

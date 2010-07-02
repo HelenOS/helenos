@@ -55,7 +55,7 @@ void *gxemul_rtc;
 void *gxemul_irqc;
 static irq_t gxemul_timer_irq;
 
-struct arm_machine_ops machine_ops = {
+struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_init,
 	gxemul_timer_irq_start,
 	gxemul_cpu_halt,

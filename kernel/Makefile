@@ -159,27 +159,32 @@ SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
 ifeq ($(COMPILER),gcc_native)
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),gcc_cross)
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),icc)
 	CFLAGS = $(ICC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION =
 endif
 
 ifeq ($(COMPILER),suncc)
 	CFLAGS = $(SUNCC_CFLAGS)
 	DEFS += $(CONFIG_DEFS)
 	DEPEND_DEFS = $(DEFS)
+	INSTRUMENTATION =
 endif
 
 ifeq ($(COMPILER),clang)
 	CFLAGS = $(CLANG_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION =
 endif
 
 
@@ -200,6 +205,8 @@ GENERIC_SOURCES = \
 	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
 	generic/src/debug/stacktrace.c \
+	generic/src/debug/panic.c \
+	generic/src/debug/debug.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
@@ -240,7 +247,6 @@ GENERIC_SOURCES = \
 	generic/src/preempt/preemption.c \
 	generic/src/synch/spinlock.c \
 	generic/src/synch/condvar.c \
-	generic/src/synch/rwlock.c \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
@@ -293,11 +299,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/mapping1.c \
 		test/mm/slab1.c \
 		test/mm/slab2.c \
-		test/synch/rwlock1.c \
-		test/synch/rwlock2.c \
-		test/synch/rwlock3.c \
-		test/synch/rwlock4.c \
-		test/synch/rwlock5.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
 		test/print/print1.c \
@@ -359,6 +360,17 @@ ifeq ($(CONFIG_TEST),y)
 	
 endif
 
+## Sources where instrumentation is enabled
+#
+
+ifeq ($(CONFIG_TRACE),y)
+INSTRUMENTED_SOURCES = \
+	generic/src/cpu/cpu.c \
+	generic/src/main/main.c \
+	generic/src/main/kinit.c \
+	generic/src/proc/the.c
+endif
+
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
@@ -418,7 +430,7 @@ endif
 #
 
 %.o: %.c $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c -o $@ $<
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
 ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
 endif

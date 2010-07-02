@@ -144,7 +144,7 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 			return ELIMIT;
 		
 		program_loader = image_addr;
-		LOG("Registered program loader at 0x%" PRIp "\n",
+		LOG("Registered program loader at 0x%" PRIp,
 		    image_addr);
 		
 		return EOK;

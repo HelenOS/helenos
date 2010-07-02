@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -39,10 +39,10 @@
 #include <arch/interrupt.h>
 
 /* mask of the "counter" field of the Tick register */
-#define TICK_COUNTER_MASK	(~(1l << 63))
+#define TICK_COUNTER_MASK  (~(1l << 63))
 
 extern void tick_init(void);
-extern void tick_interrupt(int n, istate_t *istate);
+extern void tick_interrupt(unsigned int, istate_t *);
 
 /**
  * Reads the Tick register counter.

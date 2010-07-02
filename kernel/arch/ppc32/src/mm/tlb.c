@@ -110,13 +110,9 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
-	const char *symbol = symtab_fmt_name_lookup(istate->pc);
-	const char *sym2 = symtab_fmt_name_lookup(istate->lr);
-	
-	fault_if_from_uspace(istate,
-	    "PHT Refill Exception on %p.", badvaddr);
-	panic("%p: PHT Refill Exception at %p (%s<-%s).", badvaddr,
-	    istate->pc, symbol, sym2);
+	fault_if_from_uspace(istate, "PHT Refill Exception on %p.", badvaddr);
+	panic_memtrap(istate, PF_ACCESS_READ, badvaddr,
+	    "PHT Refill Exception.");
 }
 
 static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
@@ -208,7 +204,7 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
  * @param istate Interrupted register context.
  *
  */
-void pht_refill(int n, istate_t *istate)
+void pht_refill(unsigned int n, istate_t *istate)
 {
 	as_t *as = (AS == NULL) ? AS_KERNEL : AS;
 	uintptr_t badvaddr;
@@ -259,7 +255,7 @@ fail:
  * @param istate Interrupted register context.
  *
  */
-bool pht_refill_real(int n, istate_t *istate)
+bool pht_refill_real(unsigned int n, istate_t *istate)
 {
 	uintptr_t badvaddr;
 	
@@ -365,7 +361,8 @@ bool pht_refill_real(int n, istate_t *istate)
  *
  *
  */
-void tlb_refill_real(int n, uint32_t tlbmiss, ptehi_t ptehi, ptelo_t ptelo, istate_t *istate)
+void tlb_refill_real(unsigned int n, uint32_t tlbmiss, ptehi_t ptehi,
+    ptelo_t ptelo, istate_t *istate)
 {
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
 	uint32_t physmem = physmem_top();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <arch.h>
-#include <atomic.h>
-#include <print.h>
-#include <proc/thread.h>
+/** @file
+ *
+ * VCC specifications tight to the HelenOS-specific annotations.
+ *
+ */
 
-#include <synch/rwlock.h>
+#ifndef HELENOS_VCC_H_
+#define HELENOS_VCC_H_
 
-#define THREADS  4
+typedef _Bool bool;
 
-static atomic_t thread_count;
-static rwlock_t rwlock;
+#define __concat_identifiers_str(a, b)  a ## b
+#define __concat_identifiers(a, b)      __concat_identifiers_str(a, b)
 
-static void reader(void *arg)
-{
-	thread_detach(THREAD);
-	
-	TPRINTF("cpu%u, tid %" PRIu64 ": trying to lock rwlock for reading....\n", CPU->id, THREAD->tid);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	TPRINTF("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);
-	TPRINTF("cpu%u, tid %" PRIu64 ": trying to lock rwlock for writing....\n", CPU->id, THREAD->tid);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	TPRINTF("cpu%u, tid %" PRIu64 ": success\n", CPU->id, THREAD->tid);
-	
-	atomic_dec(&thread_count);
-}
+#define __specification_attr(key, value) \
+	__declspec(System.Diagnostics.Contracts.CodeContract.StringVccAttr, \
+	    key, value)
 
-const char *test_rwlock3(void)
-{
-	int i;
-	thread_t *thrd;
-	
-	atomic_set(&thread_count, THREADS);
-	
-	rwlock_initialize(&rwlock);
-	rwlock_write_lock(&rwlock);
-	
-	for (i = 0; i < THREADS; i++) {
-		thrd = thread_create(reader, NULL, TASK, 0, "reader", false);
-		if (thrd)
-			thread_ready(thrd);
-		else
-			TPRINTF("Could not create reader %d\n", i);
-	}
-	
-	thread_sleep(1);
-	rwlock_write_unlock(&rwlock);
-	
-	while (atomic_get(&thread_count) > 0) {
-		TPRINTF("Threads left: %ld\n", atomic_get(&thread_count));
-		thread_sleep(1);
-	}
-	
-	return NULL;
-}
+#define __specification_type(name) \
+	__specification( \
+		typedef struct __concat_identifiers(_vcc_math_type_, name) { \
+			char _vcc_marker_for_math_type; \
+		} __concat_identifiers(\, name); \
+	)
+
+__specification(typedef void * \object;)
+__specification(typedef __int64 \integer;)
+__specification(typedef unsigned __int64 \size_t;)
+
+__specification_type(objset)
+
+__specification(struct \TypeState {
+	__specification(ghost \integer \claim_count;)
+	__specification(ghost bool \consistent;)
+	__specification(ghost \objset \owns;)
+	__specification(ghost \object \owner;)
+	__specification(ghost bool \valid;)
+};)
+
+__specification(bool \extent_mutable(\object);)
+__specification(\objset \extent(\object);)
+__specification(\objset \array_range(\object, \size_t);)
+__specification(bool \mutable_array(\object, \size_t);)
+
+#endif
+
+/** @}
+ */

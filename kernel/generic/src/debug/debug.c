@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <arch.h>
-#include <atomic.h>
+/** @addtogroup genericdebug
+ * @{
+ */
+
+/**
+ * @file
+ * @brief Kernel instrumentation functions.
+ */
+
+#ifdef CONFIG_TRACE
+
+#include <debug.h>
+#include <symtab.h>
+#include <errno.h>
 #include <print.h>
-#include <proc/thread.h>
 
-#include <synch/waitq.h>
-#include <synch/rwlock.h>
-
-#define READERS  50
-#define WRITERS  50
-
-static rwlock_t rwlock;
-
-const char *test_rwlock1(void)
+void __cyg_profile_func_enter(void *fn, void *call_site)
 {
-	rwlock_initialize(&rwlock);
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
 	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
+	const char *call_site_sym;
+	uintptr_t call_site_off;
 	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	return NULL;
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "->%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("->%s\n", fn_sym);
 }
+
+void __cyg_profile_func_exit(void *fn, void *call_site)
+{
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
+	
+	const char *call_site_sym;
+	uintptr_t call_site_off;
+	
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "<-%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("<-%s\n", fn_sym);
+}
+
+#endif /* CONFIG_TRACE */
+
+/** @}
+ */

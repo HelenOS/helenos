@@ -35,17 +35,10 @@
 
 #include <arch/asm.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <interrupt.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
 
 /** Initial size of a table holding interrupt handlers. */
 #define IRQ_COUNT 8

@@ -45,9 +45,9 @@
 
 /** Get name of a symbol that seems most likely to correspond to address.
  *
- * @param addr		Address.
- * @param name		Place to store pointer to the symbol name.
- * @param offset	Place to store offset from the symbol address.
+ * @param addr   Address.
+ * @param name   Place to store pointer to the symbol name.
+ * @param offset Place to store offset from the symbol address.
  *
  * @return Zero on success or negative error code, ENOENT if not found,
  *         ENOTSUP if symbol table not available.
@@ -82,8 +82,9 @@ int symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 
 /** Lookup symbol by address and format for display.
  *
- * Returns name of closest corresponding symbol, "Not found" if none exists
- * or "N/A" if no symbol information is available.
+ * Returns name of closest corresponding symbol,
+ * "unknown" if none exists and "N/A" if no symbol
+ * information is available.
  *
  * @param addr Address.
  * @param name Place to store pointer to the symbol name.
@@ -100,7 +101,7 @@ const char *symtab_fmt_name_lookup(uintptr_t addr)
 	case EOK:
 		return name;
 	case ENOENT:
-		return "Not found";
+		return "unknown";
 	default:
 		return "N/A";
 	}

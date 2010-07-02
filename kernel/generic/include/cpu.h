@@ -71,9 +71,13 @@ typedef struct cpu {
 	 */
 	size_t missed_clock_ticks;
 	
+	/**
+	 * Processor cycle accounting.
+	 */
 	bool idle;
-	uint64_t idle_ticks;
-	uint64_t busy_ticks;
+	uint64_t last_cycle;
+	uint64_t idle_cycles;
+	uint64_t busy_cycles;
 	
 	/**
 	 * Processor ID assigned by kernel.

@@ -44,8 +44,7 @@ memmap_t memmap;
 
 void physmem_print(void)
 {
-	printf("Base       Size\n");
-	printf("---------- ----------\n");
+	printf("[base    ] [size    ]\n");
 	
 	size_t i;
 	for (i = 0; i < memmap.cnt; i++) {
@@ -60,21 +59,25 @@ void frame_arch_init(void)
 	size_t i;
 	
 	for (i = 0; i < memmap.cnt; i++) {
-		pfn_t start = ADDR2PFN(ALIGN_UP((uintptr_t) memmap.zones[i].start,
-		    FRAME_SIZE));
-		size_t size = SIZE2FRAMES(ALIGN_DOWN(memmap.zones[i].size, FRAME_SIZE));
+		/* To be safe, make the available zone possibly smaller */
+		uintptr_t new_start = ALIGN_UP((uintptr_t) memmap.zones[i].start,
+		    FRAME_SIZE);
+		size_t new_size = ALIGN_DOWN(memmap.zones[i].size -
+		    (new_start - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
+		
+		pfn_t pfn = ADDR2PFN(new_start);
+		size_t count = SIZE2FRAMES(new_size);
 		
 		pfn_t conf;
-		if ((minconf < start) || (minconf >= start + size))
-			conf = start;
+		if ((minconf < pfn) || (minconf >= pfn + count))
+			conf = pfn;
 		else
 			conf = minconf;
 		
-		zone_create(start, size, conf, 0);
-		if (last_frame < ALIGN_UP((uintptr_t) memmap.zones[i].start
-		    + memmap.zones[i].size, FRAME_SIZE))
-			last_frame = ALIGN_UP((uintptr_t) memmap.zones[i].start
-			    + memmap.zones[i].size, FRAME_SIZE);
+		zone_create(pfn, count, conf, 0);
+		
+		if (last_frame < ALIGN_UP(new_start + new_size, FRAME_SIZE))
+			last_frame = ALIGN_UP(new_start + new_size, FRAME_SIZE);
 	}
 	
 	/* First is exception vector, second is 'implementation specific',

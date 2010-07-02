@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -61,7 +61,8 @@
 
 static void itlb_pte_copy(pte_t *);
 static void dtlb_pte_copy(pte_t *, bool);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
+static void do_fast_instruction_access_mmu_miss_fault(istate_t *, uintptr_t,
+    const char *);
 static void do_fast_data_access_mmu_miss_fault(istate_t *, uint64_t,
     const char *);
 static void do_fast_data_access_protection_fault(istate_t *,
@@ -234,11 +235,11 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		page_table_unlock(AS, true);
 		if (as_page_fault(va, PF_ACCESS_EXEC, istate) == AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
-			    __func__);
+			    istate->tpc, __func__);
 		}
 	}
 }
@@ -353,36 +354,29 @@ void tlb_print(void)
 	printf("Operation not possible on Niagara.\n");
 }
 
-void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
+void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, uintptr_t va,
     const char *str)
 {
-	fault_if_from_uspace(istate, "%s.", str);
-	dump_istate(istate);
-	panic("%s.", str);
+	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
+	panic_memtrap(istate, PF_ACCESS_EXEC, va, "%s.", str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
-	if (DMISS_CONTEXT(page_and_ctx)) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, DMISS_ADDRESS(page_and_ctx),
-		    DMISS_CONTEXT(page_and_ctx));
-	}
-	dump_istate(istate);
-	printf("Faulting page: %p, ASID=%d\n", DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	panic("%s\n", str);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
+	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
+	panic_memtrap(istate, PF_ACCESS_READ, DMISS_ADDRESS(page_and_ctx),
+	    "%s.");
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
-	if (DMISS_CONTEXT(page_and_ctx)) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d)\n", str, DMISS_ADDRESS(page_and_ctx),
-		    DMISS_CONTEXT(page_and_ctx));
-	}
-	printf("Faulting page: %p, ASID=%d\n", DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	dump_istate(istate);
-	panic("%s\n", str);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
+	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
+	panic_memtrap(istate, PF_ACCESS_WRITE, DMISS_ADDRESS(page_and_ctx),
+	    "%s.");
 }
 
 /**

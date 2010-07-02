@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softfloat	
+/** @addtogroup softfloat
  * @{
  */
 /** @file
@@ -44,15 +44,15 @@ float64 convertFloat32ToFloat64(float32 a)
 	
 	result.parts.sign = a.parts.sign;
 	result.parts.fraction = a.parts.fraction;
-	result.parts.fraction <<= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE );
+	result.parts.fraction <<= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE);
 	
-	if ((isFloat32Infinity(a))||(isFloat32NaN(a))) {
+	if ((isFloat32Infinity(a)) || (isFloat32NaN(a))) {
 		result.parts.exp = 0x7FF;
 		/* TODO; check if its correct for SigNaNs*/
 		return result;
 	};
 	
-	result.parts.exp = a.parts.exp + ( (int)FLOAT64_BIAS - FLOAT32_BIAS );
+	result.parts.exp = a.parts.exp + ((int) FLOAT64_BIAS - FLOAT32_BIAS);
 	if (a.parts.exp == 0) {
 		/* normalize denormalized numbers */
 
@@ -180,18 +180,17 @@ static uint32_t _float32_to_uint32_helper(float32 a)
  */ 
 uint32_t float32_to_uint32(float32 a)
 {
-	if (isFloat32NaN(a)) {
-		return MAX_UINT32;
+	if (isFloat32NaN(a))
+		return UINT32_MAX;
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (32 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return UINT32_MIN;
+		
+		return UINT32_MAX;
 	}
 	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (32 + FLOAT32_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_UINT32;
-		}
-		return MAX_UINT32;
-	}
-	
-	return _float32_to_uint32_helper(a);	
+	return _float32_to_uint32_helper(a);
 }
 
 /* Convert float to signed int32
@@ -200,18 +199,18 @@ uint32_t float32_to_uint32(float32 a)
  */ 
 int32_t float32_to_int32(float32 a)
 {
-	if (isFloat32NaN(a)) {
-		return MAX_INT32;
+	if (isFloat32NaN(a))
+		return INT32_MAX;
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (32 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return INT32_MIN;
+		
+		return INT32_MAX;
 	}
 	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (32 + FLOAT32_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_INT32;
-		}
-		return MAX_INT32;
-	}
 	return _float32_to_uint32_helper(a);
-}	
+}
 
 
 /** Helping procedure for converting float64 to uint64
@@ -248,18 +247,18 @@ static uint64_t _float64_to_uint64_helper(float64 a)
  */ 
 uint64_t float64_to_uint64(float64 a)
 {
-	if (isFloat64NaN(a)) {
-		return MAX_UINT64;
+	if (isFloat64NaN(a))
+		return UINT64_MAX;
+	
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return UINT64_MIN;
+		
+		return UINT64_MAX;
 	}
 	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_UINT64;
-		}
-		return MAX_UINT64;
-	}
-	
-	return _float64_to_uint64_helper(a);	
+	return _float64_to_uint64_helper(a);
 }
 
 /* Convert float to signed int64
@@ -268,18 +267,19 @@ uint64_t float64_to_uint64(float64 a)
  */ 
 int64_t float64_to_int64(float64 a)
 {
-	if (isFloat64NaN(a)) {
-		return MAX_INT64;
+	if (isFloat64NaN(a))
+		return INT64_MAX;
+	
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return INT64_MIN;
+		
+		return INT64_MAX;
 	}
 	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (64 + FLOAT64_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_INT64;
-		}
-		return MAX_INT64;
-	}
 	return _float64_to_uint64_helper(a);
-}	
+}
 
 
 
@@ -319,18 +319,18 @@ static uint64_t _float32_to_uint64_helper(float32 a)
  */ 
 uint64_t float32_to_uint64(float32 a)
 {
-	if (isFloat32NaN(a)) {
-		return MAX_UINT64;
+	if (isFloat32NaN(a))
+		return UINT64_MAX;
+	
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return UINT64_MIN;
+		
+		return UINT64_MAX;
 	}
 	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_UINT64;
-		}
-		return MAX_UINT64;
-	}
-	
-	return _float32_to_uint64_helper(a);	
+	return _float32_to_uint64_helper(a);
 }
 
 /* Convert float to signed int64
@@ -339,18 +339,18 @@ uint64_t float32_to_uint64(float32 a)
  */ 
 int64_t float32_to_int64(float32 a)
 {
-	if (isFloat32NaN(a)) {
-		return MAX_INT64;
+	if (isFloat32NaN(a))
+		return INT64_MAX;
+	
+	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS))) {
+		if (a.parts.sign)
+			return INT64_MIN;
+		
+		return INT64_MAX;
 	}
 	
-	if (isFloat32Infinity(a) || (a.parts.exp >= (64 + FLOAT32_BIAS)))  {
-		if (a.parts.sign) {
-			return (MIN_INT64);
-		}
-		return MAX_INT64;
-	}
 	return _float32_to_uint64_helper(a);
-}	
+}
 
 
 /* Convert float64 to unsigned int32
@@ -359,18 +359,18 @@ int64_t float32_to_int64(float32 a)
  */ 
 uint32_t float64_to_uint32(float64 a)
 {
-	if (isFloat64NaN(a)) {
-		return MAX_UINT32;
+	if (isFloat64NaN(a))
+		return UINT32_MAX;
+	
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return UINT32_MIN;
+		
+		return UINT32_MAX;
 	}
 	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_UINT32;
-		}
-		return MAX_UINT32;
-	}
-	
-	return (uint32_t)_float64_to_uint64_helper(a);	
+	return (uint32_t) _float64_to_uint64_helper(a);
 }
 
 /* Convert float64 to signed int32
@@ -379,18 +379,19 @@ uint32_t float64_to_uint32(float64 a)
  */ 
 int32_t float64_to_int32(float64 a)
 {
-	if (isFloat64NaN(a)) {
-		return MAX_INT32;
+	if (isFloat64NaN(a))
+		return INT32_MAX;
+	
+	
+	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS))) {
+		if (a.parts.sign)
+			return INT32_MIN;
+		
+		return INT32_MAX;
 	}
 	
-	if (isFloat64Infinity(a) || (a.parts.exp >= (32 + FLOAT64_BIAS)))  {
-		if (a.parts.sign) {
-			return MIN_INT32;
-		}
-		return MAX_INT32;
-	}
-	return (int32_t)_float64_to_uint64_helper(a);
-}	
+	return (int32_t) _float64_to_uint64_helper(a);
+}
 
 /** Convert unsigned integer to float32
  *

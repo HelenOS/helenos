@@ -61,37 +61,19 @@ static struct smp_config_operations *ops = NULL;
 
 void smp_init(void)
 {
-	uintptr_t l_apic_address, io_apic_address;
-
 	if (acpi_madt) {
 		acpi_madt_parse();
 		ops = &madt_config_operations;
 	}
+	
 	if (config.cpu_count == 1) {
 		mps_init();
 		ops = &mps_config_operations;
 	}
-
-	l_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_ATOMIC | FRAME_KA);
-	if (!l_apic_address)
-		panic("Cannot allocate address for l_apic.");
-
-	io_apic_address = (uintptr_t) frame_alloc(ONE_FRAME,
-	    FRAME_ATOMIC | FRAME_KA);
-	if (!io_apic_address)
-		panic("Cannot allocate address for io_apic.");
-
+	
 	if (config.cpu_count > 1) {
-		page_table_lock(AS_KERNEL, true);
-		page_mapping_insert(AS_KERNEL, l_apic_address,
-		    (uintptr_t) l_apic, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-		page_mapping_insert(AS_KERNEL, io_apic_address,
-		    (uintptr_t) io_apic, PAGE_NOT_CACHEABLE | PAGE_WRITE);
-		page_table_unlock(AS_KERNEL, true);
-				  
-		l_apic = (uint32_t *) l_apic_address;
-		io_apic = (uint32_t *) io_apic_address;
+		l_apic = (uint32_t *) hw_map((uintptr_t) l_apic, PAGE_SIZE);
+		io_apic = (uint32_t *) hw_map((uintptr_t) io_apic, PAGE_SIZE);
 	}
 }
 
@@ -107,49 +89,45 @@ void kmp(void *arg __attribute__((unused)))
 	unsigned int i;
 	
 	ASSERT(ops != NULL);
-
+	
 	/*
 	 * We need to access data in frame 0.
 	 * We boldly make use of kernel address space mapping.
 	 */
-
+	
 	/*
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
 	*((uint16_t *) (PA2KA(0x467 + 0))) =
-	    (uint16_t) (((uintptr_t) ap_boot) >> 4);	/* segment */
-	*((uint16_t *) (PA2KA(0x467 + 2))) = 0;		/* offset */
+	    (uint16_t) (((uintptr_t) ap_boot) >> 4);  /* segment */
+	*((uint16_t *) (PA2KA(0x467 + 2))) = 0;       /* offset */
 	
 	/*
 	 * Save 0xa to address 0xf of the CMOS RAM.
 	 * BIOS will not do the POST after the INIT signal.
 	 */
-	pio_write_8((ioport8_t *)0x70, 0xf);
-	pio_write_8((ioport8_t *)0x71, 0xa);
-
+	pio_write_8((ioport8_t *) 0x70, 0xf);
+	pio_write_8((ioport8_t *) 0x71, 0xa);
+	
 	pic_disable_irqs(0xffff);
 	apic_init();
 	
-	uint8_t apic = l_apic_id();
-
-	for (i = 0; i < ops->cpu_count(); i++) {
-		descriptor_t *gdt_new;
-		
+	for (i = 0; i < config.cpu_count; i++) {
 		/*
 		 * Skip processors marked unusable.
 		 */
 		if (!ops->cpu_enabled(i))
 			continue;
-
+		
 		/*
 		 * The bootstrap processor is already up.
 		 */
 		if (ops->cpu_bootstrap(i))
 			continue;
-
-		if (ops->cpu_apic_id(i) == apic) {
-			printf("%s: bad processor entry #%u, will not send IPI "
-			    "to myself\n", __FUNCTION__, i);
+		
+		if (ops->cpu_apic_id(i) == bsp_l_apic) {
+			printf("kmp: bad processor entry #%u, will not send IPI "
+			    "to myself\n", i);
 			continue;
 		}
 		
@@ -161,17 +139,18 @@ void kmp(void *arg __attribute__((unused)))
 		 * it needs to be replaced by a generic fuctionality of
 		 * the memory subsystem
 		 */
-		gdt_new = (descriptor_t *) malloc(GDT_ITEMS *
-		    sizeof(descriptor_t), FRAME_ATOMIC);
+		descriptor_t *gdt_new =
+		    (descriptor_t *) malloc(GDT_ITEMS * sizeof(descriptor_t),
+		    FRAME_ATOMIC);
 		if (!gdt_new)
 			panic("Cannot allocate memory for GDT.");
-
+		
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(descriptor_t));
 		memsetb(&gdt_new[TSS_DES], sizeof(descriptor_t), 0);
 		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(descriptor_t);
 		protected_ap_gdtr.base = KA2PA((uintptr_t) gdt_new);
 		gdtr.base = (uintptr_t) gdt_new;
-
+		
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {
 			/*
 			 * There may be just one AP being initialized at
@@ -180,10 +159,8 @@ void kmp(void *arg __attribute__((unused)))
 			 */
 			if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
 			    SYNCH_FLAGS_NONE) == ESYNCH_TIMEOUT) {
-				unsigned int cpu = (config.cpu_active > i) ?
-				    config.cpu_active : i;
 				printf("%s: waiting for cpu%u (APIC ID = %d) "
-				    "timed out\n", __FUNCTION__, cpu,
+				    "timed out\n", __FUNCTION__, i,
 				    ops->cpu_apic_id(i));
 			}
 		} else

@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <async.h>
 #include <fibril_synch.h>
-#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <ipc/services.h>

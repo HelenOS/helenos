@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_amd64_LIMITS_H_
-#define LIBC_amd64_LIMITS_H_
+#include <panic.h>
+#include <print.h>
+#include <stacktrace.h>
+#include <func.h>
+#include <typedefs.h>
+#include <mm/as.h>
+#include <stdarg.h>
+#include <interrupt.h>
 
-#define LONG_MIN MIN_INT64
-#define LONG_MAX MAX_INT64
-#define ULONG_MIN MIN_UINT64
-#define ULONG_MAX MAX_UINT64
+void panic_common(panic_category_t cat, istate_t *istate, int access,
+    uintptr_t address, const char *fmt, ...)
+{
+	va_list args;
 
-#define SIZE_MIN MIN_UINT64
-#define SIZE_MAX MAX_UINT64
-#define SSIZE_MIN MIN_INT64
-#define SSIZE_MAX MAX_INT64
+	silent = false;
 
-#endif
+	printf("\nKERNEL PANIC ");
+	if (CPU)
+		printf("ON cpu%d ", CPU->id);
+	printf("DUE TO ");
+
+	va_start(args, fmt);
+	if (cat == PANIC_ASSERT) {
+		printf("A FAILED ASSERTION:\n");
+		vprintf(fmt, args);
+		printf("\n");
+	} else if (cat == PANIC_BADTRAP) {
+		printf("BAD TRAP %ld.\n", address);
+	} else if (cat == PANIC_MEMTRAP) {
+		printf("A BAD MEMORY ACCESS WHILE ");
+		if (access == PF_ACCESS_READ)
+			printf("LOADING FROM");
+		else if (access == PF_ACCESS_WRITE)
+			printf("STORING TO");
+		else if (access == PF_ACCESS_EXEC)
+			printf("BRANCHING TO");
+		else
+			printf("REFERENCING");
+		printf(" ADDRESS %p.\n", address); 
+	} else {
+		printf("THE FOLLOWING REASON:\n");
+		vprintf(fmt, args);
+	}
+	va_end(args);
+
+	printf("\n");
+
+	if (istate) {
+		istate_decode(istate);
+		printf("\n");
+	}
+
+	stack_trace();
+	halt();
+}
 
 /** @}
  */

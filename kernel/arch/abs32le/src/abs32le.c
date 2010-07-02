@@ -113,15 +113,9 @@ void irq_initialize_arch(irq_t *irq)
 	(void) irq;
 }
 
-void panic_printf(const char *fmt, ...)
+void istate_decode(istate_t *istate)
 {
-	va_list args;
-	
-	va_start(args, fmt);
-	vprintf(fmt, args);
-	va_end(args);
-	
-	halt();
+	(void) istate;
 }
 
 int context_save_arch(context_t *ctx)
@@ -154,6 +148,10 @@ int memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
 int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
 	return EOK;
+}
+
+void early_putchar(wchar_t ch)
+{
 }
 
 /** @}

@@ -32,16 +32,12 @@
  */
 
 #include <genarch/multiplication.h>
+#include <typedefs.h>
 
-/** Set 1 to return MAX_INT64 or MIN_INT64 on overflow */
+/** Set 1 to return INT64_MAX or INT64_MIN on overflow */
 #ifndef SOFTINT_CHECK_OF
-	#define SOFTINT_CHECK_OF 0
+	#define SOFTINT_CHECK_OF  0
 #endif
-
-#define MAX_UINT16  (0xFFFFu)
-#define MAX_UINT32  (0xFFFFFFFFu)
-#define MAX_INT64   (0x7FFFFFFFFFFFFFFFll)
-#define MIN_INT64   (0x8000000000000000ll)
 
 /** Multiply two integers and return long long as result.
  *
@@ -50,9 +46,9 @@
  */
 static unsigned long long mul(unsigned int a, unsigned int b) {
 	unsigned int a1 = a >> 16;
-	unsigned int a2 = a & MAX_UINT16;
+	unsigned int a2 = a & UINT16_MAX;
 	unsigned int b1 = b >> 16;
-	unsigned int b2 = b & MAX_UINT16;
+	unsigned int b2 = b & UINT16_MAX;
 	
 	unsigned long long t1 = a1 * b1;
 	unsigned long long t2 = a1 * b2;
@@ -84,12 +80,12 @@ long long __muldi3 (long long a, long long b)
 	unsigned long long a1 = a >> 32;
 	unsigned long long b1 = b >> 32;
 	
-	unsigned long long a2 = a & (MAX_UINT32);
-	unsigned long long b2 = b & (MAX_UINT32);
+	unsigned long long a2 = a & (UINT32_MAX);
+	unsigned long long b2 = b & (UINT32_MAX);
 	
 	if (SOFTINT_CHECK_OF && (a1 != 0) && (b1 != 0)) {
 		/* Error (overflow) */
-		return (neg ? MIN_INT64 : MAX_INT64);
+		return (neg ? INT64_MIN : INT64_MAX);
 	}
 	
 	/* (if OF checked) a1 or b1 is zero => result fits in 64 bits,
@@ -97,9 +93,9 @@ long long __muldi3 (long long a, long long b)
 	 */
 	unsigned long long t1 = mul(a1, b2) + mul(b1, a2);
 	
-	if ((SOFTINT_CHECK_OF) && (t1 > MAX_UINT32)) {
+	if ((SOFTINT_CHECK_OF) && (t1 > UINT32_MAX)) {
 		/* Error (overflow) */
-		return (neg ? MIN_INT64 : MAX_INT64);
+		return (neg ? INT64_MIN : INT64_MAX);
 	}
 	
 	t1 = t1 << 32;
@@ -111,7 +107,7 @@ long long __muldi3 (long long a, long long b)
 	 */
 	if ((SOFTINT_CHECK_OF) && ((t2 < t1) || (t2 & (1ull << 63)))) {
 		/* Error (overflow) */
-		return (neg ? MIN_INT64 : MAX_INT64);
+		return (neg ? INT64_MIN : INT64_MAX);
 	}
 	
 	long long result = t2;
