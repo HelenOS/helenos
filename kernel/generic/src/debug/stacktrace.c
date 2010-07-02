@@ -51,7 +51,7 @@ stack_trace_fp_pc(stack_trace_ops_t *ops, uintptr_t fp, uintptr_t pc)
 		if (ops->symbol_resolve &&
 		    ops->symbol_resolve(pc, &symbol, &offset)) {
 		    	if (offset)
-				printf("%p: %s+%lx()\n", fp, symbol, offset);
+				printf("%p: %s+%" PRIp "()\n", fp, symbol, offset);
 			else
 				printf("%p: %s()\n", fp, symbol);
 		} else {

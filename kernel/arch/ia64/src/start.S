@@ -46,6 +46,15 @@
 .global kernel_image_start
 
 stack0:
+
+#
+# Kernel entry point.
+#
+# This is where we are passed control from the boot code.
+# Register contents:
+#
+#	r2	Address of the boot code's bootinfo structure.
+#
 kernel_image_start:
 	.auto
 	
@@ -156,18 +165,21 @@ paging_start:
 	mov ar.bspstore = r8
 	loadrs
 	
-	# Initialize memory stack to some sane value
-	movl r12 = stack0 ;;
-	add r12 = -16, r12  /* allocate a scratch area on the stack */
+	#
+	# Initialize memory stack to some sane value and allocate a scratch are
+	# on it.
+	#
+	movl sp = stack0 ;;
+	add sp = -16, sp
 	
 	# Initialize gp (Global Pointer) register
-	movl r20 = (VRN_KERNEL << VRN_SHIFT) ;;
-	or r20 = r20, r1 ;;
-	movl r1 = kernel_image_start
+	movl gp = kernel_image_start
 	
-	/*
-	 * Initialize bootinfo on BSP.
-	 */
+	#	
+	# Initialize bootinfo on BSP.
+	#
+	movl r20 = (VRN_KERNEL << VRN_SHIFT) ;;
+	or r20 = r20, r2 ;;
 	addl r21 = @gprel(bootinfo), gp ;;
 	st8 [r21] = r20
 	

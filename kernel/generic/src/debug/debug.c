@@ -26,67 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32leinterrupt
+/** @addtogroup genericdebug
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Kernel instrumentation functions.
  */
 
-#ifndef KERN_abs32le_INTERRUPT_H_
-#define KERN_abs32le_INTERRUPT_H_
+#ifdef CONFIG_TRACE
 
-#include <typedefs.h>
-#include <verify.h>
+#include <debug.h>
+#include <symtab.h>
+#include <errno.h>
+#include <print.h>
 
-#define IVT_ITEMS  0
-#define IVT_FIRST  0
-
-#define VECTOR_TLB_SHOOTDOWN_IPI  0
-
-/*
- * On real hardware this stores the registers which
- * need to be preserved during interupts.
- */
-typedef struct istate {
-	uintptr_t ip;
-	uintptr_t fp;
-	uint32_t stack[];
-} istate_t;
-
-static inline int istate_from_uspace(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
+void __cyg_profile_func_enter(void *fn, void *call_site)
 {
-	/* On real hardware this checks whether the interrupted
-	   context originated from user space. */
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
 	
-	return !(istate->ip & 0x80000000);
+	const char *call_site_sym;
+	uintptr_t call_site_off;
+	
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "->%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("->%s\n", fn_sym);
 }
 
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
-    WRITES(&istate->ip)
+void __cyg_profile_func_exit(void *fn, void *call_site)
 {
-	/* On real hardware this sets the instruction pointer. */
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
 	
-	istate->ip = retaddr;
+	const char *call_site_sym;
+	uintptr_t call_site_off;
+	
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "<-%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("<-%s\n", fn_sym);
 }
 
-static inline unative_t istate_get_pc(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
-{
-	/* On real hardware this returns the instruction pointer. */
-	
-	return istate->ip;
-}
-
-static inline unative_t istate_get_fp(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
-{
-	/* On real hardware this returns the frame pointer. */
-	
-	return istate->fp;
-}
-
-#endif
+#endif /* CONFIG_TRACE */
 
 /** @}
  */

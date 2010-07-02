@@ -118,4 +118,3 @@ void cpu_list(void)
 
 /** @}
  */
-

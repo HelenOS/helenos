@@ -30,7 +30,7 @@
 .code32
 vesa_init:
 	jmp $gdtselector(VESA_INIT_DES), $vesa_init_real - vesa_init
-	
+
 .code16
 vesa_init_real:
 	
@@ -54,7 +54,7 @@ vesa_init_real2:
 	movl $0x0000fffc, %ebp
 	pushl %eax
 	
-	# parse default mode string
+	/* Parse default mode string */
 	
 	mov $default_mode - vesa_init, %di
 	xor %eax, %eax
@@ -64,7 +64,7 @@ vesa_init_real2:
 	parse_width:
 		mov (%di), %al
 		
-		# check for digit
+		/* Check for digit */
 		
 		cmp $'0', %al
 		jb parse_width_done
@@ -74,7 +74,7 @@ vesa_init_real2:
 		
 		sub $'0', %al
 		
-		# multiply default_width by 10 and add digit
+		/* Multiply default_width by 10 and add digit */
 		
 		mov default_width - vesa_init, %bx
 		lea (%ebx, %ebx, 4), %ebx
@@ -95,7 +95,7 @@ vesa_init_real2:
 	parse_height:
 		mov (%di), %al
 		
-		# check for digit
+		/* Check for digit */
 		
 		cmp $'0', %al
 		jb parse_height_done
@@ -105,7 +105,7 @@ vesa_init_real2:
 		
 		sub $'0', %al
 		
-		# multiply default_height by 10 and add digit
+		/* Multiply default_height by 10 and add digit */
 		
 		mov default_height - vesa_init, %bx
 		lea (%ebx, %ebx, 4), %ebx
@@ -126,7 +126,7 @@ vesa_init_real2:
 	parse_bpp:
 		mov (%di), %al
 		
-		# check for digit
+		/* Check for digit */
 		
 		cmp $'0', %al
 		jb parse_bpp_done
@@ -136,7 +136,7 @@ vesa_init_real2:
 		
 		sub $'0', %al
 		
-		# multiply default_bpp by 10 and add digit
+		/* Multiply default_bpp by 10 and add digit */
 		
 		mov default_bpp - vesa_init, %bx
 		lea (%ebx, %ebx, 4), %ebx
@@ -166,7 +166,8 @@ vesa_init_real2:
 	add $VESA_INFO_SIZE, %di
 	
 	next_mode:
-		# try next mode
+		/* Try next mode */
+		
 		mov %gs:(%si), %cx
 		cmp $VESA_END_OF_MODES, %cx
 		je no_mode
@@ -185,14 +186,17 @@ vesa_init_real2:
 		cmp $VESA_OK, %al
 		jne no_mode
 		
-		# check for proper attributes (supported, color, graphics, linear framebuffer)
+		/*
+		 * Check for proper attributes (supported,
+		 * color, graphics, linear framebuffer).
+		 */
 		
 		mov VESA_MODE_ATTRIBUTES_OFFSET(%di), %ax
 		and $0x99, %ax
 		cmp $0x99, %ax
 		jne next_mode
 		
-		# check for proper resolution
+		/* Check for proper resolution */
 		
 		mov default_width - vesa_init, %ax
 		cmp VESA_MODE_WIDTH_OFFSET(%di), %ax
@@ -202,7 +206,7 @@ vesa_init_real2:
 		cmp VESA_MODE_HEIGHT_OFFSET(%di), %ax
 		jne next_mode
 		
-		# check for proper bpp
+		/* Check for proper bpp */
 		
 		mov default_bpp - vesa_init, %al
 		cmp VESA_MODE_BPP_OFFSET(%di), %al
@@ -212,7 +216,7 @@ vesa_init_real2:
 		cmp default_bpp - vesa_init, %al
 		jne next_mode
 		
-		# for 24 bpp modes accept also 32 bit bpp
+		/* For 24 bpp modes accept also 32 bit bpp */
 		
 		mov $32, %al
 		cmp VESA_MODE_BPP_OFFSET(%di), %al
@@ -229,7 +233,7 @@ vesa_init_real2:
 		cmp $VESA_OK, %al
 		jnz no_mode
 		
-		# set 3:2:3 VGA palette
+		/* Set 3:2:3 VGA palette */
 		
 		mov VESA_MODE_BPP_OFFSET(%di), %al
 		cmp $8, %al
@@ -240,10 +244,12 @@ vesa_init_real2:
 		mov $vga323 - vesa_init, %di
 		mov $0x100, %ecx
 		
-		bt $5, %ax              # test if VGA compatible registers are present
+		/* Test if VGA compatible registers are present */
+		bt $5, %ax
 		jnc vga_compat
 		
-			# try VESA routine to set palette
+			/* Use VESA routine to set the palette */
+			
 			mov $VESA_SET_PALETTE, %ax
 			xor %bl, %bl
 			xor %dx, %dx
@@ -253,16 +259,18 @@ vesa_init_real2:
 			je vga_not_compat
 		
 		vga_compat:
-			# try VGA registers to set palette
-			movw $0x3c6, %dx    # set palette mask
+			
+			/* Use VGA registers to set the palette */
+			
+			movw $0x3c6, %dx  /* set palette mask */
 			movb $0xff, %al
 			outb %al, %dx
 			
-			movw $0x3c8, %dx    # first index to set
+			movw $0x3c8, %dx  /* first index to set */
 			xor %al, %al
 			outb %al, %dx
 			
-			movw $0x3c9, %dx    # data port
+			movw $0x3c9, %dx  /* data port */
 			
 			vga_loop:
 				movb %es:2(%di), %al
@@ -283,12 +291,14 @@ vesa_init_real2:
 		
 		vga_not_set:
 		
-		# store mode parameters
-		#  eax = bpp[8] scanline[16]
-		#  ebx = width[16]  height[16]
-		#  edx = red_mask[8] red_pos[8] green_mask[8] green_pos[8]
-		#  esi = blue_mask[8] blue_pos[8]
-		#  edi = linear frame buffer
+		/*
+		 * Store mode parameters:
+		 *  eax = bpp[8] scanline[16]
+		 *  ebx = width[16]  height[16]
+		 *  edx = red_mask[8] red_pos[8] green_mask[8] green_pos[8]
+		 *  esi = blue_mask[8] blue_pos[8]
+		 *  edi = linear frame buffer
+		 */
 		
 		mov VESA_MODE_BPP_OFFSET(%di), %al
 		xor %ah, %ah
@@ -327,7 +337,9 @@ vesa_init_real2:
 			ljmpl $gdtselector(KTEXT32_DES), $(vesa_init_protected - vesa_init + VESA_INIT_SEGMENT << 4)
 	
 	no_mode:
-		# no prefered mode found
+		
+		/* No prefered mode found */
+		
 		mov $0x111, %cx
 		push %di
 		push %cx
@@ -338,15 +350,17 @@ vesa_init_real2:
 		pop %di
 		cmp $VESA_OK, %al
 		jnz text_mode
-		jz set_mode             # force relative jump
+		jz set_mode  /* force relative jump */
 	
 	text_mode:
-		# reset to EGA text mode (because of problems with VESA)
+		
+		/* Reset to EGA text mode (because of problems with VESA) */
+		
 		mov $0x0003, %ax
 		int $0x10
 		mov $0xffffffff, %edi
 		xor %ax, %ax
-		jz vesa_leave_real      # force relative jump
+		jz vesa_leave_real  /* force relative jump */
 
 vga323:
 #include "vga323.pal"

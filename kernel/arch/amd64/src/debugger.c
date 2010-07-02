@@ -229,15 +229,15 @@ static void handle_exception(int slot, istate_t *istate)
 			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
 			
-			printf("*** Found ZERO on address %lx (slot %d) ***\n",
+			printf("*** Found ZERO on address %" PRIp " (slot %d) ***\n",
 			    breakpoints[slot].address, slot);
 		} else {
-			printf("Data watchpoint - new data: %lx\n",
+			printf("Data watchpoint - new data: %" PRIp "\n",
 			    *((unative_t *) breakpoints[slot].address));
 		}
 	}
 	
-	printf("Reached breakpoint %d:%lx (%s)\n", slot, getip(istate),
+	printf("Reached breakpoint %d:%" PRIp " (%s)\n", slot, getip(istate),
 	    symtab_fmt_name_lookup(getip(istate)));
 	
 #ifdef CONFIG_KCONSOLE

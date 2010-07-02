@@ -40,7 +40,7 @@
 
 typedef int (* sort_cmp_t)(void *, void *, void *);
 
-extern bool bsort(void *, size_t, size_t, sort_cmp_t, void *);
+extern bool gsort(void *, size_t, size_t, sort_cmp_t, void *);
 extern bool qsort(void *, size_t, size_t, sort_cmp_t, void *);
 
 #endif

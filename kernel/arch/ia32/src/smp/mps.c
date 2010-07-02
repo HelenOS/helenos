@@ -71,29 +71,29 @@ static size_t io_apic_entry_cnt = 0;
 static size_t io_intr_entry_cnt = 0;
 static size_t l_intr_entry_cnt = 0;
 
-static uint8_t get_cpu_apic_id(size_t i)
+static uint8_t mps_cpu_apic_id(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	
 	return processor_entries[i].l_apic_id;
 }
 
-static bool is_cpu_enabled(size_t i)
+static bool mps_cpu_enabled(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	
 	/*
 	 * FIXME: The current local APIC driver limits usable
-	 * APIC IDs to 8.
+	 * CPU IDs to 8.
 	 *
 	 */
-	if (get_cpu_apic_id(i) > 7)
+	if (i > 7)
 		return false;
 	
 	return (bool) ((processor_entries[i].cpu_flags & 0x01) == 0x01);
 }
 
-static bool is_bsp(size_t i)
+static bool mps_cpu_bootstrap(size_t i)
 {
 	ASSERT(i < processor_entry_cnt);
 	
@@ -117,9 +117,9 @@ static int mps_irq_to_pin(unsigned int irq)
  *
  */
 struct smp_config_operations mps_config_operations = {
-	.cpu_enabled = is_cpu_enabled,
-	.cpu_bootstrap = is_bsp,
-	.cpu_apic_id = get_cpu_apic_id,
+	.cpu_enabled = mps_cpu_enabled,
+	.cpu_bootstrap = mps_cpu_bootstrap,
+	.cpu_apic_id = mps_cpu_apic_id,
 	.irq_to_pin = mps_irq_to_pin
 };
 

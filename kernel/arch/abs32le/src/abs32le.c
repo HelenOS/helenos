@@ -150,5 +150,9 @@ int memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	return EOK;
 }
 
+void early_putchar(wchar_t ch)
+{
+}
+
 /** @}
  */

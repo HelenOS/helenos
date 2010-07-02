@@ -75,6 +75,8 @@ volatile uint32_t *l_apic = (uint32_t *) 0xfee00000;
 volatile uint32_t *io_apic = (uint32_t *) 0xfec00000;
 
 uint32_t apic_id_mask = 0;
+uint8_t bsp_l_apic = 0;
+
 static irq_t l_apic_timer_irq;
 
 static int apic_poll_errors(void);
@@ -153,6 +155,19 @@ static void l_apic_timer_irq_handler(irq_t *irq)
 	irq_spinlock_lock(&irq->lock, false);
 }
 
+/** Get Local APIC ID.
+ *
+ * @return Local APIC ID.
+ *
+ */
+static uint8_t l_apic_id(void)
+{
+	l_apic_id_t idreg;
+	
+	idreg.value = l_apic[L_APIC_ID];
+	return idreg.apic_id;
+}
+
 /** Initialize APIC on BSP. */
 void apic_init(void)
 {
@@ -207,6 +222,8 @@ void apic_init(void)
 	 */
 	l_apic_init();
 	l_apic_debug();
+	
+	bsp_l_apic = l_apic_id();
 }
 
 /** Poll for APIC errors.
@@ -459,35 +476,33 @@ void l_apic_eoi(void)
 void l_apic_debug(void)
 {
 #ifdef LAPIC_VERBOSE
-	printf("LVT on cpu%" PRIs ", LAPIC ID: %" PRIu8 "\n", CPU->id, l_apic_id());
+	printf("LVT on cpu%" PRIs ", LAPIC ID: %" PRIu8 "\n",
+	    CPU->id, l_apic_id());
 	
 	lvt_tm_t tm;
 	tm.value = l_apic[LVT_Tm];
-	printf("LVT Tm: vector=%hhd, %s, %s, %s\n", tm.vector, delivs_str[tm.delivs], mask_str[tm.masked], tm_mode_str[tm.mode]);
+	printf("LVT Tm: vector=%" PRIu8 ", %s, %s, %s\n",
+	    tm.vector, delivs_str[tm.delivs], mask_str[tm.masked],
+	    tm_mode_str[tm.mode]);
 	
 	lvt_lint_t lint;
 	lint.value = l_apic[LVT_LINT0];
-	printf("LVT LINT0: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);
-	lint.value = l_apic[LVT_LINT1];	
-	printf("LVT LINT1: vector=%hhd, %s, %s, %s, irr=%d, %s, %s\n", tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs], intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode], mask_str[lint.masked]);	
+	printf("LVT LINT0: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
+	    tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs],
+	    intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode],
+	    mask_str[lint.masked]);
+	
+	lint.value = l_apic[LVT_LINT1];
+	printf("LVT LINT1: vector=%" PRIu8 ", %s, %s, %s, irr=%u, %s, %s\n",
+	    tm.vector, delmod_str[lint.delmod], delivs_str[lint.delivs],
+	    intpol_str[lint.intpol], lint.irr, trigmod_str[lint.trigger_mode],
+	    mask_str[lint.masked]);
 	
 	lvt_error_t error;
 	error.value = l_apic[LVT_Err];
-	printf("LVT Err: vector=%hhd, %s, %s\n", error.vector, delivs_str[error.delivs], mask_str[error.masked]);
+	printf("LVT Err: vector=%" PRIu8 ", %s, %s\n", error.vector,
+	    delivs_str[error.delivs], mask_str[error.masked]);
 #endif
-}
-
-/** Get Local APIC ID.
- *
- * @return Local APIC ID.
- *
- */
-uint8_t l_apic_id(void)
-{
-	l_apic_id_t idreg;
-	
-	idreg.value = l_apic[L_APIC_ID];
-	return idreg.apic_id;
 }
 
 /** Read from IO APIC register.

@@ -92,30 +92,23 @@
  */
 #define LOG(format, ...) \
 	do { \
-		printf("%s->%s() at %s:%u: " format "\n", symtab_fmt_name_lookup(CALLER), \
-		    __func__, __FILE__, __LINE__, ##__VA_ARGS__); \
-	} while (0)
-
-/** Extensive logging execute macro
- *
- * If CONFIG_LOG is set, the LOG_EXEC() macro
- * will print an information about calling a given
- * function and call it.
- *
- */
-#define LOG_EXEC(fnc) \
-	do { \
-		printf("%s->%s() at %s:%u: " #fnc "\n", symtab_fmt_name_lookup(CALLER), \
-		    __func__, __FILE__, __LINE__); \
-		fnc; \
+		printf("%s() from %s at %s:%u: " format "\n", __func__, \
+		    symtab_fmt_name_lookup(CALLER), __FILE__, __LINE__, \
+		    ##__VA_ARGS__); \
 	} while (0)
 
 #else /* CONFIG_LOG */
 
 #define LOG(format, ...)
-#define LOG_EXEC(fnc)     fnc
 
-#endif /* CONFOG_LOG */
+#endif /* CONFIG_LOG */
+
+#ifdef CONFIG_TRACE
+
+extern void __cyg_profile_func_enter(void *, void *);
+extern void __cyg_profile_func_exit(void *, void *);
+
+#endif /* CONFIG_TRACE */
 
 #endif
 
