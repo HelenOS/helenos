@@ -37,7 +37,7 @@
  * This file contains code for creating, destroying and searching
  * mappings between virtual addresses and physical addresses.
  * Functions here are mere wrappers that call the real implementation.
- * They however, define the single interface. 
+ * They however, define the single interface.
  *
  */
 

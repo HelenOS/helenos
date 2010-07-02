@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	THE structure functions.
+ * @brief THE structure functions.
  *
  * This file contains functions to manage the THE structure.
  * The THE structure exists at the base address of every kernel
@@ -42,7 +42,6 @@
  */
 
 #include <arch.h>
-
 
 /** Initialize THE structure
  *

@@ -115,11 +115,6 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
-static unsigned int area_flags_to_page_flags(unsigned int);
-static as_area_t *find_area_and_lock(as_t *, uintptr_t);
-static bool check_area_conflicts(as_t *, uintptr_t, size_t, as_area_t *);
-static void sh_info_remove_reference(share_info_t *);
-
 static int as_constructor(void *obj, unsigned int flags)
 {
 	as_t *as = (as_t *) obj;
@@ -297,6 +292,106 @@ void as_release(as_t *as)
 		as_destroy(as);
 }
 
+/** Check area conflicts with other areas.
+ *
+ * @param as         Address space.
+ * @param va         Starting virtual address of the area being tested.
+ * @param size       Size of the area being tested.
+ * @param avoid_area Do not touch this area.
+ *
+ * @return True if there is no conflict, false otherwise.
+ *
+ */
+static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
+    as_area_t *avoid_area)
+{
+	ASSERT(mutex_locked(&as->lock));
+	
+	/*
+	 * We don't want any area to have conflicts with NULL page.
+	 *
+	 */
+	if (overlaps(va, size, NULL, PAGE_SIZE))
+		return false;
+	
+	/*
+	 * The leaf node is found in O(log n), where n is proportional to
+	 * the number of address space areas belonging to as.
+	 * The check for conflicts is then attempted on the rightmost
+	 * record in the left neighbour, the leftmost record in the right
+	 * neighbour and all records in the leaf node itself.
+	 *
+	 */
+	btree_node_t *leaf;
+	as_area_t *area =
+	    (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
+	if (area) {
+		if (area != avoid_area)
+			return false;
+	}
+	
+	/* First, check the two border cases. */
+	btree_node_t *node =
+	    btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
+	if (node) {
+		area = (as_area_t *) node->value[node->keys - 1];
+		
+		mutex_lock(&area->lock);
+		
+		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
+			mutex_unlock(&area->lock);
+			return false;
+		}
+		
+		mutex_unlock(&area->lock);
+	}
+	
+	node = btree_leaf_node_right_neighbour(&as->as_area_btree, leaf);
+	if (node) {
+		area = (as_area_t *) node->value[0];
+		
+		mutex_lock(&area->lock);
+		
+		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
+			mutex_unlock(&area->lock);
+			return false;
+		}
+		
+		mutex_unlock(&area->lock);
+	}
+	
+	/* Second, check the leaf node. */
+	btree_key_t i;
+	for (i = 0; i < leaf->keys; i++) {
+		area = (as_area_t *) leaf->value[i];
+		
+		if (area == avoid_area)
+			continue;
+		
+		mutex_lock(&area->lock);
+		
+		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
+			mutex_unlock(&area->lock);
+			return false;
+		}
+		
+		mutex_unlock(&area->lock);
+	}
+	
+	/*
+	 * So far, the area does not conflict with other areas.
+	 * Check if it doesn't conflict with kernel address space.
+	 *
+	 */
+	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
+		return !overlaps(va, size,
+		    KERNEL_ADDRESS_SPACE_START,
+		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START);
+	}
+	
+	return true;
+}
+
 /** Create address space area of common attributes.
  *
  * The created address space area is added to the target address space.
@@ -356,6 +451,68 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	mutex_unlock(&as->lock);
 	
 	return area;
+}
+
+/** Find address space area and lock it.
+ *
+ * @param as Address space.
+ * @param va Virtual address.
+ *
+ * @return Locked address space area containing va on success or
+ *         NULL on failure.
+ *
+ */
+static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
+{
+	ASSERT(mutex_locked(&as->lock));
+	
+	btree_node_t *leaf;
+	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
+	if (area) {
+		/* va is the base address of an address space area */
+		mutex_lock(&area->lock);
+		return area;
+	}
+	
+	/*
+	 * Search the leaf node and the righmost record of its left neighbour
+	 * to find out whether this is a miss or va belongs to an address
+	 * space area found there.
+	 *
+	 */
+	
+	/* First, search the leaf node itself. */
+	btree_key_t i;
+	
+	for (i = 0; i < leaf->keys; i++) {
+		area = (as_area_t *) leaf->value[i];
+		
+		mutex_lock(&area->lock);
+		
+		if ((area->base <= va) && (va < area->base + area->pages * PAGE_SIZE))
+			return area;
+		
+		mutex_unlock(&area->lock);
+	}
+	
+	/*
+	 * Second, locate the left neighbour and test its last record.
+	 * Because of its position in the B+tree, it must have base < va.
+	 *
+	 */
+	btree_node_t *lnode = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
+	if (lnode) {
+		area = (as_area_t *) lnode->value[lnode->keys - 1];
+		
+		mutex_lock(&area->lock);
+		
+		if (va < area->base + area->pages * PAGE_SIZE)
+			return area;
+		
+		mutex_unlock(&area->lock);
+	}
+	
+	return NULL;
 }
 
 /** Find address space area and change it.
@@ -550,6 +707,47 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
 	mutex_unlock(&as->lock);
 	
 	return 0;
+}
+
+/** Remove reference to address space area share info.
+ *
+ * If the reference count drops to 0, the sh_info is deallocated.
+ *
+ * @param sh_info Pointer to address space area share info.
+ *
+ */
+static void sh_info_remove_reference(share_info_t *sh_info)
+{
+	bool dealloc = false;
+	
+	mutex_lock(&sh_info->lock);
+	ASSERT(sh_info->refcount);
+	
+	if (--sh_info->refcount == 0) {
+		dealloc = true;
+		link_t *cur;
+		
+		/*
+		 * Now walk carefully the pagemap B+tree and free/remove
+		 * reference from all frames found there.
+		 */
+		for (cur = sh_info->pagemap.leaf_head.next;
+		    cur != &sh_info->pagemap.leaf_head; cur = cur->next) {
+			btree_node_t *node
+			    = list_get_instance(cur, btree_node_t, leaf_link);
+			btree_key_t i;
+			
+			for (i = 0; i < node->keys; i++)
+				frame_free((uintptr_t) node->value[i]);
+		}
+		
+	}
+	mutex_unlock(&sh_info->lock);
+	
+	if (dealloc) {
+		btree_destroy(&sh_info->pagemap);
+		free(sh_info);
+	}
 }
 
 /** Destroy address space area.
@@ -802,6 +1000,32 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
 		return false;
 	
 	return true;
+}
+
+/** Convert address space area flags to page flags.
+ *
+ * @param aflags Flags of some address space area.
+ *
+ * @return Flags to be passed to page_mapping_insert().
+ *
+ */
+static unsigned int area_flags_to_page_flags(unsigned int aflags)
+{
+	unsigned int flags = PAGE_USER | PAGE_PRESENT;
+	
+	if (aflags & AS_AREA_READ)
+		flags |= PAGE_READ;
+		
+	if (aflags & AS_AREA_WRITE)
+		flags |= PAGE_WRITE;
+	
+	if (aflags & AS_AREA_EXEC)
+		flags |= PAGE_EXEC;
+	
+	if (aflags & AS_AREA_CACHEABLE)
+		flags |= PAGE_CACHEABLE;
+	
+	return flags;
 }
 
 /** Change adress space area flags.
@@ -1160,31 +1384,7 @@ retry:
 	AS = new_as;
 }
 
-/** Convert address space area flags to page flags.
- *
- * @param aflags Flags of some address space area.
- *
- * @return Flags to be passed to page_mapping_insert().
- *
- */
-unsigned int area_flags_to_page_flags(unsigned int aflags)
-{
-	unsigned int flags = PAGE_USER | PAGE_PRESENT;
-	
-	if (aflags & AS_AREA_READ)
-		flags |= PAGE_READ;
-		
-	if (aflags & AS_AREA_WRITE)
-		flags |= PAGE_WRITE;
-	
-	if (aflags & AS_AREA_EXEC)
-		flags |= PAGE_EXEC;
-	
-	if (aflags & AS_AREA_CACHEABLE)
-		flags |= PAGE_CACHEABLE;
-	
-	return flags;
-}
+
 
 /** Compute flags for virtual address translation subsytem.
  *
@@ -1271,10 +1471,10 @@ void page_table_unlock(as_t *as, bool unlock)
 
 /** Test whether page tables are locked.
  *
- * @param as		Address space where the page tables belong.
+ * @param as Address space where the page tables belong.
  *
- * @return		True if the page tables belonging to the address soace
- *			are locked, otherwise false.
+ * @return True if the page tables belonging to the address soace
+ *         are locked, otherwise false.
  */
 bool page_table_locked(as_t *as)
 {
@@ -1282,169 +1482,6 @@ bool page_table_locked(as_t *as)
 	ASSERT(as_operations->page_table_locked);
 
 	return as_operations->page_table_locked(as);
-}
-
-
-/** Find address space area and lock it.
- *
- * @param as Address space.
- * @param va Virtual address.
- *
- * @return Locked address space area containing va on success or
- *         NULL on failure.
- *
- */
-as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
-{
-	ASSERT(mutex_locked(&as->lock));
-
-	btree_node_t *leaf;
-	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
-	if (area) {
-		/* va is the base address of an address space area */
-		mutex_lock(&area->lock);
-		return area;
-	}
-	
-	/*
-	 * Search the leaf node and the righmost record of its left neighbour
-	 * to find out whether this is a miss or va belongs to an address
-	 * space area found there.
-	 *
-	 */
-	
-	/* First, search the leaf node itself. */
-	btree_key_t i;
-	
-	for (i = 0; i < leaf->keys; i++) {
-		area = (as_area_t *) leaf->value[i];
-		
-		mutex_lock(&area->lock);
-		
-		if ((area->base <= va) && (va < area->base + area->pages * PAGE_SIZE))
-			return area;
-		
-		mutex_unlock(&area->lock);
-	}
-	
-	/*
-	 * Second, locate the left neighbour and test its last record.
-	 * Because of its position in the B+tree, it must have base < va.
-	 *
-	 */
-	btree_node_t *lnode = btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
-	if (lnode) {
-		area = (as_area_t *) lnode->value[lnode->keys - 1];
-		
-		mutex_lock(&area->lock);
-		
-		if (va < area->base + area->pages * PAGE_SIZE)
-			return area;
-		
-		mutex_unlock(&area->lock);
-	}
-	
-	return NULL;
-}
-
-/** Check area conflicts with other areas.
- *
- * @param as         Address space.
- * @param va         Starting virtual address of the area being tested.
- * @param size       Size of the area being tested.
- * @param avoid_area Do not touch this area.
- *
- * @return True if there is no conflict, false otherwise.
- *
- */
-bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
-    as_area_t *avoid_area)
-{
-	ASSERT(mutex_locked(&as->lock));
-
-	/*
-	 * We don't want any area to have conflicts with NULL page.
-	 *
-	 */
-	if (overlaps(va, size, NULL, PAGE_SIZE))
-		return false;
-	
-	/*
-	 * The leaf node is found in O(log n), where n is proportional to
-	 * the number of address space areas belonging to as.
-	 * The check for conflicts is then attempted on the rightmost
-	 * record in the left neighbour, the leftmost record in the right
-	 * neighbour and all records in the leaf node itself.
-	 *
-	 */
-	btree_node_t *leaf;
-	as_area_t *area =
-	    (as_area_t *) btree_search(&as->as_area_btree, va, &leaf);
-	if (area) {
-		if (area != avoid_area)
-			return false;
-	}
-	
-	/* First, check the two border cases. */
-	btree_node_t *node =
-	    btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
-	if (node) {
-		area = (as_area_t *) node->value[node->keys - 1];
-		
-		mutex_lock(&area->lock);
-		
-		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
-			mutex_unlock(&area->lock);
-			return false;
-		}
-		
-		mutex_unlock(&area->lock);
-	}
-	
-	node = btree_leaf_node_right_neighbour(&as->as_area_btree, leaf);
-	if (node) {
-		area = (as_area_t *) node->value[0];
-		
-		mutex_lock(&area->lock);
-		
-		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
-			mutex_unlock(&area->lock);
-			return false;
-		}
-		
-		mutex_unlock(&area->lock);
-	}
-	
-	/* Second, check the leaf node. */
-	btree_key_t i;
-	for (i = 0; i < leaf->keys; i++) {
-		area = (as_area_t *) leaf->value[i];
-		
-		if (area == avoid_area)
-			continue;
-		
-		mutex_lock(&area->lock);
-		
-		if (overlaps(va, size, area->base, area->pages * PAGE_SIZE)) {
-			mutex_unlock(&area->lock);
-			return false;
-		}
-		
-		mutex_unlock(&area->lock);
-	}
-	
-	/*
-	 * So far, the area does not conflict with other areas.
-	 * Check if it doesn't conflict with kernel address space.
-	 *
-	 */
-	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
-		return !overlaps(va, size,
-		    KERNEL_ADDRESS_SPACE_START,
-		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START);
-	}
-	
-	return true;
 }
 
 /** Return size of the address space area with given base.
@@ -1957,47 +1994,6 @@ int used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 error:
 	panic("Inconsistency detected while removing %" PRIs " pages of used "
 	    "space from %p.", count, page);
-}
-
-/** Remove reference to address space area share info.
- *
- * If the reference count drops to 0, the sh_info is deallocated.
- *
- * @param sh_info Pointer to address space area share info.
- *
- */
-void sh_info_remove_reference(share_info_t *sh_info)
-{
-	bool dealloc = false;
-	
-	mutex_lock(&sh_info->lock);
-	ASSERT(sh_info->refcount);
-	
-	if (--sh_info->refcount == 0) {
-		dealloc = true;
-		link_t *cur;
-		
-		/*
-		 * Now walk carefully the pagemap B+tree and free/remove
-		 * reference from all frames found there.
-		 */
-		for (cur = sh_info->pagemap.leaf_head.next;
-		    cur != &sh_info->pagemap.leaf_head; cur = cur->next) {
-			btree_node_t *node
-			    = list_get_instance(cur, btree_node_t, leaf_link);
-			btree_key_t i;
-			
-			for (i = 0; i < node->keys; i++)
-				frame_free((uintptr_t) node->value[i]);
-		}
-		
-	}
-	mutex_unlock(&sh_info->lock);
-	
-	if (dealloc) {
-		btree_destroy(&sh_info->pagemap);
-		free(sh_info);
-	}
 }
 
 /*
