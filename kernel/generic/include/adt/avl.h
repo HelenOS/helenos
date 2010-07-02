@@ -33,9 +33,10 @@
  */
 
 #ifndef KERN_AVLTREE_H_
-#define KERN_AVLTREE_H_ 
+#define KERN_AVLTREE_H_
 
 #include <typedefs.h>
+#include <trace.h>
 
 /**
  * Macro for getting a pointer to the structure which contains the avltree
@@ -109,7 +110,7 @@ struct avltree
  *
  * @param t AVL tree.
  */
-static inline void avltree_create(avltree_t *t)
+NO_TRACE static inline void avltree_create(avltree_t *t)
 {
 	t->root = NULL;
 	t->base = 0;
@@ -119,7 +120,7 @@ static inline void avltree_create(avltree_t *t)
  *
  * @param node Node which is initialized.
  */
-static inline void avltree_node_initialize(avltree_node_t *node)
+NO_TRACE static inline void avltree_node_initialize(avltree_node_t *node)
 {
 	node->key = 0;
 	node->lft = NULL;

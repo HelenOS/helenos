@@ -42,7 +42,7 @@
 #ifndef __ASM__
 
 #include <arch/mm/tte.h>
-#include <print.h>
+#include <trace.h>
 #include <arch/mm/mmu.h>
 #include <arch/mm/page.h>
 #include <arch/asm.h>
@@ -87,34 +87,34 @@ typedef struct mmu_fault_status_area {
  *
  * @return	Current value of Primary Context Register.
  */
-static inline uint64_t mmu_primary_context_read(void)
+NO_TRACE static inline uint64_t mmu_primary_context_read(void)
 {
 	return asi_u64_read(ASI_PRIMARY_CONTEXT_REG, VA_PRIMARY_CONTEXT_REG);
 }
- 
+
 /** Write MMU Primary Context Register.
  *
  * @param v	New value of Primary Context Register.
  */
-static inline void mmu_primary_context_write(uint64_t v)
+NO_TRACE static inline void mmu_primary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_PRIMARY_CONTEXT_REG, VA_PRIMARY_CONTEXT_REG, v);
 }
- 
+
 /** Read MMU Secondary Context Register.
  *
  * @return	Current value of Secondary Context Register.
  */
-static inline uint64_t mmu_secondary_context_read(void)
+NO_TRACE static inline uint64_t mmu_secondary_context_read(void)
 {
 	return asi_u64_read(ASI_SECONDARY_CONTEXT_REG, VA_SECONDARY_CONTEXT_REG);
 }
- 
+
 /** Write MMU Secondary Context Register.
  *
  * @param v	New value of Secondary Context Register.
  */
-static inline void mmu_secondary_context_write(uint64_t v)
+NO_TRACE static inline void mmu_secondary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_SECONDARY_CONTEXT_REG, VA_SECONDARY_CONTEXT_REG, v);
 }
@@ -125,7 +125,7 @@ static inline void mmu_secondary_context_write(uint64_t v)
  * @param context	number of the context
  * @param mmu_flag	MMU_FLAG_DTLB, MMU_FLAG_ITLB or a combination of both
  */
-static inline void mmu_demap_ctx(int context, int mmu_flag) {
+NO_TRACE static inline void mmu_demap_ctx(int context, int mmu_flag) {
 	__hypercall_fast4(MMU_DEMAP_CTX, 0, 0, context, mmu_flag);
 }
 
@@ -136,7 +136,7 @@ static inline void mmu_demap_ctx(int context, int mmu_flag) {
  * @param context	number of the context
  * @param mmu_flag	MMU_FLAG_DTLB, MMU_FLAG_ITLB or a combination of both
  */
-static inline void mmu_demap_page(uintptr_t vaddr, int context, int mmu_flag) {
+NO_TRACE static inline void mmu_demap_page(uintptr_t vaddr, int context, int mmu_flag) {
 	__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, vaddr, context, mmu_flag);
 }
 

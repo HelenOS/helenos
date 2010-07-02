@@ -36,10 +36,10 @@
 #define KERN_sparc64_sun4v_CPU_H_
 
 /** Maximum number of virtual processors. */
-#define MAX_NUM_STRANDS		64
+#define MAX_NUM_STRANDS  64
 
 /** Maximum number of logical processors in a processor core */
-#define MAX_CORE_STRANDS	8
+#define MAX_CORE_STRANDS  8
 
 #ifndef __ASM__
 
@@ -58,19 +58,15 @@ typedef struct {
 } exec_unit_t;
 
 typedef struct cpu_arch {
-	uint64_t id;			/**< virtual processor ID */
-	uint32_t clock_frequency;	/**< Processor frequency in Hz. */
-	uint64_t next_tick_cmpr;	/**< Next clock interrupt should be
-					     generated when the TICK register
-					     matches this value. */
-	exec_unit_t *exec_unit;		/**< Physical core. */
-	unsigned long proposed_nrdy;	/**< Proposed No. of ready threads
-					     so that cores are equally balanced. */
+	uint64_t id;                  /**< virtual processor ID */
+	uint32_t clock_frequency;     /**< Processor frequency in Hz. */
+	uint64_t next_tick_cmpr;      /**< Next clock interrupt should be
+	                                   generated when the TICK register
+	                                   matches this value. */
+	exec_unit_t *exec_unit;       /**< Physical core. */
+	unsigned long proposed_nrdy;  /**< Proposed No. of ready threads
+	                                   so that cores are equally balanced. */
 } cpu_arch_t;
-
-#endif	
-
-#ifdef __ASM__
 
 #endif
 

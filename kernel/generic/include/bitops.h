@@ -35,6 +35,8 @@
 #ifndef KERN_BITOPS_H_
 #define KERN_BITOPS_H_
 
+#include <trace.h>
+
 #ifdef __32_BITS__
 	#define fnzb(arg)  fnzb32(arg)
 #endif
@@ -48,7 +50,7 @@
  * @return 0 (if the number is zero) or [log_2(arg)].
  *
  */
-static inline uint8_t fnzb32(uint32_t arg)
+NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
 {
 	uint8_t n = 0;
 	
@@ -83,7 +85,7 @@ static inline uint8_t fnzb32(uint32_t arg)
  * @return 0 (if the number is zero) or [log_2(arg)].
  *
  */
-static inline uint8_t fnzb64(uint64_t arg)
+NO_TRACE static inline uint8_t fnzb64(uint64_t arg)
 {
 	uint8_t n = 0;
 	

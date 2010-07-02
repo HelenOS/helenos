@@ -364,11 +364,24 @@ endif
 #
 
 ifeq ($(CONFIG_TRACE),y)
-INSTRUMENTED_SOURCES = \
-	generic/src/cpu/cpu.c \
-	generic/src/main/main.c \
-	generic/src/main/kinit.c \
-	generic/src/proc/the.c
+	INSTRUMENTED_SOURCES = \
+		generic/src/adt/btree.c \
+		generic/src/cpu/cpu.c \
+		generic/src/ddi/ddi.c \
+		generic/src/interrupt/interrupt.c \
+		generic/src/main/main.c \
+		generic/src/main/kinit.c \
+		generic/src/proc/the.c \
+		generic/src/proc/tasklet.c \
+		generic/src/mm/frame.c \
+		generic/src/mm/page.c \
+		generic/src/mm/tlb.c \
+		generic/src/mm/as.c \
+		generic/src/mm/slab.c \
+		generic/src/sysinfo/sysinfo.c \
+		generic/src/console/kconsole.c
+else
+	INSTRUMENTED_SOURCES =
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))

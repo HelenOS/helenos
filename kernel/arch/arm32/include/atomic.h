@@ -37,6 +37,7 @@
 #define KERN_arm32_ATOMIC_H_
 
 #include <arch/asm.h>
+#include <trace.h>
 
 /** Atomic addition.
  *
@@ -46,7 +47,8 @@
  * @return Value after addition.
  *
  */
-static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
+NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
+    atomic_count_t i)
 {
 	/*
 	 * This implementation is for UP pre-ARMv6 systems where we do not have
@@ -65,7 +67,7 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
  * @param val Variable to be incremented.
  *
  */
-static inline void atomic_inc(atomic_t *val)
+NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 	atomic_add(val, 1);
 }
@@ -75,7 +77,7 @@ static inline void atomic_inc(atomic_t *val)
  * @param val Variable to be decremented.
  *
  */
-static inline void atomic_dec(atomic_t *val) {
+NO_TRACE static inline void atomic_dec(atomic_t *val) {
 	atomic_add(val, -1);
 }
 
@@ -85,7 +87,7 @@ static inline void atomic_dec(atomic_t *val) {
  * @return    Value after incrementation.
  *
  */
-static inline atomic_count_t atomic_preinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
@@ -96,7 +98,7 @@ static inline atomic_count_t atomic_preinc(atomic_t *val)
  * @return    Value after decrementation.
  *
  */
-static inline atomic_count_t atomic_predec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
@@ -107,7 +109,7 @@ static inline atomic_count_t atomic_predec(atomic_t *val)
  * @return    Value before incrementation.
  *
  */
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1) - 1;
 }
@@ -118,7 +120,7 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
  * @return    Value before decrementation.
  *
  */
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1) + 1;
 }

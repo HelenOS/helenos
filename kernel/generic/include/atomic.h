@@ -39,14 +39,14 @@
 #include <arch/atomic.h>
 #include <verify.h>
 
-ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
+NO_TRACE ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
 	val->count = i;
 }
 
-ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
 {
 	return val->count;

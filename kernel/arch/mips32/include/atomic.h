@@ -35,6 +35,8 @@
 #ifndef KERN_mips32_ATOMIC_H_
 #define KERN_mips32_ATOMIC_H_
 
+#include <trace.h>
+
 #define atomic_inc(x)  ((void) atomic_add(x, 1))
 #define atomic_dec(x)  ((void) atomic_add(x, -1))
 
@@ -52,7 +54,8 @@
  * @return Value after addition.
  *
  */
-static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
+NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
+    atomic_count_t i)
 {
 	atomic_count_t tmp;
 	atomic_count_t v;
@@ -75,7 +78,7 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 	return v;
 }
 
-static inline atomic_count_t test_and_set(atomic_t *val)
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t tmp;
 	atomic_count_t v;
@@ -97,7 +100,7 @@ static inline atomic_count_t test_and_set(atomic_t *val)
 	return v;
 }
 
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	do {
 		while (val->count);

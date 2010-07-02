@@ -37,6 +37,7 @@
 
 #include <typedefs.h>
 #include <verify.h>
+#include <trace.h>
 
 #define IVT_ITEMS  0
 #define IVT_FIRST  0
@@ -53,7 +54,7 @@ typedef struct istate {
 	uint32_t stack[];
 } istate_t;
 
-static inline int istate_from_uspace(istate_t *istate)
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this checks whether the interrupted
@@ -62,7 +63,8 @@ static inline int istate_from_uspace(istate_t *istate)
 	return !(istate->ip & 0x80000000);
 }
 
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
     WRITES(&istate->ip)
 {
 	/* On real hardware this sets the instruction pointer. */
@@ -70,7 +72,7 @@ static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
 	istate->ip = retaddr;
 }
 
-static inline unative_t istate_get_pc(istate_t *istate)
+NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the instruction pointer. */
@@ -78,7 +80,7 @@ static inline unative_t istate_get_pc(istate_t *istate)
 	return istate->ip;
 }
 
-static inline unative_t istate_get_fp(istate_t *istate)
+NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the frame pointer. */

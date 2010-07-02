@@ -45,6 +45,7 @@
 #define KERN_amd64_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -186,7 +187,7 @@ typedef struct {
 	unsigned int no_execute : 1;
 } __attribute__ ((packed)) pte_t;
 
-static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -199,7 +200,7 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
-static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
+NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 	
@@ -207,7 +208,7 @@ static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 	p->addr_32_51 = a >> 32;
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	

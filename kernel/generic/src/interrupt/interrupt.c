@@ -54,6 +54,7 @@
 #include <proc/thread.h>
 #include <arch/cycle.h>
 #include <str.h>
+#include <trace.h>
 
 exc_table_t exc_table[IVT_ITEMS];
 IRQ_SPINLOCK_INITIALIZE(exctbl_lock);
@@ -96,7 +97,7 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
  * CPU is interrupts_disable()'d.
  *
  */
-void exc_dispatch(unsigned int n, istate_t *istate)
+NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
 	ASSERT(CPU);
 	
@@ -158,7 +159,7 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 /** Default 'null' exception handler
  *
  */
-static void exc_undef(unsigned int n, istate_t *istate)
+NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %u.", n);
 	panic("Unhandled exception %u.", n);
@@ -167,7 +168,7 @@ static void exc_undef(unsigned int n, istate_t *istate)
 /** Terminate thread and task if exception came from userspace.
  *
  */
-void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
+NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 {
 	if (!istate_from_uspace(istate))
 		return;
@@ -214,7 +215,7 @@ static char flag_buf[MAX_CMDLINE + 1];
 /** Print all exceptions
  *
  */
-static int cmd_exc_print(cmd_arg_t *argv)
+NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
 {
 	bool excs_all;
 	
