@@ -502,11 +502,11 @@ early_putchar:
 		
 		movb $0x0e, %ah  /* black background, yellow foreground */
 		stosw
+		inc %bx
 	
 	early_putchar_newline:
 	
 	/* Sanity check for the cursor on the last line */
-	inc %bx
 	cmp $2000, %bx
 	jb early_putchar_no_scroll
 	
