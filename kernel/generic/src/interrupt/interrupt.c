@@ -99,8 +99,6 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
  */
 NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
-	ASSERT(CPU);
-	
 #if (IVT_ITEMS > 0)
 	ASSERT(n < IVT_ITEMS);
 #endif
@@ -113,14 +111,16 @@ NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 	}
 	
 	/* Account CPU usage if it has waked up from sleep */
-	irq_spinlock_lock(&CPU->lock, false);
-	if (CPU->idle) {
-		uint64_t now = get_cycle();
-		CPU->idle_cycles += now - CPU->last_cycle;
-		CPU->last_cycle = now;
-		CPU->idle = false;
+	if (CPU) {
+		irq_spinlock_lock(&CPU->lock, false);
+		if (CPU->idle) {
+			uint64_t now = get_cycle();
+			CPU->idle_cycles += now - CPU->last_cycle;
+			CPU->last_cycle = now;
+			CPU->idle = false;
+		}
+		irq_spinlock_unlock(&CPU->lock, false);
 	}
-	irq_spinlock_unlock(&CPU->lock, false);
 	
 	uint64_t begin_cycle = get_cycle();
 	
