@@ -604,22 +604,22 @@ ptl_2_3g:
 /* Page table for pages in the 5th gigabyte. */
 .align 4096
 ptl_2_4g:
-	ptl2gen 512 3
+	ptl2gen 512 4
 
 /* Page table for pages in the 6th gigabyte. */
 .align 4096
 ptl_2_5g:
-	ptl2gen 512 3
+	ptl2gen 512 5
 
 /* Page table for pages in the 7th gigabyte. */
 .align 4096
 ptl_2_6g:
-	ptl2gen 512 3
+	ptl2gen 512 6
 
 /* Page table for pages in the 8th gigabyte. */
 .align 4096
 ptl_2_7g:
-	ptl2gen 512 3
+	ptl2gen 512 7
 
 .align 4096
 ptl_1:
