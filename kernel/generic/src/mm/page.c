@@ -114,7 +114,7 @@ void map_structure(uintptr_t addr, size_t size)
  * @param flags Flags to be used for mapping.
  *
  */
-void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
 	ASSERT(page_table_locked(as));
@@ -138,7 +138,7 @@ void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * @param page Virtual address of the page to be demapped.
  *
  */
-void page_mapping_remove(as_t *as, uintptr_t page)
+NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 {
 	ASSERT(page_table_locked(as));
 	
@@ -162,7 +162,7 @@ void page_mapping_remove(as_t *as, uintptr_t page)
  *         otherwise.
  *
  */
-pte_t *page_mapping_find(as_t *as, uintptr_t page)
+NO_TRACE pte_t *page_mapping_find(as_t *as, uintptr_t page)
 {
 	ASSERT(page_table_locked(as));
 	

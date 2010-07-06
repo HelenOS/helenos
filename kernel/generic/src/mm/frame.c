@@ -132,7 +132,10 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count)
 		/* Check for overlap */
 		if (overlaps(base, count,
 		    zones.info[i].base, zones.info[i].count)) {
-			printf("Zones overlap!\n");
+			printf("Zone (%p, %p) overlaps with zone (%p, %p)!\n",
+			    PFN2ADDR(base), PFN2ADDR(base + count),
+			    PFN2ADDR(zones.info[i].base),
+			    PFN2ADDR(zones.info[i].base + zones.info[i].count));
 			return (size_t) -1;
 		}
 		if (base < zones.info[i].base)
@@ -184,7 +187,7 @@ NO_TRACE static size_t total_frames_free(void)
  * @return Zone index or -1 if not found.
  *
  */
-size_t find_zone(pfn_t frame, size_t count, size_t hint)
+NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 {
 	if (hint >= zones.count)
 		hint = 0;
@@ -1114,7 +1117,7 @@ void frame_free(uintptr_t frame)
  * @param pfn Frame number of the frame to be freed.
  *
  */
-void frame_reference_add(pfn_t pfn)
+NO_TRACE void frame_reference_add(pfn_t pfn)
 {
 	irq_spinlock_lock(&zones.lock, true);
 	
@@ -1133,7 +1136,7 @@ void frame_reference_add(pfn_t pfn)
 /** Mark given range unavailable in frame zones.
  *
  */
-void frame_mark_unavailable(pfn_t start, size_t count)
+NO_TRACE void frame_mark_unavailable(pfn_t start, size_t count)
 {
 	irq_spinlock_lock(&zones.lock, true);
 	

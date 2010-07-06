@@ -986,7 +986,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
  *         otherwise.
  *
  */
-bool as_area_check_access(as_area_t *area, pf_access_t access)
+NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
 {
 	int flagmap[] = {
 		[PF_ACCESS_READ] = AS_AREA_READ,
@@ -1384,8 +1384,6 @@ retry:
 	AS = new_as;
 }
 
-
-
 /** Compute flags for virtual address translation subsytem.
  *
  * @param area Address space area.
@@ -1393,7 +1391,7 @@ retry:
  * @return Flags to be used in page_mapping_insert().
  *
  */
-unsigned int as_area_get_flags(as_area_t *area)
+NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
 {
 	ASSERT(mutex_locked(&area->lock));
 
@@ -1411,7 +1409,7 @@ unsigned int as_area_get_flags(as_area_t *area)
  * @return First entry of the page table.
  *
  */
-pte_t *page_table_create(unsigned int flags)
+NO_TRACE pte_t *page_table_create(unsigned int flags)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_create);
@@ -1426,7 +1424,7 @@ pte_t *page_table_create(unsigned int flags)
  * @param page_table Physical address of PTL0.
  *
  */
-void page_table_destroy(pte_t *page_table)
+NO_TRACE void page_table_destroy(pte_t *page_table)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_destroy);
@@ -1447,7 +1445,7 @@ void page_table_destroy(pte_t *page_table)
  * @param lock If false, do not attempt to lock as->lock.
  *
  */
-void page_table_lock(as_t *as, bool lock)
+NO_TRACE void page_table_lock(as_t *as, bool lock)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_lock);
@@ -1461,7 +1459,7 @@ void page_table_lock(as_t *as, bool lock)
  * @param unlock If false, do not attempt to unlock as->lock.
  *
  */
-void page_table_unlock(as_t *as, bool unlock)
+NO_TRACE void page_table_unlock(as_t *as, bool unlock)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_unlock);
@@ -1476,7 +1474,7 @@ void page_table_unlock(as_t *as, bool unlock)
  * @return True if the page tables belonging to the address soace
  *         are locked, otherwise false.
  */
-bool page_table_locked(as_t *as)
+NO_TRACE bool page_table_locked(as_t *as)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_locked);
