@@ -239,13 +239,13 @@ pm_error_halt:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -347,13 +347,13 @@ pm_early_puts:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -462,13 +462,13 @@ early_puts:
 		movl %esi, %edx
 		movl $(PA2KA(0xb80a0)), %esi
 		movl $(PA2KA(0xb8000)), %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi

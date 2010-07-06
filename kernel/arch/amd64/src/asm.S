@@ -444,13 +444,13 @@ early_putchar:
 		/* Scroll the screen (24 rows) */
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
-		movq $1920, %rcx
-		rep movsw
+		movq $480, %rcx
+		rep movsq
 		
 		/* Clear the 24th row */
 		xorq %rax, %rax
-		movq $80, %rcx
-		rep stosw
+		movq $20, %rcx
+		rep stosq
 		
 		/* Go to row 24 */
 		movw $1920, %bx
