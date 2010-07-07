@@ -51,6 +51,7 @@
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
+#include <trace.h>
 
 /** This lock protects the parea_btree. */
 static mutex_t parea_lock;
@@ -98,7 +99,7 @@ void ddi_parea_register(parea_t *parea)
  *         creating address space area.
  *
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
+NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
     unsigned int flags)
 {
 	ASSERT(TASK);
@@ -186,7 +187,8 @@ map:
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
+NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
+    size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.

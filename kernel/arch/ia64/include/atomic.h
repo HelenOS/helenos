@@ -35,7 +35,9 @@
 #ifndef KERN_ia64_ATOMIC_H_
 #define KERN_ia64_ATOMIC_H_
 
-static inline atomic_count_t test_and_set(atomic_t *val)
+#include <trace.h>
+
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -49,14 +51,14 @@ static inline atomic_count_t test_and_set(atomic_t *val)
 	return v;
 }
 
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	do {
 		while (val->count);
 	} while (test_and_set(val));
 }
 
-static inline void atomic_inc(atomic_t *val)
+NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -67,7 +69,7 @@ static inline void atomic_inc(atomic_t *val)
 	);
 }
 
-static inline void atomic_dec(atomic_t *val)
+NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -78,7 +80,7 @@ static inline void atomic_dec(atomic_t *val)
 	);
 }
 
-static inline atomic_count_t atomic_preinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -91,7 +93,7 @@ static inline atomic_count_t atomic_preinc(atomic_t *val)
 	return (v + 1);
 }
 
-static inline atomic_count_t atomic_predec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -104,7 +106,7 @@ static inline atomic_count_t atomic_predec(atomic_t *val)
 	return (v - 1);
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	atomic_count_t v;
 	
@@ -117,7 +119,7 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 	return v;
 }
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	atomic_count_t v;
 	

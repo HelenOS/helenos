@@ -159,7 +159,7 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-static void print_cc(wchar_t ch, size_t count)
+NO_TRACE static void print_cc(wchar_t ch, size_t count)
 {
 	size_t i;
 	for (i = 0; i < count; i++)
@@ -167,7 +167,8 @@ static void print_cc(wchar_t ch, size_t count)
 }
 
 /** Try to find a command beginning with prefix */
-static const char *cmdtab_search_one(const char *name, link_t **startpos)
+NO_TRACE static const char *cmdtab_search_one(const char *name,
+    link_t **startpos)
 {
 	size_t namelen = str_length(name);
 	
@@ -201,7 +202,7 @@ static const char *cmdtab_search_one(const char *name, link_t **startpos)
  * @return Number of found matches
  *
  */
-static int cmdtab_compl(char *input, size_t size)
+NO_TRACE static int cmdtab_compl(char *input, size_t size)
 {
 	const char *name = input;
 	
@@ -236,7 +237,7 @@ static int cmdtab_compl(char *input, size_t size)
 	return found;
 }
 
-static wchar_t *clever_readline(const char *prompt, indev_t *indev)
+NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 {
 	printf("%s> ", prompt);
 	
@@ -421,7 +422,8 @@ bool kconsole_check_poll(void)
 	return check_poll(stdin);
 }
 
-static bool parse_int_arg(const char *text, size_t len, unative_t *result)
+NO_TRACE static bool parse_int_arg(const char *text, size_t len,
+    unative_t *result)
 {
 	bool isaddr = false;
 	bool isptr = false;
@@ -506,7 +508,8 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
  * @return False on failure, true on success.
  *
  */
-static bool parse_argument(const char *cmdline, size_t size, size_t *start, size_t *end)
+NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
+    size_t *start, size_t *end)
 {
 	ASSERT(start != NULL);
 	ASSERT(end != NULL);
@@ -542,7 +545,7 @@ static bool parse_argument(const char *cmdline, size_t size, size_t *start, size
  * @return Structure describing the command.
  *
  */
-static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
+NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 {
 	size_t start = 0;
 	size_t end = 0;

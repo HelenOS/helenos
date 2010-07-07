@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_FRAME_H_
-#define KERN_sparc64_FRAME_H_
+#ifndef LIBC_TRACE_H_
+#define LIBC_TRACE_H_
 
-#if defined (SUN4U)
-
-#include <arch/mm/sun4u/frame.h>
-
-#elif defined (SUN4V)
-
-#include <arch/mm/sun4v/frame.h>
-
-#endif
+#define NO_TRACE  __attribute__((no_instrument_function))
 
 #endif
 

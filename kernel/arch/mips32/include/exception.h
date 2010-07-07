@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -37,25 +37,26 @@
 
 #include <typedefs.h>
 #include <arch/cp0.h>
+#include <trace.h>
 
-#define EXC_Int		0
-#define EXC_Mod		1
-#define EXC_TLBL	2
-#define EXC_TLBS	3
-#define EXC_AdEL	4
-#define EXC_AdES	5
-#define EXC_IBE		6
-#define EXC_DBE		7
-#define EXC_Sys		8
-#define EXC_Bp		9
-#define EXC_RI		10
-#define EXC_CpU		11
-#define EXC_Ov		12
-#define EXC_Tr		13
-#define EXC_VCEI	14
-#define EXC_FPE		15
-#define EXC_WATCH	23
-#define EXC_VCED	31
+#define EXC_Int    0
+#define EXC_Mod    1
+#define EXC_TLBL   2
+#define EXC_TLBS   3
+#define EXC_AdEL   4
+#define EXC_AdES   5
+#define EXC_IBE    6
+#define EXC_DBE    7
+#define EXC_Sys    8
+#define EXC_Bp     9
+#define EXC_RI     10
+#define EXC_CpU    11
+#define EXC_Ov     12
+#define EXC_Tr     13
+#define EXC_VCEI   14
+#define EXC_FPE    15
+#define EXC_WATCH  23
+#define EXC_VCED   31
 
 typedef struct istate {
 	uint32_t at;
@@ -81,29 +82,34 @@ typedef struct istate {
 	
 	uint32_t lo;
 	uint32_t hi;
-
-	uint32_t status; /* cp0_status */
-	uint32_t epc; /* cp0_epc */
-	uint32_t k1; /* We use it as thread-local pointer */
+	
+	uint32_t status;  /* cp0_status */
+	uint32_t epc;     /* cp0_epc */
+	uint32_t k1;      /* We use it as thread-local pointer */
 } istate_t;
 
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
 	istate->epc = retaddr;
 }
 
 /** Return true if exception happened while in userspace */
-static inline int istate_from_uspace(istate_t *istate)
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return istate->status & cp0_status_um_bit;
 }
-static inline unative_t istate_get_pc(istate_t *istate)
+
+NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->epc;
 }
-static inline unative_t istate_get_fp(istate_t *istate)
+
+NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
 {
-	return 0;	/* FIXME */
+	/* FIXME */
+	
+	return 0;
 }
 
 extern void exception(istate_t *istate);

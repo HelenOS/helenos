@@ -427,8 +427,8 @@ interrupt_handlers:
  *
  * Since the EGA can only display Extended ASCII (usually
  * ISO Latin 1) characters, some of the Unicode characters
- * can be displayed in a wrong way. Only the newline character
- * is interpreted, all other characters (even unprintable) are
+ * can be displayed in a wrong way. Only newline and backspace
+ * are interpreted, all other characters (even unprintable) are
  * printed verbatim.
  *
  * @param %ebp+0x08 Unicode character to be printed.
@@ -480,7 +480,7 @@ early_putchar:
 	movl 0x08(%ebp), %eax
 	
 	cmp $0x0a, %al
-	jne early_putchar_print
+	jne early_putchar_backspace
 	
 		/* Interpret newline */
 		
@@ -494,7 +494,20 @@ early_putchar:
 		addw %cx, %bx
 		subw %dx, %bx
 		
-		jmp early_putchar_newline
+		jmp early_putchar_skip
+	
+	early_putchar_backspace:
+	
+		cmp $0x08, %al
+		jne early_putchar_print
+		
+		/* Interpret backspace */
+		
+		cmp $0x0000, %bx
+		je early_putchar_skip
+		
+		dec %bx
+		jmp early_putchar_skip
 	
 	early_putchar_print:
 	
@@ -504,7 +517,7 @@ early_putchar:
 		stosw
 		inc %bx
 	
-	early_putchar_newline:
+	early_putchar_skip:
 	
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
@@ -513,13 +526,13 @@ early_putchar:
 		/* Scroll the screen (24 rows) */
 		movl $(PA2KA(0xb80a0)), %esi
 		movl $(PA2KA(0xb8000)), %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movw $1920, %bx

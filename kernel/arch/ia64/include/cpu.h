@@ -39,9 +39,15 @@
 #include <arch/register.h>
 #include <arch/asm.h>
 #include <arch/bootinfo.h>
+#include <trace.h>
 
-#define FAMILY_ITANIUM	0x7
-#define FAMILY_ITANIUM2	0x1f
+#define FAMILY_ITANIUM   0x7
+#define FAMILY_ITANIUM2  0x1f
+
+#define CR64_ID_SHIFT   24
+#define CR64_ID_MASK    0xff000000
+#define CR64_EID_SHIFT  16
+#define CR64_EID_MASK   0xff0000
 
 typedef struct {
 	uint64_t cpuid0;
@@ -54,40 +60,37 @@ typedef struct {
  * @param n CPUID register number.
  *
  * @return Value of CPUID[n] register.
+ *
  */
-static inline uint64_t cpuid_read(int n)
+NO_TRACE static inline uint64_t cpuid_read(int n)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cpuid[%1]\n" : "=r" (v) : "r" (n));
+	asm volatile (
+		"mov %[v] = cpuid[%[r]]\n"
+		: [v] "=r" (v)
+		: [r] "r" (n)
+	);
 	
 	return v;
 }
 
-
-#define CR64_ID_SHIFT 24
-#define CR64_ID_MASK 0xff000000
-#define CR64_EID_SHIFT 16
-#define CR64_EID_MASK 0xff0000
-
-static inline int ia64_get_cpu_id(void)
+NO_TRACE static inline int ia64_get_cpu_id(void)
 {
-	uint64_t cr64=cr64_read();
-	return ((CR64_ID_MASK)&cr64)>>CR64_ID_SHIFT;
+	uint64_t cr64 = cr64_read();
+	return ((CR64_ID_MASK) &cr64) >> CR64_ID_SHIFT;
 }
 
-static inline int ia64_get_cpu_eid(void)
+NO_TRACE static inline int ia64_get_cpu_eid(void)
 {
-	uint64_t cr64=cr64_read();
-	return ((CR64_EID_MASK)&cr64)>>CR64_EID_SHIFT;
+	uint64_t cr64 = cr64_read();
+	return ((CR64_EID_MASK) &cr64) >> CR64_EID_SHIFT;
 }
 
-
-static inline void ipi_send_ipi(int id, int eid, int intno)
+NO_TRACE static inline void ipi_send_ipi(int id, int eid, int intno)
 {
 	(bootinfo->sapic)[2 * (id * 256 + eid)] = intno;
 	srlz_d();
-
 }
 
 #endif

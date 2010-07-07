@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -36,9 +36,13 @@
 #define KERN_sparc64_AS_H_
 
 #if defined (SUN4U)
+
 #include <arch/mm/sun4u/as.h>
+
 #elif defined (SUN4V)
+
 #include <arch/mm/sun4v/as.h>
+
 #endif
 
 #endif

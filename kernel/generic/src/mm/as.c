@@ -115,7 +115,7 @@ LIST_INITIALIZE(inactive_as_with_asid_head);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
-static int as_constructor(void *obj, unsigned int flags)
+NO_TRACE static int as_constructor(void *obj, unsigned int flags)
 {
 	as_t *as = (as_t *) obj;
 	
@@ -127,7 +127,7 @@ static int as_constructor(void *obj, unsigned int flags)
 	return rc;
 }
 
-static size_t as_destructor(void *obj)
+NO_TRACE static size_t as_destructor(void *obj)
 {
 	as_t *as = (as_t *) obj;
 	return as_destructor_arch(as);
@@ -273,7 +273,7 @@ retry:
  * @param as Address space to be held.
  *
  */
-void as_hold(as_t *as)
+NO_TRACE void as_hold(as_t *as)
 {
 	atomic_inc(&as->refcount);
 }
@@ -286,7 +286,7 @@ void as_hold(as_t *as)
  * @param asAddress space to be released.
  *
  */
-void as_release(as_t *as)
+NO_TRACE void as_release(as_t *as)
 {
 	if (atomic_predec(&as->refcount) == 0)
 		as_destroy(as);
@@ -302,7 +302,7 @@ void as_release(as_t *as)
  * @return True if there is no conflict, false otherwise.
  *
  */
-static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
+NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
     as_area_t *avoid_area)
 {
 	ASSERT(mutex_locked(&as->lock));
@@ -462,7 +462,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
  *         NULL on failure.
  *
  */
-static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
+NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
 	ASSERT(mutex_locked(&as->lock));
 	
@@ -716,7 +716,7 @@ int as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int flags)
  * @param sh_info Pointer to address space area share info.
  *
  */
-static void sh_info_remove_reference(share_info_t *sh_info)
+NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 {
 	bool dealloc = false;
 	
@@ -986,7 +986,7 @@ int as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
  *         otherwise.
  *
  */
-bool as_area_check_access(as_area_t *area, pf_access_t access)
+NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
 {
 	int flagmap[] = {
 		[PF_ACCESS_READ] = AS_AREA_READ,
@@ -1009,7 +1009,7 @@ bool as_area_check_access(as_area_t *area, pf_access_t access)
  * @return Flags to be passed to page_mapping_insert().
  *
  */
-static unsigned int area_flags_to_page_flags(unsigned int aflags)
+NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
 {
 	unsigned int flags = PAGE_USER | PAGE_PRESENT;
 	
@@ -1384,8 +1384,6 @@ retry:
 	AS = new_as;
 }
 
-
-
 /** Compute flags for virtual address translation subsytem.
  *
  * @param area Address space area.
@@ -1393,7 +1391,7 @@ retry:
  * @return Flags to be used in page_mapping_insert().
  *
  */
-unsigned int as_area_get_flags(as_area_t *area)
+NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
 {
 	ASSERT(mutex_locked(&area->lock));
 
@@ -1411,7 +1409,7 @@ unsigned int as_area_get_flags(as_area_t *area)
  * @return First entry of the page table.
  *
  */
-pte_t *page_table_create(unsigned int flags)
+NO_TRACE pte_t *page_table_create(unsigned int flags)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_create);
@@ -1426,7 +1424,7 @@ pte_t *page_table_create(unsigned int flags)
  * @param page_table Physical address of PTL0.
  *
  */
-void page_table_destroy(pte_t *page_table)
+NO_TRACE void page_table_destroy(pte_t *page_table)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_destroy);
@@ -1447,7 +1445,7 @@ void page_table_destroy(pte_t *page_table)
  * @param lock If false, do not attempt to lock as->lock.
  *
  */
-void page_table_lock(as_t *as, bool lock)
+NO_TRACE void page_table_lock(as_t *as, bool lock)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_lock);
@@ -1461,7 +1459,7 @@ void page_table_lock(as_t *as, bool lock)
  * @param unlock If false, do not attempt to unlock as->lock.
  *
  */
-void page_table_unlock(as_t *as, bool unlock)
+NO_TRACE void page_table_unlock(as_t *as, bool unlock)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_unlock);
@@ -1476,7 +1474,7 @@ void page_table_unlock(as_t *as, bool unlock)
  * @return True if the page tables belonging to the address soace
  *         are locked, otherwise false.
  */
-bool page_table_locked(as_t *as)
+NO_TRACE bool page_table_locked(as_t *as)
 {
 	ASSERT(as_operations);
 	ASSERT(as_operations->page_table_locked);

@@ -54,6 +54,7 @@
 #include <proc/thread.h>
 #include <arch/cycle.h>
 #include <str.h>
+#include <trace.h>
 
 exc_table_t exc_table[IVT_ITEMS];
 IRQ_SPINLOCK_INITIALIZE(exctbl_lock);
@@ -96,10 +97,8 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
  * CPU is interrupts_disable()'d.
  *
  */
-void exc_dispatch(unsigned int n, istate_t *istate)
+NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
-	ASSERT(CPU);
-	
 #if (IVT_ITEMS > 0)
 	ASSERT(n < IVT_ITEMS);
 #endif
@@ -112,14 +111,16 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 	}
 	
 	/* Account CPU usage if it has waked up from sleep */
-	irq_spinlock_lock(&CPU->lock, false);
-	if (CPU->idle) {
-		uint64_t now = get_cycle();
-		CPU->idle_cycles += now - CPU->last_cycle;
-		CPU->last_cycle = now;
-		CPU->idle = false;
+	if (CPU) {
+		irq_spinlock_lock(&CPU->lock, false);
+		if (CPU->idle) {
+			uint64_t now = get_cycle();
+			CPU->idle_cycles += now - CPU->last_cycle;
+			CPU->last_cycle = now;
+			CPU->idle = false;
+		}
+		irq_spinlock_unlock(&CPU->lock, false);
 	}
-	irq_spinlock_unlock(&CPU->lock, false);
 	
 	uint64_t begin_cycle = get_cycle();
 	
@@ -158,7 +159,7 @@ void exc_dispatch(unsigned int n, istate_t *istate)
 /** Default 'null' exception handler
  *
  */
-static void exc_undef(unsigned int n, istate_t *istate)
+NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %u.", n);
 	panic_badtrap(istate, n, "Unhandled exception %u.", n);
@@ -167,7 +168,7 @@ static void exc_undef(unsigned int n, istate_t *istate)
 /** Terminate thread and task if exception came from userspace.
  *
  */
-void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
+NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 {
 	if (!istate_from_uspace(istate))
 		return;
@@ -214,7 +215,7 @@ static char flag_buf[MAX_CMDLINE + 1];
 /** Print all exceptions
  *
  */
-static int cmd_exc_print(cmd_arg_t *argv)
+NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
 {
 	bool excs_all;
 	

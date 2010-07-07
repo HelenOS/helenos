@@ -130,7 +130,7 @@ static void main_ap_separated_stack(void);
  * Assuming interrupts_disable().
  *
  */
-void __attribute__((no_instrument_function)) main_bsp(void)
+NO_TRACE void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;

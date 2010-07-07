@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -35,11 +35,14 @@
 #ifndef KERN_sparc64_TLB_H_
 #define KERN_sparc64_TLB_H_
 
-
 #if defined (SUN4U)
+
 #include <arch/mm/sun4u/tlb.h>
+
 #elif defined (SUN4V)
+
 #include <arch/mm/sun4v/tlb.h>
+
 #endif
 
 #endif

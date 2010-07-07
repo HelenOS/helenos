@@ -40,11 +40,10 @@
 #include <arch/exception.h>
 
 /** Initial size of exception dispatch table. */
-#define IVT_ITEMS 	6
+#define IVT_ITEMS  6
 
 /** Index of the first item in exception dispatch table. */
-#define IVT_FIRST	0
-
+#define IVT_FIRST  0
 
 extern void interrupt_init(void);
 extern ipl_t interrupts_disable(void);
@@ -52,7 +51,6 @@ extern ipl_t interrupts_enable(void);
 extern void interrupts_restore(ipl_t ipl);
 extern ipl_t interrupts_read(void);
 extern bool interrupts_disabled(void);
-
 
 #endif
 

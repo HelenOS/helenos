@@ -35,7 +35,9 @@
 #ifndef KERN_ppc32_CYCLE_H_
 #define KERN_ppc32_CYCLE_H_
 
-static inline uint64_t get_cycle(void)
+#include <trace.h>
+
+NO_TRACE static inline uint64_t get_cycle(void)
 {
 	uint32_t lower;
 	uint32_t upper;

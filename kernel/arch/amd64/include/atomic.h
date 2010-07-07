@@ -38,8 +38,9 @@
 #include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
+#include <trace.h>
 
-static inline void atomic_inc(atomic_t *val)
+NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
@@ -54,7 +55,7 @@ static inline void atomic_inc(atomic_t *val)
 #endif /* CONFIG_SMP */
 }
 
-static inline void atomic_dec(atomic_t *val)
+NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
@@ -69,7 +70,7 @@ static inline void atomic_dec(atomic_t *val)
 #endif /* CONFIG_SMP */
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	atomic_count_t r = 1;
 	
@@ -82,7 +83,7 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 	return r;
 }
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	atomic_count_t r = -1;
 	
@@ -98,7 +99,7 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 #define atomic_preinc(val)  (atomic_postinc(val) + 1)
 #define atomic_predec(val)  (atomic_postdec(val) - 1)
 
-static inline atomic_count_t test_and_set(atomic_t *val)
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t v = 1;
 	
@@ -112,22 +113,22 @@ static inline atomic_count_t test_and_set(atomic_t *val)
 }
 
 /** amd64 specific fast spinlock */
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	atomic_count_t tmp;
 	
 	preemption_disable();
 	asm volatile (
 		"0:\n"
-		"pause\n"
-		"mov %[count], %[tmp]\n"
-		"testq %[tmp], %[tmp]\n"
-		"jnz 0b\n"       /* lightweight looping on locked spinlock */
+		"	pause\n"
+		"	mov %[count], %[tmp]\n"
+		"	testq %[tmp], %[tmp]\n"
+		"	jnz 0b\n"       /* lightweight looping on locked spinlock */
 		
-		"incq %[tmp]\n"  /* now use the atomic operation */
-		"xchgq %[count], %[tmp]\n"
-		"testq %[tmp], %[tmp]\n"
-		"jnz 0b\n"
+		"	incq %[tmp]\n"  /* now use the atomic operation */
+		"	xchgq %[count], %[tmp]\n"
+		"	testq %[tmp], %[tmp]\n"
+		"	jnz 0b\n"
 		: [count] "+m" (val->count),
 		  [tmp] "=&r" (tmp)
 	);
