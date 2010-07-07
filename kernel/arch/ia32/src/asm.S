@@ -204,13 +204,13 @@ sysenter_handler:
 	
 	sysexit   /* return to userspace */
 
-#define ISTATE_OFFSET_EAX         0
-#define ISTATE_OFFSET_EBX         4
-#define ISTATE_OFFSET_ECX         8
-#define ISTATE_OFFSET_EDX         12
-#define ISTATE_OFFSET_EDI         16
-#define ISTATE_OFFSET_ESI         20
-#define ISTATE_OFFSET_EBP         24
+#define ISTATE_OFFSET_EDX         0
+#define ISTATE_OFFSET_ECX         4
+#define ISTATE_OFFSET_EBX         8
+#define ISTATE_OFFSET_ESI         12
+#define ISTATE_OFFSET_EDI         16 
+#define ISTATE_OFFSET_EBP         20
+#define ISTATE_OFFSET_EAX         24
 #define ISTATE_OFFSET_EBP_FRAME   28
 #define ISTATE_OFFSET_EIP_FRAME   32
 #define ISTATE_OFFSET_GS          36
