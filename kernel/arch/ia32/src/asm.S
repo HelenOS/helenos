@@ -271,9 +271,6 @@ sysenter_handler:
  * Declare interrupt handlers for n interrupt
  * vectors starting at vector i.
  *
- * The handlers setup data segment registers
- * and call exc_dispatch().
- *
  */
 #define INTERRUPT_ALIGN  256
 
