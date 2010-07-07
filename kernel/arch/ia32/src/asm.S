@@ -244,11 +244,8 @@ sysenter_handler:
 .macro handler i n
 	.ifeq \i - 0x30
 		/* Syscall handler */
-		pushl %ds
-		pushl %es
-		pushl %fs
-		pushl %gs
-		
+		subl $(ISTATE_SOFT_SIZE + 4), %esp
+
 		/*
 		 * Push syscall arguments onto the stack
 		 *
@@ -256,40 +253,77 @@ sysenter_handler:
 		 *       in registers is to use all scratch registers
 		 *       first and preserved registers next. An optimized
 		 *       libc syscall wrapper can make use of this setup.
+		 *       The istate structure is arranged in the way to support
+		 *       this idea.
 		 *
 		 */
-		pushl %eax
-		pushl %ebp
-		pushl %edi
-		pushl %esi
-		pushl %ebx
-		pushl %ecx
-		pushl %edx
+		movl %eax, ISTATE_OFFSET_EAX(%esp)
+		movl %ebx, ISTATE_OFFSET_EBX(%esp)
+		movl %ecx, ISTATE_OFFSET_ECX(%esp)
+		movl %edx, ISTATE_OFFSET_EDX(%esp)
+		movl %edi, ISTATE_OFFSET_EDI(%esp)
+		movl %esi, ISTATE_OFFSET_ESI(%esp)
+		movl %ebp, ISTATE_OFFSET_EBP(%esp)
+
+		/*
+		 * Save the selector registers.
+		 */
+		movl %gs, %ecx
+		movl %fs, %edx
+
+		movl %ecx, ISTATE_OFFSET_GS(%esp)
+		movl %edx, ISTATE_OFFSET_FS(%esp)
+
+		movl %es, %ecx
+		movl %ds, %edx
 		
-		/* We must fill the data segment registers */
-		movw $16, %ax
-		movw %ax, %ds
-		movw %ax, %es
+		movl %ecx, ISTATE_OFFSET_ES(%esp)
+		movl %edx, ISTATE_OFFSET_DS(%esp)
+
+		/*
+		 * Switch to kernel selectors.
+		 */
+		movl $16, %eax
+		movl %eax, %ds
+		movl %eax, %es
 		
-		xorl %ebp, %ebp
+		movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
+		movl ISTATE_OFFSET_EIP(%esp), %eax
+		movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+		leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
 		
 		cld
 		sti
 		
 		/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
 		call syscall_handler
-		cli
-		
-		movl 20(%esp), %ebp  /* restore EBP */
-		addl $28, %esp       /* clean-up of parameters */
-		
-		popl %gs
-		popl %fs
-		popl %es
-		popl %ds
-		
+			
 		CLEAR_NT_FLAG
+
+		/*
+		 * Restore the selector registers.
+		 */
+		movl ISTATE_OFFSET_GS(%esp), %ecx
+		movl ISTATE_OFFSET_FS(%esp), %edx
+
+		movl %ecx, %gs
+		movl %edx, %fs
+
+		movl ISTATE_OFFSET_ES(%esp), %ecx
+		movl ISTATE_OFFSET_DS(%esp), %edx
+			
+		movl %ecx, %es
+		movl %edx, %ds
+			
+		/*
+		 * Restore the preserved registers the handler cloberred itself
+		 * (i.e. EBP).
+		 */
+		movl ISTATE_OFFSET_EBP(%esp), %ebp
+			
+		addl $(ISTATE_SOFT_SIZE + 4), %esp
 		iret
+		
 	.else
 		/*
 		 * This macro distinguishes between two versions of ia32
