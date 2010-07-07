@@ -71,13 +71,18 @@
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 
 typedef struct istate {
-	uint32_t eax;
-	uint32_t ebx;
-	uint32_t ecx;
+	/*
+	 * The strange order of the GPRs is given by the requirement to use the
+	 * istate structure for both regular interrupts and exceptions as well
+	 * as for syscall handler which use this order as an optimization.
+	 */
 	uint32_t edx;
-	uint32_t edi;
+	uint32_t ecx;
+	uint32_t ebx;
 	uint32_t esi;
+	uint32_t edi;
 	uint32_t ebp;
+	uint32_t eax;
 	
 	uint32_t ebp_frame;  /* imitation of frame pointer linkage */
 	uint32_t eip_frame;  /* imitation of return address linkage */

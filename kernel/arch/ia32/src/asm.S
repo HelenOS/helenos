@@ -163,54 +163,13 @@ enable_l_apic_in_msr:
 	popfl
 .endm
 
-/*
- * The SYSENTER syscall mechanism can be used for syscalls with
- * four or fewer arguments. To pass these four arguments, we
- * use four registers: EDX, ECX, EBX, ESI. The syscall number
- * is passed in EAX. We use EDI to remember the return address
- * and EBP to remember the stack. The INT-based syscall mechanism
- * can actually handle six arguments plus the syscall number
- * entirely in registers.
- */
-.global sysenter_handler
-sysenter_handler:
-	sti
-	pushl %ebp  /* remember user stack */
-	pushl %edi  /* remember return user address */
-	
-	xorl %ebp, %ebp  /* stop stack traces here */
-	
-	pushl %gs  /* remember TLS */
-	
-	pushl %eax     /* syscall number */
-	subl $8, %esp  /* unused sixth and fifth argument */
-	pushl %esi     /* fourth argument */
-	pushl %ebx     /* third argument */
-	pushl %ecx     /* second argument */
-	pushl %edx     /* first argument */
-	
-	movw $16, %ax
-	movw %ax, %ds
-	movw %ax, %es
-	
-	cld
-	call syscall_handler
-	addl $28, %esp  /* remove arguments from stack */
-	
-	pop %gs  /* restore TLS */
-	
-	pop %edx  /* prepare return EIP for SYSEXIT */
-	pop %ecx  /* prepare userspace ESP for SYSEXIT */
-	
-	sysexit   /* return to userspace */
-
-#define ISTATE_OFFSET_EAX         0
-#define ISTATE_OFFSET_EBX         4
-#define ISTATE_OFFSET_ECX         8
-#define ISTATE_OFFSET_EDX         12
-#define ISTATE_OFFSET_EDI         16
-#define ISTATE_OFFSET_ESI         20
-#define ISTATE_OFFSET_EBP         24
+#define ISTATE_OFFSET_EDX         0
+#define ISTATE_OFFSET_ECX         4
+#define ISTATE_OFFSET_EBX         8
+#define ISTATE_OFFSET_ESI         12
+#define ISTATE_OFFSET_EDI         16 
+#define ISTATE_OFFSET_EBP         20
+#define ISTATE_OFFSET_EAX         24
 #define ISTATE_OFFSET_EBP_FRAME   28
 #define ISTATE_OFFSET_EIP_FRAME   32
 #define ISTATE_OFFSET_GS          36
@@ -230,6 +189,83 @@ sysenter_handler:
  */
 #define ISTATE_SOFT_SIZE  52
 
+/*
+ * Size of the entire istate structure including the error word and the
+ * hardware-saved part.
+ */
+#define ISTATE_REAL_SIZE  (ISTATE_SOFT_SIZE + 24)
+
+/*
+ * The SYSENTER syscall mechanism can be used for syscalls with
+ * four or fewer arguments. To pass these four arguments, we
+ * use four registers: EDX, ECX, EBX, ESI. The syscall number
+ * is passed in EAX. We use EDI to remember the return address
+ * and EBP to remember the stack. The INT-based syscall mechanism
+ * can actually handle six arguments plus the syscall number
+ * entirely in registers.
+ */
+.global sysenter_handler
+sysenter_handler:
+	sti
+	subl $(ISTATE_REAL_SIZE), %esp
+
+	/*
+	 * Save the return address and the userspace stack in the istate
+	 * structure on locations that would normally be taken by them.
+	 */
+	movl %ebp, ISTATE_OFFSET_ESP(%esp)
+	movl %edi, ISTATE_OFFSET_EIP(%esp)
+
+	/*
+	 * Push syscall arguments onto the stack
+	 */
+	movl %eax, ISTATE_OFFSET_EAX(%esp)
+	movl %ebx, ISTATE_OFFSET_EBX(%esp)
+	movl %ecx, ISTATE_OFFSET_ECX(%esp)
+	movl %edx, ISTATE_OFFSET_EDX(%esp)
+	movl %esi, ISTATE_OFFSET_ESI(%esp)
+	movl %edi, ISTATE_OFFSET_EDI(%esp)	/* observability; not needed */
+	movl %ebp, ISTATE_OFFSET_EBP(%esp)	/* observability; not needed */
+	
+	/*
+	 * Fake up the stack trace linkage.
+	 */
+	movl %edi, ISTATE_OFFSET_EIP_FRAME(%esp)
+	movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+
+	/*
+	 * Save TLS.
+	 */
+	movl %gs, %edx
+	movl %edx, ISTATE_OFFSET_GS(%esp)
+
+	/*
+	 * Switch to kernel selectors.
+	 */
+	movw $16, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	
+	cld
+	call syscall_handler
+	
+	/*
+	 * Restore TLS.
+	 */
+	movl ISTATE_OFFSET_GS(%esp), %edx
+	movl %edx, %gs
+	
+	/*
+	 * Prepare return address and userspace stack for SYSEXIT.
+	 */
+	movl ISTATE_OFFSET_EIP(%esp), %edx
+	movl ISTATE_OFFSET_ESP(%esp), %ecx
+
+	addl $(ISTATE_REAL_SIZE), %esp
+	
+	sysexit   /* return to userspace */
+
 /** Declare interrupt handlers
  *
  * Declare interrupt handlers for n interrupt
@@ -244,11 +280,8 @@ sysenter_handler:
 .macro handler i n
 	.ifeq \i - 0x30
 		/* Syscall handler */
-		pushl %ds
-		pushl %es
-		pushl %fs
-		pushl %gs
-		
+		subl $(ISTATE_SOFT_SIZE + 4), %esp
+
 		/*
 		 * Push syscall arguments onto the stack
 		 *
@@ -256,40 +289,77 @@ sysenter_handler:
 		 *       in registers is to use all scratch registers
 		 *       first and preserved registers next. An optimized
 		 *       libc syscall wrapper can make use of this setup.
+		 *       The istate structure is arranged in the way to support
+		 *       this idea.
 		 *
 		 */
-		pushl %eax
-		pushl %ebp
-		pushl %edi
-		pushl %esi
-		pushl %ebx
-		pushl %ecx
-		pushl %edx
+		movl %eax, ISTATE_OFFSET_EAX(%esp)
+		movl %ebx, ISTATE_OFFSET_EBX(%esp)
+		movl %ecx, ISTATE_OFFSET_ECX(%esp)
+		movl %edx, ISTATE_OFFSET_EDX(%esp)
+		movl %edi, ISTATE_OFFSET_EDI(%esp)
+		movl %esi, ISTATE_OFFSET_ESI(%esp)
+		movl %ebp, ISTATE_OFFSET_EBP(%esp)
+
+		/*
+		 * Save the selector registers.
+		 */
+		movl %gs, %ecx
+		movl %fs, %edx
+
+		movl %ecx, ISTATE_OFFSET_GS(%esp)
+		movl %edx, ISTATE_OFFSET_FS(%esp)
+
+		movl %es, %ecx
+		movl %ds, %edx
 		
-		/* We must fill the data segment registers */
-		movw $16, %ax
-		movw %ax, %ds
-		movw %ax, %es
+		movl %ecx, ISTATE_OFFSET_ES(%esp)
+		movl %edx, ISTATE_OFFSET_DS(%esp)
+
+		/*
+		 * Switch to kernel selectors.
+		 */
+		movl $16, %eax
+		movl %eax, %ds
+		movl %eax, %es
 		
-		xorl %ebp, %ebp
+		movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
+		movl ISTATE_OFFSET_EIP(%esp), %eax
+		movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+		leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
 		
 		cld
 		sti
 		
 		/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
 		call syscall_handler
-		cli
-		
-		movl 20(%esp), %ebp  /* restore EBP */
-		addl $28, %esp       /* clean-up of parameters */
-		
-		popl %gs
-		popl %fs
-		popl %es
-		popl %ds
-		
+			
 		CLEAR_NT_FLAG
+
+		/*
+		 * Restore the selector registers.
+		 */
+		movl ISTATE_OFFSET_GS(%esp), %ecx
+		movl ISTATE_OFFSET_FS(%esp), %edx
+
+		movl %ecx, %gs
+		movl %edx, %fs
+
+		movl ISTATE_OFFSET_ES(%esp), %ecx
+		movl ISTATE_OFFSET_DS(%esp), %edx
+			
+		movl %ecx, %es
+		movl %edx, %ds
+			
+		/*
+		 * Restore the preserved registers the handler cloberred itself
+		 * (i.e. EBP).
+		 */
+		movl ISTATE_OFFSET_EBP(%esp), %ebp
+			
+		addl $(ISTATE_SOFT_SIZE + 4), %esp
 		iret
+		
 	.else
 		/*
 		 * This macro distinguishes between two versions of ia32
