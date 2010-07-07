@@ -74,7 +74,7 @@ typedef struct istate {
 	/*
 	 * The strange order of the GPRs is given by the requirement to use the
 	 * istate structure for both regular interrupts and exceptions as well
-	 * as for syscall handler which use this order as an optimization.
+	 * as for syscall handlers which use this order as an optimization.
 	 */
 	uint32_t edx;
 	uint32_t ecx;
