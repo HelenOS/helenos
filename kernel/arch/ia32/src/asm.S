@@ -43,7 +43,6 @@
 .text
 .global paging_on
 .global enable_l_apic_in_msr
-.global interrupt_handlers
 .global memsetb
 .global memsetw
 .global memcpy
@@ -271,13 +270,11 @@ sysenter_handler:
  * Declare interrupt handlers for n interrupt
  * vectors starting at vector i.
  *
- * The handlers setup data segment registers
- * and call exc_dispatch().
- *
  */
-#define INTERRUPT_ALIGN  256
 
-.macro handler i n
+.macro handler i
+.global int_\i
+int_\i:
 	.ifeq \i - 0x30
 		/* Syscall handler */
 		subl $(ISTATE_SOFT_SIZE + 4), %esp
@@ -474,21 +471,17 @@ sysenter_handler:
 			iret
 		
 	.endif
-	
-	.align INTERRUPT_ALIGN
-	.if (\n - \i) - 1
-		handler "(\i + 1)", \n
-	.endif
 .endm
 
-/* Keep in sync with pm.h! */
-#define IDT_ITEMS  64
+#define LIST_0_63 \
+	0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
+	53,54,55,56,57,58,59,60,61,62,63
 
-.align INTERRUPT_ALIGN
 interrupt_handlers:
-	h_start:
-		handler 0 IDT_ITEMS
-	h_end:
+.irp cnt, LIST_0_63 
+	handler \cnt
+.endr
 
 /** Print Unicode character to EGA display.
  *
@@ -637,7 +630,3 @@ early_putchar:
 	
 	ret
 
-.data
-.global interrupt_handler_size
-
-interrupt_handler_size: .long (h_end - h_start) / IDT_ITEMS
