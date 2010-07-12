@@ -39,6 +39,12 @@
 
 #include <libarch/common.h>
 
+#define SIZE_MIN  UINT32_MIN
+#define SIZE_MAX  UINT32_MAX
+
+#define SSIZE_MIN  INT32_MIN
+#define SSIZE_MAX  INT32_MAX
+
 typedef uint32_t sysarg_t;
 
 typedef int32_t ssize_t;

@@ -121,7 +121,7 @@ void arch_pre_mm_init(void)
 	set_efer_flag(AMD_NXE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
-
+	
 	/* Initialize segmentation */
 	pm_init();
 	
@@ -131,7 +131,7 @@ void arch_pre_mm_init(void)
 	clean_IOPL_NT_flags();
 	/* Disable alignment check */
 	clean_AM_flag();
-
+	
 	if (config.cpu_active == 1) {
 		interrupt_init();
 		bios_init();
@@ -259,6 +259,7 @@ unative_t sys_tls_set(unative_t addr)
 {
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
+	
 	return 0;
 }
 

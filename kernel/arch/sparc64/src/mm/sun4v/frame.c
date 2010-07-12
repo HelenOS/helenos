@@ -46,27 +46,30 @@
  */
 void frame_arch_init(void)
 {
-	unsigned int i;
-	pfn_t confdata;
-
 	if (config.cpu_active == 1) {
+		unsigned int i;
+		
 		for (i = 0; i < memmap.cnt; i++) {
-			uintptr_t start = (uintptr_t) memmap.zones[i].start;
-			size_t size = memmap.zones[i].size;
-
+			/* To be safe, make the available zone possibly smaller */
+			uintptr_t new_start = ALIGN_UP((uintptr_t) memmap.zones[i].start,
+			    FRAME_SIZE);
+			size_t new_size = ALIGN_DOWN(memmap.zones[i].size -
+			    (new_start - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
+			
 			/*
 			 * The memmap is created by HelenOS boot loader.
 			 * It already contains no holes.
 			 */
-
-			confdata = ADDR2PFN(start);
+			
+			pfn_t confdata = ADDR2PFN(new_start);
+			
 			if (confdata == ADDR2PFN(KA2PA(PFN2ADDR(0))))
 				confdata = ADDR2PFN(KA2PA(PFN2ADDR(2)));
-			zone_create(ADDR2PFN(start),
-			    SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE)),
+			
+			zone_create(ADDR2PFN(new_start), SIZE2FRAMES(new_size),
 			    confdata, 0);
 		}
-
+		
 		/*
 		 * On sparc64, physical memory can start on a non-zero address.
 		 * The generic frame_init() only marks PFN 0 as not free, so we

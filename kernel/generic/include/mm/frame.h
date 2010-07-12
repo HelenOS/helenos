@@ -37,6 +37,7 @@
 #define KERN_FRAME_H_
 
 #include <typedefs.h>
+#include <trace.h>
 #include <adt/list.h>
 #include <mm/buddy.h>
 #include <synch/spinlock.h>
@@ -114,29 +115,29 @@ typedef struct {
 
 extern zones_t zones;
 
-static inline uintptr_t PFN2ADDR(pfn_t frame)
+NO_TRACE static inline uintptr_t PFN2ADDR(pfn_t frame)
 {
 	return (uintptr_t) (frame << FRAME_WIDTH);
 }
 
-static inline pfn_t ADDR2PFN(uintptr_t addr)
+NO_TRACE static inline pfn_t ADDR2PFN(uintptr_t addr)
 {
 	return (pfn_t) (addr >> FRAME_WIDTH);
 }
 
-static inline size_t SIZE2FRAMES(size_t size)
+NO_TRACE static inline size_t SIZE2FRAMES(size_t size)
 {
 	if (!size)
 		return 0;
 	return (size_t) ((size - 1) >> FRAME_WIDTH) + 1;
 }
 
-static inline size_t FRAMES2SIZE(size_t frames)
+NO_TRACE static inline size_t FRAMES2SIZE(size_t frames)
 {
 	return (size_t) (frames << FRAME_WIDTH);
 }
 
-static inline bool zone_flags_available(zone_flags_t flags)
+NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
 {
 	return ((flags & (ZONE_RESERVED | ZONE_FIRMWARE)) == 0);
 }
@@ -165,7 +166,7 @@ extern size_t zone_create(pfn_t, size_t, pfn_t, zone_flags_t);
 extern void *frame_get_parent(pfn_t, size_t);
 extern void frame_set_parent(pfn_t, void *, size_t);
 extern void frame_mark_unavailable(pfn_t, size_t);
-extern uintptr_t zone_conf_size(size_t);
+extern size_t zone_conf_size(size_t);
 extern bool zone_merge(size_t, size_t);
 extern void zone_merge_all(void);
 extern uint64_t zones_total_size(void);

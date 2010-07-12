@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcamd64
+/** @addtogroup genericdebug
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Kernel instrumentation functions.
  */
 
-#ifndef LIBC_amd64_LIMITS_H_
-#define LIBC_amd64_LIMITS_H_
+#ifdef CONFIG_TRACE
 
-#define LONG_MIN MIN_INT64
-#define LONG_MAX MAX_INT64
-#define ULONG_MIN MIN_UINT64
-#define ULONG_MAX MAX_UINT64
+#include <debug.h>
+#include <symtab.h>
+#include <errno.h>
+#include <print.h>
 
-#define SIZE_MIN MIN_UINT64
-#define SIZE_MAX MAX_UINT64
-#define SSIZE_MIN MIN_INT64
-#define SSIZE_MAX MAX_INT64
+void __cyg_profile_func_enter(void *fn, void *call_site)
+{
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
+	
+	const char *call_site_sym;
+	uintptr_t call_site_off;
+	
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "->%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("->%s\n", fn_sym);
+}
 
-#endif
+void __cyg_profile_func_exit(void *fn, void *call_site)
+{
+	const char *fn_sym = symtab_fmt_name_lookup((uintptr_t) fn);
+	
+	const char *call_site_sym;
+	uintptr_t call_site_off;
+	
+	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
+	    &call_site_off) == EOK)
+		printf("%s+%" PRIp "<-%s\n", call_site_sym, call_site_off,
+		    fn_sym);
+	else
+		printf("<-%s\n", fn_sym);
+}
+
+#endif /* CONFIG_TRACE */
 
 /** @}
  */

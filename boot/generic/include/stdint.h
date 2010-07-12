@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32
- * @{
- */
 /** @file
- *  @brief Limits declarations.
  */
 
-#ifndef LIBC_arm32__LIMITS_H_
-#define LIBC_arm32__LIMITS_H_
+#ifndef BOOT_STDINT_H_
+#define BOOT_STDINT_H_
 
-#define LONG_MIN MIN_INT32
-#define LONG_MAX MAX_INT32
-#define ULONG_MIN MIN_UINT32
-#define ULONG_MAX MAX_UINT32
+#define INT8_MIN  (0x80)
+#define INT8_MAX  (0x7F)
 
-#define SIZE_MIN MIN_UINT32
-#define SIZE_MAX MAX_UINT32
-#define SSIZE_MIN MIN_INT32
-#define SSIZE_MAX MAX_INT32
+#define UINT8_MIN  (0u)
+#define UINT8_MAX  (0xFFu)
+
+#define INT16_MIN  (0x8000)
+#define INT16_MAX  (0x7FFF)
+
+#define UINT16_MIN  (0u)
+#define UINT16_MAX  (0xFFFFu)
+
+#define INT32_MIN  (0x80000000l)
+#define INT32_MAX  (0x7FFFFFFFl)
+
+#define UINT32_MIN  (0ul)
+#define UINT32_MAX  (0xFFFFFFFFul)
+
+#define INT64_MIN  (0x8000000000000000ll)
+#define INT64_MAX  (0x7FFFFFFFFFFFFFFFll)
+
+#define UINT64_MIN  (0ull)
+#define UINT64_MAX  (0xFFFFFFFFFFFFFFFFull)
 
 #endif
 

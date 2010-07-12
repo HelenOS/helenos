@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcsparc64
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_sparc64_LIMITS_H_
-#define LIBC_sparc64_LIMITS_H_
+#ifndef LIBC_TRACE_H_
+#define LIBC_TRACE_H_
 
-#define LONG_MIN MIN_INT64
-#define LONG_MAX MAX_INT64
-#define ULONG_MIN MIN_UINT64
-#define ULONG_MAX MAX_UINT64
-
-#define SIZE_MIN MIN_UINT64
-#define SIZE_MAX MAX_UINT64
-#define SSIZE_MIN MIN_INT64
-#define SSIZE_MAX MAX_INT64
+#define NO_TRACE  __attribute__((no_instrument_function))
 
 #endif
 

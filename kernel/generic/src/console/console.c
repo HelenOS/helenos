@@ -293,7 +293,19 @@ void putchar(const wchar_t ch)
 	if ((stdout) && (stdout->op->write))
 		stdout->op->write(stdout, ch, silent);
 	else {
-		/* The character is just in the kernel log */
+		/*
+		 * No standard output routine defined yet.
+		 * The character is still stored in the kernel log
+		 * for possible future output.
+		 *
+		 * The early_putchar() function is used to output
+		 * the character for low-level debugging purposes.
+		 * Note that the early_putc() function might be
+		 * a no-op on certain hardware configurations.
+		 *
+		 */
+		early_putchar(ch);
+		
 		if (klog_stored < klog_len)
 			klog_stored++;
 	}

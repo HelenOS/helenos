@@ -63,6 +63,8 @@ extern void exc_init(void);
 
 extern void irq_initialize_arch(irq_t *);
 
+extern void istate_decode(istate_t *);
+
 #endif
 
 /** @}

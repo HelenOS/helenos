@@ -62,23 +62,25 @@ void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-void decode_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	const char *symbol = symtab_fmt_name_lookup(istate->eip);
-	
-	if (CPU)
-		printf("----------------EXCEPTION OCCURED (cpu%u)----------------\n", CPU->id);
+	printf("error_word=%p\n", istate->error_word);
+	printf("eflags=%p\n", istate->eflags);
+
+	printf("cs =%p\tds =%p\tes =%p\n", istate->cs, istate->ds, istate->es);
+	printf("fs =%p\tgs =%p", istate->fs, istate->gs);
+	if (istate_from_uspace(istate))
+		printf("\tss =%p\n", istate->ss);
 	else
-		printf("----------------EXCEPTION OCCURED----------------\n");
-	
-	printf("%%eip: %#lx (%s)\n", istate->eip, symbol);
-	printf("ERROR_WORD=%#lx\n", istate->error_word);
-	printf("%%cs=%#lx,flags=%#lx\n", istate->cs, istate->eflags);
-	printf("%%eax=%#lx, %%ecx=%#lx, %%edx=%#lx, %%esp=%p\n", istate->eax, istate->ecx, istate->edx, &istate->stack[0]);
-	printf("stack: %#lx, %#lx, %#lx, %#lx\n", istate->stack[0], istate->stack[1], istate->stack[2], istate->stack[3]);
-	printf("       %#lx, %#lx, %#lx, %#lx\n", istate->stack[4], istate->stack[5], istate->stack[6], istate->stack[7]);
-	
-	stack_trace_istate(istate);
+		printf("\n");
+
+	printf("eax=%p\tebx=%p\tecx=%p\n", istate->eax, istate->ebx,
+	    istate->ecx);
+	printf("edx=%p\tedi=%p\tesi=%p\n", istate->edx, istate->edi,
+	    istate->esi);
+	printf("ebp=%p\tesp=%p\teip=%p\n", istate->ebp,
+	    istate_from_uspace(istate) ? istate->esp : (uintptr_t) &istate->esp,
+	    istate->eip);
 }
 
 static void trap_virtual_eoi(void)
@@ -93,17 +95,13 @@ static void trap_virtual_eoi(void)
 static void null_interrupt(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unserviced interrupt: %u.", n);
-	
-	decode_istate(istate);
-	panic("Unserviced interrupt: %u.", n);
+	panic_badtrap(istate, n, "Unserviced interrupt: %u.", n);
 }
 
 static void de_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
-	
-	decode_istate(istate);
-	panic("Divide error.");
+	panic_badtrap(istate, n, "Divide error.");
 }
 
 /** General Protection Fault. */
@@ -127,17 +125,13 @@ static void gp_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 		}
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
-	
-	decode_istate(istate);
-	panic("General protection fault.");
+	panic_badtrap(istate, n, "General protection fault.");
 }
 
 static void ss_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
-	
-	decode_istate(istate);
-	panic("Stack fault.");
+	panic_badtrap(istate, n, "Stack fault.");
 }
 
 static void simd_fp_exception(unsigned int n __attribute__((unused)), istate_t *istate)
@@ -148,12 +142,9 @@ static void simd_fp_exception(unsigned int n __attribute__((unused)), istate_t *
 		: [mxcsr] "=m" (mxcsr)
 	);
 	
-	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR: %#zx.",
+	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR=%#0.8x.",
 	    (unative_t) mxcsr);
-	
-	decode_istate(istate);
-	printf("MXCSR: %#lx\n", mxcsr);
-	panic("SIMD FP exception(19).");
+	panic_badtrap(istate, n, "SIMD FP exception, MXCSR=%#0.8x");
 }
 
 static void nm_fault(unsigned int n __attribute__((unused)),
@@ -163,7 +154,7 @@ static void nm_fault(unsigned int n __attribute__((unused)),
 	scheduler_fpu_lazy_request();
 #else
 	fault_if_from_uspace(istate, "FPU fault.");
-	panic("FPU fault.");
+	panic_badtrap(istate, n, "FPU fault.");
 #endif
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_LIMITS_H_
-#define LIBC_LIMITS_H_
+#include <panic.h>
+#include <print.h>
+#include <stacktrace.h>
+#include <func.h>
+#include <typedefs.h>
+#include <mm/as.h>
+#include <stdarg.h>
+#include <interrupt.h>
 
-#include <stdint.h>
-#include <libarch/limits.h>
+void panic_common(panic_category_t cat, istate_t *istate, int access,
+    uintptr_t address, const char *fmt, ...)
+{
+	va_list args;
 
-/* char */
-#define SCHAR_MIN MIN_INT8
-#define SCHAR_MAX MAX_INT8
-#define UCHAR_MIN MIN_UINT8
-#define UCHAR_MAX MAX_UINT8
+	silent = false;
 
-#ifdef __CHAR_UNSIGNED__
-	#define CHAR_MIN UCHAR_MIN
-	#define CHAR_MAX UCHAR_MAX
-#else
-	#define CHAR_MIN SCHAR_MIN
-	#define CHAR_MAX SCHAR_MAX
-#endif
+	printf("\nKERNEL PANIC ");
+	if (CPU)
+		printf("ON cpu%d ", CPU->id);
+	printf("DUE TO ");
 
-/* short int */
-#define SHRT_MIN MIN_INT16
-#define SHRT_MAX MAX_INT16
-#define USHRT_MIN MIN_UINT16
-#define USHRT_MAX MAX_UINT16
+	va_start(args, fmt);
+	if (cat == PANIC_ASSERT) {
+		printf("A FAILED ASSERTION:\n");
+		vprintf(fmt, args);
+		printf("\n");
+	} else if (cat == PANIC_BADTRAP) {
+		printf("BAD TRAP %ld.\n", address);
+	} else if (cat == PANIC_MEMTRAP) {
+		printf("A BAD MEMORY ACCESS WHILE ");
+		if (access == PF_ACCESS_READ)
+			printf("LOADING FROM");
+		else if (access == PF_ACCESS_WRITE)
+			printf("STORING TO");
+		else if (access == PF_ACCESS_EXEC)
+			printf("BRANCHING TO");
+		else
+			printf("REFERENCING");
+		printf(" ADDRESS %p.\n", address); 
+	} else {
+		printf("THE FOLLOWING REASON:\n");
+		vprintf(fmt, args);
+	}
+	va_end(args);
 
-/* int */
-#define INT_MIN MIN_INT32
-#define INT_MAX MAX_INT32
-#define UINT_MIN MIN_UINT32
-#define UINT_MAX MAX_UINT32
+	printf("\n");
 
-/* long long int */
-#define LLONG_MIN MIN_INT64
-#define LLONG_MAX MAX_INT64
-#define ULLONG_MIN MIN_UINT64
-#define ULLONG_MAX MAX_UINT64
+	if (istate) {
+		istate_decode(istate);
+		printf("\n");
+	}
 
-/* off64_t */
-#define OFF64_MIN MIN_INT64
-#define OFF64_MAX MAX_INT64
-
-/* aoff64_t */
-#define AOFF64_MIN MIN_UINT64
-#define AOFF64_MAX MAX_UINT64
-
-#endif
+	stack_trace();
+	halt();
+}
 
 /** @}
  */

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -57,7 +57,8 @@
 
 static void dtlb_pte_copy(pte_t *, size_t, bool);
 static void itlb_pte_copy(pte_t *, size_t);
-static void do_fast_instruction_access_mmu_miss_fault(istate_t *, const char *);
+static void do_fast_instruction_access_mmu_miss_fault(istate_t *, uintptr_t,
+    const char *);
 static void do_fast_data_access_mmu_miss_fault(istate_t *, tlb_tag_access_reg_t,
     const char *);
 static void do_fast_data_access_protection_fault(istate_t *,
@@ -221,12 +222,12 @@ void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		page_table_unlock(AS, true);
 		if (as_page_fault(page_16k, PF_ACCESS_EXEC, istate) ==
 		    AS_PF_FAULT) {
 			do_fast_instruction_access_mmu_miss_fault(istate,
-			    __func__);
+			    istate->tpc, __func__);
 		}
 	}
 }
@@ -257,7 +258,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		if (!tag.vpn) {
 			/* NULL access in kernel */
 			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    __func__);
+			    "Dereferencing NULL pointer");
 		} else if (page_8k >= end_of_identity) {
 			/*
 			 * The kernel is accessing the I/O space.
@@ -437,11 +438,10 @@ void tlb_print(void)
 #endif
 
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
-    const char *str)
+    uintptr_t va, const char *str)
 {
-	fault_if_from_uspace(istate, "%s.", str);
-	dump_istate(istate);
-	panic("%s.", str);
+	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
+	panic_memtrap(istate, PF_ACCESS_EXEC, va, "%s.", str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
@@ -450,13 +450,9 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 	uintptr_t va;
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
-	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-		    tag.context);
-	}
-	dump_istate(istate);
-	printf("Faulting page: %p, ASID=%d.\n", va, tag.context);
-	panic("%s.", str);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
+	    tag.context);
+	panic_memtrap(istate, PF_ACCESS_READ, va, "%s.", str);
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate,
@@ -465,14 +461,9 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	uintptr_t va;
 
 	va = tag.vpn << MMU_PAGE_WIDTH;
-
-	if (tag.context) {
-		fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
-		    tag.context);
-	}
-	printf("Faulting page: %p, ASID=%d\n", va, tag.context);
-	dump_istate(istate);
-	panic("%s.", str);
+	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
+	    tag.context);
+	panic_memtrap(istate, PF_ACCESS_WRITE, va, "%s.", str);
 }
 
 void describe_dmmu_fault(void)

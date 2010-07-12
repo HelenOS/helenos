@@ -46,10 +46,6 @@
  *
  * @param ipi Message to broadcast.
  *
- * @bug The decision whether to actually send the IPI must be based
- *      on a different criterion. The current version has
- *      problems when some of the detected CPUs are marked
- *      disabled in machine configuration.
  */
 void ipi_broadcast(int ipi)
 {
@@ -59,7 +55,7 @@ void ipi_broadcast(int ipi)
 	 * - if there is only one CPU but the kernel was compiled with CONFIG_SMP
 	 */
 	
-	if ((config.cpu_active > 1) && (config.cpu_active == config.cpu_count))
+	if (config.cpu_count > 1)
 		ipi_broadcast_arch(ipi);
 }
 

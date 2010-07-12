@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -35,24 +35,29 @@
 #ifndef KERN_sparc64_sun4u_ASM_H_
 #define KERN_sparc64_sun4u_ASM_H_
 
-extern uint64_t read_from_ag_g7(void);
-extern void write_to_ag_g6(uint64_t val);
-extern void write_to_ag_g7(uint64_t val);
-extern void write_to_ig_g6(uint64_t val);
-
+#include <trace.h>
 
 /** Read Version Register.
  *
  * @return Value of VER register.
+ *
  */
-static inline uint64_t ver_read(void)
+NO_TRACE static inline uint64_t ver_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%ver, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
+
+extern uint64_t read_from_ag_g7(void);
+extern void write_to_ag_g6(uint64_t);
+extern void write_to_ag_g7(uint64_t);
+extern void write_to_ig_g6(uint64_t);
 
 #endif
 

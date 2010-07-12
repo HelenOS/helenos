@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <arch.h>
-#include <atomic.h>
-#include <print.h>
-#include <proc/thread.h>
+/** @addtogroup genericdebug
+ * @{
+ */
+/** @file
+ */
 
-#include <synch/rwlock.h>
+#ifndef KERN_TRACE_H_
+#define KERN_TRACE_H_
 
-#define READERS  50
-#define WRITERS  50
+#define NO_TRACE  __attribute__((no_instrument_function))
 
-static rwlock_t rwlock;
+#endif
 
-static void writer(void *arg)
-{
-	TPRINTF("Trying to lock rwlock for writing....\n");
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	TPRINTF("Trying to lock rwlock for reading....\n");
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-}
-
-const char *test_rwlock2(void)
-{
-	thread_t *thrd;
-	
-	rwlock_initialize(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	
-	thrd = thread_create(writer, NULL, TASK, 0, "writer", false);
-	if (thrd)
-		thread_ready(thrd);
-	else
-		return "Could not create thread";
-	
-	thread_sleep(1);
-	
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	thread_join(thrd);
-	thread_detach(thrd);
-	
-	return NULL;
-}
+/** @}
+ */

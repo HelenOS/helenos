@@ -132,10 +132,8 @@ static const char *vector_to_string(uint16_t vector)
 		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
 }
 
-static void dump_interrupted_context(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	putchar('\n');
-	printf("Interrupted context dump:\n");
 	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
 	    istate->ar_bspstore);
 	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat,
@@ -182,9 +180,7 @@ void general_exception(uint64_t vector, istate_t *istate)
 	}
 	
 	fault_if_from_uspace(istate, "General Exception (%s).", desc);
-	
-	dump_interrupted_context(istate);
-	panic("General Exception (%s).", desc);
+	panic_badtrap(istate, vector, "General Exception (%s).", desc);
 }
 
 void disabled_fp_register(uint64_t vector, istate_t *istate)
@@ -194,9 +190,8 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 #else
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
-	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s).", (uint16_t) vector,
-	    vector_to_string(vector));
+	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
+	    (uint16_t) vector, vector_to_string(vector));
 #endif
 }
 
@@ -225,9 +220,8 @@ void universal_handler(uint64_t vector, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
-	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s).", (uint16_t) vector,
-	    vector_to_string(vector));
+	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
+	    (uint16_t) vector, vector_to_string(vector));
 }
 
 static void end_of_local_irq(void)

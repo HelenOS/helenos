@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2010 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/asm/macro.h>
-
-.text
-.global panic_printf
-
-panic_printf:
-	lis %r14, halt@ha
-	addi %r14, %r14, halt@l
-	mtlr %r14  # fake stack to make printf return to halt
-	b printf
+BOOT_OUTPUT =
+RAW =
+JOB =
+MAP =
+PREBUILD =
+BUILD = Makefile.empty

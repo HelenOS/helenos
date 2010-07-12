@@ -182,12 +182,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 
 	if (ret == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
-		print_istate(istate);
-		printf("page fault - pc: %x, va: %x, status: %x(%x), "
-		    "access:%d\n", istate->pc, badvaddr, fsr.status, fsr,
-		    access);
-		
-		panic("Page fault.");
+		panic_memtrap(istate, access, badvaddr, "Page fault.");
 	}
 }
 
@@ -202,10 +197,8 @@ void prefetch_abort(unsigned int exc_no, istate_t *istate)
 	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 
 	if (ret == AS_PF_FAULT) {
-		printf("prefetch_abort\n");
-		print_istate(istate);
-		panic("page fault - prefetch_abort at address: %x.",
-		    istate->pc);
+		panic_memtrap(istate, PF_ACCESS_EXEC, istate->pc,
+		    "Page fault - prefetch_abort.");
 	}
 }
 

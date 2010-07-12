@@ -36,6 +36,7 @@
 #define KERN_CONTEXT_H_
 
 #include <typedefs.h>
+#include <trace.h>
 #include <arch/context.h>
 
 #define context_set_generic(ctx, _pc, stack, size) \
@@ -86,8 +87,9 @@ extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
  * being return value.
  *
  * @param ctx Context structure.
+ *
  */
-static inline void context_restore(context_t *ctx)
+NO_TRACE static inline void context_restore(context_t *ctx)
 {
 	context_restore_arch(ctx);
 }

@@ -36,6 +36,7 @@
 #define KERN_abs32le_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -138,20 +139,25 @@ typedef struct {
 	unsigned int frame_address : 20;
 } __attribute__((packed)) pte_t;
 
-static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+    REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
 	
-	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
-	    (!p->present) << PAGE_PRESENT_SHIFT |
-	    p->uaccessible << PAGE_USER_SHIFT |
-	    1 << PAGE_READ_SHIFT |
-	    p->writeable << PAGE_WRITE_SHIFT |
-	    1 << PAGE_EXEC_SHIFT |
-	    p->global << PAGE_GLOBAL_SHIFT);
+	return (
+	    ((unsigned int) (!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
+	    ((unsigned int) (!p->present) << PAGE_PRESENT_SHIFT) |
+	    ((unsigned int) p->uaccessible << PAGE_USER_SHIFT) |
+	    (1 << PAGE_READ_SHIFT) |
+	    ((unsigned int) p->writeable << PAGE_WRITE_SHIFT) |
+	    (1 << PAGE_EXEC_SHIFT) |
+	    ((unsigned int) p->global << PAGE_GLOBAL_SHIFT)
+	);
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+    WRITES(ARRAY_RANGE(pt, PTL0_ENTRIES_ARCH))
+    REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
 	

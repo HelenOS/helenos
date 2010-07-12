@@ -32,6 +32,7 @@
 #ifndef BOOT_TYPEDEFS_H_
 #define BOOT_TYPEDEFS_H_
 
+#include <stdint.h>
 #include <arch/common.h>
 #include <arch/types.h>
 

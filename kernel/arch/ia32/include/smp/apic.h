@@ -346,6 +346,7 @@ extern volatile uint32_t *l_apic;
 extern volatile uint32_t *io_apic;
 
 extern uint32_t apic_id_mask;
+extern uint8_t bsp_l_apic;
 
 extern void apic_init(void);
 
@@ -354,7 +355,6 @@ extern void l_apic_eoi(void);
 extern int l_apic_broadcast_custom_ipi(uint8_t);
 extern int l_apic_send_init_ipi(uint8_t);
 extern void l_apic_debug(void);
-extern uint8_t l_apic_id(void);
 
 extern uint32_t io_apic_read(uint8_t);
 extern void io_apic_write(uint8_t, uint32_t);

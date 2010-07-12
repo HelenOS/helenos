@@ -43,6 +43,7 @@
 #include <sys/time.h>
 #include <arch/barrier.h>
 #include <errno.h>
+#include <sort.h>
 #include "screen.h"
 #include "input.h"
 #include "top.h"
@@ -56,6 +57,7 @@
 #define MINUTE  60
 
 op_mode_t op_mode = OP_TASKS;
+sort_mode_t sort_mode = SORT_TASK_CYCLES;
 bool excs_all = false;
 
 static const char *read_data(data_t *target)
@@ -66,10 +68,15 @@ static const char *read_data(data_t *target)
 	target->cpus_perc = NULL;
 	target->tasks = NULL;
 	target->tasks_perc = NULL;
+	target->tasks_map = NULL;
 	target->threads = NULL;
 	target->exceptions = NULL;
 	target->exceptions_perc = NULL;
 	target->physmem = NULL;
+	target->ucycles_diff = NULL;
+	target->kcycles_diff = NULL;
+	target->ecycles_diff = NULL;
+	target->ecount_diff = NULL;
 	
 	/* Get current time */
 	struct timeval time;
@@ -112,6 +119,11 @@ static const char *read_data(data_t *target)
 	if (target->tasks_perc == NULL)
 		return "Not enough memory for task utilization";
 	
+	target->tasks_map =
+	    (size_t *) calloc(target->tasks_count, sizeof(size_t));
+	if (target->tasks_map == NULL)
+		return "Not enough memory for task map";
+	
 	/* Get threads */
 	target->threads = stats_get_threads(&(target->threads_count));
 	if (target->threads == NULL)
@@ -132,6 +144,27 @@ static const char *read_data(data_t *target)
 	if (target->physmem == NULL)
 		return "Cannot get physical memory";
 	
+	target->ucycles_diff = calloc(target->tasks_count,
+	    sizeof(uint64_t));
+	if (target->ucycles_diff == NULL)
+		return "Not enough memory for user utilization";
+	
+	/* Allocate memory for computed values */
+	target->kcycles_diff = calloc(target->tasks_count,
+	    sizeof(uint64_t));
+	if (target->kcycles_diff == NULL)
+		return "Not enough memory for kernel utilization";
+	
+	target->ecycles_diff = calloc(target->exceptions_count,
+	    sizeof(uint64_t));
+	if (target->ecycles_diff == NULL)
+		return "Not enough memory for exception cycles utilization";
+	
+	target->ecount_diff = calloc(target->exceptions_count,
+	    sizeof(uint64_t));
+	if (target->ecount_diff == NULL)
+		return "Not enough memory for exception count utilization";
+	
 	return NULL;
 }
 
@@ -141,39 +174,8 @@ static const char *read_data(data_t *target)
  * @param new_data Pointer to actual data where percetages are stored.
  *
  */
-static const char *compute_percentages(data_t *old_data, data_t *new_data)
+static void compute_percentages(data_t *old_data, data_t *new_data)
 {
-	/* Allocate memory */
-	
-	uint64_t *ucycles_diff = calloc(new_data->tasks_count,
-	    sizeof(uint64_t));
-	if (ucycles_diff == NULL)
-		return "Not enough memory for user utilization";
-	
-	uint64_t *kcycles_diff = calloc(new_data->tasks_count,
-	    sizeof(uint64_t));
-	if (kcycles_diff == NULL) {
-		free(ucycles_diff);
-		return "Not enough memory for kernel utilization";
-	}
-	
-	uint64_t *ecycles_diff = calloc(new_data->exceptions_count,
-	    sizeof(uint64_t));
-	if (ecycles_diff == NULL) {
-		free(ucycles_diff);
-		free(kcycles_diff);
-		return "Not enough memory for exception cycles utilization";
-	}
-	
-	uint64_t *ecount_diff = calloc(new_data->exceptions_count,
-	    sizeof(uint64_t));
-	if (ecount_diff == NULL) {
-		free(ucycles_diff);
-		free(kcycles_diff);
-		free(ecycles_diff);
-		return "Not enough memory for exception count utilization";
-	}
-	
 	/* For each CPU: Compute total cycles and divide it between
 	   user and kernel */
 	
@@ -209,19 +211,19 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		
 		if (!found) {
 			/* This is newly borned task, ignore it */
-			ucycles_diff[i] = 0;
-			kcycles_diff[i] = 0;
+			new_data->ucycles_diff[i] = 0;
+			new_data->kcycles_diff[i] = 0;
 			continue;
 		}
 		
-		ucycles_diff[i] =
+		new_data->ucycles_diff[i] =
 		    new_data->tasks[i].ucycles - old_data->tasks[j].ucycles;
-		kcycles_diff[i] =
+		new_data->kcycles_diff[i] =
 		    new_data->tasks[i].kcycles - old_data->tasks[j].kcycles;
 		
 		virtmem_total += new_data->tasks[i].virtmem;
-		ucycles_total += ucycles_diff[i];
-		kcycles_total += kcycles_diff[i];
+		ucycles_total += new_data->ucycles_diff[i];
+		kcycles_total += new_data->kcycles_diff[i];
 	}
 	
 	/* For each task compute percential change */
@@ -230,9 +232,9 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].virtmem,
 		    new_data->tasks[i].virtmem * 100, virtmem_total);
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].ucycles,
-		    ucycles_diff[i] * 100, ucycles_total);
+		    new_data->ucycles_diff[i] * 100, ucycles_total);
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].kcycles,
-		    kcycles_diff[i] * 100, kcycles_total);
+		    new_data->kcycles_diff[i] * 100, kcycles_total);
 	}
 	
 	/* For all exceptions compute sum and differencies of cycles */
@@ -258,37 +260,57 @@ static const char *compute_percentages(data_t *old_data, data_t *new_data)
 		
 		if (!found) {
 			/* This is a new exception, ignore it */
-			ecycles_diff[i] = 0;
-			ecount_diff[i] = 0;
+			new_data->ecycles_diff[i] = 0;
+			new_data->ecount_diff[i] = 0;
 			continue;
 		}
 		
-		ecycles_diff[i] =
+		new_data->ecycles_diff[i] =
 		    new_data->exceptions[i].cycles - old_data->exceptions[j].cycles;
-		ecount_diff[i] =
+		new_data->ecount_diff[i] =
 		    new_data->exceptions[i].count - old_data->exceptions[i].count;
 		
-		ecycles_total += ecycles_diff[i];
-		ecount_total += ecount_diff[i];
+		ecycles_total += new_data->ecycles_diff[i];
+		ecount_total += new_data->ecount_diff[i];
 	}
 	
 	/* For each exception compute percential change */
 	
 	for (i = 0; i < new_data->exceptions_count; i++) {
 		FRACTION_TO_FLOAT(new_data->exceptions_perc[i].cycles,
-		    ecycles_diff[i] * 100, ecycles_total);
+		    new_data->ecycles_diff[i] * 100, ecycles_total);
 		FRACTION_TO_FLOAT(new_data->exceptions_perc[i].count,
-		    ecount_diff[i] * 100, ecount_total);
+		    new_data->ecount_diff[i] * 100, ecount_total);
 	}
+}
+
+static int cmp_data(void *a, void *b, void *arg)
+{
+	size_t ia = *((size_t *) a);
+	size_t ib = *((size_t *) b);
+	data_t *data = (data_t *) arg;
 	
-	/* Cleanup */
+	uint64_t acycles = data->ucycles_diff[ia] + data->kcycles_diff[ia];
+	uint64_t bcycles = data->ucycles_diff[ib] + data->kcycles_diff[ib];
 	
-	free(ucycles_diff);
-	free(kcycles_diff);
-	free(ecycles_diff);
-	free(ecount_diff);
+	if (acycles > bcycles)
+		return -1;
 	
-	return NULL;
+	if (acycles < bcycles)
+		return 1;
+	
+	return 0;
+}
+
+static void sort_data(data_t *data)
+{
+	size_t i;
+	
+	for (i = 0; i < data->tasks_count; i++)
+		data->tasks_map[i] = i;
+	
+	qsort((void *) data->tasks_map, data->tasks_count,
+	    sizeof(size_t), cmp_data, (void *) data);
 }
 
 static void free_data(data_t *target)
@@ -319,6 +341,18 @@ static void free_data(data_t *target)
 	
 	if (target->physmem != NULL)
 		free(target->physmem);
+	
+	if (target->ucycles_diff != NULL)
+		free(target->ucycles_diff);
+	
+	if (target->kcycles_diff != NULL)
+		free(target->kcycles_diff);
+	
+	if (target->ecycles_diff != NULL)
+		free(target->ecycles_diff);
+	
+	if (target->ecount_diff != NULL)
+		free(target->ecount_diff);
 }
 
 int main(int argc, char *argv[])
@@ -334,8 +368,7 @@ int main(int argc, char *argv[])
 		goto out;
 	
 	/* Compute some rubbish to have initialised values */
-	if ((ret = compute_percentages(&data_prev, &data_prev)) != NULL)
-		goto out;
+	compute_percentages(&data_prev, &data_prev);
 	
 	/* And paint screen until death */
 	while (true) {
@@ -346,11 +379,8 @@ int main(int argc, char *argv[])
 				goto out;
 			}
 			
-			if ((ret = compute_percentages(&data_prev, &data)) != NULL) {
-				free_data(&data);
-				goto out;
-			}
-			
+			compute_percentages(&data_prev, &data);
+			sort_data(&data);
 			print_data(&data);
 			free_data(&data_prev);
 			data_prev = data;

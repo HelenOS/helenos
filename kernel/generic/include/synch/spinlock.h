@@ -123,7 +123,7 @@ extern bool spinlock_locked(spinlock_t *);
  * @param sl Pointer to spinlock_t structure.
  *
  */
-static inline void spinlock_unlock_nondebug(spinlock_t *lock)
+NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
 	/*
 	 * Prevent critical section code from bleeding out this way down.

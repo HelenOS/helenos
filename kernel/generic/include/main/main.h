@@ -31,7 +31,7 @@
  */
 /** @file
  */
- 
+
 #ifndef KERN_MAIN_H_
 #define KERN_MAIN_H_
 

@@ -51,11 +51,11 @@ typedef struct {
 
 typedef uint8_t asi_t;
 
-/**< Formats for uintptr_t, size_t */
+/** Formats for uintptr_t, size_t */
 #define PRIp  "llx"
 #define PRIs  "llu"
 
-/**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
+/** Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
 #define PRId8   "d"
 #define PRId16  "d"
 #define PRId32  "d"

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 
@@ -39,9 +39,9 @@
  *
  */
 
-#include <mm/slab.h>
-#include <memstr.h>
 #include <sort.h>
+#include <mem.h>
+#include <malloc.h>
 
 /** Immediate buffer size.
  *
@@ -76,7 +76,7 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
 	size_t i = 0;
 	
 	while (i < cnt) {
-		if ((i > 0) &&
+		if ((i != 0) &&
 		    (cmp(INDEX(data, i, elem_size),
 		    INDEX(data, i - 1, elem_size), arg) == -1)) {
 			memcpy(slot, INDEX(data, i, elem_size), elem_size);
@@ -143,8 +143,6 @@ static void _qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
  * allocations for storing the slot element for generic
  * gnome sort algorithm.
  *
- * This function can sleep.
- *
  * @param data      Pointer to data to be sorted.
  * @param cnt       Number of elements to be sorted.
  * @param elem_size Size of one element.
@@ -160,7 +158,7 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 	void *slot;
 	
 	if (elem_size > IBUF_SIZE) {
-		slot = (void *) malloc(elem_size, 0);
+		slot = (void *) malloc(elem_size);
 		if (!slot)
 			return false;
 	} else
@@ -180,8 +178,6 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
  * allocations for storing the pivot and temporary elements
  * for generic quicksort algorithm.
  *
- * This function can sleep.
- *
  * @param data      Pointer to data to be sorted.
  * @param cnt       Number of elements to be sorted.
  * @param elem_size Size of one element.
@@ -199,11 +195,11 @@ bool qsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 	void *pivot;
 	
 	if (elem_size > IBUF_SIZE) {
-		slot = (void *) malloc(elem_size, 0);
+		slot = (void *) malloc(elem_size);
 		if (!slot)
 			return false;
 		
-		pivot = (void *) malloc(elem_size, 0);
+		pivot = (void *) malloc(elem_size);
 		if (!pivot) {
 			free(slot);
 			return false;

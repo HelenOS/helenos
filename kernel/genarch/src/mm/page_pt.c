@@ -71,7 +71,6 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 {
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 	
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
@@ -119,7 +118,6 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  */
 void pt_mapping_remove(as_t *as, uintptr_t page)
 {
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 
 	/*
@@ -250,7 +248,6 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
  */
 pte_t *pt_mapping_find(as_t *as, uintptr_t page)
 {
-	ASSERT(interrupts_disabled());
 	ASSERT(page_table_locked(as));
 
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);

@@ -39,7 +39,6 @@
 #include <proc/task.h>
 #include <time/timeout.h>
 #include <cpu.h>
-#include <synch/rwlock.h>
 #include <synch/spinlock.h>
 #include <adt/avl.h>
 #include <mm/slab.h>
@@ -154,13 +153,6 @@ typedef struct thread {
 	 */
 	int fpu_context_engaged;
 	
-	rwlock_type_t rwlock_holder_type;
-	
-	/** Callback fired in scheduler before the thread is put asleep. */
-	void (* call_me)(void *);
-	/** Argument passed to call_me(). */
-	void *call_me_with;
-	
 	/** Thread's state. */
 	state_t state;
 	/** Thread's flags. */
@@ -238,7 +230,6 @@ extern void thread_usleep(uint32_t);
 extern int thread_join_timeout(thread_t *, uint32_t, unsigned int);
 extern void thread_detach(thread_t *);
 
-extern void thread_register_call_me(void (*)(void *), void *);
 extern void thread_print_list(bool);
 extern void thread_destroy(thread_t *, bool);
 extern thread_t *thread_find_by_id(thread_id_t);

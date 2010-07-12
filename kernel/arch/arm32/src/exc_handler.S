@@ -97,6 +97,10 @@
 	stmfd r13!, {r4-r7}
 	stmfd r13!, {r13, lr}^
 	stmfd r13!, {r2}
+
+	# Stop stack traces here
+	mov fp, #0
+	
 	b 2f
 
 	# mode was not usermode
@@ -122,8 +126,6 @@
 	msr spsr, r2
 	stmfd r13!, {r2}
 2:
-	# Stop stack traces here
-	mov fp, #0
 .endm
 
 .macro LOAD_REGS_FROM_STACK

@@ -37,11 +37,18 @@
 
 #include <typedefs.h>
 #include <config.h>
+#include <trace.h>
 
-static inline void cpu_sleep(void)
+NO_TRACE static inline void cpu_sleep(void)
 {
-	/* Most of the simulators do not support */
-/*	asm volatile ("wait"); */
+	/*
+	 * Unfortunatelly most of the simulators do not support
+	 *
+	 * asm volatile (
+	 *     "wait"
+	 * );
+	 *
+	 */
 }
 
 /** Return base address of current stack
@@ -51,7 +58,7 @@ static inline void cpu_sleep(void)
  * The stack must start on page boundary.
  *
  */
-static inline uintptr_t get_stack_base(void)
+NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t base;
 	
@@ -64,46 +71,45 @@ static inline uintptr_t get_stack_base(void)
 	return base;
 }
 
+NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+{
+	return *port;
+}
+
+NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+{
+	return *port;
+}
+
+NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+{
+	return *port;
+}
+
 extern void cpu_halt(void) __attribute__((noreturn));
-extern void asm_delay_loop(uint32_t t);
-extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
-    uintptr_t entry);
+extern void asm_delay_loop(uint32_t);
+extern void userspace_asm(uintptr_t, uintptr_t, uintptr_t);
 
 extern ipl_t interrupts_disable(void);
 extern ipl_t interrupts_enable(void);
-extern void interrupts_restore(ipl_t ipl);
+extern void interrupts_restore(ipl_t);
 extern ipl_t interrupts_read(void);
 extern bool interrupts_disabled(void);
-
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
-{
-	*port = v;
-}
-
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
-{
-	*port = v;
-}
-
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
-{
-	*port = v;
-}
-
-static inline uint8_t pio_read_8(ioport8_t *port)
-{
-	return *port;
-}
-
-static inline uint16_t pio_read_16(ioport16_t *port)
-{
-	return *port;
-}
-
-static inline uint32_t pio_read_32(ioport32_t *port)
-{
-	return *port;
-}
 
 #endif
 

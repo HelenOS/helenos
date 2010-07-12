@@ -39,7 +39,6 @@
 #include <ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
-#include <synch/rwlock.h>
 #include <synch/futex.h>
 #include <adt/avl.h>
 #include <adt/btree.h>

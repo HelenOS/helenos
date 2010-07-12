@@ -112,7 +112,7 @@ memcpy:
 
 jump_to_kernel:
 	alloc loc0 = ar.pfs, 1, 1, 0, 0
-	mov r1 = in0 ;;			# Pass bootinfo address
+	mov r2 = in0 ;;			# Pass bootinfo address
 	movl r8 = KERNEL_ADDRESS;;
 	mov b1 = r8 ;;
 	br.call.sptk.many b0 = b1;;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <test.h>
-#include <arch.h>
-#include <atomic.h>
-#include <print.h>
-#include <proc/thread.h>
+/** @addtogroup genericverify
+ * @{
+ */
+/** @file
+ */
 
-#include <synch/waitq.h>
-#include <synch/rwlock.h>
+#ifndef KERN_VERIFY_H_
+#define KERN_VERIFY_H_
 
-#define READERS  50
-#define WRITERS  50
 
-static rwlock_t rwlock;
+#ifdef CONFIG_VERIFY_VCC
 
-const char *test_rwlock1(void)
-{
-	rwlock_initialize(&rwlock);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	rwlock_read_lock(&rwlock);
-	
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	rwlock_write_lock(&rwlock);
-	rwlock_write_unlock(&rwlock);
-	
-	rwlock_read_lock(&rwlock);
-	rwlock_read_unlock(&rwlock);
-	
-	return NULL;
-}
+#define ATOMIC         __specification_attr("atomic_inline", "")
+
+#define READS(ptr)     __specification(reads(ptr))
+#define WRITES(ptr)    __specification(writes(ptr))
+#define REQUIRES(...)  __specification(requires __VA_ARGS__)
+
+#define EXTENT(ptr)              \extent(ptr)
+#define ARRAY_RANGE(ptr, nmemb)  \array_range(ptr, nmemb)
+
+#define REQUIRES_EXTENT_MUTABLE(ptr) \
+	REQUIRES(\extent_mutable(ptr))
+
+#define REQUIRES_ARRAY_MUTABLE(ptr, nmemb) \
+	REQUIRES(\mutable_array(ptr, nmemb))
+
+#else /* CONFIG_VERIFY_VCC */
+
+#define ATOMIC
+
+#define READS(ptr)
+#define WRITES(ptr)
+#define REQUIRES(...)
+
+#define EXTENT(ptr)
+#define ARRAY_RANGE(ptr, nmemb)
+
+#define REQUIRES_EXTENT_MUTABLE(ptr)
+#define REQUIRES_ARRAY_MUTABLE(ptr, nmemb)
+
+#endif /* CONFIG_VERIFY_VCC */
+
+
+#endif
+
+/** @}
+ */
