@@ -411,54 +411,52 @@ int_\i:
 	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
 	 */
+	xorl %eax, %eax
 	cmpl $8, ISTATE_OFFSET_CS(%esp)
-	jz 0f
-	xorl %ebp, %ebp
-	
-	0:
-	
-		movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
-		movl ISTATE_OFFSET_EIP(%esp), %eax
-		movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
-		leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
-		
-		cld
-		
-		pushl %esp   /* pass istate address */
-		pushl $(\i)  /* pass intnum */
-		
-		/* Call exc_dispatch(intnum, istate) */
-		call exc_dispatch
-		
-		addl $8, %esp  /* clear arguments from the stack */
-		
-		/*
-		 * Restore the selector registers.
-		 */
-		movl ISTATE_OFFSET_GS(%esp), %ecx
-		movl ISTATE_OFFSET_FS(%esp), %edx
+	cmovl %eax, %ebp
 
-		movl %ecx, %gs
-		movl %edx, %fs
+	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
+	movl ISTATE_OFFSET_EIP(%esp), %eax
+	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+		
+	cld
+		
+	pushl %esp   /* pass istate address */
+	pushl $(\i)  /* pass intnum */
+		
+	/* Call exc_dispatch(intnum, istate) */
+	call exc_dispatch
+		
+	addl $8, %esp  /* clear arguments from the stack */
+		
+	/*
+	 * Restore the selector registers.
+	 */
+	movl ISTATE_OFFSET_GS(%esp), %ecx
+	movl ISTATE_OFFSET_FS(%esp), %edx
 
-		movl ISTATE_OFFSET_ES(%esp), %ecx
-		movl ISTATE_OFFSET_DS(%esp), %edx
+	movl %ecx, %gs
+	movl %edx, %fs
+
+	movl ISTATE_OFFSET_ES(%esp), %ecx
+	movl ISTATE_OFFSET_DS(%esp), %edx
 		
-		movl %ecx, %es
-		movl %edx, %ds
+	movl %ecx, %es
+	movl %edx, %ds
 		
-		/*
-		 * Restore the scratch registers and the preserved
-		 * registers the handler cloberred itself
-		 * (i.e. EBP).
-		 */
-		movl ISTATE_OFFSET_EAX(%esp), %eax
-		movl ISTATE_OFFSET_ECX(%esp), %ecx
-		movl ISTATE_OFFSET_EDX(%esp), %edx
-		movl ISTATE_OFFSET_EBP(%esp), %ebp
+	/*
+	 * Restore the scratch registers and the preserved
+	 * registers the handler cloberred itself
+	 * (i.e. EBP).
+	 */
+	movl ISTATE_OFFSET_EAX(%esp), %eax
+	movl ISTATE_OFFSET_ECX(%esp), %ecx
+	movl ISTATE_OFFSET_EDX(%esp), %edx
+	movl ISTATE_OFFSET_EBP(%esp), %ebp
 		
-		addl $(ISTATE_SOFT_SIZE + 4), %esp
-		iret
+	addl $(ISTATE_SOFT_SIZE + 4), %esp
+	iret
 .endm
 
 #define LIST_0_63 \
