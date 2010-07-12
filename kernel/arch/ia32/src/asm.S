@@ -146,15 +146,6 @@ enable_l_apic_in_msr:
 	wrmsr
 	ret
 
-/** Clear nested flag
- *
- */
-.macro CLEAR_NT_FLAG
-	pushfl
-	andl $0xffffbfff, (%esp)
-	popfl
-.endm
-
 #define ISTATE_OFFSET_EDX         0
 #define ISTATE_OFFSET_ECX         4
 #define ISTATE_OFFSET_EBX         8
@@ -316,8 +307,6 @@ int_syscall:
 	/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
 	call syscall_handler
 			
-	CLEAR_NT_FLAG
-
 	/*
 	 * Restore the selector registers.
 	 */
@@ -440,8 +429,6 @@ int_\i:
 		call exc_dispatch
 		
 		addl $8, %esp  /* clear arguments from the stack */
-		
-		CLEAR_NT_FLAG
 		
 		/*
 		 * Restore the selector registers.
