@@ -129,14 +129,18 @@ void idt_init(void)
 		d->unused = 0;
 		d->selector = gdtselector(KTEXT_DES);
 
-		d->access = AR_PRESENT | AR_INTERRUPT;	/* masking interrupt */
-
 		if (i == VECTOR_SYSCALL) {
 			/*
-			 * The syscall interrupt gate must be calleable from
-			 * userland.
+			 * The syscall trap gate must be callable from
+			 * userland. Interrupts will remain enabled.
 			 */
-			d->access |= DPL_USER;
+			d->access = AR_PRESENT | AR_TRAP | DPL_USER;
+		} else {
+			/*
+			 * Other interrupts use interrupt gates which
+			 * disable interrupts.
+			 */
+			d->access = AR_PRESENT | AR_INTERRUPT;
 		}
 	}
 

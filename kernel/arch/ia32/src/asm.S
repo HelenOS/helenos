@@ -312,7 +312,6 @@ int_syscall:
 	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
 		
 	cld
-	sti
 		
 	/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
 	call syscall_handler
