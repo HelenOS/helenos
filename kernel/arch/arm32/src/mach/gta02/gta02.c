@@ -62,7 +62,6 @@ static void gta02_output_init(void);
 static void gta02_input_init(void);
 
 static void *gta02_scons_out;
-static parea_t fb_parea;
 
 struct arm_machine_ops gta02_machine_ops = {
 	gta02_init,
@@ -110,6 +109,8 @@ static void gta02_frame_init(void)
 static void gta02_output_init(void)
 {
 #ifdef CONFIG_FB
+	parea_t fb_parea;
+
 	fb_properties_t prop = {
 		.addr = GTA02_FB_BASE,
 		.offset = 0,
