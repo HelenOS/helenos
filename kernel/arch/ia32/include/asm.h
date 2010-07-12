@@ -429,6 +429,8 @@ extern void enable_l_apic_in_msr(void);
 extern void asm_delay_loop(uint32_t);
 extern void asm_fake_loop(uint32_t);
 
+extern uintptr_t int_syscall;
+
 extern uintptr_t int_0;
 extern uintptr_t int_1;
 extern uintptr_t int_2;

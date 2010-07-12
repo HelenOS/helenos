@@ -205,6 +205,8 @@ void idt_init(void)
 	idt_setoffset(d++, (uintptr_t) &int_61);
 	idt_setoffset(d++, (uintptr_t) &int_62);
 	idt_setoffset(d++, (uintptr_t) &int_63);
+
+	idt_setoffset(&idt[VECTOR_SYSCALL], (uintptr_t) &int_syscall);
 }
 
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
