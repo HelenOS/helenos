@@ -388,13 +388,15 @@ int_\i:
 	/*
 	 * Save the selector registers.
 	 */
-	movl %gs, %eax
-	movl %fs, %ebx
+	movl %gs, %ecx
+	movl %fs, %edx
+
+	movl %ecx, ISTATE_OFFSET_GS(%esp)
+	movl %edx, ISTATE_OFFSET_FS(%esp)
+
 	movl %es, %ecx
 	movl %ds, %edx
 	
-	movl %eax, ISTATE_OFFSET_GS(%esp)
-	movl %ebx, ISTATE_OFFSET_FS(%esp)
 	movl %ecx, ISTATE_OFFSET_ES(%esp)
 	movl %edx, ISTATE_OFFSET_DS(%esp)
 	
@@ -433,23 +435,24 @@ int_\i:
 		/*
 		 * Restore the selector registers.
 		 */
-		movl ISTATE_OFFSET_GS(%esp), %eax
-		movl ISTATE_OFFSET_FS(%esp), %ebx
+		movl ISTATE_OFFSET_GS(%esp), %ecx
+		movl ISTATE_OFFSET_FS(%esp), %edx
+
+		movl %ecx, %gs
+		movl %edx, %fs
+
 		movl ISTATE_OFFSET_ES(%esp), %ecx
 		movl ISTATE_OFFSET_DS(%esp), %edx
 		
-		movl %eax, %gs
-		movl %ebx, %fs
 		movl %ecx, %es
 		movl %edx, %ds
 		
 		/*
 		 * Restore the scratch registers and the preserved
 		 * registers the handler cloberred itself
-		 * (i.e. EBX and EBP).
+		 * (i.e. EBP).
 		 */
 		movl ISTATE_OFFSET_EAX(%esp), %eax
-		movl ISTATE_OFFSET_EBX(%esp), %ebx
 		movl ISTATE_OFFSET_ECX(%esp), %ecx
 		movl ISTATE_OFFSET_EDX(%esp), %edx
 		movl ISTATE_OFFSET_EBP(%esp), %ebp
