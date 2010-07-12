@@ -74,6 +74,7 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 	} else {
 		printf("THE FOLLOWING REASON:\n");
 		vprintf(fmt, args);
+		printf("\n");
 	}
 	va_end(args);
 
