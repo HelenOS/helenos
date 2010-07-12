@@ -358,7 +358,7 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, uintptr_t va,
     const char *str)
 {
 	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
-	panic_memtrap(istate, PF_ACCESS_EXEC, va, "%s.", str);
+	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
@@ -366,8 +366,8 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 {
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
 	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	panic_memtrap(istate, PF_ACCESS_READ, DMISS_ADDRESS(page_and_ctx),
-	    "%s.");
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, DMISS_ADDRESS(page_and_ctx),
+	    str);
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate,
@@ -376,7 +376,7 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
 	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
 	panic_memtrap(istate, PF_ACCESS_WRITE, DMISS_ADDRESS(page_and_ctx),
-	    "%s.");
+	    str);
 }
 
 /**
