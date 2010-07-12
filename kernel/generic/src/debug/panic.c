@@ -60,6 +60,10 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 		printf("\n");
 	} else if (cat == PANIC_BADTRAP) {
 		printf("BAD TRAP %ld.\n", address);
+		if (fmt) {
+			vprintf(fmt, args);
+			printf("\n");
+		}
 	} else if (cat == PANIC_MEMTRAP) {
 		printf("A BAD MEMORY ACCESS WHILE ");
 		if (access == PF_ACCESS_READ)
@@ -71,9 +75,14 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 		else
 			printf("REFERENCING");
 		printf(" ADDRESS %p.\n", address); 
+		if (fmt) {
+			vprintf(fmt, args);
+			printf("\n");
+		}
 	} else {
 		printf("THE FOLLOWING REASON:\n");
 		vprintf(fmt, args);
+		printf("\n");
 	}
 	va_end(args);
 

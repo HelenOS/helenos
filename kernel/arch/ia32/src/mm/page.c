@@ -114,7 +114,7 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-		panic_memtrap(istate, access, page, "Page fault.");
+		panic_memtrap(istate, access, page, NULL);
 	}
 }
 

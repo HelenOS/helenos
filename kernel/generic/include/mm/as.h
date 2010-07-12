@@ -170,7 +170,8 @@ typedef struct {
 typedef enum {
 	PF_ACCESS_READ,
 	PF_ACCESS_WRITE,
-	PF_ACCESS_EXEC
+	PF_ACCESS_EXEC,
+	PF_ACCESS_UNKNOWN
 } pf_access_t;
 
 struct mem_backend;
