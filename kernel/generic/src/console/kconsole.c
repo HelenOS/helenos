@@ -629,7 +629,7 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 					cmd->argv[i].intval = (unative_t) buf;
 					cmd->argv[i].vartype = ARG_TYPE_STRING;
 				} else {
-					printf("Wrong synxtax.\n");
+					printf("Wrong syntax.\n");
 					error = true;
 				}
 			} else if (parse_int_arg(cmdline + start,
