@@ -36,6 +36,8 @@
 #define KERN_ia32_CPU_H_
 
 #define EFLAGS_IF       (1 << 9)
+#define EFLAGS_DF       (1 << 10)
+#define EFLAGS_NT       (1 << 14)
 #define EFLAGS_RF       (1 << 16)
 
 #define CR4_OSFXSR_MASK (1<<9)
