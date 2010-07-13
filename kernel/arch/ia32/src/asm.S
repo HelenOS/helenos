@@ -371,22 +371,21 @@ int_\i:
 	.iflt \i - 32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
 			/*
-			 * Exception with error word: do nothing
+			 * Exception with error word.
 			 */
+			subl $ISTATE_SOFT_SIZE, %esp
 		.else
 			/*
 			 * Exception without error word: fake up one
 			 */
-			pushl $0
+			subl $(ISTATE_SOFT_SIZE + 4), %esp
 		.endif
 	.else
 		/*
-		 * Interrupt: fake up one
+		 * Interrupt: fake up an error word 
 		 */
-		pushl $0
+		subl $(ISTATE_SOFT_SIZE + 4), %esp
 	.endif
-	
-	subl $ISTATE_SOFT_SIZE, %esp
 	
 	/*
 	 * Save the general purpose registers.
