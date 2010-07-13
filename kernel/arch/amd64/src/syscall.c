@@ -65,8 +65,9 @@ void syscall_setup_cpu(void)
 	 *   (mask the IF bit)
 	 * - clear DF so that the string instructions operate in
 	 *   the right direction
+	 * - clear NT to prevent a #GP should the flag proliferate to an IRET
 	 */
-	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF);
+	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF | RFLAGS_NT);
 }
 
 /** @}

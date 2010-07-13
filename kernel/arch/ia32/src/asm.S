@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
  */
 
 #include <arch/pm.h>
+#include <arch/cpu.h>
 #include <arch/mm/page.h>
 
 .text
@@ -189,7 +190,6 @@ enable_l_apic_in_msr:
  */
 .global sysenter_handler
 sysenter_handler:
-	sti
 	subl $(ISTATE_REAL_SIZE), %esp
 
 	/*
@@ -226,11 +226,25 @@ sysenter_handler:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movw $16, %ax
+	movw $(gdtselector(KDATA_DES)), %ax
 	movw %ax, %ds
 	movw %ax, %es
 	
-	cld
+	/*
+	 * Sanitize EFLAGS.
+	 *
+	 * SYSENTER does not clear the NT flag, which could thus proliferate
+	 * from here to the IRET instruction via a context switch and result
+	 * in crash.
+	 *
+	 * SYSENTER does not clear DF, which the ABI assumes to be cleared.
+	 *
+	 * SYSENTER clears IF, which we would like to be set for syscalls.
+	 *
+	 */
+	pushl $(EFLAGS_IF)  /* specify EFLAGS bits that we want to set */
+	popfl	            /* set bits from the mask, clear or ignore others */
+
 	call syscall_handler
 	
 	/*
@@ -293,7 +307,7 @@ int_syscall:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movl $16, %eax
+	movl $(gdtselector(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
 		
@@ -357,22 +371,21 @@ int_\i:
 	.iflt \i - 32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
 			/*
-			 * Exception with error word: do nothing
+			 * Exception with error word.
 			 */
+			subl $ISTATE_SOFT_SIZE, %esp
 		.else
 			/*
 			 * Exception without error word: fake up one
 			 */
-			pushl $0
+			subl $(ISTATE_SOFT_SIZE + 4), %esp
 		.endif
 	.else
 		/*
-		 * Interrupt: fake up one
+		 * Interrupt: fake up an error word 
 		 */
-		pushl $0
+		subl $(ISTATE_SOFT_SIZE + 4), %esp
 	.endif
-	
-	subl $ISTATE_SOFT_SIZE, %esp
 	
 	/*
 	 * Save the general purpose registers.
@@ -403,7 +416,7 @@ int_\i:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movl $16, %eax
+	movl $(gdtselector(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
 	
@@ -412,8 +425,8 @@ int_\i:
 	 * Stop stack traces here if we came from userspace.
 	 */
 	xorl %eax, %eax
-	cmpl $8, ISTATE_OFFSET_CS(%esp)
-	cmovl %eax, %ebp
+	cmpl $(gdtselector(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
+	cmovnzl %eax, %ebp
 
 	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
 	movl ISTATE_OFFSET_EIP(%esp), %eax

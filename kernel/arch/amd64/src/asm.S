@@ -26,26 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define IREGISTER_SPACE  80
-
-#define IOFFSET_RAX  0x00
-#define IOFFSET_RCX  0x08
-#define IOFFSET_RDX  0x10
-#define IOFFSET_RSI  0x18
-#define IOFFSET_RDI  0x20
-#define IOFFSET_R8   0x28
-#define IOFFSET_R9   0x30
-#define IOFFSET_R10  0x38
-#define IOFFSET_R11  0x40
-#define IOFFSET_RBP  0x48
-
-/**
- * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
- * has no error word  and 1 means interrupt with error word
- *
- */
-#define ERROR_WORD_INTERRUPT_LIST  0x00027D00
-
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 
@@ -173,36 +153,45 @@ read_efer_flag:
 	rdmsr
 	ret
 
-/** Push all volatile general purpose registers on stack
+#define ISTATE_OFFSET_RAX		0
+#define ISTATE_OFFSET_RBX		8
+#define ISTATE_OFFSET_RCX		16
+#define ISTATE_OFFSET_RDX		24
+#define ISTATE_OFFSET_RSI		32
+#define ISTATE_OFFSET_RDI		40
+#define ISTATE_OFFSET_RBP		48
+#define ISTATE_OFFSET_R8		56
+#define ISTATE_OFFSET_R9		64
+#define ISTATE_OFFSET_R10		72
+#define ISTATE_OFFSET_R11		80
+#define ISTATE_OFFSET_R12		88	
+#define ISTATE_OFFSET_R13 		96
+#define ISTATE_OFFSET_R14		104
+#define ISTATE_OFFSET_R15		112
+#define ISTATE_OFFSET_ALIGNMENT		120
+#define ISTATE_OFFSET_RBP_FRAME		128
+#define ISTATE_OFFSET_RIP_FRAME		136
+#define ISTATE_OFFSET_ERROR_WORD	144
+#define ISTATE_OFFSET_RIP		152
+#define ISTATE_OFFSET_CS		160
+#define ISTATE_OFFSET_RFLAGS		168
+#define ISTATE_OFFSET_RSP		176
+#define ISTATE_OFFSET_SS		184
+
+/*
+ * Size of the istate structure without the hardware-saved part and without the
+ * error word.
+ */
+#define ISTATE_SOFT_SIZE	144
+
+/**
+ * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
+ * has no error word  and 1 means interrupt with error word
  *
  */
-.macro save_all_gpr
-	movq %rax, IOFFSET_RAX(%rsp)
-	movq %rcx, IOFFSET_RCX(%rsp)
-	movq %rdx, IOFFSET_RDX(%rsp)
-	movq %rsi, IOFFSET_RSI(%rsp)
-	movq %rdi, IOFFSET_RDI(%rsp)
-	movq %r8, IOFFSET_R8(%rsp)
-	movq %r9, IOFFSET_R9(%rsp)
-	movq %r10, IOFFSET_R10(%rsp)
-	movq %r11, IOFFSET_R11(%rsp)
-	movq %rbp, IOFFSET_RBP(%rsp)
-.endm
+#define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
-.macro restore_all_gpr
-	movq IOFFSET_RAX(%rsp), %rax
-	movq IOFFSET_RCX(%rsp), %rcx
-	movq IOFFSET_RDX(%rsp), %rdx
-	movq IOFFSET_RSI(%rsp), %rsi
-	movq IOFFSET_RDI(%rsp), %rdi
-	movq IOFFSET_R8(%rsp), %r8
-	movq IOFFSET_R9(%rsp), %r9
-	movq IOFFSET_R10(%rsp), %r10
-	movq IOFFSET_R11(%rsp), %r11
-	movq IOFFSET_RBP(%rsp), %rbp
-.endm
-
-#define INTERRUPT_ALIGN  128
+#define INTERRUPT_ALIGN 	256 
 
 /** Declare interrupt handlers
  *
@@ -228,41 +217,77 @@ read_efer_flag:
 			/*
 			 * Version with error word.
 			 */
-			subq $IREGISTER_SPACE, %rsp
+			subq $ISTATE_SOFT_SIZE, %rsp
 		.else
 			/*
-			 * Version without error word,
+			 * Version without error word.
 			 */
-			subq $(IREGISTER_SPACE + 8), %rsp
+			subq $(ISTATE_SOFT_SIZE + 8), %rsp
 		.endif
 	.else
 		/*
-		 * Version without error word,
+		 * Version without error word.
 		 */
-		subq $(IREGISTER_SPACE + 8), %rsp
+		subq $(ISTATE_SOFT_SIZE + 8), %rsp
 	.endif
 	
-	save_all_gpr
-	cld
-	
 	/*
+	 * Save the general purpose registers.
+	 */
+	movq %rax, ISTATE_OFFSET_RAX(%rsp)
+	movq %rbx, ISTATE_OFFSET_RBX(%rsp)
+	movq %rcx, ISTATE_OFFSET_RCX(%rsp)
+	movq %rdx, ISTATE_OFFSET_RDX(%rsp)
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)
+	movq %rdi, ISTATE_OFFSET_RDI(%rsp)
+	movq %rbp, ISTATE_OFFSET_RBP(%rsp)
+	movq %r8, ISTATE_OFFSET_R8(%rsp)
+	movq %r9, ISTATE_OFFSET_R9(%rsp)
+	movq %r10, ISTATE_OFFSET_R10(%rsp)
+	movq %r11, ISTATE_OFFSET_R11(%rsp)
+	movq %r12, ISTATE_OFFSET_R12(%rsp)
+	movq %r13, ISTATE_OFFSET_R13(%rsp)
+	movq %r14, ISTATE_OFFSET_R14(%rsp)
+	movq %r15, ISTATE_OFFSET_R15(%rsp)
+
+	/*
+	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
 	 */
-	movq %cs, %rax
 	xorq %rdx, %rdx
-	cmpq %rax, IREGISTER_SPACE+16(%rsp)
-	cmovneq %rdx, %rbp
+	cmpq $(gdtselector(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
+	cmovnzq %rdx, %rbp
 
-	movq $(\i), %rdi   /* %rdi - first argument */
-	movq %rsp, %rsi    /* %rsi - pointer to istate */
+	movq %rbp, ISTATE_OFFSET_RBP_FRAME(%rsp)
+	movq ISTATE_OFFSET_RIP(%rsp), %rax
+	movq %rax, ISTATE_OFFSET_RIP_FRAME(%rsp)
+	leaq ISTATE_OFFSET_RBP_FRAME(%rsp), %rbp
+
+	movq $(\i), %rdi   /* pass intnum in the first argument */
+	movq %rsp, %rsi    /* pass istate address in the second argument */
 	
+	cld
+
 	/* Call exc_dispatch(i, istate) */
 	call exc_dispatch
-	
-	restore_all_gpr
+
+	/*
+	 * Restore all scratch registers and the preserved registers we have
+	 * clobbered in this handler (i.e. RBP).
+	 */
+	movq ISTATE_OFFSET_RAX(%rsp), %rax
+	movq ISTATE_OFFSET_RCX(%rsp), %rcx
+	movq ISTATE_OFFSET_RDX(%rsp), %rdx
+	movq ISTATE_OFFSET_RSI(%rsp), %rsi
+	movq ISTATE_OFFSET_RDI(%rsp), %rdi
+	movq ISTATE_OFFSET_RBP(%rsp), %rbp
+	movq ISTATE_OFFSET_R8(%rsp), %r8
+	movq ISTATE_OFFSET_R9(%rsp), %r9
+	movq ISTATE_OFFSET_R10(%rsp), %r10
+	movq ISTATE_OFFSET_R11(%rsp), %r11
 	
 	/* $8 = Skip error word */
-	addq $(IREGISTER_SPACE + 8), %rsp
+	addq $(ISTATE_SOFT_SIZE + 8), %rsp
 	iretq
 	
 	.align INTERRUPT_ALIGN

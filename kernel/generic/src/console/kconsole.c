@@ -209,7 +209,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size)
 	size_t found = 0;
 	link_t *pos = NULL;
 	const char *hint;
-	char output[MAX_CMDLINE];
+	char *output = malloc(MAX_CMDLINE, 0);
 	
 	output[0] = 0;
 	
@@ -234,6 +234,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size)
 	if (found > 0)
 		str_cpy(input, size, output);
 	
+	free(output);
 	return found;
 }
 
@@ -244,6 +245,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
+	char *tmp = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
 	
 	while (true) {
 		wchar_t ch = indev_pop_character(indev);
@@ -288,7 +290,6 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (isspace(current[beg]))
 				beg++;
 			
-			char tmp[STR_BOUNDS(MAX_CMDLINE)];
 			wstr_to_str(tmp, position - beg + 1, current + beg);
 			
 			int found;
@@ -414,6 +415,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 		history_pos = history_pos % KCONSOLE_HISTORY;
 	}
 	
+	free(tmp);
 	return current;
 }
 
@@ -629,7 +631,7 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 					cmd->argv[i].intval = (unative_t) buf;
 					cmd->argv[i].vartype = ARG_TYPE_STRING;
 				} else {
-					printf("Wrong synxtax.\n");
+					printf("Wrong syntax.\n");
 					error = true;
 				}
 			} else if (parse_int_arg(cmdline + start,
@@ -687,13 +689,13 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 	else
 		printf("Type \"exit\" to leave the console.\n");
 	
+	char *cmdline = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin);
 		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;
 		
-		char cmdline[STR_BOUNDS(MAX_CMDLINE)];
 		wstr_to_str(cmdline, STR_BOUNDS(MAX_CMDLINE), tmp);
 		
 		if ((!kcon) && (len == 4) && (str_lcmp(cmdline, "exit", 4) == 0))
@@ -705,6 +707,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 		
 		(void) cmd_info->func(cmd_info->argv);
 	}
+	free(cmdline);
 }
 
 /** Kernel console managing thread.
