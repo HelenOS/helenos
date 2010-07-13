@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
