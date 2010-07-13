@@ -31,6 +31,7 @@
  */
 
 #include <arch/pm.h>
+#include <arch/cpu.h>
 #include <arch/mm/page.h>
 
 .text
@@ -189,7 +190,6 @@ enable_l_apic_in_msr:
  */
 .global sysenter_handler
 sysenter_handler:
-	sti
 	subl $(ISTATE_REAL_SIZE), %esp
 
 	/*
@@ -230,7 +230,21 @@ sysenter_handler:
 	movw %ax, %ds
 	movw %ax, %es
 	
-	cld
+	/*
+	 * Sanitize EFLAGS.
+	 *
+	 * SYSENTER does not clear the NT flag, which could thus proliferate
+	 * from here to the IRET instruction via a context switch and result
+	 * in crash.
+	 *
+	 * SYSENTER does not clear DF, which the ABI assumes to be cleared.
+	 *
+	 * SYSENTER clears IF, which we would like to be set for syscalls.
+	 *
+	 */
+	pushl $(EFLAGS_IF)  /* specify EFLAGS bits that we want to set */
+	popfl	            /* set bits from the mask, clear or ignore others */
+
 	call syscall_handler
 	
 	/*
