@@ -95,7 +95,8 @@
 	stmfd r13!, {r4-r12}
 	ldmfd r3!, {r4-r7}
 	stmfd r13!, {r4-r7}
-	stmfd r13!, {r13, lr}^
+	stmfd r13, {r13, lr}^
+	sub r13, r13, #8
 	stmfd r13!, {r2}
 
 	# Stop stack traces here
@@ -136,7 +137,8 @@
 	bne 1f
 
 	# return to user mode
-	ldmfd r13!, {r13, lr}^
+	ldmfd r13, {r13, lr}^
+	add r13, r13, #8
 	b 2f
 
 	# return to non-user mode
