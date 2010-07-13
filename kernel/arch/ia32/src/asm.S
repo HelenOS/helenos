@@ -413,7 +413,7 @@ int_\i:
 	 */
 	xorl %eax, %eax
 	cmpl $8, ISTATE_OFFSET_CS(%esp)
-	cmovl %eax, %ebp
+	cmovnzl %eax, %ebp
 
 	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
 	movl ISTATE_OFFSET_EIP(%esp), %eax
