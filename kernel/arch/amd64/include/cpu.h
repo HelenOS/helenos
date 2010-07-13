@@ -44,6 +44,7 @@
 #define RFLAGS_IF	(1 << 9)
 #define RFLAGS_DF	(1 << 10)
 #define RFLAGS_OF	(1 << 11)
+#define RFLAGS_NT	(1 << 14)
 #define RFLAGS_RF	(1 << 16)
 
 #define EFER_MSR_NUM    0xc0000080
