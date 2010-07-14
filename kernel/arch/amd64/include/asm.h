@@ -434,11 +434,73 @@ GEN_WRITE_REG(dr3)
 GEN_WRITE_REG(dr6)
 GEN_WRITE_REG(dr7)
 
-extern size_t interrupt_handler_size;
-extern void interrupt_handlers(void);
-
 extern void asm_delay_loop(uint32_t);
 extern void asm_fake_loop(uint32_t);
+
+extern uintptr_t int_0;
+extern uintptr_t int_1;
+extern uintptr_t int_2;
+extern uintptr_t int_3;
+extern uintptr_t int_4;
+extern uintptr_t int_5;
+extern uintptr_t int_6;
+extern uintptr_t int_7;
+extern uintptr_t int_8;
+extern uintptr_t int_9;
+extern uintptr_t int_10;
+extern uintptr_t int_11;
+extern uintptr_t int_12;
+extern uintptr_t int_13;
+extern uintptr_t int_14;
+extern uintptr_t int_15;
+extern uintptr_t int_16;
+extern uintptr_t int_17;
+extern uintptr_t int_18;
+extern uintptr_t int_19;
+extern uintptr_t int_20;
+extern uintptr_t int_21;
+extern uintptr_t int_22;
+extern uintptr_t int_23;
+extern uintptr_t int_24;
+extern uintptr_t int_25;
+extern uintptr_t int_26;
+extern uintptr_t int_27;
+extern uintptr_t int_28;
+extern uintptr_t int_29;
+extern uintptr_t int_30;
+extern uintptr_t int_31;
+extern uintptr_t int_32;
+extern uintptr_t int_33;
+extern uintptr_t int_34;
+extern uintptr_t int_35;
+extern uintptr_t int_36;
+extern uintptr_t int_37;
+extern uintptr_t int_38;
+extern uintptr_t int_39;
+extern uintptr_t int_40;
+extern uintptr_t int_41;
+extern uintptr_t int_42;
+extern uintptr_t int_43;
+extern uintptr_t int_44;
+extern uintptr_t int_45;
+extern uintptr_t int_46;
+extern uintptr_t int_47;
+extern uintptr_t int_48;
+extern uintptr_t int_49;
+extern uintptr_t int_50;
+extern uintptr_t int_51;
+extern uintptr_t int_52;
+extern uintptr_t int_53;
+extern uintptr_t int_54;
+extern uintptr_t int_55;
+extern uintptr_t int_56;
+extern uintptr_t int_57;
+extern uintptr_t int_58;
+extern uintptr_t int_59;
+extern uintptr_t int_60;
+extern uintptr_t int_61;
+extern uintptr_t int_62;
+extern uintptr_t int_63;
 
 #endif
 

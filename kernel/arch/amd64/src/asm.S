@@ -191,25 +191,13 @@ read_efer_flag:
  */
 #define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
-#define INTERRUPT_ALIGN 	256 
+.macro handler i
+.global int_\i
+int_\i:
 
-/** Declare interrupt handlers
- *
- * Declare interrupt handlers for n interrupt
- * vectors starting at vector i.
- *
- * The handlers call exc_dispatch().
- *
- */
-.macro handler i n
-	
 	/*
 	 * Choose between version with error code and version without error
-	 * code. Both versions have to be of the same size. amd64 assembly is,
-	 * however, a little bit tricky. For instance, subq $0x80, %rsp and
-	 * subq $0x78, %rsp can result in two instructions with different
-	 * op-code lengths.
-	 * Therefore we align the interrupt handlers.
+	 * code.
 	 */
 	
 	.iflt \i-32
@@ -289,18 +277,17 @@ read_efer_flag:
 	/* $8 = Skip error word */
 	addq $(ISTATE_SOFT_SIZE + 8), %rsp
 	iretq
-	
-	.align INTERRUPT_ALIGN
-	.if (\n - \i) - 1
-		handler "(\i + 1)", \n
-	.endif
 .endm
 
-.align INTERRUPT_ALIGN
+#define LIST_0_63 \
+	0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
+	53,54,55,56,57,58,59,60,61,62,63
+
 interrupt_handlers:
-	h_start:
-		handler 0 IDT_ITEMS
-	h_end:
+.irp cnt, LIST_0_63
+	handler \cnt 
+.endr
 
 /** Low-level syscall handler
  *
@@ -544,7 +531,3 @@ early_putchar:
 	
 	ret
 
-.data
-.global interrupt_handler_size
-
-interrupt_handler_size: .quad (h_end - h_start) / IDT_ITEMS
