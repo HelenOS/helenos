@@ -191,25 +191,13 @@ read_efer_flag:
  */
 #define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
-#define INTERRUPT_ALIGN 	256 
+.macro handler i
+.global int_\i
+int_\i:
 
-/** Declare interrupt handlers
- *
- * Declare interrupt handlers for n interrupt
- * vectors starting at vector i.
- *
- * The handlers call exc_dispatch().
- *
- */
-.macro handler i n
-	
 	/*
 	 * Choose between version with error code and version without error
-	 * code. Both versions have to be of the same size. amd64 assembly is,
-	 * however, a little bit tricky. For instance, subq $0x80, %rsp and
-	 * subq $0x78, %rsp can result in two instructions with different
-	 * op-code lengths.
-	 * Therefore we align the interrupt handlers.
+	 * code.
 	 */
 	
 	.iflt \i-32
@@ -289,18 +277,17 @@ read_efer_flag:
 	/* $8 = Skip error word */
 	addq $(ISTATE_SOFT_SIZE + 8), %rsp
 	iretq
-	
-	.align INTERRUPT_ALIGN
-	.if (\n - \i) - 1
-		handler "(\i + 1)", \n
-	.endif
 .endm
 
-.align INTERRUPT_ALIGN
+#define LIST_0_63 \
+	0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
+	53,54,55,56,57,58,59,60,61,62,63
+
 interrupt_handlers:
-	h_start:
-		handler 0 IDT_ITEMS
-	h_end:
+.irp cnt, LIST_0_63
+	handler \cnt 
+.endr
 
 /** Low-level syscall handler
  *
@@ -333,35 +320,71 @@ syscall_entry:
 	movq %rsp, %gs:0  /* save this thread's user RSP */
 	movq %gs:8, %rsp  /* set this thread's kernel RSP */
 	
-	/* Switch back to remain consistent */
+	/*
+	 * Note that the space needed for the imitated istate structure has been
+	 * preallocated for us in thread_create_arch() and set in
+	 * before_thread_runs_arch().
+	 */
+
+	/*
+	 * Save the general purpose registers and push the 7th argument (syscall
+	 * number) onto the stack. Note that the istate structure has a layout
+	 * which supports this.
+	 */
+	movq %rax, ISTATE_OFFSET_RAX(%rsp)  /* 7th argument, passed on stack */
+	movq %rbx, ISTATE_OFFSET_RBX(%rsp)  /* observability */
+	movq %rcx, ISTATE_OFFSET_RCX(%rsp)  /* userspace RIP */
+	movq %rdx, ISTATE_OFFSET_RDX(%rsp)  /* 3rd argument, observability */
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)  /* 2nd argument, observability */ 
+	movq %rdi, ISTATE_OFFSET_RDI(%rsp)  /* 1st argument, observability */
+	movq %rbp, ISTATE_OFFSET_RBP(%rsp)  /* need to preserve userspace RBP */
+	movq %r8, ISTATE_OFFSET_R8(%rsp)    /* 5th argument, observability */
+	movq %r9, ISTATE_OFFSET_R9(%rsp)    /* 6th argument, observability */
+	movq %r10, ISTATE_OFFSET_R10(%rsp)  /* 4th argument, observability */
+	movq %r11, ISTATE_OFFSET_R11(%rsp)  /* low 32 bits userspace RFLAGS */
+	movq %r12, ISTATE_OFFSET_R12(%rsp)  /* observability */
+	movq %r13, ISTATE_OFFSET_R13(%rsp)  /* observability */
+	movq %r14, ISTATE_OFFSET_R14(%rsp)  /* observability */
+	movq %r15, ISTATE_OFFSET_R15(%rsp)  /* observability */
+
+	/*
+	 * Save the return address and the userspace stack on locations that
+	 * would normally be taken by them.
+	 */
+	movq %gs:0, %rax
+	movq %rax, ISTATE_OFFSET_RSP(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP(%rsp)
+
+	/*
+	 * Imitate a regular stack frame linkage.
+	 */
+	movq $0, ISTATE_OFFSET_RBP_FRAME(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP_FRAME(%rsp)
+	leaq ISTATE_OFFSET_RBP_FRAME(%rsp), %rbp
+
+	/* Switch back to normal %gs */
 	swapgs
 	sti
 	
-	pushq %rcx
-	pushq %r11
-	pushq %rbp
-	
-	xorq %rbp, %rbp  /* stop the stack traces here */
-	
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
-	pushq %rax
-	
+
+	/*
+	 * Call syscall_handler() with the 7th argument passed on stack.
+	 */
 	call syscall_handler
 	
-	addq $8, %rsp
-	
-	popq %rbp
-	popq %r11
-	popq %rcx
-	
 	cli
-	swapgs
 	
-	/* Restore the user RSP */
-	movq %gs:0, %rsp
-	swapgs
-	
+	/*
+	 * Restore registers needed for return via the SYSRET instruction and
+	 * the clobbered preserved registers (i.e. RBP).
+	 */
+	movq ISTATE_OFFSET_RBP(%rsp), %rbp
+	movq ISTATE_OFFSET_RCX(%rsp), %rcx
+	movq ISTATE_OFFSET_R11(%rsp), %r11
+	movq ISTATE_OFFSET_RSP(%rsp), %rsp
+
 	sysretq
 
 /** Print Unicode character to EGA display.
@@ -508,7 +531,3 @@ early_putchar:
 	
 	ret
 
-.data
-.global interrupt_handler_size
-
-interrupt_handler_size: .quad (h_end - h_start) / IDT_ITEMS
