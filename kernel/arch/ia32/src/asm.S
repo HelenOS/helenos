@@ -174,12 +174,6 @@ enable_l_apic_in_msr:
 #define ISTATE_SOFT_SIZE  52
 
 /*
- * Size of the entire istate structure including the error word and the
- * hardware-saved part.
- */
-#define ISTATE_REAL_SIZE  (ISTATE_SOFT_SIZE + 24)
-
-/*
  * The SYSENTER syscall mechanism can be used for syscalls with
  * four or fewer arguments. To pass these four arguments, we
  * use four registers: EDX, ECX, EBX, ESI. The syscall number
@@ -190,7 +184,11 @@ enable_l_apic_in_msr:
  */
 .global sysenter_handler
 sysenter_handler:
-	subl $(ISTATE_REAL_SIZE), %esp
+
+	/*
+	 * Note that the space needed for the istate structure has been
+	 * preallocated on the stack by before_thread_runs_arch().
+	 */
 
 	/*
 	 * Save the return address and the userspace stack in the istate
@@ -259,8 +257,6 @@ sysenter_handler:
 	movl ISTATE_OFFSET_EIP(%esp), %edx
 	movl ISTATE_OFFSET_ESP(%esp), %ecx
 
-	addl $(ISTATE_REAL_SIZE), %esp
-	
 	sysexit   /* return to userspace */
 
 /*

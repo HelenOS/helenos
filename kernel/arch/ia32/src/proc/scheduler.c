@@ -38,6 +38,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/context.h>  /* SP_DELTA */
+#include <arch/interrupt.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <arch/ddi/ddi.h>
@@ -62,7 +63,7 @@ void before_thread_runs_arch(void)
 	
 	if (CPU->arch.fi.bits.sep) {
 		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
-		write_msr(IA32_MSR_SYSENTER_ESP, kstk);
+		write_msr(IA32_MSR_SYSENTER_ESP, kstk - sizeof(istate_t));
 	}
 	
 	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
