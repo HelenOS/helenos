@@ -64,15 +64,21 @@ void (* eoi_function)(void) = NULL;
 
 void istate_decode(istate_t *istate)
 {
-	printf("error_word=%#llx\n", istate->error_word);
-	printf("cs =%#0.16llx\trflags=%#0.16llx\n", istate->cs,
-	    istate->rflags);
-	printf("rax=%#0.16llx\trbx=%#0.16llx\trcx=%#0.16llx\n", istate->rax,
-	    istate->rcx, istate->rdx);
-	printf("rsi=%#0.16llx\trdi=%#0.16llx\tr8 =%#0.16llx\n", istate->rsi,
-	    istate->rdi, istate->r8);
-	printf("r9 =%#0.16llx\tr10=%#0.16llx\tr11=%#0.16llx\n", istate->r9,
-	    istate->r10, istate->r11);
+	printf("cs =%p\trip=%p\trfl=%p\terr=%p\n",
+	    istate->cs, istate->rip, istate->rflags, istate->error_word);
+
+	if (istate_from_uspace(istate))
+		printf("ss =%p\n", istate->ss);
+	
+	printf("rax=%p\trbx=%p\trcx=%p\trdx=%p\n",
+	    istate->rax, istate->rbx, istate->rcx, istate->rdx);
+	printf("rsi=%p\trdi=%p\trbp=%p\trsp=%p\n",
+	    istate->rsi, istate->rdi, istate->rbp,
+	    istate_from_uspace(istate) ? istate->rsp : (uintptr_t)&istate->rsp);
+	printf("r8 =%p\tr9 =%p\tr10=%p\tr11=%p\n",
+	    istate->r8, istate->r9, istate->r10, istate->r11);
+	printf("r12=%p\tr13=%p\tr14=%p\tr15=%p\n",
+	    istate->r12, istate->r13, istate->r14, istate->r15);
 }
 
 static void trap_virtual_eoi(void)
