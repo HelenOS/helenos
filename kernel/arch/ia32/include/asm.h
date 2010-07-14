@@ -42,8 +42,6 @@
 #include <config.h>
 #include <trace.h>
 
-extern uint32_t interrupt_handler_size;
-
 /** Halt CPU
  *
  * Halt the current CPU.
