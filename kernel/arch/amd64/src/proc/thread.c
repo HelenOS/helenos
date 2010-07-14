@@ -33,6 +33,7 @@
  */
 
 #include <proc/thread.h>
+#include <arch/interrupt.h>
 
 /** Perform amd64 specific thread initialization.
  *
@@ -48,7 +49,7 @@ void thread_create_arch(thread_t *thread)
 	 * Kernel RSP can be precalculated at thread creation time.
 	 */
 	thread->arch.syscall_rsp[SYSCALL_KSTACK_RSP] =
-	    (uintptr_t) &thread->kstack[PAGE_SIZE - sizeof(uint64_t)];
+	    (uintptr_t) &thread->kstack[PAGE_SIZE - sizeof(istate_t)];
 }
 
 /** @}

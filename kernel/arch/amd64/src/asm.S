@@ -333,35 +333,71 @@ syscall_entry:
 	movq %rsp, %gs:0  /* save this thread's user RSP */
 	movq %gs:8, %rsp  /* set this thread's kernel RSP */
 	
-	/* Switch back to remain consistent */
+	/*
+	 * Note that the space needed for the imitated istate structure has been
+	 * preallocated for us in thread_create_arch() and set in
+	 * before_thread_runs_arch().
+	 */
+
+	/*
+	 * Save the general purpose registers and push the 7th argument (syscall
+	 * number) onto the stack. Note that the istate structure has a layout
+	 * which supports this.
+	 */
+	movq %rax, ISTATE_OFFSET_RAX(%rsp)  /* 7th argument, passed on stack */
+	movq %rbx, ISTATE_OFFSET_RBX(%rsp)  /* observability */
+	movq %rcx, ISTATE_OFFSET_RCX(%rsp)  /* userspace RIP */
+	movq %rdx, ISTATE_OFFSET_RDX(%rsp)  /* 3rd argument, observability */
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)  /* 2nd argument, observability */ 
+	movq %rdi, ISTATE_OFFSET_RDI(%rsp)  /* 1st argument, observability */
+	movq %rbp, ISTATE_OFFSET_RBP(%rsp)  /* need to preserve userspace RBP */
+	movq %r8, ISTATE_OFFSET_R8(%rsp)    /* 5th argument, observability */
+	movq %r9, ISTATE_OFFSET_R9(%rsp)    /* 6th argument, observability */
+	movq %r10, ISTATE_OFFSET_R10(%rsp)  /* 4th argument, observability */
+	movq %r11, ISTATE_OFFSET_R11(%rsp)  /* low 32 bits userspace RFLAGS */
+	movq %r12, ISTATE_OFFSET_R12(%rsp)  /* observability */
+	movq %r13, ISTATE_OFFSET_R13(%rsp)  /* observability */
+	movq %r14, ISTATE_OFFSET_R14(%rsp)  /* observability */
+	movq %r15, ISTATE_OFFSET_R15(%rsp)  /* observability */
+
+	/*
+	 * Save the return address and the userspace stack on locations that
+	 * would normally be taken by them.
+	 */
+	movq %gs:0, %rax
+	movq %rax, ISTATE_OFFSET_RSP(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP(%rsp)
+
+	/*
+	 * Imitate a regular stack frame linkage.
+	 */
+	movq $0, ISTATE_OFFSET_RBP_FRAME(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP_FRAME(%rsp)
+	leaq ISTATE_OFFSET_RBP_FRAME(%rsp), %rbp
+
+	/* Switch back to normal %gs */
 	swapgs
 	sti
 	
-	pushq %rcx
-	pushq %r11
-	pushq %rbp
-	
-	xorq %rbp, %rbp  /* stop the stack traces here */
-	
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
-	pushq %rax
-	
+
+	/*
+	 * Call syscall_handler() with the 7th argument passed on stack.
+	 */
 	call syscall_handler
 	
-	addq $8, %rsp
-	
-	popq %rbp
-	popq %r11
-	popq %rcx
-	
 	cli
-	swapgs
 	
-	/* Restore the user RSP */
-	movq %gs:0, %rsp
-	swapgs
-	
+	/*
+	 * Restore registers needed for return via the SYSRET instruction and
+	 * the clobbered preserved registers (i.e. RBP).
+	 */
+	movq ISTATE_OFFSET_RBP(%rsp), %rbp
+	movq ISTATE_OFFSET_RCX(%rsp), %rcx
+	movq ISTATE_OFFSET_R11(%rsp), %r11
+	movq ISTATE_OFFSET_RSP(%rsp), %rsp
+
 	sysretq
 
 /** Print Unicode character to EGA display.
