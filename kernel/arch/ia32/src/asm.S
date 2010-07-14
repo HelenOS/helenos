@@ -348,12 +348,6 @@ int_syscall:
  */
 #define ERROR_WORD_INTERRUPT_LIST  0x00027d00
 
-/** Declare interrupt handlers
- *
- * Declare interrupt handlers for n interrupt
- * vectors starting at vector i.
- *
- */
 .macro handler i
 .global int_\i
 int_\i:
