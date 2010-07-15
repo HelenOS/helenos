@@ -40,9 +40,6 @@
 #include <ddi/device.h>
 #include <interrupt.h>
 
-/** Initial size of a table holding interrupt handlers. */
-#define IRQ_COUNT 8
-
 /** Disable interrupts.
  *
  * @return Old interrupt priority level.
@@ -104,7 +101,11 @@ bool interrupts_disabled(void)
  */
 void interrupt_init(void)
 {
-	irq_init(IRQ_COUNT, IRQ_COUNT);
+	size_t irq_count;
+
+	irq_count = machine_get_irq_count();
+	irq_init(irq_count, irq_count);
+
 	machine_timer_irq_start();
 }
 

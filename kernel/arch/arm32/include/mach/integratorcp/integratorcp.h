@@ -107,6 +107,9 @@ extern void icp_frame_init(void);
 
 extern struct arm_machine_ops icp_machine_ops;
 
+/** Size of IntegratorCP IRQ number range (starting from 0) */
+#define ICP_IRQ_COUNT 8
+
 #endif
 
 /** @}

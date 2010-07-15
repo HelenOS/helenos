@@ -210,7 +210,7 @@ void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;
 
-	for (i = 0; i < GXEMUL_IRQC_MAX_IRQ; i++) {
+	for (i = 0; i < GXEMUL_IRQ_COUNT; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
 			if (irq) {

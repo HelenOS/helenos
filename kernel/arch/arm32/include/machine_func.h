@@ -103,6 +103,8 @@ extern void machine_output_init(void);
  */
 extern void machine_input_init(void);
 
+extern size_t machine_get_irq_count(void);
+
 #endif
 
 /** @}

@@ -42,6 +42,9 @@
 
 extern struct arm_machine_ops gta02_machine_ops;
 
+/** Size of GTA02 IRQ number range (starting from 0) */
+#define GTA02_IRQ_COUNT 32
+
 #endif
 
 /** @}

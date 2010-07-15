@@ -41,12 +41,10 @@
 
 #include <arch/machine_func.h>
 
-/** Last interrupt number (beginning from 0) whose status is probed
- * from interrupt controller
- */
-#define GXEMUL_IRQC_MAX_IRQ  8
-#define GXEMUL_KBD_IRQ       2
-#define GXEMUL_TIMER_IRQ     4
+/** Size of GXemul IRQ number range (starting from 0) */
+#define GXEMUL_IRQ_COUNT	32
+#define GXEMUL_KBD_IRQ		2
+#define GXEMUL_TIMER_IRQ	4
 
 /** Timer frequency */
 #define GXEMUL_TIMER_FREQ  100

@@ -124,5 +124,22 @@ void machine_input_init(void)
 	(machine_ops->machine_input_init)();
 }
 
+/** Get IRQ number range used by machine. */
+size_t machine_get_irq_count(void)
+{
+	size_t irq_count;
+ 
+#if defined(MACHINE_gta02)
+	irq_count = GTA02_IRQ_COUNT;
+#elif defined(MACHINE_testarm)
+	irq_count = GXEMUL_IRQ_COUNT;
+#elif defined(MACHINE_integratorcp)
+	irq_count = ICP_IRQ_COUNT;
+#else
+#error Machine type not defined.
+#endif
+	return irq_count;
+}
+
 /** @}
  */
