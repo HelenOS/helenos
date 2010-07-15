@@ -42,8 +42,6 @@
 #include <config.h>
 #include <trace.h>
 
-extern uint32_t interrupt_handler_size;
-
 /** Halt CPU
  *
  * Halt the current CPU.
@@ -428,6 +426,8 @@ extern void enable_l_apic_in_msr(void);
 
 extern void asm_delay_loop(uint32_t);
 extern void asm_fake_loop(uint32_t);
+
+extern uintptr_t int_syscall;
 
 extern uintptr_t int_0;
 extern uintptr_t int_1;

@@ -64,23 +64,19 @@ void (* eoi_function)(void) = NULL;
 
 void istate_decode(istate_t *istate)
 {
-	printf("error_word=%p\n", istate->error_word);
-	printf("eflags=%p\n", istate->eflags);
+	printf("cs =%p\teip=%p\tefl=%p\terr=%p\n",
+	    istate->cs, istate->eip, istate->eflags, istate->error_word);
 
-	printf("cs =%p\tds =%p\tes =%p\n", istate->cs, istate->ds, istate->es);
-	printf("fs =%p\tgs =%p", istate->fs, istate->gs);
+	printf("ds =%p\tes =%p\tfs =%p\tgs =%p\n",
+	    istate->ds, istate->es, istate->fs, istate->gs);
 	if (istate_from_uspace(istate))
-		printf("\tss =%p\n", istate->ss);
-	else
-		printf("\n");
+		printf("ss =%p\n", istate->ss);
 
-	printf("eax=%p\tebx=%p\tecx=%p\n", istate->eax, istate->ebx,
-	    istate->ecx);
-	printf("edx=%p\tedi=%p\tesi=%p\n", istate->edx, istate->edi,
-	    istate->esi);
-	printf("ebp=%p\tesp=%p\teip=%p\n", istate->ebp,
-	    istate_from_uspace(istate) ? istate->esp : (uintptr_t) &istate->esp,
-	    istate->eip);
+	printf("eax=%p\tebx=%p\tecx=%p\tedx=%p\n",
+	    istate->eax, istate->ebx, istate->ecx, istate->edx);
+	printf("esi=%p\tedi=%p\tebp=%p\tesp=%p\n",
+	    istate->esi, istate->edi, istate->ebp,
+	    istate_from_uspace(istate) ? istate->esp : (uintptr_t)&istate->esp);
 }
 
 static void trap_virtual_eoi(void)

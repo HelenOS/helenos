@@ -258,7 +258,7 @@ void fast_data_access_mmu_miss(tlb_tag_access_reg_t tag, istate_t *istate)
 		if (!tag.vpn) {
 			/* NULL access in kernel */
 			do_fast_data_access_mmu_miss_fault(istate, tag,
-			    "Dereferencing NULL pointer");
+			    "Dereferencing NULL pointer.");
 		} else if (page_8k >= end_of_identity) {
 			/*
 			 * The kernel is accessing the I/O space.
@@ -441,7 +441,7 @@ void do_fast_instruction_access_mmu_miss_fault(istate_t *istate,
     uintptr_t va, const char *str)
 {
 	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
-	panic_memtrap(istate, PF_ACCESS_EXEC, va, "%s.", str);
+	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
@@ -452,7 +452,7 @@ void do_fast_data_access_mmu_miss_fault(istate_t *istate,
 	va = tag.vpn << MMU_PAGE_WIDTH;
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
 	    tag.context);
-	panic_memtrap(istate, PF_ACCESS_READ, va, "%s.", str);
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, str);
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate,
@@ -463,7 +463,7 @@ void do_fast_data_access_protection_fault(istate_t *istate,
 	va = tag.vpn << MMU_PAGE_WIDTH;
 	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str, va,
 	    tag.context);
-	panic_memtrap(istate, PF_ACCESS_WRITE, va, "%s.", str);
+	panic_memtrap(istate, PF_ACCESS_WRITE, va, str);
 }
 
 void describe_dmmu_fault(void)

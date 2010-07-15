@@ -111,7 +111,7 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "PHT Refill Exception on %p.", badvaddr);
-	panic_memtrap(istate, PF_ACCESS_READ, badvaddr,
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, badvaddr,
 	    "PHT Refill Exception.");
 }
 
