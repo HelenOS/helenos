@@ -49,7 +49,7 @@
 
 extern void alloc_window_and_flush(void);
 
-bool kernel_frame_pointer_validate(uintptr_t fp)
+bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	uintptr_t kstack;
 	
@@ -62,38 +62,38 @@ bool kernel_frame_pointer_validate(uintptr_t fp)
 	kstack += STACK_BIAS;
 	kstack -= PREEMPTIBLE_HANDLER_STACK_FRAME_SIZE;
 
-	if (THREAD && (fp == kstack))
+	if (THREAD && (ctx->fp == kstack))
 		return false;
-	return fp != 0;
+	return ctx->fp != 0;
 }
 
-bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
-	uint64_t *stack = (void *) fp;
+	uint64_t *stack = (void *) ctx->fp;
 	alloc_window_and_flush();
 	*prev = stack[FRAME_OFFSET_FP_PREV] + STACK_BIAS;
 	return true;
 }
 
-bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
+bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
-	uint64_t *stack = (void *) fp;
+	uint64_t *stack = (void *) ctx->fp;
 	alloc_window_and_flush();
 	*ra = stack[FRAME_OFFSET_RA];
 	return true;
 }
 
-bool uspace_frame_pointer_validate(uintptr_t fp)
+bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	return false;
 }
 
-bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
 	return false;
 }
 
-bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
+bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
 {
 	return false;
 }
