@@ -36,8 +36,8 @@
 
 frame_pointer_get:
 	j $ra
-	xor $v0, $v0
+	move $v0, $sp
 
 program_counter_get:
 	j $ra
-	xor $v0, $v0
+	move $v0, $ra

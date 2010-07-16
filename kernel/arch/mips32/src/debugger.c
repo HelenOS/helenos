@@ -133,7 +133,7 @@ static struct {
  * @return true if it is jump instruction, false otherwise
  *
  */
-static bool is_jump(unative_t instr)
+bool is_jump(unative_t instr)
 {
 	unsigned int i;
 	
