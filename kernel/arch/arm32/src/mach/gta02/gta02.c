@@ -224,8 +224,17 @@ static void gta02_timer_start(void)
 	 * inverter bit'.
 	 */
 
-	/* Set prescaler values to zero. (no pre-divison), no dead zone. */
-	pio_write_32(&timer->tcfg0, 0);
+	/*
+	 * GTA02 PCLK should be 100 MHz.
+	 * Timer input freq. = PCLK / divider / (1+prescaler)
+	 * 100 MHz / 2 / (1+7) / 62500 ~= 100 Hz
+	 */
+#if HZ != 100
+#warning Other HZ than 100 not suppored.
+#endif
+
+	/* Set prescaler values. No pre-divison, no dead zone. */
+	pio_write_32(&timer->tcfg0, 7); /* prescale 1/8 */
 
 	/* No DMA request, divider value = 2 for all timers. */
 	pio_write_32(&timer->tcfg1, 0);
@@ -234,7 +243,7 @@ static void gta02_timer_start(void)
 	pio_write_32(&timer->tcon, 0);
 
 	/* Start counting from 64k-1. Compare value is irrelevant. */
-	pio_write_32(&timer->timer[0].cntb, 0xffff);
+	pio_write_32(&timer->timer[0].cntb, 62500);
 	pio_write_32(&timer->timer[0].cmpb, 0);
 
 	/* Enable interrupts from timer0 */
