@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup arm32gta02 GTA02
+ *  @brief Openmoko GTA02 platform.
+ *  @ingroup arm32
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#else
-#define BOOT_BASE	0x00000000
-#endif
+/** @file
+ *  @brief Openmoko GTA02 platform driver.
+ */
 
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
+#ifndef KERN_arm32_gta02_H_
+#define KERN_arm32_gta02_H_
 
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
-#else
-	#define PA2KA(addr)  ((addr) + 0x80000000)
-#endif
+#include <arch/machine_func.h>
+
+extern struct arm_machine_ops gta02_machine_ops;
+
+/** Size of GTA02 IRQ number range (starting from 0) */
+#define GTA02_IRQ_COUNT 32
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_arm32_ARCH_H
-#define BOOT_arm32_ARCH_H
-
-#define PAGE_WIDTH  12
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
-
-#define PTL0_ENTRIES     4096
-#define PTL0_ENTRY_SIZE  4
-
-/*
- * Address where the boot stage image starts (beginning of usable physical
- * memory).
+/** @addtogroup genarch
+ * @{
  */
-#ifdef MACHINE_gta02
-#define BOOT_BASE	0x30008000
-#else
-#define BOOT_BASE	0x00000000
-#endif
+/**
+ * @file
+ * @brief Samsung S3C24xx on-chip UART driver.
+ */
 
-#define BOOT_OFFSET	(BOOT_BASE + 0xa00000)
+#ifndef KERN_S3C24XX_UART_H_
+#define KERN_S3C24XX_UART_H_
 
-#ifndef __ASM__
-	#define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
-#else
-	#define PA2KA(addr)  ((addr) + 0x80000000)
-#endif
+#include <typedefs.h>
+#include <console/chardev.h>
+
+extern outdev_t *s3c24xx_uart_init(ioport8_t *);
 
 #endif
 

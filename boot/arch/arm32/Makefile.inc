@@ -26,6 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+ifeq ($(MACHINE), gta02)
+	BOOT_OUTPUT = image.boot
+	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
+	POSTBUILD = Makefile.uboot
+endif
+
 BFD_NAME = elf32-littlearm
 BFD_OUTPUT = $(BFD_NAME)
 BFD_ARCH = arm
