@@ -95,7 +95,9 @@
 	stmfd r13!, {r4-r12}
 	ldmfd r3!, {r4-r7}
 	stmfd r13!, {r4-r7}
-	stmfd r13, {r13, lr}^
+	mov r4, r13
+	stmfd r4, {r13, lr}^
+	nop			/* Cannot access r13 immediately after stm(2) */
 	sub r13, r13, #8
 	stmfd r13!, {r2}
 
@@ -137,7 +139,9 @@
 	bne 1f
 
 	# return to user mode
-	ldmfd r13, {r13, lr}^
+	mov r0, r13
+	ldmfd r0, {r13, lr}^
+	nop			/* Cannot access r13 immediately after ldm(2) */
 	add r13, r13, #8
 	b 2f
 

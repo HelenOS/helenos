@@ -97,6 +97,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"mov sp, %[ustate]\n"
 		"msr spsr_c, %[user_mode]\n"
 		"ldmfd sp, {r0-r12, sp, lr}^\n"
+		"nop\n"		/* Cannot access sp immediately after ldm(2) */
 		"add sp, sp, #(15*4)\n"
 		"ldmfd sp!, {pc}^\n"
 		:: [ustate] "r" (&ustate), [user_mode] "r" (user_mode)
