@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericdebug 
+/** @addtogroup genericdebug
  * @{
  */
 /** @file
@@ -41,32 +41,45 @@
 #define STACK_FRAMES_MAX	20
 
 void
-stack_trace_fp_pc(stack_trace_ops_t *ops, uintptr_t fp, uintptr_t pc)
+stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 {
 	int cnt = 0;
 	const char *symbol;
 	uintptr_t offset;
+	uintptr_t fp;
+	uintptr_t pc;
 	
-	while (cnt++ < STACK_FRAMES_MAX && ops->frame_pointer_validate(fp)) {
+	while (cnt++ < STACK_FRAMES_MAX &&
+	    ops->stack_trace_context_validate(ctx)) {
 		if (ops->symbol_resolve &&
-		    ops->symbol_resolve(pc, &symbol, &offset)) {
+		    ops->symbol_resolve(ctx->pc, &symbol, &offset)) {
 		    	if (offset)
-				printf("%p: %s+%" PRIp "()\n", fp, symbol, offset);
+				printf("%p: %s+%" PRIp "()\n",
+				    ctx->fp, symbol, offset);
 			else
-				printf("%p: %s()\n", fp, symbol);
+				printf("%p: %s()\n",
+				    ctx->fp, symbol);
 		} else {
-			printf("%p: %p()\n", fp, pc);
+			printf("%p: %p()\n", ctx->fp, ctx->pc);
 		}
-		if (!ops->return_address_get(fp, &pc))
+		if (!ops->return_address_get(ctx, &pc))
 			break;
-		if (!ops->frame_pointer_prev(fp, &fp))
+		if (!ops->frame_pointer_prev(ctx, &fp))
 			break;
+		ctx->fp = fp;
+		ctx->pc = pc;
 	}
 }
 
 void stack_trace(void)
 {
-	stack_trace_fp_pc(&kst_ops, frame_pointer_get(), program_counter_get());
+	stack_trace_context_t ctx = {
+		.fp = frame_pointer_get(),
+		.pc = program_counter_get(),
+		.istate = NULL
+	};
+
+	stack_trace_ctx(&kst_ops, &ctx);
 
 	/*
 	 * Prevent the tail call optimization of the previous call by
@@ -77,28 +90,33 @@ void stack_trace(void)
 
 void stack_trace_istate(istate_t *istate)
 {
+	stack_trace_context_t ctx = {
+		.fp = istate_get_fp(istate),
+		.pc = istate_get_pc(istate),
+		.istate = istate
+	};
+	
 	if (istate_from_uspace(istate))
-		stack_trace_fp_pc(&ust_ops, istate_get_fp(istate),
-		    istate_get_pc(istate));
+		stack_trace_ctx(&ust_ops, &ctx);
 	else
-		stack_trace_fp_pc(&kst_ops, istate_get_fp(istate),
-		    istate_get_pc(istate));
+		stack_trace_ctx(&kst_ops, &ctx);
 }
 
-static bool kernel_symbol_resolve(uintptr_t addr, const char **sp, uintptr_t *op)
+static bool
+kernel_symbol_resolve(uintptr_t addr, const char **sp, uintptr_t *op)
 {
 	return (symtab_name_lookup(addr, sp, op) == 0);
 }
 
 stack_trace_ops_t kst_ops = {
-	.frame_pointer_validate = kernel_frame_pointer_validate,
+	.stack_trace_context_validate = kernel_stack_trace_context_validate,
 	.frame_pointer_prev = kernel_frame_pointer_prev,
 	.return_address_get = kernel_return_address_get,
 	.symbol_resolve = kernel_symbol_resolve
 };
 
 stack_trace_ops_t ust_ops = {
-	.frame_pointer_validate = uspace_frame_pointer_validate,
+	.stack_trace_context_validate = uspace_stack_trace_context_validate,
 	.frame_pointer_prev = uspace_frame_pointer_prev,
 	.return_address_get = uspace_return_address_get,
 	.symbol_resolve = NULL

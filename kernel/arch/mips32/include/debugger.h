@@ -67,6 +67,8 @@ typedef struct  {
 
 extern bpinfo_t breakpoints[BKPOINTS_MAX];
 
+extern bool is_jump(unative_t);
+
 extern void debugger_init(void);
 extern void debugger_bpoint(istate_t *);
 
