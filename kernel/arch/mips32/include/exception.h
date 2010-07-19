@@ -107,9 +107,7 @@ NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
 
 NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
 {
-	/* FIXME */
-	
-	return 0;
+	return istate->sp;
 }
 
 extern void exception(istate_t *istate);
