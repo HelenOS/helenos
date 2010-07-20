@@ -46,6 +46,7 @@
  * @param sz1 Size of the first interval.
  * @param s2  Start address of the second interval.
  * @param sz2 Size of the second interval.
+ *
  */
 NO_TRACE static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2,
     size_t sz2)
@@ -54,6 +55,23 @@ NO_TRACE static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2,
 	uintptr_t e2 = s2 + sz2;
 	
 	return ((s1 < e2) && (s2 < e1));
+}
+
+/** Return true if the second interval is within the first interval.
+ *
+ * @param s1  Start address of the first interval.
+ * @param sz1 Size of the first interval.
+ * @param s2  Start address of the second interval.
+ * @param sz2 Size of the second interval.
+ *
+ */
+NO_TRACE static inline int iswithin(uintptr_t s1, size_t sz1, uintptr_t s2,
+    size_t sz2)
+{
+	uintptr_t e1 = s1 + sz1;
+	uintptr_t e2 = s2 + sz2;
+	
+	return ((s1 <= s2) && (e1 >= e2));
 }
 
 #endif /* __ASM__ */
@@ -73,7 +91,7 @@ NO_TRACE static inline int overlaps(uintptr_t s1, size_t sz1, uintptr_t s2,
 #define max3(a, b, c)  ((a) > (b) ? (max(a, c)) : (max(b, c)))
 
 /* Compute overlapping of physical addresses */
-#define PA_overlaps(x, szx, y, szy) \
+#define PA_OVERLAPS(x, szx, y, szy) \
 	overlaps(KA2PA((x)), (szx), KA2PA((y)), (szy))
 
 #define SIZE2KB(size)  ((size) >> 10)
