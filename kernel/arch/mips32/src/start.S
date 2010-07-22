@@ -50,6 +50,45 @@
  */
 #define REG_SAVE_MASK 0x1f
 
+#define ISTATE_OFFSET_A0	0
+#define ISTATE_OFFSET_A1	4
+#define ISTATE_OFFSET_A2	8
+#define ISTATE_OFFSET_A3	12
+#define ISTATE_OFFSET_T0	16
+#define ISTATE_OFFSET_T1	20
+#define ISTATE_OFFSET_V0	24
+#define ISTATE_OFFSET_V1	28
+#define ISTATE_OFFSET_AT	32
+#define ISTATE_OFFSET_T2	36
+#define ISTATE_OFFSET_T3	40
+#define ISTATE_OFFSET_T4	44
+#define ISTATE_OFFSET_T5	48
+#define ISTATE_OFFSET_T6	52
+#define ISTATE_OFFSET_T7	56
+#define ISTATE_OFFSET_S0	60
+#define ISTATE_OFFSET_S1	64
+#define ISTATE_OFFSET_S2	68
+#define ISTATE_OFFSET_S3	72
+#define ISTATE_OFFSET_S4	76
+#define ISTATE_OFFSET_S5	80
+#define ISTATE_OFFSET_S6	84
+#define ISTATE_OFFSET_S7	88
+#define ISTATE_OFFSET_T8	92
+#define ISTATE_OFFSET_T9	96
+#define ISTATE_OFFSET_KT0	100
+#define ISTATE_OFFSET_KT1	104
+#define ISTATE_OFFSET_GP	108
+#define ISTATE_OFFSET_SP	112
+#define ISTATE_OFFSET_S8	116
+#define ISTATE_OFFSET_RA	120
+#define ISTATE_OFFSET_LO	124
+#define ISTATE_OFFSET_HI	128
+#define ISTATE_OFFSET_STATUS	132
+#define ISTATE_OFFSET_EPC	136
+#define ISTATE_OFFSET_ALIGNMENT	140
+
+#define ISTATE_SOFT_SIZE	144
+
 /*
  * Save registers to space defined by \r
  * We will change status: Disable ERL, EXL, UM, IE
@@ -204,8 +243,8 @@ exception_entry:
 exception_handler:
 	KERNEL_STACK_TO_K0
 	
-	sub $k0, REGISTER_SPACE
-	sw $sp, EOFFSET_SP($k0)
+	sub $k0, ISTATE_SOFT_SIZE
+	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
 	
 	mfc0 $k0, $cause
