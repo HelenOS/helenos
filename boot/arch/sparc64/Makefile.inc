@@ -53,6 +53,7 @@ SOURCES = \
 	genarch/src/ofw.c \
 	genarch/src/ofw_tree.c \
 	generic/src/balloc.c \
+	generic/src/memstr.c \
 	generic/src/printf_core.c \
 	generic/src/vprintf.c \
 	generic/src/printf.c \
