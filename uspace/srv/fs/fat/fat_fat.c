@@ -124,6 +124,55 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
  *
  * @param block		Pointer to a block pointer for storing result.
  * @param bs		Buffer holding the boot sector of the file system.
+ * @param nodep		FAT node.
+ * @param bn		Block number.
+ * @param flags		Flags passed to libblock.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
+    aoff64_t bn, int flags)
+{
+	if (!nodep->size)
+		return ELIMIT;
+
+	if (((((nodep->size - 1) / bs->bps) / bs->spc) == bn / bs->spc) &&
+	    (nodep->lastc_cached_valid) && (nodep->firstc != FAT_CLST_ROOT)) {
+	    	/*
+		 * This is a request to read a block within the last cluster
+		 * when fortunately we have the last cluster number cached.
+		 */
+		fat_cluster_t lastc = nodep->lastc_cached_value;
+		unsigned bps;
+		unsigned rscnt;		/* block address of the first FAT */
+		unsigned rde;
+		unsigned rds;		/* root directory size */
+		unsigned sf;
+		unsigned ssa;		/* size of the system area */
+
+		bps = uint16_t_le2host(bs->bps);
+		rscnt = uint16_t_le2host(bs->rscnt);
+		rde = uint16_t_le2host(bs->root_ent_max);
+		sf = uint16_t_le2host(bs->sec_per_fat);
+
+		rds = (sizeof(fat_dentry_t) * rde) / bps;
+		rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
+		ssa = rscnt + bs->fatcnt * sf + rds;
+	
+		return block_get(block, nodep->idx->dev_handle,
+		    ssa + (lastc - FAT_CLST_FIRST) * bs->spc + bn % bs->spc,
+		    flags);
+	} else {
+		return _fat_block_get(block, bs, nodep->idx->dev_handle,
+		    nodep->firstc, bn, flags);
+	}
+}
+
+/** Read block from file located on a FAT file system.
+ *
+ * @param block		Pointer to a block pointer for storing result.
+ * @param bs		Buffer holding the boot sector of the file system.
  * @param dev_handle	Device handle of the file system.
  * @param firstc	First cluster used by the file. Can be zero if the file
  *			is empty.
