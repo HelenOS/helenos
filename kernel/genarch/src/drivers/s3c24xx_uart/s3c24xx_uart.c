@@ -46,37 +46,20 @@
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
-/** S3C24xx UART register offsets */
-#define S3C24XX_ULCON			0x00
-#define S3C24XX_UCON			0x04
-#define S3C24XX_UFCON			0x08
-#define S3C24XX_UMCON			0x0c
-#define S3C24XX_UTRSTAT			0x10
-#define S3C24XX_UERSTAT			0x14
-#define S3C24XX_UFSTAT			0x18
-#define S3C24XX_UMSTAT			0x1c
-#define S3C24XX_UTXH			0x20
-#define S3C24XX_URXH			0x24
-#define S3C24XX_UBRDIV			0x28
-
 /* Bits in UTRSTAT register */
 #define S3C24XX_UTRSTAT_TX_EMPTY	0x4
 #define S3C24XX_UTRSTAT_RDATA		0x1
 
 static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 {
-	s3c24xx_uart_instance_t *instance =
-	    (s3c24xx_uart_instance_t *) dev->data;
-	ioport32_t *utrstat, *utxh;
-
-	utrstat = (ioport32_t *) (instance->base + S3C24XX_UTRSTAT);
-	utxh = (ioport32_t *) (instance->base + S3C24XX_UTXH);
+	s3c24xx_uart_t *uart =
+	    (s3c24xx_uart_t *) dev->data;
 
 	/* Wait for transmitter to be empty. */
-	while ((pio_read_32(utrstat) & S3C24XX_UTRSTAT_TX_EMPTY) == 0)
+	while ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_TX_EMPTY) == 0)
 		;
 
-	pio_write_32(utxh, byte);
+	pio_write_32(&uart->io->utxh, byte);
 }
 
 static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch, bool silent)
@@ -99,15 +82,11 @@ static irq_ownership_t s3c24xx_uart_claim(irq_t *irq)
 
 static void s3c24xx_uart_irq_handler(irq_t *irq)
 {
-	s3c24xx_uart_instance_t *instance = irq->instance;
-	ioport32_t *utrstat, *urxh;
+	s3c24xx_uart_t *uart = irq->instance;
 
-	utrstat = (ioport32_t *) (instance->base + S3C24XX_UTRSTAT);
-	urxh = (ioport32_t *) (instance->base + S3C24XX_URXH);
-
-	if ((pio_read_32(utrstat) & S3C24XX_UTRSTAT_RDATA) != 0) {
-		uint32_t data = pio_read_32(urxh);
-		indev_push_character(instance->indev, data & 0xff);
+	if ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_RDATA) != 0) {
+		uint32_t data = pio_read_32(&uart->io->urxh);
+		indev_push_character(uart->indev, data & 0xff);
 	}
 }
 
@@ -116,42 +95,40 @@ static outdev_operations_t s3c24xx_uart_ops = {
 	.redraw = NULL
 };
 
-outdev_t *s3c24xx_uart_init(ioport8_t *base, inr_t inr)
+outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 {
 	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!uart_dev)
 		return NULL;
 
-	s3c24xx_uart_instance_t *instance =
-	    malloc(sizeof(s3c24xx_uart_instance_t), FRAME_ATOMIC);
-	if (!instance) {
+	s3c24xx_uart_t *uart =
+	    malloc(sizeof(s3c24xx_uart_t), FRAME_ATOMIC);
+	if (!uart) {
 		free(uart_dev);
 		return NULL;
 	}
 
 	outdev_initialize("s3c24xx_uart_dev", uart_dev, &s3c24xx_uart_ops);
-	uart_dev->data = instance;
+	uart_dev->data = uart;
 
-	instance->base = base;
-	instance->indev = NULL;
+	uart->io = io;
+	uart->indev = NULL;
 
 	/* Initialize IRQ structure. */
-	irq_initialize(&instance->irq);
-	instance->irq.devno = device_assign_devno();
-	instance->irq.inr = inr;
-	instance->irq.claim = s3c24xx_uart_claim;
-	instance->irq.handler = s3c24xx_uart_irq_handler;
-	instance->irq.instance = instance;
+	irq_initialize(&uart->irq);
+	uart->irq.devno = device_assign_devno();
+	uart->irq.inr = inr;
+	uart->irq.claim = s3c24xx_uart_claim;
+	uart->irq.handler = s3c24xx_uart_irq_handler;
+	uart->irq.instance = uart;
 
 	/* Disable FIFO */
-	ioport32_t *ufcon;
-	ufcon = (ioport32_t *) (instance->base + S3C24XX_UFCON);
-	pio_write_32(ufcon, pio_read_32(ufcon) & ~0x01);
+	pio_write_32(&uart->io->ufcon,
+	    pio_read_32(&uart->io->ufcon) & ~0x01);
 
 	/* Set RX interrupt to pulse mode */
-	ioport32_t *ucon;
-	ucon = (ioport32_t *) (instance->base + S3C24XX_UCON);
-	pio_write_32(ucon, pio_read_32(ucon) & ~(1 << 8));
+	pio_write_32(&uart->io->ucon,
+	    pio_read_32(&uart->io->ucon) & ~(1 << 8));
 
 	if (!fb_exported) {
 		/*
@@ -160,7 +137,7 @@ outdev_t *s3c24xx_uart_init(ioport8_t *base, inr_t inr)
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 3);
-		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(base));
+		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(io));
 
 		fb_exported = true;
 	}
@@ -168,13 +145,13 @@ outdev_t *s3c24xx_uart_init(ioport8_t *base, inr_t inr)
 	return uart_dev;
 }
 
-void s3c24xx_uart_input_wire(s3c24xx_uart_instance_t *instance, indev_t *indev)
+void s3c24xx_uart_input_wire(s3c24xx_uart_t *uart, indev_t *indev)
 {
-	ASSERT(instance);
+	ASSERT(uart);
 	ASSERT(indev);
 
-	instance->indev = indev;
-	irq_register(&instance->irq);
+	uart->indev = indev;
+	irq_register(&uart->irq);
 }
 
 /** @}

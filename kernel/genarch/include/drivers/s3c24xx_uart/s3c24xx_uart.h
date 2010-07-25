@@ -41,14 +41,33 @@
 #include <console/chardev.h>
 #include <typedefs.h>
 
+/** S3C24xx UART I/O */
 typedef struct {
-	ioport8_t *base;
+	uint32_t ulcon;
+	uint32_t ucon;
+	uint32_t ufcon;
+	uint32_t umcon;
+
+	uint32_t utrstat;
+	uint32_t uerstat;
+	uint32_t ufstat;
+	uint32_t umstat;
+
+	uint32_t utxh;
+	uint32_t urxh;
+
+	uint32_t ubrdiv;
+} s3c24xx_uart_io_t;
+
+/** S3C24xx UART instance */
+typedef struct {
+	s3c24xx_uart_io_t *io;
 	indev_t *indev;
 	irq_t irq;
-} s3c24xx_uart_instance_t;
+} s3c24xx_uart_t;
 
-extern outdev_t *s3c24xx_uart_init(ioport8_t *, inr_t inr);
-extern void s3c24xx_uart_input_wire(s3c24xx_uart_instance_t *,
+extern outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *, inr_t inr);
+extern void s3c24xx_uart_input_wire(s3c24xx_uart_t *,
     indev_t *);
 
 #endif

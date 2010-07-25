@@ -74,7 +74,6 @@ static void gta02_timer_start(void);
 static irq_ownership_t gta02_timer_irq_claim(irq_t *irq);
 static void gta02_timer_irq_handler(irq_t *irq);
 
-static void *gta02_scons_out;
 static outdev_t *gta02_scons_dev;
 static s3c24xx_irqc_t gta02_irqc;
 static s3c24xx_timer_t *gta02_timer;
@@ -96,7 +95,6 @@ static void gta02_init(void)
 {
 	s3c24xx_irqc_regs_t *irqc_regs;
 
-	gta02_scons_out = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
 	gta02_timer = (void *) hw_map(S3C24XX_TIMER_ADDRESS, PAGE_SIZE);
 	irqc_regs = (void *) hw_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE);
 
@@ -175,10 +173,12 @@ static void gta02_output_init(void)
 #endif
 
 	/* Initialize serial port of the debugging console. */
-	gta02_scons_dev = s3c24xx_uart_init((ioport8_t *) gta02_scons_out,
-		S3C24XX_INT_UART2);
-	if (gta02_scons_dev) {
+	s3c24xx_uart_io_t *scons_io;
 
+	scons_io = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
+	gta02_scons_dev = s3c24xx_uart_init(scons_io, S3C24XX_INT_UART2);
+
+	if (gta02_scons_dev) {
 		/* Create output device. */
 		stdout_wire(gta02_scons_dev);
 	}
@@ -186,7 +186,7 @@ static void gta02_output_init(void)
 
 static void gta02_input_init(void)
 {
-	s3c24xx_uart_instance_t *scons_inst;
+	s3c24xx_uart_t *scons_inst;
 
 	if (gta02_scons_dev) {
 		/* Create input device. */
