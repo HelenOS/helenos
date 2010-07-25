@@ -510,35 +510,46 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
  * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		Node representing the file.
  * @param mcl		First cluster of the cluster chain to append.
+ * @param lcl		Last cluster of the cluster chain to append.
  *
  * @return		EOK on success or a negative error code.
  */
-int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
+int
+fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
+    fat_cluster_t lcl)
 {
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
-	fat_cluster_t lcl;
+	fat_cluster_t lastc;
 	uint16_t numc;
 	uint8_t fatno;
 	int rc;
 
-	rc = fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl, &numc,
-	    (uint16_t) -1);
-	if (rc != EOK)
-		return rc;
+	if (nodep->lastc_cached_valid) {
+		lastc = nodep->lastc_cached_value;
+		nodep->lastc_cached_valid = false;
+	} else {
+		rc = fat_cluster_walk(bs, dev_handle, nodep->firstc, &lastc,
+		    &numc, (uint16_t) -1);
+		if (rc != EOK)
+			return rc;
 
-	if (numc == 0) {
-		/* No clusters allocated to the node yet. */
-		nodep->firstc = mcl;
-		nodep->dirty = true;		/* need to sync node */
-		return EOK;
+		if (numc == 0) {
+			/* No clusters allocated to the node yet. */
+			nodep->firstc = mcl;
+			nodep->dirty = true;	/* need to sync node */
+			return EOK;
+		}
 	}
 
 	for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-		rc = fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lcl,
+		rc = fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lastc,
 		    mcl);
 		if (rc != EOK)
 			return rc;
 	}
+
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
 
 	return EOK;
 }
@@ -547,18 +558,19 @@ int fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
  *
  * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		FAT node where the chopping will take place.
- * @param lastc		Last cluster which will remain in the node. If this
+ * @param lcl		Last cluster which will remain in the node. If this
  *			argument is FAT_CLST_RES0, then all clusters will
  *			be chopped off.
  *
  * @return		EOK on success or a negative return code.
  */
-int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
+int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 {
 	int rc;
-
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
-	if (lastc == FAT_CLST_RES0) {
+
+	nodep->lastc_cached_valid = false;
+	if (lcl == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
 		rc = fat_free_clusters(bs, dev_handle, nodep->firstc);
 		if (rc != EOK)
@@ -569,13 +581,13 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 		fat_cluster_t nextc;
 		unsigned fatno;
 
-		rc = fat_get_cluster(bs, dev_handle, FAT1, lastc, &nextc);
+		rc = fat_get_cluster(bs, dev_handle, FAT1, lcl, &nextc);
 		if (rc != EOK)
 			return rc;
 
 		/* Terminate the cluster chain in all copies of FAT. */
 		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-			rc = fat_set_cluster(bs, dev_handle, fatno, lastc,
+			rc = fat_set_cluster(bs, dev_handle, fatno, lcl,
 			    FAT_CLST_LAST1);
 			if (rc != EOK)
 				return rc;
@@ -586,6 +598,9 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
 		if (rc != EOK)
 			return rc;
 	}
+
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
 
 	return EOK;
 }

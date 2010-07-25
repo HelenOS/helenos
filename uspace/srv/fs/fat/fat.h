@@ -197,6 +197,12 @@ typedef struct fat_node {
 	unsigned		lnkcnt;
 	unsigned		refcnt;
 	bool			dirty;
+
+	/*
+	 * Cache of the node's last cluster to avoid some unnecessary FAT walks.
+	 */
+	bool			lastc_cached_valid;
+	fat_cluster_t		lastc_cached_value;
 } fat_node_t;
 
 extern fs_reg_t fat_reg;

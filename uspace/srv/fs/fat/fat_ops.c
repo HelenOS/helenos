@@ -100,6 +100,8 @@ static void fat_node_initialize(fat_node_t *node)
 	node->lnkcnt = 0;
 	node->refcnt = 0;
 	node->dirty = false;
+	node->lastc_cached_valid = false;
+	node->lastc_cached_value = FAT_CLST_LAST1;
 }
 
 static int fat_node_sync(fat_node_t *node)
@@ -690,7 +692,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		fibril_mutex_unlock(&parentp->idx->lock);
 		return rc;
 	}
-	rc = fat_append_clusters(bs, parentp, mcl);
+	rc = fat_append_clusters(bs, parentp, mcl, lcl);
 	if (rc != EOK) {
 		(void) fat_free_clusters(bs, parentp->idx->dev_handle, mcl);
 		fibril_mutex_unlock(&parentp->idx->lock);
@@ -1437,7 +1439,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * Append the cluster chain starting in mcl to the end of the
 		 * node's cluster chain.
 		 */
-		rc = fat_append_clusters(bs, nodep, mcl);
+		rc = fat_append_clusters(bs, nodep, mcl, lcl);
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, dev_handle, mcl);
 			(void) fat_node_put(fn);
