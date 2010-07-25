@@ -1,0 +1,167 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+-- Doubly-linked list.
+class List/t : IEnumerable/t is
+	var head : ListNode/t;
+
+	-- New empty list.
+	new() is
+		head = new ListNode/t();
+		head.prev = head;
+		head.next = head;
+	end
+
+	-- Append new entry at the end of the list.
+	fun Append(data : t) is
+		var n : ListNode/t;
+		var ntl : ListNode/t;
+
+		ntl = head.prev;
+
+		n = new ListNode/t();
+		n.data = data;
+
+		n.prev = ntl;
+		n.next = head;
+		n.head = head;
+
+		ntl.next = n;
+		head.prev = n;
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	prop First : ListNode/t is
+		get is
+			return get_first();
+		end
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	fun GetEnumerator() : IEnumerator/t is
+		return new ListEnumerator/t(get_first());
+	end
+
+	-- Return first node in the list or @c nil if there is none.
+	fun get_first() : ListNode/t is
+		if head.next == head then
+			return nil;
+		else
+			return head.next;
+		end
+	end
+end
+
+class ListNode/t is
+	var data : t;
+
+	var prev : ListNode/t;
+	var next : ListNode/t;
+	var head : ListNode/t;
+
+	-- Data stored in this node.
+	prop Data : t is
+		get is
+			return data;
+		end
+	end
+
+	-- Previous node in list.
+	prop Prev : ListNode/t is
+		get is
+			return get_prev();
+		end
+	end
+
+	-- Next node in list.
+	prop Next : ListNode/t is
+		get is
+			return get_next();
+		end
+	end
+
+	-- Remove node from list.
+	fun Remove() is
+		var p : ListNode/t;
+		var n : ListNode/t;
+
+		p = prev; n = next;
+		p.next = n;
+		n.prev = p;
+
+		prev = nil;
+		next = nil;
+	end
+
+	-- Get next node.
+	fun get_next() : ListNode/t is
+		if next != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+
+	-- Get previous node.
+	fun get_prev() : ListNode/t is
+		if prev != head then
+			return next;
+		else
+			return nil;
+		end
+	end
+end
+
+class ListEnumerator/t : IEnumerator/t is
+	var first : ListNode/t;
+	var current : ListNode/t;
+	var started : bool;
+
+	new(first_node : ListNode/t) is
+		first = first_node;
+		current = nil;
+		started = false;
+	end
+
+	fun MoveNext() : bool is
+		if started then
+			current = current.Next;
+		else
+			current = first;
+			started = true;
+		end
+
+		return current != nil;
+	end
+
+	prop Data : t is
+		get is
+			return current.Data;
+		end
+	end
+end

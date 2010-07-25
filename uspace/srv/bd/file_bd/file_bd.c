@@ -56,7 +56,7 @@
 #define NAME "file_bd"
 
 static const size_t block_size = 512;
-static bn_t num_blocks;
+static aoff64_t num_blocks;
 static FILE *img;
 
 static dev_handle_t dev_handle;
@@ -209,8 +209,8 @@ static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf)
 
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > num_blocks) {
-		printf(NAME ": Accessed blocks %" PRIuBN "-%" PRIuBN ", while "
-		    "max block number is %" PRIuBN ".\n", ba, ba + cnt - 1,
+		printf(NAME ": Accessed blocks %" PRIuOFF64 "-%" PRIuOFF64 ", while "
+		    "max block number is %" PRIuOFF64 ".\n", ba, ba + cnt - 1,
 		    num_blocks - 1);
 		return ELIMIT;
 	}
@@ -247,8 +247,8 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf)
 
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > num_blocks) {
-		printf(NAME ": Accessed blocks %" PRIuBN "-%" PRIuBN ", while "
-		    "max block number is %" PRIuBN ".\n", ba, ba + cnt - 1,
+		printf(NAME ": Accessed blocks %" PRIuOFF64 "-%" PRIuOFF64 ", while "
+		    "max block number is %" PRIuOFF64 ".\n", ba, ba + cnt - 1,
 		    num_blocks - 1);
 		return ELIMIT;
 	}

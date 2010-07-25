@@ -44,33 +44,27 @@
 #include <config.h>
 #include <interrupt.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <userspace.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <arch/ras.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
-
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
-	unsigned int i;
+	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
-	init.cnt = bootinfo->cnt;
-	
-	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); ++i) {
-		init.tasks[i].addr = bootinfo->tasks[i].addr;
+	size_t i;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
+
+	/* Initialize machine_ops pointer. */
+	machine_ops_init();
 }
 
 /** Performs arm32 specific initialization before mm is initialized. */

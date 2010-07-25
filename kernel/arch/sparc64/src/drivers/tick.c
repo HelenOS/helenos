@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -53,12 +53,12 @@ void tick_init(void)
 
 	interrupt_register(14, "tick_int", tick_interrupt);
 	compare.int_dis = false;
-	compare.tick_cmpr = CPU->arch.clock_frequency / HZ;
+	compare.tick_cmpr = tick_counter_read() +
+		CPU->arch.clock_frequency / HZ;
 	CPU->arch.next_tick_cmpr = compare.tick_cmpr;
 	tick_compare_write(compare.value);
-	tick_write(0);
 
-#if defined (US3)
+#if defined (US3) || defined (SUN4V)
 	/* disable STICK interrupts and clear any pending ones */
 	tick_compare_reg_t stick_compare;
 	softint_reg_t clear;
@@ -76,10 +76,11 @@ void tick_init(void)
 
 /** Process tick interrupt.
  *
- * @param n Interrupt Level, 14,  (can be ignored)
+ * @param n      Interrupt Level (14, can be ignored)
  * @param istate Interrupted state.
+ *
  */
-void tick_interrupt(int n, istate_t *istate)
+void tick_interrupt(unsigned int n, istate_t *istate)
 {
 	softint_reg_t softint, clear;
 	uint64_t drift;
@@ -110,12 +111,12 @@ void tick_interrupt(int n, istate_t *istate)
 	 * about 812 years. If there was a 2GHz UltraSPARC computer, it would
 	 * overflow only in 146 years.
 	 */
-	drift = tick_read() - CPU->arch.next_tick_cmpr;
+	drift = tick_counter_read() - CPU->arch.next_tick_cmpr;
 	while (drift > CPU->arch.clock_frequency / HZ) {
 		drift -= CPU->arch.clock_frequency / HZ;
 		CPU->missed_clock_ticks++;
 	}
-	CPU->arch.next_tick_cmpr = tick_read() +
+	CPU->arch.next_tick_cmpr = tick_counter_read() +
 	    (CPU->arch.clock_frequency / HZ) - drift;
 	tick_compare_write(CPU->arch.next_tick_cmpr);
 	clock();

@@ -51,7 +51,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Thread context containing registers that must be preserved across function
  * calls.

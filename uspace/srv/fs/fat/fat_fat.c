@@ -92,7 +92,7 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
 	}
 
 	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
-		bn_t fsec;	/* sector offset relative to FAT1 */
+		aoff64_t fsec;	/* sector offset relative to FAT1 */
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST);
@@ -134,7 +134,7 @@ fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
  */
 int
 _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
-    fat_cluster_t firstc, bn_t bn, int flags)
+    fat_cluster_t firstc, aoff64_t bn, int flags)
 {
 	unsigned bps;
 	unsigned rscnt;		/* block address of the first FAT */
@@ -195,12 +195,12 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
  *
  * @return		EOK on success or a negative error code.
  */
-int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
+int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 {
 	uint16_t bps;
 	unsigned spc;
 	block_t *b;
-	off_t o, boundary;
+	aoff64_t o, boundary;
 	int rc;
 
 	bps = uint16_t_le2host(bs->bps);

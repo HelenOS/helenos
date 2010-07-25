@@ -36,7 +36,7 @@
 #include <mm/tlb.h>
 #include <arch/mm/asid.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/mm/page.h>
 
 /** Invalidate all entries in TLB.

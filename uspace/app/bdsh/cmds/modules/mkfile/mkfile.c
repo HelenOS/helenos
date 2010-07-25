@@ -37,7 +37,7 @@
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 
 #include "config.h"
@@ -50,7 +50,7 @@
 /** Number of bytes to write at a time */
 #define BUFFER_SIZE 16384
 
-static char *cmdname = "mkfile";
+static const char *cmdname = "mkfile";
 
 static struct option const long_options[] = {
 	{"size", required_argument, 0, 's'},

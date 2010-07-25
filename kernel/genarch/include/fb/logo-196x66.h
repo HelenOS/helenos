@@ -39,7 +39,7 @@
 #define LOGO_HEIGHT  66
 #define LOGO_COLOR   0xffffff
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 extern uint32_t fb_logo[LOGO_WIDTH * LOGO_HEIGHT];
 

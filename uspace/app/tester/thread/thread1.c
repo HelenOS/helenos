@@ -49,10 +49,10 @@ static void threadtest(void *data)
 	atomic_inc(&threads_finished);
 }
 
-char *test_thread1(void)
+const char *test_thread1(void)
 {
 	unsigned int i;
-	int total = 0;
+	atomic_count_t total = 0;
 	
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);

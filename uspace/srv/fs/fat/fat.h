@@ -88,7 +88,7 @@ typedef struct fat_bs {
 			/** Boot sector signature. */
 			uint16_t	signature;
 		} __attribute__ ((packed));
-		struct fat32 {
+		struct {
 			/* FAT32 only */
 			/** Sectors per FAT. */
 			uint32_t	sectors_per_fat;
@@ -118,8 +118,8 @@ typedef struct fat_bs {
 			uint8_t		boot_code[420];
 			/** Signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed));
-	}; 
+		} fat32 __attribute__ ((packed));
+	};
 } __attribute__ ((packed)) fat_bs_t;
 
 typedef enum {
@@ -193,7 +193,7 @@ typedef struct fat_node {
 	fat_cluster_t		firstc;
 	/** FAT in-core node free list link. */
 	link_t			ffn_link;
-	size_t			size;
+	aoff64_t		size;
 	unsigned		lnkcnt;
 	unsigned		refcnt;
 	bool			dirty;

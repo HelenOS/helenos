@@ -35,16 +35,20 @@
 #ifndef KERN_mips32_DEBUG_H_
 #define KERN_mips23_DEBUG_H_
 
-/**	simulator enters the trace mode */
-#define ___traceon()	asm volatile ( "\t.word\t0x39\n");
-/** 	simulator leaves the trace mode */
-#define ___traceoff()	asm volatile ( "\t.word\t0x3d\n");
-/** 	register dump */
-#define ___regview()	asm volatile ( "\t.word\t0x37\n");
-/** 	halt the simulator */
-#define ___halt()	asm volatile ( "\t.word\t0x28\n");
-/**     simulator enters interactive mode */
-#define ___intmode()	asm volatile ( "\t.word\t0x29\n");
+/** Enter the simulator trace mode */
+#define ___traceon()  asm volatile ( "\t.word\t0x39\n");
+
+/** Leave the simulator trace mode */
+#define ___traceoff()  asm volatile ( "\t.word\t0x3d\n");
+
+/** Ask the simulator to dump registers */
+#define ___regview()  asm volatile ( "\t.word\t0x37\n");
+
+/** Halt the simulator */
+#define ___halt()  asm volatile ( "\t.word\t0x28\n");
+
+/** Enter the simulator interactive mode */
+#define ___intmode()  asm volatile ( "\t.word\t0x29\n");
 
 #endif
 

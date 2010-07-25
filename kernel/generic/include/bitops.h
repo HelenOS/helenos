@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,15 +35,25 @@
 #ifndef KERN_BITOPS_H_
 #define KERN_BITOPS_H_
 
+#include <trace.h>
 
-/** Return position of first non-zero bit from left (i.e. [log_2(arg)]).
+#ifdef __32_BITS__
+	#define fnzb(arg)  fnzb32(arg)
+#endif
+
+#ifdef __64_BITS__
+	#define fnzb(arg)  fnzb64(arg)
+#endif
+
+/** Return position of first non-zero bit from left (32b variant).
  *
- * If number is zero, it returns 0
+ * @return 0 (if the number is zero) or [log_2(arg)].
+ *
  */
-static inline int fnzb32(uint32_t arg)
+NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
 {
-	int n = 0;
-
+	uint8_t n = 0;
+	
 	if (arg >> 16) {
 		arg >>= 16;
 		n += 16;
@@ -64,18 +74,21 @@ static inline int fnzb32(uint32_t arg)
 		n += 2;
 	}
 	
-	if (arg >> 1) {
-		arg >>= 1;
+	if (arg >> 1)
 		n += 1;
-	}
 	
 	return n;
 }
 
-static inline int fnzb64(uint64_t arg)
+/** Return position of first non-zero bit from left (64b variant).
+ *
+ * @return 0 (if the number is zero) or [log_2(arg)].
+ *
+ */
+NO_TRACE static inline uint8_t fnzb64(uint64_t arg)
 {
-	int n = 0;
-
+	uint8_t n = 0;
+	
 	if (arg >> 32) {
 		arg >>= 32;
 		n += 32;
@@ -83,8 +96,6 @@ static inline int fnzb64(uint64_t arg)
 	
 	return n + fnzb32((uint32_t) arg);
 }
-
-#define fnzb(x) fnzb32(x)
 
 #endif
 

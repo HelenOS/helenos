@@ -96,9 +96,9 @@ typedef struct part {
 	/** Primary partition entry is in use */
 	bool present;
 	/** Address of first block */
-	bn_t start_addr;
+	aoff64_t start_addr;
 	/** Number of blocks */
-	bn_t length;
+	aoff64_t length;
 	/** Device representing the partition (outbound device) */
 	dev_handle_t dev;
 	/** Points to next partition structure. */
@@ -248,7 +248,7 @@ static int mbr_init(const char *dev_name)
 
 		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
-		printf(NAME ": Registered device %s: %" PRIuBN " blocks "
+		printf(NAME ": Registered device %s: %" PRIuOFF64 " blocks "
 		    "%" PRIu64 " MB.\n", name, part->length, size_mb);
 
 		part->dev = dev;

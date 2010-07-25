@@ -28,12 +28,10 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = edit
+BINARY = edit
 
 SOURCES = \
 	edit.c \
 	sheet.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

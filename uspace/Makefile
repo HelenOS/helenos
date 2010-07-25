@@ -26,10 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
-
+-include ../Makefile.common
 -include ../Makefile.config
+
+## Common binaries
+#
 
 DIRS = \
 	app/bdsh \
@@ -39,10 +40,14 @@ DIRS = \
 	app/klog \
 	app/mkfat \
 	app/redir \
+	app/sbi \
+	app/stats \
 	app/taskdump \
+	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
+	app/top \
 	srv/clip \
 	srv/devmap \
 	srv/loader \
@@ -59,11 +64,44 @@ DIRS = \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
 	srv/hid/adb_mouse \
-	srv/hid/console \
 	srv/hid/char_mouse \
 	srv/hid/fb \
 	srv/hid/kbd \
-	srv/hw/char/i8042
+	srv/hw/char/i8042 \
+	srv/hw/netif/dp8390 \
+	srv/net/cfg \
+	srv/net/netif/lo \
+	srv/net/il/arp \
+	srv/net/il/ip \
+	srv/net/tl/icmp \
+	srv/net/tl/udp \
+	srv/net/tl/tcp \
+	srv/net/net \
+	srv/net/netstart \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping
+
+## Networking
+#
+
+ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
+	LIBN = \
+		srv/net/nil/eth \
+		srv/net/nil/nildummy
+else
+	DIRS += \
+		srv/net/nil/eth \
+		srv/net/nil/nildummy
+endif
+
+## Platform-specific hardware support
+#
+
+ifneq ($(UARCH),abs32le)
+	DIRS += srv/hid/console
+endif
 
 ifeq ($(UARCH),amd64)
 	DIRS += srv/hw/bus/pci
@@ -83,29 +121,36 @@ ifeq ($(UARCH),sparc64)
 		srv/hw/cir/obio
 endif
 
-LIBC = lib/libc
+## System libraries
+#
+
+LIBC = lib/c
 LIBS = \
-	lib/libfs \
-	lib/libblock \
+	lib/fs \
+	lib/block \
+	lib/clui \
 	lib/softint \
 	lib/softfloat \
+	lib/socket \
+	lib/net
 
 ifeq ($(UARCH),amd64)
-	LIBS += lib/libpci
+	LIBS += lib/pci
 endif
 
 ifeq ($(UARCH),ia32)
-	LIBS += lib/libpci
+	LIBS += lib/pci
 endif
 
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
-
+LIBN_BUILD = $(addsuffix .build,$(LIBN))
 BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(BUILDS) $(CLEANS) clean
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
+
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
 
 all: $(BUILDS)
 
@@ -114,7 +159,10 @@ clean: $(CLEANS)
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD)
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
 	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
 
 $(LIBS_BUILD): $(LIBC_BUILD)

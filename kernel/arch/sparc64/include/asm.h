@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -36,71 +36,66 @@
 #define KERN_sparc64_ASM_H_
 
 #include <arch/arch.h>
-#include <arch/types.h>
 #include <typedefs.h>
 #include <align.h>
 #include <arch/register.h>
 #include <config.h>
 #include <arch/stack.h>
 #include <arch/barrier.h>
+#include <trace.h>
 
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
+NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
+NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
+NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-static inline uint8_t pio_read_8(ioport8_t *port)
+NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
-	uint8_t rv;
-
-	rv = *port;
+	uint8_t rv = *port;
 	memory_barrier();
-
 	return rv;
 }
 
-static inline uint16_t pio_read_16(ioport16_t *port)
+NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
-	uint16_t rv;
-
-	rv = *port;
+	uint16_t rv = *port;
 	memory_barrier();
-
 	return rv;
 }
 
-static inline uint32_t pio_read_32(ioport32_t *port)
+NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
-	uint32_t rv;
-
-	rv = *port;
+	uint32_t rv = *port;
 	memory_barrier();
-
 	return rv;
 }
 
 /** Read Processor State register.
  *
  * @return Value of PSTATE register.
+ *
  */
-static inline uint64_t pstate_read(void)
+NO_TRACE static inline uint64_t pstate_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%pstate, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%pstate, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -108,21 +103,30 @@ static inline uint64_t pstate_read(void)
 /** Write Processor State register.
  *
  * @param v New value of PSTATE register.
+ *
  */
-static inline void pstate_write(uint64_t v)
+NO_TRACE static inline void pstate_write(uint64_t v)
 {
-	asm volatile ("wrpr %0, %1, %%pstate\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wrpr %[v], %[zero], %%pstate\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Read TICK_compare Register.
  *
  * @return Value of TICK_comapre register.
+ *
  */
-static inline uint64_t tick_compare_read(void)
+NO_TRACE static inline uint64_t tick_compare_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rd %%tick_cmpr, %0\n" : "=r" (v));
+	asm volatile (
+		"rd %%tick_cmpr, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -130,21 +134,30 @@ static inline uint64_t tick_compare_read(void)
 /** Write TICK_compare Register.
  *
  * @param v New value of TICK_comapre register.
+ *
  */
-static inline void tick_compare_write(uint64_t v)
+NO_TRACE static inline void tick_compare_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%tick_cmpr\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%tick_cmpr\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Read STICK_compare Register.
  *
  * @return Value of STICK_compare register.
+ *
  */
-static inline uint64_t stick_compare_read(void)
+NO_TRACE static inline uint64_t stick_compare_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rd %%asr25, %0\n" : "=r" (v));
+	asm volatile (
+		"rd %%asr25, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -152,21 +165,30 @@ static inline uint64_t stick_compare_read(void)
 /** Write STICK_compare Register.
  *
  * @param v New value of STICK_comapre register.
+ *
  */
-static inline void stick_compare_write(uint64_t v)
+NO_TRACE static inline void stick_compare_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%asr25\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%asr25\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Read TICK Register.
  *
  * @return Value of TICK register.
+ *
  */
-static inline uint64_t tick_read(void)
+NO_TRACE static inline uint64_t tick_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%tick, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%tick, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -174,21 +196,30 @@ static inline uint64_t tick_read(void)
 /** Write TICK Register.
  *
  * @param v New value of TICK register.
+ *
  */
-static inline void tick_write(uint64_t v)
+NO_TRACE static inline void tick_write(uint64_t v)
 {
-	asm volatile ("wrpr %0, %1, %%tick\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wrpr %[v], %[zero], %%tick\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Read FPRS Register.
  *
  * @return Value of FPRS register.
+ *
  */
-static inline uint64_t fprs_read(void)
+NO_TRACE static inline uint64_t fprs_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rd %%fprs, %0\n" : "=r" (v));
+	asm volatile (
+		"rd %%fprs, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -196,32 +227,46 @@ static inline uint64_t fprs_read(void)
 /** Write FPRS Register.
  *
  * @param v New value of FPRS register.
+ *
  */
-static inline void fprs_write(uint64_t v)
+NO_TRACE static inline void fprs_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%fprs\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%fprs\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Read SOFTINT Register.
  *
  * @return Value of SOFTINT register.
+ *
  */
-static inline uint64_t softint_read(void)
+NO_TRACE static inline uint64_t softint_read(void)
 {
 	uint64_t v;
-
-	asm volatile ("rd %%softint, %0\n" : "=r" (v));
-
+	
+	asm volatile (
+		"rd %%softint, %[v]\n"
+		: [v] "=r" (v)
+	);
+	
 	return v;
 }
 
 /** Write SOFTINT Register.
  *
  * @param v New value of SOFTINT register.
+ *
  */
-static inline void softint_write(uint64_t v)
+NO_TRACE static inline void softint_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%softint\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%softint\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Write CLEAR_SOFTINT Register.
@@ -229,10 +274,15 @@ static inline void softint_write(uint64_t v)
  * Bits set in CLEAR_SOFTINT register will be cleared in SOFTINT register.
  *
  * @param v New value of CLEAR_SOFTINT register.
+ *
  */
-static inline void clear_softint_write(uint64_t v)
+NO_TRACE static inline void clear_softint_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%clear_softint\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%clear_softint\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Write SET_SOFTINT Register.
@@ -240,10 +290,15 @@ static inline void clear_softint_write(uint64_t v)
  * Bits set in SET_SOFTINT register will be set in SOFTINT register.
  *
  * @param v New value of SET_SOFTINT register.
+ *
  */
-static inline void set_softint_write(uint64_t v)
+NO_TRACE static inline void set_softint_write(uint64_t v)
 {
-	asm volatile ("wr %0, %1, %%set_softint\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wr %[v], %[zero], %%set_softint\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Enable interrupts.
@@ -252,12 +307,12 @@ static inline void set_softint_write(uint64_t v)
  * value of IPL.
  *
  * @return Old interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_enable(void) {
+NO_TRACE static inline ipl_t interrupts_enable(void) {
 	pstate_reg_t pstate;
-	uint64_t value;
+	uint64_t value = pstate_read();
 	
-	value = pstate_read();
 	pstate.value = value;
 	pstate.ie = true;
 	pstate_write(pstate.value);
@@ -271,12 +326,12 @@ static inline ipl_t interrupts_enable(void) {
  * value of IPL.
  *
  * @return Old interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_disable(void) {
+NO_TRACE static inline ipl_t interrupts_disable(void) {
 	pstate_reg_t pstate;
-	uint64_t value;
+	uint64_t value = pstate_read();
 	
-	value = pstate_read();
 	pstate.value = value;
 	pstate.ie = false;
 	pstate_write(pstate.value);
@@ -289,8 +344,9 @@ static inline ipl_t interrupts_disable(void) {
  * Restore IPL.
  *
  * @param ipl Saved interrupt priority level.
+ *
  */
-static inline void interrupts_restore(ipl_t ipl) {
+NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
 	pstate_reg_t pstate;
 	
 	pstate.value = pstate_read();
@@ -303,9 +359,23 @@ static inline void interrupts_restore(ipl_t ipl) {
  * Return IPL.
  *
  * @return Current interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_read(void) {
+NO_TRACE static inline ipl_t interrupts_read(void) {
 	return (ipl_t) pstate_read();
+}
+
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+NO_TRACE static inline bool interrupts_disabled(void)
+{
+	pstate_reg_t pstate;
+	
+	pstate.value = pstate_read();
+	return !pstate.ie;
 }
 
 /** Return base address of current stack.
@@ -313,12 +383,17 @@ static inline ipl_t interrupts_read(void) {
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
-static inline uintptr_t get_stack_base(void)
+NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t unbiased_sp;
 	
-	asm volatile ("add %%sp, %1, %0\n" : "=r" (unbiased_sp) : "i" (STACK_BIAS));
+	asm volatile (
+		"add %%sp, %[stack_bias], %[unbiased_sp]\n"
+		: [unbiased_sp] "=r" (unbiased_sp)
+		: [stack_bias] "i" (STACK_BIAS)
+	);
 	
 	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
 }
@@ -326,12 +401,16 @@ static inline uintptr_t get_stack_base(void)
 /** Read Version Register.
  *
  * @return Value of VER register.
+ *
  */
-static inline uint64_t ver_read(void)
+NO_TRACE static inline uint64_t ver_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%ver, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%ver, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -339,12 +418,16 @@ static inline uint64_t ver_read(void)
 /** Read Trap Program Counter register.
  *
  * @return Current value in TPC.
+ *
  */
-static inline uint64_t tpc_read(void)
+NO_TRACE static inline uint64_t tpc_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%tpc, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%tpc, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -352,12 +435,16 @@ static inline uint64_t tpc_read(void)
 /** Read Trap Level register.
  *
  * @return Current value in TL.
+ *
  */
-static inline uint64_t tl_read(void)
+NO_TRACE static inline uint64_t tl_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%tl, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%tl, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -365,12 +452,16 @@ static inline uint64_t tl_read(void)
 /** Read Trap Base Address register.
  *
  * @return Current value in TBA.
+ *
  */
-static inline uint64_t tba_read(void)
+NO_TRACE static inline uint64_t tba_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("rdpr %%tba, %0\n" : "=r" (v));
+	asm volatile (
+		"rdpr %%tba, %[v]\n"
+		: [v] "=r" (v)
+	);
 	
 	return v;
 }
@@ -378,24 +469,36 @@ static inline uint64_t tba_read(void)
 /** Write Trap Base Address register.
  *
  * @param v New value of TBA.
+ *
  */
-static inline void tba_write(uint64_t v)
+NO_TRACE static inline void tba_write(uint64_t v)
 {
-	asm volatile ("wrpr %0, %1, %%tba\n" : : "r" (v), "i" (0));
+	asm volatile (
+		"wrpr %[v], %[zero], %%tba\n"
+		:: [v] "r" (v),
+		   [zero] "i" (0)
+	);
 }
 
 /** Load uint64_t from alternate space.
  *
  * @param asi ASI determining the alternate space.
- * @param va Virtual address within the ASI.
+ * @param va  Virtual address within the ASI.
  *
- * @return Value read from the virtual address in the specified address space.
+ * @return Value read from the virtual address in
+ *         the specified address space.
+ *
  */
-static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
+NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
 	uint64_t v;
 	
-	asm volatile ("ldxa [%1] %2, %0\n" : "=r" (v) : "r" (va), "i" ((unsigned) asi));
+	asm volatile (
+		"ldxa [%[va]] %[asi], %[v]\n"
+		: [v] "=r" (v)
+		: [va] "r" (va),
+		  [asi] "i" ((unsigned int) asi)
+	);
 	
 	return v;
 }
@@ -403,28 +506,35 @@ static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 /** Store uint64_t to alternate space.
  *
  * @param asi ASI determining the alternate space.
- * @param va Virtual address within the ASI.
- * @param v Value to be written.
+ * @param va  Virtual address within the ASI.
+ * @param v   Value to be written.
+ *
  */
-static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
+NO_TRACE static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
-	asm volatile ("stxa %0, [%1] %2\n" : :  "r" (v), "r" (va), "i" ((unsigned) asi) : "memory");
+	asm volatile (
+		"stxa %[v], [%[va]] %[asi]\n"
+		:: [v] "r" (v),
+		   [va] "r" (va),
+		   [asi] "i" ((unsigned int) asi)
+		: "memory"
+	);
 }
 
 /** Flush all valid register windows to memory. */
-static inline void flushw(void)
+NO_TRACE static inline void flushw(void)
 {
 	asm volatile ("flushw\n");
 }
 
 /** Switch to nucleus by setting TL to 1. */
-static inline void nucleus_enter(void)
+NO_TRACE static inline void nucleus_enter(void)
 {
 	asm volatile ("wrpr %g0, 1, %tl\n");
 }
 
 /** Switch from nucleus by setting TL to 0. */
-static inline void nucleus_leave(void)
+NO_TRACE static inline void nucleus_leave(void)
 {
 	asm volatile ("wrpr %g0, %g0, %tl\n");
 }
@@ -433,6 +543,7 @@ extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(const uint32_t usec);
 
+extern uint64_t read_from_ag_g6(void);
 extern uint64_t read_from_ag_g7(void);
 extern void write_to_ag_g6(uint64_t val);
 extern void write_to_ag_g7(uint64_t val);

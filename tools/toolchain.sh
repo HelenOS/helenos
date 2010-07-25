@@ -141,7 +141,7 @@ build_target() {
 	TARGET="$2"
 	
 	BINUTILS_VERSION="2.20"
-	GCC_VERSION="4.4.3"
+	GCC_VERSION="4.5.0"
 	
 	BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
 	GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -164,9 +164,9 @@ build_target() {
 	
 	echo ">>> Downloading tarballs"
 	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "ee2d3e996e9a2d669808713360fa96f8"
-	download_check "${GCC_SOURCE}" "${GCC_CORE}" "054b66f315b3d04ad06544ce26e72365"
-	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "34711c4de46eaf79aa018206dbec4389"
-	download_check "${GCC_SOURCE}" "${GCC_CPP}" "cd179ec4f05ee17ce76464da25a2674c"
+	download_check "${GCC_SOURCE}" "${GCC_CORE}" "58eda33c3184303628f91c42a7ab15b5"
+	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "8d8c01b6631b020cc6c167860fde2398"
+	download_check "${GCC_SOURCE}" "${GCC_CPP}" "5ab93605af40def4844eda09ca769c2d"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"
@@ -195,7 +195,7 @@ build_target() {
 	echo ">>> Compiling and installing GCC"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
 	check_error $? "Error configuring GCC."
 	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 	check_error $? "Error compiling/installing GCC."

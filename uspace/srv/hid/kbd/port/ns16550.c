@@ -29,9 +29,9 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	NS16550 port driver.
+ * @brief NS16550 port driver.
  */
 
 #include <ipc/ipc.h>
@@ -42,22 +42,23 @@
 #include <kbd_port.h>
 #include <sun.h>
 #include <ddi.h>
+#include <errno.h>
 
 /* NS16550 registers */
-#define RBR_REG		0	/** Receiver Buffer Register. */
-#define IER_REG		1	/** Interrupt Enable Register. */
-#define IIR_REG		2	/** Interrupt Ident Register (read). */
-#define FCR_REG		2	/** FIFO control register (write). */
-#define LCR_REG		3	/** Line Control register. */
-#define MCR_REG		4	/** Modem Control Register. */
-#define LSR_REG		5	/** Line Status Register. */
+#define RBR_REG  0  /** Receiver Buffer Register. */
+#define IER_REG  1  /** Interrupt Enable Register. */
+#define IIR_REG  2  /** Interrupt Ident Register (read). */
+#define FCR_REG  2  /** FIFO control register (write). */
+#define LCR_REG  3  /** Line Control register. */
+#define MCR_REG  4  /** Modem Control Register. */
+#define LSR_REG  5  /** Line Status Register. */
 
-#define LSR_DATA_READY	0x01
+#define LSR_DATA_READY  0x01
 
 static irq_cmd_t ns16550_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
+		.addr = (void *) 0,     /* Will be patched in run-time */
 		.dstarg = 1
 	},
 	{
@@ -73,7 +74,7 @@ static irq_cmd_t ns16550_cmds[] = {
 	},
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
+		.addr = (void *) 0,     /* Will be patched in run-time */
 		.dstarg = 2
 	},
 	{
@@ -95,23 +96,23 @@ int ns16550_port_init(void)
 {
 	void *vaddr;
 
-	async_set_interrupt_received(ns16550_irq_handler);
-
-	ns16550_physical = sysinfo_value("kbd.address.physical");
-	ns16550_kernel = sysinfo_value("kbd.address.kernel");
+	if (sysinfo_get_value("kbd.address.physical", &ns16550_physical) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("kbd.address.kernel", &ns16550_kernel) != EOK)
+		return -1;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
 	ns16550_kbd.cmds[0].addr = (void *) (ns16550_kernel + LSR_REG);
 	ns16550_kbd.cmds[3].addr = (void *) (ns16550_kernel + RBR_REG);
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    sysinfo_value("kbd.inr"), &ns16550_kbd);
+	
+	async_set_interrupt_received(ns16550_irq_handler);
+	ipc_register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
+	
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
-}
-
-void ns16550_port_yield(void)
-{
-}
-
-void ns16550_port_reclaim(void)
-{
 }
 
 static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)

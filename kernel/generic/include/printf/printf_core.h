@@ -50,7 +50,7 @@ typedef struct {
 	void *data;
 } printf_spec_t;
 
-int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
+extern int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
 
 #endif
 

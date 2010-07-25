@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_PCI_H_
 #define KERN_sparc64_PCI_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/arch.h>
 #include <arch/asm.h>

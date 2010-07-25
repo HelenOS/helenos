@@ -35,43 +35,59 @@
 #ifndef KERN_abs32le_ATOMIC_H_
 #define KERN_abs32le_ATOMIC_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
+#include <verify.h>
+#include <trace.h>
 
-static inline void atomic_inc(atomic_t *val) {
+NO_TRACE ATOMIC static inline void atomic_inc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count < ATOMIC_COUNT_MAX)
+{
 	/* On real hardware the increment has to be done
 	   as an atomic action. */
 	
 	val->count++;
 }
 
-static inline void atomic_dec(atomic_t *val) {
+NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count > ATOMIC_COUNT_MIN)
+{
 	/* On real hardware the decrement has to be done
 	   as an atomic action. */
 	
-	val->count++;
+	val->count--;
 }
 
-static inline long atomic_postinc(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
 	/* On real hardware both the storing of the previous
 	   value and the increment have to be done as a single
 	   atomic action. */
 	
-	long prev = val->count;
+	atomic_count_t prev = val->count;
 	
 	val->count++;
 	return prev;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+    REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
 	/* On real hardware both the storing of the previous
 	   value and the decrement have to be done as a single
 	   atomic action. */
 	
-	long prev = val->count;
+	atomic_count_t prev = val->count;
 	
 	val->count--;
 	return prev;
@@ -80,41 +96,26 @@ static inline long atomic_postdec(atomic_t *val)
 #define atomic_preinc(val)  (atomic_postinc(val) + 1)
 #define atomic_predec(val)  (atomic_postdec(val) - 1)
 
-static inline uint32_t test_and_set(atomic_t *val) {
-	uint32_t v;
+NO_TRACE ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
+{
+	/* On real hardware the retrieving of the original
+	   value and storing 1 have to be done as a single
+	   atomic action. */
 	
-	asm volatile (
-		"movl $1, %[v]\n"
-		"xchgl %[v], %[count]\n"
-		: [v] "=r" (v), [count] "+m" (val->count)
-	);
-	
-	return v;
+	atomic_count_t prev = val->count;
+	val->count = 1;
+	return prev;
 }
 
-/** ia32 specific fast spinlock */
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
-	uint32_t tmp;
-	
-	preemption_disable();
-	asm volatile (
-		"0:\n"
-		"pause\n"        /* Pentium 4's HT love this instruction */
-		"mov %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"       /* lightweight looping on locked spinlock */
-		
-		"incl %[tmp]\n"  /* now use the atomic operation */
-		"xchgl %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"
-		: [count] "+m" (val->count), [tmp] "=&r" (tmp)
-	);
-	/*
-	 * Prevent critical section code from bleeding out this way up.
-	 */
-	CS_ENTER_BARRIER();
+	do {
+		while (val->count);
+	} while (test_and_set(val));
 }
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@
 #include <arch/exception.h>
 #include <arch.h>
 #include <memstr.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 uintptr_t *ras_page = NULL;
 
@@ -65,7 +65,7 @@ void ras_init(void)
 	page_table_unlock(AS, true);
 }
 
-void ras_check(int n, istate_t *istate)
+void ras_check(unsigned int n, istate_t *istate)
 {
 	uintptr_t rewrite_pc = istate->pc;
 

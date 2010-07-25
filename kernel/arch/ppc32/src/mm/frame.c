@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
@@ -40,17 +40,16 @@
 #include <print.h>
 
 uintptr_t last_frame = 0;
+memmap_t memmap;
 
 void physmem_print(void)
 {
-	unsigned int i;
+	printf("[base    ] [size    ]\n");
 	
-	printf("Base       Size\n");
-	printf("---------- ----------\n");
-		
-	for (i = 0; i < bootinfo.memmap.count; i++) {
-		printf("%#10x %#10x\n", bootinfo.memmap.zones[i].start,
-			bootinfo.memmap.zones[i].size);
+	size_t i;
+	for (i = 0; i < memmap.cnt; i++) {
+		printf("%#10x %#10x\n", memmap.zones[i].start,
+		    memmap.zones[i].size);
 	}
 }
 
@@ -58,21 +57,27 @@ void frame_arch_init(void)
 {
 	pfn_t minconf = 2;
 	size_t i;
-	pfn_t start, conf;
-	size_t size;
 	
-	for (i = 0; i < bootinfo.memmap.count; i++) {
-		start = ADDR2PFN(ALIGN_UP(bootinfo.memmap.zones[i].start, FRAME_SIZE));
-		size = SIZE2FRAMES(ALIGN_DOWN(bootinfo.memmap.zones[i].size, FRAME_SIZE));
+	for (i = 0; i < memmap.cnt; i++) {
+		/* To be safe, make the available zone possibly smaller */
+		uintptr_t new_start = ALIGN_UP((uintptr_t) memmap.zones[i].start,
+		    FRAME_SIZE);
+		size_t new_size = ALIGN_DOWN(memmap.zones[i].size -
+		    (new_start - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
 		
-		if ((minconf < start) || (minconf >= start + size))
-			conf = start;
+		pfn_t pfn = ADDR2PFN(new_start);
+		size_t count = SIZE2FRAMES(new_size);
+		
+		pfn_t conf;
+		if ((minconf < pfn) || (minconf >= pfn + count))
+			conf = pfn;
 		else
 			conf = minconf;
 		
-		zone_create(start, size, conf, 0);
-		if (last_frame < ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE))
-			last_frame = ALIGN_UP(bootinfo.memmap.zones[i].start + bootinfo.memmap.zones[i].size, FRAME_SIZE);
+		zone_create(pfn, count, conf, 0);
+		
+		if (last_frame < ALIGN_UP(new_start + new_size, FRAME_SIZE))
+			last_frame = ALIGN_UP(new_start + new_size, FRAME_SIZE);
 	}
 	
 	/* First is exception vector, second is 'implementation specific',
@@ -80,12 +85,10 @@ void frame_arch_init(void)
 	frame_mark_unavailable(0, 8);
 	
 	/* Mark the Page Hash Table frames as unavailable */
-	uint32_t sdr1;
-	asm volatile (
-		"mfsdr1 %0\n"
-		: "=r" (sdr1)
-	);
-	frame_mark_unavailable(ADDR2PFN(sdr1 & 0xffff000), 16); // FIXME
+	uint32_t sdr1 = sdr1_get();
+	
+	// FIXME: compute size of PHT exactly
+	frame_mark_unavailable(ADDR2PFN(sdr1 & 0xffff000), 16);
 }
 
 /** @}

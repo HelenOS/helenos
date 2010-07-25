@@ -169,7 +169,7 @@ static void testthreads(void)
 	TPRINTF("Test complete.\n");
 }
 
-char *test_slab1(void)
+const char *test_slab1(void)
 {
 	testsimple();
 	testthreads();

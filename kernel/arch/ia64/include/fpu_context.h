@@ -37,7 +37,7 @@
 
 #define FPU_CONTEXT_ALIGN 16
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define FRS 96
 

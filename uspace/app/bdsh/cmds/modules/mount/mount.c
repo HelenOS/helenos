@@ -57,7 +57,7 @@ void help_cmd_mount(unsigned int level)
 int cmd_mount(char **argv)
 {
 	unsigned int argc;
-	char *mopts = "";
+	const char *mopts = "";
 	int rc;
 
 	argc = cli_count_args(argv);

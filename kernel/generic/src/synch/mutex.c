@@ -32,18 +32,19 @@
 
 /**
  * @file
- * @brief	Mutexes.
+ * @brief Mutexes.
  */
- 
+
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
 #include <synch/synch.h>
 #include <debug.h>
+#include <arch.h>
 
 /** Initialize mutex.
  *
- * @param mtx		Mutex.
- * @param type		Type of the mutex.
+ * @param mtx  Mutex.
+ * @param type Type of the mutex.
  */
 void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 {
@@ -51,29 +52,41 @@ void mutex_initialize(mutex_t *mtx, mutex_type_t type)
 	semaphore_initialize(&mtx->sem, 1);
 }
 
+/** Find out whether the mutex is currently locked.
+ *
+ * @param mtx		Mutex.
+ * @return 		True if the mutex is locked, false otherwise.
+ */
+bool mutex_locked(mutex_t *mtx)
+{
+	return semaphore_count_get(&mtx->sem) <= 0;
+}
+
 /** Acquire mutex.
  *
  * Timeout mode and non-blocking mode can be requested.
  *
- * @param mtx		Mutex.
- * @param usec		Timeout in microseconds.
- * @param flags		Specify mode of operation.
+ * @param mtx   Mutex.
+ * @param usec  Timeout in microseconds.
+ * @param flags Specify mode of operation.
  *
  * For exact description of possible combinations of
  * usec and flags, see comment for waitq_sleep_timeout().
  *
- * @return		See comment for waitq_sleep_timeout().
+ * @return See comment for waitq_sleep_timeout().
+ *
  */
-int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
+int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 {
 	int rc;
 
-	if (mtx->type == MUTEX_PASSIVE) {
+	if ((mtx->type == MUTEX_PASSIVE) && (THREAD)) {
 		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
 	} else {
-		ASSERT(mtx->type == MUTEX_ACTIVE);
+		ASSERT((mtx->type == MUTEX_ACTIVE) || (!THREAD));
 		ASSERT(usec == SYNCH_NO_TIMEOUT);
 		ASSERT(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
+		
 		do {
 			rc = semaphore_trydown(&mtx->sem);
 		} while (SYNCH_FAILED(rc) &&
@@ -85,7 +98,7 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, int flags)
 
 /** Release mutex.
  *
- * @param mtx		Mutex.
+ * @param mtx Mutex.
  */
 void mutex_unlock(mutex_t *mtx)
 {

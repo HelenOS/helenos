@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,9 +35,9 @@
 #ifndef KERN_ia32_BIOS_H_
 #define KERN_ia32_BIOS_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define BIOS_EBDA_PTR	0x40e
+#define BIOS_EBDA_PTR  0x40e
 
 extern uintptr_t ebda;
 

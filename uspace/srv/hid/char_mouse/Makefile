@@ -28,14 +28,12 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS = -Iinclude
-
-OUTPUT = char_ms
+BINARY = char_ms
 
 SOURCES = \
 	proto/ps2.c \
 	char_mouse.c \
 	chardev.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

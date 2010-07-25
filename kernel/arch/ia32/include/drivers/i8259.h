@@ -35,7 +35,7 @@
 #ifndef KERN_ia32_I8259_H_
 #define KERN_ia32_I8259_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/interrupt.h>
 
 #define PIC_PIC0PORT1  ((ioport8_t *) 0x20)
@@ -47,8 +47,8 @@
 #define PIC_ICW1      (1 << 4)
 
 extern void i8259_init(void);
-extern void pic_enable_irqs(uint16_t irqmask);
-extern void pic_disable_irqs(uint16_t irqmask);
+extern void pic_enable_irqs(uint16_t);
+extern void pic_disable_irqs(uint16_t);
 extern void pic_eoi(void);
 
 #endif

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,18 +35,19 @@
 #ifndef KERN_ATOMIC_H_
 #define KERN_ATOMIC_H_
 
-typedef struct atomic {
-	volatile long count;
-} atomic_t;
-
+#include <typedefs.h>
 #include <arch/atomic.h>
+#include <verify.h>
 
-static inline void atomic_set(atomic_t *val, long i)
+NO_TRACE ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
+    WRITES(&val->count)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	val->count = i;
 }
 
-static inline long atomic_get(atomic_t *val)
+NO_TRACE ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
+    REQUIRES_EXTENT_MUTABLE(val)
 {
 	return val->count;
 }

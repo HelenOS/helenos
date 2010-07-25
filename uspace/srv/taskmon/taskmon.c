@@ -43,16 +43,17 @@
 #include <event.h>
 #include <macros.h>
 #include <errno.h>
+#include <str_error.h>
 
 #define NAME  "taskmon"
 
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
-	char *argv[6];
-	char *fname;
+	const char *argv[6];
+	const char *fname;
 	char *dump_fname;
 	char *s_taskid;
-	char **s;
+	const char **s;
 
 	task_id_t taskid;
 	uintptr_t thread;
@@ -88,15 +89,18 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 	fname = argv[0];
 
 	printf(NAME ": Executing");
-        s = argv;
+	
+	s = argv;
 	while (*s != NULL) {
 		printf(" %s", *s);
 		++s;
 	}
 	putchar('\n');
-
-	if (!task_spawn(fname, argv))
-		printf(NAME ": Error spawning taskdump.\n", fname);
+	
+	int err;
+	if (!task_spawn(fname, argv, &err))
+		printf("%s: Error spawning %s (%s).\n", NAME, fname,
+		    str_error(err));
 }
 
 int main(int argc, char *argv[])

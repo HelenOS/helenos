@@ -121,16 +121,24 @@ static void sgcn_putc(char c)
  */
 int sgcn_init(void)
 {
-	sram_virt_addr = (uintptr_t) as_get_mappable_page(sysinfo_value("sram.area.size"));
+	sysarg_t sram_paddr;
+	if (sysinfo_get_value("sram.address.physical", &sram_paddr) != EOK)
+		return -1;
 	
-	if (physmem_map((void *) sysinfo_value("sram.address.physical"),
-	    (void *) sram_virt_addr, sysinfo_value("sram.area.size") / PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE) != 0)
+	sysarg_t sram_size;
+	if (sysinfo_get_value("sram.area.size", &sram_size) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("sram.buffer.offset", &sram_buffer_offset) != EOK)
+		sram_buffer_offset = 0;
+	
+	sram_virt_addr = (uintptr_t) as_get_mappable_page(sram_size);
+	
+	if (physmem_map((void *) sram_paddr, (void *) sram_virt_addr,
+	    sram_size / PAGE_SIZE, AS_AREA_READ | AS_AREA_WRITE) != 0)
 		return -1;
 	
 	serial_console_init(sgcn_putc, WIDTH, HEIGHT);
-	
-	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
 	
 	async_set_client_connection(serial_client_connection);
 	return 0;

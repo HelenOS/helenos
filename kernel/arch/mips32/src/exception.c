@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -37,7 +37,7 @@
 #include <arch/mm/tlb.h>
 #include <panic.h>
 #include <arch/cp0.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <debug.h>
 #include <proc/thread.h>
@@ -48,7 +48,7 @@
 #include <arch/debugger.h>
 #include <symtab.h>
 
-static char * exctable[] = {
+static const char *exctable[] = {
 	"Interrupt",
 	"TLB Modified",
 	"TLB Invalid",
@@ -66,41 +66,42 @@ static char * exctable[] = {
 	"Virtual Coherency - instruction",
 	"Floating Point",
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	"WatchHi/WatchLo", /* 23 */
+	"WatchHi/WatchLo",  /* 23 */
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	"Virtual Coherency - data",
 };
 
-static void print_regdump(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	char *pcsymbol, *rasymbol;
-
-	pcsymbol = symtab_fmt_name_lookup(istate->epc);
-	rasymbol = symtab_fmt_name_lookup(istate->ra);
-
-	printf("PC: %#x(%s) RA: %#x(%s), SP(%p)\n", istate->epc, pcsymbol,
-	    istate->ra, rasymbol, istate->sp);
+	printf("at=%p\tv0=%p\tv1=%p\n", istate->at, istate->v0, istate->v1);
+	printf("a0=%p\ta1=%p\ta2=%p\n", istate->a0, istate->a1, istate->a2);
+	printf("a3=%p\tt0=%p\tt1=%p\n", istate->a3, istate->t0, istate->t1);
+	printf("t2=%p\tt3=%p\tt4=%p\n", istate->t2, istate->t3, istate->t4);
+	printf("t5=%p\tt6=%p\tt7=%p\n", istate->t5, istate->t6, istate->t7);
+	printf("t8=%p\tt9=%p\tgp=%p\n", istate->t8, istate->t9, istate->gp);
+	printf("sp=%p\tra=%p\t\n", istate->sp, istate->ra);
+	printf("lo=%p\thi=%p\t\n", istate->lo, istate->hi);
+	printf("cp0_status=%p\tcp0_epc=%p\tk1=%p\n",
+	    istate->status, istate->epc, istate->k1);
 }
 
-static void unhandled_exception(int n, istate_t *istate)
+static void unhandled_exception(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %s.", exctable[n]);
-	
-	print_regdump(istate);
-	panic("Unhandled exception %s.", exctable[n]);
+	panic_badtrap(istate, n, "Unhandled exception %s.", exctable[n]);
 }
 
-static void reserved_instr_exception(int n, istate_t *istate)
+static void reserved_instr_exception(unsigned int n, istate_t *istate)
 {
-	if (*((uint32_t *)istate->epc) == 0x7c03e83b) {
+	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
 		istate->v1 = istate->k1;
-	} else 
+	} else
 		unhandled_exception(n, istate);
 }
 
-static void breakpoint_exception(int n, istate_t *istate)
+static void breakpoint_exception(unsigned int n, istate_t *istate)
 {
 #ifdef CONFIG_DEBUG
 	debugger_bpoint(istate);
@@ -112,36 +113,36 @@ static void breakpoint_exception(int n, istate_t *istate)
 #endif
 }
 
-static void tlbmod_exception(int n, istate_t *istate)
+static void tlbmod_exception(unsigned int n, istate_t *istate)
 {
 	tlb_modified(istate);
 }
 
-static void tlbinv_exception(int n, istate_t *istate)
+static void tlbinv_exception(unsigned int n, istate_t *istate)
 {
 	tlb_invalid(istate);
 }
 
 #ifdef CONFIG_FPU_LAZY
-static void cpuns_exception(int n, istate_t *istate)
+static void cpuns_exception(unsigned int n, istate_t *istate)
 {
 	if (cp0_cause_coperr(cp0_cause_read()) == fpu_cop_id)
 		scheduler_fpu_lazy_request();
 	else {
-		fault_if_from_uspace(istate, "Unhandled Coprocessor Unusable Exception.");
-		panic("Unhandled Coprocessor Unusable Exception.");
+		fault_if_from_uspace(istate,
+		    "Unhandled Coprocessor Unusable Exception.");
+		panic_badtrap(istate, n,
+		    "Unhandled Coprocessor Unusable Exception.");
 	}
 }
 #endif
 
-static void interrupt_exception(int n, istate_t *istate)
+static void interrupt_exception(unsigned int n, istate_t *istate)
 {
-	uint32_t cause;
-	int i;
+	/* Decode interrupt number and process the interrupt */
+	uint32_t cause = (cp0_cause_read() >> 8) & 0xff;
 	
-	/* decode interrupt number and process the interrupt */
-	cause = (cp0_cause_read() >> 8) & 0xff;
-	
+	unsigned int i;
 	for (i = 0; i < 8; i++) {
 		if (cause & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
@@ -150,13 +151,13 @@ static void interrupt_exception(int n, istate_t *istate)
 				 * The IRQ handler was found.
 				 */
 				irq->handler(irq);
-				spinlock_unlock(&irq->lock);
+				irq_spinlock_unlock(&irq->lock, false);
 			} else {
 				/*
 				 * Spurious interrupt.
 				 */
 #ifdef CONFIG_DEBUG
-				printf("cpu%u: spurious interrupt (inum=%d)\n",
+				printf("cpu%u: spurious interrupt (inum=%u)\n",
 				    CPU->id, i);
 #endif
 			}
@@ -165,29 +166,40 @@ static void interrupt_exception(int n, istate_t *istate)
 }
 
 /** Handle syscall userspace call */
-static void syscall_exception(int n, istate_t *istate)
+static void syscall_exception(unsigned int n, istate_t *istate)
 {
-	panic("Syscall is handled through shortcut.");
+	fault_if_from_uspace(istate, "Syscall is handled through shortcut.");
 }
 
 void exception_init(void)
 {
-	int i;
-
+	unsigned int i;
+	
 	/* Clear exception table */
 	for (i = 0; i < IVT_ITEMS; i++)
-		exc_register(i, "undef", (iroutine) unhandled_exception);
+		exc_register(i, "undef", false,
+		    (iroutine_t) unhandled_exception);
 	
-	exc_register(EXC_Bp, "bkpoint", (iroutine) breakpoint_exception);
-	exc_register(EXC_RI, "resinstr", (iroutine) reserved_instr_exception);
-	exc_register(EXC_Mod, "tlb_mod", (iroutine) tlbmod_exception);
-	exc_register(EXC_TLBL, "tlbinvl", (iroutine) tlbinv_exception);
-	exc_register(EXC_TLBS, "tlbinvl", (iroutine) tlbinv_exception);
-	exc_register(EXC_Int, "interrupt", (iroutine) interrupt_exception);
+	exc_register(EXC_Bp, "bkpoint", true,
+	    (iroutine_t) breakpoint_exception);
+	exc_register(EXC_RI, "resinstr", true,
+	    (iroutine_t) reserved_instr_exception);
+	exc_register(EXC_Mod, "tlb_mod", true,
+	    (iroutine_t) tlbmod_exception);
+	exc_register(EXC_TLBL, "tlbinvl", true,
+	    (iroutine_t) tlbinv_exception);
+	exc_register(EXC_TLBS, "tlbinvl", true,
+	    (iroutine_t) tlbinv_exception);
+	exc_register(EXC_Int, "interrupt", true,
+	    (iroutine_t) interrupt_exception);
+	
 #ifdef CONFIG_FPU_LAZY
-	exc_register(EXC_CpU, "cpunus", (iroutine) cpuns_exception);
+	exc_register(EXC_CpU, "cpunus", true,
+	    (iroutine_t) cpuns_exception);
 #endif
-	exc_register(EXC_Sys, "syscall", (iroutine) syscall_exception);
+	
+	exc_register(EXC_Sys, "syscall", true,
+	    (iroutine_t) syscall_exception);
 }
 
 /** @}

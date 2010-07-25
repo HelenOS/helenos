@@ -111,15 +111,14 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 static bool obio_init(void)
 {
-	ipcarg_t phonead;
-
-	base_phys = (void *) sysinfo_value("obio.base.physical");
+	sysarg_t paddr;
 	
-	if (!base_phys) {
+	if (sysinfo_get_value("obio.base.physical", &paddr) != EOK) {
 		printf(NAME ": no OBIO registers found\n");
 		return false;
 	}
-
+	
+	base_phys = (void *) paddr;
 	base_virt = as_get_mappable_page(OBIO_SIZE);
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
@@ -132,8 +131,9 @@ static bool obio_init(void)
 	}
 	
 	printf(NAME ": OBIO registers with base at %p\n", base_phys);
-
+	
 	async_set_client_connection(obio_connection);
+	ipcarg_t phonead;
 	ipc_connect_to_me(PHONE_NS, SERVICE_OBIO, 0, 0, &phonead);
 	
 	return true;

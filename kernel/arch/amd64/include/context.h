@@ -37,7 +37,7 @@
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* According to ABI the stack MUST be aligned on 
  * 16-byte boundary. If it is not, the va_arg calling will
@@ -58,18 +58,18 @@
  * during function call
  */
 typedef struct {
-    uintptr_t sp;
-    uintptr_t pc;
-    
-    uint64_t rbx;
-    uint64_t rbp;
-
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
-
-    ipl_t ipl;
+	uintptr_t sp;
+	uintptr_t pc;
+	
+	uint64_t rbx;
+	uint64_t rbp;
+	
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	
+	ipl_t ipl;
 } __attribute__ ((packed)) context_t;
 
 #endif

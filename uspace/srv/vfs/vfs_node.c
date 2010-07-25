@@ -37,7 +37,7 @@
 
 #include "vfs.h"
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <fibril_synch.h>
 #include <adt/hash_table.h>
 #include <assert.h>
@@ -241,7 +241,7 @@ hash_index_t nodes_hash(unsigned long key[])
 int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
-	return (node->fs_handle == key[KEY_FS_HANDLE]) &&
+	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
 	    (node->dev_handle == key[KEY_DEV_HANDLE]) &&
 	    (node->index == key[KEY_INDEX]);
 }

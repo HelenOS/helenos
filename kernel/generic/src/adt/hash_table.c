@@ -39,7 +39,7 @@
 
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 #include <mm/slab.h>
 #include <memstr.h>

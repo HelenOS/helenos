@@ -35,12 +35,9 @@
 #ifndef KERN_abs32le_MEMSTR_H_
 #define KERN_abs32le_MEMSTR_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
-
-extern int memcmp(const void *, const void *, size_t);
+#define memcpy(dst, src, cnt)   _memcpy((dst), (src), (cnt))
+#define memsetb(dst, cnt, val)  _memsetb((dst), (cnt), (val))
+#define memsetw(dst, cnt, val)  _memsetw((dst), (cnt), (val))
 
 #endif
 

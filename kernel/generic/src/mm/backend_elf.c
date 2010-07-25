@@ -37,7 +37,7 @@
 
 #include <lib/elf.h>
 #include <debug.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
@@ -84,6 +84,9 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	uintptr_t base, frame, page, start_anon;
 	size_t i;
 	bool dirty = false;
+
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
@@ -231,16 +234,15 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  */
 void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
-	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
-	uintptr_t base, start_anon;
-	size_t i;
+	uintptr_t start_anon;
 
-	ASSERT((page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) &&
-	    (page < entry->p_vaddr + entry->p_memsz));
-	i = (page - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
-	base = (uintptr_t) (((void *) elf) +
-	    ALIGN_DOWN(entry->p_offset, FRAME_SIZE));
+	ASSERT(page_table_locked(area->as));
+	ASSERT(mutex_locked(&area->lock));
+
+	ASSERT(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
+	ASSERT(page < entry->p_vaddr + entry->p_memsz);
+
 	start_anon = entry->p_vaddr + entry->p_filesz;
 
 	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
@@ -256,7 +258,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * The frame is either anonymous memory or the mixed case (i.e.
 		 * lower part is backed by the ELF image and the upper is
 		 * anonymous). In any case, a frame needs to be freed.
-		 */ 
+		 */
 		frame_free(frame);
 	}
 }
@@ -267,8 +269,6 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
  * Otherwise only portions of the area that are not backed by the ELF image
  * are put into the pagemap.
  *
- * The address space and address space area must be locked prior to the call.
- *
  * @param area		Address space area.
  */
 void elf_share(as_area_t *area)
@@ -277,6 +277,9 @@ void elf_share(as_area_t *area)
 	link_t *cur;
 	btree_node_t *leaf, *node;
 	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
+
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
 
 	/*
 	 * Find the node in which to start linear search.

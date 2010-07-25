@@ -38,7 +38,7 @@
 #include "fat.h"
 #include "../../vfs/vfs.h"
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>

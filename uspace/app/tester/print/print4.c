@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include "../tester.h"
 
-char *test_print4(void)
+const char *test_print4(void)
 {
 	TPRINTF("ASCII printable characters (32 - 127) using printf(\"%%c\") and printf(\"%%lc\"):\n");
 	

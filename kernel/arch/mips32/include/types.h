@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -34,16 +34,6 @@
 
 #ifndef KERN_mips32_TYPES_H_
 #define KERN_mips32_TYPES_H_
-
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed long int32_t;
-typedef signed long long int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-typedef unsigned long long uint64_t;
 
 typedef uint32_t size_t;
 
@@ -54,30 +44,31 @@ typedef uint32_t ipl_t;
 
 typedef uint32_t unative_t;
 typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;
 
-#define PRIp "x"	/**< Format for uintptr_t. */
-#define PRIs "u"	/**< Format for size_t. */
+#define PRIp "x"  /**< Format for uintptr_t. */
+#define PRIs "u"  /**< Format for size_t. */
 
-#define PRId8 "d"	/**< Format for int8_t. */
-#define PRId16 "d"	/**< Format for int16_t. */
-#define PRId32 "ld"	/**< Format for int32_t. */
-#define PRId64 "lld"	/**< Format for int64_t. */
-#define PRIdn "d"	/**< Format for native_t. */
+#define PRId8 "d"     /**< Format for int8_t. */
+#define PRId16 "d"    /**< Format for int16_t. */
+#define PRId32 "ld"   /**< Format for int32_t. */
+#define PRId64 "lld"  /**< Format for int64_t. */
+#define PRIdn "d"     /**< Format for native_t. */
 
-#define PRIu8 "u"	/**< Format for uint8_t. */
-#define PRIu16 "u"	/**< Format for uint16_t. */
-#define PRIu32 "u"	/**< Format for uint32_t. */
-#define PRIu64 "llu"	/**< Format for uint64_t. */
-#define PRIun "u"	/**< Format for unative_t. */
+#define PRIu8 "u"     /**< Format for uint8_t. */
+#define PRIu16 "u"    /**< Format for uint16_t. */
+#define PRIu32 "u"    /**< Format for uint32_t. */
+#define PRIu64 "llu"  /**< Format for uint64_t. */
+#define PRIun "u"     /**< Format for unative_t. */
 
-#define PRIx8 "x"	/**< Format for hexadecimal (u)int8_t. */
-#define PRIx16 "x"	/**< Format for hexadecimal (u)int16_t. */
-#define PRIx32 "x"	/**< Format for hexadecimal (u)uint32_t. */
-#define PRIx64 "llx"	/**< Format for hexadecimal (u)int64_t. */
-#define PRIxn "x"	/**< Format for hexadecimal (u)native_t. */
+#define PRIx8 "x"     /**< Format for hexadecimal (u)int8_t. */
+#define PRIx16 "x"    /**< Format for hexadecimal (u)int16_t. */
+#define PRIx32 "x"    /**< Format for hexadecimal (u)uint32_t. */
+#define PRIx64 "llx"  /**< Format for hexadecimal (u)int64_t. */
+#define PRIxn "x"     /**< Format for hexadecimal (u)native_t. */
 
 #endif
 

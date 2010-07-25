@@ -37,7 +37,7 @@
 #define DURATION_SECS      10
 #define COUNT_GRANULARITY  100
 
-char *test_ping_pong(void)
+const char *test_ping_pong(void)
 {
 	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
 	

@@ -73,7 +73,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-char *test_register(void)
+const char *test_register(void)
 {
 	async_set_client_connection(client_connection);
 	

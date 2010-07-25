@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,24 +35,33 @@
 #ifndef KERN_PANIC_H_
 #define KERN_PANIC_H_
 
-#include <stacktrace.h>
-#include <print.h>
+#include <typedefs.h>
 
-#ifdef CONFIG_DEBUG
-#	define panic(format, ...) \
-		do { \
-			printf("Kernel panic in %s() at %s:%u.\n", \
-			    __func__, __FILE__, __LINE__); \
-			stack_trace(); \
-			panic_printf("Panic message: " format "\n", \
-			    ##__VA_ARGS__);\
-		} while (0)
-#else
-#	define panic(format, ...) \
-		panic_printf("Kernel panic: " format "\n", ##__VA_ARGS__);
-#endif
+#define panic(fmt, ...) \
+	panic_common(PANIC_OTHER, NULL, 0, 0, fmt, ##__VA_ARGS__)
 
-extern void panic_printf(char *fmt, ...) __attribute__((noreturn));
+#define panic_assert(fmt, ...) \
+	panic_common(PANIC_ASSERT, NULL, 0, 0, fmt, ##__VA_ARGS__)
+
+#define panic_badtrap(istate, n, fmt, ...) \
+	panic_common(PANIC_BADTRAP, istate, 0, n, fmt, ##__VA_ARGS__)
+
+#define panic_memtrap(istate, access, addr, fmt, ...) \
+	panic_common(PANIC_MEMTRAP, istate, access, addr, fmt, ##__VA_ARGS__)
+
+typedef enum {
+	PANIC_OTHER,
+	PANIC_ASSERT,
+	PANIC_BADTRAP,
+	PANIC_MEMTRAP
+} panic_category_t;
+
+struct istate;
+
+extern bool silent;
+
+extern void panic_common(panic_category_t, struct istate *, int,
+    uintptr_t, const char *, ...) __attribute__ ((noreturn));
 
 #endif
 

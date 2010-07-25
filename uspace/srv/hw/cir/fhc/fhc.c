@@ -108,16 +108,15 @@ static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 static bool fhc_init(void)
 {
-	ipcarg_t phonead;
+	sysarg_t paddr;
 
-	fhc_uart_size = sysinfo_value("fhc.uart.size");
-	fhc_uart_phys = (void *) sysinfo_value("fhc.uart.physical");
-	
-	if (!fhc_uart_size) {
+	if ((sysinfo_get_value("fhc.uart.physical", &paddr) != EOK)
+	    || (sysinfo_get_value("fhc.uart.size", &fhc_uart_size) != EOK)) {
 		printf(NAME ": no FHC UART registers found\n");
 		return false;
 	}
-
+	
+	fhc_uart_phys = (void *) paddr;
 	fhc_uart_virt = as_get_mappable_page(fhc_uart_size);
 	
 	int flags = AS_AREA_READ | AS_AREA_WRITE;
@@ -131,8 +130,9 @@ static bool fhc_init(void)
 	
 	printf(NAME ": FHC UART registers at %p, %d bytes\n", fhc_uart_phys,
 	    fhc_uart_size);
-
+	
 	async_set_client_connection(fhc_connection);
+	ipcarg_t phonead;
 	ipc_connect_to_me(PHONE_NS, SERVICE_FHC, 0, 0, &phonead);
 	
 	return true;

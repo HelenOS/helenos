@@ -28,10 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-EXTRA_CFLAGS += -Iinclude -Iarch/$(UARCH)/include/
-
-OUTPUT = libsoftfloat.a
+EXTRA_CFLAGS = -Iinclude -Iarch/$(UARCH)/include/
+LIBRARY = libsoftfloat
 
 SOURCES = \
 	generic/add.c \
@@ -44,4 +42,4 @@ SOURCES = \
 	generic/softfloat.c \
 	generic/sub.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_FPU_CONTEXT_H_
 #define KERN_mips32_FPU_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define FPU_CONTEXT_ALIGN    sizeof(unative_t)
 

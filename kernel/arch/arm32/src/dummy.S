@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2007 Michal Kebry, Pavel Jancik, Petr Stepan
+# Copyright (c) 2007 Michal Kebrt, Pavel Jancik, Petr Stepan
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

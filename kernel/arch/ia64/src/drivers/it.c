@@ -33,7 +33,7 @@
  */
 
 /** Interval Timer driver. */
- 
+
 #include <arch/drivers/it.h>
 #include <arch/interrupt.h>
 #include <arch/register.h>
@@ -44,13 +44,13 @@
 #include <ddi/device.h>
 #include <arch.h>
 
-#define IT_SERVICE_CLOCKS	64
+#define IT_SERVICE_CLOCKS  64
 
-#define FREQ_NUMERATOR_SHIFT	32
-#define FREQ_NUMERATOR_MASK	0xffffffff00000000ULL
+#define FREQ_NUMERATOR_SHIFT  32
+#define FREQ_NUMERATOR_MASK   0xffffffff00000000ULL
 
-#define FREQ_DENOMINATOR_SHIFT	0
-#define FREQ_DENOMINATOR_MASK	0xffffffffULL
+#define FREQ_DENOMINATOR_SHIFT  0
+#define FREQ_DENOMINATOR_MASK   0xffffffffULL
 
 uint64_t it_delta;
 
@@ -62,8 +62,6 @@ static void it_interrupt(irq_t *);
 /** Initialize Interval Timer. */
 void it_init(void)
 {
-	cr_itv_t itv;
-	
 	if (config.cpu_active == 1) {
 		irq_initialize(&it_irq);
 		it_irq.inr = INTERRUPT_TIMER;
@@ -82,19 +80,21 @@ void it_init(void)
 		it_delta = base_freq / HZ;
 	}
 	
-	/* initialize Interval Timer external interrupt vector */
+	/* Initialize Interval Timer external interrupt vector */
+	cr_itv_t itv;
+	
 	itv.value = itv_read();
 	itv.vector = INTERRUPT_TIMER;
 	itv.m = 0;
 	itv_write(itv.value);
-
-	/* set Interval Timer Counter to zero */
+	
+	/* Set Interval Timer Counter to zero */
 	itc_write(0);
 	
-	/* generate first Interval Timer interrupt in IT_DELTA ticks */
+	/* Generate first Interval Timer interrupt in IT_DELTA ticks */
 	itm_write(IT_DELTA);
-
-	/* propagate changes */
+	
+	/* Propagate changes */
 	srlz_d();
 }
 
@@ -103,6 +103,7 @@ void it_init(void)
  * Other devices are responsible to avoid using INR 0.
  *
  * @return Always IRQ_ACCEPT.
+ *
  */
 irq_ownership_t it_claim(irq_t *irq)
 {
@@ -112,34 +113,31 @@ irq_ownership_t it_claim(irq_t *irq)
 /** Process Interval Timer interrupt. */
 void it_interrupt(irq_t *irq)
 {
-	int64_t c;
-	int64_t m;
-	
 	eoi_write(EOI);
 	
-	m = itm_read();
+	int64_t itm = itm_read();
 	
-	while (1) {
-		c = itc_read();
-		c += IT_SERVICE_CLOCKS;
-
-		m += IT_DELTA;
-		if (m - c < 0)
+	while (true) {
+		int64_t itc = itc_read();
+		itc += IT_SERVICE_CLOCKS;
+		
+		itm += IT_DELTA;
+		if (itm - itc < 0)
 			CPU->missed_clock_ticks++;
 		else
 			break;
 	}
 	
-	itm_write(m);
-	srlz_d();				/* propagate changes */
-
+	itm_write(itm);
+	srlz_d();  /* Propagate changes */
+	
 	/*
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
 	 */
-	spinlock_unlock(&irq->lock);	
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 /** @}

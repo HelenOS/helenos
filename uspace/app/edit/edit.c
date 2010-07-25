@@ -39,7 +39,7 @@
 #include <sys/types.h>
 #include <vfs/vfs.h>
 #include <io/console.h>
-#include <io/color.h>
+#include <io/style.h>
 #include <io/keycode.h>
 #include <errno.h>
 #include <align.h>
@@ -99,7 +99,8 @@ static bool done;
 static pane_t pane;
 static bool cursor_visible;
 
-static int scr_rows, scr_columns;
+static ipcarg_t scr_rows;
+static ipcarg_t scr_columns;
 
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
@@ -474,17 +475,16 @@ static int file_save(char const *fname)
 /** Change document name and save. */
 static void file_save_as(void)
 {
-	char *old_fname, *fname;
-	int rc;
-
-	old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	char *fname;
+	
 	fname = filename_prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
 		return;
 	}
 
-	rc = file_save(fname);
+	int rc = file_save(fname);
 	if (rc != EOK)
 		return;
 
@@ -505,10 +505,10 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 
 	asprintf(&str, "%s: %s", prompt, init_value);
 	status_display(str);
-	console_goto(con, 1 + str_length(str), scr_rows - 1);
+	console_set_pos(con, 1 + str_length(str), scr_rows - 1);
 	free(str);
 
-	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
+	console_set_style(con, STYLE_INVERTED);
 
 	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_length(prompt));
 	str_to_wstr(buffer, max_len + 1, init_value);
@@ -552,7 +552,7 @@ static char *filename_prompt(char const *prompt, char const *init_value)
 	buffer[nc] = '\0';
 	str = wstr_to_astr(buffer);
 
-	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_style(con, STYLE_NORMAL);
 
 	return str;
 }
@@ -671,20 +671,21 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 static void pane_text_display(void)
 {
 	int sh_rows, rows;
-	int i, j;
 
 	sheet_get_num_rows(&doc.sh, &sh_rows);
 	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
 
 	/* Draw rows from the sheet. */
 
-	console_goto(con, 0, 0);
+	console_set_pos(con, 0, 0);
 	pane_row_range_display(0, rows);
 
 	/* Clear the remaining rows if file is short. */
-
+	
+	int i;
+	ipcarg_t j;
 	for (i = rows; i < pane.rows; ++i) {
-		console_goto(con, 0, i);
+		console_set_pos(con, 0, i);
 		for (j = 0; j < scr_columns; ++j)
 			putchar(' ');
 		fflush(stdout);
@@ -717,7 +718,7 @@ static void pane_row_range_display(int r0, int r1)
 	char row_buf[ROW_BUF_SIZE];
 	wchar_t c;
 	size_t pos, size;
-	unsigned s_column;
+	int s_column;
 	coord_t csel_start, csel_end, ctmp;
 
 	/* Determine selection start and end. */
@@ -736,7 +737,7 @@ static void pane_row_range_display(int r0, int r1)
 
 	/* Draw rows from the sheet. */
 
-	console_goto(con, 0, 0);
+	console_set_pos(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
 		/* Starting point for row display */
 		rbc.row = pane.sh_row + i;
@@ -756,24 +757,24 @@ static void pane_row_range_display(int r0, int r1)
 		if (coord_cmp(&csel_start, &rbc) <= 0 &&
 		    coord_cmp(&rbc, &csel_end) < 0) {
 			fflush(stdout);
-			console_set_color(con, COLOR_BLACK, COLOR_RED, 0);
+			console_set_style(con, STYLE_SELECTED);
 			fflush(stdout);
 		}
 
-		console_goto(con, 0, i);
+		console_set_pos(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
 		s_column = pane.sh_column;
 		while (pos < size) {
-			if (csel_start.row == rbc.row && csel_start.column == s_column) {
+			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
 				fflush(stdout);
-				console_set_color(con, COLOR_BLACK, COLOR_RED, 0);
+				console_set_style(con, STYLE_SELECTED);
 				fflush(stdout);
 			}
 	
-			if (csel_end.row == rbc.row && csel_end.column == s_column) {
+			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 				fflush(stdout);
-				console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+				console_set_style(con, STYLE_NORMAL);
 				fflush(stdout);
 			}
 	
@@ -791,9 +792,9 @@ static void pane_row_range_display(int r0, int r1)
 			}
 		}
 
-		if (csel_end.row == rbc.row && csel_end.column == s_column) {
+		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 			fflush(stdout);
-			console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+			console_set_style(con, STYLE_NORMAL);
 			fflush(stdout);
 		}
 
@@ -807,7 +808,7 @@ static void pane_row_range_display(int r0, int r1)
 		for (j = 0; j < fill; ++j)
 			putchar(' ');
 		fflush(stdout);
-		console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+		console_set_style(con, STYLE_NORMAL);
 	}
 
 	pane.rflags |= REDRAW_CARET;
@@ -818,21 +819,19 @@ static void pane_status_display(void)
 {
 	spt_t caret_pt;
 	coord_t coord;
-	char *fname;
-	int n;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
-	fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
 
-	console_goto(con, 0, scr_rows - 1);
-	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
-	n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+	console_set_pos(con, 0, scr_rows - 1);
+	console_set_style(con, STYLE_INVERTED);
+	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 	    "Ctrl-E Save As", coord.row, coord.column, fname);
 	printf("%*s", scr_columns - 1 - n, "");
 	fflush(stdout);
-	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
 }
@@ -846,7 +845,7 @@ static void pane_caret_display(void)
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-	console_goto(con, coord.column - pane.sh_column,
+	console_set_pos(con, coord.column - pane.sh_column,
 	    coord.row - pane.sh_row);
 }
 
@@ -1151,11 +1150,11 @@ static int coord_cmp(coord_t const *a, coord_t const *b)
 /** Display text in the status line. */
 static void status_display(char const *str)
 {
-	console_goto(con, 0, scr_rows - 1);
-	console_set_color(con, COLOR_WHITE, COLOR_BLACK, 0);
+	console_set_pos(con, 0, scr_rows - 1);
+	console_set_style(con, STYLE_INVERTED);
 	printf(" %*s ", -(scr_columns - 3), str);
 	fflush(stdout);
-	console_set_color(con, COLOR_BLACK, COLOR_WHITE, 0);
+	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
 }

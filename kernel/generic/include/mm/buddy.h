@@ -35,7 +35,7 @@
 #ifndef KERN_BUDDY_H_
 #define KERN_BUDDY_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 
 #define BUDDY_SYSTEM_INNER_BLOCK	0xff

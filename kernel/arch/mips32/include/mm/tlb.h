@@ -35,10 +35,10 @@
 #ifndef KERN_mips32_TLB_H_
 #define KERN_mips32_TLB_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <arch/mm/asid.h>
 #include <arch/exception.h>
+#include <trace.h>
 
 #define TLB_ENTRY_COUNT  48
 
@@ -126,7 +126,7 @@ typedef union {
  *
  * Probe TLB for Matching Entry.
  */
-static inline void tlbp(void)
+NO_TRACE static inline void tlbp(void)
 {
 	asm volatile ("tlbp\n\t");
 }
@@ -136,7 +136,7 @@ static inline void tlbp(void)
  *
  * Read Indexed TLB Entry.
  */
-static inline void tlbr(void)
+NO_TRACE static inline void tlbr(void)
 {
 	asm volatile ("tlbr\n\t");
 }
@@ -145,7 +145,7 @@ static inline void tlbr(void)
  *
  * Write Indexed TLB Entry.
  */
-static inline void tlbwi(void)
+NO_TRACE static inline void tlbwi(void)
 {
 	asm volatile ("tlbwi\n\t");
 }
@@ -154,7 +154,7 @@ static inline void tlbwi(void)
  *
  * Write Random TLB Entry.
  */
-static inline void tlbwr(void)
+NO_TRACE static inline void tlbwr(void)
 {
 	asm volatile ("tlbwr\n\t");
 }

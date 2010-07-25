@@ -66,9 +66,8 @@ static void i8042_irq_handler(irq_t *irq)
 {
 	i8042_instance_t *instance = irq->instance;
 	i8042_t *dev = instance->i8042;
-	uint8_t status;
 	
-	if (((status = pio_read_8(&dev->status)) & i8042_BUFFER_FULL_MASK)) {
+	if (pio_read_8(&dev->status) & i8042_BUFFER_FULL_MASK) {
 		uint8_t data = pio_read_8(&dev->data);
 		indev_push_character(instance->kbrdin, data);
 	}

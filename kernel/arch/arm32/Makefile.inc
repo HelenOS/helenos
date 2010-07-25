@@ -26,14 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf32-littlearm
 BFD_ARCH = arm
 BFD = binary
-TARGET = arm-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/arm32
 
 ATSIGN = %
 
@@ -50,7 +45,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/machine_func.c \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/dummy.S \
-	arch/$(KARCH)/src/panic.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/interrupt.c \
@@ -64,6 +58,10 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/mm/page_fault.c \
 	arch/$(KARCH)/src/ras.c
+
+ifeq ($(MACHINE),gta02)
+	ARCH_SOURCES += arch/$(KARCH)/src/mach/gta02/gta02.c
+endif
 
 ifeq ($(MACHINE),testarm)
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/testarm/testarm.c

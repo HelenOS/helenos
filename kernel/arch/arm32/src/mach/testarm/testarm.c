@@ -55,11 +55,11 @@ void *gxemul_rtc;
 void *gxemul_irqc;
 static irq_t gxemul_timer_irq;
 
-struct arm_machine_ops machine_ops = {
+struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_init,
 	gxemul_timer_irq_start,
 	gxemul_cpu_halt,
-	gxemul_get_memory_size,
+	gxemul_get_memory_extents,
 	gxemul_irq_exception,
 	gxemul_frame_init,
 	gxemul_output_init,
@@ -184,15 +184,16 @@ void gxemul_timer_irq_start(void)
         gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
-/** Returns the size of emulated memory.
+/** Get extents of available memory.
  *
- * @return Size in bytes.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t gxemul_get_memory_size(void)
+void gxemul_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-        return  *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	*start = 0;
+        *size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
-
 
 /** Returns the mask of active interrupts. */
 static inline uint32_t gxemul_irqc_get_sources(void)
@@ -204,12 +205,12 @@ static inline uint32_t gxemul_irqc_get_sources(void)
  *
  * Determines the sources of interrupt and calls their handlers.
  */
-void gxemul_irq_exception(int exc_no, istate_t *istate)
+void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;
 
-	for (i = 0; i < GXEMUL_IRQC_MAX_IRQ; i++) {
+	for (i = 0; i < GXEMUL_IRQ_COUNT; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
 			if (irq) {

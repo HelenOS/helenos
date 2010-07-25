@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
  */
 
 #include <arch/bios/bios.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 uintptr_t ebda = 0;
 

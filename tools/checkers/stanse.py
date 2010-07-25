@@ -73,6 +73,8 @@ def stanse(root, job):
 		
 		srcfname = arg[0]
 		tgtfname = arg[1]
+		tool = arg[2]
+		category = arg[3]
 		base = arg[4]
 		options = arg[5]
 		
@@ -82,7 +84,7 @@ def stanse(root, job):
 			return False
 		
 		# Only C files are interesting for us
-		if (arg[2] != "cc"):
+		if (tool != "cc"):
 			continue
 		
 		output.append([srcfname, tgtfname, base, options])

@@ -36,6 +36,7 @@
 #define KERN_ia32_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
@@ -126,7 +127,6 @@
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
 /* Page fault error codes. */
@@ -161,7 +161,7 @@ typedef struct {
 	unsigned frame_address : 20;
 } __attribute__ ((packed)) pte_t;
 
-static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -174,7 +174,7 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	
@@ -192,7 +192,7 @@ static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 }
 
 extern void page_arch_init(void);
-extern void page_fault(int n, istate_t *istate);
+extern void page_fault(unsigned int, istate_t *);
 
 #endif /* __ASM__ */
 

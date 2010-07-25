@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -72,7 +72,7 @@ int cmd_bdd(char **argv)
 	size_t size, bytes, rows;
 	size_t block_size;
 	int rc;
-	bn_t ba;
+	aoff64_t ba;
 	uint8_t b;
 
 	/* Count the arguments */

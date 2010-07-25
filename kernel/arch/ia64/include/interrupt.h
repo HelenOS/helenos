@@ -35,8 +35,9 @@
 #ifndef KERN_ia64_INTERRUPT_H_
 #define KERN_ia64_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
+#include <trace.h>
 
 /** ia64 has 256 INRs. */
 #define INR_COUNT  256
@@ -60,6 +61,7 @@
 
 #define IRQ_KBD    (0x01 + LEGACY_INTERRUPT_BASE)
 #define IRQ_MOUSE  (0x0c + LEGACY_INTERRUPT_BASE)
+#define IRQ_DP8390 (0x09 + LEGACY_INTERRUPT_BASE)
 
 /** General Exception codes. */
 #define GE_ILLEGALOP     0
@@ -131,37 +133,40 @@ typedef struct istate {
 	uint64_t in6;
 } istate_t;
 
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
+extern void *ivt;
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
 	istate->cr_iip = retaddr;
 	istate->cr_ipsr.ri = 0;    /* return to instruction slot #0 */
 }
 
-static inline unative_t istate_get_pc(istate_t *istate)
+NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
 {
 	return istate->cr_iip;
 }
 
-static inline unative_t istate_get_fp(istate_t *istate)
+NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
 {
-	return 0;	/* FIXME */
+	/* FIXME */
+	
+	return 0;
 }
 
-static inline int istate_from_uspace(istate_t *istate)
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return (istate->cr_iip) < 0xe000000000000000ULL;
 }
 
-extern void *ivt;
+extern void general_exception(uint64_t, istate_t *);
+extern int break_instruction(uint64_t, istate_t *);
+extern void universal_handler(uint64_t, istate_t *);
+extern void nop_handler(uint64_t, istate_t *);
+extern void external_interrupt(uint64_t, istate_t *);
+extern void disabled_fp_register(uint64_t, istate_t *);
 
-extern void general_exception(uint64_t vector, istate_t *istate);
-extern int break_instruction(uint64_t vector, istate_t *istate);
-extern void universal_handler(uint64_t vector, istate_t *istate);
-extern void nop_handler(uint64_t vector, istate_t *istate);
-extern void external_interrupt(uint64_t vector, istate_t *istate);
-extern void disabled_fp_register(uint64_t vector, istate_t *istate);
-
-extern void trap_virtual_enable_irqs(uint16_t irqmask);
+extern void trap_virtual_enable_irqs(uint16_t);
 
 #endif
 

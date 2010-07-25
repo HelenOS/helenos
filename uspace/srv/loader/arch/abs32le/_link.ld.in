@@ -1,0 +1,63 @@
+/*
+ * The difference from _link.ld.in for regular statically-linked apps
+ * is the base address and the special interp section.
+ */
+STARTUP(LIBC_PREFIX/arch/UARCH/src/entry.o)
+ENTRY(__entry)
+
+PHDRS {
+	interp PT_INTERP;
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
+	data PT_LOAD FLAGS(6);
+}
+
+SECTIONS {
+	.interp : {
+		*(.interp);
+	} :interp
+	
+	. = 0x70001000;
+	
+	.text : {
+		*(.text);
+		*(.rodata*);
+	} :text
+	
+	.data ALIGN(0x1000) : SUBALIGN(0x1000) {
+		*(.data);
+		*(.data.rel*);
+	} :data
+	
+	.tdata : {
+		_tdata_start = .;
+		*(.tdata);
+		*(.gnu.linkonce.tb.*);
+		_tdata_end = .;
+	} :data
+	
+	.tbss : {
+		_tbss_start = .;
+		*(.tbss);
+		_tbss_end = .;
+	} :data
+	
+	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
+	
+	.sbss : {
+		*(.scommon);
+		*(.sbss);
+	}
+	
+	.bss : {
+		*(COMMON);
+		*(.bss);
+	} :data
+	
+	. = ALIGN(0x1000);
+	
+	_heap = .;
+	
+	/DISCARD/ : {
+		*(*);
+	}
+}

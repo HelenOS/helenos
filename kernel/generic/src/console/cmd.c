@@ -45,12 +45,12 @@
 #include <console/kconsole.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <config.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <debug.h>
 #include <cpu.h>
@@ -65,6 +65,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <errno.h>
 
@@ -106,26 +107,18 @@ static cmd_info_t continue_info = {
 };
 
 #ifdef CONFIG_TEST
-static int cmd_tests(cmd_arg_t *argv);
-static cmd_info_t tests_info = {
-	.name = "tests",
-	.description = "Print available kernel tests.",
-	.func = cmd_tests,
-	.argc = 0
-};
-
 static char test_buf[MAX_CMDLINE + 1];
 static int cmd_test(cmd_arg_t *argv);
 static cmd_arg_t test_argv[] = {
 	{
-		.type = ARG_TYPE_STRING,
+		.type = ARG_TYPE_STRING_OPTIONAL,
 		.buffer = test_buf,
 		.len = sizeof(test_buf)
 	}
 };
 static cmd_info_t test_info = {
 	.name = "test",
-	.description = "Run kernel test.",
+	.description = "Print list of kernel tests or run a test.",
 	.func = cmd_test,
 	.argc = 1,
 	.argv = test_argv
@@ -205,7 +198,7 @@ static cmd_info_t set4_info = {
 	.argv = set4_argv
 };
 
-/* Data and methods for 'call0' command. */
+/* Data and methods for 'call0' and 'mcall0' command. */
 static char call0_buf[MAX_CMDLINE + 1];
 static char carg1_buf[MAX_CMDLINE + 1];
 static char carg2_buf[MAX_CMDLINE + 1];
@@ -353,20 +346,34 @@ cmd_info_t tlb_info = {
 	.argv = NULL
 };
 
+static char flag_buf[MAX_CMDLINE + 1];
+
 static int cmd_threads(cmd_arg_t *argv);
+static cmd_arg_t threads_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
 static cmd_info_t threads_info = {
 	.name = "threads",
-	.description = "List all threads.",
+	.description = "List all threads (use -a for additional information).",
 	.func = cmd_threads,
-	.argc = 0
+	.argc = 1,
+	.argv = &threads_argv
 };
 
 static int cmd_tasks(cmd_arg_t *argv);
+static cmd_arg_t tasks_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
 static cmd_info_t tasks_info = {
 	.name = "tasks",
-	.description = "List all tasks.",
+	.description = "List all tasks (use -a for additional information).",
 	.func = cmd_tasks,
-	.argc = 0
+	.argc = 1,
+	.argv = &tasks_argv
 };
 
 
@@ -383,6 +390,14 @@ static cmd_info_t slabs_info = {
 	.name = "slabs",
 	.description = "List slab caches.",
 	.func = cmd_slabs,
+	.argc = 0
+};
+
+static int cmd_sysinfo(cmd_arg_t *argv);
+static cmd_info_t sysinfo_info = {
+	.name = "sysinfo",
+	.description = "Dump sysinfo.",
+	.func = cmd_sysinfo,
 	.argc = 0
 };
 
@@ -474,6 +489,7 @@ static cmd_info_t *basic_commands[] = {
 	&kill_info,
 	&set4_info,
 	&slabs_info,
+	&sysinfo_info,
 	&symaddr_info,
 	&sched_info,
 	&threads_info,
@@ -484,7 +500,6 @@ static cmd_info_t *basic_commands[] = {
 	&zones_info,
 	&zone_info,
 #ifdef CONFIG_TEST
-	&tests_info,
 	&test_info,
 	&bench_info,
 #endif
@@ -499,7 +514,7 @@ static cmd_info_t *basic_commands[] = {
  */
 void cmd_initialize(cmd_info_t *cmd)
 {
-	spinlock_initialize(&cmd->lock, "cmd");
+	spinlock_initialize(&cmd->lock, "cmd.lock");
 	link_initialize(&cmd->link);
 }
 
@@ -647,10 +662,14 @@ int cmd_call0(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
 		    (void *) symaddr, (void *) cmd_call0);
 		printf("Calling %s() (%p)\n", symbol, symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -670,17 +689,20 @@ int cmd_mcall0(cmd_arg_t *argv)
 		if (!cpus[i].active)
 			continue;
 		
-		thread_t *t;
-		if ((t = thread_create((void (*)(void *)) cmd_call0, (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
-			spinlock_lock(&t->lock);
-			t->cpu = &cpus[i];
-			spinlock_unlock(&t->lock);
-			printf("cpu%u: ", i);
-			thread_ready(t);
-			thread_join(t);
-			thread_detach(t);
+		thread_t *thread;
+		if ((thread = thread_create((void (*)(void *)) cmd_call0,
+		    (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
+			irq_spinlock_lock(&thread->lock, true);
+			thread->cpu = &cpus[i];
+			irq_spinlock_unlock(&thread->lock, true);
+			
+			printf("cpu%" PRIs ": ", i);
+			
+			thread_ready(thread);
+			thread_join(thread);
+			thread_detach(thread);
 		} else
-			printf("Unable to create thread for cpu%u\n", i);
+			printf("Unable to create thread for cpu%" PRIs "\n", i);
 	}
 	
 	return 1;
@@ -705,9 +727,13 @@ int cmd_call1(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -735,10 +761,14 @@ int cmd_call2(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -766,10 +796,14 @@ int cmd_call3(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
 		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
 		       arg1, arg2, arg3, symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -826,31 +860,33 @@ int cmd_set4(cmd_arg_t *argv)
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 	int rc;
-
-	if (((char *)argv->buffer)[0] == '*') {
+	
+	if (((char *) argv->buffer)[0] == '*') {
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
-	} else if (((char *) argv->buffer)[0] >= '0' && 
-		   ((char *)argv->buffer)[0] <= '9') {
-		rc = EOK;
-		addr = atoi((char *)argv->buffer);
-	} else {
+	} else if (((char *) argv->buffer)[0] >= '0' &&
+		   ((char *) argv->buffer)[0] <= '9') {
+		uint64_t value;
+		rc = str_uint64((char *) argv->buffer, NULL, 0, true, &value);
+		if (rc == EOK)
+			addr = (uintptr_t) value;
+	} else
 		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
-	}
-
+	
 	if (rc == ENOENT)
 		printf("Symbol %s not found.\n", argv->buffer);
+	else if (rc == EINVAL)
+		printf("Invalid address.\n");
 	else if (rc == EOVERFLOW) {
 		symtab_print_search((char *) argv->buffer);
-		printf("Duplicate symbol, be more specific.\n");
+		printf("Duplicate symbol (be more specific) or address overflow.\n");
 	} else if (rc == EOK) {
 		if (pointer)
 			addr = *(uintptr_t *) addr;
 		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
 		*(uint32_t *) addr = arg1;
-	} else {
+	} else
 		printf("No symbol information available.\n");
-	}
 	
 	return 1;
 }
@@ -867,28 +903,52 @@ int cmd_slabs(cmd_arg_t * argv)
 	return 1;
 }
 
-
-/** Command for listings Thread information
+/** Command for dumping sysinfo
  *
  * @param argv Ignores
  *
  * @return Always 1
  */
-int cmd_threads(cmd_arg_t * argv)
+int cmd_sysinfo(cmd_arg_t * argv)
 {
-	thread_print_list();
+	sysinfo_dump(NULL);
+	return 1;
+}
+
+
+/** Command for listings Thread information
+ *
+ * @param argv Ignored
+ *
+ * @return Always 1
+ */
+int cmd_threads(cmd_arg_t *argv)
+{
+	if (str_cmp(flag_buf, "-a") == 0)
+		thread_print_list(true);
+	else if (str_cmp(flag_buf, "") == 0)
+		thread_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", flag_buf);
+	
 	return 1;
 }
 
 /** Command for listings Task information
  *
- * @param argv Ignores
+ * @param argv Ignored
  *
  * @return Always 1
  */
-int cmd_tasks(cmd_arg_t * argv)
+int cmd_tasks(cmd_arg_t *argv)
 {
-	task_print_list();
+	if (str_cmp(flag_buf, "-a") == 0)
+		task_print_list(true);
+	else if (str_cmp(flag_buf, "") == 0)
+		task_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", flag_buf);
+	
 	return 1;
 }
 
@@ -912,7 +972,7 @@ int cmd_sched(cmd_arg_t * argv)
  */
 int cmd_zones(cmd_arg_t * argv)
 {
-	zone_print_list();
+	zones_print_list();
 	return 1;
 }
 
@@ -996,62 +1056,40 @@ int cmd_continue(cmd_arg_t *argv)
 }
 
 #ifdef CONFIG_TEST
-/** Command for printing kernel tests list.
- *
- * @param argv Ignored.
- *
- * return Always 1.
- */
-int cmd_tests(cmd_arg_t *argv)
-{
-	size_t len = 0;
-	test_t *test;
-	for (test = tests; test->name != NULL; test++) {
-		if (str_length(test->name) > len)
-			len = str_length(test->name);
-	}
-	
-	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
-	
-	printf("%-*s Run all safe tests\n", len, "*");
-	return 1;
-}
-
 static bool run_test(const test_t *test)
 {
 	printf("%s (%s)\n", test->name, test->desc);
 	
 	/* Update and read thread accounting
 	   for benchmarking */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
-	uint64_t t0 = task_get_accounting(TASK);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_lock(&TASK->lock, true);
+	uint64_t ucycles0, kcycles0;
+	task_get_accounting(TASK, &ucycles0, &kcycles0);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
 	/* Execute the test */
 	test_quiet = false;
-	char *ret = test->entry();
+	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
-	uint64_t dt = task_get_accounting(TASK) - t0;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	uint64_t ucycles1, kcycles1;
+	irq_spinlock_lock(&TASK->lock, true);
+	task_get_accounting(TASK, &ucycles1, &kcycles1);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
-	uint64_t cycles;
-	char suffix;
-	order(dt, &cycles, &suffix);
-		
-	printf("Time: %" PRIu64 "%c cycles\n", cycles, suffix);
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
+	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
+	
+	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
+	    ucycles, usuffix, kcycles, ksuffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
 		return true;
 	}
-
+	
 	printf("%s\n", ret);
 	return false;
 }
@@ -1060,8 +1098,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 {
 	uint32_t i;
 	bool ret = true;
-	uint64_t cycles;
-	char suffix;
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
 	
 	if (cnt < 1)
 		return true;
@@ -1077,22 +1115,20 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Update and read thread accounting
 		   for benchmarking */
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
-		uint64_t t0 = task_get_accounting(TASK);
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles0, kcycles0;
+		task_get_accounting(TASK, &ucycles0, &kcycles0);
+		irq_spinlock_unlock(&TASK->lock, true);
 		
 		/* Execute the test */
 		test_quiet = true;
-		char * ret = test->entry();
+		const char *ret = test->entry();
 		
 		/* Update and read thread accounting */
-		ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
-		uint64_t dt = task_get_accounting(TASK) - t0;
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles1, kcycles1;
+		task_get_accounting(TASK, &ucycles1, &kcycles1);
+		irq_spinlock_unlock(&TASK->lock, true);
 		
 		if (ret != NULL) {
 			printf("%s\n", ret);
@@ -1100,9 +1136,11 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			break;
 		}
 		
-		data[i] = dt;
-		order(dt, &cycles, &suffix);
-		printf("OK (%" PRIu64 "%c cycles)\n", cycles, suffix);
+		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
+		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
+		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
+		    ucycles, usuffix, kcycles, ksuffix);
 	}
 	
 	if (ret) {
@@ -1114,8 +1152,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			sum += data[i];
 		}
 		
-		order(sum / (uint64_t) cnt, &cycles, &suffix);
-		printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
+		order_suffix(sum / (uint64_t) cnt, &ucycles, &usuffix);
+		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
 	
 	free(data);
@@ -1123,11 +1161,28 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	return ret;
 }
 
-/** Command for returning kernel tests
+static void list_tests(void)
+{
+	size_t len = 0;
+	test_t *test;
+	
+	for (test = tests; test->name != NULL; test++) {
+		if (str_length(test->name) > len)
+			len = str_length(test->name);
+	}
+	
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+	
+	printf("%-*s Run all safe tests\n", len, "*");
+}
+
+/** Command for listing and running kernel tests
  *
  * @param argv Argument vector.
  *
  * return Always 1.
+ *
  */
 int cmd_test(cmd_arg_t *argv)
 {
@@ -1141,7 +1196,7 @@ int cmd_test(cmd_arg_t *argv)
 					break;
 			}
 		}
-	} else {
+	} else if (str_cmp((char *) argv->buffer, "") != 0) {
 		bool fnd = false;
 		
 		for (test = tests; test->name != NULL; test++) {
@@ -1154,7 +1209,8 @@ int cmd_test(cmd_arg_t *argv)
 		
 		if (!fnd)
 			printf("Unknown test\n");
-	}
+	} else
+		list_tests();
 	
 	return 1;
 }

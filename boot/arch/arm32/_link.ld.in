@@ -1,0 +1,35 @@
+#include <arch/arch.h>
+
+ENTRY(start)
+
+SECTIONS {
+	. = BOOT_BASE;
+	.text : {
+		*(BOOTSTRAP);
+		*(.text);
+	}
+	. = BOOT_BASE + 0x8000;
+	.data : {
+		*(BOOTPT);      /* bootstrap page table */
+		*(BOOTSTACK);   /* bootstrap stack */
+		*(.data);       /* initialized data */
+		*(.rodata);
+		*(.rodata.*);
+		*(.sdata);
+		*(.reginfo);
+		*(.sbss);
+		*(.scommon);
+		*(.bss);        /* uninitialized static variables */
+		*(COMMON);      /* global variables */
+[[COMPONENTS]]
+	}
+	
+	/DISCARD/ : {
+		*(.gnu.*);
+		*(.ARM.*);
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note.*);
+	}
+}

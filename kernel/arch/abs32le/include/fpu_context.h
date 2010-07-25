@@ -35,7 +35,7 @@
 #ifndef KERN_abs32le_FPU_CONTEXT_H_
 #define KERN_abs32le_FPU_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define FPU_CONTEXT_ALIGN  16
 

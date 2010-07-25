@@ -6,7 +6,11 @@
  *
  */
 
-#define KERNEL_LOAD_ADDRESS 0x80200000
+#ifdef MACHINE_gta02
+#define KERNEL_LOAD_ADDRESS 0xb0a08000
+#else
+#define KERNEL_LOAD_ADDRESS 0x80a00000
+#endif
 
 OUTPUT_ARCH(arm)
 ENTRY(kernel_image_start)

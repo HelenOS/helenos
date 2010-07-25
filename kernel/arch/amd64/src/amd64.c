@@ -34,7 +34,7 @@
 
 #include <arch.h>
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #include <config.h>
 
@@ -121,7 +121,7 @@ void arch_pre_mm_init(void)
 	set_efer_flag(AMD_NXE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
-
+	
 	/* Initialize segmentation */
 	pm_init();
 	
@@ -131,7 +131,7 @@ void arch_pre_mm_init(void)
 	clean_IOPL_NT_flags();
 	/* Disable alignment check */
 	clean_AM_flag();
-
+	
 	if (config.cpu_active == 1) {
 		interrupt_init();
 		bios_init();
@@ -227,6 +227,12 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
+	
+	/*
+	 * This nasty hack should also go away ASAP.
+	 */
+	trap_virtual_enable_irqs(1 << IRQ_DP8390);
+	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
 }
 
 void calibrate_delay_loop(void)
@@ -253,6 +259,7 @@ unative_t sys_tls_set(unative_t addr)
 {
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
+	
 	return 0;
 }
 

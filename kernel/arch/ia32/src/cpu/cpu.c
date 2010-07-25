@@ -37,7 +37,7 @@
 #include <arch/pm.h>
 
 #include <arch.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <fpu_context.h>
 
@@ -63,7 +63,7 @@ enum vendor {
 	VendorIntel
 };
 
-static char *vendor_str[] = {
+static const char *vendor_str[] = {
 	"Unknown Vendor",
 	"AMD",
 	"Intel"

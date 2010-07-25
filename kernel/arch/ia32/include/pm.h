@@ -66,8 +66,9 @@
 #define AR_DATA       (2 << 3)
 #define AR_CODE       (3 << 3)
 #define AR_WRITABLE   (1 << 1)
-#define AR_INTERRUPT  (0x0e)
-#define AR_TSS        (0x09)
+#define AR_INTERRUPT  (0xe)
+#define AR_TRAP       (0xf)
+#define AR_TSS        (0x9)
 
 #define DPL_KERNEL  (PL_KERNEL << 5)
 #define DPL_USER    (PL_USER << 5)
@@ -79,7 +80,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 
 typedef struct {

@@ -35,15 +35,8 @@
 #ifndef KERN_abs32le_TYPES_H_
 #define KERN_abs32le_TYPES_H_
 
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed long int32_t;
-typedef signed long long int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-typedef unsigned long long uint64_t;
+#define ATOMIC_COUNT_MIN  UINT32_MIN
+#define ATOMIC_COUNT_MAX  UINT32_MAX
 
 typedef uint32_t size_t;
 
@@ -54,6 +47,7 @@ typedef uint32_t ipl_t;
 
 typedef uint32_t unative_t;
 typedef int32_t native_t;
+typedef uint32_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;

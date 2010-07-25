@@ -35,8 +35,8 @@
 #ifndef KERN_LIST_H_
 #define KERN_LIST_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
+#include <trace.h>
 
 /** Doubly linked list head and link type. */
 typedef struct link {
@@ -57,7 +57,7 @@ typedef struct link {
  *
  * @param link Pointer to link_t structure to be initialized.
  */
-static inline void link_initialize(link_t *link)
+NO_TRACE static inline void link_initialize(link_t *link)
 {
 	link->prev = NULL;
 	link->next = NULL;
@@ -69,7 +69,7 @@ static inline void link_initialize(link_t *link)
  *
  * @param head Pointer to link_t structure representing head of the list.
  */
-static inline void list_initialize(link_t *head)
+NO_TRACE static inline void list_initialize(link_t *head)
 {
 	head->prev = head;
 	head->next = head;
@@ -82,7 +82,7 @@ static inline void list_initialize(link_t *head)
  * @param link Pointer to link_t structure to be added.
  * @param head Pointer to link_t structure representing head of the list.
  */
-static inline void list_prepend(link_t *link, link_t *head)
+NO_TRACE static inline void list_prepend(link_t *link, link_t *head)
 {
 	link->next = head->next;
 	link->prev = head;
@@ -97,7 +97,7 @@ static inline void list_prepend(link_t *link, link_t *head)
  * @param link Pointer to link_t structure to be added.
  * @param head Pointer to link_t structure representing head of the list.
  */
-static inline void list_append(link_t *link, link_t *head)
+NO_TRACE static inline void list_append(link_t *link, link_t *head)
 {
 	link->prev = head->prev;
 	link->next = head;
@@ -112,7 +112,7 @@ static inline void list_append(link_t *link, link_t *head)
  * @param link 	Pointer to link_t structure to be removed from the list it is
  * 		contained in.
  */
-static inline void list_remove(link_t *link)
+NO_TRACE static inline void list_remove(link_t *link)
 {
 	link->next->prev = link->prev;
 	link->prev->next = link->next;
@@ -125,7 +125,7 @@ static inline void list_remove(link_t *link)
  *
  * @param head Pointer to link_t structure representing head of the list.
  */
-static inline bool list_empty(link_t *head)
+NO_TRACE static inline bool list_empty(link_t *head)
 {
 	return head->next == head ? true : false;
 }
@@ -143,7 +143,7 @@ static inline bool list_empty(link_t *head)
  * @param part2	Pointer to link_t structure leading the second (half of the
  *		headless) list. 
  */
-static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
 	link_t *hlp;
 
@@ -164,7 +164,7 @@ static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
  * @param part2	Pointer to link_t structure leading the second half of the
  *		headless list. 
  */
-static inline void headless_list_split(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -176,7 +176,7 @@ static inline void headless_list_split(link_t *part1, link_t *part2)
  * @param part1 Pointer to link_t structure leading the first headless list.
  * @param part2 Pointer to link_t structure leading the second headless list.
  */
-static inline void headless_list_concat(link_t *part1, link_t *part2)
+NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }

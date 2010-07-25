@@ -26,12 +26,36 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: $(BASE)/image.boot
+ifeq ($(MACHINE), gta02)
+	BOOT_OUTPUT = image.boot
+	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
+	POSTBUILD = Makefile.uboot
+endif
 
-$(BASE)/image.boot:
-	$(MAKE) -C arch/$(BARCH)/loader PRECHECK=$(PRECHECK)
-	cp arch/$(BARCH)/loader/image.boot $@
+BFD_NAME = elf32-littlearm
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = arm
 
-clean:
-	$(MAKE) -C arch/$(BARCH)/loader clean
-	rm -f $(BASE)/image.boot
+BITS = 32
+ENDIANESS = LE
+PAGE_SIZE = 4096
+
+RD_SRVS_ESSENTIAL +=
+
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
+
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/mm.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	generic/src/memstr.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

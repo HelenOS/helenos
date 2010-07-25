@@ -29,7 +29,7 @@
 #include <print.h>
 #include <test.h>
 
-char *test_print1(void)
+const char *test_print1(void)
 {
 	TPRINTF("Testing printf(\"%%*.*s\", 5, 3, \"text\"):\n");
 	TPRINTF("Expected output: \"  tex\"\n");

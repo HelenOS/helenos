@@ -78,9 +78,9 @@ typedef struct part {
 	/** Partition entry is in use */
 	bool present;
 	/** Address of first block */
-	bn_t start_addr;
+	aoff64_t start_addr;
 	/** Number of blocks */
-	bn_t length;
+	aoff64_t length;
 	/** Device representing the partition (outbound device) */
 	dev_handle_t dev;
 	/** Points to next partition structure. */
@@ -100,9 +100,9 @@ static int gpt_read(void);
 static part_t *gpt_part_new(void);
 static void gpt_pte_to_part(const gpt_entry_t *pte, part_t *part);
 static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int gpt_bd_read(part_t *p, bn_t ba, size_t cnt, void *buf);
-static int gpt_bd_write(part_t *p, bn_t ba, size_t cnt, const void *buf);
-static int gpt_bsa_translate(part_t *p, bn_t ba, size_t cnt, bn_t *gba);
+static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf);
+static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf);
+static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba);
 
 int main(int argc, char **argv)
 {
@@ -198,7 +198,7 @@ static int gpt_init(const char *dev_name)
 		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
 		printf(NAME ": Registered device %s: %" PRIu64 " blocks "
-		    "%" PRIuBN " MB.\n", name, part->length, size_mb);
+		    "%" PRIuOFF64 " MB.\n", name, part->length, size_mb);
 
 		part->dev = dev;
 		free(name);
@@ -318,7 +318,7 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 	dev_handle_t dh;
 	int flags;
 	int retval;
-	bn_t ba;
+	aoff64_t ba;
 	size_t cnt;
 	part_t *part;
 
@@ -401,9 +401,9 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Read blocks from partition. */
-static int gpt_bd_read(part_t *p, bn_t ba, size_t cnt, void *buf)
+static int gpt_bd_read(part_t *p, aoff64_t ba, size_t cnt, void *buf)
 {
-	bn_t gba;
+	aoff64_t gba;
 
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
@@ -412,9 +412,9 @@ static int gpt_bd_read(part_t *p, bn_t ba, size_t cnt, void *buf)
 }
 
 /** Write blocks to partition. */
-static int gpt_bd_write(part_t *p, bn_t ba, size_t cnt, const void *buf)
+static int gpt_bd_write(part_t *p, aoff64_t ba, size_t cnt, const void *buf)
 {
-	bn_t gba;
+	aoff64_t gba;
 
 	if (gpt_bsa_translate(p, ba, cnt, &gba) != EOK)
 		return ELIMIT;
@@ -423,7 +423,7 @@ static int gpt_bd_write(part_t *p, bn_t ba, size_t cnt, const void *buf)
 }
 
 /** Translate block segment address with range checking. */
-static int gpt_bsa_translate(part_t *p, bn_t ba, size_t cnt, bn_t *gba)
+static int gpt_bsa_translate(part_t *p, aoff64_t ba, size_t cnt, aoff64_t *gba)
 {
 	if (ba + cnt > p->length)
 		return ELIMIT;

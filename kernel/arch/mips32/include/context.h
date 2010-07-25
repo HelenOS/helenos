@@ -45,7 +45,7 @@
 
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define context_set(ctx, pc, stack, size) \
     context_set_generic(ctx, pc, stack, size)

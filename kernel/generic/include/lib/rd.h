@@ -35,12 +35,12 @@
 #ifndef KERN_RD_H_
 #define KERN_RD_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * RAM disk version
  */
-#define	RD_VERSION	1
+#define RD_VERSION	1
 
 /**
  * RAM disk magic number

@@ -38,7 +38,7 @@
 #define KERN_Z8530_H_
 
 #include <ddi/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 
 #define WR0   0

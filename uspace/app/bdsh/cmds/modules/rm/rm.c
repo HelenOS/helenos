@@ -35,7 +35,7 @@
 #include <dirent.h>
 #include <getopt.h>
 #include <mem.h>
-#include <string.h>
+#include <str.h>
 
 #include "config.h"
 #include "errors.h"
@@ -44,7 +44,7 @@
 #include "rm.h"
 #include "cmds.h"
 
-static char *cmdname = "rm";
+static const char *cmdname = "rm";
 #define RM_VERSION "0.0.1"
 
 static rm_job_t rm;

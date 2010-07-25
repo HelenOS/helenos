@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,17 +35,16 @@
 #ifndef KERN_ia32_FPU_CONTEXT_H_
 #define KERN_ia32_FPU_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define FPU_CONTEXT_ALIGN 16
-
-void fpu_fxsr(void);
-void fpu_fsr(void);
-
+#define FPU_CONTEXT_ALIGN  16
 
 typedef struct {
-	uint8_t fpu[512]; 		/* FXSAVE & FXRSTOR storage area */
+	uint8_t fpu[512];  /* FXSAVE & FXRSTOR storage area */
 } fpu_context_t;
+
+extern void fpu_fxsr(void);
+extern void fpu_fsr(void);
 
 #endif
 

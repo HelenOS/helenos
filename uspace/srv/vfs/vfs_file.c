@@ -37,7 +37,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <assert.h>
 #include <bool.h>
 #include <fibril.h>

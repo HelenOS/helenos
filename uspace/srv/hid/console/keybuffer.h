@@ -46,9 +46,9 @@
 
 typedef struct {
 	console_event_t fifo[KEYBUFFER_SIZE];
-	unsigned long head;
-	unsigned long tail;
-	unsigned long items;
+	size_t head;
+	size_t tail;
+	size_t items;
 } keybuffer_t;
 
 extern void keybuffer_free(keybuffer_t *);

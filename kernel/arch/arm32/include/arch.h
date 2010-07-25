@@ -44,13 +44,13 @@
 #include <typedefs.h>
 
 typedef struct {
-	uintptr_t addr;
-	uint32_t size;
+	void *addr;
+	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } utask_t;
 
 typedef struct {
-	uint32_t cnt;
+	size_t cnt;
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 

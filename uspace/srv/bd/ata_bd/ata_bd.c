@@ -55,7 +55,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <inttypes.h>
@@ -499,7 +499,9 @@ static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)
@@ -573,7 +575,9 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)

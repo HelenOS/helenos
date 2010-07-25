@@ -34,7 +34,7 @@
 
 #include <arch/pm.h>
 #include <config.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <arch/context.h>
@@ -129,21 +129,89 @@ void idt_init(void)
 		d->unused = 0;
 		d->selector = gdtselector(KTEXT_DES);
 
-		d->access = AR_PRESENT | AR_INTERRUPT;	/* masking interrupt */
-
 		if (i == VECTOR_SYSCALL) {
 			/*
-			 * The syscall interrupt gate must be calleable from
-			 * userland.
+			 * The syscall trap gate must be callable from
+			 * userland. Interrupts will remain enabled.
 			 */
-			d->access |= DPL_USER;
+			d->access = AR_PRESENT | AR_TRAP | DPL_USER;
+		} else {
+			/*
+			 * Other interrupts use interrupt gates which
+			 * disable interrupts.
+			 */
+			d->access = AR_PRESENT | AR_INTERRUPT;
 		}
-		
-		idt_setoffset(d, ((uintptr_t) interrupt_handlers) +
-		    i * interrupt_handler_size);
 	}
-}
 
+	d = &idt[0];
+	idt_setoffset(d++, (uintptr_t) &int_0);
+	idt_setoffset(d++, (uintptr_t) &int_1);
+	idt_setoffset(d++, (uintptr_t) &int_2);
+	idt_setoffset(d++, (uintptr_t) &int_3);
+	idt_setoffset(d++, (uintptr_t) &int_4);
+	idt_setoffset(d++, (uintptr_t) &int_5);
+	idt_setoffset(d++, (uintptr_t) &int_6);
+	idt_setoffset(d++, (uintptr_t) &int_7);
+	idt_setoffset(d++, (uintptr_t) &int_8);
+	idt_setoffset(d++, (uintptr_t) &int_9);
+	idt_setoffset(d++, (uintptr_t) &int_10);
+	idt_setoffset(d++, (uintptr_t) &int_11);
+	idt_setoffset(d++, (uintptr_t) &int_12);
+	idt_setoffset(d++, (uintptr_t) &int_13);
+	idt_setoffset(d++, (uintptr_t) &int_14);
+	idt_setoffset(d++, (uintptr_t) &int_15);
+	idt_setoffset(d++, (uintptr_t) &int_16);
+	idt_setoffset(d++, (uintptr_t) &int_17);
+	idt_setoffset(d++, (uintptr_t) &int_18);
+	idt_setoffset(d++, (uintptr_t) &int_19);
+	idt_setoffset(d++, (uintptr_t) &int_20);
+	idt_setoffset(d++, (uintptr_t) &int_21);
+	idt_setoffset(d++, (uintptr_t) &int_22);
+	idt_setoffset(d++, (uintptr_t) &int_23);
+	idt_setoffset(d++, (uintptr_t) &int_24);
+	idt_setoffset(d++, (uintptr_t) &int_25);
+	idt_setoffset(d++, (uintptr_t) &int_26);
+	idt_setoffset(d++, (uintptr_t) &int_27);
+	idt_setoffset(d++, (uintptr_t) &int_28);
+	idt_setoffset(d++, (uintptr_t) &int_29);
+	idt_setoffset(d++, (uintptr_t) &int_30);
+	idt_setoffset(d++, (uintptr_t) &int_31);
+	idt_setoffset(d++, (uintptr_t) &int_32);
+	idt_setoffset(d++, (uintptr_t) &int_33);
+	idt_setoffset(d++, (uintptr_t) &int_34);
+	idt_setoffset(d++, (uintptr_t) &int_35);
+	idt_setoffset(d++, (uintptr_t) &int_36);
+	idt_setoffset(d++, (uintptr_t) &int_37);
+	idt_setoffset(d++, (uintptr_t) &int_38);
+	idt_setoffset(d++, (uintptr_t) &int_39);
+	idt_setoffset(d++, (uintptr_t) &int_40);
+	idt_setoffset(d++, (uintptr_t) &int_41);
+	idt_setoffset(d++, (uintptr_t) &int_42);
+	idt_setoffset(d++, (uintptr_t) &int_43);
+	idt_setoffset(d++, (uintptr_t) &int_44);
+	idt_setoffset(d++, (uintptr_t) &int_45);
+	idt_setoffset(d++, (uintptr_t) &int_46);
+	idt_setoffset(d++, (uintptr_t) &int_47);
+	idt_setoffset(d++, (uintptr_t) &int_48);
+	idt_setoffset(d++, (uintptr_t) &int_49);
+	idt_setoffset(d++, (uintptr_t) &int_50);
+	idt_setoffset(d++, (uintptr_t) &int_51);
+	idt_setoffset(d++, (uintptr_t) &int_52);
+	idt_setoffset(d++, (uintptr_t) &int_53);
+	idt_setoffset(d++, (uintptr_t) &int_54);
+	idt_setoffset(d++, (uintptr_t) &int_55);
+	idt_setoffset(d++, (uintptr_t) &int_56);
+	idt_setoffset(d++, (uintptr_t) &int_57);
+	idt_setoffset(d++, (uintptr_t) &int_58);
+	idt_setoffset(d++, (uintptr_t) &int_59);
+	idt_setoffset(d++, (uintptr_t) &int_60);
+	idt_setoffset(d++, (uintptr_t) &int_61);
+	idt_setoffset(d++, (uintptr_t) &int_62);
+	idt_setoffset(d++, (uintptr_t) &int_63);
+
+	idt_setoffset(&idt[VECTOR_SYSCALL], (uintptr_t) &int_syscall);
+}
 
 /* Clean IOPL(12,13) and NT(14) flags in EFLAGS register */
 static void clean_IOPL_NT_flags(void)

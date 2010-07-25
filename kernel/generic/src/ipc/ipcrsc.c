@@ -44,7 +44,7 @@
  * - answer message to phone
  * - hangup phone (the caller has hung up)
  * - hangup phone (the answerbox is exiting)
- * 
+ *
  * Locking strategy
  *
  * - To use a phone, disconnect a phone etc., the phone must be first locked and
@@ -84,7 +84,7 @@
  * should implement handshake protocol that would control it.
  *
  * Phone hangup
- * 
+ *
  * *** The caller hangs up (sys_ipc_hangup) ***
  * - The phone is disconnected (no more messages can be sent over this phone),
  *   all in-progress messages are correctly handled. The answerbox receives
@@ -98,7 +98,7 @@
  *   send an sys_ipc_hangup after cleaning up its internal structures.
  *
  * Call forwarding
- * 
+ *
  * The call can be forwarded, so that the answer to call is passed directly
  * to the original sender. However, this poses special problems regarding 
  * routing of hangup messages.
@@ -113,7 +113,7 @@
  * - EFORWARD is sent to the receiver, ipc_forward returns error code EFORWARD
  *
  * Cleanup strategy
- * 
+ *
  * 1) Disconnect all our phones ('ipc_phone_hangup').
  *
  * 2) Disconnect all phones connected to answerbox.
@@ -122,7 +122,7 @@
  *    appropriate error code (EHANGUP, EFORWARD).
  *
  * 4) Wait for all async answers to arrive and dispose of them.
- * 
+ *
  */
 
 #include <synch/spinlock.h>
@@ -136,69 +136,74 @@
  *
  * @todo Some speedup (hash table?)
  *
- * @param callid	Userspace hash of the call. Currently it is the call
- *			structure kernel address.
+ * @param callid Userspace hash of the call. Currently it is the call
+ *               structure kernel address.
  *
- * @return		NULL on not found, otherwise pointer to the call
- *			structure.
+ * @return NULL on not found, otherwise pointer to the call
+ *         structure.
+ *
  */
 call_t *get_call(unative_t callid)
 {
 	link_t *lst;
-	call_t *call, *result = NULL;
-
-	spinlock_lock(&TASK->answerbox.lock);
+	call_t *result = NULL;
+	
+	irq_spinlock_lock(&TASK->answerbox.lock, true);
 	for (lst = TASK->answerbox.dispatched_calls.next;
 	    lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
-		call = list_get_instance(lst, call_t, link);
+		call_t *call = list_get_instance(lst, call_t, link);
 		if ((unative_t) call == callid) {
 			result = call;
 			break;
 		}
 	}
-	spinlock_unlock(&TASK->answerbox.lock);
+	
+	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 	return result;
 }
 
 /** Allocate new phone slot in the specified task.
  *
- * @param t		Task for which to allocate a new phone.
+ * @param task Task for which to allocate a new phone.
  *
- * @return		New phone handle or -1 if the phone handle limit is
- *			exceeded.
+ * @return New phone handle or -1 if the phone handle limit is
+ *         exceeded.
+ *
  */
-int phone_alloc(task_t *t)
+int phone_alloc(task_t *task)
 {
-	int i;
-
-	spinlock_lock(&t->lock);
+	irq_spinlock_lock(&task->lock, true);
+	
+	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
-		if (t->phones[i].state == IPC_PHONE_HUNGUP &&
-		    atomic_get(&t->phones[i].active_calls) == 0)
-			t->phones[i].state = IPC_PHONE_FREE;
-
-		if (t->phones[i].state == IPC_PHONE_FREE) {
-			t->phones[i].state = IPC_PHONE_CONNECTING;
+		if ((task->phones[i].state == IPC_PHONE_HUNGUP) &&
+		    (atomic_get(&task->phones[i].active_calls) == 0))
+			task->phones[i].state = IPC_PHONE_FREE;
+		
+		if (task->phones[i].state == IPC_PHONE_FREE) {
+			task->phones[i].state = IPC_PHONE_CONNECTING;
 			break;
 		}
 	}
-	spinlock_unlock(&t->lock);
-
+	
+	irq_spinlock_unlock(&task->lock, true);
+	
 	if (i == IPC_MAX_PHONES)
 		return -1;
-
+	
 	return i;
 }
 
 /** Mark a phone structure free.
  *
- * @param phone		Phone structure to be marked free.
+ * @param phone Phone structure to be marked free.
+ *
  */
 static void phone_deallocp(phone_t *phone)
 {
 	ASSERT(phone->state == IPC_PHONE_CONNECTING);
 	
-	/* atomic operation */
+	/* Atomic operation */
 	phone->state = IPC_PHONE_FREE;
 }
 
@@ -206,7 +211,8 @@ static void phone_deallocp(phone_t *phone)
  *
  * All already sent messages will be correctly processed.
  *
- * @param phoneid	Phone handle of the phone to be freed.
+ * @param phoneid Phone handle of the phone to be freed.
+ *
  */
 void phone_dealloc(int phoneid)
 {
@@ -215,12 +221,13 @@ void phone_dealloc(int phoneid)
 
 /** Connect phone to a given answerbox.
  *
- * @param phoneid 	Phone handle to be connected.
- * @param box		Answerbox to which to connect the phone handle.
+ * @param phoneid Phone handle to be connected.
+ * @param box     Answerbox to which to connect the phone handle.
  *
  * The procedure _enforces_ that the user first marks the phone
  * busy (e.g. via phone_alloc) and then connects the phone, otherwise
  * race condition may appear.
+ *
  */
 void phone_connect(int phoneid, answerbox_t *box)
 {

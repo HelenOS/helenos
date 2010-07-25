@@ -156,14 +156,14 @@ proto_t *proto_get_by_srv(int srv)
 	return sp->proto;
 }
 
-static void proto_struct_init(proto_t *proto, char *name)
+static void proto_struct_init(proto_t *proto, const char *name)
 {
 	proto->name = name;
 	hash_table_create(&proto->method_oper, SRV_PROTO_TABLE_CHAINS, 1,
 	    &method_oper_ops);
 }
 
-proto_t *proto_new(char *name)
+proto_t *proto_new(const char *name)
 {
 	proto_t *p;
 
@@ -205,12 +205,12 @@ oper_t *proto_get_oper(proto_t *proto, int method)
 	return mo->oper;
 }
 
-static void oper_struct_init(oper_t *oper, char *name)
+static void oper_struct_init(oper_t *oper, const char *name)
 {
 	oper->name = name;
 }
 
-oper_t *oper_new(char *name, int argc, val_type_t *arg_types,
+oper_t *oper_new(const char *name, int argc, val_type_t *arg_types,
     val_type_t rv_type, int respc, val_type_t *resp_types)
 {
 	oper_t *o;

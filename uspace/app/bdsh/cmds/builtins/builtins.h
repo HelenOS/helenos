@@ -9,7 +9,7 @@
 builtin_t builtins[] = {
 #include "cd/cd_def.h"
 #include "exit/exit_def.h"
-	{NULL, NULL, NULL, NULL}
+	{NULL, NULL, NULL, NULL, NULL}
 };
 
 #endif

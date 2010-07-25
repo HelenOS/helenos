@@ -39,7 +39,7 @@
 #include "kcon.h"
 #include "cmds.h"
 
-static char *cmdname = "kcon";
+static const char *cmdname = "kcon";
 
 /* Dispays help for kcon in various levels */
 void help_cmd_kcon(unsigned int level)

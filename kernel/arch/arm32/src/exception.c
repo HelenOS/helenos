@@ -36,20 +36,13 @@
 #include <arch/exception.h>
 #include <arch/memstr.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <interrupt.h>
 #include <arch/mm/page_fault.h>
 #include <arch/barrier.h>
 #include <print.h>
 #include <syscall/syscall.h>
 #include <stacktrace.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
 
 /** Offset used in calculation of exception handler's relative address.
  *
@@ -90,8 +83,9 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 /** Software Interrupt handler.
  *
  * Dispatches the syscall.
+ *
  */
-static void swi_exception(int exc_no, istate_t *istate)
+static void swi_exception(unsigned int exc_no, istate_t *istate)
 {
 	istate->r0 = syscall_handler(istate->r0, istate->r1, istate->r2,
 	    istate->r3, istate->r4, istate->r5, istate->r6);
@@ -147,7 +141,7 @@ static void high_vectors(void)
  *
  * Determines the sources of interrupt and calls their handlers.
  */
-static void irq_exception(int exc_no, istate_t *istate)
+static void irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	machine_irq_exception(exc_no, istate);
 }
@@ -164,33 +158,30 @@ void exception_init(void)
 #endif
 	install_exception_handlers();
 	
-	exc_register(EXC_IRQ, "interrupt", (iroutine) irq_exception);
-	exc_register(EXC_PREFETCH_ABORT, "prefetch abort",
-	    (iroutine) prefetch_abort);
-	exc_register(EXC_DATA_ABORT, "data abort", (iroutine) data_abort);
-	exc_register(EXC_SWI, "software interrupt", (iroutine) swi_exception);
+	exc_register(EXC_IRQ, "interrupt", true,
+	    (iroutine_t) irq_exception);
+	exc_register(EXC_PREFETCH_ABORT, "prefetch abort", true,
+	    (iroutine_t) prefetch_abort);
+	exc_register(EXC_DATA_ABORT, "data abort", true,
+	    (iroutine_t) data_abort);
+	exc_register(EXC_SWI, "software interrupt", true,
+	    (iroutine_t) swi_exception);
 }
 
 /** Prints #istate_t structure content.
  *
  * @param istate Structure to be printed.
  */
-void print_istate(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	printf("istate dump:\n");
-	
-	printf(" r0: %x    r1: %x    r2: %x    r3: %x\n",
+	printf("r0 =%#0.8lx\tr1 =%#0.8lx\tr2 =%#0.8lx\tr3 =%#0.8lx\n",
 	    istate->r0, istate->r1, istate->r2, istate->r3);
-	printf(" r4: %x    r5: %x    r6: %x    r7: %x\n", 
+	printf("r4 =%#0.8lx\tr5 =%#0.8lx\tr6 =%#0.8lx\tr7 =%#0.8lx\n",
 	    istate->r4, istate->r5, istate->r6, istate->r7);
-	printf(" r8: %x    r8: %x   r10: %x    fp: %x\n", 
+	printf("r8 =%#0.8lx\tr9 =%#0.8lx\tr10=%#0.8lx\tfp =%#0.8lx\n",
 	    istate->r8, istate->r9, istate->r10, istate->fp);
-	printf(" r12: %x    sp: %x    lr: %x  spsr: %x\n",
+	printf("r12=%#0.8lx\tsp =%#0.8lx\tlr =%#0.8lx\tspsr=%#0.8lx\n",
 	    istate->r12, istate->sp, istate->lr, istate->spsr);
-	
-	printf(" pc: %x\n", istate->pc);
-
-	stack_trace_istate(istate);
 }
 
 /** @}

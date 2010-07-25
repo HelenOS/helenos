@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -35,12 +35,22 @@
 #ifndef KERN_ppc32_BARRIER_H_
 #define KERN_ppc32_BARRIER_H_
 
-#define CS_ENTER_BARRIER()	asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()	asm volatile ("" ::: "memory")
+#include <trace.h>
 
-#define memory_barrier() asm volatile ("sync" ::: "memory")
-#define read_barrier() asm volatile ("sync" ::: "memory")
-#define write_barrier() asm volatile ("eieio" ::: "memory")
+#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
+#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
+
+#define memory_barrier()  asm volatile ("sync" ::: "memory")
+#define read_barrier()    asm volatile ("sync" ::: "memory")
+#define write_barrier()   asm volatile ("eieio" ::: "memory")
+
+#define instruction_barrier() \
+	asm volatile ( \
+		"sync\n" \
+		"isync\n" \
+	)
+
+#define COHERENCE_INVAL_MIN  4
 
 /*
  * The IMB sequence used here is valid for all possible cache models
@@ -49,38 +59,37 @@
  * chapter 5.1.5.2
  */
 
-static inline void smc_coherence(void *addr)
+NO_TRACE static inline void smc_coherence(void *addr)
 {
 	asm volatile (
-		"dcbst 0, %0\n"
+		"dcbst 0, %[addr]\n"
 		"sync\n"
-		"icbi 0, %0\n"
+		"icbi 0, %[addr]\n"
 		"sync\n"
 		"isync\n"
-		:: "r" (addr)
+		:: [addr] "r" (addr)
 	);
 }
 
-#define COHERENCE_INVAL_MIN	4
-
-static inline void smc_coherence_block(void *addr, unsigned long len)
+NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
 {
-	unsigned long i;
-
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN) {
-		asm volatile ("dcbst 0, %0\n" :: "r" (addr + i));
-	}
-
-	asm volatile ("sync");
-
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN) {
-		asm volatile ("icbi 0, %0\n" :: "r" (addr + i));
-	}
-
-	asm volatile (
-		"sync\n"
-		"isync\n"
-	);
+	unsigned int i;
+	
+	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
+		asm volatile (
+			"dcbst 0, %[addr]\n"
+			:: [addr] "r" (addr + i)
+		);
+	
+	memory_barrier();
+	
+	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
+		asm volatile (
+			"icbi 0, %[addr]\n"
+			:: [addr] "r" (addr + i)
+		);
+	
+	instruction_barrier();
 }
 
 #endif

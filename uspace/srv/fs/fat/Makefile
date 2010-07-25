@@ -28,10 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a
 EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
-
-OUTPUT = fat
+BINARY = fat
 
 SOURCES = \
 	fat.c \
@@ -40,4 +39,4 @@ SOURCES = \
 	fat_dentry.c \
 	fat_fat.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -35,7 +35,9 @@
 #ifndef KERN_ppc32_ARCH_H_
 #define KERN_ppc32_ARCH_H_
 
-extern void arch_pre_main(void);
+#include <arch/boot/boot.h>
+
+extern void arch_pre_main(bootinfo_t *);
 
 #endif
 

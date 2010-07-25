@@ -185,7 +185,7 @@ extern int classic;
 
 extern int fits_in(const struct shape *, int);
 extern void place(const struct shape *, int, int);
-extern void stop(char *);
+extern void stop(const char *);
 
 /** @}
  */

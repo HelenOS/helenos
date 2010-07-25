@@ -39,13 +39,14 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
 #include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
+#include <macros.h>
 #include <userspace.h>
 #include <console/console.h>
 #include <proc/uarg.h>
@@ -65,7 +66,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -77,12 +78,8 @@ static uint64_t iosapic_base = 0xfec00000;
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	/* Setup usermode init tasks. */
-
-	unsigned int i;
-	
-	init.cnt = bootinfo->taskmap.count;
-	
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].addr =
 		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
@@ -211,7 +208,9 @@ void arch_post_smp_init(void)
 	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
-	
+
+	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);

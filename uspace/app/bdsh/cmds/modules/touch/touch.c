@@ -37,7 +37,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/types.h>
-#include <string.h>
+#include <str.h>
 
 #include "config.h"
 #include "errors.h"
@@ -46,7 +46,7 @@
 #include "touch.h"
 #include "cmds.h"
 
-static char *cmdname = "touch";
+static const char *cmdname = "touch";
 
 /* Dispays help for touch in various levels */
 void help_cmd_touch(unsigned int level)

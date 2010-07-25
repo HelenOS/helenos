@@ -31,11 +31,11 @@
  */
 /** @file
  */
- 
+
 #ifndef KERN_MAIN_H_
 #define KERN_MAIN_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 extern size_t hardcoded_kdata_size;
 extern size_t hardcoded_ktext_size;

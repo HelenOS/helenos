@@ -35,20 +35,10 @@
 
 #include <arch/asm.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <ddi/irq.h>
 #include <ddi/device.h>
 #include <interrupt.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
-
-/** Initial size of a table holding interrupt handlers. */
-#define IRQ_COUNT 8
 
 /** Disable interrupts.
  *
@@ -96,12 +86,26 @@ ipl_t interrupts_read(void)
 	return current_status_reg_read();
 }
 
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+bool interrupts_disabled(void)
+{
+	return current_status_reg_read() & STATUS_REG_IRQ_DISABLED_BIT;
+}
+
 /** Initialize basic tables for exception dispatching
  * and starts the timer.
  */
 void interrupt_init(void)
 {
-	irq_init(IRQ_COUNT, IRQ_COUNT);
+	size_t irq_count;
+
+	irq_count = machine_get_irq_count();
+	irq_init(irq_count, irq_count);
+
 	machine_timer_irq_start();
 }
 

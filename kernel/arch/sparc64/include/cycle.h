@@ -35,9 +35,10 @@
 #ifndef KERN_sparc64_CYCLE_H_
 #define KERN_sparc64_CYCLE_H_
 
-#include <arch/asm.h> 
+#include <arch/asm.h>
+#include <trace.h>
 
-static inline uint64_t get_cycle(void)
+NO_TRACE static inline uint64_t get_cycle(void)
 {
 	return tick_read();
 }

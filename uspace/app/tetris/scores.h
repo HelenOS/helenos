@@ -47,7 +47,7 @@
  */
 
 #include <sys/time.h>
-#include <string.h>
+#include <str.h>
 
 #define MAXLOGNAME   16
 #define MAXHISCORES  10

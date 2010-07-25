@@ -38,7 +38,7 @@
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <mm/as.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 #include <config.h>
 #include <func.h>
@@ -60,14 +60,16 @@ void page_arch_init(void)
 		/*
 		 * PA2KA(identity) mapping for all frames until last_frame.
 		 */
+		page_table_lock(AS_KERNEL, true);
 		for (cur = 0; cur < last_frame; cur += FRAME_SIZE) {
 			flags = PAGE_CACHEABLE | PAGE_WRITE;
 			if ((PA2KA(cur) >= config.base) && (PA2KA(cur) < config.base + config.kernel_size))
 				flags |= PAGE_GLOBAL;
 			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 		}
+		page_table_unlock(AS_KERNEL, true);
 		
-		exc_register(14, "page_fault", (iroutine) page_fault);
+		exc_register(14, "page_fault", true, (iroutine_t) page_fault);
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 	} else
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
@@ -83,17 +85,19 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
+	page_table_lock(AS_KERNEL, true);
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
 		uintptr_t addr = PFN2ADDR(i);
 		page_mapping_insert(AS_KERNEL, virtaddr + addr, physaddr + addr, PAGE_NOT_CACHEABLE | PAGE_WRITE);
 	}
+	page_table_unlock(AS_KERNEL, true);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	
 	return virtaddr;
 }
 
-void page_fault(int n __attribute__((unused)), istate_t *istate)
+void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	uintptr_t page;
 	pf_access_t access;
@@ -110,10 +114,7 @@ void page_fault(int n __attribute__((unused)), istate_t *istate)
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-		
-		decode_istate(istate);
-		printf("page fault address: %#lx\n", page);
-		panic("Page fault.");
+		panic_memtrap(istate, access, page, NULL);
 	}
 }
 

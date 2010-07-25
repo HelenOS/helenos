@@ -32,16 +32,18 @@
 /** @file
  */
 
-#include <arch/smp/dorder.h>
+#include <smp/ipi.h>
+
+#ifdef CONFIG_SMP
 
 #define MSIM_DORDER_ADDRESS  0xB0000004
 
 void ipi_broadcast_arch(int ipi)
 {
-#ifdef CONFIG_SMP
 	*((volatile unsigned int *) MSIM_DORDER_ADDRESS) = 0x7FFFFFFF;
-#endif
 }
+
+#endif
 
 /** @}
  */

@@ -38,7 +38,7 @@
 #define KERN_NS16550_H_
 
 #include <ddi/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 
 #define IER_ERBFI  0x01  /** Enable Receive Buffer Full Interrupt. */

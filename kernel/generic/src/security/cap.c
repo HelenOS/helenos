@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
- * @file	cap.c
- * @brief	Capabilities control.
+ * @file cap.c
+ * @brief Capabilities control.
  *
  * @see cap.h
  */
- 
+
 #include <security/cap.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
@@ -47,39 +47,29 @@
 
 /** Set capabilities.
  *
- * @param t Task whose capabilities are to be changed.
+ * @param task Task whose capabilities are to be changed.
  * @param caps New set of capabilities.
+ *
  */
-void cap_set(task_t *t, cap_t caps)
+void cap_set(task_t *task, cap_t caps)
 {
-	ipl_t ipl;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&t->lock);
-	
-	t->capabilities = caps;
-	
-	spinlock_unlock(&t->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_lock(&task->lock, true);
+	task->capabilities = caps;
+	irq_spinlock_unlock(&task->lock, true);
 }
 
 /** Get capabilities.
  *
- * @param t Task whose capabilities are to be returned.
+ * @param task Task whose capabilities are to be returned.
+ *
  * @return Task's capabilities.
+ *
  */
-cap_t cap_get(task_t *t)
+cap_t cap_get(task_t *task)
 {
-	ipl_t ipl;
-	cap_t caps;
-	
-	ipl = interrupts_disable();
-	spinlock_lock(&t->lock);
-	
-	caps = t->capabilities;
-	
-	spinlock_unlock(&t->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_lock(&task->lock, true);
+	cap_t caps = task->capabilities;
+	irq_spinlock_unlock(&task->lock, true);
 	
 	return caps;
 }
@@ -92,36 +82,31 @@ cap_t cap_get(task_t *t)
  * @param caps Capabilities to grant.
  *
  * @return Zero on success or an error code from @ref errno.h.
+ *
  */
 unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
-	sysarg64_t taskid_arg;
-	task_t *t;
-	ipl_t ipl;
-	int rc;
-	
 	if (!(cap_get(TASK) & CAP_CAP))
 		return (unative_t) EPERM;
 	
-	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	sysarg64_t taskid_arg;
+	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
 		return (unative_t) rc;
-		
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
-	t = task_find_by_id((task_id_t) taskid_arg.value);
-	if ((!t) || (!context_check(CONTEXT, t->context))) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
+	
+	if ((!task) || (!context_check(CONTEXT, task->context))) {
+		irq_spinlock_unlock(&tasks_lock, true);
 		return (unative_t) ENOENT;
 	}
 	
-	spinlock_lock(&t->lock);
-	cap_set(t, cap_get(t) | caps);
-	spinlock_unlock(&t->lock);
+	irq_spinlock_lock(&task->lock, false);
+	task->capabilities |= caps;
+	irq_spinlock_unlock(&task->lock, false);
 	
-	spinlock_unlock(&tasks_lock);
-	interrupts_restore(ipl);	
+	irq_spinlock_unlock(&tasks_lock, true);
 	return 0;
 }
 
@@ -134,48 +119,42 @@ unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
  * @param caps Capabilities to revoke.
  *
  * @return Zero on success or an error code from @ref errno.h.
+ *
  */
 unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
 	sysarg64_t taskid_arg;
-	task_t *t;
-	ipl_t ipl;
-	int rc;
-	
-	rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
 		return (unative_t) rc;
-
-	ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);	
-	t = task_find_by_id((task_id_t) taskid_arg.value);
-	if ((!t) || (!context_check(CONTEXT, t->context))) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	
+	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
+	if ((!task) || (!context_check(CONTEXT, task->context))) {
+		irq_spinlock_unlock(&tasks_lock, true);
 		return (unative_t) ENOENT;
 	}
-
+	
 	/*
 	 * Revoking capabilities is different from granting them in that
 	 * a task can revoke capabilities from itself even if it
 	 * doesn't have CAP_CAP.
 	 */
-	if (!(cap_get(TASK) & CAP_CAP) || !(t == TASK)) {
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+	irq_spinlock_unlock(&TASK->lock, false);
+	
+	if ((!(TASK->capabilities & CAP_CAP)) || (task != TASK)) {
+		irq_spinlock_unlock(&TASK->lock, false);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return (unative_t) EPERM;
 	}
 	
-	spinlock_lock(&t->lock);
-	cap_set(t, cap_get(t) & ~caps);
-	spinlock_unlock(&t->lock);
-
-	spinlock_unlock(&tasks_lock);
-
-	interrupts_restore(ipl);
+	task->capabilities &= ~caps;
+	irq_spinlock_unlock(&TASK->lock, false);
+	
+	irq_spinlock_unlock(&tasks_lock, true);
 	return 0;
 }
 
 /** @}
  */
-

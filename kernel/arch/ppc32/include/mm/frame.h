@@ -41,9 +41,22 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
+#include <trace.h>
 
 extern uintptr_t last_frame;
+
+NO_TRACE static inline uint32_t physmem_top(void)
+{
+	uint32_t physmem;
+	
+	asm volatile (
+		"mfsprg3 %[physmem]\n"
+		: [physmem] "=r" (physmem)
+	);
+	
+	return physmem;
+}
 
 extern void frame_arch_init(void);
 extern void physmem_print(void);

@@ -67,9 +67,6 @@
 #define i8042_AUX_DISABLE	0x20
 #define i8042_KBD_TRANSLATE	0x40
 
-/* Mouse constants */
-#define MOUSE_OUT_INIT  0xf4
-#define MOUSE_ACK       0xfa
 
 enum {
 	DEVID_PRI = 0, /**< primary device */
@@ -166,40 +163,50 @@ int main(int argc, char *argv[])
 
 static int i8042_init(void)
 {
+	if (sysinfo_get_value("i8042.address.physical", &i8042_physical) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("i8042.address.kernel", &i8042_kernel) != EOK)
+		return -1;
+	
 	void *vaddr;
-
-	i8042_physical = sysinfo_value("i8042.address.physical");
-	i8042_kernel = sysinfo_value("i8042.address.kernel");
 	if (pio_enable((void *) i8042_physical, sizeof(i8042_t), &vaddr) != 0)
 		return -1;
+	
 	i8042 = vaddr;
-
+	
+	sysarg_t inr_a;
+	sysarg_t inr_b;
+	
+	if (sysinfo_get_value("i8042.inr_a", &inr_a) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("i8042.inr_b", &inr_b) != EOK)
+		return -1;
+	
 	async_set_interrupt_received(i8042_irq_handler);
-
-	/* Disable kbd, enable mouse */
-	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
+	
+	/* Disable kbd and aux */
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
-	pio_write_8(&i8042->data, i8042_KBD_DISABLE);
-	wait_ready();
+	pio_write_8(&i8042->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
 
 	/* Flush all current IO */
 	while (pio_read_8(&i8042->status) & i8042_OUTPUT_FULL)
 		(void) pio_read_8(&i8042->data);
 
-	i8042_port_write(DEVID_AUX, MOUSE_OUT_INIT);
-
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(sysinfo_value("i8042.inr_a"), device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(sysinfo_value("i8042.inr_b"), device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
+	ipc_register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
+	printf("%s: registered for interrupts %d and %d\n", NAME, inr_a, inr_b);
 
+	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
 	wait_ready();
 	pio_write_8(&i8042->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
-	wait_ready();
 
 	return 0;
 }
@@ -270,11 +277,11 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 void i8042_port_write(int devid, uint8_t data)
 {
 	if (devid == DEVID_AUX) {
-		pio_write_8(&i8042->status, i8042_CMD_WRITE_AUX);
 		wait_ready();
+		pio_write_8(&i8042->status, i8042_CMD_WRITE_AUX);
 	}
-	pio_write_8(&i8042->data, data);
 	wait_ready();
+	pio_write_8(&i8042->data, data);
 }
 
 static void i8042_irq_handler(ipc_callid_t iid, ipc_call_t *call)

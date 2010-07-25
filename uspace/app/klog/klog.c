@@ -63,25 +63,30 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	size_t klog_pages = sysinfo_value("klog.pages");
+	size_t klog_pages;
+	if (sysinfo_get_value("klog.pages", &klog_pages) != EOK) {
+		printf("%s: Error getting klog address\n", NAME);
+		return -1;
+	}
+	
 	size_t klog_size = klog_pages * PAGE_SIZE;
 	klog_length = klog_size / sizeof(wchar_t);
 	
 	klog = (wchar_t *) as_get_mappable_page(klog_size);
 	if (klog == NULL) {
-		printf(NAME ": Error allocating memory area\n");
+		printf("%s: Error allocating memory area\n", NAME);
 		return -1;
 	}
 	
 	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog,
 	    klog_size, SERVICE_MEM_KLOG);
 	if (res != EOK) {
-		printf(NAME ": Error initializing memory area\n");
+		printf("%s: Error initializing memory area\n", NAME);
 		return -1;
 	}
 	
 	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
+		printf("%s: Error registering klog notifications\n", NAME);
 		return -1;
 	}
 	

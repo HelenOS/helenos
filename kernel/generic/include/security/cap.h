@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic 
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -34,7 +34,7 @@
 
 /**
  * @file
- * @brief	Capabilities definitions.
+ * @brief Capabilities definitions.
  *
  * Capabilities represent virtual rights that entitle their
  * holder to perform certain security sensitive tasks.
@@ -48,7 +48,7 @@
 #define __CAP_H__
 
 #include <syscall/sysarg64.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * CAP_CAP allows its holder to grant/revoke arbitrary

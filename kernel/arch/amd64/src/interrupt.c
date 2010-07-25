@@ -62,26 +62,23 @@ void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
 
-void decode_istate(int n, istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	char *symbol;
+	printf("cs =%p\trip=%p\trfl=%p\terr=%p\n",
+	    istate->cs, istate->rip, istate->rflags, istate->error_word);
 
-	symbol = symtab_fmt_name_lookup(istate->rip);
-
-	printf("-----EXCEPTION(%d) OCCURED----- ( %s )\n", n, __func__);
-	printf("%%rip: %#llx (%s)\n", istate->rip, symbol);
-	printf("ERROR_WORD=%#llx\n", istate->error_word);
-	printf("%%cs=%#llx, rflags=%#llx, %%cr0=%#llx\n", istate->cs,
-	    istate->rflags, read_cr0());
-	printf("%%rax=%#llx, %%rcx=%#llx, %%rdx=%#llx\n", istate->rax,
-	    istate->rcx, istate->rdx);
-	printf("%%rsi=%#llx, %%rdi=%#llx, %%r8=%#llx\n", istate->rsi,
-	    istate->rdi, istate->r8);
-	printf("%%r9=%#llx, %%r10=%#llx, %%r11=%#llx\n", istate->r9,
-	    istate->r10, istate->r11);
-	printf("%%rsp=%#llx\n", &istate->stack[0]);
+	if (istate_from_uspace(istate))
+		printf("ss =%p\n", istate->ss);
 	
-	stack_trace_istate(istate);
+	printf("rax=%p\trbx=%p\trcx=%p\trdx=%p\n",
+	    istate->rax, istate->rbx, istate->rcx, istate->rdx);
+	printf("rsi=%p\trdi=%p\trbp=%p\trsp=%p\n",
+	    istate->rsi, istate->rdi, istate->rbp,
+	    istate_from_uspace(istate) ? istate->rsp : (uintptr_t)&istate->rsp);
+	printf("r8 =%p\tr9 =%p\tr10=%p\tr11=%p\n",
+	    istate->r8, istate->r9, istate->r10, istate->r11);
+	printf("r12=%p\tr13=%p\tr14=%p\tr15=%p\n",
+	    istate->r12, istate->r13, istate->r14, istate->r15);
 }
 
 static void trap_virtual_eoi(void)
@@ -93,30 +90,28 @@ static void trap_virtual_eoi(void)
 
 }
 
-static void null_interrupt(int n, istate_t *istate)
+static void null_interrupt(unsigned int n, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "Unserviced interrupt: %d.", n);
-	decode_istate(n, istate);
-	panic("Unserviced interrupt.");
+	fault_if_from_uspace(istate, "Unserviced interrupt: %u.", n);
+	panic_badtrap(istate, n, "Unserviced interrupt.");
 }
 
-static void de_fault(int n, istate_t *istate)
+static void de_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Divide error.");
-	decode_istate(n, istate);
-	panic("Divide error.");
+	panic_badtrap(istate, n, "Divide error.");
 }
 
-/** General Protection Fault. */
-static void gp_fault(int n, istate_t *istate)
+/** General Protection Fault.
+ *
+ */
+static void gp_fault(unsigned int n, istate_t *istate)
 {
 	if (TASK) {
-		size_t ver;
-
-		spinlock_lock(&TASK->lock);
-		ver = TASK->arch.iomapver;
-		spinlock_unlock(&TASK->lock);
-
+		irq_spinlock_lock(&TASK->lock, false);
+		size_t ver = TASK->arch.iomapver;
+		irq_spinlock_unlock(&TASK->lock, false);
+		
 		if (CPU->arch.iomapver_copy != ver) {
 			/*
 			 * This fault can be caused by an early access
@@ -130,19 +125,16 @@ static void gp_fault(int n, istate_t *istate)
 		}
 		fault_if_from_uspace(istate, "General protection fault.");
 	}
-
-	decode_istate(n, istate);
-	panic("General protection fault.");
+	panic_badtrap(istate, n, "General protection fault.");
 }
 
-static void ss_fault(int n, istate_t *istate)
+static void ss_fault(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Stack fault.");
-	decode_istate(n, istate);
-	panic("Stack fault.");
+	panic_badtrap(istate, n, "Stack fault.");
 }
 
-static void nm_fault(int n, istate_t *istate)
+static void nm_fault(unsigned int n, istate_t *istate)
 {
 #ifdef CONFIG_FPU_LAZY
 	scheduler_fpu_lazy_request();
@@ -153,19 +145,21 @@ static void nm_fault(int n, istate_t *istate)
 }
 
 #ifdef CONFIG_SMP
-static void tlb_shootdown_ipi(int n, istate_t *istate)
+static void tlb_shootdown_ipi(unsigned int n, istate_t *istate)
 {
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
 }
 #endif
 
-/** Handler of IRQ exceptions */
-static void irq_interrupt(int n, istate_t *istate)
+/** Handler of IRQ exceptions.
+ *
+ */
+static void irq_interrupt(unsigned int n, istate_t *istate)
 {
 	ASSERT(n >= IVT_IRQBASE);
 	
-	int inum = n - IVT_IRQBASE;
+	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	ASSERT(inum < IRQ_COUNT);
 	ASSERT((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
@@ -175,20 +169,20 @@ static void irq_interrupt(int n, istate_t *istate)
 		/*
 		 * The IRQ handler was found.
 		 */
-		 
+		
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
 			trap_virtual_eoi();
 			ack = true;
 		}
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		/*
 		 * Spurious interrupt.
 		 */
 #ifdef CONFIG_DEBUG
-		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);
+		printf("cpu%u: spurious interrupt (inum=%u)\n", CPU->id, inum);
 #endif
 	}
 	
@@ -198,26 +192,25 @@ static void irq_interrupt(int n, istate_t *istate)
 
 void interrupt_init(void)
 {
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < IVT_ITEMS; i++)
-		exc_register(i, "null", (iroutine) null_interrupt);
+		exc_register(i, "null", false, (iroutine_t) null_interrupt);
 	
 	for (i = 0; i < IRQ_COUNT; i++) {
 		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
-			exc_register(IVT_IRQBASE + i, "irq",
-			    (iroutine) irq_interrupt);
+			exc_register(IVT_IRQBASE + i, "irq", true,
+			    (iroutine_t) irq_interrupt);
 	}
 	
-	exc_register(0, "de_fault", (iroutine) de_fault);
-	exc_register(7, "nm_fault", (iroutine) nm_fault);
-	exc_register(12, "ss_fault", (iroutine) ss_fault);
-	exc_register(13, "gp_fault", (iroutine) gp_fault);
-	exc_register(14, "ident_mapper", (iroutine) ident_page_fault);
+	exc_register(0, "de_fault", true, (iroutine_t) de_fault);
+	exc_register(7, "nm_fault", true, (iroutine_t) nm_fault);
+	exc_register(12, "ss_fault", true, (iroutine_t) ss_fault);
+	exc_register(13, "gp_fault", true, (iroutine_t) gp_fault);
 	
 #ifdef CONFIG_SMP
-	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown",
-	    (iroutine) tlb_shootdown_ipi);
+	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
+	    (iroutine_t) tlb_shootdown_ipi);
 #endif
 }
 

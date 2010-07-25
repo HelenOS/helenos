@@ -44,8 +44,10 @@
 #include <kbd.h>
 #include <ddi.h>
 #include <stdio.h>
+#include <errno.h>
 
-#define PL050_STAT_RXFULL (1 << 4)
+#define PL050_STAT_RXFULL  (1 << 4)
+
 static irq_cmd_t pl050_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
@@ -65,7 +67,7 @@ static irq_cmd_t pl050_cmds[] = {
 	},
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = NULL,	/* will be patched in run-time */
+		.addr = NULL,  /* Will be patched in run-time */
 		.dstarg = 2
 	},
 	{
@@ -82,14 +84,24 @@ static void pl050_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int kbd_port_init(void)
 {
-
-	pl050_kbd.cmds[0].addr = (void *) sysinfo_value("kbd.address.status");
-	pl050_kbd.cmds[3].addr = (void *) sysinfo_value("kbd.address.data");
-
+	sysarg_t addr;
+	if (sysinfo_get_value("kbd.address.status", &addr) != EOK)
+		return -1;
+	
+	pl050_kbd.cmds[0].addr = (void *) addr;
+	
+	if (sysinfo_get_value("kbd.address.data", &addr) != EOK)
+		return -1;
+	
+	pl050_kbd.cmds[3].addr = (void *) addr;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
 	async_set_interrupt_received(pl050_irq_handler);
-
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(), 0, &pl050_kbd);
-
+	ipc_register_irq(inr, device_assign_devno(), 0, &pl050_kbd);
+	
 	return 0;
 }
 

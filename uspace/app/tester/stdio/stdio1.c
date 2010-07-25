@@ -35,10 +35,10 @@
 
 static char buf[BUF_SIZE + 1];
 
-char *test_stdio1(void)
+const char *test_stdio1(void)
 {
 	FILE *file;
-	char *file_name = "/readme";
+	const char *file_name = "/readme";
 	
 	TPRINTF("Open file \"%s\"...", file_name);
 	errno = 0;
