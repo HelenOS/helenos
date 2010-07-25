@@ -68,6 +68,7 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
 static void gta02_frame_init(void);
 static void gta02_output_init(void);
 static void gta02_input_init(void);
+static size_t gta02_get_irq_count(void);
 
 static void gta02_timer_irq_init(void);
 static void gta02_timer_start(void);
@@ -88,7 +89,8 @@ struct arm_machine_ops gta02_machine_ops = {
 	gta02_irq_exception,
 	gta02_frame_init,
 	gta02_output_init,
-	gta02_input_init
+	gta02_input_init,
+	gta02_get_irq_count
 };
 
 static void gta02_init(void)
@@ -207,6 +209,11 @@ static void gta02_input_init(void)
 			    S3C24XX_SUBINT_RXD2);
 		}
 	}
+}
+
+size_t gta02_get_irq_count(void)
+{
+	return GTA02_IRQ_COUNT;
 }
 
 static void gta02_timer_irq_init(void)
