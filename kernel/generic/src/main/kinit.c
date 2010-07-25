@@ -225,10 +225,10 @@ void kinit(void *arg)
 	/*
 	 * Run user tasks.
 	 */
-/*	for (i = 0; i < init.cnt; i++) {
+	for (i = 0; i < init.cnt; i++) {
 		if (programs[i].task != NULL)
 			program_ready(&programs[i]);
-	}*/
+	}
 	
 #ifdef CONFIG_KCONSOLE
 	if (!stdin) {
