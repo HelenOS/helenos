@@ -54,6 +54,7 @@ struct arm_machine_ops {
 	void (*machine_frame_init)(void);
 	void (*machine_output_init)(void);
 	void (*machine_input_init)(void);
+	size_t (*machine_get_irq_count)(void);
 };
 
 /** Pointer to arm_machine_ops structure being used. */

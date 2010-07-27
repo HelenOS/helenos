@@ -34,12 +34,10 @@
  * @brief Samsung S3C24xx on-chip UART driver.
  */
 
-#ifndef KERN_S3C24XX_UART_H_
-#define KERN_S3C24XX_UART_H_
+#ifndef S3C24XX_UART_H_
+#define S3C24XX_UART_H_
 
-#include <ddi/irq.h>
-#include <console/chardev.h>
-#include <typedefs.h>
+#include <sys/types.h>
 
 /** S3C24xx UART I/O */
 typedef struct {
@@ -61,14 +59,18 @@ typedef struct {
 
 /** S3C24xx UART instance */
 typedef struct {
-	s3c24xx_uart_io_t *io;
-	indev_t *indev;
-	irq_t irq;
-} s3c24xx_uart_t;
+	/** Physical device address */
+	uintptr_t paddr;
 
-extern outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *, inr_t inr);
-extern void s3c24xx_uart_input_wire(s3c24xx_uart_t *,
-    indev_t *);
+	/** Device I/O structure */
+	s3c24xx_uart_io_t *io;
+
+	/** Callback phone to the client */
+	int client_phone;
+
+	/** Device handle */
+	dev_handle_t dev_handle;
+} s3c24xx_uart_t;
 
 #endif
 

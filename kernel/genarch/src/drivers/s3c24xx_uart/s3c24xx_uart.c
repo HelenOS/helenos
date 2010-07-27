@@ -39,37 +39,31 @@
 
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
 #include <console/chardev.h>
+#include <console/console.h>
+#include <ddi/device.h>
 #include <arch/asm.h>
 #include <mm/slab.h>
-#include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
-/** S3C24xx UART register offsets */
-#define S3C24XX_UTRSTAT		0x10
-#define S3C24XX_UTXH		0x20
+/* Bits in UTRSTAT register */
+#define S3C24XX_UTRSTAT_TX_EMPTY	0x4
+#define S3C24XX_UTRSTAT_RDATA		0x1
 
-/* Bits in UTXH register */
-#define S3C24XX_UTXH_TX_EMPTY	0x4
-
-typedef struct {
-	ioport8_t *base;
-} s3c24xx_uart_instance_t;
+#define S3C24XX_UFSTAT_TX_FULL		0x4000
+#define S3C24XX_UFSTAT_RX_FULL		0x0040
+#define S3C24XX_UFSTAT_RX_COUNT		0x002f
 
 static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 {
-	s3c24xx_uart_instance_t *instance =
-	    (s3c24xx_uart_instance_t *) dev->data;
-	ioport32_t *utrstat, *utxh;
+	s3c24xx_uart_t *uart =
+	    (s3c24xx_uart_t *) dev->data;
 
-	utrstat = (ioport32_t *) (instance->base + S3C24XX_UTRSTAT);
-	utxh = (ioport32_t *) (instance->base + S3C24XX_UTXH);
-
-	/* Wait for transmitter to be empty. */
-	while ((pio_read_32(utrstat) & S3C24XX_UTXH_TX_EMPTY) == 0)
+	/* Wait for space becoming available in Tx FIFO. */
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_TX_FULL) != 0)
 		;
 
-	pio_write_32(utxh, byte);
+	pio_write_32(&uart->io->utxh, byte);
 }
 
 static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch, bool silent)
@@ -85,28 +79,60 @@ static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch, bool silent)
 	}
 }
 
+static irq_ownership_t s3c24xx_uart_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void s3c24xx_uart_irq_handler(irq_t *irq)
+{
+	s3c24xx_uart_t *uart = irq->instance;
+
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_RX_COUNT) != 0) {
+		uint32_t data = pio_read_32(&uart->io->urxh);
+		pio_read_32(&uart->io->uerstat);
+		indev_push_character(uart->indev, data & 0xff);
+	}
+}
+
 static outdev_operations_t s3c24xx_uart_ops = {
 	.write = s3c24xx_uart_putchar,
 	.redraw = NULL
 };
 
-outdev_t *s3c24xx_uart_init(ioport8_t *base)
+outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 {
 	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!uart_dev)
 		return NULL;
 
-	s3c24xx_uart_instance_t *instance =
-	    malloc(sizeof(s3c24xx_uart_instance_t), FRAME_ATOMIC);
-	if (!instance) {
+	s3c24xx_uart_t *uart =
+	    malloc(sizeof(s3c24xx_uart_t), FRAME_ATOMIC);
+	if (!uart) {
 		free(uart_dev);
 		return NULL;
 	}
 
 	outdev_initialize("s3c24xx_uart_dev", uart_dev, &s3c24xx_uart_ops);
-	uart_dev->data = instance;
+	uart_dev->data = uart;
 
-	instance->base = base;
+	uart->io = io;
+	uart->indev = NULL;
+
+	/* Initialize IRQ structure. */
+	irq_initialize(&uart->irq);
+	uart->irq.devno = device_assign_devno();
+	uart->irq.inr = inr;
+	uart->irq.claim = s3c24xx_uart_claim;
+	uart->irq.handler = s3c24xx_uart_irq_handler;
+	uart->irq.instance = uart;
+
+	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
+	pio_write_32(&uart->io->ufcon, 0x01);
+
+	/* Set RX interrupt to pulse mode */
+	pio_write_32(&uart->io->ucon,
+	    pio_read_32(&uart->io->ucon) & ~(1 << 8));
 
 	if (!fb_exported) {
 		/*
@@ -115,12 +141,21 @@ outdev_t *s3c24xx_uart_init(ioport8_t *base)
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 3);
-		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(base));
+		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(io));
 
 		fb_exported = true;
 	}
 
 	return uart_dev;
+}
+
+void s3c24xx_uart_input_wire(s3c24xx_uart_t *uart, indev_t *indev)
+{
+	ASSERT(uart);
+	ASSERT(indev);
+
+	uart->indev = indev;
+	irq_register(&uart->irq);
 }
 
 /** @}

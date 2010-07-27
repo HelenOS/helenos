@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE), gta02)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	POSTBUILD = Makefile.uboot
-endif
+USPACE_PREFIX = ../../../..
 
-BFD_NAME = elf32-littlearm
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = arm
-
-BITS = 32
-ENDIANESS = LE
-PAGE_SIZE = 4096
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
-
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
+# Need to use short name because of FAT 8+3 limit
+BINARY = s3c24ser
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/mm.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS_C) \
-	genarch/src/division.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	s3c24xx_uart.c
+
+include $(USPACE_PREFIX)/Makefile.common

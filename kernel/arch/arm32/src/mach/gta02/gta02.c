@@ -42,6 +42,8 @@
 #include <genarch/drivers/s3c24xx_uart/s3c24xx_uart.h>
 #include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
 #include <genarch/drivers/s3c24xx_timer/s3c24xx_timer.h>
+#include <genarch/srln/srln.h>
+#include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
@@ -67,14 +69,15 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate);
 static void gta02_frame_init(void);
 static void gta02_output_init(void);
 static void gta02_input_init(void);
+static size_t gta02_get_irq_count(void);
 
 static void gta02_timer_irq_init(void);
 static void gta02_timer_start(void);
 static irq_ownership_t gta02_timer_irq_claim(irq_t *irq);
 static void gta02_timer_irq_handler(irq_t *irq);
 
-static void *gta02_scons_out;
-static s3c24xx_irqc_t *gta02_irqc;
+static outdev_t *gta02_scons_dev;
+static s3c24xx_irqc_t gta02_irqc;
 static s3c24xx_timer_t *gta02_timer;
 
 static irq_t gta02_timer_irq;
@@ -87,23 +90,19 @@ struct arm_machine_ops gta02_machine_ops = {
 	gta02_irq_exception,
 	gta02_frame_init,
 	gta02_output_init,
-	gta02_input_init
+	gta02_input_init,
+	gta02_get_irq_count
 };
 
 static void gta02_init(void)
 {
-	gta02_scons_out = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
-	gta02_irqc = (void *) hw_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE);
+	s3c24xx_irqc_regs_t *irqc_regs;
+
 	gta02_timer = (void *) hw_map(S3C24XX_TIMER_ADDRESS, PAGE_SIZE);
+	irqc_regs = (void *) hw_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE);
 
-	/* Make all interrupt sources use IRQ mode (not FIQ). */
-	pio_write_32(&gta02_irqc->intmod, 0x00000000);
-
-	/* Disable all interrupt sources. */
-	pio_write_32(&gta02_irqc->intmsk, 0xffffffff);
-
-	/* Disable interrupts from all sub-sources. */
-	pio_write_32(&gta02_irqc->intsubmsk, 0xffffffff);
+	/* Initialize interrupt controller. */
+	s3c24xx_irqc_init(&gta02_irqc, irqc_regs);
 }
 
 static void gta02_timer_irq_start(void)
@@ -131,7 +130,11 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t inum;
 
-	inum = pio_read_32(&gta02_irqc->intoffset);
+	/* Determine IRQ number. */
+	inum = s3c24xx_irqc_inum_get(&gta02_irqc);
+
+	/* Clear interrupt condition in the interrupt controller. */
+	s3c24xx_irqc_clear(&gta02_irqc, inum);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -143,10 +146,6 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
 		printf("cpu%d: spurious interrupt (inum=%d)\n",
 		    CPU->id, inum);
 	}
-
-	/* Clear interrupt condition in the interrupt controller. */
-	pio_write_32(&gta02_irqc->srcpnd, S3C24XX_INT_BIT(inum));
-	pio_write_32(&gta02_irqc->intpnd, S3C24XX_INT_BIT(inum));
 }
 
 static void gta02_frame_init(void)
@@ -175,15 +174,57 @@ static void gta02_output_init(void)
 		ddi_parea_register(&fb_parea);
 	}
 #endif
-	outdev_t *scons_dev;
 
-	scons_dev = s3c24xx_uart_init((ioport8_t *) gta02_scons_out);
-	if (scons_dev)
-		stdout_wire(scons_dev);
+	/* Initialize serial port of the debugging console. */
+	s3c24xx_uart_io_t *scons_io;
+
+	scons_io = (void *) hw_map(GTA02_SCONS_BASE, PAGE_SIZE);
+	gta02_scons_dev = s3c24xx_uart_init(scons_io, S3C24XX_INT_UART2);
+
+	if (gta02_scons_dev) {
+		/* Create output device. */
+		stdout_wire(gta02_scons_dev);
+	}
+
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("s3c24xx_uart", NULL, true);
+	sysinfo_set_item_val("s3c24xx_uart.inr", NULL, S3C24XX_INT_UART2);
+	sysinfo_set_item_val("s3c24xx_uart.address.physical", NULL,
+	    (uintptr_t) GTA02_SCONS_BASE);
+
 }
 
 static void gta02_input_init(void)
 {
+	s3c24xx_uart_t *scons_inst;
+
+	if (gta02_scons_dev) {
+		/* Create input device. */
+		scons_inst = (void *) gta02_scons_dev->data;
+
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			s3c24xx_uart_input_wire(scons_inst, srln);
+
+			/* Enable interrupts from UART2 */
+			s3c24xx_irqc_src_enable(&gta02_irqc,
+			    S3C24XX_INT_UART2);
+
+			/* Enable interrupts from UART2 RXD */
+			s3c24xx_irqc_subsrc_enable(&gta02_irqc,
+			    S3C24XX_SUBINT_RXD2);
+		}
+	}
+}
+
+size_t gta02_get_irq_count(void)
+{
+	return GTA02_IRQ_COUNT;
 }
 
 static void gta02_timer_irq_init(void)
@@ -247,8 +288,7 @@ static void gta02_timer_start(void)
 	pio_write_32(&timer->timer[0].cmpb, 0);
 
 	/* Enable interrupts from timer0 */
-	pio_write_32(&gta02_irqc->intmsk, pio_read_32(&gta02_irqc->intmsk) &
-	    ~S3C24XX_INT_BIT(S3C24XX_INT_TIMER0));
+	s3c24xx_irqc_src_enable(&gta02_irqc, S3C24XX_INT_TIMER0);
 
 	/* Load data from tcntb0/tcmpb0 into tcnt0/tcmp0. */
 	pio_write_32(&timer->tcon, TCON_T0_AUTO_RLD | TCON_T0_MUPDATE);
