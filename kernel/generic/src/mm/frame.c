@@ -160,8 +160,9 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 	size_t j;
 	for (j = zones.count; j > i; j--) {
 		zones.info[j] = zones.info[j - 1];
-		zones.info[j].buddy_system->data =
-		    (void *) &zones.info[j - 1];
+		if (zones.info[j].buddy_system != NULL)
+			zones.info[j].buddy_system->data =
+			    (void *) &zones.info[j];
 	}
 	
 	zones.count++;
@@ -761,8 +762,9 @@ bool zone_merge(size_t z1, size_t z2)
 	size_t i;
 	for (i = z2 + 1; i < zones.count; i++) {
 		zones.info[i - 1] = zones.info[i];
-		zones.info[i - 1].buddy_system->data =
-		    (void *) &zones.info[i - 1];
+		if (zones.info[i - 1].buddy_system != NULL)
+			zones.info[i - 1].buddy_system->data =
+			    (void *) &zones.info[i - 1];
 	}
 	
 	zones.count--;
